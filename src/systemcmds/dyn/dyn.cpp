@@ -38,18 +38,16 @@
  */
 
 #include <dlfcn.h>
-
-#include <px4_platform_common/module.h>
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 
 static void usage();
 
 extern "C" {
-	__EXPORT int dyn_main(int argc, char *argv[]);
+__EXPORT int dyn_main(int argc, char *argv[]);
 }
 
-static void usage()
-{
+static void usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"(
 ### Description

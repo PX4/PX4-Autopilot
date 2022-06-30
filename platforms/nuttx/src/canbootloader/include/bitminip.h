@@ -41,11 +41,12 @@
 
 #pragma once
 
-#define BIT(pos)                                (1ull<<(pos))
-#define BIT_MASK(length)                        (BIT(length)-1)
+#define BIT(pos) (1ull << (pos))
+#define BIT_MASK(length) (BIT(length) - 1)
 
-#define BITFEILD_MASK(lsb_pos, length)          ( BIT_MASK(length) << (lsb_pos))
-#define BITFEILD_ISOLATE(x, lsb_pos, length)    ((x) & (BITFEILD_MASK((lsb_pos), (length))))
-#define BITFEILD_EXCLUDE(x, lsb_pos, length)    ((x) & ~(BITFEILD_MASK((lsb_pos), (length))))
-#define BITFEILD_GET(y, lsb_pos, length)        (((y)>>(lsb_pos)) & BIT_MASK(length))
-#define BITFEILD_SET(y, x, lsb_pos, length)     ( y= ((y) & ~BF_MASK(lsb_pos, length)) | BITFEILD_ISOLATE(x, lsb_pos, length))
+#define BITFEILD_MASK(lsb_pos, length) (BIT_MASK(length) << (lsb_pos))
+#define BITFEILD_ISOLATE(x, lsb_pos, length) ((x) & (BITFEILD_MASK((lsb_pos), (length))))
+#define BITFEILD_EXCLUDE(x, lsb_pos, length) ((x) & ~(BITFEILD_MASK((lsb_pos), (length))))
+#define BITFEILD_GET(y, lsb_pos, length) (((y) >> (lsb_pos)) & BIT_MASK(length))
+#define BITFEILD_SET(y, x, lsb_pos, length) \
+	(y = ((y) & ~BF_MASK(lsb_pos, length)) | BITFEILD_ISOLATE(x, lsb_pos, length))

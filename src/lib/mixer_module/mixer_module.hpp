@@ -33,19 +33,10 @@
 
 #pragma once
 
-#include "actuator_test.hpp"
-#include "functions.hpp"
-
 #include <board_config.h>
 #include <drivers/drv_pwm_output.h>
-#include <lib/mixer/MixerGroup.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -53,14 +44,23 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/test_motor.h>
 
+#include <lib/mixer/MixerGroup.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+
+#include "actuator_test.hpp"
+#include "functions.hpp"
+
 using namespace time_literals;
 
 /**
  * @class OutputModuleInterface
  * Base class for an output module.
  */
-class OutputModuleInterface : public px4::ScheduledWorkItem, public ModuleParams
-{
+class OutputModuleInterface : public px4::ScheduledWorkItem, public ModuleParams {
 public:
 	static constexpr int MAX_ACTUATORS = PWM_OUTPUT_MAX_CHANNELS;
 
@@ -76,8 +76,8 @@ public:
 	 * @param num_control_groups_updated number of actuator_control groups updated
 	 * @return if true, the update got handled, and actuator_outputs can be published
 	 */
-	virtual bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-				   unsigned num_outputs, unsigned num_control_groups_updated) = 0;
+	virtual bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+				   unsigned num_control_groups_updated) = 0;
 
 	/** called whenever the mixer gets updated/reset */
 	virtual void mixerChanged() {}
@@ -90,19 +90,19 @@ public:
  * It can also drive the scheduling of the OutputModuleInterface (via uORB callbacks
  * to reduce output latency).
  */
-class MixingOutput : public ModuleParams
-{
+class MixingOutput : public ModuleParams {
 public:
 	static constexpr int MAX_ACTUATORS = OutputModuleInterface::MAX_ACTUATORS;
 
 	enum class SchedulingPolicy {
-		Disabled, ///< Do not drive scheduling (the module needs to call ScheduleOnInterval() for example)
-		Auto ///< Drive scheduling based on subscribed actuator controls topics (via uORB callbacks)
+		Disabled,  ///< Do not drive scheduling (the module needs to call ScheduleOnInterval() for example)
+		Auto       ///< Drive scheduling based on subscribed actuator controls topics (via uORB callbacks)
 	};
 
 	/**
 	 * Constructor
-	 * @param param_prefix for min/max/etc. params, e.g. "PWM_MAIN". This needs to match 'param_prefix' in the module.yaml
+	 * @param param_prefix for min/max/etc. params, e.g. "PWM_MAIN". This needs to match 'param_prefix' in the
+	 * module.yaml
 	 * @param max_num_outputs maximum number of supported outputs
 	 * @param interface Parent module for scheduling, parameter updates and callbacks
 	 * @param scheduling_policy
@@ -110,8 +110,7 @@ public:
 	 * @param ramp_up true if motor ramp up from disarmed to min upon arming is wanted
 	 */
 	MixingOutput(const char *param_prefix, uint8_t max_num_outputs, OutputModuleInterface &interface,
-		     SchedulingPolicy scheduling_policy,
-		     bool support_esc_calibration, bool ramp_up = true);
+		     SchedulingPolicy scheduling_policy, bool support_esc_calibration, bool ramp_up = true);
 
 	~MixingOutput();
 
@@ -124,7 +123,10 @@ public:
 	/**
 	 * Permanently disable an output function
 	 */
-	void disableFunction(int index) { _param_handles[index].function = PARAM_INVALID; _need_function_update = true; }
+	void disableFunction(int index) {
+		_param_handles[index].function = PARAM_INVALID;
+		_need_function_update = true;
+	}
 
 	/**
 	 * Check if a function is configured, i.e. not set to Disabled and initialized
@@ -201,7 +203,11 @@ public:
 	/**
 	 * Set the maximum number of outputs. This can only be used to reduce the maximum.
 	 */
-	void setMaxNumOutputs(uint8_t max_num_outputs) { if (max_num_outputs < _max_num_outputs) { _max_num_outputs = max_num_outputs; } }
+	void setMaxNumOutputs(uint8_t max_num_outputs) {
+		if (max_num_outputs < _max_num_outputs) {
+			_max_num_outputs = max_num_outputs;
+		}
+	}
 
 	const char *paramPrefix() const { return _param_prefix; }
 
@@ -223,10 +229,7 @@ private:
 	bool updateStaticMixer();
 	bool updateDynamicMixer();
 
-	bool armNoThrottle() const
-	{
-		return (_armed.prearmed && !_armed.armed) || _armed.in_esc_calibration_mode;
-	}
+	bool armNoThrottle() const { return (_armed.prearmed && !_armed.armed) || _armed.in_esc_calibration_mode; }
 
 	unsigned motorTest();
 
@@ -256,10 +259,7 @@ private:
 		param_t failsafe{PARAM_INVALID};
 	};
 
-	enum class MotorOrdering : int32_t {
-		PX4 = 0,
-		Betaflight = 1
-	};
+	enum class MotorOrdering : int32_t { PX4 = 0, Betaflight = 1 };
 
 	/**
 	 * Reorder outputs according to _param_mot_ordering
@@ -267,53 +267,54 @@ private:
 	 */
 	inline void reorderOutputs(uint16_t values[MAX_ACTUATORS]);
 
-	void lock() { do {} while (px4_sem_wait(&_lock) != 0); }
+	void lock() {
+		do {
+		} while (px4_sem_wait(&_lock) != 0);
+	}
 	void unlock() { px4_sem_post(&_lock); }
 
-	px4_sem_t _lock; /**< lock to protect access to work queue changes (includes ScheduleNow calls from another thread) */
+	px4_sem_t _lock; /**< lock to protect access to work queue changes (includes ScheduleNow calls from another
+			    thread) */
 
-	uint16_t _failsafe_value[MAX_ACTUATORS] {};
-	uint16_t _disarmed_value[MAX_ACTUATORS] {};
-	uint16_t _min_value[MAX_ACTUATORS] {};
-	uint16_t _max_value[MAX_ACTUATORS] {};
-	uint16_t _current_output_value[MAX_ACTUATORS] {}; ///< current output values (reordered)
-	uint16_t _reverse_output_mask{0}; ///< reverses the interval [min, max] -> [max, min], NOT motor direction
+	uint16_t _failsafe_value[MAX_ACTUATORS]{};
+	uint16_t _disarmed_value[MAX_ACTUATORS]{};
+	uint16_t _min_value[MAX_ACTUATORS]{};
+	uint16_t _max_value[MAX_ACTUATORS]{};
+	uint16_t _current_output_value[MAX_ACTUATORS]{};  ///< current output values (reordered)
+	uint16_t _reverse_output_mask{0};  ///< reverses the interval [min, max] -> [max, min], NOT motor direction
 
-	enum class OutputLimitState {
-		OFF = 0,
-		INIT,
-		RAMP,
-		ON
-	} _output_state{OutputLimitState::INIT};
+	enum class OutputLimitState { OFF = 0, INIT, RAMP, ON } _output_state{OutputLimitState::INIT};
 
 	hrt_abstime _output_time_armed{0};
-	const bool _output_ramp_up; ///< if true, motors will ramp up from disarmed to min_output after arming
+	const bool _output_ramp_up;  ///< if true, motors will ramp up from disarmed to min_output after arming
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 	uORB::SubscriptionCallbackWorkItem _control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
 	uORB::PublicationMulti<actuator_outputs_s> _outputs_pub{ORB_ID(actuator_outputs)};
-	uORB::PublicationMulti<control_allocator_status_s> _control_allocator_status_pub{ORB_ID(control_allocator_status)};
+	uORB::PublicationMulti<control_allocator_status_s> _control_allocator_status_pub{
+		ORB_ID(control_allocator_status)};
 
-	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
+	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS]{};
 	actuator_armed_s _armed{};
 
 	hrt_abstime _time_last_dt_update_multicopter{0};
 	hrt_abstime _time_last_dt_update_simple_mixer{0};
-	unsigned _max_topic_update_interval_us{0}; ///< max _control_subs topic update interval (0=unlimited)
+	unsigned _max_topic_update_interval_us{0};  ///< max _control_subs topic update interval (0=unlimited)
 
 	bool _throttle_armed{false};
-	bool _ignore_lockdown{false}; ///< if true, ignore the _armed.lockdown flag (for HIL outputs)
+	bool _ignore_lockdown{false};  ///< if true, ignore the _armed.lockdown flag (for HIL outputs)
 
 	MixerGroup *_mixers{nullptr};
 	uint32_t _groups_required{0};
-	uint32_t _groups_subscribed{1u << 31}; ///< initialize to a different value than _groups_required and outside of (1 << NUM_ACTUATOR_CONTROL_GROUPS)
+	uint32_t _groups_subscribed{1u << 31};  ///< initialize to a different value than _groups_required and outside
+						///< of (1 << NUM_ACTUATOR_CONTROL_GROUPS)
 
 	const SchedulingPolicy _scheduling_policy;
 	const bool _support_esc_calibration;
 
 	bool _wq_switched{false};
-	uint8_t _driver_instance{0}; ///< for boards that supports multiple outputs (e.g. PX4IO + FMU)
+	uint8_t _driver_instance{0};  ///< for boards that supports multiple outputs (e.g. PX4IO + FMU)
 	uint8_t _max_num_outputs;
 
 	struct MotorTest {
@@ -328,28 +329,28 @@ private:
 	perf_counter_t _control_latency_perf;
 
 	/* SYS_CTRL_ALLOC == 1 */
-	FunctionProviderBase *_function_allocated[MAX_ACTUATORS] {}; ///< unique allocated functions
-	FunctionProviderBase *_functions[MAX_ACTUATORS] {}; ///< currently assigned functions
-	OutputFunction _function_assignment[MAX_ACTUATORS] {};
+	FunctionProviderBase *_function_allocated[MAX_ACTUATORS]{};  ///< unique allocated functions
+	FunctionProviderBase *_functions[MAX_ACTUATORS]{};           ///< currently assigned functions
+	OutputFunction _function_assignment[MAX_ACTUATORS]{};
 	bool _need_function_update{true};
-	bool _use_dynamic_mixing{false}; ///< set to _param_sys_ctrl_alloc on init (avoid changing after startup)
+	bool _use_dynamic_mixing{false};  ///< set to _param_sys_ctrl_alloc on init (avoid changing after startup)
 	bool _has_backup_schedule{false};
 	const char *const _param_prefix;
 	ParamHandles _param_handles[MAX_ACTUATORS];
 	param_t _param_handle_rev_range{PARAM_INVALID};
 	hrt_abstime _lowrate_schedule_interval{300_ms};
 	ActuatorTest _actuator_test{_function_assignment};
-	uint32_t _reversible_mask{0}; ///< per-output bits. If set, the output is configured to be reversible (motors only)
+	uint32_t _reversible_mask{
+		0};  ///< per-output bits. If set, the output is configured to be reversible (motors only)
 
-	uORB::SubscriptionCallbackWorkItem *_subscription_callback{nullptr}; ///< current scheduling callback
+	uORB::SubscriptionCallbackWorkItem *_subscription_callback{nullptr};  ///< current scheduling callback
 
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,   ///< multicopter air-mode
-		(ParamFloat<px4::params::MOT_SLEW_MAX>) _param_mot_slew_max,
-		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac, ///< thrust to motor control signal modelling factor
-		(ParamInt<px4::params::MOT_ORDERING>) _param_mot_ordering,
-		(ParamBool<px4::params::SYS_CTRL_ALLOC>) _param_sys_ctrl_alloc
+	DEFINE_PARAMETERS((ParamInt<px4::params::MC_AIRMODE>)_param_mc_airmode,  ///< multicopter air-mode
+			  (ParamFloat<px4::params::MOT_SLEW_MAX>)_param_mot_slew_max,
+			  (ParamFloat<px4::params::THR_MDL_FAC>)
+				  _param_thr_mdl_fac,  ///< thrust to motor control signal modelling factor
+			  (ParamInt<px4::params::MOT_ORDERING>)_param_mot_ordering,
+			  (ParamBool<px4::params::SYS_CTRL_ALLOC>)_param_sys_ctrl_alloc
 
 	)
 };

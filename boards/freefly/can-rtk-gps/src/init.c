@@ -41,35 +41,32 @@
  * subsystems and perform board-specific initialization.
  */
 
+#include <arch/board/board.h>
+#include <chip.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_watchdog.h>
+#include <errno.h>
+#include <nuttx/board.h>
+#include <nuttx/config.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/init.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
-
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
-#include <syslog.h>
-
-#include <nuttx/config.h>
-#include <nuttx/board.h>
-#include <chip.h>
 #include <stm32_uart.h>
-#include <arch/board/board.h>
+#include <string.h>
+#include <syslog.h>
+#include <systemlib/px4_macros.h>
+
 #include "arm_internal.h"
 
-#include <px4_arch/io_timer.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
-#include <drivers/drv_watchdog.h>
-
-#include <systemlib/px4_macros.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/gpio.h>
-#include <px4_platform/board_dma_alloc.h>
-
-# if defined(FLASH_BASED_PARAMS)
-#  include <parameters/flashparams/flashfs.h>
+#if defined(FLASH_BASED_PARAMS)
+#include <parameters/flashparams/flashfs.h>
 #endif
 
 /************************************************************************************
@@ -82,9 +79,8 @@
  *
  ************************************************************************************/
 
-__EXPORT void stm32_boardinitialize(void)
-{
-	//watchdog_init();
+__EXPORT void stm32_boardinitialize(void) {
+	// watchdog_init();
 
 	// Configure CAN interface
 	stm32_configgpio(GPIO_CAN1_RX);
@@ -122,8 +118,7 @@ __EXPORT void stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	px4_platform_init();
 
 #if defined(FLASH_BASED_PARAMS)
@@ -140,9 +135,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
 	}
 
-#endif // FLASH_BASED_PARAMS
+#endif  // FLASH_BASED_PARAMS
 
-	//px4_platform_configure();
+	// px4_platform_configure();
 
 	return OK;
 }

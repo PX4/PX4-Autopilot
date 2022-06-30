@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 /**
-* IMU gyro auto calibration enable.
-*
-* @boolean
-* @reboot_required true
-* @group Sensors
-*/
+ * IMU gyro auto calibration enable.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group Sensors
+ */
 PARAM_DEFINE_INT32(IMU_GYRO_CAL_EN, 1);

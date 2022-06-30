@@ -36,45 +36,35 @@
  * Firmware uploader for PX4IO
  */
 
+#include <assert.h>
+#include <board_config.h>
+#include <crc32.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <nuttx/arch.h>
+#include <poll.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/time.h>
-
-#include <sys/types.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <errno.h>
-#include <string.h>
-#include <stdio.h>
 #include <stdarg.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <termios.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
-#include <nuttx/arch.h>
-
-#include <crc32.h>
+#include <sys/types.h>
+#include <termios.h>
+#include <unistd.h>
 
 #include "uploader.h"
-
-#include <board_config.h>
 
 // define for comms logging
 //#define UDEBUG
 
-PX4IO_Uploader::PX4IO_Uploader() :
-	_io_fd(-1),
-	_fw_fd(-1),
-	bl_rev(0)
-{
-}
+PX4IO_Uploader::PX4IO_Uploader() : _io_fd(-1), _fw_fd(-1), bl_rev(0) {}
 
-int
-PX4IO_Uploader::upload(const char *filenames[])
-{
-	int	ret;
+int PX4IO_Uploader::upload(const char *filenames[]) {
+	int ret;
 	const char *filename = NULL;
 	size_t fw_size;
 
@@ -248,9 +238,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 	return ret;
 }
 
-int
-PX4IO_Uploader::recv_byte_with_timeout(uint8_t *c, unsigned timeout)
-{
+int PX4IO_Uploader::recv_byte_with_timeout(uint8_t *c, unsigned timeout) {
 	struct pollfd fds[1];
 
 	fds[0].fd = _io_fd;
@@ -273,9 +261,7 @@ PX4IO_Uploader::recv_byte_with_timeout(uint8_t *c, unsigned timeout)
 	return OK;
 }
 
-int
-PX4IO_Uploader::recv_bytes(uint8_t *p, unsigned count)
-{
+int PX4IO_Uploader::recv_bytes(uint8_t *p, unsigned count) {
 	int ret = OK;
 
 	while (count--) {
@@ -289,9 +275,7 @@ PX4IO_Uploader::recv_bytes(uint8_t *p, unsigned count)
 	return ret;
 }
 
-void
-PX4IO_Uploader::drain()
-{
+void PX4IO_Uploader::drain() {
 	uint8_t c;
 	int ret;
 
@@ -311,14 +295,14 @@ PX4IO_Uploader::drain()
 	} while (ret == OK);
 }
 
-int
-PX4IO_Uploader::send(uint8_t c)
-{
+int PX4IO_Uploader::send(uint8_t c) {
 #ifdef UDEBUG
 	static uint8_t cnt = 0;
 
 	if (c == 0) {
-		if (cnt == 0 || cnt == 32 || cnt == 64 || cnt == 128) { log("send+ 0x%02x", c); }
+		if (cnt == 0 || cnt == 32 || cnt == 64 || cnt == 128) {
+			log("send+ 0x%02x", c);
+		}
 
 		cnt++;
 
@@ -335,9 +319,7 @@ PX4IO_Uploader::send(uint8_t c)
 	return OK;
 }
 
-int
-PX4IO_Uploader::send(uint8_t *p, unsigned count)
-{
+int PX4IO_Uploader::send(uint8_t *p, unsigned count) {
 	int ret;
 
 	while (count--) {
@@ -351,9 +333,7 @@ PX4IO_Uploader::send(uint8_t *p, unsigned count)
 	return ret;
 }
 
-int
-PX4IO_Uploader::get_sync(unsigned timeout)
-{
+int PX4IO_Uploader::get_sync(unsigned timeout) {
 	uint8_t c[2];
 
 	int ret = recv_byte_with_timeout(c, timeout);
@@ -376,9 +356,7 @@ PX4IO_Uploader::get_sync(unsigned timeout)
 	return OK;
 }
 
-int
-PX4IO_Uploader::sync()
-{
+int PX4IO_Uploader::sync() {
 	drain();
 
 	/* complete any pending program operation */
@@ -391,9 +369,7 @@ PX4IO_Uploader::sync()
 	return get_sync();
 }
 
-int
-PX4IO_Uploader::get_info(int param, uint32_t &val)
-{
+int PX4IO_Uploader::get_info(int param, uint32_t &val) {
 	send(PROTO_GET_DEVICE);
 	send(param);
 	send(PROTO_EOC);
@@ -407,17 +383,14 @@ PX4IO_Uploader::get_info(int param, uint32_t &val)
 	return get_sync();
 }
 
-int
-PX4IO_Uploader::erase()
-{
+int PX4IO_Uploader::erase() {
 	log("erase...");
 	send(PROTO_CHIP_ERASE);
 	send(PROTO_EOC);
-	return get_sync(10000);		/* allow 10s timeout */
+	return get_sync(10000); /* allow 10s timeout */
 }
 
-static int read_with_retry(int fd, void *buf, size_t n)
-{
+static int read_with_retry(int fd, void *buf, size_t n) {
 	int ret;
 	uint8_t retries = 0;
 
@@ -426,18 +399,14 @@ static int read_with_retry(int fd, void *buf, size_t n)
 	} while (ret == -1 && retries++ < 100);
 
 	if (retries != 0) {
-		printf("read of %u bytes needed %u retries\n",
-		       (unsigned)n,
-		       (unsigned)retries);
+		printf("read of %u bytes needed %u retries\n", (unsigned)n, (unsigned)retries);
 	}
 
 	return ret;
 }
 
-int
-PX4IO_Uploader::program(size_t fw_size)
-{
-	uint8_t	*file_buf;
+int PX4IO_Uploader::program(size_t fw_size) {
+	uint8_t *file_buf;
 	ssize_t count;
 	int ret;
 	size_t sent = 0;
@@ -467,11 +436,8 @@ PX4IO_Uploader::program(size_t fw_size)
 		count = read_with_retry(_fw_fd, file_buf, n);
 
 		if (count != (ssize_t)n) {
-			log("firmware read of %u bytes at %u failed -> %d errno %d",
-			    (unsigned)n,
-			    (unsigned)sent,
-			    (int)count,
-			    (int)errno);
+			log("firmware read of %u bytes at %u failed -> %d errno %d", (unsigned)n, (unsigned)sent,
+			    (int)count, (int)errno);
 			ret = -errno;
 			break;
 		}
@@ -490,14 +456,12 @@ PX4IO_Uploader::program(size_t fw_size)
 		}
 	}
 
-	delete [] file_buf;
+	delete[] file_buf;
 	return ret;
 }
 
-int
-PX4IO_Uploader::verify_rev2(size_t fw_size)
-{
-	uint8_t	file_buf[4];
+int PX4IO_Uploader::verify_rev2(size_t fw_size) {
+	uint8_t file_buf[4];
 	ssize_t count;
 	int ret;
 	size_t sent = 0;
@@ -524,11 +488,8 @@ PX4IO_Uploader::verify_rev2(size_t fw_size)
 		count = read_with_retry(_fw_fd, file_buf, n);
 
 		if (count != (ssize_t)n) {
-			log("firmware read of %u bytes at %u failed -> %d errno %d",
-			    (unsigned)n,
-			    (unsigned)sent,
-			    (int)count,
-			    (int)errno);
+			log("firmware read of %u bytes at %u failed -> %d errno %d", (unsigned)n, (unsigned)sent,
+			    (int)count, (int)errno);
 		}
 
 		if (count == 0) {
@@ -574,11 +535,9 @@ PX4IO_Uploader::verify_rev2(size_t fw_size)
 	return OK;
 }
 
-int
-PX4IO_Uploader::verify_rev3(size_t fw_size_local)
-{
+int PX4IO_Uploader::verify_rev3(size_t fw_size_local) {
 	int ret;
-	uint8_t	file_buf[4];
+	uint8_t file_buf[4];
 	ssize_t count;
 	uint32_t sum = 0;
 	uint32_t bytes_read = 0;
@@ -608,11 +567,8 @@ PX4IO_Uploader::verify_rev3(size_t fw_size_local)
 		count = read_with_retry(_fw_fd, file_buf, n);
 
 		if (count != (ssize_t)n) {
-			log("firmware read of %u bytes at %u failed -> %d errno %d",
-			    (unsigned)n,
-			    (unsigned)bytes_read,
-			    (int)count,
-			    (int)errno);
+			log("firmware read of %u bytes at %u failed -> %d errno %d", (unsigned)n, (unsigned)bytes_read,
+			    (int)count, (int)errno);
 		}
 
 		/* set the rest to ff */
@@ -664,28 +620,24 @@ PX4IO_Uploader::verify_rev3(size_t fw_size_local)
 	return OK;
 }
 
-int
-PX4IO_Uploader::reboot()
-{
+int PX4IO_Uploader::reboot() {
 	int ret;
 
 	send(PROTO_REBOOT);
-	up_udelay(100 * 1000); // Ensure the farend is in wait for char.
+	up_udelay(100 * 1000);  // Ensure the farend is in wait for char.
 	send(PROTO_EOC);
 
 	ret = get_sync();
 
 	if (ret == OK) {
-		up_udelay(10 * 1000);	// Ensure that we do not close UART too soon
+		up_udelay(10 * 1000);  // Ensure that we do not close UART too soon
 	}
 
 	return ret;
 }
 
-void
-PX4IO_Uploader::log(const char *fmt, ...)
-{
-	va_list	ap;
+void PX4IO_Uploader::log(const char *fmt, ...) {
+	va_list ap;
 
 	printf("[PX4IO] ");
 	va_start(ap, fmt);

@@ -32,11 +32,11 @@
  ****************************************************************************/
 
 #include "camera_interface.h"
-#include <px4_platform_common/log.h>
-#include <board_config.h>
 
-void CameraInterface::get_pins()
-{
+#include <board_config.h>
+#include <px4_platform_common/log.h>
+
+void CameraInterface::get_pins() {
 	// Set all pins as invalid
 	for (unsigned i = 0; i < arraySize(_pins); i++) {
 		_pins[i] = -1;
@@ -50,7 +50,6 @@ void CameraInterface::get_pins()
 	}
 
 	if (ctrl_alloc == 1) {
-
 		unsigned pin_index = 0;
 
 		for (unsigned i = 0; i < 16 && pin_index < arraySize(_pins); ++i) {
@@ -60,7 +59,7 @@ void CameraInterface::get_pins()
 			int32_t function;
 
 			if (function_handle != PARAM_INVALID && param_get(function_handle, &function) == 0) {
-				if (function == 2000) { // Camera_Trigger
+				if (function == 2000) {  // Camera_Trigger
 					_pins[pin_index++] = i;
 				}
 			}
@@ -88,14 +87,12 @@ void CameraInterface::get_pins()
 		}
 
 		if (pin_list_ex == 0) {
-
 			// Convert number to individual channels
 
 			unsigned i = 0;
 			int single_pin;
 
 			while ((single_pin = pin_list % 10)) {
-
 				_pins[i] = single_pin - 1;
 
 				if (_pins[i] < 0) {
@@ -110,7 +107,7 @@ void CameraInterface::get_pins()
 			unsigned int p = 0;
 
 			for (unsigned int i = 0; i < arraySize(_pins); i++) {
-				int32_t v = (pin_list_ex & (1 << i)) ? i  : -1;
+				int32_t v = (pin_list_ex & (1 << i)) ? i : -1;
 
 				if (v > 0) {
 					_pins[p++] = v;

@@ -40,15 +40,14 @@
 #include <px4_platform_common/px4_config.h>
 
 #if defined(CONFIG_FS_AUTOMOUNTER_DEBUG) && !defined(CONFIG_DEBUG_FS)
-#  define CONFIG_DEBUG_FS 1
+#define CONFIG_DEBUG_FS 1
 #endif
 
 #include <debug.h>
-#include <stddef.h>
-
-#include <nuttx/irq.h>
 #include <nuttx/clock.h>
 #include <nuttx/fs/automount.h>
+#include <nuttx/irq.h>
+#include <stddef.h>
 
 #include "board_config.h"
 #ifdef HAVE_AUTOMOUNTER
@@ -63,10 +62,10 @@
 /* This structure represents the changeable state of the automounter */
 
 struct fmuk66_automount_state_s {
-	volatile automount_handler_t handler;    /* Upper half handler */
-	FAR void *arg;                           /* Handler argument */
-	bool enable;                             /* Fake interrupt enable */
-	bool pending;                            /* Set if there an event while disabled */
+	volatile automount_handler_t handler; /* Upper half handler */
+	FAR void *arg;                        /* Handler argument */
+	bool enable;                          /* Fake interrupt enable */
+	bool pending;                         /* Set if there an event while disabled */
 };
 
 /* This structure represents the static configuration of an automounter */
@@ -76,7 +75,7 @@ struct fmuk66_automount_config_s {
 	 * automount_lower_s to struct fmuk66_automount_config_s
 	 */
 
-	struct automount_lower_s lower;          /* Publicly visible part */
+	struct automount_lower_s lower;             /* Publicly visible part */
 	FAR struct fmuk66_automount_state_s *state; /* Changeable state */
 };
 
@@ -84,7 +83,7 @@ struct fmuk66_automount_config_s {
  * Private Function Prototypes
  ************************************************************************************/
 
-static int  fmuk66_attach(FAR const struct automount_lower_s *lower, automount_handler_t isr, FAR void *arg);
+static int fmuk66_attach(FAR const struct automount_lower_s *lower, automount_handler_t isr, FAR void *arg);
 static void fmuk66_enable(FAR const struct automount_lower_s *lower, bool enable);
 static bool fmuk66_inserted(FAR const struct automount_lower_s *lower);
 
@@ -94,19 +93,15 @@ static bool fmuk66_inserted(FAR const struct automount_lower_s *lower);
 
 static struct fmuk66_automount_state_s g_sdhc_state;
 static const struct fmuk66_automount_config_s g_sdhc_config = {
-	.lower        =
-	{
-		.fstype     = CONFIG_FMUK66_SDHC_AUTOMOUNT_FSTYPE,
-		.blockdev   = CONFIG_FMUK66_SDHC_AUTOMOUNT_BLKDEV,
-		.mountpoint = CONFIG_FMUK66_SDHC_AUTOMOUNT_MOUNTPOINT,
-		.ddelay     = MSEC2TICK(CONFIG_FMUK66_SDHC_AUTOMOUNT_DDELAY),
-		.udelay     = MSEC2TICK(CONFIG_FMUK66_SDHC_AUTOMOUNT_UDELAY),
-		.attach     = fmuk66_attach,
-		.enable     = fmuk66_enable,
-		.inserted   = fmuk66_inserted
-	},
-	.state        = &g_sdhc_state
-};
+	.lower = {.fstype = CONFIG_FMUK66_SDHC_AUTOMOUNT_FSTYPE,
+		  .blockdev = CONFIG_FMUK66_SDHC_AUTOMOUNT_BLKDEV,
+		  .mountpoint = CONFIG_FMUK66_SDHC_AUTOMOUNT_MOUNTPOINT,
+		  .ddelay = MSEC2TICK(CONFIG_FMUK66_SDHC_AUTOMOUNT_DDELAY),
+		  .udelay = MSEC2TICK(CONFIG_FMUK66_SDHC_AUTOMOUNT_UDELAY),
+		  .attach = fmuk66_attach,
+		  .enable = fmuk66_enable,
+		  .inserted = fmuk66_inserted},
+	.state = &g_sdhc_state};
 
 /************************************************************************************
  * Private Functions
@@ -128,8 +123,7 @@ static const struct fmuk66_automount_config_s g_sdhc_config = {
  *
  ************************************************************************************/
 
-static int fmuk66_attach(FAR const struct automount_lower_s *lower, automount_handler_t isr, FAR void *arg)
-{
+static int fmuk66_attach(FAR const struct automount_lower_s *lower, automount_handler_t isr, FAR void *arg) {
 	FAR const struct fmuk66_automount_config_s *config;
 	FAR struct fmuk66_automount_state_s *state;
 
@@ -146,7 +140,7 @@ static int fmuk66_attach(FAR const struct automount_lower_s *lower, automount_ha
 
 	state->handler = NULL;
 	state->pending = false;
-	state->arg     = arg;
+	state->arg = arg;
 	state->handler = isr;
 	return OK;
 }
@@ -166,8 +160,7 @@ static int fmuk66_attach(FAR const struct automount_lower_s *lower, automount_ha
  *
  ************************************************************************************/
 
-static void fmuk66_enable(FAR const struct automount_lower_s *lower, bool enable)
-{
+static void fmuk66_enable(FAR const struct automount_lower_s *lower, bool enable) {
 	FAR const struct fmuk66_automount_config_s *config;
 	FAR struct fmuk66_automount_state_s *state;
 	irqstate_t flags;
@@ -214,10 +207,7 @@ static void fmuk66_enable(FAR const struct automount_lower_s *lower, bool enable
  *
  ************************************************************************************/
 
-static bool fmuk66_inserted(FAR const struct automount_lower_s *lower)
-{
-	return fmuk66_cardinserted();
-}
+static bool fmuk66_inserted(FAR const struct automount_lower_s *lower) { return fmuk66_cardinserted(); }
 
 /************************************************************************************
  * Public Functions
@@ -237,8 +227,7 @@ static bool fmuk66_inserted(FAR const struct automount_lower_s *lower)
  *
  ************************************************************************************/
 
-void fmuk66_automount_initialize(void)
-{
+void fmuk66_automount_initialize(void) {
 	FAR void *handle;
 
 	finfo("Initializing automounter(s)\n");
@@ -276,8 +265,7 @@ void fmuk66_automount_initialize(void)
  *
  ************************************************************************************/
 
-void fmuk66_automount_event(bool inserted)
-{
+void fmuk66_automount_event(bool inserted) {
 	FAR const struct fmuk66_automount_config_s *config = &g_sdhc_config;
 	FAR struct fmuk66_automount_state_s *state = &g_sdhc_state;
 

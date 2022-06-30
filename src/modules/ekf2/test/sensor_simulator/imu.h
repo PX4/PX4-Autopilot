@@ -40,13 +40,10 @@
 
 #include "sensor.h"
 
-namespace sensor_simulator
-{
-namespace sensor
-{
+namespace sensor_simulator {
+namespace sensor {
 
-class Imu: public Sensor
-{
+class Imu : public Sensor {
 public:
 	Imu(std::shared_ptr<Ekf> ekf);
 	~Imu();
@@ -55,19 +52,15 @@ public:
 	void setAccelData(const Vector3f &accel);
 	void setGyroData(const Vector3f &gyro);
 
-	bool moving()
-	{
-		return ((fabsf(_accel_data.norm() - CONSTANTS_ONE_G) > 0.01f) || (_gyro_data.norm() > 0.01f));
-	}
+	bool moving() { return ((fabsf(_accel_data.norm() - CONSTANTS_ONE_G) > 0.01f) || (_gyro_data.norm() > 0.01f)); }
 
 private:
 	Vector3f _accel_data;
 	Vector3f _gyro_data;
 
 	void send(uint64_t time) override;
-
 };
 
-} // namespace sensor
-} // namespace sensor_simulator
-#endif // EKF_IMU_H
+}  // namespace sensor
+}  // namespace sensor_simulator
+#endif  // EKF_IMU_H

@@ -40,24 +40,25 @@
  */
 
 #include "esc_calibration.h"
-#include "calibration_messages.h"
-#include "calibration_routines.h"
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
+#include <parameters/param.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
 #include <systemlib/mavlink_log.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/battery_status.h>
 #include <uORB/topics/actuator_test.h>
-#include <parameters/param.h>
+#include <uORB/topics/battery_status.h>
+
+#include <uORB/Subscription.hpp>
+
+#include "calibration_messages.h"
+#include "calibration_routines.h"
 
 using namespace time_literals;
 
-bool check_battery_disconnected(orb_advert_t *mavlink_log_pub)
-{
+bool check_battery_disconnected(orb_advert_t *mavlink_log_pub) {
 	uORB::SubscriptionData<battery_status_s> batt_sub{ORB_ID(battery_status)};
 	const battery_status_s &battery = batt_sub.get();
 	batt_sub.update();
@@ -77,12 +78,12 @@ bool check_battery_disconnected(orb_advert_t *mavlink_log_pub)
 	return false;
 }
 
-static void set_motor_actuators(uORB::Publication<actuator_test_s> &publisher, float value, bool release_control)
-{
+static void set_motor_actuators(uORB::Publication<actuator_test_s> &publisher, float value, bool release_control) {
 	actuator_test_s actuator_test{};
 	actuator_test.timestamp = hrt_absolute_time();
 	actuator_test.value = value;
-	actuator_test.action = release_control ? actuator_test_s::ACTION_RELEASE_CONTROL : actuator_test_s::ACTION_DO_CONTROL;
+	actuator_test.action =
+		release_control ? actuator_test_s::ACTION_RELEASE_CONTROL : actuator_test_s::ACTION_DO_CONTROL;
 	actuator_test.timeout_ms = 0;
 
 	for (int i = 0; i < actuator_test_s::MAX_NUM_MOTORS; ++i) {
@@ -91,9 +92,8 @@ static void set_motor_actuators(uORB::Publication<actuator_test_s> &publisher, f
 	}
 }
 
-int do_esc_calibration_ctrl_alloc(orb_advert_t *mavlink_log_pub)
-{
-	int	return_code = PX4_OK;
+int do_esc_calibration_ctrl_alloc(orb_advert_t *mavlink_log_pub) {
+	int return_code = PX4_OK;
 	uORB::Publication<actuator_test_s> actuator_test_pub{ORB_ID(actuator_test)};
 	// since we publish multiple at once, make sure the output driver subscribes before we publish
 	actuator_test_pub.advertise();
@@ -102,7 +102,6 @@ int do_esc_calibration_ctrl_alloc(orb_advert_t *mavlink_log_pub)
 	// set motors to high
 	set_motor_actuators(actuator_test_pub, 1.f, false);
 	calibration_log_info(mavlink_log_pub, "[cal] Connect battery now");
-
 
 	uORB::SubscriptionData<battery_status_s> batt_sub{ORB_ID(battery_status)};
 	const battery_status_s &battery = batt_sub.get();
@@ -119,7 +118,8 @@ int do_esc_calibration_ctrl_alloc(orb_advert_t *mavlink_log_pub)
 
 		if (hrt_elapsed_time(&timeout_start) > timeout_wait) {
 			if (!batt_connected) {
-				calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Timeout waiting for battery");
+				calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG,
+							 "Timeout waiting for battery");
 				return_code = PX4_ERROR;
 			}
 
@@ -155,9 +155,8 @@ int do_esc_calibration_ctrl_alloc(orb_advert_t *mavlink_log_pub)
 	return return_code;
 }
 
-static int do_esc_calibration_ioctl(orb_advert_t *mavlink_log_pub)
-{
-	int	return_code = PX4_OK;
+static int do_esc_calibration_ioctl(orb_advert_t *mavlink_log_pub) {
+	int return_code = PX4_OK;
 	hrt_abstime timeout_start = 0;
 
 	uORB::SubscriptionData<battery_status_s> batt_sub{ORB_ID(battery_status)};
@@ -200,7 +199,8 @@ static int do_esc_calibration_ioctl(orb_advert_t *mavlink_log_pub)
 
 		if (hrt_elapsed_time(&timeout_start) > timeout_wait) {
 			if (!batt_connected) {
-				calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Timeout waiting for battery");
+				calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG,
+							 "Timeout waiting for battery");
 				return_code = PX4_ERROR;
 				goto Out;
 			}
@@ -226,7 +226,6 @@ static int do_esc_calibration_ioctl(orb_advert_t *mavlink_log_pub)
 Out:
 
 	if (fd != -1) {
-
 		if (px4_ioctl(fd, PWM_SERVO_DISARM, 0) != PX4_OK) {
 			calibration_log_info(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Servos still armed");
 		}
@@ -245,8 +244,7 @@ Out:
 	return return_code;
 }
 
-int do_esc_calibration(orb_advert_t *mavlink_log_pub)
-{
+int do_esc_calibration(orb_advert_t *mavlink_log_pub) {
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, "esc");
 
 	param_t p_ctrl_alloc = param_find("SYS_CTRL_ALLOC");

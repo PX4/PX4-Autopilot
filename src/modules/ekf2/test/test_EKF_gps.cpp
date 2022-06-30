@@ -37,27 +37,22 @@
  */
 
 #include <gtest/gtest.h>
+
 #include "EKF/ekf.h"
-#include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
+#include "sensor_simulator/sensor_simulator.h"
 #include "test_helper/reset_logging_checker.h"
 
-class EkfGpsTest : public ::testing::Test
-{
+class EkfGpsTest : public ::testing::Test {
 public:
-
-	EkfGpsTest(): ::testing::Test(),
-		_ekf{std::make_shared<Ekf>()},
-		_sensor_simulator(_ekf),
-		_ekf_wrapper(_ekf) {};
+	EkfGpsTest() : ::testing::Test(), _ekf{std::make_shared<Ekf>()}, _sensor_simulator(_ekf), _ekf_wrapper(_ekf){};
 
 	std::shared_ptr<Ekf> _ekf;
 	SensorSimulator _sensor_simulator;
 	EkfWrapper _ekf_wrapper;
 
 	// Setup the Ekf with synthetic measurements
-	void SetUp() override
-	{
+	void SetUp() override {
 		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
 		_sensor_simulator.runSeconds(0.1);
@@ -71,13 +66,10 @@ public:
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
-	void TearDown() override
-	{
-	}
+	void TearDown() override {}
 };
 
-TEST_F(EkfGpsTest, gpsTimeout)
-{
+TEST_F(EkfGpsTest, gpsTimeout) {
 	// GIVEN:EKF that fuses GPS
 
 	// WHEN: setting the PDOP to high
@@ -90,8 +82,7 @@ TEST_F(EkfGpsTest, gpsTimeout)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 }
 
-TEST_F(EkfGpsTest, resetToGpsVelocity)
-{
+TEST_F(EkfGpsTest, resetToGpsVelocity) {
 	ResetLoggingChecker reset_logging_checker(_ekf);
 	// GIVEN:EKF that fuses GPS
 	// and has gps checks already passed
@@ -127,8 +118,7 @@ TEST_F(EkfGpsTest, resetToGpsVelocity)
 	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(1e-2f));
 }
 
-TEST_F(EkfGpsTest, resetToGpsPosition)
-{
+TEST_F(EkfGpsTest, resetToGpsPosition) {
 	// GIVEN:EKF that fuses GPS
 	// and has gps checks already passed
 	const Vector3f previous_position = _ekf->getPosition();
@@ -140,18 +130,15 @@ TEST_F(EkfGpsTest, resetToGpsPosition)
 	// AND: simulate jump in position
 	_sensor_simulator.startGps();
 	const Vector3f simulated_position_change(2.0f, -1.0f, 0.f);
-	_sensor_simulator._gps.stepHorizontalPositionByMeters(
-		Vector2f(simulated_position_change));
+	_sensor_simulator._gps.stepHorizontalPositionByMeters(Vector2f(simulated_position_change));
 	_sensor_simulator.runMicroseconds(1e5);
 
 	// THEN: a reset to the new GPS position should be done
 	const Vector3f estimated_position = _ekf->getPosition();
-	EXPECT_TRUE(isEqual(estimated_position,
-			    previous_position + simulated_position_change, 1e-2f));
+	EXPECT_TRUE(isEqual(estimated_position, previous_position + simulated_position_change, 1e-2f));
 }
 
-TEST_F(EkfGpsTest, gpsHgtToBaroFallback)
-{
+TEST_F(EkfGpsTest, gpsHgtToBaroFallback) {
 	// GIVEN: EKF that fuses GPS and flow, and in GPS height mode
 	_sensor_simulator._flow.setData(_sensor_simulator._flow.dataAtRest());
 	_ekf_wrapper.enableFlowFusion();

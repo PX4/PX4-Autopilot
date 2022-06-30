@@ -31,26 +31,23 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
+#include <fcntl.h>
+#include <pthread.h>
 #include <px4_platform_common/console_buffer.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/sem.h>
-#include <pthread.h>
 #include <string.h>
-#include <fcntl.h>
 
 #ifdef BOARD_ENABLE_CONSOLE_BUFFER
 #ifndef BOARD_CONSOLE_BUFFER_SIZE
-# define BOARD_CONSOLE_BUFFER_SIZE (1024*4) // default buffer size
+#define BOARD_CONSOLE_BUFFER_SIZE (1024 * 4)  // default buffer size
 #endif
 
 static ssize_t console_buffer_write(struct file *filep, const char *buffer, size_t buflen);
 
-
-class ConsoleBuffer
-{
+class ConsoleBuffer {
 public:
-
 	void write(const char *buffer, size_t len);
 
 	void print(bool follow);
@@ -60,8 +57,11 @@ public:
 	int read(char *buffer, int buffer_length, int *offset);
 
 private:
-	void		lock() { do {} while (px4_sem_wait(&_lock) != 0); }
-	void		unlock() { px4_sem_post(&_lock); }
+	void lock() {
+		do {
+		} while (px4_sem_wait(&_lock) != 0);
+	}
+	void unlock() { px4_sem_post(&_lock); }
 
 	char _buffer[BOARD_CONSOLE_BUFFER_SIZE];
 	int _head{0};
@@ -69,8 +69,7 @@ private:
 	px4_sem_t _lock = SEM_INITIALIZER(1);
 };
 
-void ConsoleBuffer::print(bool follow)
-{
+void ConsoleBuffer::print(bool follow) {
 	// print to stdout, but with a buffer in between to avoid nested locking and potential dead-locks
 	// (which could happen in combination with the MAVLink shell: dmesg writing to the pipe waiting
 	// mavlink to read, while mavlink calls printf, waiting for the console lock)
@@ -79,7 +78,6 @@ void ConsoleBuffer::print(bool follow)
 	int offset = -1;
 
 	do {
-
 		// print the full buffer or what's newly added
 		int total_size_read = 0;
 
@@ -99,16 +97,14 @@ void ConsoleBuffer::print(bool follow)
 			total_size_read += read_size;
 		} while (total_size_read < BOARD_CONSOLE_BUFFER_SIZE);
 
-
 		if (follow) {
 			usleep(10000);
 		}
 	} while (follow);
 }
 
-void ConsoleBuffer::write(const char *buffer, size_t len)
-{
-	lock(); // same rule as for printf: this cannot be used from IRQ handlers
+void ConsoleBuffer::write(const char *buffer, size_t len) {
+	lock();  // same rule as for printf: this cannot be used from IRQ handlers
 
 	for (size_t i = 0; i < len; ++i) {
 		_buffer[_tail] = buffer[i];
@@ -122,8 +118,7 @@ void ConsoleBuffer::write(const char *buffer, size_t len)
 	unlock();
 }
 
-int ConsoleBuffer::size()
-{
+int ConsoleBuffer::size() {
 	lock();
 	int size;
 
@@ -138,8 +133,7 @@ int ConsoleBuffer::size()
 	return size;
 }
 
-int ConsoleBuffer::read(char *buffer, int buffer_length, int *offset)
-{
+int ConsoleBuffer::read(char *buffer, int buffer_length, int *offset) {
 	lock();
 
 	if (*offset == -1) {
@@ -187,14 +181,9 @@ int ConsoleBuffer::read(char *buffer, int buffer_length, int *offset)
 
 static ConsoleBuffer g_console_buffer;
 
+void px4_console_buffer_print(bool follow) { g_console_buffer.print(follow); }
 
-void px4_console_buffer_print(bool follow)
-{
-	g_console_buffer.print(follow);
-}
-
-ssize_t console_buffer_write(struct file *filep, const char *buffer, size_t len)
-{
+ssize_t console_buffer_write(struct file *filep, const char *buffer, size_t len) {
 	g_console_buffer.write(buffer, len);
 
 	// stderr still points to our original console and is available from everywhere, so we output to that.
@@ -207,32 +196,27 @@ ssize_t console_buffer_write(struct file *filep, const char *buffer, size_t len)
 }
 
 static const struct file_operations g_console_buffer_fops = {
-	NULL,         /* open */
-	NULL,         /* close */
-	NULL,         /* read */
+	NULL,                 /* open */
+	NULL,                 /* close */
+	NULL,                 /* read */
 	console_buffer_write, /* write */
-	NULL,         /* seek */
-	NULL          /* ioctl */
+	NULL,                 /* seek */
+	NULL                  /* ioctl */
 #ifndef CONFIG_DISABLE_POLL
-	, NULL        /* poll */
+	,
+	NULL /* poll */
 #endif
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
-	, NULL        /* unlink */
+	,
+	NULL /* unlink */
 #endif
 };
 
-int px4_console_buffer_init()
-{
-	return register_driver(CONSOLE_BUFFER_DEVICE, &g_console_buffer_fops, 0666, NULL);
-}
+int px4_console_buffer_init() { return register_driver(CONSOLE_BUFFER_DEVICE, &g_console_buffer_fops, 0666, NULL); }
 
-int px4_console_buffer_size()
-{
-	return g_console_buffer.size();
-}
+int px4_console_buffer_size() { return g_console_buffer.size(); }
 
-int px4_console_buffer_read(char *buffer, int buffer_length, int *offset)
-{
+int px4_console_buffer_read(char *buffer, int buffer_length, int *offset) {
 	return g_console_buffer.read(buffer, buffer_length, offset);
 }
 

@@ -39,15 +39,15 @@
  * @author Andrew Tridgell
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <inttypes.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
 #include <assert.h>
+#include <inttypes.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <systemlib/err.h>
+#include <unistd.h>
 
 __EXPORT int reflect_main(int argc, char *argv[]);
 
@@ -57,10 +57,9 @@ struct block {
 	uint32_t v[256];
 };
 
-#define VALUE(i) ((i*7) ^ 0xDEADBEEF)
+#define VALUE(i) ((i * 7) ^ 0xDEADBEEF)
 
-static uint32_t allocate_blocks(struct block **blocks)
-{
+static uint32_t allocate_blocks(struct block **blocks) {
 	uint32_t nblocks = 0;
 
 	while (nblocks < MAX_BLOCKS) {
@@ -82,8 +81,7 @@ static uint32_t allocate_blocks(struct block **blocks)
 	return nblocks;
 }
 
-static void check_blocks(struct block **blocks, uint32_t nblocks)
-{
+static void check_blocks(struct block **blocks, uint32_t nblocks) {
 	for (uint32_t n = 0; n < nblocks; n++) {
 		for (uint32_t i = 0; i < sizeof(blocks[nblocks]->v) / sizeof(uint32_t); i++) {
 			assert(blocks[n]->v[i] == VALUE(i));
@@ -91,9 +89,7 @@ static void check_blocks(struct block **blocks, uint32_t nblocks)
 	}
 }
 
-int
-reflect_main(int argc, char *argv[])
-{
+int reflect_main(int argc, char *argv[]) {
 	uint32_t total = 0;
 	uint32_t nblocks = 0;
 	printf("Starting reflector\n");

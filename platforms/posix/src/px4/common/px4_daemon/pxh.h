@@ -42,19 +42,17 @@
  */
 #pragma once
 
-#include <vector>
-#include <string>
+#include <platforms/posix/apps.h>
 #include <termios.h>
 
-#include <platforms/posix/apps.h>
+#include <string>
+#include <vector>
+
 #include "history.h"
 
-namespace px4_daemon
-{
+namespace px4_daemon {
 
-
-class Pxh
-{
+class Pxh {
 public:
 	Pxh();
 	~Pxh();
@@ -100,7 +98,4 @@ private:
 	static Pxh *_instance;
 };
 
-
-
-} // namespace px4_daemon
-
+}  // namespace px4_daemon

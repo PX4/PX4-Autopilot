@@ -38,7 +38,6 @@
  *
  */
 
-
 /**
  * Minimum motor rise time (slew rate limit).
  *

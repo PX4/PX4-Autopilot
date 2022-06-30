@@ -42,8 +42,7 @@
 
 #include <cstdint>
 
-namespace QST_QMC5883L
-{
+namespace QST_QMC5883L {
 
 // TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
@@ -55,59 +54,60 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-static constexpr uint32_t I2C_SPEED = 400 * 1000; // 400 kHz I2C serial interface
-static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0b0001101; // default I2C address
+static constexpr uint32_t I2C_SPEED = 400 * 1000;          // 400 kHz I2C serial interface
+static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0b0001101;  // default I2C address
 
 static constexpr uint8_t Chip_ID = 0xFF;
 
 enum class Register : uint8_t {
-	X_LSB      = 0x00, // Data Output X LSB Register XOUT[7:0]
-	X_MSB      = 0x01, // Data Output X MSB Register XOUT[15:8]
-	Y_LSB      = 0x02, // Data Output Y LSB Register YOUT[7:0]
-	Y_MSB      = 0x03, // Data Output Y MSB Register YOUT[15:8]
-	Z_LSB      = 0x04, // Data Output Z LSB Register ZOUT[7:0]
-	Z_MSB      = 0x05, // Data Output Z MSB Register ZOUT[15:8]
-	STATUS     = 0x06, // Status Register 1
+	X_LSB = 0x00,   // Data Output X LSB Register XOUT[7:0]
+	X_MSB = 0x01,   // Data Output X MSB Register XOUT[15:8]
+	Y_LSB = 0x02,   // Data Output Y LSB Register YOUT[7:0]
+	Y_MSB = 0x03,   // Data Output Y MSB Register YOUT[15:8]
+	Z_LSB = 0x04,   // Data Output Z LSB Register ZOUT[7:0]
+	Z_MSB = 0x05,   // Data Output Z MSB Register ZOUT[15:8]
+	STATUS = 0x06,  // Status Register 1
 
-	CNTL1      = 0x09, // Control Register 1
-	CNTL2      = 0x0A, // Control Register 2
+	CNTL1 = 0x09,  // Control Register 1
+	CNTL2 = 0x0A,  // Control Register 2
 
-	SET_RESET_PERIOD = 0x0B, // SET/RESET Period is controlled by FBR [7:0], it is recommended that the register 0BH is written by 0x01.
+	SET_RESET_PERIOD = 0x0B,  // SET/RESET Period is controlled by FBR [7:0], it is recommended that the register
+				  // 0BH is written by 0x01.
 
-	CHIP_ID    = 0x0D,
+	CHIP_ID = 0x0D,
 };
 
 // STATUS
 enum STATUS_BIT : uint8_t {
-	DOR  = Bit2, // Data Skip
-	OVL  = Bit1, // Overflow flag
-	DRDY = Bit0, // Data Ready
+	DOR = Bit2,   // Data Skip
+	OVL = Bit1,   // Overflow flag
+	DRDY = Bit0,  // Data Ready
 };
 
 // CNTL1
 enum CNTL1_BIT : uint8_t {
 	// OSR[7:6]
-	OSR_512         = Bit7 | Bit6, // 00
+	OSR_512 = Bit7 | Bit6,  // 00
 
 	// RNG[5:4]
-	RNG_2G          = Bit5 | Bit4, // 00
+	RNG_2G = Bit5 | Bit4,  // 00
 
 	// ODR[3:2]
-	ODR_50HZ        = Bit2,        // 01
+	ODR_50HZ = Bit2,  // 01
 
 	// MODE[1:0]
-	Mode_Continuous = Bit0,        // 01
+	Mode_Continuous = Bit0,  // 01
 };
 
 // CNTL2
 enum CNTL2_BIT : uint8_t {
-	SOFT_RST = Bit7, // Soft reset, restore default value of all registers.
-	ROL_PNT  = Bit6, // Enable pointer roll-over function.
+	SOFT_RST = Bit7,  // Soft reset, restore default value of all registers.
+	ROL_PNT = Bit6,   // Enable pointer roll-over function.
 };
 
 // SET_RESET_PERIOD
 enum SET_RESET_PERIOD_BIT : uint8_t {
-	FBR = Bit0, // it is recommended that the register is written by 0x01.
+	FBR = Bit0,  // it is recommended that the register is written by 0x01.
 };
 
-} // namespace QMC5883L
+}  // namespace QST_QMC5883L

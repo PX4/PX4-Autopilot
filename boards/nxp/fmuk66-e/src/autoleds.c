@@ -67,18 +67,16 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
-
-#include <nuttx/board.h>
 #include <arch/board/board.h>
+#include <debug.h>
+#include <nuttx/board.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <stdint.h>
 
+#include "board_config.h"
 #include "chip.h"
 #include "kinetis.h"
-#include "board_config.h"
 
 #ifdef CONFIG_ARCH_LEDS
 
@@ -88,11 +86,11 @@
 
 /* Summary of all possible settings */
 
-#define LED_NOCHANGE      0 /* LED_IRQSENABLED, LED_INIRQ, LED_SIGNAL, LED_ASSERTION */
-#define LED_OFF_OFF_OFF   1 /* LED_STARTED */
-#define LED_OFF_OFF_ON    2 /* LED_HEAPALLOCATE */
-#define LED_OFF_ON_OFF    3 /* LED_STACKCREATED */
-#define LED_ON_OFF_OFF    4 /* LED_PANIC */
+#define LED_NOCHANGE 0    /* LED_IRQSENABLED, LED_INIRQ, LED_SIGNAL, LED_ASSERTION */
+#define LED_OFF_OFF_OFF 1 /* LED_STARTED */
+#define LED_OFF_OFF_ON 2  /* LED_HEAPALLOCATE */
+#define LED_OFF_ON_OFF 3  /* LED_STACKCREATED */
+#define LED_ON_OFF_OFF 4  /* LED_PANIC */
 
 /****************************************************************************
  * Public Functions
@@ -106,8 +104,7 @@
  *
  ****************************************************************************/
 
-void board_autoled_initialize(void)
-{
+void board_autoled_initialize(void) {
 	kinetis_pinconfig(GPIO_LED_R);
 	kinetis_pinconfig(GPIO_LED_G);
 	kinetis_pinconfig(GPIO_LED_B);
@@ -117,29 +114,28 @@ void board_autoled_initialize(void)
  * Name: board_autoled_on
  ****************************************************************************/
 
-void board_autoled_on(int led)
-{
+void board_autoled_on(int led) {
 	if (led != LED_NOCHANGE) {
-		bool redoff   = true;
+		bool redoff = true;
 		bool greenoff = true;
-		bool blueoff  = true;
+		bool blueoff = true;
 
 		switch (led) {
-		default:
-		case LED_OFF_OFF_OFF:
-			break;
+			default:
+			case LED_OFF_OFF_OFF:
+				break;
 
-		case LED_OFF_OFF_ON:
-			blueoff = false;
-			break;
+			case LED_OFF_OFF_ON:
+				blueoff = false;
+				break;
 
-		case LED_OFF_ON_OFF:
-			greenoff = false;
-			break;
+			case LED_OFF_ON_OFF:
+				greenoff = false;
+				break;
 
-		case LED_ON_OFF_OFF:
-			redoff = false;
-			break;
+			case LED_ON_OFF_OFF:
+				redoff = false;
+				break;
 		}
 
 		kinetis_gpiowrite(GPIO_LED_R, redoff);
@@ -152,8 +148,7 @@ void board_autoled_on(int led)
  * Name: board_autoled_off
  ****************************************************************************/
 
-void board_autoled_off(int led)
-{
+void board_autoled_off(int led) {
 	if (led == LED_ON_OFF_OFF) {
 		kinetis_gpiowrite(GPIO_LED_R, true);
 		kinetis_gpiowrite(GPIO_LED_G, true);

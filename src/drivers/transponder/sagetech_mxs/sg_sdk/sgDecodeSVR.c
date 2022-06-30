@@ -10,10 +10,9 @@
  * parses the payload into a data struct.
  */
 
-#include <string.h>
+#include <math.h>
 #include <stdbool.h>
 #include <string.h>
-#include <math.h>
 
 #include "sg.h"
 #include "sgUtil.h"
@@ -21,25 +20,25 @@
 
 // airborne surface
 // -------- --------
-#define SV_PARAM_TOA_EPOS (1 << 3) // x
-#define SV_PARAM_TOA_POS (1 << 2)  // x        x
-#define SV_PARAM_TOA_VEL (1 << 1)  // x        x
-#define SV_PARAM_LATLON (1 << 0)   // x        x
+#define SV_PARAM_TOA_EPOS (1 << 3)  // x
+#define SV_PARAM_TOA_POS (1 << 2)   // x        x
+#define SV_PARAM_TOA_VEL (1 << 1)   // x        x
+#define SV_PARAM_LATLON (1 << 0)    // x        x
 
-#define SV_PARAM_GEOALT (1 << 7)    // x
-#define SV_PARAM_VEL (1 << 6)       // x
-#define SV_PARAM_SURF_GS (1 << 5)   //          x
-#define SV_PARAM_SURF_HEAD (1 << 4) //          x
-#define SV_PARAM_BAROALT (1 << 3)   // x
-#define SV_PARAM_VRATE (1 << 2)     // x
-#define SV_PARAM_NIC (1 << 1)       // x        x
-#define SV_PARAM_ESTLAT (1 << 0)    // x
+#define SV_PARAM_GEOALT (1 << 7)     // x
+#define SV_PARAM_VEL (1 << 6)        // x
+#define SV_PARAM_SURF_GS (1 << 5)    //          x
+#define SV_PARAM_SURF_HEAD (1 << 4)  //          x
+#define SV_PARAM_BAROALT (1 << 3)    // x
+#define SV_PARAM_VRATE (1 << 2)      // x
+#define SV_PARAM_NIC (1 << 1)        // x        x
+#define SV_PARAM_ESTLAT (1 << 0)     // x
 
-#define SV_PARAM_ESTLON (1 << 7) // x
+#define SV_PARAM_ESTLON (1 << 7)  // x
 #define SV_PARAM_ESTNVEL (1 << 6)
 #define SV_PARAM_ESTEVAL (1 << 5)
-#define SV_PARAM_SURV (1 << 4)   // x        x
-#define SV_PARAM_REPORT (1 << 3) // x        x
+#define SV_PARAM_SURV (1 << 4)    // x        x
+#define SV_PARAM_REPORT (1 << 3)  // x        x
 
 /// the payload offset.
 #define PBASE 4
@@ -47,8 +46,7 @@
 /*
  * Documented in the header file.
  */
-bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr)
-{
+bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr) {
 	//   memset(svr, 0, sizeof(sg_svr_t));
 
 	uint8_t fields[3];

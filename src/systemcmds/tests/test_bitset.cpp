@@ -35,8 +35,7 @@
 
 #include <include/containers/Bitset.hpp>
 
-class BitsetTest : public UnitTest
-{
+class BitsetTest : public UnitTest {
 public:
 	virtual bool run_tests();
 
@@ -44,11 +43,9 @@ private:
 	bool constructTest();
 	bool setAllTest();
 	bool setRandomTest();
-
 };
 
-bool BitsetTest::run_tests()
-{
+bool BitsetTest::run_tests() {
 	ut_run_test(constructTest);
 	ut_run_test(setAllTest);
 	ut_run_test(setRandomTest);
@@ -56,11 +53,9 @@ bool BitsetTest::run_tests()
 	return (_tests_failed == 0);
 }
 
-
 ut_declare_test_c(test_bitset, BitsetTest)
 
-bool BitsetTest::constructTest()
-{
+	bool BitsetTest::constructTest() {
 	px4::Bitset<10> test_bitset1;
 
 	ut_compare("bitset size 10", test_bitset1.size(), 10);
@@ -73,8 +68,7 @@ bool BitsetTest::constructTest()
 	return true;
 }
 
-bool BitsetTest::setAllTest()
-{
+bool BitsetTest::setAllTest() {
 	px4::Bitset<100> test_bitset2;
 
 	ut_compare("bitset size 100", test_bitset2.size(), 100);
@@ -113,8 +107,7 @@ bool BitsetTest::setAllTest()
 	return true;
 }
 
-bool BitsetTest::setRandomTest()
-{
+bool BitsetTest::setRandomTest() {
 	px4::Bitset<999> test_bitset3;
 
 	ut_compare("bitset size 999", test_bitset3.size(), 999);
@@ -126,7 +119,7 @@ bool BitsetTest::setRandomTest()
 
 	// random set and verify 100 elements
 	const int random_test_size = 5;
-	int random_array[random_test_size] = { 3, 1, 4, 5, 9 };
+	int random_array[random_test_size] = {3, 1, 4, 5, 9};
 
 	// set random elements
 	for (auto x : random_array) {
@@ -139,7 +132,6 @@ bool BitsetTest::setRandomTest()
 
 	// check that only random elements are set
 	for (int i = 0; i < test_bitset3.size(); i++) {
-
 		// is i in the random test array
 		// if so it should be set
 		bool i_in_random = false;

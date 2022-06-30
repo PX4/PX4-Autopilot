@@ -37,19 +37,17 @@
  * Controller library code
  */
 
-#include <math.h>
 #include <float.h>
+#include <math.h>
 
 #include "blocks.hpp"
 
-namespace control
-{
+namespace control {
 
-float BlockIntegral::update(float input)
-{
+float BlockIntegral::update(float input) {
 	// trapezoidal integration
 	setY(_limit.update(getY() + input * getDt()));
 	return getY();
 }
 
-} // namespace control
+}  // namespace control

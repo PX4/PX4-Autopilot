@@ -40,8 +40,7 @@
 #include <stdio.h>
 
 // check if p is a valid option and if the option takes an arg
-static char isvalidopt(char p, const char *options, int *takesarg)
-{
+static char isvalidopt(char p, const char *options, int *takesarg) {
 	int idx = 0;
 	*takesarg = 0;
 
@@ -61,8 +60,7 @@ static char isvalidopt(char p, const char *options, int *takesarg)
 }
 
 // reorder argv and put non-options at the end
-static int reorder(int argc, char **argv, const char *options)
-{
+static int reorder(int argc, char **argv, const char *options) {
 	char *tmp_argv[argc];
 	char c;
 	int idx = 1;
@@ -82,7 +80,8 @@ static int reorder(int argc, char **argv, const char *options)
 			tmpidx++;
 
 			if (takesarg) {
-				if (idx + 1 >= argc) { //Error: option takes an argument, but there is no more argument
+				if (idx + 1 >= argc) {  // Error: option takes an argument, but there is no more
+							// argument
 					return 1;
 				}
 
@@ -141,8 +140,7 @@ static int reorder(int argc, char **argv, const char *options)
 // Argv is changed to put all options and option args at the beginning,
 // followed by non-options.
 //
-__EXPORT int px4_getopt(int argc, char *argv[], const char *options, int *myoptind, const char **myoptarg)
-{
+__EXPORT int px4_getopt(int argc, char *argv[], const char *options, int *myoptind, const char **myoptarg) {
 	char *p;
 	char c;
 	int takesarg;
@@ -173,7 +171,7 @@ __EXPORT int px4_getopt(int argc, char *argv[], const char *options, int *myopti
 		if (takesarg) {
 			*myoptarg = argv[*myoptind];
 
-			if (!*myoptarg) { //Error: option takes an argument, but there is no more argument
+			if (!*myoptarg) {  // Error: option takes an argument, but there is no more argument
 				return -1;
 			}
 

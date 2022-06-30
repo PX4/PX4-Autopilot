@@ -37,65 +37,55 @@
 
 using namespace time_literals;
 
-namespace AKM_AK8963
-{
+namespace AKM_AK8963 {
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-MPU9250_AK8963::MPU9250_AK8963(MPU9250 &mpu9250, enum Rotation rotation) :
-	ScheduledWorkItem("mpu9250_ak8963", px4::device_bus_to_wq(mpu9250.get_device_id())),
-	_mpu9250(mpu9250),
-	_px4_mag(mpu9250.get_device_id(), rotation)
-{
+MPU9250_AK8963::MPU9250_AK8963(MPU9250 &mpu9250, enum Rotation rotation)
+	: ScheduledWorkItem("mpu9250_ak8963", px4::device_bus_to_wq(mpu9250.get_device_id())),
+	  _mpu9250(mpu9250),
+	  _px4_mag(mpu9250.get_device_id(), rotation) {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AK8963);
 
 	// in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
 	_px4_mag.set_scale(1.5e-3f);
 }
 
-MPU9250_AK8963::~MPU9250_AK8963()
-{
+MPU9250_AK8963::~MPU9250_AK8963() {
 	perf_free(_bad_transfer_perf);
 	perf_free(_magnetic_sensor_overflow_perf);
 }
 
-bool MPU9250_AK8963::Reset()
-{
+bool MPU9250_AK8963::Reset() {
 	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
 }
 
-void MPU9250_AK8963::PrintInfo()
-{
+void MPU9250_AK8963::PrintInfo() {
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_magnetic_sensor_overflow_perf);
 }
 
-void MPU9250_AK8963::Run()
-{
+void MPU9250_AK8963::Run() {
 	switch (_state) {
-	case STATE::RESET:
-		// CNTL2 SRST: Soft reset
-		_mpu9250.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL2, CNTL2_BIT::SRST);
-		_reset_timestamp = hrt_absolute_time();
-		_failure_count = 0;
-		_state = STATE::READ_WHO_AM_I;
-		ScheduleDelayed(100_ms);
-		break;
+		case STATE::RESET:
+			// CNTL2 SRST: Soft reset
+			_mpu9250.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL2, CNTL2_BIT::SRST);
+			_reset_timestamp = hrt_absolute_time();
+			_failure_count = 0;
+			_state = STATE::READ_WHO_AM_I;
+			ScheduleDelayed(100_ms);
+			break;
 
-	case STATE::READ_WHO_AM_I:
-		_mpu9250.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::WIA, 1);
-		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(100_ms);
-		break;
+		case STATE::READ_WHO_AM_I:
+			_mpu9250.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::WIA, 1);
+			_state = STATE::WAIT_FOR_RESET;
+			ScheduleDelayed(100_ms);
+			break;
 
-	case STATE::WAIT_FOR_RESET: {
-
+		case STATE::WAIT_FOR_RESET: {
 			uint8_t WIA = 0;
 			_mpu9250.I2CSlaveExternalSensorDataRead(&WIA, 1);
 
@@ -103,18 +93,21 @@ void MPU9250_AK8963::Run()
 				// if reset succeeded then configure
 				if (!_sensitivity_adjustments_loaded) {
 					// Set Fuse ROM Access mode before reading Fuse ROM data.
-					_mpu9250.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL1,
-								       CNTL1_BIT::BIT_16 | CNTL1_BIT::FUSE_ROM_ACCESS_MODE);
+					_mpu9250.I2CSlaveRegisterWrite(
+						I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL1,
+						CNTL1_BIT::BIT_16 | CNTL1_BIT::FUSE_ROM_ACCESS_MODE);
 
 					// Read ASAX, ASAY, ASAZ
-					_mpu9250.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::ASAX, 3);
+					_mpu9250.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT,
+										  (uint8_t)Register::ASAX, 3);
 					_state = STATE::READ_SENSITIVITY_ADJUSTMENTS;
 					ScheduleDelayed(100_ms);
 
 				} else {
 					// set continuous mode 2 (100 Hz)
-					_mpu9250.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL1,
-								       CNTL1_BIT::BIT_16 | CNTL1_BIT::CONTINUOUS_MODE_2);
+					_mpu9250.I2CSlaveRegisterWrite(
+						I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL1,
+						CNTL1_BIT::BIT_16 | CNTL1_BIT::CONTINUOUS_MODE_2);
 
 					_state = STATE::READ;
 					ScheduleDelayed(100_ms);
@@ -136,9 +129,9 @@ void MPU9250_AK8963::Run()
 
 		break;
 
-	case STATE::READ_SENSITIVITY_ADJUSTMENTS: {
+		case STATE::READ_SENSITIVITY_ADJUSTMENTS: {
 			// read FUSE ROM (to get ASA corrections)
-			uint8_t response[3] {};
+			uint8_t response[3]{};
 			_mpu9250.I2CSlaveExternalSensorDataRead((uint8_t *)&response, sizeof(response));
 
 			bool valid = true;
@@ -154,14 +147,14 @@ void MPU9250_AK8963::Run()
 
 			_sensitivity_adjustments_loaded = valid;
 
-			// After reading fuse ROM data, set power-down mode (MODE[3:0]=“0000”) before the transition to another mode.
+			// After reading fuse ROM data, set power-down mode (MODE[3:0]=“0000”) before the transition to
+			// another mode.
 			_mpu9250.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL1, 0);
 			_state = STATE::RESET;
 			ScheduleDelayed(100_ms);
-		}
-		break;
+		} break;
 
-	case STATE::READ: {
+		case STATE::READ: {
 			TransferBuffer buffer{};
 			const hrt_abstime timestamp_sample = hrt_absolute_time();
 			bool ret = _mpu9250.I2CSlaveExternalSensorDataRead((uint8_t *)&buffer, sizeof(TransferBuffer));
@@ -191,7 +184,7 @@ void MPU9250_AK8963::Run()
 						_failure_count--;
 					}
 
-					ScheduleDelayed(20_ms); // ~50 Hz
+					ScheduleDelayed(20_ms);  // ~50 Hz
 					return;
 				}
 			}
@@ -207,7 +200,8 @@ void MPU9250_AK8963::Run()
 			}
 
 			// ensure mpu9250 slave sensor reading is configured
-			_mpu9250.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::ST1, sizeof(TransferBuffer));
+			_mpu9250.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::ST1,
+								  sizeof(TransferBuffer));
 			ScheduleDelayed(100_ms);
 		}
 
@@ -215,4 +209,4 @@ void MPU9250_AK8963::Run()
 	}
 }
 
-} // namespace AKM_AK8963
+}  // namespace AKM_AK8963

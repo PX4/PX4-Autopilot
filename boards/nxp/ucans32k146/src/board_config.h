@@ -45,18 +45,17 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-
 #include <nuttx/compiler.h>
-
+#include <px4_platform_common/px4_config.h>
 #include <stdint.h>
 
 __BEGIN_DECLS
 
 /* these headers are not C++ safe */
+#include <arch/board/board.h>
+
 #include "hardware/s32k1xx_pinmux.h"
 #include "s32k1xx_periphclocks.h"
-#include <arch/board/board.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -75,16 +74,16 @@ __BEGIN_DECLS
  * An output of '1' illuminates the LED.
  */
 
-#define GPIO_LED_R     (PIN_PTD15 | GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO)
-#define GPIO_LED_G     (PIN_PTD16 | GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO)
-#define GPIO_LED_B     (PIN_PTD0  | GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO)
+#define GPIO_LED_R (PIN_PTD15 | GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO)
+#define GPIO_LED_G (PIN_PTD16 | GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO)
+#define GPIO_LED_B (PIN_PTD0 | GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO)
 
 /* Buttons.  The UCANS32K146 supports one button:
  *
  *   SW3  PTC14
  */
 
-#define GPIO_SW3       (PIN_PTC14 | PIN_INT_BOTH)
+#define GPIO_SW3 (PIN_PTC14 | PIN_INT_BOTH)
 
 /* SPI chip selects */
 
@@ -92,10 +91,9 @@ __BEGIN_DECLS
 
 #define NUM_OF_PERIPHERAL_CLOCKS_0 18
 
-
 /* High-resolution timer */
-#define HRT_TIMER              5  /* FTM timer for the HRT */
-#define HRT_TIMER_CHANNEL      0  /* Use capture/compare channel 0 */
+#define HRT_TIMER 5         /* FTM timer for the HRT */
+#define HRT_TIMER_CHANNEL 0 /* Use capture/compare channel 0 */
 
 /* Timer I/O PWM and capture
  *
@@ -106,16 +104,15 @@ __BEGIN_DECLS
  *      Defined in board.h
  */
 
-#define DIRECT_PWM_OUTPUT_CHANNELS  1
+#define DIRECT_PWM_OUTPUT_CHANNELS 1
 
-
-#define BOARD_HAS_LED_PWM              1
+#define BOARD_HAS_LED_PWM 1
 #define BOARD_LED_PWM_DRIVE_ACTIVE_LOW 1
-#define BOARD_HAS_SHARED_PWM_TIMERS    1
+#define BOARD_HAS_SHARED_PWM_TIMERS 1
 
-#define LED_TIM0_CH0OUT   /* PTD15  RGB_R */ PIN_FTM0_CH0_3
-#define LED_TIM0_CH1OUT   /* PTD16  RGB_G */ PIN_FTM0_CH1_3
-#define LED_TIM0_CH2OUT   /* PTD0   RGB_B */ PIN_FTM0_CH2_3
+#define LED_TIM0_CH0OUT /* PTD15  RGB_R */ PIN_FTM0_CH0_3
+#define LED_TIM0_CH1OUT /* PTD16  RGB_G */ PIN_FTM0_CH1_3
+#define LED_TIM0_CH2OUT /* PTD0   RGB_B */ PIN_FTM0_CH2_3
 
 /****************************************************************************
  * Public Types

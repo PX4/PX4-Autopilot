@@ -33,47 +33,40 @@
 
 #pragma once
 
-#include <stdint.h>
-
-#include <px4_defines.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/getopt.h>
-
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_mixer.h>
 #include <errno.h>
-
-#include <math.h>	// NAN
-#include <cstring>
-
 #include <lib/drivers/device/device.h>
-#include <lib/mixer_module/mixer_module.hpp>
-#include <lib/mathlib/mathlib.h>
-#include <lib/cdev/CDev.hpp>
 #include <lib/led/led.h>
+#include <lib/mathlib/mathlib.h>
 #include <lib/tunes/tunes.h>
-
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
+#include <math.h>  // NAN
+#include <px4_defines.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
+#include <stdint.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/led_control.h>
 
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_mixer.h>
-
-#include "tap_esc_common.h"
+#include <cstring>
+#include <lib/cdev/CDev.hpp>
+#include <lib/mixer_module/mixer_module.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
 
 #include "drv_tap_esc.h"
+#include "tap_esc_common.h"
 
 #if !defined(BOARD_TAP_ESC_MODE)
-#  define BOARD_TAP_ESC_MODE 0
+#define BOARD_TAP_ESC_MODE 0
 #endif
 
 #if !defined(DEVICE_ARGUMENT_MAX_LENGTH)
-#  define DEVICE_ARGUMENT_MAX_LENGTH 32
+#define DEVICE_ARGUMENT_MAX_LENGTH 32
 #endif
 
 using namespace time_literals;
@@ -81,8 +74,7 @@ using namespace time_literals;
 /*
  * This driver connects to TAP ESCs via serial.
  */
-class TAP_ESC : public cdev::CDev, public ModuleBase<TAP_ESC>, public OutputModuleInterface
-{
+class TAP_ESC : public cdev::CDev, public ModuleBase<TAP_ESC>, public OutputModuleInterface {
 public:
 	TAP_ESC(const char *device, uint8_t channels_count);
 	virtual ~TAP_ESC();
@@ -102,11 +94,10 @@ public:
 	int init() override;
 	int ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+			   unsigned num_control_groups_updated) override;
 
 private:
-
 	void Run() override;
 
 	inline void send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt);
@@ -117,30 +108,30 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	bool _initialized{false};
-	char _device[DEVICE_ARGUMENT_MAX_LENGTH] {};
+	char _device[DEVICE_ARGUMENT_MAX_LENGTH]{};
 	int _uart_fd{-1};
 
 	const uint8_t _device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
 	const uint8_t _device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
 
 	uORB::PublicationMulti<esc_status_s> _esc_feedback_pub{ORB_ID(esc_status)};
-	esc_status_s      _esc_feedback{};
-	uint8_t    	  _channels_count{0}; 		///< number of ESC channels
-	uint8_t 	  _responding_esc{0};
+	esc_status_s _esc_feedback{};
+	uint8_t _channels_count{0};  ///< number of ESC channels
+	uint8_t _responding_esc{0};
 
 	ESC_UART_BUF _uartbuf{};
-	EscPacket    _packet{};
+	EscPacket _packet{};
 
 	Tunes _tunes{};
 	uORB::Subscription _tune_control_sub{ORB_ID(tune_control)};
 	hrt_abstime _interval_timestamp{0};
-	unsigned int _silence_length{0};	///< If nonzero, silence before next note.
+	unsigned int _silence_length{0};  ///< If nonzero, silence before next note.
 	unsigned int _frequency{0};
 	unsigned int _duration{0};
 
 	LedControlData _led_control_data{};
-	LedController  _led_controller{};
+	LedController _led_controller{};
 
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")};
+	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME ": interval")};
 };

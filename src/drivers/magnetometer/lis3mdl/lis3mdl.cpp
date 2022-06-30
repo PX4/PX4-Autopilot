@@ -39,36 +39,34 @@
  * Based on the hmc5883 driver.
  */
 
-#include <px4_platform_common/time.h>
 #include "lis3mdl.h"
 
-LIS3MDL::LIS3MDL(device::Device *interface, const I2CSPIDriverConfig &config) :
-	I2CSPIDriver(config),
-	_px4_mag(interface->get_device_id(), config.rotation),
-	_interface(interface),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")),
-	_conf_errors(perf_alloc(PC_COUNT, MODULE_NAME": conf_errors")),
-	_range_errors(perf_alloc(PC_COUNT, MODULE_NAME": range_errors")),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_continuous_mode_set(false),
-	_mode(CONTINUOUS),
-	_measure_interval(0),
-	_range_ga(4.0f),
-	_check_state_cnt(0),
-	_cntl_reg1(
-		CNTL_REG1_DEFAULT),  // 1 11 111 0 0 | temp-en, ultra high performance (XY), fast_odr disabled, self test disabled
-	_cntl_reg2(CNTL_REG2_DEFAULT),  // 4 gauss FS range, reboot settings default
-	_cntl_reg3(CNTL_REG3_DEFAULT),  // operating mode CONTINUOUS!
-	_cntl_reg4(CNTL_REG4_DEFAULT),  // Z-axis ultra high performance mode
-	_cntl_reg5(CNTL_REG5_DEFAULT),  // fast read disabled, continious update disabled (block data update)
-	_range_bits(0),
-	_temperature_counter(0),
-	_temperature_error_count(0)
-{
-}
+#include <px4_platform_common/time.h>
 
-LIS3MDL::~LIS3MDL()
-{
+LIS3MDL::LIS3MDL(device::Device *interface, const I2CSPIDriverConfig &config)
+	: I2CSPIDriver(config),
+	  _px4_mag(interface->get_device_id(), config.rotation),
+	  _interface(interface),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": comms_errors")),
+	  _conf_errors(perf_alloc(PC_COUNT, MODULE_NAME ": conf_errors")),
+	  _range_errors(perf_alloc(PC_COUNT, MODULE_NAME ": range_errors")),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _continuous_mode_set(false),
+	  _mode(CONTINUOUS),
+	  _measure_interval(0),
+	  _range_ga(4.0f),
+	  _check_state_cnt(0),
+	  _cntl_reg1(CNTL_REG1_DEFAULT),  // 1 11 111 0 0 | temp-en, ultra high performance (XY), fast_odr disabled,
+					  // self test disabled
+	  _cntl_reg2(CNTL_REG2_DEFAULT),  // 4 gauss FS range, reboot settings default
+	  _cntl_reg3(CNTL_REG3_DEFAULT),  // operating mode CONTINUOUS!
+	  _cntl_reg4(CNTL_REG4_DEFAULT),  // Z-axis ultra high performance mode
+	  _cntl_reg5(CNTL_REG5_DEFAULT),  // fast read disabled, continious update disabled (block data update)
+	  _range_bits(0),
+	  _temperature_counter(0),
+	  _temperature_error_count(0) {}
+
+LIS3MDL::~LIS3MDL() {
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -78,8 +76,7 @@ LIS3MDL::~LIS3MDL()
 	delete _interface;
 }
 
-int LIS3MDL::collect()
-{
+int LIS3MDL::collect() {
 	struct {
 		uint8_t x[2];
 		uint8_t y[2];
@@ -93,7 +90,7 @@ int LIS3MDL::collect()
 		int16_t t;
 	} report{};
 
-	uint8_t buf_rx[2] {};
+	uint8_t buf_rx[2]{};
 
 	_px4_mag.set_error_count(perf_event_count(_comms_errors));
 
@@ -103,8 +100,8 @@ int LIS3MDL::collect()
 	_interface->read(ADDR_OUT_X_L, (uint8_t *)&lis_report, sizeof(lis_report));
 
 	/**
-	 * Silicon Bug: the X axis will be read instead of the temperature registers if you do a sequential read through XYZ.
-	 * The temperature registers must be addressed directly.
+	 * Silicon Bug: the X axis will be read instead of the temperature registers if you do a sequential read through
+	 * XYZ. The temperature registers must be addressed directly.
 	 */
 
 	int ret = _interface->read(ADDR_OUT_T_L, (uint8_t *)&buf_rx, sizeof(buf_rx));
@@ -131,8 +128,7 @@ int LIS3MDL::collect()
 	return PX4_OK;
 }
 
-void LIS3MDL::RunImpl()
-{
+void LIS3MDL::RunImpl() {
 	/* _measure_interval == 0  is used as _task_should_exit */
 	if (_measure_interval == 0) {
 		return;
@@ -156,8 +152,7 @@ void LIS3MDL::RunImpl()
 	}
 }
 
-int LIS3MDL::init()
-{
+int LIS3MDL::init() {
 	/* reset the device configuration */
 	reset();
 
@@ -167,8 +162,7 @@ int LIS3MDL::init()
 	return PX4_OK;
 }
 
-int LIS3MDL::measure()
-{
+int LIS3MDL::measure() {
 	int ret = 0;
 
 	/* Send the command to begin a measurement. */
@@ -188,16 +182,14 @@ int LIS3MDL::measure()
 	return ret;
 }
 
-void LIS3MDL::print_status()
-{
+void LIS3MDL::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	PX4_INFO("poll interval:  %u", _measure_interval);
 }
 
-int LIS3MDL::reset()
-{
+int LIS3MDL::reset() {
 	int ret = set_default_register_values();
 
 	if (ret != OK) {
@@ -213,9 +205,7 @@ int LIS3MDL::reset()
 	return PX4_OK;
 }
 
-int
-LIS3MDL::set_default_register_values()
-{
+int LIS3MDL::set_default_register_values() {
 	write_reg(ADDR_CTRL_REG1, CNTL_REG1_DEFAULT);
 	write_reg(ADDR_CTRL_REG2, CNTL_REG2_DEFAULT);
 	write_reg(ADDR_CTRL_REG3, CNTL_REG3_DEFAULT);
@@ -225,8 +215,7 @@ LIS3MDL::set_default_register_values()
 	return PX4_OK;
 }
 
-int LIS3MDL::set_range(unsigned range)
-{
+int LIS3MDL::set_range(unsigned range) {
 	if (range <= 4) {
 		_range_bits = 0x00;
 		_px4_mag.set_scale(1.0f / 6842.0f);
@@ -272,24 +261,21 @@ int LIS3MDL::set_range(unsigned range)
 	}
 }
 
-void LIS3MDL::start()
-{
+void LIS3MDL::start() {
 	set_default_register_values();
 
 	/* schedule a cycle to start things */
 	ScheduleNow();
 }
 
-int LIS3MDL::read_reg(uint8_t reg, uint8_t &val)
-{
+int LIS3MDL::read_reg(uint8_t reg, uint8_t &val) {
 	uint8_t buf = val;
 	int ret = _interface->read(reg, &buf, 1);
 	val = buf;
 	return ret;
 }
 
-int LIS3MDL::write_reg(uint8_t reg, uint8_t val)
-{
+int LIS3MDL::write_reg(uint8_t reg, uint8_t val) {
 	uint8_t buf = val;
 	return _interface->write(reg, &buf, 1);
 }

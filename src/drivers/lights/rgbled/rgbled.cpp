@@ -40,66 +40,57 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <string.h>
-
 #include <drivers/device/i2c.h>
 #include <lib/led/led.h>
 #include <lib/parameters/param.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module.h>
+#include <string.h>
 
 using namespace time_literals;
 
-#define ADDR			0x55	/**< I2C adress of TCA62724FMG */
-#define SUB_ADDR_START		0x01	/**< write everything (with auto-increment) */
-#define SUB_ADDR_PWM0		0x81	/**< blue     (without auto-increment) */
-#define SUB_ADDR_PWM1		0x82	/**< green    (without auto-increment) */
-#define SUB_ADDR_PWM2		0x83	/**< red      (without auto-increment) */
-#define SUB_ADDR_SETTINGS	0x84	/**< settings (without auto-increment)*/
+#define ADDR 0x55              /**< I2C adress of TCA62724FMG */
+#define SUB_ADDR_START 0x01    /**< write everything (with auto-increment) */
+#define SUB_ADDR_PWM0 0x81     /**< blue     (without auto-increment) */
+#define SUB_ADDR_PWM1 0x82     /**< green    (without auto-increment) */
+#define SUB_ADDR_PWM2 0x83     /**< red      (without auto-increment) */
+#define SUB_ADDR_SETTINGS 0x84 /**< settings (without auto-increment)*/
 
-#define SETTING_NOT_POWERSAVE	0x01	/**< power-save mode not off */
-#define SETTING_ENABLE   	0x02	/**< on */
+#define SETTING_NOT_POWERSAVE 0x01 /**< power-save mode not off */
+#define SETTING_ENABLE 0x02        /**< on */
 
-
-class RGBLED : public device::I2C, public I2CSPIDriver<RGBLED>
-{
+class RGBLED : public device::I2C, public I2CSPIDriver<RGBLED> {
 public:
 	RGBLED(const I2CSPIDriverConfig &config);
 	virtual ~RGBLED() = default;
 
 	static void print_usage();
 
-	int		init() override;
-	int		probe() override;
+	int init() override;
+	int probe() override;
 
-	void			RunImpl();
+	void RunImpl();
 
 private:
-	void			print_status() override;
-	int			send_led_enable(bool enable);
-	int			send_led_rgb();
-	int			get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
+	void print_status() override;
+	int send_led_enable(bool enable);
+	int send_led_rgb();
+	int get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
 
-	float			_brightness{1.0f};
+	float _brightness{1.0f};
 
-	uint8_t			_r{0};
-	uint8_t			_g{0};
-	uint8_t			_b{0};
-	bool			_leds_enabled{true};
+	uint8_t _r{0};
+	uint8_t _g{0};
+	uint8_t _b{0};
+	bool _leds_enabled{true};
 
-	LedController		_led_controller;
+	LedController _led_controller;
 };
 
-RGBLED::RGBLED(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config)
-{
-}
+RGBLED::RGBLED(const I2CSPIDriverConfig &config) : I2C(config), I2CSPIDriver(config) {}
 
-int
-RGBLED::init()
-{
+int RGBLED::init() {
 	int ret = I2C::init();
 
 	if (ret != OK) {
@@ -116,15 +107,12 @@ RGBLED::init()
 	return OK;
 }
 
-int
-RGBLED::probe()
-{
+int RGBLED::probe() {
 	int ret;
 	bool on, powersave;
 	uint8_t r, g, b;
 
-	if ((ret = get(on, powersave, r, g, b)) != OK ||
-	    (ret = send_led_enable(false) != OK) ||
+	if ((ret = get(on, powersave, r, g, b)) != OK || (ret = send_led_enable(false) != OK) ||
 	    (ret = send_led_enable(false) != OK)) {
 		return ret;
 	}
@@ -134,9 +122,7 @@ RGBLED::probe()
 	return ret;
 }
 
-void
-RGBLED::print_status()
-{
+void RGBLED::print_status() {
 	bool on, powersave;
 	uint8_t r, g, b;
 
@@ -152,53 +138,67 @@ RGBLED::print_status()
 	}
 }
 
-void
-RGBLED::RunImpl()
-{
+void RGBLED::RunImpl() {
 	LedControlData led_control_data;
 
 	if (_led_controller.update(led_control_data) == 1) {
 		switch (led_control_data.leds[0].color) {
-		case led_control_s::COLOR_RED:
-			_r = 255; _g = 0; _b = 0;
-			send_led_enable(true);
-			break;
+			case led_control_s::COLOR_RED:
+				_r = 255;
+				_g = 0;
+				_b = 0;
+				send_led_enable(true);
+				break;
 
-		case led_control_s::COLOR_GREEN:
-			_r = 0; _g = 255; _b = 0;
-			send_led_enable(true);
-			break;
+			case led_control_s::COLOR_GREEN:
+				_r = 0;
+				_g = 255;
+				_b = 0;
+				send_led_enable(true);
+				break;
 
-		case led_control_s::COLOR_BLUE:
-			_r = 0; _g = 0; _b = 255;
-			send_led_enable(true);
-			break;
+			case led_control_s::COLOR_BLUE:
+				_r = 0;
+				_g = 0;
+				_b = 255;
+				send_led_enable(true);
+				break;
 
-		case led_control_s::COLOR_AMBER: //make it the same as yellow
-		case led_control_s::COLOR_YELLOW:
-			_r = 255; _g = 255; _b = 0;
-			send_led_enable(true);
-			break;
+			case led_control_s::COLOR_AMBER:  // make it the same as yellow
+			case led_control_s::COLOR_YELLOW:
+				_r = 255;
+				_g = 255;
+				_b = 0;
+				send_led_enable(true);
+				break;
 
-		case led_control_s::COLOR_PURPLE:
-			_r = 255; _g = 0; _b = 255;
-			send_led_enable(true);
-			break;
+			case led_control_s::COLOR_PURPLE:
+				_r = 255;
+				_g = 0;
+				_b = 255;
+				send_led_enable(true);
+				break;
 
-		case led_control_s::COLOR_CYAN:
-			_r = 0; _g = 255; _b = 255;
-			send_led_enable(true);
-			break;
+			case led_control_s::COLOR_CYAN:
+				_r = 0;
+				_g = 255;
+				_b = 255;
+				send_led_enable(true);
+				break;
 
-		case led_control_s::COLOR_WHITE:
-			_r = 255; _g = 255; _b = 255;
-			send_led_enable(true);
-			break;
+			case led_control_s::COLOR_WHITE:
+				_r = 255;
+				_g = 255;
+				_b = 255;
+				send_led_enable(true);
+				break;
 
-		default: // led_control_s::COLOR_OFF
-			_r = 0; _g = 0; _b = 0;
-			send_led_enable(false);
-			break;
+			default:  // led_control_s::COLOR_OFF
+				_r = 0;
+				_g = 0;
+				_b = 0;
+				send_led_enable(false);
+				break;
 		}
 
 		_brightness = (float)led_control_data.leds[0].brightness / 255.f;
@@ -213,9 +213,7 @@ RGBLED::RunImpl()
 /**
  * Sent ENABLE flag to LED driver
  */
-int
-RGBLED::send_led_enable(bool enable)
-{
+int RGBLED::send_led_enable(bool enable) {
 	if (_leds_enabled && enable) {
 		// already enabled
 		return 0;
@@ -230,7 +228,7 @@ RGBLED::send_led_enable(bool enable)
 
 	settings_byte |= SETTING_NOT_POWERSAVE;
 
-	const uint8_t msg[2] = { SUB_ADDR_SETTINGS, settings_byte};
+	const uint8_t msg[2] = {SUB_ADDR_SETTINGS, settings_byte};
 
 	return transfer(msg, sizeof(msg), nullptr, 0);
 }
@@ -238,21 +236,15 @@ RGBLED::send_led_enable(bool enable)
 /**
  * Send RGB PWM settings to LED driver according to current color and brightness
  */
-int
-RGBLED::send_led_rgb()
-{
+int RGBLED::send_led_rgb() {
 	/* To scale from 0..255 -> 0..15 shift right by 4 bits */
-	const uint8_t msg[6] = {
-		SUB_ADDR_PWM0, static_cast<uint8_t>((_b >> 4) * _brightness + 0.5f),
-		SUB_ADDR_PWM1, static_cast<uint8_t>((_g >> 4) * _brightness + 0.5f),
-		SUB_ADDR_PWM2, static_cast<uint8_t>((_r >> 4) * _brightness + 0.5f)
-	};
+	const uint8_t msg[6] = {SUB_ADDR_PWM0, static_cast<uint8_t>((_b >> 4) * _brightness + 0.5f),
+				SUB_ADDR_PWM1, static_cast<uint8_t>((_g >> 4) * _brightness + 0.5f),
+				SUB_ADDR_PWM2, static_cast<uint8_t>((_r >> 4) * _brightness + 0.5f)};
 	return transfer(msg, sizeof(msg), nullptr, 0);
 }
 
-int
-RGBLED::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
-{
+int RGBLED::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b) {
 	uint8_t result[2] = {0, 0};
 	int ret;
 
@@ -270,9 +262,7 @@ RGBLED::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
 	return ret;
 }
 
-void
-RGBLED::print_usage()
-{
+void RGBLED::print_usage() {
 	PRINT_MODULE_USAGE_NAME("rgbled", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
@@ -280,8 +270,7 @@ RGBLED::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int rgbled_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int rgbled_main(int argc, char *argv[]) {
 	using ThisDriver = RGBLED;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;

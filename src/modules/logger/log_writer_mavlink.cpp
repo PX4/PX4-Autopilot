@@ -32,38 +32,30 @@
  ****************************************************************************/
 
 #include "log_writer_mavlink.h"
-#include "messages.h"
 
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
+
 #include <cstring>
 
-namespace px4
-{
-namespace logger
-{
+#include "messages.h"
 
-LogWriterMavlink::LogWriterMavlink()
-{
-	_ulog_stream_data.length = 0;
-}
+namespace px4 {
+namespace logger {
 
-bool LogWriterMavlink::init()
-{
-	return true;
-}
+LogWriterMavlink::LogWriterMavlink() { _ulog_stream_data.length = 0; }
 
-LogWriterMavlink::~LogWriterMavlink()
-{
+bool LogWriterMavlink::init() { return true; }
+
+LogWriterMavlink::~LogWriterMavlink() {
 	if (_ulog_stream_ack_sub >= 0) {
 		orb_unsubscribe(_ulog_stream_ack_sub);
 	}
 }
 
-void LogWriterMavlink::start_log()
-{
+void LogWriterMavlink::start_log() {
 	if (_ulog_stream_ack_sub == -1) {
 		_ulog_stream_ack_sub = orb_subscribe(ORB_ID(ulog_stream_ack));
 	}
@@ -79,14 +71,12 @@ void LogWriterMavlink::start_log()
 	_is_started = true;
 }
 
-void LogWriterMavlink::stop_log()
-{
+void LogWriterMavlink::stop_log() {
 	_ulog_stream_data.length = 0;
 	_is_started = false;
 }
 
-int LogWriterMavlink::write_message(void *ptr, size_t size)
-{
+int LogWriterMavlink::write_message(void *ptr, size_t size) {
 	if (!is_started()) {
 		return 0;
 	}
@@ -115,8 +105,7 @@ int LogWriterMavlink::write_message(void *ptr, size_t size)
 	return 0;
 }
 
-void LogWriterMavlink::set_need_reliable_transfer(bool need_reliable)
-{
+void LogWriterMavlink::set_need_reliable_transfer(bool need_reliable) {
 	if (!need_reliable && _need_reliable_transfer) {
 		if (_ulog_stream_data.length > 0) {
 			// make sure to send previous data using reliable transfer
@@ -127,8 +116,7 @@ void LogWriterMavlink::set_need_reliable_transfer(bool need_reliable)
 	_need_reliable_transfer = need_reliable;
 }
 
-int LogWriterMavlink::publish_message()
-{
+int LogWriterMavlink::publish_message() {
 	_ulog_stream_data.timestamp = hrt_absolute_time();
 	_ulog_stream_data.flags = 0;
 
@@ -184,5 +172,5 @@ int LogWriterMavlink::publish_message()
 	return 0;
 }
 
-}
-}
+}  // namespace logger
+}  // namespace px4

@@ -44,20 +44,18 @@
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/hover_thrust_estimate.h>
+#include <uORB/topics/takeoff_status.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/takeoff_status.h>
 
 #include "LandDetector.h"
 
 using namespace time_literals;
 
-namespace land_detector
-{
+namespace land_detector {
 
-class MulticopterLandDetector : public LandDetector
-{
+class MulticopterLandDetector : public LandDetector {
 public:
 	MulticopterLandDetector();
 	~MulticopterLandDetector() override = default;
@@ -78,6 +76,7 @@ protected:
 	bool _get_close_to_ground_or_skipped_check() override { return _close_to_ground_or_skipped_check; }
 
 	void _set_hysteresis_factor(const int factor) override;
+
 private:
 	bool _is_close_to_ground();
 
@@ -87,7 +86,8 @@ private:
 	/** Time interval in us in which wider acceptance thresholds are used after landed. */
 	static constexpr hrt_abstime LAND_DETECTOR_LAND_PHASE_TIME_US = 2_s;
 
-	/** Distance above ground below which entering ground contact state is possible when distance to ground is available. */
+	/** Distance above ground below which entering ground contact state is possible when distance to ground is
+	 * available. */
 	static constexpr float DIST_FROM_GROUND_THRESHOLD = 1.0f;
 
 	/** Handles for interesting parameters. **/
@@ -126,24 +126,21 @@ private:
 
 	uint8_t _takeoff_state{takeoff_status_s::TAKEOFF_STATE_DISARMED};
 
-	hrt_abstime _min_thrust_start{0};	///< timestamp when minimum trust was applied first
+	hrt_abstime _min_thrust_start{0};  ///< timestamp when minimum trust was applied first
 	hrt_abstime _landed_time{0};
 
-	bool _in_descend{false};		///< vehicle is commanded to desend
-	bool _horizontal_movement{false};	///< vehicle is moving horizontally
+	bool _in_descend{false};           ///< vehicle is commanded to desend
+	bool _horizontal_movement{false};  ///< vehicle is moving horizontally
 	bool _vertical_movement{false};
 	bool _has_low_throttle{false};
 	bool _close_to_ground_or_skipped_check{false};
-	bool _below_gnd_effect_hgt{false};	///< vehicle height above ground is below height where ground effect occurs
+	bool _below_gnd_effect_hgt{false};  ///< vehicle height above ground is below height where ground effect occurs
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(
-		LandDetector,
-		(ParamFloat<px4::params::LNDMC_TRIG_TIME>)   _param_lndmc_trig_time,
-		(ParamFloat<px4::params::LNDMC_ROT_MAX>)    _param_lndmc_rot_max,
-		(ParamFloat<px4::params::LNDMC_XY_VEL_MAX>) _param_lndmc_xy_vel_max,
-		(ParamFloat<px4::params::LNDMC_Z_VEL_MAX>)  _param_lndmc_z_vel_max,
-		(ParamFloat<px4::params::LNDMC_ALT_GND>)    _param_lndmc_alt_gnd_effect
-	);
+	DEFINE_PARAMETERS_CUSTOM_PARENT(LandDetector, (ParamFloat<px4::params::LNDMC_TRIG_TIME>)_param_lndmc_trig_time,
+					(ParamFloat<px4::params::LNDMC_ROT_MAX>)_param_lndmc_rot_max,
+					(ParamFloat<px4::params::LNDMC_XY_VEL_MAX>)_param_lndmc_xy_vel_max,
+					(ParamFloat<px4::params::LNDMC_Z_VEL_MAX>)_param_lndmc_z_vel_max,
+					(ParamFloat<px4::params::LNDMC_ALT_GND>)_param_lndmc_alt_gnd_effect);
 };
 
-} // namespace land_detector
+}  // namespace land_detector

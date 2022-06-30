@@ -13,10 +13,9 @@
 /*
  * Documented in the header file.
  */
-uint32_t toUint32(const uint8_t bytes[])
-{
-	uint32_t uint32 = ((uint32_t) bytes[0] << 24) | ((uint32_t) bytes[1] << 16) | ((uint32_t) bytes[2] << 8) | ((
-				  uint32_t) bytes[3]);
+uint32_t toUint32(const uint8_t bytes[]) {
+	uint32_t uint32 = ((uint32_t)bytes[0] << 24) | ((uint32_t)bytes[1] << 16) | ((uint32_t)bytes[2] << 8) |
+			  ((uint32_t)bytes[3]);
 
 	return uint32;
 }

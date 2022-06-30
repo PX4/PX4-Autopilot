@@ -33,22 +33,19 @@
 
 #include "send_event.h"
 
+#include <drivers/drv_hrt.h>
 #include <math.h>
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
-#include <drivers/drv_hrt.h>
 
 using namespace time_literals;
 
-namespace events
-{
+namespace events {
 
 // Run it at 30 Hz.
 static constexpr uint32_t SEND_EVENT_INTERVAL_US{1_s / 30};
 
-int SendEvent::task_spawn(int argc, char *argv[])
-{
+int SendEvent::task_spawn(int argc, char *argv[]) {
 	SendEvent *send_event = new SendEvent();
 
 	if (!send_event) {
@@ -64,10 +61,7 @@ int SendEvent::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-SendEvent::SendEvent() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
-{
+SendEvent::SendEvent() : ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default) {
 	if (_param_ev_tsk_stat_dis.get()) {
 		_status_display = new status::StatusDisplay();
 	}
@@ -77,23 +71,20 @@ SendEvent::SendEvent() :
 	}
 }
 
-SendEvent::~SendEvent()
-{
+SendEvent::~SendEvent() {
 	ScheduleClear();
 
 	delete _status_display;
 	delete _rc_loss_alarm;
 }
 
-int SendEvent::start()
-{
+int SendEvent::start() {
 	ScheduleOnInterval(SEND_EVENT_INTERVAL_US, 10000);
 
 	return PX4_OK;
 }
 
-void SendEvent::Run()
-{
+void SendEvent::Run() {
 	if (should_exit()) {
 		exit_and_cleanup();
 		return;
@@ -110,14 +101,12 @@ void SendEvent::Run()
 	}
 }
 
-void SendEvent::process_commands()
-{
+void SendEvent::process_commands() {
 	// TODO: do something with vehicle commands
 	// TODO: what is this modules purpose?
 }
 
-void SendEvent::answer_command(const vehicle_command_s &cmd, unsigned result)
-{
+void SendEvent::answer_command(const vehicle_command_s &cmd, unsigned result) {
 	/* publish ACK */
 	vehicle_command_ack_s command_ack{};
 	command_ack.timestamp = hrt_absolute_time();
@@ -126,12 +115,11 @@ void SendEvent::answer_command(const vehicle_command_s &cmd, unsigned result)
 	command_ack.target_system = cmd.source_system;
 	command_ack.target_component = cmd.source_component;
 
-	uORB::Publication<vehicle_command_ack_s>	command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 	command_ack_pub.publish(command_ack);
 }
 
-int SendEvent::print_usage(const char *reason)
-{
+int SendEvent::print_usage(const char *reason) {
 	if (reason) {
 		printf("%s\n\n", reason);
 	}
@@ -152,17 +140,13 @@ The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, e
 	return 0;
 }
 
-int SendEvent::custom_command(int argc, char *argv[])
-{
+int SendEvent::custom_command(int argc, char *argv[]) {
 	// TODO: what is my purpose?
 	print_usage("unrecognized command");
 
 	return 0;
 }
 
-int send_event_main(int argc, char *argv[])
-{
-	return SendEvent::main(argc, argv);
-}
+int send_event_main(int argc, char *argv[]) { return SendEvent::main(argc, argv); }
 
 } /* namespace events */

@@ -41,19 +41,19 @@
 
 #pragma once
 
+#include <drivers/drv_sensor.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <drivers/drv_sensor.h>
-#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
-class FakeMagnetometer : public ModuleBase<FakeMagnetometer>, public ModuleParams, public px4::ScheduledWorkItem
-{
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Subscription.hpp>
+
+class FakeMagnetometer : public ModuleBase<FakeMagnetometer>, public ModuleParams, public px4::ScheduledWorkItem {
 public:
 	FakeMagnetometer();
 	~FakeMagnetometer() override = default;

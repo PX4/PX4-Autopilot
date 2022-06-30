@@ -35,25 +35,17 @@
 
 using namespace time_literals;
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-ICM20948_I2C_Passthrough::ICM20948_I2C_Passthrough(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config)
-{
-}
+ICM20948_I2C_Passthrough::ICM20948_I2C_Passthrough(const I2CSPIDriverConfig &config)
+	: I2C(config), I2CSPIDriver(config) {}
 
-ICM20948_I2C_Passthrough::~ICM20948_I2C_Passthrough()
-{
+ICM20948_I2C_Passthrough::~ICM20948_I2C_Passthrough() {
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 }
 
-int ICM20948_I2C_Passthrough::init()
-{
+int ICM20948_I2C_Passthrough::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -64,16 +56,14 @@ int ICM20948_I2C_Passthrough::init()
 	return Reset() ? 0 : -1;
 }
 
-bool ICM20948_I2C_Passthrough::Reset()
-{
+bool ICM20948_I2C_Passthrough::Reset() {
 	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
 }
 
-void ICM20948_I2C_Passthrough::print_status()
-{
+void ICM20948_I2C_Passthrough::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	PX4_INFO("temperature: %.1f degC", (double)_temperature);
@@ -82,8 +72,7 @@ void ICM20948_I2C_Passthrough::print_status()
 	perf_print_counter(_bad_transfer_perf);
 }
 
-int ICM20948_I2C_Passthrough::probe()
-{
+int ICM20948_I2C_Passthrough::probe() {
 	for (int i = 0; i < 3; i++) {
 		uint8_t whoami = RegisterRead(Register::BANK_0::WHO_AM_I);
 
@@ -97,7 +86,8 @@ int ICM20948_I2C_Passthrough::probe()
 			int bank = reg_bank_sel >> 4;
 
 			if (bank >= 1 && bank <= 3) {
-				DEVICE_DEBUG("incorrect register bank for WHO_AM_I REG_BANK_SEL:0x%02x, bank:%d", reg_bank_sel, bank);
+				DEVICE_DEBUG("incorrect register bank for WHO_AM_I REG_BANK_SEL:0x%02x, bank:%d",
+					     reg_bank_sel, bank);
 				// force bank selection and retry
 				SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0, true);
 			}
@@ -107,72 +97,74 @@ int ICM20948_I2C_Passthrough::probe()
 	return PX4_ERROR;
 }
 
-void ICM20948_I2C_Passthrough::RunImpl()
-{
+void ICM20948_I2C_Passthrough::RunImpl() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-	case STATE::RESET:
-		// PWR_MGMT_1: Device Reset
-		RegisterWrite(Register::BANK_0::PWR_MGMT_1, PWR_MGMT_1_BIT::DEVICE_RESET);
-		_reset_timestamp = now;
-		_failure_count = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(1_ms);
-		break;
-
-	case STATE::WAIT_FOR_RESET:
-
-		// The reset value is 0x00 for all registers other than the registers below
-		if ((RegisterRead(Register::BANK_0::WHO_AM_I) == WHOAMI) && (RegisterRead(Register::BANK_0::PWR_MGMT_1) == 0x41)) {
-			// Wakeup and reset
-			RegisterWrite(Register::BANK_0::USER_CTRL, USER_CTRL_BIT::SRAM_RST | USER_CTRL_BIT::I2C_MST_RST);
-
-			// if reset succeeded then configure
-			_state = STATE::CONFIGURE;
+		case STATE::RESET:
+			// PWR_MGMT_1: Device Reset
+			RegisterWrite(Register::BANK_0::PWR_MGMT_1, PWR_MGMT_1_BIT::DEVICE_RESET);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
 			ScheduleDelayed(1_ms);
+			break;
 
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
-				ScheduleDelayed(100_ms);
+		case STATE::WAIT_FOR_RESET:
+
+			// The reset value is 0x00 for all registers other than the registers below
+			if ((RegisterRead(Register::BANK_0::WHO_AM_I) == WHOAMI) &&
+			    (RegisterRead(Register::BANK_0::PWR_MGMT_1) == 0x41)) {
+				// Wakeup and reset
+				RegisterWrite(Register::BANK_0::USER_CTRL,
+					      USER_CTRL_BIT::SRAM_RST | USER_CTRL_BIT::I2C_MST_RST);
+
+				// if reset succeeded then configure
+				_state = STATE::CONFIGURE;
+				ScheduleDelayed(1_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 10 ms");
+					ScheduleDelayed(10_ms);
+				}
+			}
+
+			break;
+
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				_state = STATE::READ;
+				ScheduleOnInterval(500_ms);
+
+			} else {
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
 				ScheduleDelayed(10_ms);
 			}
-		}
 
-		break;
+			break;
 
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			_state = STATE::READ;
-			ScheduleOnInterval(500_ms);
-
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
-
-			} else {
-				PX4_DEBUG("Configure failed, retrying");
-			}
-
-			ScheduleDelayed(10_ms);
-		}
-
-		break;
-
-	case STATE::READ: {
+		case STATE::READ: {
 			if (hrt_elapsed_time(&_last_config_check_timestamp) > 1000_ms) {
 				// check configuration registers periodically or immediately following any failure
 				if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0])) {
 					_last_config_check_timestamp = now;
-					_checked_register_bank0 = (_checked_register_bank0 + 1) % size_register_bank0_cfg;
+					_checked_register_bank0 =
+						(_checked_register_bank0 + 1) % size_register_bank0_cfg;
 
 				} else {
 					// register check failed, force reset
@@ -193,8 +185,7 @@ void ICM20948_I2C_Passthrough::RunImpl()
 	}
 }
 
-void ICM20948_I2C_Passthrough::SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force)
-{
+void ICM20948_I2C_Passthrough::SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force) {
 	if (bank != _last_register_bank || force) {
 		// select BANK_0
 		uint8_t cmd_bank_sel[2];
@@ -207,8 +198,7 @@ void ICM20948_I2C_Passthrough::SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bo
 	}
 }
 
-bool ICM20948_I2C_Passthrough::Configure()
-{
+bool ICM20948_I2C_Passthrough::Configure() {
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_bank0_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
@@ -227,8 +217,7 @@ bool ICM20948_I2C_Passthrough::Configure()
 }
 
 template <typename T>
-bool ICM20948_I2C_Passthrough::RegisterCheck(const T &reg_cfg)
-{
+bool ICM20948_I2C_Passthrough::RegisterCheck(const T &reg_cfg) {
 	bool success = true;
 
 	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
@@ -239,7 +228,8 @@ bool ICM20948_I2C_Passthrough::RegisterCheck(const T &reg_cfg)
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.clear_bits);
 		success = false;
 	}
 
@@ -247,8 +237,7 @@ bool ICM20948_I2C_Passthrough::RegisterCheck(const T &reg_cfg)
 }
 
 template <typename T>
-uint8_t ICM20948_I2C_Passthrough::RegisterRead(T reg)
-{
+uint8_t ICM20948_I2C_Passthrough::RegisterRead(T reg) {
 	SelectRegisterBank(reg);
 
 	uint8_t cmd = static_cast<uint8_t>(reg);
@@ -258,8 +247,7 @@ uint8_t ICM20948_I2C_Passthrough::RegisterRead(T reg)
 }
 
 template <typename T>
-void ICM20948_I2C_Passthrough::RegisterWrite(T reg, uint8_t value)
-{
+void ICM20948_I2C_Passthrough::RegisterWrite(T reg, uint8_t value) {
 	SelectRegisterBank(reg);
 
 	uint8_t cmd[2];
@@ -269,8 +257,7 @@ void ICM20948_I2C_Passthrough::RegisterWrite(T reg, uint8_t value)
 }
 
 template <typename T>
-void ICM20948_I2C_Passthrough::RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits)
-{
+void ICM20948_I2C_Passthrough::RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits) {
 	const uint8_t orig_val = RegisterRead(reg);
 
 	uint8_t val = (orig_val & ~clearbits) | setbits;
@@ -280,13 +267,12 @@ void ICM20948_I2C_Passthrough::RegisterSetAndClearBits(T reg, uint8_t setbits, u
 	}
 }
 
-void ICM20948_I2C_Passthrough::UpdateTemperature()
-{
+void ICM20948_I2C_Passthrough::UpdateTemperature() {
 	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
 
 	// read current temperature
 	uint8_t cmd = static_cast<uint8_t>(Register::BANK_0::TEMP_OUT_H);
-	uint8_t temperature_buf[2] {};
+	uint8_t temperature_buf[2]{};
 
 	if (transfer(&cmd, 1, temperature_buf, 2) != PX4_OK) {
 		perf_count(_bad_transfer_perf);

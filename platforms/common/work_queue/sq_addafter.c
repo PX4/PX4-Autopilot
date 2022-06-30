@@ -56,9 +56,7 @@
  *
  ************************************************************/
 
-void sq_addafter(sq_entry_t *prev, sq_entry_t *node,
-		 sq_queue_t *queue)
-{
+void sq_addafter(sq_entry_t *prev, sq_entry_t *node, sq_queue_t *queue) {
 	if (!queue->head || prev == queue->tail) {
 		sq_addlast(node, queue);
 

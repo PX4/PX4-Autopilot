@@ -37,14 +37,13 @@
  * Programmable multi-channel mixer library.
  */
 
-#include <string.h>
-#include <stdio.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "mixer_load.h"
 
-int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
-{
+int load_mixer_file(const char *fname, char *buf, unsigned maxlen) {
 	FILE *fp;
 	char line[120];
 
@@ -60,7 +59,6 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 	buf[0] = '\0';
 
 	for (;;) {
-
 		/* get a line, bail on error/EOF */
 		line[0] = '\0';
 

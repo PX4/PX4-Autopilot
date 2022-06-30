@@ -37,16 +37,14 @@
  * LED backend.
  */
 
+#include <arch/board/board.h>
+#include <nuttx/board.h>
 #include <px4_platform_common/px4_config.h>
-
 #include <stdbool.h>
 
+#include "board_config.h"
 #include "chip.h"
 #include "stm32_gpio.h"
-#include "board_config.h"
-
-#include <nuttx/board.h>
-#include <arch/board/board.h>
 
 /*
  * Ideally we'd be able to get these from arm_internal.h,
@@ -62,31 +60,27 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
-__EXPORT void led_init()
-{
+__EXPORT void led_init() {
 	/* Configure LED1 GPIO for output */
 
 	px4_arch_configgpio(GPIO_LED1);
 }
 
-__EXPORT void led_on(int led)
-{
+__EXPORT void led_on(int led) {
 	if (led == 1) {
 		/* Pull down to switch on */
 		px4_arch_gpiowrite(GPIO_LED1, false);
 	}
 }
 
-__EXPORT void led_off(int led)
-{
+__EXPORT void led_off(int led) {
 	if (led == 1) {
 		/* Pull up to switch off */
 		px4_arch_gpiowrite(GPIO_LED1, true);
 	}
 }
 
-__EXPORT void led_toggle(int led)
-{
+__EXPORT void led_toggle(int led) {
 	if (led == 1) {
 		if (px4_arch_gpioread(GPIO_LED1)) {
 			px4_arch_gpiowrite(GPIO_LED1, false);

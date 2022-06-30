@@ -43,8 +43,7 @@
 
 class CDevNode;
 
-class CDevExample
-{
+class CDevExample {
 public:
 	CDevExample() : _node(0) {}
 

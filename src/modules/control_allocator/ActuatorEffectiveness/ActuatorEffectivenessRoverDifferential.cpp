@@ -32,14 +32,13 @@
  ****************************************************************************/
 
 #include "ActuatorEffectivenessRoverDifferential.hpp"
+
 #include <ControlAllocation/ControlAllocation.hpp>
 
 using namespace matrix;
 
-bool
-ActuatorEffectivenessRoverDifferential::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
-{
+bool ActuatorEffectivenessRoverDifferential::getEffectivenessMatrix(Configuration &configuration,
+								    EffectivenessUpdateReason external_update) {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
@@ -48,4 +47,3 @@ ActuatorEffectivenessRoverDifferential::getEffectivenessMatrix(Configuration &co
 	configuration.addActuator(ActuatorType::MOTORS, Vector3f{0.f, 0.f, -0.5f}, Vector3f{0.5f, 0.f, 0.f});
 	return true;
 }
-

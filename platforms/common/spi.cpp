@@ -42,14 +42,12 @@
 #endif
 
 #if BOARD_NUM_SPI_CFG_HW_VERSIONS > 1
-void px4_set_spi_buses_from_hw_version()
-{
+void px4_set_spi_buses_from_hw_version() {
 #if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
 	int hw_version_revision = board_get_hw_version();
 #else
 	int hw_version_revision = (board_get_hw_version() << 8) | board_get_hw_revision();
 #endif
-
 
 	for (int i = 0; i < BOARD_NUM_SPI_CFG_HW_VERSIONS; ++i) {
 		if (!px4_spi_buses && px4_spi_buses_all_hw[i].board_hw_version_revision == 0) {
@@ -61,7 +59,7 @@ void px4_set_spi_buses_from_hw_version()
 		}
 	}
 
-	if (!px4_spi_buses) { // fallback
+	if (!px4_spi_buses) {  // fallback
 		px4_spi_buses = px4_spi_buses_all_hw[0].buses;
 	}
 }
@@ -69,8 +67,7 @@ void px4_set_spi_buses_from_hw_version()
 const px4_spi_bus_t *px4_spi_buses{};
 #endif
 
-int px4_find_spi_bus(uint32_t devid)
-{
+int px4_find_spi_bus(uint32_t devid) {
 	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
 		const px4_spi_bus_t &bus_data = px4_spi_buses[i];
 
@@ -93,8 +90,7 @@ int px4_find_spi_bus(uint32_t devid)
 	return -1;
 }
 
-bool px4_spi_bus_requires_locking(int bus)
-{
+bool px4_spi_bus_requires_locking(int bus) {
 	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
 		const px4_spi_bus_t &bus_data = px4_spi_buses[i];
 
@@ -106,57 +102,61 @@ bool px4_spi_bus_requires_locking(int bus)
 	return true;
 }
 
+bool px4_spi_bus_external(const px4_spi_bus_t &bus) { return bus.is_external; }
 
-bool px4_spi_bus_external(const px4_spi_bus_t &bus)
-{
-	return bus.is_external;
-}
-
-bool SPIBusIterator::next()
-{
+bool SPIBusIterator::next() {
 	while (_index < SPI_BUS_MAX_BUS_ITEMS && px4_spi_buses[_index].bus != -1) {
 		const px4_spi_bus_t &bus_data = px4_spi_buses[_index];
 
 		if (board_has_bus(BOARD_SPI_BUS, bus_data.bus)) {
-
 			// Note: we use bus_data.is_external here instead of px4_spi_bus_external(),
 			// otherwise the chip-select matching does not work if a bus is configured as
 			// external/internal, but at runtime the other way around.
 			// (On boards where a bus can be internal/external at runtime, it should be
 			// configured as external.)
 			switch (_filter) {
-			case FilterType::InternalBus:
-				if (!bus_data.is_external) {
-					if (_bus == bus_data.bus || _bus == -1) {
-						// Note: if chipselect < 0, it's not defined and used in filter
-						// find device
-						for (int i = _bus_device_index + 1; i < SPI_BUS_MAX_DEVICES; ++i) {
-							if (PX4_SPI_DEVICE_ID == PX4_SPIDEVID_TYPE(bus_data.devices[i].devid) &&
-							    _devid_driver_index == bus_data.devices[i].devtype_driver &&
-							    (_chipselect < 0 || _chipselect == (int16_t)(bus_data.devices[i].cs_gpio & GPIO_PIN_MASK))) {
-								_bus_device_index = i;
-								return true;
+				case FilterType::InternalBus:
+					if (!bus_data.is_external) {
+						if (_bus == bus_data.bus || _bus == -1) {
+							// Note: if chipselect < 0, it's not defined and used in filter
+							// find device
+							for (int i = _bus_device_index + 1; i < SPI_BUS_MAX_DEVICES;
+							     ++i) {
+								if (PX4_SPI_DEVICE_ID ==
+									    PX4_SPIDEVID_TYPE(
+										    bus_data.devices[i].devid) &&
+								    _devid_driver_index ==
+									    bus_data.devices[i].devtype_driver &&
+								    (_chipselect < 0 ||
+								     _chipselect ==
+									     (int16_t)(bus_data.devices[i].cs_gpio &
+										       GPIO_PIN_MASK))) {
+									_bus_device_index = i;
+									return true;
+								}
 							}
 						}
 					}
-				}
 
-				break;
+					break;
 
-			case FilterType::ExternalBus:
-				if (bus_data.is_external) {
-					// Note: chip-select index is starting from 1 in CLI, -1 means not defined
-					uint16_t cs_index = _chipselect < 1 ? 0 : _chipselect - 1;
+				case FilterType::ExternalBus:
+					if (bus_data.is_external) {
+						// Note: chip-select index is starting from 1 in CLI, -1 means not
+						// defined
+						uint16_t cs_index = _chipselect < 1 ? 0 : _chipselect - 1;
 
-					if (_bus == _external_bus_counter && cs_index < SPI_BUS_MAX_DEVICES &&
-					    bus_data.devices[cs_index].cs_gpio != 0 && cs_index != _bus_device_index) {
-						// we know that bus_data.devices[cs_index].devtype_driver == cs_index
-						_bus_device_index = cs_index;
-						return true;
+						if (_bus == _external_bus_counter && cs_index < SPI_BUS_MAX_DEVICES &&
+						    bus_data.devices[cs_index].cs_gpio != 0 &&
+						    cs_index != _bus_device_index) {
+							// we know that bus_data.devices[cs_index].devtype_driver ==
+							// cs_index
+							_bus_device_index = cs_index;
+							return true;
+						}
 					}
-				}
 
-				break;
+					break;
 			}
 
 			if (bus_data.is_external) {
@@ -171,4 +171,4 @@ bool SPIBusIterator::next()
 	return false;
 }
 
-#endif // CONFIG_SPI
+#endif  // CONFIG_SPI

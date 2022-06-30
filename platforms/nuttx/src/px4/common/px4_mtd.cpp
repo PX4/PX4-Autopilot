@@ -43,32 +43,28 @@
 #define MODULE_NAME "PX4_MTD"
 #endif
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_mtd.h>
-#include <px4_platform_common/px4_manifest.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/spi.h>
-
-#include <inttypes.h>
 #include <errno.h>
+#include <inttypes.h>
+#include <nuttx/drivers/drivers.h>
+#include <nuttx/mtd/mtd.h>
+#include <nuttx/spi/spi.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_manifest.h>
+#include <px4_platform_common/px4_mtd.h>
+#include <px4_platform_common/spi.h>
 #include <stdbool.h>
+
 #include "systemlib/px4_macros.h"
 
-#include <nuttx/drivers/drivers.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/mtd/mtd.h>
-
 extern "C" {
-	struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev);
-	struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd,
-					off_t firstblock, off_t nblocks);
+struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev);
+struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd, off_t firstblock, off_t nblocks);
 }
 static int num_instances = 0;
 static mtd_instance_s *instances = nullptr;
 
-
-static int ramtron_attach(mtd_instance_s &instance)
-{
+static int ramtron_attach(mtd_instance_s &instance) {
 #if !defined(CONFIG_MTD_RAMTRON)
 	PX4_ERR("Misconfiguration CONFIG_MTD_RAMTRON not set");
 	return ENXIO;
@@ -117,12 +113,13 @@ static int ramtron_attach(mtd_instance_s &instance)
 		return -EIO;
 	}
 
-	int ret = instance.mtd_dev->ioctl(instance.mtd_dev, MTDIOC_SETSPEED, (unsigned long)spi_speed_mhz * 1000 * 1000);
+	int ret =
+		instance.mtd_dev->ioctl(instance.mtd_dev, MTDIOC_SETSPEED, (unsigned long)spi_speed_mhz * 1000 * 1000);
 
 	if (ret != OK) {
-		// FIXME: From the previous warning call, it looked like this should have been fatal error instead. Tried
-		// that but setting the bus speed does fail all the time. Which was then exiting and the board would
-		// not run correctly. So changed to PX4_WARN.
+		// FIXME: From the previous warning call, it looked like this should have been fatal error instead.
+		// Tried that but setting the bus speed does fail all the time. Which was then exiting and the board
+		// would not run correctly. So changed to PX4_WARN.
 		PX4_WARN("failed to set bus speed");
 	}
 
@@ -130,9 +127,7 @@ static int ramtron_attach(mtd_instance_s &instance)
 #endif
 }
 
-
-static int at24xxx_attach(mtd_instance_s &instance)
-{
+static int at24xxx_attach(mtd_instance_s &instance) {
 #if !defined(PX4_I2C_BUS_MTD)
 	PX4_ERR("Misconfiguration PX4_I2C_BUS_MTD not set");
 	return -ENXIO;
@@ -169,11 +164,8 @@ static int at24xxx_attach(mtd_instance_s &instance)
 #endif
 }
 
-
 int px4_mtd_get_geometry(const mtd_instance_s *instance, unsigned long *blocksize, unsigned long *erasesize,
-			 unsigned long *neraseblocks,
-			 unsigned *blkpererase, unsigned *nblocks, unsigned *partsize)
-{
+			 unsigned long *neraseblocks, unsigned *blkpererase, unsigned *nblocks, unsigned *partsize) {
 	/* Get the geometry of the FLASH device */
 
 	FAR struct mtd_geometry_s geo;
@@ -195,8 +187,8 @@ int px4_mtd_get_geometry(const mtd_instance_s *instance, unsigned long *blocksiz
 	 */
 
 	*blkpererase = geo.erasesize / geo.blocksize;
-	*nblocks     = (geo.neraseblocks / instance->n_partitions_current) * *blkpererase;
-	*partsize    = *nblocks * geo.blocksize;
+	*nblocks = (geo.neraseblocks / instance->n_partitions_current) * *blkpererase;
+	*partsize = *nblocks * geo.blocksize;
 
 	return ret;
 }
@@ -204,12 +196,12 @@ int px4_mtd_get_geometry(const mtd_instance_s *instance, unsigned long *blocksiz
 /*
   get partition size in bytes
  */
-ssize_t px4_mtd_get_partition_size(const mtd_instance_s *instance, const char *partname)
-{
+ssize_t px4_mtd_get_partition_size(const mtd_instance_s *instance, const char *partname) {
 	unsigned long blocksize, erasesize, neraseblocks;
 	unsigned blkpererase, nblocks, partsize = 0;
 
-	int ret = px4_mtd_get_geometry(instance, &blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks, &partsize);
+	int ret = px4_mtd_get_geometry(instance, &blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks,
+				       &partsize);
 
 	if (ret != OK) {
 		PX4_ERR("Failed to get geometry");
@@ -219,8 +211,7 @@ ssize_t px4_mtd_get_partition_size(const mtd_instance_s *instance, const char *p
 	unsigned partn = 0;
 
 	for (unsigned n = 0; n < instance->n_partitions_current; n++) {
-		if (instance->partition_names[n] != nullptr &&
-		    partname != nullptr &&
+		if (instance->partition_names[n] != nullptr && partname != nullptr &&
 		    strcmp(instance->partition_names[n], partname) == 0) {
 			partn = n;
 			break;
@@ -230,8 +221,7 @@ ssize_t px4_mtd_get_partition_size(const mtd_instance_s *instance, const char *p
 	return instance->partition_block_counts[partn] * blocksize;
 }
 
-mtd_instance_s *px4_mtd_get_instances(unsigned int *count)
-{
+mtd_instance_s *px4_mtd_get_instances(unsigned int *count) {
 	*count = num_instances;
 	return instances;
 }
@@ -239,45 +229,30 @@ mtd_instance_s *px4_mtd_get_instances(unsigned int *count)
 // Define the default FRAM usage
 #if !defined(CONFIG_MTD_RAMTRON)
 
-static const px4_mtd_manifest_t default_mtd_config = {
-};
+static const px4_mtd_manifest_t default_mtd_config = {};
 
 #else
 
-const px4_mft_device_t spifram  = {             // FM25V02A on FMUM 32K 512 X 64
+const px4_mft_device_t spifram = {  // FM25V02A on FMUM 32K 512 X 64
 	.bus_type = px4_mft_device_t::SPI,
-	.devid    = SPIDEV_FLASH(0)
-};
+	.devid = SPIDEV_FLASH(0)};
 
 const px4_mtd_entry_t fram = {
 	.device = &spifram,
 	.npart = 2,
-	.partd = {
-		{
-			.type = MTD_PARAMETERS,
-			.path = "/fs/mtd_params",
-			.nblocks = 32
-		},
-		{
-			.type = MTD_WAYPOINTS,
-			.path = "/fs/mtd_waypoints",
-			.nblocks = 32
+	.partd = {{.type = MTD_PARAMETERS, .path = "/fs/mtd_params", .nblocks = 32},
+		  {.type = MTD_WAYPOINTS, .path = "/fs/mtd_waypoints", .nblocks = 32
 
-		}
-	},
+		  }},
 };
 
-
-static const px4_mtd_manifest_t default_mtd_config = {
-	.nconfigs   = 1,
-	.entries = {
-		&fram,
-	}
-};
+static const px4_mtd_manifest_t default_mtd_config = {.nconfigs = 1,
+						      .entries = {
+							      &fram,
+						      }};
 #endif
 
-int px4_mtd_config(const px4_mtd_manifest_t *mft_mtd)
-{
+int px4_mtd_config(const px4_mtd_manifest_t *mft_mtd) {
 	int rv = -EINVAL;
 
 	const px4_mtd_manifest_t *mtd_list = mft_mtd ? mft_mtd : &default_mtd_config;
@@ -297,7 +272,7 @@ int px4_mtd_config(const px4_mtd_manifest_t *mft_mtd)
 	instances = new mtd_instance_s[mtd_list->nconfigs];
 
 	if (instances == nullptr) {
-memoryout:
+	memoryout:
 		PX4_ERR("failed to allocate memory!");
 		return rv;
 	}
@@ -335,7 +310,7 @@ memoryout:
 		}
 
 		for (uint32_t p = 0; p < nparts; p++) {
-			instances[i].partition_block_counts[p] =  mtd_list->entries[i]->partd[p].nblocks;
+			instances[i].partition_block_counts[p] = mtd_list->entries[i]->partd[p].nblocks;
 			instances[i].partition_names[p] = mtd_list->entries[i]->partd[p].path;
 			instances[i].partition_types[p] = mtd_list->entries[i]->partd[p].type;
 		}
@@ -358,11 +333,12 @@ memoryout:
 		unsigned long blocksize;
 		unsigned long erasesize;
 		unsigned long neraseblocks;
-		unsigned int  blkpererase;
-		unsigned int  nblocks;
-		unsigned int  partsize;
+		unsigned int blkpererase;
+		unsigned int nblocks;
+		unsigned int partsize;
 
-		rv = px4_mtd_get_geometry(&instances[i], &blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks, &partsize);
+		rv = px4_mtd_get_geometry(&instances[i], &blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks,
+					  &partsize);
 
 		if (rv != 0) {
 			goto errout;
@@ -375,15 +351,15 @@ memoryout:
 		unsigned long offset;
 		unsigned part;
 
-		for (offset = 0, part = 0; rv == 0 && part < nparts; offset += instances[i].partition_block_counts[part], part++) {
-
+		for (offset = 0, part = 0; rv == 0 && part < nparts;
+		     offset += instances[i].partition_block_counts[part], part++) {
 			/* Create the partition */
 
-			instances[i].part_dev[part] = mtd_partition(instances[i].mtd_dev, offset, instances[i].partition_block_counts[part]);
+			instances[i].part_dev[part] =
+				mtd_partition(instances[i].mtd_dev, offset, instances[i].partition_block_counts[part]);
 
 			if (instances[i].part_dev[part] == nullptr) {
-				PX4_ERR("mtd_partition failed. offset=%lu nblocks=%u",
-					offset, nblocks);
+				PX4_ERR("mtd_partition failed. offset=%lu nblocks=%u", offset, nblocks);
 				rv = -ENOSPC;
 				goto errout;
 			}
@@ -413,13 +389,11 @@ memoryout:
 			instances[i].n_partitions_current++;
 		}
 
-errout:
+	errout:
 
 		if (rv < 0) {
-			PX4_ERR("mtd failure: %d bus %" PRId32 " address %" PRId32 " class %d",
-				rv,
-				PX4_I2C_DEVID_BUS(instances[i].devid),
-				PX4_I2C_DEVID_ADDR(instances[i].devid),
+			PX4_ERR("mtd failure: %d bus %" PRId32 " address %" PRId32 " class %d", rv,
+				PX4_I2C_DEVID_BUS(instances[i].devid), PX4_I2C_DEVID_ADDR(instances[i].devid),
 				mtd_list->entries[i]->partd[instances[i].n_partitions_current].type);
 			break;
 		}
@@ -428,12 +402,10 @@ errout:
 	return rv;
 }
 
-__EXPORT int px4_mtd_query(const char *sub, const char *val, const char **get)
-{
+__EXPORT int px4_mtd_query(const char *sub, const char *val, const char **get) {
 	int rv = -ENODEV;
 
 	if (instances != nullptr) {
-
 		static const char *keys[] = PX4_MFT_MTD_STR_TYPES;
 		static const px4_mtd_types_t types[] = PX4_MFT_MTD_TYPES;
 		int key = 0;
@@ -445,7 +417,6 @@ __EXPORT int px4_mtd_query(const char *sub, const char *val, const char **get)
 			}
 		}
 
-
 		rv = -EINVAL;
 
 		if (key != 0) {
@@ -455,11 +426,12 @@ __EXPORT int px4_mtd_query(const char *sub, const char *val, const char **get)
 				for (unsigned n = 0; n < instances[i].n_partitions_current; n++) {
 					if (instances[i].partition_types[n] == key) {
 						if (get != nullptr && val == nullptr) {
-							*get =  instances[i].partition_names[n];
+							*get = instances[i].partition_names[n];
 							return 0;
 						}
 
-						if (val != nullptr && strcmp(instances[i].partition_names[n], val) == 0) {
+						if (val != nullptr &&
+						    strcmp(instances[i].partition_names[n], val) == 0) {
 							return 0;
 						}
 					}

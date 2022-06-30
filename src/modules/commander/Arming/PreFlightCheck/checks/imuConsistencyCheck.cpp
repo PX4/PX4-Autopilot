@@ -31,18 +31,17 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
 #include <HealthFlags.h>
-
 #include <lib/parameters/param.h>
 #include <systemlib/mavlink_log.h>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/sensors_status_imu.h>
 
+#include <uORB/Subscription.hpp>
+
+#include "../PreFlightCheck.hpp"
+
 bool PreFlightCheck::imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
-		const bool report_status)
-{
+					 const bool report_status) {
 	float accel_test_limit = 1.f;
 	param_get(param_find("COM_ARM_IMU_ACC"), &accel_test_limit);
 
@@ -55,26 +54,32 @@ bool PreFlightCheck::imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_
 
 	// Use the difference between IMU's to detect a bad calibration.
 	// If a single IMU is fitted, the value being checked will be zero so this check will always pass.
-	for (unsigned i = 0; i < (sizeof(imu.accel_inconsistency_m_s_s) / sizeof(imu.accel_inconsistency_m_s_s[0])); i++) {
+	for (unsigned i = 0; i < (sizeof(imu.accel_inconsistency_m_s_s) / sizeof(imu.accel_inconsistency_m_s_s[0]));
+	     i++) {
 		if (imu.accel_device_ids[i] != 0) {
 			if (imu.accel_device_ids[i] == imu.accel_device_id_primary) {
-				set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_ACC, imu.accel_healthy[i], status);
+				set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_ACC, imu.accel_healthy[i],
+							 status);
 
 			} else {
-				set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_ACC2, imu.accel_healthy[i], status);
+				set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_ACC2, imu.accel_healthy[i],
+							 status);
 			}
 
 			const float accel_inconsistency_m_s_s = imu.accel_inconsistency_m_s_s[i];
 
 			if (accel_inconsistency_m_s_s > accel_test_limit) {
 				if (report_status) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Accel %u inconsistent - Check Cal", i);
+					mavlink_log_critical(mavlink_log_pub,
+							     "Preflight Fail: Accel %u inconsistent - Check Cal", i);
 
 					if (imu.accel_device_ids[i] == imu.accel_device_id_primary) {
-						set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_ACC, false, status);
+						set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_ACC, false,
+									 status);
 
 					} else {
-						set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_ACC2, false, status);
+						set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_ACC2, false,
+									 status);
 					}
 				}
 
@@ -82,33 +87,40 @@ bool PreFlightCheck::imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_
 
 			} else if (accel_inconsistency_m_s_s > accel_test_limit * 0.8f) {
 				if (report_status) {
-					mavlink_log_info(mavlink_log_pub, "Preflight Advice: Accel %u inconsistent - Check Cal", i);
+					mavlink_log_info(mavlink_log_pub,
+							 "Preflight Advice: Accel %u inconsistent - Check Cal", i);
 				}
 			}
 		}
 	}
 
 	// Fail if gyro difference greater than 5 deg/sec and notify if greater than 2.5 deg/sec
-	for (unsigned i = 0; i < (sizeof(imu.gyro_inconsistency_rad_s) / sizeof(imu.gyro_inconsistency_rad_s[0])); i++) {
+	for (unsigned i = 0; i < (sizeof(imu.gyro_inconsistency_rad_s) / sizeof(imu.gyro_inconsistency_rad_s[0]));
+	     i++) {
 		if (imu.gyro_device_ids[i] != 0) {
 			if (imu.gyro_device_ids[i] == imu.gyro_device_id_primary) {
-				set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO, imu.accel_healthy[i], status);
+				set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO, imu.accel_healthy[i],
+							 status);
 
 			} else {
-				set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO2, imu.accel_healthy[i], status);
+				set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO2, imu.accel_healthy[i],
+							 status);
 			}
 
 			const float gyro_inconsistency_rad_s = imu.gyro_inconsistency_rad_s[i];
 
 			if (gyro_inconsistency_rad_s > gyro_test_limit) {
 				if (report_status) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Gyro %u inconsistent - Check Cal", i);
+					mavlink_log_critical(mavlink_log_pub,
+							     "Preflight Fail: Gyro %u inconsistent - Check Cal", i);
 
 					if (imu.gyro_device_ids[i] == imu.gyro_device_id_primary) {
-						set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO, false, status);
+						set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO, false,
+									 status);
 
 					} else {
-						set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO2, false, status);
+						set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO2, false,
+									 status);
 					}
 				}
 
@@ -116,7 +128,8 @@ bool PreFlightCheck::imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_
 
 			} else if (gyro_inconsistency_rad_s > gyro_test_limit * 0.5f) {
 				if (report_status) {
-					mavlink_log_info(mavlink_log_pub, "Preflight Advice: Gyro %u inconsistent - Check Cal", i);
+					mavlink_log_info(mavlink_log_pub,
+							 "Preflight Advice: Gyro %u inconsistent - Check Cal", i);
 				}
 			}
 		}

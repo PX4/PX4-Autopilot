@@ -32,15 +32,14 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <avoidance/ObstacleAvoidance.hpp>
 #include <uORB/Subscription.hpp>
-
 
 using namespace matrix;
 // to run: make tests TESTFILTER=ObstacleAvoidance
 
-class ObstacleAvoidanceTest : public ::testing::Test
-{
+class ObstacleAvoidanceTest : public ::testing::Test {
 public:
 	Vector3f pos_sp;
 	Vector3f vel_sp;
@@ -56,18 +55,16 @@ public:
 	}
 };
 
-class TestObstacleAvoidance : public ::ObstacleAvoidance
-{
+class TestObstacleAvoidance : public ::ObstacleAvoidance {
 public:
 	TestObstacleAvoidance() : ObstacleAvoidance(nullptr) {}
-	void paramsChanged() {ObstacleAvoidance::updateParamsImpl();}
-	void test_setPosition(Vector3f &pos) {_position = pos;}
+	void paramsChanged() { ObstacleAvoidance::updateParamsImpl(); }
+	void test_setPosition(Vector3f &pos) { _position = pos; }
 };
 
 TEST_F(ObstacleAvoidanceTest, instantiation) { ObstacleAvoidance oa(nullptr); }
 
-TEST_F(ObstacleAvoidanceTest, oa_enabled_healthy)
-{
+TEST_F(ObstacleAvoidanceTest, oa_enabled_healthy) {
 	// GIVEN: the flight controller setpoints from FlightTaskAuto and a vehicle_trajectory_waypoint message coming
 	// from offboard
 	TestObstacleAvoidance oa;
@@ -82,7 +79,8 @@ TEST_F(ObstacleAvoidanceTest, oa_enabled_healthy)
 	message.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid = true;
 
 	// GIVEN: and we publish the vehicle_trajectory_waypoint message and vehicle status message
-	uORB::Publication<vehicle_trajectory_waypoint_s> vehicle_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
+	uORB::Publication<vehicle_trajectory_waypoint_s> vehicle_trajectory_waypoint_pub{
+		ORB_ID(vehicle_trajectory_waypoint)};
 	vehicle_trajectory_waypoint_pub.publish(message);
 
 	vehicle_status_s vehicle_status{};
@@ -102,13 +100,12 @@ TEST_F(ObstacleAvoidanceTest, oa_enabled_healthy)
 	EXPECT_FALSE(PX4_ISFINITE(yaw_speed_sp));
 }
 
-TEST_F(ObstacleAvoidanceTest, oa_enabled_healthy_bezier)
-{
+TEST_F(ObstacleAvoidanceTest, oa_enabled_healthy_bezier) {
 	// GIVEN: the flight controller setpoints from FlightTaskAuto and a vehicle_trajectory_waypoint message coming
 	// from offboard
 	TestObstacleAvoidance oa;
 
-	vehicle_trajectory_bezier_s message {};
+	vehicle_trajectory_bezier_s message{};
 	message.timestamp = hrt_absolute_time();
 	message.bezier_order = 2;
 	message.control_points[vehicle_trajectory_bezier_s::POINT_0].position[0] = 2.6f;
@@ -138,15 +135,14 @@ TEST_F(ObstacleAvoidanceTest, oa_enabled_healthy_bezier)
 	EXPECT_FLOAT_EQ(2.6f, pos_sp(0));
 	EXPECT_FLOAT_EQ(2.4f, pos_sp(1));
 	EXPECT_LT(2.7f, pos_sp(2));
-	EXPECT_GT(2.8f, pos_sp(2)); // probably only a tiny bit above 2.7, but let's not have flakey tests
+	EXPECT_GT(2.8f, pos_sp(2));  // probably only a tiny bit above 2.7, but let's not have flakey tests
 	EXPECT_FLOAT_EQ(vel_sp.xy().norm(), 0);
 	EXPECT_FLOAT_EQ(vel_sp(2), (3.7f - 2.7f) / 0.5f);
 	EXPECT_FLOAT_EQ(0.23, yaw_sp);
 	EXPECT_FLOAT_EQ(yaw_speed_sp, 0);
 }
 
-TEST_F(ObstacleAvoidanceTest, oa_enabled_not_healthy)
-{
+TEST_F(ObstacleAvoidanceTest, oa_enabled_not_healthy) {
 	// GIVEN: the flight controller setpoints from FlightTaskAuto and a vehicle_trajectory_waypoint message
 	TestObstacleAvoidance oa;
 
@@ -155,7 +151,8 @@ TEST_F(ObstacleAvoidanceTest, oa_enabled_not_healthy)
 	oa.test_setPosition(pos);
 
 	// GIVEN: and we publish the vehicle_trajectory_waypoint message and vehicle_status
-	uORB::Publication<vehicle_trajectory_waypoint_s> vehicle_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
+	uORB::Publication<vehicle_trajectory_waypoint_s> vehicle_trajectory_waypoint_pub{
+		ORB_ID(vehicle_trajectory_waypoint)};
 	vehicle_trajectory_waypoint_pub.publish(message);
 
 	vehicle_status_s vehicle_status{};
@@ -175,8 +172,7 @@ TEST_F(ObstacleAvoidanceTest, oa_enabled_not_healthy)
 	EXPECT_FALSE(PX4_ISFINITE(yaw_speed_sp));
 }
 
-TEST_F(ObstacleAvoidanceTest, oa_desired)
-{
+TEST_F(ObstacleAvoidanceTest, oa_desired) {
 	// GIVEN: the flight controller setpoints from FlightTaskAuto and the waypoints from FLightTaskAuto
 	TestObstacleAvoidance oa;
 
@@ -192,52 +188,64 @@ TEST_F(ObstacleAvoidanceTest, oa_desired)
 	bool ext_yaw_active = false;
 
 	// WHEN: we inject the setpoints and waypoints in the interface
-	oa.updateAvoidanceDesiredWaypoints(curr_wp, curr_yaw, curr_yawspeed, next_wp, next_yaw, next_yawspeed, ext_yaw_active,
-					   type);
+	oa.updateAvoidanceDesiredWaypoints(curr_wp, curr_yaw, curr_yawspeed, next_wp, next_yaw, next_yawspeed,
+					   ext_yaw_active, type);
 	oa.updateAvoidanceDesiredSetpoints(pos_sp, vel_sp, type);
 
 	// WHEN: we subscribe to the uORB message out of the interface
-	uORB::SubscriptionData<vehicle_trajectory_waypoint_s> _sub_traj_wp_avoidance_desired{ORB_ID(vehicle_trajectory_waypoint_desired)};
+	uORB::SubscriptionData<vehicle_trajectory_waypoint_s> _sub_traj_wp_avoidance_desired{
+		ORB_ID(vehicle_trajectory_waypoint_desired)};
 	_sub_traj_wp_avoidance_desired.update();
 
 	// THEN: we expect the setpoints in POINT_0 and waypoints in POINT_1 and POINT_2
-	EXPECT_FLOAT_EQ(pos_sp(0),
-			_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position[0]);
-	EXPECT_FLOAT_EQ(pos_sp(1),
-			_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position[1]);
+	EXPECT_FLOAT_EQ(
+		pos_sp(0),
+		_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position[0]);
+	EXPECT_FLOAT_EQ(
+		pos_sp(1),
+		_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position[1]);
 	EXPECT_FALSE(PX4_ISFINITE(
-			     _sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position[2]));
+		_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position[2]));
 	EXPECT_FALSE(PX4_ISFINITE(
-			     _sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[0]));
+		_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[0]));
 	EXPECT_FALSE(PX4_ISFINITE(
-			     _sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[1]));
-	EXPECT_FLOAT_EQ(vel_sp(2),
-			_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[2]);
+		_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[1]));
+	EXPECT_FLOAT_EQ(
+		vel_sp(2),
+		_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[2]);
 	EXPECT_EQ(type, _sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].type);
 	EXPECT_TRUE(_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid);
 
-	EXPECT_FLOAT_EQ(curr_wp(0),
-			_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_1].position[0]);
-	EXPECT_FLOAT_EQ(curr_wp(1),
-			_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_1].position[1]);
-	EXPECT_FLOAT_EQ(curr_wp(2),
-			_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_1].position[2]);
-	EXPECT_FLOAT_EQ(curr_yaw, _sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_1].yaw);
+	EXPECT_FLOAT_EQ(
+		curr_wp(0),
+		_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_1].position[0]);
+	EXPECT_FLOAT_EQ(
+		curr_wp(1),
+		_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_1].position[1]);
+	EXPECT_FLOAT_EQ(
+		curr_wp(2),
+		_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_1].position[2]);
+	EXPECT_FLOAT_EQ(curr_yaw,
+			_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_1].yaw);
 	EXPECT_FALSE(PX4_ISFINITE(
-			     _sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_1].yaw_speed));
+		_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_1].yaw_speed));
 	EXPECT_EQ(type, _sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_1].type);
 	EXPECT_TRUE(_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_1].point_valid);
 
-	EXPECT_FLOAT_EQ(next_wp(0),
-			_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_2].position[0]);
-	EXPECT_FLOAT_EQ(next_wp(1),
-			_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_2].position[1]);
-	EXPECT_FLOAT_EQ(next_wp(2),
-			_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_2].position[2]);
-	EXPECT_FLOAT_EQ(next_yaw, _sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_2].yaw);
+	EXPECT_FLOAT_EQ(
+		next_wp(0),
+		_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_2].position[0]);
+	EXPECT_FLOAT_EQ(
+		next_wp(1),
+		_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_2].position[1]);
+	EXPECT_FLOAT_EQ(
+		next_wp(2),
+		_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_2].position[2]);
+	EXPECT_FLOAT_EQ(next_yaw,
+			_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_2].yaw);
 	EXPECT_FALSE(PX4_ISFINITE(
-			     _sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_2].yaw_speed));
-	EXPECT_EQ(UINT8_MAX, _sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_2].type);
+		_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_2].yaw_speed));
+	EXPECT_EQ(UINT8_MAX,
+		  _sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_2].type);
 	EXPECT_TRUE(_sub_traj_wp_avoidance_desired.get().waypoints[vehicle_trajectory_waypoint_s::POINT_2].point_valid);
-
 }

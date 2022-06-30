@@ -33,18 +33,15 @@
 
 #include "CanardNuttXCDev.hpp"
 
-#include <fcntl.h>
-#include <poll.h>
-
-#include <nuttx/can/can.h>
 #include <arch/board/board.h>
+#include <fcntl.h>
+#include <nuttx/can/can.h>
+#include <poll.h>
+#include <px4_platform_common/log.h>
 
 #include "stm32_can.h"
 
-#include <px4_platform_common/log.h>
-
-int CanardNuttXCDev::init()
-{
+int CanardNuttXCDev::init() {
 	struct can_dev_s *can = stm32_caninitialize(1);
 
 	if (can == nullptr) {
@@ -65,8 +62,7 @@ int CanardNuttXCDev::init()
 	return 0;
 }
 
-int16_t CanardNuttXCDev::transmit(const CanardTxQueueItem &txf, int timeout_ms)
-{
+int16_t CanardNuttXCDev::transmit(const CanardTxQueueItem &txf, int timeout_ms) {
 	if (_fd < 0) {
 		return -1;
 	}
@@ -112,8 +108,7 @@ int16_t CanardNuttXCDev::transmit(const CanardTxQueueItem &txf, int timeout_ms)
 	return 1;
 }
 
-int16_t CanardNuttXCDev::receive(CanardRxFrame *received_frame)
-{
+int16_t CanardNuttXCDev::receive(CanardRxFrame *received_frame) {
 	if ((_fd < 0) || (received_frame == nullptr)) {
 		return -1;
 	}
@@ -130,7 +125,6 @@ int16_t CanardNuttXCDev::receive(CanardRxFrame *received_frame)
 
 	// Only execute this part if can0 is changed.
 	if (fds.revents & POLLIN) {
-
 		// Try to read.
 		struct can_msg_s receive_msg;
 		const ssize_t nbytes = ::read(fds.fd, &receive_msg, sizeof(receive_msg));

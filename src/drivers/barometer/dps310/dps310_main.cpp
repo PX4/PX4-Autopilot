@@ -33,22 +33,19 @@
 
 #include "DPS310.hpp"
 
-namespace dps310
-{
+namespace dps310 {
 extern device::Device *DPS310_SPI_interface(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
 #if defined(CONFIG_I2C)
 extern device::Device *DPS310_I2C_interface(uint8_t bus, uint32_t device, int bus_frequency);
-#endif // CONFIG_I2C
-}
+#endif  // CONFIG_I2C
+}  // namespace dps310
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
 using namespace dps310;
 
-void
-DPS310::print_usage()
-{
+void DPS310::print_usage() {
 	PRINT_MODULE_USAGE_NAME("dps310", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -61,8 +58,7 @@ DPS310::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *DPS310::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+I2CSPIDriverBase *DPS310::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	device::Device *interface = nullptr;
 
 #if defined(CONFIG_I2C)
@@ -71,10 +67,10 @@ I2CSPIDriverBase *DPS310::instantiate(const I2CSPIDriverConfig &config, int runt
 		interface = DPS310_I2C_interface(config.bus, config.i2c_address, config.bus_frequency);
 
 	} else
-#endif // CONFIG_I2C
+#endif  // CONFIG_I2C
 		if (config.bus_type == BOARD_SPI_BUS) {
-			interface = DPS310_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
-		}
+		interface = DPS310_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
+	}
 
 	if (interface == nullptr) {
 		PX4_ERR("failed creating interface for bus %i (devid 0x%" PRIx32 ")", config.bus, config.spi_devid);
@@ -102,17 +98,16 @@ I2CSPIDriverBase *DPS310::instantiate(const I2CSPIDriverConfig &config, int runt
 	return dev;
 }
 
-extern "C" int dps310_main(int argc, char *argv[])
-{
+extern "C" int dps310_main(int argc, char *argv[]) {
 	using ThisDriver = DPS310;
 
 #if defined(CONFIG_I2C)
-	BusCLIArguments cli {true, true};
+	BusCLIArguments cli{true, true};
 	cli.i2c_address = 0x77;
 	cli.default_i2c_frequency = 400000;
 #else
-	BusCLIArguments cli {false, true};
-#endif // CONFIG_I2C
+	BusCLIArguments cli{false, true};
+#endif  // CONFIG_I2C
 
 	cli.default_spi_frequency = 10 * 1000 * 1000;
 

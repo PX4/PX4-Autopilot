@@ -33,9 +33,6 @@
 
 #include "UavcanNode.hpp"
 
-#include "boot_app_shared.h"
-#include "boot_alt_app_shared.h"
-
 #include <drivers/drv_watchdog.h>
 #include <lib/geo/geo.h>
 #include <lib/version/version.h>
@@ -51,15 +48,15 @@
 #include "Publishers/SafetyButton.hpp"
 #include "Publishers/StaticPressure.hpp"
 #include "Publishers/StaticTemperature.hpp"
-
 #include "Subscribers/BeepCommand.hpp"
 #include "Subscribers/LightsCommand.hpp"
 #include "Subscribers/MovingBaselineData.hpp"
+#include "boot_alt_app_shared.h"
+#include "boot_app_shared.h"
 
 using namespace time_literals;
 
-namespace uavcannode
-{
+namespace uavcannode {
 
 /**
  * @file uavcan_main.cpp
@@ -76,30 +73,27 @@ namespace uavcannode
  * the application image's descriptor so that the
  * uavcan bootloader has the ability to validate the
  * image crc, size etc of this application
-*/
-boot_app_shared_section app_descriptor_t AppDescriptor = {
-	.signature = APP_DESCRIPTOR_SIGNATURE,
-	{
-		0,
-	},
-	.image_size = 0,
-	.git_hash  = 0,
-	.major_version = APP_VERSION_MAJOR,
-	.minor_version = APP_VERSION_MINOR,
-	.board_id = HW_VERSION_MAJOR << 8 | HW_VERSION_MINOR,
-	.reserved = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
-};
+ */
+boot_app_shared_section app_descriptor_t AppDescriptor = {.signature = APP_DESCRIPTOR_SIGNATURE,
+							  {
+								  0,
+							  },
+							  .image_size = 0,
+							  .git_hash = 0,
+							  .major_version = APP_VERSION_MAJOR,
+							  .minor_version = APP_VERSION_MINOR,
+							  .board_id = HW_VERSION_MAJOR << 8 | HW_VERSION_MINOR,
+							  .reserved = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}};
 
 UavcanNode *UavcanNode::_instance;
 
-UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
-	_node(can_driver, system_clock, _pool_allocator),
-	_time_sync_slave(_node),
-	_fw_update_listner(_node),
-	_param_server(_node),
-	_reset_timer(_node)
-{
+UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock)
+	: ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
+	  _node(can_driver, system_clock, _pool_allocator),
+	  _time_sync_slave(_node),
+	  _fw_update_listner(_node),
+	  _param_server(_node),
+	  _reset_timer(_node) {
 	int res = pthread_mutex_init(&_node_mutex, nullptr);
 
 	if (res < 0) {
@@ -107,8 +101,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	}
 }
 
-UavcanNode::~UavcanNode()
-{
+UavcanNode::~UavcanNode() {
 	if (_instance) {
 		/* tell the task we want it to go away */
 		_task_should_exit.store(true);
@@ -134,10 +127,8 @@ UavcanNode::~UavcanNode()
 	perf_free(_interval_perf);
 }
 
-int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
-{
+int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver) {
 	if (UavcanNode::instance()) {
-
 		hwver.major = HW_VERSION_MAJOR;
 		hwver.minor = HW_VERSION_MINOR;
 
@@ -150,9 +141,7 @@ int UavcanNode::getHardwareVersion(uavcan::protocol::HardwareVersion &hwver)
 	return -1;
 }
 
-int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
-{
-
+int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate) {
 	if (_instance != nullptr) {
 		PX4_WARN("Already started");
 		return -1;
@@ -166,10 +155,9 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	static CanInitHelper *can = nullptr;
 
 	if (can == nullptr) {
-
 		can = new CanInitHelper();
 
-		if (can == nullptr) {                    // We don't have exceptions so bad_alloc cannot be thrown
+		if (can == nullptr) {  // We don't have exceptions so bad_alloc cannot be thrown
 			PX4_ERR("Out of memory");
 			return -1;
 		}
@@ -207,8 +195,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	return PX4_OK;
 }
 
-void UavcanNode::fill_node_info()
-{
+void UavcanNode::fill_node_info() {
 	// software version
 	uavcan::protocol::SoftwareVersion swver;
 
@@ -230,23 +217,21 @@ void UavcanNode::fill_node_info()
 	_node.setHardwareVersion(hwver);
 }
 
-void UavcanNode::busevent_signal_trampoline()
-{
+void UavcanNode::busevent_signal_trampoline() {
 	if (_instance) {
 		// trigger the work queue (Note, this is called from IRQ context)
 		_instance->ScheduleNow();
 	}
 }
 
-static void cb_reboot(const uavcan::TimerEvent &)
-{
+static void cb_reboot(const uavcan::TimerEvent &) {
 	watchdog_pet();
 	board_reset(0);
 }
 
-void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request>
-		&req, uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &rsp)
-{
+void UavcanNode::cb_beginfirmware_update(
+	const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &req,
+	uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &rsp) {
 	static bool inprogress = false;
 
 	rsp.error = rsp.ERROR_UNKNOWN;
@@ -262,7 +247,8 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 				bootloader_alt_app_shared_t shared_alt{0};
 				shared_alt.fw_server_node_id = req.source_node_id;
 				shared_alt.node_id = _node.getNodeID().get();
-				strncat((char *)shared_alt.path, (const char *)req.image_file_remote_path.path.c_str(), sizeof(shared_alt.path) - 1);
+				strncat((char *)shared_alt.path, (const char *)req.image_file_remote_path.path.c_str(),
+					sizeof(shared_alt.path) - 1);
 				bootloader_alt_app_shared_write(&shared_alt);
 				board_configure_reset(BOARD_RESET_MODE_CAN_BL, shared_alt.node_id);
 			}
@@ -273,7 +259,7 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 			shared.bus_speed = active_bitrate;
 			shared.node_id = _node.getNodeID().get();
 			bootloader_app_shared_write(&shared, App);
-			//rgb_led(255, 128, 0, 5);
+			// rgb_led(255, 128, 0, 5);
 			_reset_timer.setCallback(cb_reboot);
 			_reset_timer.startOneShotWithDelay(uavcan::MonotonicDuration::fromMSec(1000));
 			rsp.error = rsp.ERROR_OK;
@@ -281,8 +267,7 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 	}
 }
 
-int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
-{
+int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events) {
 	_node.setName(HW_UAVCAN_NAME);
 
 	// Was the node_id supplied by the bootloader?
@@ -312,7 +297,6 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	if (enable_movingbaselinedata != 0) {
 		_publisher_list.add(new MovingBaselineDataPub(this, _node));
-
 	}
 
 	_publisher_list.add(new SafetyButton(this, _node));
@@ -341,18 +325,18 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
 
 	if (node_id == 0) {
-
 		uavcan::DynamicNodeIDClient client(_node);
 
-		int client_start_res = client.start(_node.getHardwareVersion().unique_id,    // USING THE SAME UNIQUE ID AS ABOVE
-						    node_id);
+		int client_start_res =
+			client.start(_node.getHardwareVersion().unique_id,  // USING THE SAME UNIQUE ID AS ABOVE
+				     node_id);
 
 		if (client_start_res < 0) {
 			PX4_ERR("Failed to start the dynamic node ID client");
 			return client_start_res;
 		}
 
-		watchdog_pet(); // If allocation takes too long reboot
+		watchdog_pet();  // If allocation takes too long reboot
 
 		/*
 		 * Waiting for the client to obtain a node ID.
@@ -360,7 +344,8 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 		 */
 
 		while (!client.isAllocationComplete()) {
-			const int res = _node.spin(uavcan::MonotonicDuration::fromMSec(200));    // Spin duration doesn't matter
+			const int res =
+				_node.spin(uavcan::MonotonicDuration::fromMSec(200));  // Spin duration doesn't matter
 
 			if (res < 0) {
 				PX4_ERR("Transient failure: %d", res);
@@ -374,20 +359,17 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 }
 
 // Restart handler
-class RestartRequestHandler: public uavcan::IRestartRequestHandler
-{
-	bool handleRestartRequest(uavcan::NodeID request_source) override
-	{
+class RestartRequestHandler : public uavcan::IRestartRequestHandler {
+	bool handleRestartRequest(uavcan::NodeID request_source) override {
 		PX4_INFO("UAVCAN: Restarting by request from %i\n", int(request_source.get()));
 		usleep(20 * 1000 * 1000);
 		board_reset(0);
-		return true; // Will never be executed BTW
+		return true;  // Will never be executed BTW
 	}
 } restart_request_handler;
 
-void UavcanNode::Run()
-{
-	static  hrt_abstime up_time{0};
+void UavcanNode::Run() {
+	static hrt_abstime up_time{0};
 	pthread_mutex_lock(&_node_mutex);
 
 	// Bootloader started it.
@@ -436,8 +418,8 @@ void UavcanNode::Run()
 		log_message_s log_message;
 
 		if (_log_message_sub.copy(&log_message)) {
-			char source[31] {};
-			char text[90] {};
+			char source[31]{};
+			char text[90]{};
 
 			bool text_copied = false;
 
@@ -448,7 +430,8 @@ void UavcanNode::Run()
 						// copy [MODULE_NAME] to source
 						memcpy(source, &log_message.text[1], i - 1);
 						// copy remaining text (skipping space after [])
-						memcpy(text, &log_message.text[i + 2], math::min(sizeof(log_message.text) - (i + 2), sizeof(text)));
+						memcpy(text, &log_message.text[i + 2],
+						       math::min(sizeof(log_message.text) - (i + 2), sizeof(text)));
 
 						text_copied = true;
 					}
@@ -460,29 +443,29 @@ void UavcanNode::Run()
 			}
 
 			switch (log_message.severity) {
-			case 7: // debug
-				_node.getLogger().logDebug(source, text);
-				break;
+				case 7:  // debug
+					_node.getLogger().logDebug(source, text);
+					break;
 
-			case 6: // info
-				_node.getLogger().logInfo(source, text);
-				break;
+				case 6:  // info
+					_node.getLogger().logInfo(source, text);
+					break;
 
-			case 4: // warn
-				_node.getLogger().logWarning(source, text);
-				break;
+				case 4:  // warn
+					_node.getLogger().logWarning(source, text);
+					break;
 
-			case 3: // error
-				_node.getLogger().logError(source, text);
-				break;
+				case 3:  // error
+					_node.getLogger().logError(source, text);
+					break;
 
-			case 0: // panic
-				_node.getLogger().logError(source, text);
-				break;
+				case 0:  // panic
+					_node.getLogger().logError(source, text);
+					break;
 
-			default:
-				_node.getLogger().logInfo(source, text);
-				break;
+				default:
+					_node.getLogger().logInfo(source, text);
+					break;
 			}
 		}
 	}
@@ -506,14 +489,13 @@ void UavcanNode::Run()
 	}
 }
 
-void UavcanNode::PrintInfo()
-{
+void UavcanNode::PrintInfo() {
 	pthread_mutex_lock(&_node_mutex);
 
 	// Memory status
 	printf("Pool allocator status:\n");
-	printf("\tCapacity hard/soft: %u/%u blocks\n",
-	       _pool_allocator.getBlockCapacityHardLimit(), _pool_allocator.getBlockCapacity());
+	printf("\tCapacity hard/soft: %u/%u blocks\n", _pool_allocator.getBlockCapacityHardLimit(),
+	       _pool_allocator.getBlockCapacity());
 	printf("\tReserved:  %u blocks\n", _pool_allocator.getNumReservedBlocks());
 	printf("\tAllocated: %u blocks\n", _pool_allocator.getNumAllocatedBlocks());
 
@@ -563,24 +545,22 @@ void UavcanNode::PrintInfo()
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-void UavcanNode::shrink()
-{
+void UavcanNode::shrink() {
 	(void)pthread_mutex_lock(&_node_mutex);
 	_pool_allocator.shrink();
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
 
-} // namespace uavcannode
+}  // namespace uavcannode
 
-static void print_usage()
-{
-	PX4_INFO("usage: \n"
-		 "\tuavcannode {start|status|stop|arm|disarm}");
+static void print_usage() {
+	PX4_INFO(
+		"usage: \n"
+		"\tuavcannode {start|status|stop|arm|disarm}");
 }
 
-extern "C" int uavcannode_start(int argc, char *argv[])
-{
-	//board_app_initialize(nullptr);
+extern "C" int uavcannode_start(int argc, char *argv[]) {
+	// board_app_initialize(nullptr);
 
 	// Sarted byt the bootloader, we must pet it
 	watchdog_pet();
@@ -609,7 +589,6 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 	int valid = bootloader_app_shared_read(&shared, BootLoader);
 
 	if (valid == 0) {
-
 		bitrate = shared.bus_speed;
 		node_id = shared.node_id;
 
@@ -647,8 +626,7 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 	return rv;
 }
 
-extern "C" __EXPORT int uavcannode_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int uavcannode_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		print_usage();
 		return 1;

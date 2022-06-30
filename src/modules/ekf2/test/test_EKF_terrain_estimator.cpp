@@ -37,26 +37,22 @@
  */
 
 #include <gtest/gtest.h>
+
 #include "EKF/ekf.h"
-#include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
+#include "sensor_simulator/sensor_simulator.h"
 
-class EkfTerrainTest : public ::testing::Test
-{
+class EkfTerrainTest : public ::testing::Test {
 public:
-
-	EkfTerrainTest(): ::testing::Test(),
-		_ekf{std::make_shared<Ekf>()},
-		_sensor_simulator(_ekf),
-		_ekf_wrapper(_ekf) {};
+	EkfTerrainTest()
+		: ::testing::Test(), _ekf{std::make_shared<Ekf>()}, _sensor_simulator(_ekf), _ekf_wrapper(_ekf){};
 
 	std::shared_ptr<Ekf> _ekf;
 	SensorSimulator _sensor_simulator;
 	EkfWrapper _ekf_wrapper;
 
 	// Setup the Ekf with synthetic measurements
-	void SetUp() override
-	{
+	void SetUp() override {
 		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
 		_sensor_simulator.runSeconds(0.1);
@@ -67,12 +63,9 @@ public:
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
-	void TearDown() override
-	{
-	}
+	void TearDown() override {}
 
-	void runFlowAndRngScenario(const float rng_height, const float flow_height)
-	{
+	void runFlowAndRngScenario(const float rng_height, const float flow_height) {
 		_sensor_simulator.startGps();
 
 		_ekf->set_min_required_gps_health_time(1e6);
@@ -81,8 +74,9 @@ public:
 
 		_ekf_wrapper.enableGpsFusion();
 		_ekf_wrapper.setBaroHeight();
-		_sensor_simulator.runSeconds(2); // Run to pass the GPS checks
-		_sensor_simulator.runSeconds(3.5); // And a bit more to start the GPS fusion TODO: this shouldn't be necessary
+		_sensor_simulator.runSeconds(2);  // Run to pass the GPS checks
+		_sensor_simulator.runSeconds(
+			3.5);  // And a bit more to start the GPS fusion TODO: this shouldn't be necessary
 		EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 
 		const Vector3f simulated_velocity(0.5f, -1.0f, 0.f);
@@ -98,9 +92,8 @@ public:
 
 		// Configure optical flow simulator data
 		flowSample flow_sample = _sensor_simulator._flow.dataAtRest();
-		flow_sample.flow_xy_rad =
-			Vector2f(simulated_velocity(1) * flow_sample.dt / flow_height,
-				 -simulated_velocity(0) * flow_sample.dt / flow_height);
+		flow_sample.flow_xy_rad = Vector2f(simulated_velocity(1) * flow_sample.dt / flow_height,
+						   -simulated_velocity(0) * flow_sample.dt / flow_height);
 		_sensor_simulator._flow.setData(flow_sample);
 		const float max_flow_rate = 5.f;
 		const float min_ground_distance = 0.f;
@@ -115,8 +108,7 @@ public:
 	}
 };
 
-TEST_F(EkfTerrainTest, setFlowAndRangeTerrainFusion)
-{
+TEST_F(EkfTerrainTest, setFlowAndRangeTerrainFusion) {
 	// WHEN: simulate being 5m above ground
 	const float simulated_distance_to_ground = 1.f;
 	runFlowAndRngScenario(simulated_distance_to_ground, simulated_distance_to_ground);
@@ -144,8 +136,7 @@ TEST_F(EkfTerrainTest, setFlowAndRangeTerrainFusion)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingTerrainFlowFusion());
 }
 
-TEST_F(EkfTerrainTest, testFlowForTerrainFusion)
-{
+TEST_F(EkfTerrainTest, testFlowForTerrainFusion) {
 	// GIVEN: flow for terrain enabled but not range finder
 	_ekf_wrapper.enableTerrainFlowFusion();
 	_ekf_wrapper.disableTerrainRngFusion();
@@ -164,8 +155,7 @@ TEST_F(EkfTerrainTest, testFlowForTerrainFusion)
 	EXPECT_NEAR(estimated_distance_to_ground, flow_height, 0.5f);
 }
 
-TEST_F(EkfTerrainTest, testRngForTerrainFusion)
-{
+TEST_F(EkfTerrainTest, testRngForTerrainFusion) {
 	// GIVEN: rng for terrain but not flow
 	_ekf_wrapper.disableTerrainFlowFusion();
 	_ekf_wrapper.enableTerrainRngFusion();

@@ -38,90 +38,80 @@
  */
 
 #include "thoneflow_parser.h"
-#include <string.h>
+
 #include <stdlib.h>
+#include <string.h>
 
 //#define THONEFLOW_DEBUG
 
 #ifdef THONEFLOW_DEBUG
 #include <stdio.h>
 
-const char *parser_state[] = {
-	"0_UNSYNC",
-	"1_HEADER",
-	"2_NBYTES",
-	"3_XM_L",
-	"4_XM_H",
-	"5_YM_L",
-	"6_YM_H",
-	"7_CHECKSUM",
-	"8_QUALITY",
-	"9_FOOTER"
-};
+const char *parser_state[] = {"0_UNSYNC", "1_HEADER", "2_NBYTES",   "3_XM_L",    "4_XM_H",
+			      "5_YM_L",   "6_YM_H",   "7_CHECKSUM", "8_QUALITY", "9_FOOTER"};
 #endif
 
 bool thoneflow_parse(char c, char *parserbuf, unsigned *parserbuf_index, enum THONEFLOW_PARSE_STATE *state,
-		     sensor_optical_flow_s *flow)
-{
+		     sensor_optical_flow_s *flow) {
 	bool parsed_packet = false;
 
 	switch (*state) {
-	case THONEFLOW_PARSE_STATE9_FOOTER:
-		if (c == 0xFE) {
-			*state = THONEFLOW_PARSE_STATE1_HEADER;
+		case THONEFLOW_PARSE_STATE9_FOOTER:
+			if (c == 0xFE) {
+				*state = THONEFLOW_PARSE_STATE1_HEADER;
 
-		} else {
-			*state = THONEFLOW_PARSE_STATE0_UNSYNC;
-		}
+			} else {
+				*state = THONEFLOW_PARSE_STATE0_UNSYNC;
+			}
 
-		break;
+			break;
 
-	case THONEFLOW_PARSE_STATE0_UNSYNC:
-		if (c == 0xFE) {
-			*state = THONEFLOW_PARSE_STATE1_HEADER;
-		}
+		case THONEFLOW_PARSE_STATE0_UNSYNC:
+			if (c == 0xFE) {
+				*state = THONEFLOW_PARSE_STATE1_HEADER;
+			}
 
-		break;
+			break;
 
-	case THONEFLOW_PARSE_STATE1_HEADER:
-		if (c == 0x04) {
-			*state = THONEFLOW_PARSE_STATE2_NBYTES;
+		case THONEFLOW_PARSE_STATE1_HEADER:
+			if (c == 0x04) {
+				*state = THONEFLOW_PARSE_STATE2_NBYTES;
 
-		} else {
-			*state = THONEFLOW_PARSE_STATE0_UNSYNC;
-		}
+			} else {
+				*state = THONEFLOW_PARSE_STATE0_UNSYNC;
+			}
 
-		break;
+			break;
 
-	case THONEFLOW_PARSE_STATE2_NBYTES:
-		*state = THONEFLOW_PARSE_STATE3_XM_L;
-		parserbuf[*parserbuf_index] = c;
-		(*parserbuf_index)++;
+		case THONEFLOW_PARSE_STATE2_NBYTES:
+			*state = THONEFLOW_PARSE_STATE3_XM_L;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
 
-		break;
+			break;
 
-	case THONEFLOW_PARSE_STATE3_XM_L:
-		*state = THONEFLOW_PARSE_STATE4_XM_H;
-		parserbuf[*parserbuf_index] = c;
-		(*parserbuf_index)++;
+		case THONEFLOW_PARSE_STATE3_XM_L:
+			*state = THONEFLOW_PARSE_STATE4_XM_H;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
 
-		break;
+			break;
 
-	case THONEFLOW_PARSE_STATE4_XM_H:
-		*state = THONEFLOW_PARSE_STATE5_YM_L;
-		parserbuf[*parserbuf_index] = c;
-		(*parserbuf_index)++;
+		case THONEFLOW_PARSE_STATE4_XM_H:
+			*state = THONEFLOW_PARSE_STATE5_YM_L;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
 
-		break;
+			break;
 
-	case THONEFLOW_PARSE_STATE5_YM_L:
-		*state = THONEFLOW_PARSE_STATE6_YM_H;
-		parserbuf[*parserbuf_index] = c;
-		(*parserbuf_index)++;
+		case THONEFLOW_PARSE_STATE5_YM_L:
+			*state = THONEFLOW_PARSE_STATE6_YM_H;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
 
-		break;
+			break;
 
-	case THONEFLOW_PARSE_STATE6_YM_H: {
+		case THONEFLOW_PARSE_STATE6_YM_H: {
 			unsigned char cksm = 0;
 
 			// Calculate checksum over motion values
@@ -146,23 +136,22 @@ bool thoneflow_parse(char c, char *parserbuf, unsigned *parserbuf_index, enum TH
 
 		break;
 
-	case THONEFLOW_PARSE_STATE7_CHECKSUM:
-		*state = THONEFLOW_PARSE_STATE8_QUALITY;
-		flow->quality = uint8_t(c);
+		case THONEFLOW_PARSE_STATE7_CHECKSUM:
+			*state = THONEFLOW_PARSE_STATE8_QUALITY;
+			flow->quality = uint8_t(c);
 
-		break;
+			break;
 
-	case THONEFLOW_PARSE_STATE8_QUALITY:
-		if (c == 0xAA) {
-			*state = THONEFLOW_PARSE_STATE9_FOOTER;
-			parsed_packet = true;
+		case THONEFLOW_PARSE_STATE8_QUALITY:
+			if (c == 0xAA) {
+				*state = THONEFLOW_PARSE_STATE9_FOOTER;
+				parsed_packet = true;
 
-		} else {
-			*state = THONEFLOW_PARSE_STATE0_UNSYNC;
-		}
+			} else {
+				*state = THONEFLOW_PARSE_STATE0_UNSYNC;
+			}
 
-		break;
-
+			break;
 	}
 
 #ifdef THONEFLOW_DEBUG

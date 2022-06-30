@@ -33,13 +33,9 @@
 
 #include "NavioRGBLed.hpp"
 
-NavioRGBLed::NavioRGBLed() :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
-{
-};
+NavioRGBLed::NavioRGBLed() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default){};
 
-NavioRGBLed::~NavioRGBLed()
-{
+NavioRGBLed::~NavioRGBLed() {
 	ScheduleClear();
 
 	_ledR.off();
@@ -47,8 +43,7 @@ NavioRGBLed::~NavioRGBLed()
 	_ledB.off();
 }
 
-int NavioRGBLed::init()
-{
+int NavioRGBLed::init() {
 	_ledR.off();
 	_ledG.off();
 	_ledB.off();
@@ -59,60 +54,59 @@ int NavioRGBLed::init()
 	return PX4_OK;
 }
 
-void NavioRGBLed::Run()
-{
+void NavioRGBLed::Run() {
 	LedControlData led_control_data{};
 
 	if (_led_controller.update(led_control_data) == 1) {
 		switch (led_control_data.leds[0].color) {
-		case led_control_s::COLOR_RED:
-			_ledR.on();
-			_ledG.off();
-			_ledB.off();
-			break;
+			case led_control_s::COLOR_RED:
+				_ledR.on();
+				_ledG.off();
+				_ledB.off();
+				break;
 
-		case led_control_s::COLOR_GREEN:
-			_ledR.off();
-			_ledG.on();
-			_ledB.off();
-			break;
+			case led_control_s::COLOR_GREEN:
+				_ledR.off();
+				_ledG.on();
+				_ledB.off();
+				break;
 
-		case led_control_s::COLOR_BLUE:
-			_ledR.off();
-			_ledG.off();
-			_ledB.on();
-			break;
+			case led_control_s::COLOR_BLUE:
+				_ledR.off();
+				_ledG.off();
+				_ledB.on();
+				break;
 
-		case led_control_s::COLOR_AMBER: // make it the same as yellow
-		case led_control_s::COLOR_YELLOW:
-			_ledR.on();
-			_ledG.on();
-			_ledB.off();
-			break;
+			case led_control_s::COLOR_AMBER:  // make it the same as yellow
+			case led_control_s::COLOR_YELLOW:
+				_ledR.on();
+				_ledG.on();
+				_ledB.off();
+				break;
 
-		case led_control_s::COLOR_PURPLE:
-			_ledR.on();
-			_ledG.off();
-			_ledB.on();
-			break;
+			case led_control_s::COLOR_PURPLE:
+				_ledR.on();
+				_ledG.off();
+				_ledB.on();
+				break;
 
-		case led_control_s::COLOR_CYAN:
-			_ledR.off();
-			_ledG.on();
-			_ledB.on();
-			break;
+			case led_control_s::COLOR_CYAN:
+				_ledR.off();
+				_ledG.on();
+				_ledB.on();
+				break;
 
-		case led_control_s::COLOR_WHITE:
-			_ledR.on();
-			_ledG.on();
-			_ledB.on();
-			break;
+			case led_control_s::COLOR_WHITE:
+				_ledR.on();
+				_ledG.on();
+				_ledB.on();
+				break;
 
-		default: // led_control_s::COLOR_OFF
-			_ledR.off();
-			_ledG.off();
-			_ledB.off();
-			break;
+			default:  // led_control_s::COLOR_OFF
+				_ledR.off();
+				_ledG.off();
+				_ledB.off();
+				break;
 		}
 	}
 
@@ -120,13 +114,9 @@ void NavioRGBLed::Run()
 	ScheduleDelayed(_led_controller.maximum_update_interval());
 }
 
-int NavioRGBLed::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int NavioRGBLed::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int NavioRGBLed::task_spawn(int argc, char *argv[])
-{
+int NavioRGBLed::task_spawn(int argc, char *argv[]) {
 	NavioRGBLed *instance = new NavioRGBLed();
 
 	if (instance) {
@@ -148,8 +138,7 @@ int NavioRGBLed::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int NavioRGBLed::print_usage(const char *reason)
-{
+int NavioRGBLed::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -168,7 +157,4 @@ Emlid Navio2 RGB LED driver.
 	return 0;
 }
 
-extern "C" __EXPORT int navio_rgbled_main(int argc, char *argv[])
-{
-	return NavioRGBLed::main(argc, argv);
-}
+extern "C" __EXPORT int navio_rgbled_main(int argc, char *argv[]) { return NavioRGBLed::main(argc, argv); }

@@ -37,34 +37,33 @@
  * Implementation of imxrt based SoC version API
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-
 #include <chip.h>
 #include <hardware/imxrt_usb_analog.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_config.h>
+
 #include "arm_arch.h"
 
-#define DIGPROG_MINOR_SHIFT           0
-#define DIGPROG_MINOR_MASK            (0xff << DIGPROG_MINOR_SHIFT)
-#define DIGPROG_MINOR(info)           (((info) & DIGPROG_MINOR_MASK) >> DIGPROG_MINOR_SHIFT)
-#define DIGPROG_MAJOR_LOWER_SHIFT     8
-#define DIGPROG_MAJOR_LOWER_MASK      (0xff << DIGPROG_MAJOR_LOWER_SHIFT)
-#define DIGPROG_MAJOR_LOWER(info)     (((info) & DIGPROG_MAJOR_LOWER_MASK) >> DIGPROG_MAJOR_LOWER_SHIFT)
-#define DIGPROG_MAJOR_UPPER_SHIFT     16
-#define DIGPROG_MAJOR_UPPER_MASK      (0xff << DIGPROG_MAJOR_UPPER_SHIFT)
-#define DIGPROG_MAJOR_UPPER(info)     (((info) & DIGPROG_MAJOR_UPPER_MASK) >> DIGPROG_MAJOR_UPPER_SHIFT)
+#define DIGPROG_MINOR_SHIFT 0
+#define DIGPROG_MINOR_MASK (0xff << DIGPROG_MINOR_SHIFT)
+#define DIGPROG_MINOR(info) (((info)&DIGPROG_MINOR_MASK) >> DIGPROG_MINOR_SHIFT)
+#define DIGPROG_MAJOR_LOWER_SHIFT 8
+#define DIGPROG_MAJOR_LOWER_MASK (0xff << DIGPROG_MAJOR_LOWER_SHIFT)
+#define DIGPROG_MAJOR_LOWER(info) (((info)&DIGPROG_MAJOR_LOWER_MASK) >> DIGPROG_MAJOR_LOWER_SHIFT)
+#define DIGPROG_MAJOR_UPPER_SHIFT 16
+#define DIGPROG_MAJOR_UPPER_MASK (0xff << DIGPROG_MAJOR_UPPER_SHIFT)
+#define DIGPROG_MAJOR_UPPER(info) (((info)&DIGPROG_MAJOR_UPPER_MASK) >> DIGPROG_MAJOR_UPPER_SHIFT)
 //                            876543210
-#define CHIP_TAG     "i.MX RT10?2 r?.?"
-#define CHIP_TAG_LEN sizeof(CHIP_TAG)-1
+#define CHIP_TAG "i.MX RT10?2 r?.?"
+#define CHIP_TAG_LEN sizeof(CHIP_TAG) - 1
 
-int board_mcu_version(char *rev, const char **revstr, const char **errata)
-{
+int board_mcu_version(char *rev, const char **revstr, const char **errata) {
 	uint32_t info = getreg32(IMXRT_USB_ANALOG_DIGPROG);
 	static char chip[sizeof(CHIP_TAG)] = CHIP_TAG;
 
-	chip[CHIP_TAG_LEN - 1] = '0' +  DIGPROG_MINOR(info);
+	chip[CHIP_TAG_LEN - 1] = '0' + DIGPROG_MINOR(info);
 	chip[CHIP_TAG_LEN - 3] = '1' + DIGPROG_MAJOR_LOWER(info);
-	chip[CHIP_TAG_LEN - 7] = DIGPROG_MAJOR_UPPER(info)  == 0x6a ? '5' : '6';
+	chip[CHIP_TAG_LEN - 7] = DIGPROG_MAJOR_UPPER(info) == 0x6a ? '5' : '6';
 	*revstr = chip;
 	*rev = '0' + DIGPROG_MINOR(info);
 

@@ -41,139 +41,137 @@
  */
 
 #include "tfmini_parser.h"
-#include <string.h>
+
 #include <stdlib.h>
+#include <string.h>
 
 // #define TFMINI_DEBUG
 
 #ifdef TFMINI_DEBUG
 #include <stdio.h>
 
-const char *parser_state[] = {
-	"0_UNSYNC",
-	"1_SYNC_1",
-	"2_SYNC_2",
-	"3_GOT_DIST_L",
-	"4_GOT_DIST_H",
-	"5_GOT_STRENGTH_L",
-	"6_GOT_STRENGTH_H",
-	"7_GOT_PRESERVED",
-	"8_GOT_QUALITY"
-	"9_GOT_CHECKSUM"
-};
+const char *parser_state[] = {"0_UNSYNC",
+			      "1_SYNC_1",
+			      "2_SYNC_2",
+			      "3_GOT_DIST_L",
+			      "4_GOT_DIST_H",
+			      "5_GOT_STRENGTH_L",
+			      "6_GOT_STRENGTH_H",
+			      "7_GOT_PRESERVED",
+			      "8_GOT_QUALITY"
+			      "9_GOT_CHECKSUM"};
 #endif
 
-int tfmini_parse(char c, char *parserbuf, unsigned *parserbuf_index, TFMINI_PARSE_STATE *state, float *dist)
-{
+int tfmini_parse(char c, char *parserbuf, unsigned *parserbuf_index, TFMINI_PARSE_STATE *state, float *dist) {
 	int ret = -1;
-	//char *end;
+	// char *end;
 
 	switch (*state) {
-	case TFMINI_PARSE_STATE::STATE6_GOT_CHECKSUM:
-		if (c == 'Y') {
-			*state = TFMINI_PARSE_STATE::STATE1_SYNC_1;
-			parserbuf[*parserbuf_index] = c;
-			(*parserbuf_index)++;
+		case TFMINI_PARSE_STATE::STATE6_GOT_CHECKSUM:
+			if (c == 'Y') {
+				*state = TFMINI_PARSE_STATE::STATE1_SYNC_1;
+				parserbuf[*parserbuf_index] = c;
+				(*parserbuf_index)++;
 
-		} else {
-			*state = TFMINI_PARSE_STATE::STATE0_UNSYNC;
-		}
-
-		break;
-
-	case TFMINI_PARSE_STATE::STATE0_UNSYNC:
-		if (c == 'Y') {
-			*state = TFMINI_PARSE_STATE::STATE1_SYNC_1;
-			parserbuf[*parserbuf_index] = c;
-			(*parserbuf_index)++;
-		}
-
-		break;
-
-	case TFMINI_PARSE_STATE::STATE1_SYNC_1:
-		if (c == 'Y') {
-			*state = TFMINI_PARSE_STATE::STATE1_SYNC_2;
-			parserbuf[*parserbuf_index] = c;
-			(*parserbuf_index)++;
-
-		} else {
-			*state = TFMINI_PARSE_STATE::STATE0_UNSYNC;
-			*parserbuf_index = 0;
-		}
-
-		break;
-
-	case TFMINI_PARSE_STATE::STATE1_SYNC_2:
-		*state = TFMINI_PARSE_STATE::STATE2_GOT_DIST_L;
-		parserbuf[*parserbuf_index] = c;
-		(*parserbuf_index)++;
-
-		break;
-
-	case TFMINI_PARSE_STATE::STATE2_GOT_DIST_L:
-		*state = TFMINI_PARSE_STATE::STATE2_GOT_DIST_H;
-		parserbuf[*parserbuf_index] = c;
-		(*parserbuf_index)++;
-
-		break;
-
-	case TFMINI_PARSE_STATE::STATE2_GOT_DIST_H:
-		*state = TFMINI_PARSE_STATE::STATE3_GOT_STRENGTH_L;
-		parserbuf[*parserbuf_index] = c;
-		(*parserbuf_index)++;
-
-		break;
-
-	case TFMINI_PARSE_STATE::STATE3_GOT_STRENGTH_L:
-		*state = TFMINI_PARSE_STATE::STATE3_GOT_STRENGTH_H;
-		parserbuf[*parserbuf_index] = c;
-		(*parserbuf_index)++;
-
-		break;
-
-	case TFMINI_PARSE_STATE::STATE3_GOT_STRENGTH_H:
-		*state = TFMINI_PARSE_STATE::STATE4_GOT_RESERVED;
-		parserbuf[*parserbuf_index] = c;
-		(*parserbuf_index)++;
-
-		break;
-
-	case TFMINI_PARSE_STATE::STATE4_GOT_RESERVED:
-		*state = TFMINI_PARSE_STATE::STATE5_GOT_QUALITY;
-		parserbuf[*parserbuf_index] = c;
-		(*parserbuf_index)++;
-
-		break;
-
-	case TFMINI_PARSE_STATE::STATE5_GOT_QUALITY:
-		// Find the checksum
-		unsigned char cksm = 0;
-
-		for (int i = 0; i < 8; i++) {
-			cksm += parserbuf[i];
-		}
-
-		if (c == cksm) {
-			parserbuf[*parserbuf_index] = '\0';
-			unsigned int t1 = parserbuf[2];
-			unsigned int t2 = parserbuf[3];
-			t2 <<= 8;
-			t2 += t1;
-
-			if (t2 < 0xFFFFu) {
-				*dist = ((float)t2) / 100;
+			} else {
+				*state = TFMINI_PARSE_STATE::STATE0_UNSYNC;
 			}
 
-			*state = TFMINI_PARSE_STATE::STATE6_GOT_CHECKSUM;
-			*parserbuf_index = 0;
-			ret = 0;
+			break;
 
-		} else {
-			*state = TFMINI_PARSE_STATE::STATE0_UNSYNC;
-			*parserbuf_index = 0;
-		}
+		case TFMINI_PARSE_STATE::STATE0_UNSYNC:
+			if (c == 'Y') {
+				*state = TFMINI_PARSE_STATE::STATE1_SYNC_1;
+				parserbuf[*parserbuf_index] = c;
+				(*parserbuf_index)++;
+			}
 
-		break;
+			break;
+
+		case TFMINI_PARSE_STATE::STATE1_SYNC_1:
+			if (c == 'Y') {
+				*state = TFMINI_PARSE_STATE::STATE1_SYNC_2;
+				parserbuf[*parserbuf_index] = c;
+				(*parserbuf_index)++;
+
+			} else {
+				*state = TFMINI_PARSE_STATE::STATE0_UNSYNC;
+				*parserbuf_index = 0;
+			}
+
+			break;
+
+		case TFMINI_PARSE_STATE::STATE1_SYNC_2:
+			*state = TFMINI_PARSE_STATE::STATE2_GOT_DIST_L;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
+
+			break;
+
+		case TFMINI_PARSE_STATE::STATE2_GOT_DIST_L:
+			*state = TFMINI_PARSE_STATE::STATE2_GOT_DIST_H;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
+
+			break;
+
+		case TFMINI_PARSE_STATE::STATE2_GOT_DIST_H:
+			*state = TFMINI_PARSE_STATE::STATE3_GOT_STRENGTH_L;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
+
+			break;
+
+		case TFMINI_PARSE_STATE::STATE3_GOT_STRENGTH_L:
+			*state = TFMINI_PARSE_STATE::STATE3_GOT_STRENGTH_H;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
+
+			break;
+
+		case TFMINI_PARSE_STATE::STATE3_GOT_STRENGTH_H:
+			*state = TFMINI_PARSE_STATE::STATE4_GOT_RESERVED;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
+
+			break;
+
+		case TFMINI_PARSE_STATE::STATE4_GOT_RESERVED:
+			*state = TFMINI_PARSE_STATE::STATE5_GOT_QUALITY;
+			parserbuf[*parserbuf_index] = c;
+			(*parserbuf_index)++;
+
+			break;
+
+		case TFMINI_PARSE_STATE::STATE5_GOT_QUALITY:
+			// Find the checksum
+			unsigned char cksm = 0;
+
+			for (int i = 0; i < 8; i++) {
+				cksm += parserbuf[i];
+			}
+
+			if (c == cksm) {
+				parserbuf[*parserbuf_index] = '\0';
+				unsigned int t1 = parserbuf[2];
+				unsigned int t2 = parserbuf[3];
+				t2 <<= 8;
+				t2 += t1;
+
+				if (t2 < 0xFFFFu) {
+					*dist = ((float)t2) / 100;
+				}
+
+				*state = TFMINI_PARSE_STATE::STATE6_GOT_CHECKSUM;
+				*parserbuf_index = 0;
+				ret = 0;
+
+			} else {
+				*state = TFMINI_PARSE_STATE::STATE0_UNSYNC;
+				*parserbuf_index = 0;
+			}
+
+			break;
 	}
 
 #ifdef TFMINI_DEBUG

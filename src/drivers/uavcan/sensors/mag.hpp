@@ -37,13 +37,12 @@
 
 #pragma once
 
-#include "sensor_bridge.hpp"
-
 #include <uavcan/equipment/ahrs/MagneticFieldStrength.hpp>
 #include <uavcan/equipment/ahrs/MagneticFieldStrength2.hpp>
 
-class UavcanMagnetometerBridge : public UavcanSensorBridgeBase
-{
+#include "sensor_bridge.hpp"
+
+class UavcanMagnetometerBridge : public UavcanSensorBridgeBase {
 public:
 	static const char *const NAME;
 
@@ -54,20 +53,21 @@ public:
 	int init() override;
 
 private:
-
 	int init_driver(uavcan_bridge::Channel *channel) override;
 
 	void mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength> &msg);
 	void mag2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength2> &msg);
 
-	typedef uavcan::MethodBinder < UavcanMagnetometerBridge *,
-		void (UavcanMagnetometerBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength> &) >
+	typedef uavcan::MethodBinder<
+		UavcanMagnetometerBridge *,
+		void (UavcanMagnetometerBridge::*)(
+			const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength> &)>
 		MagCbBinder;
 
-	typedef uavcan::MethodBinder < UavcanMagnetometerBridge *,
-		void (UavcanMagnetometerBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength2> &) >
+	typedef uavcan::MethodBinder<
+		UavcanMagnetometerBridge *,
+		void (UavcanMagnetometerBridge::*)(
+			const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength2> &)>
 		Mag2CbBinder;
 
 	uavcan::Subscriber<uavcan::equipment::ahrs::MagneticFieldStrength, MagCbBinder> _sub_mag;

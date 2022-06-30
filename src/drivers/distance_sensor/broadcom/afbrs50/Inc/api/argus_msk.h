@@ -1,38 +1,58 @@
-/*************************************************************************//**
- * @file
- * @brief    	This file is part of the AFBR-S50 API.
- * @details		Defines macros to work with pixel and ADC channel masks.
- *
- * @copyright
- *
- * Copyright (c) 2021, Broadcom Inc
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived from
- *    this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *****************************************************************************/
+/*************************************************************************/ /**
+									     * @file
+									     * @brief    	This file is part of the
+									     *AFBR-S50 API.
+									     * @details		Defines macros to work with
+									     *pixel and ADC channel masks.
+									     *
+									     * @copyright
+									     *
+									     * Copyright (c) 2021, Broadcom Inc
+									     * All rights reserved.
+									     *
+									     * Redistribution and use in source and
+									     *binary forms, with or without
+									     * modification, are permitted provided that
+									     *the following conditions are met:
+									     *
+									     * 1. Redistributions of source code must
+									     *retain the above copyright notice, this
+									     *    list of conditions and the following
+									     *disclaimer.
+									     *
+									     * 2. Redistributions in binary form must
+									     *reproduce the above copyright notice, this
+									     *list of conditions and the following
+									     *disclaimer in the documentation and/or
+									     *other materials provided with the
+									     *distribution.
+									     *
+									     * 3. Neither the name of the copyright
+									     *holder nor the names of its contributors
+									     *may be used to endorse or promote products
+									     *derived from this software without
+									     *specific prior written permission.
+									     *
+									     * THIS SOFTWARE IS PROVIDED BY THE
+									     *COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+									     * AND ANY EXPRESS OR IMPLIED WARRANTIES,
+									     *INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+									     *WARRANTIES OF MERCHANTABILITY AND FITNESS
+									     *FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+									     *IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+									     *CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+									     *INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+									     *OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+									     *NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+									     *GOODS OR SERVICES; LOSS OF USE, DATA, OR
+									     *PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+									     * CAUSED AND ON ANY THEORY OF LIABILITY,
+									     *WHETHER IN CONTRACT, STRICT LIABILITY, OR
+									     *TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+									     *ARISING IN ANY WAY OUT OF THE USE OF THIS
+									     *SOFTWARE, EVEN IF ADVISED OF THE
+									     *POSSIBILITY OF SUCH DAMAGE.
+									     *****************************************************************************/
 
 #ifndef ARGUS_MSK_H
 #define ARGUS_MSK_H
@@ -61,7 +81,7 @@
  * @param	y The y index of the pixel.
  * @return	The channel number n of the pixel.
  ******************************************************************************/
-#define PIXEL_XY2N(x, y) ((((x) ^ 7) << 1) | ((y) & 2) << 3 | ((y) & 1))
+#define PIXEL_XY2N(x, y) ((((x) ^ 7) << 1) | ((y)&2) << 3 | ((y)&1))
 
 /*!*****************************************************************************
  * @brief	Macro to determine the x index of an specified Pixel channel.
@@ -75,7 +95,7 @@
  * @param	n The channel number of the pixel.
  * @return	The y index number of the pixel.
  ******************************************************************************/
-#define PIXEL_N2Y(n) (((n) & 1U) | (((n) >> 3) & 2U))
+#define PIXEL_N2Y(n) (((n)&1U) | (((n) >> 3) & 2U))
 
 /*!*****************************************************************************
  * @brief	Macro to determine if a ADC Pixel channel was enabled from a pixel mask.
@@ -130,7 +150,7 @@
  * @param	ch channel number of the ADC channel.
  * @return 	True if the ADC channel n was enabled, false elsewise.
  ******************************************************************************/
-#define CHANNELN_ISENABLED(msk, ch) (((msk) >> ((ch) - 32U)) & 0x01U)
+#define CHANNELN_ISENABLED(msk, ch) (((msk) >> ((ch)-32U)) & 0x01U)
 
 /*!*****************************************************************************
  * @brief	Macro to determine if a ADC channel was enabled from a channel mask.
@@ -138,7 +158,7 @@
  * @param	ch channel number of the ADC channel.
  * @return 	True if the ADC channel n was enabled, false elsewise.
  ******************************************************************************/
-#define CHANNELN_ENABLE(msk, ch) ((msk) |= (0x01U << ((ch) - 32U)))
+#define CHANNELN_ENABLE(msk, ch) ((msk) |= (0x01U << ((ch)-32U)))
 
 /*!*****************************************************************************
  * @brief	Macro to determine if a ADC channel was enabled from a channel mask.
@@ -146,8 +166,7 @@
  * @param	ch channel number of the ADC channel.
  * @return 	True if the ADC channel n was enabled, false elsewise.
  ******************************************************************************/
-#define CHANNELN_DISABLE(msk, ch) ((msk) &= (~(0x01U << ((ch) - 32U))))
-
+#define CHANNELN_DISABLE(msk, ch) ((msk) &= (~(0x01U << ((ch)-32U))))
 
 /*!*****************************************************************************
  * @brief	Macro to determine the number of enabled pixel channels via a popcount

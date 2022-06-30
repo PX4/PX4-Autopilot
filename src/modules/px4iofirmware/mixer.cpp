@@ -39,29 +39,26 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
+#include <float.h>
+#include <math.h>
 #include <px4_platform_common/px4_config.h>
+#include <rc/sbus.h>
+#include <stdbool.h>
+#include <string.h>
+#include <sys/types.h>
 #include <syslog.h>
 
-#include <sys/types.h>
-#include <stdbool.h>
-#include <float.h>
-#include <string.h>
-#include <math.h>
-
-#include <drivers/drv_pwm_output.h>
-#include <drivers/drv_hrt.h>
-
-#include <rc/sbus.h>
-
 extern "C" {
-	/* #define DEBUG */
+/* #define DEBUG */
 #include "px4io.h"
 }
 
 /*
  * Maximum interval in us before FMU signal is considered lost
  */
-#define FMU_INPUT_DROP_LIMIT_US		500000
+#define FMU_INPUT_DROP_LIMIT_US 500000
 
 /* current servo arm/disarm state */
 static volatile bool mixer_servos_armed = false;
@@ -81,17 +78,13 @@ enum mixer_source {
 	MIX_FAILSAFE,
 };
 
-void
-mixer_tick()
-{
+void mixer_tick() {
 	/* check that we are receiving fresh data from the FMU */
 	irqstate_t irq_flags = enter_critical_section();
 	const hrt_abstime fmu_data_received_time = system_state.fmu_data_received_time;
 	leave_critical_section(irq_flags);
 
-	if ((fmu_data_received_time == 0) ||
-	    hrt_elapsed_time(&fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
-
+	if ((fmu_data_received_time == 0) || hrt_elapsed_time(&fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
 		/* too long without FMU input, time to go to failsafe */
 		if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
 			isr_debug(1, "AP RX timeout");
@@ -119,12 +112,10 @@ mixer_tick()
 	 */
 
 	/* Do not mix if we have raw PWM and FMU is ok. */
-	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM) &&
-	    (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)) {
-
+	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM) && (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)) {
 		/* don't actually mix anything - copy values from r_page_direct_pwm */
 		source = MIX_NONE;
-		memcpy(r_page_servos, r_page_direct_pwm, sizeof(uint16_t)*PX4IO_SERVO_COUNT);
+		memcpy(r_page_servos, r_page_direct_pwm, sizeof(uint16_t) * PX4IO_SERVO_COUNT);
 	}
 
 	/*
@@ -134,29 +125,30 @@ mixer_tick()
 	 * FMU or from the mixer.
 	 *
 	 */
-	should_arm = (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)		/* IO initialised without error */
-		     && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)		/* and FMU is armed */
-		     ;
+	should_arm = (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)      /* IO initialised without error */
+		     && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) /* and FMU is armed */
+		;
 
-	should_arm_nothrottle = ((r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)  /* IO initialised without error */
-				 && ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_PREARMED)     /* and FMU is prearmed */
-				     || (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)       /* or direct PWM is set */
-				    ));
+	should_arm_nothrottle = ((r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK) /* IO initialised without error */
+				 && ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_PREARMED) /* and FMU is prearmed */
+				     || (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)   /* or direct PWM is set */
+				     ));
 
 	/* we enable PWM output always on the IO side if FMU is up and running
 	 * as zero-outputs can be controlled by FMU by sending a 0 PWM command
 	 */
-	should_always_enable_pwm = ((r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
-				    && (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK));
+	should_always_enable_pwm =
+		((r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK) && (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK));
 
 	/*
 	 * Check if FMU is still alive, if not, terminate the flight
 	 */
-	if (REG_TO_BOOL(r_setup_flighttermination) && 			/* Flight termination is allowed */
-	    (source == MIX_DISARMED) && 				/* and if we ended up not changing the default mixer */
-	    should_arm && 						/* and we should be armed, so we intended to provide outputs */
-	    (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED)) { 	/* and FMU is initialized */
-		atomic_modify_or(&r_setup_arming, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE); /* then FMU is dead -> terminate flight */
+	if (REG_TO_BOOL(r_setup_flighttermination) && /* Flight termination is allowed */
+	    (source == MIX_DISARMED) &&               /* and if we ended up not changing the default mixer */
+	    should_arm &&                             /* and we should be armed, so we intended to provide outputs */
+	    (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED)) { /* and FMU is initialized */
+		atomic_modify_or(&r_setup_arming,
+				 PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE); /* then FMU is dead -> terminate flight */
 	}
 
 	/*
@@ -215,9 +207,8 @@ mixer_tick()
 		isr_debug(5, "> PWM disabled");
 	}
 
-	if (mixer_servos_armed
-	    && (should_arm || should_arm_nothrottle || (source == MIX_FAILSAFE))
-	    && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
+	if (mixer_servos_armed && (should_arm || should_arm_nothrottle || (source == MIX_FAILSAFE)) &&
+	    !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
 		/* update the servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servos[i]);
@@ -231,7 +222,8 @@ mixer_tick()
 			sbus1_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
 		}
 
-	} else if (mixer_servos_armed && (should_always_enable_pwm || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN))) {
+	} else if (mixer_servos_armed &&
+		   (should_always_enable_pwm || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN))) {
 		/* set the disarmed servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servo_disarmed[i]);

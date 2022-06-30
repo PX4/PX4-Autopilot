@@ -33,37 +33,29 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #include <battery/battery.h>
-
 #include <drivers/device/device.h>
-#include "ringbuffer.h"
-
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/parameter_update.h>
+#include <stdint.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/parameter_update.h>
 
-#include "syslink.h"
+#include <uORB/PublicationMulti.hpp>
+
 #include "crtp.h"
+#include "ringbuffer.h"
+#include "syslink.h"
 
 using namespace time_literals;
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
-typedef enum {
-	BAT_DISCHARGING = 0,
-	BAT_CHARGING = 1,
-	BAT_CHARGED = 2
-} battery_state;
-
+typedef enum { BAT_DISCHARGING = 0, BAT_CHARGING = 1, BAT_CHARGED = 2 } battery_state;
 
 class SyslinkBridge;
 class SyslinkMemory;
 
-class Syslink
-{
+class Syslink {
 public:
 	Syslink();
 
@@ -114,8 +106,8 @@ private:
 	int _count_in;
 	int _count_out;
 	hrt_abstime _lasttime;
-	hrt_abstime _lasttxtime; // Last time a radio message was sent
-	hrt_abstime _lastrxtime; // Last time a radio message was recieved
+	hrt_abstime _lasttxtime;  // Last time a radio message was sent
+	hrt_abstime _lastrxtime;  // Last time a radio message was recieved
 
 	int _fd;
 
@@ -132,10 +124,10 @@ private:
 	// Current parameter values
 	int32_t _channel, _rate;
 	uint64_t _addr;
-	hrt_abstime _params_update[3]; // Time at which the parameters were updated
-	hrt_abstime _params_ack[3]; // Time at which the parameters were acknowledged by the nrf module
+	hrt_abstime _params_update[3];  // Time at which the parameters were updated
+	hrt_abstime _params_ack[3];     // Time at which the parameters were acknowledged by the nrf module
 
-	uORB::PublicationMulti<input_rc_s>		_rc_pub{ORB_ID(input_rc)};
+	uORB::PublicationMulti<input_rc_s> _rc_pub{ORB_ID(input_rc)};
 
 	// nrf chip schedules battery updates with SYSLINK_SEND_PERIOD_MS
 	static constexpr uint32_t SYSLINK_BATTERY_STATUS_INTERVAL_US = 10_ms;
@@ -153,19 +145,16 @@ private:
 	void task_main();
 };
 
-
-class SyslinkBridge : public cdev::CDev
-{
-
+class SyslinkBridge : public cdev::CDev {
 public:
 	SyslinkBridge(Syslink *link);
 	virtual ~SyslinkBridge() = default;
 
-	virtual int	init();
+	virtual int init();
 
-	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
-	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
-	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t write(struct file *filp, const char *buffer, size_t buflen);
+	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	// Makes the message available for reading to processes reading from the bridge
 	void pipe_message(crtp_message_t *msg);
@@ -183,19 +172,16 @@ private:
 	int _msg_to_send_size_remaining;
 };
 
-
-class SyslinkMemory : public cdev::CDev
-{
-
+class SyslinkMemory : public cdev::CDev {
 public:
 	SyslinkMemory(Syslink *link);
 	virtual ~SyslinkMemory() = default;
 
-	virtual int	init();
+	virtual int init();
 
-	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
-	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
-	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t write(struct file *filp, const char *buffer, size_t buflen);
+	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
 
 private:
 	friend class Syslink;

@@ -39,23 +39,17 @@
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
  */
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/atomic.h>
-#include <px4_platform/cpuload.h>
-
 #include <drivers/drv_hrt.h>
-
+#include <px4_platform/cpuload.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/px4_config.h>
 #include <sys/time.h>
 
 static px4::atomic_int cpuload_monitor_all_count{0};
 
-void cpuload_monitor_start()
-{
-	cpuload_monitor_all_count.fetch_add(1);
-}
+void cpuload_monitor_start() { cpuload_monitor_all_count.fetch_add(1); }
 
-void cpuload_monitor_stop()
-{
+void cpuload_monitor_stop() {
 	if (cpuload_monitor_all_count.fetch_sub(1) <= 1) {
 		// don't all the count to go negative
 		cpuload_monitor_all_count.store(0);

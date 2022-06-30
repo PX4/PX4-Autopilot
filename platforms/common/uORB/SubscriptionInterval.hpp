@@ -38,25 +38,20 @@
 
 #pragma once
 
-#include <uORB/uORB.h>
+#include <mathlib/mathlib.h>
 #include <px4_platform_common/defines.h>
+#include <uORB/uORB.h>
 
+#include "Subscription.hpp"
 #include "uORBDeviceNode.hpp"
 #include "uORBManager.hpp"
 #include "uORBUtils.hpp"
 
-#include "Subscription.hpp"
-
-#include <mathlib/mathlib.h>
-
-namespace uORB
-{
+namespace uORB {
 
 // Base subscription wrapper class
-class SubscriptionInterval
-{
+class SubscriptionInterval {
 public:
-
 	/**
 	 * Constructor
 	 *
@@ -64,10 +59,8 @@ public:
 	 * @param interval The requested maximum update interval in microseconds.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionInterval(ORB_ID id, uint32_t interval_us = 0, uint8_t instance = 0) :
-		_subscription{id, instance},
-		_interval_us(interval_us)
-	{}
+	SubscriptionInterval(ORB_ID id, uint32_t interval_us = 0, uint8_t instance = 0)
+		: _subscription{id, instance}, _interval_us(interval_us) {}
 
 	/**
 	 * Constructor
@@ -76,10 +69,8 @@ public:
 	 * @param interval The requested maximum update interval in microseconds.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionInterval(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
-		_subscription{meta, instance},
-		_interval_us(interval_us)
-	{}
+	SubscriptionInterval(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0)
+		: _subscription{meta, instance}, _interval_us(interval_us) {}
 
 	SubscriptionInterval() : _subscription{nullptr} {}
 
@@ -93,8 +84,7 @@ public:
 	/**
 	 * Check if there is a new update.
 	 * */
-	bool updated()
-	{
+	bool updated() {
 		if (advertised() && (hrt_elapsed_time(&_last_update) >= _interval_us)) {
 			return _subscription.updated();
 		}
@@ -107,8 +97,7 @@ public:
 	 * @param dst The destination pointer where the struct will be copied.
 	 * @return true only if topic was updated and copied successfully.
 	 */
-	bool update(void *dst)
-	{
+	bool update(void *dst) {
 		if (updated()) {
 			return copy(dst);
 		}
@@ -121,8 +110,7 @@ public:
 	 * @param dst The destination pointer where the struct will be copied.
 	 * @return true only if topic was copied successfully.
 	 */
-	bool copy(void *dst)
-	{
+	bool copy(void *dst) {
 		if (_subscription.copy(dst)) {
 			const hrt_abstime now = hrt_absolute_time();
 			// shift last update time forward, but don't let it get further behind than the interval
@@ -133,36 +121,35 @@ public:
 		return false;
 	}
 
-	bool		valid() const { return _subscription.valid(); }
+	bool valid() const { return _subscription.valid(); }
 
-	uint8_t		get_instance() const { return _subscription.get_instance(); }
-	uint32_t        get_interval_us() const { return _interval_us; }
-	unsigned	get_last_generation() const { return _subscription.get_last_generation(); }
-	orb_id_t	get_topic() const { return _subscription.get_topic(); }
+	uint8_t get_instance() const { return _subscription.get_instance(); }
+	uint32_t get_interval_us() const { return _interval_us; }
+	unsigned get_last_generation() const { return _subscription.get_last_generation(); }
+	orb_id_t get_topic() const { return _subscription.get_topic(); }
 
 	/**
 	 * Set the interval in microseconds
 	 * @param interval The interval in microseconds.
 	 */
-	void		set_interval_us(uint32_t interval) { _interval_us = interval; }
+	void set_interval_us(uint32_t interval) { _interval_us = interval; }
 
 	/**
 	 * Set the interval in milliseconds
 	 * @param interval The interval in milliseconds.
 	 */
-	void		set_interval_ms(uint32_t interval) { _interval_us = interval * 1000; }
+	void set_interval_ms(uint32_t interval) { _interval_us = interval * 1000; }
 
 	/**
 	 * Set the last data update
 	 * @param t should be in range [now, now - _interval_us]
 	 */
-	void		set_last_update(hrt_abstime t) { _last_update = t; }
+	void set_last_update(hrt_abstime t) { _last_update = t; }
+
 protected:
-
-	Subscription	_subscription;
-	uint64_t	_last_update{0};	// last update in microseconds
-	uint32_t	_interval_us{0};	// maximum update interval in microseconds
-
+	Subscription _subscription;
+	uint64_t _last_update{0};  // last update in microseconds
+	uint32_t _interval_us{0};  // maximum update interval in microseconds
 };
 
-} // namespace uORB
+}  // namespace uORB

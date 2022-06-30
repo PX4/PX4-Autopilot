@@ -39,23 +39,18 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
+#include "mavlink_stream.h"
+
 #include <stdlib.h>
 
-#include "mavlink_stream.h"
 #include "mavlink_main.h"
 
-MavlinkStream::MavlinkStream(Mavlink *mavlink) :
-	_mavlink(mavlink)
-{
-	_last_sent = hrt_absolute_time();
-}
+MavlinkStream::MavlinkStream(Mavlink *mavlink) : _mavlink(mavlink) { _last_sent = hrt_absolute_time(); }
 
 /**
  * Update subscriptions and send message if necessary
  */
-int
-MavlinkStream::update(const hrt_abstime &t)
-{
+int MavlinkStream::update(const hrt_abstime &t) {
 	update_data();
 
 	// If the message has never been sent before we want

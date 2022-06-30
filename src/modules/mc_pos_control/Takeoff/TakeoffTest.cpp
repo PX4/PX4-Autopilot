@@ -31,19 +31,18 @@
  *
  ****************************************************************************/
 
-#include <gtest/gtest.h>
-#include <Takeoff.hpp>
 #include <drivers/drv_hrt.h>
+#include <gtest/gtest.h>
 #include <lib/geo/geo.h>
 
-TEST(TakeoffTest, Initialization)
-{
+#include <Takeoff.hpp>
+
+TEST(TakeoffTest, Initialization) {
 	TakeoffHandling takeoff;
 	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::disarmed);
 }
 
-TEST(TakeoffTest, RegularTakeoffRamp)
-{
+TEST(TakeoffTest, RegularTakeoffRamp) {
 	TakeoffHandling takeoff;
 	takeoff.setSpoolupTime(1.f);
 	takeoff.setTakeoffRampTime(2.0);

@@ -39,12 +39,12 @@
 #pragma once
 
 #include <mathlib/mathlib.h>
+
 #include <matrix/math.hpp>
 
 using namespace time_literals;
 
-class WindEstimator
-{
+class WindEstimator {
 public:
 	WindEstimator() = default;
 	~WindEstimator() = default;
@@ -75,54 +75,53 @@ public:
 	float get_tas_innov_var() { return _tas_innov_var; }
 	float get_beta_innov() { return _beta_innov; }
 	float get_beta_innov_var() { return _beta_innov_var; }
-	matrix::Vector2f  get_wind_var() { return matrix::Vector2f{_P(0, 0), _P(1, 1)}; }
+	matrix::Vector2f get_wind_var() { return matrix::Vector2f{_P(0, 0), _P(1, 1)}; }
 	bool get_wind_estimator_reset() { return _wind_estimator_reset; }
 
 	// unaided, the state uncertainty (diagonal of sqrt(P)) grows by the process noise spectral density every second
 	void set_wind_process_noise_spectral_density(float wind_nsd) { _wind_psd = wind_nsd * wind_nsd; }
-	void set_tas_scale_process_noise_spectral_density(float tas_scale_nsd) { _tas_scale_psd = tas_scale_nsd * tas_scale_nsd; }
+	void set_tas_scale_process_noise_spectral_density(float tas_scale_nsd) {
+		_tas_scale_psd = tas_scale_nsd * tas_scale_nsd;
+	}
 
 	void set_tas_noise(float tas_sigma) { _tas_var = tas_sigma * tas_sigma; }
 	void set_beta_noise(float beta_var) { _beta_var = beta_var * beta_var; }
-	void set_tas_gate(uint8_t gate_size) {_tas_gate = gate_size; }
-	void set_beta_gate(uint8_t gate_size) {_beta_gate = gate_size; }
-	void set_scale_init(float scale_init) {_scale_init = 1.f / math::constrain(scale_init, 0.1f, 10.f); }
+	void set_tas_gate(uint8_t gate_size) { _tas_gate = gate_size; }
+	void set_beta_gate(uint8_t gate_size) { _beta_gate = gate_size; }
+	void set_scale_init(float scale_init) { _scale_init = 1.f / math::constrain(scale_init, 0.1f, 10.f); }
 
 private:
-	enum {
-		INDEX_W_N = 0,
-		INDEX_W_E,
-		INDEX_TAS_SCALE
-	};	///< enum which can be used to access state.
+	enum { INDEX_W_N = 0, INDEX_W_E, INDEX_TAS_SCALE };  ///< enum which can be used to access state.
 
 	matrix::Vector3f _state{0.f, 0.f, 1.f};
-	matrix::Matrix3f _P;		///< state covariance matrix
+	matrix::Matrix3f _P;  ///< state covariance matrix
 
-	float _tas_innov{0.0f};	///< true airspeed innovation
-	float _tas_innov_var{0.0f};	///< true airspeed innovation variance
+	float _tas_innov{0.0f};      ///< true airspeed innovation
+	float _tas_innov_var{0.0f};  ///< true airspeed innovation variance
 
-	float _beta_innov{0.0f};	///< sideslip innovation
-	float _beta_innov_var{0.0f};	///< sideslip innovation variance
+	float _beta_innov{0.0f};      ///< sideslip innovation
+	float _beta_innov_var{0.0f};  ///< sideslip innovation variance
 
-	bool _initialised{false};	///< True: filter has been initialised
+	bool _initialised{false};  ///< True: filter has been initialised
 
-	float _wind_psd{0.1f};	///< wind process noise power spectral density (m^2/s^4/Hz)
-	float _tas_scale_psd{0.0001f};	///< true airspeed process noise power spectral density (1/s^2/Hz)
-	float _tas_var{1.4f};		///< true airspeed measurement noise variance
-	float _beta_var{0.5f};	///< sideslip measurement noise variance
-	uint8_t _tas_gate{3};	///< airspeed fusion gate size
-	uint8_t _beta_gate{1};	///< sideslip fusion gate size
+	float _wind_psd{0.1f};          ///< wind process noise power spectral density (m^2/s^4/Hz)
+	float _tas_scale_psd{0.0001f};  ///< true airspeed process noise power spectral density (1/s^2/Hz)
+	float _tas_var{1.4f};           ///< true airspeed measurement noise variance
+	float _beta_var{0.5f};          ///< sideslip measurement noise variance
+	uint8_t _tas_gate{3};           ///< airspeed fusion gate size
+	uint8_t _beta_gate{1};          ///< sideslip fusion gate size
 
 	float _scale_init{1.f};
 
-	uint64_t _time_last_airspeed_fuse = 0;	///< timestamp of last airspeed fusion
-	uint64_t _time_last_beta_fuse = 0;	///< timestamp of last sideslip fusion
-	uint64_t _time_last_update = 0;		///< timestamp of last covariance prediction
-	uint64_t _time_rejected_beta = 0;	///< timestamp of when sideslip measurements have consistently started to be rejected
+	uint64_t _time_last_airspeed_fuse = 0;  ///< timestamp of last airspeed fusion
+	uint64_t _time_last_beta_fuse = 0;      ///< timestamp of last sideslip fusion
+	uint64_t _time_last_update = 0;         ///< timestamp of last covariance prediction
+	uint64_t _time_rejected_beta =
+		0;  ///< timestamp of when sideslip measurements have consistently started to be rejected
 	uint64_t _time_rejected_tas =
-		0;	///< timestamp of when true airspeed measurements have consistently started to be rejected
+		0;  ///< timestamp of when true airspeed measurements have consistently started to be rejected
 
-	bool _wind_estimator_reset = false; ///< wind estimator was reset in this cycle
+	bool _wind_estimator_reset = false;  ///< wind estimator was reset in this cycle
 
 	// initialise state and state covariance matrix
 	bool initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas,

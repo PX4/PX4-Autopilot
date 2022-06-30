@@ -41,14 +41,14 @@
  */
 
 #include "accel.h"
-#include <uORB/topics/sensor_accel.h>
-#include <mathlib/mathlib.h>
+
 #include <drivers/drv_hrt.h>
+#include <mathlib/mathlib.h>
+#include <uORB/topics/sensor_accel.h>
 
 TemperatureCalibrationAccel::TemperatureCalibrationAccel(float min_temperature_rise, float min_start_temperature,
-		float max_start_temperature)
-	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature, max_start_temperature)
-{
+							 float max_start_temperature)
+	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature, max_start_temperature) {
 	// init subscriptions
 	_num_sensor_instances = orb_group_count(ORB_ID(sensor_accel));
 
@@ -61,15 +61,13 @@ TemperatureCalibrationAccel::TemperatureCalibrationAccel(float min_temperature_r
 	}
 }
 
-TemperatureCalibrationAccel::~TemperatureCalibrationAccel()
-{
+TemperatureCalibrationAccel::~TemperatureCalibrationAccel() {
 	for (unsigned i = 0; i < _num_sensor_instances; i++) {
 		orb_unsubscribe(_sensor_subs[i]);
 	}
 }
 
-int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int sensor_sub)
-{
+int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int sensor_sub) {
 	bool finished = data.hot_soaked;
 
 	bool updated;
@@ -115,8 +113,9 @@ int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int
 
 			} else {
 				data.cold_soaked = true;
-				data.low_temp = data.sensor_sample_filt[3]; // Record the low temperature
-				data.high_temp = data.low_temp; // Initialise the high temperature to the initial temperature
+				data.low_temp = data.sensor_sample_filt[3];  // Record the low temperature
+				data.high_temp =
+					data.low_temp;  // Initialise the high temperature to the initial temperature
 				data.ref_temp = data.sensor_sample_filt[3] + 0.5f * _min_temperature_rise;
 				return 1;
 			}
@@ -135,19 +134,19 @@ int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int
 		return 1;
 	}
 
-	//TODO: Detect when temperature has stopped rising for more than TBD seconds
+	// TODO: Detect when temperature has stopped rising for more than TBD seconds
 	if (data.hot_soak_sat == 10 || (data.high_temp - data.low_temp) > _min_temperature_rise) {
 		data.hot_soaked = true;
 	}
 
-	if (sensor_sub == _sensor_subs[0]) { // debug output, but only for the first sensor
+	if (sensor_sub == _sensor_subs[0]) {  // debug output, but only for the first sensor
 		TC_DEBUG("\nAccel: %.20f,%.20f,%.20f,%.20f, %.6f, %.6f, %.6f\n\n", (double)data.sensor_sample_filt[0],
-			 (double)data.sensor_sample_filt[1],
-			 (double)data.sensor_sample_filt[2], (double)data.sensor_sample_filt[3], (double)data.low_temp, (double)data.high_temp,
+			 (double)data.sensor_sample_filt[1], (double)data.sensor_sample_filt[2],
+			 (double)data.sensor_sample_filt[3], (double)data.low_temp, (double)data.high_temp,
 			 (double)(data.high_temp - data.low_temp));
 	}
 
-	//update linear fit matrices
+	// update linear fit matrices
 	double relative_temperature = (double)data.sensor_sample_filt[3] - (double)data.ref_temp;
 	data.P[0].update(relative_temperature, (double)data.sensor_sample_filt[0]);
 	data.P[1].update(relative_temperature, (double)data.sensor_sample_filt[1]);
@@ -156,8 +155,7 @@ int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int
 	return 1;
 }
 
-int TemperatureCalibrationAccel::finish()
-{
+int TemperatureCalibrationAccel::finish() {
 	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
 		finish_sensor_instance(_data[uorb_index], uorb_index);
 	}
@@ -172,8 +170,7 @@ int TemperatureCalibrationAccel::finish()
 	return result;
 }
 
-int TemperatureCalibrationAccel::finish_sensor_instance(PerSensorData &data, int sensor_index)
-{
+int TemperatureCalibrationAccel::finish_sensor_instance(PerSensorData &data, int sensor_index) {
 	if (!data.has_valid_temperature) {
 		PX4_WARN("Result Accel %d does not have a valid temperature sensor", sensor_index);
 
@@ -188,20 +185,17 @@ int TemperatureCalibrationAccel::finish_sensor_instance(PerSensorData &data, int
 
 	double res[3][4] = {};
 	data.P[0].fit(res[0]);
-	res[0][3] = 0.0; // normalise the correction to be zero at the reference temperature
+	res[0][3] = 0.0;  // normalise the correction to be zero at the reference temperature
 	PX4_INFO("Result Accel %d Axis 0: %.20f %.20f %.20f %.20f", sensor_index, (double)res[0][0], (double)res[0][1],
-		 (double)res[0][2],
-		 (double)res[0][3]);
+		 (double)res[0][2], (double)res[0][3]);
 	data.P[1].fit(res[1]);
-	res[1][3] = 0.0; // normalise the correction to be zero at the reference temperature
+	res[1][3] = 0.0;  // normalise the correction to be zero at the reference temperature
 	PX4_INFO("Result Accel %d Axis 1: %.20f %.20f %.20f %.20f", sensor_index, (double)res[1][0], (double)res[1][1],
-		 (double)res[1][2],
-		 (double)res[1][3]);
+		 (double)res[1][2], (double)res[1][3]);
 	data.P[2].fit(res[2]);
-	res[2][3] = 0.0; // normalise the correction to be zero at the reference temperature
+	res[2][3] = 0.0;  // normalise the correction to be zero at the reference temperature
 	PX4_INFO("Result Accel %d Axis 2: %.20f %.20f %.20f %.20f", sensor_index, (double)res[2][0], (double)res[2][1],
-		 (double)res[2][2],
-		 (double)res[2][3]);
+		 (double)res[2][2], (double)res[2][3]);
 	data.tempcal_complete = true;
 
 	char str[30];

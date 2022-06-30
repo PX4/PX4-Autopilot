@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixTransposeTest, Transpose)
-{
+TEST(MatrixTransposeTest, Transpose) {
 	float data[6] = {1, 2, 3, 4, 5, 6};
 	Matrix<float, 2, 3> A(data);
 	Matrix<float, 3, 2> A_T = A.transpose();

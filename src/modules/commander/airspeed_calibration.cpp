@@ -37,36 +37,36 @@
  */
 
 #include "airspeed_calibration.h"
-#include "calibration_messages.h"
-#include "calibration_routines.h"
-#include "commander_helper.h"
 
+#include <drivers/drv_hrt.h>
+#include <fcntl.h>
+#include <math.h>
+#include <parameters/param.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <math.h>
-#include <drivers/drv_hrt.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/differential_pressure.h>
-#include <systemlib/mavlink_log.h>
-#include <parameters/param.h>
 #include <systemlib/err.h>
+#include <systemlib/mavlink_log.h>
+#include <uORB/topics/differential_pressure.h>
+#include <unistd.h>
+
+#include <uORB/Subscription.hpp>
+
+#include "calibration_messages.h"
+#include "calibration_routines.h"
+#include "commander_helper.h"
 
 using namespace time_literals;
 
 static const char *sensor_name = "airspeed";
 
-static void feedback_calibration_failed(orb_advert_t *mavlink_log_pub)
-{
+static void feedback_calibration_failed(orb_advert_t *mavlink_log_pub) {
 	px4_sleep(5);
 	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
 }
 
-int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
-{
+int do_airspeed_calibration(orb_advert_t *mavlink_log_pub) {
 	const hrt_abstime calibration_started = hrt_absolute_time();
 
 	int result = PX4_OK;
@@ -86,20 +86,19 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	uORB::SubscriptionData<differential_pressure_s> diff_pres_sub{ORB_ID(differential_pressure)};
 
 	while (calibration_counter < calibration_count) {
-
 		if (calibrate_cancel_check(mavlink_log_pub, calibration_started)) {
 			return PX4_ERROR;
 		}
 
 		if (diff_pres_sub.update()) {
-
 			const differential_pressure_s &diff_pres = diff_pres_sub.get();
 
 			diff_pres_offset += diff_pres.differential_pressure_pa;
 			calibration_counter++;
 
 			if (calibration_counter % (calibration_count / 20) == 0) {
-				calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, (calibration_counter * 80) / calibration_count);
+				calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG,
+						     (calibration_counter * 80) / calibration_count);
 			}
 		}
 
@@ -146,7 +145,6 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 	/* just take a few samples and make sure pitot tubes are not reversed, timeout after ~30 seconds */
 	while (calibration_counter < maxcount) {
-
 		if (calibrate_cancel_check(mavlink_log_pub, calibration_started)) {
 			return PX4_ERROR;
 		}
@@ -157,20 +155,25 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			differential_pressure_sum += diff_pres.differential_pressure_pa;
 			differential_pressure_sum_count++;
 
-			const float differential_pressure_pa = (differential_pressure_sum / differential_pressure_sum_count) - diff_pres_offset;
+			const float differential_pressure_pa =
+				(differential_pressure_sum / differential_pressure_sum_count) - diff_pres_offset;
 
 			if ((differential_pressure_sum_count > 10) && (fabsf(differential_pressure_pa) > 50.f)) {
 				if (differential_pressure_pa > 0) {
-					calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)", (int)differential_pressure_pa);
+					calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)",
+							     (int)differential_pressure_pa);
 					break;
 
 				} else {
 					/* do not allow negative values */
-					calibration_log_critical(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)",
+					calibration_log_critical(mavlink_log_pub,
+								 "[cal] Negative pressure difference detected (%d Pa)",
 								 (int)differential_pressure_pa);
-					calibration_log_critical(mavlink_log_pub, "[cal] Swap static and dynamic ports!");
+					calibration_log_critical(mavlink_log_pub,
+								 "[cal] Swap static and dynamic ports!");
 
-					/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
+					/* the user setup is wrong, wipe the calibration to force a proper
+					 * re-calibration */
 					diff_pres_offset = 0.0f;
 
 					if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
@@ -188,7 +191,8 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			}
 
 			if (calibration_counter % 300 == 0) {
-				calibration_log_info(mavlink_log_pub, "[cal] Create air pressure! (got %d, wanted: 50 Pa)",
+				calibration_log_info(mavlink_log_pub,
+						     "[cal] Create air pressure! (got %d, wanted: 50 Pa)",
 						     (int)differential_pressure_pa);
 				tune_neutral(true);
 

@@ -39,15 +39,11 @@
 
 #include "safety_state.hpp"
 
-UavcanSafetyState::UavcanSafetyState(uavcan::INode &node) :
-	_safety_state_pub(node),
-	_timer(node)
-{
+UavcanSafetyState::UavcanSafetyState(uavcan::INode &node) : _safety_state_pub(node), _timer(node) {
 	_safety_state_pub.setPriority(uavcan::TransferPriority::Default);
 }
 
-int UavcanSafetyState::init()
-{
+int UavcanSafetyState::init() {
 	/*
 	 * Setup timer and call back function for periodic updates
 	 */
@@ -59,8 +55,7 @@ int UavcanSafetyState::init()
 	return 0;
 }
 
-void UavcanSafetyState::periodic_update(const uavcan::TimerEvent &)
-{
+void UavcanSafetyState::periodic_update(const uavcan::TimerEvent &) {
 	actuator_armed_s actuator_armed;
 
 	if (_actuator_armed_sub.update(&actuator_armed)) {

@@ -40,25 +40,24 @@
 #include "HelicopterMixer.hpp"
 
 #include <mathlib/mathlib.h>
-#include <cstdio>
 #include <px4_platform_common/defines.h>
 
-#define debug(fmt, args...)	do { } while(0)
+#include <cstdio>
+
+#define debug(fmt, args...) \
+	do {                \
+	} while (0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 //#include <debug.h>
 //#define debug(fmt, args...)	lowsyslog(fmt "\n", ##args)
 
 using math::constrain;
 
-HelicopterMixer::HelicopterMixer(ControlCallback control_cb, uintptr_t cb_handle, mixer_heli_s mixer_info) :
-	Mixer(control_cb, cb_handle),
-	_mixer_info(mixer_info)
-{
-}
+HelicopterMixer::HelicopterMixer(ControlCallback control_cb, uintptr_t cb_handle, mixer_heli_s mixer_info)
+	: Mixer(control_cb, cb_handle), _mixer_info(mixer_info) {}
 
-HelicopterMixer *
-HelicopterMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf, unsigned &buflen)
-{
+HelicopterMixer *HelicopterMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
+					    unsigned &buflen) {
 	mixer_heli_s mixer_info;
 	unsigned swash_plate_servo_count = 0;
 	unsigned u[5];
@@ -99,14 +98,13 @@ HelicopterMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 		return nullptr;
 	}
 
-	if (sscanf(buf, "T: %u %u %u %u %u",
-		   &u[0], &u[1], &u[2], &u[3], &u[4]) != 5) {
+	if (sscanf(buf, "T: %u %u %u %u %u", &u[0], &u[1], &u[2], &u[3], &u[4]) != 5) {
 		debug("control parse failed on '%s'", buf);
 		return nullptr;
 	}
 
 	for (unsigned i = 0; i < HELI_CURVES_NR_POINTS; i++) {
-		mixer_info.throttle_curve[i] = ((float) u[i]) / 10000.0f;
+		mixer_info.throttle_curve[i] = ((float)u[i]) / 10000.0f;
 	}
 
 	buf = skipline(buf, buflen);
@@ -123,14 +121,13 @@ HelicopterMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 		return nullptr;
 	}
 
-	if (sscanf(buf, "P: %d %d %d %d %d",
-		   &s[0], &s[1], &s[2], &s[3], &s[4]) != 5) {
+	if (sscanf(buf, "P: %d %d %d %d %d", &s[0], &s[1], &s[2], &s[3], &s[4]) != 5) {
 		debug("control parse failed on '%s'", buf);
 		return nullptr;
 	}
 
 	for (unsigned i = 0; i < HELI_CURVES_NR_POINTS; i++) {
-		mixer_info.pitch_curve[i] = ((float) s[i]) / 10000.0f;
+		mixer_info.pitch_curve[i] = ((float)s[i]) / 10000.0f;
 	}
 
 	buf = skipline(buf, buflen);
@@ -144,7 +141,6 @@ HelicopterMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 
 	/* Now loop through the servos */
 	for (unsigned i = 0; i < mixer_info.control_count; i++) {
-
 		buf = findtag(buf, buflen, 'S');
 
 		if ((buf == nullptr) || (buflen < 12)) {
@@ -152,23 +148,17 @@ HelicopterMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 			return nullptr;
 		}
 
-		if (sscanf(buf, "S: %u %u %d %d %d %d",
-			   &u[0],
-			   &u[1],
-			   &s[0],
-			   &s[1],
-			   &s[2],
-			   &s[3]) != 6) {
+		if (sscanf(buf, "S: %u %u %d %d %d %d", &u[0], &u[1], &s[0], &s[1], &s[2], &s[3]) != 6) {
 			debug("control parse failed on '%s'", buf);
 			return nullptr;
 		}
 
-		mixer_info.servos[i].angle = ((float) u[0]) * M_PI_F / 180.0f;
-		mixer_info.servos[i].arm_length = ((float) u[1]) / 10000.0f;
-		mixer_info.servos[i].scale = ((float) s[0]) / 10000.0f;
-		mixer_info.servos[i].offset = ((float) s[1]) / 10000.0f;
-		mixer_info.servos[i].min_output = ((float) s[2]) / 10000.0f;
-		mixer_info.servos[i].max_output = ((float) s[3]) / 10000.0f;
+		mixer_info.servos[i].angle = ((float)u[0]) * M_PI_F / 180.0f;
+		mixer_info.servos[i].arm_length = ((float)u[1]) / 10000.0f;
+		mixer_info.servos[i].scale = ((float)s[0]) / 10000.0f;
+		mixer_info.servos[i].offset = ((float)s[1]) / 10000.0f;
+		mixer_info.servos[i].min_output = ((float)s[2]) / 10000.0f;
+		mixer_info.servos[i].max_output = ((float)s[3]) / 10000.0f;
 
 		buf = skipline(buf, buflen);
 
@@ -192,9 +182,7 @@ HelicopterMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	return hm;
 }
 
-unsigned
-HelicopterMixer::mix(float *outputs, unsigned space)
-{
+unsigned HelicopterMixer::mix(float *outputs, unsigned space) {
 	if (space < _mixer_info.control_count + 1u) {
 		return 0;
 	}
@@ -228,12 +216,13 @@ HelicopterMixer::mix(float *outputs, unsigned space)
 	outputs[0] = throttle;
 
 	for (unsigned i = 0; i < _mixer_info.control_count; i++) {
-		outputs[i + 1] = collective_pitch
-				 + cosf(_mixer_info.servos[i].angle) * pitch_cmd * _mixer_info.servos[i].arm_length
-				 - sinf(_mixer_info.servos[i].angle) * roll_cmd * _mixer_info.servos[i].arm_length;
+		outputs[i + 1] = collective_pitch +
+				 cosf(_mixer_info.servos[i].angle) * pitch_cmd * _mixer_info.servos[i].arm_length -
+				 sinf(_mixer_info.servos[i].angle) * roll_cmd * _mixer_info.servos[i].arm_length;
 		outputs[i + 1] *= _mixer_info.servos[i].scale;
 		outputs[i + 1] += _mixer_info.servos[i].offset;
-		outputs[i + 1] = constrain(outputs[i + 1], _mixer_info.servos[i].min_output, _mixer_info.servos[i].max_output);
+		outputs[i + 1] =
+			constrain(outputs[i + 1], _mixer_info.servos[i].min_output, _mixer_info.servos[i].max_output);
 	}
 
 	return _mixer_info.control_count + 1;

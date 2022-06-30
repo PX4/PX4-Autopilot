@@ -35,27 +35,18 @@
 
 using namespace time_literals;
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-IST8310::IST8310(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation)
-{
-}
+IST8310::IST8310(const I2CSPIDriverConfig &config)
+	: I2C(config), I2CSPIDriver(config), _px4_mag(get_device_id(), config.rotation) {}
 
-IST8310::~IST8310()
-{
+IST8310::~IST8310() {
 	perf_free(_reset_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 }
 
-int IST8310::init()
-{
+int IST8310::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -66,16 +57,14 @@ int IST8310::init()
 	return Reset() ? 0 : -1;
 }
 
-bool IST8310::Reset()
-{
+bool IST8310::Reset() {
 	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
 }
 
-void IST8310::print_status()
-{
+void IST8310::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_reset_perf);
@@ -83,8 +72,7 @@ void IST8310::print_status()
 	perf_print_counter(_bad_transfer_perf);
 }
 
-int IST8310::probe()
-{
+int IST8310::probe() {
 	const uint8_t WAI = RegisterRead(Register::WAI);
 
 	if (WAI != Device_ID) {
@@ -95,74 +83,73 @@ int IST8310::probe()
 	return PX4_OK;
 }
 
-void IST8310::RunImpl()
-{
+void IST8310::RunImpl() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-	case STATE::RESET:
-		// CNTL2: Software Reset
-		RegisterWrite(Register::CNTL2, CNTL2_BIT::SRST);
-		_reset_timestamp = now;
-		_failure_count = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		perf_count(_reset_perf);
-		ScheduleDelayed(50_ms); // Power On Reset: max 50ms
-		break;
+		case STATE::RESET:
+			// CNTL2: Software Reset
+			RegisterWrite(Register::CNTL2, CNTL2_BIT::SRST);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
+			perf_count(_reset_perf);
+			ScheduleDelayed(50_ms);  // Power On Reset: max 50ms
+			break;
 
-	case STATE::WAIT_FOR_RESET:
+		case STATE::WAIT_FOR_RESET:
 
-		// SRST: This bit is automatically reset to zero after POR routine
-		if ((RegisterRead(Register::WAI) == Device_ID)
-		    && ((RegisterRead(Register::CNTL2) & CNTL2_BIT::SRST) == 0)) {
-
-			// if reset succeeded then configure
-			_state = STATE::CONFIGURE;
-			ScheduleDelayed(10_ms);
-
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
-				ScheduleDelayed(100_ms);
-
-			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
+			// SRST: This bit is automatically reset to zero after POR routine
+			if ((RegisterRead(Register::WAI) == Device_ID) &&
+			    ((RegisterRead(Register::CNTL2) & CNTL2_BIT::SRST) == 0)) {
+				// if reset succeeded then configure
+				_state = STATE::CONFIGURE;
 				ScheduleDelayed(10_ms);
-			}
-		}
-
-		break;
-
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start measurement cycle
-			_state = STATE::MEASURE;
-			ScheduleDelayed(20_ms);
-
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
 
 			} else {
-				PX4_DEBUG("Configure failed, retrying");
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 10 ms");
+					ScheduleDelayed(10_ms);
+				}
 			}
 
-			ScheduleDelayed(100_ms);
-		}
+			break;
 
-		break;
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				// if configure succeeded then start measurement cycle
+				_state = STATE::MEASURE;
+				ScheduleDelayed(20_ms);
 
-	case STATE::MEASURE:
-		RegisterWrite(Register::CNTL1, CNTL1_BIT::MODE_SINGLE_MEASUREMENT);
-		_state = STATE::READ;
-		ScheduleDelayed(20_ms); // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
-		break;
+			} else {
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
 
-	case STATE::READ: {
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
+				ScheduleDelayed(100_ms);
+			}
+
+			break;
+
+		case STATE::MEASURE:
+			RegisterWrite(Register::CNTL1, CNTL1_BIT::MODE_SINGLE_MEASUREMENT);
+			_state = STATE::READ;
+			ScheduleDelayed(20_ms);  // Wait at least 6ms. (minimum waiting time for 16 times internal
+						 // average setup)
+			break;
+
+		case STATE::READ: {
 			struct TransferBuffer {
 				uint8_t STAT1;
 				uint8_t DATAXL;
@@ -177,16 +164,16 @@ void IST8310::RunImpl()
 			uint8_t cmd = static_cast<uint8_t>(Register::STAT1);
 
 			if (transfer(&cmd, 1, (uint8_t *)&buffer, sizeof(buffer)) == PX4_OK) {
-
 				if (buffer.STAT1 & STAT1_BIT::DRDY) {
 					int16_t x = combine(buffer.DATAXH, buffer.DATAXL);
 					int16_t y = combine(buffer.DATAYH, buffer.DATAYL);
 					int16_t z = combine(buffer.DATAZH, buffer.DATAZL);
 
 					// sensor's frame is +x forward, +y right, +z up
-					z = (z == INT16_MIN) ? INT16_MAX : -z; // flip z
+					z = (z == INT16_MIN) ? INT16_MAX : -z;  // flip z
 
-					_px4_mag.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf));
+					_px4_mag.set_error_count(perf_event_count(_bad_register_perf) +
+								 perf_event_count(_bad_transfer_perf));
 					_px4_mag.update(now, x, y, z);
 
 					success = true;
@@ -226,15 +213,15 @@ void IST8310::RunImpl()
 
 			// initiate next measurement
 			RegisterWrite(Register::CNTL1, CNTL1_BIT::MODE_SINGLE_MEASUREMENT);
-			ScheduleDelayed(20_ms); // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
+			ScheduleDelayed(20_ms);  // Wait at least 6ms. (minimum waiting time for 16 times internal
+						 // average setup)
 		}
 
 		break;
 	}
 }
 
-bool IST8310::Configure()
-{
+bool IST8310::Configure() {
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
@@ -249,13 +236,12 @@ bool IST8310::Configure()
 		}
 	}
 
-	_px4_mag.set_scale(1.f / 1320.f); // 1320 LSB/Gauss
+	_px4_mag.set_scale(1.f / 1320.f);  // 1320 LSB/Gauss
 
 	return success;
 }
 
-bool IST8310::RegisterCheck(const register_config_t &reg_cfg)
-{
+bool IST8310::RegisterCheck(const register_config_t &reg_cfg) {
 	bool success = true;
 
 	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
@@ -266,29 +252,27 @@ bool IST8310::RegisterCheck(const register_config_t &reg_cfg)
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.clear_bits);
 		success = false;
 	}
 
 	return success;
 }
 
-uint8_t IST8310::RegisterRead(Register reg)
-{
+uint8_t IST8310::RegisterRead(Register reg) {
 	const uint8_t cmd = static_cast<uint8_t>(reg);
 	uint8_t buffer{};
 	transfer(&cmd, 1, &buffer, 1);
 	return buffer;
 }
 
-void IST8310::RegisterWrite(Register reg, uint8_t value)
-{
-	uint8_t buffer[2] { (uint8_t)reg, value };
+void IST8310::RegisterWrite(Register reg, uint8_t value) {
+	uint8_t buffer[2]{(uint8_t)reg, value};
 	transfer(buffer, sizeof(buffer), nullptr, 0);
 }
 
-void IST8310::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
-{
+void IST8310::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits) {
 	const uint8_t orig_val = RegisterRead(reg);
 	uint8_t val = (orig_val & ~clearbits) | setbits;
 

@@ -38,25 +38,23 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_platform_common/px4_config.h>
-
-#include <stdio.h>	// required for task_create
-#include <stdbool.h>
-#include <stdlib.h>
+#include <crc32.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
+#include <drivers/drv_watchdog.h>
 #include <errno.h>
-#include <string.h>
 #include <malloc.h>
 #include <poll.h>
+#include <px4_platform_common/px4_config.h>
 #include <signal.h>
-#include <crc32.h>
+#include <stdbool.h>
+#include <stdio.h>  // required for task_create
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
-#include <drivers/drv_pwm_output.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_watchdog.h>
-
 #if defined(PX4IO_PERF)
-# include <lib/perf/perf_counter.h>
+#include <lib/perf/perf_counter.h>
 #endif
 
 #include <stm32_uart.h>
@@ -89,22 +87,19 @@ static void heartbeat_blink(void);
 static void ring_blink(void);
 static void update_mem_usage(void);
 
-void atomic_modify_or(volatile uint16_t *target, uint16_t modification)
-{
+void atomic_modify_or(volatile uint16_t *target, uint16_t modification) {
 	if ((*target | modification) != *target) {
 		PX4_CRITICAL_SECTION(*target |= modification);
 	}
 }
 
-void atomic_modify_clear(volatile uint16_t *target, uint16_t modification)
-{
+void atomic_modify_clear(volatile uint16_t *target, uint16_t modification) {
 	if ((*target & ~modification) != *target) {
 		PX4_CRITICAL_SECTION(*target &= ~modification);
 	}
 }
 
-void atomic_modify_and(volatile uint16_t *target, uint16_t modification)
-{
+void atomic_modify_and(volatile uint16_t *target, uint16_t modification) {
 	if ((*target & modification) != *target) {
 		PX4_CRITICAL_SECTION(*target &= modification);
 	}
@@ -113,9 +108,7 @@ void atomic_modify_and(volatile uint16_t *target, uint16_t modification)
 /*
  * add a debug message to be printed on the console
  */
-void
-isr_debug(uint8_t level, const char *fmt, ...)
-{
+void isr_debug(uint8_t level, const char *fmt, ...) {
 	if (level > r_page_setup[PX4IO_P_SETUP_SET_DEBUG]) {
 		return;
 	}
@@ -131,13 +124,13 @@ isr_debug(uint8_t level, const char *fmt, ...)
 /*
  * show all pending debug messages
  */
-static void
-show_debug_messages(void)
-{
+static void show_debug_messages(void) {
 	if (msg_counter != last_msg_counter) {
 		uint32_t n = msg_counter - last_msg_counter;
 
-		if (n > NUM_MSG) { n = NUM_MSG; }
+		if (n > NUM_MSG) {
+			n = NUM_MSG;
+		}
 
 		last_msg_counter = msg_counter;
 
@@ -151,9 +144,7 @@ show_debug_messages(void)
 /*
  * Get the memory usage at 2 Hz while not armed
  */
-static void
-update_mem_usage(void)
-{
+static void update_mem_usage(void) {
 	if (/* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 		return;
 	}
@@ -168,18 +159,14 @@ update_mem_usage(void)
 	}
 }
 
-static void
-heartbeat_blink(void)
-{
+static void heartbeat_blink(void) {
 #if defined(LED_BLUE)
 	static bool heartbeat = false;
 	LED_BLUE(heartbeat = !heartbeat);
 #endif /* LED_BLUE */
 }
 
-static void
-ring_blink(void)
-{
+static void ring_blink(void) {
 #if defined(LED_GREEN)
 
 	if (/* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
@@ -197,7 +184,6 @@ ring_blink(void)
 	static unsigned on_counter = 0;
 
 	if (brightness_counter < max_brightness) {
-
 		bool on = ((on_counter * 100) / brightness_counter + 1) <= ((brightness * 100) / max_brightness + 1);
 
 		// XXX once led is PWM driven,
@@ -212,7 +198,6 @@ ring_blink(void)
 		}
 
 	} else {
-
 		if (counter >= 62) {
 			counter = 0;
 		}
@@ -240,24 +225,18 @@ static uint64_t reboot_time;
 /**
    schedule a reboot in time_delta_usec microseconds
  */
-void schedule_reboot(uint32_t time_delta_usec)
-{
-	reboot_time = hrt_absolute_time() + time_delta_usec;
-}
+void schedule_reboot(uint32_t time_delta_usec) { reboot_time = hrt_absolute_time() + time_delta_usec; }
 
 /**
    check for a scheduled reboot
  */
-static void check_reboot(void)
-{
+static void check_reboot(void) {
 	if (reboot_time != 0 && hrt_absolute_time() > reboot_time) {
 		up_systemreset();
 	}
 }
 
-static void
-calculate_fw_crc(void)
-{
+static void calculate_fw_crc(void) {
 #define APP_SIZE_MAX 0xf000
 #define APP_LOAD_ADDRESS 0x08001000
 	// compute CRC of the current firmware
@@ -268,12 +247,11 @@ calculate_fw_crc(void)
 		sum = crc32part((uint8_t *)&bytes, sizeof(bytes), sum);
 	}
 
-	r_page_setup[PX4IO_P_SETUP_CRC]   = sum & 0xFFFF;
+	r_page_setup[PX4IO_P_SETUP_CRC] = sum & 0xFFFF;
 	r_page_setup[PX4IO_P_SETUP_CRC + 1] = sum >> 16;
 }
 
-extern "C" __EXPORT int user_start(int argc, char *argv[])
-{
+extern "C" __EXPORT int user_start(int argc, char *argv[]) {
 	/* configure the first 8 PWM outputs (i.e. all of them) */
 	up_pwm_servo_init(0xff);
 
@@ -377,7 +355,6 @@ extern "C" __EXPORT int user_start(int argc, char *argv[])
 		perf_end(controls_perf);
 #endif
 
-
 		/*
 		blink blue LED at 4Hz in normal operation. When in
 		override blink 4x faster so the user can clearly see
@@ -419,12 +396,8 @@ extern "C" __EXPORT int user_start(int argc, char *argv[])
 		 * DEFAULTS TO OFF!
 		 */
 		if (hrt_absolute_time() - last_debug_time > (1000 * 1000)) {
-
-			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x m=%u",
-				  (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG],
-				  (unsigned)r_status_flags,
-				  (unsigned)r_setup_arming,
-				  (unsigned)r_setup_features,
+			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x m=%u", (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG],
+				  (unsigned)r_status_flags, (unsigned)r_setup_arming, (unsigned)r_setup_features,
 				  (unsigned)mallinfo().mxordblk);
 			last_debug_time = hrt_absolute_time();
 		}

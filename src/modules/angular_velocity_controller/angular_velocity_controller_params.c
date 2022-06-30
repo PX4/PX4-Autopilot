@@ -57,7 +57,8 @@ PARAM_DEFINE_FLOAT(AVC_X_P, 18.f);
 /**
  * Body X axis angular velocity I gain
  *
- * Body X axis angular velocity integral gain. Can be set to compensate static thrust difference or gravity center offset.
+ * Body X axis angular velocity integral gain. Can be set to compensate static thrust difference or gravity center
+ * offset.
  *
  * @unit Nm/rad
  * @min 0.0
@@ -70,7 +71,8 @@ PARAM_DEFINE_FLOAT(AVC_X_I, 0.2f);
 /**
  * Body X axis angular velocity integrator limit
  *
- * Body X axis angular velocity integrator limit. Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large roll moment trim changes.
+ * Body X axis angular velocity integrator limit. Can be set to increase the amount of integrator available to
+ * counteract disturbances or reduced to improve settling time after large roll moment trim changes.
  *
  * @unit Nm
  * @min 0.0
@@ -83,7 +85,8 @@ PARAM_DEFINE_FLOAT(AVC_X_I_LIM, 0.3f);
 /**
  * Body X axis angular velocity D gain
  *
- * Body X axis angular velocity differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ * Body X axis angular velocity differential gain. Small values help reduce fast oscillations. If value is too big
+ * oscillations will appear again.
  *
  * @min 0.0
  * @max 2.0
@@ -142,7 +145,8 @@ PARAM_DEFINE_FLOAT(AVC_Y_P, 18.f);
 /**
  * Body Y axis angular velocity I gain
  *
- * Body Y axis angular velocity integral gain. Can be set to compensate static thrust difference or gravity center offset.
+ * Body Y axis angular velocity integral gain. Can be set to compensate static thrust difference or gravity center
+ * offset.
  *
  * @unit Nm/rad
  * @min 0.0
@@ -155,7 +159,8 @@ PARAM_DEFINE_FLOAT(AVC_Y_I, 0.2f);
 /**
  * Body Y axis angular velocity integrator limit
  *
- * Body Y axis angular velocity integrator limit. Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large pitch moment trim changes.
+ * Body Y axis angular velocity integrator limit. Can be set to increase the amount of integrator available to
+ * counteract disturbances or reduced to improve settling time after large pitch moment trim changes.
  *
  * @unit Nm
  * @min 0.0
@@ -168,7 +173,8 @@ PARAM_DEFINE_FLOAT(AVC_Y_I_LIM, 0.3f);
 /**
  * Body Y axis angular velocity D gain
  *
- * Body Y axis angular velocity differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ * Body Y axis angular velocity differential gain. Small values help reduce fast oscillations. If value is too big
+ * oscillations will appear again.
  *
  * @min 0.0
  * @max 2.0
@@ -227,7 +233,8 @@ PARAM_DEFINE_FLOAT(AVC_Z_P, 7.f);
 /**
  * Body Z axis angular velocity I gain
  *
- * Body Z axis angular velocity integral gain. Can be set to compensate static thrust difference or gravity center offset.
+ * Body Z axis angular velocity integral gain. Can be set to compensate static thrust difference or gravity center
+ * offset.
  *
  * @unit Nm/rad
  * @min 0.0
@@ -240,7 +247,8 @@ PARAM_DEFINE_FLOAT(AVC_Z_I, 0.1f);
 /**
  * Body Z axis angular velocity integrator limit
  *
- * Body Z axis angular velocity integrator limit. Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large yaw moment trim changes.
+ * Body Z axis angular velocity integrator limit. Can be set to increase the amount of integrator available to
+ * counteract disturbances or reduced to improve settling time after large yaw moment trim changes.
  *
  * @unit Nm
  * @min 0.0
@@ -253,7 +261,8 @@ PARAM_DEFINE_FLOAT(AVC_Z_I_LIM, 0.30f);
 /**
  * Body Z axis angular velocity D gain
  *
- * Body Z axis angular velocity differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ * Body Z axis angular velocity differential gain. Small values help reduce fast oscillations. If value is too big
+ * oscillations will appear again.
  *
  * @min 0.0
  * @max 2.0

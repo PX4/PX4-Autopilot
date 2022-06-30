@@ -37,53 +37,44 @@
  * SPI interface for RM3100
  */
 
-#include <px4_platform_common/px4_config.h>
-
 #include <assert.h>
 #include <debug.h>
+#include <drivers/device/spi.h>
 #include <errno.h>
-#include <stdint.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include <drivers/device/spi.h>
 
 #include "board_config.h"
 #include "rm3100.h"
 
 /* SPI protocol address bits */
-#define DIR_READ        (1<<7)
-#define DIR_WRITE       (0<<7)
+#define DIR_READ (1 << 7)
+#define DIR_WRITE (0 << 7)
 
-class RM3100_SPI : public device::SPI
-{
+class RM3100_SPI : public device::SPI {
 public:
 	RM3100_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 	virtual ~RM3100_SPI() = default;
 
-	virtual int     init();
-	virtual int     read(unsigned address, void *data, unsigned count);
-	virtual int     write(unsigned address, void *data, unsigned count);
+	virtual int init();
+	virtual int read(unsigned address, void *data, unsigned count);
+	virtual int write(unsigned address, void *data, unsigned count);
 };
 
-device::Device *
-RM3100_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
+device::Device *RM3100_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 
-device::Device *
-RM3100_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode)
-{
+device::Device *RM3100_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode) {
 	return new RM3100_SPI(bus, devid, bus_frequency, spi_mode);
 }
 
-RM3100_SPI::RM3100_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode) :
-	SPI(DRV_MAG_DEVTYPE_RM3100, MODULE_NAME, bus, devid, spi_mode, bus_frequency)
-{
-}
+RM3100_SPI::RM3100_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode)
+	: SPI(DRV_MAG_DEVTYPE_RM3100, MODULE_NAME, bus, devid, spi_mode, bus_frequency) {}
 
-int RM3100_SPI::init()
-{
+int RM3100_SPI::init() {
 	int ret;
 
 	ret = SPI::init();
@@ -108,8 +99,7 @@ int RM3100_SPI::init()
 	return OK;
 }
 
-int RM3100_SPI::read(unsigned address, void *data, unsigned count)
-{
+int RM3100_SPI::read(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {
@@ -123,8 +113,7 @@ int RM3100_SPI::read(unsigned address, void *data, unsigned count)
 	return ret;
 }
 
-int RM3100_SPI::write(unsigned address, void *data, unsigned count)
-{
+int RM3100_SPI::write(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {

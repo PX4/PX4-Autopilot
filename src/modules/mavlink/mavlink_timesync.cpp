@@ -39,27 +39,22 @@
  */
 
 #include "mavlink_timesync.h"
-#include "mavlink_main.h"
 
 #include <stdlib.h>
 
-MavlinkTimesync::MavlinkTimesync(Mavlink *mavlink) :
-	_mavlink(mavlink)
-{
-}
+#include "mavlink_main.h"
 
-void
-MavlinkTimesync::handle_message(const mavlink_message_t *msg)
-{
+MavlinkTimesync::MavlinkTimesync(Mavlink *mavlink) : _mavlink(mavlink) {}
+
+void MavlinkTimesync::handle_message(const mavlink_message_t *msg) {
 	switch (msg->msgid) {
-	case MAVLINK_MSG_ID_TIMESYNC: {
-
+		case MAVLINK_MSG_ID_TIMESYNC: {
 			mavlink_timesync_t tsync = {};
 			mavlink_msg_timesync_decode(msg, &tsync);
 
 			const uint64_t now = hrt_absolute_time();
 
-			if (tsync.tc1 == 0) {			// Message originating from remote system, timestamp and return it
+			if (tsync.tc1 == 0) {  // Message originating from remote system, timestamp and return it
 
 				mavlink_timesync_t rsync;
 
@@ -70,42 +65,49 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 
 				return;
 
-			} else if (tsync.tc1 > 0) {		// Message originating from this system, compute time offset from it
+			} else if (tsync.tc1 >
+				   0) {  // Message originating from this system, compute time offset from it
 
 				// Calculate time offset between this system and the remote system, assuming RTT for
 				// the timesync packet is roughly equal both ways.
-				int64_t offset_us = (int64_t)((tsync.ts1 / 1000ULL) + now - (tsync.tc1 / 1000ULL) * 2) / 2 ;
+				int64_t offset_us =
+					(int64_t)((tsync.ts1 / 1000ULL) + now - (tsync.tc1 / 1000ULL) * 2) / 2;
 
-				// Calculate the round trip time (RTT) it took the timesync packet to bounce back to us from remote system
+				// Calculate the round trip time (RTT) it took the timesync packet to bounce back to us
+				// from remote system
 				uint64_t rtt_us = now - (tsync.ts1 / 1000ULL);
 
 				// Calculate the difference of this sample from the current estimate
 				uint64_t deviation = llabs((int64_t)_time_offset - offset_us);
 
-				if (rtt_us < MAX_RTT_SAMPLE) {	// Only use samples with low RTT
+				if (rtt_us < MAX_RTT_SAMPLE) {  // Only use samples with low RTT
 
 					if (sync_converged() && (deviation > MAX_DEVIATION_SAMPLE)) {
-
-						// Increment the counter if we have a good estimate and are getting samples far from the estimate
+						// Increment the counter if we have a good estimate and are getting
+						// samples far from the estimate
 						_high_deviation_count++;
 
-						// We reset the filter if we received 5 consecutive samples which violate our present estimate.
-						// This is most likely due to a time jump on the offboard system.
+						// We reset the filter if we received 5 consecutive samples which
+						// violate our present estimate. This is most likely due to a time jump
+						// on the offboard system.
 						if (_high_deviation_count > MAX_CONSECUTIVE_HIGH_DEVIATION) {
-							PX4_ERR("[timesync] Time jump detected. Resetting time synchroniser.");
+							PX4_ERR("[timesync] Time jump detected. Resetting time "
+								"synchroniser.");
 							// Reset the filter
 							reset_filter();
 						}
 
 					} else {
-
 						// Filter gain scheduling
 						if (!sync_converged()) {
 							// Interpolate with a sigmoid function
-							double progress = (double)_sequence / (double)CONVERGENCE_WINDOW;
+							double progress =
+								(double)_sequence / (double)CONVERGENCE_WINDOW;
 							double p = 1.0 - exp(0.5 * (1.0 - 1.0 / (1.0 - progress)));
-							_filter_alpha = p * ALPHA_GAIN_FINAL + (1.0 - p) * ALPHA_GAIN_INITIAL;
-							_filter_beta = p * BETA_GAIN_FINAL + (1.0 - p) * BETA_GAIN_INITIAL;
+							_filter_alpha =
+								p * ALPHA_GAIN_FINAL + (1.0 - p) * ALPHA_GAIN_INITIAL;
+							_filter_beta =
+								p * BETA_GAIN_FINAL + (1.0 - p) * BETA_GAIN_INITIAL;
 
 						} else {
 							_filter_alpha = ALPHA_GAIN_FINAL;
@@ -130,11 +132,11 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 					_high_rtt_count++;
 
 					if (_high_rtt_count > MAX_CONSECUTIVE_HIGH_RTT) {
-						PX4_WARN("[timesync] RTT too high for timesync: %llu ms (sender: %i)", rtt_us / 1000ULL, msg->compid);
+						PX4_WARN("[timesync] RTT too high for timesync: %llu ms (sender: %i)",
+							 rtt_us / 1000ULL, msg->compid);
 						// Reset counter to rate-limit warnings
 						_high_rtt_count = 0;
 					}
-
 				}
 
 				// Publish status message
@@ -153,8 +155,7 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 			break;
 		}
 
-	case MAVLINK_MSG_ID_SYSTEM_TIME: {
-
+		case MAVLINK_MSG_ID_SYSTEM_TIME: {
 			mavlink_system_time_t time;
 			mavlink_msg_system_time_decode(msg, &time);
 
@@ -177,14 +178,12 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 			break;
 		}
 
-	default:
-		break;
+		default:
+			break;
 	}
 }
 
-uint64_t
-MavlinkTimesync::sync_stamp(uint64_t usec)
-{
+uint64_t MavlinkTimesync::sync_stamp(uint64_t usec) {
 	// Only return synchronised stamp if we have converged to a good value
 	if (sync_converged()) {
 		return usec + (int64_t)_time_offset;
@@ -194,15 +193,9 @@ MavlinkTimesync::sync_stamp(uint64_t usec)
 	}
 }
 
-bool
-MavlinkTimesync::sync_converged()
-{
-	return _sequence >= CONVERGENCE_WINDOW;
-}
+bool MavlinkTimesync::sync_converged() { return _sequence >= CONVERGENCE_WINDOW; }
 
-void
-MavlinkTimesync::add_sample(int64_t offset_us)
-{
+void MavlinkTimesync::add_sample(int64_t offset_us) {
 	/* Online exponential smoothing filter. The derivative of the estimate is also
 	 * estimated in order to produce an estimate without steady state lag:
 	 * https://en.wikipedia.org/wiki/Exponential_smoothing#Double_exponential_smoothing
@@ -210,7 +203,7 @@ MavlinkTimesync::add_sample(int64_t offset_us)
 
 	double time_offset_prev = _time_offset;
 
-	if (_sequence == 0) {			// First offset sample
+	if (_sequence == 0) {  // First offset sample
 		_time_offset = offset_us;
 
 	} else {
@@ -220,12 +213,9 @@ MavlinkTimesync::add_sample(int64_t offset_us)
 		// Update the clock skew estimate
 		_time_skew = _filter_beta * (_time_offset - time_offset_prev) + (1.0 - _filter_beta) * _time_skew;
 	}
-
 }
 
-void
-MavlinkTimesync::reset_filter()
-{
+void MavlinkTimesync::reset_filter() {
 	// Do a full reset of all statistics and parameters
 	_sequence = 0;
 	_time_offset = 0.0;
@@ -234,5 +224,4 @@ MavlinkTimesync::reset_filter()
 	_filter_beta = BETA_GAIN_INITIAL;
 	_high_deviation_count = 0;
 	_high_rtt_count = 0;
-
 }

@@ -31,24 +31,22 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/console_buffer.h>
-#include <px4_platform_common/module.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
 
 #ifndef BOARD_ENABLE_CONSOLE_BUFFER
 #error "This module can only be used on boards that enable BOARD_ENABLE_CONSOLE_BUFFER"
 #endif
 
-static void	usage();
+static void usage();
 
 extern "C" {
-	__EXPORT int dmesg_main(int argc, char *argv[]);
+__EXPORT int dmesg_main(int argc, char *argv[]);
 }
 
-int
-dmesg_main(int argc, char *argv[])
-{
+int dmesg_main(int argc, char *argv[]) {
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
@@ -56,14 +54,14 @@ dmesg_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "f", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'f':
-			follow = true;
-			break;
+			case 'f':
+				follow = true;
+				break;
 
-		default:
-			usage();
-			return -1;
-			break;
+			default:
+				usage();
+				return -1;
+				break;
 		}
 	}
 
@@ -72,10 +70,7 @@ dmesg_main(int argc, char *argv[])
 	return 0;
 }
 
-static void
-usage()
-{
-
+static void usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -91,5 +86,4 @@ $ dmesg -f &
 
 	PRINT_MODULE_USAGE_NAME("dmesg", "system");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Follow: wait for new messages", true);
-
 }

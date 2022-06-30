@@ -31,28 +31,22 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <drivers/drv_hrt.h>
+#include <px4_platform_common/log.h>
 
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <px4_platform_common/px4_work_queue/WorkQueue.hpp>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 
-#include <px4_platform_common/log.h>
-#include <drivers/drv_hrt.h>
+namespace px4 {
 
-namespace px4
-{
-
-WorkItem::WorkItem(const char *name, const wq_config_t &config) :
-	_item_name(name)
-{
+WorkItem::WorkItem(const char *name, const wq_config_t &config) : _item_name(name) {
 	if (!Init(config)) {
 		PX4_ERR("init failed");
 	}
 }
 
-WorkItem::WorkItem(const char *name, const WorkItem &work_item) :
-	_item_name(name)
-{
+WorkItem::WorkItem(const char *name, const WorkItem &work_item) : _item_name(name) {
 	px4::WorkQueue *wq = work_item._wq;
 
 	if ((wq != nullptr) && wq->Attach(this)) {
@@ -60,13 +54,9 @@ WorkItem::WorkItem(const char *name, const WorkItem &work_item) :
 	}
 }
 
-WorkItem::~WorkItem()
-{
-	Deinit();
-}
+WorkItem::~WorkItem() { Deinit(); }
 
-bool WorkItem::Init(const wq_config_t &config)
-{
+bool WorkItem::Init(const wq_config_t &config) {
 	// clear any existing first
 	Deinit();
 
@@ -82,8 +72,7 @@ bool WorkItem::Init(const wq_config_t &config)
 	return false;
 }
 
-void WorkItem::Deinit()
-{
+void WorkItem::Deinit() {
 	// remove any currently queued work
 	if (_wq != nullptr) {
 		// prevent additional insertions
@@ -97,20 +86,15 @@ void WorkItem::Deinit()
 	}
 }
 
-void WorkItem::ScheduleClear()
-{
+void WorkItem::ScheduleClear() {
 	if (_wq != nullptr) {
 		_wq->Remove(this);
 	}
 }
 
-float WorkItem::elapsed_time() const
-{
-	return hrt_elapsed_time(&_time_first_run) / 1e6f;
-}
+float WorkItem::elapsed_time() const { return hrt_elapsed_time(&_time_first_run) / 1e6f; }
 
-float WorkItem::average_rate() const
-{
+float WorkItem::average_rate() const {
 	const float rate = _run_count / elapsed_time();
 
 	if ((_run_count > 1) && PX4_ISFINITE(rate)) {
@@ -120,8 +104,7 @@ float WorkItem::average_rate() const
 	return 0.f;
 }
 
-float WorkItem::average_interval() const
-{
+float WorkItem::average_interval() const {
 	const float rate = average_rate();
 	const float interval = 1e6f / rate;
 
@@ -132,12 +115,11 @@ float WorkItem::average_interval() const
 	return 0.f;
 }
 
-void WorkItem::print_run_status()
-{
+void WorkItem::print_run_status() {
 	PX4_INFO_RAW("%-29s %8.1f Hz %12.0f us\n", _item_name, (double)average_rate(), (double)average_interval());
 
 	// reset statistics
 	_run_count = 0;
 }
 
-} // namespace px4
+}  // namespace px4

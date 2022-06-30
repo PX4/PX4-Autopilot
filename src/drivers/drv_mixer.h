@@ -57,18 +57,18 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
-#define MIXER0_DEVICE_PATH		"/dev/mixer0"
+#define MIXER0_DEVICE_PATH "/dev/mixer0"
 
 /*
  * ioctl() definitions
  */
-#define _MIXERIOCBASE		(0x2500)
-#define _MIXERIOC(_n)		(_PX4_IOC(_MIXERIOCBASE, _n))
+#define _MIXERIOCBASE (0x2500)
+#define _MIXERIOC(_n) (_PX4_IOC(_MIXERIOCBASE, _n))
 
 /* _MIXERIOC(0) was deprecated */
 
 /** reset (clear) the mixer configuration */
-#define MIXERIOCRESET		_MIXERIOC(1)
+#define MIXERIOCRESET _MIXERIOC(1)
 
 /* _MIXERIOC(3) was deprecated */
 /* _MIXERIOC(4) was deprecated */
@@ -76,7 +76,7 @@
 /**
  * Add mixer(s) from the buffer in (const char *)arg
  */
-#define MIXERIOCLOADBUF		_MIXERIOC(5)
+#define MIXERIOCLOADBUF _MIXERIOC(5)
 
 /*
  * XXX Thoughts for additional operations:

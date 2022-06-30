@@ -32,64 +32,44 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixSliceTest, Slice)
-{
-	float data[9] = {0, 2, 3,
-			 4, 5, 6,
-			 7, 8, 10
-			};
+TEST(MatrixSliceTest, Slice) {
+	float data[9] = {0, 2, 3, 4, 5, 6, 7, 8, 10};
 	SquareMatrix<float, 3> A(data);
 
 	// Test row slicing
 	Matrix<float, 2, 3> B_rowslice(A.slice<2, 3>(1, 0));
-	float data_check_rowslice[6] = {
-		4, 5, 6,
-		7, 8, 10
-	};
+	float data_check_rowslice[6] = {4, 5, 6, 7, 8, 10};
 	Matrix<float, 2, 3> B_check_rowslice(data_check_rowslice);
 	EXPECT_EQ(B_rowslice, B_check_rowslice);
 
 	// Test column slicing
 	Matrix<float, 3, 2> B_colslice(A.slice<3, 2>(0, 1));
-	float data_check_colslice[6] = {
-		2, 3,
-		5, 6,
-		8, 10
-	};
+	float data_check_colslice[6] = {2, 3, 5, 6, 8, 10};
 	Matrix<float, 3, 2> B_check_colslice(data_check_colslice);
 	EXPECT_EQ(B_colslice, B_check_colslice);
 
 	// Test slicing both
 	Matrix<float, 2, 2> B_bothslice(A.slice<2, 2>(1, 1));
-	float data_check_bothslice[4] = {
-		5, 6,
-		8, 10
-	};
+	float data_check_bothslice[4] = {5, 6, 8, 10};
 	Matrix<float, 2, 2> B_check_bothslice(data_check_bothslice);
 	EXPECT_EQ(B_bothslice, B_check_bothslice);
 
-	//Test block writing
-	float data_2[4] = {
-		11, 12,
-		13, 14
-	};
+	// Test block writing
+	float data_2[4] = {11, 12, 13, 14};
 
 	Matrix<float, 2, 2> C(data_2);
 	A.slice<2, 2>(1, 1) = C;
 
-	float data_2_check[9] = {
-		0, 2, 3,
-		4, 11, 12,
-		7, 13, 14
-	};
+	float data_2_check[9] = {0, 2, 3, 4, 11, 12, 7, 13, 14};
 	Matrix<float, 3, 3> D(data_2_check);
 	EXPECT_EQ(A, D);
 
-	//Test writing to slices
+	// Test writing to slices
 	Matrix<float, 3, 1> E;
 	E(0, 0) = -1;
 	E(1, 0) = 1;
@@ -142,10 +122,7 @@ TEST(MatrixSliceTest, Slice)
 	// check that slice of a slice works for writing
 	Matrix<float, 3, 3> m33(data);
 	m33.slice<2, 3>(0, 0).slice<2, 1>(0, 2) = Matrix<float, 2, 1>();
-	const float data_check[9] = {0, 2, 0,
-				     4, 5, 0,
-				     7, 8, 10
-				    };
+	const float data_check[9] = {0, 2, 0, 4, 5, 0, 7, 8, 10};
 	EXPECT_EQ(m33, (Matrix<float, 3, 3>(data_check)));
 
 	// longerThan
@@ -175,10 +152,7 @@ TEST(MatrixSliceTest, Slice)
 	EXPECT_EQ(L, M);
 
 	// return diagonal elements
-	float data_6[9] = {0, 2, 3,
-			   4, 5, 6,
-			   7, 8, 10
-			  };
+	float data_6[9] = {0, 2, 3, 4, 5, 6, 7, 8, 10};
 	SquareMatrix<float, 3> N(data_6);
 
 	Vector3f v6 = N.slice<3, 3>(0, 0).diag();
@@ -199,66 +173,66 @@ TEST(MatrixSliceTest, Slice)
 
 	// Different assignment operators
 	SquareMatrix3f O(data);
-	float operand_data [4] = {2, 1, -3, -1};
+	float operand_data[4] = {2, 1, -3, -1};
 	const SquareMatrix<float, 2> operand(operand_data);
 
 	O.slice<2, 2>(1, 0) += operand;
-	float O_check_data_1 [9] = {0, 2, 3,  6, 6, 6,  4, 7, 10};
+	float O_check_data_1[9] = {0, 2, 3, 6, 6, 6, 4, 7, 10};
 	EXPECT_EQ(O, SquareMatrix3f(O_check_data_1));
 
 	O = SquareMatrix3f(data);
 	O.slice<2, 1>(1, 1) += operand.slice<2, 1>(0, 0);
-	float O_check_data_2 [9] = {0, 2, 3,  4, 7, 6,  7, 5, 10};
+	float O_check_data_2[9] = {0, 2, 3, 4, 7, 6, 7, 5, 10};
 	EXPECT_EQ(O, SquareMatrix3f(O_check_data_2));
 
 	O = SquareMatrix3f(data);
 	O.slice<3, 3>(0, 0) += -1;
-	float O_check_data_3 [9] = {-1, 1, 2,  3, 4, 5,  6, 7, 9};
+	float O_check_data_3[9] = {-1, 1, 2, 3, 4, 5, 6, 7, 9};
 	EXPECT_EQ(O, SquareMatrix3f(O_check_data_3));
 
 	O = SquareMatrix3f(data);
 	O.col(1) += Vector3f{1, -2, 3};
-	float O_check_data_4 [9] = {0, 3, 3,  4, 3, 6,  7, 11, 10};
+	float O_check_data_4[9] = {0, 3, 3, 4, 3, 6, 7, 11, 10};
 	EXPECT_EQ(O, SquareMatrix3f(O_check_data_4));
 
 	O = SquareMatrix3f(data);
 	O.slice<2, 2>(1, 0) -= operand;
-	float O_check_data_5 [9] = {0, 2, 3,  2, 4, 6,  10, 9, 10};
+	float O_check_data_5[9] = {0, 2, 3, 2, 4, 6, 10, 9, 10};
 	EXPECT_EQ(O, SquareMatrix3f(O_check_data_5));
 
 	O = SquareMatrix3f(data);
 	O.slice<2, 1>(1, 1) -= operand.slice<2, 1>(0, 0);
-	float O_check_data_6 [9] = {0, 2, 3,  4, 3, 6,  7, 11, 10};
+	float O_check_data_6[9] = {0, 2, 3, 4, 3, 6, 7, 11, 10};
 	EXPECT_EQ(O, SquareMatrix3f(O_check_data_6));
 
 	O = SquareMatrix3f(data);
 	O.slice<3, 3>(0, 0) -= -1;
-	float O_check_data_7 [9] = {1, 3, 4,  5, 6, 7,  8, 9, 11};
+	float O_check_data_7[9] = {1, 3, 4, 5, 6, 7, 8, 9, 11};
 	EXPECT_EQ(O, SquareMatrix3f(O_check_data_7));
 
 	O = SquareMatrix3f(data);
 	O.col(1) -= Vector3f{1, -2, 3};
-	float O_check_data_8 [9] = {0, 1, 3,  4, 7, 6,  7, 5, 10};
+	float O_check_data_8[9] = {0, 1, 3, 4, 7, 6, 7, 5, 10};
 	EXPECT_EQ(O, SquareMatrix3f(O_check_data_8));
 
 	O = SquareMatrix3f(data);
 	O.slice<2, 1>(1, 1) *= 5.f;
-	float O_check_data_9 [9] = {0, 2, 3,  4, 25, 6,  7, 40, 10};
+	float O_check_data_9[9] = {0, 2, 3, 4, 25, 6, 7, 40, 10};
 	EXPECT_EQ(O, SquareMatrix3f(O_check_data_9));
 
 	O = SquareMatrix3f(data);
 	O.slice<2, 1>(1, 1) /= 2.f;
-	float O_check_data_10 [9] = {0, 2, 3,  4, 2.5, 6,  7, 4, 10};
+	float O_check_data_10[9] = {0, 2, 3, 4, 2.5, 6, 7, 4, 10};
 	EXPECT_EQ(O, SquareMatrix3f(O_check_data_10));
 
 	// Different operations
 	O = SquareMatrix3f(data);
 	SquareMatrix<float, 2> res_11(O.slice<2, 2>(1, 1) * 2.f);
-	float O_check_data_11 [4] = {10, 12, 16, 20};
+	float O_check_data_11[4] = {10, 12, 16, 20};
 	EXPECT_EQ(res_11, (SquareMatrix<float, 2>(O_check_data_11)));
 
 	O = SquareMatrix3f(data);
 	SquareMatrix<float, 2> res_12(O.slice<2, 2>(1, 1) / 2.f);
-	float O_check_data_12 [4] = {2.5, 3, 4, 5};
+	float O_check_data_12[4] = {2.5, 3, 4, 5};
 	EXPECT_EQ(res_12, (SquareMatrix<float, 2>(O_check_data_12)));
 }

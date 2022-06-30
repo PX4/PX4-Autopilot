@@ -42,10 +42,10 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-#define CRC16_INITIAL           0xFFFFu
-#define CRC16_OUTPUT_XOR        0x0000u
-#define CRC64_INITIAL           0xFFFFFFFFFFFFFFFFull
-#define CRC64_OUTPUT_XOR        0xFFFFFFFFFFFFFFFFull
+#define CRC16_INITIAL 0xFFFFu
+#define CRC16_OUTPUT_XOR 0x0000u
+#define CRC64_INITIAL 0xFFFFFFFFFFFFFFFFull
+#define CRC64_OUTPUT_XOR 0xFFFFFFFFFFFFFFFFull
 
 /****************************************************************************
  * Public Type Definitions
@@ -93,8 +93,7 @@ uint16_t crc16_add(uint16_t crc, uint8_t value);
  *
  ****************************************************************************/
 
-uint16_t crc16_signature(uint16_t initial, size_t length,
-			 const uint8_t *bytes);
+uint16_t crc16_signature(uint16_t initial, size_t length, const uint8_t *bytes);
 
 /****************************************************************************
  * Name: crc32_signature
@@ -113,9 +112,7 @@ uint16_t crc16_signature(uint16_t initial, size_t length,
  *
  ****************************************************************************/
 
-uint32_t crc32_signature(uint32_t acc, size_t length,
-			 const uint8_t *bytes);
-
+uint32_t crc32_signature(uint32_t acc, size_t length, const uint8_t *bytes);
 
 /****************************************************************************
  * Name: crc64_add_word

@@ -31,14 +31,14 @@
  *
  ****************************************************************************/
 
-#include <thread>
-#include <chrono>
 #include <math.h>
+
+#include <chrono>
+#include <thread>
 
 #include "autopilot_tester_failure.h"
 
-TEST_CASE("Control Allocation - Remove one motor", "[controlallocation]")
-{
+TEST_CASE("Control Allocation - Remove one motor", "[controlallocation]") {
 	const float flight_altitude = 10.0f;
 	const float altitude_tolerance = 4.0f;
 	const float hover_speed_tolerance = 1.0f;
@@ -53,17 +53,17 @@ TEST_CASE("Control Allocation - Remove one motor", "[controlallocation]")
 
 	// Configuration
 	tester.set_param_sys_failure_en(true);  // Enable failure injection
-	tester.set_param_fd_act_en(true);	// Enable motor failure detection
-	tester.set_param_mc_airmode(1);		// Enable airmode for control allocation with motor failure
-	tester.set_param_ca_failure_mode(1);	// Enable control allocation handling of failed motor
+	tester.set_param_fd_act_en(true);       // Enable motor failure detection
+	tester.set_param_mc_airmode(1);         // Enable airmode for control allocation with motor failure
+	tester.set_param_ca_failure_mode(1);    // Enable control allocation handling of failed motor
 	tester.prepare_square_mission(mission_options);
 	tester.set_takeoff_altitude(flight_altitude);
 	tester.set_rtl_altitude(flight_altitude);
 	tester.check_tracks_mission(5.f);
 	tester.store_home();
 	tester.enable_actuator_output_status();
-	std::this_thread::sleep_for(std::chrono::seconds(
-					    1));  // This is necessary for the takeoff altitude to be applied properly
+	std::this_thread::sleep_for(
+		std::chrono::seconds(1));  // This is necessary for the takeoff altitude to be applied properly
 
 	// Takeoff
 	tester.arm();
@@ -75,15 +75,15 @@ TEST_CASE("Control Allocation - Remove one motor", "[controlallocation]")
 	// Motor failure mid-air
 	tester.start_checking_altitude(altitude_tolerance);
 	const int motor_instance = 1;
-	const unsigned num_motors = 6; // TODO: get from model
-	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off, motor_instance,
-			      mavsdk::Failure::Result::Success);
+	const unsigned num_motors = 6;  // TODO: get from model
+	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off,
+			      motor_instance, mavsdk::Failure::Result::Success);
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 	tester.ensure_motor_stopped(motor_instance - 1, num_motors);
 
 	tester.execute_mission();
 	tester.stop_checking_altitude();
-	tester.ensure_motor_stopped(motor_instance - 1, num_motors); // just to be sure
+	tester.ensure_motor_stopped(motor_instance - 1, num_motors);  // just to be sure
 
 	// RTL
 	tester.execute_rtl();
@@ -92,8 +92,7 @@ TEST_CASE("Control Allocation - Remove one motor", "[controlallocation]")
 	tester.check_home_within(5.f);
 }
 
-TEST_CASE("Control Allocation - Remove two motors", "[controlallocation]")
-{
+TEST_CASE("Control Allocation - Remove two motors", "[controlallocation]") {
 	const float flight_altitude = 10.0f;
 	const float altitude_tolerance = 4.0f;
 	const float hover_speed_tolerance = 1.0f;
@@ -102,9 +101,9 @@ TEST_CASE("Control Allocation - Remove two motors", "[controlallocation]")
 	tester.connect(connection_url);
 	tester.wait_until_ready();
 	tester.set_param_sys_failure_en(true);  // Enable failure injection
-	tester.set_param_fd_act_en(true);	// Enable motor failure detection
-	tester.set_param_mc_airmode(1);		// Enable airmode for control allocation with motor failure
-	tester.set_param_ca_failure_mode(1);	// Enable control allocation handling of failed motor
+	tester.set_param_fd_act_en(true);       // Enable motor failure detection
+	tester.set_param_mc_airmode(1);         // Enable airmode for control allocation with motor failure
+	tester.set_param_ca_failure_mode(1);    // Enable control allocation handling of failed motor
 
 	AutopilotTester::MissionOptions mission_options;
 	mission_options.rtl_at_end = false;
@@ -115,8 +114,8 @@ TEST_CASE("Control Allocation - Remove two motors", "[controlallocation]")
 	tester.set_rtl_altitude(flight_altitude);
 	tester.check_tracks_mission(5.f);
 	tester.store_home();
-	std::this_thread::sleep_for(std::chrono::seconds(
-					    1));  // This is necessary for the takeoff altitude to be applied properly
+	std::this_thread::sleep_for(
+		std::chrono::seconds(1));  // This is necessary for the takeoff altitude to be applied properly
 
 	tester.arm();
 	tester.takeoff();
@@ -129,12 +128,10 @@ TEST_CASE("Control Allocation - Remove two motors", "[controlallocation]")
 	const int second_motor_instance = 2;
 	tester.start_checking_altitude(altitude_tolerance);
 	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off,
-			      first_motor_instance,
-			      mavsdk::Failure::Result::Success);
+			      first_motor_instance, mavsdk::Failure::Result::Success);
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off,
-			      second_motor_instance,
-			      mavsdk::Failure::Result::Success);
+			      second_motor_instance, mavsdk::Failure::Result::Success);
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 
 	tester.execute_mission();
@@ -147,8 +144,7 @@ TEST_CASE("Control Allocation - Remove two motors", "[controlallocation]")
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-TEST_CASE("Control Allocation - Remove and restore every motor once", "[controlallocation]")
-{
+TEST_CASE("Control Allocation - Remove and restore every motor once", "[controlallocation]") {
 	const float flight_altitude = 10.0f;
 	const float altitude_tolerance = 4.0f;
 	const float hover_speed_tolerance = 1.0f;
@@ -157,9 +153,9 @@ TEST_CASE("Control Allocation - Remove and restore every motor once", "[controla
 	tester.connect(connection_url);
 	tester.wait_until_ready();
 	tester.set_param_sys_failure_en(true);  // Enable failure injection
-	tester.set_param_fd_act_en(true);	// Enable motor failure detection
-	tester.set_param_mc_airmode(1);		// Enable airmode for control allocation with motor failure
-	tester.set_param_ca_failure_mode(1);	// Enable control allocation handling of failed motor
+	tester.set_param_fd_act_en(true);       // Enable motor failure detection
+	tester.set_param_mc_airmode(1);         // Enable airmode for control allocation with motor failure
+	tester.set_param_ca_failure_mode(1);    // Enable control allocation handling of failed motor
 
 	AutopilotTester::MissionOptions mission_options;
 	mission_options.rtl_at_end = false;
@@ -170,8 +166,8 @@ TEST_CASE("Control Allocation - Remove and restore every motor once", "[controla
 	tester.set_rtl_altitude(flight_altitude);
 	tester.check_tracks_mission(5.f);
 	tester.store_home();
-	std::this_thread::sleep_for(std::chrono::seconds(
-					    1));  // This is necessary for the takeoff altitude to be applied properly
+	std::this_thread::sleep_for(
+		std::chrono::seconds(1));  // This is necessary for the takeoff altitude to be applied properly
 
 	tester.arm();
 	tester.takeoff();
@@ -199,8 +195,7 @@ TEST_CASE("Control Allocation - Remove and restore every motor once", "[controla
 	tester.check_home_within(5.f);
 }
 
-TEST_CASE("Control Allocation - Return home on motor failure", "[controlallocation]")
-{
+TEST_CASE("Control Allocation - Return home on motor failure", "[controlallocation]") {
 	const float flight_altitude = 10.0f;
 	const float hover_speed_tolerance = 1.0f;
 
@@ -210,14 +205,14 @@ TEST_CASE("Control Allocation - Return home on motor failure", "[controlallocati
 
 	// Configuration
 	tester.set_param_sys_failure_en(true);  // Enable failure injection
-	tester.set_param_fd_act_en(true);	// Enable motor failure detection
-	tester.set_param_mc_airmode(1);		// Enable airmode for control allocation with motor failure
-	tester.set_param_ca_failure_mode(1);	// Enable control allocation handling of failed motor
-	tester.set_param_com_act_fail_act(3);	// RTL on motor failure
+	tester.set_param_fd_act_en(true);       // Enable motor failure detection
+	tester.set_param_mc_airmode(1);         // Enable airmode for control allocation with motor failure
+	tester.set_param_ca_failure_mode(1);    // Enable control allocation handling of failed motor
+	tester.set_param_com_act_fail_act(3);   // RTL on motor failure
 	tester.set_takeoff_altitude(flight_altitude);
 	tester.store_home();
-	std::this_thread::sleep_for(std::chrono::seconds(
-					    1));  // This is necessary for the takeoff altitude to be applied properly
+	std::this_thread::sleep_for(
+		std::chrono::seconds(1));  // This is necessary for the takeoff altitude to be applied properly
 
 	// Takeoff
 	tester.arm();
@@ -226,12 +221,13 @@ TEST_CASE("Control Allocation - Return home on motor failure", "[controlallocati
 	tester.wait_until_altitude(flight_altitude, std::chrono::seconds(30));
 	tester.wait_until_speed_lower_than(hover_speed_tolerance, std::chrono::seconds(30));
 
-	// TODO: Minor improvement, fly forward for a little bit before triggering motor failure to distinguish "RTL" and "Land only"
+	// TODO: Minor improvement, fly forward for a little bit before triggering motor failure to distinguish "RTL"
+	// and "Land only"
 
 	// Motor failure mid-air
 	const int motor_instance = 1;
-	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off, motor_instance,
-			      mavsdk::Failure::Result::Success);
+	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off,
+			      motor_instance, mavsdk::Failure::Result::Success);
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 
 	// Wait for RTL to trigger automatically
@@ -240,8 +236,7 @@ TEST_CASE("Control Allocation - Return home on motor failure", "[controlallocati
 	tester.check_home_within(5.f);
 }
 
-TEST_CASE("Control Allocation - Terminate on motor failure", "[controlallocation]")
-{
+TEST_CASE("Control Allocation - Terminate on motor failure", "[controlallocation]") {
 	const float flight_altitude = 100.0f;
 	const float hover_speed_tolerance = 1.0f;
 
@@ -251,13 +246,13 @@ TEST_CASE("Control Allocation - Terminate on motor failure", "[controlallocation
 
 	// Configuration
 	tester.set_param_sys_failure_en(true);  // Enable failure injection
-	tester.set_param_fd_act_en(true);	// Enable motor failure detection
-	tester.set_param_mc_airmode(1);		// Enable airmode for control allocation with motor failure
-	tester.set_param_ca_failure_mode(1);	// Enable control allocation handling of failed motor
-	tester.set_param_com_act_fail_act(4);	// Terminate on motor failure
+	tester.set_param_fd_act_en(true);       // Enable motor failure detection
+	tester.set_param_mc_airmode(1);         // Enable airmode for control allocation with motor failure
+	tester.set_param_ca_failure_mode(1);    // Enable control allocation handling of failed motor
+	tester.set_param_com_act_fail_act(4);   // Terminate on motor failure
 	tester.set_takeoff_altitude(flight_altitude);
-	std::this_thread::sleep_for(std::chrono::seconds(
-					    1));  // This is necessary for the takeoff altitude to be applied properly
+	std::this_thread::sleep_for(
+		std::chrono::seconds(1));  // This is necessary for the takeoff altitude to be applied properly
 
 	// Takeoff
 	tester.arm();
@@ -267,8 +262,8 @@ TEST_CASE("Control Allocation - Terminate on motor failure", "[controlallocation
 
 	// Motor failure mid-air
 	const int motor_instance = 1;
-	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off, motor_instance,
-			      mavsdk::Failure::Result::Success);
+	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off,
+			      motor_instance, mavsdk::Failure::Result::Success);
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 
 	// Wait for disarm with a low enough timeout such that it's necessary for the

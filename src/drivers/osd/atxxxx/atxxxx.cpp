@@ -40,22 +40,16 @@
  */
 
 #include "atxxxx.h"
+
 #include "symbols.h"
 
 using namespace time_literals;
 
-static constexpr uint32_t OSD_UPDATE_RATE{50_ms};	// 20 Hz
+static constexpr uint32_t OSD_UPDATE_RATE{50_ms};  // 20 Hz
 
-OSDatxxxx::OSDatxxxx(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	ModuleParams(nullptr),
-	I2CSPIDriver(config)
-{
-}
+OSDatxxxx::OSDatxxxx(const I2CSPIDriverConfig &config) : SPI(config), ModuleParams(nullptr), I2CSPIDriver(config) {}
 
-int
-OSDatxxxx::init()
-{
+int OSDatxxxx::init() {
 	/* do SPI init (and probe) first */
 	int ret = SPI::init();
 
@@ -91,21 +85,17 @@ OSDatxxxx::init()
 	return ret;
 }
 
-int
-OSDatxxxx::start()
-{
+int OSDatxxxx::start() {
 	ScheduleOnInterval(OSD_UPDATE_RATE, 10000);
 
 	return PX4_OK;
 }
 
-int
-OSDatxxxx::probe()
-{
+int OSDatxxxx::probe() {
 	uint8_t data = 0;
 	int ret = PX4_OK;
 
-	ret |= writeRegister(0x00, 0x01); //disable video output
+	ret |= writeRegister(0x00, 0x01);  // disable video output
 	ret |= readRegister(0x00, &data, 1);
 
 	if (data != 1 || ret != PX4_OK) {
@@ -115,9 +105,7 @@ OSDatxxxx::probe()
 	return ret;
 }
 
-int
-OSDatxxxx::init_osd()
-{
+int OSDatxxxx::init_osd() {
 	int ret = PX4_OK;
 	uint8_t data = OSD_ZERO_BYTE;
 
@@ -133,10 +121,8 @@ OSDatxxxx::init_osd()
 	return ret;
 }
 
-int
-OSDatxxxx::readRegister(unsigned reg, uint8_t *data, unsigned count)
-{
-	uint8_t cmd[5] {}; // read up to 4 bytes
+int OSDatxxxx::readRegister(unsigned reg, uint8_t *data, unsigned count) {
+	uint8_t cmd[5]{};  // read up to 4 bytes
 
 	cmd[0] = DIR_READ(reg);
 
@@ -152,10 +138,8 @@ OSDatxxxx::readRegister(unsigned reg, uint8_t *data, unsigned count)
 	return ret;
 }
 
-int
-OSDatxxxx::writeRegister(unsigned reg, uint8_t data)
-{
-	uint8_t cmd[2] {}; // write 1 byte
+int OSDatxxxx::writeRegister(unsigned reg, uint8_t data) {
+	uint8_t cmd[2]{};  // write 1 byte
 
 	cmd[0] = DIR_WRITE(reg);
 	cmd[1] = data;
@@ -170,27 +154,25 @@ OSDatxxxx::writeRegister(unsigned reg, uint8_t data)
 	return ret;
 }
 
-int
-OSDatxxxx::add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y)
-{
+int OSDatxxxx::add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y) {
 	uint16_t position = (OSD_CHARS_PER_ROW * pos_y) + pos_x;
 	uint8_t position_lsb = 0;
 	int ret = PX4_ERROR;
 
 	if (position > 0xFF) {
 		position_lsb = static_cast<uint8_t>(position) - 0xFF;
-		ret = writeRegister(0x05, 0x01); //DMAH
+		ret = writeRegister(0x05, 0x01);  // DMAH
 
 	} else {
 		position_lsb = static_cast<uint8_t>(position);
-		ret = writeRegister(0x05, 0x00); //DMAH
+		ret = writeRegister(0x05, 0x00);  // DMAH
 	}
 
 	if (ret != 0) {
 		return ret;
 	}
 
-	ret = writeRegister(0x06, position_lsb); //DMAL
+	ret = writeRegister(0x06, position_lsb);  // DMAL
 
 	if (ret != 0) {
 		return ret;
@@ -201,9 +183,7 @@ OSDatxxxx::add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y)
 	return ret;
 }
 
-void
-OSDatxxxx::add_string_to_screen_centered(const char *str, uint8_t pos_y, int max_length)
-{
+void OSDatxxxx::add_string_to_screen_centered(const char *str, uint8_t pos_y, int max_length) {
 	int len = strlen(str);
 
 	if (len > max_length) {
@@ -226,17 +206,13 @@ OSDatxxxx::add_string_to_screen_centered(const char *str, uint8_t pos_y, int max
 	}
 }
 
-void
-OSDatxxxx::clear_line(uint8_t pos_x, uint8_t pos_y, int length)
-{
+void OSDatxxxx::clear_line(uint8_t pos_x, uint8_t pos_y, int length) {
 	for (int i = 0; i < length; ++i) {
 		add_character_to_screen(' ', pos_x + i, pos_y);
 	}
 }
 
-int
-OSDatxxxx::add_battery_info(uint8_t pos_x, uint8_t pos_y)
-{
+int OSDatxxxx::add_battery_info(uint8_t pos_x, uint8_t pos_y) {
 	char buf[10];
 	int ret = PX4_OK;
 
@@ -265,9 +241,7 @@ OSDatxxxx::add_battery_info(uint8_t pos_x, uint8_t pos_y)
 	return ret;
 }
 
-int
-OSDatxxxx::add_altitude(uint8_t pos_x, uint8_t pos_y)
-{
+int OSDatxxxx::add_altitude(uint8_t pos_x, uint8_t pos_y) {
 	char buf[16];
 	int ret = PX4_OK;
 
@@ -281,9 +255,7 @@ OSDatxxxx::add_altitude(uint8_t pos_x, uint8_t pos_y)
 	return ret;
 }
 
-int
-OSDatxxxx::add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y)
-{
+int OSDatxxxx::add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y) {
 	char buf[10];
 	int ret = PX4_OK;
 
@@ -297,9 +269,7 @@ OSDatxxxx::add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y)
 	return ret;
 }
 
-int
-OSDatxxxx::enable_screen()
-{
+int OSDatxxxx::enable_screen() {
 	uint8_t data = 0;
 	int ret = PX4_OK;
 
@@ -309,9 +279,7 @@ OSDatxxxx::enable_screen()
 	return ret;
 }
 
-int
-OSDatxxxx::disable_screen()
-{
+int OSDatxxxx::disable_screen() {
 	uint8_t data = 0;
 	int ret = PX4_OK;
 
@@ -321,9 +289,7 @@ OSDatxxxx::disable_screen()
 	return ret;
 }
 
-int
-OSDatxxxx::update_topics()
-{
+int OSDatxxxx::update_topics() {
 	/* update battery subscription */
 	if (_battery_sub.updated()) {
 		battery_status_s battery{};
@@ -373,64 +339,60 @@ OSDatxxxx::update_topics()
 	return PX4_OK;
 }
 
-const char *
-OSDatxxxx::get_flight_mode(uint8_t nav_state)
-{
+const char *OSDatxxxx::get_flight_mode(uint8_t nav_state) {
 	const char *flight_mode = "UNKNOWN";
 
 	switch (nav_state) {
-	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-		flight_mode = "MANUAL";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+			flight_mode = "MANUAL";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-		flight_mode = "ALTITUDE";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+			flight_mode = "ALTITUDE";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-		flight_mode = "POSITION";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+			flight_mode = "POSITION";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-		flight_mode = "RETURN";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+			flight_mode = "RETURN";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-		flight_mode = "MISSION";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
+			flight_mode = "MISSION";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
-		flight_mode = "AUTO";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
+			flight_mode = "AUTO";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_ACRO:
-		flight_mode = "ACRO";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_ACRO:
+			flight_mode = "ACRO";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
-		flight_mode = "TERMINATE";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
+			flight_mode = "TERMINATE";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-		flight_mode = "OFFBOARD";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
+			flight_mode = "OFFBOARD";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_STAB:
-		flight_mode = "STABILIZED";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_STAB:
+			flight_mode = "STABILIZED";
+			break;
 	}
 
 	return flight_mode;
 }
 
-int
-OSDatxxxx::update_screen()
-{
+int OSDatxxxx::update_screen() {
 	int ret = PX4_OK;
 
 	if (_battery_valid) {
@@ -463,18 +425,14 @@ OSDatxxxx::update_screen()
 	return ret;
 }
 
-int
-OSDatxxxx::reset()
-{
+int OSDatxxxx::reset() {
 	int ret = writeRegister(0x00, 0x02);
 	usleep(100);
 
 	return ret;
 }
 
-void
-OSDatxxxx::RunImpl()
-{
+void OSDatxxxx::RunImpl() {
 	if (should_exit()) {
 		exit_and_cleanup();
 		return;
@@ -485,9 +443,7 @@ OSDatxxxx::RunImpl()
 	update_screen();
 }
 
-void
-OSDatxxxx::print_usage()
-{
+void OSDatxxxx::print_usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -502,9 +458,7 @@ It can be enabled with the OSD_ATXXXX_CFG parameter.
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-int
-atxxxx_main(int argc, char *argv[])
-{
+int atxxxx_main(int argc, char *argv[]) {
 	using ThisDriver = OSDatxxxx;
 	BusCLIArguments cli{false, true};
 	cli.spi_mode = SPIDEV_MODE0;

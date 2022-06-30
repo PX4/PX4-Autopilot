@@ -33,35 +33,31 @@
 
 #pragma once
 
-#include "UavcanSubscriberBase.hpp"
-
-#include <ardupilot/gnss/MovingBaselineData.hpp>
-
-#include <lib/drivers/device/Device.hpp>
-#include <uORB/Publication.hpp>
 #include <uORB/topics/gps_inject_data.h>
 
-namespace uavcannode
-{
+#include <ardupilot/gnss/MovingBaselineData.hpp>
+#include <lib/drivers/device/Device.hpp>
+#include <uORB/Publication.hpp>
+
+#include "UavcanSubscriberBase.hpp"
+
+namespace uavcannode {
 
 class MovingBaselineData;
 
 typedef uavcan::MethodBinder<MovingBaselineData *,
-	void (MovingBaselineData::*)(const uavcan::ReceivedDataStructure<ardupilot::gnss::MovingBaselineData>&)>
+			     void (MovingBaselineData::*)(
+				     const uavcan::ReceivedDataStructure<ardupilot::gnss::MovingBaselineData> &)>
 	MovingBaselineDataBinder;
 
-class MovingBaselineData :
-	public UavcanSubscriberBase,
-	private uavcan::Subscriber<ardupilot::gnss::MovingBaselineData, MovingBaselineDataBinder>
-{
+class MovingBaselineData : public UavcanSubscriberBase,
+			   private uavcan::Subscriber<ardupilot::gnss::MovingBaselineData, MovingBaselineDataBinder> {
 public:
-	MovingBaselineData(uavcan::INode &node) :
-		UavcanSubscriberBase(ardupilot::gnss::MovingBaselineData::DefaultDataTypeID),
-		uavcan::Subscriber<ardupilot::gnss::MovingBaselineData, MovingBaselineDataBinder>(node)
-	{}
+	MovingBaselineData(uavcan::INode &node)
+		: UavcanSubscriberBase(ardupilot::gnss::MovingBaselineData::DefaultDataTypeID),
+		  uavcan::Subscriber<ardupilot::gnss::MovingBaselineData, MovingBaselineDataBinder>(node) {}
 
-	bool init()
-	{
+	bool init() {
 		if (start(MovingBaselineDataBinder(this, &MovingBaselineData::callback)) < 0) {
 			PX4_ERR("ardupilot::gnss::MovingBaselineData subscription failed");
 			return false;
@@ -70,17 +66,14 @@ public:
 		return true;
 	}
 
-	void PrintInfo() const override
-	{
-		printf("\t%s:%d -> %s\n",
-		       ardupilot::gnss::MovingBaselineData::getDataTypeFullName(),
+	void PrintInfo() const override {
+		printf("\t%s:%d -> %s\n", ardupilot::gnss::MovingBaselineData::getDataTypeFullName(),
 		       ardupilot::gnss::MovingBaselineData::DefaultDataTypeID,
 		       _gps_inject_data_pub.get_topic()->o_name);
 	}
 
 private:
-	void callback(const uavcan::ReceivedDataStructure<ardupilot::gnss::MovingBaselineData> &msg)
-	{
+	void callback(const uavcan::ReceivedDataStructure<ardupilot::gnss::MovingBaselineData> &msg) {
 		// Don't republish a message from ourselves
 		if (msg.getSrcNodeID().get() != getNode().getNodeID().get()) {
 			gps_inject_data_s gps_inject_data{};
@@ -105,4 +98,4 @@ private:
 
 	uORB::Publication<gps_inject_data_s> _gps_inject_data_pub{ORB_ID(gps_inject_data)};
 };
-} // namespace uavcannode
+}  // namespace uavcannode

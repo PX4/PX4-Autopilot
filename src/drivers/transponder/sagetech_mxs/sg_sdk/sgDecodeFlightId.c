@@ -13,10 +13,9 @@
 #include "sg.h"
 #include "sgUtil.h"
 
-#define SG_ID_LEN 8 // The number of bytes in the flight id field
+#define SG_ID_LEN 8  // The number of bytes in the flight id field
 
-typedef struct __attribute__((packed))
-{
+typedef struct __attribute__((packed)) {
 	uint8_t start;
 	uint8_t type;
 	uint8_t id;
@@ -29,13 +28,12 @@ typedef struct __attribute__((packed))
 /*
  * Documented in the header file.
  */
-bool sgDecodeFlightId(uint8_t *buffer, sg_flightid_t *id)
-{
+bool sgDecodeFlightId(uint8_t *buffer, sg_flightid_t *id) {
 	flightid_t sgId;
 	memcpy(&sgId, buffer, sizeof(flightid_t));
 
 	strcpy(id->flightId, sgId.flightId);
-	memset(&id->flightId[SG_ID_LEN], '\0', 1); // Ensure flight id is null-terminated
+	memset(&id->flightId[SG_ID_LEN], '\0', 1);  // Ensure flight id is null-terminated
 
 	return true;
 }

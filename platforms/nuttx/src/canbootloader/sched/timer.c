@@ -39,43 +39,41 @@
 // Turn off Probes in this module
 #undef CONFIG_BOARD_USE_PROBES
 
+#include <arch/board/board.h>
+#include <arch/irq.h>
 #include <boot_config.h>
-
-#include <sys/types.h>
+#include <nuttx/arch.h>
 #include <stdint.h>
 #include <string.h>
-
-#include <nuttx/arch.h>
-#include <arch/irq.h>
-#include <arch/board/board.h>
-
+#include <sys/types.h>
 #include <systemlib/px4_macros.h>
-#include "timer.h"
+
 #include "nvic.h"
+#include "timer.h"
 
 typedef enum {
-	OneShot         = modeOneShot,
-	Repeating       = modeRepeating,
-	Timeout         = modeTimeout,
+	OneShot = modeOneShot,
+	Repeating = modeRepeating,
+	Timeout = modeTimeout,
 
-	modeMsk         = 0x3,
-	running         = modeStarted,
-	inuse           = 0x80,
+	modeMsk = 0x3,
+	running = modeStarted,
+	inuse = 0x80,
 
 } bl_timer_ctl_t;
 
 typedef struct {
-	bl_timer_cb_t         usr;
-	time_ms_t             count;
-	time_ms_t             reload;
-	bl_timer_ctl_t        ctl;
+	bl_timer_cb_t usr;
+	time_ms_t count;
+	time_ms_t reload;
+	bl_timer_ctl_t ctl;
 } bl_timer_t;
 
 static time_ms_t sys_tic;
 static bl_timer_t timers[OPT_BL_NUMBER_TIMERS];
 
 /* Use to initialize  */
-const bl_timer_cb_t null_cb = { 0, 0 };
+const bl_timer_cb_t null_cb = {0, 0};
 
 /* We use the linker --wrap ability to wrap the NuttX stm32 call out to
  * the sceduler's sched_process_timer and service it here. Thus replacing
@@ -97,10 +95,7 @@ void __wrap_nxsched_process_timer(void);
  *   None
  *
  ****************************************************************************/
-time_ms_t timer_tic(void)
-{
-	return sys_tic;
-}
+time_ms_t timer_tic(void) { return sys_tic; }
 
 /****************************************************************************
  * Name: sched_process_timer
@@ -120,10 +115,9 @@ time_ms_t timer_tic(void)
  *   None
  *
  ****************************************************************************/
-__EXPORT void __wrap_nxsched_process_timer(void)
-{
-	//PROBE(1, true);
-	//PROBE(1, false);
+__EXPORT void __wrap_nxsched_process_timer(void) {
+	// PROBE(1, true);
+	// PROBE(1, false);
 
 	/* Increment the per-tick system counter */
 	sys_tic++;
@@ -134,17 +128,13 @@ __EXPORT void __wrap_nxsched_process_timer(void)
 	/* Walk the time list from High to low and */
 	bl_timer_id t;
 
-	for (t =  arraySize(timers) - 1; (int8_t) t >= 0; t--) {
-
+	for (t = arraySize(timers) - 1; (int8_t)t >= 0; t--) {
 		/* Timer in use and running */
 		if ((timers[t].ctl & (inuse | running)) == (inuse | running)) {
-
 			/* Is it NOT already expired nor about to expire ?*/
 			if (timers[t].count != 0) {
-
 				/* Is it off in future */
 				if (timers[t].count > ms_elapsed) {
-
 					/* Just remove the amount attributed to the tick */
 
 					timers[t].count -= ms_elapsed;
@@ -159,31 +149,29 @@ __EXPORT void __wrap_nxsched_process_timer(void)
 
 				/* Now perform action based on mode */
 				switch (timers[t].ctl & ~(inuse | running)) {
-
-				case OneShot: {
+					case OneShot: {
 						bl_timer_cb_t user = timers[t].usr;
 						memset(&timers[t], 0, sizeof(timers[t]));
 
 						if (user.cb) {
 							user.cb(t, user.context);
 						}
-					}
-					break;
+					} break;
 
-				case Repeating:
-					timers[t].count = timers[t].reload;
+					case Repeating:
+						timers[t].count = timers[t].reload;
 
-				/* FALLTHROUGH */
-				/* to callback */
-				case Timeout:
-					if (timers[t].usr.cb) {
-						timers[t].usr.cb(t, timers[t].usr.context);
-					}
+					/* FALLTHROUGH */
+					/* to callback */
+					case Timeout:
+						if (timers[t].usr.cb) {
+							timers[t].usr.cb(t, timers[t].usr.context);
+						}
 
-					break;
+						break;
 
-				default:
-					break;
+					default:
+						break;
 				}
 			}
 		}
@@ -233,15 +221,12 @@ __EXPORT void __wrap_nxsched_process_timer(void)
  *    -1 on failure. This indicates there are no free timers.
  *
  ****************************************************************************/
-bl_timer_id timer_allocate(bl_timer_modes_t mode, time_ms_t msfromnow, bl_timer_cb_t *fc)
-{
+bl_timer_id timer_allocate(bl_timer_modes_t mode, time_ms_t msfromnow, bl_timer_cb_t *fc) {
 	bl_timer_id t;
 	irqstate_t s = enter_critical_section();
 
 	for (t = arraySize(timers) - 1; (int8_t)t >= 0; t--) {
-
 		if ((timers[t].ctl & inuse) == 0) {
-
 			timers[t].reload = msfromnow;
 			timers[t].count = msfromnow;
 			timers[t].usr = fc ? *fc : null_cb;
@@ -269,8 +254,7 @@ bl_timer_id timer_allocate(bl_timer_modes_t mode, time_ms_t msfromnow, bl_timer_
  *   None.
  *
  ****************************************************************************/
-void timer_free(bl_timer_id id)
-{
+void timer_free(bl_timer_id id) {
 	DEBUGASSERT(id >= 0 && id < arraySize(timers));
 	irqstate_t s = enter_critical_section();
 	memset(&timers[id], 0, sizeof(timers[id]));
@@ -292,8 +276,7 @@ void timer_free(bl_timer_id id)
  *   None.
  *
  ****************************************************************************/
-void timer_start(bl_timer_id id)
-{
+void timer_start(bl_timer_id id) {
 	DEBUGASSERT(id >= 0 && id < arraySize(timers) && (timers[id].ctl & inuse));
 	irqstate_t s = enter_critical_section();
 	timers[id].count = timers[id].reload;
@@ -314,13 +297,11 @@ void timer_start(bl_timer_id id)
  *   None.
  *
  ****************************************************************************/
-void timer_stop(bl_timer_id id)
-{
+void timer_stop(bl_timer_id id) {
 	DEBUGASSERT(id >= 0 && id < arraySize(timers) && (timers[id].ctl & inuse));
 	irqstate_t s = enter_critical_section();
 	timers[id].ctl &= ~running;
 	leave_critical_section(s);
-
 }
 
 /****************************************************************************
@@ -337,8 +318,7 @@ void timer_stop(bl_timer_id id)
  *   Non Zero if the timer is expired otherwise zero.
  *
  ****************************************************************************/
-int timer_expired(bl_timer_id id)
-{
+int timer_expired(bl_timer_id id) {
 	DEBUGASSERT(id >= 0 && id < arraySize(timers) && (timers[id].ctl & inuse));
 	irqstate_t s = enter_critical_section();
 	int rv = ((timers[id].ctl & running) && timers[id].count == 0);
@@ -362,8 +342,7 @@ int timer_expired(bl_timer_id id)
  *   None.
  *
  ****************************************************************************/
-void timer_restart(bl_timer_id id, time_ms_t ms)
-{
+void timer_restart(bl_timer_id id, time_ms_t ms) {
 	DEBUGASSERT(id >= 0 && id < arraySize(timers) && (timers[id].ctl & inuse));
 	irqstate_t s = enter_critical_section();
 	timers[id].count = timers[id].reload = ms;
@@ -389,10 +368,9 @@ void timer_restart(bl_timer_id id, time_ms_t ms)
  *   require any operation to free it.
  *
  *************************************************************************/
-time_ref_t timer_ref(bl_timer_id id)
-{
+time_ref_t timer_ref(bl_timer_id id) {
 	DEBUGASSERT(id >= 0 && id < arraySize(timers) && (timers[id].ctl & inuse));
-	return (time_ref_t) &timers[id].count;
+	return (time_ref_t)&timers[id].count;
 }
 
 /****************************************************************************
@@ -409,18 +387,17 @@ time_ref_t timer_ref(bl_timer_id id)
  *   None
  *
  ****************************************************************************/
-__EXPORT void timer_init(void)
-{
+__EXPORT void timer_init(void) {
 	/* For system timing probing see bord.h and
 	 * CONFIG_BOARD_USE_PROBES
 	 */
-	//PROBE_INIT(7);
-	//PROBE(1, true);
-	//PROBE(2, true);
-	//PROBE(3, true);
-	//PROBE(1, false);
-	//PROBE(2, false);
-	//PROBE(3, false);
+	// PROBE_INIT(7);
+	// PROBE(1, true);
+	// PROBE(2, true);
+	// PROBE(3, true);
+	// PROBE(1, false);
+	// PROBE(2, false);
+	// PROBE(3, false);
 	/* This is the lowlevel IO if needed to instrument timing
 	 * with the smallest impact
 	 * *((uint32_t *)0x40011010) = 0x100; // PROBE(3,true);

@@ -42,35 +42,30 @@
  * Included Files
  ************************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-
-#include <stdint.h>
-#include <stdbool.h>
-#include <time.h>
-#include <debug.h>
-
 #include <arch/board/board.h>
+#include <arm_arch.h>
+#include <debug.h>
 #include <nuttx/arch.h>
-
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stm32_pwr.h>
+#include <time.h>
 #include <uORB/uORB.h>
+
 #include <uORB/Publication.hpp>
 
-#include <arm_arch.h>
 #include "board_config.h"
-#include <stm32_pwr.h>
 
 extern void led_on(int led);
 extern void led_off(int led);
 
 static struct timespec time_down;
 
-
-static int default_power_button_state_notification(board_power_button_state_notification_e request)
-{
-//	syslog(0,"%d\n", request);
+static int default_power_button_state_notification(board_power_button_state_notification_e request) {
+	//	syslog(0,"%d\n", request);
 	return PWR_BUTTON_RESPONSE_SHUT_DOWN_NOW;
 }
-
 
 static power_button_state_notification_t power_state_notification = default_power_button_state_notification;
 
@@ -82,13 +77,9 @@ static power_button_state_notification_t power_state_notification = default_powe
  *
  ****************************************************************************/
 
-static bool board_pwr_button_down(void)
-{
-	return 0 == stm32_gpioread(KEY_AD_GPIO);
-}
+static bool board_pwr_button_down(void) { return 0 == stm32_gpioread(KEY_AD_GPIO); }
 
-int board_register_power_state_notification_cb(power_button_state_notification_t cb)
-{
+int board_register_power_state_notification_cb(power_button_state_notification_t cb) {
 	power_state_notification = cb;
 
 	if (board_pwr_button_down() && (time_down.tv_nsec != 0 || time_down.tv_sec != 0)) {
@@ -99,8 +90,7 @@ int board_register_power_state_notification_cb(power_button_state_notification_t
 	return OK;
 }
 
-int board_power_off(int status)
-{
+int board_power_off(int status) {
 	led_on(BOARD_LED_BLUE);
 
 	// disable the interrups
@@ -108,15 +98,14 @@ int board_power_off(int status)
 
 	stm32_configgpio(POWER_OFF_GPIO);
 
-	while (1);
+	while (1)
+		;
 
 	return 0;
 }
 
-static int board_button_irq(int irq, FAR void *context, FAR void *args)
-{
+static int board_button_irq(int irq, FAR void *context, FAR void *args) {
 	if (board_pwr_button_down()) {
-
 		led_on(BOARD_LED_RED);
 		clock_gettime(CLOCK_REALTIME, &time_down);
 		power_state_notification(PWR_BUTTON_DOWN);
@@ -134,10 +123,10 @@ static int board_button_irq(int irq, FAR void *context, FAR void *args)
 		uint64_t tnow_ms = now.tv_sec * 1000 + now.tv_nsec / 1000000;
 
 		if (tdown_ms != 0 && (tnow_ms - tdown_ms) >= MS_PWR_BUTTON_DOWN) {
-
 			led_on(BOARD_LED_BLUE);
 
-			if (power_state_notification(PWR_BUTTON_REQUEST_SHUT_DOWN) == PWR_BUTTON_RESPONSE_SHUT_DOWN_NOW) {
+			if (power_state_notification(PWR_BUTTON_REQUEST_SHUT_DOWN) ==
+			    PWR_BUTTON_RESPONSE_SHUT_DOWN_NOW) {
 				up_mdelay(200);
 				board_power_off(0);
 			}
@@ -145,7 +134,6 @@ static int board_button_irq(int irq, FAR void *context, FAR void *args)
 		} else {
 			power_state_notification(PWR_BUTTON_IDEL);
 		}
-
 	}
 
 	return OK;
@@ -162,8 +150,7 @@ static int board_button_irq(int irq, FAR void *context, FAR void *args)
  *
  ************************************************************************************/
 
-void board_pwr_init(int stage)
-{
+void board_pwr_init(int stage) {
 	if (stage == 0) {
 		stm32_configgpio(POWER_ON_GPIO);
 		stm32_configgpio(KEY_AD_GPIO);

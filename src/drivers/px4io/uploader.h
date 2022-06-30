@@ -39,72 +39,70 @@
 #ifndef _PX4IO_UPLOADER_H
 #define _PX4IO_UPLOADER_H value
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
-
-class PX4IO_Uploader
-{
+class PX4IO_Uploader {
 public:
 	PX4IO_Uploader();
 	virtual ~PX4IO_Uploader() = default;
 
-	int			upload(const char *filenames[]);
+	int upload(const char *filenames[]);
 
 private:
 	enum {
 
-		PROTO_NOP				= 0x00,
-		PROTO_OK				= 0x10,
-		PROTO_FAILED			= 0x11,
-		PROTO_INSYNC			= 0x12,
-		PROTO_INVALID			= 0x13,
-		PROTO_BAD_SILICON_REV  	= 0x14,
-		PROTO_EOC				= 0x20,
-		PROTO_GET_SYNC			= 0x21,
-		PROTO_GET_DEVICE		= 0x22,
-		PROTO_CHIP_ERASE		= 0x23,
-		PROTO_CHIP_VERIFY		= 0x24,
-		PROTO_PROG_MULTI		= 0x27,
-		PROTO_READ_MULTI		= 0x28,
-		PROTO_GET_CRC			= 0x29,
-		PROTO_GET_OTP			= 0x2a,
-		PROTO_GET_SN			= 0x2b,
-		PROTO_GET_CHIP			= 0x2c,
-		PROTO_SET_DELAY			= 0x2d,
-		PROTO_GET_CHIP_DES		= 0x2e,
-		PROTO_REBOOT			= 0x30,
+		PROTO_NOP = 0x00,
+		PROTO_OK = 0x10,
+		PROTO_FAILED = 0x11,
+		PROTO_INSYNC = 0x12,
+		PROTO_INVALID = 0x13,
+		PROTO_BAD_SILICON_REV = 0x14,
+		PROTO_EOC = 0x20,
+		PROTO_GET_SYNC = 0x21,
+		PROTO_GET_DEVICE = 0x22,
+		PROTO_CHIP_ERASE = 0x23,
+		PROTO_CHIP_VERIFY = 0x24,
+		PROTO_PROG_MULTI = 0x27,
+		PROTO_READ_MULTI = 0x28,
+		PROTO_GET_CRC = 0x29,
+		PROTO_GET_OTP = 0x2a,
+		PROTO_GET_SN = 0x2b,
+		PROTO_GET_CHIP = 0x2c,
+		PROTO_SET_DELAY = 0x2d,
+		PROTO_GET_CHIP_DES = 0x2e,
+		PROTO_REBOOT = 0x30,
 
-		INFO_BL_REV			= 1,		/**< bootloader protocol revision */
-		BL_REV			= 5,		/**< supported bootloader protocol  */
-		INFO_BOARD_ID		= 2,		/**< board type */
-		INFO_BOARD_REV		= 3,		/**< board revision */
-		INFO_FLASH_SIZE		= 4,		/**< max firmware size in bytes */
+		INFO_BL_REV = 1,     /**< bootloader protocol revision */
+		BL_REV = 5,          /**< supported bootloader protocol  */
+		INFO_BOARD_ID = 2,   /**< board type */
+		INFO_BOARD_REV = 3,  /**< board revision */
+		INFO_FLASH_SIZE = 4, /**< max firmware size in bytes */
 
-		PROG_MULTI_MAX		= 248,		/**< protocol max is 255, must be multiple of 4 */
+		PROG_MULTI_MAX = 248, /**< protocol max is 255, must be multiple of 4 */
 
 	};
 
-	int			_io_fd;
-	int			_fw_fd;
+	int _io_fd;
+	int _fw_fd;
 
-	uint32_t		bl_rev; /**< bootloader revision */
+	uint32_t bl_rev; /**< bootloader revision */
 
-	void			log(const char *fmt, ...);
+	void log(const char *fmt, ...);
 
-	int			recv_byte_with_timeout(uint8_t *c, unsigned timeout);
-	int			recv_bytes(uint8_t *p, unsigned count);
-	void			drain();
-	int			send(uint8_t c);
-	int			send(uint8_t *p, unsigned count);
-	int			get_sync(unsigned timeout = 40);
-	int			sync();
-	int			get_info(int param, uint32_t &val);
-	int			erase();
-	int			program(size_t fw_size);
-	int			verify_rev2(size_t fw_size);
-	int			verify_rev3(size_t fw_size);
-	int			reboot();
+	int recv_byte_with_timeout(uint8_t *c, unsigned timeout);
+	int recv_bytes(uint8_t *p, unsigned count);
+	void drain();
+	int send(uint8_t c);
+	int send(uint8_t *p, unsigned count);
+	int get_sync(unsigned timeout = 40);
+	int sync();
+	int get_info(int param, uint32_t &val);
+	int erase();
+	int program(size_t fw_size);
+	int verify_rev2(size_t fw_size);
+	int verify_rev3(size_t fw_size);
+	int reboot();
 };
 
 #endif

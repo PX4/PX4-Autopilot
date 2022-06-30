@@ -36,7 +36,6 @@
  *
  */
 
-
 #ifndef _SYSTEMLIB_MIXER_LOAD_H
 #define _SYSTEMLIB_MIXER_LOAD_H value
 

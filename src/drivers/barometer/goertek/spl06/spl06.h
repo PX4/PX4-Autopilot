@@ -40,28 +40,26 @@
 
 #include <px4_platform_common/i2c_spi_buses.h>
 
-#define SPL06_ADDR_ID	0x0d
-#define SPL06_ADDR_RESET 0x0c   // set to reset
+#define SPL06_ADDR_ID 0x0d
+#define SPL06_ADDR_RESET 0x0c  // set to reset
 #define SPL06_ADDR_CAL 0x10
-#define SPL06_ADDR_PRS_CFG  0x06
-#define SPL06_ADDR_TMP_CFG  0x07
-#define SPL06_ADDR_MEAS_CFG	0x08
-#define SPL06_ADDR_CFG_REG	0x09
+#define SPL06_ADDR_PRS_CFG 0x06
+#define SPL06_ADDR_TMP_CFG 0x07
+#define SPL06_ADDR_MEAS_CFG 0x08
+#define SPL06_ADDR_CFG_REG 0x09
 #define SPL06_ADDR_DATA 0x00
 
-
 #define SPL06_VALUE_RESET 9
-#define SPL06_VALUE_ID    0x10
+#define SPL06_VALUE_ID 0x10
 
-namespace spl06
-{
+namespace spl06 {
 
-#pragma pack(push,1)
+#pragma pack(push, 1)
 struct calibration_s {
 	int16_t c0, c1;
 	int32_t c00, c10;
 	int16_t c01, c11, c20, c21, c30;
-}; //calibration data
+};  // calibration data
 
 struct data_s {
 	uint8_t p_msb;
@@ -71,11 +69,10 @@ struct data_s {
 	uint8_t t_msb;
 	uint8_t t_lsb;
 	uint8_t t_xlsb;
-}; // data
+};  // data
 #pragma pack(pop)
 
-class ISPL06
-{
+class ISPL06 {
 public:
 	virtual ~ISPL06() = default;
 
@@ -96,13 +93,12 @@ public:
 	virtual uint8_t get_device_address() const = 0;
 };
 
-} /* namespace */
-
+}  // namespace spl06
 
 /* interface factories */
 #if defined(CONFIG_SPI)
 extern spl06::ISPL06 *spl06_spi_interface(uint8_t busnum, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
-#endif // CONFIG_SPI
+#endif  // CONFIG_SPI
 #if defined(CONFIG_I2C)
 extern spl06::ISPL06 *spl06_i2c_interface(uint8_t busnum, uint32_t device, int bus_frequency);
-#endif // CONFIG_I2C
+#endif  // CONFIG_I2C

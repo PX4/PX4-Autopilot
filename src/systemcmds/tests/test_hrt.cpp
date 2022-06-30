@@ -42,8 +42,7 @@
 
 #include "tests_main.h"
 
-int test_hrt(int argc, char *argv[])
-{
+int test_hrt(int argc, char *argv[]) {
 	struct hrt_call call;
 	hrt_abstime prev, now;
 	int i;
@@ -57,10 +56,9 @@ int test_hrt(int argc, char *argv[])
 		px4_usleep(100000);
 		now = hrt_absolute_time();
 		gettimeofday(&tv2, nullptr);
-		printf("%lu (%lu/%lu), %lu (%lu/%lu), %lu\n",
-		       (unsigned long)prev, (unsigned long)tv1.tv_sec, (unsigned long)tv1.tv_usec,
-		       (unsigned long)now, (unsigned long)tv2.tv_sec, (unsigned long)tv2.tv_usec,
-		       (unsigned long)(hrt_absolute_time() - prev));
+		printf("%lu (%lu/%lu), %lu (%lu/%lu), %lu\n", (unsigned long)prev, (unsigned long)tv1.tv_sec,
+		       (unsigned long)tv1.tv_usec, (unsigned long)now, (unsigned long)tv2.tv_sec,
+		       (unsigned long)tv2.tv_usec, (unsigned long)(hrt_absolute_time() - prev));
 	}
 
 	px4_usleep(1000000);

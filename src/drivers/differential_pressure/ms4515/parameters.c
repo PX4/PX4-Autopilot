@@ -37,5 +37,5 @@
  * @reboot_required true
  * @group Sensors
  * @boolean
-  */
+ */
 PARAM_DEFINE_INT32(SENS_EN_MS4515, 0);

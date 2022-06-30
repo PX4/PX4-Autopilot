@@ -36,8 +36,7 @@
 
 #include <uORB/topics/actuator_outputs.h>
 
-class MavlinkStreamActuatorOutputStatus : public MavlinkStream
-{
+class MavlinkStreamActuatorOutputStatus : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamActuatorOutputStatus(mavlink); }
 
@@ -47,9 +46,10 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _act_output_sub.advertised() ? (MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	unsigned get_size() override {
+		return _act_output_sub.advertised()
+			       ? (MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)
+			       : 0;
 	}
 
 private:
@@ -57,8 +57,7 @@ private:
 
 	uORB::Subscription _act_output_sub{ORB_ID(actuator_outputs)};
 
-	bool send() override
-	{
+	bool send() override {
 		actuator_outputs_s act;
 
 		if (_act_output_sub.update(&act)) {
@@ -68,9 +67,11 @@ private:
 			msg.active = act.noutputs;
 
 			static size_t actuator_outputs_size = act.noutputs;
-			static constexpr size_t mavlink_actuator_output_status_size = sizeof(msg.actuator) / sizeof(msg.actuator[0]);
+			static constexpr size_t mavlink_actuator_output_status_size =
+				sizeof(msg.actuator) / sizeof(msg.actuator[0]);
 
-			for (unsigned i = 0; i < math::min(actuator_outputs_size, mavlink_actuator_output_status_size); i++) {
+			for (unsigned i = 0; i < math::min(actuator_outputs_size, mavlink_actuator_output_status_size);
+			     i++) {
 				msg.actuator[i] = act.output[i];
 			}
 
@@ -83,4 +84,4 @@ private:
 	}
 };
 
-#endif // ACTUATOR_OUTPUT_STATUS_HPP
+#endif  // ACTUATOR_OUTPUT_STATUS_HPP

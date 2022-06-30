@@ -42,13 +42,12 @@
 #ifndef COMMANDER_HELPER_H_
 #define COMMANDER_HELPER_H_
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_status.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_led.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <drivers/drv_led.h>
-#include <drivers/drv_board_led.h>
-
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/uORB.h>
 
 bool is_multirotor(const vehicle_status_s &current_status);
 bool is_rotary_wing(const vehicle_status_s &current_status);

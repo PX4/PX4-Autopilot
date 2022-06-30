@@ -35,28 +35,19 @@
 
 using namespace time_literals;
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-AK09916::AK09916(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation)
-{
-}
+AK09916::AK09916(const I2CSPIDriverConfig &config)
+	: I2C(config), I2CSPIDriver(config), _px4_mag(get_device_id(), config.rotation) {}
 
-AK09916::~AK09916()
-{
+AK09916::~AK09916() {
 	perf_free(_transfer_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_magnetic_sensor_overflow_perf);
 }
 
-int AK09916::init()
-{
+int AK09916::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -67,16 +58,14 @@ int AK09916::init()
 	return Reset() ? 0 : -1;
 }
 
-bool AK09916::Reset()
-{
+bool AK09916::Reset() {
 	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
 }
 
-void AK09916::print_status()
-{
+void AK09916::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_transfer_perf);
@@ -85,8 +74,7 @@ void AK09916::print_status()
 	perf_print_counter(_magnetic_sensor_overflow_perf);
 }
 
-int AK09916::probe()
-{
+int AK09916::probe() {
 	const uint8_t WIA1 = RegisterRead(Register::WIA1);
 
 	if (WIA1 != Company_ID) {
@@ -104,62 +92,62 @@ int AK09916::probe()
 	return PX4_OK;
 }
 
-void AK09916::RunImpl()
-{
+void AK09916::RunImpl() {
 	switch (_state) {
-	case STATE::RESET:
-		// CNTL3 SRST: Soft reset
-		RegisterWrite(Register::CNTL3, CNTL3_BIT::SRST);
-		_reset_timestamp = hrt_absolute_time();
-		_consecutive_failures = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(100_ms);
-		break;
-
-	case STATE::WAIT_FOR_RESET:
-		if ((RegisterRead(Register::WIA1) == Company_ID) && (RegisterRead(Register::WIA2) == Device_ID)) {
-			// if reset succeeded then configure
-			RegisterWrite(Register::CNTL2, CNTL2_BIT::MODE3);
-			_state = STATE::CONFIGURE;
+		case STATE::RESET:
+			// CNTL3 SRST: Soft reset
+			RegisterWrite(Register::CNTL3, CNTL3_BIT::SRST);
+			_reset_timestamp = hrt_absolute_time();
+			_consecutive_failures = 0;
+			_state = STATE::WAIT_FOR_RESET;
 			ScheduleDelayed(100_ms);
+			break;
 
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
+		case STATE::WAIT_FOR_RESET:
+			if ((RegisterRead(Register::WIA1) == Company_ID) &&
+			    (RegisterRead(Register::WIA2) == Device_ID)) {
+				// if reset succeeded then configure
+				RegisterWrite(Register::CNTL2, CNTL2_BIT::MODE3);
+				_state = STATE::CONFIGURE;
 				ScheduleDelayed(100_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 100 ms");
-				ScheduleDelayed(100_ms);
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 100 ms");
+					ScheduleDelayed(100_ms);
+				}
 			}
-		}
 
-		break;
+			break;
 
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start reading
-			_state = STATE::READ;
-			ScheduleOnInterval(20_ms, 20_ms); // 50 Hz
-
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				// if configure succeeded then start reading
+				_state = STATE::READ;
+				ScheduleOnInterval(20_ms, 20_ms);  // 50 Hz
 
 			} else {
-				PX4_DEBUG("Configure failed, retrying");
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
+				ScheduleDelayed(100_ms);
 			}
 
-			ScheduleDelayed(100_ms);
-		}
+			break;
 
-		break;
-
-	case STATE::READ: {
+		case STATE::READ: {
 			perf_begin(_transfer_perf);
 			TransferBuffer buffer{};
 			const hrt_abstime timestamp_sample = hrt_absolute_time();
@@ -210,8 +198,7 @@ void AK09916::RunImpl()
 	}
 }
 
-bool AK09916::Configure()
-{
+bool AK09916::Configure() {
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_cfg) {
 		RegisterWrite(reg_cfg.reg, reg_cfg.set_bits);
@@ -232,8 +219,7 @@ bool AK09916::Configure()
 	return success;
 }
 
-bool AK09916::RegisterCheck(const register_config_t &reg_cfg)
-{
+bool AK09916::RegisterCheck(const register_config_t &reg_cfg) {
 	bool success = true;
 
 	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
@@ -244,29 +230,27 @@ bool AK09916::RegisterCheck(const register_config_t &reg_cfg)
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.clear_bits);
 		success = false;
 	}
 
 	return success;
 }
 
-uint8_t AK09916::RegisterRead(Register reg)
-{
+uint8_t AK09916::RegisterRead(Register reg) {
 	const uint8_t cmd = static_cast<uint8_t>(reg);
 	uint8_t buffer{};
 	transfer(&cmd, 1, &buffer, 1);
 	return buffer;
 }
 
-void AK09916::RegisterWrite(Register reg, uint8_t value)
-{
-	uint8_t buffer[2] { (uint8_t)reg, value };
+void AK09916::RegisterWrite(Register reg, uint8_t value) {
+	uint8_t buffer[2]{(uint8_t)reg, value};
 	transfer(buffer, sizeof(buffer), nullptr, 0);
 }
 
-void AK09916::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
-{
+void AK09916::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits) {
 	const uint8_t orig_val = RegisterRead(reg);
 	uint8_t val = (orig_val & ~clearbits) | setbits;
 

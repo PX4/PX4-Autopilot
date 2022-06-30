@@ -43,8 +43,7 @@
 
 device::Device *FXOS8701CQ_SPI_interface(int bus, uint32_t chip_select, int bus_frequency, spi_mode_e spi_mode);
 
-class FXOS8701CQ_SPI : public device::SPI
-{
+class FXOS8701CQ_SPI : public device::SPI {
 public:
 	FXOS8701CQ_SPI(int bus, uint32_t chip_select, int bus_frequency, spi_mode_e spi_mode);
 	~FXOS8701CQ_SPI() override = default;
@@ -59,7 +58,7 @@ public:
 	 * @param count	The number of items to read.
 	 * @return		The number of items read on success, negative errno otherwise.
 	 */
-	int	read(unsigned reg, void *data, unsigned count) override;
+	int read(unsigned reg, void *data, unsigned count) override;
 
 	/**
 	 * Write directly to the device.
@@ -71,7 +70,7 @@ public:
 	 * @param count	The number of items to write.
 	 * @return		The number of items written on success, negative errno otherwise.
 	 */
-	int	write(unsigned reg, void *data, unsigned count) override;
+	int write(unsigned reg, void *data, unsigned count) override;
 
 	/**
 	 * Read a register from FXOS8701CQ
@@ -94,20 +93,14 @@ protected:
 	int probe() override;
 };
 
-device::Device *
-FXOS8701CQ_SPI_interface(int bus, uint32_t chip_select, int bus_frequency, spi_mode_e spi_mode)
-{
+device::Device *FXOS8701CQ_SPI_interface(int bus, uint32_t chip_select, int bus_frequency, spi_mode_e spi_mode) {
 	return new FXOS8701CQ_SPI(bus, chip_select, bus_frequency, spi_mode);
 }
 
-FXOS8701CQ_SPI::FXOS8701CQ_SPI(int bus, uint32_t chip_select, int bus_frequency, spi_mode_e spi_mode) :
-	SPI(DRV_ACC_DEVTYPE_FXOS8701C, MODULE_NAME, bus, chip_select, spi_mode, bus_frequency)
-{
-}
+FXOS8701CQ_SPI::FXOS8701CQ_SPI(int bus, uint32_t chip_select, int bus_frequency, spi_mode_e spi_mode)
+	: SPI(DRV_ACC_DEVTYPE_FXOS8701C, MODULE_NAME, bus, chip_select, spi_mode, bus_frequency) {}
 
-int
-FXOS8701CQ_SPI::probe()
-{
+int FXOS8701CQ_SPI::probe() {
 	uint8_t whoami = read_reg(FXOS8701CQ_WHOAMI);
 	bool success = (whoami == FXOS8700CQ_WHOAMI_VAL) || (whoami == FXOS8701CQ_WHOAMI_VAL);
 
@@ -115,9 +108,7 @@ FXOS8701CQ_SPI::probe()
 	return success ? OK : -EIO;
 }
 
-uint8_t
-FXOS8701CQ_SPI::read_reg(unsigned reg)
-{
+uint8_t FXOS8701CQ_SPI::read_reg(unsigned reg) {
 	uint8_t cmd[3];
 
 	cmd[0] = DIR_READ(reg);
@@ -129,9 +120,7 @@ FXOS8701CQ_SPI::read_reg(unsigned reg)
 	return cmd[2];
 }
 
-int
-FXOS8701CQ_SPI::write_reg(unsigned reg, uint8_t value)
-{
+int FXOS8701CQ_SPI::write_reg(unsigned reg, uint8_t value) {
 	uint8_t cmd[3];
 
 	cmd[0] = DIR_WRITE(reg);
@@ -151,19 +140,18 @@ FXOS8701CQ_SPI::write_reg(unsigned reg, uint8_t value)
  * @param count	The number of items to read.
  * @return		The number of items read on success, negative errno otherwise.
  */
-int FXOS8701CQ_SPI::read(unsigned reg, void *data, unsigned count)
-{
+int FXOS8701CQ_SPI::read(unsigned reg, void *data, unsigned count) {
 	/* Same as in mpu9250_spi.cpp:
 	 * We want to avoid copying the data of RawAccelMagReport: So if the caller
 	 * supplies a buffer not RawAccelMagReport in size, it is assume to be a reg or reg 16 read
 	 * and we need to provied the buffer large enough for the callers data
 	 * and our command.
 	 */
-	uint8_t cmd[4] {};
+	uint8_t cmd[4]{};
 
-	uint8_t *pBuf  =  count < sizeof(RawAccelMagReport) ? cmd : (uint8_t *) data ;
+	uint8_t *pBuf = count < sizeof(RawAccelMagReport) ? cmd : (uint8_t *)data;
 
-	if (count < sizeof(RawAccelMagReport))  {
+	if (count < sizeof(RawAccelMagReport)) {
 		/* add command */
 		count += 2;
 	}
@@ -196,9 +184,8 @@ int FXOS8701CQ_SPI::read(unsigned reg, void *data, unsigned count)
  * @param count	The number of items to write.
  * @return		The number of items written on success, negative errno otherwise.
  */
-int FXOS8701CQ_SPI::write(unsigned reg, void *data, unsigned count)
-{
-	uint8_t cmd[3] {};
+int FXOS8701CQ_SPI::write(unsigned reg, void *data, unsigned count) {
+	uint8_t cmd[3]{};
 
 	if (sizeof(cmd) < (count + 1)) {
 		// same as in mpu9250_spi.cpp
@@ -213,4 +200,3 @@ int FXOS8701CQ_SPI::write(unsigned reg, void *data, unsigned count)
 
 	return transfer(cmd, nullptr, sizeof(cmd));
 }
-

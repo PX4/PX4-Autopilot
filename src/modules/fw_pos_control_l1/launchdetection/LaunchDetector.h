@@ -41,14 +41,13 @@
 #ifndef LAUNCHDETECTOR_H
 #define LAUNCHDETECTOR_H
 
-#include "LaunchMethod.h"
 #include <px4_platform_common/module_params.h>
 
-namespace launchdetection
-{
+#include "LaunchMethod.h"
 
-class __EXPORT LaunchDetector : public ModuleParams
-{
+namespace launchdetection {
+
+class __EXPORT LaunchDetector : public ModuleParams {
 public:
 	LaunchDetector(ModuleParams *parent);
 	~LaunchDetector() override;
@@ -76,11 +75,9 @@ private:
 
 	LaunchMethod *_launchMethods[1];
 
-	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::LAUN_ALL_ON>) _param_laun_all_on
-	)
+	DEFINE_PARAMETERS((ParamBool<px4::params::LAUN_ALL_ON>)_param_laun_all_on)
 };
 
-} // namespace launchdetection
+}  // namespace launchdetection
 
-#endif // LAUNCHDETECTOR_H
+#endif  // LAUNCHDETECTOR_H

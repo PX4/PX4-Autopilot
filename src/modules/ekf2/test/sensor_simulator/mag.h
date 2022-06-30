@@ -40,13 +40,10 @@
 
 #include "sensor.h"
 
-namespace sensor_simulator
-{
-namespace sensor
-{
+namespace sensor_simulator {
+namespace sensor {
 
-class Mag: public Sensor
-{
+class Mag : public Sensor {
 public:
 	Mag(std::shared_ptr<Ekf> ekf);
 	~Mag();
@@ -57,9 +54,8 @@ private:
 	Vector3f _mag_data;
 
 	void send(uint64_t time) override;
-
 };
 
-} // namespace sensor
-} // namespace sensor_simulator
-#endif // !EKF_MAG_H
+}  // namespace sensor
+}  // namespace sensor_simulator
+#endif  // !EKF_MAG_H

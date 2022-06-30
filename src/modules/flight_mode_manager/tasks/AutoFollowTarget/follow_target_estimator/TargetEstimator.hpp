@@ -39,29 +39,29 @@
 
 #pragma once
 
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionInterval.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/follow_target.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/follow_target_estimator.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/PublicationMulti.hpp>
-
 #include <drivers/drv_hrt.h>
-#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/module_params.h>
+#include <uORB/topics/follow_target.h>
+#include <uORB/topics/follow_target_estimator.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_local_position.h>
+
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 
 static constexpr float GPS_MESSAGE_STALE_TIMEOUT_MS =
-	3000.0f;  	// Duration after which the connection to the target is considered lost
+	3000.0f;  // Duration after which the connection to the target is considered lost
 static constexpr float MINIMUM_TIME_BETWEEN_POS_FUSIONS_MS = 500.0f;
 static constexpr float MINIMUM_TIME_BETWEEN_VEL_FUSIONS_MS = 100.0f;
-static constexpr float ACCELERATION_SATURATION = 20.0f; 		// 2*g
+static constexpr float ACCELERATION_SATURATION = 20.0f;  // 2*g
 static constexpr float MINIMUM_SPEED_FOR_TARGET_MOVING =
-	0.1f; 	// speed threshold above which the target is considered to be moving
+	0.1f;  // speed threshold above which the target is considered to be moving
 
 using namespace time_literals;
 
@@ -80,20 +80,19 @@ struct filter_gains_s {
 };
 
 struct filter_states_s {
-	matrix::Vector3f pos_ned_est{};	// target's position in NED frame
-	matrix::Vector3f vel_ned_est{};	// target's velocity in NED frame
-	matrix::Vector3f acc_ned_est{};	// target's acceleration in NED frame
+	matrix::Vector3f pos_ned_est{};  // target's position in NED frame
+	matrix::Vector3f vel_ned_est{};  // target's velocity in NED frame
+	matrix::Vector3f acc_ned_est{};  // target's acceleration in NED frame
 
 	/**
 	 * Check if all state are finite
 	 *
 	 * @return true if all state are finite, or false as soon as any state is NAN
 	 */
-	bool is_finite()
-	{
-		return  PX4_ISFINITE(pos_ned_est(0)) && PX4_ISFINITE(pos_ned_est(1)) && PX4_ISFINITE(pos_ned_est(2)) &&
-			PX4_ISFINITE(vel_ned_est(0)) && PX4_ISFINITE(vel_ned_est(1)) && PX4_ISFINITE(vel_ned_est(2)) &&
-			PX4_ISFINITE(acc_ned_est(0)) && PX4_ISFINITE(acc_ned_est(1)) && PX4_ISFINITE(acc_ned_est(2));
+	bool is_finite() {
+		return PX4_ISFINITE(pos_ned_est(0)) && PX4_ISFINITE(pos_ned_est(1)) && PX4_ISFINITE(pos_ned_est(2)) &&
+		       PX4_ISFINITE(vel_ned_est(0)) && PX4_ISFINITE(vel_ned_est(1)) && PX4_ISFINITE(vel_ned_est(2)) &&
+		       PX4_ISFINITE(acc_ned_est(0)) && PX4_ISFINITE(acc_ned_est(1)) && PX4_ISFINITE(acc_ned_est(2));
 	}
 
 	/**
@@ -103,16 +102,14 @@ struct filter_states_s {
 	 *
 	 * @param saturation [m/s^2] limit to use for acceleration saturation
 	 */
-	void saturate_acceleration(float saturation)
-	{
+	void saturate_acceleration(float saturation) {
 		if (acc_ned_est.norm_squared() > saturation * saturation) {
 			acc_ned_est = acc_ned_est.unit_or_zero() * saturation;
 		}
 	}
 };
 
-class TargetEstimator : public ModuleParams, public px4::ScheduledWorkItem
-{
+class TargetEstimator : public ModuleParams, public px4::ScheduledWorkItem {
 public:
 	TargetEstimator();
 	~TargetEstimator() override;
@@ -151,8 +148,9 @@ protected:
 	 * @param last_fusion_timestamp last timestamp of when this sensor data was fused
 	 * @param min_delta_t minimum amount of time that needs to pass between two sensor fusions
 	 */
-	bool measurement_can_be_fused(const matrix::Vector3f &current_measurement, const matrix::Vector3f &previous_measurement,
-				      uint64_t last_fusion_timestamp, float min_delta_t) const;
+	bool measurement_can_be_fused(const matrix::Vector3f &current_measurement,
+				      const matrix::Vector3f &previous_measurement, uint64_t last_fusion_timestamp,
+				      float min_delta_t) const;
 
 	/**
 	 * Perform filter update with new follow_target data
@@ -204,9 +202,7 @@ protected:
 	matrix::Vector3f _pos_measurement_old{};
 	matrix::Vector3f _vel_measurement_old{};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::FLW_TGT_RS>) _param_flw_tgt_rs
-	)
+	DEFINE_PARAMETERS((ParamFloat<px4::params::FLW_TGT_RS>)_param_flw_tgt_rs)
 
 	// Subscriptions
 	uORB::SubscriptionCallbackWorkItem _follow_target_sub{this, ORB_ID(follow_target)};

@@ -32,16 +32,14 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "NavioSysRCInput.hpp"
 
-namespace navio_sysfs_rc_in
-{
+namespace navio_sysfs_rc_in {
 
-static void usage(const char *reason)
-{
+static void usage(const char *reason) {
 	if (reason) {
 		PX4_ERR("%s", reason);
 	}
@@ -51,15 +49,13 @@ static void usage(const char *reason)
 
 static NavioSysRCInput *rc_input = nullptr;
 
-extern "C" __EXPORT int navio_sysfs_rc_in_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int navio_sysfs_rc_in_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		usage("missing command");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
-
 		if (rc_input != nullptr && rc_input->isRunning()) {
 			PX4_WARN("already running");
 			/* this is not an error */
@@ -84,7 +80,6 @@ extern "C" __EXPORT int navio_sysfs_rc_in_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-
 		if (rc_input == nullptr || !rc_input->isRunning()) {
 			PX4_WARN("not running");
 			/* this is not an error */
@@ -121,7 +116,6 @@ extern "C" __EXPORT int navio_sysfs_rc_in_main(int argc, char *argv[])
 
 	usage("unrecognized command");
 	return 1;
-
 }
 
-}; // namespace navio_sysfs_rc_in
+};  // namespace navio_sysfs_rc_in

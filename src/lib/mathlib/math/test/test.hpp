@@ -53,7 +53,4 @@ bool greater_than_or_equal(float a, float b);
 
 bool less_than_or_equal(float a, float b);
 
-void float2SigExp(
-	const float &num,
-	float &sig,
-	int &exp);
+void float2SigExp(const float &num, float &sig, int &exp);

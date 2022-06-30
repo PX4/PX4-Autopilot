@@ -43,8 +43,7 @@
 
 #include "DataValidator.hpp"
 
-class DataValidatorGroup
-{
+class DataValidatorGroup {
 public:
 	/**
 	 * @param siblings initial number of DataValidator's. Must be > 0.

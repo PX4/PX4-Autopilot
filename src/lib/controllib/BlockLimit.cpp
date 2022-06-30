@@ -37,16 +37,14 @@
  * Controller library code
  */
 
-#include <math.h>
 #include <float.h>
+#include <math.h>
 
 #include "blocks.hpp"
 
-namespace control
-{
+namespace control {
 
-float BlockLimit::update(float input)
-{
+float BlockLimit::update(float input) {
 	if (input > getMax()) {
 		input = _max.get();
 
@@ -57,4 +55,4 @@ float BlockLimit::update(float input)
 	return input;
 }
 
-} // namespace control
+}  // namespace control

@@ -33,36 +33,34 @@
 
 #pragma once
 
-#include "data_validator/DataValidatorGroup.hpp"
-
-#include <lib/sensor_calibration/Barometer.hpp>
-#include <lib/mathlib/math/Limits.hpp>
-#include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensors_status.h>
 #include <uORB/topics/vehicle_air_data.h>
 
+#include <lib/mathlib/math/Limits.hpp>
+#include <lib/matrix/matrix/math.hpp>
+#include <lib/sensor_calibration/Barometer.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
+
+#include "data_validator/DataValidatorGroup.hpp"
+
 using namespace time_literals;
 
-namespace sensors
-{
-class VehicleAirData : public ModuleParams, public px4::ScheduledWorkItem
-{
+namespace sensors {
+class VehicleAirData : public ModuleParams, public px4::ScheduledWorkItem {
 public:
-
 	VehicleAirData();
 	~VehicleAirData() override;
 
@@ -91,7 +89,7 @@ private:
 
 	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
 
-	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
+	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT]{
 		{this, ORB_ID(sensor_baro), 0},
 		{this, ORB_ID(sensor_baro), 1},
 		{this, ORB_ID(sensor_baro), 2},
@@ -100,7 +98,7 @@ private:
 
 	calibration::Barometer _calibration[MAX_SENSOR_COUNT];
 
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")};
 
 	hrt_abstime _last_error_message{0};
 	orb_advert_t _mavlink_log_pub{nullptr};
@@ -108,26 +106,24 @@ private:
 	DataValidatorGroup _voter{1};
 	unsigned _last_failover_count{0};
 
-	uint64_t _timestamp_sample_sum[MAX_SENSOR_COUNT] {0};
-	float _data_sum[MAX_SENSOR_COUNT] {};
-	float _temperature_sum[MAX_SENSOR_COUNT] {};
-	int _data_sum_count[MAX_SENSOR_COUNT] {};
-	hrt_abstime _last_publication_timestamp[MAX_SENSOR_COUNT] {};
+	uint64_t _timestamp_sample_sum[MAX_SENSOR_COUNT]{0};
+	float _data_sum[MAX_SENSOR_COUNT]{};
+	float _temperature_sum[MAX_SENSOR_COUNT]{};
+	int _data_sum_count[MAX_SENSOR_COUNT]{};
+	hrt_abstime _last_publication_timestamp[MAX_SENSOR_COUNT]{};
 
-	float _last_data[MAX_SENSOR_COUNT] {};
-	bool _advertised[MAX_SENSOR_COUNT] {};
+	float _last_data[MAX_SENSOR_COUNT]{};
+	bool _advertised[MAX_SENSOR_COUNT]{};
 
-	float _sensor_diff[MAX_SENSOR_COUNT] {}; // filtered differences between sensor instances
+	float _sensor_diff[MAX_SENSOR_COUNT]{};  // filtered differences between sensor instances
 
-	uint8_t _priority[MAX_SENSOR_COUNT] {};
+	uint8_t _priority[MAX_SENSOR_COUNT]{};
 
 	int8_t _selected_sensor_sub_index{-1};
 
-	float _air_temperature_celsius{20.f}; // initialize with typical 20degC ambient temperature
+	float _air_temperature_celsius{20.f};  // initialize with typical 20degC ambient temperature
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,
-		(ParamFloat<px4::params::SENS_BARO_RATE>) _param_sens_baro_rate
-	)
+	DEFINE_PARAMETERS((ParamFloat<px4::params::SENS_BARO_QNH>)_param_sens_baro_qnh,
+			  (ParamFloat<px4::params::SENS_BARO_RATE>)_param_sens_baro_rate)
 };
-}; // namespace sensors
+};  // namespace sensors

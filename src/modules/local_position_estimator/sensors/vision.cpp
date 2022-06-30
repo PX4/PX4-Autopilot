@@ -1,25 +1,26 @@
-#include "../BlockLocalPositionEstimator.hpp"
 #include <systemlib/mavlink_log.h>
+
 #include <matrix/math.hpp>
+
+#include "../BlockLocalPositionEstimator.hpp"
 
 extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor to initialize.
 // This is a vision based position measurement so we assume
 // as soon as we get one measurement it is initialized.
-static const uint32_t		REQ_VISION_INIT_COUNT = 1;
+static const uint32_t REQ_VISION_INIT_COUNT = 1;
 
 // We don't want to deinitialize it because
 // this will throw away a correction before it starts using the data so we
 // set the timeout to 0.5 seconds
-static const uint32_t		VISION_TIMEOUT = 500000;	// 0.5 s
+static const uint32_t VISION_TIMEOUT = 500000;  // 0.5 s
 
 // set pose/velocity as invalid if standard deviation is bigger than EP_MAX_STD_DEV
 // TODO: the user should be allowed to set these values by a parameter
-static constexpr float 	EP_MAX_STD_DEV = 100.0f;
+static constexpr float EP_MAX_STD_DEV = 100.0f;
 
-void BlockLocalPositionEstimator::visionInit()
-{
+void BlockLocalPositionEstimator::visionInit() {
 	// measure
 	Vector<float, n_y_vision> y;
 
@@ -30,14 +31,12 @@ void BlockLocalPositionEstimator::visionInit()
 
 	// increament sums for mean
 	if (_visionStats.getCount() > REQ_VISION_INIT_COUNT) {
-		mavlink_log_info(&mavlink_log_pub, "[lpe] vision position init: "
+		mavlink_log_info(&mavlink_log_pub,
+				 "[lpe] vision position init: "
 				 "%5.2f %5.2f %5.2f m std %5.2f %5.2f %5.2f m",
-				 double(_visionStats.getMean()(0)),
-				 double(_visionStats.getMean()(1)),
-				 double(_visionStats.getMean()(2)),
-				 double(_visionStats.getStdDev()(0)),
-				 double(_visionStats.getStdDev()(1)),
-				 double(_visionStats.getStdDev()(2)));
+				 double(_visionStats.getMean()(0)), double(_visionStats.getMean()(1)),
+				 double(_visionStats.getMean()(2)), double(_visionStats.getStdDev()(0)),
+				 double(_visionStats.getStdDev()(1)), double(_visionStats.getStdDev()(2)));
 		_sensorTimeout &= ~SENSOR_VISION;
 		_sensorFault &= ~SENSOR_VISION;
 
@@ -50,7 +49,8 @@ void BlockLocalPositionEstimator::visionInit()
 
 		if (!_map_ref.isInitialized() && _is_global_cov_init) {
 			// initialize global origin using the visual estimator reference
-			mavlink_log_info(&mavlink_log_pub, "[lpe] global origin init (vision) : lat %6.2f lon %6.2f alt %5.1f m",
+			mavlink_log_info(&mavlink_log_pub,
+					 "[lpe] global origin init (vision) : lat %6.2f lon %6.2f alt %5.1f m",
 					 double(_ref_lat), double(_ref_lon), double(_ref_alt));
 			_map_ref.initReference(_ref_lat, _ref_lon);
 			// set timestamp when origin was set to current time
@@ -65,8 +65,7 @@ void BlockLocalPositionEstimator::visionInit()
 	}
 }
 
-int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
-{
+int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y) {
 	uint8_t x_variance = _sub_visual_odom.get().COVARIANCE_MATRIX_X_VARIANCE;
 	uint8_t y_variance = _sub_visual_odom.get().COVARIANCE_MATRIX_Y_VARIANCE;
 	uint8_t z_variance = _sub_visual_odom.get().COVARIANCE_MATRIX_Z_VARIANCE;
@@ -107,8 +106,7 @@ int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
 	}
 }
 
-void BlockLocalPositionEstimator::visionCorrect()
-{
+void BlockLocalPositionEstimator::visionCorrect() {
 	// measure
 	Vector<float, n_y_vision> y;
 
@@ -149,12 +147,18 @@ void BlockLocalPositionEstimator::visionCorrect()
 	// vision delayed x
 	uint8_t i_hist = 0;
 
-	float vision_delay = (_timeStamp - _sub_visual_odom.get().timestamp_sample) * 1e-6f;	// measurement delay in seconds
+	float vision_delay =
+		(_timeStamp - _sub_visual_odom.get().timestamp_sample) * 1e-6f;  // measurement delay in seconds
 
-	if (vision_delay < 0.0f) { vision_delay = 0.0f; }
+	if (vision_delay < 0.0f) {
+		vision_delay = 0.0f;
+	}
 
 	// use auto-calculated delay from measurement if parameter is set to zero
-	if (getDelayPeriods(_param_lpe_vis_delay.get() > 0.0f ? _param_lpe_vis_delay.get() : vision_delay, &i_hist) < 0) { return; }
+	if (getDelayPeriods(_param_lpe_vis_delay.get() > 0.0f ? _param_lpe_vis_delay.get() : vision_delay, &i_hist) <
+	    0) {
+		return;
+	}
 
 	Vector<float, n_x> x0 = _xDelay.get(i_hist);
 
@@ -166,18 +170,18 @@ void BlockLocalPositionEstimator::visionCorrect()
 	// publish innovations
 	_pub_innov.get().ev_hpos[0] = r(0, 0);
 	_pub_innov.get().ev_hpos[1] = r(1, 0);
-	_pub_innov.get().ev_vpos    = r(2, 0);
+	_pub_innov.get().ev_vpos = r(2, 0);
 	_pub_innov.get().ev_hvel[0] = NAN;
 	_pub_innov.get().ev_hvel[1] = NAN;
-	_pub_innov.get().ev_vvel    = NAN;
+	_pub_innov.get().ev_vvel = NAN;
 
 	// publish innovation variances
 	_pub_innov_var.get().ev_hpos[0] = S(0, 0);
 	_pub_innov_var.get().ev_hpos[1] = S(1, 1);
-	_pub_innov_var.get().ev_vpos    = S(2, 2);
+	_pub_innov_var.get().ev_vpos = S(2, 2);
 	_pub_innov_var.get().ev_hvel[0] = NAN;
 	_pub_innov_var.get().ev_hvel[1] = NAN;
-	_pub_innov_var.get().ev_vvel    = NAN;
+	_pub_innov_var.get().ev_vvel = NAN;
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_vision, n_y_vision> S_I = inv<float, n_y_vision>(S);
@@ -205,8 +209,7 @@ void BlockLocalPositionEstimator::visionCorrect()
 	}
 }
 
-void BlockLocalPositionEstimator::visionCheckTimeout()
-{
+void BlockLocalPositionEstimator::visionCheckTimeout() {
 	if (_timeStamp - _time_last_vision_p > VISION_TIMEOUT) {
 		if (!(_sensorTimeout & SENSOR_VISION)) {
 			_sensorTimeout |= SENSOR_VISION;

@@ -35,20 +35,19 @@
 
 #ifdef PX4_CRYPTO
 
+#include <px4_platform_common/crypto_algorithms.h>
+#include <px4_platform_common/sem.h>
+#include <px4_random.h>
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <px4_random.h>
-#include <px4_platform_common/crypto_algorithms.h>
-#include <px4_platform_common/sem.h>
 #include "crypto_backend_definitions.h"
 
 /*
  * Crypto API interface class
  */
 
-class PX4Crypto
-{
+class PX4Crypto {
 public:
 	/*
 	 * Constructor & destructor
@@ -91,8 +90,7 @@ public:
 	 * returns true on success, false on failure
 	 */
 
-	bool generate_key(uint8_t idx,
-			  bool persistent);
+	bool generate_key(uint8_t idx, bool persistent);
 
 	/*
 	 * Generate a key pair for asymmetric-key encryption
@@ -103,13 +101,9 @@ public:
 	 * public_idx: the public key will be stored in this index in the keystore
 	 * persistent: whether the keys need to be stored persistently
 	 * returns true on success, false on failure
-	*/
+	 */
 
-	bool generate_keypair(size_t key_size,
-			      uint8_t private_idx,
-			      uint8_t public_idx,
-			      bool persistent);
-
+	bool generate_keypair(size_t key_size, uint8_t private_idx, uint8_t public_idx, bool persistent);
 
 	/*
 	 * Re-create or set nonce.
@@ -123,7 +117,6 @@ public:
 
 	bool renew_nonce(const uint8_t *nonce, size_t nonce_size);
 
-
 	/*
 	 * Get current crypto session nonce
 	 *
@@ -134,8 +127,7 @@ public:
 	 * returns true on success, false on failure
 	 */
 
-	bool get_nonce(uint8_t *nonce,
-		       size_t *nonce_len);
+	bool get_nonce(uint8_t *nonce, size_t *nonce_len);
 
 	/*
 	 * Store a key into keystore
@@ -144,12 +136,9 @@ public:
 	 *   authenticating the key before storing
 	 * key: The pointer to the key
 	 * key_idx: Index where the key will be stored in keystore
-	*/
+	 */
 
-
-	bool set_key(uint8_t encryption_idx,
-		     const uint8_t *key,
-		     uint8_t key_idx);
+	bool set_key(uint8_t encryption_idx, const uint8_t *key, uint8_t key_idx);
 
 	/*
 	 * Get a key from keystore. Key can be encrypted
@@ -158,16 +147,13 @@ public:
 	 * key: The provided buffer to the key. If NULL, the function only provides
 	 *          the length of the key.
 	 * key_len: input: the size of the provided "key" buffer.
-	            output: the actual size of the key
+		    output: the actual size of the key
 	 * encryption_key_idx: The key index in keystore to be used for encrypting
 	 * returns true on success, false on failure
 	 *
 	 */
 
-	bool get_encrypted_key(uint8_t key_idx,
-			       uint8_t *key,
-			       size_t *key_len,
-			       uint8_t encryption_key_idx);
+	bool get_encrypted_key(uint8_t key_idx, uint8_t *key, size_t *key_len, uint8_t encryption_key_idx);
 
 	/*
 	 * PX4 Crypto API functions
@@ -180,13 +166,9 @@ public:
 	 * signature: pointer to the signature
 	 * message: pointer to the data to be verified
 	 * message_size: size of the message in bytes
-	*/
+	 */
 
-	bool signature_check(uint8_t  key_index,
-			     const uint8_t *signature,
-			     const uint8_t *message,
-			     size_t message_size);
-
+	bool signature_check(uint8_t key_index, const uint8_t *signature, const uint8_t *message, size_t message_size);
 
 	/*
 	 * Encrypt data. This always supports encryption in-place
@@ -200,10 +182,7 @@ public:
 	 * returns true on success, false on failure
 	 */
 
-	bool encrypt_data(uint8_t  key_index,
-			  const uint8_t *message,
-			  size_t message_size,
-			  uint8_t *cipher,
+	bool encrypt_data(uint8_t key_index, const uint8_t *message, size_t message_size, uint8_t *cipher,
 			  size_t *cipher_size);
 
 	size_t get_min_blocksize(uint8_t key_idx);
@@ -212,7 +191,10 @@ private:
 	crypto_session_handle_t _crypto_handle;
 	static px4_sem_t _lock;
 	static bool _initialized;
-	static void lock() { do {} while (px4_sem_wait(&PX4Crypto::_lock) != 0); }
+	static void lock() {
+		do {
+		} while (px4_sem_wait(&PX4Crypto::_lock) != 0);
+	}
 	static void unlock() { px4_sem_post(&PX4Crypto::_lock); }
 };
 

@@ -36,8 +36,8 @@
  * Included Files
  ************************************************************************************/
 
-#include <nuttx/config.h>
 #include <arch/board/board.h>
+#include <nuttx/config.h>
 
 #if defined(CONFIG_SCHED_CRITMONITOR) || defined(CONFIG_SCHED_IRQMONITOR)
 

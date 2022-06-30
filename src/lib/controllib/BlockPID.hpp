@@ -39,53 +39,49 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <assert.h>
-#include <time.h>
-#include <stdlib.h>
 #include <math.h>
-#include <mathlib/math/test/test.hpp>
+#include <px4_platform_common/defines.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
+namespace control {
 
 /**
  * A proportional-integral-derivative controller.
  * @link http://en.wikipedia.org/wiki/PID_controller
  */
-class __EXPORT BlockPID: public SuperBlock
-{
+class __EXPORT BlockPID : public SuperBlock {
 public:
-// methods
-	BlockPID(SuperBlock *parent, const char *name) :
-		SuperBlock(parent, name),
-		_integral(this, "I"),
-		_derivative(this, "D"),
-		_kP(this, "P"),
-		_kI(this, "I"),
-		_kD(this, "D")
-	{}
+	// methods
+	BlockPID(SuperBlock *parent, const char *name)
+		: SuperBlock(parent, name),
+		  _integral(this, "I"),
+		  _derivative(this, "D"),
+		  _kP(this, "P"),
+		  _kI(this, "I"),
+		  _kD(this, "D") {}
 	virtual ~BlockPID() = default;
-	float update(float input)
-	{
-		return getKP() * input +
-		       getKI() * getIntegral().update(input) +
+	float update(float input) {
+		return getKP() * input + getKI() * getIntegral().update(input) +
 		       getKD() * getDerivative().update(input);
 	}
-// accessors
+	// accessors
 	float getKP() { return _kP.get(); }
 	float getKI() { return _kI.get(); }
 	float getKD() { return _kD.get(); }
 	BlockIntegral &getIntegral() { return _integral; }
 	BlockDerivative &getDerivative() { return _derivative; }
+
 private:
-// attributes
+	// attributes
 	BlockIntegral _integral;
 	BlockDerivative _derivative;
 	control::BlockParamFloat _kP;
@@ -93,4 +89,4 @@ private:
 	control::BlockParamFloat _kD;
 };
 
-} // namespace control
+}  // namespace control

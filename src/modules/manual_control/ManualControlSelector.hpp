@@ -36,8 +36,7 @@
 #include <stdint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 
-class ManualControlSelector
-{
+class ManualControlSelector {
 public:
 	void setRcInMode(int32_t rc_in_mode) { _rc_in_mode = rc_in_mode; }
 	void setTimeout(uint64_t timeout) { _timeout = timeout; }

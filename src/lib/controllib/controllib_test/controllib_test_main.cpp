@@ -38,15 +38,19 @@
  * @author James Goppert <james.goppert@gmail.com>
  */
 
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
-#include <float.h>
 
 #include <controllib/blocks.hpp>
 
 using namespace control;
 
-#define ASSERT_CL(T) if (!(T)) { printf("FAIL\n"); return -1; }
+#define ASSERT_CL(T)              \
+	if (!(T)) {               \
+		printf("FAIL\n"); \
+		return -1;        \
+	}
 
 int basicBlocksTest();
 int blockLimitTest();
@@ -67,8 +71,7 @@ int blockRandGaussTest();
 int blockStatsTest();
 int blockDelayTest();
 
-int basicBlocksTest()
-{
+int basicBlocksTest() {
 	bool failed = false;
 	failed = failed || blockLimitTest() < 0;
 	failed = failed || blockLimitSymTest() < 0;
@@ -90,8 +93,7 @@ int basicBlocksTest()
 	return failed ? -1 : 0;
 }
 
-int blockLimitTest()
-{
+int blockLimitTest() {
 	printf("Test BlockLimit\t\t\t: ");
 	BlockLimit limit(nullptr, "TEST");
 	// initial state
@@ -106,8 +108,7 @@ int blockLimitTest()
 	return 0;
 }
 
-int blockLimitSymTest()
-{
+int blockLimitSymTest() {
 	printf("Test BlockLimitSym\t\t: ");
 	BlockLimitSym limit(nullptr, "TEST");
 	// initial state
@@ -121,8 +122,7 @@ int blockLimitSymTest()
 	return 0;
 }
 
-int blockLowPassTest()
-{
+int blockLowPassTest() {
 	printf("Test BlockLowPass\t\t: ");
 	BlockLowPass lowPass(nullptr, "TEST_LP");
 	// test initial state
@@ -149,8 +149,7 @@ int blockLowPassTest()
 	return 0;
 };
 
-int blockHighPassTest()
-{
+int blockHighPassTest() {
 	printf("Test BlockHighPass\t\t: ");
 	BlockHighPass highPass(nullptr, "TEST_HP");
 	// test initial state
@@ -180,8 +179,7 @@ int blockHighPassTest()
 	return 0;
 }
 
-int blockLowPass2Test()
-{
+int blockLowPass2Test() {
 	printf("Test BlockLowPass2\t\t: ");
 	BlockLowPass2 lowPass(nullptr, "TEST_LP", 100);
 	// test initial state
@@ -208,8 +206,7 @@ int blockLowPass2Test()
 	return 0;
 };
 
-int blockIntegralTest()
-{
+int blockIntegralTest() {
 	printf("Test BlockIntegral\t\t: ");
 	BlockIntegral integral(nullptr, "TEST_I");
 	// test initial state
@@ -245,8 +242,7 @@ int blockIntegralTest()
 	return 0;
 }
 
-int blockIntegralTrapTest()
-{
+int blockIntegralTrapTest() {
 	printf("Test BlockIntegralTrap\t\t: ");
 	BlockIntegralTrap integral(nullptr, "TEST_I");
 	// test initial state
@@ -288,8 +284,7 @@ int blockIntegralTrapTest()
 	return 0;
 }
 
-int blockDerivativeTest()
-{
+int blockDerivativeTest() {
 	printf("Test BlockDerivative\t\t: ");
 	BlockDerivative derivative(nullptr, "TEST_D");
 	// test initial state
@@ -311,8 +306,7 @@ int blockDerivativeTest()
 	return 0;
 }
 
-int blockPTest()
-{
+int blockPTest() {
 	printf("Test BlockP\t\t\t: ");
 	BlockP blockP(nullptr, "TEST_P");
 	// test initial state
@@ -327,8 +321,7 @@ int blockPTest()
 	return 0;
 }
 
-int blockPITest()
-{
+int blockPITest() {
 	printf("Test BlockPI\t\t\t: ");
 	BlockPI blockPI(nullptr, "TEST");
 	// test initial state
@@ -349,8 +342,7 @@ int blockPITest()
 	return 0;
 }
 
-int blockPDTest()
-{
+int blockPDTest() {
 	printf("Test BlockPD\t\t\t: ");
 	BlockPD blockPD(nullptr, "TEST");
 	// test initial state
@@ -374,8 +366,7 @@ int blockPDTest()
 	return 0;
 }
 
-int blockPIDTest()
-{
+int blockPIDTest() {
 	printf("Test BlockPID\t\t\t: ");
 	BlockPID blockPID(nullptr, "TEST");
 	// test initial state
@@ -404,8 +395,7 @@ int blockPIDTest()
 	return 0;
 }
 
-int blockOutputTest()
-{
+int blockOutputTest() {
 	printf("Test BlockOutput\t\t: ");
 	BlockOutput blockOutput(nullptr, "TEST");
 	// test initial state
@@ -426,8 +416,7 @@ int blockOutputTest()
 	return 0;
 }
 
-int blockRandUniformTest()
-{
+int blockRandUniformTest() {
 	srand(1234);
 	printf("Test BlockRandUniform\t\t: ");
 	BlockRandUniform blockRandUniform(nullptr, "TEST");
@@ -446,14 +435,12 @@ int blockRandUniformTest()
 		ASSERT_CL(greater_than_or_equal(val, blockRandUniform.getMin()));
 	}
 
-	ASSERT_CL(equal(mean, (blockRandUniform.getMin() +
-			       blockRandUniform.getMax()) / 2, 1e-1));
+	ASSERT_CL(equal(mean, (blockRandUniform.getMin() + blockRandUniform.getMax()) / 2, 1e-1));
 	printf("PASS\n");
 	return 0;
 }
 
-int blockRandGaussTest()
-{
+int blockRandGaussTest() {
 	srand(1234);
 	printf("Test BlockRandGauss\t\t: ");
 	BlockRandGauss blockRandGauss(nullptr, "TEST");
@@ -482,8 +469,7 @@ int blockRandGaussTest()
 	return 0;
 }
 
-int blockStatsTest()
-{
+int blockStatsTest() {
 	printf("Test BlockStats\t\t\t: ");
 	BlockStats<float, 1> stats(nullptr, "TEST");
 	ASSERT_CL(equal(0.0f, stats.getMean()(0)));
@@ -499,8 +485,7 @@ int blockStatsTest()
 	return 0;
 }
 
-int blockDelayTest()
-{
+int blockDelayTest() {
 	printf("Test BlockDelay\t\t\t: ");
 	using namespace matrix;
 	BlockDelay<float, 2, 1, 3> delay(nullptr, "TEST");
@@ -529,7 +514,4 @@ int blockDelayTest()
 
 extern "C" __EXPORT int controllib_test_main(int argc, char *argv[]);
 
-int controllib_test_main(int argc, char *argv[])
-{
-	return basicBlocksTest();
-}
+int controllib_test_main(int argc, char *argv[]) { return basicBlocksTest(); }

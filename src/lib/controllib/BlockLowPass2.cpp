@@ -37,16 +37,14 @@
  * Controller library code
  */
 
-#include <math.h>
 #include <float.h>
+#include <math.h>
 
 #include "blocks.hpp"
 
-namespace control
-{
+namespace control {
 
-float BlockLowPass2::update(float input)
-{
+float BlockLowPass2::update(float input) {
 	if (!PX4_ISFINITE(getState())) {
 		setState(input);
 	}
@@ -59,4 +57,4 @@ float BlockLowPass2::update(float input)
 	return _state;
 }
 
-} // namespace control
+}  // namespace control

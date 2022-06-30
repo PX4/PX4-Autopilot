@@ -38,27 +38,25 @@
  */
 
 #include <gtest/gtest.h>
+#include <mathlib/mathlib.h>
+
 #include <cmath>
 #include <vector>
-#include <mathlib/mathlib.h>
 
 #include "EKF/utils.hpp"
 
-TEST(eclPowfTest, compareToStandardImplementation)
-{
+TEST(eclPowfTest, compareToStandardImplementation) {
 	std::vector<int> exponents = {-3, -2, -1, -0, 0, 1, 2, 3};
 	std::vector<float> bases = {-INFINITY, -11.1f, -0.5f, -0.f, 0.f, 0.5f, 11.1f, INFINITY};
 
 	for (auto const exponent : exponents) {
 		for (auto const basis : bases) {
-			EXPECT_EQ(ecl::powf(basis, exponent),
-				  std::pow(basis, static_cast<float>(exponent)));
+			EXPECT_EQ(ecl::powf(basis, exponent), std::pow(basis, static_cast<float>(exponent)));
 		}
 	}
 }
 
-TEST(euler312YawTest, fromQuaternion)
-{
+TEST(euler312YawTest, fromQuaternion) {
 	matrix::Quatf q1(3.5f, 2.4f, -0.5f, -3.f);
 	q1.normalize();
 	const matrix::Eulerf euler1(q1);
@@ -70,29 +68,25 @@ TEST(euler312YawTest, fromQuaternion)
 	EXPECT_FLOAT_EQ(euler2(2), getEuler321Yaw(q2));
 }
 
-TEST(shouldUse321RotationSequenceTest, pitch90)
-{
+TEST(shouldUse321RotationSequenceTest, pitch90) {
 	matrix::Eulerf euler(0.f, math::radians(90), 0.f);
 	matrix::Dcmf R(euler);
 	EXPECT_FALSE(shouldUse321RotationSequence(R));
 }
 
-TEST(shouldUse321RotationSequenceTest, roll90)
-{
+TEST(shouldUse321RotationSequenceTest, roll90) {
 	matrix::Eulerf euler(math::radians(90.f), 0.f, 0.f);
 	matrix::Dcmf R(euler);
 	EXPECT_TRUE(shouldUse321RotationSequence(R));
 }
 
-TEST(shouldUse321RotationSequenceTest, moreRollThanPitch)
-{
+TEST(shouldUse321RotationSequenceTest, moreRollThanPitch) {
 	matrix::Eulerf euler(math::radians(45.f), math::radians(30.f), 0.f);
 	matrix::Dcmf R(euler);
 	EXPECT_TRUE(shouldUse321RotationSequence(R));
 }
 
-TEST(shouldUse321RotationSequenceTest, morePitchThanRoll)
-{
+TEST(shouldUse321RotationSequenceTest, morePitchThanRoll) {
 	matrix::Eulerf euler(math::radians(30.f), math::radians(45.f), 0.f);
 	matrix::Dcmf R(euler);
 	EXPECT_FALSE(shouldUse321RotationSequence(R));

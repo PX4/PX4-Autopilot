@@ -43,63 +43,54 @@
 
 #include "ms5611.h"
 
-class MS5611_I2C : public device::I2C
-{
+class MS5611_I2C : public device::I2C {
 public:
 	MS5611_I2C(uint8_t bus, ms5611::prom_u &prom_buf, int bus_frequency);
 	~MS5611_I2C() override = default;
 
-	int	read(unsigned offset, void *data, unsigned count) override;
-	int	ioctl(unsigned operation, unsigned &arg) override;
+	int read(unsigned offset, void *data, unsigned count) override;
+	int ioctl(unsigned operation, unsigned &arg) override;
 
 protected:
-	int	probe() override;
+	int probe() override;
 
 private:
-	ms5611::prom_u	&_prom;
+	ms5611::prom_u &_prom;
 
-	int		_probe_address(uint8_t address);
+	int _probe_address(uint8_t address);
 
 	/**
 	 * Send a reset command to the MS5611.
 	 *
 	 * This is required after any bus reset.
 	 */
-	int		_reset();
+	int _reset();
 
 	/**
 	 * Send a measure command to the MS5611.
 	 *
 	 * @param addr		Which address to use for the measure operation.
 	 */
-	int		_measure(unsigned addr);
+	int _measure(unsigned addr);
 
 	/**
 	 * Read the MS5611 PROM
 	 *
 	 * @return		PX4_OK if the PROM reads successfully.
 	 */
-	int		_read_prom();
-
+	int _read_prom();
 };
 
-device::Device *
-MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint32_t devid, uint8_t busnum, int bus_frequency)
-{
+device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf, uint32_t devid, uint8_t busnum, int bus_frequency) {
 	return new MS5611_I2C(busnum, prom_buf, bus_frequency);
 }
 
-MS5611_I2C::MS5611_I2C(uint8_t bus, ms5611::prom_u &prom, int bus_frequency) :
-	I2C(DRV_BARO_DEVTYPE_MS5611, MODULE_NAME, bus, 0, bus_frequency),
-	_prom(prom)
-{
-}
+MS5611_I2C::MS5611_I2C(uint8_t bus, ms5611::prom_u &prom, int bus_frequency)
+	: I2C(DRV_BARO_DEVTYPE_MS5611, MODULE_NAME, bus, 0, bus_frequency), _prom(prom) {}
 
-int
-MS5611_I2C::read(unsigned offset, void *data, unsigned count)
-{
+int MS5611_I2C::read(unsigned offset, void *data, unsigned count) {
 	union _cvt {
-		uint8_t	b[4];
+		uint8_t b[4];
 		uint32_t w;
 	} *cvt = (_cvt *)data;
 	uint8_t buf[3];
@@ -119,33 +110,27 @@ MS5611_I2C::read(unsigned offset, void *data, unsigned count)
 	return ret;
 }
 
-int
-MS5611_I2C::ioctl(unsigned operation, unsigned &arg)
-{
+int MS5611_I2C::ioctl(unsigned operation, unsigned &arg) {
 	int ret;
 
 	switch (operation) {
-	case IOCTL_RESET:
-		ret = _reset();
-		break;
+		case IOCTL_RESET:
+			ret = _reset();
+			break;
 
-	case IOCTL_MEASURE:
-		ret = _measure(arg);
-		break;
+		case IOCTL_MEASURE:
+			ret = _measure(arg);
+			break;
 
-	default:
-		ret = EINVAL;
+		default:
+			ret = EINVAL;
 	}
 
 	return ret;
 }
 
-int
-MS5611_I2C::probe()
-{
-	if ((PX4_OK == _probe_address(MS5611_ADDRESS_1)) ||
-	    (PX4_OK == _probe_address(MS5611_ADDRESS_2))) {
-
+int MS5611_I2C::probe() {
+	if ((PX4_OK == _probe_address(MS5611_ADDRESS_1)) || (PX4_OK == _probe_address(MS5611_ADDRESS_2))) {
 		return PX4_OK;
 	}
 
@@ -154,9 +139,7 @@ MS5611_I2C::probe()
 	return -EIO;
 }
 
-int
-MS5611_I2C::_probe_address(uint8_t address)
-{
+int MS5611_I2C::_probe_address(uint8_t address) {
 	/* select the address we are going to try */
 	set_device_address(address);
 
@@ -173,12 +156,10 @@ MS5611_I2C::_probe_address(uint8_t address)
 	return PX4_OK;
 }
 
-int
-MS5611_I2C::_reset()
-{
-	unsigned	old_retrycount = _retries;
-	uint8_t		cmd = ADDR_RESET_CMD;
-	int		result;
+int MS5611_I2C::_reset() {
+	unsigned old_retrycount = _retries;
+	uint8_t cmd = ADDR_RESET_CMD;
+	int result;
 
 	/* bump the retry count */
 	_retries = 3;
@@ -188,20 +169,16 @@ MS5611_I2C::_reset()
 	return result;
 }
 
-int
-MS5611_I2C::_measure(unsigned addr)
-{
+int MS5611_I2C::_measure(unsigned addr) {
 	uint8_t cmd = addr;
 	return transfer(&cmd, 1, nullptr, 0);
 }
 
-int
-MS5611_I2C::_read_prom()
-{
-	uint8_t		prom_buf[2];
+int MS5611_I2C::_read_prom() {
+	uint8_t prom_buf[2];
 	union {
-		uint8_t		b[2];
-		uint16_t	w;
+		uint8_t b[2];
+		uint16_t w;
 	} cvt;
 
 	/*
@@ -241,4 +218,4 @@ MS5611_I2C::_read_prom()
 	return (ms5611::crc4(&_prom.c[0]) && !bits_stuck) ? PX4_OK : -EIO;
 }
 
-#endif // CONFIG_I2C
+#endif  // CONFIG_I2C

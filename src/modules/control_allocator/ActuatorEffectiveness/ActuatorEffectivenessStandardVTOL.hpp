@@ -41,14 +41,13 @@
 
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
-#include "ActuatorEffectivenessControlSurfaces.hpp"
-
 #include <uORB/topics/actuator_controls.h>
 
-class ActuatorEffectivenessStandardVTOL : public ModuleParams, public ActuatorEffectiveness
-{
+#include "ActuatorEffectiveness.hpp"
+#include "ActuatorEffectivenessControlSurfaces.hpp"
+#include "ActuatorEffectivenessRotors.hpp"
+
+class ActuatorEffectivenessStandardVTOL : public ModuleParams, public ActuatorEffectiveness {
 public:
 	ActuatorEffectivenessStandardVTOL(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessStandardVTOL() = default;
@@ -59,15 +58,13 @@ public:
 
 	int numMatrices() const override { return 2; }
 
-	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
-	{
+	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override {
 		static_assert(MAX_NUM_MATRICES >= 2, "expecting at least 2 matrices");
 		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
 		allocation_method_out[1] = AllocationMethod::PSEUDO_INVERSE;
 	}
 
-	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
-	{
+	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override {
 		normalize[0] = true;
 		normalize[1] = false;
 	}
@@ -83,11 +80,10 @@ private:
 	ActuatorEffectivenessRotors _rotors;
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
 
-	uint32_t _mc_motors_mask{}; ///< mc motors (stopped during forward flight)
-	uint32_t _stopped_motors{}; ///< currently stopped motors
+	uint32_t _mc_motors_mask{};  ///< mc motors (stopped during forward flight)
+	uint32_t _stopped_motors{};  ///< currently stopped motors
 
-	int _first_control_surface_idx{0}; ///< applies to matrix 1
+	int _first_control_surface_idx{0};  ///< applies to matrix 1
 
 	uORB::Subscription _actuator_controls_1_sub{ORB_ID(actuator_controls_0)};
-
 };

@@ -36,10 +36,10 @@
 
 #pragma once
 
-#define CRC16_INITIAL           0xFFFFu
-#define CRC16_OUTPUT_XOR        0x0000u
-#define CRC64_INITIAL           0xFFFFFFFFFFFFFFFFull
-#define CRC64_OUTPUT_XOR        0xFFFFFFFFFFFFFFFFull
+#define CRC16_INITIAL 0xFFFFu
+#define CRC16_OUTPUT_XOR 0x0000u
+#define CRC64_INITIAL 0xFFFFFFFFFFFFFFFFull
+#define CRC64_OUTPUT_XOR 0xFFFFFFFFFFFFFFFFull
 
 /****************************************************************************
  * Name: util_srand

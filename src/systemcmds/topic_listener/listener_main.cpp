@@ -37,12 +37,12 @@
  * Tool for listening to topics.
  */
 
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/getopt.h>
-
 #include <poll.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
 #include <uORB/topics/uORBTopics.hpp>
+
 #include "topic_listener.hpp"
 
 // Amount of time to wait when listening for a message, before giving up.
@@ -52,10 +52,7 @@ extern "C" __EXPORT int listener_main(int argc, char *argv[]);
 
 static void usage();
 
-void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
-	      unsigned topic_interval)
-{
-
+void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance, unsigned topic_interval) {
 	if (topic_instance == -1 && num_msgs == 1) {
 		// first count the number of instances
 		int instances = 0;
@@ -105,7 +102,7 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 
 		unsigned msgs_received = 0;
 
-		struct pollfd fds[2] {};
+		struct pollfd fds[2]{};
 		// Poll for user input (for q or escape)
 		fds[0].fd = 0; /* stdin */
 		fds[0].events = POLLIN;
@@ -114,9 +111,7 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 		fds[1].events = POLLIN;
 
 		while (msgs_received < num_msgs) {
-
 			if (poll(&fds[0], 2, int(MESSAGE_TIMEOUT_S * 1000)) > 0) {
-
 				// Received character from stdin
 				if (fds[0].revents & POLLIN) {
 					char c = 0;
@@ -127,11 +122,11 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 					}
 
 					switch (c) {
-					case 0x03: // ctrl-c
-					case 0x1b: // esc
-					case 'q':
-						return;
-						/* not reached */
+						case 0x03:  // ctrl-c
+						case 0x1b:  // esc
+						case 'q':
+							return;
+							/* not reached */
 					}
 				}
 
@@ -139,7 +134,8 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 				if (fds[1].revents & POLLIN) {
 					msgs_received++;
 
-					PX4_INFO_RAW("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance, msgs_received);
+					PX4_INFO_RAW("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance,
+						     msgs_received);
 
 					int ret = listener_print_topic(id, sub);
 
@@ -149,19 +145,17 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 				}
 
 			} else {
-				PX4_INFO_RAW("Waited for %.1f seconds without a message. Giving up.\n", (double) MESSAGE_TIMEOUT_S);
+				PX4_INFO_RAW("Waited for %.1f seconds without a message. Giving up.\n",
+					     (double)MESSAGE_TIMEOUT_S);
 				break;
 			}
 		}
 
 		orb_unsubscribe(sub);
 	}
-
-
 }
 
-int listener_main(int argc, char *argv[])
-{
+int listener_main(int argc, char *argv[]) {
 	if (argc <= 1) {
 		usage();
 		return 1;
@@ -179,35 +173,33 @@ int listener_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "i:r:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+			case 'i':
+				topic_instance = strtol(myoptarg, nullptr, 0);
+				break;
 
-		case 'i':
-			topic_instance = strtol(myoptarg, nullptr, 0);
-			break;
+			case 'r':
+				topic_rate = strtol(myoptarg, nullptr, 0);
+				break;
 
-		case 'r':
-			topic_rate = strtol(myoptarg, nullptr, 0);
-			break;
+			case 'n':
+				num_msgs = strtol(myoptarg, nullptr, 0);
+				break;
 
-		case 'n':
-			num_msgs = strtol(myoptarg, nullptr, 0);
-			break;
-
-		default:
-			usage();
-			return -1;
-			break;
+			default:
+				usage();
+				return -1;
+				break;
 		}
 	}
 
 	if (num_msgs == 0) {
 		if (topic_rate != 0) {
-			num_msgs = 30 * topic_rate; // arbitrary limit (30 seconds at max rate)
+			num_msgs = 30 * topic_rate;  // arbitrary limit (30 seconds at max rate)
 
 		} else {
 			num_msgs = 1;
 		}
 	}
-
 
 	unsigned topic_interval = 0;
 
@@ -235,10 +227,7 @@ int listener_main(int argc, char *argv[])
 	return 0;
 }
 
-
-static void
-usage()
-{
+static void usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 Utility to listen on uORB topics and print the data to the console.

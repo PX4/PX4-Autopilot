@@ -32,40 +32,38 @@
  ****************************************************************************/
 #pragma once
 
-
 #include "../../../stm32_common/include/px4_arch/io_timer_hw_description.h"
 
-static inline constexpr timer_io_channels_t initIOTimerGPIOInOut(Timer::TimerChannel timer, GPIO::GPIOPin pin)
-{
+static inline constexpr timer_io_channels_t initIOTimerGPIOInOut(Timer::TimerChannel timer, GPIO::GPIOPin pin) {
 	timer_io_channels_t ret{};
 	uint32_t gpio_af = 0;
 
 	switch (timer.timer) {
-	case Timer::Timer1:
-	case Timer::Timer2:
-		gpio_af = GPIO_AF1;
-		break;
+		case Timer::Timer1:
+		case Timer::Timer2:
+			gpio_af = GPIO_AF1;
+			break;
 
-	case Timer::Timer3:
-	case Timer::Timer4:
-	case Timer::Timer5:
-		gpio_af = GPIO_AF2;
-		break;
+		case Timer::Timer3:
+		case Timer::Timer4:
+		case Timer::Timer5:
+			gpio_af = GPIO_AF2;
+			break;
 
-	case Timer::Timer6:
-	case Timer::Timer7:
-	case Timer::Timer8:
-	case Timer::Timer9:
-	case Timer::Timer10:
-	case Timer::Timer11:
-		gpio_af = GPIO_AF3;
-		break;
+		case Timer::Timer6:
+		case Timer::Timer7:
+		case Timer::Timer8:
+		case Timer::Timer9:
+		case Timer::Timer10:
+		case Timer::Timer11:
+			gpio_af = GPIO_AF3;
+			break;
 
-	case Timer::Timer12:
-	case Timer::Timer13:
-	case Timer::Timer14:
-		gpio_af = GPIO_AF9;
-		break;
+		case Timer::Timer12:
+		case Timer::Timer13:
+		case Timer::Timer14:
+			gpio_af = GPIO_AF9;
+			break;
 	}
 
 	uint32_t pin_port = getGPIOPort(pin.port) | getGPIOPin(pin.pin);

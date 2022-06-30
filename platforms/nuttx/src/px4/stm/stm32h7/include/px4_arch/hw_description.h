@@ -32,63 +32,61 @@
  ****************************************************************************/
 #pragma once
 
-
 #include "../../../stm32_common/include/px4_arch/hw_description.h"
 
-static inline constexpr uint32_t getTimerUpdateDMAMap(Timer::Timer timer, const DMA &dma)
-{
+static inline constexpr uint32_t getTimerUpdateDMAMap(Timer::Timer timer, const DMA &dma) {
 	uint32_t dma_map = 0;
 
 	switch (timer) {
-	case Timer::Timer1:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM1UP_0 : DMAMAP_DMA12_TIM1UP_1;
-		break;
+		case Timer::Timer1:
+			dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM1UP_0 : DMAMAP_DMA12_TIM1UP_1;
+			break;
 
-	case Timer::Timer2:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM2UP_0 : DMAMAP_DMA12_TIM2UP_1;
+		case Timer::Timer2:
+			dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM2UP_0 : DMAMAP_DMA12_TIM2UP_1;
 
-		break;
+			break;
 
-	case Timer::Timer3:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM3UP_0 : DMAMAP_DMA12_TIM3UP_1;
+		case Timer::Timer3:
+			dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM3UP_0 : DMAMAP_DMA12_TIM3UP_1;
 
-		break;
+			break;
 
-	case Timer::Timer4:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM4UP_0 : DMAMAP_DMA12_TIM4UP_1;
+		case Timer::Timer4:
+			dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM4UP_0 : DMAMAP_DMA12_TIM4UP_1;
 
-		break;
+			break;
 
-	case Timer::Timer5:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM5UP_0 : DMAMAP_DMA12_TIM5UP_1;
+		case Timer::Timer5:
+			dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM5UP_0 : DMAMAP_DMA12_TIM5UP_1;
 
-		break;
+			break;
 
-	case Timer::Timer6:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM6UP_0 : DMAMAP_DMA12_TIM6UP_1;
+		case Timer::Timer6:
+			dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM6UP_0 : DMAMAP_DMA12_TIM6UP_1;
 
-		break;
+			break;
 
-	case Timer::Timer7:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM7UP_0 : DMAMAP_DMA12_TIM7UP_1;
+		case Timer::Timer7:
+			dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM7UP_0 : DMAMAP_DMA12_TIM7UP_1;
 
-		break;
+			break;
 
-	case Timer::Timer8:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM8UP_0 : DMAMAP_DMA12_TIM8UP_1;
+		case Timer::Timer8:
+			dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM8UP_0 : DMAMAP_DMA12_TIM8UP_1;
 
-		break;
+			break;
 
-	case Timer::Timer9:
-	case Timer::Timer10:
-	case Timer::Timer11:
-	case Timer::Timer12:
-	case Timer::Timer13:
-	case Timer::Timer14:
-	case Timer::Timer15:
-	case Timer::Timer16:
-	case Timer::Timer17:
-		break;
+		case Timer::Timer9:
+		case Timer::Timer10:
+		case Timer::Timer11:
+		case Timer::Timer12:
+		case Timer::Timer13:
+		case Timer::Timer14:
+		case Timer::Timer15:
+		case Timer::Timer16:
+		case Timer::Timer17:
+			break;
 	}
 
 	constexpr_assert(dma_map != 0, "Invalid DMA config for given timer");

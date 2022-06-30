@@ -38,14 +38,12 @@
 
 #pragma once
 
-#include <motion_planning/VelocitySmoothing.hpp>
-
 #include <matrix/matrix/math.hpp>
+#include <motion_planning/VelocitySmoothing.hpp>
 
 using matrix::Vector2f;
 
-class ManualVelocitySmoothingXY final
-{
+class ManualVelocitySmoothingXY final {
 public:
 	ManualVelocitySmoothingXY() = default;
 	~ManualVelocitySmoothingXY() = default;
@@ -55,22 +53,19 @@ public:
 
 	void setVelSpFeedback(const Vector2f &fb) { _velocity_setpoint_feedback = fb; }
 
-	void setMaxJerk(const float max_jerk)
-	{
+	void setMaxJerk(const float max_jerk) {
 		_trajectory[0].setMaxJerk(max_jerk);
 		_trajectory[1].setMaxJerk(max_jerk);
 	}
 	float getMaxJerk() const { return _trajectory[0].getMaxJerk(); }
 
-	void setMaxAccel(const float max_accel)
-	{
+	void setMaxAccel(const float max_accel) {
 		_trajectory[0].setMaxAccel(max_accel);
 		_trajectory[1].setMaxAccel(max_accel);
 	}
 	float getMaxAccel() const { return _trajectory[0].getMaxAccel(); }
 
-	void setMaxVel(const float max_vel)
-	{
+	void setMaxVel(const float max_vel) {
 		_trajectory[0].setMaxVel(max_vel);
 		_trajectory[1].setMaxVel(max_vel);
 	}
@@ -79,16 +74,14 @@ public:
 	Vector2f getCurrentJerk() const { return _state.j; }
 	Vector2f getCurrentAcceleration() const { return _state.a; }
 
-	void setCurrentVelocity(const Vector2f &vel)
-	{
+	void setCurrentVelocity(const Vector2f &vel) {
 		_state.v = vel;
 		_trajectory[0].setCurrentVelocity(vel(0));
 		_trajectory[1].setCurrentVelocity(vel(1));
 	}
 	Vector2f getCurrentVelocity() const { return _state.v; }
 
-	void setCurrentPosition(const Vector2f &pos)
-	{
+	void setCurrentPosition(const Vector2f &pos) {
 		_state.x = pos;
 		_trajectory[0].setCurrentPosition(pos(0));
 		_trajectory[1].setCurrentPosition(pos(1));
@@ -108,7 +101,7 @@ private:
 	void checkPositionLock(const Vector2f &velocity_target);
 	void updateTrajDurations(const Vector2f &velocity_target);
 
-	VelocitySmoothing _trajectory[2]; ///< Trajectory in x and y directions
+	VelocitySmoothing _trajectory[2];  ///< Trajectory in x and y directions
 
 	bool _position_lock_active{false};
 

@@ -39,23 +39,22 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdint.h>
 
 /* BUTTON *************************************************************************** */
 
-#define BUTTON_SAFETY    /* PC14  */  (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTC|GPIO_PIN14|GPIO_EXTI)
+#define BUTTON_SAFETY /* PC14  */ (GPIO_INPUT | GPIO_PULLDOWN | GPIO_PORTC | GPIO_PIN14 | GPIO_EXTI)
 
-#define GPIO_LED_SAFETY              (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN6)
-#define GPIO_BTN_SAFETY              (BUTTON_SAFETY & ~GPIO_EXTI)
-
+#define GPIO_LED_SAFETY (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN6)
+#define GPIO_BTN_SAFETY (BUTTON_SAFETY & ~GPIO_EXTI)
 
 #define FLASH_BASED_PARAMS
 
 /* High-resolution timer */
-#define HRT_TIMER               2  /* use timer 2 for the HRT */
-#define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 1 */
+#define HRT_TIMER 2         /* use timer 2 for the HRT */
+#define HRT_TIMER_CHANNEL 1 /* use capture/compare channel 1 */
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 

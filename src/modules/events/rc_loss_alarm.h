@@ -39,20 +39,17 @@
 
 #pragma once
 
+#include <uORB/topics/tune_control.h>
+#include <uORB/topics/vehicle_status.h>
+
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/tune_control.h>
 
-namespace events
-{
-namespace rc_loss
-{
+namespace events {
+namespace rc_loss {
 
-class RC_Loss_Alarm
-{
+class RC_Loss_Alarm {
 public:
-
 	RC_Loss_Alarm() = default;
 
 	/** regularily called to handle state updates */
@@ -68,9 +65,9 @@ private:
 	uORB::Publication<tune_control_s> _tune_control_pub{ORB_ID(tune_control)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	bool 		_was_armed = false;
-	bool 		_had_rc = false;  // Don't trigger alarm for systems without RC
-	bool		_alarm_playing = false;
+	bool _was_armed = false;
+	bool _had_rc = false;  // Don't trigger alarm for systems without RC
+	bool _alarm_playing = false;
 };
 
 } /* namespace rc_loss */

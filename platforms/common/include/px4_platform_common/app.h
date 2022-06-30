@@ -40,11 +40,9 @@
 
 #pragma once
 
-namespace px4
-{
+namespace px4 {
 
-class AppState
-{
+class AppState {
 public:
 	~AppState() {}
 
@@ -59,11 +57,12 @@ public:
 protected:
 	bool _exitRequested;
 	bool _isRunning;
+
 private:
 	AppState(const AppState &);
 	const AppState &operator=(const AppState &);
 };
-}
+}  // namespace px4
 
 // Task/process based build
 

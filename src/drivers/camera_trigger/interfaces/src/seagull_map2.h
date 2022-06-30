@@ -45,8 +45,7 @@
 
 #include "camera_interface.h"
 
-class CameraInterfaceSeagull : public CameraInterface
-{
+class CameraInterfaceSeagull : public CameraInterface {
 public:
 	CameraInterfaceSeagull();
 	virtual ~CameraInterfaceSeagull();
@@ -67,7 +66,6 @@ private:
 	void setup();
 
 	bool _camera_is_on{false};
-
 };
 
 #endif /* ifdef __PX4_NUTTX */

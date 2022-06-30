@@ -36,20 +36,17 @@
 using namespace time_literals;
 
 ActuatorTest::ActuatorTest(const OutputFunction function_assignments[MAX_ACTUATORS])
-	: _function_assignments(function_assignments)
-{
+	: _function_assignments(function_assignments) {
 	reset();
 }
 
-void ActuatorTest::update(int num_outputs, float thrust_curve)
-{
+void ActuatorTest::update(int num_outputs, float thrust_curve) {
 	const hrt_abstime now = hrt_absolute_time();
 
 	actuator_test_s actuator_test;
 
 	while (_actuator_test_sub.update(&actuator_test)) {
-		if (actuator_test.timestamp == 0 ||
-		    hrt_elapsed_time(&actuator_test.timestamp) > 100_ms) {
+		if (actuator_test.timestamp == 0 || hrt_elapsed_time(&actuator_test.timestamp) > 100_ms) {
 			continue;
 		}
 
@@ -73,16 +70,19 @@ void ActuatorTest::update(int num_outputs, float thrust_curve)
 					float value = actuator_test.value;
 
 					// handle motors
-					if (actuator_test.function >= (int)OutputFunction::Motor1 && actuator_test.function <= (int)OutputFunction::MotorMax) {
+					if (actuator_test.function >= (int)OutputFunction::Motor1 &&
+					    actuator_test.function <= (int)OutputFunction::MotorMax) {
 						actuator_motors_s motors;
 						motors.reversible_flags = 0;
 						_actuator_motors_sub.copy(&motors);
 						int motor_idx = actuator_test.function - (int)OutputFunction::Motor1;
-						FunctionMotors::updateValues(motors.reversible_flags >> motor_idx, thrust_curve, &value, 1);
+						FunctionMotors::updateValues(motors.reversible_flags >> motor_idx,
+									     thrust_curve, &value, 1);
 					}
 
 					// handle servos: add trim
-					if (actuator_test.function >= (int)OutputFunction::Servo1 && actuator_test.function <= (int)OutputFunction::ServoMax) {
+					if (actuator_test.function >= (int)OutputFunction::Servo1 &&
+					    actuator_test.function <= (int)OutputFunction::ServoMax) {
 						actuator_servos_trim_s trim{};
 						_actuator_servos_trim_sub.copy(&trim);
 						int idx = actuator_test.function - (int)OutputFunction::Servo1;
@@ -120,8 +120,7 @@ void ActuatorTest::update(int num_outputs, float thrust_curve)
 	}
 }
 
-void ActuatorTest::overrideValues(float outputs[MAX_ACTUATORS], int num_outputs)
-{
+void ActuatorTest::overrideValues(float outputs[MAX_ACTUATORS], int num_outputs) {
 	if (_in_test_mode) {
 		for (int i = 0; i < num_outputs; ++i) {
 			outputs[i] = _current_outputs[i];
@@ -129,8 +128,7 @@ void ActuatorTest::overrideValues(float outputs[MAX_ACTUATORS], int num_outputs)
 	}
 }
 
-void ActuatorTest::reset()
-{
+void ActuatorTest::reset() {
 	_in_test_mode = false;
 	_next_timeout = 0;
 

@@ -32,11 +32,9 @@
  ****************************************************************************/
 #pragma once
 
-
 #include "../../../stm32_common/include/px4_arch/io_timer_hw_description.h"
 
-static inline constexpr timer_io_channels_t initIOTimerGPIOInOut(Timer::TimerChannel timer, GPIO::GPIOPin pin)
-{
+static inline constexpr timer_io_channels_t initIOTimerGPIOInOut(Timer::TimerChannel timer, GPIO::GPIOPin pin) {
 	timer_io_channels_t ret{};
 	uint32_t pin_port = getGPIOPort(pin.port) | getGPIOPin(pin.pin);
 	ret.gpio_in = (GPIO_INPUT | GPIO_CNF_INFLOAT | GPIO_MODE_INPUT) | pin_port;

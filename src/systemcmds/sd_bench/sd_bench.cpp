@@ -37,23 +37,21 @@
  * SD Card benchmarking
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
+#include <drivers/drv_hrt.h>
 #include <errno.h>
-
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/module.h>
+#include <fcntl.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
-
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 typedef struct sdb_config {
-	int num_runs; ///< number of runs
-	int run_duration; ///< duration of a single run [ms]
-	bool synchronized; ///< call fsync after each block?
+	int num_runs;       ///< number of runs
+	int run_duration;   ///< duration of a single run [ms]
+	bool synchronized;  ///< call fsync after each block?
 	bool aligned;
 	unsigned int total_blocks_written;
 } sdb_config_t;
@@ -70,10 +68,9 @@ static int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size);
  */
 static inline unsigned int time_fsync(int fd);
 
-static const char *BENCHMARK_FILE = PX4_STORAGEDIR"/benchmark.tmp";
+static const char *BENCHMARK_FILE = PX4_STORAGEDIR "/benchmark.tmp";
 
-static void usage()
-{
+static void usage() {
 	PRINT_MODULE_DESCRIPTION("Test the speed of an SD Card");
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("sd_bench", "command");
@@ -86,8 +83,7 @@ static void usage()
 	PRINT_MODULE_USAGE_PARAM_FLAG('v', "Verify data and block number", true);
 }
 
-extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int sd_bench_main(int argc, char *argv[]) {
 	int block_size = 4096;
 	bool verify = false;
 	bool keep = false;
@@ -103,38 +99,38 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "b:r:d:ksuv", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'b':
-			block_size = strtol(myoptarg, nullptr, 0);
-			break;
+			case 'b':
+				block_size = strtol(myoptarg, nullptr, 0);
+				break;
 
-		case 'r':
-			cfg.num_runs = strtol(myoptarg, nullptr, 0);
-			break;
+			case 'r':
+				cfg.num_runs = strtol(myoptarg, nullptr, 0);
+				break;
 
-		case 'd':
-			cfg.run_duration = strtol(myoptarg, nullptr, 0);
-			break;
+			case 'd':
+				cfg.run_duration = strtol(myoptarg, nullptr, 0);
+				break;
 
-		case 'k':
-			keep = true;
-			break;
+			case 'k':
+				keep = true;
+				break;
 
-		case 's':
-			cfg.synchronized = true;
-			break;
+			case 's':
+				cfg.synchronized = true;
+				break;
 
-		case 'u':
-			cfg.aligned = false;
-			break;
+			case 'u':
+				cfg.aligned = false;
+				break;
 
-		case 'v':
-			verify = true;
-			break;
+			case 'v':
+				verify = true;
+				break;
 
-		default:
-			usage();
-			return -1;
-			break;
+			default:
+				usage();
+				return -1;
+				break;
 		}
 	}
 
@@ -150,7 +146,7 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 		return -1;
 	}
 
-	//create some data block
+	// create some data block
 	if (cfg.aligned) {
 		block = (uint8_t *)px4_cache_aligned_alloc(block_size);
 
@@ -187,15 +183,13 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 	return 0;
 }
 
-unsigned int time_fsync(int fd)
-{
+unsigned int time_fsync(int fd) {
 	hrt_abstime fsync_start = hrt_absolute_time();
 	fsync(fd);
 	return hrt_elapsed_time(&fsync_start) / 1000;
 }
 
-void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
-{
+void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size) {
 	PX4_INFO("");
 	PX4_INFO("Testing Sequential Write Speed...");
 	double total_elapsed = 0.;
@@ -210,9 +204,8 @@ void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 		unsigned int fsync_time = 0;
 
 		while ((int64_t)hrt_elapsed_time(&start) < cfg->run_duration * 1000) {
-
 			hrt_abstime write_start = hrt_absolute_time();
-			*blocknumber =  total_blocks + num_blocks;
+			*blocknumber = total_blocks + num_blocks;
 			size_t written = write(fd, block, block_size);
 			unsigned int write_time = hrt_elapsed_time(&write_start) / 1000;
 
@@ -232,16 +225,16 @@ void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 			++num_blocks;
 		}
 
-		//Note: if testing a slow device (SD Card) and the OS buffers a lot (eg. Linux),
-		//fsync can take really long, and it looks like the process hangs. But it does
-		//not and the reported result will still be correct.
+		// Note: if testing a slow device (SD Card) and the OS buffers a lot (eg. Linux),
+		// fsync can take really long, and it looks like the process hangs. But it does
+		// not and the reported result will still be correct.
 		fsync_time += time_fsync(fd);
 
-		//report
+		// report
 		double elapsed = hrt_elapsed_time(&start) / 1.e6;
 		PX4_INFO("  Run %2i: %8.2lf KB/s, max write time: %i ms (=%7.2lf KB/s), fsync: %i ms", run,
-			 (double)block_size * num_blocks / elapsed / 1024.,
-			 max_write_time, (double)block_size / max_write_time * 1000. / 1024., fsync_time);
+			 (double)block_size * num_blocks / elapsed / 1024., max_write_time,
+			 (double)block_size / max_write_time * 1000. / 1024., fsync_time);
 
 		total_elapsed += elapsed;
 		total_blocks += num_blocks;
@@ -251,8 +244,7 @@ void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 	PX4_INFO("  Avg   : %8.2lf KB/s", (double)block_size * total_blocks / total_elapsed / 1024.);
 }
 
-int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
-{
+int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size) {
 	uint8_t *read_block = nullptr;
 
 	PX4_INFO("");
@@ -272,16 +264,15 @@ int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 
 	double total_elapsed = 0.;
 	unsigned int total_blocks = 0;
-	unsigned int *blocknumber = (unsigned int *)(void *) &read_block[0];
+	unsigned int *blocknumber = (unsigned int *)(void *)&read_block[0];
 
-	for (int run = 0; run < cfg->num_runs  && total_blocks < cfg->total_blocks_written; ++run) {
+	for (int run = 0; run < cfg->num_runs && total_blocks < cfg->total_blocks_written; ++run) {
 		hrt_abstime start = hrt_absolute_time();
 		unsigned int num_blocks = 0;
 		unsigned int max_read_time = 0;
 
-		while ((int64_t)hrt_elapsed_time(&start) < cfg->run_duration * 1000
-		       && total_blocks + num_blocks < cfg->total_blocks_written) {
-
+		while ((int64_t)hrt_elapsed_time(&start) < cfg->run_duration * 1000 &&
+		       total_blocks + num_blocks < cfg->total_blocks_written) {
 			hrt_abstime read_start = hrt_absolute_time();
 			size_t nread = read(fd, read_block, block_size);
 			unsigned int read_time = hrt_elapsed_time(&read_start) / 1000;
@@ -296,36 +287,33 @@ int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 				return -1;
 			}
 
-
-			if (*blocknumber !=  total_blocks + num_blocks) {
-				PX4_ERR("Read data error at block: %d wrote:0x%04x read:0x%04x", (total_blocks + num_blocks),
-					total_blocks + num_blocks, *blocknumber);
-
+			if (*blocknumber != total_blocks + num_blocks) {
+				PX4_ERR("Read data error at block: %d wrote:0x%04x read:0x%04x",
+					(total_blocks + num_blocks), total_blocks + num_blocks, *blocknumber);
 			}
-
 
 			for (unsigned int i = sizeof(*blocknumber); i < (block_size - sizeof(*blocknumber)); ++i) {
 				if (block[i] != read_block[i]) {
-					PX4_ERR("Read data error at offset: %d wrote:0x%02x read:0x%02x", total_blocks + num_blocks + i, block[i],
-						read_block[i]);
+					PX4_ERR("Read data error at offset: %d wrote:0x%02x read:0x%02x",
+						total_blocks + num_blocks + i, block[i], read_block[i]);
 				}
 			}
 
 			++num_blocks;
 		}
 
-		//report
+		// report
 		double elapsed = hrt_elapsed_time(&start) / 1.e6;
 		PX4_INFO("  Run %2i: %8.2lf KB/s, max read/verify time: %i ms (=%7.2lf KB/s)", run,
-			 (double)block_size * num_blocks / elapsed / 1024.,
-			 max_read_time, (double)block_size / max_read_time * 1000. / 1024.);
+			 (double)block_size * num_blocks / elapsed / 1024., max_read_time,
+			 (double)block_size / max_read_time * 1000. / 1024.);
 
 		total_elapsed += elapsed;
 		total_blocks += num_blocks;
 	}
 
-	PX4_INFO("  Avg   : %8.2lf KB/s %d blocks read and verified", (double)block_size * total_blocks / total_elapsed / 1024.,
-		 total_blocks);
+	PX4_INFO("  Avg   : %8.2lf KB/s %d blocks read and verified",
+		 (double)block_size * total_blocks / total_elapsed / 1024., total_blocks);
 	free(read_block);
 	return 0;
 }

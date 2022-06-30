@@ -33,9 +33,7 @@
 
 #include "autopilot_tester.h"
 
-
-TEST_CASE("Fly VTOL mission", "[vtol]")
-{
+TEST_CASE("Fly VTOL mission", "[vtol]") {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();

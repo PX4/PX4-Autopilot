@@ -31,14 +31,12 @@
  *
  ****************************************************************************/
 
-#include "PCF8583.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void
-PCF8583::print_usage()
-{
+#include "PCF8583.hpp"
+
+void PCF8583::print_usage() {
 	PRINT_MODULE_USAGE_NAME("pcf8583", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("rpm_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -48,13 +46,12 @@ PCF8583::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int pcf8583_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int pcf8583_main(int argc, char *argv[]) {
 	using ThisDriver = PCF8583;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;
 
-	//int32_t addr{0x50};
+	// int32_t addr{0x50};
 	cli.i2c_address = 0x50;
 	cli.support_keep_running = true;
 

@@ -39,19 +39,19 @@
  */
 #pragma once
 
-#include "argus.h"
-
 #include <drivers/drv_hrt.h>
-#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_config.h>
+
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
+#include "argus.h"
 
 using namespace time_literals;
 
-class AFBRS50 : public px4::ScheduledWorkItem
-{
+class AFBRS50 : public px4::ScheduledWorkItem {
 public:
 	AFBRS50(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	~AFBRS50() override;
@@ -86,26 +86,21 @@ private:
 	status_t set_rate(uint32_t rate_hz);
 
 	argus_hnd_t *_hnd{nullptr};
-	argus_mode_t _mode{ARGUS_MODE_B}; // Short-Range
+	argus_mode_t _mode{ARGUS_MODE_B};  // Short-Range
 
-	enum class STATE : uint8_t {
-		TEST,
-		CONFIGURE,
-		COLLECT,
-		STOP
-	} _state{STATE::CONFIGURE};
+	enum class STATE : uint8_t { TEST, CONFIGURE, COLLECT, STOP } _state{STATE::CONFIGURE};
 
 	PX4Rangefinder _px4_rangefinder;
 
 	hrt_abstime _measurement_time{0};
 
-	perf_counter_t _sample_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": sample interval")};
+	perf_counter_t _sample_perf{perf_alloc(PC_INTERVAL, MODULE_NAME ": sample interval")};
 
-	uint32_t _measure_interval{1000000 / 50}; // 50Hz
+	uint32_t _measure_interval{1000000 / 50};  // 50Hz
 	float _current_distance{0};
 	int8_t _current_quality{0};
-	const float _short_range_threshold = 4.0; //meters
-	const float _long_range_threshold = 6.0; //meters
+	const float _short_range_threshold = 4.0;  // meters
+	const float _long_range_threshold = 6.0;   // meters
 	float _max_distance;
 	float _min_distance;
 };

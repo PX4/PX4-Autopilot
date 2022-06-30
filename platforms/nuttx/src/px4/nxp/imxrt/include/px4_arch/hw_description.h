@@ -33,24 +33,20 @@
 
 #pragma once
 
-
+#include <board_config.h>
+#include <px4_platform_common/constexpr_util.h>
 #include <stdint.h>
 
 #include "hardware/imxrt_flexpwm.h"
-
-#include <px4_platform_common/constexpr_util.h>
-
-#include <board_config.h>
 #ifndef CONFIG_ARCH_CHIP_MIMXRT1062DVL6A
-# error "This code has only been validated with IMXRT1062. Make sure it is correct before using it on another board."
+#error "This code has only been validated with IMXRT1062. Make sure it is correct before using it on another board."
 #endif
 
 /*
  * PWM
  */
 
-namespace PWM
-{
+namespace PWM {
 enum FlexPWM {
 	FlexPWM1 = 0,
 	FlexPWM2,
@@ -84,25 +80,27 @@ struct FlexPWMConfig {
 	FlexPWMModule module;
 	FlexPWMSubmodule submodule;
 };
-}
+}  // namespace PWM
 
-static inline constexpr uint32_t getFlexPWMBaseRegister(PWM::FlexPWM pwm)
-{
+static inline constexpr uint32_t getFlexPWMBaseRegister(PWM::FlexPWM pwm) {
 	switch (pwm) {
-	case PWM::FlexPWM1: return IMXRT_FLEXPWM1_BASE;
+		case PWM::FlexPWM1:
+			return IMXRT_FLEXPWM1_BASE;
 
-	case PWM::FlexPWM2: return IMXRT_FLEXPWM2_BASE;
+		case PWM::FlexPWM2:
+			return IMXRT_FLEXPWM2_BASE;
 
-	case PWM::FlexPWM3: return IMXRT_FLEXPWM3_BASE;
+		case PWM::FlexPWM3:
+			return IMXRT_FLEXPWM3_BASE;
 
-	case PWM::FlexPWM4: return IMXRT_FLEXPWM4_BASE;
+		case PWM::FlexPWM4:
+			return IMXRT_FLEXPWM4_BASE;
 	}
 
 	return 0;
 }
 
-namespace IOMUX
-{
+namespace IOMUX {
 enum class Pad {
 	GPIO_EMC_00 = 0,
 	GPIO_EMC_01 = 1,
@@ -210,24 +208,24 @@ enum class Pad {
 	GPIO_B1_13 = 103,
 	GPIO_B1_14 = 104,
 	GPIO_B1_15 = 105,
-	GPIO_SD_B0_00 =  106,
-	GPIO_SD_B0_01 =  107,
-	GPIO_SD_B0_02 =  108,
-	GPIO_SD_B0_03 =  109,
-	GPIO_SD_B0_04 =  110,
-	GPIO_SD_B0_05 =  111,
-	GPIO_SD_B1_00 =  112,
-	GPIO_SD_B1_01 =  113,
-	GPIO_SD_B1_02 =  114,
-	GPIO_SD_B1_03 =  115,
-	GPIO_SD_B1_04 =  116,
-	GPIO_SD_B1_05 =  117,
-	GPIO_SD_B1_06 =  118,
-	GPIO_SD_B1_07 =  119,
-	GPIO_SD_B1_08 =  120,
-	GPIO_SD_B1_09 =  121,
-	GPIO_SD_B1_10 =  122,
-	GPIO_SD_B1_11 =  123,
+	GPIO_SD_B0_00 = 106,
+	GPIO_SD_B0_01 = 107,
+	GPIO_SD_B0_02 = 108,
+	GPIO_SD_B0_03 = 109,
+	GPIO_SD_B0_04 = 110,
+	GPIO_SD_B0_05 = 111,
+	GPIO_SD_B1_00 = 112,
+	GPIO_SD_B1_01 = 113,
+	GPIO_SD_B1_02 = 114,
+	GPIO_SD_B1_03 = 115,
+	GPIO_SD_B1_04 = 116,
+	GPIO_SD_B1_05 = 117,
+	GPIO_SD_B1_06 = 118,
+	GPIO_SD_B1_07 = 119,
+	GPIO_SD_B1_08 = 120,
+	GPIO_SD_B1_09 = 121,
+	GPIO_SD_B1_10 = 122,
+	GPIO_SD_B1_11 = 123,
 };
 
 }
@@ -236,8 +234,7 @@ enum class Pad {
  * GPIO
  */
 
-namespace GPIO
-{
+namespace GPIO {
 enum Port {
 	PortInvalid = 0,
 	Port1,
@@ -284,100 +281,135 @@ struct GPIOPin {
 	Port port;
 	Pin pin;
 };
-}
+}  // namespace GPIO
 
-static inline constexpr uint32_t getGPIOPort(GPIO::Port port)
-{
+static inline constexpr uint32_t getGPIOPort(GPIO::Port port) {
 	switch (port) {
-	case GPIO::Port1: return GPIO_PORT1;
+		case GPIO::Port1:
+			return GPIO_PORT1;
 
-	case GPIO::Port2: return GPIO_PORT2;
+		case GPIO::Port2:
+			return GPIO_PORT2;
 
-	case GPIO::Port3: return GPIO_PORT3;
+		case GPIO::Port3:
+			return GPIO_PORT3;
 
-	case GPIO::Port4: return GPIO_PORT4;
+		case GPIO::Port4:
+			return GPIO_PORT4;
 
-	case GPIO::Port5: return GPIO_PORT5;
+		case GPIO::Port5:
+			return GPIO_PORT5;
 
-	default: break;
+		default:
+			break;
 	}
 
 	return 0;
 }
 
-static inline constexpr uint32_t getGPIOPin(GPIO::Pin pin)
-{
+static inline constexpr uint32_t getGPIOPin(GPIO::Pin pin) {
 	switch (pin) {
-	case GPIO::Pin0: return GPIO_PIN0;
+		case GPIO::Pin0:
+			return GPIO_PIN0;
 
-	case GPIO::Pin1: return GPIO_PIN1;
+		case GPIO::Pin1:
+			return GPIO_PIN1;
 
-	case GPIO::Pin2: return GPIO_PIN2;
+		case GPIO::Pin2:
+			return GPIO_PIN2;
 
-	case GPIO::Pin3: return GPIO_PIN3;
+		case GPIO::Pin3:
+			return GPIO_PIN3;
 
-	case GPIO::Pin4: return GPIO_PIN4;
+		case GPIO::Pin4:
+			return GPIO_PIN4;
 
-	case GPIO::Pin5: return GPIO_PIN5;
+		case GPIO::Pin5:
+			return GPIO_PIN5;
 
-	case GPIO::Pin6: return GPIO_PIN6;
+		case GPIO::Pin6:
+			return GPIO_PIN6;
 
-	case GPIO::Pin7: return GPIO_PIN7;
+		case GPIO::Pin7:
+			return GPIO_PIN7;
 
-	case GPIO::Pin8: return GPIO_PIN8;
+		case GPIO::Pin8:
+			return GPIO_PIN8;
 
-	case GPIO::Pin9: return GPIO_PIN9;
+		case GPIO::Pin9:
+			return GPIO_PIN9;
 
-	case GPIO::Pin10: return GPIO_PIN10;
+		case GPIO::Pin10:
+			return GPIO_PIN10;
 
-	case GPIO::Pin11: return GPIO_PIN11;
+		case GPIO::Pin11:
+			return GPIO_PIN11;
 
-	case GPIO::Pin12: return GPIO_PIN12;
+		case GPIO::Pin12:
+			return GPIO_PIN12;
 
-	case GPIO::Pin13: return GPIO_PIN13;
+		case GPIO::Pin13:
+			return GPIO_PIN13;
 
-	case GPIO::Pin14: return GPIO_PIN14;
+		case GPIO::Pin14:
+			return GPIO_PIN14;
 
-	case GPIO::Pin15: return GPIO_PIN15;
+		case GPIO::Pin15:
+			return GPIO_PIN15;
 
-	case GPIO::Pin16: return GPIO_PIN16;
+		case GPIO::Pin16:
+			return GPIO_PIN16;
 
-	case GPIO::Pin17: return GPIO_PIN17;
+		case GPIO::Pin17:
+			return GPIO_PIN17;
 
-	case GPIO::Pin18: return GPIO_PIN18;
+		case GPIO::Pin18:
+			return GPIO_PIN18;
 
-	case GPIO::Pin19: return GPIO_PIN19;
+		case GPIO::Pin19:
+			return GPIO_PIN19;
 
-	case GPIO::Pin20: return GPIO_PIN20;
+		case GPIO::Pin20:
+			return GPIO_PIN20;
 
-	case GPIO::Pin21: return GPIO_PIN21;
+		case GPIO::Pin21:
+			return GPIO_PIN21;
 
-	case GPIO::Pin22: return GPIO_PIN22;
+		case GPIO::Pin22:
+			return GPIO_PIN22;
 
-	case GPIO::Pin23: return GPIO_PIN23;
+		case GPIO::Pin23:
+			return GPIO_PIN23;
 
-	case GPIO::Pin24: return GPIO_PIN24;
+		case GPIO::Pin24:
+			return GPIO_PIN24;
 
-	case GPIO::Pin25: return GPIO_PIN25;
+		case GPIO::Pin25:
+			return GPIO_PIN25;
 
-	case GPIO::Pin26: return GPIO_PIN26;
+		case GPIO::Pin26:
+			return GPIO_PIN26;
 
-	case GPIO::Pin27: return GPIO_PIN27;
+		case GPIO::Pin27:
+			return GPIO_PIN27;
 
-	case GPIO::Pin28: return GPIO_PIN28;
+		case GPIO::Pin28:
+			return GPIO_PIN28;
 
-	case GPIO::Pin29: return GPIO_PIN29;
+		case GPIO::Pin29:
+			return GPIO_PIN29;
 
-	case GPIO::Pin30: return GPIO_PIN30;
+		case GPIO::Pin30:
+			return GPIO_PIN30;
 
-	case GPIO::Pin31: return GPIO_PIN31;
+		case GPIO::Pin31:
+			return GPIO_PIN31;
 	}
 
 	return 0;
 }
 
-namespace SPI
-{
+namespace SPI {
 
 enum class Bus {
 	LPSPI1 = 1,
@@ -386,12 +418,12 @@ enum class Bus {
 	LPSPI4,
 };
 
-using CS = GPIO::GPIOPin; ///< chip-select pin
-using DRDY = GPIO::GPIOPin; ///< data ready pin
+using CS = GPIO::GPIOPin;    ///< chip-select pin
+using DRDY = GPIO::GPIOPin;  ///< data ready pin
 
 struct bus_device_external_cfg_t {
 	CS cs_gpio;
 	DRDY drdy_gpio;
 };
 
-} // namespace SPI
+}  // namespace SPI

@@ -33,37 +33,28 @@
 
 #include <px4_platform_common/px4_work_queue/WorkItemSingleShot.hpp>
 
-
-namespace px4
-{
+namespace px4 {
 
 WorkItemSingleShot::WorkItemSingleShot(const px4::wq_config_t &config, worker_method method, void *argument)
-	: px4::WorkItem("<single_shot>", config), _argument(argument), _method(method)
-{
+	: px4::WorkItem("<single_shot>", config), _argument(argument), _method(method) {
 	px4_sem_init(&_sem, 0, 0);
 }
 
 WorkItemSingleShot::WorkItemSingleShot(const px4::WorkItem &work_item, worker_method method, void *argument)
-	: px4::WorkItem("<single_shot>", work_item), _argument(argument), _method(method)
-{
+	: px4::WorkItem("<single_shot>", work_item), _argument(argument), _method(method) {
 	px4_sem_init(&_sem, 0, 0);
 }
 
-WorkItemSingleShot::~WorkItemSingleShot()
-{
-	px4_sem_destroy(&_sem);
+WorkItemSingleShot::~WorkItemSingleShot() { px4_sem_destroy(&_sem); }
+
+void WorkItemSingleShot::wait() {
+	while (px4_sem_wait(&_sem) != 0) {
+	}
 }
 
-void WorkItemSingleShot::wait()
-{
-	while (px4_sem_wait(&_sem) != 0) {}
-}
-
-void WorkItemSingleShot::Run()
-{
+void WorkItemSingleShot::Run() {
 	_method(_argument);
 	px4_sem_post(&_sem);
 }
 
-
-} // namespace px4
+}  // namespace px4

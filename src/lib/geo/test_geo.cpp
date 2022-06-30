@@ -32,27 +32,21 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+#include <lib/geo/geo.h>
 #include <math.h>
 #include <mathlib/mathlib.h>
-#include <memory>
-#include <lib/geo/geo.h>
 
-class GeoTest : public ::testing::Test
-{
+#include <memory>
+
+class GeoTest : public ::testing::Test {
 public:
-	void SetUp() override
-	{
-		proj.initReference(math::radians(473566094 / 1e7), math::radians(85190237 / 1e7), 0);
-	}
+	void SetUp() override { proj.initReference(math::radians(473566094 / 1e7), math::radians(85190237 / 1e7), 0); }
 
 protected:
 	MapProjection proj;
-
 };
 
-
-TEST_F(GeoTest, reprojectProject)
-{
+TEST_F(GeoTest, reprojectProject) {
 	// GIVEN: x and y coordinates in the local cartesian frame
 	float x = 0.5;
 	float y = 1;
@@ -71,8 +65,7 @@ TEST_F(GeoTest, reprojectProject)
 	EXPECT_FLOAT_EQ(lon, lon_new);
 }
 
-TEST_F(GeoTest, projectReproject)
-{
+TEST_F(GeoTest, projectReproject) {
 	// GIVEN: x and y coordinates in the local cartesian frame
 	double lat = 47.356616973876953;
 	double lon = 8.5190505981445313;
@@ -92,8 +85,7 @@ TEST_F(GeoTest, projectReproject)
 	EXPECT_FLOAT_EQ(lon, lon_new);
 }
 
-TEST_F(GeoTest, waypoint_from_heading_and_zero_distance)
-{
+TEST_F(GeoTest, waypoint_from_heading_and_zero_distance) {
 	// GIVEN: a starting waypoint, a heading and a distance of 0
 	double lat_start = -33;
 	double lon_start = 18;
@@ -111,9 +103,7 @@ TEST_F(GeoTest, waypoint_from_heading_and_zero_distance)
 	EXPECT_DOUBLE_EQ(lon_start, lon_target);
 }
 
-
-TEST_F(GeoTest, waypoint_from_heading_and_negative_distance)
-{
+TEST_F(GeoTest, waypoint_from_heading_and_negative_distance) {
 	// GIVEN: a starting waypoint, a heading and negative distance
 	double lat_start = -33;
 	double lon_start = 18;
@@ -132,8 +122,7 @@ TEST_F(GeoTest, waypoint_from_heading_and_negative_distance)
 	EXPECT_DOUBLE_EQ(lon_start, lon_target);
 }
 
-TEST_F(GeoTest, waypoint_from_heading_and_positive_distance)
-{
+TEST_F(GeoTest, waypoint_from_heading_and_positive_distance) {
 	// GIVEN: a starting waypoint, a heading and positive distance
 	double lat_start = -33;
 	double lon_start = 18;
@@ -152,8 +141,7 @@ TEST_F(GeoTest, waypoint_from_heading_and_positive_distance)
 	EXPECT_DOUBLE_EQ(lon_start, lon_target);
 }
 
-TEST_F(GeoTest, waypoint_from_line_and_zero_distance)
-{
+TEST_F(GeoTest, waypoint_from_line_and_zero_distance) {
 	// GIVEN: a starting waypoint, a heading and a distance of 0
 	double lat_start = -33;
 	double lon_start = 18;
@@ -172,8 +160,7 @@ TEST_F(GeoTest, waypoint_from_line_and_zero_distance)
 	EXPECT_DOUBLE_EQ(lon_start, lon_target);
 }
 
-TEST_F(GeoTest, waypoint_from_line_and_positive_distance)
-{
+TEST_F(GeoTest, waypoint_from_line_and_positive_distance) {
 	// GIVEN: a starting waypoint, a heading and a positive distance
 	double lat_start = -33;
 	double lon_start = 18;
@@ -193,9 +180,7 @@ TEST_F(GeoTest, waypoint_from_line_and_positive_distance)
 	EXPECT_DOUBLE_EQ(lon_start, lon_target);
 }
 
-
-TEST_F(GeoTest, waypoint_from_line_and_negative_distance)
-{
+TEST_F(GeoTest, waypoint_from_line_and_negative_distance) {
 	// GIVEN: a starting waypoint, a heading and a negative distance
 	double lat_start = -33;
 	double lon_start = 18;

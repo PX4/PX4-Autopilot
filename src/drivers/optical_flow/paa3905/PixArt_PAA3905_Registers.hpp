@@ -45,56 +45,55 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-namespace PixArt_PAA3905
-{
+namespace PixArt_PAA3905 {
 
-static constexpr uint8_t PRODUCT_ID         = 0xA2;
-static constexpr uint8_t REVISION_ID        = 0x00;
+static constexpr uint8_t PRODUCT_ID = 0xA2;
+static constexpr uint8_t REVISION_ID = 0x00;
 static constexpr uint8_t PRODUCT_ID_INVERSE = 0x5D;
 
-static constexpr uint32_t SAMPLE_INTERVAL_MODE_0{1000000 / 126}; // 126 fps
-static constexpr uint32_t SAMPLE_INTERVAL_MODE_1{1000000 / 126}; // 126 fps
-static constexpr uint32_t SAMPLE_INTERVAL_MODE_2{1000000 / 50};  // 50 fps
+static constexpr uint32_t SAMPLE_INTERVAL_MODE_0{1000000 / 126};  // 126 fps
+static constexpr uint32_t SAMPLE_INTERVAL_MODE_1{1000000 / 126};  // 126 fps
+static constexpr uint32_t SAMPLE_INTERVAL_MODE_2{1000000 / 50};   // 50 fps
 
-static constexpr uint32_t SPI_SPEED = 2 * 1000 * 1000; // 2MHz SPI serial interface
+static constexpr uint32_t SPI_SPEED = 2 * 1000 * 1000;  // 2MHz SPI serial interface
 
 // Various time delays
-static constexpr uint32_t TIME_TSWW_us      = 11; // SPI Time Between Write Commands (actually 10.5us)
-static constexpr uint32_t TIME_TSWR_us      = 6;  // SPI Time Between Write and Read Commands
+static constexpr uint32_t TIME_TSWW_us = 11;      // SPI Time Between Write Commands (actually 10.5us)
+static constexpr uint32_t TIME_TSWR_us = 6;       // SPI Time Between Write and Read Commands
 static constexpr uint32_t TIME_TSRW_TSRR_us = 2;  // SPI Time Between Read And Subsequent Commands (actually 1.5us)
-static constexpr uint32_t TIME_TSRAD_us     = 2;  // SPI Read Address-Data Delay
+static constexpr uint32_t TIME_TSRAD_us = 2;      // SPI Read Address-Data Delay
 
 enum Register : uint8_t {
-	Product_ID         = 0x00,
-	Revision_ID        = 0x01,
-	Motion             = 0x02,
-	Delta_X_L          = 0x03,
-	Delta_X_H          = 0x04,
-	Delta_Y_L          = 0x05,
-	Delta_Y_H          = 0x06,
-	Squal              = 0x07,
-	RawData_Sum        = 0x08,
-	Maximum_RawData    = 0x09,
-	Minimum_RawData    = 0x0A,
-	Shutter_Lower      = 0x0B,
-	Shutter_Middle     = 0x0C,
-	Shutter_Upper      = 0x0D,
+	Product_ID = 0x00,
+	Revision_ID = 0x01,
+	Motion = 0x02,
+	Delta_X_L = 0x03,
+	Delta_X_H = 0x04,
+	Delta_Y_L = 0x05,
+	Delta_Y_H = 0x06,
+	Squal = 0x07,
+	RawData_Sum = 0x08,
+	Maximum_RawData = 0x09,
+	Minimum_RawData = 0x0A,
+	Shutter_Lower = 0x0B,
+	Shutter_Middle = 0x0C,
+	Shutter_Upper = 0x0D,
 
-	Observation        = 0x15,
-	Motion_Burst       = 0x16,
+	Observation = 0x15,
+	Motion_Burst = 0x16,
 
-	Power_Up_Reset     = 0x3A,
-	Shutdown           = 0x3B,
+	Power_Up_Reset = 0x3A,
+	Shutdown = 0x3B,
 
-	Resolution	   = 0x4E,
+	Resolution = 0x4E,
 
 	Inverse_Product_ID = 0x5F,
 };
 
 enum Motion_Bit : uint8_t {
-	MotionOccurred     = Bit7, // Motion since last report
+	MotionOccurred = Bit7,  // Motion since last report
 
-	ChallengingSurface = Bit0, // Challenging surface is detected
+	ChallengingSurface = Bit0,  // Challenging surface is detected
 };
 
 enum Observation_Bit : uint8_t {
@@ -108,8 +107,8 @@ enum Observation_Bit : uint8_t {
 };
 
 enum class Mode {
-	Bright        = 0,
-	LowLight      = 1,
+	Bright = 0,
+	LowLight = 1,
 	SuperLowLight = 2,
 };
 
@@ -130,4 +129,4 @@ struct BURST_TRANSFER {
 	uint8_t Shutter_Lower;
 };
 
-}
+}  // namespace PixArt_PAA3905

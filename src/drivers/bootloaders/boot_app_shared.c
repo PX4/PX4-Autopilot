@@ -34,28 +34,24 @@
  *
  ****************************************************************************/
 
-#include <nuttx/config.h>
+#include "boot_app_shared.h"
 
+#include <errno.h>
+#include <lib/systemlib/crc.h>
+#include <nuttx/config.h>
+#include <px4_arch/micro_hal.h>
 #include <stdint.h>
 #include <string.h>
 
-
-#include <errno.h>
-
-#include <px4_arch/micro_hal.h>
 #include "arm_arch.h"
-#include "boot_app_shared.h"
 
-#include <lib/systemlib/crc.h>
-
-#define BOOTLOADER_COMMON_APP_SIGNATURE         0xB0A04150u
-#define BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE  0xB0A0424Cu
+#define BOOTLOADER_COMMON_APP_SIGNATURE 0xB0A04150u
+#define BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE 0xB0A0424Cu
 
 #define CRC_H 1
 #define CRC_L 0
 
-inline static void read(bootloader_app_shared_t *pshared)
-{
+inline static void read(bootloader_app_shared_t *pshared) {
 	pshared->signature = getreg32(signature_LOC);
 	pshared->bus_speed = getreg32(bus_speed_LOC);
 	pshared->node_id = getreg32(node_id_LOC);
@@ -63,8 +59,7 @@ inline static void read(bootloader_app_shared_t *pshared)
 	pshared->crc.ul[CRC_H] = getreg32(crc_HiLOC);
 }
 
-inline static void write(bootloader_app_shared_t *pshared)
-{
+inline static void write(bootloader_app_shared_t *pshared) {
 	putreg32(pshared->signature, signature_LOC);
 	putreg32(pshared->bus_speed, bus_speed_LOC);
 	putreg32(pshared->node_id, node_id_LOC);
@@ -72,8 +67,7 @@ inline static void write(bootloader_app_shared_t *pshared)
 	putreg32(pshared->crc.ul[CRC_H], crc_HiLOC);
 }
 
-static uint64_t calulate_signature(bootloader_app_shared_t *pshared)
-{
+static uint64_t calulate_signature(bootloader_app_shared_t *pshared) {
 	uint64_t crc;
 	crc = crc64_add_word(CRC64_INITIAL, pshared->signature);
 	crc = crc64_add_word(crc, pshared->bus_speed);
@@ -82,15 +76,12 @@ static uint64_t calulate_signature(bootloader_app_shared_t *pshared)
 	return crc;
 }
 
-static void bootloader_app_shared_init(bootloader_app_shared_t *pshared, eRole_t role)
-{
+static void bootloader_app_shared_init(bootloader_app_shared_t *pshared, eRole_t role) {
 	memset(pshared, 0, sizeof(bootloader_app_shared_t));
 
 	if (role != Invalid) {
 		pshared->signature =
-			(role ==
-			 App ? BOOTLOADER_COMMON_APP_SIGNATURE :
-			 BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE);
+			(role == App ? BOOTLOADER_COMMON_APP_SIGNATURE : BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE);
 	}
 }
 
@@ -121,16 +112,15 @@ static void bootloader_app_shared_init(bootloader_app_shared_t *pshared, eRole_t
  *            did not occur.
  *
  ****************************************************************************/
-__EXPORT int bootloader_app_shared_read(bootloader_app_shared_t *shared, eRole_t role)
-{
+__EXPORT int bootloader_app_shared_read(bootloader_app_shared_t *shared, eRole_t role) {
 	int rv = -EBADR;
 	bootloader_app_shared_t working;
 
 	read(&working);
 
 	if ((role == App ? working.signature == BOOTLOADER_COMMON_APP_SIGNATURE
-	     : working.signature == BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE)
-	    && (working.crc.ull == calulate_signature(&working))) {
+			 : working.signature == BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE) &&
+	    (working.crc.ull == calulate_signature(&working))) {
 		*shared = working;
 		rv = OK;
 	}
@@ -161,8 +151,7 @@ __EXPORT int bootloader_app_shared_read(bootloader_app_shared_t *shared, eRole_t
  *   None.
  *
  ****************************************************************************/
-__EXPORT void bootloader_app_shared_write(bootloader_app_shared_t *shared, eRole_t role)
-{
+__EXPORT void bootloader_app_shared_write(bootloader_app_shared_t *shared, eRole_t role) {
 	bootloader_app_shared_t working = *shared;
 	working.signature = (role == App ? BOOTLOADER_COMMON_APP_SIGNATURE : BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE);
 	working.crc.ull = calulate_signature(&working);
@@ -186,8 +175,7 @@ __EXPORT void bootloader_app_shared_write(bootloader_app_shared_t *shared, eRole
  *   None.
  *
  ****************************************************************************/
-__EXPORT void bootloader_app_shared_invalidate(void)
-{
+__EXPORT void bootloader_app_shared_invalidate(void) {
 	bootloader_app_shared_t working;
 	bootloader_app_shared_init(&working, Invalid);
 	write(&working);

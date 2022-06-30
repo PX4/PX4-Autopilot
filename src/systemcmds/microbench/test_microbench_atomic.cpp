@@ -36,49 +36,45 @@
  * Microbenchmark atomic operations.
  */
 
-#include <unit_test.h>
-
-#include <time.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/micro_hal.h>
 #include <px4_platform_common/atomic.h>
+#include <px4_platform_common/micro_hal.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+#include <unit_test.h>
 
 #ifdef __PX4_NUTTX
 #include <nuttx/irq.h>
 #endif
 
-namespace MicroBenchAtomic
-{
+namespace MicroBenchAtomic {
 
-#define PERF(name, op, count) do { \
-		px4_usleep(100); \
-		reset(); \
+#define PERF(name, op, count)                                    \
+	do {                                                     \
+		px4_usleep(100);                                 \
+		reset();                                         \
 		perf_counter_t p = perf_alloc(PC_ELAPSED, name); \
-		for (int i = 0; i < count; i++) { \
-			px4_usleep(1); \
-			lock(); \
-			perf_begin(p); \
-			op; \
-			perf_end(p); \
-			unlock(); \
-			reset(); \
-		} \
-		perf_print_counter(p); \
-		perf_free(p); \
+		for (int i = 0; i < count; i++) {                \
+			px4_usleep(1);                           \
+			lock();                                  \
+			perf_begin(p);                           \
+			op;                                      \
+			perf_end(p);                             \
+			unlock();                                \
+			reset();                                 \
+		}                                                \
+		perf_print_counter(p);                           \
+		perf_free(p);                                    \
 	} while (0)
 
-class MicroBenchAtomic : public UnitTest
-{
+class MicroBenchAtomic : public UnitTest {
 public:
 	bool run_tests() override;
 
 private:
-
 	bool time_atomic_bool();
 	bool time_atomic_int8();
 	bool time_atomic_int16();
@@ -89,22 +85,20 @@ private:
 
 	void reset();
 
-	void lock()
-	{
+	void lock() {
 #ifdef __PX4_NUTTX
 		_flags = px4_enter_critical_section();
 #endif
 	}
 
-	void unlock()
-	{
+	void unlock() {
 #ifdef __PX4_NUTTX
 		px4_leave_critical_section(_flags);
 #endif
 	}
 
 #ifdef __PX4_NUTTX
-	irqstate_t _flags {};
+	irqstate_t _flags{};
 #endif
 
 	px4::atomic<bool> _atomic_bool{false};
@@ -136,8 +130,7 @@ private:
 	hrt_abstime _test_load_hrt_abstime{};
 };
 
-bool MicroBenchAtomic::run_tests()
-{
+bool MicroBenchAtomic::run_tests() {
 	ut_run_test(time_atomic_bool);
 	ut_run_test(time_atomic_int8);
 	ut_run_test(time_atomic_int16);
@@ -149,8 +142,7 @@ bool MicroBenchAtomic::run_tests()
 	return (_tests_failed == 0);
 }
 
-void MicroBenchAtomic::reset()
-{
+void MicroBenchAtomic::reset() {
 	srand(time(nullptr));
 
 	_atomic_bool.store(rand());
@@ -180,8 +172,7 @@ void MicroBenchAtomic::reset()
 
 ut_declare_test_c(test_microbench_atomic, MicroBenchAtomic)
 
-bool MicroBenchAtomic::time_atomic_bool()
-{
+	bool MicroBenchAtomic::time_atomic_bool() {
 	PERF("atomic bool load", _test_load_bool = _atomic_bool.load(), 100);
 	PERF("atomic bool store", _atomic_bool.store(_test_load_bool), 100);
 	PERF("atomic bool load and store", _atomic_bool_storage.store(_atomic_bool.load()), 100);
@@ -195,8 +186,7 @@ bool MicroBenchAtomic::time_atomic_bool()
 	return true;
 }
 
-bool MicroBenchAtomic::time_atomic_int8()
-{
+bool MicroBenchAtomic::time_atomic_int8() {
 	PERF("atomic int8 load", _test_load_int8 = _atomic_int8.load(), 100);
 	PERF("atomic int8 store", _atomic_int8.store(_test_load_int8), 100);
 	PERF("atomic int8 load and store", _atomic_int8_storage.store(_atomic_int8.load()), 100);
@@ -216,8 +206,7 @@ bool MicroBenchAtomic::time_atomic_int8()
 	return true;
 }
 
-bool MicroBenchAtomic::time_atomic_int16()
-{
+bool MicroBenchAtomic::time_atomic_int16() {
 	PERF("atomic int16 load", _test_load_int16 = _atomic_int16.load(), 100);
 	PERF("atomic int16 store", _atomic_int16.store(_test_load_int16), 100);
 	PERF("atomic int16 load and store", _atomic_int16_storage.store(_atomic_int16.load()), 100);
@@ -237,8 +226,7 @@ bool MicroBenchAtomic::time_atomic_int16()
 	return true;
 }
 
-bool MicroBenchAtomic::time_atomic_int32()
-{
+bool MicroBenchAtomic::time_atomic_int32() {
 	PERF("atomic int32 load", _test_load_int32 = _atomic_int32.load(), 100);
 	PERF("atomic int32 store", _atomic_int32.store(_test_load_int32), 100);
 	PERF("atomic int32 load and store", _atomic_int32_storage.store(_atomic_int32.load()), 100);
@@ -258,8 +246,7 @@ bool MicroBenchAtomic::time_atomic_int32()
 	return true;
 }
 
-bool MicroBenchAtomic::time_atomic_uint32()
-{
+bool MicroBenchAtomic::time_atomic_uint32() {
 	PERF("atomic uint32 load", _test_load_uint32 = _atomic_uint32.load(), 100);
 	PERF("atomic uint32 store", _atomic_uint32_storage.store(_test_load_uint32), 100);
 	PERF("atomic uint32 load and store", _atomic_uint32_storage.store(_atomic_uint32.load()), 100);
@@ -279,11 +266,10 @@ bool MicroBenchAtomic::time_atomic_uint32()
 	return true;
 }
 
-bool MicroBenchAtomic::time_atomic_float()
-{
-	//PERF("atomic float load", volatile float test_load = _atomic_float.load(), 100);
+bool MicroBenchAtomic::time_atomic_float() {
+	// PERF("atomic float load", volatile float test_load = _atomic_float.load(), 100);
 	PERF("atomic float store", _atomic_float.store(_test_load_float), 100);
-	//PERF("atomic float load and store", _atomic_float_storage.store(_atomic_float.load()), 100);
+	// PERF("atomic float load and store", _atomic_float_storage.store(_atomic_float.load()), 100);
 
 	float expected = 42;
 	PERF("atomic float compare exchange (same)",
@@ -294,8 +280,7 @@ bool MicroBenchAtomic::time_atomic_float()
 	return true;
 }
 
-bool MicroBenchAtomic::time_atomic_hrt_abstime()
-{
+bool MicroBenchAtomic::time_atomic_hrt_abstime() {
 	ut_compare("atomic hrt_abstime load", _atomic_hrt_abstime.load(), 0);
 	PERF("atomic hrt_abstime load", volatile hrt_abstime test_load = _atomic_hrt_abstime.load(), 100);
 
@@ -317,4 +302,4 @@ bool MicroBenchAtomic::time_atomic_hrt_abstime()
 	return true;
 }
 
-} // namespace MicroBenchAtomic
+}  // namespace MicroBenchAtomic

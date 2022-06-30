@@ -41,15 +41,13 @@
  */
 
 #include "status_display.h"
+
 #include <drivers/drv_led.h>
 
-namespace events
-{
-namespace status
-{
+namespace events {
+namespace status {
 
-StatusDisplay::StatusDisplay()
-{
+StatusDisplay::StatusDisplay() {
 	// set the base color
 	_led_control.priority = 0;
 	_led_control.led_mask = 0xff;
@@ -58,11 +56,10 @@ StatusDisplay::StatusDisplay()
 	publish();
 
 	_led_control.priority = 1;
-	_led_control.num_blinks = 0;	// infinite blinking
+	_led_control.num_blinks = 0;  // infinite blinking
 }
 
-bool StatusDisplay::check_for_updates()
-{
+bool StatusDisplay::check_for_updates() {
 	bool got_updates = false;
 
 	if (_battery_status_sub.update()) {
@@ -84,8 +81,7 @@ bool StatusDisplay::check_for_updates()
 	return got_updates;
 }
 
-void StatusDisplay::process()
-{
+void StatusDisplay::process() {
 	if (!check_for_updates()) {
 		return;
 	}
@@ -93,8 +89,7 @@ void StatusDisplay::process()
 	set_leds();
 }
 
-void StatusDisplay::publish()
-{
+void StatusDisplay::publish() {
 	_led_control.timestamp = hrt_absolute_time();
 	_led_control_pub.publish(_led_control);
 }

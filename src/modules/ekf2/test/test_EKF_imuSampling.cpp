@@ -33,32 +33,23 @@
 
 #include <gtest/gtest.h>
 #include <math.h>
+
 #include "EKF/ekf.h"
 #include "EKF/imu_down_sampler.hpp"
 
-class EkfImuSamplingTest : public ::testing::TestWithParam<std::tuple<float, float, Vector3f, Vector3f>>
-{
+class EkfImuSamplingTest : public ::testing::TestWithParam<std::tuple<float, float, Vector3f, Vector3f>> {
 public:
-
 	Ekf _ekf{};
 
 	uint32_t _t_us{0};
 
 	// Setup the Ekf with synthetic measurements
-	void SetUp() override
-	{
-		_ekf.init(0);
+	void SetUp() override { _ekf.init(0); }
 
-	}
-
-	void TearDown() override
-	{
-
-	}
+	void TearDown() override {}
 };
 
-TEST_P(EkfImuSamplingTest, imuSamplingAtMultipleRates)
-{
+TEST_P(EkfImuSamplingTest, imuSamplingAtMultipleRates) {
 	// WHEN: adding imu samples at a higher rate than the update loop
 	// THEN: imu sample should be down sampled
 	// WHEN: adding imu samples at a same or lower rate than the update loop
@@ -99,29 +90,42 @@ TEST_P(EkfImuSamplingTest, imuSamplingAtMultipleRates)
 				    float(n_samples) * 1e-7f));
 }
 
-INSTANTIATE_TEST_SUITE_P(imuSamplingAtMultipleRates,
-			 EkfImuSamplingTest,
-			 ::testing::Values(
-				 std::make_tuple<float, float, Vector3f, Vector3f>(1.0f,  1.0f, Vector3f{0.0f, 0.0f, 0.0f}, Vector3f{-0.46f, 0.87f, 0.20f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(0.5f,  1.0f, Vector3f{0.0f, 0.0f, 0.0f}, Vector3f{-0.46f, 0.87f, 0.20f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(1.6f,  1.6f, Vector3f{0.0f, 0.0f, 0.0f}, Vector3f{-0.46f, 0.87f, 0.20f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(0.333f, 1.0f, Vector3f{0.0f, 0.0f, 0.0f}, Vector3f{-0.46f, 0.87f, 0.20f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(1.0f,  1.0f, Vector3f{1.0f, 0.0f, 0.0f}, Vector3f{0.0f, 0.0f, 0.0f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(0.5f,  1.0f, Vector3f{1.0f, 0.0f, 0.0f}, Vector3f{0.0f, 0.0f, 0.0f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(1.6f,  1.6f, Vector3f{1.0f, 0.0f, 0.0f}, Vector3f{0.0f, 0.0f, 0.0f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(0.333f, 1.0f, Vector3f{1.0f, 0.0f, 0.0f}, Vector3f{0.0f, 0.0f, 0.0f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(1.0f,  1.0f, Vector3f{0.0f, 1.0f, 0.0f}, Vector3f{0.0f, 0.0f, 0.0f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(0.5f,  1.0f, Vector3f{0.0f, 1.0f, 0.0f}, Vector3f{0.0f, 0.0f, 0.0f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(1.6f,  1.6f, Vector3f{0.0f, 1.0f, 0.0f}, Vector3f{0.0f, 0.0f, 0.0f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(0.333f, 1.0f, Vector3f{0.0f, 1.0f, 0.0f}, Vector3f{0.0f, 0.0f, 0.0f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(1.0f,  1.0f, Vector3f{0.0f, 0.0f, 1.0f}, Vector3f{0.0f, 0.0f, 0.0f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(0.5f,  1.0f, Vector3f{0.0f, 0.0f, 1.0f}, Vector3f{0.0f, 0.0f, 0.0f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(1.6f,  1.6f, Vector3f{0.0f, 0.0f, 1.0f}, Vector3f{0.0f, 0.0f, 0.0f}),
-				 std::make_tuple<float, float, Vector3f, Vector3f>(0.333f, 1.0f, Vector3f{0.0f, 0.0f, 1.0f}, Vector3f{0.0f, 0.0f, 0.0f})
-			 ));
+INSTANTIATE_TEST_SUITE_P(
+	imuSamplingAtMultipleRates, EkfImuSamplingTest,
+	::testing::Values(std::make_tuple<float, float, Vector3f, Vector3f>(1.0f, 1.0f, Vector3f{0.0f, 0.0f, 0.0f},
+									    Vector3f{-0.46f, 0.87f, 0.20f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(0.5f, 1.0f, Vector3f{0.0f, 0.0f, 0.0f},
+									    Vector3f{-0.46f, 0.87f, 0.20f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(1.6f, 1.6f, Vector3f{0.0f, 0.0f, 0.0f},
+									    Vector3f{-0.46f, 0.87f, 0.20f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(0.333f, 1.0f, Vector3f{0.0f, 0.0f, 0.0f},
+									    Vector3f{-0.46f, 0.87f, 0.20f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(1.0f, 1.0f, Vector3f{1.0f, 0.0f, 0.0f},
+									    Vector3f{0.0f, 0.0f, 0.0f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(0.5f, 1.0f, Vector3f{1.0f, 0.0f, 0.0f},
+									    Vector3f{0.0f, 0.0f, 0.0f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(1.6f, 1.6f, Vector3f{1.0f, 0.0f, 0.0f},
+									    Vector3f{0.0f, 0.0f, 0.0f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(0.333f, 1.0f, Vector3f{1.0f, 0.0f, 0.0f},
+									    Vector3f{0.0f, 0.0f, 0.0f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(1.0f, 1.0f, Vector3f{0.0f, 1.0f, 0.0f},
+									    Vector3f{0.0f, 0.0f, 0.0f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(0.5f, 1.0f, Vector3f{0.0f, 1.0f, 0.0f},
+									    Vector3f{0.0f, 0.0f, 0.0f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(1.6f, 1.6f, Vector3f{0.0f, 1.0f, 0.0f},
+									    Vector3f{0.0f, 0.0f, 0.0f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(0.333f, 1.0f, Vector3f{0.0f, 1.0f, 0.0f},
+									    Vector3f{0.0f, 0.0f, 0.0f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(1.0f, 1.0f, Vector3f{0.0f, 0.0f, 1.0f},
+									    Vector3f{0.0f, 0.0f, 0.0f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(0.5f, 1.0f, Vector3f{0.0f, 0.0f, 1.0f},
+									    Vector3f{0.0f, 0.0f, 0.0f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(1.6f, 1.6f, Vector3f{0.0f, 0.0f, 1.0f},
+									    Vector3f{0.0f, 0.0f, 0.0f}),
+			  std::make_tuple<float, float, Vector3f, Vector3f>(0.333f, 1.0f, Vector3f{0.0f, 0.0f, 1.0f},
+									    Vector3f{0.0f, 0.0f, 0.0f})));
 
-TEST_F(EkfImuSamplingTest, accelDownSampling)
-{
+TEST_F(EkfImuSamplingTest, accelDownSampling) {
 	int32_t target_dt_us = 8000;
 	ImuDownSampler sampler(target_dt_us);
 
@@ -149,8 +153,7 @@ TEST_F(EkfImuSamplingTest, accelDownSampling)
 	EXPECT_TRUE(matrix::isEqual(accel * 0.008f, output_sample.delta_vel, 1e-10f));
 }
 
-TEST_F(EkfImuSamplingTest, gyroDownSampling)
-{
+TEST_F(EkfImuSamplingTest, gyroDownSampling) {
 	int32_t target_dt_us = 8000;
 	ImuDownSampler sampler(target_dt_us);
 

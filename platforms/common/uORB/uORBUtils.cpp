@@ -32,11 +32,11 @@
  ****************************************************************************/
 
 #include "uORBUtils.hpp"
-#include <stdio.h>
-#include <errno.h>
 
-int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *instance)
-{
+#include <errno.h>
+#include <stdio.h>
+
+int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *instance) {
 	unsigned len;
 
 	unsigned index = 0;
@@ -56,8 +56,7 @@ int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *in
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-int uORB::Utils::node_mkpath(char *buf, const char *orbMsgName)
-{
+int uORB::Utils::node_mkpath(char *buf, const char *orbMsgName) {
 	unsigned len;
 
 	unsigned index = 0;

@@ -33,51 +33,51 @@
 
 #pragma once
 
-#include "defines.h"
-
 #include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
+#include <uORB/topics/sensor_baro.h>
+
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
-#include <lib/perf/perf_counter.h>
 
-class TCBP001TA : public px4::ScheduledWorkItem
-{
+#include "defines.h"
+
+class TCBP001TA : public px4::ScheduledWorkItem {
 public:
 	TCBP001TA(tcbp001ta::ITCBP001TA *interface);
 	virtual ~TCBP001TA();
 
-	int			init();
-	void			print_info();
+	int init();
+	void print_info();
 
-	uint32_t                tmp_osr_scale_coeff;
-	uint32_t                prs_osr_scale_coeff;
+	uint32_t tmp_osr_scale_coeff;
+	uint32_t prs_osr_scale_coeff;
 
-	uint32_t                TCBP001TA_get_scaling_coef(uint8_t osr);
+	uint32_t TCBP001TA_get_scaling_coef(uint8_t osr);
 
 private:
-	void			Run() override;
-	void			Start();
-	void			Stop();
+	void Run() override;
+	void Start();
+	void Stop();
 
-	int			measure(); //start measure
-	int			collect(); //get results and publish
+	int measure();  // start measure
+	int collect();  // get results and publish
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
-	tcbp001ta::ITCBP001TA	*_interface;
+	tcbp001ta::ITCBP001TA *_interface;
 
 	// set config, recommended settings
-	//static constexpr uint8_t	_curr_ctrl{TCBP001TA_CTRL_P16 | TCBP001TA_CTRL_T2};
-	static constexpr uint32_t	_measure_interval{TCBP001TA_MT_INIT + TCBP001TA_MT *(16 - 1 + 2 - 1)};
+	// static constexpr uint8_t	_curr_ctrl{TCBP001TA_CTRL_P16 | TCBP001TA_CTRL_T2};
+	static constexpr uint32_t _measure_interval{TCBP001TA_MT_INIT + TCBP001TA_MT * (16 - 1 + 2 - 1)};
 
-	bool			_collect_phase{false};
+	bool _collect_phase{false};
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_measure_perf;
-	perf_counter_t		_comms_errors;
+	perf_counter_t _sample_perf;
+	perf_counter_t _measure_perf;
+	perf_counter_t _comms_errors;
 
-	tcbp001ta::calibration_s	*_cal{nullptr}; //stored calibration constants
-	tcbp001ta::fcalibration_s	_fcal{}; //pre processed calibration constants
+	tcbp001ta::calibration_s *_cal{nullptr};  // stored calibration constants
+	tcbp001ta::fcalibration_s _fcal{};        // pre processed calibration constants
 };

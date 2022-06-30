@@ -41,8 +41,8 @@
 
 #ifdef __cplusplus
 
-#include "math/Limits.hpp"
 #include "math/Functions.hpp"
+#include "math/Limits.hpp"
 #include "math/SearchMin.hpp"
 #include "math/TrajMath.hpp"
 

@@ -43,40 +43,38 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-namespace ST_LPS33HW
-{
+namespace ST_LPS33HW {
 
 static constexpr uint8_t WHO_AM_I_VALUE = 0b10110001;
 
-enum class
-Register : uint8_t {
+enum class Register : uint8_t {
 
-	WHO_AM_I    = 0x0F,
-	CTRL_REG1   = 0x10,
-	CTRL_REG2   = 0x11,
-	CTRL_REG3   = 0x12,
+	WHO_AM_I = 0x0F,
+	CTRL_REG1 = 0x10,
+	CTRL_REG2 = 0x11,
+	CTRL_REG3 = 0x12,
 
-	REF_P_XL    = 0x15,
-	REF_P_L     = 0x16,
-	REF_P_H     = 0x17,
+	REF_P_XL = 0x15,
+	REF_P_L = 0x16,
+	REF_P_H = 0x17,
 
-	RPDS_L      = 0x18,
-	RPDS_H      = 0x19,
+	RPDS_L = 0x18,
+	RPDS_H = 0x19,
 
-	RES_CONF    = 0x1A,
+	RES_CONF = 0x1A,
 
-	STATUS      = 0x27,
+	STATUS = 0x27,
 	PRESS_OUT_XL = 0x28,
 	PRESS_OUT_L = 0x29,
 	PRESS_OUT_H = 0x2A,
-	TEMP_OUT_L  = 0x2B,
-	TEMP_OUT_H  = 0x2C,
+	TEMP_OUT_L = 0x2B,
+	TEMP_OUT_H = 0x2C,
 };
 
 enum CTRL_REG1 : uint8_t {
-	ODR_75HZ = Bit4 | Bit6, // Continous 75Hz update rate
-	EN_LPFP = Bit3, // enable low-pass filter
-	BDU = Bit1, // block data update
+	ODR_75HZ = Bit4 | Bit6,  // Continous 75Hz update rate
+	EN_LPFP = Bit3,          // enable low-pass filter
+	BDU = Bit1,              // block data update
 };
 
 enum CTRL_REG2 : uint8_t {
@@ -84,8 +82,8 @@ enum CTRL_REG2 : uint8_t {
 };
 
 enum STATUS : uint8_t {
-	P_DA = Bit0, // Pressure data available
-	T_DA = Bit1, // Temp data available
+	P_DA = Bit0,  // Pressure data available
+	T_DA = Bit1,  // Temp data available
 };
 
-} // namespace ST_LPS33HW
+}  // namespace ST_LPS33HW

@@ -37,8 +37,7 @@
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/tecs_status.h>
 
-class MavlinkStreamNavControllerOutput : public MavlinkStream
-{
+class MavlinkStreamNavControllerOutput : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamNavControllerOutput(mavlink); }
 
@@ -48,10 +47,10 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _position_controller_status_sub.advertised() ? MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_LEN +
-		       MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _position_controller_status_sub.advertised()
+			       ? MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+			       : 0;
 	}
 
 private:
@@ -60,12 +59,10 @@ private:
 	uORB::Subscription _position_controller_status_sub{ORB_ID(position_controller_status)};
 	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
 
-	bool send() override
-	{
+	bool send() override {
 		position_controller_status_s pos_ctrl_status;
 
 		if (_position_controller_status_sub.update(&pos_ctrl_status)) {
-
 			tecs_status_s tecs_status{};
 			_tecs_status_sub.copy(&tecs_status);
 
@@ -89,4 +86,4 @@ private:
 	}
 };
 
-#endif // NAV_CONTROLLER_OUTPUT_HPP
+#endif  // NAV_CONTROLLER_OUTPUT_HPP

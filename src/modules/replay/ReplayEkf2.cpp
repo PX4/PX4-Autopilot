@@ -46,18 +46,15 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_optical_flow.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_odometry.h>
 
 #include "ReplayEkf2.hpp"
 
-namespace px4
-{
+namespace px4 {
 
-bool
-ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file)
-{
+bool ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file) {
 	if (sub.orb_meta == ORB_ID(ekf2_timestamps)) {
 		ekf2_timestamps_s ekf2_timestamps;
 		memcpy(&ekf2_timestamps, data, sub.orb_meta->o_size);
@@ -71,17 +68,15 @@ ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data, std::ifstream &repl
 
 		return true;
 
-	} else if (sub.orb_meta == ORB_ID(vehicle_status) || sub.orb_meta == ORB_ID(vehicle_land_detected)
-		   || sub.orb_meta == ORB_ID(vehicle_gps_position)) {
+	} else if (sub.orb_meta == ORB_ID(vehicle_status) || sub.orb_meta == ORB_ID(vehicle_land_detected) ||
+		   sub.orb_meta == ORB_ID(vehicle_gps_position)) {
 		return publishTopic(sub, data);
-	} // else: do not publish
+	}  // else: do not publish
 
 	return false;
 }
 
-void
-ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
-{
+void ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id) {
 	if (sub.orb_meta == ORB_ID(sensor_combined)) {
 		_sensor_combined_msg_id = msg_id;
 
@@ -107,17 +102,15 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	// the main loop should only handle publication of the following topics, the sensor topics are
 	// handled separately in publishEkf2Topics()
 	// Note: the GPS is not treated here since not missing data is more important than the accuracy of the timestamp
-	sub.ignored = sub.orb_meta != ORB_ID(ekf2_timestamps) && sub.orb_meta != ORB_ID(vehicle_status)
-		      && sub.orb_meta != ORB_ID(vehicle_land_detected) && sub.orb_meta != ORB_ID(vehicle_gps_position);
+	sub.ignored = sub.orb_meta != ORB_ID(ekf2_timestamps) && sub.orb_meta != ORB_ID(vehicle_status) &&
+		      sub.orb_meta != ORB_ID(vehicle_land_detected) && sub.orb_meta != ORB_ID(vehicle_gps_position);
 }
 
-bool
-ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifstream &replay_file)
-{
+bool ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifstream &replay_file) {
 	auto handle_sensor_publication = [&](int16_t timestamp_relative, uint16_t msg_id) {
 		if (timestamp_relative != ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID) {
 			// timestamp_relative is already given in 0.1 ms
-			uint64_t t = timestamp_relative + ekf2_timestamps.timestamp / 100; // in 0.1 ms
+			uint64_t t = timestamp_relative + ekf2_timestamps.timestamp / 100;  // in 0.1 ms
 			findTimestampAndPublish(t, msg_id, replay_file);
 		}
 	};
@@ -136,7 +129,7 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 			return false;
 
 		} else if (!_subscriptions[_sensor_combined_msg_id]->orb_meta) {
-			return false; // read past end of file
+			return false;  // read past end of file
 
 		} else {
 			// we should publish a topic, just publish the same again
@@ -148,9 +141,7 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 	return true;
 }
 
-bool
-ReplayEkf2::findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::ifstream &replay_file)
-{
+bool ReplayEkf2::findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::ifstream &replay_file) {
 	if (msg_id == msg_id_invalid) {
 		// could happen if a topic is not logged
 		return false;
@@ -162,14 +153,14 @@ ReplayEkf2::findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::if
 		nextDataMessage(replay_file, sub, msg_id);
 	}
 
-	if (!sub.orb_meta) { // no messages anymore
+	if (!sub.orb_meta) {  // no messages anymore
 		return false;
 	}
 
 	if (sub.next_timestamp / 100 != timestamp) {
 		// this can happen in beginning of the log or on a dropout
-		PX4_DEBUG("No timestamp match found for topic %s (%i, %i)", sub.orb_meta->o_name, (int)sub.next_timestamp / 100,
-			  timestamp);
+		PX4_DEBUG("No timestamp match found for topic %s (%i, %i)", sub.orb_meta->o_name,
+			  (int)sub.next_timestamp / 100, timestamp);
 		++sub.error_counter;
 		return false;
 	}
@@ -179,15 +170,11 @@ ReplayEkf2::findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::if
 	return true;
 }
 
-void
-ReplayEkf2::onEnterMainLoop()
-{
-	_speed_factor = 0.f; // iterate as fast as possible
+void ReplayEkf2::onEnterMainLoop() {
+	_speed_factor = 0.f;  // iterate as fast as possible
 }
 
-void
-ReplayEkf2::onExitMainLoop()
-{
+void ReplayEkf2::onExitMainLoop() {
 	// print statistics
 	auto print_sensor_statistics = [this](uint16_t msg_id, const char *name) {
 		if (msg_id != msg_id_invalid) {
@@ -211,4 +198,4 @@ ReplayEkf2::onExitMainLoop()
 	print_sensor_statistics(_vehicle_visual_odometry_msg_id, "vehicle_visual_odometry");
 }
 
-} // namespace px4
+}  // namespace px4

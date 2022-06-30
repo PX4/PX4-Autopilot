@@ -46,9 +46,8 @@
 using namespace matrix;
 
 ActuatorEffectivenessRotors::ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config,
-		bool tilt_support)
-	: ModuleParams(parent), _axis_config(axis_config), _tilt_support(tilt_support)
-{
+							 bool tilt_support)
+	: ModuleParams(parent), _axis_config(axis_config), _tilt_support(tilt_support) {
 	for (int i = 0; i < NUM_ROTORS_MAX; ++i) {
 		char buffer[17];
 		snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_PX", i);
@@ -84,8 +83,7 @@ ActuatorEffectivenessRotors::ActuatorEffectivenessRotors(ModuleParams *parent, A
 	updateParams();
 }
 
-void ActuatorEffectivenessRotors::updateParams()
-{
+void ActuatorEffectivenessRotors::updateParams() {
 	ModuleParams::updateParams();
 
 	int32_t count = 0;
@@ -106,19 +104,19 @@ void ActuatorEffectivenessRotors::updateParams()
 		Vector3f &axis = _geometry.rotors[i].axis;
 
 		switch (_axis_config) {
-		case AxisConfiguration::Configurable:
-			param_get(_param_handles[i].axis_x, &axis(0));
-			param_get(_param_handles[i].axis_y, &axis(1));
-			param_get(_param_handles[i].axis_z, &axis(2));
-			break;
+			case AxisConfiguration::Configurable:
+				param_get(_param_handles[i].axis_x, &axis(0));
+				param_get(_param_handles[i].axis_y, &axis(1));
+				param_get(_param_handles[i].axis_z, &axis(2));
+				break;
 
-		case AxisConfiguration::FixedForward:
-			axis = Vector3f(1.f, 0.f, 0.f);
-			break;
+			case AxisConfiguration::FixedForward:
+				axis = Vector3f(1.f, 0.f, 0.f);
+				break;
 
-		case AxisConfiguration::FixedUpwards:
-			axis = Vector3f(0.f, 0.f, -1.f);
-			break;
+			case AxisConfiguration::FixedUpwards:
+				axis = Vector3f(0.f, 0.f, -1.f);
+				break;
 		}
 
 		param_get(_param_handles[i].thrust_coef, &_geometry.rotors[i].thrust_coef);
@@ -135,29 +133,25 @@ void ActuatorEffectivenessRotors::updateParams()
 	}
 }
 
-bool
-ActuatorEffectivenessRotors::addActuators(Configuration &configuration)
-{
+bool ActuatorEffectivenessRotors::addActuators(Configuration &configuration) {
 	if (configuration.num_actuators[(int)ActuatorType::SERVOS] > 0) {
 		PX4_ERR("Wrong actuator ordering: servos need to be after motors");
 		return false;
 	}
 
-	int num_actuators = computeEffectivenessMatrix(_geometry,
-			    configuration.effectiveness_matrices[configuration.selected_matrix],
-			    configuration.num_actuators_matrix[configuration.selected_matrix]);
+	int num_actuators = computeEffectivenessMatrix(
+		_geometry, configuration.effectiveness_matrices[configuration.selected_matrix],
+		configuration.num_actuators_matrix[configuration.selected_matrix]);
 	configuration.actuatorsAdded(ActuatorType::MOTORS, num_actuators);
 	return true;
 }
 
-int
-ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry,
-		EffectivenessMatrix &effectiveness, int actuator_start_index)
-{
+int ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry,
+							    EffectivenessMatrix &effectiveness,
+							    int actuator_start_index) {
 	int num_actuators = 0;
 
 	for (int i = 0; i < geometry.num_rotors; i++) {
-
 		if (i + actuator_start_index >= NUM_ACTUATORS) {
 			break;
 		}
@@ -219,10 +213,11 @@ ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry
 		}
 
 		if (geometry.three_dimensional_thrust_disabled) {
-			// Special case tiltrotor: instead of passing a 3D thrust vector (that would mostly have a x-component in FW, and z in MC),
-			// pass the vector magnitude as z-component, plus the collective tilt. Passing 3D thrust plus tilt is not feasible as they
-			// can't be allocated independently, and with the current controller it's not possible to have collective tilt calculated
-			// by the allocator directly.
+			// Special case tiltrotor: instead of passing a 3D thrust vector (that would mostly have a
+			// x-component in FW, and z in MC), pass the vector magnitude as z-component, plus the
+			// collective tilt. Passing 3D thrust plus tilt is not feasible as they can't be allocated
+			// independently, and with the current controller it's not possible to have collective tilt
+			// calculated by the allocator directly.
 
 			effectiveness(0 + 3, i + actuator_start_index) = 0.f;
 			effectiveness(1 + 3, i + actuator_start_index) = 0.f;
@@ -233,8 +228,7 @@ ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry
 	return num_actuators;
 }
 
-uint32_t ActuatorEffectivenessRotors::updateAxisFromTilts(const ActuatorEffectivenessTilts &tilts, float tilt_control)
-{
+uint32_t ActuatorEffectivenessRotors::updateAxisFromTilts(const ActuatorEffectivenessTilts &tilts, float tilt_control) {
 	if (!PX4_ISFINITE(tilt_control)) {
 		tilt_control = -1.f;
 	}
@@ -258,14 +252,12 @@ uint32_t ActuatorEffectivenessRotors::updateAxisFromTilts(const ActuatorEffectiv
 	return nontilted_motors;
 }
 
-Vector3f ActuatorEffectivenessRotors::tiltedAxis(float tilt_angle, float tilt_direction)
-{
+Vector3f ActuatorEffectivenessRotors::tiltedAxis(float tilt_angle, float tilt_direction) {
 	Vector3f axis{0.f, 0.f, -1.f};
 	return Dcmf{Eulerf{0.f, -tilt_angle, tilt_direction}} * axis;
 }
 
-uint32_t ActuatorEffectivenessRotors::getUpwardsMotors() const
-{
+uint32_t ActuatorEffectivenessRotors::getUpwardsMotors() const {
 	uint32_t upwards_motors = 0;
 
 	for (int i = 0; i < _geometry.num_rotors; ++i) {
@@ -279,10 +271,8 @@ uint32_t ActuatorEffectivenessRotors::getUpwardsMotors() const
 	return upwards_motors;
 }
 
-bool
-ActuatorEffectivenessRotors::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
-{
+bool ActuatorEffectivenessRotors::getEffectivenessMatrix(Configuration &configuration,
+							 EffectivenessUpdateReason external_update) {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}

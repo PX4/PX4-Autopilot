@@ -33,54 +33,51 @@
  *
  ************************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
+#include <debug.h>
 #include <drivers/drv_sensor.h>
 #include <nuttx/spi/spi.h>
-
+#include <px4_arch/spi_hw_description.h>
 #include <px4_platform_common/px4_config.h>
-
-#include <stdint.h>
 #include <stdbool.h>
-#include <debug.h>
+#include <stdint.h>
 //#include <unistd.h>
 
-#include <nuttx/spi/spi.h>
 #include <arch/board/board.h>
+#include <kinetis.h>
+#include <nuttx/spi/spi.h>
+#include <systemlib/px4_macros.h>
 
 #include "arm_arch.h"
-#include "chip.h"
-#include <kinetis.h>
 #include "board_config.h"
-#include <systemlib/px4_macros.h>
+#include "chip.h"
 
 #if defined(CONFIG_KINETIS_SPI0) || defined(CONFIG_KINETIS_SPI1) || defined(CONFIG_KINETIS_SPI2)
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI0, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortC, GPIO::Pin2})
-	}),
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_ACC_DEVTYPE_FXOS8701C, SPI::CS{GPIO::PortB, GPIO::Pin10}),
-		initSPIDevice(DRV_GYR_DEVTYPE_FXAS2100C, SPI::CS{GPIO::PortB, GPIO::Pin9}),
-		initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortA, GPIO::Pin19}),
-	}, {GPIO::PortB, GPIO::Pin8}),
-	initSPIBusExternal(SPI::Bus::SPI2, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortB, GPIO::Pin20}),
-		initSPIConfigExternal(SPI::CS{GPIO::PortD, GPIO::Pin15}),
-	}),
+	initSPIBus(SPI::Bus::SPI0, {initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortC, GPIO::Pin2})}),
+	initSPIBus(SPI::Bus::SPI1,
+		   {
+			   initSPIDevice(DRV_ACC_DEVTYPE_FXOS8701C, SPI::CS{GPIO::PortB, GPIO::Pin10}),
+			   initSPIDevice(DRV_GYR_DEVTYPE_FXAS2100C, SPI::CS{GPIO::PortB, GPIO::Pin9}),
+			   initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortA, GPIO::Pin19}),
+		   },
+		   {GPIO::PortB, GPIO::Pin8}),
+	initSPIBusExternal(SPI::Bus::SPI2,
+			   {
+				   initSPIConfigExternal(SPI::CS{GPIO::PortB, GPIO::Pin20}),
+				   initSPIConfigExternal(SPI::CS{GPIO::PortD, GPIO::Pin15}),
+			   }),
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses);
 
-
-#define PX4_MK_GPIO(pin_ftmx, io)    ((((uint32_t)(pin_ftmx)) & ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) |(io))
+#define PX4_MK_GPIO(pin_ftmx, io) ((((uint32_t)(pin_ftmx)) & ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) | (io))
 
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 
-__EXPORT void board_spi_reset(int ms, int bus_mask)
-{
+__EXPORT void board_spi_reset(int ms, int bus_mask) {
 	/* Goal not to back feed the chips on the bus via IO lines */
 
 	/* First float the A_MISO line tied to SA0 to ensure SPI Auto selection*/
@@ -93,7 +90,8 @@ __EXPORT void board_spi_reset(int ms, int bus_mask)
 		if (px4_spi_buses[bus].bus == PX4_BUS_NUMBER_TO_PX4(1)) {
 			for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
 				if (px4_spi_buses[bus].devices[i].cs_gpio != 0) {
-					kinetis_pinconfig(PX4_MK_GPIO(px4_spi_buses[bus].devices[i].cs_gpio, GPIO_PULLDOWN));
+					kinetis_pinconfig(
+						PX4_MK_GPIO(px4_spi_buses[bus].devices[i].cs_gpio, GPIO_PULLDOWN));
 				}
 			}
 		}
@@ -173,8 +171,7 @@ __EXPORT void board_spi_reset(int ms, int bus_mask)
  *
  ************************************************************************************/
 
-void fmuk66_spidev_initialize(void)
-{
+void fmuk66_spidev_initialize(void) {
 	board_spi_reset(10, 0xffff);
 
 	for (int bus = 0; bus < SPI_BUS_MAX_BUS_ITEMS; ++bus) {
@@ -197,15 +194,20 @@ static const px4_spi_bus_t *_spi_bus0;
 static const px4_spi_bus_t *_spi_bus1;
 static const px4_spi_bus_t *_spi_bus2;
 
-__EXPORT int fmuk66_spi_bus_initialize(void)
-{
+__EXPORT int fmuk66_spi_bus_initialize(void) {
 	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
 		switch (px4_spi_buses[i].bus) {
-		case PX4_BUS_NUMBER_TO_PX4(0): _spi_bus0 = &px4_spi_buses[i]; break;
+			case PX4_BUS_NUMBER_TO_PX4(0):
+				_spi_bus0 = &px4_spi_buses[i];
+				break;
 
-		case PX4_BUS_NUMBER_TO_PX4(1): _spi_bus1 = &px4_spi_buses[i]; break;
+			case PX4_BUS_NUMBER_TO_PX4(1):
+				_spi_bus1 = &px4_spi_buses[i];
+				break;
 
-		case PX4_BUS_NUMBER_TO_PX4(2): _spi_bus2 = &px4_spi_buses[i]; break;
+			case PX4_BUS_NUMBER_TO_PX4(2):
+				_spi_bus2 = &px4_spi_buses[i];
+				break;
 		}
 	}
 
@@ -267,7 +269,6 @@ __EXPORT int fmuk66_spi_bus_initialize(void)
 	}
 
 	return OK;
-
 }
 
 /************************************************************************************
@@ -298,8 +299,7 @@ __EXPORT int fmuk66_spi_bus_initialize(void)
  *
  ************************************************************************************/
 
-static inline void kinetis_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+static inline void kinetis_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
 		if (bus->devices[i].cs_gpio == 0) {
 			break;
@@ -312,38 +312,25 @@ static inline void kinetis_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s
 	}
 }
 
-void kinetis_spi0select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+void kinetis_spi0select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 	kinetis_spixselect(_spi_bus0, dev, devid, selected);
 }
 
-uint8_t kinetis_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
+uint8_t kinetis_spi0status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
 
-void kinetis_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+void kinetis_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 	kinetis_spixselect(_spi_bus1, dev, devid, selected);
 }
 
-uint8_t kinetis_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
+uint8_t kinetis_spi1status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
 
-void kinetis_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+void kinetis_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 	kinetis_spixselect(_spi_bus2, dev, devid, selected);
 }
 
-uint8_t kinetis_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
-
+uint8_t kinetis_spi2status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
 
 #endif /* CONFIG_KINETIS_SPI0 || CONFIG_KINETIS_SPI1 || CONFIG_KINETIS_SPI2 */

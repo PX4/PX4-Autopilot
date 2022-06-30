@@ -34,8 +34,9 @@
  *
  ****************************************************************************/
 
-#include <stdint.h>
 #include "random.h"
+
+#include <stdint.h>
 
 #define RAND_MAX_32 ((1U << 31) - 1)
 
@@ -55,10 +56,7 @@ static uint32_t rseed;
  *   None
  *
  ****************************************************************************/
-void util_srand(uint16_t seed)
-{
-	rseed = seed;
-}
+void util_srand(uint16_t seed) { rseed = seed; }
 
 /****************************************************************************
  * Name: util_random
@@ -75,8 +73,7 @@ void util_srand(uint16_t seed)
  *   A random number
  *
  ****************************************************************************/
-uint16_t util_random(uint16_t min, uint16_t max)
-{
+uint16_t util_random(uint16_t min, uint16_t max) {
 	uint16_t rand = (rseed = (rseed * 214013 + 2531011) & RAND_MAX_32) >> 16;
 	return rand % (max - min) + min;
 }

@@ -45,37 +45,31 @@
  * Included Files
  ****************************************************************************/
 
+#include <arch/board/board.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform_common/init.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
-
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
-#include <syslog.h>
-
-#include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-
 #include <stm32.h>
-#include "board_config.h"
 #include <stm32_uart.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
-
+#include <string.h>
+#include <syslog.h>
 #include <systemlib/px4_macros.h>
 
-#include <px4_arch/io_timer.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/board_dma_alloc.h>
+#include "board_config.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -111,8 +105,7 @@ __END_DECLS
  *          0 if just resetting
  *
  ************************************************************************************/
-__EXPORT void board_on_reset(int status)
-{
+__EXPORT void board_on_reset(int status) {
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
 	}
@@ -133,8 +126,7 @@ __EXPORT void board_on_reset(int status)
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
+__EXPORT void board_peripheral_reset(int ms) {
 	/* set the peripheral rails off */
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
 	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
@@ -159,9 +151,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *
  ************************************************************************************/
 
-__EXPORT void
-stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	// Reset all PWM to Low outputs.
 
 	board_on_reset(-1);
@@ -172,12 +162,12 @@ stm32_boardinitialize(void)
 
 	/* configure ADC pins */
 
-	px4_arch_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	px4_arch_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	px4_arch_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN2);  /* BATT_VOLTAGE_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN3);  /* BATT_CURRENT_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN4);  /* VDD_5V_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN13); /* FMU_AUX_ADC_1 */
+	px4_arch_configgpio(GPIO_ADC1_IN14); /* FMU_AUX_ADC_2 */
+	px4_arch_configgpio(GPIO_ADC1_IN15); /* PRESSURE_SENS */
 
 	/* configure power supply control/sense pins */
 	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_EN);
@@ -197,7 +187,6 @@ stm32_boardinitialize(void)
 	/* configure USB interface */
 
 	stm32_usbinitialize();
-
 }
 
 /****************************************************************************
@@ -225,14 +214,11 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-
 static struct spi_dev_s *spi1;
 static struct spi_dev_s *spi2;
 static struct sdio_dev_s *sdio;
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
-
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	px4_platform_init();
 
 	/* configure the DMA allocator */
@@ -287,7 +273,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH(0), false);
-
 
 #ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */

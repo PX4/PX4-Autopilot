@@ -98,33 +98,31 @@
  *
  */
 
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/compiler.h>
-
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <systemlib/px4_macros.h>
 
 #include "bitminip.h"
 #include "can.h"
-#include <systemlib/px4_macros.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 #define sizeof_member(t, m) sizeof(((t *)0)->m)
-#define UAVCAN_STRLEN(x) sizeof((x))-1
-#define uavcan_exclude(x, name) BITFEILD_EXCLUDE((x), BitPos##name,Length##name)
+#define UAVCAN_STRLEN(x) sizeof((x)) - 1
+#define uavcan_exclude(x, name) BITFEILD_EXCLUDE((x), BitPos##name, Length##name)
 #define uavcan_make_uint16(d0, d1) (uint16_t)(((d1) << 8u) | (d0))
 
 #define uavcan_dsdl_field(op, data_typ_name, field_name) (op##data_typ_name##field_name)
-#define uavcan_bit_pos(data_typ_name, field_name)    uavcan_dsdl_field(BitPos, data_typ_name, field_name)
-#define uavcan_bit_mask(data_typ_name, field_name)   uavcan_dsdl_field(Mask, data_typ_name, field_name)
+#define uavcan_bit_pos(data_typ_name, field_name) uavcan_dsdl_field(BitPos, data_typ_name, field_name)
+#define uavcan_bit_mask(data_typ_name, field_name) uavcan_dsdl_field(Mask, data_typ_name, field_name)
 #define uavcan_bit_count(data_typ_name, field_name) uavcan_dsdl_field(Length, data_typ_name, field_name)
 
 #define uavcan_byte_offset(data_typ_name, field_name) uavcan_dsdl_field(PayloadOffset, data_typ_name, field_name)
@@ -136,7 +134,7 @@
 #define uavcan_rpack(d, data_typ_name, field_name) uavcan_pack(d.field_name, data_typ_name, field_name)
 
 #define uavcan_unpack(d, data_typ_name, field_name) \
-	(((d) & uavcan_bit_mask(data_typ_name, field_name)) >> uavcan_bit_pos(data_typ_name, field_name))
+	(((d)&uavcan_bit_mask(data_typ_name, field_name)) >> uavcan_bit_pos(data_typ_name, field_name))
 #define uavcan_punpack(d, data_typ_name, field_name) uavcan_unpack(d->field_name, data_typ_name, field_name)
 #define uavcan_runpack(d, data_typ_name, field_name) uavcan_unpack(d.field_name, data_typ_name, field_name)
 
@@ -146,19 +144,19 @@
  * Auto Generated Public Type Definitions
  ****************************************************************************/
 /* CAN ID fields */
-#define UAVCAN_BIT_DEFINE(field_name, lsb_pos, length) Mask##field_name  =  BITFEILD_MASK((lsb_pos), (length)),
+#define UAVCAN_BIT_DEFINE(field_name, lsb_pos, length) Mask##field_name = BITFEILD_MASK((lsb_pos), (length)),
 typedef enum uavcan_can_id_mask_t {
 #include "uavcan_can_id_defs.h"
 } uavcan_can_id_mask_t;
 #undef UAVCAN_BIT_DEFINE
 
-#define UAVCAN_BIT_DEFINE(field_name, lsb_pos, length) BitPos##field_name  =  (lsb_pos),
+#define UAVCAN_BIT_DEFINE(field_name, lsb_pos, length) BitPos##field_name = (lsb_pos),
 typedef enum uavcan_can_id_pos_t {
 #include "uavcan_can_id_defs.h"
 } uavcan_can_id_pos_t;
 #undef UAVCAN_BIT_DEFINE
 
-#define UAVCAN_BIT_DEFINE(field_name, lsb_pos, length) Length##field_name  =  (length),
+#define UAVCAN_BIT_DEFINE(field_name, lsb_pos, length) Length##field_name = (length),
 typedef enum uavcan_can_id_length_t {
 #include "uavcan_can_id_defs.h"
 } uavcan_can_id_length_t;
@@ -168,11 +166,11 @@ typedef enum uavcan_can_id_length_t {
  * Public Type Definitions
  ****************************************************************************/
 typedef enum uavcan_direction_t {
-	InBound       = true,
-	OutBound      = false,
+	InBound = true,
+	OutBound = false,
 
-	MessageIn     = InBound,
-	MessageOut    = OutBound,
+	MessageIn = InBound,
+	MessageOut = OutBound,
 } uavcan_direction_t;
 
 /*
@@ -195,7 +193,6 @@ typedef enum uavcan_general_t {
 
 } uavcan_general_t;
 
-
 /* CAN ID definitions for native data manipulation  */
 
 #pragma GCC diagnostic push
@@ -203,36 +200,35 @@ typedef enum uavcan_general_t {
 #pragma GCC diagnostic ignored "-Wpacked"
 typedef begin_packed_struct struct can_id_t {
 	union {
-		uint32_t  u32;
-		uint8_t   b[sizeof(uint32_t)];
+		uint32_t u32;
+		uint8_t b[sizeof(uint32_t)];
 	};
 } end_packed_struct can_id_t;
 
 /* UAVCAN CAN ID Usage: Message definition */
 
 typedef struct uavcan_message_t {
-uint32_t      source_node_id          : LengthUavCanMessageSourceNodeID;
-uint32_t      service_not_message     : LengthUavCanMessageServiceNotMessage;
-uint32_t      type_id                 : LengthUavCanMessageTypeID;
-uint32_t      priority                : LengthUavCanMessagePriority;
+	uint32_t source_node_id : LengthUavCanMessageSourceNodeID;
+	uint32_t service_not_message : LengthUavCanMessageServiceNotMessage;
+	uint32_t type_id : LengthUavCanMessageTypeID;
+	uint32_t priority : LengthUavCanMessagePriority;
 } uavcan_message_t;
 
 /* UAVCAN CAN ID Usage: Anonymous Message Constants */
 
 typedef enum uavcan_anon_const_t {
-	UavcanAnonymousNodeID  = 0,
+	UavcanAnonymousNodeID = 0,
 
 } uavcan_anon_const_t;
-
 
 /* UAVCAN CAN ID Usage: Anonymous Message definition */
 
 typedef struct uavcan_anonymous_message_t {
-uint32_t      source_node_id          : LengthUavCanAnonMessageSourceNodeID;
-uint32_t      service_not_message     : LengthUavCanAnonMessageServiceNotMessage;
-uint32_t      type_id                 : LengthUavCanAnonMessageTypeID;
-uint32_t      discriminator           : LengthUavCanAnonMessageDiscriminator;
-uint32_t      priority                : LengthUavCanAnonMessagePriority;
+	uint32_t source_node_id : LengthUavCanAnonMessageSourceNodeID;
+	uint32_t service_not_message : LengthUavCanAnonMessageServiceNotMessage;
+	uint32_t type_id : LengthUavCanAnonMessageTypeID;
+	uint32_t discriminator : LengthUavCanAnonMessageDiscriminator;
+	uint32_t priority : LengthUavCanAnonMessagePriority;
 } uavcan_anonymous_message_t;
 
 /* UAVCAN CAN ID Usage: Service Constants */
@@ -246,12 +242,12 @@ typedef enum uavcan_service_const_t {
 /* UAVCAN CAN ID Usage: Service definition */
 
 typedef struct uavcan_service_t {
-uint32_t      source_node_id          : LengthUavCanServiceSourceNodeID;
-uint32_t      service_not_message     : LengthUavCanServiceServiceNotMessage;
-uint32_t      dest_node_id            : LengthUavCanServiceDestinationNodeID;
-uint32_t      request_not_response    : LengthUavCanServiceRequestNotResponse;
-uint32_t      type_id                 : LengthUavCanServiceTypeID;
-uint32_t      priority                : LengthUavCanServicePriority;
+	uint32_t source_node_id : LengthUavCanServiceSourceNodeID;
+	uint32_t service_not_message : LengthUavCanServiceServiceNotMessage;
+	uint32_t dest_node_id : LengthUavCanServiceDestinationNodeID;
+	uint32_t request_not_response : LengthUavCanServiceRequestNotResponse;
+	uint32_t type_id : LengthUavCanServiceTypeID;
+	uint32_t priority : LengthUavCanServicePriority;
 } uavcan_service_t;
 
 /* UAVCAN Tail Byte definitions for native data manipulation  */
@@ -260,7 +256,7 @@ uint32_t      priority                : LengthUavCanServicePriority;
 #pragma GCC diagnostic ignored "-Wpacked"
 typedef begin_packed_struct struct can_tail_t {
 	union {
-		uint8_t   u8;
+		uint8_t u8;
 	};
 } end_packed_struct can_tail_t;
 #pragma GCC diagnostic pop
@@ -268,10 +264,10 @@ typedef begin_packed_struct struct can_tail_t {
 /* UAVCAN Tail Byte definitions */
 
 typedef struct uavcan_tail_t {
-uint8_t      transfer_id             : LengthUavCanTransferID;
-uint8_t      toggle                  : LengthUavCanToggle;
-uint8_t      eot                     : LengthUavCanEndOfTransfer;
-uint8_t      sot                     : LengthUavCanStartOfTransfer;
+	uint8_t transfer_id : LengthUavCanTransferID;
+	uint8_t toggle : LengthUavCanToggle;
+	uint8_t eot : LengthUavCanEndOfTransfer;
+	uint8_t sot : LengthUavCanStartOfTransfer;
 } uavcan_tail_t;
 
 /* UAVCAN Tail Byte Initialization constants */
@@ -315,8 +311,7 @@ CCASSERT(MaskUavCanMessageServiceNotMessage == MaskUavCanMessageServiceNotMessag
 	UAVCAN_DSDL_TYPE_DEF(Rsp##name, (dtid), (signature), (packsize), (mailbox), (fifo), (inbound), (outbound))
 
 #define END_COMPONENTS SizeDSDLComponents,
-#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
-	DSDL##name,
+#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) DSDL##name,
 typedef enum uavcan_dsdl_t {
 #include "uavcan_dsdl_defs.h"
 	SizeDSDL,
@@ -326,50 +321,48 @@ typedef enum uavcan_dsdl_t {
 #define END_COMPONENTS
 
 #define UAVCAN_DSDL_BIT_DEF(data_typ_name, field_name, lsb_pos, length, payload_offset, payload_length)
-#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
-	DTID##name  =  (dtid),
+#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) DTID##name = (dtid),
 typedef enum uavcan_dsdl_dtid_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_dtid_t;
 #undef UAVCAN_DSDL_TYPE_DEF
 
 #define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
-	SignatureCRC16##name  =  (signature),
+	SignatureCRC16##name = (signature),
 typedef enum uavcan_dsdl_sig_crc16_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_sig_crc16_t;
 #undef UAVCAN_DSDL_TYPE_DEF
 
 #define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
-	PackedSize##name  =  (packsize),
+	PackedSize##name = (packsize),
 typedef enum uavcan_dsdl_packedsize_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_packedsize_t;
 #undef UAVCAN_DSDL_TYPE_DEF
 
 #define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
-	MailBox##name  =  (mailbox),
+	MailBox##name = (mailbox),
 typedef enum uavcan_dsdl_mb_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_mb_t;
 #undef UAVCAN_DSDL_TYPE_DEF
 
-#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
-	Fifo##name  =  (fifo),
+#define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) Fifo##name = (fifo),
 typedef enum uavcan_dsdl_fifo_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_fifo_t;
 #undef UAVCAN_DSDL_TYPE_DEF
 
 #define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
-	InTailInit##name  =  (inbound),
-typedef enum  uavcan_dsdl_inbound_t {
+	InTailInit##name = (inbound),
+typedef enum uavcan_dsdl_inbound_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_inbound_t;
 #undef UAVCAN_DSDL_TYPE_DEF
 
 #define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
-	OutTailInit##name  =  (outbound),
+	OutTailInit##name = (outbound),
 typedef enum uavcan_dsdl_outbound_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_outbound_t;
@@ -387,35 +380,35 @@ typedef enum uavcan_dsdl_outbound_t {
 #define UAVCAN_DSDL_SRSP_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound)
 
 #define UAVCAN_DSDL_BIT_DEF(data_typ_name, field_name, lsb_pos, length, payload_offset, payload_length) \
-	Mask##data_typ_name##field_name  =  BITFEILD_MASK((lsb_pos), (length)),
+	Mask##data_typ_name##field_name = BITFEILD_MASK((lsb_pos), (length)),
 typedef enum uavcan_dsdl_mask_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_mask_t;
 #undef UAVCAN_DSDL_BIT_DEF
 
 #define UAVCAN_DSDL_BIT_DEF(data_typ_name, field_name, lsb_pos, length, payload_offset, payload_length) \
-	BitPos##data_typ_name##field_name  =  (lsb_pos),
+	BitPos##data_typ_name##field_name = (lsb_pos),
 typedef enum uavcan_dsdl_pos_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_pos_t;
 #undef UAVCAN_DSDL_BIT_DEF
 
 #define UAVCAN_DSDL_BIT_DEF(data_typ_name, field_name, lsb_pos, length, payload_offset, payload_length) \
-	Length##data_typ_name##field_name  =  (length),
+	Length##data_typ_name##field_name = (length),
 typedef enum uavcan_dsdl_length_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_length_t;
 #undef UAVCAN_DSDL_BIT_DEF
 
 #define UAVCAN_DSDL_BIT_DEF(data_typ_name, field_name, lsb_pos, length, payload_offset, payload_length) \
-	PayloadOffset##data_typ_name##field_name  =  (payload_offset),
+	PayloadOffset##data_typ_name##field_name = (payload_offset),
 typedef enum uavcan_dsdl_payload_offset_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_payload_offset_t;
 #undef UAVCAN_DSDL_BIT_DEF
 
 #define UAVCAN_DSDL_BIT_DEF(data_typ_name, field_name, lsb_pos, length, payload_offset, payload_length) \
-	PayloadLength##data_typ_name##field_name  =  (payload_length),
+	PayloadLength##data_typ_name##field_name = (payload_length),
 typedef enum uavcan_dsdl_payload_length_t {
 #include "uavcan_dsdl_defs.h"
 } uavcan_dsdl_payload_length_t;
@@ -433,12 +426,7 @@ typedef enum uavcan_dsdl_payload_length_t {
 
 /* Uavcan function return values */
 
-typedef enum uavcan_error_t {
-	UavcanOk            = 0,
-	UavcanBootTimeout   = 1,
-	UavcanError         = 3
-} uavcan_error_t;
-
+typedef enum uavcan_error_t { UavcanOk = 0, UavcanBootTimeout = 1, UavcanError = 3 } uavcan_error_t;
 
 /*
  * Uavcan protocol CAN ID formats and Tail byte
@@ -449,17 +437,16 @@ typedef enum uavcan_error_t {
 
 typedef begin_packed_struct struct uavcan_protocol_t {
 	union {
-		can_id_t  id;
-		uavcan_message_t           msg;
+		can_id_t id;
+		uavcan_message_t msg;
 		uavcan_anonymous_message_t ana;
-		uavcan_service_t           ser;
+		uavcan_service_t ser;
 	};
 	union {
-		can_tail_t     tail_init;
-		uavcan_tail_t  tail;
+		can_tail_t tail_init;
+		uavcan_tail_t tail;
 	};
 } end_packed_struct uavcan_protocol_t;
-
 
 /*
  * Uavcan protocol DSDL Type Definitions
@@ -474,17 +461,17 @@ typedef enum uavcan_NodeStatusConsts_t {
 	MIN_BROADCASTING_PERIOD_MS = 2,
 	OFFLINE_TIMEOUT_MS = 2000,
 
-	HEALTH_OK         = 0,
-	HEALTH_WARNING    = 1,
-	HEALTH_ERROR      = 2,
-	HEALTH_CRITICAL   = 3,
+	HEALTH_OK = 0,
+	HEALTH_WARNING = 1,
+	HEALTH_ERROR = 2,
+	HEALTH_CRITICAL = 3,
 
-	MODE_OPERATIONAL      = 0,
-	MODE_INITIALIZATION   = 1,
-	MODE_MAINTENANCE      = 2,
-	MODE_SOFTWARE_UPDATE  = 3,
+	MODE_OPERATIONAL = 0,
+	MODE_INITIALIZATION = 1,
+	MODE_MAINTENANCE = 2,
+	MODE_SOFTWARE_UPDATE = 3,
 
-	MODE_OFFLINE          = 7,
+	MODE_OFFLINE = 7,
 } uavcan_NodeStatusConsts_t;
 
 typedef begin_packed_struct struct uavcan_NodeStatus_t {
@@ -492,9 +479,9 @@ typedef begin_packed_struct struct uavcan_NodeStatus_t {
 	union {
 		uint8_t u8;
 		struct {
-uint8_t sub_mode: LengthNodeStatussub_mode;
-uint8_t mode    : LengthNodeStatusmode;
-uint8_t health  : LengthNodeStatushealth;
+			uint8_t sub_mode : LengthNodeStatussub_mode;
+			uint8_t mode : LengthNodeStatusmode;
+			uint8_t health : LengthNodeStatushealth;
 		};
 	};
 	uint16_t vendor_specific_status_code;
@@ -507,7 +494,7 @@ uint8_t health  : LengthNodeStatushealth;
 /* SoftwareVersion */
 typedef enum uavcan_SoftwareVersionConsts_t {
 	OPTIONAL_FIELD_FLAG_VCS_COMMIT = 1,
-	OPTIONAL_FIELD_FLAG_IMAGE_CRC  = 2,
+	OPTIONAL_FIELD_FLAG_IMAGE_CRC = 2,
 } uavcan_SoftwareVersionConsts_t;
 
 typedef begin_packed_struct struct uavcan_SoftwareVersion_t {
@@ -531,9 +518,9 @@ typedef begin_packed_struct struct uavcan_HardwareVersion_t {
 } end_packed_struct uavcan_HardwareVersion_t;
 
 typedef enum uavcan_HardwareVersionConsts_t {
-	FixedSizeHardwareVersion = sizeof_member(uavcan_HardwareVersion_t, major) + \
-				   sizeof_member(uavcan_HardwareVersion_t, minor) + \
-				   sizeof_member(uavcan_HardwareVersion_t, unique_id) + \
+	FixedSizeHardwareVersion = sizeof_member(uavcan_HardwareVersion_t, major) +
+				   sizeof_member(uavcan_HardwareVersion_t, minor) +
+				   sizeof_member(uavcan_HardwareVersion_t, unique_id) +
 				   sizeof_member(uavcan_HardwareVersion_t, certificate_of_authenticity_length),
 } uavcan_HardwareVersionConsts_t;
 
@@ -544,8 +531,8 @@ typedef begin_packed_struct struct uavcan_GetNodeInfo_request_t {
 /* GetNodeInfo Response */
 
 typedef begin_packed_struct struct uavcan_GetNodeInfo_response_t {
-
-	uavcan_NodeStatus_t nodes_status;;
+	uavcan_NodeStatus_t nodes_status;
+	;
 	uavcan_SoftwareVersion_t software_version;
 	uavcan_HardwareVersion_t hardware_version;
 
@@ -554,7 +541,7 @@ typedef begin_packed_struct struct uavcan_GetNodeInfo_response_t {
 } end_packed_struct uavcan_GetNodeInfo_response_t;
 
 typedef enum uavcan_GetNodeInfoConsts_t {
-	FixedSizeGetNodeInfo = PackedSizeMsgNodeStatus + PackedSizeSoftwareVersion +  FixedSizeHardwareVersion,
+	FixedSizeGetNodeInfo = PackedSizeMsgNodeStatus + PackedSizeSoftwareVersion + FixedSizeHardwareVersion,
 
 } uavcan_GetNodeInfoConsts_t;
 
@@ -563,10 +550,10 @@ typedef enum uavcan_GetNodeInfoConsts_t {
  ****************************************/
 
 typedef enum uavcan_LogMessageConsts_t {
-	LOGMESSAGE_LEVELDEBUG                 = 0,
-	LOGMESSAGE_LEVELINFO                  = 1,
-	LOGMESSAGE_LEVELWARNING               = 2,
-	LOGMESSAGE_LEVELERROR                 = 3,
+	LOGMESSAGE_LEVELDEBUG = 0,
+	LOGMESSAGE_LEVELINFO = 1,
+	LOGMESSAGE_LEVELWARNING = 2,
+	LOGMESSAGE_LEVELERROR = 3,
 } uavcan_LogMessageConsts_t;
 
 typedef begin_packed_struct struct uavcan_LogMessage_t {
@@ -582,14 +569,14 @@ CCASSERT(sizeof(uavcan_LogMessage_t) == PackedSizeMsgLogMessage);
  ****************************************/
 
 typedef enum uavcan_AllocationConsts_t {
-	MAX_REQUEST_PERIOD_MS                 = 1400,
-	MIN_REQUEST_PERIOD_MS                 = 600,
-	MAX_FOLLOWUP_DELAY_MS                 = 400,
-	MIN_FOLLOWUP_DELAY_MS                 = 0,
-	FOLLOWUP_TIMEOUT_MS                   = 500,
-	MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST    = 6,
-	ANY_NODE_ID                           = 0,
-	PriorityAllocation                    = UavcanPriorityMin - 1,
+	MAX_REQUEST_PERIOD_MS = 1400,
+	MIN_REQUEST_PERIOD_MS = 600,
+	MAX_FOLLOWUP_DELAY_MS = 400,
+	MIN_FOLLOWUP_DELAY_MS = 0,
+	FOLLOWUP_TIMEOUT_MS = 500,
+	MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST = 6,
+	ANY_NODE_ID = 0,
+	PriorityAllocation = UavcanPriorityMin - 1,
 } uavcan_AllocationConsts_t;
 
 typedef begin_packed_struct struct uavcan_Allocation_t {
@@ -597,18 +584,14 @@ typedef begin_packed_struct struct uavcan_Allocation_t {
 	uint8_t unique_id[PayloadLengthAllocationunique_id];
 } end_packed_struct uavcan_Allocation_t;
 
-
 /****************************************
  * Uavcan Path
  ****************************************/
 
-
-typedef begin_packed_struct struct uavcan_Path_t {
-	uint8_t u8[PayloadLengthPathpath];
-} uavcan_Path_t;
+typedef begin_packed_struct struct uavcan_Path_t { uint8_t u8[PayloadLengthPathpath]; } uavcan_Path_t;
 
 typedef enum uavcan_PathConst_t {
-	SEPARATOR                 = '/',
+	SEPARATOR = '/',
 } end_packed_struct uavcan_PathConst_t;
 
 /****************************************
@@ -616,44 +599,39 @@ typedef enum uavcan_PathConst_t {
  ****************************************/
 
 typedef enum uavcan_ErrorConst_t {
-	FILE_ERROR_OK                = 0,
-	FILE_ERROR_UNKNOWN_ERROR     = 32767,
-	FILE_ERROR_NOT_FOUND         = 2,
-	FILE_ERROR_IO_ERROR          = 5,
-	FILE_ERROR_ACCESS_DENIED     = 13,
-	FILE_ERROR_IS_DIRECTORY      = 21,
-	FILE_ERROR_INVALID_VALUE     = 22,
-	FILE_ERROR_FILE_TOO_LARGE    = 27,
-	FILE_ERROR_OUT_OF_SPACE      = 28,
-	FILE_ERROR_NOT_IMPLEMENTED   = 38,
+	FILE_ERROR_OK = 0,
+	FILE_ERROR_UNKNOWN_ERROR = 32767,
+	FILE_ERROR_NOT_FOUND = 2,
+	FILE_ERROR_IO_ERROR = 5,
+	FILE_ERROR_ACCESS_DENIED = 13,
+	FILE_ERROR_IS_DIRECTORY = 21,
+	FILE_ERROR_INVALID_VALUE = 22,
+	FILE_ERROR_FILE_TOO_LARGE = 27,
+	FILE_ERROR_OUT_OF_SPACE = 28,
+	FILE_ERROR_NOT_IMPLEMENTED = 38,
 } uavcan_ErrorConst_t;
 
-typedef begin_packed_struct struct uavcan_Error_t {
-	uint16_t value;
-} end_packed_struct uavcan_Error_t;
+typedef begin_packed_struct struct uavcan_Error_t { uint16_t value; } end_packed_struct uavcan_Error_t;
 
 typedef enum uavcan_EntryTypeConst_t {
-	ENTRY_TYPE_FLAG_FILE      = 1,
+	ENTRY_TYPE_FLAG_FILE = 1,
 	ENTRY_TYPE_FLAG_DIRECTORY = 2,
-	ENTRY_TYPE_FLAG_SYMLINK   = 4,
-	ENTRY_TYPE_FLAG_READABLE  = 8,
+	ENTRY_TYPE_FLAG_SYMLINK = 4,
+	ENTRY_TYPE_FLAG_READABLE = 8,
 	ENTRY_TYPE_FLAG_WRITEABLE = 16,
 } uavcan_EntryTypeConst_t;
 
-typedef begin_packed_struct struct uavcan_EntryType_t {
-	uint8_t flags;
-} end_packed_struct uavcan_EntryType_t;
-
+typedef begin_packed_struct struct uavcan_EntryType_t { uint8_t flags; } end_packed_struct uavcan_EntryType_t;
 
 /****************************************
  * Uavcan BeginFirmwareUpdate
  ****************************************/
 
 typedef enum uavcan_BeginFirmwareUpdateConst_t {
-	ERROR_OK               = 0,
-	ERROR_INVALID_MODE     = 1,
-	ERROR_IN_PROGRESS      = 2,
-	ERROR_UNKNOWN          = 255,
+	ERROR_OK = 0,
+	ERROR_INVALID_MODE = 1,
+	ERROR_IN_PROGRESS = 2,
+	ERROR_UNKNOWN = 255,
 } uavcan_BeginFirmwareUpdateConst_t;
 
 typedef begin_packed_struct struct uavcan_BeginFirmwareUpdate_request {
@@ -665,27 +643,22 @@ typedef begin_packed_struct struct uavcan_BeginFirmwareUpdate_response {
 	uint8_t error;
 } end_packed_struct uavcan_BeginFirmwareUpdate_response;
 
-
-
 /****************************************
  * Uavcan GetInfo
  ****************************************/
 
-typedef begin_packed_struct struct uavcan_GetInfo_request_t {
-	uavcan_Path_t path;
-} uavcan_GetInfo_request_t;
+typedef begin_packed_struct struct uavcan_GetInfo_request_t { uavcan_Path_t path; } uavcan_GetInfo_request_t;
 typedef enum uavcan_GetInfo_requestConst_t {
 	FixedSizeGetInfoRequest = 0,
 
 } end_packed_struct uavcan_GetInfo_requestConst_t;
 
 typedef begin_packed_struct struct uavcan_GetInfo_response_t {
-	uint32_t                size;
-	uint8_t                 msbsize;
-	uavcan_Error_t          error;
-	uavcan_EntryType_t      entry_type;
+	uint32_t size;
+	uint8_t msbsize;
+	uavcan_Error_t error;
+	uavcan_EntryType_t entry_type;
 } end_packed_struct uavcan_GetInfo_response_t;
-
 
 /****************************************
  * Uavcan Read Composition
@@ -697,12 +670,10 @@ typedef begin_packed_struct struct uavcan_Read_request_t {
 	uavcan_Path_t path;
 } end_packed_struct uavcan_Read_request_t;
 
-
 typedef enum uavcan_ReadRequestConsts_t {
-	FixedSizeReadRequest            = sizeof_member(uavcan_Read_request_t, offset) + \
-					  sizeof_member(uavcan_Read_request_t, msboffset),
+	FixedSizeReadRequest =
+		sizeof_member(uavcan_Read_request_t, offset) + sizeof_member(uavcan_Read_request_t, msboffset),
 } uavcan_ReadRequestConsts_t;
-
 
 typedef begin_packed_struct struct uavcan_Read_response_t {
 	uavcan_Error_t error;
@@ -735,8 +706,7 @@ extern uint8_t g_uavcan_priority;
  *
  ****************************************************************************/
 
-size_t uavcan_pack_GetNodeInfo_response(uavcan_GetNodeInfo_response_t
-					*response);
+size_t uavcan_pack_GetNodeInfo_response(uavcan_GetNodeInfo_response_t *response);
 
 /****************************************************************************
  * Name: uavcan_tx_dsdl
@@ -753,14 +723,14 @@ size_t uavcan_pack_GetNodeInfo_response(uavcan_GetNodeInfo_response_t
  *   transfer    - A pointer to the packed data of the transfer to be sent.
  *   length     - The number of bytes of data
  *
-* Returned value:
+ * Returned value:
  *   The UavcanOk of the data sent. Anything else indicates if a timeout
  *   occurred.
  *
  ****************************************************************************/
 
-uavcan_error_t uavcan_tx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
-			      const uint8_t *transfer, size_t transfer_length);
+uavcan_error_t uavcan_tx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol, const uint8_t *transfer,
+			      size_t transfer_length);
 
 /****************************************************************************
  * Name: uavcan_rx_dsdl
@@ -784,9 +754,8 @@ uavcan_error_t uavcan_tx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
  *   None
  *
  ****************************************************************************/
-uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
-			      uint8_t *transfer, size_t *in_out_transfer_length,
-			      uint32_t timeout_ms);
+uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol, uint8_t *transfer,
+			      size_t *in_out_transfer_length, uint32_t timeout_ms);
 
 /****************************************************************************
  * Name: uavcan_tx_log_message
@@ -809,8 +778,7 @@ uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
 /* The application must define this */
 extern const uint8_t debug_log_source[uavcan_byte_count(LogMessage, source)];
 
-void uavcan_tx_log_message(uavcan_LogMessageConsts_t level, uint8_t stage,
-			   uint8_t status);
+void uavcan_tx_log_message(uavcan_LogMessageConsts_t level, uint8_t stage, uint8_t status);
 
 /****************************************************************************
  * Name: uavcan_tx_allocation_message
@@ -834,8 +802,5 @@ void uavcan_tx_log_message(uavcan_LogMessageConsts_t level, uint8_t stage,
  *
  ****************************************************************************/
 
-void uavcan_tx_allocation_message(uint8_t requested_node_id,
-				  size_t unique_id_length,
-				  const uint8_t *unique_id,
-				  uint8_t unique_id_offset,
-				  uint16_t random);
+void uavcan_tx_allocation_message(uint8_t requested_node_id, size_t unique_id_length, const uint8_t *unique_id,
+				  uint8_t unique_id_offset, uint16_t random);

@@ -36,22 +36,22 @@
  * Remote Control calibration routine
  */
 
+#include "rc_calibration.h"
+
+#include <parameters/param.h>
+#include <px4_platform_common/defines.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
-#include <px4_platform_common/defines.h>
-
-#include "rc_calibration.h"
-#include "commander_helper.h"
+#include <systemlib/err.h>
+#include <systemlib/mavlink_log.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <systemlib/mavlink_log.h>
-#include <parameters/param.h>
-#include <systemlib/err.h>
 
-int do_trim_calibration(orb_advert_t *mavlink_log_pub)
-{
+#include "commander_helper.h"
+
+int do_trim_calibration(orb_advert_t *mavlink_log_pub) {
 	uORB::Subscription manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	px4_usleep(400000);
 	manual_control_setpoint_s manual_control_setpoint{};

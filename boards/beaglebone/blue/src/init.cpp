@@ -36,21 +36,21 @@
  *
  * BBBLUE specific initialization
  */
-#include <stddef.h>
 #include <px4_platform_common/log.h>
-
 #include <robotcontrol.h>
+#include <stddef.h>
 
 #include "board_config.h"
 
 // initialize roboticscape library similar to the deprecated rc_initialize()
-int rc_init(void)
-{
+int rc_init(void) {
 #ifdef __RC_V0_3
 	return rc_initialize();
 #else
 
-	if (rc_get_state() == RUNNING) {  return 0; }
+	if (rc_get_state() == RUNNING) {
+		return 0;
+	}
 
 	PX4_INFO("Initializing librobotcontrol ...");
 
@@ -102,12 +102,12 @@ int rc_init(void)
 		return -1;
 	}
 
-	if (rc_servo_power_rail_en(1)) { // Turning On 6V Servo Power Rail
+	if (rc_servo_power_rail_en(1)) {  // Turning On 6V Servo Power Rail
 		PX4_ERR("rc_init failed to run rc_servo_power_rail_en(1)");
 		return -1;
 	}
 
-	//i2c, barometer and mpu will be initialized later
+	// i2c, barometer and mpu will be initialized later
 
 	rc_set_state(RUNNING);
 
@@ -115,14 +115,15 @@ int rc_init(void)
 #endif
 }
 
-
-void rc_cleaning(void)
-{
+void rc_cleaning(void) {
 #ifdef __RC_V0_3
-	rc_cleanup();  return ;
+	rc_cleanup();
+	return;
 #else
 
-	if (rc_get_state() == EXITING) { return; }
+	if (rc_get_state() == EXITING) {
+		return;
+	}
 
 	rc_set_state(EXITING);
 

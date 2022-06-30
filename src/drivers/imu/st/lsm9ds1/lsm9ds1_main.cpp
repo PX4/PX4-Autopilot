@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include "LSM9DS1.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void LSM9DS1::print_usage()
-{
+#include "LSM9DS1.hpp"
+
+void LSM9DS1::print_usage() {
 	PRINT_MODULE_USAGE_NAME("lsm9ds1", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -46,8 +45,7 @@ void LSM9DS1::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int lsm9ds1_main(int argc, char *argv[])
-{
+extern "C" int lsm9ds1_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = LSM9DS1;
 	BusCLIArguments cli{false, true};
@@ -55,9 +53,9 @@ extern "C" int lsm9ds1_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

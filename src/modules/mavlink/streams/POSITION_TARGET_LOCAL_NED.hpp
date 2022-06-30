@@ -36,10 +36,11 @@
 
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 
-class MavlinkStreamPositionTargetLocalNed : public MavlinkStream
-{
+class MavlinkStreamPositionTargetLocalNed : public MavlinkStream {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamPositionTargetLocalNed(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
+		return new MavlinkStreamPositionTargetLocalNed(mavlink);
+	}
 
 	static constexpr const char *get_name_static() { return "POSITION_TARGET_LOCAL_NED"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED; }
@@ -47,9 +48,10 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _pos_sp_sub.advertised() ? MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _pos_sp_sub.advertised()
+			       ? MAVLINK_MSG_ID_POSITION_TARGET_LOCAL_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+			       : 0;
 	}
 
 private:
@@ -57,8 +59,7 @@ private:
 
 	uORB::Subscription _pos_sp_sub{ORB_ID(vehicle_local_position_setpoint)};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_local_position_setpoint_s pos_sp;
 
 		if (_pos_sp_sub.update(&pos_sp)) {
@@ -137,4 +138,4 @@ private:
 	}
 };
 
-#endif // POSITION_TARGET_LOCAL_NED
+#endif  // POSITION_TARGET_LOCAL_NED

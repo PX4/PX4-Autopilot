@@ -31,14 +31,16 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
 #include <drivers/drv_sensor.h>
 #include <nuttx/spi/spi.h>
+#include <px4_arch/spi_hw_description.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortB, GPIO::Pin0}, SPI::DRDY{GPIO::PortB, GPIO::Pin1}),
-	}),
+	initSPIBus(SPI::Bus::SPI1,
+		   {
+			   initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortB, GPIO::Pin0},
+					 SPI::DRDY{GPIO::PortB, GPIO::Pin1}),
+		   }),
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses);

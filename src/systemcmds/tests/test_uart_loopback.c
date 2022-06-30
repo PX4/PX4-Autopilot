@@ -38,25 +38,20 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
+#include <errno.h>
+#include <fcntl.h>
+#include <float.h>
+#include <math.h>
 #include <px4_platform_common/px4_config.h>
-
-#include <sys/types.h>
-
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include <sys/types.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
 
 #include "tests_main.h"
 
-#include <math.h>
-#include <float.h>
-
-int test_uart_loopback(int argc, char *argv[])
-{
-
+int test_uart_loopback(int argc, char *argv[]) {
 	int uart5_nread = 0;
 	int uart2_nread = 0;
 	int uart5_nwrite = 0;
@@ -90,7 +85,7 @@ int test_uart_loopback(int argc, char *argv[])
 	int i, r;
 
 	for (i = 0; i < 1000; i++) {
-//		printf("TEST #%d\n",i);
+		//		printf("TEST #%d\n",i);
 		write(stdout_fd, sample_stdout_fd, sizeof(sample_stdout_fd));
 
 		/* uart2 -> uart5 */
@@ -100,7 +95,7 @@ int test_uart_loopback(int argc, char *argv[])
 			uart2_nwrite += r;
 		}
 
-//		printf("TEST #%d\n",i);
+		//		printf("TEST #%d\n",i);
 		write(stdout_fd, sample_stdout_fd, sizeof(sample_stdout_fd));
 
 		/* uart2 -> uart5 */
@@ -110,7 +105,7 @@ int test_uart_loopback(int argc, char *argv[])
 			uart5_nwrite += r;
 		}
 
-//		printf("TEST #%d\n",i);
+		//		printf("TEST #%d\n",i);
 		write(stdout_fd, sample_stdout_fd, sizeof(sample_stdout_fd));
 
 		/* try to read back values */
@@ -122,7 +117,7 @@ int test_uart_loopback(int argc, char *argv[])
 			}
 		} while (r > 0);
 
-//		printf("TEST #%d\n",i);
+		//		printf("TEST #%d\n",i);
 		write(stdout_fd, sample_stdout_fd, sizeof(sample_stdout_fd));
 
 		do {
@@ -133,12 +128,11 @@ int test_uart_loopback(int argc, char *argv[])
 			}
 		} while (r > 0);
 
-//		printf("TEST #%d\n",i);
-//		write(stdout_fd, sample_stdout_fd, sizeof(sample_uart5));
+		//		printf("TEST #%d\n",i);
+		//		write(stdout_fd, sample_stdout_fd, sizeof(sample_uart5));
 	}
 
 	for (i = 0; i < 200000; i++) {
-
 		/* try to read back values */
 		r = read(uart5, sample_uart2, sizeof(sample_uart2));
 
@@ -157,7 +151,6 @@ int test_uart_loopback(int argc, char *argv[])
 		}
 	}
 
-
 	close(stdout_fd);
 	close(uart2);
 	close(uart5);
@@ -166,7 +159,6 @@ int test_uart_loopback(int argc, char *argv[])
 	printf("uart5_nwrite %d\n", uart5_nwrite);
 	printf("uart2_nread  %d\n", uart2_nread);
 	printf("uart5_nread  %d\n", uart5_nread);
-
 
 	return 0;
 }

@@ -31,14 +31,12 @@
  *
  ****************************************************************************/
 
-#include "L3GD20.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void
-L3GD20::print_usage()
-{
+#include "L3GD20.hpp"
+
+void L3GD20::print_usage() {
 	PRINT_MODULE_USAGE_NAME("l3gd20", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -49,17 +47,19 @@ L3GD20::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-void L3GD20::custom_method(const BusCLIArguments &cli)
-{
+void L3GD20::custom_method(const BusCLIArguments &cli) {
 	switch (cli.custom1) {
-	case 0: print_registers(); break;
+		case 0:
+			print_registers();
+			break;
 
-	case 1: test_error(); break;
+		case 1:
+			test_error();
+			break;
 	}
 }
 
-extern "C" int l3gd20_main(int argc, char *argv[])
-{
+extern "C" int l3gd20_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = L3GD20;
 	BusCLIArguments cli{false, true};
@@ -67,9 +67,9 @@ extern "C" int l3gd20_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

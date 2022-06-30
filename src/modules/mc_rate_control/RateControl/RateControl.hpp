@@ -39,13 +39,12 @@
 
 #pragma once
 
-#include <matrix/matrix/math.hpp>
-
-#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
 #include <uORB/topics/rate_ctrl_status.h>
 
-class RateControl
-{
+#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
+#include <matrix/matrix/math.hpp>
+
+class RateControl {
 public:
 	RateControl() = default;
 	~RateControl() = default;
@@ -104,14 +103,14 @@ private:
 	void updateIntegral(matrix::Vector3f &rate_error, const float dt);
 
 	// Gains
-	matrix::Vector3f _gain_p; ///< rate control proportional gain for all axes x, y, z
-	matrix::Vector3f _gain_i; ///< rate control integral gain
-	matrix::Vector3f _gain_d; ///< rate control derivative gain
-	matrix::Vector3f _lim_int; ///< integrator term maximum absolute value
-	matrix::Vector3f _gain_ff; ///< direct rate to torque feed forward gain only useful for helicopters
+	matrix::Vector3f _gain_p;   ///< rate control proportional gain for all axes x, y, z
+	matrix::Vector3f _gain_i;   ///< rate control integral gain
+	matrix::Vector3f _gain_d;   ///< rate control derivative gain
+	matrix::Vector3f _lim_int;  ///< integrator term maximum absolute value
+	matrix::Vector3f _gain_ff;  ///< direct rate to torque feed forward gain only useful for helicopters
 
 	// States
-	matrix::Vector3f _rate_int; ///< integral term of the rate controller
+	matrix::Vector3f _rate_int;  ///< integral term of the rate controller
 
 	// Feedback from control allocation
 	matrix::Vector<bool, 3> _control_allocator_saturation_negative;

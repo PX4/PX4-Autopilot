@@ -37,26 +37,23 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/posix.h>
-
-#include <sys/stat.h>
-#include <poll.h>
 #include <dirent.h>
-#include <stdio.h>
-#include <stddef.h>
-#include <systemlib/err.h>
-#include <perf/perf_counter.h>
-#include <string.h>
-
 #include <drivers/drv_hrt.h>
+#include <perf/perf_counter.h>
+#include <poll.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <systemlib/err.h>
 
 #include "tests_main.h"
 
 static int check_user_abort(int fd);
 
-int check_user_abort(int fd)
-{
+int check_user_abort(int fd) {
 	/* check if user wants to abort */
 	char c;
 
@@ -67,14 +64,13 @@ int check_user_abort(int fd)
 	ret = poll(&fds, 1, 0);
 
 	if (ret > 0) {
-
 		read(0, &c, 1);
 
 		switch (c) {
-		case 0x03: // ctrl-c
-		case 0x1b: // esc
-		case 'c':
-		case 'q': {
+			case 0x03:  // ctrl-c
+			case 0x1b:  // esc
+			case 'c':
+			case 'q': {
 				printf("Test aborted.\n");
 				fsync(fd);
 				close(fd);
@@ -87,9 +83,7 @@ int check_user_abort(int fd)
 	return 1;
 }
 
-int
-test_file(int argc, char *argv[])
-{
+int test_file(int argc, char *argv[]) {
 	const unsigned iterations = 2;
 	const unsigned alignments = 33;
 
@@ -105,11 +99,9 @@ test_file(int argc, char *argv[])
 	int chunk_sizes[] = {1, 5, 8, 13, 16, 32, 33, 64, 70, 128, 133, 256, 300, 512, 555, 1024, 1500};
 
 	for (unsigned c = 0; c < (sizeof(chunk_sizes) / sizeof(chunk_sizes[0])); c++) {
-
 		printf("\n====== FILE TEST: %u bytes chunks ======\n", chunk_sizes[c]);
 
 		for (unsigned a = 0; a < alignments; a++) {
-
 			printf("\n");
 			printf("----- alignment test: %u bytes -----\n", a);
 
@@ -148,7 +140,6 @@ test_file(int argc, char *argv[])
 				if (!check_user_abort(fd)) {
 					return OK;
 				}
-
 			}
 
 			end = hrt_absolute_time();
@@ -186,7 +177,6 @@ test_file(int argc, char *argv[])
 				if (!check_user_abort(fd)) {
 					return OK;
 				}
-
 			}
 
 			/*
@@ -210,7 +200,6 @@ test_file(int argc, char *argv[])
 				if (!check_user_abort(fd)) {
 					return OK;
 				}
-
 			}
 
 			fsync(fd);
@@ -233,7 +222,8 @@ test_file(int argc, char *argv[])
 
 				for (int j = 0; j < chunk_sizes[c]; j++) {
 					if (read_buf[j] != write_buf[j]) {
-						PX4_ERR("COMPARISON ERROR: byte %d: %u != %u", j, (unsigned int)read_buf[j], (unsigned int)write_buf[j]);
+						PX4_ERR("COMPARISON ERROR: byte %d: %u != %u", j,
+							(unsigned int)read_buf[j], (unsigned int)write_buf[j]);
 						align_read_ok = false;
 						break;
 					}
@@ -247,7 +237,6 @@ test_file(int argc, char *argv[])
 					PX4_ERR("ABORTING FURTHER COMPARISON DUE TO ERROR");
 					return 1;
 				}
-
 			}
 
 			printf("align read result: %s\n", (align_read_ok) ? "OK" : "ERROR");
@@ -272,10 +261,9 @@ test_file(int argc, char *argv[])
 				}
 
 				for (int j = 0; j < chunk_sizes[c]; j++) {
-
 					if ((read_buf + a)[j] != write_buf[j]) {
-						PX4_ERR("COMPARISON ERROR: byte %d, align shift: %d: %u != %u", j, a, (unsigned int)read_buf[j + a],
-							(unsigned int)write_buf[j]);
+						PX4_ERR("COMPARISON ERROR: byte %d, align shift: %d: %u != %u", j, a,
+							(unsigned int)read_buf[j + a], (unsigned int)write_buf[j]);
 						unalign_read_ok = false;
 						unalign_read_err_count++;
 
@@ -293,7 +281,6 @@ test_file(int argc, char *argv[])
 					PX4_ERR("ABORTING FURTHER COMPARISON DUE TO ERROR");
 					return 1;
 				}
-
 			}
 
 			ret = unlink(PX4_STORAGEDIR "/testfile");
@@ -307,12 +294,11 @@ test_file(int argc, char *argv[])
 	}
 
 	/* list directory */
-	DIR		*d;
-	struct dirent	*dir;
+	DIR *d;
+	struct dirent *dir;
 	d = opendir(PX4_STORAGEDIR);
 
 	if (d) {
-
 		while ((dir = readdir(d)) != NULL) {
 			printf("%s\n", dir->d_name);
 		}

@@ -42,26 +42,22 @@
 #pragma once
 
 #ifdef __EXPORT
-#  undef __EXPORT
+#undef __EXPORT
 #endif
-#define __EXPORT __attribute__ ((visibility ("default")))
+#define __EXPORT __attribute__((visibility("default")))
 
 #ifdef __PRIVATE
-#  undef __PRIVATE
+#undef __PRIVATE
 #endif
-#define __PRIVATE __attribute__ ((visibility ("hidden")))
+#define __PRIVATE __attribute__((visibility("hidden")))
 
 #ifdef __cplusplus
-#  define __BEGIN_DECLS		extern "C" {
-#  define __END_DECLS		}
+#define __BEGIN_DECLS extern "C" {
+#define __END_DECLS }
 #else
-#  define __BEGIN_DECLS
-#  define __END_DECLS
+#define __BEGIN_DECLS
+#define __END_DECLS
 #endif
-
-
-
-
 
 /* exit() is used on NuttX to exit a task. However on Posix, it will exit the
  * whole application, so we prevent its use there. There are cases where it
@@ -77,8 +73,7 @@
  * compile because many C++ files include stdlib.h and would
  * need to get changed. */
 #pragma GCC poison exit
-#endif // !defined(__PX4_NUTTX)
-
+#endif  // !defined(__PX4_NUTTX)
 
 /* For SITL lockstep we fake the clock, sleeping, and timedwaits
  * Therefore, we prefix these syscalls with system_. */
@@ -92,11 +87,10 @@
 #include <pthread.h>
 // We can't include this for NuttX otherwise we get conflicts for read/write
 // symbols in cannode.
-#endif // !defined(__PX4_NUTTX)
+#endif  // !defined(__PX4_NUTTX)
 #define system_pthread_cond_timedwait pthread_cond_timedwait
 /* We can't poison pthread_cond_timedwait because it seems to be used in the
  * <string> include. */
-
 
 /* We don't poison usleep and sleep because it is used in dependencies
  * like uavcan and DriverFramework. */
@@ -104,10 +98,9 @@
 #include <unistd.h>
 // We can't include this for NuttX otherwise we get conflicts for read/write
 // symbols in cannode.
-#endif // !defined(__PX4_NUTTX)
+#endif  // !defined(__PX4_NUTTX)
 #define system_usleep usleep
 #define system_sleep sleep
-
 
 /* On NuttX we call clearenv() so we cannot use getenv() and others (see
  * px4_task_spawn_cmd() in px4_nuttx_tasks.c).
@@ -122,4 +115,4 @@
  * compile because many C++ files include stdlib.h and would
  * need to get changed. */
 #pragma GCC poison getenv setenv putenv
-#endif // defined(__PX4_NUTTX)
+#endif  // defined(__PX4_NUTTX)

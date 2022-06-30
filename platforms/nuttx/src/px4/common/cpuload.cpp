@@ -39,22 +39,20 @@
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
  */
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/atomic.h>
-#include <px4_platform/cpuload.h>
-
 #include <drivers/drv_hrt.h>
+#include <px4_platform/cpuload.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/px4_config.h>
 
 #if defined(__PX4_NUTTX) && defined(CONFIG_SCHED_INSTRUMENTATION)
 __BEGIN_DECLS
-# include <nuttx/sched_note.h>
+#include <nuttx/sched_note.h>
 
 __EXPORT struct system_load_s system_load;
 
 static px4::atomic_int cpuload_monitor_all_count{0};
 
-void cpuload_monitor_start()
-{
+void cpuload_monitor_start() {
 	if (cpuload_monitor_all_count.fetch_add(1) == 0) {
 		// if the count was previously 0 (idle thread only) then clear any existing runtime data
 		sched_lock();
@@ -70,46 +68,44 @@ void cpuload_monitor_start()
 	}
 }
 
-void cpuload_monitor_stop()
-{
+void cpuload_monitor_stop() {
 	if (cpuload_monitor_all_count.fetch_sub(1) <= 1) {
 		// don't allow the count to go negative
 		cpuload_monitor_all_count.store(0);
 	}
 }
 
-void cpuload_initialize_once()
-{
+void cpuload_initialize_once() {
 	for (auto &task : system_load.tasks) {
 		task.valid = false;
 	}
 
-	int static_tasks_count = 2;	// there are at least 2 threads that should be initialized statically - "idle" and "init"
+	int static_tasks_count =
+		2;  // there are at least 2 threads that should be initialized statically - "idle" and "init"
 
 #ifdef CONFIG_PAGING
-	static_tasks_count++;	// include paging thread in initialization
-#endif /* CONFIG_PAGING */
+	static_tasks_count++;  // include paging thread in initialization
+#endif                         /* CONFIG_PAGING */
 #if CONFIG_SCHED_WORKQUEUE
-	static_tasks_count++;	// include high priority work0 thread in initialization
-#endif /* CONFIG_SCHED_WORKQUEUE */
+	static_tasks_count++;  // include high priority work0 thread in initialization
+#endif                         /* CONFIG_SCHED_WORKQUEUE */
 #if CONFIG_SCHED_LPWORK
-	static_tasks_count++;	// include low priority work1 thread in initialization
-#endif /* CONFIG_SCHED_WORKQUEUE */
+	static_tasks_count++;  // include low priority work1 thread in initialization
+#endif                         /* CONFIG_SCHED_WORKQUEUE */
 
 	// perform static initialization of "system" threads
 	for (system_load.total_count = 0; system_load.total_count < static_tasks_count; system_load.total_count++) {
 		system_load.tasks[system_load.total_count].total_runtime = 0;
 		system_load.tasks[system_load.total_count].curr_start_time = 0;
 		system_load.tasks[system_load.total_count].tcb = nxsched_get_tcb(
-					system_load.total_count);	// it is assumed that these static threads have consecutive PIDs
+			system_load.total_count);  // it is assumed that these static threads have consecutive PIDs
 		system_load.tasks[system_load.total_count].valid = true;
 	}
 
 	system_load.initialized = true;
 }
 
-void sched_note_start(FAR struct tcb_s *tcb)
-{
+void sched_note_start(FAR struct tcb_s *tcb) {
 	// find first free slot
 	if (system_load.initialized) {
 		for (auto &task : system_load.tasks) {
@@ -126,8 +122,7 @@ void sched_note_start(FAR struct tcb_s *tcb)
 	}
 }
 
-void sched_note_stop(FAR struct tcb_s *tcb)
-{
+void sched_note_stop(FAR struct tcb_s *tcb) {
 	if (system_load.initialized) {
 		for (auto &task : system_load.tasks) {
 			if (task.tcb && task.tcb->pid == tcb->pid) {
@@ -143,8 +138,7 @@ void sched_note_stop(FAR struct tcb_s *tcb)
 	}
 }
 
-void sched_note_suspend(FAR struct tcb_s *tcb)
-{
+void sched_note_suspend(FAR struct tcb_s *tcb) {
 	if (system_load.initialized) {
 		if (tcb->pid == 0) {
 			system_load.tasks[0].total_runtime += hrt_elapsed_time(&system_load.tasks[0].curr_start_time);
@@ -158,9 +152,7 @@ void sched_note_suspend(FAR struct tcb_s *tcb)
 
 		for (auto &task : system_load.tasks) {
 			// Task ending its current scheduling run
-			if (task.valid && (task.curr_start_time > 0)
-			    && task.tcb && task.tcb->pid == tcb->pid) {
-
+			if (task.valid && (task.curr_start_time > 0) && task.tcb && task.tcb->pid == tcb->pid) {
 				task.total_runtime += hrt_elapsed_time(&task.curr_start_time);
 				break;
 			}
@@ -168,8 +160,7 @@ void sched_note_suspend(FAR struct tcb_s *tcb)
 	}
 }
 
-void sched_note_resume(FAR struct tcb_s *tcb)
-{
+void sched_note_resume(FAR struct tcb_s *tcb) {
 	if (system_load.initialized) {
 		if (tcb->pid == 0) {
 			hrt_store_absolute_time(&system_load.tasks[0].curr_start_time);
@@ -192,4 +183,4 @@ void sched_note_resume(FAR struct tcb_s *tcb)
 	}
 }
 __END_DECLS
-#endif // PX4_NUTTX && CONFIG_SCHED_INSTRUMENTATION
+#endif  // PX4_NUTTX && CONFIG_SCHED_INSTRUMENTATION

@@ -33,12 +33,11 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include "arm_internal.h"
+
 #include "arm_arch.h"
+#include "arm_internal.h"
 #include "chip.h"
-
 #include "nvic.h"
-
 #include "stm32_wdg.h"
 
 /****************************************************************************
@@ -56,10 +55,7 @@
  *
  ****************************************************************************/
 
-void watchdog_pet(void)
-{
-	putreg32(IWDG_KR_KEY_RELOAD, STM32_IWDG_KR);
-}
+void watchdog_pet(void) { putreg32(IWDG_KR_KEY_RELOAD, STM32_IWDG_KR); }
 
 /****************************************************************************
  * Name: watchdog_init()
@@ -76,11 +72,9 @@ void watchdog_pet(void)
  *
  ****************************************************************************/
 
-void watchdog_init(void)
-{
-#if defined(CONFIG_STM32F7_JTAG_FULL_ENABLE) || \
-    defined(CONFIG_STM32F7_JTAG_NOJNTRST_ENABLE) || \
-    defined(CONFIG_STM32F7_JTAG_SW_ENABLE)
+void watchdog_init(void) {
+#if defined(CONFIG_STM32F7_JTAG_FULL_ENABLE) || defined(CONFIG_STM32F7_JTAG_NOJNTRST_ENABLE) || \
+	defined(CONFIG_STM32F7_JTAG_SW_ENABLE)
 	putreg32(getreg32(STM32_DBGMCU_APB1_FZ) | DBGMCU_APB1_IWDGSTOP, STM32_DBGMCU_APB1_FZ);
 #endif
 

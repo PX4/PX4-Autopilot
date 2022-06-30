@@ -35,30 +35,22 @@
 #define MODULE_NAME "lockstep"
 #endif
 
-#include <lockstep_scheduler/lockstep_components.h>
-
 #include <drivers/drv_hrt.h>
+#include <limits.h>
+#include <lockstep_scheduler/lockstep_components.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/tasks.h>
-#include <limits.h>
 
-LockstepComponents::LockstepComponents()
-{
-	px4_sem_init(&_components_sem, 0, 0);
-}
+LockstepComponents::LockstepComponents() { px4_sem_init(&_components_sem, 0, 0); }
 
-LockstepComponents::~LockstepComponents()
-{
-	px4_sem_destroy(&_components_sem);
-}
+LockstepComponents::~LockstepComponents() { px4_sem_destroy(&_components_sem); }
 
-int LockstepComponents::register_component()
-{
+int LockstepComponents::register_component() {
 	for (int component = 0; component < (int)sizeof(int) * CHAR_BIT - 1; ++component) {
 		while (true) {
 			int expected = _components_used_bitset;
 
-			if ((expected & (1 << component))) { // already used
+			if ((expected & (1 << component))) {  // already used
 				break;
 			}
 
@@ -73,8 +65,7 @@ int LockstepComponents::register_component()
 	return 0;
 }
 
-void LockstepComponents::unregister_component(int component)
-{
+void LockstepComponents::unregister_component(int component) {
 	if (component <= 0) {
 		return;
 	}
@@ -90,8 +81,7 @@ void LockstepComponents::unregister_component(int component)
 	}
 }
 
-void LockstepComponents::lockstep_progress(int component)
-{
+void LockstepComponents::lockstep_progress(int component) {
 	if (component <= 0) {
 		return;
 	}
@@ -117,11 +107,11 @@ void LockstepComponents::lockstep_progress(int component)
 	}
 }
 
-void LockstepComponents::wait_for_components()
-{
+void LockstepComponents::wait_for_components() {
 	if (_components_used_bitset == 0) {
 		return;
 	}
 
-	while (px4_sem_wait(&_components_sem) != 0) {}
+	while (px4_sem_wait(&_components_sem) != 0) {
+	}
 }

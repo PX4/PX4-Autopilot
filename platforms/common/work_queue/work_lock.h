@@ -34,10 +34,9 @@
 #ifndef _work_lock_h_
 #define _work_lock_h_
 
-
 //#pragma once
 
 void work_lock(int id);
 void work_unlock(int id);
 
-#endif // _work_lock_h_
+#endif  // _work_lock_h_

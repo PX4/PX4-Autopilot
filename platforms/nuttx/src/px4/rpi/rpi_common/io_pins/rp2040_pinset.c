@@ -1,13 +1,10 @@
+#include <arch/board/board.h>
+#include <errno.h>
+#include <px4_arch/micro_hal.h>
 #include <px4_platform_common/px4_config.h>
 #include <systemlib/px4_macros.h>
 
-#include <arch/board/board.h>
-
-#include <px4_arch/micro_hal.h>
-#include <errno.h>
-
-int rp2040_gpioconfig(uint32_t pinset)
-{
+int rp2040_gpioconfig(uint32_t pinset) {
 	if ((pinset & GPIO_NUM_MASK) > RP2040_GPIO_NUM) {
 		return -EINVAL;
 	}
@@ -26,8 +23,7 @@ int rp2040_gpioconfig(uint32_t pinset)
 
 // Be careful when using this function. Current nuttx implementation allows for only one type of interrupt
 // (out of four types rising, falling, level high, level low) to be active at a time.
-int rp2040_setgpioevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func, void *arg)
-{
+int rp2040_setgpioevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func, void *arg) {
 	int ret = -ENOSYS;
 
 	if (fallingedge & event & (func != NULL)) {

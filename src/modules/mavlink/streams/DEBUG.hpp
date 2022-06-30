@@ -36,8 +36,7 @@
 
 #include <uORB/topics/debug_value.h>
 
-class MavlinkStreamDebug : public MavlinkStream
-{
+class MavlinkStreamDebug : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamDebug(mavlink); }
 
@@ -47,8 +46,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		return _debug_value_sub.advertised() ? MAVLINK_MSG_ID_DEBUG_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
@@ -57,8 +55,7 @@ private:
 
 	uORB::Subscription _debug_value_sub{ORB_ID(debug_value)};
 
-	bool send() override
-	{
+	bool send() override {
 		debug_value_s debug;
 
 		if (_debug_value_sub.update(&debug)) {
@@ -76,4 +73,4 @@ private:
 	}
 };
 
-#endif // DEBUG_HPP
+#endif  // DEBUG_HPP

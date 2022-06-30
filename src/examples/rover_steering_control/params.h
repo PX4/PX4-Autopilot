@@ -39,5 +39,3 @@
  */
 
 #include <parameters/param.h>
-
-

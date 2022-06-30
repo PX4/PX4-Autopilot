@@ -36,12 +36,12 @@
  * Build and run using: make && ./test_velocity_smoothing
  */
 
-#include "VelocitySmoothing.hpp"
 #include <cstdio>
 #include <matrix/matrix/math.hpp>
 
-int main(int argc, char *argv[])
-{
+#include "VelocitySmoothing.hpp"
+
+int main(int argc, char *argv[]) {
 	VelocitySmoothing trajectory[3];
 
 	float a0[3] = {0.f, 0.f, 0.f};
@@ -85,12 +85,11 @@ int main(int argc, char *argv[])
 
 		for (int i = 0; i < 1; i++) {
 			printf("Traj[%d]\n", i);
-			printf("jerk = %.3f\taccel = %.3f\tvel = %.3f\tpos = %.3f\n",
-			       trajectory[i].getCurrentJerk(),
-			       trajectory[i].getCurrentAcceleration(),
-			       trajectory[i].getCurrentVelocity(),
+			printf("jerk = %.3f\taccel = %.3f\tvel = %.3f\tpos = %.3f\n", trajectory[i].getCurrentJerk(),
+			       trajectory[i].getCurrentAcceleration(), trajectory[i].getCurrentVelocity(),
 			       trajectory[i].getCurrentPosition());
-			printf("T1 = %.3f\tT2 = %.3f\tT3 = %.3f\n", trajectory[i].getT1(), trajectory[i].getT2(), trajectory[i].getT3());
+			printf("T1 = %.3f\tT2 = %.3f\tT3 = %.3f\n", trajectory[i].getT1(), trajectory[i].getT2(),
+			       trajectory[i].getT3());
 			printf("\n");
 		}
 	}

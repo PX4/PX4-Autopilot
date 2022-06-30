@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixVectorAssignmentTest, VectorAssignment)
-{
+TEST(MatrixVectorAssignmentTest, VectorAssignment) {
 	Vector3f v;
 	v(0) = 1;
 	v(1) = 2;

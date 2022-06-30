@@ -39,15 +39,15 @@
 
 #pragma once
 
-#include "FlightTaskManualPosition.hpp"
 #include <motion_planning/ManualVelocitySmoothingXY.hpp>
 #include <motion_planning/ManualVelocitySmoothingZ.hpp>
+
+#include "FlightTaskManualPosition.hpp"
 
 using matrix::Vector2f;
 using matrix::Vector3f;
 
-class FlightTaskManualPositionSmoothVel : public FlightTaskManualPosition
-{
+class FlightTaskManualPositionSmoothVel : public FlightTaskManualPosition {
 public:
 	FlightTaskManualPositionSmoothVel() = default;
 	virtual ~FlightTaskManualPositionSmoothVel() = default;
@@ -56,7 +56,6 @@ public:
 	void reActivate() override;
 
 protected:
-
 	virtual void _updateSetpoints() override;
 
 	/** Reset position or velocity setpoints in case of EKF reset event */
@@ -66,10 +65,9 @@ protected:
 	void _ekfResetHandlerVelocityZ(float delta_vz) override;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualPosition,
-					(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
-					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
-					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
-				       )
+					(ParamFloat<px4::params::MPC_JERK_MAX>)_param_mpc_jerk_max,
+					(ParamFloat<px4::params::MPC_ACC_UP_MAX>)_param_mpc_acc_up_max,
+					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>)_param_mpc_acc_down_max)
 
 private:
 	void _updateTrajConstraints();
@@ -85,6 +83,6 @@ private:
 	void _setOutputStateXY();
 	void _setOutputStateZ();
 
-	ManualVelocitySmoothingXY _smoothing_xy; ///< Smoothing in x and y directions
-	ManualVelocitySmoothingZ _smoothing_z; ///< Smoothing in z direction
+	ManualVelocitySmoothingXY _smoothing_xy;  ///< Smoothing in x and y directions
+	ManualVelocitySmoothingZ _smoothing_z;    ///< Smoothing in z direction
 };

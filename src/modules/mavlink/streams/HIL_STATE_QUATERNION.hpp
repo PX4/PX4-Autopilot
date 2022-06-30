@@ -34,8 +34,7 @@
 #ifndef HIL_STATE_QUATERNION_HPP
 #define HIL_STATE_QUATERNION_HPP
 
-class MavlinkStreamHILStateQuaternion : public MavlinkStream
-{
+class MavlinkStreamHILStateQuaternion : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamHILStateQuaternion(mavlink); }
 
@@ -45,8 +44,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		if (_att_sub.advertised() || _gpos_sub.advertised()) {
 			return MAVLINK_MSG_ID_HIL_STATE_QUATERNION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		}
@@ -62,9 +60,9 @@ private:
 	uORB::Subscription _gpos_sub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position_groundtruth)};
 
-	bool send() override
-	{
-		if (_angular_velocity_sub.updated() || _att_sub.updated() || _gpos_sub.updated() || _lpos_sub.updated()) {
+	bool send() override {
+		if (_angular_velocity_sub.updated() || _att_sub.updated() || _gpos_sub.updated() ||
+		    _lpos_sub.updated()) {
 			vehicle_attitude_s att{};
 			_att_sub.copy(&att);
 
@@ -111,4 +109,4 @@ private:
 	}
 };
 
-#endif // HIL_STATE_QUATERNION_HPP
+#endif  // HIL_STATE_QUATERNION_HPP

@@ -37,65 +37,57 @@
  */
 
 #ifdef __PX4_NUTTX
-#include <nuttx/clock.h>
 #include <nuttx/arch.h>
+#include <nuttx/clock.h>
 #endif
 
 #ifndef __PX4_QURT
 #include <poll.h>
 #endif
 
-#include <termios.h>
-#include <cstring>
-
 #include <drivers/drv_sensor.h>
-#include <lib/drivers/device/Device.hpp>
 #include <lib/parameters/param.h>
 #include <mathlib/mathlib.h>
-#include <matrix/math.hpp>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/cli.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
+#include <termios.h>
+#include <uORB/topics/gps_dump.h>
+#include <uORB/topics/gps_inject_data.h>
+#include <uORB/topics/sensor_gnss_relative.h>
+#include <uORB/topics/sensor_gps.h>
+
+#include <cstring>
+#include <lib/drivers/device/Device.hpp>
+#include <matrix/math.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/gps_dump.h>
-#include <uORB/topics/gps_inject_data.h>
-#include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/sensor_gnss_relative.h>
 
 #ifndef CONSTRAINED_FLASH
-# include "devices/src/ashtech.h"
-# include "devices/src/emlid_reach.h"
-# include "devices/src/mtk.h"
-# include "devices/src/femtomes.h"
-# include "devices/src/nmea.h"
-#endif // CONSTRAINED_FLASH
+#include "devices/src/ashtech.h"
+#include "devices/src/emlid_reach.h"
+#include "devices/src/femtomes.h"
+#include "devices/src/mtk.h"
+#include "devices/src/nmea.h"
+#endif  // CONSTRAINED_FLASH
 #include "devices/src/ubx.h"
 
 #ifdef __PX4_LINUX
 #include <linux/spi/spidev.h>
 #endif /* __PX4_LINUX */
 
-#define TIMEOUT_1HZ		1300	//!< Timeout time in mS, 1000 mS (1Hz) + 300 mS delta for error
-#define TIMEOUT_5HZ		500		//!< Timeout time in mS,  200 mS (5Hz) + 300 mS delta for error
+#define TIMEOUT_1HZ 1300  //!< Timeout time in mS, 1000 mS (1Hz) + 300 mS delta for error
+#define TIMEOUT_5HZ 500   //!< Timeout time in mS,  200 mS (5Hz) + 300 mS delta for error
 #define RATE_MEASUREMENT_PERIOD 5000000
 
-enum class gps_driver_mode_t {
-	None = 0,
-	UBX,
-	MTK,
-	ASHTECH,
-	EMLIDREACH,
-	FEMTOMES,
-	NMEA
-};
+enum class gps_driver_mode_t { None = 0, UBX, MTK, ASHTECH, EMLIDREACH, FEMTOMES, NMEA };
 
 enum class gps_dump_comm_mode_t : int32_t {
 	Disabled = 0,
-	Full, ///< dump full RX and TX data for all devices
-	RTCM ///< dump received RTCM from Main GPS
+	Full,  ///< dump full RX and TX data for all devices
+	RTCM   ///< dump received RTCM from Main GPS
 };
 
 /* struct for dynamic allocation of satellite info data */
@@ -105,11 +97,8 @@ struct GPS_Sat_Info {
 
 static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(1760);
 
-
-class GPS : public ModuleBase<GPS>, public device::Device
-{
+class GPS : public ModuleBase<GPS>, public device::Device {
 public:
-
 	/** The GPS allows to run multiple instances */
 	enum class Instance : uint8_t {
 		Main = 0,
@@ -163,45 +152,47 @@ public:
 	void reset_if_scheduled();
 
 private:
-	int				_serial_fd{-1};					///< serial interface to GPS
-	unsigned			_baudrate{0};					///< current baudrate
-	const unsigned			_configured_baudrate{0};			///< configured baudrate (0=auto-detect)
-	char				_port[20] {};					///< device / serial port path
+	int _serial_fd{-1};                      ///< serial interface to GPS
+	unsigned _baudrate{0};                   ///< current baudrate
+	const unsigned _configured_baudrate{0};  ///< configured baudrate (0=auto-detect)
+	char _port[20]{};                        ///< device / serial port path
 
-	bool				_healthy{false};				///< flag to signal if the GPS is ok
-	bool				_mode_auto;					///< if true, auto-detect which GPS is attached
+	bool _healthy{false};  ///< flag to signal if the GPS is ok
+	bool _mode_auto;       ///< if true, auto-detect which GPS is attached
 
-	gps_driver_mode_t		_mode;						///< current mode
+	gps_driver_mode_t _mode;  ///< current mode
 
-	GPSHelper::Interface		_interface;   					///< interface
-	GPSHelper			*_helper{nullptr};				///< instance of GPS parser
+	GPSHelper::Interface _interface;  ///< interface
+	GPSHelper *_helper{nullptr};      ///< instance of GPS parser
 
-	GPS_Sat_Info			*_sat_info{nullptr};				///< instance of GPS sat info data object
+	GPS_Sat_Info *_sat_info{nullptr};  ///< instance of GPS sat info data object
 
-	sensor_gps_s			_report_gps_pos{};				///< uORB topic for gps position
-	satellite_info_s		*_p_report_sat_info{nullptr};			///< pointer to uORB topic for satellite info
+	sensor_gps_s _report_gps_pos{};                 ///< uORB topic for gps position
+	satellite_info_s *_p_report_sat_info{nullptr};  ///< pointer to uORB topic for satellite info
 
-	uORB::PublicationMulti<sensor_gps_s>	_report_gps_pos_pub{ORB_ID(sensor_gps)};	///< uORB pub for gps position
+	uORB::PublicationMulti<sensor_gps_s> _report_gps_pos_pub{ORB_ID(sensor_gps)};  ///< uORB pub for gps position
 	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub{ORB_ID(sensor_gnss_relative)};
 
-	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub{ORB_ID(satellite_info)};		///< uORB pub for satellite info
+	uORB::PublicationMulti<satellite_info_s> _report_sat_info_pub{
+		ORB_ID(satellite_info)};  ///< uORB pub for satellite info
 
-	float				_rate{0.0f};					///< position update rate
-	float				_rate_rtcm_injection{0.0f};			///< RTCM message injection rate
-	unsigned			_last_rate_rtcm_injection_count{0};		///< counter for number of RTCM messages
-	unsigned			_num_bytes_read{0}; 				///< counter for number of read bytes from the UART (within update interval)
-	unsigned			_rate_reading{0}; 				///< reading rate in B/s
+	float _rate{0.0f};                            ///< position update rate
+	float _rate_rtcm_injection{0.0f};             ///< RTCM message injection rate
+	unsigned _last_rate_rtcm_injection_count{0};  ///< counter for number of RTCM messages
+	unsigned _num_bytes_read{0};  ///< counter for number of read bytes from the UART (within update interval)
+	unsigned _rate_reading{0};    ///< reading rate in B/s
 
-	const Instance 			_instance;
+	const Instance _instance;
 
-	uORB::Subscription		     _orb_inject_data_sub{ORB_ID(gps_inject_data)};
+	uORB::Subscription _orb_inject_data_sub{ORB_ID(gps_inject_data)};
 	uORB::Publication<gps_inject_data_s> _gps_inject_data_pub{ORB_ID(gps_inject_data)};
-	uORB::Publication<gps_dump_s>	     _dump_communication_pub{ORB_ID(gps_dump)};
-	gps_dump_s			     *_dump_to_device{nullptr};
-	gps_dump_s			     *_dump_from_device{nullptr};
-	gps_dump_comm_mode_t                 _dump_communication_mode{gps_dump_comm_mode_t::Disabled};
+	uORB::Publication<gps_dump_s> _dump_communication_pub{ORB_ID(gps_dump)};
+	gps_dump_s *_dump_to_device{nullptr};
+	gps_dump_s *_dump_from_device{nullptr};
+	gps_dump_comm_mode_t _dump_communication_mode{gps_dump_comm_mode_t::Disabled};
 
-	static px4::atomic_bool _is_gps_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
+	static px4::atomic_bool
+		_is_gps_main_advertised;  ///< for the second gps we want to make sure that it gets instance 1
 	/// and thus we wait until the first one publishes at least one message.
 
 	static px4::atomic<GPS *> _secondary_instance;
@@ -211,22 +202,22 @@ private:
 	/**
 	 * Publish the gps struct
 	 */
-	void 				publish();
+	void publish();
 
 	/**
 	 * Publish the satellite info
 	 */
-	void 				publishSatelliteInfo();
+	void publishSatelliteInfo();
 
 	/**
 	 * Publish RTCM corrections
 	 */
-	void 				publishRTCMCorrections(uint8_t *data, size_t len);
+	void publishRTCMCorrections(uint8_t *data, size_t len);
 
 	/**
 	 * Publish RTCM corrections
 	 */
-	void 				publishRelativePosition(sensor_gnss_relative_s &gnss_relative);
+	void publishRelativePosition(sensor_gnss_relative_s &gnss_relative);
 
 	/**
 	 * This is an abstraction for the poll on serial used.
@@ -275,7 +266,8 @@ private:
 
 	void initializeCommunicationDump();
 
-	static constexpr int SET_CLOCK_DRIFT_TIME_S{5};			///< RTC drift time when time synchronization is needed (in seconds)
+	static constexpr int SET_CLOCK_DRIFT_TIME_S{
+		5};  ///< RTC drift time when time synchronization is needed (in seconds)
 };
 
 px4::atomic_bool GPS::_is_gps_main_advertised{false};
@@ -286,15 +278,13 @@ px4::atomic<GPS *> GPS::_secondary_instance{nullptr};
  */
 extern "C" __EXPORT int gps_main(int argc, char *argv[]);
 
-
 GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, Instance instance,
-	 unsigned configured_baudrate) :
-	Device(MODULE_NAME),
-	_configured_baudrate(configured_baudrate),
-	_mode(mode),
-	_interface(interface),
-	_instance(instance)
-{
+	 unsigned configured_baudrate)
+	: Device(MODULE_NAME),
+	  _configured_baudrate(configured_baudrate),
+	  _mode(mode),
+	  _interface(interface),
+	  _instance(instance) {
 	/* store port name */
 	strncpy(_port, path, sizeof(_port) - 1);
 	/* enforce null termination */
@@ -316,7 +306,7 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 	if (_interface == GPSHelper::Interface::UART) {
 		set_device_bus_type(device::Device::DeviceBusType::DeviceBusType_SERIAL);
 
-		char c = _port[strlen(_port) - 1]; // last digit of path (eg /dev/ttyS2)
+		char c = _port[strlen(_port) - 1];  // last digit of path (eg /dev/ttyS2)
 		set_device_bus(atoi(&c));
 
 	} else if (_interface == GPSHelper::Interface::SPI) {
@@ -331,27 +321,38 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 		param_get(param_find(protocol_param_name), &protocol);
 
 		switch (protocol) {
-		case 1: _mode = gps_driver_mode_t::UBX; break;
+			case 1:
+				_mode = gps_driver_mode_t::UBX;
+				break;
 #ifndef CONSTRAINED_FLASH
 
-		case 2: _mode = gps_driver_mode_t::MTK; break;
+			case 2:
+				_mode = gps_driver_mode_t::MTK;
+				break;
 
-		case 3: _mode = gps_driver_mode_t::ASHTECH; break;
+			case 3:
+				_mode = gps_driver_mode_t::ASHTECH;
+				break;
 
-		case 4: _mode = gps_driver_mode_t::EMLIDREACH; break;
+			case 4:
+				_mode = gps_driver_mode_t::EMLIDREACH;
+				break;
 
-		case 5: _mode = gps_driver_mode_t::FEMTOMES; break;
+			case 5:
+				_mode = gps_driver_mode_t::FEMTOMES;
+				break;
 
-		case 6: _mode = gps_driver_mode_t::NMEA; break;
-#endif // CONSTRAINED_FLASH
+			case 6:
+				_mode = gps_driver_mode_t::NMEA;
+				break;
+#endif  // CONSTRAINED_FLASH
 		}
 	}
 
 	_mode_auto = _mode == gps_driver_mode_t::None;
 }
 
-GPS::~GPS()
-{
+GPS::~GPS() {
 	GPS *secondary_instance = _secondary_instance.load();
 
 	if (_instance == Instance::Main && secondary_instance) {
@@ -361,7 +362,7 @@ GPS::~GPS()
 		unsigned int i = 0;
 
 		do {
-			px4_usleep(20000); // 20 ms
+			px4_usleep(20000);  // 20 ms
 			++i;
 		} while (_secondary_instance.load() && i < 100);
 	}
@@ -372,14 +373,13 @@ GPS::~GPS()
 	delete _helper;
 }
 
-int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
-{
+int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user) {
 	GPS *gps = (GPS *)user;
 
 	timespec rtc_system_time;
 
 	switch (type) {
-	case GPSCallbackType::readDeviceData: {
+		case GPSCallbackType::readDeviceData: {
 			int timeout;
 			memcpy(&timeout, data1, sizeof(timeout));
 			int num_read = gps->pollOrRead((uint8_t *)data1, data2, timeout);
@@ -391,64 +391,62 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 			return num_read;
 		}
 
-	case GPSCallbackType::writeDeviceData:
-		gps->dumpGpsData((uint8_t *)data1, (size_t)data2, gps_dump_comm_mode_t::Full, true);
+		case GPSCallbackType::writeDeviceData:
+			gps->dumpGpsData((uint8_t *)data1, (size_t)data2, gps_dump_comm_mode_t::Full, true);
 
-		return ::write(gps->_serial_fd, data1, (size_t)data2);
+			return ::write(gps->_serial_fd, data1, (size_t)data2);
 
-	case GPSCallbackType::setBaudrate:
-		return gps->setBaudrate(data2);
+		case GPSCallbackType::setBaudrate:
+			return gps->setBaudrate(data2);
 
-	case GPSCallbackType::gotRTCMMessage:
-		gps->publishRTCMCorrections((uint8_t *)data1, (size_t)data2);
-		gps->dumpGpsData((uint8_t *)data1, (size_t)data2, gps_dump_comm_mode_t::RTCM, false);
-		break;
+		case GPSCallbackType::gotRTCMMessage:
+			gps->publishRTCMCorrections((uint8_t *)data1, (size_t)data2);
+			gps->dumpGpsData((uint8_t *)data1, (size_t)data2, gps_dump_comm_mode_t::RTCM, false);
+			break;
 
-	case GPSCallbackType::gotRelativePositionMessage:
-		if (data1 && data2 == sizeof(sensor_gnss_relative_s)) {
-			gps->publishRelativePosition(*static_cast<sensor_gnss_relative_s *>(data1));
-		}
+		case GPSCallbackType::gotRelativePositionMessage:
+			if (data1 && data2 == sizeof(sensor_gnss_relative_s)) {
+				gps->publishRelativePosition(*static_cast<sensor_gnss_relative_s *>(data1));
+			}
 
-		break;
+			break;
 
-	case GPSCallbackType::surveyInStatus:
-		/* not used */
-		break;
+		case GPSCallbackType::surveyInStatus:
+			/* not used */
+			break;
 
-	case GPSCallbackType::setClock:
+		case GPSCallbackType::setClock:
 
-		px4_clock_gettime(CLOCK_REALTIME, &rtc_system_time);
-		timespec rtc_gps_time = *(timespec *)data1;
-		int drift_time = abs(rtc_system_time.tv_sec - rtc_gps_time.tv_sec);
+			px4_clock_gettime(CLOCK_REALTIME, &rtc_system_time);
+			timespec rtc_gps_time = *(timespec *)data1;
+			int drift_time = abs(rtc_system_time.tv_sec - rtc_gps_time.tv_sec);
 
-		if (drift_time >= SET_CLOCK_DRIFT_TIME_S) {
-			// as of 2021 setting the time on Nuttx temporarily pauses interrupts
-			// so only set the time if it is very wrong.
-			// TODO: clock slewing of the RTC for small time differences
-			px4_clock_settime(CLOCK_REALTIME, &rtc_gps_time);
-		}
+			if (drift_time >= SET_CLOCK_DRIFT_TIME_S) {
+				// as of 2021 setting the time on Nuttx temporarily pauses interrupts
+				// so only set the time if it is very wrong.
+				// TODO: clock slewing of the RTC for small time differences
+				px4_clock_settime(CLOCK_REALTIME, &rtc_gps_time);
+			}
 
-
-		break;
+			break;
 	}
 
 	return 0;
 }
 
-int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
-{
+int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout) {
 	handleInjectDataTopic();
 
 #if !defined(__PX4_QURT)
 
 	/* For non QURT, use the usual polling. */
 
-	//Poll only for the serial data. In the same thread we also need to handle orb messages,
-	//so ideally we would poll on both, the serial fd and orb subscription. Unfortunately the
-	//two pollings use different underlying mechanisms (at least under posix), which makes this
-	//impossible. Instead we limit the maximum polling interval and regularly check for new orb
-	//messages.
-	//FIXME: add a unified poll() API
+	// Poll only for the serial data. In the same thread we also need to handle orb messages,
+	// so ideally we would poll on both, the serial fd and orb subscription. Unfortunately the
+	// two pollings use different underlying mechanisms (at least under posix), which makes this
+	// impossible. Instead we limit the maximum polling interval and regularly check for new orb
+	// messages.
+	// FIXME: add a unified poll() API
 	const int max_timeout = 50;
 
 	pollfd fds[1];
@@ -467,7 +465,7 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 			 * If we have all requested data available, read it without waiting.
 			 * If more bytes are available, we'll go back to poll() again.
 			 */
-			const unsigned character_count = 32; // minimum bytes that we want to read
+			const unsigned character_count = 32;  // minimum bytes that we want to read
 			unsigned baudrate = _baudrate == 0 ? 115200 : _baudrate;
 			const unsigned sleeptime = character_count * 1000000 / (baudrate / 10);
 
@@ -505,8 +503,7 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 #endif
 }
 
-void GPS::handleInjectDataTopic()
-{
+void GPS::handleInjectDataTopic() {
 	if (!_helper->shouldInjectRTCM()) {
 		return;
 	}
@@ -528,13 +525,12 @@ void GPS::handleInjectDataTopic()
 			gps_inject_data_s msg;
 
 			if (_orb_inject_data_sub.copy(&msg)) {
-
 				// Prevent injection of data from self
 				if (msg.device_id != get_device_id()) {
-					/* Write the message to the gps device. Note that the message could be fragmented.
-					* But as we don't write anywhere else to the device during operation, we don't
-					* need to assemble the message first.
-					*/
+					/* Write the message to the gps device. Note that the message could be
+					 * fragmented. But as we don't write anywhere else to the device during
+					 * operation, we don't need to assemble the message first.
+					 */
 					injectData(msg.data, msg.len);
 
 					++_last_rate_rtcm_injection_count;
@@ -544,8 +540,7 @@ void GPS::handleInjectDataTopic()
 	} while (updated && num_injections < max_num_injections);
 }
 
-bool GPS::injectData(uint8_t *data, size_t len)
-{
+bool GPS::injectData(uint8_t *data, size_t len) {
 	dumpGpsData(data, len, gps_dump_comm_mode_t::Full, true);
 
 	size_t written = ::write(_serial_fd, data, len);
@@ -553,39 +548,54 @@ bool GPS::injectData(uint8_t *data, size_t len)
 	return written == len;
 }
 
-int GPS::setBaudrate(unsigned baud)
-{
+int GPS::setBaudrate(unsigned baud) {
 	/* process baud rate */
 	int speed;
 
 	switch (baud) {
-	case 9600:   speed = B9600;   break;
+		case 9600:
+			speed = B9600;
+			break;
 
-	case 19200:  speed = B19200;  break;
+		case 19200:
+			speed = B19200;
+			break;
 
-	case 38400:  speed = B38400;  break;
+		case 38400:
+			speed = B38400;
+			break;
 
-	case 57600:  speed = B57600;  break;
+		case 57600:
+			speed = B57600;
+			break;
 
-	case 115200: speed = B115200; break;
+		case 115200:
+			speed = B115200;
+			break;
 
-	case 230400: speed = B230400; break;
+		case 230400:
+			speed = B230400;
+			break;
 
 #ifndef B460800
 #define B460800 460800
 #endif
 
-	case 460800: speed = B460800; break;
+		case 460800:
+			speed = B460800;
+			break;
 
 #ifndef B921600
 #define B921600 921600
 #endif
 
-	case 921600: speed = B921600; break;
+		case 921600:
+			speed = B921600;
+			break;
 
-	default:
-		PX4_ERR("ERR: unknown baudrate: %d", baud);
-		return -EINVAL;
+		default:
+			PX4_ERR("ERR: unknown baudrate: %d", baud);
+			return -EINVAL;
 	}
 
 	struct termios uart_config;
@@ -605,8 +615,7 @@ int GPS::setBaudrate(unsigned baud)
 	// no input parity check, don't strip high bit off,
 	// no XON/XOFF software flow control
 	//
-	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL |
-				 INLCR | PARMRK | INPCK | ISTRIP | IXON);
+	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
 	//
 	// Output flags - Turn off output processing
 	//
@@ -649,8 +658,7 @@ int GPS::setBaudrate(unsigned baud)
 	return 0;
 }
 
-void GPS::initializeCommunicationDump()
-{
+void GPS::initializeCommunicationDump() {
 	param_t gps_dump_comm_ph = param_find("GPS_DUMP_COMM");
 	int32_t param_dump_comm;
 
@@ -659,7 +667,7 @@ void GPS::initializeCommunicationDump()
 	}
 
 	if (param_dump_comm < 1 || param_dump_comm > 2) {
-		return; //dumping disabled
+		return;  // dumping disabled
 	}
 
 	_dump_from_device = new gps_dump_s();
@@ -673,16 +681,15 @@ void GPS::initializeCommunicationDump()
 	memset(_dump_to_device, 0, sizeof(gps_dump_s));
 	memset(_dump_from_device, 0, sizeof(gps_dump_s));
 
-	//make sure to use a large enough queue size, so that we don't lose messages. You may also want
-	//to increase the logger rate for that.
+	// make sure to use a large enough queue size, so that we don't lose messages. You may also want
+	// to increase the logger rate for that.
 	_dump_communication_pub.advertise();
 
 	_dump_communication_mode = (gps_dump_comm_mode_t)param_dump_comm;
 }
 
-void GPS::dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device)
-{
-	gps_dump_s *dump_data  = msg_to_gps_device ? _dump_to_device : _dump_from_device;
+void GPS::dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device) {
+	gps_dump_s *dump_data = msg_to_gps_device ? _dump_to_device : _dump_from_device;
 
 	if (_dump_communication_mode != mode || !dump_data) {
 		return;
@@ -714,9 +721,7 @@ void GPS::dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool
 	}
 }
 
-void
-GPS::run()
-{
+void GPS::run() {
 	param_t handle = param_find("GPS_YAW_OFFSET");
 	float heading_offset = 0.f;
 
@@ -725,7 +730,7 @@ GPS::run()
 		heading_offset = matrix::wrap_pi(math::radians(heading_offset));
 	}
 
-	int32_t gps_ubx_dynmodel = 7; // default to 7: airborne with <2g acceleration
+	int32_t gps_ubx_dynmodel = 7;  // default to 7: airborne with <2g acceleration
 	handle = param_find("GPS_UBX_DYNMODEL");
 
 	if (handle != PARAM_INVALID) {
@@ -740,7 +745,7 @@ GPS::run()
 		int32_t gps_ubx_mode = 0;
 		param_get(handle, &gps_ubx_mode);
 
-		if (gps_ubx_mode == 1) { // heading
+		if (gps_ubx_mode == 1) {  // heading
 			if (_instance == Instance::Main) {
 				ubx_mode = GPSDriverUBX::UBXMode::RoverWithMovingBase;
 
@@ -800,7 +805,7 @@ GPS::run()
 #ifdef __PX4_LINUX
 
 			if (_interface == GPSHelper::Interface::SPI) {
-				int spi_speed = 1000000; // make sure the bus speed is not too high (required on RPi)
+				int spi_speed = 1000000;  // make sure the bus speed is not too high (required on RPi)
 				int status_value = ::ioctl(_serial_fd, SPI_IOC_WR_MAX_SPEED_HZ, &spi_speed);
 
 				if (status_value < 0) {
@@ -818,45 +823,50 @@ GPS::run()
 		}
 
 		switch (_mode) {
-		case gps_driver_mode_t::None:
-			_mode = gps_driver_mode_t::UBX;
+			case gps_driver_mode_t::None:
+				_mode = gps_driver_mode_t::UBX;
 
-		/* FALLTHROUGH */
-		case gps_driver_mode_t::UBX:
-			_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
-						   gps_ubx_dynmodel, heading_offset, ubx_mode);
-			set_device_type(DRV_GPS_DEVTYPE_UBX);
-			break;
+			/* FALLTHROUGH */
+			case gps_driver_mode_t::UBX:
+				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos,
+							   _p_report_sat_info, gps_ubx_dynmodel, heading_offset,
+							   ubx_mode);
+				set_device_type(DRV_GPS_DEVTYPE_UBX);
+				break;
 #ifndef CONSTRAINED_FLASH
 
-		case gps_driver_mode_t::MTK:
-			_helper = new GPSDriverMTK(&GPS::callback, this, &_report_gps_pos);
-			set_device_type(DRV_GPS_DEVTYPE_MTK);
-			break;
+			case gps_driver_mode_t::MTK:
+				_helper = new GPSDriverMTK(&GPS::callback, this, &_report_gps_pos);
+				set_device_type(DRV_GPS_DEVTYPE_MTK);
+				break;
 
-		case gps_driver_mode_t::ASHTECH:
-			_helper = new GPSDriverAshtech(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
-			set_device_type(DRV_GPS_DEVTYPE_ASHTECH);
-			break;
+			case gps_driver_mode_t::ASHTECH:
+				_helper = new GPSDriverAshtech(&GPS::callback, this, &_report_gps_pos,
+							       _p_report_sat_info, heading_offset);
+				set_device_type(DRV_GPS_DEVTYPE_ASHTECH);
+				break;
 
-		case gps_driver_mode_t::EMLIDREACH:
-			_helper = new GPSDriverEmlidReach(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
-			set_device_type(DRV_GPS_DEVTYPE_EMLID_REACH);
-			break;
+			case gps_driver_mode_t::EMLIDREACH:
+				_helper = new GPSDriverEmlidReach(&GPS::callback, this, &_report_gps_pos,
+								  _p_report_sat_info);
+				set_device_type(DRV_GPS_DEVTYPE_EMLID_REACH);
+				break;
 
-		case gps_driver_mode_t::FEMTOMES:
-			_helper = new GPSDriverFemto(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
-			set_device_type(DRV_GPS_DEVTYPE_FEMTOMES);
-			break;
+			case gps_driver_mode_t::FEMTOMES:
+				_helper = new GPSDriverFemto(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
+							     heading_offset);
+				set_device_type(DRV_GPS_DEVTYPE_FEMTOMES);
+				break;
 
-		case gps_driver_mode_t::NMEA:
-			_helper = new GPSDriverNMEA(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
-			set_device_type(DRV_GPS_DEVTYPE_NMEA);
-			break;
-#endif // CONSTRAINED_FLASH
+			case gps_driver_mode_t::NMEA:
+				_helper = new GPSDriverNMEA(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
+							    heading_offset);
+				set_device_type(DRV_GPS_DEVTYPE_NMEA);
+				break;
+#endif  // CONSTRAINED_FLASH
 
-		default:
-			break;
+			default:
+				break;
 		}
 
 		_baudrate = _configured_baudrate;
@@ -871,14 +881,12 @@ GPS::run()
 		}
 
 		if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
-
 			/* reset report */
 			memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
 			_report_gps_pos.heading = NAN;
 			_report_gps_pos.heading_offset = heading_offset;
 
 			if (_mode == gps_driver_mode_t::UBX) {
-
 				/* GPS is obviously detected successfully, reset statistics */
 				_helper->resetUpdateRates();
 
@@ -887,29 +895,29 @@ GPS::run()
 					GPSDriverUBX *driver_ubx = (GPSDriverUBX *)_helper;
 
 					switch (driver_ubx->board()) {
-					case GPSDriverUBX::Board::u_blox6:
-						set_device_type(DRV_GPS_DEVTYPE_UBX_6);
-						break;
+						case GPSDriverUBX::Board::u_blox6:
+							set_device_type(DRV_GPS_DEVTYPE_UBX_6);
+							break;
 
-					case GPSDriverUBX::Board::u_blox7:
-						set_device_type(DRV_GPS_DEVTYPE_UBX_7);
-						break;
+						case GPSDriverUBX::Board::u_blox7:
+							set_device_type(DRV_GPS_DEVTYPE_UBX_7);
+							break;
 
-					case GPSDriverUBX::Board::u_blox8:
-						set_device_type(DRV_GPS_DEVTYPE_UBX_8);
-						break;
+						case GPSDriverUBX::Board::u_blox8:
+							set_device_type(DRV_GPS_DEVTYPE_UBX_8);
+							break;
 
-					case GPSDriverUBX::Board::u_blox9:
-						set_device_type(DRV_GPS_DEVTYPE_UBX_9);
-						break;
+						case GPSDriverUBX::Board::u_blox9:
+							set_device_type(DRV_GPS_DEVTYPE_UBX_9);
+							break;
 
-					case GPSDriverUBX::Board::u_blox9_F9P:
-						set_device_type(DRV_GPS_DEVTYPE_UBX_F9P);
-						break;
+						case GPSDriverUBX::Board::u_blox9_F9P:
+							set_device_type(DRV_GPS_DEVTYPE_UBX_F9P);
+							break;
 
-					default:
-						set_device_type(DRV_GPS_DEVTYPE_UBX);
-						break;
+						default:
+							set_device_type(DRV_GPS_DEVTYPE_UBX);
+							break;
 					}
 				}
 			}
@@ -917,15 +925,14 @@ GPS::run()
 			int helper_ret;
 			unsigned receive_timeout = TIMEOUT_5HZ;
 
-			if ((ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBase)
-			    || (ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBaseUART1)) {
+			if ((ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBase) ||
+			    (ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBaseUART1)) {
 				/* The MB rover will wait as long as possible to compute a navigation solution,
 				 * possibly lowering the navigation rate all the way to 1 Hz while doing so. */
 				receive_timeout = TIMEOUT_1HZ;
 			}
 
 			while ((helper_ret = _helper->receive(receive_timeout)) > 0 && !should_exit()) {
-
 				if (helper_ret & 1) {
 					publish();
 
@@ -954,30 +961,31 @@ GPS::run()
 
 				if (!_healthy) {
 					// Helpful for debugging, but too verbose for normal ops
-//						const char *mode_str = "unknown";
-//
-//						switch (_mode) {
-//						case gps_driver_mode_t::UBX:
-//							mode_str = "UBX";
-//							break;
-//
-//						case gps_driver_mode_t::MTK:
-//							mode_str = "MTK";
-//							break;
-//
-//						case gps_driver_mode_t::ASHTECH:
-//							mode_str = "ASHTECH";
-//							break;
-//
-//						case gps_driver_mode_t::EMLIDREACH:
-//							mode_str = "EMLID REACH";
-//							break;
-//
-//						default:
-//							break;
-//						}
-//
-//						PX4_WARN("module found: %s", mode_str);
+					//						const char *mode_str =
+					//"unknown";
+					//
+					//						switch (_mode) {
+					//						case gps_driver_mode_t::UBX:
+					//							mode_str = "UBX";
+					//							break;
+					//
+					//						case gps_driver_mode_t::MTK:
+					//							mode_str = "MTK";
+					//							break;
+					//
+					//						case gps_driver_mode_t::ASHTECH:
+					//							mode_str = "ASHTECH";
+					//							break;
+					//
+					//						case
+					//gps_driver_mode_t::EMLIDREACH: 							mode_str = "EMLID REACH"; 							break;
+					//
+					//						default:
+					//							break;
+					//						}
+					//
+					//						PX4_WARN("module found: %s",
+					//mode_str);
 					_healthy = true;
 				}
 			}
@@ -996,32 +1004,33 @@ GPS::run()
 
 		if (_mode_auto) {
 			switch (_mode) {
-			case gps_driver_mode_t::UBX:
+				case gps_driver_mode_t::UBX:
 #ifndef CONSTRAINED_FLASH
-				_mode = gps_driver_mode_t::MTK;
-				break;
+					_mode = gps_driver_mode_t::MTK;
+					break;
 
-			case gps_driver_mode_t::MTK:
-				_mode = gps_driver_mode_t::ASHTECH;
-				break;
+				case gps_driver_mode_t::MTK:
+					_mode = gps_driver_mode_t::ASHTECH;
+					break;
 
-			case gps_driver_mode_t::ASHTECH:
-				_mode = gps_driver_mode_t::EMLIDREACH;
-				break;
+				case gps_driver_mode_t::ASHTECH:
+					_mode = gps_driver_mode_t::EMLIDREACH;
+					break;
 
-			case gps_driver_mode_t::EMLIDREACH:
-				_mode = gps_driver_mode_t::FEMTOMES;
-				break;
+				case gps_driver_mode_t::EMLIDREACH:
+					_mode = gps_driver_mode_t::FEMTOMES;
+					break;
 
-			case gps_driver_mode_t::FEMTOMES:
-			case gps_driver_mode_t::NMEA: // skip NMEA for auto-detection to avoid false positive matching
-#endif // CONSTRAINED_FLASH
-				_mode = gps_driver_mode_t::UBX;
-				px4_usleep(500000); // tried all possible drivers. Wait a bit before next round
-				break;
+				case gps_driver_mode_t::FEMTOMES:
+				case gps_driver_mode_t::NMEA:  // skip NMEA for auto-detection to avoid false positive
+							       // matching
+#endif                                                         // CONSTRAINED_FLASH
+					_mode = gps_driver_mode_t::UBX;
+					px4_usleep(500000);  // tried all possible drivers. Wait a bit before next round
+					break;
 
-			default:
-				break;
+				default:
+					break;
 			}
 
 		} else {
@@ -1032,53 +1041,51 @@ GPS::run()
 	PX4_INFO("exiting");
 }
 
-int
-GPS::print_status()
-{
+int GPS::print_status() {
 	switch (_instance) {
-	case Instance::Main:
-		PX4_INFO("Main GPS");
-		break;
+		case Instance::Main:
+			PX4_INFO("Main GPS");
+			break;
 
-	case Instance::Secondary:
-		PX4_INFO("");
-		PX4_INFO("Secondary GPS");
-		break;
+		case Instance::Secondary:
+			PX4_INFO("");
+			PX4_INFO("Secondary GPS");
+			break;
 
-	default:
-		break;
+		default:
+			break;
 	}
 
 	// GPS Mode
 	switch (_mode) {
-	case gps_driver_mode_t::UBX:
-		PX4_INFO("protocol: UBX");
-		break;
+		case gps_driver_mode_t::UBX:
+			PX4_INFO("protocol: UBX");
+			break;
 #ifndef CONSTRAINED_FLASH
 
-	case gps_driver_mode_t::MTK:
-		PX4_INFO("protocol: MTK");
-		break;
+		case gps_driver_mode_t::MTK:
+			PX4_INFO("protocol: MTK");
+			break;
 
-	case gps_driver_mode_t::ASHTECH:
-		PX4_INFO("protocol: ASHTECH");
-		break;
+		case gps_driver_mode_t::ASHTECH:
+			PX4_INFO("protocol: ASHTECH");
+			break;
 
-	case gps_driver_mode_t::EMLIDREACH:
-		PX4_INFO("protocol: EMLIDREACH");
-		break;
+		case gps_driver_mode_t::EMLIDREACH:
+			PX4_INFO("protocol: EMLIDREACH");
+			break;
 
-	case gps_driver_mode_t::FEMTOMES:
-		PX4_INFO("protocol: FEMTOMES");
-		break;
+		case gps_driver_mode_t::FEMTOMES:
+			PX4_INFO("protocol: FEMTOMES");
+			break;
 
-	case gps_driver_mode_t::NMEA:
-		PX4_INFO("protocol: NMEA");
-		break;
-#endif // CONSTRAINED_FLASH
+		case gps_driver_mode_t::NMEA:
+			PX4_INFO("protocol: NMEA");
+			break;
+#endif  // CONSTRAINED_FLASH
 
-	default:
-		break;
+		default:
+			break;
 	}
 
 	PX4_INFO("status: %s, port: %s, baudrate: %d", _healthy ? "OK" : "NOT OK", _port, _baudrate);
@@ -1105,9 +1112,7 @@ GPS::print_status()
 	return 0;
 }
 
-void
-GPS::schedule_reset(GPSRestartType restart_type)
-{
+void GPS::schedule_reset(GPSRestartType restart_type) {
 	_scheduled_reset.store((int)restart_type);
 
 	if (_instance == Instance::Main && _secondary_instance.load()) {
@@ -1116,9 +1121,7 @@ GPS::schedule_reset(GPSRestartType restart_type)
 	}
 }
 
-void
-GPS::reset_if_scheduled()
-{
+void GPS::reset_if_scheduled() {
 	GPSRestartType restart_type = (GPSRestartType)_scheduled_reset.load();
 
 	if (restart_type != GPSRestartType::None) {
@@ -1137,9 +1140,7 @@ GPS::reset_if_scheduled()
 	}
 }
 
-void
-GPS::publish()
-{
+void GPS::publish() {
 	if (_instance == Instance::Main || _is_gps_main_advertised.load()) {
 		_report_gps_pos.device_id = get_device_id();
 
@@ -1151,22 +1152,18 @@ GPS::publish()
 	}
 }
 
-void
-GPS::publishSatelliteInfo()
-{
+void GPS::publishSatelliteInfo() {
 	if (_instance == Instance::Main) {
 		if (_p_report_sat_info != nullptr) {
 			_report_sat_info_pub.publish(*_p_report_sat_info);
 		}
 
 	} else {
-		//we don't publish satellite info for the secondary gps
+		// we don't publish satellite info for the secondary gps
 	}
 }
 
-void
-GPS::publishRTCMCorrections(uint8_t *data, size_t len)
-{
+void GPS::publishRTCMCorrections(uint8_t *data, size_t len) {
 	gps_inject_data_s gps_inject_data{};
 
 	gps_inject_data.timestamp = hrt_absolute_time();
@@ -1175,7 +1172,7 @@ GPS::publishRTCMCorrections(uint8_t *data, size_t len)
 	size_t capacity = (sizeof(gps_inject_data.data) / sizeof(gps_inject_data.data[0]));
 
 	if (len > capacity) {
-		gps_inject_data.flags = 1; //LSB: 1=fragmented
+		gps_inject_data.flags = 1;  // LSB: 1=fragmented
 
 	} else {
 		gps_inject_data.flags = 0;
@@ -1184,7 +1181,6 @@ GPS::publishRTCMCorrections(uint8_t *data, size_t len)
 	size_t written = 0;
 
 	while (written < len) {
-
 		gps_inject_data.len = len - written;
 
 		if (gps_inject_data.len > capacity) {
@@ -1199,17 +1195,13 @@ GPS::publishRTCMCorrections(uint8_t *data, size_t len)
 	}
 }
 
-void
-GPS::publishRelativePosition(sensor_gnss_relative_s &gnss_relative)
-{
+void GPS::publishRelativePosition(sensor_gnss_relative_s &gnss_relative) {
 	gnss_relative.device_id = get_device_id();
 	gnss_relative.timestamp = hrt_absolute_time();
 	_sensor_gnss_relative_pub.publish(gnss_relative);
 }
 
-int
-GPS::custom_command(int argc, char *argv[])
-{
+int GPS::custom_command(int argc, char *argv[]) {
 	// Check if the driver is running.
 	if (!is_running()) {
 		PX4_INFO("not running");
@@ -1221,7 +1213,6 @@ GPS::custom_command(int argc, char *argv[])
 	bool res = false;
 
 	if (argc == 2 && !strcmp(argv[0], "reset")) {
-
 		if (!strcmp(argv[1], "hot")) {
 			res = true;
 			_instance->schedule_reset(GPSRestartType::Hot);
@@ -1244,8 +1235,7 @@ GPS::custom_command(int argc, char *argv[])
 	return (res) ? 0 : print_usage("unknown command");
 }
 
-int GPS::print_usage(const char *reason)
-{
+int GPS::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -1282,7 +1272,8 @@ $ gps reset warm
 
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "uart", "spi|uart", "GPS interface", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('j', "uart", "spi|uart", "secondary GPS interface", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml|fem|nmea", "GPS Protocol (default=auto select)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml|fem|nmea", "GPS Protocol (default=auto select)",
+					true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset GPS device");
@@ -1291,13 +1282,9 @@ $ gps reset warm
 	return 0;
 }
 
-int GPS::task_spawn(int argc, char *argv[])
-{
-	return task_spawn(argc, argv, Instance::Main);
-}
+int GPS::task_spawn(int argc, char *argv[]) { return task_spawn(argc, argv, Instance::Main); }
 
-int GPS::task_spawn(int argc, char *argv[], Instance instance)
-{
+int GPS::task_spawn(int argc, char *argv[], Instance instance) {
 	px4_main_t entry_point;
 	if (instance == Instance::Main) {
 		entry_point = (px4_main_t)&run_trampoline;
@@ -1305,9 +1292,8 @@ int GPS::task_spawn(int argc, char *argv[], Instance instance)
 		entry_point = (px4_main_t)&run_trampoline_secondary;
 	}
 
-	int task_id = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
-				   SCHED_PRIORITY_SLOW_DRIVER, TASK_STACK_SIZE,
-				   entry_point, (char *const *)argv);
+	int task_id = px4_task_spawn_cmd("gps", SCHED_DEFAULT, SCHED_PRIORITY_SLOW_DRIVER, TASK_STACK_SIZE, entry_point,
+					 (char *const *)argv);
 
 	if (task_id < 0) {
 		task_id = -1;
@@ -1321,8 +1307,7 @@ int GPS::task_spawn(int argc, char *argv[], Instance instance)
 	return 0;
 }
 
-int GPS::run_trampoline_secondary(int argc, char *argv[])
-{
+int GPS::run_trampoline_secondary(int argc, char *argv[]) {
 	// the task name is the first argument
 	argc -= 1;
 	argv += 1;
@@ -1337,13 +1322,9 @@ int GPS::run_trampoline_secondary(int argc, char *argv[])
 	}
 	return 0;
 }
-GPS *GPS::instantiate(int argc, char *argv[])
-{
-	return instantiate(argc, argv, Instance::Main);
-}
+GPS *GPS::instantiate(int argc, char *argv[]) { return instantiate(argc, argv, Instance::Main); }
 
-GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
-{
+GPS *GPS::instantiate(int argc, char *argv[], Instance instance) {
 	const char *device_name = nullptr;
 	const char *device_name_secondary = nullptr;
 	int baudrate_main = 0;
@@ -1359,86 +1340,86 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 
 	while ((ch = px4_getopt(argc, argv, "b:d:e:g:i:j:p:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'b':
-			if (px4_get_parameter_value(myoptarg, baudrate_main) != 0) {
-				PX4_ERR("baudrate parsing failed");
-				error_flag = true;
-			}
-			break;
-		case 'g':
-			if (px4_get_parameter_value(myoptarg, baudrate_secondary) != 0) {
-				PX4_ERR("baudrate parsing failed");
-				error_flag = true;
-			}
-			break;
+			case 'b':
+				if (px4_get_parameter_value(myoptarg, baudrate_main) != 0) {
+					PX4_ERR("baudrate parsing failed");
+					error_flag = true;
+				}
+				break;
+			case 'g':
+				if (px4_get_parameter_value(myoptarg, baudrate_secondary) != 0) {
+					PX4_ERR("baudrate parsing failed");
+					error_flag = true;
+				}
+				break;
 
-		case 'd':
-			device_name = myoptarg;
-			break;
+			case 'd':
+				device_name = myoptarg;
+				break;
 
-		case 'e':
-			device_name_secondary = myoptarg;
-			break;
+			case 'e':
+				device_name_secondary = myoptarg;
+				break;
 
-		case 'i':
-			if (!strcmp(myoptarg, "spi")) {
-				interface = GPSHelper::Interface::SPI;
+			case 'i':
+				if (!strcmp(myoptarg, "spi")) {
+					interface = GPSHelper::Interface::SPI;
 
-			} else if (!strcmp(myoptarg, "uart")) {
-				interface = GPSHelper::Interface::UART;
+				} else if (!strcmp(myoptarg, "uart")) {
+					interface = GPSHelper::Interface::UART;
 
-			} else {
-				PX4_ERR("unknown interface: %s", myoptarg);
-				error_flag = true;
-			}
-			break;
+				} else {
+					PX4_ERR("unknown interface: %s", myoptarg);
+					error_flag = true;
+				}
+				break;
 
-		case 'j':
-			if (!strcmp(myoptarg, "spi")) {
-				interface_secondary = GPSHelper::Interface::SPI;
+			case 'j':
+				if (!strcmp(myoptarg, "spi")) {
+					interface_secondary = GPSHelper::Interface::SPI;
 
-			} else if (!strcmp(myoptarg, "uart")) {
-				interface_secondary = GPSHelper::Interface::UART;
+				} else if (!strcmp(myoptarg, "uart")) {
+					interface_secondary = GPSHelper::Interface::UART;
 
-			} else {
-				PX4_ERR("unknown interface for secondary: %s", myoptarg);
-				error_flag = true;
-			}
-			break;
+				} else {
+					PX4_ERR("unknown interface for secondary: %s", myoptarg);
+					error_flag = true;
+				}
+				break;
 
-		case 'p':
-			if (!strcmp(myoptarg, "ubx")) {
-				mode = gps_driver_mode_t::UBX;
+			case 'p':
+				if (!strcmp(myoptarg, "ubx")) {
+					mode = gps_driver_mode_t::UBX;
 #ifndef CONSTRAINED_FLASH
-			} else if (!strcmp(myoptarg, "mtk")) {
-				mode = gps_driver_mode_t::MTK;
+				} else if (!strcmp(myoptarg, "mtk")) {
+					mode = gps_driver_mode_t::MTK;
 
-			} else if (!strcmp(myoptarg, "ash")) {
-				mode = gps_driver_mode_t::ASHTECH;
+				} else if (!strcmp(myoptarg, "ash")) {
+					mode = gps_driver_mode_t::ASHTECH;
 
-			} else if (!strcmp(myoptarg, "eml")) {
-				mode = gps_driver_mode_t::EMLIDREACH;
+				} else if (!strcmp(myoptarg, "eml")) {
+					mode = gps_driver_mode_t::EMLIDREACH;
 
-			} else if (!strcmp(myoptarg, "fem")) {
-				mode = gps_driver_mode_t::FEMTOMES;
+				} else if (!strcmp(myoptarg, "fem")) {
+					mode = gps_driver_mode_t::FEMTOMES;
 
-			} else if (!strcmp(myoptarg, "nmea")) {
-				mode = gps_driver_mode_t::NMEA;
-#endif // CONSTRAINED_FLASH
-			} else {
-				PX4_ERR("unknown protocol: %s", myoptarg);
+				} else if (!strcmp(myoptarg, "nmea")) {
+					mode = gps_driver_mode_t::NMEA;
+#endif  // CONSTRAINED_FLASH
+				} else {
+					PX4_ERR("unknown protocol: %s", myoptarg);
+					error_flag = true;
+				}
+				break;
+
+			case '?':
 				error_flag = true;
-			}
-			break;
+				break;
 
-		case '?':
-			error_flag = true;
-			break;
-
-		default:
-			PX4_WARN("unrecognized flag");
-			error_flag = true;
-			break;
+			default:
+				PX4_WARN("unrecognized flag");
+				error_flag = true;
+				break;
 		}
 	}
 
@@ -1448,11 +1429,11 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 
 	GPS *gps = nullptr;
 	if (instance == Instance::Main) {
-		if (device_name && (access(device_name, R_OK|W_OK) == 0)) {
+		if (device_name && (access(device_name, R_OK | W_OK) == 0)) {
 			gps = new GPS(device_name, mode, interface, instance, baudrate_main);
 
 		} else {
-			PX4_ERR("invalid device (-d) %s", device_name ? device_name  : "");
+			PX4_ERR("invalid device (-d) %s", device_name ? device_name : "");
 		}
 
 		if (gps && device_name_secondary) {
@@ -1470,8 +1451,8 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 				PX4_ERR("Timed out while waiting for thread to start");
 			}
 		}
-	} else { // secondary instance
-		if (device_name_secondary && (access(device_name_secondary, R_OK|W_OK) == 0)) {
+	} else {  // secondary instance
+		if (device_name_secondary && (access(device_name_secondary, R_OK | W_OK) == 0)) {
 			gps = new GPS(device_name_secondary, mode, interface_secondary, instance, baudrate_secondary);
 
 		} else {
@@ -1482,8 +1463,4 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 	return gps;
 }
 
-int
-gps_main(int argc, char *argv[])
-{
-	return GPS::main(argc, argv);
-}
+int gps_main(int argc, char *argv[]) { return GPS::main(argc, argv); }

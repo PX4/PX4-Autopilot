@@ -36,12 +36,11 @@
 using namespace time_literals;
 
 // computes the CCITT CRC16 on the data received from a burst read
-static uint16_t ComputeCRC16(uint16_t burstData[13])
-{
-	uint16_t crc = 0xFFFF; // Holds the CRC value
+static uint16_t ComputeCRC16(uint16_t burstData[13]) {
+	uint16_t crc = 0xFFFF;  // Holds the CRC value
 
-	unsigned int data; // Holds the lower/Upper byte for CRC computation
-	static constexpr unsigned int POLY = 0x1021; // Divisor used during CRC computation
+	unsigned int data;                            // Holds the lower/Upper byte for CRC computation
+	static constexpr unsigned int POLY = 0x1021;  // Divisor used during CRC computation
 
 	// Compute CRC on burst data starting from XGYRO_OUT and ending with TEMP_OUT.
 	// Start with the lower byte and then the upper byte of each word.
@@ -49,7 +48,7 @@ static uint16_t ComputeCRC16(uint16_t burstData[13])
 	for (int i = 1; i < 12; i++) {
 		unsigned int upperByte = (burstData[i] >> 8) & 0xFF;
 		unsigned int lowerByte = (burstData[i] & 0xFF);
-		data = lowerByte; // Compute lower byte CRC first
+		data = lowerByte;  // Compute lower byte CRC first
 
 		for (int ii = 0; ii < 8; ii++, data >>= 1) {
 			if ((crc & 0x0001) ^ (data & 0x0001)) {
@@ -60,7 +59,7 @@ static uint16_t ComputeCRC16(uint16_t burstData[13])
 			}
 		}
 
-		data = upperByte; // Compute upper byte of CRC
+		data = upperByte;  // Compute upper byte of CRC
 
 		for (int ii = 0; ii < 8; ii++, data >>= 1) {
 			if ((crc & 0x0001) ^ (data & 0x0001)) {
@@ -72,16 +71,15 @@ static uint16_t ComputeCRC16(uint16_t burstData[13])
 		}
 	}
 
-	crc = ~crc; // Compute complement of CRC
+	crc = ~crc;  // Compute complement of CRC
 	data = crc;
-	crc = (crc << 8) | (data >> 8 & 0xFF); // Perform byte swap prior to returning CRC
+	crc = (crc << 8) | (data >> 8 & 0xFF);  // Perform byte swap prior to returning CRC
 
 	return crc;
 }
 
 // convert 12 bit integer format to int16.
-static int16_t convert12BitToINT16(uint16_t word)
-{
+static int16_t convert12BitToINT16(uint16_t word) {
 	int16_t output = 0;
 
 	if ((word >> 11) & 0x1) {
@@ -95,21 +93,19 @@ static int16_t convert12BitToINT16(uint16_t word)
 	return output;
 }
 
-ADIS16448::ADIS16448(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	I2CSPIDriver(config),
-	_drdy_gpio(config.drdy_gpio), // TODO: DRDY disabled
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation),
-	_px4_mag(get_device_id(), config.rotation)
-{
+ADIS16448::ADIS16448(const I2CSPIDriverConfig &config)
+	: SPI(config),
+	  I2CSPIDriver(config),
+	  _drdy_gpio(config.drdy_gpio),  // TODO: DRDY disabled
+	  _px4_accel(get_device_id(), config.rotation),
+	  _px4_gyro(get_device_id(), config.rotation),
+	  _px4_mag(get_device_id(), config.rotation) {
 	if (_drdy_gpio != 0) {
-		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
+		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME ": DRDY missed");
 	}
 }
 
-ADIS16448::~ADIS16448()
-{
+ADIS16448::~ADIS16448() {
 	perf_free(_reset_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
@@ -117,8 +113,7 @@ ADIS16448::~ADIS16448()
 	perf_free(_drdy_missed_perf);
 }
 
-int ADIS16448::init()
-{
+int ADIS16448::init() {
 	int ret = SPI::init();
 
 	if (ret != PX4_OK) {
@@ -129,8 +124,7 @@ int ADIS16448::init()
 	return Reset() ? 0 : -1;
 }
 
-bool ADIS16448::Reset()
-{
+bool ADIS16448::Reset() {
 	_state = STATE::RESET;
 	DataReadyInterruptDisable();
 	ScheduleClear();
@@ -138,14 +132,12 @@ bool ADIS16448::Reset()
 	return true;
 }
 
-void ADIS16448::exit_and_cleanup()
-{
+void ADIS16448::exit_and_cleanup() {
 	DataReadyInterruptDisable();
 	I2CSPIDriverBase::exit_and_cleanup();
 }
 
-void ADIS16448::print_status()
-{
+void ADIS16448::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_reset_perf);
@@ -155,8 +147,7 @@ void ADIS16448::print_status()
 	perf_print_counter(_drdy_missed_perf);
 }
 
-int ADIS16448::probe()
-{
+int ADIS16448::probe() {
 	// Power-On Start-Up Time 205 ms
 	if (hrt_absolute_time() < 205_ms) {
 		PX4_WARN("Power-On Start-Up Time is 205 ms");
@@ -182,51 +173,50 @@ int ADIS16448::probe()
 	return PX4_ERROR;
 }
 
-void ADIS16448::RunImpl()
-{
+void ADIS16448::RunImpl() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-	case STATE::RESET:
-		perf_count(_reset_perf);
-		// GLOB_CMD: software reset
-		RegisterWrite(Register::GLOB_CMD, GLOB_CMD_BIT::Software_reset);
-		_reset_timestamp = now;
-		_failure_count = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(90_ms); // Reset Recovery Time 90 ms
-		break;
+		case STATE::RESET:
+			perf_count(_reset_perf);
+			// GLOB_CMD: software reset
+			RegisterWrite(Register::GLOB_CMD, GLOB_CMD_BIT::Software_reset);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
+			ScheduleDelayed(90_ms);  // Reset Recovery Time 90 ms
+			break;
 
-	case STATE::WAIT_FOR_RESET:
+		case STATE::WAIT_FOR_RESET:
 
-		if (_self_test_passed) {
-			if ((RegisterReadVerified(Register::PROD_ID) == Product_identification)) {
-				// if reset succeeded then configure
-				_state = STATE::CONFIGURE;
-				ScheduleNow();
-
-			} else {
-				// RESET not complete
-				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-					PX4_DEBUG("Reset failed, retrying");
-					_state = STATE::RESET;
-					ScheduleDelayed(100_ms);
+			if (_self_test_passed) {
+				if ((RegisterReadVerified(Register::PROD_ID) == Product_identification)) {
+					// if reset succeeded then configure
+					_state = STATE::CONFIGURE;
+					ScheduleNow();
 
 				} else {
-					PX4_DEBUG("Reset not complete, check again in 100 ms");
-					ScheduleDelayed(100_ms);
+					// RESET not complete
+					if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+						PX4_DEBUG("Reset failed, retrying");
+						_state = STATE::RESET;
+						ScheduleDelayed(100_ms);
+
+					} else {
+						PX4_DEBUG("Reset not complete, check again in 100 ms");
+						ScheduleDelayed(100_ms);
+					}
 				}
+
+			} else {
+				RegisterWrite(Register::MSC_CTRL, MSC_CTRL_BIT::Internal_self_test);
+				_state = STATE::SELF_TEST_CHECK;
+				ScheduleDelayed(90_ms);  // Automatic Self-Test Time > 45 ms
 			}
 
-		} else {
-			RegisterWrite(Register::MSC_CTRL, MSC_CTRL_BIT::Internal_self_test);
-			_state = STATE::SELF_TEST_CHECK;
-			ScheduleDelayed(90_ms); // Automatic Self-Test Time > 45 ms
-		}
+			break;
 
-		break;
-
-	case STATE::SELF_TEST_CHECK: {
+		case STATE::SELF_TEST_CHECK: {
 			const uint16_t MSC_CTRL = RegisterReadVerified(Register::MSC_CTRL);
 
 			if (MSC_CTRL & MSC_CTRL_BIT::Internal_self_test) {
@@ -274,9 +264,12 @@ void ADIS16448::RunImpl()
 				}
 
 				// Accelerometer
-				const bool accel_x_fail = DIAG_STAT & DIAG_STAT_BIT::X_axis_accelerometer_self_test_failure;
-				const bool accel_y_fail = DIAG_STAT & DIAG_STAT_BIT::Y_axis_accelerometer_self_test_failure;
-				const bool accel_z_fail = DIAG_STAT & DIAG_STAT_BIT::Z_axis_accelerometer_self_test_failure;
+				const bool accel_x_fail =
+					DIAG_STAT & DIAG_STAT_BIT::X_axis_accelerometer_self_test_failure;
+				const bool accel_y_fail =
+					DIAG_STAT & DIAG_STAT_BIT::Y_axis_accelerometer_self_test_failure;
+				const bool accel_z_fail =
+					DIAG_STAT & DIAG_STAT_BIT::Z_axis_accelerometer_self_test_failure;
 
 				if (accel_x_fail || accel_y_fail || accel_z_fail) {
 					PX4_ERR("accelerometer self-test failure");
@@ -298,38 +291,38 @@ void ADIS16448::RunImpl()
 
 		break;
 
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start reading
-			_state = STATE::READ;
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				// if configure succeeded then start reading
+				_state = STATE::READ;
 
-			if (DataReadyInterruptConfigure()) {
-				_data_ready_interrupt_enabled = true;
+				if (DataReadyInterruptConfigure()) {
+					_data_ready_interrupt_enabled = true;
 
-				// backup schedule as a watchdog timeout
+					// backup schedule as a watchdog timeout
+					ScheduleDelayed(100_ms);
+
+				} else {
+					_data_ready_interrupt_enabled = false;
+					ScheduleOnInterval(SAMPLE_INTERVAL_US, SAMPLE_INTERVAL_US);
+				}
+
+			} else {
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
 				ScheduleDelayed(100_ms);
-
-			} else {
-				_data_ready_interrupt_enabled = false;
-				ScheduleOnInterval(SAMPLE_INTERVAL_US, SAMPLE_INTERVAL_US);
 			}
 
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
+			break;
 
-			} else {
-				PX4_DEBUG("Configure failed, retrying");
-			}
-
-			ScheduleDelayed(100_ms);
-		}
-
-		break;
-
-	case STATE::READ: {
+		case STATE::READ: {
 			hrt_abstime timestamp_sample = now;
 
 			if (_data_ready_interrupt_enabled) {
@@ -372,8 +365,8 @@ void ADIS16448::RunImpl()
 			buffer.cmd = static_cast<uint16_t>(Register::GLOB_CMD) << 8;
 			set_frequency(SPI_SPEED_BURST);
 
-			if (transferhword((uint16_t *)&buffer, (uint16_t *)&buffer, sizeof(buffer) / sizeof(uint16_t)) == PX4_OK) {
-
+			if (transferhword((uint16_t *)&buffer, (uint16_t *)&buffer,
+					  sizeof(buffer) / sizeof(uint16_t)) == PX4_OK) {
 				bool publish_data = true;
 
 				// checksum
@@ -390,13 +383,14 @@ void ADIS16448::RunImpl()
 				}
 
 				if (publish_data) {
-
-					const uint32_t error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf);
+					const uint32_t error_count = perf_event_count(_bad_register_perf) +
+								     perf_event_count(_bad_transfer_perf);
 					_px4_accel.set_error_count(error_count);
 					_px4_gyro.set_error_count(error_count);
 
 					// temperature 0.07386°C/LSB, 31°C = 0x000
-					const float temperature = (convert12BitToINT16(buffer.TEMP_OUT) * 0.07386f) + 31.f;
+					const float temperature =
+						(convert12BitToINT16(buffer.TEMP_OUT) * 0.07386f) + 31.f;
 
 					_px4_accel.set_temperature(temperature);
 					_px4_gyro.set_temperature(temperature);
@@ -406,10 +400,13 @@ void ADIS16448::RunImpl()
 					// sensor's frame is +x forward, +y left, +z up
 					//  flip y & z to publish right handed with z down (x forward, y right, z down)
 					const int16_t accel_x = buffer.XACCL_OUT;
-					const int16_t accel_y = (buffer.YACCL_OUT == INT16_MIN) ? INT16_MAX : -buffer.YACCL_OUT;
-					const int16_t accel_z = (buffer.ZACCL_OUT == INT16_MIN) ? INT16_MAX : -buffer.ZACCL_OUT;
+					const int16_t accel_y =
+						(buffer.YACCL_OUT == INT16_MIN) ? INT16_MAX : -buffer.YACCL_OUT;
+					const int16_t accel_z =
+						(buffer.ZACCL_OUT == INT16_MIN) ? INT16_MAX : -buffer.ZACCL_OUT;
 
-					if (accel_x != _accel_prev[0] || accel_y != _accel_prev[1] || accel_z != _accel_prev[2]) {
+					if (accel_x != _accel_prev[0] || accel_y != _accel_prev[1] ||
+					    accel_z != _accel_prev[2]) {
 						imu_updated = true;
 
 						_accel_prev[0] = accel_x;
@@ -418,10 +415,13 @@ void ADIS16448::RunImpl()
 					}
 
 					const int16_t gyro_x = buffer.XGYRO_OUT;
-					const int16_t gyro_y = (buffer.YGYRO_OUT == INT16_MIN) ? INT16_MAX : -buffer.YGYRO_OUT;
-					const int16_t gyro_z = (buffer.ZGYRO_OUT == INT16_MIN) ? INT16_MAX : -buffer.ZGYRO_OUT;
+					const int16_t gyro_y =
+						(buffer.YGYRO_OUT == INT16_MIN) ? INT16_MAX : -buffer.YGYRO_OUT;
+					const int16_t gyro_z =
+						(buffer.ZGYRO_OUT == INT16_MIN) ? INT16_MAX : -buffer.ZGYRO_OUT;
 
-					if (gyro_x != _gyro_prev[0] || gyro_y != _gyro_prev[1] || gyro_z != _gyro_prev[2]) {
+					if (gyro_x != _gyro_prev[0] || gyro_y != _gyro_prev[1] ||
+					    gyro_z != _gyro_prev[2]) {
 						imu_updated = true;
 
 						_gyro_prev[0] = gyro_x;
@@ -440,12 +440,13 @@ void ADIS16448::RunImpl()
 						_px4_mag.set_temperature(temperature);
 
 						const int16_t mag_x = buffer.XMAGN_OUT;
-						const int16_t mag_y = (buffer.YMAGN_OUT == INT16_MIN) ? INT16_MAX : -buffer.YMAGN_OUT;
-						const int16_t mag_z = (buffer.ZMAGN_OUT == INT16_MIN) ? INT16_MAX : -buffer.ZMAGN_OUT;
+						const int16_t mag_y =
+							(buffer.YMAGN_OUT == INT16_MIN) ? INT16_MAX : -buffer.YMAGN_OUT;
+						const int16_t mag_z =
+							(buffer.ZMAGN_OUT == INT16_MIN) ? INT16_MAX : -buffer.ZMAGN_OUT;
 						_px4_mag.update(timestamp_sample, mag_x, mag_y, mag_z);
 
-
-						float pressure_pa = buffer.BARO_OUT * 0.02f; // 20 μbar per LSB
+						float pressure_pa = buffer.BARO_OUT * 0.02f;  // 20 μbar per LSB
 
 						// publish baro
 						sensor_baro_s sensor_baro{};
@@ -497,8 +498,7 @@ void ADIS16448::RunImpl()
 	}
 }
 
-bool ADIS16448::Configure()
-{
+bool ADIS16448::Configure() {
 	const uint16_t LOT_ID1 = RegisterReadVerified(Register::LOT_ID1);
 
 	// Only enable CRC-16 for verified lots (HACK to support older ADIS16448AMLZ with no explicit detection)
@@ -506,7 +506,7 @@ bool ADIS16448::Configure()
 		_check_crc = true;
 
 		if (_perf_crc_bad == nullptr) {
-			_perf_crc_bad = perf_alloc(PC_COUNT, MODULE_NAME": CRC16 bad");
+			_perf_crc_bad = perf_alloc(PC_COUNT, MODULE_NAME ": CRC16 bad");
 		}
 
 	} else {
@@ -534,9 +534,9 @@ bool ADIS16448::Configure()
 		}
 	}
 
-	_px4_accel.set_scale(0.833f * 1e-3f * CONSTANTS_ONE_G); // 0.833 mg/LSB
-	_px4_gyro.set_scale(math::radians(0.04f));              // 0.04 °/sec/LSB
-	_px4_mag.set_scale(142.9f * 1e-6f);                     // μgauss/LSB
+	_px4_accel.set_scale(0.833f * 1e-3f * CONSTANTS_ONE_G);  // 0.833 mg/LSB
+	_px4_gyro.set_scale(math::radians(0.04f));               // 0.04 °/sec/LSB
+	_px4_mag.set_scale(142.9f * 1e-6f);                      // μgauss/LSB
 
 	_px4_accel.set_range(18.f * CONSTANTS_ONE_G);
 	_px4_gyro.set_range(math::radians(1000.f));
@@ -544,19 +544,14 @@ bool ADIS16448::Configure()
 	return success;
 }
 
-int ADIS16448::DataReadyInterruptCallback(int irq, void *context, void *arg)
-{
+int ADIS16448::DataReadyInterruptCallback(int irq, void *context, void *arg) {
 	static_cast<ADIS16448 *>(arg)->DataReady();
 	return 0;
 }
 
-void ADIS16448::DataReady()
-{
-	ScheduleNow();
-}
+void ADIS16448::DataReady() { ScheduleNow(); }
 
-bool ADIS16448::DataReadyInterruptConfigure()
-{
+bool ADIS16448::DataReadyInterruptConfigure() {
 	if (_drdy_gpio == 0) {
 		return false;
 	}
@@ -578,7 +573,8 @@ bool ADIS16448::DataReadyInterruptConfigure()
 		if (write0_valid && write1_valid && write2_valid) {
 			PX4_INFO("DIO1 DRDY valid");
 			// Setup data ready on falling edge
-			return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0;
+			return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback,
+						     this) == 0;
 
 		} else {
 			PX4_DEBUG("DIO1 DRDY invalid");
@@ -610,8 +606,7 @@ bool ADIS16448::DataReadyInterruptConfigure()
 	return false;
 }
 
-bool ADIS16448::DataReadyInterruptDisable()
-{
+bool ADIS16448::DataReadyInterruptDisable() {
 	if (_drdy_gpio == 0) {
 		return false;
 	}
@@ -619,8 +614,7 @@ bool ADIS16448::DataReadyInterruptDisable()
 	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
 }
 
-bool ADIS16448::RegisterCheck(const register_config_t &reg_cfg)
-{
+bool ADIS16448::RegisterCheck(const register_config_t &reg_cfg) {
 	bool success = true;
 
 	const uint16_t reg_value = RegisterReadVerified(reg_cfg.reg);
@@ -631,15 +625,15 @@ bool ADIS16448::RegisterCheck(const register_config_t &reg_cfg)
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.clear_bits);
 		success = false;
 	}
 
 	return success;
 }
 
-uint16_t ADIS16448::RegisterRead(Register reg)
-{
+uint16_t ADIS16448::RegisterRead(Register reg) {
 	set_frequency(SPI_SPEED);
 
 	uint16_t cmd[1];
@@ -653,8 +647,7 @@ uint16_t ADIS16448::RegisterRead(Register reg)
 	return cmd[0];
 }
 
-uint16_t ADIS16448::RegisterReadVerified(Register reg, int retries)
-{
+uint16_t ADIS16448::RegisterReadVerified(Register reg, int retries) {
 	for (int attempt = 0; attempt < retries; attempt++) {
 		uint16_t read1 = RegisterRead(reg);
 		uint16_t read2 = RegisterRead(reg);
@@ -668,12 +661,11 @@ uint16_t ADIS16448::RegisterReadVerified(Register reg, int retries)
 	return 0;
 }
 
-void ADIS16448::RegisterWrite(Register reg, uint16_t value)
-{
+void ADIS16448::RegisterWrite(Register reg, uint16_t value) {
 	set_frequency(SPI_SPEED);
 
 	uint16_t cmd[2];
-	cmd[0] = (((static_cast<uint16_t>(reg))     | DIR_WRITE) << 8) | ((0x00FF & value));
+	cmd[0] = (((static_cast<uint16_t>(reg)) | DIR_WRITE) << 8) | ((0x00FF & value));
 	cmd[1] = (((static_cast<uint16_t>(reg) + 1) | DIR_WRITE) << 8) | ((0xFF00 & value) >> 8);
 
 	transferhword(cmd, nullptr, 1);
@@ -682,8 +674,7 @@ void ADIS16448::RegisterWrite(Register reg, uint16_t value)
 	px4_udelay(SPI_STALL_PERIOD);
 }
 
-void ADIS16448::RegisterSetAndClearBits(Register reg, uint16_t setbits, uint16_t clearbits)
-{
+void ADIS16448::RegisterSetAndClearBits(Register reg, uint16_t setbits, uint16_t clearbits) {
 	const uint16_t orig_val = RegisterReadVerified(reg);
 
 	uint16_t val = (orig_val & ~clearbits) | setbits;

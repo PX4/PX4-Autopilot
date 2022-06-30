@@ -34,17 +34,16 @@
 #pragma once
 
 #include <lib/conversion/rotation.h>
-#include <lib/matrix/matrix/math.hpp>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
-#include <uORB/Subscription.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 
-namespace calibration
-{
-class Magnetometer
-{
+#include <lib/matrix/matrix/math.hpp>
+#include <uORB/Subscription.hpp>
+
+namespace calibration {
+class Magnetometer {
 public:
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -81,14 +80,12 @@ public:
 
 	// apply offsets and scale
 	// rotate corrected measurements from sensor to body frame
-	inline matrix::Vector3f Correct(const matrix::Vector3f &data) const
-	{
+	inline matrix::Vector3f Correct(const matrix::Vector3f &data) const {
 		return _rotation * (_scale * ((data + _power * _power_compensation) - _offset));
 	}
 
 	// Compute sensor offset from bias (board frame)
-	matrix::Vector3f BiasCorrectedSensorOffset(const matrix::Vector3f &bias) const
-	{
+	matrix::Vector3f BiasCorrectedSensorOffset(const matrix::Vector3f &bias) const {
 		return _scale.I() * _rotation.I() * bias + _offset;
 	}
 
@@ -117,4 +114,4 @@ private:
 
 	uint8_t _calibration_count{0};
 };
-} // namespace calibration
+}  // namespace calibration

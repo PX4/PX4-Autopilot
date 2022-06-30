@@ -33,10 +33,7 @@
 
 #include "CameraFeedback.hpp"
 
-CameraFeedback::CameraFeedback() :
-	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
-{
+CameraFeedback::CameraFeedback() : ModuleParams(nullptr), WorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {
 	_p_cam_cap_fback = param_find("CAM_CAP_FBACK");
 
 	if (_p_cam_cap_fback != PARAM_INVALID) {
@@ -44,9 +41,7 @@ CameraFeedback::CameraFeedback() :
 	}
 }
 
-bool
-CameraFeedback::init()
-{
+bool CameraFeedback::init() {
 	if (!_trigger_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -57,9 +52,7 @@ CameraFeedback::init()
 	return true;
 }
 
-void
-CameraFeedback::Run()
-{
+void CameraFeedback::Run() {
 	if (should_exit()) {
 		_trigger_sub.unregisterCallback();
 		exit_and_cleanup();
@@ -69,7 +62,6 @@ CameraFeedback::Run()
 	camera_trigger_s trig{};
 
 	while (_trigger_sub.update(&trig)) {
-
 		// update geotagging subscriptions
 		vehicle_global_position_s gpos{};
 		_gpos_sub.copy(&gpos);
@@ -77,10 +69,7 @@ CameraFeedback::Run()
 		vehicle_attitude_s att{};
 		_att_sub.copy(&att);
 
-		if (trig.timestamp == 0 ||
-		    gpos.timestamp == 0 ||
-		    att.timestamp == 0) {
-
+		if (trig.timestamp == 0 || gpos.timestamp == 0 || att.timestamp == 0) {
 			// reject until we have valid data
 			continue;
 		}
@@ -123,9 +112,7 @@ CameraFeedback::Run()
 	}
 }
 
-int
-CameraFeedback::task_spawn(int argc, char *argv[])
-{
+int CameraFeedback::task_spawn(int argc, char *argv[]) {
 	CameraFeedback *instance = new CameraFeedback();
 
 	if (instance) {
@@ -147,15 +134,9 @@ CameraFeedback::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int
-CameraFeedback::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int CameraFeedback::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int
-CameraFeedback::print_usage(const char *reason)
-{
+int CameraFeedback::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -174,7 +155,4 @@ CameraFeedback::print_usage(const char *reason)
 	return 0;
 }
 
-extern "C" __EXPORT int camera_feedback_main(int argc, char *argv[])
-{
-	return CameraFeedback::main(argc, argv);
-}
+extern "C" __EXPORT int camera_feedback_main(int argc, char *argv[]) { return CameraFeedback::main(argc, argv); }

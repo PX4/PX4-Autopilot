@@ -45,37 +45,31 @@
  * Included Files
  ****************************************************************************/
 
+#include <arch/board/board.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform_common/init.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
-
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
-#include <syslog.h>
-
-#include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-
 #include <stm32.h>
-#include "board_config.h"
 #include <stm32_uart.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
-
+#include <string.h>
+#include <syslog.h>
 #include <systemlib/px4_macros.h>
 
-#include <px4_arch/io_timer.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/board_dma_alloc.h>
+#include "board_config.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -107,8 +101,7 @@ static char hw_type[4] = HW_VER_TYPE_INIT;
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
+__EXPORT void board_peripheral_reset(int ms) {
 	/* set the peripheral rails off */
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
 	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
@@ -124,7 +117,7 @@ __EXPORT void board_peripheral_reset(int ms)
 }
 
 /************************************************************************************
-  * Name: board_on_reset
+ * Name: board_on_reset
  *
  * Description:
  * Optionally provided function called on entry to board_system_reset
@@ -135,8 +128,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *
  ************************************************************************************/
 
-__EXPORT void board_on_reset(int status)
-{
+__EXPORT void board_on_reset(int status) {
 	UNUSED(status);
 
 	/* configure the GPIO pins to outputs and keep them low */
@@ -198,8 +190,7 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
-static int determin_hw_version(int *version, int *revision)
-{
+static int determin_hw_version(int *version, int *revision) {
 	*revision = 0; /* default revision */
 	int rv = 0;
 	int pos = 0;
@@ -248,10 +239,7 @@ static int determin_hw_version(int *version, int *revision)
  *
  ************************************************************************************/
 
-__EXPORT const char *board_get_hw_type_name()
-{
-	return (const char *) hw_type;
-}
+__EXPORT const char *board_get_hw_type_name() { return (const char *)hw_type; }
 
 /************************************************************************************
  * Name: board_get_hw_version
@@ -262,10 +250,7 @@ __EXPORT const char *board_get_hw_type_name()
  *
  ************************************************************************************/
 
-__EXPORT int board_get_hw_version()
-{
-	return  HW_VER_SIMPLE(hw_version);
-}
+__EXPORT int board_get_hw_version() { return HW_VER_SIMPLE(hw_version); }
 
 /************************************************************************************
  * Name: board_get_hw_revision
@@ -276,10 +261,7 @@ __EXPORT int board_get_hw_version()
  *
  ************************************************************************************/
 
-__EXPORT int board_get_hw_revision()
-{
-	return  hw_revision;
-}
+__EXPORT int board_get_hw_revision() { return hw_revision; }
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -291,9 +273,7 @@ __EXPORT int board_get_hw_revision()
  *
  ************************************************************************************/
 
-__EXPORT void
-stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	board_on_reset(-1);
 
 	/* configure LEDs */
@@ -301,12 +281,12 @@ stm32_boardinitialize(void)
 
 	/* configure ADC pins */
 
-	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
-	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
-	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN2);  /* BATT_VOLTAGE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN3);  /* BATT_CURRENT_SENS */
+	stm32_configgpio(GPIO_ADC1_IN4);  /* VDD_5V_SENS */
+	stm32_configgpio(GPIO_ADC1_IN13); /* FMU_AUX_ADC_1 */
+	stm32_configgpio(GPIO_ADC1_IN14); /* FMU_AUX_ADC_2 */
+	stm32_configgpio(GPIO_ADC1_IN15); /* PRESSURE_SENS */
 
 	/* configure power supply control/sense pins */
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
@@ -328,7 +308,6 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_CAN1_TX);
 	stm32_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
 	stm32_configgpio(GPIO_CAN2_TX);
-
 }
 
 /****************************************************************************
@@ -361,61 +340,58 @@ static struct spi_dev_s *spi2;
 static struct spi_dev_s *spi4;
 static struct sdio_dev_s *sdio;
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	/* Ensure the power is on 1 ms before we drive the GPIO pins */
 	usleep(1000);
 
-	if (OK == determin_hw_version(&hw_version, & hw_revision)) {
+	if (OK == determin_hw_version(&hw_version, &hw_revision)) {
 		switch (hw_version) {
-		case HW_VER_FMUV2_STATE:
-			break;
+			case HW_VER_FMUV2_STATE:
+				break;
 
-		case HW_VER_FMUV3_STATE:
-			hw_type[1]++;
-			hw_type[2] = '0';
-
-			/* Has CAN2 transceiver Remove pull up */
-
-			stm32_configgpio(GPIO_CAN2_RX);
-
-			break;
-
-		case HW_VER_FMUV2MINI_STATE:
-
-			/* Detection for a Pixhack3 */
-
-			stm32_configgpio(HW_VER_PA8);
-			up_udelay(10);
-			bool isph3 = stm32_gpioread(HW_VER_PA8);
-			stm32_configgpio(HW_VER_PA8_INIT);
-
-
-			if (isph3) {
-
-				/* Pixhack3 looks like a FMuV3 Cube */
-
-				hw_version = HW_VER_FMUV3_STATE;
+			case HW_VER_FMUV3_STATE:
 				hw_type[1]++;
 				hw_type[2] = '0';
-				syslog(LOG_INFO, "\nPixhack V3 detected, forcing to fmu-v3");
 
-			} else {
+				/* Has CAN2 transceiver Remove pull up */
 
-				/* It is a mini */
+				stm32_configgpio(GPIO_CAN2_RX);
 
-				hw_type[2] = 'M';
-			}
+				break;
 
-			break;
+			case HW_VER_FMUV2MINI_STATE:
 
-		default:
+				/* Detection for a Pixhack3 */
 
-			/* questionable px4_fmu-v2 hardware, try forcing regular FMUv2 (not much else we can do) */
+				stm32_configgpio(HW_VER_PA8);
+				up_udelay(10);
+				bool isph3 = stm32_gpioread(HW_VER_PA8);
+				stm32_configgpio(HW_VER_PA8_INIT);
 
-			syslog(LOG_ERR, "\nbad version detected, forcing to fmu-v2");
-			hw_version = HW_VER_FMUV2_STATE;
-			break;
+				if (isph3) {
+					/* Pixhack3 looks like a FMuV3 Cube */
+
+					hw_version = HW_VER_FMUV3_STATE;
+					hw_type[1]++;
+					hw_type[2] = '0';
+					syslog(LOG_INFO, "\nPixhack V3 detected, forcing to fmu-v3");
+
+				} else {
+					/* It is a mini */
+
+					hw_type[2] = 'M';
+				}
+
+				break;
+
+			default:
+
+				/* questionable px4_fmu-v2 hardware, try forcing regular FMUv2 (not much else we can do)
+				 */
+
+				syslog(LOG_ERR, "\nbad version detected, forcing to fmu-v2");
+				hw_version = HW_VER_FMUV2_STATE;
+				break;
 		}
 
 		syslog(LOG_DEBUG, "\nFMUv2 ver 0x%1X : Rev %x %s\n", hw_version, hw_revision, hw_type);

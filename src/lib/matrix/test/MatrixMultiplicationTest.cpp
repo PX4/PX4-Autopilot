@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixMultiplicationTest, Multiplication)
-{
+TEST(MatrixMultiplicationTest, Multiplication) {
 	float data[9] = {1, 0, 0, 0, 1, 0, 1, 0, 1};
 	Matrix3f A(data);
 
@@ -66,34 +66,19 @@ TEST(MatrixMultiplicationTest, Multiplication)
 	EXPECT_EQ(C, Matrix3f(off_diagonal_nan));
 
 	// Test non-square matrix
-	float data_43[12] = {1, 3, 2,
-			     2, 2, 1,
-			     5, 2, 1,
-			     2, 3, 4
-			    };
-	float data_32[6] = {2, 3,
-			    1, 7,
-			    5, 4
-			   };
+	float data_43[12] = {1, 3, 2, 2, 2, 1, 5, 2, 1, 2, 3, 4};
+	float data_32[6] = {2, 3, 1, 7, 5, 4};
 
 	Matrix<float, 4, 3> m43(data_43);
 	Matrix<float, 3, 2> m32(data_32);
 
 	Matrix<float, 4, 2> m42 = m43 * m32;
 
-	float data_42[8] = {15, 32,
-			    11, 24,
-			    17, 33,
-			    27, 43
-			   };
+	float data_42[8] = {15, 32, 11, 24, 17, 33, 27, 43};
 	Matrix<float, 4, 2> m42_check(data_42);
 	EXPECT_EQ(m42, m42_check);
 
-	float data_42_plus2[8] = {17, 34,
-				  13, 26,
-				  19, 35,
-				  29, 45
-				 };
+	float data_42_plus2[8] = {17, 34, 13, 26, 19, 35, 29, 45};
 	Matrix<float, 4, 2> m42_plus2_check(data_42_plus2);
 	Matrix<float, 4, 2> m42_plus2 = m42 - (-2);
 	EXPECT_EQ(m42_plus2, m42_plus2_check);

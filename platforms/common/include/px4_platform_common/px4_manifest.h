@@ -33,18 +33,15 @@
 #pragma once
 #include <stdint.h>
 
-typedef enum  {
-	MFT = 0,
-	MTD = 1,
-	LAST_MFT_TYPE
-} px4_manifest_types_e;
+typedef enum { MFT = 0, MTD = 1, LAST_MFT_TYPE } px4_manifest_types_e;
 
 /* must match  px4_manifest_types_e */
-#define PX4_MFT_TYPES     {MFT, MTD}
-#define PX4_MFT_STR_TYPES {"MFT", "MTD"}
+#define PX4_MFT_TYPES \
+	{ MFT, MTD }
+#define PX4_MFT_STR_TYPES \
+	{ "MFT", "MTD" }
 
-typedef struct  {
-
+typedef struct {
 	enum px4_bus_type {
 		I2C = 0,
 		SPI = 1,
@@ -54,22 +51,21 @@ typedef struct  {
 	uint32_t devid;
 } px4_mft_device_t;
 
-#define PX4_MK_I2C_DEVID(b,a) ((b) << 16 | ((a) & 0xffff))
-#define PX4_I2C_DEVID_BUS(d)  (((d) >> 16) & 0xffff)
-#define PX4_I2C_DEVID_ADDR(d) ((d) & 0xffff)
+#define PX4_MK_I2C_DEVID(b, a) ((b) << 16 | ((a)&0xffff))
+#define PX4_I2C_DEVID_BUS(d) (((d) >> 16) & 0xffff)
+#define PX4_I2C_DEVID_ADDR(d) ((d)&0xffff)
 
 typedef struct {
 	const px4_manifest_types_e type;
-	const void           *pmft;
+	const void *pmft;
 } px4_mft_entry_s;
 
 typedef struct {
-	const uint32_t        nmft;
+	const uint32_t nmft;
 	const px4_mft_entry_s *mfts;
 } px4_mft_s;
 
 #include "px4_platform_common/mtd_manifest.h"
-
 
 __BEGIN_DECLS
 /************************************************************************************
@@ -120,6 +116,5 @@ __EXPORT int px4_mft_configure(const px4_mft_s *mft);
  *
  ************************************************************************************/
 
-__EXPORT int px4_mft_query(const px4_mft_s *mft, px4_manifest_types_e type,
-			   const char *sub, const char *val);
+__EXPORT int px4_mft_query(const px4_mft_s *mft, px4_manifest_types_e type, const char *sub, const char *val);
 __END_DECLS

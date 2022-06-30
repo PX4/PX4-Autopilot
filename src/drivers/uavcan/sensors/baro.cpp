@@ -35,24 +35,23 @@
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <drivers/drv_hrt.h>
 #include "baro.hpp"
+
+#include <drivers/drv_hrt.h>
+#include <lib/geo/geo.h>  // For CONSTANTS_*
 #include <math.h>
+#include <uORB/topics/sensor_baro.h>
 
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
-#include <lib/geo/geo.h> // For CONSTANTS_*
 
 const char *const UavcanBarometerBridge::NAME = "baro";
 
-UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_baro", ORB_ID(sensor_baro)),
-	_sub_air_pressure_data(node),
-	_sub_air_temperature_data(node)
-{ }
+UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode &node)
+	: UavcanSensorBridgeBase("uavcan_baro", ORB_ID(sensor_baro)),
+	  _sub_air_pressure_data(node),
+	  _sub_air_temperature_data(node) {}
 
-int UavcanBarometerBridge::init()
-{
+int UavcanBarometerBridge::init() {
 	int res = _sub_air_pressure_data.start(AirPressureCbBinder(this, &UavcanBarometerBridge::air_pressure_sub_cb));
 
 	if (res < 0) {
@@ -60,7 +59,8 @@ int UavcanBarometerBridge::init()
 		return res;
 	}
 
-	res = _sub_air_temperature_data.start(AirTemperatureCbBinder(this, &UavcanBarometerBridge::air_temperature_sub_cb));
+	res = _sub_air_temperature_data.start(
+		AirTemperatureCbBinder(this, &UavcanBarometerBridge::air_temperature_sub_cb));
 
 	if (res < 0) {
 		DEVICE_LOG("failed to start uavcan sub: %d", res);
@@ -70,14 +70,14 @@ int UavcanBarometerBridge::init()
 	return 0;
 }
 
-void UavcanBarometerBridge::air_temperature_sub_cb(const
-		uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &msg)
-{
+void UavcanBarometerBridge::air_temperature_sub_cb(
+	const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &msg) {
 	if (msg.static_temperature >= 0.f) {
 		_last_temperature_kelvin = msg.static_temperature;
 
 	} else if (msg.static_temperature < 0) {
-		// handle previous incorrect temperature conversion to Kelvin where 273 was subtracted instead of added (https://github.com/PX4/PX4-Autopilot/pull/19061)
+		// handle previous incorrect temperature conversion to Kelvin where 273 was subtracted instead of added
+		// (https://github.com/PX4/PX4-Autopilot/pull/19061)
 		float temperature_c = msg.static_temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 
 		if (temperature_c > -40.f && temperature_c < 120.f) {
@@ -86,9 +86,8 @@ void UavcanBarometerBridge::air_temperature_sub_cb(const
 	}
 }
 
-void UavcanBarometerBridge::air_pressure_sub_cb(const
-		uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &msg)
-{
+void UavcanBarometerBridge::air_pressure_sub_cb(
+	const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &msg) {
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
 	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
@@ -99,7 +98,8 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 	}
 
 	// Cast our generic CDev pointer to the sensor-specific driver class
-	uORB::PublicationMulti<sensor_baro_s> *baro = static_cast<uORB::PublicationMulti<sensor_baro_s> *>(channel->h_driver);
+	uORB::PublicationMulti<sensor_baro_s> *baro =
+		static_cast<uORB::PublicationMulti<sensor_baro_s> *>(channel->h_driver);
 
 	if (baro == nullptr) {
 		return;
@@ -130,15 +130,15 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 	baro->publish(sensor_baro);
 }
 
-int UavcanBarometerBridge::init_driver(uavcan_bridge::Channel *channel)
-{
+int UavcanBarometerBridge::init_driver(uavcan_bridge::Channel *channel) {
 	channel->h_driver = new uORB::PublicationMulti<sensor_baro_s>(ORB_ID(sensor_baro));
 
 	if (channel->h_driver == nullptr) {
 		return PX4_ERROR;
 	}
 
-	uORB::PublicationMulti<sensor_baro_s> *baro = static_cast<uORB::PublicationMulti<sensor_baro_s> *>(channel->h_driver);
+	uORB::PublicationMulti<sensor_baro_s> *baro =
+		static_cast<uORB::PublicationMulti<sensor_baro_s> *>(channel->h_driver);
 
 	channel->instance = baro->get_instance();
 

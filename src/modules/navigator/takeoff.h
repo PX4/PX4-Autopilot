@@ -40,11 +40,10 @@
 
 #pragma once
 
-#include "navigator_mode.h"
 #include "mission_block.h"
+#include "navigator_mode.h"
 
-class Takeoff : public MissionBlock
-{
+class Takeoff : public MissionBlock {
 public:
 	Takeoff(Navigator *navigator);
 	~Takeoff() = default;
@@ -53,6 +52,5 @@ public:
 	void on_active() override;
 
 private:
-
 	void set_takeoff_position();
 };

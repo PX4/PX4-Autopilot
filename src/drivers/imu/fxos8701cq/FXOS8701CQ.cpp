@@ -46,32 +46,27 @@ using namespace time_literals;
   that ADDR_WHO_AM_I must be first in the list.
  */
 const uint8_t FXOS8701CQ::_checked_registers[FXOS8701C_NUM_CHECKED_REGISTERS] = {
-	FXOS8701CQ_WHOAMI,
-	FXOS8701CQ_XYZ_DATA_CFG,
-	FXOS8701CQ_CTRL_REG1,
-	FXOS8701CQ_M_CTRL_REG1,
-	FXOS8701CQ_M_CTRL_REG2,
+	FXOS8701CQ_WHOAMI,      FXOS8701CQ_XYZ_DATA_CFG, FXOS8701CQ_CTRL_REG1,
+	FXOS8701CQ_M_CTRL_REG1, FXOS8701CQ_M_CTRL_REG2,
 };
 
-FXOS8701CQ::FXOS8701CQ(device::Device *interface, const I2CSPIDriverConfig &config) :
-	I2CSPIDriver(config),
-	_interface(interface),
-	_px4_accel(interface->get_device_id(), config.rotation),
+FXOS8701CQ::FXOS8701CQ(device::Device *interface, const I2CSPIDriverConfig &config)
+	: I2CSPIDriver(config),
+	  _interface(interface),
+	  _px4_accel(interface->get_device_id(), config.rotation),
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-	_px4_mag(interface->get_device_id(), config.rotation),
-	_mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": mag read")),
+	  _px4_mag(interface->get_device_id(), config.rotation),
+	  _mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": mag read")),
 #endif
-	_accel_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": acc read")),
-	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad reg")),
-	_accel_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": acc dupe"))
-{
+	  _accel_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": acc read")),
+	  _bad_registers(perf_alloc(PC_COUNT, MODULE_NAME ": bad reg")),
+	  _accel_duplicates(perf_alloc(PC_COUNT, MODULE_NAME ": acc dupe")) {
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	_px4_mag.set_scale(0.001f);
 #endif
 }
 
-FXOS8701CQ::~FXOS8701CQ()
-{
+FXOS8701CQ::~FXOS8701CQ() {
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	perf_free(_mag_sample_perf);
 #endif
@@ -82,9 +77,7 @@ FXOS8701CQ::~FXOS8701CQ()
 	perf_free(_accel_duplicates);
 }
 
-int
-FXOS8701CQ::init()
-{
+int FXOS8701CQ::init() {
 	// do SPI/I2C init (and probe) first
 	int ret = _interface->init();
 
@@ -109,9 +102,7 @@ FXOS8701CQ::init()
 	return PX4_OK;
 }
 
-void
-FXOS8701CQ::reset()
-{
+void FXOS8701CQ::reset() {
 	// enable accel set it To Standby
 	write_checked_reg(FXOS8701CQ_CTRL_REG1, 0);
 	write_checked_reg(FXOS8701CQ_XYZ_DATA_CFG, 0);
@@ -129,9 +120,7 @@ FXOS8701CQ::reset()
 	write_checked_reg(FXOS8701CQ_CTRL_REG1, CTRL_REG1_DR(0) | CTRL_REG1_ACTIVE);
 }
 
-int
-FXOS8701CQ::probe()
-{
+int FXOS8701CQ::probe() {
 	// verify that the device is attached and functioning
 	uint8_t whoami = read_reg(FXOS8701CQ_WHOAMI);
 	bool success = (whoami == FXOS8700CQ_WHOAMI_VAL) || (whoami == FXOS8701CQ_WHOAMI_VAL);
@@ -144,9 +133,7 @@ FXOS8701CQ::probe()
 	return -EIO;
 }
 
-void
-FXOS8701CQ::write_checked_reg(unsigned reg, uint8_t value)
-{
+void FXOS8701CQ::write_checked_reg(unsigned reg, uint8_t value) {
 	write_reg(reg, value);
 
 	for (uint8_t i = 0; i < FXOS8701C_NUM_CHECKED_REGISTERS; i++) {
@@ -156,18 +143,14 @@ FXOS8701CQ::write_checked_reg(unsigned reg, uint8_t value)
 	}
 }
 
-void
-FXOS8701CQ::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
-{
-	uint8_t	val = read_reg(reg);
+void FXOS8701CQ::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits) {
+	uint8_t val = read_reg(reg);
 	val &= ~clearbits;
 	val |= setbits;
 	write_checked_reg(reg, val);
 }
 
-int
-FXOS8701CQ::accel_set_range(unsigned max_g)
-{
+int FXOS8701CQ::accel_set_range(unsigned max_g) {
 	uint8_t setbits = 0;
 	float lsb_per_g;
 
@@ -175,20 +158,20 @@ FXOS8701CQ::accel_set_range(unsigned max_g)
 		max_g = 8;
 	}
 
-	if (max_g > 4) { //  8g
+	if (max_g > 4) {  //  8g
 		setbits = XYZ_DATA_CFG_FS_8G;
 		lsb_per_g = 1024;
-		//max_accel_g = 8;
+		// max_accel_g = 8;
 
-	} else if (max_g > 2) { //  4g
+	} else if (max_g > 2) {  //  4g
 		setbits = XYZ_DATA_CFG_FS_4G;
 		lsb_per_g = 2048;
-		//max_accel_g = 4;
+		// max_accel_g = 4;
 
-	} else {                //  2g
+	} else {  //  2g
 		setbits = XYZ_DATA_CFG_FS_2G;
 		lsb_per_g = 4096;
-		//max_accel_g = 2;
+		// max_accel_g = 2;
 	}
 
 	float accel_range_scale = (CONSTANTS_ONE_G / lsb_per_g);
@@ -201,9 +184,7 @@ FXOS8701CQ::accel_set_range(unsigned max_g)
 }
 
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-int
-FXOS8701CQ::mag_set_range(unsigned max_ga)
-{
+int FXOS8701CQ::mag_set_range(unsigned max_ga) {
 	// mag_range_ga = 12;
 	float mag_range_scale = 0.001f;
 
@@ -213,9 +194,7 @@ FXOS8701CQ::mag_set_range(unsigned max_ga)
 }
 #endif
 
-int
-FXOS8701CQ::accel_set_samplerate(unsigned frequency)
-{
+int FXOS8701CQ::accel_set_samplerate(unsigned frequency) {
 	uint8_t setbits = 0;
 
 	// The selected ODR is reduced by a factor of two when the device is operated in hybrid mode.
@@ -226,23 +205,23 @@ FXOS8701CQ::accel_set_samplerate(unsigned frequency)
 	}
 
 	if (frequency <= 25) {
-		setbits = CTRL_REG1_DR(4); // Use 50 as it is 50 / 2
+		setbits = CTRL_REG1_DR(4);  // Use 50 as it is 50 / 2
 		_accel_samplerate = 25;
 
 	} else if (frequency <= 50) {
-		setbits = CTRL_REG1_DR(3); // Use 100 as it is 100 / 2
+		setbits = CTRL_REG1_DR(3);  // Use 100 as it is 100 / 2
 		_accel_samplerate = 50;
 
 	} else if (frequency <= 100) {
-		setbits = CTRL_REG1_DR(2); // Use 200 as it is 200 / 2
+		setbits = CTRL_REG1_DR(2);  // Use 200 as it is 200 / 2
 		_accel_samplerate = 100;
 
 	} else if (frequency <= 200) {
-		setbits = CTRL_REG1_DR(1); // Use 400 as it is 400 / 2;
+		setbits = CTRL_REG1_DR(1);  // Use 400 as it is 400 / 2;
 		_accel_samplerate = 200;
 
 	} else if (frequency <= 400) {
-		setbits = CTRL_REG1_DR(0); // Use 800 as it is 800 / 2;
+		setbits = CTRL_REG1_DR(0);  // Use 800 as it is 800 / 2;
 		_accel_samplerate = 400;
 
 	} else {
@@ -256,14 +235,12 @@ FXOS8701CQ::accel_set_samplerate(unsigned frequency)
 	return OK;
 }
 
-void FXOS8701CQ::start()
-{
+void FXOS8701CQ::start() {
 	// start polling at the specified rate
 	ScheduleOnInterval((1_s / FXOS8701C_ACCEL_DEFAULT_RATE) / 2);
 }
 
-void FXOS8701CQ::check_registers()
-{
+void FXOS8701CQ::check_registers() {
 	uint8_t v;
 
 	if ((v = read_reg(_checked_registers[_checked_next])) != _checked_values[_checked_next]) {
@@ -291,8 +268,7 @@ void FXOS8701CQ::check_registers()
 	_checked_next = (_checked_next + 1) % FXOS8701C_NUM_CHECKED_REGISTERS;
 }
 
-void FXOS8701CQ::RunImpl()
-{
+void FXOS8701CQ::RunImpl() {
 	// start the performance counter
 	perf_begin(_accel_sample_perf);
 
@@ -352,7 +328,6 @@ void FXOS8701CQ::RunImpl()
 		_px4_accel.set_temperature(temperature);
 	}
 
-
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 
 	if (hrt_elapsed_time(&_mag_last_measure) >= 10_ms) {
@@ -368,9 +343,7 @@ void FXOS8701CQ::RunImpl()
 	perf_end(_accel_sample_perf);
 }
 
-void
-FXOS8701CQ::print_status()
-{
+void FXOS8701CQ::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_accel_sample_perf);
 
@@ -386,32 +359,21 @@ FXOS8701CQ::print_status()
 		uint8_t v = read_reg(_checked_registers[i]);
 
 		if (v != _checked_values[i]) {
-			::printf("reg %02x:%02x should be %02x\n",
-				 (unsigned)_checked_registers[i],
-				 (unsigned)v,
+			::printf("reg %02x:%02x should be %02x\n", (unsigned)_checked_registers[i], (unsigned)v,
 				 (unsigned)_checked_values[i]);
 		}
 	}
 }
 
-void
-FXOS8701CQ::print_registers()
-{
+void FXOS8701CQ::print_registers() {
 	const struct {
 		uint8_t reg;
 		const char *name;
 	} regmap[] = {
-		DEF_REG(FXOS8701CQ_DR_STATUS),
-		DEF_REG(FXOS8701CQ_OUT_X_MSB),
-		DEF_REG(FXOS8701CQ_XYZ_DATA_CFG),
-		DEF_REG(FXOS8701CQ_WHOAMI),
-		DEF_REG(FXOS8701CQ_CTRL_REG1),
-		DEF_REG(FXOS8701CQ_CTRL_REG2),
-		DEF_REG(FXOS8701CQ_M_DR_STATUS),
-		DEF_REG(FXOS8701CQ_M_OUT_X_MSB),
-		DEF_REG(FXOS8701CQ_M_CTRL_REG1),
-		DEF_REG(FXOS8701CQ_M_CTRL_REG2),
-		DEF_REG(FXOS8701CQ_M_CTRL_REG3),
+		DEF_REG(FXOS8701CQ_DR_STATUS),   DEF_REG(FXOS8701CQ_OUT_X_MSB),   DEF_REG(FXOS8701CQ_XYZ_DATA_CFG),
+		DEF_REG(FXOS8701CQ_WHOAMI),      DEF_REG(FXOS8701CQ_CTRL_REG1),   DEF_REG(FXOS8701CQ_CTRL_REG2),
+		DEF_REG(FXOS8701CQ_M_DR_STATUS), DEF_REG(FXOS8701CQ_M_OUT_X_MSB), DEF_REG(FXOS8701CQ_M_CTRL_REG1),
+		DEF_REG(FXOS8701CQ_M_CTRL_REG2), DEF_REG(FXOS8701CQ_M_CTRL_REG3),
 	};
 
 	for (uint8_t i = 0; i < sizeof(regmap) / sizeof(regmap[0]); i++) {
@@ -419,9 +381,7 @@ FXOS8701CQ::print_registers()
 	}
 }
 
-void
-FXOS8701CQ::test_error()
-{
+void FXOS8701CQ::test_error() {
 	// trigger an error
 	write_reg(FXOS8701CQ_CTRL_REG1, 0);
 }

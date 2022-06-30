@@ -1,12 +1,15 @@
-/*************************************************************************//**
- * @file
- * @brief    	This file is part of the AFBR-S50 API.
- * @details		This file provides driver functionality for PIT (periodic interrupt timer).
- *
- * @copyright	Copyright c 2016-2019, Avago Technologies GmbH.
- * 				All rights reserved.
- *
- *****************************************************************************/
+/*************************************************************************/ /**
+									     * @file
+									     * @brief    	This file is part of the
+									     *AFBR-S50 API.
+									     * @details		This file provides driver
+									     *functionality for PIT (periodic interrupt
+									     *timer).
+									     *
+									     * @copyright	Copyright c 2016-2019, Avago
+									     *Technologies GmbH. All rights reserved.
+									     *
+									     *****************************************************************************/
 
 #ifndef TIMER_H
 #define TIMER_H

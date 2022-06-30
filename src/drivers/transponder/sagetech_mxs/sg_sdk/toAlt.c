@@ -15,8 +15,7 @@
 /*
  * Documented in the header file.
  */
-double toAlt(const uint8_t bytes[])
-{
+double toAlt(const uint8_t bytes[]) {
 	double value = toInt32(bytes);
 	value *= SV_RES_ALT;
 

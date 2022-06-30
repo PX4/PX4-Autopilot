@@ -37,19 +37,19 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/vehicle_global_position.h>
+
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_baro.h>
-#include <uORB/topics/vehicle_global_position.h>
 
 using namespace time_literals;
 
-class SensorBaroSim : public ModuleBase<SensorBaroSim>, public ModuleParams, public px4::ScheduledWorkItem
-{
+class SensorBaroSim : public ModuleBase<SensorBaroSim>, public ModuleParams, public px4::ScheduledWorkItem {
 public:
 	SensorBaroSim();
 	~SensorBaroSim() override;
@@ -83,10 +83,8 @@ private:
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
-	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_BARO_OFF_P>) _sim_baro_off_p,
-		(ParamFloat<px4::params::SIM_BARO_OFF_T>) _sim_baro_off_t
-	)
+	DEFINE_PARAMETERS((ParamFloat<px4::params::SIM_BARO_OFF_P>)_sim_baro_off_p,
+			  (ParamFloat<px4::params::SIM_BARO_OFF_T>)_sim_baro_off_t)
 };

@@ -31,12 +31,11 @@
  *
  ****************************************************************************/
 
-#include "autopilot_tester.h"
 #include <chrono>
 
+#include "autopilot_tester.h"
 
-TEST_CASE("Takeoff and Land", "[multicopter][vtol]")
-{
+TEST_CASE("Takeoff and Land", "[multicopter][vtol]") {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();
@@ -48,8 +47,7 @@ TEST_CASE("Takeoff and Land", "[multicopter][vtol]")
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-TEST_CASE("Fly square Multicopter Missions including RTL", "[multicopter]")
-{
+TEST_CASE("Fly square Multicopter Missions including RTL", "[multicopter]") {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();
@@ -63,8 +61,7 @@ TEST_CASE("Fly square Multicopter Missions including RTL", "[multicopter]")
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-TEST_CASE("Fly square Multicopter Missions with manual RTL", "[multicopter]")
-{
+TEST_CASE("Fly square Multicopter Missions with manual RTL", "[multicopter]") {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();
@@ -81,8 +78,7 @@ TEST_CASE("Fly square Multicopter Missions with manual RTL", "[multicopter]")
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-TEST_CASE("Fly straight Multicopter Mission", "[multicopter]")
-{
+TEST_CASE("Fly straight Multicopter Mission", "[multicopter]") {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();

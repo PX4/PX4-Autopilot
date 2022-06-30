@@ -37,15 +37,11 @@
  * PX4 Middleware Wrapper NuttX Implementation
  */
 
-#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
+#include <px4_platform_common/defines.h>
 
-namespace px4
-{
+namespace px4 {
 
-void init(int argc, char *argv[], const char *process_name)
-{
-	printf("process: %s\n", process_name);
-}
+void init(int argc, char *argv[], const char *process_name) { printf("process: %s\n", process_name); }
 
-}
+}  // namespace px4

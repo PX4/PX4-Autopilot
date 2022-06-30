@@ -36,27 +36,22 @@
  * Tests for led functionality.
  */
 
-#include <px4_platform_common/time.h>
-#include <px4_platform_common/px4_config.h>
+#include <drivers/drv_board_led.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <px4_platform_common/posix.h>
-
-#include <sys/types.h>
-
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-
-#include <drivers/drv_board_led.h>
 
 #include "tests_main.h"
 
-
-int test_led(int argc, char *argv[])
-{
-	int		fd;
-	int		ret = 0;
+int test_led(int argc, char *argv[]) {
+	int fd;
+	int ret = 0;
 
 	fd = px4_open(LED0_DEVICE_PATH, 0);
 
@@ -65,9 +60,7 @@ int test_led(int argc, char *argv[])
 		return ERROR;
 	}
 
-	if (px4_ioctl(fd, LED_ON, LED_BLUE) ||
-	    px4_ioctl(fd, LED_ON, LED_AMBER)) {
-
+	if (px4_ioctl(fd, LED_ON, LED_BLUE) || px4_ioctl(fd, LED_ON, LED_AMBER)) {
 		printf("\tLED: ioctl fail\n");
 		return ERROR;
 	}

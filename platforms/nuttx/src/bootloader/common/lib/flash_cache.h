@@ -48,12 +48,12 @@
  *
  */
 
-#define FC_NUMBER_LINES  2                                  // Number of cache lines.
-#define FC_NUMBER_WORDS  8                                  // Number of words per cache line.
-#define FC_LAST_WORD     FC_NUMBER_WORDS-1                  // The index of the last word in cache line.
-#define FC_ADDRESS_MASK  ~(sizeof(flash_cache[0].words)-1)  // Cache tag from address
-#define FC_ADDR2INDX(a)   (((a) / sizeof(flash_cache[0].words[0])) % FC_NUMBER_WORDS) // index from address
-#define FC_CLEAN  ((uint32_t)-1)                            // Cache clean
+#define FC_NUMBER_LINES 2                                    // Number of cache lines.
+#define FC_NUMBER_WORDS 8                                    // Number of words per cache line.
+#define FC_LAST_WORD FC_NUMBER_WORDS - 1                     // The index of the last word in cache line.
+#define FC_ADDRESS_MASK ~(sizeof(flash_cache[0].words) - 1)  // Cache tag from address
+#define FC_ADDR2INDX(a) (((a) / sizeof(flash_cache[0].words[0])) % FC_NUMBER_WORDS)  // index from address
+#define FC_CLEAN ((uint32_t)-1)                                                      // Cache clean
 
 // Cache line
 typedef struct flash_cache_line_t {

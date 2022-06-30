@@ -16,20 +16,19 @@
 #include "sg.h"
 #include "sgUtil.h"
 
-#define SG_PAYLOAD_LEN_DATAREQ SG_MSG_LEN_DATAREQ - 5 /// the payload length.
+#define SG_PAYLOAD_LEN_DATAREQ SG_MSG_LEN_DATAREQ - 5  /// the payload length.
 
-#define PBASE 4 /// the payload offset.
+#define PBASE 4  /// the payload offset.
 
-#define OFFSET_REQ_TYPE 0 /// the requested response message type
-#define OFFSET_RSVD_1 1   /// a reserved field
-#define OFFSET_RSVD_2 2   /// a reserved field
-#define OFFSET_RSVD_3 3   /// a reserved field
+#define OFFSET_REQ_TYPE 0  /// the requested response message type
+#define OFFSET_RSVD_1 1    /// a reserved field
+#define OFFSET_RSVD_2 2    /// a reserved field
+#define OFFSET_RSVD_3 3    /// a reserved field
 
 /*
  * Documented in the header file.
  */
-bool sgEncodeDataReq(uint8_t *buffer, sg_datareq_t *data, uint8_t msgId)
-{
+bool sgEncodeDataReq(uint8_t *buffer, sg_datareq_t *data, uint8_t msgId) {
 	// populate header
 	buffer[0] = SG_MSG_START_BYTE;
 	buffer[1] = SG_MSG_TYPE_HOST_DATAREQ;

@@ -33,19 +33,19 @@
 
 #pragma once
 
-#include "Inven_Sense_ICP10111_registers.hpp"
-
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/i2c.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/topics/sensor_baro.h>
+
+#include <uORB/PublicationMulti.hpp>
+
+#include "Inven_Sense_ICP10111_registers.hpp"
 
 using namespace Inven_Sense_ICP10111;
 
-class ICP10111 : public device::I2C, public I2CSPIDriver<ICP10111>
-{
+class ICP10111 : public device::I2C, public I2CSPIDriver<ICP10111> {
 public:
 	ICP10111(const I2CSPIDriverConfig &config);
 	~ICP10111() override;
@@ -72,9 +72,9 @@ private:
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
-	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
-	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME ": reset")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": read")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad transfer")};
 
 	hrt_abstime _reset_timestamp{0};
 	int _failure_count{0};
@@ -82,18 +82,7 @@ private:
 	unsigned _measure_interval{0};
 	int16_t _scal[4];
 
-	enum class STATE : uint8_t {
-		RESET,
-		WAIT_FOR_RESET,
-		READ_OTP,
-		MEASURE,
-		READ
-	} _state{STATE::RESET};
+	enum class STATE : uint8_t { RESET, WAIT_FOR_RESET, READ_OTP, MEASURE, READ } _state{STATE::RESET};
 
-	enum class MODE : uint8_t {
-		FAST,
-		NORMAL,
-		ACCURATE,
-		VERY_ACCURATE
-	} _mode{MODE::VERY_ACCURATE};
+	enum class MODE : uint8_t { FAST, NORMAL, ACCURATE, VERY_ACCURATE } _mode{MODE::VERY_ACCURATE};
 };

@@ -41,7 +41,4 @@
 
 extern "C" __EXPORT int mavlink_tests_main(int argc, char *argv[]);
 
-int mavlink_tests_main(int argc, char *argv[])
-{
-	return mavlink_ftp_test() ? 0 : -1;
-}
+int mavlink_tests_main(int argc, char *argv[]) { return mavlink_ftp_test() ? 0 : -1; }

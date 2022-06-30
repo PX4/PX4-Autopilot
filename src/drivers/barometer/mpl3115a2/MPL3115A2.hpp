@@ -42,23 +42,22 @@
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/log.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/px4_config.h>
+#include <uORB/topics/sensor_baro.h>
 
-#define MPL3115A2_ADDRESS        0x60
+#include <uORB/PublicationMulti.hpp>
 
-class MPL3115A2 : public device::I2C, public I2CSPIDriver<MPL3115A2>
-{
+#define MPL3115A2_ADDRESS 0x60
+
+class MPL3115A2 : public device::I2C, public I2CSPIDriver<MPL3115A2> {
 public:
 	MPL3115A2(const I2CSPIDriverConfig &config);
 	~MPL3115A2() override;
 
 	static void print_usage();
-
 
 	int init() override;
 	int probe() override;
@@ -66,10 +65,10 @@ public:
 	void print_status();
 
 	void RunImpl();
-private:
 
+private:
 	void start();
-	int  reset();
+	int reset();
 
 	int measure();
 	int collect();

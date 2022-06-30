@@ -36,19 +36,15 @@
 #include "log_writer_file.h"
 #include "log_writer_mavlink.h"
 
-namespace px4
-{
-namespace logger
-{
+namespace px4 {
+namespace logger {
 
 /**
  * @class LogWriter
  * Manages starting, stopping & writing of logged data using the configured backend.
  */
-class LogWriter
-{
+class LogWriter {
 public:
-
 	/** bitfield to specify a backend */
 	typedef uint8_t Backend;
 	static constexpr Backend BackendFile = 1 << 0;
@@ -102,88 +98,99 @@ public:
 
 	/* file logging methods */
 
-	void lock()
-	{
-		if (_log_writer_file) { _log_writer_file->lock(); }
+	void lock() {
+		if (_log_writer_file) {
+			_log_writer_file->lock();
+		}
 	}
 
-	void unlock()
-	{
-		if (_log_writer_file) { _log_writer_file->unlock(); }
+	void unlock() {
+		if (_log_writer_file) {
+			_log_writer_file->unlock();
+		}
 	}
 
-	void notify()
-	{
-		if (_log_writer_file) { _log_writer_file->notify(); }
+	void notify() {
+		if (_log_writer_file) {
+			_log_writer_file->notify();
+		}
 	}
 
-	size_t get_total_written_file(LogType type) const
-	{
-		if (_log_writer_file) { return _log_writer_file->get_total_written(type); }
+	size_t get_total_written_file(LogType type) const {
+		if (_log_writer_file) {
+			return _log_writer_file->get_total_written(type);
+		}
 
 		return 0;
 	}
 
-	size_t get_buffer_size_file(LogType type) const
-	{
-		if (_log_writer_file) { return _log_writer_file->get_buffer_size(type); }
+	size_t get_buffer_size_file(LogType type) const {
+		if (_log_writer_file) {
+			return _log_writer_file->get_buffer_size(type);
+		}
 
 		return 0;
 	}
 
-	size_t get_buffer_fill_count_file(LogType type) const
-	{
-		if (_log_writer_file) { return _log_writer_file->get_buffer_fill_count(type); }
+	size_t get_buffer_fill_count_file(LogType type) const {
+		if (_log_writer_file) {
+			return _log_writer_file->get_buffer_fill_count(type);
+		}
 
 		return 0;
 	}
 
-	pthread_t thread_id_file() const
-	{
-		if (_log_writer_file) { return _log_writer_file->thread_id(); }
+	pthread_t thread_id_file() const {
+		if (_log_writer_file) {
+			return _log_writer_file->thread_id();
+		}
 
 		return (pthread_t)0;
 	}
-
 
 	/**
 	 * Indicate to the underlying backend whether future write_message() calls need a reliable
 	 * transfer. Needed for header integrity.
 	 */
-	void set_need_reliable_transfer(bool need_reliable)
-	{
-		if (_log_writer_file) { _log_writer_file->set_need_reliable_transfer(need_reliable); }
+	void set_need_reliable_transfer(bool need_reliable) {
+		if (_log_writer_file) {
+			_log_writer_file->set_need_reliable_transfer(need_reliable);
+		}
 
-		if (_log_writer_mavlink) { _log_writer_mavlink->set_need_reliable_transfer(need_reliable); }
+		if (_log_writer_mavlink) {
+			_log_writer_mavlink->set_need_reliable_transfer(need_reliable);
+		}
 	}
 
-	bool need_reliable_transfer() const
-	{
-		if (_log_writer_file) { return _log_writer_file->need_reliable_transfer(); }
+	bool need_reliable_transfer() const {
+		if (_log_writer_file) {
+			return _log_writer_file->need_reliable_transfer();
+		}
 
-		if (_log_writer_mavlink) { return _log_writer_mavlink->need_reliable_transfer(); }
+		if (_log_writer_mavlink) {
+			return _log_writer_mavlink->need_reliable_transfer();
+		}
 
 		return false;
 	}
 
 #if defined(PX4_CRYPTO)
-	void set_encryption_parameters(px4_crypto_algorithm_t algorithm, uint8_t key_idx,  uint8_t exchange_key_idx)
-	{
-		if (_log_writer_file) { _log_writer_file->set_encryption_parameters(algorithm, key_idx, exchange_key_idx); }
+	void set_encryption_parameters(px4_crypto_algorithm_t algorithm, uint8_t key_idx, uint8_t exchange_key_idx) {
+		if (_log_writer_file) {
+			_log_writer_file->set_encryption_parameters(algorithm, key_idx, exchange_key_idx);
+		}
 	}
 #endif
 private:
-
 	LogWriterFile *_log_writer_file = nullptr;
 	LogWriterMavlink *_log_writer_mavlink = nullptr;
 
 	LogWriterFile *_log_writer_file_for_write =
-		nullptr; ///< pointer that is used for writing, to temporarily select write backends
+		nullptr;  ///< pointer that is used for writing, to temporarily select write backends
 	LogWriterMavlink *_log_writer_mavlink_for_write = nullptr;
 
 	const Backend _backend;
 };
 
-
-}
-}
+}  // namespace logger
+}  // namespace px4

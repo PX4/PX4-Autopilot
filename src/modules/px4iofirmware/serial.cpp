@@ -37,61 +37,58 @@
  * Serial communication for the PX4IO module.
  */
 
-#include <stdint.h>
-#include <unistd.h>
-#include <termios.h>
-#include <fcntl.h>
-#include <string.h>
-
-#include <nuttx/arch.h>
 #include <arch/board/board.h>
+#include <fcntl.h>
+#include <nuttx/arch.h>
+#include <stdint.h>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
 
 /* XXX might be able to prune these */
-#include <chip.h>
-#include <arm_internal.h>
 #include <arm_arch.h>
+#include <arm_internal.h>
+#include <chip.h>
 #include <stm32.h>
 
 //#define DEBUG
 #include "px4io.h"
 
 #if defined(PX4IO_PERF)
-# include <perf/perf_counter.h>
+#include <perf/perf_counter.h>
 
-static perf_counter_t	pc_txns;
-static perf_counter_t	pc_errors;
-static perf_counter_t	pc_ore;
-static perf_counter_t	pc_fe;
-static perf_counter_t	pc_ne;
-static perf_counter_t	pc_idle;
-static perf_counter_t	pc_badidle;
-static perf_counter_t	pc_regerr;
-static perf_counter_t	pc_crcerr;
+static perf_counter_t pc_txns;
+static perf_counter_t pc_errors;
+static perf_counter_t pc_ore;
+static perf_counter_t pc_fe;
+static perf_counter_t pc_ne;
+static perf_counter_t pc_idle;
+static perf_counter_t pc_badidle;
+static perf_counter_t pc_regerr;
+static perf_counter_t pc_crcerr;
 #endif
 
-static void		rx_handle_packet(void);
-static void		rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
-static DMA_HANDLE	tx_dma;
-static DMA_HANDLE	rx_dma;
+static void rx_handle_packet(void);
+static void rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
+static DMA_HANDLE tx_dma;
+static DMA_HANDLE rx_dma;
 
-static int		serial_interrupt(int irq, void *context, FAR void *arg);
-static void		dma_reset(void);
+static int serial_interrupt(int irq, void *context, FAR void *arg);
+static void dma_reset(void);
 
-static struct IOPacket	dma_packet;
+static struct IOPacket dma_packet;
 
 /* serial register accessors */
-#define REG(_x)		(*(volatile uint32_t *)(PX4FMU_SERIAL_BASE + _x))
-#define rSR		REG(STM32_USART_SR_OFFSET)
-#define rDR		REG(STM32_USART_DR_OFFSET)
-#define rBRR		REG(STM32_USART_BRR_OFFSET)
-#define rCR1		REG(STM32_USART_CR1_OFFSET)
-#define rCR2		REG(STM32_USART_CR2_OFFSET)
-#define rCR3		REG(STM32_USART_CR3_OFFSET)
-#define rGTPR		REG(STM32_USART_GTPR_OFFSET)
+#define REG(_x) (*(volatile uint32_t *)(PX4FMU_SERIAL_BASE + _x))
+#define rSR REG(STM32_USART_SR_OFFSET)
+#define rDR REG(STM32_USART_DR_OFFSET)
+#define rBRR REG(STM32_USART_BRR_OFFSET)
+#define rCR1 REG(STM32_USART_CR1_OFFSET)
+#define rCR2 REG(STM32_USART_CR2_OFFSET)
+#define rCR3 REG(STM32_USART_CR3_OFFSET)
+#define rGTPR REG(STM32_USART_GTPR_OFFSET)
 
-void
-interface_init(void)
-{
+void interface_init(void) {
 #if defined(PX4IO_PERF)
 	pc_txns = perf_alloc(PC_ELAPSED, "txns");
 	pc_errors = perf_alloc(PC_COUNT, "errors");
@@ -135,7 +132,7 @@ interface_init(void)
 	rCR3 = USART_CR3_EIE;
 	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_IDLEIE;
 
-#if 0	/* keep this for signal integrity testing */
+#if 0 /* keep this for signal integrity testing */
 
 	for (;;) {
 		while (!(rSR & USART_SR_TXE))
@@ -157,9 +154,7 @@ interface_init(void)
 	debug("serial init");
 }
 
-static void
-rx_handle_packet(void)
-{
+static void rx_handle_packet(void) {
 	/* check packet CRC */
 	uint8_t crc = dma_packet.crc;
 	dma_packet.crc = 0;
@@ -178,7 +173,6 @@ rx_handle_packet(void)
 	}
 
 	if (PKT_CODE(dma_packet) == PKT_CODE_WRITE) {
-
 		/* it's a blind write - pass it on */
 		if (registers_set(dma_packet.page, dma_packet.offset, &dma_packet.regs[0], PKT_COUNT(dma_packet))) {
 #if defined(PX4IO_PERF)
@@ -195,7 +189,6 @@ rx_handle_packet(void)
 	}
 
 	if (PKT_CODE(dma_packet) == PKT_CODE_READ) {
-
 		/* it's a read - get register pointer for reply */
 		unsigned count;
 		uint16_t *registers;
@@ -231,9 +224,7 @@ rx_handle_packet(void)
 	dma_packet.offset = 0xfe;
 }
 
-static void
-rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
-{
+static void rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg) {
 	/*
 	 * We are here because DMA completed, or UART reception stopped and
 	 * we think we have a packet in the buffer.
@@ -254,15 +245,8 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	/* send the reply to the just-processed request */
 	dma_packet.crc = 0;
 	dma_packet.crc = crc_packet(&dma_packet);
-	stm32_dmasetup(
-		tx_dma,
-		(uint32_t)&rDR,
-		(uint32_t)&dma_packet,
-		PKT_SIZE(dma_packet),
-		DMA_CCR_DIR		|
-		DMA_CCR_MINC		|
-		DMA_CCR_PSIZE_8BITS	|
-		DMA_CCR_MSIZE_8BITS);
+	stm32_dmasetup(tx_dma, (uint32_t)&rDR, (uint32_t)&dma_packet, PKT_SIZE(dma_packet),
+		       DMA_CCR_DIR | DMA_CCR_MINC | DMA_CCR_PSIZE_8BITS | DMA_CCR_MSIZE_8BITS);
 	stm32_dmastart(tx_dma, NULL, NULL, false);
 	rCR3 |= USART_CR3_DMAT;
 
@@ -271,17 +255,15 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 #endif
 }
 
-static int
-serial_interrupt(int irq, void *context, FAR void *arg)
-{
+static int serial_interrupt(int irq, void *context, FAR void *arg) {
 	static bool abort_on_idle = false;
 
-	uint32_t sr = rSR;	/* get UART status register */
-	(void)rDR;		/* required to clear any of the interrupt status that brought us here */
+	uint32_t sr = rSR; /* get UART status register */
+	(void)rDR;         /* required to clear any of the interrupt status that brought us here */
 
-	if (sr & (USART_SR_ORE |	/* overrun error - packet was too big for DMA or DMA was too slow */
-		  USART_SR_NE |		/* noise error - we have lost a byte due to noise */
-		  USART_SR_FE)) {		/* framing error - start/stop bit lost or line break */
+	if (sr & (USART_SR_ORE |  /* overrun error - packet was too big for DMA or DMA was too slow */
+		  USART_SR_NE |   /* noise error - we have lost a byte due to noise */
+		  USART_SR_FE)) { /* framing error - start/stop bit lost or line break */
 
 #if defined(PX4IO_PERF)
 		perf_count(pc_errors);
@@ -308,14 +290,12 @@ serial_interrupt(int irq, void *context, FAR void *arg)
 	}
 
 	if (sr & USART_SR_IDLE) {
-
 		/*
 		 * If we saw an error, don't bother looking at the packet - it should have
 		 * been aborted by the sender and will definitely be bad. Get the DMA reconfigured
 		 * ready for their retry.
 		 */
 		if (abort_on_idle) {
-
 			abort_on_idle = false;
 			dma_reset();
 			return 0;
@@ -329,7 +309,6 @@ serial_interrupt(int irq, void *context, FAR void *arg)
 		unsigned length = sizeof(dma_packet) - stm32_dmaresidual(rx_dma);
 
 		if ((length < 1) || (length < PKT_SIZE(dma_packet))) {
-
 			/* it was too short - possibly truncated */
 #if defined(PX4IO_PERF)
 			perf_count(pc_badidle);
@@ -352,9 +331,7 @@ serial_interrupt(int irq, void *context, FAR void *arg)
 	return 0;
 }
 
-static void
-dma_reset(void)
-{
+static void dma_reset(void) {
 	rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
 	(void)rSR;
 	(void)rDR;
@@ -365,18 +342,10 @@ dma_reset(void)
 	stm32_dmastop(rx_dma);
 
 	/* reset the RX side */
-	stm32_dmasetup(
-		rx_dma,
-		(uint32_t)&rDR,
-		(uint32_t)&dma_packet,
-		sizeof(dma_packet),
-		DMA_CCR_MINC		|
-		DMA_CCR_PSIZE_8BITS	|
-		DMA_CCR_MSIZE_8BITS     |
-		DMA_CCR_PRIVERYHI);
+	stm32_dmasetup(rx_dma, (uint32_t)&rDR, (uint32_t)&dma_packet, sizeof(dma_packet),
+		       DMA_CCR_MINC | DMA_CCR_PSIZE_8BITS | DMA_CCR_MSIZE_8BITS | DMA_CCR_PRIVERYHI);
 
 	/* start receive DMA ready for the next packet */
 	stm32_dmastart(rx_dma, rx_dma_callback, NULL, false);
 	rCR3 |= USART_CR3_DMAR;
 }
-

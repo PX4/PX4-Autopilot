@@ -36,23 +36,18 @@
 #include "ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
 
-class ActuatorEffectivenessMultirotor : public ModuleParams, public ActuatorEffectiveness
-{
+class ActuatorEffectivenessMultirotor : public ModuleParams, public ActuatorEffectiveness {
 public:
 	ActuatorEffectivenessMultirotor(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessMultirotor() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
-	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
-	{
+	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override {
 		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
 	}
 
-	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
-	{
-		normalize[0] = true;
-	}
+	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override { normalize[0] = true; }
 
 	const char *name() const override { return "Multirotor"; }
 

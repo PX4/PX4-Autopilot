@@ -39,18 +39,19 @@
  * Base class for devices connected via SPI.
  */
 
-#include "../CDev.hpp"
 #include <px4_platform_common/spi.h>
+
+#include "../CDev.hpp"
 
 #if defined(CONFIG_SPI)
 
 #ifdef __PX4_LINUX
 
 #include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <linux/types.h>
 #include <linux/spi/spidev.h>
+#include <linux/types.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 enum spi_mode_e {
 	SPIDEV_MODE0 = SPI_MODE_0, /* CPOL=0 CHPHA=0 */
@@ -61,14 +62,12 @@ enum spi_mode_e {
 
 struct I2CSPIDriverConfig;
 
-namespace device __EXPORT
-{
+namespace device __EXPORT {
 
 /**
  * Abstract class for character device on SPI
  */
-class __EXPORT SPI : public CDev
-{
+class __EXPORT SPI : public CDev {
 public:
 	// no copy, assignment, move, move assignment
 	SPI(const SPI &) = delete;
@@ -97,17 +96,17 @@ protected:
 	 * Locking modes supported by the driver.
 	 */
 	enum LockMode {
-		LOCK_PREEMPTION,	/**< the default; lock against all forms of preemption. */
-		LOCK_THREADS,		/**< lock only against other threads, using SPI_LOCK */
-		LOCK_NONE		/**< perform no locking, only safe if the bus is entirely private */
+		LOCK_PREEMPTION, /**< the default; lock against all forms of preemption. */
+		LOCK_THREADS,    /**< lock only against other threads, using SPI_LOCK */
+		LOCK_NONE        /**< perform no locking, only safe if the bus is entirely private */
 	};
 
-	virtual int	init() override;
+	virtual int init() override;
 
 	/**
 	 * Check for the presence of the device on the bus.
 	 */
-	virtual int	probe() { return PX4_OK; }
+	virtual int probe() { return PX4_OK; }
 
 	/**
 	 * Perform a SPI transfer.
@@ -128,7 +127,7 @@ protected:
 	 * @return		OK if the exchange was successful, -errno
 	 *			otherwise.
 	 */
-	int		transfer(uint8_t *send, uint8_t *recv, unsigned len);
+	int transfer(uint8_t *send, uint8_t *recv, unsigned len);
 
 	/**
 	 * Perform a SPI 16 bit transfer.
@@ -149,7 +148,7 @@ protected:
 	 * @return		OK if the exchange was successful, -errno
 	 *			otherwise.
 	 */
-	int		transferhword(uint16_t *send, uint16_t *recv, unsigned len);
+	int transferhword(uint16_t *send, uint16_t *recv, unsigned len);
 
 	/**
 	 * Set the SPI bus frequency
@@ -160,8 +159,8 @@ protected:
 	 *
 	 * @param frequency	Frequency to set (Hz)
 	 */
-	void		set_frequency(uint32_t frequency) { _frequency = frequency; }
-	uint32_t	get_frequency() { return _frequency; }
+	void set_frequency(uint32_t frequency) { _frequency = frequency; }
+	uint32_t get_frequency() { return _frequency; }
 
 	/**
 	 * Set the SPI bus locking mode
@@ -171,26 +170,25 @@ protected:
 	 *
 	 * @param mode	Locking mode
 	 */
-	void		set_lockmode(enum LockMode mode) { _locking_mode = mode; }
+	void set_lockmode(enum LockMode mode) { _locking_mode = mode; }
 
 private:
-	uint32_t		_device;
-	enum spi_mode_e		_mode;
-	uint32_t		_frequency;
-	int 			_fd{-1};
+	uint32_t _device;
+	enum spi_mode_e _mode;
+	uint32_t _frequency;
+	int _fd{-1};
 
-	LockMode		_locking_mode{LOCK_THREADS};	/**< selected locking mode */
+	LockMode _locking_mode{LOCK_THREADS}; /**< selected locking mode */
 
 protected:
-	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);
+	int _transfer(uint8_t *send, uint8_t *recv, unsigned len);
 
-	int	_transferhword(uint16_t *send, uint16_t *recv, unsigned len);
+	int _transferhword(uint16_t *send, uint16_t *recv, unsigned len);
 
-	virtual bool	external() const override { return px4_spi_bus_external(get_device_bus()); }
-
+	virtual bool external() const override { return px4_spi_bus_external(get_device_bus()); }
 };
 
-} // namespace device
+}  // namespace __EXPORT
 
 #else
 
@@ -200,6 +198,6 @@ enum spi_mode_e {
 	SPIDEV_MODE2 = 2, /* CPOL=1 CHPHA=0 */
 	SPIDEV_MODE3 = 3  /* CPOL=1 CHPHA=1 */
 };
-#endif // __PX4_LINUX
+#endif  // __PX4_LINUX
 
-#endif // CONFIG_SPI
+#endif  // CONFIG_SPI

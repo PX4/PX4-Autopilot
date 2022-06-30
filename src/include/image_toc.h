@@ -51,7 +51,7 @@
 #define TOC_FLAG1_RDCT 0x80
 
 #define TOC_START_MAGIC 0x00434f54 /* "TOC" */
-#define TOC_END_MAGIC 0x00444e45 /* "END" */
+#define TOC_END_MAGIC 0x00444e45   /* "END" */
 
 /* TOC version, can be used to disable SW downgrade */
 #ifndef BOARD_IMAGE_TOC_VERSION
@@ -81,12 +81,11 @@ typedef struct __attribute__((__packed__)) image_toc_entry {
 	uint32_t reserved;      /* e.g. for more flags */
 } image_toc_entry_t;
 
-#define IMAGE_MAIN_TOC(len)                              \
-	const struct __attribute__((__packed__)) image_toc   \
-	{                                                    \
-		image_toc_start_t start;                         \
-		image_toc_entry_t entry[len];                    \
-		uint32_t end;                                    \
+#define IMAGE_MAIN_TOC(len)                                  \
+	const struct __attribute__((__packed__)) image_toc { \
+		image_toc_start_t start;                     \
+		image_toc_entry_t entry[len];                \
+		uint32_t end;                                \
 	} _main_toc __attribute__((section(".main_toc")))
 
 /* An R&D certificate info structure, which can be used
@@ -96,8 +95,7 @@ typedef struct __attribute__((__packed__)) image_toc_entry {
 
 #define RDCT_CAPS0_ALLOW_UNSIGNED_BOOT 0x1
 
-typedef struct __attribute__((__packed__))
-{
+typedef struct __attribute__((__packed__)) {
 	uint8_t device_uuid[16];
 	uint32_t caps[4];
 	uint8_t creator_info[16];
@@ -112,10 +110,8 @@ extern bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len);
 /* If decrypt or copy flags are defined, this returns the target address.
  * Otherwise, return the start address.
  */
-inline static const void *get_base_addr(const image_toc_entry_t *e)
-{
-	return (e->flags1 & TOC_FLAG1_DECRYPT) || (e->flags1 & TOC_FLAG1_COPY) ?
-	       e->target : e->start;
+inline static const void *get_base_addr(const image_toc_entry_t *e) {
+	return (e->flags1 & TOC_FLAG1_DECRYPT) || (e->flags1 & TOC_FLAG1_COPY) ? e->target : e->start;
 }
 
 #endif

@@ -39,27 +39,27 @@
 
 #pragma once
 
-#include "PixArt_PAA3905_Registers.hpp"
-
-#include <px4_platform_common/px4_config.h>
+#include <conversion/rotation.h>
+#include <drivers/device/spi.h>
+#include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <drivers/device/spi.h>
-#include <conversion/rotation.h>
-#include <lib/perf/perf_counter.h>
-#include <drivers/drv_hrt.h>
-#include <uORB/PublicationMulti.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/sensor_optical_flow.h>
+
+#include <uORB/PublicationMulti.hpp>
+
+#include "PixArt_PAA3905_Registers.hpp"
 
 using namespace time_literals;
 using namespace PixArt_PAA3905;
 
 #define DIR_WRITE(a) ((a) | Bit7)
-#define DIR_READ(a) ((a) & 0x7F)
+#define DIR_READ(a) ((a)&0x7F)
 
-class PAA3905 : public device::SPI, public I2CSPIDriver<PAA3905>
-{
+class PAA3905 : public device::SPI, public I2CSPIDriver<PAA3905> {
 public:
 	PAA3905(const I2CSPIDriverConfig &config);
 	virtual ~PAA3905();
@@ -104,13 +104,14 @@ private:
 
 	uORB::PublicationMulti<sensor_optical_flow_s> _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
-	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
-	perf_counter_t _false_motion_perf{perf_alloc(PC_COUNT, MODULE_NAME": false motion report")};
-	perf_counter_t _mode_change_bright_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change bright (0)")};
-	perf_counter_t _mode_change_low_light_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change low light (1)")};
-	perf_counter_t _mode_change_super_low_light_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change super low light (2)")};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")};
+	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME ": interval")};
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME ": reset")};
+	perf_counter_t _false_motion_perf{perf_alloc(PC_COUNT, MODULE_NAME ": false motion report")};
+	perf_counter_t _mode_change_bright_perf{perf_alloc(PC_COUNT, MODULE_NAME ": mode change bright (0)")};
+	perf_counter_t _mode_change_low_light_perf{perf_alloc(PC_COUNT, MODULE_NAME ": mode change low light (1)")};
+	perf_counter_t _mode_change_super_low_light_perf{
+		perf_alloc(PC_COUNT, MODULE_NAME ": mode change super low light (2)")};
 	perf_counter_t _no_motion_interrupt_perf{nullptr};
 
 	const spi_drdy_gpio_t _drdy_gpio;

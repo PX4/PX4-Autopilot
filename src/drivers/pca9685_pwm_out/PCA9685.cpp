@@ -31,29 +31,24 @@
  *
  ****************************************************************************/
 
-#include <px4_log.h>
-#include <cmath>
 #include "PCA9685.h"
 
+#include <px4_log.h>
+
+#include <cmath>
 #include <px4_platform_common/sem.hpp>
 
 using namespace drv_pca9685_pwm;
 
-PCA9685::PCA9685(int bus, int addr):
-	I2C(DRV_PWM_DEVTYPE_PCA9685, MODULE_NAME, bus, addr, 400000)
-{
+PCA9685::PCA9685(int bus, int addr) : I2C(DRV_PWM_DEVTYPE_PCA9685, MODULE_NAME, bus, addr, 400000) {}
 
-}
-
-int PCA9685::Stop()
-{
+int PCA9685::Stop() {
 	disableAllOutput();
 	stopOscillator();
 	return PX4_OK;
 }
 
-int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs)
-{
+int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs) {
 	if (num_outputs > PCA9685_PWM_CHANNEL_COUNT) {
 		num_outputs = PCA9685_PWM_CHANNEL_COUNT;
 		PX4_DEBUG("PCA9685 can only drive up to 16 channels");
@@ -63,7 +58,8 @@ int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs)
 	memcpy(out, outputs, sizeof(uint16_t) * num_outputs);
 
 	for (unsigned i = 0; i < num_outputs; ++i) {
-		out[i] = (uint16_t)roundl((out[i] * _Freq * PCA9685_PWM_RES / (float)1e6)); // convert us to 12 bit resolution
+		out[i] = (uint16_t)roundl(
+			(out[i] * _Freq * PCA9685_PWM_RES / (float)1e6));  // convert us to 12 bit resolution
 	}
 
 	setPWM(num_outputs, out);
@@ -71,53 +67,51 @@ int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs)
 	return 0;
 }
 
-int PCA9685::setFreq(float freq)
-{
+int PCA9685::setFreq(float freq) {
 	uint16_t realResolution = floorl((float)PCA9685_CLOCK_FREQ / freq);
 
-	if (realResolution < PCA9685_PWM_RES) { // unable to provide enough resolution
+	if (realResolution < PCA9685_PWM_RES) {  // unable to provide enough resolution
 		PX4_DEBUG("frequency too high");
 		return -EINVAL;
 	}
 
 	uint16_t divider = (uint16_t)round((float)PCA9685_CLOCK_FREQ / freq / PCA9685_PWM_RES) - 1;
 
-	if (divider > 0x00FF) { // out of divider
+	if (divider > 0x00FF) {  // out of divider
 		PX4_DEBUG("frequency too low");
 		return -EINVAL;
 	}
 
-	float freq_err = ((float)PCA9685_CLOCK_FREQ / (float)(divider + (uint16_t)1)
-			  - (float)(freq * PCA9685_PWM_RES))
-			 / (float)(freq * PCA9685_PWM_RES); // actually asked for (freq * PCA9685_PWM_RES)
+	float freq_err =
+		((float)PCA9685_CLOCK_FREQ / (float)(divider + (uint16_t)1) - (float)(freq * PCA9685_PWM_RES)) /
+		(float)(freq * PCA9685_PWM_RES);  // actually asked for (freq * PCA9685_PWM_RES)
 
-	if (fabsf(freq_err) > 0.01f) { // TODO decide threshold
+	if (fabsf(freq_err) > 0.01f) {  // TODO decide threshold
 		PX4_WARN("frequency error too large: %.4f", (double)freq_err);
 		// should we return an error?
 	}
 
-	_Freq = (float)PCA9685_CLOCK_FREQ / (float)(divider + (uint16_t)1) / PCA9685_PWM_RES; // use actual pwm freq instead.
+	_Freq = (float)PCA9685_CLOCK_FREQ / (float)(divider + (uint16_t)1) /
+		PCA9685_PWM_RES;  // use actual pwm freq instead.
 
 	setDivider(divider);
 
 	return PX4_OK;
-
 }
 
-int PCA9685::initReg()
-{
+int PCA9685::initReg() {
 	uint8_t buf[2] = {};
 
 	buf[0] = PCA9685_REG_MODE1;
 	buf[1] = DEFAULT_MODE1_CFG;
-	int ret = transfer(buf, 2, nullptr, 0); // make sure oscillator is disabled
+	int ret = transfer(buf, 2, nullptr, 0);  // make sure oscillator is disabled
 
 	if (OK != ret) {
 		PX4_ERR("init: i2c::transfer returned %d", ret);
 		return ret;
 	}
 
-	ret = transfer(buf, 2, nullptr, 0); // enable EXTCLK if possible
+	ret = transfer(buf, 2, nullptr, 0);  // enable EXTCLK if possible
 
 	if (OK != ret) {
 		PX4_ERR("init: i2c::transfer returned %d", ret);
@@ -136,13 +130,9 @@ int PCA9685::initReg()
 	return PX4_OK;
 }
 
-int PCA9685::probe()
-{
-	return I2C::probe();
-}
+int PCA9685::probe() { return I2C::probe(); }
 
-void PCA9685::setPWM(uint8_t channel, const uint16_t &value)
-{
+void PCA9685::setPWM(uint8_t channel, const uint16_t &value) {
 	if (value >= 4096) {
 		PX4_DEBUG("invalid pwm value");
 		return;
@@ -162,8 +152,7 @@ void PCA9685::setPWM(uint8_t channel, const uint16_t &value)
 	}
 }
 
-void PCA9685::setPWM(uint8_t channel_count, const uint16_t *value)
-{
+void PCA9685::setPWM(uint8_t channel_count, const uint16_t *value) {
 	uint8_t buf[PCA9685_PWM_CHANNEL_COUNT * PCA9685_REG_LED_INCREMENT + 1] = {};
 	buf[0] = PCA9685_REG_LED0;
 
@@ -176,8 +165,8 @@ void PCA9685::setPWM(uint8_t channel_count, const uint16_t *value)
 		buf[1 + i * PCA9685_REG_LED_INCREMENT] = 0x00;
 		buf[2 + i * PCA9685_REG_LED_INCREMENT] = 0x00;
 		buf[3 + i * PCA9685_REG_LED_INCREMENT] = (uint8_t)(value[i] & (uint8_t)0xFF);
-		buf[4 + i * PCA9685_REG_LED_INCREMENT] = value[i] != 0 ? ((uint8_t)(value[i] >> (uint8_t)8)) :
-				PCA9685_LED_ON_FULL_ON_OFF_MASK;
+		buf[4 + i * PCA9685_REG_LED_INCREMENT] =
+			value[i] != 0 ? ((uint8_t)(value[i] >> (uint8_t)8)) : PCA9685_LED_ON_FULL_ON_OFF_MASK;
 	}
 
 	int ret = transfer(buf, channel_count * PCA9685_REG_LED_INCREMENT + 1, nullptr, 0);
@@ -187,8 +176,7 @@ void PCA9685::setPWM(uint8_t channel_count, const uint16_t *value)
 	}
 }
 
-void PCA9685::disableAllOutput()
-{
+void PCA9685::disableAllOutput() {
 	uint8_t buf[5] = {};
 	buf[0] = PCA9685_REG_ALLLED_ON_L;
 	buf[1] = 0x00;
@@ -203,8 +191,7 @@ void PCA9685::disableAllOutput()
 	}
 }
 
-void PCA9685::setDivider(uint8_t value)
-{
+void PCA9685::setDivider(uint8_t value) {
 	uint8_t buf[2] = {};
 	buf[0] = PCA9685_REG_PRE_SCALE;
 	buf[1] = value;
@@ -216,8 +203,7 @@ void PCA9685::setDivider(uint8_t value)
 	}
 }
 
-void PCA9685::stopOscillator()
-{
+void PCA9685::stopOscillator() {
 	uint8_t buf[2] = {PCA9685_REG_MODE1};
 
 	// set to sleep
@@ -230,8 +216,7 @@ void PCA9685::stopOscillator()
 	}
 }
 
-void PCA9685::startOscillator()
-{
+void PCA9685::startOscillator() {
 	uint8_t buf[2] = {PCA9685_REG_MODE1};
 
 	// clear sleep bit, with restart bit = 0
@@ -244,8 +229,7 @@ void PCA9685::startOscillator()
 	}
 }
 
-void PCA9685::triggerRestart()
-{
+void PCA9685::triggerRestart() {
 	uint8_t buf[2] = {PCA9685_REG_MODE1};
 
 	// clear sleep bit, with restart bit = 0

@@ -41,34 +41,36 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/time.h>
-#include <px4_platform_common/log.h>
-#include <lib/mathlib/mathlib.h>
-#include <drivers/drv_hrt.h>
 #include <drivers/drv_adc.h>
-#include <lib/parameters/param.h>
-#include <lib/perf/perf_counter.h>
+#include <drivers/drv_hrt.h>
 #include <lib/battery/battery.h>
 #include <lib/conversion/rotation.h>
-#include <uORB/SubscriptionInterval.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/parameter_update.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 #include <uORB/topics/adc_report.h>
+#include <uORB/topics/parameter_update.h>
+
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 
 #include "analog_battery.h"
 
 using namespace time_literals;
 
 /**
- * The channel definitions (e.g., ADC_BATTERY_VOLTAGE_CHANNEL, ADC_BATTERY_CURRENT_CHANNEL, and ADC_AIRSPEED_VOLTAGE_CHANNEL) are defined in board_config.h
+ * The channel definitions (e.g., ADC_BATTERY_VOLTAGE_CHANNEL, ADC_BATTERY_CURRENT_CHANNEL, and
+ * ADC_AIRSPEED_VOLTAGE_CHANNEL) are defined in board_config.h
  */
 
 #ifndef BOARD_NUMBER_BRICKS
@@ -79,8 +81,7 @@ using namespace time_literals;
 #error "battery_status module requires power bricks"
 #endif
 
-class BatteryStatus : public ModuleBase<BatteryStatus>, public ModuleParams, public px4::ScheduledWorkItem
-{
+class BatteryStatus : public ModuleBase<BatteryStatus>, public ModuleParams, public px4::ScheduledWorkItem {
 public:
 	BatteryStatus();
 	~BatteryStatus() override;
@@ -99,11 +100,12 @@ public:
 private:
 	void Run() override;
 
-	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};				/**< notification of parameter updates */
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update),
+							 1_s}; /**< notification of parameter updates */
 	uORB::SubscriptionCallbackWorkItem _adc_report_sub{this, ORB_ID(adc_report)};
 
 	static constexpr uint32_t SAMPLE_FREQUENCY_HZ = 100;
-	static constexpr uint32_t SAMPLE_INTERVAL_US  = 1_s / SAMPLE_FREQUENCY_HZ;
+	static constexpr uint32_t SAMPLE_INTERVAL_US = 1_s / SAMPLE_FREQUENCY_HZ;
 
 	AnalogBattery _battery1;
 
@@ -114,16 +116,16 @@ private:
 	AnalogBattery *_analogBatteries[BOARD_NUMBER_BRICKS] {
 		&_battery1,
 #if BOARD_NUMBER_BRICKS > 1
-		&_battery2,
+			&_battery2,
 #endif
-	}; // End _analogBatteries
+	};  // End _analogBatteries
 
-	perf_counter_t	_loop_perf;			/**< loop performance counter */
+	perf_counter_t _loop_perf; /**< loop performance counter */
 
 	/**
 	 * Check for changes in parameters.
 	 */
-	void 		parameter_update_poll(bool forced = false);
+	void parameter_update_poll(bool forced = false);
 
 	/**
 	 * Poll the ADC and update readings to suit.
@@ -131,29 +133,23 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		adc_poll();
+	void adc_poll();
 };
 
-BatteryStatus::BatteryStatus() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_battery1(1, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE, 0),
+BatteryStatus::BatteryStatus()
+	: ModuleParams(nullptr),
+	  ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	  _battery1(1, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE, 0),
 #if BOARD_NUMBER_BRICKS > 1
-	_battery2(2, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE, 1),
+	  _battery2(2, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE, 1),
 #endif
-	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME))
-{
+	  _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME)) {
 	updateParams();
 }
 
-BatteryStatus::~BatteryStatus()
-{
-	ScheduleClear();
-}
+BatteryStatus::~BatteryStatus() { ScheduleClear(); }
 
-void
-BatteryStatus::parameter_update_poll(bool forced)
-{
+void BatteryStatus::parameter_update_poll(bool forced) {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || forced) {
 		// clear update
@@ -165,30 +161,26 @@ BatteryStatus::parameter_update_poll(bool forced)
 	}
 }
 
-void
-BatteryStatus::adc_poll()
-{
+void BatteryStatus::adc_poll() {
 	/* For legacy support we publish the battery_status for the Battery that is
-	* associated with the Brick that is the selected source for VDD_5V_IN
-	* Selection is done in HW ala a LTC4417 or similar, or maybe hard coded
-	* Like in the FMUv4
-	*/
+	 * associated with the Brick that is the selected source for VDD_5V_IN
+	 * Selection is done in HW ala a LTC4417 or similar, or maybe hard coded
+	 * Like in the FMUv4
+	 */
 
 	/* Per Brick readings with default unread channels at 0 */
-	float bat_current_adc_readings[BOARD_NUMBER_BRICKS] {};
-	float bat_voltage_adc_readings[BOARD_NUMBER_BRICKS] {};
-	bool has_bat_voltage_adc_channel[BOARD_NUMBER_BRICKS] {};
+	float bat_current_adc_readings[BOARD_NUMBER_BRICKS]{};
+	float bat_voltage_adc_readings[BOARD_NUMBER_BRICKS]{};
+	bool has_bat_voltage_adc_channel[BOARD_NUMBER_BRICKS]{};
 
 	int selected_source = -1;
 
 	adc_report_s adc_report;
 
 	if (_adc_report_sub.update(&adc_report)) {
-
 		/* Read add channels we got */
 		for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
 			for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-
 				/* Once we have subscriptions, Do this once for the lowest (highest priority
 				 * supply on power controller) that is valid.
 				 */
@@ -206,36 +198,28 @@ BatteryStatus::adc_poll()
 					if (adc_report.channel_id[i] == _analogBatteries[b]->get_voltage_channel()) {
 						/* Voltage in volts */
 						bat_voltage_adc_readings[b] = adc_report.raw_data[i] *
-									      adc_report.v_ref /
-									      adc_report.resolution;
+									      adc_report.v_ref / adc_report.resolution;
 						has_bat_voltage_adc_channel[b] = true;
 
-					} else if (adc_report.channel_id[i] == _analogBatteries[b]->get_current_channel()) {
+					} else if (adc_report.channel_id[i] ==
+						   _analogBatteries[b]->get_current_channel()) {
 						bat_current_adc_readings[b] = adc_report.raw_data[i] *
-									      adc_report.v_ref /
-									      adc_report.resolution;
+									      adc_report.v_ref / adc_report.resolution;
 					}
 				}
-
 			}
 		}
 
 		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-
-			if (has_bat_voltage_adc_channel[b]) { // Do not publish if no voltage channel configured
+			if (has_bat_voltage_adc_channel[b]) {  // Do not publish if no voltage channel configured
 				_analogBatteries[b]->updateBatteryStatusADC(
-					hrt_absolute_time(),
-					bat_voltage_adc_readings[b],
-					bat_current_adc_readings[b]
-				);
+					hrt_absolute_time(), bat_voltage_adc_readings[b], bat_current_adc_readings[b]);
 			}
 		}
 	}
 }
 
-void
-BatteryStatus::Run()
-{
+void BatteryStatus::Run() {
 	if (should_exit()) {
 		exit_and_cleanup();
 		return;
@@ -252,9 +236,7 @@ BatteryStatus::Run()
 	perf_end(_loop_perf);
 }
 
-int
-BatteryStatus::task_spawn(int argc, char *argv[])
-{
+int BatteryStatus::task_spawn(int argc, char *argv[]) {
 	BatteryStatus *instance = new BatteryStatus();
 
 	if (instance) {
@@ -276,19 +258,11 @@ BatteryStatus::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-bool
-BatteryStatus::init()
-{
-	return _adc_report_sub.registerCallback();
-}
+bool BatteryStatus::init() { return _adc_report_sub.registerCallback(); }
 
-int BatteryStatus::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int BatteryStatus::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int BatteryStatus::print_usage(const char *reason)
-{
+int BatteryStatus::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -313,7 +287,4 @@ It runs in its own thread and polls on the currently selected gyro topic.
 	return 0;
 }
 
-extern "C" __EXPORT int battery_status_main(int argc, char *argv[])
-{
-	return BatteryStatus::main(argc, argv);
-}
+extern "C" __EXPORT int battery_status_main(int argc, char *argv[]) { return BatteryStatus::main(argc, argv); }

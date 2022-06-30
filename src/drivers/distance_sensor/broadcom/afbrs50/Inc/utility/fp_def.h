@@ -1,38 +1,58 @@
-/*************************************************************************//**
- * @file
- * @brief    	This file is part of the AFBR-S50 API.
- * @details		Provides definitions and basic macros for fixed point data types.
- *
- * @copyright
- *
- * Copyright (c) 2021, Broadcom Inc
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived from
- *    this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *****************************************************************************/
+/*************************************************************************/ /**
+									     * @file
+									     * @brief    	This file is part of the
+									     *AFBR-S50 API.
+									     * @details		Provides definitions and
+									     *basic macros for fixed point data types.
+									     *
+									     * @copyright
+									     *
+									     * Copyright (c) 2021, Broadcom Inc
+									     * All rights reserved.
+									     *
+									     * Redistribution and use in source and
+									     *binary forms, with or without
+									     * modification, are permitted provided that
+									     *the following conditions are met:
+									     *
+									     * 1. Redistributions of source code must
+									     *retain the above copyright notice, this
+									     *    list of conditions and the following
+									     *disclaimer.
+									     *
+									     * 2. Redistributions in binary form must
+									     *reproduce the above copyright notice, this
+									     *list of conditions and the following
+									     *disclaimer in the documentation and/or
+									     *other materials provided with the
+									     *distribution.
+									     *
+									     * 3. Neither the name of the copyright
+									     *holder nor the names of its contributors
+									     *may be used to endorse or promote products
+									     *derived from this software without
+									     *specific prior written permission.
+									     *
+									     * THIS SOFTWARE IS PROVIDED BY THE
+									     *COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+									     * AND ANY EXPRESS OR IMPLIED WARRANTIES,
+									     *INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+									     *WARRANTIES OF MERCHANTABILITY AND FITNESS
+									     *FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+									     *IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+									     *CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+									     *INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+									     *OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+									     *NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+									     *GOODS OR SERVICES; LOSS OF USE, DATA, OR
+									     *PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+									     * CAUSED AND ON ANY THEORY OF LIABILITY,
+									     *WHETHER IN CONTRACT, STRICT LIABILITY, OR
+									     *TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+									     *ARISING IN ANY WAY OUT OF THE USE OF THIS
+									     *SOFTWARE, EVEN IF ADVISED OF THE
+									     *POSSIBILITY OF SUCH DAMAGE.
+									     *****************************************************************************/
 
 #ifndef FP_DEF_H
 #define FP_DEF_H
@@ -78,9 +98,7 @@ typedef uint8_t uq6_2_t;
 #define UQ6_2_MAX ((uq6_2_t)UINT8_MAX)
 
 /*! The 1/one/unity in UQ6.2 number format. */
-#define UQ6_2_ONE ((uq6_2_t)(1U<<2U))
-
-
+#define UQ6_2_ONE ((uq6_2_t)(1U << 2U))
 
 /*******************************************************************************
  ***** UQ4.4
@@ -98,9 +116,7 @@ typedef uint8_t uq4_4_t;
 #define UQ4_4_MAX ((uq4_4_t)UINT8_MAX)
 
 /*! The 1/one/unity in UQ4.4 number format. */
-#define UQ4_4_ONE ((uq4_4_t)(1U<<4U))
-
-
+#define UQ4_4_ONE ((uq4_4_t)(1U << 4U))
 
 /*******************************************************************************
  ***** UQ2.6
@@ -118,9 +134,7 @@ typedef uint8_t uq2_6_t;
 #define UQ2_6_MAX ((uq2_6_t)UINT8_MAX)
 
 /*! The 1/one/unity in UQ2.6 number format. */
-#define UQ2_6_ONE ((uq2_6_t)(1U<<6U))
-
-
+#define UQ2_6_ONE ((uq2_6_t)(1U << 6U))
 
 /*******************************************************************************
  ***** UQ1.7
@@ -138,9 +152,7 @@ typedef uint8_t uq1_7_t;
 #define UQ1_7_MAX ((uq1_7_t)UINT8_MAX)
 
 /*! The 1/one/unity in UQ1.7 number format. */
-#define UQ1_7_ONE ((uq1_7_t)(1U<<7U))
-
-
+#define UQ1_7_ONE ((uq1_7_t)(1U << 7U))
 
 /*******************************************************************************
  ***** UQ0.8
@@ -156,8 +168,6 @@ typedef uint8_t uq0_8_t;
 
 /*! Maximum value of UQ0.8 number format. */
 #define UQ0_8_MAX ((uq0_8_t)UINT8_MAX)
-
-
 
 /*******************************************************************************
  *****   Signed 8-Bit Values   *************************************************
@@ -184,7 +194,6 @@ typedef int8_t q3_4_t;
 /*! The 1/one/unity in UQ3.4 number format. */
 #define UQ3_4_ONE ((q3_4_t)(1 << 4))
 
-
 /*******************************************************************************
  ***** Q1.6
  ******************************************************************************/
@@ -206,7 +215,6 @@ typedef int8_t q1_6_t;
 /*! The 1/one/unity in UQ1.6 number format. */
 #define UQ1_6_ONE ((q1_6_t)(1 << 4))
 
-
 /*******************************************************************************
  *****   Unsigned 16-Bit Values   **********************************************
  ******************************************************************************/
@@ -227,9 +235,7 @@ typedef uint16_t uq12_4_t;
 #define UQ12_4_MAX ((uq12_4_t)UINT16_MAX)
 
 /*! The 1/one/unity in UQ12.4 number format. */
-#define UQ12_4_ONE ((uq12_4_t)(1U<<4U))
-
-
+#define UQ12_4_ONE ((uq12_4_t)(1U << 4U))
 
 /*******************************************************************************
  ***** UQ10.6
@@ -249,8 +255,6 @@ typedef uint16_t uq10_6_t;
 /*! The 1/one/unity in UQ10.6 number format. */
 #define UQ10_6_ONE ((uq10_6_t)(1U << 6U))
 
-
-
 /*******************************************************************************
  ***** UQ1.15
  ******************************************************************************/
@@ -269,8 +273,6 @@ typedef uint16_t uq1_15_t;
 /*! The 1/one/unity in UQ1.15 number format. */
 #define UQ1_15_ONE ((uq1_15_t)(1U << 15U))
 
-
-
 /*******************************************************************************
  ***** UQ0.16
  ******************************************************************************/
@@ -285,8 +287,6 @@ typedef uint16_t uq0_16_t;
 
 /*! Maximum value of UQ0.16 number format. */
 #define UQ0_16_MAX ((uq0_16_t)UINT16_MAX)
-
-
 
 /*******************************************************************************
  *****   Signed 16-Bit Values   ************************************************
@@ -313,8 +313,6 @@ typedef int16_t q11_4_t;
 /*! The 1/one/unity in Q11.4 number format. */
 #define UQ11_4_ONE ((q11_4_t)(1 << 4))
 
-
-
 /*******************************************************************************
  ***** Q7.8
  ******************************************************************************/
@@ -335,8 +333,6 @@ typedef int16_t q7_8_t;
 
 /*! The 1/one/unity in Q7.8 number format. */
 #define Q7_8_ONE ((q7_8_t)(1 << 8))
-
-
 
 /*******************************************************************************
  ***** Q3.12
@@ -359,8 +355,6 @@ typedef int16_t q3_12_t;
 /*! The 1/one/unity in Q3.12 number format. */
 #define Q3_12_ONE ((q3_12_t)(1 << 12))
 
-
-
 /*******************************************************************************
  ***** Q0.15
  ******************************************************************************/
@@ -378,8 +372,6 @@ typedef int16_t q0_15_t;
 
 /*! Maximum value of Q0.15 number format. */
 #define Q0_15_MAX ((q0_15_t)INT16_MAX)
-
-
 
 /*******************************************************************************
  *****   Unsigned 32-Bit Values   **********************************************
@@ -401,9 +393,7 @@ typedef uint32_t uq28_4_t;
 #define UQ28_4_MAX ((uq28_4_t)UINT32_MAX)
 
 /*! The 1/one/unity in UQ28.4 number format. */
-#define UQ28_4_ONE ((uq28_4_t)(1U<<4U))
-
-
+#define UQ28_4_ONE ((uq28_4_t)(1U << 4U))
 
 /*******************************************************************************
  ***** UQ16.16
@@ -426,8 +416,6 @@ typedef uint32_t uq16_16_t;
 /*! Euler's number, e, in UQ16.16 format. */
 #define UQ16_16_E (0x2B7E1U)
 
-
-
 /*******************************************************************************
  ***** UQ10.22
  ******************************************************************************/
@@ -445,8 +433,6 @@ typedef uint32_t uq10_22_t;
 
 /*! The 1/one/unity in UQ10.22 number format. */
 #define UQ10_22_ONE ((uq10_22_t)(1U << 22U))
-
-
 
 /*******************************************************************************
  *****   Signed 32-Bit Values   ************************************************
@@ -473,8 +459,6 @@ typedef int32_t q27_4_t;
 /*! The 1/one/unity in UQ27.4 number format. */
 #define UQ27_4_ONE ((q27_4_t)(1 << 4))
 
-
-
 /*******************************************************************************
  ***** Q15.16
  ******************************************************************************/
@@ -496,8 +480,6 @@ typedef int32_t q15_16_t;
 /*! The 1/one/unity in Q15.16 number format. */
 #define Q15_16_ONE ((q15_16_t)(1 << 16))
 
-
-
 /*******************************************************************************
  ***** Q9.22
  ******************************************************************************/
@@ -518,8 +500,6 @@ typedef int32_t q9_22_t;
 
 /*! The 1/one/unity in Q9.22 number format. */
 #define Q9_22_ONE ((q9_22_t)(1 << 22))
-
-
 
 /*! @} */
 #endif /* FP_DEF_H */

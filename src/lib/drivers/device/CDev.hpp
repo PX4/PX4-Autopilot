@@ -40,25 +40,24 @@
 #ifndef _DEVICE_CDEV_HPP
 #define _DEVICE_CDEV_HPP
 
-#include "Device.hpp"
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+
 #include <lib/cdev/CDev.hpp>
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/posix.h>
+#include "Device.hpp"
 
 /**
  * Namespace encapsulating all device framework classes, functions and data.
  */
-namespace device
-{
+namespace device {
 
 using file_t = cdev::file_t;
 
 /**
  * Abstract class for any character device
  */
-class __EXPORT CDev : public Device, public cdev::CDev
-{
+class __EXPORT CDev : public Device, public cdev::CDev {
 public:
 	/**
 	 * Constructor
@@ -66,11 +65,11 @@ public:
 	 * @param name		Driver name
 	 * @param devname	Device node name
 	 */
-	CDev(const char *name, const char *devname); // TODO: dagar remove name and Device inheritance
+	CDev(const char *name, const char *devname);  // TODO: dagar remove name and Device inheritance
 
 	virtual ~CDev() = default;
 
-	virtual int	init();
+	virtual int init();
 
 	/**
 	 * Perform an ioctl operation on the device.
@@ -80,17 +79,12 @@ public:
 	 * @param arg		The ioctl argument value.
 	 * @return		OK on success, or -errno otherwise.
 	 */
-	virtual int	ioctl(file_t *filep, int cmd, unsigned long arg) { return -ENOTTY; }
-
+	virtual int ioctl(file_t *filep, int cmd, unsigned long arg) { return -ENOTTY; }
 };
 
-} // namespace device
+}  // namespace device
 
 // class instance for primary driver of each class
-enum CLASS_DEVICE {
-	CLASS_DEVICE_PRIMARY = 0,
-	CLASS_DEVICE_SECONDARY = 1,
-	CLASS_DEVICE_TERTIARY = 2
-};
+enum CLASS_DEVICE { CLASS_DEVICE_PRIMARY = 0, CLASS_DEVICE_SECONDARY = 1, CLASS_DEVICE_TERTIARY = 2 };
 
 #endif /* _DEVICE_CDEV_HPP */

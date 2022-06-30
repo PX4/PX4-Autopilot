@@ -33,11 +33,11 @@
 
 #pragma once
 
-#include <cmath>
-#include <motion_planning/VelocitySmoothing.hpp>
-
-#include <matrix/matrix/math.hpp>
 #include <px4_defines.h>
+
+#include <cmath>
+#include <matrix/matrix/math.hpp>
+#include <motion_planning/VelocitySmoothing.hpp>
 
 using matrix::Vector2f;
 using matrix::Vector3f;
@@ -49,9 +49,7 @@ using matrix::Vector3f;
  * This is achieved by first generating an unsmoothed velocity setpoint
  * which then gets smoothed using the VelocitySmoothing library.
  */
-class PositionSmoothing
-{
-
+class PositionSmoothing {
 public:
 	/**
 	 * @brief Result type of the position smoothing algorithm.
@@ -77,17 +75,11 @@ public:
 	 * @param force_zero_velocity_setpoint Force vehicle to stop. Generate trajectory that ends with still vehicle.
 	 * @param out_setpoints Output of the generated setpoints
 	 */
-	inline void generateSetpoints(
-		const Vector3f &position,
-		const Vector3f(&waypoints)[3],
-		const Vector3f &feedforward_velocity,
-		float delta_time,
-		bool force_zero_velocity_setpoint,
-		PositionSmoothingSetpoints &out_setpoints
-	)
-	{
-		_generateSetpoints(position, waypoints, false, feedforward_velocity, delta_time, force_zero_velocity_setpoint,
-				   out_setpoints);
+	inline void generateSetpoints(const Vector3f &position, const Vector3f (&waypoints)[3],
+				      const Vector3f &feedforward_velocity, float delta_time,
+				      bool force_zero_velocity_setpoint, PositionSmoothingSetpoints &out_setpoints) {
+		_generateSetpoints(position, waypoints, false, feedforward_velocity, delta_time,
+				   force_zero_velocity_setpoint, out_setpoints);
 	}
 
 	/**
@@ -101,20 +93,13 @@ public:
 	 * @param force_zero_velocity_setpoint Force vehicle to stop. Generate trajectory that ends with still vehicle.
 	 * @param out_setpoints Output of the generated setpoints
 	 */
-	inline void generateSetpoints(
-		const Vector3f &position,
-		const Vector3f &waypoint,
-		const Vector3f &feedforward_velocity,
-		float delta_time,
-		bool force_zero_velocity_setpoint,
-		PositionSmoothingSetpoints &out_setpoints
-	)
-	{
+	inline void generateSetpoints(const Vector3f &position, const Vector3f &waypoint,
+				      const Vector3f &feedforward_velocity, float delta_time,
+				      bool force_zero_velocity_setpoint, PositionSmoothingSetpoints &out_setpoints) {
 		Vector3f waypoints[3] = {waypoint, waypoint, waypoint};
-		_generateSetpoints(position, waypoints, true, feedforward_velocity, delta_time, force_zero_velocity_setpoint,
-				   out_setpoints);
+		_generateSetpoints(position, waypoints, true, feedforward_velocity, delta_time,
+				   force_zero_velocity_setpoint, out_setpoints);
 	}
-
 
 	/**
 	 * @brief Reset internal state to the given values
@@ -123,8 +108,7 @@ public:
 	 * @param velocity current velocity
 	 * @param position current position
 	 */
-	void reset(const Vector3f &acceleration, const Vector3f &velocity, const Vector3f &position)
-	{
+	void reset(const Vector3f &acceleration, const Vector3f &velocity, const Vector3f &position) {
 		for (size_t i = 0; i < 3; i++) {
 			_trajectory[i].reset(acceleration(i), velocity(i), position(i));
 		}
@@ -133,120 +117,85 @@ public:
 	/**
 	 * @return float Current trajectory acceleration in X
 	 */
-	inline float getCurrentAccelerationX() const
-	{
-		return _trajectory[0].getCurrentAcceleration();
-	}
+	inline float getCurrentAccelerationX() const { return _trajectory[0].getCurrentAcceleration(); }
 
 	/**
 	 * @return float Current trajectory acceleration in Y
 	 */
-	inline float getCurrentAccelerationY() const
-	{
-		return _trajectory[1].getCurrentAcceleration();
-	}
+	inline float getCurrentAccelerationY() const { return _trajectory[1].getCurrentAcceleration(); }
 
 	/**
 	 * @return float Current trajectory acceleration in Z
 	 */
-	inline float getCurrentAccelerationZ() const
-	{
-		return _trajectory[2].getCurrentAcceleration();
-	}
+	inline float getCurrentAccelerationZ() const { return _trajectory[2].getCurrentAcceleration(); }
 
 	/**
 	 * @return float Current trajectory acceleration
 	 */
-	inline Vector3f getCurrentAcceleration() const
-	{
+	inline Vector3f getCurrentAcceleration() const {
 		return {getCurrentAccelerationX(), getCurrentAccelerationY(), getCurrentAccelerationZ()};
 	}
 
 	/**
 	 * @return float Current trajectory acceleration in X and Y
 	 */
-	inline Vector2f getCurrentAccelerationXY() const
-	{
+	inline Vector2f getCurrentAccelerationXY() const {
 		return {getCurrentAccelerationX(), getCurrentAccelerationY()};
 	}
 
 	/**
 	 * @return float Current trajectory velocity in X
 	 */
-	inline float getCurrentVelocityX() const
-	{
-		return _trajectory[0].getCurrentVelocity();
-	}
+	inline float getCurrentVelocityX() const { return _trajectory[0].getCurrentVelocity(); }
 
 	/**
 	 * @return float Current trajectory velocity in Y
 	 */
-	inline float getCurrentVelocityY() const
-	{
-		return _trajectory[1].getCurrentVelocity();
-	}
+	inline float getCurrentVelocityY() const { return _trajectory[1].getCurrentVelocity(); }
 
 	/**
 	 * @return float Current trajectory velocity in Z
 	 */
-	inline float getCurrentVelocityZ() const
-	{
-		return _trajectory[2].getCurrentVelocity();
-	}
+	inline float getCurrentVelocityZ() const { return _trajectory[2].getCurrentVelocity(); }
 
 	/**
 	 * @return float Current trajectory velocity
 	 */
-	inline Vector3f getCurrentVelocity() const
-	{
+	inline Vector3f getCurrentVelocity() const {
 		return {getCurrentVelocityX(), getCurrentVelocityY(), getCurrentVelocityZ()};
 	}
 
 	/**
 	 * @return float Current trajectory velocity in X and Y
 	 */
-	inline Vector2f getCurrentVelocityXY() const
-	{
-		return {getCurrentVelocityX(), getCurrentVelocityY()};
-	}
+	inline Vector2f getCurrentVelocityXY() const { return {getCurrentVelocityX(), getCurrentVelocityY()}; }
 
 	/**
 	 * @return float Current trajectory position in X
 	 */
-	inline float getCurrentPositionX() const
-	{
-		return _trajectory[0].getCurrentPosition();
-	}
+	inline float getCurrentPositionX() const { return _trajectory[0].getCurrentPosition(); }
 
 	/**
 	 * @return float Current trajectory position in Y
 	 */
-	inline float getCurrentPositionY() const
-	{
-		return _trajectory[1].getCurrentPosition();
-	}
+	inline float getCurrentPositionY() const { return _trajectory[1].getCurrentPosition(); }
 
 	/**
 	 * @return float Current trajectory position in Z
 	 */
-	inline float getCurrentPositionZ() const
-	{
-		return _trajectory[2].getCurrentPosition();
-	}
+	inline float getCurrentPositionZ() const { return _trajectory[2].getCurrentPosition(); }
 
 	/**
 	 * @return float Current trajectory position
 	 */
-	inline Vector3f getCurrentPosition() const
-	{
+	inline Vector3f getCurrentPosition() const {
 		return {getCurrentPositionX(), getCurrentPositionY(), getCurrentPositionZ()};
 	}
 
 	/**
 	 * @param jerk maximum jerk for generated trajectory
 	 */
-	inline void setMaxJerkXY(float jerk)
-	{
+	inline void setMaxJerkXY(float jerk) {
 		_trajectory[0].setMaxJerk(jerk);
 		_trajectory[1].setMaxJerk(jerk);
 	}
@@ -254,16 +203,12 @@ public:
 	/**
 	 * @param jerk maximum jerk for generated trajectory
 	 */
-	inline void setMaxJerkZ(float jerk)
-	{
-		_trajectory[2].setMaxJerk(jerk);
-	}
+	inline void setMaxJerkZ(float jerk) { _trajectory[2].setMaxJerk(jerk); }
 
 	/**
 	 * @param jerk maximum jerk for generated trajectory
 	 */
-	inline void setMaxJerk(const Vector3f &jerk)
-	{
+	inline void setMaxJerk(const Vector3f &jerk) {
 		_trajectory[0].setMaxJerk(jerk(0));
 		_trajectory[1].setMaxJerk(jerk(1));
 		_trajectory[2].setMaxJerk(jerk(2));
@@ -272,8 +217,7 @@ public:
 	/**
 	 * @param accel maximum acceleration for generated trajectory
 	 */
-	inline void setMaxAccelerationXY(float accel)
-	{
+	inline void setMaxAccelerationXY(float accel) {
 		_trajectory[0].setMaxAccel(accel);
 		_trajectory[1].setMaxAccel(accel);
 	}
@@ -281,16 +225,12 @@ public:
 	/**
 	 * @param accel maximum acceleration for generated trajectory
 	 */
-	inline void setMaxAccelerationZ(float accel)
-	{
-		_trajectory[2].setMaxAccel(accel);
-	}
+	inline void setMaxAccelerationZ(float accel) { _trajectory[2].setMaxAccel(accel); }
 
 	/**
 	 * @param accel maximum acceleration for generated trajectory
 	 */
-	inline void setMaxAcceleration(const Vector3f &accel)
-	{
+	inline void setMaxAcceleration(const Vector3f &accel) {
 		_trajectory[0].setMaxAccel(accel(0));
 		_trajectory[1].setMaxAccel(accel(1));
 		_trajectory[2].setMaxAccel(accel(2));
@@ -299,8 +239,7 @@ public:
 	/**
 	 * @param vel maximum velocity for generated trajectory
 	 */
-	inline void setMaxVelocityXY(float vel)
-	{
+	inline void setMaxVelocityXY(float vel) {
 		_trajectory[0].setMaxVel(vel);
 		_trajectory[1].setMaxVel(vel);
 	}
@@ -308,16 +247,12 @@ public:
 	/**
 	 * @param vel maximum velocity for generated trajectory
 	 */
-	inline void setMaxVelocityZ(float vel)
-	{
-		_trajectory[2].setMaxVel(vel);
-	}
+	inline void setMaxVelocityZ(float vel) { _trajectory[2].setMaxVel(vel); }
 
 	/**
 	 * @param vel maximum velocity for generated trajectory
 	 */
-	inline void setMaxVelocity(const Vector3f &vel)
-	{
+	inline void setMaxVelocity(const Vector3f &vel) {
 		_trajectory[0].setMaxVel(vel(0));
 		_trajectory[1].setMaxVel(vel(1));
 		_trajectory[2].setMaxVel(vel(2));
@@ -326,42 +261,27 @@ public:
 	/**
 	 * @param error Maximum horizontal error allowed by the trajectory generator. Often set to param MPC_XY_ERR_MAX
 	 */
-	inline void setMaxAllowedHorizontalError(float error)
-	{
-		_max_allowed_horizontal_error = error;
-	}
+	inline void setMaxAllowedHorizontalError(float error) { _max_allowed_horizontal_error = error; }
 
 	/**
 	 * @param radius  Altitude Acceptance Radius. Often set to NAV_MC_ALT_RAD
 	 */
-	inline void setVerticalAcceptanceRadius(float radius)
-	{
-		_vertical_acceptance_radius = radius;
-	}
+	inline void setVerticalAcceptanceRadius(float radius) { _vertical_acceptance_radius = radius; }
 
 	/**
 	 * @param speed vehicle cruise speed
 	 */
-	inline void setCruiseSpeed(float speed)
-	{
-		_cruise_speed = speed;
-	}
+	inline void setCruiseSpeed(float speed) { _cruise_speed = speed; }
 
 	/**
 	 * @param gain Proportional gain for horizontal trajectory position error. Set to MPC_XY_TRAJ_P
 	 */
-	inline void setHorizontalTrajectoryGain(float gain)
-	{
-		_horizontal_trajectory_gain = gain;
-	}
+	inline void setHorizontalTrajectoryGain(float gain) { _horizontal_trajectory_gain = gain; }
 
 	/**
 	 * @param radius target acceptance radius
 	 */
-	inline void setTargetAcceptanceRadius(float radius)
-	{
-		_target_acceptance_radius = radius;
-	}
+	inline void setTargetAcceptanceRadius(float radius) { _target_acceptance_radius = radius; }
 
 	/**
 	 * @brief Set the current position in the trajectory to the given value.
@@ -369,8 +289,7 @@ public:
 	 *
 	 * @param position
 	 */
-	void forceSetPosition(const Vector3f &position)
-	{
+	void forceSetPosition(const Vector3f &position) {
 		for (size_t i = 0; i < 3; i++) {
 			if (PX4_ISFINITE(position(i))) {
 				_trajectory[i].setCurrentPosition(position(i));
@@ -384,8 +303,7 @@ public:
 	 *
 	 * @param velocity
 	 */
-	void forceSetVelocity(const Vector3f &velocity)
-	{
+	void forceSetVelocity(const Vector3f &velocity) {
 		for (size_t i = 0; i < 3; i++) {
 			if (PX4_ISFINITE(velocity(i))) {
 				_trajectory[i].setCurrentVelocity(velocity(i));
@@ -399,15 +317,13 @@ public:
 	 *
 	 * @param acceleration
 	 */
-	void forceSetAcceleration(const Vector3f &acceleration)
-	{
+	void forceSetAcceleration(const Vector3f &acceleration) {
 		for (size_t i = 0; i < 3; i++) {
 			if (PX4_ISFINITE(acceleration(i))) {
 				_trajectory[i].setCurrentAcceleration(acceleration(i));
 			}
 		}
 	}
-
 
 private:
 	/* params, only modified from external */
@@ -417,35 +333,25 @@ private:
 	float _horizontal_trajectory_gain{0.f};
 	float _target_acceptance_radius{0.f};
 
-
 	/* Internal state */
-	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions
+	VelocitySmoothing _trajectory[3];  ///< Trajectories in x, y and z directions
 	float _max_speed_previous{0.f};
 
 	/* Internal functions */
 	bool _isTurning(const Vector3f &target) const;
 
-	void _generateSetpoints(
-		const Vector3f &position,
-		const Vector3f(&waypoints)[3],
-		bool is_single_waypoint,
-		const Vector3f &feedforward_velocity,
-		float delta_time,
-		bool force_zero_velocity_setpoint,
-		PositionSmoothingSetpoints &out_setpoints
-	);
+	void _generateSetpoints(const Vector3f &position, const Vector3f (&waypoints)[3], bool is_single_waypoint,
+				const Vector3f &feedforward_velocity, float delta_time,
+				bool force_zero_velocity_setpoint, PositionSmoothingSetpoints &out_setpoints);
 
-	const Vector3f _generateVelocitySetpoint(const Vector3f &position, const Vector3f(&waypoints)[3],
-			bool is_single_waypoint,
-			const Vector3f &feedforward_velocity_setpoint);
-	const Vector2f _getL1Point(const Vector3f &position, const Vector3f(&waypoints)[3]) const;
-	const Vector3f _getCrossingPoint(const Vector3f &position, const Vector3f(&waypoints)[3]) const;
-	float _getMaxXYSpeed(const Vector3f(&waypoints)[3]) const;
-	float _getMaxZSpeed(const Vector3f(&waypoints)[3]) const;
+	const Vector3f _generateVelocitySetpoint(const Vector3f &position, const Vector3f (&waypoints)[3],
+						 bool is_single_waypoint,
+						 const Vector3f &feedforward_velocity_setpoint);
+	const Vector2f _getL1Point(const Vector3f &position, const Vector3f (&waypoints)[3]) const;
+	const Vector3f _getCrossingPoint(const Vector3f &position, const Vector3f (&waypoints)[3]) const;
+	float _getMaxXYSpeed(const Vector3f (&waypoints)[3]) const;
+	float _getMaxZSpeed(const Vector3f (&waypoints)[3]) const;
 
-	void _generateTrajectory(
-		const Vector3f &position,
-		const Vector3f &velocity_setpoint,
-		float delta_time,
-		PositionSmoothingSetpoints &out_setpoints);
+	void _generateTrajectory(const Vector3f &position, const Vector3f &velocity_setpoint, float delta_time,
+				 PositionSmoothingSetpoints &out_setpoints);
 };

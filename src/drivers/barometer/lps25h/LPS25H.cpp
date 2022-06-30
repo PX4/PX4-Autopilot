@@ -33,24 +33,20 @@
 
 #include "LPS25H.hpp"
 
-LPS25H::LPS25H(const I2CSPIDriverConfig &config, device::Device *interface) :
-	I2CSPIDriver(config),
-	_interface(interface),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors"))
-{
-}
+LPS25H::LPS25H(const I2CSPIDriverConfig &config, device::Device *interface)
+	: I2CSPIDriver(config),
+	  _interface(interface),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": comms_errors")) {}
 
-LPS25H::~LPS25H()
-{
+LPS25H::~LPS25H() {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 
 	delete _interface;
 }
 
-int LPS25H::init()
-{
+int LPS25H::init() {
 	if (reset() != OK) {
 		return PX4_ERROR;
 	}
@@ -60,8 +56,7 @@ int LPS25H::init()
 	return PX4_OK;
 }
 
-void LPS25H::start()
-{
+void LPS25H::start() {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 
@@ -69,8 +64,7 @@ void LPS25H::start()
 	ScheduleNow();
 }
 
-int LPS25H::reset()
-{
+int LPS25H::reset() {
 	// Power on
 	int ret = write_reg(ADDR_CTRL_REG1, CTRL_REG1_PD);
 	usleep(1000);
@@ -86,11 +80,9 @@ int LPS25H::reset()
 	return ret;
 }
 
-void LPS25H::RunImpl()
-{
+void LPS25H::RunImpl() {
 	/* collection phase? */
 	if (_collect_phase) {
-
 		/* perform collection */
 		if (OK != collect()) {
 			PX4_DEBUG("collection error");
@@ -125,8 +117,7 @@ void LPS25H::RunImpl()
 	ScheduleDelayed(LPS25H_CONVERSION_INTERVAL);
 }
 
-int LPS25H::measure()
-{
+int LPS25H::measure() {
 	/*
 	 * Send the command to begin a 16-bit measurement.
 	 */
@@ -139,16 +130,15 @@ int LPS25H::measure()
 	return ret;
 }
 
-int LPS25H::collect()
-{
+int LPS25H::collect() {
 	perf_begin(_sample_perf);
 
 	struct {
-		uint8_t		status;
-		uint8_t		p_xl;
-		uint8_t		p_l;
-		uint8_t		p_h;
-		int16_t		t;
+		uint8_t status;
+		uint8_t p_xl;
+		uint8_t p_l;
+		uint8_t p_h;
+		int16_t t;
 	} report{};
 
 	/* get measurements from the device : MSB enables register address auto-increment */
@@ -185,22 +175,19 @@ int LPS25H::collect()
 	return PX4_OK;
 }
 
-int LPS25H::write_reg(uint8_t reg, uint8_t val)
-{
+int LPS25H::write_reg(uint8_t reg, uint8_t val) {
 	uint8_t buf = val;
 	return _interface->write(reg, &buf, 1);
 }
 
-int LPS25H::read_reg(uint8_t reg, uint8_t &val)
-{
+int LPS25H::read_reg(uint8_t reg, uint8_t &val) {
 	uint8_t buf = val;
 	int ret = _interface->read(reg, &buf, 1);
 	val = buf;
 	return ret;
 }
 
-void LPS25H::print_status()
-{
+void LPS25H::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);

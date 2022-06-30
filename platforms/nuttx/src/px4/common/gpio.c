@@ -50,11 +50,9 @@
  *  count   - Size of the list
  *
  * return  - Nothing
-  ************************************************************************************/
+ ************************************************************************************/
 
-
-void px4_gpio_init(const uint32_t list[], int count)
-{
+void px4_gpio_init(const uint32_t list[], int count) {
 	for (int gpio = 0; gpio < count; gpio++) {
 		if (list[gpio] != 0) {
 			px4_arch_configgpio(list[gpio]);

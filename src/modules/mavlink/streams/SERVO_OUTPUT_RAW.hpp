@@ -37,19 +37,17 @@
 #include <uORB/topics/actuator_outputs.h>
 
 template <int N>
-class MavlinkStreamServoOutputRaw : public MavlinkStream
-{
+class MavlinkStreamServoOutputRaw : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamServoOutputRaw<N>(mavlink); }
 
-	static constexpr const char *get_name_static()
-	{
+	static constexpr const char *get_name_static() {
 		switch (N) {
-		case 0:
-			return "SERVO_OUTPUT_RAW_0";
+			case 0:
+				return "SERVO_OUTPUT_RAW_0";
 
-		case 1:
-			return "SERVO_OUTPUT_RAW_1";
+			case 1:
+				return "SERVO_OUTPUT_RAW_1";
 		}
 
 		return "SERVO_OUTPUT_RAW";
@@ -60,8 +58,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		return _act_sub.advertised() ? MAVLINK_MSG_ID_SERVO_OUTPUT_RAW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
@@ -70,14 +67,14 @@ private:
 
 	uORB::Subscription _act_sub{ORB_ID(actuator_outputs), N};
 
-	bool send() override
-	{
+	bool send() override {
 		actuator_outputs_s act;
 
 		if (_act_sub.update(&act)) {
 			mavlink_servo_output_raw_t msg{};
 
-			static_assert(sizeof(act.output) / sizeof(act.output[0]) >= 16, "mavlink message requires at least 16 outputs");
+			static_assert(sizeof(act.output) / sizeof(act.output[0]) >= 16,
+				      "mavlink message requires at least 16 outputs");
 
 			msg.time_usec = act.timestamp;
 			msg.port = N;
@@ -107,4 +104,4 @@ private:
 	}
 };
 
-#endif // SERVO_OUTPUT_RAW_HPP
+#endif  // SERVO_OUTPUT_RAW_HPP

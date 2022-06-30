@@ -43,8 +43,8 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdint.h>
 
 /****************************************************************************************************
@@ -56,28 +56,29 @@
 /* LEDs */
 // power - green
 // LED1 - PB5 - blue
-#define GPIO_LED1       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN5)
-#define GPIO_LED_BLUE   GPIO_LED1
+#define GPIO_LED1 (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN5)
+#define GPIO_LED_BLUE GPIO_LED1
 
-#define BOARD_OVERLOAD_LED     LED_BLUE
+#define BOARD_OVERLOAD_LED LED_BLUE
 
-#define  FLASH_BASED_PARAMS
+#define FLASH_BASED_PARAMS
 
 /*
  * ADC channels
  *
- * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
+ * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc
+ * driver
  */
 #define ADC_CHANNELS (1 << 0) | (1 << 11) | (1 << 12)
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL  11
-#define ADC_BATTERY_CURRENT_CHANNEL  13
-#define ADC_RC_RSSI_CHANNEL          12
+#define ADC_BATTERY_VOLTAGE_CHANNEL 11
+#define ADC_BATTERY_CURRENT_CHANNEL 13
+#define ADC_RC_RSSI_CHANNEL 12
 
 /* Define Battery 1 Voltage Divider and A per V
  */
-#define BOARD_BATTERY1_V_DIV         (11.12f)
-#define BOARD_BATTERY1_A_PER_V       (31.f)
+#define BOARD_BATTERY1_V_DIV (11.12f)
+#define BOARD_BATTERY1_A_PER_V (31.f)
 
 /* User GPIOs
  *
@@ -90,21 +91,23 @@
  * GPIO_TIM1_CH1OUT        GPIO_TIM1_CH1OUT_1 //PA8 S6_OUT
  */
 
-#define _MK_GPIO_INPUT(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLUP))
+#define _MK_GPIO_INPUT(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT | GPIO_PULLUP))
 
-#define GPIO_GPIO0_INPUT             _MK_GPIO_INPUT(GPIO_TIM3_CH3IN)
-#define GPIO_GPIO1_INPUT             _MK_GPIO_INPUT(GPIO_TIM3_CH4IN)
-#define GPIO_GPIO2_INPUT             _MK_GPIO_INPUT(GPIO_TIM2_CH3IN)
-#define GPIO_GPIO3_INPUT             _MK_GPIO_INPUT(GPIO_TIM2_CH4IN)
+#define GPIO_GPIO0_INPUT _MK_GPIO_INPUT(GPIO_TIM3_CH3IN)
+#define GPIO_GPIO1_INPUT _MK_GPIO_INPUT(GPIO_TIM3_CH4IN)
+#define GPIO_GPIO2_INPUT _MK_GPIO_INPUT(GPIO_TIM2_CH3IN)
+#define GPIO_GPIO3_INPUT _MK_GPIO_INPUT(GPIO_TIM2_CH4IN)
 //#define GPIO_GPIO4_INPUT             _MK_GPIO_INPUT(GPIO_TIM5_CH2IN)
 //#define GPIO_GPIO5_INPUT             _MK_GPIO_INPUT(GPIO_TIM1_CH1IN)
 
-#define _MK_GPIO_OUTPUT(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR))
+#define _MK_GPIO_OUTPUT(def)                          \
+	(((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | \
+	 (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR))
 
-#define GPIO_GPIO0_OUTPUT            _MK_GPIO_OUTPUT(GPIO_TIM3_CH3OUT)
-#define GPIO_GPIO1_OUTPUT            _MK_GPIO_OUTPUT(GPIO_TIM3_CH4OUT)
-#define GPIO_GPIO2_OUTPUT            _MK_GPIO_OUTPUT(GPIO_TIM2_CH3OUT)
-#define GPIO_GPIO3_OUTPUT            _MK_GPIO_OUTPUT(GPIO_TIM2_CH4OUT)
+#define GPIO_GPIO0_OUTPUT _MK_GPIO_OUTPUT(GPIO_TIM3_CH3OUT)
+#define GPIO_GPIO1_OUTPUT _MK_GPIO_OUTPUT(GPIO_TIM3_CH4OUT)
+#define GPIO_GPIO2_OUTPUT _MK_GPIO_OUTPUT(GPIO_TIM2_CH3OUT)
+#define GPIO_GPIO3_OUTPUT _MK_GPIO_OUTPUT(GPIO_TIM2_CH4OUT)
 //#define GPIO_GPIO4_OUTPUT            _MK_GPIO_OUTPUT(GPIO_TIM5_CH2OUT)
 //#define GPIO_GPIO5_OUTPUT            _MK_GPIO_OUTPUT(GPIO_TIM1_CH1OUT)
 
@@ -112,26 +115,26 @@
  *
  * PA9  OTG_FS_VBUS VBUS sensing
  */
-#define GPIO_OTGFS_VBUS		(GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTC|GPIO_PIN5)
+#define GPIO_OTGFS_VBUS (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_OPENDRAIN | GPIO_PORTC | GPIO_PIN5)
 
 /* PWM
  *
  * Alternatively CH3/CH4 could be assigned to UART6_TX/RX
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS      4
-#define DIRECT_INPUT_TIMER_CHANNELS  4
+#define DIRECT_PWM_OUTPUT_CHANNELS 4
+#define DIRECT_INPUT_TIMER_CHANNELS 4
 
 // Has pwm outputs
-#define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
+#define BOARD_HAS_PWM DIRECT_PWM_OUTPUT_CHANNELS
 
 /* High-resolution timer */
-#define HRT_TIMER                    4 // T4C1
-#define HRT_TIMER_CHANNEL            1 // use capture/compare channel 1
+#define HRT_TIMER 4          // T4C1
+#define HRT_TIMER_CHANNEL 1  // use capture/compare channel 1
 
-#define HRT_PPM_CHANNEL              3 // capture/compare channel 3
-#define GPIO_PPM_IN                  (GPIO_ALT|GPIO_AF2|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN8)
+#define HRT_PPM_CHANNEL 3  // capture/compare channel 3
+#define GPIO_PPM_IN (GPIO_ALT | GPIO_AF2 | GPIO_PULLUP | GPIO_PORTB | GPIO_PIN8)
 
-#define RC_SERIAL_PORT               "/dev/ttyS0"
+#define RC_SERIAL_PORT "/dev/ttyS0"
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /*
@@ -147,7 +150,7 @@
 //#define SPEKTRUM_RX_AS_UART()         px4_arch_configgpio(GPIO_USART1_RX)
 //#define SPEKTRUM_OUT(_one_true)       px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
-#define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
+#define BOARD_HAS_PWM DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
@@ -155,8 +158,7 @@
 #define BOARD_HAS_ON_RESET 1
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
-#define BOARD_CONSOLE_BUFFER_SIZE (1024*2)
-
+#define BOARD_CONSOLE_BUFFER_SIZE (1024 * 2)
 
 __BEGIN_DECLS
 
@@ -183,7 +185,6 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-
 
 /****************************************************************************************************
  * Name: stm32_usbinitialize

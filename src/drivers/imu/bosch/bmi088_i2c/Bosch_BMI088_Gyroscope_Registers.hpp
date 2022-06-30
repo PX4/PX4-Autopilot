@@ -33,8 +33,7 @@
 
 #pragma once
 
-namespace Bosch::BMI088::Gyroscope
-{
+namespace Bosch::BMI088::Gyroscope {
 
 // TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
@@ -46,11 +45,11 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-static constexpr uint32_t SPI_SPEED = 10 * 1000 * 1000; // 10MHz SPI serial interface
+static constexpr uint32_t SPI_SPEED = 10 * 1000 * 1000;  // 10MHz SPI serial interface
 
-static constexpr uint32_t I2C_400_SPEED = 400 * 1000; // 400kHz I2C interface
-static constexpr uint32_t I2C_200_SPEED = 200 * 1000; // 200kHz I2C interface
-static constexpr uint32_t I2C_100_SPEED = 100 * 1000; // 100kHz I2C interface
+static constexpr uint32_t I2C_400_SPEED = 400 * 1000;  // 400kHz I2C interface
+static constexpr uint32_t I2C_200_SPEED = 200 * 1000;  // 200kHz I2C interface
+static constexpr uint32_t I2C_100_SPEED = 100 * 1000;  // 100kHz I2C interface
 
 static constexpr uint8_t DIR_READ = 0x80;
 
@@ -60,39 +59,39 @@ static constexpr uint8_t GYRO_I2C_ADDR_PRIMARY = 0x68;
 static constexpr uint8_t GYRO_I2C_ADDR_SECONDARY = 0x69;
 
 enum class Register : uint8_t {
-	GYRO_CHIP_ID      = 0x00,
+	GYRO_CHIP_ID = 0x00,
 
-	FIFO_STATUS       = 0x0E,
-	GYRO_RANGE        = 0x0F,
-	GYRO_BANDWIDTH    = 0x10,
+	FIFO_STATUS = 0x0E,
+	GYRO_RANGE = 0x0F,
+	GYRO_BANDWIDTH = 0x10,
 
-	GYRO_SOFTRESET    = 0x14,
-	GYRO_INT_CTRL     = 0x15,
+	GYRO_SOFTRESET = 0x14,
+	GYRO_INT_CTRL = 0x15,
 	INT3_INT4_IO_CONF = 0x16,
-	INT3_INT4_IO_MAP  = 0x18,
+	INT3_INT4_IO_MAP = 0x18,
 
-	FIFO_WM_ENABLE    = 0x1E,
+	FIFO_WM_ENABLE = 0x1E,
 
-	FIFO_CONFIG_0     = 0x3D,
-	FIFO_CONFIG_1     = 0x3E,
-	FIFO_DATA         = 0x3F,
-	SELF_TEST         = 0x3C,
-	READ_GYRO         = 0x02,
+	FIFO_CONFIG_0 = 0x3D,
+	FIFO_CONFIG_1 = 0x3E,
+	FIFO_DATA = 0x3F,
+	SELF_TEST = 0x3C,
+	READ_GYRO = 0x02,
 };
 
 // FIFO_STATUS
 enum FIFO_STATUS_BIT : uint8_t {
-	Fifo_overrun       = Bit7,
+	Fifo_overrun = Bit7,
 	Fifo_frame_counter = Bit6 | Bit5 | Bit4 | Bit3 | Bit2 | Bit1 | Bit0,
 };
 
 // GYRO_RANGE
 enum GYRO_RANGE_BIT : uint8_t {
-	gyro_range_2000_dps = 0x00, // ±2000
-	gyro_range_1000_dps = 0x01, // ±1000
-	gyro_range_500_dps  = 0x02, // ±500
-	gyro_range_250_dps  = 0x04, // ±250
-	gyro_range_125_dps  = 0x05, // ±125
+	gyro_range_2000_dps = 0x00,  // ±2000
+	gyro_range_1000_dps = 0x01,  // ±1000
+	gyro_range_500_dps = 0x02,   // ±500
+	gyro_range_250_dps = 0x04,   // ±250
+	gyro_range_125_dps = 0x05,   // ±125
 };
 
 // GYRO_BANDWIDTH
@@ -110,8 +109,8 @@ enum GYRO_INT_CTRL_BIT : uint8_t {
 
 // INT3_INT4_IO_CONF
 enum INT3_INT4_IO_CONF_BIT : uint8_t {
-	Int3_od  = Bit1, // ‘0’ Push-pull
-	Int3_lvl = Bit0, // ‘0’ Active low
+	Int3_od = Bit1,   // ‘0’ Push-pull
+	Int3_lvl = Bit0,  // ‘0’ Active low
 };
 
 // INT3_INT4_IO_MAP
@@ -124,7 +123,7 @@ enum INT3_INT4_IO_MAP_BIT : uint8_t {
 
 // FIFO_WM_ENABLE
 enum FIFO_WM_ENABLE_BIT : uint8_t {
-	fifo_wm_enable  = Bit7 | Bit3,
+	fifo_wm_enable = Bit7 | Bit3,
 	fifo_wm_disable = Bit3,
 };
 
@@ -134,9 +133,7 @@ enum FIFO_CONFIG_1_BIT : uint8_t {
 	FIFO_MODE_STREAM = Bit7,
 };
 
-
-namespace FIFO
-{
+namespace FIFO {
 struct DATA {
 	uint8_t RATE_X_LSB;
 	uint8_t RATE_X_MSB;
@@ -150,5 +147,5 @@ static_assert(sizeof(DATA) == 6);
 // 100 frames of data in FIFO mode
 static constexpr size_t SIZE = sizeof(DATA) * 100;
 
-} // namespace FIFO
-} // namespace Bosch::BMI088::Gyroscope
+}  // namespace FIFO
+}  // namespace Bosch::BMI088::Gyroscope

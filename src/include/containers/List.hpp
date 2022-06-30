@@ -41,27 +41,20 @@
 
 #include <stdlib.h>
 
-template<class T>
-class ListNode
-{
+template <class T>
+class ListNode {
 public:
-
 	void setSibling(T sibling) { _list_node_sibling = sibling; }
 	const T getSibling() const { return _list_node_sibling; }
 
 protected:
-
 	T _list_node_sibling{nullptr};
-
 };
 
-template<class T>
-class List
-{
+template <class T>
+class List {
 public:
-
-	void add(T newNode)
-	{
+	void add(T newNode) {
 		if (_head == nullptr) {
 			// list is empty, add as head
 			_head = newNode;
@@ -83,8 +76,7 @@ public:
 		}
 	}
 
-	bool remove(T removeNode)
-	{
+	bool remove(T removeNode) {
 		if (removeNode == nullptr) {
 			return false;
 		}
@@ -126,9 +118,8 @@ public:
 
 		operator T() const { return node; }
 		operator T &() { return node; }
-		const T &operator* () const { return node; }
-		Iterator &operator++ ()
-		{
+		const T &operator*() const { return node; }
+		Iterator &operator++() {
 			if (node) {
 				node = node->getSibling();
 			}
@@ -144,8 +135,7 @@ public:
 
 	bool empty() const { return getHead() == nullptr; }
 
-	size_t size() const
-	{
+	size_t size() const {
 		size_t sz = 0;
 
 		for (auto node = getHead(); node != nullptr; node = node->getSibling()) {
@@ -155,16 +145,14 @@ public:
 		return sz;
 	}
 
-	void deleteNode(T node)
-	{
+	void deleteNode(T node) {
 		if (remove(node)) {
 			// only delete if node was successfully removed
 			delete node;
 		}
 	}
 
-	void clear()
-	{
+	void clear() {
 		auto node = getHead();
 
 		while (node != nullptr) {
@@ -177,6 +165,5 @@ public:
 	}
 
 protected:
-
 	T _head{nullptr};
 };

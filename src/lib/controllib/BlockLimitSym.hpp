@@ -39,42 +39,38 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <assert.h>
-#include <time.h>
-#include <stdlib.h>
 #include <math.h>
-#include <mathlib/math/test/test.hpp>
+#include <px4_platform_common/defines.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
+namespace control {
 
 /**
  * A symmetric limiter/ saturation.
  * Same as limiter but with only a max, is used for
  * upper limit of +max, and lower limit of -max
  */
-class __EXPORT BlockLimitSym : public Block
-{
+class __EXPORT BlockLimitSym : public Block {
 public:
-// methods
-	BlockLimitSym(SuperBlock *parent, const char *name) :
-		Block(parent, name),
-		_max(this, "MAX")
-	{}
+	// methods
+	BlockLimitSym(SuperBlock *parent, const char *name) : Block(parent, name), _max(this, "MAX") {}
 	virtual ~BlockLimitSym() = default;
 	float update(float input);
-// accessors
+	// accessors
 	float getMax() { return _max.get(); }
+
 protected:
-// attributes
+	// attributes
 	control::BlockParamFloat _max;
 };
 
-} // namespace control
+}  // namespace control

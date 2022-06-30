@@ -40,63 +40,55 @@
 #include "mavlink_simple_analyzer.h"
 
 #include <float.h>
-
-#include <px4_platform_common/log.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
 
-SimpleAnalyzer::SimpleAnalyzer(Mode mode, float window) :
-	_window(window),
-	_mode(mode)
-{
-	reset();
-}
+SimpleAnalyzer::SimpleAnalyzer(Mode mode, float window) : _window(window), _mode(mode) { reset(); }
 
-void SimpleAnalyzer::reset()
-{
+void SimpleAnalyzer::reset() {
 	_n = 0;
 
 	switch (_mode) {
-	case AVERAGE:
-		_result = 0.0f;
+		case AVERAGE:
+			_result = 0.0f;
 
-		break;
+			break;
 
-	case MIN:
-		_result = FLT_MAX;
+		case MIN:
+			_result = FLT_MAX;
 
-		break;
+			break;
 
-	case MAX:
-		_result = FLT_MIN;
+		case MAX:
+			_result = FLT_MIN;
 
-		break;
+			break;
 
-	default:
-		PX4_ERR("SimpleAnalyzer: Unknown mode.");
+		default:
+			PX4_ERR("SimpleAnalyzer: Unknown mode.");
 	}
 }
 
-void SimpleAnalyzer::add_value(float val, float update_rate)
-{
+void SimpleAnalyzer::add_value(float val, float update_rate) {
 	switch (_mode) {
-	case AVERAGE:
-		_result = (_result * _n + val) / (_n + 1u);
+		case AVERAGE:
+			_result = (_result * _n + val) / (_n + 1u);
 
-		break;
+			break;
 
-	case MIN:
-		if (val < _result) {
-			_result = val;
-		}
+		case MIN:
+			if (val < _result) {
+				_result = val;
+			}
 
-		break;
+			break;
 
-	case MAX:
-		if (val > _result) {
-			_result = val;
-		}
+		case MAX:
+			if (val > _result) {
+				_result = val;
+			}
 
-		break;
+			break;
 	}
 
 	// if we get more measurements than n_max so the exponential moving average
@@ -112,23 +104,13 @@ void SimpleAnalyzer::add_value(float val, float update_rate)
 	}
 }
 
-bool SimpleAnalyzer::valid() const
-{
-	return _n > 0u;
-}
+bool SimpleAnalyzer::valid() const { return _n > 0u; }
 
-float SimpleAnalyzer::get() const
-{
-	return _result;
-}
+float SimpleAnalyzer::get() const { return _result; }
 
-float SimpleAnalyzer::get_scaled(float scalingfactor) const
-{
-	return get() * scalingfactor;
-}
+float SimpleAnalyzer::get_scaled(float scalingfactor) const { return get() * scalingfactor; }
 
-void SimpleAnalyzer::check_limits(float &x, float min, float max) const
-{
+void SimpleAnalyzer::check_limits(float &x, float min, float max) const {
 	if (x > max) {
 		x = max;
 
@@ -137,8 +119,7 @@ void SimpleAnalyzer::check_limits(float &x, float min, float max) const
 	}
 }
 
-void SimpleAnalyzer::int_round(float &x) const
-{
+void SimpleAnalyzer::int_round(float &x) const {
 	if (x < 0) {
 		x -= 0.5f;
 
@@ -147,8 +128,7 @@ void SimpleAnalyzer::int_round(float &x) const
 	}
 }
 
-void convert_limit_safe(float in, uint16_t &out)
-{
+void convert_limit_safe(float in, uint16_t &out) {
 	if (in > UINT16_MAX) {
 		out = UINT16_MAX;
 
@@ -160,8 +140,7 @@ void convert_limit_safe(float in, uint16_t &out)
 	}
 }
 
-void convert_limit_safe(float in, int16_t &out)
-{
+void convert_limit_safe(float in, int16_t &out) {
 	if (in > INT16_MAX) {
 		out = INT16_MAX;
 

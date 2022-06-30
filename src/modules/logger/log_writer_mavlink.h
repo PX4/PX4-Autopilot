@@ -34,21 +34,19 @@
 #pragma once
 
 #include <stdint.h>
-#include <uORB/Publication.hpp>
 #include <uORB/topics/ulog_stream.h>
 #include <uORB/topics/ulog_stream_ack.h>
 
-namespace px4
-{
-namespace logger
-{
+#include <uORB/Publication.hpp>
+
+namespace px4 {
+namespace logger {
 
 /**
  * @class LogWriterMavlink
  * Writes logging data to uORB, and then sent via mavlink
  */
-class LogWriterMavlink
-{
+class LogWriterMavlink {
 public:
 	LogWriterMavlink();
 	~LogWriterMavlink();
@@ -66,13 +64,9 @@ public:
 
 	void set_need_reliable_transfer(bool need_reliable);
 
-	bool need_reliable_transfer() const
-	{
-		return _need_reliable_transfer;
-	}
+	bool need_reliable_transfer() const { return _need_reliable_transfer; }
 
 private:
-
 	/** publish message, wait for ack if needed & reset message */
 	int publish_message();
 
@@ -83,5 +77,5 @@ private:
 	bool _is_started{false};
 };
 
-}
-}
+}  // namespace logger
+}  // namespace px4

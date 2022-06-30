@@ -33,17 +33,14 @@
 
 #include "SPL06.hpp"
 
-SPL06::SPL06(const I2CSPIDriverConfig &config, spl06::ISPL06 *interface) :
-	I2CSPIDriver(config),
-	_interface(interface),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
-	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
-{
-}
+SPL06::SPL06(const I2CSPIDriverConfig &config, spl06::ISPL06 *interface)
+	: I2CSPIDriver(config),
+	  _interface(interface),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": sample")),
+	  _measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": measure")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": comms errors")) {}
 
-SPL06::~SPL06()
-{
+SPL06::~SPL06() {
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_measure_perf);
@@ -100,9 +97,7 @@ SPL06::scale_factor(int oversampling_rate)
 }
 */
 
-int
-SPL06::calibrate()
-{
+int SPL06::calibrate() {
 	uint8_t buf[18];
 
 	_interface->read(SPL06_ADDR_CAL, buf, sizeof(buf));
@@ -130,12 +125,10 @@ SPL06::calibrate()
 	// _cal.c00,_cal.c10,
 	// _cal.c01,_cal.c11,_cal.c20,_cal.c21,_cal.c30
 	// );
-	//PX4_DEBUG("c0:%f",_cal.c0);
+	// PX4_DEBUG("c0:%f",_cal.c0);
 	return OK;
 }
-int
-SPL06::init()
-{
+int SPL06::init() {
 	int8_t tries = 5;
 	// reset sensor
 	_interface->set_reg(SPL06_VALUE_RESET, SPL06_ADDR_RESET);
@@ -167,10 +160,9 @@ SPL06::init()
 
 	// set config, recommended settings
 	_interface->set_reg(_curr_prs_cfg, SPL06_ADDR_PRS_CFG);
-	kp = 253952.0f; // refer to scale_factor()
+	kp = 253952.0f;  // refer to scale_factor()
 	_interface->set_reg(_curr_tmp_cfg, SPL06_ADDR_TMP_CFG);
 	kt = 524288.0f;
-
 
 	_interface->set_reg(1 << 2, SPL06_ADDR_CFG_REG);
 	_interface->set_reg(7, SPL06_ADDR_MEAS_CFG);
@@ -180,23 +172,17 @@ SPL06::init()
 	return OK;
 }
 
-void
-SPL06::Start()
-{
+void SPL06::Start() {
 	// schedule a cycle to start things
 	ScheduleNow();
 }
 
-void
-SPL06::RunImpl()
-{
+void SPL06::RunImpl() {
 	collect();
 
 	ScheduleDelayed(_measure_interval);
 }
-int
-SPL06::collect()
-{
+int SPL06::collect() {
 	perf_begin(_sample_perf);
 
 	// this should be fairly close to the end of the conversion, so the best approximation of the time
@@ -211,7 +197,7 @@ SPL06::collect()
 	int32_t temp_raw = (uint32_t)_data.t_msb << 16 | (uint32_t)_data.t_lsb << 8 | (uint32_t)_data.t_xlsb;
 	temp_raw = (temp_raw & 1 << 23) ? (0xff000000 | temp_raw) : temp_raw;
 
-	int32_t press_raw = (uint32_t)_data.p_msb << 16 | (uint32_t) _data.p_lsb << 8 | (uint32_t) _data.p_xlsb;
+	int32_t press_raw = (uint32_t)_data.p_msb << 16 | (uint32_t)_data.p_lsb << 8 | (uint32_t)_data.p_xlsb;
 	press_raw = (press_raw & 1 << 23) ? (0xff000000 | press_raw) : press_raw;
 
 	// calculate
@@ -222,7 +208,6 @@ SPL06::collect()
 
 	float fp = (float)_cal.c00 + fpsc * qua2 + ftsc * (float)_cal.c01 + qua3;
 	float temperature = (float)_cal.c0 * 0.5f + (float)_cal.c1 * ftsc;
-
 
 	sensor_baro_s sensor_baro{};
 	sensor_baro.timestamp_sample = timestamp_sample;
@@ -238,9 +223,7 @@ SPL06::collect()
 	return OK;
 }
 
-void
-SPL06::print_status()
-{
+void SPL06::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_measure_perf);

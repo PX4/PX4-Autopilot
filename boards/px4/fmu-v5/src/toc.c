@@ -37,7 +37,7 @@
 
 /* Boot image starts at _vectors and ends at
  * the beginning of signature
-*/
+ */
 
 extern uint32_t _vectors[];
 extern const int *_boot_signature;
@@ -47,30 +47,28 @@ extern const int *_boot_signature;
 
 /* Boot signature start and end are defined by the
  * signature definition below
-*/
+ */
 
 #define BOOTSIG_ADDR ((const void *)&_boot_signature)
-#define BOOTSIG_END ((const void *)((const uint8_t *)BOOTSIG_ADDR+SIGNATURE_SIZE))
+#define BOOTSIG_END ((const void *)((const uint8_t *)BOOTSIG_ADDR + SIGNATURE_SIZE))
 
 /* RD certifcate may follow boot signature */
 
 #define RDCT_ADDR BOOTSIG_END
-#define RDCT_END ((const void *)((const uint8_t*)BOOTSIG_END+sizeof(image_cert_t)))
+#define RDCT_END ((const void *)((const uint8_t *)BOOTSIG_END + sizeof(image_cert_t)))
 
 /* RD certificate signature follows the certificate */
 
 #define RDCTSIG_ADDR RDCT_END
-#define RDCTSIG_END ((const void *)((const uint8_t*)RDCT_ADDR+SIGNATURE_SIZE))
+#define RDCTSIG_END ((const void *)((const uint8_t *)RDCT_ADDR + SIGNATURE_SIZE))
 
 /* The table of contents */
 
-IMAGE_MAIN_TOC(4) = {
-	{TOC_START_MAGIC, TOC_VERSION},
-	{
-		{"BOOT", BOOT_ADDR, BOOT_END, 0, 1, 0, 0, TOC_FLAG1_BOOT | TOC_FLAG1_CHECK_SIGNATURE},
-		{"SIG1", BOOTSIG_ADDR, BOOTSIG_END, 0, 0, 0, 0, 0},
-		{"RDCT", RDCT_ADDR, RDCT_END, 0, 3, 0, 0, TOC_FLAG1_RDCT | TOC_FLAG1_CHECK_SIGNATURE},
-		{"RDSG", RDCTSIG_ADDR, RDCTSIG_END, 0, 0, 0, 0, 0},
-	},
-	TOC_END_MAGIC
-};
+IMAGE_MAIN_TOC(4) = {{TOC_START_MAGIC, TOC_VERSION},
+		     {
+			     {"BOOT", BOOT_ADDR, BOOT_END, 0, 1, 0, 0, TOC_FLAG1_BOOT | TOC_FLAG1_CHECK_SIGNATURE},
+			     {"SIG1", BOOTSIG_ADDR, BOOTSIG_END, 0, 0, 0, 0, 0},
+			     {"RDCT", RDCT_ADDR, RDCT_END, 0, 3, 0, 0, TOC_FLAG1_RDCT | TOC_FLAG1_CHECK_SIGNATURE},
+			     {"RDSG", RDCTSIG_ADDR, RDCTSIG_END, 0, 0, 0, 0, 0},
+		     },
+		     TOC_END_MAGIC};

@@ -36,14 +36,11 @@
 struct iteration_result {
 	float gradient_damping;
 	float cost;
-	enum class STATUS {
-		SUCCESS, FAILURE
-	} result = STATUS::SUCCESS;
+	enum class STATUS { SUCCESS, FAILURE } result = STATUS::SUCCESS;
 };
 
-void lm_sphere_fit_iteration(const float x[], const float y[], const float z[],
-			     unsigned int samples_collected, sphere_params &params, iteration_result &result)
-{
+void lm_sphere_fit_iteration(const float x[], const float y[], const float z[], unsigned int samples_collected,
+			     sphere_params &params, iteration_result &result) {
 	// Run Sphere Fit using Levenberg Marquardt LSq Fit
 	const float lma_damping = 10.f;
 	float fitness = result.cost;
@@ -51,28 +48,33 @@ void lm_sphere_fit_iteration(const float x[], const float y[], const float z[],
 	float fit2 = 0.f;
 
 	matrix::SquareMatrix<float, 4> JTJ;
-	float JTFI[4] {};
+	float JTFI[4]{};
 	float residual = 0.0f;
 
 	// Gauss Newton Part common for all kind of extensions including LM
 	for (uint16_t k = 0; k < samples_collected; k++) {
-
 		float sphere_jacob[4];
-		//Calculate Jacobian
-		float A = (params.diag(0)    * (x[k] - params.offset(0))) + (params.offdiag(0) * (y[k] - params.offset(1))) +
+		// Calculate Jacobian
+		float A = (params.diag(0) * (x[k] - params.offset(0))) +
+			  (params.offdiag(0) * (y[k] - params.offset(1))) +
 			  (params.offdiag(1) * (z[k] - params.offset(2)));
-		float B = (params.offdiag(0) * (x[k] - params.offset(0))) + (params.diag(1)    * (y[k] - params.offset(1))) +
+		float B = (params.offdiag(0) * (x[k] - params.offset(0))) +
+			  (params.diag(1) * (y[k] - params.offset(1))) +
 			  (params.offdiag(2) * (z[k] - params.offset(2)));
-		float C = (params.offdiag(1) * (x[k] - params.offset(0))) + (params.offdiag(2) * (y[k] - params.offset(1))) +
-			  (params.diag(2)    * (z[k] - params.offset(2)));
+		float C = (params.offdiag(1) * (x[k] - params.offset(0))) +
+			  (params.offdiag(2) * (y[k] - params.offset(1))) +
+			  (params.diag(2) * (z[k] - params.offset(2)));
 		float length = sqrtf(A * A + B * B + C * C);
 
 		// 0: partial derivative (radius wrt fitness fn) fn operated on sample
 		sphere_jacob[0] = 1.0f;
 		// 1-3: partial derivative (offsets wrt fitness fn) fn operated on sample
-		sphere_jacob[1] = 1.0f * (((params.diag(0)    * A) + (params.offdiag(0) * B) + (params.offdiag(1) * C)) / length);
-		sphere_jacob[2] = 1.0f * (((params.offdiag(0) * A) + (params.diag(1)    * B) + (params.offdiag(2) * C)) / length);
-		sphere_jacob[3] = 1.0f * (((params.offdiag(1) * A) + (params.offdiag(2) * B) + (params.diag(2)    * C)) / length);
+		sphere_jacob[1] =
+			1.0f * (((params.diag(0) * A) + (params.offdiag(0) * B) + (params.offdiag(1) * C)) / length);
+		sphere_jacob[2] =
+			1.0f * (((params.offdiag(0) * A) + (params.diag(1) * B) + (params.offdiag(2) * C)) / length);
+		sphere_jacob[3] =
+			1.0f * (((params.offdiag(1) * A) + (params.offdiag(2) * B) + (params.diag(2) * C)) / length);
 		residual = params.radius - length;
 
 		for (uint8_t i = 0; i < 4; i++) {
@@ -85,13 +87,12 @@ void lm_sphere_fit_iteration(const float x[], const float y[], const float z[],
 		}
 	}
 
-
 	//------------------------Levenberg-Marquardt-part-starts-here---------------------------------//
 	// refer: http://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm#Choice_of_damping_parameter
 	float fit1_params[4] = {params.radius, params.offset(0), params.offset(1), params.offset(2)};
 	float fit2_params[4];
 	memcpy(fit2_params, fit1_params, sizeof(fit1_params));
-	JTJ = (JTJ + JTJ.transpose()) * 0.5f; // fix numerical issues
+	JTJ = (JTJ + JTJ.transpose()) * 0.5f;  // fix numerical issues
 	matrix::SquareMatrix<float, 4> JTJ2 = JTJ;
 
 	for (uint8_t i = 0; i < 4; i++) {
@@ -107,7 +108,6 @@ void lm_sphere_fit_iteration(const float x[], const float y[], const float z[],
 	if (!JTJ2.I(JTJ2)) {
 		result.result = iteration_result::STATUS::FAILURE;
 		return;
-
 	}
 
 	for (uint8_t row = 0; row < 4; row++) {
@@ -119,25 +119,22 @@ void lm_sphere_fit_iteration(const float x[], const float y[], const float z[],
 
 	// Calculate mean squared residuals
 	for (uint16_t k = 0; k < samples_collected; k++) {
-		float A = (params.diag(0)    * (x[k] - fit1_params[1])) + (params.offdiag(0) * (y[k] - fit1_params[2])) +
-			  (params.offdiag(1) *
-			   (z[k] + fit1_params[3]));
-		float B = (params.offdiag(0) * (x[k] - fit1_params[1])) + (params.diag(1)    * (y[k] - fit1_params[2])) +
-			  (params.offdiag(2) *
-			   (z[k] + fit1_params[3]));
-		float C = (params.offdiag(1) * (x[k] - fit1_params[1])) + (params.offdiag(2) * (y[k] - fit1_params[2])) + (params.diag(
-					2)    *
-				(z[k] - fit1_params[3]));
+		float A = (params.diag(0) * (x[k] - fit1_params[1])) + (params.offdiag(0) * (y[k] - fit1_params[2])) +
+			  (params.offdiag(1) * (z[k] + fit1_params[3]));
+		float B = (params.offdiag(0) * (x[k] - fit1_params[1])) + (params.diag(1) * (y[k] - fit1_params[2])) +
+			  (params.offdiag(2) * (z[k] + fit1_params[3]));
+		float C = (params.offdiag(1) * (x[k] - fit1_params[1])) +
+			  (params.offdiag(2) * (y[k] - fit1_params[2])) + (params.diag(2) * (z[k] - fit1_params[3]));
 		float length = sqrtf(A * A + B * B + C * C);
 		residual = fit1_params[0] - length;
 		fit1 += residual * residual;
 
-		A = (params.diag(0)    * (x[k] - fit2_params[1])) + (params.offdiag(0) * (y[k] - fit2_params[2])) + (params.offdiag(1) *
-				(z[k] - fit2_params[3]));
-		B = (params.offdiag(0) * (x[k] - fit2_params[1])) + (params.diag(1)    * (y[k] - fit2_params[2])) + (params.offdiag(2) *
-				(z[k] - fit2_params[3]));
-		C = (params.offdiag(1) * (x[k] - fit2_params[1])) + (params.offdiag(2) * (y[k] - fit2_params[2])) + (params.diag(2)    *
-				(z[k] - fit2_params[3]));
+		A = (params.diag(0) * (x[k] - fit2_params[1])) + (params.offdiag(0) * (y[k] - fit2_params[2])) +
+		    (params.offdiag(1) * (z[k] - fit2_params[3]));
+		B = (params.offdiag(0) * (x[k] - fit2_params[1])) + (params.diag(1) * (y[k] - fit2_params[2])) +
+		    (params.offdiag(2) * (z[k] - fit2_params[3]));
+		C = (params.offdiag(1) * (x[k] - fit2_params[1])) + (params.offdiag(2) * (y[k] - fit2_params[2])) +
+		    (params.diag(2) * (z[k] - fit2_params[3]));
 		length = sqrtf(A * A + B * B + C * C);
 		residual = fit2_params[0] - length;
 		fit2 += residual * residual;
@@ -173,9 +170,8 @@ void lm_sphere_fit_iteration(const float x[], const float y[], const float z[],
 	}
 }
 
-void lm_ellipsoid_fit_iteration(const float x[], const float y[], const float z[],
-				unsigned int samples_collected, sphere_params &params, iteration_result &result)
-{
+void lm_ellipsoid_fit_iteration(const float x[], const float y[], const float z[], unsigned int samples_collected,
+				sphere_params &params, iteration_result &result) {
 	// Run Sphere Fit using Levenberg Marquardt LSq Fit
 	const float lma_damping = 10.0f;
 	float fitness = result.cost;
@@ -183,35 +179,43 @@ void lm_ellipsoid_fit_iteration(const float x[], const float y[], const float z[
 	float fit2 = 0.0f;
 
 	matrix::SquareMatrix<float, 9> JTJ;
-	float JTFI[9] {};
+	float JTFI[9]{};
 	float residual = 0.0f;
 	float ellipsoid_jacob[9];
 
 	// Gauss Newton Part common for all kind of extensions including LM
 	for (uint16_t k = 0; k < samples_collected; k++) {
-
 		// Calculate Jacobian
-		float A = (params.diag(0)    * (x[k] - params.offset(0))) + (params.offdiag(0) * (y[k] - params.offset(1))) +
+		float A = (params.diag(0) * (x[k] - params.offset(0))) +
+			  (params.offdiag(0) * (y[k] - params.offset(1))) +
 			  (params.offdiag(1) * (z[k] - params.offset(2)));
-		float B = (params.offdiag(0) * (x[k] - params.offset(0))) + (params.diag(1)    * (y[k] - params.offset(1))) +
+		float B = (params.offdiag(0) * (x[k] - params.offset(0))) +
+			  (params.diag(1) * (y[k] - params.offset(1))) +
 			  (params.offdiag(2) * (z[k] - params.offset(2)));
-		float C = (params.offdiag(1) * (x[k] - params.offset(0))) + (params.offdiag(2) * (y[k] - params.offset(1))) +
-			  (params.diag(2)    * (z[k] - params.offset(2)));
+		float C = (params.offdiag(1) * (x[k] - params.offset(0))) +
+			  (params.offdiag(2) * (y[k] - params.offset(1))) +
+			  (params.diag(2) * (z[k] - params.offset(2)));
 		float length = sqrtf(A * A + B * B + C * C);
 		residual = params.radius - length;
 		fit1 += residual * residual;
 		// 0-2: partial derivative (offset wrt fitness fn) fn operated on sample
-		ellipsoid_jacob[0] = 1.0f * (((params.diag(0)    * A) + (params.offdiag(0) * B) + (params.offdiag(1) * C)) / length);
-		ellipsoid_jacob[1] = 1.0f * (((params.offdiag(0) * A) + (params.diag(1)    * B) + (params.offdiag(2) * C)) / length);
-		ellipsoid_jacob[2] = 1.0f * (((params.offdiag(1) * A) + (params.offdiag(2) * B) + (params.diag(2)    * C)) / length);
+		ellipsoid_jacob[0] =
+			1.0f * (((params.diag(0) * A) + (params.offdiag(0) * B) + (params.offdiag(1) * C)) / length);
+		ellipsoid_jacob[1] =
+			1.0f * (((params.offdiag(0) * A) + (params.diag(1) * B) + (params.offdiag(2) * C)) / length);
+		ellipsoid_jacob[2] =
+			1.0f * (((params.offdiag(1) * A) + (params.offdiag(2) * B) + (params.diag(2) * C)) / length);
 		// 3-5: partial derivative (diag offset wrt fitness fn) fn operated on sample
 		ellipsoid_jacob[3] = -1.0f * ((x[k] - params.offset(0)) * A) / length;
 		ellipsoid_jacob[4] = -1.0f * ((y[k] - params.offset(1)) * B) / length;
 		ellipsoid_jacob[5] = -1.0f * ((z[k] - params.offset(2)) * C) / length;
 		// 6-8: partial derivative (off-diag offset wrt fitness fn) fn operated on sample
-		ellipsoid_jacob[6] = -1.0f * (((y[k] - params.offset(1)) * A) + ((x[k] - params.offset(0)) * B)) / length;
-		ellipsoid_jacob[7] = -1.0f * (((z[k] - params.offset(2)) * A) + ((x[k] - params.offset(0)) * C)) / length;
-		ellipsoid_jacob[8] = -1.0f * (((z[k] - params.offset(2)) * B) + ((y[k] - params.offset(1)) * C)) / length;
+		ellipsoid_jacob[6] =
+			-1.0f * (((y[k] - params.offset(1)) * A) + ((x[k] - params.offset(0)) * B)) / length;
+		ellipsoid_jacob[7] =
+			-1.0f * (((z[k] - params.offset(2)) * A) + ((x[k] - params.offset(0)) * C)) / length;
+		ellipsoid_jacob[8] =
+			-1.0f * (((z[k] - params.offset(2)) * B) + ((y[k] - params.offset(1)) * C)) / length;
 
 		for (uint8_t i = 0; i < 9; i++) {
 			// compute JTJ
@@ -223,10 +227,11 @@ void lm_ellipsoid_fit_iteration(const float x[], const float y[], const float z[
 		}
 	}
 
-
 	//------------------------Levenberg-Marquardt-part-starts-here---------------------------------//
 	// refer: http://en.wikipedia.org/wiki/Levenberg%E2%80%93Marquardt_algorithm#Choice_of_damping_parameter
-	float fit1_params[9] = {params.offset(0), params.offset(1), params.offset(2), params.diag(0), params.diag(1), params.diag(2), params.offdiag(0), params.offdiag(1), params.offdiag(2)};
+	float fit1_params[9] = {params.offset(0),  params.offset(1),  params.offset(2),
+				params.diag(0),    params.diag(1),    params.diag(2),
+				params.offdiag(0), params.offdiag(1), params.offdiag(2)};
 	float fit2_params[9];
 	memcpy(fit2_params, fit1_params, sizeof(fit1_params));
 	matrix::SquareMatrix<float, 9> JTJ2 = JTJ;
@@ -235,7 +240,6 @@ void lm_ellipsoid_fit_iteration(const float x[], const float y[], const float z[
 		JTJ(i, i) += result.gradient_damping;
 		JTJ2(i, i) += result.gradient_damping / lma_damping;
 	}
-
 
 	if (!JTJ.I(JTJ)) {
 		result.result = iteration_result::STATUS::FAILURE;
@@ -256,22 +260,22 @@ void lm_ellipsoid_fit_iteration(const float x[], const float y[], const float z[
 
 	// Calculate mean squared residuals
 	for (uint16_t k = 0; k < samples_collected; k++) {
-		float A = (fit1_params[3]    * (x[k] - fit1_params[0])) + (fit1_params[6] * (y[k] - fit1_params[1])) + (fit1_params[7] *
-				(z[k] - fit1_params[2]));
-		float B = (fit1_params[6] * (x[k] - fit1_params[0])) + (fit1_params[4]   * (y[k] - fit1_params[1])) + (fit1_params[8] *
-				(z[k] - fit1_params[2]));
-		float C = (fit1_params[7] * (x[k] - fit1_params[0])) + (fit1_params[8] * (y[k] - fit1_params[1])) + (fit1_params[5]    *
-				(z[k] - fit1_params[2]));
+		float A = (fit1_params[3] * (x[k] - fit1_params[0])) + (fit1_params[6] * (y[k] - fit1_params[1])) +
+			  (fit1_params[7] * (z[k] - fit1_params[2]));
+		float B = (fit1_params[6] * (x[k] - fit1_params[0])) + (fit1_params[4] * (y[k] - fit1_params[1])) +
+			  (fit1_params[8] * (z[k] - fit1_params[2]));
+		float C = (fit1_params[7] * (x[k] - fit1_params[0])) + (fit1_params[8] * (y[k] - fit1_params[1])) +
+			  (fit1_params[5] * (z[k] - fit1_params[2]));
 		float length = sqrtf(A * A + B * B + C * C);
 		residual = params.radius - length;
 		fit1 += residual * residual;
 
-		A = (fit2_params[3]    * (x[k] - fit2_params[0])) + (fit2_params[6] * (y[k] - fit2_params[1])) + (fit2_params[7] *
-				(z[k] - fit2_params[2]));
-		B = (fit2_params[6] * (x[k] - fit2_params[0])) + (fit2_params[4]   * (y[k] - fit2_params[1])) + (fit2_params[8] *
-				(z[k] - fit2_params[2]));
-		C = (fit2_params[7] * (x[k] - fit2_params[0])) + (fit2_params[8] * (y[k] - fit2_params[1])) + (fit2_params[5]    *
-				(z[k] - fit2_params[2]));
+		A = (fit2_params[3] * (x[k] - fit2_params[0])) + (fit2_params[6] * (y[k] - fit2_params[1])) +
+		    (fit2_params[7] * (z[k] - fit2_params[2]));
+		B = (fit2_params[6] * (x[k] - fit2_params[0])) + (fit2_params[4] * (y[k] - fit2_params[1])) +
+		    (fit2_params[8] * (z[k] - fit2_params[2]));
+		C = (fit2_params[7] * (x[k] - fit2_params[0])) + (fit2_params[8] * (y[k] - fit2_params[1])) +
+		    (fit2_params[5] * (z[k] - fit2_params[2]));
 		length = sqrtf(A * A + B * B + C * C);
 		residual = params.radius - length;
 		fit2 += residual * residual;
@@ -311,12 +315,8 @@ void lm_ellipsoid_fit_iteration(const float x[], const float y[], const float z[
 	}
 }
 
-
-
 int lm_mag_fit(const float x[], const float y[], const float z[], unsigned int samples_collected, sphere_params &params,
-	       bool full_ellipsoid)
-{
-
+	       bool full_ellipsoid) {
 	const int max_iterations = 100;
 	const int min_iterations = 10;
 	const float cost_threshold = 0.01;
@@ -339,9 +339,9 @@ int lm_mag_fit(const float x[], const float y[], const float z[], unsigned int s
 			lm_sphere_fit_iteration(x, y, z, samples_collected, params, iter);
 		}
 
-		if (iter.result == iteration_result::STATUS::SUCCESS
-		    && min_radius < params.radius && params.radius < max_radius
-		    && i > min_iterations && (iter.cost < cost_threshold || iter.gradient_damping < step_threshold)) {
+		if (iter.result == iteration_result::STATUS::SUCCESS && min_radius < params.radius &&
+		    params.radius < max_radius && i > min_iterations &&
+		    (iter.cost < cost_threshold || iter.gradient_damping < step_threshold)) {
 			success = true;
 			break;
 		}
@@ -353,4 +353,3 @@ int lm_mag_fit(const float x[], const float y[], const float z[], unsigned int s
 
 	return 1;
 }
-

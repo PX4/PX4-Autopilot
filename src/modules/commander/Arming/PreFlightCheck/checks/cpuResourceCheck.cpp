@@ -31,18 +31,18 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
 #include <drivers/drv_hrt.h>
-#include <systemlib/mavlink_log.h>
 #include <lib/parameters/param.h>
-#include <uORB/Subscription.hpp>
+#include <systemlib/mavlink_log.h>
 #include <uORB/topics/cpuload.h>
+
+#include <uORB/Subscription.hpp>
+
+#include "../PreFlightCheck.hpp"
 
 using namespace time_literals;
 
-bool PreFlightCheck::cpuResourceCheck(orb_advert_t *mavlink_log_pub, const bool report_fail)
-{
+bool PreFlightCheck::cpuResourceCheck(orb_advert_t *mavlink_log_pub, const bool report_fail) {
 	bool success = true;
 
 	uORB::SubscriptionData<cpuload_s> cpuload_sub{ORB_ID(cpuload)};
@@ -52,7 +52,6 @@ bool PreFlightCheck::cpuResourceCheck(orb_advert_t *mavlink_log_pub, const bool 
 	param_get(param_find("COM_CPU_MAX"), &cpuload_percent_max);
 
 	if (cpuload_percent_max > 0.f) {
-
 		if (hrt_elapsed_time(&cpuload_sub.get().timestamp) > 2_s) {
 			success = false;
 
@@ -67,7 +66,8 @@ bool PreFlightCheck::cpuResourceCheck(orb_advert_t *mavlink_log_pub, const bool 
 			success = false;
 
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Fail: CPU load too high: %3.1f%%", (double)cpuload_percent);
+				mavlink_log_critical(mavlink_log_pub, "Fail: CPU load too high: %3.1f%%",
+						     (double)cpuload_percent);
 			}
 		}
 	}

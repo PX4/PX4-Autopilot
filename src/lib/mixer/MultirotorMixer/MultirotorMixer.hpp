@@ -49,18 +49,17 @@ enum class MultirotorGeometry : MultirotorGeometryUnderlyingType;
  * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to
  * a set of outputs based on the configured geometry.
  */
-class MultirotorMixer : public Mixer
-{
+class MultirotorMixer : public Mixer {
 public:
 	/**
 
 	 * Precalculated rotor mix.
 	 */
 	struct Rotor {
-		float	roll_scale;		/**< scales roll for this rotor */
-		float	pitch_scale;	/**< scales pitch for this rotor */
-		float	yaw_scale;		/**< scales yaw for this rotor */
-		float	thrust_scale;	/**< scales thrust for this rotor */
+		float roll_scale;   /**< scales roll for this rotor */
+		float pitch_scale;  /**< scales pitch for this rotor */
+		float yaw_scale;    /**< scales yaw for this rotor */
+		float thrust_scale; /**< scales thrust for this rotor */
 	};
 
 	/**
@@ -117,11 +116,11 @@ public:
 	static MultirotorMixer *from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
 					  unsigned &buflen);
 
-	unsigned		mix(float *outputs, unsigned space) override;
+	unsigned mix(float *outputs, unsigned space) override;
 
-	uint16_t		get_saturation_status() override { return _saturation_status.value; }
+	uint16_t get_saturation_status() override { return _saturation_status.value; }
 
-	void			groups_required(uint32_t &groups) override { groups |= (1 << 0); }
+	void groups_required(uint32_t &groups) override { groups |= (1 << 0); }
 
 	/**
 	 * @brief      Update slew rate parameter. This tells the multicopter mixer
@@ -133,35 +132,40 @@ public:
 	 * @param[in]  delta_out_max  Maximum delta output.
 	 *
 	 */
-	void 			set_max_delta_out_once(float delta_out_max) override { _delta_out_max = delta_out_max; }
+	void set_max_delta_out_once(float delta_out_max) override { _delta_out_max = delta_out_max; }
 
-	unsigned		set_trim(float trim) override { return _rotor_count; }
-	unsigned		get_trim(float *trim) override { return _rotor_count; }
+	unsigned set_trim(float trim) override { return _rotor_count; }
+	unsigned get_trim(float *trim) override { return _rotor_count; }
 
 	/**
-	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to motor control signal output.
+	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to motor control signal
+	 * output.
 	 *
 	 * @param[in]  val   The value
 	 */
-	void			set_thrust_factor(float val) override { _thrust_factor = math::constrain(val, 0.0f, 1.0f); }
+	void set_thrust_factor(float val) override { _thrust_factor = math::constrain(val, 0.0f, 1.0f); }
 
-	void 			set_airmode(Airmode airmode) override { _airmode = airmode; }
+	void set_airmode(Airmode airmode) override { _airmode = airmode; }
 
-	unsigned		get_multirotor_count() override { return _rotor_count; }
+	unsigned get_multirotor_count() override { return _rotor_count; }
 
 	union saturation_status {
 		struct {
-			uint16_t valid		: 1; // 0 - true when the saturation status is used
-			uint16_t motor_pos	: 1; // 1 - true when any motor has saturated in the positive direction
-			uint16_t motor_neg	: 1; // 2 - true when any motor has saturated in the negative direction
-			uint16_t roll_pos	: 1; // 3 - true when a positive roll demand change will increase saturation
-			uint16_t roll_neg	: 1; // 4 - true when a negative roll demand change will increase saturation
-			uint16_t pitch_pos	: 1; // 5 - true when a positive pitch demand change will increase saturation
-			uint16_t pitch_neg	: 1; // 6 - true when a negative pitch demand change will increase saturation
-			uint16_t yaw_pos	: 1; // 7 - true when a positive yaw demand change will increase saturation
-			uint16_t yaw_neg	: 1; // 8 - true when a negative yaw demand change will increase saturation
-			uint16_t thrust_pos	: 1; // 9 - true when a positive thrust demand change will increase saturation
-			uint16_t thrust_neg	: 1; //10 - true when a negative thrust demand change will increase saturation
+			uint16_t valid : 1;      // 0 - true when the saturation status is used
+			uint16_t motor_pos : 1;  // 1 - true when any motor has saturated in the positive direction
+			uint16_t motor_neg : 1;  // 2 - true when any motor has saturated in the negative direction
+			uint16_t roll_pos : 1;   // 3 - true when a positive roll demand change will increase saturation
+			uint16_t roll_neg : 1;   // 4 - true when a negative roll demand change will increase saturation
+			uint16_t
+				pitch_pos : 1;  // 5 - true when a positive pitch demand change will increase saturation
+			uint16_t
+				pitch_neg : 1;  // 6 - true when a negative pitch demand change will increase saturation
+			uint16_t yaw_pos : 1;   // 7 - true when a positive yaw demand change will increase saturation
+			uint16_t yaw_neg : 1;   // 8 - true when a negative yaw demand change will increase saturation
+			uint16_t thrust_pos : 1;  // 9 - true when a positive thrust demand change will increase
+						  // saturation
+			uint16_t thrust_neg : 1;  // 10 - true when a negative thrust demand change will increase
+						  // saturation
 		} flags;
 		uint16_t value;
 	};
@@ -174,8 +178,8 @@ private:
 	 *
 	 * @return desaturation gain
 	 */
-	float compute_desaturation_gain(const float *desaturation_vector, const float *outputs, saturation_status &sat_status,
-					float min_output, float max_output) const;
+	float compute_desaturation_gain(const float *desaturation_vector, const float *outputs,
+					saturation_status &sat_status, float min_output, float max_output) const;
 
 	/**
 	 * Minimize the saturation of the actuators by adding or substracting a fraction of desaturation_vector.
@@ -238,18 +242,19 @@ private:
 	 */
 	inline void mix_yaw(float yaw, float *outputs);
 
-	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low_roll_pitch, bool clipping_low_yaw);
+	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low_roll_pitch,
+				      bool clipping_low_yaw);
 
-	float 				_delta_out_max{0.0f};
-	float 				_thrust_factor{0.0f};
+	float _delta_out_max{0.0f};
+	float _thrust_factor{0.0f};
 
-	Airmode				_airmode{Airmode::disabled};
+	Airmode _airmode{Airmode::disabled};
 
-	saturation_status		_saturation_status{};
+	saturation_status _saturation_status{};
 
-	unsigned			_rotor_count;
-	const Rotor			*_rotors;
+	unsigned _rotor_count;
+	const Rotor *_rotors;
 
-	float 				*_outputs_prev{nullptr};
-	float 				*_tmp_array{nullptr};
+	float *_outputs_prev{nullptr};
+	float *_tmp_array{nullptr};
 };

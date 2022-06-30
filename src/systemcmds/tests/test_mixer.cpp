@@ -37,29 +37,23 @@
  */
 
 #include <dirent.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <math.h>
-
-#include <px4_platform_common/px4_config.h>
-#include <lib/mixer/MixerGroup.hpp>
-#include <lib/mixer/mixer_load.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
-
+#include <lib/mixer/mixer_load.h>
+#include <math.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4iofirmware/protocol.h>
-
+#include <stdlib.h>
+#include <string.h>
 #include <uORB/topics/actuator_controls.h>
+#include <unistd.h>
+#include <unit_test.h>
+
+#include <lib/mixer/MixerGroup.hpp>
 
 #include "tests_main.h"
 
-#include <unit_test.h>
-
-static int	mixer_callback(uintptr_t handle,
-			       uint8_t control_group,
-			       uint8_t control_index,
-			       float &control);
+static int mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control);
 
 static const unsigned output_max = 8;
 static float actuator_controls[output_max];
@@ -80,18 +74,16 @@ static bool should_prearm = false;
 #endif
 
 #if defined(CONFIG_ARCH_BOARD_PX4_SITL)
-#define MIXER_PATH(_file)  "etc/mixers/"#_file
+#define MIXER_PATH(_file) "etc/mixers/" #_file
 #define MIXER_ONBOARD_PATH "etc/mixers"
 #else
 #define MIXER_ONBOARD_PATH "/etc/mixers"
-#define MIXER_PATH(_file) MIXER_ONBOARD_PATH"/"#_file
+#define MIXER_PATH(_file) MIXER_ONBOARD_PATH "/" #_file
 #endif
-
 
 #define MIXER_VERBOSE
 
-class MixerTest : public UnitTest
-{
+class MixerTest : public UnitTest {
 public:
 	virtual bool run_tests();
 	MixerTest() = default;
@@ -110,8 +102,7 @@ private:
 	MixerGroup mixer_group;
 };
 
-bool MixerTest::run_tests()
-{
+bool MixerTest::run_tests() {
 	ut_run_test(loadIOPass);
 	ut_run_test(loadQuadTest);
 	ut_run_test(loadVTOL1Test);
@@ -124,33 +115,19 @@ bool MixerTest::run_tests()
 
 ut_declare_test_c(test_mixer, MixerTest)
 
-bool MixerTest::loadIOPass()
-{
+	bool MixerTest::loadIOPass() {
 	return load_mixer(MIXER_PATH(IO_pass.mix), 8);
 }
 
-bool MixerTest::loadQuadTest()
-{
-	return load_mixer(MIXER_PATH(quad_test.mix), 5);
-}
+bool MixerTest::loadQuadTest() { return load_mixer(MIXER_PATH(quad_test.mix), 5); }
 
-bool MixerTest::loadVTOL1Test()
-{
-	return load_mixer(MIXER_PATH(vtol1_test.mix), 4);
-}
+bool MixerTest::loadVTOL1Test() { return load_mixer(MIXER_PATH(vtol1_test.mix), 4); }
 
-bool MixerTest::loadVTOL2Test()
-{
-	return load_mixer(MIXER_PATH(vtol2_test.mix), 6);
-}
+bool MixerTest::loadVTOL2Test() { return load_mixer(MIXER_PATH(vtol2_test.mix), 6); }
 
-bool MixerTest::loadComplexTest()
-{
-	return load_mixer(MIXER_PATH(complex_test.mix), 8);
-}
+bool MixerTest::loadComplexTest() { return load_mixer(MIXER_PATH(complex_test.mix), 8); }
 
-bool MixerTest::loadAllTest()
-{
+bool MixerTest::loadAllTest() {
 	PX4_INFO("Testing all mixers in %s", MIXER_ONBOARD_PATH);
 
 	DIR *dp = opendir(MIXER_ONBOARD_PATH);
@@ -183,33 +160,33 @@ bool MixerTest::loadAllTest()
 		switch (result->d_type) {
 #ifdef __PX4_NUTTX
 
-		case DTYPE_FILE:
+			case DTYPE_FILE:
 #else
-		case DT_REG:
+			case DT_REG:
 #endif
-			if (strncmp(result->d_name, ".", 1) != 0) {
+				if (strncmp(result->d_name, ".", 1) != 0) {
+					char buf[PATH_MAX];
 
-				char buf[PATH_MAX];
+					if (snprintf(buf, PATH_MAX, "%s/%s", MIXER_ONBOARD_PATH, result->d_name) >=
+					    PATH_MAX) {
+						PX4_ERR("mixer path too long %s", result->d_name);
+						closedir(dp);
+						return false;
+					}
 
-				if (snprintf(buf, PATH_MAX, "%s/%s", MIXER_ONBOARD_PATH, result->d_name) >= PATH_MAX) {
-					PX4_ERR("mixer path too long %s", result->d_name);
-					closedir(dp);
-					return false;
+					bool ret = load_mixer(buf, 0);
+
+					if (!ret) {
+						PX4_ERR("Error testing mixer %s", buf);
+						closedir(dp);
+						return false;
+					}
 				}
 
-				bool ret = load_mixer(buf, 0);
+				break;
 
-				if (!ret) {
-					PX4_ERR("Error testing mixer %s", buf);
-					closedir(dp);
-					return false;
-				}
-			}
-
-			break;
-
-		default:
-			break;
+			default:
+				break;
 		}
 	}
 
@@ -218,8 +195,7 @@ bool MixerTest::loadAllTest()
 	return true;
 }
 
-bool MixerTest::load_mixer(const char *filename, unsigned expected_count, bool verbose)
-{
+bool MixerTest::load_mixer(const char *filename, unsigned expected_count, bool verbose) {
 	char buf[2048];
 
 	load_mixer_file(filename, &buf[0], sizeof(buf));
@@ -243,8 +219,7 @@ bool MixerTest::load_mixer(const char *filename, unsigned expected_count, bool v
 }
 
 bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loaded, unsigned expected_count,
-			   const unsigned chunk_size, bool verbose)
-{
+			   const unsigned chunk_size, bool verbose) {
 	/* load the mixer in chunks, like
 	 * in the case of a remote load,
 	 * e.g. on PX4IO.
@@ -274,20 +249,20 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 
 	/* reset, load in chunks */
 	mixer_group.reset();
-	char mixer_text[330];		/* large enough for one mixer */
+	char mixer_text[330]; /* large enough for one mixer */
 
 	unsigned mixer_text_length = 0;
 	unsigned transmitted = 0;
 	unsigned resid = 0;
 
 	while (transmitted < loaded) {
-
 		unsigned text_length = (loaded - transmitted > chunk_size) ? chunk_size : loaded - transmitted;
 
 		/* check for overflow - this would be really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text)) {
-			PX4_ERR("Mixer text length overflow for file: %s. Is PX4IO_MAX_MIXER_LENGTH too small? (curr len: %d)", filename,
-				330);
+			PX4_ERR("Mixer text length overflow for file: %s. Is PX4IO_MAX_MIXER_LENGTH too small? (curr "
+				"len: %d)",
+				filename, 330);
 			return false;
 		}
 
@@ -295,7 +270,7 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 		memcpy(&mixer_text[mixer_text_length], &buf[transmitted], text_length);
 		mixer_text_length += text_length;
 		mixer_text[mixer_text_length] = '\0';
-		//fprintf(stderr, "buflen %u, text:\n\"%s\"\n", mixer_text_length, &mixer_text[0]);
+		// fprintf(stderr, "buflen %u, text:\n\"%s\"\n", mixer_text_length, &mixer_text[0]);
 
 		/* process the text buffer, adding new mixers as their descriptions can be parsed */
 		resid = mixer_text_length;
@@ -303,7 +278,7 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 
 		/* if anything was parsed */
 		if (resid != mixer_text_length) {
-			//PX4_INFO("loaded %d mixers, used %u\n", mixer_group.count(), mixer_text_length - resid);
+			// PX4_INFO("loaded %d mixers, used %u\n", mixer_group.count(), mixer_text_length - resid);
 
 			/* copy any leftover text to the base of the buffer for re-use */
 			if (resid > 0) {
@@ -327,17 +302,15 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 	}
 
 	if (expected_count > 0 && mixer_group.count() != expected_count) {
-		PX4_ERR("Load of mixer failed, last chunk: %s, transmitted: %u, text length: %u, resid: %u", mixer_text, transmitted,
-			mixer_text_length, resid);
+		PX4_ERR("Load of mixer failed, last chunk: %s, transmitted: %u, text length: %u, resid: %u", mixer_text,
+			transmitted, mixer_text_length, resid);
 		ut_compare("check number of mixers loaded (chunk)", mixer_group.count(), expected_count);
 	}
 
 	return true;
 }
 
-static int
-mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control)
-{
+static int mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control) {
 	control = 0.0f;
 
 	if (control_group != 0) {

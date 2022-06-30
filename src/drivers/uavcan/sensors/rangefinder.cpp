@@ -35,20 +35,18 @@
  * @author RJ Gritter <rjgritter657@gmail.com>
  */
 
-#include <drivers/drv_hrt.h>
-#include <parameters/param.h>
 #include "rangefinder.hpp"
+
+#include <drivers/drv_hrt.h>
 #include <math.h>
+#include <parameters/param.h>
 
 const char *const UavcanRangefinderBridge::NAME = "rangefinder";
 
-UavcanRangefinderBridge::UavcanRangefinderBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_rangefinder", ORB_ID(distance_sensor)),
-	_sub_range_data(node)
-{ }
+UavcanRangefinderBridge::UavcanRangefinderBridge(uavcan::INode &node)
+	: UavcanSensorBridgeBase("uavcan_rangefinder", ORB_ID(distance_sensor)), _sub_range_data(node) {}
 
-int UavcanRangefinderBridge::init()
-{
+int UavcanRangefinderBridge::init() {
 	// Initialize min/max range from params
 	param_get(param_find("UAVCAN_RNG_MIN"), &_range_min_m);
 	param_get(param_find("UAVCAN_RNG_MAX"), &_range_max_m);
@@ -63,9 +61,8 @@ int UavcanRangefinderBridge::init()
 	return 0;
 }
 
-void UavcanRangefinderBridge::range_sub_cb(const
-		uavcan::ReceivedDataStructure<uavcan::equipment::range_sensor::Measurement> &msg)
-{
+void UavcanRangefinderBridge::range_sub_cb(
+	const uavcan::ReceivedDataStructure<uavcan::equipment::range_sensor::Measurement> &msg) {
 	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
 
 	if (channel == nullptr || channel->instance < 0) {
@@ -81,23 +78,22 @@ void UavcanRangefinderBridge::range_sub_cb(const
 	}
 
 	if (!_inited) {
-
 		uint8_t rangefinder_type = 0;
 
 		switch (msg.sensor_type) {
-		case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_SONAR:
-			rangefinder_type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
-			break;
+			case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_SONAR:
+				rangefinder_type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+				break;
 
-		case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_RADAR:
-			rangefinder_type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
-			break;
+			case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_RADAR:
+				rangefinder_type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
+				break;
 
-		case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_LIDAR:
-		case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_UNDEFINED:
-		default:
-			rangefinder_type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-			break;
+			case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_LIDAR:
+			case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_UNDEFINED:
+			default:
+				rangefinder_type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+				break;
 		}
 
 		rangefinder->set_rangefinder_type(rangefinder_type);
@@ -118,8 +114,7 @@ void UavcanRangefinderBridge::range_sub_cb(const
 	rangefinder->update(hrt_absolute_time(), msg.range);
 }
 
-int UavcanRangefinderBridge::init_driver(uavcan_bridge::Channel *channel)
-{
+int UavcanRangefinderBridge::init_driver(uavcan_bridge::Channel *channel) {
 	// update device id as we now know our device node_id
 	DeviceId device_id{_device_id};
 

@@ -34,50 +34,47 @@
  *
  ****************************************************************************/
 
-#include <nuttx/config.h>
-#include "boot_config.h"
-
+#include <drivers/bootloaders/boot_alt_app_shared.h>
+#include <drivers/bootloaders/boot_app_shared.h>
+#include <drivers/drv_watchdog.h>
+#include <lib/systemlib/crc.h>
 #include <nuttx/arch.h>
-
-#include <stdint.h>
+#include <nuttx/config.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "chip.h"
-#include "nvic.h"
-
-#include "board.h"
-#include "flash.h"
-#include "timer.h"
 #include "blsched.h"
+#include "board.h"
+#include "boot_config.h"
 #include "can.h"
-#include "uavcan.h"
+#include "chip.h"
+#include "flash.h"
+#include "nvic.h"
 #include "random.h"
-
-#include <drivers/bootloaders/boot_app_shared.h>
-#include <drivers/bootloaders/boot_alt_app_shared.h>
-#include <drivers/drv_watchdog.h>
-#include <lib/systemlib/crc.h>
+#include "timer.h"
+#include "uavcan.h"
 
 //#define DEBUG_APPLICATION_INPLACE    1 /* Never leave defined */
-#define DEBUG_NO_FW_UPDATE           1 /* With DEBUG_APPLICATION_INPLACE
-                                        * prevents fw update
-                                        */
+#define DEBUG_NO_FW_UPDATE                  \
+	1 /* With DEBUG_APPLICATION_INPLACE \
+	   * prevents fw update             \
+	   */
 
 /* Using 2 character text in  LogMessage */
 
-#define LOGMESSAGE_STAGE_INIT     'I'
+#define LOGMESSAGE_STAGE_INIT 'I'
 #define LOGMESSAGE_STAGE_GET_INFO 'G'
-#define LOGMESSAGE_STAGE_ERASE    'E'
-#define LOGMESSAGE_STAGE_READ     'R'
-#define LOGMESSAGE_STAGE_PROGRAM  'P'
+#define LOGMESSAGE_STAGE_ERASE 'E'
+#define LOGMESSAGE_STAGE_READ 'R'
+#define LOGMESSAGE_STAGE_PROGRAM 'P'
 #define LOGMESSAGE_STAGE_VALIDATE 'V'
 #define LOGMESSAGE_STAGE_FINALIZE 'F'
 
-#define LOGMESSAGE_RESULT_START   's'
-#define LOGMESSAGE_RESULT_FAIL    'f'
-#define LOGMESSAGE_RESULT_OK      'o'
+#define LOGMESSAGE_RESULT_START 's'
+#define LOGMESSAGE_RESULT_FAIL 'f'
+#define LOGMESSAGE_RESULT_OK 'o'
 
 #if defined(DEBUG_APPLICATION_INPLACE)
 #pragma message "******** DANGER DEBUG_APPLICATION_INPLACE is DEFINED ******"
@@ -92,8 +89,8 @@ typedef volatile struct bootloader_t {
 	volatile uint32_t uptime;
 	volatile app_descriptor_t *fw_image_descriptor;
 	volatile uint32_t *fw_image;
-	bool  wait_for_getnodeinfo;
-	bool  app_bl_request;
+	bool wait_for_getnodeinfo;
+	bool app_bl_request;
 	bool sent_node_info_response;
 	uint16_t percentage_done;
 	union {
@@ -122,8 +119,7 @@ const uint8_t debug_log_source[uavcan_byte_count(LogMessage, source)] = {'B', 'o
  *
  ****************************************************************************/
 
-static inline void early_start_the_watch_dog(void)
-{
+static inline void early_start_the_watch_dog(void) {
 #ifdef OPT_ENABLE_WD
 #endif
 }
@@ -143,8 +139,7 @@ static inline void early_start_the_watch_dog(void)
  *
  ****************************************************************************/
 
-static inline void app_start_the_watch_dog(void)
-{
+static inline void app_start_the_watch_dog(void) {
 	watchdog_init();
 	watchdog_pet();
 }
@@ -162,8 +157,7 @@ static inline void app_start_the_watch_dog(void)
  *
  ****************************************************************************/
 
-static inline void kick_the_watch_dog(void)
-{
+static inline void kick_the_watch_dog(void) {
 #ifdef OPT_ENABLE_WD
 #endif
 }
@@ -182,10 +176,7 @@ static inline void kick_the_watch_dog(void)
  *   None
  *
  ****************************************************************************/
-static void uptime_process(bl_timer_id id, void *context)
-{
-	bootloader.uptime++;
-}
+static void uptime_process(bl_timer_id id, void *context) { bootloader.uptime++; }
 
 /****************************************************************************
  * Name: node_info_process
@@ -204,17 +195,16 @@ static void uptime_process(bl_timer_id id, void *context)
  *   None
  *
  ****************************************************************************/
-static void node_info_process(bl_timer_id id, void *context)
-{
+static void node_info_process(bl_timer_id id, void *context) {
 	uavcan_GetNodeInfo_response_t response;
-	uavcan_GetNodeInfo_request_t  request;
+	uavcan_GetNodeInfo_request_t request;
 
 	uavcan_protocol_t protocol;
 
 	response.nodes_status.uptime_sec = bootloader.uptime;
-	response.nodes_status.u8 = uavcan_pack(bootloader.sub_mode, NodeStatus, sub_mode)
-				   | uavcan_pack(bootloader.mode, NodeStatus, mode)
-				   | uavcan_pack(bootloader.health, NodeStatus, health);
+	response.nodes_status.u8 = uavcan_pack(bootloader.sub_mode, NodeStatus, sub_mode) |
+				   uavcan_pack(bootloader.mode, NodeStatus, mode) |
+				   uavcan_pack(bootloader.health, NodeStatus, health);
 	response.nodes_status.vendor_specific_status_code = 0u;
 
 	(void)board_get_hardware_version(&response.hardware_version);
@@ -223,20 +213,16 @@ static void node_info_process(bl_timer_id id, void *context)
 	memset(&response.software_version, 0, sizeof(response.software_version));
 
 	if (bootloader.app_valid) {
+		response.software_version.major = bootloader.fw_image_descriptor->major_version;
 
-		response.software_version.major =
-			bootloader.fw_image_descriptor->major_version;
+		response.software_version.minor = bootloader.fw_image_descriptor->minor_version;
 
-		response.software_version.minor =
-			bootloader.fw_image_descriptor->minor_version;
+		response.software_version.vcs_commit = bootloader.fw_image_descriptor->git_hash;
 
-		response.software_version.vcs_commit =
-			bootloader.fw_image_descriptor->git_hash;
+		response.software_version.image_crc = bootloader.fw_image_descriptor->image_crc;
 
-		response.software_version.image_crc =
-			bootloader.fw_image_descriptor->image_crc;
-
-		response.software_version.optional_field_flags = OPTIONAL_FIELD_FLAG_IMAGE_CRC | OPTIONAL_FIELD_FLAG_VCS_COMMIT;
+		response.software_version.optional_field_flags =
+			OPTIONAL_FIELD_FLAG_IMAGE_CRC | OPTIONAL_FIELD_FLAG_VCS_COMMIT;
 	}
 
 	size_t length = sizeof(uavcan_GetNodeInfo_request_t);
@@ -249,8 +235,9 @@ static void node_info_process(bl_timer_id id, void *context)
 
 	protocol.id.u32 = ANY_NODE_ID;
 
-	if (UavcanOk == uavcan_rx_dsdl(DSDLReqGetNodeInfo, &protocol, (uint8_t *) &request, &length, 0)) {
-		if (UavcanOk == uavcan_tx_dsdl(DSDLRspGetNodeInfo, &protocol, (const uint8_t *) &response, send_length)) {
+	if (UavcanOk == uavcan_rx_dsdl(DSDLReqGetNodeInfo, &protocol, (uint8_t *)&request, &length, 0)) {
+		if (UavcanOk ==
+		    uavcan_tx_dsdl(DSDLRspGetNodeInfo, &protocol, (const uint8_t *)&response, send_length)) {
 			bootloader.sent_node_info_response = true;
 		}
 	}
@@ -273,8 +260,7 @@ static void node_info_process(bl_timer_id id, void *context)
  *   None
  *
  ****************************************************************************/
-static void node_status_process(bl_timer_id id, void *context)
-{
+static void node_status_process(bl_timer_id id, void *context) {
 	static uint8_t transfer_id;
 
 	uavcan_NodeStatus_t message;
@@ -283,11 +269,11 @@ static void node_status_process(bl_timer_id id, void *context)
 	protocol.tail.transfer_id = transfer_id++;
 
 	message.uptime_sec = bootloader.uptime;
-	message.u8 = uavcan_pack(bootloader.sub_mode, NodeStatus, sub_mode)
-		     | uavcan_pack(bootloader.mode, NodeStatus, mode)
-		     | uavcan_pack(bootloader.health, NodeStatus, health);
+	message.u8 = uavcan_pack(bootloader.sub_mode, NodeStatus, sub_mode) |
+		     uavcan_pack(bootloader.mode, NodeStatus, mode) |
+		     uavcan_pack(bootloader.health, NodeStatus, health);
 	message.vendor_specific_status_code = bootloader.percentage_done;
-	uavcan_tx_dsdl(DSDLMsgNodeStatus, &protocol, (const uint8_t *) &message, sizeof(uavcan_NodeStatus_t));
+	uavcan_tx_dsdl(DSDLMsgNodeStatus, &protocol, (const uint8_t *)&message, sizeof(uavcan_NodeStatus_t));
 }
 
 /****************************************************************************
@@ -309,16 +295,13 @@ static void node_status_process(bl_timer_id id, void *context)
  *   If not found bootloader.fw_image_descriptor = NULL
  *
  ****************************************************************************/
-static void find_descriptor(void)
-{
+static void find_descriptor(void) {
 	uint64_t *p = (uint64_t *)APPLICATION_LOAD_ADDRESS;
 	app_descriptor_t *descriptor = NULL;
 	union {
 		uint64_t ull;
 		uint8_t bytes[sizeof(uint64_t)];
-	} sig = {
-		.bytes = APP_DESCRIPTOR_SIGNATURE
-	};
+	} sig = {.bytes = APP_DESCRIPTOR_SIGNATURE};
 
 	do {
 		if (*p == sig.ull) {
@@ -347,8 +330,7 @@ static void find_descriptor(void)
  *   true if the application in flash is valid., false otherwise.
  *
  ****************************************************************************/
-static bool is_app_valid(volatile uint32_t *first_words)
-{
+static bool is_app_valid(volatile uint32_t *first_words) {
 	uint32_t block_crc1;
 	uint32_t block_crc2;
 	size_t length;
@@ -365,26 +347,27 @@ static bool is_app_valid(volatile uint32_t *first_words)
 		return false;
 	}
 
-	size_t block2_len = bootloader.fw_image_descriptor->image_size - ((size_t)&bootloader.fw_image_descriptor->major_version
-			    - (size_t)bootloader.fw_image);
+	size_t block2_len = bootloader.fw_image_descriptor->image_size -
+			    ((size_t)&bootloader.fw_image_descriptor->major_version - (size_t)bootloader.fw_image);
 
 	if (block2_len > APPLICATION_SIZE || block2_len == 0) {
 		return false;
 	}
 
 	block_crc1 = crc32_signature(0, LATER_FLAHSED_WORDS * sizeof(uint32_t), (const uint8_t *)first_words);
-	block_crc1 = crc32_signature(block_crc1, (size_t)(&bootloader.fw_image_descriptor->crc32_block1) -
-				     (size_t)(bootloader.fw_image + LATER_FLAHSED_WORDS), (const uint8_t *)(bootloader.fw_image + LATER_FLAHSED_WORDS));
+	block_crc1 = crc32_signature(block_crc1,
+				     (size_t)(&bootloader.fw_image_descriptor->crc32_block1) -
+					     (size_t)(bootloader.fw_image + LATER_FLAHSED_WORDS),
+				     (const uint8_t *)(bootloader.fw_image + LATER_FLAHSED_WORDS));
 
-	block_crc2 = crc32_signature(0, block2_len,
-				     (const uint8_t *) &bootloader.fw_image_descriptor->major_version);
+	block_crc2 = crc32_signature(0, block2_len, (const uint8_t *)&bootloader.fw_image_descriptor->major_version);
 
 #if defined(DEBUG_APPLICATION_INPLACE)
 	return true;
 #endif
 
-	return block_crc1 == bootloader.fw_image_descriptor->crc32_block1
-	       && block_crc2 == bootloader.fw_image_descriptor->crc32_block2;
+	return block_crc1 == bootloader.fw_image_descriptor->crc32_block1 &&
+	       block_crc2 == bootloader.fw_image_descriptor->crc32_block2;
 }
 
 /****************************************************************************
@@ -405,8 +388,7 @@ static bool is_app_valid(volatile uint32_t *first_words)
  *                      was done.
  *
  ****************************************************************************/
-static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
-{
+static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id) {
 	uavcan_HardwareVersion_t hw_version;
 
 	struct {
@@ -416,8 +398,8 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 
 	/* Get the Hw info, (struct will be zeroed by board_get_hardware_version ) */
 
-	size_t  rx_len = board_get_hardware_version(&hw_version);
-	uint16_t random  = (uint16_t) timer_hrt_read();
+	size_t rx_len = board_get_hardware_version(&hw_version);
+	uint16_t random = (uint16_t)timer_hrt_read();
 	random = crc16_signature(random, rx_len, hw_version.unique_id);
 	util_srand(random);
 	memset(&server, 0, sizeof(server));
@@ -429,8 +411,8 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 	 *
 	 */
 
-	bl_timer_id trequest = timer_allocate(modeTimeout | modeStarted, util_random(MIN_REQUEST_PERIOD_MS,
-					      MAX_REQUEST_PERIOD_MS), 0);
+	bl_timer_id trequest =
+		timer_allocate(modeTimeout | modeStarted, util_random(MIN_REQUEST_PERIOD_MS, MAX_REQUEST_PERIOD_MS), 0);
 
 	uavcan_protocol_t protocol;
 
@@ -438,17 +420,17 @@ static int get_dynamic_node_id(bl_timer_id tboot, uint32_t *allocated_node_id)
 		/*
 		 *  Rule B. On expiration of trequest:
 		 * 1. Request Timer restarts with a random interval of Trequest.
-		 * 2. The allocatee broadcasts a first-stage Allocation request message, where the fields are assigned following values:
-		 *    node_id                 - preferred node ID, or zero if the allocatee doesn't have any preference
-		 *    first_part_of_unique_id - true
-		 *    unique_id               - first MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST bytes of unique ID
+		 * 2. The allocatee broadcasts a first-stage Allocation request message, where the fields are assigned
+		 * following values: node_id                 - preferred node ID, or zero if the allocatee doesn't have
+		 * any preference first_part_of_unique_id - true unique_id               - first
+		 * MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST bytes of unique ID
 		 */
 
 		if (timer_expired(trequest)) {
-			uavcan_tx_allocation_message(*allocated_node_id, sizeof_member(uavcan_HardwareVersion_t, unique_id),
-						     hw_version.unique_id,
-						     0u, random);
-restart:
+			uavcan_tx_allocation_message(*allocated_node_id,
+						     sizeof_member(uavcan_HardwareVersion_t, unique_id),
+						     hw_version.unique_id, 0u, random);
+		restart:
 			timer_restart(trequest, util_random(MIN_REQUEST_PERIOD_MS, MAX_REQUEST_PERIOD_MS));
 			server.node_id = ANY_NODE_ID;
 		}
@@ -461,8 +443,8 @@ restart:
 		protocol.ana.source_node_id = server.node_id;
 		rx_len = sizeof(server.allocation_message);
 
-		if (UavcanOk == uavcan_rx_dsdl(DSDLMsgAllocation, &protocol, (uint8_t *) &server.allocation_message, &rx_len, 50)) {
-
+		if (UavcanOk ==
+		    uavcan_rx_dsdl(DSDLMsgAllocation, &protocol, (uint8_t *)&server.allocation_message, &rx_len, 50)) {
 			rx_len -= uavcan_byte_count(Allocation, node_id);
 
 			/*
@@ -476,7 +458,6 @@ restart:
 			Skip this message if it's anonymous (from another client),
 			*/
 			if (protocol.msg.source_node_id == UavcanAnonymousNodeID) {
-
 				continue;
 
 				/*
@@ -494,15 +475,14 @@ restart:
 			 * AND (client's unique ID starts with the bytes available in the field unique_id)
 			 * AND (unique_id is less than 16 bytes long):
 			 *
-			 * 1. The client waits for Tfollowup units of time, while listening for other Allocation messages (anon or otherwise).
-			 *  If an Allocation message is received during this time, the execution of this rule will be terminated.
-			 *  Also see rule C.
-			 * 2. The client broadcasts a second-stage Allocation request message, where the fields are assigned following
-			 *    values:
-			 *      node_id                 - same value as in the first-stage
+			 * 1. The client waits for Tfollowup units of time, while listening for other Allocation
+			 * messages (anon or otherwise). If an Allocation message is received during this time, the
+			 * execution of this rule will be terminated. Also see rule C.
+			 * 2. The client broadcasts a second-stage Allocation request message, where the fields are
+			 * assigned following values: node_id                 - same value as in the first-stage
 			 *      first_part_of_unique_id - false
-			 *      unique_id               - at most MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST bytes of local unique ID with an offset
-			 *                                equal to number of bytes in the received unique ID
+			 *      unique_id               - at most MAX_LENGTH_OF_UNIQUE_ID_IN_REQUEST bytes of local
+			 * unique ID with an offset equal to number of bytes in the received unique ID
 			 *
 			 *
 			 *
@@ -524,12 +504,13 @@ restart:
 
 			uint8_t unique_id_matched;
 
-			for (unique_id_matched = 0; unique_id_matched < max_compare
-			     && hw_version.unique_id[unique_id_matched] == server.allocation_message.unique_id[unique_id_matched];
-			     unique_id_matched++);
+			for (unique_id_matched = 0; unique_id_matched < max_compare &&
+						    hw_version.unique_id[unique_id_matched] ==
+							    server.allocation_message.unique_id[unique_id_matched];
+			     unique_id_matched++)
+				;
 
 			if (unique_id_matched < rx_len) {
-
 				/* Abort if we didn't match the whole unique ID */
 
 				goto restart;
@@ -537,9 +518,8 @@ restart:
 				/* All frames are received, yet what was sent by was not the complete id yet */
 
 			} else if (unique_id_matched == uavcan_byte_count(Allocation, unique_id)) {
-
 				/* Case E */
-				*allocated_node_id =  uavcan_runpack(server.allocation_message, Allocation, node_id);
+				*allocated_node_id = uavcan_runpack(server.allocation_message, Allocation, node_id);
 				break;
 
 			} else {
@@ -549,17 +529,17 @@ restart:
 				/* Case D.1 */
 				protocol.id.u32 = ANY_NODE_ID;
 
-				if (UavcanOk == uavcan_rx_dsdl(DSDLMsgAllocation, &protocol, (uint8_t *) &rx_payload, &rx_len,
-							       util_random(MIN_FOLLOWUP_DELAY_MS, MAX_FOLLOWUP_DELAY_MS))) {
+				if (UavcanOk ==
+				    uavcan_rx_dsdl(DSDLMsgAllocation, &protocol, (uint8_t *)&rx_payload, &rx_len,
+						   util_random(MIN_FOLLOWUP_DELAY_MS, MAX_FOLLOWUP_DELAY_MS))) {
 					goto restart;
 				}
 
 				/* Sending the next chunk */
 
-				uavcan_tx_allocation_message(*allocated_node_id, sizeof_member(uavcan_HardwareVersion_t, unique_id),
-							     hw_version.unique_id,
-							     unique_id_matched, random);
-
+				uavcan_tx_allocation_message(*allocated_node_id,
+							     sizeof_member(uavcan_HardwareVersion_t, unique_id),
+							     hw_version.unique_id, unique_id_matched, random);
 			}
 		}
 	} while (!timer_expired(tboot));
@@ -588,8 +568,7 @@ restart:
  *                       beginfirmwareupdate was received.
  *
  ****************************************************************************/
-static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot, uavcan_Path_t *fw_path, size_t *fw_path_length)
-{
+static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot, uavcan_Path_t *fw_path, size_t *fw_path_length) {
 	uavcan_BeginFirmwareUpdate_request request;
 	uavcan_protocol_t protocol;
 
@@ -601,15 +580,13 @@ static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot, uavcan_Pat
 	g_server_node_id = ANY_NODE_ID;
 
 	while (status != UavcanOk) {
-
 		if (timer_expired(tboot)) {
 			return UavcanBootTimeout;
 		}
 
 		protocol.id.u32 = ANY_NODE_ID;
 		rx_length = sizeof(uavcan_BeginFirmwareUpdate_request);
-		status = uavcan_rx_dsdl(DSDLReqBeginFirmwareUpdate, &protocol,
-					(uint8_t *) &request, &rx_length,
+		status = uavcan_rx_dsdl(DSDLReqBeginFirmwareUpdate, &protocol, (uint8_t *)&request, &rx_length,
 					UavcanServiceTimeOutMs);
 	}
 
@@ -623,8 +600,8 @@ static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot, uavcan_Pat
 		response.error = ERROR_OK;
 
 		/* We do not care if this send fails */
-		uavcan_tx_dsdl(DSDLRspBeginFirmwareUpdate, &protocol,
-			       (uint8_t *)&response, sizeof(uavcan_BeginFirmwareUpdate_response));
+		uavcan_tx_dsdl(DSDLRspBeginFirmwareUpdate, &protocol, (uint8_t *)&response,
+			       sizeof(uavcan_BeginFirmwareUpdate_response));
 
 		rx_length = rx_length - uavcan_byte_count(BeginFirmwareUpdate, source_node_id);
 		memcpy(fw_path, &request.image_file_remote_path, sizeof(uavcan_Path_t));
@@ -655,13 +632,12 @@ static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot, uavcan_Pat
  *   None.
  *
  ****************************************************************************/
-static void file_getinfo(const uavcan_Path_t *fw_path, size_t fw_path_length, size_t *fw_image_size)
-{
-	uavcan_GetInfo_request_t   request;
-	uavcan_GetInfo_response_t  response;
+static void file_getinfo(const uavcan_Path_t *fw_path, size_t fw_path_length, size_t *fw_image_size) {
+	uavcan_GetInfo_request_t request;
+	uavcan_GetInfo_response_t response;
 	uavcan_protocol_t protocol;
 
-	protocol.tail_init.u8  = 0;
+	protocol.tail_init.u8 = 0;
 
 	uint8_t retries = UavcanServiceRetries;
 
@@ -670,19 +646,13 @@ static void file_getinfo(const uavcan_Path_t *fw_path, size_t fw_path_length, si
 	*fw_image_size = 0;
 
 	while (retries--) {
-
 		protocol.ser.source_node_id = g_server_node_id;
-		size_t length =  FixedSizeGetInfoRequest + fw_path_length;
+		size_t length = FixedSizeGetInfoRequest + fw_path_length;
 
-		if (UavcanOk == uavcan_tx_dsdl(DSDLReqGetInfo, &protocol,
-					       (uint8_t *)&request, length)) {
-
+		if (UavcanOk == uavcan_tx_dsdl(DSDLReqGetInfo, &protocol, (uint8_t *)&request, length)) {
 			length = sizeof(response);
 			protocol.ser.source_node_id = g_server_node_id;
-			uavcan_error_t status = uavcan_rx_dsdl(DSDLRspGetInfo,
-							       &protocol,
-							       (uint8_t *) &response,
-							       &length,
+			uavcan_error_t status = uavcan_rx_dsdl(DSDLRspGetInfo, &protocol, (uint8_t *)&response, &length,
 							       UavcanServiceTimeOutMs);
 
 			protocol.tail.transfer_id++;
@@ -736,8 +706,7 @@ static void file_getinfo(const uavcan_Path_t *fw_path, size_t fw_path_length, si
  *       will be returned, and data array will be empty.
  *
  ****************************************************************************/
-static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t fw_path_length, size_t fw_image_size)
-{
+static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t fw_path_length, size_t fw_image_size) {
 	uavcan_Read_request_t request;
 	uavcan_Read_response_t response;
 	uavcan_protocol_t protocol;
@@ -746,7 +715,7 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 	flash_error_t flash_status;
 
 	uint8_t *data;
-	uint32_t flash_address = (uint32_t) bootloader.fw_image;
+	uint32_t flash_address = (uint32_t)bootloader.fw_image;
 
 	memset(&request, 0, sizeof(request));
 	memset(&response, 0, sizeof(response));
@@ -760,7 +729,7 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 
 	size_t length;
 
-	protocol.tail_init.u8  = 0;
+	protocol.tail_init.u8 = 0;
 	int a_percent = fw_image_size / 100;
 
 	do {
@@ -769,32 +738,24 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 		uavcan_status = UavcanError;
 
 		while (retries && uavcan_status != UavcanOk) {
-
 			length = FixedSizeReadRequest + fw_path_length;
 			protocol.ser.source_node_id = g_server_node_id;
-			uavcan_status = uavcan_tx_dsdl(DSDLReqRead, &protocol,
-						       (uint8_t *)&request, length);
+			uavcan_status = uavcan_tx_dsdl(DSDLReqRead, &protocol, (uint8_t *)&request, length);
 
 			if (uavcan_status == UavcanOk) {
 				length = sizeof(uavcan_Read_response_t);
 				protocol.ser.source_node_id = g_server_node_id;
-				uavcan_status = uavcan_rx_dsdl(DSDLRspRead,
-							       &protocol,
-							       (uint8_t *) &response,
-							       &length,
+				uavcan_status = uavcan_rx_dsdl(DSDLRspRead, &protocol, (uint8_t *)&response, &length,
 							       UavcanServiceTimeOutMs);
 
 				protocol.tail.transfer_id++;
 			}
 
 			if (uavcan_status != UavcanOk) {
-
 				retries--;
 
 			} else {
-
 				if (length > sizeof_member(uavcan_Read_response_t, error)) {
-
 					length -= sizeof_member(uavcan_Read_response_t, error);
 
 				} else if (response.error.value != FILE_ERROR_OK) {
@@ -804,8 +765,7 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 
 					board_indicate(fw_update_invalid_response);
 
-					uavcan_tx_log_message(LOGMESSAGE_LEVELERROR,
-							      LOGMESSAGE_STAGE_PROGRAM,
+					uavcan_tx_log_message(LOGMESSAGE_LEVELERROR, LOGMESSAGE_STAGE_PROGRAM,
 							      LOGMESSAGE_RESULT_FAIL);
 				}
 			}
@@ -840,23 +800,18 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 #endif
 		}
 
-		flash_status = bl_flash_write(flash_address + request.offset,
-					      data,
-					      length + (length & 1));
+		flash_status = bl_flash_write(flash_address + request.offset, data, length + (length & 1));
 
-		request.offset  += length;
+		request.offset += length;
 		bootloader.percentage_done = (request.offset / a_percent);
 
-	} while (request.offset < fw_image_size &&
-		 length == sizeof(response.data)  &&
-		 flash_status == FLASH_OK);
+	} while (request.offset < fw_image_size && length == sizeof(response.data) && flash_status == FLASH_OK);
 
 	/*
 	 * Return success if the last read succeeded, the last write succeeded, the
 	 * correct number of bytes were written, and the length of the last response
 	 * was not. */
-	if (uavcan_status == UavcanOk && flash_status == FLASH_OK
-	    && request.offset == fw_image_size && length != 0) {
+	if (uavcan_status == UavcanOk && flash_status == FLASH_OK && request.offset == fw_image_size && length != 0) {
 		return FLASH_OK;
 
 	} else {
@@ -878,14 +833,16 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
  *    Does not return.
  *
  ****************************************************************************/
-static void do_jump(uint32_t stacktop, uint32_t entrypoint)
-{
-	asm volatile("msr msp, %[stacktop]    \n"
-		     "bx     %[entrypoint]      \n"
-		     :: [stacktop] "r"(stacktop), [entrypoint] "r"(entrypoint):);
+static void do_jump(uint32_t stacktop, uint32_t entrypoint) {
+	asm volatile(
+		"msr msp, %[stacktop]    \n"
+		"bx     %[entrypoint]      \n" ::[stacktop] "r"(stacktop),
+		[ entrypoint ] "r"(entrypoint)
+		:);
 
 	// just to keep noreturn happy
-	for (;;);
+	for (;;)
+		;
 }
 
 /****************************************************************************
@@ -906,8 +863,7 @@ static void do_jump(uint32_t stacktop, uint32_t entrypoint)
  *    If the image is invalid the function returns.
  *
  ****************************************************************************/
-static void application_run(size_t fw_image_size, bootloader_app_shared_t *common)
-{
+static void application_run(size_t fw_image_size, bootloader_app_shared_t *common) {
 	/*
 	 * We refuse to program the first word of the app until the upload is marked
 	 * complete by the host.  So if it's not 0xffffffff, we should try booting it.
@@ -922,10 +878,8 @@ static void application_run(size_t fw_image_size, bootloader_app_shared_t *commo
 
 	uint32_t fw_image[2] = {bootloader.fw_image[0], bootloader.fw_image[1]};
 
-	if (fw_image[0] != 0xffffffff
-	    && fw_image[1] > APPLICATION_LOAD_ADDRESS
-	    && fw_image[1] < (APPLICATION_LOAD_ADDRESS + fw_image_size)) {
-
+	if (fw_image[0] != 0xffffffff && fw_image[1] > APPLICATION_LOAD_ADDRESS &&
+	    fw_image[1] < (APPLICATION_LOAD_ADDRESS + fw_image_size)) {
 		/* We want to disable interrupts regardless of whether NuttX
 		 * is configured for CONFIG_ARMV7M_USEBASEPRI
 		 */
@@ -950,7 +904,6 @@ static void application_run(size_t fw_image_size, bootloader_app_shared_t *commo
 		if (common->crc.valid) {
 			bootloader_app_shared_write(common, BootLoader);
 		}
-
 
 		/* the interface */
 
@@ -982,8 +935,7 @@ static void application_run(size_t fw_image_size, bootloader_app_shared_t *commo
  *   CAN_OK - on Success or a CAN_BOOT_TIMEOUT
  *
  ****************************************************************************/
-static int autobaud_and_get_dynamic_node_id(bl_timer_id tboot, can_speed_t *speed, uint32_t *node_id)
-{
+static int autobaud_and_get_dynamic_node_id(bl_timer_id tboot, can_speed_t *speed, uint32_t *node_id) {
 	board_indicate(autobaud_start);
 	bool autobaud_only = *speed == CAN_UNDEFINED;
 	int rv = can_autobaud(speed, tboot);
@@ -1023,11 +975,10 @@ static int autobaud_and_get_dynamic_node_id(bl_timer_id tboot, can_speed_t *spee
  *   Does not return.
  *
  ****************************************************************************/
-__EXPORT int main(int argc, char *argv[])
-{
+__EXPORT int main(int argc, char *argv[]) {
 	size_t fw_image_size = 0;
 	uavcan_Path_t fw_path;
-	size_t  fw_path_length;
+	size_t fw_path_length;
 	uint8_t error_log_stage;
 	flash_error_t status;
 	bootloader_app_shared_t common;
@@ -1076,8 +1027,8 @@ __EXPORT int main(int argc, char *argv[])
 	 *
 	 */
 #if defined(OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO)
-	bootloader.wait_for_getnodeinfo = (px4_arch_gpioread(GPIO_GETNODEINFO_JUMPER) ^
-					   OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT);
+	bootloader.wait_for_getnodeinfo =
+		(px4_arch_gpioread(GPIO_GETNODEINFO_JUMPER) ^ OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT);
 #endif
 
 	/* Is the memory in the Application space occupied by a valid application? */
@@ -1086,16 +1037,15 @@ __EXPORT int main(int argc, char *argv[])
 	board_indicate(reset);
 
 	/* Was this boot a result of the Application being told it has a FW update ? */
-	bootloader.app_bl_request = (OK == bootloader_app_shared_read(&common, App)) &&
-				    common.bus_speed && common.node_id;
+	bootloader.app_bl_request =
+		(OK == bootloader_app_shared_read(&common, App)) && common.bus_speed && common.node_id;
 
 #if defined(SUPPORT_ALT_CAN_BOOTLOADER)
 	/* Was this boot a result of An Alternate Application being told it has a FW update ? */
 
-	bootloader_alt_app_shared_t *ps = (bootloader_alt_app_shared_t *) &_sapp_bl_shared;
+	bootloader_alt_app_shared_t *ps = (bootloader_alt_app_shared_t *)&_sapp_bl_shared;
 
 	if (!bootloader.app_bl_request && ps->signature == BL_ALT_APP_SHARED_SIGNATURE) {
-
 		common.node_id = ps->node_id;
 		common.bus_speed = CAN_UNDEFINED;
 		bootloader.app_bl_request = ps->node_id != 0;
@@ -1156,7 +1106,6 @@ __EXPORT int main(int argc, char *argv[])
 	 * the CAN device.
 	 */
 	if (bootloader.app_bl_request) {
-
 		bootloader.bus_speed = common.bus_speed;
 
 		/* if the the bootloader_alt_app_shared_t was used there  is not bit rate.
@@ -1164,14 +1113,14 @@ __EXPORT int main(int argc, char *argv[])
 		 */
 
 		if (common.bus_speed == CAN_UNDEFINED) {
-			if (CAN_OK != autobaud_and_get_dynamic_node_id(tboot, (can_speed_t *)&bootloader.bus_speed, &common.node_id)) {
+			if (CAN_OK != autobaud_and_get_dynamic_node_id(tboot, (can_speed_t *)&bootloader.bus_speed,
+								       &common.node_id)) {
 				/*
 				 * It is OK that node ID is set to the preferred Appl Node ID because
 				 *  common.crc.valid is not true yet
 				 */
 
 				goto boot;
-
 			}
 		}
 
@@ -1182,9 +1131,7 @@ __EXPORT int main(int argc, char *argv[])
 		 */
 		common.crc.valid = true;
 
-
 	} else {
-
 		/*
 		 * It is a regular boot, So we need to autobaud and get a node ID
 		 * If the tBoot was started, we will boot normal if the auto baud
@@ -1195,8 +1142,8 @@ __EXPORT int main(int argc, char *argv[])
 
 		common.node_id = OPT_PREFERRED_NODE_ID;
 
-		if (CAN_OK != autobaud_and_get_dynamic_node_id(tboot, (can_speed_t *)&bootloader.bus_speed, &common.node_id)) {
-
+		if (CAN_OK !=
+		    autobaud_and_get_dynamic_node_id(tboot, (can_speed_t *)&bootloader.bus_speed, &common.node_id)) {
 			/*
 			 * It is OK that node ID is set to the preferred Node ID because
 			 *  common.crc.valid is not true yet
@@ -1224,8 +1171,6 @@ __EXPORT int main(int argc, char *argv[])
 		if (bootloader.app_valid && !bootloader.wait_for_getnodeinfo) {
 			timer_start(tboot);
 		}
-
-
 	}
 
 	/* Now that we have a node Id configure the uavcan library */
@@ -1257,10 +1202,7 @@ __EXPORT int main(int argc, char *argv[])
 	 * to Begin a FW update. To tBoot from NodeInfoRequest as opposed to
 	 * tBoot from Reset.
 	 */
-	if (bootloader.app_valid &&
-	    (bootloader.wait_for_getnodeinfo ||
-	     bootloader.app_bl_request)) {
-
+	if (bootloader.app_valid && (bootloader.wait_for_getnodeinfo || bootloader.app_bl_request)) {
 		timer_start(tboot);
 	}
 
@@ -1274,8 +1216,7 @@ __EXPORT int main(int argc, char *argv[])
 	 */
 
 	do {
-		if (UavcanBootTimeout == wait_for_beginfirmwareupdate(tboot, &fw_path,
-				&fw_path_length)) {
+		if (UavcanBootTimeout == wait_for_beginfirmwareupdate(tboot, &fw_path, &fw_path_length)) {
 			goto boot;
 		}
 	} while (fw_path_length == 0);
@@ -1288,16 +1229,14 @@ __EXPORT int main(int argc, char *argv[])
 
 	file_getinfo(&fw_path, fw_path_length, &fw_image_size);
 
-	//todo:Check this
+	// todo:Check this
 	if (fw_image_size < sizeof(app_descriptor_t)) {
 		error_log_stage = LOGMESSAGE_STAGE_GET_INFO;
 		goto failure;
 	}
 
 	/* LogMessage the Erase  */
-	uavcan_tx_log_message(LOGMESSAGE_LEVELINFO,
-			      LOGMESSAGE_STAGE_ERASE,
-			      LOGMESSAGE_RESULT_START);
+	uavcan_tx_log_message(LOGMESSAGE_LEVELINFO, LOGMESSAGE_STAGE_ERASE, LOGMESSAGE_RESULT_START);
 
 	/* Need to signal that the app is no longer valid  if Node Info Request are done */
 	bootloader.app_valid = false;
@@ -1331,7 +1270,7 @@ __EXPORT int main(int argc, char *argv[])
 	}
 
 	/* Yes Commit the first word(s) to location 0 of the Application image in flash */
-	status = bl_flash_write((uint32_t) bootloader.fw_image, (uint8_t *) &bootloader.fw_word0[0].b[0],
+	status = bl_flash_write((uint32_t)bootloader.fw_image, (uint8_t *)&bootloader.fw_word0[0].b[0],
 				sizeof(bootloader.fw_word0));
 
 	if (status != FLASH_OK) {
@@ -1342,11 +1281,7 @@ __EXPORT int main(int argc, char *argv[])
 	bootloader.percentage_done = 100;
 
 	/* Send a completion log allocation_message */
-	uavcan_tx_log_message(LOGMESSAGE_LEVELINFO,
-			      LOGMESSAGE_STAGE_FINALIZE,
-			      LOGMESSAGE_RESULT_OK);
-
-
+	uavcan_tx_log_message(LOGMESSAGE_LEVELINFO, LOGMESSAGE_STAGE_FINALIZE, LOGMESSAGE_RESULT_OK);
 
 	/* Boot the application */
 
@@ -1360,10 +1295,7 @@ boot:
 
 failure:
 
-	uavcan_tx_log_message(LOGMESSAGE_LEVELERROR,
-			      error_log_stage,
-			      LOGMESSAGE_RESULT_FAIL);
-
+	uavcan_tx_log_message(LOGMESSAGE_LEVELERROR, error_log_stage, LOGMESSAGE_RESULT_FAIL);
 
 	bootloader.health = HEALTH_CRITICAL;
 
@@ -1394,8 +1326,7 @@ failure:
  *
  ****************************************************************************/
 #if defined(OPT_USE_YIELD)
-void bl_sched_yield(void)
-{
+void bl_sched_yield(void) {
 	/*
 	 *  TODO: The uptime will be stalled so consider having the caller or
 	 *  this code track the stall time and accumulate it to kee the uptime

@@ -41,8 +41,8 @@
  * Included Files
  ************************************************************/
 
-#include <stddef.h>
 #include <queue.h>
+#include <stddef.h>
 
 /************************************************************
  * Public Functions
@@ -56,8 +56,7 @@
  *
  ************************************************************/
 
-dq_entry_t *dq_remfirst(dq_queue_t *queue)
-{
+dq_entry_t *dq_remfirst(dq_queue_t *queue) {
 	dq_entry_t *ret = queue->head;
 
 	if (ret) {
@@ -78,4 +77,3 @@ dq_entry_t *dq_remfirst(dq_queue_t *queue)
 
 	return ret;
 }
-

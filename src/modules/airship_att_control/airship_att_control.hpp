@@ -33,22 +33,21 @@
 
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+
 using namespace time_literals;
 
-class AirshipAttitudeControl : public ModuleBase<AirshipAttitudeControl>, public ModuleParams,
-	public px4::WorkItem
-{
+class AirshipAttitudeControl : public ModuleBase<AirshipAttitudeControl>, public ModuleParams, public px4::WorkItem {
 public:
 	AirshipAttitudeControl();
 
@@ -71,7 +70,6 @@ public:
 	bool init();
 
 private:
-
 	/**
 	 * Check for parameter update and handle it.
 	 */
@@ -82,20 +80,21 @@ private:
 	void publishTorqueSetpoint(const hrt_abstime &timestamp_sample);
 	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};        /**< parameter updates subscription */
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};                         /**< vehicle status subscription */
-	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};             /**< manual control setpoint subscription */
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update),
+							 1_s};          /**< parameter updates subscription */
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)}; /**< vehicle status subscription */
+	uORB::Subscription _manual_control_sp_sub{
+		ORB_ID(manual_control_setpoint)}; /**< manual control setpoint subscription */
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
-	uORB::Publication<actuator_controls_s>          _actuator_controls_0_pub;
-	uORB::Publication<vehicle_thrust_setpoint_s>    _vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
-	uORB::Publication<vehicle_torque_setpoint_s>    _vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
+	uORB::Publication<actuator_controls_s> _actuator_controls_0_pub;
+	uORB::Publication<vehicle_thrust_setpoint_s> _vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Publication<vehicle_torque_setpoint_s> _vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 
-	manual_control_setpoint_s       _manual_control_sp {};  /**< manual control setpoint */
-	vehicle_status_s                _vehicle_status {};     /**< vehicle status */
-	actuator_controls_s             _actuator_controls {};          /**< actuator controls */
+	manual_control_setpoint_s _manual_control_sp{}; /**< manual control setpoint */
+	vehicle_status_s _vehicle_status{};             /**< vehicle status */
+	actuator_controls_s _actuator_controls{};       /**< actuator controls */
 
-	perf_counter_t  _loop_perf;     /**< loop performance counter */
-
+	perf_counter_t _loop_perf; /**< loop performance counter */
 };

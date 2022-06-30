@@ -34,13 +34,13 @@
 #pragma once
 
 #include <px4_platform_common/app.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <string.h>
+
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 using namespace px4;
 
-class WQueueScheduledTest : public px4::ScheduledWorkItem
-{
+class WQueueScheduledTest : public px4::ScheduledWorkItem {
 public:
 	WQueueScheduledTest() : px4::ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test2) {}
 	~WQueueScheduledTest() = default;
@@ -50,7 +50,6 @@ public:
 	static px4::AppState appState; /* track requests to terminate app */
 
 private:
-
 	void Run() override;
 
 	int _iter{0};

@@ -33,14 +33,12 @@
 
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
-
 #include <px4_platform_common/module_params.h>
 
-class ActuatorEffectivenessControlSurfaces : public ModuleParams, public ActuatorEffectiveness
-{
-public:
+#include "ActuatorEffectiveness.hpp"
 
+class ActuatorEffectivenessControlSurfaces : public ModuleParams, public ActuatorEffectiveness {
+public:
 	static constexpr int MAX_COUNT = 8;
 
 	enum class Type : int32_t {
@@ -92,6 +90,6 @@ private:
 	ParamHandles _param_handles[MAX_COUNT];
 	param_t _count_handle;
 
-	Params _params[MAX_COUNT] {};
+	Params _params[MAX_COUNT]{};
 	int _count{0};
 };

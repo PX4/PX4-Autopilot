@@ -41,15 +41,11 @@
 
 #include <lib/circuit_breaker/circuit_breaker.h>
 
-UavcanBeepController::UavcanBeepController(uavcan::INode &node) :
-	_beep_pub(node),
-	_timer(node)
-{
+UavcanBeepController::UavcanBeepController(uavcan::INode &node) : _beep_pub(node), _timer(node) {
 	_beep_pub.setPriority(uavcan::TransferPriority::MiddleLower);
 }
 
-int UavcanBeepController::init()
-{
+int UavcanBeepController::init() {
 	// don't initialize if CBRK_BUZZER circuit breaker is enabled.
 	if (circuit_breaker_enabled("CBRK_BUZZER", CBRK_BUZZER_KEY)) {
 		return 0;
@@ -66,8 +62,7 @@ int UavcanBeepController::init()
 	return 0;
 }
 
-void UavcanBeepController::periodic_update(const uavcan::TimerEvent &)
-{
+void UavcanBeepController::periodic_update(const uavcan::TimerEvent &) {
 	if (_tune_control_sub.updated()) {
 		_tune_control_sub.copy(&_tune);
 
@@ -89,7 +84,6 @@ void UavcanBeepController::periodic_update(const uavcan::TimerEvent &)
 		_silence_length = 0;
 
 	} else if (_tunes.get_next_note(_frequency, _duration, _silence_length) == Tunes::Status::Continue) {
-
 		// Start playing the note.
 		// A frequency of 0 corresponds to ToneAlarmInterface::stop_note()
 		uavcan::equipment::indication::BeepCommand cmd{};

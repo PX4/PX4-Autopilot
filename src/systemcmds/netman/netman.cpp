@@ -37,71 +37,63 @@
  * @author David Sidrane
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
+#include <arpa/inet.h>
 #include <ctype.h>
-#include <unistd.h>
-#include <sys/stat.h>
+#include <fcntl.h>
 #include <fsutils/ipcfg.h>
-#include <px4_platform_common/module.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
-#include <arpa/inet.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/shutdown.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 constexpr char DEFAULT_NETMAN_CONFIG[] = "/fs/microsd/net.cfg";
 #if defined(CONFIG_NETINIT_DHCPC)
-#  define DEFAULT_PROTO    IPv4PROTO_FALLBACK
-#  define DEFAULT_IP      0XC0A80003  // 192.168.0.3
+#define DEFAULT_PROTO IPv4PROTO_FALLBACK
+#define DEFAULT_IP 0XC0A80003  // 192.168.0.3
 #else
-#  define DEFAULT_PROTO   IPv4PROTO_STATIC
-#  define DEFAULT_IP      CONFIG_NETINIT_IPADDR
+#define DEFAULT_PROTO IPv4PROTO_STATIC
+#define DEFAULT_IP CONFIG_NETINIT_IPADDR
 #endif
-#define DEFAULT_NETMASK   CONFIG_NETINIT_NETMASK
-#define DEFAULT_ROUTER    CONFIG_NETINIT_DRIPADDR
-#define DEFAULT_DNS       CONFIG_NETINIT_DNSIPADDR
+#define DEFAULT_NETMASK CONFIG_NETINIT_NETMASK
+#define DEFAULT_ROUTER CONFIG_NETINIT_DRIPADDR
+#define DEFAULT_DNS CONFIG_NETINIT_DNSIPADDR
 
 static void usage(const char *reason);
 __BEGIN_DECLS
-__EXPORT int  netman_main(int argc, char *argv[]);
+__EXPORT int netman_main(int argc, char *argv[]);
 __END_DECLS
 
-class net_params
-{
+class net_params {
 private:
-
-	class ipl
-	{
+	class ipl {
 		const char *_keyword;
-	public:
 
+	public:
 		union {
-			int32_t  l;
+			int32_t l;
 			uint32_t u;
 			struct in_addr a;
 			uint8_t b[sizeof(int32_t) + 1];
 			enum ipv4cfg_bootproto_e e;
 		};
 
-		const char *keyword() { return _keyword;}
+		const char *keyword() { return _keyword; }
 		ipl() = delete;
-		ipl(const char *w)	{ _keyword = w;}
+		ipl(const char *w) { _keyword = w; }
 
-		const char *to_str()
-		{
-			return inet_ntoa(a);
-		}
+		const char *to_str() { return inet_ntoa(a); }
 
-		const char *name()
-		{
+		const char *name() {
 			b[arraySize(b) - 1] = '\0';
 			return (const char *)b;
 		}
 
-		void set_name(const char *name)
-		{
+		void set_name(const char *name) {
 			unsigned int i;
 
 			for (i = 0; i < arraySize(b) - 1; i++) {
@@ -111,27 +103,23 @@ private:
 			b[i] = '\0';
 		}
 
-		const char *protocol()
-		{
-			return e == IPv4PROTO_STATIC ? "static" : (e  == IPv4PROTO_DHCP) ? "dhcp" : "fallback";
+		const char *protocol() {
+			return e == IPv4PROTO_STATIC ? "static" : (e == IPv4PROTO_DHCP) ? "dhcp" : "fallback";
 		}
 
-		const char *parseProtocol(const char *ps)
-		{
+		const char *parseProtocol(const char *ps) {
 			char *p = strstr(ps, "dhcp");
 
 			if (p) {
 				e = IPv4PROTO_DHCP;
 
 			} else {
-
 				p = strstr(ps, "static");
 
 				if (p) {
 					e = IPv4PROTO_STATIC;
 
 				} else {
-
 					p = strstr(ps, "fallback");
 
 					if (p) {
@@ -143,15 +131,12 @@ private:
 			return ps;
 		}
 
-
-		const char *parse(const char *cp)
-		{
+		const char *parse(const char *cp) {
 			u = inet_addr(cp);
 			return cp;
 		}
 
-		const char *parse(const char *buffer, const char *end)
-		{
+		const char *parse(const char *buffer, const char *end) {
 			char *ps = strstr(buffer, keyword());
 
 			if (ps) {
@@ -170,9 +155,7 @@ private:
 		}
 	};
 
-
 public:
-
 	ipl device{"DEVICE="};
 	ipl proto{"BOOTPROTO="};
 	ipl netmask{"NETMASK="};
@@ -180,35 +163,30 @@ public:
 	ipl router{"ROUTER="};
 	ipl dnsaddr{"DNS="};
 
-
 	net_params() = default;
 
 	~net_params() {}
 
-	net_params &operator = (const ipv4cfg_s &ipcfg)
-	{
-		proto.e  =    ipcfg.proto;
-		ipaddr.u  =   ipcfg.ipaddr;
-		netmask.u =   ipcfg.netmask;
-		router.u  =   ipcfg.router;
-		dnsaddr.u =   ipcfg.dnsaddr;
+	net_params &operator=(const ipv4cfg_s &ipcfg) {
+		proto.e = ipcfg.proto;
+		ipaddr.u = ipcfg.ipaddr;
+		netmask.u = ipcfg.netmask;
+		router.u = ipcfg.router;
+		dnsaddr.u = ipcfg.dnsaddr;
 		return *this;
 	}
 
-
-	int read(const char *netdev)
-	{
+	int read(const char *netdev) {
 		struct ipv4cfg_s ipcfg;
-		int rv = ipcfg_read(netdev, (FAR struct ipcfg_s *) &ipcfg, AF_INET);
+		int rv = ipcfg_read(netdev, (FAR struct ipcfg_s *)&ipcfg, AF_INET);
 
-		if (rv == -EINVAL ||
-		    (rv == OK  && (ipcfg.proto > IPv4PROTO_FALLBACK || ipcfg.ipaddr == 0xffffffff))) {
+		if (rv == -EINVAL || (rv == OK && (ipcfg.proto > IPv4PROTO_FALLBACK || ipcfg.ipaddr == 0xffffffff))) {
 			// Build a default
-			ipcfg.ipaddr  = HTONL(DEFAULT_IP);
+			ipcfg.ipaddr = HTONL(DEFAULT_IP);
 			ipcfg.netmask = HTONL(DEFAULT_NETMASK);
-			ipcfg.router  = HTONL(DEFAULT_ROUTER);
+			ipcfg.router = HTONL(DEFAULT_ROUTER);
 			ipcfg.dnsaddr = HTONL(DEFAULT_DNS);
-			ipcfg.proto   = DEFAULT_PROTO;
+			ipcfg.proto = DEFAULT_PROTO;
 			rv = -ENOENT;
 		}
 
@@ -217,21 +195,18 @@ public:
 		return rv;
 	}
 
-	int write()
-	{
+	int write() {
 		struct ipv4cfg_s ipcfg;
-		ipcfg.proto   = proto.e;
-		ipcfg.ipaddr  = ipaddr.u;
+		ipcfg.proto = proto.e;
+		ipcfg.ipaddr = ipaddr.u;
 		ipcfg.netmask = netmask.u;
-		ipcfg.router  = router.u;
+		ipcfg.router = router.u;
 		ipcfg.dnsaddr = dnsaddr.u;
-		return ipcfg_write(device.name(), (FAR struct ipcfg_s *) &ipcfg, AF_INET);
+		return ipcfg_write(device.name(), (FAR struct ipcfg_s *)&ipcfg, AF_INET);
 	}
 };
 
-int save(const char *path, const char *netdev)
-{
-
+int save(const char *path, const char *netdev) {
 	net_params config;
 	constexpr int lsz = 80;
 	char line[lsz + 1];
@@ -239,7 +214,7 @@ int save(const char *path, const char *netdev)
 
 	int rv = config.read(netdev);
 
-	int fd =  fileno(stdout);
+	int fd = fileno(stdout);
 
 	if (path != nullptr) {
 		fd = open(path, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_666);
@@ -250,37 +225,37 @@ int save(const char *path, const char *netdev)
 		goto errout;
 	}
 
-	len = snprintf(line,  lsz, "%s%s\n", config.device.keyword(), netdev);
+	len = snprintf(line, lsz, "%s%s\n", config.device.keyword(), netdev);
 
 	if (len != write(fd, line, len)) {
 		goto errout;
 	}
 
-	len = snprintf(line,  lsz, "%s%s\n",  config.proto.keyword(), config.proto.protocol());
+	len = snprintf(line, lsz, "%s%s\n", config.proto.keyword(), config.proto.protocol());
 
 	if (len != write(fd, line, len)) {
 		goto errout;
 	}
 
-	len = snprintf(line,  lsz, "%s%s\n", config.netmask.keyword(), config.netmask.to_str());
+	len = snprintf(line, lsz, "%s%s\n", config.netmask.keyword(), config.netmask.to_str());
 
 	if (len != write(fd, line, len)) {
 		goto errout;
 	}
 
-	len = snprintf(line,  lsz, "%s%s\n", config.ipaddr.keyword(), config.ipaddr.to_str());
+	len = snprintf(line, lsz, "%s%s\n", config.ipaddr.keyword(), config.ipaddr.to_str());
 
 	if (len != write(fd, line, len)) {
 		goto errout;
 	}
 
-	len = snprintf(line,  lsz, "%s%s\n", config.router.keyword(), config.router.to_str());
+	len = snprintf(line, lsz, "%s%s\n", config.router.keyword(), config.router.to_str());
 
 	if (len != write(fd, line, len)) {
 		goto errout;
 	}
 
-	len = snprintf(line,  lsz, "%s%s\n", config.dnsaddr.keyword(), config.dnsaddr.to_str());
+	len = snprintf(line, lsz, "%s%s\n", config.dnsaddr.keyword(), config.dnsaddr.to_str());
 
 	if (len != write(fd, line, len)) {
 		rv = -errno;
@@ -290,19 +265,18 @@ int save(const char *path, const char *netdev)
 		return rv;
 	}
 
-errout: {
-		rv = -errno;
+errout : {
+	rv = -errno;
 
-		if (fd >= 0) {
-			close(fd);
-		}
-
-		return rv;
+	if (fd >= 0) {
+		close(fd);
 	}
+
+	return rv;
+}
 }
 
-int update(const char *path, const char *netdev)
-{
+int update(const char *path, const char *netdev) {
 	net_params config;
 	struct stat sb;
 	FAR char *lines = nullptr;
@@ -327,7 +301,7 @@ int update(const char *path, const char *netdev)
 	// Allocate file size plus a null.
 
 	fbuf_size = sb.st_size + 1;
-	lines = (char *) malloc(fbuf_size);
+	lines = (char *)malloc(fbuf_size);
 
 	if (!lines) {
 		return -errno;
@@ -367,9 +341,7 @@ write_reboot:
 		return -errno;
 	}
 
-
 	PX4_INFO("Network settings updated, rebooting....\n");
-
 
 	// Ensure the message is seen.
 
@@ -377,7 +349,9 @@ write_reboot:
 
 	px4_reboot_request(false);
 
-	while (1) { px4_usleep(1); } // this command should not return on success
+	while (1) {
+		px4_usleep(1);
+	}  // this command should not return on success
 
 errout:
 
@@ -392,8 +366,7 @@ errout:
 	return rv;
 }
 
-static void usage(const char *reason)
-{
+static void usage(const char *reason) {
 	if (reason != nullptr) {
 		PX4_WARN("%s", reason);
 	}
@@ -420,13 +393,13 @@ static void usage(const char *reason)
 
 	PRINT_MODULE_USAGE_NAME("netman", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Display the current persistent network settings to the console.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("update", "Check SD card for net.cfg and update network persistent network settings.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("update",
+					 "Check SD card for net.cfg and update network persistent network settings.");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("save", "Save the current network parameters to the SD card.");
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "eth0", nullptr, "Set the interface name", true);
 }
 
-int netman_main(int argc, char *argv[])
-{
+int netman_main(int argc, char *argv[]) {
 	const char *path = DEFAULT_NETMAN_CONFIG;
 	const char *netdev = "eth0";
 	int ch;
@@ -442,14 +415,13 @@ int netman_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "i:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+			case 'i':
+				netdev = myoptarg;
+				break;
 
-		case 'i':
-			netdev = myoptarg;
-			break;
-
-		default:
-			usage(nullptr);
-			return rv;
+			default:
+				usage(nullptr);
+				return rv;
 		}
 	}
 

@@ -37,56 +37,64 @@
  * Included Files
  ************************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
-
-#include <px4_platform_common/px4_config.h>
-#include <px4_log.h>
-
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
-
-#include <nuttx/spi/spi.h>
 #include <arch/board/board.h>
-#include <systemlib/px4_macros.h>
-#include <px4_platform/gpio.h>
-
 #include <arm_arch.h>
 #include <chip.h>
-#include "imxrt_lpspi.h"
-#include "imxrt_gpio.h"
-#include "board_config.h"
+#include <debug.h>
+#include <drivers/drv_sensor.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/spi_hw_description.h>
+#include <px4_log.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <systemlib/err.h>
+#include <systemlib/px4_macros.h>
 
-#if defined(CONFIG_IMXRT_LPSPI1) || defined(CONFIG_IMXRT_LPSPI2) || \
-    defined(CONFIG_IMXRT_LPSPI3) || defined(CONFIG_IMXRT_LPSPI4)
+#include "board_config.h"
+#include "imxrt_gpio.h"
+#include "imxrt_lpspi.h"
 
+#if defined(CONFIG_IMXRT_LPSPI1) || defined(CONFIG_IMXRT_LPSPI2) || defined(CONFIG_IMXRT_LPSPI3) || \
+	defined(CONFIG_IMXRT_LPSPI4)
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::LPSPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20689, SPI::CS{GPIO::Port3, GPIO::Pin26}, SPI::DRDY{GPIO::Port4, GPIO::Pin15}), /* GPIO_EMC_40 GPIO3_IO26 */
-		initSPIDevice(DRV_GYR_DEVTYPE_BMI055, SPI::CS{GPIO::Port2, GPIO::Pin26}, SPI::DRDY{GPIO::Port4, GPIO::Pin16}), /* GPIO_B1_10 GPIO2_IO26 */
-		initSPIDevice(DRV_ACC_DEVTYPE_BMI055, SPI::CS{GPIO::Port2, GPIO::Pin31}, SPI::DRDY{GPIO::Port3, GPIO::Pin23}), /* GPIO_B1_15 GPIO2_IO31 */
-		initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::Port3, GPIO::Pin0}), /* GPIO_SD_B1_00 GPIO3_IO00, AUX_MEM */
-	}, {GPIO::Port3, GPIO::Pin27}),
-	initSPIBus(SPI::Bus::LPSPI2, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::Port3, GPIO::Pin20}) /* GPIO_EMC_34 G GPIO3_IO20 */
-	}),
-	initSPIBus(SPI::Bus::LPSPI3, {
-		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::Port4, GPIO::Pin14}), /* GPIO_EMC_14 GPIO4_IO14 */
-	}),
-	initSPIBusExternal(SPI::Bus::LPSPI4, {
-		initSPIConfigExternal(SPI::CS{GPIO::Port4, GPIO::Pin7}), /* GPIO_EMC_07 GPIO4_IO07 */
-		initSPIConfigExternal(SPI::CS{GPIO::Port2, GPIO::Pin30}), /* GPIO_B1_14  GPIO2_IO30 */
-		initSPIConfigExternal(SPI::CS{GPIO::Port4, GPIO::Pin11}), /* GPIO_EMC_11 GPIO4_IO011 */
-	}),
+	initSPIBus(SPI::Bus::LPSPI1,
+		   {
+			   initSPIDevice(DRV_IMU_DEVTYPE_ICM20689, SPI::CS{GPIO::Port3, GPIO::Pin26},
+					 SPI::DRDY{GPIO::Port4, GPIO::Pin15}), /* GPIO_EMC_40 GPIO3_IO26 */
+			   initSPIDevice(DRV_GYR_DEVTYPE_BMI055, SPI::CS{GPIO::Port2, GPIO::Pin26},
+					 SPI::DRDY{GPIO::Port4, GPIO::Pin16}), /* GPIO_B1_10 GPIO2_IO26 */
+			   initSPIDevice(DRV_ACC_DEVTYPE_BMI055, SPI::CS{GPIO::Port2, GPIO::Pin31},
+					 SPI::DRDY{GPIO::Port3, GPIO::Pin23}), /* GPIO_B1_15 GPIO2_IO31 */
+			   initSPIDevice(DRV_DEVTYPE_UNUSED,
+					 SPI::CS{GPIO::Port3, GPIO::Pin0}), /* GPIO_SD_B1_00 GPIO3_IO00, AUX_MEM */
+		   },
+		   {GPIO::Port3, GPIO::Pin27}),
+	initSPIBus(
+		SPI::Bus::LPSPI2,
+		{
+			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::Port3, GPIO::Pin20}) /* GPIO_EMC_34 G GPIO3_IO20 */
+		}),
+	initSPIBus(SPI::Bus::LPSPI3,
+		   {
+			   initSPIDevice(DRV_BARO_DEVTYPE_MS5611,
+					 SPI::CS{GPIO::Port4, GPIO::Pin14}), /* GPIO_EMC_14 GPIO4_IO14 */
+		   }),
+	initSPIBusExternal(
+		SPI::Bus::LPSPI4,
+		{
+			initSPIConfigExternal(SPI::CS{GPIO::Port4, GPIO::Pin7}),  /* GPIO_EMC_07 GPIO4_IO07 */
+			initSPIConfigExternal(SPI::CS{GPIO::Port2, GPIO::Pin30}), /* GPIO_B1_14  GPIO2_IO30 */
+			initSPIConfigExternal(SPI::CS{GPIO::Port4, GPIO::Pin11}), /* GPIO_EMC_11 GPIO4_IO011 */
+		}),
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses);
 
-#define _PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT | IOMUX_PULL_DOWN_100K | IOMUX_CMOS_INPUT))
+#define _PIN_OFF(def) \
+	(((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT | IOMUX_PULL_DOWN_100K | IOMUX_CMOS_INPUT))
 
 /************************************************************************************
  * Public Functions
@@ -99,8 +107,7 @@ static constexpr bool unused = validateSPIConfig(px4_spi_buses);
  *
  ************************************************************************************/
 
-void imxrt_spidev_initialize(void)
-{
+void imxrt_spidev_initialize(void) {
 	for (int bus = 0; bus < SPI_BUS_MAX_BUS_ITEMS; ++bus) {
 		for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
 			if (px4_spi_buses[bus].devices[i].cs_gpio != 0) {
@@ -123,17 +130,24 @@ static const px4_spi_bus_t *_spi_bus2;
 static const px4_spi_bus_t *_spi_bus3;
 static const px4_spi_bus_t *_spi_bus4;
 
-__EXPORT int imxrt1062_spi_bus_initialize(void)
-{
+__EXPORT int imxrt1062_spi_bus_initialize(void) {
 	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
 		switch (px4_spi_buses[i].bus) {
-		case 1: _spi_bus1 = &px4_spi_buses[i]; break;
+			case 1:
+				_spi_bus1 = &px4_spi_buses[i];
+				break;
 
-		case 2: _spi_bus2 = &px4_spi_buses[i]; break;
+			case 2:
+				_spi_bus2 = &px4_spi_buses[i];
+				break;
 
-		case 3: _spi_bus3 = &px4_spi_buses[i]; break;
+			case 3:
+				_spi_bus3 = &px4_spi_buses[i];
+				break;
 
-		case 4: _spi_bus4 = &px4_spi_buses[i]; break;
+			case 4:
+				_spi_bus4 = &px4_spi_buses[i];
+				break;
 		}
 	}
 
@@ -211,7 +225,6 @@ __EXPORT int imxrt1062_spi_bus_initialize(void)
 	}
 
 	return OK;
-
 }
 
 /****************************************************************************
@@ -239,8 +252,7 @@ __EXPORT int imxrt1062_spi_bus_initialize(void)
  *
  ****************************************************************************/
 
-static inline void imxrt_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+static inline void imxrt_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
 		if (bus->devices[i].cs_gpio == 0) {
 			break;
@@ -254,51 +266,35 @@ static inline void imxrt_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s *
 }
 
 #if defined(CONFIG_IMXRT_LPSPI1)
-__EXPORT void imxrt_lpspi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+__EXPORT void imxrt_lpspi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	imxrt_spixselect(_spi_bus1, dev, devid, selected);
 }
 
-__EXPORT uint8_t imxrt_lpspi1status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
+__EXPORT uint8_t imxrt_lpspi1status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
 #endif
 
 #if defined(CONFIG_IMXRT_LPSPI2)
-__EXPORT void imxrt_lpspi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+__EXPORT void imxrt_lpspi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	imxrt_spixselect(_spi_bus2, dev, devid, selected);
 }
 
-__EXPORT uint8_t imxrt_lpspi2status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
+__EXPORT uint8_t imxrt_lpspi2status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
 #endif
 
 #if defined(CONFIG_IMXRT_LPSPI3)
-__EXPORT void imxrt_lpspi3select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+__EXPORT void imxrt_lpspi3select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	imxrt_spixselect(_spi_bus3, dev, devid, selected);
 }
 
-__EXPORT uint8_t imxrt_lpspi3status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
+__EXPORT uint8_t imxrt_lpspi3status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
 #endif
 
 #if defined(CONFIG_IMXRT_LPSPI4)
-__EXPORT void imxrt_lpspi4select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+__EXPORT void imxrt_lpspi4select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	imxrt_spixselect(_spi_bus4, dev, devid, selected);
 }
 
-__EXPORT uint8_t imxrt_lpspi4status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
+__EXPORT uint8_t imxrt_lpspi4status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
 #endif
 
 /************************************************************************************
@@ -309,8 +305,7 @@ __EXPORT uint8_t imxrt_lpspi4status(FAR struct spi_dev_s *dev, uint32_t devid)
  *
  ************************************************************************************/
 
-__EXPORT void board_spi_reset(int ms, int bus_mask)
-{
+__EXPORT void board_spi_reset(int ms, int bus_mask) {
 #ifdef CONFIG_IMXRT_LPSPI1
 
 	/* Goal not to back feed the chips on the bus via IO lines */
@@ -335,7 +330,6 @@ __EXPORT void board_spi_reset(int ms, int bus_mask)
 	imxrt_config_gpio(GPIO_SPI3_SCK_OFF);
 	imxrt_config_gpio(GPIO_SPI3_MISO_OFF);
 	imxrt_config_gpio(GPIO_SPI3_MOSI_OFF);
-
 
 	imxrt_config_gpio(_PIN_OFF(GPIO_LPI2C3_SDA_RESET));
 	imxrt_config_gpio(_PIN_OFF(GPIO_LPI2C3_SCL_RESET));
@@ -382,7 +376,6 @@ __EXPORT void board_spi_reset(int ms, int bus_mask)
 	imxrt_config_gpio(GPIO_LPI2C3_SCL);
 
 #endif /* CONFIG_IMXRT_LPSPI1 */
-
 }
 
 #endif /* CONFIG_IMXRT_LPSPI1 || CONFIG_IMXRT_LPSPI2 || CONFIG_IMXRT_LPSPI3 || CONFIG_IMXRT_LPSPI4  */

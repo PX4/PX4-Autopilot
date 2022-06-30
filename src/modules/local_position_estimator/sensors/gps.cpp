@@ -1,28 +1,24 @@
-#include "../BlockLocalPositionEstimator.hpp"
 #include <systemlib/mavlink_log.h>
+
 #include <matrix/math.hpp>
+
+#include "../BlockLocalPositionEstimator.hpp"
 
 extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
-static const uint32_t		REQ_GPS_INIT_COUNT = 10;
-static const uint32_t		GPS_TIMEOUT = 1000000;	// 1.0 s
+static const uint32_t REQ_GPS_INIT_COUNT = 10;
+static const uint32_t GPS_TIMEOUT = 1000000;  // 1.0 s
 
-void BlockLocalPositionEstimator::gpsInit()
-{
+void BlockLocalPositionEstimator::gpsInit() {
 	// check for good gps signal
 	uint8_t nSat = _sub_gps.get().satellites_used;
 	float eph = _sub_gps.get().eph;
 	float epv = _sub_gps.get().epv;
 	uint8_t fix_type = _sub_gps.get().fix_type;
 
-	if (
-		nSat < 6 ||
-		eph > _param_lpe_eph_max.get() ||
-		epv > _param_lpe_epv_max.get() ||
-		fix_type < 3
-	) {
+	if (nSat < 6 || eph > _param_lpe_eph_max.get() || epv > _param_lpe_epv_max.get() || fix_type < 3) {
 		_gpsStats.reset();
 		return;
 	}
@@ -75,21 +71,20 @@ void BlockLocalPositionEstimator::gpsInit()
 				_altOriginInitialized = true;
 				_altOriginGlobal = true;
 
-				mavlink_log_info(&mavlink_log_pub, "[lpe] global origin init (gps) : lat %6.2f lon %6.2f alt %5.1f m",
+				mavlink_log_info(&mavlink_log_pub,
+						 "[lpe] global origin init (gps) : lat %6.2f lon %6.2f alt %5.1f m",
 						 gpsLatOrigin, gpsLonOrigin, double(_gpsAltOrigin));
 			}
 
-			PX4_INFO("[lpe] gps init "
-				 "lat %6.2f lon %6.2f alt %5.1f m",
-				 gpsLat,
-				 gpsLon,
-				 double(gpsAlt));
+			PX4_INFO(
+				"[lpe] gps init "
+				"lat %6.2f lon %6.2f alt %5.1f m",
+				gpsLat, gpsLon, double(gpsAlt));
 		}
 	}
 }
 
-int BlockLocalPositionEstimator::gpsMeasure(Vector<double, n_y_gps> &y)
-{
+int BlockLocalPositionEstimator::gpsMeasure(Vector<double, n_y_gps> &y) {
 	// gps measurement
 	y.setZero();
 	y(0) = _sub_gps.get().lat * 1e-7;
@@ -105,12 +100,13 @@ int BlockLocalPositionEstimator::gpsMeasure(Vector<double, n_y_gps> &y)
 	return OK;
 }
 
-void BlockLocalPositionEstimator::gpsCorrect()
-{
+void BlockLocalPositionEstimator::gpsCorrect() {
 	// measure
 	Vector<double, n_y_gps> y_global;
 
-	if (gpsMeasure(y_global) != OK) { return; }
+	if (gpsMeasure(y_global) != OK) {
+		return;
+	}
 
 	// gps measurement in local frame
 	double lat = y_global(Y_gps_x);
@@ -158,7 +154,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 		var_z = _sub_gps.get().epv * _sub_gps.get().epv;
 	}
 
-	float gps_s_stddev =  _sub_gps.get().s_variance_m_s;
+	float gps_s_stddev = _sub_gps.get().s_variance_m_s;
 
 	if (gps_s_stddev > _param_lpe_gps_vxy.get()) {
 		var_vxy = gps_s_stddev * gps_s_stddev;
@@ -178,7 +174,9 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	// get delayed x
 	uint8_t i_hist = 0;
 
-	if (getDelayPeriods(_param_lpe_gps_delay.get(), &i_hist)  < 0) { return; }
+	if (getDelayPeriods(_param_lpe_gps_delay.get(), &i_hist) < 0) {
+		return;
+	}
 
 	Vector<float, n_x> x0 = _xDelay.get(i_hist);
 
@@ -191,18 +189,18 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	// publish innovations
 	_pub_innov.get().gps_hpos[0] = r(0);
 	_pub_innov.get().gps_hpos[1] = r(1);
-	_pub_innov.get().gps_vpos    = r(2);
+	_pub_innov.get().gps_vpos = r(2);
 	_pub_innov.get().gps_hvel[0] = r(3);
 	_pub_innov.get().gps_hvel[1] = r(4);
-	_pub_innov.get().gps_vvel    = r(5);
+	_pub_innov.get().gps_vvel = r(5);
 
 	// publish innovation variances
 	_pub_innov_var.get().gps_hpos[0] = S(0, 0);
 	_pub_innov_var.get().gps_hpos[1] = S(1, 1);
-	_pub_innov_var.get().gps_vpos    = S(2, 2);
+	_pub_innov_var.get().gps_vpos = S(2, 2);
 	_pub_innov_var.get().gps_hvel[0] = S(3, 3);
 	_pub_innov_var.get().gps_hvel[1] = S(4, 4);
-	_pub_innov_var.get().gps_vvel    = S(5, 5);
+	_pub_innov_var.get().gps_vvel = S(5, 5);
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_gps, n_y_gps> S_I = inv<float, n_y_gps>(S);
@@ -216,8 +214,9 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	if (beta / BETA_TABLE[n_y_gps] > beta_thresh) {
 		if (!(_sensorFault & SENSOR_GPS)) {
 			mavlink_log_critical(&mavlink_log_pub, "[lpe] gps fault %3g %3g %3g %3g %3g %3g",
-					     double(r(0) * r(0) / S_I(0, 0)),  double(r(1) * r(1) / S_I(1, 1)), double(r(2) * r(2) / S_I(2, 2)),
-					     double(r(3) * r(3) / S_I(3, 3)),  double(r(4) * r(4) / S_I(4, 4)), double(r(5) * r(5) / S_I(5, 5)));
+					     double(r(0) * r(0) / S_I(0, 0)), double(r(1) * r(1) / S_I(1, 1)),
+					     double(r(2) * r(2) / S_I(2, 2)), double(r(3) * r(3) / S_I(3, 3)),
+					     double(r(4) * r(4) / S_I(4, 4)), double(r(5) * r(5) / S_I(5, 5)));
 			_sensorFault |= SENSOR_GPS;
 		}
 
@@ -233,8 +232,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	m_P -= K * C * m_P;
 }
 
-void BlockLocalPositionEstimator::gpsCheckTimeout()
-{
+void BlockLocalPositionEstimator::gpsCheckTimeout() {
 	if (_timeStamp - _time_last_gps > GPS_TIMEOUT) {
 		if (!(_sensorTimeout & SENSOR_GPS)) {
 			_sensorTimeout |= SENSOR_GPS;

@@ -40,12 +40,10 @@ extern "C" {
 #include <nuttx/random.h>
 }
 
-
 px4_sem_t PX4Crypto::_lock;
 bool PX4Crypto::_initialized = false;
 
-void PX4Crypto::px4_crypto_init()
-{
+void PX4Crypto::px4_crypto_init() {
 	if (PX4Crypto::_initialized) {
 		return;
 	}
@@ -66,19 +64,14 @@ void PX4Crypto::px4_crypto_init()
 	PX4Crypto::_initialized = true;
 }
 
-PX4Crypto::PX4Crypto()
-{
+PX4Crypto::PX4Crypto() {
 	// Initialize an empty handle
 	crypto_session_handle_init(&_crypto_handle);
 }
 
-PX4Crypto::~PX4Crypto()
-{
-	close();
-}
+PX4Crypto::~PX4Crypto() { close(); }
 
-bool PX4Crypto::open(px4_crypto_algorithm_t algorithm)
-{
+bool PX4Crypto::open(px4_crypto_algorithm_t algorithm) {
 	bool ret = false;
 	lock();
 
@@ -99,8 +92,7 @@ bool PX4Crypto::open(px4_crypto_algorithm_t algorithm)
 	return ret;
 }
 
-void PX4Crypto::close()
-{
+void PX4Crypto::close() {
 	if (!crypto_session_handle_valid(_crypto_handle)) {
 		return;
 	}
@@ -110,40 +102,23 @@ void PX4Crypto::close()
 	unlock();
 }
 
-bool PX4Crypto::encrypt_data(uint8_t  key_index,
-			     const uint8_t *message,
-			     size_t message_size,
-			     uint8_t *cipher,
-			     size_t *cipher_size)
-{
+bool PX4Crypto::encrypt_data(uint8_t key_index, const uint8_t *message, size_t message_size, uint8_t *cipher,
+			     size_t *cipher_size) {
 	return crypto_encrypt_data(_crypto_handle, key_index, message, message_size, cipher, cipher_size);
 }
 
-bool  PX4Crypto::generate_key(uint8_t idx,
-			      bool persistent)
-{
+bool PX4Crypto::generate_key(uint8_t idx, bool persistent) {
 	return crypto_generate_key(_crypto_handle, idx, persistent);
 }
 
-
-bool  PX4Crypto::get_nonce(uint8_t *nonce,
-			   size_t *nonce_len)
-{
+bool PX4Crypto::get_nonce(uint8_t *nonce, size_t *nonce_len) {
 	return crypto_get_nonce(_crypto_handle, nonce, nonce_len);
 }
 
-
-bool  PX4Crypto::get_encrypted_key(uint8_t key_idx,
-				   uint8_t *key,
-				   size_t *key_len,
-				   uint8_t encryption_key_idx)
-{
+bool PX4Crypto::get_encrypted_key(uint8_t key_idx, uint8_t *key, size_t *key_len, uint8_t encryption_key_idx) {
 	return crypto_get_encrypted_key(_crypto_handle, key_idx, key, key_len, encryption_key_idx);
 }
 
-size_t PX4Crypto::get_min_blocksize(uint8_t key_idx)
-{
-	return crypto_get_min_blocksize(_crypto_handle, key_idx);
-}
+size_t PX4Crypto::get_min_blocksize(uint8_t key_idx) { return crypto_get_min_blocksize(_crypto_handle, key_idx); }
 
 #endif

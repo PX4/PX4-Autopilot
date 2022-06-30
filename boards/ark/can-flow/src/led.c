@@ -37,14 +37,12 @@
  * board LED backend.
  */
 
+#include <arch/board/board.h>
 #include <px4_platform_common/px4_config.h>
-
 #include <stdbool.h>
 
-#include "stm32.h"
 #include "board_config.h"
-
-#include <arch/board/board.h>
+#include "stm32.h"
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -62,54 +60,38 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
-#  define xlat(p) (p)
+#define xlat(p) (p)
 static uint32_t g_ledmap[] = {
 	GPIO_nLED_BLUE,
 	GPIO_nLED_RED,
 };
 
-__EXPORT void led_init(void)
-{
+__EXPORT void led_init(void) {
 	/* Configure LED GPIOs for output */
 	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
 		stm32_configgpio(g_ledmap[l]);
 	}
 }
 
-__EXPORT void bootloader_led_on(int led)
-{
+__EXPORT void bootloader_led_on(int led) {
 	/* Pull Down to switch on */
 	stm32_gpiowrite(led, false);
 }
 
-__EXPORT void bootloader_led_off(int led)
-{
+__EXPORT void bootloader_led_off(int led) {
 	/* Pull Up to switch on */
 	stm32_gpiowrite(led, true);
 }
 
-static void phy_set_led(int led, bool state)
-{
+static void phy_set_led(int led, bool state) {
 	/* Pull Down to switch on */
 	stm32_gpiowrite(g_ledmap[led], !state);
 }
 
-static bool phy_get_led(int led)
-{
-	return !stm32_gpioread(g_ledmap[led]);
-}
+static bool phy_get_led(int led) { return !stm32_gpioread(g_ledmap[led]); }
 
-__EXPORT void led_on(int led)
-{
-	phy_set_led(xlat(led), true);
-}
+__EXPORT void led_on(int led) { phy_set_led(xlat(led), true); }
 
-__EXPORT void led_off(int led)
-{
-	phy_set_led(xlat(led), false);
-}
+__EXPORT void led_off(int led) { phy_set_led(xlat(led), false); }
 
-__EXPORT void led_toggle(int led)
-{
-	phy_set_led(xlat(led), !phy_get_led(xlat(led)));
-}
+__EXPORT void led_toggle(int led) { phy_set_led(xlat(led), !phy_get_led(xlat(led))); }

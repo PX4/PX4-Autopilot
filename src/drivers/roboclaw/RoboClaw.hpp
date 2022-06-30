@@ -43,41 +43,34 @@
 
 #pragma once
 
-#include <poll.h>
-#include <stdio.h>
-#include <termios.h>
-#include <lib/parameters/param.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/wheel_encoders.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/parameter_update.h>
 #include <drivers/device/i2c.h>
+#include <lib/parameters/param.h>
+#include <poll.h>
+#include <pthread.h>
+#include <stdio.h>
 #include <sys/select.h>
 #include <sys/time.h>
-#include <pthread.h>
+#include <termios.h>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/wheel_encoders.h>
+
+#include <uORB/PublicationMulti.hpp>
 
 /**
  * This is a driver for the RoboClaw motor controller
  */
-class RoboClaw
-{
+class RoboClaw {
 public:
-
 	void taskMain();
 	static bool taskShouldExit;
 
 	/** control channels */
-	enum e_channel {
-		CH_VOLTAGE_LEFT = 0,
-		CH_VOLTAGE_RIGHT
-	};
+	enum e_channel { CH_VOLTAGE_LEFT = 0, CH_VOLTAGE_RIGHT };
 
 	/**  motors */
-	enum e_motor {
-		MOTOR_1 = 0,
-		MOTOR_2
-	};
+	enum e_motor { MOTOR_1 = 0, MOTOR_2 };
 
 	/**
 	 * constructor
@@ -141,7 +134,6 @@ public:
 	void printStatus(char *string, size_t n);
 
 private:
-
 	// commands
 	// We just list the commands we want from the manual here.
 	enum e_command {
@@ -205,12 +197,12 @@ private:
 	int _paramSub{-1};
 	parameter_update_s _paramUpdate;
 
-	uORB::PublicationMulti<wheel_encoders_s> _wheelEncodersAdv[2] { ORB_ID(wheel_encoders), ORB_ID(wheel_encoders)};
+	uORB::PublicationMulti<wheel_encoders_s> _wheelEncodersAdv[2]{ORB_ID(wheel_encoders), ORB_ID(wheel_encoders)};
 	wheel_encoders_s _wheelEncoderMsg[2];
 
-	uint32_t _lastEncoderCount[2] {0, 0};
-	int64_t _encoderCounts[2] {0, 0};
-	int32_t _motorSpeeds[2] {0, 0};
+	uint32_t _lastEncoderCount[2]{0, 0};
+	int64_t _encoderCounts[2]{0, 0};
+	int32_t _motorSpeeds[2]{0, 0};
 
 	void _parameters_update();
 
@@ -236,10 +228,11 @@ private:
 	 * @param recv_checksum If true, then this function will calculate the checksum of the returned data and compare
 	 *   it to the checksum received. If they are not equal, OR if fewer than 2 bytes were received, then an
 	 *   error is returned.
-	 *   If false, then this function will expect to read exactly one byte, 0xFF, and will return an error otherwise.
+	 *   If false, then this function will expect to read exactly one byte, 0xFF, and will return an error
+	 * otherwise.
 	 * @return If successful, then the number of bytes read from the Roboclaw is returned. If there is a timeout
 	 *   reading from the Roboclaw, then 0 is returned. If there is an IO error, then a negative value is returned.
 	 */
-	int _transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
-			 uint8_t *rbuff, size_t rbytes, bool send_checksum = true, bool recv_checksum = false);
+	int _transaction(e_command cmd, uint8_t *wbuff, size_t wbytes, uint8_t *rbuff, size_t rbytes,
+			 bool send_checksum = true, bool recv_checksum = false);
 };

@@ -33,23 +33,18 @@
 
 #include "GY_US42.hpp"
 
-GY_US42::GY_US42(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_px4_rangefinder(get_device_id(), config.rotation)
-{
+GY_US42::GY_US42(const I2CSPIDriverConfig &config)
+	: I2C(config), I2CSPIDriver(config), _px4_rangefinder(get_device_id(), config.rotation) {
 	_px4_rangefinder.set_max_distance(GY_US42_MAX_DISTANCE);
 	_px4_rangefinder.set_min_distance(GY_US42_MIN_DISTANCE);
 }
 
-GY_US42::~GY_US42()
-{
+GY_US42::~GY_US42() {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
-int GY_US42::init()
-{
+int GY_US42::init() {
 	// I2C init (and probe) first.
 	if (I2C::init() != OK) {
 		return PX4_ERROR;
@@ -60,8 +55,7 @@ int GY_US42::init()
 	return OK;
 }
 
-int GY_US42::collect()
-{
+int GY_US42::collect() {
 	// Read from the sensor.
 	uint8_t val[2] = {};
 	perf_begin(_sample_perf);
@@ -85,8 +79,7 @@ int GY_US42::collect()
 	return PX4_OK;
 }
 
-int GY_US42::measure()
-{
+int GY_US42::measure() {
 	uint8_t cmd[1] = {GY_US42_TAKE_RANGE_REG};
 
 	// Send the command to begin a measurement.
@@ -101,32 +94,30 @@ int GY_US42::measure()
 	return PX4_OK;
 }
 
-void GY_US42::RunImpl()
-{
+void GY_US42::RunImpl() {
 	switch (_state) {
-	case STATE::INIT:
-		// do nothing
-		break;
+		case STATE::INIT:
+			// do nothing
+			break;
 
-	case STATE::POWERON_WAIT:
-		measure();
-		_state = STATE::MEASURE_WAIT;
-		ScheduleOnInterval(GY_US42_CONVERSION_INTERVAL, GY_US42_CONVERSION_INTERVAL);
-		break;
+		case STATE::POWERON_WAIT:
+			measure();
+			_state = STATE::MEASURE_WAIT;
+			ScheduleOnInterval(GY_US42_CONVERSION_INTERVAL, GY_US42_CONVERSION_INTERVAL);
+			break;
 
-	case STATE::MEASURE_WAIT:
-		collect();
-		measure();
-		// forever loop
-		break;
+		case STATE::MEASURE_WAIT:
+			collect();
+			measure();
+			// forever loop
+			break;
 
-	case STATE::MODIFYADDR_WAIT:
-		break;
+		case STATE::MODIFYADDR_WAIT:
+			break;
 	}
 }
 
-void GY_US42::print_status()
-{
+void GY_US42::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);

@@ -33,14 +33,13 @@
 
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
-#include "ActuatorEffectivenessControlSurfaces.hpp"
-
 #include <uORB/topics/actuator_controls.h>
 
-class ActuatorEffectivenessFixedWing : public ModuleParams, public ActuatorEffectiveness
-{
+#include "ActuatorEffectiveness.hpp"
+#include "ActuatorEffectivenessControlSurfaces.hpp"
+#include "ActuatorEffectivenessRotors.hpp"
+
+class ActuatorEffectivenessFixedWing : public ModuleParams, public ActuatorEffectiveness {
 public:
 	ActuatorEffectivenessFixedWing(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessFixedWing() = default;
@@ -58,5 +57,5 @@ private:
 
 	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
 
-	int _first_control_surface_idx{0}; ///< applies to matrix 1
+	int _first_control_surface_idx{0};  ///< applies to matrix 1
 };

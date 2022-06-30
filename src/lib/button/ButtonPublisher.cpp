@@ -42,15 +42,9 @@
 
 using namespace time_literals;
 
-ButtonPublisher::ButtonPublisher()
-{
-	_safety_button_pub.advertise();
-}
+ButtonPublisher::ButtonPublisher() { _safety_button_pub.advertise(); }
 
-void ButtonPublisher::safetyButtonTriggerEvent()
-{
-
-
+void ButtonPublisher::safetyButtonTriggerEvent() {
 	button_event_s safety_button{};
 	safety_button.triggered = true;
 	safety_button.timestamp = hrt_absolute_time();
@@ -58,11 +52,10 @@ void ButtonPublisher::safetyButtonTriggerEvent()
 	_safety_button_pub.publish(safety_button);
 }
 
-void ButtonPublisher::pairingButtonTriggerEvent()
-{
+void ButtonPublisher::pairingButtonTriggerEvent() {
 	vehicle_command_s vcmd{};
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_START_RX_PAIR;
-	vcmd.param1 = 10.f; // GCS pairing request handled by a companion.
+	vcmd.param1 = 10.f;  // GCS pairing request handled by a companion.
 	vcmd.timestamp = hrt_absolute_time();
 	_vehicle_command_pub.publish(vcmd);
 	PX4_DEBUG("Sending GCS pairing request");

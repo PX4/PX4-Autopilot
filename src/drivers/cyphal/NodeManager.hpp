@@ -41,59 +41,54 @@
 
 #pragma once
 
-
-#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
-
-#include "CanardInterface.hpp"
-
+#include <px4_platform_common/defines.h>
 #include <uavcan/node/ID_1_0.h>
 #include <uavcan/pnp/NodeIDAllocationData_1_0.h>
 #include <uavcan/pnp/NodeIDAllocationData_2_0.h>
 
+#include "CanardInterface.hpp"
 #include "Services/AccessRequest.hpp"
 #include "Services/ListRequest.hpp"
 
-#define PNP1_PORT_ID                                 uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_
-#define PNP1_PAYLOAD_SIZE                            uavcan_pnp_NodeIDAllocationData_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_
-#define PNP2_PORT_ID                                 uavcan_pnp_NodeIDAllocationData_2_0_FIXED_PORT_ID_
-#define PNP2_PAYLOAD_SIZE                            uavcan_pnp_NodeIDAllocationData_2_0_SERIALIZATION_BUFFER_SIZE_BYTES_
+#define PNP1_PORT_ID uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_
+#define PNP1_PAYLOAD_SIZE uavcan_pnp_NodeIDAllocationData_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_
+#define PNP2_PORT_ID uavcan_pnp_NodeIDAllocationData_2_0_FIXED_PORT_ID_
+#define PNP2_PAYLOAD_SIZE uavcan_pnp_NodeIDAllocationData_2_0_SERIALIZATION_BUFFER_SIZE_BYTES_
 
 typedef struct {
-	uint8_t   node_id;
-	uint8_t   unique_id[16];
-	bool      register_setup;
-	uint16_t  register_index;
-	uint16_t  retry_count;
+	uint8_t node_id;
+	uint8_t unique_id[16];
+	bool register_setup;
+	uint16_t register_index;
+	uint16_t retry_count;
 } UavcanNodeEntry;
 
-class NodeManager : public UavcanBaseSubscriber, public UavcanServiceRequestInterface
-{
+class NodeManager : public UavcanBaseSubscriber, public UavcanServiceRequestInterface {
 public:
-	NodeManager(CanardHandle &handle, UavcanParamManager &pmgr) : UavcanBaseSubscriber(handle, "", "NodeIDAllocationData",
-				0),
-		_canard_handle(handle), _access_request(handle, pmgr), _list_request(handle) { };
+	NodeManager(CanardHandle &handle, UavcanParamManager &pmgr)
+		: UavcanBaseSubscriber(handle, "", "NodeIDAllocationData", 0),
+		  _canard_handle(handle),
+		  _access_request(handle, pmgr),
+		  _list_request(handle){};
 
-	void subscribe() override
-	{
+	void subscribe() override {
 		_access_request.subscribe();
 		_list_request.subscribe();
 
-		_canard_handle.RxSubscribe(CanardTransferKindMessage,
-					   (_canard_handle.mtu() == CANARD_MTU_CAN_FD ? PNP2_PORT_ID : PNP1_PORT_ID),  // The fixed Subject-ID
-					   (_canard_handle.mtu() == CANARD_MTU_CAN_FD ? PNP2_PAYLOAD_SIZE : PNP1_PAYLOAD_SIZE),
-					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-					   &_subj_sub._canard_sub);
+		_canard_handle.RxSubscribe(
+			CanardTransferKindMessage,
+			(_canard_handle.mtu() == CANARD_MTU_CAN_FD ? PNP2_PORT_ID
+								   : PNP1_PORT_ID),  // The fixed Subject-ID
+			(_canard_handle.mtu() == CANARD_MTU_CAN_FD ? PNP2_PAYLOAD_SIZE : PNP1_PAYLOAD_SIZE),
+			CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC, &_subj_sub._canard_sub);
 	}
 
 	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg);
 	bool HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg);
 
-	void response_callback(const CanardRxTransfer &receive) override
-	{
-		HandleListResponse(receive);
-	}
-	void callback(const CanardRxTransfer &receive); // NodeIDAllocation callback
+	void response_callback(const CanardRxTransfer &receive) override { HandleListResponse(receive); }
+	void callback(const CanardRxTransfer &receive);  // NodeIDAllocation callback
 
 	void HandleListResponse(const CanardRxTransfer &receive);
 
@@ -102,7 +97,7 @@ public:
 private:
 	CanardHandle &_canard_handle;
 	CanardTransferID _uavcan_pnp_nodeidallocation_v1_transfer_id{0};
-	UavcanNodeEntry nodeid_registry[16] {0}; //TODO configurable or just rewrite
+	UavcanNodeEntry nodeid_registry[16]{0};  // TODO configurable or just rewrite
 
 	UavcanAccessServiceRequest _access_request;
 	UavcanListServiceRequest _list_request;

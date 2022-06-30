@@ -36,37 +36,30 @@
 using namespace ST_LPS33HW;
 using namespace time_literals;
 
-namespace lps33hw
-{
+namespace lps33hw {
 
-template<typename T>
-static void getTwosComplement(T &raw, uint8_t length)
-{
+template <typename T>
+static void getTwosComplement(T &raw, uint8_t length) {
 	if (raw & ((T)1 << (length - 1))) {
 		raw -= (T)1 << length;
 	}
 }
 
-LPS33HW::LPS33HW(const I2CSPIDriverConfig &config, device::Device *interface) :
-	I2CSPIDriver(config),
-	_interface(interface),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comm errors")),
-	_keep_retrying(config.keep_running)
-{
-}
+LPS33HW::LPS33HW(const I2CSPIDriverConfig &config, device::Device *interface)
+	: I2CSPIDriver(config),
+	  _interface(interface),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": comm errors")),
+	  _keep_retrying(config.keep_running) {}
 
-LPS33HW::~LPS33HW()
-{
+LPS33HW::~LPS33HW() {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 
 	delete _interface;
 }
 
-int
-LPS33HW::init()
-{
+int LPS33HW::init() {
 	uint8_t who_am_i;
 	int ret = RegisterRead(Register::WHO_AM_I, who_am_i);
 
@@ -92,126 +85,114 @@ LPS33HW::init()
 	return PX4_OK;
 }
 
-void
-LPS33HW::RunImpl()
-{
+void LPS33HW::RunImpl() {
 	int ret;
 
 	switch (_state) {
-	case State::Detect:
-		uint8_t who_am_i;
-		ret = RegisterRead(Register::WHO_AM_I, who_am_i);
+		case State::Detect:
+			uint8_t who_am_i;
+			ret = RegisterRead(Register::WHO_AM_I, who_am_i);
 
-		if (ret != 0 || who_am_i != WHO_AM_I_VALUE) {
-			// periodically retry to detect
-			ScheduleDelayed(300_ms);
-			return;
-		}
+			if (ret != 0 || who_am_i != WHO_AM_I_VALUE) {
+				// periodically retry to detect
+				ScheduleDelayed(300_ms);
+				return;
+			}
 
-		ScheduleDelayed(10_ms);
-		_state = State::Reset;
-		break;
-
-	case State::Reset:
-		// Soft Reset
-		ret = RegisterWrite(Register::CTRL_REG2, SWRESET);
-
-		if (ret != OK) {
-			PX4_DEBUG("reset failed");
-			ScheduleDelayed(100_ms);
-			_state = State::Detect;
-			return;
-		}
-
-		ScheduleDelayed(20_ms);
-		_state = State::WaitForReset;
-		break;
-
-	case State::WaitForReset:
-		uint8_t val;
-		ret = RegisterRead(Register::CTRL_REG2, val);
-
-		if (ret != 0 || (val & SWRESET) != 0) {
 			ScheduleDelayed(10_ms);
 			_state = State::Reset;
-			return;
-		}
+			break;
 
-		// Configure sampling rate
-		ret = RegisterWrite(Register::CTRL_REG1, ODR_75HZ | BDU);
+		case State::Reset:
+			// Soft Reset
+			ret = RegisterWrite(Register::CTRL_REG2, SWRESET);
 
-		if (ret != 0) {
-			ScheduleDelayed(10_ms);
-			_state = State::Detect;
-			return;
-		}
+			if (ret != OK) {
+				PX4_DEBUG("reset failed");
+				ScheduleDelayed(100_ms);
+				_state = State::Detect;
+				return;
+			}
 
-		ScheduleDelayed(1000000 / SAMPLE_RATE);
-		_state = State::Running;
-		break;
+			ScheduleDelayed(20_ms);
+			_state = State::WaitForReset;
+			break;
 
-	case State::Running:
-		perf_begin(_sample_perf);
-		uint8_t data[6];
+		case State::WaitForReset:
+			uint8_t val;
+			ret = RegisterRead(Register::CTRL_REG2, val);
 
-		if (_interface->read((uint8_t)Register::STATUS, data, sizeof(data)) != PX4_OK) {
-			perf_count(_comms_errors);
-			perf_end(_sample_perf);
-			ScheduleDelayed(10_ms);
-			_state = State::Reset;
-			return;
-		}
+			if (ret != 0 || (val & SWRESET) != 0) {
+				ScheduleDelayed(10_ms);
+				_state = State::Reset;
+				return;
+			}
 
-		uint8_t status = data[0];
+			// Configure sampling rate
+			ret = RegisterWrite(Register::CTRL_REG1, ODR_75HZ | BDU);
 
-		if ((status & P_DA) == 0) { // check if pressure data is available
+			if (ret != 0) {
+				ScheduleDelayed(10_ms);
+				_state = State::Detect;
+				return;
+			}
+
+			ScheduleDelayed(1000000 / SAMPLE_RATE);
+			_state = State::Running;
+			break;
+
+		case State::Running:
+			perf_begin(_sample_perf);
+			uint8_t data[6];
+
+			if (_interface->read((uint8_t)Register::STATUS, data, sizeof(data)) != PX4_OK) {
+				perf_count(_comms_errors);
+				perf_end(_sample_perf);
+				ScheduleDelayed(10_ms);
+				_state = State::Reset;
+				return;
+			}
+
+			uint8_t status = data[0];
+
+			if ((status & P_DA) == 0) {  // check if pressure data is available
+				perf_end(_sample_perf);
+				ScheduleDelayed(1000000 / SAMPLE_RATE);
+				return;
+			}
+
+			hrt_abstime timestamp_sample = hrt_absolute_time();
+			float temp = ((int16_t)data[4] | (data[5] << 8)) / 100.f;
+
+			int32_t Praw = (int32_t)data[1] | (data[2] << 8) | (data[3] << 16);
+			getTwosComplement(Praw, 24);
+			float pressure_hPa = Praw / 4096.f;
+			float pressure_pa = pressure_hPa * 100.f;
+
+			// publish
+			sensor_baro_s sensor_baro{};
+			sensor_baro.timestamp_sample = timestamp_sample;
+			sensor_baro.device_id = _interface->get_device_id();
+			sensor_baro.pressure = pressure_pa;
+			sensor_baro.temperature = temp;
+			sensor_baro.error_count = perf_event_count(_comms_errors);
+			sensor_baro.timestamp = hrt_absolute_time();
+			_sensor_baro_pub.publish(sensor_baro);
+
 			perf_end(_sample_perf);
 			ScheduleDelayed(1000000 / SAMPLE_RATE);
-			return;
-		}
-
-		hrt_abstime timestamp_sample = hrt_absolute_time();
-		float temp = ((int16_t)data[4] | (data[5] << 8)) / 100.f;
-
-		int32_t Praw = (int32_t)data[1] | (data[2] << 8) | (data[3] << 16);
-		getTwosComplement(Praw, 24);
-		float pressure_hPa = Praw / 4096.f;
-		float pressure_pa = pressure_hPa * 100.f;
-
-		// publish
-		sensor_baro_s sensor_baro{};
-		sensor_baro.timestamp_sample = timestamp_sample;
-		sensor_baro.device_id = _interface->get_device_id();
-		sensor_baro.pressure = pressure_pa;
-		sensor_baro.temperature = temp;
-		sensor_baro.error_count = perf_event_count(_comms_errors);
-		sensor_baro.timestamp = hrt_absolute_time();
-		_sensor_baro_pub.publish(sensor_baro);
-
-		perf_end(_sample_perf);
-		ScheduleDelayed(1000000 / SAMPLE_RATE);
-		break;
+			break;
 	}
 }
 
-int
-LPS33HW::RegisterRead(Register reg, uint8_t &val)
-{
-	return _interface->read((uint8_t)reg, &val, 1);
-}
+int LPS33HW::RegisterRead(Register reg, uint8_t &val) { return _interface->read((uint8_t)reg, &val, 1); }
 
-int
-LPS33HW::RegisterWrite(Register reg, uint8_t value)
-{
-	return _interface->write((uint8_t)reg, &value, 1);
-}
+int LPS33HW::RegisterWrite(Register reg, uint8_t value) { return _interface->write((uint8_t)reg, &value, 1); }
 
-void
-LPS33HW::print_status()
-{
+void LPS33HW::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 }
 
-} // namespace lps33hw
+}  // namespace lps33hw

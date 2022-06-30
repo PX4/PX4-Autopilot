@@ -38,19 +38,17 @@
  * GPIO read and write tool
  */
 
+#include <fcntl.h>
+#include <nuttx/ioexpander/gpio.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_config.h>
-
-#include <nuttx/ioexpander/gpio.h>
-#include <fcntl.h>
 
 static void usage(const char *reason);
 static int handle_board_ports(bool is_read, int argc, char *argv[]);
 static int handle_device_ports(bool is_read, int argc, char *argv[]);
 
-extern "C" __EXPORT int gpio_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int gpio_main(int argc, char *argv[]) {
 	if (argc < 3) {
 		usage("not enough arguments");
 		return -1;
@@ -81,8 +79,7 @@ extern "C" __EXPORT int gpio_main(int argc, char *argv[])
 	}
 }
 
-int handle_device_ports(bool is_read, int argc, char *argv[])
-{
+int handle_device_ports(bool is_read, int argc, char *argv[]) {
 #ifdef CONFIG_DEV_GPIO
 	const char *device = argv[2];
 	int fd = open(device, O_RDWR);
@@ -183,8 +180,7 @@ exit_failure:
 #endif
 }
 
-int handle_board_ports(bool is_read, int argc, char *argv[])
-{
+int handle_board_ports(bool is_read, int argc, char *argv[]) {
 	const char *port_string = argv[2];
 	char port = port_string[0];
 	uint32_t mask = is_read ? GPIO_INPUT : GPIO_OUTPUT;
@@ -204,7 +200,8 @@ int handle_board_ports(bool is_read, int argc, char *argv[])
 	int32_t pin = strtol(argv[2] + 1, &end, 10);
 
 	if (errno == 0 && *end == '\0' && 0 <= pin && pin <= 15) {
-		mask |= (pin << GPIO_PIN_SHIFT) & GPIO_PIN_MASK;;
+		mask |= (pin << GPIO_PIN_SHIFT) & GPIO_PIN_MASK;
+		;
 
 	} else {
 		usage("invalid pin");
@@ -220,15 +217,14 @@ int handle_board_ports(bool is_read, int argc, char *argv[])
 	// check that GPIO matches initialization list for port/pin and input/output
 	for (uint32_t i = 0; i < arraySize(default_gpios); i++) {
 		if ((((default_gpios[i] & GPIO_INPUT) == (mask & GPIO_INPUT)) ||
-		     ((default_gpios[i] & GPIO_OUTPUT) == (mask & GPIO_OUTPUT)))
-		    && ((default_gpios[i] & GPIO_PORT_MASK) == (mask & GPIO_PORT_MASK))
-		    && ((default_gpios[i] & GPIO_PIN_MASK) == (mask & GPIO_PIN_MASK))
-		   ) {
+		     ((default_gpios[i] & GPIO_OUTPUT) == (mask & GPIO_OUTPUT))) &&
+		    ((default_gpios[i] & GPIO_PORT_MASK) == (mask & GPIO_PORT_MASK)) &&
+		    ((default_gpios[i] & GPIO_PIN_MASK) == (mask & GPIO_PIN_MASK))) {
 			matches_default_config = true;
 		}
 	}
 
-#endif // PX4_GPIO_INIT_LIST
+#endif  // PX4_GPIO_INIT_LIST
 	bool force_apply = strcasecmp(argv[argc - 1], "--force") == 0;
 
 	if (!matches_default_config && !force_apply) {
@@ -287,8 +283,7 @@ int handle_board_ports(bool is_read, int argc, char *argv[])
 	return 0;
 }
 
-void usage(const char *reason)
-{
+void usage(const char *reason) {
 	printf("FAIL\n");
 
 	if (reason != nullptr) {

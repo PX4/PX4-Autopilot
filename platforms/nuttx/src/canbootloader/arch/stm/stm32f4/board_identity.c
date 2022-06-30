@@ -41,12 +41,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00ff0000) >> 8) | (((x) & 0x0000ff00) << 8) | ((x) << 24))
+#define SWAP_UINT32(x) (((x) >> 24) | (((x)&0x00ff0000) >> 8) | (((x)&0x0000ff00) << 8) | ((x) << 24))
 
-int board_get_mfguid(mfguid_t mfgid)
-{
-	uint32_t *chip_uuid = (uint32_t *) STM32_SYSMEM_UID;
-	uint32_t  *rv = (uint32_t *) &mfgid[0];
+int board_get_mfguid(mfguid_t mfgid) {
+	uint32_t *chip_uuid = (uint32_t *)STM32_SYSMEM_UID;
+	uint32_t *rv = (uint32_t *)&mfgid[0];
 
 	for (unsigned int i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
 		*rv++ = SWAP_UINT32(chip_uuid[(PX4_CPU_UUID_WORD32_LENGTH - 1) - i]);

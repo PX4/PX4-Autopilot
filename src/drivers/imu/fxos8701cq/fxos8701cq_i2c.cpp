@@ -43,8 +43,7 @@
 
 device::Device *FXOS8701CQ_I2C_interface(int bus, int bus_frequency, int i2c_address);
 
-class FXOS8701CQ_I2C : public device::I2C
-{
+class FXOS8701CQ_I2C : public device::I2C {
 public:
 	FXOS8701CQ_I2C(int bus, int bus_frequency, int i2c_address);
 	~FXOS8701CQ_I2C() override = default;
@@ -59,7 +58,7 @@ public:
 	 * @param count	The number of items to read.
 	 * @return		The number of items read on success, negative errno otherwise.
 	 */
-	int	read(unsigned reg, void *data, unsigned count) override;
+	int read(unsigned reg, void *data, unsigned count) override;
 
 	/**
 	 * Write directly to the device.
@@ -71,7 +70,7 @@ public:
 	 * @param count	The number of items to write.
 	 * @return		The number of items written on success, negative errno otherwise.
 	 */
-	int	write(unsigned reg, void *data, unsigned count) override;
+	int write(unsigned reg, void *data, unsigned count) override;
 
 	/**
 	 * Read a register from the device.
@@ -94,20 +93,14 @@ protected:
 	int probe() override;
 };
 
-device::Device *
-FXOS8701CQ_I2C_interface(int bus, int bus_frequency, int i2c_address)
-{
+device::Device *FXOS8701CQ_I2C_interface(int bus, int bus_frequency, int i2c_address) {
 	return new FXOS8701CQ_I2C(bus, bus_frequency, i2c_address);
 }
 
-FXOS8701CQ_I2C::FXOS8701CQ_I2C(int bus, int bus_frequency, int i2c_address) :
-	I2C(DRV_ACC_DEVTYPE_FXOS8701C, MODULE_NAME, bus, i2c_address, bus_frequency)
-{
-}
+FXOS8701CQ_I2C::FXOS8701CQ_I2C(int bus, int bus_frequency, int i2c_address)
+	: I2C(DRV_ACC_DEVTYPE_FXOS8701C, MODULE_NAME, bus, i2c_address, bus_frequency) {}
 
-int
-FXOS8701CQ_I2C::probe()
-{
+int FXOS8701CQ_I2C::probe() {
 	uint8_t whoami = read_reg(FXOS8701CQ_WHOAMI);
 	bool success = (whoami == FXOS8700CQ_WHOAMI_VAL) || (whoami == FXOS8701CQ_WHOAMI_VAL);
 
@@ -124,8 +117,7 @@ FXOS8701CQ_I2C::probe()
  * @param count	The number of items to read.
  * @return		The number of items read on success, negative errno otherwise.
  */
-int FXOS8701CQ_I2C::read(unsigned reg, void *data, unsigned count)
-{
+int FXOS8701CQ_I2C::read(unsigned reg, void *data, unsigned count) {
 	/* Same as in mpu9250_i2c.cpp:
 	 * We want to avoid copying the data of RawAccelMagReport: So if the caller
 	 * supplies a buffer not RawAccelMagReport in size, it is assume to be a reg or
@@ -149,9 +141,8 @@ int FXOS8701CQ_I2C::read(unsigned reg, void *data, unsigned count)
  * @param count	The number of items to write.
  * @return		The number of items written on success, negative errno otherwise.
  */
-int FXOS8701CQ_I2C::write(unsigned reg, void *data, unsigned count)
-{
-	uint8_t cmd[2] {};
+int FXOS8701CQ_I2C::write(unsigned reg, void *data, unsigned count) {
+	uint8_t cmd[2]{};
 
 	if (sizeof(cmd) < (count + 1)) {
 		// same as in mpu9250_i2c.cpp
@@ -172,8 +163,7 @@ int FXOS8701CQ_I2C::write(unsigned reg, void *data, unsigned count)
  * @param		The register to read.
  * @return		The value that was read.
  */
-uint8_t FXOS8701CQ_I2C::read_reg(unsigned reg)
-{
+uint8_t FXOS8701CQ_I2C::read_reg(unsigned reg) {
 	uint8_t cmd[1];
 	uint8_t data[1];
 
@@ -191,8 +181,7 @@ uint8_t FXOS8701CQ_I2C::read_reg(unsigned reg)
  * @param value		The new value to write.
  * @return		OK on success, negative errno otherwise.
  */
-int FXOS8701CQ_I2C::write_reg(unsigned reg, uint8_t value)
-{
+int FXOS8701CQ_I2C::write_reg(unsigned reg, uint8_t value) {
 	uint8_t cmd[2];
 
 	cmd[0] = reg & 0x00FF;

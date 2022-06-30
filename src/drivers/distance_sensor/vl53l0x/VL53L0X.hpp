@@ -39,20 +39,20 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/i2c_spi_buses.h>
-#include <px4_platform_common/module.h>
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
+
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 
 /* Configuration Constants */
-#define VL53L0X_BASEADDR                                0x29
+#define VL53L0X_BASEADDR 0x29
 
-class VL53L0X : public device::I2C, public I2CSPIDriver<VL53L0X>
-{
+class VL53L0X : public device::I2C, public I2CSPIDriver<VL53L0X> {
 public:
 	VL53L0X(const I2CSPIDriverConfig &config);
 
@@ -97,7 +97,7 @@ private:
 	int singleRefCalibration(const uint8_t byte);
 	int spadCalculations();
 
-	PX4Rangefinder	_px4_rangefinder;
+	PX4Rangefinder _px4_rangefinder;
 
 	bool _collect_phase{false};
 	bool _measurement_started{false};
@@ -105,6 +105,6 @@ private:
 
 	uint8_t _stop_variable{0};
 
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME ": com_err")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": read")};
 };

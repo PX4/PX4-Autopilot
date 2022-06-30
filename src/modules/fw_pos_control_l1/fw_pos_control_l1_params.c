@@ -566,13 +566,10 @@ PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
  */
 PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 
-
-
 /*
  * TECS parameters
  *
  */
-
 
 /**
  * Minimum Airspeed (CAS)
@@ -910,7 +907,6 @@ PARAM_DEFINE_INT32(FW_POS_STK_CONF, 2);
  */
 PARAM_DEFINE_FLOAT(FW_T_STE_R_TC, 0.4f);
 
-
 /**
  * True airspeed rate first order filter time constant.
  *
@@ -923,7 +919,6 @@ PARAM_DEFINE_FLOAT(FW_T_STE_R_TC, 0.4f);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_TAS_R_TC, 0.2f);
-
 
 /**
  * Specific total energy balance rate feedforward gain.

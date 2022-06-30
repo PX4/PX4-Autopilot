@@ -45,43 +45,42 @@
  * Included Files
  ****************************************************************************/
 
-#include "board_config.h"
-
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
-
-#include <nuttx/config.h>
-#include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-#include <nuttx/mm/gran.h>
-#include <chip.h>
-#include <stm32_uart.h>
 #include <arch/board/board.h>
-#include "arm_internal.h"
-
-#include <px4_arch/io_timer.h>
-#include <drivers/drv_hrt.h>
+#include <chip.h>
+#include <debug.h>
 #include <drivers/drv_board_led.h>
-#include <systemlib/px4_macros.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/gpio.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/config.h>
+#include <nuttx/mm/gran.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/io_timer.h>
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/init.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stm32_uart.h>
+#include <string.h>
+#include <systemlib/px4_macros.h>
 
-# if defined(FLASH_BASED_PARAMS)
-#  include <parameters/flashparams/flashfs.h>
+#include "arm_internal.h"
+#include "board_config.h"
+
+#if defined(FLASH_BASED_PARAMS)
+#include <parameters/flashparams/flashfs.h>
 #endif
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-#define _GPIO_PULL_DOWN_INPUT(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz))
+#define _GPIO_PULL_DOWN_INPUT(def) \
+	(((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT | GPIO_PULLDOWN | GPIO_SPEED_2MHz))
 
 /* Configuration ************************************************************/
 
@@ -109,8 +108,7 @@ __END_DECLS
  *   Not used
  *
  ************************************************************************************/
-static void cam_pwr_on_pulse(void)
-{
+static void cam_pwr_on_pulse(void) {
 	static bool pwr_on_flag = false;
 
 	if (pwr_on_flag == false) {
@@ -130,9 +128,7 @@ static void cam_pwr_on_pulse(void)
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
-}
+__EXPORT void board_peripheral_reset(int ms) {}
 
 /************************************************************************************
  * Name: board_on_reset
@@ -145,9 +141,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *          0 if just resetting
  *
  ************************************************************************************/
-__EXPORT void board_on_reset(int status)
-{
-}
+__EXPORT void board_on_reset(int status) {}
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -159,8 +153,7 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
-__EXPORT void stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	/* Hold power state */
 	board_pwr_init(0);
 
@@ -195,8 +188,7 @@ __EXPORT void stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	/* Power on Interfaces */
 	VDD_3V3_SD_CARD_EN(true);
 
@@ -230,7 +222,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* initial LED state */
 	drv_led_start();
 	led_off(LED_RED);
-	led_on(LED_GREEN); // Indicate Power.
+	led_on(LED_GREEN);  // Indicate Power.
 	led_off(LED_BLUE);
 
 	if (board_hardfault_init(2, true) != 0) {

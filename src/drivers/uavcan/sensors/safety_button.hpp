@@ -33,13 +33,12 @@
 
 #pragma once
 
-#include "sensor_bridge.hpp"
-#include "button/ButtonPublisher.hpp"
-
 #include <ardupilot/indication/Button.hpp>
 
-class UavcanSafetyButtonBridge : public UavcanSensorBridgeBase
-{
+#include "button/ButtonPublisher.hpp"
+#include "sensor_bridge.hpp"
+
+class UavcanSafetyButtonBridge : public UavcanSensorBridgeBase {
 public:
 	static const char *const NAME;
 
@@ -50,14 +49,13 @@ public:
 	int init() override;
 
 private:
-
 	int init_driver(uavcan_bridge::Channel *channel) override;
 
 	void button_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg);
 
-	typedef uavcan::MethodBinder < UavcanSafetyButtonBridge *,
-		void (UavcanSafetyButtonBridge::*)
-		(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &) >
+	typedef uavcan::MethodBinder<UavcanSafetyButtonBridge *,
+				     void (UavcanSafetyButtonBridge::*)(
+					     const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &)>
 		ButtonCbBinder;
 
 	uavcan::Subscriber<ardupilot::indication::Button, ButtonCbBinder> _sub_button;

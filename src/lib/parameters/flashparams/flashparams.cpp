@@ -42,44 +42,45 @@
  * foot print device.
  */
 
+#include "flashparams.h"
+
+#include <errno.h>
+#include <parameters/param.h>
+#include <parameters/tinybson/tinybson.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/shutdown.h>
-
-#include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <errno.h>
+#include <string.h>
 
-#include <parameters/param.h>
-
-#include "../uthash/utarray.h"
-#include <parameters/tinybson/tinybson.h>
-#include "flashparams.h"
-#include "flashfs.h"
 #include "../param_translation.h"
+#include "../uthash/utarray.h"
+#include "flashfs.h"
 
 #if 0
-# define debug(fmt, args...)            do { warnx(fmt, ##args); } while(0)
+#define debug(fmt, args...)         \
+	do {                        \
+		warnx(fmt, ##args); \
+	} while (0)
 #else
-# define debug(fmt, args...)            do { } while(0)
+#define debug(fmt, args...) \
+	do {                \
+	} while (0)
 #endif
-
 
 /**
  * Storage for modified parameters.
  */
 struct param_wbuf_s {
-	union param_value_u     val;
-	param_t                 param;
+	union param_value_u val;
+	param_t param;
 };
 
-static int
-param_export_internal(param_filter_func filter)
-{
+static int param_export_internal(param_filter_func filter) {
 	struct param_wbuf_s *s = nullptr;
 	bson_encoder_s encoder{};
-	int     result = -1;
+	int result = -1;
 
 	/* Use realloc */
 
@@ -92,9 +93,8 @@ param_export_internal(param_filter_func filter)
 	}
 
 	while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != nullptr) {
-
 		int32_t i;
-		float   f;
+		float f;
 
 		if (filter && !filter(s->param)) {
 			continue;
@@ -103,29 +103,29 @@ param_export_internal(param_filter_func filter)
 		/* append the appropriate BSON type object */
 
 		switch (param_type(s->param)) {
-		case PARAM_TYPE_INT32:
-			i = s->val.i;
+			case PARAM_TYPE_INT32:
+				i = s->val.i;
 
-			if (bson_encoder_append_int32(&encoder, param_name(s->param), i)) {
-				debug("BSON append failed for '%s'", param_name(s->param));
+				if (bson_encoder_append_int32(&encoder, param_name(s->param), i)) {
+					debug("BSON append failed for '%s'", param_name(s->param));
+					goto out;
+				}
+
+				break;
+
+			case PARAM_TYPE_FLOAT:
+				f = s->val.f;
+
+				if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
+					debug("BSON append failed for '%s'", param_name(s->param));
+					goto out;
+				}
+
+				break;
+
+			default:
+				debug("unrecognized parameter type");
 				goto out;
-			}
-
-			break;
-
-		case PARAM_TYPE_FLOAT:
-			f = s->val.f;
-
-			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
-				debug("BSON append failed for '%s'", param_name(s->param));
-				goto out;
-			}
-
-			break;
-
-		default:
-			debug("unrecognized parameter type");
-			goto out;
 		}
 	}
 
@@ -134,7 +134,6 @@ param_export_internal(param_filter_func filter)
 out:
 
 	if (result == 0) {
-
 		/* Finalize the bison encoding*/
 
 		bson_encoder_fini(&encoder);
@@ -149,7 +148,6 @@ out:
 		result = parameter_flashfs_alloc(parameters_token, &buffer, &buf_size);
 
 		if (result == OK) {
-
 			/* Check for a write that has no changes */
 
 			uint8_t *was_buffer;
@@ -158,14 +156,13 @@ out:
 
 			void *enc_buff = bson_encoder_buf_data(&encoder);
 
-			bool commit = was_result < OK || was_buf_size != buf_size || 0 != memcmp(was_buffer, enc_buff, was_buf_size);
+			bool commit = was_result < OK || was_buf_size != buf_size ||
+				      0 != memcmp(was_buffer, enc_buff, was_buf_size);
 
 			if (commit) {
-
 				memcpy(buffer, enc_buff, buf_size);
 				result = parameter_flashfs_write(parameters_token, buffer, buf_size);
 				result = result == buf_size ? OK : -EFBIG;
-
 			}
 
 			free(enc_buff);
@@ -176,10 +173,7 @@ out:
 	return result;
 }
 
-
-static int
-param_import_callback(bson_decoder_t decoder, bson_node_t node)
-{
+static int param_import_callback(bson_decoder_t decoder, bson_node_t node) {
 	float f;
 	int32_t i;
 	void *v = nullptr;
@@ -212,32 +206,32 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 	 */
 
 	switch (node->type) {
-	case BSON_INT32:
-		if (param_type(param) != PARAM_TYPE_INT32) {
-			PX4_WARN("unexpected type for %s", node->name);
-			result = 1; // just skip this entry
+		case BSON_INT32:
+			if (param_type(param) != PARAM_TYPE_INT32) {
+				PX4_WARN("unexpected type for %s", node->name);
+				result = 1;  // just skip this entry
+				goto out;
+			}
+
+			i = node->i32;
+			v = &i;
+			break;
+
+		case BSON_DOUBLE:
+			if (param_type(param) != PARAM_TYPE_FLOAT) {
+				PX4_WARN("unexpected type for %s", node->name);
+				result = 1;  // just skip this entry
+				goto out;
+			}
+
+			f = node->d;
+			v = &f;
+			break;
+
+		default:
+			PX4_ERR("%s unrecognised node type %d", node->name, node->type);
+			result = 1;  // just skip this entry
 			goto out;
-		}
-
-		i = node->i32;
-		v = &i;
-		break;
-
-	case BSON_DOUBLE:
-		if (param_type(param) != PARAM_TYPE_FLOAT) {
-			PX4_WARN("unexpected type for %s", node->name);
-			result = 1; // just skip this entry
-			goto out;
-		}
-
-		f = node->d;
-		v = &f;
-		break;
-
-	default:
-		PX4_ERR("%s unrecognised node type %d", node->name, node->type);
-		result = 1; // just skip this entry
-		goto out;
 	}
 
 	if (param_set_external(param, v, true, true)) {
@@ -252,9 +246,7 @@ out:
 	return result;
 }
 
-static int
-param_import_internal()
-{
+static int param_import_internal() {
 	bson_decoder_s decoder{};
 	int result = -1;
 
@@ -281,18 +273,11 @@ out:
 	return result;
 }
 
-int flash_param_save(param_filter_func filter)
-{
-	return param_export_internal(filter);
-}
+int flash_param_save(param_filter_func filter) { return param_export_internal(filter); }
 
-int flash_param_load()
-{
+int flash_param_load() {
 	param_reset_all();
 	return param_import_internal();
 }
 
-int flash_param_import()
-{
-	return param_import_internal();
-}
+int flash_param_import() { return param_import_internal(); }

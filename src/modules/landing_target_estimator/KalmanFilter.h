@@ -46,22 +46,21 @@
  *
  */
 
-#include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
+
 #include <matrix/Matrix.hpp>
 #include <matrix/Vector.hpp>
+#include <matrix/math.hpp>
 
 #pragma once
 
-namespace landing_target_estimator
-{
-class KalmanFilter
-{
+namespace landing_target_estimator {
+class KalmanFilter {
 public:
 	/**
 	 * Default constructor, state not initialized
 	 */
-	KalmanFilter() {};
+	KalmanFilter(){};
 
 	/**
 	 * Constructor, initialize state
@@ -71,7 +70,7 @@ public:
 	/**
 	 * Default desctructor
 	 */
-	virtual ~KalmanFilter() {};
+	virtual ~KalmanFilter(){};
 
 	/**
 	 * Initialize filter state
@@ -139,12 +138,12 @@ public:
 	void getInnovations(float &innov, float &innovCov);
 
 private:
-	matrix::Vector<float, 2> _x; // state
+	matrix::Vector<float, 2> _x;  // state
 
-	matrix::Matrix<float, 2, 2> _covariance; // state covariance
+	matrix::Matrix<float, 2, 2> _covariance;  // state covariance
 
-	float _residual{0.0f}; // residual of last measurement update
+	float _residual{0.0f};  // residual of last measurement update
 
-	float _innovCov{0.0f}; // innovation covariance of last measurement update
+	float _innovCov{0.0f};  // innovation covariance of last measurement update
 };
-} // namespace landing_target_estimator
+}  // namespace landing_target_estimator

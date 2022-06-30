@@ -37,33 +37,29 @@
  * @author David Sidrane <david_s5@nscdg.com>
  */
 
-#include <px4_platform_common/px4_config.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <float.h>
+#include <math.h>
 #include <px4_platform_common/defines.h>
-
-#include <sys/types.h>
-#include <sys/ioctl.h>
-
+#include <px4_platform_common/px4_config.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <termios.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <termios.h>
+#include <unistd.h>
 
 #include "tests_main.h"
 
-#include <math.h>
-#include <float.h>
-
-int test_uart_break(int argc, char *argv[])
-{
+int test_uart_break(int argc, char *argv[]) {
 	int uart2_nwrite0 = 0;
 	int uart2_nwrite1 = 0;
 	int uart2_buffer_size = 0;
 
 	/* assuming NuttShell is on UART1 (/dev/ttyS0) */
-	int uart2 = open("/dev/ttyS1", O_RDWR | O_NONBLOCK | O_NOCTTY); //
+	int uart2 = open("/dev/ttyS1", O_RDWR | O_NONBLOCK | O_NOCTTY);  //
 
 	if (uart2 < 0) {
 		printf("ERROR opening UART2, aborting..\n");
@@ -85,7 +81,6 @@ int test_uart_break(int argc, char *argv[])
 	/* Read the  buffer length */
 
 	ioctl(uart2, FIONSPACE, (unsigned long)&uart2_buffer_size);
-
 
 #define UART_BREAK_RUNTIME_CONF
 #ifdef UART_BREAK_RUNTIME_CONF
@@ -137,7 +132,6 @@ int test_uart_break(int argc, char *argv[])
 	/* let the line settle */
 
 	usleep(100000);
-
 
 #endif
 
@@ -193,7 +187,7 @@ int test_uart_break(int argc, char *argv[])
 	int left = -1;
 	int wait = 0;
 
-	for (wait = 0; wait < 1000 && left != uart2_buffer_size;  wait++) {
+	for (wait = 0; wait < 1000 && left != uart2_buffer_size; wait++) {
 		ioctl(uart2, FIONSPACE, (unsigned long)&left);
 		usleep(250000);
 	}
@@ -211,12 +205,11 @@ int test_uart_break(int argc, char *argv[])
 #endif
 	close(uart2);
 
-	printf("uart2_buffer_size %d wait %d uart2_nwrite0 %d uart2_nwrite1 %d\n", uart2_buffer_size, wait, uart2_nwrite0,
-	       uart2_nwrite1);
+	printf("uart2_buffer_size %d wait %d uart2_nwrite0 %d uart2_nwrite1 %d\n", uart2_buffer_size, wait,
+	       uart2_nwrite0, uart2_nwrite1);
 
 	return OK;
 cleanup:
 	close(uart2);
 	return ret;
-
 }

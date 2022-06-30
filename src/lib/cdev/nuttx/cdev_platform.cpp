@@ -36,31 +36,30 @@
  *
  * NuttX Character device functions
  */
-#include <errno.h>
-
 #include "cdev_platform.hpp"
-#include "../CDev.hpp"
 
+#include <errno.h>
 #include <sys/ioctl.h>
 
+#include "../CDev.hpp"
+
 #ifdef CONFIG_DISABLE_POLL
-# error This driver is not compatible with CONFIG_DISABLE_POLL
+#error This driver is not compatible with CONFIG_DISABLE_POLL
 #endif
 
-namespace cdev
-{
+namespace cdev {
 
 /*
  * The standard NuttX operation dispatch table can't call C++ member functions
  * directly, so we have to bounce them through this dispatch table.
  */
-static int	cdev_open(file_t *filp);
-static int	cdev_close(file_t *filp);
-static ssize_t	cdev_read(file_t *filp, char *buffer, size_t buflen);
-static ssize_t	cdev_write(file_t *filp, const char *buffer, size_t buflen);
-static off_t	cdev_seek(file_t *filp, off_t offset, int whence);
-static int	cdev_ioctl(file_t *filp, int cmd, unsigned long arg);
-static int	cdev_poll(file_t *filp, px4_pollfd_struct_t *fds, bool setup);
+static int cdev_open(file_t *filp);
+static int cdev_close(file_t *filp);
+static ssize_t cdev_read(file_t *filp, char *buffer, size_t buflen);
+static ssize_t cdev_write(file_t *filp, const char *buffer, size_t buflen);
+static off_t cdev_seek(file_t *filp, off_t offset, int whence);
+static int cdev_ioctl(file_t *filp, int cmd, unsigned long arg);
+static int cdev_poll(file_t *filp, px4_pollfd_struct_t *fds, bool setup);
 
 /**
  * Character device indirection table.
@@ -72,21 +71,19 @@ static int	cdev_poll(file_t *filp, px4_pollfd_struct_t *fds, bool setup);
  * initialisers in gcc 4.6.
  */
 const struct file_operations cdev::CDev::fops = {
-open	: cdev_open,
-close	: cdev_close,
-read	: cdev_read,
-write	: cdev_write,
-seek	: cdev_seek,
-ioctl	: cdev_ioctl,
-poll	: cdev_poll,
+	open : cdev_open,
+	close : cdev_close,
+	read : cdev_read,
+	write : cdev_write,
+	seek : cdev_seek,
+	ioctl : cdev_ioctl,
+	poll : cdev_poll,
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
-unlink	: nullptr
+	unlink : nullptr
 #endif
 };
 
-static int
-cdev_open(file_t *filp)
-{
+static int cdev_open(file_t *filp) {
 	if ((filp->f_inode->i_flags & FSNODEFLAG_DELETED) != 0) {
 		return -ENODEV;
 	}
@@ -96,9 +93,7 @@ cdev_open(file_t *filp)
 	return cdev->open(filp);
 }
 
-static int
-cdev_close(file_t *filp)
-{
+static int cdev_close(file_t *filp) {
 	if ((filp->f_inode->i_flags & FSNODEFLAG_DELETED) != 0) {
 		return -ENODEV;
 	}
@@ -108,9 +103,7 @@ cdev_close(file_t *filp)
 	return cdev->close(filp);
 }
 
-static ssize_t
-cdev_read(file_t *filp, char *buffer, size_t buflen)
-{
+static ssize_t cdev_read(file_t *filp, char *buffer, size_t buflen) {
 	if ((filp->f_inode->i_flags & FSNODEFLAG_DELETED) != 0) {
 		return -ENODEV;
 	}
@@ -120,9 +113,7 @@ cdev_read(file_t *filp, char *buffer, size_t buflen)
 	return cdev->read(filp, buffer, buflen);
 }
 
-static ssize_t
-cdev_write(file_t *filp, const char *buffer, size_t buflen)
-{
+static ssize_t cdev_write(file_t *filp, const char *buffer, size_t buflen) {
 	if ((filp->f_inode->i_flags & FSNODEFLAG_DELETED) != 0) {
 		return -ENODEV;
 	}
@@ -132,9 +123,7 @@ cdev_write(file_t *filp, const char *buffer, size_t buflen)
 	return cdev->write(filp, buffer, buflen);
 }
 
-static off_t
-cdev_seek(file_t *filp, off_t offset, int whence)
-{
+static off_t cdev_seek(file_t *filp, off_t offset, int whence) {
 	if ((filp->f_inode->i_flags & FSNODEFLAG_DELETED) != 0) {
 		return -ENODEV;
 	}
@@ -144,9 +133,7 @@ cdev_seek(file_t *filp, off_t offset, int whence)
 	return cdev->seek(filp, offset, whence);
 }
 
-static int
-cdev_ioctl(file_t *filp, int cmd, unsigned long arg)
-{
+static int cdev_ioctl(file_t *filp, int cmd, unsigned long arg) {
 	if ((filp->f_inode->i_flags & FSNODEFLAG_DELETED) != 0) {
 		return -ENODEV;
 	}
@@ -156,9 +143,7 @@ cdev_ioctl(file_t *filp, int cmd, unsigned long arg)
 	return cdev->ioctl(filp, cmd, arg);
 }
 
-static int
-cdev_poll(file_t *filp, px4_pollfd_struct_t *fds, bool setup)
-{
+static int cdev_poll(file_t *filp, px4_pollfd_struct_t *fds, bool setup) {
 	if ((filp->f_inode->i_flags & FSNODEFLAG_DELETED) != 0) {
 		return -ENODEV;
 	}
@@ -168,4 +153,4 @@ cdev_poll(file_t *filp, px4_pollfd_struct_t *fds, bool setup)
 	return cdev->poll(filp, fds, setup);
 }
 
-} // namespace cdev
+}  // namespace cdev

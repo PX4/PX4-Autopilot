@@ -43,41 +43,44 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdint.h>
 
 /* BUTTON *************************************************************************** */
-#define BUTTON_SAFETY         /* PB3  */  (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTB|GPIO_PIN3|GPIO_EXTI)
+#define BUTTON_SAFETY /* PB3  */ (GPIO_INPUT | GPIO_PULLDOWN | GPIO_PORTB | GPIO_PIN3 | GPIO_EXTI)
 
-#define GPIO_RGB_S            /* PB0  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN0)
-#define BOARD_SRGBLED_PORT    STM32_GPIOB_ODR
-#define BOARD_SRGBLED_BIT     0
+#define GPIO_RGB_S /* PB0  */ \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN0)
+#define BOARD_SRGBLED_PORT STM32_GPIOB_ODR
+#define BOARD_SRGBLED_BIT 0
 
 /* CAN Silence
  *
  * Silent mode control \ ESC Mux select
  */
-#define GPIO_CAN1_SILENT_S0  /* PB5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN5)
+#define GPIO_CAN1_SILENT_S0 /* PB5  */ \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN5)
 
-#define GPIO_LED_SAFETY              (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN1)
-#define GPIO_BTN_SAFETY              (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTB|GPIO_PIN3)
+#define GPIO_LED_SAFETY (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN1)
+#define GPIO_BTN_SAFETY (GPIO_INPUT | GPIO_PULLDOWN | GPIO_PORTB | GPIO_PIN3)
 
 /* Tone alarm output. */
-#define TONE_ALARM_TIMER             2    /* timer 2 */
-#define TONE_ALARM_CHANNEL           3    /* channel 1 */
-#define GPIO_TONE_ALARM_IDLE         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
-#define GPIO_TONE_ALARM              (GPIO_ALT|GPIO_AF1|GPIO_SPEED_2MHz|GPIO_PUSHPULL|GPIO_PORTB|GPIO_PIN10)
+#define TONE_ALARM_TIMER 2   /* timer 2 */
+#define TONE_ALARM_CHANNEL 3 /* channel 1 */
+#define GPIO_TONE_ALARM_IDLE \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN10)
+#define GPIO_TONE_ALARM (GPIO_ALT | GPIO_AF1 | GPIO_SPEED_2MHz | GPIO_PUSHPULL | GPIO_PORTB | GPIO_PIN10)
 
 /* High-resolution timer */
-#define HRT_TIMER                    3  /* use timer 3 for the HRT */
-#define HRT_TIMER_CHANNEL            4  /* use capture/compare channel 4 */
+#define HRT_TIMER 3         /* use timer 3 for the HRT */
+#define HRT_TIMER_CHANNEL 4 /* use capture/compare channel 4 */
 
 #define FLASH_BASED_PARAMS
 
 __BEGIN_DECLS
-#define BOARD_HAS_N_S_RGB_LED       8  /* Uses 8 SK6812 digital led chip */
-#define BOARD_MAX_LEDS              BOARD_HAS_N_S_RGB_LED
+#define BOARD_HAS_N_S_RGB_LED 8 /* Uses 8 SK6812 digital led chip */
+#define BOARD_MAX_LEDS BOARD_HAS_N_S_RGB_LED
 
 /* USE_S_RGB_LED_DMAis passed in from the *.cmake file
  * Bootloader is not timming sensitive and can use the SW version as a
@@ -86,11 +89,11 @@ __BEGIN_DECLS
  */
 
 #if defined(USE_S_RGB_LED_DMA)
-#  define S_RGB_LED_DMA              DMAMAP_TIM1_CH2
-#  define S_RGB_LED_TIMER                1   /* timer 1    */
-#  define S_RGB_LED_CHANNEL              2   /* channel 2  */
-#  define S_RGB_LED_CHANNELN             1   /* channel 2N */
-#  define S_RGB_LED_TIM_GPIO             GPIO_TIM1_CH2N_1
+#define S_RGB_LED_DMA DMAMAP_TIM1_CH2
+#define S_RGB_LED_TIMER 1    /* timer 1    */
+#define S_RGB_LED_CHANNEL 2  /* channel 2  */
+#define S_RGB_LED_CHANNELN 1 /* channel 2N */
+#define S_RGB_LED_TIM_GPIO GPIO_TIM1_CH2N_1
 #endif
 #ifndef __ASSEMBLY__
 

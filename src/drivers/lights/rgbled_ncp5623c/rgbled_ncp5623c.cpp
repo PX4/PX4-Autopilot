@@ -40,67 +40,61 @@
  * @author CUAVcaijie <caijie@cuav.net>
  */
 
-#include <string.h>
-
 #include <drivers/device/i2c.h>
 #include <lib/led/led.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module.h>
+#include <string.h>
 
 using namespace time_literals;
 
-#define NCP5623B_ADDR       0x38  /**< I2C address of NCP5623B */
-#define NCP5623C_ADDR       0x39  /**< I2C address of NCP5623C */
+#define NCP5623B_ADDR 0x38 /**< I2C address of NCP5623B */
+#define NCP5623C_ADDR 0x39 /**< I2C address of NCP5623C */
 
-#define NCP5623_LED_CURRENT 0x20  /**< Current register */
-#define NCP5623_LED_PWM0    0x40  /**< pwm0 register */
-#define NCP5623_LED_PWM1    0x60  /**< pwm1 register */
-#define NCP5623_LED_PWM2    0x80  /**< pwm2 register */
+#define NCP5623_LED_CURRENT 0x20 /**< Current register */
+#define NCP5623_LED_PWM0 0x40    /**< pwm0 register */
+#define NCP5623_LED_PWM1 0x60    /**< pwm1 register */
+#define NCP5623_LED_PWM2 0x80    /**< pwm2 register */
 
-#define NCP5623_LED_BRIGHT  0x1f  /**< full brightness */
-#define NCP5623_LED_OFF     0x00  /**< off */
+#define NCP5623_LED_BRIGHT 0x1f /**< full brightness */
+#define NCP5623_LED_OFF 0x00    /**< off */
 
-
-class RGBLED_NCP5623C : public device::I2C, public I2CSPIDriver<RGBLED_NCP5623C>
-{
+class RGBLED_NCP5623C : public device::I2C, public I2CSPIDriver<RGBLED_NCP5623C> {
 public:
 	RGBLED_NCP5623C(const I2CSPIDriverConfig &config);
 	virtual ~RGBLED_NCP5623C() = default;
 
 	static void print_usage();
 
-	int		init() override;
-	int		probe() override;
+	int init() override;
+	int probe() override;
 
-	void			RunImpl();
-	virtual int8_t  get_i2c_address() {return get_device_address();}
+	void RunImpl();
+	virtual int8_t get_i2c_address() { return get_device_address(); }
 
 private:
-	int			send_led_rgb();
+	int send_led_rgb();
 
-	int			write(uint8_t reg, uint8_t data);
+	int write(uint8_t reg, uint8_t data);
 
-	float			_brightness{1.0f};
+	float _brightness{1.0f};
 
-	uint8_t		_r{0};
-	uint8_t		_g{0};
-	uint8_t		_b{0};
-	volatile bool		_running{false};
-	volatile bool		_should_run{true};
-	bool			_leds_enabled{true};
+	uint8_t _r{0};
+	uint8_t _g{0};
+	uint8_t _b{0};
+	volatile bool _running{false};
+	volatile bool _should_run{true};
+	bool _leds_enabled{true};
 
-	LedController		_led_controller;
+	LedController _led_controller;
 
-	uint8_t		_red{NCP5623_LED_PWM0};
-	uint8_t		_green{NCP5623_LED_PWM1};
-	uint8_t		_blue{NCP5623_LED_PWM2};
+	uint8_t _red{NCP5623_LED_PWM0};
+	uint8_t _green{NCP5623_LED_PWM1};
+	uint8_t _blue{NCP5623_LED_PWM2};
 };
 
-RGBLED_NCP5623C::RGBLED_NCP5623C(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config)
-{
+RGBLED_NCP5623C::RGBLED_NCP5623C(const I2CSPIDriverConfig &config) : I2C(config), I2CSPIDriver(config) {
 	int ordering = config.custom1;
 	// ordering is RGB: Hundreds is Red, Tens is green and ones is Blue
 	// 123 would drive the
@@ -113,7 +107,7 @@ RGBLED_NCP5623C::RGBLED_NCP5623C(const I2CSPIDriverConfig &config) :
 	//      B LED from = NCP5623_LED_PWM0
 	const uint8_t sig[] = {NCP5623_LED_PWM0, NCP5623_LED_PWM1, NCP5623_LED_PWM2};
 	// Process ordering in lsd to msd order.(BGR)
-	uint8_t *color[] = {&_blue, &_green, &_red };
+	uint8_t *color[] = {&_blue, &_green, &_red};
 	unsigned int s = 0;
 
 	for (unsigned int i = 0; i < arraySize(color); i++) {
@@ -127,10 +121,8 @@ RGBLED_NCP5623C::RGBLED_NCP5623C(const I2CSPIDriverConfig &config) :
 	}
 }
 
-int
-RGBLED_NCP5623C::write(uint8_t reg, uint8_t data)
-{
-	uint8_t msg[1] = { 0x00 };
+int RGBLED_NCP5623C::write(uint8_t reg, uint8_t data) {
+	uint8_t msg[1] = {0x00};
 	msg[0] = ((reg & 0xe0) | (data & 0x1f));
 
 	int ret = transfer(&msg[0], 1, nullptr, 0);
@@ -138,9 +130,7 @@ RGBLED_NCP5623C::write(uint8_t reg, uint8_t data)
 	return ret;
 }
 
-int
-RGBLED_NCP5623C::init()
-{
+int RGBLED_NCP5623C::init() {
 	int ret = I2C::init();
 
 	if (ret != OK) {
@@ -154,9 +144,7 @@ RGBLED_NCP5623C::init()
 	return OK;
 }
 
-int
-RGBLED_NCP5623C::probe()
-{
+int RGBLED_NCP5623C::probe() {
 	_retries = 2;
 	int status = write(NCP5623_LED_CURRENT, NCP5623_LED_OFF);
 
@@ -168,50 +156,63 @@ RGBLED_NCP5623C::probe()
 	return status;
 }
 
-void
-RGBLED_NCP5623C::RunImpl()
-{
+void RGBLED_NCP5623C::RunImpl() {
 	LedControlData led_control_data;
 
 	if (_led_controller.update(led_control_data) == 1) {
 		switch (led_control_data.leds[0].color) {
-		case led_control_s::COLOR_RED:
-			_r = NCP5623_LED_BRIGHT; _g = 0; _b = 0;
-			break;
+			case led_control_s::COLOR_RED:
+				_r = NCP5623_LED_BRIGHT;
+				_g = 0;
+				_b = 0;
+				break;
 
-		case led_control_s::COLOR_GREEN:
-			_r = 0; _g = NCP5623_LED_BRIGHT; _b = 0;
-			break;
+			case led_control_s::COLOR_GREEN:
+				_r = 0;
+				_g = NCP5623_LED_BRIGHT;
+				_b = 0;
+				break;
 
-		case led_control_s::COLOR_BLUE:
-			_r = 0; _g = 0; _b = NCP5623_LED_BRIGHT;
-			break;
+			case led_control_s::COLOR_BLUE:
+				_r = 0;
+				_g = 0;
+				_b = NCP5623_LED_BRIGHT;
+				break;
 
-		case led_control_s::COLOR_AMBER: //make it the same as yellow
-		case led_control_s::COLOR_YELLOW:
-			_r = NCP5623_LED_BRIGHT; _g = NCP5623_LED_BRIGHT; _b = 0;
-			break;
+			case led_control_s::COLOR_AMBER:  // make it the same as yellow
+			case led_control_s::COLOR_YELLOW:
+				_r = NCP5623_LED_BRIGHT;
+				_g = NCP5623_LED_BRIGHT;
+				_b = 0;
+				break;
 
-		case led_control_s::COLOR_PURPLE:
-			_r = NCP5623_LED_BRIGHT; _g = 0; _b = NCP5623_LED_BRIGHT;
-			break;
+			case led_control_s::COLOR_PURPLE:
+				_r = NCP5623_LED_BRIGHT;
+				_g = 0;
+				_b = NCP5623_LED_BRIGHT;
+				break;
 
-		case led_control_s::COLOR_CYAN:
-			_r = 0; _g = NCP5623_LED_BRIGHT; _b = NCP5623_LED_BRIGHT;
-			break;
+			case led_control_s::COLOR_CYAN:
+				_r = 0;
+				_g = NCP5623_LED_BRIGHT;
+				_b = NCP5623_LED_BRIGHT;
+				break;
 
-		case led_control_s::COLOR_WHITE:
-			_r = NCP5623_LED_BRIGHT; _g = NCP5623_LED_BRIGHT; _b = NCP5623_LED_BRIGHT;
-			break;
+			case led_control_s::COLOR_WHITE:
+				_r = NCP5623_LED_BRIGHT;
+				_g = NCP5623_LED_BRIGHT;
+				_b = NCP5623_LED_BRIGHT;
+				break;
 
-		default: // led_control_s::COLOR_OFF
-			_r = 0; _g = 0; _b = 0;
-			break;
+			default:  // led_control_s::COLOR_OFF
+				_r = 0;
+				_g = 0;
+				_b = 0;
+				break;
 		}
 
 		_brightness = (float)led_control_data.leds[0].brightness / 255.f;
 		send_led_rgb();
-
 	}
 
 	/* re-queue ourselves to run again later */
@@ -221,9 +222,7 @@ RGBLED_NCP5623C::RunImpl()
 /**
  * Send RGB PWM settings to LED driver according to current color and brightness
  */
-int
-RGBLED_NCP5623C::send_led_rgb()
-{
+int RGBLED_NCP5623C::send_led_rgb() {
 	uint8_t msg[7] = {0x20, 0x70, 0x40, 0x70, 0x60, 0x70, 0x80};
 	uint8_t brightness = UINT8_MAX;
 
@@ -235,9 +234,7 @@ RGBLED_NCP5623C::send_led_rgb()
 	return transfer(&msg[0], 7, nullptr, 0);
 }
 
-void
-RGBLED_NCP5623C::print_usage()
-{
+void RGBLED_NCP5623C::print_usage() {
 	PRINT_MODULE_USAGE_NAME("rgbled", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
@@ -246,8 +243,7 @@ RGBLED_NCP5623C::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[]) {
 	using ThisDriver = RGBLED_NCP5623C;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;
@@ -257,9 +253,9 @@ extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "o:")) != EOF) {
 		switch (ch) {
-		case 'o':
-			cli.custom1 = atoi(cli.optArg());
-			break;
+			case 'o':
+				cli.custom1 = atoi(cli.optArg());
+				break;
 		}
 	}
 
@@ -270,8 +266,7 @@ extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[])
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli,
-				     DRV_LED_DEVTYPE_RGBLED_NCP5623C);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_LED_DEVTYPE_RGBLED_NCP5623C);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);

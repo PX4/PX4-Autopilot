@@ -45,8 +45,7 @@
 
 extern "C" __EXPORT int hmc5883_main(int argc, char *argv[]);
 
-I2CSPIDriverBase *HMC5883::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+I2CSPIDriverBase *HMC5883::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	device::Device *interface = nullptr;
 
 	if (config.bus_type == BOARD_I2C_BUS) {
@@ -88,8 +87,7 @@ I2CSPIDriverBase *HMC5883::instantiate(const I2CSPIDriverConfig &config, int run
 	return dev;
 }
 
-void HMC5883::print_usage()
-{
+void HMC5883::print_usage() {
 	PRINT_MODULE_USAGE_NAME("hmc5883", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -99,8 +97,7 @@ void HMC5883::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int hmc5883_main(int argc, char *argv[])
-{
+extern "C" int hmc5883_main(int argc, char *argv[]) {
 	using ThisDriver = HMC5883;
 	int ch;
 	BusCLIArguments cli{true, true};
@@ -109,13 +106,13 @@ extern "C" int hmc5883_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:T")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 
-		case 'T':
-			cli.custom1 = 1;
-			break;
+			case 'T':
+				cli.custom1 = 1;
+				break;
 		}
 	}
 

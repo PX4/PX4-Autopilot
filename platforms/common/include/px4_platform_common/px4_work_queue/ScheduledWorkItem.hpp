@@ -33,17 +33,14 @@
 
 #pragma once
 
-#include "WorkItem.hpp"
-
 #include <drivers/drv_hrt.h>
 
-namespace px4
-{
+#include "WorkItem.hpp"
 
-class ScheduledWorkItem : public WorkItem
-{
+namespace px4 {
+
+class ScheduledWorkItem : public WorkItem {
 public:
-
 	bool Scheduled() { return !hrt_called(&_call); }
 
 	/**
@@ -74,19 +71,17 @@ public:
 	void ScheduleClear();
 
 protected:
-
 	ScheduledWorkItem(const char *name, const wq_config_t &config) : WorkItem(name, config) {}
 	virtual ~ScheduledWorkItem() override;
 
 	virtual void print_run_status() override;
 
 private:
-
 	virtual void Run() override = 0;
 
-	static void	schedule_trampoline(void *arg);
+	static void schedule_trampoline(void *arg);
 
-	hrt_call	_call{};
+	hrt_call _call{};
 };
 
-} // namespace px4
+}  // namespace px4

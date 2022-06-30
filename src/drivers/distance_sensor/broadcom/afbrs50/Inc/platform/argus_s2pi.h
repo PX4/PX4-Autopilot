@@ -1,38 +1,58 @@
-/*************************************************************************//**
- * @file
- * @brief    	This file is part of the AFBR-S50 API.
- * @details		This file provides an interface for the required S2PI module.
- *
- * @copyright
- *
- * Copyright (c) 2021, Broadcom Inc
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived from
- *    this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *****************************************************************************/
+/*************************************************************************/ /**
+									     * @file
+									     * @brief    	This file is part of the
+									     *AFBR-S50 API.
+									     * @details		This file provides an
+									     *interface for the required S2PI module.
+									     *
+									     * @copyright
+									     *
+									     * Copyright (c) 2021, Broadcom Inc
+									     * All rights reserved.
+									     *
+									     * Redistribution and use in source and
+									     *binary forms, with or without
+									     * modification, are permitted provided that
+									     *the following conditions are met:
+									     *
+									     * 1. Redistributions of source code must
+									     *retain the above copyright notice, this
+									     *    list of conditions and the following
+									     *disclaimer.
+									     *
+									     * 2. Redistributions in binary form must
+									     *reproduce the above copyright notice, this
+									     *list of conditions and the following
+									     *disclaimer in the documentation and/or
+									     *other materials provided with the
+									     *distribution.
+									     *
+									     * 3. Neither the name of the copyright
+									     *holder nor the names of its contributors
+									     *may be used to endorse or promote products
+									     *derived from this software without
+									     *specific prior written permission.
+									     *
+									     * THIS SOFTWARE IS PROVIDED BY THE
+									     *COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+									     * AND ANY EXPRESS OR IMPLIED WARRANTIES,
+									     *INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+									     *WARRANTIES OF MERCHANTABILITY AND FITNESS
+									     *FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+									     *IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+									     *CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+									     *INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+									     *OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+									     *NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+									     *GOODS OR SERVICES; LOSS OF USE, DATA, OR
+									     *PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+									     * CAUSED AND ON ANY THEORY OF LIABILITY,
+									     *WHETHER IN CONTRACT, STRICT LIABILITY, OR
+									     *TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+									     *ARISING IN ANY WAY OUT OF THE USE OF THIS
+									     *SOFTWARE, EVEN IF ADVISED OF THE
+									     *POSSIBILITY OF SUCH DAMAGE.
+									     *****************************************************************************/
 
 #ifndef ARGUS_S2PI_H
 #define ARGUS_S2PI_H
@@ -151,7 +171,6 @@ typedef enum {
 
 } s2pi_pin_t;
 
-
 /*!***************************************************************************
  * @brief 	Returns the status of the SPI module.
  *
@@ -212,12 +231,8 @@ status_t S2PI_GetStatus(void);
  *         	 - #STATUS_S2PI_GPIO_MODE: The module is in GPIO mode. The transfer
  *         	                           was not started.
  *****************************************************************************/
-status_t S2PI_TransferFrame(s2pi_slave_t slave,
-			    uint8_t const *txData,
-			    uint8_t *rxData,
-			    size_t frameSize,
-			    s2pi_callback_t callback,
-			    void *callbackData);
+status_t S2PI_TransferFrame(s2pi_slave_t slave, uint8_t const *txData, uint8_t *rxData, size_t frameSize,
+			    s2pi_callback_t callback, void *callbackData);
 
 /*!***************************************************************************
  * @brief	Terminates a currently ongoing asynchronous SPI transfer.
@@ -243,9 +258,7 @@ status_t S2PI_Abort(void);
  * 			 - #STATUS_OK: Successfully installation of the callback.
  *         	 - #ERROR_S2PI_INVALID_SLAVE: A wrong slave identifier is provided.
  *****************************************************************************/
-status_t S2PI_SetIrqCallback(s2pi_slave_t slave,
-			     s2pi_irq_callback_t callback,
-			     void *callbackData);
+status_t S2PI_SetIrqCallback(s2pi_slave_t slave, s2pi_irq_callback_t callback, void *callbackData);
 
 /*!***************************************************************************
  * @brief	Reads the current status of the IRQ pin.
@@ -281,8 +294,6 @@ uint32_t S2PI_ReadIrqPin(s2pi_slave_t slave);
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
 status_t S2PI_CycleCsPin(s2pi_slave_t slave);
-
-
 
 /*!*****************************************************************************
  * @brief	Captures the S2PI pins for GPIO usage.
@@ -352,4 +363,4 @@ status_t S2PI_ReadGpioPin(s2pi_slave_t slave, s2pi_pin_t pin, uint32_t *value);
 #endif
 
 /*! @} */
-#endif // ARGUS_S2PI_H
+#endif  // ARGUS_S2PI_H

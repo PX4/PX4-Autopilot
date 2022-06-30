@@ -36,42 +36,32 @@
  *
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <nuttx/arch.h>
-#include <nuttx/irq.h>
-
-#include <sys/types.h>
-#include <stdbool.h>
-
+#include <arch/board/board.h>
 #include <assert.h>
 #include <debug.h>
-#include <time.h>
-#include <queue.h>
-#include <errno.h>
-#include <string.h>
-#include <stdio.h>
-
-#include <arch/board/board.h>
 #include <drivers/drv_pwm_trigger.h>
-
+#include <errno.h>
+#include <nuttx/arch.h>
+#include <nuttx/irq.h>
 #include <px4_arch/io_timer.h>
-
+#include <px4_platform_common/px4_config.h>
+#include <queue.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stm32_tim.h>
+#include <string.h>
+#include <sys/types.h>
+#include <time.h>
 
-int up_pwm_trigger_set(unsigned channel, uint16_t value)
-{
-	return io_timer_set_ccr(channel, value);
-}
+int up_pwm_trigger_set(unsigned channel, uint16_t value) { return io_timer_set_ccr(channel, value); }
 
-int up_pwm_trigger_init(uint32_t channel_mask)
-{
+int up_pwm_trigger_init(uint32_t channel_mask) {
 	/* Init channels */
 	int ret_val = OK;
 	int channels_init_mask = 0;
 
 	for (unsigned channel = 0; channel_mask != 0 && channel < MAX_TIMER_IO_CHANNELS; channel++) {
 		if (channel_mask & (1 << channel)) {
-
 			ret_val = io_timer_channel_init(channel, IOTimerChanMode_Trigger, NULL, NULL);
 			channel_mask &= ~(1 << channel);
 
@@ -93,25 +83,21 @@ int up_pwm_trigger_init(uint32_t channel_mask)
 	return ret_val == OK ? channels_init_mask : ret_val;
 }
 
-void up_pwm_trigger_deinit()
-{
+void up_pwm_trigger_deinit() {
 	/* Disable the timers */
 	up_pwm_trigger_arm(false);
 
 	/* Deinit channels */
 	uint32_t current = io_timer_get_mode_channels(IOTimerChanMode_Trigger);
 
-	for (unsigned channel = 0; current != 0 &&  channel < MAX_TIMER_IO_CHANNELS; channel++) {
+	for (unsigned channel = 0; current != 0 && channel < MAX_TIMER_IO_CHANNELS; channel++) {
 		if (current & (1 << channel)) {
-
 			io_timer_channel_init(channel, IOTimerChanMode_NotUsed, NULL, NULL);
 			current &= ~(1 << channel);
 		}
 	}
 }
 
-void
-up_pwm_trigger_arm(bool armed)
-{
+void up_pwm_trigger_arm(bool armed) {
 	io_timer_set_enable(armed, IOTimerChanMode_Trigger, IO_TIMER_ALL_MODES_CHANNELS);
 }

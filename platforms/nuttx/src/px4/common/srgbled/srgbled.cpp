@@ -43,7 +43,7 @@
 
 *  BOARD_HAS_N_S_RGB_LED  - the number of LEDs
 *  BOARD_SRGBLED_BIT      - the bit number it is connected to. 0-n (not a mask)
-        and
+	and
 *  BOARD_SRGBLED_PORT     - The address of the port's "data out" register
 *                           the LED is connected to.
 *       OR
@@ -61,57 +61,57 @@
 *
 */
 
-#include <px4_platform_common/px4_config.h>
-#include <drivers/drv_neopixel.h>
 #include <board_config.h>
+#include <drivers/drv_neopixel.h>
 #include <dwt.h>
 #include <nvic.h>
+#include <px4_platform_common/px4_config.h>
 
-#define REG(_addr)       (*(volatile uint32_t *)(_addr))
-#define rDEMCR           REG(NVIC_DEMCR)
-#define rDWT_CTRL        REG(DWT_CTRL)
-#define rDWT_CNT         REG(DWT_CYCCNT)
+#define REG(_addr) (*(volatile uint32_t *)(_addr))
+#define rDEMCR REG(NVIC_DEMCR)
+#define rDWT_CTRL REG(DWT_CTRL)
+#define rDWT_CNT REG(DWT_CYCCNT)
 
 #if defined(BOARD_SRGBLED_PORT) && defined(BOARD_SRGBLED_BIT)
-#  define PORT             REG(BOARD_SRGBLED_PORT)
-#  define D0               ((PORT) &= ~(1 << BOARD_SRGBLED_BIT));
-#  define D1               ((PORT) |= (1 << BOARD_SRGBLED_BIT));
-#elif defined(BOARD_SRGBLED_SET_PORT) && defined(BOARD_SRGBLED_CLEAR_PORT)  && defined(BOARD_SRGBLED_BIT)
-#  define PORT             REG(BOARD_SRGBLED_PORT)
-#  define D0               ((BOARD_SRGBLED_CLEAR_PORT) |= (1 << BOARD_SRGBLED_BIT));
-#  define D1               ((BOARD_SRGBLED_SET_PORT)   |= (1 << BOARD_SRGBLED_BIT));
+#define PORT REG(BOARD_SRGBLED_PORT)
+#define D0 ((PORT) &= ~(1 << BOARD_SRGBLED_BIT));
+#define D1 ((PORT) |= (1 << BOARD_SRGBLED_BIT));
+#elif defined(BOARD_SRGBLED_SET_PORT) && defined(BOARD_SRGBLED_CLEAR_PORT) && defined(BOARD_SRGBLED_BIT)
+#define PORT REG(BOARD_SRGBLED_PORT)
+#define D0 ((BOARD_SRGBLED_CLEAR_PORT) |= (1 << BOARD_SRGBLED_BIT));
+#define D1 ((BOARD_SRGBLED_SET_PORT) |= (1 << BOARD_SRGBLED_BIT));
 #else
-# error BOARD_SRGBLED_[]{SET|CLEAR}_]PORT and BOARD_SRGBLED_BIT needs to be defined.
+#error BOARD_SRGBLED_[]{SET|CLEAR}_]PORT and BOARD_SRGBLED_BIT needs to be defined.
 #endif
 
-#define DWT_DEADLINE(t)  rDWT_CNT + (t)
-#define DWT_WAIT(v, D)   while((rDWT_CNT - (v)) < (D)){}
+#define DWT_DEADLINE(t) rDWT_CNT + (t)
+#define DWT_WAIT(v, D)                   \
+	while ((rDWT_CNT - (v)) < (D)) { \
+	}
 
-#define T0H              (STM32_SYSCLK_FREQUENCY/3333333)
-#define T1H              (STM32_SYSCLK_FREQUENCY/1666666)
-#define TW               (STM32_SYSCLK_FREQUENCY/850000)
+#define T0H (STM32_SYSCLK_FREQUENCY / 3333333)
+#define T1H (STM32_SYSCLK_FREQUENCY / 1666666)
+#define TW (STM32_SYSCLK_FREQUENCY / 850000)
 
-#define COLOR_PER_LED   3  // There is a R G B in each package.
-#define BITS_PER_COLOR  8  // Each LED has 8 bits of luminosity
+#define COLOR_PER_LED 3   // There is a R G B in each package.
+#define BITS_PER_COLOR 8  // Each LED has 8 bits of luminosity
 #define BITS_PER_PACKAGE (BITS_PER_COLOR * COLOR_PER_LED)
 
 #if defined(BOARD_HAS_N_S_RGB_LED) && !defined(S_RGB_LED_DMA)
 
-
-int neopixel_write_no_dma(uint8_t r, uint8_t g, uint8_t b, uint8_t led_count)
-{
+int neopixel_write_no_dma(uint8_t r, uint8_t g, uint8_t b, uint8_t led_count) {
 	neopixel::NeoLEDData::led_data_t data;
 	data.grb[2] = g;
 	data.grb[1] = r;
 	data.grb[0] = b;
-	rDEMCR    |= NVIC_DEMCR_TRCENA;
+	rDEMCR |= NVIC_DEMCR_TRCENA;
 	rDWT_CTRL |= DWT_CTRL_CYCCNTENA_MASK;
 	irqstate_t state = px4_enter_critical_section();
 
 	while (led_count--) {
-		uint32_t  deadline = DWT_DEADLINE(TW);
+		uint32_t deadline = DWT_DEADLINE(TW);
 
-		for (uint32_t mask = 1 << (BITS_PER_PACKAGE - 1);  mask != 0;  mask >>= 1) {
+		for (uint32_t mask = 1 << (BITS_PER_PACKAGE - 1); mask != 0; mask >>= 1) {
 			DWT_WAIT(deadline, TW);
 			deadline = rDWT_CNT;
 			D1;
@@ -125,4 +125,4 @@ int neopixel_write_no_dma(uint8_t r, uint8_t g, uint8_t b, uint8_t led_count)
 	px4_leave_critical_section(state);
 	return 0;
 }
-#endif // BOARD_HAS_SRGBLED
+#endif  // BOARD_HAS_SRGBLED

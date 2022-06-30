@@ -41,21 +41,17 @@
 
 #include "ControlAllocationPseudoInverse.hpp"
 
-void
-ControlAllocationPseudoInverse::setEffectivenessMatrix(
+void ControlAllocationPseudoInverse::setEffectivenessMatrix(
 	const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &effectiveness,
 	const ActuatorVector &actuator_trim, const ActuatorVector &linearization_point, int num_actuators,
-	bool update_normalization_scale)
-{
+	bool update_normalization_scale) {
 	ControlAllocation::setEffectivenessMatrix(effectiveness, actuator_trim, linearization_point, num_actuators,
-			update_normalization_scale);
+						  update_normalization_scale);
 	_mix_update_needed = true;
 	_normalization_needs_update = update_normalization_scale;
 }
 
-void
-ControlAllocationPseudoInverse::updatePseudoInverse()
-{
+void ControlAllocationPseudoInverse::updatePseudoInverse() {
 	if (_mix_update_needed) {
 		matrix::geninv(_effectiveness, _mix);
 
@@ -69,17 +65,13 @@ ControlAllocationPseudoInverse::updatePseudoInverse()
 	}
 }
 
-void
-ControlAllocationPseudoInverse::updateControlAllocationMatrixScale()
-{
+void ControlAllocationPseudoInverse::updateControlAllocationMatrixScale() {
 	// Same scale on roll and pitch
 	if (_normalize_rpy) {
-
 		int num_non_zero_roll_torque = 0;
 		int num_non_zero_pitch_torque = 0;
 
 		for (int i = 0; i < _num_actuators; i++) {
-
 			if (fabsf(_mix(i, 0)) > 1e-3f) {
 				++num_non_zero_roll_torque;
 			}
@@ -113,8 +105,8 @@ ControlAllocationPseudoInverse::updateControlAllocationMatrixScale()
 		_control_allocation_scale(2) = 1.f;
 	}
 
-	// Scale thrust by the sum of the individual thrust axes, and use the scaling for the Z axis if there's no actuators
-	// (for tilted actuators)
+	// Scale thrust by the sum of the individual thrust axes, and use the scaling for the Z axis if there's no
+	// actuators (for tilted actuators)
 	_control_allocation_scale(THRUST_Z) = 1.f;
 
 	for (int axis_idx = 2; axis_idx >= 0; --axis_idx) {
@@ -139,9 +131,7 @@ ControlAllocationPseudoInverse::updateControlAllocationMatrixScale()
 	}
 }
 
-void
-ControlAllocationPseudoInverse::normalizeControlAllocationMatrix()
-{
+void ControlAllocationPseudoInverse::normalizeControlAllocationMatrix() {
 	if (_control_allocation_scale(0) > FLT_EPSILON) {
 		_mix.col(0) /= _control_allocation_scale(0);
 		_mix.col(1) /= _control_allocation_scale(1);
@@ -168,10 +158,8 @@ ControlAllocationPseudoInverse::normalizeControlAllocationMatrix()
 	}
 }
 
-void
-ControlAllocationPseudoInverse::allocate()
-{
-	//Compute new gains if needed
+void ControlAllocationPseudoInverse::allocate() {
+	// Compute new gains if needed
 	updatePseudoInverse();
 
 	_prev_actuator_sp = _actuator_sp;

@@ -33,37 +33,35 @@
 
 #pragma once
 
-
-#include <px4_arch/io_timer.h>
 #include <px4_arch/hw_description.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/io_timer_init.h>
 #include <px4_platform_common/constexpr_util.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform/io_timer_init.h>
 
 static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t io_timers_conf[MAX_IO_TIMERS],
-		Timer::TimerChannel timer, GPIO::GPIOPin pin)
-{
+							       Timer::TimerChannel timer, GPIO::GPIOPin pin) {
 	timer_io_channels_t ret{};
 
 	uint32_t gpio_af = 0;
 
 	switch (timer.channel) {
-	case Timer::ChannelA:
-		if (!(pin.pin & 1) && (pin.pin & 15) / 2 == (timer.timer - 1)) {
-			gpio_af = getGPIOPin(pin.pin) | GPIO_FUN(RP2040_GPIO_FUNC_PWM);
-		}
+		case Timer::ChannelA:
+			if (!(pin.pin & 1) && (pin.pin & 15) / 2 == (timer.timer - 1)) {
+				gpio_af = getGPIOPin(pin.pin) | GPIO_FUN(RP2040_GPIO_FUNC_PWM);
+			}
 
-		break;
+			break;
 
-	case Timer::ChannelB:
-		if ((pin.pin & 1) && (pin.pin & 15) / 2 == (timer.timer - 1)) {
-			gpio_af = getGPIOPin(pin.pin) | GPIO_FUN(RP2040_GPIO_FUNC_PWM);
-		}
+		case Timer::ChannelB:
+			if ((pin.pin & 1) && (pin.pin & 15) / 2 == (timer.timer - 1)) {
+				gpio_af = getGPIOPin(pin.pin) | GPIO_FUN(RP2040_GPIO_FUNC_PWM);
+			}
 
-		break;
+			break;
 
-	default:
-		break;
+		default:
+			break;
 	}
 
 	ret.gpio_in = gpio_af;
@@ -87,71 +85,71 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	return ret;
 }
 
-static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
-{
+static inline constexpr io_timers_t initIOTimer(Timer::Timer timer) {
 	bool nuttx_config_timer_enabled = false;
 	io_timers_t ret{};
 
 	switch (timer) {
-	case Timer::Timer0:
-		ret.base = timerBaseRegister(timer);
-#ifdef CONFIG_RP2040_PWM_CH0				// Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
-		nuttx_config_timer_enabled = true;
+		case Timer::Timer0:
+			ret.base = timerBaseRegister(timer);
+#ifdef CONFIG_RP2040_PWM_CH0  // Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::Timer1:
-		ret.base = timerBaseRegister(timer);
-#ifdef CONFIG_RP2040_PWM_CH1				// Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
-		nuttx_config_timer_enabled = true;
+		case Timer::Timer1:
+			ret.base = timerBaseRegister(timer);
+#ifdef CONFIG_RP2040_PWM_CH1  // Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::Timer2:
-		ret.base = timerBaseRegister(timer);
-#ifdef CONFIG_RP2040_PWM_CH2				// Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
-		nuttx_config_timer_enabled = true;
+		case Timer::Timer2:
+			ret.base = timerBaseRegister(timer);
+#ifdef CONFIG_RP2040_PWM_CH2  // Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::Timer3:
-		ret.base = timerBaseRegister(timer);
-#ifdef CONFIG_RP2040_PWM_CH3				// Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
-		nuttx_config_timer_enabled = true;
+		case Timer::Timer3:
+			ret.base = timerBaseRegister(timer);
+#ifdef CONFIG_RP2040_PWM_CH3  // Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::Timer4:
-		ret.base = timerBaseRegister(timer);
-#ifdef CONFIG_RP2040_PWM_CH4				// Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
-		nuttx_config_timer_enabled = true;
+		case Timer::Timer4:
+			ret.base = timerBaseRegister(timer);
+#ifdef CONFIG_RP2040_PWM_CH4  // Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::Timer5:
-		ret.base = timerBaseRegister(timer);
-#ifdef CONFIG_RP2040_PWM_CH5				// Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
-		nuttx_config_timer_enabled = true;
+		case Timer::Timer5:
+			ret.base = timerBaseRegister(timer);
+#ifdef CONFIG_RP2040_PWM_CH5  // Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::Timer6:
-		ret.base = timerBaseRegister(timer);
-#ifdef CONFIG_RP2040_PWM_CH6				// Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
-		nuttx_config_timer_enabled = true;
+		case Timer::Timer6:
+			ret.base = timerBaseRegister(timer);
+#ifdef CONFIG_RP2040_PWM_CH6  // Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::Timer7:
-		ret.base = timerBaseRegister(timer);
-#ifdef CONFIG_RP2040_PWM_CH7				// Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
-		nuttx_config_timer_enabled = true;
+		case Timer::Timer7:
+			ret.base = timerBaseRegister(timer);
+#ifdef CONFIG_RP2040_PWM_CH7  // Currently Nuttx doesn't have PWM support for RP2040. This is for possible future use.
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 	}
 
 	// This is not strictly required, but for consistency let's make sure NuttX timers are disabled
-	constexpr_assert(!nuttx_config_timer_enabled, "IO Timer requires NuttX timer config to be disabled (KINETIS_FTMx)");
+	constexpr_assert(!nuttx_config_timer_enabled,
+			 "IO Timer requires NuttX timer config to be disabled (KINETIS_FTMx)");
 
 	return ret;
 }

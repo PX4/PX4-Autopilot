@@ -40,14 +40,14 @@
  */
 
 #include "hello_example.h"
+
 #include <px4_platform_common/time.h>
-#include <unistd.h>
 #include <stdio.h>
+#include <unistd.h>
 
 px4::AppState HelloExample::appState;
 
-int HelloExample::main()
-{
+int HelloExample::main() {
 	appState.setRunning(true);
 
 	int i = 0;

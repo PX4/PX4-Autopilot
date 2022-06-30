@@ -13,8 +13,7 @@
 /*
  * Documented in the header file.
  */
-uint8_t toGS(const uint8_t bytes[])
-{
+uint8_t toGS(const uint8_t bytes[]) {
 	uint8_t code = bytes[0];
 	float gs = 0.0f;
 

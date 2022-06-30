@@ -37,13 +37,14 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
-#include <lib/mixer_module/mixer_module.hpp>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/parameter_update.h>
+
+#include <lib/mixer_module/mixer_module.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 
@@ -53,11 +54,9 @@
 #define PARAM_PREFIX "HIL_ACT"
 #endif
 
-
 using namespace time_literals;
 
-class PWMSim : public cdev::CDev, public ModuleBase<PWMSim>, public OutputModuleInterface
-{
+class PWMSim : public cdev::CDev, public ModuleBase<PWMSim>, public OutputModuleInterface {
 public:
 	PWMSim(bool hil_mode_enabled);
 
@@ -75,11 +74,10 @@ public:
 
 	int ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+			   unsigned num_control_groups_updated) override;
 
 private:
-
 	void Run() override;
 
 	static constexpr uint16_t PWM_SIM_DISARMED_MAGIC = 900;
@@ -87,9 +85,9 @@ private:
 	static constexpr uint16_t PWM_SIM_PWM_MIN_MAGIC = 1000;
 	static constexpr uint16_t PWM_SIM_PWM_MAX_MAGIC = 2000;
 
-	MixingOutput _mixing_output{PARAM_PREFIX, MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	MixingOutput _mixing_output{PARAM_PREFIX, MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto,
+				    false,        false};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Publication<actuator_outputs_s> _actuator_outputs_sim_pub{ORB_ID(actuator_outputs_sim)};
 };
-

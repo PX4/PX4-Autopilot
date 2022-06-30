@@ -33,32 +33,23 @@
 
 #include "Magnetometer.hpp"
 
-#include "Utilities.hpp"
-
 #include <lib/parameters/param.h>
+
+#include "Utilities.hpp"
 
 using namespace matrix;
 using namespace time_literals;
 
-namespace calibration
-{
+namespace calibration {
 
-Magnetometer::Magnetometer()
-{
-	Reset();
-}
+Magnetometer::Magnetometer() { Reset(); }
 
-Magnetometer::Magnetometer(uint32_t device_id)
-{
-	set_device_id(device_id);
-}
+Magnetometer::Magnetometer(uint32_t device_id) { set_device_id(device_id); }
 
-void Magnetometer::set_device_id(uint32_t device_id)
-{
+void Magnetometer::set_device_id(uint32_t device_id) {
 	bool external = DeviceExternal(device_id);
 
 	if (_device_id != device_id || _external != external) {
-
 		_device_id = device_id;
 		_external = external;
 
@@ -68,8 +59,7 @@ void Magnetometer::set_device_id(uint32_t device_id)
 	}
 }
 
-bool Magnetometer::set_offset(const Vector3f &offset)
-{
+bool Magnetometer::set_offset(const Vector3f &offset) {
 	if (Vector3f(_offset - offset).longerThan(0.01f)) {
 		if (PX4_ISFINITE(offset(0)) && PX4_ISFINITE(offset(1)) && PX4_ISFINITE(offset(2))) {
 			_offset = offset;
@@ -81,12 +71,10 @@ bool Magnetometer::set_offset(const Vector3f &offset)
 	return false;
 }
 
-bool Magnetometer::set_scale(const Vector3f &scale)
-{
+bool Magnetometer::set_scale(const Vector3f &scale) {
 	if (Vector3f(_scale.diag() - scale).longerThan(0.01f)) {
-		if ((scale(0) > 0.f) && (scale(1) > 0.f) && (scale(2) > 0.f) &&
-		    PX4_ISFINITE(scale(0)) && PX4_ISFINITE(scale(1)) && PX4_ISFINITE(scale(2))) {
-
+		if ((scale(0) > 0.f) && (scale(1) > 0.f) && (scale(2) > 0.f) && PX4_ISFINITE(scale(0)) &&
+		    PX4_ISFINITE(scale(1)) && PX4_ISFINITE(scale(2))) {
 			_scale(0, 0) = scale(0);
 			_scale(1, 1) = scale(1);
 			_scale(2, 2) = scale(2);
@@ -99,11 +87,9 @@ bool Magnetometer::set_scale(const Vector3f &scale)
 	return false;
 }
 
-bool Magnetometer::set_offdiagonal(const Vector3f &offdiagonal)
-{
+bool Magnetometer::set_offdiagonal(const Vector3f &offdiagonal) {
 	if (Vector3f(Vector3f{_scale(0, 1), _scale(0, 2), _scale(1, 2)} - offdiagonal).longerThan(0.01f)) {
 		if (PX4_ISFINITE(offdiagonal(0)) && PX4_ISFINITE(offdiagonal(1)) && PX4_ISFINITE(offdiagonal(2))) {
-
 			_scale(0, 1) = offdiagonal(0);
 			_scale(1, 0) = offdiagonal(0);
 
@@ -121,16 +107,14 @@ bool Magnetometer::set_offdiagonal(const Vector3f &offdiagonal)
 	return false;
 }
 
-void Magnetometer::set_rotation(Rotation rotation)
-{
+void Magnetometer::set_rotation(Rotation rotation) {
 	_rotation_enum = rotation;
 
 	// always apply board level adjustments
 	_rotation = Dcmf(GetSensorLevelAdjustment()) * get_rot_matrix(rotation);
 }
 
-bool Magnetometer::set_calibration_index(int calibration_index)
-{
+bool Magnetometer::set_calibration_index(int calibration_index) {
 	if ((calibration_index >= 0) && (calibration_index < MAX_SENSOR_COUNT)) {
 		_calibration_index = calibration_index;
 		return true;
@@ -139,8 +123,7 @@ bool Magnetometer::set_calibration_index(int calibration_index)
 	return false;
 }
 
-void Magnetometer::ParametersUpdate()
-{
+void Magnetometer::ParametersUpdate() {
 	if (_device_id == 0) {
 		return;
 	}
@@ -156,8 +139,7 @@ void Magnetometer::ParametersUpdate()
 	}
 }
 
-bool Magnetometer::ParametersLoad()
-{
+bool Magnetometer::ParametersLoad() {
 	if (_calibration_index >= 0 && _calibration_index < MAX_SENSOR_COUNT) {
 		// CAL_MAGx_ROT
 		int32_t rotation_value = GetCalibrationParamInt32(SensorString(), "ROT", _calibration_index);
@@ -183,8 +165,8 @@ bool Magnetometer::ParametersLoad()
 			static constexpr int32_t CAL_PRIO_UNINITIALIZED = -1;
 
 			if (_priority != CAL_PRIO_UNINITIALIZED) {
-				PX4_ERR("%s %" PRIu32 " (%" PRId8 ") invalid priority %" PRId32 ", resetting", SensorString(), _device_id,
-					_calibration_index, _priority);
+				PX4_ERR("%s %" PRIu32 " (%" PRId8 ") invalid priority %" PRId32 ", resetting",
+					SensorString(), _device_id, _calibration_index, _priority);
 
 				SetCalibrationParam(SensorString(), "PRIO", _calibration_index, CAL_PRIO_UNINITIALIZED);
 			}
@@ -210,8 +192,7 @@ bool Magnetometer::ParametersLoad()
 	return false;
 }
 
-void Magnetometer::Reset()
-{
+void Magnetometer::Reset() {
 	if (_external) {
 		set_rotation(ROTATION_NONE);
 
@@ -233,21 +214,20 @@ void Magnetometer::Reset()
 	_calibration_count = 0;
 }
 
-bool Magnetometer::ParametersSave(int desired_calibration_index, bool force)
-{
+bool Magnetometer::ParametersSave(int desired_calibration_index, bool force) {
 	if (force && desired_calibration_index >= 0 && desired_calibration_index < MAX_SENSOR_COUNT) {
 		_calibration_index = desired_calibration_index;
 
-	} else if (!force || (_calibration_index < 0)
-		   || (desired_calibration_index != -1 && desired_calibration_index != _calibration_index)) {
-
+	} else if (!force || (_calibration_index < 0) ||
+		   (desired_calibration_index != -1 && desired_calibration_index != _calibration_index)) {
 		// ensure we have a valid calibration slot (matching existing or first available slot)
 		int8_t calibration_index_prev = _calibration_index;
-		_calibration_index = FindAvailableCalibrationIndex(SensorString(), _device_id, desired_calibration_index);
+		_calibration_index =
+			FindAvailableCalibrationIndex(SensorString(), _device_id, desired_calibration_index);
 
 		if (calibration_index_prev >= 0 && (calibration_index_prev != _calibration_index)) {
-			PX4_WARN("%s %" PRIu32 " calibration index changed %" PRIi8 " -> %" PRIi8, SensorString(), _device_id,
-				 calibration_index_prev, _calibration_index);
+			PX4_WARN("%s %" PRIu32 " calibration index changed %" PRIi8 " -> %" PRIi8, SensorString(),
+				 _device_id, calibration_index_prev, _calibration_index);
 		}
 	}
 
@@ -264,13 +244,15 @@ bool Magnetometer::ParametersSave(int desired_calibration_index, bool force)
 		const Vector3f off_diag{_scale(0, 1), _scale(0, 2), _scale(1, 2)};
 		success &= SetCalibrationParamsVector3f(SensorString(), "ODIAG", _calibration_index, off_diag);
 
-		success &= SetCalibrationParamsVector3f(SensorString(), "COMP", _calibration_index, _power_compensation);
+		success &=
+			SetCalibrationParamsVector3f(SensorString(), "COMP", _calibration_index, _power_compensation);
 
 		if (_external) {
-			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, (int32_t)_rotation_enum);
+			success &=
+				SetCalibrationParam(SensorString(), "ROT", _calibration_index, (int32_t)_rotation_enum);
 
 		} else {
-			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1); // internal
+			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);  // internal
 		}
 
 		return success;
@@ -279,27 +261,24 @@ bool Magnetometer::ParametersSave(int desired_calibration_index, bool force)
 	return false;
 }
 
-void Magnetometer::PrintStatus()
-{
+void Magnetometer::PrintStatus() {
 	if (external()) {
 		PX4_INFO_RAW("%s %" PRIu32
 			     " EN: %d, offset: [%05.3f %05.3f %05.3f], scale: [%05.3f %05.3f %05.3f], Ext ROT: %d\n",
-			     SensorString(), device_id(), enabled(),
-			     (double)_offset(0), (double)_offset(1), (double)_offset(2),
-			     (double)_scale(0, 0), (double)_scale(1, 1), (double)_scale(2, 2),
+			     SensorString(), device_id(), enabled(), (double)_offset(0), (double)_offset(1),
+			     (double)_offset(2), (double)_scale(0, 0), (double)_scale(1, 1), (double)_scale(2, 2),
 			     rotation_enum());
 
 	} else {
 		PX4_INFO_RAW("%s %" PRIu32
 			     " EN: %d, offset: [%05.3f %05.3f %05.3f], scale: [%05.3f %05.3f %05.3f], Internal\n",
-			     SensorString(), device_id(), enabled(),
-			     (double)_offset(0), (double)_offset(1), (double)_offset(2),
-			     (double)_scale(0, 0), (double)_scale(1, 1), (double)_scale(2, 2));
+			     SensorString(), device_id(), enabled(), (double)_offset(0), (double)_offset(1),
+			     (double)_offset(2), (double)_scale(0, 0), (double)_scale(1, 1), (double)_scale(2, 2));
 	}
 
 #if defined(DEBUG_BUILD)
 	_scale.print();
-#endif // DEBUG_BUILD
+#endif  // DEBUG_BUILD
 }
 
-} // namespace calibration
+}  // namespace calibration

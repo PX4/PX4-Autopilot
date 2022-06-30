@@ -36,8 +36,7 @@
 
 #include <uORB/topics/vehicle_optical_flow.h>
 
-class MavlinkStreamOpticalFlowRad : public MavlinkStream
-{
+class MavlinkStreamOpticalFlowRad : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamOpticalFlowRad(mavlink); }
 
@@ -47,10 +46,10 @@ public:
 	const char *get_name() const override { return MavlinkStreamOpticalFlowRad::get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _vehicle_optical_flow_sub.advertised() ? (MAVLINK_MSG_ID_OPTICAL_FLOW_RAD_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) :
-		       0;
+	unsigned get_size() override {
+		return _vehicle_optical_flow_sub.advertised()
+			       ? (MAVLINK_MSG_ID_OPTICAL_FLOW_RAD_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)
+			       : 0;
 	}
 
 private:
@@ -58,8 +57,7 @@ private:
 
 	uORB::Subscription _vehicle_optical_flow_sub{ORB_ID(vehicle_optical_flow)};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_optical_flow_s flow;
 
 		if (_vehicle_optical_flow_sub.update(&flow)) {
@@ -93,4 +91,4 @@ private:
 	}
 };
 
-#endif // OPTICAL_FLOW_RAD_HPP
+#endif  // OPTICAL_FLOW_RAD_HPP

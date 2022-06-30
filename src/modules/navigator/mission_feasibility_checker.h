@@ -48,8 +48,7 @@
 class Geofence;
 class Navigator;
 
-class MissionFeasibilityChecker
-{
+class MissionFeasibilityChecker {
 private:
 	Navigator *_navigator{nullptr};
 
@@ -86,8 +85,6 @@ public:
 	/*
 	 * Returns true if mission is feasible and false otherwise
 	 */
-	bool checkMissionFeasible(const mission_s &mission,
-				  float max_distance_to_1st_waypoint, float max_distance_between_waypoints,
-				  bool land_start_req);
-
+	bool checkMissionFeasible(const mission_s &mission, float max_distance_to_1st_waypoint,
+				  float max_distance_between_waypoints, bool land_start_req);
 };

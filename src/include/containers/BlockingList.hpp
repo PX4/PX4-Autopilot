@@ -39,43 +39,36 @@
 
 #pragma once
 
-#include "IntrusiveSortedList.hpp"
-#include "LockGuard.hpp"
-
 #include <pthread.h>
 #include <stdlib.h>
 
-template<class T>
-class BlockingList : public IntrusiveSortedList<T>
-{
-public:
+#include "IntrusiveSortedList.hpp"
+#include "LockGuard.hpp"
 
-	~BlockingList()
-	{
+template <class T>
+class BlockingList : public IntrusiveSortedList<T> {
+public:
+	~BlockingList() {
 		pthread_mutex_destroy(&_mutex);
 		pthread_cond_destroy(&_cv);
 	}
 
-	void add(T newNode)
-	{
+	void add(T newNode) {
 		LockGuard lg{_mutex};
 		IntrusiveSortedList<T>::add(newNode);
 	}
 
-	bool remove(T removeNode)
-	{
+	bool remove(T removeNode) {
 		LockGuard lg{_mutex};
 		return IntrusiveSortedList<T>::remove(removeNode);
 	}
 
-	size_t size()
-	{
+	size_t size() {
 		LockGuard lg{_mutex};
 		return IntrusiveSortedList<T>::size();
 	}
 
-	void clear()
-	{
+	void clear() {
 		LockGuard lg{_mutex};
 		IntrusiveSortedList<T>::clear();
 	}
@@ -83,8 +76,6 @@ public:
 	pthread_mutex_t &mutex() { return _mutex; }
 
 private:
-
-	pthread_mutex_t	_mutex = PTHREAD_MUTEX_INITIALIZER;
-	pthread_cond_t	_cv = PTHREAD_COND_INITIALIZER;
-
+	pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;
+	pthread_cond_t _cv = PTHREAD_COND_INITIALIZER;
 };

@@ -43,9 +43,8 @@
 
 #include "SlewRate.hpp"
 
-template<typename Type>
-class SlewRateYaw : public SlewRate<Type>
-{
+template <typename Type>
+class SlewRateYaw : public SlewRate<Type> {
 public:
 	SlewRateYaw() = default;
 	~SlewRateYaw() = default;
@@ -56,8 +55,7 @@ public:
 	 * @param deltatime time in seconds since last update
 	 * @return actual value that complies with the slew rate
 	 */
-	Type update(const Type new_value, const float deltatime)
-	{
+	Type update(const Type new_value, const float deltatime) {
 		const Type d_wrapped = matrix::wrap_pi(new_value - this->_value);
 		return matrix::wrap_pi(SlewRate<Type>::update(this->_value + d_wrapped, deltatime));
 	}

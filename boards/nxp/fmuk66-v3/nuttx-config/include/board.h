@@ -45,7 +45,7 @@
 #include <nuttx/config.h>
 
 #ifndef __ASSEMBLY__
-#  include <stdint.h>
+#include <stdint.h>
 #endif
 
 #include <arch/chip/chip.h>
@@ -66,19 +66,19 @@
  *
  * Y1 a High-frequency, Oscillator
  */
-#define BOARD_EXTAL_LP		 1
-#define BOARD_EXTAL_FREQ     16000000       /* 16MHz Oscillator Y1 */
-#define BOARD_XTAL32_FREQ    32768          /* 32KHz RTC Oscillator */
+#define BOARD_EXTAL_LP 1
+#define BOARD_EXTAL_FREQ 16000000 /* 16MHz Oscillator Y1 */
+#define BOARD_XTAL32_FREQ 32768   /* 32KHz RTC Oscillator */
 
-#define BOARD_OSC_CR         OSC_CR_ERCLKEN /* Enable the OSCERCLK */
-#define BOARD_OSC_DIV        OSC_DIV_ERPS_DIV1 /* No OSCERCLK Divide */
+#define BOARD_OSC_CR OSC_CR_ERCLKEN     /* Enable the OSCERCLK */
+#define BOARD_OSC_DIV OSC_DIV_ERPS_DIV1 /* No OSCERCLK Divide */
 
 /* FLL Configuration.
  *  BOARD_EXTAL_FREQ / BOARD_FRDIV has to be in the range 31.25 kHz to 39.0625
  *  16 Mhz / MCG_C1_FRDIV_DIV512 = 31.25 kHz * 640 the default for MCG_C4
  *  FLL is 20Mhz
  */
-#define BOARD_FRDIV          MCG_C1_FRDIV_DIV512
+#define BOARD_FRDIV MCG_C1_FRDIV_DIV512
 
 /* PLL Configuration.  Either the external clock or crystal frequency is used to
  * select the PRDIV value. Only reference clock frequencies are supported that will
@@ -93,36 +93,36 @@
  * VDIV  register value is offset by KINETIS_MCG_C6_VDIV_BASE.
  */
 
-#define BOARD_PRDIV          2              /* PLL External Reference Divider */
-#define BOARD_VDIV           42             /* PLL VCO Divider (frequency multiplier) */
+#define BOARD_PRDIV 2 /* PLL External Reference Divider */
+#define BOARD_VDIV 42 /* PLL VCO Divider (frequency multiplier) */
 
 /* Define additional MCG_C2 Setting */
 
-#define BOARD_MCG_C2_FCFTRIM 0              /* Do not enable FCFTRIM */
-#define BOARD_MCG_C2_LOCRE0  MCG_C2_LOCRE0  /* Enable reset on loss of clock */
+#define BOARD_MCG_C2_FCFTRIM 0            /* Do not enable FCFTRIM */
+#define BOARD_MCG_C2_LOCRE0 MCG_C2_LOCRE0 /* Enable reset on loss of clock */
 
-#define BOARD_PLLIN_FREQ     (BOARD_EXTAL_FREQ / BOARD_PRDIV)
-#define BOARD_PLLOUT_FREQ    (BOARD_PLLIN_FREQ * BOARD_VDIV)
-#define BOARD_MCG_FREQ       (BOARD_PLLOUT_FREQ/KINETIS_MCG_PLL_INTERNAL_DIVBY)
+#define BOARD_PLLIN_FREQ (BOARD_EXTAL_FREQ / BOARD_PRDIV)
+#define BOARD_PLLOUT_FREQ (BOARD_PLLIN_FREQ * BOARD_VDIV)
+#define BOARD_MCG_FREQ (BOARD_PLLOUT_FREQ / KINETIS_MCG_PLL_INTERNAL_DIVBY)
 
 /* SIM CLKDIV1 dividers */
 
-#define BOARD_OUTDIV1        1              /* Core        = MCG,    168 MHz */
-#define BOARD_OUTDIV2        3              /* Bus         = MCG / 3, 56 MHz */
-#define BOARD_OUTDIV3        3              /* FlexBus     = MCG / 3, 56 MHz */
-#define BOARD_OUTDIV4        6              /* Flash clock = MCG / 6, 28 MHz */
+#define BOARD_OUTDIV1 1 /* Core        = MCG,    168 MHz */
+#define BOARD_OUTDIV2 3 /* Bus         = MCG / 3, 56 MHz */
+#define BOARD_OUTDIV3 3 /* FlexBus     = MCG / 3, 56 MHz */
+#define BOARD_OUTDIV4 6 /* Flash clock = MCG / 6, 28 MHz */
 
-#define BOARD_CORECLK_FREQ  (BOARD_MCG_FREQ / BOARD_OUTDIV1)
-#define BOARD_BUS_FREQ      (BOARD_MCG_FREQ / BOARD_OUTDIV2)
-#define BOARD_FLEXBUS_FREQ  (BOARD_MCG_FREQ / BOARD_OUTDIV3)
+#define BOARD_CORECLK_FREQ (BOARD_MCG_FREQ / BOARD_OUTDIV1)
+#define BOARD_BUS_FREQ (BOARD_MCG_FREQ / BOARD_OUTDIV2)
+#define BOARD_FLEXBUS_FREQ (BOARD_MCG_FREQ / BOARD_OUTDIV3)
 #define BOARD_FLASHCLK_FREQ (BOARD_MCG_FREQ / BOARD_OUTDIV4)
 
 /* Use BOARD_MCG_FREQ as the output SIM_SOPT2 MUX selected by
  * SIM_SOPT2[PLLFLLSEL]
  */
 
-#define BOARD_SOPT2_PLLFLLSEL   SIM_SOPT2_PLLFLLSEL_MCGPLLCLK
-#define BOARD_SOPT2_FREQ        BOARD_MCG_FREQ
+#define BOARD_SOPT2_PLLFLLSEL SIM_SOPT2_PLLFLLSEL_MCGPLLCLK
+#define BOARD_SOPT2_FREQ BOARD_MCG_FREQ
 
 /* Divider output clock = Divider input clock × [ (USBFRAC+1) / (USBDIV+1) ]
  *     SIM_CLKDIV2_FREQ = BOARD_SOPT2_FREQ × [ (USBFRAC+1) / (USBDIV+1) ]
@@ -130,12 +130,11 @@
  *                48Mhz = 168Mhz / (6 + 1) * (1 + 1)
  */
 
-#define BOARD_SIM_CLKDIV2_USBFRAC     2
-#define BOARD_SIM_CLKDIV2_USBDIV      7
-#define BOARD_SIM_CLKDIV2_FREQ        (BOARD_SOPT2_FREQ / BOARD_SIM_CLKDIV2_USBDIV * BOARD_SIM_CLKDIV2_USBFRAC)
-#define BOARD_USB_CLKSRC               SIM_SOPT2_USBSRC
-#define BOARD_USB_FREQ                 BOARD_SIM_CLKDIV2_FREQ
-
+#define BOARD_SIM_CLKDIV2_USBFRAC 2
+#define BOARD_SIM_CLKDIV2_USBDIV 7
+#define BOARD_SIM_CLKDIV2_FREQ (BOARD_SOPT2_FREQ / BOARD_SIM_CLKDIV2_USBDIV * BOARD_SIM_CLKDIV2_USBFRAC)
+#define BOARD_USB_CLKSRC SIM_SOPT2_USBSRC
+#define BOARD_USB_FREQ BOARD_SIM_CLKDIV2_FREQ
 
 /* Divider output clock = Divider input clock * ((PLLFLLFRAC+1)/(PLLFLLDIV+1))
  *  SIM_CLKDIV3_FREQ = BOARD_SOPT2_FREQ × [ (PLLFLLFRAC+1) / (PLLFLLDIV+1)]
@@ -143,15 +142,15 @@
  *            84 Mhz = 168 Mhz / (1 + 1) * (0 + 1)
  */
 
-#define BOARD_SIM_CLKDIV3_PLLFLLFRAC  1
-#define BOARD_SIM_CLKDIV3_PLLFLLDIV   2
-#define BOARD_SIM_CLKDIV3_FREQ        (BOARD_SOPT2_FREQ / BOARD_SIM_CLKDIV3_PLLFLLDIV * BOARD_SIM_CLKDIV3_PLLFLLFRAC)
+#define BOARD_SIM_CLKDIV3_PLLFLLFRAC 1
+#define BOARD_SIM_CLKDIV3_PLLFLLDIV 2
+#define BOARD_SIM_CLKDIV3_FREQ (BOARD_SOPT2_FREQ / BOARD_SIM_CLKDIV3_PLLFLLDIV * BOARD_SIM_CLKDIV3_PLLFLLFRAC)
 
-#define BOARD_LPUART0_CLKSRC           SIM_SOPT2_LPUARTSRC_MCGCLK
-#define BOARD_LPUART0_FREQ             BOARD_SIM_CLKDIV3_FREQ
+#define BOARD_LPUART0_CLKSRC SIM_SOPT2_LPUARTSRC_MCGCLK
+#define BOARD_LPUART0_FREQ BOARD_SIM_CLKDIV3_FREQ
 
-#define BOARD_TPM_CLKSRC               SIM_SOPT2_TPMSRC_OCSERCLK
-#define BOARD_TPM_FREQ                 BOARD_EXTAL_FREQ
+#define BOARD_TPM_CLKSRC SIM_SOPT2_TPMSRC_OCSERCLK
+#define BOARD_TPM_FREQ BOARD_EXTAL_FREQ
 
 /* SDHC clocking ********************************************************************/
 
@@ -176,31 +175,30 @@
 
 /* Identification mode:  Optimal 400KHz, Actual 168Mhz / (32 * 14) = 375 KHz */
 
-#define BOARD_SDHC_IDMODE_PRESCALER    SDHC_SYSCTL_SDCLKFS_DIV32
-#define BOARD_SDHC_IDMODE_DIVISOR      SDHC_SYSCTL_DVS_DIV(14)
+#define BOARD_SDHC_IDMODE_PRESCALER SDHC_SYSCTL_SDCLKFS_DIV32
+#define BOARD_SDHC_IDMODE_DIVISOR SDHC_SYSCTL_DVS_DIV(14)
 
 /* MMC normal mode: Optimal 20MHz, Actual 168Mhz / (2 * 5) = 16.8 MHz */
 
-#define BOARD_SDHC_MMCMODE_PRESCALER   SDHC_SYSCTL_SDCLKFS_DIV2
-#define BOARD_SDHC_MMCMODE_DIVISOR     SDHC_SYSCTL_DVS_DIV(5)
+#define BOARD_SDHC_MMCMODE_PRESCALER SDHC_SYSCTL_SDCLKFS_DIV2
+#define BOARD_SDHC_MMCMODE_DIVISOR SDHC_SYSCTL_DVS_DIV(5)
 
 /* SD normal mode (1-bit): Optimal 20MHz, Actual 168Mhz / (2 * 5) = 16.8 MHz */
 
-#define BOARD_SDHC_SD1MODE_PRESCALER   SDHC_SYSCTL_SDCLKFS_DIV2
-#define BOARD_SDHC_SD1MODE_DIVISOR     SDHC_SYSCTL_DVS_DIV(5)
+#define BOARD_SDHC_SD1MODE_PRESCALER SDHC_SYSCTL_SDCLKFS_DIV2
+#define BOARD_SDHC_SD1MODE_DIVISOR SDHC_SYSCTL_DVS_DIV(5)
 
 /* SD normal mode (4-bit): Optimal 25MHz, Actual Actual 168Mhz / (2 * 4) = 21 MHz (with DMA)
  * SD normal mode (4-bit): Optimal 20MHz, Actual 168Mhz / (2 * 5) = 16.8 MHz (no DMA)
  */
 
 #ifdef CONFIG_KINETIS_SDHC_DMA
-#  define BOARD_SDHC_SD4MODE_PRESCALER SDHC_SYSCTL_SDCLKFS_DIV2
-#  define BOARD_SDHC_SD4MODE_DIVISOR   SDHC_SYSCTL_DVS_DIV(4)
+#define BOARD_SDHC_SD4MODE_PRESCALER SDHC_SYSCTL_SDCLKFS_DIV2
+#define BOARD_SDHC_SD4MODE_DIVISOR SDHC_SYSCTL_DVS_DIV(4)
 #else
-#  define BOARD_SDHC_SD4MODE_PRESCALER SDHC_SYSCTL_SDCLKFS_DIV2
-#  define BOARD_SDHC_SD4MODE_DIVISOR   SDHC_SYSCTL_DVS_DIV(5)
+#define BOARD_SDHC_SD4MODE_PRESCALER SDHC_SYSCTL_SDCLKFS_DIV2
+#define BOARD_SDHC_SD4MODE_DIVISOR SDHC_SYSCTL_DVS_DIV(5)
 #endif
-
 
 /* LED definitions ******************************************************************/
 /* The NXP FMUK66-V3 has a separate Red, Green and Blue LEDs driven by the K66 as
@@ -218,16 +216,16 @@
 
 /* LED index values for use with board_userled() */
 
-#define BOARD_LED_R       0
-#define BOARD_LED_G       1
-#define BOARD_LED_B       2
-#define BOARD_NLEDS       3
+#define BOARD_LED_R 0
+#define BOARD_LED_G 1
+#define BOARD_LED_B 2
+#define BOARD_NLEDS 3
 
 /* LED bits for use with board_userled_all() */
 
-#define BOARD_LED_R_BIT   (1 << BOARD_LED_R)
-#define BOARD_LED_G_BIT   (1 << BOARD_LED_G)
-#define BOARD_LED_B_BIT   (1 << BOARD_LED_B)
+#define BOARD_LED_R_BIT (1 << BOARD_LED_R)
+#define BOARD_LED_G_BIT (1 << BOARD_LED_G)
+#define BOARD_LED_B_BIT (1 << BOARD_LED_B)
 
 /* If CONFIG_ARCH_LEDs is defined, then NuttX will control the LED on board
  * the NXP FMUK66-V3.  The following definitions describe how NuttX controls
@@ -236,15 +234,15 @@
  *   SYMBOL                Meaning                      LED state
  *                                                      RED   GREEN  BLUE
  *   -------------------  ----------------------------  ----------------- */
-#define LED_STARTED       1 /* NuttX has been started    OFF   OFF    OFF */
-#define LED_HEAPALLOCATE  2 /* Heap has been allocated   OFF   OFF    ON  */
-#define LED_IRQSENABLED   0 /* Interrupts enabled        OFF   OFF    ON  */
-#define LED_STACKCREATED  3 /* Idle stack created        OFF   ON     OFF */
-#define LED_INIRQ         0 /* In an interrupt          (no change)       */
-#define LED_SIGNAL        0 /* In a signal handler      (no change)       */
-#define LED_ASSERTION     0 /* An assertion failed      (no change)       */
-#define LED_PANIC         4 /* The system has crashed    FLASH OFF    OFF */
-#undef  LED_IDLE            /* K66 is in sleep mode     (Not used)        */
+#define LED_STARTED 1      /* NuttX has been started    OFF   OFF    OFF */
+#define LED_HEAPALLOCATE 2 /* Heap has been allocated   OFF   OFF    ON  */
+#define LED_IRQSENABLED 0  /* Interrupts enabled        OFF   OFF    ON  */
+#define LED_STACKCREATED 3 /* Idle stack created        OFF   ON     OFF */
+#define LED_INIRQ 0        /* In an interrupt          (no change)       */
+#define LED_SIGNAL 0       /* In a signal handler      (no change)       */
+#define LED_ASSERTION 0    /* An assertion failed      (no change)       */
+#define LED_PANIC 4        /* The system has crashed    FLASH OFF    OFF */
+#undef LED_IDLE            /* K66 is in sleep mode     (Not used)        */
 
 /* Alternative pin resolution *******************************************************/
 /* If there are alternative configurations for various pins in the
@@ -263,10 +261,10 @@
  * CAN1RX  P19-3(L) PTC17  124  CAN1_RX
  *
  */
-#define PIN_CAN0_RX       PIN_CAN0_RX_2
-#define PIN_CAN0_TX       PIN_CAN0_TX_2
-#define PIN_CAN1_RX       PIN_CAN1_RX_2
-#define PIN_CAN1_TX       PIN_CAN1_TX_2
+#define PIN_CAN0_RX PIN_CAN0_RX_2
+#define PIN_CAN0_TX PIN_CAN0_TX_2
+#define PIN_CAN1_RX PIN_CAN1_RX_2
+#define PIN_CAN1_TX PIN_CAN1_TX_2
 
 /* 12C
  *
@@ -289,8 +287,8 @@
  * ----- --- -------  --------------------------- ------
  */
 
-#define PIN_I2C0_SCL     PIN_I2C0_SCL_4   /* PTE24  IIC_SCL */
-#define PIN_I2C0_SDA     PIN_I2C0_SDA_4   /* PTE25  IIC_SDA */
+#define PIN_I2C0_SCL PIN_I2C0_SCL_4 /* PTE24  IIC_SCL */
+#define PIN_I2C0_SDA PIN_I2C0_SDA_4 /* PTE25  IIC_SDA */
 
 /* I2C1
  *
@@ -301,9 +299,8 @@
  * ----- --- -------  -------------- ------------- ------
  */
 
-#define PIN_I2C1_SCL     PIN_I2C1_SCL_1   /* PTC10 GPS / Pressure Sensor*/
-#define PIN_I2C1_SDA     PIN_I2C1_SDA_1   /* PTC11 GPS / Pressure Sensor */
-
+#define PIN_I2C1_SCL PIN_I2C1_SCL_1 /* PTC10 GPS / Pressure Sensor*/
+#define PIN_I2C1_SDA PIN_I2C1_SDA_1 /* PTC11 GPS / Pressure Sensor */
 
 /* SPI
  *
@@ -311,21 +308,21 @@
 
 /* SPI0 FRAM */
 
-#define PIN_SPI0_PCS0    PIN_SPI0_PCS2_1  /* PTC2 SPI_CS  FRAM_CS   */
-#define PIN_SPI0_SCK     PIN_SPI0_SCK_2   /* PTC5 SPI_CLK FRAM_SCK  */
-#define PIN_SPI0_OUT     PIN_SPI0_SOUT_2  /* PTC6 SPI_OUT FRAM_MOSI */
-#define PIN_SPI0_SIN     PIN_SPI0_SIN_2   /* PTC7 SPI_IN  FRAM_MISO */
+#define PIN_SPI0_PCS0 PIN_SPI0_PCS2_1 /* PTC2 SPI_CS  FRAM_CS   */
+#define PIN_SPI0_SCK PIN_SPI0_SCK_2   /* PTC5 SPI_CLK FRAM_SCK  */
+#define PIN_SPI0_OUT PIN_SPI0_SOUT_2  /* PTC6 SPI_OUT FRAM_MOSI */
+#define PIN_SPI0_SIN PIN_SPI0_SIN_2   /* PTC7 SPI_IN  FRAM_MISO */
 
 /* SPI1
  * FXOS8700CQ Accelerometer
  * FXAS21002CQ Gyroscope
  */
 
-#define PIN_SPI1_PCS0    PIN_SPI1_PCS0_1  /* PTB10 A_CS   */
-#define PIN_SPI1_PCS1    PIN_SPI1_PCS1_1  /* PTB9  GM_CS  */
-#define PIN_SPI1_SCK     PIN_SPI1_SCK_1   /* PTB11 A_SCLK */
-#define PIN_SPI1_OUT     PIN_SPI1_SOUT_1  /* PTB16 A_MOSI */
-#define PIN_SPI1_SIN     PIN_SPI1_SIN_1   /* PTB17 A_MISO */
+#define PIN_SPI1_PCS0 PIN_SPI1_PCS0_1 /* PTB10 A_CS   */
+#define PIN_SPI1_PCS1 PIN_SPI1_PCS1_1 /* PTB9  GM_CS  */
+#define PIN_SPI1_SCK PIN_SPI1_SCK_1   /* PTB11 A_SCLK */
+#define PIN_SPI1_OUT PIN_SPI1_SOUT_1  /* PTB16 A_MOSI */
+#define PIN_SPI1_SIN PIN_SPI1_SIN_1   /* PTB17 A_MISO */
 
 /* SPI2
  * Bit   Pin Device   Signal     Conn
@@ -337,10 +334,10 @@
  *
  */
 
-#define PIN_SPI2_PCS0    PIN_SPI2_PCS0_1  /* PTB20 SPI2_CS  */
-#define PIN_SPI2_SCK     PIN_SPI2_SCK_1   /* PTB21 SPI2_CLK */
-#define PIN_SPI2_OUT     PIN_SPI2_SOUT_1  /* PTB22 SPI2_OUT */
-#define PIN_SPI2_SIN     PIN_SPI2_SIN_1   /* PTB23 SPI2_IN  */
+#define PIN_SPI2_PCS0 PIN_SPI2_PCS0_1 /* PTB20 SPI2_CS  */
+#define PIN_SPI2_SCK PIN_SPI2_SCK_1   /* PTB21 SPI2_CLK */
+#define PIN_SPI2_OUT PIN_SPI2_SOUT_1  /* PTB22 SPI2_OUT */
+#define PIN_SPI2_SIN PIN_SPI2_SIN_1   /* PTB23 SPI2_IN  */
 
 /* UART
  *
@@ -354,8 +351,8 @@
  *  -------- ----- ------ ---------
  */
 
-#define PIN_LPUART0_RX      (PIN_LPUART0_RX_3 | GPIO_PULLUP)
-#define PIN_LPUART0_TX      PIN_LPUART0_TX_3
+#define PIN_LPUART0_RX (PIN_LPUART0_RX_3 | GPIO_PULLUP)
+#define PIN_LPUART0_TX PIN_LPUART0_TX_3
 
 /* UART0
  *
@@ -366,8 +363,8 @@
  *  -------- ------------ ------- ---------
  */
 
-#define PIN_UART0_RX      PIN_UART0_RX_1
-#define PIN_UART0_TX      PIN_UART0_TX_1
+#define PIN_UART0_RX PIN_UART0_RX_1
+#define PIN_UART0_TX PIN_UART0_TX_1
 
 /* UART1
  *
@@ -378,8 +375,8 @@
  *  ------------- ------------ ----- ---------
  */
 
-#define PIN_UART1_RX      PIN_UART1_RX_1
-#define PIN_UART1_TX      PIN_UART1_TX_1
+#define PIN_UART1_RX PIN_UART1_RX_1
+#define PIN_UART1_TX PIN_UART1_TX_1
 
 /* UART2
  * No Alternative pins for UART2
@@ -402,10 +399,10 @@
  *  -------- ------------ ------- ---------
  */
 
-#define PIN_UART4_RX      PIN_UART4_RX_1
-#define PIN_UART4_TX      PIN_UART4_TX_1
-#define PIN_UART4_RTS     PIN_UART4_RTS_2
-#define PIN_UART4_CTS     PIN_UART4_CTS_1
+#define PIN_UART4_RX PIN_UART4_RX_1
+#define PIN_UART4_TX PIN_UART4_TX_1
+#define PIN_UART4_RTS PIN_UART4_RTS_2
+#define PIN_UART4_CTS PIN_UART4_CTS_1
 
 /*
  * Ethernet TJA1100 OPEN Alliance BroadR-Reach PHY for Automotive Ethernet
@@ -455,38 +452,55 @@
  *
  */
 
-#define PIN_RMII0_MDIO    PIN_RMII0_MDIO_1
-#define PIN_RMII0_MDC     PIN_RMII0_MDC_1
-#define PIN_ENET_PHY_RST  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN28)
-#define PIN_ENET_PHY_EN   (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN29)
+#define PIN_RMII0_MDIO PIN_RMII0_MDIO_1
+#define PIN_RMII0_MDC PIN_RMII0_MDC_1
+#define PIN_ENET_PHY_RST (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN28)
+#define PIN_ENET_PHY_EN (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN29)
 
 /* Board provides GPIO or other Hardware for signaling to timing analyzer */
 
 #if defined(CONFIG_BOARD_USE_PROBES)
-# define PROBE_N(n) (1<<((n)-1))
-# define PROBE_1  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTC | PIN1)
-# define PROBE_2  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTA | PIN6)
-# define PROBE_3  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTD | PIN4)
-# define PROBE_4  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTD | PIN5)
-# define PROBE_5  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTE | PIN11)
-# define PROBE_6  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTE | PIN12)
+#define PROBE_N(n) (1 << ((n)-1))
+#define PROBE_1 (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTC | PIN1)
+#define PROBE_2 (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTA | PIN6)
+#define PROBE_3 (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTD | PIN4)
+#define PROBE_4 (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTD | PIN5)
+#define PROBE_5 (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTE | PIN11)
+#define PROBE_6 (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTE | PIN12)
 
-# define PROBE_INIT(mask) \
-	do { \
-		if ((mask)& PROBE_N(1)) { kinetis_pinconfig(PROBE_1); } \
-		if ((mask)& PROBE_N(2)) { kinetis_pinconfig(PROBE_2); } \
-		if ((mask)& PROBE_N(3)) { kinetis_pinconfig(PROBE_3); } \
-		if ((mask)& PROBE_N(4)) { kinetis_pinconfig(PROBE_4); } \
-		if ((mask)& PROBE_N(5)) { kinetis_pinconfig(PROBE_5); } \
-		if ((mask)& PROBE_N(6)) { kinetis_pinconfig(PROBE_6); } \
-	} while(0)
+#define PROBE_INIT(mask)                            \
+	do {                                        \
+		if ((mask)&PROBE_N(1)) {            \
+			kinetis_pinconfig(PROBE_1); \
+		}                                   \
+		if ((mask)&PROBE_N(2)) {            \
+			kinetis_pinconfig(PROBE_2); \
+		}                                   \
+		if ((mask)&PROBE_N(3)) {            \
+			kinetis_pinconfig(PROBE_3); \
+		}                                   \
+		if ((mask)&PROBE_N(4)) {            \
+			kinetis_pinconfig(PROBE_4); \
+		}                                   \
+		if ((mask)&PROBE_N(5)) {            \
+			kinetis_pinconfig(PROBE_5); \
+		}                                   \
+		if ((mask)&PROBE_N(6)) {            \
+			kinetis_pinconfig(PROBE_6); \
+		}                                   \
+	} while (0)
 
-# define PROBE(n,s)  do {kinetis_gpiowrite(PROBE_##n,(s));}while(0)
-# define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)
+#define PROBE(n, s)                                \
+	do {                                       \
+		kinetis_gpiowrite(PROBE_##n, (s)); \
+	} while (0)
+#define PROBE_MARK(n)    \
+	PROBE(n, false); \
+	PROBE(n, true)
 #else
-# define PROBE_INIT(mask)
-# define PROBE(n,s)
-# define PROBE_MARK(n)
+#define PROBE_INIT(mask)
+#define PROBE(n, s)
+#define PROBE_MARK(n)
 #endif
 
 /************************************************************************************
@@ -498,8 +512,7 @@
 #undef EXTERN
 #if defined(__cplusplus)
 #define EXTERN extern "C"
-extern "C"
-{
+extern "C" {
 #else
 #define EXTERN extern
 #endif
@@ -526,4 +539,4 @@ void kinetis_boardinitialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /* __CONFIG_NXP_FMUK66_V3_INCLUDE_BOARD_H */
+#endif /* __CONFIG_NXP_FMUK66_V3_INCLUDE_BOARD_H */

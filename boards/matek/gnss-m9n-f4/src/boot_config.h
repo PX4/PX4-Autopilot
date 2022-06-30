@@ -50,13 +50,12 @@
  * todo:make this be pulled in from a targed's build
  * files in nuttx*/
 
+#include <nuttx/compiler.h>
+#include <stdint.h>
+#include <stm32_flash.h>
+
 #include "board_config.h"
 #include "uavcan.h"
-#include <nuttx/compiler.h>
-
-#include <stdint.h>
-
-#include <stm32_flash.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -64,11 +63,11 @@
 
 #define OPT_PREFERRED_NODE_ID ANY_NODE_ID
 
-//todo:wrap OPT_x in in ifdefs for command line definitions
-#define OPT_TBOOT_MS                    5000
-#define OPT_NODE_STATUS_RATE_MS         800
-#define OPT_NODE_INFO_RATE_MS           50
-#define OPT_BL_NUMBER_TIMERS            7
+// todo:wrap OPT_x in in ifdefs for command line definitions
+#define OPT_TBOOT_MS 5000
+#define OPT_NODE_STATUS_RATE_MS 800
+#define OPT_NODE_INFO_RATE_MS 50
+#define OPT_BL_NUMBER_TIMERS 7
 
 /*
  *  This Option set is set to 1 ensure a provider of firmware has an
@@ -91,33 +90,32 @@
  *   no            0                       1       Not Active
  *
  */
-#define OPT_WAIT_FOR_GETNODEINFO                    0
-#define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO        1
+#define OPT_WAIT_FOR_GETNODEINFO 0
+#define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO 1
 #define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT 0
-#define OPT_ENABLE_WD           1
+#define OPT_ENABLE_WD 1
 
-#define OPT_RESTART_TIMEOUT_MS          20000
+#define OPT_RESTART_TIMEOUT_MS 20000
 
 /* Reserved for the Booloader */
-#define OPT_BOOTLOADER_SIZE_IN_K        (1024*64)
+#define OPT_BOOTLOADER_SIZE_IN_K (1024 * 64)
 
 /* Reserved for the application out of the total
  * system flash minus the BOOTLOADER_SIZE_IN_K
  */
-#define OPT_APPLICATION_RESERVER_IN_K    0
+#define OPT_APPLICATION_RESERVER_IN_K 0
 
-#define OPT_APPLICATION_IMAGE_OFFSET    OPT_BOOTLOADER_SIZE_IN_K
-#define OPT_APPLICATION_IMAGE_LENGTH    (FLASH_SIZE-(OPT_BOOTLOADER_SIZE_IN_K+OPT_APPLICATION_RESERVER_IN_K))
+#define OPT_APPLICATION_IMAGE_OFFSET OPT_BOOTLOADER_SIZE_IN_K
+#define OPT_APPLICATION_IMAGE_LENGTH (FLASH_SIZE - (OPT_BOOTLOADER_SIZE_IN_K + OPT_APPLICATION_RESERVER_IN_K))
 
-
-#define FLASH_BASE              STM32_FLASH_BASE
-#define FLASH_SIZE              STM32_FLASH_SIZE
+#define FLASH_BASE STM32_FLASH_BASE
+#define FLASH_SIZE STM32_FLASH_SIZE
 
 #define APPLICATION_LOAD_ADDRESS (FLASH_BASE + OPT_APPLICATION_IMAGE_OFFSET)
-#define APPLICATION_SIZE (FLASH_SIZE-OPT_APPLICATION_IMAGE_OFFSET)
-#define APPLICATION_LAST_8BIT_ADDRRESS  ((uint8_t *)((APPLICATION_LOAD_ADDRESS+APPLICATION_SIZE)-sizeof(uint8_t)))
-#define APPLICATION_LAST_32BIT_ADDRRESS ((uint32_t *)((APPLICATION_LOAD_ADDRESS+APPLICATION_SIZE)-sizeof(uint32_t)))
-#define APPLICATION_LAST_64BIT_ADDRRESS ((uint64_t *)((APPLICATION_LOAD_ADDRESS+APPLICATION_SIZE)-sizeof(uint64_t)))
+#define APPLICATION_SIZE (FLASH_SIZE - OPT_APPLICATION_IMAGE_OFFSET)
+#define APPLICATION_LAST_8BIT_ADDRRESS ((uint8_t *)((APPLICATION_LOAD_ADDRESS + APPLICATION_SIZE) - sizeof(uint8_t)))
+#define APPLICATION_LAST_32BIT_ADDRRESS ((uint32_t *)((APPLICATION_LOAD_ADDRESS + APPLICATION_SIZE) - sizeof(uint32_t)))
+#define APPLICATION_LAST_64BIT_ADDRRESS ((uint64_t *)((APPLICATION_LOAD_ADDRESS + APPLICATION_SIZE) - sizeof(uint64_t)))
 
 //* If this board uses big flash that have large sectors */
 

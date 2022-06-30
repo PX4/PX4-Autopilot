@@ -45,16 +45,13 @@
 
 #define commandParamToInt(n) static_cast<int>(n >= 0 ? n + 0.5f : n - 0.5f)
 
-namespace camera_capture
-{
+namespace camera_capture {
 CameraCapture *g_camera_capture{nullptr};
 }
 
 struct work_s CameraCapture::_work_publisher;
 
-CameraCapture::CameraCapture() :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
-{
+CameraCapture::CameraCapture() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default) {
 	memset(&_work_publisher, 0, sizeof(_work_publisher));
 
 	// Capture Parameters
@@ -66,7 +63,6 @@ CameraCapture::CameraCapture() :
 
 	_p_camera_capture_edge = param_find("CAM_CAP_EDGE");
 	param_get(_p_camera_capture_edge, &_camera_capture_edge);
-
 
 	// get the capture channel from function configuration params
 	param_t p_ctrl_alloc = param_find("SYS_CTRL_ALLOC");
@@ -86,7 +82,7 @@ CameraCapture::CameraCapture() :
 			int32_t function;
 
 			if (function_handle != PARAM_INVALID && param_get(function_handle, &function) == 0) {
-				if (function == 2032) { // Camera_Capture
+				if (function == 2032) {  // Camera_Capture
 					_capture_channel = i;
 				}
 			}
@@ -96,14 +92,10 @@ CameraCapture::CameraCapture() :
 	_trigger_pub.advertise();
 }
 
-CameraCapture::~CameraCapture()
-{
-	camera_capture::g_camera_capture = nullptr;
-}
+CameraCapture::~CameraCapture() { camera_capture::g_camera_capture = nullptr; }
 
-void
-CameraCapture::capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
-{
+void CameraCapture::capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state,
+				     uint32_t overflow) {
 	_trigger.chan_index = chan_index;
 	_trigger.hrt_edge_time = edge_time;
 	_trigger.edge_state = edge_state;
@@ -112,9 +104,7 @@ CameraCapture::capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint
 	work_queue(HPWORK, &_work_publisher, (worker_t)&CameraCapture::publish_trigger_trampoline, this, 0);
 }
 
-int
-CameraCapture::gpio_interrupt_routine(int irq, void *context, void *arg)
-{
+int CameraCapture::gpio_interrupt_routine(int irq, void *context, void *arg) {
 	CameraCapture *dev = static_cast<CameraCapture *>(arg);
 
 	dev->_trigger.chan_index = 0;
@@ -127,17 +117,13 @@ CameraCapture::gpio_interrupt_routine(int irq, void *context, void *arg)
 	return PX4_OK;
 }
 
-void
-CameraCapture::publish_trigger_trampoline(void *arg)
-{
+void CameraCapture::publish_trigger_trampoline(void *arg) {
 	CameraCapture *dev = static_cast<CameraCapture *>(arg);
 
 	dev->publish_trigger();
 }
 
-void
-CameraCapture::publish_trigger()
-{
+void CameraCapture::publish_trigger() {
 	bool publish = false;
 
 	camera_trigger_s trigger{};
@@ -150,12 +136,13 @@ CameraCapture::publish_trigger()
 
 		publish = true;
 
-	} else if (_camera_capture_mode == 1) { // Get timestamp of mid-exposure (active high)
+	} else if (_camera_capture_mode == 1) {  // Get timestamp of mid-exposure (active high)
 		if (_trigger.edge_state == 1) {
 			_last_trig_begin_time = _trigger.hrt_edge_time - uint64_t(1000 * _strobe_delay);
 
 		} else if (_trigger.edge_state == 0 && _last_trig_begin_time > 0) {
-			trigger.timestamp = _trigger.hrt_edge_time - ((_trigger.hrt_edge_time - _last_trig_begin_time) / 2);
+			trigger.timestamp =
+				_trigger.hrt_edge_time - ((_trigger.hrt_edge_time - _last_trig_begin_time) / 2);
 			trigger.seq = _capture_seq++;
 			_last_exposure_time = _trigger.hrt_edge_time - _last_trig_begin_time;
 			_last_trig_time = trigger.timestamp;
@@ -163,18 +150,18 @@ CameraCapture::publish_trigger()
 			_capture_seq++;
 		}
 
-	} else { // Get timestamp of mid-exposure (active low)
+	} else {  // Get timestamp of mid-exposure (active low)
 		if (_trigger.edge_state == 0) {
 			_last_trig_begin_time = _trigger.hrt_edge_time - uint64_t(1000 * _strobe_delay);
 
 		} else if (_trigger.edge_state == 1 && _last_trig_begin_time > 0) {
-			trigger.timestamp = _trigger.hrt_edge_time - ((_trigger.hrt_edge_time - _last_trig_begin_time) / 2);
+			trigger.timestamp =
+				_trigger.hrt_edge_time - ((_trigger.hrt_edge_time - _last_trig_begin_time) / 2);
 			trigger.seq = _capture_seq++;
 			_last_exposure_time = _trigger.hrt_edge_time - _last_trig_begin_time;
 			_last_trig_time = trigger.timestamp;
 			publish = true;
 		}
-
 	}
 
 	trigger.feedback = true;
@@ -191,7 +178,6 @@ CameraCapture::publish_trigger()
 		_pps_rtc_timestamp = pps_capture.rtc_timestamp;
 	}
 
-
 	if (_pps_hrt_timestamp > 0) {
 		// Last PPS RTC time + elapsed time to the camera capture interrupt
 		trigger.timestamp_utc = _pps_rtc_timestamp + (trigger.timestamp - _pps_hrt_timestamp);
@@ -206,37 +192,29 @@ CameraCapture::publish_trigger()
 	_trigger_pub.publish(trigger);
 }
 
-void
-CameraCapture::capture_trampoline(void *context, uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state,
-				  uint32_t overflow)
-{
+void CameraCapture::capture_trampoline(void *context, uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state,
+				       uint32_t overflow) {
 	camera_capture::g_camera_capture->capture_callback(chan_index, edge_time, edge_state, overflow);
 }
 
-void
-CameraCapture::Run()
-{
+void CameraCapture::Run() {
 	// Command handling
 	vehicle_command_s cmd{};
 
 	if (_command_sub.update(&cmd)) {
-
 		// TODO : this should eventuallly be a capture control command
 		if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL) {
-
 			// Enable/disable signal capture
 			if (commandParamToInt(cmd.param1) == 1) {
 				set_capture_control(true);
 
 			} else if (commandParamToInt(cmd.param1) == 0) {
 				set_capture_control(false);
-
 			}
 
 			// Reset capture sequence
 			if (commandParamToInt(cmd.param2) == 1) {
 				reset_statistics(true);
-
 			}
 
 			// Acknowledge the command
@@ -253,14 +231,13 @@ CameraCapture::Run()
 	}
 }
 
-void
-CameraCapture::set_capture_control(bool enabled)
-{
+void CameraCapture::set_capture_control(bool enabled) {
 // a board can define BOARD_CAPTURE_GPIO to use a separate capture pin. It's used if no channel is configured
 #if defined(BOARD_CAPTURE_GPIO)
 
 	if (_capture_channel == -1) {
-		px4_arch_gpiosetevent(BOARD_CAPTURE_GPIO, true, false, true, &CameraCapture::gpio_interrupt_routine, this);
+		px4_arch_gpiosetevent(BOARD_CAPTURE_GPIO, true, false, true, &CameraCapture::gpio_interrupt_routine,
+				      this);
 		_capture_enabled = enabled;
 		_gpio_capture = true;
 		reset_statistics(false);
@@ -289,19 +266,17 @@ CameraCapture::set_capture_control(bool enabled)
 				_gpio_capture = false;
 
 			} else {
-				PX4_ERR("Unable to set capture callback for chan %" PRIu8 " (%i)", _capture_channel, ret);
+				PX4_ERR("Unable to set capture callback for chan %" PRIu8 " (%i)", _capture_channel,
+					ret);
 				_capture_enabled = false;
 			}
 
 			reset_statistics(false);
 		}
 	}
-
 }
 
-void
-CameraCapture::reset_statistics(bool reset_seq)
-{
+void CameraCapture::reset_statistics(bool reset_seq) {
 	if (reset_seq) {
 		_capture_seq = 0;
 	}
@@ -312,9 +287,7 @@ CameraCapture::reset_statistics(bool reset_seq)
 	_capture_overflows = 0;
 }
 
-int
-CameraCapture::start()
-{
+int CameraCapture::start() {
 	if (!_gpio_capture && _capture_channel != -1) {
 		input_capture_edge edge = Both;
 
@@ -336,9 +309,7 @@ CameraCapture::start()
 	return PX4_OK;
 }
 
-void
-CameraCapture::stop()
-{
+void CameraCapture::stop() {
 	ScheduleClear();
 
 	work_cancel(HPWORK, &_work_publisher);
@@ -348,9 +319,7 @@ CameraCapture::stop()
 	}
 }
 
-void
-CameraCapture::status()
-{
+void CameraCapture::status() {
 	PX4_INFO("Capture enabled : %s", _capture_enabled ? "YES" : "NO");
 	PX4_INFO("Frame sequence : %" PRIu32, _capture_seq);
 
@@ -376,40 +345,33 @@ CameraCapture::status()
 
 	} else {
 		input_capture_stats_t stats;
-		int ret =  up_input_capture_get_stats(_capture_channel, &stats, false);
+		int ret = up_input_capture_get_stats(_capture_channel, &stats, false);
 
 		if (ret != 0) {
 			PX4_ERR("Unable to get stats for chan %" PRIu8 " (%i)", _capture_channel, ret);
 
 		} else {
-			PX4_INFO("Status chan: %" PRIu8 " edges: %" PRIu32 " last time: %" PRIu64 " last state: %" PRIu32
-				 " overflows: %" PRIu32 " latency: %" PRIu16,
-				 _capture_channel,
-				 stats.edges,
-				 stats.last_time,
-				 stats.last_edge,
-				 stats.overflows,
+			PX4_INFO("Status chan: %" PRIu8 " edges: %" PRIu32 " last time: %" PRIu64
+				 " last state: %" PRIu32 " overflows: %" PRIu32 " latency: %" PRIu16,
+				 _capture_channel, stats.edges, stats.last_time, stats.last_edge, stats.overflows,
 				 stats.latency);
 		}
 	}
 }
 
-static int usage()
-{
+static int usage() {
 	PX4_INFO("usage: camera_capture {start|stop|on|off|reset|status}\n");
 	return 1;
 }
 
 extern "C" __EXPORT int camera_capture_main(int argc, char *argv[]);
 
-int camera_capture_main(int argc, char *argv[])
-{
+int camera_capture_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		return usage();
 	}
 
 	if (!strcmp(argv[1], "start")) {
-
 		if (camera_capture::g_camera_capture != nullptr) {
 			PX4_WARN("already running");
 			return 0;
@@ -428,7 +390,6 @@ int camera_capture_main(int argc, char *argv[])
 		} else {
 			return 1;
 		}
-
 	}
 
 	if (camera_capture::g_camera_capture == nullptr) {

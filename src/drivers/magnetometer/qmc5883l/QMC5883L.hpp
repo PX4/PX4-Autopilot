@@ -40,18 +40,18 @@
 
 #pragma once
 
-#include "QST_QMC5883L_registers.hpp"
-
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/i2c.h>
-#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+
+#include "QST_QMC5883L_registers.hpp"
+
 using namespace QST_QMC5883L;
 
-class QMC5883L : public device::I2C, public I2CSPIDriver<QMC5883L>
-{
+class QMC5883L : public device::I2C, public I2CSPIDriver<QMC5883L> {
 public:
 	QMC5883L(const I2CSPIDriverConfig &config);
 	~QMC5883L() override;
@@ -85,15 +85,15 @@ private:
 
 	PX4Magnetometer _px4_mag;
 
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
-	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
-	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad register")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad transfer")};
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME ": reset")};
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
 	int _failure_count{0};
 
-	int16_t _prev_data[3] {};
+	int16_t _prev_data[3]{};
 
 	enum class STATE : uint8_t {
 		RESET,
@@ -104,10 +104,11 @@ private:
 
 	uint8_t _checked_register{0};
 	static constexpr uint8_t size_register_cfg{3};
-	register_config_t _register_cfg[size_register_cfg] {
+	register_config_t _register_cfg[size_register_cfg]{
 		// Register                   | Set bits, Clear bits
-		{ Register::CNTL1,            CNTL1_BIT::ODR_50HZ | CNTL1_BIT::Mode_Continuous, CNTL1_BIT::OSR_512 | CNTL1_BIT::RNG_2G},
-		{ Register::CNTL2,            CNTL2_BIT::ROL_PNT, CNTL2_BIT::SOFT_RST},
-		{ Register::SET_RESET_PERIOD, SET_RESET_PERIOD_BIT::FBR, 0 },
+		{Register::CNTL1, CNTL1_BIT::ODR_50HZ | CNTL1_BIT::Mode_Continuous,
+		 CNTL1_BIT::OSR_512 | CNTL1_BIT::RNG_2G},
+		{Register::CNTL2, CNTL2_BIT::ROL_PNT, CNTL2_BIT::SOFT_RST},
+		{Register::SET_RESET_PERIOD, SET_RESET_PERIOD_BIT::FBR, 0},
 	};
 };

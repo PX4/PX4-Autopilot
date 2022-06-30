@@ -36,16 +36,15 @@
  * Tests for the bson en/decoder
  */
 
-#include <px4_platform_common/defines.h>
 #include <inttypes.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <limits.h>
 #include <math.h>
-
-#include <systemlib/err.h>
 #include <parameters/tinybson/tinybson.h>
+#include <px4_platform_common/defines.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <systemlib/err.h>
 
 #include "tests_main.h"
 
@@ -55,11 +54,9 @@ static const int64_t sample_big_int = (int64_t)INT_MAX + 123LL;
 static const double sample_double = 2.5f;
 static const char *sample_string = "this is a test";
 static const uint8_t sample_data[256] = {0};
-//static const char *sample_filename = "/fs/microsd/bson.test";
+// static const char *sample_filename = "/fs/microsd/bson.test";
 
-static int
-encode(bson_encoder_t encoder)
-{
+static int encode(bson_encoder_t encoder) {
 	if (bson_encoder_append_bool(encoder, "bool1", sample_bool) != 0) {
 		PX4_ERR("FAIL: encoder: append bool failed");
 		return 1;
@@ -95,9 +92,7 @@ encode(bson_encoder_t encoder)
 	return 0;
 }
 
-static int
-decode_callback(bson_decoder_t decoder, bson_node_t node)
-{
+static int decode_callback(bson_decoder_t decoder, bson_node_t node) {
 	unsigned len;
 
 	if (!strcmp(node->name, "bool1")) {
@@ -107,8 +102,7 @@ decode_callback(bson_decoder_t decoder, bson_node_t node)
 		}
 
 		if (node->b != sample_bool) {
-			PX4_ERR("FAIL: decoder: bool1 value %s, expected %s",
-				(node->b ? "true" : "false"),
+			PX4_ERR("FAIL: decoder: bool1 value %s, expected %s", (node->b ? "true" : "false"),
 				(sample_bool ? "true" : "false"));
 			return 1;
 		}
@@ -124,7 +118,8 @@ decode_callback(bson_decoder_t decoder, bson_node_t node)
 		}
 
 		if (node->i32 != sample_small_int) {
-			PX4_ERR("FAIL: decoder: int1 value %" PRIi32 ", expected %" PRIi32 "", node->i32, sample_small_int);
+			PX4_ERR("FAIL: decoder: int1 value %" PRIi32 ", expected %" PRIi32 "", node->i32,
+				sample_small_int);
 			return 1;
 		}
 
@@ -247,9 +242,7 @@ decode_callback(bson_decoder_t decoder, bson_node_t node)
 	return 1;
 }
 
-static void
-decode(bson_decoder_t decoder)
-{
+static void decode(bson_decoder_t decoder) {
 	int result;
 
 	do {
@@ -257,9 +250,7 @@ decode(bson_decoder_t decoder)
 	} while (result > 0);
 }
 
-int
-test_bson(int argc, char *argv[])
-{
+int test_bson(int argc, char *argv[]) {
 	bson_encoder_s encoder{};
 	bson_decoder_s decoder{};
 	void *buf;

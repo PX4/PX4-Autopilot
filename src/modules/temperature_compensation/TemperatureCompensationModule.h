@@ -43,12 +43,8 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_baro.h>
@@ -57,16 +53,20 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
+
 #include "TemperatureCompensation.h"
 
 using namespace time_literals;
 
-namespace temperature_compensation
-{
+namespace temperature_compensation {
 
-class TemperatureCompensationModule : public ModuleBase<TemperatureCompensationModule>, public ModuleParams,
-	public px4::ScheduledWorkItem
-{
+class TemperatureCompensationModule : public ModuleBase<TemperatureCompensationModule>,
+				      public ModuleParams,
+				      public px4::ScheduledWorkItem {
 public:
 	TemperatureCompensationModule();
 	~TemperatureCompensationModule() override;
@@ -92,7 +92,6 @@ public:
 	bool init();
 
 private:
-
 	void Run() override;
 
 	void accelPoll();
@@ -105,21 +104,21 @@ private:
 	 */
 	void parameters_update();
 
-	uORB::Subscription _accel_subs[ACCEL_COUNT_MAX] {
+	uORB::Subscription _accel_subs[ACCEL_COUNT_MAX]{
 		{ORB_ID(sensor_accel), 0},
 		{ORB_ID(sensor_accel), 1},
 		{ORB_ID(sensor_accel), 2},
 		{ORB_ID(sensor_accel), 3},
 	};
 
-	uORB::Subscription _gyro_subs[GYRO_COUNT_MAX] {
+	uORB::Subscription _gyro_subs[GYRO_COUNT_MAX]{
 		{ORB_ID(sensor_gyro), 0},
 		{ORB_ID(sensor_gyro), 1},
 		{ORB_ID(sensor_gyro), 2},
 		{ORB_ID(sensor_gyro), 3},
 	};
 
-	uORB::Subscription _baro_subs[BARO_COUNT_MAX] {
+	uORB::Subscription _baro_subs[BARO_COUNT_MAX]{
 		{ORB_ID(sensor_baro), 0},
 		{ORB_ID(sensor_baro), 1},
 		{ORB_ID(sensor_baro), 2},
@@ -130,7 +129,7 @@ private:
 
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
-	perf_counter_t _loop_perf;			/**< loop performance counter */
+	perf_counter_t _loop_perf; /**< loop performance counter */
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
@@ -143,4 +142,4 @@ private:
 	bool _corrections_changed{true};
 };
 
-} // namespace temperature_compensation
+}  // namespace temperature_compensation

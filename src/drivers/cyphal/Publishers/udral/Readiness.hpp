@@ -47,27 +47,24 @@
 
 #include "../Publisher.hpp"
 
-class UavcanReadinessPublisher : public UavcanPublisher
-{
+class UavcanReadinessPublisher : public UavcanPublisher {
 public:
-	UavcanReadinessPublisher(CanardHandle &handle, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanPublisher(handle, pmgr, "udral", "readiness", instance)
-	{
+	UavcanReadinessPublisher(CanardHandle &handle, UavcanParamManager &pmgr, uint8_t instance = 0)
+		: UavcanPublisher(handle, pmgr, "udral", "readiness", instance){
 
-	};
+		  };
 
 	~UavcanReadinessPublisher() override = default;
 
 	// Update the uORB Subscription and broadcast a UAVCAN message
-	virtual void update() override
-	{
+	virtual void update() override {
 		// Not sure if actuator_armed is a good indication of readiness but seems close to it
 		if (_actuator_armed_sub.updated() && _port_id != CANARD_PORT_ID_UNSET) {
-			actuator_armed_s armed {};
+			actuator_armed_s armed{};
 			_actuator_armed_sub.update(&armed);
 			size_t payload_size;
 
-			reg_udral_service_common_Readiness_0_1 readiness {};
+			reg_udral_service_common_Readiness_0_1 readiness{};
 
 			if (armed.armed) {
 				readiness.value = reg_udral_service_common_Readiness_0_1_ENGAGED;
@@ -76,25 +73,26 @@ public:
 				readiness.value = reg_udral_service_common_Readiness_0_1_STANDBY;
 			}
 
-			uint8_t readiness_payload_buffer[reg_udral_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
+			uint8_t readiness_payload_buffer
+				[reg_udral_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
 			const CanardTransferMetadata transfer_metadata = {
-				.priority       = CanardPriorityNominal,
-				.transfer_kind  = CanardTransferKindMessage,
-				.port_id        = _port_id, // This is the subject-ID.
+				.priority = CanardPriorityNominal,
+				.transfer_kind = CanardTransferKindMessage,
+				.port_id = _port_id,  // This is the subject-ID.
 				.remote_node_id = CANARD_NODE_ID_UNSET,
-				.transfer_id    = _transfer_id,
+				.transfer_id = _transfer_id,
 			};
 
-			int32_t result = reg_udral_service_common_Readiness_0_1_serialize_(&readiness, readiness_payload_buffer,
-					 &payload_size);
+			int32_t result = reg_udral_service_common_Readiness_0_1_serialize_(
+				&readiness, readiness_payload_buffer, &payload_size);
 
 			if (result == 0) {
 				// set the data ready in the buffer and chop if needed
-				++_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
+				++_transfer_id;  // The transfer-ID shall be incremented after every transmission on
+						 // this subject.
 				result = _canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
-							       &transfer_metadata,
-							       payload_size,
+							       &transfer_metadata, payload_size,
 							       &readiness_payload_buffer);
 			}
 		}

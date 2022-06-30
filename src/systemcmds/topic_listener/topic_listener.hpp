@@ -38,20 +38,19 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
+#include <inttypes.h>
 #include <px4_platform_common/app.h>
-#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
 #include <px4_platform_common/log.h>
-#include <uORB/uORB.h>
-#include <string.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <inttypes.h>
+#include <string.h>
+#include <uORB/uORB.h>
 
-inline int listener_print_topic(const orb_id_t &orb_id, int subscription)
-{
+inline int listener_print_topic(const orb_id_t &orb_id, int subscription) {
 	static constexpr int max_size = 512;
 	alignas(8) char container[max_size];
 
@@ -69,5 +68,4 @@ inline int listener_print_topic(const orb_id_t &orb_id, int subscription)
 	return ret;
 }
 
-void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
-	      unsigned topic_interval);
+void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance, unsigned topic_interval);

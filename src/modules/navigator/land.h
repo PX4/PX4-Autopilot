@@ -40,11 +40,10 @@
 
 #pragma once
 
-#include "navigator_mode.h"
 #include "mission_block.h"
+#include "navigator_mode.h"
 
-class Land : public MissionBlock
-{
+class Land : public MissionBlock {
 public:
 	Land(Navigator *navigator);
 	~Land() = default;

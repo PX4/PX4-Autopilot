@@ -33,26 +33,22 @@
 
 #include "BMI088_Accelerometer.hpp"
 
-#include <geo/geo.h> // CONSTANTS_ONE_G
+#include <geo/geo.h>  // CONSTANTS_ONE_G
 
 using namespace time_literals;
 
-namespace Bosch::BMI088::Accelerometer
-{
+namespace Bosch::BMI088::Accelerometer {
 
-BMI088_Accelerometer::BMI088_Accelerometer(const I2CSPIDriverConfig &config) :
-	BMI088(config),
-	_px4_accel(get_device_id(), config.rotation)
-{
+BMI088_Accelerometer::BMI088_Accelerometer(const I2CSPIDriverConfig &config)
+	: BMI088(config), _px4_accel(get_device_id(), config.rotation) {
 	if (config.drdy_gpio != 0) {
-		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_accel: DRDY missed");
+		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME "_accel: DRDY missed");
 	}
 
 	ConfigureSampleRate(_px4_accel.get_max_rate_hz());
 }
 
-BMI088_Accelerometer::~BMI088_Accelerometer()
-{
+BMI088_Accelerometer::~BMI088_Accelerometer() {
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_fifo_empty_perf);
@@ -61,14 +57,12 @@ BMI088_Accelerometer::~BMI088_Accelerometer()
 	perf_free(_drdy_missed_perf);
 }
 
-void BMI088_Accelerometer::exit_and_cleanup()
-{
+void BMI088_Accelerometer::exit_and_cleanup() {
 	DataReadyInterruptDisable();
 	I2CSPIDriverBase::exit_and_cleanup();
 }
 
-void BMI088_Accelerometer::print_status()
-{
+void BMI088_Accelerometer::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	PX4_INFO("FIFO empty interval: %d us (%.1f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
@@ -81,8 +75,7 @@ void BMI088_Accelerometer::print_status()
 	perf_print_counter(_drdy_missed_perf);
 }
 
-int BMI088_Accelerometer::probe()
-{
+int BMI088_Accelerometer::probe() {
 	/* 6.1 Serial Peripheral Interface (SPI)
 	 * ... the accelerometer part starts always in I2C mode
 	 * (regardless of the level of the PS pin) and needs to be changed to SPI
@@ -112,78 +105,79 @@ int BMI088_Accelerometer::probe()
 	return PX4_OK;
 }
 
-void BMI088_Accelerometer::RunImpl()
-{
+void BMI088_Accelerometer::RunImpl() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-	case STATE::RESET:
-		// ACC_SOFTRESET: Writing a value of 0xB6 to this register resets the sensor
-		RegisterWrite(Register::ACC_SOFTRESET, 0xB6);
-		_reset_timestamp = now;
-		_failure_count = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(1_ms); // Following a delay of 1 ms, all configuration settings are overwritten with their reset value.
-		break;
+		case STATE::RESET:
+			// ACC_SOFTRESET: Writing a value of 0xB6 to this register resets the sensor
+			RegisterWrite(Register::ACC_SOFTRESET, 0xB6);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
+			ScheduleDelayed(1_ms);  // Following a delay of 1 ms, all configuration settings are overwritten
+						// with their reset value.
+			break;
 
-	case STATE::WAIT_FOR_RESET:
-		if ((RegisterRead(Register::ACC_CHIP_ID) == ID_088) || (RegisterRead(Register::ACC_CHIP_ID) == ID_090L)) {
-			// ACC_PWR_CONF: Power on sensor
-			RegisterWrite(Register::ACC_PWR_CONF, 0);
+		case STATE::WAIT_FOR_RESET:
+			if ((RegisterRead(Register::ACC_CHIP_ID) == ID_088) ||
+			    (RegisterRead(Register::ACC_CHIP_ID) == ID_090L)) {
+				// ACC_PWR_CONF: Power on sensor
+				RegisterWrite(Register::ACC_PWR_CONF, 0);
 
-			// if reset succeeded then configure
-			_state = STATE::CONFIGURE;
-			ScheduleDelayed(10_ms);
-
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
-				ScheduleDelayed(100_ms);
-
-			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
+				// if reset succeeded then configure
+				_state = STATE::CONFIGURE;
 				ScheduleDelayed(10_ms);
+
+			} else {
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 10 ms");
+					ScheduleDelayed(10_ms);
+				}
 			}
-		}
 
-		break;
+			break;
 
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start reading from FIFO
-			_state = STATE::FIFO_READ;
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				// if configure succeeded then start reading from FIFO
+				_state = STATE::FIFO_READ;
 
-			if (DataReadyInterruptConfigure()) {
-				_data_ready_interrupt_enabled = true;
+				if (DataReadyInterruptConfigure()) {
+					_data_ready_interrupt_enabled = true;
 
-				// backup schedule as a watchdog timeout
+					// backup schedule as a watchdog timeout
+					ScheduleDelayed(100_ms);
+
+				} else {
+					_data_ready_interrupt_enabled = false;
+					ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
+				}
+
+				FIFOReset();
+
+			} else {
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
 				ScheduleDelayed(100_ms);
-
-			} else {
-				_data_ready_interrupt_enabled = false;
-				ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
 			}
 
-			FIFOReset();
+			break;
 
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
-
-			} else {
-				PX4_DEBUG("Configure failed, retrying");
-			}
-
-			ScheduleDelayed(100_ms);
-		}
-
-		break;
-
-	case STATE::FIFO_READ: {
+		case STATE::FIFO_READ: {
 			hrt_abstime timestamp_sample = now;
 			uint8_t samples = 0;
 
@@ -225,7 +219,8 @@ void BMI088_Accelerometer::RunImpl()
 					}
 
 					if (samples > FIFO_MAX_SAMPLES) {
-						// not technically an overflow, but more samples than we expected or can publish
+						// not technically an overflow, but more samples than we expected or can
+						// publish
 						FIFOReset();
 						perf_count(_fifo_overflow_perf);
 						samples = 0;
@@ -280,38 +275,37 @@ void BMI088_Accelerometer::RunImpl()
 	}
 }
 
-void BMI088_Accelerometer::ConfigureAccel()
-{
+void BMI088_Accelerometer::ConfigureAccel() {
 	const uint8_t ACC_RANGE = RegisterRead(Register::ACC_RANGE) & (Bit1 | Bit0);
 
 	switch (ACC_RANGE) {
-	case acc_range_3g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(3.f * CONSTANTS_ONE_G);
-		break;
+		case acc_range_3g:
+			_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
+			_px4_accel.set_range(3.f * CONSTANTS_ONE_G);
+			break;
 
-	case acc_range_6g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(6.f * CONSTANTS_ONE_G);
-		break;
+		case acc_range_6g:
+			_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
+			_px4_accel.set_range(6.f * CONSTANTS_ONE_G);
+			break;
 
-	case acc_range_12g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(12.f * CONSTANTS_ONE_G);
-		break;
+		case acc_range_12g:
+			_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
+			_px4_accel.set_range(12.f * CONSTANTS_ONE_G);
+			break;
 
-	case acc_range_24g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(24.f * CONSTANTS_ONE_G);
-		break;
+		case acc_range_24g:
+			_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
+			_px4_accel.set_range(24.f * CONSTANTS_ONE_G);
+			break;
 	}
 }
 
-void BMI088_Accelerometer::ConfigureSampleRate(int sample_rate)
-{
+void BMI088_Accelerometer::ConfigureSampleRate(int sample_rate) {
 	// round down to nearest FIFO sample dt * SAMPLES_PER_TRANSFER
 	const float min_interval = FIFO_SAMPLE_DT;
-	_fifo_empty_interval_us = math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
+	_fifo_empty_interval_us =
+		math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
 
 	_fifo_samples = math::min((float)_fifo_empty_interval_us / (1e6f / RATE), (float)FIFO_MAX_SAMPLES);
 
@@ -321,8 +315,7 @@ void BMI088_Accelerometer::ConfigureSampleRate(int sample_rate)
 	ConfigureFIFOWatermark(_fifo_samples);
 }
 
-void BMI088_Accelerometer::ConfigureFIFOWatermark(uint8_t samples)
-{
+void BMI088_Accelerometer::ConfigureFIFOWatermark(uint8_t samples) {
 	// FIFO_WTM: 13 bit FIFO watermark level value
 	// unit of the fifo watermark is one byte
 	const uint16_t fifo_watermark_threshold = samples * sizeof(FIFO::DATA);
@@ -341,8 +334,7 @@ void BMI088_Accelerometer::ConfigureFIFOWatermark(uint8_t samples)
 	}
 }
 
-bool BMI088_Accelerometer::Configure()
-{
+bool BMI088_Accelerometer::Configure() {
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
@@ -362,20 +354,17 @@ bool BMI088_Accelerometer::Configure()
 	return success;
 }
 
-int BMI088_Accelerometer::DataReadyInterruptCallback(int irq, void *context, void *arg)
-{
+int BMI088_Accelerometer::DataReadyInterruptCallback(int irq, void *context, void *arg) {
 	static_cast<BMI088_Accelerometer *>(arg)->DataReady();
 	return 0;
 }
 
-void BMI088_Accelerometer::DataReady()
-{
+void BMI088_Accelerometer::DataReady() {
 	_drdy_timestamp_sample.store(hrt_absolute_time());
 	ScheduleNow();
 }
 
-bool BMI088_Accelerometer::DataReadyInterruptConfigure()
-{
+bool BMI088_Accelerometer::DataReadyInterruptConfigure() {
 	if (_drdy_gpio == 0) {
 		return false;
 	}
@@ -384,8 +373,7 @@ bool BMI088_Accelerometer::DataReadyInterruptConfigure()
 	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0;
 }
 
-bool BMI088_Accelerometer::DataReadyInterruptDisable()
-{
+bool BMI088_Accelerometer::DataReadyInterruptDisable() {
 	if (_drdy_gpio == 0) {
 		return false;
 	}
@@ -393,8 +381,7 @@ bool BMI088_Accelerometer::DataReadyInterruptDisable()
 	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
 }
 
-bool BMI088_Accelerometer::RegisterCheck(const register_config_t &reg_cfg)
-{
+bool BMI088_Accelerometer::RegisterCheck(const register_config_t &reg_cfg) {
 	bool success = true;
 
 	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
@@ -405,35 +392,33 @@ bool BMI088_Accelerometer::RegisterCheck(const register_config_t &reg_cfg)
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.clear_bits);
 		success = false;
 	}
 
 	return success;
 }
 
-uint8_t BMI088_Accelerometer::RegisterRead(Register reg)
-{
+uint8_t BMI088_Accelerometer::RegisterRead(Register reg) {
 	// 6.1.2 SPI interface of accelerometer part
 	//
 	// In case of read operations of the accelerometer part, the requested data
 	// is not sent immediately, but instead first a dummy byte is sent, and
 	// after this dummy byte the actual requested register content is transmitted.
-	uint8_t cmd[3] {};
+	uint8_t cmd[3]{};
 	cmd[0] = static_cast<uint8_t>(reg) | DIR_READ;
 	// cmd[1] dummy byte
 	transfer(cmd, cmd, sizeof(cmd));
 	return cmd[2];
 }
 
-void BMI088_Accelerometer::RegisterWrite(Register reg, uint8_t value)
-{
-	uint8_t cmd[2] { (uint8_t)reg, value };
+void BMI088_Accelerometer::RegisterWrite(Register reg, uint8_t value) {
+	uint8_t cmd[2]{(uint8_t)reg, value};
 	transfer(cmd, cmd, sizeof(cmd));
 }
 
-void BMI088_Accelerometer::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
-{
+void BMI088_Accelerometer::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits) {
 	const uint8_t orig_val = RegisterRead(reg);
 
 	uint8_t val = (orig_val & ~clearbits) | setbits;
@@ -443,10 +428,9 @@ void BMI088_Accelerometer::RegisterSetAndClearBits(Register reg, uint8_t setbits
 	}
 }
 
-uint16_t BMI088_Accelerometer::FIFOReadCount()
-{
+uint16_t BMI088_Accelerometer::FIFOReadCount() {
 	// FIFO length registers FIFO_LENGTH_1 and FIFO_LENGTH_0 contain the 14 bit FIFO byte
-	uint8_t fifo_len_buf[4] {};
+	uint8_t fifo_len_buf[4]{};
 	fifo_len_buf[0] = static_cast<uint8_t>(Register::FIFO_LENGTH_0) | DIR_READ;
 	// fifo_len_buf[1] dummy byte
 
@@ -455,14 +439,13 @@ uint16_t BMI088_Accelerometer::FIFOReadCount()
 		return 0;
 	}
 
-	const uint8_t FIFO_LENGTH_0 = fifo_len_buf[2];        // fifo_byte_counter[7:0]
-	const uint8_t FIFO_LENGTH_1 = fifo_len_buf[3] & 0x3F; // fifo_byte_counter[13:8]
+	const uint8_t FIFO_LENGTH_0 = fifo_len_buf[2];         // fifo_byte_counter[7:0]
+	const uint8_t FIFO_LENGTH_1 = fifo_len_buf[3] & 0x3F;  // fifo_byte_counter[13:8]
 
 	return combine(FIFO_LENGTH_1, FIFO_LENGTH_0);
 }
 
-bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
-{
+bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples) {
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 4, FIFO::SIZE);
 
@@ -490,12 +473,12 @@ bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 
 	// first find all sensor data frames in the buffer
 	uint8_t *data_buffer = (uint8_t *)&buffer.f[0];
-	unsigned fifo_buffer_index = 0; // start of buffer
+	unsigned fifo_buffer_index = 0;  // start of buffer
 
 	while (fifo_buffer_index < math::min(fifo_byte_counter, transfer_size - 4)) {
 		// look for header signature (first 6 bits) followed by two bits indicating the status of INT1 and INT2
 		switch (data_buffer[fifo_buffer_index] & 0xFC) {
-		case FIFO::header::sensor_data_frame: {
+			case FIFO::header::sensor_data_frame: {
 				// Acceleration sensor data frame
 				// Frame length: 7 bytes (1 byte header + 6 bytes payload)
 
@@ -511,41 +494,40 @@ bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 				accel.z[accel.samples] = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
 				accel.samples++;
 
-				fifo_buffer_index += 7; // move forward to next record
-			}
-			break;
+				fifo_buffer_index += 7;  // move forward to next record
+			} break;
 
-		case FIFO::header::skip_frame:
-			// Skip Frame
-			// Frame length: 2 bytes (1 byte header + 1 byte payload)
-			PX4_DEBUG("Skip Frame");
-			fifo_buffer_index += 2;
-			break;
+			case FIFO::header::skip_frame:
+				// Skip Frame
+				// Frame length: 2 bytes (1 byte header + 1 byte payload)
+				PX4_DEBUG("Skip Frame");
+				fifo_buffer_index += 2;
+				break;
 
-		case FIFO::header::sensor_time_frame:
-			// Sensortime Frame
-			// Frame length: 4 bytes (1 byte header + 3 bytes payload)
-			PX4_DEBUG("Sensortime Frame");
-			fifo_buffer_index += 4;
-			break;
+			case FIFO::header::sensor_time_frame:
+				// Sensortime Frame
+				// Frame length: 4 bytes (1 byte header + 3 bytes payload)
+				PX4_DEBUG("Sensortime Frame");
+				fifo_buffer_index += 4;
+				break;
 
-		case FIFO::header::FIFO_input_config_frame:
-			// FIFO input config Frame
-			// Frame length: 2 bytes (1 byte header + 1 byte payload)
-			PX4_DEBUG("FIFO input config Frame");
-			fifo_buffer_index += 2;
-			break;
+			case FIFO::header::FIFO_input_config_frame:
+				// FIFO input config Frame
+				// Frame length: 2 bytes (1 byte header + 1 byte payload)
+				PX4_DEBUG("FIFO input config Frame");
+				fifo_buffer_index += 2;
+				break;
 
-		case FIFO::header::sample_drop_frame:
-			// Sample drop Frame
-			// Frame length: 2 bytes (1 byte header + 1 byte payload)
-			PX4_DEBUG("Sample drop Frame");
-			fifo_buffer_index += 2;
-			break;
+			case FIFO::header::sample_drop_frame:
+				// Sample drop Frame
+				// Frame length: 2 bytes (1 byte header + 1 byte payload)
+				PX4_DEBUG("Sample drop Frame");
+				fifo_buffer_index += 2;
+				break;
 
-		default:
-			fifo_buffer_index++;
-			break;
+			default:
+				fifo_buffer_index++;
+				break;
 		}
 	}
 
@@ -560,8 +542,7 @@ bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 	return false;
 }
 
-void BMI088_Accelerometer::FIFOReset()
-{
+void BMI088_Accelerometer::FIFOReset() {
 	perf_count(_fifo_reset_perf);
 
 	// ACC_SOFTRESET: trigger a FIFO reset by writing 0xB0 to ACC_SOFTRESET (register 0x7E).
@@ -571,10 +552,9 @@ void BMI088_Accelerometer::FIFOReset()
 	_drdy_timestamp_sample.store(0);
 }
 
-void BMI088_Accelerometer::UpdateTemperature()
-{
+void BMI088_Accelerometer::UpdateTemperature() {
 	// stored in an 11-bit value in 2’s complement format
-	uint8_t temperature_buf[4] {};
+	uint8_t temperature_buf[4]{};
 	temperature_buf[0] = static_cast<uint8_t>(Register::TEMP_MSB) | DIR_READ;
 	// temperature_buf[1] dummy byte
 
@@ -597,7 +577,7 @@ void BMI088_Accelerometer::UpdateTemperature()
 		Temp_int11 = Temp_uint11;
 	}
 
-	float temperature = (Temp_int11 * 0.125f) + 23.f; // Temp_int11 * 0.125°C/LSB + 23°C
+	float temperature = (Temp_int11 * 0.125f) + 23.f;  // Temp_int11 * 0.125°C/LSB + 23°C
 
 	if (PX4_ISFINITE(temperature)) {
 		_px4_accel.set_temperature(temperature);
@@ -607,4 +587,4 @@ void BMI088_Accelerometer::UpdateTemperature()
 	}
 }
 
-} // namespace Bosch::BMI088::Accelerometer
+}  // namespace Bosch::BMI088::Accelerometer

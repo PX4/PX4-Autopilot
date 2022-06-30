@@ -34,53 +34,49 @@
 #include <board_config.h>
 #include <drivers/drv_adc.h>
 #include <drivers/drv_hrt.h>
+#include <hardware/s32k1xx_sim.h>
+#include <nuttx/analog/adc.h>
 #include <px4_arch/adc.h>
 
-#include <nuttx/analog/adc.h>
-
-#include <hardware/s32k1xx_sim.h>
-
-//todo S32K add ADC fior now steal the kinetis one
-#include <kinetis.h>
+// todo S32K add ADC fior now steal the kinetis one
 #include <hardware/kinetis_adc.h>
+#include <kinetis.h>
 
-
-#define _REG(_addr)	(*(volatile uint32_t *)(_addr))
+#define _REG(_addr) (*(volatile uint32_t *)(_addr))
 
 /* ADC register accessors */
 
-#define REG(a, _reg)	_REG(KINETIS_ADC##a##_BASE + (_reg))
+#define REG(a, _reg) _REG(KINETIS_ADC##a##_BASE + (_reg))
 
-#define rSC1A(adc)  REG(adc, KINETIS_ADC_SC1A_OFFSET) /* ADC status and control registers 1 */
-#define rSC1B(adc)  REG(adc, KINETIS_ADC_SC1B_OFFSET) /* ADC status and control registers 1 */
-#define rCFG1(adc)  REG(adc, KINETIS_ADC_CFG1_OFFSET) /* ADC configuration register 1 */
-#define rCFG2(adc)  REG(adc, KINETIS_ADC_CFG2_OFFSET) /* Configuration register 2 */
-#define rRA(adc)    REG(adc, KINETIS_ADC_RA_OFFSET)   /* ADC data result register */
-#define rRB(adc)    REG(adc, KINETIS_ADC_RB_OFFSET)   /* ADC data result register */
-#define rCV1(adc)   REG(adc, KINETIS_ADC_CV1_OFFSET)  /* Compare value registers */
-#define rCV2(adc)   REG(adc, KINETIS_ADC_CV2_OFFSET)  /* Compare value registers */
-#define rSC2(adc)   REG(adc, KINETIS_ADC_SC2_OFFSET)  /* Status and control register 2 */
-#define rSC3(adc)   REG(adc, KINETIS_ADC_SC3_OFFSET)  /* Status and control register 3 */
-#define rOFS(adc)   REG(adc, KINETIS_ADC_OFS_OFFSET)  /* ADC offset correction register */
-#define rPG(adc)    REG(adc, KINETIS_ADC_PG_OFFSET)   /* ADC plus-side gain register */
-#define rMG(adc)    REG(adc, KINETIS_ADC_MG_OFFSET)   /* ADC minus-side gain register */
-#define rCLPD(adc)  REG(adc, KINETIS_ADC_CLPD_OFFSET) /* ADC plus-side general calibration value register */
-#define rCLPS(adc)  REG(adc, KINETIS_ADC_CLPS_OFFSET) /* ADC plus-side general calibration value register */
-#define rCLP4(adc)  REG(adc, KINETIS_ADC_CLP4_OFFSET) /* ADC plus-side general calibration value register */
-#define rCLP3(adc)  REG(adc, KINETIS_ADC_CLP3_OFFSET) /* ADC plus-side general calibration value register */
-#define rCLP2(adc)  REG(adc, KINETIS_ADC_CLP2_OFFSET) /* ADC plus-side general calibration value register */
-#define rCLP1(adc)  REG(adc, KINETIS_ADC_CLP1_OFFSET) /* ADC plus-side general calibration value register */
-#define rCLP0(adc)  REG(adc, KINETIS_ADC_CLP0_OFFSET) /* ADC plus-side general calibration value register */
-#define rCLMD(adc)  REG(adc, KINETIS_ADC_CLMD_OFFSET) /* ADC minus-side general calibration value register */
-#define rCLMS(adc)  REG(adc, KINETIS_ADC_CLMS_OFFSET) /* ADC minus-side general calibration value register */
-#define rCLM4(adc)  REG(adc, KINETIS_ADC_CLM4_OFFSET) /* ADC minus-side general calibration value register */
-#define rCLM3(adc)  REG(adc, KINETIS_ADC_CLM3_OFFSET) /* ADC minus-side general calibration value register */
-#define rCLM2(adc)  REG(adc, KINETIS_ADC_CLM2_OFFSET) /* ADC minus-side general calibration value register */
-#define rCLM1(adc)  REG(adc, KINETIS_ADC_CLM1_OFFSET) /* ADC minus-side general calibration value register */
-#define rCLM0(adc)  REG(adc, KINETIS_ADC_CLM0_OFFSET) /* ADC minus-side general calibration value register */
+#define rSC1A(adc) REG(adc, KINETIS_ADC_SC1A_OFFSET) /* ADC status and control registers 1 */
+#define rSC1B(adc) REG(adc, KINETIS_ADC_SC1B_OFFSET) /* ADC status and control registers 1 */
+#define rCFG1(adc) REG(adc, KINETIS_ADC_CFG1_OFFSET) /* ADC configuration register 1 */
+#define rCFG2(adc) REG(adc, KINETIS_ADC_CFG2_OFFSET) /* Configuration register 2 */
+#define rRA(adc) REG(adc, KINETIS_ADC_RA_OFFSET)     /* ADC data result register */
+#define rRB(adc) REG(adc, KINETIS_ADC_RB_OFFSET)     /* ADC data result register */
+#define rCV1(adc) REG(adc, KINETIS_ADC_CV1_OFFSET)   /* Compare value registers */
+#define rCV2(adc) REG(adc, KINETIS_ADC_CV2_OFFSET)   /* Compare value registers */
+#define rSC2(adc) REG(adc, KINETIS_ADC_SC2_OFFSET)   /* Status and control register 2 */
+#define rSC3(adc) REG(adc, KINETIS_ADC_SC3_OFFSET)   /* Status and control register 3 */
+#define rOFS(adc) REG(adc, KINETIS_ADC_OFS_OFFSET)   /* ADC offset correction register */
+#define rPG(adc) REG(adc, KINETIS_ADC_PG_OFFSET)     /* ADC plus-side gain register */
+#define rMG(adc) REG(adc, KINETIS_ADC_MG_OFFSET)     /* ADC minus-side gain register */
+#define rCLPD(adc) REG(adc, KINETIS_ADC_CLPD_OFFSET) /* ADC plus-side general calibration value register */
+#define rCLPS(adc) REG(adc, KINETIS_ADC_CLPS_OFFSET) /* ADC plus-side general calibration value register */
+#define rCLP4(adc) REG(adc, KINETIS_ADC_CLP4_OFFSET) /* ADC plus-side general calibration value register */
+#define rCLP3(adc) REG(adc, KINETIS_ADC_CLP3_OFFSET) /* ADC plus-side general calibration value register */
+#define rCLP2(adc) REG(adc, KINETIS_ADC_CLP2_OFFSET) /* ADC plus-side general calibration value register */
+#define rCLP1(adc) REG(adc, KINETIS_ADC_CLP1_OFFSET) /* ADC plus-side general calibration value register */
+#define rCLP0(adc) REG(adc, KINETIS_ADC_CLP0_OFFSET) /* ADC plus-side general calibration value register */
+#define rCLMD(adc) REG(adc, KINETIS_ADC_CLMD_OFFSET) /* ADC minus-side general calibration value register */
+#define rCLMS(adc) REG(adc, KINETIS_ADC_CLMS_OFFSET) /* ADC minus-side general calibration value register */
+#define rCLM4(adc) REG(adc, KINETIS_ADC_CLM4_OFFSET) /* ADC minus-side general calibration value register */
+#define rCLM3(adc) REG(adc, KINETIS_ADC_CLM3_OFFSET) /* ADC minus-side general calibration value register */
+#define rCLM2(adc) REG(adc, KINETIS_ADC_CLM2_OFFSET) /* ADC minus-side general calibration value register */
+#define rCLM1(adc) REG(adc, KINETIS_ADC_CLM1_OFFSET) /* ADC minus-side general calibration value register */
+#define rCLM0(adc) REG(adc, KINETIS_ADC_CLM0_OFFSET) /* ADC minus-side general calibration value register */
 
-int px4_arch_adc_init(uint32_t base_address)
-{
+int px4_arch_adc_init(uint32_t base_address) {
 	/* Input is Buss Clock 56 Mhz We will use /8 for 7 Mhz */
 
 	irqstate_t flags = px4_enter_critical_section();
@@ -116,24 +112,24 @@ int px4_arch_adc_init(uint32_t base_address)
 
 	/* Calculate the calibration values for single ended positive */
 
-	r = rCLP0(1) + rCLP1(1)  + rCLP2(1)  + rCLP3(1)  + rCLP4(1)  + rCLPS(1) ;
+	r = rCLP0(1) + rCLP1(1) + rCLP2(1) + rCLP3(1) + rCLP4(1) + rCLPS(1);
 	r = 0x8000U | (r >> 1U);
 	rPG(1) = r;
 
 	/* Calculate the calibration values for double ended Negitive */
 
-	r = rCLM0(1) + rCLM1(1)  + rCLM2(1)  + rCLM3(1)  + rCLM4(1)  + rCLMS(1) ;
+	r = rCLM0(1) + rCLM1(1) + rCLM2(1) + rCLM3(1) + rCLM4(1) + rCLMS(1);
 	r = 0x8000U | (r >> 1U);
 	rMG(1) = r;
 
 	/* kick off a sample and wait for it to complete */
 	hrt_abstime now = hrt_absolute_time();
 
-	rSC1A(1) =  ADC_SC1_ADCH(ADC_SC1_ADCH_TEMP);
+	rSC1A(1) = ADC_SC1_ADCH(ADC_SC1_ADCH_TEMP);
 
 	while (!(rSC1A(1) & ADC_SC1_COCO)) {
-
-		/* don't wait for more than 500us, since that means something broke - should reset here if we see this */
+		/* don't wait for more than 500us, since that means something broke - should reset here if we see this
+		 */
 		if ((hrt_absolute_time() - now) > 500) {
 			return -1;
 		}
@@ -142,15 +138,13 @@ int px4_arch_adc_init(uint32_t base_address)
 	return 0;
 }
 
-void px4_arch_adc_uninit(uint32_t base_address)
-{
+void px4_arch_adc_uninit(uint32_t base_address) {
 	irqstate_t flags = px4_enter_critical_section();
 	_REG(KINETIS_SIM_SCGC3) &= ~SIM_SCGC3_ADC1;
 	px4_leave_critical_section(flags);
 }
 
-uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
-{
+uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel) {
 	irqstate_t flags = px4_enter_critical_section();
 
 	/* clear any previous COCC */
@@ -163,7 +157,6 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 	const hrt_abstime now = hrt_absolute_time();
 
 	while (!(rSC1A(1) & ADC_SC1_COCO)) {
-
 		/* don't wait for more than 10us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 10) {
 			px4_leave_critical_section(flags);
@@ -179,17 +172,12 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 	return result;
 }
 
-float px4_arch_adc_reference_v()
-{
-	return BOARD_ADC_POS_REF_V;	// TODO: provide true vref
+float px4_arch_adc_reference_v() {
+	return BOARD_ADC_POS_REF_V;  // TODO: provide true vref
 }
 
-uint32_t px4_arch_adc_temp_sensor_mask()
-{
-	return 1 << (ADC_SC1_ADCH_TEMP >> ADC_SC1_ADCH_SHIFT);
-}
+uint32_t px4_arch_adc_temp_sensor_mask() { return 1 << (ADC_SC1_ADCH_TEMP >> ADC_SC1_ADCH_SHIFT); }
 
-uint32_t px4_arch_adc_dn_fullcount()
-{
-	return 1 << 12; // 12 bit ADC
+uint32_t px4_arch_adc_dn_fullcount() {
+	return 1 << 12;  // 12 bit ADC
 }

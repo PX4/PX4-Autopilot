@@ -40,21 +40,20 @@
 
 #pragma once
 
-#include "AKM_AK8963_registers.hpp"
-
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/i2c.h>
-#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/perf/perf_counter.h>
+
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
+#include "AKM_AK8963_registers.hpp"
 
 class MPU9250;
 
-namespace AKM_AK8963
-{
+namespace AKM_AK8963 {
 
-class MPU9250_AK8963 : public px4::ScheduledWorkItem
-{
+class MPU9250_AK8963 : public px4::ScheduledWorkItem {
 public:
 	MPU9250_AK8963(MPU9250 &mpu9250, enum Rotation rotation = ROTATION_NONE);
 	~MPU9250_AK8963() override;
@@ -63,7 +62,6 @@ public:
 	void PrintInfo();
 
 private:
-
 	struct TransferBuffer {
 		uint8_t ST1;
 		uint8_t HXL;
@@ -87,16 +85,17 @@ private:
 
 	PX4Magnetometer _px4_mag;
 
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME"_ak8963: bad register")};
-	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME"_ak8963: bad transfer")};
-	perf_counter_t _magnetic_sensor_overflow_perf{perf_alloc(PC_COUNT, MODULE_NAME"_ak09916: magnetic sensor overflow")};
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME "_ak8963: bad register")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME "_ak8963: bad transfer")};
+	perf_counter_t _magnetic_sensor_overflow_perf{
+		perf_alloc(PC_COUNT, MODULE_NAME "_ak09916: magnetic sensor overflow")};
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
 	int _failure_count{0};
 
 	bool _sensitivity_adjustments_loaded{false};
-	float _sensitivity[3] {1.f, 1.f, 1.f};
+	float _sensitivity[3]{1.f, 1.f, 1.f};
 
 	enum class STATE : uint8_t {
 		RESET,
@@ -107,4 +106,4 @@ private:
 	} _state{STATE::RESET};
 };
 
-} // namespace AKM_AK8963
+}  // namespace AKM_AK8963

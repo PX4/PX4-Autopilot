@@ -49,10 +49,10 @@ struct mixer_heli_servo_s {
 
 /** helicopter swash plate mixer */
 struct mixer_heli_s {
-	uint8_t				control_count;	/**< number of inputs */
-	float				throttle_curve[HELI_CURVES_NR_POINTS];
-	float				pitch_curve[HELI_CURVES_NR_POINTS];
-	mixer_heli_servo_s		servos[4];	/**< up to four inputs */
+	uint8_t control_count; /**< number of inputs */
+	float throttle_curve[HELI_CURVES_NR_POINTS];
+	float pitch_curve[HELI_CURVES_NR_POINTS];
+	mixer_heli_servo_s servos[4]; /**< up to four inputs */
 };
 
 /**
@@ -61,8 +61,7 @@ struct mixer_heli_s {
  * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to servo commands
  * for swash plate tilting and throttle- and pitch curves.
  */
-class HelicopterMixer : public Mixer
-{
+class HelicopterMixer : public Mixer {
 public:
 	/**
 	 * Constructor.
@@ -96,16 +95,16 @@ public:
 	 * @return			A new HelicopterMixer instance, or nullptr
 	 *				if the text format is bad.
 	 */
-	static HelicopterMixer		*from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
-			unsigned &buflen);
+	static HelicopterMixer *from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
+					  unsigned &buflen);
 
-	unsigned			mix(float *outputs, unsigned space) override;
+	unsigned mix(float *outputs, unsigned space) override;
 
-	void				groups_required(uint32_t &groups) override { groups |= (1 << 0); }
+	void groups_required(uint32_t &groups) override { groups |= (1 << 0); }
 
-	unsigned			set_trim(float trim) override { return 4; }
-	unsigned			get_trim(float *trim) override { return 4; }
+	unsigned set_trim(float trim) override { return 4; }
+	unsigned get_trim(float *trim) override { return 4; }
 
 private:
-	mixer_heli_s			_mixer_info;
+	mixer_heli_s _mixer_info;
 };

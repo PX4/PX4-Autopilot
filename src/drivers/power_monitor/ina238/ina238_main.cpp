@@ -35,8 +35,7 @@
 
 #include "ina238.h"
 
-I2CSPIDriverBase *INA238::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+I2CSPIDriverBase *INA238::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	INA238 *instance = new INA238(config, config.custom1);
 
 	if (instance == nullptr) {
@@ -57,9 +56,7 @@ I2CSPIDriverBase *INA238::instantiate(const I2CSPIDriverConfig &config, int runt
 	return instance;
 }
 
-void
-INA238::print_usage()
-{
+void INA238::print_usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -86,9 +83,7 @@ this flag set, the battery must be plugged in before starting the driver.
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int
-ina238_main(int argc, char *argv[])
-{
+extern "C" int ina238_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = INA238;
 	BusCLIArguments cli{true, false};
@@ -99,9 +94,9 @@ ina238_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "t:")) != EOF) {
 		switch (ch) {
-		case 't': // battery index
-			cli.custom1 = (int)strtol(cli.optArg(), NULL, 0);
-			break;
+			case 't':  // battery index
+				cli.custom1 = (int)strtol(cli.optArg(), NULL, 0);
+				break;
 		}
 	}
 

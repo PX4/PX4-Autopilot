@@ -36,22 +36,20 @@
  */
 
 #include "ControlMath.hpp"
-#include <px4_platform_common/defines.h>
+
 #include <float.h>
 #include <mathlib/mathlib.h>
+#include <px4_platform_common/defines.h>
 
 using namespace matrix;
 
-namespace ControlMath
-{
-void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
-{
+namespace ControlMath {
+void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp) {
 	bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
 	att_sp.thrust_body[2] = -thr_sp.length();
 }
 
-void limitTilt(Vector3f &body_unit, const Vector3f &world_unit, const float max_angle)
-{
+void limitTilt(Vector3f &body_unit, const Vector3f &world_unit, const float max_angle) {
 	// determine tilt
 	const float dot_product_unit = body_unit.dot(world_unit);
 	float angle = acosf(dot_product_unit);
@@ -67,8 +65,7 @@ void limitTilt(Vector3f &body_unit, const Vector3f &world_unit, const float max_
 	body_unit = cosf(angle) * world_unit + sinf(angle) * rejection.unit();
 }
 
-void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
-{
+void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp) {
 	// zero vector, no direction, set safe level value
 	if (body_z.norm_squared() < FLT_EPSILON) {
 		body_z(2) = 1.f;
@@ -119,8 +116,7 @@ void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpo
 	att_sp.yaw_body = euler.psi();
 }
 
-Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max)
-{
+Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max) {
 	if (Vector2f(v0 + v1).norm() <= max) {
 		// vector does not exceed maximum magnitude
 		return v0 + v1;
@@ -183,9 +179,8 @@ Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max)
 	}
 }
 
-bool cross_sphere_line(const Vector3f &sphere_c, const float sphere_r,
-		       const Vector3f &line_a, const Vector3f &line_b, Vector3f &res)
-{
+bool cross_sphere_line(const Vector3f &sphere_c, const float sphere_r, const Vector3f &line_a, const Vector3f &line_b,
+		       Vector3f &res) {
 	// project center of sphere on line  normalized AB
 	Vector3f ab_norm = line_b - line_a;
 
@@ -207,15 +202,14 @@ bool cross_sphere_line(const Vector3f &sphere_c, const float sphere_r,
 
 		} else {
 			// target is in front of us
-			res = d + ab_norm * dx_len; // vector A->B on line
+			res = d + ab_norm * dx_len;  // vector A->B on line
 		}
 
 		return true;
 
 	} else {
-
 		// have no roots, return D
-		res = d; // go directly to line
+		res = d;  // go directly to line
 
 		// previous waypoint is still in front of us
 		if ((sphere_c - line_a) * ab_norm < 0.0f) {
@@ -231,8 +225,7 @@ bool cross_sphere_line(const Vector3f &sphere_c, const float sphere_r,
 	}
 }
 
-void addIfNotNan(float &setpoint, const float addition)
-{
+void addIfNotNan(float &setpoint, const float addition) {
 	if (PX4_ISFINITE(setpoint) && PX4_ISFINITE(addition)) {
 		// No NAN, add to the setpoint
 		setpoint += addition;
@@ -245,17 +238,15 @@ void addIfNotNan(float &setpoint, const float addition)
 	// Addition is NAN or both are NAN, nothing to do
 }
 
-void addIfNotNanVector3f(Vector3f &setpoint, const Vector3f &addition)
-{
+void addIfNotNanVector3f(Vector3f &setpoint, const Vector3f &addition) {
 	for (int i = 0; i < 3; i++) {
 		addIfNotNan(setpoint(i), addition(i));
 	}
 }
 
-void setZeroIfNanVector3f(Vector3f &vector)
-{
+void setZeroIfNanVector3f(Vector3f &vector) {
 	// Adding zero vector overwrites elements that are NaN with zero
 	addIfNotNanVector3f(vector, Vector3f());
 }
 
-} // ControlMath
+}  // namespace ControlMath

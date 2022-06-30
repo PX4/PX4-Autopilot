@@ -38,30 +38,30 @@
  * parameter overrides.
  *
  * @author Beat Kueng
-*/
-
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/time.h>
-#include <px4_platform_common/shutdown.h>
-#include <lib/parameters/param.h>
-
-#include <cstring>
-#include <float.h>
-#include <fstream>
-#include <iostream>
-#include <math.h>
-#include <time.h>
-#include <sstream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
-
-#include <logger/messages.h>
+ */
 
 #include "Replay.hpp"
+
+#include <drivers/drv_hrt.h>
+#include <float.h>
+#include <lib/parameters/param.h>
+#include <logger/messages.h>
+#include <math.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/shutdown.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+
 #include "ReplayEkf2.hpp"
 
 #define PARAMS_OVERRIDE_FILE PX4_ROOTFSDIR "/replay_params.txt"
@@ -69,23 +69,20 @@
 using namespace std;
 using namespace time_literals;
 
-namespace px4
-{
+namespace px4 {
 
 char *Replay::_replay_file = nullptr;
 
 Replay::CompatSensorCombinedDtType::CompatSensorCombinedDtType(int gyro_integral_dt_offset_log,
-		int gyro_integral_dt_offset_intern, int accelerometer_integral_dt_offset_log,
-		int accelerometer_integral_dt_offset_intern)
+							       int gyro_integral_dt_offset_intern,
+							       int accelerometer_integral_dt_offset_log,
+							       int accelerometer_integral_dt_offset_intern)
 	: _gyro_integral_dt_offset_log(gyro_integral_dt_offset_log),
 	  _gyro_integral_dt_offset_intern(gyro_integral_dt_offset_intern),
 	  _accelerometer_integral_dt_offset_log(accelerometer_integral_dt_offset_log),
-	  _accelerometer_integral_dt_offset_intern(accelerometer_integral_dt_offset_intern)
-{
-}
+	  _accelerometer_integral_dt_offset_intern(accelerometer_integral_dt_offset_intern) {}
 
-Replay::~Replay()
-{
+Replay::~Replay() {
 	for (size_t i = 0; i < _subscriptions.size(); ++i) {
 		delete (_subscriptions[i]);
 	}
@@ -93,9 +90,7 @@ Replay::~Replay()
 	_subscriptions.clear();
 }
 
-void *
-Replay::CompatSensorCombinedDtType::apply(void *data)
-{
+void *Replay::CompatSensorCombinedDtType::apply(void *data) {
 	// the types have the same size so we can do the conversion in-place
 	uint8_t *ptr = (uint8_t *)data;
 
@@ -114,9 +109,7 @@ Replay::CompatSensorCombinedDtType::apply(void *data)
 	return data;
 }
 
-void
-Replay::setupReplayFile(const char *file_name)
-{
+void Replay::setupReplayFile(const char *file_name) {
 	if (_replay_file) {
 		free(_replay_file);
 	}
@@ -124,9 +117,7 @@ Replay::setupReplayFile(const char *file_name)
 	_replay_file = strdup(file_name);
 }
 
-void
-Replay::setUserParams(const char *filename)
-{
+void Replay::setUserParams(const char *filename) {
 	string line;
 	string pname;
 	string value_string;
@@ -174,7 +165,8 @@ Replay::setUserParams(const char *filename)
 			float value = (float)param_value_double;
 
 			if (fabsf(orig_value - value) > FLT_EPSILON) {
-				PX4_WARN("setting %s (FLOAT) %.3f -> %.3f", param_name(handle), (double)orig_value, (double)value);
+				PX4_WARN("setting %s (FLOAT) %.3f -> %.3f", param_name(handle), (double)orig_value,
+					 (double)value);
 			}
 
 			param_set(handle, (const void *)&value);
@@ -182,9 +174,7 @@ Replay::setUserParams(const char *filename)
 	}
 }
 
-bool
-Replay::readFileHeader(std::ifstream &file)
-{
+bool Replay::readFileHeader(std::ifstream &file) {
 	file.seekg(0);
 	ulog_file_header_s msg_header;
 	file.read((char *)&msg_header, sizeof(msg_header));
@@ -194,7 +184,7 @@ Replay::readFileHeader(std::ifstream &file)
 	}
 
 	_file_start_time = msg_header.timestamp;
-	//verify it's an ULog file
+	// verify it's an ULog file
 	char magic[8];
 	magic[0] = 'U';
 	magic[1] = 'L';
@@ -206,9 +196,7 @@ Replay::readFileHeader(std::ifstream &file)
 	return memcmp(magic, msg_header.magic, 7) == 0;
 }
 
-bool
-Replay::readFileDefinitions(std::ifstream &file)
-{
+bool Replay::readFileDefinitions(std::ifstream &file) {
 	PX4_INFO("Applying params from ULog file...");
 
 	ulog_message_header_s message_header;
@@ -222,51 +210,49 @@ Replay::readFileDefinitions(std::ifstream &file)
 		}
 
 		switch (message_header.msg_type) {
-		case (int)ULogMessageType::FLAG_BITS:
-			if (!readFlagBits(file, message_header.msg_size)) {
-				return false;
-			}
+			case (int)ULogMessageType::FLAG_BITS:
+				if (!readFlagBits(file, message_header.msg_size)) {
+					return false;
+				}
 
-			break;
+				break;
 
-		case (int)ULogMessageType::FORMAT:
-			if (!readFormat(file, message_header.msg_size)) {
-				return false;
-			}
+			case (int)ULogMessageType::FORMAT:
+				if (!readFormat(file, message_header.msg_size)) {
+					return false;
+				}
 
-			break;
+				break;
 
-		case (int)ULogMessageType::PARAMETER:
-			if (!readAndApplyParameter(file, message_header.msg_size)) {
-				return false;
-			}
+			case (int)ULogMessageType::PARAMETER:
+				if (!readAndApplyParameter(file, message_header.msg_size)) {
+					return false;
+				}
 
-			break;
+				break;
 
-		case (int)ULogMessageType::ADD_LOGGED_MSG:
-			_data_section_start = file.tellg() - (streamoff)ULOG_MSG_HEADER_LEN;
-			return true;
+			case (int)ULogMessageType::ADD_LOGGED_MSG:
+				_data_section_start = file.tellg() - (streamoff)ULOG_MSG_HEADER_LEN;
+				return true;
 
-		case (int)ULogMessageType::INFO: //skip
-		case (int)ULogMessageType::INFO_MULTIPLE: //skip
-		case (int)ULogMessageType::PARAMETER_DEFAULT:
-			file.seekg(message_header.msg_size, ios::cur);
-			break;
+			case (int)ULogMessageType::INFO:           // skip
+			case (int)ULogMessageType::INFO_MULTIPLE:  // skip
+			case (int)ULogMessageType::PARAMETER_DEFAULT:
+				file.seekg(message_header.msg_size, ios::cur);
+				break;
 
-		default:
-			PX4_ERR("unknown log definition type %i, size %i (offset %i)",
-				(int)message_header.msg_type, (int)message_header.msg_size, (int)file.tellg());
-			file.seekg(message_header.msg_size, ios::cur);
-			break;
+			default:
+				PX4_ERR("unknown log definition type %i, size %i (offset %i)",
+					(int)message_header.msg_type, (int)message_header.msg_size, (int)file.tellg());
+				file.seekg(message_header.msg_size, ios::cur);
+				break;
 		}
 	}
 
 	return true;
 }
 
-bool
-Replay::readFlagBits(std::ifstream &file, uint16_t msg_size)
-{
+bool Replay::readFlagBits(std::ifstream &file, uint16_t msg_size) {
 	if (msg_size != 40) {
 		PX4_ERR("unsupported message length for FLAG_BITS message (%i)", msg_size);
 		return false;
@@ -275,7 +261,7 @@ Replay::readFlagBits(std::ifstream &file, uint16_t msg_size)
 	_read_buffer.reserve(msg_size);
 	uint8_t *message = (uint8_t *)_read_buffer.data();
 	file.read((char *)message, msg_size);
-	//uint8_t *compat_flags = message;
+	// uint8_t *compat_flags = message;
 	uint8_t *incompat_flags = message + 8;
 
 	// handle & validate the flags
@@ -311,9 +297,7 @@ Replay::readFlagBits(std::ifstream &file, uint16_t msg_size)
 	return true;
 }
 
-bool
-Replay::readFormat(std::ifstream &file, uint16_t msg_size)
-{
+bool Replay::readFormat(std::ifstream &file, uint16_t msg_size) {
 	_read_buffer.reserve(msg_size + 1);
 	char *format = (char *)_read_buffer.data();
 	file.read(format, msg_size);
@@ -337,9 +321,7 @@ Replay::readFormat(std::ifstream &file, uint16_t msg_size)
 	return true;
 }
 
-
-string Replay::parseOrbFields(const string &fields)
-{
+string Replay::parseOrbFields(const string &fields) {
 	string ret{};
 
 	// convert o_fields from "<chr> timestamp;<chr>[5] array;" to "uint64_t timestamp;int8_t[5] array;"
@@ -367,9 +349,7 @@ string Replay::parseOrbFields(const string &fields)
 	return ret;
 }
 
-bool
-Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
-{
+bool Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size) {
 	_read_buffer.reserve(msg_size + 1);
 	char *message = (char *)_read_buffer.data();
 	streampos this_message_pos = file.tellg() - (streamoff)ULOG_MSG_HEADER_LEN;
@@ -380,14 +360,14 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 		return false;
 	}
 
-	if (file.tellg() <= _subscription_file_pos) { //already read this subscription
+	if (file.tellg() <= _subscription_file_pos) {  // already read this subscription
 		return true;
 	}
 
 	_subscription_file_pos = file.tellg();
 
 	uint8_t multi_id = *(uint8_t *)message;
-	uint16_t msg_id = ((uint16_t) message[1]) | (((uint16_t) message[2]) << 8);
+	uint16_t msg_id = ((uint16_t)message[1]) | (((uint16_t)message[2]) << 8);
 	string topic_name(message + 3);
 	const orb_metadata *orb_meta = findTopic(topic_name);
 
@@ -407,26 +387,32 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	if (file_format != orb_fields) {
 		// check if we have a compatibility conversion available
 		if (topic_name == "sensor_combined") {
-			if (orb_fields == "uint64_t timestamp;float[3] gyro_rad;uint32_t gyro_integral_dt;"
-			    "int32_t accelerometer_timestamp_relative;float[3] accelerometer_m_s2;"
-			    "uint32_t accelerometer_integral_dt" &&
-			    file_format == "uint64_t timestamp;float[3] gyro_rad;float gyro_integral_dt;"
-			    "int32_t accelerometer_timestamp_relative;float[3] accelerometer_m_s2;"
-			    "float accelerometer_integral_dt;") {
-
+			if (orb_fields ==
+				    "uint64_t timestamp;float[3] gyro_rad;uint32_t gyro_integral_dt;"
+				    "int32_t accelerometer_timestamp_relative;float[3] accelerometer_m_s2;"
+				    "uint32_t accelerometer_integral_dt" &&
+			    file_format ==
+				    "uint64_t timestamp;float[3] gyro_rad;float gyro_integral_dt;"
+				    "int32_t accelerometer_timestamp_relative;float[3] accelerometer_m_s2;"
+				    "float accelerometer_integral_dt;") {
 				int gyro_integral_dt_offset_log;
 				int gyro_integral_dt_offset_intern;
 				int accelerometer_integral_dt_offset_log;
 				int accelerometer_integral_dt_offset_intern;
 				int unused;
 
-				if (findFieldOffset(file_format, "gyro_integral_dt", gyro_integral_dt_offset_log, unused) &&
-				    findFieldOffset(orb_fields, "gyro_integral_dt", gyro_integral_dt_offset_intern, unused) &&
-				    findFieldOffset(file_format, "accelerometer_integral_dt", accelerometer_integral_dt_offset_log, unused) &&
-				    findFieldOffset(orb_fields, "accelerometer_integral_dt", accelerometer_integral_dt_offset_intern, unused)) {
-
-					compat = new CompatSensorCombinedDtType(gyro_integral_dt_offset_log, gyro_integral_dt_offset_intern,
-										accelerometer_integral_dt_offset_log, accelerometer_integral_dt_offset_intern);
+				if (findFieldOffset(file_format, "gyro_integral_dt", gyro_integral_dt_offset_log,
+						    unused) &&
+				    findFieldOffset(orb_fields, "gyro_integral_dt", gyro_integral_dt_offset_intern,
+						    unused) &&
+				    findFieldOffset(file_format, "accelerometer_integral_dt",
+						    accelerometer_integral_dt_offset_log, unused) &&
+				    findFieldOffset(orb_fields, "accelerometer_integral_dt",
+						    accelerometer_integral_dt_offset_intern, unused)) {
+					compat = new CompatSensorCombinedDtType(
+						gyro_integral_dt_offset_log, gyro_integral_dt_offset_intern,
+						accelerometer_integral_dt_offset_log,
+						accelerometer_integral_dt_offset_intern);
 				}
 			}
 		}
@@ -469,7 +455,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 				}
 			}
 
-			return true; // not a fatal error
+			return true;  // not a fatal error
 		}
 	}
 
@@ -478,7 +464,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	subscription->multi_id = multi_id;
 	subscription->compat = compat;
 
-	//find the timestamp offset
+	// find the timestamp offset
 	int field_size;
 	bool timestamp_found = findFieldOffset(orb_fields, "timestamp", subscription->timestamp_offset, field_size);
 
@@ -493,9 +479,9 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 		return true;
 	}
 
-	//find first data message (and the timestamp)
+	// find first data message (and the timestamp)
 	streampos cur_pos = file.tellg();
-	subscription->next_read_pos = this_message_pos; //this will be skipped
+	subscription->next_read_pos = this_message_pos;  // this will be skipped
 
 	if (!nextDataMessage(file, *subscription, msg_id)) {
 		delete subscription;
@@ -505,14 +491,14 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	file.seekg(cur_pos);
 
 	if (!subscription->orb_meta) {
-		//no message found. This is not a fatal error
+		// no message found. This is not a fatal error
 		delete subscription;
 		return true;
 	}
 
 	PX4_DEBUG("adding subscription for %s (msg_id %i)", subscription->orb_meta->o_name, msg_id);
 
-	//add subscription
+	// add subscription
 	if (_subscriptions.size() <= msg_id) {
 		_subscriptions.resize(msg_id + 1);
 	}
@@ -524,9 +510,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	return true;
 }
 
-bool
-Replay::findFieldOffset(const string &format, const string &field_name, int &offset, int &field_size)
-{
+bool Replay::findFieldOffset(const string &format, const string &field_name, int &offset, int &field_size) {
 	size_t prev_field_end = 0;
 	size_t field_end = format.find(';');
 	offset = 0;
@@ -555,9 +539,7 @@ Replay::findFieldOffset(const string &format, const string &field_name, int &off
 	return false;
 }
 
-bool
-Replay::readAndHandleAdditionalMessages(std::ifstream &file, std::streampos end_position)
-{
+bool Replay::readAndHandleAdditionalMessages(std::ifstream &file, std::streampos end_position) {
 	ulog_message_header_s message_header;
 
 	while (file.tellg() < end_position) {
@@ -568,29 +550,27 @@ Replay::readAndHandleAdditionalMessages(std::ifstream &file, std::streampos end_
 		}
 
 		switch (message_header.msg_type) {
-		case (int)ULogMessageType::PARAMETER:
-			if (!readAndApplyParameter(file, message_header.msg_size)) {
-				return false;
-			}
+			case (int)ULogMessageType::PARAMETER:
+				if (!readAndApplyParameter(file, message_header.msg_size)) {
+					return false;
+				}
 
-			break;
+				break;
 
-		case (int)ULogMessageType::DROPOUT:
-			readDropout(file, message_header.msg_size);
-			break;
+			case (int)ULogMessageType::DROPOUT:
+				readDropout(file, message_header.msg_size);
+				break;
 
-		default: //skip all others
-			file.seekg(message_header.msg_size, ios::cur);
-			break;
+			default:  // skip all others
+				file.seekg(message_header.msg_size, ios::cur);
+				break;
 		}
 	}
 
 	return true;
 }
 
-bool
-Replay::readAndApplyParameter(std::ifstream &file, uint16_t msg_size)
-{
+bool Replay::readAndApplyParameter(std::ifstream &file, uint16_t msg_size) {
 	_read_buffer.reserve(msg_size);
 	uint8_t *message = (uint8_t *)_read_buffer.data();
 	file.read((char *)message, msg_size);
@@ -612,7 +592,7 @@ Replay::readAndApplyParameter(std::ifstream &file, uint16_t msg_size)
 	string param_name = key.substr(pos + 1);
 
 	if (_overridden_params.find(param_name) != _overridden_params.end()) {
-		//this parameter is overridden, so don't apply it
+		// this parameter is overridden, so don't apply it
 		return true;
 	}
 
@@ -630,9 +610,7 @@ Replay::readAndApplyParameter(std::ifstream &file, uint16_t msg_size)
 	return true;
 }
 
-bool
-Replay::readDropout(std::ifstream &file, uint16_t msg_size)
-{
+bool Replay::readDropout(std::ifstream &file, uint16_t msg_size) {
 	uint16_t duration;
 	file.read((char *)&duration, sizeof(duration));
 
@@ -640,12 +618,10 @@ Replay::readDropout(std::ifstream &file, uint16_t msg_size)
 	return file.good();
 }
 
-bool
-Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, int msg_id)
-{
+bool Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, int msg_id) {
 	ulog_message_header_s message_header;
 	file.seekg(subscription.next_read_pos);
-	//ignore the first message (it's data we already read)
+	// ignore the first message (it's data we already read)
 	file.read((char *)&message_header, ULOG_MSG_HEADER_LEN);
 
 	if (file) {
@@ -669,56 +645,60 @@ Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, int msg
 		}
 
 		switch (message_header.msg_type) {
-		case (int)ULogMessageType::ADD_LOGGED_MSG:
-			readAndAddSubscription(file, message_header.msg_size);
-			break;
+			case (int)ULogMessageType::ADD_LOGGED_MSG:
+				readAndAddSubscription(file, message_header.msg_size);
+				break;
 
-		case (int)ULogMessageType::DATA:
-			file.read((char *)&file_msg_id, sizeof(file_msg_id));
+			case (int)ULogMessageType::DATA:
+				file.read((char *)&file_msg_id, sizeof(file_msg_id));
 
-			if (file) {
-				if (msg_id == file_msg_id) {
-					if (message_header.msg_size == subscription.orb_meta->o_size_no_padding + 2) {
-						subscription.next_read_pos = cur_pos;
-						file.seekg(subscription.timestamp_offset, ios::cur);
-						file.read((char *)&subscription.next_timestamp, sizeof(subscription.next_timestamp));
-						done = true;
+				if (file) {
+					if (msg_id == file_msg_id) {
+						if (message_header.msg_size ==
+						    subscription.orb_meta->o_size_no_padding + 2) {
+							subscription.next_read_pos = cur_pos;
+							file.seekg(subscription.timestamp_offset, ios::cur);
+							file.read((char *)&subscription.next_timestamp,
+								  sizeof(subscription.next_timestamp));
+							done = true;
 
-					} else { //sanity check failed!
-						PX4_ERR("data message %s has wrong size %i (expected %i). Skipping",
-							subscription.orb_meta->o_name, message_header.msg_size,
-							subscription.orb_meta->o_size_no_padding + 2);
+						} else {  // sanity check failed!
+							PX4_ERR("data message %s has wrong size %i (expected %i). "
+								"Skipping",
+								subscription.orb_meta->o_name, message_header.msg_size,
+								subscription.orb_meta->o_size_no_padding + 2);
+							file.seekg(message_header.msg_size - sizeof(file_msg_id),
+								   ios::cur);
+						}
+
+					} else {  // not the one we are looking for
 						file.seekg(message_header.msg_size - sizeof(file_msg_id), ios::cur);
 					}
-
-				} else { //not the one we are looking for
-					file.seekg(message_header.msg_size - sizeof(file_msg_id), ios::cur);
 				}
-			}
 
-			break;
+				break;
 
-		case (int)ULogMessageType::REMOVE_LOGGED_MSG: //skip these
-		case (int)ULogMessageType::PARAMETER:
-		case (int)ULogMessageType::DROPOUT:
-		case (int)ULogMessageType::INFO:
-		case (int)ULogMessageType::INFO_MULTIPLE:
-		case (int)ULogMessageType::SYNC:
-		case (int)ULogMessageType::LOGGING:
-		case (int)ULogMessageType::PARAMETER_DEFAULT:
-			file.seekg(message_header.msg_size, ios::cur);
-			break;
+			case (int)ULogMessageType::REMOVE_LOGGED_MSG:  // skip these
+			case (int)ULogMessageType::PARAMETER:
+			case (int)ULogMessageType::DROPOUT:
+			case (int)ULogMessageType::INFO:
+			case (int)ULogMessageType::INFO_MULTIPLE:
+			case (int)ULogMessageType::SYNC:
+			case (int)ULogMessageType::LOGGING:
+			case (int)ULogMessageType::PARAMETER_DEFAULT:
+				file.seekg(message_header.msg_size, ios::cur);
+				break;
 
-		default:
-			//this really should not happen
-			PX4_ERR("unknown log message type %i, size %i (offset %i)",
-				(int)message_header.msg_type, (int)message_header.msg_size, (int)file.tellg());
-			file.seekg(message_header.msg_size, ios::cur);
-			break;
+			default:
+				// this really should not happen
+				PX4_ERR("unknown log message type %i, size %i (offset %i)",
+					(int)message_header.msg_type, (int)message_header.msg_size, (int)file.tellg());
+				file.seekg(message_header.msg_size, ios::cur);
+				break;
 		}
 	}
 
-	if (file.eof()) { //no more data messages for this subscription
+	if (file.eof()) {  // no more data messages for this subscription
 		subscription.orb_meta = nullptr;
 		file.clear();
 	}
@@ -726,9 +706,7 @@ Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, int msg
 	return file.good();
 }
 
-const orb_metadata *
-Replay::findTopic(const std::string &name)
-{
+const orb_metadata *Replay::findTopic(const std::string &name) {
 	const orb_metadata *const *topics = orb_get_topics();
 
 	for (size_t i = 0; i < orb_topics_count(); i++) {
@@ -740,9 +718,7 @@ Replay::findTopic(const std::string &name)
 	return nullptr;
 }
 
-std::string
-Replay::extractArraySize(const std::string &type_name_full, int &array_size)
-{
+std::string Replay::extractArraySize(const std::string &type_name_full, int &array_size) {
 	size_t start_pos = type_name_full.find('[');
 	size_t end_pos = type_name_full.find(']');
 
@@ -755,9 +731,7 @@ Replay::extractArraySize(const std::string &type_name_full, int &array_size)
 	return type_name_full.substr(0, start_pos);
 }
 
-size_t
-Replay::sizeOfType(const std::string &type_name)
-{
+size_t Replay::sizeOfType(const std::string &type_name) {
 	if (type_name == "int8_t" || type_name == "uint8_t") {
 		return 1;
 
@@ -790,17 +764,13 @@ Replay::sizeOfType(const std::string &type_name)
 	return 0;
 }
 
-size_t
-Replay::sizeOfFullType(const std::string &type_name_full)
-{
+size_t Replay::sizeOfFullType(const std::string &type_name_full) {
 	int array_size;
 	string type_name = extractArraySize(type_name_full, array_size);
 	return sizeOfType(type_name) * array_size;
 }
 
-bool
-Replay::readDefinitionsAndApplyParams(std::ifstream &file)
-{
+bool Replay::readDefinitionsAndApplyParams(std::ifstream &file) {
 	// log reader currently assumes little endian
 	int num = 1;
 
@@ -819,7 +789,7 @@ Replay::readDefinitionsAndApplyParams(std::ifstream &file)
 		return false;
 	}
 
-	//initialize the formats and apply the parameters from the log file
+	// initialize the formats and apply the parameters from the log file
 	if (!readFileDefinitions(file)) {
 		PX4_ERR("Failed to read ULog definitions section. Broken file?");
 		return false;
@@ -829,9 +799,7 @@ Replay::readDefinitionsAndApplyParams(std::ifstream &file)
 	return true;
 }
 
-void
-Replay::run()
-{
+void Replay::run() {
 	ifstream replay_file(_replay_file, ios::in | ios::binary);
 
 	if (!readDefinitionsAndApplyParams(replay_file)) {
@@ -854,7 +822,7 @@ Replay::run()
 	ulog_message_header_s message_header;
 	replay_file.seekg(_data_section_start);
 
-	//we know the next message must be an ADD_LOGGED_MSG
+	// we know the next message must be an ADD_LOGGED_MSG
 	replay_file.read((char *)&message_header, ULOG_MSG_HEADER_LEN);
 
 	if (!readAndAddSubscription(replay_file, message_header.msg_size)) {
@@ -867,9 +835,8 @@ Replay::run()
 	streampos last_additional_message_pos = _data_section_start;
 
 	while (!should_exit() && replay_file) {
-
-		//Find the next message to publish. Messages from different subscriptions don't need
-		//to be in chronological order, so we need to check all subscriptions
+		// Find the next message to publish. Messages from different subscriptions don't need
+		// to be in chronological order, so we need to check all subscriptions
 		uint64_t next_file_time = 0;
 		int next_msg_id = -1;
 		bool first_time = true;
@@ -891,18 +858,18 @@ Replay::run()
 		}
 
 		if (next_msg_id == -1) {
-			break; //no active subscription anymore. We're done.
+			break;  // no active subscription anymore. We're done.
 		}
 
 		Subscription &sub = *_subscriptions[next_msg_id];
 
 		if (next_file_time == 0) {
-			//someone didn't set the timestamp properly. Consider the message invalid
+			// someone didn't set the timestamp properly. Consider the message invalid
 			nextDataMessage(replay_file, sub, next_msg_id);
 			continue;
 		}
 
-		//handle additional messages between last and next published data
+		// handle additional messages between last and next published data
 		replay_file.seekg(last_additional_message_pos);
 		streampos next_additional_message_pos = sub.next_read_pos;
 		readAndHandleAdditionalMessages(replay_file, next_additional_message_pos);
@@ -912,7 +879,8 @@ Replay::run()
 
 		// It's time to publish
 		readTopicDataToBuffer(sub, replay_file);
-		memcpy(_read_buffer.data() + sub.timestamp_offset, &publish_timestamp, sizeof(uint64_t)); //adjust the timestamp
+		memcpy(_read_buffer.data() + sub.timestamp_offset, &publish_timestamp,
+		       sizeof(uint64_t));  // adjust the timestamp
 
 		if (handleTopicUpdate(sub, _read_buffer.data(), replay_file)) {
 			++nr_published_messages;
@@ -961,25 +929,19 @@ Replay::run()
 	}
 }
 
-void
-Replay::readTopicDataToBuffer(const Subscription &sub, std::ifstream &replay_file)
-{
+void Replay::readTopicDataToBuffer(const Subscription &sub, std::ifstream &replay_file) {
 	const size_t msg_read_size = sub.orb_meta->o_size_no_padding;
 	const size_t msg_write_size = sub.orb_meta->o_size;
 	_read_buffer.reserve(msg_write_size);
-	replay_file.seekg(sub.next_read_pos + (streamoff)(ULOG_MSG_HEADER_LEN + 2)); //skip header & msg id
+	replay_file.seekg(sub.next_read_pos + (streamoff)(ULOG_MSG_HEADER_LEN + 2));  // skip header & msg id
 	replay_file.read((char *)_read_buffer.data(), msg_read_size);
 }
 
-bool
-Replay::handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file)
-{
+bool Replay::handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file) {
 	return publishTopic(sub, data);
 }
 
-uint64_t
-Replay::handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset)
-{
+uint64_t Replay::handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset) {
 	const uint64_t publish_timestamp = next_file_time + timestamp_offset;
 
 	// wait if necessary
@@ -1006,9 +968,7 @@ Replay::handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset)
 	return publish_timestamp;
 }
 
-bool
-Replay::publishTopic(Subscription &sub, void *data)
-{
+bool Replay::publishTopic(Subscription &sub, void *data) {
 	bool published = false;
 
 	if (sub.compat) {
@@ -1056,9 +1016,7 @@ Replay::publishTopic(Subscription &sub, void *data)
 	return published;
 }
 
-int
-Replay::custom_command(int argc, char *argv[])
-{
+int Replay::custom_command(int argc, char *argv[]) {
 	if (!strcmp(argv[0], "tryapplyparams")) {
 		return Replay::applyParams(true);
 	}
@@ -1070,9 +1028,7 @@ Replay::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int
-Replay::task_spawn(int argc, char *argv[])
-{
+int Replay::task_spawn(int argc, char *argv[]) {
 	// check if a log file was found
 	if (!isSetup()) {
 		if (argc > 0 && strncmp(argv[0], "try", 3) == 0) {
@@ -1083,12 +1039,8 @@ Replay::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
-	_task_id = px4_task_spawn_cmd("replay",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_MAX - 5,
-				      4000,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	_task_id = px4_task_spawn_cmd("replay", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 4000,
+				      (px4_main_t)&run_trampoline, (char *const *)argv);
 
 	if (_task_id < 0) {
 		_task_id = -1;
@@ -1098,9 +1050,7 @@ Replay::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-int
-Replay::applyParams(bool quiet)
-{
+int Replay::applyParams(bool quiet) {
 	if (!isSetup()) {
 		if (quiet) {
 			return -1;
@@ -1129,9 +1079,7 @@ Replay::applyParams(bool quiet)
 	return ret;
 }
 
-Replay *
-Replay::instantiate(int argc, char *argv[])
-{
+Replay *Replay::instantiate(int argc, char *argv[]) {
 	// check the replay mode
 	const char *replay_mode = getenv(replay::ENV_MODE);
 
@@ -1148,9 +1096,7 @@ Replay::instantiate(int argc, char *argv[])
 	return instance;
 }
 
-int
-Replay::print_usage(const char *reason)
-{
+int Replay::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -1184,4 +1130,4 @@ page.
 	return 0;
 }
 
-} //namespace px4
+}  // namespace px4

@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "tcbp001ta.hpp"
 
@@ -41,8 +41,7 @@ enum class TCBP001TA_BUS {
 	SPI_INTERNAL = 0
 };
 
-namespace tcbp001ta
-{
+namespace tcbp001ta {
 
 // list of supported bus configurations
 struct tcbp001ta_bus_option {
@@ -50,19 +49,16 @@ struct tcbp001ta_bus_option {
 	TCBP001TA_constructor interface_constructor;
 	uint8_t busnum;
 	uint32_t address;
-	TCBP001TA	*dev;
+	TCBP001TA *dev;
 } bus_options[] = {
 
-	{ TCBP001TA_BUS::SPI_INTERNAL, &tcbp001ta_spi_interface, PX4_SPI_BUS_BARO, PX4_SPIDEV_BARO, nullptr },
+	{TCBP001TA_BUS::SPI_INTERNAL, &tcbp001ta_spi_interface, PX4_SPI_BUS_BARO, PX4_SPIDEV_BARO, nullptr},
 };
 
 // find a bus structure for a busid
-static struct tcbp001ta_bus_option *find_bus(TCBP001TA_BUS busid)
-{
+static struct tcbp001ta_bus_option *find_bus(TCBP001TA_BUS busid) {
 	for (tcbp001ta_bus_option &bus_option : bus_options) {
-		if ((
-			    busid == bus_option.busid) && bus_option.dev != nullptr) {
-
+		if ((busid == bus_option.busid) && bus_option.dev != nullptr) {
 			return &bus_option;
 		}
 	}
@@ -70,8 +66,7 @@ static struct tcbp001ta_bus_option *find_bus(TCBP001TA_BUS busid)
 	return nullptr;
 }
 
-static bool start_bus(tcbp001ta_bus_option &bus)
-{
+static bool start_bus(tcbp001ta_bus_option &bus) {
 	tcbp001ta::ITCBP001TA *interface = bus.interface_constructor(bus.busnum, bus.address);
 
 	if ((interface == nullptr) || (interface->init() != PX4_OK)) {
@@ -90,7 +85,7 @@ static bool start_bus(tcbp001ta_bus_option &bus)
 
 	if (dev->init() != PX4_OK) {
 		PX4_ERR("driver start failed");
-		delete dev;	// TCBP001TA deletes the interface
+		delete dev;  // TCBP001TA deletes the interface
 		return false;
 	}
 
@@ -99,8 +94,7 @@ static bool start_bus(tcbp001ta_bus_option &bus)
 	return true;
 }
 
-static int start(TCBP001TA_BUS busid)
-{
+static int start(TCBP001TA_BUS busid) {
 	for (tcbp001ta_bus_option &bus_option : bus_options) {
 		if (bus_option.dev != nullptr) {
 			// this device is already started
@@ -121,8 +115,7 @@ static int start(TCBP001TA_BUS busid)
 	return PX4_ERROR;
 }
 
-static int stop(TCBP001TA_BUS busid)
-{
+static int stop(TCBP001TA_BUS busid) {
 	tcbp001ta_bus_option *bus = find_bus(busid);
 
 	if (bus != nullptr && bus->dev != nullptr) {
@@ -137,8 +130,7 @@ static int stop(TCBP001TA_BUS busid)
 	return PX4_OK;
 }
 
-static int status(TCBP001TA_BUS busid)
-{
+static int status(TCBP001TA_BUS busid) {
 	tcbp001ta_bus_option *bus = find_bus(busid);
 
 	if (bus != nullptr && bus->dev != nullptr) {
@@ -150,8 +142,7 @@ static int status(TCBP001TA_BUS busid)
 	return PX4_ERROR;
 }
 
-static int usage()
-{
+static int usage() {
 	PX4_INFO("missing command: try 'start', 'stop', 'status'");
 	PX4_INFO("options:");
 	PX4_INFO("    -X    (i2c external bus)");
@@ -162,18 +153,15 @@ static int usage()
 	return 0;
 }
 
-} // namespace
+}  // namespace tcbp001ta
 
-extern "C" int tcbp001ta_main(int argc, char *argv[])
-{
+extern "C" int tcbp001ta_main(int argc, char *argv[]) {
 	int myoptind = 1;
 	// int ch;
 	// const char *myoptarg = nullptr;
 
 	TCBP001TA_BUS busid;
 	busid = TCBP001TA_BUS::SPI_INTERNAL;
-
-
 
 	// if (myoptind >= argc) {
 	// 	return tcbp001ta::usage();

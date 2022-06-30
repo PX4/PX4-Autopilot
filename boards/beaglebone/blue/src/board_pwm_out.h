@@ -37,8 +37,7 @@
 
 #define BOARD_PWM_OUT_IMPL BBBlueRcPWMOut
 
-namespace pwm_out
-{
+namespace pwm_out {
 
 /**
  ** class BBBlueRcPWMOut
@@ -47,8 +46,7 @@ namespace pwm_out
  * Ref: https://github.com/StrawsonDesign/Robotics_Cape_Installer
  *      http://www.strawsondesign.com/#!manual-servos
  */
-class BBBlueRcPWMOut : public PWMOutBase
-{
+class BBBlueRcPWMOut : public PWMOutBase {
 public:
 	BBBlueRcPWMOut(int max_num_outputs);
 	virtual ~BBBlueRcPWMOut();
@@ -64,4 +62,4 @@ private:
 	int _num_outputs;
 };
 
-}
+}  // namespace pwm_out

@@ -40,20 +40,18 @@
 
 using namespace pwm_out;
 
-LinuxPWMOut::LinuxPWMOut() :
-	CDev("/dev/pwm_out"),
-	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
-	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": interval"))
-{
+LinuxPWMOut::LinuxPWMOut()
+	: CDev("/dev/pwm_out"),
+	  OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
+	  _cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")),
+	  _interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": interval")) {
 	if (!_mixing_output.useDynamicMixing()) {
 		_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
 		_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
 	}
 }
 
-LinuxPWMOut::~LinuxPWMOut()
-{
+LinuxPWMOut::~LinuxPWMOut() {
 	/* clean up the alternate device node */
 	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
 
@@ -62,8 +60,7 @@ LinuxPWMOut::~LinuxPWMOut()
 	delete _pwm_out;
 }
 
-int LinuxPWMOut::init()
-{
+int LinuxPWMOut::init() {
 	/* do regular cdev init */
 	int ret = CDev::init();
 
@@ -94,8 +91,7 @@ int LinuxPWMOut::init()
 	return ret;
 }
 
-int LinuxPWMOut::task_spawn(int argc, char *argv[])
-{
+int LinuxPWMOut::task_spawn(int argc, char *argv[]) {
 	LinuxPWMOut *instance = new LinuxPWMOut();
 
 	if (instance) {
@@ -117,15 +113,13 @@ int LinuxPWMOut::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-bool LinuxPWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-				unsigned num_outputs, unsigned num_control_groups_updated)
-{
+bool LinuxPWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+				unsigned num_control_groups_updated) {
 	_pwm_out->send_output_pwm(outputs, num_outputs);
 	return true;
 }
 
-void LinuxPWMOut::Run()
-{
+void LinuxPWMOut::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
@@ -156,8 +150,7 @@ void LinuxPWMOut::Run()
 	perf_end(_cycle_perf);
 }
 
-void LinuxPWMOut::update_params()
-{
+void LinuxPWMOut::update_params() {
 	updateParams();
 
 	// skip update when armed or dynamic mixing enabled
@@ -288,7 +281,7 @@ void LinuxPWMOut::update_params()
 	}
 
 	if (_mixing_output.mixers()) {
-		int16_t values[MAX_ACTUATORS] {};
+		int16_t values[MAX_ACTUATORS]{};
 
 		for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
 			sprintf(str, "%s_TRIM%u", prefix, i + 1);
@@ -303,8 +296,7 @@ void LinuxPWMOut::update_params()
 	}
 }
 
-int LinuxPWMOut::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
+int LinuxPWMOut::ioctl(device::file_t *filp, int cmd, unsigned long arg) {
 	SmartLock lock_guard(_lock);
 
 	int ret = OK;
@@ -312,11 +304,11 @@ int LinuxPWMOut::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	PX4_DEBUG("ioctl cmd: %d, arg: %ld", cmd, arg);
 
 	switch (cmd) {
-	case MIXERIOCRESET:
-		_mixing_output.resetMixer();
-		break;
+		case MIXERIOCRESET:
+			_mixing_output.resetMixer();
+			break;
 
-	case MIXERIOCLOADBUF: {
+		case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
 			ret = _mixing_output.loadMixer(buf, buflen);
@@ -324,9 +316,9 @@ int LinuxPWMOut::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	default:
-		ret = -ENOTTY;
-		break;
+		default:
+			ret = -ENOTTY;
+			break;
 	}
 
 	if (ret == -ENOTTY) {
@@ -336,21 +328,16 @@ int LinuxPWMOut::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-int LinuxPWMOut::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int LinuxPWMOut::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int LinuxPWMOut::print_status()
-{
+int LinuxPWMOut::print_status() {
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);
 	_mixing_output.printStatus();
 	return 0;
 }
 
-int LinuxPWMOut::print_usage(const char *reason)
-{
+int LinuxPWMOut::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -368,7 +355,4 @@ Linux PWM output driver with board-specific backend implementation.
 	return 0;
 }
 
-extern "C" __EXPORT int linux_pwm_out_main(int argc, char *argv[])
-{
-	return LinuxPWMOut::main(argc, argv);
-}
+extern "C" __EXPORT int linux_pwm_out_main(int argc, char *argv[]) { return LinuxPWMOut::main(argc, argv); }

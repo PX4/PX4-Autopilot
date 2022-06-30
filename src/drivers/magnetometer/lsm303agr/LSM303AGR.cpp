@@ -39,17 +39,17 @@
 
 #include "LSM303AGR.hpp"
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
 #include <geo/geo.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_config.h>
 
 /* SPI protocol address bits */
-#define DIR_READ				(1<<7)
-#define DIR_WRITE				(0<<7)
-#define ADDR_INCREMENT			(1<<6)
+#define DIR_READ (1 << 7)
+#define DIR_WRITE (0 << 7)
+#define ADDR_INCREMENT (1 << 6)
 
 /* Max measurement rate is 100Hz */
-#define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
+#define CONVERSION_INTERVAL (1000000 / 100) /* microseconds */
 
 static constexpr uint8_t LSM303AGR_WHO_AM_I_M = 0x40;
 
@@ -59,29 +59,26 @@ static constexpr uint8_t LSM303AGR_WHO_AM_I_M = 0x40;
   This time reduction is enough to cope with worst case timing jitter
   due to other timers
  */
-#define LSM303AGR_TIMER_REDUCTION				200
+#define LSM303AGR_TIMER_REDUCTION 200
 
-LSM303AGR::LSM303AGR(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation),
-	_mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": mag_read")),
-	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),
-	_bad_values(perf_alloc(PC_COUNT, MODULE_NAME": bad_val"))
-{
-	_px4_mag.set_scale(1.5f / 1000.f); // 1.5 milligauss/LSB
+LSM303AGR::LSM303AGR(const I2CSPIDriverConfig &config)
+	: SPI(config),
+	  I2CSPIDriver(config),
+	  _px4_mag(get_device_id(), config.rotation),
+	  _mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": mag_read")),
+	  _bad_registers(perf_alloc(PC_COUNT, MODULE_NAME ": bad_reg")),
+	  _bad_values(perf_alloc(PC_COUNT, MODULE_NAME ": bad_val")) {
+	_px4_mag.set_scale(1.5f / 1000.f);  // 1.5 milligauss/LSB
 }
 
-LSM303AGR::~LSM303AGR()
-{
+LSM303AGR::~LSM303AGR() {
 	/* delete the perf counter */
 	perf_free(_mag_sample_perf);
 	perf_free(_bad_registers);
 	perf_free(_bad_values);
 }
 
-int LSM303AGR::init()
-{
+int LSM303AGR::init() {
 	/* do SPI init (and probe) first */
 	int ret = SPI::init();
 
@@ -105,8 +102,7 @@ int LSM303AGR::init()
 	return ret;
 }
 
-int LSM303AGR::reset()
-{
+int LSM303AGR::reset() {
 	// Single mode
 	// Output data rate configuration: 100Hz
 	write_reg(CFG_REG_A_M, CFG_REG_A_M_MD0 | CFG_REG_A_M_ODR1 | CFG_REG_A_M_ODR0);
@@ -120,8 +116,7 @@ int LSM303AGR::reset()
 	return PX4_OK;
 }
 
-bool LSM303AGR::self_test()
-{
+bool LSM303AGR::self_test() {
 	// Magnetometer self-test procedure (LSM303AGR DocID027765 Rev 5 page 25/68)
 	uint8_t status_m = 0;
 
@@ -139,7 +134,6 @@ bool LSM303AGR::self_test()
 	// Check Zyxda 50 times and discard
 	// average x, y, z
 	for (int i = 0; i < 50; i++) {
-
 		status_m = read_reg(STATUS_REG_M);
 
 		OUTX_NOST += read_reg(OUTX_L_REG_M) + (read_reg(OUTX_H_REG_M) << 8);
@@ -171,7 +165,6 @@ bool LSM303AGR::self_test()
 	// Read the output registers after checking the Zyxda bit 50 times
 	// average x, y, z
 	for (int i = 0; i < 50; i++) {
-
 		status_m = read_reg(STATUS_REG_M);
 
 		OUTX_NOST += read_reg(OUTX_L_REG_M) + (read_reg(OUTX_H_REG_M) << 8);
@@ -189,7 +182,6 @@ bool LSM303AGR::self_test()
 	const bool z_valid = (abs_z > 0 && abs_z < UINT16_MAX);
 
 	if (!x_valid || !y_valid || !z_valid) {
-
 		PX4_ERR("self-test failed");
 
 		PX4_INFO("STATUS_M: %X", status_m);
@@ -207,8 +199,7 @@ bool LSM303AGR::self_test()
 	return true;
 }
 
-int LSM303AGR::probe()
-{
+int LSM303AGR::probe() {
 	/* verify that the device is attached and functioning */
 	bool success = (read_reg(WHO_AM_I_M) == LSM303AGR_WHO_AM_I_M);
 
@@ -219,8 +210,7 @@ int LSM303AGR::probe()
 	return -EIO;
 }
 
-uint8_t LSM303AGR::read_reg(unsigned reg)
-{
+uint8_t LSM303AGR::read_reg(unsigned reg) {
 	uint8_t cmd[2];
 	cmd[0] = reg | DIR_READ;
 	cmd[1] = 0;
@@ -230,17 +220,15 @@ uint8_t LSM303AGR::read_reg(unsigned reg)
 	return cmd[1];
 }
 
-int LSM303AGR::write_reg(unsigned reg, uint8_t value)
-{
-	uint8_t	cmd[2];
+int LSM303AGR::write_reg(unsigned reg, uint8_t value) {
+	uint8_t cmd[2];
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
 
 	return transfer(cmd, nullptr, sizeof(cmd));
 }
 
-void LSM303AGR::start()
-{
+void LSM303AGR::start() {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 
@@ -248,15 +236,13 @@ void LSM303AGR::start()
 	ScheduleNow();
 }
 
-void LSM303AGR::RunImpl()
-{
+void LSM303AGR::RunImpl() {
 	if (_measure_interval == 0) {
 		return;
 	}
 
 	/* collection phase? */
 	if (_collect_phase) {
-
 		/* perform collection */
 		if (OK != collect()) {
 			DEVICE_DEBUG("collection error");
@@ -272,7 +258,6 @@ void LSM303AGR::RunImpl()
 		 * Is there a collect->measure gap?
 		 */
 		if (_measure_interval > CONVERSION_INTERVAL) {
-
 			/* schedule a fresh cycle call when we are ready to measure again */
 			ScheduleDelayed(_measure_interval - CONVERSION_INTERVAL);
 
@@ -292,14 +277,12 @@ void LSM303AGR::RunImpl()
 	}
 }
 
-void LSM303AGR::measure()
-{
+void LSM303AGR::measure() {
 	// Send the command to begin a measurement.
 	write_reg(CFG_REG_A_M, CFG_REG_A_M_MD0 | CFG_REG_A_M_ODR1 | CFG_REG_A_M_ODR0);
 }
 
-int LSM303AGR::collect()
-{
+int LSM303AGR::collect() {
 	const uint8_t status = read_reg(STATUS_REG_M);
 
 	_px4_mag.set_error_count(perf_event_count(_bad_registers) + perf_event_count(_bad_values));
@@ -325,8 +308,7 @@ int LSM303AGR::collect()
 	return OK;
 }
 
-void LSM303AGR::print_status()
-{
+void LSM303AGR::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_mag_sample_perf);
 	perf_print_counter(_bad_registers);

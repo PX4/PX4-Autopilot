@@ -33,24 +33,19 @@
 
 #include <gtest/gtest.h>
 #include <math.h>
+
 #include "EKF/ekf.h"
 
-class EkfMeasurementSamplingTest : public ::testing::Test
-{
+class EkfMeasurementSamplingTest : public ::testing::Test {
 public:
-	EkfMeasurementSamplingTest(): ::testing::Test(),
-		_ekf{std::make_shared<Ekf>()} {};
+	EkfMeasurementSamplingTest() : ::testing::Test(), _ekf{std::make_shared<Ekf>()} {};
 
 	std::shared_ptr<Ekf> _ekf;
 
-	void SetUp() override
-	{
-		_ekf->init(0);
-	}
+	void SetUp() override { _ekf->init(0); }
 };
 
-TEST_F(EkfMeasurementSamplingTest, baroDownSampling)
-{
+TEST_F(EkfMeasurementSamplingTest, baroDownSampling) {
 	// Need to send imu samples to initialise
 	imuSample imu_sample;
 

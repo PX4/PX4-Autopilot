@@ -33,8 +33,8 @@
 
 /**
  *
- * This module is a modification of the fixed wing / rover module  and it is designed for unmanned underwater vehicles  (UUV).
- * It has been developed starting from the fw module, simplified and improved with dedicated items.
+ * This module is a modification of the fixed wing / rover module  and it is designed for unmanned underwater vehicles
+ * (UUV). It has been developed starting from the fw module, simplified and improved with dedicated items.
  *
  * All the acknowledgments and credits for the fw wing/rover app are reported in those files.
  *
@@ -45,9 +45,7 @@
 
 #include "uuv_att_control.hpp"
 
-
 #define ACTUATOR_PUBLISH_PERIOD_MS 4
-
 
 /**
  * UUV attitude control app start / stop handling function
@@ -56,22 +54,15 @@
  */
 extern "C" __EXPORT int uuv_att_control_main(int argc, char *argv[]);
 
+UUVAttitudeControl::UUVAttitudeControl()
+	: ModuleParams(nullptr),
+	  WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	  /* performance counters */
+	  _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")) {}
 
-UUVAttitudeControl::UUVAttitudeControl():
-	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
-{
-}
+UUVAttitudeControl::~UUVAttitudeControl() { perf_free(_loop_perf); }
 
-UUVAttitudeControl::~UUVAttitudeControl()
-{
-	perf_free(_loop_perf);
-}
-
-bool UUVAttitudeControl::init()
-{
+bool UUVAttitudeControl::init() {
 	if (!_vehicle_attitude_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -80,8 +71,7 @@ bool UUVAttitudeControl::init()
 	return true;
 }
 
-void UUVAttitudeControl::parameters_update(bool force)
-{
+void UUVAttitudeControl::parameters_update(bool force) {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || force) {
 		// clear update
@@ -93,9 +83,8 @@ void UUVAttitudeControl::parameters_update(bool force)
 	}
 }
 
-void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u,
-		float thrust_x, float thrust_y, float thrust_z)
-{
+void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u, float thrust_x,
+						     float thrust_y, float thrust_z) {
 	if (PX4_ISFINITE(roll_u)) {
 		roll_u = math::constrain(roll_u, -1.0f, 1.0f);
 		_actuators.control[actuator_controls_s::INDEX_ROLL] = roll_u;
@@ -146,14 +135,15 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 }
 
 void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude,
-		const vehicle_attitude_setpoint_s &attitude_setpoint, const vehicle_angular_velocity_s &angular_velocity,
-		const vehicle_rates_setpoint_s &rates_setpoint)
-{
+					      const vehicle_attitude_setpoint_s &attitude_setpoint,
+					      const vehicle_angular_velocity_s &angular_velocity,
+					      const vehicle_rates_setpoint_s &rates_setpoint) {
 	/** Geometric Controller
 	 *
 	 * based on
-	 * D. Mellinger, V. Kumar, "Minimum Snap Trajectory Generation and Control for Quadrotors", IEEE ICRA 2011, pp. 2520-2525.
-	 * D. A. Duecker, A. Hackbarth, T. Johannink, E. Kreuzer, and E. Solowjow, “Micro Underwater Vehicle Hydrobatics: A SubmergedFuruta Pendulum,” IEEE ICRA 2018, pp. 7498–7503.
+	 * D. Mellinger, V. Kumar, "Minimum Snap Trajectory Generation and Control for Quadrotors", IEEE ICRA 2011, pp.
+	 * 2520-2525. D. A. Duecker, A. Hackbarth, T. Johannink, E. Kreuzer, and E. Solowjow, “Micro Underwater Vehicle
+	 * Hydrobatics: A SubmergedFuruta Pendulum,” IEEE ICRA 2018, pp. 7498–7503.
 	 */
 	Eulerf euler_angles(matrix::Quatf(attitude.q));
 
@@ -177,7 +167,7 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 
 	/* get current rotation matrix from control state quaternions */
 	Quatf q_att(attitude.q);
-	Matrix3f rot_att =  matrix::Dcm<float>(q_att);
+	Matrix3f rot_att = matrix::Dcm<float>(q_att);
 
 	Vector3f e_R_vec;
 	Vector3f torques;
@@ -186,9 +176,9 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 	Matrix3f e_R = (rot_des.transpose() * rot_att - rot_att.transpose() * rot_des) * 0.5;
 
 	/* vee-map the error to get a vector instead of matrix e_R */
-	e_R_vec(0) = e_R(2, 1);  /**< Roll  */
-	e_R_vec(1) = e_R(0, 2);  /**< Pitch */
-	e_R_vec(2) = e_R(1, 0);  /**< Yaw   */
+	e_R_vec(0) = e_R(2, 1); /**< Roll  */
+	e_R_vec(1) = e_R(0, 2); /**< Pitch */
+	e_R_vec(2) = e_R(1, 0); /**< Yaw   */
 
 	Vector3f omega{angular_velocity.xyz};
 	omega(0) -= roll_rate_desired;
@@ -196,9 +186,9 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 	omega(2) -= yaw_rate_desired;
 
 	/**< P-Control */
-	torques(0) = - e_R_vec(0) * _param_roll_p.get();	/**< Roll  */
-	torques(1) = - e_R_vec(1) * _param_pitch_p.get();	/**< Pitch */
-	torques(2) = - e_R_vec(2) * _param_yaw_p.get();		/**< Yaw   */
+	torques(0) = -e_R_vec(0) * _param_roll_p.get();  /**< Roll  */
+	torques(1) = -e_R_vec(1) * _param_pitch_p.get(); /**< Pitch */
+	torques(2) = -e_R_vec(2) * _param_yaw_p.get();   /**< Yaw   */
 
 	/**< PD-Control */
 	torques(0) = torques(0) - omega(0) * _param_roll_d.get();  /**< Roll  */
@@ -214,13 +204,11 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 	thrust_y = attitude_setpoint.thrust_body[1];
 	thrust_z = attitude_setpoint.thrust_body[2];
 
-
 	constrain_actuator_commands(roll_u, pitch_u, yaw_u, thrust_x, thrust_y, thrust_z);
 	/* Geometric Controller END*/
 }
 
-void UUVAttitudeControl::Run()
-{
+void UUVAttitudeControl::Run() {
 	if (should_exit()) {
 		_vehicle_attitude_sub.unregisterCallback();
 		exit_and_cleanup();
@@ -239,20 +227,18 @@ void UUVAttitudeControl::Run()
 
 	/* only run controller if attitude changed */
 	if (_vehicle_attitude_sub.update(&attitude)) {
-		vehicle_angular_velocity_s angular_velocity {};
+		vehicle_angular_velocity_s angular_velocity{};
 		_angular_velocity_sub.copy(&angular_velocity);
 
 		/* Run geometric attitude controllers if NOT manual mode*/
-		if (!_vcontrol_mode.flag_control_manual_enabled
-		    && _vcontrol_mode.flag_control_attitude_enabled
-		    && _vcontrol_mode.flag_control_rates_enabled) {
-
+		if (!_vcontrol_mode.flag_control_manual_enabled && _vcontrol_mode.flag_control_attitude_enabled &&
+		    _vcontrol_mode.flag_control_rates_enabled) {
 			int input_mode = _param_input_mode.get();
 
 			_vehicle_attitude_setpoint_sub.update(&_attitude_setpoint);
 			_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
 
-			if (input_mode == 1) { // process manual data
+			if (input_mode == 1) {  // process manual data
 				_attitude_setpoint.roll_body = _param_direct_roll.get();
 				_attitude_setpoint.pitch_body = _param_direct_pitch.get();
 				_attitude_setpoint.yaw_body = _param_direct_yaw.get();
@@ -265,8 +251,10 @@ void UUVAttitudeControl::Run()
 			int skip_controller = _param_skip_ctrl.get();
 
 			if (skip_controller) {
-				constrain_actuator_commands(_rates_setpoint.roll, _rates_setpoint.pitch, _rates_setpoint.yaw,
-							    _rates_setpoint.thrust_body[0], _rates_setpoint.thrust_body[1], _rates_setpoint.thrust_body[2]);
+				constrain_actuator_commands(_rates_setpoint.roll, _rates_setpoint.pitch,
+							    _rates_setpoint.yaw, _rates_setpoint.thrust_body[0],
+							    _rates_setpoint.thrust_body[1],
+							    _rates_setpoint.thrust_body[2]);
 
 			} else {
 				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
@@ -281,17 +269,14 @@ void UUVAttitudeControl::Run()
 		if (_vcontrol_mode.flag_control_manual_enabled && !_vcontrol_mode.flag_control_rates_enabled) {
 			/* manual/direct control */
 			constrain_actuator_commands(_manual_control_setpoint.y, -_manual_control_setpoint.x,
-						    _manual_control_setpoint.r,
-						    _manual_control_setpoint.z, 0.f, 0.f);
+						    _manual_control_setpoint.r, _manual_control_setpoint.z, 0.f, 0.f);
 		}
-
 	}
 
 	_actuators.timestamp = hrt_absolute_time();
 
 	/* Only publish if any of the proper modes are enabled */
-	if (_vcontrol_mode.flag_control_manual_enabled ||
-	    _vcontrol_mode.flag_control_attitude_enabled) {
+	if (_vcontrol_mode.flag_control_manual_enabled || _vcontrol_mode.flag_control_attitude_enabled) {
 		/* publish the actuator controls */
 		_actuator_controls_pub.publish(_actuators);
 		publishTorqueSetpoint(0);
@@ -301,8 +286,7 @@ void UUVAttitudeControl::Run()
 	perf_end(_loop_perf);
 }
 
-void UUVAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_sample)
-{
+void UUVAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_sample) {
 	vehicle_torque_setpoint_s v_torque_sp = {};
 	v_torque_sp.timestamp = hrt_absolute_time();
 	v_torque_sp.timestamp_sample = timestamp_sample;
@@ -313,8 +297,7 @@ void UUVAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_samp
 	_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 }
 
-void UUVAttitudeControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
-{
+void UUVAttitudeControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample) {
 	vehicle_thrust_setpoint_s v_thrust_sp = {};
 	v_thrust_sp.timestamp = hrt_absolute_time();
 	v_thrust_sp.timestamp_sample = timestamp_sample;
@@ -325,9 +308,7 @@ void UUVAttitudeControl::publishThrustSetpoint(const hrt_abstime &timestamp_samp
 	_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 }
 
-
-int UUVAttitudeControl::task_spawn(int argc, char *argv[])
-{
+int UUVAttitudeControl::task_spawn(int argc, char *argv[]) {
 	UUVAttitudeControl *instance = new UUVAttitudeControl();
 
 	if (instance) {
@@ -349,14 +330,9 @@ int UUVAttitudeControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int UUVAttitudeControl::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int UUVAttitudeControl::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-
-int UUVAttitudeControl::print_usage(const char *reason)
-{
+int UUVAttitudeControl::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -389,7 +365,4 @@ $ uuv_att_control stop
 	return 0;
 }
 
-int uuv_att_control_main(int argc, char *argv[])
-{
-	return UUVAttitudeControl::main(argc, argv);
-}
+int uuv_att_control_main(int argc, char *argv[]) { return UUVAttitudeControl::main(argc, argv); }

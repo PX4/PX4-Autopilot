@@ -35,22 +35,21 @@
  * @author RJ Gritter <rjgritter657@gmail.com>
  */
 
-#include <drivers/drv_hrt.h>
 #include "airspeed.hpp"
+
+#include <drivers/drv_hrt.h>
+#include <lib/geo/geo.h>  // For CONSTANTS_*
 #include <math.h>
-#include <lib/geo/geo.h> // For CONSTANTS_*
 
 const char *const UavcanAirspeedBridge::NAME = "airspeed";
 
-UavcanAirspeedBridge::UavcanAirspeedBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_airspeed", ORB_ID(airspeed)),
-	_sub_ias_data(node),
-	_sub_tas_data(node),
-	_sub_oat_data(node)
-{ }
+UavcanAirspeedBridge::UavcanAirspeedBridge(uavcan::INode &node)
+	: UavcanSensorBridgeBase("uavcan_airspeed", ORB_ID(airspeed)),
+	  _sub_ias_data(node),
+	  _sub_tas_data(node),
+	  _sub_oat_data(node) {}
 
-int UavcanAirspeedBridge::init()
-{
+int UavcanAirspeedBridge::init() {
 	int res = _sub_ias_data.start(IASCbBinder(this, &UavcanAirspeedBridge::ias_sub_cb));
 
 	if (res < 0) {
@@ -75,23 +74,17 @@ int UavcanAirspeedBridge::init()
 	return 0;
 }
 
-void
-UavcanAirspeedBridge::oat_sub_cb(const
-				 uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &msg)
-{
+void UavcanAirspeedBridge::oat_sub_cb(
+	const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &msg) {
 	_last_outside_air_temp_k = msg.static_temperature;
 }
 
-void
-UavcanAirspeedBridge::tas_sub_cb(const
-				 uavcan::ReceivedDataStructure<uavcan::equipment::air_data::TrueAirspeed> &msg)
-{
+void UavcanAirspeedBridge::tas_sub_cb(
+	const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::TrueAirspeed> &msg) {
 	_last_tas_m_s = msg.true_airspeed;
 }
-void
-UavcanAirspeedBridge::ias_sub_cb(const
-				 uavcan::ReceivedDataStructure<uavcan::equipment::air_data::IndicatedAirspeed> &msg)
-{
+void UavcanAirspeedBridge::ias_sub_cb(
+	const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::IndicatedAirspeed> &msg) {
 	airspeed_s report{};
 
 	/*
@@ -101,10 +94,10 @@ UavcanAirspeedBridge::ias_sub_cb(const
 	 * to use an independent time source (based on hardware TIM5) instead of HRT.
 	 * The proper solution is to be developed.
 	 */
-	report.timestamp   		= hrt_absolute_time();
-	report.indicated_airspeed_m_s   = msg.indicated_airspeed;
-	report.true_airspeed_m_s   	= _last_tas_m_s;
-	report.air_temperature_celsius 	= _last_outside_air_temp_k + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+	report.timestamp = hrt_absolute_time();
+	report.indicated_airspeed_m_s = msg.indicated_airspeed;
+	report.true_airspeed_m_s = _last_tas_m_s;
+	report.air_temperature_celsius = _last_outside_air_temp_k + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 
 	publish(msg.getSrcNodeID().get(), &report);
 }

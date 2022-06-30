@@ -36,19 +36,18 @@
  * Tests the List container.
  */
 
-#include <unit_test.h>
-#include <containers/List.hpp>
 #include <float.h>
 #include <math.h>
+#include <unit_test.h>
 
-class testContainer : public ListNode<testContainer *>
-{
+#include <containers/List.hpp>
+
+class testContainer : public ListNode<testContainer *> {
 public:
 	int i{0};
 };
 
-class ListTest : public UnitTest
-{
+class ListTest : public UnitTest {
 public:
 	virtual bool run_tests();
 
@@ -56,11 +55,9 @@ public:
 	bool test_remove();
 	bool test_range_based_for();
 	bool test_reinsert();
-
 };
 
-bool ListTest::run_tests()
-{
+bool ListTest::run_tests() {
 	ut_run_test(test_add);
 	ut_run_test(test_remove);
 	ut_run_test(test_range_based_for);
@@ -69,8 +66,7 @@ bool ListTest::run_tests()
 	return (_tests_failed == 0);
 }
 
-bool ListTest::test_add()
-{
+bool ListTest::test_add() {
 	List<testContainer *> list1;
 
 	// size should be 0 initially
@@ -108,8 +104,7 @@ bool ListTest::test_add()
 	return true;
 }
 
-bool ListTest::test_remove()
-{
+bool ListTest::test_remove() {
 	List<testContainer *> list1;
 
 	// size should be 0 initially
@@ -131,7 +126,6 @@ bool ListTest::test_remove()
 
 	// test removing elements
 	for (int remove_i = 0; remove_i < 100; remove_i++) {
-
 		// find node with i == remove_i
 		testContainer *removed = nullptr;
 
@@ -166,8 +160,7 @@ bool ListTest::test_remove()
 	return true;
 }
 
-bool ListTest::test_range_based_for()
-{
+bool ListTest::test_range_based_for() {
 	List<testContainer *> list1;
 
 	// size should be 0 initially
@@ -220,8 +213,7 @@ bool ListTest::test_range_based_for()
 	return true;
 }
 
-bool ListTest::test_reinsert()
-{
+bool ListTest::test_reinsert() {
 	List<testContainer *> l1;
 
 	// size should be 0 initially
@@ -244,7 +236,6 @@ bool ListTest::test_reinsert()
 
 	// test removing elements
 	for (int remove_i = 0; remove_i < 100; remove_i++) {
-
 		ut_assert_false(l1.empty());
 
 		// find node with i == remove_i

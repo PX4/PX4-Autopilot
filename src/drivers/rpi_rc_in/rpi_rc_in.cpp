@@ -35,8 +35,7 @@
 
 using namespace rpi_rc_in;
 
-RcInput::~RcInput()
-{
+RcInput::~RcInput() {
 	if (_mem) {
 		shmdt(_mem);
 		_mem = nullptr;
@@ -46,8 +45,7 @@ RcInput::~RcInput()
 	_is_running = false;
 }
 
-int RcInput::rpi_rc_init()
-{
+int RcInput::rpi_rc_init() {
 	int i;
 
 	// initialize shared memory
@@ -56,7 +54,7 @@ int RcInput::rpi_rc_init()
 		return -1;
 	}
 
-	if ((_mem = (int *) shmat(_shmid, NULL, 0)) == (void *) - 1) {
+	if ((_mem = (int *)shmat(_shmid, NULL, 0)) == (void *)-1) {
 		PX4_WARN("Faild to map shared memory");
 		return -1;
 	}
@@ -69,8 +67,7 @@ int RcInput::rpi_rc_init()
 	return 0;
 }
 
-int RcInput::start()
-{
+int RcInput::start() {
 	int result = 0;
 
 	result = rpi_rc_init();
@@ -87,13 +84,9 @@ int RcInput::start()
 	return result;
 }
 
-void RcInput::stop()
-{
-	_should_exit = true;
-}
+void RcInput::stop() { _should_exit = true; }
 
-void RcInput::Run()
-{
+void RcInput::Run() {
 	_measure();
 
 	if (!_should_exit) {
@@ -101,15 +94,14 @@ void RcInput::Run()
 	}
 }
 
-void RcInput::_measure(void)
-{
+void RcInput::_measure(void) {
 	uint64_t ts;
 	// publish PWM data
 	// read pwm value from shared memory
 	int i = 0;
 
 	for (i = 0; i < _channels; ++i) {
-		int value = _mem[i]; // access the shared memory (with a single read)
+		int value = _mem[i];  // access the shared memory (with a single read)
 		_data.values[i] = (value <= 0) ? UINT16_MAX : value;
 	}
 
@@ -128,8 +120,7 @@ void RcInput::_measure(void)
 	_rcinput_pub.publish(_data);
 }
 
-static void rpi_rc_in::usage(const char *reason)
-{
+static void rpi_rc_in::usage(const char *reason) {
 	if (reason) {
 		PX4_ERR("%s", reason);
 	}
@@ -137,15 +128,13 @@ static void rpi_rc_in::usage(const char *reason)
 	PX4_INFO("rpi_rc_in {start|stop|status}");
 }
 
-int rpi_rc_in_main(int argc, char **argv)
-{
+int rpi_rc_in_main(int argc, char **argv) {
 	if (argc < 2) {
 		usage("missing command");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
-
 		if (rc_input != nullptr && rc_input->is_running()) {
 			PX4_INFO("already running");
 			// this is not an error
@@ -170,7 +159,6 @@ int rpi_rc_in_main(int argc, char **argv)
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-
 		if (rc_input == nullptr || !rc_input->is_running()) {
 			PX4_WARN("Not running");
 			// this is not an error
@@ -207,6 +195,4 @@ int rpi_rc_in_main(int argc, char **argv)
 
 	usage("rpi_rc_in start|stop|status");
 	return 1;
-
 }
-

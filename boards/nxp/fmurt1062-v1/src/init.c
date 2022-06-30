@@ -45,43 +45,37 @@
  * Included Files
  ****************************************************************************/
 
-#include "board_config.h"
-
+#include <arch/board/board.h>
+#include <chip.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <hardware/imxrt_lpuart.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/config.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/mm/gran.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/board_determine_hw_info.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/init.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <debug.h>
-#include <errno.h>
 #include <syslog.h>
-
-#include <nuttx/config.h>
-#include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-#include <nuttx/mm/gran.h>
+#include <systemlib/px4_macros.h>
 
 #include "arm_arch.h"
 #include "arm_internal.h"
+#include "board_config.h"
 #include "imxrt_flexspi_nor_boot.h"
 #include "imxrt_iomuxc.h"
-#include <chip.h>
-#include "board_config.h"
-
-#include <hardware/imxrt_lpuart.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
-#include <systemlib/px4_macros.h>
-#include <px4_arch/io_timer.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/gpio.h>
-#include <px4_platform/board_determine_hw_info.h>
-#include <px4_platform/board_dma_alloc.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -108,8 +102,7 @@ __END_DECLS
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
+__EXPORT void board_peripheral_reset(int ms) {
 	/* set the peripheral rails off */
 
 	VDD_5V_PERIPH_EN(false);
@@ -124,7 +117,6 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* switch the peripheral rail back on */
 	VDD_5V_HIPOWER_EN(true);
 	VDD_5V_PERIPH_EN(true);
-
 }
 /************************************************************************************
  * Name: board_on_reset
@@ -138,8 +130,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *
  ************************************************************************************/
 
-__EXPORT void board_on_reset(int status)
-{
+__EXPORT void board_on_reset(int status) {
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_gpio_output(i)));
 	}
@@ -148,7 +139,6 @@ __EXPORT void board_on_reset(int status)
 		up_mdelay(6);
 	}
 }
-
 
 /****************************************************************************
  * Name: imxrt_ocram_initialize
@@ -159,8 +149,7 @@ __EXPORT void board_on_reset(int status)
  *
  ****************************************************************************/
 
-__EXPORT void imxrt_ocram_initialize(void)
-{
+__EXPORT void imxrt_ocram_initialize(void) {
 	const uint32_t *src;
 	uint32_t *dest;
 	uint32_t regval;
@@ -179,8 +168,8 @@ __EXPORT void imxrt_ocram_initialize(void)
 	putreg32(regval | GPR_GPR16_FLEXRAM_BANK_CFG_SELF, IMXRT_IOMUXC_GPR_GPR16);
 
 	for (src = (uint32_t *)(LOCATE_IN_SRC(g_boot_data.start) + g_boot_data.size),
-	     dest = (uint32_t *)(g_boot_data.start + g_boot_data.size);
-	     dest < (uint32_t *) &_etext;) {
+	    dest = (uint32_t *)(g_boot_data.start + g_boot_data.size);
+	     dest < (uint32_t *)&_etext;) {
 		*dest++ = *src++;
 	}
 }
@@ -196,9 +185,7 @@ __EXPORT void imxrt_ocram_initialize(void)
  *
  ****************************************************************************/
 
-__EXPORT void imxrt_boardinitialize(void)
-{
-
+__EXPORT void imxrt_boardinitialize(void) {
 	board_on_reset(-1); /* Reset PWM first thing */
 
 	/* configure LEDs */
@@ -218,7 +205,6 @@ __EXPORT void imxrt_boardinitialize(void)
 
 	fmurt1062_timer_initialize();
 }
-
 
 /****************************************************************************
  * Name: board_app_initialize
@@ -245,11 +231,8 @@ __EXPORT void imxrt_boardinitialize(void)
  *
  ****************************************************************************/
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
-
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	/* Power on Interfaces */
-
 
 	VDD_3V3_SD_CARD_EN(true);
 	VDD_5V_PERIPH_EN(true);
@@ -266,7 +249,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	} else {
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
-
 
 	px4_platform_init();
 

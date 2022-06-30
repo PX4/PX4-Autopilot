@@ -45,36 +45,34 @@
 
 #pragma once
 
+#include <lib/mathlib/mathlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
 
-static constexpr float CONSTANTS_ONE_G = 9.80665f;						// m/s^2
+static constexpr float CONSTANTS_ONE_G = 9.80665f;  // m/s^2
 
-static constexpr float CONSTANTS_STD_PRESSURE_PA = 101325.0f;					// pascals (Pa)
-static constexpr float CONSTANTS_STD_PRESSURE_KPA = CONSTANTS_STD_PRESSURE_PA / 1000.0f;	// kilopascals (kPa)
-static constexpr float CONSTANTS_STD_PRESSURE_MBAR = CONSTANTS_STD_PRESSURE_PA /
-		100.0f;	// Millibar (mbar) (1 mbar = 100 Pa)
+static constexpr float CONSTANTS_STD_PRESSURE_PA = 101325.0f;                             // pascals (Pa)
+static constexpr float CONSTANTS_STD_PRESSURE_KPA = CONSTANTS_STD_PRESSURE_PA / 1000.0f;  // kilopascals (kPa)
+static constexpr float CONSTANTS_STD_PRESSURE_MBAR =
+	CONSTANTS_STD_PRESSURE_PA / 100.0f;  // Millibar (mbar) (1 mbar = 100 Pa)
 
-static constexpr float CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C = 1.225f;				// kg/m^3
-static constexpr float CONSTANTS_AIR_GAS_CONST = 287.1f;					// J/(kg * K)
-static constexpr float CONSTANTS_ABSOLUTE_NULL_CELSIUS = -273.15f;				// °C
+static constexpr float CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C = 1.225f;  // kg/m^3
+static constexpr float CONSTANTS_AIR_GAS_CONST = 287.1f;              // J/(kg * K)
+static constexpr float CONSTANTS_ABSOLUTE_NULL_CELSIUS = -273.15f;    // °C
 
-static constexpr double CONSTANTS_RADIUS_OF_EARTH = 6371000;					// meters (m)
-static constexpr float  CONSTANTS_RADIUS_OF_EARTH_F = CONSTANTS_RADIUS_OF_EARTH;		// meters (m)
+static constexpr double CONSTANTS_RADIUS_OF_EARTH = 6371000;                     // meters (m)
+static constexpr float CONSTANTS_RADIUS_OF_EARTH_F = CONSTANTS_RADIUS_OF_EARTH;  // meters (m)
 
-static constexpr float CONSTANTS_EARTH_SPIN_RATE = 7.2921150e-5f;				// radians/second (rad/s)
-
+static constexpr float CONSTANTS_EARTH_SPIN_RATE = 7.2921150e-5f;  // radians/second (rad/s)
 
 // XXX remove
 struct crosstrack_error_s {
-	bool past_end;		// Flag indicating we are past the end of the line/arc segment
-	float distance;		// Distance in meters to closest point on line/arc
-	float bearing;		// Bearing in radians to closest point on line/arc
-} ;
-
+	bool past_end;   // Flag indicating we are past the end of the line/arc segment
+	float distance;  // Distance in meters to closest point on line/arc
+	float bearing;   // Bearing in radians to closest point on line/arc
+};
 
 /**
  * Returns the distance to the next waypoint in meters.
@@ -134,33 +132,28 @@ void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat
 void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res,
 				   double *lon_res);
 
-int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
-			 double lat_start, double lon_start, double lat_end, double lon_end);
+int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now, double lat_start,
+			 double lon_start, double lat_end, double lon_end);
 
-int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
-			double lat_center, double lon_center,
-			float radius, float arc_start_bearing, float arc_sweep);
+int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now, double lat_center,
+			double lon_center, float radius, float arc_start_bearing, float arc_sweep);
 
 /*
  * Calculate distance in global frame
  */
-float get_distance_to_point_global_wgs84(double lat_now, double lon_now, float alt_now,
-		double lat_next, double lon_next, float alt_next,
-		float *dist_xy, float *dist_z);
+float get_distance_to_point_global_wgs84(double lat_now, double lon_now, float alt_now, double lat_next,
+					 double lon_next, float alt_next, float *dist_xy, float *dist_z);
 
 /*
  * Calculate distance in local frame (NED)
  */
-float mavlink_wpm_distance_to_point_local(float x_now, float y_now, float z_now,
-		float x_next, float y_next, float z_next,
-		float *dist_xy, float *dist_z);
-
+float mavlink_wpm_distance_to_point_local(float x_now, float y_now, float z_now, float x_next, float y_next,
+					  float z_next, float *dist_xy, float *dist_z);
 
 /**
  * @brief C++ class for mapping lat/lon coordinates to local coordinated using a reference position
  */
-class MapProjection final
-{
+class MapProjection final {
 private:
 	uint64_t _ref_timestamp{0};
 	double _ref_lat{0.0};
@@ -180,18 +173,12 @@ public:
 	/**
 	 * @brief Construct and initialize a new Map Projection object
 	 */
-	MapProjection(double lat_0, double lon_0)
-	{
-		initReference(lat_0, lon_0);
-	}
+	MapProjection(double lat_0, double lon_0) { initReference(lat_0, lon_0); }
 
 	/**
 	 * @brief Construct and initialize a new Map Projection object
 	 */
-	MapProjection(double lat_0, double lon_0, uint64_t timestamp)
-	{
-		initReference(lat_0, lon_0, timestamp);
-	}
+	MapProjection(double lat_0, double lon_0, uint64_t timestamp) { initReference(lat_0, lon_0, timestamp); }
 
 	/**
 	 * Initialize the map transformation
@@ -211,10 +198,7 @@ public:
 	 * @param lat in degrees (47.1234567°, not 471234567°)
 	 * @param lon in degrees (8.1234567°, not 81234567°)
 	 */
-	inline void initReference(double lat_0, double lon_0)
-	{
-		initReference(lat_0, lon_0, hrt_absolute_time());
-	}
+	inline void initReference(double lat_0, double lon_0) { initReference(lat_0, lon_0, hrt_absolute_time()); }
 
 	/**
 	 * @return true, if the map reference has been initialized before
@@ -253,8 +237,7 @@ public:
 	 * @param lon in degrees (8.1234567°, not 81234567°)
 	 * @return the point in local coordinates as north / east
 	 */
-	inline matrix::Vector2f project(double lat, double lon) const
-	{
+	inline matrix::Vector2f project(double lat, double lon) const {
 		matrix::Vector2f res;
 		project(lat, lon, res(0), res(1));
 		return res;

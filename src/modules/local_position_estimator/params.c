@@ -150,7 +150,6 @@ PARAM_DEFINE_FLOAT(LPE_BAR_Z, 3.0f);
  */
 PARAM_DEFINE_FLOAT(LPE_GPS_DELAY, 0.29f);
 
-
 /**
  * Minimum GPS xy standard deviation, uses reported EPH if greater.
  *

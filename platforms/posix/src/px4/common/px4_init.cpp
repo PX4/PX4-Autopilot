@@ -31,16 +31,16 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/init.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/uORB.h>
 
-int px4_platform_init(void)
-{
+#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
+
+int px4_platform_init(void) {
 	hrt_init();
 
 	param_init();

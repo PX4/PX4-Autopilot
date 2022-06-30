@@ -33,15 +33,13 @@
 
 #pragma once
 
-#include "autopilot_tester.h"
-
 #include <mavsdk/mavsdk.h>
 #include <mavsdk/plugins/action/action.h>
 #include <mavsdk/plugins/failure/failure.h>
 
+#include "autopilot_tester.h"
 
-class AutopilotTesterFailure : public AutopilotTester
-{
+class AutopilotTesterFailure : public AutopilotTester {
 public:
 	AutopilotTesterFailure() = default;
 	~AutopilotTesterFailure() = default;
@@ -55,8 +53,8 @@ public:
 	void enable_actuator_output_status();
 	void ensure_motor_stopped(unsigned index, unsigned num_motors);
 
-	void inject_failure(mavsdk::Failure::FailureUnit failure_unit, mavsdk::Failure::FailureType failure_type, int instance,
-			    mavsdk::Failure::Result expected_result);
+	void inject_failure(mavsdk::Failure::FailureUnit failure_unit, mavsdk::Failure::FailureType failure_type,
+			    int instance, mavsdk::Failure::Result expected_result);
 	void connect(const std::string uri);
 
 private:

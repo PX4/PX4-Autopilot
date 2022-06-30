@@ -31,21 +31,20 @@
  *
  ****************************************************************************/
 
-#include <drivers/drv_hrt.h>
-#include <parameters/param.h>
 #include "safety_button.hpp"
+
+#include <drivers/drv_hrt.h>
 #include <math.h>
+#include <parameters/param.h>
 
 const char *const UavcanSafetyButtonBridge::NAME = "safety_button";
 
 using namespace time_literals;
 
-UavcanSafetyButtonBridge::UavcanSafetyButtonBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_safety_button", ORB_ID(button_event)), _sub_button(node)
-{ }
+UavcanSafetyButtonBridge::UavcanSafetyButtonBridge(uavcan::INode &node)
+	: UavcanSensorBridgeBase("uavcan_safety_button", ORB_ID(button_event)), _sub_button(node) {}
 
-int UavcanSafetyButtonBridge::init()
-{
+int UavcanSafetyButtonBridge::init() {
 	int res = _sub_button.start(ButtonCbBinder(this, &UavcanSafetyButtonBridge::button_sub_cb));
 
 	if (res < 0) {
@@ -56,11 +55,9 @@ int UavcanSafetyButtonBridge::init()
 	return 0;
 }
 
-void UavcanSafetyButtonBridge::button_sub_cb(const
-		uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg)
-{
+void UavcanSafetyButtonBridge::button_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg) {
 	bool is_safety = msg.button == ardupilot::indication::Button::BUTTON_SAFETY;
-	bool pressed = msg.press_time >= 10; // 0.1s increments (1s press time for safety button trigger event)
+	bool pressed = msg.press_time >= 10;  // 0.1s increments (1s press time for safety button trigger event)
 
 	// Detect safety button trigger event
 	if (is_safety && pressed) {
@@ -69,7 +66,6 @@ void UavcanSafetyButtonBridge::button_sub_cb(const
 
 	// Detect pairing button trigger event
 	if (is_safety) {
-
 		if (hrt_elapsed_time(&_start_timestamp) > 2_s) {
 			_start_timestamp = hrt_absolute_time();
 			_pairing_button_counter = 0u;
@@ -90,7 +86,4 @@ void UavcanSafetyButtonBridge::button_sub_cb(const
 	}
 }
 
-int UavcanSafetyButtonBridge::init_driver(uavcan_bridge::Channel *channel)
-{
-	return PX4_OK;
-}
+int UavcanSafetyButtonBridge::init_driver(uavcan_bridge::Channel *channel) { return PX4_OK; }

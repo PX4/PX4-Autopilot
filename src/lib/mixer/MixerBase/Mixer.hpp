@@ -126,21 +126,17 @@
 
 #pragma once
 
-#include <containers/List.hpp>
 #include <mathlib/mathlib.h>
+
+#include <containers/List.hpp>
 
 /**
  * Abstract class defining a mixer mixing zero or more inputs to
  * one or more outputs.
  */
-class Mixer : public ListNode<Mixer *>
-{
+class Mixer : public ListNode<Mixer *> {
 public:
-	enum class Airmode : int32_t {
-		disabled = 0,
-		roll_pitch = 1,
-		roll_pitch_yaw = 2
-	};
+	enum class Airmode : int32_t { disabled = 0, roll_pitch = 1, roll_pitch_yaw = 2 };
 
 	/**
 	 * Fetch a control value.
@@ -151,7 +147,7 @@ public:
 	 * @param control		The returned control
 	 * @return			Zero if the value was fetched, nonzero otherwise.
 	 */
-	typedef int	(* ControlCallback)(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control);
+	typedef int (*ControlCallback)(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control);
 
 	/**
 	 * Constructor.
@@ -174,14 +170,14 @@ public:
 	 * @param space			The number of available entries in the output array;
 	 * @return			The number of entries in the output array that were populated.
 	 */
-	virtual unsigned		mix(float *outputs, unsigned space) = 0;
+	virtual unsigned mix(float *outputs, unsigned space) = 0;
 
 	/**
 	 * Get the saturation status.
 	 *
 	 * @return			Integer bitmask containing saturation_status from control_allocator_status.msg.
 	 */
-	virtual uint16_t		get_saturation_status() { return 0; }
+	virtual uint16_t get_saturation_status() { return 0; }
 
 	/**
 	 * Analyses the mix configuration and updates a bitmask of groups
@@ -189,7 +185,7 @@ public:
 	 *
 	 * @param groups		A bitmask of groups (0-31) that the mixer requires.
 	 */
-	virtual void			groups_required(uint32_t &groups) {};
+	virtual void groups_required(uint32_t &groups){};
 
 	/**
 	 * @brief      Empty method, only implemented for MultirotorMixer and MixerGroup class.
@@ -197,45 +193,45 @@ public:
 	 * @param[in]  delta_out_max  Maximum delta output.
 	 *
 	 */
-	virtual void 			set_max_delta_out_once(float delta_out_max) {}
+	virtual void set_max_delta_out_once(float delta_out_max) {}
 
 	/**
 	 * @brief Set trim offset for this mixer
 	 *
 	 * @return the number of outputs this mixer feeds to
 	 */
-	virtual unsigned		set_trim(float trim) { return 0; }
+	virtual unsigned set_trim(float trim) { return 0; }
 
 	/**
 	 * @brief Get trim offset for this mixer
 	 *
 	 * @return the number of outputs this mixer feeds to
 	 */
-	virtual unsigned		get_trim(float *trim) { return 0; }
+	virtual unsigned get_trim(float *trim) { return 0; }
 
 	/*
-	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to motor control signal output.
+	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to motor control signal
+	 * output.
 	 *
 	 * @param[in]  val   The value
 	 */
-	virtual void 			set_thrust_factor(float val) {}
+	virtual void set_thrust_factor(float val) {}
 
 	/**
 	 * @brief Set airmode. Airmode allows the mixer to increase the total thrust in order to unsaturate the motors.
 	 *
 	 * @param[in]  airmode   Select airmode type (0 = disabled, 1 = roll/pitch, 2 = roll/pitch/yaw)
 	 */
-	virtual void			set_airmode(Airmode airmode) {};
+	virtual void set_airmode(Airmode airmode){};
 
-	virtual unsigned		get_multirotor_count()  { return 0; }
+	virtual unsigned get_multirotor_count() { return 0; }
 
-	virtual void 			set_dt_once(float dt) {}
+	virtual void set_dt_once(float dt) {}
 
 protected:
-
 	/** client-supplied callback used when fetching control values */
-	ControlCallback			_control_cb;
-	uintptr_t			_cb_handle;
+	ControlCallback _control_cb;
+	uintptr_t _cb_handle;
 
 	/**
 	 * Invoke the client callback to fetch a control value.
@@ -244,7 +240,7 @@ protected:
 	 * @param index			Control index to fetch.
 	 * @return			The control value.
 	 */
-	float				get_control(uint8_t group, uint8_t index);
+	float get_control(uint8_t group, uint8_t index);
 
 	/**
 	 * Find a tag
@@ -253,7 +249,7 @@ protected:
 	 * @param buflen		length of the buffer.
 	 * @param tag			character to search for.
 	 */
-	static const char 		*findtag(const char *buf, unsigned &buflen, char tag);
+	static const char *findtag(const char *buf, unsigned &buflen, char tag);
 
 	/**
 	 * Find next tag and return it (0 is returned if no tag is found)
@@ -261,7 +257,7 @@ protected:
 	 * @param buf			The buffer to operate on.
 	 * @param buflen		length of the buffer.
 	 */
-	static char 			findnexttag(const char *buf, unsigned buflen);
+	static char findnexttag(const char *buf, unsigned buflen);
 
 	/**
 	 * Skip a line
@@ -270,10 +266,10 @@ protected:
 	 * @param buflen		length of the buffer.
 	 * @return			0 / OK if a line could be skipped, 1 else
 	 */
-	static const char 		*skipline(const char *buf, unsigned &buflen);
+	static const char *skipline(const char *buf, unsigned &buflen);
 
 	/**
 	 * Check wether the string is well formed and suitable for parsing
 	 */
-	static bool			string_well_formed(const char *buf, unsigned &buflen);
+	static bool string_well_formed(const char *buf, unsigned &buflen);
 };

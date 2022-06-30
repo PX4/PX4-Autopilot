@@ -36,8 +36,7 @@
 
 #include <uORB/topics/transponder_report.h>
 
-class MavlinkStreamADSBVehicle : public MavlinkStream
-{
+class MavlinkStreamADSBVehicle : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamADSBVehicle(mavlink); }
 
@@ -49,9 +48,10 @@ public:
 
 	bool const_rate() override { return true; }
 
-	unsigned get_size() override
-	{
-		return _transponder_report_sub.advertised() ? MAVLINK_MSG_ID_ADSB_VEHICLE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _transponder_report_sub.advertised()
+			       ? MAVLINK_MSG_ID_ADSB_VEHICLE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+			       : 0;
 	}
 
 private:
@@ -59,14 +59,12 @@ private:
 
 	uORB::Subscription _transponder_report_sub{ORB_ID(transponder_report)};
 
-	bool send() override
-	{
+	bool send() override {
 		bool sent = false;
 
 		transponder_report_s pos;
 
 		while ((_mavlink->get_free_tx_buf() >= get_size()) && _transponder_report_sub.update(&pos)) {
-
 			if (!(pos.flags & transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE)) {
 				continue;
 			}
@@ -87,17 +85,29 @@ private:
 
 			msg.flags = 0;
 
-			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS) { msg.flags |= ADSB_FLAGS_VALID_COORDS; }
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS) {
+				msg.flags |= ADSB_FLAGS_VALID_COORDS;
+			}
 
-			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE) { msg.flags |= ADSB_FLAGS_VALID_ALTITUDE; }
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE) {
+				msg.flags |= ADSB_FLAGS_VALID_ALTITUDE;
+			}
 
-			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING) { msg.flags |= ADSB_FLAGS_VALID_HEADING; }
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING) {
+				msg.flags |= ADSB_FLAGS_VALID_HEADING;
+			}
 
-			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY) { msg.flags |= ADSB_FLAGS_VALID_VELOCITY; }
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY) {
+				msg.flags |= ADSB_FLAGS_VALID_VELOCITY;
+			}
 
-			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) { msg.flags |= ADSB_FLAGS_VALID_CALLSIGN; }
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) {
+				msg.flags |= ADSB_FLAGS_VALID_CALLSIGN;
+			}
 
-			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK) { msg.flags |= ADSB_FLAGS_VALID_SQUAWK; }
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK) {
+				msg.flags |= ADSB_FLAGS_VALID_SQUAWK;
+			}
 
 			mavlink_msg_adsb_vehicle_send_struct(_mavlink->get_channel(), &msg);
 			sent = true;
@@ -107,4 +117,4 @@ private:
 	}
 };
 
-#endif // ADSB_VEHICLE_HPP
+#endif  // ADSB_VEHICLE_HPP

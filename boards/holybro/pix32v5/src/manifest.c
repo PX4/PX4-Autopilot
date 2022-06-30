@@ -46,10 +46,9 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
 #include <board_config.h>
-
 #include <inttypes.h>
+#include <nuttx/config.h>
 #include <stdbool.h>
 #include <syslog.h>
 
@@ -60,13 +59,13 @@
  ****************************************************************************/
 
 typedef struct {
-	uint32_t                hw_ver_rev; /* the version and revision */
-	const px4_hw_mft_item_t *mft;       /* The first entry */
-	uint32_t                entries;    /* the lenght of the list */
+	uint32_t hw_ver_rev;          /* the version and revision */
+	const px4_hw_mft_item_t *mft; /* The first entry */
+	uint32_t entries;             /* the lenght of the list */
 } px4_hw_mft_list_entry_t;
 
 typedef px4_hw_mft_list_entry_t *px4_hw_mft_list_entry;
-#define px4_hw_mft_list_uninitialized (px4_hw_mft_list_entry) -1
+#define px4_hw_mft_list_uninitialized (px4_hw_mft_list_entry) - 1
 
 static const px4_hw_mft_item_t device_unsupported = {0, 0, 0};
 
@@ -77,60 +76,60 @@ static const px4_hw_mft_item_t device_unsupported = {0, 0, 0};
 static const px4_hw_mft_item_t hw_mft_list_v0500[] = {
 	{
 		//  PX4_MFT_PX4IO
-		.present     = 1,
-		.mandatory   = 1,
-		.connection  = px4_hw_con_onboard,
+		.present = 1,
+		.mandatory = 1,
+		.connection = px4_hw_con_onboard,
 	},
 	{
 		// PX4_MFT_USB
-		.present     = 1,
-		.mandatory   = 1,
-		.connection  = px4_hw_con_onboard,
+		.present = 1,
+		.mandatory = 1,
+		.connection = px4_hw_con_onboard,
 	},
 	{
 		// PX4_MFT_CAN2
-		.present     = 1,
-		.mandatory   = 1,
-		.connection  = px4_hw_con_onboard,
+		.present = 1,
+		.mandatory = 1,
+		.connection = px4_hw_con_onboard,
 	},
 	{
 		// PX4_MFT_CAN3
-		.present     = 1,
-		.mandatory   = 1,
-		.connection  = px4_hw_con_onboard,
+		.present = 1,
+		.mandatory = 1,
+		.connection = px4_hw_con_onboard,
 	},
 };
 
 static const px4_hw_mft_item_t hw_mft_list_v0540[] = {
 	{
 		//  PX4_MFT_PX4IO
-		.present     = 0,
-		.mandatory   = 0,
-		.connection  = px4_hw_con_unknown,
+		.present = 0,
+		.mandatory = 0,
+		.connection = px4_hw_con_unknown,
 	},
 	{
 		// PX4_MFT_USB
-		.present     = 1,
-		.mandatory   = 1,
-		.connection  = px4_hw_con_onboard,
+		.present = 1,
+		.mandatory = 1,
+		.connection = px4_hw_con_onboard,
 	},
 	{
 		// PX4_MFT_CAN2
-		.present     = 0,
-		.mandatory   = 0,
-		.connection  = px4_hw_con_unknown,
+		.present = 0,
+		.mandatory = 0,
+		.connection = px4_hw_con_unknown,
 	},
 	{
 		// PX4_MFT_CAN3
-		.present     = 0,
-		.mandatory   = 0,
-		.connection  = px4_hw_con_unknown,
+		.present = 0,
+		.mandatory = 0,
+		.connection = px4_hw_con_unknown,
 	},
 };
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
-	{0x0000, hw_mft_list_v0500,        arraySize(hw_mft_list_v0500)},
-	{0x0400, hw_mft_list_v0540,        arraySize(hw_mft_list_v0540)},  // HolyBro mini no can 2,3
+	{0x0000, hw_mft_list_v0500, arraySize(hw_mft_list_v0500)},
+	{0x0400, hw_mft_list_v0540, arraySize(hw_mft_list_v0540)},  // HolyBro mini no can 2,3
 };
 
 /************************************************************************************
@@ -148,8 +147,7 @@ static px4_hw_mft_list_entry_t mft_lists[] = {
  *
  ************************************************************************************/
 
-__EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
-{
+__EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id) {
 	static px4_hw_mft_list_entry boards_manifest = px4_hw_mft_list_uninitialized;
 
 	if (boards_manifest == px4_hw_mft_list_uninitialized) {
@@ -164,14 +162,13 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 		}
 
 		if (boards_manifest == px4_hw_mft_list_uninitialized) {
-			syslog(LOG_ERR, "[boot] Board %4"  PRIx32 " is not supported!\n", ver_rev);
+			syslog(LOG_ERR, "[boot] Board %4" PRIx32 " is not supported!\n", ver_rev);
 		}
 	}
 
 	px4_hw_mft_item rv = &device_unsupported;
 
-	if (boards_manifest != px4_hw_mft_list_uninitialized &&
-	    id < boards_manifest->entries) {
+	if (boards_manifest != px4_hw_mft_list_uninitialized && id < boards_manifest->entries) {
 		rv = &boards_manifest->mft[id];
 	}
 

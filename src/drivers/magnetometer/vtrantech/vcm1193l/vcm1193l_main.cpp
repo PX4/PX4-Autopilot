@@ -33,10 +33,10 @@
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
+
 #include "VCM1193L.hpp"
 
-void VCM1193L::print_usage()
-{
+void VCM1193L::print_usage() {
 	PRINT_MODULE_USAGE_NAME("vcm1193l", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -45,20 +45,18 @@ void VCM1193L::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int vcm1193l_main(int argc, char *argv[])
-{
+extern "C" int vcm1193l_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = VCM1193L;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = I2C_SPEED;
 	cli.i2c_address = I2C_ADDRESS_DEFAULT;
 
-
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

@@ -37,42 +37,36 @@
  * SPI interface for LPS22HB
  */
 
-#include "LPS22HB.hpp"
-
 #include <drivers/device/spi.h>
 
+#include "LPS22HB.hpp"
+
 /* SPI protocol address bits */
-#define DIR_READ			(1<<7)
-#define DIR_WRITE			(0<<7)
+#define DIR_READ (1 << 7)
+#define DIR_WRITE (0 << 7)
 
 device::Device *LPS22HB_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 
-class LPS22HB_SPI : public device::SPI
-{
+class LPS22HB_SPI : public device::SPI {
 public:
 	LPS22HB_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
 	~LPS22HB_SPI() override = default;
 
-	int	read(unsigned address, void *data, unsigned count) override;
-	int	write(unsigned address, void *data, unsigned count) override;
+	int read(unsigned address, void *data, unsigned count) override;
+	int write(unsigned address, void *data, unsigned count) override;
 
 protected:
-	int	probe() override;
+	int probe() override;
 };
 
-device::Device *
-LPS22HB_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode)
-{
+device::Device *LPS22HB_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode) {
 	return new LPS22HB_SPI(bus, devid, bus_frequency, spi_mode);
 }
 
-LPS22HB_SPI::LPS22HB_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode) :
-	SPI(DRV_BARO_DEVTYPE_LPS22HB, MODULE_NAME, bus, device, spi_mode, bus_frequency)
-{
-}
+LPS22HB_SPI::LPS22HB_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode)
+	: SPI(DRV_BARO_DEVTYPE_LPS22HB, MODULE_NAME, bus, device, spi_mode, bus_frequency) {}
 
-int LPS22HB_SPI::probe()
-{
+int LPS22HB_SPI::probe() {
 	// read WHO_AM_I value
 	uint8_t id = 0;
 
@@ -89,8 +83,7 @@ int LPS22HB_SPI::probe()
 	return PX4_OK;
 }
 
-int LPS22HB_SPI::write(unsigned address, void *data, unsigned count)
-{
+int LPS22HB_SPI::write(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {
@@ -103,8 +96,7 @@ int LPS22HB_SPI::write(unsigned address, void *data, unsigned count)
 	return transfer(&buf[0], &buf[0], count + 1);
 }
 
-int LPS22HB_SPI::read(unsigned address, void *data, unsigned count)
-{
+int LPS22HB_SPI::read(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {

@@ -41,18 +41,17 @@
 
 #pragma once
 
-#include "FlightTaskManualAltitudeSmoothVel.hpp"
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/orbit_status.h>
-#include <lib/slew_rate/SlewRateYaw.hpp>
+
 #include <lib/motion_planning/PositionSmoothing.hpp>
 #include <lib/motion_planning/VelocitySmoothing.hpp>
+#include <lib/slew_rate/SlewRateYaw.hpp>
+#include <uORB/PublicationMulti.hpp>
 
+#include "FlightTaskManualAltitudeSmoothVel.hpp"
 
-class FlightTaskOrbit : public FlightTaskManualAltitudeSmoothVel
-{
+class FlightTaskOrbit : public FlightTaskManualAltitudeSmoothVel {
 public:
-
 	FlightTaskOrbit();
 	virtual ~FlightTaskOrbit() = default;
 
@@ -131,18 +130,17 @@ private:
 	orb_advert_t _mavlink_log_pub{nullptr};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise, /**< cruise speed for circle approach */
-		(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
-		(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p,
-		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
-		_param_nav_mc_alt_rad, //vertical acceptance radius at which waypoints are updated
-		(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max,
-		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
-		(ParamFloat<px4::params::MPC_JERK_AUTO>) _param_mpc_jerk_auto,
-		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
-		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
-		(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,
-		(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn
-	)
+	DEFINE_PARAMETERS((ParamFloat<px4::params::MPC_XY_CRUISE>)
+				  _param_mpc_xy_cruise, /**< cruise speed for circle approach */
+			  (ParamFloat<px4::params::MPC_YAWRAUTO_MAX>)_param_mpc_yawrauto_max,
+			  (ParamFloat<px4::params::MPC_XY_TRAJ_P>)_param_mpc_xy_traj_p,
+			  (ParamFloat<px4::params::NAV_MC_ALT_RAD>)
+				  _param_nav_mc_alt_rad,  // vertical acceptance radius at which waypoints are updated
+			  (ParamFloat<px4::params::MPC_XY_ERR_MAX>)_param_mpc_xy_err_max,
+			  (ParamFloat<px4::params::MPC_ACC_HOR>)_param_mpc_acc_hor,  // acceleration in flight
+			  (ParamFloat<px4::params::MPC_JERK_AUTO>)_param_mpc_jerk_auto,
+			  (ParamFloat<px4::params::MPC_ACC_UP_MAX>)_param_mpc_acc_up_max,
+			  (ParamFloat<px4::params::MPC_ACC_DOWN_MAX>)_param_mpc_acc_down_max,
+			  (ParamFloat<px4::params::MPC_Z_V_AUTO_UP>)_param_mpc_z_v_auto_up,
+			  (ParamFloat<px4::params::MPC_Z_V_AUTO_DN>)_param_mpc_z_v_auto_dn)
 };

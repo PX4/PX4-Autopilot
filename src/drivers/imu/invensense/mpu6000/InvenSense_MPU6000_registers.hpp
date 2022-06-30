@@ -52,78 +52,77 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-namespace InvenSense_MPU6000
-{
+namespace InvenSense_MPU6000 {
 static constexpr uint32_t SPI_SPEED = 1 * 1000 * 1000;
-static constexpr uint32_t SPI_SPEED_SENSOR = 5 * 1000 * 1000; // 20MHz for reading sensor and interrupt registers
+static constexpr uint32_t SPI_SPEED_SENSOR = 5 * 1000 * 1000;  // 20MHz for reading sensor and interrupt registers
 static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHOAMI = 0x68;
 
-static constexpr float TEMPERATURE_SENSITIVITY = 340.f; // LSB/C
-static constexpr float TEMPERATURE_OFFSET = 36.53f; // C
+static constexpr float TEMPERATURE_SENSITIVITY = 340.f;  // LSB/C
+static constexpr float TEMPERATURE_OFFSET = 36.53f;      // C
 
 enum class Register : uint8_t {
-	CONFIG            = 0x1A,
-	GYRO_CONFIG       = 0x1B,
-	ACCEL_CONFIG      = 0x1C,
+	CONFIG = 0x1A,
+	GYRO_CONFIG = 0x1B,
+	ACCEL_CONFIG = 0x1C,
 
-	FIFO_EN           = 0x23,
+	FIFO_EN = 0x23,
 
-	INT_PIN_CFG       = 0x37,
-	INT_ENABLE        = 0x38,
+	INT_PIN_CFG = 0x37,
+	INT_ENABLE = 0x38,
 
-	TEMP_OUT_H        = 0x41,
-	TEMP_OUT_L        = 0x42,
+	TEMP_OUT_H = 0x41,
+	TEMP_OUT_L = 0x42,
 
 	SIGNAL_PATH_RESET = 0x68,
 
-	USER_CTRL         = 0x6A,
-	PWR_MGMT_1        = 0x6B,
+	USER_CTRL = 0x6A,
+	PWR_MGMT_1 = 0x6B,
 
-	FIFO_COUNTH       = 0x72,
-	FIFO_COUNTL       = 0x73,
-	FIFO_R_W          = 0x74,
-	WHO_AM_I          = 0x75,
+	FIFO_COUNTH = 0x72,
+	FIFO_COUNTL = 0x73,
+	FIFO_R_W = 0x74,
+	WHO_AM_I = 0x75,
 };
 
 // CONFIG
 enum CONFIG_BIT : uint8_t {
-	DLPF_CFG_BYPASS_DLPF = 7, // Reserved
+	DLPF_CFG_BYPASS_DLPF = 7,  // Reserved
 };
 
 // GYRO_CONFIG
 enum GYRO_CONFIG_BIT : uint8_t {
-	XG_ST           = Bit7,
-	YG_ST           = Bit6,
-	ZG_ST           = Bit5,
+	XG_ST = Bit7,
+	YG_ST = Bit6,
+	ZG_ST = Bit5,
 
 	// FS_SEL [4:3]
-	FS_SEL_250_DPS	= 0,           // 0b00000
-	FS_SEL_500_DPS	= Bit3,        // 0b01000
-	FS_SEL_1000_DPS	= Bit4,        // 0b10000
-	FS_SEL_2000_DPS	= Bit4 | Bit3, // 0b11000
+	FS_SEL_250_DPS = 0,             // 0b00000
+	FS_SEL_500_DPS = Bit3,          // 0b01000
+	FS_SEL_1000_DPS = Bit4,         // 0b10000
+	FS_SEL_2000_DPS = Bit4 | Bit3,  // 0b11000
 };
 
 // ACCEL_CONFIG
 enum ACCEL_CONFIG_BIT : uint8_t {
-	XA_ST       = Bit7,
-	YA_ST       = Bit6,
-	ZA_ST       = Bit5,
+	XA_ST = Bit7,
+	YA_ST = Bit6,
+	ZA_ST = Bit5,
 
 	// AFS_SEL [4:3]
-	AFS_SEL_2G  = 0,           // 0b00000
-	AFS_SEL_4G  = Bit3,        // 0b01000
-	AFS_SEL_8G  = Bit4,        // 0b10000
-	AFS_SEL_16G = Bit4 | Bit3, // 0b11000
+	AFS_SEL_2G = 0,             // 0b00000
+	AFS_SEL_4G = Bit3,          // 0b01000
+	AFS_SEL_8G = Bit4,          // 0b10000
+	AFS_SEL_16G = Bit4 | Bit3,  // 0b11000
 };
 
 // FIFO_EN
 enum FIFO_EN_BIT : uint8_t {
-	TEMP_FIFO_EN  = Bit7,
-	XG_FIFO_EN    = Bit6,
-	YG_FIFO_EN    = Bit5,
-	ZG_FIFO_EN    = Bit4,
+	TEMP_FIFO_EN = Bit7,
+	XG_FIFO_EN = Bit6,
+	YG_FIFO_EN = Bit5,
+	ZG_FIFO_EN = Bit4,
 	ACCEL_FIFO_EN = Bit3,
 };
 
@@ -139,31 +138,30 @@ enum INT_ENABLE_BIT : uint8_t {
 
 // SIGNAL_PATH_RESET
 enum SIGNAL_PATH_RESET_BIT : uint8_t {
-	GYRO_RESET  = Bit2,
+	GYRO_RESET = Bit2,
 	ACCEL_RESET = Bit1,
-	TEMP_RESET  = Bit0,
+	TEMP_RESET = Bit0,
 };
 
 // USER_CTRL
 enum USER_CTRL_BIT : uint8_t {
-	FIFO_EN        = Bit6,
-	I2C_MST_EN     = Bit5,
-	I2C_IF_DIS     = Bit4,
-	FIFO_RESET     = Bit2,
+	FIFO_EN = Bit6,
+	I2C_MST_EN = Bit5,
+	I2C_IF_DIS = Bit4,
+	FIFO_RESET = Bit2,
 	SIG_COND_RESET = Bit0,
 };
 
 // PWR_MGMT_1
 enum PWR_MGMT_1_BIT : uint8_t {
 	DEVICE_RESET = Bit7,
-	SLEEP        = Bit6,
+	SLEEP = Bit6,
 
 	// CLKSEL[2:0]
-	CLKSEL_0     = Bit0,
+	CLKSEL_0 = Bit0,
 };
 
-namespace FIFO
-{
+namespace FIFO {
 static constexpr size_t SIZE = 1024;
 
 // FIFO_DATA layout when FIFO_EN has {X, Y, Z}G_FIFO_EN and ACCEL set
@@ -181,6 +179,6 @@ struct DATA {
 	uint8_t GYRO_ZOUT_H;
 	uint8_t GYRO_ZOUT_L;
 };
-}
+}  // namespace FIFO
 
-} // namespace InvenSense_MPU6000
+}  // namespace InvenSense_MPU6000

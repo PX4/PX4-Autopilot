@@ -33,14 +33,14 @@
 
 #pragma once
 
-#include <cstring>
-
-#include <drivers/device/Device.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/topics/sensor_baro.h>
+
+#include <cstring>
+#include <drivers/device/Device.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
 
 static constexpr uint8_t WHO_AM_I = 0x0F;
 static constexpr uint8_t LPS22HB_ID_WHO_AM_I = 0xB1;
@@ -49,20 +49,20 @@ static constexpr uint8_t CTRL_REG1 = 0x10;
 static constexpr uint8_t CTRL_REG2 = 0x11;
 static constexpr uint8_t CTRL_REG3 = 0x12;
 
-#define BOOT		(1 << 7)
-#define FIFO_EN		(1 << 6)
-#define STOP_ON_FTH	(1 << 5)
-#define IF_ADD_INC	(1 << 4)
-#define I2C_DIS		(1 << 3)
-#define SWRESET		(1 << 2)
-#define ONE_SHOT	(1 << 0)
+#define BOOT (1 << 7)
+#define FIFO_EN (1 << 6)
+#define STOP_ON_FTH (1 << 5)
+#define IF_ADD_INC (1 << 4)
+#define I2C_DIS (1 << 3)
+#define SWRESET (1 << 2)
+#define ONE_SHOT (1 << 0)
 
 static constexpr uint8_t STATUS = 0x27;
 
-#define T_OR (1 << 5) // Temperature data overrun.
-#define P_OR (1 << 4) // Pressure data overrun.
-#define T_DA (1 << 1) // Temperature data available.
-#define P_DA (1 << 0) // Pressure data available.
+#define T_OR (1 << 5)  // Temperature data overrun.
+#define P_OR (1 << 4)  // Pressure data overrun.
+#define T_DA (1 << 1)  // Temperature data available.
+#define P_DA (1 << 0)  // Pressure data available.
 
 static constexpr uint8_t PRESS_OUT_XL = 0x28;
 static constexpr uint8_t PRESS_OUT_L = 0x29;
@@ -71,14 +71,13 @@ static constexpr uint8_t PRESS_OUT_H = 0x2A;
 static constexpr uint8_t TEMP_OUT_L = 0x2B;
 static constexpr uint8_t TEMP_OUT_H = 0x2C;
 
-#define LPS22HB_ADDRESS		0x5D
+#define LPS22HB_ADDRESS 0x5D
 
 /* interface factories */
 extern device::Device *LPS22HB_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 extern device::Device *LPS22HB_I2C_interface(int bus, int bus_frequency);
 
-class LPS22HB : public I2CSPIDriver<LPS22HB>
-{
+class LPS22HB : public I2CSPIDriver<LPS22HB> {
 public:
 	LPS22HB(const I2CSPIDriverConfig &config, device::Device *interface);
 	virtual ~LPS22HB();
@@ -86,21 +85,21 @@ public:
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
-	int			init();
+	int init();
 
-	void			print_status();
+	void print_status();
 
-	void			RunImpl();
+	void RunImpl();
 
 private:
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
-	device::Device		*_interface;
+	device::Device *_interface;
 
-	bool			_collect_phase{false};
+	bool _collect_phase{false};
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
+	perf_counter_t _sample_perf;
+	perf_counter_t _comms_errors;
 
 	/**
 	 * Initialise the automatic measurement state machine and start it.
@@ -108,12 +107,12 @@ private:
 	 * @note This function is called at open and error time.  It might make sense
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
-	void			start();
+	void start();
 
 	/**
 	 * Reset the device
 	 */
-	int			reset();
+	int reset();
 
 	/**
 	 * Write a register.
@@ -122,7 +121,7 @@ private:
 	 * @param val		The value to write.
 	 * @return		OK on write success.
 	 */
-	int			write_reg(uint8_t reg, uint8_t val);
+	int write_reg(uint8_t reg, uint8_t val);
 
 	/**
 	 * Read a register.
@@ -131,17 +130,17 @@ private:
 	 * @param val		The value read.
 	 * @return		OK on read success.
 	 */
-	int			read_reg(uint8_t reg, uint8_t &val);
+	int read_reg(uint8_t reg, uint8_t &val);
 
 	/**
 	 * Issue a measurement command.
 	 *
 	 * @return		OK if the measurement command was successful.
 	 */
-	int			measure();
+	int measure();
 
 	/**
 	 * Collect the result of the most recent measurement.
 	 */
-	int			collect();
+	int collect();
 };

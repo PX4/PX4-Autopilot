@@ -31,29 +31,29 @@
  *
  ****************************************************************************/
 
-#if 0 // enable non-verbose debugging
+#if 0  // enable non-verbose debugging
 #define CRSF_DEBUG PX4_WARN
 #else
 #define CRSF_DEBUG(...)
 #endif
 
-#if 0 // verbose debugging. Careful when enabling: it leads to too much output, causing dropped bytes
+#if 0  // verbose debugging. Careful when enabling: it leads to too much output, causing dropped bytes
 #define CRSF_VERBOSE PX4_WARN
 #else
 #define CRSF_VERBOSE(...)
 #endif
 
+#include "crsf.h"
+
 #include <drivers/drv_hrt.h>
-#include <termios.h>
 #include <string.h>
+#include <termios.h>
 #include <unistd.h>
 
-#include "crsf.h"
 #include "common_rc.h"
 
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 #define CRSF_BAUDRATE 420000
 
@@ -80,10 +80,9 @@ enum class crsf_payload_size_t : uint8_t {
 	gps = 15,
 	battery_sensor = 8,
 	link_statistics = 10,
-	rc_channels = 22, ///< 11 bits per channel * 16 channels = 22 bytes.
+	rc_channels = 22,  ///< 11 bits per channel * 16 channels = 22 bytes.
 	attitude = 6,
 };
-
 
 enum class crsf_address_t : uint8_t {
 	broadcast = 0x00,
@@ -124,12 +123,9 @@ struct crsf_payload_RC_channels_packed_t {
 
 #pragma pack(pop)
 
-enum class crsf_parser_state_t : uint8_t {
-	unsynced = 0,
-	synced
-};
+enum class crsf_parser_state_t : uint8_t { unsynced = 0, synced };
 
-static crsf_frame_t	 &crsf_frame = rc_decode_buf.crsf_frame;
+static crsf_frame_t &crsf_frame = rc_decode_buf.crsf_frame;
 static unsigned current_frame_position = 0;
 static crsf_parser_state_t parser_state = crsf_parser_state_t::unsynced;
 
@@ -140,10 +136,7 @@ static bool crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t m
 
 uint8_t crsf_frame_CRC(const crsf_frame_t &frame);
 
-
-int
-crsf_config(int uart_fd)
-{
+int crsf_config(int uart_fd) {
 	struct termios t;
 
 	/* no parity, one stop bit */
@@ -160,15 +153,12 @@ crsf_config(int uart_fd)
  */
 static uint16_t convert_channel_value(unsigned chan_value);
 
-
-bool crsf_parse(const uint64_t now, const uint8_t *frame, unsigned len, uint16_t *values,
-		uint16_t *num_values, uint16_t max_channels)
-{
+bool crsf_parse(const uint64_t now, const uint8_t *frame, unsigned len, uint16_t *values, uint16_t *num_values,
+		uint16_t max_channels) {
 	bool ret = false;
 	uint8_t *crsf_frame_ptr = (uint8_t *)&crsf_frame;
 
 	while (len > 0) {
-
 		// fill in the crsf_buffer, as much as we can
 		const unsigned current_len = MIN(len, sizeof(crsf_frame_t) - current_frame_position);
 		memcpy(crsf_frame_ptr + current_frame_position, frame, current_len);
@@ -196,12 +186,10 @@ bool crsf_parse(const uint64_t now, const uint8_t *frame, unsigned len, uint16_t
 		}
 	}
 
-
 	return ret;
 }
 
-uint8_t crsf_frame_CRC(const crsf_frame_t &frame)
-{
+uint8_t crsf_frame_CRC(const crsf_frame_t &frame) {
 	// CRC includes type and payload
 	uint8_t crc = crc8_dvb_s2(0, frame.type);
 
@@ -212,8 +200,7 @@ uint8_t crsf_frame_CRC(const crsf_frame_t &frame)
 	return crc;
 }
 
-static uint16_t convert_channel_value(unsigned chan_value)
-{
+static uint16_t convert_channel_value(unsigned chan_value) {
 	/*
 	 *       RC     PWM
 	 * min  172 ->  988us
@@ -225,8 +212,7 @@ static uint16_t convert_channel_value(unsigned chan_value)
 	return (scale * chan_value) + offset;
 }
 
-static bool crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t max_channels)
-{
+static bool crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t max_channels) {
 	uint8_t *crsf_frame_ptr = (uint8_t *)&crsf_frame;
 
 	if (parser_state == crsf_parser_state_t::unsynced) {
@@ -240,7 +226,8 @@ static bool crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t m
 
 				// move the rest of the buffer to the beginning
 				if (frame_offset != 0) {
-					memmove(crsf_frame_ptr, crsf_frame_ptr + frame_offset, current_frame_position - frame_offset);
+					memmove(crsf_frame_ptr, crsf_frame_ptr + frame_offset,
+						current_frame_position - frame_offset);
 					current_frame_position -= frame_offset;
 				}
 
@@ -263,7 +250,6 @@ static bool crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t m
 
 		return false;
 	}
-
 
 	if (current_frame_position < 3) {
 		// wait until we have the header & type
@@ -301,37 +287,69 @@ static bool crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t m
 				(crsf_payload_RC_channels_packed_t *)&crsf_frame.payload;
 			*num_values = MIN(max_channels, 16);
 
-			if (max_channels > 0) { values[0] = convert_channel_value(rc_channels->chan0); }
+			if (max_channels > 0) {
+				values[0] = convert_channel_value(rc_channels->chan0);
+			}
 
-			if (max_channels > 1) { values[1] = convert_channel_value(rc_channels->chan1); }
+			if (max_channels > 1) {
+				values[1] = convert_channel_value(rc_channels->chan1);
+			}
 
-			if (max_channels > 2) { values[2] = convert_channel_value(rc_channels->chan2); }
+			if (max_channels > 2) {
+				values[2] = convert_channel_value(rc_channels->chan2);
+			}
 
-			if (max_channels > 3) { values[3] = convert_channel_value(rc_channels->chan3); }
+			if (max_channels > 3) {
+				values[3] = convert_channel_value(rc_channels->chan3);
+			}
 
-			if (max_channels > 4) { values[4] = convert_channel_value(rc_channels->chan4); }
+			if (max_channels > 4) {
+				values[4] = convert_channel_value(rc_channels->chan4);
+			}
 
-			if (max_channels > 5) { values[5] = convert_channel_value(rc_channels->chan5); }
+			if (max_channels > 5) {
+				values[5] = convert_channel_value(rc_channels->chan5);
+			}
 
-			if (max_channels > 6) { values[6] = convert_channel_value(rc_channels->chan6); }
+			if (max_channels > 6) {
+				values[6] = convert_channel_value(rc_channels->chan6);
+			}
 
-			if (max_channels > 7) { values[7] = convert_channel_value(rc_channels->chan7); }
+			if (max_channels > 7) {
+				values[7] = convert_channel_value(rc_channels->chan7);
+			}
 
-			if (max_channels > 8) { values[8] = convert_channel_value(rc_channels->chan8); }
+			if (max_channels > 8) {
+				values[8] = convert_channel_value(rc_channels->chan8);
+			}
 
-			if (max_channels > 9) { values[9] = convert_channel_value(rc_channels->chan9); }
+			if (max_channels > 9) {
+				values[9] = convert_channel_value(rc_channels->chan9);
+			}
 
-			if (max_channels > 10) { values[10] = convert_channel_value(rc_channels->chan10); }
+			if (max_channels > 10) {
+				values[10] = convert_channel_value(rc_channels->chan10);
+			}
 
-			if (max_channels > 11) { values[11] = convert_channel_value(rc_channels->chan11); }
+			if (max_channels > 11) {
+				values[11] = convert_channel_value(rc_channels->chan11);
+			}
 
-			if (max_channels > 12) { values[12] = convert_channel_value(rc_channels->chan12); }
+			if (max_channels > 12) {
+				values[12] = convert_channel_value(rc_channels->chan12);
+			}
 
-			if (max_channels > 13) { values[13] = convert_channel_value(rc_channels->chan13); }
+			if (max_channels > 13) {
+				values[13] = convert_channel_value(rc_channels->chan13);
+			}
 
-			if (max_channels > 14) { values[14] = convert_channel_value(rc_channels->chan14); }
+			if (max_channels > 14) {
+				values[14] = convert_channel_value(rc_channels->chan14);
+			}
 
-			if (max_channels > 15) { values[15] = convert_channel_value(rc_channels->chan15); }
+			if (max_channels > 15) {
+				values[15] = convert_channel_value(rc_channels->chan15);
+			}
 
 			CRSF_VERBOSE("Got Channels");
 
@@ -350,7 +368,8 @@ static bool crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t m
 	// Either reset or move the rest of the buffer
 	if (current_frame_position > current_frame_length) {
 		CRSF_VERBOSE("Moving buffer (%i > %i)", current_frame_position, current_frame_length);
-		memmove(crsf_frame_ptr, crsf_frame_ptr + current_frame_length, current_frame_position - current_frame_length);
+		memmove(crsf_frame_ptr, crsf_frame_ptr + current_frame_length,
+			current_frame_position - current_frame_length);
 		current_frame_position -= current_frame_length;
 
 	} else {
@@ -363,15 +382,11 @@ static bool crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t m
 /**
  * write an uint8_t value to a buffer at a given offset and increment the offset
  */
-static inline void write_uint8_t(uint8_t *buf, int &offset, uint8_t value)
-{
-	buf[offset++] = value;
-}
+static inline void write_uint8_t(uint8_t *buf, int &offset, uint8_t value) { buf[offset++] = value; }
 /**
  * write an uint16_t value to a buffer at a given offset and increment the offset
  */
-static inline void write_uint16_t(uint8_t *buf, int &offset, uint16_t value)
-{
+static inline void write_uint16_t(uint8_t *buf, int &offset, uint16_t value) {
 	// Big endian
 	buf[offset] = value >> 8;
 	buf[offset + 1] = value & 0xff;
@@ -380,8 +395,7 @@ static inline void write_uint16_t(uint8_t *buf, int &offset, uint16_t value)
 /**
  * write an uint24_t value to a buffer at a given offset and increment the offset
  */
-static inline void write_uint24_t(uint8_t *buf, int &offset, int value)
-{
+static inline void write_uint24_t(uint8_t *buf, int &offset, int value) {
 	// Big endian
 	buf[offset] = value >> 16;
 	buf[offset + 1] = (value >> 8) & 0xff;
@@ -392,8 +406,7 @@ static inline void write_uint24_t(uint8_t *buf, int &offset, int value)
 /**
  * write an int32_t value to a buffer at a given offset and increment the offset
  */
-static inline void write_int32_t(uint8_t *buf, int &offset, int32_t value)
-{
+static inline void write_int32_t(uint8_t *buf, int &offset, int32_t value) {
 	// Big endian
 	buf[offset] = value >> 24;
 	buf[offset + 1] = (value >> 16) & 0xff;
@@ -402,26 +415,24 @@ static inline void write_int32_t(uint8_t *buf, int &offset, int32_t value)
 	offset += 4;
 }
 
-static inline void write_frame_header(uint8_t *buf, int &offset, crsf_frame_type_t type, uint8_t payload_size)
-{
-	write_uint8_t(buf, offset, CRSF_SYNC_BYTE); // this got changed from the address to the sync byte
+static inline void write_frame_header(uint8_t *buf, int &offset, crsf_frame_type_t type, uint8_t payload_size) {
+	write_uint8_t(buf, offset, CRSF_SYNC_BYTE);  // this got changed from the address to the sync byte
 	write_uint8_t(buf, offset, payload_size + 2);
 	write_uint8_t(buf, offset, (uint8_t)type);
 }
-static inline void write_frame_crc(uint8_t *buf, int &offset, int buf_size)
-{
+static inline void write_frame_crc(uint8_t *buf, int &offset, int buf_size) {
 	// CRC does not include the address and length
 	write_uint8_t(buf, offset, crc8_dvb_s2_buf(buf + 2, buf_size - 3));
 
 	// check correctness of buffer size (only needed during development)
-	//if (buf_size != offset) { PX4_ERR("frame size mismatch (%i != %i)", buf_size, offset); }
+	// if (buf_size != offset) { PX4_ERR("frame size mismatch (%i != %i)", buf_size, offset); }
 }
 
-bool crsf_send_telemetry_battery(int uart_fd, uint16_t voltage, uint16_t current, int fuel, uint8_t remaining)
-{
+bool crsf_send_telemetry_battery(int uart_fd, uint16_t voltage, uint16_t current, int fuel, uint8_t remaining) {
 	uint8_t buf[(uint8_t)crsf_payload_size_t::battery_sensor + 4];
 	int offset = 0;
-	write_frame_header(buf, offset, crsf_frame_type_t::battery_sensor, (uint8_t)crsf_payload_size_t::battery_sensor);
+	write_frame_header(buf, offset, crsf_frame_type_t::battery_sensor,
+			   (uint8_t)crsf_payload_size_t::battery_sensor);
 	write_uint16_t(buf, offset, voltage);
 	write_uint16_t(buf, offset, current);
 	write_uint24_t(buf, offset, fuel);
@@ -431,8 +442,7 @@ bool crsf_send_telemetry_battery(int uart_fd, uint16_t voltage, uint16_t current
 }
 
 bool crsf_send_telemetry_gps(int uart_fd, int32_t latitude, int32_t longitude, uint16_t groundspeed,
-			     uint16_t gps_heading, uint16_t altitude, uint8_t num_satellites)
-{
+			     uint16_t gps_heading, uint16_t altitude, uint8_t num_satellites) {
 	uint8_t buf[(uint8_t)crsf_payload_size_t::gps + 4];
 	int offset = 0;
 	write_frame_header(buf, offset, crsf_frame_type_t::gps, (uint8_t)crsf_payload_size_t::gps);
@@ -446,8 +456,7 @@ bool crsf_send_telemetry_gps(int uart_fd, int32_t latitude, int32_t longitude, u
 	return write(uart_fd, buf, offset) == offset;
 }
 
-bool crsf_send_telemetry_attitude(int uart_fd, int16_t pitch, int16_t roll, int16_t yaw)
-{
+bool crsf_send_telemetry_attitude(int uart_fd, int16_t pitch, int16_t roll, int16_t yaw) {
 	uint8_t buf[(uint8_t)crsf_payload_size_t::attitude + 4];
 	int offset = 0;
 	write_frame_header(buf, offset, crsf_frame_type_t::attitude, (uint8_t)crsf_payload_size_t::attitude);
@@ -458,8 +467,7 @@ bool crsf_send_telemetry_attitude(int uart_fd, int16_t pitch, int16_t roll, int1
 	return write(uart_fd, buf, offset) == offset;
 }
 
-bool crsf_send_telemetry_flight_mode(int uart_fd, const char *flight_mode)
-{
+bool crsf_send_telemetry_flight_mode(int uart_fd, const char *flight_mode) {
 	const int max_length = 16;
 	int length = strlen(flight_mode) + 1;
 
@@ -472,7 +480,7 @@ bool crsf_send_telemetry_flight_mode(int uart_fd, const char *flight_mode)
 	write_frame_header(buf, offset, crsf_frame_type_t::flight_mode, length);
 	memcpy(buf + offset, flight_mode, length);
 	offset += length;
-	buf[offset - 1] = 0; // ensure null-terminated string
+	buf[offset - 1] = 0;  // ensure null-terminated string
 	write_frame_crc(buf, offset, length + 4);
 	return write(uart_fd, buf, offset) == offset;
 }

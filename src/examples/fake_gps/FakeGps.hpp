@@ -37,13 +37,13 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
+#include <uORB/topics/sensor_gps.h>
+
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_gps.h>
 
-class FakeGps : public ModuleBase<FakeGps>, public ModuleParams, public px4::ScheduledWorkItem
-{
+class FakeGps : public ModuleBase<FakeGps>, public ModuleParams, public px4::ScheduledWorkItem {
 public:
 	FakeGps(double latitude_deg = 29.6603018, double longitude_deg = -82.3160500, float altitude_m = 30.1f);
 
@@ -61,13 +61,13 @@ public:
 	bool init();
 
 private:
-	static constexpr uint32_t SENSOR_INTERVAL_US{1000000 / 5}; // 5 Hz
+	static constexpr uint32_t SENSOR_INTERVAL_US{1000000 / 5};  // 5 Hz
 
 	void Run() override;
 
 	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
 
-	int32_t _latitude{296603018};   // Latitude in 1e-7 degrees
-	int32_t _longitude{-823160500}; // Longitude in 1e-7 degrees
-	int32_t _altitude{30100};       // Altitude in 1e-3 meters above MSL, (millimetres)
+	int32_t _latitude{296603018};    // Latitude in 1e-7 degrees
+	int32_t _longitude{-823160500};  // Longitude in 1e-7 degrees
+	int32_t _altitude{30100};        // Altitude in 1e-3 meters above MSL, (millimetres)
 };

@@ -37,21 +37,17 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include <stdint.h>
-#include <stdbool.h>
+#include <arch/board/board.h>
 #include <debug.h>
-
 #include <nuttx/board.h>
+#include <nuttx/config.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "arm_arch.h"
 #include "arm_internal.h"
-
-#include "s32k1xx_pin.h"
 #include "board_config.h"
-
-#include <arch/board/board.h>
+#include "s32k1xx_pin.h"
 
 #ifndef CONFIG_ARCH_LEDS
 
@@ -63,8 +59,7 @@
  * Name: board_userled_initialize
  ****************************************************************************/
 
-void board_userled_initialize(void)
-{
+void board_userled_initialize(void) {
 	/* Configure LED GPIOs for output */
 
 	s32k1xx_pinconfig(GPIO_LED_R);
@@ -76,8 +71,7 @@ void board_userled_initialize(void)
  * Name: board_userled
  ****************************************************************************/
 
-void board_userled(int led, bool ledon)
-{
+void board_userled(int led, bool ledon) {
 	uint32_t ledcfg;
 
 	if (led == BOARD_LED_R) {
@@ -100,8 +94,7 @@ void board_userled(int led, bool ledon)
  * Name: board_userled_all
  ****************************************************************************/
 
-void board_userled_all(uint8_t ledset)
-{
+void board_userled_all(uint8_t ledset) {
 	/* Low illuminates */
 
 	s32k1xx_gpiowrite(GPIO_LED_R, (ledset & BOARD_LED_R_BIT) != 0);

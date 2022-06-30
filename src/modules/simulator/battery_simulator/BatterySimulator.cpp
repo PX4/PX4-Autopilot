@@ -33,26 +33,19 @@
 
 #include "BatterySimulator.hpp"
 
-BatterySimulator::BatterySimulator() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_battery(1, this, BATTERY_SIMLATOR_SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
-{
-}
+BatterySimulator::BatterySimulator()
+	: ModuleParams(nullptr),
+	  ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	  _battery(1, this, BATTERY_SIMLATOR_SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE) {}
 
-BatterySimulator::~BatterySimulator()
-{
-	perf_free(_loop_perf);
-}
+BatterySimulator::~BatterySimulator() { perf_free(_loop_perf); }
 
-bool BatterySimulator::init()
-{
+bool BatterySimulator::init() {
 	ScheduleOnInterval(BATTERY_SIMLATOR_SAMPLE_INTERVAL_US);
 	return true;
 }
 
-void BatterySimulator::Run()
-{
+void BatterySimulator::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
@@ -94,10 +87,11 @@ void BatterySimulator::Run()
 		_last_integration_us = 0;
 	}
 
-	float ibatt = -1.0f; // no current sensor in simulation
+	float ibatt = -1.0f;  // no current sensor in simulation
 
 	_battery_percentage = math::max(_battery_percentage, _param_bat_min_pct.get() / 100.f);
-	float vbatt = math::gradual(_battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
+	float vbatt = math::gradual(_battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(),
+				    _battery.full_cell_voltage());
 	vbatt *= _battery.cell_count();
 
 	_battery.setConnected(true);
@@ -108,8 +102,7 @@ void BatterySimulator::Run()
 	perf_end(_loop_perf);
 }
 
-int BatterySimulator::task_spawn(int argc, char *argv[])
-{
+int BatterySimulator::task_spawn(int argc, char *argv[]) {
 	BatterySimulator *instance = new BatterySimulator();
 
 	if (instance) {
@@ -131,13 +124,9 @@ int BatterySimulator::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int BatterySimulator::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int BatterySimulator::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int BatterySimulator::print_usage(const char *reason)
-{
+int BatterySimulator::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -156,7 +145,4 @@ int BatterySimulator::print_usage(const char *reason)
 	return 0;
 }
 
-extern "C" __EXPORT int battery_simulator_main(int argc, char *argv[])
-{
-	return BatterySimulator::main(argc, argv);
-}
+extern "C" __EXPORT int battery_simulator_main(int argc, char *argv[]) { return BatterySimulator::main(argc, argv); }

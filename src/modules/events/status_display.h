@@ -41,24 +41,20 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/led_control.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 
-namespace events
-{
-namespace status
-{
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 
-class StatusDisplay
-{
+namespace events {
+namespace status {
+
+class StatusDisplay {
 public:
-
 	StatusDisplay();
 
 	/** regularily called to handle state updates */
@@ -79,9 +75,9 @@ protected:
 	/** publish LED control */
 	void publish();
 
-	uORB::SubscriptionData<battery_status_s>       _battery_status_sub{ORB_ID(battery_status)};
-	uORB::SubscriptionData<cpuload_s>              _cpu_load_sub{ORB_ID(cpuload)};
-	uORB::SubscriptionData<vehicle_status_s>       _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionData<battery_status_s> _battery_status_sub{ORB_ID(battery_status)};
+	uORB::SubscriptionData<cpuload_s> _cpu_load_sub{ORB_ID(cpuload)};
+	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<vehicle_status_flags_s> _vehicle_status_flags_sub{ORB_ID(vehicle_status_flags)};
 
 	led_control_s _led_control{};

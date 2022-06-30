@@ -34,21 +34,19 @@
 #pragma once
 
 #include <limits.h>
-
-#include <mixer_module/output_functions.hpp>
-
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/actuator_servos.h>
-#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/topics/vehicle_command.h>
 
-class FunctionProviderBase
-{
+#include <mixer_module/output_functions.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+
+class FunctionProviderBase {
 public:
 	struct Context {
 		px4::WorkItem &work_item;
@@ -82,13 +80,12 @@ public:
 /**
  * Functions: Constant_Min
  */
-class FunctionConstantMin : public FunctionProviderBase
-{
+class FunctionConstantMin : public FunctionProviderBase {
 public:
 	static FunctionProviderBase *allocate(const Context &context) { return new FunctionConstantMin(); }
 
 	float value(OutputFunction func) override { return -1.f; }
-	void update() override { }
+	void update() override {}
 
 	float defaultFailsafeValue(OutputFunction func) const override { return -1.f; }
 };
@@ -96,13 +93,12 @@ public:
 /**
  * Functions: Constant_Max
  */
-class FunctionConstantMax : public FunctionProviderBase
-{
+class FunctionConstantMax : public FunctionProviderBase {
 public:
 	static FunctionProviderBase *allocate(const Context &context) { return new FunctionConstantMax(); }
 
 	float value(OutputFunction func) override { return 1.f; }
-	void update() override { }
+	void update() override {}
 
 	float defaultFailsafeValue(OutputFunction func) const override { return 1.f; }
 };
@@ -110,13 +106,14 @@ public:
 /**
  * Functions: Motor1 ... MotorMax
  */
-class FunctionMotors : public FunctionProviderBase
-{
+class FunctionMotors : public FunctionProviderBase {
 public:
-	static_assert(actuator_motors_s::NUM_CONTROLS == (int)OutputFunction::MotorMax - (int)OutputFunction::Motor1 + 1,
+	static_assert(actuator_motors_s::NUM_CONTROLS ==
+			      (int)OutputFunction::MotorMax - (int)OutputFunction::Motor1 + 1,
 		      "Unexpected num motors");
 
-	static_assert(actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 == (int)OutputFunction::Motor1, "Unexpected motor idx");
+	static_assert(actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 == (int)OutputFunction::Motor1,
+		      "Unexpected motor idx");
 
 	FunctionMotors(const Context &context);
 	static FunctionProviderBase *allocate(const Context &context) { return new FunctionMotors(context); }
@@ -128,20 +125,24 @@ public:
 
 	uORB::SubscriptionCallbackWorkItem *subscriptionCallback() override { return &_topic; }
 
-	bool getLatestSampleTimestamp(hrt_abstime &t) const override { t = _data.timestamp_sample; return t != 0; }
+	bool getLatestSampleTimestamp(hrt_abstime &t) const override {
+		t = _data.timestamp_sample;
+		return t != 0;
+	}
 
 	static inline void updateValues(uint32_t reversible, float thrust_factor, float *values, int num_values);
 
-	bool reversible(OutputFunction func) const override
-	{ return _data.reversible_flags & (1u << ((int)func - (int)OutputFunction::Motor1)); }
+	bool reversible(OutputFunction func) const override {
+		return _data.reversible_flags & (1u << ((int)func - (int)OutputFunction::Motor1));
+	}
+
 private:
 	uORB::SubscriptionCallbackWorkItem _topic;
 	actuator_motors_s _data{};
 	const float &_thrust_factor;
 };
 
-void FunctionMotors::updateValues(uint32_t reversible, float thrust_factor, float *values, int num_values)
-{
+void FunctionMotors::updateValues(uint32_t reversible, float thrust_factor, float *values, int num_values) {
 	if (thrust_factor > 0.f && thrust_factor <= 1.f) {
 		// thrust factor
 		//  rel_thrust = factor * x^2 + (1-factor) * x,
@@ -159,7 +160,7 @@ void FunctionMotors::updateValues(uint32_t reversible, float thrust_factor, floa
 				values[i] = -tmp1 + sqrtf(tmp2 + (control / a));
 
 			} else if (control < -0.f) {
-				values[i] =  tmp1 - sqrtf(tmp2 - (control / a));
+				values[i] = tmp1 - sqrtf(tmp2 - (control / a));
 
 			} else {
 				values[i] = 0.f;
@@ -180,14 +181,13 @@ void FunctionMotors::updateValues(uint32_t reversible, float thrust_factor, floa
 	}
 }
 
-
 /**
  * Functions: Servo1 ... ServoMax
  */
-class FunctionServos : public FunctionProviderBase
-{
+class FunctionServos : public FunctionProviderBase {
 public:
-	static_assert(actuator_servos_s::NUM_CONTROLS == (int)OutputFunction::ServoMax - (int)OutputFunction::Servo1 + 1,
+	static_assert(actuator_servos_s::NUM_CONTROLS ==
+			      (int)OutputFunction::ServoMax - (int)OutputFunction::Servo1 + 1,
 		      "Unexpected num servos");
 
 	FunctionServos(const Context &context);
@@ -199,23 +199,24 @@ public:
 	uORB::SubscriptionCallbackWorkItem *subscriptionCallback() override { return &_topic; }
 
 	float defaultFailsafeValue(OutputFunction func) const override { return 0.f; }
+
 private:
 	uORB::SubscriptionCallbackWorkItem _topic;
 	actuator_servos_s _data{};
 };
 
-
 /**
  * Functions: Offboard_Actuator_Set1 ... Offboard_Actuator_Set6
  */
-class FunctionActuatorSet : public FunctionProviderBase
-{
+class FunctionActuatorSet : public FunctionProviderBase {
 public:
 	FunctionActuatorSet();
 	static FunctionProviderBase *allocate(const Context &context) { return new FunctionActuatorSet(); }
 
 	void update() override;
-	float value(OutputFunction func) override { return _data[(int)func - (int)OutputFunction::Offboard_Actuator_Set1]; }
+	float value(OutputFunction func) override {
+		return _data[(int)func - (int)OutputFunction::Offboard_Actuator_Set1];
+	}
 
 private:
 	static constexpr int max_num_actuators = 6;
@@ -227,8 +228,7 @@ private:
 /**
  * Functions: Landing_Gear
  */
-class FunctionLandingGear : public FunctionProviderBase
-{
+class FunctionLandingGear : public FunctionProviderBase {
 public:
 	FunctionLandingGear() = default;
 	static FunctionProviderBase *allocate(const Context &context) { return new FunctionLandingGear(); }
@@ -244,8 +244,7 @@ private:
 /**
  * Functions: Parachute
  */
-class FunctionParachute : public FunctionProviderBase
-{
+class FunctionParachute : public FunctionProviderBase {
 public:
 	FunctionParachute() = default;
 	static FunctionProviderBase *allocate(const Context &context) { return new FunctionParachute(); }
@@ -258,8 +257,7 @@ public:
 /**
  * Functions: RC_Roll .. RCAUX_Max
  */
-class FunctionManualRC : public FunctionProviderBase
-{
+class FunctionManualRC : public FunctionProviderBase {
 public:
 	FunctionManualRC();
 	static FunctionProviderBase *allocate(const Context &context) { return new FunctionManualRC(); }
@@ -280,8 +278,7 @@ private:
 /**
  * Functions: Gimbal_Roll .. Gimbal_Yaw
  */
-class FunctionGimbal : public FunctionProviderBase
-{
+class FunctionGimbal : public FunctionProviderBase {
 public:
 	FunctionGimbal() = default;
 	static FunctionProviderBase *allocate(const Context &context) { return new FunctionGimbal(); }
@@ -291,5 +288,5 @@ public:
 
 private:
 	uORB::Subscription _topic{ORB_ID(actuator_controls_2)};
-	float _data[3] { NAN, NAN, NAN };
+	float _data[3]{NAN, NAN, NAN};
 };

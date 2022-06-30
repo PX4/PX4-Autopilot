@@ -32,12 +32,9 @@
  ****************************************************************************/
 
 #include <board_config.h>
-
 #include <drivers/drv_adc.h>
-
-#include <px4_platform_common/log.h>
-
 #include <fcntl.h>
+#include <px4_platform_common/log.h>
 #include <stdint.h>
 #include <unistd.h>
 
@@ -45,8 +42,7 @@
 #define ADC_MAX_CHAN 8
 int _channels_fd[ADC_MAX_CHAN];
 
-int px4_arch_adc_init(uint32_t base_address)
-{
+int px4_arch_adc_init(uint32_t base_address) {
 	for (int i = 0; i < ADC_MAX_CHAN; i++) {
 		_channels_fd[i] = -1;
 	}
@@ -54,50 +50,46 @@ int px4_arch_adc_init(uint32_t base_address)
 	return 0;
 }
 
-void px4_arch_adc_uninit(uint32_t base_address)
-{
+void px4_arch_adc_uninit(uint32_t base_address) {
 	for (int i = 0; i < ADC_MAX_CHAN; i++) {
 		::close(_channels_fd[i]);
 		_channels_fd[i] = -1;
 	}
 }
 
-uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
-{
+uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel) {
 	if (channel > ADC_MAX_CHAN) {
 		PX4_ERR("channel %d out of range: %d", channel, ADC_MAX_CHAN);
-		return UINT32_MAX; // error
+		return UINT32_MAX;  // error
 	}
 
 	// open channel if necessary
 	if (_channels_fd[channel] == -1) {
 		// ADC_SYSFS_PATH
-		char channel_path[strlen(ADC_SYSFS_PATH) + 20] {};
+		char channel_path[strlen(ADC_SYSFS_PATH) + 20]{};
 
 		if (sprintf(channel_path, "%s/in_voltage%d_raw", ADC_SYSFS_PATH, channel) == -1) {
 			PX4_ERR("adc channel: %d\n", channel);
-			return UINT32_MAX; // error
+			return UINT32_MAX;  // error
 		}
 
 		_channels_fd[channel] = ::open(channel_path, O_RDONLY);
 	}
 
-	char buffer[10] {};
+	char buffer[10]{};
 
 	if (::pread(_channels_fd[channel], buffer, sizeof(buffer), 0) < 0) {
 		PX4_ERR("read channel %d failed", channel);
-		return UINT32_MAX; // error
+		return UINT32_MAX;  // error
 	}
 
 	return atoi(buffer);
 }
 
-float px4_arch_adc_reference_v()
-{
-	return BOARD_ADC_POS_REF_V;	// 12-bit 1.8V ADC
+float px4_arch_adc_reference_v() {
+	return BOARD_ADC_POS_REF_V;  // 12-bit 1.8V ADC
 }
 
-uint32_t px4_arch_adc_dn_fullcount()
-{
-	return 1 << 12; // 12 bit ADC
+uint32_t px4_arch_adc_dn_fullcount() {
+	return 1 << 12;  // 12 bit ADC
 }

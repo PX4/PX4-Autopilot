@@ -32,7 +32,6 @@
  ****************************************************************************/
 #pragma once
 
-
 __BEGIN_DECLS
 
 /* For historical reasons (NuttX STM32 numbering) PX4 bus numbering is 1 based
@@ -42,11 +41,12 @@ __BEGIN_DECLS
  * schemes or 0,1,2 for zero based schemes.
  */
 
-#define PX4_BUS_NUMBER_TO_PX4(x)        ((x)+PX4_BUS_OFFSET)  /* Use to define Zero based to match Nuttx Driver but provide 1 based to PX4 */
-#define PX4_BUS_NUMBER_FROM_PX4(x)      ((x)-PX4_BUS_OFFSET)  /* Use to map PX4 1 based to NuttX driver 0 based */
+#define PX4_BUS_NUMBER_TO_PX4(x) \
+	((x) + PX4_BUS_OFFSET) /* Use to define Zero based to match Nuttx Driver but provide 1 based to PX4 */
+#define PX4_BUS_NUMBER_FROM_PX4(x) ((x)-PX4_BUS_OFFSET) /* Use to map PX4 1 based to NuttX driver 0 based */
 
-#define px4_enter_critical_section()       enter_critical_section()
-#define px4_leave_critical_section(flags)  leave_critical_section(flags)
+#define px4_enter_critical_section() enter_critical_section()
+#define px4_leave_critical_section(flags) leave_critical_section(flags)
 
 #define px4_udelay(usec) up_udelay(usec)
 #define px4_mdelay(msec) up_mdelay(msec)
@@ -54,4 +54,3 @@ __BEGIN_DECLS
 #include <arch/board/board.h>
 
 __END_DECLS
-

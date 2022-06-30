@@ -44,14 +44,14 @@
 #include "NullMixer/NullMixer.hpp"
 #include "SimpleMixer/SimpleMixer.hpp"
 
-#define debug(fmt, args...)	do { } while(0)
+#define debug(fmt, args...) \
+	do {                \
+	} while (0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 //#include <debug.h>
 //#define debug(fmt, args...)	syslog(fmt "\n", ##args)
 
-unsigned
-MixerGroup::mix(float *outputs, unsigned space)
-{
+unsigned MixerGroup::mix(float *outputs, unsigned space) {
 	unsigned index = 0;
 
 	for (auto mixer : _mixers) {
@@ -71,9 +71,7 @@ MixerGroup::mix(float *outputs, unsigned space)
  * The only other existing implementation is MultirotorMixer, which ignores the trim value
  * and returns _rotor_count.
  */
-unsigned
-MixerGroup::set_trims(int16_t *values, unsigned n)
-{
+unsigned MixerGroup::set_trims(int16_t *values, unsigned n) {
 	unsigned index = 0;
 
 	for (auto mixer : _mixers) {
@@ -98,9 +96,7 @@ MixerGroup::set_trims(int16_t *values, unsigned n)
  * The only other existing implementation is MultirotorMixer, which ignores the trim value
  * and returns _rotor_count.
  */
-unsigned
-MixerGroup::get_trims(int16_t *values)
-{
+unsigned MixerGroup::get_trims(int16_t *values) {
 	unsigned index_mixer = 0;
 	unsigned index = 0;
 
@@ -119,25 +115,19 @@ MixerGroup::get_trims(int16_t *values)
 	return index;
 }
 
-void
-MixerGroup::set_thrust_factor(float val)
-{
+void MixerGroup::set_thrust_factor(float val) {
 	for (auto mixer : _mixers) {
 		mixer->set_thrust_factor(val);
 	}
 }
 
-void
-MixerGroup::set_airmode(Mixer::Airmode airmode)
-{
+void MixerGroup::set_airmode(Mixer::Airmode airmode) {
 	for (auto mixer : _mixers) {
 		mixer->set_airmode(airmode);
 	}
 }
 
-unsigned
-MixerGroup::get_multirotor_count()
-{
+unsigned MixerGroup::get_multirotor_count() {
 	for (auto mixer : _mixers) {
 		unsigned rotor_count = mixer->get_multirotor_count();
 
@@ -149,9 +139,7 @@ MixerGroup::get_multirotor_count()
 	return 0;
 }
 
-uint16_t
-MixerGroup::get_saturation_status()
-{
+uint16_t MixerGroup::get_saturation_status() {
 	uint16_t sat = 0;
 
 	for (auto mixer : _mixers) {
@@ -161,17 +149,14 @@ MixerGroup::get_saturation_status()
 	return sat;
 }
 
-void
-MixerGroup::groups_required(uint32_t &groups)
-{
+void MixerGroup::groups_required(uint32_t &groups) {
 	for (auto mixer : _mixers) {
 		mixer->groups_required(groups);
 	}
 }
 
-int
-MixerGroup::load_from_buf(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf, unsigned &buflen)
-{
+int MixerGroup::load_from_buf(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
+			      unsigned &buflen) {
 	int ret = -1;
 	const char *end = buf + buflen;
 
@@ -188,26 +173,26 @@ MixerGroup::load_from_buf(Mixer::ControlCallback control_cb, uintptr_t cb_handle
 		 * Use the next character as a hint to decide which mixer class to construct.
 		 */
 		switch (*p) {
-		case 'Z':
-			m = NullMixer::from_text(p, resid);
-			break;
+			case 'Z':
+				m = NullMixer::from_text(p, resid);
+				break;
 
-		case 'M':
-			m = SimpleMixer::from_text(control_cb, cb_handle, p, resid);
-			break;
+			case 'M':
+				m = SimpleMixer::from_text(control_cb, cb_handle, p, resid);
+				break;
 
-		case 'R':
-			m = MultirotorMixer::from_text(control_cb, cb_handle, p, resid);
-			break;
+			case 'R':
+				m = MultirotorMixer::from_text(control_cb, cb_handle, p, resid);
+				break;
 
-		case 'H':
-			m = HelicopterMixer::from_text(control_cb, cb_handle, p, resid);
-			break;
+			case 'H':
+				m = HelicopterMixer::from_text(control_cb, cb_handle, p, resid);
+				break;
 
-		default:
-			/* it's probably junk or whitespace, skip a byte and retry */
-			buflen--;
-			continue;
+			default:
+				/* it's probably junk or whitespace, skip a byte and retry */
+				buflen--;
+				continue;
 		}
 
 		/*
@@ -224,7 +209,6 @@ MixerGroup::load_from_buf(Mixer::ControlCallback control_cb, uintptr_t cb_handle
 			debug("SUCCESS - buflen: %d", buflen);
 
 		} else {
-
 			/*
 			 * There is data in the buffer that we expected to parse, but it didn't,
 			 * so give up for now.
@@ -237,16 +221,13 @@ MixerGroup::load_from_buf(Mixer::ControlCallback control_cb, uintptr_t cb_handle
 	return ret;
 }
 
-void MixerGroup::set_max_delta_out_once(float delta_out_max)
-{
+void MixerGroup::set_max_delta_out_once(float delta_out_max) {
 	for (auto mixer : _mixers) {
 		mixer->set_max_delta_out_once(delta_out_max);
 	}
 }
 
-void
-MixerGroup::set_dt_once(float dt)
-{
+void MixerGroup::set_dt_once(float dt) {
 	for (auto mixer : _mixers) {
 		mixer->set_dt_once(dt);
 	}

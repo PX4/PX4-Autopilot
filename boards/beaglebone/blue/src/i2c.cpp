@@ -34,6 +34,6 @@
 #include <px4_arch/i2c_hw_description.h>
 
 constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
-	initI2CBusExternal(1), // i2c-1: pins P9 17,18
-	initI2CBusInternal(2), // i2c-2: pins P9 19,20 - bmp280, mpu9250
+	initI2CBusExternal(1),  // i2c-1: pins P9 17,18
+	initI2CBusInternal(2),  // i2c-2: pins P9 19,20 - bmp280, mpu9250
 };

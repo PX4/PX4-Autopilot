@@ -68,9 +68,9 @@ enum AIRSPEED_COMPENSATION_MODEL {
  * @param static_pressure pressure at the side of the tube/airplane
  * @return indicated airspeed in m/s
  */
-__EXPORT float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
-				  enum AIRSPEED_SENSOR_MODEL smodel,
-				  float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius);
+__EXPORT float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_SENSOR_MODEL smodel,
+				  float tube_len, float tube_dia_mm, float differential_pressure,
+				  float pressure_ambient, float temperature_celsius);
 
 /**
  * Calculate indicated airspeed (IAS).
@@ -95,8 +95,7 @@ __EXPORT float calc_IAS(float differential_pressure);
  * @param temperature_celsius air temperature in degrees celcius
  * @return TAS in m/s
  */
-__EXPORT float calc_TAS_from_CAS(float speed_indicated, float pressure_ambient,
-				 float temperature_celsius);
+__EXPORT float calc_TAS_from_CAS(float speed_indicated, float pressure_ambient, float temperature_celsius);
 
 /**
  * Calculate calibrated airspeed (CAS) from indicated airspeed (IAS).
@@ -106,7 +105,6 @@ __EXPORT float calc_TAS_from_CAS(float speed_indicated, float pressure_ambient,
  * @return CAS in m/s
  */
 __EXPORT float calc_CAS_from_IAS(float speed_indicated, float scale);
-
 
 /**
  * Directly calculate true airspeed (TAS).
@@ -122,11 +120,11 @@ __EXPORT float calc_CAS_from_IAS(float speed_indicated, float scale);
 __EXPORT float calc_TAS(float total_pressure, float static_pressure, float temperature_celsius);
 
 /**
-* Calculates air density.
-*
-* @param static_pressure ambient pressure in millibar
-* @param temperature_celcius air / ambient temperature in celcius
-*/
+ * Calculates air density.
+ *
+ * @param static_pressure ambient pressure in millibar
+ * @param temperature_celcius air / ambient temperature in celcius
+ */
 __EXPORT float get_air_density(float static_pressure, float temperature_celsius);
 
 /**
@@ -138,8 +136,7 @@ __EXPORT float get_air_density(float static_pressure, float temperature_celsius)
  * @param temperature_celsius air temperature in degrees celcius
  * @return CAS in m/s
  */
-__EXPORT float calc_CAS_from_TAS(float speed_true, float pressure_ambient,
-				 float temperature_celsius);
+__EXPORT float calc_CAS_from_TAS(float speed_true, float pressure_ambient, float temperature_celsius);
 
 __END_DECLS
 

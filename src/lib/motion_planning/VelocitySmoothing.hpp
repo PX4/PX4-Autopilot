@@ -34,10 +34,10 @@
 #pragma once
 
 struct Trajectory {
-	float j; //< jerk
-	float a; //< acceleration
-	float v; //< velocity
-	float x; //< position
+	float j;  //< jerk
+	float a;  //< acceleration
+	float v;  //< velocity
+	float x;  //< position
 };
 
 /**
@@ -58,8 +58,7 @@ struct Trajectory {
  *        ;
  *   ----"
  */
-class VelocitySmoothing
-{
+class VelocitySmoothing {
 public:
 	VelocitySmoothing(float initial_accel = 0.f, float initial_vel = 0.f, float initial_pos = 0.f);
 	~VelocitySmoothing() = default;
@@ -124,7 +123,6 @@ public:
 	static void timeSynchronization(VelocitySmoothing *traj, int n_traj);
 
 private:
-
 	/**
 	 * Compute T1, T2, T3 depending on the current state and velocity setpoint.
 	 * Minimize the total time of the trajectory
@@ -207,9 +205,9 @@ private:
 	Trajectory _state_init{};
 
 	/* Duration of each phase */
-	float _T1 = 0.f; ///< Increasing acceleration [s]
-	float _T2 = 0.f; ///< Constant acceleration [s]
-	float _T3 = 0.f; ///< Decreasing acceleration [s]
+	float _T1 = 0.f;  ///< Increasing acceleration [s]
+	float _T2 = 0.f;  ///< Constant acceleration [s]
+	float _T3 = 0.f;  ///< Decreasing acceleration [s]
 
-	float _local_time = 0.f; ///< Current local time
+	float _local_time = 0.f;  ///< Current local time
 };

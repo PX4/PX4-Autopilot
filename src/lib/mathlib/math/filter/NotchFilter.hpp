@@ -42,17 +42,16 @@
 
 #pragma once
 
-#include <mathlib/math/Functions.hpp>
-#include <cmath>
 #include <float.h>
+
+#include <cmath>
+#include <mathlib/math/Functions.hpp>
 #include <matrix/math.hpp>
 
-namespace math
-{
+namespace math {
 
-template<typename T>
-class NotchFilter
-{
+template <typename T>
+class NotchFilter {
 public:
 	NotchFilter() = default;
 	~NotchFilter() = default;
@@ -64,8 +63,7 @@ public:
 	 *
 	 * @return retrieve the filtered result
 	 */
-	inline T apply(const T &sample)
-	{
+	inline T apply(const T &sample) {
 		if (!_initialized) {
 			reset(sample);
 			_initialized = true;
@@ -75,8 +73,7 @@ public:
 	}
 
 	// Filter array of samples in place using the direct form I
-	inline void applyArray(T samples[], int num_samples)
-	{
+	inline void applyArray(T samples[], int num_samples) {
 		if (!_initialized) {
 			reset(samples[0]);
 			_initialized = true;
@@ -91,8 +88,7 @@ public:
 	float getBandwidth() const { return _bandwidth; }
 
 	// Used in unit test only
-	void getCoefficients(float a[3], float b[3]) const
-	{
+	void getCoefficients(float a[3], float b[3]) const {
 		a[0] = 1.f;
 		a[1] = _a1;
 		a[2] = _a2;
@@ -101,14 +97,14 @@ public:
 		b[2] = _b2;
 	}
 
-	float getMagnitudeResponse(float frequency) const
-	{
+	float getMagnitudeResponse(float frequency) const {
 		float w = 2.f * M_PI_F * frequency / _sample_freq;
 
-		float numerator = _b0 * _b0 + _b1 * _b1 + _b2 * _b2
-				  + 2.f * (_b0 * _b1 + _b1 * _b2) * cosf(w) + 2.f * _b0 * _b2 * cosf(2.f * w);
+		float numerator = _b0 * _b0 + _b1 * _b1 + _b2 * _b2 + 2.f * (_b0 * _b1 + _b1 * _b2) * cosf(w) +
+				  2.f * _b0 * _b2 * cosf(2.f * w);
 
-		float denominator = 1.f + _a1 * _a1 + _a2 * _a2 + 2.f * (_a1 + _a1 * _a2) * cosf(w) + 2.f * _a2 * cosf(2.f * w);
+		float denominator =
+			1.f + _a1 * _a1 + _a2 * _a2 + 2.f * (_a1 + _a1 * _a2) * cosf(w) + 2.f * _a2 * cosf(2.f * w);
 
 		return sqrtf(numerator / denominator);
 	}
@@ -119,8 +115,7 @@ public:
 	 * physical meaning if you use this method to change the filter's coefficients.
 	 * Used for creating clones of a specific filter.
 	 */
-	void setCoefficients(float a[2], float b[3])
-	{
+	void setCoefficients(float a[2], float b[3]) {
 		_a1 = a[0];
 		_a2 = a[1];
 		_b0 = b[0];
@@ -132,8 +127,7 @@ public:
 
 	void reset() { _initialized = false; }
 
-	void reset(const T &sample)
-	{
+	void reset(const T &sample) {
 		const T input = isFinite(sample) ? sample : T{};
 
 		_delay_element_1 = _delay_element_2 = input;
@@ -146,8 +140,7 @@ public:
 		_initialized = true;
 	}
 
-	void disable()
-	{
+	void disable() {
 		// no filtering
 		_notch_freq = 0.f;
 		_bandwidth = 0.f;
@@ -164,17 +157,15 @@ public:
 	}
 
 protected:
-
 	/**
 	 * Add a new raw value to the filter using the Direct Form I
 	 *
 	 * @return retrieve the filtered result
 	 */
-	inline T applyInternal(const T &sample)
-	{
+	inline T applyInternal(const T &sample) {
 		// Direct Form I implementation
-		T output = _b0 * sample + _b1 * _delay_element_1 + _b2 * _delay_element_2 - _a1 * _delay_element_output_1 - _a2 *
-			   _delay_element_output_2;
+		T output = _b0 * sample + _b1 * _delay_element_1 + _b2 * _delay_element_2 -
+			   _a1 * _delay_element_output_1 - _a2 * _delay_element_output_2;
 
 		// shift inputs
 		_delay_element_2 = _delay_element_1;
@@ -213,12 +204,10 @@ protected:
  * update the filtered frequency, refresh rate and quality factor while
  * conserving the filter's history
  */
-template<typename T>
-bool NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float bandwidth)
-{
-	if ((sample_freq <= 0.f) || (notch_freq <= 0.f) || (bandwidth <= 0.f) || (notch_freq >= sample_freq / 2)
-	    || !isFinite(sample_freq) || !isFinite(notch_freq) || !isFinite(bandwidth)) {
-
+template <typename T>
+bool NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float bandwidth) {
+	if ((sample_freq <= 0.f) || (notch_freq <= 0.f) || (bandwidth <= 0.f) || (notch_freq >= sample_freq / 2) ||
+	    !isFinite(sample_freq) || !isFinite(notch_freq) || !isFinite(bandwidth)) {
 		disable();
 		return false;
 	}
@@ -295,4 +284,4 @@ bool NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float ba
 	return true;
 }
 
-} // namespace math
+}  // namespace math

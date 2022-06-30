@@ -41,23 +41,20 @@
 
 #include <stdlib.h>
 
-template<class T>
-class IntrusiveSortedListNode
-{
+template <class T>
+class IntrusiveSortedListNode {
 public:
 	void setSortedSibling(T sibling) { _sorted_list_node_sibling = sibling; }
 	const T getSortedSibling() const { return _sorted_list_node_sibling; }
+
 protected:
 	T _sorted_list_node_sibling{nullptr};
 };
 
-template<class T>
-class IntrusiveSortedList
-{
+template <class T>
+class IntrusiveSortedList {
 public:
-
-	void add(T newNode)
-	{
+	void add(T newNode) {
 		if (_head == nullptr) {
 			// list is empty, add as head
 			_head = newNode;
@@ -74,7 +71,6 @@ public:
 			T node = _head;
 
 			while (node != nullptr && node->getSortedSibling() != nullptr) {
-
 				if (*newNode <= *node->getSortedSibling()) {
 					// insert newNode
 					newNode->setSortedSibling(node->getSortedSibling());
@@ -90,8 +86,7 @@ public:
 		}
 	}
 
-	bool remove(T removeNode)
-	{
+	bool remove(T removeNode) {
 		if (removeNode == nullptr) {
 			return false;
 		}
@@ -133,9 +128,8 @@ public:
 
 		operator T() const { return node; }
 		operator T &() { return node; }
-		const T &operator* () const { return node; }
-		Iterator &operator++ ()
-		{
+		const T &operator*() const { return node; }
+		Iterator &operator++() {
 			if (node) {
 				node = node->getSortedSibling();
 			}
@@ -149,8 +143,7 @@ public:
 
 	bool empty() const { return _head == nullptr; }
 
-	size_t size() const
-	{
+	size_t size() const {
 		size_t sz = 0;
 
 		for (T node = _head; node != nullptr; node = node->getSortedSibling()) {
@@ -160,16 +153,14 @@ public:
 		return sz;
 	}
 
-	void deleteNode(T node)
-	{
+	void deleteNode(T node) {
 		if (remove(node)) {
 			// only delete if node was successfully removed
 			delete node;
 		}
 	}
 
-	void clear()
-	{
+	void clear() {
 		T node = _head;
 
 		while (node != nullptr) {
@@ -182,6 +173,5 @@ public:
 	}
 
 protected:
-
 	T _head{nullptr};
 };

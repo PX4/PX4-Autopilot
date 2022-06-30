@@ -42,6 +42,7 @@
 #pragma once
 
 #include <uORB/topics/battery_status.h>
+
 #include <uORB/PublicationMulti.hpp>
 
 // Legacy message from UAVCANv0
@@ -49,32 +50,29 @@
 
 #include "../DynamicPortSubscriber.hpp"
 
-class UavcanLegacyBatteryInfoSubscriber : public UavcanDynamicPortSubscriber
-{
+class UavcanLegacyBatteryInfoSubscriber : public UavcanDynamicPortSubscriber {
 public:
-	UavcanLegacyBatteryInfoSubscriber(CanardHandle &handle, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanDynamicPortSubscriber(handle, pmgr, "legacy.", "legacy_bms", instance) { };
+	UavcanLegacyBatteryInfoSubscriber(CanardHandle &handle, UavcanParamManager &pmgr, uint8_t instance = 0)
+		: UavcanDynamicPortSubscriber(handle, pmgr, "legacy.", "legacy_bms", instance){};
 
-	void subscribe() override
-	{
+	void subscribe() override {
 		// Subscribe to messages reg.drone.service.battery.Status.0.1
-		_canard_handle.RxSubscribe(CanardTransferKindMessage,
-					   _subj_sub._canard_sub.port_id,
-					   legacy_equipment_power_BatteryInfo_1_0_EXTENT_BYTES_,
-					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC * 100, //FIXME timeout caused by scheduler
-					   &_subj_sub._canard_sub);
+		_canard_handle.RxSubscribe(
+			CanardTransferKindMessage, _subj_sub._canard_sub.port_id,
+			legacy_equipment_power_BatteryInfo_1_0_EXTENT_BYTES_,
+			CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC * 100,  // FIXME timeout caused by scheduler
+			&_subj_sub._canard_sub);
 	};
 
-	void callback(const CanardRxTransfer &receive) override
-	{
+	void callback(const CanardRxTransfer &receive) override {
 		PX4_INFO("Legacy BmsCallback");
 
-		legacy_equipment_power_BatteryInfo_1_0 bat_info {};
+		legacy_equipment_power_BatteryInfo_1_0 bat_info{};
 		size_t bat_info_size_in_bytes = receive.payload_size;
 		legacy_equipment_power_BatteryInfo_1_0_deserialize_(&bat_info, (const uint8_t *)receive.payload,
-				&bat_info_size_in_bytes);
+								    &bat_info_size_in_bytes);
 
-		battery_status_s bat_status {0};
+		battery_status_s bat_status{0};
 		bat_status.timestamp = hrt_absolute_time();
 		bat_status.voltage_filtered_v = bat_info.voltage;
 		bat_status.current_filtered_a = bat_info.current;
@@ -89,15 +87,16 @@ public:
 			bat_status.temperature = -30;
 
 		} else {
-			bat_status.temperature = 20; // Temp okay ?
+			bat_status.temperature = 20;  // Temp okay ?
 		}
 
-		bat_status.cell_count = 0; // Unknown
-		bat_status.connected = bat_info.status_flags & legacy_equipment_power_BatteryInfo_1_0_STATUS_FLAG_IN_USE;
-		bat_status.source = 1; // External
+		bat_status.cell_count = 0;  // Unknown
+		bat_status.connected =
+			bat_info.status_flags & legacy_equipment_power_BatteryInfo_1_0_STATUS_FLAG_IN_USE;
+		bat_status.source = 1;  // External
 		bat_status.capacity = bat_info.full_charge_capacity_wh;
-		bat_status.serial_number = bat_info.model_instance_id & 0xFFFF; // Take first 16 bits
-		bat_status.state_of_health = bat_info.state_of_health_pct; // External
+		bat_status.serial_number = bat_info.model_instance_id & 0xFFFF;  // Take first 16 bits
+		bat_status.state_of_health = bat_info.state_of_health_pct;       // External
 		bat_status.id = bat_info.battery_id;
 
 		/* Missing fields in UAVCANv0 legacy message
@@ -117,12 +116,10 @@ public:
 		 * warning
 		 */
 
-
 		_battery_status_pub.publish(bat_status);
 		print_message(ORB_ID(battery_status), bat_status);
 	};
 
 private:
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
-
 };

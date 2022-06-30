@@ -38,48 +38,50 @@
  * @author Mara Bos <m-ou.se@m-ou.se>
  */
 
-#include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string>
-#include <pthread.h>
-#include <poll.h>
 #include <assert.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <pthread.h>
+#include <px4_daemon/server_io.h>
+#include <px4_platform_common/log.h>
+#include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
-#include <px4_platform_common/log.h>
+#include <string>
 
 #include "server.h"
-#include <px4_daemon/server_io.h>
 #include "sock_protocol.h"
-
 
 using namespace px4_daemon;
 
-
-FILE *get_stdout(bool *isatty_)
-{
+FILE *get_stdout(bool *isatty_) {
 	Server::CmdThreadSpecificData *thread_data_ptr;
 
 	// If we are not in a thread that has been started by a client, we don't
 	// have any thread specific data set and we won't have a pipe to write
 	// stdout to.
-	if (!Server::is_running() ||
-	    (thread_data_ptr = (Server::CmdThreadSpecificData *)pthread_getspecific(
-				       Server::get_pthread_key())) == nullptr) {
-		if (isatty_) { *isatty_ = isatty(1); }
+	if (!Server::is_running() || (thread_data_ptr = (Server::CmdThreadSpecificData *)pthread_getspecific(
+					      Server::get_pthread_key())) == nullptr) {
+		if (isatty_) {
+			*isatty_ = isatty(1);
+		}
 
 		return stdout;
 	}
 
 	if (thread_data_ptr->thread_stdout == nullptr) {
-		if (isatty_) { *isatty_ = isatty(1); }
+		if (isatty_) {
+			*isatty_ = isatty(1);
+		}
 
 		return stdout;
 	}
 
-	if (isatty_) { *isatty_ = thread_data_ptr->is_atty; }
+	if (isatty_) {
+		*isatty_ = thread_data_ptr->is_atty;
+	}
 
 	return thread_data_ptr->thread_stdout;
 }

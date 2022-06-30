@@ -38,15 +38,14 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/shutdown.h>
 #include <string.h>
 
-static void print_usage()
-{
+static void print_usage() {
 	PRINT_MODULE_DESCRIPTION("Reboot the system");
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("reboot", "command");
@@ -55,8 +54,7 @@ static void print_usage()
 	PRINT_MODULE_USAGE_ARG("lock|unlock", "Take/release the shutdown lock (for testing)", true);
 }
 
-extern "C" __EXPORT int reboot_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int reboot_main(int argc, char *argv[]) {
 	int ch;
 	bool to_bootloader = false;
 
@@ -65,14 +63,13 @@ extern "C" __EXPORT int reboot_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "b", &myoptind, &myoptarg)) != -1) {
 		switch (ch) {
-		case 'b':
-			to_bootloader = true;
-			break;
+			case 'b':
+				to_bootloader = true;
+				break;
 
-		default:
-			print_usage();
-			return 1;
-
+			default:
+				print_usage();
+				return 1;
 		}
 	}
 
@@ -105,7 +102,9 @@ extern "C" __EXPORT int reboot_main(int argc, char *argv[])
 		return -1;
 	}
 
-	while (1) { px4_usleep(1); } // this command should not return on success
+	while (1) {
+		px4_usleep(1);
+	}  // this command should not return on success
 
 	return 0;
 }

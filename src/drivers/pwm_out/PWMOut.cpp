@@ -36,11 +36,10 @@
 #include <px4_platform_common/sem.hpp>
 
 pthread_mutex_t pwm_out_module_mutex = PTHREAD_MUTEX_INITIALIZER;
-static px4::atomic<PWMOut *> _objects[PWM_OUT_MAX_INSTANCES] {};
-static px4::atomic_bool _require_arming[PWM_OUT_MAX_INSTANCES] {};
+static px4::atomic<PWMOut *> _objects[PWM_OUT_MAX_INSTANCES]{};
+static px4::atomic_bool _require_arming[PWM_OUT_MAX_INSTANCES]{};
 
-static bool is_running()
-{
+static bool is_running() {
 	for (auto &obj : _objects) {
 		if (obj.load() != nullptr) {
 			return true;
@@ -50,22 +49,21 @@ static bool is_running()
 	return false;
 }
 
-PWMOut::PWMOut(int instance, uint8_t output_base) :
-	CDev((instance == 0) ? PX4FMU_DEVICE_PATH : PX4FMU_DEVICE_PATH"1"),
-	OutputModuleInterface((instance == 0) ? MODULE_NAME"0" : MODULE_NAME"1", px4::wq_configurations::hp_default),
-	_instance(instance),
-	_output_base(output_base),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
-	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": interval"))
-{
+PWMOut::PWMOut(int instance, uint8_t output_base)
+	: CDev((instance == 0) ? PX4FMU_DEVICE_PATH : PX4FMU_DEVICE_PATH "1"),
+	  OutputModuleInterface((instance == 0) ? MODULE_NAME "0" : MODULE_NAME "1",
+				px4::wq_configurations::hp_default),
+	  _instance(instance),
+	  _output_base(output_base),
+	  _cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")),
+	  _interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": interval")) {
 	if (!_mixing_output.useDynamicMixing()) {
 		_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
 		_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
 	}
 }
 
-PWMOut::~PWMOut()
-{
+PWMOut::~PWMOut() {
 	/* make sure servos are off */
 	up_pwm_servo_deinit(_pwm_mask);
 
@@ -76,8 +74,7 @@ PWMOut::~PWMOut()
 	perf_free(_interval_perf);
 }
 
-int PWMOut::init()
-{
+int PWMOut::init() {
 	/* do regular cdev init */
 	int ret = CDev::init();
 
@@ -140,8 +137,7 @@ int PWMOut::init()
  *                                    For Oneshot there is no rate, 0 is therefore used
  *                                    to  select Oneshot mode
  */
-int PWMOut::set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate)
-{
+int PWMOut::set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate) {
 	if (_mixing_output.useDynamicMixing()) {
 		return -EINVAL;
 	}
@@ -149,7 +145,6 @@ int PWMOut::set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_
 	PX4_DEBUG("pwm_out%u set_pwm_rate %x %u %u", _instance, rate_map, default_rate, alt_rate);
 
 	for (unsigned pass = 0; pass < 2; pass++) {
-
 		/* We should note that group is iterated over from 0 to FMU_MAX_ACTUATORS.
 		 * This allows for the ideal worlds situation: 1 channel per group
 		 * configuration.
@@ -165,7 +160,6 @@ int PWMOut::set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_
 		 */
 
 		for (unsigned group = 0; group < FMU_MAX_ACTUATORS; group++) {
-
 			// get the channel mask for this rate group
 			uint32_t mask = _pwm_mask & up_pwm_servo_get_rate_group(group);
 
@@ -179,7 +173,8 @@ int PWMOut::set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_
 			if (pass == 0) {
 				// preflight
 				if ((alt != 0) && (alt != mask)) {
-					PX4_WARN("rate group %u mask %" PRIx32 " bad overlap %" PRIx32, group, mask, alt);
+					PX4_WARN("rate group %u mask %" PRIx32 " bad overlap %" PRIx32, group, mask,
+						 alt);
 					// not a legal map, bail
 					return -EINVAL;
 				}
@@ -219,19 +214,18 @@ int PWMOut::set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_
 
 	_backup_schedule_interval_us = roundf(1e6f / backup_schedule_rate_hz);
 
-	_current_update_rate = 0; // force update
+	_current_update_rate = 0;  // force update
 
 	return OK;
 }
 
-void PWMOut::update_current_rate()
-{
+void PWMOut::update_current_rate() {
 	/*
-	* Adjust actuator topic update rate to keep up with
-	* the highest servo update rate configured.
-	*
-	* We always mix at max rate; some channels may update slower.
-	*/
+	 * Adjust actuator topic update rate to keep up with
+	 * the highest servo update rate configured.
+	 *
+	 * We always mix at max rate; some channels may update slower.
+	 */
 	int max_rate = (_pwm_default_rate > _pwm_alt_rate) ? _pwm_default_rate : _pwm_alt_rate;
 
 	// oneshot
@@ -248,17 +242,16 @@ void PWMOut::update_current_rate()
 	const int update_interval_in_us = math::constrain(1000000 / max_rate, 500, 100000);
 
 	if (_current_update_rate != max_rate) {
-		PX4_INFO("instance: %d, max rate: %d, default: %d, alt: %d", _instance, max_rate, _pwm_default_rate, _pwm_alt_rate);
+		PX4_INFO("instance: %d, max rate: %d, default: %d, alt: %d", _instance, max_rate, _pwm_default_rate,
+			 _pwm_alt_rate);
 	}
 
 	_current_update_rate = max_rate;
 	_mixing_output.setMaxTopicUpdateRate(update_interval_in_us);
 }
 
-int PWMOut::task_spawn(int argc, char *argv[])
-{
+int PWMOut::task_spawn(int argc, char *argv[]) {
 	for (unsigned instance = 0; instance < (sizeof(_objects) / sizeof(_objects[0])); instance++) {
-
 		if (instance < PWM_OUT_MAX_INSTANCES) {
 			uint8_t base = instance * MAX_PER_INSTANCE;  // TODO: configurable
 			PWMOut *dev = new PWMOut(instance, base);
@@ -293,12 +286,9 @@ int PWMOut::task_spawn(int argc, char *argv[])
 	return PX4_OK;
 }
 
-bool PWMOut::update_pwm_out_state(bool on)
-{
+bool PWMOut::update_pwm_out_state(bool on) {
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
-
 		if (_mixing_output.useDynamicMixing()) {
-
 			for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
 				_timer_rates[timer] = -1;
 
@@ -309,7 +299,8 @@ bool PWMOut::update_pwm_out_state(bool on)
 				}
 
 				char param_name[17];
-				snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
+				snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(),
+					 timer);
 
 				int32_t tim_config = 0;
 				param_t handle = param_find(param_name);
@@ -318,11 +309,11 @@ bool PWMOut::update_pwm_out_state(bool on)
 				if (tim_config > 0) {
 					_timer_rates[timer] = tim_config;
 
-				} else if (tim_config == -1) { // OneShot
+				} else if (tim_config == -1) {  // OneShot
 					_timer_rates[timer] = 0;
 
 				} else {
-					_pwm_mask &= ~channels; // don't use for pwm
+					_pwm_mask &= ~channels;  // don't use for pwm
 				}
 			}
 
@@ -346,7 +337,8 @@ bool PWMOut::update_pwm_out_state(bool on)
 				ret = up_pwm_servo_set_rate_group_update(timer, _timer_rates[timer]);
 
 				if (ret != 0) {
-					PX4_ERR("up_pwm_servo_set_rate_group_update failed for timer %i, rate %i (%i)", timer, _timer_rates[timer], ret);
+					PX4_ERR("up_pwm_servo_set_rate_group_update failed for timer %i, rate %i (%i)",
+						timer, _timer_rates[timer], ret);
 					_timer_rates[timer] = -1;
 					_pwm_mask &= ~channels;
 				}
@@ -369,7 +361,6 @@ bool PWMOut::update_pwm_out_state(bool on)
 
 			for (int i = 0; i < PWM_OUT_MAX_INSTANCES; i++) {
 				if (_objects[i].load()) {
-
 					pwm_mask_new |= _objects[i].load()->get_pwm_mask();
 					pwm_alt_rate_channels_new |= _objects[i].load()->get_alt_rate_channels();
 				}
@@ -382,7 +373,8 @@ bool PWMOut::update_pwm_out_state(bool on)
 			if (ret >= 0) {
 				for (int i = 0; i < PWM_OUT_MAX_INSTANCES; i++) {
 					if (_objects[i].load()) {
-						_objects[i].load()->set_pwm_mask(_objects[i].load()->get_pwm_mask() & ret);
+						_objects[i].load()->set_pwm_mask(_objects[i].load()->get_pwm_mask() &
+										 ret);
 					}
 				}
 
@@ -410,9 +402,8 @@ bool PWMOut::update_pwm_out_state(bool on)
 	return true;
 }
 
-bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated)
-{
+bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+			   unsigned num_control_groups_updated) {
 	/* output to the servos */
 	if (_pwm_initialized) {
 		for (size_t i = 0; i < num_outputs; i++) {
@@ -437,13 +428,12 @@ bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	return true;
 }
 
-void PWMOut::Run()
-{
+void PWMOut::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
 
-		//exit_and_cleanup();
+		// exit_and_cleanup();
 		return;
 	}
 
@@ -460,11 +450,10 @@ void PWMOut::Run()
 	_mixing_output.update();
 
 	/* update PWM status if armed or if disarmed PWM values are set */
-	bool pwm_on = _mixing_output.armed().armed || (_num_disarmed_set > 0) || _mixing_output.useDynamicMixing()
-		      || _mixing_output.armed().in_esc_calibration_mode;
+	bool pwm_on = _mixing_output.armed().armed || (_num_disarmed_set > 0) || _mixing_output.useDynamicMixing() ||
+		      _mixing_output.armed().in_esc_calibration_mode;
 
 	if (_pwm_on != pwm_on || _require_arming[_instance].load()) {
-
 		if (update_pwm_out_state(pwm_on)) {
 			_pwm_on = pwm_on;
 		}
@@ -477,7 +466,8 @@ void PWMOut::Run()
 		_parameter_update_sub.copy(&pupdate);
 
 		// update parameters from storage
-		if (_mixing_output.useDynamicMixing()) { // do not update PWM params for now (was interfering with VTOL PWM settings)
+		if (_mixing_output.useDynamicMixing()) {  // do not update PWM params for now (was interfering with VTOL
+							  // PWM settings)
 			update_params();
 		}
 	}
@@ -492,8 +482,7 @@ void PWMOut::Run()
 	perf_end(_cycle_perf);
 }
 
-void PWMOut::update_params()
-{
+void PWMOut::update_params() {
 	updateParams();
 
 	if (_mixing_output.useDynamicMixing()) {
@@ -561,7 +550,8 @@ void PWMOut::update_params()
 
 			if (param_get(param_find(str), &pwm_min) == PX4_OK) {
 				if (pwm_min >= 0 && pwm_min != 1000) {
-					_mixing_output.minValue(i) = math::constrain(pwm_min, (int32_t) PWM_LOWEST_MIN, (int32_t) PWM_HIGHEST_MIN);
+					_mixing_output.minValue(i) = math::constrain(pwm_min, (int32_t)PWM_LOWEST_MIN,
+										     (int32_t)PWM_HIGHEST_MIN);
 
 					if (pwm_min != _mixing_output.minValue(i)) {
 						int32_t pwm_min_new = _mixing_output.minValue(i);
@@ -584,7 +574,8 @@ void PWMOut::update_params()
 
 			if (param_get(param_find(str), &pwm_max) == PX4_OK) {
 				if (pwm_max >= 0 && pwm_max != 2000) {
-					_mixing_output.maxValue(i) = math::constrain(pwm_max, (int32_t) PWM_LOWEST_MAX, (int32_t) PWM_HIGHEST_MAX);
+					_mixing_output.maxValue(i) = math::constrain(pwm_max, (int32_t)PWM_LOWEST_MAX,
+										     (int32_t)PWM_HIGHEST_MAX);
 
 					if (pwm_max != _mixing_output.maxValue(i)) {
 						int32_t pwm_max_new = _mixing_output.maxValue(i);
@@ -607,7 +598,8 @@ void PWMOut::update_params()
 
 			if (param_get(param_find(str), &pwm_failsafe) == PX4_OK) {
 				if (pwm_failsafe >= 0) {
-					_mixing_output.failsafeValue(i) = math::constrain(pwm_failsafe, (int32_t) 0, (int32_t) PWM_HIGHEST_MAX);
+					_mixing_output.failsafeValue(i) =
+						math::constrain(pwm_failsafe, (int32_t)0, (int32_t)PWM_HIGHEST_MAX);
 
 					if (pwm_failsafe != _mixing_output.failsafeValue(i)) {
 						int32_t pwm_fail_new = _mixing_output.failsafeValue(i);
@@ -635,7 +627,8 @@ void PWMOut::update_params()
 
 			if (param_get(param_find(str), &pwm_dis) == PX4_OK) {
 				if (pwm_dis >= 0 && pwm_dis != 900) {
-					_mixing_output.disarmedValue(i) = math::constrain(pwm_dis, (int32_t) 0, (int32_t) PWM_HIGHEST_MAX);
+					_mixing_output.disarmedValue(i) =
+						math::constrain(pwm_dis, (int32_t)0, (int32_t)PWM_HIGHEST_MAX);
 
 					if (pwm_dis != _mixing_output.disarmedValue(i)) {
 						int32_t pwm_dis_new = _mixing_output.disarmedValue(i);
@@ -677,7 +670,7 @@ void PWMOut::update_params()
 	}
 
 	if (_mixing_output.mixers()) {
-		int16_t values[FMU_MAX_ACTUATORS] {};
+		int16_t values[FMU_MAX_ACTUATORS]{};
 
 		for (unsigned i = 0; i < _num_outputs; i++) {
 			sprintf(str, "%s_TRIM%u", prefix, i + 1);
@@ -698,8 +691,7 @@ void PWMOut::update_params()
 	_num_disarmed_set = num_disarmed_set;
 }
 
-int PWMOut::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
+int PWMOut::ioctl(device::file_t *filp, int cmd, unsigned long arg) {
 	SmartLock lock_guard(_lock);
 
 	int ret = pwm_ioctl(filp, cmd, arg);
@@ -712,51 +704,50 @@ int PWMOut::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
+int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg) {
 	int ret = OK;
 
 	PX4_DEBUG("pwm_out%u: ioctl cmd: %d, arg: %ld", _instance, cmd, arg);
 
 	switch (cmd) {
-	case PWM_SERVO_ARM:
-		update_pwm_out_state(true);
-		break;
+		case PWM_SERVO_ARM:
+			update_pwm_out_state(true);
+			break;
 
-	case PWM_SERVO_SET_ARM_OK:
-	case PWM_SERVO_CLEAR_ARM_OK:
-		break;
+		case PWM_SERVO_SET_ARM_OK:
+		case PWM_SERVO_CLEAR_ARM_OK:
+			break;
 
-	case PWM_SERVO_DISARM:
+		case PWM_SERVO_DISARM:
 
-		/* Ignore disarm if disarmed PWM is set already. */
-		if (_num_disarmed_set == 0) {
-			update_pwm_out_state(false);
-		}
+			/* Ignore disarm if disarmed PWM is set already. */
+			if (_num_disarmed_set == 0) {
+				update_pwm_out_state(false);
+			}
 
-		break;
+			break;
 
-	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
-		*(uint32_t *)arg = _pwm_default_rate;
-		break;
+		case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
+			*(uint32_t *)arg = _pwm_default_rate;
+			break;
 
-	case PWM_SERVO_SET_UPDATE_RATE:
-		ret = set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, arg);
-		break;
+		case PWM_SERVO_SET_UPDATE_RATE:
+			ret = set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, arg);
+			break;
 
-	case PWM_SERVO_GET_UPDATE_RATE:
-		*(uint32_t *)arg = _pwm_alt_rate;
-		break;
+		case PWM_SERVO_GET_UPDATE_RATE:
+			*(uint32_t *)arg = _pwm_alt_rate;
+			break;
 
-	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
-		ret = set_pwm_rate(arg, _pwm_default_rate, _pwm_alt_rate);
-		break;
+		case PWM_SERVO_SET_SELECT_UPDATE_RATE:
+			ret = set_pwm_rate(arg, _pwm_default_rate, _pwm_alt_rate);
+			break;
 
-	case PWM_SERVO_GET_SELECT_UPDATE_RATE:
-		*(uint32_t *)arg = _pwm_alt_rate_channels;
-		break;
+		case PWM_SERVO_GET_SELECT_UPDATE_RATE:
+			*(uint32_t *)arg = _pwm_alt_rate_channels;
+			break;
 
-	case PWM_SERVO_GET_FAILSAFE_PWM: {
+		case PWM_SERVO_GET_FAILSAFE_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
@@ -767,7 +758,7 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_GET_DISARMED_PWM: {
+		case PWM_SERVO_GET_DISARMED_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
@@ -778,7 +769,7 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_SET_MIN_PWM: {
+		case PWM_SERVO_SET_MIN_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			/* discard if too many values are sent */
@@ -794,13 +785,11 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					_mixing_output.minValue(i) = PWM_HIGHEST_MIN;
 
 				}
-
 #if PWM_LOWEST_MIN > 0
 
 				else if (pwm->values[i] < PWM_LOWEST_MIN) {
 					_mixing_output.minValue(i) = PWM_LOWEST_MIN;
 				}
-
 #endif
 
 				else {
@@ -811,7 +800,7 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_GET_MIN_PWM: {
+		case PWM_SERVO_GET_MIN_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
@@ -823,7 +812,7 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_SET_MAX_PWM: {
+		case PWM_SERVO_SET_MAX_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			/* discard if too many values are sent */
@@ -849,7 +838,7 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_GET_MAX_PWM: {
+		case PWM_SERVO_GET_MAX_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
@@ -858,75 +847,74 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 			pwm->channel_count = FMU_MAX_ACTUATORS;
 			arg = (unsigned long)&pwm;
-		}
-		break;
+		} break;
 
 #if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 14
 
-	case PWM_SERVO_GET(13):
-	case PWM_SERVO_GET(12):
-	case PWM_SERVO_GET(11):
-	case PWM_SERVO_GET(10):
-	case PWM_SERVO_GET(9):
-	case PWM_SERVO_GET(8):
+		case PWM_SERVO_GET(13):
+		case PWM_SERVO_GET(12):
+		case PWM_SERVO_GET(11):
+		case PWM_SERVO_GET(10):
+		case PWM_SERVO_GET(9):
+		case PWM_SERVO_GET(8):
 #endif
 #if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 8
-	case PWM_SERVO_GET(7):
-	case PWM_SERVO_GET(6):
+		case PWM_SERVO_GET(7):
+		case PWM_SERVO_GET(6):
 #endif
 #if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 6
-	case PWM_SERVO_GET(5):
+		case PWM_SERVO_GET(5):
 #endif
 #if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 5
-	case PWM_SERVO_GET(4):
+		case PWM_SERVO_GET(4):
 #endif
-	case PWM_SERVO_GET(3):
-	case PWM_SERVO_GET(2):
-	case PWM_SERVO_GET(1):
-	case PWM_SERVO_GET(0):
-		if (cmd - PWM_SERVO_GET(0) >= (int)_num_outputs) {
-			ret = -EINVAL;
+		case PWM_SERVO_GET(3):
+		case PWM_SERVO_GET(2):
+		case PWM_SERVO_GET(1):
+		case PWM_SERVO_GET(0):
+			if (cmd - PWM_SERVO_GET(0) >= (int)_num_outputs) {
+				ret = -EINVAL;
+				break;
+			}
+
+			*(servo_position_t *)arg = up_pwm_servo_get(cmd - PWM_SERVO_GET(0) + _output_base);
 			break;
-		}
 
-		*(servo_position_t *)arg = up_pwm_servo_get(cmd - PWM_SERVO_GET(0) +  _output_base);
-		break;
-
-	case PWM_SERVO_GET_RATEGROUP(0):
-	case PWM_SERVO_GET_RATEGROUP(1):
-	case PWM_SERVO_GET_RATEGROUP(2):
-	case PWM_SERVO_GET_RATEGROUP(3):
+		case PWM_SERVO_GET_RATEGROUP(0):
+		case PWM_SERVO_GET_RATEGROUP(1):
+		case PWM_SERVO_GET_RATEGROUP(2):
+		case PWM_SERVO_GET_RATEGROUP(3):
 #if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 5
-	case PWM_SERVO_GET_RATEGROUP(4):
+		case PWM_SERVO_GET_RATEGROUP(4):
 #endif
 #if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 6
-	case PWM_SERVO_GET_RATEGROUP(5):
+		case PWM_SERVO_GET_RATEGROUP(5):
 #endif
 #if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 8
-	case PWM_SERVO_GET_RATEGROUP(6):
-	case PWM_SERVO_GET_RATEGROUP(7):
+		case PWM_SERVO_GET_RATEGROUP(6):
+		case PWM_SERVO_GET_RATEGROUP(7):
 #endif
 #if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 14
-	case PWM_SERVO_GET_RATEGROUP(8):
-	case PWM_SERVO_GET_RATEGROUP(9):
-	case PWM_SERVO_GET_RATEGROUP(10):
-	case PWM_SERVO_GET_RATEGROUP(11):
-	case PWM_SERVO_GET_RATEGROUP(12):
-	case PWM_SERVO_GET_RATEGROUP(13):
+		case PWM_SERVO_GET_RATEGROUP(8):
+		case PWM_SERVO_GET_RATEGROUP(9):
+		case PWM_SERVO_GET_RATEGROUP(10):
+		case PWM_SERVO_GET_RATEGROUP(11):
+		case PWM_SERVO_GET_RATEGROUP(12):
+		case PWM_SERVO_GET_RATEGROUP(13):
 #endif
-		*(uint32_t *)arg = _pwm_mask & up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0));
-		break;
+			*(uint32_t *)arg = _pwm_mask & up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0));
+			break;
 
-	case PWM_SERVO_GET_COUNT:
-		*(unsigned *)arg = _num_outputs;
-		break;
+		case PWM_SERVO_GET_COUNT:
+			*(unsigned *)arg = _num_outputs;
+			break;
 
-	case MIXERIOCRESET:
-		_mixing_output.resetMixer();
+		case MIXERIOCRESET:
+			_mixing_output.resetMixer();
 
-		break;
+			break;
 
-	case MIXERIOCLOADBUF: {
+		case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
 			ret = _mixing_output.loadMixer(buf, buflen);
@@ -935,21 +923,17 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	default:
-		ret = -ENOTTY;
-		break;
+		default:
+			ret = -ENOTTY;
+			break;
 	}
 
 	return ret;
 }
 
-int PWMOut::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int PWMOut::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int PWMOut::print_status()
-{
+int PWMOut::print_status() {
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		PX4_INFO("%d - PWM_MAIN 0x%04" PRIx32, _instance, _pwm_mask);
 
@@ -990,8 +974,7 @@ int PWMOut::print_status()
 	return 0;
 }
 
-int PWMOut::print_usage(const char *reason)
-{
+int PWMOut::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -1019,14 +1002,12 @@ By default the module runs on a work queue with a callback on the uORB actuator_
 	return 0;
 }
 
-extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int pwm_out_main(int argc, char *argv[]) {
 	if (argc <= 1 || strcmp(argv[1], "-h") == 0) {
 		return PWMOut::print_usage();
 	}
 
 	if (strcmp(argv[1], "start") == 0) {
-
 		if (is_running()) {
 			return 0;
 		}
@@ -1046,7 +1027,6 @@ extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 
 	} else if (strcmp(argv[1], "status") == 0) {
 		if (PWMOut::trylock_module()) {
-
 			unsigned count = 0;
 
 			for (int i = 0; i < PWM_OUT_MAX_INSTANCES; i++) {
@@ -1082,7 +1062,7 @@ extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 
 				if (inst) {
 					inst->request_stop();
-					px4_usleep(20000); // 20 ms
+					px4_usleep(20000);  // 20 ms
 					delete inst;
 					_objects[instance].store(nullptr);
 				}
@@ -1101,7 +1081,7 @@ extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 					PX4_INFO("stopping pwm_out instance %d", i);
 					was_running = true;
 					inst->request_stop();
-					px4_usleep(20000); // 20 ms
+					px4_usleep(20000);  // 20 ms
 					delete inst;
 					_objects[i].store(nullptr);
 				}
@@ -1116,7 +1096,7 @@ extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 		return PX4_OK;
 	}
 
-	PWMOut::lock_module(); // Lock here, as the method could access _object.
+	PWMOut::lock_module();  // Lock here, as the method could access _object.
 	int ret = PWMOut::custom_command(argc - 1, argv + 1);
 	PWMOut::unlock_module();
 

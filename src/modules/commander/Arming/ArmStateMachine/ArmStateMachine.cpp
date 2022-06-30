@@ -35,15 +35,14 @@
 
 #include <systemlib/mavlink_log.h>
 
-constexpr bool
-ArmStateMachine::arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle_status_s::ARMING_STATE_MAX];
+constexpr bool ArmStateMachine::arming_transitions[vehicle_status_s::ARMING_STATE_MAX]
+						  [vehicle_status_s::ARMING_STATE_MAX];
 
-transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &status,
-		const vehicle_control_mode_s &control_mode, const bool safety_button_available, const bool safety_off,
-		const arming_state_t new_arming_state, actuator_armed_s &armed, const bool fRunPreArmChecks,
-		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s &status_flags,
-		const hrt_abstime &time_since_boot, arm_disarm_reason_t calling_reason)
-{
+transition_result_t ArmStateMachine::arming_state_transition(
+	vehicle_status_s &status, const vehicle_control_mode_s &control_mode, const bool safety_button_available,
+	const bool safety_off, const arming_state_t new_arming_state, actuator_armed_s &armed,
+	const bool fRunPreArmChecks, orb_advert_t *mavlink_log_pub, vehicle_status_flags_s &status_flags,
+	const hrt_abstime &time_since_boot, arm_disarm_reason_t calling_reason) {
 	// Double check that our static arrays are still valid
 	static_assert(vehicle_status_s::ARMING_STATE_INIT == 0, "ARMING_STATE_INIT == 0");
 	static_assert(vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE == vehicle_status_s::ARMING_STATE_MAX - 1,
@@ -61,18 +60,14 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 		bool valid_transition = arming_transitions[new_arming_state][_arm_state];
 
 		// Preflight check
-		if (valid_transition
-		    && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-		    && fRunPreArmChecks
-		    && !(status.hil_state == vehicle_status_s::HIL_STATE_ON)
-		    && (_arm_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE)) {
-
+		if (valid_transition && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) &&
+		    fRunPreArmChecks && !(status.hil_state == vehicle_status_s::HIL_STATE_ON) &&
+		    (_arm_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE)) {
 			if (!PreFlightCheck::preflightCheck(mavlink_log_pub, status, status_flags, control_mode,
-							    true, // report_failures
-							    time_since_boot,
-							    safety_button_available, safety_off,
-							    true)) { // is_arm_attempt
-				feedback_provided = true; // Preflight checks report error messages
+							    true,  // report_failures
+							    time_since_boot, safety_button_available, safety_off,
+							    true)) {  // is_arm_attempt
+				feedback_provided = true;             // Preflight checks report error messages
 				valid_transition = false;
 			}
 		}
@@ -97,10 +92,12 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 			ret = TRANSITION_CHANGED;
 
 			// Record arm/disarm reason
-			if (isArmed() && (new_arming_state != vehicle_status_s::ARMING_STATE_ARMED)) { // disarm transition
+			if (isArmed() &&
+			    (new_arming_state != vehicle_status_s::ARMING_STATE_ARMED)) {  // disarm transition
 				status.latest_disarming_reason = (uint8_t)calling_reason;
 
-			} else if (!isArmed() && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) { // arm transition
+			} else if (!isArmed() &&
+				   (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {  // arm transition
 				status.latest_arming_reason = (uint8_t)calling_reason;
 			}
 
@@ -124,51 +121,61 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 					     getArmStateName(_arm_state), getArmStateName(new_arming_state));
 			events::send<events::px4::enums::arming_state_t, events::px4::enums::arming_state_t>(
 				events::ID("commander_transition_denied"), events::Log::Critical,
-				"Arming state transition denied: {1} to {2}",
-				getArmStateEvent(_arm_state), getArmStateEvent(new_arming_state));
+				"Arming state transition denied: {1} to {2}", getArmStateEvent(_arm_state),
+				getArmStateEvent(new_arming_state));
 		}
 	}
 
 	return ret;
 }
 
-const char *ArmStateMachine::getArmStateName(uint8_t arming_state)
-{
+const char *ArmStateMachine::getArmStateName(uint8_t arming_state) {
 	switch (arming_state) {
+		case vehicle_status_s::ARMING_STATE_INIT:
+			return "Init";
 
-	case vehicle_status_s::ARMING_STATE_INIT: return "Init";
+		case vehicle_status_s::ARMING_STATE_STANDBY:
+			return "Standby";
 
-	case vehicle_status_s::ARMING_STATE_STANDBY: return "Standby";
+		case vehicle_status_s::ARMING_STATE_ARMED:
+			return "Armed";
 
-	case vehicle_status_s::ARMING_STATE_ARMED: return "Armed";
+		case vehicle_status_s::ARMING_STATE_STANDBY_ERROR:
+			return "Standby error";
 
-	case vehicle_status_s::ARMING_STATE_STANDBY_ERROR: return "Standby error";
+		case vehicle_status_s::ARMING_STATE_SHUTDOWN:
+			return "Shutdown";
 
-	case vehicle_status_s::ARMING_STATE_SHUTDOWN: return "Shutdown";
+		case vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE:
+			return "In-air restore";
 
-	case vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE: return "In-air restore";
-
-	default: return "Unknown";
+		default:
+			return "Unknown";
 	}
 
 	static_assert(vehicle_status_s::ARMING_STATE_MAX - 1 == vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE,
 		      "enum def mismatch");
 }
 
-events::px4::enums::arming_state_t ArmStateMachine::getArmStateEvent(uint8_t arming_state)
-{
+events::px4::enums::arming_state_t ArmStateMachine::getArmStateEvent(uint8_t arming_state) {
 	switch (arming_state) {
-	case vehicle_status_s::ARMING_STATE_INIT: return events::px4::enums::arming_state_t::init;
+		case vehicle_status_s::ARMING_STATE_INIT:
+			return events::px4::enums::arming_state_t::init;
 
-	case vehicle_status_s::ARMING_STATE_STANDBY: return events::px4::enums::arming_state_t::standby;
+		case vehicle_status_s::ARMING_STATE_STANDBY:
+			return events::px4::enums::arming_state_t::standby;
 
-	case vehicle_status_s::ARMING_STATE_ARMED: return events::px4::enums::arming_state_t::armed;
+		case vehicle_status_s::ARMING_STATE_ARMED:
+			return events::px4::enums::arming_state_t::armed;
 
-	case vehicle_status_s::ARMING_STATE_STANDBY_ERROR: return events::px4::enums::arming_state_t::standby_error;
+		case vehicle_status_s::ARMING_STATE_STANDBY_ERROR:
+			return events::px4::enums::arming_state_t::standby_error;
 
-	case vehicle_status_s::ARMING_STATE_SHUTDOWN: return events::px4::enums::arming_state_t::shutdown;
+		case vehicle_status_s::ARMING_STATE_SHUTDOWN:
+			return events::px4::enums::arming_state_t::shutdown;
 
-	case vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE: return events::px4::enums::arming_state_t::inair_restore;
+		case vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE:
+			return events::px4::enums::arming_state_t::inair_restore;
 	}
 
 	static_assert(vehicle_status_s::ARMING_STATE_MAX - 1 == (int)events::px4::enums::arming_state_t::inair_restore,

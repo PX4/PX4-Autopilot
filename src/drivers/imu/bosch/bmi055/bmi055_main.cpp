@@ -36,8 +36,7 @@
 
 #include "BMI055.hpp"
 
-void BMI055::print_usage()
-{
+void BMI055::print_usage() {
 	PRINT_MODULE_USAGE_NAME("bmi055", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -48,8 +47,7 @@ void BMI055::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int bmi055_main(int argc, char *argv[])
-{
+extern "C" int bmi055_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = BMI055;
 	BusCLIArguments cli{false, true};
@@ -59,19 +57,19 @@ extern "C" int bmi055_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "AGR:")) != EOF) {
 		switch (ch) {
-		case 'A':
-			type = DRV_ACC_DEVTYPE_BMI055;
-			name = MODULE_NAME "_accel";
-			break;
+			case 'A':
+				type = DRV_ACC_DEVTYPE_BMI055;
+				name = MODULE_NAME "_accel";
+				break;
 
-		case 'G':
-			type = DRV_GYR_DEVTYPE_BMI055;
-			name = MODULE_NAME "_gyro";
-			break;
+			case 'G':
+				type = DRV_GYR_DEVTYPE_BMI055;
+				name = MODULE_NAME "_gyro";
+				break;
 
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

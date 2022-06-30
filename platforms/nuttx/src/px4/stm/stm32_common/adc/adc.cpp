@@ -32,11 +32,10 @@
  ****************************************************************************/
 
 #include <board_config.h>
-#include <stdint.h>
 #include <drivers/drv_adc.h>
 #include <drivers/drv_hrt.h>
 #include <px4_arch/adc.h>
-
+#include <stdint.h>
 #include <stm32_adc.h>
 #include <stm32_gpio.h>
 
@@ -46,61 +45,56 @@
  */
 #define REG(base, _reg) (*(volatile uint32_t *)((base) + (_reg)))
 
-#define rSR(base)    REG((base), STM32_ADC_SR_OFFSET)
-#define rCR1(base)   REG((base), STM32_ADC_CR1_OFFSET)
-#define rCR2(base)   REG((base), STM32_ADC_CR2_OFFSET)
+#define rSR(base) REG((base), STM32_ADC_SR_OFFSET)
+#define rCR1(base) REG((base), STM32_ADC_CR1_OFFSET)
+#define rCR2(base) REG((base), STM32_ADC_CR2_OFFSET)
 #define rSMPR1(base) REG((base), STM32_ADC_SMPR1_OFFSET)
 #define rSMPR2(base) REG((base), STM32_ADC_SMPR2_OFFSET)
 #define rJOFR1(base) REG((base), STM32_ADC_JOFR1_OFFSET)
 #define rJOFR2(base) REG((base), STM32_ADC_JOFR2_OFFSET)
 #define rJOFR3(base) REG((base), STM32_ADC_JOFR3_OFFSET)
 #define rJOFR4(base) REG((base), STM32_ADC_JOFR4_OFFSET)
-#define rHTR(base)   REG((base), STM32_ADC_HTR_OFFSET)
-#define rLTR(base)   REG((base), STM32_ADC_LTR_OFFSET)
-#define rSQR1(base)  REG((base), STM32_ADC_SQR1_OFFSET)
-#define rSQR2(base)  REG((base), STM32_ADC_SQR2_OFFSET)
-#define rSQR3(base)  REG((base), STM32_ADC_SQR3_OFFSET)
-#define rJSQR(base)  REG((base), STM32_ADC_JSQR_OFFSET)
-#define rJDR1(base)  REG((base), STM32_ADC_JDR1_OFFSET)
-#define rJDR2(base)  REG((base), STM32_ADC_JDR2_OFFSET)
-#define rJDR3(base)  REG((base), STM32_ADC_JDR3_OFFSET)
-#define rJDR4(base)  REG((base), STM32_ADC_JDR4_OFFSET)
-#define rDR(base)    REG((base), STM32_ADC_DR_OFFSET)
-
-
+#define rHTR(base) REG((base), STM32_ADC_HTR_OFFSET)
+#define rLTR(base) REG((base), STM32_ADC_LTR_OFFSET)
+#define rSQR1(base) REG((base), STM32_ADC_SQR1_OFFSET)
+#define rSQR2(base) REG((base), STM32_ADC_SQR2_OFFSET)
+#define rSQR3(base) REG((base), STM32_ADC_SQR3_OFFSET)
+#define rJSQR(base) REG((base), STM32_ADC_JSQR_OFFSET)
+#define rJDR1(base) REG((base), STM32_ADC_JDR1_OFFSET)
+#define rJDR2(base) REG((base), STM32_ADC_JDR2_OFFSET)
+#define rJDR3(base) REG((base), STM32_ADC_JDR3_OFFSET)
+#define rJDR4(base) REG((base), STM32_ADC_JDR4_OFFSET)
+#define rDR(base) REG((base), STM32_ADC_DR_OFFSET)
 
 #ifdef STM32_ADC_CCR
-# define rCCR(base)		REG((STM32_ADCCMN_BASE), STM32_ADC_CCR_OFFSET)
+#define rCCR(base) REG((STM32_ADCCMN_BASE), STM32_ADC_CCR_OFFSET)
 
 /* Assuming VDC 2.4 - 3.6 */
 
 #define ADC_MAX_FADC 36000000
 
-#  if STM32_PCLK2_FREQUENCY/2 <= ADC_MAX_FADC
-#    define ADC_CCR_ADCPRE_DIV     ADC_CCR_ADCPRE_DIV2
-#  elif STM32_PCLK2_FREQUENCY/4 <= ADC_MAX_FADC
-#    define ADC_CCR_ADCPRE_DIV     ADC_CCR_ADCPRE_DIV4
-#  elif STM32_PCLK2_FREQUENCY/6 <= ADC_MAX_FADC
-#   define ADC_CCR_ADCPRE_DIV     ADC_CCR_ADCPRE_DIV6
-#  elif STM32_PCLK2_FREQUENCY/8 <= ADC_MAX_FADC
-#   define ADC_CCR_ADCPRE_DIV     ADC_CCR_ADCPRE_DIV8
-#  else
-#    error "ADC PCLK2 too high - no divisor found "
-#  endif
+#if STM32_PCLK2_FREQUENCY / 2 <= ADC_MAX_FADC
+#define ADC_CCR_ADCPRE_DIV ADC_CCR_ADCPRE_DIV2
+#elif STM32_PCLK2_FREQUENCY / 4 <= ADC_MAX_FADC
+#define ADC_CCR_ADCPRE_DIV ADC_CCR_ADCPRE_DIV4
+#elif STM32_PCLK2_FREQUENCY / 6 <= ADC_MAX_FADC
+#define ADC_CCR_ADCPRE_DIV ADC_CCR_ADCPRE_DIV6
+#elif STM32_PCLK2_FREQUENCY / 8 <= ADC_MAX_FADC
+#define ADC_CCR_ADCPRE_DIV ADC_CCR_ADCPRE_DIV8
+#else
+#error "ADC PCLK2 too high - no divisor found "
+#endif
 #endif
 
-
-int px4_arch_adc_init(uint32_t base_address)
-{
+int px4_arch_adc_init(uint32_t base_address) {
 	/* Perform ADC init once per ADC */
 
-	static uint32_t once[SYSTEM_ADC_COUNT] {};
+	static uint32_t once[SYSTEM_ADC_COUNT]{};
 
 	uint32_t *free = nullptr;
 
 	for (uint32_t i = 0; i < SYSTEM_ADC_COUNT; i++) {
 		if (once[i] == base_address) {
-
 			/* This one was done already */
 
 			return OK;
@@ -114,7 +108,6 @@ int px4_arch_adc_init(uint32_t base_address)
 	}
 
 	if (free == nullptr) {
-
 		/* ADC misconfigured SYSTEM_ADC_COUNT too small */;
 
 		PANIC();
@@ -150,18 +143,18 @@ int px4_arch_adc_init(uint32_t base_address)
 
 	/* Soc have CCR */
 #ifdef STM32_ADC_CCR
-#  ifdef ADC_CCR_TSVREFE
+#ifdef ADC_CCR_TSVREFE
 	/* enable temperature sensor in CCR */
 	rCCR(base_address) = ADC_CCR_TSVREFE | ADC_CCR_ADCPRE_DIV;
-#  else
+#else
 	rCCR(base_address) = ADC_CCR_ADCPRE_DIV;
-#  endif
+#endif
 #endif
 
 	/* configure for a single-channel sequence */
 	rSQR1(base_address) = 0;
 	rSQR2(base_address) = 0;
-	rSQR3(base_address) = 0;	/* will be updated with the channel each tick */
+	rSQR3(base_address) = 0; /* will be updated with the channel each tick */
 
 	/* power-cycle the ADC and turn it on */
 	rCR2(base_address) &= ~ADC_CR2_ADON;
@@ -176,8 +169,8 @@ int px4_arch_adc_init(uint32_t base_address)
 	rCR2(base_address) |= ADC_CR2_SWSTART;
 
 	while (!(rSR(base_address) & ADC_SR_EOC)) {
-
-		/* don't wait for more than 500us, since that means something broke - should reset here if we see this */
+		/* don't wait for more than 500us, since that means something broke - should reset here if we see this
+		 */
 		if ((hrt_absolute_time() - now) > 500) {
 			return -1;
 		}
@@ -185,18 +178,16 @@ int px4_arch_adc_init(uint32_t base_address)
 
 	/* Read out result, clear EOC */
 
-	(void) rDR(base_address);
+	(void)rDR(base_address);
 
 	return 0;
 }
 
-void px4_arch_adc_uninit(uint32_t base_address)
-{
+void px4_arch_adc_uninit(uint32_t base_address) {
 	// nothing to do
 }
 
-uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
-{
+uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel) {
 	irqstate_t flags = px4_enter_critical_section();
 
 	/* clear any previous EOC */
@@ -212,7 +203,6 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 	const hrt_abstime now = hrt_absolute_time();
 
 	while (!(rSR(base_address) & ADC_SR_EOC)) {
-
 		/* don't wait for more than 50us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 50) {
 			px4_leave_critical_section(flags);
@@ -228,19 +218,12 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 	return result;
 }
 
-float px4_arch_adc_reference_v()
-{
-	return BOARD_ADC_POS_REF_V;	// TODO: provide true vref
+float px4_arch_adc_reference_v() {
+	return BOARD_ADC_POS_REF_V;  // TODO: provide true vref
 }
 
-uint32_t px4_arch_adc_temp_sensor_mask()
-{
+uint32_t px4_arch_adc_temp_sensor_mask() { return 1 << PX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL; }
 
-	return 1 << PX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL;
-
-}
-
-uint32_t px4_arch_adc_dn_fullcount()
-{
-	return 1 << 12; // 12 bit ADC
+uint32_t px4_arch_adc_dn_fullcount() {
+	return 1 << 12;  // 12 bit ADC
 }

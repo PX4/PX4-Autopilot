@@ -1,39 +1,59 @@
-/*************************************************************************//**
- * @file
- * @brief    	This file is part of the AFBR-S50 hardware API.
- * @details		This file provides generic definitions belonging to all
- * 				devices from the AFBR-S50 product family.
- *
- * @copyright
- *
- * Copyright (c) 2021, Broadcom Inc
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived from
- *    this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *****************************************************************************/
+/*************************************************************************/ /**
+									     * @file
+									     * @brief    	This file is part of the
+									     *AFBR-S50 hardware API.
+									     * @details		This file provides generic
+									     *definitions belonging to all devices from
+									     *the AFBR-S50 product family.
+									     *
+									     * @copyright
+									     *
+									     * Copyright (c) 2021, Broadcom Inc
+									     * All rights reserved.
+									     *
+									     * Redistribution and use in source and
+									     *binary forms, with or without
+									     * modification, are permitted provided that
+									     *the following conditions are met:
+									     *
+									     * 1. Redistributions of source code must
+									     *retain the above copyright notice, this
+									     *    list of conditions and the following
+									     *disclaimer.
+									     *
+									     * 2. Redistributions in binary form must
+									     *reproduce the above copyright notice, this
+									     *list of conditions and the following
+									     *disclaimer in the documentation and/or
+									     *other materials provided with the
+									     *distribution.
+									     *
+									     * 3. Neither the name of the copyright
+									     *holder nor the names of its contributors
+									     *may be used to endorse or promote products
+									     *derived from this software without
+									     *specific prior written permission.
+									     *
+									     * THIS SOFTWARE IS PROVIDED BY THE
+									     *COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+									     * AND ANY EXPRESS OR IMPLIED WARRANTIES,
+									     *INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+									     *WARRANTIES OF MERCHANTABILITY AND FITNESS
+									     *FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+									     *IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+									     *CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+									     *INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+									     *OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+									     *NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+									     *GOODS OR SERVICES; LOSS OF USE, DATA, OR
+									     *PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+									     * CAUSED AND ON ANY THEORY OF LIABILITY,
+									     *WHETHER IN CONTRACT, STRICT LIABILITY, OR
+									     *TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+									     *ARISING IN ANY WAY OUT OF THE USE OF THIS
+									     *SOFTWARE, EVEN IF ADVISED OF THE
+									     *POSSIBILITY OF SUCH DAMAGE.
+									     *****************************************************************************/
 
 #ifndef ARGUS_DEF_H
 #define ARGUS_DEF_H
@@ -41,15 +61,16 @@
 /*!***************************************************************************
  * Include files
  *****************************************************************************/
-#include "argus_status.h"
-#include "argus_version.h"
-#include "utility/fp_def.h"
-#include "utility/time.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+
+#include "argus_status.h"
+#include "argus_version.h"
+#include "utility/fp_def.h"
+#include "utility/time.h"
 
 /*!***************************************************************************
  * @addtogroup 	argusapi
@@ -66,17 +87,17 @@
 /*!***************************************************************************
  * @brief	The device pixel field size in x direction (long edge).
  *****************************************************************************/
-#define ARGUS_PIXELS_X	8U
+#define ARGUS_PIXELS_X 8U
 
 /*!***************************************************************************
  * @brief	The device pixel field size in y direction (short edge).
  *****************************************************************************/
-#define ARGUS_PIXELS_Y	4U
+#define ARGUS_PIXELS_Y 4U
 
 /*!***************************************************************************
  * @brief	The total device pixel count.
  *****************************************************************************/
-#define ARGUS_PIXELS	((ARGUS_PIXELS_X)*(ARGUS_PIXELS_Y))
+#define ARGUS_PIXELS ((ARGUS_PIXELS_X) * (ARGUS_PIXELS_Y))
 
 /*!***************************************************************************
  * @brief	The AFBR-S50 module types.
@@ -126,7 +147,6 @@ typedef enum {
 	 *  short range 3D applications.
 	 *  Version 1 - current version! */
 	AFBR_S50SV85K_V1 = 6,
-
 
 	/*! Reserved for future extensions. */
 	Reserved = 0x3F

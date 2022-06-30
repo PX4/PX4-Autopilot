@@ -41,18 +41,15 @@
  * Included Files
  ************************************************************************************/
 
+#include <arch/board/board.h>
+#include <chip.h>
+#include <debug.h>
+#include <errno.h>
+#include <kinetis.h>
+#include <nuttx/can/can.h>
 #include <px4_platform_common/px4_config.h>
 
-#include <errno.h>
-#include <debug.h>
-
-#include <nuttx/can/can.h>
-#include <arch/board/board.h>
-
-#include <chip.h>
-#include <kinetis.h>
 #include "arm_arch.h"
-
 #include "board_config.h"
 
 #ifdef CONFIG_CAN
@@ -63,14 +60,14 @@
 /* Configuration ********************************************************************/
 
 #if defined(KINETIS_FLEXCAN0) && defined(KINETIS_FLEXCAN1)
-#  warning "Both CAN0 and CAN1 are enabled.  Assuming only CAN0."
-#  undef KINETIS_FLEXCAN0
+#warning "Both CAN0 and CAN1 are enabled.  Assuming only CAN0."
+#undef KINETIS_FLEXCAN0
 #endif
 
 #ifdef KINETIS_FLEXCAN0
-#  define CAN_PORT 1
+#define CAN_PORT 1
 #else
-#  define CAN_PORT 2
+#define CAN_PORT 2
 #endif
 
 /************************************************************************************
@@ -91,8 +88,7 @@ int can_devinit(void);
  *
  ************************************************************************************/
 
-int can_devinit(void)
-{
+int can_devinit(void) {
 	static bool initialized = false;
 	struct can_dev_s *can;
 	int ret;

@@ -39,15 +39,11 @@
  * Group of mixers, built up from single mixers and processed
  * in order when mixing.
  */
-class MixerGroup
-{
+class MixerGroup {
 public:
 	MixerGroup() = default;
 
-	~MixerGroup()
-	{
-		reset();
-	}
+	~MixerGroup() { reset(); }
 
 	// no copy, assignment, move, move assignment
 	MixerGroup(const MixerGroup &) = delete;
@@ -55,28 +51,28 @@ public:
 	MixerGroup(MixerGroup &&) = delete;
 	MixerGroup &operator=(MixerGroup &&) = delete;
 
-	unsigned			mix(float *outputs, unsigned space);
+	unsigned mix(float *outputs, unsigned space);
 
-	uint16_t			get_saturation_status();
+	uint16_t get_saturation_status();
 
-	void				groups_required(uint32_t &groups);
+	void groups_required(uint32_t &groups);
 
 	/**
 	 * Add a mixer to the group.
 	 *
 	 * @param mixer			The mixer to be added.
 	 */
-	void				add_mixer(Mixer *mixer) { _mixers.add(mixer); }
+	void add_mixer(Mixer *mixer) { _mixers.add(mixer); }
 
 	/**
 	 * Remove all the mixers from the group.
 	 */
-	void				reset() { _mixers.clear(); }
+	void reset() { _mixers.clear(); }
 
 	/**
 	 * Count the mixers in the group.
 	 */
-	unsigned			count() const { return _mixers.size(); }
+	unsigned count() const { return _mixers.size(); }
 
 	/**
 	 * Adds mixers to the group based on a text description in a buffer.
@@ -133,7 +129,7 @@ public:
 	 *				bytes as they are consumed.
 	 * @return			Zero on successful load, nonzero otherwise.
 	 */
-	int				load_from_buf(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf, unsigned &buflen);
+	int load_from_buf(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf, unsigned &buflen);
 
 	/**
 	 * @brief      Update slew rate parameter. This tells instances of the class MultirotorMixer
@@ -145,28 +141,29 @@ public:
 	 * @param[in]  delta_out_max  Maximum delta output.
 	 *
 	 */
-	void 				set_max_delta_out_once(float delta_out_max);
+	void set_max_delta_out_once(float delta_out_max);
 
 	/*
 	 * Invoke the set_offset method of each mixer in the group
 	 * for each value in page r_page_servo_control_trim
 	 */
-	unsigned			set_trims(int16_t *v, unsigned n);
-	unsigned			get_trims(int16_t *values);
+	unsigned set_trims(int16_t *v, unsigned n);
+	unsigned get_trims(int16_t *values);
 
 	/**
-	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to motor control signal output.
+	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to motor control signal
+	 * output.
 	 *
 	 * @param[in]  val   The value
 	 */
-	void				set_thrust_factor(float val);
+	void set_thrust_factor(float val);
 
-	void				set_airmode(Mixer::Airmode airmode);
+	void set_airmode(Mixer::Airmode airmode);
 
-	unsigned			get_multirotor_count();
+	unsigned get_multirotor_count();
 
-	void 				set_dt_once(float dt);
+	void set_dt_once(float dt);
 
 private:
-	List<Mixer *>			_mixers;	/**< linked list of mixers */
+	List<Mixer *> _mixers; /**< linked list of mixers */
 };

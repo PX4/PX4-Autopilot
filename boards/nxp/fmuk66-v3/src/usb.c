@@ -41,19 +41,17 @@
  * Included Files
  ************************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
-
-#include <nuttx/usb/usbdev.h>
-#include <nuttx/usb/usbdev_trace.h>
-
 #include <arm_arch.h>
+#include <debug.h>
 #include <kinetis.h>
 #include <kinetis_usbotg.h>
+#include <nuttx/usb/usbdev.h>
+#include <nuttx/usb/usbdev_trace.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <sys/types.h>
+
 #include "board_config.h"
 
 /************************************************************************************
@@ -81,8 +79,7 @@
  ************************************************************************************/
 
 __EXPORT
-int kinetis_usbpullup(FAR struct usbdev_s *dev, bool enable)
-{
+int kinetis_usbpullup(FAR struct usbdev_s *dev, bool enable) {
 	usbtrace(TRACE_DEVPULLUP, (uint16_t)enable);
 
 	if (enable) {
@@ -107,7 +104,4 @@ int kinetis_usbpullup(FAR struct usbdev_s *dev, bool enable)
  ************************************************************************************/
 
 __EXPORT
-void kinetis_usbsuspend(FAR struct usbdev_s *dev, bool resume)
-{
-	uinfo("resume: %d\n", resume);
-}
+void kinetis_usbsuspend(FAR struct usbdev_s *dev, bool resume) { uinfo("resume: %d\n", resume); }

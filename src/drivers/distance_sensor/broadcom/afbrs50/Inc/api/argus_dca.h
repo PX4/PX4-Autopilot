@@ -1,39 +1,59 @@
-/*************************************************************************//**
- * @file
- * @brief    	This file is part of the AFBR-S50 API.
- * @details		Defines the dynamic configuration adaption (DCA) setup parameters
- * 				and data structure.
- *
- * @copyright
- *
- * Copyright (c) 2021, Broadcom Inc
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived from
- *    this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *****************************************************************************/
+/*************************************************************************/ /**
+									     * @file
+									     * @brief    	This file is part of the
+									     *AFBR-S50 API.
+									     * @details		Defines the dynamic
+									     *configuration adaption (DCA) setup
+									     *parameters and data structure.
+									     *
+									     * @copyright
+									     *
+									     * Copyright (c) 2021, Broadcom Inc
+									     * All rights reserved.
+									     *
+									     * Redistribution and use in source and
+									     *binary forms, with or without
+									     * modification, are permitted provided that
+									     *the following conditions are met:
+									     *
+									     * 1. Redistributions of source code must
+									     *retain the above copyright notice, this
+									     *    list of conditions and the following
+									     *disclaimer.
+									     *
+									     * 2. Redistributions in binary form must
+									     *reproduce the above copyright notice, this
+									     *list of conditions and the following
+									     *disclaimer in the documentation and/or
+									     *other materials provided with the
+									     *distribution.
+									     *
+									     * 3. Neither the name of the copyright
+									     *holder nor the names of its contributors
+									     *may be used to endorse or promote products
+									     *derived from this software without
+									     *specific prior written permission.
+									     *
+									     * THIS SOFTWARE IS PROVIDED BY THE
+									     *COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+									     * AND ANY EXPRESS OR IMPLIED WARRANTIES,
+									     *INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+									     *WARRANTIES OF MERCHANTABILITY AND FITNESS
+									     *FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+									     *IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+									     *CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+									     *INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+									     *OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+									     *NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+									     *GOODS OR SERVICES; LOSS OF USE, DATA, OR
+									     *PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+									     * CAUSED AND ON ANY THEORY OF LIABILITY,
+									     *WHETHER IN CONTRACT, STRICT LIABILITY, OR
+									     *TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+									     *ARISING IN ANY WAY OUT OF THE USE OF THIS
+									     *SOFTWARE, EVEN IF ADVISED OF THE
+									     *POSSIBILITY OF SUCH DAMAGE.
+									     *****************************************************************************/
 
 #ifndef ARGUS_DCA_H
 #define ARGUS_DCA_H
@@ -60,7 +80,8 @@
  * 			 	- Optical Output Power Adaption
  * 			 	- Pixel Input Gain Adaption (w/ ambient light rejection)
  * 			 	- ADC Sensitivity (i.e. ADC Range) Adaption
- * 			 	- Power Saving Ratio (to decrease the average output power and thus the current consumption)
+ * 			 	- Power Saving Ratio (to decrease the average output power and thus the current
+ *consumption)
  * 			 	- All that features are heeding the Laser Safety limits.
  * 				.
  *
@@ -70,30 +91,25 @@
 
 #include "argus_def.h"
 
-
-
 /*! The minimum amplitude threshold value. */
-#define ARGUS_CFG_DCA_ATH_MIN		(1U << 6U)
+#define ARGUS_CFG_DCA_ATH_MIN (1U << 6U)
 
 /*! The maximum amplitude threshold value. */
-#define ARGUS_CFG_DCA_ATH_MAX		(0xFFFFU)
-
+#define ARGUS_CFG_DCA_ATH_MAX (0xFFFFU)
 
 /*! The minimum saturated pixel threshold value. */
-#define ARGUS_CFG_DCA_PXTH_MIN		(1U)
+#define ARGUS_CFG_DCA_PXTH_MIN (1U)
 
 /*! The maximum saturated pixel threshold value. */
-#define ARGUS_CFG_DCA_PXTH_MAX		(33U)
-
+#define ARGUS_CFG_DCA_PXTH_MAX (33U)
 
 /*! The maximum analog integration depth in UQ10.6 format,
  * i.e. the maximum pattern count per sample. */
-#define ARGUS_CFG_DCA_DEPTH_MAX 	((uq10_6_t)(ADS_SEQCT_N_MASK << (6U - ADS_SEQCT_N_SHIFT)))
+#define ARGUS_CFG_DCA_DEPTH_MAX ((uq10_6_t)(ADS_SEQCT_N_MASK << (6U - ADS_SEQCT_N_SHIFT)))
 
 /*! The minimum analog integration depth in UQ10.6 format,
  *  i.e. the minimum pattern count per sample. */
-#define ARGUS_CFG_DCA_DEPTH_MIN 	((uq10_6_t)(1U)) // 1/64, i.e. 1/2 nibble
-
+#define ARGUS_CFG_DCA_DEPTH_MIN ((uq10_6_t)(1U))  // 1/64, i.e. 1/2 nibble
 
 /*! The maximum optical output power, i.e. the maximum VCSEL high current in LSB. */
 #define ARGUS_CFG_DCA_POWER_MAX_LSB (ADS_LASET_VCSEL_HC1_MASK >> ADS_LASET_VCSEL_HC1_SHIFT)
@@ -102,11 +118,10 @@
 #define ARGUS_CFG_DCA_POWER_MIN_LSB (1)
 
 /*! The maximum optical output power, i.e. the maximum VCSEL high current in LSB. */
-#define ARGUS_CFG_DCA_POWER_MAX		(ADS0032_HIGH_CURRENT_LSB2MA(ARGUS_CFG_DCA_POWER_MAX_LSB + 1))
+#define ARGUS_CFG_DCA_POWER_MAX (ADS0032_HIGH_CURRENT_LSB2MA(ARGUS_CFG_DCA_POWER_MAX_LSB + 1))
 
 /*! The minimum optical output power, i.e. the minimum VCSEL high current in mA. */
-#define ARGUS_CFG_DCA_POWER_MIN 	(1)
-
+#define ARGUS_CFG_DCA_POWER_MIN (1)
 
 /*! The dynamic configuration algorithm Pixel Input Gain stage count. */
 #define ARGUS_DCA_GAIN_STAGE_COUNT (4U)
@@ -118,9 +133,7 @@
 #define ARGUS_STATE_DCA_GAIN_SHIFT (14U)
 
 /*! Getter for the dynamic configuration algorithm Pixel Input Gain stage. */
-#define ARGUS_STATE_DCA_GAIN_GET(state) \
-	(((state) >> ARGUS_STATE_DCA_GAIN_SHIFT) & ARGUS_STATE_DCA_GAIN_MASK)
-
+#define ARGUS_STATE_DCA_GAIN_GET(state) (((state) >> ARGUS_STATE_DCA_GAIN_SHIFT) & ARGUS_STATE_DCA_GAIN_MASK)
 
 /*! The dynamic configuration algorithm Optical Output Power stage count. */
 #define ARGUS_DCA_POWER_STAGE_COUNT (2U)
@@ -132,11 +145,7 @@
 #define ARGUS_STATE_DCA_POWER_SHIFT (13U)
 
 /*! Getter for the dynamic configuration algorithm Optical Output Power stage. */
-#define ARGUS_STATE_DCA_POWER_GET(state) \
-	(((state) >> ARGUS_STATE_DCA_POWER_SHIFT) & ARGUS_STATE_DCA_POWER_MASK)
-
-
-
+#define ARGUS_STATE_DCA_POWER_GET(state) (((state) >> ARGUS_STATE_DCA_POWER_SHIFT) & ARGUS_STATE_DCA_POWER_MASK)
 
 /*!***************************************************************************
  * @brief	The dynamic configuration algorithm enable flags.
@@ -203,7 +212,6 @@ typedef enum {
 	DCA_GAIN_HIGH = 3
 
 } argus_dca_gain_t;
-
 
 /*!***************************************************************************
  * @brief	State flags for the current frame.

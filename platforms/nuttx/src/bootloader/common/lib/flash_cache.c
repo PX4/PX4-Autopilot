@@ -31,25 +31,20 @@
  *
  ****************************************************************************/
 
-#include <string.h>
 #include "flash_cache.h"
 
-#include "hw_config.h"
-
 #include <nuttx/progmem.h>
+#include <string.h>
+
+#include "hw_config.h"
 
 extern ssize_t arch_flash_write(uintptr_t address, const void *buffer, size_t buflen);
 
 flash_cache_line_t flash_cache[FC_NUMBER_LINES];
 
+static inline void fcl_reset(flash_cache_line_t *fcl) { memset(fcl, 0xff, sizeof(flash_cache_line_t)); }
 
-static inline void fcl_reset(flash_cache_line_t *fcl)
-{
-	memset(fcl, 0xff, sizeof(flash_cache_line_t));
-}
-
-inline void fc_reset(void)
-{
+inline void fc_reset(void) {
 	for (unsigned w = 0; w < FC_NUMBER_LINES; w++) {
 		fcl_reset(&flash_cache[w]);
 	}
@@ -57,8 +52,7 @@ inline void fc_reset(void)
 	flash_cache[0].start_address = APP_LOAD_ADDRESS;
 }
 
-static inline flash_cache_line_t *fc_line_select(uintptr_t address)
-{
+static inline flash_cache_line_t *fc_line_select(uintptr_t address) {
 	for (unsigned w = 0; w < FC_NUMBER_LINES; w++) {
 		if (flash_cache[w].start_address == (address & FC_ADDRESS_MASK)) {
 			return &flash_cache[w];
@@ -68,14 +62,9 @@ static inline flash_cache_line_t *fc_line_select(uintptr_t address)
 	return NULL;
 }
 
-inline int fc_is_dirty(flash_cache_line_t *fl)
-{
-	return fl->index != FC_CLEAN;
-}
+inline int fc_is_dirty(flash_cache_line_t *fl) { return fl->index != FC_CLEAN; }
 
-
-int fc_flush(flash_cache_line_t *fl)
-{
+int fc_flush(flash_cache_line_t *fl) {
 	const size_t bytes = sizeof(fl->words);
 	size_t rv = arch_flash_write(fl->start_address, fl->words, bytes);
 
@@ -86,8 +75,7 @@ int fc_flush(flash_cache_line_t *fl)
 	return rv;
 }
 
-int fc_write(uintptr_t address, uint32_t word)
-{
+int fc_write(uintptr_t address, uint32_t word) {
 	flash_cache_line_t *fc = fc_line_select(address);
 	flash_cache_line_t *fc1 = &flash_cache[1];
 	uint32_t index = FC_ADDR2INDX(address);
@@ -99,15 +87,12 @@ int fc_write(uintptr_t address, uint32_t word)
 	}
 
 	if (fc) {
-
 		fc->words[index] = word;
 
 		// Are we back writing the first word?
 
-		if (fc == &flash_cache[0] &&  index == 0 && fc->index == 7) {
-
+		if (fc == &flash_cache[0] && index == 0 && fc->index == 7) {
 			if (fc_is_dirty(fc1)) {
-
 				// write out last fragment of data
 
 				rv = fc_flush(fc1);
@@ -129,16 +114,14 @@ int fc_write(uintptr_t address, uint32_t word)
 	return rv;
 }
 
-uint32_t fc_read(uintptr_t address)
-{
+uint32_t fc_read(uintptr_t address) {
 	// Assume a cache miss read from FLASH memory
 
-	uint32_t rv = *(uint32_t *) address;
+	uint32_t rv = *(uint32_t *)address;
 
 	flash_cache_line_t *fc = fc_line_select(address);
 
 	if (fc) {
-
 		// Cache hit retrieve word from cache
 
 		uint32_t index = FC_ADDR2INDX(address);
@@ -146,7 +129,7 @@ uint32_t fc_read(uintptr_t address)
 
 		// Reading the last word in cache (not first words)
 
-		if (fc != &flash_cache[0]  && index == FC_LAST_WORD) {
+		if (fc != &flash_cache[0] && index == FC_LAST_WORD) {
 			if (fc_flush(fc)) {
 				rv ^= 0xffffffff;
 

@@ -41,8 +41,8 @@
  * Included Files
  ************************************************************/
 
-#include <stddef.h>
 #include <queue.h>
+#include <stddef.h>
 
 /************************************************************
  * Public Functions
@@ -56,8 +56,7 @@
  *
  ************************************************************/
 
-void dq_rem(dq_entry_t *node, dq_queue_t *queue)
-{
+void dq_rem(dq_entry_t *node, dq_queue_t *queue) {
 	dq_entry_t *prev = node->blink;
 	dq_entry_t *next = node->flink;
 
@@ -78,4 +77,3 @@ void dq_rem(dq_entry_t *node, dq_queue_t *queue)
 	node->flink = NULL;
 	node->blink = NULL;
 }
-

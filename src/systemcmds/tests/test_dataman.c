@@ -36,24 +36,20 @@
  * Tests for the data manager.
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/posix.h>
-
-#include <sys/types.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-
 #include <drivers/drv_board_led.h>
 #include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
 #include <semaphore.h>
-
-#include "tests_main.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "dataman/dataman.h"
+#include "tests_main.h"
 
 static px4_sem_t *sems;
 static bool *task_returned_error;
@@ -63,9 +59,7 @@ int test_dataman(int argc, char *argv[]);
 
 #define DM_MAX_DATA_SIZE sizeof(struct mission_s)
 
-static int
-task_main(int argc, char *argv[])
-{
+static int task_main(int argc, char *argv[]) {
 	char buffer[DM_MAX_DATA_SIZE];
 
 	PX4_INFO("Starting dataman test task %s", argv[2]);
@@ -96,7 +90,7 @@ task_main(int argc, char *argv[])
 		unsigned len = (hash % (DM_MAX_DATA_SIZE / 2)) + 2;
 
 		int ret = dm_write(DM_KEY_WAYPOINTS_OFFBOARD_1, hash, buffer, len);
-		//PX4_INFO("ret: %d", ret);
+		// PX4_INFO("ret: %d", ret);
 
 		if (ret != len) {
 			PX4_WARN("task %d: write failed ret=%d, index: %d, length: %d", my_id, ret, hash, len);
@@ -119,7 +113,8 @@ task_main(int argc, char *argv[])
 		ssize_t len = (hash % (DM_MAX_DATA_SIZE / 2)) + 2;
 
 		if (len2 != len) {
-			PX4_WARN("task %d: read failed length test, index %d, ret=%zd, len=%zd", my_id, hash, len2, len);
+			PX4_WARN("task %d: read failed length test, index %d, ret=%zd, len=%zd", my_id, hash, len2,
+				 len);
 			goto fail;
 		}
 
@@ -127,12 +122,14 @@ task_main(int argc, char *argv[])
 			hit++;
 
 			if (len2 != len) {
-				PX4_WARN("task %d: read failed length test, index %d, wanted %zd, got %zd", my_id, hash, len, len2);
+				PX4_WARN("task %d: read failed length test, index %d, wanted %zd, got %zd", my_id, hash,
+					 len, len2);
 				goto fail;
 			}
 
 			if (buffer[1] != i) {
-				PX4_WARN("task %d: data verification failed, index %d, wanted %d, got %d", my_id, hash, my_id, buffer[1]);
+				PX4_WARN("task %d: data verification failed, index %d, wanted %d, got %d", my_id, hash,
+					 my_id, buffer[1]);
 				goto fail;
 			}
 
@@ -142,21 +139,20 @@ task_main(int argc, char *argv[])
 	}
 
 	hrt_abstime rend = hrt_absolute_time();
-	PX4_INFO("task %d pass, hit %d, miss %d, io time read %" PRIu64 "ms. write %" PRIu64 "ms.",
-		 my_id, hit, miss, (rend - rstart) / NUM_MISSIONS_TEST / 1000, (wend - wstart) / NUM_MISSIONS_TEST / 1000);
+	PX4_INFO("task %d pass, hit %d, miss %d, io time read %" PRIu64 "ms. write %" PRIu64 "ms.", my_id, hit, miss,
+		 (rend - rstart) / NUM_MISSIONS_TEST / 1000, (wend - wstart) / NUM_MISSIONS_TEST / 1000);
 	px4_sem_post(sems + my_id);
 	return 0;
 
 fail:
-	PX4_ERR("test_dataman FAILED: task %d, buffer %02x %02x %02x %02x %02x %02x",
-		my_id, buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
+	PX4_ERR("test_dataman FAILED: task %d, buffer %02x %02x %02x %02x %02x %02x", my_id, buffer[0], buffer[1],
+		buffer[2], buffer[3], buffer[4], buffer[5]);
 	px4_sem_post(sems + my_id);
 	task_returned_error[my_id] = true;
 	return -1;
 }
 
-int test_dataman(int argc, char *argv[])
-{
+int test_dataman(int argc, char *argv[]) {
 	int i = 0;
 	unsigned num_tasks = 4;
 	char buffer[DM_MAX_DATA_SIZE];
@@ -182,7 +178,8 @@ int test_dataman(int argc, char *argv[])
 		px4_sem_setprotocol(sems + i, SEM_PRIO_NONE);
 
 		/* start the task */
-		if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 2048, task_main, av)) <= 0) {
+		if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 2048, task_main,
+					       av)) <= 0) {
 			PX4_ERR("task start failed");
 		}
 	}

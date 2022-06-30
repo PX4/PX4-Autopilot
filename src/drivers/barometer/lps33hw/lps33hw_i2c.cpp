@@ -39,43 +39,32 @@
 
 #include <lib/drivers/device/i2c.h>
 
-namespace lps33hw
-{
+namespace lps33hw {
 
 device::Device *LPS33HW_I2C_interface(uint8_t bus, uint32_t address, int bus_frequency);
 
-class LPS33HW_I2C : public device::I2C
-{
+class LPS33HW_I2C : public device::I2C {
 public:
 	LPS33HW_I2C(uint8_t bus, uint32_t address, int bus_frequency);
 	virtual ~LPS33HW_I2C() = default;
 
-	virtual int	read(unsigned address, void *data, unsigned count);
-	virtual int	write(unsigned address, void *data, unsigned count);
-
+	virtual int read(unsigned address, void *data, unsigned count);
+	virtual int write(unsigned address, void *data, unsigned count);
 };
 
-device::Device *
-LPS33HW_I2C_interface(uint8_t bus, uint32_t address, int bus_frequency)
-{
+device::Device *LPS33HW_I2C_interface(uint8_t bus, uint32_t address, int bus_frequency) {
 	return new LPS33HW_I2C(bus, address, bus_frequency);
 }
 
-LPS33HW_I2C::LPS33HW_I2C(uint8_t bus, uint32_t address, int bus_frequency) :
-	I2C(DRV_BARO_DEVTYPE_LPS33HW, MODULE_NAME, bus, address, bus_frequency)
-{
-}
+LPS33HW_I2C::LPS33HW_I2C(uint8_t bus, uint32_t address, int bus_frequency)
+	: I2C(DRV_BARO_DEVTYPE_LPS33HW, MODULE_NAME, bus, address, bus_frequency) {}
 
-int
-LPS33HW_I2C::read(unsigned address, void *data, unsigned count)
-{
+int LPS33HW_I2C::read(unsigned address, void *data, unsigned count) {
 	uint8_t cmd = address;
 	return transfer(&cmd, 1, (uint8_t *)data, count);
 }
 
-int
-LPS33HW_I2C::write(unsigned address, void *data, unsigned count)
-{
+int LPS33HW_I2C::write(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {
@@ -88,4 +77,4 @@ LPS33HW_I2C::write(unsigned address, void *data, unsigned count)
 	return transfer(&buf[0], count + 1, nullptr, 0);
 }
 
-} // namespace lps33hw
+}  // namespace lps33hw

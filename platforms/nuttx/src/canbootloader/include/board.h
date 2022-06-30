@@ -40,9 +40,10 @@
  */
 #pragma once
 
-#include "uavcan.h"
 #include <nuttx/compiler.h>
 #include <stdint.h>
+
+#include "uavcan.h"
 
 typedef enum {
 	off,
@@ -125,6 +126,5 @@ size_t board_get_hardware_version(uavcan_HardwareVersion_t *hw_version);
  ****************************************************************************/
 
 void board_indicate(uiindication_t indication);
-
 
 #endif /* __ASSEMBLY__ */

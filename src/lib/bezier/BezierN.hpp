@@ -44,22 +44,21 @@
 #pragma once
 #include <matrix/math.hpp>
 
-namespace bezier
-{
+namespace bezier {
 
 /*
  * Calculates the location and velocity with respect to T on a given bezier curve of any order.
  *
  */
-bool calculateBezierPosVel(const matrix::Vector3f *positions, int N, float t,
-			   matrix::Vector3f &position, matrix::Vector3f &velocity);
+bool calculateBezierPosVel(const matrix::Vector3f *positions, int N, float t, matrix::Vector3f &position,
+			   matrix::Vector3f &velocity);
 
 /*
  * Calculates the position, velocity and acceleration with respect to T on a given bezier curve of any order.
  *
  */
-bool calculateBezierPosVelAcc(const matrix::Vector3f *positions, int N, float t,
-			      matrix::Vector3f &position, matrix::Vector3f &velocity, matrix::Vector3f &acceleration);
+bool calculateBezierPosVelAcc(const matrix::Vector3f *positions, int N, float t, matrix::Vector3f &position,
+			      matrix::Vector3f &velocity, matrix::Vector3f &acceleration);
 
 /*
  * Calculates the position and velocity of yaw with respect to t on a bezier curve.
@@ -73,4 +72,4 @@ bool calculateBezierYaw(const float *setpoints, int N, float t, float &yaw_setpo
  */
 bool calculateT(int64_t start_time, int64_t end_time, int64_t now, float &T);
 
-}
+}  // namespace bezier

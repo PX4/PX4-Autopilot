@@ -45,37 +45,35 @@
  * Included Files
  ****************************************************************************/
 
-#include "board_config.h"
-
+#include <arch/board/board.h>
+#include <chip.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/config.h>
+#include <nuttx/mm/gran.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/init.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
-#include <syslog.h>
-
-#include <nuttx/config.h>
-#include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-#include <nuttx/mm/gran.h>
-#include <chip.h>
 #include <stm32_uart.h>
-#include <arch/board/board.h>
-#include "arm_internal.h"
-
-#include <px4_arch/io_timer.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
+#include <string.h>
+#include <syslog.h>
 #include <systemlib/px4_macros.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/gpio.h>
-#include <px4_platform/board_dma_alloc.h>
 
-# if defined(FLASH_BASED_PARAMS)
-#  include <parameters/flashparams/flashfs.h>
+#include "arm_internal.h"
+#include "board_config.h"
+
+#if defined(FLASH_BASED_PARAMS)
+#include <parameters/flashparams/flashfs.h>
 #endif
 
 /****************************************************************************
@@ -103,10 +101,7 @@ __END_DECLS
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
-	UNUSED(ms);
-}
+__EXPORT void board_peripheral_reset(int ms) { UNUSED(ms); }
 
 /************************************************************************************
  * Name: board_on_reset
@@ -119,8 +114,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *          0 if just resetting
  *
  ************************************************************************************/
-__EXPORT void board_on_reset(int status)
-{
+__EXPORT void board_on_reset(int status) {
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
 	}
@@ -140,9 +134,7 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
-__EXPORT void
-stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	board_on_reset(-1); /* Reset PWM first thing */
 
 	/* configure LEDs */
@@ -164,7 +156,6 @@ stm32_boardinitialize(void)
 
 	/* configure external memory*/
 	flash_w25q128_init();
-
 }
 
 /****************************************************************************
@@ -192,9 +183,7 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	/* Need hrt running before using the ADC */
 
 	px4_platform_init();
@@ -218,7 +207,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (board_hardfault_init(2, true) != 0) {
 		led_on(LED_RED);
 	}
-
 
 #ifdef CONFIG_MMCSD
 	int ret = stm32_sdio_initialize();

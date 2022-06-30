@@ -33,16 +33,14 @@
 
 #pragma once
 
-#include "sensor_bridge.hpp"
-
 #include <stdint.h>
-
 #include <uORB/topics/sensor_optical_flow.h>
 
 #include <com/hex/equipment/flow/Measurement.hpp>
 
-class UavcanFlowBridge : public UavcanSensorBridgeBase
-{
+#include "sensor_bridge.hpp"
+
+class UavcanFlowBridge : public UavcanSensorBridgeBase {
 public:
 	static const char *const NAME;
 
@@ -53,14 +51,12 @@ public:
 	int init() override;
 
 private:
-
 	void flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex::equipment::flow::Measurement> &msg);
 
-	typedef uavcan::MethodBinder < UavcanFlowBridge *,
-		void (UavcanFlowBridge::*)
-		(const uavcan::ReceivedDataStructure<com::hex::equipment::flow::Measurement> &) >
+	typedef uavcan::MethodBinder<UavcanFlowBridge *,
+				     void (UavcanFlowBridge::*)(const uavcan::ReceivedDataStructure<
+								com::hex::equipment::flow::Measurement> &)>
 		FlowCbBinder;
 
 	uavcan::Subscriber<com::hex::equipment::flow::Measurement, FlowCbBinder> _sub_flow;
-
 };

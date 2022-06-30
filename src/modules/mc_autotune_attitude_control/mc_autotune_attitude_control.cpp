@@ -41,37 +41,28 @@
 
 using namespace matrix;
 
-McAutotuneAttitudeControl::McAutotuneAttitudeControl() :
-	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
-{
+McAutotuneAttitudeControl::McAutotuneAttitudeControl()
+	: ModuleParams(nullptr), WorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {
 	_autotune_attitude_control_status_pub.advertise();
 	reset();
 }
 
-McAutotuneAttitudeControl::~McAutotuneAttitudeControl()
-{
-	perf_free(_cycle_perf);
-}
+McAutotuneAttitudeControl::~McAutotuneAttitudeControl() { perf_free(_cycle_perf); }
 
-bool McAutotuneAttitudeControl::init()
-{
+bool McAutotuneAttitudeControl::init() {
 	if (!_parameter_update_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
 
-	_signal_filter.setParameters(_publishing_dt_s, .2f); // runs in the slow publishing loop
+	_signal_filter.setParameters(_publishing_dt_s, .2f);  // runs in the slow publishing loop
 
 	return true;
 }
 
-void McAutotuneAttitudeControl::reset()
-{
-}
+void McAutotuneAttitudeControl::reset() {}
 
-void McAutotuneAttitudeControl::Run()
-{
+void McAutotuneAttitudeControl::Run() {
 	if (should_exit()) {
 		_parameter_update_sub.unregisterCallback();
 		_actuator_controls_sub.unregisterCallback();
@@ -91,8 +82,7 @@ void McAutotuneAttitudeControl::Run()
 	}
 
 	// new control data needed every iteration
-	if (_state == state::idle
-	    || !_actuator_controls_sub.updated()) {
+	if (_state == state::idle || !_actuator_controls_sub.updated()) {
 		return;
 	}
 
@@ -115,8 +105,7 @@ void McAutotuneAttitudeControl::Run()
 	actuator_controls_s controls;
 	vehicle_angular_velocity_s angular_velocity;
 
-	if (!_actuator_controls_sub.copy(&controls)
-	    || !_vehicle_angular_velocity_sub.copy(&angular_velocity)) {
+	if (!_actuator_controls_sub.copy(&controls) || !_vehicle_angular_velocity_sub.copy(&angular_velocity)) {
 		return;
 	}
 
@@ -180,8 +169,8 @@ void McAutotuneAttitudeControl::Run()
 
 		const float model_dt = static_cast<float>(_model_update_scaler) * _filter_dt;
 
-		const float desired_rise_time = ((_state == state::yaw)
-						 || (_state == state::yaw_pause)) ? 0.2f : _param_mc_at_rise_time.get();
+		const float desired_rise_time =
+			((_state == state::yaw) || (_state == state::yaw_pause)) ? 0.2f : _param_mc_at_rise_time.get();
 		_kid = pid_design::computePidGmvc(num, den, model_dt, desired_rise_time, 0.f, 0.7f);
 
 		// Prevent the D term from going just negative if it is not needed
@@ -196,9 +185,7 @@ void McAutotuneAttitudeControl::Run()
 
 		const Vector<float, 5> &coeff_var = _sys_id.getVariances();
 
-		const Vector3f rate_sp = _sys_id.areFiltersInitialized()
-					 ? getIdentificationSignal()
-					 : Vector3f();
+		const Vector3f rate_sp = _sys_id.areFiltersInitialized() ? getIdentificationSignal() : Vector3f();
 
 		autotune_attitude_control_status_s status{};
 		status.timestamp = now;
@@ -223,8 +210,7 @@ void McAutotuneAttitudeControl::Run()
 	perf_end(_cycle_perf);
 }
 
-void McAutotuneAttitudeControl::checkFilters()
-{
+void McAutotuneAttitudeControl::checkFilters() {
 	if (_interval_count > 1000) {
 		// calculate sensor update rate
 		_sample_interval_avg = _interval_sum / _interval_count;
@@ -246,8 +232,9 @@ void McAutotuneAttitudeControl::checkFilters()
 
 			// Set the model sampling time depending on the gyro cutoff frequency
 			// as this is a good indicator of the maximum control loop bandwidth
-			float model_dt = math::constrain(math::max(1.f / (2.f * _param_imu_gyro_cutoff.get()), _filter_dt), _model_dt_min,
-							 _model_dt_max);
+			float model_dt =
+				math::constrain(math::max(1.f / (2.f * _param_imu_gyro_cutoff.get()), _filter_dt),
+						_model_dt_min, _model_dt_max);
 
 			_model_update_scaler = math::max(int(model_dt / _filter_dt), 1);
 			model_dt = _model_update_scaler * _filter_dt;
@@ -263,178 +250,174 @@ void McAutotuneAttitudeControl::checkFilters()
 	}
 }
 
-void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
-{
+void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now) {
 	// when identifying an axis, check if the estimate has converged
 	const float converged_thr = 50.f;
 
 	switch (_state) {
-	case state::idle:
-		if (_param_mc_at_start.get()) {
-			if (registerActuatorControlsCallback()) {
-				_state = state::init;
+		case state::idle:
+			if (_param_mc_at_start.get()) {
+				if (registerActuatorControlsCallback()) {
+					_state = state::init;
+
+				} else {
+					_state = state::fail;
+				}
+
+				_state_start_time = now;
+			}
+
+			break;
+
+		case state::init:
+			if (_are_filters_initialized) {
+				_state = state::roll;
+				_state_start_time = now;
+				_sys_id.reset();
+				// first step needs to be shorter to keep the drone centered
+				_steps_counter = 5;
+				_max_steps = 10;
+				_signal_sign = 1;
+				_input_scale = 1.f / (_param_mc_rollrate_p.get() * _param_mc_rollrate_k.get());
+				_signal_filter.reset(0.f);
+				_gains_backup_available = false;
+			}
+
+			break;
+
+		case state::roll:
+			if (areAllSmallerThan(_sys_id.getVariances(), converged_thr) &&
+			    ((now - _state_start_time) > 5_s)) {
+				copyGains(0);
+
+				// wait for the drone to stabilize
+				_state = state::roll_pause;
+				_state_start_time = now;
+			}
+
+			break;
+
+		case state::roll_pause:
+			if ((now - _state_start_time) > 2_s) {
+				_state = state::pitch;
+				_state_start_time = now;
+				_sys_id.reset();
+				_input_scale = 1.f / (_param_mc_pitchrate_p.get() * _param_mc_pitchrate_k.get());
+				_signal_filter.reset(0.f);
+				_signal_sign = 1;
+				// first step needs to be shorter to keep the drone centered
+				_steps_counter = 5;
+				_max_steps = 10;
+			}
+
+			break;
+
+		case state::pitch:
+			if (areAllSmallerThan(_sys_id.getVariances(), converged_thr) &&
+			    ((now - _state_start_time) > 5_s)) {
+				copyGains(1);
+				_state = state::pitch_pause;
+				_state_start_time = now;
+			}
+
+			break;
+
+		case state::pitch_pause:
+			if ((now - _state_start_time) > 2_s) {
+				_state = state::yaw;
+				_state_start_time = now;
+				_sys_id.reset();
+				_input_scale = 1.f / (_param_mc_yawrate_p.get() * _param_mc_yawrate_k.get());
+				_signal_filter.reset(0.f);
+				_signal_sign = 1;
+				// first step needs to be shorter to keep the drone centered
+				_steps_counter = 5;
+				_max_steps = 10;
+			}
+
+			break;
+
+		case state::yaw:
+			if (areAllSmallerThan(_sys_id.getVariances(), converged_thr) &&
+			    ((now - _state_start_time) > 5_s)) {
+				copyGains(2);
+				_state = state::yaw_pause;
+				_state_start_time = now;
+			}
+
+			break;
+
+		case state::yaw_pause:
+			if ((now - _state_start_time) > 2_s) {
+				_state = state::verification;
+				_state_start_time = now;
+				_sys_id.reset();
+				_signal_filter.reset(0.f);
+				_signal_sign = 1;
+				_steps_counter = 5;
+				_max_steps = 10;
+			}
+
+			break;
+
+		case state::verification:
+			_state = areGainsGood() ? state::apply : state::fail;
+
+			_state_start_time = now;
+			break;
+
+		case state::apply:
+			if ((_param_mc_at_apply.get() == 1)) {
+				_state = state::wait_for_disarm;
+
+			} else if (_param_mc_at_apply.get() == 2) {
+				backupAndSaveGainsToParams();
+				_state = state::test;
 
 			} else {
-				_state = state::fail;
+				_state = state::complete;
 			}
 
 			_state_start_time = now;
-		}
 
-		break;
+			break;
 
-	case state::init:
-		if (_are_filters_initialized) {
-			_state = state::roll;
-			_state_start_time = now;
-			_sys_id.reset();
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
-			_signal_sign = 1;
-			_input_scale = 1.f / (_param_mc_rollrate_p.get() * _param_mc_rollrate_k.get());
-			_signal_filter.reset(0.f);
-			_gains_backup_available = false;
-		}
+		case state::wait_for_disarm:
+			if (!_armed) {
+				saveGainsToParams();
+				_state = state::complete;
+				_state_start_time = now;
+			}
 
-		break;
+			break;
 
-	case state::roll:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
-			copyGains(0);
+		case state::test:
+			if ((now - _state_start_time) > 4_s) {
+				_state = state::complete;
+				_state_start_time = now;
 
-			// wait for the drone to stabilize
-			_state = state::roll_pause;
-			_state_start_time = now;
-		}
+			} else if ((now - _state_start_time) < 4_s && (now - _state_start_time) > 1_s &&
+				   _control_power.longerThan(0.1f)) {
+				_state = state::fail;
+				revertParamGains();
+				_state_start_time = now;
+			}
 
-		break;
+			break;
 
-	case state::roll_pause:
-		if ((now - _state_start_time) > 2_s) {
-			_state = state::pitch;
-			_state_start_time = now;
-			_sys_id.reset();
-			_input_scale = 1.f / (_param_mc_pitchrate_p.get() * _param_mc_pitchrate_k.get());
-			_signal_filter.reset(0.f);
-			_signal_sign = 1;
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
-		}
+		case state::complete:
 
-		break;
+		// fallthrough
+		case state::fail:
 
-	case state::pitch:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
-			copyGains(1);
-			_state = state::pitch_pause;
-			_state_start_time = now;
-		}
+			// Wait a bit in that state to make sure
+			// the other components are aware of the final result
+			if ((now - _state_start_time) > 2_s) {
+				_state = state::idle;
+				stopAutotune();
+			}
 
-		break;
-
-	case state::pitch_pause:
-		if ((now - _state_start_time) > 2_s) {
-			_state = state::yaw;
-			_state_start_time = now;
-			_sys_id.reset();
-			_input_scale = 1.f / (_param_mc_yawrate_p.get() * _param_mc_yawrate_k.get());
-			_signal_filter.reset(0.f);
-			_signal_sign = 1;
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
-		}
-
-		break;
-
-	case state::yaw:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
-			copyGains(2);
-			_state = state::yaw_pause;
-			_state_start_time = now;
-		}
-
-		break;
-
-	case state::yaw_pause:
-		if ((now - _state_start_time) > 2_s) {
-			_state = state::verification;
-			_state_start_time = now;
-			_sys_id.reset();
-			_signal_filter.reset(0.f);
-			_signal_sign = 1;
-			_steps_counter = 5;
-			_max_steps = 10;
-		}
-
-		break;
-
-	case state::verification:
-		_state = areGainsGood()
-			 ? state::apply
-			 : state::fail;
-
-		_state_start_time = now;
-		break;
-
-	case state::apply:
-		if ((_param_mc_at_apply.get() == 1)) {
-			_state = state::wait_for_disarm;
-
-		} else if (_param_mc_at_apply.get() == 2) {
-			backupAndSaveGainsToParams();
-			_state = state::test;
-
-		} else {
-			_state = state::complete;
-		}
-
-		_state_start_time = now;
-
-		break;
-
-	case state::wait_for_disarm:
-		if (!_armed) {
-			saveGainsToParams();
-			_state = state::complete;
-			_state_start_time = now;
-		}
-
-		break;
-
-	case state::test:
-		if ((now - _state_start_time) > 4_s) {
-			_state = state::complete;
-			_state_start_time = now;
-
-		} else if ((now - _state_start_time) < 4_s
-			   && (now - _state_start_time) > 1_s
-			   && _control_power.longerThan(0.1f)) {
-			_state = state::fail;
-			revertParamGains();
-			_state_start_time = now;
-		}
-
-		break;
-
-	case state::complete:
-
-	// fallthrough
-	case state::fail:
-
-		// Wait a bit in that state to make sure
-		// the other components are aware of the final result
-		if ((now - _state_start_time) > 2_s) {
-			_state = state::idle;
-			stopAutotune();
-		}
-
-		break;
+			break;
 	}
 
 	// In case of convergence timeout or pilot intervention,
@@ -442,18 +425,15 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 
-	if (_state != state::wait_for_disarm
-	    && _state != state::idle
-	    && (((now - _state_start_time) > 20_s)
-		|| (fabsf(manual_control_setpoint.x) > 0.05f)
-		|| (fabsf(manual_control_setpoint.y) > 0.05f))) {
+	if (_state != state::wait_for_disarm && _state != state::idle &&
+	    (((now - _state_start_time) > 20_s) || (fabsf(manual_control_setpoint.x) > 0.05f) ||
+	     (fabsf(manual_control_setpoint.y) > 0.05f))) {
 		_state = state::fail;
 		_state_start_time = now;
 	}
 }
 
-void McAutotuneAttitudeControl::backupAndSaveGainsToParams()
-{
+void McAutotuneAttitudeControl::backupAndSaveGainsToParams() {
 	float backup_gains[15] = {};
 	backup_gains[0] = _param_mc_rollrate_k.get();
 	backup_gains[1] = _param_mc_rollrate_p.get();
@@ -473,7 +453,7 @@ void McAutotuneAttitudeControl::backupAndSaveGainsToParams()
 
 	saveGainsToParams();
 
-	_rate_k(0) = backup_gains[0] * backup_gains[1]; // convert and save as standard form
+	_rate_k(0) = backup_gains[0] * backup_gains[1];  // convert and save as standard form
 	_rate_i(0) = backup_gains[2] / backup_gains[1];
 	_rate_d(0) = backup_gains[3] / backup_gains[1];
 	_att_p(0) = backup_gains[4];
@@ -489,15 +469,13 @@ void McAutotuneAttitudeControl::backupAndSaveGainsToParams()
 	_gains_backup_available = true;
 }
 
-void McAutotuneAttitudeControl::revertParamGains()
-{
+void McAutotuneAttitudeControl::revertParamGains() {
 	if (_gains_backup_available) {
 		saveGainsToParams();
 	}
 }
 
-bool McAutotuneAttitudeControl::registerActuatorControlsCallback()
-{
+bool McAutotuneAttitudeControl::registerActuatorControlsCallback() {
 	if (!_actuator_controls_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -506,17 +484,12 @@ bool McAutotuneAttitudeControl::registerActuatorControlsCallback()
 	return true;
 }
 
-bool McAutotuneAttitudeControl::areAllSmallerThan(const Vector<float, 5> &vect, float threshold) const
-{
-	return (vect(0) < threshold)
-	       && (vect(1) < threshold)
-	       && (vect(2) < threshold)
-	       && (vect(3) < threshold)
-	       && (vect(4) < threshold);
+bool McAutotuneAttitudeControl::areAllSmallerThan(const Vector<float, 5> &vect, float threshold) const {
+	return (vect(0) < threshold) && (vect(1) < threshold) && (vect(2) < threshold) && (vect(3) < threshold) &&
+	       (vect(4) < threshold);
 }
 
-void McAutotuneAttitudeControl::copyGains(int index)
-{
+void McAutotuneAttitudeControl::copyGains(int index) {
 	if (index <= 2) {
 		_rate_k(index) = _kid(0);
 		_rate_i(index) = _kid(1);
@@ -525,23 +498,17 @@ void McAutotuneAttitudeControl::copyGains(int index)
 	}
 }
 
-bool McAutotuneAttitudeControl::areGainsGood() const
-{
-	const bool are_positive = _rate_k.min() > 0.f
-				  && _rate_i.min() > 0.f
-				  && _rate_d.min() >= 0.f
-				  && _att_p.min() > 0.f;
+bool McAutotuneAttitudeControl::areGainsGood() const {
+	const bool are_positive =
+		_rate_k.min() > 0.f && _rate_i.min() > 0.f && _rate_d.min() >= 0.f && _att_p.min() > 0.f;
 
-	const bool are_small_enough = _rate_k.max() < 0.5f
-				      && _rate_i.max() < 10.f
-				      && _rate_d.max() < 0.1f
-				      && _att_p.max() < 12.f;
+	const bool are_small_enough =
+		_rate_k.max() < 0.5f && _rate_i.max() < 10.f && _rate_d.max() < 0.1f && _att_p.max() < 12.f;
 
 	return are_positive && are_small_enough;
 }
 
-void McAutotuneAttitudeControl::saveGainsToParams()
-{
+void McAutotuneAttitudeControl::saveGainsToParams() {
 	// save as parallel form
 	_param_mc_rollrate_p.set(_rate_k(0));
 	_param_mc_rollrate_k.set(1.f);
@@ -577,15 +544,13 @@ void McAutotuneAttitudeControl::saveGainsToParams()
 	_param_mc_yaw_p.commit();
 }
 
-void McAutotuneAttitudeControl::stopAutotune()
-{
+void McAutotuneAttitudeControl::stopAutotune() {
 	_param_mc_at_start.set(false);
 	_param_mc_at_start.commit();
 	_actuator_controls_sub.unregisterCallback();
 }
 
-const Vector3f McAutotuneAttitudeControl::getIdentificationSignal()
-{
+const Vector3f McAutotuneAttitudeControl::getIdentificationSignal() {
 	if (_steps_counter > _max_steps) {
 		_signal_sign = (_signal_sign == 1) ? 0 : 1;
 		_steps_counter = 0;
@@ -609,10 +574,10 @@ const Vector3f McAutotuneAttitudeControl::getIdentificationSignal()
 	if (_state == state::roll) {
 		rate_sp(0) = signal;
 
-	} else if (_state ==  state::pitch) {
+	} else if (_state == state::pitch) {
 		rate_sp(1) = signal;
 
-	} else if (_state ==  state::yaw) {
+	} else if (_state == state::yaw) {
 		rate_sp(2) = signal;
 
 	} else if (_state == state::test) {
@@ -625,8 +590,7 @@ const Vector3f McAutotuneAttitudeControl::getIdentificationSignal()
 	return rate_sp;
 }
 
-int McAutotuneAttitudeControl::task_spawn(int argc, char *argv[])
-{
+int McAutotuneAttitudeControl::task_spawn(int argc, char *argv[]) {
 	McAutotuneAttitudeControl *instance = new McAutotuneAttitudeControl();
 
 	if (instance) {
@@ -648,20 +612,15 @@ int McAutotuneAttitudeControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int McAutotuneAttitudeControl::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int McAutotuneAttitudeControl::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int McAutotuneAttitudeControl::print_status()
-{
+int McAutotuneAttitudeControl::print_status() {
 	perf_print_counter(_cycle_perf);
 
 	return 0;
 }
 
-int McAutotuneAttitudeControl::print_usage(const char *reason)
-{
+int McAutotuneAttitudeControl::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -679,7 +638,6 @@ int McAutotuneAttitudeControl::print_usage(const char *reason)
 	return 0;
 }
 
-extern "C" __EXPORT int mc_autotune_attitude_control_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int mc_autotune_attitude_control_main(int argc, char *argv[]) {
 	return McAutotuneAttitudeControl::main(argc, argv);
 }

@@ -33,14 +33,12 @@
 
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
-
 #include <px4_platform_common/module_params.h>
 
-class ActuatorEffectivenessHelicopter : public ModuleParams, public ActuatorEffectiveness
-{
-public:
+#include "ActuatorEffectiveness.hpp"
 
+class ActuatorEffectivenessHelicopter : public ModuleParams, public ActuatorEffectiveness {
+public:
 	static constexpr int NUM_SWASH_PLATE_SERVOS_MAX = 4;
 	static constexpr int NUM_CURVE_POINTS = 5;
 
@@ -63,11 +61,11 @@ public:
 
 	const char *name() const override { return "Helicopter"; }
 
-
 	const Geometry &geometry() const { return _geometry; }
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp) override;
+
 private:
 	void updateParams() override;
 

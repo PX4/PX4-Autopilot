@@ -41,20 +41,21 @@
 
 #pragma once
 
-#include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
-#include <matrix/matrix/math.hpp>
-#include <uORB/Subscription.hpp>
+#include <lib/geo/geo.h>
+#include <px4_platform_common/module_params.h>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/trajectory_setpoint.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_constraints.h>
-#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
-#include <uORB/topics/home_position.h>
-#include <lib/geo/geo.h>
+
+#include <matrix/matrix/math.hpp>
+#include <uORB/Subscription.hpp>
 
 struct ekf_reset_counters_s {
 	uint8_t xy;
@@ -64,12 +65,9 @@ struct ekf_reset_counters_s {
 	uint8_t heading;
 };
 
-class FlightTask : public ModuleParams
-{
+class FlightTask : public ModuleParams {
 public:
-	FlightTask() :
-		ModuleParams(nullptr)
-	{
+	FlightTask() : ModuleParams(nullptr) {
 		_resetSetpoints();
 		_constraints = empty_constraints;
 	}
@@ -157,16 +155,11 @@ public:
 	/**
 	 * Call this whenever a parameter update notification is received (parameter_update uORB message)
 	 */
-	void handleParameterUpdate()
-	{
-		updateParams();
-	}
+	void handleParameterUpdate() { updateParams(); }
 
 	virtual void overrideCruiseSpeed(const float cruise_speed_m_s) {}
 
-	void updateVelocityControllerFeedback(const matrix::Vector3f &vel_sp,
-					      const matrix::Vector3f &acc_sp)
-	{
+	void updateVelocityControllerFeedback(const matrix::Vector3f &vel_sp, const matrix::Vector3f &acc_sp) {
 		_velocity_setpoint_feedback = vel_sp;
 		_acceleration_setpoint_feedback = acc_sp;
 	}
@@ -196,11 +189,11 @@ protected:
 	 * TODO: add the delta values to all the handlers
 	 */
 	void _checkEkfResetCounters();
-	virtual void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) {};
-	virtual void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) {};
-	virtual void _ekfResetHandlerPositionZ(float delta_z) {};
-	virtual void _ekfResetHandlerVelocityZ(float delta_vz) {};
-	virtual void _ekfResetHandlerHeading(float delta_psi) {};
+	virtual void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy){};
+	virtual void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy){};
+	virtual void _ekfResetHandlerPositionZ(float delta_z){};
+	virtual void _ekfResetHandlerVelocityZ(float delta_vz){};
+	virtual void _ekfResetHandlerHeading(float delta_psi){};
 
 	MapProjection _geo_projection{};
 	float _global_local_alt0{NAN};
@@ -211,17 +204,17 @@ protected:
 	float _deltatime{}; /**< passed time in seconds since the task was last updated */
 
 	hrt_abstime _time_stamp_activate{}; /**< time stamp when task was activated */
-	hrt_abstime _time_stamp_current{}; /**< time stamp at the beginning of the current task update */
-	hrt_abstime _time_stamp_last{}; /**< time stamp when task was last updated */
+	hrt_abstime _time_stamp_current{};  /**< time stamp at the beginning of the current task update */
+	hrt_abstime _time_stamp_last{};     /**< time stamp when task was last updated */
 
 	/* Current vehicle state */
 	matrix::Vector3f _position; /**< current vehicle position */
 	matrix::Vector3f _velocity; /**< current vehicle velocity */
 
-	float _yaw{}; /**< current vehicle yaw heading */
+	float _yaw{};                    /**< current vehicle yaw heading */
 	bool _is_yaw_good_for_control{}; /**< true if the yaw estimate can be used for yaw control */
-	float _dist_to_bottom{}; /**< current height above ground level if dist_bottom is valid */
-	float _dist_to_ground{}; /**< equals _dist_to_bottom if available, height above home otherwise */
+	float _dist_to_bottom{};         /**< current height above ground level if dist_bottom is valid */
+	float _dist_to_ground{};         /**< equals _dist_to_bottom if available, height above home otherwise */
 
 	/**
 	 * Setpoints which the position controller has to execute.
@@ -241,7 +234,7 @@ protected:
 	float _yaw_setpoint{};
 	float _yawspeed_setpoint{};
 
-	ekf_reset_counters_s _reset_counters{}; ///< Counters for estimator local position resets
+	ekf_reset_counters_s _reset_counters{};  ///< Counters for estimator local position resets
 
 	/**
 	 * Vehicle constraints.
@@ -257,9 +250,7 @@ protected:
 	 */
 	vehicle_trajectory_waypoint_s _desired_waypoint{};
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
-					(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max,
-					(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
-					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up
-				       )
+	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams, (ParamFloat<px4::params::MPC_XY_VEL_MAX>)_param_mpc_xy_vel_max,
+					(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>)_param_mpc_z_vel_max_dn,
+					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>)_param_mpc_z_vel_max_up)
 };

@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include "ICM42670P.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void ICM42670P::print_usage()
-{
+#include "ICM42670P.hpp"
+
+void ICM42670P::print_usage() {
 	PRINT_MODULE_USAGE_NAME("icm42670p", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -46,9 +45,7 @@ void ICM42670P::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-
-extern "C" int icm42670p_main(int argc, char *argv[])
-{
+extern "C" int icm42670p_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = ICM42670P;
 	BusCLIArguments cli{false, true};
@@ -56,10 +53,9 @@ extern "C" int icm42670p_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
-
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

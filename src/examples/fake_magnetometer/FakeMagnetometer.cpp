@@ -38,22 +38,19 @@
 using namespace matrix;
 using namespace time_literals;
 
-FakeMagnetometer::FakeMagnetometer() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_px4_mag(0, ROTATION_NONE)
-{
+FakeMagnetometer::FakeMagnetometer()
+	: ModuleParams(nullptr),
+	  ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	  _px4_mag(0, ROTATION_NONE) {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_MAGSIM);
 }
 
-bool FakeMagnetometer::init()
-{
-	ScheduleOnInterval(10_ms); // 100 Hz
+bool FakeMagnetometer::init() {
+	ScheduleOnInterval(10_ms);  // 100 Hz
 	return true;
 }
 
-void FakeMagnetometer::Run()
-{
+void FakeMagnetometer::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
@@ -65,7 +62,6 @@ void FakeMagnetometer::Run()
 
 		if (_vehicle_gps_position_sub.copy(&gps)) {
 			if (gps.eph < 1000) {
-
 				const double lat = gps.lat / 1.e7;
 				const double lon = gps.lon / 1.e7;
 
@@ -74,7 +70,8 @@ void FakeMagnetometer::Run()
 				const float mag_inclination_gps = get_mag_inclination_radians(lat, lon);
 				const float mag_strength_gps = get_mag_strength_gauss(lat, lon);
 
-				_mag_earth_pred = Dcmf(Eulerf(0, -mag_inclination_gps, mag_declination_gps)) * Vector3f(mag_strength_gps, 0, 0);
+				_mag_earth_pred = Dcmf(Eulerf(0, -mag_inclination_gps, mag_declination_gps)) *
+						  Vector3f(mag_strength_gps, 0, 0);
 
 				_mag_earth_available = true;
 			}
@@ -85,15 +82,14 @@ void FakeMagnetometer::Run()
 		vehicle_attitude_s attitude;
 
 		if (_vehicle_attitude_sub.update(&attitude)) {
-			Vector3f expected_field = Dcmf{Quatf{attitude.q}} .transpose() * _mag_earth_pred;
+			Vector3f expected_field = Dcmf{Quatf{attitude.q}}.transpose() * _mag_earth_pred;
 
 			_px4_mag.update(hrt_absolute_time(), expected_field(0), expected_field(1), expected_field(2));
 		}
 	}
 }
 
-int FakeMagnetometer::task_spawn(int argc, char *argv[])
-{
+int FakeMagnetometer::task_spawn(int argc, char *argv[]) {
 	FakeMagnetometer *instance = new FakeMagnetometer();
 
 	if (instance) {
@@ -115,13 +111,9 @@ int FakeMagnetometer::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int FakeMagnetometer::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int FakeMagnetometer::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int FakeMagnetometer::print_usage(const char *reason)
-{
+int FakeMagnetometer::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -139,7 +131,4 @@ Requires vehicle_attitude and vehicle_gps_position.
 	return 0;
 }
 
-extern "C" __EXPORT int fake_magnetometer_main(int argc, char *argv[])
-{
-	return FakeMagnetometer::main(argc, argv);
-}
+extern "C" __EXPORT int fake_magnetometer_main(int argc, char *argv[]) { return FakeMagnetometer::main(argc, argv); }

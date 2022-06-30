@@ -36,67 +36,67 @@
  */
 
 #include "Takeoff.hpp"
-#include <mathlib/mathlib.h>
-#include <lib/geo/geo.h>
 
-void TakeoffHandling::generateInitialRampValue(float velocity_p_gain)
-{
+#include <lib/geo/geo.h>
+#include <mathlib/mathlib.h>
+
+void TakeoffHandling::generateInitialRampValue(float velocity_p_gain) {
 	velocity_p_gain = math::max(velocity_p_gain, 0.01f);
 	_takeoff_ramp_vz_init = -CONSTANTS_ONE_G / velocity_p_gain;
 }
 
 void TakeoffHandling::updateTakeoffState(const bool armed, const bool landed, const bool want_takeoff,
-		const float takeoff_desired_vz, const bool skip_takeoff, const hrt_abstime &now_us)
-{
+					 const float takeoff_desired_vz, const bool skip_takeoff,
+					 const hrt_abstime &now_us) {
 	_spoolup_time_hysteresis.set_state_and_update(armed, now_us);
 
 	switch (_takeoff_state) {
-	case TakeoffState::disarmed:
-		if (armed) {
-			_takeoff_state = TakeoffState::spoolup;
+		case TakeoffState::disarmed:
+			if (armed) {
+				_takeoff_state = TakeoffState::spoolup;
 
-		} else {
+			} else {
+				break;
+			}
+
+		// FALLTHROUGH
+		case TakeoffState::spoolup:
+			if (_spoolup_time_hysteresis.get_state()) {
+				_takeoff_state = TakeoffState::ready_for_takeoff;
+
+			} else {
+				break;
+			}
+
+		// FALLTHROUGH
+		case TakeoffState::ready_for_takeoff:
+			if (want_takeoff) {
+				_takeoff_state = TakeoffState::rampup;
+				_takeoff_ramp_progress = 0.f;
+
+			} else {
+				break;
+			}
+
+		// FALLTHROUGH
+		case TakeoffState::rampup:
+			if (_takeoff_ramp_progress >= 1.f) {
+				_takeoff_state = TakeoffState::flight;
+
+			} else {
+				break;
+			}
+
+		// FALLTHROUGH
+		case TakeoffState::flight:
+			if (landed) {
+				_takeoff_state = TakeoffState::ready_for_takeoff;
+			}
+
 			break;
-		}
 
-	// FALLTHROUGH
-	case TakeoffState::spoolup:
-		if (_spoolup_time_hysteresis.get_state()) {
-			_takeoff_state = TakeoffState::ready_for_takeoff;
-
-		} else {
+		default:
 			break;
-		}
-
-	// FALLTHROUGH
-	case TakeoffState::ready_for_takeoff:
-		if (want_takeoff) {
-			_takeoff_state = TakeoffState::rampup;
-			_takeoff_ramp_progress = 0.f;
-
-		} else {
-			break;
-		}
-
-	// FALLTHROUGH
-	case TakeoffState::rampup:
-		if (_takeoff_ramp_progress >= 1.f) {
-			_takeoff_state = TakeoffState::flight;
-
-		} else {
-			break;
-		}
-
-	// FALLTHROUGH
-	case TakeoffState::flight:
-		if (landed) {
-			_takeoff_state = TakeoffState::ready_for_takeoff;
-		}
-
-		break;
-
-	default:
-		break;
 	}
 
 	if (armed && skip_takeoff) {
@@ -109,8 +109,7 @@ void TakeoffHandling::updateTakeoffState(const bool armed, const bool landed, co
 	}
 }
 
-float TakeoffHandling::updateRamp(const float dt, const float takeoff_desired_vz)
-{
+float TakeoffHandling::updateRamp(const float dt, const float takeoff_desired_vz) {
 	float upwards_velocity_limit = takeoff_desired_vz;
 
 	if (_takeoff_state < TakeoffState::rampup) {
@@ -126,7 +125,8 @@ float TakeoffHandling::updateRamp(const float dt, const float takeoff_desired_vz
 		}
 
 		if (_takeoff_ramp_progress < 1.f) {
-			upwards_velocity_limit = _takeoff_ramp_vz_init + _takeoff_ramp_progress * (takeoff_desired_vz - _takeoff_ramp_vz_init);
+			upwards_velocity_limit = _takeoff_ramp_vz_init +
+						 _takeoff_ramp_progress * (takeoff_desired_vz - _takeoff_ramp_vz_init);
 		}
 	}
 

@@ -39,10 +39,6 @@
 
 #include <uORB/topics/event.h>
 
-namespace events
-{
+namespace events {
 using EventType = event_s;
-} // namespace events
-
-
-
+}  // namespace events

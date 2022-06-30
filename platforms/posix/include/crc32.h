@@ -40,8 +40,8 @@
  * Included Files
  ****************************************************************************/
 
-#include <sys/types.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 /****************************************************************************
  * Public Function Prototypes
@@ -62,8 +62,7 @@ extern "C" {
  *
  ****************************************************************************/
 
-EXTERN uint32_t crc32part(const uint8_t *src, size_t len,
-			  uint32_t crc32val);
+EXTERN uint32_t crc32part(const uint8_t *src, size_t len, uint32_t crc32val);
 
 /****************************************************************************
  * Name: crc32

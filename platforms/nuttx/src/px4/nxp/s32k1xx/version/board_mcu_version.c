@@ -38,17 +38,16 @@
  * Implementation of S32K1xx based SoC version API
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "arm_arch.h"
 #include "hardware/s32k1xx_sim.h"
 
-#define CHIP_TAG     "S32KXXX"
-#define CHIP_TAG_LEN sizeof(CHIP_TAG)-1
+#define CHIP_TAG "S32KXXX"
+#define CHIP_TAG_LEN sizeof(CHIP_TAG) - 1
 
-int board_mcu_version(char *rev, const char **revstr, const char **errata)
-{
+int board_mcu_version(char *rev, const char **revstr, const char **errata) {
 	uint32_t sim_sdid = getreg32(S32K1XX_SIM_SDID);
 	static char chip[sizeof(CHIP_TAG)] = CHIP_TAG;
 

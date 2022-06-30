@@ -32,19 +32,19 @@
  ****************************************************************************/
 
 #include "logged_topics.h"
-#include "messages.h"
 
 #include <parameters/param.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
+#include <string.h>
+
 #include <uORB/topics/uORBTopics.hpp>
 
-#include <string.h>
+#include "messages.h"
 
 using namespace px4::logger;
 
-void LoggedTopics::add_default_topics()
-{
+void LoggedTopics::add_default_topics() {
 	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_topic("actuator_controls_0", 50);
@@ -133,7 +133,7 @@ void LoggedTopics::add_default_topics()
 #if CONSTRAINED_MEMORY
 	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 1;
 #else
-	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 6; // artificially limited until PlotJuggler fixed
+	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 6;  // artificially limited until PlotJuggler fixed
 	add_optional_topic("estimator_selector_status");
 	add_optional_topic_multi("estimator_attitude", 500, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_global_position", 1000, MAX_ESTIMATOR_INSTANCES);
@@ -187,7 +187,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
 	add_optional_topic("vehicle_optical_flow", 500);
-	//add_optional_topic("vehicle_optical_flow_vel", 100);
+	// add_optional_topic("vehicle_optical_flow_vel", 100);
 
 	// SYS_CTRL_ALLOC: additional dynamic control allocation logging when enabled
 	int32_t sys_ctrl_alloc = 0;
@@ -247,8 +247,7 @@ void LoggedTopics::add_default_topics()
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 }
 
-void LoggedTopics::add_high_rate_topics()
-{
+void LoggedTopics::add_high_rate_topics() {
 	// maximum rate to analyze fast maneuvers (e.g. for racing)
 	add_topic("manual_control_setpoint");
 	add_topic("rate_ctrl_status", 20);
@@ -270,8 +269,7 @@ void LoggedTopics::add_high_rate_topics()
 	}
 }
 
-void LoggedTopics::add_debug_topics()
-{
+void LoggedTopics::add_debug_topics() {
 	add_topic("debug_array");
 	add_topic("debug_key_value");
 	add_topic("debug_value");
@@ -282,8 +280,7 @@ void LoggedTopics::add_debug_topics()
 	add_topic("test_motor", 500);
 }
 
-void LoggedTopics::add_estimator_replay_topics()
-{
+void LoggedTopics::add_estimator_replay_topics() {
 	// for estimator replay (need to be at full rate)
 	add_topic("ekf2_timestamps");
 
@@ -301,23 +298,20 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic_multi("distance_sensor");
 }
 
-void LoggedTopics::add_thermal_calibration_topics()
-{
+void LoggedTopics::add_thermal_calibration_topics() {
 	add_topic_multi("sensor_accel", 100, 3);
 	add_topic_multi("sensor_baro", 100, 3);
 	add_topic_multi("sensor_gyro", 100, 3);
 }
 
-void LoggedTopics::add_sensor_comparison_topics()
-{
+void LoggedTopics::add_sensor_comparison_topics() {
 	add_topic_multi("sensor_accel", 100, 3);
 	add_topic_multi("sensor_baro", 100, 3);
 	add_topic_multi("sensor_gyro", 100, 3);
 	add_topic_multi("sensor_mag", 100, 4);
 }
 
-void LoggedTopics::add_vision_and_avoidance_topics()
-{
+void LoggedTopics::add_vision_and_avoidance_topics() {
 	add_topic("collision_constraints");
 	add_topic("obstacle_distance_fused");
 	add_topic("vehicle_mocap_odometry", 30);
@@ -326,18 +320,11 @@ void LoggedTopics::add_vision_and_avoidance_topics()
 	add_topic("vehicle_visual_odometry", 30);
 }
 
-void LoggedTopics::add_raw_imu_gyro_fifo()
-{
-	add_topic("sensor_gyro_fifo");
-}
+void LoggedTopics::add_raw_imu_gyro_fifo() { add_topic("sensor_gyro_fifo"); }
 
-void LoggedTopics::add_raw_imu_accel_fifo()
-{
-	add_topic("sensor_accel_fifo");
-}
+void LoggedTopics::add_raw_imu_accel_fifo() { add_topic("sensor_accel_fifo"); }
 
-void LoggedTopics::add_system_identification_topics()
-{
+void LoggedTopics::add_system_identification_topics() {
 	// for system id need to log imu and controls at full rate
 	add_topic("actuator_controls_0");
 	add_topic("actuator_controls_1");
@@ -346,13 +333,9 @@ void LoggedTopics::add_system_identification_topics()
 	add_topic("vehicle_torque_setpoint");
 }
 
-void LoggedTopics::add_mavlink_tunnel()
-{
-	add_topic("mavlink_tunnel");
-}
+void LoggedTopics::add_mavlink_tunnel() { add_topic("mavlink_tunnel"); }
 
-int LoggedTopics::add_topics_from_file(const char *fname)
-{
+int LoggedTopics::add_topics_from_file(const char *fname) {
 	int ntopics = 0;
 
 	/* open the topic list file */
@@ -391,8 +374,8 @@ int LoggedTopics::add_topics_from_file(const char *fname)
 			}
 
 			/* add topic with specified interval_ms */
-			if ((nfields > 2 && add_topic(topic_name, interval_ms, instance))
-			    || add_topic_multi(topic_name, interval_ms)) {
+			if ((nfields > 2 && add_topic(topic_name, interval_ms, instance)) ||
+			    add_topic_multi(topic_name, interval_ms)) {
 				ntopics++;
 
 			} else {
@@ -405,8 +388,7 @@ int LoggedTopics::add_topics_from_file(const char *fname)
 	return ntopics;
 }
 
-void LoggedTopics::initialize_mission_topics(MissionLogType mission_log_type)
-{
+void LoggedTopics::initialize_mission_topics(MissionLogType mission_log_type) {
 	if (mission_log_type == MissionLogType::Complete) {
 		add_mission_topic("camera_capture");
 		add_mission_topic("mission_result");
@@ -418,15 +400,13 @@ void LoggedTopics::initialize_mission_topics(MissionLogType mission_log_type)
 	}
 }
 
-void LoggedTopics::add_mission_topic(const char *name, uint16_t interval_ms)
-{
+void LoggedTopics::add_mission_topic(const char *name, uint16_t interval_ms) {
 	if (add_topic(name, interval_ms)) {
 		++_num_mission_subs;
 	}
 }
 
-bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, uint8_t instance, bool optional)
-{
+bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, uint8_t instance, bool optional) {
 	if (_subscriptions.count >= MAX_TOPICS_NUM) {
 		PX4_WARN("Too many subscriptions, failed to add: %s %" PRIu8, topic->o_name, instance);
 		return false;
@@ -435,8 +415,10 @@ bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, ui
 	if (optional && orb_exists(topic, instance) != 0) {
 		PX4_DEBUG("Not adding non-existing optional topic %s %i", topic->o_name, instance);
 
-		if (instance == 0 && _subscriptions.num_excluded_optional_topic_ids < MAX_EXCLUDED_OPTIONAL_TOPICS_NUM) {
-			_subscriptions.excluded_optional_topic_ids[_subscriptions.num_excluded_optional_topic_ids++] = topic->o_id;
+		if (instance == 0 &&
+		    _subscriptions.num_excluded_optional_topic_ids < MAX_EXCLUDED_OPTIONAL_TOPICS_NUM) {
+			_subscriptions.excluded_optional_topic_ids[_subscriptions.num_excluded_optional_topic_ids++] =
+				topic->o_id;
 		}
 
 		return false;
@@ -449,8 +431,7 @@ bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, ui
 	return true;
 }
 
-bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t instance, bool optional)
-{
+bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t instance, bool optional) {
 	interval_ms /= _rate_factor;
 
 	const orb_metadata *const *topics = orb_get_topics();
@@ -464,8 +445,8 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 			for (int j = 0; j < _subscriptions.count; ++j) {
 				if (_subscriptions.sub[j].id == static_cast<ORB_ID>(topics[i]->o_id) &&
 				    _subscriptions.sub[j].instance == instance) {
-
-					PX4_DEBUG("logging topic %s(%" PRIu8 "), interval: %" PRIu16 ", already added, only setting interval",
+					PX4_DEBUG("logging topic %s(%" PRIu8 "), interval: %" PRIu16
+						  ", already added, only setting interval",
 						  topics[i]->o_name, instance, interval_ms);
 
 					_subscriptions.sub[j].interval_ms = interval_ms;
@@ -479,7 +460,8 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 				success = add_topic(topics[i], interval_ms, instance, optional);
 
 				if (success) {
-					PX4_DEBUG("logging topic: %s(%" PRIu8 "), interval: %" PRIu16, topics[i]->o_name, instance, interval_ms);
+					PX4_DEBUG("logging topic: %s(%" PRIu8 "), interval: %" PRIu16,
+						  topics[i]->o_name, instance, interval_ms);
 				}
 
 				break;
@@ -490,8 +472,7 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 	return success;
 }
 
-bool LoggedTopics::add_topic_multi(const char *name, uint16_t interval_ms, uint8_t max_num_instances, bool optional)
-{
+bool LoggedTopics::add_topic_multi(const char *name, uint16_t interval_ms, uint8_t max_num_instances, bool optional) {
 	// add all possible instances
 	for (uint8_t instance = 0; instance < max_num_instances; instance++) {
 		add_topic(name, interval_ms, instance, optional);
@@ -500,8 +481,7 @@ bool LoggedTopics::add_topic_multi(const char *name, uint16_t interval_ms, uint8
 	return true;
 }
 
-bool LoggedTopics::initialize_logged_topics(SDLogProfileMask profile)
-{
+bool LoggedTopics::initialize_logged_topics(SDLogProfileMask profile) {
 	int ntopics = add_topics_from_file(PX4_STORAGEDIR "/etc/logging/logger_topics.txt");
 
 	if (ntopics > 0) {
@@ -514,8 +494,7 @@ bool LoggedTopics::initialize_logged_topics(SDLogProfileMask profile)
 	return _subscriptions.count > 0;
 }
 
-void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
-{
+void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile) {
 	// load appropriate topics for profile
 	// the order matters: if several profiles add the same topic, the logging rate of the last one will be used
 	if (profile & SDLogProfileMask::DEFAULT) {

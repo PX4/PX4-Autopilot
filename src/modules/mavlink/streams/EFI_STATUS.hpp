@@ -36,8 +36,7 @@
 
 #include <uORB/topics/internal_combustion_engine_status.h>
 
-class MavlinkStreamEfiStatus : public MavlinkStream
-{
+class MavlinkStreamEfiStatus : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamEfiStatus(mavlink); }
 
@@ -47,10 +46,10 @@ public:
 	const char *get_name() const override { return MavlinkStreamEfiStatus::get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _internal_combustion_engine_status_sub.advertised() ? MAVLINK_MSG_ID_EFI_STATUS + MAVLINK_NUM_NON_PAYLOAD_BYTES :
-		       0;
+	unsigned get_size() override {
+		return _internal_combustion_engine_status_sub.advertised()
+			       ? MAVLINK_MSG_ID_EFI_STATUS + MAVLINK_NUM_NON_PAYLOAD_BYTES
+			       : 0;
 	}
 
 private:
@@ -58,8 +57,7 @@ private:
 
 	uORB::Subscription _internal_combustion_engine_status_sub{ORB_ID(internal_combustion_engine_status)};
 
-	bool send() override
-	{
+	bool send() override {
 		internal_combustion_engine_status_s internal_combustion_engine_status;
 
 		if (_internal_combustion_engine_status_sub.update(&internal_combustion_engine_status)) {
@@ -93,4 +91,4 @@ private:
 	}
 };
 
-#endif // EFI_STATUS_HPP
+#endif  // EFI_STATUS_HPP

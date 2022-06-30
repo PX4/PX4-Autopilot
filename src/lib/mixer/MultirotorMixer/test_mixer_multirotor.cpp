@@ -36,28 +36,23 @@
  * via file or stdin and compares the mixer output against expected values.
  */
 
-#include "MultirotorMixer.hpp"
-
-#include <cstdio>
 #include <math.h>
 
+#include <cstdio>
+
+#include "MultirotorMixer.hpp"
+
 static const unsigned output_max = 16;
-static float actuator_controls[output_max] {};
+static float actuator_controls[output_max]{};
 
-static int	mixer_callback(uintptr_t handle,
-			       uint8_t control_group,
-			       uint8_t control_index,
-			       float &control);
+static int mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control);
 
-static int
-mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control)
-{
+static int mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control) {
 	control = actuator_controls[control_index];
 	return 0;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	FILE *file_in = stdin;
 
 	if (argc > 1) {
@@ -80,8 +75,8 @@ int main(int argc, char *argv[])
 	}
 
 	for (unsigned i = 0; i < rotor_count; ++i) {
-		fscanf(file_in, "%f %f %f %f", &rotors[i].roll_scale, &rotors[i].pitch_scale,
-		       &rotors[i].yaw_scale, &rotors[i].thrust_scale);
+		fscanf(file_in, "%f %f %f %f", &rotors[i].roll_scale, &rotors[i].pitch_scale, &rotors[i].yaw_scale,
+		       &rotors[i].thrust_scale);
 	}
 
 	MultirotorMixer mixer(mixer_callback, 0, rotors, rotor_count);
@@ -91,7 +86,6 @@ int main(int argc, char *argv[])
 	int num_failed = 0;
 
 	while (!feof(file_in)) {
-
 		// read actuator controls
 		unsigned count = 0;
 
@@ -132,8 +126,9 @@ int main(int argc, char *argv[])
 
 		if (failed) {
 			printf("test %i failed:\n", test_counter + 1);
-			printf("control input  : %.3f %.3f %.3f %.3f\n", (double)actuator_controls[0], (double)actuator_controls[1],
-			       (double)actuator_controls[2], (double)actuator_controls[3]);
+			printf("control input  : %.3f %.3f %.3f %.3f\n", (double)actuator_controls[0],
+			       (double)actuator_controls[1], (double)actuator_controls[2],
+			       (double)actuator_controls[3]);
 			printf("mixer output   : ");
 
 			for (unsigned i = 0; i < rotor_count; ++i) {
@@ -161,9 +156,7 @@ int main(int argc, char *argv[])
 		++test_counter;
 	}
 
-	printf("tested %i cases: %i success, %i failed\n", test_counter,
-	       test_counter - num_failed, num_failed);
-
+	printf("tested %i cases: %i success, %i failed\n", test_counter, test_counter - num_failed, num_failed);
 
 	if (file_in != stdin) {
 		fclose(file_in);

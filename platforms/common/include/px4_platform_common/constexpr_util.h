@@ -33,8 +33,7 @@
 
 #pragma once
 
-static inline int _constexpr_assert_failure(const char *msg)
-{
+static inline int _constexpr_assert_failure(const char *msg) {
 	// we do 2 things that the compiler will refuse to execute at compile-time
 	// (and therefore trigger a compilation error):
 	// - define a local static variable
@@ -54,4 +53,7 @@ static inline int _constexpr_assert_failure(const char *msg)
  *
  * If executed at runtime, it has no effect other than slight runtime overhead.
  */
-#define constexpr_assert(expr, msg) if (!(expr)) { _constexpr_assert_failure(msg); }
+#define constexpr_assert(expr, msg)             \
+	if (!(expr)) {                          \
+		_constexpr_assert_failure(msg); \
+	}

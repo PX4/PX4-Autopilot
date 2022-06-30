@@ -39,36 +39,28 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <assert.h>
-#include <time.h>
-#include <stdlib.h>
 #include <math.h>
-#include <mathlib/math/test/test.hpp>
+#include <px4_platform_common/defines.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
+namespace control {
 
-template<class Type, size_t M, size_t N, size_t LEN>
-class __EXPORT BlockDelay: public Block
-{
+template <class Type, size_t M, size_t N, size_t LEN>
+class __EXPORT BlockDelay : public Block {
 public:
-// methods
-	BlockDelay(SuperBlock *parent, const char *name) :
-		Block(parent, name),
-		_h(),
-		_index(0),
-		_delay(-1)
-	{}
+	// methods
+	BlockDelay(SuperBlock *parent, const char *name) : Block(parent, name), _h(), _index(0), _delay(-1) {}
 	virtual ~BlockDelay() = default;
-	matrix::Matrix<Type, M, N> update(const matrix::Matrix<Type, M, N> &u)
-	{
+	matrix::Matrix<Type, M, N> update(const matrix::Matrix<Type, M, N> &u) {
 		// store current value
 		_h[_index] = u;
 
@@ -90,25 +82,27 @@ public:
 		_index += 1;
 
 		if (_index > (LEN - 1)) {
-			_index  = 0;
+			_index = 0;
 		}
 
 		// get delayed value
 		return _h[j];
 	}
-	matrix::Matrix<Type, M, N> get(size_t delay)
-	{
+	matrix::Matrix<Type, M, N> get(size_t delay) {
 		int j = _index - delay;
 
-		if (j < 0) { j += LEN; }
+		if (j < 0) {
+			j += LEN;
+		}
 
 		return _h[j];
 	}
+
 private:
-// attributes
+	// attributes
 	matrix::Matrix<Type, M, N> _h[LEN];
 	size_t _index;
 	int _delay;
 };
 
-} // namespace control
+}  // namespace control

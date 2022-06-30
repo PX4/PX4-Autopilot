@@ -32,14 +32,14 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
-#include <ControlMath.hpp>
 #include <px4_platform_common/defines.h>
+
+#include <ControlMath.hpp>
 
 using namespace matrix;
 using namespace ControlMath;
 
-TEST(ControlMathTest, LimitTiltUnchanged)
-{
+TEST(ControlMathTest, LimitTiltUnchanged) {
 	Vector3f body = Vector3f(0.f, 0.f, 1.f).normalized();
 	Vector3f body_before = body;
 	limitTilt(body, Vector3f(0.f, 0.f, 1.f), M_DEG_TO_RAD_F * 45.f);
@@ -51,8 +51,7 @@ TEST(ControlMathTest, LimitTiltUnchanged)
 	EXPECT_EQ(body, body_before);
 }
 
-TEST(ControlMathTest, LimitTiltOpposite)
-{
+TEST(ControlMathTest, LimitTiltOpposite) {
 	Vector3f body = Vector3f(0.f, 0.f, -1.f).normalized();
 	limitTilt(body, Vector3f(0.f, 0.f, 1.f), M_DEG_TO_RAD_F * 45.f);
 	float angle = acosf(body.dot(Vector3f(0.f, 0.f, 1.f)));
@@ -60,8 +59,7 @@ TEST(ControlMathTest, LimitTiltOpposite)
 	EXPECT_FLOAT_EQ(body.length(), 1.f);
 }
 
-TEST(ControlMathTest, LimitTiltAlmostOpposite)
-{
+TEST(ControlMathTest, LimitTiltAlmostOpposite) {
 	// This case doesn't trigger corner case handling but is very close to it
 	Vector3f body = Vector3f(0.001f, 0.f, -1.f).normalized();
 	limitTilt(body, Vector3f(0.f, 0.f, 1.f), M_DEG_TO_RAD_F * 45.f);
@@ -70,8 +68,7 @@ TEST(ControlMathTest, LimitTiltAlmostOpposite)
 	EXPECT_FLOAT_EQ(body.length(), 1.f);
 }
 
-TEST(ControlMathTest, LimitTilt45degree)
-{
+TEST(ControlMathTest, LimitTilt45degree) {
 	Vector3f body = Vector3f(1.f, 0.f, 0.f);
 	limitTilt(body, Vector3f(0.f, 0.f, 1.f), M_DEG_TO_RAD_F * 45.f);
 	EXPECT_EQ(body, Vector3f(M_SQRT1_2_F, 0, M_SQRT1_2_F));
@@ -81,8 +78,7 @@ TEST(ControlMathTest, LimitTilt45degree)
 	EXPECT_EQ(body, Vector3f(0.f, M_SQRT1_2_F, M_SQRT1_2_F));
 }
 
-TEST(ControlMathTest, LimitTilt10degree)
-{
+TEST(ControlMathTest, LimitTilt10degree) {
 	Vector3f body = Vector3f(1.f, 1.f, .1f).normalized();
 	limitTilt(body, Vector3f(0.f, 0.f, 1.f), M_DEG_TO_RAD_F * 10.f);
 	float angle = acosf(body.dot(Vector3f(0.f, 0.f, 1.f)));
@@ -98,8 +94,7 @@ TEST(ControlMathTest, LimitTilt10degree)
 	EXPECT_FLOAT_EQ(2.f * body(0), body(1));
 }
 
-TEST(ControlMathTest, ThrottleAttitudeMapping)
-{
+TEST(ControlMathTest, ThrottleAttitudeMapping) {
 	/* expected: zero roll, zero pitch, zero yaw, full thr mag
 	 * reason: thrust pointing full upward */
 	Vector3f thr{0.f, 0.f, -1.f};
@@ -131,8 +126,7 @@ TEST(ControlMathTest, ThrottleAttitudeMapping)
 	EXPECT_FLOAT_EQ(att.thrust_body[2], -1.f);
 }
 
-TEST(ControlMathTest, ConstrainXYPriorities)
-{
+TEST(ControlMathTest, ConstrainXYPriorities) {
 	const float max = 5.f;
 	// v0 already at max
 	Vector2f v0(max, 0.f);
@@ -164,8 +158,7 @@ TEST(ControlMathTest, ConstrainXYPriorities)
 	EXPECT_FLOAT_EQ(v_r(1), -remaining);
 }
 
-TEST(ControlMathTest, CrossSphereLine)
-{
+TEST(ControlMathTest, CrossSphereLine) {
 	/* Testing 9 positions (+) around waypoints (o):
 	 *
 	 * Far             +              +              +
@@ -237,8 +230,7 @@ TEST(ControlMathTest, CrossSphereLine)
 	EXPECT_EQ(res, Vector3f(0.f, 0.f, 2.f));
 }
 
-TEST(ControlMathTest, addIfNotNan)
-{
+TEST(ControlMathTest, addIfNotNan) {
 	float v = 1.f;
 	// regular addition
 	ControlMath::addIfNotNan(v, 2.f);

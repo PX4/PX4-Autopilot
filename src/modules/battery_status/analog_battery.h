@@ -36,8 +36,7 @@
 #include <battery/battery.h>
 #include <parameters/param.h>
 
-class AnalogBattery : public Battery
-{
+class AnalogBattery : public Battery {
 public:
 	AnalogBattery(int index, ModuleParams *parent, const int sample_interval_us, const uint8_t source,
 		      const uint8_t priority);
@@ -70,7 +69,6 @@ public:
 	int get_current_channel();
 
 protected:
-
 	struct {
 		param_t v_offs_cur;
 		param_t v_div;

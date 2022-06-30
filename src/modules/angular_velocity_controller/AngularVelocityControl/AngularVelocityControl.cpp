@@ -35,28 +35,26 @@
  * @file AngularVelocityControl.cpp
  */
 
-#include <AngularVelocityControl.hpp>
 #include <px4_platform_common/defines.h>
+
+#include <AngularVelocityControl.hpp>
 
 using namespace matrix;
 
-void AngularVelocityControl::setGains(const Vector3f &P, const Vector3f &I, const Vector3f &D)
-{
+void AngularVelocityControl::setGains(const Vector3f &P, const Vector3f &I, const Vector3f &D) {
 	_gain_p = P;
 	_gain_i = I;
 	_gain_d = D;
 }
 
 void AngularVelocityControl::setSaturationStatus(const matrix::Vector<bool, 3> &saturation_positive,
-		const matrix::Vector<bool, 3> &saturation_negative)
-{
+						 const matrix::Vector<bool, 3> &saturation_negative) {
 	_saturation_positive = saturation_positive;
 	_saturation_negative = saturation_negative;
 }
 
 void AngularVelocityControl::update(const Vector3f &angular_velocity, const Vector3f &angular_velocity_sp,
-				    const Vector3f &angular_acceleration, const float dt, const bool landed)
-{
+				    const Vector3f &angular_acceleration, const float dt, const bool landed) {
 	// angular rates error
 	Vector3f angular_velocity_error = angular_velocity_sp - angular_velocity;
 
@@ -67,7 +65,8 @@ void AngularVelocityControl::update(const Vector3f &angular_velocity, const Vect
 	Vector3f torque_feedforward = _angular_velocity_int + _gain_ff.emult(angular_velocity_sp);
 
 	// compute torque setpoint
-	_torque_sp = _inertia * _angular_accel_sp + torque_feedforward + angular_velocity.cross(_inertia * angular_velocity);
+	_torque_sp =
+		_inertia * _angular_accel_sp + torque_feedforward + angular_velocity.cross(_inertia * angular_velocity);
 
 	// update integral only if we are not landed
 	if (!landed) {
@@ -75,8 +74,7 @@ void AngularVelocityControl::update(const Vector3f &angular_velocity, const Vect
 	}
 }
 
-void AngularVelocityControl::updateIntegral(Vector3f &angular_velocity_error, const float dt)
-{
+void AngularVelocityControl::updateIntegral(Vector3f &angular_velocity_error, const float dt) {
 	for (int i = 0; i < 3; i++) {
 		// prevent further positive control saturation
 		if (_saturation_positive(i)) {
@@ -92,13 +90,14 @@ void AngularVelocityControl::updateIntegral(Vector3f &angular_velocity_error, co
 		// This counteracts a non-linear effect where the integral builds up quickly upon a large setpoint
 		// change (noticeable in a bounce-back effect after a flip).
 		// The formula leads to a gradual decrease w/o steps, while only affecting the cases where it should:
-		// with the parameter set to 400 degrees, up to 100 deg rate error, i_factor is almost 1 (having no effect),
-		// and up to 200 deg error leads to <25% reduction of I.
+		// with the parameter set to 400 degrees, up to 100 deg rate error, i_factor is almost 1 (having no
+		// effect), and up to 200 deg error leads to <25% reduction of I.
 		float i_factor = angular_velocity_error(i) / math::radians(400.f);
 		i_factor = math::max(0.0f, 1.f - i_factor * i_factor);
 
 		// Perform the integration using a first order method
-		float angular_velocity_i = _angular_velocity_int(i) + i_factor * _gain_i(i) * angular_velocity_error(i) * dt;
+		float angular_velocity_i =
+			_angular_velocity_int(i) + i_factor * _gain_i(i) * angular_velocity_error(i) * dt;
 
 		// do not propagate the result if out of range or invalid
 		if (PX4_ISFINITE(angular_velocity_i)) {
@@ -107,8 +106,7 @@ void AngularVelocityControl::updateIntegral(Vector3f &angular_velocity_error, co
 	}
 }
 
-void AngularVelocityControl::reset()
-{
+void AngularVelocityControl::reset() {
 	_angular_velocity_int.zero();
 	_torque_sp.zero();
 	_angular_accel_sp.zero();

@@ -41,36 +41,28 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
+#include <uavcan/node/GetInfo_1_0.h>
+#include <uavcan/node/ID_1_0.h>
 #include <version/version.h>
 
 #include "../ParamManager.hpp"
-
-#include <uavcan/node/ID_1_0.h>
-#include <uavcan/node/GetInfo_1_0.h>
-
 #include "../Subscribers/BaseSubscriber.hpp"
 
-class UavcanAccessResponse : public UavcanBaseSubscriber
-{
+class UavcanAccessResponse : public UavcanBaseSubscriber {
 public:
-	UavcanAccessResponse(CanardHandle &handle, UavcanParamManager &pmgr) :
-		UavcanBaseSubscriber(handle, "", "Access", 0),  _param_manager(pmgr) { };
+	UavcanAccessResponse(CanardHandle &handle, UavcanParamManager &pmgr)
+		: UavcanBaseSubscriber(handle, "", "Access", 0), _param_manager(pmgr){};
 
-	void subscribe() override
-	{
+	void subscribe() override {
 		// Subscribe to requests uavcan.pnp.NodeIDAllocationData
-		_canard_handle.RxSubscribe(CanardTransferKindRequest,
-					   uavcan_register_Access_1_0_FIXED_PORT_ID_,
+		_canard_handle.RxSubscribe(CanardTransferKindRequest, uavcan_register_Access_1_0_FIXED_PORT_ID_,
 					   uavcan_register_Access_Response_1_0_EXTENT_BYTES_,
-					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-					   &_subj_sub._canard_sub);
-
+					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC, &_subj_sub._canard_sub);
 	};
 
-	void callback(const CanardRxTransfer &receive) override
-	{
+	void callback(const CanardRxTransfer &receive) override {
 		PX4_INFO("Access request");
 
 		size_t payload_size = uavcan_register_Access_Response_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_;
@@ -79,53 +71,50 @@ public:
 		uavcan_register_Access_Request_1_0_initialize_(&msg);
 
 		size_t register_in_size_bits = receive.payload_size;
-		uavcan_register_Access_Request_1_0_deserialize_(&msg, (const uint8_t *)receive.payload, &register_in_size_bits);
+		uavcan_register_Access_Request_1_0_deserialize_(&msg, (const uint8_t *)receive.payload,
+								&register_in_size_bits);
 
-		int result {0};
+		int result{0};
 
 		uavcan_register_Value_1_0 value = msg.value;
 		uavcan_register_Name_1_0 name = msg.name;
 
 		/// TODO: get/set parameter based on whether empty or not
-		if (uavcan_register_Value_1_0_is_empty_(&value)) { // Tag Type: uavcan_primitive_Empty_1_0
+		if (uavcan_register_Value_1_0_is_empty_(&value)) {  // Tag Type: uavcan_primitive_Empty_1_0
 			// Value is empty -- 'Get' only
 			result = _param_manager.GetParamByName(name, value) ? 0 : -1;
 
 		} else {
 			// Set value
 			result = _param_manager.SetParamByName(name, value) ? 0 : -1;
-
 		}
 
 		/// TODO: Access_Response
-		uavcan_register_Access_Response_1_0 response {};
+		uavcan_register_Access_Response_1_0 response{};
 		response.value = value;
 
 		uint8_t response_payload_buffer[uavcan_register_Access_Response_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
 		const CanardTransferMetadata transfer_metadata = {
-			.priority       = CanardPriorityNominal,
-			.transfer_kind  = CanardTransferKindResponse,
-			.port_id        = uavcan_register_Access_1_0_FIXED_PORT_ID_,                // This is the subject-ID.
-			.remote_node_id = receive.metadata.remote_node_id,       // Messages cannot be unicast, so use UNSET.
-			.transfer_id    = receive.metadata.transfer_id,
+			.priority = CanardPriorityNominal,
+			.transfer_kind = CanardTransferKindResponse,
+			.port_id = uavcan_register_Access_1_0_FIXED_PORT_ID_,  // This is the subject-ID.
+			.remote_node_id = receive.metadata.remote_node_id,  // Messages cannot be unicast, so use UNSET.
+			.transfer_id = receive.metadata.transfer_id,
 		};
 
-		result = uavcan_register_Access_Response_1_0_serialize_(&response, response_payload_buffer, &payload_size);
+		result = uavcan_register_Access_Response_1_0_serialize_(&response, response_payload_buffer,
+									&payload_size);
 
 		if (result == 0) {
 			// set the data ready in the buffer and chop if needed
 			result = _canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
-						       &transfer_metadata,
-						       payload_size,
-						       &response_payload_buffer);
+						       &transfer_metadata, payload_size, &response_payload_buffer);
 		}
 
-		//return result;
-
+		// return result;
 	};
 
 private:
 	UavcanParamManager &_param_manager;
-
 };

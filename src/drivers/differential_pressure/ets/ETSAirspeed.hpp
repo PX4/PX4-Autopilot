@@ -37,20 +37,20 @@
 
 #pragma once
 
-#include <float.h>
-
 #include <drivers/drv_hrt.h>
+#include <float.h>
 #include <lib/drivers/device/i2c.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/differential_pressure.h>
 
-static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
+#include <uORB/PublicationMulti.hpp>
+
+static constexpr uint32_t I2C_SPEED = 100 * 1000;    // 100 kHz I2C serial interface
 static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x75; /* 7-bit address. 8-bit address is 0xEA */
 
 /* Register address */
-#define READ_CMD	0x07	/* Read the data */
+#define READ_CMD 0x07 /* Read the data */
 
 /**
  * The Eagle Tree Airspeed V3 cannot provide accurate reading below speeds of 15km/h.
@@ -59,10 +59,9 @@ static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x75; /* 7-bit address. 8-bit add
 #define MIN_ACCURATE_DIFF_PRES_PA 0
 
 /* Measurement rate is 100Hz */
-#define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
+#define CONVERSION_INTERVAL (1000000 / 100) /* microseconds */
 
-class ETSAirspeed : public device::I2C, public I2CSPIDriver<ETSAirspeed>
-{
+class ETSAirspeed : public device::I2C, public I2CSPIDriver<ETSAirspeed> {
 public:
 	ETSAirspeed(const I2CSPIDriverConfig &config);
 	~ETSAirspeed() override;
@@ -87,6 +86,6 @@ private:
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": communication errors")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME ": communication errors")};
 };

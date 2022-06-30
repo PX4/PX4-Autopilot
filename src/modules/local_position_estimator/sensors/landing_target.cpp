@@ -1,13 +1,14 @@
-#include "../BlockLocalPositionEstimator.hpp"
 #include <systemlib/mavlink_log.h>
+
 #include <matrix/math.hpp>
+
+#include "../BlockLocalPositionEstimator.hpp"
 
 extern orb_advert_t mavlink_log_pub;
 
-static const uint64_t 	TARGET_TIMEOUT =   2000000; // [us]
+static const uint64_t TARGET_TIMEOUT = 2000000;  // [us]
 
-void BlockLocalPositionEstimator::landingTargetInit()
-{
+void BlockLocalPositionEstimator::landingTargetInit() {
 	if (_param_ltest_mode.get() == Target_Moving) {
 		// target is in moving mode, do not initialize
 		return;
@@ -22,8 +23,7 @@ void BlockLocalPositionEstimator::landingTargetInit()
 	}
 }
 
-int BlockLocalPositionEstimator::landingTargetMeasure(Vector<float, n_y_target> &y)
-{
+int BlockLocalPositionEstimator::landingTargetMeasure(Vector<float, n_y_target> &y) {
 	if (_param_ltest_mode.get() == Target_Stationary) {
 		if (_sub_landing_target_pose.get().rel_vel_valid) {
 			y(0) = _sub_landing_target_pose.get().vx_rel;
@@ -35,14 +35,12 @@ int BlockLocalPositionEstimator::landingTargetMeasure(Vector<float, n_y_target> 
 		}
 
 		return OK;
-
 	}
 
 	return -1;
 }
 
-void BlockLocalPositionEstimator::landingTargetCorrect()
-{
+void BlockLocalPositionEstimator::landingTargetCorrect() {
 	if (_param_ltest_mode.get() == Target_Moving) {
 		// nothing to do in this mode
 		return;
@@ -51,7 +49,9 @@ void BlockLocalPositionEstimator::landingTargetCorrect()
 	// measure
 	Vector<float, n_y_target> y;
 
-	if (landingTargetMeasure(y) != OK) { return; }
+	if (landingTargetMeasure(y) != OK) {
+		return;
+	}
 
 	// calculate covariance
 	float cov_vx = _sub_landing_target_pose.get().cov_vx_rel;
@@ -81,11 +81,10 @@ void BlockLocalPositionEstimator::landingTargetCorrect()
 	Vector<float, n_y_target> r = y - C * _x;
 
 	// residual covariance, (inverse)
-	Matrix<float, n_y_target, n_y_target> S_I =
-		inv<float, n_y_target>(C * m_P * C.transpose() + R);
+	Matrix<float, n_y_target, n_y_target> S_I = inv<float, n_y_target>(C * m_P * C.transpose() + R);
 
 	// fault detection
-	float beta = (r.transpose()  * (S_I * r))(0, 0);
+	float beta = (r.transpose() * (S_I * r))(0, 0);
 
 	if (beta > BETA_TABLE[n_y_target]) {
 		if (!(_sensorFault & SENSOR_LAND_TARGET)) {
@@ -102,16 +101,13 @@ void BlockLocalPositionEstimator::landingTargetCorrect()
 	}
 
 	// kalman filter correction
-	Matrix<float, n_x, n_y_target> K =
-		m_P * C.transpose() * S_I;
+	Matrix<float, n_x, n_y_target> K = m_P * C.transpose() * S_I;
 	Vector<float, n_x> dx = K * r;
 	_x += dx;
 	m_P -= K * C * m_P;
-
 }
 
-void BlockLocalPositionEstimator::landingTargetCheckTimeout()
-{
+void BlockLocalPositionEstimator::landingTargetCheckTimeout() {
 	if (_timeStamp - _time_last_target > TARGET_TIMEOUT) {
 		if (!(_sensorTimeout & SENSOR_LAND_TARGET)) {
 			_sensorTimeout |= SENSOR_LAND_TARGET;

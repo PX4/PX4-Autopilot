@@ -32,32 +32,32 @@
  ****************************************************************************/
 
 #include "level_calibration.h"
-#include "calibration_messages.h"
-#include "calibration_routines.h"
-#include "commander_helper.h"
 
+#include <drivers/drv_hrt.h>
+#include <lib/conversion/rotation.h>
+#include <lib/geo/geo.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/parameters/param.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
-
-#include <drivers/drv_hrt.h>
-#include <lib/mathlib/mathlib.h>
-#include <lib/geo/geo.h>
-#include <matrix/math.hpp>
-#include <lib/conversion/rotation.h>
-#include <lib/parameters/param.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_attitude.h>
+
+#include <matrix/math.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionBlocking.hpp>
+
+#include "calibration_messages.h"
+#include "calibration_routines.h"
+#include "commander_helper.h"
 
 using namespace time_literals;
 using namespace matrix;
 using math::radians;
 
-int do_level_calibration(orb_advert_t *mavlink_log_pub)
-{
+int do_level_calibration(orb_advert_t *mavlink_log_pub) {
 	bool success = false;
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, "level");
@@ -95,12 +95,12 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 		const hrt_abstime start = hrt_absolute_time();
 
 		while (hrt_elapsed_time(&start) < calibration_duration) {
-
 			vehicle_attitude_s att{};
 
 			if (!att_sub.updateBlocking(att, 100000)) {
 				// attitude estimator is not running
-				calibration_log_critical(mavlink_log_pub, "attitude estimator not running - check system boot");
+				calibration_log_critical(mavlink_log_pub,
+							 "attitude estimator not running - check system boot");
 				calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "level");
 				goto out;
 			}
@@ -116,14 +116,19 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 
 			// keep min + max angles
 			for (int i = 0; i < 2; ++i) {
-				if (att_euler(i) < min_angles(i)) { min_angles(i) = att_euler(i); }
+				if (att_euler(i) < min_angles(i)) {
+					min_angles(i) = att_euler(i);
+				}
 
-				if (att_euler(i) > max_angles(i)) { max_angles(i) = att_euler(i); }
+				if (att_euler(i) > max_angles(i)) {
+					max_angles(i) = att_euler(i);
+				}
 			}
 
-			att_euler(2) = 0.f; // ignore yaw
+			att_euler(2) = 0.f;  // ignore yaw
 
-			att_euler = Eulerf{board_rotation_offset *Dcmf{att_euler}};  // subtract existing board rotation
+			att_euler =
+				Eulerf{board_rotation_offset * Dcmf{att_euler}};  // subtract existing board rotation
 			roll_mean += att_euler.phi();
 			pitch_mean += att_euler.theta();
 			++counter;
@@ -133,7 +138,6 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 		// The difference is typically <0.1 deg while at rest
 		if (max_angles(0) - min_angles(0) < math::radians(0.5f) &&
 		    max_angles(1) - min_angles(1) < math::radians(0.5f)) {
-
 			had_motion = false;
 		}
 	}
@@ -153,16 +157,17 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 		calibration_log_critical(mavlink_log_pub, "excess pitch angle");
 
 	} else {
-
 		float roll_mean_degrees = math::degrees(roll_mean);
 		float pitch_mean_degrees = math::degrees(pitch_mean);
 
 		if (fabsf(roll_offset_current - roll_mean_degrees) > 0.1f) {
-			PX4_INFO("Updating SENS_BOARD_X_OFF %.1f -> %.1f degrees", (double)roll_offset_current, (double)roll_mean_degrees);
+			PX4_INFO("Updating SENS_BOARD_X_OFF %.1f -> %.1f degrees", (double)roll_offset_current,
+				 (double)roll_mean_degrees);
 		}
 
 		if (fabsf(pitch_offset_current - pitch_mean_degrees) > 0.1f) {
-			PX4_INFO("Updating SENS_BOARD_Y_OFF %.1f -> %.1f degrees", (double)pitch_offset_current, (double)pitch_mean_degrees);
+			PX4_INFO("Updating SENS_BOARD_Y_OFF %.1f -> %.1f degrees", (double)pitch_offset_current,
+				 (double)pitch_mean_degrees);
 		}
 
 		param_set_no_notification(roll_offset_handle, &roll_mean_degrees);
@@ -175,12 +180,12 @@ out:
 
 	if (success) {
 		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "level");
-		px4_usleep(600000); // give this message enough time to propagate
+		px4_usleep(600000);  // give this message enough time to propagate
 		return 0;
 
 	} else {
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "level");
-		px4_usleep(600000); // give this message enough time to propagate
+		px4_usleep(600000);  // give this message enough time to propagate
 		return 1;
 	}
 }

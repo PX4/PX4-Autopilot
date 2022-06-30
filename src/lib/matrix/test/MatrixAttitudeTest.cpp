@@ -32,20 +32,17 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixAttitudeTest, Attitude)
-{
+TEST(MatrixAttitudeTest, Attitude) {
 	// check data
 	Eulerf euler_check(0.1f, 0.2f, 0.3f);
 	Quatf q_check(0.98334744f, 0.0342708f, 0.10602051f, .14357218f);
-	float dcm_data[] =  {
-		0.93629336f, -0.27509585f,  0.21835066f,
-		0.28962948f,  0.95642509f, -0.03695701f,
-		-0.19866933f,  0.0978434f,  0.97517033f
-	};
+	float dcm_data[] = {0.93629336f,  -0.27509585f, 0.21835066f, 0.28962948f, 0.95642509f,
+			    -0.03695701f, -0.19866933f, 0.0978434f,  0.97517033f};
 	Dcmf dcm_check(dcm_data);
 
 	// euler ctor
@@ -97,7 +94,7 @@ TEST(MatrixAttitudeTest, Attitude)
 
 	// quat normalization
 	q.normalize();
-	EXPECT_EQ(q, Quatf(0.18257419f,  0.36514837f, 0.54772256f,  0.73029674f));
+	EXPECT_EQ(q, Quatf(0.18257419f, 0.36514837f, 0.54772256f, 0.73029674f));
 	EXPECT_EQ(q0.unit(), q);
 	EXPECT_EQ(q0.unit(), q0.normalized());
 
@@ -114,14 +111,11 @@ TEST(MatrixAttitudeTest, Attitude)
 
 	// quaternion exponential with small v
 	v = Vector3f(0.001f, 0.002f, -0.003f);
-	q = Quatf(0.999993000008167f, 0.000999997666668f,
-		  0.001999995333337f, -0.002999993000005f);
+	q = Quatf(0.999993000008167f, 0.000999997666668f, 0.001999995333337f, -0.002999993000005f);
 	{
-		float M_data[] =  {
-			0.499997833331311f, 0.001500333333644f,  0.000999499999533f,
-			-0.001499666666356f, 0.499998333331778f, -0.000501000000933f,
-			-0.001000500000467f, 0.000498999999067f,  0.499999166665889f
-		};
+		float M_data[] = {0.499997833331311f,  0.001500333333644f, 0.000999499999533f,
+				  -0.001499666666356f, 0.499998333331778f, -0.000501000000933f,
+				  -0.001000500000467f, 0.000498999999067f, 0.499999166665889f};
 		M = Dcmf(M_data);
 	}
 	EXPECT_EQ(q, Quatf::expq(v));
@@ -129,14 +123,11 @@ TEST(MatrixAttitudeTest, Attitude)
 
 	// quaternion exponential with v
 	v = Vector3f(1.0f, -2.0f, 3.0f);
-	q = Quatf(-0.825299062075259f, -0.150921327219964f,
-		  0.301842654439929f, -0.452763981659893f);
+	q = Quatf(-0.825299062075259f, -0.150921327219964f, 0.301842654439929f, -0.452763981659893f);
 	{
-		float M_data[] =  {
-			2.574616981530584f, -1.180828156687602f, -1.478757764968596f,
-			1.819171843312398f,  2.095859216561988f,  0.457515529937193f,
-			0.521242235031404f,  1.457515529937193f,  1.297929608280994f
-		};
+		float M_data[] = {2.574616981530584f, -1.180828156687602f, -1.478757764968596f,
+				  1.819171843312398f, 2.095859216561988f,  0.457515529937193f,
+				  0.521242235031404f, 1.457515529937193f,  1.297929608280994f};
 		M = Dcmf(M_data);
 	}
 	EXPECT_EQ(q, Quatf::expq(v));
@@ -144,8 +135,8 @@ TEST(MatrixAttitudeTest, Attitude)
 
 	// quaternion kinematic update
 	q = Quatf();
-	float h = 0.001f;  // sampling time [s]
-	Vector3f w_B = Vector3f(0.1f, 0.2f, 0.3f); // body rate in body frame
+	float h = 0.001f;                           // sampling time [s]
+	Vector3f w_B = Vector3f(0.1f, 0.2f, 0.3f);  // body rate in body frame
 	Quatf qa = q + 0.5f * h * q.derivative1(w_B);
 	qa.normalize();
 	Quatf qb = q * Quatf::expq(0.5f * h * w_B);
@@ -228,32 +219,24 @@ TEST(MatrixAttitudeTest, Attitude)
 					yaw_expected -= 360;
 				}
 
-				//printf("roll:%d pitch:%d yaw:%d\n", roll, pitch, yaw);
-				Euler<double> euler_expected(
-					deg2rad * roll_expected,
-					deg2rad * pitch,
-					deg2rad * yaw_expected);
-				Euler<double> euler(
-					deg2rad * roll,
-					deg2rad * pitch,
-					deg2rad * yaw);
+				// printf("roll:%d pitch:%d yaw:%d\n", roll, pitch, yaw);
+				Euler<double> euler_expected(deg2rad * roll_expected, deg2rad * pitch,
+							     deg2rad * yaw_expected);
+				Euler<double> euler(deg2rad * roll, deg2rad * pitch, deg2rad * yaw);
 				Dcm<double> dcm_from_euler(euler);
-				//dcm_from_euler.print();
+				// dcm_from_euler.print();
 				Euler<double> euler_out(dcm_from_euler);
 				EXPECT_EQ(rad2deg * euler_expected, rad2deg * euler_out);
 
-				Eulerf eulerf_expected(
-					float(deg2rad)*float(roll_expected),
-					float(deg2rad)*float(pitch),
-					float(deg2rad)*float(yaw_expected));
-				Eulerf eulerf(float(deg2rad)*float(roll),
-					      float(deg2rad)*float(pitch),
-					      float(deg2rad)*float(yaw));
+				Eulerf eulerf_expected(float(deg2rad) * float(roll_expected),
+						       float(deg2rad) * float(pitch),
+						       float(deg2rad) * float(yaw_expected));
+				Eulerf eulerf(float(deg2rad) * float(roll), float(deg2rad) * float(pitch),
+					      float(deg2rad) * float(yaw));
 				Dcm<float> dcm_from_eulerf;
 				dcm_from_eulerf = eulerf;
 				Euler<float> euler_outf(dcm_from_eulerf);
-				EXPECT_EQ(float(rad2deg)*eulerf_expected,
-					  float(rad2deg)*euler_outf);
+				EXPECT_EQ(float(rad2deg) * eulerf_expected, float(rad2deg) * euler_outf);
 			}
 		}
 	}
@@ -271,19 +254,18 @@ TEST(MatrixAttitudeTest, Attitude)
 	// quaternion derivative in frame 1
 	Quatf q1(0, 1, 0, 0);
 	Vector<float, 4> q1_dot1 = q1.derivative1(Vector3f(1, 2, 3));
-	float data_q_dot1_check[] = { -0.5f, 0.0f, -1.5f, 1.0f};
+	float data_q_dot1_check[] = {-0.5f, 0.0f, -1.5f, 1.0f};
 	Vector<float, 4> q1_dot1_check(data_q_dot1_check);
 	EXPECT_EQ(q1_dot1, q1_dot1_check);
 
 	// quaternion derivative in frame 2
 	Vector<float, 4> q1_dot2 = q1.derivative2(Vector3f(1, 2, 3));
-	float data_q_dot2_check[] = { -0.5f, 0.0f, 1.5f, -1.0f};
+	float data_q_dot2_check[] = {-0.5f, 0.0f, 1.5f, -1.0f};
 	Vector<float, 4> q1_dot2_check(data_q_dot2_check);
 	EXPECT_EQ(q1_dot2, q1_dot2_check);
 
 	// quaternion product
-	Quatf q_prod_check(
-		0.93394439f, 0.0674002f, 0.20851f, 0.28236266f);
+	Quatf q_prod_check(0.93394439f, 0.0674002f, 0.20851f, 0.28236266f);
 	EXPECT_EQ(q_prod_check, q_check * q_check);
 	q_check *= q_check;
 	EXPECT_EQ(q_prod_check, q_check);
@@ -291,8 +273,7 @@ TEST(MatrixAttitudeTest, Attitude)
 	// Quaternion scalar multiplication
 	float scalar = 0.5;
 	Quatf q_scalar_mul(1.0f, 2.0f, 3.0f, 4.0f);
-	Quatf q_scalar_mul_check(1.0f * scalar, 2.0f * scalar,
-				 3.0f * scalar,  4.0f * scalar);
+	Quatf q_scalar_mul_check(1.0f * scalar, 2.0f * scalar, 3.0f * scalar, 4.0f * scalar);
 	Quatf q_scalar_mul_res = scalar * q_scalar_mul;
 	EXPECT_EQ(q_scalar_mul_check, q_scalar_mul_res);
 	Quatf q_scalar_mul_res2 = q_scalar_mul * scalar;
@@ -425,7 +406,7 @@ TEST(MatrixAttitudeTest, Attitude)
 
 	// Quaternion initialisation per array
 	float q_array[] = {0.9833f, -0.0343f, -0.1060f, -0.1436f};
-	Quaternion<float>q_from_array(q_array);
+	Quaternion<float> q_from_array(q_array);
 
 	for (size_t i = 0; i < 4; i++) {
 		EXPECT_FLOAT_EQ(q_from_array(i), q_array[i]);
@@ -436,7 +417,7 @@ TEST(MatrixAttitudeTest, Attitude)
 	EXPECT_EQ(aa_true, Vector3f(1.0f, 2.0f, 3.0f));
 	AxisAnglef aa_empty;
 	EXPECT_EQ(aa_empty, AxisAnglef(0.0f, 0.0f, 0.0f));
-	float aa_data[] =  {4.0f, 5.0f, 6.0f};
+	float aa_data[] = {4.0f, 5.0f, 6.0f};
 	AxisAnglef aa_data_init(aa_data);
 	EXPECT_EQ(aa_data_init, AxisAnglef(4.0f, 5.0f, 6.0f));
 
@@ -444,10 +425,11 @@ TEST(MatrixAttitudeTest, Attitude)
 	EXPECT_EQ(aa_norm_check.axis(), Vector3f(1, 0, 0));
 	EXPECT_FLOAT_EQ(aa_norm_check.angle(), 0.0f);
 
-	q = Quatf(-0.29555112749297824f, 0.25532186f,  0.51064372f,  0.76596558f);
-	float r_array[9] = {-0.6949206f, 0.713521f, 0.089292854f, -0.19200698f, -0.30378509f, 0.93319237f, 0.69297814f, 0.63134968f, 0.34810752f};
+	q = Quatf(-0.29555112749297824f, 0.25532186f, 0.51064372f, 0.76596558f);
+	float r_array[9] = {-0.6949206f, 0.713521f,   0.089292854f, -0.19200698f, -0.30378509f,
+			    0.93319237f, 0.69297814f, 0.63134968f,  0.34810752f};
 	R = Dcmf(r_array);
-	EXPECT_EQ(q.imag(), Vector3f(0.25532186f,  0.51064372f,  0.76596558f));
+	EXPECT_EQ(q.imag(), Vector3f(0.25532186f, 0.51064372f, 0.76596558f));
 
 	// from dcm
 	EXPECT_EQ(Quatf(R), q);
@@ -459,8 +441,8 @@ TEST(MatrixAttitudeTest, Attitude)
 
 	// conjugate
 	v = Vector3f(1.5f, 2.2f, 3.2f);
-	EXPECT_EQ(q.rotateVectorInverse(v1), Dcmf(q).T()*v1);
-	EXPECT_EQ(q.rotateVector(v1), Dcmf(q)*v1);
+	EXPECT_EQ(q.rotateVectorInverse(v1), Dcmf(q).T() * v1);
+	EXPECT_EQ(q.rotateVector(v1), Dcmf(q) * v1);
 
 	AxisAnglef aa_q_init(q);
 	EXPECT_EQ(aa_q_init, AxisAnglef(1.0f, 2.0f, 3.0f));
@@ -473,26 +455,24 @@ TEST(MatrixAttitudeTest, Attitude)
 
 	AxisAnglef aa_axis_angle_init(Vector3f(1.0f, 2.0f, 3.0f), 3.0f);
 	EXPECT_EQ(aa_axis_angle_init, Vector3f(0.80178373f, 1.60356745f, 2.40535118f));
-	EXPECT_EQ(aa_axis_angle_init.axis(), Vector3f(0.26726124f,  0.53452248f,  0.80178373f));
+	EXPECT_EQ(aa_axis_angle_init.axis(), Vector3f(0.26726124f, 0.53452248f, 0.80178373f));
 	EXPECT_EQ(aa_axis_angle_init.angle(), 3.0f);
-	EXPECT_EQ(Quatf((AxisAnglef(Vector3f(0.0f, 0.0f, 1.0f), 0.0f))),
-		  Quatf(1.0f, 0.0f, 0.0f, 0.0f));
-
+	EXPECT_EQ(Quatf((AxisAnglef(Vector3f(0.0f, 0.0f, 1.0f), 0.0f))), Quatf(1.0f, 0.0f, 0.0f, 0.0f));
 
 	// check consistentcy of quaternion and dcm product
 	Dcmf dcm3(Eulerf(1, 2, 3));
 	Dcmf dcm4(Eulerf(4, 5, 6));
 	Dcmf dcm34 = dcm3 * dcm4;
-	EXPECT_EQ(Eulerf(Quatf(dcm3)*Quatf(dcm4)), Eulerf(dcm34));
+	EXPECT_EQ(Eulerf(Quatf(dcm3) * Quatf(dcm4)), Eulerf(dcm34));
 
 	// check corner cases of matrix to quaternion conversion
-	q = Quatf(0, 1, 0, 0); // 180 degree rotation around the x axis
+	q = Quatf(0, 1, 0, 0);  // 180 degree rotation around the x axis
 	R = Dcmf(q);
 	EXPECT_EQ(q, Quatf(R));
-	q = Quatf(0, 0, 1, 0); // 180 degree rotation around the y axis
+	q = Quatf(0, 0, 1, 0);  // 180 degree rotation around the y axis
 	R = Dcmf(q);
 	EXPECT_EQ(q, Quatf(R));
-	q = Quatf(0, 0, 0, 1); // 180 degree rotation around the z axis
+	q = Quatf(0, 0, 0, 1);  // 180 degree rotation around the z axis
 	R = Dcmf(q);
 	EXPECT_EQ(q, Quatf(R));
 }

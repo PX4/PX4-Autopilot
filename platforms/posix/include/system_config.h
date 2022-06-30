@@ -42,12 +42,12 @@
 #define PX4_CPU_UUID_BYTE_LENGTH 16
 #define PX4_CPU_UUID_WORD32_LENGTH 4
 
-#define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
-#define PX4_CPU_UUID_WORD32_UNIQUE_H            2 /* Most significant digits change the least */
-#define PX4_CPU_UUID_WORD32_UNIQUE_M            1 /* Middle significant digits */
-#define PX4_CPU_UUID_WORD32_UNIQUE_L            0 /* Least significant digits change the most */
-#define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
-#define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
+#define PX4_CPU_MFGUID_BYTE_LENGTH PX4_CPU_UUID_BYTE_LENGTH
+#define PX4_CPU_UUID_WORD32_UNIQUE_H 2 /* Most significant digits change the least */
+#define PX4_CPU_UUID_WORD32_UNIQUE_M 1 /* Middle significant digits */
+#define PX4_CPU_UUID_WORD32_UNIQUE_L 0 /* Least significant digits change the most */
+#define PX4_CPU_UUID_WORD32_FORMAT_SIZE (PX4_CPU_UUID_WORD32_LENGTH - 1 + (2 * PX4_CPU_UUID_BYTE_LENGTH) + 1)
+#define PX4_CPU_MFGUID_FORMAT_SIZE ((2 * PX4_CPU_MFGUID_BYTE_LENGTH) + 1)
 
 #define BOARD_OVERRIDE_CPU_VERSION (-1)
 #define board_mcu_version(rev, revstr, errata) BOARD_OVERRIDE_CPU_VERSION

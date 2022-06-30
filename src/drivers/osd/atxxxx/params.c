@@ -32,17 +32,17 @@
  ****************************************************************************/
 
 /**
-* Enable/Disable the ATXXX OSD Chip
-*
-* Configure the ATXXXX OSD Chip (mounted on the OmnibusF4SD board) and
-* select the transmission standard.
-*
-* @value 0 Disabled
-* @value 1 NTSC
-* @value 2 PAL
-*
-* @reboot_required true
-* @group OSD
-*
-*/
+ * Enable/Disable the ATXXX OSD Chip
+ *
+ * Configure the ATXXXX OSD Chip (mounted on the OmnibusF4SD board) and
+ * select the transmission standard.
+ *
+ * @value 0 Disabled
+ * @value 1 NTSC
+ * @value 2 PAL
+ *
+ * @reboot_required true
+ * @group OSD
+ *
+ */
 PARAM_DEFINE_INT32(OSD_ATXXXX_CFG, 0);

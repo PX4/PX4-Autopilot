@@ -39,9 +39,9 @@
 #pragma once
 
 #include <airspeed/airspeed.h>
-#include <lib/wind_estimator/WindEstimator.hpp>
 #include <uORB/topics/airspeed_wind.h>
 
+#include <lib/wind_estimator/WindEstimator.hpp>
 
 using matrix::Dcmf;
 using matrix::Quatf;
@@ -68,8 +68,7 @@ struct airspeed_validator_update_data {
 	bool in_fixed_wing_flight;
 };
 
-class AirspeedValidator
-{
+class AirspeedValidator {
 public:
 	AirspeedValidator();
 	~AirspeedValidator() = default;
@@ -82,30 +81,30 @@ public:
 	float get_CAS() { return _CAS; }
 	float get_TAS() { return _TAS; }
 	bool get_airspeed_valid() { return _airspeed_valid; }
-	float get_CAS_scale_validated() {return _CAS_scale_validated;}
+	float get_CAS_scale_validated() { return _CAS_scale_validated; }
 
 	airspeed_wind_s get_wind_estimator_states(uint64_t timestamp);
 
 	// setters wind estimator parameters
-	void set_wind_estimator_wind_process_noise_spectral_density(float wind_nsd) { _wind_estimator.set_wind_process_noise_spectral_density(wind_nsd); }
-	void set_wind_estimator_tas_scale_process_noise_spectral_density(float tas_scale_nsd) { _wind_estimator.set_tas_scale_process_noise_spectral_density(tas_scale_nsd); }
-	void set_wind_estimator_tas_scale_init(float tas_scale_init)
-	{
-		_tas_scale_init = tas_scale_init;
+	void set_wind_estimator_wind_process_noise_spectral_density(float wind_nsd) {
+		_wind_estimator.set_wind_process_noise_spectral_density(wind_nsd);
 	}
+	void set_wind_estimator_tas_scale_process_noise_spectral_density(float tas_scale_nsd) {
+		_wind_estimator.set_tas_scale_process_noise_spectral_density(tas_scale_nsd);
+	}
+	void set_wind_estimator_tas_scale_init(float tas_scale_init) { _tas_scale_init = tas_scale_init; }
 
 	void set_wind_estimator_tas_noise(float tas_sigma) { _wind_estimator.set_tas_noise(tas_sigma); }
 	void set_wind_estimator_beta_noise(float beta_var) { _wind_estimator.set_beta_noise(beta_var); }
-	void set_wind_estimator_tas_gate(uint8_t gate_size)
-	{
-		_wind_estimator.set_tas_gate(gate_size);
-	}
+	void set_wind_estimator_tas_gate(uint8_t gate_size) { _wind_estimator.set_tas_gate(gate_size); }
 
 	void set_wind_estimator_beta_gate(uint8_t gate_size) { _wind_estimator.set_beta_gate(gate_size); }
 
 	// setters for failure detection tuning parameters
 	void set_tas_innov_threshold(float tas_innov_threshold) { _tas_innov_threshold = tas_innov_threshold; }
-	void set_tas_innov_integ_threshold(float tas_innov_integ_threshold) { _tas_innov_integ_threshold = tas_innov_integ_threshold; }
+	void set_tas_innov_integ_threshold(float tas_innov_integ_threshold) {
+		_tas_innov_integ_threshold = tas_innov_integ_threshold;
+	}
 	void set_checks_fail_delay(float checks_fail_delay) { _checks_fail_delay = checks_fail_delay; }
 	void set_checks_clear_delay(float checks_clear_delay) { _checks_clear_delay = checks_clear_delay; }
 
@@ -120,8 +119,7 @@ public:
 	void set_enable_load_factor_check(bool enable) { _load_factor_check_enabled = enable; }
 
 private:
-
-	WindEstimator _wind_estimator{}; ///< wind estimator instance running in this particular airspeedValidator
+	WindEstimator _wind_estimator{};  ///< wind estimator instance running in this particular airspeedValidator
 
 	// Check enabling
 	bool _data_stuck_check_enabled{false};
@@ -129,57 +127,60 @@ private:
 	bool _load_factor_check_enabled{false};
 
 	// airspeed scale validity check
-	static constexpr int SCALE_CHECK_SAMPLES = 12; ///< take samples from 12 segments (every 360/12=30°)
+	static constexpr int SCALE_CHECK_SAMPLES = 12;  ///< take samples from 12 segments (every 360/12=30°)
 
 	// general states
-	bool _in_fixed_wing_flight{false}; ///< variable to bypass innovation and load factor checks
-	float _IAS{0.0f}; ///< indicated airsped in m/s
-	float _CAS{0.0f}; ///< calibrated airspeed in m/s
-	float _TAS{0.0f}; ///< true airspeed in m/s
-	float _CAS_scale_applied{1.0f}; ///< scale factor from IAS to CAS (currently applied value)
-	float _CAS_scale_validated{1.0f}; ///< scale factor from IAS to CAS (currently estimated value)
+	bool _in_fixed_wing_flight{false};  ///< variable to bypass innovation and load factor checks
+	float _IAS{0.0f};                   ///< indicated airsped in m/s
+	float _CAS{0.0f};                   ///< calibrated airspeed in m/s
+	float _TAS{0.0f};                   ///< true airspeed in m/s
+	float _CAS_scale_applied{1.0f};     ///< scale factor from IAS to CAS (currently applied value)
+	float _CAS_scale_validated{1.0f};   ///< scale factor from IAS to CAS (currently estimated value)
 
 	// data stuck check
 	uint64_t _time_last_unequal_data{0};
 	bool _data_stuck_test_failed{false};
 	float _IAS_prev{0.f};
-	static constexpr uint64_t DATA_STUCK_TIMEOUT{2_s}; ///< timeout after which data stuck check triggers when data is flat
+	static constexpr uint64_t DATA_STUCK_TIMEOUT{
+		2_s};  ///< timeout after which data stuck check triggers when data is flat
 
 	// states of innovation check
 	bool _innovations_check_failed{false};  ///< true when airspeed innovations have failed consistency checks
-	float _tas_innov_threshold{1.0}; ///< innovation error threshold for triggering innovation check failure
-	float _tas_innov_integ_threshold{-1.0}; ///< integrator innovation error threshold for triggering innovation check failure
-	uint64_t	_time_last_aspd_innov_check{0};	///< time airspeed innovation was last checked (uSec)
-	uint64_t	_time_last_tas_pass{0};		///< last time innovation checks passed
-	float		_apsd_innov_integ_state{0.0f};	///< integral of excess normalised airspeed innovation (sec)
-	static constexpr uint64_t TAS_INNOV_FAIL_DELAY{1_s};	///< time required for innovation levels to pass or fail (usec)
-	uint64_t	_time_wind_estimator_initialized{0};		///< time last time wind estimator was initialized (uSec)
+	float _tas_innov_threshold{1.0};        ///< innovation error threshold for triggering innovation check failure
+	float _tas_innov_integ_threshold{
+		-1.0};  ///< integrator innovation error threshold for triggering innovation check failure
+	uint64_t _time_last_aspd_innov_check{0};  ///< time airspeed innovation was last checked (uSec)
+	uint64_t _time_last_tas_pass{0};          ///< last time innovation checks passed
+	float _apsd_innov_integ_state{0.0f};      ///< integral of excess normalised airspeed innovation (sec)
+	static constexpr uint64_t TAS_INNOV_FAIL_DELAY{
+		1_s};                                  ///< time required for innovation levels to pass or fail (usec)
+	uint64_t _time_wind_estimator_initialized{0};  ///< time last time wind estimator was initialized (uSec)
 
 	// states of load factor check
-	bool _load_factor_check_failed{false}; ///< load_factor check has detected failure
-	float _airspeed_stall{8.0f}; ///< stall speed of aircraft used for load factor check
-	float	_load_factor_ratio{0.5f};	///< ratio of maximum load factor predicted by stall speed to measured load factor
+	bool _load_factor_check_failed{false};  ///< load_factor check has detected failure
+	float _airspeed_stall{8.0f};            ///< stall speed of aircraft used for load factor check
+	float _load_factor_ratio{
+		0.5f};  ///< ratio of maximum load factor predicted by stall speed to measured load factor
 
 	// states of airspeed valid declaration
-	bool _airspeed_valid{true}; ///< airspeed valid (pitot or groundspeed-windspeed)
-	int _checks_fail_delay{3}; ///< delay for airspeed invalid declaration after single check failure (Sec)
-	int _checks_clear_delay{-1}; ///< delay for airspeed valid declaration after all checks passed again (Sec)
-	uint64_t	_time_checks_passed{0};	///< time the checks have last passed (uSec)
-	uint64_t	_time_checks_failed{0};	///< time the checks have last not passed (uSec)
+	bool _airspeed_valid{true};       ///< airspeed valid (pitot or groundspeed-windspeed)
+	int _checks_fail_delay{3};        ///< delay for airspeed invalid declaration after single check failure (Sec)
+	int _checks_clear_delay{-1};      ///< delay for airspeed valid declaration after all checks passed again (Sec)
+	uint64_t _time_checks_passed{0};  ///< time the checks have last passed (uSec)
+	uint64_t _time_checks_failed{0};  ///< time the checks have last not passed (uSec)
 
 	hrt_abstime _begin_current_scale_check{0};
 
 	int _tas_scale_apply{0};
 	float _tas_scale_init{1.f};
 
-	matrix::Vector<float, SCALE_CHECK_SAMPLES> _scale_check_TAS {};
-	matrix::Vector<float, SCALE_CHECK_SAMPLES> _scale_check_groundspeed {};
+	matrix::Vector<float, SCALE_CHECK_SAMPLES> _scale_check_TAS{};
+	matrix::Vector<float, SCALE_CHECK_SAMPLES> _scale_check_groundspeed{};
 
 	void update_in_fixed_wing_flight(bool in_fixed_wing_flight) { _in_fixed_wing_flight = in_fixed_wing_flight; }
 
 	void update_wind_estimator(const uint64_t timestamp, float airspeed_true_raw, bool lpos_valid,
-				   const matrix::Vector3f &vI,
-				   float lpos_evh, float lpos_evv, const float att_q[4]);
+				   const matrix::Vector3f &vI, float lpos_evh, float lpos_evv, const float att_q[4]);
 	void update_CAS_scale_validated(bool lpos_valid, const matrix::Vector3f &vI, float airspeed_true_raw);
 	void update_CAS_scale_applied();
 	void update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius);
@@ -190,5 +191,4 @@ private:
 	void update_airspeed_valid_status(const uint64_t timestamp);
 	void reset();
 	void reset_CAS_scale_check();
-
 };

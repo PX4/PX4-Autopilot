@@ -39,11 +39,10 @@
  */
 
 #include <inttypes.h>
-#include <stdbool.h>
-
+#include <lib/crypto/monocypher/src/optional/monocypher-ed25519.h>
 #include <px4_platform_common/crypto_backend.h>
 #include <px4_random.h>
-#include <lib/crypto/monocypher/src/optional/monocypher-ed25519.h>
+#include <stdbool.h>
 #include <tomcrypt.h>
 
 extern void libtomcrypt_init(void);
@@ -82,8 +81,7 @@ typedef struct {
 	uint64_t ctr;
 } chacha20_context_t;
 
-static inline void initialize_tomcrypt(void)
-{
+static inline void initialize_tomcrypt(void) {
 	if (!tomcrypt_initialized) {
 		libtomcrypt_init();
 		tomcrypt_initialized = true;
@@ -91,9 +89,8 @@ static inline void initialize_tomcrypt(void)
 }
 
 /* Clear key cache */
-static void clear_key_cache(void)
-{
-	for (int i = 0; i < KEY_CACHE_LEN ; i++) {
+static void clear_key_cache(void) {
+	for (int i = 0; i < KEY_CACHE_LEN; i++) {
 		SECMEM_FREE(key_cache[i].key);
 		key_cache[i].key = NULL;
 		key_cache[i].key_size = 0;
@@ -101,9 +98,7 @@ static void clear_key_cache(void)
 }
 
 /* Retrieve a direct pointer to the cached temporary/public key */
-static const uint8_t *crypto_get_key_ptr(keystore_session_handle_t handle, uint8_t key_idx,
-		size_t *len)
-{
+static const uint8_t *crypto_get_key_ptr(keystore_session_handle_t handle, uint8_t key_idx, size_t *len) {
 	uint8_t *ret;
 
 	if (key_idx >= KEY_CACHE_LEN) {
@@ -115,12 +110,10 @@ static const uint8_t *crypto_get_key_ptr(keystore_session_handle_t handle, uint8
 
 	/* if the key doesn't exist in the key cache, try to read it in there from keystore */
 	if (ret == NULL) {
-
 		/* First check if the key exists in the keystore and retrieve its length */
 		*len = keystore_get_key(handle, key_idx, NULL, 0);
 
 		if (*len > 0) {
-
 			/* Allocate memory for the key in the cache */
 			ret = SECMEM_ALLOC(*len);
 
@@ -144,15 +137,12 @@ static const uint8_t *crypto_get_key_ptr(keystore_session_handle_t handle, uint8
 	return ret;
 }
 
-
-void crypto_init()
-{
+void crypto_init() {
 	keystore_init();
 	clear_key_cache();
 }
 
-crypto_session_handle_t crypto_open(px4_crypto_algorithm_t algorithm)
-{
+crypto_session_handle_t crypto_open(px4_crypto_algorithm_t algorithm) {
 	crypto_session_handle_t ret;
 	ret.keystore_handle = keystore_open();
 
@@ -168,7 +158,7 @@ crypto_session_handle_t crypto_open(px4_crypto_algorithm_t algorithm)
 	}
 
 	switch (algorithm) {
-	case CRYPTO_XCHACHA20: {
+		case CRYPTO_XCHACHA20: {
 			chacha20_context_t *context = XMALLOC(sizeof(chacha20_context_t));
 
 			if (!context) {
@@ -180,19 +170,16 @@ crypto_session_handle_t crypto_open(px4_crypto_algorithm_t algorithm)
 				px4_get_secure_random(context->nonce, sizeof(context->nonce));
 				context->ctr = 0;
 			}
-		}
-		break;
+		} break;
 
-	default:
-		ret.context = NULL;
+		default:
+			ret.context = NULL;
 	}
 
 	return ret;
 }
 
-void crypto_close(crypto_session_handle_t *handle)
-{
-
+void crypto_close(crypto_session_handle_t *handle) {
 	// Not open?
 	if (!crypto_session_handle_valid(*handle)) {
 		return;
@@ -205,12 +192,8 @@ void crypto_close(crypto_session_handle_t *handle)
 	handle->context = NULL;
 }
 
-bool crypto_signature_check(crypto_session_handle_t handle,
-			    uint8_t  key_index,
-			    const uint8_t  *signature,
-			    const uint8_t *message,
-			    size_t message_size)
-{
+bool crypto_signature_check(crypto_session_handle_t handle, uint8_t key_index, const uint8_t *signature,
+			    const uint8_t *message, size_t message_size) {
 	bool ret = false;
 	size_t keylen = 0;
 	const uint8_t *public_key = NULL;
@@ -224,25 +207,19 @@ bool crypto_signature_check(crypto_session_handle_t handle,
 	}
 
 	switch (handle.algorithm) {
-	case CRYPTO_ED25519:
-		ret = crypto_ed25519_check(signature, public_key, message, message_size) == 0;
-		break;
+		case CRYPTO_ED25519:
+			ret = crypto_ed25519_check(signature, public_key, message, message_size) == 0;
+			break;
 
-	default:
-		ret = false;
+		default:
+			ret = false;
 	}
 
 	return ret;
 }
 
-bool crypto_encrypt_data(crypto_session_handle_t handle,
-			 uint8_t  key_idx,
-			 const uint8_t *message,
-			 size_t message_size,
-			 uint8_t *cipher,
-			 size_t *cipher_size)
-{
-
+bool crypto_encrypt_data(crypto_session_handle_t handle, uint8_t key_idx, const uint8_t *message, size_t message_size,
+			 uint8_t *cipher, size_t *cipher_size) {
 	bool ret = false;
 
 	if (!crypto_session_handle_valid(handle)) {
@@ -250,32 +227,32 @@ bool crypto_encrypt_data(crypto_session_handle_t handle,
 	}
 
 	switch (handle.algorithm) {
-	case CRYPTO_NONE:
-		if (*cipher_size >= message_size) {
-			/* In-place there is no copy needed */
-			if (message != cipher) {
-				memcpy(cipher, message, message_size);
+		case CRYPTO_NONE:
+			if (*cipher_size >= message_size) {
+				/* In-place there is no copy needed */
+				if (message != cipher) {
+					memcpy(cipher, message, message_size);
+				}
+
+				*cipher_size = message_size;
+				ret = true;
 			}
 
-			*cipher_size = message_size;
-			ret = true;
-		}
+			break;
 
-		break;
-
-	case CRYPTO_XCHACHA20: {
+		case CRYPTO_XCHACHA20: {
 			size_t key_sz;
 			uint8_t *key = (uint8_t *)crypto_get_key_ptr(handle.keystore_handle, key_idx, &key_sz);
 			chacha20_context_t *context = handle.context;
 
 			if (key_sz == 32) {
-				context->ctr = crypto_xchacha20_ctr(cipher, message, *cipher_size, key, context->nonce, context->ctr);
+				context->ctr = crypto_xchacha20_ctr(cipher, message, *cipher_size, key, context->nonce,
+								    context->ctr);
 				ret = true;
 			}
-		}
-		break;
+		} break;
 
-	case CRYPTO_RSA_OAEP: {
+		case CRYPTO_RSA_OAEP: {
 			rsa_key key;
 			size_t key_sz;
 			unsigned long outlen = *cipher_size;
@@ -284,36 +261,27 @@ bool crypto_encrypt_data(crypto_session_handle_t handle,
 
 			initialize_tomcrypt();
 
-			if (public_key &&
-			    rsa_import(public_key, key_sz, &key) == CRYPT_OK) {
+			if (public_key && rsa_import(public_key, key_sz, &key) == CRYPT_OK) {
 				if (outlen >= ltc_mp.unsigned_size(key.N) &&
-				    pkcs_1_oaep_encode(message, message_size,
-						       NULL, 0,
-						       ltc_mp.count_bits(key.N),
-						       NULL,
-						       0, 0,
-						       cipher, &outlen) == CRYPT_OK &&
+				    pkcs_1_oaep_encode(message, message_size, NULL, 0, ltc_mp.count_bits(key.N), NULL,
+						       0, 0, cipher, &outlen) == CRYPT_OK &&
 				    ltc_mp.rsa_me(cipher, outlen, cipher, &outlen, PK_PUBLIC, &key) == CRYPT_OK) {
 					*cipher_size = outlen;
 					ret = true;
-
 				}
 
 				rsa_free(&key);
 			}
-		}
-		break;
+		} break;
 
-	default:
-		break;
+		default:
+			break;
 	}
 
 	return ret;
 }
 
-bool crypto_generate_key(crypto_session_handle_t handle,
-			 uint8_t idx, bool persistent)
-{
+bool crypto_generate_key(crypto_session_handle_t handle, uint8_t idx, bool persistent) {
 	bool ret = false;
 
 	if (idx >= KEY_CACHE_LEN) {
@@ -321,29 +289,29 @@ bool crypto_generate_key(crypto_session_handle_t handle,
 	}
 
 	switch (handle.algorithm) {
-	case CRYPTO_XCHACHA20:
-		if (key_cache[idx].key_size < 32) {
-			if (key_cache[idx].key_size > 0) {
-				SECMEM_FREE(key_cache[idx].key);
+		case CRYPTO_XCHACHA20:
+			if (key_cache[idx].key_size < 32) {
+				if (key_cache[idx].key_size > 0) {
+					SECMEM_FREE(key_cache[idx].key);
+					key_cache[idx].key_size = 0;
+				}
+
+				key_cache[idx].key = SECMEM_ALLOC(32);
+			}
+
+			if (key_cache[idx].key) {
+				key_cache[idx].key_size = 32;
+				px4_get_secure_random(key_cache[idx].key, 32);
+				ret = true;
+
+			} else {
 				key_cache[idx].key_size = 0;
 			}
 
-			key_cache[idx].key = SECMEM_ALLOC(32);
-		}
+			break;
 
-		if (key_cache[idx].key) {
-			key_cache[idx].key_size = 32;
-			px4_get_secure_random(key_cache[idx].key, 32);
-			ret = true;
-
-		} else {
-			key_cache[idx].key_size = 0;
-		}
-
-		break;
-
-	default:
-		break;
+		default:
+			break;
 	}
 
 	if (ret && persistent) {
@@ -353,12 +321,8 @@ bool crypto_generate_key(crypto_session_handle_t handle,
 	return ret;
 }
 
-bool crypto_get_encrypted_key(crypto_session_handle_t handle,
-			      uint8_t key_idx,
-			      uint8_t *key,
-			      size_t *max_len,
-			      uint8_t encryption_key_idx)
-{
+bool crypto_get_encrypted_key(crypto_session_handle_t handle, uint8_t key_idx, uint8_t *key, size_t *max_len,
+			      uint8_t encryption_key_idx) {
 	// Retrieve the plaintext key
 	bool ret = true;
 	size_t key_sz;
@@ -370,12 +334,7 @@ bool crypto_get_encrypted_key(crypto_session_handle_t handle,
 
 	// Encrypt it
 	if (key != NULL) {
-		ret = crypto_encrypt_data(handle,
-					  encryption_key_idx,
-					  plain_key,
-					  key_sz,
-					  key,
-					  max_len);
+		ret = crypto_encrypt_data(handle, encryption_key_idx, plain_key, key_sz, key, max_len);
 
 	} else {
 		// The key size, encrypted, is a multiple of minimum block size for the algorithm+key
@@ -390,13 +349,9 @@ bool crypto_get_encrypted_key(crypto_session_handle_t handle,
 	return ret;
 }
 
-
-bool crypto_get_nonce(crypto_session_handle_t handle,
-		      uint8_t *nonce,
-		      size_t *nonce_len)
-{
+bool crypto_get_nonce(crypto_session_handle_t handle, uint8_t *nonce, size_t *nonce_len) {
 	switch (handle.algorithm) {
-	case CRYPTO_XCHACHA20: {
+		case CRYPTO_XCHACHA20: {
 			chacha20_context_t *context = handle.context;
 
 			if (nonce != NULL && context != NULL) {
@@ -404,45 +359,41 @@ bool crypto_get_nonce(crypto_session_handle_t handle,
 			}
 
 			*nonce_len = sizeof(context->nonce);
-		}
-		break;
+		} break;
 
-	default:
-		*nonce_len = 0;
+		default:
+			*nonce_len = 0;
 	}
 
 	return true;
 }
 
-size_t crypto_get_min_blocksize(crypto_session_handle_t handle, uint8_t key_idx)
-{
+size_t crypto_get_min_blocksize(crypto_session_handle_t handle, uint8_t key_idx) {
 	size_t ret;
 
 	switch (handle.algorithm) {
-	case CRYPTO_XCHACHA20:
-		ret = 64;
-		break;
+		case CRYPTO_XCHACHA20:
+			ret = 64;
+			break;
 
-	case CRYPTO_RSA_OAEP: {
+		case CRYPTO_RSA_OAEP: {
 			rsa_key enc_key;
 			size_t pub_key_sz;
 			uint8_t *pub_key = (uint8_t *)crypto_get_key_ptr(handle.keystore_handle, key_idx, &pub_key_sz);
 
 			initialize_tomcrypt();
 
-			if (pub_key &&
-			    rsa_import(pub_key, pub_key_sz, &enc_key) == CRYPT_OK) {
+			if (pub_key && rsa_import(pub_key, pub_key_sz, &enc_key) == CRYPT_OK) {
 				ret = ltc_mp.unsigned_size(enc_key.N);
 				rsa_free(&enc_key);
 
 			} else {
 				ret = 0;
 			}
-		}
-		break;
+		} break;
 
-	default:
-		ret = 1;
+		default:
+			ret = 1;
 	}
 
 	return ret;

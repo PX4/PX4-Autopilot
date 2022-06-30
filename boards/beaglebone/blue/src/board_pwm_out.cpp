@@ -35,39 +35,32 @@
 #define MODULE_NAME "bbblue_pwm_out"
 #endif
 
-#include <fcntl.h>
-#include <errno.h>
-#include <px4_platform_common/log.h>
-
-#include <robotcontrol.h>
-#include <board_config.h>
-
 #include "board_pwm_out.h"
+
+#include <board_config.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <px4_platform_common/log.h>
+#include <robotcontrol.h>
 
 using namespace pwm_out;
 
-BBBlueRcPWMOut::BBBlueRcPWMOut(int max_num_outputs) : _num_outputs(max_num_outputs)
-{
+BBBlueRcPWMOut::BBBlueRcPWMOut(int max_num_outputs) : _num_outputs(max_num_outputs) {
 	if (_num_outputs > MAX_NUM_PWM) {
 		PX4_WARN("number of outputs too large. Setting to %i", MAX_NUM_PWM);
 		_num_outputs = MAX_NUM_PWM;
 	}
 }
 
-BBBlueRcPWMOut::~BBBlueRcPWMOut()
-{
-	rc_cleaning();
-}
+BBBlueRcPWMOut::~BBBlueRcPWMOut() { rc_cleaning(); }
 
-int BBBlueRcPWMOut::init()
-{
+int BBBlueRcPWMOut::init() {
 	rc_init();
 
 	return 0;
 }
 
-int BBBlueRcPWMOut::send_output_pwm(const uint16_t *pwm, int num_outputs)
-{
+int BBBlueRcPWMOut::send_output_pwm(const uint16_t *pwm, int num_outputs) {
 	if (num_outputs > _num_outputs) {
 		num_outputs = _num_outputs;
 	}
@@ -76,9 +69,8 @@ int BBBlueRcPWMOut::send_output_pwm(const uint16_t *pwm, int num_outputs)
 
 	// pwm[ch] is duty_cycle in us
 	for (int ch = 0; ch < num_outputs; ++ch) {
-		ret += rc_servo_send_pulse_us(ch + 1, pwm[ch]); // converts to 1-based channel #
+		ret += rc_servo_send_pulse_us(ch + 1, pwm[ch]);  // converts to 1-based channel #
 	}
 
 	return ret;
 }
-

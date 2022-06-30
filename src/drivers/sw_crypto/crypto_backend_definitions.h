@@ -33,8 +33,8 @@
 
 #pragma once
 
-#include <stdbool.h>
 #include <keystore_backend_definitions.h>
+#include <stdbool.h>
 
 typedef struct {
 	int handle;
@@ -43,5 +43,7 @@ typedef struct {
 	void *context;
 } crypto_session_handle_t;
 
-static inline void crypto_session_handle_init(crypto_session_handle_t *handle) {handle->handle = 0;}
-static inline bool crypto_session_handle_valid(crypto_session_handle_t handle) {return handle.handle > 0 && keystore_session_handle_valid(handle.keystore_handle);}
+static inline void crypto_session_handle_init(crypto_session_handle_t *handle) { handle->handle = 0; }
+static inline bool crypto_session_handle_valid(crypto_session_handle_t handle) {
+	return handle.handle > 0 && keystore_session_handle_valid(handle.keystore_handle);
+}

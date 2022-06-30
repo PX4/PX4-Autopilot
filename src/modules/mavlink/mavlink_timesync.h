@@ -40,15 +40,14 @@
 
 #pragma once
 
-#include "mavlink_bridge_header.h"
-
-#include <uORB/PublicationMulti.hpp>
+#include <drivers/drv_hrt.h>
+#include <float.h>
+#include <math.h>
 #include <uORB/topics/timesync_status.h>
 
-#include <drivers/drv_hrt.h>
+#include <uORB/PublicationMulti.hpp>
 
-#include <math.h>
-#include <float.h>
+#include "mavlink_bridge_header.h"
 
 using namespace time_literals;
 
@@ -94,8 +93,7 @@ static constexpr uint32_t MAX_CONSECUTIVE_HIGH_DEVIATION = 5;
 
 class Mavlink;
 
-class MavlinkTimesync
-{
+class MavlinkTimesync {
 public:
 	explicit MavlinkTimesync(Mavlink *mavlink);
 	~MavlinkTimesync() = default;
@@ -109,13 +107,11 @@ public:
 	uint64_t sync_stamp(uint64_t usec);
 
 private:
-
 	/* do not allow top copying this class */
 	MavlinkTimesync(MavlinkTimesync &);
-	MavlinkTimesync &operator = (const MavlinkTimesync &);
+	MavlinkTimesync &operator=(const MavlinkTimesync &);
 
 protected:
-
 	/**
 	 * Online exponential filter to smooth time offset
 	 */
@@ -132,7 +128,7 @@ protected:
 	 */
 	void reset_filter();
 
-	uORB::PublicationMulti<timesync_status_s>  _timesync_status_pub{ORB_ID(timesync_status)};
+	uORB::PublicationMulti<timesync_status_s> _timesync_status_pub{ORB_ID(timesync_status)};
 
 	uint32_t _sequence{0};
 

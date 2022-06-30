@@ -40,12 +40,12 @@
  */
 
 #include <gtest/gtest.h>
+
 #include "ActuatorEffectivenessRotors.hpp"
 
 using namespace matrix;
 
-TEST(ActuatorEffectivenessRotors, AllZeroCase)
-{
+TEST(ActuatorEffectivenessRotors, AllZeroCase) {
 	// Quad wide geometry
 	ActuatorEffectivenessRotors::Geometry geometry = {};
 	geometry.rotors[0].position(0) = 1.0f;
@@ -91,20 +91,18 @@ TEST(ActuatorEffectivenessRotors, AllZeroCase)
 	ActuatorEffectivenessRotors::computeEffectivenessMatrix(geometry, effectiveness);
 
 	const float expected[ActuatorEffectiveness::NUM_AXES][ActuatorEffectiveness::NUM_ACTUATORS] = {
-		{-1.0f,   1.0f,   1.0f,  -1.0f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-		{ 1.0f,  -1.0f,   1.0f,  -1.0f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-		{ 0.05f,  0.05f, -0.05f, -0.05f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-		{ 0.f,    0.f,    0.f,    0.f,   0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-		{ 0.f,    0.f,    0.f,    0.f,   0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-		{-1.0f,  -1.0f,  -1.0f,  -1.0f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
-	};
+		{-1.0f, 1.0f, 1.0f, -1.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+		{1.0f, -1.0f, 1.0f, -1.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+		{0.05f, 0.05f, -0.05f, -0.05f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+		{0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+		{0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+		{-1.0f, -1.0f, -1.0f, -1.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}};
 	ActuatorEffectiveness::EffectivenessMatrix effectiveness_expected(expected);
 
 	EXPECT_EQ(effectiveness, effectiveness_expected);
 }
 
-TEST(ActuatorEffectivenessRotors, Tilt)
-{
+TEST(ActuatorEffectivenessRotors, Tilt) {
 	Vector3f axis_expected{0.f, 0.f, -1.f};
 	Vector3f axis = ActuatorEffectivenessRotors::tiltedAxis(0.f, 0.f);
 	EXPECT_EQ(axis, axis_expected);

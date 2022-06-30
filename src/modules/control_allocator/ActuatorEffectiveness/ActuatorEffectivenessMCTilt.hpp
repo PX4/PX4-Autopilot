@@ -37,23 +37,18 @@
 #include "ActuatorEffectivenessRotors.hpp"
 #include "ActuatorEffectivenessTilts.hpp"
 
-class ActuatorEffectivenessMCTilt : public ModuleParams, public ActuatorEffectiveness
-{
+class ActuatorEffectivenessMCTilt : public ModuleParams, public ActuatorEffectiveness {
 public:
 	ActuatorEffectivenessMCTilt(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessMCTilt() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
-	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
-	{
+	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override {
 		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
 	}
 
-	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
-	{
-		normalize[0] = true;
-	}
+	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override { normalize[0] = true; }
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp) override;

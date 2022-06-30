@@ -35,31 +35,26 @@
 
 #include <px4_platform_common/log.h>
 
-namespace sensors
-{
+namespace sensors {
 
 using namespace matrix;
 using namespace time_literals;
 
 static constexpr uint32_t SENSOR_TIMEOUT{300_ms};
 
-VehicleOpticalFlow::VehicleOpticalFlow() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
-{
+VehicleOpticalFlow::VehicleOpticalFlow()
+	: ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers) {
 	_vehicle_optical_flow_pub.advertise();
 
 	_gyro_integrator.set_reset_samples(1);
 }
 
-VehicleOpticalFlow::~VehicleOpticalFlow()
-{
+VehicleOpticalFlow::~VehicleOpticalFlow() {
 	Stop();
 	perf_free(_cycle_perf);
 }
 
-bool VehicleOpticalFlow::Start()
-{
+bool VehicleOpticalFlow::Start() {
 	_sensor_flow_sub.registerCallback();
 
 	_sensor_gyro_sub.registerCallback();
@@ -71,8 +66,7 @@ bool VehicleOpticalFlow::Start()
 	return true;
 }
 
-void VehicleOpticalFlow::Stop()
-{
+void VehicleOpticalFlow::Stop() {
 	Deinit();
 
 	// clear all registered callbacks
@@ -81,8 +75,7 @@ void VehicleOpticalFlow::Stop()
 	_sensor_selection_sub.unregisterCallback();
 }
 
-void VehicleOpticalFlow::ParametersUpdate()
-{
+void VehicleOpticalFlow::ParametersUpdate() {
 	// Check if parameters have changed
 	if (_params_sub.updated()) {
 		// clear update
@@ -95,8 +88,7 @@ void VehicleOpticalFlow::ParametersUpdate()
 	}
 }
 
-void VehicleOpticalFlow::Run()
-{
+void VehicleOpticalFlow::Run() {
 	perf_begin(_cycle_perf);
 
 	ParametersUpdate();
@@ -107,26 +99,22 @@ void VehicleOpticalFlow::Run()
 	sensor_optical_flow_s sensor_optical_flow;
 
 	if (_sensor_flow_sub.update(&sensor_optical_flow)) {
-
 		// clear data accumulation if there's a gap in data
-		if (((sensor_optical_flow.timestamp_sample - _flow_timestamp_sample_last)
-		     > sensor_optical_flow.integration_timespan_us * 1.5f)
-		    || (_accumulated_count > 0 && _quality_sum == 0)) {
+		if (((sensor_optical_flow.timestamp_sample - _flow_timestamp_sample_last) >
+		     sensor_optical_flow.integration_timespan_us * 1.5f) ||
+		    (_accumulated_count > 0 && _quality_sum == 0)) {
 			ClearAccumulatedData();
 		}
 
-
-		const hrt_abstime timestamp_oldest = sensor_optical_flow.timestamp_sample - lroundf(
-				sensor_optical_flow.integration_timespan_us);
+		const hrt_abstime timestamp_oldest =
+			sensor_optical_flow.timestamp_sample - lroundf(sensor_optical_flow.integration_timespan_us);
 		const hrt_abstime timestamp_newest = sensor_optical_flow.timestamp;
 
 		// delta angle
 		//  - from sensor_optical_flow if available, otherwise use synchronized sensor_gyro if available
-		if (sensor_optical_flow.delta_angle_available
-		    && PX4_ISFINITE(sensor_optical_flow.delta_angle[0])
-		    && PX4_ISFINITE(sensor_optical_flow.delta_angle[1])
-		    && PX4_ISFINITE(sensor_optical_flow.delta_angle[2])
-		   ) {
+		if (sensor_optical_flow.delta_angle_available && PX4_ISFINITE(sensor_optical_flow.delta_angle[0]) &&
+		    PX4_ISFINITE(sensor_optical_flow.delta_angle[1]) &&
+		    PX4_ISFINITE(sensor_optical_flow.delta_angle[2])) {
 			// passthrough integrated gyro if available
 			_delta_angle += _flow_rotation * Vector3f{sensor_optical_flow.delta_angle};
 
@@ -135,13 +123,13 @@ void VehicleOpticalFlow::Run()
 			gyroSample gyro_sample;
 
 			while (_gyro_buffer.pop_oldest(timestamp_oldest, timestamp_newest, &gyro_sample)) {
-
 				_gyro_integrator.put(gyro_sample.data, gyro_sample.dt);
 
 				float min_interval_s = (sensor_optical_flow.integration_timespan_us * 1e-6f) * 0.99f;
 
 				if (_gyro_integrator.integral_dt() > min_interval_s) {
-					//PX4_INFO("integral dt: %.6f, min interval: %.6f", (double)_gyro_integrator.integral_dt(),(double) min_interval_s);
+					// PX4_INFO("integral dt: %.6f, min interval: %.6f",
+					// (double)_gyro_integrator.integral_dt(),(double) min_interval_s);
 					break;
 				}
 			}
@@ -206,7 +194,8 @@ void VehicleOpticalFlow::Run()
 			}
 
 			// integrate for full interval unless we haven't published recently
-			if ((hrt_elapsed_time(&_last_publication_timestamp) < 1_ms) && (_integration_timespan_us < interval_us)) {
+			if ((hrt_elapsed_time(&_last_publication_timestamp) < 1_ms) &&
+			    (_integration_timespan_us < interval_us)) {
 				publish = false;
 			}
 		}
@@ -232,9 +221,8 @@ void VehicleOpticalFlow::Run()
 			}
 
 			// SENS_FLOW_MAXR
-			if (PX4_ISFINITE(sensor_optical_flow.max_flow_rate)
-			    && (sensor_optical_flow.max_flow_rate <= _param_sens_flow_maxr.get())) {
-
+			if (PX4_ISFINITE(sensor_optical_flow.max_flow_rate) &&
+			    (sensor_optical_flow.max_flow_rate <= _param_sens_flow_maxr.get())) {
 				vehicle_optical_flow.max_flow_rate = sensor_optical_flow.max_flow_rate;
 
 			} else {
@@ -242,9 +230,8 @@ void VehicleOpticalFlow::Run()
 			}
 
 			// SENS_FLOW_MINHGT
-			if (PX4_ISFINITE(sensor_optical_flow.min_ground_distance)
-			    && (sensor_optical_flow.min_ground_distance >= _param_sens_flow_minhgt.get())) {
-
+			if (PX4_ISFINITE(sensor_optical_flow.min_ground_distance) &&
+			    (sensor_optical_flow.min_ground_distance >= _param_sens_flow_minhgt.get())) {
 				vehicle_optical_flow.min_ground_distance = sensor_optical_flow.min_ground_distance;
 
 			} else {
@@ -252,15 +239,13 @@ void VehicleOpticalFlow::Run()
 			}
 
 			// SENS_FLOW_MAXHGT
-			if (PX4_ISFINITE(sensor_optical_flow.max_ground_distance)
-			    && (sensor_optical_flow.max_ground_distance <= _param_sens_flow_maxhgt.get())) {
-
+			if (PX4_ISFINITE(sensor_optical_flow.max_ground_distance) &&
+			    (sensor_optical_flow.max_ground_distance <= _param_sens_flow_maxhgt.get())) {
 				vehicle_optical_flow.max_ground_distance = sensor_optical_flow.max_ground_distance;
 
 			} else {
 				vehicle_optical_flow.max_ground_distance = _param_sens_flow_maxhgt.get();
 			}
-
 
 			// rotate (SENS_FLOW_ROT)
 			float zeroval = 0.f;
@@ -271,7 +256,6 @@ void VehicleOpticalFlow::Run()
 			_vehicle_optical_flow_pub.publish(vehicle_optical_flow);
 			_last_publication_timestamp = vehicle_optical_flow.timestamp_sample;
 
-
 			// vehicle_optical_flow_vel if distance is available (for logging)
 			if (_distance_sum_count > 0 && PX4_ISFINITE(_distance_sum)) {
 				const float range = _distance_sum / _distance_sum_count;
@@ -280,10 +264,13 @@ void VehicleOpticalFlow::Run()
 
 				flow_vel.timestamp_sample = vehicle_optical_flow.timestamp_sample;
 
-				// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
-				// is produced by a RH rotation of the image about the sensor axis.
-				const Vector2f flow_xy_rad{-vehicle_optical_flow.pixel_flow[0], -vehicle_optical_flow.pixel_flow[1]};
-				const Vector3f gyro_xyz{-vehicle_optical_flow.delta_angle[0], -vehicle_optical_flow.delta_angle[1], -vehicle_optical_flow.delta_angle[2]};
+				// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes
+				// positive LOS rate is produced by a RH rotation of the image about the sensor axis.
+				const Vector2f flow_xy_rad{-vehicle_optical_flow.pixel_flow[0],
+							   -vehicle_optical_flow.pixel_flow[1]};
+				const Vector3f gyro_xyz{-vehicle_optical_flow.delta_angle[0],
+							-vehicle_optical_flow.delta_angle[1],
+							-vehicle_optical_flow.delta_angle[2]};
 
 				const float flow_dt = 1e-6f * vehicle_optical_flow.integration_timespan_us;
 
@@ -291,8 +278,8 @@ void VehicleOpticalFlow::Run()
 				const Vector2f flow_compensated_XY_rad = flow_xy_rad - gyro_xyz.xy();
 
 				Vector3f vel_optflow_body;
-				vel_optflow_body(0) = - range * flow_compensated_XY_rad(1) / flow_dt;
-				vel_optflow_body(1) =   range * flow_compensated_XY_rad(0) / flow_dt;
+				vel_optflow_body(0) = -range * flow_compensated_XY_rad(1) / flow_dt;
+				vel_optflow_body(1) = range * flow_compensated_XY_rad(0) / flow_dt;
 				vel_optflow_body(2) = 0.f;
 
 				// vel_body
@@ -344,19 +331,16 @@ void VehicleOpticalFlow::Run()
 	perf_end(_cycle_perf);
 }
 
-void VehicleOpticalFlow::UpdateDistanceSensor()
-{
+void VehicleOpticalFlow::UpdateDistanceSensor() {
 	// update range finder buffer
 	distance_sensor_s distance_sensor;
 
 	if ((_distance_sensor_selected < 0) && _distance_sensor_subs.advertised()) {
 		for (unsigned i = 0; i < _distance_sensor_subs.size(); i++) {
-
 			if (_distance_sensor_subs[i].update(&distance_sensor)) {
 				// only use the first instace which has the correct orientation
-				if ((hrt_elapsed_time(&distance_sensor.timestamp) < 100_ms)
-				    && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
-
+				if ((hrt_elapsed_time(&distance_sensor.timestamp) < 100_ms) &&
+				    (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
 					int ndist = orb_group_count(ORB_ID(distance_sensor));
 
 					if (ndist > 1) {
@@ -371,13 +355,12 @@ void VehicleOpticalFlow::UpdateDistanceSensor()
 		}
 	}
 
-	if (_distance_sensor_selected >= 0 && _distance_sensor_subs[_distance_sensor_selected].update(&distance_sensor)) {
+	if (_distance_sensor_selected >= 0 &&
+	    _distance_sensor_subs[_distance_sensor_selected].update(&distance_sensor)) {
 		// range sample
 		if (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
-
-			if ((distance_sensor.current_distance >= distance_sensor.min_distance)
-			    && (distance_sensor.current_distance <= distance_sensor.max_distance)) {
-
+			if ((distance_sensor.current_distance >= distance_sensor.min_distance) &&
+			    (distance_sensor.current_distance <= distance_sensor.max_distance)) {
 				rangeSample sample;
 				sample.time_us = distance_sensor.timestamp;
 				sample.data = distance_sensor.current_distance;
@@ -399,8 +382,7 @@ void VehicleOpticalFlow::UpdateDistanceSensor()
 	}
 }
 
-void VehicleOpticalFlow::UpdateSensorGyro()
-{
+void VehicleOpticalFlow::UpdateSensorGyro() {
 	if (_sensor_selection_sub.updated()) {
 		sensor_selection_s sensor_selection{};
 		_sensor_selection_sub.copy(&sensor_selection);
@@ -408,20 +390,20 @@ void VehicleOpticalFlow::UpdateSensorGyro()
 		for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
 			uORB::SubscriptionData<sensor_gyro_s> sensor_gyro_sub{ORB_ID(sensor_gyro), i};
 
-			if (sensor_gyro_sub.advertised()
-			    && (sensor_gyro_sub.get().timestamp != 0)
-			    && (sensor_gyro_sub.get().device_id != 0)
-			    && (hrt_elapsed_time(&sensor_gyro_sub.get().timestamp) < 1_s)) {
-
+			if (sensor_gyro_sub.advertised() && (sensor_gyro_sub.get().timestamp != 0) &&
+			    (sensor_gyro_sub.get().device_id != 0) &&
+			    (hrt_elapsed_time(&sensor_gyro_sub.get().timestamp) < 1_s)) {
 				if (sensor_gyro_sub.get().device_id == sensor_selection.gyro_device_id) {
 					if (_sensor_gyro_sub.ChangeInstance(i) && _sensor_gyro_sub.registerCallback()) {
-
 						_gyro_calibration.set_device_id(sensor_gyro_sub.get().device_id);
-						PX4_DEBUG("selecting sensor_gyro:%" PRIu8 " %" PRIu32, i, sensor_gyro_sub.get().device_id);
+						PX4_DEBUG("selecting sensor_gyro:%" PRIu8 " %" PRIu32, i,
+							  sensor_gyro_sub.get().device_id);
 						break;
 
 					} else {
-						PX4_ERR("unable to register callback for sensor_gyro:%" PRIu8 " %" PRIu32, i, sensor_gyro_sub.get().device_id);
+						PX4_ERR("unable to register callback for sensor_gyro:%" PRIu8
+							" %" PRIu32,
+							i, sensor_gyro_sub.get().device_id);
 					}
 				}
 			}
@@ -435,9 +417,9 @@ void VehicleOpticalFlow::UpdateSensorGyro()
 		sensor_gyro_s sensor_gyro;
 
 		if (_sensor_gyro_sub.copy(&sensor_gyro)) {
-
 			if (_sensor_gyro_sub.get_last_generation() != last_generation + 1) {
-				PX4_ERR("sensor_gyro lost, generation %u -> %u", last_generation, _sensor_gyro_sub.get_last_generation());
+				PX4_ERR("sensor_gyro lost, generation %u -> %u", last_generation,
+					_sensor_gyro_sub.get_last_generation());
 			}
 
 			_gyro_calibration.set_device_id(sensor_gyro.device_id);
@@ -448,7 +430,8 @@ void VehicleOpticalFlow::UpdateSensorGyro()
 
 			gyroSample gyro_sample;
 			gyro_sample.time_us = sensor_gyro.timestamp_sample;
-			gyro_sample.data = _gyro_calibration.Correct(Vector3f{sensor_gyro.x, sensor_gyro.y, sensor_gyro.z});
+			gyro_sample.data =
+				_gyro_calibration.Correct(Vector3f{sensor_gyro.x, sensor_gyro.y, sensor_gyro.z});
 			gyro_sample.dt = dt_s;
 
 			_gyro_buffer.push(gyro_sample);
@@ -456,8 +439,7 @@ void VehicleOpticalFlow::UpdateSensorGyro()
 	}
 }
 
-void VehicleOpticalFlow::ClearAccumulatedData()
-{
+void VehicleOpticalFlow::ClearAccumulatedData() {
 	// clear accumulated data
 	_flow_integral.zero();
 	_integration_timespan_us = 0;
@@ -473,9 +455,6 @@ void VehicleOpticalFlow::ClearAccumulatedData()
 	_gyro_integrator.reset();
 }
 
-void VehicleOpticalFlow::PrintStatus()
-{
+void VehicleOpticalFlow::PrintStatus() {}
 
-}
-
-}; // namespace sensors
+};  // namespace sensors

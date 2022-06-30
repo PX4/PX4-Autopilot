@@ -38,8 +38,9 @@
 #pragma once
 
 #include <errno.h>
-#include <uORB/uORB.h>
 #include <uORB/topics/tune_control.h>
+#include <uORB/uORB.h>
+
 #include "tune_definition.h"
 
 #define TUNE_DEFAULT_NOTE_LENGTH 4
@@ -48,16 +49,14 @@
 
 #define TUNE_MAX_UPDATE_INTERVAL_US 100000
 
-
 /**
  *  Library for parsing tunes from melody-strings or dedicated tune messages.
  *  Needs to be instantiated as it keeps track of which tune is to be played
  *  next. Also handles repeated tunes.
  */
-class Tunes
-{
+class Tunes {
 public:
-	enum class NoteMode {NORMAL, LEGATO, STACCATO};
+	enum class NoteMode { NORMAL, LEGATO, STACCATO };
 
 	enum class Status {
 		Continue = 1,
@@ -79,10 +78,8 @@ public:
 	 * default_note_length: TUNE_DEFAULT_NOTE_LENGTH
 	 * default_mode: NORMAL
 	 */
-	Tunes(unsigned default_note_length = TUNE_DEFAULT_NOTE_LENGTH,
-	      NoteMode default_note_mode   = NoteMode::NORMAL,
-	      unsigned default_octave      = TUNE_DEFAULT_OCTAVE,
-	      unsigned default_tempo       = TUNE_DEFAULT_TEMPO);
+	Tunes(unsigned default_note_length = TUNE_DEFAULT_NOTE_LENGTH, NoteMode default_note_mode = NoteMode::NORMAL,
+	      unsigned default_octave = TUNE_DEFAULT_OCTAVE, unsigned default_tempo = TUNE_DEFAULT_TEMPO);
 
 	~Tunes() = default;
 
@@ -127,20 +124,18 @@ public:
 	 * @param  volume    return the volume level of the note (between 0-100)
 	 * @return           -1 for no tune available/error, 0 to not play anything and 1 to play
 	 */
-	Tunes::Status get_next_note(unsigned &frequency, unsigned &duration,
-				    unsigned &silence, uint8_t &volume);
+	Tunes::Status get_next_note(unsigned &frequency, unsigned &duration, unsigned &silence, uint8_t &volume);
 
 	/**
 	 *  Get the number of default tunes. This is useful for when a tune is
 	 *  requested via its tune ID.
 	 *  @return             Number of default tunes accessible via tune ID
 	 */
-	unsigned int get_default_tunes_size() const {return _default_tunes_size;}
+	unsigned int get_default_tunes_size() const { return _default_tunes_size; }
 
-	unsigned int get_maximum_update_interval() {return (unsigned int)TUNE_MAX_UPDATE_INTERVAL_US;}
+	unsigned int get_maximum_update_interval() { return (unsigned int)TUNE_MAX_UPDATE_INTERVAL_US; }
 
 private:
-
 	/**
 	 * Convert note to frequency
 	 *
@@ -203,35 +198,35 @@ private:
 
 	Tunes::Status tune_error();
 
-	static const char *const  _default_tunes[];
-	static const bool         _default_tunes_interruptable[];
+	static const char *const _default_tunes[];
+	static const bool _default_tunes_interruptable[];
 	static const unsigned int _default_tunes_size;
-	static const uint8_t      _note_tab[];
+	static const uint8_t _note_tab[];
 
-	const char *_next_tune      = nullptr; ///< next note in the string
-	const char *_tune           = nullptr; ///< current tune string
-	const char *_tune_start_ptr = nullptr; ///< pointer to repeat tune
+	const char *_next_tune = nullptr;       ///< next note in the string
+	const char *_tune = nullptr;            ///< current tune string
+	const char *_tune_start_ptr = nullptr;  ///< pointer to repeat tune
 
 	int _current_tune_id = static_cast<int>(TuneID::NONE);
 
-	bool _repeat = false; ///< if true, tune restarts at end
+	bool _repeat = false;  ///< if true, tune restarts at end
 
 	unsigned int _default_note_length = TUNE_DEFAULT_NOTE_LENGTH;
-	NoteMode     _default_note_mode   = NoteMode::NORMAL;
-	unsigned int _default_octave      = TUNE_DEFAULT_OCTAVE;
-	unsigned int _default_tempo       = TUNE_DEFAULT_TEMPO;
+	NoteMode _default_note_mode = NoteMode::NORMAL;
+	unsigned int _default_octave = TUNE_DEFAULT_OCTAVE;
+	unsigned int _default_tempo = TUNE_DEFAULT_TEMPO;
 
-	unsigned int _note_length         = TUNE_DEFAULT_NOTE_LENGTH;
-	NoteMode     _note_mode           = NoteMode::NORMAL;
-	unsigned int _octave              = TUNE_DEFAULT_OCTAVE;
-	unsigned int _tempo               = TUNE_DEFAULT_TEMPO;
+	unsigned int _note_length = TUNE_DEFAULT_NOTE_LENGTH;
+	NoteMode _note_mode = NoteMode::NORMAL;
+	unsigned int _octave = TUNE_DEFAULT_OCTAVE;
+	unsigned int _tempo = TUNE_DEFAULT_TEMPO;
 
-	unsigned int _duration  = 0;
+	unsigned int _duration = 0;
 	unsigned int _frequency = 0;
-	unsigned int _silence   = 0;
-	uint8_t      _volume    = 0;
+	unsigned int _silence = 0;
+	uint8_t _volume = 0;
 
-	bool  _using_custom_msg = false;
+	bool _using_custom_msg = false;
 
 	bool _tunes_disabled{false};
 };

@@ -37,14 +37,12 @@
  * magnetometer connected via SPI.
  */
 
-#include "FXOS8701CQ.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void
-FXOS8701CQ::print_usage()
-{
+#include "FXOS8701CQ.hpp"
+
+void FXOS8701CQ::print_usage() {
 	PRINT_MODULE_USAGE_NAME("fxos8701cq", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -56,15 +54,15 @@ FXOS8701CQ::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *FXOS8701CQ::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+I2CSPIDriverBase *FXOS8701CQ::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	device::Device *interface = nullptr;
 
 	if (config.bus_type == BOARD_I2C_BUS) {
 		interface = FXOS8701CQ_I2C_interface(config.bus, config.bus_frequency, config.i2c_address);
 
 	} else if (config.bus_type == BOARD_SPI_BUS) {
-		interface = FXOS8701CQ_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
+		interface =
+			FXOS8701CQ_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
 	}
 
 	if (interface == nullptr) {
@@ -87,18 +85,19 @@ I2CSPIDriverBase *FXOS8701CQ::instantiate(const I2CSPIDriverConfig &config, int 
 	return dev;
 }
 
-void FXOS8701CQ::custom_method(const BusCLIArguments &cli)
-{
+void FXOS8701CQ::custom_method(const BusCLIArguments &cli) {
 	switch (cli.custom1) {
-	case 0: print_registers(); break;
+		case 0:
+			print_registers();
+			break;
 
-	case 1: test_error(); break;
+		case 1:
+			test_error();
+			break;
 	}
-
 }
 
-extern "C" int fxos8701cq_main(int argc, char *argv[])
-{
+extern "C" int fxos8701cq_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = FXOS8701CQ;
 	BusCLIArguments cli{true, true};
@@ -109,9 +108,9 @@ extern "C" int fxos8701cq_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

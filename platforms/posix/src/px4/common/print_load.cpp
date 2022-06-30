@@ -39,15 +39,13 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_platform_common/posix.h>
-
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdbool.h>
-
-#include <px4_platform_common/printload.h>
 #include <drivers/drv_hrt.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/printload.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 #ifdef __PX4_DARWIN
 #include <mach/mach.h>
@@ -60,10 +58,9 @@
 
 extern struct system_load_s system_load;
 
-#define CL "\033[K" // clear line
+#define CL "\033[K"  // clear line
 
-void init_print_load(struct print_load_s *s)
-{
+void init_print_load(struct print_load_s *s) {
 	s->total_user_time = 0;
 
 	s->running_count = 0;
@@ -79,8 +76,7 @@ void init_print_load(struct print_load_s *s)
 	s->interval_time_us = 0.f;
 }
 
-void print_load(int fd, struct print_load_s *print_state)
-{
+void print_load(int fd, struct print_load_s *print_state) {
 	char clear_line[] = CL;
 
 	/* print system information */
@@ -95,7 +91,7 @@ void print_load(int fd, struct print_load_s *print_state)
 	dprintf(fd, "%sTOP NOT IMPLEMENTED ON LINUX, QURT, WINDOWS (ONLY ON NUTTX, APPLE)\n", clear_line);
 
 #elif defined(__PX4_DARWIN)
-	pid_t pid = getpid();   //-- this is the process id you need info for
+	pid_t pid = getpid();  //-- this is the process id you need info for
 	task_t task_handle;
 	task_for_pid(mach_task_self(), pid, &task_handle);
 
@@ -129,14 +125,11 @@ void print_load(int fd, struct print_load_s *print_state)
 	long tot_usec = 0;
 	long tot_cpu = 0;
 
-	dprintf(fd, "%sThreads: %d total\n",
-		clear_line,
-		th_cnt);
+	dprintf(fd, "%sThreads: %d total\n", clear_line, th_cnt);
 
 	for (unsigned j = 0; j < th_cnt; j++) {
 		thread_info_count = THREAD_INFO_MAX;
-		kr = thread_info(thread_list[j], THREAD_BASIC_INFO,
-				 (thread_info_t)th_info_data, &thread_info_count);
+		kr = thread_info(thread_list[j], THREAD_BASIC_INFO, (thread_info_t)th_info_data, &thread_info_count);
 
 		if (kr != KERN_SUCCESS) {
 			PX4_WARN("ERROR getting thread info");
@@ -147,7 +140,8 @@ void print_load(int fd, struct print_load_s *print_state)
 
 		if (!(basic_info_th->flags & TH_FLAGS_IDLE)) {
 			tot_sec = tot_sec + basic_info_th->user_time.seconds + basic_info_th->system_time.seconds;
-			tot_usec = tot_usec + basic_info_th->system_time.microseconds + basic_info_th->system_time.microseconds;
+			tot_usec = tot_usec + basic_info_th->system_time.microseconds +
+				   basic_info_th->system_time.microseconds;
 			tot_cpu = tot_cpu + basic_info_th->cpu_usage;
 		}
 
@@ -159,8 +153,7 @@ void print_load(int fd, struct print_load_s *print_state)
 		dprintf(fd, "thread %d\t\t %d\n", j, basic_info_th->cpu_usage);
 	}
 
-	kr = vm_deallocate(mach_task_self(), (vm_offset_t)thread_list,
-			   th_cnt * sizeof(thread_t));
+	kr = vm_deallocate(mach_task_self(), (vm_offset_t)thread_list, th_cnt * sizeof(thread_t));
 
 	if (kr != KERN_SUCCESS) {
 		PX4_WARN("ERROR cleaning up thread info");
@@ -171,7 +164,4 @@ void print_load(int fd, struct print_load_s *print_state)
 }
 
 void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb, void *user,
-		       struct print_load_s *print_state)
-{
-
-}
+		       struct print_load_s *print_state) {}

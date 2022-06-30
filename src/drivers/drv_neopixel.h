@@ -44,31 +44,25 @@
 #include <sys/ioctl.h>
 #include <systemlib/px4_macros.h>
 
-namespace neopixel
-{
-class NeoLEDData
-{
+namespace neopixel {
+class NeoLEDData {
 public:
-	enum eRGB {
-		eB = 0,
-		eR = 1,
-		eG = 2
-	};
+	enum eRGB { eB = 0, eR = 1, eG = 2 };
 
 	typedef union {
-		uint8_t  grb[3];
+		uint8_t grb[3];
 		uint32_t l;
 	} led_data_t;
 
-	led_data_t  data{};
-	NeoLEDData() {data.l = 0;}
-	NeoLEDData(NeoLEDData &r) {data.l = r.data.l;}
+	led_data_t data{};
+	NeoLEDData() { data.l = 0; }
+	NeoLEDData(NeoLEDData &r) { data.l = r.data.l; }
 
-	uint8_t &R() {return data.grb[eR];};
-	uint8_t &G() {return data.grb[eG];};
-	uint8_t &B() {return data.grb[eB];};
+	uint8_t &R() { return data.grb[eR]; };
+	uint8_t &G() { return data.grb[eG]; };
+	uint8_t &B() { return data.grb[eB]; };
 };
-};
+};  // namespace neopixel
 
 __BEGIN_DECLS
 

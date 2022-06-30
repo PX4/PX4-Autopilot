@@ -37,32 +37,31 @@
  */
 
 #include "MS5611.hpp"
-#include "ms5611.h"
 
 #include <cdev/CDev.hpp>
 
-MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const I2CSPIDriverConfig &config) :
-	I2CSPIDriver(config),
-	_interface(interface),
-	_prom(prom_buf.s),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
-{
-	switch (config.devid_driver_index) {
-	case DRV_BARO_DEVTYPE_MS5611:
-		_device_type = MS5611_DEVICE;
-		break;
+#include "ms5611.h"
 
-	case DRV_BARO_DEVTYPE_MS5607:
-	default:
-		_device_type = MS5607_DEVICE;
-		break;
+MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const I2CSPIDriverConfig &config)
+	: I2CSPIDriver(config),
+	  _interface(interface),
+	  _prom(prom_buf.s),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": measure")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": com_err")) {
+	switch (config.devid_driver_index) {
+		case DRV_BARO_DEVTYPE_MS5611:
+			_device_type = MS5611_DEVICE;
+			break;
+
+		case DRV_BARO_DEVTYPE_MS5607:
+		default:
+			_device_type = MS5607_DEVICE;
+			break;
 	}
 }
 
-MS5611::~MS5611()
-{
+MS5611::~MS5611() {
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_measure_perf);
@@ -71,9 +70,7 @@ MS5611::~MS5611()
 	delete _interface;
 }
 
-int
-MS5611::init()
-{
+int MS5611::init() {
 	int ret;
 
 	/* do a first measurement cycle to populate reports with valid data */
@@ -121,16 +118,16 @@ MS5611::init()
 		}
 
 		switch (_device_type) {
-		default:
+			default:
 
-		/* fall through */
-		case MS5611_DEVICE:
-			_interface->set_device_type(DRV_BARO_DEVTYPE_MS5611);
-			break;
+			/* fall through */
+			case MS5611_DEVICE:
+				_interface->set_device_type(DRV_BARO_DEVTYPE_MS5611);
+				break;
 
-		case MS5607_DEVICE:
-			_interface->set_device_type(DRV_BARO_DEVTYPE_MS5607);
-			break;
+			case MS5607_DEVICE:
+				_interface->set_device_type(DRV_BARO_DEVTYPE_MS5607);
+				break;
 		}
 
 		ret = OK;
@@ -146,9 +143,7 @@ MS5611::init()
 	return ret;
 }
 
-void
-MS5611::start()
-{
+void MS5611::start() {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_measure_phase = 0;
@@ -157,15 +152,12 @@ MS5611::start()
 	ScheduleDelayed(MS5611_CONVERSION_INTERVAL);
 }
 
-void
-MS5611::RunImpl()
-{
+void MS5611::RunImpl() {
 	int ret;
 	unsigned dummy;
 
 	/* collection phase? */
 	if (_collect_phase) {
-
 		/* perform collection */
 		ret = collect();
 
@@ -177,7 +169,7 @@ MS5611::RunImpl()
 				 * spam the console with a message for this.
 				 */
 			} else {
-				//DEVICE_LOG("collection error %d", ret);
+				// DEVICE_LOG("collection error %d", ret);
 			}
 
 			/* issue a reset command to the sensor */
@@ -212,9 +204,7 @@ MS5611::RunImpl()
 	ScheduleDelayed(MS5611_CONVERSION_INTERVAL);
 }
 
-int
-MS5611::measure()
-{
+int MS5611::measure() {
 	perf_begin(_measure_perf);
 
 	/*
@@ -236,9 +226,7 @@ MS5611::measure()
 	return ret;
 }
 
-int
-MS5611::collect()
-{
+int MS5611::collect() {
 	uint32_t raw;
 
 	perf_begin(_sample_perf);
@@ -255,7 +243,6 @@ MS5611::collect()
 
 	/* handle a measurement */
 	if (_measure_phase == 0) {
-
 		/* temperature offset (in ADC units) */
 		int32_t dT = (int32_t)raw - ((int32_t)_prom.c5_reference_temp << 8);
 
@@ -265,12 +252,13 @@ MS5611::collect()
 		/* base sensor scale/offset values */
 		if (_device_type == MS5611_DEVICE) {
 			/* Perform MS5611 Caculation */
-			_OFF  = ((int64_t)_prom.c2_pressure_offset << 16) + (((int64_t)_prom.c4_temp_coeff_pres_offset * dT) >> 7);
-			_SENS = ((int64_t)_prom.c1_pressure_sens << 15) + (((int64_t)_prom.c3_temp_coeff_pres_sens * dT) >> 8);
+			_OFF = ((int64_t)_prom.c2_pressure_offset << 16) +
+			       (((int64_t)_prom.c4_temp_coeff_pres_offset * dT) >> 7);
+			_SENS = ((int64_t)_prom.c1_pressure_sens << 15) +
+				(((int64_t)_prom.c3_temp_coeff_pres_sens * dT) >> 8);
 
 			/* MS5611 temperature compensation */
 			if (TEMP < 2000) {
-
 				int32_t T2 = POW2(dT) >> 31;
 
 				int64_t f = POW2((int64_t)TEMP - 2000);
@@ -278,25 +266,25 @@ MS5611::collect()
 				int64_t SENS2 = 5 * f >> 2;
 
 				if (TEMP < -1500) {
-
 					int64_t f2 = POW2(TEMP + 1500);
 					OFF2 += 7 * f2;
 					SENS2 += 11 * f2 >> 1;
 				}
 
 				TEMP -= T2;
-				_OFF  -= OFF2;
+				_OFF -= OFF2;
 				_SENS -= SENS2;
 			}
 
 		} else if (_device_type == MS5607_DEVICE) {
 			/* Perform MS5607 Caculation */
-			_OFF  = ((int64_t)_prom.c2_pressure_offset << 17) + (((int64_t)_prom.c4_temp_coeff_pres_offset * dT) >> 6);
-			_SENS = ((int64_t)_prom.c1_pressure_sens << 16) + (((int64_t)_prom.c3_temp_coeff_pres_sens * dT) >> 7);
+			_OFF = ((int64_t)_prom.c2_pressure_offset << 17) +
+			       (((int64_t)_prom.c4_temp_coeff_pres_offset * dT) >> 6);
+			_SENS = ((int64_t)_prom.c1_pressure_sens << 16) +
+				(((int64_t)_prom.c3_temp_coeff_pres_sens * dT) >> 7);
 
 			/* MS5607 temperature compensation */
 			if (TEMP < 2000) {
-
 				int32_t T2 = POW2(dT) >> 31;
 
 				int64_t f = POW2((int64_t)TEMP - 2000);
@@ -310,7 +298,7 @@ MS5611::collect()
 				}
 
 				TEMP -= T2;
-				_OFF  -= OFF2;
+				_OFF -= OFF2;
 				_SENS -= SENS2;
 			}
 		}
@@ -334,7 +322,6 @@ MS5611::collect()
 			sensor_baro.timestamp = hrt_absolute_time();
 			_sensor_baro_pub.publish(sensor_baro);
 		}
-
 	}
 
 	/* update the measurement state machine */
@@ -345,8 +332,7 @@ MS5611::collect()
 	return OK;
 }
 
-void MS5611::print_status()
-{
+void MS5611::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -354,15 +340,12 @@ void MS5611::print_status()
 	printf("device:         %s\n", _device_type == MS5611_DEVICE ? "ms5611" : "ms5607");
 }
 
-namespace ms5611
-{
+namespace ms5611 {
 
 /**
  * MS5611 crc4 cribbed from the datasheet
  */
-bool
-crc4(uint16_t *n_prom)
-{
+bool crc4(uint16_t *n_prom) {
 	int16_t cnt;
 	uint16_t n_rem;
 	uint16_t crc_read;
@@ -403,4 +386,4 @@ crc4(uint16_t *n_prom)
 	return (0x000F & crc_read) == (n_rem ^ 0x00);
 }
 
-} // namespace ms5611
+}  // namespace ms5611

@@ -33,26 +33,24 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/atomic.h>
-#include <stdint.h>
-#include <pthread.h>
 #include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
+#include <pthread.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/crypto.h>
+#include <px4_platform_common/defines.h>
+#include <stdint.h>
 
-namespace px4
-{
-namespace logger
-{
+namespace px4 {
+namespace logger {
 
 /**
  * @enum LogType
  * Defines different log (file) types
  */
 enum class LogType {
-	Full = 0, //!< Normal, full size log
-	Mission,  //!< reduced mission log (e.g. for geotagging)
+	Full = 0,  //!< Normal, full size log
+	Mission,   //!< reduced mission log (e.g. for geotagging)
 
 	Count
 };
@@ -63,8 +61,7 @@ const char *log_type_str(LogType type);
  * @class LogWriterFile
  * Writes logging data to a file
  */
-class LogWriterFile
-{
+class LogWriterFile {
 public:
 	LogWriterFile(size_t buffer_size);
 	~LogWriterFile();
@@ -88,51 +85,26 @@ public:
 	/** @see LogWriter::write_message() */
 	int write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start = 0);
 
-	void lock()
-	{
-		pthread_mutex_lock(&_mtx);
-	}
+	void lock() { pthread_mutex_lock(&_mtx); }
 
-	void unlock()
-	{
-		pthread_mutex_unlock(&_mtx);
-	}
+	void unlock() { pthread_mutex_unlock(&_mtx); }
 
-	void notify()
-	{
-		pthread_cond_broadcast(&_cv);
-	}
+	void notify() { pthread_cond_broadcast(&_cv); }
 
-	size_t get_total_written(LogType type) const
-	{
-		return _buffers[(int)type].total_written();
-	}
+	size_t get_total_written(LogType type) const { return _buffers[(int)type].total_written(); }
 
-	size_t get_buffer_size(LogType type) const
-	{
-		return _buffers[(int)type].buffer_size();
-	}
+	size_t get_buffer_size(LogType type) const { return _buffers[(int)type].buffer_size(); }
 
-	size_t get_buffer_fill_count(LogType type) const
-	{
-		return _buffers[(int)type].count();
-	}
+	size_t get_buffer_fill_count(LogType type) const { return _buffers[(int)type].count(); }
 
-	void set_need_reliable_transfer(bool need_reliable)
-	{
-		_need_reliable_transfer = need_reliable;
-	}
+	void set_need_reliable_transfer(bool need_reliable) { _need_reliable_transfer = need_reliable; }
 
-	bool need_reliable_transfer() const
-	{
-		return _need_reliable_transfer;
-	}
+	bool need_reliable_transfer() const { return _need_reliable_transfer; }
 
 	pthread_t thread_id() const { return _thread; }
 
 #if defined(PX4_CRYPTO)
-	void set_encryption_parameters(px4_crypto_algorithm_t algorithm, uint8_t key_idx,  uint8_t exchange_key_idx)
-	{
+	void set_encryption_parameters(px4_crypto_algorithm_t algorithm, uint8_t key_idx, uint8_t exchange_key_idx) {
 		_algorithm = algorithm;
 		_key_idx = key_idx;
 		_exchange_key_idx = exchange_key_idx;
@@ -158,10 +130,9 @@ private:
 	int write(LogType type, void *ptr, size_t size, uint64_t dropout_start);
 
 	/* 512 didn't seem to work properly, 4096 should match the FAT cluster size */
-	static constexpr size_t	_min_write_chunk = 4096;
+	static constexpr size_t _min_write_chunk = 4096;
 
-	class LogFileBuffer
-	{
+	class LogFileBuffer {
 	public:
 		LogFileBuffer(size_t log_buffer_size, perf_counter_t perf_write, perf_counter_t perf_fsync);
 
@@ -186,19 +157,23 @@ private:
 
 		inline void fsync() const;
 
-		void mark_read(size_t n) { _count -= n; _total_written += n; }
+		void mark_read(size_t n) {
+			_count -= n;
+			_total_written += n;
+		}
 
 		size_t total_written() const { return _total_written; }
 		size_t buffer_size() const { return _buffer_size; }
 		size_t count() const { return _count; }
 
 		bool _should_run = false;
+
 	private:
 		const size_t _buffer_size;
-		int	_fd = -1;
+		int _fd = -1;
 		uint8_t *_buffer = nullptr;
-		size_t _head = 0; ///< next position to write to
-		size_t _count = 0; ///< number of bytes in _buffer to be written
+		size_t _head = 0;   ///< next position to write to
+		size_t _count = 0;  ///< number of bytes in _buffer to be written
 		size_t _total_written = 0;
 		perf_counter_t _perf_write;
 		perf_counter_t _perf_fsync;
@@ -206,10 +181,10 @@ private:
 
 	LogFileBuffer _buffers[(int)LogType::Count];
 
-	px4::atomic_bool	_exit_thread{false};
-	bool			_need_reliable_transfer{false};
-	pthread_mutex_t		_mtx;
-	pthread_cond_t		_cv;
+	px4::atomic_bool _exit_thread{false};
+	bool _need_reliable_transfer{false};
+	pthread_mutex_t _mtx;
+	pthread_cond_t _cv;
 	pthread_t _thread = 0;
 #if defined(PX4_CRYPTO)
 	bool init_logfile_encryption(const char *filename);
@@ -219,8 +194,7 @@ private:
 	uint8_t _key_idx;
 	uint8_t _exchange_key_idx;
 #endif
-
 };
 
-}
-}
+}  // namespace logger
+}  // namespace px4

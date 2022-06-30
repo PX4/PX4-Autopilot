@@ -37,21 +37,21 @@
  * Driver for an ADC.
  *
  */
-#include <inttypes.h>
-#include <stdint.h>
-
 #include <drivers/drv_adc.h>
 #include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
+#include <inttypes.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_arch/adc.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
+#include <stdint.h>
 #include <uORB/topics/adc_report.h>
 #include <uORB/topics/system_power.h>
+
+#include <lib/cdev/CDev.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
 
 using namespace time_literals;
 
@@ -59,10 +59,9 @@ using namespace time_literals;
 #error "board needs to define ADC_CHANNELS to use this driver"
 #endif
 
-#define ADC_TOTAL_CHANNELS 		32
+#define ADC_TOTAL_CHANNELS 32
 
-class ADC : public ModuleBase<ADC>, public px4::ScheduledWorkItem
-{
+class ADC : public ModuleBase<ADC>, public px4::ScheduledWorkItem {
 public:
 	ADC(uint32_t base_address = SYSTEM_ADC_BASE, uint32_t channels = ADC_CHANNELS);
 
@@ -82,8 +81,7 @@ public:
 	int test();
 
 private:
-
-	void		Run() override;
+	void Run() override;
 
 	/**
 	 * Sample a single channel and return the measured value.
@@ -91,30 +89,30 @@ private:
 	 * @param channel		The channel to sample.
 	 * @return			The sampled value, or UINT32_MAX if sampling failed.
 	 */
-	uint32_t		sample(unsigned channel);
+	uint32_t sample(unsigned channel);
 
-	void			update_adc_report(hrt_abstime now);
-	void			update_system_power(hrt_abstime now);
+	void update_adc_report(hrt_abstime now);
+	void update_system_power(hrt_abstime now);
 
 	void open_gpio_devices();
 	void close_gpio_devices();
 	uint8_t read_gpio_value(int fd);
 
-	static const hrt_abstime	kINTERVAL{10_ms};	/**< 100Hz base rate */
+	static const hrt_abstime kINTERVAL{10_ms}; /**< 100Hz base rate */
 
-	perf_counter_t			_sample_perf;
+	perf_counter_t _sample_perf;
 
-	unsigned			_channel_count{0};
-	const uint32_t			_base_address;
-	px4_adc_msg_t			*_samples{nullptr};	/**< sample buffer */
+	unsigned _channel_count{0};
+	const uint32_t _base_address;
+	px4_adc_msg_t *_samples{nullptr}; /**< sample buffer */
 
-	uORB::Publication<adc_report_s>		_to_adc_report{ORB_ID(adc_report)};
-	uORB::Publication<system_power_s>	_to_system_power{ORB_ID(system_power)};
+	uORB::Publication<adc_report_s> _to_adc_report{ORB_ID(adc_report)};
+	uORB::Publication<system_power_s> _to_system_power{ORB_ID(system_power)};
 #ifdef BOARD_GPIO_VDD_5V_COMP_VALID
-	int _5v_comp_valid_fd {-1};
+	int _5v_comp_valid_fd{-1};
 #endif
 #ifdef BOARD_GPIO_VDD_5V_CAN1_GPS1_VALID
-	int _5v_can1_gps1_valid_fd {-1};
+	int _5v_can1_gps1_valid_fd{-1};
 #endif
-	bool _first_run {true};
+	bool _first_run{true};
 };

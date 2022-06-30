@@ -33,16 +33,14 @@
 
 #pragma once
 
-#include <uORB/topics/actuator_armed.h>
-
-#include <uavcan/uavcan.hpp>
-#include <uavcan/equipment/indication/LightsCommand.hpp>
-
 #include <lib/led/led.h>
 #include <px4_platform_common/module_params.h>
+#include <uORB/topics/actuator_armed.h>
 
-class UavcanRGBController : public ModuleParams
-{
+#include <uavcan/equipment/indication/LightsCommand.hpp>
+#include <uavcan/uavcan.hpp>
+
+class UavcanRGBController : public ModuleParams {
 public:
 	UavcanRGBController(uavcan::INode &node);
 	~UavcanRGBController() = default;
@@ -59,7 +57,7 @@ private:
 	uavcan::equipment::indication::RGB565 brightness_to_rgb565(uint8_t brightness);
 
 	typedef uavcan::MethodBinder<UavcanRGBController *, void (UavcanRGBController::*)(const uavcan::TimerEvent &)>
-	TimerCbBinder;
+		TimerCbBinder;
 
 	uavcan::INode &_node;
 	uavcan::Publisher<uavcan::equipment::indication::LightsCommand> _uavcan_pub_lights_cmd;
@@ -69,10 +67,8 @@ private:
 
 	LedController _led_controller;
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::UAVCAN_LGT_ANTCL>) _param_mode_anti_col,
-		(ParamInt<px4::params::UAVCAN_LGT_STROB>) _param_mode_strobe,
-		(ParamInt<px4::params::UAVCAN_LGT_NAV>) _param_mode_nav,
-		(ParamInt<px4::params::UAVCAN_LGT_LAND>) _param_mode_land
-	)
+	DEFINE_PARAMETERS((ParamInt<px4::params::UAVCAN_LGT_ANTCL>)_param_mode_anti_col,
+			  (ParamInt<px4::params::UAVCAN_LGT_STROB>)_param_mode_strobe,
+			  (ParamInt<px4::params::UAVCAN_LGT_NAV>)_param_mode_nav,
+			  (ParamInt<px4::params::UAVCAN_LGT_LAND>)_param_mode_land)
 };

@@ -35,13 +35,12 @@
 #define UTM_GLOBAL_POSITION_HPP
 
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_status.h>
 
-class MavlinkStreamUTMGlobalPosition : public MavlinkStream
-{
+class MavlinkStreamUTMGlobalPosition : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamUTMGlobalPosition(mavlink); }
 
@@ -53,9 +52,10 @@ public:
 
 	bool const_rate() override { return true; }
 
-	unsigned get_size() override
-	{
-		return _global_pos_sub.advertised() ? MAVLINK_MSG_ID_UTM_GLOBAL_POSITION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _global_pos_sub.advertised()
+			       ? MAVLINK_MSG_ID_UTM_GLOBAL_POSITION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+			       : 0;
 	}
 
 private:
@@ -67,8 +67,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_global_position_s global_pos;
 
 		if (_global_pos_sub.update(&global_pos)) {
@@ -138,14 +137,15 @@ private:
 			vehicle_status_s vehicle_status{};
 			_vehicle_status_sub.copy(&vehicle_status);
 
-			bool vehicle_in_auto_mode = (vehicle_status.timestamp > 0)
-						    && (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET
-							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
-							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND
-							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
-							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER
-							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
-							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+			bool vehicle_in_auto_mode =
+				(vehicle_status.timestamp > 0) &&
+				(vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET ||
+				 vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND ||
+				 vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND ||
+				 vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
+				 vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER ||
+				 vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
+				 vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 
 			// Handle next waypoint if it is valid
 			position_setpoint_triplet_s position_setpoint_triplet;
@@ -154,9 +154,11 @@ private:
 				if (position_setpoint_triplet.current.valid) {
 					msg.next_lat = position_setpoint_triplet.current.lat * 1e7;
 					msg.next_lon = position_setpoint_triplet.current.lon * 1e7;
-					// HACK We assume that the offset between AMSL and WGS84 is constant between the current
-					// vehicle position and the the target waypoint.
-					msg.next_alt = (position_setpoint_triplet.current.alt + (global_pos.alt_ellipsoid - global_pos.alt)) * 1000.f;
+					// HACK We assume that the offset between AMSL and WGS84 is constant between the
+					// current vehicle position and the the target waypoint.
+					msg.next_alt = (position_setpoint_triplet.current.alt +
+							(global_pos.alt_ellipsoid - global_pos.alt)) *
+						       1000.f;
 					msg.flags |= UTM_DATA_AVAIL_FLAGS_NEXT_WAYPOINT_AVAILABLE;
 				}
 			}
@@ -165,9 +167,8 @@ private:
 			vehicle_land_detected_s land_detected{};
 			_land_detected_sub.copy(&land_detected);
 
-			if (vehicle_status.timestamp > 0 && land_detected.timestamp > 0
-			    && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-
+			if (vehicle_status.timestamp > 0 && land_detected.timestamp > 0 &&
+			    vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 				if (land_detected.landed) {
 					msg.flight_state |= UTM_FLIGHT_STATE_GROUND;
 
@@ -179,7 +180,7 @@ private:
 				msg.flight_state |= UTM_FLIGHT_STATE_UNKNOWN;
 			}
 
-			msg.update_rate = 0; // Data driven mode
+			msg.update_rate = 0;  // Data driven mode
 
 			mavlink_msg_utm_global_position_send_struct(_mavlink->get_channel(), &msg);
 
@@ -190,4 +191,4 @@ private:
 	}
 };
 
-#endif // UTM_GLOBAL_POSITION_HPP
+#endif  // UTM_GLOBAL_POSITION_HPP

@@ -43,10 +43,9 @@
 #include <perf/perf_counter.h>
 #include <string.h>
 
-#define SMBUS_PEC_POLYNOMIAL	0x07	///< Polynomial for calculating PEC
+#define SMBUS_PEC_POLYNOMIAL 0x07  ///< Polynomial for calculating PEC
 
-class SMBus : public device::I2C
-{
+class SMBus : public device::I2C {
 public:
 	static constexpr uint8_t MAX_BLOCK_LEN = 34;
 
@@ -95,6 +94,5 @@ public:
 	 */
 	uint8_t get_pec(uint8_t *buffer, uint8_t length);
 
-	perf_counter_t _interface_errors{perf_alloc(PC_COUNT, MODULE_NAME": errors")};
-
+	perf_counter_t _interface_errors{perf_alloc(PC_COUNT, MODULE_NAME ": errors")};
 };

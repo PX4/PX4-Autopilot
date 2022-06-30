@@ -34,14 +34,13 @@
 #ifndef _uORBCommon_hpp_
 #define _uORBCommon_hpp_
 
+#include <drivers/drv_hrt.h>
 #include <drivers/drv_orb_dev.h>
 #include <systemlib/err.h>
+
 #include "uORB.h"
-#include <drivers/drv_hrt.h>
 
-
-namespace uORB
-{
+namespace uORB {
 static constexpr unsigned orb_maxpath = 64;
 
 struct orb_advertdata {
@@ -49,5 +48,5 @@ struct orb_advertdata {
 	int *instance;
 };
 
-}
-#endif // _uORBCommon_hpp_
+}  // namespace uORB
+#endif  // _uORBCommon_hpp_

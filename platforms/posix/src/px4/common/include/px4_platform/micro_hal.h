@@ -32,17 +32,19 @@
  ****************************************************************************/
 #pragma once
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef int (*xcpt_t)(int irq, void *context, void *arg);
 
 static inline int px4_arch_configgpio(uint32_t pinset) { return -1; }
 static inline int px4_arch_unconfiggpio(uint32_t pinset) { return -1; }
 static inline bool px4_arch_gpioread(uint32_t pinset) { return false; }
-static inline void px4_arch_gpiowrite(uint32_t pinset, bool value) { }
-static inline int px4_arch_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
-					bool event, xcpt_t func, void *arg) { return -1; }
+static inline void px4_arch_gpiowrite(uint32_t pinset, bool value) {}
+static inline int px4_arch_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func,
+					void *arg) {
+	return -1;
+}
 
 #define px4_udelay(usec) px4_usleep(usec)
 #define px4_mdelay(msec) px4_msleep(msec)

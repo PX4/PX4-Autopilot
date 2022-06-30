@@ -33,34 +33,29 @@
 
 #include "AngularVelocityController.hpp"
 
-#include <drivers/drv_hrt.h>
 #include <circuit_breaker/circuit_breaker.h>
-#include <mathlib/math/Limits.hpp>
-#include <mathlib/math/Functions.hpp>
+#include <drivers/drv_hrt.h>
 #include <geo/geo.h>
+
+#include <mathlib/math/Functions.hpp>
+#include <mathlib/math/Limits.hpp>
 
 using namespace matrix;
 using namespace time_literals;
 
-AngularVelocityController::AngularVelocityController() :
-	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
-	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
-{
+AngularVelocityController::AngularVelocityController()
+	: ModuleParams(nullptr),
+	  WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	  _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")) {
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 	parameters_updated();
 	_rate_ctrl_status_pub.advertise();
 }
 
-AngularVelocityController::~AngularVelocityController()
-{
-	perf_free(_loop_perf);
-}
+AngularVelocityController::~AngularVelocityController() { perf_free(_loop_perf); }
 
-bool
-AngularVelocityController::init()
-{
+bool AngularVelocityController::init() {
 	if (!_vehicle_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -69,43 +64,35 @@ AngularVelocityController::init()
 	return true;
 }
 
-void
-AngularVelocityController::parameters_updated()
-{
+void AngularVelocityController::parameters_updated() {
 	// Control parameters
 	// The controller gain K is used to convert the parallel (P + I/s + sD) form
 	// to the ideal (K * [1 + 1/sTi + sTd]) form
 	const Vector3f k_gains = Vector3f(_param_avc_x_k.get(), _param_avc_y_k.get(), _param_avc_z_k.get());
 
-	_control.setGains(
-		k_gains.emult(Vector3f(_param_avc_x_p.get(), _param_avc_y_p.get(), _param_avc_z_p.get())),
-		k_gains.emult(Vector3f(_param_avc_x_i.get(), _param_avc_y_i.get(), _param_avc_z_i.get())),
-		k_gains.emult(Vector3f(_param_avc_x_d.get(), _param_avc_y_d.get(), _param_avc_z_d.get())));
+	_control.setGains(k_gains.emult(Vector3f(_param_avc_x_p.get(), _param_avc_y_p.get(), _param_avc_z_p.get())),
+			  k_gains.emult(Vector3f(_param_avc_x_i.get(), _param_avc_y_i.get(), _param_avc_z_i.get())),
+			  k_gains.emult(Vector3f(_param_avc_x_d.get(), _param_avc_y_d.get(), _param_avc_z_d.get())));
 
 	_control.setIntegratorLimit(
 		Vector3f(_param_avc_x_i_lim.get(), _param_avc_y_i_lim.get(), _param_avc_z_i_lim.get()));
 
-	_control.setFeedForwardGain(
-		Vector3f(_param_avc_x_ff.get(), _param_avc_y_ff.get(), _param_avc_z_ff.get()));
+	_control.setFeedForwardGain(Vector3f(_param_avc_x_ff.get(), _param_avc_y_ff.get(), _param_avc_z_ff.get()));
 
 	// inertia matrix
 	const float inertia[3][3] = {
 		{_param_vm_inertia_xx.get(), _param_vm_inertia_xy.get(), _param_vm_inertia_xz.get()},
 		{_param_vm_inertia_xy.get(), _param_vm_inertia_yy.get(), _param_vm_inertia_yz.get()},
-		{_param_vm_inertia_xz.get(), _param_vm_inertia_yz.get(), _param_vm_inertia_zz.get()}
-	};
+		{_param_vm_inertia_xz.get(), _param_vm_inertia_yz.get(), _param_vm_inertia_zz.get()}};
 	_control.setInertiaMatrix(matrix::Matrix3f(inertia));
 
 	// Hover thrust
-	if (!_param_mpc_use_hte.get()
-	    || !_vehicle_control_mode.flag_armed) {
+	if (!_param_mpc_use_hte.get() || !_vehicle_control_mode.flag_armed) {
 		_hover_thrust = _param_mpc_thr_hover.get();
 	}
 }
 
-void
-AngularVelocityController::Run()
-{
+void AngularVelocityController::Run() {
 	if (should_exit()) {
 		_vehicle_angular_velocity_sub.unregisterCallback();
 		exit_and_cleanup();
@@ -187,7 +174,8 @@ AngularVelocityController::Run()
 		// run the controller
 		if (_vehicle_control_mode.flag_control_rates_enabled) {
 			// reset integral if disarmed
-			if (!_vehicle_control_mode.flag_armed || _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			if (!_vehicle_control_mode.flag_armed ||
+			    _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 				_control.resetIntegral();
 			}
 
@@ -203,7 +191,8 @@ AngularVelocityController::Run()
 						if (control_allocator_status.unallocated_torque[i] > FLT_EPSILON) {
 							saturation_positive(i) = true;
 
-						} else if (control_allocator_status.unallocated_torque[i] < -FLT_EPSILON) {
+						} else if (control_allocator_status.unallocated_torque[i] <
+							   -FLT_EPSILON) {
 							saturation_negative(i) = true;
 						}
 					}
@@ -213,7 +202,8 @@ AngularVelocityController::Run()
 			}
 
 			// run rate controller
-			_control.update(angular_velocity, _angular_velocity_sp, _angular_acceleration, dt, _maybe_landed || _landed);
+			_control.update(angular_velocity, _angular_velocity_sp, _angular_acceleration, dt,
+					_maybe_landed || _landed);
 
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};
@@ -234,9 +224,7 @@ AngularVelocityController::Run()
 	perf_end(_loop_perf);
 }
 
-void
-AngularVelocityController::publish_angular_acceleration_setpoint()
-{
+void AngularVelocityController::publish_angular_acceleration_setpoint() {
 	Vector3f angular_accel_sp = _control.getAngularAccelerationSetpoint();
 
 	vehicle_angular_acceleration_setpoint_s v_angular_accel_sp = {};
@@ -249,9 +237,7 @@ AngularVelocityController::publish_angular_acceleration_setpoint()
 	_vehicle_angular_acceleration_setpoint_pub.publish(v_angular_accel_sp);
 }
 
-void
-AngularVelocityController::publish_torque_setpoint()
-{
+void AngularVelocityController::publish_torque_setpoint() {
 	Vector3f torque_sp = _control.getTorqueSetpoint();
 
 	vehicle_torque_setpoint_s v_torque_sp = {};
@@ -264,9 +250,7 @@ AngularVelocityController::publish_torque_setpoint()
 	_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 }
 
-void
-AngularVelocityController::publish_thrust_setpoint()
-{
+void AngularVelocityController::publish_thrust_setpoint() {
 	vehicle_thrust_setpoint_s v_thrust_sp = {};
 	v_thrust_sp.timestamp = hrt_absolute_time();
 	v_thrust_sp.timestamp_sample = _timestamp_sample;
@@ -277,8 +261,7 @@ AngularVelocityController::publish_thrust_setpoint()
 	_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 }
 
-int AngularVelocityController::task_spawn(int argc, char *argv[])
-{
+int AngularVelocityController::task_spawn(int argc, char *argv[]) {
 	AngularVelocityController *instance = new AngularVelocityController();
 
 	if (instance) {
@@ -300,8 +283,7 @@ int AngularVelocityController::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int AngularVelocityController::print_status()
-{
+int AngularVelocityController::print_status() {
 	PX4_INFO("Running");
 
 	perf_print_counter(_loop_perf);
@@ -309,13 +291,9 @@ int AngularVelocityController::print_status()
 	return 0;
 }
 
-int AngularVelocityController::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int AngularVelocityController::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int AngularVelocityController::print_usage(const char *reason)
-{
+int AngularVelocityController::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -343,7 +321,4 @@ The controller has a PID loop for angular rate error.
  */
 extern "C" __EXPORT int angular_velocity_controller_main(int argc, char *argv[]);
 
-int angular_velocity_controller_main(int argc, char *argv[])
-{
-	return AngularVelocityController::main(argc, argv);
-}
+int angular_velocity_controller_main(int argc, char *argv[]) { return AngularVelocityController::main(argc, argv); }

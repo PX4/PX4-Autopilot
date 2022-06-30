@@ -34,8 +34,7 @@
 #ifndef PING_HPP
 #define PING_HPP
 
-class MavlinkStreamPing : public MavlinkStream
-{
+class MavlinkStreamPing : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamPing(mavlink); }
 
@@ -45,10 +44,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_PING_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
+	unsigned get_size() override { return MAVLINK_MSG_ID_PING_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES; }
 
 	bool const_rate() override { return true; }
 
@@ -57,14 +53,13 @@ private:
 
 	uint32_t _sequence{0};
 
-	bool send() override
-	{
+	bool send() override {
 		mavlink_ping_t msg{};
 
 		msg.time_usec = hrt_absolute_time();
 		msg.seq = _sequence++;
-		msg.target_system = 0; // All systems
-		msg.target_component = 0; // All components
+		msg.target_system = 0;     // All systems
+		msg.target_component = 0;  // All components
 
 		mavlink_msg_ping_send_struct(_mavlink->get_channel(), &msg);
 
@@ -72,4 +67,4 @@ private:
 	}
 };
 
-#endif // PING_HPP
+#endif  // PING_HPP

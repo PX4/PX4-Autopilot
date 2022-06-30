@@ -37,8 +37,7 @@
 #include <uORB/topics/camera_status.h>
 #include <uORB/topics/camera_trigger.h>
 
-class MavlinkStreamCameraTrigger : public MavlinkStream
-{
+class MavlinkStreamCameraTrigger : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamCameraTrigger(mavlink); }
 
@@ -50,11 +49,11 @@ public:
 
 	bool const_rate() override { return true; }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		if (_camera_trigger_sub.advertised()) {
-			return MAVLINK_MSG_ID_CAMERA_TRIGGER_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
-			       + MAVLINK_MSG_ID_COMMAND_LONG_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES; // TODO: MAV_CMD_DO_DIGICAM_CONTROL
+			return MAVLINK_MSG_ID_CAMERA_TRIGGER_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES +
+			       MAVLINK_MSG_ID_COMMAND_LONG_LEN +
+			       MAVLINK_NUM_NON_PAYLOAD_BYTES;  // TODO: MAV_CMD_DO_DIGICAM_CONTROL
 		}
 
 		return 0;
@@ -66,14 +65,13 @@ private:
 	uORB::Subscription _camera_trigger_sub{ORB_ID(camera_trigger)};
 	uORB::Subscription _camera_status_sub{ORB_ID(camera_status)};
 	camera_status_s _camera_status = {
-		0,	//timestamp
-		0,	//target_sys_id
-		MAV_COMP_ID_CAMERA // active_comp_id
+		0,                  // timestamp
+		0,                  // target_sys_id
+		MAV_COMP_ID_CAMERA  // active_comp_id
 	};
-	int _sequence {1};
+	int _sequence{1};
 
-	bool send() override
-	{
+	bool send() override {
 		camera_trigger_s camera_trigger;
 
 		if ((_mavlink->get_free_tx_buf() >= get_size()) && _camera_trigger_sub.update(&camera_trigger)) {
@@ -88,9 +86,9 @@ private:
 
 				vehicle_command_s vcmd{};
 				vcmd.timestamp = hrt_absolute_time();
-				vcmd.param1 = 0.0f; // all cameras
-				vcmd.param2 = 0.0f; // duration 0 because only taking one picture
-				vcmd.param3 = 1.0f; // only take one
+				vcmd.param1 = 0.0f;  // all cameras
+				vcmd.param2 = 0.0f;  // duration 0 because only taking one picture
+				vcmd.param3 = 1.0f;  // only take one
 				vcmd.param4 = (float)_sequence++;
 				vcmd.param5 = (double)NAN;
 				vcmd.param6 = (double)NAN;
@@ -100,7 +98,6 @@ private:
 				vcmd.target_component = _camera_status.active_comp_id;
 
 				MavlinkCommandSender::instance().handle_vehicle_command(vcmd, _mavlink->get_channel());
-
 
 				// TODO: move this camera_trigger and publish as a vehicle_command
 				/* send MAV_CMD_DO_DIGICAM_CONTROL*/
@@ -114,7 +111,7 @@ private:
 				command_long_msg.param2 = NAN;
 				command_long_msg.param3 = NAN;
 				command_long_msg.param4 = NAN;
-				command_long_msg.param5 = 1;   // take 1 picture
+				command_long_msg.param5 = 1;  // take 1 picture
 				command_long_msg.param6 = NAN;
 				command_long_msg.param7 = NAN;
 
@@ -128,4 +125,4 @@ private:
 	}
 };
 
-#endif // CAMERA_TRIGGER_HPP
+#endif  // CAMERA_TRIGGER_HPP

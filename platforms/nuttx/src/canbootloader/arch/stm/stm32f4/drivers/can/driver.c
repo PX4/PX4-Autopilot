@@ -34,101 +34,93 @@
  *
  ****************************************************************************/
 
+#include <arch/board/board.h>
+#include <errno.h>
+#include <hardware/stm32_can.h>
+#include <lib/systemlib/crc.h>
+#include <limits.h>
 #include <nuttx/config.h>
-#include "boot_config.h"
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <limits.h>
-
-#include "chip.h"
-#include "stm32.h"
-#include <hardware/stm32_can.h>
-#include "nvic.h"
+#include <systemlib/px4_macros.h>
 
 #include "board.h"
-#include <systemlib/px4_macros.h>
+#include "boot_config.h"
 #include "can.h"
+#include "chip.h"
+#include "nvic.h"
+#include "stm32.h"
 #include "timer.h"
 
-#include <arch/board/board.h>
+#define INAK_TIMEOUT 65535
 
-#include <lib/systemlib/crc.h>
+#define CAN_TX_TIMEOUT_MS (200 / (1000 / (1000000 / CONFIG_USEC_PER_TICK)))
 
-#define INAK_TIMEOUT          65535
+#define SJW_POS 24
+#define BS1_POS 16
+#define BS2_POS 20
 
-#define CAN_TX_TIMEOUT_MS     (200 /(1000/(1000000/CONFIG_USEC_PER_TICK)))
+#define CAN_TSR_RQCP_SHFTS 8
 
-#define SJW_POS               24
-#define BS1_POS               16
-#define BS2_POS               20
-
-#define CAN_TSR_RQCP_SHFTS    8
-
-#define FILTER_ID             1
-#define FILTER_MASK           2
+#define FILTER_ID 1
+#define FILTER_MASK 2
 
 #if STM32_PCLK1_FREQUENCY == 48000000
 /* Sample 85.7 % */
-# define QUANTA 16
-# define BS1_VALUE 12
-# define BS2_VALUE 1
+#define QUANTA 16
+#define BS1_VALUE 12
+#define BS2_VALUE 1
 #elif STM32_PCLK1_FREQUENCY == 45000000 || STM32_PCLK1_FREQUENCY == 36000000
 /* Sample 88.9 % */
-# define QUANTA 9
-# define BS1_VALUE 6
-# define BS2_VALUE 0
+#define QUANTA 9
+#define BS1_VALUE 6
+#define BS2_VALUE 0
 #elif STM32_PCLK1_FREQUENCY == 42000000
 /* Sample 85.7 % */
-# define QUANTA 14
-# define BS1_VALUE 10
-# define BS2_VALUE 1
+#define QUANTA 14
+#define BS1_VALUE 10
+#define BS2_VALUE 1
 #else
-# warning Undefined QUANTA bsed on Clock Rate
+#warning Undefined QUANTA bsed on Clock Rate
 /* Sample 85.7 % */
-# define QUANTA 14
-# define BS1_VALUE 10
-# define BS2_VALUE 1
+#define QUANTA 14
+#define BS1_VALUE 10
+#define BS2_VALUE 1
 #endif
 
 #define CAN_1MBAUD_SJW 0
 #define CAN_1MBAUD_BS1 BS1_VALUE
 #define CAN_1MBAUD_BS2 BS2_VALUE
-#define CAN_1MBAUD_PRESCALER (STM32_PCLK1_FREQUENCY/1000000/QUANTA)
+#define CAN_1MBAUD_PRESCALER (STM32_PCLK1_FREQUENCY / 1000000 / QUANTA)
 
 #define CAN_500KBAUD_SJW 0
 #define CAN_500KBAUD_BS1 BS1_VALUE
 #define CAN_500KBAUD_BS2 BS2_VALUE
-#define CAN_500KBAUD_PRESCALER (STM32_PCLK1_FREQUENCY/500000/QUANTA)
+#define CAN_500KBAUD_PRESCALER (STM32_PCLK1_FREQUENCY / 500000 / QUANTA)
 
 #define CAN_250KBAUD_SJW 0
 #define CAN_250KBAUD_BS1 BS1_VALUE
 #define CAN_250KBAUD_BS2 BS2_VALUE
-#define CAN_250KBAUD_PRESCALER (STM32_PCLK1_FREQUENCY/250000/QUANTA)
+#define CAN_250KBAUD_PRESCALER (STM32_PCLK1_FREQUENCY / 250000 / QUANTA)
 
 #define CAN_125KBAUD_SJW 0
 #define CAN_125KBAUD_BS1 BS1_VALUE
 #define CAN_125KBAUD_BS2 BS2_VALUE
-#define CAN_125KBAUD_PRESCALER (STM32_PCLK1_FREQUENCY/125000/QUANTA)
+#define CAN_125KBAUD_PRESCALER (STM32_PCLK1_FREQUENCY / 125000 / QUANTA)
 
 #define CAN_BTR_LBK_SHIFT 30
 
 // Number of CPU cycles for a single bit time at the supported speeds
-#define CAN_125KBAUD_BIT_CYCLES (8*(TIMER_HRT_CYCLES_PER_US))
+#define CAN_125KBAUD_BIT_CYCLES (8 * (TIMER_HRT_CYCLES_PER_US))
 
-#define CAN_BAUD_TIME_IN_MS             200
-#define CAN_BAUD_SAMPLES_NEEDED         32
-#define CAN_BAUD_SAMPLES_DISCARDED      8
+#define CAN_BAUD_TIME_IN_MS 200
+#define CAN_BAUD_SAMPLES_NEEDED 32
+#define CAN_BAUD_SAMPLES_DISCARDED 8
 
-static inline uint32_t read_msr_rx(void)
-{
-	return getreg32(STM32_CAN1_MSR) & CAN_MSR_RX;
-}
+static inline uint32_t read_msr_rx(void) { return getreg32(STM32_CAN1_MSR) & CAN_MSR_RX; }
 
-static uint32_t read_msr(time_hrt_cycles_t  *now)
-{
+static uint32_t read_msr(time_hrt_cycles_t *now) {
 	__asm__ __volatile__("\tcpsid  i\n");
 	*now = timer_hrt_read();
 	uint32_t msr = read_msr_rx();
@@ -136,11 +128,10 @@ static uint32_t read_msr(time_hrt_cycles_t  *now)
 	return msr;
 }
 
-static int read_bits_times(time_hrt_cycles_t *times, size_t max)
-{
+static int read_bits_times(time_hrt_cycles_t *times, size_t max) {
 	uint32_t samplecnt = 0;
 	bl_timer_id ab_timer = timer_allocate(modeTimeout | modeStarted, CAN_BAUD_TIME_IN_MS, 0);
-	time_ref_t ab_ref =  timer_ref(ab_timer);
+	time_ref_t ab_ref = timer_ref(ab_timer);
 	uint32_t msr;
 	uint32_t last_msr = read_msr(times);
 
@@ -190,9 +181,9 @@ int can_speed2freq(can_speed_t speed)
  *   A can_speed_t from CAN_125KBAUD to CAN_1MBAUD
  *
  ****************************************************************************/
-can_speed_t can_freq2speed(int freq)
-{
-	return (freq == 1000000u ? CAN_1MBAUD : freq == 500000u ? CAN_500KBAUD : freq == 250000u ? CAN_250KBAUD : CAN_125KBAUD);
+can_speed_t can_freq2speed(int freq) {
+	return (freq == 1000000u ? CAN_1MBAUD
+				 : freq == 500000u ? CAN_500KBAUD : freq == 250000u ? CAN_250KBAUD : CAN_125KBAUD);
 }
 
 /****************************************************************************
@@ -215,8 +206,7 @@ can_speed_t can_freq2speed(int freq)
  *   The CAN_OK of the data sent or CAN_ERROR if a time out occurred
  *
  ****************************************************************************/
-uint8_t can_tx(uint32_t message_id, size_t length, const uint8_t *message, uint8_t mailbox)
-{
+uint8_t can_tx(uint32_t message_id, size_t length, const uint8_t *message, uint8_t mailbox) {
 	uint32_t data[2];
 
 	memcpy(data, message, sizeof(data));
@@ -252,8 +242,7 @@ uint8_t can_tx(uint32_t message_id, size_t length, const uint8_t *message, uint8
 	putreg32(length & CAN_TDTR_DLC_MASK, STM32_CAN1_TDTR(mailbox));
 	putreg32(data[0], STM32_CAN1_TDLR(mailbox));
 	putreg32(data[1], STM32_CAN1_TDHR(mailbox));
-	putreg32((message_id << CAN_TIR_EXID_SHIFT) | CAN_TIR_IDE | CAN_TIR_TXRQ,
-		 STM32_CAN1_TIR(mailbox));
+	putreg32((message_id << CAN_TIR_EXID_SHIFT) | CAN_TIR_IDE | CAN_TIR_TXRQ, STM32_CAN1_TIR(mailbox));
 	return CAN_OK;
 }
 
@@ -275,21 +264,17 @@ uint8_t can_tx(uint32_t message_id, size_t length, const uint8_t *message, uint8
  *   The length of the data read or 0 if the fifo was empty
  *
  ****************************************************************************/
-uint8_t can_rx(uint32_t *message_id, size_t *length, uint8_t *message, uint8_t fifo)
-{
+uint8_t can_rx(uint32_t *message_id, size_t *length, uint8_t *message, uint8_t fifo) {
 	uint32_t data[2];
 	uint8_t rv = 0;
-	const uint32_t fifos[] = { STM32_CAN1_RF0R, STM32_CAN1_RF1R };
+	const uint32_t fifos[] = {STM32_CAN1_RF0R, STM32_CAN1_RF1R};
 
 	if (getreg32(fifos[fifo & 1]) & CAN_RFR_FMP_MASK) {
-
 		rv = 1;
 		/* If so, process it */
 
-		*message_id = (getreg32(STM32_CAN1_RIR(fifo)) & CAN_RIR_EXID_MASK) >>
-			      CAN_RIR_EXID_SHIFT;
-		*length = (getreg32(STM32_CAN1_RDTR(fifo)) & CAN_RDTR_DLC_MASK) >>
-			  CAN_RDTR_DLC_SHIFT;
+		*message_id = (getreg32(STM32_CAN1_RIR(fifo)) & CAN_RIR_EXID_MASK) >> CAN_RIR_EXID_SHIFT;
+		*length = (getreg32(STM32_CAN1_RDTR(fifo)) & CAN_RDTR_DLC_MASK) >> CAN_RDTR_DLC_SHIFT;
 		data[0] = getreg32(STM32_CAN1_RDLR(fifo));
 		data[1] = getreg32(STM32_CAN1_RDHR(fifo));
 
@@ -325,8 +310,7 @@ uint8_t can_rx(uint32_t *message_id, size_t *length, uint8_t *message, uint8_t f
  *   CAN_OK - on Success or a CAN_BOOT_TIMEOUT
  *
  ****************************************************************************/
-int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout)
-{
+int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout) {
 	*can_speed = CAN_UNKNOWN;
 
 	volatile int attempt = 0;
@@ -345,10 +329,7 @@ int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout)
 	time_hrt_cycles_t samples[128];
 
 	while (1) {
-
-
 		while (1) {
-
 			min_cycles = ULONG_MAX;
 			int samplecnt = read_bits_times(samples, arraySize(samples));
 
@@ -356,8 +337,7 @@ int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout)
 				return CAN_BOOT_TIMEOUT;
 			}
 
-			if ((getreg32(STM32_CAN1_RF0R) | getreg32(STM32_CAN1_RF1R)) &
-			    CAN_RFR_FMP_MASK) {
+			if ((getreg32(STM32_CAN1_RF0R) | getreg32(STM32_CAN1_RF1R)) & CAN_RFR_FMP_MASK) {
 				*can_speed = speed;
 				can_init(speed, CAN_Mode_Normal);
 				return CAN_OK;
@@ -390,7 +370,6 @@ int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout)
 		attempt++;
 		can_init(speed, CAN_Mode_Silent);
 
-
 	} /* while(1) */
 
 	return CAN_OK;
@@ -412,31 +391,24 @@ int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout)
  *   OK - on Success or a negate errno value
  *
  ****************************************************************************/
-int can_init(can_speed_t speed, can_mode_t mode)
-{
+int can_init(can_speed_t speed, can_mode_t mode) {
 	int speedndx = speed - 1;
 	/*
 	 * TODO: use full-word writes to reduce the number of loads/stores.
 	 *
 	 * Also consider filter use -- maybe set filters for all the message types we
 	 * want. */
-	const uint32_t bitrates[] = {
-		(CAN_125KBAUD_SJW << SJW_POS) |
-		(CAN_125KBAUD_BS1 << BS1_POS) |
-		(CAN_125KBAUD_BS2 << BS2_POS) | (CAN_125KBAUD_PRESCALER - 1),
+	const uint32_t bitrates[] = {(CAN_125KBAUD_SJW << SJW_POS) | (CAN_125KBAUD_BS1 << BS1_POS) |
+					     (CAN_125KBAUD_BS2 << BS2_POS) | (CAN_125KBAUD_PRESCALER - 1),
 
-		(CAN_250KBAUD_SJW << SJW_POS) |
-		(CAN_250KBAUD_BS1 << BS1_POS) |
-		(CAN_250KBAUD_BS2 << BS2_POS) | (CAN_250KBAUD_PRESCALER - 1),
+				     (CAN_250KBAUD_SJW << SJW_POS) | (CAN_250KBAUD_BS1 << BS1_POS) |
+					     (CAN_250KBAUD_BS2 << BS2_POS) | (CAN_250KBAUD_PRESCALER - 1),
 
-		(CAN_500KBAUD_SJW << SJW_POS) |
-		(CAN_500KBAUD_BS1 << BS1_POS) |
-		(CAN_500KBAUD_BS2 << BS2_POS) | (CAN_500KBAUD_PRESCALER - 1),
+				     (CAN_500KBAUD_SJW << SJW_POS) | (CAN_500KBAUD_BS1 << BS1_POS) |
+					     (CAN_500KBAUD_BS2 << BS2_POS) | (CAN_500KBAUD_PRESCALER - 1),
 
-		(CAN_1MBAUD_SJW   << SJW_POS) |
-		(CAN_1MBAUD_BS1   << BS1_POS) |
-		(CAN_1MBAUD_BS2   << BS2_POS) | (CAN_1MBAUD_PRESCALER - 1)
-	};
+				     (CAN_1MBAUD_SJW << SJW_POS) | (CAN_1MBAUD_BS1 << BS1_POS) |
+					     (CAN_1MBAUD_BS2 << BS2_POS) | (CAN_1MBAUD_PRESCALER - 1)};
 
 	/* Remove Unknow Offset */
 	if (speedndx < 0 || speedndx > (int)arraySize(bitrates)) {
@@ -467,7 +439,6 @@ int can_init(can_speed_t speed, can_mode_t mode)
 		 * startup. */
 		return -ETIME;
 	}
-
 
 	putreg32(bitrates[speedndx] | mode << CAN_BTR_LBK_SHIFT, STM32_CAN1_BTR);
 	putreg32(CAN_MCR_ABOM | CAN_MCR_AWUM | CAN_MCR_DBF | CAN_MCR_TXFP, STM32_CAN1_MCR);
@@ -516,10 +487,10 @@ int can_init(can_speed_t speed, can_mode_t mode)
 	putreg32(0, STM32_CAN1_FIR(1, FILTER_ID));
 	putreg32(0, STM32_CAN1_FIR(1, FILTER_MASK));
 
-	putreg32(0, STM32_CAN1_FM1R);   /* Mask mode for all filters */
-	putreg32(1, STM32_CAN1_FFA1R);  /* FIFO 1 for filter 0, FIFO 0 for the
-                                         * rest of filters */
-	putreg32(3, STM32_CAN1_FA1R);   /* Enable filters 0 and 1 */
+	putreg32(0, STM32_CAN1_FM1R);  /* Mask mode for all filters */
+	putreg32(1, STM32_CAN1_FFA1R); /* FIFO 1 for filter 0, FIFO 0 for the
+					* rest of filters */
+	putreg32(3, STM32_CAN1_FA1R);  /* Enable filters 0 and 1 */
 
 	/* Clear FINIT - Active mode for the filters- */
 
@@ -543,16 +514,15 @@ int can_init(can_speed_t speed, can_mode_t mode)
  *   CAN_OK - on Success or a CAN_ERROR if the cancellation was needed
  *
  ****************************************************************************/
-void can_cancel_on_error(uint8_t mailbox)
-{
+void can_cancel_on_error(uint8_t mailbox) {
 	uint32_t rvalue;
 
 	/* Wait for completion the all 1's wat set in the tx code*/
-	while (CAN_ESR_LEC_MASK == ((rvalue = (getreg32(STM32_CAN1_ESR) & CAN_ESR_LEC_MASK))));
+	while (CAN_ESR_LEC_MASK == ((rvalue = (getreg32(STM32_CAN1_ESR) & CAN_ESR_LEC_MASK))))
+		;
 
 	/* Any errors */
 	if (rvalue) {
-
 		putreg32(0, STM32_CAN1_ESR);
 
 		/* Abort the the TX in case of collision wuth NART false  */

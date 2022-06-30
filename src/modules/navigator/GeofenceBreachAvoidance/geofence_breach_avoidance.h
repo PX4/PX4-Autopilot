@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 #include <lib/mathlib/mathlib.h>
-#include <px4_platform_common/module_params.h>
-#include "../geofence.h"
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/module_params.h>
 
+#include "../geofence.h"
 
 class Geofence;
 
@@ -43,15 +43,14 @@ class Geofence;
 
 union geofence_violation_type_u {
 	struct {
-		bool dist_to_home_exceeded: 1;	///< 0 - distance to home exceeded
-		bool max_altitude_exceeded: 1;	///< 1 - maximum altitude exceeded
-		bool fence_violation: 1;	///< 2- violation of user defined fence
+		bool dist_to_home_exceeded : 1;  ///< 0 - distance to home exceeded
+		bool max_altitude_exceeded : 1;  ///< 1 - maximum altitude exceeded
+		bool fence_violation : 1;        ///< 2- violation of user defined fence
 	} flags;
 	uint8_t value;
 };
 
-class GeofenceBreachAvoidance : public ModuleParams
-{
+class GeofenceBreachAvoidance : public ModuleParams {
 public:
 	GeofenceBreachAvoidance(ModuleParams *parent);
 
@@ -60,24 +59,25 @@ public:
 	matrix::Vector2<double> getFenceViolationTestPoint();
 
 	matrix::Vector2<double> waypointFromBearingAndDistance(matrix::Vector2<double> current_pos_lat_lon,
-			float test_point_bearing, float test_point_distance);
+							       float test_point_bearing, float test_point_distance);
 
-	matrix::Vector2<double>
-	generateLoiterPointForFixedWing(geofence_violation_type_u violation_type, Geofence *geofence);
+	matrix::Vector2<double> generateLoiterPointForFixedWing(geofence_violation_type_u violation_type,
+								Geofence *geofence);
 
 	float computeBrakingDistanceMultirotor();
 
 	float computeVerticalBrakingDistanceMultirotor();
 
-	matrix::Vector2<double> generateLoiterPointForMultirotor(geofence_violation_type_u violation_type, Geofence *geofence);
+	matrix::Vector2<double> generateLoiterPointForMultirotor(geofence_violation_type_u violation_type,
+								 Geofence *geofence);
 
 	float generateLoiterAltitudeForFixedWing(geofence_violation_type_u violation_type);
 
 	float generateLoiterAltitudeForMulticopter(geofence_violation_type_u violation_type);
 
-	float getMinHorDistToFenceMulticopter() {return _min_hor_dist_to_fence_mc;}
+	float getMinHorDistToFenceMulticopter() { return _min_hor_dist_to_fence_mc; }
 
-	float getMinVertDistToFenceMultirotor() {return _min_vert_dist_to_fence_mc;}
+	float getMinVertDistToFenceMultirotor() { return _min_vert_dist_to_fence_mc; }
 
 	void setTestPointBearing(float test_point_bearing) { _test_point_bearing = test_point_bearing; }
 
@@ -133,7 +133,7 @@ private:
 	float _multirotor_vertical_braking_distance{0.0f};
 
 	matrix::Vector2<double> _current_pos_lat_lon{};
-	matrix::Vector2<double> _home_lat_lon {};
+	matrix::Vector2<double> _home_lat_lon{};
 	float _home_alt_amsl{0.0f};
 
 	float _max_hor_dist_home{0.0f};
@@ -144,5 +144,4 @@ private:
 	void updateMinVertDistToFenceMultirotor();
 
 	matrix::Vector2<double> waypointFromHomeToTestPointAtDist(float distance);
-
 };

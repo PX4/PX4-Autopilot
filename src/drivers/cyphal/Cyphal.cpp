@@ -36,7 +36,6 @@
 #include <lib/geo/geo.h>
 #include <lib/version/version.h>
 
-
 #ifdef CONFIG_CYPHAL_APP_DESCRIPTOR
 #include "boot_app_shared.h"
 /*
@@ -45,30 +44,26 @@
  * the application image's descriptor so that the
  * uavcan bootloader has the ability to validate the
  * image crc, size etc of this application
-*/
-boot_app_shared_section app_descriptor_t AppDescriptor = {
-	.signature = APP_DESCRIPTOR_SIGNATURE,
-	.image_crc = 0,
-	.image_size = 0,
-	.git_hash  = 0,
-	.major_version = APP_VERSION_MAJOR,
-	.minor_version = APP_VERSION_MINOR,
-	.board_id = HW_VERSION_MAJOR << 8 | HW_VERSION_MINOR,
-	.reserved = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
-};
+ */
+boot_app_shared_section app_descriptor_t AppDescriptor = {.signature = APP_DESCRIPTOR_SIGNATURE,
+							  .image_crc = 0,
+							  .image_size = 0,
+							  .git_hash = 0,
+							  .major_version = APP_VERSION_MAJOR,
+							  .minor_version = APP_VERSION_MINOR,
+							  .board_id = HW_VERSION_MAJOR << 8 | HW_VERSION_MINOR,
+							  .reserved = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}};
 #endif
 
 using namespace time_literals;
 
 CyphalNode *CyphalNode::_instance;
 
-CyphalNode::CyphalNode(uint32_t node_id, size_t capacity, size_t mtu_bytes) :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
-	_canard_handle(node_id, capacity, mtu_bytes)
-{
+CyphalNode::CyphalNode(uint32_t node_id, size_t capacity, size_t mtu_bytes)
+	: ModuleParams(nullptr),
+	  ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
+	  _canard_handle(node_id, capacity, mtu_bytes) {
 	pthread_mutex_init(&_node_mutex, nullptr);
-
 
 #ifdef CONFIG_CYPHAL_NODE_MANAGER
 	_node_manager.subscribe();
@@ -85,8 +80,7 @@ CyphalNode::CyphalNode(uint32_t node_id, size_t capacity, size_t mtu_bytes) :
 	_sub_manager.subscribe();
 }
 
-CyphalNode::~CyphalNode()
-{
+CyphalNode::~CyphalNode() {
 	if (_instance) {
 		/* tell the task we want it to go away */
 		_task_should_exit.store(true);
@@ -110,8 +104,7 @@ CyphalNode::~CyphalNode()
 	perf_free(_interval_perf);
 }
 
-int CyphalNode::start(uint32_t node_id, uint32_t bitrate)
-{
+int CyphalNode::start(uint32_t node_id, uint32_t bitrate) {
 	if (_instance != nullptr) {
 		PX4_WARN("Already started");
 		return -1;
@@ -139,17 +132,14 @@ int CyphalNode::start(uint32_t node_id, uint32_t bitrate)
 	return PX4_OK;
 }
 
-void CyphalNode::init()
-{
+void CyphalNode::init() {
 	// interface init
 	if (_canard_handle.init()) {
 		_initialized = true;
 	}
-
 }
 
-void CyphalNode::Run()
-{
+void CyphalNode::Run() {
 	pthread_mutex_lock(&_node_mutex);
 
 	if (_instance != nullptr && !_initialized) {
@@ -192,7 +182,6 @@ void CyphalNode::Run()
 		_node_manager.update();
 #endif
 	}
-
 #ifdef CONFIG_CYPHAL_NODE_CLIENT
 
 	else if (_node_client != nullptr) {
@@ -238,8 +227,7 @@ static void traverseTree(const CanardTreeNode *const root, const F &op)  // NOLI
 	}
 }
 
-void CyphalNode::print_info()
-{
+void CyphalNode::print_info() {
 	pthread_mutex_lock(&_node_mutex);
 
 	perf_print_counter(_cycle_perf);
@@ -247,57 +235,54 @@ void CyphalNode::print_info()
 
 	O1HeapDiagnostics heap_diagnostics = _canard_handle.getO1HeapDiagnostics();
 
-	PX4_INFO("Heap status %zu/%zu Peak alloc %zu Peak req %zu OOM count %" PRIu64,
-		 heap_diagnostics.allocated, heap_diagnostics.capacity,
-		 heap_diagnostics.peak_allocated, heap_diagnostics.peak_request_size,
+	PX4_INFO("Heap status %zu/%zu Peak alloc %zu Peak req %zu OOM count %" PRIu64, heap_diagnostics.allocated,
+		 heap_diagnostics.capacity, heap_diagnostics.peak_allocated, heap_diagnostics.peak_request_size,
 		 heap_diagnostics.oom_count);
 
 	_pub_manager.printInfo();
 
 	traverseTree<CanardRxSubscription>(_canard_handle.getRxSubscriptions(CanardTransferKindMessage),
-	[&](const CanardRxSubscription * const sub) {
-		if (sub->user_reference == nullptr) {
-			PX4_INFO("Message port id %d", sub->port_id);
+					   [&](const CanardRxSubscription *const sub) {
+						   if (sub->user_reference == nullptr) {
+							   PX4_INFO("Message port id %d", sub->port_id);
 
-		} else {
-			((UavcanBaseSubscriber *)sub->user_reference)->printInfo();
-		}
-	});
-
+						   } else {
+							   ((UavcanBaseSubscriber *)sub->user_reference)->printInfo();
+						   }
+					   });
 
 	traverseTree<CanardRxSubscription>(_canard_handle.getRxSubscriptions(CanardTransferKindRequest),
-	[&](const CanardRxSubscription * const sub) {
-		if (sub->user_reference == nullptr) {
-			PX4_INFO("Service response port id %d", sub->port_id);
+					   [&](const CanardRxSubscription *const sub) {
+						   if (sub->user_reference == nullptr) {
+							   PX4_INFO("Service response port id %d", sub->port_id);
 
-		} else {
-			((UavcanBaseSubscriber *)sub->user_reference)->printInfo();
-		}
-	});
+						   } else {
+							   ((UavcanBaseSubscriber *)sub->user_reference)->printInfo();
+						   }
+					   });
 
 	traverseTree<CanardRxSubscription>(_canard_handle.getRxSubscriptions(CanardTransferKindResponse),
-	[&](const CanardRxSubscription * const sub) {
-		if (sub->user_reference == nullptr) {
-			PX4_INFO("Service request port id %d", sub->port_id);
+					   [&](const CanardRxSubscription *const sub) {
+						   if (sub->user_reference == nullptr) {
+							   PX4_INFO("Service request port id %d", sub->port_id);
 
-		} else {
-			((UavcanBaseSubscriber *)sub->user_reference)->printInfo();
-		}
-	});
+						   } else {
+							   ((UavcanBaseSubscriber *)sub->user_reference)->printInfo();
+						   }
+					   });
 
 	_mixing_output.printInfo();
 
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-static void print_usage()
-{
-	PX4_INFO("usage: \n"
-		 "\tuavcannode {start|status|stop}");
+static void print_usage() {
+	PX4_INFO(
+		"usage: \n"
+		"\tuavcannode {start|status|stop}");
 }
 
-extern "C" __EXPORT int cyphal_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int cyphal_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		print_usage();
 		return 1;
@@ -348,37 +333,31 @@ extern "C" __EXPORT int cyphal_main(int argc, char *argv[])
 	return 1;
 }
 
-void CyphalNode::sendHeartbeat()
-{
+void CyphalNode::sendHeartbeat() {
 	if (hrt_elapsed_time(&_uavcan_node_heartbeat_last) >= 1_s) {
-
 		uavcan_node_Heartbeat_1_0 heartbeat{};
-		heartbeat.uptime = _uavcan_node_heartbeat_transfer_id; // TODO: use real uptime
+		heartbeat.uptime = _uavcan_node_heartbeat_transfer_id;  // TODO: use real uptime
 		heartbeat.health.value = uavcan_node_Health_1_0_NOMINAL;
 		heartbeat.mode.value = uavcan_node_Mode_1_0_OPERATIONAL;
 		const hrt_abstime now = hrt_absolute_time();
 		size_t payload_size = uavcan_node_Heartbeat_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_;
 
-		const CanardTransferMetadata transfer_metadata = {
-			.priority       = CanardPriorityNominal,
-			.transfer_kind  = CanardTransferKindMessage,
-			.port_id        = uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_,
-			.remote_node_id = CANARD_NODE_ID_UNSET,
-			.transfer_id    = _uavcan_node_heartbeat_transfer_id++
-		};
+		const CanardTransferMetadata transfer_metadata = {.priority = CanardPriorityNominal,
+								  .transfer_kind = CanardTransferKindMessage,
+								  .port_id = uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_,
+								  .remote_node_id = CANARD_NODE_ID_UNSET,
+								  .transfer_id = _uavcan_node_heartbeat_transfer_id++};
 
 		uavcan_node_Heartbeat_1_0_serialize_(&heartbeat, _uavcan_node_heartbeat_buffer, &payload_size);
 
-		int32_t result = _canard_handle.TxPush(now + PUBLISHER_DEFAULT_TIMEOUT_USEC,
-						       &transfer_metadata,
-						       payload_size,
-						       &_uavcan_node_heartbeat_buffer
-						      );
+		int32_t result = _canard_handle.TxPush(now + PUBLISHER_DEFAULT_TIMEOUT_USEC, &transfer_metadata,
+						       payload_size, &_uavcan_node_heartbeat_buffer);
 
 		if (result < 0) {
 			// An error has occurred: either an argument is invalid or we've ran out of memory.
-			// It is possible to statically prove that an out-of-memory will never occur for a given application if the
-			// heap is sized correctly; for background, refer to the Robson's Proof and the documentation for O1Heap.
+			// It is possible to statically prove that an out-of-memory will never occur for a given
+			// application if the heap is sized correctly; for background, refer to the Robson's Proof and
+			// the documentation for O1Heap.
 			PX4_ERR("Heartbeat transmit error %" PRId32 "", result);
 		}
 
@@ -387,8 +366,7 @@ void CyphalNode::sendHeartbeat()
 }
 
 bool UavcanMixingInterface::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-		unsigned num_control_groups_updated)
-{
+					  unsigned num_control_groups_updated) {
 	// Note: This gets called from MixingOutput from within its update() function
 	// Hence, the mutex lock in UavcanMixingInterface::Run() is in effect
 
@@ -399,8 +377,7 @@ bool UavcanMixingInterface::updateOutputs(bool stop_motors, uint16_t outputs[MAX
 	return true;
 }
 
-void UavcanMixingInterface::Run()
-{
+void UavcanMixingInterface::Run() {
 	pthread_mutex_lock(&_node_mutex);
 	_mixing_output.update();
 	_mixing_output.updateSubscriptions();

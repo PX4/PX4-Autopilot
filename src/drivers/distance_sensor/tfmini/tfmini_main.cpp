@@ -31,26 +31,23 @@
  *
  ****************************************************************************/
 
-#include "TFMINI.hpp"
-
 #include <px4_platform_common/getopt.h>
+
+#include "TFMINI.hpp"
 
 /**
  * Local functions in support of the shell command.
  */
-namespace tfmini
-{
+namespace tfmini {
 
-TFMINI	*g_dev{nullptr};
+TFMINI *g_dev{nullptr};
 
 int start(const char *port, uint8_t rotation);
 int status();
 int stop();
 int usage();
 
-int
-start(const char *port, uint8_t rotation)
-{
+int start(const char *port, uint8_t rotation) {
 	if (g_dev != nullptr) {
 		PX4_ERR("already started");
 		return PX4_OK;
@@ -74,9 +71,7 @@ start(const char *port, uint8_t rotation)
 	return PX4_OK;
 }
 
-int
-status()
-{
+int status() {
 	if (g_dev == nullptr) {
 		PX4_ERR("driver not running");
 		return 1;
@@ -88,8 +83,7 @@ status()
 	return 0;
 }
 
-int stop()
-{
+int stop() {
 	if (g_dev != nullptr) {
 		PX4_INFO("stopping driver");
 		delete g_dev;
@@ -104,9 +98,7 @@ int stop()
 	return PX4_OK;
 }
 
-int
-usage()
-{
+int usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -127,20 +119,19 @@ $ tfmini stop
 
 	PRINT_MODULE_USAGE_NAME("tfmini", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 0, 25, "Sensor rotation - downward facing by default", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status","Driver status");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status","Print driver status");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Driver status");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test driver (basic functional tests)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print driver status");
 	return PX4_OK;
 }
 
-} // namespace
+}  // namespace tfmini
 
-extern "C" __EXPORT int tfmini_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int tfmini_main(int argc, char *argv[]) {
 	int ch = 0;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	const char *device_path = TFMINI_DEFAULT_PORT;
@@ -149,17 +140,17 @@ extern "C" __EXPORT int tfmini_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "R:d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'R':
-			rotation = (uint8_t)atoi(myoptarg);
-			break;
+			case 'R':
+				rotation = (uint8_t)atoi(myoptarg);
+				break;
 
-		case 'd':
-			device_path = myoptarg;
-			break;
+			case 'd':
+				device_path = myoptarg;
+				break;
 
-		default:
-			PX4_WARN("Unknown option!");
-			return PX4_ERROR;
+			default:
+				PX4_WARN("Unknown option!");
+				return PX4_ERROR;
 		}
 	}
 

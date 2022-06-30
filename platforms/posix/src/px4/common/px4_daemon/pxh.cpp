@@ -40,39 +40,36 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <string>
-#include <sstream>
-#include <vector>
-#include <algorithm>
-#include <stdio.h>
-#include <poll.h>
-#include <fcntl.h>
-#include <unistd.h>
-
 #include "pxh.h"
 
-namespace px4_daemon
-{
+#include <fcntl.h>
+#include <poll.h>
+#include <stdio.h>
+#include <unistd.h>
+
+#include <algorithm>
+#include <sstream>
+#include <string>
+#include <vector>
+
+namespace px4_daemon {
 
 apps_map_type Pxh::_apps = {};
 Pxh *Pxh::_instance = nullptr;
 
-Pxh::Pxh()
-{
-	_history.try_to_add("commander takeoff"); // for convenience
+Pxh::Pxh() {
+	_history.try_to_add("commander takeoff");  // for convenience
 	_history.reset_to_end();
 }
 
-Pxh::~Pxh()
-{
+Pxh::~Pxh() {
 	if (_local_terminal) {
 		tcsetattr(0, TCSANOW, &_orig_term);
 		_instance = nullptr;
 	}
 }
 
-int Pxh::process_line(const std::string &line, bool silently_fail)
-{
+int Pxh::process_line(const std::string &line, bool silently_fail) {
 	if (line.empty()) {
 		return 0;
 	}
@@ -97,7 +94,6 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 	const std::string &command(words.front());
 
 	if (_apps.find(command) != _apps.end()) {
-
 		// Note that argv[argc] always needs to be a nullptr.
 		// Therefore add one more entry.
 		const char *arg[words.size() + 1];
@@ -128,7 +124,7 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 		return 0;
 
 	} else if (!silently_fail) {
-		//std::cout << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
+		// std::cout << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
 		printf("Invalid command: %s\ntype 'help' for a list of commands\n", command.c_str());
 		return -1;
 
@@ -137,9 +133,7 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 	}
 }
 
-void Pxh::_check_remote_uorb_command(std::string &line)
-{
-
+void Pxh::_check_remote_uorb_command(std::string &line) {
 	if (line.empty()) {
 		return;
 	}
@@ -154,8 +148,7 @@ void Pxh::_check_remote_uorb_command(std::string &line)
 	}
 }
 
-void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
-{
+void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd) {
 	std::string mystr;
 	int p1[2], pipe_stdout;
 	int p2[2], pipe_stderr;
@@ -195,8 +188,7 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 	//
 	// Any data from remote_in_fd will be process as shell commands when an '\n' is received
 	while (!_should_exit) {
-
-		struct pollfd fds[3] { {pipe_stderr, POLLIN}, {pipe_stdout, POLLIN}, {remote_in_fd, POLLIN}};
+		struct pollfd fds[3]{{pipe_stderr, POLLIN}, {pipe_stdout, POLLIN}, {remote_in_fd, POLLIN}};
 
 		if (poll(fds, 3, -1) == -1) {
 			perror("Mavlink Shell Poll Error");
@@ -204,12 +196,11 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 		}
 
 		if (fds[0].revents & POLLIN) {
-
 			uint8_t buffer[512];
 			size_t len;
 
 			if ((len = read(pipe_stderr, buffer, sizeof(buffer))) <= 0) {
-				break; //EOF or ERROR
+				break;  // EOF or ERROR
 			}
 
 			// Send all the stderr data to the local terminal as well as the remote shell
@@ -228,12 +219,11 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 		}
 
 		if (fds[1].revents & POLLIN) {
-
 			uint8_t buffer[512];
 			size_t len;
 
 			if ((len = read(pipe_stdout, buffer, sizeof(buffer))) <= 0) {
-				break; //EOF or ERROR
+				break;  // EOF or ERROR
 			}
 
 			// Send all the stdout data to the local terminal as well as the remote shell
@@ -249,34 +239,32 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 		}
 
 		if (fds[2].revents & POLLIN) {
-
 			char c;
 
 			if (read(remote_in_fd, &c, 1) <= 0) {
-				break; // EOF or ERROR
+				break;  // EOF or ERROR
 			}
 
 			switch (c) {
+				case '\n':  // user hit enter
+					printf("\n");
+					_check_remote_uorb_command(mystr);
+					process_line(mystr, false);
+					// reset string
+					mystr = "";
 
-			case '\n':	// user hit enter
-				printf("\n");
-				_check_remote_uorb_command(mystr);
-				process_line(mystr, false);
-				// reset string
-				mystr = "";
+					_print_prompt();
 
-				_print_prompt();
+					break;
 
-				break;
+				default:  // any other input
+					if (c > 3) {
+						fprintf(stdout, "%c", c);
+						fflush(stdout);
+						mystr += (char)c;
+					}
 
-			default:	// any other input
-				if (c > 3) {
-					fprintf(stdout, "%c", c);
-					fflush(stdout);
-					mystr += (char)c;
-				}
-
-				break;
+					break;
 			}
 		}
 	}
@@ -293,104 +281,102 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 	close(remote_out_fd);
 }
 
-void Pxh::run_pxh()
-{
+void Pxh::run_pxh() {
 	// Only the local_terminal needed for static calls
 	_instance = this;
 	_local_terminal = true;
 	_setup_term();
 
 	std::string mystr;
-	int cursor_position = 0; // position of the cursor from right to left
+	int cursor_position = 0;  // position of the cursor from right to left
 	// (0: all the way to the right, mystr.length: all the way to the left)
 
 	_print_prompt();
 
 	while (!_should_exit) {
-
 		int c = getchar();
-		std::string add_string; // string to add at current cursor position
+		std::string add_string;  // string to add at current cursor position
 		bool update_prompt = true;
 
 		switch (c) {
-		case EOF:
-			break;
+			case EOF:
+				break;
 
-		case '\t':
-			_tab_completion(mystr);
-			break;
+			case '\t':
+				_tab_completion(mystr);
+				break;
 
-		case 127:	// backslash
-			if ((int)mystr.length() - cursor_position > 0) {
-				mystr.erase(mystr.length() - cursor_position - 1, 1);
-			}
+			case 127:  // backslash
+				if ((int)mystr.length() - cursor_position > 0) {
+					mystr.erase(mystr.length() - cursor_position - 1, 1);
+				}
 
-			break;
+				break;
 
-		case '\n':	// user hit enter
-			_history.try_to_add(mystr);
-			_history.reset_to_end();
+			case '\n':  // user hit enter
+				_history.try_to_add(mystr);
+				_history.reset_to_end();
 
-			printf("\n");
-			process_line(mystr, false);
-			// reset string and cursor position
-			mystr = "";
-			cursor_position = 0;
+				printf("\n");
+				process_line(mystr, false);
+				// reset string and cursor position
+				mystr = "";
+				cursor_position = 0;
 
-			update_prompt = false;
-			_print_prompt();
-			break;
+				update_prompt = false;
+				_print_prompt();
+				break;
 
-		case '\033': {	// arrow keys
-				c = getchar();	// skip first one, does not have the info
+			case '\033': {          // arrow keys
+				c = getchar();  // skip first one, does not have the info
 				c = getchar();
 
-				if (c == 'A') { // arrow up
+				if (c == 'A') {  // arrow up
 					_history.try_to_save_current_line(mystr);
 					_history.get_previous(mystr);
-					cursor_position = 0; // move cursor to end of line
+					cursor_position = 0;  // move cursor to end of line
 
-				} else if (c == 'B') { // arrow down
+				} else if (c == 'B') {  // arrow down
 					_history.get_next(mystr);
-					cursor_position = 0; // move cursor to end of line
+					cursor_position = 0;  // move cursor to end of line
 
-				} else if (c == 'C') { // arrow right
+				} else if (c == 'C') {  // arrow right
 					if (cursor_position > 0) {
 						cursor_position--;
 					}
 
-				} else if (c == 'D') { // arrow left
+				} else if (c == 'D') {  // arrow left
 					if (cursor_position < (int)mystr.length()) {
 						cursor_position++;
 					}
 
-				} else if (c == 'H') { // Home (go to the beginning of the command)
+				} else if (c == 'H') {  // Home (go to the beginning of the command)
 					cursor_position = mystr.length();
 
-				} else if (c == '1') { // Home (go to the beginning of the command, Editing key)
-					(void)getchar(); // swallow '~'
+				} else if (c == '1') {    // Home (go to the beginning of the command, Editing key)
+					(void)getchar();  // swallow '~'
 					cursor_position = mystr.length();
 
-				} else if (c == 'F') { // End (go to the end of the command)
+				} else if (c == 'F') {  // End (go to the end of the command)
 					cursor_position = 0;
 
-				} else if (c == '4') { // End (go to the end of the command, Editing key)
-					(void)getchar(); // swallow '~'
+				} else if (c == '4') {    // End (go to the end of the command, Editing key)
+					(void)getchar();  // swallow '~'
 					cursor_position = 0;
 				}
 
 				break;
 			}
 
-		default:	// any other input
-			if (c > 3) {
-				add_string += (char)c;
+			default:  // any other input
+				if (c > 3) {
+					add_string += (char)c;
 
-			} else {
-				update_prompt = false;
-			}
+				} else {
+					update_prompt = false;
+				}
 
-			break;
+				break;
 		}
 
 		if (update_prompt) {
@@ -408,15 +394,13 @@ void Pxh::run_pxh()
 	}
 }
 
-void Pxh::stop()
-{
+void Pxh::stop() {
 	if (_instance) {
 		_instance->_should_exit = true;
 	}
 }
 
-void Pxh::_setup_term()
-{
+void Pxh::_setup_term() {
 	// Make sure we restore terminal at exit.
 	tcgetattr(0, &_orig_term);
 	atexit(Pxh::_restore_term);
@@ -430,31 +414,22 @@ void Pxh::_setup_term()
 	setbuf(stdin, nullptr);
 }
 
-void Pxh::_restore_term()
-{
+void Pxh::_restore_term() {
 	if (_instance) {
 		tcsetattr(0, TCSANOW, &_instance->_orig_term);
 	}
 }
 
-void Pxh::_print_prompt()
-{
+void Pxh::_print_prompt() {
 	fflush(stdout);
 	printf("pxh> ");
 	fflush(stdout);
 }
 
-void Pxh::_clear_line()
-{
-	printf("%c[2K%c", (char)27, (char)13);
-}
-void Pxh::_move_cursor(int position)
-{
-	printf("\033[%dD", position);
-}
+void Pxh::_clear_line() { printf("%c[2K%c", (char)27, (char)13); }
+void Pxh::_move_cursor(int position) { printf("\033[%dD", position); }
 
-void Pxh::_tab_completion(std::string &mystr)
-{
+void Pxh::_tab_completion(std::string &mystr) {
 	// parse line and get command
 	std::stringstream line(mystr);
 	std::string cmd;
@@ -462,10 +437,9 @@ void Pxh::_tab_completion(std::string &mystr)
 
 	// cmd is empty or white space send a list of available commands
 	if (cmd.size() == 0) {
-
 		printf("\n");
 
-		for (auto it = _apps.begin(); it != _apps.end();  ++it) {
+		for (auto it = _apps.begin(); it != _apps.end(); ++it) {
 			printf("%s ", it->first.c_str());
 		}
 
@@ -473,11 +447,10 @@ void Pxh::_tab_completion(std::string &mystr)
 		mystr = "";
 
 	} else {
-
 		// find tab completion matches
 		std::vector<std::string> matches;
 
-		for (auto it = _apps.begin(); it != _apps.end();  ++it) {
+		for (auto it = _apps.begin(); it != _apps.end(); ++it) {
 			if (it->first.compare(0, cmd.size(), cmd) == 0) {
 				matches.push_back(it->first);
 			}
@@ -511,7 +484,7 @@ void Pxh::_tab_completion(std::string &mystr)
 			std::string longest_match;
 			bool done = false;
 
-			for (int i = 0; i < (int)min_size ; ++i) {
+			for (int i = 0; i < (int)min_size; ++i) {
 				bool first_time = true;
 
 				for (const auto &item : matches) {
@@ -526,7 +499,9 @@ void Pxh::_tab_completion(std::string &mystr)
 					}
 				}
 
-				if (done) { break; }
+				if (done) {
+					break;
+				}
 
 				mystr = longest_match;
 			}
@@ -550,4 +525,4 @@ void Pxh::_tab_completion(std::string &mystr)
 	}
 }
 
-} // namespace px4_daemon
+}  // namespace px4_daemon

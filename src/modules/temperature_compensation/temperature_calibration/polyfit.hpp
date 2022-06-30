@@ -52,23 +52,24 @@ V is Vandermonde matrix in x -> https://en.wikipedia.org/wiki/Vandermonde_matrix
 Y is a vector of length m containing the y measurements
 E is a vector of length m containing the fit errors for each measurement
 
-Use an Ordinary Least Squares derivation to minimise ∑(i=0..m)ei^2 -> https://en.wikipedia.org/wiki/Ordinary_least_squares
+Use an Ordinary Least Squares derivation to minimise ∑(i=0..m)ei^2 ->
+https://en.wikipedia.org/wiki/Ordinary_least_squares
 
-Note: In the wikipedia reference, the X matrix in reference is equivalent to our V matrix and the Beta matrix is equivalent to our A matrix
+Note: In the wikipedia reference, the X matrix in reference is equivalent to our V matrix and the Beta matrix is
+equivalent to our A matrix
 
 A = inv(transpose(V)*V)*(transpose(V)*Y)
 
 We can accumulate VTV and VTY recursively as they are of fixed size, where:
 
 VTV = transpose(V)*V =
- __                                                                                                                        __
-|    m+1                      x0+x1+...+xm                   x0^2+x1^2+...+xm^3   ..........  x0^n+x1^n+...+xm^n             |
-|x0+x1+...+xm              x0^2+x1^2+...+xm^3                x0^3+x1^3+...+xm^3   ..........  x0^(n+1)+x1^(n+1)+...+xm^(n+1) |
-|      .                            .                                  .                             .                       |
-|      .                            .                                  .                             .                       |
-|      .                            .                                  .                             .                       |
-|x0^n+x1^n+...+xm^n     x0^(n+1)+x1^(n+1)+...+xm^(n+1)  x0^(n+2)+x1^(n+2)+...+xm^(n+2) ....  x0^(2n)+x1^(2n)+...+xm^(2n)     |
-|__                                                                                                                        __|
+ __ __ |    m+1                      x0+x1+...+xm                   x0^2+x1^2+...+xm^3   ..........  x0^n+x1^n+...+xm^n
+| |x0+x1+...+xm              x0^2+x1^2+...+xm^3                x0^3+x1^3+...+xm^3   ..........
+x0^(n+1)+x1^(n+1)+...+xm^(n+1) | |      .                            .                                  . . | |      .
+.                                  .                             .                       | |      . . . . |
+|x0^n+x1^n+...+xm^n     x0^(n+1)+x1^(n+1)+...+xm^(n+1)  x0^(n+2)+x1^(n+2)+...+xm^(n+2) ....  x0^(2n)+x1^(2n)+...+xm^(2n)
+|
+|__ __|
 
 and VTY = transpose(V)*Y =
  __            __
@@ -88,13 +89,12 @@ Author: Siddharth Bharat Purohit
 */
 
 #pragma once
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/time.h>
-
 #include <float.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 
 #include <matrix/math.hpp>
 
@@ -105,21 +105,18 @@ Author: Siddharth Bharat Purohit
 #define PF_DEBUG(fmt, ...)
 #endif
 
-template<int _forder>
-class polyfitter
-{
+template <int _forder>
+class polyfitter {
 public:
 	polyfitter() {}
 
-	void update(double x, double y)
-	{
+	void update(double x, double y) {
 		update_VTV(x);
 		update_VTY(x, y);
 	}
 
-	bool fit(double res[])
-	{
-		//Do inverse of VTV
+	bool fit(double res[]) {
+		// Do inverse of VTV
 		matrix::SquareMatrix<double, _forder> IVTV;
 
 		IVTV = _VTV.I();
@@ -149,8 +146,7 @@ private:
 	matrix::SquareMatrix<double, _forder> _VTV;
 	matrix::Vector<double, _forder> _VTY;
 
-	void update_VTY(double x, double y)
-	{
+	void update_VTY(double x, double y) {
 		double temp = 1.0;
 		PF_DEBUG("O %.6f\n", (double)x);
 
@@ -163,8 +159,7 @@ private:
 		PF_DEBUG("\n");
 	}
 
-	void update_VTV(double x)
-	{
+	void update_VTV(double x) {
 		double temp = 1.0;
 		int8_t z;
 

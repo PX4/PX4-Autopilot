@@ -32,11 +32,10 @@
  ****************************************************************************/
 #pragma once
 
-
 __BEGIN_DECLS
 
 /************************************************************************************
-  * Name: board_determine_hw_info
+ * Name: board_determine_hw_info
  *
  * Description:
  *	Uses the HW revision and version detection added in FMUv5.

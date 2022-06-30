@@ -48,11 +48,11 @@
 /**
  * Path for the default S.BUS device
  */
-#define SBUS0_DEVICE_PATH	"/dev/sbus0"
+#define SBUS0_DEVICE_PATH "/dev/sbus0"
 
-#define _SBUS_BASE		0x2c00
+#define _SBUS_BASE 0x2c00
 
 /** Enable S.BUS version 1 / 2 output (0 to disable) */
-#define SBUS_SET_PROTO_VERSION		_IOC(_SBUS_BASE, 0)
+#define SBUS_SET_PROTO_VERSION _IOC(_SBUS_BASE, 0)
 
 #endif /* _DRV_SBUS_H */

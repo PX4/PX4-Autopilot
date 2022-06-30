@@ -34,23 +34,22 @@
 #include "util.h"
 
 #include <dirent.h>
-#include <sys/stat.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_gps_position.h>
-
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
 #include <systemlib/mavlink_log.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <unistd.h>
+
+#include <uORB/Subscription.hpp>
 
 #if defined(__PX4_DARWIN)
-#include <sys/param.h>
 #include <sys/mount.h>
+#include <sys/param.h>
 #else
 #include <sys/statfs.h>
 #endif
@@ -59,21 +58,16 @@
 
 typedef decltype(statfs::f_bavail) px4_statfs_buf_f_bavail_t;
 
-namespace px4
-{
-namespace logger
-{
-namespace util
-{
+namespace px4 {
+namespace logger {
+namespace util {
 
-bool file_exist(const char *filename)
-{
+bool file_exist(const char *filename) {
 	struct stat buffer;
 	return stat(filename, &buffer) == 0;
 }
 
-bool get_log_time(struct tm *tt, int utc_offset_sec, bool boot_time)
-{
+bool get_log_time(struct tm *tt, int utc_offset_sec, bool boot_time) {
 	uORB::Subscription vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 
 	time_t utc_time_sec;
@@ -113,8 +107,7 @@ bool get_log_time(struct tm *tt, int utc_offset_sec, bool boot_time)
 }
 
 int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb_advert_t &mavlink_log_pub,
-		     int &sess_dir_index)
-{
+		     int &sess_dir_index) {
 	struct statfs statfs_buf;
 
 	if (max_log_dirs_to_keep == 0) {
@@ -130,7 +123,7 @@ int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb
 		DIR *dp = opendir(log_root_dir);
 
 		if (dp == nullptr) {
-			break; // ignore if we cannot access the log directory
+			break;  // ignore if we cannot access the log directory
 		}
 
 		struct dirent *result = nullptr;
@@ -181,32 +174,32 @@ int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb
 
 		sess_dir_index = sess_idx_max + 1;
 
-
 		uint64_t min_free_bytes = 300ULL * 1024ULL * 1024ULL;
 		uint64_t total_bytes = (uint64_t)statfs_buf.f_blocks * statfs_buf.f_bsize;
 
-		if (total_bytes / 10 < min_free_bytes) { // reduce the minimum if it's larger than 10% of the disk size
+		if (total_bytes / 10 < min_free_bytes) {  // reduce the minimum if it's larger than 10% of the disk size
 			min_free_bytes = total_bytes / 10;
 		}
 
 		if (num_sess + num_dates <= max_log_dirs_to_keep &&
 		    statfs_buf.f_bavail >= (px4_statfs_buf_f_bavail_t)(min_free_bytes / statfs_buf.f_bsize)) {
-			break; // enough free space and limit not reached
+			break;  // enough free space and limit not reached
 		}
 
 		if (num_sess == 0 && num_dates == 0) {
-			break; // nothing to delete
+			break;  // nothing to delete
 		}
 
 		char directory_to_delete[LOG_DIR_LEN];
 		int n;
 
 		if (num_sess >= num_dates) {
-			n = snprintf(directory_to_delete, sizeof(directory_to_delete), "%s/sess%03u", log_root_dir, sess_idx_min);
+			n = snprintf(directory_to_delete, sizeof(directory_to_delete), "%s/sess%03u", log_root_dir,
+				     sess_idx_min);
 
 		} else {
-			n = snprintf(directory_to_delete, sizeof(directory_to_delete), "%s/%04u-%02u-%02u", log_root_dir, year_min, month_min,
-				     day_min);
+			n = snprintf(directory_to_delete, sizeof(directory_to_delete), "%s/%04u-%02u-%02u",
+				     log_root_dir, year_min, month_min, day_min);
 		}
 
 		if (n >= (int)sizeof(directory_to_delete)) {
@@ -224,26 +217,24 @@ int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb
 
 	} while (true);
 
-
 	/* use a threshold of 50 MiB: if below, do not start logging */
 	if (statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
-		mavlink_log_critical(&mavlink_log_pub,
-				     "[logger] Not logging; SD almost full: %u MiB\t",
+		mavlink_log_critical(&mavlink_log_pub, "[logger] Not logging; SD almost full: %u MiB\t",
 				     (unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize / 1024U / 1024U));
 		/* EVENT
 		 * @description Either manually free up some space, or enable automatic log rotation
 		 * via <param>SDLOG_DIRS_MAX</param>.
 		 */
 		events::send<uint32_t>(events::ID("logger_storage_full"), events::Log::Error,
-				       "Not logging, storage is almost full: {1} MiB", (uint32_t)(statfs_buf.f_bavail * statfs_buf.f_bsize / 1024U / 1024U));
+				       "Not logging, storage is almost full: {1} MiB",
+				       (uint32_t)(statfs_buf.f_bavail * statfs_buf.f_bsize / 1024U / 1024U));
 		return 1;
 	}
 
 	return PX4_OK;
 }
 
-int remove_directory(const char *dir)
-{
+int remove_directory(const char *dir) {
 	DIR *d = opendir(dir);
 	size_t dir_len = strlen(dir);
 	struct dirent *p;
@@ -294,6 +285,6 @@ int remove_directory(const char *dir)
 	return ret;
 }
 
-} //namespace util
-} //namespace logger
-} //namespace px4
+}  // namespace util
+}  // namespace logger
+}  // namespace px4

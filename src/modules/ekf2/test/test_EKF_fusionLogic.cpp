@@ -37,28 +37,23 @@
  */
 
 #include <gtest/gtest.h>
+
 #include "EKF/ekf.h"
-#include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
+#include "sensor_simulator/sensor_simulator.h"
 #include "test_helper/reset_logging_checker.h"
 
-
-class EkfFusionLogicTest : public ::testing::Test
-{
+class EkfFusionLogicTest : public ::testing::Test {
 public:
-
-	EkfFusionLogicTest(): ::testing::Test(),
-		_ekf{std::make_shared<Ekf>()},
-		_sensor_simulator(_ekf),
-		_ekf_wrapper(_ekf) {};
+	EkfFusionLogicTest()
+		: ::testing::Test(), _ekf{std::make_shared<Ekf>()}, _sensor_simulator(_ekf), _ekf_wrapper(_ekf){};
 
 	std::shared_ptr<Ekf> _ekf;
 	SensorSimulator _sensor_simulator;
 	EkfWrapper _ekf_wrapper;
 
 	// Setup the Ekf with synthetic measurements
-	void SetUp() override
-	{
+	void SetUp() override {
 		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
 		_sensor_simulator.runSeconds(0.1);
@@ -69,14 +64,10 @@ public:
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
-	void TearDown() override
-	{
-	}
+	void TearDown() override {}
 };
 
-
-TEST_F(EkfFusionLogicTest, doNoFusion)
-{
+TEST_F(EkfFusionLogicTest, doNoFusion) {
 	// GIVEN: a tilt and heading aligned filter
 	// WHEN: having no aiding source
 	// THEN: EKF should not have a valid position estimate
@@ -89,8 +80,7 @@ TEST_F(EkfFusionLogicTest, doNoFusion)
 	EXPECT_FALSE(_ekf->global_position_is_valid());
 }
 
-TEST_F(EkfFusionLogicTest, doGpsFusion)
-{
+TEST_F(EkfFusionLogicTest, doGpsFusion) {
 	// GIVEN: a tilt and heading aligned filter
 	// WHEN: we enable GPS fusion and we send good quality gps data for 11s
 	_ekf_wrapper.enableGpsFusion();
@@ -129,8 +119,7 @@ TEST_F(EkfFusionLogicTest, doGpsFusion)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
 }
 
-TEST_F(EkfFusionLogicTest, rejectGpsSignalJump)
-{
+TEST_F(EkfFusionLogicTest, rejectGpsSignalJump) {
 	// GIVEN: a tilt and heading aligned filter
 	// WHEN: we enable GPS fusion and we send good quality gps data for 11s
 	_ekf_wrapper.enableGpsFusion();
@@ -168,8 +157,7 @@ TEST_F(EkfFusionLogicTest, rejectGpsSignalJump)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 }
 
-TEST_F(EkfFusionLogicTest, fallbackFromGpsToFlow)
-{
+TEST_F(EkfFusionLogicTest, fallbackFromGpsToFlow) {
 	// GIVEN: GPS and flow setup up and with valid data
 	_ekf_wrapper.enableGpsFusion();
 	_sensor_simulator.startGps();
@@ -206,8 +194,7 @@ TEST_F(EkfFusionLogicTest, fallbackFromGpsToFlow)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingFlowFusion());
 }
 
-TEST_F(EkfFusionLogicTest, doFlowFusion)
-{
+TEST_F(EkfFusionLogicTest, doFlowFusion) {
 	// GIVEN: a tilt and heading aligned filter
 	EXPECT_TRUE(_ekf->attitude_valid());
 
@@ -231,7 +218,7 @@ TEST_F(EkfFusionLogicTest, doFlowFusion)
 
 	// WHEN: Flow data is not send and we enable flow fusion
 	_sensor_simulator.stopFlow();
-	_sensor_simulator.runSeconds(1); // empty buffer
+	_sensor_simulator.runSeconds(1);  // empty buffer
 	_ekf_wrapper.enableFlowFusion();
 	_sensor_simulator.runSeconds(3);
 
@@ -263,8 +250,7 @@ TEST_F(EkfFusionLogicTest, doFlowFusion)
 	EXPECT_FALSE(_ekf->global_position_is_valid());
 }
 
-TEST_F(EkfFusionLogicTest, doVisionPositionFusion)
-{
+TEST_F(EkfFusionLogicTest, doVisionPositionFusion) {
 	// WHEN: allow vision position to be fused and we send vision data
 	_ekf_wrapper.enableExternalVisionPositionFusion();
 	_sensor_simulator.startExternalVision();
@@ -291,8 +277,7 @@ TEST_F(EkfFusionLogicTest, doVisionPositionFusion)
 	EXPECT_FALSE(_ekf->global_position_is_valid());
 }
 
-TEST_F(EkfFusionLogicTest, doVisionVelocityFusion)
-{
+TEST_F(EkfFusionLogicTest, doVisionVelocityFusion) {
 	// WHEN: allow vision position to be fused and we send vision data
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator.startExternalVision();
@@ -319,8 +304,7 @@ TEST_F(EkfFusionLogicTest, doVisionVelocityFusion)
 	EXPECT_FALSE(_ekf->global_position_is_valid());
 }
 
-TEST_F(EkfFusionLogicTest, doVisionHeadingFusion)
-{
+TEST_F(EkfFusionLogicTest, doVisionHeadingFusion) {
 	// WHEN: allow vision position to be fused and we send vision data
 	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
 	_ekf_wrapper.enableExternalVisionHeadingFusion();
@@ -353,8 +337,7 @@ TEST_F(EkfFusionLogicTest, doVisionHeadingFusion)
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 2);
 }
 
-TEST_F(EkfFusionLogicTest, doBaroHeightFusion)
-{
+TEST_F(EkfFusionLogicTest, doBaroHeightFusion) {
 	// GIVEN: EKF that receives baro and GPS data
 	_sensor_simulator.startGps();
 	_sensor_simulator.runSeconds(11);
@@ -371,8 +354,7 @@ TEST_F(EkfFusionLogicTest, doBaroHeightFusion)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
 }
 
-TEST_F(EkfFusionLogicTest, doBaroHeightFusionTimeout)
-{
+TEST_F(EkfFusionLogicTest, doBaroHeightFusionTimeout) {
 	// GIVEN: EKF that receives baro data
 
 	// THEN: EKF should intend to fuse baro by default
@@ -412,8 +394,7 @@ TEST_F(EkfFusionLogicTest, doBaroHeightFusionTimeout)
 	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(2));
 }
 
-TEST_F(EkfFusionLogicTest, doGpsHeightFusion)
-{
+TEST_F(EkfFusionLogicTest, doGpsHeightFusion) {
 	// WHEN: commanding GPS height and sending GPS data
 	_ekf_wrapper.setGpsHeight();
 	_sensor_simulator.startGps();
@@ -431,8 +412,7 @@ TEST_F(EkfFusionLogicTest, doGpsHeightFusion)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 }
 
-TEST_F(EkfFusionLogicTest, doRangeHeightFusion)
-{
+TEST_F(EkfFusionLogicTest, doRangeHeightFusion) {
 	// WHEN: commanding range height and sending range data
 	_ekf_wrapper.setRangeHeight();
 	_sensor_simulator.startRangeFinder();
@@ -459,8 +439,7 @@ TEST_F(EkfFusionLogicTest, doRangeHeightFusion)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 }
 
-TEST_F(EkfFusionLogicTest, doVisionHeightFusion)
-{
+TEST_F(EkfFusionLogicTest, doVisionHeightFusion) {
 	// WHEN: commanding vision height and sending vision data
 	_ekf_wrapper.setVisionHeight();
 	_sensor_simulator.startExternalVision();

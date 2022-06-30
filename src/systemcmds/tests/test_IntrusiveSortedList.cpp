@@ -36,13 +36,13 @@
  * Tests the IntrusiveSortedList container.
  */
 
-#include <unit_test.h>
-#include <containers/IntrusiveSortedList.hpp>
 #include <float.h>
 #include <math.h>
+#include <unit_test.h>
 
-class testContainer : public IntrusiveSortedListNode<testContainer *>
-{
+#include <containers/IntrusiveSortedList.hpp>
+
+class testContainer : public IntrusiveSortedListNode<testContainer *> {
 public:
 	int i{0};
 
@@ -50,8 +50,7 @@ public:
 	bool operator<=(const testContainer &rhs) const { return i <= rhs.i; }
 };
 
-class IntrusiveSortedListTest : public UnitTest
-{
+class IntrusiveSortedListTest : public UnitTest {
 public:
 	virtual bool run_tests();
 
@@ -59,11 +58,9 @@ public:
 	bool test_remove();
 	bool test_range_based_for();
 	bool test_reinsert();
-
 };
 
-bool IntrusiveSortedListTest::run_tests()
-{
+bool IntrusiveSortedListTest::run_tests() {
 	ut_run_test(test_add);
 	ut_run_test(test_remove);
 	ut_run_test(test_range_based_for);
@@ -72,8 +69,7 @@ bool IntrusiveSortedListTest::run_tests()
 	return (_tests_failed == 0);
 }
 
-bool IntrusiveSortedListTest::test_add()
-{
+bool IntrusiveSortedListTest::test_add() {
 	IntrusiveSortedList<testContainer *> list1;
 
 	// size should be 0 initially
@@ -111,8 +107,7 @@ bool IntrusiveSortedListTest::test_add()
 	return true;
 }
 
-bool IntrusiveSortedListTest::test_remove()
-{
+bool IntrusiveSortedListTest::test_remove() {
 	IntrusiveSortedList<testContainer *> list1;
 
 	// size should be 0 initially
@@ -134,7 +129,6 @@ bool IntrusiveSortedListTest::test_remove()
 
 	// test removing elements
 	for (int remove_i = 0; remove_i < 100; remove_i++) {
-
 		// find node with i == remove_i
 		testContainer *removed = nullptr;
 
@@ -169,8 +163,7 @@ bool IntrusiveSortedListTest::test_remove()
 	return true;
 }
 
-bool IntrusiveSortedListTest::test_range_based_for()
-{
+bool IntrusiveSortedListTest::test_range_based_for() {
 	IntrusiveSortedList<testContainer *> list1;
 
 	// size should be 0 initially
@@ -208,8 +201,7 @@ bool IntrusiveSortedListTest::test_range_based_for()
 	return true;
 }
 
-bool IntrusiveSortedListTest::test_reinsert()
-{
+bool IntrusiveSortedListTest::test_reinsert() {
 	IntrusiveSortedList<testContainer *> l1;
 
 	// size should be 0 initially
@@ -232,7 +224,6 @@ bool IntrusiveSortedListTest::test_reinsert()
 
 	// test removing elements
 	for (int remove_i = 0; remove_i < 100; remove_i++) {
-
 		ut_assert_false(l1.empty());
 
 		// find node with i == remove_i

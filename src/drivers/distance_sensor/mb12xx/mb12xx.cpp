@@ -39,9 +39,19 @@
  * Driver for the Maxbotix sonar range finders connected via I2C.
  */
 
+#include <board_config.h>
+#include <drivers/device/device.h>
+#include <drivers/device/i2c.h>
+#include <drivers/drv_hrt.h>
 #include <fcntl.h>
 #include <math.h>
+#include <perf/perf_counter.h>
 #include <poll.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_config.h>
 #include <semaphore.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -50,43 +60,33 @@
 #include <string.h>
 #include <sys/types.h>
 #include <termios.h>
+#include <uORB/topics/distance_sensor.h>
+#include <uORB/uORB.h>
 #include <unistd.h>
 
-#include <board_config.h>
 #include <containers/Array.hpp>
-#include <drivers/device/device.h>
-#include <drivers/device/i2c.h>
-#include <drivers/drv_hrt.h>
-#include <perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/i2c_spi_buses.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/distance_sensor.h>
 
 using namespace time_literals;
 
 /* Configuration Constants */
-#define MB12XX_BASE_ADDR                        0x70   // 7-bit address is 0x70 = 112. 8-bit address is 0xE0 = 224.
-#define MB12XX_MIN_ADDR                         0x5A   // 7-bit address is 0x5A = 90.  8-bit address is 0xB4 = 180.
-#define MB12XX_BUS_SPEED                        100000 // 100kHz bus speed.
+#define MB12XX_BASE_ADDR 0x70    // 7-bit address is 0x70 = 112. 8-bit address is 0xE0 = 224.
+#define MB12XX_MIN_ADDR 0x5A     // 7-bit address is 0x5A = 90.  8-bit address is 0xB4 = 180.
+#define MB12XX_BUS_SPEED 100000  // 100kHz bus speed.
 
 /* MB12xx Registers addresses */
-#define MB12XX_TAKE_RANGE_REG                   0x51 // Measure range Register.
-#define MB12XX_SET_ADDRESS_1                    0xAA // Change address 1 Register.
-#define MB12XX_SET_ADDRESS_2                    0xA5 // Change address 2 Register.
+#define MB12XX_TAKE_RANGE_REG 0x51  // Measure range Register.
+#define MB12XX_SET_ADDRESS_1 0xAA   // Change address 1 Register.
+#define MB12XX_SET_ADDRESS_2 0xA5   // Change address 2 Register.
 
 /* Device limits */
-#define MB12XX_MIN_DISTANCE                     (0.20f)
-#define MB12XX_MAX_DISTANCE                     (7.65f)
+#define MB12XX_MIN_DISTANCE (0.20f)
+#define MB12XX_MAX_DISTANCE (7.65f)
 
-#define MB12XX_MEASURE_INTERVAL                 100_ms // 60ms minimum for one sonar.
-#define MB12XX_INTERVAL_BETWEEN_SUCCESIVE_FIRES 100_ms // 30ms minimum between each sonar measurement (watch out for interference!).
+#define MB12XX_MEASURE_INTERVAL 100_ms  // 60ms minimum for one sonar.
+#define MB12XX_INTERVAL_BETWEEN_SUCCESIVE_FIRES \
+	100_ms  // 30ms minimum between each sonar measurement (watch out for interference!).
 
-class MB12XX : public device::I2C, public ModuleParams, public I2CSPIDriver<MB12XX>
-{
+class MB12XX : public device::I2C, public ModuleParams, public I2CSPIDriver<MB12XX> {
 public:
 	MB12XX(const I2CSPIDriverConfig &config);
 	virtual ~MB12XX();
@@ -125,7 +125,6 @@ protected:
 	void custom_method(const BusCLIArguments &cli) override;
 
 private:
-
 	/**
 	 * Collects the most recent sensor measurement data from the i2c bus.
 	 */
@@ -142,12 +141,12 @@ private:
 	int measure();
 
 	static constexpr uint8_t RANGE_FINDER_MAX_SENSORS = 4;
-	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_addresses {};
-	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_rotations {};
+	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_addresses{};
+	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_rotations{};
 
-	int _measure_interval{MB12XX_MEASURE_INTERVAL};	// Initialize the measure interval for a single sensor.
+	int _measure_interval{MB12XX_MEASURE_INTERVAL};  // Initialize the measure interval for a single sensor.
 
-	int _sensor_index{0};	// Initialize counter for cycling i2c adresses to zero.
+	int _sensor_index{0};  // Initialize counter for cycling i2c adresses to zero.
 
 	int _sensor_count{0};
 
@@ -156,33 +155,26 @@ private:
 	perf_counter_t _comms_error{perf_alloc(PC_ELAPSED, "mb12xx_comms_error")};
 	perf_counter_t _sample_perf{perf_alloc(PC_COUNT, "mb12xx_sample_perf")};
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_EN_MB12XX>)   _p_sensor_enabled,
-		(ParamInt<px4::params::SENS_MB12_0_ROT>)  _p_sensor0_rot,
-		(ParamInt<px4::params::SENS_MB12_1_ROT>)  _p_sensor1_rot,
-		(ParamInt<px4::params::SENS_MB12_2_ROT>)  _p_sensor2_rot,
-		(ParamInt<px4::params::SENS_MB12_3_ROT>)  _p_sensor3_rot,
-		(ParamInt<px4::params::SENS_MB12_4_ROT>)  _p_sensor4_rot,
-		(ParamInt<px4::params::SENS_MB12_5_ROT>)  _p_sensor5_rot,
-		(ParamInt<px4::params::SENS_MB12_6_ROT>)  _p_sensor6_rot,
-		(ParamInt<px4::params::SENS_MB12_7_ROT>)  _p_sensor7_rot,
-		(ParamInt<px4::params::SENS_MB12_8_ROT>)  _p_sensor8_rot,
-		(ParamInt<px4::params::SENS_MB12_9_ROT>)  _p_sensor9_rot,
-		(ParamInt<px4::params::SENS_MB12_10_ROT>) _p_sensor10_rot,
-		(ParamInt<px4::params::SENS_MB12_11_ROT>) _p_sensor11_rot
-	);
+	DEFINE_PARAMETERS((ParamInt<px4::params::SENS_EN_MB12XX>)_p_sensor_enabled,
+			  (ParamInt<px4::params::SENS_MB12_0_ROT>)_p_sensor0_rot,
+			  (ParamInt<px4::params::SENS_MB12_1_ROT>)_p_sensor1_rot,
+			  (ParamInt<px4::params::SENS_MB12_2_ROT>)_p_sensor2_rot,
+			  (ParamInt<px4::params::SENS_MB12_3_ROT>)_p_sensor3_rot,
+			  (ParamInt<px4::params::SENS_MB12_4_ROT>)_p_sensor4_rot,
+			  (ParamInt<px4::params::SENS_MB12_5_ROT>)_p_sensor5_rot,
+			  (ParamInt<px4::params::SENS_MB12_6_ROT>)_p_sensor6_rot,
+			  (ParamInt<px4::params::SENS_MB12_7_ROT>)_p_sensor7_rot,
+			  (ParamInt<px4::params::SENS_MB12_8_ROT>)_p_sensor8_rot,
+			  (ParamInt<px4::params::SENS_MB12_9_ROT>)_p_sensor9_rot,
+			  (ParamInt<px4::params::SENS_MB12_10_ROT>)_p_sensor10_rot,
+			  (ParamInt<px4::params::SENS_MB12_11_ROT>)_p_sensor11_rot);
 };
 
-MB12XX::MB12XX(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	ModuleParams(nullptr),
-	I2CSPIDriver(config)
-{
+MB12XX::MB12XX(const I2CSPIDriverConfig &config) : I2C(config), ModuleParams(nullptr), I2CSPIDriver(config) {
 	set_device_type(DRV_DIST_DEVTYPE_MB12XX);
 }
 
-MB12XX::~MB12XX()
-{
+MB12XX::~MB12XX() {
 	// Unadvertise the distance sensor topic.
 	if (_distance_sensor_topic != nullptr) {
 		orb_unadvertise(_distance_sensor_topic);
@@ -193,9 +185,7 @@ MB12XX::~MB12XX()
 	perf_free(_sample_perf);
 }
 
-int
-MB12XX::collect()
-{
+int MB12XX::collect() {
 	perf_begin(_sample_perf);
 	uint8_t val[2] = {};
 
@@ -221,14 +211,14 @@ MB12XX::collect()
 
 	distance_sensor_s report;
 	report.current_distance = distance_m;
-	report.device_id        = get_device_id();
-	report.max_distance     = MB12XX_MAX_DISTANCE;
-	report.min_distance     = MB12XX_MIN_DISTANCE;
-	report.orientation      = _sensor_rotations[_sensor_index];
-	report.signal_quality   = -1;
-	report.timestamp        = hrt_absolute_time();
-	report.type             = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
-	report.variance         = 0.0f;
+	report.device_id = get_device_id();
+	report.max_distance = MB12XX_MAX_DISTANCE;
+	report.min_distance = MB12XX_MIN_DISTANCE;
+	report.orientation = _sensor_rotations[_sensor_index];
+	report.signal_quality = -1;
+	report.timestamp = hrt_absolute_time();
+	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+	report.variance = 0.0f;
 
 	int instance_id;
 	orb_publish_auto(ORB_ID(distance_sensor), &_distance_sensor_topic, &report, &instance_id);
@@ -245,41 +235,50 @@ MB12XX::collect()
 	return PX4_OK;
 }
 
-int
-MB12XX::get_sensor_rotation(const size_t index)
-{
+int MB12XX::get_sensor_rotation(const size_t index) {
 	switch (index) {
-	case 0: return _p_sensor0_rot.get();
+		case 0:
+			return _p_sensor0_rot.get();
 
-	case 1: return _p_sensor1_rot.get();
+		case 1:
+			return _p_sensor1_rot.get();
 
-	case 2: return _p_sensor2_rot.get();
+		case 2:
+			return _p_sensor2_rot.get();
 
-	case 3: return _p_sensor3_rot.get();
+		case 3:
+			return _p_sensor3_rot.get();
 
-	case 4: return _p_sensor4_rot.get();
+		case 4:
+			return _p_sensor4_rot.get();
 
-	case 5: return _p_sensor5_rot.get();
+		case 5:
+			return _p_sensor5_rot.get();
 
-	case 6: return _p_sensor6_rot.get();
+		case 6:
+			return _p_sensor6_rot.get();
 
-	case 7: return _p_sensor7_rot.get();
+		case 7:
+			return _p_sensor7_rot.get();
 
-	case 8: return _p_sensor8_rot.get();
+		case 8:
+			return _p_sensor8_rot.get();
 
-	case 9: return _p_sensor9_rot.get();
+		case 9:
+			return _p_sensor9_rot.get();
 
-	case 10: return _p_sensor10_rot.get();
+		case 10:
+			return _p_sensor10_rot.get();
 
-	case 11: return _p_sensor11_rot.get();
+		case 11:
+			return _p_sensor11_rot.get();
 
-	default: return PX4_ERROR;
+		default:
+			return PX4_ERROR;
 	}
 }
 
-int
-MB12XX::init()
-{
+int MB12XX::init() {
 	if (_p_sensor_enabled.get() == 0) {
 		PX4_WARN("disabled");
 		return PX4_ERROR;
@@ -292,7 +291,7 @@ MB12XX::init()
 
 	// Check for connected rangefinders on each i2c port by decrementing from the base address,
 	// (MB12XX_BASE_ADDR = 112, MB12XX_MIN_ADDR = 90).
-	for (uint8_t address = MB12XX_BASE_ADDR; address > MB12XX_MIN_ADDR ; address--) {
+	for (uint8_t address = MB12XX_BASE_ADDR; address > MB12XX_MIN_ADDR; address--) {
 		set_device_address(address);
 
 		if (measure() == PX4_OK) {
@@ -327,9 +326,7 @@ MB12XX::init()
 	return PX4_OK;
 }
 
-int
-MB12XX::measure()
-{
+int MB12XX::measure() {
 	// Send the command to take a measurement.
 	uint8_t cmd = MB12XX_TAKE_RANGE_REG;
 	int ret_val = transfer(&cmd, 1, nullptr, 0);
@@ -337,9 +334,7 @@ MB12XX::measure()
 	return ret_val;
 }
 
-void
-MB12XX::print_status()
-{
+void MB12XX::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_error);
@@ -350,28 +345,20 @@ MB12XX::print_status()
 	}
 }
 
-void
-MB12XX::RunImpl()
-{
+void MB12XX::RunImpl() {
 	// Collect the sensor data.
 	if (collect() != PX4_OK) {
 		PX4_INFO("collection error");
 	}
 }
 
-int
-MB12XX::set_address(const uint8_t address)
-{
+int MB12XX::set_address(const uint8_t address) {
 	if (_sensor_count > 1) {
 		PX4_INFO("multiple sensors are connected");
 		return PX4_ERROR;
 	}
 
-	if (address < 2    ||
-	    address == 80  ||
-	    address == 164 ||
-	    address == 170 ||
-	    address > 224) {
+	if (address < 2 || address == 80 || address == 164 || address == 170 || address > 224) {
 		PX4_ERR("incompatible address requested");
 		return PX4_ERROR;
 	}
@@ -390,9 +377,7 @@ MB12XX::set_address(const uint8_t address)
 	return PX4_OK;
 }
 
-void
-MB12XX::start()
-{
+void MB12XX::start() {
 	// Fetch parameter values.
 	ModuleParams::updateParams();
 
@@ -400,15 +385,9 @@ MB12XX::start()
 	ScheduleOnInterval(_measure_interval);
 }
 
-void
-MB12XX::custom_method(const BusCLIArguments &cli)
-{
-	set_address(cli.i2c_address);
-}
+void MB12XX::custom_method(const BusCLIArguments &cli) { set_address(cli.i2c_address); }
 
-void
-MB12XX::print_usage()
-{
+void MB12XX::print_usage() {
 	PRINT_MODULE_USAGE_NAME("mb12xx", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -418,8 +397,7 @@ MB12XX::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int mb12xx_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int mb12xx_main(int argc, char *argv[]) {
 	using ThisDriver = MB12XX;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = MB12XX_BUS_SPEED;

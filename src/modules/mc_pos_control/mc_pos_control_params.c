@@ -295,7 +295,8 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_P_ACC, 1.8f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_I_ACC, 0.4f);
 
 /**
- * Differential gain for horizontal velocity error. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ * Differential gain for horizontal velocity error. Small values help reduce fast oscillations. If value is too big
+ * oscillations will appear again.
  *
  * defined as correction acceleration in m/s^2 per m/s^2 velocity derivative
  *

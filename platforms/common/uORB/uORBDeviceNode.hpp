@@ -33,33 +33,30 @@
 
 #pragma once
 
-#include "uORBCommon.hpp"
-#include "uORBDeviceMaster.hpp"
-
-#include <lib/cdev/CDev.hpp>
+#include <px4_platform_common/atomic.h>
 
 #include <containers/IntrusiveSortedList.hpp>
 #include <containers/List.hpp>
-#include <px4_platform_common/atomic.h>
+#include <lib/cdev/CDev.hpp>
 
-namespace uORB
-{
+#include "uORBCommon.hpp"
+#include "uORBDeviceMaster.hpp"
+
+namespace uORB {
 class DeviceNode;
 class DeviceMaster;
 class Manager;
 class SubscriptionCallback;
-}
+}  // namespace uORB
 
-namespace uORBTest
-{
+namespace uORBTest {
 class UnitTest;
 }
 
 /**
  * Per-object device instance.
  */
-class uORB::DeviceNode : public cdev::CDev, public IntrusiveSortedListNode<uORB::DeviceNode *>
-{
+class uORB::DeviceNode : public cdev::CDev, public IntrusiveSortedListNode<uORB::DeviceNode *> {
 public:
 	DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path, uint8_t queue_size = 1);
 	virtual ~DeviceNode();
@@ -118,13 +115,13 @@ public:
 	/**
 	 * Method to publish a data to this node.
 	 */
-	static ssize_t    publish(const orb_metadata *meta, orb_advert_t handle, const void *data);
+	static ssize_t publish(const orb_metadata *meta, orb_advert_t handle, const void *data);
 
-	static int        unadvertise(orb_advert_t handle);
+	static int unadvertise(orb_advert_t handle);
 
 #ifdef ORB_COMMUNICATOR
 	static int16_t topic_advertised(const orb_metadata *meta);
-	//static int16_t topic_unadvertised(const orb_metadata *meta);
+	// static int16_t topic_unadvertised(const orb_metadata *meta);
 
 	/**
 	 * processes a request for add subscription from remote
@@ -148,12 +145,12 @@ public:
 #endif /* ORB_COMMUNICATOR */
 
 	/**
-	  * Add the subscriber to the node's list of subscriber.  If there is
-	  * remote proxy to which this subscription needs to be sent, it will
-	  * done via uORBCommunicator::IChannel interface.
-	  * @param sd
-	  *   the subscriber to be added.
-	  */
+	 * Add the subscriber to the node's list of subscriber.  If there is
+	 * remote proxy to which this subscription needs to be sent, it will
+	 * done via uORBCommunicator::IChannel interface.
+	 * @param sd
+	 *   the subscriber to be added.
+	 */
 	void add_internal_subscriber();
 
 	/**
@@ -225,8 +222,7 @@ public:
 	 * @return bool
 	 *   Returns true if the data was copied.
 	 */
-	bool copy(void *dst, unsigned &generation)
-	{
+	bool copy(void *dst, unsigned &generation) {
 		if ((dst != nullptr) && (_data != nullptr)) {
 			if (_queue_size == 1) {
 				ATOMIC_ENTER;
@@ -240,14 +236,15 @@ public:
 				const unsigned current_generation = _generation.load();
 
 				if (current_generation == generation) {
-					/* The subscriber already read the latest message, but nothing new was published yet.
-					* Return the previous message
-					*/
+					/* The subscriber already read the latest message, but nothing new was published
+					 * yet. Return the previous message
+					 */
 					--generation;
 				}
 
 				// Compatible with normal and overflow conditions
-				if (!is_in_range(current_generation - _queue_size, generation, current_generation - 1)) {
+				if (!is_in_range(current_generation - _queue_size, generation,
+						 current_generation - 1)) {
 					// Reader is too far behind: some messages are lost
 					generation = current_generation - _queue_size;
 				}
@@ -262,7 +259,6 @@ public:
 		}
 
 		return false;
-
 	}
 
 	// add item to list of work items to schedule on node update
@@ -272,7 +268,6 @@ public:
 	void unregister_callback(SubscriptionCallback *callback_sub);
 
 protected:
-
 	px4_pollevent_t poll_state(cdev::file_t *filp) override;
 
 	void poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events) override;
@@ -282,20 +277,18 @@ private:
 
 	const orb_metadata *_meta; /**< object metadata information */
 
-	uint8_t *_data{nullptr};   /**< allocated object buffer */
-	bool _data_valid{false}; /**< At least one valid data */
-	px4::atomic<unsigned>  _generation{0};  /**< object generation count */
-	List<uORB::SubscriptionCallback *>	_callbacks;
+	uint8_t *_data{nullptr};              /**< allocated object buffer */
+	bool _data_valid{false};              /**< At least one valid data */
+	px4::atomic<unsigned> _generation{0}; /**< object generation count */
+	List<uORB::SubscriptionCallback *> _callbacks;
 
 	const uint8_t _instance; /**< orb multi instance identifier */
-	bool _advertised{false};  /**< has ever been advertised (not necessarily published data yet) */
-	uint8_t _queue_size; /**< maximum number of elements in the queue */
+	bool _advertised{false}; /**< has ever been advertised (not necessarily published data yet) */
+	uint8_t _queue_size;     /**< maximum number of elements in the queue */
 	int8_t _subscriber_count{0};
 
-
-// Determine the data range
-	static inline bool is_in_range(unsigned left, unsigned value, unsigned right)
-	{
+	// Determine the data range
+	static inline bool is_in_range(unsigned left, unsigned value, unsigned right) {
 		if (right > left) {
 			return (left <= value) && (value <= right);
 

@@ -31,19 +31,18 @@
  *
  ****************************************************************************/
 
-#include <string.h>
-
-#include <uORB/uORB.h>
-
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
+#include <string.h>
+#include <uORB/uORB.h>
 
-extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
+extern "C" {
+__EXPORT int uorb_main(int argc, char *argv[]);
+}
 
 static void usage();
 
-int uorb_main(int argc, char *argv[])
-{
+int uorb_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		usage();
 		return -1;
@@ -63,8 +62,7 @@ int uorb_main(int argc, char *argv[])
 	return 0;
 }
 
-void usage()
-{
+void usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -89,7 +87,8 @@ $ uorb top
 	PRINT_MODULE_USAGE_NAME("uorb", "communication");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print topic statistics");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("top", "Monitor topic publication rates");
-	PRINT_MODULE_USAGE_PARAM_FLAG('a', "print all instead of only currently publishing topics with subscribers", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "print all instead of only currently publishing topics with subscribers",
+				      true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('1', "run only once, then exit", true);
 	PRINT_MODULE_USAGE_ARG("<filter1> [<filter2>]", "topic(s) to match (implies -a)", true);
 }

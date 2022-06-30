@@ -40,13 +40,10 @@
 
 #include "sensor.h"
 
-namespace sensor_simulator
-{
-namespace sensor
-{
+namespace sensor_simulator {
+namespace sensor {
 
-class Gps: public Sensor
-{
+class Gps : public Sensor {
 public:
 	Gps(std::shared_ptr<Ekf> ekf);
 	~Gps();
@@ -74,6 +71,6 @@ private:
 	Vector3f _gps_pos_rate{};
 };
 
-} // namespace sensor
-} // namespace sensor_simulator
-#endif // EKF_GPS_H
+}  // namespace sensor
+}  // namespace sensor_simulator
+#endif  // EKF_GPS_H

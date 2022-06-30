@@ -37,27 +37,26 @@
  * SPI interface for Goertek SPL06
  */
 
-#include "spl06.h"
-
-#include <px4_platform_common/px4_config.h>
 #include <drivers/device/spi.h>
+#include <px4_platform_common/px4_config.h>
+
+#include "spl06.h"
 
 #if defined(CONFIG_SPI)
 
 /* SPI protocol address bits */
-#define DIR_READ			(1<<7)  //for set
-#define DIR_WRITE			~(1<<7) //for clear
+#define DIR_READ (1 << 7)    // for set
+#define DIR_WRITE ~(1 << 7)  // for clear
 
-class SPL06_SPI: public device::SPI, public spl06::ISPL06
-{
+class SPL06_SPI : public device::SPI, public spl06::ISPL06 {
 public:
 	SPL06_SPI(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
 	virtual ~SPL06_SPI() override = default;
 
 	int init() override { return SPI::init(); }
 
-	uint8_t	get_reg(uint8_t addr) override;
-	int	set_reg(uint8_t value, uint8_t addr) override;
+	uint8_t get_reg(uint8_t addr) override;
+	int set_reg(uint8_t value, uint8_t addr) override;
 
 	int read(uint8_t addr, uint8_t *buf, uint8_t len) override;
 
@@ -66,39 +65,29 @@ public:
 	uint8_t get_device_address() const override { return device::SPI::get_device_address(); }
 };
 
-spl06::ISPL06 *
-spl06_spi_interface(uint8_t busnum, uint32_t device, int bus_frequency, spi_mode_e spi_mode)
-{
+spl06::ISPL06 *spl06_spi_interface(uint8_t busnum, uint32_t device, int bus_frequency, spi_mode_e spi_mode) {
 	return new SPL06_SPI(busnum, device, bus_frequency, spi_mode);
 }
 
-SPL06_SPI::SPL06_SPI(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode) :
-	SPI(DRV_BARO_DEVTYPE_SPL06, MODULE_NAME, bus, device, spi_mode, bus_frequency)
-{
-}
+SPL06_SPI::SPL06_SPI(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode)
+	: SPI(DRV_BARO_DEVTYPE_SPL06, MODULE_NAME, bus, device, spi_mode, bus_frequency) {}
 
-uint8_t
-SPL06_SPI::get_reg(uint8_t addr)
-{
-	uint8_t cmd[2] = { (uint8_t)(addr | DIR_READ), 0}; // set MSB bit
+uint8_t SPL06_SPI::get_reg(uint8_t addr) {
+	uint8_t cmd[2] = {(uint8_t)(addr | DIR_READ), 0};  // set MSB bit
 	transfer(&cmd[0], &cmd[0], 2);
 
 	return cmd[1];
 }
 
-int
-SPL06_SPI::set_reg(uint8_t value, uint8_t addr)
-{
-	uint8_t cmd[2] = { (uint8_t)(addr & DIR_WRITE), value}; // clear MSB bit
+int SPL06_SPI::set_reg(uint8_t value, uint8_t addr) {
+	uint8_t cmd[2] = {(uint8_t)(addr & DIR_WRITE), value};  // clear MSB bit
 	return transfer(&cmd[0], nullptr, 2);
 }
 
-int
-SPL06_SPI::read(uint8_t addr, uint8_t *buf, uint8_t len)
-{
-	uint8_t tx_buf[len + 1] = {(uint8_t)(addr | DIR_READ)}; // GCC support VLA, let's use it
+int SPL06_SPI::read(uint8_t addr, uint8_t *buf, uint8_t len) {
+	uint8_t tx_buf[len + 1] = {(uint8_t)(addr | DIR_READ)};  // GCC support VLA, let's use it
 
 	return transfer(tx_buf, buf, len);
 }
 
-#endif // CONFIG_SPI
+#endif  // CONFIG_SPI

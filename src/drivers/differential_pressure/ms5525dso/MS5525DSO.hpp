@@ -33,25 +33,24 @@
 
 #pragma once
 
-#include <math.h>
-
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/i2c.h>
 #include <lib/perf/perf_counter.h>
+#include <math.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/differential_pressure.h>
 
+#include <uORB/PublicationMulti.hpp>
+
 /* The MS5525DSODSO address is 111011Cx, where C is the complementary value of the pin CSB */
-static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
+static constexpr uint32_t I2C_SPEED = 100 * 1000;  // 100 kHz I2C serial interface
 static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x76;
 
 /* Measurement rate is 100Hz */
 static constexpr unsigned MEAS_RATE = 100;
 static constexpr int64_t CONVERSION_INTERVAL = (1000000 / MEAS_RATE); /* microseconds */
 
-class MS5525DSO : public device::I2C, public I2CSPIDriver<MS5525DSO>
-{
+class MS5525DSO : public device::I2C, public I2CSPIDriver<MS5525DSO> {
 public:
 	MS5525DSO(const I2CSPIDriverConfig &config);
 	~MS5525DSO() override;
@@ -73,10 +72,10 @@ private:
 	int measure();
 	int collect();
 
-	static constexpr uint8_t CMD_RESET = 0x1E; // ADC reset command
-	static constexpr uint8_t CMD_ADC_READ = 0x00; // ADC read command
+	static constexpr uint8_t CMD_RESET = 0x1E;     // ADC reset command
+	static constexpr uint8_t CMD_ADC_READ = 0x00;  // ADC read command
 
-	static constexpr uint8_t CMD_PROM_START = 0xA0; // Prom read command (first)
+	static constexpr uint8_t CMD_PROM_START = 0xA0;  // Prom read command (first)
 
 	// D1 - pressure convert commands
 	// Convert D1 (OSR=256)  0x40
@@ -131,6 +130,6 @@ private:
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": communication errors")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME ": communication errors")};
 };

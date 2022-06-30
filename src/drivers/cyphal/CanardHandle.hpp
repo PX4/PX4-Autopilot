@@ -34,17 +34,17 @@
 #pragma once
 
 #include <canard.h>
-#include "o1heap/o1heap.h"
-#include "CanardInterface.hpp"
 
-class CanardHandle
-{
+#include "CanardInterface.hpp"
+#include "o1heap/o1heap.h"
+
+class CanardHandle {
 	/*
-	* This memory is allocated for the 01Heap allocator used by
-	* libcanard to store incoming/outcoming data
-	* Current size of 8192 bytes is arbitrary, should be optimized further
-	* when more nodes and messages are on the CAN bus
-	*/
+	 * This memory is allocated for the 01Heap allocator used by
+	 * libcanard to store incoming/outcoming data
+	 * Current size of 8192 bytes is arbitrary, should be optimized further
+	 * when more nodes and messages are on the CAN bus
+	 */
 	static constexpr unsigned HeapSize = 8192;
 
 public:
@@ -56,18 +56,13 @@ public:
 	void receive();
 	void transmit();
 
-	int32_t TxPush(const CanardMicrosecond             tx_deadline_usec,
-		       const CanardTransferMetadata *const metadata,
-		       const size_t                        payload_size,
-		       const void *const                   payload);
+	int32_t TxPush(const CanardMicrosecond tx_deadline_usec, const CanardTransferMetadata *const metadata,
+		       const size_t payload_size, const void *const payload);
 
-	int8_t RxSubscribe(const CanardTransferKind    transfer_kind,
-			   const CanardPortID          port_id,
-			   const size_t                extent,
-			   const CanardMicrosecond     transfer_id_timeout_usec,
+	int8_t RxSubscribe(const CanardTransferKind transfer_kind, const CanardPortID port_id, const size_t extent,
+			   const CanardMicrosecond transfer_id_timeout_usec,
 			   CanardRxSubscription *const out_subscription);
-	int8_t RxUnsubscribe(const CanardTransferKind transfer_kind,
-			     const CanardPortID       port_id);
+	int8_t RxUnsubscribe(const CanardTransferKind transfer_kind, const CanardPortID port_id);
 	CanardTreeNode *getRxSubscriptions(CanardTransferKind kind);
 	O1HeapDiagnostics getO1HeapDiagnostics();
 
@@ -83,5 +78,4 @@ private:
 	CanardTxQueue _queue;
 
 	void *_cyphal_heap{nullptr};
-
 };

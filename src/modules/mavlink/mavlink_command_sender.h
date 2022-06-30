@@ -40,21 +40,19 @@
 
 #pragma once
 
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/sem.h>
 #include <drivers/drv_hrt.h>
-
+#include <px4_platform_common/sem.h>
+#include <px4_platform_common/tasks.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
-#include "timestamped_list.h"
 #include "mavlink_bridge_header.h"
+#include "timestamped_list.h"
 
 /**
  * @class MavlinkCommandSender
  */
-class MavlinkCommandSender
-{
+class MavlinkCommandSender {
 public:
 	/**
 	 * initialize: call this once on startup (this function is not thread-safe!)
@@ -88,15 +86,12 @@ private:
 
 	~MavlinkCommandSender();
 
-	static void lock()
-	{
-		do {} while (px4_sem_wait(&_lock) != 0);
+	static void lock() {
+		do {
+		} while (px4_sem_wait(&_lock) != 0);
 	}
 
-	static void unlock()
-	{
-		px4_sem_post(&_lock);
-	}
+	static void unlock() { px4_sem_post(&_lock); }
 
 	static MavlinkCommandSender *_instance;
 	static px4_sem_t _lock;
@@ -107,11 +102,11 @@ private:
 		hrt_abstime last_time_sent_us = 0;
 		// -1: channel did not request this command to be sent, -2: channel got an ack for this command
 #if MAVLINK_COMM_NUM_BUFFERS == 4
-		int8_t num_sent_per_channel[MAVLINK_COMM_NUM_BUFFERS] {-1, -1, -1, -1};
+		int8_t num_sent_per_channel[MAVLINK_COMM_NUM_BUFFERS]{-1, -1, -1, -1};
 #elif MAVLINK_COMM_NUM_BUFFERS == 6
-		int8_t num_sent_per_channel[MAVLINK_COMM_NUM_BUFFERS] {-1, -1, -1, -1, -1, -1};
+		int8_t num_sent_per_channel[MAVLINK_COMM_NUM_BUFFERS]{-1, -1, -1, -1, -1, -1};
 #else
-# error Unknown number of MAVLINK_COMM_NUM_BUFFERS
+#error Unknown number of MAVLINK_COMM_NUM_BUFFERS
 #endif
 	};
 

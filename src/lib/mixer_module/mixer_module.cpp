@@ -33,16 +33,15 @@
 
 #include "mixer_module.hpp"
 
-#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
-
-#include <uORB/Publication.hpp>
 #include <px4_platform_common/log.h>
+
+#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
+#include <uORB/Publication.hpp>
 
 using namespace time_literals;
 
-
 struct FunctionProvider {
-	using Constructor = FunctionProviderBase * (*)(const FunctionProviderBase::Context &context);
+	using Constructor = FunctionProviderBase *(*)(const FunctionProviderBase::Context &context);
 	FunctionProvider(OutputFunction min_func_, OutputFunction max_func_, Constructor constructor_)
 		: min_func(min_func_), max_func(max_func_), constructor(constructor_) {}
 	FunctionProvider(OutputFunction func, Constructor constructor_)
@@ -59,7 +58,8 @@ static const FunctionProvider all_function_providers[] = {
 	{OutputFunction::Constant_Max, &FunctionConstantMax::allocate},
 	{OutputFunction::Motor1, OutputFunction::MotorMax, &FunctionMotors::allocate},
 	{OutputFunction::Servo1, OutputFunction::ServoMax, &FunctionServos::allocate},
-	{OutputFunction::Offboard_Actuator_Set1, OutputFunction::Offboard_Actuator_Set6, &FunctionActuatorSet::allocate},
+	{OutputFunction::Offboard_Actuator_Set1, OutputFunction::Offboard_Actuator_Set6,
+	 &FunctionActuatorSet::allocate},
 	{OutputFunction::Landing_Gear, &FunctionLandingGear::allocate},
 	{OutputFunction::Parachute, &FunctionParachute::allocate},
 	{OutputFunction::RC_Roll, OutputFunction::RC_AUXMax, &FunctionManualRC::allocate},
@@ -71,18 +71,17 @@ MixingOutput::MixingOutput(const char *param_prefix, uint8_t max_num_outputs, Ou
 	: ModuleParams(&interface),
 	  _output_ramp_up(ramp_up),
 	  _control_subs{
-	{&interface, ORB_ID(actuator_controls_0)},
-	{&interface, ORB_ID(actuator_controls_1)},
-	{&interface, ORB_ID(actuator_controls_2)},
-	{&interface, ORB_ID(actuator_controls_3)},
-},
-_scheduling_policy(scheduling_policy),
-_support_esc_calibration(support_esc_calibration),
-_max_num_outputs(max_num_outputs < MAX_ACTUATORS ? max_num_outputs : MAX_ACTUATORS),
-_interface(interface),
-_control_latency_perf(perf_alloc(PC_ELAPSED, "control latency")),
-_param_prefix(param_prefix)
-{
+		  {&interface, ORB_ID(actuator_controls_0)},
+		  {&interface, ORB_ID(actuator_controls_1)},
+		  {&interface, ORB_ID(actuator_controls_2)},
+		  {&interface, ORB_ID(actuator_controls_3)},
+	  },
+	  _scheduling_policy(scheduling_policy),
+	  _support_esc_calibration(support_esc_calibration),
+	  _max_num_outputs(max_num_outputs < MAX_ACTUATORS ? max_num_outputs : MAX_ACTUATORS),
+	  _interface(interface),
+	  _control_latency_perf(perf_alloc(PC_ELAPSED, "control latency")),
+	  _param_prefix(param_prefix) {
 	/* Safely initialize armed flags */
 	_armed.armed = false;
 	_armed.prearmed = false;
@@ -111,8 +110,7 @@ _param_prefix(param_prefix)
 	_outputs_pub.advertise();
 }
 
-MixingOutput::~MixingOutput()
-{
+MixingOutput::~MixingOutput() {
 	perf_free(_control_latency_perf);
 	delete _mixers;
 	px4_sem_destroy(&_lock);
@@ -122,8 +120,7 @@ MixingOutput::~MixingOutput()
 	_outputs_pub.unadvertise();
 }
 
-void MixingOutput::initParamHandles()
-{
+void MixingOutput::initParamHandles() {
 	char param_name[17];
 
 	for (unsigned i = 0; i < _max_num_outputs; ++i) {
@@ -143,15 +140,13 @@ void MixingOutput::initParamHandles()
 	_param_handle_rev_range = param_find(param_name);
 }
 
-void MixingOutput::printStatus() const
-{
+void MixingOutput::printStatus() const {
 	PX4_INFO("Param prefix: %s", _param_prefix);
 	perf_print_counter(_control_latency_perf);
 
 	if (_wq_switched) {
 		PX4_INFO("Switched to rate_ctrl work queue");
 	}
-
 
 	if (!_use_dynamic_mixing) {
 		PX4_INFO("Mixer loaded: %s", _mixers ? "yes" : "no");
@@ -162,23 +157,22 @@ void MixingOutput::printStatus() const
 
 	if (_use_dynamic_mixing) {
 		for (unsigned i = 0; i < _max_num_outputs; i++) {
-			PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", i,
-				     (int)_function_assignment[i], _current_output_value[i],
-				     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _max_value[i]);
+			PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n",
+				     i, (int)_function_assignment[i], _current_output_value[i], actualFailsafeValue(i),
+				     _disarmed_value[i], _min_value[i], _max_value[i]);
 		}
 
 	} else {
 		for (unsigned i = 0; i < _max_num_outputs; i++) {
 			int reordered_i = reorderedMotorIndex(i);
-			PX4_INFO_RAW("Channel %i: value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", reordered_i,
-				     _current_output_value[i],
-				     _failsafe_value[reordered_i], _disarmed_value[reordered_i], _min_value[reordered_i], _max_value[reordered_i]);
+			PX4_INFO_RAW("Channel %i: value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n",
+				     reordered_i, _current_output_value[i], _failsafe_value[reordered_i],
+				     _disarmed_value[reordered_i], _min_value[reordered_i], _max_value[reordered_i]);
 		}
 	}
 }
 
-void MixingOutput::updateParams()
-{
+void MixingOutput::updateParams() {
 	ModuleParams::updateParams();
 
 	// update mixer if we have one
@@ -192,22 +186,25 @@ void MixingOutput::updateParams()
 	}
 
 	if (_use_dynamic_mixing) {
-		_param_mot_ordering.set(0); // not used with dynamic mixing
+		_param_mot_ordering.set(0);  // not used with dynamic mixing
 
 		bool function_changed = false;
 
 		for (unsigned i = 0; i < _max_num_outputs; i++) {
 			int32_t val;
 
-			if (_param_handles[i].function != PARAM_INVALID && param_get(_param_handles[i].function, &val) == 0) {
+			if (_param_handles[i].function != PARAM_INVALID &&
+			    param_get(_param_handles[i].function, &val) == 0) {
 				if (val != (int32_t)_function_assignment[i]) {
 					function_changed = true;
 				}
 
-				// we set _function_assignment[i] later to ensure _functions[i] is updated at the same time
+				// we set _function_assignment[i] later to ensure _functions[i] is updated at the same
+				// time
 			}
 
-			if (_param_handles[i].disarmed != PARAM_INVALID && param_get(_param_handles[i].disarmed, &val) == 0) {
+			if (_param_handles[i].disarmed != PARAM_INVALID &&
+			    param_get(_param_handles[i].disarmed, &val) == 0) {
 				_disarmed_value[i] = val;
 			}
 
@@ -225,7 +222,8 @@ void MixingOutput::updateParams()
 				_max_value[i] = tmp;
 			}
 
-			if (_param_handles[i].failsafe != PARAM_INVALID && param_get(_param_handles[i].failsafe, &val) == 0) {
+			if (_param_handles[i].failsafe != PARAM_INVALID &&
+			    param_get(_param_handles[i].failsafe, &val) == 0) {
 				_failsafe_value[i] = val;
 			}
 		}
@@ -233,7 +231,8 @@ void MixingOutput::updateParams()
 		_reverse_output_mask = 0;
 		int32_t rev_range_param;
 
-		if (_param_handle_rev_range != PARAM_INVALID && param_get(_param_handle_rev_range, &rev_range_param) == 0) {
+		if (_param_handle_rev_range != PARAM_INVALID &&
+		    param_get(_param_handle_rev_range, &rev_range_param) == 0) {
 			_reverse_output_mask = rev_range_param;
 		}
 
@@ -243,8 +242,7 @@ void MixingOutput::updateParams()
 	}
 }
 
-bool MixingOutput::updateSubscriptions(bool allow_wq_switch, bool limit_callbacks_to_primary)
-{
+bool MixingOutput::updateSubscriptions(bool allow_wq_switch, bool limit_callbacks_to_primary) {
 	if (_use_dynamic_mixing) {
 		return updateSubscriptionsDynamicMixer(allow_wq_switch, limit_callbacks_to_primary);
 
@@ -253,8 +251,7 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch, bool limit_callback
 	}
 }
 
-bool MixingOutput::updateSubscriptionsStaticMixer(bool allow_wq_switch, bool limit_callbacks_to_primary)
-{
+bool MixingOutput::updateSubscriptionsStaticMixer(bool allow_wq_switch, bool limit_callbacks_to_primary) {
 	if (_groups_subscribed == _groups_required) {
 		return false;
 	}
@@ -286,9 +283,9 @@ bool MixingOutput::updateSubscriptionsStaticMixer(bool allow_wq_switch, bool lim
 
 		// register callback to all required actuator control groups
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-
 			if (limit_callbacks_to_primary) {
-				// don't register additional callbacks if actuator_controls_0 or actuator_controls_1 are already registered
+				// don't register additional callbacks if actuator_controls_0 or actuator_controls_1 are
+				// already registered
 				if ((i > 1) && (sub_group_0_callback_registered || sub_group_1_callback_registered)) {
 					break;
 				}
@@ -331,8 +328,7 @@ bool MixingOutput::updateSubscriptionsStaticMixer(bool allow_wq_switch, bool lim
 	return true;
 }
 
-void MixingOutput::cleanupFunctions()
-{
+void MixingOutput::cleanupFunctions() {
 	if (_subscription_callback) {
 		_subscription_callback->unregisterCallback();
 		_subscription_callback = nullptr;
@@ -345,8 +341,7 @@ void MixingOutput::cleanupFunctions()
 	}
 }
 
-bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool limit_callbacks_to_primary)
-{
+bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool limit_callbacks_to_primary) {
 	if (!_need_function_update || _armed.armed) {
 		return false;
 	}
@@ -368,8 +363,10 @@ bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool li
 			// read function directly from param, as _function_assignment[i] is updated later
 			int32_t function;
 
-			if (_param_handles[i].function != PARAM_INVALID && param_get(_param_handles[i].function, &function) == 0) {
-				if (function >= (int32_t)OutputFunction::Motor1 && function <= (int32_t)OutputFunction::MotorMax) {
+			if (_param_handles[i].function != PARAM_INVALID &&
+			    param_get(_param_handles[i].function, &function) == 0) {
+				if (function >= (int32_t)OutputFunction::Motor1 &&
+				    function <= (int32_t)OutputFunction::MotorMax) {
 					switch_requested = true;
 				}
 			}
@@ -392,7 +389,7 @@ bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool li
 	cleanupFunctions();
 
 	const FunctionProviderBase::Context context{_interface, _param_thr_mdl_fac.reference()};
-	int provider_indexes[MAX_ACTUATORS] {};
+	int provider_indexes[MAX_ACTUATORS]{};
 	int next_provider = 0;
 	int subscription_callback_provider_index = INT_MAX;
 	bool all_disabled = true;
@@ -424,14 +421,16 @@ bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool li
 					_functions[i] = _function_allocated[found_index];
 
 				} else {
-					_function_allocated[next_provider] = all_function_providers[p].constructor(context);
+					_function_allocated[next_provider] =
+						all_function_providers[p].constructor(context);
 
 					if (_function_allocated[next_provider]) {
 						_functions[i] = _function_allocated[next_provider];
 						provider_indexes[next_provider++] = p;
 
 						// lowest provider takes precedence for scheduling
-						if (p < subscription_callback_provider_index && _functions[i]->subscriptionCallback()) {
+						if (p < subscription_callback_provider_index &&
+						    _functions[i]->subscriptionCallback()) {
 							subscription_callback_provider_index = p;
 							_subscription_callback = _functions[i]->subscriptionCallback();
 						}
@@ -446,7 +445,7 @@ bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool li
 		}
 	}
 
-	hrt_abstime fixed_rate_scheduling_interval = 4_ms; // schedule at 250Hz
+	hrt_abstime fixed_rate_scheduling_interval = 4_ms;  // schedule at 250Hz
 
 	if (_max_topic_update_interval_us > fixed_rate_scheduling_interval) {
 		fixed_rate_scheduling_interval = _max_topic_update_interval_us;
@@ -486,8 +485,7 @@ bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool li
 	return true;
 }
 
-void MixingOutput::setMaxTopicUpdateRate(unsigned max_topic_update_interval_us)
-{
+void MixingOutput::setMaxTopicUpdateRate(unsigned max_topic_update_interval_us) {
 	_max_topic_update_interval_us = max_topic_update_interval_us;
 
 	if (_use_dynamic_mixing) {
@@ -504,40 +502,35 @@ void MixingOutput::setMaxTopicUpdateRate(unsigned max_topic_update_interval_us)
 	}
 }
 
-void MixingOutput::setAllMinValues(uint16_t value)
-{
+void MixingOutput::setAllMinValues(uint16_t value) {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
 		_param_handles[i].min = PARAM_INVALID;
 		_min_value[i] = value;
 	}
 }
 
-void MixingOutput::setAllMaxValues(uint16_t value)
-{
+void MixingOutput::setAllMaxValues(uint16_t value) {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
 		_param_handles[i].max = PARAM_INVALID;
 		_max_value[i] = value;
 	}
 }
 
-void MixingOutput::setAllFailsafeValues(uint16_t value)
-{
+void MixingOutput::setAllFailsafeValues(uint16_t value) {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
 		_param_handles[i].failsafe = PARAM_INVALID;
 		_failsafe_value[i] = value;
 	}
 }
 
-void MixingOutput::setAllDisarmedValues(uint16_t value)
-{
+void MixingOutput::setAllDisarmedValues(uint16_t value) {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
 		_param_handles[i].disarmed = PARAM_INVALID;
 		_disarmed_value[i] = value;
 	}
 }
 
-void MixingOutput::unregister()
-{
+void MixingOutput::unregister() {
 	for (auto &control_sub : _control_subs) {
 		control_sub.unregisterCallback();
 	}
@@ -547,8 +540,7 @@ void MixingOutput::unregister()
 	}
 }
 
-void MixingOutput::updateOutputSlewrateMultirotorMixer()
-{
+void MixingOutput::updateOutputSlewrateMultirotorMixer() {
 	const hrt_abstime now = hrt_absolute_time();
 	const float dt = math::constrain((now - _time_last_dt_update_multicopter) / 1e6f, 0.0001f, 0.02f);
 	_time_last_dt_update_multicopter = now;
@@ -559,25 +551,22 @@ void MixingOutput::updateOutputSlewrateMultirotorMixer()
 	_mixers->set_max_delta_out_once(delta_out_max);
 }
 
-void MixingOutput::updateOutputSlewrateSimplemixer()
-{
+void MixingOutput::updateOutputSlewrateSimplemixer() {
 	const hrt_abstime now = hrt_absolute_time();
 	const float dt = math::constrain((now - _time_last_dt_update_simple_mixer) / 1e6f, 0.0001f, 0.02f);
 	_time_last_dt_update_simple_mixer = now;
 
-	// set dt for slew rate limiter in SimpleMixer (is reset internally after usig it, so needs to be set on every update)
+	// set dt for slew rate limiter in SimpleMixer (is reset internally after usig it, so needs to be set on every
+	// update)
 	_mixers->set_dt_once(dt);
 }
 
-
-unsigned MixingOutput::motorTest()
-{
+unsigned MixingOutput::motorTest() {
 	test_motor_s test_motor;
 	bool had_update = false;
 
 	while (_motor_test.test_motor_sub.update(&test_motor)) {
-		if (test_motor.driver_instance != _driver_instance ||
-		    test_motor.timestamp == 0 ||
+		if (test_motor.driver_instance != _driver_instance || test_motor.timestamp == 0 ||
 		    hrt_elapsed_time(&test_motor.timestamp) > 100_ms) {
 			continue;
 		}
@@ -599,9 +588,10 @@ unsigned MixingOutput::motorTest()
 					_current_output_value[reorderedMotorIndex(idx)] = _disarmed_value[idx];
 
 				} else {
-					_current_output_value[reorderedMotorIndex(idx)] =
-						math::constrain<uint16_t>(_min_value[idx] + (uint16_t)((_max_value[idx] - _min_value[idx]) * test_motor.value),
-									  _min_value[idx], _max_value[idx]);
+					_current_output_value[reorderedMotorIndex(idx)] = math::constrain<uint16_t>(
+						_min_value[idx] + (uint16_t)((_max_value[idx] - _min_value[idx]) *
+									     test_motor.value),
+						_min_value[idx], _max_value[idx]);
 				}
 			}
 
@@ -632,8 +622,7 @@ unsigned MixingOutput::motorTest()
 	return (_motor_test.in_test_mode || had_update) ? _max_num_outputs : 0;
 }
 
-bool MixingOutput::update()
-{
+bool MixingOutput::update() {
 	if (_use_dynamic_mixing) {
 		return updateDynamicMixer();
 
@@ -641,8 +630,7 @@ bool MixingOutput::update()
 		return updateStaticMixer();
 	}
 }
-bool MixingOutput::updateStaticMixer()
-{
+bool MixingOutput::updateStaticMixer() {
 	if (!_mixers) {
 		// do nothing until we have a valid mixer
 		return false;
@@ -669,7 +657,7 @@ bool MixingOutput::updateStaticMixer()
 		updateOutputSlewrateMultirotorMixer();
 	}
 
-	updateOutputSlewrateSimplemixer(); // update dt for output slew rate in simple mixer
+	updateOutputSlewrateSimplemixer();  // update dt for output slew rate in simple mixer
 
 	unsigned n_updates = 0;
 
@@ -682,7 +670,6 @@ bool MixingOutput::updateStaticMixer()
 
 			/* During ESC calibration, we overwrite the throttle value. */
 			if (i == 0 && _armed.in_esc_calibration_mode) {
-
 				/* Set all controls to 0 */
 				memset(&_controls[i], 0, sizeof(_controls[i]));
 
@@ -710,7 +697,7 @@ bool MixingOutput::updateStaticMixer()
 	}
 
 	/* do mixing */
-	float outputs[MAX_ACTUATORS] {};
+	float outputs[MAX_ACTUATORS]{};
 	const unsigned mixed_num_outputs = _mixers->mix(outputs, _max_num_outputs);
 
 	/* the output limit call takes care of out of band errors, NaN and constrains */
@@ -749,8 +736,7 @@ bool MixingOutput::updateStaticMixer()
 	return true;
 }
 
-bool MixingOutput::updateDynamicMixer()
-{
+bool MixingOutput::updateDynamicMixer() {
 	// check arming state
 	if (_armed_sub.update(&_armed)) {
 		_armed.in_esc_calibration_mode &= _support_esc_calibration;
@@ -813,9 +799,7 @@ bool MixingOutput::updateDynamicMixer()
 	return true;
 }
 
-void
-MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates)
-{
+void MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates) {
 	bool stop_motors = !_throttle_armed && !_actuator_test.inTestMode();
 
 	if (_armed.lockdown || _armed.manual_lockdown) {
@@ -846,8 +830,7 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 	}
 }
 
-uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
-{
+uint16_t MixingOutput::output_limit_calc_single(int i, float value) const {
 	// check for invalid / disabled channels
 	if (!PX4_ISFINITE(value)) {
 		return _disarmed_value[i];
@@ -863,9 +846,7 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 	return math::constrain(effective_output, _min_value[i], _max_value[i]);
 }
 
-void
-MixingOutput::output_limit_calc(const bool armed, const int num_channels, const float output[MAX_ACTUATORS])
-{
+void MixingOutput::output_limit_calc(const bool armed, const int num_channels, const float output[MAX_ACTUATORS]) {
 	const bool pre_armed = armNoThrottle();
 
 	// time to slowly ramp up the ESCs
@@ -873,52 +854,53 @@ MixingOutput::output_limit_calc(const bool armed, const int num_channels, const 
 
 	/* first evaluate state changes */
 	switch (_output_state) {
-	case OutputLimitState::INIT:
-		if (armed) {
-			// set arming time for the first call
-			if (_output_time_armed == 0) {
+		case OutputLimitState::INIT:
+			if (armed) {
+				// set arming time for the first call
+				if (_output_time_armed == 0) {
+					_output_time_armed = hrt_absolute_time();
+				}
+
+				// time for the ESCs to initialize (this is not actually needed if the signal is sent
+				// right after boot)
+				if (hrt_elapsed_time(&_output_time_armed) >= 50_ms) {
+					_output_state = OutputLimitState::OFF;
+				}
+			}
+
+			break;
+
+		case OutputLimitState::OFF:
+			if (armed) {
+				if (_output_ramp_up) {
+					_output_state = OutputLimitState::RAMP;
+
+				} else {
+					_output_state = OutputLimitState::ON;
+				}
+
+				// reset arming time, used for ramp timing
 				_output_time_armed = hrt_absolute_time();
 			}
 
-			// time for the ESCs to initialize (this is not actually needed if the signal is sent right after boot)
-			if (hrt_elapsed_time(&_output_time_armed) >= 50_ms) {
+			break;
+
+		case OutputLimitState::RAMP:
+			if (!armed) {
 				_output_state = OutputLimitState::OFF;
-			}
-		}
 
-		break;
-
-	case OutputLimitState::OFF:
-		if (armed) {
-			if (_output_ramp_up) {
-				_output_state = OutputLimitState::RAMP;
-
-			} else {
+			} else if (hrt_elapsed_time(&_output_time_armed) >= RAMP_TIME_US) {
 				_output_state = OutputLimitState::ON;
 			}
 
-			// reset arming time, used for ramp timing
-			_output_time_armed = hrt_absolute_time();
-		}
+			break;
 
-		break;
+		case OutputLimitState::ON:
+			if (!armed) {
+				_output_state = OutputLimitState::OFF;
+			}
 
-	case OutputLimitState::RAMP:
-		if (!armed) {
-			_output_state = OutputLimitState::OFF;
-
-		} else if (hrt_elapsed_time(&_output_time_armed) >= RAMP_TIME_US) {
-			_output_state = OutputLimitState::ON;
-		}
-
-		break;
-
-	case OutputLimitState::ON:
-		if (!armed) {
-			_output_state = OutputLimitState::OFF;
-		}
-
-		break;
+			break;
 	}
 
 	/* if the system is pre-armed, the limit state is temporarily on,
@@ -935,15 +917,15 @@ MixingOutput::output_limit_calc(const bool armed, const int num_channels, const 
 
 	// then set _current_output_value based on state
 	switch (local_limit_state) {
-	case OutputLimitState::OFF:
-	case OutputLimitState::INIT:
-		for (int i = 0; i < num_channels; i++) {
-			_current_output_value[i] = _disarmed_value[i];
-		}
+		case OutputLimitState::OFF:
+		case OutputLimitState::INIT:
+			for (int i = 0; i < num_channels; i++) {
+				_current_output_value[i] = _disarmed_value[i];
+			}
 
-		break;
+			break;
 
-	case OutputLimitState::RAMP: {
+		case OutputLimitState::RAMP: {
 			hrt_abstime diff = hrt_elapsed_time(&_output_time_armed);
 
 			static constexpr int PROGRESS_INT_SCALING = 10000;
@@ -954,7 +936,6 @@ MixingOutput::output_limit_calc(const bool armed, const int num_channels, const 
 			}
 
 			for (int i = 0; i < num_channels; i++) {
-
 				float control_value = output[i];
 
 				/* check for invalid / disabled channels */
@@ -967,7 +948,6 @@ MixingOutput::output_limit_calc(const bool armed, const int num_channels, const 
 
 				/* if a disarmed output value was set, blend between disarmed and min */
 				if (_disarmed_value[i] > 0) {
-
 					/* safeguard against overflows */
 					auto disarmed = _disarmed_value[i];
 
@@ -976,7 +956,8 @@ MixingOutput::output_limit_calc(const bool armed, const int num_channels, const 
 					}
 
 					int disarmed_min_diff = _min_value[i] - disarmed;
-					ramp_min_output = disarmed + (disarmed_min_diff * progress) / PROGRESS_INT_SCALING;
+					ramp_min_output =
+						disarmed + (disarmed_min_diff * progress) / PROGRESS_INT_SCALING;
 
 				} else {
 					/* no disarmed output value set, choose min output */
@@ -987,27 +968,25 @@ MixingOutput::output_limit_calc(const bool armed, const int num_channels, const 
 					control_value = -1.f * control_value;
 				}
 
-				_current_output_value[i] = control_value * (_max_value[i] - ramp_min_output) / 2 + (_max_value[i] + ramp_min_output) /
-							   2;
+				_current_output_value[i] = control_value * (_max_value[i] - ramp_min_output) / 2 +
+							   (_max_value[i] + ramp_min_output) / 2;
 
 				/* last line of defense against invalid inputs */
-				_current_output_value[i] = math::constrain(_current_output_value[i], ramp_min_output, _max_value[i]);
+				_current_output_value[i] =
+					math::constrain(_current_output_value[i], ramp_min_output, _max_value[i]);
 			}
-		}
-		break;
+		} break;
 
-	case OutputLimitState::ON:
-		for (int i = 0; i < num_channels; i++) {
-			_current_output_value[i] = output_limit_calc_single(i, output[i]);
-		}
+		case OutputLimitState::ON:
+			for (int i = 0; i < num_channels; i++) {
+				_current_output_value[i] = output_limit_calc_single(i, output[i]);
+			}
 
-		break;
+			break;
 	}
 }
 
-void
-MixingOutput::setAndPublishActuatorOutputs(unsigned num_outputs, actuator_outputs_s &actuator_outputs)
-{
+void MixingOutput::setAndPublishActuatorOutputs(unsigned num_outputs, actuator_outputs_s &actuator_outputs) {
 	actuator_outputs.noutputs = num_outputs;
 
 	for (size_t i = 0; i < num_outputs; ++i) {
@@ -1018,9 +997,7 @@ MixingOutput::setAndPublishActuatorOutputs(unsigned num_outputs, actuator_output
 	_outputs_pub.publish(actuator_outputs);
 }
 
-void
-MixingOutput::publishMixerStatus(const actuator_outputs_s &actuator_outputs)
-{
+void MixingOutput::publishMixerStatus(const actuator_outputs_s &actuator_outputs) {
 	MultirotorMixer::saturation_status saturation_status;
 	saturation_status.value = _mixers->get_saturation_status();
 
@@ -1073,11 +1050,10 @@ MixingOutput::publishMixerStatus(const actuator_outputs_s &actuator_outputs)
 	}
 }
 
-void
-MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs)
-{
+void MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs) {
 	if (_use_dynamic_mixing) {
-		// Just check the first function. It means we only get the latency if motors are assigned first, which is the default
+		// Just check the first function. It means we only get the latency if motors are assigned first, which
+		// is the default
 		if (_function_allocated[0]) {
 			hrt_abstime timestamp_sample;
 
@@ -1100,16 +1076,14 @@ MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_output
 	}
 }
 
-uint16_t
-MixingOutput::actualFailsafeValue(int index) const
-{
+uint16_t MixingOutput::actualFailsafeValue(int index) const {
 	if (!_use_dynamic_mixing) {
 		return _failsafe_value[index];
 	}
 
 	uint16_t value = 0;
 
-	if (_failsafe_value[index] == UINT16_MAX) { // if set to default, use the one provided by the function
+	if (_failsafe_value[index] == UINT16_MAX) {  // if set to default, use the one provided by the function
 		float default_failsafe = NAN;
 
 		if (_functions[index]) {
@@ -1125,9 +1099,7 @@ MixingOutput::actualFailsafeValue(int index) const
 	return value;
 }
 
-void
-MixingOutput::reorderOutputs(uint16_t values[MAX_ACTUATORS])
-{
+void MixingOutput::reorderOutputs(uint16_t values[MAX_ACTUATORS]) {
 	if (MAX_ACTUATORS < 4) {
 		return;
 	}
@@ -1139,7 +1111,7 @@ MixingOutput::reorderOutputs(uint16_t values[MAX_ACTUATORS])
 		 *    ^
 		 * 3     1
 		 */
-		const uint16_t value_tmp[4] = {values[0], values[1], values[2], values[3] };
+		const uint16_t value_tmp[4] = {values[0], values[1], values[2], values[3]};
 		values[0] = value_tmp[3];
 		values[1] = value_tmp[0];
 		values[2] = value_tmp[1];
@@ -1153,25 +1125,27 @@ MixingOutput::reorderOutputs(uint16_t values[MAX_ACTUATORS])
 	 */
 }
 
-int MixingOutput::reorderedMotorIndex(int index) const
-{
+int MixingOutput::reorderedMotorIndex(int index) const {
 	if ((MotorOrdering)_param_mot_ordering.get() == MotorOrdering::Betaflight) {
 		switch (index) {
-		case 0: return 1;
+			case 0:
+				return 1;
 
-		case 1: return 2;
+			case 1:
+				return 2;
 
-		case 2: return 3;
+			case 2:
+				return 3;
 
-		case 3: return 0;
+			case 3:
+				return 0;
 		}
 	}
 
 	return index;
 }
 
-int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input)
-{
+int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input) {
 	const MixingOutput *output = (const MixingOutput *)handle;
 
 	input = output->_controls[control_group].control[control_index];
@@ -1204,8 +1178,7 @@ int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8
 	return 0;
 }
 
-void MixingOutput::resetMixer()
-{
+void MixingOutput::resetMixer() {
 	if (_mixers != nullptr) {
 		delete _mixers;
 		_mixers = nullptr;
@@ -1215,8 +1188,7 @@ void MixingOutput::resetMixer()
 	_interface.mixerChanged();
 }
 
-int MixingOutput::loadMixer(const char *buf, unsigned len)
-{
+int MixingOutput::loadMixer(const char *buf, unsigned len) {
 	if (_mixers == nullptr) {
 		_mixers = new MixerGroup();
 	}

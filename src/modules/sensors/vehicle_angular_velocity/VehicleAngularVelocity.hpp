@@ -33,20 +33,9 @@
 
 #pragma once
 
-#include <containers/Bitset.hpp>
-#include <lib/sensor_calibration/Gyroscope.hpp>
-#include <lib/mathlib/math/Limits.hpp>
-#include <lib/matrix/matrix/math.hpp>
-#include <lib/mathlib/math/filter/AlphaFilter.hpp>
-#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/mathlib/math/filter/NotchFilter.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
@@ -58,13 +47,23 @@
 #include <uORB/topics/vehicle_angular_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 
+#include <containers/Bitset.hpp>
+#include <lib/mathlib/math/Limits.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/mathlib/math/filter/NotchFilter.hpp>
+#include <lib/matrix/matrix/math.hpp>
+#include <lib/sensor_calibration/Gyroscope.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+
 using namespace time_literals;
 
-namespace sensors
-{
+namespace sensors {
 
-class VehicleAngularVelocity : public ModuleParams, public px4::ScheduledWorkItem
-{
+class VehicleAngularVelocity : public ModuleParams, public px4::ScheduledWorkItem {
 public:
 	VehicleAngularVelocity();
 	~VehicleAngularVelocity() override;
@@ -76,7 +75,8 @@ public:
 private:
 	void Run() override;
 
-	bool CalibrateAndPublish(const hrt_abstime &timestamp_sample, const matrix::Vector3f &angular_velocity_uncalibrated,
+	bool CalibrateAndPublish(const hrt_abstime &timestamp_sample,
+				 const matrix::Vector3f &angular_velocity_uncalibrated,
 				 const matrix::Vector3f &angular_acceleration_uncalibrated);
 
 	inline float FilterAngularVelocity(int axis, float data[], int N = 1);
@@ -99,15 +99,16 @@ private:
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
-	uORB::Publication<vehicle_angular_acceleration_s> _vehicle_angular_acceleration_pub{ORB_ID(vehicle_angular_acceleration)};
-	uORB::Publication<vehicle_angular_velocity_s>     _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Publication<vehicle_angular_acceleration_s> _vehicle_angular_acceleration_pub{
+		ORB_ID(vehicle_angular_acceleration)};
+	uORB::Publication<vehicle_angular_velocity_s> _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
 
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
 #if !defined(CONSTRAINED_FLASH)
-	uORB::Subscription _esc_status_sub {ORB_ID(esc_status)};
-	uORB::Subscription _sensor_gyro_fft_sub {ORB_ID(sensor_gyro_fft)};
-#endif // !CONSTRAINED_FLASH
+	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
+	uORB::Subscription _sensor_gyro_fft_sub{ORB_ID(sensor_gyro_fft)};
+#endif  // !CONSTRAINED_FLASH
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -131,15 +132,15 @@ private:
 	float _filter_sample_rate_hz{NAN};
 
 	// angular velocity filters
-	math::LowPassFilter2p<float> _lp_filter_velocity[3] {};
-	math::NotchFilter<float> _notch_filter0_velocity[3] {};
-	math::NotchFilter<float> _notch_filter1_velocity[3] {};
+	math::LowPassFilter2p<float> _lp_filter_velocity[3]{};
+	math::NotchFilter<float> _notch_filter0_velocity[3]{};
+	math::NotchFilter<float> _notch_filter1_velocity[3]{};
 
 #if !defined(CONSTRAINED_FLASH)
 
 	enum DynamicNotch {
 		EscRpm = 1,
-		FFT    = 2,
+		FFT = 2,
 	};
 
 	static constexpr hrt_abstime DYNAMIC_NOTCH_FITLER_TIMEOUT = 1_s;
@@ -152,25 +153,25 @@ private:
 
 	int _esc_rpm_harmonics{0};
 	px4::Bitset<MAX_NUM_ESCS> _esc_available{};
-	hrt_abstime _last_esc_rpm_notch_update[MAX_NUM_ESCS] {};
+	hrt_abstime _last_esc_rpm_notch_update[MAX_NUM_ESCS]{};
 
 	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_esc_rpm_disable_perf{nullptr};
 
 	// FFT
-	static constexpr int MAX_NUM_FFT_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x)
-			/ sizeof(sensor_gyro_fft_s::peak_frequencies_x[0]);
+	static constexpr int MAX_NUM_FFT_PEAKS =
+		sizeof(sensor_gyro_fft_s::peak_frequencies_x) / sizeof(sensor_gyro_fft_s::peak_frequencies_x[0]);
 
-	math::NotchFilter<float> _dynamic_notch_filter_fft[3][MAX_NUM_FFT_PEAKS] {};
+	math::NotchFilter<float> _dynamic_notch_filter_fft[3][MAX_NUM_FFT_PEAKS]{};
 
 	perf_counter_t _dynamic_notch_filter_fft_disable_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
 
 	bool _dynamic_notch_fft_available{false};
-#endif // !CONSTRAINED_FLASH
+#endif  // !CONSTRAINED_FLASH
 
 	// angular acceleration filter
-	AlphaFilter<float> _lp_filter_acceleration[3] {};
+	AlphaFilter<float> _lp_filter_acceleration[3]{};
 
 	uint32_t _selected_sensor_device_id{0};
 
@@ -178,24 +179,23 @@ private:
 	bool _fifo_available{false};
 	bool _update_sample_rate{true};
 
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": gyro filter")};
-	perf_counter_t _filter_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro filter reset")};
-	perf_counter_t _selection_changed_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro selection changed")};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": gyro filter")};
+	perf_counter_t _filter_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME ": gyro filter reset")};
+	perf_counter_t _selection_changed_perf{perf_alloc(PC_COUNT, MODULE_NAME ": gyro selection changed")};
 
 	DEFINE_PARAMETERS(
 #if !defined(CONSTRAINED_FLASH)
-		(ParamInt<px4::params::IMU_GYRO_DNF_EN>) _param_imu_gyro_dnf_en,
-		(ParamInt<px4::params::IMU_GYRO_DNF_HMC>) _param_imu_gyro_dnf_hmc,
-		(ParamFloat<px4::params::IMU_GYRO_DNF_BW>) _param_imu_gyro_dnf_bw,
-#endif // !CONSTRAINED_FLASH
-		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
-		(ParamFloat<px4::params::IMU_GYRO_NF0_FRQ>) _param_imu_gyro_nf0_frq,
-		(ParamFloat<px4::params::IMU_GYRO_NF0_BW>) _param_imu_gyro_nf0_bw,
-		(ParamFloat<px4::params::IMU_GYRO_NF1_FRQ>) _param_imu_gyro_nf1_frq,
-		(ParamFloat<px4::params::IMU_GYRO_NF1_BW>) _param_imu_gyro_nf1_bw,
-		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
-		(ParamFloat<px4::params::IMU_DGYRO_CUTOFF>) _param_imu_dgyro_cutoff
-	)
+		(ParamInt<px4::params::IMU_GYRO_DNF_EN>)_param_imu_gyro_dnf_en,
+		(ParamInt<px4::params::IMU_GYRO_DNF_HMC>)_param_imu_gyro_dnf_hmc,
+		(ParamFloat<px4::params::IMU_GYRO_DNF_BW>)_param_imu_gyro_dnf_bw,
+#endif  // !CONSTRAINED_FLASH
+		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>)_param_imu_gyro_cutoff,
+		(ParamFloat<px4::params::IMU_GYRO_NF0_FRQ>)_param_imu_gyro_nf0_frq,
+		(ParamFloat<px4::params::IMU_GYRO_NF0_BW>)_param_imu_gyro_nf0_bw,
+		(ParamFloat<px4::params::IMU_GYRO_NF1_FRQ>)_param_imu_gyro_nf1_frq,
+		(ParamFloat<px4::params::IMU_GYRO_NF1_BW>)_param_imu_gyro_nf1_bw,
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>)_param_imu_gyro_ratemax,
+		(ParamFloat<px4::params::IMU_DGYRO_CUTOFF>)_param_imu_dgyro_cutoff)
 };
 
-} // namespace sensors
+}  // namespace sensors

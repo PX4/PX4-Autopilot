@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixHelperTest, SignFloat)
-{
+TEST(MatrixHelperTest, SignFloat) {
 	EXPECT_FLOAT_EQ(sign(-100.f), -1.f);
 	EXPECT_FLOAT_EQ(sign(-FLT_EPSILON), -1.f);
 	EXPECT_FLOAT_EQ(sign(0.f), 0.f);
@@ -45,8 +45,7 @@ TEST(MatrixHelperTest, SignFloat)
 	EXPECT_FLOAT_EQ(sign(100.f), 1.f);
 }
 
-TEST(MatrixHelperTest, SignInt)
-{
+TEST(MatrixHelperTest, SignInt) {
 	EXPECT_FLOAT_EQ(sign(-100), -1);
 	EXPECT_FLOAT_EQ(sign(-1), -1);
 	EXPECT_FLOAT_EQ(sign(0), 0);
@@ -54,8 +53,7 @@ TEST(MatrixHelperTest, SignInt)
 	EXPECT_FLOAT_EQ(sign(100), 1);
 }
 
-TEST(MatrixHelperTest, Helper)
-{
+TEST(MatrixHelperTest, Helper) {
 	// general wraps
 	EXPECT_FLOAT_EQ(wrap(4., 0., 10.), 4.);
 	EXPECT_FLOAT_EQ(wrap(4., 0., 1.), 0.);

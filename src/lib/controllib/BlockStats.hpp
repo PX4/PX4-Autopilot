@@ -39,63 +39,47 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <assert.h>
-#include <time.h>
-#include <stdlib.h>
 #include <math.h>
-#include <mathlib/math/test/test.hpp>
+#include <px4_platform_common/defines.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
-template<class Type, size_t M>
-class __EXPORT BlockStats: public Block
-{
-
+namespace control {
+template <class Type, size_t M>
+class __EXPORT BlockStats : public Block {
 public:
-// methods
-	BlockStats(SuperBlock *parent,
-		   const char *name) :
-		Block(parent, name),
-		_sum(),
-		_sumSq(),
-		_count(0)
-	{}
+	// methods
+	BlockStats(SuperBlock *parent, const char *name) : Block(parent, name), _sum(), _sumSq(), _count(0) {}
 	virtual ~BlockStats() = default;
-	void update(const matrix::Vector<Type, M> &u)
-	{
+	void update(const matrix::Vector<Type, M> &u) {
 		_sum += u;
 		_sumSq += u.emult(u);
 		_count += 1;
 	}
-	void reset()
-	{
+	void reset() {
 		_sum.setZero();
 		_sumSq.setZero();
 		_count = 0;
 	}
-// accessors
+	// accessors
 	size_t getCount() { return _count; }
 	matrix::Vector<Type, M> getMean() { return _sum / _count; }
-	matrix::Vector<Type, M> getVar()
-	{
-		return (_sumSq - _sum.emult(_sum) / _count) / _count;
-	}
-	matrix::Vector<Type, M> getStdDev()
-	{
-		return getVar().sqrt();
-	}
+	matrix::Vector<Type, M> getVar() { return (_sumSq - _sum.emult(_sum) / _count) / _count; }
+	matrix::Vector<Type, M> getStdDev() { return getVar().sqrt(); }
+
 private:
-// attributes
+	// attributes
 	matrix::Vector<Type, M> _sum;
 	matrix::Vector<Type, M> _sumSq;
 	size_t _count;
 };
 
-} // namespace control
+}  // namespace control

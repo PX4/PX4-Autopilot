@@ -38,11 +38,10 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <stdio.h>
-#include <string.h>
-
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/px4_config.h>
+#include <stdio.h>
+#include <string.h>
 #include <systemlib/err.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
@@ -50,8 +49,7 @@
 
 __EXPORT int ex_hwtest_main(int argc, char *argv[]);
 
-int ex_hwtest_main(int argc, char *argv[])
-{
+int ex_hwtest_main(int argc, char *argv[]) {
 	warnx("DO NOT FORGET TO STOP THE DEFAULT CONTROL APPS!");
 	warnx("(run <commander stop>,)");
 	warnx("(    <mc_rate_control stop> and)");

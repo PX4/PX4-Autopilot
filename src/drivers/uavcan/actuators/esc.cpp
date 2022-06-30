@@ -38,24 +38,20 @@
  */
 
 #include "esc.hpp"
-#include <systemlib/err.h>
-#include <drivers/drv_hrt.h>
 
-#define MOTOR_BIT(x) (1<<(x))
+#include <drivers/drv_hrt.h>
+#include <systemlib/err.h>
+
+#define MOTOR_BIT(x) (1 << (x))
 
 using namespace time_literals;
 
-UavcanEscController::UavcanEscController(uavcan::INode &node) :
-	_node(node),
-	_uavcan_pub_raw_cmd(node),
-	_uavcan_sub_status(node)
-{
+UavcanEscController::UavcanEscController(uavcan::INode &node)
+	: _node(node), _uavcan_pub_raw_cmd(node), _uavcan_sub_status(node) {
 	_uavcan_pub_raw_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
 }
 
-int
-UavcanEscController::init()
-{
+int UavcanEscController::init() {
 	// ESC status subscription
 	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
 
@@ -67,9 +63,7 @@ UavcanEscController::init()
 	return res;
 }
 
-void
-UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
-{
+void UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs) {
 	/*
 	 * Rate limiting - we don't want to congest the bus
 	 */
@@ -122,25 +116,19 @@ UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUA
 	_uavcan_pub_raw_cmd.broadcast(msg);
 }
 
-void
-UavcanEscController::set_rotor_count(uint8_t count)
-{
-	_rotor_count = count;
-}
+void UavcanEscController::set_rotor_count(uint8_t count) { _rotor_count = count; }
 
-void
-UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
-{
+void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg) {
 	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
 		auto &ref = _esc_status.esc[msg.esc_index];
 
-		ref.timestamp       = hrt_absolute_time();
+		ref.timestamp = hrt_absolute_time();
 		ref.esc_address = msg.getSrcNodeID().get();
-		ref.esc_voltage     = msg.voltage;
-		ref.esc_current     = msg.current;
+		ref.esc_voltage = msg.voltage;
+		ref.esc_current = msg.current;
 		ref.esc_temperature = msg.temperature;
-		ref.esc_rpm         = msg.rpm;
-		ref.esc_errorcount  = msg.error_count;
+		ref.esc_rpm = msg.rpm;
+		ref.esc_errorcount = msg.error_count;
 
 		_esc_status.esc_count = _rotor_count;
 		_esc_status.counter += 1;
@@ -152,18 +140,14 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	}
 }
 
-uint8_t
-UavcanEscController::check_escs_status()
-{
+uint8_t UavcanEscController::check_escs_status() {
 	int esc_status_flags = 0;
 	const hrt_abstime now = hrt_absolute_time();
 
 	for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; index++) {
-
 		if (_esc_status.esc[index].timestamp > 0 && now - _esc_status.esc[index].timestamp < 1200_ms) {
 			esc_status_flags |= (1 << index);
 		}
-
 	}
 
 	return esc_status_flags;

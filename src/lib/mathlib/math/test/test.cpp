@@ -37,27 +37,26 @@
  * Test library code
  */
 
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
-
-#include <px4_platform_common/defines.h>
-
 #include "test.hpp"
 
-bool __EXPORT equal(float a, float b, float epsilon)
-{
+#include <math.h>
+#include <px4_platform_common/defines.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+bool __EXPORT equal(float a, float b, float epsilon) {
 	float diff = fabsf(a - b);
 
 	if (diff > epsilon) {
 		printf("not equal ->\n\ta: %12.8f\n\tb: %12.8f\n", double(a), double(b));
 		return false;
 
-	} else { return true; }
+	} else {
+		return true;
+	}
 }
 
-bool __EXPORT greater_than(float a, float b)
-{
+bool __EXPORT greater_than(float a, float b) {
 	if (a > b) {
 		return true;
 
@@ -67,8 +66,7 @@ bool __EXPORT greater_than(float a, float b)
 	}
 }
 
-bool __EXPORT less_than(float a, float b)
-{
+bool __EXPORT less_than(float a, float b) {
 	if (a < b) {
 		return true;
 
@@ -78,8 +76,7 @@ bool __EXPORT less_than(float a, float b)
 	}
 }
 
-bool __EXPORT greater_than_or_equal(float a, float b)
-{
+bool __EXPORT greater_than_or_equal(float a, float b) {
 	if (a >= b) {
 		return true;
 
@@ -89,8 +86,7 @@ bool __EXPORT greater_than_or_equal(float a, float b)
 	}
 }
 
-bool __EXPORT less_than_or_equal(float a, float b)
-{
+bool __EXPORT less_than_or_equal(float a, float b) {
 	if (a <= b) {
 		return true;
 
@@ -100,9 +96,7 @@ bool __EXPORT less_than_or_equal(float a, float b)
 	}
 }
 
-void __EXPORT float2SigExp(const float &num, float &sig, int &exp)
-{
-
+void __EXPORT float2SigExp(const float &num, float &sig, int &exp) {
 	if (!PX4_ISFINITE(num)) {
 		sig = 0.0f;
 		exp = -99;
@@ -128,11 +122,13 @@ void __EXPORT float2SigExp(const float &num, float &sig, int &exp)
 
 	// cheap power since it is integer
 	if (exp > 0) {
-		for (int i = 0; i < abs(exp); i++) { sig /= 10; }
+		for (int i = 0; i < abs(exp); i++) {
+			sig /= 10;
+		}
 
 	} else {
-		for (int i = 0; i < abs(exp); i++) { sig *= 10; }
+		for (int i = 0; i < abs(exp); i++) {
+			sig *= 10;
+		}
 	}
 }
-
-

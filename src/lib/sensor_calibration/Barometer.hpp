@@ -33,15 +33,14 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
-#include <uORB/Subscription.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/sensor_correction.h>
 
-namespace calibration
-{
-class Barometer
-{
+#include <uORB/Subscription.hpp>
+
+namespace calibration {
+class Barometer {
 public:
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -72,21 +71,12 @@ public:
 	const float &thermal_offset() const { return _thermal_offset; }
 
 	// apply offsets
-	inline float Correct(const float &data) const
-	{
-		return data - _thermal_offset - _offset;
-	}
+	inline float Correct(const float &data) const { return data - _thermal_offset - _offset; }
 
-	inline float Uncorrect(const float &corrected_data) const
-	{
-		return corrected_data + _thermal_offset + _offset;
-	}
+	inline float Uncorrect(const float &corrected_data) const { return corrected_data + _thermal_offset + _offset; }
 
 	// Compute sensor offset from bias (board frame)
-	float BiasCorrectedSensorOffset(const float &bias) const
-	{
-		return bias + _thermal_offset + _offset;
-	}
+	float BiasCorrectedSensorOffset(const float &bias) const { return bias + _thermal_offset + _offset; }
 
 	bool ParametersLoad();
 	bool ParametersSave(int desired_calibration_index = -1, bool force = false);
@@ -110,4 +100,4 @@ private:
 
 	uint8_t _calibration_count{0};
 };
-} // namespace calibration
+}  // namespace calibration

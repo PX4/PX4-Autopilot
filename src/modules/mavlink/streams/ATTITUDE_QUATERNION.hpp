@@ -34,12 +34,11 @@
 #ifndef ATTITUDE_QUATERNION_HPP
 #define ATTITUDE_QUATERNION_HPP
 
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
 
-class MavlinkStreamAttitudeQuaternion : public MavlinkStream
-{
+class MavlinkStreamAttitudeQuaternion : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamAttitudeQuaternion(mavlink); }
 
@@ -49,9 +48,9 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _att_sub.advertised() ? MAVLINK_MSG_ID_ATTITUDE_QUATERNION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _att_sub.advertised() ? MAVLINK_MSG_ID_ATTITUDE_QUATERNION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+					     : 0;
 	}
 
 private:
@@ -61,8 +60,7 @@ private:
 	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_attitude_s att;
 
 		if (_att_sub.update(&att)) {
@@ -83,7 +81,8 @@ private:
 			msg.pitchspeed = angular_velocity.xyz[1];
 			msg.yawspeed = angular_velocity.xyz[2];
 
-			if (status.is_vtol && status.is_vtol_tailsitter && (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
+			if (status.is_vtol && status.is_vtol_tailsitter &&
+			    (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
 				// This is a tailsitter VTOL flying in fixed wing mode:
 				// indicate that reported attitude should be rotated by
 				// 90 degrees upward pitch for user display
@@ -109,4 +108,4 @@ private:
 	}
 };
 
-#endif // ATTITUDE_QUATERNION_HPP
+#endif  // ATTITUDE_QUATERNION_HPP

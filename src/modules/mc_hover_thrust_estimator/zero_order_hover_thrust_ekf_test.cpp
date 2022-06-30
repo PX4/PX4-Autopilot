@@ -36,16 +36,16 @@
  * Run this test only using make tests TESTFILTER=zero_order_hover_thrust_ekf
  */
 
+#include "zero_order_hover_thrust_ekf.hpp"
+
 #include <gtest/gtest.h>
+
 #include <matrix/matrix/math.hpp>
 #include <random>
 
-#include "zero_order_hover_thrust_ekf.hpp"
-
 using namespace matrix;
 
-class ZeroOrderHoverThrustEkfTest : public ::testing::Test
-{
+class ZeroOrderHoverThrustEkfTest : public ::testing::Test {
 public:
 	struct Status {
 		float hover_thrust;
@@ -56,10 +56,7 @@ public:
 		float accel_noise_var;
 	};
 
-	ZeroOrderHoverThrustEkfTest()
-	{
-		_random_generator.seed(42);
-	}
+	ZeroOrderHoverThrustEkfTest() { _random_generator.seed(42); }
 	float computeAccelFromThrustAndHoverThrust(float thrust, float hover_thrust);
 	Status runEkf(float hover_thrust_true, float thrust, float time, float accel_noise = 0.f,
 		      float thr_noise = 0.f);
@@ -69,28 +66,26 @@ private:
 	static constexpr float _dt = 0.02f;
 
 	std::normal_distribution<float> _standard_normal_distribution;
-	std::default_random_engine _random_generator; // Pseudo-random generator with constant seed
+	std::default_random_engine _random_generator;  // Pseudo-random generator with constant seed
 
 protected:
-	static constexpr float _accel_noise_var_min = 1.f; // Constrained in the implementation
+	static constexpr float _accel_noise_var_min = 1.f;  // Constrained in the implementation
 };
 
-float ZeroOrderHoverThrustEkfTest::computeAccelFromThrustAndHoverThrust(float thrust, float hover_thrust)
-{
+float ZeroOrderHoverThrustEkfTest::computeAccelFromThrustAndHoverThrust(float thrust, float hover_thrust) {
 	return CONSTANTS_ONE_G * thrust / hover_thrust - CONSTANTS_ONE_G;
 }
 
 ZeroOrderHoverThrustEkfTest::Status ZeroOrderHoverThrustEkfTest::runEkf(float hover_thrust_true, float thrust,
-		float time,
-		float accel_noise, float thr_noise)
-{
+									float time, float accel_noise,
+									float thr_noise) {
 	Status status{};
 
 	for (float t = 0.f; t <= time; t += _dt) {
 		_ekf.predict(_dt);
-		float noisy_thrust =  thrust + thr_noise * _standard_normal_distribution(_random_generator);
+		float noisy_thrust = thrust + thr_noise * _standard_normal_distribution(_random_generator);
 		float accel_theory = computeAccelFromThrustAndHoverThrust(thrust, hover_thrust_true);
-		float noisy_accel =  accel_theory + accel_noise * _standard_normal_distribution(_random_generator);
+		float noisy_accel = accel_theory + accel_noise * _standard_normal_distribution(_random_generator);
 		_ekf.fuseAccZ(noisy_accel, noisy_thrust);
 	}
 
@@ -105,8 +100,7 @@ ZeroOrderHoverThrustEkfTest::Status ZeroOrderHoverThrustEkfTest::runEkf(float ho
 	return status;
 }
 
-TEST_F(ZeroOrderHoverThrustEkfTest, testStaticCase)
-{
+TEST_F(ZeroOrderHoverThrustEkfTest, testStaticCase) {
 	// GIVEN: a vehicle at hover, (the estimator starting at the true value)
 	const float thrust = 0.5f;
 	const float hover_thrust_true = 0.5f;
@@ -118,11 +112,10 @@ TEST_F(ZeroOrderHoverThrustEkfTest, testStaticCase)
 	EXPECT_NEAR(status.hover_thrust, hover_thrust_true, 1e-4f);
 	EXPECT_NEAR(status.hover_thrust_var, 0.f, 1e-3f);
 	EXPECT_NEAR(status.accel_noise_var, _accel_noise_var_min,
-		    1.f); // The noise learning is slow and takes more time to go to zero
+		    1.f);  // The noise learning is slow and takes more time to go to zero
 }
 
-TEST_F(ZeroOrderHoverThrustEkfTest, testStaticConvergence)
-{
+TEST_F(ZeroOrderHoverThrustEkfTest, testStaticConvergence) {
 	// GIVEN: a vehicle at hover, but the estimator is starting at hover_thrust = 0.5
 	const float thrust = 0.72f;
 	const float hover_thrust_true = 0.72f;
@@ -134,11 +127,10 @@ TEST_F(ZeroOrderHoverThrustEkfTest, testStaticConvergence)
 	EXPECT_NEAR(status.hover_thrust, hover_thrust_true, 1e-2f);
 	EXPECT_NEAR(status.hover_thrust_var, 0.f, 1e-3f);
 	EXPECT_NEAR(status.accel_noise_var, _accel_noise_var_min,
-		    1.f); // The noise learning is slow and takes more time to go to zero
+		    1.f);  // The noise learning is slow and takes more time to go to zero
 }
 
-TEST_F(ZeroOrderHoverThrustEkfTest, testStaticConvergenceWithNoise)
-{
+TEST_F(ZeroOrderHoverThrustEkfTest, testStaticConvergenceWithNoise) {
 	// GIVEN: a vehicle at hover, the estimator starts with the wrong estimate and the measurements are noisy
 	const float sigma_noise = 3.f;
 	const float noise_var = sigma_noise * sigma_noise;
@@ -155,12 +147,11 @@ TEST_F(ZeroOrderHoverThrustEkfTest, testStaticConvergenceWithNoise)
 	EXPECT_NEAR(status.accel_noise_var, noise_var, 0.2f * noise_var);
 }
 
-TEST_F(ZeroOrderHoverThrustEkfTest, testLargeAccelNoiseAndBias)
-{
+TEST_F(ZeroOrderHoverThrustEkfTest, testLargeAccelNoiseAndBias) {
 	// GIVEN: a vehicle descending, the estimator starts with the wrong estimate, the measurements are really noisy
 	const float sigma_noise = 7.f;
 	const float noise_var = sigma_noise * sigma_noise;
-	const float thrust = 0.4f; // Below hover thrust
+	const float thrust = 0.4f;  // Below hover thrust
 	const float hover_thrust_true = 0.72f;
 	const float t_sim = 15.f;
 
@@ -173,14 +164,13 @@ TEST_F(ZeroOrderHoverThrustEkfTest, testLargeAccelNoiseAndBias)
 	EXPECT_NEAR(status.accel_noise_var, noise_var, 0.2f * noise_var);
 }
 
-TEST_F(ZeroOrderHoverThrustEkfTest, testThrustAndAccelNoise)
-{
+TEST_F(ZeroOrderHoverThrustEkfTest, testThrustAndAccelNoise) {
 	// GIVEN: a vehicle climbing, the estimator starts with the wrong estimate, the measurements
 	// and the input thrust are noisy
 	const float accel_noise = 2.f;
 	const float accel_var = accel_noise * accel_noise;
 	const float thr_noise = 0.01f;
-	const float thrust = 0.72f; // Above hover thrust
+	const float thrust = 0.72f;  // Above hover thrust
 	const float hover_thrust_true = 0.6f;
 	const float t_sim = 15.f;
 
@@ -194,14 +184,13 @@ TEST_F(ZeroOrderHoverThrustEkfTest, testThrustAndAccelNoise)
 	EXPECT_NEAR(status.accel_noise_var, accel_var, 0.4f * accel_var);
 }
 
-TEST_F(ZeroOrderHoverThrustEkfTest, testHoverThrustJump)
-{
+TEST_F(ZeroOrderHoverThrustEkfTest, testHoverThrustJump) {
 	// GIVEN: a vehicle hovering, the estimator starts with the wrong estimate, the measurements
 	// and the input thrust are noisy
 	const float accel_noise = 2.f;
 	const float accel_var = accel_noise * accel_noise;
 	const float thr_noise = 0.01f;
-	float thrust = 0.8; // At hover
+	float thrust = 0.8;  // At hover
 	float hover_thrust_true = 0.8f;
 	float t_sim = 10.f;
 

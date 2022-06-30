@@ -42,7 +42,6 @@
 #pragma once
 
 #include <px4_platform_common/px4_config.h>
-
 #include <stdint.h>
 
 #ifndef CONFIG_FS_PROCFS_MAX_TASKS
@@ -57,7 +56,7 @@ struct print_load_s {
 
 	uint64_t new_time{0};
 	uint64_t interval_start_time{0};
-	uint64_t last_times[CONFIG_FS_PROCFS_MAX_TASKS] {};
+	uint64_t last_times[CONFIG_FS_PROCFS_MAX_TASKS]{};
 	float interval_time_us{0.f};
 };
 
@@ -66,7 +65,6 @@ __BEGIN_DECLS
 __EXPORT void init_print_load(struct print_load_s *s);
 
 __EXPORT void print_load(int fd, struct print_load_s *print_state);
-
 
 typedef void (*print_load_callback_f)(void *user);
 

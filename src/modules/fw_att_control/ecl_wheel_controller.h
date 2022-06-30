@@ -51,9 +51,7 @@
 
 #include "ecl_controller.h"
 
-class ECL_WheelController :
-	public ECL_Controller
-{
+class ECL_WheelController : public ECL_Controller {
 public:
 	ECL_WheelController() = default;
 	~ECL_WheelController() = default;
@@ -62,7 +60,10 @@ public:
 
 	float control_bodyrate(const float dt, const ECL_ControlData &ctl_data) override;
 
-	float control_euler_rate(const float dt, const ECL_ControlData &ctl_data, float bodyrate_ff) override { (void)ctl_data; return 0; }
+	float control_euler_rate(const float dt, const ECL_ControlData &ctl_data, float bodyrate_ff) override {
+		(void)ctl_data;
+		return 0;
+	}
 };
 
-#endif // ECL_HEADING_CONTROLLER_H
+#endif  // ECL_HEADING_CONTROLLER_H

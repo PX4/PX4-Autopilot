@@ -36,8 +36,7 @@
 
 #include <uORB/topics/vehicle_status.h>
 
-class MavlinkStreamFlightInformation : public MavlinkStream
-{
+class MavlinkStreamFlightInformation : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamFlightInformation(mavlink); }
 
@@ -47,22 +46,17 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_FLIGHT_INFORMATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
+	unsigned get_size() override { return MAVLINK_MSG_ID_FLIGHT_INFORMATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES; }
 
 private:
-	explicit MavlinkStreamFlightInformation(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
+	explicit MavlinkStreamFlightInformation(Mavlink *mavlink) : MavlinkStream(mavlink) {
 		_param_com_flight_uuid = param_find("COM_FLIGHT_UUID");
 	}
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	param_t _param_com_flight_uuid{PARAM_INVALID};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_status_s vehicle_status{};
 
 		if (_vehicle_status_sub.copy(&vehicle_status) && vehicle_status.timestamp != 0) {
@@ -86,4 +80,4 @@ private:
 	}
 };
 
-#endif // FLIGHT_INFORMATION_HPP
+#endif  // FLIGHT_INFORMATION_HPP

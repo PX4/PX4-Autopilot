@@ -42,7 +42,6 @@
 
 #include <px4_platform_common/px4_config.h>
 
-
 #define CONSOLE_BUFFER_DEVICE "/dev/console_buf"
 
 #ifdef BOARD_ENABLE_CONSOLE_BUFFER
@@ -82,18 +81,9 @@ __END_DECLS
 
 #else
 
-static inline int px4_console_buffer_init()
-{
-	return 0;
-}
+static inline int px4_console_buffer_init() { return 0; }
 
-static inline int px4_console_buffer_size()
-{
-	return 0;
-}
+static inline int px4_console_buffer_size() { return 0; }
 
-static inline int px4_console_buffer_read(char *buffer, int buffer_length, int *offset)
-{
-	return 0;
-}
+static inline int px4_console_buffer_read(char *buffer, int buffer_length, int *offset) { return 0; }
 #endif /* BOARD_ENABLE_CONSOLE_BUFFER */

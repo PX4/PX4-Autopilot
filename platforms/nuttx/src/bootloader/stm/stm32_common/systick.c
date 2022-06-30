@@ -31,46 +31,32 @@
  *
  ****************************************************************************/
 
-#include "arm_arch.h"
 #include "lib/systick.h"
+
 #include <nvic.h>
 
-uint8_t systick_get_countflag(void)
-{
-	return (getreg32(NVIC_SYSTICK_CTRL) & NVIC_SYSTICK_CTRL_COUNTFLAG) ? 1 : 0;
-}
+#include "arm_arch.h"
+
+uint8_t systick_get_countflag(void) { return (getreg32(NVIC_SYSTICK_CTRL) & NVIC_SYSTICK_CTRL_COUNTFLAG) ? 1 : 0; }
 
 // See 2.2.3 SysTick external clock is not HCLK/8
 uint32_t g_divisor = 1;
-void systick_set_reload(uint32_t value)
-{
+void systick_set_reload(uint32_t value) {
 	putreg32((((value * g_divisor) << NVIC_SYSTICK_RELOAD_SHIFT) & NVIC_SYSTICK_RELOAD_MASK), NVIC_SYSTICK_RELOAD);
 }
 
-
-void systick_set_clocksource(uint8_t clocksource)
-{
+void systick_set_clocksource(uint8_t clocksource) {
 	g_divisor = (clocksource == CLKSOURCE_EXTERNAL) ? 8 : 1;
 	modifyreg32(NVIC_SYSTICK_CTRL, NVIC_SYSTICK_CTRL_CLKSOURCE, clocksource & NVIC_SYSTICK_CTRL_CLKSOURCE);
 }
 
-void systick_counter_enable(void)
-{
-	modifyreg32(NVIC_SYSTICK_CTRL, 0, NVIC_SYSTICK_CTRL_ENABLE);
-}
+void systick_counter_enable(void) { modifyreg32(NVIC_SYSTICK_CTRL, 0, NVIC_SYSTICK_CTRL_ENABLE); }
 
-void systick_counter_disable(void)
-{
+void systick_counter_disable(void) {
 	modifyreg32(NVIC_SYSTICK_CTRL, NVIC_SYSTICK_CTRL_ENABLE, 0);
 	putreg32(0, NVIC_SYSTICK_CURRENT);
 }
 
-void systick_interrupt_enable(void)
-{
-	modifyreg32(NVIC_SYSTICK_CTRL, 0, NVIC_SYSTICK_CTRL_TICKINT);
-}
+void systick_interrupt_enable(void) { modifyreg32(NVIC_SYSTICK_CTRL, 0, NVIC_SYSTICK_CTRL_TICKINT); }
 
-void systick_interrupt_disable(void)
-{
-	modifyreg32(NVIC_SYSTICK_CTRL, NVIC_SYSTICK_CTRL_TICKINT, 0);
-}
+void systick_interrupt_disable(void) { modifyreg32(NVIC_SYSTICK_CTRL, NVIC_SYSTICK_CTRL_TICKINT, 0); }

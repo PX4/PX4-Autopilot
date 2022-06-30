@@ -34,12 +34,12 @@
 #pragma once
 
 #include <uORB/topics/sensor_hygrometer.h>
-#include "sensor_bridge.hpp"
 
 #include <dronecan/sensors/hygrometer/Hygrometer.hpp>
 
-class UavcanHygrometerBridge : public UavcanSensorBridgeBase
-{
+#include "sensor_bridge.hpp"
+
+class UavcanHygrometerBridge : public UavcanSensorBridgeBase {
 public:
 	static const char *const NAME;
 
@@ -52,9 +52,9 @@ public:
 private:
 	void hygro_sub_cb(const uavcan::ReceivedDataStructure<dronecan::sensors::hygrometer::Hygrometer> &msg);
 
-	typedef uavcan::MethodBinder < UavcanHygrometerBridge *,
-		void (UavcanHygrometerBridge::*)
-		(const uavcan::ReceivedDataStructure<dronecan::sensors::hygrometer::Hygrometer> &) >
+	typedef uavcan::MethodBinder<UavcanHygrometerBridge *,
+				     void (UavcanHygrometerBridge::*)(const uavcan::ReceivedDataStructure<
+								      dronecan::sensors::hygrometer::Hygrometer> &)>
 		HygroCbBinder;
 
 	uavcan::Subscriber<dronecan::sensors::hygrometer::Hygrometer, HygroCbBinder> _sub_hygro;

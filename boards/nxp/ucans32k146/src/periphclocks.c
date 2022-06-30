@@ -58,8 +58,8 @@
 
 #include <nuttx/config.h>
 
-#include "s32k1xx_periphclocks.h"
 #include "board_config.h"
+#include "s32k1xx_periphclocks.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -101,7 +101,7 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
 #else
 		.clkgate = false,
 #endif
-		.clksrc  = CLK_SRC_SPLL_DIV2,
+		.clksrc = CLK_SRC_SPLL_DIV2,
 	},
 	{
 		.clkname = LPSPI0_CLK,
@@ -110,7 +110,7 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
 #else
 		.clkgate = false,
 #endif
-		.clksrc  = CLK_SRC_SPLL_DIV2,
+		.clksrc = CLK_SRC_SPLL_DIV2,
 	},
 	{
 		.clkname = LPUART0_CLK,
@@ -119,7 +119,7 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
 #else
 		.clkgate = false,
 #endif
-		.clksrc  = CLK_SRC_SPLL_DIV2,
+		.clksrc = CLK_SRC_SPLL_DIV2,
 	},
 	{
 		.clkname = LPUART1_CLK,
@@ -128,48 +128,48 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
 #else
 		.clkgate = false,
 #endif
-		.clksrc  = CLK_SRC_SPLL_DIV2,
+		.clksrc = CLK_SRC_SPLL_DIV2,
 	},
 	{
-		.clkname    = RTC0_CLK,
+		.clkname = RTC0_CLK,
 #ifdef CONFIG_S32K1XX_RTC
 		.clkgate = true,
 #else
 		.clkgate = false,
 #endif
-		.clksrc     = CLK_SRC_OFF,
-		.frac       = MULTIPLY_BY_ONE,
-		.divider    = 1,
+		.clksrc = CLK_SRC_OFF,
+		.frac = MULTIPLY_BY_ONE,
+		.divider = 1,
 	},
 	{
-		.clkname    = FTM0_CLK,
-		.clkgate    = true,
-		.clksrc     = CLK_SRC_SOSC_DIV1,
+		.clkname = FTM0_CLK,
+		.clkgate = true,
+		.clksrc = CLK_SRC_SOSC_DIV1,
 	},
 	{
-		.clkname    = FTM1_CLK,
-		.clkgate    = true,
-		.clksrc     = CLK_SRC_SOSC_DIV1,
+		.clkname = FTM1_CLK,
+		.clkgate = true,
+		.clksrc = CLK_SRC_SOSC_DIV1,
 	},
 	{
-		.clkname    = FTM2_CLK,
-		.clkgate    = true,
-		.clksrc     = CLK_SRC_SOSC_DIV1,
+		.clkname = FTM2_CLK,
+		.clkgate = true,
+		.clksrc = CLK_SRC_SOSC_DIV1,
 	},
 	{
-		.clkname    = FTM3_CLK,
-		.clkgate    = true,
-		.clksrc     = CLK_SRC_SOSC_DIV1,
+		.clkname = FTM3_CLK,
+		.clkgate = true,
+		.clksrc = CLK_SRC_SOSC_DIV1,
 	},
 	{
-		.clkname    = FTM4_CLK,
-		.clkgate    = true,
-		.clksrc     = CLK_SRC_SOSC_DIV1,
+		.clkname = FTM4_CLK,
+		.clkgate = true,
+		.clksrc = CLK_SRC_SOSC_DIV1,
 	},
 	{
-		.clkname    = FTM5_CLK,
-		.clkgate    = true,
-		.clksrc     = CLK_SRC_SOSC_DIV1,
+		.clkname = FTM5_CLK,
+		.clkgate = true,
+		.clksrc = CLK_SRC_SOSC_DIV1,
 	},
 	{
 		.clkname = PORTA_CLK,

@@ -63,9 +63,7 @@ enum class EffectivenessUpdateReason {
 	MOTOR_ACTIVATION_UPDATE = 2,
 };
 
-
-class ActuatorEffectiveness
-{
+class ActuatorEffectiveness {
 public:
 	ActuatorEffectiveness() = default;
 	virtual ~ActuatorEffectiveness() = default;
@@ -73,14 +71,7 @@ public:
 	static constexpr int NUM_ACTUATORS = 16;
 	static constexpr int NUM_AXES = 6;
 
-	enum ControlAxis {
-		ROLL = 0,
-		PITCH,
-		YAW,
-		THRUST_X,
-		THRUST_Y,
-		THRUST_Z
-	};
+	enum ControlAxis { ROLL = 0, PITCH, YAW, THRUST_X, THRUST_Y, THRUST_Z };
 
 	static constexpr int MAX_NUM_MATRICES = 2;
 
@@ -107,10 +98,12 @@ public:
 
 		int totalNumActuators() const;
 
-		/// Configured effectiveness matrix. Actuators are expected to be filled in order, motors first, then servos
+		/// Configured effectiveness matrix. Actuators are expected to be filled in order, motors first, then
+		/// servos
 		EffectivenessMatrix effectiveness_matrices[MAX_NUM_MATRICES];
 
-		int num_actuators_matrix[MAX_NUM_MATRICES]; ///< current amount, and next actuator index to fill in to effectiveness_matrices
+		int num_actuators_matrix[MAX_NUM_MATRICES];  ///< current amount, and next actuator index to fill in to
+							     ///< effectiveness_matrices
 		ActuatorVector trim[MAX_NUM_MATRICES];
 
 		ActuatorVector linearization_point[MAX_NUM_MATRICES];
@@ -126,10 +119,7 @@ public:
 	 *
 	 * @param Flight phase
 	 */
-	virtual void setFlightPhase(const FlightPhase &flight_phase)
-	{
-		_flight_phase = flight_phase;
-	}
+	virtual void setFlightPhase(const FlightPhase &flight_phase) { _flight_phase = flight_phase; }
 
 	/**
 	 * Get the number of effectiveness matrices. Must be <= MAX_NUM_MATRICES.
@@ -140,8 +130,7 @@ public:
 	/**
 	 * Get the desired allocation method(s) for each matrix, if configured as AUTO
 	 */
-	virtual void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const
-	{
+	virtual void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const {
 		for (int i = 0; i < MAX_NUM_MATRICES; ++i) {
 			allocation_method_out[i] = AllocationMethod::PSEUDO_INVERSE;
 		}
@@ -150,8 +139,7 @@ public:
 	/**
 	 * Query if the roll, pitch and yaw columns of the mixing matrix should be normalized
 	 */
-	virtual void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const
-	{
+	virtual void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const {
 		for (int i = 0; i < MAX_NUM_MATRICES; ++i) {
 			normalize[i] = false;
 		}
@@ -162,23 +150,21 @@ public:
 	 *
 	 * @return true if updated and matrix is set
 	 */
-	virtual bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) { return false;}
+	virtual bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) {
+		return false;
+	}
 
 	/**
 	 * Get the current flight phase
 	 *
 	 * @return Flight phase
 	 */
-	const FlightPhase &getFlightPhase() const
-	{
-		return _flight_phase;
-	}
+	const FlightPhase &getFlightPhase() const { return _flight_phase; }
 
 	/**
 	 * Display name
 	 */
 	virtual const char *name() const = 0;
-
 
 	/**
 	 * Callback from the control allocation, allowing to manipulate the setpoint.
@@ -186,8 +172,8 @@ public:
 	 * It is called after the matrix multiplication and before final clipping.
 	 * @param actuator_sp input & output setpoint
 	 */
-	virtual void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-				    int matrix_index, ActuatorVector &actuator_sp) {}
+	virtual void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+				    ActuatorVector &actuator_sp) {}
 
 	/**
 	 * Get a bitmask of motors to be stopped
@@ -195,5 +181,5 @@ public:
 	virtual uint32_t getStoppedMotors() const { return 0; }
 
 protected:
-	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};		///< Current flight phase
+	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};  ///< Current flight phase
 };

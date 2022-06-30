@@ -38,38 +38,33 @@
  * To use it make sure there's a driver running, which handles the tune_control uorb topic.
  */
 
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <lib/tunes/tunes.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
-
+#include <px4_platform_common/module.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <errno.h>
-
-#include <px4_platform_common/module.h>
-
-#include <lib/tunes/tunes.h>
-#include <uORB/Publication.hpp>
 #include <uORB/topics/tune_control.h>
+#include <unistd.h>
 
-#include <drivers/drv_hrt.h>
+#include <uORB/Publication.hpp>
 
 #define MAX_NOTE_ITERATION 50
 
 static void usage();
 
-static void publish_tune_control(tune_control_s &tune_control)
-{
+static void publish_tune_control(tune_control_s &tune_control) {
 	uORB::Publication<tune_control_s> tune_control_pub{ORB_ID(tune_control)};
 	tune_control.timestamp = hrt_absolute_time();
 	tune_control_pub.publish(tune_control);
 }
 
-extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int tune_control_main(int argc, char *argv[]) {
 	Tunes tunes;
 	bool string_input = false;
-	const char *tune_string  = nullptr;
+	const char *tune_string = nullptr;
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
@@ -79,64 +74,64 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "f:d:t:m:s:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'f':
-			value = (uint16_t)(strtol(myoptarg, nullptr, 0));
+			case 'f':
+				value = (uint16_t)(strtol(myoptarg, nullptr, 0));
 
-			if (value > 0 && value < 22000) {
-				tune_control.frequency = value;
+				if (value > 0 && value < 22000) {
+					tune_control.frequency = value;
 
-			} else {
+				} else {
+					usage();
+					return 1;
+				}
+
+				break;
+
+			case 'd':
+				tune_control.duration = (uint32_t)(strtol(myoptarg, nullptr, 0));
+				break;
+
+			case 't':
+				value = (uint8_t)(strtol(myoptarg, nullptr, 0));
+
+				if (value > 0 && value < tunes.get_default_tunes_size()) {
+					tune_control.tune_id = value;
+
+				} else {
+					usage();
+					return 1;
+				}
+
+				break;
+
+			case 'm':
+				string_input = true;
+				tune_string = myoptarg;
+
+				// check if string is a valid melody string
+				if (tune_string[0] != 'M') {
+					usage();
+					return 1;
+				}
+
+				break;
+
+			case 's':
+				value = (uint8_t)(strtol(myoptarg, nullptr, 0));
+
+				if (value <= tune_control_s::VOLUME_LEVEL_MAX) {
+					tune_control.volume = value;
+
+				} else {
+					tune_control.volume = tune_control_s::VOLUME_LEVEL_MAX;
+				}
+
+				break;
+
+			default:
 				usage();
-				return 1;
-			}
-
-			break;
-
-		case 'd':
-			tune_control.duration = (uint32_t)(strtol(myoptarg, nullptr, 0));
-			break;
-
-		case 't':
-			value = (uint8_t)(strtol(myoptarg, nullptr, 0));
-
-			if (value > 0 && value < tunes.get_default_tunes_size()) {
-				tune_control.tune_id = value;
-
-			} else {
-				usage();
-				return 1;
-			}
-
-			break;
-
-		case 'm':
-			string_input = true;
-			tune_string  = myoptarg;
-
-			// check if string is a valid melody string
-			if (tune_string[0] != 'M') {
-				usage();
-				return 1;
-			}
-
-			break;
-
-		case 's':
-			value = (uint8_t)(strtol(myoptarg, nullptr, 0));
-
-			if (value <= tune_control_s::VOLUME_LEVEL_MAX) {
-				tune_control.volume = value;
-
-			} else {
-				tune_control.volume = tune_control_s::VOLUME_LEVEL_MAX;
-			}
-
-			break;
-
-		default:
-			usage();
-			return -1;
-			break;
+				return -1;
+				break;
 		}
 	}
 
@@ -199,8 +194,8 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 		}
 
 		while (tunes.get_next_note(frequency, duration, silence, volume) == Tunes::Status::Continue) {
-			PX4_INFO("frequency: %d, duration %d, silence %d, volume %d",
-				 frequency, duration, silence, volume);
+			PX4_INFO("frequency: %d, duration %d, silence %d, volume %d", frequency, duration, silence,
+				 volume);
 
 			px4_usleep(500000);
 			exit_counter++;
@@ -224,7 +219,7 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 		// The stop will not be overwritten
 		px4_usleep(tunes.get_maximum_update_interval());
 
-	}	else {
+	} else {
 		usage();
 		return 1;
 	}
@@ -232,8 +227,7 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 	return 0;
 }
 
-static void usage()
-{
+static void usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -259,7 +253,8 @@ $ tune_control play -t 2
 	PRINT_MODULE_USAGE_PARAM_INT('f', -1, 0, 22, "Frequency of note in Hz (0-22kHz)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('d', -1, 1, 21, "Duration of note in us", true);
 	PRINT_MODULE_USAGE_PARAM_INT('s', 40, 0, 100, "Volume level (loudness) of the note (0-100)", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('m', nullptr, R"(<string> - e.g. "MFT200e8a8a")", "Melody in string form", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('m', nullptr, R"(<string> - e.g. "MFT200e8a8a")", "Melody in string form",
+					true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("libtest", "Test library");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop playback (use for repeated tunes)");
 }

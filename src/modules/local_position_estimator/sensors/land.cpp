@@ -1,17 +1,18 @@
-#include "../BlockLocalPositionEstimator.hpp"
 #include <systemlib/mavlink_log.h>
+
 #include <matrix/math.hpp>
+
+#include "../BlockLocalPositionEstimator.hpp"
 
 extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
 //
-static const uint32_t		REQ_LAND_INIT_COUNT = 1;
-static const uint32_t		LAND_TIMEOUT = 1000000;	// 1.0 s
+static const uint32_t REQ_LAND_INIT_COUNT = 1;
+static const uint32_t LAND_TIMEOUT = 1000000;  // 1.0 s
 
-void BlockLocalPositionEstimator::landInit()
-{
+void BlockLocalPositionEstimator::landInit() {
 	// measure
 	Vector<float, n_y_land> y;
 
@@ -27,20 +28,20 @@ void BlockLocalPositionEstimator::landInit()
 	}
 }
 
-int BlockLocalPositionEstimator::landMeasure(Vector<float, n_y_land> &y)
-{
+int BlockLocalPositionEstimator::landMeasure(Vector<float, n_y_land> &y) {
 	_time_last_land = _timeStamp;
 	y.setZero();
 	_landCount += 1;
 	return OK;
 }
 
-void BlockLocalPositionEstimator::landCorrect()
-{
+void BlockLocalPositionEstimator::landCorrect() {
 	// measure land
 	Vector<float, n_y_land> y;
 
-	if (landMeasure(y) != OK) { return; }
+	if (landMeasure(y) != OK) {
+		return;
+	}
 
 	// measurement matrix
 	Matrix<float, n_y_land, n_x> C;
@@ -48,8 +49,8 @@ void BlockLocalPositionEstimator::landCorrect()
 	// y = -(z - tz)
 	C(Y_land_vx, X_vx) = 1;
 	C(Y_land_vy, X_vy) = 1;
-	C(Y_land_agl, X_z) = -1;// measured altitude, negative down dir.
-	C(Y_land_agl, X_tz) = 1;// measured altitude, negative down dir.
+	C(Y_land_agl, X_z) = -1;  // measured altitude, negative down dir.
+	C(Y_land_agl, X_tz) = 1;  // measured altitude, negative down dir.
 
 	// use parameter covariance
 	SquareMatrix<float, n_y_land> R;
@@ -91,8 +92,7 @@ void BlockLocalPositionEstimator::landCorrect()
 	m_P -= K * C * m_P;
 }
 
-void BlockLocalPositionEstimator::landCheckTimeout()
-{
+void BlockLocalPositionEstimator::landCheckTimeout() {
 	if (_timeStamp - _time_last_land > LAND_TIMEOUT) {
 		if (!(_sensorTimeout & SENSOR_LAND)) {
 			_sensorTimeout |= SENSOR_LAND;

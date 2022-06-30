@@ -45,41 +45,33 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/tasks.h>
-
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
-#include <syslog.h>
-
-#include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-
-#include <stm32.h>
-#include "board_config.h"
-#include <stm32_uart.h>
-
 #include <arch/board/board.h>
-
+#include <debug.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_watchdog.h>
-
-#include "led.h"
-
+#include <errno.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/spi/spi.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stm32.h>
+#include <stm32_uart.h>
+#include <string.h>
+#include <syslog.h>
 #include <systemlib/px4_macros.h>
 
-#include <px4_platform_common/init.h>
-
-#include <px4_platform/gpio.h>
-#include <px4_platform/board_dma_alloc.h>
-# if defined(FLASH_BASED_PARAMS)
-#  include <parameters/flashparams/flashfs.h>
+#include "board_config.h"
+#include "led.h"
+#if defined(FLASH_BASED_PARAMS)
+#include <parameters/flashparams/flashfs.h>
 #endif
 
 /************************************************************************************
@@ -92,11 +84,8 @@
  *
  ************************************************************************************/
 
-__EXPORT void
-stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	watchdog_init();
-
 
 	/* configure LEDs */
 
@@ -111,7 +100,6 @@ stm32_boardinitialize(void)
 	/* configure USB interfaces */
 
 	stm32_usbinitialize();
-
 }
 
 /****************************************************************************
@@ -141,8 +129,7 @@ stm32_boardinitialize(void)
 
 static struct spi_dev_s *spi3;
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	px4_platform_init();
 
 #if defined(SERIAL_HAVE_RXDMA)
@@ -159,9 +146,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "DMA alloc FAILED\n");
 	}
 
-
 	stm32_spiinitialize();
-
 
 	spi3 = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
 
@@ -195,7 +180,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		return -ENODEV;
 	}
 
-#endif // FLASH_BASED_PARAMS
+#endif  // FLASH_BASED_PARAMS
 
 	rgb_led(0, 255, 0, 0);
 

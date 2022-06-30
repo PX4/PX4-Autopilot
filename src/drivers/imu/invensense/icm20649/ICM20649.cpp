@@ -35,27 +35,22 @@
 
 using namespace time_literals;
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-ICM20649::ICM20649(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	I2CSPIDriver(config),
-	_drdy_gpio(config.drdy_gpio),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
-{
+ICM20649::ICM20649(const I2CSPIDriverConfig &config)
+	: SPI(config),
+	  I2CSPIDriver(config),
+	  _drdy_gpio(config.drdy_gpio),
+	  _px4_accel(get_device_id(), config.rotation),
+	  _px4_gyro(get_device_id(), config.rotation) {
 	if (_drdy_gpio != 0) {
-		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
+		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME ": DRDY missed");
 	}
 
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 }
 
-ICM20649::~ICM20649()
-{
+ICM20649::~ICM20649() {
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_fifo_empty_perf);
@@ -64,8 +59,7 @@ ICM20649::~ICM20649()
 	perf_free(_drdy_missed_perf);
 }
 
-int ICM20649::init()
-{
+int ICM20649::init() {
 	int ret = SPI::init();
 
 	if (ret != PX4_OK) {
@@ -76,8 +70,7 @@ int ICM20649::init()
 	return Reset() ? 0 : -1;
 }
 
-bool ICM20649::Reset()
-{
+bool ICM20649::Reset() {
 	_state = STATE::RESET;
 	DataReadyInterruptDisable();
 	ScheduleClear();
@@ -85,14 +78,12 @@ bool ICM20649::Reset()
 	return true;
 }
 
-void ICM20649::exit_and_cleanup()
-{
+void ICM20649::exit_and_cleanup() {
 	DataReadyInterruptDisable();
 	I2CSPIDriverBase::exit_and_cleanup();
 }
 
-void ICM20649::print_status()
-{
+void ICM20649::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	PX4_INFO("FIFO empty interval: %d us (%.1f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
@@ -105,8 +96,7 @@ void ICM20649::print_status()
 	perf_print_counter(_drdy_missed_perf);
 }
 
-int ICM20649::probe()
-{
+int ICM20649::probe() {
 	for (int i = 0; i < 3; i++) {
 		uint8_t whoami = RegisterRead(Register::BANK_0::WHO_AM_I);
 
@@ -120,7 +110,8 @@ int ICM20649::probe()
 			int bank = reg_bank_sel >> 4;
 
 			if (bank >= 1 && bank <= 3) {
-				DEVICE_DEBUG("incorrect register bank for WHO_AM_I REG_BANK_SEL:0x%02x, bank:%d", reg_bank_sel, bank);
+				DEVICE_DEBUG("incorrect register bank for WHO_AM_I REG_BANK_SEL:0x%02x, bank:%d",
+					     reg_bank_sel, bank);
 				// force bank selection and retry
 				SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0, true);
 			}
@@ -130,83 +121,82 @@ int ICM20649::probe()
 	return PX4_ERROR;
 }
 
-void ICM20649::RunImpl()
-{
+void ICM20649::RunImpl() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-	case STATE::RESET:
-		// PWR_MGMT_1: Device Reset
-		RegisterWrite(Register::BANK_0::PWR_MGMT_1, PWR_MGMT_1_BIT::DEVICE_RESET);
-		_reset_timestamp = now;
-		_failure_count = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(100_ms);
-		break;
-
-	case STATE::WAIT_FOR_RESET:
-
-		// The reset value is 0x00 for all registers other than the registers below
-		if ((RegisterRead(Register::BANK_0::WHO_AM_I) == WHOAMI)
-		    && (RegisterRead(Register::BANK_0::PWR_MGMT_1) == 0x41)) {
-
-			// Wakeup and reset
-			RegisterWrite(Register::BANK_0::PWR_MGMT_1, PWR_MGMT_1_BIT::CLKSEL_0);
-			RegisterWrite(Register::BANK_0::USER_CTRL, USER_CTRL_BIT::I2C_IF_DIS | USER_CTRL_BIT::SRAM_RST);
-
-			// if reset succeeded then configure
-			_state = STATE::CONFIGURE;
+		case STATE::RESET:
+			// PWR_MGMT_1: Device Reset
+			RegisterWrite(Register::BANK_0::PWR_MGMT_1, PWR_MGMT_1_BIT::DEVICE_RESET);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
 			ScheduleDelayed(100_ms);
+			break;
 
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
+		case STATE::WAIT_FOR_RESET:
+
+			// The reset value is 0x00 for all registers other than the registers below
+			if ((RegisterRead(Register::BANK_0::WHO_AM_I) == WHOAMI) &&
+			    (RegisterRead(Register::BANK_0::PWR_MGMT_1) == 0x41)) {
+				// Wakeup and reset
+				RegisterWrite(Register::BANK_0::PWR_MGMT_1, PWR_MGMT_1_BIT::CLKSEL_0);
+				RegisterWrite(Register::BANK_0::USER_CTRL,
+					      USER_CTRL_BIT::I2C_IF_DIS | USER_CTRL_BIT::SRAM_RST);
+
+				// if reset succeeded then configure
+				_state = STATE::CONFIGURE;
 				ScheduleDelayed(100_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 100 ms");
-				ScheduleDelayed(100_ms);
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 100 ms");
+					ScheduleDelayed(100_ms);
+				}
 			}
-		}
 
-		break;
+			break;
 
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start reading from FIFO
-			_state = STATE::FIFO_READ;
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				// if configure succeeded then start reading from FIFO
+				_state = STATE::FIFO_READ;
 
-			if (DataReadyInterruptConfigure()) {
-				_data_ready_interrupt_enabled = true;
+				if (DataReadyInterruptConfigure()) {
+					_data_ready_interrupt_enabled = true;
 
-				// backup schedule as a watchdog timeout
-				ScheduleDelayed(100_ms);
+					// backup schedule as a watchdog timeout
+					ScheduleDelayed(100_ms);
+
+				} else {
+					_data_ready_interrupt_enabled = false;
+					ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
+				}
+
+				FIFOReset();
 
 			} else {
-				_data_ready_interrupt_enabled = false;
-				ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
+				ScheduleDelayed(100_ms);
 			}
 
-			FIFOReset();
+			break;
 
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
-
-			} else {
-				PX4_DEBUG("Configure failed, retrying");
-			}
-
-			ScheduleDelayed(100_ms);
-		}
-
-		break;
-
-	case STATE::FIFO_READ: {
+		case STATE::FIFO_READ: {
 			hrt_abstime timestamp_sample = now;
 
 			if (_data_ready_interrupt_enabled) {
@@ -245,8 +235,11 @@ void ICM20649::RunImpl()
 					samples = _fifo_gyro_samples;
 
 					if (_fifo_gyro_samples > extra_samples) {
-						// reschedule to run when a total of _fifo_gyro_samples should be available in the FIFO
-						const uint32_t reschedule_delay_us = (_fifo_gyro_samples - extra_samples) * static_cast<int>(FIFO_SAMPLE_DT);
+						// reschedule to run when a total of _fifo_gyro_samples should be
+						// available in the FIFO
+						const uint32_t reschedule_delay_us =
+							(_fifo_gyro_samples - extra_samples) *
+							static_cast<int>(FIFO_SAMPLE_DT);
 						ScheduleOnInterval(_fifo_empty_interval_us, reschedule_delay_us);
 
 					} else {
@@ -256,7 +249,9 @@ void ICM20649::RunImpl()
 
 				} else if (samples < _fifo_gyro_samples) {
 					// reschedule next cycle to catch the desired number of samples
-					ScheduleOnInterval(_fifo_empty_interval_us, (_fifo_gyro_samples - samples) * static_cast<int>(FIFO_SAMPLE_DT));
+					ScheduleOnInterval(
+						_fifo_empty_interval_us,
+						(_fifo_gyro_samples - samples) * static_cast<int>(FIFO_SAMPLE_DT));
 				}
 
 				if (samples == _fifo_gyro_samples) {
@@ -282,12 +277,13 @@ void ICM20649::RunImpl()
 
 			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
 				// check configuration registers periodically or immediately following any failure
-				if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0])
-				    && RegisterCheck(_register_bank2_cfg[_checked_register_bank2])
-				   ) {
+				if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0]) &&
+				    RegisterCheck(_register_bank2_cfg[_checked_register_bank2])) {
 					_last_config_check_timestamp = now;
-					_checked_register_bank0 = (_checked_register_bank0 + 1) % size_register_bank0_cfg;
-					_checked_register_bank2 = (_checked_register_bank2 + 1) % size_register_bank2_cfg;
+					_checked_register_bank0 =
+						(_checked_register_bank0 + 1) % size_register_bank0_cfg;
+					_checked_register_bank2 =
+						(_checked_register_bank2 + 1) % size_register_bank2_cfg;
 
 				} else {
 					// register check failed, force reset
@@ -308,78 +304,78 @@ void ICM20649::RunImpl()
 	}
 }
 
-void ICM20649::ConfigureAccel()
-{
-	const uint8_t ACCEL_FS_SEL = RegisterRead(Register::BANK_2::ACCEL_CONFIG) & (Bit2 | Bit1); // 2:1 ACCEL_FS_SEL[1:0]
+void ICM20649::ConfigureAccel() {
+	const uint8_t ACCEL_FS_SEL =
+		RegisterRead(Register::BANK_2::ACCEL_CONFIG) & (Bit2 | Bit1);  // 2:1 ACCEL_FS_SEL[1:0]
 
 	switch (ACCEL_FS_SEL) {
-	case ACCEL_FS_SEL_4G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
-		_px4_accel.set_range(4.f * CONSTANTS_ONE_G);
-		break;
+		case ACCEL_FS_SEL_4G:
+			_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
+			_px4_accel.set_range(4.f * CONSTANTS_ONE_G);
+			break;
 
-	case ACCEL_FS_SEL_8G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 4096.f);
-		_px4_accel.set_range(8.f * CONSTANTS_ONE_G);
-		break;
+		case ACCEL_FS_SEL_8G:
+			_px4_accel.set_scale(CONSTANTS_ONE_G / 4096.f);
+			_px4_accel.set_range(8.f * CONSTANTS_ONE_G);
+			break;
 
-	case ACCEL_FS_SEL_16G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
-		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
-		break;
+		case ACCEL_FS_SEL_16G:
+			_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
+			_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
+			break;
 
-	case ACCEL_FS_SEL_30G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 1024.f);
-		_px4_accel.set_range(30.f * CONSTANTS_ONE_G);
-		break;
+		case ACCEL_FS_SEL_30G:
+			_px4_accel.set_scale(CONSTANTS_ONE_G / 1024.f);
+			_px4_accel.set_range(30.f * CONSTANTS_ONE_G);
+			break;
 	}
 }
 
-void ICM20649::ConfigureGyro()
-{
-	const uint8_t GYRO_FS_SEL = RegisterRead(Register::BANK_2::GYRO_CONFIG_1) & (Bit2 | Bit1); // 2:1 GYRO_FS_SEL[1:0]
+void ICM20649::ConfigureGyro() {
+	const uint8_t GYRO_FS_SEL =
+		RegisterRead(Register::BANK_2::GYRO_CONFIG_1) & (Bit2 | Bit1);  // 2:1 GYRO_FS_SEL[1:0]
 
 	float range_dps = 0.f;
 
 	switch (GYRO_FS_SEL) {
-	case GYRO_FS_SEL_500_DPS:
-		range_dps = 500.f;
-		break;
+		case GYRO_FS_SEL_500_DPS:
+			range_dps = 500.f;
+			break;
 
-	case GYRO_FS_SEL_1000_DPS:
-		range_dps = 1000.f;
-		break;
+		case GYRO_FS_SEL_1000_DPS:
+			range_dps = 1000.f;
+			break;
 
-	case GYRO_FS_SEL_2000_DPS:
-		range_dps = 2000.f;
-		break;
+		case GYRO_FS_SEL_2000_DPS:
+			range_dps = 2000.f;
+			break;
 
-	case GYRO_FS_SEL_4000_DPS:
-		range_dps = 4000.f;
-		break;
+		case GYRO_FS_SEL_4000_DPS:
+			range_dps = 4000.f;
+			break;
 	}
 
 	_px4_gyro.set_scale(math::radians(range_dps / 32768.f));
 	_px4_gyro.set_range(math::radians(range_dps));
 }
 
-void ICM20649::ConfigureSampleRate(int sample_rate)
-{
+void ICM20649::ConfigureSampleRate(int sample_rate) {
 	// round down to nearest FIFO sample dt * SAMPLES_PER_TRANSFER
 	const float min_interval = FIFO_SAMPLE_DT * SAMPLES_PER_TRANSFER;
-	_fifo_empty_interval_us = math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
+	_fifo_empty_interval_us =
+		math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
 
-	_fifo_gyro_samples = roundf(math::min((float)_fifo_empty_interval_us / (1e6f / GYRO_RATE), (float)FIFO_MAX_SAMPLES));
+	_fifo_gyro_samples =
+		roundf(math::min((float)_fifo_empty_interval_us / (1e6f / GYRO_RATE), (float)FIFO_MAX_SAMPLES));
 
 	// recompute FIFO empty interval (us) with actual gyro sample limit
 	_fifo_empty_interval_us = _fifo_gyro_samples * (1e6f / GYRO_RATE);
 }
 
-void ICM20649::SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force)
-{
+void ICM20649::SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force) {
 	if (bank != _last_register_bank || force) {
 		// select BANK_0
-		uint8_t cmd_bank_sel[2] {};
+		uint8_t cmd_bank_sel[2]{};
 		cmd_bank_sel[0] = static_cast<uint8_t>(Register::BANK_0::REG_BANK_SEL);
 		cmd_bank_sel[1] = bank;
 		transfer(cmd_bank_sel, cmd_bank_sel, sizeof(cmd_bank_sel));
@@ -388,8 +384,7 @@ void ICM20649::SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force)
 	}
 }
 
-bool ICM20649::Configure()
-{
+bool ICM20649::Configure() {
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_bank0_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
@@ -398,7 +393,6 @@ bool ICM20649::Configure()
 	for (const auto &reg_cfg : _register_bank2_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
 	}
-
 
 	// now check that all are configured
 	bool success = true;
@@ -421,14 +415,12 @@ bool ICM20649::Configure()
 	return success;
 }
 
-int ICM20649::DataReadyInterruptCallback(int irq, void *context, void *arg)
-{
+int ICM20649::DataReadyInterruptCallback(int irq, void *context, void *arg) {
 	static_cast<ICM20649 *>(arg)->DataReady();
 	return 0;
 }
 
-void ICM20649::DataReady()
-{
+void ICM20649::DataReady() {
 	// at least the required number of samples in the FIFO
 	if (++_drdy_count >= _fifo_gyro_samples) {
 		_drdy_timestamp_sample.store(hrt_absolute_time());
@@ -437,8 +429,7 @@ void ICM20649::DataReady()
 	}
 }
 
-bool ICM20649::DataReadyInterruptConfigure()
-{
+bool ICM20649::DataReadyInterruptConfigure() {
 	// TODO: enable data ready interrupt
 	return false;
 #if 0
@@ -452,8 +443,7 @@ bool ICM20649::DataReadyInterruptConfigure()
 #endif
 }
 
-bool ICM20649::DataReadyInterruptDisable()
-{
+bool ICM20649::DataReadyInterruptDisable() {
 	// TODO: enable data ready interrupt
 	return false;
 #if 0
@@ -467,8 +457,7 @@ bool ICM20649::DataReadyInterruptDisable()
 }
 
 template <typename T>
-bool ICM20649::RegisterCheck(const T &reg_cfg)
-{
+bool ICM20649::RegisterCheck(const T &reg_cfg) {
 	bool success = true;
 
 	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
@@ -479,7 +468,8 @@ bool ICM20649::RegisterCheck(const T &reg_cfg)
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.clear_bits);
 		success = false;
 	}
 
@@ -487,9 +477,8 @@ bool ICM20649::RegisterCheck(const T &reg_cfg)
 }
 
 template <typename T>
-uint8_t ICM20649::RegisterRead(T reg)
-{
-	uint8_t cmd[2] {};
+uint8_t ICM20649::RegisterRead(T reg) {
+	uint8_t cmd[2]{};
 	cmd[0] = static_cast<uint8_t>(reg) | DIR_READ;
 	SelectRegisterBank(reg);
 	transfer(cmd, cmd, sizeof(cmd));
@@ -497,16 +486,14 @@ uint8_t ICM20649::RegisterRead(T reg)
 }
 
 template <typename T>
-void ICM20649::RegisterWrite(T reg, uint8_t value)
-{
-	uint8_t cmd[2] { (uint8_t)reg, value };
+void ICM20649::RegisterWrite(T reg, uint8_t value) {
+	uint8_t cmd[2]{(uint8_t)reg, value};
 	SelectRegisterBank(reg);
 	transfer(cmd, cmd, sizeof(cmd));
 }
 
 template <typename T>
-void ICM20649::RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits)
-{
+void ICM20649::RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits) {
 	const uint8_t orig_val = RegisterRead(reg);
 
 	uint8_t val = (orig_val & ~clearbits) | setbits;
@@ -516,12 +503,11 @@ void ICM20649::RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits
 	}
 }
 
-uint16_t ICM20649::FIFOReadCount()
-{
+uint16_t ICM20649::FIFOReadCount() {
 	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
 
 	// read FIFO count
-	uint8_t fifo_count_buf[3] {};
+	uint8_t fifo_count_buf[3]{};
 	fifo_count_buf[0] = static_cast<uint8_t>(Register::BANK_0::FIFO_COUNTH) | DIR_READ;
 
 	if (transfer(fifo_count_buf, fifo_count_buf, sizeof(fifo_count_buf)) != PX4_OK) {
@@ -532,8 +518,7 @@ uint16_t ICM20649::FIFOReadCount()
 	return combine(fifo_count_buf[1], fifo_count_buf[2]);
 }
 
-bool ICM20649::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
-{
+bool ICM20649::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples) {
 	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
 
 	FIFOTransferBuffer buffer{};
@@ -543,7 +528,6 @@ bool ICM20649::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 		perf_count(_bad_transfer_perf);
 		return false;
 	}
-
 
 	const uint16_t fifo_count_bytes = combine(buffer.FIFO_COUNTH, buffer.FIFO_COUNTL);
 
@@ -573,8 +557,7 @@ bool ICM20649::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 	return false;
 }
 
-void ICM20649::FIFOReset()
-{
+void ICM20649::FIFOReset() {
 	perf_count(_fifo_reset_perf);
 
 	// FIFO_RST: reset FIFO
@@ -586,13 +569,11 @@ void ICM20649::FIFOReset()
 	_drdy_timestamp_sample.store(0);
 }
 
-static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
-{
+static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1) {
 	return (memcmp(&f0.ACCEL_XOUT_H, &f1.ACCEL_XOUT_H, 6) == 0);
 }
 
-bool ICM20649::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
-{
+bool ICM20649::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples) {
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = 0;
@@ -644,8 +625,7 @@ bool ICM20649::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 	return !bad_data;
 }
 
-void ICM20649::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
-{
+void ICM20649::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples) {
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
@@ -669,10 +649,9 @@ void ICM20649::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 	_px4_gyro.updateFIFO(gyro);
 }
 
-void ICM20649::UpdateTemperature()
-{
+void ICM20649::UpdateTemperature() {
 	// read current temperature
-	uint8_t temperature_buf[3] {};
+	uint8_t temperature_buf[3]{};
 	temperature_buf[0] = static_cast<uint8_t>(Register::BANK_0::TEMP_OUT_H) | DIR_READ;
 	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
 

@@ -33,31 +33,27 @@
 
 #ifdef __PX4_NUTTX
 
-#include <sys/ioctl.h>
-#include <lib/mathlib/mathlib.h>
-#include <parameters/param.h>
-
-
-#include "drivers/drv_pwm_trigger.h"
 #include "pwm.h"
 
-CameraInterfacePWM::CameraInterfacePWM():
-	CameraInterface()
-{
+#include <lib/mathlib/mathlib.h>
+#include <parameters/param.h>
+#include <sys/ioctl.h>
+
+#include "drivers/drv_pwm_trigger.h"
+
+CameraInterfacePWM::CameraInterfacePWM() : CameraInterface() {
 	param_get(param_find("TRIG_PWM_SHOOT"), &_pwm_camera_shoot);
 	param_get(param_find("TRIG_PWM_NEUTRAL"), &_pwm_camera_neutral);
 	get_pins();
 	setup();
 }
 
-CameraInterfacePWM::~CameraInterfacePWM()
-{
+CameraInterfacePWM::~CameraInterfacePWM() {
 	// Deinitialise trigger channels
 	up_pwm_trigger_deinit();
 }
 
-void CameraInterfacePWM::setup()
-{
+void CameraInterfacePWM::setup() {
 	// Precompute the bitmask for enabled channels
 	uint32_t pin_bitmask = 0;
 
@@ -88,25 +84,23 @@ void CameraInterfacePWM::setup()
 	// Set neutral pulsewidths
 	for (unsigned i = 0; i < arraySize(_pins); i++) {
 		if (_pins[i] >= 0) {
-			up_pwm_trigger_set(_pins[i], math::constrain(_pwm_camera_neutral, (int32_t) 0, (int32_t) 2000));
+			up_pwm_trigger_set(_pins[i], math::constrain(_pwm_camera_neutral, (int32_t)0, (int32_t)2000));
 		}
 	}
-
 }
 
-void CameraInterfacePWM::trigger(bool trigger_on_true)
-{
+void CameraInterfacePWM::trigger(bool trigger_on_true) {
 	for (unsigned i = 0; i < arraySize(_pins); i++) {
 		if (_pins[i] >= 0) {
 			// Set all valid pins to shoot or neutral levels
-			up_pwm_trigger_set(_pins[i], math::constrain(trigger_on_true ? _pwm_camera_shoot : _pwm_camera_neutral, (int32_t) 0,
-					   (int32_t) 2000));
+			up_pwm_trigger_set(_pins[i],
+					   math::constrain(trigger_on_true ? _pwm_camera_shoot : _pwm_camera_neutral,
+							   (int32_t)0, (int32_t)2000));
 		}
 	}
 }
 
-void CameraInterfacePWM::info()
-{
+void CameraInterfacePWM::info() {
 	PX4_INFO_RAW("PWM trigger mode, pins enabled: ");
 
 	for (unsigned i = 0; i < arraySize(_pins); ++i) {

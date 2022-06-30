@@ -37,27 +37,25 @@
  * Implementation of IMXRT based Board RESET API
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <errno.h>
-#include <nuttx/board.h>
 #include <arm_arch.h>
+#include <errno.h>
 #include <hardware/imxrt_snvs.h>
+#include <nuttx/board.h>
+#include <px4_platform_common/px4_config.h>
 
-#define PX4_IMXRT_RTC_REBOOT_REG 3 // Must be common with bootloader and:
+#define PX4_IMXRT_RTC_REBOOT_REG 3  // Must be common with bootloader and:
 
 #if CONFIG_IMXRT_RTC_MAGIC_REG == PX4_IMXRT_RTC_REBOOT_REG
-#  error CONFIG_IMXRT_RTC_MAGIC_REG can nt have the save value as PX4_IMXRT_RTC_REBOOT_REG
+#error CONFIG_IMXRT_RTC_MAGIC_REG can nt have the save value as PX4_IMXRT_RTC_REBOOT_REG
 #endif
 
-static int board_reset_enter_bootloader()
-{
+static int board_reset_enter_bootloader() {
 	uint32_t regvalue = 0xb007b007;
 	putreg32(regvalue, IMXRT_SNVS_LPGPR(PX4_IMXRT_RTC_REBOOT_REG));
 	return OK;
 }
 
-int board_reset(int status)
-{
+int board_reset(int status) {
 	if (status == 1) {
 		board_reset_enter_bootloader();
 	}

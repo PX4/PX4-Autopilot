@@ -31,15 +31,16 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
 #include <drivers/drv_sensor.h>
 #include <nuttx/spi/spi.h>
+#include <px4_arch/spi_hw_description.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortA, GPIO::Pin10}),
-		initSPIDevice(DRV_MAG_DEVTYPE_RM3100, SPI::CS{GPIO::PortA, GPIO::Pin4}),
-	}),
+	initSPIBus(SPI::Bus::SPI1,
+		   {
+			   initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortA, GPIO::Pin10}),
+			   initSPIDevice(DRV_MAG_DEVTYPE_RM3100, SPI::CS{GPIO::PortA, GPIO::Pin4}),
+		   }),
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses);

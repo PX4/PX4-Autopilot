@@ -45,39 +45,33 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
+#include <arch/board/board.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <kinetis.h>
+#include <kinetis_lpuart.h>
+#include <kinetis_uart.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/board_dma_alloc.h>
 #include <px4_platform/gpio.h>
-
+#include <px4_platform_common/init.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <debug.h>
-#include <errno.h>
 #include <syslog.h>
-
-#include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-
-#include <kinetis.h>
-#include <kinetis_uart.h>
-#include <kinetis_lpuart.h>
-#include "board_config.h"
-
-#include "arm_arch.h"
-#include <arch/board/board.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
-
 #include <systemlib/px4_macros.h>
 
-#include <px4_arch/io_timer.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/board_dma_alloc.h>
+#include "arm_arch.h"
+#include "board_config.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -114,8 +108,7 @@ __END_DECLS
  *
  ************************************************************************************/
 
-void board_on_reset(int status)
-{
+void board_on_reset(int status) {
 	for (int i = 0; i < 6; ++i) {
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
 	}
@@ -137,10 +130,7 @@ void board_on_reset(int status)
  *
  ************************************************************************************/
 
-int board_read_VBUS_state(void)
-{
-	return BOARD_ADC_USB_CONNECTED ? 0 : 1;
-}
+int board_read_VBUS_state(void) { return BOARD_ADC_USB_CONNECTED ? 0 : 1; }
 
 /************************************************************************************
  * Name: board_peripheral_reset
@@ -148,8 +138,7 @@ int board_read_VBUS_state(void)
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
+__EXPORT void board_peripheral_reset(int ms) {
 	/* set the peripheral rails off */
 
 	/* wait for the peripheral rail to reach GND */
@@ -171,9 +160,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *
  ************************************************************************************/
 
-__EXPORT void
-kinetis_boardinitialize(void)
-{
+__EXPORT void kinetis_boardinitialize(void) {
 	board_on_reset(-1); /* Reset PWM first thing */
 
 	/* configure LEDs */
@@ -199,8 +186,7 @@ kinetis_boardinitialize(void)
  *
  ****************************************************************************/
 
-void kinetis_lpserial_dma_poll_all(void)
-{
+void kinetis_lpserial_dma_poll_all(void) {
 #if defined(LPSERIAL_HAVE_DMA)
 	kinetis_lpserial_dma_poll();
 #endif
@@ -234,9 +220,7 @@ void kinetis_lpserial_dma_poll_all(void)
  *
  ****************************************************************************/
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
-
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	VDD_3V3_SD_CARD_EN(true);
 	VDD_3V3_SENSORS_EN(true);
 
@@ -291,17 +275,17 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #ifdef CONFIG_NETDEV_LATEINIT
 
-# ifdef CONFIG_KINETIS_ENET
+#ifdef CONFIG_KINETIS_ENET
 	kinetis_netinitialize(0);
-# endif
+#endif
 
-# ifdef CONFIG_KINETIS_FLEXCAN0
+#ifdef CONFIG_KINETIS_FLEXCAN0
 	kinetis_caninitialize(0);
-# endif
+#endif
 
-# ifdef CONFIG_KINETIS_FLEXCAN1
+#ifdef CONFIG_KINETIS_FLEXCAN1
 	kinetis_caninitialize(1);
-# endif
+#endif
 
 #endif
 

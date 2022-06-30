@@ -13,8 +13,7 @@
 /*
  * Documented in the header file.
  */
-void float2Buf(uint8_t *bufferPos, float value)
-{
+void float2Buf(uint8_t *bufferPos, float value) {
 	const uint16_t FLOAT_SIZE = 4;
 
 	union {

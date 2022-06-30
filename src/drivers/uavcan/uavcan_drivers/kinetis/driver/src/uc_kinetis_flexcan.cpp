@@ -7,46 +7,42 @@
 #include <cstring>
 #include <uavcan_kinetis/can.hpp>
 #include <uavcan_kinetis/clock.hpp>
+
 #include "internal.hpp"
 
 #if UAVCAN_KINETIS_NUTTX
-# include <nuttx/arch.h>
-# include <nuttx/irq.h>
-# include <arch/board/board.h>
+#include <arch/board/board.h>
+#include <nuttx/arch.h>
+#include <nuttx/irq.h>
 #else
-# error "Unknown OS"
+#error "Unknown OS"
 #endif
 
-
-namespace uavcan_kinetis
-{
+namespace uavcan_kinetis {
 extern "C" {
-	static int can0_irq(const int irq, void *, void *args);
+static int can0_irq(const int irq, void *, void *args);
 #if UAVCAN_KINETIS_NUM_IFACES > 1
-	static int can1_irq(const int irq, void *, void *args);
+static int can1_irq(const int irq, void *, void *args);
 #endif
 }
-namespace flexcan
-{
+namespace flexcan {
 const uavcan::uint32_t OSCERCLK = BOARD_EXTAL_FREQ;
-const uavcan::uint32_t busclck  = BOARD_BUS_FREQ;
-const uavcan::uint8_t CLOCKSEL  = 0;     // Select OSCERCLK
-const uavcan::uint32_t canclk   = CLOCKSEL ? busclck : OSCERCLK;     // Is Clock
-const uavcan::uint8_t useFIFO = 1;     // Fifo is enabled
-const uavcan::uint32_t numberFIFOFilters = flexcan::CTRL2_RFFN_16MB;     // 16 Rx FIFO filters
-}
-namespace
-{
+const uavcan::uint32_t busclck = BOARD_BUS_FREQ;
+const uavcan::uint8_t CLOCKSEL = 0;                                   // Select OSCERCLK
+const uavcan::uint32_t canclk = CLOCKSEL ? busclck : OSCERCLK;        // Is Clock
+const uavcan::uint8_t useFIFO = 1;                                    // Fifo is enabled
+const uavcan::uint32_t numberFIFOFilters = flexcan::CTRL2_RFFN_16MB;  // 16 Rx FIFO filters
+}  // namespace flexcan
+namespace {
 
-CanIface *ifaces[UAVCAN_KINETIS_NUM_IFACES] = {
-	UAVCAN_NULLPTR
+CanIface *ifaces[UAVCAN_KINETIS_NUM_IFACES] = {UAVCAN_NULLPTR
 #if UAVCAN_KINETIS_NUM_IFACES > 1
-	, UAVCAN_NULLPTR
+					       ,
+					       UAVCAN_NULLPTR
 #endif
 };
 
-inline void handleTxInterrupt(CanIface *can, uavcan::uint32_t iflags1)
-{
+inline void handleTxInterrupt(CanIface *can, uavcan::uint32_t iflags1) {
 	UAVCAN_ASSERT(iface_index < UAVCAN_KINETIS_NUM_IFACES);
 	uavcan::uint64_t utc_usec = clock::getUtcUSecFromCanInterrupt();
 
@@ -57,8 +53,7 @@ inline void handleTxInterrupt(CanIface *can, uavcan::uint32_t iflags1)
 	can->handleTxInterrupt(iflags1, utc_usec);
 }
 
-inline void handleRxInterrupt(CanIface *can, uavcan::uint32_t iflags1)
-{
+inline void handleRxInterrupt(CanIface *can, uavcan::uint32_t iflags1) {
 	uavcan::uint64_t utc_usec = clock::getUtcUSecFromCanInterrupt();
 
 	if (utc_usec > 0) {
@@ -68,23 +63,21 @@ inline void handleRxInterrupt(CanIface *can, uavcan::uint32_t iflags1)
 	can->handleRxInterrupt(iflags1, utc_usec);
 }
 
-} // namespace
+}  // namespace
 
 /*
  * CanIface::RxQueue
  */
-void CanIface::RxQueue::registerOverflow()
-{
+void CanIface::RxQueue::registerOverflow() {
 	if (overflow_cnt_ < 0xFFFFFFFF) {
 		overflow_cnt_++;
 	}
 }
 
-void CanIface::RxQueue::push(const uavcan::CanFrame &frame, const uint64_t &utc_usec, uavcan::CanIOFlags flags)
-{
-	buf_[in_].frame    = frame;
+void CanIface::RxQueue::push(const uavcan::CanFrame &frame, const uint64_t &utc_usec, uavcan::CanIOFlags flags) {
+	buf_[in_].frame = frame;
 	buf_[in_].utc_usec = utc_usec;
-	buf_[in_].flags    = flags;
+	buf_[in_].flags = flags;
 	in_++;
 
 	if (in_ >= capacity_) {
@@ -104,12 +97,12 @@ void CanIface::RxQueue::push(const uavcan::CanFrame &frame, const uint64_t &utc_
 	}
 }
 
-void CanIface::RxQueue::pop(uavcan::CanFrame &out_frame, uavcan::uint64_t &out_utc_usec, uavcan::CanIOFlags &out_flags)
-{
+void CanIface::RxQueue::pop(uavcan::CanFrame &out_frame, uavcan::uint64_t &out_utc_usec,
+			    uavcan::CanIOFlags &out_flags) {
 	if (len_ > 0) {
-		out_frame    = buf_[out_].frame;
+		out_frame = buf_[out_].frame;
 		out_utc_usec = buf_[out_].utc_usec;
-		out_flags    = buf_[out_].flags;
+		out_flags = buf_[out_].flags;
 		out_++;
 
 		if (out_ >= capacity_) {
@@ -123,8 +116,7 @@ void CanIface::RxQueue::pop(uavcan::CanFrame &out_frame, uavcan::uint64_t &out_u
 	}
 }
 
-void CanIface::RxQueue::reset()
-{
+void CanIface::RxQueue::reset() {
 	in_ = 0;
 	out_ = 0;
 	len_ = 0;
@@ -135,8 +127,7 @@ void CanIface::RxQueue::reset()
  * CanIface
  */
 
-int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out_timings)
-{
+int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out_timings) {
 	if (target_bitrate < 1) {
 		return -ErrInvalidBitRate;
 	}
@@ -176,7 +167,7 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 
 	for (uavcan::uint32_t prescaler = 1; prescaler < 256; prescaler++) {
 		if (prescaler > nbt_prescaler) {
-			return -ErrInvalidBitRate;             // No solution
+			return -ErrInvalidBitRate;  // No solution
 		}
 
 		if ((0 == nbt_prescaler % prescaler) && (nbt_prescaler / prescaler) < max_quanta_per_bit) {
@@ -191,22 +182,21 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 
 	out_timings.propseg = 5;
 
-
 	/* Ideal sampling point  = 87.5% given by (SYNC_SEG + PROP_SEG + PHASE_SEG1) / (PHASE_SEG2) */
 
 	uavcan::uint32_t sp = (7 * NBT) / 8;
 
 	out_timings.pseg1 = sp - 1 - out_timings.propseg;
 	out_timings.pseg2 = NBT - (1 + out_timings.pseg1 + out_timings.propseg);
-	out_timings.rjw = uavcan::min((uavcan::uint8_t) 4, out_timings.pseg2);
+	out_timings.rjw = uavcan::min((uavcan::uint8_t)4, out_timings.pseg2);
 
-	return ((out_timings.pseg1 <= 8) && (out_timings.pseg2 <= 8) && (out_timings.propseg <= 8)) ?  0 :
-	       -ErrInvalidBitRate;
+	return ((out_timings.pseg1 <= 8) && (out_timings.pseg2 <= 8) && (out_timings.propseg <= 8))
+		       ? 0
+		       : -ErrInvalidBitRate;
 }
 
 uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicTime tx_deadline,
-			       uavcan::CanIOFlags flags)
-{
+			       uavcan::CanIOFlags flags) {
 	if (frame.isErrorFrame() || frame.dlc > 8) {
 		return -ErrUnsupportedFrame;
 	}
@@ -252,10 +242,10 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	}
 
 	if (mbi == NumTxMesgBuffers) {
-		return 0;       // No transmission for you!
+		return 0;  // No transmission for you!
 	}
 
-	peak_tx_mailbox_index_ = uavcan::max(peak_tx_mailbox_index_, (uavcan::uint8_t) mbi);   // Statistics
+	peak_tx_mailbox_index_ = uavcan::max(peak_tx_mailbox_index_, (uavcan::uint8_t)mbi);  // Statistics
 
 	flexcan::MBcsType cs;
 	cs.code = flexcan::TxMbDataOrRemote;
@@ -286,21 +276,20 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	 * Registering the pending transmission so we can track its deadline and loopback it as needed
 	 */
 	TxItem &txi = pending_tx_[mbi];
-	txi.deadline       = tx_deadline;
-	txi.frame          = frame;
-	txi.loopback       = (flags & uavcan::CanIOFlagLoopback) != 0;
+	txi.deadline = tx_deadline;
+	txi.frame = frame;
+	txi.loopback = (flags & uavcan::CanIOFlagLoopback) != 0;
 	txi.abort_on_error = (flags & uavcan::CanIOFlagAbortOnError) != 0;
-	txi.pending        = TxItem::busy;
+	txi.pending = TxItem::busy;
 
-	mb.CS = cs; // Go.
+	mb.CS = cs;  // Go.
 	can_->IMASK1 |= mb_bit;
 	return 1;
 }
 
 uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::MonotonicTime &out_ts_monotonic,
-				  uavcan::UtcTime &out_ts_utc, uavcan::CanIOFlags &out_flags)
-{
-	out_ts_monotonic = clock::getMonotonic();     // High precision is not required for monotonic timestamps
+				  uavcan::UtcTime &out_ts_utc, uavcan::CanIOFlags &out_flags) {
+	out_ts_monotonic = clock::getMonotonic();  // High precision is not required for monotonic timestamps
 	uavcan::uint64_t utc_usec = 0;
 	{
 		CriticalSectionLocker lock;
@@ -316,8 +305,7 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 }
 
 uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter_configs,
-		uavcan::uint16_t num_configs)
-{
+					   uavcan::uint16_t num_configs) {
 	if (num_configs <= NumFilters) {
 		CriticalSectionLocker lock;
 		setFreeze(true);
@@ -326,19 +314,18 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter
 			return -ErrMcrFRZACKAckNotSet;
 		}
 
-		volatile flexcan::FilterType *filterBase = reinterpret_cast<volatile
-				flexcan::FilterType *>(&can_->MB[flexcan::
-						       FirstFilter].mb);
+		volatile flexcan::FilterType *filterBase =
+			reinterpret_cast<volatile flexcan::FilterType *>(&can_->MB[flexcan::FirstFilter].mb);
 
 		if (num_configs == 0) {
 			// No filters except all
 			for (uint8_t i = 0; i < NumFilters; i++) {
 				volatile flexcan::FilterType &filter = filterBase[i];
-				filter.w = 0; // All Do not care
-				can_->RXIMR[i].w  = 0;// All Do not care
+				filter.w = 0;          // All Do not care
+				can_->RXIMR[i].w = 0;  // All Do not care
 			}
 
-			can_->RXFGMASK = 0; // All Do not care
+			can_->RXFGMASK = 0;  // All Do not care
 
 		} else {
 			for (uint8_t i = 0; i < NumFilters; i++) {
@@ -346,10 +333,10 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter
 				volatile flexcan::FilterType &mask = can_->RXIMR[i];
 
 				if (i < num_configs) {
-
 					const uavcan::CanFilterConfig *const cfg = filter_configs + i;
 
-					if ((cfg->id & uavcan::CanFrame::FlagEFF) || !(cfg->mask & uavcan::CanFrame::FlagEFF)) {
+					if ((cfg->id & uavcan::CanFrame::FlagEFF) ||
+					    !(cfg->mask & uavcan::CanFrame::FlagEFF)) {
 						filter.ide = 1;
 						filter.ext = cfg->id & uavcan::CanFrame::MaskExtID;
 						mask.ext = cfg->mask & uavcan::CanFrame::MaskExtID;
@@ -362,8 +349,8 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter
 
 					filter.rtr = cfg->id & uavcan::CanFrame::FlagRTR ? 1 : 0;
 
-					mask.rtr = cfg->mask & uavcan::CanFrame::FlagRTR ?  1 : 0;
-					mask.ide = cfg->mask & uavcan::CanFrame::FlagEFF ?  1 : 0;
+					mask.rtr = cfg->mask & uavcan::CanFrame::FlagRTR ? 1 : 0;
+					mask.ide = cfg->mask & uavcan::CanFrame::FlagEFF ? 1 : 0;
 
 				} else {
 					/* We can not really disable, with out effecting the memory map
@@ -382,8 +369,7 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter
 	return -ErrFilterNumConfigs;
 }
 
-bool CanIface::waitMCRChange(uavcan::uint32_t mask, bool target_state)
-{
+bool CanIface::waitMCRChange(uavcan::uint32_t mask, bool target_state) {
 	const unsigned Timeout = 1000;
 
 	for (unsigned wait_ack = 0; wait_ack < Timeout; wait_ack++) {
@@ -399,24 +385,18 @@ bool CanIface::waitMCRChange(uavcan::uint32_t mask, bool target_state)
 	return false;
 }
 
-void CanIface::setMCR(uavcan::uint32_t mask, bool target_state)
-{
+void CanIface::setMCR(uavcan::uint32_t mask, bool target_state) {
 	if (target_state) {
 		can_->MCR |= mask;
 
 	} else {
 		can_->MCR &= ~mask;
 	}
-
 }
 
-bool CanIface::waitFreezeAckChange(bool target_state)
-{
-	return waitMCRChange(flexcan::MCR_FRZACK, target_state);
-}
+bool CanIface::waitFreezeAckChange(bool target_state) { return waitMCRChange(flexcan::MCR_FRZACK, target_state); }
 
-void CanIface::setFreeze(bool freeze_true)
-{
+void CanIface::setFreeze(bool freeze_true) {
 	{
 		CriticalSectionLocker lock;
 
@@ -427,14 +407,11 @@ void CanIface::setFreeze(bool freeze_true)
 		} else {
 			can_->MCR &= ~flexcan::MCR_HALT;
 			can_->MCR &= ~flexcan::MCR_FRZ;
-
 		}
 	}
 }
 
-
-bool CanIface::setEnable(bool enable_true)
-{
+bool CanIface::setEnable(bool enable_true) {
 	setMCR(flexcan::MCR_MDIS, !enable_true);
 	return waitMCRChange(flexcan::MCR_LPMACK, true);
 }
@@ -447,11 +424,11 @@ uavcan::int16_t CanIface::doReset(Timings timings)
 		return -ErrMcrSOFTRSTNotCleared;
 	}
 
-	uavcan::uint8_t tasd = 25 - (flexcan::canclk * (flexcan::HWMaxMB + 3  -
-				     (flexcan::numberFIFOFilters * 8) -
-				     (flexcan::useFIFO * flexcan::numberFIFOFilters * 2)) * 2) / \
-			       (flexcan::busclck * (1 + timings.pseg1 + timings.pseg2 + timings.propseg)
-				* timings.prescaler);
+	uavcan::uint8_t tasd = 25 - (flexcan::canclk *
+				     (flexcan::HWMaxMB + 3 - (flexcan::numberFIFOFilters * 8) -
+				      (flexcan::useFIFO * flexcan::numberFIFOFilters * 2)) *
+				     2) / (flexcan::busclck * (1 + timings.pseg1 + timings.pseg2 + timings.propseg) *
+					   timings.prescaler);
 
 	setMCR(flexcan::MCR_SUPV, false);
 
@@ -462,13 +439,12 @@ uavcan::int16_t CanIface::doReset(Timings timings)
 		can_->MB[i].mb.data.h = 0x0;
 	}
 
-	setMCR((flexcan::useFIFO ? flexcan::MCR_RFEN : 0) | flexcan::MCR_SLFWAK | flexcan::MCR_WRNEN | flexcan::MCR_WAKSRC
-	       | flexcan::MCR_SRXDIS | flexcan::MCR_IRMQ | flexcan::MCR_AEN |
-	       (((flexcan::HWMaxMB - 1) << flexcan::MCR_MAXMB_SHIFT) & flexcan::MCR_MAXMB_MASK), true);
-	can_->CTRL2 = flexcan::numberFIFOFilters |
-		      ((tasd << flexcan::CTRL2_TASD_SHIFT) & flexcan::CTRL2_TASD_MASK) |
-		      flexcan::CTRL2_RRS |
-		      flexcan::CTRL2_EACEN;
+	setMCR((flexcan::useFIFO ? flexcan::MCR_RFEN : 0) | flexcan::MCR_SLFWAK | flexcan::MCR_WRNEN |
+		       flexcan::MCR_WAKSRC | flexcan::MCR_SRXDIS | flexcan::MCR_IRMQ | flexcan::MCR_AEN |
+		       (((flexcan::HWMaxMB - 1) << flexcan::MCR_MAXMB_SHIFT) & flexcan::MCR_MAXMB_MASK),
+	       true);
+	can_->CTRL2 = flexcan::numberFIFOFilters | ((tasd << flexcan::CTRL2_TASD_SHIFT) & flexcan::CTRL2_TASD_MASK) |
+		      flexcan::CTRL2_RRS | flexcan::CTRL2_EACEN;
 
 	for (int i = 0; i < flexcan::HWMaxMB; i++) {
 		can_->RXIMR[i].w = 0x0;
@@ -481,9 +457,7 @@ uavcan::int16_t CanIface::doReset(Timings timings)
 	return 0;
 }
 
-int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
-{
-
+int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode) {
 	/* Set the module disabled */
 
 	if (!setEnable(false)) {
@@ -525,14 +499,12 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 		return timings_res;
 	}
 
-	UAVCAN_KINETIS_LOG("Timings: prescaler=%u rjw=%u propseg=%u pseg1=%u pseg2=%u",
-			   unsigned(timings.prescaler), unsigned(timings.rjw),
-			   unsigned(timings.propseg), unsigned(timings.pseg1),
+	UAVCAN_KINETIS_LOG("Timings: prescaler=%u rjw=%u propseg=%u pseg1=%u pseg2=%u", unsigned(timings.prescaler),
+			   unsigned(timings.rjw), unsigned(timings.propseg), unsigned(timings.pseg1),
 			   unsigned(timings.pseg2));
 	/*
 	 * Hardware initialization from reset state
 	 */
-
 
 	uavcan::int16_t rv = doReset(timings);
 
@@ -556,19 +528,18 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	/*
 	 * Default filter configuration
 	 */
-	volatile flexcan::FilterType *filterBase = reinterpret_cast<volatile
-			flexcan::FilterType *>(&can_->MB[flexcan::FirstFilter].
-					       mb);
+	volatile flexcan::FilterType *filterBase =
+		reinterpret_cast<volatile flexcan::FilterType *>(&can_->MB[flexcan::FirstFilter].mb);
 
 	for (uavcan::uint32_t i = 0; i < flexcan::NumHWFilters; i++) {
 		volatile flexcan::FilterType &filter = filterBase[i];
-		filter.w = 0; // All bits do not care
+		filter.w = 0;  // All bits do not care
 	}
 
-	can_->RXFGMASK = 0; // All bits do not care
+	can_->RXFGMASK = 0;  // All bits do not care
 
 	for (uavcan::uint32_t mb = 0; mb < flexcan::HWMaxMB; mb++) {
-		can_->RXIMR[mb].w = 0; // All bits do not care
+		can_->RXIMR[mb].w = 0;  // All bits do not care
 	}
 
 	can_->IFLAG1 = FIFO_IFLAG1 | flexcan::TXMBMask;
@@ -578,8 +549,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	return waitFreezeAckChange(false) ? 0 : -ErrMcrFRZACKAckNotCleared;
 }
 
-void CanIface::handleTxMailboxInterrupt(uavcan::uint8_t mailbox_index, bool txok, const uavcan::uint64_t utc_usec)
-{
+void CanIface::handleTxMailboxInterrupt(uavcan::uint8_t mailbox_index, bool txok, const uavcan::uint64_t utc_usec) {
 	UAVCAN_ASSERT(mailbox_index < NumTxMesgBuffers);
 
 	had_activity_ = had_activity_ || txok;
@@ -593,9 +563,7 @@ void CanIface::handleTxMailboxInterrupt(uavcan::uint8_t mailbox_index, bool txok
 	txi.pending = TxItem::free;
 }
 
-void CanIface::handleTxInterrupt(uavcan::uint32_t tx_iflags, const uavcan::uint64_t utc_usec)
-{
-
+void CanIface::handleTxInterrupt(uavcan::uint32_t tx_iflags, const uavcan::uint64_t utc_usec) {
 	/* First Process aborts */
 
 	uavcan::uint32_t aborts = pending_aborts_ & tx_iflags;
@@ -617,7 +585,6 @@ void CanIface::handleTxInterrupt(uavcan::uint32_t tx_iflags, const uavcan::uint6
 
 		tx_iflags &= ~aborts;
 		pending_aborts_ &= ~aborts;
-
 	}
 
 	/* Now Process TX completions */
@@ -628,7 +595,8 @@ void CanIface::handleTxInterrupt(uavcan::uint32_t tx_iflags, const uavcan::uint6
 		if (tx_iflags & mbBit) {
 			can_->IFLAG1 = mbBit;
 			tx_iflags &= ~mbBit;
-			const bool txok = can_->MB[flexcan::NumMBinFiFoAndFilters + mbi].mb.CS.code != flexcan::TxMbAbort;
+			const bool txok =
+				can_->MB[flexcan::NumMBinFiFoAndFilters + mbi].mb.CS.code != flexcan::TxMbAbort;
 			handleTxMailboxInterrupt(mbi, txok, utc_usec);
 		}
 
@@ -638,11 +606,9 @@ void CanIface::handleTxInterrupt(uavcan::uint32_t tx_iflags, const uavcan::uint6
 	update_event_.signalFromInterrupt();
 
 	pollErrorFlagsFromISR();
-
 }
 
-void CanIface::handleRxInterrupt(uavcan::uint32_t rx_iflags, uavcan::uint64_t utc_usec)
-{
+void CanIface::handleRxInterrupt(uavcan::uint32_t rx_iflags, uavcan::uint64_t utc_usec) {
 	UAVCAN_ASSERT(fifo_index < 2);
 
 	uavcan::CanFrame frame;
@@ -703,17 +669,15 @@ void CanIface::handleRxInterrupt(uavcan::uint32_t rx_iflags, uavcan::uint64_t ut
 		rx_queue_.push(frame, utc_usec, 0);
 		had_activity_ = true;
 		update_event_.signalFromInterrupt();
-
 	}
 
 	pollErrorFlagsFromISR();
 }
 
-void CanIface::pollErrorFlagsFromISR()
-{
-	volatile uavcan::uint32_t esr1 = can_->ESR1 & (flexcan::ESR1_STFERR | flexcan::ESR1_FRMERR |
-					 flexcan::ESR1_CRCERR | flexcan::ESR1_ACKERR |
-					 flexcan::ESR1_BIT0ERR | flexcan::ESR1_BIT1ERR);
+void CanIface::pollErrorFlagsFromISR() {
+	volatile uavcan::uint32_t esr1 =
+		can_->ESR1 & (flexcan::ESR1_STFERR | flexcan::ESR1_FRMERR | flexcan::ESR1_CRCERR |
+			      flexcan::ESR1_ACKERR | flexcan::ESR1_BIT0ERR | flexcan::ESR1_BIT1ERR);
 
 	if (esr1 != 0) {
 		can_->ESR1 = esr1;
@@ -730,18 +694,17 @@ void CanIface::pollErrorFlagsFromISR()
 			if (txi.pending == TxItem::busy && txi.abort_on_error) {
 				txi.pending = TxItem::abort;
 				can_->IFLAG1 = iflag1;
-				pending_aborts |= iflag1;;
+				pending_aborts |= iflag1;
+				;
 				can_->MB[mbi].mb.CS.code = flexcan::TxMbAbort;
 			}
 		}
 
 		pending_aborts_ = pending_aborts;
 	}
-
 }
 
-void CanIface::discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time)
-{
+void CanIface::discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time) {
 	CriticalSectionLocker lock;
 
 	for (int mbi = 0; mbi < NumTxMesgBuffers; mbi++) {
@@ -755,8 +718,7 @@ void CanIface::discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time)
 	}
 }
 
-bool CanIface::canAcceptNewTxFrame(const uavcan::CanFrame &frame) const
-{
+bool CanIface::canAcceptNewTxFrame(const uavcan::CanFrame &frame) const {
 	/*
 	 * We can accept more frames only if the following conditions are satisfied:
 	 *  - There is at least one TX mailbox free (obvious enough);
@@ -767,7 +729,6 @@ bool CanIface::canAcceptNewTxFrame(const uavcan::CanFrame &frame) const
 			// No Free
 			return false;
 		}
-
 	}
 
 	/*
@@ -777,33 +738,30 @@ bool CanIface::canAcceptNewTxFrame(const uavcan::CanFrame &frame) const
 
 	for (int mbi = 0; mbi < NumTxMesgBuffers; mbi++) {
 		if (pending_tx_[mbi].pending == TxItem::busy && !frame.priorityHigherThan(pending_tx_[mbi].frame)) {
-			return false;       // There's a mailbox whose priority is higher or equal the priority of the new frame.
+			return false;  // There's a mailbox whose priority is higher or equal the priority of the new
+				       // frame.
 		}
 	}
 
-	return true;                // This new frame will be added to a free TX mailbox in the next @ref send().
+	return true;  // This new frame will be added to a free TX mailbox in the next @ref send().
 }
 
-bool CanIface::isRxBufferEmpty() const
-{
+bool CanIface::isRxBufferEmpty() const {
 	CriticalSectionLocker lock;
 	return rx_queue_.getLength() == 0;
 }
 
-uavcan::uint64_t CanIface::getErrorCount() const
-{
+uavcan::uint64_t CanIface::getErrorCount() const {
 	CriticalSectionLocker lock;
 	return error_cnt_ + rx_queue_.getOverflowCount();
 }
 
-unsigned CanIface::getRxQueueLength() const
-{
+unsigned CanIface::getRxQueueLength() const {
 	CriticalSectionLocker lock;
 	return rx_queue_.getLength();
 }
 
-bool CanIface::hadActivity()
-{
+bool CanIface::hadActivity() {
 	CriticalSectionLocker lock;
 	const bool ret = had_activity_;
 	had_activity_ = false;
@@ -813,12 +771,11 @@ bool CanIface::hadActivity()
 /*
  * CanDriver
  */
-uavcan::CanSelectMasks CanDriver::makeSelectMasks(const uavcan::CanFrame * (&pending_tx)[uavcan::MaxCanIfaces]) const
-{
+uavcan::CanSelectMasks CanDriver::makeSelectMasks(const uavcan::CanFrame *(&pending_tx)[uavcan::MaxCanIfaces]) const {
 	uavcan::CanSelectMasks msk;
 
 	// Iface 0
-	msk.read  = if0_.isRxBufferEmpty() ? 0 : 1;
+	msk.read = if0_.isRxBufferEmpty() ? 0 : 1;
 
 	if (pending_tx[0] != UAVCAN_NULLPTR) {
 		msk.write = if0_.canAcceptNewTxFrame(*pending_tx[0]) ? 1 : 0;
@@ -841,25 +798,23 @@ uavcan::CanSelectMasks CanDriver::makeSelectMasks(const uavcan::CanFrame * (&pen
 	return msk;
 }
 
-bool CanDriver::hasReadableInterfaces() const
-{
+bool CanDriver::hasReadableInterfaces() const {
 #if UAVCAN_KINETIS_NUM_IFACES == 1
 	return !if0_.isRxBufferEmpty();
 #elif UAVCAN_KINETIS_NUM_IFACES == 2
 	return !if0_.isRxBufferEmpty() || !if1_.isRxBufferEmpty();
 #else
-# error UAVCAN_KINETIS_NUM_IFACES
+#error UAVCAN_KINETIS_NUM_IFACES
 #endif
 }
 
 uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
-				  const uavcan::CanFrame * (&pending_tx)[uavcan::MaxCanIfaces],
-				  const uavcan::MonotonicTime blocking_deadline)
-{
+				  const uavcan::CanFrame *(&pending_tx)[uavcan::MaxCanIfaces],
+				  const uavcan::MonotonicTime blocking_deadline) {
 	const uavcan::CanSelectMasks in_masks = inout_masks;
 	const uavcan::MonotonicTime time = clock::getMonotonic();
 
-	if0_.discardTimedOutTxMailboxes(time);              // Check TX timeouts - this may release some TX slots
+	if0_.discardTimedOutTxMailboxes(time);  // Check TX timeouts - this may release some TX slots
 	{
 		CriticalSectionLocker cs_locker;
 		if0_.pollErrorFlagsFromISR();
@@ -873,21 +828,18 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
 	}
 #endif
 
-	inout_masks = makeSelectMasks(pending_tx);          // Check if we already have some of the requested events
+	inout_masks = makeSelectMasks(pending_tx);  // Check if we already have some of the requested events
 
-	if ((inout_masks.read  & in_masks.read)  != 0 ||
-	    (inout_masks.write & in_masks.write) != 0) {
+	if ((inout_masks.read & in_masks.read) != 0 || (inout_masks.write & in_masks.write) != 0) {
 		return 1;
 	}
 
-	(void)update_event_.wait(blocking_deadline - time);     // Block until timeout expires or any iface updates
-	inout_masks = makeSelectMasks(pending_tx);     // Return what we got even if none of the requested events are set
+	(void)update_event_.wait(blocking_deadline - time);  // Block until timeout expires or any iface updates
+	inout_masks = makeSelectMasks(pending_tx);  // Return what we got even if none of the requested events are set
 	return 1;                                   // Return value doesn't matter as long as it is non-negative
 }
 
-
-void CanDriver::initOnce()
-{
+void CanDriver::initOnce() {
 	/*
 	 * CAN1, CAN2
 	 */
@@ -902,22 +854,21 @@ void CanDriver::initOnce()
 	/*
 	 * IRQ
 	 */
-#define IRQ_ATTACH(irq, handler)                          \
-	{                                                      \
-		const int res = irq_attach(irq, handler, NULL);    \
-		(void)res;                                         \
-		assert(res >= 0);                                  \
-		up_enable_irq(irq);                                \
+#define IRQ_ATTACH(irq, handler)                                \
+	{                                                       \
+		const int res = irq_attach(irq, handler, NULL); \
+		(void)res;                                      \
+		assert(res >= 0);                               \
+		up_enable_irq(irq);                             \
 	}
-	IRQ_ATTACH(KINETIS_IRQ_CAN0MB,  can0_irq);
+	IRQ_ATTACH(KINETIS_IRQ_CAN0MB, can0_irq);
 #if UAVCAN_KINETIS_NUM_IFACES > 1
-	IRQ_ATTACH(KINETIS_IRQ_CAN1MB,  can1_irq);
+	IRQ_ATTACH(KINETIS_IRQ_CAN1MB, can1_irq);
 #endif
 #undef IRQ_ATTACH
 }
 
-int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode)
-{
+int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode) {
 	int res = 0;
 
 	UAVCAN_KINETIS_LOG("Bitrate %lu mode %d", static_cast<unsigned long>(bitrate), static_cast<int>(mode));
@@ -934,10 +885,10 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
 	 * CAN1
 	 */
 	UAVCAN_KINETIS_LOG("Initing iface 0...");
-	ifaces[0] = &if0_;                          // This link must be initialized first,
-	res = if0_.init(bitrate, mode);             // otherwise an IRQ may fire while the interface is not linked yet;
+	ifaces[0] = &if0_;               // This link must be initialized first,
+	res = if0_.init(bitrate, mode);  // otherwise an IRQ may fire while the interface is not linked yet;
 
-	if (res < 0) {                              // a typical race condition.
+	if (res < 0) {  // a typical race condition.
 		UAVCAN_KINETIS_LOG("Iface 0 init failed %i", res);
 		ifaces[0] = UAVCAN_NULLPTR;
 		goto fail;
@@ -948,7 +899,7 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
 	 */
 #if UAVCAN_KINETIS_NUM_IFACES > 1
 	UAVCAN_KINETIS_LOG("Initing iface 1...");
-	ifaces[1] = &if1_;                          // Same thing here.
+	ifaces[1] = &if1_;  // Same thing here.
 	res = if1_.init(bitrate, mode);
 
 	if (res < 0) {
@@ -969,8 +920,7 @@ fail:
 	return res;
 }
 
-CanIface *CanDriver::getIface(uavcan::uint8_t iface_index)
-{
+CanIface *CanDriver::getIface(uavcan::uint8_t iface_index) {
 	if (iface_index < UAVCAN_KINETIS_NUM_IFACES) {
 		return ifaces[iface_index];
 	}
@@ -978,8 +928,7 @@ CanIface *CanDriver::getIface(uavcan::uint8_t iface_index)
 	return UAVCAN_NULLPTR;
 }
 
-bool CanDriver::hadActivity()
-{
+bool CanDriver::hadActivity() {
 	bool ret = if0_.hadActivity();
 #if UAVCAN_KINETIS_NUM_IFACES > 1
 	ret |= if1_.hadActivity();
@@ -987,64 +936,61 @@ bool CanDriver::hadActivity()
 	return ret;
 }
 
-
 /*
  * Interrupt handlers
  */
-extern "C"
-{
+extern "C" {
 
-	static int can0_irq(const int irq, void *, void *args)
-	{
+static int can0_irq(const int irq, void *, void *args) {
+	CanIface *cif = ifaces[0];
+	flexcan::CanType *flex = flexcan::Can[0];
 
-		CanIface *cif = ifaces[0];
-		flexcan::CanType *flex = flexcan::Can[0];
+	if (cif != UAVCAN_NULLPTR) {
+		const uavcan::uint32_t FIFO_IFLAG1 =
+			flexcan::CAN_FIFO_NE | flexcan::CAN_FIFO_WARN | flexcan::CAN_FIFO_OV;
+		uavcan::uint32_t flags = flex->IFLAG1 & FIFO_IFLAG1;
 
-		if (cif != UAVCAN_NULLPTR) {
-			const uavcan::uint32_t FIFO_IFLAG1 = flexcan::CAN_FIFO_NE | flexcan::CAN_FIFO_WARN | flexcan::CAN_FIFO_OV;
-			uavcan::uint32_t flags = flex->IFLAG1 & FIFO_IFLAG1;
-
-			if (flags) {
-				handleRxInterrupt(cif, flags);
-			}
-
-			const uavcan::uint32_t MB_IFLAG1 = flexcan::TXMBMask;
-			flags = flex->IFLAG1 & MB_IFLAG1;
-
-			if (flags) {
-				handleTxInterrupt(cif, flags);
-			}
+		if (flags) {
+			handleRxInterrupt(cif, flags);
 		}
 
-		return 0;
+		const uavcan::uint32_t MB_IFLAG1 = flexcan::TXMBMask;
+		flags = flex->IFLAG1 & MB_IFLAG1;
+
+		if (flags) {
+			handleTxInterrupt(cif, flags);
+		}
 	}
+
+	return 0;
+}
 
 #if UAVCAN_KINETIS_NUM_IFACES > 1
 
-	static int can1_irq(const int irq, void *, void *)
-	{
-		CanIface *cif = ifaces[1];
-		flexcan::CanType *flex = flexcan::Can[1];
+static int can1_irq(const int irq, void *, void *) {
+	CanIface *cif = ifaces[1];
+	flexcan::CanType *flex = flexcan::Can[1];
 
-		if (cif != UAVCAN_NULLPTR) {
-			const uavcan::uint32_t FIFO_IFLAG1 = flexcan::CAN_FIFO_NE | flexcan::CAN_FIFO_WARN | flexcan::CAN_FIFO_OV;
-			uavcan::uint32_t flags = flex->IFLAG1 & FIFO_IFLAG1;
+	if (cif != UAVCAN_NULLPTR) {
+		const uavcan::uint32_t FIFO_IFLAG1 =
+			flexcan::CAN_FIFO_NE | flexcan::CAN_FIFO_WARN | flexcan::CAN_FIFO_OV;
+		uavcan::uint32_t flags = flex->IFLAG1 & FIFO_IFLAG1;
 
-			if (flags) {
-				handleRxInterrupt(cif, flags);
-			}
-
-			const uavcan::uint32_t MB_IFLAG1 = flexcan::TXMBMask;
-			flags = flex->IFLAG1 & MB_IFLAG1;
-
-			if (flags) {
-				handleTxInterrupt(cif, flags);
-			}
+		if (flags) {
+			handleRxInterrupt(cif, flags);
 		}
 
-		return 0;
+		const uavcan::uint32_t MB_IFLAG1 = flexcan::TXMBMask;
+		flags = flex->IFLAG1 & MB_IFLAG1;
+
+		if (flags) {
+			handleTxInterrupt(cif, flags);
+		}
 	}
 
+	return 0;
+}
+
 #endif
-} // extern "C"
-} // namespace uavcan_kinetis
+}  // extern "C"
+}  // namespace uavcan_kinetis

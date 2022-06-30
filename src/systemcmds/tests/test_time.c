@@ -36,27 +36,22 @@
  * Tests clocks/timekeeping.
  */
 
-#include <px4_platform_common/px4_config.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <float.h>
+#include <math.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
-#include <sys/types.h>
-
+#include <px4_platform_common/px4_config.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
 
 #include "tests_main.h"
 
-#include <math.h>
-#include <float.h>
-#include <drivers/drv_hrt.h>
-
-
-static hrt_abstime
-cycletime(void)
-{
+static hrt_abstime cycletime(void) {
 	/* emulate hrt_absolute_time using the cycle counter */
 	static uint64_t basetime;
 	static uint32_t lasttime;
@@ -70,16 +65,15 @@ cycletime(void)
 
 	lasttime = cycles;
 
-	return (basetime + cycles) / 168;	/* XXX magic number */
+	return (basetime + cycles) / 168; /* XXX magic number */
 }
 
-int test_time(int argc, char *argv[])
-{
+int test_time(int argc, char *argv[]) {
 	int maxdelta = 0;
 
 	/* enable the cycle counter */
-	(*(unsigned long *)0xe000edfc) |= (1 << 24);    /* DEMCR |= DEMCR_TRCENA */
-	(*(unsigned long *)0xe0001000) |= 1;    	/* DWT_CTRL |= DWT_CYCCNT_ENA */
+	(*(unsigned long *)0xe000edfc) |= (1 << 24); /* DEMCR |= DEMCR_TRCENA */
+	(*(unsigned long *)0xe0001000) |= 1;         /* DWT_CTRL |= DWT_CYCCNT_ENA */
 
 	/* get an average delta between the two clocks - this should stay roughly the same */
 	int delta = 0;
@@ -97,7 +91,6 @@ int test_time(int argc, char *argv[])
 
 	/* loop checking the time */
 	for (unsigned i = 0; i < 100; i++) {
-
 		usleep(rand() % SHRT_MAX);
 
 		uint32_t flags = px4_enter_critical_section();

@@ -43,8 +43,7 @@
 #include <px4_platform_common/workqueue.h>
 #include <string.h>
 
-class WQueueTest
-{
+class WQueueTest {
 public:
 	WQueueTest() = default;
 	~WQueueTest() = default;
@@ -59,8 +58,8 @@ private:
 	void do_lp_work(void);
 	void do_hp_work(void);
 
-	bool _lpwork_done {false};
-	bool _hpwork_done {false};
-	work_s _lpwork {};
-	work_s _hpwork {};
+	bool _lpwork_done{false};
+	bool _hpwork_done{false};
+	work_s _lpwork{};
+	work_s _hpwork{};
 };

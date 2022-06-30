@@ -41,10 +41,10 @@
 #define EKF_RESET_LOGGING_CHECKER_H
 
 #include <memory>
+
 #include "EKF/ekf.h"
 
-class ResetLoggingChecker
-{
+class ResetLoggingChecker {
 public:
 	ResetLoggingChecker(std::shared_ptr<Ekf> ekf) : _ekf(ekf) {}
 
@@ -86,4 +86,4 @@ private:
 	Vector3f logged_delta_velocity;
 	Vector3f logged_delta_position;
 };
-#endif // !EKF_RESET_LOGGING_CHECKER_H
+#endif  // !EKF_RESET_LOGGING_CHECKER_H

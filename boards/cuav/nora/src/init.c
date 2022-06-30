@@ -41,26 +41,23 @@
  * subsystems and perform board-specific initialisation.
  */
 
-#include "board_config.h"
-
-#include <syslog.h>
-
-#include <nuttx/config.h>
-#include <nuttx/board.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
 #include <arch/board/board.h>
-#include "arm_internal.h"
-
-#include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
-#include <systemlib/px4_macros.h>
-#include <px4_arch/io_timer.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/gpio.h>
-#include <px4_platform/board_dma_alloc.h>
-
+#include <drivers/drv_hrt.h>
 #include <mpu.h>
+#include <nuttx/board.h>
+#include <nuttx/config.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/init.h>
+#include <syslog.h>
+#include <systemlib/px4_macros.h>
+
+#include "arm_internal.h"
+#include "board_config.h"
 
 __BEGIN_DECLS
 extern void led_init(void);
@@ -74,8 +71,7 @@ __END_DECLS
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
+__EXPORT void board_peripheral_reset(int ms) {
 	/* set the peripheral rails off */
 	VDD_5V_PERIPH_EN(false);
 	board_control_spi_sensors_power(false, 0xffff);
@@ -107,8 +103,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *          0 if just resetting
  *
  ************************************************************************************/
-__EXPORT void board_on_reset(int status)
-{
+__EXPORT void board_on_reset(int status) {
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
 	}
@@ -127,8 +122,7 @@ __EXPORT void board_on_reset(int status)
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
-__EXPORT void stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	/* Reset PWM first thing */
 	board_on_reset(-1);
 
@@ -160,8 +154,7 @@ __EXPORT void stm32_boardinitialize(void)
  *   any failure to indicate the nature of the failure.
  *
  ****************************************************************************/
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	/* Power on Interfaces */
 	VDD_5V_PERIPH_EN(true);
 	VDD_5V_HIPOWER_EN(true);
@@ -182,7 +175,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* initial LED state */
 	drv_led_start();
 	led_off(LED_RED);
-	led_on(LED_GREEN); // Indicate Power.
+	led_on(LED_GREEN);  // Indicate Power.
 	led_off(LED_BLUE);
 
 	if (board_hardfault_init(2, true) != 0) {
@@ -197,7 +190,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Mount the SDIO-based MMC/SD block driver */
 	/* First, get an instance of the SDIO interface */
-	struct sdio_dev_s *sdio_dev = sdio_initialize(0); // SDIO_SLOTNO 0 Only one slot
+	struct sdio_dev_s *sdio_dev = sdio_initialize(0);  // SDIO_SLOTNO 0 Only one slot
 
 	if (!sdio_dev) {
 		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n", 0);

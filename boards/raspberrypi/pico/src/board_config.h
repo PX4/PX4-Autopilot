@@ -43,56 +43,58 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdint.h>
 
 /* LEDs */
 // LED1 - GPIO 25 - Green
-#define GPIO_LED1       PX4_MAKE_GPIO_OUTPUT_CLEAR(25) // Take a look at rpi_common micro_hal.h
-#define GPIO_LED_BLUE   GPIO_LED1
+#define GPIO_LED1 PX4_MAKE_GPIO_OUTPUT_CLEAR(25)  // Take a look at rpi_common micro_hal.h
+#define GPIO_LED_BLUE GPIO_LED1
 
-#define BOARD_OVERLOAD_LED     LED_BLUE
+#define BOARD_OVERLOAD_LED LED_BLUE
 
 /*
  * ADC channels
  *
- * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
+ * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc
+ * driver
  */
-#define ADC_CHANNELS (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3)	// Change this later based on the adc channels actually used
+#define ADC_CHANNELS \
+	(1 << 0) | (1 << 1) | (1 << 2) | (1 << 3)  // Change this later based on the adc channels actually used
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL  1			// Corresponding GPIO 27. Used in init.c for disabling GPIO_IE
-#define ADC_BATTERY_CURRENT_CHANNEL  2			// Corresponding GPIO 28. Used in init.c for disabling GPIO_IE
-#define ADC_RC_RSSI_CHANNEL          0
+#define ADC_BATTERY_VOLTAGE_CHANNEL 1  // Corresponding GPIO 27. Used in init.c for disabling GPIO_IE
+#define ADC_BATTERY_CURRENT_CHANNEL 2  // Corresponding GPIO 28. Used in init.c for disabling GPIO_IE
+#define ADC_RC_RSSI_CHANNEL 0
 
 /* High-resolution timer */
 #define HRT_TIMER 1
 #define HRT_TIMER_CHANNEL 1
-#define HRT_PPM_CHANNEL 1	// Number really doesn't matter for this board
-#define GPIO_PPM_IN		(16 | GPIO_FUN(RP2040_GPIO_FUNC_SIO))
-#define RC_SERIAL_PORT               "/dev/ttyS3"
+#define HRT_PPM_CHANNEL 1  // Number really doesn't matter for this board
+#define GPIO_PPM_IN (16 | GPIO_FUN(RP2040_GPIO_FUNC_SIO))
+#define RC_SERIAL_PORT "/dev/ttyS3"
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
-/* This board provides a DMA pool and APIs */			// Needs to be figured out
+/* This board provides a DMA pool and APIs */  // Needs to be figured out
 #define BOARD_DMA_ALLOC_POOL_SIZE 2048
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
-#define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
+#define BOARD_CONSOLE_BUFFER_SIZE (1024 * 3)
 
 /* USB
  *
  *  VBUS detection is on 29  ADC_DPM0 and PTE8
  */
-#define GPIO_USB_VBUS_VALID     (24 | GPIO_FUN(RP2040_GPIO_FUNC_SIO))    // Used in usb.c
+#define GPIO_USB_VBUS_VALID (24 | GPIO_FUN(RP2040_GPIO_FUNC_SIO))  // Used in usb.c
 
 /* PWM
  *
  * Alternatively CH3/CH4 could be assigned to UART6_TX/RX
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS      4
+#define DIRECT_PWM_OUTPUT_CHANNELS 4
 
 // Has pwm outputs
-#define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
+#define BOARD_HAS_PWM DIRECT_PWM_OUTPUT_CHANNELS
 
 /*
  * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
@@ -115,7 +117,6 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void rp2040_spiinitialize(void);
-
 
 /****************************************************************************************************
  * Name: rp2040_usbinitialize

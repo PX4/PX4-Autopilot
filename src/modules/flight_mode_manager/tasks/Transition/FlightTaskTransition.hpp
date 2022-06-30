@@ -39,17 +39,17 @@
 
 #pragma once
 
-#include "FlightTask.hpp"
+#include <drivers/drv_hrt.h>
+#include <uORB/topics/parameter_update.h>
+
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
-#include <drivers/drv_hrt.h>
+
+#include "FlightTask.hpp"
 
 using namespace time_literals;
 
-
-class FlightTaskTransition : public FlightTask
-{
+class FlightTaskTransition : public FlightTask {
 public:
 	FlightTaskTransition();
 
@@ -59,7 +59,6 @@ public:
 	bool update() override;
 
 private:
-
 	static constexpr float _vel_z_filter_time_const = 2.0f;
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -69,5 +68,4 @@ private:
 	AlphaFilter<float> _vel_z_filter;
 
 	void updateParameters();
-
 };

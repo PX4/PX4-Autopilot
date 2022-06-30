@@ -36,8 +36,7 @@
 
 #if defined(CONFIG_SPI)
 
-constexpr bool validateSPIConfig(const px4_spi_bus_t spi_busses_conf[SPI_BUS_MAX_BUS_ITEMS])
-{
+constexpr bool validateSPIConfig(const px4_spi_bus_t spi_busses_conf[SPI_BUS_MAX_BUS_ITEMS]) {
 	const bool nuttx_enabled_spi_buses[] = {
 #ifdef CONFIG_STM32_SPI1
 		true,
@@ -81,10 +80,11 @@ constexpr bool validateSPIConfig(const px4_spi_bus_t spi_busses_conf[SPI_BUS_MAX
 		}
 
 		// Either the bus is enabled in NuttX and configured in spi_busses_conf, or disabled and not configured
-		constexpr_assert(found_bus == nuttx_enabled_spi_buses[i], "SPI bus config mismatch (CONFIG_STM32_SPIx)");
+		constexpr_assert(found_bus == nuttx_enabled_spi_buses[i],
+				 "SPI bus config mismatch (CONFIG_STM32_SPIx)");
 	}
 
 	return false;
 }
 
-#endif // CONFIG_SPI
+#endif  // CONFIG_SPI

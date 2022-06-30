@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <AngularVelocityControl.hpp>
 
 using namespace matrix;
 
-TEST(AngularVelocityControlTest, AllZeroCase)
-{
+TEST(AngularVelocityControlTest, AllZeroCase) {
 	AngularVelocityControl control;
 	control.update(Vector3f(), Vector3f(), Vector3f(), 0.f, false);
 	Vector3f torque = control.getTorqueSetpoint();

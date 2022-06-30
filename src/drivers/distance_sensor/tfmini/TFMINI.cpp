@@ -33,13 +33,12 @@
 
 #include "TFMINI.hpp"
 
-#include <lib/drivers/device/Device.hpp>
 #include <fcntl.h>
 
-TFMINI::TFMINI(const char *port, uint8_t rotation) :
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
-	_px4_rangefinder(0, rotation)
-{
+#include <lib/drivers/device/Device.hpp>
+
+TFMINI::TFMINI(const char *port, uint8_t rotation)
+	: ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)), _px4_rangefinder(0, rotation) {
 	// store port name
 	strncpy(_port, port, sizeof(_port) - 1);
 
@@ -50,7 +49,7 @@ TFMINI::TFMINI(const char *port, uint8_t rotation) :
 	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_TFMINI;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType_SERIAL;
 
-	uint8_t bus_num = atoi(&_port[strlen(_port) - 1]); // Assuming '/dev/ttySx'
+	uint8_t bus_num = atoi(&_port[strlen(_port) - 1]);  // Assuming '/dev/ttySx'
 
 	if (bus_num < 10) {
 		device_id.devid_s.bus = bus_num;
@@ -60,8 +59,7 @@ TFMINI::TFMINI(const char *port, uint8_t rotation) :
 	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 }
 
-TFMINI::~TFMINI()
-{
+TFMINI::~TFMINI() {
 	// make sure we are truly inactive
 	stop();
 
@@ -69,33 +67,31 @@ TFMINI::~TFMINI()
 	perf_free(_comms_errors);
 }
 
-int
-TFMINI::init()
-{
-	int32_t hw_model = 1; // only one model so far...
+int TFMINI::init() {
+	int32_t hw_model = 1;  // only one model so far...
 
 	switch (hw_model) {
-	case 1: // TFMINI (12m, 100 Hz)
-		// Note:
-		// Sensor specification shows 0.3m as minimum, but in practice
-		// 0.3 is too close to minimum so chattering of invalid sensor decision
-		// is happening sometimes. this cause EKF to believe inconsistent range readings.
-		// So we set 0.4 as valid minimum.
-		_px4_rangefinder.set_min_distance(0.4f);
-		_px4_rangefinder.set_max_distance(12.0f);
-		_px4_rangefinder.set_fov(math::radians(1.15f));
+		case 1:  // TFMINI (12m, 100 Hz)
+			// Note:
+			// Sensor specification shows 0.3m as minimum, but in practice
+			// 0.3 is too close to minimum so chattering of invalid sensor decision
+			// is happening sometimes. this cause EKF to believe inconsistent range readings.
+			// So we set 0.4 as valid minimum.
+			_px4_rangefinder.set_min_distance(0.4f);
+			_px4_rangefinder.set_max_distance(12.0f);
+			_px4_rangefinder.set_fov(math::radians(1.15f));
 
-		break;
+			break;
 
-	default:
-		PX4_ERR("invalid HW model %" PRId32 ".", hw_model);
-		return -1;
+		default:
+			PX4_ERR("invalid HW model %" PRId32 ".", hw_model);
+			return -1;
 	}
 
 	// status
 	int ret = 0;
 
-	do { // create a scope to handle exit conditions using break
+	do {  // create a scope to handle exit conditions using break
 
 		// open fd
 		_fd = ::open(_port, O_RDWR | O_NOCTTY);
@@ -134,12 +130,12 @@ TFMINI::init()
 			break;
 		}
 
-		uart_config.c_cflag |= (CLOCAL | CREAD);	// ignore modem controls
+		uart_config.c_cflag |= (CLOCAL | CREAD);  // ignore modem controls
 		uart_config.c_cflag &= ~CSIZE;
-		uart_config.c_cflag |= CS8;			// 8-bit characters
-		uart_config.c_cflag &= ~PARENB;			// no parity bit
-		uart_config.c_cflag &= ~CSTOPB;			// only need 1 stop bit
-		uart_config.c_cflag &= ~CRTSCTS;		// no hardware flowcontrol
+		uart_config.c_cflag |= CS8;       // 8-bit characters
+		uart_config.c_cflag &= ~PARENB;   // no parity bit
+		uart_config.c_cflag &= ~CSTOPB;   // only need 1 stop bit
+		uart_config.c_cflag &= ~CRTSCTS;  // no hardware flowcontrol
 
 		// setup for non-canonical mode
 		uart_config.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
@@ -168,16 +164,14 @@ TFMINI::init()
 	return ret;
 }
 
-int
-TFMINI::collect()
-{
+int TFMINI::collect() {
 	perf_begin(_sample_perf);
 
 	// clear buffer if last read was too long ago
 	int64_t read_elapsed = hrt_elapsed_time(&_last_read);
 
 	// the buffer for read chars is buflen minus null termination
-	char readbuf[sizeof(_linebuf)] {};
+	char readbuf[sizeof(_linebuf)]{};
 	unsigned readlen = sizeof(readbuf) - 1;
 
 	int ret = 0;
@@ -241,22 +235,14 @@ TFMINI::collect()
 	return PX4_OK;
 }
 
-void
-TFMINI::start()
-{
+void TFMINI::start() {
 	// schedule a cycle to start things (the sensor sends at 100Hz, but we run a bit faster to avoid missing data)
 	ScheduleOnInterval(7_ms);
 }
 
-void
-TFMINI::stop()
-{
-	ScheduleClear();
-}
+void TFMINI::stop() { ScheduleClear(); }
 
-void
-TFMINI::Run()
-{
+void TFMINI::Run() {
 	// fds initialized?
 	if (_fd < 0) {
 		// open fd
@@ -272,9 +258,7 @@ TFMINI::Run()
 	}
 }
 
-void
-TFMINI::print_info()
-{
+void TFMINI::print_info() {
 	printf("Using port '%s'\n", _port);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);

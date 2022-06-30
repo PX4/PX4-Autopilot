@@ -41,30 +41,31 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
-#include <lib/pid_design/pid_design.hpp>
-#include <lib/system_identification/system_identification.hpp>
+#include <mathlib/mathlib.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_status.h>
+#include <uORB/topics/autotune_attitude_control_status.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_status.h>
+
+#include <lib/pid_design/pid_design.hpp>
+#include <lib/system_identification/system_identification.hpp>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_status.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/autotune_attitude_control_status.h>
-#include <uORB/topics/vehicle_angular_velocity.h>
-#include <uORB/topics/vehicle_status.h>
-#include <mathlib/mathlib.h>
 
 using namespace time_literals;
 
-class McAutotuneAttitudeControl : public ModuleBase<McAutotuneAttitudeControl>, public ModuleParams,
-	public px4::WorkItem
-{
+class McAutotuneAttitudeControl : public ModuleBase<McAutotuneAttitudeControl>,
+				  public ModuleParams,
+				  public px4::WorkItem {
 public:
 	McAutotuneAttitudeControl();
 	~McAutotuneAttitudeControl() override;
@@ -110,7 +111,8 @@ private:
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	uORB::PublicationData<autotune_attitude_control_status_s> _autotune_attitude_control_status_pub{ORB_ID(autotune_attitude_control_status)};
+	uORB::PublicationData<autotune_attitude_control_status_s> _autotune_attitude_control_status_pub{
+		ORB_ID(autotune_attitude_control_status)};
 
 	SystemIdentification _sys_id;
 
@@ -148,7 +150,7 @@ private:
 
 	matrix::Vector3f _control_power{};
 
-	bool _gains_backup_available{false}; // true if a backup of the parameters has been done
+	bool _gains_backup_available{false};  // true if a backup of the parameters has been done
 
 	/**
 	 * Scale factor applied to the input data to have the same input/output range
@@ -167,39 +169,37 @@ private:
 	float _filter_dt{0.01f};
 	bool _are_filters_initialized{false};
 
-	AlphaFilter<float> _signal_filter; ///< used to create a wash-out filter
+	AlphaFilter<float> _signal_filter;  ///< used to create a wash-out filter
 
-	static constexpr float _model_dt_min{2e-3f}; // 2ms = 500Hz
-	static constexpr float _model_dt_max{10e-3f}; // 10ms = 100Hz
+	static constexpr float _model_dt_min{2e-3f};   // 2ms = 500Hz
+	static constexpr float _model_dt_max{10e-3f};  // 10ms = 100Hz
 	int _model_update_scaler{1};
 	int _model_update_counter{0};
 
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle time")};
 
-	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::MC_AT_START>) _param_mc_at_start,
-		(ParamFloat<px4::params::MC_AT_SYSID_AMP>) _param_mc_at_sysid_amp,
-		(ParamInt<px4::params::MC_AT_APPLY>) _param_mc_at_apply,
-		(ParamFloat<px4::params::MC_AT_RISE_TIME>) _param_mc_at_rise_time,
+	DEFINE_PARAMETERS((ParamBool<px4::params::MC_AT_START>)_param_mc_at_start,
+			  (ParamFloat<px4::params::MC_AT_SYSID_AMP>)_param_mc_at_sysid_amp,
+			  (ParamInt<px4::params::MC_AT_APPLY>)_param_mc_at_apply,
+			  (ParamFloat<px4::params::MC_AT_RISE_TIME>)_param_mc_at_rise_time,
 
-		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
+			  (ParamFloat<px4::params::IMU_GYRO_CUTOFF>)_param_imu_gyro_cutoff,
 
-		(ParamFloat<px4::params::MC_ROLLRATE_P>) _param_mc_rollrate_p,
-		(ParamFloat<px4::params::MC_ROLLRATE_K>) _param_mc_rollrate_k,
-		(ParamFloat<px4::params::MC_ROLLRATE_I>) _param_mc_rollrate_i,
-		(ParamFloat<px4::params::MC_ROLLRATE_D>) _param_mc_rollrate_d,
-		(ParamFloat<px4::params::MC_ROLL_P>) _param_mc_roll_p,
-		(ParamFloat<px4::params::MC_PITCHRATE_P>) _param_mc_pitchrate_p,
-		(ParamFloat<px4::params::MC_PITCHRATE_K>) _param_mc_pitchrate_k,
-		(ParamFloat<px4::params::MC_PITCHRATE_I>) _param_mc_pitchrate_i,
-		(ParamFloat<px4::params::MC_PITCHRATE_D>) _param_mc_pitchrate_d,
-		(ParamFloat<px4::params::MC_PITCH_P>) _param_mc_pitch_p,
-		(ParamFloat<px4::params::MC_YAWRATE_P>) _param_mc_yawrate_p,
-		(ParamFloat<px4::params::MC_YAWRATE_K>) _param_mc_yawrate_k,
-		(ParamFloat<px4::params::MC_YAWRATE_I>) _param_mc_yawrate_i,
-		(ParamFloat<px4::params::MC_YAWRATE_D>) _param_mc_yawrate_d,
-		(ParamFloat<px4::params::MC_YAW_P>) _param_mc_yaw_p
-	)
+			  (ParamFloat<px4::params::MC_ROLLRATE_P>)_param_mc_rollrate_p,
+			  (ParamFloat<px4::params::MC_ROLLRATE_K>)_param_mc_rollrate_k,
+			  (ParamFloat<px4::params::MC_ROLLRATE_I>)_param_mc_rollrate_i,
+			  (ParamFloat<px4::params::MC_ROLLRATE_D>)_param_mc_rollrate_d,
+			  (ParamFloat<px4::params::MC_ROLL_P>)_param_mc_roll_p,
+			  (ParamFloat<px4::params::MC_PITCHRATE_P>)_param_mc_pitchrate_p,
+			  (ParamFloat<px4::params::MC_PITCHRATE_K>)_param_mc_pitchrate_k,
+			  (ParamFloat<px4::params::MC_PITCHRATE_I>)_param_mc_pitchrate_i,
+			  (ParamFloat<px4::params::MC_PITCHRATE_D>)_param_mc_pitchrate_d,
+			  (ParamFloat<px4::params::MC_PITCH_P>)_param_mc_pitch_p,
+			  (ParamFloat<px4::params::MC_YAWRATE_P>)_param_mc_yawrate_p,
+			  (ParamFloat<px4::params::MC_YAWRATE_K>)_param_mc_yawrate_k,
+			  (ParamFloat<px4::params::MC_YAWRATE_I>)_param_mc_yawrate_i,
+			  (ParamFloat<px4::params::MC_YAWRATE_D>)_param_mc_yawrate_d,
+			  (ParamFloat<px4::params::MC_YAW_P>)_param_mc_yaw_p)
 
 	static constexpr float _publishing_dt_s = 100e-3f;
 	static constexpr hrt_abstime _publishing_dt_hrt = 100_ms;

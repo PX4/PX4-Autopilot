@@ -47,8 +47,7 @@
 
 #include "camera_interface.h"
 
-class CameraInterfacePWM : public CameraInterface
-{
+class CameraInterfacePWM : public CameraInterface {
 public:
 	CameraInterfacePWM();
 	virtual ~CameraInterfacePWM();

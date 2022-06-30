@@ -31,26 +31,22 @@
  *
  ****************************************************************************/
 
+#include <gtest/gtest.h>
 #include <px4_platform_common/module_params.h>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/obstacle_distance.h>
+
+#include <uORB/Subscription.hpp>
 #include <uORB/uORBManager.hpp>
 
-#include <gtest/gtest.h>
-
-class ParameterTest : public ::testing::Test
-{
+class ParameterTest : public ::testing::Test {
 public:
-	void SetUp() override
-	{
+	void SetUp() override {
 		param_control_autosave(false);
 		param_reset_all();
 	}
 };
 
-
-TEST_F(ParameterTest, testParamReadWrite)
-{
+TEST_F(ParameterTest, testParamReadWrite) {
 	// GIVEN a parameter handle
 	param_t param = param_handle(px4::params::CP_DIST);
 
@@ -78,9 +74,7 @@ TEST_F(ParameterTest, testParamReadWrite)
 	EXPECT_FLOAT_EQ(42.f, value2);
 }
 
-
-TEST_F(ParameterTest, testUorbSendReceive)
-{
+TEST_F(ParameterTest, testUorbSendReceive) {
 	// GIVEN: a uOrb message
 	obstacle_distance_s message;
 	memset(&message, 0xDEAD, sizeof(message));

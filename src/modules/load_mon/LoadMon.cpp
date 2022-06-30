@@ -41,28 +41,21 @@ static constexpr unsigned STACK_LOW_WARNING_THRESHOLD = 100;
 static constexpr unsigned STACK_LOW_WARNING_THRESHOLD = 300;
 #endif
 
-static constexpr unsigned FDS_LOW_WARNING_THRESHOLD = 2; ///< if free file descriptors fall below this, print a warning
+static constexpr unsigned FDS_LOW_WARNING_THRESHOLD = 2;  ///< if free file descriptors fall below this, print a warning
 #endif
 
 using namespace time_literals;
 
-namespace load_mon
-{
+namespace load_mon {
 
-LoadMon::LoadMon() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
-{
-}
+LoadMon::LoadMon() : ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default) {}
 
-LoadMon::~LoadMon()
-{
+LoadMon::~LoadMon() {
 	ScheduleClear();
 	perf_free(_cycle_perf);
 }
 
-int LoadMon::task_spawn(int argc, char *argv[])
-{
+int LoadMon::task_spawn(int argc, char *argv[]) {
 	LoadMon *obj = new LoadMon();
 
 	if (!obj) {
@@ -79,16 +72,14 @@ int LoadMon::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-void LoadMon::start()
-{
-	ScheduleOnInterval(500_ms); // 2 Hz
+void LoadMon::start() {
+	ScheduleOnInterval(500_ms);  // 2 Hz
 }
 
-void LoadMon::Run()
-{
-#if defined (__PX4_LINUX)
+void LoadMon::Run() {
+#if defined(__PX4_LINUX)
 
-	if (_proc_fd == nullptr) {	// init fd
+	if (_proc_fd == nullptr) {  // init fd
 		_proc_fd = fopen("/proc/meminfo", "r");
 
 		if (_proc_fd == nullptr) {
@@ -111,7 +102,7 @@ void LoadMon::Run()
 
 	if (should_exit()) {
 		ScheduleClear();
-#if defined (__PX4_LINUX)
+#if defined(__PX4_LINUX)
 		fclose(_proc_fd);
 #endif
 		exit_and_cleanup();
@@ -120,8 +111,7 @@ void LoadMon::Run()
 	perf_end(_cycle_perf);
 }
 
-void LoadMon::cpuload()
-{
+void LoadMon::cpuload() {
 #if defined(__PX4_LINUX)
 	tms spent_time_stamp_struct;
 	clock_t total_time_stamp = times(&spent_time_stamp_struct);
@@ -239,8 +229,7 @@ void LoadMon::cpuload()
 }
 
 #if defined(__PX4_NUTTX)
-void LoadMon::stack_usage()
-{
+void LoadMon::stack_usage() {
 	unsigned stack_free = 0;
 
 	bool checked_task = false;
@@ -252,16 +241,16 @@ void LoadMon::stack_usage()
 	sched_lock();
 
 	if (system_load.tasks[_stack_task_index].valid && (system_load.tasks[_stack_task_index].tcb->pid > 0)) {
-
 		stack_free = up_check_tcbstack_remain(system_load.tasks[_stack_task_index].tcb);
 
-		strncpy((char *)task_stack_info.task_name, system_load.tasks[_stack_task_index].tcb->name, CONFIG_TASK_NAME_SIZE - 1);
+		strncpy((char *)task_stack_info.task_name, system_load.tasks[_stack_task_index].tcb->name,
+			CONFIG_TASK_NAME_SIZE - 1);
 		task_stack_info.task_name[CONFIG_TASK_NAME_SIZE - 1] = '\0';
 
 		checked_task = true;
 
 #if CONFIG_NFILE_DESCRIPTORS_PER_BLOCK > 0
-		unsigned int tcb_num_used_fds = 0; // number of used file descriptors
+		unsigned int tcb_num_used_fds = 0;  // number of used file descriptors
 		struct filelist *filelist = &system_load.tasks[_stack_task_index].tcb->group->tg_filelist;
 
 		for (int fdr = 0; fdr < filelist->fl_rows; fdr++) {
@@ -272,7 +261,7 @@ void LoadMon::stack_usage()
 			}
 		}
 
-#endif // CONFIG_NFILE_DESCRIPTORS_PER_BLOCK
+#endif  // CONFIG_NFILE_DESCRIPTORS_PER_BLOCK
 	}
 
 	sched_unlock();
@@ -294,8 +283,7 @@ void LoadMon::stack_usage()
 }
 #endif
 
-int LoadMon::print_usage(const char *reason)
-{
+int LoadMon::print_usage(const char *reason) {
 	if (reason) {
 		PX4_ERR("%s\n", reason);
 	}
@@ -316,9 +304,6 @@ which will also appear in the log file.
 	return 0;
 }
 
-extern "C" __EXPORT int load_mon_main(int argc, char *argv[])
-{
-	return LoadMon::main(argc, argv);
-}
+extern "C" __EXPORT int load_mon_main(int argc, char *argv[]) { return LoadMon::main(argc, argv); }
 
-} // namespace load_mon
+}  // namespace load_mon

@@ -37,15 +37,10 @@
 
 const char *const UavcanFlowBridge::NAME = "flow";
 
-UavcanFlowBridge::UavcanFlowBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_flow", ORB_ID(sensor_optical_flow)),
-	_sub_flow(node)
-{
-}
+UavcanFlowBridge::UavcanFlowBridge(uavcan::INode &node)
+	: UavcanSensorBridgeBase("uavcan_flow", ORB_ID(sensor_optical_flow)), _sub_flow(node) {}
 
-int
-UavcanFlowBridge::init()
-{
+int UavcanFlowBridge::init() {
 	int res = _sub_flow.start(FlowCbBinder(this, &UavcanFlowBridge::flow_sub_cb));
 
 	if (res < 0) {
@@ -56,10 +51,9 @@ UavcanFlowBridge::init()
 	return 0;
 }
 
-void UavcanFlowBridge::flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex::equipment::flow::Measurement> &msg)
-{
+void UavcanFlowBridge::flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex::equipment::flow::Measurement> &msg) {
 	sensor_optical_flow_s flow{};
-	flow.timestamp_sample = hrt_absolute_time(); // TODO
+	flow.timestamp_sample = hrt_absolute_time();  // TODO
 
 	device::Device::DeviceId device_id;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_UAVCAN;
@@ -72,7 +66,7 @@ void UavcanFlowBridge::flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex:
 	flow.pixel_flow[0] = msg.flow_integral[0];
 	flow.pixel_flow[1] = msg.flow_integral[1];
 
-	flow.integration_timespan_us = 1.e6f * msg.integration_interval; // s -> us
+	flow.integration_timespan_us = 1.e6f * msg.integration_interval;  // s -> us
 
 	flow.quality = msg.quality;
 

@@ -34,15 +34,12 @@
 #pragma once
 
 #include <containers/IntrusiveSortedList.hpp>
+#include <uavcan/node/publisher.hpp>
 #include <uavcan/uavcan.hpp>
 
-#include <uavcan/node/publisher.hpp>
+namespace uavcannode {
 
-namespace uavcannode
-{
-
-class UavcanPublisherBase : public IntrusiveSortedListNode<UavcanPublisherBase *>
-{
+class UavcanPublisherBase : public IntrusiveSortedListNode<UavcanPublisherBase *> {
 public:
 	UavcanPublisherBase() = delete;
 	explicit UavcanPublisherBase(uint16_t id) : _id(id) {}
@@ -64,4 +61,4 @@ public:
 private:
 	uint16_t _id{0};
 };
-} // namespace uavcannode
+}  // namespace uavcannode

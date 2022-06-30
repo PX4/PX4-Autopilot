@@ -37,15 +37,13 @@
  * NXP fmurt1062-v1 LED backend.
  */
 
+#include <arch/board/board.h>
+#include <hardware/imxrt_gpio.h>
 #include <px4_platform_common/px4_config.h>
-
 #include <stdbool.h>
 
-#include "chip.h"
-#include <hardware/imxrt_gpio.h>
 #include "board_config.h"
-
-#include <arch/board/board.h>
+#include "chip.h"
 
 /*
  * Ideally we'd be able to get these from arm_internal.h,
@@ -61,7 +59,6 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
-
 static uint32_t g_ledmap[] = {
 	GPIO_nLED_BLUE,   // Indexed by LED_BLUE
 	GPIO_nLED_RED,    // Indexed by LED_RED, LED_AMBER
@@ -69,8 +66,7 @@ static uint32_t g_ledmap[] = {
 	GPIO_nLED_GREEN,  // Indexed by LED_GREEN
 };
 
-__EXPORT void led_init(void)
-{
+__EXPORT void led_init(void) {
 	/* Configure LED GPIOs for output */
 	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
 		if (g_ledmap[l] != 0) {
@@ -79,8 +75,7 @@ __EXPORT void led_init(void)
 	}
 }
 
-static void phy_set_led(int led, bool state)
-{
+static void phy_set_led(int led, bool state) {
 	/* Drive Low to switch on */
 
 	if (g_ledmap[led] != 0) {
@@ -88,9 +83,7 @@ static void phy_set_led(int led, bool state)
 	}
 }
 
-static bool phy_get_led(int led)
-{
-
+static bool phy_get_led(int led) {
 	if (g_ledmap[led] != 0) {
 		return imxrt_gpio_read(!g_ledmap[led]);
 	}
@@ -98,18 +91,8 @@ static bool phy_get_led(int led)
 	return false;
 }
 
-__EXPORT void led_on(int led)
-{
-	phy_set_led(led, true);
-}
+__EXPORT void led_on(int led) { phy_set_led(led, true); }
 
-__EXPORT void led_off(int led)
-{
-	phy_set_led(led, false);
-}
+__EXPORT void led_off(int led) { phy_set_led(led, false); }
 
-__EXPORT void led_toggle(int led)
-{
-
-	phy_set_led(led, !phy_get_led(led));
-}
+__EXPORT void led_toggle(int led) { phy_set_led(led, !phy_get_led(led)); }

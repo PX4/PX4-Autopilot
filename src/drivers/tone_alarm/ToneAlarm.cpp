@@ -38,24 +38,19 @@
 #include "ToneAlarm.h"
 
 #include <px4_platform_common/time.h>
+
 #include <uORB/Publication.hpp>
 
 using namespace time_literals;
 
-ToneAlarm::ToneAlarm() :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
-{
+ToneAlarm::ToneAlarm() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {
 	// ensure ORB_ID(tune_control) is advertised with correct queue depth
 	orb_advertise_queue(ORB_ID(tune_control), nullptr, tune_control_s::ORB_QUEUE_LENGTH);
 }
 
-ToneAlarm::~ToneAlarm()
-{
-	ToneAlarmInterface::stop_note();
-}
+ToneAlarm::~ToneAlarm() { ToneAlarmInterface::stop_note(); }
 
-bool ToneAlarm::Init()
-{
+bool ToneAlarm::Init() {
 	// NOTE: Implement hardware specific detail in the ToneAlarmInterface class implementation.
 	ToneAlarmInterface::init();
 
@@ -71,13 +66,9 @@ bool ToneAlarm::Init()
 	return true;
 }
 
-void ToneAlarm::InterruptStopNote(void *arg)
-{
-	ToneAlarmInterface::stop_note();
-}
+void ToneAlarm::InterruptStopNote(void *arg) { ToneAlarmInterface::stop_note(); }
 
-void ToneAlarm::Run()
-{
+void ToneAlarm::Run() {
 	// Check if circuit breaker is enabled.
 	if (!_circuit_break_initialized) {
 		if (circuit_breaker_enabled("CBRK_BUZZER", CBRK_BUZZER_KEY)) {
@@ -102,89 +93,90 @@ void ToneAlarm::Run()
 				Tunes::ControlResult tune_result = _tunes.set_control(tune_control);
 
 				switch (tune_result) {
-				case Tunes::ControlResult::Success:
-					PX4_DEBUG("new tune %d", tune_control.tune_id);
+					case Tunes::ControlResult::Success:
+						PX4_DEBUG("new tune %d", tune_control.tune_id);
 
-					if (tune_control.tune_override) {
-						// clear existing
-						ToneAlarmInterface::stop_note();
-						_next_note_time = 0;
-						hrt_cancel(&_hrt_call);
-					}
+						if (tune_control.tune_override) {
+							// clear existing
+							ToneAlarmInterface::stop_note();
+							_next_note_time = 0;
+							hrt_cancel(&_hrt_call);
+						}
 
-					_play_tone = true;
+						_play_tone = true;
 
 #if (!defined(TONE_ALARM_TIMER) && !defined(GPIO_TONE_ALARM_GPIO)) || defined(DEBUG_BUILD)
 
-					switch (tune_control.tune_id) {
-					case tune_control_s::TUNE_ID_STARTUP:
-						PX4_INFO("startup tune");
+						switch (tune_control.tune_id) {
+							case tune_control_s::TUNE_ID_STARTUP:
+								PX4_INFO("startup tune");
+								break;
+
+							case tune_control_s::TUNE_ID_ERROR:
+								PX4_ERR("error tune");
+								break;
+
+							case tune_control_s::TUNE_ID_NOTIFY_POSITIVE:
+								PX4_INFO("notify positive");
+								break;
+
+							case tune_control_s::TUNE_ID_NOTIFY_NEUTRAL:
+								PX4_INFO("notify neutral");
+								break;
+
+							case tune_control_s::TUNE_ID_NOTIFY_NEGATIVE:
+								PX4_INFO("notify negative");
+								break;
+
+							case tune_control_s::TUNE_ID_ARMING_WARNING:
+								PX4_INFO("arming warning");
+								break;
+
+							case tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW:
+								PX4_INFO("battery warning (slow)");
+								break;
+
+							case tune_control_s::TUNE_ID_BATTERY_WARNING_FAST:
+								PX4_INFO("battery warning (fast)");
+								break;
+
+							case tune_control_s::TUNE_ID_ARMING_FAILURE:
+								PX4_ERR("arming failure");
+								break;
+
+							case tune_control_s::TUNE_ID_SINGLE_BEEP:
+								PX4_INFO("beep");
+								break;
+
+							case tune_control_s::TUNE_ID_HOME_SET:
+								PX4_INFO("home set");
+								break;
+						}
+
+#endif  // (!TONE_ALARM_TIMER && !GPIO_TONE_ALARM_GPIO) || DEBUG_BUILD
+
 						break;
 
-					case tune_control_s::TUNE_ID_ERROR:
-						PX4_ERR("error tune");
+					case Tunes::ControlResult::WouldInterrupt:
+						// otherwise re-publish tune to process next
+						PX4_DEBUG("tune already playing, requeing tune: %d",
+							  tune_control.tune_id);
+						{
+							uORB::Publication<tune_control_s> tune_control_pub{
+								ORB_ID(tune_control)};
+							tune_control.timestamp = hrt_absolute_time();
+							tune_control_pub.publish(tune_control);
+						}
+
 						break;
 
-					case tune_control_s::TUNE_ID_NOTIFY_POSITIVE:
-						PX4_INFO("notify positive");
+					case Tunes::ControlResult::InvalidTune:
+						PX4_WARN("Invalid tune: %d", tune_control.tune_id);
 						break;
 
-					case tune_control_s::TUNE_ID_NOTIFY_NEUTRAL:
-						PX4_INFO("notify neutral");
+					case Tunes::ControlResult::AlreadyPlaying:
+						// Do nothing
 						break;
-
-					case tune_control_s::TUNE_ID_NOTIFY_NEGATIVE:
-						PX4_INFO("notify negative");
-						break;
-
-					case tune_control_s::TUNE_ID_ARMING_WARNING:
-						PX4_INFO("arming warning");
-						break;
-
-					case tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW:
-						PX4_INFO("battery warning (slow)");
-						break;
-
-					case tune_control_s::TUNE_ID_BATTERY_WARNING_FAST:
-						PX4_INFO("battery warning (fast)");
-						break;
-
-					case tune_control_s::TUNE_ID_ARMING_FAILURE:
-						PX4_ERR("arming failure");
-						break;
-
-					case tune_control_s::TUNE_ID_SINGLE_BEEP:
-						PX4_INFO("beep");
-						break;
-
-					case tune_control_s::TUNE_ID_HOME_SET:
-						PX4_INFO("home set");
-						break;
-					}
-
-#endif // (!TONE_ALARM_TIMER && !GPIO_TONE_ALARM_GPIO) || DEBUG_BUILD
-
-					break;
-
-				case Tunes::ControlResult::WouldInterrupt:
-					// otherwise re-publish tune to process next
-					PX4_DEBUG("tune already playing, requeing tune: %d", tune_control.tune_id);
-					{
-						uORB::Publication<tune_control_s> tune_control_pub{ORB_ID(tune_control)};
-						tune_control.timestamp = hrt_absolute_time();
-						tune_control_pub.publish(tune_control);
-					}
-
-					break;
-
-
-				case Tunes::ControlResult::InvalidTune:
-					PX4_WARN("Invalid tune: %d", tune_control.tune_id);
-					break;
-
-				case Tunes::ControlResult::AlreadyPlaying:
-					// Do nothing
-					break;
 				}
 			}
 		}
@@ -199,7 +191,8 @@ void ToneAlarm::Run()
 		PX4_DEBUG("inter-note silence");
 		ScheduleAt(_next_note_time);
 
-	} else if (_play_tone && (_tunes.get_next_note(frequency, duration, silence_length) == Tunes::Status::Continue)) {
+	} else if (_play_tone &&
+		   (_tunes.get_next_note(frequency, duration, silence_length) == Tunes::Status::Continue)) {
 		PX4_DEBUG("Play frequency: %d, duration: %d us, silence: %d us", frequency, duration, silence_length);
 
 		if (frequency > 0) {
@@ -235,8 +228,7 @@ void ToneAlarm::Run()
 	}
 }
 
-int ToneAlarm::task_spawn(int argc, char *argv[])
-{
+int ToneAlarm::task_spawn(int argc, char *argv[]) {
 	ToneAlarm *instance = new ToneAlarm();
 
 	if (!instance) {
@@ -255,8 +247,7 @@ int ToneAlarm::task_spawn(int argc, char *argv[])
 	return PX4_OK;
 }
 
-int ToneAlarm::print_usage(const char *reason)
-{
+int ToneAlarm::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -275,7 +266,4 @@ This module is responsible for the tone alarm.
 	return 0;
 }
 
-extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[])
-{
-	return ToneAlarm::main(argc, argv);
-}
+extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]) { return ToneAlarm::main(argc, argv); }

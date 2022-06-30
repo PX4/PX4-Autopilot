@@ -37,9 +37,10 @@
 extern "C" {
 #endif
 
+#include <px4_platform_common/crypto_algorithms.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <px4_platform_common/crypto_algorithms.h>
+
 #include "crypto_backend_definitions.h"
 
 /*
@@ -80,7 +81,6 @@ size_t keystore_get_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *
  */
 bool keystore_put_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *key, size_t key_size);
 
-
 /*
  * Architecture specific PX4 Crypto API functions
  */
@@ -113,9 +113,7 @@ void crypto_close(crypto_session_handle_t *handle);
  * idx: The key index, by which the key can be used
  * persistent: if set to "true", the key will be stored into the keystore
  */
-bool crypto_generate_key(crypto_session_handle_t handle,
-			 uint8_t idx,
-			 bool persistent);
+bool crypto_generate_key(crypto_session_handle_t handle, uint8_t idx, bool persistent);
 
 /*
  * Get a key from keystore, possibly encrypted
@@ -128,10 +126,7 @@ bool crypto_generate_key(crypto_session_handle_t handle,
  * encryption_key_idx: The key index in keystore to be used for encrypting
  * returns true on success, false on failure
  */
-bool crypto_get_encrypted_key(crypto_session_handle_t handle,
-			      uint8_t key_idx,
-			      uint8_t *key,
-			      size_t *max_len,
+bool crypto_get_encrypted_key(crypto_session_handle_t handle, uint8_t key_idx, uint8_t *key, size_t *max_len,
 			      uint8_t encryption_key_idx);
 
 /*
@@ -144,9 +139,7 @@ bool crypto_get_encrypted_key(crypto_session_handle_t handle,
  * encryption_key_idx: The key index in keystore to be used for encrypting
  * returns true on success, false on failure
  */
-bool crypto_get_nonce(crypto_session_handle_t handle,
-		      uint8_t *nonce,
-		      size_t *nonce_len);
+bool crypto_get_nonce(crypto_session_handle_t handle, uint8_t *nonce, size_t *nonce_len);
 
 /*
  * Perform signature check using an open session to crypto
@@ -156,18 +149,11 @@ bool crypto_get_nonce(crypto_session_handle_t handle,
  * message_size: size of the data
  */
 
-bool crypto_signature_check(crypto_session_handle_t handle,
-			    uint8_t  key_index,
-			    const uint8_t  *signature,
-			    const uint8_t *message,
-			    size_t message_size);
+bool crypto_signature_check(crypto_session_handle_t handle, uint8_t key_index, const uint8_t *signature,
+			    const uint8_t *message, size_t message_size);
 
-bool crypto_encrypt_data(crypto_session_handle_t handle,
-			 uint8_t  key_index,
-			 const uint8_t *message,
-			 size_t message_size,
-			 uint8_t *cipher,
-			 size_t *cipher_size);
+bool crypto_encrypt_data(crypto_session_handle_t handle, uint8_t key_index, const uint8_t *message, size_t message_size,
+			 uint8_t *cipher, size_t *cipher_size);
 
 /*
  * Returns a minimum data block size on which the crypto operations can be
@@ -182,5 +168,5 @@ bool crypto_encrypt_data(crypto_session_handle_t handle,
 size_t crypto_get_min_blocksize(crypto_session_handle_t handle, uint8_t key_idx);
 
 #if defined(__cplusplus)
-} // extern "C"
+}  // extern "C"
 #endif

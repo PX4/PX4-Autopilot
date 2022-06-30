@@ -37,19 +37,19 @@
 /// @author px4dev, Gus Grubba <mavlink@grubba.com>
 
 #include <dirent.h>
-#include <queue.h>
-#include <time.h>
-#include <stdio.h>
-#include <cstdbool>
 #include <drivers/drv_hrt.h>
+#include <queue.h>
+#include <stdio.h>
+#include <time.h>
+
+#include <cstdbool>
 
 #include "mavlink_bridge_header.h"
 
 class Mavlink;
 
 // MAVLink LOG_* Message Handler
-class MavlinkLogHandler
-{
+class MavlinkLogHandler {
 public:
 	MavlinkLogHandler(Mavlink *mavlink);
 	~MavlinkLogHandler();
@@ -67,10 +67,10 @@ public:
 
 private:
 	enum class LogHandlerState {
-		Inactive,     //There is no active action of log handler
-		Idle,         //The log handler is not sending list/data, but list has been sent
-		Listing,      //File list is being send
-		SendingData  //File Data is being send
+		Inactive,    // There is no active action of log handler
+		Idle,        // The log handler is not sending list/data, but list has been sent
+		Listing,     // File list is being send
+		SendingData  // File Data is being send
 	};
 	void _log_message(const mavlink_message_t *msg);
 	void _log_request_list(const mavlink_message_t *msg);
@@ -95,14 +95,14 @@ private:
 	LogHandlerState _current_status{LogHandlerState::Inactive};
 	Mavlink *_mavlink;
 
-	int         _next_entry{0};
-	int         _last_entry{0};
-	int         _log_count{0};
+	int _next_entry{0};
+	int _last_entry{0};
+	int _log_count{0};
 
-	uint16_t    _current_log_index{UINT16_MAX};
-	uint32_t    _current_log_size{0};
-	uint32_t    _current_log_data_offset{0};
-	uint32_t    _current_log_data_remaining{0};
-	FILE       *_current_log_filep{nullptr};
-	char        _current_log_filename[128]; //TODO: consider to allocate on runtime
+	uint16_t _current_log_index{UINT16_MAX};
+	uint32_t _current_log_size{0};
+	uint32_t _current_log_data_offset{0};
+	uint32_t _current_log_data_remaining{0};
+	FILE *_current_log_filep{nullptr};
+	char _current_log_filename[128];  // TODO: consider to allocate on runtime
 };

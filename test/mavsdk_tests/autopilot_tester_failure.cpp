@@ -33,59 +33,52 @@
 
 #include "autopilot_tester_failure.h"
 
-#include "math_helpers.h"
-#include <iostream>
-#include <future>
-#include <thread>
 #include <unistd.h>
 
+#include <future>
+#include <iostream>
+#include <thread>
 
-void AutopilotTesterFailure::connect(const std::string uri)
-{
+#include "math_helpers.h"
+
+void AutopilotTesterFailure::connect(const std::string uri) {
 	AutopilotTester::connect(uri);
 
 	auto system = get_system();
 	_failure.reset(new Failure(system));
 }
 
-void AutopilotTesterFailure::set_param_sys_failure_en(bool value)
-{
+void AutopilotTesterFailure::set_param_sys_failure_en(bool value) {
 	CHECK(getParams()->set_param_int("SYS_FAILURE_EN", value) == Param::Result::Success);
 }
 
-void AutopilotTesterFailure::set_param_fd_act_en(bool value)
-{
+void AutopilotTesterFailure::set_param_fd_act_en(bool value) {
 	CHECK(getParams()->set_param_int("FD_ACT_EN", value) == Param::Result::Success);
 }
 
-void AutopilotTesterFailure::set_param_mc_airmode(int value)
-{
+void AutopilotTesterFailure::set_param_mc_airmode(int value) {
 	CHECK(getParams()->set_param_int("MC_AIRMODE", value) == Param::Result::Success);
 }
 
-void AutopilotTesterFailure::set_param_ca_failure_mode(int value)
-{
+void AutopilotTesterFailure::set_param_ca_failure_mode(int value) {
 	CHECK(getParams()->set_param_int("CA_FAILURE_MODE", value) == Param::Result::Success);
 }
 
-void AutopilotTesterFailure::set_param_com_act_fail_act(int value)
-{
+void AutopilotTesterFailure::set_param_com_act_fail_act(int value) {
 	CHECK(getParams()->set_param_int("COM_ACT_FAIL_ACT", value) == Param::Result::Success);
 }
 
 void AutopilotTesterFailure::inject_failure(mavsdk::Failure::FailureUnit failure_unit,
-		mavsdk::Failure::FailureType failure_type, int instance, mavsdk::Failure::Result expected_result)
-{
+					    mavsdk::Failure::FailureType failure_type, int instance,
+					    mavsdk::Failure::Result expected_result) {
 	CHECK(_failure->inject(failure_unit, failure_type, instance) == expected_result);
 }
 
-void AutopilotTesterFailure::enable_actuator_output_status()
-{
+void AutopilotTesterFailure::enable_actuator_output_status() {
 	CHECK(getTelemetry()->set_rate_actuator_output_status(20.f) == Telemetry::Result::Success);
 }
 
-void AutopilotTesterFailure::ensure_motor_stopped(unsigned index, unsigned num_motors)
-{
+void AutopilotTesterFailure::ensure_motor_stopped(unsigned index, unsigned num_motors) {
 	const Telemetry::ActuatorOutputStatus &status = getTelemetry()->actuator_output_status();
 	CHECK(status.active >= num_motors);
 
@@ -93,7 +86,7 @@ void AutopilotTesterFailure::ensure_motor_stopped(unsigned index, unsigned num_m
 		if (i == index) {
 			CHECK(status.actuator[i] <= 901.f);
 
-		} else { // ensure all others are still running
+		} else {  // ensure all others are still running
 			CHECK(status.actuator[i] >= 999.f);
 		}
 	}

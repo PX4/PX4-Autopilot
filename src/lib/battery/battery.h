@@ -42,22 +42,21 @@
 
 #pragma once
 
-#include <math.h>
-#include <float.h>
-
 #include <board_config.h>
+#include <drivers/drv_hrt.h>
+#include <float.h>
+#include <lib/parameters/param.h>
+#include <math.h>
 #include <px4_platform_common/board_common.h>
 #include <px4_platform_common/module_params.h>
-#include <matrix/math.hpp>
-
-#include <drivers/drv_hrt.h>
-#include <lib/parameters/param.h>
-#include <lib/mathlib/math/filter/AlphaFilter.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_status.h>
+
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <matrix/math.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
 
 /**
  * BatteryBase is a base class for any type of battery.
@@ -65,8 +64,7 @@
  * You can use this class on its own. Or, if you need to implement a custom battery type,
  * you can inherit from this class. See, for example, src/modules/battery_status/AnalogBattery.h
  */
-class Battery : public ModuleParams
-{
+class Battery : public ModuleParams {
 public:
 	Battery(int index, ModuleParams *parent, const int sample_interval_us, const uint8_t source);
 	~Battery() = default;
@@ -126,7 +124,7 @@ protected:
 	struct {
 		float v_empty;
 		float v_charged;
-		int32_t  n_cells;
+		int32_t n_cells;
 		float capacity;
 		float v_load_drop;
 		float r_internal;
@@ -165,8 +163,8 @@ private:
 	AlphaFilter<float> _throttle_filter;
 	float _discharged_mah{0.f};
 	float _discharged_mah_loop{0.f};
-	float _state_of_charge_volt_based{-1.f}; // [0,1]
-	float _state_of_charge{-1.f}; // [0,1]
+	float _state_of_charge_volt_based{-1.f};  // [0,1]
+	float _state_of_charge{-1.f};             // [0,1]
 	float _scale{1.f};
 	uint8_t _warning{battery_status_s::BATTERY_WARNING_NONE};
 	hrt_abstime _last_timestamp{0};

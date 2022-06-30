@@ -32,23 +32,21 @@
  ****************************************************************************/
 
 /**
-* @file tiltrotor.h
-*
-* @author Roman Bapst 		<bapstroman@gmail.com>
-*
-*/
+ * @file tiltrotor.h
+ *
+ * @author Roman Bapst 		<bapstroman@gmail.com>
+ *
+ */
 
 #ifndef TILTROTOR_H
 #define TILTROTOR_H
-#include "vtol_type.h"
-#include <parameters/param.h>
 #include <drivers/drv_hrt.h>
+#include <parameters/param.h>
 
-class Tiltrotor : public VtolType
-{
+#include "vtol_type.h"
 
+class Tiltrotor : public VtolType {
 public:
-
 	Tiltrotor(VtolAttitudeControl *_att_controller);
 	~Tiltrotor() override = default;
 
@@ -63,11 +61,11 @@ public:
 
 private:
 	enum class vtol_mode {
-		MC_MODE = 0,			/**< vtol is in multicopter mode */
-		TRANSITION_FRONT_P1,	/**< vtol is in front transition part 1 mode */
-		TRANSITION_FRONT_P2,	/**< vtol is in front transition part 2 mode */
-		TRANSITION_BACK,		/**< vtol is in back transition mode */
-		FW_MODE					/**< vtol is in fixed wing mode */
+		MC_MODE = 0,         /**< vtol is in multicopter mode */
+		TRANSITION_FRONT_P1, /**< vtol is in front transition part 1 mode */
+		TRANSITION_FRONT_P2, /**< vtol is in front transition part 2 mode */
+		TRANSITION_BACK,     /**< vtol is in back transition mode */
+		FW_MODE              /**< vtol is in fixed wing mode */
 	};
 
 	/**
@@ -76,13 +74,12 @@ private:
 	 * they need to idle otherwise they need too much time to spin up for mc mode.
 	 */
 
-
 	struct {
-		vtol_mode flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
-		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
+		vtol_mode flight_mode;        /**< vtol flight mode, defined by enum vtol_mode */
+		hrt_abstime transition_start; /**< absoulte time at which front transition started */
 	} _vtol_schedule;
 
-	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */
+	float _tilt_control{0.0f}; /**< actuator value for the tilt servo */
 
 	void parameters_update() override;
 	float timeUntilMotorsAreUp();
@@ -90,17 +87,13 @@ private:
 
 	void blendThrottleDuringBacktransition(const float scale, const float target_throttle);
 
-
 	hrt_abstime _last_timestamp_disarmed{0}; /**< used for calculating time since arming */
 	bool _tilt_motors_for_startup{false};
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
-					(ParamFloat<px4::params::VT_TILT_MC>) _param_vt_tilt_mc,
-					(ParamFloat<px4::params::VT_TILT_TRANS>) _param_vt_tilt_trans,
-					(ParamFloat<px4::params::VT_TILT_FW>) _param_vt_tilt_fw,
-					(ParamFloat<px4::params::VT_TILT_SPINUP>) _param_vt_tilt_spinup,
-					(ParamFloat<px4::params::VT_TRANS_P2_DUR>) _param_vt_trans_p2_dur
-				       )
-
+	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType, (ParamFloat<px4::params::VT_TILT_MC>)_param_vt_tilt_mc,
+					(ParamFloat<px4::params::VT_TILT_TRANS>)_param_vt_tilt_trans,
+					(ParamFloat<px4::params::VT_TILT_FW>)_param_vt_tilt_fw,
+					(ParamFloat<px4::params::VT_TILT_SPINUP>)_param_vt_tilt_spinup,
+					(ParamFloat<px4::params::VT_TRANS_P2_DUR>)_param_vt_trans_p2_dur)
 };
 #endif

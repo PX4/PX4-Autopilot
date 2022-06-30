@@ -39,24 +39,23 @@
  * Based on the LIS2MDL driver.
  */
 
-#include <px4_platform_common/time.h>
 #include "lis2mdl.h"
 
-LIS2MDL::LIS2MDL(device::Device *interface, const I2CSPIDriverConfig &config) :
-	I2CSPIDriver(config),
-	_px4_mag(interface->get_device_id(), config.rotation),
-	_interface(interface),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")),
-	_conf_errors(perf_alloc(PC_COUNT, MODULE_NAME": conf_errors")),
-	_range_errors(perf_alloc(PC_COUNT, MODULE_NAME": range_errors")),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_measure_interval(0)
-{
+#include <px4_platform_common/time.h>
+
+LIS2MDL::LIS2MDL(device::Device *interface, const I2CSPIDriverConfig &config)
+	: I2CSPIDriver(config),
+	  _px4_mag(interface->get_device_id(), config.rotation),
+	  _interface(interface),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": comms_errors")),
+	  _conf_errors(perf_alloc(PC_COUNT, MODULE_NAME ": conf_errors")),
+	  _range_errors(perf_alloc(PC_COUNT, MODULE_NAME ": range_errors")),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _measure_interval(0) {
 	_px4_mag.set_scale(0.0015f); /* 49.152f / (2^15) */
 }
 
-LIS2MDL::~LIS2MDL()
-{
+LIS2MDL::~LIS2MDL() {
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -66,15 +65,13 @@ LIS2MDL::~LIS2MDL()
 	delete _interface;
 }
 
-int
-LIS2MDL::measure()
-{
+int LIS2MDL::measure() {
 	struct {
 		uint8_t status;
 		uint8_t x[2];
 		uint8_t y[2];
 		uint8_t z[2];
-	}       lis_report;
+	} lis_report;
 
 	struct {
 		int16_t x;
@@ -93,8 +90,8 @@ LIS2MDL::measure()
 	int ret = _interface->read(ADDR_STATUS_REG, (uint8_t *)&lis_report, sizeof(lis_report));
 
 	/**
-	 * Silicon Bug: the X axis will be read instead of the temperature registers if you do a sequential read through XYZ.
-	 * The temperature registers must be addressed directly.
+	 * Silicon Bug: the X axis will be read instead of the temperature registers if you do a sequential read through
+	 * XYZ. The temperature registers must be addressed directly.
 	 */
 	ret = _interface->read(ADDR_OUT_T_L, (uint8_t *)&buf_rx, sizeof(buf_rx));
 
@@ -106,7 +103,7 @@ LIS2MDL::measure()
 
 	perf_end(_sample_perf);
 
-	if ((lis_report.status & (1 << 3)) == 0) { // check data ready
+	if ((lis_report.status & (1 << 3)) == 0) {  // check data ready
 		return 0;
 	}
 
@@ -125,9 +122,7 @@ LIS2MDL::measure()
 	return PX4_OK;
 }
 
-void
-LIS2MDL::RunImpl()
-{
+void LIS2MDL::RunImpl() {
 	/* _measure_interval == 0  is used as _task_should_exit */
 	if (_measure_interval == 0) {
 		return;
@@ -141,10 +136,7 @@ LIS2MDL::RunImpl()
 	ScheduleDelayed(LIS2MDL_CONVERSION_INTERVAL);
 }
 
-int
-LIS2MDL::init()
-{
-
+int LIS2MDL::init() {
 	int ret = write_reg(ADDR_CFG_REG_A, CFG_REG_A_ODR | CFG_REG_A_MD | CFG_REG_A_TEMP_COMP_EN);
 	ret = write_reg(ADDR_CFG_REG_B, 0);
 	ret = write_reg(ADDR_CFG_REG_C, CFG_REG_C_BDU);
@@ -155,34 +147,26 @@ LIS2MDL::init()
 	return ret;
 }
 
-void
-LIS2MDL::print_status()
-{
+void LIS2MDL::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	PX4_INFO("poll interval:  %u", _measure_interval);
 }
 
-void
-LIS2MDL::start()
-{
+void LIS2MDL::start() {
 	/* schedule a cycle to start things */
 	ScheduleNow();
 }
 
-int
-LIS2MDL::read_reg(uint8_t reg, uint8_t &val)
-{
+int LIS2MDL::read_reg(uint8_t reg, uint8_t &val) {
 	uint8_t buf = val;
 	int ret = _interface->read(reg, &buf, 1);
 	val = buf;
 	return ret;
 }
 
-int
-LIS2MDL::write_reg(uint8_t reg, uint8_t val)
-{
+int LIS2MDL::write_reg(uint8_t reg, uint8_t val) {
 	uint8_t buf = val;
 	return _interface->write(reg, &buf, 1);
 }

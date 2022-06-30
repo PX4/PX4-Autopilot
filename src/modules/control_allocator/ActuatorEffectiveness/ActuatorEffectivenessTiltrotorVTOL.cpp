@@ -46,14 +46,12 @@ using namespace matrix;
 ActuatorEffectivenessTiltrotorVTOL::ActuatorEffectivenessTiltrotorVTOL(ModuleParams *parent)
 	: ModuleParams(parent),
 	  _mc_rotors(this, ActuatorEffectivenessRotors::AxisConfiguration::Configurable, true),
-	  _control_surfaces(this), _tilts(this)
-{
+	  _control_surfaces(this),
+	  _tilts(this) {
 	setFlightPhase(FlightPhase::HOVER_FLIGHT);
 }
-bool
-ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
-{
+bool ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &configuration,
+								EffectivenessUpdateReason external_update) {
 	if (!_combined_tilt_updated && external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
@@ -66,8 +64,8 @@ ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &config
 	// Update matrix with tilts in vertical position when update is triggered by a manual
 	// configuration (parameter) change. This is to make sure the normalization
 	// scales are tilt-invariant. Note: configuration updates are only possible when disarmed.
-	const float tilt_control_applied = (external_update == EffectivenessUpdateReason::CONFIGURATION_UPDATE) ? -1.f :
-					   _last_tilt_control;
+	const float tilt_control_applied =
+		(external_update == EffectivenessUpdateReason::CONFIGURATION_UPDATE) ? -1.f : _last_tilt_control;
 	_nontilted_motors = _mc_rotors.updateAxisFromTilts(_tilts, tilt_control_applied)
 			    << configuration.num_actuators[(int)ActuatorType::MOTORS];
 
@@ -92,16 +90,17 @@ ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &config
 }
 
 void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp)
-{
+							int matrix_index, ActuatorVector &actuator_sp) {
 	// apply flaps
 	if (matrix_index == 1) {
 		actuator_controls_s actuator_controls_1;
 
 		if (_actuator_controls_1_sub.copy(&actuator_controls_1)) {
 			const float flaps_control = actuator_controls_1.control[actuator_controls_s::INDEX_FLAPS];
-			const float airbrakes_control = actuator_controls_1.control[actuator_controls_s::INDEX_AIRBRAKES];
-			_control_surfaces.applyFlapsAndAirbrakes(flaps_control, airbrakes_control, _first_control_surface_idx, actuator_sp);
+			const float airbrakes_control =
+				actuator_controls_1.control[actuator_controls_s::INDEX_AIRBRAKES];
+			_control_surfaces.applyFlapsAndAirbrakes(flaps_control, airbrakes_control,
+								 _first_control_surface_idx, actuator_sp);
 		}
 	}
 
@@ -110,7 +109,8 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 		actuator_controls_s actuator_controls_1;
 
 		if (_actuator_controls_1_sub.copy(&actuator_controls_1)) {
-			float control_tilt = actuator_controls_1.control[actuator_controls_s::INDEX_COLLECTIVE_TILT] * 2.f - 1.f;
+			float control_tilt =
+				actuator_controls_1.control[actuator_controls_s::INDEX_COLLECTIVE_TILT] * 2.f - 1.f;
 
 			// set control_tilt to exactly -1 or 1 if close to these end points
 			control_tilt = control_tilt < -0.99f ? -1.f : control_tilt;
@@ -126,7 +126,8 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 			}
 
 			for (int i = 0; i < _tilts.count(); ++i) {
-				if (_tilts.config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
+				if (_tilts.config(i).tilt_direction ==
+				    ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
 					actuator_sp(i + _first_tilt_idx) += control_tilt;
 				}
 			}
@@ -134,20 +135,19 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 
 		// in FW directly use throttle sp
 		if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
-
 			actuator_controls_s actuator_controls_0;
 
 			if (_actuator_controls_0_sub.copy(&actuator_controls_0)) {
 				for (int i = 0; i < _first_tilt_idx; ++i) {
-					actuator_sp(i) = actuator_controls_0.control[actuator_controls_s::INDEX_THROTTLE];
+					actuator_sp(i) =
+						actuator_controls_0.control[actuator_controls_s::INDEX_THROTTLE];
 				}
 			}
 		}
 	}
 }
 
-void ActuatorEffectivenessTiltrotorVTOL::setFlightPhase(const FlightPhase &flight_phase)
-{
+void ActuatorEffectivenessTiltrotorVTOL::setFlightPhase(const FlightPhase &flight_phase) {
 	if (_flight_phase == flight_phase) {
 		return;
 	}
@@ -156,14 +156,14 @@ void ActuatorEffectivenessTiltrotorVTOL::setFlightPhase(const FlightPhase &fligh
 
 	// update stopped motors
 	switch (flight_phase) {
-	case FlightPhase::FORWARD_FLIGHT:
-		_stopped_motors = _nontilted_motors;
-		break;
+		case FlightPhase::FORWARD_FLIGHT:
+			_stopped_motors = _nontilted_motors;
+			break;
 
-	case FlightPhase::HOVER_FLIGHT:
-	case FlightPhase::TRANSITION_FF_TO_HF:
-	case FlightPhase::TRANSITION_HF_TO_FF:
-		_stopped_motors = 0;
-		break;
+		case FlightPhase::HOVER_FLIGHT:
+		case FlightPhase::TRANSITION_FF_TO_HF:
+		case FlightPhase::TRANSITION_HF_TO_FF:
+			_stopped_motors = 0;
+			break;
 	}
 }

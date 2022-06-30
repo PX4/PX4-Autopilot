@@ -45,36 +45,32 @@
  * claim the timer and then drive it directly.
  */
 
-#include <px4_platform_common/px4_config.h>
+#include <assert.h>
+#include <board_config.h>
+#include <debug.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
-
-#include <sys/types.h>
-#include <stdbool.h>
-
-#include <assert.h>
-#include <debug.h>
-#include <time.h>
+#include <px4_platform_common/px4_config.h>
 #include <queue.h>
-#include <errno.h>
+#include <stdbool.h>
 #include <string.h>
-
-#include <board_config.h>
-#include <drivers/drv_hrt.h>
-
+#include <sys/types.h>
+#include <time.h>
 
 #include "stm32_gpio.h"
 #include "stm32_tim.h"
 
 #ifdef CONFIG_DEBUG_HRT
-#  define hrtinfo _info
+#define hrtinfo _info
 #else
-#  define hrtinfo(x...)
+#define hrtinfo(x...)
 #endif
 
 #if !defined(CONFIG_BUILD_FLAT)
-#include <px4_platform_common/defines.h>
 #include <px4_platform/board_ctrl.h>
+#include <px4_platform_common/defines.h>
 #include <px4_platform_common/sem.h>
 
 #define HRT_ENTRY_QUEUE_MAX_SIZE 3
@@ -84,8 +80,7 @@ static int hrt_entry_queued = 0;
 static bool suppress_entry_queue_error = false;
 static bool hrt_entry_queue_error = false;
 
-void hrt_usr_call(void *arg)
-{
+void hrt_usr_call(void *arg) {
 	// This is called from hrt interrupt
 	if (hrt_entry_queued < HRT_ENTRY_QUEUE_MAX_SIZE) {
 		next_hrt_entry[hrt_entry_queued++] = (struct hrt_call *)arg;
@@ -102,99 +97,99 @@ void hrt_usr_call(void *arg)
 #ifdef HRT_TIMER
 
 /* HRT configuration */
-#if   HRT_TIMER == 1
-# define HRT_TIMER_BASE		STM32_TIM1_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB2ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB2ENR_TIM1EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM1CC
-# define HRT_TIMER_CLOCK	STM32_APB2_TIM1_CLKIN
-# if CONFIG_STM32_TIM1
-#  error must not set CONFIG_STM32_TIM1=y and HRT_TIMER=1
-# endif
+#if HRT_TIMER == 1
+#define HRT_TIMER_BASE STM32_TIM1_BASE
+#define HRT_TIMER_POWER_REG STM32_RCC_APB2ENR
+#define HRT_TIMER_POWER_BIT RCC_APB2ENR_TIM1EN
+#define HRT_TIMER_VECTOR STM32_IRQ_TIM1CC
+#define HRT_TIMER_CLOCK STM32_APB2_TIM1_CLKIN
+#if CONFIG_STM32_TIM1
+#error must not set CONFIG_STM32_TIM1=y and HRT_TIMER=1
+#endif
 #elif HRT_TIMER == 2
-# define HRT_TIMER_BASE		STM32_TIM2_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB1ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB1ENR_TIM2EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM2
-# define HRT_TIMER_CLOCK	STM32_APB1_TIM2_CLKIN
-# if CONFIG_STM32_TIM2
-#  error must not set CONFIG_STM32_TIM2=y and HRT_TIMER=2
-# endif
+#define HRT_TIMER_BASE STM32_TIM2_BASE
+#define HRT_TIMER_POWER_REG STM32_RCC_APB1ENR
+#define HRT_TIMER_POWER_BIT RCC_APB1ENR_TIM2EN
+#define HRT_TIMER_VECTOR STM32_IRQ_TIM2
+#define HRT_TIMER_CLOCK STM32_APB1_TIM2_CLKIN
+#if CONFIG_STM32_TIM2
+#error must not set CONFIG_STM32_TIM2=y and HRT_TIMER=2
+#endif
 #elif HRT_TIMER == 3
-# define HRT_TIMER_BASE		STM32_TIM3_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB1ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB1ENR_TIM3EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM3
-# define HRT_TIMER_CLOCK	STM32_APB1_TIM3_CLKIN
-# if CONFIG_STM32_TIM3
-#  error must not set CONFIG_STM32_TIM3=y and HRT_TIMER=3
-# endif
+#define HRT_TIMER_BASE STM32_TIM3_BASE
+#define HRT_TIMER_POWER_REG STM32_RCC_APB1ENR
+#define HRT_TIMER_POWER_BIT RCC_APB1ENR_TIM3EN
+#define HRT_TIMER_VECTOR STM32_IRQ_TIM3
+#define HRT_TIMER_CLOCK STM32_APB1_TIM3_CLKIN
+#if CONFIG_STM32_TIM3
+#error must not set CONFIG_STM32_TIM3=y and HRT_TIMER=3
+#endif
 #elif HRT_TIMER == 4
-# define HRT_TIMER_BASE		STM32_TIM4_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB1ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB1ENR_TIM4EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM4
-# define HRT_TIMER_CLOCK	STM32_APB1_TIM4_CLKIN
-# if CONFIG_STM32_TIM4
-#  error must not set CONFIG_STM32_TIM4=y and HRT_TIMER=4
-# endif
+#define HRT_TIMER_BASE STM32_TIM4_BASE
+#define HRT_TIMER_POWER_REG STM32_RCC_APB1ENR
+#define HRT_TIMER_POWER_BIT RCC_APB1ENR_TIM4EN
+#define HRT_TIMER_VECTOR STM32_IRQ_TIM4
+#define HRT_TIMER_CLOCK STM32_APB1_TIM4_CLKIN
+#if CONFIG_STM32_TIM4
+#error must not set CONFIG_STM32_TIM4=y and HRT_TIMER=4
+#endif
 #elif HRT_TIMER == 5
-# define HRT_TIMER_BASE		STM32_TIM5_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB1ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB1ENR_TIM5EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM5
-# define HRT_TIMER_CLOCK	STM32_APB1_TIM5_CLKIN
-# if CONFIG_STM32_TIM5
-#  error must not set CONFIG_STM32_TIM5=y and HRT_TIMER=5
-# endif
+#define HRT_TIMER_BASE STM32_TIM5_BASE
+#define HRT_TIMER_POWER_REG STM32_RCC_APB1ENR
+#define HRT_TIMER_POWER_BIT RCC_APB1ENR_TIM5EN
+#define HRT_TIMER_VECTOR STM32_IRQ_TIM5
+#define HRT_TIMER_CLOCK STM32_APB1_TIM5_CLKIN
+#if CONFIG_STM32_TIM5
+#error must not set CONFIG_STM32_TIM5=y and HRT_TIMER=5
+#endif
 #elif HRT_TIMER == 8
-# define HRT_TIMER_BASE		STM32_TIM8_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB2ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB2ENR_TIM8EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM8CC
-# define HRT_TIMER_CLOCK	STM32_APB2_TIM8_CLKIN
-# if CONFIG_STM32_TIM8
-#  error must not set CONFIG_STM32_TIM8=y and HRT_TIMER=8
-# endif
+#define HRT_TIMER_BASE STM32_TIM8_BASE
+#define HRT_TIMER_POWER_REG STM32_RCC_APB2ENR
+#define HRT_TIMER_POWER_BIT RCC_APB2ENR_TIM8EN
+#define HRT_TIMER_VECTOR STM32_IRQ_TIM8CC
+#define HRT_TIMER_CLOCK STM32_APB2_TIM8_CLKIN
+#if CONFIG_STM32_TIM8
+#error must not set CONFIG_STM32_TIM8=y and HRT_TIMER=8
+#endif
 #elif HRT_TIMER == 9
-# define HRT_TIMER_BASE		STM32_TIM9_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB2ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB2ENR_TIM9EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM1BRK
-# define HRT_TIMER_CLOCK	STM32_APB2_TIM9_CLKIN
-# if CONFIG_STM32_TIM9
-#  error must not set CONFIG_STM32_TIM9=y and HRT_TIMER=9
-# endif
+#define HRT_TIMER_BASE STM32_TIM9_BASE
+#define HRT_TIMER_POWER_REG STM32_RCC_APB2ENR
+#define HRT_TIMER_POWER_BIT RCC_APB2ENR_TIM9EN
+#define HRT_TIMER_VECTOR STM32_IRQ_TIM1BRK
+#define HRT_TIMER_CLOCK STM32_APB2_TIM9_CLKIN
+#if CONFIG_STM32_TIM9
+#error must not set CONFIG_STM32_TIM9=y and HRT_TIMER=9
+#endif
 #elif HRT_TIMER == 10
-# define HRT_TIMER_BASE		STM32_TIM10_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB2ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB2ENR_TIM10EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM1UP
-# define HRT_TIMER_CLOCK	STM32_APB2_TIM10_CLKIN
-# if CONFIG_STM32_TIM10
-#  error must not set CONFIG_STM32_TIM11=y and HRT_TIMER=10
-# endif
+#define HRT_TIMER_BASE STM32_TIM10_BASE
+#define HRT_TIMER_POWER_REG STM32_RCC_APB2ENR
+#define HRT_TIMER_POWER_BIT RCC_APB2ENR_TIM10EN
+#define HRT_TIMER_VECTOR STM32_IRQ_TIM1UP
+#define HRT_TIMER_CLOCK STM32_APB2_TIM10_CLKIN
+#if CONFIG_STM32_TIM10
+#error must not set CONFIG_STM32_TIM11=y and HRT_TIMER=10
+#endif
 #elif HRT_TIMER == 11
-# define HRT_TIMER_BASE		STM32_TIM11_BASE
-# define HRT_TIMER_POWER_REG	STM32_RCC_APB2ENR
-# define HRT_TIMER_POWER_BIT	RCC_APB2ENR_TIM11EN
-# define HRT_TIMER_VECTOR	STM32_IRQ_TIM1TRGCOM
-# define HRT_TIMER_CLOCK	STM32_APB2_TIM11_CLKIN
-# if CONFIG_STM32_TIM11
-#  error must not set CONFIG_STM32_TIM11=y and HRT_TIMER=11
-# endif
+#define HRT_TIMER_BASE STM32_TIM11_BASE
+#define HRT_TIMER_POWER_REG STM32_RCC_APB2ENR
+#define HRT_TIMER_POWER_BIT RCC_APB2ENR_TIM11EN
+#define HRT_TIMER_VECTOR STM32_IRQ_TIM1TRGCOM
+#define HRT_TIMER_CLOCK STM32_APB2_TIM11_CLKIN
+#if CONFIG_STM32_TIM11
+#error must not set CONFIG_STM32_TIM11=y and HRT_TIMER=11
+#endif
 #else
-# error HRT_TIMER must be a value between 1 and 11
+#error HRT_TIMER must be a value between 1 and 11
 #endif
 
 /*
  * HRT clock must be a multiple of 1MHz greater than 1MHz
  */
 #if (HRT_TIMER_CLOCK % 1000000) != 0
-# error HRT_TIMER_CLOCK must be a multiple of 1MHz
+#error HRT_TIMER_CLOCK must be a multiple of 1MHz
 #endif
 #if HRT_TIMER_CLOCK <= 1000000
-# error HRT_TIMER_CLOCK must be greater than 1MHz
+#error HRT_TIMER_CLOCK must be greater than 1MHz
 #endif
 
 /**
@@ -209,99 +204,95 @@ void hrt_usr_call(void *arg)
  * reading a time and writing a deadline to the timer cannot
  * result in missing the deadline.
  */
-#define HRT_INTERVAL_MIN	50
-#define HRT_INTERVAL_MAX	50000
+#define HRT_INTERVAL_MIN 50
+#define HRT_INTERVAL_MAX 50000
 
 /*
  * Period of the free-running counter, in microseconds.
  */
-#define HRT_COUNTER_PERIOD	65536
+#define HRT_COUNTER_PERIOD 65536
 
 /*
  * Scaling factor(s) for the free-running counter; convert an input
  * in counts to a time in microseconds.
  */
-#define HRT_COUNTER_SCALE(_c)	(_c)
+#define HRT_COUNTER_SCALE(_c) (_c)
 
 /*
  * Timer register accessors
  */
-#define REG(_reg)	(*(volatile uint32_t *)(HRT_TIMER_BASE + _reg))
+#define REG(_reg) (*(volatile uint32_t *)(HRT_TIMER_BASE + _reg))
 
-#define rCR1     	REG(STM32_GTIM_CR1_OFFSET)
-#define rCR2     	REG(STM32_GTIM_CR2_OFFSET)
-#define rSMCR    	REG(STM32_GTIM_SMCR_OFFSET)
-#define rDIER    	REG(STM32_GTIM_DIER_OFFSET)
-#define rSR      	REG(STM32_GTIM_SR_OFFSET)
-#define rEGR     	REG(STM32_GTIM_EGR_OFFSET)
-#define rCCMR1   	REG(STM32_GTIM_CCMR1_OFFSET)
-#define rCCMR2   	REG(STM32_GTIM_CCMR2_OFFSET)
-#define rCCER    	REG(STM32_GTIM_CCER_OFFSET)
-#define rCNT     	REG(STM32_GTIM_CNT_OFFSET)
-#define rPSC     	REG(STM32_GTIM_PSC_OFFSET)
-#define rARR     	REG(STM32_GTIM_ARR_OFFSET)
-#define rCCR1    	REG(STM32_GTIM_CCR1_OFFSET)
-#define rCCR2    	REG(STM32_GTIM_CCR2_OFFSET)
-#define rCCR3    	REG(STM32_GTIM_CCR3_OFFSET)
-#define rCCR4    	REG(STM32_GTIM_CCR4_OFFSET)
-#define rDCR     	REG(STM32_GTIM_DCR_OFFSET)
-#define rDMAR    	REG(STM32_GTIM_DMAR_OFFSET)
+#define rCR1 REG(STM32_GTIM_CR1_OFFSET)
+#define rCR2 REG(STM32_GTIM_CR2_OFFSET)
+#define rSMCR REG(STM32_GTIM_SMCR_OFFSET)
+#define rDIER REG(STM32_GTIM_DIER_OFFSET)
+#define rSR REG(STM32_GTIM_SR_OFFSET)
+#define rEGR REG(STM32_GTIM_EGR_OFFSET)
+#define rCCMR1 REG(STM32_GTIM_CCMR1_OFFSET)
+#define rCCMR2 REG(STM32_GTIM_CCMR2_OFFSET)
+#define rCCER REG(STM32_GTIM_CCER_OFFSET)
+#define rCNT REG(STM32_GTIM_CNT_OFFSET)
+#define rPSC REG(STM32_GTIM_PSC_OFFSET)
+#define rARR REG(STM32_GTIM_ARR_OFFSET)
+#define rCCR1 REG(STM32_GTIM_CCR1_OFFSET)
+#define rCCR2 REG(STM32_GTIM_CCR2_OFFSET)
+#define rCCR3 REG(STM32_GTIM_CCR3_OFFSET)
+#define rCCR4 REG(STM32_GTIM_CCR4_OFFSET)
+#define rDCR REG(STM32_GTIM_DCR_OFFSET)
+#define rDMAR REG(STM32_GTIM_DMAR_OFFSET)
 
 /*
  * Specific registers and bits used by HRT sub-functions
  */
 /* FIXME! There is an interaction in the CCMR registers that prevents using Chan 1 as the timer and chan 2 as the PPM*/
 #if HRT_TIMER_CHANNEL == 1
-# define rCCR_HRT	rCCR1			/* compare register for HRT */
-# define DIER_HRT	GTIM_DIER_CC1IE		/* interrupt enable for HRT */
-# define SR_INT_HRT	GTIM_SR_CC1IF		/* interrupt status for HRT */
+#define rCCR_HRT rCCR1           /* compare register for HRT */
+#define DIER_HRT GTIM_DIER_CC1IE /* interrupt enable for HRT */
+#define SR_INT_HRT GTIM_SR_CC1IF /* interrupt status for HRT */
 #elif HRT_TIMER_CHANNEL == 2
-# define rCCR_HRT	rCCR2			/* compare register for HRT */
-# define DIER_HRT	GTIM_DIER_CC2IE		/* interrupt enable for HRT */
-# define SR_INT_HRT	GTIM_SR_CC2IF		/* interrupt status for HRT */
+#define rCCR_HRT rCCR2           /* compare register for HRT */
+#define DIER_HRT GTIM_DIER_CC2IE /* interrupt enable for HRT */
+#define SR_INT_HRT GTIM_SR_CC2IF /* interrupt status for HRT */
 #elif HRT_TIMER_CHANNEL == 3
-# define rCCR_HRT	rCCR3			/* compare register for HRT */
-# define DIER_HRT	GTIM_DIER_CC3IE		/* interrupt enable for HRT */
-# define SR_INT_HRT	GTIM_SR_CC3IF		/* interrupt status for HRT */
+#define rCCR_HRT rCCR3           /* compare register for HRT */
+#define DIER_HRT GTIM_DIER_CC3IE /* interrupt enable for HRT */
+#define SR_INT_HRT GTIM_SR_CC3IF /* interrupt status for HRT */
 #elif HRT_TIMER_CHANNEL == 4
-# define rCCR_HRT	rCCR4			/* compare register for HRT */
-# define DIER_HRT	GTIM_DIER_CC4IE		/* interrupt enable for HRT */
-# define SR_INT_HRT	GTIM_SR_CC4IF		/* interrupt status for HRT */
+#define rCCR_HRT rCCR4           /* compare register for HRT */
+#define DIER_HRT GTIM_DIER_CC4IE /* interrupt enable for HRT */
+#define SR_INT_HRT GTIM_SR_CC4IF /* interrupt status for HRT */
 #else
-# error HRT_TIMER_CHANNEL must be a value between 1 and 4
+#error HRT_TIMER_CHANNEL must be a value between 1 and 4
 #endif
 
 /*
  * Queue of callout entries.
  */
-static struct sq_queue_s	callout_queue;
+static struct sq_queue_s callout_queue;
 
 /* latency baseline (last compare value applied) */
-static uint16_t			latency_baseline;
+static uint16_t latency_baseline;
 
 /* timer count at interrupt (for latency purposes) */
-static uint16_t			latency_actual;
+static uint16_t latency_actual;
 
 /* latency histogram */
 const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
-const uint16_t latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
+const uint16_t latency_buckets[LATENCY_BUCKET_COUNT] = {1, 2, 5, 10, 20, 50, 100, 1000};
 __EXPORT uint32_t latency_counters[LATENCY_BUCKET_COUNT + 1];
 
 /* timer-specific functions */
-static void		hrt_tim_init(void);
-static int		hrt_tim_isr(int irq, void *context, void *arg);
-static void		hrt_latency_update(void);
+static void hrt_tim_init(void);
+static int hrt_tim_isr(int irq, void *context, void *arg);
+static void hrt_latency_update(void);
 
 /* callout list manipulation */
-static void		hrt_call_internal(struct hrt_call *entry,
-		hrt_abstime deadline,
-		hrt_abstime interval,
-		hrt_callout callout,
-		void *arg);
-static void		hrt_call_enter(struct hrt_call *entry);
-static void		hrt_call_reschedule(void);
-static void		hrt_call_invoke(void);
-
+static void hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime interval, hrt_callout callout,
+			      void *arg);
+static void hrt_call_enter(struct hrt_call *entry);
+static void hrt_call_reschedule(void);
+static void hrt_call_invoke(void);
 
 int hrt_ioctl(unsigned int cmd, unsigned long arg);
 /*
@@ -313,73 +304,73 @@ int hrt_ioctl(unsigned int cmd, unsigned long arg);
  *
  * Note that we assume that M3 means STM32F1 (since we don't really care about the F2).
  */
-# ifdef CONFIG_ARCH_CORTEXM3
-#  undef GTIM_CCER_CC1NP
-#  undef GTIM_CCER_CC2NP
-#  undef GTIM_CCER_CC3NP
-#  undef GTIM_CCER_CC4NP
-#  define GTIM_CCER_CC1NP 0
-#  define GTIM_CCER_CC2NP 0
-#  define GTIM_CCER_CC3NP 0
-#  define GTIM_CCER_CC4NP 0
-#  define PPM_EDGE_FLIP
-# endif
+#ifdef CONFIG_ARCH_CORTEXM3
+#undef GTIM_CCER_CC1NP
+#undef GTIM_CCER_CC2NP
+#undef GTIM_CCER_CC3NP
+#undef GTIM_CCER_CC4NP
+#define GTIM_CCER_CC1NP 0
+#define GTIM_CCER_CC2NP 0
+#define GTIM_CCER_CC3NP 0
+#define GTIM_CCER_CC4NP 0
+#define PPM_EDGE_FLIP
+#endif
 /* FIXME! There is an interaction in the CCMR registers that prevents using Chan 1 as the timer and chan 2 as the PPM*/
-# if HRT_PPM_CHANNEL == 1
-#  define rCCR_PPM	rCCR1			/* capture register for PPM */
-#  define DIER_PPM	GTIM_DIER_CC1IE		/* capture interrupt (non-DMA mode) */
-#  define SR_INT_PPM	GTIM_SR_CC1IF		/* capture interrupt (non-DMA mode) */
-#  define SR_OVF_PPM	GTIM_SR_CC1OF		/* capture overflow (non-DMA mode) */
-#  define CCMR1_PPM	1			/* not on TI1/TI2 */
-#  define CCMR2_PPM	0			/* on TI3, not on TI4 */
-#  define CCER_PPM	(GTIM_CCER_CC1E | GTIM_CCER_CC1P | GTIM_CCER_CC1NP) /* CC1, both edges */
-#  define CCER_PPM_FLIP	GTIM_CCER_CC1P
-# elif HRT_PPM_CHANNEL == 2
-#  define rCCR_PPM	rCCR2			/* capture register for PPM */
-#  define DIER_PPM	GTIM_DIER_CC2IE		/* capture interrupt (non-DMA mode) */
-#  define SR_INT_PPM	GTIM_SR_CC2IF		/* capture interrupt (non-DMA mode) */
-#  define SR_OVF_PPM	GTIM_SR_CC2OF		/* capture overflow (non-DMA mode) */
-#  define CCMR1_PPM	2			/* not on TI1/TI2 */
-#  define CCMR2_PPM	0			/* on TI3, not on TI4 */
-#  define CCER_PPM	(GTIM_CCER_CC2E | GTIM_CCER_CC2P | GTIM_CCER_CC2NP) /* CC2, both edges */
-#  define CCER_PPM_FLIP	GTIM_CCER_CC2P
-# elif HRT_PPM_CHANNEL == 3
-#  define rCCR_PPM	rCCR3			/* capture register for PPM */
-#  define DIER_PPM	GTIM_DIER_CC3IE		/* capture interrupt (non-DMA mode) */
-#  define SR_INT_PPM	GTIM_SR_CC3IF		/* capture interrupt (non-DMA mode) */
-#  define SR_OVF_PPM	GTIM_SR_CC3OF		/* capture overflow (non-DMA mode) */
-#  define CCMR1_PPM	0			/* not on TI1/TI2 */
-#  define CCMR2_PPM	1			/* on TI3, not on TI4 */
-#  define CCER_PPM	(GTIM_CCER_CC3E | GTIM_CCER_CC3P | GTIM_CCER_CC3NP) /* CC3, both edges */
-#  define CCER_PPM_FLIP	GTIM_CCER_CC3P
-# elif HRT_PPM_CHANNEL == 4
-#  define rCCR_PPM	rCCR4			/* capture register for PPM */
-#  define DIER_PPM	GTIM_DIER_CC4IE		/* capture interrupt (non-DMA mode) */
-#  define SR_INT_PPM	GTIM_SR_CC4IF		/* capture interrupt (non-DMA mode) */
-#  define SR_OVF_PPM	GTIM_SR_CC4OF		/* capture overflow (non-DMA mode) */
-#  define CCMR1_PPM	0			/* not on TI1/TI2 */
-#  define CCMR2_PPM	2			/* on TI3, not on TI4 */
-#  define CCER_PPM	(GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC4NP) /* CC4, both edges */
-#  define CCER_PPM_FLIP	GTIM_CCER_CC4P
-# else
-#  error HRT_PPM_CHANNEL must be a value between 1 and 4
-# endif
+#if HRT_PPM_CHANNEL == 1
+#define rCCR_PPM rCCR1                                               /* capture register for PPM */
+#define DIER_PPM GTIM_DIER_CC1IE                                     /* capture interrupt (non-DMA mode) */
+#define SR_INT_PPM GTIM_SR_CC1IF                                     /* capture interrupt (non-DMA mode) */
+#define SR_OVF_PPM GTIM_SR_CC1OF                                     /* capture overflow (non-DMA mode) */
+#define CCMR1_PPM 1                                                  /* not on TI1/TI2 */
+#define CCMR2_PPM 0                                                  /* on TI3, not on TI4 */
+#define CCER_PPM (GTIM_CCER_CC1E | GTIM_CCER_CC1P | GTIM_CCER_CC1NP) /* CC1, both edges */
+#define CCER_PPM_FLIP GTIM_CCER_CC1P
+#elif HRT_PPM_CHANNEL == 2
+#define rCCR_PPM rCCR2                                               /* capture register for PPM */
+#define DIER_PPM GTIM_DIER_CC2IE                                     /* capture interrupt (non-DMA mode) */
+#define SR_INT_PPM GTIM_SR_CC2IF                                     /* capture interrupt (non-DMA mode) */
+#define SR_OVF_PPM GTIM_SR_CC2OF                                     /* capture overflow (non-DMA mode) */
+#define CCMR1_PPM 2                                                  /* not on TI1/TI2 */
+#define CCMR2_PPM 0                                                  /* on TI3, not on TI4 */
+#define CCER_PPM (GTIM_CCER_CC2E | GTIM_CCER_CC2P | GTIM_CCER_CC2NP) /* CC2, both edges */
+#define CCER_PPM_FLIP GTIM_CCER_CC2P
+#elif HRT_PPM_CHANNEL == 3
+#define rCCR_PPM rCCR3                                               /* capture register for PPM */
+#define DIER_PPM GTIM_DIER_CC3IE                                     /* capture interrupt (non-DMA mode) */
+#define SR_INT_PPM GTIM_SR_CC3IF                                     /* capture interrupt (non-DMA mode) */
+#define SR_OVF_PPM GTIM_SR_CC3OF                                     /* capture overflow (non-DMA mode) */
+#define CCMR1_PPM 0                                                  /* not on TI1/TI2 */
+#define CCMR2_PPM 1                                                  /* on TI3, not on TI4 */
+#define CCER_PPM (GTIM_CCER_CC3E | GTIM_CCER_CC3P | GTIM_CCER_CC3NP) /* CC3, both edges */
+#define CCER_PPM_FLIP GTIM_CCER_CC3P
+#elif HRT_PPM_CHANNEL == 4
+#define rCCR_PPM rCCR4                                               /* capture register for PPM */
+#define DIER_PPM GTIM_DIER_CC4IE                                     /* capture interrupt (non-DMA mode) */
+#define SR_INT_PPM GTIM_SR_CC4IF                                     /* capture interrupt (non-DMA mode) */
+#define SR_OVF_PPM GTIM_SR_CC4OF                                     /* capture overflow (non-DMA mode) */
+#define CCMR1_PPM 0                                                  /* not on TI1/TI2 */
+#define CCMR2_PPM 2                                                  /* on TI3, not on TI4 */
+#define CCER_PPM (GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC4NP) /* CC4, both edges */
+#define CCER_PPM_FLIP GTIM_CCER_CC4P
+#else
+#error HRT_PPM_CHANNEL must be a value between 1 and 4
+#endif
 
 /*
  * PPM decoder tuning parameters
  */
-# define PPM_MIN_PULSE_WIDTH	200		/**< minimum width of a valid first pulse */
-# define PPM_MAX_PULSE_WIDTH	600		/**< maximum width of a valid first pulse */
-# define PPM_MIN_CHANNEL_VALUE	800		/**< shortest valid channel signal */
-# define PPM_MAX_CHANNEL_VALUE	2200		/**< longest valid channel signal */
-# define PPM_MIN_START		2300		/**< shortest valid start gap (only 2nd part of pulse) */
+#define PPM_MIN_PULSE_WIDTH 200    /**< minimum width of a valid first pulse */
+#define PPM_MAX_PULSE_WIDTH 600    /**< maximum width of a valid first pulse */
+#define PPM_MIN_CHANNEL_VALUE 800  /**< shortest valid channel signal */
+#define PPM_MAX_CHANNEL_VALUE 2200 /**< longest valid channel signal */
+#define PPM_MIN_START 2300         /**< shortest valid start gap (only 2nd part of pulse) */
 
 /* decoded PPM buffer */
-#define PPM_MIN_CHANNELS	5
-#define PPM_MAX_CHANNELS	20
+#define PPM_MIN_CHANNELS 5
+#define PPM_MAX_CHANNELS 20
 
 /** Number of same-sized frames required to 'lock' */
-#define PPM_CHANNEL_LOCK	4		/**< should be less than the input timeout */
+#define PPM_CHANNEL_LOCK 4 /**< should be less than the input timeout */
 
 __EXPORT uint16_t ppm_buffer[PPM_MAX_CHANNELS];
 __EXPORT uint16_t ppm_frame_length = 0;
@@ -402,29 +393,24 @@ static uint16_t ppm_temp_buffer[PPM_MAX_CHANNELS];
 
 /** PPM decoder state machine */
 struct {
-	uint16_t	last_edge;	/**< last capture time */
-	uint16_t	last_mark;	/**< last significant edge */
-	uint16_t	frame_start;	/**< the frame width */
-	unsigned	next_channel;	/**< next channel index */
-	enum {
-		UNSYNCH = 0,
-		ARM,
-		ACTIVE,
-		INACTIVE
-	} phase;
+	uint16_t last_edge;    /**< last capture time */
+	uint16_t last_mark;    /**< last significant edge */
+	uint16_t frame_start;  /**< the frame width */
+	unsigned next_channel; /**< next channel index */
+	enum { UNSYNCH = 0, ARM, ACTIVE, INACTIVE } phase;
 } ppm;
 
-static void	hrt_ppm_decode(uint32_t status);
+static void hrt_ppm_decode(uint32_t status);
 
 #else
 /* disable the PPM configuration */
-# define rCCR_PPM	0
-# define DIER_PPM	0
-# define SR_INT_PPM	0
-# define SR_OVF_PPM	0
-# define CCMR1_PPM	0
-# define CCMR2_PPM	0
-# define CCER_PPM	0
+#define rCCR_PPM 0
+#define DIER_PPM 0
+#define SR_INT_PPM 0
+#define SR_OVF_PPM 0
+#define CCMR1_PPM 0
+#define CCMR2_PPM 0
+#define CCER_PPM 0
 #endif /* HRT_PPM_CHANNEL */
 
 /**
@@ -433,9 +419,7 @@ static void	hrt_ppm_decode(uint32_t status);
  * We expect that we'll own one of the reduced-function STM32 general
  * timers, and that we can use channel 1 in compare mode.
  */
-static void
-hrt_tim_init(void)
-{
+static void hrt_tim_init(void) {
 	/* claim our interrupt vector */
 	irq_attach(HRT_TIMER_VECTOR, hrt_tim_isr, NULL);
 
@@ -447,14 +431,14 @@ hrt_tim_init(void)
 	rCR2 = 0;
 	rSMCR = 0;
 	rDIER = DIER_HRT | DIER_PPM;
-	rCCER = 0;		/* unlock CCMR* registers */
+	rCCER = 0; /* unlock CCMR* registers */
 	rCCMR1 = CCMR1_PPM;
 	rCCMR2 = CCMR2_PPM;
 	rCCER = CCER_PPM;
 	rDCR = 0;
 
 	/* configure the timer to free-run at 1MHz */
-	rPSC = (HRT_TIMER_CLOCK / 1000000) - 1;	/* this really only works for whole-MHz clocks */
+	rPSC = (HRT_TIMER_CLOCK / 1000000) - 1; /* this really only works for whole-MHz clocks */
 
 	/* run the full span of the counter */
 	rARR = 0xffff;
@@ -476,9 +460,7 @@ hrt_tim_init(void)
 /**
  * Handle the PPM decoder state machine.
  */
-static void
-hrt_ppm_decode(uint32_t status)
-{
+static void hrt_ppm_decode(uint32_t status) {
 	uint16_t count = rCCR_PPM;
 	uint16_t width;
 	uint16_t interval;
@@ -506,7 +488,6 @@ hrt_ppm_decode(uint32_t status)
 	 * and reset the state machine
 	 */
 	if (width >= PPM_MIN_START) {
-
 		/*
 		 * If the number of channels changes unexpectedly, we don't want
 		 * to just immediately jump on the new count as it may be a result
@@ -539,7 +520,6 @@ hrt_ppm_decode(uint32_t status)
 				}
 
 				ppm_last_valid_decode = hrt_absolute_time();
-
 			}
 		}
 
@@ -554,64 +534,63 @@ hrt_ppm_decode(uint32_t status)
 	}
 
 	switch (ppm.phase) {
-	case UNSYNCH:
-		/* we are waiting for a start pulse - nothing useful to do here */
-		break;
+		case UNSYNCH:
+			/* we are waiting for a start pulse - nothing useful to do here */
+			break;
 
-	case ARM:
+		case ARM:
 
-		/* we expect a pulse giving us the first mark */
-		if (width < PPM_MIN_PULSE_WIDTH || width > PPM_MAX_PULSE_WIDTH) {
-			goto error;        /* pulse was too short or too long */
-		}
+			/* we expect a pulse giving us the first mark */
+			if (width < PPM_MIN_PULSE_WIDTH || width > PPM_MAX_PULSE_WIDTH) {
+				goto error; /* pulse was too short or too long */
+			}
 
-		/* record the mark timing, expect an inactive edge */
-		ppm.last_mark = ppm.last_edge;
+			/* record the mark timing, expect an inactive edge */
+			ppm.last_mark = ppm.last_edge;
 
-		/* frame length is everything including the start gap */
-		ppm_frame_length = (uint16_t)(ppm.last_edge - ppm.frame_start);
-		ppm.frame_start = ppm.last_edge;
-		ppm.phase = ACTIVE;
-		break;
+			/* frame length is everything including the start gap */
+			ppm_frame_length = (uint16_t)(ppm.last_edge - ppm.frame_start);
+			ppm.frame_start = ppm.last_edge;
+			ppm.phase = ACTIVE;
+			break;
 
-	case INACTIVE:
+		case INACTIVE:
 
-		/* we expect a short pulse */
-		if (width < PPM_MIN_PULSE_WIDTH || width > PPM_MAX_PULSE_WIDTH) {
-			goto error;        /* pulse was too short or too long */
-		}
+			/* we expect a short pulse */
+			if (width < PPM_MIN_PULSE_WIDTH || width > PPM_MAX_PULSE_WIDTH) {
+				goto error; /* pulse was too short or too long */
+			}
 
-		/* this edge is not interesting, but now we are ready for the next mark */
-		ppm.phase = ACTIVE;
-		break;
+			/* this edge is not interesting, but now we are ready for the next mark */
+			ppm.phase = ACTIVE;
+			break;
 
-	case ACTIVE:
-		/* determine the interval from the last mark */
-		interval = count - ppm.last_mark;
-		ppm.last_mark = count;
+		case ACTIVE:
+			/* determine the interval from the last mark */
+			interval = count - ppm.last_mark;
+			ppm.last_mark = count;
 
 #if PPM_DEBUG
-		ppm_pulse_history[ppm_pulse_next++] = interval;
+			ppm_pulse_history[ppm_pulse_next++] = interval;
 
-		if (ppm_pulse_next >= 32) {
-			ppm_pulse_next = 0;
-		}
+			if (ppm_pulse_next >= 32) {
+				ppm_pulse_next = 0;
+			}
 
 #endif
 
-		/* if the mark-mark timing is out of bounds, abandon the frame */
-		if ((interval < PPM_MIN_CHANNEL_VALUE) || (interval > PPM_MAX_CHANNEL_VALUE)) {
-			goto error;
-		}
+			/* if the mark-mark timing is out of bounds, abandon the frame */
+			if ((interval < PPM_MIN_CHANNEL_VALUE) || (interval > PPM_MAX_CHANNEL_VALUE)) {
+				goto error;
+			}
 
-		/* if we have room to store the value, do so */
-		if (ppm.next_channel < PPM_MAX_CHANNELS) {
-			ppm_temp_buffer[ppm.next_channel++] = interval;
-		}
+			/* if we have room to store the value, do so */
+			if (ppm.next_channel < PPM_MAX_CHANNELS) {
+				ppm_temp_buffer[ppm.next_channel++] = interval;
+			}
 
-		ppm.phase = INACTIVE;
-		break;
-
+			ppm.phase = INACTIVE;
+			break;
 	}
 
 	ppm.last_edge = count;
@@ -623,7 +602,6 @@ error:
 	/* we don't like the state of the decoder, reset it and try again */
 	ppm.phase = UNSYNCH;
 	ppm_decoded_channels = 0;
-
 }
 #endif /* HRT_PPM_CHANNEL */
 
@@ -631,9 +609,7 @@ error:
  * Handle the compare interrupt by calling the callout dispatcher
  * and then re-scheduling the next deadline.
  */
-static int
-hrt_tim_isr(int irq, void *context, void *arg)
-{
+static int hrt_tim_isr(int irq, void *context, void *arg) {
 	uint32_t status;
 
 	/* grab the timer for latency tracking purposes */
@@ -650,9 +626,9 @@ hrt_tim_isr(int irq, void *context, void *arg)
 	/* was this a PPM edge? */
 	if (status & (SR_INT_PPM | SR_OVF_PPM)) {
 		/* if required, flip edge sensitivity */
-# ifdef PPM_EDGE_FLIP
+#ifdef PPM_EDGE_FLIP
 		rCCER ^= CCER_PPM_FLIP;
-# endif
+#endif
 
 		hrt_ppm_decode(status);
 	}
@@ -661,7 +637,6 @@ hrt_tim_isr(int irq, void *context, void *arg)
 
 	/* was this a timer tick? */
 	if (status & SR_INT_HRT) {
-
 		/* do latency calculations */
 		hrt_latency_update();
 
@@ -679,12 +654,10 @@ hrt_tim_isr(int irq, void *context, void *arg)
  * Fetch a never-wrapping absolute time value in microseconds from
  * some arbitrary epoch shortly after system start.
  */
-hrt_abstime
-hrt_absolute_time(void)
-{
-	hrt_abstime	abstime;
-	uint32_t	count;
-	irqstate_t	flags;
+hrt_abstime hrt_absolute_time(void) {
+	hrt_abstime abstime;
+	uint32_t count;
+	irqstate_t flags;
 
 	/*
 	 * Counter state.  Marked volatile as they may change
@@ -726,9 +699,7 @@ hrt_absolute_time(void)
 /**
  * Store the absolute time in an interrupt-safe fashion
  */
-void
-hrt_store_absolute_time(volatile hrt_abstime *t)
-{
+void hrt_store_absolute_time(volatile hrt_abstime *t) {
 	irqstate_t flags = px4_enter_critical_section();
 	*t = hrt_absolute_time();
 	px4_leave_critical_section(flags);
@@ -737,9 +708,7 @@ hrt_store_absolute_time(volatile hrt_abstime *t)
 /**
  * Initialise the high-resolution timing module.
  */
-void
-hrt_init(void)
-{
+void hrt_init(void) {
 	sq_init(&callout_queue);
 	hrt_tim_init();
 
@@ -762,41 +731,26 @@ hrt_init(void)
 /**
  * Call callout(arg) after interval has elapsed.
  */
-void
-hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, void *arg)
-{
-	hrt_call_internal(entry,
-			  hrt_absolute_time() + delay,
-			  0,
-			  callout,
-			  arg);
+void hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, void *arg) {
+	hrt_call_internal(entry, hrt_absolute_time() + delay, 0, callout, arg);
 }
 
 /**
  * Call callout(arg) at calltime.
  */
-void
-hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, void *arg)
-{
+void hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, void *arg) {
 	hrt_call_internal(entry, calltime, 0, callout, arg);
 }
 
 /**
  * Call callout(arg) every period.
  */
-void
-hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg)
-{
-	hrt_call_internal(entry,
-			  hrt_absolute_time() + delay,
-			  interval,
-			  callout,
-			  arg);
+void hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg) {
+	hrt_call_internal(entry, hrt_absolute_time() + delay, interval, callout, arg);
 }
 
-static void
-hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime interval, hrt_callout callout, void *arg)
-{
+static void hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime interval, hrt_callout callout,
+			      void *arg) {
 	irqstate_t flags = px4_enter_critical_section();
 
 	/* if the entry is currently queued, remove it */
@@ -826,18 +780,12 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
  *
  * Always returns false for repeating callouts.
  */
-bool
-hrt_called(struct hrt_call *entry)
-{
-	return (entry->deadline == 0);
-}
+bool hrt_called(struct hrt_call *entry) { return (entry->deadline == 0); }
 
 /**
  * Remove the entry from the callout list.
  */
-void
-hrt_cancel(struct hrt_call *entry)
-{
+void hrt_cancel(struct hrt_call *entry) {
 	irqstate_t flags = px4_enter_critical_section();
 
 	sq_rem(&entry->link, &callout_queue);
@@ -851,10 +799,8 @@ hrt_cancel(struct hrt_call *entry)
 	px4_leave_critical_section(flags);
 }
 
-static void
-hrt_call_enter(struct hrt_call *entry)
-{
-	struct hrt_call	*call, *next;
+static void hrt_call_enter(struct hrt_call *entry) {
+	struct hrt_call *call, *next;
 
 	call = (struct hrt_call *)sq_peek(&callout_queue);
 
@@ -879,10 +825,8 @@ hrt_call_enter(struct hrt_call *entry)
 	hrtinfo("scheduled\n");
 }
 
-static void
-hrt_call_invoke(void)
-{
-	struct hrt_call	*call;
+static void hrt_call_invoke(void) {
+	struct hrt_call *call;
 	hrt_abstime deadline;
 
 	while (true) {
@@ -933,12 +877,10 @@ hrt_call_invoke(void)
  *
  * This routine must be called with interrupts disabled.
  */
-static void
-hrt_call_reschedule()
-{
-	hrt_abstime	now = hrt_absolute_time();
-	struct hrt_call	*next = (struct hrt_call *)sq_peek(&callout_queue);
-	hrt_abstime	deadline = now + HRT_INTERVAL_MAX;
+static void hrt_call_reschedule() {
+	hrt_abstime now = hrt_absolute_time();
+	struct hrt_call *next = (struct hrt_call *)sq_peek(&callout_queue);
+	hrt_abstime deadline = now + HRT_INTERVAL_MAX;
 
 	/*
 	 * Determine what the next deadline will be.
@@ -972,11 +914,9 @@ hrt_call_reschedule()
 	rCCR_HRT = latency_baseline = deadline & 0xffff;
 }
 
-static void
-hrt_latency_update(void)
-{
+static void hrt_latency_update(void) {
 	uint16_t latency = latency_actual - latency_baseline;
-	unsigned	index;
+	unsigned index;
 
 	/* bounded buckets */
 	for (index = 0; index < LATENCY_BUCKET_COUNT; index++) {
@@ -990,42 +930,30 @@ hrt_latency_update(void)
 	latency_counters[index]++;
 }
 
-void
-hrt_call_init(struct hrt_call *entry)
-{
-	memset(entry, 0, sizeof(*entry));
-}
+void hrt_call_init(struct hrt_call *entry) { memset(entry, 0, sizeof(*entry)); }
 
-void
-hrt_call_delay(struct hrt_call *entry, hrt_abstime delay)
-{
-	entry->deadline = hrt_absolute_time() + delay;
-}
+void hrt_call_delay(struct hrt_call *entry, hrt_abstime delay) { entry->deadline = hrt_absolute_time() + delay; }
 
 #if !defined(CONFIG_BUILD_FLAT)
 /* These functions are inlined in all but NuttX protected/kernel builds */
 
-latency_info_t get_latency(uint16_t bucket_idx, uint16_t counter_idx)
-{
+latency_info_t get_latency(uint16_t bucket_idx, uint16_t counter_idx) {
 	latency_info_t ret = {latency_buckets[bucket_idx], latency_counters[counter_idx]};
 	return ret;
 }
 
-void reset_latency_counters(void)
-{
+void reset_latency_counters(void) {
 	for (int i = 0; i <= get_latency_bucket_count(); i++) {
 		latency_counters[i] = 0;
 	}
 }
 
 /* board_ioctl interface for user-space hrt driver */
-int
-hrt_ioctl(unsigned int cmd, unsigned long arg)
-{
+int hrt_ioctl(unsigned int cmd, unsigned long arg) {
 	hrt_boardctl_t *h = (hrt_boardctl_t *)arg;
 
 	switch (cmd) {
-	case HRT_WAITEVENT: {
+		case HRT_WAITEVENT: {
 			irqstate_t flags;
 			px4_sem_wait(&g_wait_sem);
 			/* Atomically update the pointer to user side hrt entry */
@@ -1047,47 +975,45 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 				PX4_ERR("HRT entry error, queue size now %d", hrt_entry_queued);
 				suppress_entry_queue_error = true;
 			}
-		}
-		break;
+		} break;
 
-	case HRT_ABSOLUTE_TIME:
-		*(hrt_abstime *)arg = hrt_absolute_time();
-		break;
+		case HRT_ABSOLUTE_TIME:
+			*(hrt_abstime *)arg = hrt_absolute_time();
+			break;
 
-	case HRT_CALL_AFTER:
-		hrt_call_after(h->entry, h->time, (hrt_callout)hrt_usr_call, h->entry);
-		break;
+		case HRT_CALL_AFTER:
+			hrt_call_after(h->entry, h->time, (hrt_callout)hrt_usr_call, h->entry);
+			break;
 
-	case HRT_CALL_AT:
-		hrt_call_at(h->entry, h->time, (hrt_callout)hrt_usr_call, h->entry);
-		break;
+		case HRT_CALL_AT:
+			hrt_call_at(h->entry, h->time, (hrt_callout)hrt_usr_call, h->entry);
+			break;
 
-	case HRT_CALL_EVERY:
-		hrt_call_every(h->entry, h->time, h->interval, (hrt_callout)hrt_usr_call, h->entry);
-		break;
+		case HRT_CALL_EVERY:
+			hrt_call_every(h->entry, h->time, h->interval, (hrt_callout)hrt_usr_call, h->entry);
+			break;
 
-	case HRT_CANCEL:
-		if (h && h->entry) {
-			hrt_cancel(h->entry);
+		case HRT_CANCEL:
+			if (h && h->entry) {
+				hrt_cancel(h->entry);
 
-		} else {
-			PX4_ERR("HRT_CANCEL called with NULL entry");
-		}
+			} else {
+				PX4_ERR("HRT_CANCEL called with NULL entry");
+			}
 
-		break;
+			break;
 
-	case HRT_GET_LATENCY: {
+		case HRT_GET_LATENCY: {
 			latency_boardctl_t *latency = (latency_boardctl_t *)arg;
 			latency->latency = get_latency(latency->bucket_idx, latency->counter_idx);
-		}
-		break;
+		} break;
 
-	case HRT_RESET_LATENCY:
-		reset_latency_counters();
-		break;
+		case HRT_RESET_LATENCY:
+			reset_latency_counters();
+			break;
 
-	default:
-		return -EINVAL;
+		default:
+			return -EINVAL;
 	}
 
 	return OK;

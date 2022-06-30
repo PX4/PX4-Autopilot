@@ -31,27 +31,25 @@
  *
  ****************************************************************************/
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdarg.h>
 #include <fcntl.h>
-
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
+#include <stdarg.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
 #include <px4_platform/board_ctrl.h>
 #endif
 
 #include "uORBDeviceNode.hpp"
-#include "uORBUtils.hpp"
 #include "uORBManager.hpp"
+#include "uORBUtils.hpp"
 
 uORB::Manager *uORB::Manager::_Instance = nullptr;
 
-bool uORB::Manager::initialize()
-{
+bool uORB::Manager::initialize() {
 	if (_Instance == nullptr) {
 		_Instance = new uORB::Manager();
 	}
@@ -62,8 +60,7 @@ bool uORB::Manager::initialize()
 	return _Instance != nullptr;
 }
 
-bool uORB::Manager::terminate()
-{
+bool uORB::Manager::terminate() {
 	if (_Instance != nullptr) {
 		delete _Instance;
 		_Instance = nullptr;
@@ -73,10 +70,9 @@ bool uORB::Manager::terminate()
 	return false;
 }
 
-uORB::Manager::Manager()
-{
+uORB::Manager::Manager() {
 #ifdef ORB_USE_PUBLISHER_RULES
-	const char *file_name = PX4_STORAGEDIR"/orb_publisher.rules";
+	const char *file_name = PX4_STORAGEDIR "/orb_publisher.rules";
 	int ret = readPublisherRulesFromFile(file_name, _publisher_rule);
 
 	if (ret == PX4_OK) {
@@ -88,16 +84,11 @@ uORB::Manager::Manager()
 	}
 
 #endif /* ORB_USE_PUBLISHER_RULES */
-
 }
 
-uORB::Manager::~Manager()
-{
-	delete _device_master;
-}
+uORB::Manager::~Manager() { delete _device_master; }
 
-uORB::DeviceMaster *uORB::Manager::get_device_master()
-{
+uORB::DeviceMaster *uORB::Manager::get_device_master() {
 	if (!_device_master) {
 		_device_master = new DeviceMaster();
 
@@ -111,26 +102,26 @@ uORB::DeviceMaster *uORB::Manager::get_device_master()
 }
 
 #if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
-int	uORB::Manager::orb_ioctl(unsigned int cmd, unsigned long arg)
-{
+int uORB::Manager::orb_ioctl(unsigned int cmd, unsigned long arg) {
 	int ret = PX4_OK;
 
 	switch (cmd) {
-	case ORBIOCDEVEXISTS: {
+		case ORBIOCDEVEXISTS: {
 			orbiocdevexists_t *data = (orbiocdevexists_t *)arg;
 
 			if (data->check_advertised) {
 				data->ret = uORB::Manager::orb_exists(get_orb_meta(data->orb_id), data->instance);
 
 			} else {
-				data->ret = uORB::Manager::orb_device_node_exists(data->orb_id, data->instance) ? PX4_OK : PX4_ERROR;
+				data->ret = uORB::Manager::orb_device_node_exists(data->orb_id, data->instance)
+						    ? PX4_OK
+						    : PX4_ERROR;
 			}
-		}
-		break;
+		} break;
 
-	case ORBIOCDEVADVERTISE: {
+		case ORBIOCDEVADVERTISE: {
 			orbiocdevadvertise_t *data = (orbiocdevadvertise_t *)arg;
-			uORB::DeviceMaster *dev =  uORB::Manager::get_instance()->get_device_master();
+			uORB::DeviceMaster *dev = uORB::Manager::get_instance()->get_device_master();
 
 			if (dev) {
 				data->ret = dev->advertise(data->meta, data->is_advertiser, data->instance);
@@ -138,63 +129,55 @@ int	uORB::Manager::orb_ioctl(unsigned int cmd, unsigned long arg)
 			} else {
 				data->ret = PX4_ERROR;
 			}
-		}
-		break;
+		} break;
 
-	case ORBIOCDEVUNADVERTISE: {
+		case ORBIOCDEVUNADVERTISE: {
 			orbiocdevunadvertise_t *data = (orbiocdevunadvertise_t *)arg;
 			data->ret = uORB::Manager::orb_unadvertise(data->handle);
-		}
-		break;
+		} break;
 
-	case ORBIOCDEVPUBLISH: {
+		case ORBIOCDEVPUBLISH: {
 			orbiocdevpublish_t *data = (orbiocdevpublish_t *)arg;
 			data->ret = uORB::Manager::orb_publish(data->meta, data->handle, data->data);
-		}
-		break;
+		} break;
 
-	case ORBIOCDEVADDSUBSCRIBER: {
+		case ORBIOCDEVADDSUBSCRIBER: {
 			orbiocdevaddsubscriber_t *data = (orbiocdevaddsubscriber_t *)arg;
-			data->handle = uORB::Manager::orb_add_internal_subscriber(data->orb_id, data->instance, data->initial_generation);
-		}
-		break;
+			data->handle = uORB::Manager::orb_add_internal_subscriber(data->orb_id, data->instance,
+										  data->initial_generation);
+		} break;
 
-	case ORBIOCDEVREMSUBSCRIBER: {
+		case ORBIOCDEVREMSUBSCRIBER: {
 			uORB::Manager::orb_remove_internal_subscriber(reinterpret_cast<void *>(arg));
-		}
-		break;
+		} break;
 
-	case ORBIOCDEVQUEUESIZE: {
+		case ORBIOCDEVQUEUESIZE: {
 			orbiocdevqueuesize_t *data = (orbiocdevqueuesize_t *)arg;
 			data->size = uORB::Manager::orb_get_queue_size(data->handle);
-		}
-		break;
+		} break;
 
-	case ORBIOCDEVDATACOPY: {
+		case ORBIOCDEVDATACOPY: {
 			orbiocdevdatacopy_t *data = (orbiocdevdatacopy_t *)arg;
-			data->ret = uORB::Manager::orb_data_copy(data->handle, data->dst, data->generation, data->only_if_updated);
-		}
-		break;
+			data->ret = uORB::Manager::orb_data_copy(data->handle, data->dst, data->generation,
+								 data->only_if_updated);
+		} break;
 
-	case ORBIOCDEVREGCALLBACK: {
+		case ORBIOCDEVREGCALLBACK: {
 			orbiocdevregcallback_t *data = (orbiocdevregcallback_t *)arg;
 			data->registered = uORB::Manager::register_callback(data->handle, data->callback_sub);
-		}
-		break;
+		} break;
 
-	case ORBIOCDEVUNREGCALLBACK: {
+		case ORBIOCDEVUNREGCALLBACK: {
 			orbiocdevunregcallback_t *data = (orbiocdevunregcallback_t *)arg;
 			uORB::Manager::unregister_callback(data->handle, data->callback_sub);
-		}
-		break;
+		} break;
 
-	case ORBIOCDEVGETINSTANCE: {
+		case ORBIOCDEVGETINSTANCE: {
 			orbiocdevgetinstance_t *data = (orbiocdevgetinstance_t *)arg;
 			data->instance = uORB::Manager::orb_get_instance(data->handle);
-		}
-		break;
+		} break;
 
-	case ORBIOCDEVMASTERCMD: {
+		case ORBIOCDEVMASTERCMD: {
 			uORB::DeviceMaster *dev = uORB::Manager::get_instance()->get_device_master();
 
 			if (dev) {
@@ -205,31 +188,27 @@ int	uORB::Manager::orb_ioctl(unsigned int cmd, unsigned long arg)
 					dev->printStatistics();
 				}
 			}
-		}
-		break;
+		} break;
 
-	case ORBIOCDEVUPDATESAVAIL: {
+		case ORBIOCDEVUPDATESAVAIL: {
 			orbiocdevupdatesavail_t *data = (orbiocdevupdatesavail_t *)arg;
 			data->ret = updates_available(data->handle, data->last_generation);
-		}
-		break;
+		} break;
 
-	case ORBIOCDEVISADVERTISED: {
+		case ORBIOCDEVISADVERTISED: {
 			orbiocdevisadvertised_t *data = (orbiocdevisadvertised_t *)arg;
 			data->ret = is_advertised(data->handle);
-		}
-		break;
+		} break;
 
-	default:
-		ret = -ENOTTY;
+		default:
+			ret = -ENOTTY;
 	}
 
 	return ret;
 }
 #endif
 
-int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
-{
+int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance) {
 	int ret = PX4_ERROR;
 
 	// instance valid range: [0, ORB_MULTI_MAX_INSTANCES)
@@ -237,7 +216,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		return ret;
 	}
 
-	uORB::DeviceMaster *dev =  uORB::Manager::get_instance()->get_device_master();
+	uORB::DeviceMaster *dev = uORB::Manager::get_instance()->get_device_master();
 
 	if (dev) {
 		uORB::DeviceNode *node = dev->getDeviceNode(meta, instance);
@@ -295,8 +274,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 }
 
 orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-		unsigned int queue_size)
-{
+						unsigned int queue_size) {
 #ifdef ORB_USE_PUBLISHER_RULES
 
 	// check publisher rule
@@ -367,12 +345,11 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	return advertiser;
 }
 
-int uORB::Manager::orb_unadvertise(orb_advert_t handle)
-{
+int uORB::Manager::orb_unadvertise(orb_advert_t handle) {
 #ifdef ORB_USE_PUBLISHER_RULES
 
 	if (handle == _Instance) {
-		return PX4_OK; //pretend success
+		return PX4_OK;  // pretend success
 	}
 
 #endif /* ORB_USE_PUBLISHER_RULES */
@@ -380,28 +357,20 @@ int uORB::Manager::orb_unadvertise(orb_advert_t handle)
 	return uORB::DeviceNode::unadvertise(handle);
 }
 
-int uORB::Manager::orb_subscribe(const struct orb_metadata *meta)
-{
-	return node_open(meta, false);
-}
+int uORB::Manager::orb_subscribe(const struct orb_metadata *meta) { return node_open(meta, false); }
 
-int uORB::Manager::orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance)
-{
+int uORB::Manager::orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance) {
 	int inst = instance;
 	return node_open(meta, false, &inst);
 }
 
-int uORB::Manager::orb_unsubscribe(int fd)
-{
-	return px4_close(fd);
-}
+int uORB::Manager::orb_unsubscribe(int fd) { return px4_close(fd); }
 
-int uORB::Manager::orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data)
-{
+int uORB::Manager::orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data) {
 #ifdef ORB_USE_PUBLISHER_RULES
 
 	if (handle == _Instance) {
-		return PX4_OK; //pretend success
+		return PX4_OK;  // pretend success
 	}
 
 #endif /* ORB_USE_PUBLISHER_RULES */
@@ -409,8 +378,7 @@ int uORB::Manager::orb_publish(const struct orb_metadata *meta, orb_advert_t han
 	return uORB::DeviceNode::publish(meta, handle, data);
 }
 
-int uORB::Manager::orb_copy(const struct orb_metadata *meta, int handle, void *buffer)
-{
+int uORB::Manager::orb_copy(const struct orb_metadata *meta, int handle, void *buffer) {
 	int ret;
 
 	ret = px4_read(handle, buffer, meta->o_size);
@@ -427,36 +395,29 @@ int uORB::Manager::orb_copy(const struct orb_metadata *meta, int handle, void *b
 	return PX4_OK;
 }
 
-int uORB::Manager::orb_check(int handle, bool *updated)
-{
+int uORB::Manager::orb_check(int handle, bool *updated) {
 	/* Set to false here so that if `px4_ioctl` fails to false. */
 	*updated = false;
 	return px4_ioctl(handle, ORBIOCUPDATED, (unsigned long)(uintptr_t)updated);
 }
 
-int uORB::Manager::orb_set_interval(int handle, unsigned interval)
-{
+int uORB::Manager::orb_set_interval(int handle, unsigned interval) {
 	return px4_ioctl(handle, ORBIOCSETINTERVAL, interval * 1000);
 }
 
-int uORB::Manager::orb_get_interval(int handle, unsigned *interval)
-{
+int uORB::Manager::orb_get_interval(int handle, unsigned *interval) {
 	int ret = px4_ioctl(handle, ORBIOCGETINTERVAL, (unsigned long)interval);
 	*interval /= 1000;
 	return ret;
 }
 
-
-bool uORB::Manager::orb_device_node_exists(ORB_ID orb_id, uint8_t instance)
-{
+bool uORB::Manager::orb_device_node_exists(ORB_ID orb_id, uint8_t instance) {
 	DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
 
-	return device_master != nullptr &&
-	       device_master->deviceNodeExists(orb_id, instance);
+	return device_master != nullptr && device_master->deviceNodeExists(orb_id, instance);
 }
 
-void *uORB::Manager::orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance, unsigned *initial_generation)
-{
+void *uORB::Manager::orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance, unsigned *initial_generation) {
 	uORB::DeviceNode *node = nullptr;
 	DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
 
@@ -472,15 +433,15 @@ void *uORB::Manager::orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance
 	return node;
 }
 
-void uORB::Manager::orb_remove_internal_subscriber(void *node_handle)
-{
+void uORB::Manager::orb_remove_internal_subscriber(void *node_handle) {
 	static_cast<DeviceNode *>(node_handle)->remove_internal_subscriber();
 }
 
-uint8_t uORB::Manager::orb_get_queue_size(const void *node_handle) { return static_cast<const DeviceNode *>(node_handle)->get_queue_size(); }
+uint8_t uORB::Manager::orb_get_queue_size(const void *node_handle) {
+	return static_cast<const DeviceNode *>(node_handle)->get_queue_size();
+}
 
-bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated)
-{
+bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated) {
 	if (!is_advertised(node_handle)) {
 		return false;
 	}
@@ -493,19 +454,16 @@ bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &genera
 }
 
 // add item to list of work items to schedule on node update
-bool uORB::Manager::register_callback(void *node_handle, SubscriptionCallback *callback_sub)
-{
+bool uORB::Manager::register_callback(void *node_handle, SubscriptionCallback *callback_sub) {
 	return static_cast<DeviceNode *>(node_handle)->register_callback(callback_sub);
 }
 
 // remove item from list of work items
-void uORB::Manager::unregister_callback(void *node_handle, SubscriptionCallback *callback_sub)
-{
+void uORB::Manager::unregister_callback(void *node_handle, SubscriptionCallback *callback_sub) {
 	static_cast<DeviceNode *>(node_handle)->unregister_callback(callback_sub);
 }
 
-uint8_t uORB::Manager::orb_get_instance(const void *node_handle)
-{
+uint8_t uORB::Manager::orb_get_instance(const void *node_handle) {
 	if (node_handle) {
 		return static_cast<const uORB::DeviceNode *>(node_handle)->get_instance();
 	}
@@ -515,20 +473,18 @@ uint8_t uORB::Manager::orb_get_instance(const void *node_handle)
 
 /* These are optimized by inlining in NuttX Flat build */
 #if !defined(CONFIG_BUILD_FLAT)
-unsigned uORB::Manager::updates_available(const void *node_handle, unsigned last_generation)
-{
-	return is_advertised(node_handle) ? static_cast<const uORB::DeviceNode *>(node_handle)->updates_available(
-		       last_generation) : 0;
+unsigned uORB::Manager::updates_available(const void *node_handle, unsigned last_generation) {
+	return is_advertised(node_handle)
+		       ? static_cast<const uORB::DeviceNode *>(node_handle)->updates_available(last_generation)
+		       : 0;
 }
 
-bool uORB::Manager::is_advertised(const void *node_handle)
-{
+bool uORB::Manager::is_advertised(const void *node_handle) {
 	return static_cast<const uORB::DeviceNode *>(node_handle)->is_advertised();
 }
 #endif
 
-int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, int *instance)
-{
+int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, int *instance) {
 	char path[orb_maxpath];
 	int fd = -1;
 	int ret = PX4_ERROR;
@@ -564,7 +520,6 @@ int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, i
 
 	/* we may need to advertise the node... */
 	if (fd < 0) {
-
 		ret = PX4_ERROR;
 
 		if (get_device_master()) {
@@ -601,8 +556,7 @@ int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, i
 }
 
 #ifdef ORB_COMMUNICATOR
-void uORB::Manager::set_uorb_communicator(uORBCommunicator::IChannel *channel)
-{
+void uORB::Manager::set_uorb_communicator(uORBCommunicator::IChannel *channel) {
 	_comm_channel = channel;
 
 	if (_comm_channel != nullptr) {
@@ -610,13 +564,9 @@ void uORB::Manager::set_uorb_communicator(uORBCommunicator::IChannel *channel)
 	}
 }
 
-uORBCommunicator::IChannel *uORB::Manager::get_uorb_communicator()
-{
-	return _comm_channel;
-}
+uORBCommunicator::IChannel *uORB::Manager::get_uorb_communicator() { return _comm_channel; }
 
-int16_t uORB::Manager::process_remote_topic(const char *topic_name, bool isAdvertisement)
-{
+int16_t uORB::Manager::process_remote_topic(const char *topic_name, bool isAdvertisement) {
 	int16_t rc = 0;
 
 	if (isAdvertisement) {
@@ -629,8 +579,7 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name, bool isAdver
 	return rc;
 }
 
-int16_t uORB::Manager::process_add_subscription(const char *messageName, int32_t msgRateInHz)
-{
+int16_t uORB::Manager::process_add_subscription(const char *messageName, int32_t msgRateInHz) {
 	PX4_DEBUG("entering Manager_process_add_subscription: name: %s", messageName);
 
 	int16_t rc = 0;
@@ -657,8 +606,7 @@ int16_t uORB::Manager::process_add_subscription(const char *messageName, int32_t
 	return rc;
 }
 
-int16_t uORB::Manager::process_remove_subscription(const char *messageName)
-{
+int16_t uORB::Manager::process_remove_subscription(const char *messageName) {
 	int16_t rc = -1;
 	_remote_subscriber_topics.erase(messageName);
 	char nodepath[orb_maxpath];
@@ -670,8 +618,10 @@ int16_t uORB::Manager::process_remove_subscription(const char *messageName)
 
 		// get the node name.
 		if (node == nullptr) {
-			PX4_DEBUG("[posix-uORB::Manager::process_remove_subscription(%d)]Error No existing subscriber found for message: [%s]",
-				  __LINE__, messageName);
+			PX4_DEBUG(
+				"[posix-uORB::Manager::process_remove_subscription(%d)]Error No existing subscriber "
+				"found for message: [%s]",
+				__LINE__, messageName);
 
 		} else {
 			// node is present.
@@ -683,8 +633,7 @@ int16_t uORB::Manager::process_remove_subscription(const char *messageName)
 	return rc;
 }
 
-int16_t uORB::Manager::process_received_message(const char *messageName, int32_t length, uint8_t *data)
-{
+int16_t uORB::Manager::process_received_message(const char *messageName, int32_t length, uint8_t *data) {
 	int16_t rc = -1;
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, messageName);
@@ -695,7 +644,8 @@ int16_t uORB::Manager::process_received_message(const char *messageName, int32_t
 
 		// get the node name.
 		if (node == nullptr) {
-			PX4_DEBUG("No existing subscriber found for message: [%s] nodepath:[%s]", messageName, nodepath);
+			PX4_DEBUG("No existing subscriber found for message: [%s] nodepath:[%s]", messageName,
+				  nodepath);
 
 		} else {
 			// node is present.
@@ -707,8 +657,7 @@ int16_t uORB::Manager::process_received_message(const char *messageName, int32_t
 	return rc;
 }
 
-bool uORB::Manager::is_remote_subscriber_present(const char *messageName)
-{
+bool uORB::Manager::is_remote_subscriber_present(const char *messageName) {
 #ifdef __PX4_NUTTX
 	return _remote_subscriber_topics.find(messageName);
 #else
@@ -719,15 +668,12 @@ bool uORB::Manager::is_remote_subscriber_present(const char *messageName)
 
 #ifdef ORB_USE_PUBLISHER_RULES
 
-bool uORB::Manager::startsWith(const char *pre, const char *str)
-{
-	size_t lenpre = strlen(pre),
-	       lenstr = strlen(str);
+bool uORB::Manager::startsWith(const char *pre, const char *str) {
+	size_t lenpre = strlen(pre), lenstr = strlen(str);
 	return lenstr < lenpre ? false : strncmp(pre, str, lenpre) == 0;
 }
 
-bool uORB::Manager::findTopic(const PublisherRule &rule, const char *topic_name)
-{
+bool uORB::Manager::findTopic(const PublisherRule &rule, const char *topic_name) {
 	const char **topics_ptr = rule.topics;
 
 	while (*topics_ptr) {
@@ -741,13 +687,13 @@ bool uORB::Manager::findTopic(const PublisherRule &rule, const char *topic_name)
 	return false;
 }
 
-void uORB::Manager::strTrim(const char **str)
-{
-	while (**str == ' ' || **str == '\t') { ++(*str); }
+void uORB::Manager::strTrim(const char **str) {
+	while (**str == ' ' || **str == '\t') {
+		++(*str);
+	}
 }
 
-int uORB::Manager::readPublisherRulesFromFile(const char *file_name, PublisherRule &rule)
-{
+int uORB::Manager::readPublisherRulesFromFile(const char *file_name, PublisherRule &rule) {
 	FILE *fp;
 	static const int line_len = 1024;
 	int ret = PX4_OK;
@@ -773,13 +719,12 @@ int uORB::Manager::readPublisherRulesFromFile(const char *file_name, PublisherRu
 	rule.topics = nullptr;
 
 	while (fgets(line, line_len, fp) && ret == PX4_OK) {
-
 		if (strlen(line) < 2 || line[0] == '#') {
 			continue;
 		}
 
 		if (startsWith(restrict_topics_str, line)) {
-			//read topics list
+			// read topics list
 			char *start = line + strlen(restrict_topics_str);
 			strTrim((const char **)&start);
 			char *topics = strdup(start);
@@ -820,7 +765,7 @@ int uORB::Manager::readPublisherRulesFromFile(const char *file_name, PublisherRu
 			}
 
 		} else if (startsWith(module_str, line)) {
-			//read module name
+			// read module name
 			char *start = line + strlen(module_str);
 			strTrim((const char **)&start);
 			int len = strlen(start);

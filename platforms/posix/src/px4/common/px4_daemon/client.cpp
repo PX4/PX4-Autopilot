@@ -38,32 +38,26 @@
  * @author Mara Bos <m-ou.se@m-ou.se>
  */
 
+#include "client.h"
+
 #include <errno.h>
-#include <stdio.h>
 #include <fcntl.h>
+#include <px4_platform_common/log.h>
+#include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
 
 #include <string>
 
-#include <px4_platform_common/log.h>
-#include "client.h"
+namespace px4_daemon {
 
-namespace px4_daemon
-{
+Client::Client(int instance_id) : _fd(-1), _instance_id(instance_id) {}
 
-Client::Client(int instance_id) :
-	_fd(-1),
-	_instance_id(instance_id)
-{}
-
-int
-Client::process_args(const int argc, const char **argv)
-{
+int Client::process_args(const int argc, const char **argv) {
 	std::string sock_path = get_socket_path(_instance_id);
 
 	_fd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -92,9 +86,7 @@ Client::process_args(const int argc, const char **argv)
 	return _listen();
 }
 
-int
-Client::_send_cmds(const int argc, const char **argv)
-{
+int Client::_send_cmds(const int argc, const char **argv) {
 	std::string cmd_buf;
 
 	for (int i = 0; i < argc; ++i) {
@@ -128,9 +120,7 @@ Client::_send_cmds(const int argc, const char **argv)
 	return 0;
 }
 
-int
-Client::_listen()
-{
+int Client::_listen() {
 	char buffer[1024];
 	int n_buffer_used = 0;
 
@@ -177,11 +167,10 @@ Client::_listen()
 	}
 }
 
-Client::~Client()
-{
+Client::~Client() {
 	if (_fd >= 0) {
 		close(_fd);
 	}
 }
 
-} // namespace px4_daemon
+}  // namespace px4_daemon

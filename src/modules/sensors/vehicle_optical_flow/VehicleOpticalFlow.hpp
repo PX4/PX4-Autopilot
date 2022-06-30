@@ -33,23 +33,10 @@
 
 #pragma once
 
-#include "data_validator/DataValidatorGroup.hpp"
-#include "RingBuffer.hpp"
-
-#include <Integrator.hpp>
-
-#include <lib/mathlib/math/Limits.hpp>
-#include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
-#include <lib/sensor_calibration/Gyroscope.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gyro.h>
@@ -59,11 +46,22 @@
 #include <uORB/topics/vehicle_optical_flow.h>
 #include <uORB/topics/vehicle_optical_flow_vel.h>
 
-namespace sensors
-{
+#include <Integrator.hpp>
+#include <lib/mathlib/math/Limits.hpp>
+#include <lib/matrix/matrix/math.hpp>
+#include <lib/sensor_calibration/Gyroscope.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 
-class VehicleOpticalFlow : public ModuleParams, public px4::ScheduledWorkItem
-{
+#include "RingBuffer.hpp"
+#include "data_validator/DataValidatorGroup.hpp"
+
+namespace sensors {
+
+class VehicleOpticalFlow : public ModuleParams, public px4::ScheduledWorkItem {
 public:
 	VehicleOpticalFlow();
 	~VehicleOpticalFlow() override;
@@ -104,7 +102,7 @@ private:
 
 	calibration::Gyroscope _gyro_calibration{};
 
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")};
 
 	matrix::Dcmf _flow_rotation{matrix::eye<float, 3>()};
 
@@ -119,29 +117,28 @@ private:
 
 	hrt_abstime _last_publication_timestamp{0};
 
-	int _distance_sensor_selected{-1}; // because we can have several distance sensor instances with different orientations
+	int _distance_sensor_selected{
+		-1};  // because we can have several distance sensor instances with different orientations
 	hrt_abstime _last_range_sensor_update{0};
 
 	struct gyroSample {
-		uint64_t time_us{}; ///< timestamp of the measurement (uSec)
+		uint64_t time_us{};  ///< timestamp of the measurement (uSec)
 		matrix::Vector3f data{};
 		float dt{0.f};
 	};
 
 	struct rangeSample {
-		uint64_t time_us{}; ///< timestamp of the measurement (uSec)
+		uint64_t time_us{};  ///< timestamp of the measurement (uSec)
 		float data{};
 	};
 
 	RingBuffer<gyroSample, 32> _gyro_buffer{};
 	RingBuffer<rangeSample, 5> _range_buffer{};
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_FLOW_ROT>) _param_sens_flow_rot,
-		(ParamFloat<px4::params::SENS_FLOW_MINHGT>) _param_sens_flow_minhgt,
-		(ParamFloat<px4::params::SENS_FLOW_MAXHGT>) _param_sens_flow_maxhgt,
-		(ParamFloat<px4::params::SENS_FLOW_MAXR>) _param_sens_flow_maxr,
-		(ParamFloat<px4::params::SENS_FLOW_RATE>) _param_sens_flow_rate
-	)
+	DEFINE_PARAMETERS((ParamInt<px4::params::SENS_FLOW_ROT>)_param_sens_flow_rot,
+			  (ParamFloat<px4::params::SENS_FLOW_MINHGT>)_param_sens_flow_minhgt,
+			  (ParamFloat<px4::params::SENS_FLOW_MAXHGT>)_param_sens_flow_maxhgt,
+			  (ParamFloat<px4::params::SENS_FLOW_MAXR>)_param_sens_flow_maxr,
+			  (ParamFloat<px4::params::SENS_FLOW_RATE>)_param_sens_flow_rate)
 };
-}; // namespace sensors
+};  // namespace sensors

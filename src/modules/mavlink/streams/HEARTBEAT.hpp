@@ -39,8 +39,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 
-class MavlinkStreamHeartbeat : public MavlinkStream
-{
+class MavlinkStreamHeartbeat : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamHeartbeat(mavlink); }
 
@@ -52,10 +51,7 @@ public:
 
 	bool const_rate() override { return true; }
 
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_HEARTBEAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
+	unsigned get_size() override { return MAVLINK_MSG_ID_HEARTBEAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES; }
 
 private:
 	explicit MavlinkStreamHeartbeat(Mavlink *mavlink) : MavlinkStream(mavlink) {}
@@ -65,8 +61,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_status_flags_sub{ORB_ID(vehicle_status_flags)};
 
-	bool send() override
-	{
+	bool send() override {
 		if (_mavlink->get_free_tx_buf() >= get_size()) {
 			// always send the heartbeat, independent of the update status of the topics
 			vehicle_status_s vehicle_status{};
@@ -101,43 +96,44 @@ private:
 			}
 
 			if (vehicle_control_mode.flag_control_auto_enabled) {
-				base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+				base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED |
+					     MAV_MODE_FLAG_GUIDED_ENABLED;
 			}
 
-
 			// uint32_t custom_mode - A bitfield for use for autopilot-specific flags
-			union px4_custom_mode custom_mode {get_px4_custom_mode(vehicle_status.nav_state)};
-
+			union px4_custom_mode custom_mode {
+				get_px4_custom_mode(vehicle_status.nav_state)
+			};
 
 			// uint8_t system_status (MAV_STATE) - System status flag.
 			uint8_t system_status = MAV_STATE_UNINIT;
 
 			switch (vehicle_status.arming_state) {
-			case vehicle_status_s::ARMING_STATE_ARMED:
-				system_status = vehicle_status.failsafe ? MAV_STATE_CRITICAL : MAV_STATE_ACTIVE;
-				break;
+				case vehicle_status_s::ARMING_STATE_ARMED:
+					system_status = vehicle_status.failsafe ? MAV_STATE_CRITICAL : MAV_STATE_ACTIVE;
+					break;
 
-			case vehicle_status_s::ARMING_STATE_STANDBY:
-				system_status = MAV_STATE_STANDBY;
-				break;
+				case vehicle_status_s::ARMING_STATE_STANDBY:
+					system_status = MAV_STATE_STANDBY;
+					break;
 
-			case vehicle_status_s::ARMING_STATE_SHUTDOWN:
-				system_status = MAV_STATE_POWEROFF;
-				break;
+				case vehicle_status_s::ARMING_STATE_SHUTDOWN:
+					system_status = MAV_STATE_POWEROFF;
+					break;
 			}
 
 			// system_status overrides
-			if (actuator_armed.force_failsafe || actuator_armed.lockdown || actuator_armed.manual_lockdown
-			    || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
+			if (actuator_armed.force_failsafe || actuator_armed.lockdown ||
+			    actuator_armed.manual_lockdown ||
+			    vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
 				system_status = MAV_STATE_FLIGHT_TERMINATION;
 
 			} else if (vehicle_status_flags.calibration_enabled) {
 				system_status = MAV_STATE_CALIBRATING;
 			}
 
-
-			mavlink_msg_heartbeat_send(_mavlink->get_channel(), _mavlink->get_system_type(), MAV_AUTOPILOT_PX4,
-						   base_mode, custom_mode.data, system_status);
+			mavlink_msg_heartbeat_send(_mavlink->get_channel(), _mavlink->get_system_type(),
+						   MAV_AUTOPILOT_PX4, base_mode, custom_mode.data, system_status);
 
 			return true;
 		}
@@ -146,4 +142,4 @@ private:
 	}
 };
 
-#endif // HEARTBEAT_HPP
+#endif  // HEARTBEAT_HPP

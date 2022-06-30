@@ -39,16 +39,13 @@
 
 #pragma once
 
-namespace math
-{
+namespace math {
 
-template<typename T>
-class WelfordMean
-{
+template <typename T>
+class WelfordMean {
 public:
 	// For a new value, compute the new count, new mean, the new M2.
-	void update(const T &new_value)
-	{
+	void update(const T &new_value) {
 		_count++;
 
 		// mean accumulates the mean of the entire dataset
@@ -63,8 +60,7 @@ public:
 	bool valid() const { return _count > 2; }
 	unsigned count() const { return _count; }
 
-	void reset()
-	{
+	void reset() {
 		_count = 0;
 		_mean = {};
 		_M2 = {};
@@ -74,10 +70,11 @@ public:
 	T mean() const { return _mean; }
 	T variance() const { return _M2 / _count; }
 	T sample_variance() const { return _M2 / (_count - 1); }
+
 private:
 	T _mean{};
 	T _M2{};
 	unsigned _count{0};
 };
 
-} // namespace math
+}  // namespace math

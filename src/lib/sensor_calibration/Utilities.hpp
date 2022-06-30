@@ -33,15 +33,15 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/log.h>
 #include <lib/conversion/rotation.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/px4_config.h>
+
 #include <matrix/math.hpp>
 
-namespace calibration
-{
+namespace calibration {
 
 /**
  * @brief Find sensor's calibration index if it exists.
@@ -82,10 +82,9 @@ float GetCalibrationParamFloat(const char *sensor_type, const char *cal_type, ui
  * @param value int32_t parameter value
  * @return true if the parameter name was valid and value saved successfully, false otherwise.
  */
-template<typename T>
-bool SetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t instance, T value)
-{
-	char str[20] {};
+template <typename T>
+bool SetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t instance, T value) {
+	char str[20]{};
 
 	// eg CAL_MAGn_ID/CAL_MAGn_ROT
 	sprintf(str, "CAL_%s%u_%s", sensor_type, instance, cal_type);
@@ -149,4 +148,4 @@ matrix::Dcmf GetBoardRotationMatrix();
  */
 bool DeviceExternal(uint32_t device_id);
 
-} // namespace calibration
+}  // namespace calibration

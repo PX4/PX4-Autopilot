@@ -37,35 +37,29 @@
  * Serial interface for PX4IO
  */
 
-#include "px4io_driver.h"
-
 #include <px4_arch/px4io_serial.h>
+
+#include "px4io_driver.h"
 
 static PX4IO_serial *g_interface;
 
-device::Device
-*PX4IO_serial_interface()
-{
-	return new ArchPX4IOSerial();
-}
+device::Device *PX4IO_serial_interface() { return new ArchPX4IOSerial(); }
 
-PX4IO_serial::PX4IO_serial() :
-	Device("PX4IO_serial"),
-	_pc_txns(perf_alloc(PC_ELAPSED, MODULE_NAME": txns")),
-	_pc_retries(perf_alloc(PC_COUNT, MODULE_NAME": retries")),
-	_pc_timeouts(perf_alloc(PC_COUNT, MODULE_NAME": timeouts")),
-	_pc_crcerrs(perf_alloc(PC_COUNT, MODULE_NAME": crcerrs")),
-	_pc_protoerrs(perf_alloc(PC_COUNT, MODULE_NAME": protoerrs")),
-	_pc_uerrs(perf_alloc(PC_COUNT, MODULE_NAME": uarterrs")),
-	_pc_idle(perf_alloc(PC_COUNT, MODULE_NAME": idle")),
-	_pc_badidle(perf_alloc(PC_COUNT, MODULE_NAME": badidle")),
-	_bus_semaphore(SEM_INITIALIZER(0))
-{
+PX4IO_serial::PX4IO_serial()
+	: Device("PX4IO_serial"),
+	  _pc_txns(perf_alloc(PC_ELAPSED, MODULE_NAME ": txns")),
+	  _pc_retries(perf_alloc(PC_COUNT, MODULE_NAME ": retries")),
+	  _pc_timeouts(perf_alloc(PC_COUNT, MODULE_NAME ": timeouts")),
+	  _pc_crcerrs(perf_alloc(PC_COUNT, MODULE_NAME ": crcerrs")),
+	  _pc_protoerrs(perf_alloc(PC_COUNT, MODULE_NAME ": protoerrs")),
+	  _pc_uerrs(perf_alloc(PC_COUNT, MODULE_NAME ": uarterrs")),
+	  _pc_idle(perf_alloc(PC_COUNT, MODULE_NAME ": idle")),
+	  _pc_badidle(perf_alloc(PC_COUNT, MODULE_NAME ": badidle")),
+	  _bus_semaphore(SEM_INITIALIZER(0)) {
 	g_interface = this;
 }
 
-PX4IO_serial::~PX4IO_serial()
-{
+PX4IO_serial::~PX4IO_serial() {
 	/* kill our semaphores */
 	px4_sem_destroy(&_bus_semaphore);
 
@@ -83,9 +77,7 @@ PX4IO_serial::~PX4IO_serial()
 	}
 }
 
-int
-PX4IO_serial::init(IOPacket *io_buffer)
-{
+int PX4IO_serial::init(IOPacket *io_buffer) {
 	_io_buffer_ptr = io_buffer;
 	/* create semaphores */
 	// in case the sub-class impl fails, the semaphore is cleaned up by destructor.
@@ -94,9 +86,7 @@ PX4IO_serial::init(IOPacket *io_buffer)
 	return 0;
 }
 
-int
-PX4IO_serial::write(unsigned address, void *data, unsigned count)
-{
+int PX4IO_serial::write(unsigned address, void *data, unsigned count) {
 	uint8_t page = address >> 8;
 	uint8_t offset = address & 0xff;
 	const uint16_t *values = reinterpret_cast<const uint16_t *>(data);
@@ -127,10 +117,8 @@ PX4IO_serial::write(unsigned address, void *data, unsigned count)
 
 		/* successful transaction? */
 		if (result == OK) {
-
 			/* check result in packet */
 			if (PKT_CODE(*_io_buffer_ptr) == PKT_CODE_ERROR) {
-
 				/* IO didn't like it - no point retrying */
 				result = -EINVAL;
 				perf_count(_pc_protoerrs);
@@ -151,9 +139,7 @@ PX4IO_serial::write(unsigned address, void *data, unsigned count)
 	return result;
 }
 
-int
-PX4IO_serial::read(unsigned address, void *data, unsigned count)
-{
+int PX4IO_serial::read(unsigned address, void *data, unsigned count) {
 	uint8_t page = address >> 8;
 	uint8_t offset = address & 0xff;
 	uint16_t *values = reinterpret_cast<uint16_t *>(data);
@@ -167,7 +153,6 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 	int result;
 
 	for (unsigned retries = 0; retries < 3; retries++) {
-
 		_io_buffer_ptr->count_code = count | PKT_CODE_READ;
 		_io_buffer_ptr->page = page;
 		_io_buffer_ptr->offset = offset;
@@ -180,10 +165,8 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 
 		/* successful transaction? */
 		if (result == OK) {
-
 			/* check result in packet */
 			if (PKT_CODE(*_io_buffer_ptr) == PKT_CODE_ERROR) {
-
 				/* IO didn't like it - no point retrying */
 				result = -EINVAL;
 				perf_count(_pc_protoerrs);
@@ -191,7 +174,6 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 				/* compare the received count with the expected count */
 
 			} else if (PKT_COUNT(*_io_buffer_ptr) != count) {
-
 				/* IO returned the wrong number of registers - no point retrying */
 				result = -EIO;
 				perf_count(_pc_protoerrs);
@@ -199,7 +181,6 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 				/* successful read */
 
 			} else {
-
 				/* copy back the result */
 				memcpy(values, &_io_buffer_ptr->regs[0], (2 * count));
 			}

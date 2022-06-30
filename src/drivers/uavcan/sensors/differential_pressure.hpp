@@ -39,12 +39,11 @@
 
 #include <uORB/topics/differential_pressure.h>
 
-#include "sensor_bridge.hpp"
-
 #include <uavcan/equipment/air_data/RawAirData.hpp>
 
-class UavcanDifferentialPressureBridge : public UavcanSensorBridgeBase
-{
+#include "sensor_bridge.hpp"
+
+class UavcanDifferentialPressureBridge : public UavcanSensorBridgeBase {
 public:
 	static const char *const NAME;
 
@@ -57,9 +56,10 @@ public:
 private:
 	void air_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::RawAirData> &msg);
 
-	typedef uavcan::MethodBinder < UavcanDifferentialPressureBridge *,
-		void (UavcanDifferentialPressureBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::RawAirData> &) >
+	typedef uavcan::MethodBinder<
+		UavcanDifferentialPressureBridge *,
+		void (UavcanDifferentialPressureBridge::*)(
+			const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::RawAirData> &)>
 		AirCbBinder;
 
 	uavcan::Subscriber<uavcan::equipment::air_data::RawAirData, AirCbBinder> _sub_air;

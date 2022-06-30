@@ -40,13 +40,10 @@
 
 #include "sensor.h"
 
-namespace sensor_simulator
-{
-namespace sensor
-{
+namespace sensor_simulator {
+namespace sensor {
 
-class Baro: public Sensor
-{
+class Baro : public Sensor {
 public:
 	Baro(std::shared_ptr<Ekf> ekf);
 	~Baro();
@@ -57,9 +54,8 @@ private:
 	float _baro_data{0.0f};
 
 	void send(uint64_t time) override;
-
 };
 
-} // namespace sensor
-} // namespace sensor_simulator
-#endif // !EKF_BARO_H
+}  // namespace sensor
+}  // namespace sensor_simulator
+#endif  // !EKF_BARO_H

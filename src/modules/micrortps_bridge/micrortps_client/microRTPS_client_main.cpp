@@ -31,22 +31,21 @@
  *
  ****************************************************************************/
 
-#include <microRTPS_transport.h>
-#include <microRTPS_client.h>
-
 #include <inttypes.h>
+#include <microRTPS_client.h>
+#include <microRTPS_transport.h>
+#include <px4_platform_common/cli.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
+#include <termios.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
-#include <termios.h>
-
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/cli.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/time.h>
 
 extern "C" __EXPORT int micrortps_client_main(int argc, char *argv[]);
 
@@ -67,18 +66,18 @@ uint64_t sent{0};
 int rcv_loop{0};
 int send_loop{0};
 
-static void usage(const char *name)
-{
+static void usage(const char *name) {
 	PRINT_MODULE_USAGE_NAME("micrortps_client", "communication");
 	PRINT_MODULE_USAGE_COMMAND("start");
 
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "UART", "UART|UDP", "Transport protocol", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyACM0", "<file:dev>", "Select Serial Device", true);
 	PRINT_MODULE_USAGE_PARAM_INT('b', 460800, 9600, 3000000, "Baudrate (can also be p:<param_name>)", true);
-	PRINT_MODULE_USAGE_PARAM_INT('m', 0, 0, MAX_DATA_RATE, "Maximum sending data rate in B/s (0=not limited)", true);
-	PRINT_MODULE_USAGE_PARAM_INT('p', 1, 1, MAX_POLL_MS, "Poll timeout for UART in milliseconds", true);
-	PRINT_MODULE_USAGE_PARAM_INT('l', -1, -1, INT32_MAX, "Limit number of iterations until the program exits (-1=infinite)",
+	PRINT_MODULE_USAGE_PARAM_INT('m', 0, 0, MAX_DATA_RATE, "Maximum sending data rate in B/s (0=not limited)",
 				     true);
+	PRINT_MODULE_USAGE_PARAM_INT('p', 1, 1, MAX_POLL_MS, "Poll timeout for UART in milliseconds", true);
+	PRINT_MODULE_USAGE_PARAM_INT('l', -1, -1, INT32_MAX,
+				     "Limit number of iterations until the program exits (-1=infinite)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('w', 1000, 0, MAX_SLEEP_US,
 				     "Iteration time for data publishing to the uORB side, in microseconds", true);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 2019, 0, 65536, "Select UDP Network Port for receiving (local)", true);
@@ -92,25 +91,31 @@ static void usage(const char *name)
 	PRINT_MODULE_USAGE_COMMAND("status");
 }
 
-static int parse_options(int argc, char *argv[])
-{
+static int parse_options(int argc, char *argv[]) {
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
 	while ((ch = px4_getopt(argc, argv, "t:d:l:w:b:m:p:r:s:i:fhv", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 't': _options.transport      = strcmp(myoptarg, "UDP") == 0 ?
-							    options::eTransports::UDP
-							    : options::eTransports::UART;   break;
+			case 't':
+				_options.transport = strcmp(myoptarg, "UDP") == 0 ? options::eTransports::UDP
+										  : options::eTransports::UART;
+				break;
 
-		case 'd': if (nullptr != myoptarg) strcpy(_options.device, myoptarg);   break;
+			case 'd':
+				if (nullptr != myoptarg) strcpy(_options.device, myoptarg);
+				break;
 
-		case 'l': _options.loops           =  strtol(myoptarg, nullptr, 10);    break;
+			case 'l':
+				_options.loops = strtol(myoptarg, nullptr, 10);
+				break;
 
-		case 'w': _options.sleep_us        = strtoul(myoptarg, nullptr, 10);    break;
+			case 'w':
+				_options.sleep_us = strtoul(myoptarg, nullptr, 10);
+				break;
 
-		case 'b': {
+			case 'b': {
 				int baudrate = 0;
 
 				if (px4_get_parameter_value(myoptarg, baudrate) != 0) {
@@ -122,7 +127,7 @@ static int parse_options(int argc, char *argv[])
 				break;
 			}
 
-		case 'm': {
+			case 'm': {
 				int datarate = 0;
 
 				if (px4_get_parameter_value(myoptarg, datarate) != 0) {
@@ -134,23 +139,37 @@ static int parse_options(int argc, char *argv[])
 				break;
 			}
 
-		case 'p': _options.poll_ms         = strtoul(myoptarg, nullptr, 10);    break;
+			case 'p':
+				_options.poll_ms = strtoul(myoptarg, nullptr, 10);
+				break;
 
-		case 'r': _options.recv_port       = strtoul(myoptarg, nullptr, 10);    break;
+			case 'r':
+				_options.recv_port = strtoul(myoptarg, nullptr, 10);
+				break;
 
-		case 's': _options.send_port       = strtoul(myoptarg, nullptr, 10);    break;
+			case 's':
+				_options.send_port = strtoul(myoptarg, nullptr, 10);
+				break;
 
-		case 'i': if (nullptr != myoptarg) strcpy(_options.ip, myoptarg);       break;
+			case 'i':
+				if (nullptr != myoptarg) strcpy(_options.ip, myoptarg);
+				break;
 
-		case 'f': _options.sw_flow_control = true;     				break;
+			case 'f':
+				_options.sw_flow_control = true;
+				break;
 
-		case 'h': _options.hw_flow_control = true;     				break;
+			case 'h':
+				_options.hw_flow_control = true;
+				break;
 
-		case 'v': _options.verbose_debug   = true;     				break;
+			case 'v':
+				_options.verbose_debug = true;
+				break;
 
-		default:
-			usage(argv[1]);
-			return -1;
+			default:
+				usage(argv[1]);
+				return -1;
 		}
 	}
 
@@ -181,8 +200,7 @@ static int parse_options(int argc, char *argv[])
 	return 0;
 }
 
-static int micrortps_start(int argc, char *argv[])
-{
+static int micrortps_start(int argc, char *argv[]) {
 	if (0 > parse_options(argc, argv)) {
 		PX4_INFO("EXITING...");
 		_rtps_task = -1;
@@ -193,29 +211,29 @@ static int micrortps_start(int argc, char *argv[])
 	const uint8_t sys_id = static_cast<uint8_t>(MicroRtps::System::FMU);
 
 	switch (_options.transport) {
-	case options::eTransports::UART: {
+		case options::eTransports::UART: {
 			transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms,
 						       _options.sw_flow_control, _options.hw_flow_control, sys_id,
 						       _options.verbose_debug);
-			PX4_INFO("UART transport: device: %s; baudrate: %" PRIu32 "; poll: %" PRIu32 "ms; flow_control: %s",
+			PX4_INFO("UART transport: device: %s; baudrate: %" PRIu32 "; poll: %" PRIu32
+				 "ms; flow_control: %s",
 				 _options.device, _options.baudrate, _options.poll_ms,
-				 _options.sw_flow_control ? "SW enabled" : (_options.hw_flow_control ? "HW enabled" : "No"));
-		}
-		break;
+				 _options.sw_flow_control ? "SW enabled"
+							  : (_options.hw_flow_control ? "HW enabled" : "No"));
+		} break;
 
-	case options::eTransports::UDP: {
-			transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port,
-						      sys_id, _options.verbose_debug);
+		case options::eTransports::UDP: {
+			transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port, sys_id,
+						      _options.verbose_debug);
 			PX4_INFO("UDP transport: ip address: %s; recv port: %" PRIu16 "; send port: %" PRIu16,
 				 _options.ip, _options.recv_port, _options.send_port);
 
-		}
-		break;
+		} break;
 
-	default:
-		_rtps_task = -1;
-		PX4_INFO("EXITING...");
-		return -1;
+		default:
+			_rtps_task = -1;
+			PX4_INFO("EXITING...");
+			return -1;
 	}
 
 	if (0 > transport_node->init()) {
@@ -224,18 +242,18 @@ static int micrortps_start(int argc, char *argv[])
 		return -1;
 	}
 
-	micrortps_start_topics(_options.datarate, begin, total_rcvd, total_sent, sent_last_sec, rcvd_last_sec, received, sent,
-			       rcv_loop,
-			       send_loop);
+	micrortps_start_topics(_options.datarate, begin, total_rcvd, total_sent, sent_last_sec, rcvd_last_sec, received,
+			       sent, rcv_loop, send_loop);
 
 	px4_clock_gettime(CLOCK_REALTIME, &end);
 
-	const double elapsed_secs = static_cast<double>(end.tv_sec - begin.tv_sec + (end.tv_nsec - begin.tv_nsec) / 1e9);
+	const double elapsed_secs =
+		static_cast<double>(end.tv_sec - begin.tv_sec + (end.tv_nsec - begin.tv_nsec) / 1e9);
 
 	PX4_INFO("RECEIVED: %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - avg %.02fKB/s",
 		 received, rcv_loop, total_rcvd, elapsed_secs, static_cast<double>(total_rcvd / (1e3 * elapsed_secs)));
-	PX4_INFO("SENT: %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - avg %.02fKB/s",
-		 sent, send_loop, total_sent, elapsed_secs, total_sent / (1e3 * elapsed_secs));
+	PX4_INFO("SENT: %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - avg %.02fKB/s", sent,
+		 send_loop, total_sent, elapsed_secs, total_sent / (1e3 * elapsed_secs));
 
 	delete transport_node;
 
@@ -250,8 +268,7 @@ static int micrortps_start(int argc, char *argv[])
 	return 0;
 }
 
-int micrortps_client_main(int argc, char *argv[])
-{
+int micrortps_client_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		usage(argv[0]);
 		return -1;
@@ -263,12 +280,9 @@ int micrortps_client_main(int argc, char *argv[])
 			return -1;
 		}
 
-		_rtps_task = px4_task_spawn_cmd("micrortps_client",
-						SCHED_DEFAULT,
-						SCHED_PRIORITY_DEFAULT,
-						PX4_STACK_ADJUSTED(2900),
-						(px4_main_t) micrortps_start,
-						(char *const *)argv);
+		_rtps_task =
+			px4_task_spawn_cmd("micrortps_client", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT,
+					   PX4_STACK_ADJUSTED(2900), (px4_main_t)micrortps_start, (char *const *)argv);
 
 		if (_rtps_task < 0) {
 			PX4_WARN("Could not start task");
@@ -286,7 +300,8 @@ int micrortps_client_main(int argc, char *argv[])
 		} else {
 			px4_clock_gettime(CLOCK_REALTIME, &end);
 
-			const double elapsed_secs = static_cast<double>(end.tv_sec - begin.tv_sec + (end.tv_nsec - begin.tv_nsec) / 1e9);
+			const double elapsed_secs =
+				static_cast<double>(end.tv_sec - begin.tv_sec + (end.tv_nsec - begin.tv_nsec) / 1e9);
 
 			printf("\tup and running for %.03f seconds\n", elapsed_secs);
 			printf("\tnr. of messages received: %" PRIu64 "\n", received);
@@ -319,7 +334,9 @@ int micrortps_client_main(int argc, char *argv[])
 
 		_should_exit_task = true;
 
-		if (nullptr != transport_node) { transport_node->close(); }
+		if (nullptr != transport_node) {
+			transport_node->close();
+		}
 
 		_rtps_task = -1;
 		return 0;

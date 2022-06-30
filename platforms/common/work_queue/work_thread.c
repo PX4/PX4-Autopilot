@@ -37,18 +37,19 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
+#include <drivers/drv_hrt.h>
+#include <pthread.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
-#include <px4_platform_common/time.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 #include <px4_platform_common/workqueue.h>
+#include <queue.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <queue.h>
-#include <pthread.h>
-#include <drivers/drv_hrt.h>
+
 #include "work_lock.h"
 
 #ifdef CONFIG_SCHED_WORKQUEUE
@@ -91,10 +92,9 @@ px4_sem_t _work_lock[NWORKERS];
  *
  ****************************************************************************/
 
-static void work_process(struct wqueue_s *wqueue, int lock_id)
-{
+static void work_process(struct wqueue_s *wqueue, int lock_id) {
 	volatile struct work_s *work;
-	worker_t  worker;
+	worker_t worker;
 	void *arg;
 	uint64_t elapsed;
 	uint32_t remaining;
@@ -104,11 +104,11 @@ static void work_process(struct wqueue_s *wqueue, int lock_id)
 	 * we process items in the work list.
 	 */
 
-	next  = CONFIG_SCHED_WORKPERIOD;
+	next = CONFIG_SCHED_WORKPERIOD;
 
 	work_lock(lock_id);
 
-	work  = (struct work_s *)wqueue->q.head;
+	work = (struct work_s *)wqueue->q.head;
 
 	while (work) {
 		/* Is this work ready?  It is ready if there is no delay or if
@@ -119,7 +119,7 @@ static void work_process(struct wqueue_s *wqueue, int lock_id)
 
 		elapsed = USEC2TICK(clock_systimer() - work->qtime);
 
-		//printf("work_process: in ticks elapsed=%lu delay=%u\n", elapsed, work->delay);
+		// printf("work_process: in ticks elapsed=%lu delay=%u\n", elapsed, work->delay);
 		if (elapsed >= work->delay) {
 			/* Remove the ready-to-execute work from the list */
 
@@ -130,7 +130,7 @@ static void work_process(struct wqueue_s *wqueue, int lock_id)
 			 */
 
 			worker = work->worker;
-			arg    = work->arg;
+			arg = work->arg;
 
 			/* Mark the work as no longer being queued */
 
@@ -155,7 +155,7 @@ static void work_process(struct wqueue_s *wqueue, int lock_id)
 			 */
 
 			work_lock(lock_id);
-			work  = (struct work_s *)wqueue->q.head;
+			work = (struct work_s *)wqueue->q.head;
 
 		} else {
 			/* This one is not ready.. will it be ready before the next
@@ -188,8 +188,7 @@ static void work_process(struct wqueue_s *wqueue, int lock_id)
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-void work_queues_init(void)
-{
+void work_queues_init(void) {
 	px4_sem_init(&_work_lock[HPWORK], 0, 1);
 	px4_sem_init(&_work_lock[LPWORK], 0, 1);
 #ifdef CONFIG_SCHED_USRWORK
@@ -197,21 +196,12 @@ void work_queues_init(void)
 #endif
 
 	// Create high priority worker thread
-	g_work[HPWORK].pid = px4_task_spawn_cmd("hpwork",
-						SCHED_DEFAULT,
-						SCHED_PRIORITY_MAX - 1,
-						2000,
-						work_hpthread,
+	g_work[HPWORK].pid = px4_task_spawn_cmd("hpwork", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 1, 2000, work_hpthread,
 						(char *const *)NULL);
 
 	// Create low priority worker thread
-	g_work[LPWORK].pid = px4_task_spawn_cmd("lpwork",
-						SCHED_DEFAULT,
-						SCHED_PRIORITY_MIN,
-						2000,
-						work_lpthread,
+	g_work[LPWORK].pid = px4_task_spawn_cmd("lpwork", SCHED_DEFAULT, SCHED_PRIORITY_MIN, 2000, work_lpthread,
 						(char *const *)NULL);
-
 }
 
 /****************************************************************************
@@ -247,8 +237,7 @@ void work_queues_init(void)
 
 #ifdef CONFIG_SCHED_HPWORK
 
-int work_hpthread(int argc, char *argv[])
-{
+int work_hpthread(int argc, char *argv[]) {
 	/* Loop forever */
 
 	for (;;) {
@@ -275,8 +264,7 @@ int work_hpthread(int argc, char *argv[])
 
 #ifdef CONFIG_SCHED_LPWORK
 
-int work_lpthread(int argc, char *argv[])
-{
+int work_lpthread(int argc, char *argv[]) {
 	/* Loop forever */
 
 	for (;;) {
@@ -287,7 +275,7 @@ int work_lpthread(int argc, char *argv[])
 		 * the IDLE thread (at a very, very low priority).
 		 */
 
-		//sched_garbagecollection();
+		// sched_garbagecollection();
 
 		/* Then process queued work.  We need to keep interrupts disabled while
 		 * we process items in the work list.
@@ -304,8 +292,7 @@ int work_lpthread(int argc, char *argv[])
 
 #ifdef CONFIG_SCHED_USRWORK
 
-int work_usrthread(int argc, char *argv[])
-{
+int work_usrthread(int argc, char *argv[]) {
 	/* Loop forever */
 
 	int rv;
@@ -329,9 +316,8 @@ int work_usrthread(int argc, char *argv[])
 
 #endif /* CONFIG_SCHED_USRWORK */
 
-uint32_t clock_systimer()
-{
-	//printf("clock_systimer: %0lx\n", hrt_absolute_time());
+uint32_t clock_systimer() {
+	// printf("clock_systimer: %0lx\n", hrt_absolute_time());
 	return (0x00000000ffffffff & hrt_absolute_time());
 }
 #endif /* CONFIG_SCHED_WORKQUEUE */

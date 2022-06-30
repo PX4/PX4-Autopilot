@@ -31,19 +31,18 @@
  *
  ****************************************************************************/
 
-#include <unit_test.h>
-#include <containers/IntrusiveQueue.hpp>
 #include <float.h>
 #include <math.h>
+#include <unit_test.h>
 
-class testContainer : public IntrusiveQueueNode<testContainer *>
-{
+#include <containers/IntrusiveQueue.hpp>
+
+class testContainer : public IntrusiveQueueNode<testContainer *> {
 public:
 	int i{0};
 };
 
-class IntrusiveQueueTest : public UnitTest
-{
+class IntrusiveQueueTest : public UnitTest {
 public:
 	virtual bool run_tests();
 
@@ -52,11 +51,9 @@ public:
 	bool test_push_duplicate();
 	bool test_remove();
 	bool test_reinsert();
-
 };
 
-bool IntrusiveQueueTest::run_tests()
-{
+bool IntrusiveQueueTest::run_tests() {
 	ut_run_test(test_push);
 	ut_run_test(test_pop);
 	ut_run_test(test_push_duplicate);
@@ -66,8 +63,7 @@ bool IntrusiveQueueTest::run_tests()
 	return (_tests_failed == 0);
 }
 
-bool IntrusiveQueueTest::test_push()
-{
+bool IntrusiveQueueTest::test_push() {
 	IntrusiveQueue<testContainer *> q1;
 
 	// size should be 0 initially
@@ -93,7 +89,6 @@ bool IntrusiveQueueTest::test_push()
 	for (int i = 0; i < 100; i++) {
 		auto node = q1.front();
 
-
 		ut_assert_false(q1.empty());
 
 		ut_assert_true(q1.pop() == node);
@@ -110,8 +105,7 @@ bool IntrusiveQueueTest::test_push()
 	return true;
 }
 
-bool IntrusiveQueueTest::test_pop()
-{
+bool IntrusiveQueueTest::test_pop() {
 	IntrusiveQueue<testContainer *> q1;
 
 	// size should be 0 initially
@@ -167,8 +161,7 @@ bool IntrusiveQueueTest::test_pop()
 	return true;
 }
 
-bool IntrusiveQueueTest::test_push_duplicate()
-{
+bool IntrusiveQueueTest::test_push_duplicate() {
 	IntrusiveQueue<testContainer *> q1;
 
 	// size should be 0 initially
@@ -190,13 +183,12 @@ bool IntrusiveQueueTest::test_push_duplicate()
 	// verify full size (100)
 	ut_compare("size 100", q1.size(), 100);
 
-
 	// attempt to insert front again
 	const auto q1_front = q1.front();
-	const auto q1_front_i = q1_front->i; // copy i value
+	const auto q1_front_i = q1_front->i;  // copy i value
 
 	const auto q1_back = q1.back();
-	const auto q1_back_i = q1_back->i; // copy i value
+	const auto q1_back_i = q1_back->i;  // copy i value
 
 	// push front and back aagain
 	q1.push(q1_front);
@@ -206,7 +198,6 @@ bool IntrusiveQueueTest::test_push_duplicate()
 	ut_compare("size 100", q1.size(), 100);
 	ut_compare("q front not reinserted", q1.front()->i, q1_front->i);
 	ut_compare("q back not reinserted", q1.back()->i, q1_back->i);
-
 
 	// pop the head
 	const auto q1_head = q1.pop();
@@ -219,7 +210,6 @@ bool IntrusiveQueueTest::test_push_duplicate()
 
 	// verify size now 100 again
 	ut_compare("size 100", q1.size(), 100);
-
 
 	// pop all elements
 	for (int i = 0; i < 100; i++) {
@@ -235,8 +225,7 @@ bool IntrusiveQueueTest::test_push_duplicate()
 	return true;
 }
 
-bool IntrusiveQueueTest::test_remove()
-{
+bool IntrusiveQueueTest::test_remove() {
 	IntrusiveQueue<testContainer *> q1;
 
 	// size should be 0 initially
@@ -259,7 +248,6 @@ bool IntrusiveQueueTest::test_remove()
 
 	// test removing elements
 	for (int remove_i = 0; remove_i < 100; remove_i++) {
-
 		ut_assert_false(q1.empty());
 
 		// find node with i == remove_i
@@ -306,8 +294,7 @@ bool IntrusiveQueueTest::test_remove()
 	return true;
 }
 
-bool IntrusiveQueueTest::test_reinsert()
-{
+bool IntrusiveQueueTest::test_reinsert() {
 	IntrusiveQueue<testContainer *> q1;
 
 	// size should be 0 initially
@@ -330,7 +317,6 @@ bool IntrusiveQueueTest::test_reinsert()
 
 	// test removing elements
 	for (int remove_i = 0; remove_i < 100; remove_i++) {
-
 		ut_assert_false(q1.empty());
 
 		// find node with i == remove_i

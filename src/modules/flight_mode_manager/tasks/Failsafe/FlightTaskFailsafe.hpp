@@ -40,8 +40,7 @@
 
 #include "FlightTask.hpp"
 
-class FlightTaskFailsafe : public FlightTask
-{
+class FlightTaskFailsafe : public FlightTask {
 public:
 	FlightTaskFailsafe() = default;
 
@@ -50,7 +49,5 @@ public:
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 
 private:
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed
-				       )
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask, (ParamFloat<px4::params::MPC_LAND_SPEED>)_param_mpc_land_speed)
 };

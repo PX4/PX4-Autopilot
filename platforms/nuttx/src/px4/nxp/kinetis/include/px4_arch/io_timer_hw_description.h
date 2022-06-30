@@ -33,60 +33,60 @@
 
 #pragma once
 
-
-#include <px4_arch/io_timer.h>
 #include <px4_arch/hw_description.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/io_timer_init.h>
 #include <px4_platform_common/constexpr_util.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform/io_timer_init.h>
+
 #include "hardware/kinetis_ftm.h"
 #include "hardware/kinetis_sim.h"
 
-
 static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t io_timers_conf[MAX_IO_TIMERS],
-		Timer::TimerChannel timer, GPIO::GPIOPin pin)
-{
+							       Timer::TimerChannel timer, GPIO::GPIOPin pin) {
 	timer_io_channels_t ret{};
 
 	uint32_t gpio_af = 0;
 
 	switch (pin.port) {
-	case GPIO::PortA:
-		gpio_af = PIN_ALT3;
-		break;
-
-	case GPIO::PortB:
-		if (pin.pin == GPIO::Pin12 || pin.pin == GPIO::Pin13) {
-			gpio_af = PIN_ALT4;
-
-		} else {
+		case GPIO::PortA:
 			gpio_af = PIN_ALT3;
-		}
+			break;
 
-		break;
+		case GPIO::PortB:
+			if (pin.pin == GPIO::Pin12 || pin.pin == GPIO::Pin13) {
+				gpio_af = PIN_ALT4;
 
-	case GPIO::PortC:
-		if (pin.pin == GPIO::Pin5) {
-			gpio_af = PIN_ALT7;
+			} else {
+				gpio_af = PIN_ALT3;
+			}
 
-		} else if (pin.pin == GPIO::Pin8 || pin.pin == GPIO::Pin9 || pin.pin == GPIO::Pin10 || pin.pin == GPIO::Pin11) {
-			gpio_af = PIN_ALT3;
+			break;
 
-		} else {
+		case GPIO::PortC:
+			if (pin.pin == GPIO::Pin5) {
+				gpio_af = PIN_ALT7;
+
+			} else if (pin.pin == GPIO::Pin8 || pin.pin == GPIO::Pin9 || pin.pin == GPIO::Pin10 ||
+				   pin.pin == GPIO::Pin11) {
+				gpio_af = PIN_ALT3;
+
+			} else {
+				gpio_af = PIN_ALT4;
+			}
+
+			break;
+
+		case GPIO::PortD:
 			gpio_af = PIN_ALT4;
-		}
+			break;
 
-		break;
+		case GPIO::PortE:
+			gpio_af = PIN_ALT6;
+			break;
 
-	case GPIO::PortD:
-		gpio_af = PIN_ALT4;
-		break;
-
-	case GPIO::PortE:
-		gpio_af = PIN_ALT6;
-		break;
-
-	default: break;
+		default:
+			break;
 	}
 
 	uint32_t gpio_pin_port = getGPIOPort(pin.port) | getGPIOPin(pin.pin);
@@ -111,55 +111,55 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	return ret;
 }
 
-static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
-{
+static inline constexpr io_timers_t initIOTimer(Timer::Timer timer) {
 	bool nuttx_config_timer_enabled = false;
 	io_timers_t ret{};
 
 	switch (timer) {
-	case Timer::FTM0:
-		ret.base = KINETIS_FTM0_BASE;
-		ret.clock_register = KINETIS_SIM_SCGC6;
-		ret.clock_bit = SIM_SCGC6_FTM0;
-		ret.vectorno =  KINETIS_IRQ_FTM0;
+		case Timer::FTM0:
+			ret.base = KINETIS_FTM0_BASE;
+			ret.clock_register = KINETIS_SIM_SCGC6;
+			ret.clock_bit = SIM_SCGC6_FTM0;
+			ret.vectorno = KINETIS_IRQ_FTM0;
 #ifdef CONFIG_KINETIS_FTM0
-		nuttx_config_timer_enabled = true;
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::FTM1:
-		ret.base = KINETIS_FTM1_BASE;
-		ret.clock_register = KINETIS_SIM_SCGC6;
-		ret.clock_bit = SIM_SCGC6_FTM1;
-		ret.vectorno =  KINETIS_IRQ_FTM1;
+		case Timer::FTM1:
+			ret.base = KINETIS_FTM1_BASE;
+			ret.clock_register = KINETIS_SIM_SCGC6;
+			ret.clock_bit = SIM_SCGC6_FTM1;
+			ret.vectorno = KINETIS_IRQ_FTM1;
 #ifdef CONFIG_KINETIS_FTM1
-		nuttx_config_timer_enabled = true;
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::FTM2:
-		ret.base = KINETIS_FTM2_BASE;
-		ret.clock_register = KINETIS_SIM_SCGC3;
-		ret.clock_bit = SIM_SCGC3_FTM2;
-		ret.vectorno =  KINETIS_IRQ_FTM2;
+		case Timer::FTM2:
+			ret.base = KINETIS_FTM2_BASE;
+			ret.clock_register = KINETIS_SIM_SCGC3;
+			ret.clock_bit = SIM_SCGC3_FTM2;
+			ret.vectorno = KINETIS_IRQ_FTM2;
 #ifdef CONFIG_KINETIS_FTM2
-		nuttx_config_timer_enabled = true;
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::FTM3:
-		ret.base = KINETIS_FTM3_BASE;
-		ret.clock_register = KINETIS_SIM_SCGC3;
-		ret.clock_bit = SIM_SCGC3_FTM3;
-		ret.vectorno =  KINETIS_IRQ_FTM3;
+		case Timer::FTM3:
+			ret.base = KINETIS_FTM3_BASE;
+			ret.clock_register = KINETIS_SIM_SCGC3;
+			ret.clock_bit = SIM_SCGC3_FTM3;
+			ret.vectorno = KINETIS_IRQ_FTM3;
 #ifdef CONFIG_KINETIS_FTM3
-		nuttx_config_timer_enabled = true;
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 	}
 
 	// This is not strictly required, but for consistency let's make sure NuttX timers are disabled
-	constexpr_assert(!nuttx_config_timer_enabled, "IO Timer requires NuttX timer config to be disabled (KINETIS_FTMx)");
+	constexpr_assert(!nuttx_config_timer_enabled,
+			 "IO Timer requires NuttX timer config to be disabled (KINETIS_FTMx)");
 
 	return ret;
 }

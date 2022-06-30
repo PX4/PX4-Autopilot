@@ -42,25 +42,25 @@
  */
 
 #include <fcntl.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/tasks.h>
 #include <poll.h>
-#include <stdlib.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <unistd.h>
 #include <systemlib/err.h>
+#include <unistd.h>
 
 #include "../comms.h"
 #include "../messages.h"
 
-#define DEFAULT_UART "/dev/ttyS0";		/**< USART1 */
+#define DEFAULT_UART "/dev/ttyS0"; /**< USART1 */
 
-static int thread_should_exit = false;		/**< Deamon exit flag */
-static int thread_running = false;		/**< Deamon status flag */
-static int deamon_task;				/**< Handle of deamon task / thread */
+static int thread_should_exit = false; /**< Deamon exit flag */
+static int thread_running = false;     /**< Deamon status flag */
+static int deamon_task;                /**< Handle of deamon task / thread */
 static const char daemon_name[] = "hott_sensors";
 static const char commandline_usage[] = "usage: hott_sensors start|status|stop [-d <device>]";
 
@@ -77,9 +77,7 @@ int hott_sensors_thread_main(int argc, char *argv[]);
 static int recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id);
 static int send_poll(int uart, uint8_t *buffer, size_t size);
 
-int
-send_poll(int uart, uint8_t *buffer, size_t size)
-{
+int send_poll(int uart, uint8_t *buffer, size_t size) {
 	for (size_t i = 0; i < size; i++) {
 		write(uart, &buffer[i], sizeof(buffer[i]));
 
@@ -95,9 +93,7 @@ send_poll(int uart, uint8_t *buffer, size_t size)
 	return OK;
 }
 
-int
-recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id)
-{
+int recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id) {
 	static const int timeout_ms = 1000;
 
 	struct pollfd fds;
@@ -109,7 +105,7 @@ recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id)
 		int i = 0;
 		bool stop_byte_read = false;
 
-		while (true)  {
+		while (true) {
 			read(uart, &buffer[i], sizeof(buffer[i]));
 
 			if (stop_byte_read) {
@@ -131,9 +127,7 @@ recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id)
 	return PX4_ERROR;
 }
 
-int
-hott_sensors_thread_main(int argc, char *argv[])
-{
+int hott_sensors_thread_main(int argc, char *argv[]) {
 	warnx("starting");
 
 	thread_running = true;
@@ -142,7 +136,7 @@ hott_sensors_thread_main(int argc, char *argv[])
 
 	/* read commandline arguments */
 	for (int i = 0; i < argc && argv[i]; i++) {
-		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) { //device set
+		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) {  // device set
 			if (argc > i + 1) {
 				device = argv[i + 1];
 
@@ -196,25 +190,19 @@ hott_sensors_thread_main(int argc, char *argv[])
 /**
  * Process command line arguments and start the daemon.
  */
-int
-hott_sensors_main(int argc, char *argv[])
-{
+int hott_sensors_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		errx(1, "missing command\n%s", commandline_usage);
 	}
 
 	if (!strcmp(argv[1], "start")) {
-
 		if (thread_running) {
 			warnx("already running");
 			exit(0);
 		}
 
 		thread_should_exit = false;
-		deamon_task = px4_task_spawn_cmd(daemon_name,
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_DEFAULT,
-						 1024,
+		deamon_task = px4_task_spawn_cmd(daemon_name, SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 1024,
 						 hott_sensors_thread_main,
 						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		exit(0);

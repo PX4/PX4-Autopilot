@@ -66,7 +66,6 @@ PARAM_DEFINE_FLOAT(UUV_ROLL_P, 4.0f);
  */
 PARAM_DEFINE_FLOAT(UUV_ROLL_D, 1.5f);
 
-
 // Pitch gains
 /**
  * Pitch proportional gain
@@ -84,7 +83,6 @@ PARAM_DEFINE_FLOAT(UUV_PITCH_P, 4.0f);
  */
 PARAM_DEFINE_FLOAT(UUV_PITCH_D, 2.0f);
 
-
 // Yaw gains
 /**
  * Yawh proportional gain
@@ -101,7 +99,6 @@ PARAM_DEFINE_FLOAT(UUV_YAW_P, 4.0f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_YAW_D, 2.0f);
-
 
 // Input Modes
 /**

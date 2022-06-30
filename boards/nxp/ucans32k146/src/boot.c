@@ -37,12 +37,10 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform/gpio.h>
-
 #include <debug.h>
-
 #include <nuttx/board.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "board_config.h"
 
@@ -61,15 +59,13 @@
  *
  ****************************************************************************/
 
-void s32k1xx_board_initialize(void)
-{
+void s32k1xx_board_initialize(void) {
 #ifdef CONFIG_ARCH_LEDS
 	/* Configure on-board LEDs if LED support has been selected. */
 
 	board_autoled_initialize();
 #endif
 	ucans32k_timer_initialize();
-
 }
 
 /****************************************************************************
@@ -87,8 +83,7 @@ void s32k1xx_board_initialize(void)
  ****************************************************************************/
 
 #ifdef CONFIG_BOARD_LATE_INITIALIZE
-void board_late_initialize(void)
-{
+void board_late_initialize(void) {
 	/* Perform board-specific initialization */
 
 	s32k1xx_bringup();

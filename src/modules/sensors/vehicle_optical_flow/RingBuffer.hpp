@@ -37,15 +37,14 @@
  */
 
 #include <inttypes.h>
+
 #include <cstdio>
 #include <cstring>
 
 template <typename T, size_t SIZE>
-class RingBuffer
-{
+class RingBuffer {
 public:
-	void push(const T &sample)
-	{
+	void push(const T &sample) {
 		uint8_t head_new = _head;
 
 		if (!_first_write) {
@@ -73,14 +72,14 @@ public:
 
 	uint8_t get_oldest_index() const { return _tail; }
 
-	bool peak_first_older_than(const uint64_t &timestamp, T *sample)
-	{
+	bool peak_first_older_than(const uint64_t &timestamp, T *sample) {
 		// start looking from newest observation data
 		for (uint8_t i = 0; i < SIZE; i++) {
 			int index = (_head - i);
 			index = index < 0 ? SIZE + index : index;
 
-			if (timestamp >= _buffer[index].time_us && timestamp < _buffer[index].time_us + (uint64_t)100'000) {
+			if (timestamp >= _buffer[index].time_us &&
+			    timestamp < _buffer[index].time_us + (uint64_t)100'000) {
 				*sample = _buffer[index];
 				return true;
 			}
@@ -95,14 +94,14 @@ public:
 		return false;
 	}
 
-	bool pop_first_older_than(const uint64_t &timestamp, T *sample)
-	{
+	bool pop_first_older_than(const uint64_t &timestamp, T *sample) {
 		// start looking from newest observation data
 		for (uint8_t i = 0; i < SIZE; i++) {
 			int index = (_head - i);
 			index = index < 0 ? SIZE + index : index;
 
-			if (timestamp >= _buffer[index].time_us && timestamp < _buffer[index].time_us + (uint64_t)100'000) {
+			if (timestamp >= _buffer[index].time_us &&
+			    timestamp < _buffer[index].time_us + (uint64_t)100'000) {
 				*sample = _buffer[index];
 
 				// Now we can set the tail to the item which
@@ -131,14 +130,12 @@ public:
 		return false;
 	}
 
-	bool pop_oldest(const uint64_t &timestamp_oldest, const uint64_t &timestamp_newest, T *sample)
-	{
+	bool pop_oldest(const uint64_t &timestamp_oldest, const uint64_t &timestamp_newest, T *sample) {
 		if (timestamp_oldest >= timestamp_newest) {
 			return false;
 		}
 
 		for (uint8_t i = 0; i < SIZE; i++) {
-
 			uint8_t index = (_tail + i) % SIZE;
 
 			if (_buffer[index].time_us >= timestamp_oldest && _buffer[index].time_us <= timestamp_newest) {
@@ -164,8 +161,7 @@ public:
 		return false;
 	}
 
-	bool pop_oldest(T *sample)
-	{
+	bool pop_oldest(T *sample) {
 		if (_tail == _head) {
 			return false;
 		}
@@ -178,8 +174,7 @@ public:
 		return true;
 	}
 
-	bool pop_newest(T *sample)
-	{
+	bool pop_newest(T *sample) {
 		if (_tail == _head) {
 			return false;
 		}
@@ -194,8 +189,7 @@ public:
 
 	int get_total_size() const { return sizeof(*this) + sizeof(T) * SIZE; }
 
-	uint8_t entries() const
-	{
+	uint8_t entries() const {
 		int count = 0;
 
 		for (uint8_t i = 0; i < SIZE; i++) {
@@ -208,7 +202,7 @@ public:
 	}
 
 private:
-	T _buffer[SIZE] {};
+	T _buffer[SIZE]{};
 
 	uint8_t _head{0};
 	uint8_t _tail{0};

@@ -7,10 +7,11 @@
  * @date Mar 17, 2021
  */
 
-#include "sg.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+
+#include "sg.h"
 #include "sgUtil.h"
 
 #define MS_PARAM_TOA (1 << 3)
@@ -51,8 +52,7 @@
 /*
  * Documented in the header file.
  */
-bool sgDecodeMSR(uint8_t *buffer, sg_msr_t *msr)
-{
+bool sgDecodeMSR(uint8_t *buffer, sg_msr_t *msr) {
 	memset(msr, 0, sizeof(sg_msr_t));
 
 	uint8_t fields[3];

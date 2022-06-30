@@ -42,7 +42,8 @@
  * 		CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor.
  * Tube Pressure Drop
  * 		CAL_AIR_TUBED_MM: Diameter in mm of the pitot and tubes, must have the same diameter.
- * 		CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor and the static + dynamic port length of the pitot.
+ * 		CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor and the static + dynamic port
+ * length of the pitot.
  *
  * @value 0 Model with Pitot
  * @value 1 Model without Pitot (1.5 mm tubes)

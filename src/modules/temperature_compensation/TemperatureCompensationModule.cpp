@@ -33,20 +33,19 @@
 
 #include "TemperatureCompensationModule.h"
 
-#include "temperature_calibration/temperature_calibration.h"
-
-#include <uORB/Publication.hpp>
+#include <systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_command.h>
 
-#include <systemlib/mavlink_log.h>
+#include <uORB/Publication.hpp>
+
+#include "temperature_calibration/temperature_calibration.h"
 
 using namespace temperature_compensation;
 
-TemperatureCompensationModule::TemperatureCompensationModule() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
-	_loop_perf(perf_alloc(PC_ELAPSED, "temperature_compensation"))
-{
+TemperatureCompensationModule::TemperatureCompensationModule()
+	: ModuleParams(nullptr),
+	  ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
+	  _loop_perf(perf_alloc(PC_ELAPSED, "temperature_compensation")) {
 	for (int i = 0; i < SENSOR_COUNT_MAX; i++) {
 		_corrections.accel_temperature[i] = NAN;
 		_corrections.gyro_temperature[i] = NAN;
@@ -56,13 +55,9 @@ TemperatureCompensationModule::TemperatureCompensationModule() :
 	_sensor_correction_pub.advertise();
 }
 
-TemperatureCompensationModule::~TemperatureCompensationModule()
-{
-	perf_free(_loop_perf);
-}
+TemperatureCompensationModule::~TemperatureCompensationModule() { perf_free(_loop_perf); }
 
-void TemperatureCompensationModule::parameters_update()
-{
+void TemperatureCompensationModule::parameters_update() {
 	_temperature_compensation.parameters_update();
 
 	// Gyro
@@ -73,8 +68,9 @@ void TemperatureCompensationModule::parameters_update()
 			int temp = _temperature_compensation.set_sensor_id_gyro(report.device_id, uorb_index);
 
 			if (temp < 0) {
-				PX4_INFO("No temperature calibration available for gyro %" PRIu8 " (device id %" PRIu32 ")", uorb_index,
-					 report.device_id);
+				PX4_INFO("No temperature calibration available for gyro %" PRIu8 " (device id %" PRIu32
+					 ")",
+					 uorb_index, report.device_id);
 				_corrections.gyro_device_ids[uorb_index] = 0;
 
 			} else {
@@ -91,8 +87,9 @@ void TemperatureCompensationModule::parameters_update()
 			int temp = _temperature_compensation.set_sensor_id_accel(report.device_id, uorb_index);
 
 			if (temp < 0) {
-				PX4_INFO("No temperature calibration available for accel %" PRIu8 " (device id %" PRIu32 ")", uorb_index,
-					 report.device_id);
+				PX4_INFO("No temperature calibration available for accel %" PRIu8 " (device id %" PRIu32
+					 ")",
+					 uorb_index, report.device_id);
 				_corrections.accel_device_ids[uorb_index] = 0;
 
 			} else {
@@ -109,8 +106,9 @@ void TemperatureCompensationModule::parameters_update()
 			int temp = _temperature_compensation.set_sensor_id_baro(report.device_id, uorb_index);
 
 			if (temp < 0) {
-				PX4_INFO("No temperature calibration available for baro %" PRIu8 " (device id %" PRIu32 ")", uorb_index,
-					 report.device_id);
+				PX4_INFO("No temperature calibration available for baro %" PRIu8 " (device id %" PRIu32
+					 ")",
+					 uorb_index, report.device_id);
 				_corrections.baro_device_ids[uorb_index] = 0;
 
 			} else {
@@ -120,9 +118,9 @@ void TemperatureCompensationModule::parameters_update()
 	}
 }
 
-void TemperatureCompensationModule::accelPoll()
-{
-	float *offsets[] = {_corrections.accel_offset_0, _corrections.accel_offset_1, _corrections.accel_offset_2, _corrections.accel_offset_3 };
+void TemperatureCompensationModule::accelPoll() {
+	float *offsets[] = {_corrections.accel_offset_0, _corrections.accel_offset_1, _corrections.accel_offset_2,
+			    _corrections.accel_offset_3};
 
 	// For each accel instance
 	for (uint8_t uorb_index = 0; uorb_index < ACCEL_COUNT_MAX; uorb_index++) {
@@ -132,8 +130,8 @@ void TemperatureCompensationModule::accelPoll()
 		if (_accel_subs[uorb_index].update(&report)) {
 			if (PX4_ISFINITE(report.temperature)) {
 				// Update the offsets and mark for publication if they've changed
-				if (_temperature_compensation.update_offsets_accel(uorb_index, report.temperature, offsets[uorb_index]) == 2) {
-
+				if (_temperature_compensation.update_offsets_accel(uorb_index, report.temperature,
+										   offsets[uorb_index]) == 2) {
 					_corrections.accel_device_ids[uorb_index] = report.device_id;
 					_corrections.accel_temperature[uorb_index] = report.temperature;
 					_corrections_changed = true;
@@ -143,9 +141,9 @@ void TemperatureCompensationModule::accelPoll()
 	}
 }
 
-void TemperatureCompensationModule::gyroPoll()
-{
-	float *offsets[] = {_corrections.gyro_offset_0, _corrections.gyro_offset_1, _corrections.gyro_offset_2, _corrections.gyro_offset_3 };
+void TemperatureCompensationModule::gyroPoll() {
+	float *offsets[] = {_corrections.gyro_offset_0, _corrections.gyro_offset_1, _corrections.gyro_offset_2,
+			    _corrections.gyro_offset_3};
 
 	// For each gyro instance
 	for (uint8_t uorb_index = 0; uorb_index < GYRO_COUNT_MAX; uorb_index++) {
@@ -155,8 +153,8 @@ void TemperatureCompensationModule::gyroPoll()
 		if (_gyro_subs[uorb_index].update(&report)) {
 			if (PX4_ISFINITE(report.temperature)) {
 				// Update the offsets and mark for publication if they've changed
-				if (_temperature_compensation.update_offsets_gyro(uorb_index, report.temperature, offsets[uorb_index]) == 2) {
-
+				if (_temperature_compensation.update_offsets_gyro(uorb_index, report.temperature,
+										  offsets[uorb_index]) == 2) {
 					_corrections.gyro_device_ids[uorb_index] = report.device_id;
 					_corrections.gyro_temperature[uorb_index] = report.temperature;
 					_corrections_changed = true;
@@ -166,9 +164,9 @@ void TemperatureCompensationModule::gyroPoll()
 	}
 }
 
-void TemperatureCompensationModule::baroPoll()
-{
-	float *offsets[] = {&_corrections.baro_offset_0, &_corrections.baro_offset_1, &_corrections.baro_offset_2, &_corrections.baro_offset_3 };
+void TemperatureCompensationModule::baroPoll() {
+	float *offsets[] = {&_corrections.baro_offset_0, &_corrections.baro_offset_1, &_corrections.baro_offset_2,
+			    &_corrections.baro_offset_3};
 
 	// For each baro instance
 	for (uint8_t uorb_index = 0; uorb_index < BARO_COUNT_MAX; uorb_index++) {
@@ -178,8 +176,8 @@ void TemperatureCompensationModule::baroPoll()
 		if (_baro_subs[uorb_index].update(&report)) {
 			if (PX4_ISFINITE(report.temperature)) {
 				// Update the offsets and mark for publication if they've changed
-				if (_temperature_compensation.update_offsets_baro(uorb_index, report.temperature, offsets[uorb_index]) == 2) {
-
+				if (_temperature_compensation.update_offsets_baro(uorb_index, report.temperature,
+										  offsets[uorb_index]) == 2) {
 					_corrections.baro_device_ids[uorb_index] = report.device_id;
 					_corrections.baro_temperature[uorb_index] = report.temperature;
 					_corrections_changed = true;
@@ -189,8 +187,7 @@ void TemperatureCompensationModule::baroPoll()
 	}
 }
 
-void TemperatureCompensationModule::Run()
-{
+void TemperatureCompensationModule::Run() {
 	perf_begin(_loop_perf);
 
 	// Check if user has requested to run the calibration routine
@@ -204,17 +201,20 @@ void TemperatureCompensationModule::Run()
 				bool baro = false;
 				bool gyro = false;
 
-				if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
+				if ((int)(cmd.param1) ==
+				    vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 					gyro = true;
 					got_temperature_calibration_command = true;
 				}
 
-				if ((int)(cmd.param5) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
+				if ((int)(cmd.param5) ==
+				    vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 					accel = true;
 					got_temperature_calibration_command = true;
 				}
 
-				if ((int)(cmd.param7) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
+				if ((int)(cmd.param7) ==
+				    vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 					baro = true;
 					got_temperature_calibration_command = true;
 				}
@@ -237,7 +237,8 @@ void TemperatureCompensationModule::Run()
 					command_ack.target_system = cmd.source_system;
 					command_ack.target_component = cmd.source_component;
 
-					uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
+					uORB::Publication<vehicle_command_ack_s> command_ack_pub{
+						ORB_ID(vehicle_command_ack)};
 					command_ack_pub.publish(command_ack);
 				}
 			}
@@ -269,8 +270,7 @@ void TemperatureCompensationModule::Run()
 	perf_end(_loop_perf);
 }
 
-int TemperatureCompensationModule::task_spawn(int argc, char *argv[])
-{
+int TemperatureCompensationModule::task_spawn(int argc, char *argv[]) {
 	TemperatureCompensationModule *instance = new TemperatureCompensationModule();
 
 	if (instance) {
@@ -292,16 +292,13 @@ int TemperatureCompensationModule::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-bool TemperatureCompensationModule::init()
-{
+bool TemperatureCompensationModule::init() {
 	ScheduleOnInterval(1_s);
 	return true;
 }
 
-int TemperatureCompensationModule::custom_command(int argc, char *argv[])
-{
+int TemperatureCompensationModule::custom_command(int argc, char *argv[]) {
 	if (!strcmp(argv[0], "calibrate")) {
-
 		bool accel_calib = false;
 		bool baro_calib = false;
 		bool gyro_calib = false;
@@ -312,25 +309,25 @@ int TemperatureCompensationModule::custom_command(int argc, char *argv[])
 
 		while ((ch = px4_getopt(argc, argv, "abg", &myoptind, &myoptarg)) != EOF) {
 			switch (ch) {
-			case 'a':
-				accel_calib = true;
-				calib_all = false;
-				break;
+				case 'a':
+					accel_calib = true;
+					calib_all = false;
+					break;
 
-			case 'b':
-				baro_calib = true;
-				calib_all = false;
-				break;
+				case 'b':
+					baro_calib = true;
+					calib_all = false;
+					break;
 
-			case 'g':
-				gyro_calib = true;
-				calib_all = false;
-				break;
+				case 'g':
+					gyro_calib = true;
+					calib_all = false;
+					break;
 
-			default:
-				print_usage("unrecognized flag");
+				default:
+					print_usage("unrecognized flag");
 
-				return PX4_ERROR;
+					return PX4_ERROR;
 			}
 		}
 
@@ -344,16 +341,19 @@ int TemperatureCompensationModule::custom_command(int argc, char *argv[])
 
 		vehicle_command_s vcmd{};
 		vcmd.timestamp = hrt_absolute_time();
-		vcmd.param1 = (float)((gyro_calib
-				       || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
+		vcmd.param1 = (float)((gyro_calib || calib_all)
+					      ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION
+					      : NAN);
 		vcmd.param2 = NAN;
 		vcmd.param3 = NAN;
 		vcmd.param4 = NAN;
-		vcmd.param5 = ((accel_calib
-				|| calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : (double)NAN);
+		vcmd.param5 =
+			((accel_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION
+						    : (double)NAN);
 		vcmd.param6 = (double)NAN;
-		vcmd.param7 = (float)((baro_calib
-				       || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
+		vcmd.param7 = (float)((baro_calib || calib_all)
+					      ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION
+					      : NAN);
 		vcmd.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION;
 
 		uORB::Publication<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
@@ -368,15 +368,13 @@ int TemperatureCompensationModule::custom_command(int argc, char *argv[])
 	}
 }
 
-int TemperatureCompensationModule::print_status()
-{
+int TemperatureCompensationModule::print_status() {
 	_temperature_compensation.print_status();
 
 	return PX4_OK;
 }
 
-int TemperatureCompensationModule::print_usage(const char *reason)
-{
+int TemperatureCompensationModule::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -393,17 +391,18 @@ a temperature cycle.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("temperature_compensation", "system");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the module, which monitors the sensors and updates the sensor_correction topic");
+	PRINT_MODULE_USAGE_COMMAND_DESCR(
+		"start", "Start the module, which monitors the sensors and updates the sensor_correction topic");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate", "Run temperature calibration process");
 	PRINT_MODULE_USAGE_PARAM_FLAG('g', "calibrate the gyro", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "calibrate the accel", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('b', "calibrate the baro (if none of these is given, all will be calibrated)", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('b', "calibrate the baro (if none of these is given, all will be calibrated)",
+				      true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-extern "C" __EXPORT int temperature_compensation_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int temperature_compensation_main(int argc, char *argv[]) {
 	return TemperatureCompensationModule::main(argc, argv);
 }

@@ -35,17 +35,12 @@
 
 #include <stdlib.h>
 
-namespace px4
-{
+namespace px4 {
 
 template <class T, size_t N>
-class Array
-{
-
+class Array {
 public:
-
-	bool push_back(const T &x)
-	{
+	bool push_back(const T &x) {
 		if (_size == N) {
 			_overflow = true;
 			return false;
@@ -57,8 +52,7 @@ public:
 		}
 	}
 
-	void remove(unsigned idx)
-	{
+	void remove(unsigned idx) {
 		if (idx < _size) {
 			--_size;
 
@@ -68,8 +62,7 @@ public:
 		}
 	}
 
-	void erase(T *item)
-	{
+	void erase(T *item) {
 		if (item - _items < static_cast<int>(_size)) {
 			--_size;
 
@@ -100,9 +93,9 @@ public:
 	const T *end() const { return &_items[_size]; }
 
 private:
-	T        _items[N];
-	size_t      _size{0};
-	bool        _overflow{false};
+	T _items[N];
+	size_t _size{0};
+	bool _overflow{false};
 };
 
-}
+}  // namespace px4

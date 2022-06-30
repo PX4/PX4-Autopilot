@@ -31,38 +31,37 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
 #include <systemlib/mavlink_log.h>
+
+#include "../PreFlightCheck.hpp"
 
 using namespace time_literals;
 
 bool PreFlightCheck::modeCheck(orb_advert_t *mavlink_log_pub, const bool report_fail,
-			       const vehicle_status_s &vehicle_status)
-{
+			       const vehicle_status_s &vehicle_status) {
 	bool success = true;
 
 	switch (vehicle_status.nav_state) {
-	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-	case vehicle_status_s::NAVIGATION_STATE_ACRO:
-	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-	case vehicle_status_s::NAVIGATION_STATE_STAB:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+		case vehicle_status_s::NAVIGATION_STATE_ACRO:
+		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
+		case vehicle_status_s::NAVIGATION_STATE_STAB:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
+			break;
 
-	default:
-		success = false;
+		default:
+			success = false;
 
-		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Mode not suitable for takeoff");
-		}
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "Mode not suitable for takeoff");
+			}
 
-		break;
+			break;
 	}
 
 	return success;

@@ -32,11 +32,10 @@
  ****************************************************************************/
 
 #include "pwm_input.h"
+
 #include <px4_arch/io_timer.h>
 
-int
-PWMIN::task_spawn(int argc, char *argv[])
-{
+int PWMIN::task_spawn(int argc, char *argv[]) {
 	auto *pwmin = new PWMIN();
 
 	if (!pwmin) {
@@ -52,9 +51,7 @@ PWMIN::task_spawn(int argc, char *argv[])
 	return PX4_OK;
 }
 
-void
-PWMIN::start()
-{
+void PWMIN::start() {
 	// NOTE: must first publish here, first publication cannot be in interrupt context
 	_pwm_input_pub.update();
 
@@ -62,10 +59,7 @@ PWMIN::start()
 	timer_init();
 }
 
-
-void
-PWMIN::timer_init(void)
-{
+void PWMIN::timer_init(void) {
 	/* TODO
 	 * - use gpio+irq directly instead of timer (if accurate enough)
 	 * - make pin configurable
@@ -103,11 +97,11 @@ PWMIN::timer_init(void)
 	rCR2 = 0;
 	rSMCR = 0;
 	rDIER = DIER_PWMIN_A;
-	rCCER = 0;		/* unlock CCMR* registers */
+	rCCER = 0; /* unlock CCMR* registers */
 	rCCMR1 = CCMR1_PWMIN;
 	rCCMR2 = CCMR2_PWMIN;
-	rSMCR = SMCR_PWMIN_1;	/* Set up mode */
-	rSMCR = SMCR_PWMIN_2;	/* Enable slave mode controller */
+	rSMCR = SMCR_PWMIN_1; /* Set up mode */
+	rSMCR = SMCR_PWMIN_2; /* Enable slave mode controller */
 	rCCER = CCER_PWMIN;
 	rDCR = 0;
 
@@ -138,9 +132,7 @@ PWMIN::timer_init(void)
 	up_enable_irq(PWMIN_TIMER_VECTOR);
 }
 
-int
-PWMIN::pwmin_tim_isr(int irq, void *context, void *arg)
-{
+int PWMIN::pwmin_tim_isr(int irq, void *context, void *arg) {
 	uint16_t status = rSR;
 	uint32_t period = rCCR_PWMIN_A;
 	uint32_t pulse_width = rCCR_PWMIN_B;
@@ -157,9 +149,7 @@ PWMIN::pwmin_tim_isr(int irq, void *context, void *arg)
 	return PX4_OK;
 }
 
-void
-PWMIN::publish(uint16_t status, uint32_t period, uint32_t pulse_width)
-{
+void PWMIN::publish(uint16_t status, uint32_t period, uint32_t pulse_width) {
 	// if we missed an edge, we have to give up
 	if (status & SR_OVF_PWMIN) {
 		_error_count++;
@@ -179,19 +169,13 @@ PWMIN::publish(uint16_t status, uint32_t period, uint32_t pulse_width)
 	_pulses_captured++;
 }
 
-int
-PWMIN::print_status()
-{
-	PX4_INFO("count=%u period=%u width=%u",
-		 static_cast<unsigned>(_pulses_captured),
-		 static_cast<unsigned>(_last_period),
-		 static_cast<unsigned>(_last_width));
+int PWMIN::print_status() {
+	PX4_INFO("count=%u period=%u width=%u", static_cast<unsigned>(_pulses_captured),
+		 static_cast<unsigned>(_last_period), static_cast<unsigned>(_last_width));
 	return 0;
 }
 
-int
-PWMIN::print_usage(const char *reason)
-{
+int PWMIN::print_usage(const char *reason) {
 	if (reason) {
 		printf("%s\n\n", reason);
 	}
@@ -210,13 +194,6 @@ Measures the PWM input on AUX5 (or MAIN5) via a timer capture ISR and publishes 
 	return PX4_OK;
 }
 
-int
-PWMIN::custom_command(int argc, char *argv[])
-{
-	return print_usage();
-}
+int PWMIN::custom_command(int argc, char *argv[]) { return print_usage(); }
 
-extern "C" __EXPORT int pwm_input_main(int argc, char *argv[])
-{
-	return PWMIN::main(argc, argv);
-}
+extern "C" __EXPORT int pwm_input_main(int argc, char *argv[]) { return PWMIN::main(argc, argv); }

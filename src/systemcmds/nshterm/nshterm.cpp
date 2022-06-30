@@ -36,34 +36,32 @@
  * @file nshterm.c
  */
 
-#include <px4_platform_common/px4_config.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <nshlib/nshlib.h>
 #include <px4_platform_common/module.h>
-#include <termios.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdarg.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <nshlib/nshlib.h>
-#include <fcntl.h>
 #include <systemlib/err.h>
-#include <drivers/drv_hrt.h>
+#include <termios.h>
+#include <unistd.h>
 
-static void print_usage()
-{
-	PRINT_MODULE_DESCRIPTION("Start an NSH shell on a given port.\n"
-				 "\n"
-				 "This was previously used to start a shell on the USB serial port.\n"
-				 "Now there runs mavlink, and it is possible to use a shell over mavlink.\n"
-				);
+static void print_usage() {
+	PRINT_MODULE_DESCRIPTION(
+		"Start an NSH shell on a given port.\n"
+		"\n"
+		"This was previously used to start a shell on the USB serial port.\n"
+		"Now there runs mavlink, and it is possible to use a shell over mavlink.\n");
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("nshterm", "command");
 	PRINT_MODULE_USAGE_ARG("<file:dev>", "Device on which to start the shell (eg. /dev/ttyACM0)", false);
 }
 
-extern "C" __EXPORT int nshterm_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int nshterm_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		print_usage();
 		return 1;

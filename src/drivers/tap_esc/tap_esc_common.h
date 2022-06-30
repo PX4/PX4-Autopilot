@@ -42,8 +42,7 @@
 
 #include "drv_tap_esc.h"
 
-namespace tap_esc_common
-{
+namespace tap_esc_common {
 /**
  *  Select tap esc responder data for serial interface by 74hct151. GPIOs to be
  *  defined in board_config.h
@@ -103,4 +102,4 @@ int parse_tap_esc_feedback(ESC_UART_BUF *const serial_buf, EscPacket *const pack
  *  Lookup-table for faster CRC computation when sending ESC packets.
  */
 extern const uint8_t crc_table[];
-} /* tap_esc_common */
+}  // namespace tap_esc_common

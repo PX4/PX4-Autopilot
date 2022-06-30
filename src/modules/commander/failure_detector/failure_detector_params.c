@@ -39,8 +39,8 @@
  * @author Mathieu Bresciani <brescianimathieu@gmail.com>
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <parameters/param.h>
+#include <px4_platform_common/px4_config.h>
 
 /**
  * FailureDetector Max Roll
@@ -133,8 +133,9 @@ PARAM_DEFINE_INT32(FD_EXT_ATS_TRIG, 1900);
 /**
  * Enable checks on ESCs that report their arming state.
  *
- * If enabled, failure detector will verify that all the ESCs have successfully armed when the vehicle has transitioned to the armed state.
- * Timeout for receiving an acknowledgement from the ESCs is 0.3s, if no feedback is received the failure detector will auto disarm the vehicle.
+ * If enabled, failure detector will verify that all the ESCs have successfully armed when the vehicle has transitioned
+ * to the armed state. Timeout for receiving an acknowledgement from the ESCs is 0.3s, if no feedback is received the
+ * failure detector will auto disarm the vehicle.
  *
  * @boolean
  *

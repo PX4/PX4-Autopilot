@@ -146,8 +146,9 @@ PARAM_DEFINE_INT32(SYS_CAL_BARO, 0);
  * Required temperature rise during thermal calibration
  *
  * A temperature increase greater than this value is required during calibration.
- * Calibration will complete for each sensor when the temperature increase above the starting temeprature exceeds the value set by SYS_CAL_TDEL.
- * If the temperature rise is insufficient, the calibration will continue indefinitely and the board will need to be repowered to exit.
+ * Calibration will complete for each sensor when the temperature increase above the starting temeprature exceeds the
+ * value set by SYS_CAL_TDEL. If the temperature rise is insufficient, the calibration will continue indefinitely and
+ * the board will need to be repowered to exit.
  *
  * @unit celcius
  * @min 10
@@ -158,7 +159,8 @@ PARAM_DEFINE_INT32(SYS_CAL_TDEL, 24);
 /**
  * Minimum starting temperature for thermal calibration
  *
- * Temperature calibration for each sensor will ignore data if the temperature is lower than the value set by SYS_CAL_TMIN.
+ * Temperature calibration for each sensor will ignore data if the temperature is lower than the value set by
+ * SYS_CAL_TMIN.
  *
  * @unit celcius
  * @group System
@@ -280,7 +282,6 @@ PARAM_DEFINE_INT32(SYS_BL_UPDATE, 0);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_FAILURE_EN, 0);
-
 
 /**
  * Enable Dynamic Control Allocation

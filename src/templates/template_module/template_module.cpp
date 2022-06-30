@@ -36,21 +36,17 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
-
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 
-
-int TemplateModule::print_status()
-{
+int TemplateModule::print_status() {
 	PX4_INFO("Running");
 	// TODO: print additional runtime information about the state of the module
 
 	return 0;
 }
 
-int TemplateModule::custom_command(int argc, char *argv[])
-{
+int TemplateModule::custom_command(int argc, char *argv[]) {
 	/*
 	if (!is_running()) {
 		print_usage("not running");
@@ -67,15 +63,9 @@ int TemplateModule::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-
-int TemplateModule::task_spawn(int argc, char *argv[])
-{
-	_task_id = px4_task_spawn_cmd("module",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT,
-				      1024,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+int TemplateModule::task_spawn(int argc, char *argv[]) {
+	_task_id = px4_task_spawn_cmd("module", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 1024,
+				      (px4_main_t)&run_trampoline, (char *const *)argv);
 
 	if (_task_id < 0) {
 		_task_id = -1;
@@ -85,8 +75,7 @@ int TemplateModule::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-TemplateModule *TemplateModule::instantiate(int argc, char *argv[])
-{
+TemplateModule *TemplateModule::instantiate(int argc, char *argv[]) {
 	int example_param = 0;
 	bool example_flag = false;
 	bool error_flag = false;
@@ -98,22 +87,22 @@ TemplateModule *TemplateModule::instantiate(int argc, char *argv[])
 	// parse CLI arguments
 	while ((ch = px4_getopt(argc, argv, "p:f", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'p':
-			example_param = (int)strtol(myoptarg, nullptr, 10);
-			break;
+			case 'p':
+				example_param = (int)strtol(myoptarg, nullptr, 10);
+				break;
 
-		case 'f':
-			example_flag = true;
-			break;
+			case 'f':
+				example_flag = true;
+				break;
 
-		case '?':
-			error_flag = true;
-			break;
+			case '?':
+				error_flag = true;
+				break;
 
-		default:
-			PX4_WARN("unrecognized flag");
-			error_flag = true;
-			break;
+			default:
+				PX4_WARN("unrecognized flag");
+				error_flag = true;
+				break;
 		}
 	}
 
@@ -130,13 +119,9 @@ TemplateModule *TemplateModule::instantiate(int argc, char *argv[])
 	return instance;
 }
 
-TemplateModule::TemplateModule(int example_param, bool example_flag)
-	: ModuleParams(nullptr)
-{
-}
+TemplateModule::TemplateModule(int example_param, bool example_flag) : ModuleParams(nullptr) {}
 
-void TemplateModule::run()
-{
+void TemplateModule::run() {
 	// Example: run the loop synchronized to the sensor_combined topic publication
 	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 
@@ -148,7 +133,6 @@ void TemplateModule::run()
 	parameters_update(true);
 
 	while (!should_exit()) {
-
 		// wait for up to 1000ms for data
 		int pret = px4_poll(fds, (sizeof(fds) / sizeof(fds[0])), 1000);
 
@@ -162,11 +146,9 @@ void TemplateModule::run()
 			continue;
 
 		} else if (fds[0].revents & POLLIN) {
-
 			struct sensor_combined_s sensor_combined;
 			orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor_combined);
 			// TODO: do something with the data...
-
 		}
 
 		parameters_update();
@@ -175,8 +157,7 @@ void TemplateModule::run()
 	orb_unsubscribe(sensor_combined_sub);
 }
 
-void TemplateModule::parameters_update(bool force)
-{
+void TemplateModule::parameters_update(bool force) {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || force) {
 		// clear update
@@ -188,8 +169,7 @@ void TemplateModule::parameters_update(bool force)
 	}
 }
 
-int TemplateModule::print_usage(const char *reason)
-{
+int TemplateModule::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -219,7 +199,4 @@ $ module start -f -p 42
 	return 0;
 }
 
-int template_module_main(int argc, char *argv[])
-{
-	return TemplateModule::main(argc, argv);
-}
+int template_module_main(int argc, char *argv[]) { return TemplateModule::main(argc, argv); }

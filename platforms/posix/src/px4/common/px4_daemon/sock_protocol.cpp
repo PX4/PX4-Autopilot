@@ -38,14 +38,11 @@
 
 #include "sock_protocol.h"
 
-namespace px4_daemon
-{
+namespace px4_daemon {
 
-std::string get_socket_path(int instance_id)
-{
+std::string get_socket_path(int instance_id) {
 	// TODO: Use /var/run/px4/$instance/sock (or /var/run/user/$UID/... for non-root).
 	return "/tmp/px4-sock-" + std::to_string(instance_id);
 }
 
-} // namespace px4_daemon
-
+}  // namespace px4_daemon

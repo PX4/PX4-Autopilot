@@ -34,19 +34,18 @@
 #pragma once
 
 #include <px4_arch/hw_description.h>
-#include <px4_platform_common/spi.h>
 #include <px4_arch/micro_hal.h>
+#include <px4_platform_common/spi.h>
 
-static inline constexpr px4_spi_bus_device_t initSPIDevice(uint32_t devid, SPI::CS cs_gpio, SPI::DRDY drdy_gpio = {})
-{
+static inline constexpr px4_spi_bus_device_t initSPIDevice(uint32_t devid, SPI::CS cs_gpio, SPI::DRDY drdy_gpio = {}) {
 	px4_spi_bus_device_t ret{};
 	ret.cs_gpio = getGPIOPin(cs_gpio.pin) | (GPIO_OUT | GPIO_SET);
-	ret.drdy_gpio = getGPIOPin(drdy_gpio.pin) | GPIO_PU;	// GPIO_PU taken from kinetis
+	ret.drdy_gpio = getGPIOPin(drdy_gpio.pin) | GPIO_PU;  // GPIO_PU taken from kinetis
 
-	if (PX4_SPIDEVID_TYPE(devid) == 0) { // it's a PX4 device (internal or external)
+	if (PX4_SPIDEVID_TYPE(devid) == 0) {  // it's a PX4 device (internal or external)
 		ret.devid = PX4_SPIDEV_ID(PX4_SPI_DEVICE_ID, devid);
 
-	} else { // it's a NuttX device (e.g. SPIDEV_FLASH(0))
+	} else {  // it's a NuttX device (e.g. SPIDEV_FLASH(0))
 		ret.devid = devid;
 	}
 
@@ -55,14 +54,12 @@ static inline constexpr px4_spi_bus_device_t initSPIDevice(uint32_t devid, SPI::
 }
 
 static inline constexpr px4_spi_bus_t initSPIBus(SPI::Bus bus, const px4_spi_bus_devices_t &devices,
-		GPIO::GPIOPin power_enable = {})
-{
+						 GPIO::GPIOPin power_enable = {}) {
 	px4_spi_bus_t ret{};
 	ret.requires_locking = false;
 
 	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
 		ret.devices[i] = devices.devices[i];
-
 
 		if (ret.devices[i].cs_gpio != 0) {
 			if (PX4_SPI_DEVICE_ID == PX4_SPIDEVID_TYPE(ret.devices[i].devid)) {
@@ -70,7 +67,8 @@ static inline constexpr px4_spi_bus_t initSPIBus(SPI::Bus bus, const px4_spi_bus
 
 				for (int j = 0; j < i; ++j) {
 					if (ret.devices[j].cs_gpio != 0) {
-						same_devices_count += (ret.devices[i].devid & 0xff) == (ret.devices[j].devid & 0xff);
+						same_devices_count +=
+							(ret.devices[i].devid & 0xff) == (ret.devices[j].devid & 0xff);
 					}
 				}
 
@@ -78,7 +76,8 @@ static inline constexpr px4_spi_bus_t initSPIBus(SPI::Bus bus, const px4_spi_bus
 				ret.devices[i].devid |= same_devices_count << 8;
 
 			} else {
-				// A bus potentially requires locking if it is accessed by non-PX4 devices (i.e. NuttX drivers)
+				// A bus potentially requires locking if it is accessed by non-PX4 devices (i.e. NuttX
+				// drivers)
 				ret.requires_locking = true;
 			}
 		}
@@ -97,8 +96,7 @@ struct bus_device_external_cfg_array_t {
 	SPI::bus_device_external_cfg_t devices[SPI_BUS_MAX_DEVICES];
 };
 
-static inline constexpr px4_spi_bus_t initSPIBusExternal(SPI::Bus bus, const bus_device_external_cfg_array_t &devices)
-{
+static inline constexpr px4_spi_bus_t initSPIBusExternal(SPI::Bus bus, const bus_device_external_cfg_array_t &devices) {
 	px4_spi_bus_t ret{};
 
 	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
@@ -107,12 +105,12 @@ static inline constexpr px4_spi_bus_t initSPIBusExternal(SPI::Bus bus, const bus
 
 	ret.bus = (int)bus;
 	ret.is_external = true;
-	ret.requires_locking = false; // external buses are never accessed by NuttX drivers
+	ret.requires_locking = false;  // external buses are never accessed by NuttX drivers
 	return ret;
 }
 
-static inline constexpr SPI::bus_device_external_cfg_t initSPIConfigExternal(SPI::CS cs_gpio, SPI::DRDY drdy_gpio = {})
-{
+static inline constexpr SPI::bus_device_external_cfg_t initSPIConfigExternal(SPI::CS cs_gpio,
+									     SPI::DRDY drdy_gpio = {}) {
 	SPI::bus_device_external_cfg_t ret{};
 	ret.cs_gpio = cs_gpio;
 	ret.drdy_gpio = drdy_gpio;

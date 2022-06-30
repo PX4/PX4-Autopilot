@@ -33,20 +33,15 @@
 
 #include "WorkItemExample.hpp"
 
-WorkItemExample::WorkItemExample() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test1)
-{
-}
+WorkItemExample::WorkItemExample()
+	: ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test1) {}
 
-WorkItemExample::~WorkItemExample()
-{
+WorkItemExample::~WorkItemExample() {
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
 }
 
-bool WorkItemExample::init()
-{
+bool WorkItemExample::init() {
 	// execute Run() on every sensor_accel publication
 	if (!_sensor_accel_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
@@ -59,8 +54,7 @@ bool WorkItemExample::init()
 	return true;
 }
 
-void WorkItemExample::Run()
-{
+void WorkItemExample::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
@@ -75,9 +69,8 @@ void WorkItemExample::Run()
 		// clear update
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
-		updateParams(); // update module parameters (in DEFINE_PARAMETERS)
+		updateParams();  // update module parameters (in DEFINE_PARAMETERS)
 	}
-
 
 	// Example
 	//  update vehicle_status to check arming state
@@ -85,7 +78,6 @@ void WorkItemExample::Run()
 		vehicle_status_s vehicle_status;
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
-
 			const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
 			if (armed && !_armed) {
@@ -98,7 +90,6 @@ void WorkItemExample::Run()
 			_armed = armed;
 		}
 	}
-
 
 	// Example
 	//  grab latest accelerometer data
@@ -115,7 +106,6 @@ void WorkItemExample::Run()
 		}
 	}
 
-
 	// Example
 	//  publish some data
 	orb_test_s data{};
@@ -123,12 +113,10 @@ void WorkItemExample::Run()
 	data.timestamp = hrt_absolute_time();
 	_orb_test_pub.publish(data);
 
-
 	perf_end(_loop_perf);
 }
 
-int WorkItemExample::task_spawn(int argc, char *argv[])
-{
+int WorkItemExample::task_spawn(int argc, char *argv[]) {
 	WorkItemExample *instance = new WorkItemExample();
 
 	if (instance) {
@@ -150,20 +138,15 @@ int WorkItemExample::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int WorkItemExample::print_status()
-{
+int WorkItemExample::print_status() {
 	perf_print_counter(_loop_perf);
 	perf_print_counter(_loop_interval_perf);
 	return 0;
 }
 
-int WorkItemExample::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int WorkItemExample::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int WorkItemExample::print_usage(const char *reason)
-{
+int WorkItemExample::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -182,7 +165,4 @@ Example of a simple module running out of a work queue.
 	return 0;
 }
 
-extern "C" __EXPORT int work_item_example_main(int argc, char *argv[])
-{
-	return WorkItemExample::main(argc, argv);
-}
+extern "C" __EXPORT int work_item_example_main(int argc, char *argv[]) { return WorkItemExample::main(argc, argv); }

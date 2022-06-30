@@ -63,38 +63,36 @@
 
 /* Preprocessor calculation of Subscribers count */
 
-#define UAVCAN_SUB_COUNT CONFIG_CYPHAL_ESC_SUBSCRIBER + \
-	CONFIG_CYPHAL_GNSS_SUBSCRIBER_0 + \
-	CONFIG_CYPHAL_GNSS_SUBSCRIBER_1 + \
-	CONFIG_CYPHAL_BMS_SUBSCRIBER + \
-	CONFIG_CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER
+#define UAVCAN_SUB_COUNT                                                                                   \
+	CONFIG_CYPHAL_ESC_SUBSCRIBER + CONFIG_CYPHAL_GNSS_SUBSCRIBER_0 + CONFIG_CYPHAL_GNSS_SUBSCRIBER_1 + \
+		CONFIG_CYPHAL_BMS_SUBSCRIBER + CONFIG_CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER
 
-#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
-#include "Subscribers/DynamicPortSubscriber.hpp"
-#include "CanardInterface.hpp"
+#include <px4_platform_common/defines.h>
 
-#include "ServiceClients/GetInfo.hpp"
+#include "CanardInterface.hpp"
 #include "ServiceClients/Access.hpp"
+#include "ServiceClients/GetInfo.hpp"
 #include "ServiceClients/List.hpp"
 #include "Subscribers/BaseSubscriber.hpp"
+#include "Subscribers/DynamicPortSubscriber.hpp"
 #include "Subscribers/Heartbeat.hpp"
+#include "Subscribers/legacy/LegacyBatteryInfo.hpp"
+#include "Subscribers/uORB/uorb_subscriber.hpp"
 #include "Subscribers/udral/Battery.hpp"
 #include "Subscribers/udral/Esc.hpp"
 #include "Subscribers/udral/Gnss.hpp"
-#include "Subscribers/legacy/LegacyBatteryInfo.hpp"
-#include "Subscribers/uORB/uorb_subscriber.hpp"
 
 typedef struct {
-	UavcanDynamicPortSubscriber *(*create_sub)(CanardHandle &handle, UavcanParamManager &pmgr) {};
+	UavcanDynamicPortSubscriber *(*create_sub)(CanardHandle &handle, UavcanParamManager &pmgr){};
 	const char *subject_name;
 	const uint8_t instance;
 } UavcanDynSubBinder;
 
-class SubscriptionManager
-{
+class SubscriptionManager {
 public:
-	SubscriptionManager(CanardHandle &handle, UavcanParamManager &pmgr) : _canard_handle(handle), _param_manager(pmgr) {}
+	SubscriptionManager(CanardHandle &handle, UavcanParamManager &pmgr)
+		: _canard_handle(handle), _param_manager(pmgr) {}
 	~SubscriptionManager();
 
 	void subscribe();
@@ -106,61 +104,45 @@ private:
 
 	CanardHandle &_canard_handle;
 	UavcanParamManager &_param_manager;
-	UavcanDynamicPortSubscriber *_dynsubscribers {nullptr};
+	UavcanDynamicPortSubscriber *_dynsubscribers{nullptr};
 
-	UavcanHeartbeatSubscriber _heartbeat_sub {_canard_handle};
+	UavcanHeartbeatSubscriber _heartbeat_sub{_canard_handle};
 
 #if CONFIG_CYPHAL_GETINFO_RESPONDER
 	// GetInfo response
-	UavcanGetInfoResponse _getinfo_rsp {_canard_handle};
+	UavcanGetInfoResponse _getinfo_rsp{_canard_handle};
 #endif
 
 	// Process register requests
-	UavcanAccessResponse  _access_rsp {_canard_handle, _param_manager};
-	UavcanListResponse  _list_rsp {_canard_handle, _param_manager};
+	UavcanAccessResponse _access_rsp{_canard_handle, _param_manager};
+	UavcanListResponse _list_rsp{_canard_handle, _param_manager};
 
 	const UavcanDynSubBinder _uavcan_subs[UAVCAN_SUB_COUNT] {
 #if CONFIG_CYPHAL_ESC_SUBSCRIBER
-		{
-			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
-			{
-				return new UavcanEscSubscriber(handle, pmgr, 0);
-			},
-			"esc",
-			0
-		},
+		{[](CanardHandle &handle, UavcanParamManager &pmgr) -> UavcanDynamicPortSubscriber * {
+			 return new UavcanEscSubscriber(handle, pmgr, 0);
+		 },
+		 "esc", 0},
 #endif
 #if CONFIG_CYPHAL_GNSS_SUBSCRIBER_0
-		{
-			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
-			{
-				return new UavcanGnssSubscriber(handle, pmgr, 0);
-			},
-			"gps",
-			0
-		},
+			{[](CanardHandle &handle, UavcanParamManager &pmgr) -> UavcanDynamicPortSubscriber * {
+				 return new UavcanGnssSubscriber(handle, pmgr, 0);
+			 },
+			 "gps", 0},
 #endif
-#if CONFIG_CYPHAL_GNSS_SUBSCRIBER_1 //FIXME decouple handletanceing
-		{
-			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
-			{
-				return new UavcanGnssSubscriber(handle, pmgr, 1);
-			},
-			"gps",
-			1
-		},
+#if CONFIG_CYPHAL_GNSS_SUBSCRIBER_1  // FIXME decouple handletanceing
+			{[](CanardHandle &handle, UavcanParamManager &pmgr) -> UavcanDynamicPortSubscriber * {
+				 return new UavcanGnssSubscriber(handle, pmgr, 1);
+			 },
+			 "gps", 1},
 #endif
 #if CONFIG_CYPHAL_BMS_SUBSCRIBER
-		{
-			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
-			{
-				return new UavcanBmsSubscriber(handle, pmgr, 0);
-			},
-			"energy_source",
-			0
-		},
+			{[](CanardHandle &handle, UavcanParamManager &pmgr) -> UavcanDynamicPortSubscriber * {
+				 return new UavcanBmsSubscriber(handle, pmgr, 0);
+			 },
+			 "energy_source", 0},
 #endif
-#if 0 //Obsolete to be removed
+#if 0  // Obsolete to be removed
 		{
 			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
@@ -171,14 +153,10 @@ private:
 		},
 #endif
 #if CONFIG_CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER
-		{
-			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
-			{
-				return new uORB_over_UAVCAN_Subscriber<sensor_gps_s>(handle, pmgr, ORB_ID(sensor_gps));
-			},
-			"uorb.sensor_gps",
-			0
-		},
+			{[](CanardHandle &handle, UavcanParamManager &pmgr) -> UavcanDynamicPortSubscriber * {
+				 return new uORB_over_UAVCAN_Subscriber<sensor_gps_s>(handle, pmgr, ORB_ID(sensor_gps));
+			 },
+			 "uorb.sensor_gps", 0},
 #endif
 	};
 };

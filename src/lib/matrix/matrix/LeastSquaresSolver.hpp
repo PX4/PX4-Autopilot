@@ -16,14 +16,11 @@
 
 #include "math.hpp"
 
-namespace matrix
-{
+namespace matrix {
 
-template<typename Type, size_t M, size_t N>
-class LeastSquaresSolver
-{
+template <typename Type, size_t M, size_t N>
+class LeastSquaresSolver {
 public:
-
 	/**
 	 * @brief Class calculates QR decomposition which can be used for linear
 	 * least squares
@@ -33,8 +30,7 @@ public:
 	 * QR decomposition. This class does not check the rank of the matrix.
 	 * The user needs to make sure that rank(A) = N and M >= N.
 	 */
-	LeastSquaresSolver(const Matrix<Type, M, N> &A)
-	{
+	LeastSquaresSolver(const Matrix<Type, M, N> &A) {
 		static_assert(M >= N, "Matrix dimension should be M >= N");
 
 		// Copy contentents of matrix A
@@ -79,7 +75,6 @@ public:
 					_A(i, k) -= _tau(j) * w[i - j] * tmp;
 				}
 			}
-
 		}
 	}
 
@@ -91,8 +86,7 @@ public:
 	 * This function calculates Q^T * b. This is useful for the solver
 	 * because R*x = Q^T*b.
 	 */
-	Vector<Type, M> qtb(const Vector<Type, M> &b)
-	{
+	Vector<Type, M> qtb(const Vector<Type, M> &b) {
 		Vector<Type, M> qtbv = b;
 
 		for (size_t j = 0; j < N; j++) {
@@ -126,8 +120,7 @@ public:
 	 * Find x in the equation Ax = b.
 	 * A is provided in the initializer of the class.
 	 */
-	Vector<Type, N> solve(const Vector<Type, M> &b)
-	{
+	Vector<Type, N> solve(const Vector<Type, M> &b) {
 		Vector<Type, M> qtbv = qtb(b);
 		Vector<Type, N> x;
 
@@ -158,7 +151,6 @@ public:
 private:
 	Matrix<Type, M, N> _A;
 	Vector<Type, N> _tau;
-
 };
 
-} // namespace matrix
+}  // namespace matrix

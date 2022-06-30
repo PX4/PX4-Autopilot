@@ -41,8 +41,7 @@
 
 #include "SlewRate.hpp"
 
-class StickYaw
-{
+class StickYaw {
 public:
 	StickYaw();
 	~StickYaw() = default;
@@ -64,5 +63,6 @@ private:
 	 * @param yaw current yaw setpoint which then will be overwritten by the return value
 	 * @return yaw setpoint to execute to have a yaw lock at the correct moment in time
 	 */
-	static float updateYawLock(float yaw, float yawspeed_setpoint, float yaw_setpoint, bool is_yaw_good_for_control);
+	static float updateYawLock(float yaw, float yawspeed_setpoint, float yaw_setpoint,
+				   bool is_yaw_good_for_control);
 };

@@ -31,56 +31,65 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
 #include <drivers/drv_sensor.h>
 #include <nuttx/spi/spi.h>
+#include <px4_arch/spi_hw_description.h>
 
 constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSIONS] = {
-	initSPIHWVersion(HW_VER_REV(0, 0), {
-		initSPIBus(SPI::Bus::SPI1, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM20689, SPI::CS{GPIO::PortF, GPIO::Pin2}, SPI::DRDY{GPIO::PortB, GPIO::Pin4}),
-			initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortF, GPIO::Pin4}, SPI::DRDY{GPIO::PortB, GPIO::Pin14}),
-			initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortG, GPIO::Pin10}, SPI::DRDY{GPIO::PortB, GPIO::Pin15}),
-			initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortH, GPIO::Pin5}),
-		}, {GPIO::PortE, GPIO::Pin3}),
-		initSPIBus(SPI::Bus::SPI2, {
-			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortF, GPIO::Pin5})
+	initSPIHWVersion(
+		HW_VER_REV(0, 0),
+		{
+			initSPIBus(SPI::Bus::SPI1,
+				   {
+					   initSPIDevice(DRV_IMU_DEVTYPE_ICM20689, SPI::CS{GPIO::PortF, GPIO::Pin2},
+							 SPI::DRDY{GPIO::PortB, GPIO::Pin4}),
+					   initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortF, GPIO::Pin4},
+							 SPI::DRDY{GPIO::PortB, GPIO::Pin14}),
+					   initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortG, GPIO::Pin10},
+							 SPI::DRDY{GPIO::PortB, GPIO::Pin15}),
+					   initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortH, GPIO::Pin5}),
+				   },
+				   {GPIO::PortE, GPIO::Pin3}),
+			initSPIBus(SPI::Bus::SPI2, {initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortF, GPIO::Pin5})}),
+			initSPIBus(SPI::Bus::SPI4,
+				   {
+					   initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortF, GPIO::Pin10}),
+				   }),
+			initSPIBusExternal(SPI::Bus::SPI5,
+					   {
+						   initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin4}),
+						   initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}),
+					   }),
+			initSPIBusExternal(SPI::Bus::SPI6, {initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin6}),
+							    initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin7}),
+							    initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin8})}),
 		}),
-		initSPIBus(SPI::Bus::SPI4, {
-			initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortF, GPIO::Pin10}),
+	initSPIHWVersion(
+		HW_VER_REV(0, 1),
+		{
+			initSPIBus(SPI::Bus::SPI1,
+				   {
+					   initSPIDevice(DRV_IMU_DEVTYPE_ICM20689, SPI::CS{GPIO::PortF, GPIO::Pin2},
+							 SPI::DRDY{GPIO::PortB, GPIO::Pin4}),
+					   initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortF, GPIO::Pin4},
+							 SPI::DRDY{GPIO::PortB, GPIO::Pin14}),
+					   initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortH, GPIO::Pin5}),
+				   },
+				   {GPIO::PortE, GPIO::Pin3}),
+			initSPIBus(SPI::Bus::SPI2, {initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortF, GPIO::Pin5})}),
+			initSPIBus(SPI::Bus::SPI4,
+				   {
+					   initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortF, GPIO::Pin10}),
+				   }),
+			initSPIBusExternal(SPI::Bus::SPI5,
+					   {
+						   initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin4}),
+						   initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}),
+					   }),
+			initSPIBusExternal(SPI::Bus::SPI6, {initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin6}),
+							    initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin7}),
+							    initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin8})}),
 		}),
-		initSPIBusExternal(SPI::Bus::SPI5, {
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin4}),
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}),
-		}),
-		initSPIBusExternal(SPI::Bus::SPI6, {
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin6}),
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin7}),
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin8})
-		}),
-	}),
-	initSPIHWVersion(HW_VER_REV(0, 1), {
-		initSPIBus(SPI::Bus::SPI1, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM20689, SPI::CS{GPIO::PortF, GPIO::Pin2}, SPI::DRDY{GPIO::PortB, GPIO::Pin4}),
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortF, GPIO::Pin4}, SPI::DRDY{GPIO::PortB, GPIO::Pin14}),
-			initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortH, GPIO::Pin5}),
-		}, {GPIO::PortE, GPIO::Pin3}),
-		initSPIBus(SPI::Bus::SPI2, {
-			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortF, GPIO::Pin5})
-		}),
-		initSPIBus(SPI::Bus::SPI4, {
-			initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortF, GPIO::Pin10}),
-		}),
-		initSPIBusExternal(SPI::Bus::SPI5, {
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin4}),
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}),
-		}),
-		initSPIBusExternal(SPI::Bus::SPI6, {
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin6}),
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin7}),
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin8})
-		}),
-	}),
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses_all_hw);

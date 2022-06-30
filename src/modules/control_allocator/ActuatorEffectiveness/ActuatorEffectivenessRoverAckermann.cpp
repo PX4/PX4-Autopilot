@@ -32,14 +32,13 @@
  ****************************************************************************/
 
 #include "ActuatorEffectivenessRoverAckermann.hpp"
+
 #include <ControlAllocation/ControlAllocation.hpp>
 
 using namespace matrix;
 
-bool
-ActuatorEffectivenessRoverAckermann::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
-{
+bool ActuatorEffectivenessRoverAckermann::getEffectivenessMatrix(Configuration &configuration,
+								 EffectivenessUpdateReason external_update) {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
@@ -48,4 +47,3 @@ ActuatorEffectivenessRoverAckermann::getEffectivenessMatrix(Configuration &confi
 	configuration.addActuator(ActuatorType::SERVOS, Vector3f{0.f, 0.f, 1.f}, Vector3f{});
 	return true;
 }
-

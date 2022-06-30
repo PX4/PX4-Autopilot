@@ -45,35 +45,33 @@
  * Included Files
  ****************************************************************************/
 
-#include "board_config.h"
-
+#include <arch/board/board.h>
+#include <chip.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/config.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/mm/gran.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/init.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
-#include <syslog.h>
-
-#include <nuttx/config.h>
-#include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-#include <nuttx/mm/gran.h>
-#include <chip.h>
 #include <stm32_uart.h>
-#include <arch/board/board.h>
-#include "arm_internal.h"
-
-#include <px4_arch/io_timer.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
+#include <string.h>
+#include <syslog.h>
 #include <systemlib/px4_macros.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/gpio.h>
-#include <px4_platform/board_dma_alloc.h>
+
+#include "arm_internal.h"
+#include "board_config.h"
 
 static int configure_switch(void);
 
@@ -88,8 +86,7 @@ static int configure_switch(void);
  *          0 if just resetting
  *
  ************************************************************************************/
-__EXPORT void board_on_reset(int status)
-{
+__EXPORT void board_on_reset(int status) {
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
 	}
@@ -109,9 +106,7 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
-__EXPORT void
-stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	board_on_reset(-1); /* Reset PWM first thing */
 
 	/* configure LEDs */
@@ -150,9 +145,7 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	px4_platform_init();
 
 	/* configure the DMA allocator */
@@ -167,7 +160,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
 #endif
 
-	(void) board_hardfault_init(2, true);
+	(void)board_hardfault_init(2, true);
 
 #ifdef CONFIG_MMCSD
 
@@ -195,8 +188,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
  * Configure KSZ9897R ethernet switch on i2c
  *
  ************************************************************************************/
-static int configure_switch(void)
-{
+static int configure_switch(void) {
 	int ret = PX4_ERROR;
 
 	// attach to the i2c bus (internal)
@@ -207,7 +199,7 @@ static int configure_switch(void)
 	}
 
 	// ethernet switch enable
-	uint8_t txdata[] = {0x51, 0x00, 0x21, 0x00}; //0x5100, 0x2100 MSB to LSB here.
+	uint8_t txdata[] = {0x51, 0x00, 0x21, 0x00};  // 0x5100, 0x2100 MSB to LSB here.
 
 	struct i2c_msg_s msgv;
 

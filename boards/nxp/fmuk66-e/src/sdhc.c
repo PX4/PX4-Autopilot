@@ -56,20 +56,16 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-
-#include <stdbool.h>
-#include <stdio.h>
 #include <debug.h>
 #include <errno.h>
-#include <debug.h>
-
-#include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
-
-#include "kinetis.h"
+#include <nuttx/sdio.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <stdio.h>
 
 #include "board_config.h"
+#include "kinetis.h"
 
 #ifdef CONFIG_KINETIS_SDHC
 
@@ -83,8 +79,8 @@
 /* This structure holds static information unique to one SDHC peripheral */
 
 struct fmuk66_sdhc_state_s {
-	struct sdio_dev_s *sdhc;    /* R/W device handle */
-	bool inserted;              /* TRUE: card is inserted */
+	struct sdio_dev_s *sdhc; /* R/W device handle */
+	bool inserted;           /* TRUE: card is inserted */
 };
 
 /****************************************************************************
@@ -104,8 +100,7 @@ static struct fmuk66_sdhc_state_s g_sdhc;
  * Name: fmuk66_mediachange
  ****************************************************************************/
 
-static void fmuk66_mediachange(struct fmuk66_sdhc_state_s *sdhc)
-{
+static void fmuk66_mediachange(struct fmuk66_sdhc_state_s *sdhc) {
 	bool inserted;
 
 	/* Get the current value of the card detect pin.  This pin is pulled up on
@@ -118,7 +113,7 @@ static void fmuk66_mediachange(struct fmuk66_sdhc_state_s *sdhc)
 	/* Has the pin changed state? */
 
 	if (inserted != sdhc->inserted) {
-		mcinfo("Media change: %d->%d\n",  sdhc->inserted, inserted);
+		mcinfo("Media change: %d->%d\n", sdhc->inserted, inserted);
 
 		/* Yes.. perform the appropriate action (this might need some debounce). */
 
@@ -137,11 +132,10 @@ static void fmuk66_mediachange(struct fmuk66_sdhc_state_s *sdhc)
  * Name: fmuk66_cdinterrupt
  ****************************************************************************/
 
-static int fmuk66_cdinterrupt(int irq, FAR void *context, FAR void *args)
-{
+static int fmuk66_cdinterrupt(int irq, FAR void *context, FAR void *args) {
 	/* All of the work is done by fmuk66_mediachange() */
 
-	fmuk66_mediachange((struct fmuk66_sdhc_state_s *) args);
+	fmuk66_mediachange((struct fmuk66_sdhc_state_s *)args);
 	return OK;
 }
 #endif
@@ -158,10 +152,9 @@ static int fmuk66_cdinterrupt(int irq, FAR void *context, FAR void *args)
  *
  ****************************************************************************/
 
-int fmuk66_sdhc_initialize(void)
-{
+int fmuk66_sdhc_initialize(void) {
 	int ret;
-	struct fmuk66_sdhc_state_s   *sdhc = &g_sdhc;
+	struct fmuk66_sdhc_state_s *sdhc = &g_sdhc;
 	/* Configure GPIO pins */
 
 	VDD_3V3_SD_CARD_EN(true);
@@ -187,12 +180,13 @@ int fmuk66_sdhc_initialize(void)
 		return -ENODEV;
 	}
 
-//   Testing done on SanDISK HC all failed sd_bench with Drive/Slew other than default and _PIN_OUTPUT_FAST|_PIN_OUTPUT_HIGHDRIVE
-//	_PIN_OUTPUT_FAST|_PIN_OUTPUT_HIGHDRIVE    Square noisy, pass SanDISK HC
-//  _PIN_OUTPUT_FAST|_PIN_OUTPUT_LOWDRIVE     Square noisy, pass SanDISK HC
-//  _PIN_OUTPUT_HIGHDRIVE|_PIN_OUTPUT_SLOW    sinusoidal fail SanDISK HC pass SanDISK HC1
-//  _PIN_OUTPUT_LOWDRIVE|_PIN_OUTPUT_SLOW     sinusoidal fail SanDISK HC pass SanDISK HC1
-//                       _PIN_OUTPUT_SLOW     sinusoidal fail SanDISK HC pass SanDISK HC1
+	//   Testing done on SanDISK HC all failed sd_bench with Drive/Slew other than default and
+	//   _PIN_OUTPUT_FAST|_PIN_OUTPUT_HIGHDRIVE
+	//	_PIN_OUTPUT_FAST|_PIN_OUTPUT_HIGHDRIVE    Square noisy, pass SanDISK HC
+	//  _PIN_OUTPUT_FAST|_PIN_OUTPUT_LOWDRIVE     Square noisy, pass SanDISK HC
+	//  _PIN_OUTPUT_HIGHDRIVE|_PIN_OUTPUT_SLOW    sinusoidal fail SanDISK HC pass SanDISK HC1
+	//  _PIN_OUTPUT_LOWDRIVE|_PIN_OUTPUT_SLOW     sinusoidal fail SanDISK HC pass SanDISK HC1
+	//                       _PIN_OUTPUT_SLOW     sinusoidal fail SanDISK HC pass SanDISK HC1
 
 	// This up dating of the driver setting is for EMI issue with GPS and FCC
 	// With this setting the clock is sinusoidal N.B. sd_bench fails on SanDISK HC, but
@@ -236,8 +230,7 @@ int fmuk66_sdhc_initialize(void)
  ****************************************************************************/
 
 #ifdef HAVE_AUTOMOUNTER
-bool fmuk66_cardinserted(void)
-{
+bool fmuk66_cardinserted(void) {
 	bool inserted;
 
 	/* Get the current value of the card detect pin.  This pin is pulled up on
@@ -259,8 +252,7 @@ bool fmuk66_cardinserted(void)
  ****************************************************************************/
 
 #ifdef HAVE_AUTOMOUNTER
-bool fmuk66_writeprotected(void)
-{
+bool fmuk66_writeprotected(void) {
 	/* There are no write protect pins */
 
 	return false;

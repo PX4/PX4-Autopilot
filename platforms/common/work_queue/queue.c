@@ -38,8 +38,7 @@
 #include <queue.h>
 #include <stddef.h>
 
-void sq_rem(sq_entry_t *node, sq_queue_t *queue)
-{
+void sq_rem(sq_entry_t *node, sq_queue_t *queue) {
 	if (queue->head && node) {
 		if (node == queue->head) {
 			queue->head = node->flink;
@@ -51,9 +50,8 @@ void sq_rem(sq_entry_t *node, sq_queue_t *queue)
 		} else {
 			sq_entry_t *prev;
 
-			for (prev = (sq_entry_t *)queue->head;
-			     prev && prev->flink != node;
-			     prev = prev->flink) {}
+			for (prev = (sq_entry_t *)queue->head; prev && prev->flink != node; prev = prev->flink) {
+			}
 
 			if (prev) {
 				sq_remafter(prev, queue);
@@ -62,8 +60,7 @@ void sq_rem(sq_entry_t *node, sq_queue_t *queue)
 	}
 }
 
-sq_entry_t *sq_remafter(sq_entry_t *node, sq_queue_t *queue)
-{
+sq_entry_t *sq_remafter(sq_entry_t *node, sq_queue_t *queue) {
 	sq_entry_t *ret = node->flink;
 
 	if (queue->head && ret) {
@@ -81,8 +78,7 @@ sq_entry_t *sq_remafter(sq_entry_t *node, sq_queue_t *queue)
 	return ret;
 }
 
-void sq_addfirst(sq_entry_t *node, sq_queue_t *queue)
-{
+void sq_addfirst(sq_entry_t *node, sq_queue_t *queue) {
 	node->flink = queue->head;
 
 	if (!queue->head) {
@@ -91,5 +87,3 @@ void sq_addfirst(sq_entry_t *node, sq_queue_t *queue)
 
 	queue->head = node;
 }
-
-

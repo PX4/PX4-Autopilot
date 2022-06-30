@@ -37,20 +37,20 @@
  * PX4 Middleware Wrapper Linux Implementation
  */
 
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <parameters/param.h>
+#include <pthread.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/workqueue.h>
-#include <px4_platform_common/defines.h>
+#include <px4_platform_common/init.h>
 #include <px4_platform_common/time.h>
+#include <px4_platform_common/workqueue.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <signal.h>
-#include <errno.h>
 #include <unistd.h>
-#include <parameters/param.h>
+
 #include "hrt_work.h"
-#include <drivers/drv_hrt.h>
-#include <pthread.h>
-#include <px4_platform_common/init.h>
 
 extern pthread_t _shell_task_id;
 
@@ -60,13 +60,11 @@ long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
 
 __END_DECLS
 
-namespace px4
-{
+namespace px4 {
 
 void init_once();
 
-void init_once()
-{
+void init_once() {
 	_shell_task_id = pthread_self();
 
 	work_queues_init();
@@ -75,8 +73,7 @@ void init_once()
 	px4_platform_init();
 }
 
-void init(int argc, char *argv[], const char *app_name)
-{
+void init(int argc, char *argv[], const char *app_name) {
 	printf("\n");
 	printf("______  __   __    ___ \n");
 	printf("| ___ \\ \\ \\ / /   /   |\n");
@@ -96,5 +93,4 @@ void init(int argc, char *argv[], const char *app_name)
 #endif
 }
 
-}
-
+}  // namespace px4

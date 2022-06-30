@@ -33,49 +33,44 @@
 
 #pragma once
 
-#include "UavcanPublisherBase.hpp"
-
-#include <uavcan/equipment/air_data/StaticTemperature.hpp>
-
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/sensor_baro.h>
 
-namespace uavcannode
-{
+#include <uORB/SubscriptionCallback.hpp>
+#include <uavcan/equipment/air_data/StaticTemperature.hpp>
 
-class StaticTemperature :
-	public UavcanPublisherBase,
-	public uORB::SubscriptionCallbackWorkItem,
-	private uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature>
-{
+#include "UavcanPublisherBase.hpp"
+
+namespace uavcannode {
+
+class StaticTemperature : public UavcanPublisherBase,
+			  public uORB::SubscriptionCallbackWorkItem,
+			  private uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature> {
 public:
-	StaticTemperature(px4::WorkItem *work_item, uavcan::INode &node) :
-		UavcanPublisherBase(uavcan::equipment::air_data::StaticTemperature::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_baro)),
-		uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature>(node)
-	{
+	StaticTemperature(px4::WorkItem *work_item, uavcan::INode &node)
+		: UavcanPublisherBase(uavcan::equipment::air_data::StaticTemperature::DefaultDataTypeID),
+		  uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_baro)),
+		  uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature>(node) {
 		this->setPriority(uavcan::TransferPriority::MiddleLower);
 	}
 
-	void PrintInfo() override
-	{
+	void PrintInfo() override {
 		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
-			printf("\t%s -> %s:%d\n",
-			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
+			printf("\t%s -> %s:%d\n", uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
 			       uavcan::equipment::air_data::StaticTemperature::getDataTypeFullName(),
 			       uavcan::equipment::air_data::StaticTemperature::DefaultDataTypeID);
 		}
 	}
 
-	void BroadcastAnyUpdates() override
-	{
+	void BroadcastAnyUpdates() override {
 		// sensor_baro -> uavcan::equipment::air_data::StaticTemperature
 		sensor_baro_s baro;
 
-		if ((hrt_elapsed_time(&_last_static_temperature_publish) > 1_s) && uORB::SubscriptionCallbackWorkItem::update(&baro)) {
+		if ((hrt_elapsed_time(&_last_static_temperature_publish) > 1_s) &&
+		    uORB::SubscriptionCallbackWorkItem::update(&baro)) {
 			uavcan::equipment::air_data::StaticTemperature static_temperature{};
 			static_temperature.static_temperature = baro.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
-			uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature>::broadcast(static_temperature);
+			uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature>::broadcast(
+				static_temperature);
 
 			// ensure callback is registered
 			uORB::SubscriptionCallbackWorkItem::registerCallback();
@@ -83,7 +78,8 @@ public:
 			_last_static_temperature_publish = hrt_absolute_time();
 		}
 	}
+
 private:
 	hrt_abstime _last_static_temperature_publish{0};
 };
-} // namespace uavcannode
+}  // namespace uavcannode

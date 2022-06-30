@@ -41,30 +41,27 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
-
 #include <lib/parameters/param.h>
-
+#include <px4_platform_common/px4_config.h>
 #include <uavcan/_register/Access_1_0.h>
 
 #include "../CanardInterface.hpp"
 #include "../ParamManager.hpp"
 #include "BaseSubscriber.hpp"
 
-class UavcanDynamicPortSubscriber : public UavcanBaseSubscriber
-{
+class UavcanDynamicPortSubscriber : public UavcanBaseSubscriber {
 public:
 	UavcanDynamicPortSubscriber(CanardHandle &handle, UavcanParamManager &pmgr, const char *prefix_name,
-				    const char *subject_name,  uint8_t instance = 0) :
-		UavcanBaseSubscriber(handle, prefix_name, subject_name, instance), _param_manager(pmgr) { };
+				    const char *subject_name, uint8_t instance = 0)
+		: UavcanBaseSubscriber(handle, prefix_name, subject_name, instance), _param_manager(pmgr){};
 
-	void updateParam()
-	{
+	void updateParam() {
 		SubjectSubscription *curSubj = &_subj_sub;
 
 		while (curSubj != nullptr) {
 			char uavcan_param[90];
-			snprintf(uavcan_param, sizeof(uavcan_param), "uavcan.sub.%s%s.%d.id", _prefix_name, curSubj->_subject_name, _instance);
+			snprintf(uavcan_param, sizeof(uavcan_param), "uavcan.sub.%s%s.%d.id", _prefix_name,
+				 curSubj->_subject_name, _instance);
 
 			// Set _port_id from _uavcan_param
 			uavcan_register_Value_1_0 value;
@@ -86,13 +83,15 @@ public:
 
 						// Subscribe on the new port ID
 						curSubj->_canard_sub.port_id = (CanardPortID)new_id;
-						PX4_INFO("Subscribing %s%s.%d on port %d", _prefix_name, curSubj->_subject_name, _instance,
+						PX4_INFO("Subscribing %s%s.%d on port %d", _prefix_name,
+							 curSubj->_subject_name, _instance,
 							 curSubj->_canard_sub.port_id);
 						subscribe();
 					}
 				}
 
-			} else if (curSubj->_canard_sub.port_id != CANARD_PORT_ID_UNSET) { // No valid sub id unsubscribe when neccesary
+			} else if (curSubj->_canard_sub.port_id !=
+				   CANARD_PORT_ID_UNSET) {  // No valid sub id unsubscribe when neccesary
 				// Already active; unsubscribe first
 				unsubscribe();
 			}
@@ -101,17 +100,11 @@ public:
 		}
 	};
 
-	UavcanDynamicPortSubscriber *next()
-	{
-		return _next_sub;
-	}
+	UavcanDynamicPortSubscriber *next() { return _next_sub; }
 
-	void setNext(UavcanDynamicPortSubscriber *next)
-	{
-		_next_sub = next;
-	}
+	void setNext(UavcanDynamicPortSubscriber *next) { _next_sub = next; }
 
 protected:
 	UavcanParamManager &_param_manager;
-	UavcanDynamicPortSubscriber *_next_sub {nullptr};
+	UavcanDynamicPortSubscriber *_next_sub{nullptr};
 };

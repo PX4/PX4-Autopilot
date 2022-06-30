@@ -59,8 +59,7 @@
 /**
  * A UAVCAN Server Sub node.
  */
-class UavcanServers
-{
+class UavcanServers {
 public:
 	UavcanServers(uavcan::INode &node, uavcan::NodeInfoRetriever &node_info_retriever);
 	~UavcanServers() = default;
@@ -70,7 +69,6 @@ public:
 	bool guessIfAllDynamicNodesAreAllocated() { return _server_instance.guessIfAllDynamicNodesAreAllocated(); }
 
 private:
-
 	void unpackFwFromROMFS(const char *sd_path, const char *romfs_path);
 	void migrateFWFromRoot(const char *sd_path, const char *sd_root_path);
 	int copyFw(const char *dst, const char *src);

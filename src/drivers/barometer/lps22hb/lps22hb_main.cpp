@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
-#include "LPS22HB.hpp"
 #include <px4_platform_common/module.h>
 
-void LPS22HB::print_usage()
-{
+#include "LPS22HB.hpp"
+
+void LPS22HB::print_usage() {
 	PRINT_MODULE_USAGE_NAME("lps22hb", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -43,8 +43,7 @@ void LPS22HB::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *LPS22HB::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+I2CSPIDriverBase *LPS22HB::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	device::Device *interface = nullptr;
 
 	if (config.bus_type == BOARD_I2C_BUS) {
@@ -80,8 +79,7 @@ I2CSPIDriverBase *LPS22HB::instantiate(const I2CSPIDriverConfig &config, int run
 	return dev;
 }
 
-extern "C" __EXPORT int lps22hb_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int lps22hb_main(int argc, char *argv[]) {
 	using ThisDriver = LPS22HB;
 	BusCLIArguments cli{true, true};
 	cli.default_i2c_frequency = 400000;

@@ -38,45 +38,35 @@
  * @author Mara Bos <m-ou.se@m-ou.se>
  */
 
-#include <errno.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <string>
-#include <pthread.h>
-#include <poll.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/un.h>
-#include <vector>
-
-#include <px4_platform_common/log.h>
-
-#include "pxh.h"
 #include "server.h"
 
-namespace px4_daemon
-{
+#include <errno.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <pthread.h>
+#include <px4_platform_common/log.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <unistd.h>
+
+#include <string>
+#include <vector>
+
+#include "pxh.h"
+
+namespace px4_daemon {
 
 Server *Server::_instance = nullptr;
 
-Server::Server(int instance_id)
-	: _mutex(PTHREAD_MUTEX_INITIALIZER),
-	  _instance_id(instance_id)
-{
-	_instance = this;
-}
+Server::Server(int instance_id) : _mutex(PTHREAD_MUTEX_INITIALIZER), _instance_id(instance_id) { _instance = this; }
 
-Server::~Server()
-{
-	_instance = nullptr;
-}
+Server::~Server() { _instance = nullptr; }
 
-int
-Server::start()
-{
+int Server::start() {
 	std::string sock_path = get_socket_path(_instance_id);
 
 	// Delete socket in case it exists already.
@@ -103,10 +93,7 @@ Server::start()
 		return -1;
 	}
 
-	if (0 != pthread_create(&_server_main_pthread,
-				nullptr,
-				_server_main_trampoline,
-				this)) {
+	if (0 != pthread_create(&_server_main_pthread, nullptr, _server_main_trampoline, this)) {
 		PX4_ERR("error creating client handler thread");
 		return -1;
 	}
@@ -114,21 +101,14 @@ Server::start()
 	return 0;
 }
 
-void *
-Server::_server_main_trampoline(void *self)
-{
+void *Server::_server_main_trampoline(void *self) {
 	((Server *)self)->_server_main();
 	return nullptr;
 }
 
-void Server::_pthread_key_destructor(void *arg)
-{
-	delete ((CmdThreadSpecificData *)arg);
-}
+void Server::_pthread_key_destructor(void *arg) { delete ((CmdThreadSpecificData *)arg); }
 
-void
-Server::_server_main()
-{
+void Server::_server_main() {
 	int ret = pthread_key_create(&_key, _pthread_key_destructor);
 
 	if (ret != 0) {
@@ -140,7 +120,7 @@ Server::_server_main()
 	std::vector<pollfd> poll_fds;
 
 	// Watch the listening socket for incoming connections.
-	poll_fds.push_back(pollfd {_fd, POLLIN, 0});
+	poll_fds.push_back(pollfd{_fd, POLLIN, 0});
 
 	// The list of FILE pointers that we'll need to fclose().
 	// stdouts[i] corresponds to poll_fds[i+1].
@@ -191,11 +171,12 @@ Server::_server_main()
 					fclose(thread_stdout);
 
 				} else {
-					// We won't join the thread, so detach to automatically release resources at its end
+					// We won't join the thread, so detach to automatically release resources at its
+					// end
 					pthread_detach(*thread);
 
 					// Start listening for the client hanging up.
-					poll_fds.push_back(pollfd {client, POLLHUP, 0});
+					poll_fds.push_back(pollfd{client, POLLHUP, 0});
 
 					// Remember the FILE *, so we can fclose() it later.
 					stdouts.push_back(thread_stdout);
@@ -231,9 +212,7 @@ Server::_server_main()
 	close(_fd);
 }
 
-void
-*Server::_handle_client(void *arg)
-{
+void *Server::_handle_client(void *arg) {
 	FILE *out = (FILE *)arg;
 	int fd = fileno(out);
 
@@ -295,9 +274,7 @@ void
 	return nullptr;
 }
 
-void
-Server::_cleanup(int fd)
-{
+void Server::_cleanup(int fd) {
 	_instance->_lock();
 	_instance->_fd_to_thread.erase(fd);
 	_instance->_unlock();
@@ -311,4 +288,4 @@ Server::_cleanup(int fd)
 	shutdown(fd, SHUT_RDWR);
 }
 
-} //namespace px4_daemon
+}  // namespace px4_daemon

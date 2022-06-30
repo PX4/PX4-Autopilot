@@ -40,53 +40,51 @@
 
 #include <px4_platform_common/i2c_spi_buses.h>
 
-#define BMP280_ADDR_CAL		0x88	/* address of 12x 2 bytes calibration data */
-#define BMP280_ADDR_DATA	0xF7	/* address of 2x 3 bytes p-t data */
+#define BMP280_ADDR_CAL 0x88  /* address of 12x 2 bytes calibration data */
+#define BMP280_ADDR_DATA 0xF7 /* address of 2x 3 bytes p-t data */
 
-#define BMP280_ADDR_CONFIG	0xF5	/* configuration */
-#define BMP280_ADDR_CTRL	0xF4	/* controll */
-#define BMP280_ADDR_STATUS	0xF3	/* state */
-#define BMP280_ADDR_RESET	0xE0	/* reset */
-#define BMP280_ADDR_ID		0xD0	/* id */
+#define BMP280_ADDR_CONFIG 0xF5 /* configuration */
+#define BMP280_ADDR_CTRL 0xF4   /* controll */
+#define BMP280_ADDR_STATUS 0xF3 /* state */
+#define BMP280_ADDR_RESET 0xE0  /* reset */
+#define BMP280_ADDR_ID 0xD0     /* id */
 
-#define BMP280_VALUE_ID		0x58	/* chip id */
-#define BMP280_VALUE_RESET	0xB6	/* reset */
+#define BMP280_VALUE_ID 0x58    /* chip id */
+#define BMP280_VALUE_RESET 0xB6 /* reset */
 
-#define BMP280_STATUS_MEASURING	(1<<3)	/* if in process of measure */
-#define BMP280_STATUS_COPING	(1<<0)	/* if in process of data copy */
+#define BMP280_STATUS_MEASURING (1 << 3) /* if in process of measure */
+#define BMP280_STATUS_COPING (1 << 0)    /* if in process of data copy */
 
-#define BMP280_CTRL_P0		(0x0<<2)		/* no p measure */
-#define BMP280_CTRL_P1		(0x1<<2)
-#define BMP280_CTRL_P2		(0x2<<2)
-#define BMP280_CTRL_P4		(0x3<<2)
-#define BMP280_CTRL_P8		(0x4<<2)
-#define BMP280_CTRL_P16		(0x5<<2)
+#define BMP280_CTRL_P0 (0x0 << 2) /* no p measure */
+#define BMP280_CTRL_P1 (0x1 << 2)
+#define BMP280_CTRL_P2 (0x2 << 2)
+#define BMP280_CTRL_P4 (0x3 << 2)
+#define BMP280_CTRL_P8 (0x4 << 2)
+#define BMP280_CTRL_P16 (0x5 << 2)
 
-#define BMP280_CTRL_T0		(0x0<<5)		/* no t measure */
-#define BMP280_CTRL_T1		(0x1<<5)
-#define BMP280_CTRL_T2		(0x2<<5)
-#define BMP280_CTRL_T4		(0x3<<5)
-#define BMP280_CTRL_T8		(0x4<<5)
-#define BMP280_CTRL_T16		(0x5<<5)
+#define BMP280_CTRL_T0 (0x0 << 5) /* no t measure */
+#define BMP280_CTRL_T1 (0x1 << 5)
+#define BMP280_CTRL_T2 (0x2 << 5)
+#define BMP280_CTRL_T4 (0x3 << 5)
+#define BMP280_CTRL_T8 (0x4 << 5)
+#define BMP280_CTRL_T16 (0x5 << 5)
 
-#define BMP280_CONFIG_F0		(0x0<<2)		/* no filter */
-#define BMP280_CONFIG_F2		(0x1<<2)
-#define BMP280_CONFIG_F4		(0x2<<2)
-#define BMP280_CONFIG_F8		(0x3<<2)
-#define BMP280_CONFIG_F16		(0x4<<2)
+#define BMP280_CONFIG_F0 (0x0 << 2) /* no filter */
+#define BMP280_CONFIG_F2 (0x1 << 2)
+#define BMP280_CONFIG_F4 (0x2 << 2)
+#define BMP280_CONFIG_F8 (0x3 << 2)
+#define BMP280_CONFIG_F16 (0x4 << 2)
 
+#define BMP280_CTRL_MODE_SLEEP 0x0
+#define BMP280_CTRL_MODE_FORCE 0x1 /* on demand, goes to sleep after */
+#define BMP280_CTRL_MODE_NORMAL 0x3
 
-#define BMP280_CTRL_MODE_SLEEP	0x0
-#define BMP280_CTRL_MODE_FORCE	0x1		/* on demand, goes to sleep after */
-#define BMP280_CTRL_MODE_NORMAL	0x3
+#define BMP280_MT_INIT 6400 /* max measure time of initial p + t in us */
+#define BMP280_MT 2300      /* max measure time of p or t in us */
 
-#define BMP280_MT_INIT		6400	/* max measure time of initial p + t in us */
-#define BMP280_MT			2300	/* max measure time of p or t in us */
+namespace bmp280 {
 
-namespace bmp280
-{
-
-#pragma pack(push,1)
+#pragma pack(push, 1)
 struct calibration_s {
 	uint16_t t1;
 	int16_t t2;
@@ -101,7 +99,7 @@ struct calibration_s {
 	int16_t p7;
 	int16_t p8;
 	int16_t p9;
-}; //calibration data
+};  // calibration data
 
 struct data_s {
 	uint8_t p_msb;
@@ -111,7 +109,7 @@ struct data_s {
 	uint8_t t_msb;
 	uint8_t t_lsb;
 	uint8_t t_xlsb;
-}; // data
+};  // data
 #pragma pack(pop)
 
 struct fcalibration_s {
@@ -130,8 +128,7 @@ struct fcalibration_s {
 	float p9;
 };
 
-class IBMP280
-{
+class IBMP280 {
 public:
 	virtual ~IBMP280() = default;
 
@@ -154,13 +151,12 @@ public:
 	virtual uint8_t get_device_address() const = 0;
 };
 
-} /* namespace */
-
+}  // namespace bmp280
 
 /* interface factories */
 #if defined(CONFIG_SPI)
 extern bmp280::IBMP280 *bmp280_spi_interface(uint8_t busnum, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
-#endif // CONFIG_SPI
+#endif  // CONFIG_SPI
 #if defined(CONFIG_I2C)
 extern bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint32_t device, int bus_frequency);
-#endif // CONFIG_I2C
+#endif  // CONFIG_I2C

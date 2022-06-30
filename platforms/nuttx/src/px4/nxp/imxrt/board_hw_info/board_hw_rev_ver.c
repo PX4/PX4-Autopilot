@@ -36,22 +36,21 @@
  * @file board_hw_rev_ver.c
  * Implementation of IMXRT based Board Hardware Revision and Version ID API
  */
+#include <board_config.h>
 #include <drivers/drv_adc.h>
 #include <px4_arch/adc.h>
+#include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform_common/micro_hal.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform/board_determine_hw_info.h>
 #include <stdio.h>
-#include <board_config.h>
-
 #include <systemlib/px4_macros.h>
 
 #if defined(BOARD_HAS_HW_VERSIONING)
 
-#  if defined(GPIO_HW_VER_REV_DRIVE)
-#    define GPIO_HW_REV_DRIVE GPIO_HW_VER_REV_DRIVE
-#    define GPIO_HW_VER_DRIVE GPIO_HW_VER_REV_DRIVE
-#  endif
+#if defined(GPIO_HW_VER_REV_DRIVE)
+#define GPIO_HW_REV_DRIVE GPIO_HW_VER_REV_DRIVE
+#define GPIO_HW_VER_DRIVE GPIO_HW_VER_REV_DRIVE
+#endif
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -63,7 +62,7 @@ static char hw_info[] = HW_INFO_INIT;
  * Protected Functions
  ****************************************************************************/
 /****************************************************************************
-  * Name: determin_hw_version
+ * Name: determin_hw_version
  *
  * Description:
  *
@@ -72,21 +71,19 @@ static char hw_info[] = HW_INFO_INIT;
  * that will be returned by board_get_hw_version and board_get_hw_revision API
  *
  *  This will return OK on success and -1 on not supported
-*
+ *
  *
  ****************************************************************************/
 
-static int dn_to_ordinal(uint16_t dn)
-{
-
+static int dn_to_ordinal(uint16_t dn) {
 	const struct {
-		uint16_t low;  // High(n-1) + 1
-		uint16_t high; // Average High(n)+Low(n+1) EX. 1356 = AVRG(1331,1382)
+		uint16_t low;   // High(n-1) + 1
+		uint16_t high;  // Average High(n)+Low(n+1) EX. 1356 = AVRG(1331,1382)
 	} dn2o[] = {
 		//   R1(up) R2(down)    V min       V Max       DN Min DN Max
-		{0,   0   },   // 0                     No Resistors
-		{1,   579 },   // 1  24.9K   442K   0.166255191  0.44102252    204    553
-		{580, 967 },   // 2  32.4K   174K   0.492349322  0.770203609   605    966
+		{0, 0},        // 0                     No Resistors
+		{1, 579},      // 1  24.9K   442K   0.166255191  0.44102252    204    553
+		{580, 967},    // 2  32.4K   174K   0.492349322  0.770203609   605    966
 		{968, 1356},   // 3  38.3K   115K   0.787901749  1.061597759   968    1331
 		{1357, 1756},  // 4  46.4K   84.5K  1.124833577  1.386007306   1382   1738
 		{1757, 2137},  // 5  51.1K   61.9K  1.443393279  1.685367869   1774   2113
@@ -138,10 +135,9 @@ static int dn_to_ordinal(uint16_t dn)
  *
  ************************************************************************************/
 
-static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc_channel)
-{
+static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc_channel) {
 	int rv = -EIO;
-	const unsigned int samples  = 16;
+	const unsigned int samples = 16;
 	/*
 	 * Step one is there resistors?
 	 *
@@ -162,13 +158,11 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 	imxrt_config_gpio(PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio_sense));
 
-
 	up_udelay(100); /* About 10 TC assuming 485 K */
 
 	/*  Read Drive lines while sense are driven low */
 
 	int low = imxrt_gpio_read(PX4_MAKE_GPIO_INPUT(gpio_drive));
-
 
 	/*  Write the sense lines HIGH */
 
@@ -199,7 +193,6 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 		/* Yes - Fire up the ADC (it has once control) */
 
 		if (px4_arch_adc_init(HW_REV_VER_ADC_BASE) == OK) {
-
 			/* Read the value */
 			for (unsigned av = 0; av < samples; av++) {
 				dn = px4_arch_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
@@ -208,7 +201,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 					break;
 				}
 
-				dn_sum  += dn;
+				dn_sum += dn;
 			}
 
 			if (dn != 0xffff) {
@@ -229,18 +222,16 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 	return rv;
 }
 
-
-static int determine_hw_info(int *revision, int *version)
-{
+static int determine_hw_info(int *revision, int *version) {
 	int dn;
 	int rv = read_id_dn(&dn, GPIO_HW_REV_DRIVE, GPIO_HW_REV_SENSE, ADC_HW_REV_SENSE_CHANNEL);
 
 	if (rv == OK) {
-		*revision =  dn_to_ordinal(dn);
+		*revision = dn_to_ordinal(dn);
 		rv = read_id_dn(&dn, GPIO_HW_VER_DRIVE, GPIO_HW_VER_SENSE, ADC_HW_VER_SENSE_CHANNEL);
 
 		if (rv == OK) {
-			*version =  dn_to_ordinal(dn);
+			*version = dn_to_ordinal(dn);
 		}
 	}
 
@@ -264,10 +255,7 @@ static int determine_hw_info(int *revision, int *version)
  *
  ************************************************************************************/
 
-__EXPORT const char *board_get_hw_type_name()
-{
-	return (const char *) hw_info;
-}
+__EXPORT const char *board_get_hw_type_name() { return (const char *)hw_info; }
 
 /************************************************************************************
  * Name: board_get_hw_version
@@ -285,10 +273,7 @@ __EXPORT const char *board_get_hw_type_name()
  *
  ************************************************************************************/
 
-__EXPORT int board_get_hw_version()
-{
-	return  hw_version;
-}
+__EXPORT int board_get_hw_version() { return hw_version; }
 
 /************************************************************************************
  * Name: board_get_hw_revision
@@ -306,13 +291,10 @@ __EXPORT int board_get_hw_version()
  *
  ************************************************************************************/
 
-__EXPORT int board_get_hw_revision()
-{
-	return  hw_revision;
-}
+__EXPORT int board_get_hw_revision() { return hw_revision; }
 
 /************************************************************************************
-  * Name: board_determine_hw_info
+ * Name: board_determine_hw_info
  *
  * Description:
  *	Uses the HW revision and version detection added in FMUv5.
@@ -333,8 +315,7 @@ __EXPORT int board_get_hw_revision()
  *
  ************************************************************************************/
 
-int board_determine_hw_info()
-{
+int board_determine_hw_info() {
 	int rv = determine_hw_info(&hw_revision, &hw_version);
 
 	if (rv == OK) {

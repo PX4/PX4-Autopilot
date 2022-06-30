@@ -3,27 +3,22 @@
  * Kinetis Port Author David Sidrane <david_s5@nscdg.com>
  */
 
-#include <uavcan_kinetis/thread.hpp>
-#include <uavcan_kinetis/clock.hpp>
 #include <uavcan_kinetis/can.hpp>
+#include <uavcan_kinetis/clock.hpp>
+#include <uavcan_kinetis/thread.hpp>
+
 #include "internal.hpp"
 
-namespace uavcan_kinetis
-{
+namespace uavcan_kinetis {
 
-BusEvent::BusEvent(CanDriver &can_driver)
-{
+BusEvent::BusEvent(CanDriver &can_driver) {
 	sem_init(&sem_, 0, 0);
 	sem_setprotocol(&sem_, SEM_PRIO_NONE);
 }
 
-BusEvent::~BusEvent()
-{
-	sem_destroy(&sem_);
-}
+BusEvent::~BusEvent() { sem_destroy(&sem_); }
 
-bool BusEvent::wait(uavcan::MonotonicDuration duration)
-{
+bool BusEvent::wait(uavcan::MonotonicDuration duration) {
 	if (duration.isPositive()) {
 		timespec abstime;
 
@@ -36,9 +31,10 @@ bool BusEvent::wait(uavcan::MonotonicDuration duration)
 
 			int ret;
 
-			while ((ret = sem_timedwait(&sem_, &abstime)) == -1 && errno == EINTR);
+			while ((ret = sem_timedwait(&sem_, &abstime)) == -1 && errno == EINTR)
+				;
 
-			if (ret == -1) { // timed out or error
+			if (ret == -1) {  // timed out or error
 				return false;
 			}
 
@@ -49,8 +45,7 @@ bool BusEvent::wait(uavcan::MonotonicDuration duration)
 	return false;
 }
 
-void BusEvent::signalFromInterrupt()
-{
+void BusEvent::signalFromInterrupt() {
 	if (sem_.semcount <= 0) {
 		(void)sem_post(&sem_);
 	}
@@ -60,4 +55,4 @@ void BusEvent::signalFromInterrupt()
 	}
 }
 
-}
+}  // namespace uavcan_kinetis

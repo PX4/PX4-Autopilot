@@ -37,20 +37,19 @@
  * PX4 Middleware Wrapper Linux Implementation
  */
 
+#include <errno.h>
+#include <pthread.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/workqueue.h>
 #include <px4_platform_common/time.h>
+#include <px4_platform_common/workqueue.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <pthread.h>
-#include <errno.h>
 
 #if (defined(__PX4_DARWIN) || defined(__PX4_CYGWIN) || defined(__PX4_POSIX)) && !defined(__PX4_QURT)
 
 #include <px4_platform_common/posix.h>
 
-int px4_sem_init(px4_sem_t *s, int pshared, unsigned value)
-{
+int px4_sem_init(px4_sem_t *s, int pshared, unsigned value) {
 	// We do not used the process shared arg
 	(void)pshared;
 	s->value = value;
@@ -69,13 +68,9 @@ int px4_sem_init(px4_sem_t *s, int pshared, unsigned value)
 	return 0;
 }
 
-int px4_sem_setprotocol(px4_sem_t *s, int protocol)
-{
-	return 0;
-}
+int px4_sem_setprotocol(px4_sem_t *s, int protocol) { return 0; }
 
-int px4_sem_wait(px4_sem_t *s)
-{
+int px4_sem_wait(px4_sem_t *s) {
 	int ret = pthread_mutex_lock(&(s->lock));
 
 	if (ret) {
@@ -100,8 +95,7 @@ int px4_sem_wait(px4_sem_t *s)
 	return (ret) ? ret : mret;
 }
 
-int px4_sem_trywait(px4_sem_t *s)
-{
+int px4_sem_trywait(px4_sem_t *s) {
 	int ret = pthread_mutex_lock(&(s->lock));
 
 	if (ret) {
@@ -121,8 +115,7 @@ int px4_sem_trywait(px4_sem_t *s)
 	return (ret) ? ret : mret;
 }
 
-int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
-{
+int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime) {
 	int ret = pthread_mutex_lock(&(s->lock));
 
 	if (ret) {
@@ -159,8 +152,7 @@ int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 	return 0;
 }
 
-int px4_sem_post(px4_sem_t *s)
-{
+int px4_sem_post(px4_sem_t *s) {
 	int ret = pthread_mutex_lock(&(s->lock));
 
 	if (ret) {
@@ -187,8 +179,7 @@ int px4_sem_post(px4_sem_t *s)
 	return (ret) ? ret : mret;
 }
 
-int px4_sem_getvalue(px4_sem_t *s, int *sval)
-{
+int px4_sem_getvalue(px4_sem_t *s, int *sval) {
 	int ret = pthread_mutex_lock(&(s->lock));
 
 	if (ret) {
@@ -205,8 +196,7 @@ int px4_sem_getvalue(px4_sem_t *s, int *sval)
 	return ret;
 }
 
-int px4_sem_destroy(px4_sem_t *s)
-{
+int px4_sem_destroy(px4_sem_t *s) {
 	pthread_mutex_lock(&(s->lock));
 	pthread_cond_destroy(&(s->wait));
 	pthread_mutex_unlock(&(s->lock));

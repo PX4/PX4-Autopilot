@@ -31,31 +31,22 @@
  *
  ****************************************************************************/
 
-#include "AirspeedValidator.hpp"
-
 #include <drivers/drv_hrt.h>
-#include <lib/wind_estimator/WindEstimator.hpp>
-#include <matrix/math.hpp>
+#include <lib/airspeed/airspeed.h>
+#include <lib/systemlib/mavlink_log.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/airspeed/airspeed.h>
-#include <lib/systemlib/mavlink_log.h>
-
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/airspeed_wind.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint.h>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -63,22 +54,28 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/topics/airspeed_wind.h>
+
+#include <lib/wind_estimator/WindEstimator.hpp>
+#include <matrix/math.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
+
+#include "AirspeedValidator.hpp"
 
 using namespace time_literals;
 
-static constexpr uint32_t SCHEDULE_INTERVAL{100_ms};	/**< The schedule interval in usec (10 Hz) */
+static constexpr uint32_t SCHEDULE_INTERVAL{100_ms}; /**< The schedule interval in usec (10 Hz) */
 
 using matrix::Dcmf;
 using matrix::Quatf;
 using matrix::Vector2f;
 using matrix::Vector3f;
 
-class AirspeedModule : public ModuleBase<AirspeedModule>, public ModuleParams,
-	public px4::ScheduledWorkItem
-{
+class AirspeedModule : public ModuleBase<AirspeedModule>, public ModuleParams, public px4::ScheduledWorkItem {
 public:
-
 	AirspeedModule();
 
 	~AirspeedModule() override;
@@ -93,7 +90,6 @@ public:
 	static int print_usage(const char *reason = nullptr);
 
 private:
-
 	void Run() override;
 
 	static constexpr int MAX_NUM_AIRSPEED_SENSORS = 3; /**< Support max 3 airspeed sensors */
@@ -105,9 +101,15 @@ private:
 		THIRD_SENSOR_INDEX
 	};
 
-	uORB::Publication<airspeed_validated_s> _airspeed_validated_pub {ORB_ID(airspeed_validated)};			/**< airspeed validated topic*/
-	uORB::PublicationMulti<airspeed_wind_s> _wind_est_pub[MAX_NUM_AIRSPEED_SENSORS + 1] {{ORB_ID(airspeed_wind)}, {ORB_ID(airspeed_wind)}, {ORB_ID(airspeed_wind)}, {ORB_ID(airspeed_wind)}}; /**< wind estimate topic (for each airspeed validator + purely sideslip fusion) */
-	orb_advert_t 	_mavlink_log_pub {nullptr}; 						/**< mavlink log topic*/
+	uORB::Publication<airspeed_validated_s> _airspeed_validated_pub{
+		ORB_ID(airspeed_validated)}; /**< airspeed validated topic*/
+	uORB::PublicationMulti<airspeed_wind_s> _wind_est_pub[MAX_NUM_AIRSPEED_SENSORS + 1]{
+		{ORB_ID(airspeed_wind)},
+		{ORB_ID(airspeed_wind)},
+		{ORB_ID(airspeed_wind)},
+		{ORB_ID(airspeed_wind)}};       /**< wind estimate topic (for each airspeed validator + purely sideslip
+						   fusion) */
+	orb_advert_t _mavlink_log_pub{nullptr}; /**< mavlink log topic*/
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -123,39 +125,42 @@ private:
 	uORB::Subscription _position_setpoint_sub{ORB_ID(position_setpoint)};
 	uORB::SubscriptionMultiArray<airspeed_s, MAX_NUM_AIRSPEED_SENSORS> _airspeed_subs{ORB_ID::airspeed};
 
+	estimator_status_s _estimator_status{};
+	vehicle_acceleration_s _accel{};
+	vehicle_air_data_s _vehicle_air_data{};
+	vehicle_attitude_s _vehicle_attitude{};
+	vehicle_land_detected_s _vehicle_land_detected{};
+	vehicle_local_position_s _vehicle_local_position{};
+	vehicle_status_s _vehicle_status{};
+	vtol_vehicle_status_s _vtol_vehicle_status{};
+	position_setpoint_s _position_setpoint{};
 
-	estimator_status_s _estimator_status {};
-	vehicle_acceleration_s _accel {};
-	vehicle_air_data_s _vehicle_air_data {};
-	vehicle_attitude_s _vehicle_attitude {};
-	vehicle_land_detected_s _vehicle_land_detected {};
-	vehicle_local_position_s _vehicle_local_position {};
-	vehicle_status_s _vehicle_status {};
-	vtol_vehicle_status_s _vtol_vehicle_status {};
-	position_setpoint_s _position_setpoint {};
+	WindEstimator _wind_estimator_sideslip;    /**< wind estimator instance only fusing sideslip */
+	airspeed_wind_s _wind_estimate_sideslip{}; /**< wind estimate message for wind estimator instance only fusing
+						      sideslip */
 
-	WindEstimator	_wind_estimator_sideslip; /**< wind estimator instance only fusing sideslip */
-	airspeed_wind_s _wind_estimate_sideslip {}; /**< wind estimate message for wind estimator instance only fusing sideslip */
-
-	int32_t _number_of_airspeed_sensors{0}; /**<  number of airspeed sensors in use (detected during initialization)*/
-	int32_t _prev_number_of_airspeed_sensors{0}; /**<  number of airspeed sensors in previous loop (to detect a new added sensor)*/
-	AirspeedValidator _airspeed_validator[MAX_NUM_AIRSPEED_SENSORS] {}; /**< airspeedValidator instances (one for each sensor) */
+	int32_t _number_of_airspeed_sensors{
+		0}; /**<  number of airspeed sensors in use (detected during initialization)*/
+	int32_t _prev_number_of_airspeed_sensors{
+		0}; /**<  number of airspeed sensors in previous loop (to detect a new added sensor)*/
+	AirspeedValidator _airspeed_validator[MAX_NUM_AIRSPEED_SENSORS]{}; /**< airspeedValidator instances (one for
+									      each sensor) */
 
 	hrt_abstime _time_now_usec{0};
-	int _valid_airspeed_index{-2}; /**< index of currently chosen (valid) airspeed sensor */
-	int _prev_airspeed_index{-2}; /**< previously chosen airspeed sensor index */
-	bool _initialized{false}; /**< module initialized*/
+	int _valid_airspeed_index{-2};             /**< index of currently chosen (valid) airspeed sensor */
+	int _prev_airspeed_index{-2};              /**< previously chosen airspeed sensor index */
+	bool _initialized{false};                  /**< module initialized*/
 	bool _vehicle_local_position_valid{false}; /**< local position (from GPS) valid */
-	bool _in_takeoff_situation{true}; /**< in takeoff situation (defined as not yet stall speed reached) */
-	float _ground_minus_wind_TAS{0.0f}; /**< true airspeed from groundspeed minus windspeed */
-	float _ground_minus_wind_CAS{0.0f}; /**< calibrated airspeed from groundspeed minus windspeed */
+	bool _in_takeoff_situation{true};          /**< in takeoff situation (defined as not yet stall speed reached) */
+	float _ground_minus_wind_TAS{0.0f};        /**< true airspeed from groundspeed minus windspeed */
+	float _ground_minus_wind_CAS{0.0f};        /**< calibrated airspeed from groundspeed minus windspeed */
 	bool _armed_prev{false};
 
-	hrt_abstime _time_last_airspeed_update[MAX_NUM_AIRSPEED_SENSORS] {};
+	hrt_abstime _time_last_airspeed_update[MAX_NUM_AIRSPEED_SENSORS]{};
 
 	perf_counter_t _perf_elapsed{};
 
-	float _param_airspeed_scale[MAX_NUM_AIRSPEED_SENSORS] {}; /** array to save the airspeed scale params in */
+	float _param_airspeed_scale[MAX_NUM_AIRSPEED_SENSORS]{}; /** array to save the airspeed scale params in */
 
 	enum CheckTypeBits {
 		CHECK_TYPE_ONLY_DATA_MISSING_BIT = (1 << 0),
@@ -165,61 +170,57 @@ private:
 	};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::ASPD_WIND_NSD>) _param_aspd_wind_nsd,
-		(ParamFloat<px4::params::ASPD_SCALE_NSD>) _param_aspd_scale_nsd,
-		(ParamFloat<px4::params::ASPD_TAS_NOISE>) _param_west_tas_noise,
-		(ParamFloat<px4::params::ASPD_BETA_NOISE>) _param_west_beta_noise,
-		(ParamInt<px4::params::ASPD_TAS_GATE>) _param_west_tas_gate,
-		(ParamInt<px4::params::ASPD_BETA_GATE>) _param_west_beta_gate,
-		(ParamInt<px4::params::ASPD_SCALE_APPLY>) _param_aspd_scale_apply,
-		(ParamFloat<px4::params::ASPD_SCALE_1>) _param_airspeed_scale_1,
-		(ParamFloat<px4::params::ASPD_SCALE_2>) _param_airspeed_scale_2,
-		(ParamFloat<px4::params::ASPD_SCALE_3>) _param_airspeed_scale_3,
-		(ParamInt<px4::params::ASPD_PRIMARY>) _param_airspeed_primary_index,
-		(ParamInt<px4::params::ASPD_DO_CHECKS>) _param_airspeed_checks_on,
-		(ParamInt<px4::params::ASPD_FALLBACK_GW>) _param_airspeed_fallback_gw,
+		(ParamFloat<px4::params::ASPD_WIND_NSD>)_param_aspd_wind_nsd,
+		(ParamFloat<px4::params::ASPD_SCALE_NSD>)_param_aspd_scale_nsd,
+		(ParamFloat<px4::params::ASPD_TAS_NOISE>)_param_west_tas_noise,
+		(ParamFloat<px4::params::ASPD_BETA_NOISE>)_param_west_beta_noise,
+		(ParamInt<px4::params::ASPD_TAS_GATE>)_param_west_tas_gate,
+		(ParamInt<px4::params::ASPD_BETA_GATE>)_param_west_beta_gate,
+		(ParamInt<px4::params::ASPD_SCALE_APPLY>)_param_aspd_scale_apply,
+		(ParamFloat<px4::params::ASPD_SCALE_1>)_param_airspeed_scale_1,
+		(ParamFloat<px4::params::ASPD_SCALE_2>)_param_airspeed_scale_2,
+		(ParamFloat<px4::params::ASPD_SCALE_3>)_param_airspeed_scale_3,
+		(ParamInt<px4::params::ASPD_PRIMARY>)_param_airspeed_primary_index,
+		(ParamInt<px4::params::ASPD_DO_CHECKS>)_param_airspeed_checks_on,
+		(ParamInt<px4::params::ASPD_FALLBACK_GW>)_param_airspeed_fallback_gw,
 
-		(ParamFloat<px4::params::ASPD_FS_INNOV>) _tas_innov_threshold, /**< innovation check threshold */
-		(ParamFloat<px4::params::ASPD_FS_INTEG>) _tas_innov_integ_threshold, /**< innovation check integrator threshold */
-		(ParamInt<px4::params::ASPD_FS_T_STOP>) _checks_fail_delay, /**< delay to declare airspeed invalid */
-		(ParamInt<px4::params::ASPD_FS_T_START>) _checks_clear_delay, /**<  delay to declare airspeed valid again */
+		(ParamFloat<px4::params::ASPD_FS_INNOV>)_tas_innov_threshold, /**< innovation check threshold */
+		(ParamFloat<px4::params::ASPD_FS_INTEG>)
+			_tas_innov_integ_threshold,                        /**< innovation check integrator threshold */
+		(ParamInt<px4::params::ASPD_FS_T_STOP>)_checks_fail_delay, /**< delay to declare airspeed invalid */
+		(ParamInt<px4::params::ASPD_FS_T_START>)
+			_checks_clear_delay, /**<  delay to declare airspeed valid again */
 
-		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall
-	)
+		(ParamFloat<px4::params::FW_AIRSPD_STALL>)_param_fw_airspd_stall)
 
-	void 		init(); 	/**< initialization of the airspeed validator instances */
-	void 		check_for_connected_airspeed_sensors(); /**< check for airspeed sensors (airspeed topics) and get _number_of_airspeed_sensors */
-	void		update_params(); /**< update parameters */
-	void 		poll_topics(); /**< poll all topics required beside airspeed (e.g. current temperature) */
-	void 		update_wind_estimator_sideslip(); /**< update the wind estimator instance only fusing sideslip */
-	void		update_ground_minus_wind_airspeed(); /**< update airspeed estimate based on groundspeed minus windspeed */
-	void 		select_airspeed_and_publish(); /**< select airspeed sensor (or groundspeed-windspeed) */
-
+	void init();                                 /**< initialization of the airspeed validator instances */
+	void check_for_connected_airspeed_sensors(); /**< check for airspeed sensors (airspeed topics) and get
+							_number_of_airspeed_sensors */
+	void update_params();                        /**< update parameters */
+	void poll_topics(); /**< poll all topics required beside airspeed (e.g. current temperature) */
+	void update_wind_estimator_sideslip();    /**< update the wind estimator instance only fusing sideslip */
+	void update_ground_minus_wind_airspeed(); /**< update airspeed estimate based on groundspeed minus windspeed */
+	void select_airspeed_and_publish();       /**< select airspeed sensor (or groundspeed-windspeed) */
 };
 
-AirspeedModule::AirspeedModule():
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
-{
+AirspeedModule::AirspeedModule()
+	: ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers) {
 	// initialise parameters
 	update_params();
 
-	_perf_elapsed = perf_alloc(PC_ELAPSED, MODULE_NAME": elapsed");
+	_perf_elapsed = perf_alloc(PC_ELAPSED, MODULE_NAME ": elapsed");
 	_airspeed_validated_pub.advertise();
 	_wind_est_pub[0].advertise();
 	_wind_est_pub[1].advertise();
 }
 
-AirspeedModule::~AirspeedModule()
-{
+AirspeedModule::~AirspeedModule() {
 	ScheduleClear();
 
 	perf_free(_perf_elapsed);
 }
 
-int
-AirspeedModule::task_spawn(int argc, char *argv[])
-{
+int AirspeedModule::task_spawn(int argc, char *argv[]) {
 	AirspeedModule *dev = new AirspeedModule();
 
 	// check if the trampoline is called for the first time
@@ -233,11 +234,8 @@ AirspeedModule::task_spawn(int argc, char *argv[])
 	dev->ScheduleOnInterval(SCHEDULE_INTERVAL, 10000);
 	_task_id = task_id_is_work_queue;
 	return PX4_OK;
-
 }
-void
-AirspeedModule::init()
-{
+void AirspeedModule::init() {
 	check_for_connected_airspeed_sensors();
 
 	// Set the default sensor
@@ -246,32 +244,32 @@ AirspeedModule::init()
 		_valid_airspeed_index = math::min(_param_airspeed_primary_index.get(), _number_of_airspeed_sensors);
 
 		if (_number_of_airspeed_sensors == 0) {
-			mavlink_log_info(&_mavlink_log_pub, "No airspeed sensor detected. Switch to non-airspeed mode.\t");
+			mavlink_log_info(&_mavlink_log_pub,
+					 "No airspeed sensor detected. Switch to non-airspeed mode.\t");
 			events::send(events::ID("airspeed_selector_switch"), events::Log::Info,
 				     "No airspeed sensor detected, switching to non-airspeed mode");
 
 		} else {
-			mavlink_log_info(&_mavlink_log_pub, "Primary airspeed index bigger than number connected sensors. Take last sensor.\t");
+			mavlink_log_info(
+				&_mavlink_log_pub,
+				"Primary airspeed index bigger than number connected sensors. Take last sensor.\t");
 			events::send(events::ID("airspeed_selector_prim_too_high"), events::Log::Info,
 				     "Primary airspeed index bigger than number connected sensors, taking last sensor");
 		}
 
 	} else {
 		// set index to the one provided in the parameter ASPD_PRIMARY
-		_valid_airspeed_index =	_param_airspeed_primary_index.get();
+		_valid_airspeed_index = _param_airspeed_primary_index.get();
 	}
 
-	_prev_airspeed_index = _valid_airspeed_index; // used to detect a sensor switching
+	_prev_airspeed_index = _valid_airspeed_index;  // used to detect a sensor switching
 }
 
-void
-AirspeedModule::check_for_connected_airspeed_sensors()
-{
+void AirspeedModule::check_for_connected_airspeed_sensors() {
 	// check for new connected airspeed sensor
 	int detected_airspeed_sensors = 0;
 
 	if (_param_airspeed_primary_index.get() > 0) {
-
 		for (int i = 0; i < _airspeed_subs.size(); i++) {
 			if (!_airspeed_subs[i].advertised()) {
 				break;
@@ -288,11 +286,8 @@ AirspeedModule::check_for_connected_airspeed_sensors()
 	_number_of_airspeed_sensors = detected_airspeed_sensors;
 }
 
-
-void
-AirspeedModule::Run()
-{
-	_time_now_usec = hrt_absolute_time(); // hrt time of the current cycle
+void AirspeedModule::Run() {
+	_time_now_usec = hrt_absolute_time();  // hrt time of the current cycle
 
 	// do not run the airspeed selector until 2s after system boot,
 	// as data from airspeed sensor	and estimator may not be valid yet
@@ -303,7 +298,7 @@ AirspeedModule::Run()
 	perf_begin(_perf_elapsed);
 
 	if (!_initialized) {
-		init(); // initialize airspeed validator instances
+		init();  // initialize airspeed validator instances
 
 		for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
 			_airspeed_validator[i].set_CAS_scale_validated(_param_airspeed_scale[i]);
@@ -331,15 +326,16 @@ AirspeedModule::Run()
 	update_ground_minus_wind_airspeed();
 
 	if (_number_of_airspeed_sensors > 0) {
+		// disable checks if not a fixed-wing or the vehicle is landing/landed, as then airspeed can fall below
+		// stall speed and wind estimate isn't accurate anymore. Even better would be to have a reliable
+		// "ground_contact" detection for fixed-wing landings.
+		const bool in_air_fixed_wing =
+			!_vehicle_land_detected.landed &&
+			_position_setpoint.type != position_setpoint_s::SETPOINT_TYPE_LAND &&
+			_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
-		// disable checks if not a fixed-wing or the vehicle is landing/landed, as then airspeed can fall below stall speed
-		// and wind estimate isn't accurate anymore. Even better would be to have a reliable "ground_contact" detection
-		// for fixed-wing landings.
-		const bool in_air_fixed_wing = !_vehicle_land_detected.landed &&
-					       _position_setpoint.type != position_setpoint_s::SETPOINT_TYPE_LAND &&
-					       _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-
-		const matrix::Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
+		const matrix::Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy,
+					  _vehicle_local_position.vz);
 
 		// Prepare data for airspeed_validator
 		struct airspeed_validator_update_data input_data = {};
@@ -359,18 +355,17 @@ AirspeedModule::Run()
 
 		// iterate through all airspeed sensors, poll new data from them and update their validators
 		for (int i = 0; i < _number_of_airspeed_sensors; i++) {
-
 			// poll raw airspeed topic of the i-th sensor
 			airspeed_s airspeed_raw;
 
 			if (_airspeed_subs[i].update(&airspeed_raw)) {
-
 				input_data.airspeed_indicated_raw = airspeed_raw.indicated_airspeed_m_s;
 				input_data.airspeed_true_raw = airspeed_raw.true_airspeed_m_s;
 				input_data.airspeed_timestamp = airspeed_raw.timestamp;
 				input_data.air_temperature_celsius = airspeed_raw.air_temperature_celsius;
 
-				// takeoff situation is active from start till one of the sensors' IAS or groundspeed_CAS is above stall speed
+				// takeoff situation is active from start till one of the sensors' IAS or
+				// groundspeed_CAS is above stall speed
 				if (_in_takeoff_situation &&
 				    (airspeed_raw.indicated_airspeed_m_s > _param_fw_airspd_stall.get() ||
 				     _ground_minus_wind_CAS > _param_fw_airspd_stall.get())) {
@@ -382,7 +377,8 @@ AirspeedModule::Run()
 					_in_takeoff_situation = true;
 				}
 
-				input_data.in_fixed_wing_flight = (armed && in_air_fixed_wing && !_in_takeoff_situation);
+				input_data.in_fixed_wing_flight =
+					(armed && in_air_fixed_wing && !_in_takeoff_situation);
 
 				// push input data into airspeed validator
 				_airspeed_validator[i].update_airspeed_validator(input_data);
@@ -392,33 +388,41 @@ AirspeedModule::Run()
 			} else if (_time_now_usec - _time_last_airspeed_update[i] > 1_s) {
 				// declare airspeed invalid if more then 1s since last raw airspeed update
 				_airspeed_validator[i].reset_airspeed_to_invalid(_time_now_usec);
-
 			}
 
 			// save estimated airspeed scale after disarm
 			if (!armed && _armed_prev) {
 				if (_param_aspd_scale_apply.get() > 0) {
-					if (fabsf(_airspeed_validator[i].get_CAS_scale_validated() - _param_airspeed_scale[i]) > 0.01f) {
+					if (fabsf(_airspeed_validator[i].get_CAS_scale_validated() -
+						  _param_airspeed_scale[i]) > 0.01f) {
 						// apply the new scale if changed more than 0.01
-						mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor Nr. %d ASPD_SCALE updated: %.2f --> %.2f", i + 1,
-								 (double)_param_airspeed_scale[i],
-								 (double)_airspeed_validator[i].get_CAS_scale_validated());
+						mavlink_log_info(
+							&_mavlink_log_pub,
+							"Airspeed sensor Nr. %d ASPD_SCALE updated: %.2f --> %.2f",
+							i + 1, (double)_param_airspeed_scale[i],
+							(double)_airspeed_validator[i].get_CAS_scale_validated());
 
 						switch (i) {
-						case 0:
-							_param_airspeed_scale_1.set(_airspeed_validator[i].get_CAS_scale_validated());
-							_param_airspeed_scale_1.commit_no_notification();
-							break;
+							case 0:
+								_param_airspeed_scale_1.set(
+									_airspeed_validator[i]
+										.get_CAS_scale_validated());
+								_param_airspeed_scale_1.commit_no_notification();
+								break;
 
-						case 1:
-							_param_airspeed_scale_2.set(_airspeed_validator[i].get_CAS_scale_validated());
-							_param_airspeed_scale_2.commit_no_notification();
-							break;
+							case 1:
+								_param_airspeed_scale_2.set(
+									_airspeed_validator[i]
+										.get_CAS_scale_validated());
+								_param_airspeed_scale_2.commit_no_notification();
+								break;
 
-						case 2:
-							_param_airspeed_scale_3.set(_airspeed_validator[i].get_CAS_scale_validated());
-							_param_airspeed_scale_3.commit_no_notification();
-							break;
+							case 2:
+								_param_airspeed_scale_3.set(
+									_airspeed_validator[i]
+										.get_CAS_scale_validated());
+								_param_airspeed_scale_3.commit_no_notification();
+								break;
 						}
 					}
 				}
@@ -439,8 +443,7 @@ AirspeedModule::Run()
 	}
 }
 
-void AirspeedModule::update_params()
-{
+void AirspeedModule::update_params() {
 	updateParams();
 
 	_param_airspeed_scale[0] = _param_airspeed_scale_1.get();
@@ -455,8 +458,10 @@ void AirspeedModule::update_params()
 	_wind_estimator_sideslip.set_beta_gate(_param_west_beta_gate.get());
 
 	for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
-		_airspeed_validator[i].set_wind_estimator_wind_process_noise_spectral_density(_param_aspd_wind_nsd.get());
-		_airspeed_validator[i].set_wind_estimator_tas_scale_process_noise_spectral_density(_param_aspd_scale_nsd.get());
+		_airspeed_validator[i].set_wind_estimator_wind_process_noise_spectral_density(
+			_param_aspd_wind_nsd.get());
+		_airspeed_validator[i].set_wind_estimator_tas_scale_process_noise_spectral_density(
+			_param_aspd_scale_nsd.get());
 		_airspeed_validator[i].set_wind_estimator_tas_noise(_param_west_tas_noise.get());
 		_airspeed_validator[i].set_wind_estimator_beta_noise(_param_west_beta_noise.get());
 		_airspeed_validator[i].set_wind_estimator_tas_gate(_param_west_tas_gate.get());
@@ -472,16 +477,15 @@ void AirspeedModule::update_params()
 		_airspeed_validator[i].set_airspeed_stall(_param_fw_airspd_stall.get());
 
 		_airspeed_validator[i].set_enable_data_stuck_check(_param_airspeed_checks_on.get() &
-				CheckTypeBits::CHECK_TYPE_DATA_STUCK_BIT);
+								   CheckTypeBits::CHECK_TYPE_DATA_STUCK_BIT);
 		_airspeed_validator[i].set_enable_innovation_check(_param_airspeed_checks_on.get() &
-				CheckTypeBits::CHECK_TYPE_INNOVATION_BIT);
+								   CheckTypeBits::CHECK_TYPE_INNOVATION_BIT);
 		_airspeed_validator[i].set_enable_load_factor_check(_param_airspeed_checks_on.get() &
-				CheckTypeBits::CHECK_TYPE_LOAD_FACTOR_BIT);
+								    CheckTypeBits::CHECK_TYPE_LOAD_FACTOR_BIT);
 	}
 }
 
-void AirspeedModule::poll_topics()
-{
+void AirspeedModule::poll_topics() {
 	// use primary estimator_status
 	if (_estimator_selector_status_sub.updated()) {
 		estimator_selector_status_s estimator_selector_status;
@@ -503,18 +507,16 @@ void AirspeedModule::poll_topics()
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
 	_position_setpoint_sub.update(&_position_setpoint);
 
-
-	_vehicle_local_position_valid = (_time_now_usec - _vehicle_local_position.timestamp < 1_s)
-					&& (_vehicle_local_position.timestamp > 0) && _vehicle_local_position.v_xy_valid;
+	_vehicle_local_position_valid = (_time_now_usec - _vehicle_local_position.timestamp < 1_s) &&
+					(_vehicle_local_position.timestamp > 0) && _vehicle_local_position.v_xy_valid;
 }
 
-void AirspeedModule::update_wind_estimator_sideslip()
-{
+void AirspeedModule::update_wind_estimator_sideslip() {
 	// update wind and airspeed estimator
 	_wind_estimator_sideslip.update(_time_now_usec);
 
-	if (_vehicle_local_position_valid
-	    && _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+	if (_vehicle_local_position_valid &&
+	    _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
 		Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
 		Quatf q(_vehicle_attitude.q);
 
@@ -536,38 +538,37 @@ void AirspeedModule::update_wind_estimator_sideslip()
 	_wind_estimate_sideslip.source = airspeed_wind_s::SOURCE_AS_BETA_ONLY;
 }
 
-void AirspeedModule::update_ground_minus_wind_airspeed()
-{
+void AirspeedModule::update_ground_minus_wind_airspeed() {
 	// calculate airspeed estimate based on groundspeed-windspeed to use as fallback
 	const float TAS_north = _vehicle_local_position.vx - _wind_estimate_sideslip.windspeed_north;
 	const float TAS_east = _vehicle_local_position.vy - _wind_estimate_sideslip.windspeed_east;
-	const float TAS_down = _vehicle_local_position.vz; // no wind estimate in z
+	const float TAS_down = _vehicle_local_position.vz;  // no wind estimate in z
 	_ground_minus_wind_TAS = sqrtf(TAS_north * TAS_north + TAS_east * TAS_east + TAS_down * TAS_down);
 	_ground_minus_wind_CAS = calc_CAS_from_TAS(_ground_minus_wind_TAS, _vehicle_air_data.baro_pressure_pa,
-				 _vehicle_air_data.baro_temp_celcius);
+						   _vehicle_air_data.baro_temp_celcius);
 }
 
-
-void AirspeedModule::select_airspeed_and_publish()
-{
-
-	// we need to re-evaluate the sensors if we're currently not on a phyisical sensor or the current sensor got invalid
+void AirspeedModule::select_airspeed_and_publish() {
+	// we need to re-evaluate the sensors if we're currently not on a phyisical sensor or the current sensor got
+	// invalid
 	bool airspeed_sensor_switching_necessary = false;
 
 	if (_prev_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX) {
 		airspeed_sensor_switching_necessary = true;
 
 	} else {
-		airspeed_sensor_switching_necessary = !_airspeed_validator[_prev_airspeed_index - 1].get_airspeed_valid();
+		airspeed_sensor_switching_necessary =
+			!_airspeed_validator[_prev_airspeed_index - 1].get_airspeed_valid();
 	}
 
-	const bool airspeed_sensor_switching_allowed = _number_of_airspeed_sensors > 0 &&
-			_param_airspeed_primary_index.get() > airspeed_index::GROUND_MINUS_WIND_INDEX && _param_airspeed_checks_on.get();
+	const bool airspeed_sensor_switching_allowed =
+		_number_of_airspeed_sensors > 0 &&
+		_param_airspeed_primary_index.get() > airspeed_index::GROUND_MINUS_WIND_INDEX &&
+		_param_airspeed_checks_on.get();
 
 	const bool airspeed_sensor_added = _prev_number_of_airspeed_sensors < _number_of_airspeed_sensors;
 
 	if (airspeed_sensor_switching_necessary && (airspeed_sensor_switching_allowed || airspeed_sensor_added)) {
-
 		_valid_airspeed_index = airspeed_index::DISABLED_INDEX;
 
 		// loop through all sensors and take the first valid one
@@ -581,12 +582,12 @@ void AirspeedModule::select_airspeed_and_publish()
 
 	// check if airspeed based on ground-wind speed is valid and can be published
 	if (_param_airspeed_primary_index.get() > airspeed_index::DISABLED_INDEX &&
-	    (_valid_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX
-	     || _param_airspeed_primary_index.get() == airspeed_index::GROUND_MINUS_WIND_INDEX)) {
-
+	    (_valid_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX ||
+	     _param_airspeed_primary_index.get() == airspeed_index::GROUND_MINUS_WIND_INDEX)) {
 		// _vehicle_local_position_valid determines if ground-wind estimate is valid
 		if (_vehicle_local_position_valid &&
-		    (_param_airspeed_fallback_gw.get() || _param_airspeed_primary_index.get() == airspeed_index::GROUND_MINUS_WIND_INDEX)) {
+		    (_param_airspeed_fallback_gw.get() ||
+		     _param_airspeed_primary_index.get() == airspeed_index::GROUND_MINUS_WIND_INDEX)) {
 			_valid_airspeed_index = airspeed_index::GROUND_MINUS_WIND_INDEX;
 
 		} else {
@@ -595,15 +596,16 @@ void AirspeedModule::select_airspeed_and_publish()
 	}
 
 	// print warning or info, depending of whether airspeed got declared invalid or healthy
-	if (_valid_airspeed_index != _prev_airspeed_index &&
-	    _number_of_airspeed_sensors > 0) {
+	if (_valid_airspeed_index != _prev_airspeed_index && _number_of_airspeed_sensors > 0) {
 		if (_vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED && _prev_airspeed_index > 0) {
-			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected. Check connection and reboot.\t");
+			mavlink_log_critical(&_mavlink_log_pub,
+					     "Airspeed sensor failure detected. Check connection and reboot.\t");
 			events::send(events::ID("airspeed_selector_sensor_failure_disarmed"), events::Log::Critical,
 				     "Airspeed sensor failure detected. Check connection and reboot");
 
 		} else if (_prev_airspeed_index > 0) {
-			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected. Return to launch (RTL) is advised.\t");
+			mavlink_log_critical(&_mavlink_log_pub,
+					     "Airspeed sensor failure detected. Return to launch (RTL) is advised.\t");
 			events::send(events::ID("airspeed_selector_sensor_failure"), events::Log::Critical,
 				     "Airspeed sensor failure detected. Return to launch (RTL) is advised");
 
@@ -618,14 +620,14 @@ void AirspeedModule::select_airspeed_and_publish()
 				     "Airspeed estimation valid");
 
 		} else {
-			mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor healthy, start using again (%i, %i)\t", _prev_airspeed_index,
-					 _valid_airspeed_index);
+			mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor healthy, start using again (%i, %i)\t",
+					 _prev_airspeed_index, _valid_airspeed_index);
 			/* EVENT
 			 * @description Previously selected sensor index: {1}, current sensor index: {2}.
 			 */
-			events::send<uint8_t, uint8_t>(events::ID("airspeed_selector_estimation_regain"), events::Log::Info,
-						       "Airspeed sensor healthy, start using again", _prev_airspeed_index,
-						       _valid_airspeed_index);
+			events::send<uint8_t, uint8_t>(events::ID("airspeed_selector_estimation_regain"),
+						       events::Log::Info, "Airspeed sensor healthy, start using again",
+						       _prev_airspeed_index, _valid_airspeed_index);
 		}
 	}
 
@@ -643,26 +645,28 @@ void AirspeedModule::select_airspeed_and_publish()
 	airspeed_validated.selected_airspeed_index = _valid_airspeed_index;
 
 	switch (_valid_airspeed_index) {
-	case airspeed_index::DISABLED_INDEX:
-		break;
+		case airspeed_index::DISABLED_INDEX:
+			break;
 
-	case airspeed_index::GROUND_MINUS_WIND_INDEX:
-		airspeed_validated.indicated_airspeed_m_s = _ground_minus_wind_CAS;
-		airspeed_validated.calibrated_airspeed_m_s = _ground_minus_wind_CAS;
-		airspeed_validated.true_airspeed_m_s = _ground_minus_wind_TAS;
-		airspeed_validated.calibrated_ground_minus_wind_m_s = _ground_minus_wind_CAS;
-		airspeed_validated.true_ground_minus_wind_m_s = _ground_minus_wind_TAS;
+		case airspeed_index::GROUND_MINUS_WIND_INDEX:
+			airspeed_validated.indicated_airspeed_m_s = _ground_minus_wind_CAS;
+			airspeed_validated.calibrated_airspeed_m_s = _ground_minus_wind_CAS;
+			airspeed_validated.true_airspeed_m_s = _ground_minus_wind_TAS;
+			airspeed_validated.calibrated_ground_minus_wind_m_s = _ground_minus_wind_CAS;
+			airspeed_validated.true_ground_minus_wind_m_s = _ground_minus_wind_TAS;
 
-		break;
+			break;
 
-	default:
-		airspeed_validated.indicated_airspeed_m_s = _airspeed_validator[_valid_airspeed_index - 1].get_IAS();
-		airspeed_validated.calibrated_airspeed_m_s = _airspeed_validator[_valid_airspeed_index - 1].get_CAS();
-		airspeed_validated.true_airspeed_m_s = _airspeed_validator[_valid_airspeed_index - 1].get_TAS();
-		airspeed_validated.calibrated_ground_minus_wind_m_s = _ground_minus_wind_CAS;
-		airspeed_validated.true_ground_minus_wind_m_s = _ground_minus_wind_TAS;
-		airspeed_validated.airspeed_sensor_measurement_valid = true;
-		break;
+		default:
+			airspeed_validated.indicated_airspeed_m_s =
+				_airspeed_validator[_valid_airspeed_index - 1].get_IAS();
+			airspeed_validated.calibrated_airspeed_m_s =
+				_airspeed_validator[_valid_airspeed_index - 1].get_CAS();
+			airspeed_validated.true_airspeed_m_s = _airspeed_validator[_valid_airspeed_index - 1].get_TAS();
+			airspeed_validated.calibrated_ground_minus_wind_m_s = _ground_minus_wind_CAS;
+			airspeed_validated.true_ground_minus_wind_m_s = _ground_minus_wind_TAS;
+			airspeed_validated.airspeed_sensor_measurement_valid = true;
+			break;
 	}
 
 	_airspeed_validated_pub.publish(airspeed_validated);
@@ -685,11 +689,9 @@ void AirspeedModule::select_airspeed_and_publish()
 
 		_wind_est_pub[i + 1].publish(wind_est);
 	}
-
 }
 
-int AirspeedModule::custom_command(int argc, char *argv[])
-{
+int AirspeedModule::custom_command(int argc, char *argv[]) {
 	if (!is_running()) {
 		int ret = AirspeedModule::task_spawn(argc, argv);
 
@@ -701,8 +703,7 @@ int AirspeedModule::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int AirspeedModule::print_usage(const char *reason)
-{
+int AirspeedModule::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -727,7 +728,4 @@ and also publishes those.
 	return 0;
 }
 
-extern "C" __EXPORT int airspeed_selector_main(int argc, char *argv[])
-{
-	return AirspeedModule::main(argc, argv);
-}
+extern "C" __EXPORT int airspeed_selector_main(int argc, char *argv[]) { return AirspeedModule::main(argc, argv); }

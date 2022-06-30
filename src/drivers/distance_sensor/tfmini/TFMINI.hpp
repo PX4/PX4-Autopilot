@@ -44,24 +44,23 @@
 
 #pragma once
 
-#include <termios.h>
-
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+#include <px4_platform_common/px4_config.h>
+#include <termios.h>
 #include <uORB/topics/distance_sensor.h>
+
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #include "tfmini_parser.h"
 
-#define TFMINI_DEFAULT_PORT	"/dev/ttyS3"
+#define TFMINI_DEFAULT_PORT "/dev/ttyS3"
 
 using namespace time_literals;
 
-class TFMINI : public px4::ScheduledWorkItem
-{
+class TFMINI : public px4::ScheduledWorkItem {
 public:
 	TFMINI(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~TFMINI();
@@ -71,7 +70,6 @@ public:
 	void print_info();
 
 private:
-
 	int collect();
 
 	void Run() override;
@@ -79,12 +77,12 @@ private:
 	void start();
 	void stop();
 
-	PX4Rangefinder	_px4_rangefinder;
+	PX4Rangefinder _px4_rangefinder;
 
-	TFMINI_PARSE_STATE _parse_state {TFMINI_PARSE_STATE::STATE0_UNSYNC};
+	TFMINI_PARSE_STATE _parse_state{TFMINI_PARSE_STATE::STATE0_UNSYNC};
 
-	char _linebuf[10] {};
-	char _port[20] {};
+	char _linebuf[10]{};
+	char _port[20]{};
 
 	static constexpr int kCONVERSIONINTERVAL{9_ms};
 
@@ -94,7 +92,6 @@ private:
 
 	hrt_abstime _last_read{0};
 
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
-
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME ": com_err")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": read")};
 };

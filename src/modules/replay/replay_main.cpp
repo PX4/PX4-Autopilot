@@ -35,10 +35,8 @@
 
 using namespace px4;
 
-extern "C" __EXPORT int
-replay_main(int argc, char *argv[])
-{
-	//check for logfile env variable
+extern "C" __EXPORT int replay_main(int argc, char *argv[]) {
+	// check for logfile env variable
 	const char *logfile = getenv(replay::ENV_FILENAME);
 
 	if (logfile && !Replay::isSetup()) {

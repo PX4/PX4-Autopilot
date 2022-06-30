@@ -31,30 +31,40 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
 #include <drivers/drv_sensor.h>
 #include <nuttx/spi/spi.h>
+#include <px4_arch/spi_hw_description.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-	}, {GPIO::PortI, GPIO::Pin11}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortH, GPIO::Pin12}),
-	}, {GPIO::PortD, GPIO::Pin15}),
-	initSPIBus(SPI::Bus::SPI3, {
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortI, GPIO::Pin8}, SPI::DRDY{GPIO::PortI, GPIO::Pin6}),
-	}, {GPIO::PortE, GPIO::Pin7}),
+	initSPIBus(SPI::Bus::SPI1,
+		   {
+			   initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortI, GPIO::Pin9},
+					 SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
+		   },
+		   {GPIO::PortI, GPIO::Pin11}),
+	initSPIBus(SPI::Bus::SPI2,
+		   {
+			   initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortH, GPIO::Pin5},
+					 SPI::DRDY{GPIO::PortH, GPIO::Pin12}),
+		   },
+		   {GPIO::PortD, GPIO::Pin15}),
+	initSPIBus(SPI::Bus::SPI3,
+		   {
+			   initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortI, GPIO::Pin8},
+					 SPI::DRDY{GPIO::PortI, GPIO::Pin6}),
+		   },
+		   {GPIO::PortE, GPIO::Pin7}),
 	// initSPIBus(SPI::Bus::SPI4, {
-	// 	// initSPIDevice(DRV_MAG_DEVTYPE_BMM150, SPI::CS{GPIO::PortH, GPIO::Pin15}, SPI::DRDY{GPIO::PortF, GPIO::Pin3}),
+	// 	// initSPIDevice(DRV_MAG_DEVTYPE_BMM150, SPI::CS{GPIO::PortH, GPIO::Pin15}, SPI::DRDY{GPIO::PortF,
+	// GPIO::Pin3}),
 	// }, {GPIO::PortG, GPIO::Pin8}),
-	initSPIBus(SPI::Bus::SPI5, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})
-	}),
-	initSPIBusExternal(SPI::Bus::SPI6, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}, SPI::DRDY{GPIO::PortD, GPIO::Pin11}),
-		initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin15}, SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
-	}),
+	initSPIBus(SPI::Bus::SPI5, {initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})}),
+	initSPIBusExternal(
+		SPI::Bus::SPI6,
+		{
+			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}, SPI::DRDY{GPIO::PortD, GPIO::Pin11}),
+			initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin15}, SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
+		}),
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses);

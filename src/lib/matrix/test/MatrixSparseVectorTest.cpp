@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixSparseVectorTest, defaultConstruction)
-{
+TEST(MatrixSparseVectorTest, defaultConstruction) {
 	SparseVectorf<24, 4, 6> a;
 	EXPECT_EQ(a.non_zeros(), 2);
 	EXPECT_EQ(a.index(0), 4);
@@ -46,8 +46,7 @@ TEST(MatrixSparseVectorTest, defaultConstruction)
 	a.at<6>() = 2.f;
 }
 
-TEST(MatrixSparseVectorTest, initializationWithData)
-{
+TEST(MatrixSparseVectorTest, initializationWithData) {
 	const float data[3] = {1.f, 2.f, 3.f};
 	SparseVectorf<24, 4, 6, 22> a(data);
 	EXPECT_EQ(a.non_zeros(), 3);
@@ -59,16 +58,14 @@ TEST(MatrixSparseVectorTest, initializationWithData)
 	EXPECT_FLOAT_EQ(a.at<22>(), data[2]);
 }
 
-TEST(MatrixSparseVectorTest, initialisationFromVector)
-{
+TEST(MatrixSparseVectorTest, initialisationFromVector) {
 	const Vector3f vec(1.f, 2.f, 3.f);
 	const SparseVectorf<3, 0, 2> a(vec);
 	EXPECT_FLOAT_EQ(a.at<0>(), vec(0));
 	EXPECT_FLOAT_EQ(a.at<2>(), vec(2));
 }
 
-TEST(MatrixSparseVectorTest, accessDataWithCompressedIndices)
-{
+TEST(MatrixSparseVectorTest, accessDataWithCompressedIndices) {
 	const Vector3f vec(1.f, 2.f, 3.f);
 	SparseVectorf<3, 0, 2> a(vec);
 
@@ -80,8 +77,7 @@ TEST(MatrixSparseVectorTest, accessDataWithCompressedIndices)
 	EXPECT_FLOAT_EQ(a.at<2>(), a.atCompressedIndex(1));
 }
 
-TEST(MatrixSparseVectorTest, setZero)
-{
+TEST(MatrixSparseVectorTest, setZero) {
 	const float data[3] = {1.f, 2.f, 3.f};
 	SparseVectorf<24, 4, 6, 22> a(data);
 	a.setZero();
@@ -90,8 +86,7 @@ TEST(MatrixSparseVectorTest, setZero)
 	EXPECT_FLOAT_EQ(a.at<22>(), 0.f);
 }
 
-TEST(MatrixSparseVectorTest, additionWithDenseVector)
-{
+TEST(MatrixSparseVectorTest, additionWithDenseVector) {
 	Vector<float, 4> dense_vec;
 	dense_vec.setAll(1.f);
 	const float data[3] = {1.f, 2.f, 3.f};
@@ -103,8 +98,7 @@ TEST(MatrixSparseVectorTest, additionWithDenseVector)
 	EXPECT_FLOAT_EQ(res(3), 4.f);
 }
 
-TEST(MatrixSparseVectorTest, addScalar)
-{
+TEST(MatrixSparseVectorTest, addScalar) {
 	const float data[3] = {1.f, 2.f, 3.f};
 	SparseVectorf<4, 1, 2, 3> sparse_vec(data);
 	sparse_vec += 2.f;
@@ -113,8 +107,7 @@ TEST(MatrixSparseVectorTest, addScalar)
 	EXPECT_FLOAT_EQ(sparse_vec.at<3>(), 5.f);
 }
 
-TEST(MatrixSparseVectorTest, dotProductWithDenseVector)
-{
+TEST(MatrixSparseVectorTest, dotProductWithDenseVector) {
 	Vector<float, 4> dense_vec;
 	dense_vec.setAll(3.f);
 	const float data[3] = {1.f, 2.f, 3.f};
@@ -123,8 +116,7 @@ TEST(MatrixSparseVectorTest, dotProductWithDenseVector)
 	EXPECT_FLOAT_EQ(res, 18.f);
 }
 
-TEST(MatrixSparseVectorTest, multiplicationWithDenseMatrix)
-{
+TEST(MatrixSparseVectorTest, multiplicationWithDenseMatrix) {
 	Matrix<float, 2, 3> dense_matrix;
 	dense_matrix.setAll(2.f);
 	dense_matrix(1, 1) = 3.f;
@@ -135,20 +127,15 @@ TEST(MatrixSparseVectorTest, multiplicationWithDenseMatrix)
 	EXPECT_TRUE(isEqual(res_dense, res_sparse));
 }
 
-TEST(MatrixSparseVectorTest, quadraticForm)
-{
-	float matrix_data[9] = {1, 2, 3,
-				2, 4, 5,
-				3, 5, 6
-			       };
+TEST(MatrixSparseVectorTest, quadraticForm) {
+	float matrix_data[9] = {1, 2, 3, 2, 4, 5, 3, 5, 6};
 	const SquareMatrix<float, 3> dense_matrix(matrix_data);
 	const Vector3f dense_vec(0.f, 1.f, 5.f);
 	const SparseVectorf<3, 1, 2> sparse_vec(dense_vec);
 	EXPECT_FLOAT_EQ(quadraticForm(dense_matrix, sparse_vec), 204.f);
 }
 
-TEST(MatrixSparseVectorTest, norms)
-{
+TEST(MatrixSparseVectorTest, norms) {
 	const float data[2] = {3.f, 4.f};
 	const SparseVectorf<4, 1, 3> sparse_vec(data);
 	EXPECT_FLOAT_EQ(sparse_vec.norm_squared(), 25.f);

@@ -36,16 +36,14 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
+#include "history.h"
+
 #include <string>
 #include <vector>
 
-#include "history.h"
+namespace px4_daemon {
 
-namespace px4_daemon
-{
-
-void History::try_to_add(const std::string &line)
-{
+void History::try_to_add(const std::string &line) {
 	// Don't save an empty line.
 	if (line.empty()) {
 		return;
@@ -63,13 +61,9 @@ void History::try_to_add(const std::string &line)
 	_history.push_back(line);
 }
 
-void History::reset_to_end()
-{
-	_current_history_entry = _history.end();
-}
+void History::reset_to_end() { _current_history_entry = _history.end(); }
 
-void History::try_to_save_current_line(const std::string &line)
-{
+void History::try_to_save_current_line(const std::string &line) {
 	// Don't save what's currently entered line if there is no history
 	// entry to switch to.
 	if (_history.empty()) {
@@ -85,8 +79,7 @@ void History::try_to_save_current_line(const std::string &line)
 	_current_line = line;
 }
 
-void History::get_previous(std::string &line)
-{
+void History::get_previous(std::string &line) {
 	if (_history.empty()) {
 		return;
 	}
@@ -99,8 +92,7 @@ void History::get_previous(std::string &line)
 	line = *_current_history_entry;
 }
 
-void History::get_next(std::string &line)
-{
+void History::get_next(std::string &line) {
 	if (_history.empty()) {
 		return;
 	}
@@ -123,4 +115,4 @@ void History::get_next(std::string &line)
 	line = *_current_history_entry;
 }
 
-} // namespace px4_daemon
+}  // namespace px4_daemon

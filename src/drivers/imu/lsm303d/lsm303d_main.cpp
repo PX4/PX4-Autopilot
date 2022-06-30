@@ -36,14 +36,12 @@
  * Driver for the ST LSM303D MEMS accelerometer / magnetometer connected via SPI.
  */
 
-#include "LSM303D.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void
-LSM303D::print_usage()
-{
+#include "LSM303D.hpp"
+
+void LSM303D::print_usage() {
 	PRINT_MODULE_USAGE_NAME("lsm303d", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -52,8 +50,7 @@ LSM303D::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int lsm303d_main(int argc, char *argv[])
-{
+extern "C" int lsm303d_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = LSM303D;
 	BusCLIArguments cli{false, true};
@@ -61,9 +58,9 @@ extern "C" int lsm303d_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

@@ -36,8 +36,7 @@
 
 #include <uORB/topics/debug_vect.h>
 
-class MavlinkStreamDebugVect : public MavlinkStream
-{
+class MavlinkStreamDebugVect : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamDebugVect(mavlink); }
 
@@ -47,8 +46,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		return _debug_sub.advertised() ? MAVLINK_MSG_ID_DEBUG_VECT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
@@ -57,15 +55,14 @@ private:
 
 	uORB::Subscription _debug_sub{ORB_ID(debug_vect)};
 
-	bool send() override
-	{
+	bool send() override {
 		debug_vect_s debug;
 
 		if (_debug_sub.update(&debug)) {
 			mavlink_debug_vect_t msg{};
 			msg.time_usec = debug.timestamp;
 			memcpy(msg.name, debug.name, sizeof(msg.name));
-			msg.name[sizeof(msg.name) - 1] = '\0'; // enforce null termination
+			msg.name[sizeof(msg.name) - 1] = '\0';  // enforce null termination
 			msg.x = debug.x;
 			msg.y = debug.y;
 			msg.z = debug.z;
@@ -79,4 +76,4 @@ private:
 	}
 };
 
-#endif // DEBUG_VECT_HPP
+#endif  // DEBUG_VECT_HPP

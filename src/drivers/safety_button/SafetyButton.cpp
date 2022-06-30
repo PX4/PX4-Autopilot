@@ -43,30 +43,22 @@ static constexpr uint8_t CYCLE_COUNT{30}; /* safety switch must be held for 1 se
 
 // Define the various LED flash sequences for each system state.
 enum class LED_PATTERN : uint16_t {
-	FMU_OK_TO_ARM		= 0x0003,	/**< slow blinking */
-	FMU_REFUSE_TO_ARM	= 0x5555,	/**< fast blinking */
-	IO_ARMED		= 0x5050,	/**< long off, then double blink */
-	FMU_ARMED		= 0x5500,	/**< long off, then quad blink */
-	IO_FMU_ARMED		= 0xffff,	/**< constantly on */
+	FMU_OK_TO_ARM = 0x0003,     /**< slow blinking */
+	FMU_REFUSE_TO_ARM = 0x5555, /**< fast blinking */
+	IO_ARMED = 0x5050,          /**< long off, then double blink */
+	FMU_ARMED = 0x5500,         /**< long off, then quad blink */
+	IO_FMU_ARMED = 0xffff,      /**< constantly on */
 };
 
-SafetyButton::SafetyButton() :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
-{
+SafetyButton::SafetyButton() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {
 	_has_px4io = PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO);
 }
 
-SafetyButton::~SafetyButton()
-{
-	ScheduleClear();
-}
+SafetyButton::~SafetyButton() { ScheduleClear(); }
 
-void
-SafetyButton::CheckSafetyRequest(bool button_pressed)
-{
+void SafetyButton::CheckSafetyRequest(bool button_pressed) {
 	/* Keep button pressed for one second to turn off safety */
 	if (button_pressed) {
-
 		if (_button_counter <= CYCLE_COUNT) {
 			_button_counter++;
 		}
@@ -80,9 +72,7 @@ SafetyButton::CheckSafetyRequest(bool button_pressed)
 	}
 }
 
-void
-SafetyButton::CheckPairingRequest(bool button_pressed)
-{
+void SafetyButton::CheckPairingRequest(bool button_pressed) {
 	// Need to press the button 3 times within 2 seconds
 	const hrt_abstime now = hrt_absolute_time();
 
@@ -108,9 +98,7 @@ SafetyButton::CheckPairingRequest(bool button_pressed)
 	}
 }
 
-void
-SafetyButton::FlashButton()
-{
+void SafetyButton::FlashButton() {
 #if defined(GPIO_LED_SAFETY)
 	actuator_armed_s armed;
 
@@ -142,12 +130,10 @@ SafetyButton::FlashButton()
 		}
 	}
 
-#endif // GPIO_LED_SAFETY
+#endif  // GPIO_LED_SAFETY
 }
 
-void
-SafetyButton::Run()
-{
+void SafetyButton::Run() {
 	if (should_exit()) {
 		exit_and_cleanup();
 		return;
@@ -165,9 +151,7 @@ SafetyButton::Run()
 	_button_prev_sate = button_pressed;
 }
 
-int
-SafetyButton::task_spawn(int argc, char *argv[])
-{
+int SafetyButton::task_spawn(int argc, char *argv[]) {
 	SafetyButton *instance = new SafetyButton();
 
 	if (!instance) {
@@ -188,23 +172,15 @@ SafetyButton::task_spawn(int argc, char *argv[])
 	return ret;
 }
 
-int
-SafetyButton::Start()
-{
-	ScheduleOnInterval(33_ms); // run at 30 Hz
+int SafetyButton::Start() {
+	ScheduleOnInterval(33_ms);  // run at 30 Hz
 
 	return PX4_OK;
 }
 
-int
-SafetyButton::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int SafetyButton::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int
-SafetyButton::print_usage(const char *reason)
-{
+int SafetyButton::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -226,8 +202,4 @@ Pressing the safety button 3 times quickly will trigger a GCS pairing request.
 
 extern "C" __EXPORT int safety_button_main(int argc, char *argv[]);
 
-int
-safety_button_main(int argc, char *argv[])
-{
-	return SafetyButton::main(argc, argv);
-}
+int safety_button_main(int argc, char *argv[]) { return SafetyButton::main(argc, argv); }

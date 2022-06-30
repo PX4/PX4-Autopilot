@@ -37,25 +37,25 @@
 #include <uORB/topics/actuator_controls.h>
 
 template <int N>
-class MavlinkStreamActuatorControlTarget : public MavlinkStream
-{
+class MavlinkStreamActuatorControlTarget : public MavlinkStream {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamActuatorControlTarget<N>(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
+		return new MavlinkStreamActuatorControlTarget<N>(mavlink);
+	}
 
-	static constexpr const char *get_name_static()
-	{
+	static constexpr const char *get_name_static() {
 		switch (N) {
-		case 0:
-			return "ACTUATOR_CONTROL_TARGET0";
+			case 0:
+				return "ACTUATOR_CONTROL_TARGET0";
 
-		case 1:
-			return "ACTUATOR_CONTROL_TARGET1";
+			case 1:
+				return "ACTUATOR_CONTROL_TARGET1";
 
-		case 2:
-			return "ACTUATOR_CONTROL_TARGET2";
+			case 2:
+				return "ACTUATOR_CONTROL_TARGET2";
 
-		case 3:
-			return "ACTUATOR_CONTROL_TARGET3";
+			case 3:
+				return "ACTUATOR_CONTROL_TARGET3";
 		}
 
 		return "ACTUATOR_CONTROL_TARGET";
@@ -66,44 +66,39 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return (_act_ctrl_sub
-			&& _act_ctrl_sub->advertised()) ? (MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	unsigned get_size() override {
+		return (_act_ctrl_sub && _act_ctrl_sub->advertised())
+			       ? (MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)
+			       : 0;
 	}
 
 private:
-	explicit MavlinkStreamActuatorControlTarget(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
+	explicit MavlinkStreamActuatorControlTarget(Mavlink *mavlink) : MavlinkStream(mavlink) {
 		// XXX this can be removed once the multiplatform system remaps topics
 		switch (N) {
-		case 0:
-			_act_ctrl_sub = new uORB::Subscription{ORB_ID(actuator_controls_0)};
-			break;
+			case 0:
+				_act_ctrl_sub = new uORB::Subscription{ORB_ID(actuator_controls_0)};
+				break;
 
-		case 1:
-			_act_ctrl_sub = new uORB::Subscription{ORB_ID(actuator_controls_1)};
-			break;
+			case 1:
+				_act_ctrl_sub = new uORB::Subscription{ORB_ID(actuator_controls_1)};
+				break;
 
-		case 2:
-			_act_ctrl_sub = new uORB::Subscription{ORB_ID(actuator_controls_2)};
-			break;
+			case 2:
+				_act_ctrl_sub = new uORB::Subscription{ORB_ID(actuator_controls_2)};
+				break;
 
-		case 3:
-			_act_ctrl_sub = new uORB::Subscription{ORB_ID(actuator_controls_3)};
-			break;
+			case 3:
+				_act_ctrl_sub = new uORB::Subscription{ORB_ID(actuator_controls_3)};
+				break;
 		}
 	}
 
-	~MavlinkStreamActuatorControlTarget() override
-	{
-		delete _act_ctrl_sub;
-	}
+	~MavlinkStreamActuatorControlTarget() override { delete _act_ctrl_sub; }
 
 	uORB::Subscription *_act_ctrl_sub{nullptr};
 
-	bool send() override
-	{
+	bool send() override {
 		actuator_controls_s act_ctrl;
 
 		if (_act_ctrl_sub && _act_ctrl_sub->update(&act_ctrl)) {
@@ -125,4 +120,4 @@ private:
 	}
 };
 
-#endif // ACTUATOR_CONTROL_TARGET_HPP
+#endif  // ACTUATOR_CONTROL_TARGET_HPP

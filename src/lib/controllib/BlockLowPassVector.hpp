@@ -39,40 +39,36 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <assert.h>
-#include <time.h>
-#include <stdlib.h>
 #include <math.h>
-#include <mathlib/math/test/test.hpp>
+#include <px4_platform_common/defines.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
+namespace control {
 
-template<class Type, size_t M>
-class __EXPORT BlockLowPassVector: public Block
-{
+template <class Type, size_t M>
+class __EXPORT BlockLowPassVector : public Block {
 public:
-// methods
-	BlockLowPassVector(SuperBlock *parent,
-			   const char *name) :
-		Block(parent, name),
-		_state(),
-		_fCut(this, "") // only one parameter, no need to name
+	// methods
+	BlockLowPassVector(SuperBlock *parent, const char *name)
+		: Block(parent, name),
+		  _state(),
+		  _fCut(this, "")  // only one parameter, no need to name
 	{
 		for (size_t i = 0; i < M; i++) {
 			_state(i) = 0.0f / 0.0f;
 		}
 	}
 	virtual ~BlockLowPassVector() = default;
-	matrix::Vector<Type, M> update(const matrix::Matrix<Type, M, 1> &input)
-	{
+	matrix::Vector<Type, M> update(const matrix::Matrix<Type, M, 1> &input) {
 		for (size_t i = 0; i < M; i++) {
 			if (!PX4_ISFINITE(getState()(i))) {
 				setState(input);
@@ -84,14 +80,15 @@ public:
 		setState(input * a + getState() * (1 - a));
 		return getState();
 	}
-// accessors
+	// accessors
 	matrix::Vector<Type, M> getState() { return _state; }
 	float getFCut() { return _fCut.get(); }
 	void setState(const matrix::Vector<Type, M> &state) { _state = state; }
+
 private:
-// attributes
+	// attributes
 	matrix::Vector<Type, M> _state;
 	control::BlockParamFloat _fCut;
 };
 
-} // namespace control
+}  // namespace control

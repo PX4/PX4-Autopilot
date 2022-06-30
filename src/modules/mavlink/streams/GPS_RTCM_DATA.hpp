@@ -36,8 +36,7 @@
 
 #include <uORB/topics/gps_inject_data.h>
 
-class MavlinkStreamGPSRTCMData : public MavlinkStream
-{
+class MavlinkStreamGPSRTCMData : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamGPSRTCMData(mavlink); }
 
@@ -47,9 +46,10 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _gps_inject_data_sub.advertised() ? (MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	unsigned get_size() override {
+		return _gps_inject_data_sub.advertised()
+			       ? (MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)
+			       : 0;
 	}
 
 private:
@@ -57,8 +57,7 @@ private:
 
 	uORB::Subscription _gps_inject_data_sub{ORB_ID(gps_inject_data), 0};
 
-	bool send() override
-	{
+	bool send() override {
 		gps_inject_data_s gps_inject_data;
 		bool sent = false;
 
@@ -78,4 +77,4 @@ private:
 	}
 };
 
-#endif // GPS_RTCM_DATA_HPP
+#endif  // GPS_RTCM_DATA_HPP

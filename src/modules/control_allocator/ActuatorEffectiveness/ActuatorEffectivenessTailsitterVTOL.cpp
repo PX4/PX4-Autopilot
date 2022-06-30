@@ -42,14 +42,11 @@
 using namespace matrix;
 
 ActuatorEffectivenessTailsitterVTOL::ActuatorEffectivenessTailsitterVTOL(ModuleParams *parent)
-	: ModuleParams(parent), _mc_rotors(this), _control_surfaces(this)
-{
+	: ModuleParams(parent), _mc_rotors(this), _control_surfaces(this) {
 	setFlightPhase(FlightPhase::HOVER_FLIGHT);
 }
-bool
-ActuatorEffectivenessTailsitterVTOL::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
-{
+bool ActuatorEffectivenessTailsitterVTOL::getEffectivenessMatrix(Configuration &configuration,
+								 EffectivenessUpdateReason external_update) {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
@@ -68,8 +65,7 @@ ActuatorEffectivenessTailsitterVTOL::getEffectivenessMatrix(Configuration &confi
 	return (mc_rotors_added_successfully && surfaces_added_successfully);
 }
 
-void ActuatorEffectivenessTailsitterVTOL::setFlightPhase(const FlightPhase &flight_phase)
-{
+void ActuatorEffectivenessTailsitterVTOL::setFlightPhase(const FlightPhase &flight_phase) {
 	if (_flight_phase == flight_phase) {
 		return;
 	}
@@ -78,14 +74,14 @@ void ActuatorEffectivenessTailsitterVTOL::setFlightPhase(const FlightPhase &flig
 
 	// update stopped motors //TODO: add option to switch off certain motors in FW
 	switch (flight_phase) {
-	case FlightPhase::FORWARD_FLIGHT:
-		_stopped_motors = 0;
-		break;
+		case FlightPhase::FORWARD_FLIGHT:
+			_stopped_motors = 0;
+			break;
 
-	case FlightPhase::HOVER_FLIGHT:
-	case FlightPhase::TRANSITION_FF_TO_HF:
-	case FlightPhase::TRANSITION_HF_TO_FF:
-		_stopped_motors = 0;
-		break;
+		case FlightPhase::HOVER_FLIGHT:
+		case FlightPhase::TRANSITION_FF_TO_HF:
+		case FlightPhase::TRANSITION_HF_TO_FF:
+			_stopped_motors = 0;
+			break;
 	}
 }

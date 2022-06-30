@@ -41,26 +41,22 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
+#include <uavcan/_register/List_1_0.h>
 #include <version/version.h>
 
-#include <uavcan/_register/List_1_0.h>
-
-#include "ServiceRequest.hpp"
 #include "../ParamManager.hpp"
 #include "../Publishers/Publisher.hpp"
+#include "ServiceRequest.hpp"
 
-class UavcanListServiceRequest : public UavcanServiceRequest
-{
+class UavcanListServiceRequest : public UavcanServiceRequest {
 public:
-	UavcanListServiceRequest(CanardHandle &handle) :
-		UavcanServiceRequest(handle, "", "List", uavcan_register_List_1_0_FIXED_PORT_ID_,
-				     uavcan_register_List_Response_1_0_EXTENT_BYTES_) { };
+	UavcanListServiceRequest(CanardHandle &handle)
+		: UavcanServiceRequest(handle, "", "List", uavcan_register_List_1_0_FIXED_PORT_ID_,
+				       uavcan_register_List_Response_1_0_EXTENT_BYTES_){};
 
-
-	bool getIndex(CanardNodeID node_id, uint16_t index, UavcanServiceRequestInterface *handler)
-	{
+	bool getIndex(CanardNodeID node_id, uint16_t index, UavcanServiceRequestInterface *handler) {
 		uavcan_register_List_Request_1_0 msg;
 		size_t payload_size = uavcan_register_List_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_;
 		msg.index = index;
@@ -68,24 +64,18 @@ public:
 		uint8_t request_payload_buffer[uavcan_register_List_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
 		const CanardTransferMetadata transfer_metadata = {
-			.priority       = CanardPriorityNominal,
-			.transfer_kind  = CanardTransferKindRequest,
-			.port_id        = uavcan_register_List_1_0_FIXED_PORT_ID_, // This is the subject-ID.
+			.priority = CanardPriorityNominal,
+			.transfer_kind = CanardTransferKindRequest,
+			.port_id = uavcan_register_List_1_0_FIXED_PORT_ID_,  // This is the subject-ID.
 			.remote_node_id = node_id,
-			.transfer_id    = request_transfer_id
-		};
+			.transfer_id = request_transfer_id};
 
 		if (uavcan_register_List_Request_1_0_serialize_(&msg, request_payload_buffer, &payload_size) == 0) {
-			return request(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
-				       &transfer_metadata,
-				       payload_size,
-				       &request_payload_buffer,
-				       handler);
+			return request(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC, &transfer_metadata,
+				       payload_size, &request_payload_buffer, handler);
 
 		} else {
 			return false;
 		}
 	};
-
-
 };

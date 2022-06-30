@@ -36,31 +36,26 @@
  * Test for Bezier curve computation.
  */
 
-#include <unit_test.h>
 #include <float.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unit_test.h>
 
 #include "../../lib/bezier/BezierQuad.hpp"
 
-class BezierQuadTest : public UnitTest
-{
+class BezierQuadTest : public UnitTest {
 public:
 	virtual bool run_tests();
 
 private:
-
 	bool _get_states_from_time();
 	bool _get_arc_length();
 	bool _set_bez_from_vel();
 
 	float random(float min, float max);
-
 };
 
-
-bool BezierQuadTest::run_tests()
-{
+bool BezierQuadTest::run_tests() {
 	ut_run_test(_get_states_from_time);
 	ut_run_test(_get_arc_length);
 	ut_run_test(_set_bez_from_vel);
@@ -68,8 +63,7 @@ bool BezierQuadTest::run_tests()
 	return (_tests_failed == 0);
 }
 
-bool BezierQuadTest::_get_states_from_time()
-{
+bool BezierQuadTest::_get_states_from_time() {
 	// symmetric around 0
 	matrix::Vector3f pt0(-0.5f, 0.0f, 0.0f);
 	matrix::Vector3f ctrl(0.0f, 0.5f, 0.0f);
@@ -176,13 +170,11 @@ bool BezierQuadTest::_get_states_from_time()
 	ut_compare_float("acc not equal 0", acc(2), 0.0f, precision);
 
 	return true;
-
 }
 
-bool BezierQuadTest::_get_arc_length()
-{
+bool BezierQuadTest::_get_arc_length() {
 	// create random numbers
-	srand(0); // choose a constant to make it deterministic
+	srand(0);  // choose a constant to make it deterministic
 
 	float min = -50.f;
 	float max = 50.f;
@@ -193,7 +185,7 @@ bool BezierQuadTest::_get_arc_length()
 	float T = 100.0f;
 
 	// loop trough different control points 100x and check if arc_length is in the expected range
-	for (int i = 0; i < 100 ; i++) {
+	for (int i = 0; i < 100; i++) {
 		// random bezier point
 		pt0 = matrix::Vector3f(random(min, max), random(min, max), random(min, max));
 		pt1 = matrix::Vector3f(random(min, max), random(min, max), random(min, max));
@@ -224,32 +216,30 @@ bool BezierQuadTest::_get_arc_length()
 		}
 
 		// test comparisons
-		ut_assert_true((triangle_length >= arc_length) && (arc_length >= straigth_length)
-			       && (fabsf(arc_length - sum_segments) < 1.f));
+		ut_assert_true((triangle_length >= arc_length) && (arc_length >= straigth_length) &&
+			       (fabsf(arc_length - sum_segments) < 1.f));
 	}
-
 
 	return true;
 }
 
-bool BezierQuadTest::_set_bez_from_vel()
-{
+bool BezierQuadTest::_set_bez_from_vel() {
 	// create random numbers
-	srand(100); // choose a constant to make it deterministic
+	srand(100);  // choose a constant to make it deterministic
 
 	float low = -50.0f;
 	float max = 50.0f;
 	float precision = 0.001f;
 
 	for (int i = 0; i < 20; i++) {
-
 		// set velocity
 		matrix::Vector3f ctrl(random(low, max), random(low, max), random(low, max));
 		matrix::Vector3f vel0(random(low, max), random(low, max), random(low, max));
 		matrix::Vector3f vel1(random(low, max), random(low, max), random(low, max));
 		float duration = random(0.0f, 100.0f);
 
-		bezier::BezierQuad_f bz;;
+		bezier::BezierQuad_f bz;
+		;
 		bz.setBezFromVel(ctrl, vel0, vel1, duration);
 
 		// get velocity back
@@ -268,11 +258,9 @@ bool BezierQuadTest::_set_bez_from_vel()
 	return true;
 }
 
-float BezierQuadTest::random(float min, float max)
-{
+float BezierQuadTest::random(float min, float max) {
 	float s = rand() / (float)RAND_MAX;
 	return (min + s * (max - min));
-
 }
 
 ut_declare_test_c(test_bezierQuad, BezierQuadTest)

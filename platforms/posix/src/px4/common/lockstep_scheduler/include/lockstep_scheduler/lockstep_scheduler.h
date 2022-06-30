@@ -33,17 +33,17 @@
 
 #pragma once
 
+#include <pthread.h>
+
+#include <atomic>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <vector>
-#include <memory>
-#include <atomic>
-#include <pthread.h>
 
 #include "lockstep_components.h"
 
-class LockstepScheduler
-{
+class LockstepScheduler {
 public:
 	~LockstepScheduler();
 
@@ -56,16 +56,15 @@ public:
 
 private:
 	struct TimedWait {
-		~TimedWait()
-		{
+		~TimedWait() {
 			if (!done) {
 				// This can only happen when a thread gets canceled (e.g. via pthread_cancel), and since
-				// pthread_cond_wait is a cancellation point, the rest of LockstepScheduler::cond_timedwait afterwards
-				// might not be executed. Which means the mutex will not be unlocked either, so we unlock to avoid
-				// a dead-lock in LockstepScheduler::set_absolute_time().
-				// This destructor gets called as part of thread-local storage cleanup.
-				// This is really only a work-around for non-proper thread stopping. Note that we also assume,
-				// that we can still access the mutex.
+				// pthread_cond_wait is a cancellation point, the rest of
+				// LockstepScheduler::cond_timedwait afterwards might not be executed. Which means the
+				// mutex will not be unlocked either, so we unlock to avoid a dead-lock in
+				// LockstepScheduler::set_absolute_time(). This destructor gets called as part of
+				// thread-local storage cleanup. This is really only a work-around for non-proper thread
+				// stopping. Note that we also assume, that we can still access the mutex.
 				if (passed_lock) {
 					pthread_mutex_unlock(passed_lock);
 				}
@@ -88,14 +87,14 @@ private:
 		std::atomic<bool> done{false};
 		std::atomic<bool> removed{true};
 
-		TimedWait *next{nullptr}; ///< linked list
+		TimedWait *next{nullptr};  ///< linked list
 	};
 
 	LockstepComponents _components;
 
 	std::atomic<uint64_t> _time_us{0};
 
-	TimedWait *_timed_waits{nullptr}; ///< head of linked list
+	TimedWait *_timed_waits{nullptr};  ///< head of linked list
 	std::mutex _timed_waits_mutex;
-	std::atomic<bool> _setting_time{false}; ///< true if set_absolute_time() is currently being executed
+	std::atomic<bool> _setting_time{false};  ///< true if set_absolute_time() is currently being executed
 };

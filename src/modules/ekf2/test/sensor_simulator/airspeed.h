@@ -40,13 +40,10 @@
 
 #include "sensor.h"
 
-namespace sensor_simulator
-{
-namespace sensor
-{
+namespace sensor_simulator {
+namespace sensor {
 
-class Airspeed: public Sensor
-{
+class Airspeed : public Sensor {
 public:
 	Airspeed(std::shared_ptr<Ekf> ekf);
 	~Airspeed();
@@ -58,9 +55,8 @@ private:
 	float _indicated_airspeed_data{0.0f};
 
 	void send(uint64_t time) override;
-
 };
 
-} // namespace sensor
-} // namespace sensor_simulator
-#endif // !EKF_AIRSPEED_H
+}  // namespace sensor
+}  // namespace sensor_simulator
+#endif  // !EKF_AIRSPEED_H

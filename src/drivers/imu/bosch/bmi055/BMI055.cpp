@@ -36,8 +36,7 @@
 #include "BMI055_Accelerometer.hpp"
 #include "BMI055_Gyroscope.hpp"
 
-I2CSPIDriverBase *BMI055::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+I2CSPIDriverBase *BMI055::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	BMI055 *instance = nullptr;
 
 	if (config.devid_driver_index == DRV_ACC_DEVTYPE_BMI055) {
@@ -60,15 +59,9 @@ I2CSPIDriverBase *BMI055::instantiate(const I2CSPIDriverConfig &config, int runt
 	return instance;
 }
 
-BMI055::BMI055(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	I2CSPIDriver(config),
-	_drdy_gpio(config.drdy_gpio)
-{
-}
+BMI055::BMI055(const I2CSPIDriverConfig &config) : SPI(config), I2CSPIDriver(config), _drdy_gpio(config.drdy_gpio) {}
 
-int BMI055::init()
-{
+int BMI055::init() {
 	int ret = SPI::init();
 
 	if (ret != PX4_OK) {
@@ -79,8 +72,7 @@ int BMI055::init()
 	return Reset() ? 0 : -1;
 }
 
-bool BMI055::Reset()
-{
+bool BMI055::Reset() {
 	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();

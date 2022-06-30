@@ -37,38 +37,30 @@
  * I2C interface for LPS25H
  */
 
-#include "lps25h.h"
-
 #include <drivers/device/i2c.h>
+
+#include "lps25h.h"
 
 device::Device *LPS25H_I2C_interface(int bus, int bus_frequency);
 
-class LPS25H_I2C : public device::I2C
-{
+class LPS25H_I2C : public device::I2C {
 public:
 	LPS25H_I2C(int bus, int bus_frequency);
 	virtual ~LPS25H_I2C() override = default;
 
-	int	read(unsigned address, void *data, unsigned count) override;
-	int	write(unsigned address, void *data, unsigned count) override;
+	int read(unsigned address, void *data, unsigned count) override;
+	int write(unsigned address, void *data, unsigned count) override;
 
 protected:
-	int	probe();
-
+	int probe();
 };
 
-device::Device *LPS25H_I2C_interface(int bus, int bus_frequency)
-{
-	return new LPS25H_I2C(bus, bus_frequency);
-}
+device::Device *LPS25H_I2C_interface(int bus, int bus_frequency) { return new LPS25H_I2C(bus, bus_frequency); }
 
-LPS25H_I2C::LPS25H_I2C(int bus, int bus_frequency) :
-	I2C(DRV_BARO_DEVTYPE_LPS25H, MODULE_NAME, bus, LPS25H_ADDRESS, bus_frequency)
-{
-}
+LPS25H_I2C::LPS25H_I2C(int bus, int bus_frequency)
+	: I2C(DRV_BARO_DEVTYPE_LPS25H, MODULE_NAME, bus, LPS25H_ADDRESS, bus_frequency) {}
 
-int LPS25H_I2C::probe()
-{
+int LPS25H_I2C::probe() {
 	uint8_t id;
 
 	if (read(ADDR_WHO_AM_I, &id, 1)) {
@@ -86,8 +78,7 @@ int LPS25H_I2C::probe()
 	return OK;
 }
 
-int LPS25H_I2C::write(unsigned address, void *data, unsigned count)
-{
+int LPS25H_I2C::write(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {
@@ -100,9 +91,7 @@ int LPS25H_I2C::write(unsigned address, void *data, unsigned count)
 	return transfer(&buf[0], count + 1, nullptr, 0);
 }
 
-int
-LPS25H_I2C::read(unsigned address, void *data, unsigned count)
-{
+int LPS25H_I2C::read(unsigned address, void *data, unsigned count) {
 	uint8_t cmd = address;
 	return transfer(&cmd, 1, (uint8_t *)data, count);
 }

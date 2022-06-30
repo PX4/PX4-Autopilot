@@ -42,18 +42,15 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include <stdint.h>
+#include <arch/board/board.h>
 #include <errno.h>
-
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
+#include <nuttx/config.h>
+#include <stdint.h>
 
-#include "s32k1xx_pin.h"
 #include "board_config.h"
-
-#include <arch/board/board.h>
+#include "s32k1xx_pin.h"
 
 #ifdef CONFIG_ARCH_BUTTONS
 
@@ -72,8 +69,7 @@
  *
  ****************************************************************************/
 
-void board_button_initialize(void)
-{
+void board_button_initialize(void) {
 	/* Configure the GPIO pins as interrupting inputs. */
 
 	s32k1xx_pinconfig(GPIO_SW3);
@@ -83,8 +79,7 @@ void board_button_initialize(void)
  * Name: board_buttons
  ****************************************************************************/
 
-uint32_t board_buttons(void)
-{
+uint32_t board_buttons(void) {
 	uint32_t ret = 0;
 
 	if (s32k1xx_gpioread(GPIO_SW3)) {
@@ -117,8 +112,7 @@ uint32_t board_buttons(void)
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_IRQBUTTONS
-int board_button_irq(int id, xcpt_t irqhandler, FAR void *arg)
-{
+int board_button_irq(int id, xcpt_t irqhandler, FAR void *arg) {
 	uint32_t pinset;
 	int ret;
 

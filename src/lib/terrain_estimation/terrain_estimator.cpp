@@ -37,36 +37,28 @@
  */
 
 #include "terrain_estimator.h"
+
 #include <lib/geo/geo.h>
 #include <px4_platform_common/defines.h>
 
-#define DISTANCE_TIMEOUT 100000		// time in usec after which laser is considered dead
+#define DISTANCE_TIMEOUT 100000  // time in usec after which laser is considered dead
 
-TerrainEstimator::TerrainEstimator() :
-	_distance_last(0.0f),
-	_terrain_valid(false),
-	_time_last_distance(0),
-	_time_last_gps(0)
-{
+TerrainEstimator::TerrainEstimator()
+	: _distance_last(0.0f), _terrain_valid(false), _time_last_distance(0), _time_last_gps(0) {
 	_x.zero();
 	_u_z = 0.0f;
 	_P.setIdentity();
 }
 
-bool TerrainEstimator::is_distance_valid(float distance)
-{
-	return (distance < 40.0f && distance > 0.00001f);
-}
+bool TerrainEstimator::is_distance_valid(float distance) { return (distance < 40.0f && distance > 0.00001f); }
 
 void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitude,
-			       const struct sensor_combined_s *sensor,
-			       const struct distance_sensor_s *distance)
-{
+			       const struct sensor_combined_s *sensor, const struct distance_sensor_s *distance) {
 	matrix::Dcmf R_att = matrix::Quatf(attitude->q);
 	matrix::Vector3f a{sensor->accelerometer_m_s2[0], sensor->accelerometer_m_s2[1], sensor->accelerometer_m_s2[2]};
 	matrix::Vector<float, 3> u;
 	u = R_att * a;
-	_u_z = u(2) + CONSTANTS_ONE_G; // compensate for gravity
+	_u_z = u(2) + CONSTANTS_ONE_G;  // compensate for gravity
 
 	// dynamics matrix
 	matrix::Matrix<float, n_x, n_x> A;
@@ -75,7 +67,7 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 	A(1, 2) = 1;
 
 	// input matrix
-	matrix::Matrix<float, n_x, 1>  B;
+	matrix::Matrix<float, n_x, 1> B;
 	B.setZero();
 	B(1, 0) = 1;
 
@@ -83,24 +75,22 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 	float R = 0.135f;
 
 	// process noise convariance
-	matrix::Matrix<float, n_x, n_x>  Q;
+	matrix::Matrix<float, n_x, n_x> Q;
 	Q(0, 0) = 0;
 	Q(1, 1) = 0;
 
 	// do prediction
-	matrix::Vector<float, n_x>  dx = (A * _x) * dt;
+	matrix::Vector<float, n_x> dx = (A * _x) * dt;
 	dx(1) += B(1, 0) * _u_z * dt;
 
 	// propagate state and covariance matrix
 	_x += dx;
-	_P += (A * _P + _P * A.transpose() +
-	       B * R * B.transpose() + Q) * dt;
+	_P += (A * _P + _P * A.transpose() + B * R * B.transpose() + Q) * dt;
 }
 
 void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicle_gps_position_s *gps,
-		const struct distance_sensor_s *distance,
-		const struct vehicle_attitude_s *attitude)
-{
+					  const struct distance_sensor_s *distance,
+					  const struct vehicle_attitude_s *attitude) {
 	// terrain estimate is invalid if we have range sensor timeout
 	if (time_ref - distance->timestamp > DISTANCE_TIMEOUT) {
 		_terrain_valid = false;
@@ -112,7 +102,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 		float d = distance->current_distance;
 
 		matrix::Matrix<float, 1, n_x> C;
-		C(0, 0) = -1; // measured altitude,
+		C(0, 0) = -1;  // measured altitude,
 
 		float R = 0.009f;
 
@@ -122,7 +112,7 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 		// residual
 		matrix::Matrix<float, 1, 1> S_I = (C * _P * C.transpose());
 		S_I(0, 0) += R;
-		S_I = matrix::inv<float, 1> (S_I);
+		S_I = matrix::inv<float, 1>(S_I);
 		matrix::Vector<float, 1> r = y - C * _x;
 
 		matrix::Matrix<float, n_x, 1> K = _P * C.transpose() * S_I;
@@ -190,5 +180,4 @@ void TerrainEstimator::measurement_update(uint64_t time_ref, const struct vehicl
 		_P.setZero();
 		_P(0, 0) = _P(1, 1) = _P(2, 2) = 0.1f;
 	}
-
 }

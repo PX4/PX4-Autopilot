@@ -37,13 +37,11 @@
  * board LED backend.
  */
 
+#include <arch/board/board.h>
 #include <px4_platform_common/px4_config.h>
-
 #include <stdbool.h>
 
 #include "board_config.h"
-
-#include <arch/board/board.h>
 
 /*
  * Ideally we'd be able to get these from arm_internal.h,
@@ -60,37 +58,28 @@ extern void led_toggle(int led);
 __END_DECLS
 
 static uint32_t g_ledmap[] = {
-	GPIO_LED_BLUE,		// Onboard led on raspberrypi pico
+	GPIO_LED_BLUE,  // Onboard led on raspberrypi pico
 };
 
-__EXPORT void led_init(void)
-{
+__EXPORT void led_init(void) {
 	/* Configure LED GPIOs for output */
 	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
 		px4_arch_configgpio(g_ledmap[l]);
 	}
 }
 
-static void phy_set_led(int led, bool state)
-{
+static void phy_set_led(int led, bool state) {
 	/* Pull Down to switch on */
 	if (led == 0) {
 		px4_arch_gpiowrite(g_ledmap[led], state);
 	}
 }
 
-__EXPORT void led_on(int led)
-{
-	phy_set_led(led, true);
-}
+__EXPORT void led_on(int led) { phy_set_led(led, true); }
 
-__EXPORT void led_off(int led)
-{
-	phy_set_led(led, false);
-}
+__EXPORT void led_off(int led) { phy_set_led(led, false); }
 
-__EXPORT void led_toggle(int led)
-{
+__EXPORT void led_toggle(int led) {
 	if (led == 0) {
 		phy_set_led(led, !px4_arch_gpioread(g_ledmap[led]));
 	}

@@ -45,24 +45,22 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-namespace Microchip_MCP23009
-{
+namespace Microchip_MCP23009 {
 
-enum class
-Register : uint8_t {
+enum class Register : uint8_t {
 
-	IODIR       = 0x00,
-	IPOL        = 0x01,
-	GPINTEN     = 0x02,
-	DEFVAL      = 0x03,
-	INTCON      = 0x04,
-	IOCON       = 0x05,
-	GPPU        = 0x06,
-	INTF        = 0x07,
-	INTCAP      = 0x08,
-	GPIO        = 0x09,
-	OLAT        = 0x0a
+	IODIR = 0x00,
+	IPOL = 0x01,
+	GPINTEN = 0x02,
+	DEFVAL = 0x03,
+	INTCON = 0x04,
+	IOCON = 0x05,
+	GPPU = 0x06,
+	INTF = 0x07,
+	INTCAP = 0x08,
+	GPIO = 0x09,
+	OLAT = 0x0a
 
 };
 
-} // namespace Microchip_MCP23009
+}  // namespace Microchip_MCP23009

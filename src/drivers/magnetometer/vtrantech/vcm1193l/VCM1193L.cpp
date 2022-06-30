@@ -35,27 +35,18 @@
 
 using namespace time_literals;
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-VCM1193L::VCM1193L(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation)
-{
-}
+VCM1193L::VCM1193L(const I2CSPIDriverConfig &config)
+	: I2C(config), I2CSPIDriver(config), _px4_mag(get_device_id(), config.rotation) {}
 
-VCM1193L::~VCM1193L()
-{
+VCM1193L::~VCM1193L() {
 	perf_free(_reset_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 }
 
-int VCM1193L::init()
-{
+int VCM1193L::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -66,16 +57,14 @@ int VCM1193L::init()
 	return Reset() ? 0 : -1;
 }
 
-bool VCM1193L::Reset()
-{
+bool VCM1193L::Reset() {
 	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
 }
 
-void VCM1193L::print_status()
-{
+void VCM1193L::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_reset_perf);
@@ -83,8 +72,7 @@ void VCM1193L::print_status()
 	perf_print_counter(_bad_transfer_perf);
 }
 
-int VCM1193L::probe()
-{
+int VCM1193L::probe() {
 	_retries = 1;
 
 	for (int i = 0; i < 3; i++) {
@@ -104,68 +92,65 @@ int VCM1193L::probe()
 	return PX4_ERROR;
 }
 
-void VCM1193L::RunImpl()
-{
+void VCM1193L::RunImpl() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-	case STATE::RESET:
-		// CNTL1: Software Reset
-		RegisterWrite(Register::CNTL1, CNTL1_BIT::SOFT_RST);
-		_reset_timestamp = now;
-		_failure_count = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		perf_count(_reset_perf);
-		ScheduleDelayed(10_ms); // POR Completion Time (not documented)
-		break;
+		case STATE::RESET:
+			// CNTL1: Software Reset
+			RegisterWrite(Register::CNTL1, CNTL1_BIT::SOFT_RST);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
+			perf_count(_reset_perf);
+			ScheduleDelayed(10_ms);  // POR Completion Time (not documented)
+			break;
 
-	case STATE::WAIT_FOR_RESET:
+		case STATE::WAIT_FOR_RESET:
 
-		// SOFT_RST: This bit is automatically reset to zero after POR routine
-		if ((RegisterRead(Register::CHIP_ID) == Chip_ID)
-		    && (RegisterRead(Register::CNTL1) == 0)) {
-
-			// if reset succeeded then configure
-			_state = STATE::CONFIGURE;
-			ScheduleDelayed(10_ms);
-
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
-				ScheduleDelayed(100_ms);
-
-			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
+			// SOFT_RST: This bit is automatically reset to zero after POR routine
+			if ((RegisterRead(Register::CHIP_ID) == Chip_ID) && (RegisterRead(Register::CNTL1) == 0)) {
+				// if reset succeeded then configure
+				_state = STATE::CONFIGURE;
 				ScheduleDelayed(10_ms);
-			}
-		}
-
-		break;
-
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start reading every 20 ms (50 Hz)
-			_state = STATE::READ;
-			ScheduleOnInterval(20_ms, 20_ms);
-
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
 
 			} else {
-				PX4_DEBUG("Configure failed, retrying");
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 10 ms");
+					ScheduleDelayed(10_ms);
+				}
 			}
 
-			ScheduleDelayed(100_ms);
-		}
+			break;
 
-		break;
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				// if configure succeeded then start reading every 20 ms (50 Hz)
+				_state = STATE::READ;
+				ScheduleOnInterval(20_ms, 20_ms);
 
-	case STATE::READ: {
+			} else {
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
+				ScheduleDelayed(100_ms);
+			}
+
+			break;
+
+		case STATE::READ: {
 			struct TransferBuffer {
 				uint8_t X_LSB;
 				uint8_t X_MSB;
@@ -189,7 +174,7 @@ void VCM1193L::RunImpl()
 					_prev_data[2] = z;
 
 					// Data Sheet is incorrect
-					y = (y == INT16_MIN) ? INT16_MAX : -y; // -y
+					y = (y == INT16_MIN) ? INT16_MAX : -y;  // -y
 
 					_px4_mag.update(now, x, y, z);
 
@@ -232,8 +217,7 @@ void VCM1193L::RunImpl()
 	}
 }
 
-bool VCM1193L::Configure()
-{
+bool VCM1193L::Configure() {
 	// first set and clear all configured register bits
 
 	for (const auto &reg_cfg : _register_cfg) {
@@ -249,47 +233,44 @@ bool VCM1193L::Configure()
 		}
 	}
 
-	_px4_mag.set_scale(1.f / 3000.f); // 3000 LSB/Gauss (Field Range = ±8G)
+	_px4_mag.set_scale(1.f / 3000.f);  // 3000 LSB/Gauss (Field Range = ±8G)
 
 	return success;
 }
 
-bool VCM1193L::RegisterCheck(const register_config_t &reg_cfg)
-{
+bool VCM1193L::RegisterCheck(const register_config_t &reg_cfg) {
 	bool success = true;
 
 	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
 
 	if (reg_cfg.set_bits && ((reg_value & reg_cfg.set_bits) != reg_cfg.set_bits)) {
-		PX4_DEBUG("0x%02" PRIX8 ": 0x%02" PRIX8 "(0x%02" PRIX8 " not set)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.set_bits);
+		PX4_DEBUG("0x%02" PRIX8 ": 0x%02" PRIX8 "(0x%02" PRIX8 " not set)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.set_bits);
 		success = false;
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02" PRIX8 ": 0x%02" PRIX8 " (0x%02" PRIX8 " not cleared)", (uint8_t)reg_cfg.reg, reg_value,
-			  reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02" PRIX8 ": 0x%02" PRIX8 " (0x%02" PRIX8 " not cleared)", (uint8_t)reg_cfg.reg,
+			  reg_value, reg_cfg.clear_bits);
 		success = false;
 	}
 
 	return success;
 }
 
-uint8_t VCM1193L::RegisterRead(Register reg)
-{
+uint8_t VCM1193L::RegisterRead(Register reg) {
 	const uint8_t cmd = static_cast<uint8_t>(reg);
 	uint8_t buffer{};
 	transfer(&cmd, 1, &buffer, 1);
 	return buffer;
 }
 
-void VCM1193L::RegisterWrite(Register reg, uint8_t value)
-{
-	uint8_t buffer[2] { (uint8_t)reg, value };
+void VCM1193L::RegisterWrite(Register reg, uint8_t value) {
+	uint8_t buffer[2]{(uint8_t)reg, value};
 	transfer(buffer, sizeof(buffer), nullptr, 0);
 }
 
-void VCM1193L::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
-{
+void VCM1193L::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits) {
 	const uint8_t orig_val = RegisterRead(reg);
 	uint8_t val = (orig_val & ~clearbits) | setbits;
 

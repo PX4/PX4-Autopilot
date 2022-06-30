@@ -35,23 +35,19 @@
 
 using namespace time_literals;
 
-FakeGps::FakeGps(double latitude_deg, double longitude_deg, float altitude_m) :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
-	_latitude(latitude_deg * 10e6),
-	_longitude(longitude_deg * 10e6),
-	_altitude(altitude_m * 10e2f)
-{
-}
+FakeGps::FakeGps(double latitude_deg, double longitude_deg, float altitude_m)
+	: ModuleParams(nullptr),
+	  ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
+	  _latitude(latitude_deg * 10e6),
+	  _longitude(longitude_deg * 10e6),
+	  _altitude(altitude_m * 10e2f) {}
 
-bool FakeGps::init()
-{
+bool FakeGps::init() {
 	ScheduleOnInterval(SENSOR_INTERVAL_US);
 	return true;
 }
 
-void FakeGps::Run()
-{
+void FakeGps::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
@@ -88,8 +84,7 @@ void FakeGps::Run()
 	_sensor_gps_pub.publish(sensor_gps);
 }
 
-int FakeGps::task_spawn(int argc, char *argv[])
-{
+int FakeGps::task_spawn(int argc, char *argv[]) {
 	FakeGps *instance = new FakeGps();
 
 	if (instance) {
@@ -111,13 +106,9 @@ int FakeGps::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int FakeGps::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int FakeGps::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int FakeGps::print_usage(const char *reason)
-{
+int FakeGps::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -134,7 +125,4 @@ int FakeGps::print_usage(const char *reason)
 	return 0;
 }
 
-extern "C" __EXPORT int fake_gps_main(int argc, char *argv[])
-{
-	return FakeGps::main(argc, argv);
-}
+extern "C" __EXPORT int fake_gps_main(int argc, char *argv[]) { return FakeGps::main(argc, argv); }

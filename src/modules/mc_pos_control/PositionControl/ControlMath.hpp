@@ -40,11 +40,11 @@
 
 #pragma once
 
-#include <matrix/matrix/math.hpp>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 
-namespace ControlMath
-{
+#include <matrix/matrix/math.hpp>
+
+namespace ControlMath {
 /**
  * Converts thrust vector and yaw set-point to a desired attitude.
  * @param thr_sp desired 3D thrust vector
@@ -98,7 +98,8 @@ bool cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r, c
 
 /**
  * Adds e.g. feed-forward to the setpoint making sure existing or added NANs have no influence on control.
- * This function is udeful to support all the different setpoint combinations of position, velocity, acceleration with NAN representing an uncommited value.
+ * This function is udeful to support all the different setpoint combinations of position, velocity, acceleration with
+ * NAN representing an uncommited value.
  * @param setpoint existing possibly NAN setpoint to add to
  * @param addition value/NAN to add to the setpoint
  */
@@ -115,4 +116,4 @@ void addIfNotNanVector3f(matrix::Vector3f &setpoint, const matrix::Vector3f &add
  * @param vector possibly containing NAN elements
  */
 void setZeroIfNanVector3f(matrix::Vector3f &vector);
-}
+}  // namespace ControlMath

@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixHatveeTest, Hatvee)
-{
+TEST(MatrixHatveeTest, Hatvee) {
 	Euler<float> euler(0.1f, 0.2f, 0.3f);
 	Dcm<float> R(euler);
 	Dcm<float> skew = R - R.T();

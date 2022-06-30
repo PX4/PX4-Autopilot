@@ -40,21 +40,21 @@
 
 #pragma once
 
-#include "InvenSense_ICM40609D_registers.hpp"
-
 #include <drivers/drv_hrt.h>
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/device/spi.h>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+
+#include "InvenSense_ICM40609D_registers.hpp"
+
 using namespace InvenSense_ICM40609D;
 
-class ICM40609D : public device::SPI, public I2CSPIDriver<ICM40609D>
-{
+class ICM40609D : public device::SPI, public I2CSPIDriver<ICM40609D> {
 public:
 	ICM40609D(const I2CSPIDriverConfig &config);
 	~ICM40609D() override;
@@ -70,12 +70,15 @@ private:
 	void exit_and_cleanup() override;
 
 	// Sensor Configuration
-	static constexpr float FIFO_SAMPLE_DT{1e6f / 8000.f};     // 8000 Hz accel & gyro ODR configured
+	static constexpr float FIFO_SAMPLE_DT{1e6f / 8000.f};  // 8000 Hz accel & gyro ODR configured
 	static constexpr float GYRO_RATE{1e6f / FIFO_SAMPLE_DT};
 	static constexpr float ACCEL_RATE{1e6f / FIFO_SAMPLE_DT};
 
 	// maximum FIFO samples per transfer is limited to the size of sensor_accel_fifo/sensor_gyro_fifo
-	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0])), sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]) * (int)(GYRO_RATE / ACCEL_RATE))};
+	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(
+		math::min(FIFO::SIZE / sizeof(FIFO::DATA),
+			  sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0])),
+		sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]) * (int)(GYRO_RATE / ACCEL_RATE))};
 
 	// Transfer data
 	struct FIFOTransferBuffer {
@@ -83,10 +86,10 @@ private:
 		uint8_t INT_STATUS{0};
 		uint8_t FIFO_COUNTH{0};
 		uint8_t FIFO_COUNTL{0};
-		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
+		FIFO::DATA f[FIFO_MAX_SAMPLES]{};
 	};
 	// ensure no struct padding
-	static_assert(sizeof(FIFOTransferBuffer) == (4 + FIFO_MAX_SAMPLES *sizeof(FIFO::DATA)));
+	static_assert(sizeof(FIFOTransferBuffer) == (4 + FIFO_MAX_SAMPLES * sizeof(FIFO::DATA)));
 
 	struct register_bank0_config_t {
 		Register::BANK_0 reg;
@@ -112,12 +115,22 @@ private:
 	bool DataReadyInterruptConfigure();
 	bool DataReadyInterruptDisable();
 
-	template <typename T> bool RegisterCheck(const T &reg_cfg);
-	template <typename T> uint8_t RegisterRead(T reg);
-	template <typename T> void RegisterWrite(T reg, uint8_t value);
-	template <typename T> void RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits);
-	template <typename T> void RegisterSetBits(T reg, uint8_t setbits) { RegisterSetAndClearBits(reg, setbits, 0); }
-	template <typename T> void RegisterClearBits(T reg, uint8_t clearbits) { RegisterSetAndClearBits(reg, 0, clearbits); }
+	template <typename T>
+	bool RegisterCheck(const T &reg_cfg);
+	template <typename T>
+	uint8_t RegisterRead(T reg);
+	template <typename T>
+	void RegisterWrite(T reg, uint8_t value);
+	template <typename T>
+	void RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits);
+	template <typename T>
+	void RegisterSetBits(T reg, uint8_t setbits) {
+		RegisterSetAndClearBits(reg, setbits, 0);
+	}
+	template <typename T>
+	void RegisterClearBits(T reg, uint8_t clearbits) {
+		RegisterSetAndClearBits(reg, 0, clearbits);
+	}
 
 	uint16_t FIFOReadCount();
 	bool FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples);
@@ -132,11 +145,11 @@ private:
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
 
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
-	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
-	perf_counter_t _fifo_empty_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO empty")};
-	perf_counter_t _fifo_overflow_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO overflow")};
-	perf_counter_t _fifo_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO reset")};
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad register")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad transfer")};
+	perf_counter_t _fifo_empty_perf{perf_alloc(PC_COUNT, MODULE_NAME ": FIFO empty")};
+	perf_counter_t _fifo_overflow_perf{perf_alloc(PC_COUNT, MODULE_NAME ": FIFO overflow")};
+	perf_counter_t _fifo_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME ": FIFO reset")};
 	perf_counter_t _drdy_missed_perf{nullptr};
 
 	hrt_abstime _reset_timestamp{0};
@@ -144,7 +157,7 @@ private:
 	hrt_abstime _temperature_update_timestamp{0};
 	int _failure_count{0};
 
-	enum REG_BANK_SEL_BIT _last_register_bank {REG_BANK_SEL_BIT::USER_BANK_0};
+	enum REG_BANK_SEL_BIT _last_register_bank { REG_BANK_SEL_BIT::USER_BANK_0 };
 
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
@@ -156,22 +169,26 @@ private:
 		FIFO_READ,
 	} _state{STATE::RESET};
 
-	uint16_t _fifo_empty_interval_us{1250}; // default 1250 us / 800 Hz transfer interval
+	uint16_t _fifo_empty_interval_us{1250};  // default 1250 us / 800 Hz transfer interval
 	int32_t _fifo_gyro_samples{static_cast<int32_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
 
 	uint8_t _checked_register_bank0{0};
 	static constexpr uint8_t size_register_bank0_cfg{10};
-	register_bank0_config_t _register_bank0_cfg[size_register_bank0_cfg] {
+	register_bank0_config_t _register_bank0_cfg[size_register_bank0_cfg]{
 		// Register                        | Set bits, Clear bits
-		{ Register::BANK_0::INT_CONFIG,    INT_CONFIG_BIT::INT1_MODE | INT_CONFIG_BIT::INT1_DRIVE_CIRCUIT, INT_CONFIG_BIT::INT1_POLARITY },
-		{ Register::BANK_0::FIFO_CONFIG,   FIFO_CONFIG_BIT::FIFO_MODE_STOP_ON_FULL, 0 },
-		{ Register::BANK_0::PWR_MGMT0,     PWR_MGMT0_BIT::GYRO_MODE_LOW_NOISE | PWR_MGMT0_BIT::ACCEL_MODE_LOW_NOISE, 0 },
-		{ Register::BANK_0::GYRO_CONFIG0,  GYRO_CONFIG0_BIT::GYRO_ODR_8kHz, Bit7 | Bit6 | Bit5 | Bit3 | Bit2 },
-		{ Register::BANK_0::ACCEL_CONFIG0, ACCEL_CONFIG0_BIT::ACCEL_ODR_8kHz, Bit7 | Bit6 | Bit5 | Bit3 | Bit2 },
-		{ Register::BANK_0::FIFO_CONFIG1,  FIFO_CONFIG1_BIT::FIFO_WM_GT_TH | FIFO_CONFIG1_BIT::FIFO_GYRO_EN | FIFO_CONFIG1_BIT::FIFO_ACCEL_EN, FIFO_CONFIG1_BIT::FIFO_TEMP_EN },
-		{ Register::BANK_0::FIFO_CONFIG2,  0, 0 }, // FIFO_WM[7:0] set at runtime
-		{ Register::BANK_0::FIFO_CONFIG3,  0, 0 }, // FIFO_WM[11:8] set at runtime
-		{ Register::BANK_0::INT_CONFIG0,   INT_CONFIG0_BIT::CLEAR_ON_FIFO_READ, 0 },
-		{ Register::BANK_0::INT_SOURCE0,   INT_SOURCE0_BIT::FIFO_THS_INT1_EN, 0 },
+		{Register::BANK_0::INT_CONFIG, INT_CONFIG_BIT::INT1_MODE | INT_CONFIG_BIT::INT1_DRIVE_CIRCUIT,
+		 INT_CONFIG_BIT::INT1_POLARITY},
+		{Register::BANK_0::FIFO_CONFIG, FIFO_CONFIG_BIT::FIFO_MODE_STOP_ON_FULL, 0},
+		{Register::BANK_0::PWR_MGMT0, PWR_MGMT0_BIT::GYRO_MODE_LOW_NOISE | PWR_MGMT0_BIT::ACCEL_MODE_LOW_NOISE,
+		 0},
+		{Register::BANK_0::GYRO_CONFIG0, GYRO_CONFIG0_BIT::GYRO_ODR_8kHz, Bit7 | Bit6 | Bit5 | Bit3 | Bit2},
+		{Register::BANK_0::ACCEL_CONFIG0, ACCEL_CONFIG0_BIT::ACCEL_ODR_8kHz, Bit7 | Bit6 | Bit5 | Bit3 | Bit2},
+		{Register::BANK_0::FIFO_CONFIG1,
+		 FIFO_CONFIG1_BIT::FIFO_WM_GT_TH | FIFO_CONFIG1_BIT::FIFO_GYRO_EN | FIFO_CONFIG1_BIT::FIFO_ACCEL_EN,
+		 FIFO_CONFIG1_BIT::FIFO_TEMP_EN},
+		{Register::BANK_0::FIFO_CONFIG2, 0, 0},  // FIFO_WM[7:0] set at runtime
+		{Register::BANK_0::FIFO_CONFIG3, 0, 0},  // FIFO_WM[11:8] set at runtime
+		{Register::BANK_0::INT_CONFIG0, INT_CONFIG0_BIT::CLEAR_ON_FIFO_READ, 0},
+		{Register::BANK_0::INT_SOURCE0, INT_SOURCE0_BIT::FIFO_THS_INT1_EN, 0},
 	};
 };

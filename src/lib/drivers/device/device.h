@@ -33,5 +33,5 @@
 
 #pragma once
 
-#include "Device.hpp"
 #include "CDev.hpp"
+#include "Device.hpp"

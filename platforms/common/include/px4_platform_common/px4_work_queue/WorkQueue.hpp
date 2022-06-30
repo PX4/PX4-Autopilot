@@ -33,23 +33,22 @@
 
 #pragma once
 
-#include "WorkQueueManager.hpp"
-
-#include <containers/BlockingList.hpp>
-#include <containers/List.hpp>
-#include <containers/IntrusiveQueue.hpp>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/sem.h>
 #include <px4_platform_common/tasks.h>
 
-namespace px4
-{
+#include <containers/BlockingList.hpp>
+#include <containers/IntrusiveQueue.hpp>
+#include <containers/List.hpp>
+
+#include "WorkQueueManager.hpp"
+
+namespace px4 {
 
 class WorkItem;
 
-class WorkQueue : public IntrusiveSortedListNode<WorkQueue *>
-{
+class WorkQueue : public IntrusiveSortedListNode<WorkQueue *> {
 public:
 	explicit WorkQueue(const wq_config_t &wq_config);
 	WorkQueue() = delete;
@@ -74,10 +73,11 @@ public:
 	void print_status(bool last = false);
 
 	// WorkQueues sorted numerically by relative priority (-1 to -255)
-	bool operator<=(const WorkQueue &rhs) const { return _config.relative_priority >= rhs.get_config().relative_priority; }
+	bool operator<=(const WorkQueue &rhs) const {
+		return _config.relative_priority >= rhs.get_config().relative_priority;
+	}
 
 private:
-
 	bool should_exit() const { return _should_exit.load(); }
 
 	inline void SignalWorkerThread();
@@ -89,22 +89,24 @@ private:
 	irqstate_t _flags;
 #else
 	// loop as the wait may be interrupted by a signal
-	void work_lock() { do {} while (px4_sem_wait(&_qlock) != 0); }
+	void work_lock() {
+		do {
+		} while (px4_sem_wait(&_qlock) != 0);
+	}
 	void work_unlock() { px4_sem_post(&_qlock); }
 	px4_sem_t _qlock;
 #endif
 
-	IntrusiveQueue<WorkItem *>	_q;
-	px4_sem_t			_process_lock;
-	px4_sem_t			_exit_lock;
-	const wq_config_t		&_config;
-	BlockingList<WorkItem *>	_work_items;
-	px4::atomic_bool		_should_exit{false};
+	IntrusiveQueue<WorkItem *> _q;
+	px4_sem_t _process_lock;
+	px4_sem_t _exit_lock;
+	const wq_config_t &_config;
+	BlockingList<WorkItem *> _work_items;
+	px4::atomic_bool _should_exit{false};
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	int _lockstep_component {-1};
-#endif // ENABLE_LOCKSTEP_SCHEDULER
-
+	int _lockstep_component{-1};
+#endif  // ENABLE_LOCKSTEP_SCHEDULER
 };
 
-} // namespace px4
+}  // namespace px4

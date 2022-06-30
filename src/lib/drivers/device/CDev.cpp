@@ -39,21 +39,15 @@
 
 #include "CDev.hpp"
 
-#include <cstring>
-
 #include <px4_platform_common/posix.h>
 
-namespace device
-{
+#include <cstring>
 
-CDev::CDev(const char *name, const char *devname) :
-	Device(name),
-	cdev::CDev(devname)
-{
-}
+namespace device {
 
-int CDev::init()
-{
+CDev::CDev(const char *name, const char *devname) : Device(name), cdev::CDev(devname) {}
+
+int CDev::init() {
 	PX4_DEBUG("CDev::init");
 
 	// base class init first
@@ -76,4 +70,4 @@ out:
 	return ret;
 }
 
-} // namespace device
+}  // namespace device

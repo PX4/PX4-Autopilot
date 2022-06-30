@@ -40,19 +40,16 @@
  */
 
 #include "navigator_mode.h"
+
 #include "navigator.h"
 
-NavigatorMode::NavigatorMode(Navigator *navigator) :
-	_navigator(navigator)
-{
+NavigatorMode::NavigatorMode(Navigator *navigator) : _navigator(navigator) {
 	/* set initial mission items */
 	on_inactivation();
 	on_inactive();
 }
 
-void
-NavigatorMode::run(bool active)
-{
+void NavigatorMode::run(bool active) {
 	if (active) {
 		if (!_active) {
 			/* first run, reset stay in failsafe flag */
@@ -78,24 +75,13 @@ NavigatorMode::run(bool active)
 	_active = active;
 }
 
-void
-NavigatorMode::on_inactive()
-{
-}
+void NavigatorMode::on_inactive() {}
 
-void
-NavigatorMode::on_inactivation()
-{
-}
+void NavigatorMode::on_inactivation() {}
 
-void
-NavigatorMode::on_activation()
-{
+void NavigatorMode::on_activation() {
 	/* invalidate position setpoint by default */
 	_navigator->get_position_setpoint_triplet()->current.valid = false;
 }
 
-void
-NavigatorMode::on_active()
-{
-}
+void NavigatorMode::on_active() {}

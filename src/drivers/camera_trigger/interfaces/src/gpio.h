@@ -45,8 +45,7 @@
 
 #include "camera_interface.h"
 
-class CameraInterfaceGPIO : public CameraInterface
-{
+class CameraInterfaceGPIO : public CameraInterface {
 public:
 	CameraInterfaceGPIO();
 	virtual ~CameraInterfaceGPIO();
@@ -64,7 +63,7 @@ private:
 
 	bool _trigger_invert{false};
 
-	uint32_t _triggers[num_gpios] {};
+	uint32_t _triggers[num_gpios]{};
 	uint32_t _allocated_channels{0};
 };
 

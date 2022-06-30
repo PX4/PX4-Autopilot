@@ -38,17 +38,17 @@
  *
  * Aside from the header includes below, this file should have no board-specific logic.
  */
-#include "hw_config.h"
+#include "bl.h"
 
 #include <inttypes.h>
-#include <stdlib.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "bl.h"
-#include "image_toc.h"
-#include "crypto.h"
 #include "cdcacm.h"
+#include "crypto.h"
+#include "hw_config.h"
+#include "image_toc.h"
 #include "uart.h"
 
 #ifdef BOOTLOADER_USE_SECURITY
@@ -80,85 +80,83 @@
 // RESET    finalise flash programming, reset chip and starts application
 //
 
-#define BL_PROTOCOL_VERSION         5   // The revision of the bootloader protocol
+#define BL_PROTOCOL_VERSION 5  // The revision of the bootloader protocol
 //* Next revision needs to update
 
 // protocol bytes
-#define PROTO_INSYNC                0x12    // 'in sync' byte sent before status
-#define PROTO_EOC                   0x20    // end of command
+#define PROTO_INSYNC 0x12  // 'in sync' byte sent before status
+#define PROTO_EOC 0x20     // end of command
 
 // Reply bytes
-#define PROTO_OK                    0x10    // INSYNC/OK      - 'ok' response
-#define PROTO_FAILED                0x11    // INSYNC/FAILED  - 'fail' response
-#define PROTO_INVALID               0x13    // INSYNC/INVALID - 'invalid' response for bad commands
-#define PROTO_BAD_SILICON_REV       0x14    // On the F4 series there is an issue with < Rev 3 silicon
-#define PROTO_RESERVED_0X15         0x15    // Reserved
+#define PROTO_OK 0x10               // INSYNC/OK      - 'ok' response
+#define PROTO_FAILED 0x11           // INSYNC/FAILED  - 'fail' response
+#define PROTO_INVALID 0x13          // INSYNC/INVALID - 'invalid' response for bad commands
+#define PROTO_BAD_SILICON_REV 0x14  // On the F4 series there is an issue with < Rev 3 silicon
+#define PROTO_RESERVED_0X15 0x15    // Reserved
 
 // see https://pixhawk.org/help/errata
 // Command bytes
-#define PROTO_GET_SYNC              0x21    // NOP for re-establishing sync
-#define PROTO_GET_DEVICE            0x22    // get device ID bytes
-#define PROTO_CHIP_ERASE            0x23    // erase program area and reset program address
-#define PROTO_PROG_MULTI            0x27    // write bytes at program address and increment
-#define PROTO_GET_CRC               0x29    // compute & return a CRC
-#define PROTO_GET_OTP               0x2a    // read a byte from OTP at the given address
-#define PROTO_GET_SN                0x2b    // read a word from UDID area ( Serial)  at the given address
-#define PROTO_GET_CHIP              0x2c    // read chip version (MCU IDCODE)
-#define PROTO_SET_DELAY             0x2d    // set minimum boot delay
-#define PROTO_GET_CHIP_DES          0x2e    // read chip version In ASCII
-#define PROTO_BOOT                  0x30    // boot the application
-#define PROTO_DEBUG                 0x31    // emit debug information - format not defined
-#define PROTO_SET_BAUD              0x33    // set baud rate on uart
+#define PROTO_GET_SYNC 0x21      // NOP for re-establishing sync
+#define PROTO_GET_DEVICE 0x22    // get device ID bytes
+#define PROTO_CHIP_ERASE 0x23    // erase program area and reset program address
+#define PROTO_PROG_MULTI 0x27    // write bytes at program address and increment
+#define PROTO_GET_CRC 0x29       // compute & return a CRC
+#define PROTO_GET_OTP 0x2a       // read a byte from OTP at the given address
+#define PROTO_GET_SN 0x2b        // read a word from UDID area ( Serial)  at the given address
+#define PROTO_GET_CHIP 0x2c      // read chip version (MCU IDCODE)
+#define PROTO_SET_DELAY 0x2d     // set minimum boot delay
+#define PROTO_GET_CHIP_DES 0x2e  // read chip version In ASCII
+#define PROTO_BOOT 0x30          // boot the application
+#define PROTO_DEBUG 0x31         // emit debug information - format not defined
+#define PROTO_SET_BAUD 0x33      // set baud rate on uart
 
-#define PROTO_RESERVED_0X36         0x36  // Reserved
-#define PROTO_RESERVED_0X37         0x37  // Reserved
-#define PROTO_RESERVED_0X38         0x38  // Reserved
-#define PROTO_RESERVED_0X39         0x39  // Reserved
+#define PROTO_RESERVED_0X36 0x36  // Reserved
+#define PROTO_RESERVED_0X37 0x37  // Reserved
+#define PROTO_RESERVED_0X38 0x38  // Reserved
+#define PROTO_RESERVED_0X39 0x39  // Reserved
 
-#define PROTO_PROG_MULTI_MAX        64  // maximum PROG_MULTI size
-#define PROTO_READ_MULTI_MAX        255 // size of the size field
+#define PROTO_PROG_MULTI_MAX 64   // maximum PROG_MULTI size
+#define PROTO_READ_MULTI_MAX 255  // size of the size field
 
 /* argument values for PROTO_GET_DEVICE */
-#define PROTO_DEVICE_BL_REV         1 // bootloader revision
-#define PROTO_DEVICE_BOARD_ID       2 // board ID
-#define PROTO_DEVICE_BOARD_REV      3 // board revision
-#define PROTO_DEVICE_FW_SIZE        4 // size of flashable area
-#define PROTO_DEVICE_VEC_AREA       5 // contents of reserved vectors 7-10
+#define PROTO_DEVICE_BL_REV 1     // bootloader revision
+#define PROTO_DEVICE_BOARD_ID 2   // board ID
+#define PROTO_DEVICE_BOARD_REV 3  // board revision
+#define PROTO_DEVICE_FW_SIZE 4    // size of flashable area
+#define PROTO_DEVICE_VEC_AREA 5   // contents of reserved vectors 7-10
 
-#define STATE_PROTO_OK              0x10    // INSYNC/OK      - 'ok' response
-#define STATE_PROTO_FAILED          0x11    // INSYNC/FAILED  - 'fail' response
-#define STATE_PROTO_INVALID         0x13  // INSYNC/INVALID - 'invalid' response for bad commands
+#define STATE_PROTO_OK 0x10               // INSYNC/OK      - 'ok' response
+#define STATE_PROTO_FAILED 0x11           // INSYNC/FAILED  - 'fail' response
+#define STATE_PROTO_INVALID 0x13          // INSYNC/INVALID - 'invalid' response for bad commands
 #define STATE_PROTO_BAD_SILICON_REV 0x14  // On the F4 series there is an issue with < Rev 3 silicon
-#define STATE_PROTO_RESERVED_0X15   0x15  // Reserved
-
+#define STATE_PROTO_RESERVED_0X15 0x15    // Reserved
 
 // State
-#define STATE_PROTO_GET_SYNC        0x1     // Have Seen NOP for re-establishing sync
-#define STATE_PROTO_GET_DEVICE      0x2     // Have Seen get device ID bytes
-#define STATE_PROTO_CHIP_ERASE      0x4     // Have Seen erase program area and reset program address
-#define STATE_PROTO_PROG_MULTI      0x8     // Have Seen write bytes at program address and increment
-#define STATE_PROTO_GET_CRC         0x10    // Have Seen compute & return a CRC
-#define STATE_PROTO_GET_OTP         0x20    // Have Seen read a byte from OTP at the given address
-#define STATE_PROTO_GET_SN          0x40    // Have Seen read a word from UDID area ( Serial)  at the given address
-#define STATE_PROTO_GET_CHIP        0x80    // Have Seen read chip version (MCU IDCODE)
-#define STATE_PROTO_GET_CHIP_DES    0x100   // Have Seen read chip version In ASCII
-#define STATE_PROTO_BOOT            0x200   // Have Seen boot the application
+#define STATE_PROTO_GET_SYNC 0x1        // Have Seen NOP for re-establishing sync
+#define STATE_PROTO_GET_DEVICE 0x2      // Have Seen get device ID bytes
+#define STATE_PROTO_CHIP_ERASE 0x4      // Have Seen erase program area and reset program address
+#define STATE_PROTO_PROG_MULTI 0x8      // Have Seen write bytes at program address and increment
+#define STATE_PROTO_GET_CRC 0x10        // Have Seen compute & return a CRC
+#define STATE_PROTO_GET_OTP 0x20        // Have Seen read a byte from OTP at the given address
+#define STATE_PROTO_GET_SN 0x40         // Have Seen read a word from UDID area ( Serial)  at the given address
+#define STATE_PROTO_GET_CHIP 0x80       // Have Seen read chip version (MCU IDCODE)
+#define STATE_PROTO_GET_CHIP_DES 0x100  // Have Seen read chip version In ASCII
+#define STATE_PROTO_BOOT 0x200          // Have Seen boot the application
 
 #if defined(TARGET_HW_PX4_PIO_V1)
-#define STATE_ALLOWS_ERASE        (STATE_PROTO_GET_SYNC)
-#define STATE_ALLOWS_REBOOT       (STATE_PROTO_GET_SYNC)
-#  define SET_BL_STATE(s)
+#define STATE_ALLOWS_ERASE (STATE_PROTO_GET_SYNC)
+#define STATE_ALLOWS_REBOOT (STATE_PROTO_GET_SYNC)
+#define SET_BL_STATE(s)
 #else
-#define STATE_ALLOWS_ERASE        (STATE_PROTO_GET_SYNC|STATE_PROTO_GET_DEVICE)
-#define STATE_ALLOWS_REBOOT       (STATE_ALLOWS_ERASE|STATE_PROTO_PROG_MULTI|STATE_PROTO_GET_CRC)
-#  define SET_BL_STATE(s) bl_state |= (s)
+#define STATE_ALLOWS_ERASE (STATE_PROTO_GET_SYNC | STATE_PROTO_GET_DEVICE)
+#define STATE_ALLOWS_REBOOT (STATE_ALLOWS_ERASE | STATE_PROTO_PROG_MULTI | STATE_PROTO_GET_CRC)
+#define SET_BL_STATE(s) bl_state |= (s)
 #endif
 
 static uint8_t bl_type;
 static uint8_t last_input;
 
-inline void cinit(void *config, uint8_t interface)
-{
+inline void cinit(void *config, uint8_t interface) {
 #if INTERFACE_USB
 
 	if (interface == USB) {
@@ -174,8 +172,7 @@ inline void cinit(void *config, uint8_t interface)
 
 #endif
 }
-inline void cfini(void)
-{
+inline void cfini(void) {
 #if INTERFACE_USB
 	usb_cfini();
 #endif
@@ -183,8 +180,7 @@ inline void cfini(void)
 	uart_cfini();
 #endif
 }
-inline int cin(uint32_t devices)
-{
+inline int cin(uint32_t devices) {
 #if INTERFACE_USB
 
 	if ((bl_type == NONE || bl_type == USB) && (devices & USB0_DEV) != 0) {
@@ -214,8 +210,7 @@ inline int cin(uint32_t devices)
 	return -1;
 }
 
-inline void cout(uint8_t *buf, unsigned len)
-{
+inline void cout(uint8_t *buf, unsigned len) {
 #if INTERFACE_USB
 
 	if (bl_type == USB) {
@@ -236,17 +231,17 @@ inline void cout(uint8_t *buf, unsigned len)
  * a called API. Therefore these macros are needed.
  */
 #if defined(TARGET_HW_PX4_PIO_V1)
-# include <libopencm3/stm32/flash.h>
-#include <libopencm3/cm3/systick.h>
 #include <libopencm3/cm3/scb.h>
+#include <libopencm3/cm3/systick.h>
+#include <libopencm3/stm32/flash.h>
 
-#define arch_systic_init(d) \
-	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB); \
+#define arch_systic_init(d)                                \
+	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);    \
 	systick_set_reload(board_info.systick_mhz * 1000); \
-	systick_interrupt_enable(); \
+	systick_interrupt_enable();                        \
 	systick_counter_enable();
 
-#define arch_systic_deinit() \
+#define arch_systic_deinit()         \
 	systick_interrupt_disable(); \
 	systick_counter_disable();
 
@@ -257,18 +252,16 @@ inline void cout(uint8_t *buf, unsigned len)
 
 #endif
 
-static const uint32_t bl_proto_rev = BL_PROTOCOL_VERSION; // value returned by PROTO_DEVICE_BL_REV
+static const uint32_t bl_proto_rev = BL_PROTOCOL_VERSION;  // value returned by PROTO_DEVICE_BL_REV
 
 static unsigned head, tail;
 static uint8_t rx_buf[256] USB_DATA_ALIGN;
 
-static enum led_state {LED_BLINK, LED_ON, LED_OFF} _led_state;
+static enum led_state { LED_BLINK, LED_ON, LED_OFF } _led_state;
 
 void sys_tick_handler(void);
 
-void
-buf_put(uint8_t b)
-{
+void buf_put(uint8_t b) {
 	unsigned next = (head + 1) % sizeof(rx_buf);
 
 	if (next != tail) {
@@ -277,9 +270,7 @@ buf_put(uint8_t b)
 	}
 }
 
-int
-buf_get(void)
-{
+int buf_get(void) {
 	int ret = -1;
 
 	if (tail != head) {
@@ -290,9 +281,7 @@ buf_get(void)
 	return ret;
 }
 
-void
-jump_to_app()
-{
+void jump_to_app() {
 	const uint32_t *app_base = (const uint32_t *)APP_LOAD_ADDRESS;
 	const uint32_t *vec_base = (const uint32_t *)app_base;
 
@@ -332,16 +321,13 @@ jump_to_app()
 	/* TOC is verified, loop through all the apps and perform crypto ops */
 	for (i = 0; i < len; i++) {
 		/* Verify app, if needed. i == 0 is already verified */
-		if (i != 0 &&
-		    toc_entries[i].flags1 & TOC_FLAG1_CHECK_SIGNATURE &&
-		    !verify_app(i, toc_entries)) {
+		if (i != 0 && toc_entries[i].flags1 & TOC_FLAG1_CHECK_SIGNATURE && !verify_app(i, toc_entries)) {
 			/* Signature check failed, don't process this app */
 			continue;
 		}
 
 		/* Check if this app needs decryption */
-		if (toc_entries[i].flags1 & TOC_FLAG1_DECRYPT &&
-		    !decrypt_app(i, toc_entries)) {
+		if (toc_entries[i].flags1 & TOC_FLAG1_DECRYPT && !decrypt_app(i, toc_entries)) {
 			/* Decryption / authenticated decryption failed, skip this app */
 			continue;
 		}
@@ -416,9 +402,7 @@ jump_to_app()
 
 volatile unsigned timer[NTIMERS];
 
-void
-sys_tick_handler(void)
-{
+void sys_tick_handler(void) {
 	unsigned i;
 
 	for (i = 0; i < NTIMERS; i++)
@@ -432,77 +416,65 @@ sys_tick_handler(void)
 	}
 }
 
-void
-delay(unsigned msec)
-{
+void delay(unsigned msec) {
 	timer[TIMER_DELAY] = msec;
 
 	while (timer[TIMER_DELAY] > 0)
 		;
 }
 
-static void
-led_set(enum led_state state)
-{
+static void led_set(enum led_state state) {
 	_led_state = state;
 
 	switch (state) {
-	case LED_OFF:
-		led_off(LED_BOOTLOADER);
-		break;
+		case LED_OFF:
+			led_off(LED_BOOTLOADER);
+			break;
 
-	case LED_ON:
-		led_on(LED_BOOTLOADER);
-		break;
+		case LED_ON:
+			led_on(LED_BOOTLOADER);
+			break;
 
-	case LED_BLINK:
-		/* restart the blink state machine ASAP */
-		timer[TIMER_LED] = 0;
-		break;
+		case LED_BLINK:
+			/* restart the blink state machine ASAP */
+			timer[TIMER_LED] = 0;
+			break;
 	}
 }
 
-static void
-sync_response(void)
-{
+static void sync_response(void) {
 	uint8_t data[] = {
-		PROTO_INSYNC, // "in sync"
-		PROTO_OK  // "OK"
+		PROTO_INSYNC,  // "in sync"
+		PROTO_OK       // "OK"
 	};
 
 	cout(data, sizeof(data));
 }
 
 #if defined(TARGET_HW_PX4_FMU_V4)
-static void
-bad_silicon_response(void)
-{
+static void bad_silicon_response(void) {
 	uint8_t data[] = {
-		PROTO_INSYNC,     // "in sync"
-		PROTO_BAD_SILICON_REV // "issue with < Rev 3 silicon"
+		PROTO_INSYNC,          // "in sync"
+		PROTO_BAD_SILICON_REV  // "issue with < Rev 3 silicon"
 	};
 
 	cout(data, sizeof(data));
 }
 #endif
 
-static void
-invalid_response(void)
-{
+static void invalid_response(void) {
 	uint8_t data[] = {
-		PROTO_INSYNC, // "in sync"
-		PROTO_INVALID // "invalid command"
+		PROTO_INSYNC,  // "in sync"
+		PROTO_INVALID  // "invalid command"
 	};
 
 	cout(data, sizeof(data));
 }
 
-static void
-failure_response(void)
-{
+static void failure_response(void) {
 	uint8_t data[] = {
-		PROTO_INSYNC, // "in sync"
-		PROTO_FAILED  // "command failed"
+		PROTO_INSYNC,  // "in sync"
+		PROTO_FAILED   // "command failed"
 	};
 
 	cout(data, sizeof(data));
@@ -510,9 +482,7 @@ failure_response(void)
 
 static volatile unsigned cin_count;
 
-static int
-cin_wait(unsigned timeout)
-{
+static int cin_wait(unsigned timeout) {
 	int c = -1;
 
 	/* start the timeout */
@@ -537,21 +507,11 @@ cin_wait(unsigned timeout)
  * @param timeout length of time in ms to wait for the EOC to be received
  * @return true if the EOC is returned within the timeout perio, else false
  */
-inline static bool
-wait_for_eoc(unsigned timeout)
-{
-	return cin_wait(timeout) == PROTO_EOC;
-}
+inline static bool wait_for_eoc(unsigned timeout) { return cin_wait(timeout) == PROTO_EOC; }
 
-static void
-cout_word(uint32_t val)
-{
-	cout((uint8_t *)&val, 4);
-}
+static void cout_word(uint32_t val) { cout((uint8_t *)&val, 4); }
 
-static int
-cin_word(uint32_t *wp, unsigned timeout)
-{
+static int cin_word(uint32_t *wp, unsigned timeout) {
 	union {
 		uint32_t w;
 		uint8_t b[4];
@@ -571,9 +531,7 @@ cin_word(uint32_t *wp, unsigned timeout)
 	return 0;
 }
 
-static uint32_t
-crc32(const uint8_t *src, unsigned len, unsigned state)
-{
+static uint32_t crc32(const uint8_t *src, unsigned len, unsigned state) {
 	static uint32_t crctab[256];
 
 	/* check whether we have generated the CRC table yet */
@@ -602,13 +560,12 @@ crc32(const uint8_t *src, unsigned len, unsigned state)
 	return state;
 }
 
-void
-bootloader(unsigned timeout)
-{
-	bl_type = NONE; // The type of the bootloader, whether loading from USB or USART, will be determined by on what port the bootloader recevies its first valid command.
-	volatile uint32_t  bl_state = 0; // Must see correct command sequence to erase and reboot (commit first word)
-	uint32_t  address = board_info.fw_size; /* force erase before upload will work */
-	uint32_t  first_word = 0xffffffff;
+void bootloader(unsigned timeout) {
+	bl_type = NONE;  // The type of the bootloader, whether loading from USB or USART, will be determined by on what
+			 // port the bootloader recevies its first valid command.
+	volatile uint32_t bl_state = 0;  // Must see correct command sequence to erase and reboot (commit first word)
+	uint32_t address = board_info.fw_size; /* force erase before upload will work */
+	uint32_t first_word = 0xffffffff;
 
 	/* (re)start the timer system */
 	arch_systic_init();
@@ -625,8 +582,8 @@ bootloader(unsigned timeout)
 		volatile int c;
 		int arg;
 		static union {
-			uint8_t   c[256];
-			uint32_t  w[64];
+			uint8_t c[256];
+			uint32_t w[64];
 		} flash_buffer;
 
 		// Wait for a command byte
@@ -647,172 +604,88 @@ bootloader(unsigned timeout)
 
 		// handle the command byte
 		switch (c) {
+			// sync
+			//
+			// command:   GET_SYNC/EOC
+			// reply:   INSYNC/OK
+			//
+			case PROTO_GET_SYNC:
 
-		// sync
-		//
-		// command:   GET_SYNC/EOC
-		// reply:   INSYNC/OK
-		//
-		case PROTO_GET_SYNC:
-
-			/* expect EOC */
-			if (!wait_for_eoc(2)) {
-				goto cmd_bad;
-			}
-
-			SET_BL_STATE(STATE_PROTO_GET_SYNC);
-			break;
-
-		// get device info
-		//
-		// command:   GET_DEVICE/<arg:1>/EOC
-		// BL_REV reply:  <revision:4>/INSYNC/EOC
-		// BOARD_ID reply:  <board type:4>/INSYNC/EOC
-		// BOARD_REV reply: <board rev:4>/INSYNC/EOC
-		// FW_SIZE reply: <firmware size:4>/INSYNC/EOC
-		// VEC_AREA reply <vectors 7-10:16>/INSYNC/EOC
-		// bad arg reply: INSYNC/INVALID
-		//
-		case PROTO_GET_DEVICE:
-			/* expect arg then EOC */
-			arg = cin_wait(1000);
-
-			if (arg < 0) {
-				goto cmd_bad;
-			}
-
-			if (!wait_for_eoc(2)) {
-				goto cmd_bad;
-			}
-
-			switch (arg) {
-			case PROTO_DEVICE_BL_REV:
-				cout((uint8_t *)&bl_proto_rev, sizeof(bl_proto_rev));
-				break;
-
-			case PROTO_DEVICE_BOARD_ID:
-				cout((uint8_t *)&board_info.board_type, sizeof(board_info.board_type));
-				break;
-
-			case PROTO_DEVICE_BOARD_REV:
-				cout((uint8_t *)&board_info.board_rev, sizeof(board_info.board_rev));
-				break;
-
-			case PROTO_DEVICE_FW_SIZE:
-				cout((uint8_t *)&board_info.fw_size, sizeof(board_info.fw_size));
-				break;
-
-			case PROTO_DEVICE_VEC_AREA:
-				for (unsigned p = 7; p <= 10; p++) {
-					uint32_t bytes = flash_func_read_word(p * 4);
-
-					cout((uint8_t *)&bytes, sizeof(bytes));
-				}
-
-				break;
-
-			default:
-				goto cmd_bad;
-			}
-
-			SET_BL_STATE(STATE_PROTO_GET_DEVICE);
-			break;
-
-		// erase and prepare for programming
-		//
-		// command:   ERASE/EOC
-		// success reply: INSYNC/OK
-		// erase failure: INSYNC/FAILURE
-		//
-		case PROTO_CHIP_ERASE:
-
-			/* expect EOC */
-			if (!wait_for_eoc(2)) {
-				goto cmd_bad;
-			}
-
-#if defined(TARGET_HW_PX4_FMU_V4)
-
-			if (check_silicon()) {
-				goto bad_silicon;
-			}
-
-#endif
-
-			if ((bl_state & STATE_ALLOWS_ERASE) != STATE_ALLOWS_ERASE) {
-				goto cmd_bad;
-			}
-
-			// clear the bootloader LED while erasing - it stops blinking at random
-			// and that's confusing
-			led_set(LED_ON);
-
-			// erase all sectors
-			arch_flash_unlock();
-
-			for (int i = 0; flash_func_sector_size(i) != 0; i++) {
-				flash_func_erase_sector(i);
-			}
-
-			// disable the LED while verifying the erase
-			led_set(LED_OFF);
-
-			// verify the erase
-			for (address = 0; address < board_info.fw_size; address += 4)
-				if (flash_func_read_word(address) != 0xffffffff) {
-					goto cmd_fail;
-				}
-
-			address = 0;
-			SET_BL_STATE(STATE_PROTO_CHIP_ERASE);
-
-			// resume blinking
-			led_set(LED_BLINK);
-			break;
-
-		// program bytes at current address
-		//
-		// command:   PROG_MULTI/<len:1>/<data:len>/EOC
-		// success reply: INSYNC/OK
-		// invalid reply: INSYNC/INVALID
-		// readback failure:  INSYNC/FAILURE
-		//
-		case PROTO_PROG_MULTI:    // program bytes
-			// expect count
-			arg = cin_wait(50);
-
-			if (arg < 0) {
-				goto cmd_bad;
-			}
-
-			// sanity-check arguments
-			if (arg % 4) {
-				goto cmd_bad;
-			}
-
-			if ((address + arg) > board_info.fw_size) {
-				goto cmd_bad;
-			}
-
-			if ((unsigned int)arg > sizeof(flash_buffer.c)) {
-				goto cmd_bad;
-			}
-
-			for (int i = 0; i < arg; i++) {
-				c = cin_wait(1000);
-
-				if (c < 0) {
+				/* expect EOC */
+				if (!wait_for_eoc(2)) {
 					goto cmd_bad;
 				}
 
-				flash_buffer.c[i] = c;
-			}
+				SET_BL_STATE(STATE_PROTO_GET_SYNC);
+				break;
 
-			if (!wait_for_eoc(200)) {
-				goto cmd_bad;
-			}
+			// get device info
+			//
+			// command:   GET_DEVICE/<arg:1>/EOC
+			// BL_REV reply:  <revision:4>/INSYNC/EOC
+			// BOARD_ID reply:  <board type:4>/INSYNC/EOC
+			// BOARD_REV reply: <board rev:4>/INSYNC/EOC
+			// FW_SIZE reply: <firmware size:4>/INSYNC/EOC
+			// VEC_AREA reply <vectors 7-10:16>/INSYNC/EOC
+			// bad arg reply: INSYNC/INVALID
+			//
+			case PROTO_GET_DEVICE:
+				/* expect arg then EOC */
+				arg = cin_wait(1000);
 
-			if (address == 0) {
+				if (arg < 0) {
+					goto cmd_bad;
+				}
+
+				if (!wait_for_eoc(2)) {
+					goto cmd_bad;
+				}
+
+				switch (arg) {
+					case PROTO_DEVICE_BL_REV:
+						cout((uint8_t *)&bl_proto_rev, sizeof(bl_proto_rev));
+						break;
+
+					case PROTO_DEVICE_BOARD_ID:
+						cout((uint8_t *)&board_info.board_type, sizeof(board_info.board_type));
+						break;
+
+					case PROTO_DEVICE_BOARD_REV:
+						cout((uint8_t *)&board_info.board_rev, sizeof(board_info.board_rev));
+						break;
+
+					case PROTO_DEVICE_FW_SIZE:
+						cout((uint8_t *)&board_info.fw_size, sizeof(board_info.fw_size));
+						break;
+
+					case PROTO_DEVICE_VEC_AREA:
+						for (unsigned p = 7; p <= 10; p++) {
+							uint32_t bytes = flash_func_read_word(p * 4);
+
+							cout((uint8_t *)&bytes, sizeof(bytes));
+						}
+
+						break;
+
+					default:
+						goto cmd_bad;
+				}
+
+				SET_BL_STATE(STATE_PROTO_GET_DEVICE);
+				break;
+
+			// erase and prepare for programming
+			//
+			// command:   ERASE/EOC
+			// success reply: INSYNC/OK
+			// erase failure: INSYNC/FAILURE
+			//
+			case PROTO_CHIP_ERASE:
+
+				/* expect EOC */
+				if (!wait_for_eoc(2)) {
+					goto cmd_bad;
+				}
 
 #if defined(TARGET_HW_PX4_FMU_V4)
 
@@ -822,120 +695,202 @@ bootloader(unsigned timeout)
 
 #endif
 
-				// save the first word and don't program it until everything else is done
-				first_word = flash_buffer.w[0];
-				// replace first word with bits we can overwrite later
-				flash_buffer.w[0] = 0xffffffff;
-			}
-
-			arg /= 4;
-
-			for (int i = 0; i < arg; i++) {
-
-				// program the word
-				flash_func_write_word(address, flash_buffer.w[i]);
-
-				// do immediate read-back verify
-				if (flash_func_read_word(address) != flash_buffer.w[i]) {
-					goto cmd_fail;
-				}
-
-				address += 4;
-			}
-
-			SET_BL_STATE(STATE_PROTO_PROG_MULTI);
-
-			break;
-
-		// fetch CRC of the entire flash area
-		//
-		// command:     GET_CRC/EOC
-		// reply:     <crc:4>/INSYNC/OK
-		//
-		case PROTO_GET_CRC:
-
-			// expect EOC
-			if (!wait_for_eoc(2)) {
-				goto cmd_bad;
-			}
-
-			// compute CRC of the programmed area
-			uint32_t sum = 0;
-
-			for (unsigned p = 0; p < board_info.fw_size; p += 4) {
-				uint32_t bytes;
-
-				if ((p == 0) && (first_word != 0xffffffff)) {
-					bytes = first_word;
-
-				} else {
-					bytes = flash_func_read_word(p);
-				}
-
-				sum = crc32((uint8_t *)&bytes, sizeof(bytes), sum);
-			}
-
-			cout_word(sum);
-			SET_BL_STATE(STATE_PROTO_GET_CRC);
-			break;
-
-		// read a word from the OTP
-		//
-		// command:     GET_OTP/<addr:4>/EOC
-		// reply:     <value:4>/INSYNC/OK
-		case PROTO_GET_OTP:
-			// expect argument
-			{
-				uint32_t index = 0;
-
-				if (cin_word(&index, 100)) {
+				if ((bl_state & STATE_ALLOWS_ERASE) != STATE_ALLOWS_ERASE) {
 					goto cmd_bad;
 				}
+
+				// clear the bootloader LED while erasing - it stops blinking at random
+				// and that's confusing
+				led_set(LED_ON);
+
+				// erase all sectors
+				arch_flash_unlock();
+
+				for (int i = 0; flash_func_sector_size(i) != 0; i++) {
+					flash_func_erase_sector(i);
+				}
+
+				// disable the LED while verifying the erase
+				led_set(LED_OFF);
+
+				// verify the erase
+				for (address = 0; address < board_info.fw_size; address += 4)
+					if (flash_func_read_word(address) != 0xffffffff) {
+						goto cmd_fail;
+					}
+
+				address = 0;
+				SET_BL_STATE(STATE_PROTO_CHIP_ERASE);
+
+				// resume blinking
+				led_set(LED_BLINK);
+				break;
+
+			// program bytes at current address
+			//
+			// command:   PROG_MULTI/<len:1>/<data:len>/EOC
+			// success reply: INSYNC/OK
+			// invalid reply: INSYNC/INVALID
+			// readback failure:  INSYNC/FAILURE
+			//
+			case PROTO_PROG_MULTI:  // program bytes
+				// expect count
+				arg = cin_wait(50);
+
+				if (arg < 0) {
+					goto cmd_bad;
+				}
+
+				// sanity-check arguments
+				if (arg % 4) {
+					goto cmd_bad;
+				}
+
+				if ((address + arg) > board_info.fw_size) {
+					goto cmd_bad;
+				}
+
+				if ((unsigned int)arg > sizeof(flash_buffer.c)) {
+					goto cmd_bad;
+				}
+
+				for (int i = 0; i < arg; i++) {
+					c = cin_wait(1000);
+
+					if (c < 0) {
+						goto cmd_bad;
+					}
+
+					flash_buffer.c[i] = c;
+				}
+
+				if (!wait_for_eoc(200)) {
+					goto cmd_bad;
+				}
+
+				if (address == 0) {
+#if defined(TARGET_HW_PX4_FMU_V4)
+
+					if (check_silicon()) {
+						goto bad_silicon;
+					}
+
+#endif
+
+					// save the first word and don't program it until everything else is done
+					first_word = flash_buffer.w[0];
+					// replace first word with bits we can overwrite later
+					flash_buffer.w[0] = 0xffffffff;
+				}
+
+				arg /= 4;
+
+				for (int i = 0; i < arg; i++) {
+					// program the word
+					flash_func_write_word(address, flash_buffer.w[i]);
+
+					// do immediate read-back verify
+					if (flash_func_read_word(address) != flash_buffer.w[i]) {
+						goto cmd_fail;
+					}
+
+					address += 4;
+				}
+
+				SET_BL_STATE(STATE_PROTO_PROG_MULTI);
+
+				break;
+
+			// fetch CRC of the entire flash area
+			//
+			// command:     GET_CRC/EOC
+			// reply:     <crc:4>/INSYNC/OK
+			//
+			case PROTO_GET_CRC:
 
 				// expect EOC
 				if (!wait_for_eoc(2)) {
 					goto cmd_bad;
 				}
 
-				cout_word(flash_func_read_otp(index));
-			}
-			break;
+				// compute CRC of the programmed area
+				uint32_t sum = 0;
 
-		// read the SN from the UDID
-		//
-		// command:     GET_SN/<addr:4>/EOC
-		// reply:     <value:4>/INSYNC/OK
-		case PROTO_GET_SN:
-			// expect argument
-			{
-				uint32_t index = 0;
+				for (unsigned p = 0; p < board_info.fw_size; p += 4) {
+					uint32_t bytes;
 
-				if (cin_word(&index, 100)) {
-					goto cmd_bad;
+					if ((p == 0) && (first_word != 0xffffffff)) {
+						bytes = first_word;
+
+					} else {
+						bytes = flash_func_read_word(p);
+					}
+
+					sum = crc32((uint8_t *)&bytes, sizeof(bytes), sum);
 				}
 
-				// expect EOC
-				if (!wait_for_eoc(2)) {
-					goto cmd_bad;
+				cout_word(sum);
+				SET_BL_STATE(STATE_PROTO_GET_CRC);
+				break;
+
+			// read a word from the OTP
+			//
+			// command:     GET_OTP/<addr:4>/EOC
+			// reply:     <value:4>/INSYNC/OK
+			case PROTO_GET_OTP:
+				// expect argument
+				{
+					uint32_t index = 0;
+
+					if (cin_word(&index, 100)) {
+						goto cmd_bad;
+					}
+
+					// expect EOC
+					if (!wait_for_eoc(2)) {
+						goto cmd_bad;
+					}
+
+					cout_word(flash_func_read_otp(index));
+				}
+				break;
+
+			// read the SN from the UDID
+			//
+			// command:     GET_SN/<addr:4>/EOC
+			// reply:     <value:4>/INSYNC/OK
+			case PROTO_GET_SN:
+				// expect argument
+				{
+					uint32_t index = 0;
+
+					if (cin_word(&index, 100)) {
+						goto cmd_bad;
+					}
+
+					// expect EOC
+					if (!wait_for_eoc(2)) {
+						goto cmd_bad;
+					}
+
+					// expect valid indices 0, 4 ...ARCH_SN_MAX_LENGTH-4
+
+					if (index % sizeof(uint32_t) != 0 ||
+					    index > ARCH_SN_MAX_LENGTH - sizeof(uint32_t)) {
+						goto cmd_bad;
+					}
+
+					cout_word(flash_func_read_sn(index));
 				}
 
-				// expect valid indices 0, 4 ...ARCH_SN_MAX_LENGTH-4
+				SET_BL_STATE(STATE_PROTO_GET_SN);
+				break;
 
-				if (index % sizeof(uint32_t) != 0 || index > ARCH_SN_MAX_LENGTH - sizeof(uint32_t)) {
-					goto cmd_bad;
-				}
-
-				cout_word(flash_func_read_sn(index));
-			}
-
-			SET_BL_STATE(STATE_PROTO_GET_SN);
-			break;
-
-		// read the chip ID code
-		//
-		// command:     GET_CHIP/EOC
-		// reply:     <value:4>/INSYNC/OK
-		case PROTO_GET_CHIP: {
+			// read the chip ID code
+			//
+			// command:     GET_CHIP/EOC
+			// reply:     <value:4>/INSYNC/OK
+			case PROTO_GET_CHIP: {
 				// expect EOC
 				if (!wait_for_eoc(2)) {
 					goto cmd_bad;
@@ -943,14 +898,13 @@ bootloader(unsigned timeout)
 
 				cout_word(get_mcu_id());
 				SET_BL_STATE(STATE_PROTO_GET_CHIP);
-			}
-			break;
+			} break;
 
-		// read the chip  description
-		//
-		// command:     GET_CHIP_DES/EOC
-		// reply:     <value:4>/INSYNC/OK
-		case PROTO_GET_CHIP_DES: {
+			// read the chip  description
+			//
+			// command:     GET_CHIP_DES/EOC
+			// reply:     <value:4>/INSYNC/OK
+			case PROTO_GET_CHIP_DES: {
 				uint8_t buffer[MAX_DES_LENGTH];
 				unsigned len = MAX_DES_LENGTH;
 
@@ -963,12 +917,11 @@ bootloader(unsigned timeout)
 				cout_word(len);
 				cout(buffer, len);
 				SET_BL_STATE(STATE_PROTO_GET_CHIP_DES);
-			}
-			break;
+			} break;
 
 #ifdef BOOT_DELAY_ADDRESS
 
-		case PROTO_SET_DELAY: {
+			case PROTO_SET_DELAY: {
 				/*
 				  Allow for the bootloader to setup a
 				  boot delay signature which tells the
@@ -995,8 +948,7 @@ bootloader(unsigned timeout)
 				uint32_t sig1 = flash_func_read_word(BOOT_DELAY_ADDRESS);
 				uint32_t sig2 = flash_func_read_word(BOOT_DELAY_ADDRESS + 4);
 
-				if (sig1 != BOOT_DELAY_SIGNATURE1 ||
-				    sig2 != BOOT_DELAY_SIGNATURE2) {
+				if (sig1 != BOOT_DELAY_SIGNATURE1 || sig2 != BOOT_DELAY_SIGNATURE2) {
 					goto cmd_bad;
 				}
 
@@ -1006,51 +958,51 @@ bootloader(unsigned timeout)
 				if (flash_func_read_word(BOOT_DELAY_ADDRESS) != value) {
 					goto cmd_fail;
 				}
-			}
-			break;
+			} break;
 #endif
 
-		// finalise programming and boot the system
-		//
-		// command:     BOOT/EOC
-		// reply:     INSYNC/OK
-		//
-		case PROTO_BOOT:
+			// finalise programming and boot the system
+			//
+			// command:     BOOT/EOC
+			// reply:     INSYNC/OK
+			//
+			case PROTO_BOOT:
 
-			// expect EOC
-			if (!wait_for_eoc(1000)) {
-				goto cmd_bad;
-			}
-
-			if (first_word != 0xffffffff && (bl_state & STATE_ALLOWS_REBOOT) != STATE_ALLOWS_REBOOT) {
-				goto cmd_bad;
-			}
-
-			// program the deferred first word
-			if (first_word != 0xffffffff) {
-				flash_func_write_word(0, first_word);
-
-				if (flash_func_read_word(0) != first_word) {
-					goto cmd_fail;
+				// expect EOC
+				if (!wait_for_eoc(1000)) {
+					goto cmd_bad;
 				}
 
-				// revert in case the flash was bad...
-				first_word = 0xffffffff;
-			}
+				if (first_word != 0xffffffff &&
+				    (bl_state & STATE_ALLOWS_REBOOT) != STATE_ALLOWS_REBOOT) {
+					goto cmd_bad;
+				}
 
-			// send a sync and wait for it to be collected
-			sync_response();
-			delay(100);
+				// program the deferred first word
+				if (first_word != 0xffffffff) {
+					flash_func_write_word(0, first_word);
 
-			// quiesce and jump to the app
-			return;
+					if (flash_func_read_word(0) != first_word) {
+						goto cmd_fail;
+					}
 
-		case PROTO_DEBUG:
-			// XXX reserved for ad-hoc debugging as required
-			break;
+					// revert in case the flash was bad...
+					first_word = 0xffffffff;
+				}
 
-		default:
-			continue;
+				// send a sync and wait for it to be collected
+				sync_response();
+				delay(100);
+
+				// quiesce and jump to the app
+				return;
+
+			case PROTO_DEBUG:
+				// XXX reserved for ad-hoc debugging as required
+				break;
+
+			default:
+				continue;
 		}
 
 		// we got a command worth syncing, so kill the timeout because
@@ -1065,19 +1017,19 @@ bootloader(unsigned timeout)
 		// send the sync response for this command
 		sync_response();
 		continue;
-cmd_bad:
+	cmd_bad:
 		// send an 'invalid' response but don't kill the timeout - could be garbage
 		invalid_response();
 		bl_state = 0;
 		continue;
 
-cmd_fail:
+	cmd_fail:
 		// send a 'command failed' response but don't kill the timeout - could be garbage
 		failure_response();
 		continue;
 
 #if defined(TARGET_HW_PX4_FMU_V4)
-bad_silicon:
+	bad_silicon:
 		// send the bad silicon response but don't kill the timeout - could be garbage
 		bad_silicon_response();
 		continue;

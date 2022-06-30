@@ -40,36 +40,35 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdbool.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <float.h>
-#include <nuttx/sched.h>
-#include <sys/prctl.h>
-#include <drivers/drv_hrt.h>
-#include <termios.h>
-#include <errno.h>
 #include <limits.h>
 #include <math.h>
-#include <uORB/uORB.h>
+#include <nuttx/sched.h>
 #include <perf/perf_counter.h>
-#include <systemlib/err.h>
 #include <poll.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/prctl.h>
+#include <systemlib/err.h>
+#include <termios.h>
+#include <uORB/uORB.h>
+#include <unistd.h>
 
 __EXPORT int matlab_csv_serial_main(int argc, char *argv[]);
-static bool thread_should_exit = false;		/**< Daemon exit flag */
-static bool thread_running = false;		/**< Daemon status flag */
-static int daemon_task;				/**< Handle of daemon task / thread */
+static bool thread_should_exit = false; /**< Daemon exit flag */
+static bool thread_running = false;     /**< Daemon status flag */
+static int daemon_task;                 /**< Handle of daemon task / thread */
 
 int matlab_csv_serial_thread_main(int argc, char *argv[]);
 static void usage(const char *reason);
 
-static void usage(const char *reason)
-{
+static void usage(const char *reason) {
 	if (reason) {
 		fprintf(stderr, "%s\n", reason);
 	}
@@ -86,8 +85,7 @@ static void usage(const char *reason)
  * The actual stack size should be set in the call
  * to px4_task_spawn_cmd().
  */
-int matlab_csv_serial_main(int argc, char *argv[])
-{
+int matlab_csv_serial_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		usage("missing command");
 	}
@@ -100,10 +98,7 @@ int matlab_csv_serial_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		daemon_task = px4_task_spawn_cmd("matlab_csv_serial",
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_MAX - 5,
-						 2000,
+		daemon_task = px4_task_spawn_cmd("matlab_csv_serial", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 2000,
 						 matlab_csv_serial_thread_main,
 						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		exit(0);
@@ -129,9 +124,7 @@ int matlab_csv_serial_main(int argc, char *argv[])
 	exit(1);
 }
 
-int matlab_csv_serial_thread_main(int argc, char *argv[])
-{
-
+int matlab_csv_serial_thread_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		errx(1, "need a serial port name as argument");
 	}
@@ -164,14 +157,12 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 
 	/* USB serial is indicated by /dev/ttyACM0*/
 	if (strcmp(uart_name, "/dev/ttyACM0") != OK && strcmp(uart_name, "/dev/ttyACM1") != OK) {
-
 		/* Set baud rate */
 		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
 			warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
 			close(serial_fd);
 			return -1;
 		}
-
 	}
 
 	if ((termios_state = tcsetattr(serial_fd, TCSANOW, &uart_config)) < 0) {
@@ -195,11 +186,8 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	while (!thread_should_exit) {
-
 		/*This runs at the rate of the sensors */
-		struct pollfd fds[] = {
-			{ .fd = accel0_sub, .events = POLLIN }
-		};
+		struct pollfd fds[] = {{.fd = accel0_sub, .events = POLLIN}};
 
 		/* wait for a sensor update, check for exit condition every 500 ms */
 		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), 500);
@@ -212,7 +200,6 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 			warnx("no sensor data");
 
 		} else {
-
 			/* accel0 update available? */
 			if (fds[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_accel), accel0_sub, &accel0);
@@ -221,11 +208,10 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(sensor_gyro), gyro1_sub, &gyro1);
 
 				// write out on accel 0, but collect for all other sensors as they have updates
-				dprintf(serial_fd, "%llu,%d,%d,%d,%d,%d,%d\n", accel0.timestamp, (int)accel0.x_raw, (int)accel0.y_raw,
-					(int)accel0.z_raw,
-					(int)accel1.x_raw, (int)accel1.y_raw, (int)accel1.z_raw);
+				dprintf(serial_fd, "%llu,%d,%d,%d,%d,%d,%d\n", accel0.timestamp, (int)accel0.x_raw,
+					(int)accel0.y_raw, (int)accel0.z_raw, (int)accel1.x_raw, (int)accel1.y_raw,
+					(int)accel1.z_raw);
 			}
-
 		}
 	}
 
@@ -235,5 +221,3 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	fflush(stdout);
 	return 0;
 }
-
-

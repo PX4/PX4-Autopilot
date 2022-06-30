@@ -40,9 +40,7 @@
 
 #include "pga460.h"
 
-
-PGA460::PGA460(const char *port)
-{
+PGA460::PGA460(const char *port) {
 	// Store port name.
 	strncpy(_port, port, sizeof(_port) - 1);
 	// Enforce null termination.
@@ -51,20 +49,16 @@ PGA460::PGA460(const char *port)
 	_device_id.devid_s.devtype = DRV_DIST_DEVTYPE_PGA460;
 	_device_id.devid_s.bus_type = device::Device::DeviceBusType_SERIAL;
 
-	uint8_t bus_num = atoi(&_port[strlen(_port) - 1]); // Assuming '/dev/ttySx'
+	uint8_t bus_num = atoi(&_port[strlen(_port) - 1]);  // Assuming '/dev/ttySx'
 
 	if (bus_num < 10) {
 		_device_id.devid_s.bus = bus_num;
 	}
 }
 
-PGA460::~PGA460()
-{
-	orb_unadvertise(_distance_sensor_topic);
-}
+PGA460::~PGA460() { orb_unadvertise(_distance_sensor_topic); }
 
-uint8_t PGA460::calc_checksum(uint8_t *data, const uint8_t size)
-{
+uint8_t PGA460::calc_checksum(uint8_t *data, const uint8_t size) {
 	uint8_t checksum_input[size];
 
 	for (size_t i = 0; i < size; i++) {
@@ -91,8 +85,7 @@ uint8_t PGA460::calc_checksum(uint8_t *data, const uint8_t size)
 	return carry;
 }
 
-int PGA460::close_serial()
-{
+int PGA460::close_serial() {
 	int ret = ::close(_fd);
 
 	if (ret != 0) {
@@ -102,19 +95,14 @@ int PGA460::close_serial()
 	return ret;
 }
 
-int PGA460::custom_command(int argc, char *argv[])
-{
-	return print_usage("Unrecognized command.");
-}
+int PGA460::custom_command(int argc, char *argv[]) { return print_usage("Unrecognized command."); }
 
-PGA460 *PGA460::instantiate(int argc, char *argv[])
-{
+PGA460 *PGA460::instantiate(int argc, char *argv[]) {
 	PGA460 *pga460 = new PGA460(PGA460_DEFAULT_PORT);
 	return pga460;
 }
 
-int PGA460::initialize_device_settings()
-{
+int PGA460::initialize_device_settings() {
 	if (initialize_thresholds() != PX4_OK) {
 		PX4_WARN("Thresholds not initialized");
 		return PX4_ERROR;
@@ -137,17 +125,13 @@ int PGA460::initialize_device_settings()
 	return PX4_OK;
 }
 
-int PGA460::initialize_thresholds()
-{
+int PGA460::initialize_thresholds() {
 	const uint8_t array_size = 35;
-	uint8_t settings_buf[array_size] = {SYNCBYTE, BC_THRBW,
-					    P1_THR_0, P1_THR_1, P1_THR_2, P1_THR_3, P1_THR_4, P1_THR_5,
-					    P1_THR_6, P1_THR_7, P1_THR_8, P1_THR_9, P1_THR_10,
-					    P1_THR_11, P1_THR_12, P1_THR_13, P1_THR_14, P1_THR_15,
-					    P2_THR_0, P2_THR_1, P2_THR_2, P2_THR_3, P2_THR_4, P2_THR_5,
-					    P2_THR_6, P2_THR_7, P2_THR_8, P2_THR_9, P2_THR_10,
-					    P2_THR_11, P2_THR_12, P2_THR_13, P2_THR_14, P2_THR_15, 0xFF
-					   };
+	uint8_t settings_buf[array_size] = {SYNCBYTE,  BC_THRBW,  P1_THR_0,  P1_THR_1,  P1_THR_2,  P1_THR_3,  P1_THR_4,
+					    P1_THR_5,  P1_THR_6,  P1_THR_7,  P1_THR_8,  P1_THR_9,  P1_THR_10, P1_THR_11,
+					    P1_THR_12, P1_THR_13, P1_THR_14, P1_THR_15, P2_THR_0,  P2_THR_1,  P2_THR_2,
+					    P2_THR_3,  P2_THR_4,  P2_THR_5,  P2_THR_6,  P2_THR_7,  P2_THR_8,  P2_THR_9,
+					    P2_THR_10, P2_THR_11, P2_THR_12, P2_THR_13, P2_THR_14, P2_THR_15, 0xFF};
 
 	uint8_t checksum = calc_checksum(&settings_buf[1], sizeof(settings_buf) - 2);
 	settings_buf[array_size - 1] = checksum;
@@ -170,9 +154,7 @@ int PGA460::initialize_thresholds()
 	}
 }
 
-uint32_t PGA460::collect_results()
-{
-
+uint32_t PGA460::collect_results() {
 	uint8_t buf_rx[6] = {};
 	int bytes_available = sizeof(buf_rx);
 	int total_bytes = 0;
@@ -194,7 +176,6 @@ uint32_t PGA460::collect_results()
 
 	} while (bytes_available > 0);
 
-
 	uint16_t time_of_flight = (buf_rx[1] << 8) + buf_rx[2];
 	uint8_t Width = buf_rx[3];
 	uint8_t Amplitude = buf_rx[4];
@@ -209,13 +190,11 @@ uint32_t PGA460::collect_results()
 	return results;
 }
 
-float PGA460::calculate_object_distance(uint16_t time_of_flight)
-{
+float PGA460::calculate_object_distance(uint16_t time_of_flight) {
 	float temperature = get_temperature();
 
 	// Default temperature if no temperature measurement can be obtained.
-	if (temperature > MAX_DETECTABLE_TEMPERATURE ||
-	    temperature < MIN_DETECTABLE_TEMPERATURE) {
+	if (temperature > MAX_DETECTABLE_TEMPERATURE || temperature < MIN_DETECTABLE_TEMPERATURE) {
 		temperature = 20.0f;
 	}
 
@@ -229,8 +208,7 @@ float PGA460::calculate_object_distance(uint16_t time_of_flight)
 	return object_distance;
 }
 
-int PGA460::flash_eeprom()
-{
+int PGA460::flash_eeprom() {
 	// Send same unlock code with prog bit set to 1.
 	uint8_t eeprom_write_buf[5] = {SYNCBYTE, SRW, EE_CNTRL_ADDR, EE_UNLOCK_ST2, 0xFF};
 	uint8_t checksum = calc_checksum(&eeprom_write_buf[1], sizeof(eeprom_write_buf) - 2);
@@ -244,8 +222,7 @@ int PGA460::flash_eeprom()
 	return PX4_OK;
 }
 
-float PGA460::get_temperature()
-{
+float PGA460::get_temperature() {
 	uint8_t buf_tx[4] = {SYNCBYTE, TNLM, 0x00, 0xFF};
 	uint8_t checksum = calc_checksum(&buf_tx[0], 3);
 	buf_tx[3] = checksum;
@@ -299,8 +276,7 @@ float PGA460::get_temperature()
 	return temperature;
 }
 
-int PGA460::open_serial()
-{
+int PGA460::open_serial() {
 	_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	if (_fd < 0) {
@@ -320,7 +296,7 @@ int PGA460::open_serial()
 	// no NL to CR translation, don't mark parity errors or breaks
 	// no input parity check, don't strip high bit off,
 	// no XON/XOFF software flow control
-	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL |  INLCR | IGNCR | PARMRK | INPCK | ISTRIP | IXON | IXOFF);
+	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | IGNCR | PARMRK | INPCK | ISTRIP | IXON | IXOFF);
 
 	uart_config.c_iflag |= IGNPAR;
 
@@ -366,8 +342,7 @@ int PGA460::open_serial()
 	return _fd;
 }
 
-void PGA460::print_device_status()
-{
+void PGA460::print_device_status() {
 	uint8_t status_flags1 = read_register(0x4C);
 	uint8_t status_flags2 = read_register(0x4D);
 
@@ -418,8 +393,7 @@ void PGA460::print_device_status()
 	}
 }
 
-void PGA460::print_diagnostics(const uint8_t diagnostic_byte)
-{
+void PGA460::print_diagnostics(const uint8_t diagnostic_byte) {
 	// Check the diagnostics bit field.
 	if (diagnostic_byte & 1 << 6) {
 		if (diagnostic_byte & 1 << 0) {
@@ -473,8 +447,7 @@ void PGA460::print_diagnostics(const uint8_t diagnostic_byte)
 	}
 }
 
-int PGA460::print_usage(const char *reason)
-{
+int PGA460::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -503,20 +476,18 @@ to be invalid or unstable.
 	return PX4_OK;
 }
 
-int PGA460::read_eeprom()
-{
+int PGA460::read_eeprom() {
 	unlock_eeprom();
 
 	const int array_size = 43;
-	 uint8_t user_settings[array_size] =
-		{USER_DATA1, USER_DATA2, USER_DATA3, USER_DATA4,
-		 USER_DATA5, USER_DATA6, USER_DATA7, USER_DATA8, USER_DATA9, USER_DATA10,
-		 USER_DATA11, USER_DATA12, USER_DATA13, USER_DATA14, USER_DATA15, USER_DATA16,
-		 USER_DATA17, USER_DATA18, USER_DATA19, USER_DATA20,
-		 TVGAIN0, TVGAIN1, TVGAIN2, TVGAIN3, TVGAIN4, TVGAIN5, TVGAIN6, INIT_GAIN, FREQUENCY, DEADTIME,
-		 PULSE_P1, PULSE_P2, CURR_LIM_P1, CURR_LIM_P2, REC_LENGTH, FREQ_DIAG, SAT_FDIAG_TH, FVOLT_DEC, DECPL_TEMP,
-		 DSP_SCALE, TEMP_TRIM, P1_GAIN_CTRL, P2_GAIN_CTRL};
-
+	uint8_t user_settings[array_size] = {
+		USER_DATA1,  USER_DATA2,   USER_DATA3,  USER_DATA4,  USER_DATA5,  USER_DATA6,  USER_DATA7,
+		USER_DATA8,  USER_DATA9,   USER_DATA10, USER_DATA11, USER_DATA12, USER_DATA13, USER_DATA14,
+		USER_DATA15, USER_DATA16,  USER_DATA17, USER_DATA18, USER_DATA19, USER_DATA20, TVGAIN0,
+		TVGAIN1,     TVGAIN2,      TVGAIN3,     TVGAIN4,     TVGAIN5,     TVGAIN6,     INIT_GAIN,
+		FREQUENCY,   DEADTIME,     PULSE_P1,    PULSE_P2,    CURR_LIM_P1, CURR_LIM_P2, REC_LENGTH,
+		FREQ_DIAG,   SAT_FDIAG_TH, FVOLT_DEC,   DECPL_TEMP,  DSP_SCALE,   TEMP_TRIM,   P1_GAIN_CTRL,
+		P2_GAIN_CTRL};
 
 	int ret = -1;
 	uint8_t cmd_buf[2] = {SYNCBYTE, EEBR};
@@ -539,7 +510,7 @@ int PGA460::read_eeprom()
 
 		total_bytes += ret;
 
-		if(ret < 0) {
+		if (ret < 0) {
 			tcflush(_fd, TCIFLUSH);
 			PX4_ERR("read err2: %d", ret);
 			return ret;
@@ -564,8 +535,7 @@ int PGA460::read_eeprom()
 	}
 }
 
-uint8_t PGA460::read_register(const uint8_t reg)
-{
+uint8_t PGA460::read_register(const uint8_t reg) {
 	// must unlock the eeprom registers before you can read or write to them
 	if (reg < 0x40) {
 		unlock_eeprom();
@@ -577,7 +547,7 @@ uint8_t PGA460::read_register(const uint8_t reg)
 
 	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 
-	if(!ret) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
@@ -592,7 +562,7 @@ uint8_t PGA460::read_register(const uint8_t reg)
 
 		total_bytes += ret;
 
-		if(ret < 0) {
+		if (ret < 0) {
 			tcflush(_fd, TCIFLUSH);
 			PX4_ERR("read err3: %d", ret);
 			return ret;
@@ -610,22 +580,19 @@ uint8_t PGA460::read_register(const uint8_t reg)
 	return buf_rx[1];
 }
 
-int PGA460::read_threshold_registers()
-{
+int PGA460::read_threshold_registers() {
 	const int array_size = 32;
-	uint8_t user_settings[array_size] = {P1_THR_0, P1_THR_1, P1_THR_2, P1_THR_3, P1_THR_4,
-					     P1_THR_5, P1_THR_6, P1_THR_7, P1_THR_8, P1_THR_9, P1_THR_10, P1_THR_11,
-					     P1_THR_12, P1_THR_13, P1_THR_14, P1_THR_15,
-					     P2_THR_0, P2_THR_1, P2_THR_2, P2_THR_3, P2_THR_4, P2_THR_5, P2_THR_6,
-					     P2_THR_7, P2_THR_8, P2_THR_9, P2_THR_10, P2_THR_11, P2_THR_12, P2_THR_13,
-					     P2_THR_14, P2_THR_15
-					    };
+	uint8_t user_settings[array_size] = {
+		P1_THR_0, P1_THR_1, P1_THR_2,  P1_THR_3,  P1_THR_4,  P1_THR_5,  P1_THR_6,  P1_THR_7,
+		P1_THR_8, P1_THR_9, P1_THR_10, P1_THR_11, P1_THR_12, P1_THR_13, P1_THR_14, P1_THR_15,
+		P2_THR_0, P2_THR_1, P2_THR_2,  P2_THR_3,  P2_THR_4,  P2_THR_5,  P2_THR_6,  P2_THR_7,
+		P2_THR_8, P2_THR_9, P2_THR_10, P2_THR_11, P2_THR_12, P2_THR_13, P2_THR_14, P2_THR_15};
 
-	uint8_t buf_tx[2] =  {SYNCBYTE, THRBR};
+	uint8_t buf_tx[2] = {SYNCBYTE, THRBR};
 
 	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 
-	if(!ret) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
@@ -640,7 +607,7 @@ int PGA460::read_threshold_registers()
 
 		total_bytes += ret;
 
-		if(ret < 0) {
+		if (ret < 0) {
 			tcflush(_fd, TCIFLUSH);
 			PX4_ERR("read err3: %d", ret);
 			return ret;
@@ -666,25 +633,23 @@ int PGA460::read_threshold_registers()
 	}
 }
 
-int PGA460::request_results()
-{
+int PGA460::request_results() {
 	uint8_t buf_tx[2] = {SYNCBYTE, UMR};
 	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 	px4_usleep(10000);
 
-	if(!ret) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
 	return PX4_OK;
 }
 
-void PGA460::run()
-{
+void PGA460::run() {
 	open_serial();
 	int ret = initialize_device_settings();
 
-	if(ret != PX4_OK) {
+	if (ret != PX4_OK) {
 		close_serial();
 		PX4_INFO("Could not initialize device settings. Exiting.");
 		return;
@@ -719,22 +684,19 @@ void PGA460::run()
 	close_serial();
 }
 
-uint8_t PGA460::set_range_mode()
-{
+uint8_t PGA460::set_range_mode() {
 	// Set the ASICs settings depening on the distance read from our last report.
 	if (_previous_valid_report_distance > (MODE_SET_THRESH + MODE_SET_HYST)) {
 		_ranging_mode = MODE_LONG_RANGE;
 
 	} else if (_previous_valid_report_distance < (MODE_SET_THRESH - MODE_SET_HYST)) {
 		_ranging_mode = MODE_SHORT_RANGE;
-
 	}
 
 	return _ranging_mode;
 }
 
-int PGA460::take_measurement(const uint8_t mode)
-{
+int PGA460::take_measurement(const uint8_t mode) {
 	// Issue a measurement command to detect one object using Preset 1 Burst/Listen.
 	uint8_t buf_tx[4] = {SYNCBYTE, mode, 0x01, 0xFF};
 	uint8_t checksum = calc_checksum(&buf_tx[1], 2);
@@ -742,21 +704,19 @@ int PGA460::take_measurement(const uint8_t mode)
 
 	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 
-	if(!ret) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
 	return PX4_OK;
 }
 
-int PGA460::task_spawn(int argc, char *argv[])
-{
+int PGA460::task_spawn(int argc, char *argv[]) {
 	px4_main_t entry_point = (px4_main_t)&run_trampoline;
 	int stack_size = 1256;
 
-	int task_id = px4_task_spawn_cmd("pga460", SCHED_DEFAULT,
-					 SCHED_PRIORITY_SLOW_DRIVER, stack_size,
-					 entry_point, (char *const *)argv);
+	int task_id = px4_task_spawn_cmd("pga460", SCHED_DEFAULT, SCHED_PRIORITY_SLOW_DRIVER, stack_size, entry_point,
+					 (char *const *)argv);
 
 	if (task_id < 0) {
 		task_id = -1;
@@ -768,8 +728,7 @@ int PGA460::task_spawn(int argc, char *argv[])
 	return PX4_OK;
 }
 
-void PGA460::uORB_publish_results(const float object_distance)
-{
+void PGA460::uORB_publish_results(const float object_distance) {
 	struct distance_sensor_s report = {};
 	report.timestamp = hrt_absolute_time();
 	report.device_id = _device_id.devid;
@@ -785,10 +744,10 @@ void PGA460::uORB_publish_results(const float object_distance)
 
 	// If we are within our MIN and MAX thresholds, continue.
 	if (object_distance > MIN_DETECTABLE_DISTANCE && object_distance < MAX_DETECTABLE_DISTANCE) {
-
 		// Height cannot change by more than MAX_SAMPLE_DEVIATION between measurements.
-		bool sample_deviation_valid = (report.current_distance < _previous_valid_report_distance + MAX_SAMPLE_DEVIATION)
-					      && (report.current_distance > _previous_valid_report_distance - MAX_SAMPLE_DEVIATION);
+		bool sample_deviation_valid =
+			(report.current_distance < _previous_valid_report_distance + MAX_SAMPLE_DEVIATION) &&
+			(report.current_distance > _previous_valid_report_distance - MAX_SAMPLE_DEVIATION);
 
 		// Must have NUM_SAMPLES_CONSISTENT valid samples to be publishing.
 		if (sample_deviation_valid) {
@@ -821,8 +780,7 @@ void PGA460::uORB_publish_results(const float object_distance)
 	}
 }
 
-int PGA460::unlock_eeprom()
-{
+int PGA460::unlock_eeprom() {
 	// Two step EEPROM unlock -- send unlock code w/ prog bit set to 0.
 	// This might actually be wrapped into command 11 (ee bulk write) but I am not sure.
 	uint8_t eeprom_write_buf[5] = {SYNCBYTE, SRW, EE_CNTRL_ADDR, EE_UNLOCK_ST1, 0xFF};
@@ -830,30 +788,29 @@ int PGA460::unlock_eeprom()
 	eeprom_write_buf[4] = checksum;
 	int ret = ::write(_fd, &eeprom_write_buf[0], sizeof(eeprom_write_buf));
 
-	if(!ret) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
 	return PX4_OK;
 }
 
-int PGA460::write_eeprom()
-{
-	uint8_t settings_buf[46] = {SYNCBYTE, EEBW, USER_DATA1, USER_DATA2, USER_DATA3, USER_DATA4,
-				    USER_DATA5, USER_DATA6, USER_DATA7, USER_DATA8, USER_DATA9, USER_DATA10,
-				    USER_DATA11, USER_DATA12, USER_DATA13, USER_DATA14, USER_DATA15, USER_DATA16,
-				    USER_DATA17, USER_DATA18, USER_DATA19, USER_DATA20,
-				    TVGAIN0, TVGAIN1, TVGAIN2, TVGAIN3, TVGAIN4, TVGAIN5, TVGAIN6, INIT_GAIN, FREQUENCY, DEADTIME,
-				    PULSE_P1, PULSE_P2, CURR_LIM_P1, CURR_LIM_P2, REC_LENGTH, FREQ_DIAG, SAT_FDIAG_TH, FVOLT_DEC, DECPL_TEMP,
-				    DSP_SCALE, TEMP_TRIM, P1_GAIN_CTRL, P2_GAIN_CTRL, 0xFF
-				   };
+int PGA460::write_eeprom() {
+	uint8_t settings_buf[46] = {SYNCBYTE,    EEBW,         USER_DATA1,   USER_DATA2,  USER_DATA3,  USER_DATA4,
+				    USER_DATA5,  USER_DATA6,   USER_DATA7,   USER_DATA8,  USER_DATA9,  USER_DATA10,
+				    USER_DATA11, USER_DATA12,  USER_DATA13,  USER_DATA14, USER_DATA15, USER_DATA16,
+				    USER_DATA17, USER_DATA18,  USER_DATA19,  USER_DATA20, TVGAIN0,     TVGAIN1,
+				    TVGAIN2,     TVGAIN3,      TVGAIN4,      TVGAIN5,     TVGAIN6,     INIT_GAIN,
+				    FREQUENCY,   DEADTIME,     PULSE_P1,     PULSE_P2,    CURR_LIM_P1, CURR_LIM_P2,
+				    REC_LENGTH,  FREQ_DIAG,    SAT_FDIAG_TH, FVOLT_DEC,   DECPL_TEMP,  DSP_SCALE,
+				    TEMP_TRIM,   P1_GAIN_CTRL, P2_GAIN_CTRL, 0xFF};
 
 	uint8_t checksum = calc_checksum(&settings_buf[1], sizeof(settings_buf) - 2);
 	settings_buf[45] = checksum;
 
 	int ret = ::write(_fd, &settings_buf[0], sizeof(settings_buf));
 
-	if(!ret) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
@@ -881,8 +838,7 @@ int PGA460::write_eeprom()
 	return PX4_ERROR;
 }
 
-int PGA460::write_register(const uint8_t reg, const uint8_t val)
-{
+int PGA460::write_register(const uint8_t reg, const uint8_t val) {
 	// Must unlock the eeprom registers before you can read or write to them.
 	if (reg < 0x40) {
 		unlock_eeprom();
@@ -901,7 +857,4 @@ int PGA460::write_register(const uint8_t reg, const uint8_t val)
 	}
 }
 
-extern "C" __EXPORT int pga460_main(int argc, char *argv[])
-{
-	return PGA460::main(argc, argv);
-}
+extern "C" __EXPORT int pga460_main(int argc, char *argv[]) { return PGA460::main(argc, argv); }

@@ -39,50 +39,41 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <assert.h>
-#include <time.h>
-#include <stdlib.h>
 #include <math.h>
-#include <mathlib/math/test/test.hpp>
+#include <px4_platform_common/defines.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
+namespace control {
 
 /**
  * A proportional-integral controller.
  * @link http://en.wikipedia.org/wiki/PID_controller
  */
-class __EXPORT BlockPI: public SuperBlock
-{
+class __EXPORT BlockPI : public SuperBlock {
 public:
-// methods
-	BlockPI(SuperBlock *parent, const char *name) :
-		SuperBlock(parent, name),
-		_integral(this, "I"),
-		_kP(this, "P"),
-		_kI(this, "I")
-	{}
+	// methods
+	BlockPI(SuperBlock *parent, const char *name)
+		: SuperBlock(parent, name), _integral(this, "I"), _kP(this, "P"), _kI(this, "I") {}
 	virtual ~BlockPI() = default;
-	float update(float input)
-	{
-		return getKP() * input +
-		       getKI() * getIntegral().update(input);
-	}
-// accessors
+	float update(float input) { return getKP() * input + getKI() * getIntegral().update(input); }
+	// accessors
 	float getKP() { return _kP.get(); }
 	float getKI() { return _kI.get(); }
 	BlockIntegral &getIntegral() { return _integral; }
+
 private:
 	BlockIntegral _integral;
 	control::BlockParamFloat _kP;
 	control::BlockParamFloat _kI;
 };
 
-} // namespace control
+}  // namespace control

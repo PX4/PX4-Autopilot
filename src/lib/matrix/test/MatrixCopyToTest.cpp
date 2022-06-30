@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixCopyToTest, CopyTo)
-{
+TEST(MatrixCopyToTest, CopyTo) {
 	// Vector3 copyTo
 	const Vector3f v(1, 2, 3);
 	float dst3[3] = {};

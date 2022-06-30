@@ -31,28 +31,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <px4_config.h>
-
-#include <stdint.h>
-#include <stdbool.h>
-
-#include <arch/board/board.h>
-
-#include <hardware/stm32_tim.h>
-#include <dwt.h>
-#include <nvic.h>
-#include <drivers/drv_neopixel.h>
-
 #include "led.h"
 
-#define TMR_BASE        STM32_TIM1_BASE
-#define TMR_FREQUENCY   STM32_APB2_TIM1_CLKIN
-#define TMR_REG(o)      (TMR_BASE+(o))
+#include <arch/board/board.h>
+#include <drivers/drv_neopixel.h>
+#include <dwt.h>
+#include <hardware/stm32_tim.h>
+#include <nvic.h>
+#include <px4_config.h>
+#include <stdbool.h>
+#include <stdint.h>
 
-static  uint8_t _rgb[] = {0, 0, 0};
+#define TMR_BASE STM32_TIM1_BASE
+#define TMR_FREQUENCY STM32_APB2_TIM1_CLKIN
+#define TMR_REG(o) (TMR_BASE + (o))
 
-static int timerInterrupt(int irq, void *context, void *arg)
-{
+static uint8_t _rgb[] = {0, 0, 0};
+
+static int timerInterrupt(int irq, void *context, void *arg) {
 	putreg16(~getreg16(TMR_REG(STM32_GTIM_SR_OFFSET)), TMR_REG(STM32_GTIM_SR_OFFSET));
 
 	static int d2 = 1;
@@ -61,12 +57,11 @@ static int timerInterrupt(int irq, void *context, void *arg)
 	return 0;
 }
 
-void rgb_led(int r, int g, int b, int freqs)
-{
+void rgb_led(int r, int g, int b, int freqs) {
 	long fosc = TMR_FREQUENCY;
 	long prescale = 1536;
 	long p1s = fosc / prescale;
-	long p0p5s  = p1s / 2;
+	long p0p5s = p1s / 2;
 	uint16_t val;
 	static bool once = 0;
 
@@ -92,13 +87,12 @@ void rgb_led(int r, int g, int b, int freqs)
 
 		putreg32(p0p5s + 1, TMR_REG(STM32_BTIM_ARR_OFFSET));
 
-
 		irq_attach(STM32_IRQ_TIM1CC, timerInterrupt, NULL);
 		up_enable_irq(STM32_IRQ_TIM1CC);
 		putreg16(GTIM_DIER_CC1IE, TMR_REG(STM32_GTIM_DIER_OFFSET));
 	}
 
-	long p  = freqs == 0 ? p1s + 1 : p0p5s / freqs;
+	long p = freqs == 0 ? p1s + 1 : p0p5s / freqs;
 	putreg32(p + 1, TMR_REG(STM32_BTIM_ARR_OFFSET));
 	putreg32(p, TMR_REG(STM32_GTIM_CCR1_OFFSET));
 	_rgb[0] = r;

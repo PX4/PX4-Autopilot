@@ -1,39 +1,59 @@
-/*************************************************************************//**
- * @file
- * @brief    	This file is part of the AFBR-S50 API.
- * @details		This file provides generic functionality belonging to all
- * 				devices from the AFBR-S50 product family.
- *
- * @copyright
- *
- * Copyright (c) 2021, Broadcom Inc
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived from
- *    this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *****************************************************************************/
+/*************************************************************************/ /**
+									     * @file
+									     * @brief    	This file is part of the
+									     *AFBR-S50 API.
+									     * @details		This file provides generic
+									     *functionality belonging to all devices
+									     *from the AFBR-S50 product family.
+									     *
+									     * @copyright
+									     *
+									     * Copyright (c) 2021, Broadcom Inc
+									     * All rights reserved.
+									     *
+									     * Redistribution and use in source and
+									     *binary forms, with or without
+									     * modification, are permitted provided that
+									     *the following conditions are met:
+									     *
+									     * 1. Redistributions of source code must
+									     *retain the above copyright notice, this
+									     *    list of conditions and the following
+									     *disclaimer.
+									     *
+									     * 2. Redistributions in binary form must
+									     *reproduce the above copyright notice, this
+									     *list of conditions and the following
+									     *disclaimer in the documentation and/or
+									     *other materials provided with the
+									     *distribution.
+									     *
+									     * 3. Neither the name of the copyright
+									     *holder nor the names of its contributors
+									     *may be used to endorse or promote products
+									     *derived from this software without
+									     *specific prior written permission.
+									     *
+									     * THIS SOFTWARE IS PROVIDED BY THE
+									     *COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+									     * AND ANY EXPRESS OR IMPLIED WARRANTIES,
+									     *INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+									     *WARRANTIES OF MERCHANTABILITY AND FITNESS
+									     *FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+									     *IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+									     *CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+									     *INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+									     *OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+									     *NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+									     *GOODS OR SERVICES; LOSS OF USE, DATA, OR
+									     *PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+									     * CAUSED AND ON ANY THEORY OF LIABILITY,
+									     *WHETHER IN CONTRACT, STRICT LIABILITY, OR
+									     *TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+									     *ARISING IN ANY WAY OUT OF THE USE OF THIS
+									     *SOFTWARE, EVEN IF ADVISED OF THE
+									     *POSSIBILITY OF SUCH DAMAGE.
+									     *****************************************************************************/
 
 #ifndef ARGUS_API_H
 #define ARGUS_API_H
@@ -56,9 +76,9 @@ extern "C" {
  *****************************************************************************/
 
 #include "argus_def.h"
-#include "argus_res.h"
-#include "argus_pba.h"
 #include "argus_dfm.h"
+#include "argus_pba.h"
+#include "argus_res.h"
 #include "argus_snm.h"
 #include "argus_xtalk.h"
 
@@ -491,7 +511,6 @@ status_t Argus_EvaluateData(argus_hnd_t *hnd, argus_results_t *res, void *raw);
  *****************************************************************************/
 status_t Argus_ExecuteXtalkCalibrationSequence(argus_hnd_t *hnd, argus_mode_t mode);
 
-
 /*!***************************************************************************
  * @brief	Executes a relative range offset calibration measurement.
  *
@@ -539,8 +558,7 @@ status_t Argus_ExecuteXtalkCalibrationSequence(argus_hnd_t *hnd, argus_mode_t mo
  * @param	mode The targeted measurement mode.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_ExecuteRelativeRangeOffsetCalibrationSequence(argus_hnd_t *hnd,
-		argus_mode_t mode);
+status_t Argus_ExecuteRelativeRangeOffsetCalibrationSequence(argus_hnd_t *hnd, argus_mode_t mode);
 
 /*!***************************************************************************
  * @brief	Executes an absolute range offset calibration measurement.
@@ -591,9 +609,7 @@ status_t Argus_ExecuteRelativeRangeOffsetCalibrationSequence(argus_hnd_t *hnd,
  * 						calibration target in meter an Q9.22 format.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_ExecuteAbsoluteRangeOffsetCalibrationSequence(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		q9_22_t targetRange);
+status_t Argus_ExecuteAbsoluteRangeOffsetCalibrationSequence(argus_hnd_t *hnd, argus_mode_t mode, q9_22_t targetRange);
 
 /*! @} */
 
@@ -611,8 +627,7 @@ status_t Argus_ExecuteAbsoluteRangeOffsetCalibrationSequence(argus_hnd_t *hnd,
  * @param	value The new measurement mode.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetConfigurationMeasurementMode(argus_hnd_t *hnd,
-		argus_mode_t value);
+status_t Argus_SetConfigurationMeasurementMode(argus_hnd_t *hnd, argus_mode_t value);
 
 /*!***************************************************************************
  * @brief 	Gets the measurement mode from a specified device.
@@ -621,8 +636,7 @@ status_t Argus_SetConfigurationMeasurementMode(argus_hnd_t *hnd,
  * @param	value The current measurement mode.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetConfigurationMeasurementMode(argus_hnd_t *hnd,
-		argus_mode_t *value);
+status_t Argus_GetConfigurationMeasurementMode(argus_hnd_t *hnd, argus_mode_t *value);
 
 /*!***************************************************************************
  * @brief 	Sets the frame time to a specified device.
@@ -649,9 +663,7 @@ status_t Argus_GetConfigurationFrameTime(argus_hnd_t *hnd, uint32_t *value);
  * @param	value The new smart power save enabled flag.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetConfigurationSmartPowerSaveEnabled(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		bool value);
+status_t Argus_SetConfigurationSmartPowerSaveEnabled(argus_hnd_t *hnd, argus_mode_t mode, bool value);
 
 /*!***************************************************************************
  * @brief 	Gets the smart power save enabled flag from a specified device.
@@ -660,9 +672,7 @@ status_t Argus_SetConfigurationSmartPowerSaveEnabled(argus_hnd_t *hnd,
  * @param	value The current smart power save enabled flag.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetConfigurationSmartPowerSaveEnabled(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		bool *value);
+status_t Argus_GetConfigurationSmartPowerSaveEnabled(argus_hnd_t *hnd, argus_mode_t mode, bool *value);
 
 /*!***************************************************************************
  * @brief 	Sets the Dual Frequency Mode (DFM) to a specified device.
@@ -671,10 +681,7 @@ status_t Argus_GetConfigurationSmartPowerSaveEnabled(argus_hnd_t *hnd,
  * @param	value The new DFM mode value.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetConfigurationDFMMode(argus_hnd_t *hnd,
-				       argus_mode_t mode,
-				       argus_dfm_mode_t value);
-
+status_t Argus_SetConfigurationDFMMode(argus_hnd_t *hnd, argus_mode_t mode, argus_dfm_mode_t value);
 
 /*!***************************************************************************
  * @brief 	Gets the Dual Frequency Mode (DFM) from a specified device.
@@ -683,9 +690,7 @@ status_t Argus_SetConfigurationDFMMode(argus_hnd_t *hnd,
  * @param	value The current DFM mode value.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetConfigurationDFMMode(argus_hnd_t *hnd,
-				       argus_mode_t mode,
-				       argus_dfm_mode_t *value);
+status_t Argus_GetConfigurationDFMMode(argus_hnd_t *hnd, argus_mode_t mode, argus_dfm_mode_t *value);
 
 /*!***************************************************************************
  * @brief 	Sets the Shot Noise Monitor (SNM) mode to a specified device.
@@ -694,9 +699,7 @@ status_t Argus_GetConfigurationDFMMode(argus_hnd_t *hnd,
  * @param	value The new SNM mode value.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetConfigurationShotNoiseMonitorMode(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		argus_snm_mode_t value);
+status_t Argus_SetConfigurationShotNoiseMonitorMode(argus_hnd_t *hnd, argus_mode_t mode, argus_snm_mode_t value);
 
 /*!***************************************************************************
  * @brief 	Gets the Shot Noise Montor (SNM) mode from a specified device.
@@ -705,9 +708,7 @@ status_t Argus_SetConfigurationShotNoiseMonitorMode(argus_hnd_t *hnd,
  * @param	value The current SNM mode value.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetConfigurationShotNoiseMonitorMode(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		argus_snm_mode_t *value);
+status_t Argus_GetConfigurationShotNoiseMonitorMode(argus_hnd_t *hnd, argus_mode_t mode, argus_snm_mode_t *value);
 #if 0
 ///*!***************************************************************************
 // * @brief 	Sets the Crosstalk Monitor (XTM) mode to a specified device.
@@ -740,9 +741,7 @@ status_t Argus_GetConfigurationShotNoiseMonitorMode(argus_hnd_t *hnd,
  * @param	value The new DCA configuration set.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetConfigurationDynamicAdaption(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		argus_cfg_dca_t const *value);
+status_t Argus_SetConfigurationDynamicAdaption(argus_hnd_t *hnd, argus_mode_t mode, argus_cfg_dca_t const *value);
 
 /*!***************************************************************************
  * @brief 	Gets the # from a specified device.
@@ -752,9 +751,7 @@ status_t Argus_SetConfigurationDynamicAdaption(argus_hnd_t *hnd,
  * @param	value The current DCA configuration set value.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetConfigurationDynamicAdaption(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		argus_cfg_dca_t *value);
+status_t Argus_GetConfigurationDynamicAdaption(argus_hnd_t *hnd, argus_mode_t mode, argus_cfg_dca_t *value);
 /*!***************************************************************************
  * @brief 	Sets the pixel binning configuration parameters to a specified device.
  * @param	hnd The API handle; contains all internal states and data.
@@ -762,9 +759,7 @@ status_t Argus_GetConfigurationDynamicAdaption(argus_hnd_t *hnd,
  * @param	value The new pixel binning configuration parameters.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetConfigurationPixelBinning(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		argus_cfg_pba_t const *value);
+status_t Argus_SetConfigurationPixelBinning(argus_hnd_t *hnd, argus_mode_t mode, argus_cfg_pba_t const *value);
 
 /*!***************************************************************************
  * @brief 	Gets the pixel binning configuration parameters from a specified device.
@@ -773,9 +768,7 @@ status_t Argus_SetConfigurationPixelBinning(argus_hnd_t *hnd,
  * @param	value The current pixel binning configuration parameters.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetConfigurationPixelBinning(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		argus_cfg_pba_t *value);
+status_t Argus_GetConfigurationPixelBinning(argus_hnd_t *hnd, argus_mode_t mode, argus_cfg_pba_t *value);
 
 /*!***************************************************************************
  * @brief 	Gets the current unambiguous range in mm.
@@ -783,8 +776,7 @@ status_t Argus_GetConfigurationPixelBinning(argus_hnd_t *hnd,
  * @param	range_mm The returned range in mm.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetConfigurationUnambiguousRange(argus_hnd_t *hnd,
-		uint32_t *range_mm);
+status_t Argus_GetConfigurationUnambiguousRange(argus_hnd_t *hnd, uint32_t *range_mm);
 
 /*! @} */
 
@@ -805,9 +797,7 @@ status_t Argus_GetConfigurationUnambiguousRange(argus_hnd_t *hnd,
  * @param	value The new global range offset in meter and Q0.15 format.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetCalibrationGlobalRangeOffset(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		q0_15_t value);
+status_t Argus_SetCalibrationGlobalRangeOffset(argus_hnd_t *hnd, argus_mode_t mode, q0_15_t value);
 
 /*!***************************************************************************
  * @brief 	Gets the global range offset value from a specified device.
@@ -819,9 +809,7 @@ status_t Argus_SetCalibrationGlobalRangeOffset(argus_hnd_t *hnd,
  * @param	value The current global range offset in meter and Q0.15 format.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetCalibrationGlobalRangeOffset(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		q0_15_t *value);
+status_t Argus_GetCalibrationGlobalRangeOffset(argus_hnd_t *hnd, argus_mode_t mode, q0_15_t *value);
 
 /*!***************************************************************************
  * @brief 	Sets the relative pixel offset table to a specified device.
@@ -854,8 +842,7 @@ status_t Argus_GetCalibrationGlobalRangeOffset(argus_hnd_t *hnd,
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
 status_t Argus_SetCalibrationPixelRangeOffsets(argus_hnd_t *hnd, argus_mode_t mode,
-		q0_15_t value[ARGUS_PIXELS_X][ARGUS_PIXELS_Y]);
-
+					       q0_15_t value[ARGUS_PIXELS_X][ARGUS_PIXELS_Y]);
 
 /*!***************************************************************************
  * @brief 	Gets the relative pixel offset table from a specified device.
@@ -880,8 +867,7 @@ status_t Argus_SetCalibrationPixelRangeOffsets(argus_hnd_t *hnd, argus_mode_t mo
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
 status_t Argus_GetCalibrationPixelRangeOffsets(argus_hnd_t *hnd, argus_mode_t mode,
-		q0_15_t value[ARGUS_PIXELS_X][ARGUS_PIXELS_Y]);
-
+					       q0_15_t value[ARGUS_PIXELS_X][ARGUS_PIXELS_Y]);
 
 /*!***************************************************************************
  * @brief 	Gets the relative pixel offset table from a specified device.
@@ -910,8 +896,7 @@ status_t Argus_GetCalibrationPixelRangeOffsets(argus_hnd_t *hnd, argus_mode_t mo
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
 status_t Argus_GetCalibrationTotalPixelRangeOffsets(argus_hnd_t *hnd, argus_mode_t mode,
-		q0_15_t value[ARGUS_PIXELS_X][ARGUS_PIXELS_Y]);
-
+						    q0_15_t value[ARGUS_PIXELS_X][ARGUS_PIXELS_Y]);
 
 /*!***************************************************************************
  * @brief 	Resets the relative pixel offset values for the specified device to
@@ -946,8 +931,8 @@ status_t Argus_ResetCalibrationPixelRangeOffsets(argus_hnd_t *hnd, argus_mode_t 
  *			Example usage:
  *
  *			@code
- *			status_t Argus_GetExternalPixelRangeOffsets_Callback(q0_15_t offsets[ARGUS_PIXELS_X][ARGUS_PIXELS_Y],
- *																 argus_mode_t mode)
+ *			status_t Argus_GetExternalPixelRangeOffsets_Callback(q0_15_t
+ *offsets[ARGUS_PIXELS_X][ARGUS_PIXELS_Y], argus_mode_t mode)
  *			{
  *				(void) mode; // Ignore mode; use same values for all modes.
  *				memset(offsets, 0, sizeof(q0_15_t) * ARGUS_PIXELS);
@@ -965,8 +950,7 @@ status_t Argus_ResetCalibrationPixelRangeOffsets(argus_hnd_t *hnd, argus_mode_t 
  * @param	mode Determines the current measurement mode; can be ignored if
  * 				 only a single measurement mode is utilized.
  *****************************************************************************/
-void Argus_GetExternalPixelRangeOffsets_Callback(q0_15_t offsets[ARGUS_PIXELS_X][ARGUS_PIXELS_Y],
-		argus_mode_t mode);
+void Argus_GetExternalPixelRangeOffsets_Callback(q0_15_t offsets[ARGUS_PIXELS_X][ARGUS_PIXELS_Y], argus_mode_t mode);
 
 /*!***************************************************************************
  * @brief 	Sets the sample time for the range offset calibration sequence.
@@ -1002,9 +986,8 @@ status_t Argus_GetCalibrationRangeOffsetSequenceSampleTime(argus_hnd_t *hnd, uin
  * @param	value The new pixel-to-pixel crosstalk compensation parameters.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetCalibrationCrosstalkPixel2Pixel(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		argus_cal_p2pxtalk_t const *value);
+status_t Argus_SetCalibrationCrosstalkPixel2Pixel(argus_hnd_t *hnd, argus_mode_t mode,
+						  argus_cal_p2pxtalk_t const *value);
 
 /*!***************************************************************************
  * @brief 	Gets the pixel-to-pixel crosstalk compensation parameters from a specified device.
@@ -1014,10 +997,7 @@ status_t Argus_SetCalibrationCrosstalkPixel2Pixel(argus_hnd_t *hnd,
  * @param	value The current pixel-to-pixel crosstalk compensation parameters.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetCalibrationCrosstalkPixel2Pixel(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		argus_cal_p2pxtalk_t *value);
-
+status_t Argus_GetCalibrationCrosstalkPixel2Pixel(argus_hnd_t *hnd, argus_mode_t mode, argus_cal_p2pxtalk_t *value);
 
 /*!***************************************************************************
  * @brief 	Sets the custom crosstalk vector table to a specified device.
@@ -1047,9 +1027,8 @@ status_t Argus_GetCalibrationCrosstalkPixel2Pixel(argus_hnd_t *hnd,
  * @param	value The new crosstalk vector table.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetCalibrationCrosstalkVectorTable(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		xtalk_t value[ARGUS_DFM_FRAME_COUNT][ARGUS_PIXELS_X][ARGUS_PIXELS_Y]);
+status_t Argus_SetCalibrationCrosstalkVectorTable(argus_hnd_t *hnd, argus_mode_t mode,
+						  xtalk_t value[ARGUS_DFM_FRAME_COUNT][ARGUS_PIXELS_X][ARGUS_PIXELS_Y]);
 
 /*!***************************************************************************
  * @brief 	Gets the custom crosstalk vector table from a specified device.
@@ -1071,9 +1050,8 @@ status_t Argus_SetCalibrationCrosstalkVectorTable(argus_hnd_t *hnd,
  * @param	value The current crosstalk vector table.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetCalibrationCrosstalkVectorTable(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		xtalk_t value[ARGUS_DFM_FRAME_COUNT][ARGUS_PIXELS_X][ARGUS_PIXELS_Y]);
+status_t Argus_GetCalibrationCrosstalkVectorTable(argus_hnd_t *hnd, argus_mode_t mode,
+						  xtalk_t value[ARGUS_DFM_FRAME_COUNT][ARGUS_PIXELS_X][ARGUS_PIXELS_Y]);
 
 /*!***************************************************************************
  * @brief 	Gets the factory calibrated default crosstalk vector table for the
@@ -1101,9 +1079,8 @@ status_t Argus_GetCalibrationCrosstalkVectorTable(argus_hnd_t *hnd,
  * @param	value The current total crosstalk vector table.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetCalibrationTotalCrosstalkVectorTable(argus_hnd_t *hnd,
-		argus_mode_t mode,
-		xtalk_t value[ARGUS_DFM_FRAME_COUNT][ARGUS_PIXELS_X][ARGUS_PIXELS_Y]);
+status_t Argus_GetCalibrationTotalCrosstalkVectorTable(
+	argus_hnd_t *hnd, argus_mode_t mode, xtalk_t value[ARGUS_DFM_FRAME_COUNT][ARGUS_PIXELS_X][ARGUS_PIXELS_Y]);
 
 /*!***************************************************************************
  * @brief 	Resets the crosstalk vector table for the specified device to the
@@ -1118,8 +1095,7 @@ status_t Argus_GetCalibrationTotalCrosstalkVectorTable(argus_hnd_t *hnd,
  * @param	mode The targeted measurement mode.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_ResetCalibrationCrosstalkVectorTable(argus_hnd_t *hnd,
-		argus_mode_t mode);
+status_t Argus_ResetCalibrationCrosstalkVectorTable(argus_hnd_t *hnd, argus_mode_t mode);
 
 /*!***************************************************************************
  * @brief 	Sets the sample time for the crosstalk calibration sequence.
@@ -1132,8 +1108,7 @@ status_t Argus_ResetCalibrationCrosstalkVectorTable(argus_hnd_t *hnd,
  * @param	value The new crosstalk calibration sequence sample time.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetCalibrationCrosstalkSequenceSampleTime(argus_hnd_t *hnd,
-		uint16_t value);
+status_t Argus_SetCalibrationCrosstalkSequenceSampleTime(argus_hnd_t *hnd, uint16_t value);
 
 /*!***************************************************************************
  * @brief 	Gets the sample time for the crosstalk calibration sequence.
@@ -1146,8 +1121,7 @@ status_t Argus_SetCalibrationCrosstalkSequenceSampleTime(argus_hnd_t *hnd,
  * @param	value The current crosstalk calibration sequence sample time.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetCalibrationCrosstalkSequenceSampleTime(argus_hnd_t *hnd,
-		uint16_t *value);
+status_t Argus_GetCalibrationCrosstalkSequenceSampleTime(argus_hnd_t *hnd, uint16_t *value);
 
 /*!***************************************************************************
  * @brief 	Sets the max. amplitude threshold for the crosstalk calibration sequence.
@@ -1162,8 +1136,7 @@ status_t Argus_GetCalibrationCrosstalkSequenceSampleTime(argus_hnd_t *hnd,
  * 					threshold value in UQ12.4 format.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetCalibrationCrosstalkSequenceAmplitudeThreshold(argus_hnd_t *hnd,
-		uq12_4_t value);
+status_t Argus_SetCalibrationCrosstalkSequenceAmplitudeThreshold(argus_hnd_t *hnd, uq12_4_t value);
 
 /*!***************************************************************************
  * @brief 	Gets the max. amplitude threshold for the crosstalk calibration sequence.
@@ -1177,8 +1150,7 @@ status_t Argus_SetCalibrationCrosstalkSequenceAmplitudeThreshold(argus_hnd_t *hn
  * @param	value The current max. amplitude threshold value in UQ12.4 format.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetCalibrationCrosstalkSequenceAmplitudeThreshold(argus_hnd_t *hnd,
-		uq12_4_t *value);
+status_t Argus_GetCalibrationCrosstalkSequenceAmplitudeThreshold(argus_hnd_t *hnd, uq12_4_t *value);
 
 /*!***************************************************************************
  * @brief 	Sets the sample count for the substrate voltage calibration sequence.
@@ -1187,8 +1159,7 @@ status_t Argus_GetCalibrationCrosstalkSequenceAmplitudeThreshold(argus_hnd_t *hn
  * @param	value The new substrate voltage calibration sequence sample count.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetCalibrationVsubSequenceSampleCount(argus_hnd_t *hnd,
-		uint16_t value);
+status_t Argus_SetCalibrationVsubSequenceSampleCount(argus_hnd_t *hnd, uint16_t value);
 
 /*!***************************************************************************
  * @brief 	Gets the sample count for the substrate voltage calibration sequence.
@@ -1197,8 +1168,7 @@ status_t Argus_SetCalibrationVsubSequenceSampleCount(argus_hnd_t *hnd,
  * @param	value The current substrate voltage calibration sequence sample count.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetCalibrationVsubSequenceSampleCount(argus_hnd_t *hnd,
-		uint16_t *value);
+status_t Argus_GetCalibrationVsubSequenceSampleCount(argus_hnd_t *hnd, uint16_t *value);
 
 /*!***************************************************************************
  * @brief 	A callback that returns the external crosstalk vector table.
@@ -1216,8 +1186,8 @@ status_t Argus_GetCalibrationVsubSequenceSampleCount(argus_hnd_t *hnd,
  *			Example usage:
  *
  *			@code
- *			status_t Argus_GetExternalCrosstalkVectorTable_Callback(xtalk_t xtalk[ARGUS_DFM_FRAME_COUNT][ARGUS_PIXELS_X][ARGUS_PIXELS_Y],
- *																	argus_mode_t mode)
+ *			status_t Argus_GetExternalCrosstalkVectorTable_Callback(xtalk_t
+ *xtalk[ARGUS_DFM_FRAME_COUNT][ARGUS_PIXELS_X][ARGUS_PIXELS_Y], argus_mode_t mode)
  *			{
  *				(void) mode; // Ignore mode; use same values for all modes.
  *				memset(&xtalk, 0, sizeof(xtalk));
@@ -1235,10 +1205,8 @@ status_t Argus_GetCalibrationVsubSequenceSampleCount(argus_hnd_t *hnd,
  * @param	mode Determines the current measurement mode; can be ignored if
  * 				   only a single measurement mode is utilized.
  *****************************************************************************/
-void Argus_GetExternalCrosstalkVectorTable_Callback(xtalk_t
-		xtalk[ARGUS_DFM_FRAME_COUNT][ARGUS_PIXELS_X][ARGUS_PIXELS_Y],
-		argus_mode_t mode);
-
+void Argus_GetExternalCrosstalkVectorTable_Callback(
+	xtalk_t xtalk[ARGUS_DFM_FRAME_COUNT][ARGUS_PIXELS_X][ARGUS_PIXELS_Y], argus_mode_t mode);
 
 #ifdef __cplusplus
 }

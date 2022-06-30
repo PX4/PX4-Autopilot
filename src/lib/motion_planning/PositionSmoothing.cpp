@@ -32,44 +32,33 @@
  ****************************************************************************/
 
 #include "PositionSmoothing.hpp"
-#include "TrajectoryConstraints.hpp"
+
 #include <mathlib/mathlib.h>
-#include <matrix/matrix/math.hpp>
+
 #include <matrix/matrix/helper_functions.hpp>
+#include <matrix/matrix/math.hpp>
 
+#include "TrajectoryConstraints.hpp"
 
-void PositionSmoothing::_generateSetpoints(
-	const Vector3f &position,
-	const Vector3f(&waypoints)[3],
-	bool is_single_waypoint,
-	const Vector3f &feedforward_velocity,
-	float delta_time,
-	bool force_zero_velocity_setpoint,
-	PositionSmoothingSetpoints &out_setpoints)
-{
+void PositionSmoothing::_generateSetpoints(const Vector3f &position, const Vector3f (&waypoints)[3],
+					   bool is_single_waypoint, const Vector3f &feedforward_velocity,
+					   float delta_time, bool force_zero_velocity_setpoint,
+					   PositionSmoothingSetpoints &out_setpoints) {
 	Vector3f velocity_setpoint{0.f, 0.f, 0.f};
 
 	if (!force_zero_velocity_setpoint) {
-		velocity_setpoint = _generateVelocitySetpoint(position, waypoints, is_single_waypoint, feedforward_velocity);
+		velocity_setpoint =
+			_generateVelocitySetpoint(position, waypoints, is_single_waypoint, feedforward_velocity);
 	}
 
 	out_setpoints.unsmoothed_velocity = velocity_setpoint;
 
-	_generateTrajectory(
-		position,
-		velocity_setpoint,
-		delta_time,
-		out_setpoints
-	);
+	_generateTrajectory(position, velocity_setpoint, delta_time, out_setpoints);
 }
 
-
-bool PositionSmoothing::_isTurning(const Vector3f &target) const
-{
-	const Vector2f vel_traj(_trajectory[0].getCurrentVelocity(),
-				_trajectory[1].getCurrentVelocity());
-	const Vector2f pos_traj(_trajectory[0].getCurrentPosition(),
-				_trajectory[1].getCurrentPosition());
+bool PositionSmoothing::_isTurning(const Vector3f &target) const {
+	const Vector2f vel_traj(_trajectory[0].getCurrentVelocity(), _trajectory[1].getCurrentVelocity());
+	const Vector2f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition());
 	const Vector2f target_xy(target);
 	const Vector2f u_vel_traj = vel_traj.unit_or_zero();
 	const Vector2f pos_to_target = Vector2f(target_xy - pos_traj);
@@ -79,15 +68,11 @@ bool PositionSmoothing::_isTurning(const Vector3f &target) const
 	// and the direction to the target is greater than 10 degrees, the
 	// velocity is large enough and the drone isn't in the acceptance
 	// radius of the last WP.
-	return (vel_traj.longerThan(0.2f)
-		&& cos_align < 0.98f
-		&& pos_to_target.longerThan(_target_acceptance_radius));
+	return (vel_traj.longerThan(0.2f) && cos_align < 0.98f && pos_to_target.longerThan(_target_acceptance_radius));
 }
 
-float PositionSmoothing::_getMaxXYSpeed(const Vector3f(&waypoints)[3]) const
-{
-	Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
-			  _trajectory[1].getCurrentPosition(),
+float PositionSmoothing::_getMaxXYSpeed(const Vector3f (&waypoints)[3]) const {
+	Vector3f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition(),
 			  _trajectory[2].getCurrentPosition());
 
 	math::trajectory::VehicleDynamicLimits config;
@@ -98,35 +83,32 @@ float PositionSmoothing::_getMaxXYSpeed(const Vector3f(&waypoints)[3]) const
 	config.max_speed_xy = _cruise_speed;
 	config.max_acc_xy_radius_scale = _horizontal_trajectory_gain;
 
-	// constrain velocity to go to the position setpoint first if the position setpoint has been modified by an external source
-	// (eg. Obstacle Avoidance)
+	// constrain velocity to go to the position setpoint first if the position setpoint has been modified by an
+	// external source (eg. Obstacle Avoidance)
 
 	Vector3f pos_to_waypoints[3] = {pos_traj, waypoints[1], waypoints[2]};
 
 	return math::trajectory::computeXYSpeedFromWaypoints<3>(pos_to_waypoints, config);
 }
 
-float PositionSmoothing::_getMaxZSpeed(const Vector3f(&waypoints)[3]) const
-{
-
+float PositionSmoothing::_getMaxZSpeed(const Vector3f (&waypoints)[3]) const {
 	const auto &target = waypoints[1];
 
-	Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
-			  _trajectory[1].getCurrentPosition(),
+	Vector3f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition(),
 			  _trajectory[2].getCurrentPosition());
 
 	const float distance_start_target = fabs(target(2) - pos_traj(2));
 	const float arrival_z_speed = 0.f;
 
-	float max_speed = math::min(_trajectory[2].getMaxVel(), math::trajectory::computeMaxSpeedFromDistance(
-					    _trajectory[2].getMaxJerk(), _trajectory[2].getMaxAccel(),
-					    distance_start_target, arrival_z_speed));
+	float max_speed = math::min(
+		_trajectory[2].getMaxVel(),
+		math::trajectory::computeMaxSpeedFromDistance(_trajectory[2].getMaxJerk(), _trajectory[2].getMaxAccel(),
+							      distance_start_target, arrival_z_speed));
 
 	return max_speed;
 }
 
-const Vector3f PositionSmoothing::_getCrossingPoint(const Vector3f &position, const Vector3f(&waypoints)[3]) const
-{
+const Vector3f PositionSmoothing::_getCrossingPoint(const Vector3f &position, const Vector3f (&waypoints)[3]) const {
 	const auto &target = waypoints[1];
 
 	if (!_isTurning(target)) {
@@ -138,10 +120,8 @@ const Vector3f PositionSmoothing::_getCrossingPoint(const Vector3f &position, co
 	return {l1_point(0), l1_point(1), target(2)};
 }
 
-const Vector2f PositionSmoothing::_getL1Point(const Vector3f &position, const Vector3f(&waypoints)[3]) const
-{
-	const Vector2f pos_traj(_trajectory[0].getCurrentPosition(),
-				_trajectory[1].getCurrentPosition());
+const Vector2f PositionSmoothing::_getL1Point(const Vector3f &position, const Vector3f (&waypoints)[3]) const {
+	const Vector2f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition());
 	const Vector2f u_prev_to_target = Vector2f(waypoints[1] - waypoints[0]).unit_or_zero();
 	const Vector2f prev_to_pos(pos_traj - Vector2f(waypoints[0]));
 	const Vector2f prev_to_closest(u_prev_to_target * (prev_to_pos * u_prev_to_target));
@@ -164,14 +144,14 @@ const Vector2f PositionSmoothing::_getL1Point(const Vector3f &position, const Ve
 	return l1_point;
 }
 
-const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &position, const Vector3f(&waypoints)[3],
-		bool is_single_waypoint,
-		const Vector3f &feedforward_velocity_setpoint)
-{
+const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &position, const Vector3f (&waypoints)[3],
+							    bool is_single_waypoint,
+							    const Vector3f &feedforward_velocity_setpoint) {
 	// Interface: A valid position setpoint generates a velocity target using conservative motion constraints.
 	// If a velocity is specified, that is used as a feedforward to track the position setpoint
 	// (ie. it assumes the position setpoint is moving at the specified velocity)
-	// If the position setpoints are set to NAN, the values in the velocity setpoints are used as velocity targets: nothing to do here.
+	// If the position setpoints are set to NAN, the values in the velocity setpoints are used as velocity targets:
+	// nothing to do here.
 	auto &target = waypoints[1];
 	const bool xy_target_valid = PX4_ISFINITE(target(0)) && PX4_ISFINITE(target(1));
 	const bool z_target_valid = PX4_ISFINITE(target(2));
@@ -180,8 +160,7 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 
 	if (xy_target_valid && z_target_valid) {
 		// Use 3D position setpoint to generate a 3D velocity setpoint
-		Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
-				  _trajectory[1].getCurrentPosition(),
+		Vector3f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition(),
 				  _trajectory[2].getCurrentPosition());
 		const Vector3f crossing_point = is_single_waypoint ? target : _getCrossingPoint(position, waypoints);
 		const Vector3f u_pos_traj_to_dest{(crossing_point - pos_traj).unit_or_zero()};
@@ -217,7 +196,8 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 
 		// Get various path specific vectors
 		Vector2f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition());
-		Vector2f crossing_point = is_single_waypoint ? Vector2f(target) : Vector2f(_getCrossingPoint(position, waypoints));
+		Vector2f crossing_point =
+			is_single_waypoint ? Vector2f(target) : Vector2f(_getCrossingPoint(position, waypoints));
 		Vector2f pos_traj_to_dest_xy = crossing_point - pos_traj;
 		Vector2f u_pos_traj_to_dest_xy(pos_traj_to_dest_xy.unit_or_zero());
 
@@ -262,15 +242,10 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 	return velocity_setpoint;
 }
 
-
-void PositionSmoothing::_generateTrajectory(
-	const Vector3f &position,
-	const Vector3f &velocity_setpoint,
-	float delta_time,
-	PositionSmoothingSetpoints &out_setpoints)
-{
-	if (!PX4_ISFINITE(velocity_setpoint(0)) || !PX4_ISFINITE(velocity_setpoint(1))
-	    || !PX4_ISFINITE(velocity_setpoint(2))) {
+void PositionSmoothing::_generateTrajectory(const Vector3f &position, const Vector3f &velocity_setpoint,
+					    float delta_time, PositionSmoothingSetpoints &out_setpoints) {
+	if (!PX4_ISFINITE(velocity_setpoint(0)) || !PX4_ISFINITE(velocity_setpoint(1)) ||
+	    !PX4_ISFINITE(velocity_setpoint(2))) {
 		return;
 	}
 

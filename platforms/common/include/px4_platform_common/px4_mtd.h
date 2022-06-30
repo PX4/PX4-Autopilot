@@ -39,12 +39,12 @@ __BEGIN_DECLS
 
 typedef struct {
 	struct mtd_dev_s *mtd_dev;
-	int              *partition_block_counts;
-	int              *partition_types;
-	const char       **partition_names;
+	int *partition_block_counts;
+	int *partition_types;
+	const char **partition_names;
 	struct mtd_dev_s **part_dev;
-	uint32_t         devid;
-	unsigned         n_partitions_current;
+	uint32_t devid;
+	unsigned n_partitions_current;
 } mtd_instance_s;
 
 /*
@@ -66,16 +66,14 @@ __EXPORT mtd_instance_s *px4_mtd_get_instances(unsigned int *count);
   Get device complete geometry or a device
  */
 
-
-__EXPORT int  px4_mtd_get_geometry(const mtd_instance_s *instance, unsigned long *blocksize, unsigned long *erasesize,
-				   unsigned long *neraseblocks, unsigned *blkpererase, unsigned *nblocks,
-				   unsigned *partsize);
+__EXPORT int px4_mtd_get_geometry(const mtd_instance_s *instance, unsigned long *blocksize, unsigned long *erasesize,
+				  unsigned long *neraseblocks, unsigned *blkpererase, unsigned *nblocks,
+				  unsigned *partsize);
 /*
   Get size of a parttion on an instance.
  */
 __EXPORT ssize_t px4_mtd_get_partition_size(const mtd_instance_s *instance, const char *partname);
 
-FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev,
-		uint8_t address);
+FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev, uint8_t address);
 
 __END_DECLS

@@ -63,22 +63,17 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
-
-#include <nuttx/board.h>
 #include <arch/board/board.h>
+#include <debug.h>
+#include <nuttx/board.h>
+#include <nuttx/config.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "arm_arch.h"
 #include "arm_internal.h"
-
-#include "s32k1xx_pin.h"
 #include "board_config.h"
-
-#include <arch/board/board.h>
+#include "s32k1xx_pin.h"
 
 #ifdef CONFIG_ARCH_LEDS
 
@@ -88,11 +83,11 @@
 
 /* Summary of all possible settings */
 
-#define LED_NOCHANGE      0 /* LED_IRQSENABLED, LED_INIRQ, LED_SIGNAL, LED_ASSERTION */
-#define LED_OFF_OFF_OFF   1 /* LED_STARTED */
-#define LED_OFF_OFF_ON    2 /* LED_HEAPALLOCATE */
-#define LED_OFF_ON_OFF    3 /* LED_STACKCREATED */
-#define LED_ON_OFF_OFF    4 /* LED_PANIC */
+#define LED_NOCHANGE 0    /* LED_IRQSENABLED, LED_INIRQ, LED_SIGNAL, LED_ASSERTION */
+#define LED_OFF_OFF_OFF 1 /* LED_STARTED */
+#define LED_OFF_OFF_ON 2  /* LED_HEAPALLOCATE */
+#define LED_OFF_ON_OFF 3  /* LED_STACKCREATED */
+#define LED_ON_OFF_OFF 4  /* LED_PANIC */
 
 /****************************************************************************
  * Public Functions
@@ -102,8 +97,7 @@
  * Name: board_autoled_initialize
  ****************************************************************************/
 
-void board_autoled_initialize(void)
-{
+void board_autoled_initialize(void) {
 	/* Configure LED GPIOs for output */
 
 	s32k1xx_pinconfig(GPIO_LED_R);
@@ -115,29 +109,28 @@ void board_autoled_initialize(void)
  * Name: board_autoled_on
  ****************************************************************************/
 
-void board_autoled_on(int led)
-{
+void board_autoled_on(int led) {
 	if (led != LED_NOCHANGE) {
-		bool redon   = false;
+		bool redon = false;
 		bool greenon = false;
-		bool blueon  = false;
+		bool blueon = false;
 
 		switch (led) {
-		default:
-		case LED_OFF_OFF_OFF:
-			break;
+			default:
+			case LED_OFF_OFF_OFF:
+				break;
 
-		case LED_OFF_OFF_ON:
-			blueon = true;
-			break;
+			case LED_OFF_OFF_ON:
+				blueon = true;
+				break;
 
-		case LED_OFF_ON_OFF:
-			greenon = true;
-			break;
+			case LED_OFF_ON_OFF:
+				greenon = true;
+				break;
 
-		case LED_ON_OFF_OFF:
-			redon = true;
-			break;
+			case LED_ON_OFF_OFF:
+				redon = true;
+				break;
 		}
 
 		s32k1xx_gpiowrite(GPIO_LED_R, redon);
@@ -150,8 +143,7 @@ void board_autoled_on(int led)
  * Name: board_autoled_off
  ****************************************************************************/
 
-void board_autoled_off(int led)
-{
+void board_autoled_off(int led) {
 	if (led == LED_ON_OFF_OFF) {
 		s32k1xx_gpiowrite(GPIO_LED_R, true);
 		s32k1xx_gpiowrite(GPIO_LED_G, false);

@@ -64,7 +64,8 @@ PARAM_DEFINE_FLOAT(CP_DIST, -1.0f);
 PARAM_DEFINE_FLOAT(CP_DELAY, 0.4f);
 
 /**
- * Angle left/right from the commanded setpoint by which the collision prevention algorithm can choose to change the setpoint direction
+ * Angle left/right from the commanded setpoint by which the collision prevention algorithm can choose to change the
+ * setpoint direction
  *
  * Only used in Position mode.
  *

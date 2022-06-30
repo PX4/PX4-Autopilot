@@ -38,9 +38,10 @@
  * Included Files
  ****************************************************************************/
 
+#include "crc.h"
+
 #include <stdint.h>
 #include <stdlib.h>
-#include "crc.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -86,11 +87,10 @@
  *
  ****************************************************************************/
 
-uint16_t crc16_add(uint16_t crc, uint8_t value)
-{
+uint16_t crc16_add(uint16_t crc, uint8_t value) {
 	uint32_t i;
 	const uint16_t poly = 0x1021u;
-	crc ^= (uint16_t)((uint16_t) value << 8u);
+	crc ^= (uint16_t)((uint16_t)value << 8u);
 
 	for (i = 0; i < 8; i++) {
 		if (crc & (1u << 15u)) {
@@ -121,8 +121,7 @@ uint16_t crc16_add(uint16_t crc, uint8_t value)
  *
  ****************************************************************************/
 
-uint16_t crc16_signature(uint16_t initial, size_t length, const uint8_t *bytes)
-{
+uint16_t crc16_signature(uint16_t initial, size_t length, const uint8_t *bytes) {
 	size_t i;
 
 	for (i = 0u; i < length; i++) {
@@ -148,12 +147,11 @@ uint16_t crc16_signature(uint16_t initial, size_t length, const uint8_t *bytes)
  *
  ****************************************************************************/
 
-uint32_t crc32_signature(uint32_t acc, size_t length, const uint8_t *bytes)
-{
+uint32_t crc32_signature(uint32_t acc, size_t length, const uint8_t *bytes) {
 	size_t i;
 	const uint32_t poly = 0xedb88320u;
-	const uint8_t  bits = 8u;
-	uint8_t        w = bits;
+	const uint8_t bits = 8u;
+	uint8_t w = bits;
 
 	for (i = 0u; i < length; i++) {
 		acc ^= bytes[i];
@@ -168,7 +166,6 @@ uint32_t crc32_signature(uint32_t acc, size_t length, const uint8_t *bytes)
 
 	return acc;
 }
-
 
 /****************************************************************************
  * Name: crc64_add_word
@@ -187,15 +184,14 @@ uint32_t crc32_signature(uint32_t acc, size_t length, const uint8_t *bytes)
  *
  ****************************************************************************/
 __EXPORT
-uint64_t crc64_add_word(uint64_t crc, uint32_t value)
-{
+uint64_t crc64_add_word(uint64_t crc, uint32_t value) {
 	uint32_t i, j;
 	uint8_t byte;
 	const uint64_t poly = 0x42F0E1EBA9EA3693ull;
 
 	for (j = 0; j < 4; j++) {
-		byte = ((uint8_t *) &value)[j];
-		crc ^= (uint64_t) byte << 56u;
+		byte = ((uint8_t *)&value)[j];
+		crc ^= (uint64_t)byte << 56u;
 
 		for (i = 0; i < 8; i++) {
 			if (crc & (1ull << 63u)) {

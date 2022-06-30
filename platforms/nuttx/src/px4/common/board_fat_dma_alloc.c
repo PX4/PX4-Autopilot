@@ -37,15 +37,15 @@
  * Provide the board dma allocator interface.
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform/board_dma_alloc.h>
 #include <board_config.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform_common/px4_config.h>
 
 #if defined(CONFIG_FAT_DMAMEMORY)
 
-#  if !defined(CONFIG_GRAN)
-#    error microSD DMA support requires CONFIG_GRAN and CONFIG_FAT_DMAMEMORY
-#  endif
+#if !defined(CONFIG_GRAN)
+#error microSD DMA support requires CONFIG_GRAN and CONFIG_FAT_DMAMEMORY
+#endif
 
 /*
  * DMA-aware allocator stubs for the FAT filesystem.
@@ -54,16 +54,8 @@
 __EXPORT void *fat_dma_alloc(size_t size);
 __EXPORT void fat_dma_free(FAR void *memory, size_t size);
 
-void *
-fat_dma_alloc(size_t size)
-{
-	return board_dma_alloc(size);
-}
+void *fat_dma_alloc(size_t size) { return board_dma_alloc(size); }
 
-void
-fat_dma_free(FAR void *memory, size_t size)
-{
-	return board_dma_free(memory, size);
-}
+void fat_dma_free(FAR void *memory, size_t size) { return board_dma_free(memory, size); }
 
 #endif /* CONFIG_FAT_DMAMEMORY && CONFIG_GRAN */

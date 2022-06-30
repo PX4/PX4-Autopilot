@@ -36,8 +36,7 @@
 
 #include <drivers/drv_hrt.h>
 
-class MavlinkStreamTimesync : public MavlinkStream
-{
+class MavlinkStreamTimesync : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamTimesync(mavlink); }
 
@@ -47,20 +46,16 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_TIMESYNC_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
+	unsigned get_size() override { return MAVLINK_MSG_ID_TIMESYNC_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES; }
 
 private:
 	explicit MavlinkStreamTimesync(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	bool send() override
-	{
+	bool send() override {
 		mavlink_timesync_t msg{};
 
 		msg.tc1 = 0;
-		msg.ts1 = hrt_absolute_time() * 1000; // boot time in nanoseconds
+		msg.ts1 = hrt_absolute_time() * 1000;  // boot time in nanoseconds
 
 		mavlink_msg_timesync_send_struct(_mavlink->get_channel(), &msg);
 
@@ -68,4 +63,4 @@ private:
 	}
 };
 
-#endif // TIMESYNC_HPP
+#endif  // TIMESYNC_HPP

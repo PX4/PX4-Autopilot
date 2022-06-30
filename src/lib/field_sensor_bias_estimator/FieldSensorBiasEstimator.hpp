@@ -34,14 +34,16 @@
 /**
  * @file FieldSensorBiasEstimator.hpp
  *
- * Estimator for the magnetometer/accelerometer bias calibration parameters to run online with the help of Gyroscope data.
+ * Estimator for the magnetometer/accelerometer bias calibration parameters to run online with the help of Gyroscope
+ * data.
  *
  * @author Matthias Grob	<maetugr@gmail.com>
  * @author Mathieu Bresciani	<brescianimathieu@gmail.com>
  *
  * Publication documenting the algorithm:
- * Adaptive Estimation of Measurement Bias in Three-Dimensional Field Sensors with Angular-Rate Sensors: Theory and Comparative Experimental Evaluation
- * Giancarlo Troni and Louis L. Whitcomb, Department of Mechanical Engineering, Johns Hopkins University, Baltimore, Maryland 21218, USA
+ * Adaptive Estimation of Measurement Bias in Three-Dimensional Field Sensors with Angular-Rate Sensors: Theory and
+ * Comparative Experimental Evaluation Giancarlo Troni and Louis L. Whitcomb, Department of Mechanical Engineering,
+ * Johns Hopkins University, Baltimore, Maryland 21218, USA
  *
  * http://www.roboticsproceedings.org/rss09/p50.pdf
  */
@@ -50,8 +52,7 @@
 
 #include <matrix/matrix/math.hpp>
 
-class FieldSensorBiasEstimator
-{
+class FieldSensorBiasEstimator {
 public:
 	FieldSensorBiasEstimator() = default;
 	~FieldSensorBiasEstimator() = default;
@@ -67,8 +68,7 @@ public:
 	 * @param field biased field sensor data
 	 * @param dt time in seconds since the last update
 	 */
-	void updateEstimate(const matrix::Vector3f &gyro, const matrix::Vector3f &field, const float dt)
-	{
+	void updateEstimate(const matrix::Vector3f &gyro, const matrix::Vector3f &field, const float dt) {
 		const matrix::Vector3f field_pred = _field_prev + (-gyro % (_field_prev - _state_bias)) * dt;
 		const matrix::Vector3f field_innov = field - field_pred;
 		_state_bias += _learning_gain * (-gyro % field_innov) * dt;

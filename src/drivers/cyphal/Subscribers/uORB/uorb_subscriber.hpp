@@ -34,71 +34,63 @@
 /**
  * @file uorb_template.hpp
  *
-* Defines generic, templatized uORB over UAVCANv1 publisher
+ * Defines generic, templatized uORB over UAVCANv1 publisher
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
 #pragma once
 
-#include "../DynamicPortSubscriber.hpp"
-
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_outputs.h>
-
 #include <uORB/topics/sensor_gps.h>
 
+#include <uORB/PublicationMulti.hpp>
+
+#include "../DynamicPortSubscriber.hpp"
+
 template <class T>
-class uORB_over_UAVCAN_Subscriber : public UavcanDynamicPortSubscriber
-{
+class uORB_over_UAVCAN_Subscriber : public UavcanDynamicPortSubscriber {
 public:
 	uORB_over_UAVCAN_Subscriber(CanardHandle &handle, UavcanParamManager &pmgr, const orb_metadata *meta,
-				    uint8_t instance = 0) :
-		UavcanDynamicPortSubscriber(handle, pmgr, "uorb.", meta->o_name, instance),
-		_uorb_meta{meta},
-		_uorb_pub(meta)
-	{};
+				    uint8_t instance = 0)
+		: UavcanDynamicPortSubscriber(handle, pmgr, "uorb.", meta->o_name, instance),
+		  _uorb_meta{meta},
+		  _uorb_pub(meta){};
 
 	~uORB_over_UAVCAN_Subscriber() override = default;
 
-	void subscribe() override
-	{
+	void subscribe() override {
 		T *data = NULL;
 
 		// Subscribe to messages uORB sensor_gps payload over UAVCAN
-		_canard_handle.RxSubscribe(CanardTransferKindMessage,
-					   _subj_sub._canard_sub.port_id,
-					   get_payload_size(data),
-					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC * 10000,
+		_canard_handle.RxSubscribe(CanardTransferKindMessage, _subj_sub._canard_sub.port_id,
+					   get_payload_size(data), CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC * 10000,
 					   &_subj_sub._canard_sub);
 	};
 
-	void callback(const CanardRxTransfer &receive) override
-	{
+	void callback(const CanardRxTransfer &receive) override {
 		T *data = (T *)receive.payload;
 
 		if (receive.payload_size == get_payload_size(data)) {
-
 			/* Data type specific conversion if necceary  */
 			convert(data);
 
 			_uorb_pub.publish(*data);
 
 		} else {
-			PX4_ERR("uORB over UAVCAN %s payload size mismatch got %d expected %d",
-				_subj_sub._subject_name, receive.payload_size, get_payload_size(data));
+			PX4_ERR("uORB over UAVCAN %s payload size mismatch got %d expected %d", _subj_sub._subject_name,
+				receive.payload_size, get_payload_size(data));
 		}
 	};
 
 protected:
 	// Default payload-size function -- can specialize in derived class
-	size_t get_payload_size(const T *msg)
-	{
+	size_t get_payload_size(const T *msg) {
 		(void)msg;
 		return sizeof(T);
 	};
 
-	void convert(T *data) {};
+	void convert(T *data){};
 
 private:
 	const orb_metadata *_uorb_meta;
@@ -107,8 +99,7 @@ private:
 
 /* ---- Specializations of get_payload_size() to reduce wasted bandwidth where possible ---- */
 
-
 /* ---- Specializations of convert() to convert incompatbile data, instance no. timestamp ---- */
 
-template<>
+template <>
 void uORB_over_UAVCAN_Subscriber<sensor_gps_s>::convert(sensor_gps_s *data);

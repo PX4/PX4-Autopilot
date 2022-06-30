@@ -33,23 +33,23 @@
 
 #pragma once
 
+#include <battery/battery.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
+#include <uORB/topics/esc_status.h>
+#include <uORB/topics/parameter_update.h>
+
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/esc_status.h>
-#include <uORB/topics/parameter_update.h>
-#include <battery/battery.h>
+#include <uORB/SubscriptionInterval.hpp>
 
 using namespace time_literals;
 
-class EscBattery : public ModuleBase<EscBattery>, public ModuleParams, public px4::WorkItem
-{
+class EscBattery : public ModuleBase<EscBattery>, public ModuleParams, public px4::WorkItem {
 public:
 	EscBattery();
 	~EscBattery() = default;
@@ -73,6 +73,6 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::SubscriptionCallbackWorkItem _esc_status_sub{this, ORB_ID(esc_status)};
 
-	static constexpr uint32_t ESC_BATTERY_INTERVAL_US = 20_ms; // assume higher frequency esc feedback than 50Hz
+	static constexpr uint32_t ESC_BATTERY_INTERVAL_US = 20_ms;  // assume higher frequency esc feedback than 50Hz
 	Battery _battery;
 };

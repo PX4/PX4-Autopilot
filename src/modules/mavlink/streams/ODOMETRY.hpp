@@ -36,8 +36,7 @@
 
 #include <uORB/topics/vehicle_odometry.h>
 
-class MavlinkStreamOdometry : public MavlinkStream
-{
+class MavlinkStreamOdometry : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamOdometry(mavlink); }
 
@@ -47,10 +46,10 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		if (_mavlink->odometry_loopback_enabled()) {
-			return _vodom_sub.advertised() ? MAVLINK_MSG_ID_ODOMETRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+			return _vodom_sub.advertised() ? MAVLINK_MSG_ID_ODOMETRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+						       : 0;
 
 		} else {
 			return _odom_sub.advertised() ? MAVLINK_MSG_ID_ODOMETRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
@@ -63,8 +62,7 @@ private:
 	uORB::Subscription _odom_sub{ORB_ID(vehicle_odometry)};
 	uORB::Subscription _vodom_sub{ORB_ID(vehicle_visual_odometry)};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_odometry_s odom;
 		// check if it is to send visual odometry loopback or not
 		bool odom_updated = false;
@@ -110,25 +108,25 @@ private:
 			msg.q[3] = odom.q[3];
 
 			switch (odom.velocity_frame) {
-			case vehicle_odometry_s::BODY_FRAME_FRD:
-				msg.vx = odom.vx;
-				msg.vy = odom.vy;
-				msg.vz = odom.vz;
-				break;
+				case vehicle_odometry_s::BODY_FRAME_FRD:
+					msg.vx = odom.vx;
+					msg.vy = odom.vy;
+					msg.vz = odom.vz;
+					break;
 
-			case vehicle_odometry_s::LOCAL_FRAME_FRD:
-			case vehicle_odometry_s::LOCAL_FRAME_NED:
-				// Body frame to local frame
-				const matrix::Dcmf R_body_to_local(matrix::Quatf(odom.q));
+				case vehicle_odometry_s::LOCAL_FRAME_FRD:
+				case vehicle_odometry_s::LOCAL_FRAME_NED:
+					// Body frame to local frame
+					const matrix::Dcmf R_body_to_local(matrix::Quatf(odom.q));
 
-				// Rotate linear velocity from local to body frame
-				const matrix::Vector3f linvel_body(R_body_to_local.transpose() *
-								   matrix::Vector3f(odom.vx, odom.vy, odom.vz));
+					// Rotate linear velocity from local to body frame
+					const matrix::Vector3f linvel_body(R_body_to_local.transpose() *
+									   matrix::Vector3f(odom.vx, odom.vy, odom.vz));
 
-				msg.vx = linvel_body(0);
-				msg.vy = linvel_body(1);
-				msg.vz = linvel_body(2);
-				break;
+					msg.vx = linvel_body(0);
+					msg.vy = linvel_body(1);
+					msg.vz = linvel_body(2);
+					break;
 			}
 
 			// Current body rates
@@ -139,14 +137,17 @@ private:
 			// get the covariance matrix size
 
 			// pose_covariance
-			static constexpr size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
+			static constexpr size_t POS_URT_SIZE =
+				sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
 			static_assert(POS_URT_SIZE == (sizeof(msg.pose_covariance) / sizeof(msg.pose_covariance[0])),
 				      "Odometry Pose Covariance matrix URT array size mismatch");
 
 			// velocity_covariance
-			static constexpr size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
-			static_assert(VEL_URT_SIZE == (sizeof(msg.velocity_covariance) / sizeof(msg.velocity_covariance[0])),
-				      "Odometry Velocity Covariance matrix URT array size mismatch");
+			static constexpr size_t VEL_URT_SIZE =
+				sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
+			static_assert(
+				VEL_URT_SIZE == (sizeof(msg.velocity_covariance) / sizeof(msg.velocity_covariance[0])),
+				"Odometry Velocity Covariance matrix URT array size mismatch");
 
 			// copy pose covariances
 			for (size_t i = 0; i < POS_URT_SIZE; i++) {
@@ -154,7 +155,7 @@ private:
 			}
 
 			// copy velocity covariances
-			//TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
+			// TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
 			for (size_t i = 0; i < VEL_URT_SIZE; i++) {
 				msg.velocity_covariance[i] = odom.velocity_covariance[i];
 			}
@@ -170,4 +171,4 @@ private:
 	}
 };
 
-#endif // ODOMETRY_HPP
+#endif  // ODOMETRY_HPP

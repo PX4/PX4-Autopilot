@@ -36,16 +36,16 @@
  * Run this test only using make tests TESTFILTER=pid_design
  */
 
-#include <gtest/gtest.h>
-#include <matrix/matrix/math.hpp>
-
 #include "pid_design.hpp"
+
+#include <gtest/gtest.h>
+
+#include <matrix/matrix/math.hpp>
 
 using namespace pid_design;
 using namespace matrix;
 
-TEST(PidDesignTest, testImpl)
-{
+TEST(PidDesignTest, testImpl) {
 	const Vector3f num(.0098f, -0.162f, .147f);
 	const Vector3f den(1.f, -1.814f, .822f);
 	const float dt = 0.004f;

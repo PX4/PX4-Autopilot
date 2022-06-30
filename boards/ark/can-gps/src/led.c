@@ -37,30 +37,26 @@
  * LED backend.
  */
 
-#include <px4_platform_common/px4_config.h>
-
-#include <stdbool.h>
-
-#include "chip.h"
-#include "stm32_gpio.h"
-#include "board_config.h"
-
-#include <nuttx/board.h>
-#include <arch/board/board.h>
-
 #include "led.h"
 
-#define TMR_BASE        STM32_TIM1_BASE
-#define TMR_FREQUENCY   STM32_APB2_TIM1_CLKIN
-#define TMR_REG(o)      (TMR_BASE+(o))
+#include <arch/board/board.h>
+#include <nuttx/board.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
 
-void rgb_led(int r, int g, int b, int freqs)
-{
+#include "board_config.h"
+#include "chip.h"
+#include "stm32_gpio.h"
 
+#define TMR_BASE STM32_TIM1_BASE
+#define TMR_FREQUENCY STM32_APB2_TIM1_CLKIN
+#define TMR_REG(o) (TMR_BASE + (o))
+
+void rgb_led(int r, int g, int b, int freqs) {
 	long fosc = TMR_FREQUENCY;
 	long prescale = 2048;
 	long p1s = fosc / prescale;
-	long p0p5s  = p1s / 2;
+	long p0p5s = p1s / 2;
 	uint16_t val;
 	static bool once = 0;
 
@@ -84,14 +80,14 @@ void rgb_led(int r, int g, int b, int freqs)
 
 		putreg16(ATIM_CR1_CEN | ATIM_CR1_ARPE, TMR_REG(STM32_BTIM_CR1_OFFSET));
 
-
 		putreg16((ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC1M_SHIFT) | ATIM_CCMR1_OC1PE |
-			 (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC2M_SHIFT) | ATIM_CCMR1_OC2PE, TMR_REG(STM32_GTIM_CCMR1_OFFSET));
-		putreg16((ATIM_CCMR_MODE_PWM1 << ATIM_CCMR2_OC3M_SHIFT) | ATIM_CCMR2_OC3PE, TMR_REG(STM32_GTIM_CCMR2_OFFSET));
-		putreg16(ATIM_CCER_CC3E | ATIM_CCER_CC3P |
-			 ATIM_CCER_CC2E | ATIM_CCER_CC2P |
-			 ATIM_CCER_CC1E | ATIM_CCER_CC1P, TMR_REG(STM32_GTIM_CCER_OFFSET));
-
+				 (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC2M_SHIFT) | ATIM_CCMR1_OC2PE,
+			 TMR_REG(STM32_GTIM_CCMR1_OFFSET));
+		putreg16((ATIM_CCMR_MODE_PWM1 << ATIM_CCMR2_OC3M_SHIFT) | ATIM_CCMR2_OC3PE,
+			 TMR_REG(STM32_GTIM_CCMR2_OFFSET));
+		putreg16(ATIM_CCER_CC3E | ATIM_CCER_CC3P | ATIM_CCER_CC2E | ATIM_CCER_CC2P | ATIM_CCER_CC1E |
+				 ATIM_CCER_CC1P,
+			 TMR_REG(STM32_GTIM_CCER_OFFSET));
 
 		stm32_configgpio(GPIO_TIM1_CH1);
 		stm32_configgpio(GPIO_TIM1_CH2);
@@ -101,10 +97,10 @@ void rgb_led(int r, int g, int b, int freqs)
 		putreg16(ATIM_BDTR_MOE, (TMR_REG(STM32_ATIM_BDTR_OFFSET)));
 	}
 
-	long p  = freqs == 0 ? p1s : p1s / freqs;
+	long p = freqs == 0 ? p1s : p1s / freqs;
 	putreg32(p, TMR_REG(STM32_BTIM_ARR_OFFSET));
 
-	p  = freqs == 0 ? p1s + 1 : p0p5s / freqs;
+	p = freqs == 0 ? p1s + 1 : p0p5s / freqs;
 
 	putreg32((r * p) / 255, TMR_REG(STM32_GTIM_CCR1_OFFSET));
 	putreg32((g * p) / 255, TMR_REG(STM32_GTIM_CCR2_OFFSET));
@@ -120,5 +116,4 @@ void rgb_led(int r, int g, int b, int freqs)
 	}
 
 	putreg16(val, TMR_REG(STM32_BTIM_CR1_OFFSET));
-
 }

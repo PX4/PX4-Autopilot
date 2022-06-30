@@ -33,9 +33,8 @@
 
 #include <array>
 
-template<typename T>
-std::array<T, 3> get_local_mission_item(const Mission::MissionItem &item, const CoordinateTransformation &ct)
-{
+template <typename T>
+std::array<T, 3> get_local_mission_item(const Mission::MissionItem &item, const CoordinateTransformation &ct) {
 	using GlobalCoordinate = mavsdk::geometry::CoordinateTransformation::GlobalCoordinate;
 	GlobalCoordinate global;
 	global.latitude_deg = item.latitude_deg;
@@ -44,34 +43,28 @@ std::array<T, 3> get_local_mission_item(const Mission::MissionItem &item, const 
 	return {static_cast<T>(local.north_m), static_cast<T>(local.east_m), -item.relative_altitude_m};
 }
 
-template<typename T>
-T sq(T x)
-{
+template <typename T>
+T sq(T x) {
 	return x * x;
 }
 
-template<typename T>
-T norm(const std::array<T, 3> &vec)
-{
+template <typename T>
+T norm(const std::array<T, 3> &vec) {
 	return std::sqrt(sq(vec[0]) + sq(vec[1]) + sq(vec[2]));
 }
 
-template<typename T>
-T dot(const std::array<T, 3> &vec1, const std::array<T, 3> &vec2)
-{
+template <typename T>
+T dot(const std::array<T, 3> &vec1, const std::array<T, 3> &vec2) {
 	return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2];
 }
 
-
-template<typename T>
-std::array<T, 3> diff(const std::array<T, 3> &vec1, const std::array<T, 3> &vec2)
-{
+template <typename T>
+std::array<T, 3> diff(const std::array<T, 3> &vec1, const std::array<T, 3> &vec2) {
 	return {vec1[0] - vec2[0], vec1[1] - vec2[1], vec1[2] - vec2[2]};
 }
 
-template<typename T>
-std::array<T, 3> normalized(const std::array<T, 3> &vec)
-{
+template <typename T>
+std::array<T, 3> normalized(const std::array<T, 3> &vec) {
 	T n = norm(vec);
 
 	if (n > 1e-6f) {
@@ -82,15 +75,15 @@ std::array<T, 3> normalized(const std::array<T, 3> &vec)
 	}
 }
 
-template<typename T>
+template <typename T>
 T point_to_line_distance(const std::array<T, 3> &point, const std::array<T, 3> &line_start,
-			 const std::array<T, 3> &line_end)
-{
+			 const std::array<T, 3> &line_end) {
 	std::array<T, 3> norm_dir = normalized(diff(line_end, line_start));
 	T t = dot(norm_dir, diff(point, line_start));
 
 	// closest_on_line = line_start + t * norm_dir;
-	std::array<T, 3> closest_on_line { line_start[0] + t *norm_dir[0], line_start[1] + t *norm_dir[1], line_start[2] + t *norm_dir[2]};
+	std::array<T, 3> closest_on_line{line_start[0] + t * norm_dir[0], line_start[1] + t * norm_dir[1],
+					 line_start[2] + t * norm_dir[2]};
 
 	return norm(diff(closest_on_line, point));
 }

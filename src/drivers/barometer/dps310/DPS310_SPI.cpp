@@ -39,40 +39,31 @@
 
 #include <lib/drivers/device/spi.h>
 
-namespace dps310
-{
+namespace dps310 {
 
 /* SPI protocol address bits */
-#define DIR_READ			(1<<7)
-#define DIR_WRITE			(0<<7)
+#define DIR_READ (1 << 7)
+#define DIR_WRITE (0 << 7)
 
 device::Device *DPS310_SPI_interface(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
 
-class DPS310_SPI : public device::SPI
-{
+class DPS310_SPI : public device::SPI {
 public:
 	DPS310_SPI(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
 	virtual ~DPS310_SPI() = default;
 
-	virtual int	read(unsigned address, void *data, unsigned count);
-	virtual int	write(unsigned address, void *data, unsigned count);
-
+	virtual int read(unsigned address, void *data, unsigned count);
+	virtual int write(unsigned address, void *data, unsigned count);
 };
 
-device::Device *
-DPS310_SPI_interface(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode)
-{
+device::Device *DPS310_SPI_interface(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode) {
 	return new DPS310_SPI(bus, device, bus_frequency, spi_mode);
 }
 
-DPS310_SPI::DPS310_SPI(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode) :
-	SPI(DRV_BARO_DEVTYPE_DPS310, MODULE_NAME, bus, device, spi_mode, bus_frequency)
-{
-}
+DPS310_SPI::DPS310_SPI(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode)
+	: SPI(DRV_BARO_DEVTYPE_DPS310, MODULE_NAME, bus, device, spi_mode, bus_frequency) {}
 
-int
-DPS310_SPI::read(unsigned address, void *data, unsigned count)
-{
+int DPS310_SPI::read(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {
@@ -86,9 +77,7 @@ DPS310_SPI::read(unsigned address, void *data, unsigned count)
 	return ret;
 }
 
-int
-DPS310_SPI::write(unsigned address, void *data, unsigned count)
-{
+int DPS310_SPI::write(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {
@@ -101,4 +90,4 @@ DPS310_SPI::write(unsigned address, void *data, unsigned count)
 	return transfer(&buf[0], &buf[0], count + 1);
 }
 
-} // namespace dps310
+}  // namespace dps310

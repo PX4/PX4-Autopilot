@@ -32,18 +32,19 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
-#include <random>
+
 #include <lib/matrix/matrix/math.hpp>
+#include <random>
+
 #include "WelfordMean.hpp"
 
 using namespace math;
 using matrix::Vector3f;
 
-TEST(WelfordMeanTest, NoisySignal)
-{
+TEST(WelfordMeanTest, NoisySignal) {
 	const float std_dev = 3.f;
 	std::normal_distribution<float> standard_normal_distribution{0.f, std_dev};
-	std::default_random_engine random_generator{}; // Pseudo-random generator with constant seed
+	std::default_random_engine random_generator{};  // Pseudo-random generator with constant seed
 	random_generator.seed(42);
 	WelfordMean<Vector3f> welford{};
 

@@ -39,6 +39,7 @@
  */
 
 #include "mavlink_command_sender.h"
+
 #include <px4_platform_common/log.h>
 
 #define CMD_DEBUG(FMT, ...) PX4_LOG_NAMED_COND("cmd sender", _debug_enabled, FMT, ##__VA_ARGS__)
@@ -46,8 +47,7 @@
 MavlinkCommandSender *MavlinkCommandSender::_instance = nullptr;
 px4_sem_t MavlinkCommandSender::_lock;
 
-void MavlinkCommandSender::initialize()
-{
+void MavlinkCommandSender::initialize() {
 	px4_sem_init(&_lock, 1, 1);
 
 	if (_instance == nullptr) {
@@ -55,18 +55,11 @@ void MavlinkCommandSender::initialize()
 	}
 }
 
-MavlinkCommandSender &MavlinkCommandSender::instance()
-{
-	return *_instance;
-}
+MavlinkCommandSender &MavlinkCommandSender::instance() { return *_instance; }
 
-MavlinkCommandSender::~MavlinkCommandSender()
-{
-	px4_sem_destroy(&_lock);
-}
+MavlinkCommandSender::~MavlinkCommandSender() { px4_sem_destroy(&_lock); }
 
-int MavlinkCommandSender::handle_vehicle_command(const vehicle_command_s &command, mavlink_channel_t channel)
-{
+int MavlinkCommandSender::handle_vehicle_command(const vehicle_command_s &command, mavlink_channel_t channel) {
 	// commands > uint16 are PX4 internal only
 	if (command.command >= vehicle_command_s::VEHICLE_CMD_PX4_INTERNAL_START) {
 		return 0;
@@ -94,7 +87,6 @@ int MavlinkCommandSender::handle_vehicle_command(const vehicle_command_s &comman
 
 	while (command_item_s *item = _commands.get_next()) {
 		if (item->timestamp_us == command.timestamp) {
-
 			// We should activate the channel by setting num_sent_per_channel from -1 to 0.
 			item->num_sent_per_channel[channel] = 0;
 			already_existing = true;
@@ -103,7 +95,6 @@ int MavlinkCommandSender::handle_vehicle_command(const vehicle_command_s &comman
 	}
 
 	if (!already_existing) {
-
 		command_item_s new_item;
 		new_item.command = msg;
 		new_item.timestamp_us = command.timestamp;
@@ -116,11 +107,10 @@ int MavlinkCommandSender::handle_vehicle_command(const vehicle_command_s &comman
 	return 0;
 }
 
-void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_t &ack,
-		uint8_t from_sysid, uint8_t from_compid, uint8_t channel)
-{
-	CMD_DEBUG("handling result %" PRIu8 " for command %" PRIu16 " (from %" PRIu8 ":%" PRIu8 ")",
-		  ack.result, ack.command, from_sysid, from_compid);
+void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_t &ack, uint8_t from_sysid,
+						      uint8_t from_compid, uint8_t channel) {
+	CMD_DEBUG("handling result %" PRIu8 " for command %" PRIu16 " (from %" PRIu8 ":%" PRIu8 ")", ack.result,
+		  ack.command, from_sysid, from_compid);
 	lock();
 
 	_commands.reset_to_start();
@@ -131,7 +121,7 @@ void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_
 		    (item->command.target_system == 0 || from_sysid == item->command.target_system) &&
 		    (item->command.target_component == 0 || from_compid == item->command.target_component) &&
 		    item->num_sent_per_channel[channel] != -1) {
-			item->num_sent_per_channel[channel] = -2;	// mark this as acknowledged
+			item->num_sent_per_channel[channel] = -2;  // mark this as acknowledged
 			break;
 		}
 	}
@@ -139,8 +129,7 @@ void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_
 	unlock();
 }
 
-void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
-{
+void MavlinkCommandSender::check_timeout(mavlink_channel_t channel) {
 	lock();
 
 	_commands.reset_to_start();
@@ -186,8 +175,7 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 				max_sent = item->num_sent_per_channel[i];
 			}
 
-			if ((item->num_sent_per_channel[i] != -1) &&
-			    (item->num_sent_per_channel[i] < min_sent)) {
+			if ((item->num_sent_per_channel[i] != -1) && (item->num_sent_per_channel[i] < min_sent)) {
 				min_sent = item->num_sent_per_channel[i];
 			}
 		}
@@ -198,14 +186,9 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			mavlink_msg_command_long_send_struct(channel, &item->command);
 
 			CMD_DEBUG("command %" PRIu16 " sent (not first, retries: %" PRIu8 "/%" PRIi8 ", channel: %d)",
-				  item->command.command,
-				  item->num_sent_per_channel[channel],
-				  max_sent,
-				  channel);
+				  item->command.command, item->num_sent_per_channel[channel], max_sent, channel);
 
-		} else if (item->num_sent_per_channel[channel] == max_sent &&
-			   min_sent == max_sent) {
-
+		} else if (item->num_sent_per_channel[channel] == max_sent && min_sent == max_sent) {
 			// If the next retry would be above the needed retries anyway, we can
 			// drop the item, and continue with other items.
 			if (item->num_sent_per_channel[channel] + 1 > RETRIES) {
@@ -221,10 +204,7 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			item->last_time_sent_us = hrt_absolute_time();
 
 			CMD_DEBUG("command %" PRIu16 " sent (first, retries: %" PRId8 "/%" PRId8 ", channel: %d)",
-				  item->command.command,
-				  item->num_sent_per_channel[channel],
-				  max_sent,
-				  channel);
+				  item->command.command, item->num_sent_per_channel[channel], max_sent, channel);
 
 		} else {
 			// We are already ahead, so this should not happen.

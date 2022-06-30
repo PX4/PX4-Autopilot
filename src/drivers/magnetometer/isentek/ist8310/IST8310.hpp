@@ -40,18 +40,18 @@
 
 #pragma once
 
-#include "iSentek_IST8310_registers.hpp"
-
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/i2c.h>
-#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+
+#include "iSentek_IST8310_registers.hpp"
+
 using namespace iSentek_IST8310;
 
-class IST8310 : public device::I2C, public I2CSPIDriver<IST8310>
-{
+class IST8310 : public device::I2C, public I2CSPIDriver<IST8310> {
 public:
 	IST8310(const I2CSPIDriverConfig &config);
 	~IST8310() override;
@@ -85,9 +85,9 @@ private:
 
 	PX4Magnetometer _px4_mag;
 
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
-	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
-	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad register")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad transfer")};
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME ": reset")};
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
@@ -103,11 +103,12 @@ private:
 
 	uint8_t _checked_register{0};
 	static constexpr uint8_t size_register_cfg{4};
-	register_config_t _register_cfg[size_register_cfg] {
+	register_config_t _register_cfg[size_register_cfg]{
 		// Register               | Set bits, Clear bits
-		{ Register::CNTL2,        0, CNTL2_BIT::SRST },
-		{ Register::CNTL3,        CNTL3_BIT::Z_16BIT | CNTL3_BIT::Y_16BIT | CNTL3_BIT::X_16BIT, 0 },
-		{ Register::AVGCNTL,      AVGCNTL_BIT::Y_16TIMES_SET | AVGCNTL_BIT::XZ_16TIMES_SET, AVGCNTL_BIT::Y_16TIMES_CLEAR | AVGCNTL_BIT::XZ_16TIMES_CLEAR },
-		{ Register::PDCNTL,       PDCNTL_BIT::PULSE_NORMAL, 0 },
+		{Register::CNTL2, 0, CNTL2_BIT::SRST},
+		{Register::CNTL3, CNTL3_BIT::Z_16BIT | CNTL3_BIT::Y_16BIT | CNTL3_BIT::X_16BIT, 0},
+		{Register::AVGCNTL, AVGCNTL_BIT::Y_16TIMES_SET | AVGCNTL_BIT::XZ_16TIMES_SET,
+		 AVGCNTL_BIT::Y_16TIMES_CLEAR | AVGCNTL_BIT::XZ_16TIMES_CLEAR},
+		{Register::PDCNTL, PDCNTL_BIT::PULSE_NORMAL, 0},
 	};
 };

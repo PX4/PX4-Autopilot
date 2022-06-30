@@ -55,7 +55,6 @@
 // 8) Original signal quality degree
 // 9) Checksum parity bit (low 8bit), Checksum = Byte1 + Byte2 +...+Byte8. This is only a low 8bit though
 
-
 enum class TFMINI_PARSE_STATE {
 	STATE0_UNSYNC = 0,
 	STATE1_SYNC_1,

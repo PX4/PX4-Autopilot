@@ -32,67 +32,64 @@
  ****************************************************************************/
 
 /**
-* @file tinybson.h
-*
-* A simple subset SAX-style BSON parser and generator. See http://bsonspec.org
-*
-* Some types and defines taken from the standalone BSON parser/generator
-* in the Mongo C connector.
-*/
+ * @file tinybson.h
+ *
+ * A simple subset SAX-style BSON parser and generator. See http://bsonspec.org
+ *
+ * Some types and defines taken from the standalone BSON parser/generator
+ * in the Mongo C connector.
+ */
 
 #ifndef _TINYBSON_H
 #define _TINYBSON_H
 
-#include <sys/types.h>
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <sys/types.h>
 
 /** subset of the BSON node types we might care about */
 typedef enum {
-	BSON_EOO       = 0,
-	BSON_DOUBLE    = 1,
-	BSON_STRING    = 2,
-	BSON_OBJECT    = 3,
-	BSON_ARRAY     = 4,
-	BSON_BINDATA   = 5,
+	BSON_EOO = 0,
+	BSON_DOUBLE = 1,
+	BSON_STRING = 2,
+	BSON_OBJECT = 3,
+	BSON_ARRAY = 4,
+	BSON_BINDATA = 5,
 	BSON_UNDEFINED = 6,
-	BSON_BOOL      = 8,
-	BSON_DATE      = 9,
-	BSON_nullptr   = 10,
-	BSON_INT32     = 16,
+	BSON_BOOL = 8,
+	BSON_DATE = 9,
+	BSON_nullptr = 10,
+	BSON_INT32 = 16,
 	BSON_TIMESTAMP = 17,
-	BSON_INT64     = 18
+	BSON_INT64 = 18
 } bson_type_t;
 
-typedef enum bson_binary_subtype {
-	BSON_BIN_BINARY = 0,
-	BSON_BIN_USER = 128
-} bson_binary_subtype_t;
+typedef enum bson_binary_subtype { BSON_BIN_BINARY = 0, BSON_BIN_USER = 128 } bson_binary_subtype_t;
 
 /**
  * Maximum node name length.
  */
-#define BSON_MAXNAME		32
+#define BSON_MAXNAME 32
 
 /**
  * Buffer growth increment when writing to a buffer.
  */
-#define BSON_BUF_INCREMENT	128
+#define BSON_BUF_INCREMENT 128
 
 /**
  * Node structure passed to the callback.
  */
 typedef struct bson_node_s {
-	char			name[BSON_MAXNAME];
-	bson_type_t		type;
-	bson_binary_subtype_t	subtype;
+	char name[BSON_MAXNAME];
+	bson_type_t type;
+	bson_binary_subtype_t subtype;
 	union {
-		double  d;   // bson type 1
-		bool    b;   // bson type 8
-		int32_t i32; // bson type 16
-		int64_t i64; // bson type 18
+		double d;     // bson type 1
+		bool b;       // bson type 8
+		int32_t i32;  // bson type 16
+		int64_t i64;  // bson type 18
 	};
-} *bson_node_t;
+} * bson_node_t;
 
 typedef struct bson_decoder_s *bson_decoder_t;
 
@@ -101,32 +98,32 @@ typedef struct bson_decoder_s *bson_decoder_t;
  *
  * The node callback function's return value is returned by bson_decoder_next.
  */
-typedef int	(* bson_decoder_callback)(bson_decoder_t decoder, bson_node_t node);
+typedef int (*bson_decoder_callback)(bson_decoder_t decoder, bson_node_t node);
 
 struct bson_decoder_s {
 	/* file reader state */
-	int			fd{-1};
+	int fd{-1};
 
 	/* buffer reader state */
-	uint8_t			*buf{nullptr};
-	size_t			bufsize{0};
-	unsigned		bufpos{0};
+	uint8_t *buf{nullptr};
+	size_t bufsize{0};
+	unsigned bufpos{0};
 
-	bool			dead{false};
-	bson_decoder_callback	callback;
-	unsigned		nesting{0};
-	struct bson_node_s	node {};
-	int32_t			pending{0};
+	bool dead{false};
+	bson_decoder_callback callback;
+	unsigned nesting{0};
+	struct bson_node_s node {};
+	int32_t pending{0};
 
-	int32_t                 total_document_size{0};
-	int32_t                 total_decoded_size{0};
+	int32_t total_document_size{0};
+	int32_t total_decoded_size{0};
 
-	uint16_t                count_node_double{0};
-	uint16_t                count_node_string{0};
-	uint16_t                count_node_bindata{0};
-	uint16_t                count_node_bool{0};
-	uint16_t                count_node_int32{0};
-	uint16_t                count_node_int64{0};
+	uint16_t count_node_double{0};
+	uint16_t count_node_string{0};
+	uint16_t count_node_bindata{0};
+	uint16_t count_node_bool{0};
+	uint16_t count_node_int32{0};
+	uint16_t count_node_int64{0};
 };
 
 /**
@@ -180,19 +177,19 @@ __EXPORT size_t bson_decoder_data_pending(bson_decoder_t decoder);
  */
 typedef struct bson_encoder_s {
 	/* file writer state */
-	int		fd{-1};
+	int fd{-1};
 
 	/* buffer writer state */
-	uint8_t		*buf{nullptr};
-	unsigned	bufsize{0};
-	unsigned	bufpos{0};
+	uint8_t *buf{nullptr};
+	unsigned bufsize{0};
+	unsigned bufpos{0};
 
-	bool		realloc_ok{false};
-	bool		dead{false};
+	bool realloc_ok{false};
+	bool dead{false};
 
-	int32_t        total_document_size{0};
+	int32_t total_document_size{0};
 
-} *bson_encoder_t;
+} * bson_encoder_t;
 
 /**
  * Initialze the encoder for writing to a file.
@@ -302,6 +299,5 @@ __EXPORT int bson_encoder_append_string(bson_encoder_t encoder, const char *name
  */
 __EXPORT int bson_encoder_append_binary(bson_encoder_t encoder, const char *name, bson_binary_subtype_t subtype,
 					size_t size, const void *data);
-
 
 #endif

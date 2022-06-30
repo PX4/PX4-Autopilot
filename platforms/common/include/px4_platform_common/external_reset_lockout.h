@@ -34,13 +34,9 @@
 #pragma once
 
 #include <px4_platform_common/px4_config.h>
-
 #include <stdint.h>
 
-enum class LockoutComponent : uint8_t {
-	Commander = 0,
-	SystemShutdownLock = 1
-};
+enum class LockoutComponent : uint8_t { Commander = 0, SystemShutdownLock = 1 };
 
 /**
  * A board may provide a mechanism to signal that PX4 is in a critical state
@@ -53,6 +49,3 @@ enum class LockoutComponent : uint8_t {
  * @param enabled true if compoment is in critical state
  */
 void px4_indicate_external_reset_lockout(LockoutComponent component, bool enabled);
-
-
-

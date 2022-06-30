@@ -38,15 +38,13 @@
  * Driver for the ADS1115 connected via I2C.
  */
 
-#include "ADS1115.h"
-#include <px4_platform_common/module.h>
 #include <drivers/drv_adc.h>
+#include <px4_platform_common/module.h>
 
-ADS1115::ADS1115(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample"))
-{
+#include "ADS1115.h"
+
+ADS1115::ADS1115(const I2CSPIDriverConfig &config)
+	: I2C(config), I2CSPIDriver(config), _cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": single-sample")) {
 	_adc_report.device_id = this->get_device_id();
 	_adc_report.resolution = 32768;
 	_adc_report.v_ref = 6.144f;
@@ -54,65 +52,61 @@ ADS1115::ADS1115(const I2CSPIDriverConfig &config) :
 	for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
 		_adc_report.channel_id[i] = -1;
 	}
-
 }
 
-ADS1115::~ADS1115()
-{
+ADS1115::~ADS1115() {
 	ScheduleClear();
 	perf_free(_cycle_perf);
 }
 
-void ADS1115::exit_and_cleanup()
-{
-	I2CSPIDriverBase::exit_and_cleanup();	// nothing to do
+void ADS1115::exit_and_cleanup() {
+	I2CSPIDriverBase::exit_and_cleanup();  // nothing to do
 }
 
-void ADS1115::RunImpl()
-{
+void ADS1115::RunImpl() {
 	if (should_exit()) {
 		PX4_INFO("stopping");
-		return;	// stop and return immediately to avoid unexpected schedule from stopping procedure
+		return;  // stop and return immediately to avoid unexpected schedule from stopping procedure
 	}
 
 	perf_begin(_cycle_perf);
 
 	_adc_report.timestamp = hrt_absolute_time();
 
-	if (isSampleReady()) { // whether ADS1115 is ready to be read or not
+	if (isSampleReady()) {  // whether ADS1115 is ready to be read or not
 		int16_t buf;
 		ADS1115::ChannelSelection ch = cycleMeasure(&buf);
 		++_channel_cycle_count;
 
 		switch (ch) {
-		case ADS1115::A0:
-			_adc_report.channel_id[0] = 0;
-			_adc_report.raw_data[0] = buf;
-			break;
+			case ADS1115::A0:
+				_adc_report.channel_id[0] = 0;
+				_adc_report.raw_data[0] = buf;
+				break;
 
-		case ADS1115::A1:
-			_adc_report.channel_id[1] = 1;
-			_adc_report.raw_data[1] = buf;
-			break;
+			case ADS1115::A1:
+				_adc_report.channel_id[1] = 1;
+				_adc_report.raw_data[1] = buf;
+				break;
 
-		case ADS1115::A2:
-			_adc_report.channel_id[2] = 2;
-			_adc_report.raw_data[2] = buf;
-			break;
+			case ADS1115::A2:
+				_adc_report.channel_id[2] = 2;
+				_adc_report.raw_data[2] = buf;
+				break;
 
-		case ADS1115::A3:
-			_adc_report.channel_id[3] = 3;
-			_adc_report.raw_data[3] = buf;
-			break;
+			case ADS1115::A3:
+				_adc_report.channel_id[3] = 3;
+				_adc_report.raw_data[3] = buf;
+				break;
 
-		default:
-			PX4_DEBUG("ADS1115: undefined behaviour");
-			setChannel(ADS1115::A0);
-			--_channel_cycle_count;
-			break;
+			default:
+				PX4_DEBUG("ADS1115: undefined behaviour");
+				setChannel(ADS1115::A0);
+				--_channel_cycle_count;
+				break;
 		}
 
-		if (_channel_cycle_count == 4) { // ADS1115 has 4 channels
+		if (_channel_cycle_count == 4) {  // ADS1115 has 4 channels
 			_channel_cycle_count = 0;
 			_to_adc_report.publish(_adc_report);
 		}
@@ -124,8 +118,7 @@ void ADS1115::RunImpl()
 	perf_end(_cycle_perf);
 }
 
-void ADS1115::print_usage()
-{
+void ADS1115::print_usage() {
 	PRINT_MODULE_USAGE_NAME("ads1115", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
@@ -133,14 +126,12 @@ void ADS1115::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-void ADS1115::print_status()
-{
+void ADS1115::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_cycle_perf);
 }
 
-extern "C" int ads1115_main(int argc, char *argv[])
-{
+extern "C" int ads1115_main(int argc, char *argv[]) {
 	using ThisDriver = ADS1115;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;

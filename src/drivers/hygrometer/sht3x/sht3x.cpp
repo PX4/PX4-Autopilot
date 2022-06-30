@@ -42,15 +42,9 @@
 
 #include "sht3x.h"
 
-SHT3X::SHT3X(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	ModuleParams(nullptr),
-	I2CSPIDriver(config)
-{
-}
+SHT3X::SHT3X(const I2CSPIDriverConfig &config) : I2C(config), ModuleParams(nullptr), I2CSPIDriver(config) {}
 
-uint8_t SHT3X::calc_crc(uint8_t data[2])
-{
+uint8_t SHT3X::calc_crc(uint8_t data[2]) {
 	uint8_t crc = 0xFF;
 
 	for (int i = 0; i < 2; i++) {
@@ -69,9 +63,7 @@ uint8_t SHT3X::calc_crc(uint8_t data[2])
 	return crc;
 }
 
-
-int SHT3X::set_pointer(uint16_t command)
-{
+int SHT3X::set_pointer(uint16_t command) {
 	if (_last_command != command) {
 		uint8_t cmd[2];
 		cmd[0] = static_cast<uint8_t>(command >> 8);
@@ -84,8 +76,7 @@ int SHT3X::set_pointer(uint16_t command)
 	}
 }
 
-int SHT3X::read_data(uint16_t command, uint8_t *data_ptr, uint8_t length)
-{
+int SHT3X::read_data(uint16_t command, uint8_t *data_ptr, uint8_t length) {
 	set_pointer(command);
 
 	uint8_t raw_data[length];
@@ -97,7 +88,7 @@ int SHT3X::read_data(uint16_t command, uint8_t *data_ptr, uint8_t length)
 		uint8_t crc_data[2] = {raw_data[i * 3], raw_data[i * 3 + 1]};
 
 		if (raw_data[i * 3 + 2] != calc_crc(crc_data)) {
-			crc_err ++;
+			crc_err++;
 		}
 
 		*(data_ptr + i * 2) = raw_data[i * 3];
@@ -107,8 +98,7 @@ int SHT3X::read_data(uint16_t command, uint8_t *data_ptr, uint8_t length)
 	return crc_err;
 }
 
-int SHT3X::write_data(uint16_t command, uint8_t buffer[], uint8_t length)
-{
+int SHT3X::write_data(uint16_t command, uint8_t buffer[], uint8_t length) {
 	_last_command = command;
 
 	uint8_t cmd[2 + 3 * length / 2];
@@ -125,18 +115,16 @@ int SHT3X::write_data(uint16_t command, uint8_t buffer[], uint8_t length)
 	return transfer(&cmd[0], sizeof(cmd), nullptr, 0);
 }
 
-
-void SHT3X::sensor_compouse_msg(bool send)
-{
+void SHT3X::sensor_compouse_msg(bool send) {
 	uint8_t data[4];
 	int error = read_data(SHT3x_CMD_FETCH_DATA, &data[0], 6);
 
 	if (error == PX4_OK) {
 		measurement_time = hrt_absolute_time();
-		measurement_index ++;
+		measurement_index++;
 
-		measured_temperature = (float) 175 * (data[0] << 8 | data[1]) / 65535 - 45;
-		measured_humidity = (float) 100 * (data[2] << 8 | data[3]) / 65535;
+		measured_temperature = (float)175 * (data[0] << 8 | data[1]) / 65535 - 45;
+		measured_humidity = (float)100 * (data[2] << 8 | data[3]) / 65535;
 
 		if (send) {
 			sensor_hygrometer_s msg{};
@@ -150,10 +138,7 @@ void SHT3X::sensor_compouse_msg(bool send)
 	}
 }
 
-
-int
-SHT3X::probe()
-{
+int SHT3X::probe() {
 	uint8_t type[2];
 	uint8_t nvalid;
 
@@ -162,8 +147,7 @@ SHT3X::probe()
 	// 0 means I can see sensor
 }
 
-int SHT3X::init()
-{
+int SHT3X::init() {
 	if (I2C::init() != PX4_OK) {
 		return PX4_ERROR;
 	}
@@ -173,10 +157,7 @@ int SHT3X::init()
 	return PX4_OK;
 }
 
-
-
-int SHT3X::init_sensor()
-{
+int SHT3X::init_sensor() {
 	set_pointer(SHT3X_CMD_CLEAR_STATUS);
 	px4_usleep(2000);
 
@@ -184,10 +165,8 @@ int SHT3X::init_sensor()
 	uint8_t serial[4];
 	read_data(SHT3x_CMD_READ_SN, &serial[0], 6);
 
-	_sht_info.serial_number = ((uint32_t)serial[0] << 24
-				   | (uint32_t)serial[1] << 16
-				   | (uint32_t)serial[2] << 8
-				   | (uint32_t)serial[3]);
+	_sht_info.serial_number = ((uint32_t)serial[0] << 24 | (uint32_t)serial[1] << 16 | (uint32_t)serial[2] << 8 |
+				   (uint32_t)serial[3]);
 
 	set_pointer(SHT3x_CMD_PERIODIC_2HZ_MEDIUM);
 	px4_usleep(2000);
@@ -198,28 +177,27 @@ int SHT3X::init_sensor()
 	return PX4_OK;
 }
 
-void SHT3X::RunImpl()
-{
+void SHT3X::RunImpl() {
 	switch (_state) {
-	case sht3x_state::INIT:
-		probe();
-		init_sensor();
-		_state = sht3x_state::MEASUREMENT;
-		break;
+		case sht3x_state::INIT:
+			probe();
+			init_sensor();
+			_state = sht3x_state::MEASUREMENT;
+			break;
 
-	case sht3x_state::MEASUREMENT:
-		if ((hrt_absolute_time() - measurement_time) > 200000) {
-			sensor_compouse_msg(1);
-		}
+		case sht3x_state::MEASUREMENT:
+			if ((hrt_absolute_time() - measurement_time) > 200000) {
+				sensor_compouse_msg(1);
+			}
 
-		if ((hrt_absolute_time() - measurement_time) > 3000000) {
-			_state = sht3x_state::ERROR_READOUT;
-		}
+			if ((hrt_absolute_time() - measurement_time) > 3000000) {
+				_state = sht3x_state::ERROR_READOUT;
+			}
 
-		break;
+			break;
 
-	case sht3x_state::ERROR_GENERAL:
-	case sht3x_state::ERROR_READOUT: {
+		case sht3x_state::ERROR_GENERAL:
+		case sht3x_state::ERROR_READOUT: {
 			if (_last_state != _state) {
 				PX4_INFO("I cant get new data. The sensor may be disconnected.");
 			}
@@ -227,8 +205,7 @@ void SHT3X::RunImpl()
 			if (probe() == PX4_OK) {
 				_state = sht3x_state::INIT;
 			}
-		}
-		break;
+		} break;
 	}
 
 	if (_last_state != _state) {
@@ -237,39 +214,29 @@ void SHT3X::RunImpl()
 	}
 }
 
-
-void
-SHT3X::custom_method(const BusCLIArguments &cli)
-{
+void SHT3X::custom_method(const BusCLIArguments &cli) {
 	switch (cli.custom1) {
-
-	case 1: {
-			PX4_INFO("Last measured values (%.3fs ago, #%d)", (double)(hrt_absolute_time() - measurement_time) / 1000000.0,
-				 measurement_index);
+		case 1: {
+			PX4_INFO("Last measured values (%.3fs ago, #%d)",
+				 (double)(hrt_absolute_time() - measurement_time) / 1000000.0, measurement_index);
 			PX4_INFO("Temp: %.3f, Hum: %.3f", (double)measured_temperature, (double)measured_humidity);
 
-		}
-		break;
+		} break;
 
-	case 2: {
+		case 2: {
 			_state = sht3x_state::INIT;
-		}
-		break;
+		} break;
 	}
 }
 
-
-void SHT3X::print_status()
-{
+void SHT3X::print_status() {
 	PX4_INFO("SHT3X sensor");
 	I2CSPIDriverBase::print_status();
 	PX4_INFO("SN: %ld", _sht_info.serial_number);
 	PX4_INFO("Status: %s", sht_state_names[_state]);
 }
 
-
-void SHT3X::print_usage()
-{
+void SHT3X::print_usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -301,12 +268,10 @@ $ sht3x reset
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("values", "Print actual data");
-    PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reinitialize sensor");
-
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reinitialize sensor");
 }
 
-int sht3x_main(int argc, char *argv[])
-{
+int sht3x_main(int argc, char *argv[]) {
 	using ThisDriver = SHT3X;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;

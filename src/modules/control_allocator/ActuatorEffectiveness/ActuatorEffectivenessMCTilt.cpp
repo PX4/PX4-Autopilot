@@ -38,14 +38,10 @@ using namespace matrix;
 ActuatorEffectivenessMCTilt::ActuatorEffectivenessMCTilt(ModuleParams *parent)
 	: ModuleParams(parent),
 	  _mc_rotors(this, ActuatorEffectivenessRotors::AxisConfiguration::FixedUpwards, true),
-	  _tilts(this)
-{
-}
+	  _tilts(this) {}
 
-bool
-ActuatorEffectivenessMCTilt::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
-{
+bool ActuatorEffectivenessMCTilt::getEffectivenessMatrix(Configuration &configuration,
+							 EffectivenessUpdateReason external_update) {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
@@ -76,9 +72,8 @@ ActuatorEffectivenessMCTilt::getEffectivenessMatrix(Configuration &configuration
 	return (rotors_added_successfully && tilts_added_successfully);
 }
 
-void ActuatorEffectivenessMCTilt::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp)
-{
+void ActuatorEffectivenessMCTilt::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+						 ActuatorVector &actuator_sp) {
 	actuator_sp += _tilt_offsets;
 	// TODO: dynamic matrix update
 }

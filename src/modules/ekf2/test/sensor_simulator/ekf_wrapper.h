@@ -39,15 +39,14 @@
 #define EKF_EKF_WRAPPER_H
 
 #include <memory>
+
 #include "EKF/ekf.h"
 #include "EKF/estimator_interface.h"
 
-class EkfWrapper
-{
+class EkfWrapper {
 public:
 	EkfWrapper(std::shared_ptr<Ekf> ekf);
 	~EkfWrapper();
-
 
 	void setBaroHeight();
 	bool isIntendingBaroHeightFusion() const;
@@ -115,6 +114,5 @@ private:
 
 	// Pointer to Ekf internal param struct
 	parameters *_ekf_params;
-
 };
-#endif // !EKF_EKF_WRAPPER_H
+#endif  // !EKF_EKF_WRAPPER_H

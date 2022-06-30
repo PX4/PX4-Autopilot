@@ -32,19 +32,18 @@
  ****************************************************************************/
 
 #define CATCH_CONFIG_RUNNER
-#include "catch2/catch.hpp"
-
 #include <mavsdk/mavsdk.h>
+
 #include <iostream>
 #include <string>
-#include "autopilot_tester.h"
 
+#include "autopilot_tester.h"
+#include "catch2/catch.hpp"
 
 static void usage(const std::string &bin_name);
 static void remove_argv(int &argc, char **argv, int pos);
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 	for (int i = 0; i < argc; ++i) {
 		const std::string argv_string(argv[i]);
 
@@ -65,7 +64,6 @@ int main(int argc, char **argv)
 				usage(argv[0]);
 				return -1;
 			}
-
 		}
 
 		if (argv_string == "--speed-factor") {
@@ -86,7 +84,6 @@ int main(int argc, char **argv)
 				remove_argv(argc, argv, i);
 				--i;
 
-
 			} else {
 				std::cerr << "No speed factor supplied" << std::endl;
 				usage(argv[0]);
@@ -105,10 +102,10 @@ int main(int argc, char **argv)
 	return session.run();
 }
 
-void usage(const std::string &bin_name)
-{
+void usage(const std::string &bin_name) {
 	std::cout << std::endl
-		  << "Usage : " << bin_name << " [--url CONNECTION_URL] [--speed-factor SPEED_FACTOR] [catch2 arguments]\n"
+		  << "Usage : " << bin_name
+		  << " [--url CONNECTION_URL] [--speed-factor SPEED_FACTOR] [catch2 arguments]\n"
 		  << "\n"
 		  << "  --url          Connection URL format should be :\n"
 		  << "                   For TCP : tcp://[server_host][:server_port]\n"
@@ -120,8 +117,7 @@ void usage(const std::string &bin_name)
 		  << std::flush;
 }
 
-void remove_argv(int &argc, char **argv, int pos)
-{
+void remove_argv(int &argc, char **argv, int pos) {
 	for (int i = pos; i + 1 < argc; ++i) {
 		argv[i] = argv[i + 1];
 	}

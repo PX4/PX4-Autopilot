@@ -46,8 +46,8 @@
 #ifndef _SYSTEMLIB_FLASHPARAMS_FLASHPARAMS_H
 #define _SYSTEMLIB_FLASHPARAMS_FLASHPARAMS_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 __BEGIN_DECLS
@@ -57,7 +57,7 @@ __BEGIN_DECLS
  * the param_values and 2 functions to be global
  */
 
-__EXPORT extern UT_array        *param_values;
+__EXPORT extern UT_array *param_values;
 __EXPORT int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes);
 __EXPORT const void *param_get_value_ptr_external(param_t param);
 

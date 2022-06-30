@@ -39,31 +39,32 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/i2c_spi_buses.h>
-#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/px4_config.h>
+
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 
 /* Configuration Constants */
-#define SRF02_BASEADDR 				0x70 	// 7-bit address. 8-bit address is 0xE0.
+#define SRF02_BASEADDR 0x70  // 7-bit address. 8-bit address is 0xE0.
 
 /* SRF02 Registers addresses */
-#define SRF02_TAKE_RANGE_REG			0x51	// Measure range Register.
-#define SRF02_SET_ADDRESS_0			0xA0	// Change address 0 Register.
-#define SRF02_SET_ADDRESS_1			0xAA	// Change address 1 Register.
-#define SRF02_SET_ADDRESS_2			0xA5	// Change address 2 Register.
+#define SRF02_TAKE_RANGE_REG 0x51  // Measure range Register.
+#define SRF02_SET_ADDRESS_0 0xA0   // Change address 0 Register.
+#define SRF02_SET_ADDRESS_1 0xAA   // Change address 1 Register.
+#define SRF02_SET_ADDRESS_2 0xA5   // Change address 2 Register.
 
 /* Device limits */
-#define SRF02_MIN_DISTANCE 			(0.20f)
-#define SRF02_MAX_DISTANCE 			(7.65f)
+#define SRF02_MIN_DISTANCE (0.20f)
+#define SRF02_MAX_DISTANCE (7.65f)
 
-#define SRF02_CONVERSION_INTERVAL 		100000	// 60ms for one sonar.
-#define SRF02_INTERVAL_BETWEEN_SUCCESIVE_FIRES 	100000	// 30ms between each sonar measurement (watch out for interference!).
+#define SRF02_CONVERSION_INTERVAL 100000  // 60ms for one sonar.
+#define SRF02_INTERVAL_BETWEEN_SUCCESIVE_FIRES \
+	100000  // 30ms between each sonar measurement (watch out for interference!).
 
-class SRF02 : public device::I2C, public I2CSPIDriver<SRF02>
-{
+class SRF02 : public device::I2C, public I2CSPIDriver<SRF02> {
 public:
 	SRF02(const I2CSPIDriverConfig &config);
 	~SRF02() override;
@@ -76,7 +77,6 @@ public:
 	void RunImpl();
 
 private:
-
 	void start();
 	int collect();
 	int measure();
@@ -95,6 +95,6 @@ private:
 
 	bool _collect_phase{false};
 
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED,  MODULE_NAME": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME ": com_err")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": read")};
 };

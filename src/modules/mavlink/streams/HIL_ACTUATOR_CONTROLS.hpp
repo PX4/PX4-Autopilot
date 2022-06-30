@@ -38,8 +38,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 
-class MavlinkStreamHILActuatorControls : public MavlinkStream
-{
+class MavlinkStreamHILActuatorControls : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamHILActuatorControls(mavlink); }
 
@@ -49,14 +48,13 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _act_sub.advertised() ? MAVLINK_MSG_ID_HIL_ACTUATOR_CONTROLS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _act_sub.advertised() ? MAVLINK_MSG_ID_HIL_ACTUATOR_CONTROLS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+					     : 0;
 	}
 
 private:
-	explicit MavlinkStreamHILActuatorControls(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
+	explicit MavlinkStreamHILActuatorControls(Mavlink *mavlink) : MavlinkStream(mavlink) {
 		int32_t sys_ctrl_alloc = 0;
 		param_get(param_find("SYS_CTRL_ALLOC"), &sys_ctrl_alloc);
 		_use_dynamic_mixing = sys_ctrl_alloc >= 1;
@@ -71,8 +69,7 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	bool _use_dynamic_mixing{false};
 
-	bool send() override
-	{
+	bool send() override {
 		actuator_outputs_s act;
 
 		if (_act_sub.update(&act)) {
@@ -90,52 +87,54 @@ private:
 				unsigned system_type = _mavlink->get_system_type();
 
 				/* scale outputs depending on system type */
-				if (system_type == MAV_TYPE_QUADROTOR ||
-				    system_type == MAV_TYPE_HEXAROTOR ||
+				if (system_type == MAV_TYPE_QUADROTOR || system_type == MAV_TYPE_HEXAROTOR ||
 				    system_type == MAV_TYPE_OCTOROTOR ||
 				    system_type == MAV_TYPE_VTOL_TAILSITTER_DUOROTOR ||
 				    system_type == MAV_TYPE_VTOL_TAILSITTER_QUADROTOR ||
 				    system_type == MAV_TYPE_VTOL_FIXEDROTOR) {
-
 					/* multirotors: set number of rotor outputs depending on type */
 
 					unsigned n;
 
 					switch (system_type) {
-					case MAV_TYPE_QUADROTOR:
-						n = 4;
-						break;
+						case MAV_TYPE_QUADROTOR:
+							n = 4;
+							break;
 
-					case MAV_TYPE_HEXAROTOR:
-						n = 6;
-						break;
+						case MAV_TYPE_HEXAROTOR:
+							n = 6;
+							break;
 
-					case MAV_TYPE_VTOL_TAILSITTER_DUOROTOR:
-						n = 2;
-						break;
+						case MAV_TYPE_VTOL_TAILSITTER_DUOROTOR:
+							n = 2;
+							break;
 
-					case MAV_TYPE_VTOL_TAILSITTER_QUADROTOR:
-						n = 4;
-						break;
+						case MAV_TYPE_VTOL_TAILSITTER_QUADROTOR:
+							n = 4;
+							break;
 
-					case MAV_TYPE_VTOL_FIXEDROTOR:
-						n = 8;
-						break;
+						case MAV_TYPE_VTOL_FIXEDROTOR:
+							n = 8;
+							break;
 
-					default:
-						n = 8;
-						break;
+						default:
+							n = 8;
+							break;
 					}
 
 					for (unsigned i = 0; i < 16; i++) {
 						if (act.output[i] > PWM_DEFAULT_MIN / 2) {
 							if (i < n) {
 								/* scale PWM out 900..2100 us to 0..1 for rotors */
-								msg.controls[i] = (act.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+								msg.controls[i] = (act.output[i] - PWM_DEFAULT_MIN) /
+										  (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
 
 							} else {
-								/* scale PWM out 900..2100 us to -1..1 for other channels */
-								msg.controls[i] = (act.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+								/* scale PWM out 900..2100 us to -1..1 for other
+								 * channels */
+								msg.controls[i] =
+									(act.output[i] - pwm_center) /
+									((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 							}
 
 						} else {
@@ -149,12 +148,16 @@ private:
 					for (unsigned i = 0; i < 16; i++) {
 						if (act.output[i] > PWM_DEFAULT_MIN / 2) {
 							if (i != 3) {
-								/* scale PWM out 900..2100 us to -1..1 for normal channels */
-								msg.controls[i] = (act.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+								/* scale PWM out 900..2100 us to -1..1 for normal
+								 * channels */
+								msg.controls[i] =
+									(act.output[i] - pwm_center) /
+									((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 
 							} else {
 								/* scale PWM out 900..2100 us to 0..1 for throttle */
-								msg.controls[i] = (act.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+								msg.controls[i] = (act.output[i] - PWM_DEFAULT_MIN) /
+										  (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
 							}
 
 						} else {
@@ -211,4 +214,4 @@ private:
 	}
 };
 
-#endif // HIL_ACTUATOR_CONTROLS_HPP
+#endif  // HIL_ACTUATOR_CONTROLS_HPP

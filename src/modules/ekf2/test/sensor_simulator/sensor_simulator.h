@@ -43,36 +43,43 @@
 #ifndef EKF_SENSOR_SIMULATOR_H
 #define EKF_SENSOR_SIMULATOR_H
 
-#include <memory>
+#include <array>
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <motion_planning/VelocitySmoothing.hpp>
 #include <sstream>
 #include <vector>
-#include <array>
-#include <motion_planning/VelocitySmoothing.hpp>
 
+#include "EKF/ekf.h"
+#include "airspeed.h"
+#include "baro.h"
+#include "flow.h"
+#include "gps.h"
 #include "imu.h"
 #include "mag.h"
-#include "baro.h"
-#include "gps.h"
-#include "flow.h"
 #include "range_finder.h"
 #include "vio.h"
-#include "airspeed.h"
-#include "EKF/ekf.h"
 
 using namespace sensor_simulator::sensor;
 
 struct sensor_info {
 	uint64_t timestamp{};
-	enum class measurement_t {IMU, MAG, BARO, GPS, AIRSPEED, RANGE, FLOW, VISION, LANDING_STATUS} sensor_type =
-		measurement_t::IMU;
+	enum class measurement_t {
+		IMU,
+		MAG,
+		BARO,
+		GPS,
+		AIRSPEED,
+		RANGE,
+		FLOW,
+		VISION,
+		LANDING_STATUS
+	} sensor_type = measurement_t::IMU;
 	std::array<double, 10> sensor_data{};
 };
 
-class SensorSimulator
-{
-
+class SensorSimulator {
 public:
 	SensorSimulator(std::shared_ptr<Ekf> ekf);
 	~SensorSimulator() = default;
@@ -119,14 +126,14 @@ public:
 
 	void loadSensorDataFromFile(std::string filename);
 
-	Airspeed    _airspeed;
-	Baro        _baro;
-	Flow        _flow;
-	Gps         _gps;
-	Imu         _imu;
-	Mag         _mag;
+	Airspeed _airspeed;
+	Baro _baro;
+	Flow _flow;
+	Gps _gps;
+	Imu _imu;
+	Mag _mag;
 	RangeFinder _rng;
-	Vio         _vio;
+	Vio _vio;
 
 	VelocitySmoothing _trajectory[3];
 
@@ -146,8 +153,8 @@ private:
 	bool _has_replay_data{false};
 
 	uint64_t _current_replay_data_index{0};
-	uint64_t _time{0};	// microseconds
+	uint64_t _time{0};  // microseconds
 
 	Dcmf _R_body_to_world{};
 };
-#endif // !EKF_SENSOR_SIMULATOR_H
+#endif  // !EKF_SENSOR_SIMULATOR_H

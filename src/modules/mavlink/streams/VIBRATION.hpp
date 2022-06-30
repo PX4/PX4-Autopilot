@@ -37,8 +37,7 @@
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_imu_status.h>
 
-class MavlinkStreamVibration : public MavlinkStream
-{
+class MavlinkStreamVibration : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamVibration(mavlink); }
 
@@ -48,8 +47,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		if (_sensor_selection_sub.advertised() && _vehicle_imu_status_subs.advertised()) {
 			return MAVLINK_MSG_ID_VIBRATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		}
@@ -63,16 +61,16 @@ private:
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::SubscriptionMultiArray<vehicle_imu_status_s, 3> _vehicle_imu_status_subs{ORB_ID::vehicle_imu_status};
 
-	bool send() override
-	{
+	bool send() override {
 		if (_vehicle_imu_status_subs.updated()) {
 			mavlink_vibration_t msg{};
 			msg.time_usec = hrt_absolute_time();
 
 			// VIBRATION usage not to mavlink spec, this is our current usage.
-			//  vibration_x : Primary gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
-			//  vibration_y : Primary gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
-			//  vibration_z : Primary accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
+			//  vibration_x : Primary gyro delta angle coning metric = filtered length of (delta_angle x
+			//  prev_delta_angle) vibration_y : Primary gyro high frequency vibe = filtered length of
+			//  (delta_angle - prev_delta_angle) vibration_z : Primary accel high frequency vibe = filtered
+			//  length of (delta_velocity - prev_delta_velocity)
 
 			sensor_selection_s sensor_selection{};
 			_sensor_selection_sub.copy(&sensor_selection);
@@ -98,21 +96,21 @@ private:
 				vehicle_imu_status_s status;
 
 				if (_vehicle_imu_status_subs[i].copy(&status)) {
-
-					const uint32_t clipping = status.accel_clipping[0] + status.accel_clipping[1] + status.accel_clipping[2];
+					const uint32_t clipping = status.accel_clipping[0] + status.accel_clipping[1] +
+								  status.accel_clipping[2];
 
 					switch (i) {
-					case 0:
-						msg.clipping_0 = clipping;
-						break;
+						case 0:
+							msg.clipping_0 = clipping;
+							break;
 
-					case 1:
-						msg.clipping_1 = clipping;
-						break;
+						case 1:
+							msg.clipping_1 = clipping;
+							break;
 
-					case 2:
-						msg.clipping_2 = clipping;
-						break;
+						case 2:
+							msg.clipping_2 = clipping;
+							break;
 					}
 				}
 			}
@@ -126,4 +124,4 @@ private:
 	}
 };
 
-#endif // VIBRATION_HPP
+#endif  // VIBRATION_HPP

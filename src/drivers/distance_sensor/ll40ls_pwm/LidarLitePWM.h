@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 
-
 /**
  * @file LidarLitePWM.h
  * @author Johan Jansen <jnsn.johan@gmail.com>
@@ -43,14 +42,14 @@
  */
 #pragma once
 
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-
-#include <uORB/topics/pwm_input.h>
-#include <uORB/Subscription.hpp>
 #include <board_config.h>
 #include <drivers/device/device.h>
-#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <perf/perf_counter.h>
+#include <uORB/topics/pwm_input.h>
+
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Subscription.hpp>
 
 using namespace time_literals;
 
@@ -66,11 +65,10 @@ static constexpr uint32_t LL40LS_CONVERSION_INTERVAL{50_ms};
 static constexpr uint32_t LL40LS_CONVERSION_TIMEOUT{100_ms};
 
 #if DIRECT_PWM_OUTPUT_CHANNELS >= 6
-#define GPIO_VDD_RANGEFINDER_EN_CHAN 5 // use pin 6
+#define GPIO_VDD_RANGEFINDER_EN_CHAN 5  // use pin 6
 #define LIDAR_LITE_PWM_SUPPORTED
 
-class LidarLitePWM : public px4::ScheduledWorkItem
-{
+class LidarLitePWM : public px4::ScheduledWorkItem {
 public:
 	LidarLitePWM(const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~LidarLitePWM();
@@ -82,7 +80,6 @@ public:
 	void print_info();
 
 protected:
-
 	int collect();
 	int measure();
 
@@ -91,12 +88,11 @@ protected:
 private:
 	uint32_t get_measure_interval() const { return LL40LS_CONVERSION_INTERVAL; };
 
-
 	uORB::Subscription _sub_pwm_input{ORB_ID(pwm_input)};
 
 	pwm_input_s _pwm{};
 
-	PX4Rangefinder	_px4_rangefinder;
+	PX4Rangefinder _px4_rangefinder;
 
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "ll40ls: comms errors")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "ll40ls: read")};

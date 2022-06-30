@@ -40,17 +40,15 @@
 
 #include "ina226.h"
 
-
-INA226::INA226(const I2CSPIDriverConfig &config, int battery_index) :
-	I2C(config),
-	ModuleParams(nullptr),
-	I2CSPIDriver(config),
-	_sample_perf(perf_alloc(PC_ELAPSED, "ina226_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "ina226_com_err")),
-	_collection_errors(perf_alloc(PC_COUNT, "ina226_collection_err")),
-	_measure_errors(perf_alloc(PC_COUNT, "ina226_measurement_err")),
-	_battery(battery_index, this, INA226_SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
-{
+INA226::INA226(const I2CSPIDriverConfig &config, int battery_index)
+	: I2C(config),
+	  ModuleParams(nullptr),
+	  I2CSPIDriver(config),
+	  _sample_perf(perf_alloc(PC_ELAPSED, "ina226_read")),
+	  _comms_errors(perf_alloc(PC_COUNT, "ina226_com_err")),
+	  _collection_errors(perf_alloc(PC_COUNT, "ina226_collection_err")),
+	  _measure_errors(perf_alloc(PC_COUNT, "ina226_measurement_err")),
+	  _battery(battery_index, this, INA226_SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE) {
 	float fvalue = MAX_CURRENT;
 	_max_current = fvalue;
 	param_t ph = param_find("INA226_CURRENT");
@@ -76,21 +74,20 @@ INA226::INA226(const I2CSPIDriverConfig &config, int battery_index) :
 	}
 
 	_mode_triggered = ((_config & INA226_MODE_MASK) >> INA226_MODE_SHIFTS) <=
-			  ((INA226_MODE_SHUNT_BUS_TRIG & INA226_MODE_MASK) >>
-			   INA226_MODE_SHIFTS);
+			  ((INA226_MODE_SHUNT_BUS_TRIG & INA226_MODE_MASK) >> INA226_MODE_SHIFTS);
 
 	_current_lsb = _max_current / DN_MAX;
 	_power_lsb = 25 * _current_lsb;
 
-	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
+	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance
+	// 0
 	_battery.setConnected(false);
 	_battery.updateVoltage(0.f);
 	_battery.updateCurrent(0.f);
 	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 }
 
-INA226::~INA226()
-{
+INA226::~INA226() {
 	/* free perf counters */
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -98,8 +95,7 @@ INA226::~INA226()
 	perf_free(_measure_errors);
 }
 
-int INA226::read(uint8_t address, int16_t &data)
-{
+int INA226::read(uint8_t address, int16_t &data) {
 	// read desired little-endian value via I2C
 	uint16_t received_bytes;
 	int ret = PX4_ERROR;
@@ -120,15 +116,12 @@ int INA226::read(uint8_t address, int16_t &data)
 	return ret;
 }
 
-int INA226::write(uint8_t address, uint16_t value)
-{
+int INA226::write(uint8_t address, uint16_t value) {
 	uint8_t data[3] = {address, ((uint8_t)((value & 0xff00) >> 8)), (uint8_t)(value & 0xff)};
 	return transfer(data, sizeof(data), nullptr, 0);
 }
 
-int
-INA226::init()
-{
+int INA226::init() {
 	int ret = PX4_ERROR;
 
 	/* do I2C init (and probe) first */
@@ -160,9 +153,7 @@ INA226::init()
 	return ret;
 }
 
-int
-INA226::force_init()
-{
+int INA226::force_init() {
 	int ret = init();
 
 	start();
@@ -170,9 +161,7 @@ INA226::force_init()
 	return ret;
 }
 
-int
-INA226::probe()
-{
+int INA226::probe() {
 	int16_t value{0};
 
 	if (read(INA226_MFG_ID, value) != PX4_OK || value != INA226_MFG_ID_TI) {
@@ -188,9 +177,7 @@ INA226::probe()
 	return PX4_OK;
 }
 
-int
-INA226::measure()
-{
+int INA226::measure() {
 	int ret = PX4_OK;
 
 	if (_mode_triggered) {
@@ -205,9 +192,7 @@ INA226::measure()
 	return ret;
 }
 
-int
-INA226::collect()
-{
+int INA226::collect() {
 	perf_begin(_sample_perf);
 
 	if (_parameter_update_sub.updated()) {
@@ -219,7 +204,8 @@ INA226::collect()
 	}
 
 	// read from the sensor
-	// Note: If the power module is connected backwards, then the values of _power, _current, and _shunt will be negative but otherwise valid.
+	// Note: If the power module is connected backwards, then the values of _power, _current, and _shunt will be
+	// negative but otherwise valid.
 	bool success{true};
 	success = success && (read(INA226_REG_BUSVOLTAGE, _bus_voltage) == PX4_OK);
 	// success = success && (read(INA226_REG_POWER, _power) == PX4_OK);
@@ -246,9 +232,7 @@ INA226::collect()
 	}
 }
 
-void
-INA226::start()
-{
+void INA226::start() {
 	ScheduleClear();
 
 	/* reset the report ring and state machine */
@@ -260,9 +244,7 @@ INA226::start()
 	ScheduleDelayed(5);
 }
 
-void
-INA226::RunImpl()
-{
+void INA226::RunImpl() {
 	if (_initialized) {
 		if (_collect_phase) {
 			/* perform collection */
@@ -308,9 +290,7 @@ INA226::RunImpl()
 	}
 }
 
-void
-INA226::print_status()
-{
+void INA226::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	if (_initialized) {

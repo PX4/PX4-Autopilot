@@ -33,34 +33,33 @@
 
 /**
  * @file landing_target_estimator_main.cpp
- * Landing target position estimator. Filter and publish the position of a landing target on the ground as observed by an onboard sensor.
+ * Landing target position estimator. Filter and publish the position of a landing target on the ground as observed by
+ * an onboard sensor.
  *
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  * @author Mohammed Kabir <kabir@uasys.io>
  *
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/posix.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
 #include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <systemlib/err.h>
+#include <unistd.h>
 
 #include "LandingTargetEstimator.h"
 
+namespace landing_target_estimator {
 
-namespace landing_target_estimator
-{
-
-static bool thread_should_exit = false;	/**< daemon exit flag */
-static bool thread_running = false;		/**< daemon status flag */
-static int daemon_task;			/**< Handle of daemon task / thread */
+static bool thread_should_exit = false; /**< daemon exit flag */
+static bool thread_running = false;     /**< daemon status flag */
+static int daemon_task;                 /**< Handle of daemon task / thread */
 
 /* Run main loop at this rate in Hz. */
 static constexpr uint32_t landing_target_estimator_UPDATE_RATE_HZ = 50;
@@ -78,11 +77,9 @@ extern "C" __EXPORT int landing_target_estimator_main(int argc, char *argv[]);
 int landing_target_estimator_thread_main(int argc, char *argv[]);
 
 /**
-* Main entry point for this module
-**/
-int landing_target_estimator_main(int argc, char *argv[])
-{
-
+ * Main entry point for this module
+ **/
+int landing_target_estimator_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		goto exiterr;
 	}
@@ -95,11 +92,8 @@ int landing_target_estimator_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		daemon_task = px4_task_spawn_cmd("landing_target_estimator",
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_DEFAULT,
-						 2100,
-						 landing_target_estimator_thread_main,
+		daemon_task = px4_task_spawn_cmd("landing_target_estimator", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT,
+						 2100, landing_target_estimator_thread_main,
 						 (argv) ? (char *const *)&argv[2] : nullptr);
 		return 0;
 	}
@@ -130,8 +124,7 @@ exiterr:
 	return 1;
 }
 
-int landing_target_estimator_thread_main(int argc, char *argv[])
-{
+int landing_target_estimator_thread_main(int argc, char *argv[]) {
 	PX4_DEBUG("starting");
 
 	thread_running = true;
@@ -150,4 +143,4 @@ int landing_target_estimator_thread_main(int argc, char *argv[])
 	return 0;
 }
 
-}
+}  // namespace landing_target_estimator

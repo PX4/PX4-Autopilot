@@ -38,25 +38,24 @@
 #endif
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
+#include <px4_platform/cpuload.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_platform/cpuload.h>
-#include <uORB/Publication.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/task_stack_info.h>
+
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
 
 #if defined(__PX4_LINUX)
 #include <sys/times.h>
 #endif
 
-namespace load_mon
-{
+namespace load_mon {
 
-class LoadMon : public ModuleBase<LoadMon>, public ModuleParams, public px4::ScheduledWorkItem
-{
+class LoadMon : public ModuleBase<LoadMon>, public ModuleParams, public px4::ScheduledWorkItem {
 public:
 	LoadMon();
 	~LoadMon() override;
@@ -64,10 +63,7 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[])
-	{
-		return print_usage("unknown command");
-	}
+	static int custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
@@ -90,7 +86,7 @@ private:
 
 	uORB::Publication<task_stack_info_s> _task_stack_info_pub{ORB_ID(task_stack_info)};
 #endif
-	uORB::Publication<cpuload_s> _cpuload_pub {ORB_ID(cpuload)};
+	uORB::Publication<cpuload_s> _cpuload_pub{ORB_ID(cpuload)};
 
 #if defined(__PX4_LINUX)
 	FILE *_proc_fd = nullptr;
@@ -98,15 +94,13 @@ private:
 	clock_t _last_total_time_stamp{};
 	clock_t _last_spent_time_stamp{};
 #elif defined(__PX4_NUTTX)
-	hrt_abstime _last_idle_time {0};
+	hrt_abstime _last_idle_time{0};
 	hrt_abstime _last_idle_time_sample{0};
 #endif
 
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")};
 
-	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::SYS_STCK_EN>) _param_sys_stck_en
-	)
+	DEFINE_PARAMETERS((ParamBool<px4::params::SYS_STCK_EN>)_param_sys_stck_en)
 };
 
-} // namespace load_mon
+}  // namespace load_mon

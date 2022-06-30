@@ -39,49 +39,48 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <assert.h>
-#include <time.h>
-#include <stdlib.h>
 #include <math.h>
-#include <mathlib/math/test/test.hpp>
+#include <px4_platform_common/defines.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
+namespace control {
 
 /**
  * A high pass filter as described here:
  * http://en.wikipedia.org/wiki/High-pass_filter.
  */
-class __EXPORT BlockHighPass : public Block
-{
+class __EXPORT BlockHighPass : public Block {
 public:
-// methods
-	BlockHighPass(SuperBlock *parent, const char *name) :
-		Block(parent, name),
-		_u(0),
-		_y(0),
-		_fCut(this, "") // only one parameter, no need to name
+	// methods
+	BlockHighPass(SuperBlock *parent, const char *name)
+		: Block(parent, name),
+		  _u(0),
+		  _y(0),
+		  _fCut(this, "")  // only one parameter, no need to name
 	{}
 	virtual ~BlockHighPass() = default;
 	float update(float input);
-// accessors
-	float getU() {return _u;}
-	float getY() {return _y;}
-	float getFCut() {return _fCut.get();}
-	void setU(float u) {_u = u;}
-	void setY(float y) {_y = y;}
+	// accessors
+	float getU() { return _u; }
+	float getY() { return _y; }
+	float getFCut() { return _fCut.get(); }
+	void setU(float u) { _u = u; }
+	void setY(float y) { _y = y; }
+
 protected:
-// attributes
-	float _u; /**< previous input */
-	float _y; /**< previous output */
+	// attributes
+	float _u;                       /**< previous input */
+	float _y;                       /**< previous output */
 	control::BlockParamFloat _fCut; /**< cut-off frequency, Hz */
 };
 
-} // namespace control
+}  // namespace control

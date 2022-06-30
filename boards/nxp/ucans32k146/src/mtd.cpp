@@ -34,42 +34,24 @@
 #include <nuttx/spi/spi.h>
 #include <px4_platform_common/px4_manifest.h>
 //                                                              KiB BS    nB
-static const px4_mft_device_t eerom = {            // Emulated EEPROB 4K
+static const px4_mft_device_t eerom = {
+	// Emulated EEPROB 4K
 	.bus_type = px4_mft_device_t::ONCHIP,
 };
-
 
 static const px4_mtd_entry_t fmum_eeprom = {
 	.device = &eerom,
 	.npart = 1,
-	.partd = {
-		{
-			.type = MTD_PARAMETERS,
-			.path = "/dev/eeeprom0",
-			.nblocks = 1
-		}
-	},
+	.partd = {{.type = MTD_PARAMETERS, .path = "/dev/eeeprom0", .nblocks = 1}},
 };
 
-
-static const px4_mtd_manifest_t board_mtd_config = {
-	.nconfigs   = 1,
-	.entries = {
-		&fmum_eeprom
-	}
-};
+static const px4_mtd_manifest_t board_mtd_config = {.nconfigs = 1, .entries = {&fmum_eeprom}};
 
 static const px4_mft_entry_s mtd_mft = {
 	.type = MTD,
-	.pmft = (void *) &board_mtd_config,
+	.pmft = (void *)&board_mtd_config,
 };
 
-static const px4_mft_s mft = {
-	.nmft = 1,
-	.mfts = &mtd_mft
-};
+static const px4_mft_s mft = {.nmft = 1, .mfts = &mtd_mft};
 
-const px4_mft_s *board_get_manifest(void)
-{
-	return &mft;
-}
+const px4_mft_s *board_get_manifest(void) { return &mft; }

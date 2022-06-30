@@ -44,23 +44,21 @@
 
 #pragma once
 
-#include <uORB/Subscription.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_gps.h>
+#include <lib/perf/perf_counter.h>
 #include <uORB/topics/gps_inject_data.h>
+#include <uORB/topics/sensor_gps.h>
 
-#include <uavcan/uavcan.hpp>
+#include <ardupilot/gnss/MovingBaselineData.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
 #include <uavcan/equipment/gnss/Auxiliary.hpp>
 #include <uavcan/equipment/gnss/Fix.hpp>
 #include <uavcan/equipment/gnss/Fix2.hpp>
-#include <ardupilot/gnss/MovingBaselineData.hpp>
-
-#include <lib/perf/perf_counter.h>
+#include <uavcan/uavcan.hpp>
 
 #include "sensor_bridge.hpp"
 
-class UavcanGnssBridge : public UavcanSensorBridgeBase
-{
+class UavcanGnssBridge : public UavcanSensorBridgeBase {
 	static constexpr unsigned ORB_TO_UAVCAN_FREQUENCY_HZ = 10;
 
 public:
@@ -84,30 +82,30 @@ private:
 	void gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &msg);
 
 	template <typename FixType>
-	void process_fixx(const uavcan::ReceivedDataStructure<FixType> &msg,
-			  uint8_t fix_type,
-			  const float (&pos_cov)[9], const float (&vel_cov)[9],
-			  const bool valid_pos_cov, const bool valid_vel_cov,
-			  const float heading, const float heading_offset,
+	void process_fixx(const uavcan::ReceivedDataStructure<FixType> &msg, uint8_t fix_type,
+			  const float (&pos_cov)[9], const float (&vel_cov)[9], const bool valid_pos_cov,
+			  const bool valid_vel_cov, const float heading, const float heading_offset,
 			  const float heading_accuracy);
 
 	void handleInjectDataTopic();
 	bool injectData(const uint8_t *data, size_t data_len);
 
-	typedef uavcan::MethodBinder < UavcanGnssBridge *,
-		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &) >
+	typedef uavcan::MethodBinder<UavcanGnssBridge *,
+				     void (UavcanGnssBridge::*)(
+					     const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &)>
 		AuxiliaryCbBinder;
 
-	typedef uavcan::MethodBinder < UavcanGnssBridge *,
-		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &) >
+	typedef uavcan::MethodBinder<UavcanGnssBridge *,
+				     void (UavcanGnssBridge::*)(
+					     const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &)>
 		FixCbBinder;
 
-	typedef uavcan::MethodBinder < UavcanGnssBridge *,
-		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &) >
+	typedef uavcan::MethodBinder<UavcanGnssBridge *,
+				     void (UavcanGnssBridge::*)(
+					     const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &)>
 		Fix2CbBinder;
 
-	typedef uavcan::MethodBinder<UavcanGnssBridge *,
-		void (UavcanGnssBridge::*)(const uavcan::TimerEvent &)>
+	typedef uavcan::MethodBinder<UavcanGnssBridge *, void (UavcanGnssBridge::*)(const uavcan::TimerEvent &)>
 		TimerCbBinder;
 
 	uavcan::INode &_node;
@@ -117,15 +115,15 @@ private:
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix2, Fix2CbBinder> _sub_fix2;
 	uavcan::Publisher<ardupilot::gnss::MovingBaselineData> _pub_rtcm;
 
-	uint64_t	_last_gnss_auxiliary_timestamp{0};
-	float		_last_gnss_auxiliary_hdop{0.0f};
-	float		_last_gnss_auxiliary_vdop{0.0f};
+	uint64_t _last_gnss_auxiliary_timestamp{0};
+	float _last_gnss_auxiliary_hdop{0.0f};
+	float _last_gnss_auxiliary_vdop{0.0f};
 
-	uORB::Subscription			_orb_inject_data_sub{ORB_ID(gps_inject_data)};
+	uORB::Subscription _orb_inject_data_sub{ORB_ID(gps_inject_data)};
 
 	bool _system_clock_set{false};  ///< Have we set the system clock at least once from GNSS data?
 
-	bool *_channel_using_fix2; ///< Flag for whether each channel is using Fix2 or Fix msg
+	bool *_channel_using_fix2;  ///< Flag for whether each channel is using Fix2 or Fix msg
 
 	perf_counter_t _rtcm_perf;
 };

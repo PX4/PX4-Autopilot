@@ -1,12 +1,14 @@
-/*************************************************************************//**
- * @file
- * @brief    	This file is part of the AFBR-S50 API.
- * @details		This file provides an interface for the required S2PI module.
- *
- * @copyright	Copyright c 2016-2019, Avago Technologies GmbH.
- * 				All rights reserved.
- *
- *****************************************************************************/
+/*************************************************************************/ /**
+									     * @file
+									     * @brief    	This file is part of the
+									     *AFBR-S50 API.
+									     * @details		This file provides an
+									     *interface for the required S2PI module.
+									     *
+									     * @copyright	Copyright c 2016-2019, Avago
+									     *Technologies GmbH. All rights reserved.
+									     *
+									     *****************************************************************************/
 
 #ifndef S2PI_H
 #define S2PI_H
@@ -36,7 +38,6 @@ extern "C" {
  *****************************************************************************/
 
 #include "platform/argus_s2pi.h"
-
 
 /*! Enables the SPI slaves that utilize a GPIO pin for chip select. */
 #define S2PI_GPIO_SLAVES 0
@@ -74,7 +75,6 @@ enum S2PISlaves {
 	S2PI_PINS_LOW = 0xFFU,
 };
 
-
 /*!***************************************************************************
  * @brief	Initializes the S2PI module.
  *
@@ -104,4 +104,4 @@ status_t S2PI_SetBaudRate(uint32_t baudRate_Bps);
 #endif
 
 /*! @} */
-#endif // S2PI_H
+#endif  // S2PI_H

@@ -41,9 +41,10 @@
 
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/i2c_spi_buses.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 
 /**
@@ -51,31 +52,31 @@
  */
 
 /* Max measurement rate is 80Hz */
-#define LIS3MDL_CONVERSION_INTERVAL     (1000000 / 80)  /* 12,500 microseconds */
+#define LIS3MDL_CONVERSION_INTERVAL (1000000 / 80) /* 12,500 microseconds */
 
-#define NUM_BUS_OPTIONS                 (sizeof(lis3mdl::bus_options)/sizeof(lis3mdl::bus_options[0]))
+#define NUM_BUS_OPTIONS (sizeof(lis3mdl::bus_options) / sizeof(lis3mdl::bus_options[0]))
 
-#define ADDR_WHO_AM_I                   0x0f
-#define ID_WHO_AM_I                     0x3d
+#define ADDR_WHO_AM_I 0x0f
+#define ID_WHO_AM_I 0x3d
 
-#define ADDR_CTRL_REG1                  0x20
-#define ADDR_CTRL_REG2                  0x21
-#define ADDR_CTRL_REG3                  0x22
-#define ADDR_CTRL_REG4                  0x23
-#define ADDR_CTRL_REG5                  0x24
+#define ADDR_CTRL_REG1 0x20
+#define ADDR_CTRL_REG2 0x21
+#define ADDR_CTRL_REG3 0x22
+#define ADDR_CTRL_REG4 0x23
+#define ADDR_CTRL_REG5 0x24
 
-#define ADDR_STATUS_REG                 0x27
-#define ADDR_OUT_X_L                    0x28
-#define ADDR_OUT_X_H                    0x29
-#define ADDR_OUT_Y_L                    0x2a
-#define ADDR_OUT_Y_H                    0x2b
-#define ADDR_OUT_Z_L                    0x2c
-#define ADDR_OUT_Z_H                    0x2d
-#define ADDR_OUT_T_L                    0x2e
-#define ADDR_OUT_T_H                    0x2f
+#define ADDR_STATUS_REG 0x27
+#define ADDR_OUT_X_L 0x28
+#define ADDR_OUT_X_H 0x29
+#define ADDR_OUT_Y_L 0x2a
+#define ADDR_OUT_Y_H 0x2b
+#define ADDR_OUT_Z_L 0x2c
+#define ADDR_OUT_Z_H 0x2d
+#define ADDR_OUT_T_L 0x2e
+#define ADDR_OUT_T_H 0x2f
 
-#define MODE_REG_CONTINOUS_MODE         (0 << 0)
-#define MODE_REG_SINGLE_MODE            (1 << 0) /* default */
+#define MODE_REG_CONTINOUS_MODE (0 << 0)
+#define MODE_REG_SINGLE_MODE (1 << 0) /* default */
 
 #define CNTL_REG1_DEFAULT 0xFC
 #define CNTL_REG2_DEFAULT 0x00
@@ -87,16 +88,11 @@
 extern device::Device *LIS3MDL_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 extern device::Device *LIS3MDL_I2C_interface(int bus, int bus_frequency);
 
-enum OPERATING_MODE {
-	CONTINUOUS = 0,
-	SINGLE
-};
+enum OPERATING_MODE { CONTINUOUS = 0, SINGLE };
 
-#define LIS3MDLL_ADDRESS        0x1e
+#define LIS3MDLL_ADDRESS 0x1e
 
-
-class LIS3MDL : public I2CSPIDriver<LIS3MDL>
-{
+class LIS3MDL : public I2CSPIDriver<LIS3MDL> {
 public:
 	LIS3MDL(device::Device *interface, const I2CSPIDriverConfig &config);
 	virtual ~LIS3MDL();
@@ -196,4 +192,4 @@ private:
 	 */
 	int write_reg(uint8_t reg, uint8_t val);
 
-}; // class LIS3MDL
+};  // class LIS3MDL

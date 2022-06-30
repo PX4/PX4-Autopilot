@@ -41,17 +41,14 @@
 
 #include "bmp388.h"
 
-BMP388::BMP388(const I2CSPIDriverConfig &config, IBMP388 *interface) :
-	I2CSPIDriver(config),
-	_interface(interface),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
-{
-}
+BMP388::BMP388(const I2CSPIDriverConfig &config, IBMP388 *interface)
+	: I2CSPIDriver(config),
+	  _interface(interface),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": measure")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": comms errors")) {}
 
-BMP388::~BMP388()
-{
+BMP388::~BMP388() {
 	/* free perf counters */
 	perf_free(_sample_perf);
 	perf_free(_measure_perf);
@@ -60,9 +57,7 @@ BMP388::~BMP388()
 	delete _interface;
 }
 
-int
-BMP388::init()
-{
+int BMP388::init() {
 	if (!soft_reset()) {
 		PX4_DEBUG("failed to reset baro during init");
 		return -EIO;
@@ -95,9 +90,7 @@ BMP388::init()
 	return OK;
 }
 
-void
-BMP388::print_status()
-{
+void BMP388::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_measure_perf);
@@ -105,18 +98,14 @@ BMP388::print_status()
 	printf("measurement interval:  %u us \n", _measure_interval);
 }
 
-void
-BMP388::start()
-{
+void BMP388::start() {
 	_collect_phase = false;
 
 	// wait a bit longer for the first measurement, as otherwise the first readout might fail
 	ScheduleOnInterval(_measure_interval, _measure_interval * 3);
 }
 
-void
-BMP388::RunImpl()
-{
+void BMP388::RunImpl() {
 	if (_collect_phase) {
 		collect();
 	}
@@ -124,9 +113,7 @@ BMP388::RunImpl()
 	measure();
 }
 
-int
-BMP388::measure()
-{
+int BMP388::measure() {
 	_collect_phase = true;
 
 	perf_begin(_measure_perf);
@@ -144,9 +131,7 @@ BMP388::measure()
 	return OK;
 }
 
-int
-BMP388::collect()
-{
+int BMP388::collect() {
 	_collect_phase = false;
 
 	/* enable pressure and temperature */
@@ -165,7 +150,7 @@ BMP388::collect()
 	}
 
 	float temperature = (float)(data.temperature / 100.0f);
-	float pressure = (float)(data.pressure / 100.0f); // to Pascal
+	float pressure = (float)(data.pressure / 100.0f);  // to Pascal
 
 	// publish
 	sensor_baro_s sensor_baro{};
@@ -187,12 +172,10 @@ BMP388::collect()
  *
  * Refer: https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3.c
  */
-bool
-BMP388::soft_reset()
-{
-	bool    result = false;
+bool BMP388::soft_reset() {
+	bool result = false;
 	uint8_t status;
-	int     ret;
+	int ret;
 
 	status = _interface->get_reg(BMP3_SENS_STATUS_REG_ADDR);
 
@@ -217,8 +200,7 @@ BMP388::soft_reset()
  *
  * Refer: https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/self-test/bmp3_selftest.c
  * */
-static int8_t cal_crc(uint8_t seed, uint8_t data)
-{
+static int8_t cal_crc(uint8_t seed, uint8_t data) {
 	int8_t poly = 0x1D;
 	int8_t var2;
 	uint8_t i;
@@ -244,9 +226,7 @@ static int8_t cal_crc(uint8_t seed, uint8_t data)
  *
  * Refer: https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/self-test/bmp3_selftest.c
  * */
-bool
-BMP388::validate_trimming_param()
-{
+bool BMP388::validate_trimming_param() {
 	uint8_t crc = 0xFF;
 	uint8_t stored_crc;
 	uint8_t *trim_param = (uint8_t *)_cal;
@@ -264,9 +244,7 @@ BMP388::validate_trimming_param()
 	return stored_crc == crc;
 }
 
-uint32_t
-BMP388::get_measurement_time()
-{
+uint32_t BMP388::get_measurement_time() {
 	/*
 	  From BST-BMP388-DS001.pdf, page 25, table 21
 
@@ -280,36 +258,36 @@ BMP388::get_measurement_time()
 	  x32           2x            68.9 ms         (not documented)
 	*/
 
-	uint32_t meas_time_us = 0; // unsupported value by default
+	uint32_t meas_time_us = 0;  // unsupported value by default
 
 	if (osr_t == BMP3_NO_OVERSAMPLING) {
 		switch (osr_p) {
-		case BMP3_NO_OVERSAMPLING:
-			meas_time_us = 5700;
-			break;
+			case BMP3_NO_OVERSAMPLING:
+				meas_time_us = 5700;
+				break;
 
-		case BMP3_OVERSAMPLING_2X:
-			meas_time_us = 8700;
-			break;
+			case BMP3_OVERSAMPLING_2X:
+				meas_time_us = 8700;
+				break;
 
-		case BMP3_OVERSAMPLING_4X:
-			meas_time_us = 13300;
-			break;
+			case BMP3_OVERSAMPLING_4X:
+				meas_time_us = 13300;
+				break;
 
-		case BMP3_OVERSAMPLING_8X:
-			meas_time_us = 22500;
-			break;
+			case BMP3_OVERSAMPLING_8X:
+				meas_time_us = 22500;
+				break;
 		}
 
 	} else if (osr_t == BMP3_OVERSAMPLING_2X) {
 		switch (osr_p) {
-		case BMP3_OVERSAMPLING_16X:
-			meas_time_us = 43300;
-			break;
+			case BMP3_OVERSAMPLING_16X:
+				meas_time_us = 43300;
+				break;
 
-		case BMP3_OVERSAMPLING_32X:
-			meas_time_us = 68900;
-			break;
+			case BMP3_OVERSAMPLING_32X:
+				meas_time_us = 68900;
+				break;
 		}
 	}
 
@@ -323,9 +301,7 @@ BMP388::get_measurement_time()
  *
  * Refer: https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3.c
  */
-bool
-BMP388::set_sensor_settings()
-{
+bool BMP388::set_sensor_settings() {
 	_measure_interval = get_measurement_time();
 
 	if (_measure_interval == 0) {
@@ -380,19 +356,16 @@ BMP388::set_sensor_settings()
 	return true;
 }
 
-
 /*!
  * @brief This API sets the power mode of the sensor.
  *
  * Refer: https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3.c
  */
-bool
-BMP388::set_op_mode(uint8_t op_mode)
-{
-	bool    result = false;
+bool BMP388::set_op_mode(uint8_t op_mode) {
+	bool result = false;
 	uint8_t last_set_mode;
 	uint8_t op_mode_reg_val;
-	int     ret = OK;
+	int ret = OK;
 
 	op_mode_reg_val = _interface->get_reg(BMP3_PWR_CTRL_ADDR);
 	last_set_mode = BMP3_GET_BITS(op_mode_reg_val, BMP3_OP_MODE);
@@ -430,8 +403,7 @@ BMP388::set_op_mode(uint8_t op_mode)
  *
  * Refer: https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3.c
  */
-static void parse_sensor_data(const uint8_t *reg_data, struct bmp3_uncomp_data *uncomp_data)
-{
+static void parse_sensor_data(const uint8_t *reg_data, struct bmp3_uncomp_data *uncomp_data) {
 	uint32_t data_xlsb;
 	uint32_t data_lsb;
 	uint32_t data_msb;
@@ -447,7 +419,6 @@ static void parse_sensor_data(const uint8_t *reg_data, struct bmp3_uncomp_data *
 	uncomp_data->temperature = data_msb | data_lsb | data_xlsb;
 }
 
-
 /*!
  * @brief This internal API is used to compensate the raw temperature data and
  * return the compensated temperature data in integer data type.
@@ -455,8 +426,7 @@ static void parse_sensor_data(const uint8_t *reg_data, struct bmp3_uncomp_data *
  *
  * Refer: https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3.c
  */
-static int64_t compensate_temperature(const struct bmp3_uncomp_data *uncomp_data, struct bmp3_calib_data *calib_data)
-{
+static int64_t compensate_temperature(const struct bmp3_uncomp_data *uncomp_data, struct bmp3_calib_data *calib_data) {
 	int64_t partial_data1;
 	int64_t partial_data2;
 	int64_t partial_data3;
@@ -487,8 +457,7 @@ static int64_t compensate_temperature(const struct bmp3_uncomp_data *uncomp_data
  * Refer: https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3.c
  */
 static uint64_t compensate_pressure(const struct bmp3_uncomp_data *uncomp_data,
-				    const struct bmp3_calib_data *calib_data)
-{
+				    const struct bmp3_calib_data *calib_data) {
 	const struct bmp3_reg_calib_data *reg_calib_data = &calib_data->reg_calib_data;
 	int64_t partial_data1;
 	int64_t partial_data2;
@@ -510,12 +479,14 @@ static uint64_t compensate_pressure(const struct bmp3_uncomp_data *uncomp_data,
 	partial_data2 = (reg_calib_data->par_p4 * partial_data3) / 32;
 	partial_data4 = (reg_calib_data->par_p3 * partial_data1) * 4;
 	partial_data5 = (reg_calib_data->par_p2 - 16384) * reg_calib_data->t_lin * 2097152;
-	sensitivity = ((reg_calib_data->par_p1 - 16384) * 70368744177664) + partial_data2 + partial_data4 + partial_data5;
+	sensitivity =
+		((reg_calib_data->par_p1 - 16384) * 70368744177664) + partial_data2 + partial_data4 + partial_data5;
 	partial_data1 = (sensitivity / 16777216) * uncomp_data->pressure;
 	partial_data2 = reg_calib_data->par_p10 * reg_calib_data->t_lin;
 	partial_data3 = partial_data2 + (65536 * reg_calib_data->par_p9);
 	partial_data4 = (partial_data3 * uncomp_data->pressure) / 8192;
-	/*dividing by 10 followed by multiplying by 10 to avoid overflow caused by (uncomp_data->pressure * partial_data4) */
+	/*dividing by 10 followed by multiplying by 10 to avoid overflow caused by (uncomp_data->pressure *
+	 * partial_data4) */
 	partial_data5 = (uncomp_data->pressure * (partial_data4 / 10)) / 512;
 	partial_data5 = partial_data5 * 10;
 	partial_data6 = (int64_t)((uint64_t)uncomp_data->pressure * (uint64_t)uncomp_data->pressure);
@@ -533,11 +504,8 @@ static uint64_t compensate_pressure(const struct bmp3_uncomp_data *uncomp_data,
  *
  * Refer: https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3.c
  */
-bool
-BMP388::compensate_data(uint8_t sensor_comp,
-			const struct bmp3_uncomp_data *uncomp_data,
-			struct bmp3_data *comp_data)
-{
+bool BMP388::compensate_data(uint8_t sensor_comp, const struct bmp3_uncomp_data *uncomp_data,
+			     struct bmp3_data *comp_data) {
 	int8_t rslt = OK;
 	struct bmp3_calib_data calib_data = {0};
 	struct bmp3_reg_calib_data *reg_calib_data = &calib_data.reg_calib_data;
@@ -564,9 +532,7 @@ BMP388::compensate_data(uint8_t sensor_comp,
  * sensor, compensates the data and store it in the bmp3_data structure
  * instance passed by the user.
  */
-bool
-BMP388::get_sensor_data(uint8_t sensor_comp, struct bmp3_data *comp_data)
-{
+bool BMP388::get_sensor_data(uint8_t sensor_comp, struct bmp3_data *comp_data) {
 	bool result = false;
 	int8_t rslt;
 

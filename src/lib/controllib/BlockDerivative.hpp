@@ -39,18 +39,15 @@
 
 #pragma once
 
-#include "BlockLowPass.hpp"
-
-#include <px4_platform_common/defines.h>
 #include <math.h>
+#include <px4_platform_common/defines.h>
 
+#include "BlockLowPass.hpp"
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
+namespace control {
 
 /**
  * A simple derivative approximation.
@@ -58,16 +55,11 @@ namespace control
  * This has a built in low pass filter.
  * @see LowPass
  */
-class __EXPORT BlockDerivative : public SuperBlock
-{
+class __EXPORT BlockDerivative : public SuperBlock {
 public:
-// methods
-	BlockDerivative(SuperBlock *parent, const char *name) :
-		SuperBlock(parent, name),
-		_u(0),
-		_initialized(false),
-		_lowPass(this, "LP")
-	{}
+	// methods
+	BlockDerivative(SuperBlock *parent, const char *name)
+		: SuperBlock(parent, name), _u(0), _initialized(false), _lowPass(this, "LP") {}
 	virtual ~BlockDerivative() = default;
 
 	/**
@@ -85,17 +77,18 @@ public:
 	 * @return the current derivative
 	 */
 	float update(float input);
-// accessors
-	void setU(float u) {_u = u;}
+	// accessors
+	void setU(float u) { _u = u; }
 	void reset() { _initialized = false; };
-	float getU() {return _u;}
-	float getLP() {return _lowPass.getFCut();}
+	float getU() { return _u; }
+	float getLP() { return _lowPass.getFCut(); }
 	float getO() { return _lowPass.getState(); }
+
 protected:
-// attributes
+	// attributes
 	float _u; /**< previous input */
 	bool _initialized;
 	BlockLowPass _lowPass; /**< low pass filter */
 };
 
-} // namespace control
+}  // namespace control

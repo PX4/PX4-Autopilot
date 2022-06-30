@@ -37,7 +37,6 @@
  *
  */
 
-
 #ifndef COMMS_H_
 #define COMMS_H
 

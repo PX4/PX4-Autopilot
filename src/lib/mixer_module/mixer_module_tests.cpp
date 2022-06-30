@@ -32,13 +32,13 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
-#include <array>
-
 #include <parameters/param.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/actuator_servos.h>
-#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_test.h>
+
+#include <array>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 
@@ -57,55 +57,42 @@ static constexpr int failsafe_value = 800;
 static constexpr int min_value = 1000;
 static constexpr int max_value = 2000;
 
-class MixerModuleTest : public ::testing::Test
-{
+class MixerModuleTest : public ::testing::Test {
 public:
-	void SetUp() override
-	{
+	void SetUp() override {
 		param_control_autosave(false);
 
 		int32_t v = 1;
 		param_set(param_find("SYS_CTRL_ALLOC"), &v);
 	}
 
-	int update(MixingOutput &mixing_output)
-	{
+	int update(MixingOutput &mixing_output) {
 		mixing_output.update();
 		// make sure output_limit switches to ON (if outputs enabled)
 		px4_usleep(50000 * 2);
 		mixing_output.update();
 		mixing_output.update();
-		return 3; // expected number of output updates
+		return 3;  // expected number of output updates
 	}
-
 };
 
-class OutputModuleTest : public OutputModuleInterface
-{
+class OutputModuleTest : public OutputModuleInterface {
 public:
-	OutputModuleTest() : OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default) {};
+	OutputModuleTest() : OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default){};
 
-	void Run() override
-	{
-		was_scheduled = true;
-	}
+	void Run() override { was_scheduled = true; }
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs_[MAX_ACTUATORS],
-			   unsigned num_outputs_, unsigned num_control_groups_updated) override
-	{
+	bool updateOutputs(bool stop_motors, uint16_t outputs_[MAX_ACTUATORS], unsigned num_outputs_,
+			   unsigned num_control_groups_updated) override {
 		memcpy(outputs, outputs_, sizeof(outputs));
 		num_outputs = num_outputs_;
 		++num_updates;
 		return true;
 	}
 
-	void mixerChanged() override
-	{
-		mixer_changed = true;
-	}
+	void mixerChanged() override { mixer_changed = true; }
 
-	void configureFunctions(const std::array<int32_t, max_num_outputs> &functions)
-	{
+	void configureFunctions(const std::array<int32_t, max_num_outputs> &functions) {
 		for (int i = 0; i < max_num_outputs; ++i) {
 			char buffer[17];
 
@@ -116,8 +103,7 @@ public:
 		updateParams();
 	}
 
-	void sendMotors(const std::array<float, actuator_motors_s::NUM_CONTROLS> &motors, uint16_t reversible = 0)
-	{
+	void sendMotors(const std::array<float, actuator_motors_s::NUM_CONTROLS> &motors, uint16_t reversible = 0) {
 		actuator_motors_s actuator_motors{};
 		actuator_motors.timestamp = hrt_absolute_time();
 		actuator_motors.reversible_flags = reversible;
@@ -129,8 +115,7 @@ public:
 		_actuator_motors_pub.publish(actuator_motors);
 	}
 
-	void sendServos(const std::array<float, actuator_servos_s::NUM_CONTROLS> &servos)
-	{
+	void sendServos(const std::array<float, actuator_servos_s::NUM_CONTROLS> &servos) {
 		actuator_servos_s actuator_servos{};
 		actuator_servos.timestamp = hrt_absolute_time();
 
@@ -141,19 +126,19 @@ public:
 		_actuator_servos_pub.publish(actuator_servos);
 	}
 
-	void sendActuatorMotorTest(int function, float value, bool release_control)
-	{
+	void sendActuatorMotorTest(int function, float value, bool release_control) {
 		actuator_test_s actuator_test{};
 		actuator_test.timestamp = hrt_absolute_time();
 		actuator_test.function = function;
 		actuator_test.value = value;
-		actuator_test.action = release_control ? actuator_test_s::ACTION_RELEASE_CONTROL : actuator_test_s::ACTION_DO_CONTROL;
+		actuator_test.action =
+			release_control ? actuator_test_s::ACTION_RELEASE_CONTROL : actuator_test_s::ACTION_DO_CONTROL;
 		actuator_test.timeout_ms = 0;
 		_actuator_test_pub.publish(actuator_test);
 	}
 
-	void sendActuatorArmed(bool armed, bool force_failsafe = false, bool manual_lockdown = false, bool prearm = false)
-	{
+	void sendActuatorArmed(bool armed, bool force_failsafe = false, bool manual_lockdown = false,
+			       bool prearm = false) {
 		actuator_armed_s actuator_armed{};
 		actuator_armed.timestamp = hrt_absolute_time();
 		actuator_armed.armed = armed;
@@ -163,15 +148,14 @@ public:
 		_actuator_armed_pub.publish(actuator_armed);
 	}
 
-	void reset()
-	{
+	void reset() {
 		memset(outputs, 0, sizeof(outputs));
 		num_outputs = 0;
 		num_updates = 0;
 		mixer_changed = false;
 	}
 
-	uint16_t outputs[MAX_ACTUATORS] {};
+	uint16_t outputs[MAX_ACTUATORS]{};
 	int num_outputs{0};
 	int num_updates{0};
 	bool was_scheduled{false};
@@ -184,11 +168,11 @@ private:
 	uORB::Publication<actuator_armed_s> _actuator_armed_pub{ORB_ID(actuator_armed)};
 };
 
-TEST_F(MixerModuleTest, basic)
-{
+TEST_F(MixerModuleTest, basic) {
 	OutputModuleTest test_module;
 	test_module.configureFunctions({});
-	MixingOutput mixing_output{PARAM_PREFIX, max_num_outputs, test_module, MixingOutput::SchedulingPolicy::Disabled, false, false};
+	MixingOutput mixing_output{
+		PARAM_PREFIX, max_num_outputs, test_module, MixingOutput::SchedulingPolicy::Disabled, false, false};
 	mixing_output.setAllDisarmedValues(disarmed_value);
 	mixing_output.setAllFailsafeValues(failsafe_value);
 	mixing_output.setAllMinValues(min_value);
@@ -217,11 +201,8 @@ TEST_F(MixerModuleTest, basic)
 
 	// send motors -> still disarmed
 	test_module.sendMotors({1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f});
-	test_module.configureFunctions({
-		0,
-		(int)OutputFunction::Motor3,
-		(int)OutputFunction::Motor1,
-		(int)OutputFunction::Motor5});
+	test_module.configureFunctions(
+		{0, (int)OutputFunction::Motor3, (int)OutputFunction::Motor1, (int)OutputFunction::Motor5});
 
 	mixing_output.updateSubscriptions(false);
 	EXPECT_EQ(test_module.num_updates, update(mixing_output));
@@ -232,7 +213,6 @@ TEST_F(MixerModuleTest, basic)
 	}
 
 	test_module.reset();
-
 
 	// actuator test
 	test_module.sendActuatorMotorTest((int)OutputFunction::Motor5, 1.f, false);
@@ -268,16 +248,12 @@ TEST_F(MixerModuleTest, basic)
 	EXPECT_FALSE(test_module.was_scheduled);
 }
 
-TEST_F(MixerModuleTest, arming)
-{
+TEST_F(MixerModuleTest, arming) {
 	OutputModuleTest test_module;
-	test_module.configureFunctions({
-		0,
-		(int)OutputFunction::Motor3,
-		(int)OutputFunction::Motor1,
-		(int)OutputFunction::Motor5,
-		(int)OutputFunction::Servo3});
-	MixingOutput mixing_output{PARAM_PREFIX, max_num_outputs, test_module, MixingOutput::SchedulingPolicy::Disabled, false, false};
+	test_module.configureFunctions({0, (int)OutputFunction::Motor3, (int)OutputFunction::Motor1,
+					(int)OutputFunction::Motor5, (int)OutputFunction::Servo3});
+	MixingOutput mixing_output{
+		PARAM_PREFIX, max_num_outputs, test_module, MixingOutput::SchedulingPolicy::Disabled, false, false};
 	mixing_output.setAllDisarmedValues(disarmed_value);
 	mixing_output.setAllFailsafeValues(failsafe_value);
 	mixing_output.setAllMinValues(min_value);
@@ -434,13 +410,11 @@ TEST_F(MixerModuleTest, arming)
 	EXPECT_FALSE(test_module.was_scheduled);
 }
 
-TEST_F(MixerModuleTest, prearm)
-{
+TEST_F(MixerModuleTest, prearm) {
 	OutputModuleTest test_module;
-	test_module.configureFunctions({
-		(int)OutputFunction::Motor1,
-		(int)OutputFunction::Servo1});
-	MixingOutput mixing_output{PARAM_PREFIX, max_num_outputs, test_module, MixingOutput::SchedulingPolicy::Disabled, false, false};
+	test_module.configureFunctions({(int)OutputFunction::Motor1, (int)OutputFunction::Servo1});
+	MixingOutput mixing_output{
+		PARAM_PREFIX, max_num_outputs, test_module, MixingOutput::SchedulingPolicy::Disabled, false, false};
 	mixing_output.setAllDisarmedValues(disarmed_value);
 	mixing_output.setAllFailsafeValues(failsafe_value);
 	mixing_output.setAllMinValues(min_value);

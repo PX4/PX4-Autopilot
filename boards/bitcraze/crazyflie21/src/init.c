@@ -45,30 +45,25 @@
  * Included Files
  ****************************************************************************/
 
+#include <arch/board/board.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/spi/spi.h>
+#include <px4_platform_common/init.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
-
 #include <stdbool.h>
 #include <stdio.h>
+#include <stm32_uart.h>
 #include <string.h>
-#include <debug.h>
-#include <errno.h>
 #include <syslog.h>
-
-#include <nuttx/board.h>
-#include <nuttx/analog/adc.h>
-#include <nuttx/spi/spi.h>
+#include <systemlib/px4_macros.h>
 
 #include "board_config.h"
-#include <stm32_uart.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
-
-#include <systemlib/px4_macros.h>
-#include <px4_platform_common/init.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -105,9 +100,7 @@ __END_DECLS
  *
  ************************************************************************************/
 
-__EXPORT void
-stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	/* configure LEDs */
 
 	board_autoled_initialize();
@@ -127,8 +120,7 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	px4_platform_init();
 
 #if defined(SERIAL_HAVE_RXDMA)

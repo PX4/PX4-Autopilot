@@ -36,14 +36,10 @@
 using namespace matrix;
 
 ActuatorEffectivenessCustom::ActuatorEffectivenessCustom(ModuleParams *parent)
-	: ModuleParams(parent), _motors(this), _torque(this)
-{
-}
+	: ModuleParams(parent), _motors(this), _torque(this) {}
 
-bool
-ActuatorEffectivenessCustom::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
-{
+bool ActuatorEffectivenessCustom::getEffectivenessMatrix(Configuration &configuration,
+							 EffectivenessUpdateReason external_update) {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
@@ -57,4 +53,3 @@ ActuatorEffectivenessCustom::getEffectivenessMatrix(Configuration &configuration
 
 	return (motors_added_successfully && torque_added_successfully);
 }
-

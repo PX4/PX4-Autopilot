@@ -51,9 +51,7 @@
 
 #include "ecl_controller.h"
 
-class ECL_YawController :
-	public ECL_Controller
-{
+class ECL_YawController : public ECL_Controller {
 public:
 	ECL_YawController() = default;
 	~ECL_YawController() = default;
@@ -64,7 +62,6 @@ public:
 
 protected:
 	float _max_rate{0.0f};
-
 };
 
-#endif // ECL_YAW_CONTROLLER_H
+#endif  // ECL_YAW_CONTROLLER_H

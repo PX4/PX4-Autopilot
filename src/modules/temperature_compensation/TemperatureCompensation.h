@@ -42,12 +42,12 @@
 
 #pragma once
 
-#include <parameters/param.h>
 #include <mathlib/mathlib.h>
+#include <parameters/param.h>
+
 #include <matrix/math.hpp>
 
-namespace temperature_compensation
-{
+namespace temperature_compensation {
 
 static constexpr uint8_t GYRO_COUNT_MAX = 4;
 static constexpr uint8_t ACCEL_COUNT_MAX = 4;
@@ -64,10 +64,8 @@ static constexpr uint8_t SENSOR_COUNT_MAX = 4;
  ** class TemperatureCompensation
  * Applies temperature compensation to sensor data. Loads the parameters from PX4 param storage.
  */
-class TemperatureCompensation
-{
+class TemperatureCompensation {
 public:
-
 	/** (re)load the parameters. Make sure to call this on startup as well */
 	int parameters_update();
 
@@ -95,8 +93,8 @@ public:
 
 	/** output current configuration status to console */
 	void print_status();
-private:
 
+private:
 	/* Struct containing parameters used by the single axis 5th order temperature compensation algorithm
 
 	Input:
@@ -138,7 +136,6 @@ private:
 		param_t max_temp;
 	};
 
-
 	/* Struct containing parameters used by the 3-axis 3rd order temperature compensation algorithm
 
 	Input:
@@ -155,14 +152,14 @@ private:
 
 	 */
 	struct SensorCalData3D {
-		int32_t ID;		/**< sensor device ID*/
-		float x3[3];		/**< x^3 term of polynomial */
-		float x2[3];		/**< x^2 term of polynomial */
-		float x1[3];		/**< x^1 term of polynomial */
-		float x0[3];		/**< x^0 / offset term of polynomial */
-		float ref_temp;		/**< reference temperature used by the curve-fit */
-		float min_temp;		/**< minimum temperature with valid compensation data */
-		float max_temp;		/**< maximum temperature with valid compensation data */
+		int32_t ID;     /**< sensor device ID*/
+		float x3[3];    /**< x^3 term of polynomial */
+		float x2[3];    /**< x^2 term of polynomial */
+		float x1[3];    /**< x^1 term of polynomial */
+		float x0[3];    /**< x^0 / offset term of polynomial */
+		float ref_temp; /**< reference temperature used by the curve-fit */
+		float min_temp; /**< minimum temperature with valid compensation data */
+		float max_temp; /**< maximum temperature with valid compensation data */
 	};
 
 	struct SensorCalHandles3D {
@@ -179,27 +176,26 @@ private:
 	// create a struct containing all thermal calibration parameters
 	struct Parameters {
 		int32_t gyro_tc_enable{0};
-		SensorCalData3D gyro_cal_data[GYRO_COUNT_MAX] {};
+		SensorCalData3D gyro_cal_data[GYRO_COUNT_MAX]{};
 
 		int32_t accel_tc_enable{0};
-		SensorCalData3D accel_cal_data[ACCEL_COUNT_MAX] {};
+		SensorCalData3D accel_cal_data[ACCEL_COUNT_MAX]{};
 
 		int32_t baro_tc_enable{0};
-		SensorCalData1D baro_cal_data[BARO_COUNT_MAX] {};
+		SensorCalData1D baro_cal_data[BARO_COUNT_MAX]{};
 	};
 
 	// create a struct containing the handles required to access all calibration parameters
 	struct ParameterHandles {
 		param_t gyro_tc_enable{PARAM_INVALID};
-		SensorCalHandles3D gyro_cal_handles[GYRO_COUNT_MAX] {};
+		SensorCalHandles3D gyro_cal_handles[GYRO_COUNT_MAX]{};
 
 		param_t accel_tc_enable{PARAM_INVALID};
-		SensorCalHandles3D accel_cal_handles[ACCEL_COUNT_MAX] {};
+		SensorCalHandles3D accel_cal_handles[ACCEL_COUNT_MAX]{};
 
 		param_t baro_tc_enable{PARAM_INVALID};
-		SensorCalHandles1D baro_cal_handles[BARO_COUNT_MAX] {};
+		SensorCalHandles1D baro_cal_handles[BARO_COUNT_MAX]{};
 	};
-
 
 	/**
 	 * initialize ParameterHandles struct
@@ -207,12 +203,11 @@ private:
 	 */
 	static int initialize_parameter_handles(ParameterHandles &parameter_handles);
 
-
 	/**
 
 	Calculate the offset required to compensate the sensor for temperature effects using a 5th order method
-	If the measured temperature is outside the calibration range, clip the temperature to remain within the range and return false.
-	If the measured temperature is within the calibration range, return true.
+	If the measured temperature is outside the calibration range, clip the temperature to remain within the range
+	and return false. If the measured temperature is within the calibration range, return true.
 
 	Arguments:
 
@@ -230,8 +225,8 @@ private:
 	/**
 
 	Calculate the offsets required to compensate the sensor for temperature effects
-	If the measured temperature is outside the calibration range, clip the temperature to remain within the range and return false.
-	If the measured temperature is within the calibration range, return true.
+	If the measured temperature is outside the calibration range, clip the temperature to remain within the range
+	and return false. If the measured temperature is within the calibration range, return true.
 
 	Arguments:
 
@@ -246,38 +241,33 @@ private:
 	*/
 	bool calc_thermal_offsets_3D(const SensorCalData3D &coef, float measured_temp, float offset[]);
 
-
 	Parameters _parameters;
 
-
 	struct PerSensorData {
-
-		PerSensorData()
-		{
+		PerSensorData() {
 			for (int i = 0; i < SENSOR_COUNT_MAX; ++i) {
 				device_mapping[i] = 255;
 				last_temperature[i] = -100.0f;
 			}
 		}
 
-		void reset_temperature()
-		{
+		void reset_temperature() {
 			for (int i = 0; i < SENSOR_COUNT_MAX; ++i) {
 				last_temperature[i] = -100.0f;
 			}
 		}
 
-		uint8_t device_mapping[SENSOR_COUNT_MAX] {}; /// map a topic instance to the parameters index
-		float last_temperature[SENSOR_COUNT_MAX] {};
+		uint8_t device_mapping[SENSOR_COUNT_MAX]{};  /// map a topic instance to the parameters index
+		float last_temperature[SENSOR_COUNT_MAX]{};
 	};
 
 	PerSensorData _gyro_data;
 	PerSensorData _accel_data;
 	PerSensorData _baro_data;
 
-	template<typename T>
+	template <typename T>
 	static inline int set_sensor_id(uint32_t device_id, int topic_instance, PerSensorData &sensor_data,
 					const T *sensor_cal_data, uint8_t sensor_count_max);
 };
 
-}
+}  // namespace temperature_compensation

@@ -38,26 +38,20 @@
 using namespace time_literals;
 using matrix::Vector3f;
 
-GyroCalibration::GyroCalibration() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
-{
-}
+GyroCalibration::GyroCalibration()
+	: ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default) {}
 
-GyroCalibration::~GyroCalibration()
-{
+GyroCalibration::~GyroCalibration() {
 	perf_free(_loop_interval_perf);
 	perf_free(_calibration_updated_perf);
 }
 
-bool GyroCalibration::init()
-{
+bool GyroCalibration::init() {
 	ScheduleOnInterval(INTERVAL_US);
 	return true;
 }
 
-void GyroCalibration::Run()
-{
+void GyroCalibration::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
@@ -112,7 +106,6 @@ void GyroCalibration::Run()
 		return;
 	}
 
-
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated()) {
 		// clear update
@@ -131,16 +124,16 @@ void GyroCalibration::Run()
 		return;
 	}
 
-
 	// collect raw data from all available gyroscopes (sensor_gyro)
 	for (int gyro = 0; gyro < _sensor_gyro_subs.size(); gyro++) {
 		sensor_gyro_s sensor_gyro;
 
 		while (_sensor_gyro_subs[gyro].update(&sensor_gyro)) {
 			if (PX4_ISFINITE(sensor_gyro.temperature)) {
-				if ((fabsf(_temperature[gyro] - sensor_gyro.temperature) > 1.f) || !PX4_ISFINITE(_temperature[gyro])) {
-					PX4_DEBUG("gyro %d temperature change, resetting all %.6f -> %.6f", gyro, (double)_temperature[gyro],
-						  (double)sensor_gyro.temperature);
+				if ((fabsf(_temperature[gyro] - sensor_gyro.temperature) > 1.f) ||
+				    !PX4_ISFINITE(_temperature[gyro])) {
+					PX4_DEBUG("gyro %d temperature change, resetting all %.6f -> %.6f", gyro,
+						  (double)_temperature[gyro], (double)sensor_gyro.temperature);
 
 					_temperature[gyro] = sensor_gyro.temperature;
 
@@ -153,7 +146,8 @@ void GyroCalibration::Run()
 			}
 
 			if (_gyro_calibration[gyro].device_id() == sensor_gyro.device_id) {
-				const Vector3f val{Vector3f{sensor_gyro.x, sensor_gyro.y, sensor_gyro.z} - _gyro_calibration[gyro].thermal_offset()};
+				const Vector3f val{Vector3f{sensor_gyro.x, sensor_gyro.y, sensor_gyro.z} -
+						   _gyro_calibration[gyro].thermal_offset()};
 				_gyro_mean[gyro].update(val);
 				_gyro_last_update[gyro] = sensor_gyro.timestamp;
 
@@ -172,7 +166,6 @@ void GyroCalibration::Run()
 		}
 	}
 
-
 	// check all accelerometers for possible movement
 	for (int accel = 0; accel < _sensor_accel_subs.size(); accel++) {
 		sensor_accel_s sensor_accel;
@@ -182,7 +175,8 @@ void GyroCalibration::Run()
 
 			if ((acceleration - _acceleration[accel]).longerThan(0.5f)) {
 				// reset all on any change
-				PX4_DEBUG("accel %d changed, resetting all %.5f", accel, (double)(acceleration - _acceleration[accel]).length());
+				PX4_DEBUG("accel %d changed, resetting all %.5f", accel,
+					  (double)(acceleration - _acceleration[accel]).length());
 
 				_acceleration[accel] = acceleration;
 				Reset();
@@ -195,7 +189,6 @@ void GyroCalibration::Run()
 		}
 	}
 
-
 	// check if sufficient data has been gathered to update calibration
 	bool sufficient_samples = false;
 
@@ -203,14 +196,16 @@ void GyroCalibration::Run()
 		if ((_gyro_calibration[gyro].device_id() != 0) && _gyro_mean[gyro].valid()) {
 			// periodically check variance
 			if (_gyro_mean[gyro].count() % 100 == 0) {
-				PX4_DEBUG("gyro %d (%" PRIu32 ") variance, [%.9f, %.9f, %.9f] %.9f", gyro, _gyro_calibration[gyro].device_id(),
-					  (double)_gyro_mean[gyro].variance()(0), (double)_gyro_mean[gyro].variance()(1), (double)_gyro_mean[gyro].variance()(2),
+				PX4_DEBUG("gyro %d (%" PRIu32 ") variance, [%.9f, %.9f, %.9f] %.9f", gyro,
+					  _gyro_calibration[gyro].device_id(), (double)_gyro_mean[gyro].variance()(0),
+					  (double)_gyro_mean[gyro].variance()(1),
+					  (double)_gyro_mean[gyro].variance()(2),
 					  (double)_gyro_mean[gyro].variance().length());
 
 				if (_gyro_mean[gyro].variance().longerThan(0.001f)) {
 					// reset all
-					PX4_DEBUG("gyro %d variance longer than 0.001f (%.3f), resetting all",
-						  gyro, (double)_gyro_mean[gyro].variance().length());
+					PX4_DEBUG("gyro %d variance longer than 0.001f (%.3f), resetting all", gyro,
+						  (double)_gyro_mean[gyro].variance().length());
 					Reset();
 					return;
 				}
@@ -226,34 +221,33 @@ void GyroCalibration::Run()
 		}
 	}
 
-
 	// update calibrations for all available gyros
 	if (sufficient_samples && (hrt_elapsed_time(&_last_calibration_update) > 10_s)) {
 		bool calibration_updated = false;
 
 		for (int gyro = 0; gyro < _sensor_gyro_subs.size(); gyro++) {
 			if (_gyro_calibration[gyro].device_id() != 0 && _gyro_mean[gyro].valid()) {
-
 				// check variance again before saving
 				if (_gyro_mean[gyro].variance().longerThan(0.001f)) {
 					// reset all
-					PX4_DEBUG("gyro %d variance longer than 0.001f (%.3f), resetting all",
-						  gyro, (double)_gyro_mean[gyro].variance().length());
+					PX4_DEBUG("gyro %d variance longer than 0.001f (%.3f), resetting all", gyro,
+						  (double)_gyro_mean[gyro].variance().length());
 					Reset();
 					return;
 				}
 
 				const Vector3f old_offset{_gyro_calibration[gyro].offset()};
 
-				if (_gyro_calibration[gyro].set_offset(_gyro_mean[gyro].mean()) || !_gyro_calibration[gyro].calibrated()) {
-
+				if (_gyro_calibration[gyro].set_offset(_gyro_mean[gyro].mean()) ||
+				    !_gyro_calibration[gyro].calibrated()) {
 					calibration_updated = true;
 
-					PX4_INFO("gyro %d (%" PRIu32 ") updating offsets [%.3f, %.3f, %.3f]->[%.3f, %.3f, %.3f] %.1f degC",
-						 gyro, _gyro_calibration[gyro].device_id(),
-						 (double)old_offset(0), (double)old_offset(1), (double)old_offset(2),
-						 (double)_gyro_mean[gyro].mean()(0), (double)_gyro_mean[gyro].mean()(1), (double)_gyro_mean[gyro].mean()(2),
-						 (double)_temperature[gyro]);
+					PX4_INFO("gyro %d (%" PRIu32
+						 ") updating offsets [%.3f, %.3f, %.3f]->[%.3f, %.3f, %.3f] %.1f degC",
+						 gyro, _gyro_calibration[gyro].device_id(), (double)old_offset(0),
+						 (double)old_offset(1), (double)old_offset(2),
+						 (double)_gyro_mean[gyro].mean()(0), (double)_gyro_mean[gyro].mean()(1),
+						 (double)_gyro_mean[gyro].mean()(2), (double)_temperature[gyro]);
 
 					perf_count(_calibration_updated_perf);
 				}
@@ -282,8 +276,7 @@ void GyroCalibration::Run()
 	}
 }
 
-int GyroCalibration::task_spawn(int argc, char *argv[])
-{
+int GyroCalibration::task_spawn(int argc, char *argv[]) {
 	GyroCalibration *instance = new GyroCalibration();
 
 	if (instance) {
@@ -305,15 +298,16 @@ int GyroCalibration::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int GyroCalibration::print_status()
-{
+int GyroCalibration::print_status() {
 	for (int gyro = 0; gyro < _sensor_gyro_subs.size(); gyro++) {
 		if (_gyro_calibration[gyro].device_id() != 0) {
-			PX4_INFO_RAW("gyro %d (%" PRIu32 "), [%.5f, %.5f, %.5f] var: [%.9f, %.9f, %.9f] %.1f degC (count %d)\n",
-				     gyro, _gyro_calibration[gyro].device_id(),
-				     (double)_gyro_mean[gyro].mean()(0), (double)_gyro_mean[gyro].mean()(1), (double)_gyro_mean[gyro].mean()(2),
-				     (double)_gyro_mean[gyro].variance()(0), (double)_gyro_mean[gyro].variance()(1), (double)_gyro_mean[gyro].variance()(2),
-				     (double)_temperature[gyro], _gyro_mean[gyro].count());
+			PX4_INFO_RAW("gyro %d (%" PRIu32
+				     "), [%.5f, %.5f, %.5f] var: [%.9f, %.9f, %.9f] %.1f degC (count %d)\n",
+				     gyro, _gyro_calibration[gyro].device_id(), (double)_gyro_mean[gyro].mean()(0),
+				     (double)_gyro_mean[gyro].mean()(1), (double)_gyro_mean[gyro].mean()(2),
+				     (double)_gyro_mean[gyro].variance()(0), (double)_gyro_mean[gyro].variance()(1),
+				     (double)_gyro_mean[gyro].variance()(2), (double)_temperature[gyro],
+				     _gyro_mean[gyro].count());
 		}
 	}
 
@@ -322,13 +316,9 @@ int GyroCalibration::print_status()
 	return 0;
 }
 
-int GyroCalibration::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int GyroCalibration::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int GyroCalibration::print_usage(const char *reason)
-{
+int GyroCalibration::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -347,7 +337,4 @@ Simple online gyroscope calibration.
 	return 0;
 }
 
-extern "C" __EXPORT int gyro_calibration_main(int argc, char *argv[])
-{
-	return GyroCalibration::main(argc, argv);
-}
+extern "C" __EXPORT int gyro_calibration_main(int argc, char *argv[]) { return GyroCalibration::main(argc, argv); }

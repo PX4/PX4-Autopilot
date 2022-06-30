@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include <thread>
 #include <chrono>
+#include <thread>
 
 #include "autopilot_tester_failure.h"
 
-TEST_CASE("Failure Injection - Reject mid-air when it is disabled", "[multicopter]")
-{
+TEST_CASE("Failure Injection - Reject mid-air when it is disabled", "[multicopter]") {
 	AutopilotTesterFailure tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();
@@ -51,4 +50,3 @@ TEST_CASE("Failure Injection - Reject mid-air when it is disabled", "[multicopte
 	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
-

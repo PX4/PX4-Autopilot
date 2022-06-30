@@ -33,13 +33,12 @@
 
 #include "NullMixer.hpp"
 
-#include <math.h>
-#include <cstring>
 #include <ctype.h>
+#include <math.h>
 
-unsigned
-NullMixer::mix(float *outputs, unsigned space)
-{
+#include <cstring>
+
+unsigned NullMixer::mix(float *outputs, unsigned space) {
 	if (space > 0) {
 		*outputs = NAN;
 		return 1;
@@ -48,9 +47,7 @@ NullMixer::mix(float *outputs, unsigned space)
 	return 0;
 }
 
-NullMixer *
-NullMixer::from_text(const char *buf, unsigned &buflen)
-{
+NullMixer *NullMixer::from_text(const char *buf, unsigned &buflen) {
 	NullMixer *nm = nullptr;
 
 	/* enforce that the mixer ends with a new line */

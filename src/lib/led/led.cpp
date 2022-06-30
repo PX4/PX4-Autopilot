@@ -35,12 +35,10 @@
  * @file led.cpp
  */
 
-
 #include "led.h"
 
-int LedController::update(LedControlData &control_data)
-{
-	bool had_changes = false; // did one of the outputs change?
+int LedController::update(LedControlData &control_data) {
+	bool had_changes = false;  // did one of the outputs change?
 
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
@@ -72,11 +70,11 @@ int LedController::update(LedControlData &control_data)
 		led_control_s led_control;
 
 		if (_led_control_sub.copy(&led_control)) {
-
-			if ((_led_control_sub.get_last_generation() != last_generation + 1)
-			    && (_led_control_sub.get_last_generation() != last_generation)) {
+			if ((_led_control_sub.get_last_generation() != last_generation + 1) &&
+			    (_led_control_sub.get_last_generation() != last_generation)) {
 				perf_count(_led_control_sub_lost_perf);
-				PX4_DEBUG("led_control lost, generation %d -> %d", last_generation, _led_control_sub.get_last_generation());
+				PX4_DEBUG("led_control lost, generation %d -> %d", last_generation,
+					  _led_control_sub.get_last_generation());
 			}
 
 			// don't apply the new state just yet to avoid interrupting an ongoing blinking state
@@ -85,13 +83,15 @@ int LedController::update(LedControlData &control_data)
 					// if next state has already a higher priority state than
 					// led_control, set lower prio state directly, so that this
 					// information is not lost
-					if (_states[i].next_state.is_valid() && led_control.priority < _states[i].next_state.priority) {
+					if (_states[i].next_state.is_valid() &&
+					    led_control.priority < _states[i].next_state.priority) {
 						_states[i].set(led_control);
 
 					} else {
 						// if a lower prio event is already in next state and a
 						// higher prio event is coming in
-						if (_states[i].next_state.is_valid() && led_control.priority > _states[i].next_state.priority) {
+						if (_states[i].next_state.is_valid() &&
+						    led_control.priority > _states[i].next_state.priority) {
 							_states[i].apply_next_state();
 						}
 
@@ -112,7 +112,7 @@ int LedController::update(LedControlData &control_data)
 		return 0;
 	}
 
-	uint16_t blink_delta_t = (uint16_t)((now - _last_update_call) / 100); // Note: this is in 0.1ms
+	uint16_t blink_delta_t = (uint16_t)((now - _last_update_call) / 100);  // Note: this is in 0.1ms
 	constexpr uint16_t breathe_duration = BREATHE_INTERVAL * BREATHE_STEPS / 100;
 
 	int num_blinking_leds = 0;
@@ -123,39 +123,38 @@ int LedController::update(LedControlData &control_data)
 		int priority = led_control_s::MAX_PRIORITY;
 
 		for (; priority >= 0; --priority) {
-
 			PerPriorityData &cur_data = _states[i].priority[priority];
 
 			if (cur_data.mode == led_control_s::MODE_DISABLED) {
-				continue; // handle next priority
+				continue;  // handle next priority
 			}
 
 			// handle state updates
 			uint16_t current_blink_duration = 0;
 
 			switch (cur_data.mode) {
-			case led_control_s::MODE_FLASH:
-			case led_control_s::MODE_BLINK_FAST:
-				current_blink_duration = BLINK_FAST_DURATION / 100;
-				break;
+				case led_control_s::MODE_FLASH:
+				case led_control_s::MODE_BLINK_FAST:
+					current_blink_duration = BLINK_FAST_DURATION / 100;
+					break;
 
-			case led_control_s::MODE_BLINK_NORMAL:
-				current_blink_duration = BLINK_NORMAL_DURATION / 100;
-				break;
+				case led_control_s::MODE_BLINK_NORMAL:
+					current_blink_duration = BLINK_NORMAL_DURATION / 100;
+					break;
 
-			case led_control_s::MODE_BLINK_SLOW:
-				current_blink_duration = BLINK_SLOW_DURATION / 100;
-				break;
+				case led_control_s::MODE_BLINK_SLOW:
+					current_blink_duration = BLINK_SLOW_DURATION / 100;
+					break;
 
-			case led_control_s::MODE_BREATHE:
-				_states[i].current_blinking_time += blink_delta_t;
+				case led_control_s::MODE_BREATHE:
+					_states[i].current_blinking_time += blink_delta_t;
 
-				while (_states[i].current_blinking_time > breathe_duration) {
-					_states[i].current_blinking_time -= breathe_duration;
-				}
+					while (_states[i].current_blinking_time > breathe_duration) {
+						_states[i].current_blinking_time -= breathe_duration;
+					}
 
-				had_changes = true;
-				break;
+					had_changes = true;
+					break;
 			}
 
 			if (current_blink_duration > 0) {
@@ -186,16 +185,15 @@ int LedController::update(LedControlData &control_data)
 				}
 			}
 
-			break; // handle next led
+			break;  // handle next led
 		}
 
 		current_priorities[i] = priority;
-
 	}
 
 	// handle next state:
-	// only allow a state change if no led blinks or at least one of the blinking leds signals that it's ok to switch.
-	// This makes sure all leds are kept in sync, but does not allow interrupting at arbitrary points.
+	// only allow a state change if no led blinks or at least one of the blinking leds signals that it's ok to
+	// switch. This makes sure all leds are kept in sync, but does not allow interrupting at arbitrary points.
 	if (num_blinking_leds == 0 || num_blinking_leds > num_blinking_do_not_change_state) {
 		for (int i = 0; i < BOARD_MAX_LEDS; ++i) {
 			if (_states[i].next_state.is_valid()) {
@@ -209,7 +207,6 @@ int LedController::update(LedControlData &control_data)
 				_states[i].apply_next_state();
 				_states[i].next_state.reset();
 			}
-
 		}
 	}
 
@@ -225,12 +222,11 @@ int LedController::update(LedControlData &control_data)
 	return 1;
 }
 
-void LedController::get_control_data(LedControlData &control_data)
-{
+void LedController::get_control_data(LedControlData &control_data) {
 	_breathe_enabled = false;
 
 	for (int i = 0; i < BOARD_MAX_LEDS; ++i) {
-		control_data.leds[i].color = led_control_s::COLOR_OFF; // set output to a defined state
+		control_data.leds[i].color = led_control_s::COLOR_OFF;  // set output to a defined state
 		control_data.leds[i].brightness = _max_brightness;
 
 		for (int priority = led_control_s::MAX_PRIORITY; priority >= 0; --priority) {
@@ -238,42 +234,45 @@ void LedController::get_control_data(LedControlData &control_data)
 			const PerPriorityData &cur_data = _states[i].priority[priority];
 
 			if (cur_data.mode == led_control_s::MODE_DISABLED) {
-				continue; // handle next priority
+				continue;  // handle next priority
 			}
 
 			switch (cur_data.mode) {
-			case led_control_s::MODE_ON:
-				control_data.leds[i].color = cur_data.color;
-				break;
+				case led_control_s::MODE_ON:
+					control_data.leds[i].color = cur_data.color;
+					break;
 
-			case led_control_s::MODE_BREATHE: {
+				case led_control_s::MODE_BREATHE: {
 					// fade on and off
 					int counter = _states[i].current_blinking_time / (BREATHE_INTERVAL / 100);
 					int n = counter >= (BREATHE_STEPS / 2) ? BREATHE_STEPS - counter : counter;
-					control_data.leds[i].brightness = (n * n) * _max_brightness / (BREATHE_STEPS * BREATHE_STEPS / 4); // (n/(steps/2))^2
+					control_data.leds[i].brightness =
+						(n * n) * _max_brightness /
+						(BREATHE_STEPS * BREATHE_STEPS / 4);  // (n/(steps/2))^2
 					control_data.leds[i].color = cur_data.color;
 					_breathe_enabled = true;
 					break;
 				}
 
-			case led_control_s::MODE_FLASH:
-				if (cur_data.blink_times_left % 10 < 6) { // 2 blinks, then turn off for the rest of the cycle
-					flash_output_active = false;
-				}
+				case led_control_s::MODE_FLASH:
+					if (cur_data.blink_times_left % 10 <
+					    6) {  // 2 blinks, then turn off for the rest of the cycle
+						flash_output_active = false;
+					}
 
-			/* FALLTHROUGH */
-			case led_control_s::MODE_BLINK_FAST:
-			case led_control_s::MODE_BLINK_NORMAL:
-			case led_control_s::MODE_BLINK_SLOW:
-				if (cur_data.blink_times_left % 2 == 0 && flash_output_active) {
-					control_data.leds[i].color = cur_data.color;
-				}
+				/* FALLTHROUGH */
+				case led_control_s::MODE_BLINK_FAST:
+				case led_control_s::MODE_BLINK_NORMAL:
+				case led_control_s::MODE_BLINK_SLOW:
+					if (cur_data.blink_times_left % 2 == 0 && flash_output_active) {
+						control_data.leds[i].color = cur_data.color;
+					}
 
-				break;
-				// MODE_OFF does not need to be handled, it's already set above
+					break;
+					// MODE_OFF does not need to be handled, it's already set above
 			}
 
-			break; // handle next led
+			break;  // handle next led
 		}
 	}
 }

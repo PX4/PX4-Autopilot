@@ -36,34 +36,29 @@
  * Tests for the PX4 math library.
  */
 
-#include <unit_test.h>
-
+#include <drivers/drv_hrt.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <float.h>
 #include <math.h>
+#include <mathlib/mathlib.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-#include <px4_platform_common/log.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <time.h>
-#include <mathlib/mathlib.h>
+#include <sys/types.h>
 #include <systemlib/err.h>
-#include <drivers/drv_hrt.h>
+#include <time.h>
+#include <unistd.h>
+#include <unit_test.h>
+
 #include <matrix/math.hpp>
 
 #include "tests_main.h"
 
-class MathlibTest : public UnitTest
-{
+class MathlibTest : public UnitTest {
 public:
 	virtual bool run_tests();
 
@@ -81,19 +76,29 @@ private:
 	bool testFinite();
 };
 
-#define TEST_OP(_title, _op) { unsigned int n = 30000; hrt_abstime t0, t1; t0 = hrt_absolute_time(); for (unsigned int j = 0; j < n; j++) { _op; }; t1 = hrt_absolute_time(); PX4_INFO(_title ": %.6fus", (double)(t1 - t0) / n); }
+#define TEST_OP(_title, _op)                                        \
+	{                                                           \
+		unsigned int n = 30000;                             \
+		hrt_abstime t0, t1;                                 \
+		t0 = hrt_absolute_time();                           \
+		for (unsigned int j = 0; j < n; j++) {              \
+			_op;                                        \
+		};                                                  \
+		t1 = hrt_absolute_time();                           \
+		PX4_INFO(_title ": %.6fus", (double)(t1 - t0) / n); \
+	}
 
 using namespace math;
 
-bool MathlibTest::testVector2()
-{
+bool MathlibTest::testVector2() {
 	{
 		matrix::Vector2f v;
 		matrix::Vector2f v1(1.0f, 2.0f);
 		matrix::Vector2f v2(1.0f, -1.0f);
 		float data[2] = {1.0f, 2.0f};
 		TEST_OP("Constructor matrix::Vector2f()", matrix::Vector2f v3);
-		TEST_OP("Constructor matrix::Vector2f(matrix::Vector2f)", matrix::Vector2f v3(v1); ut_assert_true(v3 == v1); v3.zero());
+		TEST_OP("Constructor matrix::Vector2f(matrix::Vector2f)", matrix::Vector2f v3(v1);
+			ut_assert_true(v3 == v1); v3.zero());
 		TEST_OP("Constructor matrix::Vector2f(float[])", matrix::Vector2f v3(data));
 		TEST_OP("Constructor matrix::Vector2f(float, float)", matrix::Vector2f v3(1.0f, 2.0f));
 		TEST_OP("matrix::Vector2f = matrix::Vector2f", v = v1);
@@ -107,16 +112,15 @@ bool MathlibTest::testVector2()
 	return true;
 }
 
-bool MathlibTest::testVector3()
-{
-
+bool MathlibTest::testVector3() {
 	{
 		matrix::Vector3f v;
 		matrix::Vector3f v1(1.0f, 2.0f, 0.0f);
 		matrix::Vector3f v2(1.0f, -1.0f, 2.0f);
 		float data[3] = {1.0f, 2.0f, 3.0f};
 		TEST_OP("Constructor matrix::Vector3f()", matrix::Vector3f v3);
-		TEST_OP("Constructor matrix::Vector3f(matrix::Vector3f)", matrix::Vector3f v3(v1); ut_assert_true(v3 == v1); v3.zero());
+		TEST_OP("Constructor matrix::Vector3f(matrix::Vector3f)", matrix::Vector3f v3(v1);
+			ut_assert_true(v3 == v1); v3.zero());
 		TEST_OP("Constructor matrix::Vector3f(float[])", matrix::Vector3f v3(data));
 		TEST_OP("Constructor matrix::Vector3f(float, float, float)", matrix::Vector3f v3(1.0f, 2.0f, 3.0f));
 		TEST_OP("matrix::Vector3f = matrix::Vector3f", v = v1);
@@ -142,8 +146,7 @@ bool MathlibTest::testVector3()
 	return true;
 }
 
-bool MathlibTest::testMatrix3x3()
-{
+bool MathlibTest::testMatrix3x3() {
 	{
 		matrix::Matrix3f m1;
 		m1.identity();
@@ -157,11 +160,10 @@ bool MathlibTest::testMatrix3x3()
 	return true;
 }
 
-bool MathlibTest::testMatrixNonsymmetric()
-{
+bool MathlibTest::testMatrixNonsymmetric() {
 	int rc = true;
 	{
-		//PX4_INFO("Nonsymmetric matrix operations test");
+		// PX4_INFO("Nonsymmetric matrix operations test");
 		// test nonsymmetric +, -, +=, -=
 
 		float data1[2][3] = {{1, 2, 3}, {4, 5, 6}};
@@ -216,13 +218,11 @@ bool MathlibTest::testMatrixNonsymmetric()
 		}
 
 		ut_assert("m1 == m1_orig", m1 == m1_orig);
-
 	}
 	return rc;
 }
 
-bool MathlibTest::testRotationMatrixQuaternion()
-{
+bool MathlibTest::testRotationMatrixQuaternion() {
 	// test conversion rotation matrix to quaternion and back
 	matrix::Dcmf R_orig;
 	matrix::Dcmf R;
@@ -230,7 +230,7 @@ bool MathlibTest::testRotationMatrixQuaternion()
 	float diff = 0.2f;
 	float tol = 0.00001f;
 
-	//PX4_INFO("Quaternion transformation methods test.");
+	// PX4_INFO("Quaternion transformation methods test.");
 
 	for (float roll = -M_PI_F; roll <= M_PI_F; roll += diff) {
 		for (float pitch = -M_PI_2_F; pitch <= M_PI_2_F; pitch += diff) {
@@ -241,7 +241,10 @@ bool MathlibTest::testRotationMatrixQuaternion()
 
 				for (int i = 0; i < 3; i++) {
 					for (int j = 0; j < 3; j++) {
-						ut_assert("matrix::Quatf method 'from_dcm' or 'to_dcm' outside tolerance!", fabsf(R_orig(i, j) - R(i, j)) < tol);
+						ut_assert(
+							"matrix::Quatf method 'from_dcm' or 'to_dcm' outside "
+							"tolerance!",
+							fabsf(R_orig(i, j) - R(i, j)) < tol);
 					}
 				}
 			}
@@ -251,9 +254,7 @@ bool MathlibTest::testRotationMatrixQuaternion()
 	return true;
 }
 
-
-bool MathlibTest::testQuaternionfrom_dcm()
-{
+bool MathlibTest::testQuaternionfrom_dcm() {
 	// test against some known values
 	float tol = 0.0001f;
 	matrix::Quatf q_true = {1.0f, 0.0f, 0.0f, 0.0f};
@@ -270,8 +271,7 @@ bool MathlibTest::testQuaternionfrom_dcm()
 	return true;
 }
 
-bool MathlibTest::testQuaternionfrom_euler()
-{
+bool MathlibTest::testQuaternionfrom_euler() {
 	float tol = 0.0001f;
 	matrix::Quatf q_true = {1.0f, 0.0f, 0.0f, 0.0f};
 
@@ -304,8 +304,7 @@ bool MathlibTest::testQuaternionfrom_euler()
 	return true;
 }
 
-bool MathlibTest::testQuaternionRotate()
-{
+bool MathlibTest::testQuaternionRotate() {
 	// test quaternion method "rotate" (rotate vector by quaternion)
 	matrix::Vector3f vector = {1.0f, 1.0f, 1.0f};
 	matrix::Vector3f vector_q;
@@ -315,7 +314,7 @@ bool MathlibTest::testQuaternionRotate()
 	float diff = 0.2f;
 	float tol = 0.00001f;
 
-	//PX4_INFO("matrix::Quatf vector rotation method test.");
+	// PX4_INFO("matrix::Quatf vector rotation method test.");
 
 	for (float roll = -M_PI_F; roll <= M_PI_F; roll += diff) {
 		for (float pitch = -M_PI_2_F; pitch <= M_PI_2_F; pitch += diff) {
@@ -326,12 +325,12 @@ bool MathlibTest::testQuaternionRotate()
 				vector_q = q.rotateVector(vector);
 
 				for (int i = 0; i < 3; i++) {
-					ut_assert("matrix::Quatf method 'rotate' outside tolerance", fabsf(vector_r(i) - vector_q(i)) < tol);
+					ut_assert("matrix::Quatf method 'rotate' outside tolerance",
+						  fabsf(vector_r(i) - vector_q(i)) < tol);
 				}
 			}
 		}
 	}
-
 
 	// test some values calculated with matlab
 	tol = 0.0001f;
@@ -361,7 +360,7 @@ bool MathlibTest::testQuaternionRotate()
 
 	q = matrix::Eulerf(M_PI_2_F, -M_PI_2_F, -M_PI_F / 3.0f);
 	vector_q = q.rotateVector(vector);
-	vector_true = { -1.3660, 0.3660, 1.0000};
+	vector_true = {-1.3660, 0.3660, 1.0000};
 
 	for (unsigned i = 0; i < 3; i++) {
 		ut_assert("matrix::Quatf method 'rotate' outside tolerance", fabsf(vector_true(i) - vector_q(i)) < tol);
@@ -370,8 +369,7 @@ bool MathlibTest::testQuaternionRotate()
 	return true;
 }
 
-bool MathlibTest::testFinite()
-{
+bool MathlibTest::testFinite() {
 	ut_assert("PX4_ISFINITE(0.0f)", PX4_ISFINITE(0.0f) == true);
 	ut_assert("PX4_ISFINITE(-0.0f)", PX4_ISFINITE(-0.0f) == true);
 	ut_assert("PX4_ISFINITE(1.0f)", PX4_ISFINITE(1.0f) == true);
@@ -388,8 +386,7 @@ bool MathlibTest::testFinite()
 	return true;
 }
 
-bool MathlibTest::run_tests()
-{
+bool MathlibTest::run_tests() {
 	ut_run_test(testVector2);
 	ut_run_test(testVector3);
 	ut_run_test(testMatrix3x3);

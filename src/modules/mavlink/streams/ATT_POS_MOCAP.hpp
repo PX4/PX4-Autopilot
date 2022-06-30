@@ -36,8 +36,7 @@
 
 #include <uORB/topics/vehicle_odometry.h>
 
-class MavlinkStreamAttPosMocap : public MavlinkStream
-{
+class MavlinkStreamAttPosMocap : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamAttPosMocap(mavlink); }
 
@@ -47,8 +46,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		return _mocap_sub.advertised() ? MAVLINK_MSG_ID_ATT_POS_MOCAP_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
@@ -57,8 +55,7 @@ private:
 
 	uORB::Subscription _mocap_sub{ORB_ID(vehicle_mocap_odometry)};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_odometry_s mocap;
 
 		if (_mocap_sub.update(&mocap)) {
@@ -83,4 +80,4 @@ private:
 	}
 };
 
-#endif // ATT_POS_MOCAP_HPP
+#endif  // ATT_POS_MOCAP_HPP

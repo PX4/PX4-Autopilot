@@ -43,8 +43,7 @@
 #include <controllib/block/BlockParam.hpp>
 #include <cstdint>
 
-namespace control
-{
+namespace control {
 
 static constexpr uint8_t maxChildrenPerBlock = 100;
 static constexpr uint8_t maxParamsPerBlock = 110;
@@ -56,8 +55,7 @@ class SuperBlock;
 
 /**
  */
-class __EXPORT Block : public ListNode<Block *>
-{
+class __EXPORT Block : public ListNode<Block *> {
 public:
 	friend class BlockParamBase;
 
@@ -78,7 +76,6 @@ public:
 	float getDt() { return _dt; }
 
 protected:
-
 	virtual void updateParamsSubclass() {}
 
 	SuperBlock *getParent() { return _parent; }
@@ -91,9 +88,7 @@ protected:
 	List<BlockParamBase *> _params;
 };
 
-class __EXPORT SuperBlock :
-	public Block
-{
+class __EXPORT SuperBlock : public Block {
 public:
 	friend class Block;
 
@@ -108,11 +103,12 @@ public:
 
 	void setDt(float dt) override;
 
-	void updateParams() override
-	{
+	void updateParams() override {
 		Block::updateParams();
 
-		if (getChildren().getHead() != nullptr) { updateChildParams(); }
+		if (getChildren().getHead() != nullptr) {
+			updateChildParams();
+		}
 	}
 
 protected:
@@ -122,5 +118,4 @@ protected:
 	List<Block *> _children;
 };
 
-
-} // namespace control
+}  // namespace control

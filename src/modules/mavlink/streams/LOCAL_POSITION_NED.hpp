@@ -36,8 +36,7 @@
 
 #include <uORB/topics/vehicle_local_position.h>
 
-class MavlinkStreamLocalPositionNED : public MavlinkStream
-{
+class MavlinkStreamLocalPositionNED : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamLocalPositionNED(mavlink); }
 
@@ -47,9 +46,9 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _lpos_sub.advertised() ? MAVLINK_MSG_ID_LOCAL_POSITION_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _lpos_sub.advertised() ? MAVLINK_MSG_ID_LOCAL_POSITION_NED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+					      : 0;
 	}
 
 private:
@@ -57,8 +56,7 @@ private:
 
 	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_local_position_s lpos;
 
 		if (_lpos_sub.update(&lpos)) {
@@ -83,4 +81,4 @@ private:
 	}
 };
 
-#endif // LOCAL_POSITION_NED_HPP
+#endif  // LOCAL_POSITION_NED_HPP

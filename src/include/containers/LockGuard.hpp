@@ -35,22 +35,14 @@
 
 #include <pthread.h>
 
-class LockGuard
-{
+class LockGuard {
 public:
-	explicit LockGuard(pthread_mutex_t &mutex) :
-		_mutex(mutex)
-	{
-		pthread_mutex_lock(&_mutex);
-	}
+	explicit LockGuard(pthread_mutex_t &mutex) : _mutex(mutex) { pthread_mutex_lock(&_mutex); }
 
 	LockGuard(const LockGuard &other) = delete;
 	LockGuard &operator=(const LockGuard &other) = delete;
 
-	~LockGuard()
-	{
-		pthread_mutex_unlock(&_mutex);
-	}
+	~LockGuard() { pthread_mutex_unlock(&_mutex); }
 
 private:
 	pthread_mutex_t &_mutex;

@@ -42,39 +42,39 @@
  *for GROUND_CONTACT_TRIGGER_TIME_US in order to detect ground_contact
  *
  *State 2 (=maybe_landed):
- *maybe_landed can only occur if the internal ground_contact hysteresis state is true. maybe_landed criteria requires to have no motion in x and y,
- *no rotation and a thrust below 0.1 of the thrust_range (thrust_hover - thrust_min). In addition, the mc_pos_control turns off the thrust_sp in
- *body frame along x and y which helps to detect maybe_landed. The criteria for maybe_landed needs to be true for (LNDMC_TRIG_TIME / 3) seconds.
+ *maybe_landed can only occur if the internal ground_contact hysteresis state is true. maybe_landed criteria requires to
+ have no motion in x and y, *no rotation and a thrust below 0.1 of the thrust_range (thrust_hover - thrust_min). In
+ addition, the mc_pos_control turns off the thrust_sp in *body frame along x and y which helps to detect maybe_landed.
+ The criteria for maybe_landed needs to be true for (LNDMC_TRIG_TIME / 3) seconds.
  *
  *State 3 (=landed)
- *landed can only be detected if maybe_landed is true for LAND_DETECTOR_TRIGGER_TIME_US. No farther criteria is tested, but the mc_pos_control goes into
- *idle (thrust_sp = 0) which helps to detect landed. By doing this the thrust-criteria of State 2 will always be met, however the remaining criteria of no rotation and no motion still
- *have to be valid.
+ *landed can only be detected if maybe_landed is true for LAND_DETECTOR_TRIGGER_TIME_US. No farther criteria is tested,
+ but the mc_pos_control goes into *idle (thrust_sp = 0) which helps to detect landed. By doing this the thrust-criteria
+ of State 2 will always be met, however the remaining criteria of no rotation and no motion still *have to be valid.
 
  *It is to note that if one criteria is not met, then vehicle exits the state directly without blocking.
  *
- *If the land-detector does not detect ground_contact, then the vehicle is either flying or falling, where free fall detection heavily relies
- *on the acceleration. TODO: verify that free fall is reliable
+ *If the land-detector does not detect ground_contact, then the vehicle is either flying or falling, where free fall
+ detection heavily relies *on the acceleration. TODO: verify that free fall is reliable
  *
  * @author Johan Jansen <jnsn.johan@gmail.com>
  * @author Morten Lysgaard <morten@lysgaard.no>
  * @author Julian Oes <julian@oes.ch>
  */
 
+#include "MulticopterLandDetector.h"
+
 #include <math.h>
 #include <mathlib/mathlib.h>
-#include <matrix/math.hpp>
 
-#include "MulticopterLandDetector.h"
+#include <matrix/math.hpp>
 
 using matrix::Vector2f;
 using matrix::Vector3f;
 
-namespace land_detector
-{
+namespace land_detector {
 
-MulticopterLandDetector::MulticopterLandDetector()
-{
+MulticopterLandDetector::MulticopterLandDetector() {
 	_paramHandle.landSpeed = param_find("MPC_LAND_SPEED");
 	_paramHandle.minManThrottle = param_find("MPC_MANTHR_MIN");
 	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
@@ -83,8 +83,7 @@ MulticopterLandDetector::MulticopterLandDetector()
 	_paramHandle.crawlSpeed = param_find("MPC_LAND_CRWL");
 }
 
-void MulticopterLandDetector::_update_topics()
-{
+void MulticopterLandDetector::_update_topics() {
 	actuator_controls_s actuator_controls;
 
 	if (_actuator_controls_sub.update(&actuator_controls)) {
@@ -115,16 +114,15 @@ void MulticopterLandDetector::_update_topics()
 	}
 }
 
-void MulticopterLandDetector::_update_params()
-{
+void MulticopterLandDetector::_update_params() {
 	param_get(_paramHandle.minThrottle, &_params.minThrottle);
 	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
 	param_get(_paramHandle.landSpeed, &_params.landSpeed);
 	param_get(_paramHandle.crawlSpeed, &_params.crawlSpeed);
 
 	if (_param_lndmc_z_vel_max.get() > _params.landSpeed) {
-		PX4_ERR("LNDMC_Z_VEL_MAX > MPC_LAND_SPEED, updating %.3f -> %.3f",
-			(double)_param_lndmc_z_vel_max.get(), (double)_params.landSpeed);
+		PX4_ERR("LNDMC_Z_VEL_MAX > MPC_LAND_SPEED, updating %.3f -> %.3f", (double)_param_lndmc_z_vel_max.get(),
+			(double)_params.landSpeed);
 
 		_param_lndmc_z_vel_max.set(_params.landSpeed);
 		_param_lndmc_z_vel_max.commit_no_notification();
@@ -146,14 +144,12 @@ void MulticopterLandDetector::_update_params()
 	}
 }
 
-bool MulticopterLandDetector::_get_freefall_state()
-{
+bool MulticopterLandDetector::_get_freefall_state() {
 	// norm of specific force. Should be close to 9.8 m/s^2 when landed.
 	return _acceleration.norm() < 2.f;
 }
 
-bool MulticopterLandDetector::_get_ground_contact_state()
-{
+bool MulticopterLandDetector::_get_ground_contact_state() {
 	const hrt_abstime time_now_us = hrt_absolute_time();
 
 	const bool lpos_available = ((time_now_us - _vehicle_local_position.timestamp) < 1_s);
@@ -179,14 +175,13 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		_vertical_movement = true;
 	}
 
-
 	// Check if we are moving horizontally.
 	if (lpos_available && _vehicle_local_position.v_xy_valid) {
 		const Vector2f v_xy{_vehicle_local_position.vx, _vehicle_local_position.vy};
 		_horizontal_movement = v_xy.longerThan(_param_lndmc_xy_vel_max.get());
 
 	} else {
-		_horizontal_movement = false; // not known
+		_horizontal_movement = false;  // not known
 	}
 
 	if (lpos_available && _vehicle_local_position.dist_bottom_valid && _param_lndmc_alt_gnd_effect.get() > 0) {
@@ -205,7 +200,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	// low thrust: 30% of throttle range between min and hover, relaxed to 60% if hover thrust estimate available
 	const float thr_pct_hover = _hover_thrust_estimate_valid ? 0.6f : 0.3f;
-	const float sys_low_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * thr_pct_hover;
+	const float sys_low_throttle =
+		_params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * thr_pct_hover;
 	_has_low_throttle = (_actuator_controls_throttle <= sys_low_throttle);
 	bool ground_contact = _has_low_throttle;
 
@@ -216,8 +212,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 		if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
 			// Setpoints can be NAN
-			_in_descend = PX4_ISFINITE(trajectory_setpoint.vz)
-				      && (trajectory_setpoint.vz >= crawl_speed_threshold);
+			_in_descend = PX4_ISFINITE(trajectory_setpoint.vz) &&
+				      (trajectory_setpoint.vz >= crawl_speed_threshold);
 		}
 
 		// ground contact requires commanded descent until landed
@@ -231,8 +227,10 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	// if there is no distance to ground estimate available then don't enforce using it.
 	// if a distance to the ground estimate is generally available (_dist_bottom_is_observable=true), then
-	// we already increased the hysteresis for the land detection states in order to reduce the chance of false positives.
-	const bool skip_close_to_ground_check = !_dist_bottom_is_observable || !_vehicle_local_position.dist_bottom_valid;
+	// we already increased the hysteresis for the land detection states in order to reduce the chance of false
+	// positives.
+	const bool skip_close_to_ground_check =
+		!_dist_bottom_is_observable || !_vehicle_local_position.dist_bottom_valid;
 	_close_to_ground_or_skipped_check = _is_close_to_ground() || skip_close_to_ground_check;
 
 	// When not armed, consider to have ground-contact
@@ -241,12 +239,10 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	}
 
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
-	return _close_to_ground_or_skipped_check && ground_contact && !_horizontal_movement
-	       && !_vertical_movement;
+	return _close_to_ground_or_skipped_check && ground_contact && !_horizontal_movement && !_vertical_movement;
 }
 
-bool MulticopterLandDetector::_get_maybe_landed_state()
-{
+bool MulticopterLandDetector::_get_maybe_landed_state() {
 	// When not armed, consider to be maybe-landed
 	if (!_armed) {
 		return true;
@@ -273,11 +269,9 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 		return false;
 	}
 
-
 	if (_freefall_hysteresis.get_state()) {
 		return false;
 	}
-
 
 	float landThresholdFactor = 1.f;
 
@@ -300,12 +294,12 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 		return _ground_contact_hysteresis.get_state();
 	}
 
-	// Otherwise, landed if the system has minimum thrust (manual or in failsafe) and no rotation for at least 8 seconds
+	// Otherwise, landed if the system has minimum thrust (manual or in failsafe) and no rotation for at least 8
+	// seconds
 	return (_min_thrust_start > 0) && ((time_now_us - _min_thrust_start) > 8_s);
 }
 
-bool MulticopterLandDetector::_get_landed_state()
-{
+bool MulticopterLandDetector::_get_landed_state() {
 	// reset the landed_time
 	if (!_maybe_landed_hysteresis.get_state()) {
 		_landed_time = 0;
@@ -324,15 +318,13 @@ bool MulticopterLandDetector::_get_landed_state()
 	return _maybe_landed_hysteresis.get_state();
 }
 
-bool MulticopterLandDetector::_get_ground_effect_state()
-{
+bool MulticopterLandDetector::_get_ground_effect_state() {
 	return (_in_descend && !_horizontal_movement) ||
 	       (_below_gnd_effect_hgt && _takeoff_state == takeoff_status_s::TAKEOFF_STATE_FLIGHT) ||
 	       _takeoff_state == takeoff_status_s::TAKEOFF_STATE_RAMPUP;
 }
 
-bool MulticopterLandDetector::_is_close_to_ground()
-{
+bool MulticopterLandDetector::_is_close_to_ground() {
 	if (_vehicle_local_position.dist_bottom_valid) {
 		return _vehicle_local_position.dist_bottom < DIST_FROM_GROUND_THRESHOLD;
 
@@ -341,12 +333,11 @@ bool MulticopterLandDetector::_is_close_to_ground()
 	}
 }
 
-void MulticopterLandDetector::_set_hysteresis_factor(const int factor)
-{
+void MulticopterLandDetector::_set_hysteresis_factor(const int factor) {
 	_ground_contact_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
 	_landed_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
 	_maybe_landed_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
 	_freefall_hysteresis.set_hysteresis_time_from(false, FREEFALL_TRIGGER_TIME_US);
 }
 
-} // namespace land_detector
+}  // namespace land_detector

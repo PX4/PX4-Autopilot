@@ -33,42 +33,35 @@
 
 #pragma once
 
-#include "UavcanPublisherBase.hpp"
-
-#include <uavcan/equipment/air_data/RawAirData.hpp>
-
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/differential_pressure.h>
 
-namespace uavcannode
-{
+#include <uORB/SubscriptionCallback.hpp>
+#include <uavcan/equipment/air_data/RawAirData.hpp>
 
-class RawAirData :
-	public UavcanPublisherBase,
-	public uORB::SubscriptionCallbackWorkItem,
-	private uavcan::Publisher<uavcan::equipment::air_data::RawAirData>
-{
+#include "UavcanPublisherBase.hpp"
+
+namespace uavcannode {
+
+class RawAirData : public UavcanPublisherBase,
+		   public uORB::SubscriptionCallbackWorkItem,
+		   private uavcan::Publisher<uavcan::equipment::air_data::RawAirData> {
 public:
-	RawAirData(px4::WorkItem *work_item, uavcan::INode &node) :
-		UavcanPublisherBase(uavcan::equipment::air_data::RawAirData::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(differential_pressure)),
-		uavcan::Publisher<uavcan::equipment::air_data::RawAirData>(node)
-	{
+	RawAirData(px4::WorkItem *work_item, uavcan::INode &node)
+		: UavcanPublisherBase(uavcan::equipment::air_data::RawAirData::DefaultDataTypeID),
+		  uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(differential_pressure)),
+		  uavcan::Publisher<uavcan::equipment::air_data::RawAirData>(node) {
 		this->setPriority(uavcan::TransferPriority::Default);
 	}
 
-	void PrintInfo() override
-	{
+	void PrintInfo() override {
 		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
-			printf("\t%s -> %s:%d\n",
-			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
+			printf("\t%s -> %s:%d\n", uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
 			       uavcan::equipment::air_data::RawAirData::getDataTypeFullName(),
 			       uavcan::equipment::air_data::RawAirData::DefaultDataTypeID);
 		}
 	}
 
-	void BroadcastAnyUpdates() override
-	{
+	void BroadcastAnyUpdates() override {
 		// differential_pressure -> uavcan::equipment::air_data::RawAirData
 		differential_pressure_s diff_press;
 
@@ -78,7 +71,8 @@ public:
 			// raw_air_data.static_pressure =
 			raw_air_data.differential_pressure = diff_press.differential_pressure_pa;
 			// raw_air_data.static_pressure_sensor_temperature =
-			raw_air_data.differential_pressure_sensor_temperature = diff_press.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+			raw_air_data.differential_pressure_sensor_temperature =
+				diff_press.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 			raw_air_data.static_air_temperature = diff_press.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 			// raw_air_data.pitot_temperature
 			// raw_air_data.covariance
@@ -89,4 +83,4 @@ public:
 		}
 	}
 };
-} // namespace uavcannode
+}  // namespace uavcannode

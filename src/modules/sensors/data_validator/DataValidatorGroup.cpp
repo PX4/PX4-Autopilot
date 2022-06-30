@@ -41,13 +41,10 @@
 
 #include "DataValidatorGroup.hpp"
 
+#include <float.h>
 #include <px4_platform_common/log.h>
 
-#include <float.h>
-
-DataValidatorGroup::DataValidatorGroup(unsigned siblings)
-{
-
+DataValidatorGroup::DataValidatorGroup(unsigned siblings) {
 	DataValidator *next = nullptr;
 	DataValidator *prev = nullptr;
 
@@ -71,8 +68,7 @@ DataValidatorGroup::DataValidatorGroup(unsigned siblings)
 	}
 }
 
-DataValidatorGroup::~DataValidatorGroup()
-{
+DataValidatorGroup::~DataValidatorGroup() {
 	while (_first) {
 		DataValidator *next = _first->sibling();
 		delete (_first);
@@ -80,9 +76,7 @@ DataValidatorGroup::~DataValidatorGroup()
 	}
 }
 
-DataValidator *DataValidatorGroup::add_new_validator()
-{
-
+DataValidator *DataValidatorGroup::add_new_validator() {
 	DataValidator *validator = new DataValidator();
 
 	if (!validator) {
@@ -95,9 +89,7 @@ DataValidator *DataValidatorGroup::add_new_validator()
 	return _last;
 }
 
-void DataValidatorGroup::set_timeout(uint32_t timeout_interval_us)
-{
-
+void DataValidatorGroup::set_timeout(uint32_t timeout_interval_us) {
 	DataValidator *next = _first;
 
 	while (next != nullptr) {
@@ -108,9 +100,7 @@ void DataValidatorGroup::set_timeout(uint32_t timeout_interval_us)
 	_timeout_interval_us = timeout_interval_us;
 }
 
-void DataValidatorGroup::set_equal_value_threshold(uint32_t threshold)
-{
-
+void DataValidatorGroup::set_equal_value_threshold(uint32_t threshold) {
 	DataValidator *next = _first;
 
 	while (next != nullptr) {
@@ -120,9 +110,7 @@ void DataValidatorGroup::set_equal_value_threshold(uint32_t threshold)
 }
 
 void DataValidatorGroup::put(unsigned index, uint64_t timestamp, const float val[3], uint32_t error_count,
-			     uint8_t priority)
-{
-
+			     uint8_t priority) {
 	DataValidator *next = _first;
 	unsigned i = 0;
 
@@ -137,9 +125,7 @@ void DataValidatorGroup::put(unsigned index, uint64_t timestamp, const float val
 	}
 }
 
-float *DataValidatorGroup::get_best(uint64_t timestamp, int *index)
-{
-
+float *DataValidatorGroup::get_best(uint64_t timestamp, int *index) {
 	DataValidator *next = _first;
 
 	// XXX This should eventually also include voting
@@ -223,8 +209,7 @@ float *DataValidatorGroup::get_best(uint64_t timestamp, int *index)
 	return (best) ? best->value() : nullptr;
 }
 
-void DataValidatorGroup::print()
-{
+void DataValidatorGroup::print() {
 	PX4_INFO_RAW("validator: best: %d, prev best: %d, failsafe: %s (%u events)\n", _curr_best, _prev_best,
 		     (_toggle_count > 0) ? "YES" : "NO", _toggle_count);
 
@@ -251,8 +236,7 @@ void DataValidatorGroup::print()
 	}
 }
 
-int DataValidatorGroup::failover_index()
-{
+int DataValidatorGroup::failover_index() {
 	DataValidator *next = _first;
 	unsigned i = 0;
 
@@ -269,9 +253,7 @@ int DataValidatorGroup::failover_index()
 	return -1;
 }
 
-uint32_t DataValidatorGroup::failover_state()
-{
-
+uint32_t DataValidatorGroup::failover_state() {
 	DataValidator *next = _first;
 	unsigned i = 0;
 
@@ -288,8 +270,7 @@ uint32_t DataValidatorGroup::failover_state()
 	return DataValidator::ERROR_FLAG_NO_ERROR;
 }
 
-uint32_t DataValidatorGroup::get_sensor_state(unsigned index)
-{
+uint32_t DataValidatorGroup::get_sensor_state(unsigned index) {
 	DataValidator *next = _first;
 	unsigned i = 0;
 
@@ -306,8 +287,7 @@ uint32_t DataValidatorGroup::get_sensor_state(unsigned index)
 	return UINT32_MAX;
 }
 
-uint8_t DataValidatorGroup::get_sensor_priority(unsigned index)
-{
+uint8_t DataValidatorGroup::get_sensor_priority(unsigned index) {
 	DataValidator *next = _first;
 	unsigned i = 0;
 

@@ -50,26 +50,23 @@
  * Included Files
  ************************************************************************************/
 
+#include <debug.h>
+#include <errno.h>
+#include <inttypes.h>
+#include <nuttx/fs/ioctl.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/kmalloc.h>
+#include <nuttx/mtd/mtd.h>
+#include <perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_mtd.h>
 #include <px4_platform_common/time.h>
-
-#include <sys/types.h>
-#include <inttypes.h>
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <errno.h>
-#include <debug.h>
-
-#include <nuttx/kmalloc.h>
-#include <nuttx/fs/ioctl.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/mtd/mtd.h>
-
-#include <perf/perf_counter.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -87,49 +84,49 @@
  * do not issue a warning any more
  * #  warning "Assuming AT24 size 64"
  */
-#  define CONFIG_AT24XX_SIZE 64
+#define CONFIG_AT24XX_SIZE 64
 #endif
 #ifndef CONFIG_AT24XX_ADDR
 /* XXX this is a well vetted special case,
  * do not issue a warning any more
  * #  warning "Assuming AT24 address of 0x50"
  */
-#  define CONFIG_AT24XX_ADDR 0x50
+#define CONFIG_AT24XX_ADDR 0x50
 #endif
 
 /* Get the part configuration based on the size configuration */
 
-#if CONFIG_AT24XX_SIZE == 2       /* AT24C02: 2Kbits = 256; 16 * 16 =  256 */
-#  define AT24XX_NPAGES     16
-#  define AT24XX_PAGESIZE   16
-#  define AT24XX_ADDRSIZE   1
-#elif CONFIG_AT24XX_SIZE == 4     /* AT24C04: 4Kbits = 512B; 32 * 16 = 512 */
-#  define AT24XX_NPAGES     32
-#  define AT24XX_PAGESIZE   16
-#  define AT24XX_ADDRSIZE   1
-#elif CONFIG_AT24XX_SIZE == 8     /* AT24C08: 8Kbits = 1KiB; 64 * 16 = 1024 */
-#  define AT24XX_NPAGES     64
-#  define AT24XX_PAGESIZE   16
-#  define AT24XX_ADDRSIZE   1
-#elif CONFIG_AT24XX_SIZE == 16    /* AT24C16: 16Kbits = 2KiB; 128 * 16 = 2048 */
-#  define AT24XX_NPAGES     128
-#  define AT24XX_PAGESIZE   16
-#  define AT24XX_ADDRSIZE   1
+#if CONFIG_AT24XX_SIZE == 2 /* AT24C02: 2Kbits = 256; 16 * 16 =  256 */
+#define AT24XX_NPAGES 16
+#define AT24XX_PAGESIZE 16
+#define AT24XX_ADDRSIZE 1
+#elif CONFIG_AT24XX_SIZE == 4 /* AT24C04: 4Kbits = 512B; 32 * 16 = 512 */
+#define AT24XX_NPAGES 32
+#define AT24XX_PAGESIZE 16
+#define AT24XX_ADDRSIZE 1
+#elif CONFIG_AT24XX_SIZE == 8 /* AT24C08: 8Kbits = 1KiB; 64 * 16 = 1024 */
+#define AT24XX_NPAGES 64
+#define AT24XX_PAGESIZE 16
+#define AT24XX_ADDRSIZE 1
+#elif CONFIG_AT24XX_SIZE == 16 /* AT24C16: 16Kbits = 2KiB; 128 * 16 = 2048 */
+#define AT24XX_NPAGES 128
+#define AT24XX_PAGESIZE 16
+#define AT24XX_ADDRSIZE 1
 #elif CONFIG_AT24XX_SIZE == 32
-#  define AT24XX_NPAGES     128
-#  define AT24XX_PAGESIZE   32
+#define AT24XX_NPAGES 128
+#define AT24XX_PAGESIZE 32
 #elif CONFIG_AT24XX_SIZE == 48
-#  define AT24XX_NPAGES     192
-#  define AT24XX_PAGESIZE   32
+#define AT24XX_NPAGES 192
+#define AT24XX_PAGESIZE 32
 #elif CONFIG_AT24XX_SIZE == 64
-#  define AT24XX_NPAGES     256
-#  define AT24XX_PAGESIZE   32
+#define AT24XX_NPAGES 256
+#define AT24XX_PAGESIZE 32
 #elif CONFIG_AT24XX_SIZE == 128
-#  define AT24XX_NPAGES     256
-#  define AT24XX_PAGESIZE   64
+#define AT24XX_NPAGES 256
+#define AT24XX_PAGESIZE 64
 #elif CONFIG_AT24XX_SIZE == 256
-#  define AT24XX_NPAGES     512
-#  define AT24XX_PAGESIZE   64
+#define AT24XX_NPAGES 512
+#define AT24XX_PAGESIZE 64
 #endif
 
 /* For applications where a file system is used on the AT24, the tiny page sizes
@@ -144,14 +141,14 @@
  * do not issue a warning any more
  * #  warning "Assuming driver block size is the same as the FLASH page size"
  */
-#  define CONFIG_AT24XX_MTD_BLOCKSIZE AT24XX_PAGESIZE
+#define CONFIG_AT24XX_MTD_BLOCKSIZE AT24XX_PAGESIZE
 #endif
 
 /* The AT24 does not respond on the bus during write cycles, so we depend on a long
  * timeout to detect problems.  The max program time is typically ~5ms.
  */
 #ifndef CONFIG_AT24XX_WRITE_TIMEOUT_MS
-#  define CONFIG_AT24XX_WRITE_TIMEOUT_MS  20
+#define CONFIG_AT24XX_WRITE_TIMEOUT_MS 20
 #endif
 
 /************************************************************************************
@@ -164,15 +161,15 @@
  */
 
 struct at24c_dev_s {
-	struct mtd_dev_s      mtd;      /* MTD interface */
-	FAR struct i2c_master_s *dev;   /* Saved I2C interface instance */
-	uint8_t               addr;     /* I2C address */
-	uint16_t              pagesize; /* 32, 63 */
-	uint16_t              npages;   /* 128, 256, 512, 1024 */
+	struct mtd_dev_s mtd;         /* MTD interface */
+	FAR struct i2c_master_s *dev; /* Saved I2C interface instance */
+	uint8_t addr;                 /* I2C address */
+	uint16_t pagesize;            /* 32, 63 */
+	uint16_t npages;              /* 128, 256, 512, 1024 */
 
-	perf_counter_t        perf_transfers;
-	perf_counter_t        perf_resets_retries;
-	perf_counter_t        perf_errors;
+	perf_counter_t perf_transfers;
+	perf_counter_t perf_resets_retries;
+	perf_counter_t perf_errors;
 };
 
 /************************************************************************************
@@ -182,10 +179,8 @@ struct at24c_dev_s {
 /* MTD driver methods */
 
 static int at24c_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks);
-static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
-			   size_t nblocks, FAR uint8_t *buf);
-static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
-			    size_t nblocks, FAR const uint8_t *buf);
+static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks, FAR uint8_t *buf);
+static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks, FAR const uint8_t *buf);
 static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);
 
 void at24c_test(void);
@@ -205,20 +200,17 @@ static struct at24c_dev_s g_at24c;
  * Private Functions
  ************************************************************************************/
 
-static int at24c_eraseall(FAR struct at24c_dev_s *priv)
-{
+static int at24c_eraseall(FAR struct at24c_dev_s *priv) {
 	int startblock = 0;
 	uint8_t buf[AT24XX_PAGESIZE + 2];
 
-	struct i2c_msg_s msgv[1] = {
-		{
-			.frequency = 400000,
-			.addr = priv->addr,
-			.flags = 0,
-			.buffer = &buf[0],
-			.length = sizeof(buf),
-		}
-	};
+	struct i2c_msg_s msgv[1] = {{
+		.frequency = 400000,
+		.addr = priv->addr,
+		.flags = 0,
+		.buffer = &buf[0],
+		.length = sizeof(buf),
+	}};
 
 	memset(&buf[2], 0xff, priv->pagesize);
 
@@ -244,8 +236,7 @@ static int at24c_eraseall(FAR struct at24c_dev_s *priv)
  * Name: at24c_erase
  ************************************************************************************/
 
-static int at24c_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks)
-{
+static int at24c_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks) {
 	/* EEprom need not erase */
 
 	return (int)nblocks;
@@ -255,8 +246,7 @@ static int at24c_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nbloc
  * Name: at24c_test
  ************************************************************************************/
 
-void at24c_test(void)
-{
+void at24c_test(void) {
 	uint8_t buf[CONFIG_AT24XX_MTD_BLOCKSIZE];
 	unsigned count = 0;
 	unsigned errors = 0;
@@ -284,36 +274,32 @@ void at24c_test(void)
  * Name: at24c_bread
  ************************************************************************************/
 
-static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
-			   size_t nblocks, FAR uint8_t *buffer)
-{
+static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks, FAR uint8_t *buffer) {
 	FAR struct at24c_dev_s *priv = (FAR struct at24c_dev_s *)dev;
 	size_t blocksleft;
 	uint8_t addr[2];
 	int ret;
 
-	struct i2c_msg_s msgv[2] = {
-		{
-			.frequency = 400000,
-			.addr = priv->addr,
-			.flags = 0,
-			.buffer = &addr[0],
-			.length = sizeof(addr),
-		},
-		{
-			.frequency = 400000,
-			.addr = priv->addr,
-			.flags = I2C_M_READ,
-			.buffer = 0,
-			.length = priv->pagesize,
-		}
-	};
+	struct i2c_msg_s msgv[2] = {{
+					    .frequency = 400000,
+					    .addr = priv->addr,
+					    .flags = 0,
+					    .buffer = &addr[0],
+					    .length = sizeof(addr),
+				    },
+				    {
+					    .frequency = 400000,
+					    .addr = priv->addr,
+					    .flags = I2C_M_READ,
+					    .buffer = 0,
+					    .length = priv->pagesize,
+				    }};
 
 #if CONFIG_AT24XX_MTD_BLOCKSIZE > AT24XX_PAGESIZE
 	startblock *= (CONFIG_AT24XX_MTD_BLOCKSIZE / AT24XX_PAGESIZE);
-	nblocks    *= (CONFIG_AT24XX_MTD_BLOCKSIZE / AT24XX_PAGESIZE);
+	nblocks *= (CONFIG_AT24XX_MTD_BLOCKSIZE / AT24XX_PAGESIZE);
 #endif
-	blocksleft  = nblocks;
+	blocksleft = nblocks;
 
 	finfo("startblock: %08jx nblocks: %zu\n", (intmax_t)startblock, nblocks);
 
@@ -334,7 +320,6 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 		msgv[1].buffer = buffer;
 
 		for (;;) {
-
 			perf_begin(priv->perf_transfers);
 			ret = I2C_TRANSFER(priv->dev, &msgv[0], 2);
 			perf_end(priv->perf_transfers);
@@ -378,29 +363,25 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
  *
  ************************************************************************************/
 
-static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks,
-			    FAR const uint8_t *buffer)
-{
+static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks, FAR const uint8_t *buffer) {
 	FAR struct at24c_dev_s *priv = (FAR struct at24c_dev_s *)dev;
 	size_t blocksleft;
 	uint8_t buf[AT24XX_PAGESIZE + 2];
 	int ret;
 
-	struct i2c_msg_s msgv[1] = {
-		{
-			.frequency = 400000,
-			.addr = priv->addr,
-			.flags = 0,
-			.buffer = &buf[0],
-			.length = sizeof(buf),
-		}
-	};
+	struct i2c_msg_s msgv[1] = {{
+		.frequency = 400000,
+		.addr = priv->addr,
+		.flags = 0,
+		.buffer = &buf[0],
+		.length = sizeof(buf),
+	}};
 
 #if CONFIG_AT24XX_MTD_BLOCKSIZE > AT24XX_PAGESIZE
 	startblock *= (CONFIG_AT24XX_MTD_BLOCKSIZE / AT24XX_PAGESIZE);
-	nblocks    *= (CONFIG_AT24XX_MTD_BLOCKSIZE / AT24XX_PAGESIZE);
+	nblocks *= (CONFIG_AT24XX_MTD_BLOCKSIZE / AT24XX_PAGESIZE);
 #endif
-	blocksleft  = nblocks;
+	blocksleft = nblocks;
 
 	if (startblock >= priv->npages) {
 		return 0;
@@ -423,7 +404,6 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 		memcpy(&buf[2], buffer, priv->pagesize);
 
 		for (;;) {
-
 			perf_begin(priv->perf_transfers);
 			ret = I2C_TRANSFER(priv->dev, &msgv[0], 1);
 			perf_end(priv->perf_transfers);
@@ -462,15 +442,14 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
  * Name: at24c_ioctl
  ************************************************************************************/
 
-static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
-{
+static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg) {
 	FAR struct at24c_dev_s *priv = (FAR struct at24c_dev_s *)dev;
 	int ret = -EINVAL; /* Assume good command with bad parameters */
 
 	finfo("cmd: %d \n", cmd);
 
 	switch (cmd) {
-	case MTDIOC_GEOMETRY: {
+		case MTDIOC_GEOMETRY: {
 			FAR struct mtd_geometry_s *geo = (FAR struct mtd_geometry_s *)((uintptr_t)arg);
 
 			if (geo) {
@@ -496,30 +475,29 @@ static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 				 */
 
 #if CONFIG_AT24XX_MTD_BLOCKSIZE > AT24XX_PAGESIZE
-				geo->blocksize    = CONFIG_AT24XX_MTD_BLOCKSIZE;
-				geo->erasesize    = CONFIG_AT24XX_MTD_BLOCKSIZE;
+				geo->blocksize = CONFIG_AT24XX_MTD_BLOCKSIZE;
+				geo->erasesize = CONFIG_AT24XX_MTD_BLOCKSIZE;
 				geo->neraseblocks = (CONFIG_AT24XX_SIZE * 1024 / 8) / CONFIG_AT24XX_MTD_BLOCKSIZE;
 #else
-				geo->blocksize    = priv->pagesize;
-				geo->erasesize    = priv->pagesize;
+				geo->blocksize = priv->pagesize;
+				geo->erasesize = priv->pagesize;
 				geo->neraseblocks = priv->npages;
 #endif
-				ret               = OK;
+				ret = OK;
 
 				finfo("blocksize: %" PRId32 " erasesize: %" PRId32 " neraseblocks: %" PRId32 "\n",
 				      geo->blocksize, geo->erasesize, geo->neraseblocks);
 			}
-		}
-		break;
+		} break;
 
-	case MTDIOC_BULKERASE:
-		ret = at24c_eraseall(priv);
-		break;
+		case MTDIOC_BULKERASE:
+			ret = at24c_eraseall(priv);
+			break;
 
-	case MTDIOC_XIPBASE:
-	default:
-		ret = -ENOTTY; /* Bad command */
-		break;
+		case MTDIOC_XIPBASE:
+		default:
+			ret = -ENOTTY; /* Bad command */
+			break;
 	}
 
 	return ret;
@@ -538,8 +516,7 @@ static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
  *   other functions (such as a block or character driver front end).
  *
  ************************************************************************************/
-FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev,
-		uint8_t address)
+FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev, uint8_t address)
 
 {
 	FAR struct at24c_dev_s *priv;
@@ -557,15 +534,15 @@ FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev,
 
 	if (priv) {
 		/* Initialize the allocated structure */
-		priv->addr       = address;
-		priv->pagesize   = AT24XX_PAGESIZE;
-		priv->npages     = AT24XX_NPAGES;
+		priv->addr = address;
+		priv->pagesize = AT24XX_PAGESIZE;
+		priv->npages = AT24XX_NPAGES;
 
-		priv->mtd.erase  = at24c_erase;
-		priv->mtd.bread  = at24c_bread;
+		priv->mtd.erase = at24c_erase;
+		priv->mtd.bread = at24c_bread;
 		priv->mtd.bwrite = at24c_bwrite;
-		priv->mtd.ioctl  = at24c_ioctl;
-		priv->dev        = dev;
+		priv->mtd.ioctl = at24c_ioctl;
+		priv->dev = dev;
 
 		priv->perf_transfers = perf_alloc(PC_ELAPSED, "[at24c] eeprom transfer");
 		priv->perf_resets_retries = perf_alloc(PC_COUNT, "[at24c] eeprom reset");
@@ -576,22 +553,20 @@ FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev,
 	unsigned char buf[5];
 	uint8_t addrbuf[2] = {0, 0};
 
-	struct i2c_msg_s msgv[2] = {
-		{
-			.frequency = 400000,
-			.addr = priv->addr,
-			.flags = 0,
-			.buffer = &addrbuf[0],
-			.length = sizeof(addrbuf),
-		},
-		{
-			.frequency = 400000,
-			.addr = priv->addr,
-			.flags = I2C_M_READ,
-			.buffer = &buf[0],
-			.length = sizeof(buf),
-		}
-	};
+	struct i2c_msg_s msgv[2] = {{
+					    .frequency = 400000,
+					    .addr = priv->addr,
+					    .flags = 0,
+					    .buffer = &addrbuf[0],
+					    .length = sizeof(addrbuf),
+				    },
+				    {
+					    .frequency = 400000,
+					    .addr = priv->addr,
+					    .flags = I2C_M_READ,
+					    .buffer = &buf[0],
+					    .length = sizeof(buf),
+				    }};
 
 	BOARD_EEPROM_WP_CTRL(true);
 
@@ -620,7 +595,4 @@ FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev,
 /*
  * XXX: debug hackery
  */
-int at24c_nuke(void)
-{
-	return at24c_eraseall(&g_at24c);
-}
+int at24c_nuke(void) { return at24c_eraseall(&g_at24c); }

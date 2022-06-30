@@ -36,8 +36,7 @@
 
 #include "FlightTaskFailsafe.hpp"
 
-bool FlightTaskFailsafe::activate(const trajectory_setpoint_s &last_setpoint)
-{
+bool FlightTaskFailsafe::activate(const trajectory_setpoint_s &last_setpoint) {
 	bool ret = FlightTask::activate(last_setpoint);
 	_position_setpoint = _position;
 	_velocity_setpoint.zero();
@@ -47,8 +46,7 @@ bool FlightTaskFailsafe::activate(const trajectory_setpoint_s &last_setpoint)
 	return ret;
 }
 
-bool FlightTaskFailsafe::update()
-{
+bool FlightTaskFailsafe::update() {
 	bool ret = FlightTask::update();
 
 	if (PX4_ISFINITE(_position(0)) && PX4_ISFINITE(_position(1))) {

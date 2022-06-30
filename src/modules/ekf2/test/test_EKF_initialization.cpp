@@ -33,56 +33,46 @@
 
 #include <gtest/gtest.h>
 #include <math.h>
-#include <memory>
-#include "EKF/ekf.h"
-#include "sensor_simulator/sensor_simulator.h"
-#include "sensor_simulator/ekf_wrapper.h"
 
-class EkfInitializationTest : public ::testing::Test
-{
+#include <memory>
+
+#include "EKF/ekf.h"
+#include "sensor_simulator/ekf_wrapper.h"
+#include "sensor_simulator/sensor_simulator.h"
+
+class EkfInitializationTest : public ::testing::Test {
 public:
-	EkfInitializationTest(): ::testing::Test(),
-		_ekf{std::make_shared<Ekf>()},
-		_sensor_simulator(_ekf),
-		_ekf_wrapper(_ekf) {};
+	EkfInitializationTest()
+		: ::testing::Test(), _ekf{std::make_shared<Ekf>()}, _sensor_simulator(_ekf), _ekf_wrapper(_ekf){};
 
 	std::shared_ptr<Ekf> _ekf;
 	SensorSimulator _sensor_simulator;
 	EkfWrapper _ekf_wrapper;
 
-	const float _init_tilt_period = 0.3f; // seconds
+	const float _init_tilt_period = 0.3f;  // seconds
 
 	// GTests is calling this
-	void SetUp() override
-	{
-		_ekf->init(0);
-	}
+	void SetUp() override { _ekf->init(0); }
 
 	// Use this method to clean up any memory, network etc. after each test
-	void TearDown() override
-	{
-	}
+	void TearDown() override {}
 
-	void initializedOrienationIsMatchingGroundTruth(Quatf true_quaternion)
-	{
+	void initializedOrienationIsMatchingGroundTruth(Quatf true_quaternion) {
 		const Quatf quat_est = _ekf->getQuaternion();
-		const float precision = 0.0002f; // TODO: this is only required for the pitch90 test to pass
+		const float precision = 0.0002f;  // TODO: this is only required for the pitch90 test to pass
 		EXPECT_TRUE(matrix::isEqual(quat_est, true_quaternion, precision))
-				<< "quat est = " << quat_est(0) << ", " << quat_est(1) << ", "
-				<< quat_est(2) << ", " << quat_est(3)
-				<< "\nquat true = " << true_quaternion(0) << ", " << true_quaternion(1) << ", "
-				<< true_quaternion(2) << ", " << true_quaternion(3);
+			<< "quat est = " << quat_est(0) << ", " << quat_est(1) << ", " << quat_est(2) << ", "
+			<< quat_est(3) << "\nquat true = " << true_quaternion(0) << ", " << true_quaternion(1) << ", "
+			<< true_quaternion(2) << ", " << true_quaternion(3);
 	}
 
-	void validStateAfterOrientationInitialization()
-	{
+	void validStateAfterOrientationInitialization() {
 		quaternionVarianceBigEnoughAfterOrientationInitialization();
 		velocityAndPositionCloseToZero();
 		velocityAndPositionVarianceBigEnoughAfterOrientationInitialization();
 	}
 
-	void quaternionVarianceBigEnoughAfterOrientationInitialization()
-	{
+	void quaternionVarianceBigEnoughAfterOrientationInitialization() {
 		const matrix::Vector<float, 4> quat_variance = _ekf_wrapper.getQuaternionVariance();
 		const float quat_variance_limit = 0.0001f;
 		EXPECT_TRUE(quat_variance(1) > quat_variance_limit) << "quat_variance(1)" << quat_variance(1);
@@ -90,35 +80,32 @@ public:
 		EXPECT_TRUE(quat_variance(3) > quat_variance_limit) << "quat_variance(3)" << quat_variance(3);
 	}
 
-	void velocityAndPositionCloseToZero()
-	{
+	void velocityAndPositionCloseToZero() {
 		const Vector3f pos = _ekf->getPosition();
 		const Vector3f vel = _ekf->getVelocity();
 
 		EXPECT_TRUE(matrix::isEqual(pos, Vector3f{}, 0.002f))
-				<< "pos = " << pos(0) << ", " << pos(1) << ", " << pos(2);
+			<< "pos = " << pos(0) << ", " << pos(1) << ", " << pos(2);
 		EXPECT_TRUE(matrix::isEqual(vel, Vector3f{}, 0.003f))
-				<< "vel = " << vel(0) << ", " << vel(1) << ", " << vel(2);
+			<< "vel = " << vel(0) << ", " << vel(1) << ", " << vel(2);
 	}
 
-	void velocityAndPositionVarianceBigEnoughAfterOrientationInitialization()
-	{
+	void velocityAndPositionVarianceBigEnoughAfterOrientationInitialization() {
 		const Vector3f pos_var = _ekf->getPositionVariance();
 		const Vector3f vel_var = _ekf->getVelocityVariance();
 
-		const float pos_variance_limit = 0.01f; // Fake fusion obs var when at rest
+		const float pos_variance_limit = 0.01f;  // Fake fusion obs var when at rest
 		EXPECT_TRUE(pos_var(0) > pos_variance_limit) << "pos_var(0)" << pos_var(0);
 		EXPECT_TRUE(pos_var(1) > pos_variance_limit) << "pos_var(1)" << pos_var(1);
 		EXPECT_TRUE(pos_var(2) > pos_variance_limit) << "pos_var(2)" << pos_var(2);
 
-		const float vel_variance_limit = 0.0001f; // zero velocity update obs var when at rest
+		const float vel_variance_limit = 0.0001f;  // zero velocity update obs var when at rest
 		EXPECT_TRUE(vel_var(0) > vel_variance_limit) << "vel_var(0)" << vel_var(0);
 		EXPECT_TRUE(vel_var(1) > vel_variance_limit) << "vel_var(1)" << vel_var(1);
 		EXPECT_TRUE(vel_var(2) > vel_variance_limit) << "vel_var(2)" << vel_var(2);
 	}
 
-	void learningCorrectAccelBias()
-	{
+	void learningCorrectAccelBias() {
 		const Dcmf R_to_earth = Dcmf(_ekf->getQuaternion());
 		const Vector3f dvel_bias_var = _ekf_wrapper.getDeltaVelBiasVariance();
 		const Vector3f accel_bias = _ekf->getAccelBias();
@@ -134,8 +121,7 @@ public:
 	}
 };
 
-TEST_F(EkfInitializationTest, initializeWithZeroTilt)
-{
+TEST_F(EkfInitializationTest, initializeWithZeroTilt) {
 	const float pitch = math::radians(0.0f);
 	const float roll = math::radians(0.0f);
 	const Eulerf euler_angles_sim(roll, pitch, 0.0f);
@@ -151,8 +137,7 @@ TEST_F(EkfInitializationTest, initializeWithZeroTilt)
 	learningCorrectAccelBias();
 }
 
-TEST_F(EkfInitializationTest, gyroBias)
-{
+TEST_F(EkfInitializationTest, gyroBias) {
 	// GIVEN: a healthy filter
 	_sensor_simulator.runSeconds(20);
 
@@ -167,7 +152,6 @@ TEST_F(EkfInitializationTest, gyroBias)
 		accel_bias = _ekf->getAccelBias();
 
 		if (fabsf(accel_bias(2)) > 0.3f) {
-
 			// Print state covariance and correlation matrices for debugging
 			const matrix::SquareMatrix<float, 24> P = _ekf->covariances();
 
@@ -200,10 +184,12 @@ TEST_F(EkfInitializationTest, gyroBias)
 				printf("\n");
 			}
 
-			printf("Accel bias = (%f, %f, %f)\n", (double)accel_bias(0), (double)accel_bias(1), (double)accel_bias(2));
+			printf("Accel bias = (%f, %f, %f)\n", (double)accel_bias(0), (double)accel_bias(1),
+			       (double)accel_bias(2));
 
 			Vector3f gyro_bias = _ekf->getGyroBias();
-			printf("Gyro bias = (%f, %f, %f)\n", (double)gyro_bias(0), (double)gyro_bias(1), (double)gyro_bias(2));
+			printf("Gyro bias = (%f, %f, %f)\n", (double)gyro_bias(0), (double)gyro_bias(1),
+			       (double)gyro_bias(2));
 
 			EXPECT_TRUE(false);
 			break;
@@ -211,8 +197,7 @@ TEST_F(EkfInitializationTest, gyroBias)
 	}
 }
 
-TEST_F(EkfInitializationTest, initializeHeadingWithZeroTilt)
-{
+TEST_F(EkfInitializationTest, initializeHeadingWithZeroTilt) {
 	const float pitch = math::radians(0.0f);
 	const float roll = math::radians(0.0f);
 	const float yaw = math::radians(90.0f);
@@ -229,8 +214,7 @@ TEST_F(EkfInitializationTest, initializeHeadingWithZeroTilt)
 	learningCorrectAccelBias();
 }
 
-TEST_F(EkfInitializationTest, initializeWithTilt)
-{
+TEST_F(EkfInitializationTest, initializeWithTilt) {
 	const float pitch = math::radians(30.0f);
 	const float roll = math::radians(60.0f);
 	const Eulerf euler_angles_sim(roll, pitch, 0.0f);
@@ -246,8 +230,7 @@ TEST_F(EkfInitializationTest, initializeWithTilt)
 	learningCorrectAccelBias();
 }
 
-TEST_F(EkfInitializationTest, initializeWithPitch90)
-{
+TEST_F(EkfInitializationTest, initializeWithPitch90) {
 	const float pitch = math::radians(90.0f);
 	const float roll = math::radians(0.0f);
 	const Eulerf euler_angles_sim(roll, pitch, 0.0f);
@@ -265,8 +248,7 @@ TEST_F(EkfInitializationTest, initializeWithPitch90)
 	learningCorrectAccelBias();
 }
 
-TEST_F(EkfInitializationTest, initializeWithRoll90)
-{
+TEST_F(EkfInitializationTest, initializeWithRoll90) {
 	const float pitch = math::radians(0.0f);
 	const float roll = math::radians(90.0f);
 	const Eulerf euler_angles_sim(roll, pitch, 0.0f);

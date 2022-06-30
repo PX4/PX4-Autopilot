@@ -33,36 +33,31 @@
 
 #include "MulticopterRateControl.hpp"
 
-#include <drivers/drv_hrt.h>
 #include <circuit_breaker/circuit_breaker.h>
-#include <mathlib/math/Limits.hpp>
-#include <mathlib/math/Functions.hpp>
+#include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
+
+#include <mathlib/math/Functions.hpp>
+#include <mathlib/math/Limits.hpp>
 
 using namespace matrix;
 using namespace time_literals;
 using math::radians;
 
-MulticopterRateControl::MulticopterRateControl(bool vtol) :
-	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
-	_actuator_controls_0_pub(vtol ? ORB_ID(actuator_controls_virtual_mc) : ORB_ID(actuator_controls_0)),
-	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
-{
+MulticopterRateControl::MulticopterRateControl(bool vtol)
+	: ModuleParams(nullptr),
+	  WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	  _actuator_controls_0_pub(vtol ? ORB_ID(actuator_controls_virtual_mc) : ORB_ID(actuator_controls_0)),
+	  _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")) {
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 	parameters_updated();
 	_controller_status_pub.advertise();
 }
 
-MulticopterRateControl::~MulticopterRateControl()
-{
-	perf_free(_loop_perf);
-}
+MulticopterRateControl::~MulticopterRateControl() { perf_free(_loop_perf); }
 
-bool
-MulticopterRateControl::init()
-{
+bool MulticopterRateControl::init() {
 	if (!_vehicle_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -71,18 +66,19 @@ MulticopterRateControl::init()
 	return true;
 }
 
-void
-MulticopterRateControl::parameters_updated()
-{
+void MulticopterRateControl::parameters_updated() {
 	// rate control parameters
 	// The controller gain K is used to convert the parallel (P + I/s + sD) form
 	// to the ideal (K * [1 + 1/sTi + sTd]) form
-	const Vector3f rate_k = Vector3f(_param_mc_rollrate_k.get(), _param_mc_pitchrate_k.get(), _param_mc_yawrate_k.get());
+	const Vector3f rate_k =
+		Vector3f(_param_mc_rollrate_k.get(), _param_mc_pitchrate_k.get(), _param_mc_yawrate_k.get());
 
-	_rate_control.setGains(
-		rate_k.emult(Vector3f(_param_mc_rollrate_p.get(), _param_mc_pitchrate_p.get(), _param_mc_yawrate_p.get())),
-		rate_k.emult(Vector3f(_param_mc_rollrate_i.get(), _param_mc_pitchrate_i.get(), _param_mc_yawrate_i.get())),
-		rate_k.emult(Vector3f(_param_mc_rollrate_d.get(), _param_mc_pitchrate_d.get(), _param_mc_yawrate_d.get())));
+	_rate_control.setGains(rate_k.emult(Vector3f(_param_mc_rollrate_p.get(), _param_mc_pitchrate_p.get(),
+						     _param_mc_yawrate_p.get())),
+			       rate_k.emult(Vector3f(_param_mc_rollrate_i.get(), _param_mc_pitchrate_i.get(),
+						     _param_mc_yawrate_i.get())),
+			       rate_k.emult(Vector3f(_param_mc_rollrate_d.get(), _param_mc_pitchrate_d.get(),
+						     _param_mc_yawrate_d.get())));
 
 	_rate_control.setIntegratorLimit(
 		Vector3f(_param_mc_rr_int_lim.get(), _param_mc_pr_int_lim.get(), _param_mc_yr_int_lim.get()));
@@ -90,17 +86,15 @@ MulticopterRateControl::parameters_updated()
 	_rate_control.setFeedForwardGain(
 		Vector3f(_param_mc_rollrate_ff.get(), _param_mc_pitchrate_ff.get(), _param_mc_yawrate_ff.get()));
 
-
 	// manual rate control acro mode rate limits
 	_acro_rate_max = Vector3f(radians(_param_mc_acro_r_max.get()), radians(_param_mc_acro_p_max.get()),
 				  radians(_param_mc_acro_y_max.get()));
 
-	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled_by_val(_param_cbrk_rate_ctrl.get(), CBRK_RATE_CTRL_KEY);
+	_actuators_0_circuit_breaker_enabled =
+		circuit_breaker_enabled_by_val(_param_cbrk_rate_ctrl.get(), CBRK_RATE_CTRL_KEY);
 }
 
-void
-MulticopterRateControl::Run()
-{
+void MulticopterRateControl::Run() {
 	if (should_exit()) {
 		_vehicle_angular_velocity_sub.unregisterCallback();
 		exit_and_cleanup();
@@ -123,7 +117,6 @@ MulticopterRateControl::Run()
 	vehicle_angular_velocity_s angular_velocity;
 
 	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
-
 		// grab corresponding vehicle_angular_acceleration immediately after vehicle_angular_velocity copy
 		vehicle_angular_acceleration_s v_angular_acceleration{};
 		_vehicle_angular_acceleration_sub.copy(&v_angular_acceleration);
@@ -156,11 +149,14 @@ MulticopterRateControl::Run()
 
 			if (_landing_gear_sub.copy(&landing_gear)) {
 				if (landing_gear.landing_gear != landing_gear_s::GEAR_KEEP) {
-					if (landing_gear.landing_gear == landing_gear_s::GEAR_UP && (_landed || _maybe_landed)) {
-						mavlink_log_critical(&_mavlink_log_pub, "Landed, unable to retract landing gear\t");
-						events::send(events::ID("mc_rate_control_not_retract_landing_gear_landed"),
-						{events::Log::Error, events::LogInternal::Info},
-						"Landed, unable to retract landing gear");
+					if (landing_gear.landing_gear == landing_gear_s::GEAR_UP &&
+					    (_landed || _maybe_landed)) {
+						mavlink_log_critical(&_mavlink_log_pub,
+								     "Landed, unable to retract landing gear\t");
+						events::send(
+							events::ID("mc_rate_control_not_retract_landing_gear_landed"),
+							{events::Log::Error, events::LogInternal::Info},
+							"Landed, unable to retract landing gear");
 
 					} else {
 						_landing_gear = landing_gear.landing_gear;
@@ -172,16 +168,20 @@ MulticopterRateControl::Run()
 		// use rates setpoint topic
 		vehicle_rates_setpoint_s vehicle_rates_setpoint{};
 
-		if (_vehicle_control_mode.flag_control_manual_enabled && !_vehicle_control_mode.flag_control_attitude_enabled) {
+		if (_vehicle_control_mode.flag_control_manual_enabled &&
+		    !_vehicle_control_mode.flag_control_attitude_enabled) {
 			// generate the rate setpoint from sticks
 			manual_control_setpoint_s manual_control_setpoint;
 
 			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
 				// manual rates control - ACRO mode
 				const Vector3f man_rate_sp{
-					math::superexpo(manual_control_setpoint.y, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-					math::superexpo(-manual_control_setpoint.x, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-					math::superexpo(manual_control_setpoint.r, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
+					math::superexpo(manual_control_setpoint.y, _param_mc_acro_expo.get(),
+							_param_mc_acro_supexpo.get()),
+					math::superexpo(-manual_control_setpoint.x, _param_mc_acro_expo.get(),
+							_param_mc_acro_supexpo.get()),
+					math::superexpo(manual_control_setpoint.r, _param_mc_acro_expo_y.get(),
+							_param_mc_acro_supexpoy.get())};
 
 				_rates_setpoint = man_rate_sp.emult(_acro_rate_max);
 				_thrust_setpoint(2) = -math::constrain(manual_control_setpoint.z, 0.0f, 1.0f);
@@ -199,18 +199,24 @@ MulticopterRateControl::Run()
 
 		} else if (_vehicle_rates_setpoint_sub.update(&vehicle_rates_setpoint)) {
 			if (_vehicle_rates_setpoint_sub.copy(&vehicle_rates_setpoint)) {
-				_rates_setpoint(0) = PX4_ISFINITE(vehicle_rates_setpoint.roll)  ? vehicle_rates_setpoint.roll  : rates(0);
-				_rates_setpoint(1) = PX4_ISFINITE(vehicle_rates_setpoint.pitch) ? vehicle_rates_setpoint.pitch : rates(1);
-				_rates_setpoint(2) = PX4_ISFINITE(vehicle_rates_setpoint.yaw)   ? vehicle_rates_setpoint.yaw   : rates(2);
+				_rates_setpoint(0) = PX4_ISFINITE(vehicle_rates_setpoint.roll)
+							     ? vehicle_rates_setpoint.roll
+							     : rates(0);
+				_rates_setpoint(1) = PX4_ISFINITE(vehicle_rates_setpoint.pitch)
+							     ? vehicle_rates_setpoint.pitch
+							     : rates(1);
+				_rates_setpoint(2) = PX4_ISFINITE(vehicle_rates_setpoint.yaw)
+							     ? vehicle_rates_setpoint.yaw
+							     : rates(2);
 				_thrust_setpoint = Vector3f(vehicle_rates_setpoint.thrust_body);
 			}
 		}
 
 		// run the rate controller
 		if (_vehicle_control_mode.flag_control_rates_enabled && !_actuators_0_circuit_breaker_enabled) {
-
 			// reset integral if disarmed
-			if (!_vehicle_control_mode.flag_armed || _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			if (!_vehicle_control_mode.flag_armed ||
+			    _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 				_rate_control.resetIntegral();
 			}
 
@@ -226,7 +232,8 @@ MulticopterRateControl::Run()
 						if (control_allocator_status.unallocated_torque[i] > FLT_EPSILON) {
 							saturation_positive(i) = true;
 
-						} else if (control_allocator_status.unallocated_torque[i] < -FLT_EPSILON) {
+						} else if (control_allocator_status.unallocated_torque[i] <
+							   -FLT_EPSILON) {
 							saturation_negative(i) = true;
 						}
 					}
@@ -237,7 +244,8 @@ MulticopterRateControl::Run()
 			}
 
 			// run rate controller
-			const Vector3f att_control = _rate_control.update(rates, _rates_setpoint, angular_accel, dt, _maybe_landed || _landed);
+			const Vector3f att_control = _rate_control.update(rates, _rates_setpoint, angular_accel, dt,
+									  _maybe_landed || _landed);
 
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};
@@ -247,11 +255,14 @@ MulticopterRateControl::Run()
 
 			// publish actuator controls
 			actuator_controls_s actuators{};
-			actuators.control[actuator_controls_s::INDEX_ROLL] = PX4_ISFINITE(att_control(0)) ? att_control(0) : 0.0f;
-			actuators.control[actuator_controls_s::INDEX_PITCH] = PX4_ISFINITE(att_control(1)) ? att_control(1) : 0.0f;
-			actuators.control[actuator_controls_s::INDEX_YAW] = PX4_ISFINITE(att_control(2)) ? att_control(2) : 0.0f;
-			actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_thrust_setpoint(2)) ? -_thrust_setpoint(
-						2) : 0.0f;
+			actuators.control[actuator_controls_s::INDEX_ROLL] =
+				PX4_ISFINITE(att_control(0)) ? att_control(0) : 0.0f;
+			actuators.control[actuator_controls_s::INDEX_PITCH] =
+				PX4_ISFINITE(att_control(1)) ? att_control(1) : 0.0f;
+			actuators.control[actuator_controls_s::INDEX_YAW] =
+				PX4_ISFINITE(att_control(2)) ? att_control(2) : 0.0f;
+			actuators.control[actuator_controls_s::INDEX_THROTTLE] =
+				PX4_ISFINITE(_thrust_setpoint(2)) ? -_thrust_setpoint(2) : 0.0f;
 			actuators.control[actuator_controls_s::INDEX_LANDING_GEAR] = _landing_gear;
 			actuators.timestamp_sample = angular_velocity.timestamp_sample;
 
@@ -265,7 +276,8 @@ MulticopterRateControl::Run()
 				if (_battery_status_sub.updated()) {
 					battery_status_s battery_status;
 
-					if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
+					if (_battery_status_sub.copy(&battery_status) && battery_status.connected &&
+					    battery_status.scale > 0.f) {
 						_battery_status_scale = battery_status.scale;
 					}
 				}
@@ -295,8 +307,7 @@ MulticopterRateControl::Run()
 	perf_end(_loop_perf);
 }
 
-void MulticopterRateControl::publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_abstime &timestamp_sample)
-{
+void MulticopterRateControl::publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_abstime &timestamp_sample) {
 	vehicle_torque_setpoint_s vehicle_torque_setpoint{};
 	vehicle_torque_setpoint.timestamp = hrt_absolute_time();
 	vehicle_torque_setpoint.timestamp_sample = timestamp_sample;
@@ -307,8 +318,7 @@ void MulticopterRateControl::publishTorqueSetpoint(const Vector3f &torque_sp, co
 	_vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
 }
 
-void MulticopterRateControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
-{
+void MulticopterRateControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample) {
 	vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
 	vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
 	vehicle_thrust_setpoint.timestamp_sample = timestamp_sample;
@@ -317,8 +327,7 @@ void MulticopterRateControl::publishThrustSetpoint(const hrt_abstime &timestamp_
 	_vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
 }
 
-void MulticopterRateControl::updateActuatorControlsStatus(const actuator_controls_s &actuators, float dt)
-{
+void MulticopterRateControl::updateActuatorControlsStatus(const actuator_controls_s &actuators, float dt) {
 	for (int i = 0; i < 4; i++) {
 		_control_energy[i] += actuators.control[i] * actuators.control[i] * dt;
 	}
@@ -326,7 +335,6 @@ void MulticopterRateControl::updateActuatorControlsStatus(const actuator_control
 	_energy_integration_time += dt;
 
 	if (_energy_integration_time > 500e-3f) {
-
 		actuator_controls_status_s status;
 		status.timestamp = actuators.timestamp;
 
@@ -340,8 +348,7 @@ void MulticopterRateControl::updateActuatorControlsStatus(const actuator_control
 	}
 }
 
-int MulticopterRateControl::task_spawn(int argc, char *argv[])
-{
+int MulticopterRateControl::task_spawn(int argc, char *argv[]) {
 	bool vtol = false;
 
 	if (argc > 1) {
@@ -371,13 +378,9 @@ int MulticopterRateControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int MulticopterRateControl::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int MulticopterRateControl::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int MulticopterRateControl::print_usage(const char *reason)
-{
+int MulticopterRateControl::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -400,7 +403,6 @@ The controller has a PID loop for angular rate error.
 	return 0;
 }
 
-extern "C" __EXPORT int mc_rate_control_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int mc_rate_control_main(int argc, char *argv[]) {
 	return MulticopterRateControl::main(argc, argv);
 }

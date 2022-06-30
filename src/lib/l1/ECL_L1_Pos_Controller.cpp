@@ -40,42 +40,37 @@
 
 #include "ECL_L1_Pos_Controller.hpp"
 
-#include <lib/geo/geo.h>
-
-#include <px4_platform_common/defines.h>
-
 #include <float.h>
+#include <lib/geo/geo.h>
+#include <px4_platform_common/defines.h>
 
 using matrix::Vector2d;
 using matrix::Vector2f;
 using matrix::wrap_pi;
 
-void ECL_L1_Pos_Controller::update_roll_setpoint()
-{
+void ECL_L1_Pos_Controller::update_roll_setpoint() {
 	float roll_new = atanf(_lateral_accel * 1.0f / CONSTANTS_ONE_G);
 	roll_new = math::constrain(roll_new, -_roll_lim_rad, _roll_lim_rad);
 
 	if (_dt > 0.0f && _roll_slew_rate > 0.0f) {
 		// slew rate limiting active
-		roll_new = math::constrain(roll_new, _roll_setpoint - _roll_slew_rate * _dt, _roll_setpoint + _roll_slew_rate * _dt);
+		roll_new = math::constrain(roll_new, _roll_setpoint - _roll_slew_rate * _dt,
+					   _roll_setpoint + _roll_slew_rate * _dt);
 	}
 
 	if (PX4_ISFINITE(roll_new)) {
 		_roll_setpoint = roll_new;
 	}
-
 }
 
-float ECL_L1_Pos_Controller::switch_distance(float wp_radius)
-{
+float ECL_L1_Pos_Controller::switch_distance(float wp_radius) {
 	/* following [2], switching on L1 distance */
 	return math::min(wp_radius, _L1_distance);
 }
 
-void
-ECL_L1_Pos_Controller::navigate_waypoints(const Vector2f &vector_A, const Vector2f &vector_B,
-		const Vector2f &vector_curr_position, const Vector2f &ground_speed_vector)
-{
+void ECL_L1_Pos_Controller::navigate_waypoints(const Vector2f &vector_A, const Vector2f &vector_B,
+					       const Vector2f &vector_curr_position,
+					       const Vector2f &ground_speed_vector) {
 	_has_guidance_updated = true;
 
 	/* this follows the logic presented in [1] */
@@ -129,8 +124,8 @@ ECL_L1_Pos_Controller::navigate_waypoints(const Vector2f &vector_A, const Vector
 	float AB_to_BP_bearing = atan2f(vector_B_to_P_unit % vector_AB, vector_B_to_P_unit * vector_AB);
 
 	/* extension from [2], fly directly to A */
-	if (distance_A_to_airplane > _L1_distance && alongTrackDist / math::max(distance_A_to_airplane, 1.0f) < -0.7071f) {
-
+	if (distance_A_to_airplane > _L1_distance &&
+	    alongTrackDist / math::max(distance_A_to_airplane, 1.0f) < -0.7071f) {
 		/* calculate eta to fly to waypoint A */
 
 		/* unit vector from waypoint A to current position */
@@ -211,10 +206,9 @@ ECL_L1_Pos_Controller::navigate_waypoints(const Vector2f &vector_A, const Vector
 	update_roll_setpoint();
 }
 
-void
-ECL_L1_Pos_Controller::navigate_loiter(const Vector2f &vector_A, const Vector2f &vector_curr_position, float radius,
-				       int8_t loiter_direction, const Vector2f &ground_speed_vector)
-{
+void ECL_L1_Pos_Controller::navigate_loiter(const Vector2f &vector_A, const Vector2f &vector_curr_position,
+					    float radius, int8_t loiter_direction,
+					    const Vector2f &ground_speed_vector) {
 	_has_guidance_updated = true;
 
 	/* the complete guidance logic in this section was proposed by [2] */
@@ -252,7 +246,7 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2f &vector_A, const Vector2f 
 	/* velocity across / orthogonal to line from waypoint to current position */
 	float xtrack_vel_center = vector_A_to_airplane_unit % ground_speed_vector;
 	/* velocity along line from waypoint to current position */
-	float ltrack_vel_center = - (ground_speed_vector * vector_A_to_airplane_unit);
+	float ltrack_vel_center = -(ground_speed_vector * vector_A_to_airplane_unit);
 	float eta = atan2f(xtrack_vel_center, ltrack_vel_center);
 	/* limit eta to 90 degrees */
 	eta = math::constrain(eta, -M_PI_F / 2.0f, +M_PI_F / 2.0f);
@@ -277,18 +271,19 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2f &vector_A, const Vector2f 
 	float tangent_vel = xtrack_vel_center * loiter_direction;
 
 	/* prevent PD output from turning the wrong way when in circle mode */
-	const float l1_op_tan_vel = 2.f; // hard coded max tangential velocity in the opposite direction
+	const float l1_op_tan_vel = 2.f;  // hard coded max tangential velocity in the opposite direction
 
 	if (tangent_vel < -l1_op_tan_vel && _circle_mode) {
 		lateral_accel_sp_circle_pd = math::max(lateral_accel_sp_circle_pd, 0.0f);
 	}
 
 	/* calculate centripetal acceleration setpoint */
-	float lateral_accel_sp_circle_centripetal = tangent_vel * tangent_vel / math::max((0.5f * radius),
-			(radius + xtrack_err_circle));
+	float lateral_accel_sp_circle_centripetal =
+		tangent_vel * tangent_vel / math::max((0.5f * radius), (radius + xtrack_err_circle));
 
 	/* add PD control on circle and centripetal acceleration for total circle command */
-	float lateral_accel_sp_circle = loiter_direction * (lateral_accel_sp_circle_pd + lateral_accel_sp_circle_centripetal);
+	float lateral_accel_sp_circle =
+		loiter_direction * (lateral_accel_sp_circle_pd + lateral_accel_sp_circle_centripetal);
 
 	/*
 	 * Switch between circle (loiter) and capture (towards waypoint center) mode when
@@ -317,8 +312,7 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2f &vector_A, const Vector2f 
 }
 
 void ECL_L1_Pos_Controller::navigate_heading(float navigation_heading, float current_heading,
-		const Vector2f &ground_speed_vector)
-{
+					     const Vector2f &ground_speed_vector) {
 	_has_guidance_updated = true;
 
 	/* the complete guidance logic in this section was proposed by [2] */
@@ -355,8 +349,7 @@ void ECL_L1_Pos_Controller::navigate_heading(float navigation_heading, float cur
 	update_roll_setpoint();
 }
 
-void ECL_L1_Pos_Controller::navigate_level_flight(float current_heading)
-{
+void ECL_L1_Pos_Controller::navigate_level_flight(float current_heading) {
 	_has_guidance_updated = true;
 
 	/* the logic in this section is trivial, but originally proposed by [2] */
@@ -374,8 +367,7 @@ void ECL_L1_Pos_Controller::navigate_level_flight(float current_heading)
 	update_roll_setpoint();
 }
 
-void ECL_L1_Pos_Controller::set_l1_period(float period)
-{
+void ECL_L1_Pos_Controller::set_l1_period(float period) {
 	_L1_period = period;
 
 	/* calculate the ratio introduced in [2] */
@@ -385,8 +377,7 @@ void ECL_L1_Pos_Controller::set_l1_period(float period)
 	_heading_omega = sqrtf(2.0f) * M_PI_F / _L1_period;
 }
 
-void ECL_L1_Pos_Controller::set_l1_damping(float damping)
-{
+void ECL_L1_Pos_Controller::set_l1_damping(float damping) {
 	_L1_damping = damping;
 
 	/* calculate the ratio introduced in [2] */

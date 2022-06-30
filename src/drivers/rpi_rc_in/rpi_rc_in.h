@@ -39,30 +39,26 @@
  * It requires the ppmdecode program (https://github.com/crossa/raspberry-pi-ppm-rc-in)
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <drivers/drv_hrt.h>
+#include <fcntl.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdint.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <uORB/topics/input_rc.h>
 #include <unistd.h>
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_platform_common/defines.h>
-
-#include <drivers/drv_hrt.h>
-
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/input_rc.h>
 
 #define RCINPUT_MEASURE_INTERVAL_US 20000
 
-namespace rpi_rc_in
-{
-class RcInput : public px4::ScheduledWorkItem
-{
+namespace rpi_rc_in {
+class RcInput : public px4::ScheduledWorkItem {
 public:
 	RcInput() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {}
 
@@ -74,10 +70,7 @@ public:
 	/** @return 0 on success, -errno on failure */
 	void stop();
 
-	bool is_running()
-	{
-		return _is_running;
-	}
+	bool is_running() { return _is_running; }
 
 private:
 	void Run() override;
@@ -87,16 +80,16 @@ private:
 
 	bool _should_exit = false;
 	bool _is_running = false;
-	uORB::PublicationMulti<input_rc_s>	_rcinput_pub{ORB_ID(input_rc)};
-	int _channels = 8; //D8R-II plus
+	uORB::PublicationMulti<input_rc_s> _rcinput_pub{ORB_ID(input_rc)};
+	int _channels = 8;  // D8R-II plus
 	input_rc_s _data{};
 
 	int *_mem = nullptr;
-	key_t _key = 4096; ///< shared memory key (matches the ppmdecode program's key)
+	key_t _key = 4096;  ///< shared memory key (matches the ppmdecode program's key)
 	int _shmid = 0;
 };
 
 static void usage(const char *reason);
 static RcInput *rc_input = nullptr;
-}
+}  // namespace rpi_rc_in
 extern "C" __EXPORT int rpi_rc_in_main(int argc, char **argv);

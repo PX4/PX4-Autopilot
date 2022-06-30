@@ -36,42 +36,37 @@
  */
 
 #include "PositionControl.hpp"
-#include "ControlMath.hpp"
+
 #include <float.h>
+#include <geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/defines.h>
-#include <geo/geo.h>
+
+#include "ControlMath.hpp"
 
 using namespace matrix;
 
-void PositionControl::setVelocityGains(const Vector3f &P, const Vector3f &I, const Vector3f &D)
-{
+void PositionControl::setVelocityGains(const Vector3f &P, const Vector3f &I, const Vector3f &D) {
 	_gain_vel_p = P;
 	_gain_vel_i = I;
 	_gain_vel_d = D;
 }
 
-void PositionControl::setVelocityLimits(const float vel_horizontal, const float vel_up, const float vel_down)
-{
+void PositionControl::setVelocityLimits(const float vel_horizontal, const float vel_up, const float vel_down) {
 	_lim_vel_horizontal = vel_horizontal;
 	_lim_vel_up = vel_up;
 	_lim_vel_down = vel_down;
 }
 
-void PositionControl::setThrustLimits(const float min, const float max)
-{
+void PositionControl::setThrustLimits(const float min, const float max) {
 	// make sure there's always enough thrust vector length to infer the attitude
 	_lim_thr_min = math::max(min, 10e-4f);
 	_lim_thr_max = max;
 }
 
-void PositionControl::setHorizontalThrustMargin(const float margin)
-{
-	_lim_thr_xy_margin = margin;
-}
+void PositionControl::setHorizontalThrustMargin(const float margin) { _lim_thr_xy_margin = margin; }
 
-void PositionControl::updateHoverThrust(const float hover_thrust_new)
-{
+void PositionControl::updateHoverThrust(const float hover_thrust_new) {
 	// Given that the equation for thrust is T = a_sp * Th / g - Th
 	// with a_sp = desired acceleration, Th = hover thrust and g = gravity constant,
 	// we want to find the acceleration that needs to be added to the integrator in order obtain
@@ -80,21 +75,20 @@ void PositionControl::updateHoverThrust(const float hover_thrust_new)
 	// so a_sp' = (a_sp - g) * Th / Th' + g
 	// we can then add a_sp' - a_sp to the current integrator to absorb the effect of changing Th by Th'
 	if (hover_thrust_new > FLT_EPSILON) {
-		_vel_int(2) += (_acc_sp(2) - CONSTANTS_ONE_G) * _hover_thrust / hover_thrust_new + CONSTANTS_ONE_G - _acc_sp(2);
+		_vel_int(2) += (_acc_sp(2) - CONSTANTS_ONE_G) * _hover_thrust / hover_thrust_new + CONSTANTS_ONE_G -
+			       _acc_sp(2);
 		setHoverThrust(hover_thrust_new);
 	}
 }
 
-void PositionControl::setState(const PositionControlStates &states)
-{
+void PositionControl::setState(const PositionControlStates &states) {
 	_pos = states.position;
 	_vel = states.velocity;
 	_yaw = states.yaw;
 	_vel_dot = states.acceleration;
 }
 
-void PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint)
-{
+void PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint) {
 	_pos_sp = Vector3f(setpoint.x, setpoint.y, setpoint.z);
 	_vel_sp = Vector3f(setpoint.vx, setpoint.vy, setpoint.vz);
 	_acc_sp = Vector3f(setpoint.acceleration);
@@ -102,8 +96,7 @@ void PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &
 	_yawspeed_sp = setpoint.yawspeed;
 }
 
-bool PositionControl::update(const float dt)
-{
+bool PositionControl::update(const float dt) {
 	bool valid = _inputValid();
 
 	if (valid) {
@@ -111,7 +104,7 @@ bool PositionControl::update(const float dt)
 		_velocityControl(dt);
 
 		_yawspeed_sp = PX4_ISFINITE(_yawspeed_sp) ? _yawspeed_sp : 0.f;
-		_yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw; // TODO: better way to disable yaw control
+		_yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw;  // TODO: better way to disable yaw control
 	}
 
 	// There has to be a valid output acceleration and thrust setpoint otherwise something went wrong
@@ -121,24 +114,24 @@ bool PositionControl::update(const float dt)
 	return valid;
 }
 
-void PositionControl::_positionControl()
-{
+void PositionControl::_positionControl() {
 	// P-position controller
 	Vector3f vel_sp_position = (_pos_sp - _pos).emult(_gain_pos_p);
-	// Position and feed-forward velocity setpoints or position states being NAN results in them not having an influence
+	// Position and feed-forward velocity setpoints or position states being NAN results in them not having an
+	// influence
 	ControlMath::addIfNotNanVector3f(_vel_sp, vel_sp_position);
 	// make sure there are no NAN elements for further reference while constraining
 	ControlMath::setZeroIfNanVector3f(vel_sp_position);
 
 	// Constrain horizontal velocity by prioritizing the velocity component along the
 	// the desired position setpoint over the feed-forward term.
-	_vel_sp.xy() = ControlMath::constrainXY(vel_sp_position.xy(), (_vel_sp - vel_sp_position).xy(), _lim_vel_horizontal);
+	_vel_sp.xy() =
+		ControlMath::constrainXY(vel_sp_position.xy(), (_vel_sp - vel_sp_position).xy(), _lim_vel_horizontal);
 	// Constrain velocity in z-direction.
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_lim_vel_up, _lim_vel_down);
 }
 
-void PositionControl::_velocityControl(const float dt)
-{
+void PositionControl::_velocityControl(const float dt) {
 	// PID velocity control
 	Vector3f vel_error = _vel_sp - _vel;
 	Vector3f acc_sp_velocity = vel_error.emult(_gain_vel_p) + _vel_int - _vel_dot.emult(_gain_vel_d);
@@ -179,8 +172,8 @@ void PositionControl::_velocityControl(const float dt)
 		_thr_sp.xy() = thrust_sp_xy / thrust_sp_xy_norm * thrust_max_xy;
 	}
 
-	// Use tracking Anti-Windup for horizontal direction: during saturation, the integrator is used to unsaturate the output
-	// see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
+	// Use tracking Anti-Windup for horizontal direction: during saturation, the integrator is used to unsaturate
+	// the output see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
 	const Vector2f acc_sp_xy_limited = Vector2f(_thr_sp) * (CONSTANTS_ONE_G / _hover_thrust);
 	const float arw_gain = 2.f / _gain_vel_p(0);
 	vel_error.xy() = Vector2f(vel_error) - (arw_gain * (Vector2f(_acc_sp) - acc_sp_xy_limited));
@@ -194,8 +187,7 @@ void PositionControl::_velocityControl(const float dt)
 	_vel_int(2) = math::min(fabsf(_vel_int(2)), CONSTANTS_ONE_G) * sign(_vel_int(2));
 }
 
-void PositionControl::_accelerationControl()
-{
+void PositionControl::_accelerationControl() {
 	// Assume standard acceleration due to gravity in vertical direction for attitude generation
 	Vector3f body_z = Vector3f(-_acc_sp(0), -_acc_sp(1), CONSTANTS_ONE_G).normalized();
 	ControlMath::limitTilt(body_z, Vector3f(0, 0, 1), _lim_tilt);
@@ -207,8 +199,7 @@ void PositionControl::_accelerationControl()
 	_thr_sp = body_z * collective_thrust;
 }
 
-bool PositionControl::_inputValid()
-{
+bool PositionControl::_inputValid() {
 	bool valid = true;
 
 	// Every axis x, y, z needs to have some setpoint
@@ -235,8 +226,7 @@ bool PositionControl::_inputValid()
 	return valid;
 }
 
-void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint) const
-{
+void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint) const {
 	local_position_setpoint.x = _pos_sp(0);
 	local_position_setpoint.y = _pos_sp(1);
 	local_position_setpoint.z = _pos_sp(2);
@@ -249,8 +239,7 @@ void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s
 	_thr_sp.copyTo(local_position_setpoint.thrust);
 }
 
-void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const
-{
+void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const {
 	ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, attitude_setpoint);
 	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
 }

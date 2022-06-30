@@ -41,7 +41,8 @@
  *
  * Interface application notes:
  *
- *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
+ *    - Interfacing to MEAS Digital Pressure Modules
+ * (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
  */
 
 #pragma once
@@ -50,21 +51,21 @@
 #include <lib/drivers/device/i2c.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/differential_pressure.h>
 
-static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
+#include <uORB/PublicationMulti.hpp>
+
+static constexpr uint32_t I2C_SPEED = 100 * 1000;  // 100 kHz I2C serial interface
 static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x46;
 
 /* Register address */
-#define ADDR_READ_MR			0x00	/* write to this address to start conversion */
+#define ADDR_READ_MR 0x00 /* write to this address to start conversion */
 
 /* Measurement rate is 100Hz */
 #define MEAS_RATE 100
-#define CONVERSION_INTERVAL	(1000000 / MEAS_RATE)	/* microseconds */
+#define CONVERSION_INTERVAL (1000000 / MEAS_RATE) /* microseconds */
 
-class MS4515 : public device::I2C, public I2CSPIDriver<MS4515>
-{
+class MS4515 : public device::I2C, public I2CSPIDriver<MS4515> {
 public:
 	MS4515(const I2CSPIDriverConfig &config);
 	~MS4515() override;
@@ -92,6 +93,6 @@ private:
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": communication errors")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME ": communication errors")};
 };

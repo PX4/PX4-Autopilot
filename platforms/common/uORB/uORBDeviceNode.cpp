@@ -33,10 +33,9 @@
 
 #include "uORBDeviceNode.hpp"
 
-#include "uORBUtils.hpp"
-#include "uORBManager.hpp"
-
 #include "SubscriptionCallback.hpp"
+#include "uORBManager.hpp"
+#include "uORBUtils.hpp"
 
 #ifdef ORB_COMMUNICATOR
 #include "uORBCommunicator.hpp"
@@ -46,13 +45,14 @@
 #include <nuttx/mm/mm.h>
 #endif
 
-static uORB::SubscriptionInterval *filp_to_subscription(cdev::file_t *filp) { return static_cast<uORB::SubscriptionInterval *>(filp->f_priv); }
+static uORB::SubscriptionInterval *filp_to_subscription(cdev::file_t *filp) {
+	return static_cast<uORB::SubscriptionInterval *>(filp->f_priv);
+}
 
 // round up to nearest power of two
 // Such as 0 => 1, 1 => 1, 2 => 2 ,3 => 4, 10 => 16, 60 => 64, 65...255 => 128
 // Note: When the input value > 128, the output is always 128
-static inline uint8_t round_pow_of_two_8(uint8_t n)
-{
+static inline uint8_t round_pow_of_two_8(uint8_t n) {
 	if (n == 0) {
 		return 1;
 	}
@@ -74,16 +74,13 @@ static inline uint8_t round_pow_of_two_8(uint8_t n)
 }
 
 uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path,
-			     uint8_t queue_size) :
-	CDev(strdup(path)), // success is checked in CDev::init
-	_meta(meta),
-	_instance(instance),
-	_queue_size(round_pow_of_two_8(queue_size))
-{
-}
+			     uint8_t queue_size)
+	: CDev(strdup(path)),  // success is checked in CDev::init
+	  _meta(meta),
+	  _instance(instance),
+	  _queue_size(round_pow_of_two_8(queue_size)) {}
 
-uORB::DeviceNode::~DeviceNode()
-{
+uORB::DeviceNode::~DeviceNode() {
 	free(_data);
 
 	const char *devname = get_devname();
@@ -97,12 +94,9 @@ uORB::DeviceNode::~DeviceNode()
 	}
 }
 
-int
-uORB::DeviceNode::open(cdev::file_t *filp)
-{
+int uORB::DeviceNode::open(cdev::file_t *filp) {
 	/* is this a publisher? */
 	if (filp->f_oflags == PX4_F_WRONLY) {
-
 		lock();
 		mark_as_advertised();
 		unlock();
@@ -113,7 +107,6 @@ uORB::DeviceNode::open(cdev::file_t *filp)
 
 	/* is this a new subscriber? */
 	if (filp->f_oflags == PX4_F_RDONLY) {
-
 		/* allocate subscriber data */
 		SubscriptionInterval *sd = new SubscriptionInterval(_meta, 0, _instance);
 
@@ -141,9 +134,7 @@ uORB::DeviceNode::open(cdev::file_t *filp)
 	return -EINVAL;
 }
 
-int
-uORB::DeviceNode::close(cdev::file_t *filp)
-{
+int uORB::DeviceNode::close(cdev::file_t *filp) {
 	if (filp->f_oflags == PX4_F_RDONLY) { /* subscriber */
 		SubscriptionInterval *sd = filp_to_subscription(filp);
 		delete sd;
@@ -152,9 +143,7 @@ uORB::DeviceNode::close(cdev::file_t *filp)
 	return CDev::close(filp);
 }
 
-ssize_t
-uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
-{
+ssize_t uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen) {
 	/* if the caller's buffer is the wrong size, that's an error */
 	if (buflen != _meta->o_size) {
 		return -EIO;
@@ -163,9 +152,7 @@ uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
 	return filp_to_subscription(filp)->copy(buffer) ? _meta->o_size : 0;
 }
 
-ssize_t
-uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
-{
+ssize_t uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen) {
 	/*
 	 * Writes are legal from interrupt context as long as the
 	 * object has already been initialised from thread context.
@@ -176,7 +163,6 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	 * Note that filp will usually be NULL.
 	 */
 	if (nullptr == _data) {
-
 #ifdef __PX4_NUTTX
 
 		if (!up_interrupt_context()) {
@@ -187,7 +173,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 			/* re-check size */
 			if (nullptr == _data) {
 				const size_t data_size = _meta->o_size * _queue_size;
-				_data = (uint8_t *) px4_cache_aligned_alloc(data_size);
+				_data = (uint8_t *)px4_cache_aligned_alloc(data_size);
 				memset(_data, 0, data_size);
 			}
 
@@ -232,50 +218,46 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	return _meta->o_size;
 }
 
-int
-uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
-{
+int uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg) {
 	switch (cmd) {
-	case ORBIOCUPDATED: {
+		case ORBIOCUPDATED: {
 			ATOMIC_ENTER;
 			*(bool *)arg = filp_to_subscription(filp)->updated();
 			ATOMIC_LEAVE;
 			return PX4_OK;
 		}
 
-	case ORBIOCSETINTERVAL:
-		filp_to_subscription(filp)->set_interval_us(arg);
-		return PX4_OK;
+		case ORBIOCSETINTERVAL:
+			filp_to_subscription(filp)->set_interval_us(arg);
+			return PX4_OK;
 
-	case ORBIOCGADVERTISER:
-		*(uintptr_t *)arg = (uintptr_t)this;
-		return PX4_OK;
+		case ORBIOCGADVERTISER:
+			*(uintptr_t *)arg = (uintptr_t)this;
+			return PX4_OK;
 
-	case ORBIOCSETQUEUESIZE: {
+		case ORBIOCSETQUEUESIZE: {
 			lock();
 			int ret = update_queue_size(arg);
 			unlock();
 			return ret;
 		}
 
-	case ORBIOCGETINTERVAL:
-		*(unsigned *)arg = filp_to_subscription(filp)->get_interval_us();
-		return PX4_OK;
+		case ORBIOCGETINTERVAL:
+			*(unsigned *)arg = filp_to_subscription(filp)->get_interval_us();
+			return PX4_OK;
 
-	case ORBIOCISADVERTISED:
-		*(unsigned long *)arg = _advertised;
+		case ORBIOCISADVERTISED:
+			*(unsigned long *)arg = _advertised;
 
-		return PX4_OK;
+			return PX4_OK;
 
-	default:
-		/* give it to the superclass */
-		return CDev::ioctl(filp, cmd, arg);
+		default:
+			/* give it to the superclass */
+			return CDev::ioctl(filp, cmd, arg);
 	}
 }
 
-ssize_t
-uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const void *data)
-{
+ssize_t uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const void *data) {
 	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
 	int ret;
 
@@ -322,8 +304,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 	return PX4_OK;
 }
 
-int uORB::DeviceNode::unadvertise(orb_advert_t handle)
-{
+int uORB::DeviceNode::unadvertise(orb_advert_t handle) {
 	if (handle == nullptr) {
 		return -EINVAL;
 	}
@@ -347,8 +328,7 @@ int uORB::DeviceNode::unadvertise(orb_advert_t handle)
 }
 
 #ifdef ORB_COMMUNICATOR
-int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta)
-{
+int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta) {
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
 	if (ch != nullptr && meta != nullptr) {
@@ -359,8 +339,8 @@ int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta)
 }
 
 /*
-//TODO: Check if we need this since we only unadvertise when things all shutdown and it doesn't actually remove the device
-int16_t uORB::DeviceNode::topic_unadvertised(const orb_metadata *meta)
+//TODO: Check if we need this since we only unadvertise when things all shutdown and it doesn't actually remove the
+device int16_t uORB::DeviceNode::topic_unadvertised(const orb_metadata *meta)
 {
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 	if (ch != nullptr && meta != nullptr) {
@@ -371,25 +351,19 @@ int16_t uORB::DeviceNode::topic_unadvertised(const orb_metadata *meta)
 */
 #endif /* ORB_COMMUNICATOR */
 
-px4_pollevent_t
-uORB::DeviceNode::poll_state(cdev::file_t *filp)
-{
+px4_pollevent_t uORB::DeviceNode::poll_state(cdev::file_t *filp) {
 	// If the topic appears updated to the subscriber, say so.
 	return filp_to_subscription(filp)->updated() ? POLLIN : 0;
 }
 
-void
-uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events)
-{
+void uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events) {
 	// If the topic looks updated to the subscriber, go ahead and notify them.
 	if (filp_to_subscription((cdev::file_t *)fds->priv)->updated()) {
 		CDev::poll_notify_one(fds, events);
 	}
 }
 
-bool
-uORB::DeviceNode::print_statistics(int max_topic_length)
-{
+bool uORB::DeviceNode::print_statistics(int max_topic_length) {
 	if (!_advertised) {
 		return false;
 	}
@@ -408,8 +382,7 @@ uORB::DeviceNode::print_statistics(int max_topic_length)
 	return true;
 }
 
-void uORB::DeviceNode::add_internal_subscriber()
-{
+void uORB::DeviceNode::add_internal_subscriber() {
 	lock();
 	_subscriber_count++;
 
@@ -417,7 +390,7 @@ void uORB::DeviceNode::add_internal_subscriber()
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
 	if (ch != nullptr && _subscriber_count > 0) {
-		unlock(); //make sure we cannot deadlock if add_subscription calls back into DeviceNode
+		unlock();  // make sure we cannot deadlock if add_subscription calls back into DeviceNode
 		ch->add_subscription(_meta->o_name, 1);
 
 	} else
@@ -428,8 +401,7 @@ void uORB::DeviceNode::add_internal_subscriber()
 	}
 }
 
-void uORB::DeviceNode::remove_internal_subscriber()
-{
+void uORB::DeviceNode::remove_internal_subscriber() {
 	lock();
 	_subscriber_count--;
 
@@ -437,7 +409,7 @@ void uORB::DeviceNode::remove_internal_subscriber()
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
 	if (ch != nullptr && _subscriber_count == 0) {
-		unlock(); //make sure we cannot deadlock if remove_subscription calls back into DeviceNode
+		unlock();  // make sure we cannot deadlock if remove_subscription calls back into DeviceNode
 		ch->remove_subscription(_meta->o_name);
 
 	} else
@@ -448,31 +420,27 @@ void uORB::DeviceNode::remove_internal_subscriber()
 }
 
 #ifdef ORB_COMMUNICATOR
-int16_t uORB::DeviceNode::process_add_subscription(int32_t rateInHz)
-{
+int16_t uORB::DeviceNode::process_add_subscription(int32_t rateInHz) {
 	// if there is already data in the node, send this out to
 	// the remote entity.
 	// send the data to the remote entity.
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
-	if (_data != nullptr && ch != nullptr) { // _data will not be null if there is a publisher.
+	if (_data != nullptr && ch != nullptr) {  // _data will not be null if there is a publisher.
 		ch->send_message(_meta->o_name, _meta->o_size, _data);
 	}
 
 	return PX4_OK;
 }
 
-int16_t uORB::DeviceNode::process_remove_subscription()
-{
-	return PX4_OK;
-}
+int16_t uORB::DeviceNode::process_remove_subscription() { return PX4_OK; }
 
-int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data)
-{
+int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data) {
 	int16_t ret = -1;
 
 	if (length != (int32_t)(_meta->o_size)) {
-		PX4_ERR("Received '%s' with DataLength[%d] != ExpectedLen[%d]", _meta->o_name, (int)length, (int)_meta->o_size);
+		PX4_ERR("Received '%s' with DataLength[%d] != ExpectedLen[%d]", _meta->o_name, (int)length,
+			(int)_meta->o_size);
 		return PX4_ERROR;
 	}
 
@@ -492,13 +460,12 @@ int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data
 }
 #endif /* ORB_COMMUNICATOR */
 
-int uORB::DeviceNode::update_queue_size(unsigned int queue_size)
-{
+int uORB::DeviceNode::update_queue_size(unsigned int queue_size) {
 	if (_queue_size == queue_size) {
 		return PX4_OK;
 	}
 
-	//queue size is limited to 255 for the single reason that we use uint8 to store it
+	// queue size is limited to 255 for the single reason that we use uint8 to store it
 	if (_data || _queue_size > queue_size || queue_size > 255) {
 		return PX4_ERROR;
 	}
@@ -507,8 +474,7 @@ int uORB::DeviceNode::update_queue_size(unsigned int queue_size)
 	return PX4_OK;
 }
 
-unsigned uORB::DeviceNode::get_initial_generation()
-{
+unsigned uORB::DeviceNode::get_initial_generation() {
 	ATOMIC_ENTER;
 
 	// If there any previous publications allow the subscriber to read them
@@ -519,9 +485,7 @@ unsigned uORB::DeviceNode::get_initial_generation()
 	return generation;
 }
 
-bool
-uORB::DeviceNode::register_callback(uORB::SubscriptionCallback *callback_sub)
-{
+bool uORB::DeviceNode::register_callback(uORB::SubscriptionCallback *callback_sub) {
 	if (callback_sub != nullptr) {
 		ATOMIC_ENTER;
 
@@ -541,9 +505,7 @@ uORB::DeviceNode::register_callback(uORB::SubscriptionCallback *callback_sub)
 	return false;
 }
 
-void
-uORB::DeviceNode::unregister_callback(uORB::SubscriptionCallback *callback_sub)
-{
+void uORB::DeviceNode::unregister_callback(uORB::SubscriptionCallback *callback_sub) {
 	ATOMIC_ENTER;
 	_callbacks.remove(callback_sub);
 	ATOMIC_LEAVE;

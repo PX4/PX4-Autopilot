@@ -32,13 +32,13 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
-#include <PositionControl.hpp>
 #include <px4_defines.h>
+
+#include <PositionControl.hpp>
 
 using namespace matrix;
 
-TEST(PositionControlTest, EmptySetpoint)
-{
+TEST(PositionControlTest, EmptySetpoint) {
 	PositionControl position_control;
 
 	vehicle_local_position_setpoint_s output_setpoint{};
@@ -66,16 +66,16 @@ TEST(PositionControlTest, EmptySetpoint)
 	EXPECT_EQ(attitude.pitch_reset_integral, false);
 	EXPECT_EQ(attitude.yaw_reset_integral, false);
 	EXPECT_EQ(attitude.fw_control_yaw, false);
-	EXPECT_FLOAT_EQ(attitude.apply_flaps, 0.f);//vehicle_attitude_setpoint_s::FLAPS_OFF); // TODO why no reference?
+	EXPECT_FLOAT_EQ(attitude.apply_flaps,
+			0.f);  // vehicle_attitude_setpoint_s::FLAPS_OFF); // TODO why no reference?
 }
 
-class PositionControlBasicTest : public ::testing::Test
-{
+class PositionControlBasicTest : public ::testing::Test {
 public:
-	PositionControlBasicTest()
-	{
+	PositionControlBasicTest() {
 		_position_control.setPositionGains(Vector3f(1.f, 1.f, 1.f));
-		_position_control.setVelocityGains(Vector3f(20.f, 20.f, 20.f), Vector3f(20.f, 20.f, 20.f), Vector3f(20.f, 20.f, 20.f));
+		_position_control.setVelocityGains(Vector3f(20.f, 20.f, 20.f), Vector3f(20.f, 20.f, 20.f),
+						   Vector3f(20.f, 20.f, 20.f));
 		_position_control.setVelocityLimits(1.f, 1.f, 1.f);
 		_position_control.setThrustLimits(0.1f, MAXIMUM_THRUST);
 		_position_control.setHorizontalThrustMargin(HORIZONTAL_THRUST_MARGIN);
@@ -85,8 +85,7 @@ public:
 		resetInputSetpoint();
 	}
 
-	void resetInputSetpoint()
-	{
+	void resetInputSetpoint() {
 		_input_setpoint.x = NAN;
 		_input_setpoint.y = NAN;
 		_input_setpoint.z = NAN;
@@ -99,8 +98,7 @@ public:
 		Vector3f(NAN, NAN, NAN).copyTo(_input_setpoint.thrust);
 	}
 
-	bool runController()
-	{
+	bool runController() {
 		_position_control.setInputSetpoint(_input_setpoint);
 		const bool ret = _position_control.update(.1f);
 		_position_control.getLocalPositionSetpoint(_output_setpoint);
@@ -117,11 +115,9 @@ public:
 	static constexpr float HORIZONTAL_THRUST_MARGIN = 0.3f;
 };
 
-class PositionControlBasicDirectionTest : public PositionControlBasicTest
-{
+class PositionControlBasicDirectionTest : public PositionControlBasicTest {
 public:
-	void checkDirection()
-	{
+	void checkDirection() {
 		Vector3f thrust(_output_setpoint.thrust);
 		EXPECT_GT(thrust(0), 0.f);
 		EXPECT_GT(thrust(1), 0.f);
@@ -134,8 +130,7 @@ public:
 	}
 };
 
-TEST_F(PositionControlBasicDirectionTest, PositionDirection)
-{
+TEST_F(PositionControlBasicDirectionTest, PositionDirection) {
 	_input_setpoint.x = .1f;
 	_input_setpoint.y = .1f;
 	_input_setpoint.z = -.1f;
@@ -143,8 +138,7 @@ TEST_F(PositionControlBasicDirectionTest, PositionDirection)
 	checkDirection();
 }
 
-TEST_F(PositionControlBasicDirectionTest, VelocityDirection)
-{
+TEST_F(PositionControlBasicDirectionTest, VelocityDirection) {
 	_input_setpoint.vx = .1f;
 	_input_setpoint.vy = .1f;
 	_input_setpoint.vz = -.1f;
@@ -152,8 +146,7 @@ TEST_F(PositionControlBasicDirectionTest, VelocityDirection)
 	checkDirection();
 }
 
-TEST_F(PositionControlBasicTest, TiltLimit)
-{
+TEST_F(PositionControlBasicTest, TiltLimit) {
 	_input_setpoint.x = 10.f;
 	_input_setpoint.y = 10.f;
 	_input_setpoint.z = -0.f;
@@ -174,8 +167,7 @@ TEST_F(PositionControlBasicTest, TiltLimit)
 	_position_control.setTiltLimit(1.f);  // restore original
 }
 
-TEST_F(PositionControlBasicTest, VelocityLimit)
-{
+TEST_F(PositionControlBasicTest, VelocityLimit) {
 	_input_setpoint.x = 10.f;
 	_input_setpoint.y = 10.f;
 	_input_setpoint.z = -10.f;
@@ -186,8 +178,7 @@ TEST_F(PositionControlBasicTest, VelocityLimit)
 	EXPECT_LE(abs(_output_setpoint.vz), 1.f);
 }
 
-TEST_F(PositionControlBasicTest, PositionControlMaxThrustLimit)
-{
+TEST_F(PositionControlBasicTest, PositionControlMaxThrustLimit) {
 	// Given a setpoint that drives the controller into vertical and horizontal saturation
 	_input_setpoint.x = 10.f;
 	_input_setpoint.y = 10.f;
@@ -214,12 +205,12 @@ TEST_F(PositionControlBasicTest, PositionControlMaxThrustLimit)
 
 	// Then the horizontal margin results in a tilt with the ratio of: horizontal margin / maximum thrust
 	EXPECT_FLOAT_EQ(_attitude.roll_body, asin((HORIZONTAL_THRUST_MARGIN / sqrt(2.f)) / MAXIMUM_THRUST));
-	// TODO: add this line back once attitude setpoint generation strategy does not align body yaw with heading all the time anymore
-	// EXPECT_FLOAT_EQ(_attitude.pitch_body, -asin((HORIZONTAL_THRUST_MARGIN / sqrt(2.f)) / MAXIMUM_THRUST));
+	// TODO: add this line back once attitude setpoint generation strategy does not align body yaw with heading all
+	// the time anymore EXPECT_FLOAT_EQ(_attitude.pitch_body, -asin((HORIZONTAL_THRUST_MARGIN / sqrt(2.f)) /
+	// MAXIMUM_THRUST));
 }
 
-TEST_F(PositionControlBasicTest, PositionControlMinThrustLimit)
-{
+TEST_F(PositionControlBasicTest, PositionControlMinThrustLimit) {
 	_input_setpoint.x = 10.f;
 	_input_setpoint.y = 0.f;
 	_input_setpoint.z = 10.f;
@@ -234,8 +225,7 @@ TEST_F(PositionControlBasicTest, PositionControlMinThrustLimit)
 	EXPECT_FLOAT_EQ(_attitude.pitch_body, -1.f);
 }
 
-TEST_F(PositionControlBasicTest, FailsafeInput)
-{
+TEST_F(PositionControlBasicTest, FailsafeInput) {
 	_input_setpoint.vz = .1f;
 	_input_setpoint.thrust[0] = _input_setpoint.thrust[1] = 0.f;
 	_input_setpoint.acceleration[0] = _input_setpoint.acceleration[1] = 0.f;
@@ -249,8 +239,7 @@ TEST_F(PositionControlBasicTest, FailsafeInput)
 	EXPECT_LE(_attitude.thrust_body[2], -.1f);
 }
 
-TEST_F(PositionControlBasicTest, IdleThrustInput)
-{
+TEST_F(PositionControlBasicTest, IdleThrustInput) {
 	// High downwards acceleration to make sure there's no thrust
 	Vector3f(0.f, 0.f, 100.f).copyTo(_input_setpoint.acceleration);
 
@@ -260,8 +249,7 @@ TEST_F(PositionControlBasicTest, IdleThrustInput)
 	EXPECT_FLOAT_EQ(_output_setpoint.thrust[2], -.1f);
 }
 
-TEST_F(PositionControlBasicTest, InputCombinationsPosition)
-{
+TEST_F(PositionControlBasicTest, InputCombinationsPosition) {
 	_input_setpoint.x = .1f;
 	_input_setpoint.y = .2f;
 	_input_setpoint.z = .3f;
@@ -278,11 +266,10 @@ TEST_F(PositionControlBasicTest, InputCombinationsPosition)
 	EXPECT_FALSE(isnan(_output_setpoint.thrust[2]));
 }
 
-TEST_F(PositionControlBasicTest, InputCombinationsPositionVelocity)
-{
+TEST_F(PositionControlBasicTest, InputCombinationsPositionVelocity) {
 	_input_setpoint.vx = .1f;
 	_input_setpoint.vy = .2f;
-	_input_setpoint.z = .3f; // altitude
+	_input_setpoint.z = .3f;  // altitude
 
 	EXPECT_TRUE(runController());
 	// EXPECT_TRUE(isnan(_output_setpoint.x));
@@ -296,8 +283,7 @@ TEST_F(PositionControlBasicTest, InputCombinationsPositionVelocity)
 	EXPECT_FALSE(isnan(_output_setpoint.thrust[2]));
 }
 
-TEST_F(PositionControlBasicTest, SetpointValiditySimple)
-{
+TEST_F(PositionControlBasicTest, SetpointValiditySimple) {
 	EXPECT_FALSE(runController());
 	_input_setpoint.x = .1f;
 	EXPECT_FALSE(runController());
@@ -307,21 +293,23 @@ TEST_F(PositionControlBasicTest, SetpointValiditySimple)
 	EXPECT_TRUE(runController());
 }
 
-TEST_F(PositionControlBasicTest, SetpointValidityAllCombinations)
-{
-	// This test runs any combination of set and unset (NAN) setpoints and checks if it gets accepted or rejected correctly
-	float *const setpoint_loop_access_map[] = {&_input_setpoint.x, &_input_setpoint.vx, &_input_setpoint.acceleration[0],
-						   &_input_setpoint.y, &_input_setpoint.vy, &_input_setpoint.acceleration[1],
-						   &_input_setpoint.z, &_input_setpoint.vz, &_input_setpoint.acceleration[2]
-						  };
+TEST_F(PositionControlBasicTest, SetpointValidityAllCombinations) {
+	// This test runs any combination of set and unset (NAN) setpoints and checks if it gets accepted or rejected
+	// correctly
+	float *const setpoint_loop_access_map[] = {
+		&_input_setpoint.x, &_input_setpoint.vx, &_input_setpoint.acceleration[0],
+		&_input_setpoint.y, &_input_setpoint.vy, &_input_setpoint.acceleration[1],
+		&_input_setpoint.z, &_input_setpoint.vz, &_input_setpoint.acceleration[2]};
 
 	for (int combination = 0; combination < 512; combination++) {
 		resetInputSetpoint();
 
 		for (int j = 0; j < 9; j++) {
 			if (combination & (1 << j)) {
-				// Set arbitrary finite value, some values clearly hit the limits to check these corner case combinations
-				*(setpoint_loop_access_map[j]) = static_cast<float>(combination) / static_cast<float>(j + 1);
+				// Set arbitrary finite value, some values clearly hit the limits to check these corner
+				// case combinations
+				*(setpoint_loop_access_map[j]) =
+					static_cast<float>(combination) / static_cast<float>(j + 1);
 			}
 		}
 
@@ -333,22 +321,26 @@ TEST_F(PositionControlBasicTest, SetpointValidityAllCombinations)
 		const bool has_xy_pairs = (combination & 7) == ((combination >> 3) & 7);
 		const bool expected_result = has_x_setpoint && has_y_setpoint && has_z_setpoint && has_xy_pairs;
 
-		EXPECT_EQ(runController(), expected_result) << "combination " << combination << std::endl
-				<< "input" << std::endl
-				<< "position     " << _input_setpoint.x << ", " << _input_setpoint.y << ", " << _input_setpoint.z << std::endl
-				<< "velocity     " << _input_setpoint.vx << ", " << _input_setpoint.vy << ", " << _input_setpoint.vz << std::endl
-				<< "acceleration " << _input_setpoint.acceleration[0] << ", "
-				<< _input_setpoint.acceleration[1] << ", " << _input_setpoint.acceleration[2] << std::endl
-				<< "output" << std::endl
-				<< "position     " << _output_setpoint.x << ", " << _output_setpoint.y << ", " << _output_setpoint.z << std::endl
-				<< "velocity     " << _output_setpoint.vx << ", " << _output_setpoint.vy << ", " << _output_setpoint.vz << std::endl
-				<< "acceleration " << _output_setpoint.acceleration[0] << ", "
-				<< _output_setpoint.acceleration[1] << ", " << _output_setpoint.acceleration[2] << std::endl;
+		EXPECT_EQ(runController(), expected_result)
+			<< "combination " << combination << std::endl
+			<< "input" << std::endl
+			<< "position     " << _input_setpoint.x << ", " << _input_setpoint.y << ", "
+			<< _input_setpoint.z << std::endl
+			<< "velocity     " << _input_setpoint.vx << ", " << _input_setpoint.vy << ", "
+			<< _input_setpoint.vz << std::endl
+			<< "acceleration " << _input_setpoint.acceleration[0] << ", " << _input_setpoint.acceleration[1]
+			<< ", " << _input_setpoint.acceleration[2] << std::endl
+			<< "output" << std::endl
+			<< "position     " << _output_setpoint.x << ", " << _output_setpoint.y << ", "
+			<< _output_setpoint.z << std::endl
+			<< "velocity     " << _output_setpoint.vx << ", " << _output_setpoint.vy << ", "
+			<< _output_setpoint.vz << std::endl
+			<< "acceleration " << _output_setpoint.acceleration[0] << ", "
+			<< _output_setpoint.acceleration[1] << ", " << _output_setpoint.acceleration[2] << std::endl;
 	}
 }
 
-TEST_F(PositionControlBasicTest, InvalidState)
-{
+TEST_F(PositionControlBasicTest, InvalidState) {
 	_input_setpoint.x = .1f;
 	_input_setpoint.y = .2f;
 	_input_setpoint.z = .3f;
@@ -372,9 +364,7 @@ TEST_F(PositionControlBasicTest, InvalidState)
 	EXPECT_FALSE(runController());
 }
 
-
-TEST_F(PositionControlBasicTest, UpdateHoverThrust)
-{
+TEST_F(PositionControlBasicTest, UpdateHoverThrust) {
 	// GIVEN: some hover thrust and 0 velocity change
 	const float hover_thrust = 0.6f;
 	_position_control.setHoverThrust(hover_thrust);
@@ -399,8 +389,7 @@ TEST_F(PositionControlBasicTest, UpdateHoverThrust)
 	EXPECT_EQ(_output_setpoint.thrust[2], -hover_thrust);
 }
 
-TEST_F(PositionControlBasicTest, IntegratorWindupWithInvalidSetpoint)
-{
+TEST_F(PositionControlBasicTest, IntegratorWindupWithInvalidSetpoint) {
 	// GIVEN: the controller was ran with an invalid setpoint containing some valid values
 	_input_setpoint.x = .1f;
 	_input_setpoint.y = .2f;

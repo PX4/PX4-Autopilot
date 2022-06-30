@@ -37,25 +37,22 @@
  * @author Andrew Tridgell
  */
 
-#include <px4_platform_common/px4_config.h>
+#include <board_config.h>
 #include <px4_platform_common/module.h>
-#include <unistd.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
-#include <board_config.h>
-
-static void print_usage()
-{
-	PRINT_MODULE_DESCRIPTION("Utility to check if USB is connected. Was previously used in startup scripts.\n"
-				 "A return value of 0 means USB is connected, 1 otherwise."
-				);
+static void print_usage() {
+	PRINT_MODULE_DESCRIPTION(
+		"Utility to check if USB is connected. Was previously used in startup scripts.\n"
+		"A return value of 0 means USB is connected, 1 otherwise.");
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("usb_connected", "command");
 }
 
-extern "C" __EXPORT int usb_connected_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int usb_connected_main(int argc, char *argv[]) {
 	if (argc > 1) {
 		print_usage();
 		return 0;

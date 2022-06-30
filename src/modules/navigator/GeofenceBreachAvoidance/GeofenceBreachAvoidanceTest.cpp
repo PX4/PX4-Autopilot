@@ -32,25 +32,20 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
-#include "geofence_breach_avoidance.h"
-#include "fake_geofence.hpp"
-#include "dataman_mocks.hpp"
 #include <parameters/param.h>
+
+#include "dataman_mocks.hpp"
+#include "fake_geofence.hpp"
+#include "geofence_breach_avoidance.h"
 
 using namespace matrix;
 
-class GeofenceBreachAvoidanceTest : public ::testing::Test
-{
+class GeofenceBreachAvoidanceTest : public ::testing::Test {
 public:
-	void SetUp() override
-	{
-		param_control_autosave(false);
-	}
+	void SetUp() override { param_control_autosave(false); }
 };
 
-TEST_F(GeofenceBreachAvoidanceTest, waypointFromBearingAndDistance)
-{
-
+TEST_F(GeofenceBreachAvoidanceTest, waypointFromBearingAndDistance) {
 	GeofenceBreachAvoidance gf_avoidance(nullptr);
 	Vector2d home_global(42.1, 8.2);
 
@@ -58,31 +53,32 @@ TEST_F(GeofenceBreachAvoidanceTest, waypointFromBearingAndDistance)
 
 	Vector2f waypoint_north_east_local(1.0, 1.0);
 	waypoint_north_east_local = waypoint_north_east_local.normalized() * 10.5;
-	Vector2d waypoint_north_east_global = gf_avoidance.waypointFromBearingAndDistance(home_global, M_PI_F * 0.25f, 10.5);
+	Vector2d waypoint_north_east_global =
+		gf_avoidance.waypointFromBearingAndDistance(home_global, M_PI_F * 0.25f, 10.5);
 
-	Vector2f waypoint_north_east_reprojected = ref.project(waypoint_north_east_global(0), waypoint_north_east_global(1));
+	Vector2f waypoint_north_east_reprojected =
+		ref.project(waypoint_north_east_global(0), waypoint_north_east_global(1));
 
 	EXPECT_FLOAT_EQ(waypoint_north_east_local(0), waypoint_north_east_reprojected(0));
 	EXPECT_FLOAT_EQ(waypoint_north_east_local(1), waypoint_north_east_reprojected(1));
 
-
 	Vector2f waypoint_south_west_local = -waypoint_north_east_local;
 
-	Vector2d waypoint_southwest_global = gf_avoidance.waypointFromBearingAndDistance(home_global, M_PI_F * 0.25f, -10.5);
+	Vector2d waypoint_southwest_global =
+		gf_avoidance.waypointFromBearingAndDistance(home_global, M_PI_F * 0.25f, -10.5);
 
-	Vector2f waypoint_south_west_reprojected = ref.project(waypoint_southwest_global(0), waypoint_southwest_global(1));
+	Vector2f waypoint_south_west_reprojected =
+		ref.project(waypoint_southwest_global(0), waypoint_southwest_global(1));
 
 	EXPECT_FLOAT_EQ(waypoint_south_west_local(0), waypoint_south_west_reprojected(0));
 	EXPECT_FLOAT_EQ(waypoint_south_west_local(1), waypoint_south_west_reprojected(1));
-
 
 	Vector2d same_as_home_global = gf_avoidance.waypointFromBearingAndDistance(home_global, M_PI_F * 0.25f, 0.0);
 
 	EXPECT_LT(Vector2d(home_global - same_as_home_global).norm(), 1e-4);
 }
 
-TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForFixedWing)
-{
+TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForFixedWing) {
 	GeofenceBreachAvoidance gf_avoidance(nullptr);
 	FakeGeofence geo;
 	Vector2d home_global(42.1, 8.2);
@@ -95,7 +91,6 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForFixedWing)
 	gf_avoidance.setTestPointBearing(0.0f);
 	gf_avoidance.setCurrentPosition(home_global(0), home_global(1), 0);
 
-
 	Vector2d loiter_point_lat_lon = gf_avoidance.generateLoiterPointForFixedWing(gf_violation, &geo);
 
 	// the expected loiter point is located test_point_distance behind
@@ -103,7 +98,6 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForFixedWing)
 
 	EXPECT_FLOAT_EQ(loiter_point_lat_lon(0), loiter_point_lat_lon_expected(0));
 	EXPECT_FLOAT_EQ(loiter_point_lat_lon(1), loiter_point_lat_lon_expected(1));
-
 
 	geo.setProbeFunctionBehavior(FakeGeofence::ProbeFunction::LEFT_INSIDE_RIGHT_OUTSIDE);
 	loiter_point_lat_lon = gf_avoidance.generateLoiterPointForFixedWing(gf_violation, &geo);
@@ -128,8 +122,7 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForFixedWing)
 	EXPECT_FLOAT_EQ(loiter_point_lat_lon(1), home_global(1));
 }
 
-TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForMultirotor)
-{
+TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForMultirotor) {
 	GeofenceBreachAvoidance gf_avoidance(nullptr);
 	FakeGeofence geo;
 	Vector2d home_global(42.1, 8.2);
@@ -162,11 +155,11 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForMultirotor)
 
 	Vector2d loiter_point = gf_avoidance.generateLoiterPointForMultirotor(gf_violation, &geo);
 
-	Vector2d loiter_point_predicted = gf_avoidance.waypointFromBearingAndDistance(home_global, 0.0f,
-					  20.0f - gf_avoidance.getMinHorDistToFenceMulticopter());
+	Vector2d loiter_point_predicted = gf_avoidance.waypointFromBearingAndDistance(
+		home_global, 0.0f, 20.0f - gf_avoidance.getMinHorDistToFenceMulticopter());
 
 	float error = get_distance_to_next_waypoint(loiter_point(0), loiter_point(1), loiter_point_predicted(0),
-			loiter_point_predicted(1));
+						    loiter_point_predicted(1));
 
 	EXPECT_LE(error, 0.5f);
 
@@ -175,9 +168,8 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForMultirotor)
 	gf_avoidance.computeBrakingDistanceMultirotor();
 
 	loiter_point = gf_avoidance.generateLoiterPointForMultirotor(gf_violation, &geo);
-	loiter_point_predicted = gf_avoidance.waypointFromBearingAndDistance(home_global, 0.0f,
-				 gf_avoidance.computeBrakingDistanceMultirotor());
-
+	loiter_point_predicted = gf_avoidance.waypointFromBearingAndDistance(
+		home_global, 0.0f, gf_avoidance.computeBrakingDistanceMultirotor());
 
 	error = get_distance_to_next_waypoint(loiter_point(0), loiter_point(1), loiter_point_predicted(0),
 					      loiter_point_predicted(1));
@@ -190,14 +182,13 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForMultirotor)
 	EXPECT_LT(Vector2d(loiter_point - home_global).norm(), 1e-4);
 }
 
-TEST_F(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForFixedWing)
-{
+TEST_F(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForFixedWing) {
 	GeofenceBreachAvoidance gf_avoidance(nullptr);
 	const float current_alt_amsl = 100.0f;
 	const float vertical_test_point_dist = 10.0f;
 
 	gf_avoidance.setVerticalTestPointDistance(vertical_test_point_dist);
-	gf_avoidance.setCurrentPosition(0, 0, current_alt_amsl); // just care about altitude
+	gf_avoidance.setCurrentPosition(0, 0, current_alt_amsl);  // just care about altitude
 	geofence_violation_type_u gf_violation;
 	gf_violation.flags.max_altitude_exceeded = true;
 
@@ -212,8 +203,7 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForFixedWing)
 	EXPECT_EQ(loiter_alt, current_alt_amsl);
 }
 
-TEST_F(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForMulticopter)
-{
+TEST_F(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForMulticopter) {
 	GeofenceBreachAvoidance gf_avoidance(nullptr);
 	const float climbrate = 10.0f;
 	const float current_alt_amsl = 100.0f;
@@ -227,7 +217,7 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForMulticopter)
 	float loiter_alt_amsl = gf_avoidance.generateLoiterAltitudeForMulticopter(gf_violation);
 
 	EXPECT_EQ(loiter_alt_amsl, current_alt_amsl + gf_avoidance.computeVerticalBrakingDistanceMultirotor() -
-		  gf_avoidance.getMinVertDistToFenceMultirotor());
+					   gf_avoidance.getMinVertDistToFenceMultirotor());
 
 	gf_violation.flags.max_altitude_exceeded = false;
 
@@ -236,8 +226,7 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForMulticopter)
 	EXPECT_EQ(loiter_alt_amsl, current_alt_amsl);
 }
 
-TEST_F(GeofenceBreachAvoidanceTest, maxDistToHomeViolationMulticopter)
-{
+TEST_F(GeofenceBreachAvoidanceTest, maxDistToHomeViolationMulticopter) {
 	GeofenceBreachAvoidance gf_avoidance(nullptr);
 	FakeGeofence geo;
 	Vector2d home_global(42.1, 8.2);
@@ -262,14 +251,13 @@ TEST_F(GeofenceBreachAvoidanceTest, maxDistToHomeViolationMulticopter)
 
 	Vector2d loiter_point_lat_lon = gf_avoidance.generateLoiterPointForMultirotor(gf_violation, &geo);
 
-	Vector2d loiter_point_predicted = gf_avoidance.waypointFromBearingAndDistance(home_global, test_point_bearing,
-					  max_dist_to_home - gf_avoidance.getMinHorDistToFenceMulticopter());
+	Vector2d loiter_point_predicted = gf_avoidance.waypointFromBearingAndDistance(
+		home_global, test_point_bearing, max_dist_to_home - gf_avoidance.getMinHorDistToFenceMulticopter());
 
 	EXPECT_LT(Vector2d(loiter_point_predicted - loiter_point_lat_lon).norm(), 1e-4);
 }
 
-TEST_F(GeofenceBreachAvoidanceTest, maxDistToHomeViolationFixedWing)
-{
+TEST_F(GeofenceBreachAvoidanceTest, maxDistToHomeViolationFixedWing) {
 	GeofenceBreachAvoidance gf_avoidance(nullptr);
 	FakeGeofence geo;
 	Vector2d home_global(42.1, 8.2);
@@ -291,8 +279,8 @@ TEST_F(GeofenceBreachAvoidanceTest, maxDistToHomeViolationFixedWing)
 
 	Vector2d loiter_point_lat_lon = gf_avoidance.generateLoiterPointForFixedWing(gf_violation, &geo);
 
-	Vector2d loiter_point_predicted = gf_avoidance.waypointFromBearingAndDistance(home_global, test_point_bearing,
-					  max_dist_to_home - 2.0f * test_point_distance);
+	Vector2d loiter_point_predicted = gf_avoidance.waypointFromBearingAndDistance(
+		home_global, test_point_bearing, max_dist_to_home - 2.0f * test_point_distance);
 
 	EXPECT_LT(Vector2d(loiter_point_predicted - loiter_point_lat_lon).norm(), 1e-4);
 }

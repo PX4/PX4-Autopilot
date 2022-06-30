@@ -36,6 +36,7 @@
  */
 
 #include "sensor_bridge.hpp"
+
 #include <cassert>
 
 #include "accel.hpp"
@@ -55,8 +56,7 @@
 /*
  * IUavcanSensorBridge
  */
-void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list)
-{
+void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list) {
 	// airspeed
 	int32_t uavcan_sub_aspd = 1;
 	param_get(param_find("UAVCAN_SUB_ASPD"), &uavcan_sub_aspd);
@@ -158,14 +158,9 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 /*
  * UavcanSensorBridgeBase
  */
-UavcanSensorBridgeBase::~UavcanSensorBridgeBase()
-{
-	delete [] _channels;
-}
+UavcanSensorBridgeBase::~UavcanSensorBridgeBase() { delete[] _channels; }
 
-void
-UavcanSensorBridgeBase::publish(const int node_id, const void *report)
-{
+void UavcanSensorBridgeBase::publish(const int node_id, const void *report) {
 	assert(report != nullptr);
 
 	uavcan_bridge::Channel *channel = nullptr;
@@ -226,8 +221,7 @@ UavcanSensorBridgeBase::publish(const int node_id, const void *report)
 	(void)orb_publish(_orb_topic, channel->orb_advert, report);
 }
 
-uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(int node_id)
-{
+uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(int node_id) {
 	uavcan_bridge::Channel *channel = nullptr;
 
 	// Checking if such channel already exists
@@ -282,8 +276,7 @@ uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(int node_id
 	return channel;
 }
 
-unsigned UavcanSensorBridgeBase::get_num_redundant_channels() const
-{
+unsigned UavcanSensorBridgeBase::get_num_redundant_channels() const {
 	unsigned out = 0;
 
 	for (unsigned i = 0; i < _max_channels; i++) {
@@ -295,8 +288,7 @@ unsigned UavcanSensorBridgeBase::get_num_redundant_channels() const
 	return out;
 }
 
-int8_t UavcanSensorBridgeBase::get_channel_index_for_node(int node_id)
-{
+int8_t UavcanSensorBridgeBase::get_channel_index_for_node(int node_id) {
 	int8_t ch = -1;
 
 	for (unsigned i = 0; i < _max_channels; i++) {
@@ -309,14 +301,13 @@ int8_t UavcanSensorBridgeBase::get_channel_index_for_node(int node_id)
 	return ch;
 }
 
-void UavcanSensorBridgeBase::print_status() const
-{
+void UavcanSensorBridgeBase::print_status() const {
 	printf("name: %s\n", _name);
 
 	for (unsigned i = 0; i < _max_channels; i++) {
 		if (_channels[i].node_id >= 0) {
-			printf("channel %d: node id %d --> instance %d\n",
-			       i, _channels[i].node_id, _channels[i].instance);
+			printf("channel %d: node id %d --> instance %d\n", i, _channels[i].node_id,
+			       _channels[i].instance);
 		}
 	}
 }

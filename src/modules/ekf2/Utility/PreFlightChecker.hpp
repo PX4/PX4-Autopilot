@@ -42,8 +42,8 @@
 #ifndef EKF2_PREFLIGHTCHECKER_HPP
 #define EKF2_PREFLIGHTCHECKER_HPP
 
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/estimator_innovations.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include <matrix/matrix/math.hpp>
 
@@ -51,8 +51,7 @@
 
 using matrix::Vector2f;
 
-class PreFlightChecker
-{
+class PreFlightChecker {
 public:
 	PreFlightChecker() = default;
 	~PreFlightChecker() = default;
@@ -131,7 +130,8 @@ public:
 	 * @param spike_limit the magnitude test limit for innov
 	 * @return true if the check failed the test, false otherwise
 	 */
-	static bool checkInnov2DFailed(const Vector2f &innov_lpf, const Vector2f &innov, float test_limit, float spike_limit);
+	static bool checkInnov2DFailed(const Vector2f &innov_lpf, const Vector2f &innov, float test_limit,
+				       float spike_limit);
 
 	static constexpr float sq(float var) { return var * var; }
 
@@ -160,12 +160,12 @@ private:
 	bool _is_using_ev_hgt_aiding{};
 
 	// Low-pass filters for innovation pre-flight checks
-	InnovationLpf _filter_vel_n_innov;	///< Preflight low pass filter N axis velocity innovations (m/sec)
-	InnovationLpf _filter_vel_e_innov;	///< Preflight low pass filter E axis velocity innovations (m/sec)
-	InnovationLpf _filter_vel_d_innov;	///< Preflight low pass filter D axis velocity innovations (m/sec)
-	InnovationLpf _filter_heading_innov;	///< Preflight low pass filter heading innovation magntitude (rad)
-	InnovationLpf _filter_flow_x_innov;	///< Preflight low pass filter optical flow innovation (rad)
-	InnovationLpf _filter_flow_y_innov;	///< Preflight low pass filter optical flow innovation (rad)
+	InnovationLpf _filter_vel_n_innov;    ///< Preflight low pass filter N axis velocity innovations (m/sec)
+	InnovationLpf _filter_vel_e_innov;    ///< Preflight low pass filter E axis velocity innovations (m/sec)
+	InnovationLpf _filter_vel_d_innov;    ///< Preflight low pass filter D axis velocity innovations (m/sec)
+	InnovationLpf _filter_heading_innov;  ///< Preflight low pass filter heading innovation magntitude (rad)
+	InnovationLpf _filter_flow_x_innov;   ///< Preflight low pass filter optical flow innovation (rad)
+	InnovationLpf _filter_flow_y_innov;   ///< Preflight low pass filter optical flow innovation (rad)
 
 	// Preflight low pass filter height innovation (m)
 	InnovationLpf _filter_baro_hgt_innov;
@@ -179,9 +179,11 @@ private:
 	static constexpr float _vel_innov_test_lim = 0.5f;
 	// Maximum permissible height innovation to pass pre-flight checks (m)
 	static constexpr float _hgt_innov_test_lim = 1.5f;
-	// Maximum permissible yaw innovation to pass pre-flight checks when aiding inertial nav using NE frame observations (rad)
+	// Maximum permissible yaw innovation to pass pre-flight checks when aiding inertial nav using NE frame
+	// observations (rad)
 	static constexpr float _nav_heading_innov_test_lim = 0.25f;
-	// Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
+	// Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame
+	// observations (rad)
 	static constexpr float _heading_innov_test_lim = 0.52f;
 	// Maximum permissible flow innovation to pass pre-flight checks
 	static constexpr float _flow_innov_test_lim = 0.25f;
@@ -192,4 +194,4 @@ private:
 	// Preflight flow innovation spike limit (rad)
 	static constexpr float _flow_innov_spike_lim = 2.0f * _flow_innov_test_lim;
 };
-#endif // !EKF2_PREFLIGHTCHECKER_HPP
+#endif  // !EKF2_PREFLIGHTCHECKER_HPP

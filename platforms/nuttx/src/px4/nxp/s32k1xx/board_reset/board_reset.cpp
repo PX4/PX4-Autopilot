@@ -38,18 +38,16 @@
  * Implementation of kinetis based Board RESET API
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <errno.h>
-#include <nuttx/board.h>
 #include <hardware/s32k1xx_rcm.h>
-
+#include <nuttx/board.h>
+#include <px4_platform_common/px4_config.h>
 
 #ifdef CONFIG_BOARDCTL_RESET
 
-static int board_reset_enter_bootloader()
-{
+static int board_reset_enter_bootloader() {
 	uint32_t regvalue = RCM_PARAM_ESW;
-	*((uint32_t *) S32K1XX_RCM_SRS) = regvalue;
+	*((uint32_t *)S32K1XX_RCM_SRS) = regvalue;
 	return OK;
 }
 
@@ -73,8 +71,7 @@ static int board_reset_enter_bootloader()
  *
  ****************************************************************************/
 
-int board_reset(int status)
-{
+int board_reset(int status) {
 	if (status == 1) {
 		board_reset_enter_bootloader();
 	}

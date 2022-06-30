@@ -39,16 +39,12 @@
  */
 
 #include "land.h"
+
 #include "navigator.h"
 
-Land::Land(Navigator *navigator) :
-	MissionBlock(navigator)
-{
-}
+Land::Land(Navigator *navigator) : MissionBlock(navigator) {}
 
-void
-Land::on_activation()
-{
+void Land::on_activation() {
 	/* set current mission item to Land */
 	set_land_item(&_mission_item, true);
 	_navigator->get_mission_result()->finished = false;
@@ -67,22 +63,19 @@ Land::on_activation()
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
-void
-Land::on_active()
-{
+void Land::on_active() {
 	/* for VTOL update landing location during back transition */
-	if (_navigator->get_vstatus()->is_vtol &&
-	    _navigator->get_vstatus()->in_transition_mode) {
+	if (_navigator->get_vstatus()->is_vtol && _navigator->get_vstatus()->in_transition_mode) {
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 		// create a virtual wp 1m in front of the vehicle to track during the backtransition
-		waypoint_from_heading_and_distance(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+		waypoint_from_heading_and_distance(_navigator->get_global_position()->lat,
+						   _navigator->get_global_position()->lon,
 						   _navigator->get_position_setpoint_triplet()->current.yaw, 1.f,
 						   &pos_sp_triplet->current.lat, &pos_sp_triplet->current.lon);
 
 		_navigator->set_position_setpoint_triplet_updated();
 	}
-
 
 	if (_navigator->get_land_detected()->landed) {
 		_navigator->get_mission_result()->finished = true;

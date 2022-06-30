@@ -11,8 +11,7 @@
 
 #include "math.hpp"
 
-namespace matrix
-{
+namespace matrix {
 
 /**
  * Geninv
@@ -20,9 +19,8 @@ namespace matrix
  *
  * Courrieu, P. (2008). Fast Computation of Moore-Penrose Inverse Matrices, 8(2), 25–29. http://arxiv.org/abs/0804.4809
  */
-template<typename Type, size_t M, size_t N>
-bool geninv(const Matrix<Type, M, N> &G, Matrix<Type, N, M> &res)
-{
+template <typename Type, size_t M, size_t N>
+bool geninv(const Matrix<Type, M, N> &G, Matrix<Type, N, M> &res) {
 	size_t rank;
 
 	if (M <= N) {
@@ -34,7 +32,7 @@ bool geninv(const Matrix<Type, M, N> &G, Matrix<Type, N, M> &res)
 
 		if (!inv(A, X, rank)) {
 			res = Matrix<Type, N, M>();
-			return false; // LCOV_EXCL_LINE -- this can only be hit from numerical issues
+			return false;  // LCOV_EXCL_LINE -- this can only be hit from numerical issues
 		}
 
 		// doing an intermediate assignment reduces stack usage
@@ -50,7 +48,7 @@ bool geninv(const Matrix<Type, M, N> &G, Matrix<Type, N, M> &res)
 
 		if (!inv(A, X, rank)) {
 			res = Matrix<Type, N, M>();
-			return false; // LCOV_EXCL_LINE -- this can only be hit from numerical issues
+			return false;  // LCOV_EXCL_LINE -- this can only be hit from numerical issues
 		}
 
 		// doing an intermediate assignment reduces stack usage
@@ -61,23 +59,19 @@ bool geninv(const Matrix<Type, M, N> &G, Matrix<Type, N, M> &res)
 	return true;
 }
 
-
-template<typename Type>
+template <typename Type>
 Type typeEpsilon();
 
-template<> inline
-float typeEpsilon<float>()
-{
+template <>
+inline float typeEpsilon<float>() {
 	return FLT_EPSILON;
 }
 
 /**
  * Full rank Cholesky factorization of A
  */
-template<typename Type, size_t N>
-SquareMatrix<Type, N> fullRankCholesky(const SquareMatrix<Type, N> &A,
-				       size_t &rank)
-{
+template <typename Type, size_t N>
+SquareMatrix<Type, N> fullRankCholesky(const SquareMatrix<Type, N> &A, size_t &rank) {
 	// Loses one ulp accuracy per row of diag, relative to largest magnitude
 	const Type tol = N * typeEpsilon<Type>() * A.diag().max();
 
@@ -86,7 +80,6 @@ SquareMatrix<Type, N> fullRankCholesky(const SquareMatrix<Type, N> &A,
 	size_t r = 0;
 
 	for (size_t k = 0; k < N; k++) {
-
 		if (r == 0) {
 			for (size_t i = k; i < N; i++) {
 				L(i, r) = A(i, k);
@@ -124,4 +117,4 @@ SquareMatrix<Type, N> fullRankCholesky(const SquareMatrix<Type, N> &A,
 	return L;
 }
 
-} // namespace matrix
+}  // namespace matrix

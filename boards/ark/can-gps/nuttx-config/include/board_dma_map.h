@@ -36,8 +36,7 @@
 // DMA1 Channel/Stream Selections
 //--------------------------------------------//---------------------------//----------------
 
-
 //  DMA2 Channel/Stream Selections
 //--------------------------------------------//---------------------------//----------------
-#define DMACHAN_SPI1_RX    DMAMAP_SPI1_RX_2   // DMA2, Stream 2, Channel 3
-#define DMACHAN_SPI1_TX    DMAMAP_SPI1_TX_1   // DMA2, Stream 5, Channel 3
+#define DMACHAN_SPI1_RX DMAMAP_SPI1_RX_2  // DMA2, Stream 2, Channel 3
+#define DMACHAN_SPI1_TX DMAMAP_SPI1_TX_1  // DMA2, Stream 5, Channel 3

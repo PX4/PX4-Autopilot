@@ -51,33 +51,34 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
-#include <string>
-#include <algorithm>
-#include <fstream>
-#include <signal.h>
-#include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/file.h>
+#include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
+#include <sys/stat.h>
 #include <unistd.h>
+
+#include <algorithm>
+#include <fstream>
+#include <string>
 #if (_POSIX_MEMLOCK > 0)
 #include <sys/mman.h>
 #endif
 
-#include <px4_platform_common/time.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/init.h>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 
 #include "apps.h"
 #include "px4_daemon/client.h"
-#include "px4_daemon/server.h"
 #include "px4_daemon/pxh.h"
+#include "px4_daemon/server.h"
 
 #define MODULE_NAME "px4"
 
@@ -87,12 +88,9 @@ static const char *LOCK_FILE_PATH = "/tmp/px4_lock";
 #define PATH_MAX 1024
 #endif
 
-
 static volatile bool _exit_requested = false;
 
-
-namespace px4
-{
+namespace px4 {
 void init_once();
 }
 
@@ -113,7 +111,6 @@ static std::string file_basename(std::string const &pathname);
 static std::string pwd();
 static int change_directory(const std::string &directory);
 
-
 #ifdef __PX4_SITL_MAIN_OVERRIDE
 int SITL_MAIN(int argc, char **argv);
 
@@ -129,7 +126,7 @@ int main(int argc, char **argv)
 	const char prefix[] = PX4_SHELL_COMMAND_PREFIX;
 	int path_length = 0;
 
-	std::string absolute_binary_path; // full path to the px4 binary being executed
+	std::string absolute_binary_path;  // full path to the px4 binary being executed
 
 	if (argc > 0) {
 		/* The executed binary name could start with a path, so strip it away */
@@ -182,17 +179,17 @@ int main(int argc, char **argv)
 
 		// try to lock address space into RAM, to avoid page swap delay
 		// TODO: Check CAP_IPC_LOCK instead of euid
-		if (geteuid() == 0) {   // root user
-			if (mlockall(MCL_CURRENT | MCL_FUTURE)) {	// check if both works
+		if (geteuid() == 0) {                              // root user
+			if (mlockall(MCL_CURRENT | MCL_FUTURE)) {  // check if both works
 				PX4_ERR("mlockall() failed! errno: %d (%s)", errno, strerror(errno));
-				munlockall();	// avoid mlock limitation caused alloc failure in future
+				munlockall();  // avoid mlock limitation caused alloc failure in future
 
 			} else {
 				PX4_INFO("mlockall() enabled. PX4's virtual address space is locked into RAM.");
 			}
 		}
 
-#endif // (_POSIX_MEMLOCK > 0) && !ENABLE_LOCKSTEP_SCHEDULER
+#endif  // (_POSIX_MEMLOCK > 0) && !ENABLE_LOCKSTEP_SCHEDULER
 
 		/* Server/daemon apps need to parse the command line arguments. */
 
@@ -208,34 +205,34 @@ int main(int argc, char **argv)
 
 		while ((ch = px4_getopt(argc, argv, "hdt:s:i:w:", &myoptind, &myoptarg)) != EOF) {
 			switch (ch) {
-			case 'h':
-				print_usage();
-				return 0;
+				case 'h':
+					print_usage();
+					return 0;
 
-			case 'd':
-				pxh_off = true;
-				break;
+				case 'd':
+					pxh_off = true;
+					break;
 
-			case 't':
-				test_data_path = myoptarg;
-				break;
+				case 't':
+					test_data_path = myoptarg;
+					break;
 
-			case 's':
-				commands_file = myoptarg;
-				break;
+				case 's':
+					commands_file = myoptarg;
+					break;
 
-			case 'i':
-				instance = strtoul(myoptarg, nullptr, 10);
-				break;
+				case 'i':
+					instance = strtoul(myoptarg, nullptr, 10);
+					break;
 
-			case 'w':
-				working_directory = myoptarg;
-				break;
+				case 'w':
+					working_directory = myoptarg;
+					break;
 
-			default:
-				PX4_ERR("unrecognized flag");
-				print_usage();
-				return -1;
+				default:
+					PX4_ERR("unrecognized flag");
+					print_usage();
+					return -1;
 			}
 		}
 
@@ -255,7 +252,7 @@ int main(int argc, char **argv)
 
 			if (optional_arg.compare(0, 2, "__") != 0 || optional_arg.find(":=") == std::string::npos) {
 				data_path = optional_arg;
-			} // else: ROS argument (in the form __<name>:=<value>)
+			}  // else: ROS argument (in the form __<name>:=<value>)
 		}
 
 		if (is_server_running(instance, true)) {
@@ -319,14 +316,12 @@ int main(int argc, char **argv)
 
 		std::string cmd("shutdown");
 		px4_daemon::Pxh::process_line(cmd, true);
-
 	}
 
 	return PX4_OK;
 }
 
-int create_symlinks_if_needed(std::string &data_path)
-{
+int create_symlinks_if_needed(std::string &data_path) {
 	std::string current_path = pwd();
 
 	if (data_path.empty()) {
@@ -359,7 +354,6 @@ int create_symlinks_if_needed(std::string &data_path)
 		} else if (S_ISDIR(info.st_mode)) {
 			return PX4_OK;
 		}
-
 	}
 
 	PX4_INFO_RAW("Creating symlink %s -> %s\n", src_path.c_str(), dest_path.c_str());
@@ -378,14 +372,14 @@ int create_symlinks_if_needed(std::string &data_path)
 	return PX4_OK;
 }
 
-int create_dirs()
-{
+int create_dirs() {
 	std::string current_path = pwd();
 
 	std::vector<std::string> dirs{"log", "eeprom"};
 
 	for (const auto &dir : dirs) {
-		PX4_DEBUG("mkdir: %s", dir.c_str());;
+		PX4_DEBUG("mkdir: %s", dir.c_str());
+		;
 		std::string dir_path = current_path + "/" + dir;
 
 		if (dir_exists(dir_path)) {
@@ -407,12 +401,11 @@ int create_dirs()
 	return PX4_OK;
 }
 
-void register_sig_handler()
-{
+void register_sig_handler() {
 	// SIGINT
 	struct sigaction sig_int {};
 	sig_int.sa_handler = sig_int_handler;
-	sig_int.sa_flags = 0;// not SA_RESTART!
+	sig_int.sa_flags = 0;  // not SA_RESTART!
 
 	// SIGPIPE
 	// We want to ignore if a PIPE has been closed.
@@ -422,7 +415,7 @@ void register_sig_handler()
 #ifdef __PX4_CYGWIN
 	// Do not catch SIGINT on Cygwin such that the process gets killed
 	// TODO: All threads should exit gracefully see https://github.com/PX4/Firmware/issues/11027
-	(void)sig_int; // this variable is unused
+	(void)sig_int;  // this variable is unused
 #else
 	sigaction(SIGINT, &sig_int, nullptr);
 #endif
@@ -431,8 +424,7 @@ void register_sig_handler()
 	sigaction(SIGPIPE, &sig_pipe, nullptr);
 }
 
-void sig_int_handler(int sig_num)
-{
+void sig_int_handler(int sig_num) {
 	fflush(stdout);
 	printf("\nPX4 Exiting...\n");
 	fflush(stdout);
@@ -440,8 +432,7 @@ void sig_int_handler(int sig_num)
 	_exit_requested = true;
 }
 
-void set_cpu_scaling()
-{
+void set_cpu_scaling() {
 #if 0
 	system("echo performance > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor");
 	system("echo performance > /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor");
@@ -452,8 +443,7 @@ void set_cpu_scaling()
 #endif
 }
 
-std::string get_absolute_binary_path(const std::string &argv0)
-{
+std::string get_absolute_binary_path(const std::string &argv0) {
 	// On Linux we could also use readlink("/proc/self/exe", buf, bufsize) to get the absolute path
 
 	std::size_t last_slash = argv0.find_last_of('/');
@@ -474,9 +464,7 @@ std::string get_absolute_binary_path(const std::string &argv0)
 	return pwd() + "/" + base;
 }
 
-int run_startup_script(const std::string &commands_file, const std::string &absolute_binary_path,
-		       int instance)
-{
+int run_startup_script(const std::string &commands_file, const std::string &absolute_binary_path, int instance) {
 	std::string shell_command("/bin/sh ");
 
 	shell_command += commands_file + ' ' + std::to_string(instance);
@@ -516,7 +504,6 @@ int run_startup_script(const std::string &commands_file, const std::string &abso
 		}
 	}
 
-
 	PX4_INFO("Calling startup script: %s", shell_command.c_str());
 
 	int ret = 0;
@@ -538,19 +525,18 @@ int run_startup_script(const std::string &commands_file, const std::string &abso
 	return ret;
 }
 
-void wait_to_exit()
-{
+void wait_to_exit() {
 	while (!_exit_requested) {
 		// needs to be a regular sleep not dependant on lockstep (not px4_usleep)
 		usleep(100000);
 	}
 }
 
-void print_usage()
-{
+void print_usage() {
 	printf("Usage for Server/daemon process: \n");
 	printf("\n");
-	printf("    px4 [-h|-d] [-s <startup_file>] [-t <test_data_directory>] [<rootfs_directory>] [-i <instance>] [-w <working_directory>]\n");
+	printf("    px4 [-h|-d] [-s <startup_file>] [-t <test_data_directory>] [<rootfs_directory>] [-i <instance>] "
+	       "[-w <working_directory>]\n");
 	printf("\n");
 	printf("    -s <startup_file>      shell script to be used as startup (default=etc/init.d/rcS)\n");
 	printf("    <rootfs_directory>     directory where startup files and mixers are located,\n");
@@ -566,13 +552,13 @@ void print_usage()
 	printf("        e.g.: px4-commander status\n");
 }
 
-bool is_server_running(int instance, bool server)
-{
+bool is_server_running(int instance, bool server) {
 	const std::string file_lock_path = std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
 	int fd = open(file_lock_path.c_str(), O_RDWR | O_CREAT, 0666);
 
 	if (fd < 0) {
-		PX4_ERR("is_server_running: failed to create lock file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
+		PX4_ERR("is_server_running: failed to create lock file: %s, reason=%s", file_lock_path.c_str(),
+			strerror(errno));
 		return false;
 	}
 
@@ -585,7 +571,8 @@ bool is_server_running(int instance, bool server)
 			result = true;
 
 		} else {
-			PX4_ERR("is_server_running: failed to get lock on file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
+			PX4_ERR("is_server_running: failed to get lock on file: %s, reason=%s", file_lock_path.c_str(),
+				strerror(errno));
 			result = false;
 		}
 	}
@@ -594,33 +581,27 @@ bool is_server_running(int instance, bool server)
 		close(fd);
 	}
 
-	// note: server leaks the file handle once, on purpose, in order to keep the lock on the file until the process terminates.
-	// In this case we return false so the server code path continues now that we have the lock.
+	// note: server leaks the file handle once, on purpose, in order to keep the lock on the file until the process
+	// terminates. In this case we return false so the server code path continues now that we have the lock.
 
 	errno = 0;
 	return result;
 }
 
-bool file_exists(const std::string &name)
-{
+bool file_exists(const std::string &name) {
 	struct stat buffer;
 	return (stat(name.c_str(), &buffer) == 0);
 }
 
-static std::string file_basename(std::string const &pathname)
-{
+static std::string file_basename(std::string const &pathname) {
 	struct MatchPathSeparator {
-		bool operator()(char ch) const
-		{
-			return ch == '/';
-		}
+		bool operator()(char ch) const { return ch == '/'; }
 	};
-	return std::string(std::find_if(pathname.rbegin(), pathname.rend(),
-					MatchPathSeparator()).base(), pathname.end());
+	return std::string(std::find_if(pathname.rbegin(), pathname.rend(), MatchPathSeparator()).base(),
+			   pathname.end());
 }
 
-bool dir_exists(const std::string &path)
-{
+bool dir_exists(const std::string &path) {
 	struct stat info;
 
 	if (stat(path.c_str(), &info) != 0) {
@@ -628,20 +609,17 @@ bool dir_exists(const std::string &path)
 
 	} else if (info.st_mode & S_IFDIR) {
 		return true;
-
 	}
 
 	return false;
 }
 
-std::string pwd()
-{
+std::string pwd() {
 	char temp[PATH_MAX];
 	return (getcwd(temp, PATH_MAX) ? std::string(temp) : std::string(""));
 }
 
-int change_directory(const std::string &directory)
-{
+int change_directory(const std::string &directory) {
 	// create directory
 	if (!dir_exists(directory)) {
 		int ret = mkdir(directory.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);

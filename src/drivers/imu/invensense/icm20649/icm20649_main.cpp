@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include "ICM20649.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void ICM20649::print_usage()
-{
+#include "ICM20649.hpp"
+
+void ICM20649::print_usage() {
 	PRINT_MODULE_USAGE_NAME("icm20649", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -46,8 +45,7 @@ void ICM20649::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int icm20649_main(int argc, char *argv[])
-{
+extern "C" int icm20649_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = ICM20649;
 	BusCLIArguments cli{false, true};
@@ -55,9 +53,9 @@ extern "C" int icm20649_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

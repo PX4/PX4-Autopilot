@@ -37,14 +37,12 @@
  * omnibusf4sd LED backend.
  */
 
+#include <nuttx/board.h>
 #include <px4_platform_common/px4_config.h>
-
 #include <stdbool.h>
 
-#include "stm32.h"
 #include "board_config.h"
-
-#include <nuttx/board.h>
+#include "stm32.h"
 
 /*
  * Ideally we'd be able to get these from arm_internal.h,
@@ -64,55 +62,43 @@ static uint32_t g_ledmap[] = {
 	GPIO_LED_BLUE,
 };
 
-__EXPORT void led_init(void)
-{
+__EXPORT void led_init(void) {
 	/* Configure LED GPIOs for output */
 	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
 		stm32_configgpio(g_ledmap[l]);
 	}
 }
 
-static void phy_set_led(int led, bool state)
-{
+static void phy_set_led(int led, bool state) {
 	/* Pull Down to switch on */
 	if (led == 0) {
 		stm32_gpiowrite(g_ledmap[led], !state);
 	}
 }
 
-__EXPORT void led_on(int led)
-{
-	phy_set_led(led, true);
-}
+__EXPORT void led_on(int led) { phy_set_led(led, true); }
 
-__EXPORT void led_off(int led)
-{
-	phy_set_led(led, false);
-}
+__EXPORT void led_off(int led) { phy_set_led(led, false); }
 
-__EXPORT void led_toggle(int led)
-{
+__EXPORT void led_toggle(int led) {
 	if (led == 0) {
 		phy_set_led(led, !stm32_gpioread(g_ledmap[led]));
 	}
 }
 
-__EXPORT void board_autoled_initialize(void)
-{
+__EXPORT void board_autoled_initialize(void) {
 	/* Configure LED1 GPIO for output */
 	stm32_configgpio(GPIO_LED1);
 }
 
-__EXPORT void board_autoled_on(int led)
-{
+__EXPORT void board_autoled_on(int led) {
 	if (led == 1) {
 		/* Pull down to switch on */
 		stm32_gpiowrite(GPIO_LED1, false);
 	}
 }
 
-__EXPORT void board_autoled_off(int led)
-{
+__EXPORT void board_autoled_off(int led) {
 	if (led == 1) {
 		/* Pull up to switch off */
 		stm32_gpiowrite(GPIO_LED1, true);

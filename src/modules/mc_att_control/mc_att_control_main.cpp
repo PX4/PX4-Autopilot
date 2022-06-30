@@ -43,33 +43,28 @@
  *
  */
 
-#include "mc_att_control.hpp"
-
 #include <drivers/drv_hrt.h>
-#include <mathlib/math/Limits.hpp>
+
 #include <mathlib/math/Functions.hpp>
+#include <mathlib/math/Limits.hpp>
+
+#include "mc_att_control.hpp"
 
 using namespace matrix;
 
-MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
-	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
-	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
-	_vtol(vtol)
-{
-
+MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol)
+	: ModuleParams(nullptr),
+	  WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	  _vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint)
+					      : ORB_ID(vehicle_attitude_setpoint)),
+	  _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")),
+	  _vtol(vtol) {
 	parameters_updated();
 }
 
-MulticopterAttitudeControl::~MulticopterAttitudeControl()
-{
-	perf_free(_loop_perf);
-}
+MulticopterAttitudeControl::~MulticopterAttitudeControl() { perf_free(_loop_perf); }
 
-bool
-MulticopterAttitudeControl::init()
-{
+bool MulticopterAttitudeControl::init() {
 	if (!_vehicle_attitude_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -78,41 +73,36 @@ MulticopterAttitudeControl::init()
 	return true;
 }
 
-void
-MulticopterAttitudeControl::parameters_updated()
-{
+void MulticopterAttitudeControl::parameters_updated() {
 	// Store some of the parameters in a more convenient way & precompute often-used values
-	_attitude_control.setProportionalGain(Vector3f(_param_mc_roll_p.get(), _param_mc_pitch_p.get(), _param_mc_yaw_p.get()),
-					      _param_mc_yaw_weight.get());
+	_attitude_control.setProportionalGain(
+		Vector3f(_param_mc_roll_p.get(), _param_mc_pitch_p.get(), _param_mc_yaw_p.get()),
+		_param_mc_yaw_weight.get());
 
 	// angular rate limits
 	using math::radians;
-	_attitude_control.setRateLimit(Vector3f(radians(_param_mc_rollrate_max.get()), radians(_param_mc_pitchrate_max.get()),
+	_attitude_control.setRateLimit(Vector3f(radians(_param_mc_rollrate_max.get()),
+						radians(_param_mc_pitchrate_max.get()),
 						radians(_param_mc_yawrate_max.get())));
 
 	_man_tilt_max = math::radians(_param_mpc_man_tilt_max.get());
 }
 
-float
-MulticopterAttitudeControl::throttle_curve(float throttle_stick_input)
-{
+float MulticopterAttitudeControl::throttle_curve(float throttle_stick_input) {
 	const float throttle_min = _landed ? 0.0f : _param_mpc_manthr_min.get();
 
 	// throttle_stick_input is in range [0, 1]
 	switch (_param_mpc_thr_curve.get()) {
-	case 1: // no rescaling to hover throttle
-		return throttle_min + throttle_stick_input * (_param_mpc_thr_max.get() - throttle_min);
+		case 1:  // no rescaling to hover throttle
+			return throttle_min + throttle_stick_input * (_param_mpc_thr_max.get() - throttle_min);
 
-	default: // 0 or other: rescale to hover throttle at 0.5 stick
-		return math::gradual3(throttle_stick_input,
-				      0.f, .5f, 1.f,
-				      throttle_min, _param_mpc_thr_hover.get(), _param_mpc_thr_max.get());
+		default:  // 0 or other: rescale to hover throttle at 0.5 stick
+			return math::gradual3(throttle_stick_input, 0.f, .5f, 1.f, throttle_min,
+					      _param_mpc_thr_hover.get(), _param_mpc_thr_max.get());
 	}
 }
 
-void
-MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt, bool reset_yaw_sp)
-{
+void MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt, bool reset_yaw_sp) {
 	vehicle_attitude_setpoint_s attitude_setpoint{};
 	const float yaw = Eulerf(q).psi();
 
@@ -120,9 +110,8 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	if (reset_yaw_sp) {
 		_man_yaw_sp = yaw;
 
-	} else if (math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f) > 0.05f
-		   || _param_mc_airmode.get() == (int32_t)Mixer::Airmode::roll_pitch_yaw) {
-
+	} else if (math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f) > 0.05f ||
+		   _param_mc_airmode.get() == (int32_t)Mixer::Airmode::roll_pitch_yaw) {
 		const float yaw_rate = math::radians(_param_mpc_man_y_max.get());
 		attitude_setpoint.yaw_sp_move_rate = _manual_control_setpoint.r * yaw_rate;
 		_man_yaw_sp = wrap_pi(_man_yaw_sp + attitude_setpoint.yaw_sp_move_rate * dt);
@@ -147,9 +136,9 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 
 	// we want to fly towards the direction of (x, y), so we use a perpendicular axis angle vector in the XY-plane
 	Vector2f v = Vector2f(y, -x);
-	float v_norm = v.norm(); // the norm of v defines the tilt angle
+	float v_norm = v.norm();  // the norm of v defines the tilt angle
 
-	if (v_norm > _man_tilt_max) { // limit to the configured maximum tilt angle
+	if (v_norm > _man_tilt_max) {  // limit to the configured maximum tilt angle
 		v *= _man_tilt_max / v_norm;
 	}
 
@@ -215,9 +204,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	_last_attitude_setpoint = attitude_setpoint.timestamp;
 }
 
-void
-MulticopterAttitudeControl::Run()
-{
+void MulticopterAttitudeControl::Run() {
 	if (should_exit()) {
 		_vehicle_attitude_sub.unregisterCallback();
 		exit_and_cleanup();
@@ -240,7 +227,6 @@ MulticopterAttitudeControl::Run()
 	vehicle_attitude_s v_att;
 
 	if (_vehicle_attitude_sub.update(&v_att)) {
-
 		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
 		const float dt = math::constrain(((v_att.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
 		_last_run = v_att.timestamp_sample;
@@ -251,10 +237,10 @@ MulticopterAttitudeControl::Run()
 		if (_vehicle_attitude_setpoint_sub.updated()) {
 			vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
 
-			if (_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint)
-			    && (vehicle_attitude_setpoint.timestamp > _last_attitude_setpoint)) {
-
-				_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
+			if (_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint) &&
+			    (vehicle_attitude_setpoint.timestamp > _last_attitude_setpoint)) {
+				_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d),
+								      vehicle_attitude_setpoint.yaw_sp_move_rate);
 				_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
 				_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
 			}
@@ -268,7 +254,8 @@ MulticopterAttitudeControl::Run()
 			_man_yaw_sp = wrap_pi(_man_yaw_sp + Eulerf(delta_q_reset).psi());
 
 			if (v_att.timestamp > _last_attitude_setpoint) {
-				// adapt existing attitude setpoint unless it was generated after the current attitude estimate
+				// adapt existing attitude setpoint unless it was generated after the current attitude
+				// estimate
 				_attitude_control.adaptAttitudeSetpoint(delta_q_reset);
 			}
 
@@ -291,11 +278,11 @@ MulticopterAttitudeControl::Run()
 			vehicle_status_s vehicle_status;
 
 			if (_vehicle_status_sub.copy(&vehicle_status)) {
-				_vehicle_type_rotary_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+				_vehicle_type_rotary_wing =
+					(vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 				_vtol = vehicle_status.is_vtol;
 				_vtol_in_transition_mode = vehicle_status.in_transition_mode;
 				_vtol_tailsitter = vehicle_status.is_vtol_tailsitter;
-
 			}
 		}
 
@@ -306,16 +293,15 @@ MulticopterAttitudeControl::Run()
 		// vehicle is a tailsitter in transition mode
 		const bool is_tailsitter_transition = (_vtol_tailsitter && _vtol_in_transition_mode);
 
-		bool run_att_ctrl = _vehicle_control_mode.flag_control_attitude_enabled && (is_hovering || is_tailsitter_transition);
+		bool run_att_ctrl = _vehicle_control_mode.flag_control_attitude_enabled &&
+				    (is_hovering || is_tailsitter_transition);
 
 		if (run_att_ctrl) {
-
 			// Generate the attitude setpoint from stick inputs if we are in Manual/Stabilized mode
 			if (_vehicle_control_mode.flag_control_manual_enabled &&
 			    !_vehicle_control_mode.flag_control_altitude_enabled &&
 			    !_vehicle_control_mode.flag_control_velocity_enabled &&
 			    !_vehicle_control_mode.flag_control_position_enabled) {
-
 				generate_attitude_setpoint(q, dt, _reset_yaw_sp);
 				attitude_setpoint_generated = true;
 
@@ -330,11 +316,11 @@ MulticopterAttitudeControl::Run()
 			autotune_attitude_control_status_s pid_autotune;
 
 			if (_autotune_attitude_control_status_sub.copy(&pid_autotune)) {
-				if ((pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL
-				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH
-				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW
-				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST)
-				    && ((now - pid_autotune.timestamp) < 1_s)) {
+				if ((pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL ||
+				     pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH ||
+				     pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW ||
+				     pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST) &&
+				    ((now - pid_autotune.timestamp) < 1_s)) {
 					rates_sp += Vector3f(pid_autotune.rate_sp);
 				}
 			}
@@ -358,8 +344,7 @@ MulticopterAttitudeControl::Run()
 	perf_end(_loop_perf);
 }
 
-int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])
-{
+int MulticopterAttitudeControl::task_spawn(int argc, char *argv[]) {
 	bool vtol = false;
 
 	if (argc > 1) {
@@ -389,13 +374,9 @@ int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int MulticopterAttitudeControl::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int MulticopterAttitudeControl::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int MulticopterAttitudeControl::print_usage(const char *reason)
-{
+int MulticopterAttitudeControl::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -425,11 +406,9 @@ https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth
 	return 0;
 }
 
-
 /**
  * Multicopter attitude control app start / stop handling function
  */
-extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]) {
 	return MulticopterAttitudeControl::main(argc, argv);
 }

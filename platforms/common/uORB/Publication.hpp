@@ -40,25 +40,24 @@
 
 #include <px4_platform_common/defines.h>
 #include <systemlib/err.h>
-
 #include <uORB/uORB.h>
-#include "uORBManager.hpp"
+
 #include <uORB/topics/uORBTopics.hpp>
 
-namespace uORB
-{
+#include "uORBManager.hpp"
 
-template <typename U> class DefaultQueueSize
-{
+namespace uORB {
+
+template <typename U>
+class DefaultQueueSize {
 private:
 	template <typename T>
-	static constexpr uint8_t get_queue_size(decltype(T::ORB_QUEUE_LENGTH) *)
-	{
+	static constexpr uint8_t get_queue_size(decltype(T::ORB_QUEUE_LENGTH) *) {
 		return T::ORB_QUEUE_LENGTH;
 	}
 
-	template <typename T> static constexpr uint8_t get_queue_size(...)
-	{
+	template <typename T>
+	static constexpr uint8_t get_queue_size(...) {
 		return 1;
 	}
 
@@ -66,10 +65,8 @@ public:
 	static constexpr unsigned value = get_queue_size<U>(nullptr);
 };
 
-class PublicationBase
-{
+class PublicationBase {
 public:
-
 	bool advertised() const { return _handle != nullptr; }
 
 	bool unadvertise() { return (Manager::orb_unadvertise(_handle) == PX4_OK); }
@@ -77,11 +74,9 @@ public:
 	orb_id_t get_topic() const { return get_orb_meta(_orb_id); }
 
 protected:
-
 	PublicationBase(ORB_ID id) : _orb_id(id) {}
 
-	~PublicationBase()
-	{
+	~PublicationBase() {
 		if (_handle != nullptr) {
 			// don't automatically unadvertise queued publications (eg vehicle_command)
 			if (Manager::orb_get_queue_size(_handle) == 1) {
@@ -97,11 +92,9 @@ protected:
 /**
  * uORB publication wrapper class
  */
-template<typename T, uint8_t ORB_QSIZE = DefaultQueueSize<T>::value>
-class Publication : public PublicationBase
-{
+template <typename T, uint8_t ORB_QSIZE = DefaultQueueSize<T>::value>
+class Publication : public PublicationBase {
 public:
-
 	/**
 	 * Constructor
 	 *
@@ -110,8 +103,7 @@ public:
 	Publication(ORB_ID id) : PublicationBase(id) {}
 	Publication(const orb_metadata *meta) : PublicationBase(static_cast<ORB_ID>(meta->o_id)) {}
 
-	bool advertise()
-	{
+	bool advertise() {
 		if (!advertised()) {
 			_handle = orb_advertise_queue(get_topic(), nullptr, ORB_QSIZE);
 		}
@@ -123,8 +115,7 @@ public:
 	 * Publish the struct
 	 * @param data The uORB message struct we are updating.
 	 */
-	bool publish(const T &data)
-	{
+	bool publish(const T &data) {
 		if (!advertised()) {
 			advertise();
 		}
@@ -136,9 +127,8 @@ public:
 /**
  * The publication class with data embedded.
  */
-template<typename T>
-class PublicationData : public Publication<T>
-{
+template <typename T>
+class PublicationData : public Publication<T> {
 public:
 	/**
 	 * Constructor
@@ -148,13 +138,12 @@ public:
 	PublicationData(ORB_ID id) : Publication<T>(id) {}
 	PublicationData(const orb_metadata *meta) : Publication<T>(meta) {}
 
-	T	&get() { return _data; }
-	void	set(const T &data) { _data = data; }
+	T &get() { return _data; }
+	void set(const T &data) { _data = data; }
 
 	// Publishes the embedded struct.
-	bool	update() { return Publication<T>::publish(_data); }
-	bool	update(const T &data)
-	{
+	bool update() { return Publication<T>::publish(_data); }
+	bool update(const T &data) {
 		_data = data;
 		return Publication<T>::publish(_data);
 	}
@@ -163,4 +152,4 @@ private:
 	T _data{};
 };
 
-} // namespace uORB
+}  // namespace uORB

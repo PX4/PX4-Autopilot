@@ -32,59 +32,47 @@
  ****************************************************************************/
 
 #include "log_writer_file.h"
-#include "messages.h"
 
-#include <fcntl.h>
-#include <string.h>
 #include <errno.h>
-
+#include <fcntl.h>
 #include <mathlib/mathlib.h>
-#include <px4_platform_common/posix.h>
 #include <px4_platform_common/crypto.h>
+#include <px4_platform_common/posix.h>
+#include <string.h>
+
+#include "messages.h"
 #ifdef __PX4_NUTTX
 #include <systemlib/hardfault_log.h>
 #endif /* __PX4_NUTTX */
 
 using namespace time_literals;
 
-
-namespace px4
-{
-namespace logger
-{
+namespace px4 {
+namespace logger {
 constexpr size_t LogWriterFile::_min_write_chunk;
 
 LogWriterFile::LogWriterFile(size_t buffer_size)
-	: _buffers{
-	//We always write larger chunks (orb messages) to the buffer, so the buffer
-	//needs to be larger than the minimum write chunk (300 is somewhat arbitrary)
-	{
-		math::max(buffer_size, _min_write_chunk + 300),
-		perf_alloc(PC_ELAPSED, "logger_sd_write"), perf_alloc(PC_ELAPSED, "logger_sd_fsync")},
+	: _buffers{// We always write larger chunks (orb messages) to the buffer, so the buffer
+		   // needs to be larger than the minimum write chunk (300 is somewhat arbitrary)
+		   {math::max(buffer_size, _min_write_chunk + 300), perf_alloc(PC_ELAPSED, "logger_sd_write"),
+		    perf_alloc(PC_ELAPSED, "logger_sd_fsync")},
 
-	{
-		300, // buffer size for the mission log (can be kept fairly small)
-		perf_alloc(PC_ELAPSED, "logger_sd_write_mission"), perf_alloc(PC_ELAPSED, "logger_sd_fsync_mission")}
-}
-{
+		   {300,  // buffer size for the mission log (can be kept fairly small)
+		    perf_alloc(PC_ELAPSED, "logger_sd_write_mission"),
+		    perf_alloc(PC_ELAPSED, "logger_sd_fsync_mission")}} {
 	pthread_mutex_init(&_mtx, nullptr);
 	pthread_cond_init(&_cv, nullptr);
 }
 
-bool LogWriterFile::init()
-{
-	return true;
-}
+bool LogWriterFile::init() { return true; }
 
-LogWriterFile::~LogWriterFile()
-{
+LogWriterFile::~LogWriterFile() {
 	pthread_mutex_destroy(&_mtx);
 	pthread_cond_destroy(&_cv);
 }
 
 #if defined(PX4_CRYPTO)
-bool LogWriterFile::init_logfile_encryption(const char *filename)
-{
+bool LogWriterFile::init_logfile_encryption(const char *filename) {
 	if (_algorithm == CRYPTO_NONE) {
 		_min_blocksize = 1;
 		return true;
@@ -117,12 +105,8 @@ bool LogWriterFile::init_logfile_encryption(const char *filename)
 	size_t key_size;
 	size_t nonce_size;
 
-	if (!rsa_crypto.get_encrypted_key(_key_idx,
-					  NULL,
-					  &key_size,
-					  _exchange_key_idx) ||
-	    !_crypto.get_nonce(NULL, &nonce_size) ||
-	    key_size == 0) {
+	if (!rsa_crypto.get_encrypted_key(_key_idx, NULL, &key_size, _exchange_key_idx) ||
+	    !_crypto.get_nonce(NULL, &nonce_size) || key_size == 0) {
 		rsa_crypto.close();
 		return false;
 	}
@@ -130,14 +114,8 @@ bool LogWriterFile::init_logfile_encryption(const char *filename)
 	/* Allocate space and get key + nonce */
 	uint8_t *key = (uint8_t *)malloc(key_size + nonce_size);
 
-	if (!key ||
-	    !rsa_crypto.get_encrypted_key(
-		    _key_idx,
-		    key,
-		    &key_size,
-		    _exchange_key_idx) ||
-	    !_crypto.get_nonce(
-		    key + key_size, &nonce_size)) {
+	if (!key || !rsa_crypto.get_encrypted_key(_key_idx, key, &key_size, _exchange_key_idx) ||
+	    !_crypto.get_nonce(key + key_size, &nonce_size)) {
 		PX4_ERR("Can't get & encrypt the key");
 		free(key);
 		rsa_crypto.close();
@@ -177,15 +155,13 @@ bool LogWriterFile::init_logfile_encryption(const char *filename)
 	}
 
 	// write the header to the key exchange file
-	struct ulog_key_header_s keyfile_header = {
-		.magic = {'U', 'L', 'o', 'g', 'K', 'e', 'y'},
-		.hdr_ver = 1,
-		.timestamp = hrt_absolute_time(),
-		.exchange_algorithm = CRYPTO_RSA_OAEP,
-		.exchange_key = _exchange_key_idx,
-		.key_size = (uint16_t)key_size,
-		.initdata_size = (uint16_t)nonce_size
-	};
+	struct ulog_key_header_s keyfile_header = {.magic = {'U', 'L', 'o', 'g', 'K', 'e', 'y'},
+						   .hdr_ver = 1,
+						   .timestamp = hrt_absolute_time(),
+						   .exchange_algorithm = CRYPTO_RSA_OAEP,
+						   .exchange_key = _exchange_key_idx,
+						   .key_size = (uint16_t)key_size,
+						   .initdata_size = (uint16_t)nonce_size};
 
 	size_t hdr_sz = ::write(key_fd, (uint8_t *)&keyfile_header, sizeof(keyfile_header));
 	size_t written = 0;
@@ -207,11 +183,9 @@ bool LogWriterFile::init_logfile_encryption(const char *filename)
 
 	return true;
 }
-#endif // PX4_CRYPTO
+#endif  // PX4_CRYPTO
 
-
-void LogWriterFile::start_log(LogType type, const char *filename)
-{
+void LogWriterFile::start_log(LogType type, const char *filename) {
 	// At this point we don't expect the file to be open, but it can happen for very fast consecutive stop & start
 	// calls. In that case we wait for the thread to close the file first.
 	lock();
@@ -253,8 +227,7 @@ void LogWriterFile::start_log(LogType type, const char *filename)
 	}
 }
 
-int LogWriterFile::hardfault_store_filename(const char *log_file)
-{
+int LogWriterFile::hardfault_store_filename(const char *log_file) {
 #if defined(__PX4_NUTTX) && defined(px4_savepanic)
 	int fd = open(HARDFAULT_ULOG_PATH, O_TRUNC | O_WRONLY | O_CREAT);
 
@@ -285,16 +258,14 @@ int LogWriterFile::hardfault_store_filename(const char *log_file)
 	return 0;
 }
 
-void LogWriterFile::stop_log(LogType type)
-{
+void LogWriterFile::stop_log(LogType type) {
 	lock();
 	_buffers[(int)type]._should_run = false;
 	unlock();
 	notify();
 }
 
-int LogWriterFile::thread_start()
-{
+int LogWriterFile::thread_start() {
 	pthread_attr_t thr_attr;
 	pthread_attr_init(&thr_attr);
 
@@ -311,8 +282,7 @@ int LogWriterFile::thread_start()
 	return ret;
 }
 
-void LogWriterFile::thread_stop()
-{
+void LogWriterFile::thread_stop() {
 	// this will terminate the main loop of the writer thread
 	lock();
 	_exit_thread.store(true);
@@ -329,16 +299,14 @@ void LogWriterFile::thread_stop()
 	}
 }
 
-void *LogWriterFile::run_helper(void *context)
-{
+void *LogWriterFile::run_helper(void *context) {
 	px4_prctl(PR_SET_NAME, "log_writer_file", px4_getpid());
 
 	static_cast<LogWriterFile *>(context)->run();
 	return nullptr;
 }
 
-void LogWriterFile::run()
-{
+void LogWriterFile::run() {
 	while (!_exit_thread.load()) {
 		// Outer endless loop
 		// Wait for _should_run flag
@@ -364,7 +332,6 @@ void LogWriterFile::run()
 		pthread_mutex_lock(&_mtx);
 
 		while (true) {
-
 			const hrt_abstime now = hrt_absolute_time();
 
 			/* call fsync periodically to minimize potential loss of data */
@@ -377,7 +344,7 @@ void LogWriterFile::run()
 
 			constexpr size_t min_available[(int)LogType::Count] = {
 				_min_write_chunk,
-				1 // For the mission log, write as soon as there is data available
+				1  // For the mission log, write as soon as there is data available
 			};
 
 			/* Check all buffers for available data. Mission log is first to avoid drops */
@@ -395,7 +362,8 @@ void LogWriterFile::run()
 #endif
 
 				/* if sufficient data available or partial read or terminating, write data */
-				if (available >= min_available[i] || is_part || (!buffer._should_run && available > 0)) {
+				if (available >= min_available[i] || is_part ||
+				    (!buffer._should_run && available > 0)) {
 					pthread_mutex_unlock(&_mtx);
 
 #if defined(PX4_CRYPTO)
@@ -410,12 +378,8 @@ void LogWriterFile::run()
 					size_t out = available;
 
 					if (_algorithm != CRYPTO_NONE) {
-						_crypto.encrypt_data(
-							_key_idx,
-							(uint8_t *)read_ptr,
-							available,
-							(uint8_t *)read_ptr,
-							&out);
+						_crypto.encrypt_data(_key_idx, (uint8_t *)read_ptr, available,
+								     (uint8_t *)read_ptr, &out);
 
 						if (out != available) {
 							PX4_ERR("Encryption output size mismatch, logfile corrupted");
@@ -429,7 +393,7 @@ void LogWriterFile::run()
 					if (written < 0) {
 						// retry once
 						PX4_ERR("write failed errno:%i (%s), retrying", errno, strerror(errno));
-						px4_usleep(10000); // 10 milliseconds
+						px4_usleep(10000);  // 10 milliseconds
 						written = buffer.write_to_file(read_ptr, available, call_fsync);
 					}
 
@@ -440,7 +404,8 @@ void LogWriterFile::run()
 						/* subtract bytes written from number in buffer (count -= written) */
 						buffer.mark_read(written);
 
-						if (!buffer._should_run && written == static_cast<int>(available) && !is_part) {
+						if (!buffer._should_run && written == static_cast<int>(available) &&
+						    !is_part) {
 							/* Stop only when all data written */
 							buffer.close_file();
 						}
@@ -466,7 +431,6 @@ void LogWriterFile::run()
 				}
 			}
 
-
 			if (_buffers[0].fd() < 0 && _buffers[1].fd() < 0) {
 				// stop when both files are closed
 #if defined(PX4_CRYPTO)
@@ -479,11 +443,11 @@ void LogWriterFile::run()
 			}
 
 			/* Wait for a call to notify(), which indicates new data is available.
-			 * Note that at this point there could already be new data available (because of a longer write),
-			 * and calling pthread_cond_wait() will still wait for the next notify(). But this is generally
-			 * not an issue because notify() is called regularly.
-			 * If the logger was switched off in the meantime, do not wait for data, instead run this loop
-			 * once more to write remaining data and close the file. */
+			 * Note that at this point there could already be new data available (because of a longer
+			 * write), and calling pthread_cond_wait() will still wait for the next notify(). But this is
+			 * generally not an issue because notify() is called regularly. If the logger was switched off
+			 * in the meantime, do not wait for data, instead run this loop once more to write remaining
+			 * data and close the file. */
 			if (_buffers[0]._should_run || _buffers[1]._should_run) {
 				pthread_cond_wait(&_cv, &_mtx);
 			}
@@ -494,8 +458,7 @@ void LogWriterFile::run()
 	}
 }
 
-int LogWriterFile::write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start)
-{
+int LogWriterFile::write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start) {
 	if (_need_reliable_transfer) {
 		int ret;
 
@@ -532,8 +495,7 @@ int LogWriterFile::write_message(LogType type, void *ptr, size_t size, uint64_t 
 	return write(type, ptr, size, dropout_start);
 }
 
-int LogWriterFile::write(LogType type, void *ptr, size_t size, uint64_t dropout_start)
-{
+int LogWriterFile::write(LogType type, void *ptr, size_t size, uint64_t dropout_start) {
 	if (!is_started(type)) {
 		return 0;
 	}
@@ -552,7 +514,7 @@ int LogWriterFile::write(LogType type, void *ptr, size_t size, uint64_t dropout_
 	}
 
 	if (dropout_start) {
-		//write dropout msg
+		// write dropout msg
 		ulog_message_dropout_s dropout_msg;
 		dropout_msg.duration = (uint16_t)(hrt_elapsed_time(&dropout_start) / 1000);
 		_buffers[(int)type].write_no_check(&dropout_msg, sizeof(dropout_msg));
@@ -562,27 +524,26 @@ int LogWriterFile::write(LogType type, void *ptr, size_t size, uint64_t dropout_
 	return 0;
 }
 
-const char *log_type_str(LogType type)
-{
+const char *log_type_str(LogType type) {
 	switch (type) {
-	case LogType::Full: return "full";
+		case LogType::Full:
+			return "full";
 
-	case LogType::Mission: return "mission";
+		case LogType::Mission:
+			return "mission";
 
-	case LogType::Count: break;
+		case LogType::Count:
+			break;
 	}
 
 	return "unknown";
 }
 
 LogWriterFile::LogFileBuffer::LogFileBuffer(size_t log_buffer_size, perf_counter_t perf_write,
-		perf_counter_t perf_fsync)
-	: _buffer_size(log_buffer_size), _perf_write(perf_write), _perf_fsync(perf_fsync)
-{
-}
+					    perf_counter_t perf_fsync)
+	: _buffer_size(log_buffer_size), _perf_write(perf_write), _perf_fsync(perf_fsync) {}
 
-LogWriterFile::LogFileBuffer::~LogFileBuffer()
-{
+LogWriterFile::LogFileBuffer::~LogFileBuffer() {
 	if (_fd >= 0) {
 		close(_fd);
 	}
@@ -593,9 +554,8 @@ LogWriterFile::LogFileBuffer::~LogFileBuffer()
 	perf_free(_perf_fsync);
 }
 
-void LogWriterFile::LogFileBuffer::write_no_check(void *ptr, size_t size)
-{
-	size_t n = _buffer_size - _head;	// bytes to end of the buffer
+void LogWriterFile::LogFileBuffer::write_no_check(void *ptr, size_t size) {
+	size_t n = _buffer_size - _head;  // bytes to end of the buffer
 
 	uint8_t *buffer_c = static_cast<uint8_t *>(ptr);
 
@@ -609,15 +569,14 @@ void LogWriterFile::LogFileBuffer::write_no_check(void *ptr, size_t size)
 	}
 
 	// now: n = bytes already written
-	size_t p = size - n;	// number of bytes to write
+	size_t p = size - n;  // number of bytes to write
 
 	memcpy(&(_buffer[_head]), &(buffer_c[n]), p);
 	_head = (_head + p) % _buffer_size;
 	_count += size;
 }
 
-size_t LogWriterFile::LogFileBuffer::get_read_ptr(void **ptr, bool *is_part)
-{
+size_t LogWriterFile::LogFileBuffer::get_read_ptr(void **ptr, bool *is_part) {
 	// bytes available to read
 	int read_ptr = _head - _count;
 
@@ -634,8 +593,7 @@ size_t LogWriterFile::LogFileBuffer::get_read_ptr(void **ptr, bool *is_part)
 	}
 }
 
-bool LogWriterFile::LogFileBuffer::start_log(const char *filename)
-{
+bool LogWriterFile::LogFileBuffer::start_log(const char *filename) {
 	_fd = ::open(filename, O_CREAT | O_WRONLY, PX4_O_MODE_666);
 
 	if (_fd < 0) {
@@ -644,7 +602,7 @@ bool LogWriterFile::LogFileBuffer::start_log(const char *filename)
 	}
 
 	if (_buffer == nullptr) {
-		_buffer = (uint8_t *) px4_cache_aligned_alloc(_buffer_size);
+		_buffer = (uint8_t *)px4_cache_aligned_alloc(_buffer_size);
 
 		if (_buffer == nullptr) {
 			PX4_ERR("Can't create log buffer");
@@ -664,15 +622,13 @@ bool LogWriterFile::LogFileBuffer::start_log(const char *filename)
 	return true;
 }
 
-void LogWriterFile::LogFileBuffer::fsync() const
-{
+void LogWriterFile::LogFileBuffer::fsync() const {
 	perf_begin(_perf_fsync);
 	::fsync(_fd);
 	perf_end(_perf_fsync);
 }
 
-ssize_t LogWriterFile::LogFileBuffer::write_to_file(const void *buffer, size_t size, bool call_fsync) const
-{
+ssize_t LogWriterFile::LogFileBuffer::write_to_file(const void *buffer, size_t size, bool call_fsync) const {
 	perf_begin(_perf_write);
 	ssize_t ret = ::write(_fd, buffer, size);
 	perf_end(_perf_write);
@@ -684,8 +640,7 @@ ssize_t LogWriterFile::LogFileBuffer::write_to_file(const void *buffer, size_t s
 	return ret;
 }
 
-void LogWriterFile::LogFileBuffer::close_file()
-{
+void LogWriterFile::LogFileBuffer::close_file() {
 	_head = 0;
 	_count = 0;
 
@@ -702,5 +657,5 @@ void LogWriterFile::LogFileBuffer::close_file()
 	}
 }
 
-}
-}
+}  // namespace logger
+}  // namespace px4

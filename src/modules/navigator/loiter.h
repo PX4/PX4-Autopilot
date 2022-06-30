@@ -40,13 +40,12 @@
 
 #pragma once
 
-#include "navigator_mode.h"
-#include "mission_block.h"
-
 #include <px4_platform_common/module_params.h>
 
-class Loiter : public MissionBlock, public ModuleParams
-{
+#include "mission_block.h"
+#include "navigator_mode.h"
+
+class Loiter : public MissionBlock, public ModuleParams {
 public:
 	Loiter(Navigator *navigator);
 	~Loiter() = default;

@@ -39,25 +39,24 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <stdbool.h>
-
 #include <drivers/drv_hrt.h>
-#include <systemlib/ppm_decode.h>
+#include <px4_platform_common/px4_config.h>
+#include <rc/dsm.h>
+#include <rc/sbus.h>
 #include <rc/st24.h>
 #include <rc/sumd.h>
-#include <rc/sbus.h>
-#include <rc/dsm.h>
+#include <stdbool.h>
+#include <systemlib/ppm_decode.h>
 #include <uORB/topics/input_rc.h>
 
 #if defined(PX4IO_PERF)
-# include <perf/perf_counter.h>
+#include <perf/perf_counter.h>
 #endif
 
 #include "px4io.h"
 
-static bool	ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len);
-static bool	dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool *sumd_updated);
+static bool ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len);
+static bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool *sumd_updated);
 
 #if defined(PX4IO_PERF)
 static perf_counter_t c_gather_dsm;
@@ -77,8 +76,7 @@ static unsigned _rssi_adc_counts = 0;
 static uint16_t _rssi = 0;
 static unsigned _frame_drops = 0;
 
-bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool *sumd_updated)
-{
+bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool *sumd_updated) {
 #if defined(PX4IO_PERF)
 	perf_begin(c_gather_dsm);
 #endif
@@ -91,7 +89,6 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 				 &spektrum_rssi, &frame_drops, PX4IO_RC_INPUT_CHANNELS);
 
 	if (*dsm_updated) {
-
 		if (dsm_11_bit) {
 			r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_DSM11;
 
@@ -110,7 +107,6 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 
 		if (spektrum_rssi >= 0 && spektrum_rssi <= 100) {
-
 			/* ensure ADC RSSI is disabled */
 			r_setup_features &= ~(PX4IO_P_SETUP_FEATURES_ADC_RSSI);
 
@@ -132,13 +128,12 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		for (unsigned i = 0; i < n_bytes; i++) {
 			/* set updated flag if one complete packet was parsed */
 			st24_rssi = input_rc_s::RSSI_MAX;
-			*st24_updated |= (OK == st24_decode(bytes[i], &st24_rssi, &lost_count,
-							    &st24_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
+			*st24_updated |= (OK == st24_decode(bytes[i], &st24_rssi, &lost_count, &st24_channel_count,
+							    r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
 		}
 	}
 
 	if (*st24_updated && lost_count == 0) {
-
 		/* ensure ADC RSSI is disabled */
 		r_setup_features &= ~(PX4IO_P_SETUP_FEATURES_ADC_RSSI);
 
@@ -149,7 +144,6 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 	}
-
 
 	/* get data from FD and attempt to parse with SUMD libs */
 	uint8_t sumd_rssi, sumd_rx_count;
@@ -162,13 +156,13 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		for (unsigned i = 0; i < n_bytes; i++) {
 			/* set updated flag if one complete packet was parsed */
 			sumd_rssi = input_rc_s::RSSI_MAX;
-			*sumd_updated |= (OK == sumd_decode(bytes[i], &sumd_rssi, &sumd_rx_count,
-							    &sumd_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS, &sumd_failsafe_state));
+			*sumd_updated |=
+				(OK == sumd_decode(bytes[i], &sumd_rssi, &sumd_rx_count, &sumd_channel_count,
+						   r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS, &sumd_failsafe_state));
 		}
 	}
 
 	if (*sumd_updated) {
-
 		/* not setting RSSI since SUMD does not provide one */
 		r_raw_rc_count = sumd_channel_count;
 
@@ -186,9 +180,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 	return (*dsm_updated | *st24_updated | *sumd_updated);
 }
 
-void
-controls_init(void)
-{
+void controls_init(void) {
 	/* no channels */
 	r_raw_rc_count = 0;
 	system_state.rc_channels_timestamp_received = 0;
@@ -206,10 +198,7 @@ controls_init(void)
 #endif
 }
 
-void
-controls_tick()
-{
-
+void controls_tick() {
 	/*
 	 * Gather R/C control inputs from supported sources.
 	 *
@@ -250,7 +239,8 @@ controls_tick()
 
 	bool sbus_updated = false;
 
-	if (!(r_status_flags & (PX4IO_P_STATUS_FLAGS_RC_DSM | PX4IO_P_STATUS_FLAGS_RC_ST24 | PX4IO_P_STATUS_FLAGS_RC_SUMD))) {
+	if (!(r_status_flags &
+	      (PX4IO_P_STATUS_FLAGS_RC_DSM | PX4IO_P_STATUS_FLAGS_RC_ST24 | PX4IO_P_STATUS_FLAGS_RC_SUMD))) {
 		bool sbus_failsafe, sbus_frame_drop;
 		sbus_updated = sbus_input(_sbus_fd, r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop,
 					  PX4IO_RC_INPUT_CHANNELS);
@@ -297,7 +287,6 @@ controls_tick()
 	bool ppm_updated = ppm_input(r_raw_rc_values, &r_raw_rc_count, &r_page_raw_rc_input[PX4IO_P_RAW_RC_DATA]);
 
 	if (ppm_updated) {
-
 		atomic_modify_or(&r_status_flags, PX4IO_P_STATUS_FLAGS_RC_PPM);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
@@ -351,7 +340,6 @@ controls_tick()
 	 * If we received a new frame from any of the RC sources, process it.
 	 */
 	if (dsm_updated || sbus_updated || ppm_updated || st24_updated || sumd_updated) {
-
 		/* record a bitmask of channels assigned */
 		unsigned assigned_channels = 0;
 
@@ -381,13 +369,9 @@ controls_tick()
 		rc_input_lost = true;
 
 		/* clear the input-kind flags here */
-		atomic_modify_clear(&r_status_flags, (
-					    PX4IO_P_STATUS_FLAGS_RC_PPM |
-					    PX4IO_P_STATUS_FLAGS_RC_DSM |
-					    PX4IO_P_STATUS_FLAGS_RC_SBUS |
-					    PX4IO_P_STATUS_FLAGS_RC_ST24 |
-					    PX4IO_P_STATUS_FLAGS_RC_SUMD));
-
+		atomic_modify_clear(&r_status_flags, (PX4IO_P_STATUS_FLAGS_RC_PPM | PX4IO_P_STATUS_FLAGS_RC_DSM |
+						      PX4IO_P_STATUS_FLAGS_RC_SBUS | PX4IO_P_STATUS_FLAGS_RC_ST24 |
+						      PX4IO_P_STATUS_FLAGS_RC_SUMD));
 	}
 
 	/*
@@ -410,9 +394,7 @@ controls_tick()
 	}
 }
 
-static bool
-ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
-{
+static bool ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len) {
 	bool result = false;
 
 	if (!(num_values) || !(values) || !(frame_len)) {
@@ -427,7 +409,6 @@ ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 	 * and then invalidate it.
 	 */
 	if (hrt_elapsed_time(&ppm_last_valid_decode) < 200000) {
-
 		/* PPM data exists, copy it */
 		*num_values = ppm_decoded_channels;
 

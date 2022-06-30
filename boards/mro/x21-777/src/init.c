@@ -41,24 +41,22 @@
  * subsystems and perform board-specific initialisation.
  */
 
-#include "board_config.h"
-
-#include <syslog.h>
-
-#include <nuttx/config.h>
-#include <nuttx/board.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
 #include <arch/board/board.h>
-#include "arm_internal.h"
-
-#include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
-#include <systemlib/px4_macros.h>
+#include <drivers/drv_hrt.h>
+#include <nuttx/board.h>
+#include <nuttx/config.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
 #include <px4_arch/io_timer.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/init.h>
+#include <syslog.h>
+#include <systemlib/px4_macros.h>
+
+#include "arm_internal.h"
+#include "board_config.h"
 
 __BEGIN_DECLS
 extern void led_init(void);
@@ -72,8 +70,7 @@ __END_DECLS
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
+__EXPORT void board_peripheral_reset(int ms) {
 	/* set the peripheral rails off */
 	stm32_configgpio(GPIO_nVDD_5V_PERIPH_EN);
 	stm32_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, 1);
@@ -99,8 +96,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *          0 if just resetting
  *
  ************************************************************************************/
-__EXPORT void board_on_reset(int status)
-{
+__EXPORT void board_on_reset(int status) {
 	// Configure the GPIO pins to outputs and keep them low.
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
@@ -125,8 +121,7 @@ __EXPORT void board_on_reset(int status)
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
-__EXPORT void stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	/* Reset PWM first thing */
 	board_on_reset(-1);
 
@@ -136,12 +131,12 @@ __EXPORT void stm32_boardinitialize(void)
 	/* configure pins */
 
 	/* configure ADC pins */
-	px4_arch_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	px4_arch_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	px4_arch_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN2);  /* BATT_VOLTAGE_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN3);  /* BATT_CURRENT_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN4);  /* VDD_5V_SENS */
+	px4_arch_configgpio(GPIO_ADC1_IN13); /* FMU_AUX_ADC_1 */
+	px4_arch_configgpio(GPIO_ADC1_IN14); /* FMU_AUX_ADC_2 */
+	px4_arch_configgpio(GPIO_ADC1_IN15); /* PRESSURE_SENS */
 
 	/* configure power supply control/sense pins */
 	px4_arch_configgpio(GPIO_nVDD_5V_PERIPH_EN);
@@ -178,8 +173,7 @@ __EXPORT void stm32_boardinitialize(void)
  *   any failure to indicate the nature of the failure.
  *
  ****************************************************************************/
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	/* Power on Interfaces */
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, true);
 	stm32_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, false);

@@ -1,35 +1,35 @@
 /****************************************************************************
-*
-*   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions
-* are met:
-*
-* 1. Redistributions of source code must retain the above copyright
-*    notice, this list of conditions and the following disclaimer.
-* 2. Redistributions in binary form must reproduce the above copyright
-*    notice, this list of conditions and the following disclaimer in
-*    the documentation and/or other materials provided with the
-*    distribution.
-* 3. Neither the name PX4 nor the names of its contributors may be
-*    used to endorse or promote products derived from this software
-*    without specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-* OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-* AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-* POSSIBILITY OF SUCH DAMAGE.
-*
-****************************************************************************/
+ *
+ *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 
 /**
  * @file gyro_calibration.cpp
@@ -37,29 +37,30 @@
  * Gyroscope calibration routine
  */
 
-#include <px4_platform_common/px4_config.h>
-#include "factory_calibration_storage.h"
 #include "gyro_calibration.h"
+
+#include <drivers/drv_hrt.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/parameters/param.h>
+#include <lib/systemlib/mavlink_log.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/time.h>
+#include <uORB/topics/sensor_gyro.h>
+
+#include <lib/mathlib/math/filter/MedianFilter.hpp>
+#include <lib/sensor_calibration/Gyroscope.hpp>
+#include <lib/sensor_calibration/Utilities.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionBlocking.hpp>
+
 #include "calibration_messages.h"
 #include "calibration_routines.h"
 #include "commander_helper.h"
+#include "factory_calibration_storage.h"
 
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/time.h>
-
-#include <drivers/drv_hrt.h>
-#include <lib/mathlib/math/filter/MedianFilter.hpp>
-#include <lib/mathlib/mathlib.h>
-#include <lib/parameters/param.h>
-#include <lib/sensor_calibration/Gyroscope.hpp>
-#include <lib/sensor_calibration/Utilities.hpp>
-#include <lib/systemlib/mavlink_log.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionBlocking.hpp>
-#include <uORB/topics/sensor_gyro.h>
-
-static constexpr char sensor_name[] {"gyro"};
+static constexpr char sensor_name[]{"gyro"};
 static constexpr unsigned MAX_GYROS = 4;
 
 using matrix::Vector3f;
@@ -68,21 +69,20 @@ using matrix::Vector3f;
 struct gyro_worker_data_t {
 	orb_advert_t *mavlink_log_pub{nullptr};
 
-	calibration::Gyroscope calibrations[MAX_GYROS] {};
+	calibration::Gyroscope calibrations[MAX_GYROS]{};
 
-	Vector3f offset[MAX_GYROS] {};
+	Vector3f offset[MAX_GYROS]{};
 
-	math::MedianFilter<float, 9> filter[3] {};
+	math::MedianFilter<float, 9> filter[3]{};
 };
 
-static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
-{
+static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data) {
 	const hrt_abstime calibration_started = hrt_absolute_time();
-	unsigned calibration_counter[MAX_GYROS] {};
+	unsigned calibration_counter[MAX_GYROS]{};
 	static constexpr unsigned CALIBRATION_COUNT = 250;
 	unsigned poll_errcount = 0;
 
-	uORB::SubscriptionBlocking<sensor_gyro_s> gyro_sub[MAX_GYROS] {
+	uORB::SubscriptionBlocking<sensor_gyro_s> gyro_sub[MAX_GYROS]{
 		{ORB_ID(sensor_gyro), 0, 0},
 		{ORB_ID(sensor_gyro), 0, 1},
 		{ORB_ID(sensor_gyro), 0, 2},
@@ -102,7 +102,6 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 
 			for (unsigned gyro_index = 0; gyro_index < MAX_GYROS; gyro_index++) {
 				if (worker_data.calibrations[gyro_index].device_id() != 0) {
-
 					if (calibration_counter[gyro_index] >= CALIBRATION_COUNT) {
 						// Skip if instance has enough samples
 						continue;
@@ -112,9 +111,12 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 
 					while (gyro_sub[gyro_index].update(&gyro_report)) {
 						// fetch optional thermal offset corrections in sensor frame
-						const Vector3f &thermal_offset{worker_data.calibrations[gyro_index].thermal_offset()};
+						const Vector3f &thermal_offset{
+							worker_data.calibrations[gyro_index].thermal_offset()};
 
-						worker_data.offset[gyro_index] += Vector3f{gyro_report.x, gyro_report.y, gyro_report.z} - thermal_offset;
+						worker_data.offset[gyro_index] +=
+							Vector3f{gyro_report.x, gyro_report.y, gyro_report.z} -
+							thermal_offset;
 
 						calibration_counter[gyro_index]++;
 
@@ -126,7 +128,8 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 					}
 
 					// Maintain the sample count of the slowest sensor
-					if (calibration_counter[gyro_index] && calibration_counter[gyro_index] < update_count) {
+					if (calibration_counter[gyro_index] &&
+					    calibration_counter[gyro_index] < update_count) {
 						update_count = calibration_counter[gyro_index];
 					}
 				}
@@ -154,9 +157,10 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 	}
 
 	for (unsigned s = 0; s < MAX_GYROS; s++) {
-		if ((worker_data.calibrations[s].device_id() != 0) && (calibration_counter[s] < CALIBRATION_COUNT / 2)) {
-			calibration_log_critical(worker_data.mavlink_log_pub, "ERROR: missing data, sensor %d", s)
-			return calibrate_return_error;
+		if ((worker_data.calibrations[s].device_id() != 0) &&
+		    (calibration_counter[s] < CALIBRATION_COUNT / 2)) {
+			calibration_log_critical(worker_data.mavlink_log_pub, "ERROR: missing data, sensor %d",
+						 s) return calibrate_return_error;
 		}
 
 		worker_data.offset[s] /= calibration_counter[s];
@@ -165,8 +169,7 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 	return calibrate_return_ok;
 }
 
-int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
-{
+int do_gyro_calibration(orb_advert_t *mavlink_log_pub) {
 	int res = PX4_OK;
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
@@ -179,7 +182,8 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 	// Warn that we will not calibrate more than MAX_GYROS gyroscopes
 	if (orb_gyro_count > MAX_GYROS) {
-		calibration_log_critical(mavlink_log_pub, "Detected %u gyros, but will calibrate only %u", orb_gyro_count, MAX_GYROS);
+		calibration_log_critical(mavlink_log_pub, "Detected %u gyros, but will calibrate only %u",
+					 orb_gyro_count, MAX_GYROS);
 
 	} else if (orb_gyro_count < 1) {
 		calibration_log_critical(mavlink_log_pub, "No gyros found");
@@ -219,11 +223,9 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 			/* maximum allowable calibration error */
 			static constexpr float maxoff = math::radians(0.6f);
 
-			if (!PX4_ISFINITE(worker_data.offset[0](0)) ||
-			    !PX4_ISFINITE(worker_data.offset[0](1)) ||
-			    !PX4_ISFINITE(worker_data.offset[0](2)) ||
-			    fabsf(xdiff) > maxoff || fabsf(ydiff) > maxoff || fabsf(zdiff) > maxoff) {
-
+			if (!PX4_ISFINITE(worker_data.offset[0](0)) || !PX4_ISFINITE(worker_data.offset[0](1)) ||
+			    !PX4_ISFINITE(worker_data.offset[0](2)) || fabsf(xdiff) > maxoff || fabsf(ydiff) > maxoff ||
+			    fabsf(zdiff) > maxoff) {
 				calibration_log_critical(mavlink_log_pub, "motion, retrying..");
 				res = PX4_ERROR;
 
@@ -254,7 +256,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		bool failed = true;
 
 		for (unsigned uorb_index = 0; uorb_index < MAX_GYROS; uorb_index++) {
-
 			auto &calibration = worker_data.calibrations[uorb_index];
 
 			if (calibration.device_id() != 0) {
@@ -283,13 +284,13 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (!failed) {
 			calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
-			px4_usleep(600000); // give this message enough time to propagate
+			px4_usleep(600000);  // give this message enough time to propagate
 			return PX4_OK;
 		}
 	}
 
 	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
-	px4_usleep(600000); // give this message enough time to propagate
+	px4_usleep(600000);  // give this message enough time to propagate
 
 	return PX4_ERROR;
 }

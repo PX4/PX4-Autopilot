@@ -35,32 +35,27 @@
 
 // #include <mavsdk/plugins/follow_me/follow_me.h>
 
+#include <unistd.h>
+
+#include <cmath>
+#include <future>
+#include <iostream>
+#include <random>
+#include <thread>
+
 #include "math_helpers.h"
 
-#include <iostream>
-#include <future>
-#include <thread>
-#include <unistd.h>
-#include <cmath>
-#include <random>
-
-
 FollowTargetSimulator::FollowTargetSimulator(std::array<float, 3> initial_position_ned,
-		mavsdk::Telemetry::GroundTruth home) :
-	_position_ned(initial_position_ned), _home(home)
-{
+					     mavsdk::Telemetry::GroundTruth home)
+	: _position_ned(initial_position_ned), _home(home) {
 	_velocity_ned[0] = 0.0f;
 	_velocity_ned[1] = 0.0f;
 	_velocity_ned[2] = 0.0f;
 }
 
-FollowTargetSimulator::~FollowTargetSimulator()
-{
+FollowTargetSimulator::~FollowTargetSimulator() {}
 
-}
-
-void FollowTargetSimulator::update(float delta_t_s)
-{
+void FollowTargetSimulator::update(float delta_t_s) {
 	const float velocity_m_s = 2.0;
 
 	_velocity_ned[0] = velocity_m_s;
@@ -73,8 +68,7 @@ void FollowTargetSimulator::update(float delta_t_s)
 	_udpate_count++;
 }
 
-std::array<double, 3> FollowTargetSimulator::get_position_global(bool add_noise)
-{
+std::array<double, 3> FollowTargetSimulator::get_position_global(bool add_noise) {
 	std::array<float, 3> pos_ned = _position_ned;
 
 	if (add_noise) {
@@ -91,14 +85,14 @@ std::array<double, 3> FollowTargetSimulator::get_position_global(bool add_noise)
 	const auto ct = CoordinateTransformation({_home.latitude_deg, _home.longitude_deg});
 
 	mavsdk::geometry::CoordinateTransformation::LocalCoordinate local_coordinate{pos_ned[0], pos_ned[1]};
-	mavsdk::geometry::CoordinateTransformation::GlobalCoordinate global_coordinate = ct.global_from_local(local_coordinate);
-	std::array<double, 3> global_pos{global_coordinate.latitude_deg, global_coordinate.longitude_deg, pos_ned[2] + _home.absolute_altitude_m};
+	mavsdk::geometry::CoordinateTransformation::GlobalCoordinate global_coordinate =
+		ct.global_from_local(local_coordinate);
+	std::array<double, 3> global_pos{global_coordinate.latitude_deg, global_coordinate.longitude_deg,
+					 pos_ned[2] + _home.absolute_altitude_m};
 	return global_pos;
 }
 
-std::array<float, 3> FollowTargetSimulator::get_position_ned(bool add_noise)
-{
-
+std::array<float, 3> FollowTargetSimulator::get_position_ned(bool add_noise) {
 	std::array<float, 3> pos_ned = _position_ned;
 
 	if (add_noise) {
@@ -113,18 +107,11 @@ std::array<float, 3> FollowTargetSimulator::get_position_ned(bool add_noise)
 	return pos_ned;
 }
 
-std::array<float, 3> FollowTargetSimulator::get_velocity_ned_noisy()
-{
-	return get_velocity_ned(true);
-}
+std::array<float, 3> FollowTargetSimulator::get_velocity_ned_noisy() { return get_velocity_ned(true); }
 
-std::array<float, 3> FollowTargetSimulator::get_velocity_ned_ground_truth()
-{
-	return get_velocity_ned(false);
-}
+std::array<float, 3> FollowTargetSimulator::get_velocity_ned_ground_truth() { return get_velocity_ned(false); }
 
-std::array<float, 3> FollowTargetSimulator::get_velocity_ned(bool add_noise)
-{
+std::array<float, 3> FollowTargetSimulator::get_velocity_ned(bool add_noise) {
 	std::array<float, 3> vel_ned = _velocity_ned;
 
 	if (add_noise) {
@@ -140,58 +127,45 @@ std::array<float, 3> FollowTargetSimulator::get_velocity_ned(bool add_noise)
 	return vel_ned;
 }
 
-std::array<float, 3> FollowTargetSimulator::get_position_ned_noisy()
-{
-	return get_position_ned(true);
-}
+std::array<float, 3> FollowTargetSimulator::get_position_ned_noisy() { return get_position_ned(true); }
 
-std::array<float, 3> FollowTargetSimulator::get_position_ground_truth_ned()
-{
-	return get_position_ned(false);
-}
+std::array<float, 3> FollowTargetSimulator::get_position_ground_truth_ned() { return get_position_ned(false); }
 
-std::array<double, 3> FollowTargetSimulator::get_position_global_noisy()
-{
-	return get_position_global(true);
-}
+std::array<double, 3> FollowTargetSimulator::get_position_global_noisy() { return get_position_global(true); }
 
-std::array<double, 3> FollowTargetSimulator::get_position_global_ground_truth()
-{
-	return get_position_global(false);
-}
+std::array<double, 3> FollowTargetSimulator::get_position_global_ground_truth() { return get_position_global(false); }
 
 void FollowTargetSimulator::check_follow_angle(FollowMe::Config config, std::array<float, 3> drone_pos_ned,
-		std::array<float, 3> target_pos_ned, float tolerance)
-{
+					       std::array<float, 3> target_pos_ned, float tolerance) {
 	// This check assumes that the target is travelling straight on the x-axis
 	const float target_to_drone_offset_x = drone_pos_ned[0] - target_pos_ned[0];
 	const float target_to_drone_offset_y = drone_pos_ned[1] - target_pos_ned[1];
 
 	// Follow Angle is measured relative from the target's course (direction it is moving towards)
 	const float target_to_drone_angle_expected_rad = config.follow_angle_deg * (M_PI / 180.0f);
-	const float target_to_drone_offset_x_expected = config.follow_distance_m * cos(target_to_drone_angle_expected_rad);
-	const float target_to_drone_offset_y_expected = config.follow_distance_m * sin(target_to_drone_angle_expected_rad);
+	const float target_to_drone_offset_x_expected =
+		config.follow_distance_m * cos(target_to_drone_angle_expected_rad);
+	const float target_to_drone_offset_y_expected =
+		config.follow_distance_m * sin(target_to_drone_angle_expected_rad);
 
 	// Check that drone is following at an expected position within the tolerance error
 	CHECK(fabsf(target_to_drone_offset_x - target_to_drone_offset_x_expected) < tolerance);
 	CHECK(fabsf(target_to_drone_offset_y - target_to_drone_offset_y_expected) < tolerance);
 }
 
-void AutopilotTesterFollowMe::connect(const std::string uri)
-{
+void AutopilotTesterFollowMe::connect(const std::string uri) {
 	AutopilotTester::connect(uri);
 
 	auto system = get_system();
 	_follow_me.reset(new FollowMe(system));
 }
 
-
-void AutopilotTesterFollowMe::straight_line_test(const bool stream_velocity)
-{
+void AutopilotTesterFollowMe::straight_line_test(const bool stream_velocity) {
 	// CONFIGURATION for the test
-	const unsigned location_update_rate = 1; // [Hz] How often the GPS location update samples are generated
-	const float position_error_tolerance = 11.0f; // [m] Position error tolerance in both X and Y direction
-	const float follow_me_height_setting = 10.0f; // [m] Height above home position where the Drone will follow from
+	const unsigned location_update_rate = 1;       // [Hz] How often the GPS location update samples are generated
+	const float position_error_tolerance = 11.0f;  // [m] Position error tolerance in both X and Y direction
+	const float follow_me_height_setting =
+		10.0f;  // [m] Height above home position where the Drone will follow from
 
 	// Start with simulated target on the same plane as drone's home position
 	std::array<float, 3> start_location_ned = get_current_position_ned();
@@ -209,7 +183,7 @@ void AutopilotTesterFollowMe::straight_line_test(const bool stream_velocity)
 	sleep_for(std::chrono::milliseconds(1000));
 
 	// Start Follow Me
-	CHECK(FollowMe::Result::Success ==  _follow_me->start());
+	CHECK(FollowMe::Result::Success == _follow_me->start());
 
 	// Allow some time for mode switch
 	sleep_for(std::chrono::milliseconds(1000));
@@ -290,7 +264,8 @@ void AutopilotTesterFollowMe::straight_line_test(const bool stream_velocity)
 			check_current_altitude(follow_me_height_setting);
 			CHECK(distance_to_target <= config.follow_distance_m + position_error_tolerance);
 			CHECK(distance_to_target >= config.follow_distance_m - position_error_tolerance);
-			target_simulator.check_follow_angle(config, position_ned, target_pos_ned_ground_truth, position_error_tolerance);
+			target_simulator.check_follow_angle(config, position_ned, target_pos_ned_ground_truth,
+							    position_error_tolerance);
 		}
 
 		// Construct follow-me message
@@ -313,31 +288,29 @@ void AutopilotTesterFollowMe::straight_line_test(const bool stream_velocity)
 			target_location.velocity_z_m_s = NAN;
 		}
 
-
 		// Send message and check result
 		CHECK(FollowMe::Result::Success == _follow_me->set_target_location(target_location));
 
 		sleep_for(std::chrono::milliseconds(1000 / location_update_rate));
 	}
 
-	CHECK(FollowMe::Result::Success ==  _follow_me->stop());
+	CHECK(FollowMe::Result::Success == _follow_me->stop());
 }
 
-void AutopilotTesterFollowMe::stream_velocity_only()
-{
+void AutopilotTesterFollowMe::stream_velocity_only() {
 	const unsigned loop_update_rate = 1;
 	const float position_tolerance = 4.0f;
 
 	// Configure follow-me
 	FollowMe::Config config;
-	config.follow_angle_deg = 180.0f; // Follow from behind
+	config.follow_angle_deg = 180.0f;  // Follow from behind
 	CHECK(FollowMe::Result::Success == _follow_me->set_config(config));
 
 	// Allow some time for mode switch
 	sleep_for(std::chrono::milliseconds(1000));
 
 	// Start Follow Me
-	CHECK(FollowMe::Result::Success ==  _follow_me->start());
+	CHECK(FollowMe::Result::Success == _follow_me->start());
 
 	// Allow some time for mode switch
 	sleep_for(std::chrono::milliseconds(1000));
@@ -366,13 +339,12 @@ void AutopilotTesterFollowMe::stream_velocity_only()
 	CHECK(distance_travelled < position_tolerance);
 }
 
-void AutopilotTesterFollowMe::rc_adjustment_test()
-{
+void AutopilotTesterFollowMe::rc_adjustment_test() {
 	// CONFIGURATION
-	const unsigned loop_update_rate = 50; // [Hz]
-	const float follow_height_setting = 10.0f; // [m]
-	const float follow_angle_setting = 0.0f; // [deg]
-	const float follow_distance_setting = 10.0f; // [m]
+	const unsigned loop_update_rate = 50;         // [Hz]
+	const float follow_height_setting = 10.0f;    // [m]
+	const float follow_angle_setting = 0.0f;      // [deg]
+	const float follow_distance_setting = 10.0f;  // [m]
 
 	// The constants below are copied from the "FlightTaskAutoFollowTarget.hpp" to get a reference point for
 	// how much change a RC adjustment is expected to bring for each follow me parameters
@@ -381,7 +353,8 @@ void AutopilotTesterFollowMe::rc_adjustment_test()
 	static constexpr float FOLLOW_DISTANCE_USER_ADJUST_SPEED = 2.0;
 	// [m/s] Speed with which the follow height will be adjusted by when commanded with deflection via RC command
 	static constexpr float FOLLOW_HEIGHT_USER_ADJUST_SPEED = 1.5;
-	// [rad/s] Angular rate with which the follow distance will be adjusted by when commanded with full deflection via RC command
+	// [rad/s] Angular rate with which the follow distance will be adjusted by when commanded with full deflection
+	// via RC command
 	static constexpr float FOLLOW_ANGLE_USER_ADJUST_SPEED = 1.5;
 
 	// Start with simulated target on the same plane as drone's home position
@@ -408,7 +381,7 @@ void AutopilotTesterFollowMe::rc_adjustment_test()
 	const std::array<float, 3> target_pos = get_current_position_ned();
 
 	// Start Follow-me
-	CHECK(FollowMe::Result::Success ==  _follow_me->start());
+	CHECK(FollowMe::Result::Success == _follow_me->start());
 	std::array<float, 3> drone_initial_pos;
 
 	// task loop
@@ -419,7 +392,8 @@ void AutopilotTesterFollowMe::rc_adjustment_test()
 
 		if (i < 5 * loop_update_rate) {
 			// For 5 seconds, give time for the drone to go to it's initial following position (front)
-			CHECK(getManualControl()->set_manual_control_input(0.f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
+			CHECK(getManualControl()->set_manual_control_input(0.f, 0.f, 0.5f, 0.f) ==
+			      ManualControl::Result::Success);
 
 		} else if (i == 5 * loop_update_rate) {
 			// At 5 second mark, record the current drone position as initial position
@@ -428,40 +402,50 @@ void AutopilotTesterFollowMe::rc_adjustment_test()
 		} else if (i < 8 * loop_update_rate) {
 			// FOLLOW HEIGHT ADJUSTMENT
 			// Command Throttle-up (Z = 1.0f) for 3 seconds
-			CHECK(getManualControl()->set_manual_control_input(0.f, 0.f, 1.0f, 0.f) == ManualControl::Result::Success);
+			CHECK(getManualControl()->set_manual_control_input(0.f, 0.f, 1.0f, 0.f) ==
+			      ManualControl::Result::Success);
 
 		} else if (i < 10 * loop_update_rate) {
 			// Center the throttle for 2 seconds
-			CHECK(getManualControl()->set_manual_control_input(0.f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
+			CHECK(getManualControl()->set_manual_control_input(0.f, 0.f, 0.5f, 0.f) ==
+			      ManualControl::Result::Success);
 
 		} else if (i == 10 * loop_update_rate) {
-			// Check if altitude has increased at least half of the expected adjustment (Z is directed downwards, so flip the sign)
-			CHECK(-(current_drone_pos[2] - drone_initial_pos[2]) > FOLLOW_HEIGHT_USER_ADJUST_SPEED * 3.0f * 0.5f);
+			// Check if altitude has increased at least half of the expected adjustment (Z is directed
+			// downwards, so flip the sign)
+			CHECK(-(current_drone_pos[2] - drone_initial_pos[2]) >
+			      FOLLOW_HEIGHT_USER_ADJUST_SPEED * 3.0f * 0.5f);
 
 		} else if (i < 13 * loop_update_rate) {
 			// FOLLOW HEIGHT ADJUSTMENT
 			// Command Pitch-down (= Forward) (X = 1.0f) for 3 seconds
-			CHECK(getManualControl()->set_manual_control_input(1.0f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
+			CHECK(getManualControl()->set_manual_control_input(1.0f, 0.f, 0.5f, 0.f) ==
+			      ManualControl::Result::Success);
 
 		} else if (i < 15 * loop_update_rate) {
 			// Center the Pitch for 2 seconds
-			CHECK(getManualControl()->set_manual_control_input(0.f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
+			CHECK(getManualControl()->set_manual_control_input(0.f, 0.f, 0.5f, 0.f) ==
+			      ManualControl::Result::Success);
 
 		} else if (i == 15 * loop_update_rate) {
 			// Check if follow distance has increased at least half of the expected adjustment
 			const float target_to_drone_x_diff = current_drone_pos[0] - target_pos[0];
 			const float target_to_drone_y_diff = current_drone_pos[1] - target_pos[1];
-			const float current_follow_distance = sqrt(sq(target_to_drone_x_diff) + sq(target_to_drone_y_diff));
-			CHECK(current_follow_distance > follow_distance_setting + FOLLOW_DISTANCE_USER_ADJUST_SPEED * 3.0f * 0.5f);
+			const float current_follow_distance =
+				sqrt(sq(target_to_drone_x_diff) + sq(target_to_drone_y_diff));
+			CHECK(current_follow_distance >
+			      follow_distance_setting + FOLLOW_DISTANCE_USER_ADJUST_SPEED * 3.0f * 0.5f);
 
 		} else if (i < 18 * loop_update_rate) {
 			// FOLLOW ANGLE ADJUSTMENT
 			// Command Roll-right (=Rightwards) (Y = 1.0f) for 3 seconds
-			CHECK(getManualControl()->set_manual_control_input(0.f, 1.0f, 0.5f, 0.f) == ManualControl::Result::Success);
+			CHECK(getManualControl()->set_manual_control_input(0.f, 1.0f, 0.5f, 0.f) ==
+			      ManualControl::Result::Success);
 
 		} else if (i < 20 * loop_update_rate) {
 			// Center the Roll for 2 seconds
-			CHECK(getManualControl()->set_manual_control_input(0.f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
+			CHECK(getManualControl()->set_manual_control_input(0.f, 0.f, 0.5f, 0.f) ==
+			      ManualControl::Result::Success);
 
 		} else if (i == 20 * loop_update_rate) {
 			// Check if follow angle has increased at least half of the expected adjustment
@@ -469,7 +453,8 @@ void AutopilotTesterFollowMe::rc_adjustment_test()
 			const float target_to_drone_x_diff = current_drone_pos[0] - target_pos[0];
 			const float target_to_drone_y_diff = current_drone_pos[1] - target_pos[1];
 			const float current_follow_angle_rad = atan2f(target_to_drone_y_diff, target_to_drone_x_diff);
-			CHECK(current_follow_angle_rad > follow_angle_setting * M_PI / 180.0f + FOLLOW_ANGLE_USER_ADJUST_SPEED * 3.0f * 0.5f);
+			CHECK(current_follow_angle_rad >
+			      follow_angle_setting * M_PI / 180.0f + FOLLOW_ANGLE_USER_ADJUST_SPEED * 3.0f * 0.5f);
 		}
 
 		sleep_for(std::chrono::milliseconds(1000 / loop_update_rate));

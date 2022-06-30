@@ -49,13 +49,13 @@
  */
 
 #include "pid.h"
+
 #include <math.h>
 #include <px4_platform_common/defines.h>
 
 #define SIGMA 0.000001f
 
-__EXPORT void pid_init(PID_t *pid, pid_mode_t mode, float dt_min)
-{
+__EXPORT void pid_init(PID_t *pid, pid_mode_t mode, float dt_min) {
 	pid->mode = mode;
 	pid->dt_min = dt_min;
 	pid->kp = 0.0f;
@@ -68,8 +68,7 @@ __EXPORT void pid_init(PID_t *pid, pid_mode_t mode, float dt_min)
 	pid->last_output = 0.0f;
 }
 
-__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float integral_limit, float output_limit)
-{
+__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float integral_limit, float output_limit) {
 	int ret = 0;
 
 	if (PX4_ISFINITE(kp)) {
@@ -96,22 +95,21 @@ __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float 
 	if (PX4_ISFINITE(integral_limit)) {
 		pid->integral_limit = integral_limit;
 
-	}  else {
+	} else {
 		ret = 1;
 	}
 
 	if (PX4_ISFINITE(output_limit)) {
 		pid->output_limit = output_limit;
 
-	}  else {
+	} else {
 		ret = 1;
 	}
 
 	return ret;
 }
 
-__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt)
-{
+__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt) {
 	if (!PX4_ISFINITE(sp) || !PX4_ISFINITE(val) || !PX4_ISFINITE(val_dot) || !PX4_ISFINITE(dt)) {
 		return pid->last_output;
 	}
@@ -178,8 +176,4 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	return pid->last_output;
 }
 
-
-__EXPORT void pid_reset_integral(PID_t *pid)
-{
-	pid->integral = 0.0f;
-}
+__EXPORT void pid_reset_integral(PID_t *pid) { pid->integral = 0.0f; }

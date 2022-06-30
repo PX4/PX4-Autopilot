@@ -38,21 +38,21 @@
  */
 
 #define PARAM_IMPLEMENTATION
-#include "param.h"
 #include "parameters_ioctl.h"
+
 #include <px4_platform_common/defines.h>
 
-int	param_ioctl(unsigned int cmd, unsigned long arg)
-{
+#include "param.h"
+
+int param_ioctl(unsigned int cmd, unsigned long arg) {
 	int ret = OK;
 
 	switch (cmd) {
-	case PARAMIOCNOTIFY: {
+		case PARAMIOCNOTIFY: {
 			param_notify_changes();
-		}
-		break;
+		} break;
 
-	case PARAMIOCFIND: {
+		case PARAMIOCFIND: {
 			paramiocfind_t *data = (paramiocfind_t *)arg;
 
 			if (data->notification) {
@@ -61,34 +61,29 @@ int	param_ioctl(unsigned int cmd, unsigned long arg)
 			} else {
 				data->ret = param_find_no_notification(data->name);
 			}
-		}
-		break;
+		} break;
 
-	case PARAMIOCCOUNTUSED: {
+		case PARAMIOCCOUNTUSED: {
 			paramioccountused_t *data = (paramioccountused_t *)arg;
 			data->ret = param_count_used();
-		}
-		break;
+		} break;
 
-	case PARAMIOCFORUSEDINDEX: {
+		case PARAMIOCFORUSEDINDEX: {
 			paramiocforusedindex_t *data = (paramiocforusedindex_t *)arg;
-			data->ret =  param_for_used_index(data->index);
-		}
-		break;
+			data->ret = param_for_used_index(data->index);
+		} break;
 
-	case PARAMIOCGETUSEDINDEX: {
+		case PARAMIOCGETUSEDINDEX: {
 			paramiocgetusedindex_t *data = (paramiocgetusedindex_t *)arg;
 			data->ret = param_get_used_index(data->param);
-		}
-		break;
+		} break;
 
-	case PARAMIOCUNSAVED: {
+		case PARAMIOCUNSAVED: {
 			paramiocunsaved_t *data = (paramiocunsaved_t *)arg;
 			data->ret = param_value_unsaved(data->param);
-		}
-		break;
+		} break;
 
-	case PARAMIOCGET: {
+		case PARAMIOCGET: {
 			paramiocget_t *data = (paramiocget_t *)arg;
 
 			if (data->deflt) {
@@ -97,16 +92,14 @@ int	param_ioctl(unsigned int cmd, unsigned long arg)
 			} else {
 				data->ret = param_get(data->param, data->val);
 			}
-		}
-		break;
+		} break;
 
-	case PARAMIOCAUTOSAVE: {
+		case PARAMIOCAUTOSAVE: {
 			paramiocautosave_t *data = (paramiocautosave_t *)arg;
 			param_control_autosave(data->enable);
-		}
-		break;
+		} break;
 
-	case PARAMIOCSET: {
+		case PARAMIOCSET: {
 			paramiocset_t *data = (paramiocset_t *)arg;
 
 			if (data->notification) {
@@ -115,28 +108,24 @@ int	param_ioctl(unsigned int cmd, unsigned long arg)
 			} else {
 				data->ret = param_set_no_notification(data->param, data->val);
 			}
-		}
-		break;
+		} break;
 
-	case PARAMIOCUSED: {
+		case PARAMIOCUSED: {
 			paramiocused_t *data = (paramiocused_t *)arg;
 			data->ret = param_used(data->param);
-		}
-		break;
+		} break;
 
-	case PARAMIOCSETUSED: {
+		case PARAMIOCSETUSED: {
 			paramiocsetused_t *data = (paramiocsetused_t *)arg;
 			param_set_used(data->param);
-		}
-		break;
+		} break;
 
-	case PARAMIOCSETDEFAULT: {
+		case PARAMIOCSETDEFAULT: {
 			paramiocsetdefault_t *data = (paramiocsetdefault_t *)arg;
 			data->ret = param_set_default_value(data->param, data->val);
-		}
-		break;
+		} break;
 
-	case PARAMIOCRESET: {
+		case PARAMIOCRESET: {
 			paramiocreset_t *data = (paramiocreset_t *)arg;
 
 			if (data->notification) {
@@ -145,10 +134,9 @@ int	param_ioctl(unsigned int cmd, unsigned long arg)
 			} else {
 				data->ret = param_reset_no_notification(data->param);
 			}
-		}
-		break;
+		} break;
 
-	case PARAMIOCRESETGROUP: {
+		case PARAMIOCRESETGROUP: {
 			paramiocresetgroup_t *data = (paramiocresetgroup_t *)arg;
 
 			if (data->type == PARAM_RESET_EXCLUDES) {
@@ -160,36 +148,31 @@ int	param_ioctl(unsigned int cmd, unsigned long arg)
 			} else {
 				param_reset_all();
 			}
-		}
-		break;
+		} break;
 
-	case PARAMIOCSAVEDEFAULT: {
+		case PARAMIOCSAVEDEFAULT: {
 			paramiocsavedefault_t *data = (paramiocsavedefault_t *)arg;
 			data->ret = param_save_default();
-		}
-		break;
+		} break;
 
-	case PARAMIOCLOADDEFAULT: {
+		case PARAMIOCLOADDEFAULT: {
 			paramiocloaddefault_t *data = (paramiocloaddefault_t *)arg;
 			data->ret = param_load_default();
-		}
-		break;
+		} break;
 
-	case PARAMIOCEXPORT: {
+		case PARAMIOCEXPORT: {
 			paramiocexport_t *data = (paramiocexport_t *)arg;
 			data->ret = param_export(data->filename, nullptr);
-		}
-		break;
+		} break;
 
-	case PARAMIOCHASH: {
+		case PARAMIOCHASH: {
 			paramiochash_t *data = (paramiochash_t *)arg;
 			data->ret = param_hash_check();
-		}
-		break;
+		} break;
 
-	default:
-		ret = -ENOTTY;
-		break;
+		default:
+			ret = -ENOTTY;
+			break;
 	}
 
 	return ret;

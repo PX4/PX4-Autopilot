@@ -37,20 +37,18 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
 #include <nuttx/board.h>
+#include <nuttx/config.h>
+#include <px4_platform_common/init.h>
 
 #include "board_config.h"
-
-#include <px4_platform_common/init.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 #ifndef OK
-#  define OK 0
+#define OK 0
 #endif
 
 /****************************************************************************
@@ -82,8 +80,7 @@
  *
  ****************************************************************************/
 
-int board_app_initialize(uintptr_t arg)
-{
+int board_app_initialize(uintptr_t arg) {
 #ifdef CONFIG_BOARD_LATE_INITIALIZE
 	/* Board initialization already performed by board_late_initialize() */
 
@@ -110,8 +107,7 @@ int board_app_initialize(uintptr_t arg)
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
+__EXPORT void board_peripheral_reset(int ms) {
 	/* set the peripheral rails off */
 
 	/* wait for the peripheral rail to reach GND */

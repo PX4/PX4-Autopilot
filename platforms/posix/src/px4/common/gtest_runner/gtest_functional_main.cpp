@@ -32,13 +32,11 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+#include <lib/parameters/param.h>
 
 #include <uORB/Subscription.hpp>
 
-#include <lib/parameters/param.h>
-
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 	testing::InitGoogleTest(&argc, argv);
 
 	uORB::Manager::initialize();

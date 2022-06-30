@@ -37,16 +37,14 @@
  * Controller library code
  */
 
-#include <math.h>
 #include <float.h>
+#include <math.h>
 
 #include "blocks.hpp"
 
-namespace control
-{
+namespace control {
 
-float BlockHighPass::update(float input)
-{
+float BlockHighPass::update(float input) {
 	float b = 2 * float(M_PI) * getFCut() * getDt();
 	float a = 1 / (1 + b);
 	setY(a * (getY() + input - getU()));
@@ -54,4 +52,4 @@ float BlockHighPass::update(float input)
 	return getY();
 }
 
-} // namespace control
+}  // namespace control

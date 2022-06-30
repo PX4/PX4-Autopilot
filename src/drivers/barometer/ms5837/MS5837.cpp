@@ -38,26 +38,21 @@
 
 #include "MS5837.hpp"
 
-MS5837::MS5837(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
-{
-}
+MS5837::MS5837(const I2CSPIDriverConfig &config)
+	: I2C(config),
+	  I2CSPIDriver(config),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": measure")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": com_err")) {}
 
-MS5837::~MS5837()
-{
+MS5837::~MS5837() {
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_measure_perf);
 	perf_free(_comms_errors);
 }
 
-int MS5837::init()
-{
-
+int MS5837::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -100,7 +95,6 @@ int MS5837::init()
 		ret = OK;
 
 		break;
-
 	}
 
 	if (ret == 0) {
@@ -110,10 +104,9 @@ int MS5837::init()
 	return ret;
 }
 
-int MS5837::_reset()
-{
+int MS5837::_reset() {
 	unsigned old_retrycount = _retries;
-	uint8_t	cmd = MS5837_RESET;
+	uint8_t cmd = MS5837_RESET;
 
 	/* bump the retry count */
 	_retries = 3;
@@ -123,10 +116,8 @@ int MS5837::_reset()
 	return result;
 }
 
-int MS5837::probe()
-{
+int MS5837::probe() {
 	if ((PX4_OK == _probe_address(MS5837_ADDRESS))) {
-
 		return PX4_OK;
 	}
 
@@ -135,8 +126,7 @@ int MS5837::probe()
 	return -EIO;
 }
 
-int MS5837::_probe_address(uint8_t address)
-{
+int MS5837::_probe_address(uint8_t address) {
 	/* select the address we are going to try */
 	set_device_address(address);
 
@@ -153,10 +143,9 @@ int MS5837::_probe_address(uint8_t address)
 	return PX4_OK;
 }
 
-int MS5837::read(unsigned offset, void *data, unsigned count)
-{
+int MS5837::read(unsigned offset, void *data, unsigned count) {
 	union _cvt {
-		uint8_t	b[4];
+		uint8_t b[4];
 		uint32_t w;
 	} *cvt = (_cvt *)data;
 	uint8_t buf[3];
@@ -176,13 +165,11 @@ int MS5837::read(unsigned offset, void *data, unsigned count)
 	return ret;
 }
 
-void MS5837::RunImpl()
-{
+void MS5837::RunImpl() {
 	int ret;
 
 	/* collection phase? */
 	if (_collect_phase) {
-
 		/* perform collection */
 		ret = _collect();
 
@@ -194,7 +181,7 @@ void MS5837::RunImpl()
 				 * spam the console with a message for this.
 				 */
 			} else {
-				//DEVICE_LOG("collection error %d", ret);
+				// DEVICE_LOG("collection error %d", ret);
 			}
 
 			/* issue a reset command to the sensor */
@@ -229,8 +216,7 @@ void MS5837::RunImpl()
 	ScheduleDelayed(MS5837_CONVERSION_INTERVAL);
 }
 
-void MS5837::_start()
-{
+void MS5837::_start() {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_measure_phase = 0;
@@ -239,8 +225,7 @@ void MS5837::_start()
 	ScheduleDelayed(MS5837_CONVERSION_INTERVAL);
 }
 
-int MS5837::_measure()
-{
+int MS5837::_measure() {
 	perf_begin(_measure_perf);
 
 	/*
@@ -263,8 +248,7 @@ int MS5837::_measure()
 	return ret;
 }
 
-int MS5837::_collect()
-{
+int MS5837::_collect() {
 	uint32_t raw;
 
 	perf_begin(_sample_perf);
@@ -281,7 +265,6 @@ int MS5837::_collect()
 
 	/* handle a measurement */
 	if (_measure_phase == 0) {
-
 		/* temperature offset (in ADC units) */
 		int32_t dT = (int32_t)raw - ((int32_t)_prom.s.c5_reference_temp << 8);
 
@@ -291,8 +274,10 @@ int MS5837::_collect()
 		/* base sensor scale/offset values */
 
 		/* Perform MS5837 Caculation */
-		_OFF  = ((int64_t)_prom.s.c2_pressure_offset << 16) + (((int64_t)_prom.s.c4_temp_coeff_pres_offset * dT) >> 7);
-		_SENS = ((int64_t)_prom.s.c1_pressure_sens << 15) + (((int64_t)_prom.s.c3_temp_coeff_pres_sens * dT) >> 8);
+		_OFF = ((int64_t)_prom.s.c2_pressure_offset << 16) +
+		       (((int64_t)_prom.s.c4_temp_coeff_pres_offset * dT) >> 7);
+		_SENS = ((int64_t)_prom.s.c1_pressure_sens << 15) +
+			(((int64_t)_prom.s.c3_temp_coeff_pres_sens * dT) >> 8);
 
 		/* MS5837 temperature compensation */
 		int64_t T2 = 0;
@@ -302,7 +287,6 @@ int MS5837::_collect()
 		int64_t SENS2 = 0;
 
 		if (TEMP < 2000) {
-
 			T2 = 3 * ((int64_t)POW2(dT) >> 33);
 
 			f = POW2((int64_t)TEMP - 2000);
@@ -310,7 +294,6 @@ int MS5837::_collect()
 			SENS2 = 5 * f >> 3;
 
 			if (TEMP < -1500) {
-
 				int64_t f2 = POW2(TEMP + 1500);
 				OFF2 += 7 * f2;
 				SENS2 += f2 << 2;
@@ -325,7 +308,7 @@ int MS5837::_collect()
 		}
 
 		TEMP -= (int32_t)T2;
-		_OFF  -= OFF2;
+		_OFF -= OFF2;
 		_SENS -= SENS2;
 
 		_last_temperature = TEMP / 100.0f;
@@ -333,7 +316,6 @@ int MS5837::_collect()
 	} else {
 		/* pressure calculation, result in Pa */
 		int32_t P = (((raw * _SENS) >> 21) - _OFF) >> 13;
-
 
 		// publish
 		sensor_baro_s sensor_baro{};
@@ -354,19 +336,17 @@ int MS5837::_collect()
 	return OK;
 }
 
-void MS5837::print_status()
-{
+void MS5837::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 }
 
-int MS5837::_read_prom()
-{
-	uint8_t		prom_buf[2];
+int MS5837::_read_prom() {
+	uint8_t prom_buf[2];
 	union {
-		uint8_t		b[2];
-		uint16_t	w;
+		uint8_t b[2];
+		uint16_t w;
 	} cvt;
 
 	/*
@@ -409,14 +389,13 @@ int MS5837::_read_prom()
 /**
  * MS5837 crc4 cribbed from the datasheet
  */
-bool MS5837::_crc4(uint16_t *n_prom)
-{
+bool MS5837::_crc4(uint16_t *n_prom) {
 	uint16_t n_rem = 0;
 	uint16_t crcRead = n_prom[0] >> 12;
 	n_prom[0] = ((n_prom[0]) & 0x0FFF);
 	n_prom[7] = 0;
 
-	for (uint8_t i = 0 ; i < 16; i++) {
+	for (uint8_t i = 0; i < 16; i++) {
 		if (i % 2 == 1) {
 			n_rem ^= (uint16_t)((n_prom[i >> 1]) & 0x00FF);
 
@@ -424,7 +403,7 @@ bool MS5837::_crc4(uint16_t *n_prom)
 			n_rem ^= (uint16_t)(n_prom[i >> 1] >> 8);
 		}
 
-		for (uint8_t n_bit = 8 ; n_bit > 0 ; n_bit--) {
+		for (uint8_t n_bit = 8; n_bit > 0; n_bit--) {
 			if (n_rem & 0x8000) {
 				n_rem = (n_rem << 1) ^ 0x3000;
 

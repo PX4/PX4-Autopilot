@@ -45,20 +45,17 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-
-#include <stdbool.h>
-#include <stdio.h>
+#include <arch/board/board.h>
 #include <debug.h>
 #include <errno.h>
+#include <nuttx/board.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stm32.h>
 #include <syslog.h>
 
-#include <nuttx/board.h>
-
-#include <stm32.h>
 #include "board_config.h"
-
-#include <arch/board/board.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -82,8 +79,7 @@
  *
  ************************************************************************************/
 
-__EXPORT void stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	/* configure GPIOs */
 
 	/* Set up for sensing HW */
@@ -104,7 +100,6 @@ __EXPORT void stm32_boardinitialize(void)
 
 	stm32_configgpio(GPIO_PC14);
 	stm32_configgpio(GPIO_PC15);
-
 
 	/* LEDS - default to off */
 	stm32_configgpio(GPIO_LED_AMBER);

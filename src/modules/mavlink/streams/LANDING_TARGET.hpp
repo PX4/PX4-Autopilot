@@ -36,8 +36,7 @@
 
 #include <uORB/topics/landing_target_pose.h>
 
-class MavlinkStreamLandingTarget : public MavlinkStream
-{
+class MavlinkStreamLandingTarget : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamLandingTarget(mavlink); }
 
@@ -47,9 +46,10 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _landing_target_sub.advertised() ? MAVLINK_MSG_ID_LANDING_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _landing_target_sub.advertised()
+			       ? MAVLINK_MSG_ID_LANDING_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+			       : 0;
 	}
 
 private:
@@ -57,12 +57,10 @@ private:
 
 	uORB::Subscription _landing_target_sub{ORB_ID(landing_target_pose)};
 
-	bool send() override
-	{
+	bool send() override {
 		landing_target_pose_s target;
 
 		if (_landing_target_sub.update(&target)) {
-
 			mavlink_landing_target_t msg{};
 
 			msg.time_usec = target.timestamp;
@@ -80,4 +78,4 @@ private:
 	}
 };
 
-#endif // LANDING_TARGET_HPP
+#endif  // LANDING_TARGET_HPP

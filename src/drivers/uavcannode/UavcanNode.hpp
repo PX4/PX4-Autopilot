@@ -42,47 +42,41 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/atomic.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-
-#include "uavcan_driver.hpp"
-#include "allocator.hpp"
-#include "UavcanNodeParamManager.hpp"
-
-#include <uavcan/helpers/heap_based_pool_allocator.hpp>
-#include <uavcan/protocol/global_time_sync_slave.hpp>
-#include <uavcan/protocol/file/BeginFirmwareUpdate.hpp>
-#include <uavcan/node/timer.hpp>
-#include <uavcan/protocol/node_status_monitor.hpp>
-#include <uavcan/protocol/param/GetSet.hpp>
-#include <uavcan/protocol/param/ExecuteOpcode.hpp>
-#include <uavcan/protocol/RestartNode.hpp>
-#include <uavcan/protocol/dynamic_node_id_client.hpp>
-
-#include <containers/IntrusiveSortedList.hpp>
-
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
-
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionInterval.hpp>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/parameter_update.h>
 
+#include <containers/IntrusiveSortedList.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
+#include <uavcan/helpers/heap_based_pool_allocator.hpp>
+#include <uavcan/node/timer.hpp>
+#include <uavcan/protocol/RestartNode.hpp>
+#include <uavcan/protocol/dynamic_node_id_client.hpp>
+#include <uavcan/protocol/file/BeginFirmwareUpdate.hpp>
+#include <uavcan/protocol/global_time_sync_slave.hpp>
+#include <uavcan/protocol/node_status_monitor.hpp>
+#include <uavcan/protocol/param/ExecuteOpcode.hpp>
+#include <uavcan/protocol/param/GetSet.hpp>
+
 #include "Publishers/UavcanPublisherBase.hpp"
 #include "Subscribers/UavcanSubscriberBase.hpp"
+#include "UavcanNodeParamManager.hpp"
+#include "allocator.hpp"
+#include "uavcan_driver.hpp"
 
 using namespace time_literals;
 
-namespace uavcannode
-{
+namespace uavcannode {
 
 /**
  * A UAVCAN node.
  */
-class UavcanNode : public px4::ScheduledWorkItem
-{
+class UavcanNode : public px4::ScheduledWorkItem {
 	/*
 	 * This memory is reserved for uavcan to use as over flow for message
 	 * Coming from multiple sources that my not be considered at development
@@ -95,9 +89,9 @@ class UavcanNode : public px4::ScheduledWorkItem
 	static constexpr unsigned MemPoolSize = 2048;
 
 	static constexpr unsigned MaxBitRatePerSec = 1000000;
-	static constexpr unsigned bitPerFrame      = 148;
-	static constexpr unsigned FramePerSecond   = MaxBitRatePerSec / bitPerFrame;
-	static constexpr unsigned FramePerMSecond  = ((FramePerSecond / 1000) + 1);
+	static constexpr unsigned bitPerFrame = 148;
+	static constexpr unsigned FramePerSecond = MaxBitRatePerSec / bitPerFrame;
+	static constexpr unsigned FramePerMSecond = ((FramePerSecond / 1000) + 1);
 
 	static constexpr unsigned ScheduleIntervalMs = 10;
 
@@ -121,18 +115,18 @@ public:
 
 	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
 
-	virtual		~UavcanNode();
+	virtual ~UavcanNode();
 
-	static int	start(uavcan::NodeID node_id, uint32_t bitrate);
+	static int start(uavcan::NodeID node_id, uint32_t bitrate);
 
-	uavcan::Node<>	&get_node() { return _node; }
+	uavcan::Node<> &get_node() { return _node; }
 
-	void		PrintInfo();
+	void PrintInfo();
 
-	void		shrink();
+	void shrink();
 
-	static UavcanNode	*instance() { return _instance; }
-	static int		 getHardwareVersion(uavcan::protocol::HardwareVersion &hwver);
+	static UavcanNode *instance() { return _instance; }
+	static int getHardwareVersion(uavcan::protocol::HardwareVersion &hwver);
 
 	static void busevent_signal_trampoline();
 
@@ -145,27 +139,29 @@ private:
 	void fill_node_info();
 	int init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events);
 
-	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
+	px4::atomic_bool _task_should_exit{false};  ///< flag to indicate to tear down the CAN driver
 
-	bool		_initialized{false};		///< number of actuators currently available
+	bool _initialized{false};  ///< number of actuators currently available
 
-	static UavcanNode	*_instance;			///< singleton pointer
+	static UavcanNode *_instance;  ///< singleton pointer
 
-	uavcan_node::Allocator	 _pool_allocator;
+	uavcan_node::Allocator _pool_allocator;
 
-	uavcan::Node<>		_node;				///< library instance
-	pthread_mutex_t		_node_mutex;
+	uavcan::Node<> _node;  ///< library instance
+	pthread_mutex_t _node_mutex;
 
 	uavcan::GlobalTimeSyncSlave _time_sync_slave;
 
-	typedef uavcan::MethodBinder<UavcanNode *,
+	typedef uavcan::MethodBinder<
+		UavcanNode *,
 		void (UavcanNode::*)(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &,
 				     uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &)>
 		BeginFirmwareUpdateCallBack;
 
 	uavcan::ServiceServer<BeginFirmwareUpdate, BeginFirmwareUpdateCallBack> _fw_update_listner;
-	void cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &req,
-				     uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &rsp);
+	void cb_beginfirmware_update(
+		const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &req,
+		uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &rsp);
 
 	IntrusiveSortedList<UavcanPublisherBase *> _publisher_list;
 	IntrusiveSortedList<UavcanSubscriberBase *> _subscriber_list;
@@ -176,11 +172,11 @@ private:
 	UavcanNodeParamManager _param_manager;
 	uavcan::ParamServer _param_server;
 
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
-	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle time")};
+	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME ": cycle interval")};
 
 public:
 	/* A timer used to reboot after the response is sent */
 	uavcan::TimerEventForwarder<void (*)(const uavcan::TimerEvent &)> _reset_timer;
 };
-}; // namespace uavcannode
+};  // namespace uavcannode

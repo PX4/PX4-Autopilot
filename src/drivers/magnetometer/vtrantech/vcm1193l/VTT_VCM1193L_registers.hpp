@@ -42,8 +42,7 @@
 
 #include <cstdint>
 
-namespace VTT_VCM1193L
-{
+namespace VTT_VCM1193L {
 
 // TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
@@ -55,47 +54,46 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-static constexpr uint32_t I2C_SPEED = 400 * 1000; // 400 kHz I2C serial interface
-static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0b0001100; // default I2C address
+static constexpr uint32_t I2C_SPEED = 400 * 1000;          // 400 kHz I2C serial interface
+static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0b0001100;  // default I2C address
 
 static constexpr uint8_t Chip_ID = 0x82;
 
 enum class Register : uint8_t {
-	X_LSB      = 0x00, // Data Output X LSB Register XOUT[7:0]
-	X_MSB      = 0x01, // Data Output X MSB Register XOUT[15:8]
-	Y_LSB      = 0x02, // Data Output Y LSB Register YOUT[7:0]
-	Y_MSB      = 0x03, // Data Output Y MSB Register YOUT[15:8]
-	Z_LSB      = 0x04, // Data Output Z LSB Register ZOUT[7:0]
-	Z_MSB      = 0x05, // Data Output Z MSB Register ZOUT[15:8]
+	X_LSB = 0x00,  // Data Output X LSB Register XOUT[7:0]
+	X_MSB = 0x01,  // Data Output X MSB Register XOUT[15:8]
+	Y_LSB = 0x02,  // Data Output Y LSB Register YOUT[7:0]
+	Y_MSB = 0x03,  // Data Output Y MSB Register YOUT[15:8]
+	Z_LSB = 0x04,  // Data Output Z LSB Register ZOUT[7:0]
+	Z_MSB = 0x05,  // Data Output Z MSB Register ZOUT[15:8]
 
-	CNTL2      = 0x0a, // Control Register 2
-	CNTL1      = 0x0b, // Control Register 1
-	REG_ID     = 0x0c, // Chip ID
+	CNTL2 = 0x0a,   // Control Register 2
+	CNTL1 = 0x0b,   // Control Register 1
+	REG_ID = 0x0c,  // Chip ID
 
-	CHIP_ID    = 0x0c,
+	CHIP_ID = 0x0c,
 };
-
 
 // CNTL2
 enum CNTL2_BIT : uint8_t {
 	//
 	// 0AH[7:4] Note : During initialization , register 0AH(bit7~bit4) must be written 0100b
-	CTRL2_INIT   = Bit7,
+	CTRL2_INIT = Bit7,
 
 	// ODR[3:2]
-	ODR2         = Bit2,
-	ODR_50HZ     = Bit3,        // 10
+	ODR2 = Bit2,
+	ODR_50HZ = Bit3,  // 10
 
 	// MODE[0]
-	Mode0        = Bit0,        //
-	Mode_Normal  = Bit0,        // 1
+	Mode0 = Bit0,        //
+	Mode_Normal = Bit0,  // 1
 };
 
 // CNTL1
 
 enum CNTL1_BIT : uint8_t {
-	SOFT_RST        = Bit7, // Soft reset, restore default value of all registers.
-	SET_RESET       = Bit1 | Bit0,  // Set Reset (Cleared)
+	SOFT_RST = Bit7,          // Soft reset, restore default value of all registers.
+	SET_RESET = Bit1 | Bit0,  // Set Reset (Cleared)
 };
 
-} // namespace VCM1193L
+}  // namespace VTT_VCM1193L

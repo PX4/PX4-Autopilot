@@ -31,14 +31,13 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "BMI088.hpp"
 
-void BMI088::print_usage()
-{
+void BMI088::print_usage() {
 	PRINT_MODULE_USAGE_NAME("bmi088_i2c", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -50,8 +49,7 @@ void BMI088::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int bmi088_i2c_main(int argc, char *argv[])
-{
+extern "C" int bmi088_i2c_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = BMI088;
 	BusCLIArguments cli{true, false};
@@ -60,24 +58,23 @@ extern "C" int bmi088_i2c_main(int argc, char *argv[])
 	uint16_t type = 0;
 	const char *name = MODULE_NAME;
 
-
 	while ((ch = cli.getOpt(argc, argv, "AGR:")) != EOF) {
 		switch (ch) {
-		case 'A':
-			type = DRV_ACC_DEVTYPE_BMI088;
-			name = MODULE_NAME "_accel";
-			cli.i2c_address = 0x18;
-			break;
+			case 'A':
+				type = DRV_ACC_DEVTYPE_BMI088;
+				name = MODULE_NAME "_accel";
+				cli.i2c_address = 0x18;
+				break;
 
-		case 'G':
-			type = DRV_GYR_DEVTYPE_BMI088;
-			name = MODULE_NAME "_gyro";
-			cli.i2c_address = 0x69;
-			break;
+			case 'G':
+				type = DRV_GYR_DEVTYPE_BMI088;
+				name = MODULE_NAME "_gyro";
+				cli.i2c_address = 0x69;
+				break;
 
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

@@ -34,12 +34,10 @@
 #ifndef STATUSTEXT_HPP
 #define STATUSTEXT_HPP
 
+#include <lib/perf/perf_counter.h>
 #include <uORB/topics/mavlink_log.h>
 
-#include <lib/perf/perf_counter.h>
-
-class MavlinkStreamStatustext : public MavlinkStream
-{
+class MavlinkStreamStatustext : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamStatustext(mavlink); }
 
@@ -49,28 +47,22 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		return _mavlink_log_sub.updated() ? (MAVLINK_MSG_ID_STATUSTEXT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
 	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	~MavlinkStreamStatustext()
-	{
-		perf_free(_missed_msg_count_perf);
-	}
+	~MavlinkStreamStatustext() { perf_free(_missed_msg_count_perf); }
 
 	uORB::Subscription _mavlink_log_sub{ORB_ID(mavlink_log)};
-	perf_counter_t _missed_msg_count_perf{perf_alloc(PC_COUNT, MODULE_NAME": STATUSTEXT missed messages")};
+	perf_counter_t _missed_msg_count_perf{perf_alloc(PC_COUNT, MODULE_NAME ": STATUSTEXT missed messages")};
 	uint16_t _id{0};
 
-	bool send() override
-	{
+	bool send() override {
 		if (_mavlink->is_gcs_connected()) {
 			while (_mavlink_log_sub.updated() && (_mavlink->get_free_tx_buf() >= get_size())) {
-
 				const unsigned last_generation = _mavlink_log_sub.get_last_generation();
 
 				mavlink_log_s mavlink_log;
@@ -78,10 +70,10 @@ private:
 				if (_mavlink_log_sub.update(&mavlink_log)) {
 					// don't send stale messages
 					if (hrt_elapsed_time(&mavlink_log.timestamp) < 5_s) {
-
 						if (_mavlink_log_sub.get_last_generation() != (last_generation + 1)) {
 							perf_count(_missed_msg_count_perf);
-							PX4_DEBUG("channel %d has missed %d mavlink log messages", _mavlink->get_channel(),
+							PX4_DEBUG("channel %d has missed %d mavlink log messages",
+								  _mavlink->get_channel(),
 								  perf_event_count(_missed_msg_count_perf));
 						}
 
@@ -99,13 +91,15 @@ private:
 							if (chunk_size < max_chunk_size) {
 								memcpy(&msg.text[0], &text[0], chunk_size);
 								// pad with zeros
-								memset(&msg.text[0] + chunk_size, 0, max_chunk_size - chunk_size);
+								memset(&msg.text[0] + chunk_size, 0,
+								       max_chunk_size - chunk_size);
 
 							} else {
 								memcpy(&msg.text[0], &text[0], chunk_size);
 							}
 
-							mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
+							mavlink_msg_statustext_send_struct(_mavlink->get_channel(),
+											   &msg);
 
 							if (text_size <= max_chunk_size) {
 								break;
@@ -127,4 +121,4 @@ private:
 	}
 };
 
-#endif // STATUSTEXT_HPP
+#endif  // STATUSTEXT_HPP

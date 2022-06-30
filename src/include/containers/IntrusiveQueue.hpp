@@ -35,18 +35,15 @@
 
 #include <stdlib.h>
 
-template<class T>
-class IntrusiveQueue
-{
+template <class T>
+class IntrusiveQueue {
 public:
-
 	bool empty() const { return _head == nullptr; }
 
 	T front() const { return _head; }
 	T back() const { return _tail; }
 
-	size_t size() const
-	{
+	size_t size() const {
 		size_t sz = 0;
 
 		for (auto node = front(); node != nullptr; node = node->next_intrusive_queue_node()) {
@@ -56,8 +53,7 @@ public:
 		return sz;
 	}
 
-	void push(T newNode)
-	{
+	void push(T newNode) {
 		// error, node already queued or already inserted
 		if ((newNode->next_intrusive_queue_node() != nullptr) || (newNode == _tail)) {
 			return;
@@ -74,8 +70,7 @@ public:
 		_tail = newNode;
 	}
 
-	T pop()
-	{
+	T pop() {
 		T ret = _head;
 
 		if (!empty()) {
@@ -95,8 +90,7 @@ public:
 		return ret;
 	}
 
-	bool remove(T removeNode)
-	{
+	bool remove(T removeNode) {
 		// base case
 		if (removeNode == _head) {
 			if (_head->next_intrusive_queue_node() != nullptr) {
@@ -134,9 +128,8 @@ public:
 
 		operator T() const { return node; }
 		operator T &() { return node; }
-		T operator* () const { return node; }
-		Iterator &operator++ ()
-		{
+		T operator*() const { return node; }
+		Iterator &operator++() {
 			if (node) {
 				node = node->next_intrusive_queue_node();
 			};
@@ -149,15 +142,12 @@ public:
 	Iterator end() { return Iterator(nullptr); }
 
 private:
-
 	T _head{nullptr};
 	T _tail{nullptr};
-
 };
 
-template<class T>
-class IntrusiveQueueNode
-{
+template <class T>
+class IntrusiveQueueNode {
 private:
 	friend IntrusiveQueue<T>;
 

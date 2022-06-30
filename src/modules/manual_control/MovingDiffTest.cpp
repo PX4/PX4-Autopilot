@@ -31,19 +31,19 @@
  *
  ****************************************************************************/
 
-#include "MovingDiff.hpp"
 #include <gtest/gtest.h>
 
-TEST(MovingDiffTest, RcInputContinuous)
-{
+#include "MovingDiff.hpp"
+
+TEST(MovingDiffTest, RcInputContinuous) {
 	MovingDiff _diff;
-	EXPECT_FLOAT_EQ(_diff.update(0.0f, 0.0f), 0.f); // 0,0,0
-	EXPECT_FLOAT_EQ(_diff.update(1.0f, 1.0f), 0.f); // 1*,0,0
-	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f); // 1,-1*,0
-	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f); // 0,-1,0*
-	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f); // 0*,-1,0
-	EXPECT_FLOAT_EQ(_diff.update(1.0f, 1.0f), 0.f); // 0,1*,0
-	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f); // 0,1,-1*
-	EXPECT_FLOAT_EQ(_diff.update(2.0f, 1.0f), 1.f); // 2*,1,-1
-	EXPECT_FLOAT_EQ(_diff.update(4.0f, 1.0f), 2.f); // 2,2*,-1
+	EXPECT_FLOAT_EQ(_diff.update(0.0f, 0.0f), 0.f);  // 0,0,0
+	EXPECT_FLOAT_EQ(_diff.update(1.0f, 1.0f), 0.f);  // 1*,0,0
+	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f);  // 1,-1*,0
+	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f);  // 0,-1,0*
+	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f);  // 0*,-1,0
+	EXPECT_FLOAT_EQ(_diff.update(1.0f, 1.0f), 0.f);  // 0,1*,0
+	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f);  // 0,1,-1*
+	EXPECT_FLOAT_EQ(_diff.update(2.0f, 1.0f), 1.f);  // 2*,1,-1
+	EXPECT_FLOAT_EQ(_diff.update(4.0f, 1.0f), 2.f);  // 2,2*,-1
 }

@@ -37,12 +37,11 @@
 
 #pragma once
 
-#include "sensor_bridge.hpp"
-
 #include <uavcan/equipment/ice/reciprocating/Status.hpp>
 
-class UavcanIceStatusBridge : public UavcanSensorBridgeBase
-{
+#include "sensor_bridge.hpp"
+
+class UavcanIceStatusBridge : public UavcanSensorBridgeBase {
 public:
 	static const char *const NAME;
 
@@ -53,15 +52,13 @@ public:
 	int init() override;
 
 private:
-
 	void ice_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ice::reciprocating::Status> &msg);
 	int init_driver(uavcan_bridge::Channel *channel) override;
 
-	typedef uavcan::MethodBinder < UavcanIceStatusBridge *,
-		void (UavcanIceStatusBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::ice::reciprocating::Status> &) >
+	typedef uavcan::MethodBinder<UavcanIceStatusBridge *,
+				     void (UavcanIceStatusBridge::*)(const uavcan::ReceivedDataStructure<
+								     uavcan::equipment::ice::reciprocating::Status> &)>
 		IceStatusCbBinder;
 
 	uavcan::Subscriber<uavcan::equipment::ice::reciprocating::Status, IceStatusCbBinder> _sub_ice_status_data;
-
 };

@@ -45,39 +45,33 @@
  * Included Files
  ****************************************************************************/
 
+#include <arch/board/board.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/mm/gran.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform_common/init.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
-
+#include <rp2040_uart.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <debug.h>
-#include <errno.h>
 #include <syslog.h>
-
-#include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-#include <nuttx/mm/gran.h>
-
-#include "board_config.h"
-#include <rp2040_uart.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
-
 #include <systemlib/px4_macros.h>
 
-#include <px4_arch/io_timer.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/board_dma_alloc.h>
+#include "board_config.h"
 
-# if defined(FLASH_BASED_PARAMS)
-#  include <parameters/flashparams/flashfs.h>
+#if defined(FLASH_BASED_PARAMS)
+#include <parameters/flashparams/flashfs.h>
 #endif
 
 /****************************************************************************
@@ -109,10 +103,7 @@ __END_DECLS
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
-	UNUSED(ms);
-}
+__EXPORT void board_peripheral_reset(int ms) { UNUSED(ms); }
 
 /************************************************************************************
  * Name: board_on_reset
@@ -125,8 +116,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *          0 if just resetting
  *
  ************************************************************************************/
-__EXPORT void board_on_reset(int status)
-{
+__EXPORT void board_on_reset(int status) {
 	// Configure the GPIO pins to outputs and keep them low.
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
@@ -154,10 +144,7 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
-int board_read_VBUS_state(void)
-{
-	return BOARD_ADC_USB_CONNECTED ? 0 : 1;
-}
+int board_read_VBUS_state(void) { return BOARD_ADC_USB_CONNECTED ? 0 : 1; }
 
 /****************************************************************************
  * Name: rp2040_boardearlyinitialize
@@ -167,29 +154,28 @@ int board_read_VBUS_state(void)
  * This function is taken directly from nuttx's rp2040_boardinitialize.c
  ****************************************************************************/
 
-void rp2040_boardearlyinitialize(void)
-{
+void rp2040_boardearlyinitialize(void) {
 	/* Set default UART pin */
 #if defined(CONFIG_RP2040_UART0) && CONFIG_RP2040_UART0_GPIO >= 0
 	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO, RP2040_GPIO_FUNC_UART);     /* TX */
-	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 1, RP2040_GPIO_FUNC_UART);     /* RX */
-# ifdef CONFIG_SERIAL_OFLOWCONTROL
-	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 2, RP2040_GPIO_FUNC_UART);     /* CTS */
-# endif /* CONFIG_SERIAL_OFLOWCONTROL */
-# ifdef CONFIG_SERIAL_IFLOWCONTROL
-	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 3, RP2040_GPIO_FUNC_UART);     /* RTS */
-# endif /* CONFIG_SERIAL_IFLOWCONTROL */
+	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 1, RP2040_GPIO_FUNC_UART); /* RX */
+#ifdef CONFIG_SERIAL_OFLOWCONTROL
+	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 2, RP2040_GPIO_FUNC_UART); /* CTS */
+#endif                                                                                 /* CONFIG_SERIAL_OFLOWCONTROL */
+#ifdef CONFIG_SERIAL_IFLOWCONTROL
+	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 3, RP2040_GPIO_FUNC_UART); /* RTS */
+#endif                                                                                 /* CONFIG_SERIAL_IFLOWCONTROL */
 #endif
 
 #if defined(CONFIG_RP2040_UART1) && CONFIG_RP2040_UART1_GPIO >= 0
 	rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO, RP2040_GPIO_FUNC_UART);     /* TX */
-	rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 1, RP2040_GPIO_FUNC_UART);     /* RX */
-# ifdef CONFIG_SERIAL_OFLOWCONTROL
-	rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 2, RP2040_GPIO_FUNC_UART);     /* CTS */
-# endif /* CONFIG_SERIAL_OFLOWCONTROL */
-# ifdef CONFIG_SERIAL_IFLOWCONTROL
-	rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 3, RP2040_GPIO_FUNC_UART);     /* RTS */
-# endif /* CONFIG_SERIAL_IFLOWCONTROL */
+	rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 1, RP2040_GPIO_FUNC_UART); /* RX */
+#ifdef CONFIG_SERIAL_OFLOWCONTROL
+	rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 2, RP2040_GPIO_FUNC_UART); /* CTS */
+#endif                                                                                 /* CONFIG_SERIAL_OFLOWCONTROL */
+#ifdef CONFIG_SERIAL_IFLOWCONTROL
+	rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 3, RP2040_GPIO_FUNC_UART); /* RTS */
+#endif                                                                                 /* CONFIG_SERIAL_IFLOWCONTROL */
 #endif
 }
 
@@ -203,9 +189,7 @@ void rp2040_boardearlyinitialize(void)
  *
  ************************************************************************************/
 
-__EXPORT void
-rp2040_boardinitialize(void)
-{
+__EXPORT void rp2040_boardinitialize(void) {
 	// /* Reset all PWM to Low outputs */
 	// board_on_reset(-1);
 
@@ -214,25 +198,25 @@ rp2040_boardinitialize(void)
 
 	// Disable IE and enable OD on GPIO 26-29 (These are ADC Pins)
 	// Do this only for the channels configured in board_config.h
-	rp2040_gpioconfig(27 | GPIO_FUN(RP2040_GPIO_FUNC_NULL));		/* BATT_VOLTAGE_SENS */
-	clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(27));	/* BATT_VOLTAGE_SENS */
-	setbits_reg32(RP2040_PADS_BANK0_GPIO_OD, RP2040_PADS_BANK0_GPIO(27));	/* BATT_VOLTAGE_SENS */
-	rp2040_gpioconfig(28 | GPIO_FUN(RP2040_GPIO_FUNC_NULL));		/* BATT_VOLTAGE_SENS */
-	clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(28));	/* BATT_CURRENT_SENS */
-	setbits_reg32(RP2040_PADS_BANK0_GPIO_OD, RP2040_PADS_BANK0_GPIO(28));	/* BATT_CURRENT_SENS */
+	rp2040_gpioconfig(27 | GPIO_FUN(RP2040_GPIO_FUNC_NULL));              /* BATT_VOLTAGE_SENS */
+	clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(27)); /* BATT_VOLTAGE_SENS */
+	setbits_reg32(RP2040_PADS_BANK0_GPIO_OD, RP2040_PADS_BANK0_GPIO(27)); /* BATT_VOLTAGE_SENS */
+	rp2040_gpioconfig(28 | GPIO_FUN(RP2040_GPIO_FUNC_NULL));              /* BATT_VOLTAGE_SENS */
+	clrbits_reg32(RP2040_PADS_BANK0_GPIO_IE, RP2040_PADS_BANK0_GPIO(28)); /* BATT_CURRENT_SENS */
+	setbits_reg32(RP2040_PADS_BANK0_GPIO_OD, RP2040_PADS_BANK0_GPIO(28)); /* BATT_CURRENT_SENS */
 
 	/* Set default I2C pin */
 #if defined(CONFIG_RP2040_I2C0) && CONFIG_RP2040_I2C0_GPIO >= 0
-	rp2040_gpio_set_function(CONFIG_RP2040_I2C0_GPIO, RP2040_GPIO_FUNC_I2C);      /* SDA */
-	rp2040_gpio_set_function(CONFIG_RP2040_I2C0_GPIO + 1, RP2040_GPIO_FUNC_I2C);      /* SCL */
-	rp2040_gpio_set_pulls(CONFIG_RP2040_I2C0_GPIO, true, false);  /* Pull up */
+	rp2040_gpio_set_function(CONFIG_RP2040_I2C0_GPIO, RP2040_GPIO_FUNC_I2C);     /* SDA */
+	rp2040_gpio_set_function(CONFIG_RP2040_I2C0_GPIO + 1, RP2040_GPIO_FUNC_I2C); /* SCL */
+	rp2040_gpio_set_pulls(CONFIG_RP2040_I2C0_GPIO, true, false);                 /* Pull up */
 	rp2040_gpio_set_pulls(CONFIG_RP2040_I2C0_GPIO + 1, true, false);
 #endif
 
-#if defined(CONFIG_RP2040_I2C1) &&  CONFIG_RP2040_I2C1_GPIO >= 0
-	rp2040_gpio_set_function(CONFIG_RP2040_I2C1_GPIO, RP2040_GPIO_FUNC_I2C);      /* SDA */
-	rp2040_gpio_set_function(CONFIG_RP2040_I2C1_GPIO + 1, RP2040_GPIO_FUNC_I2C);      /* SCL */
-	rp2040_gpio_set_pulls(CONFIG_RP2040_I2C1_GPIO, true, false);  /* Pull up */
+#if defined(CONFIG_RP2040_I2C1) && CONFIG_RP2040_I2C1_GPIO >= 0
+	rp2040_gpio_set_function(CONFIG_RP2040_I2C1_GPIO, RP2040_GPIO_FUNC_I2C);     /* SDA */
+	rp2040_gpio_set_function(CONFIG_RP2040_I2C1_GPIO + 1, RP2040_GPIO_FUNC_I2C); /* SCL */
+	rp2040_gpio_set_pulls(CONFIG_RP2040_I2C1_GPIO, true, false);                 /* Pull up */
 	rp2040_gpio_set_pulls(CONFIG_RP2040_I2C1_GPIO + 1, true, false);
 #endif
 
@@ -269,7 +253,6 @@ rp2040_boardinitialize(void)
 
 	/* configure SPI all interfaces GPIO */
 	rp2040_spiinitialize();
-
 }
 
 /****************************************************************************
@@ -300,17 +283,16 @@ rp2040_boardinitialize(void)
 // static struct spi_dev_s *spi1;
 static struct spi_dev_s *spi2;
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	px4_platform_init();
 
-	/* configure the DMA allocator */				// Needs to be figured out
+	/* configure the DMA allocator */  // Needs to be figured out
 
 	if (board_dma_alloc_init() < 0) {
 		syslog(LOG_ERR, "DMA alloc FAILED\n");
 	}
 
-	/* set up the serial DMA polling */	// RP2040 nuttx implementation doesn't have serial_dma_poll function yet.
+	/* set up the serial DMA polling */  // RP2040 nuttx implementation doesn't have serial_dma_poll function yet.
 	// static struct hrt_call serial_dma_call;
 	// struct timespec ts;
 
@@ -331,10 +313,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	drv_led_start();
 	led_on(LED_BLUE);
 
-	// if (board_hardfault_init(2, true) != 0) {		// Needs to be figured out as RP2040 doesn't have BBSRAM.
-	// 	led_off(LED_BLUE);
+	// if (board_hardfault_init(2, true) != 0) {		// Needs to be figured out as RP2040 doesn't have
+	// BBSRAM. 	led_off(LED_BLUE);
 	// }
-
 
 	/* Configure SPI-based devices */
 
@@ -371,21 +352,19 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	up_udelay(20);
 
-// #if defined(FLASH_BASED_PARAMS)					// This probably doesn't relate to RP2040 right now.
-// 	static sector_descriptor_t params_sector_map[] = {
-// 		{1, 16 * 1024, 0x08004000},
-// 		{0, 0, 0},
-// 	};
+	// #if defined(FLASH_BASED_PARAMS)					// This probably doesn't relate to RP2040 right
+	// now. 	static sector_descriptor_t params_sector_map[] = { 		{1, 16 * 1024, 0x08004000}, 		{0, 0, 0},
+	// 	};
 
-// 	/* Initialize the flashfs layer to use heap allocated memory */
-// 	result = parameter_flashfs_init(params_sector_map, NULL, 0);
+	// 	/* Initialize the flashfs layer to use heap allocated memory */
+	// 	result = parameter_flashfs_init(params_sector_map, NULL, 0);
 
-// 	if (result != OK) {
-// 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
-// 		led_off(LED_AMBER);
-// 	}
+	// 	if (result != OK) {
+	// 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
+	// 		led_off(LED_AMBER);
+	// 	}
 
-// #endif
+	// #endif
 
 	/* Configure the HW based on the manifest */
 

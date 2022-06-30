@@ -36,23 +36,19 @@
  * Tests related to the parameter system.
  */
 
-#include <unit_test.h>
-
-#include <px4_platform_common/defines.h>
-#include <lib/parameters/param.h>
-
 #include <errno.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <lib/parameters/param.h>
 #include <math.h>
+#include <px4_platform_common/defines.h>
+#include <unistd.h>
+#include <unit_test.h>
 
-class ParameterTest : public UnitTest
-{
+class ParameterTest : public UnitTest {
 public:
 	virtual bool run_tests();
 
-	ParameterTest()
-	{
+	ParameterTest() {
 		p0 = param_find("TEST_RC_X");
 		p1 = param_find("TEST_RC2_X");
 		p2 = param_find("TEST_1");
@@ -61,7 +57,6 @@ public:
 	}
 
 private:
-
 	param_t p0{PARAM_INVALID};
 	param_t p1{PARAM_INVALID};
 	param_t p2{PARAM_INVALID};
@@ -88,8 +83,7 @@ private:
 	bool exportImportAll();
 };
 
-bool ParameterTest::_assert_parameter_int_value(param_t param, int32_t expected)
-{
+bool ParameterTest::_assert_parameter_int_value(param_t param, int32_t expected) {
 	int32_t value;
 	int result = param_get(param, &value);
 	ut_compare("param_get did not return parameter", 0, result);
@@ -98,8 +92,7 @@ bool ParameterTest::_assert_parameter_int_value(param_t param, int32_t expected)
 	return true;
 }
 
-bool ParameterTest::_assert_parameter_float_value(param_t param, float expected)
-{
+bool ParameterTest::_assert_parameter_float_value(param_t param, float expected) {
 	float value;
 	int result = param_get(param, &value);
 	ut_compare("param_get did not return parameter", 0, result);
@@ -108,8 +101,7 @@ bool ParameterTest::_assert_parameter_float_value(param_t param, float expected)
 	return true;
 }
 
-bool ParameterTest::_set_all_int_parameters_to(int32_t value)
-{
+bool ParameterTest::_set_all_int_parameters_to(int32_t value) {
 	param_set(p0, &value);
 	param_set(p1, &value);
 	param_set(p2, &value);
@@ -125,8 +117,7 @@ bool ParameterTest::_set_all_int_parameters_to(int32_t value)
 	return ret;
 }
 
-bool ParameterTest::SimpleFind()
-{
+bool ParameterTest::SimpleFind() {
 	param_t param = param_find("TEST_2");
 
 	ut_assert_true(PARAM_INVALID != param);
@@ -140,8 +131,7 @@ bool ParameterTest::SimpleFind()
 	return true;
 }
 
-bool ParameterTest::ResetAll()
-{
+bool ParameterTest::ResetAll() {
 	_set_all_int_parameters_to(50);
 
 	param_reset_all();
@@ -156,8 +146,7 @@ bool ParameterTest::ResetAll()
 	return ret;
 }
 
-bool ParameterTest::ResetAllExcludesOne()
-{
+bool ParameterTest::ResetAllExcludesOne() {
 	_set_all_int_parameters_to(50);
 
 	const char *excludes[] = {"TEST_RC_X"};
@@ -173,8 +162,7 @@ bool ParameterTest::ResetAllExcludesOne()
 	return ret;
 }
 
-bool ParameterTest::ResetAllExcludesTwo()
-{
+bool ParameterTest::ResetAllExcludesTwo() {
 	_set_all_int_parameters_to(50);
 
 	const char *excludes[] = {"TEST_RC_X", "TEST_1"};
@@ -190,8 +178,7 @@ bool ParameterTest::ResetAllExcludesTwo()
 	return ret;
 }
 
-bool ParameterTest::ResetAllExcludesBoundaryCheck()
-{
+bool ParameterTest::ResetAllExcludesBoundaryCheck() {
 	_set_all_int_parameters_to(50);
 
 	const char *excludes[] = {"TEST_RC_X", "TEST_1"};
@@ -207,8 +194,7 @@ bool ParameterTest::ResetAllExcludesBoundaryCheck()
 	return ret;
 }
 
-bool ParameterTest::ResetAllExcludesWildcard()
-{
+bool ParameterTest::ResetAllExcludesWildcard() {
 	_set_all_int_parameters_to(50);
 
 	const char *excludes[] = {"TEST_RC*"};
@@ -224,13 +210,12 @@ bool ParameterTest::ResetAllExcludesWildcard()
 	return ret;
 }
 
-bool ParameterTest::CustomDefaults()
-{
+bool ParameterTest::CustomDefaults() {
 	int32_t value = 0;
 	param_t param_test_1 = param_find("TEST_1");
 	param_reset(param_test_1);
 	param_get(param_test_1, &value);
-	ut_compare("value for param doesn't match default value", value, 2); // TEST_1 default value 2
+	ut_compare("value for param doesn't match default value", value, 2);  // TEST_1 default value 2
 
 	// verify underlying default value
 	int32_t default_value = 0;
@@ -268,8 +253,7 @@ bool ParameterTest::CustomDefaults()
 	return true;
 }
 
-bool ParameterTest::exportImport()
-{
+bool ParameterTest::exportImport() {
 	static constexpr float MAGIC_FLOAT_VAL = 0.314159f;
 
 	bool ret = true;
@@ -369,7 +353,6 @@ bool ParameterTest::exportImport()
 	// check every param
 	for (auto p : test_params) {
 		if (param_type(p) == PARAM_TYPE_INT32) {
-
 			int32_t get_val = 0.0f;
 
 			if (param_get(p, &get_val) != PX4_OK) {
@@ -388,15 +371,15 @@ bool ParameterTest::exportImport()
 				ut_assert("param_set_no_notification failed", false);
 			}
 
-			ut_compare_float("value for param doesn't match default value", p, (float)p + MAGIC_FLOAT_VAL, 0.001f);
+			ut_compare_float("value for param doesn't match default value", p, (float)p + MAGIC_FLOAT_VAL,
+					 0.001f);
 		}
 	}
 
 	return ret;
 }
 
-bool ParameterTest::exportImportAll()
-{
+bool ParameterTest::exportImportAll() {
 	static constexpr float MAGIC_FLOAT_VAL = 0.217828f;
 
 	// backup current parameters
@@ -415,7 +398,6 @@ bool ParameterTest::exportImportAll()
 
 	// set all params to corresponding param_t value
 	for (unsigned i = 0; i < N; i++) {
-
 		param_t p = param_for_index(i);
 
 		if (p == PARAM_INVALID) {
@@ -471,7 +453,6 @@ bool ParameterTest::exportImportAll()
 		param_t p = param_for_index(i);
 
 		if (param_type(p) == PARAM_TYPE_INT32) {
-
 			const int32_t set_val = 0;
 
 			if (param_set_no_notification(p, &set_val) != PX4_OK) {
@@ -519,7 +500,6 @@ bool ParameterTest::exportImportAll()
 		param_t p = param_for_index(i);
 
 		if (param_type(p) == PARAM_TYPE_INT32) {
-
 			int32_t get_val = 0;
 
 			if (param_get(p, &get_val) != PX4_OK) {
@@ -569,8 +549,7 @@ bool ParameterTest::exportImportAll()
 	return ret;
 }
 
-bool ParameterTest::run_tests()
-{
+bool ParameterTest::run_tests() {
 	param_control_autosave(false);
 
 	ut_run_test(ResetAll);

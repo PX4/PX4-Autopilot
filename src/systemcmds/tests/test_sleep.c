@@ -36,22 +36,19 @@
  * Tests the px4_usleep() method.
  */
 
-#include <px4_platform_common/time.h>
-#include <px4_platform_common/px4_config.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <px4_platform_common/defines.h>
-
-#include <sys/types.h>
-
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
 
 #include "tests_main.h"
 
-int test_sleep(int argc, char *argv[])
-{
+int test_sleep(int argc, char *argv[]) {
 	unsigned int nsleeps = 20;
 	printf("\t %d 100ms sleeps\n", nsleeps);
 	fflush(stdout);

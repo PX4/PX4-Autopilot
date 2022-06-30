@@ -33,25 +33,22 @@
 
 #include "HMC5883.hpp"
 
-HMC5883::HMC5883(device::Device *interface, const I2CSPIDriverConfig &config) :
-	I2CSPIDriver(config),
-	_px4_mag(interface->get_device_id(), config.rotation),
-	_interface(interface),
-	_range_ga(1.9f),
-	_collect_phase(false),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err")),
-	_range_errors(perf_alloc(PC_COUNT, MODULE_NAME": rng_err")),
-	_conf_errors(perf_alloc(PC_COUNT, MODULE_NAME": conf_err")),
-	_range_bits(0),
-	_conf_reg(0),
-	_temperature_counter(0),
-	_temperature_error_count(0)
-{
-}
+HMC5883::HMC5883(device::Device *interface, const I2CSPIDriverConfig &config)
+	: I2CSPIDriver(config),
+	  _px4_mag(interface->get_device_id(), config.rotation),
+	  _interface(interface),
+	  _range_ga(1.9f),
+	  _collect_phase(false),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": com_err")),
+	  _range_errors(perf_alloc(PC_COUNT, MODULE_NAME ": rng_err")),
+	  _conf_errors(perf_alloc(PC_COUNT, MODULE_NAME ": conf_err")),
+	  _range_bits(0),
+	  _conf_reg(0),
+	  _temperature_counter(0),
+	  _temperature_error_count(0) {}
 
-HMC5883::~HMC5883()
-{
+HMC5883::~HMC5883() {
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -61,8 +58,7 @@ HMC5883::~HMC5883()
 	delete _interface;
 }
 
-int HMC5883::init()
-{
+int HMC5883::init() {
 	/* reset the device configuration */
 	reset();
 
@@ -72,8 +68,7 @@ int HMC5883::init()
 	return PX4_OK;
 }
 
-int HMC5883::set_range(unsigned range)
-{
+int HMC5883::set_range(unsigned range) {
 	if (range < 0.88f) {
 		_range_bits = 0x00;
 		_px4_mag.set_scale(1.0f / 1370.0f);
@@ -139,8 +134,7 @@ int HMC5883::set_range(unsigned range)
    periodically to cope with I2C bus noise causing the range of the
    compass changing.
  */
-void HMC5883::check_range()
-{
+void HMC5883::check_range() {
 	int ret;
 
 	uint8_t range_bits_in = 0;
@@ -166,8 +160,7 @@ void HMC5883::check_range()
    done periodically to cope with I2C bus noise causing the
    configuration of the compass to change.
  */
-void HMC5883::check_conf()
-{
+void HMC5883::check_conf() {
 	int ret;
 
 	uint8_t conf_reg_in = 0;
@@ -188,9 +181,7 @@ void HMC5883::check_conf()
 	}
 }
 
-void
-HMC5883::start()
-{
+void HMC5883::start() {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 
@@ -198,23 +189,18 @@ HMC5883::start()
 	ScheduleNow();
 }
 
-int
-HMC5883::reset()
-{
+int HMC5883::reset() {
 	/* set range, ceil floating point number */
 	return set_range(_range_ga + 0.5f);
 }
 
-void
-HMC5883::RunImpl()
-{
+void HMC5883::RunImpl() {
 	if (_measure_interval == 0) {
 		return;
 	}
 
 	/* collection phase? */
 	if (_collect_phase) {
-
 		/* perform collection */
 		if (OK != collect()) {
 			PX4_DEBUG("collection error");
@@ -230,7 +216,6 @@ HMC5883::RunImpl()
 		 * Is there a collect->measure gap?
 		 */
 		if (_measure_interval > HMC5883_CONVERSION_INTERVAL) {
-
 			/* schedule a fresh cycle call when we are ready to measure again */
 			ScheduleDelayed(_measure_interval - HMC5883_CONVERSION_INTERVAL);
 
@@ -252,8 +237,7 @@ HMC5883::RunImpl()
 	}
 }
 
-int HMC5883::measure()
-{
+int HMC5883::measure() {
 	/*
 	 * Send the command to begin a measurement.
 	 */
@@ -266,16 +250,15 @@ int HMC5883::measure()
 	return ret;
 }
 
-int HMC5883::collect()
-{
+int HMC5883::collect() {
 	struct { /* status register and data as read back from the device */
-		uint8_t		x[2];
-		uint8_t		z[2];
-		uint8_t		y[2];
+		uint8_t x[2];
+		uint8_t z[2];
+		uint8_t y[2];
 	} hmc_report{};
 
 	struct {
-		int16_t	x, y, z;
+		int16_t x, y, z;
 	} report{};
 
 	uint8_t check_counter;
@@ -314,9 +297,7 @@ int HMC5883::collect()
 	 * If any of the values are -4096, there was an internal math error in the sensor.
 	 * Generalise this to a simple range check that will also catch some bit errors.
 	 */
-	if ((abs(report.x) > 2048) ||
-	    (abs(report.y) > 2048) ||
-	    (abs(report.z) > 2048)) {
+	if ((abs(report.x) > 2048) || (abs(report.y) > 2048) || (abs(report.z) > 2048)) {
 		perf_count(_comms_errors);
 		goto out;
 	}
@@ -334,12 +315,10 @@ int HMC5883::collect()
 
 			_temperature_counter = 0;
 
-			ret = _interface->read(ADDR_TEMP_OUT_MSB,
-					       raw_temperature, sizeof(raw_temperature));
+			ret = _interface->read(ADDR_TEMP_OUT_MSB, raw_temperature, sizeof(raw_temperature));
 
 			if (ret == OK) {
-				int16_t temp16 = (((int16_t)raw_temperature[0]) << 8) +
-						 raw_temperature[1];
+				int16_t temp16 = (((int16_t)raw_temperature[0]) << 8) + raw_temperature[1];
 				float temperature = 25 + (temp16 / (16 * 8.0f));
 				_px4_mag.set_temperature(temperature);
 				_temperature_error_count = 0;
@@ -426,8 +405,7 @@ out:
   temperature sensor if that happens. It is hoped that this copes with
   the genuine 5883L parts.
  */
-int HMC5883::set_temperature_compensation(unsigned enable)
-{
+int HMC5883::set_temperature_compensation(unsigned enable) {
 	int ret;
 	/* get current config */
 	ret = read_reg(ADDR_CONF_A, _conf_reg);
@@ -461,22 +439,19 @@ int HMC5883::set_temperature_compensation(unsigned enable)
 	return conf_reg_ret == _conf_reg;
 }
 
-int HMC5883::write_reg(uint8_t reg, uint8_t val)
-{
+int HMC5883::write_reg(uint8_t reg, uint8_t val) {
 	uint8_t buf = val;
 	return _interface->write(reg, &buf, 1);
 }
 
-int HMC5883::read_reg(uint8_t reg, uint8_t &val)
-{
+int HMC5883::read_reg(uint8_t reg, uint8_t &val) {
 	uint8_t buf = val;
 	int ret = _interface->read(reg, &buf, 1);
 	val = buf;
 	return ret;
 }
 
-void HMC5883::print_status()
-{
+void HMC5883::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);

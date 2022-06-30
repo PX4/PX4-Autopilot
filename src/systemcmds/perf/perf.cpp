@@ -31,18 +31,14 @@
  *
  ****************************************************************************/
 
-
-
-#include <px4_platform_common/px4_config.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module.h>
-#include <unistd.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
-#include <lib/perf/perf_counter.h>
-
-static void print_usage()
-{
+static void print_usage() {
 	PRINT_MODULE_DESCRIPTION("Tool to print performance counters");
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("perf", "command");
@@ -52,8 +48,7 @@ static void print_usage()
 	PRINT_MODULE_USAGE_PARAM_COMMENT("Prints all performance counters if no arguments given");
 }
 
-extern "C" __EXPORT int perf_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int perf_main(int argc, char *argv[]) {
 	if (argc > 1) {
 		if (strcmp(argv[1], "reset") == 0) {
 			perf_reset_all();

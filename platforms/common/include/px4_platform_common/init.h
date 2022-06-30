@@ -41,8 +41,7 @@ __END_DECLS
 
 #ifdef __cplusplus
 
-namespace px4
-{
+namespace px4 {
 
 /**
  * Startup init method. It has no specific functionality, just prints a welcome
@@ -50,6 +49,6 @@ namespace px4
  */
 __EXPORT void init(int argc, char *argv[], const char *process_name);
 
-} // namespace px4
+}  // namespace px4
 
 #endif /* __cplusplus */

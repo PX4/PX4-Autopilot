@@ -35,23 +35,19 @@
 
 #include <stdint.h>
 
-namespace pwm_out
-{
+namespace pwm_out {
 
 /**
  ** class PWMOutBase
  * common abstract PWM output base class
  */
-class PWMOutBase
-{
+class PWMOutBase {
 public:
-
 	virtual ~PWMOutBase() {}
 
 	virtual int init() = 0;
 
 	virtual int send_output_pwm(const uint16_t *pwm, int num_outputs) = 0;
 };
-
 
 } /* namespace pwm_out */

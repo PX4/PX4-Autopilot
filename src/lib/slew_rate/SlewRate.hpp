@@ -42,11 +42,11 @@
 #pragma once
 
 #include <mathlib/mathlib.h>
+
 #include <matrix/math.hpp>
 
-template<typename Type>
-class SlewRate
-{
+template <typename Type>
+class SlewRate {
 public:
 	SlewRate() = default;
 	~SlewRate() = default;
@@ -75,8 +75,7 @@ public:
 	 * @param deltatime time in seconds since last update
 	 * @return actual value that complies with the slew rate
 	 */
-	Type update(const Type new_value, const float deltatime)
-	{
+	Type update(const Type new_value, const float deltatime) {
 		// Limit the rate of change of the value
 		const Type dvalue_desired = new_value - _value;
 		const Type dvalue_max = _slew_rate * deltatime;
@@ -86,6 +85,6 @@ public:
 	}
 
 protected:
-	Type _slew_rate{}; ///< maximum rate of change for the value
-	Type _value{}; ///< state to keep last value of the slew rate
+	Type _slew_rate{};  ///< maximum rate of change for the value
+	Type _value{};      ///< state to keep last value of the slew rate
 };

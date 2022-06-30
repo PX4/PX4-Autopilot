@@ -37,12 +37,12 @@
  * Driver for the LIS2MDL magnetometer connected via I2C or SPI.
  */
 
-#include "lis2mdl.h"
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-I2CSPIDriverBase *LIS2MDL::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+#include "lis2mdl.h"
+
+I2CSPIDriverBase *LIS2MDL::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	device::Device *interface = nullptr;
 
 	if (config.bus_type == BOARD_I2C_BUS) {
@@ -78,8 +78,7 @@ I2CSPIDriverBase *LIS2MDL::instantiate(const I2CSPIDriverConfig &config, int run
 	return dev;
 }
 
-void LIS2MDL::print_usage()
-{
+void LIS2MDL::print_usage() {
 	PRINT_MODULE_USAGE_NAME("lis2mdl", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -89,8 +88,7 @@ void LIS2MDL::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int lis2mdl_main(int argc, char *argv[])
-{
+extern "C" int lis2mdl_main(int argc, char *argv[]) {
 	using ThisDriver = LIS2MDL;
 	int ch;
 	BusCLIArguments cli{true, true};
@@ -99,9 +97,9 @@ extern "C" int lis2mdl_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

@@ -35,28 +35,23 @@
 
 constexpr uint8_t L3GD20::_checked_registers[];
 
-L3GD20::L3GD20(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	I2CSPIDriver(config),
-	_px4_gyro(get_device_id(), config.rotation),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_errors(perf_alloc(PC_COUNT, MODULE_NAME": err")),
-	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),
-	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": dupe"))
-{
-}
+L3GD20::L3GD20(const I2CSPIDriverConfig &config)
+	: SPI(config),
+	  I2CSPIDriver(config),
+	  _px4_gyro(get_device_id(), config.rotation),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _errors(perf_alloc(PC_COUNT, MODULE_NAME ": err")),
+	  _bad_registers(perf_alloc(PC_COUNT, MODULE_NAME ": bad_reg")),
+	  _duplicates(perf_alloc(PC_COUNT, MODULE_NAME ": dupe")) {}
 
-L3GD20::~L3GD20()
-{
+L3GD20::~L3GD20() {
 	perf_free(_sample_perf);
 	perf_free(_errors);
 	perf_free(_bad_registers);
 	perf_free(_duplicates);
 }
 
-int
-L3GD20::init()
-{
+int L3GD20::init() {
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
 		return PX4_ERROR;
@@ -69,9 +64,7 @@ L3GD20::init()
 	return PX4_OK;
 }
 
-int
-L3GD20::probe()
-{
+int L3GD20::probe() {
 	/* read dummy value to void to clear SPI statemachine on sensor */
 	read_reg(ADDR_WHO_AM_I);
 
@@ -103,10 +96,8 @@ L3GD20::probe()
 	return -EIO;
 }
 
-uint8_t
-L3GD20::read_reg(unsigned reg)
-{
-	uint8_t cmd[2] {};
+uint8_t L3GD20::read_reg(unsigned reg) {
+	uint8_t cmd[2]{};
 
 	cmd[0] = reg | DIR_READ;
 	cmd[1] = 0;
@@ -116,10 +107,8 @@ L3GD20::read_reg(unsigned reg)
 	return cmd[1];
 }
 
-int
-L3GD20::write_reg(unsigned reg, uint8_t value)
-{
-	uint8_t	cmd[2] {};
+int L3GD20::write_reg(unsigned reg, uint8_t value) {
+	uint8_t cmd[2]{};
 
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
@@ -127,9 +116,7 @@ L3GD20::write_reg(unsigned reg, uint8_t value)
 	return transfer(cmd, nullptr, sizeof(cmd));
 }
 
-void
-L3GD20::write_checked_reg(unsigned reg, uint8_t value)
-{
+void L3GD20::write_checked_reg(unsigned reg, uint8_t value) {
 	write_reg(reg, value);
 
 	for (uint8_t i = 0; i < L3GD20_NUM_CHECKED_REGISTERS; i++) {
@@ -139,18 +126,14 @@ L3GD20::write_checked_reg(unsigned reg, uint8_t value)
 	}
 }
 
-void
-L3GD20::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
-{
-	uint8_t	val = read_reg(reg);
+void L3GD20::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits) {
+	uint8_t val = read_reg(reg);
 	val &= ~clearbits;
 	val |= setbits;
 	write_checked_reg(reg, val);
 }
 
-int
-L3GD20::set_range(unsigned max_dps)
-{
+int L3GD20::set_range(unsigned max_dps) {
 	uint8_t bits = REG4_BDU;
 	float new_range_scale_dps_digit;
 
@@ -159,17 +142,17 @@ L3GD20::set_range(unsigned max_dps)
 	}
 
 	if (max_dps <= 250) {
-		//new_range = 250;
+		// new_range = 250;
 		bits |= RANGE_250DPS;
 		new_range_scale_dps_digit = 8.75e-3f;
 
 	} else if (max_dps <= 500) {
-		//new_range = 500;
+		// new_range = 500;
 		bits |= RANGE_500DPS;
 		new_range_scale_dps_digit = 17.5e-3f;
 
 	} else if (max_dps <= 2000) {
-		//new_range = 2000;
+		// new_range = 2000;
 		bits |= RANGE_2000DPS;
 		new_range_scale_dps_digit = 70e-3f;
 
@@ -184,9 +167,7 @@ L3GD20::set_range(unsigned max_dps)
 	return OK;
 }
 
-int
-L3GD20::set_samplerate(unsigned frequency)
-{
+int L3GD20::set_samplerate(unsigned frequency) {
 	uint8_t bits = REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE;
 
 	if (frequency == 0) {
@@ -218,17 +199,13 @@ L3GD20::set_samplerate(unsigned frequency)
 	return OK;
 }
 
-void
-L3GD20::start()
-{
+void L3GD20::start() {
 	/* start polling at the specified rate */
 	uint64_t interval = 1000000 / L3GD20_DEFAULT_RATE;
 	ScheduleOnInterval(interval - L3GD20_TIMER_REDUCTION, 10000);
 }
 
-void
-L3GD20::disable_i2c()
-{
+void L3GD20::disable_i2c() {
 	uint8_t retries = 10;
 
 	while (retries--) {
@@ -249,34 +226,30 @@ L3GD20::disable_i2c()
 	DEVICE_DEBUG("FAILED TO DISABLE I2C");
 }
 
-void
-L3GD20::reset()
-{
+void L3GD20::reset() {
 	// ensure the chip doesn't interpret any other bus traffic as I2C
 	disable_i2c();
 
 	/* set default configuration */
 	write_checked_reg(ADDR_CTRL_REG1, REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
-	write_checked_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
-	write_checked_reg(ADDR_CTRL_REG3, 0x08);        /* DRDY enable */
+	write_checked_reg(ADDR_CTRL_REG2, 0);    /* disable high-pass filters */
+	write_checked_reg(ADDR_CTRL_REG3, 0x08); /* DRDY enable */
 	write_checked_reg(ADDR_CTRL_REG4, REG4_BDU);
 	write_checked_reg(ADDR_CTRL_REG5, 0);
-	write_checked_reg(ADDR_CTRL_REG5, REG5_FIFO_ENABLE);		/* disable wake-on-interrupt */
+	write_checked_reg(ADDR_CTRL_REG5, REG5_FIFO_ENABLE); /* disable wake-on-interrupt */
 
 	/* disable FIFO. This makes things simpler and ensures we
 	 * aren't getting stale data. It means we must run the hrt
 	 * callback fast enough to not miss data. */
 	write_checked_reg(ADDR_FIFO_CTRL_REG, FIFO_CTRL_BYPASS_MODE);
 
-	set_samplerate(0); // 760Hz or 800Hz
+	set_samplerate(0);  // 760Hz or 800Hz
 	set_range(L3GD20_DEFAULT_RANGE_DPS);
 
 	_read = 0;
 }
 
-void
-L3GD20::check_registers()
-{
+void L3GD20::check_registers() {
 	uint8_t v;
 
 	if ((v = read_reg(_checked_registers[_checked_next])) != _checked_values[_checked_next]) {
@@ -304,18 +277,16 @@ L3GD20::check_registers()
 	_checked_next = (_checked_next + 1) % L3GD20_NUM_CHECKED_REGISTERS;
 }
 
-void
-L3GD20::RunImpl()
-{
+void L3GD20::RunImpl() {
 	/* status register and data as read back from the device */
 #pragma pack(push, 1)
 	struct {
-		uint8_t		cmd;
-		int8_t		temp;
-		uint8_t		status;
-		int16_t		x;
-		int16_t		y;
-		int16_t		z;
+		uint8_t cmd;
+		int8_t temp;
+		uint8_t status;
+		int16_t x;
+		int16_t y;
+		int16_t z;
 	} raw_report{};
 #pragma pack(pop)
 
@@ -354,12 +325,12 @@ L3GD20::RunImpl()
 	_px4_gyro.set_temperature(L3GD20_TEMP_OFFSET_CELSIUS - raw_report.temp);
 
 	switch (_orientation) {
-	case SENSOR_BOARD_ROTATION_090_DEG:
-		/* swap x and y */
-		_px4_gyro.update(timestamp_sample, raw_report.y, raw_report.x, raw_report.z);
-		break;
+		case SENSOR_BOARD_ROTATION_090_DEG:
+			/* swap x and y */
+			_px4_gyro.update(timestamp_sample, raw_report.y, raw_report.x, raw_report.z);
+			break;
 
-	case SENSOR_BOARD_ROTATION_180_DEG: {
+		case SENSOR_BOARD_ROTATION_180_DEG: {
 			/* swap x and y and negate both */
 			int16_t x = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
 			int16_t y = ((raw_report.y == -32768) ? 32767 : -raw_report.y);
@@ -368,20 +339,19 @@ L3GD20::RunImpl()
 
 		break;
 
-	case SENSOR_BOARD_ROTATION_270_DEG: {
+		case SENSOR_BOARD_ROTATION_270_DEG: {
 			/* swap x and y and negate y */
 			int16_t x = raw_report.y;
 			int16_t y = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
 			_px4_gyro.update(timestamp_sample, x, y, raw_report.z);
-		}
-		break;
+		} break;
 
-	case SENSOR_BOARD_ROTATION_000_DEG:
+		case SENSOR_BOARD_ROTATION_000_DEG:
 
-	// FALLTHROUGH
-	default:
-		// keep axes in place
-		_px4_gyro.update(timestamp_sample, raw_report.x, raw_report.y, raw_report.z);
+		// FALLTHROUGH
+		default:
+			// keep axes in place
+			_px4_gyro.update(timestamp_sample, raw_report.x, raw_report.y, raw_report.z);
 	}
 
 	_read++;
@@ -390,9 +360,7 @@ L3GD20::RunImpl()
 	perf_end(_sample_perf);
 }
 
-void
-L3GD20::print_status()
-{
+void L3GD20::print_status() {
 	I2CSPIDriverBase::print_status();
 	printf("gyro reads:          %u\n", _read);
 	perf_print_counter(_sample_perf);
@@ -406,18 +374,13 @@ L3GD20::print_status()
 		uint8_t v = read_reg(_checked_registers[i]);
 
 		if (v != _checked_values[i]) {
-			::printf("reg %02x:%02x should be %02x\n",
-				 (unsigned)_checked_registers[i],
-				 (unsigned)v,
+			::printf("reg %02x:%02x should be %02x\n", (unsigned)_checked_registers[i], (unsigned)v,
 				 (unsigned)_checked_values[i]);
 		}
 	}
-
 }
 
-void
-L3GD20::print_registers()
-{
+void L3GD20::print_registers() {
 	printf("L3GD20 registers\n");
 
 	for (uint8_t reg = 0; reg <= 0x40; reg++) {
@@ -432,9 +395,7 @@ L3GD20::print_registers()
 	printf("\n");
 }
 
-void
-L3GD20::test_error()
-{
+void L3GD20::test_error() {
 	// trigger a deliberate error
 	write_reg(ADDR_CTRL_REG3, 0);
 }

@@ -41,83 +41,82 @@
 #include <drivers/device/spi.h>
 #include <geo/geo.h>
 #include <lib/conversion/rotation.h>
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
-class ADIS16477 : public device::SPI, public I2CSPIDriver<ADIS16477>
-{
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+
+class ADIS16477 : public device::SPI, public I2CSPIDriver<ADIS16477> {
 public:
 	ADIS16477(const I2CSPIDriverConfig &config);
 	virtual ~ADIS16477();
 
 	static void print_usage();
 
-	int		init();
+	int init();
 
-	void			print_status() override;
+	void print_status() override;
 
-	void			RunImpl();
+	void RunImpl();
+
 protected:
-	int		probe() override;
+	int probe() override;
 	void exit_and_cleanup() override;
 
 private:
+	PX4Accelerometer _px4_accel;
+	PX4Gyroscope _px4_gyro;
 
-	PX4Accelerometer	_px4_accel;
-	PX4Gyroscope		_px4_gyro;
-
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_bad_transfers;
+	perf_counter_t _sample_perf;
+	perf_counter_t _bad_transfers;
 
 	const spi_drdy_gpio_t _drdy_gpio;
 
 #pragma pack(push, 1)
 	// Report conversation with in the ADIS16477, including command byte and interrupt status.
 	struct ADISReport {
-		uint16_t	cmd;
-		uint16_t	diag_stat;
-		int16_t		gyro_x;
-		int16_t		gyro_y;
-		int16_t		gyro_z;
-		int16_t		accel_x;
-		int16_t		accel_y;
-		int16_t		accel_z;
-		uint16_t	temp;
-		uint16_t	DATA_CNTR;
-		uint8_t		checksum;
-		uint8_t		_padding; // 16 bit SPI mode
+		uint16_t cmd;
+		uint16_t diag_stat;
+		int16_t gyro_x;
+		int16_t gyro_y;
+		int16_t gyro_z;
+		int16_t accel_x;
+		int16_t accel_y;
+		int16_t accel_z;
+		uint16_t temp;
+		uint16_t DATA_CNTR;
+		uint8_t checksum;
+		uint8_t _padding;  // 16 bit SPI mode
 	};
 #pragma pack(pop)
 
 	/**
 	 * Start automatic measurement.
 	 */
-	void			start();
+	void start();
 
 	/**
 	 * Reset chip.
 	 *
 	 * Resets the chip and measurements ranges, but not scale and offset.
 	 */
-	int			reset();
+	int reset();
 
-	static int		data_ready_interrupt(int irq, void *context, void *arg);
+	static int data_ready_interrupt(int irq, void *context, void *arg);
 
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.
 	 */
-	int			measure();
+	int measure();
 
-	uint16_t		read_reg16(uint8_t reg);
+	uint16_t read_reg16(uint8_t reg);
 
-	int			write_reg(uint8_t reg, uint8_t value);
-	void			write_reg16(uint8_t reg, uint16_t value);
+	int write_reg(uint8_t reg, uint8_t value);
+	void write_reg16(uint8_t reg, uint16_t value);
 
 	// ADIS16477 onboard self test
-	bool 			self_test_memory();
-	bool 			self_test_sensor();
-
+	bool self_test_memory();
+	bool self_test_sensor();
 };

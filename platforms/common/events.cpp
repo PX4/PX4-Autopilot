@@ -31,22 +31,19 @@
  *
  ****************************************************************************/
 
-#include <pthread.h>
-
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/posix.h>
+#include <pthread.h>
 #include <px4_platform_common/events.h>
+#include <px4_platform_common/posix.h>
 #include <uORB/uORB.h>
 
 static orb_advert_t orb_event_pub = nullptr;
 static pthread_mutex_t publish_event_mutex = PTHREAD_MUTEX_INITIALIZER;
 static uint16_t event_sequence{events::initial_event_sequence};
 
-namespace events
-{
+namespace events {
 
-void send(EventType &event)
-{
+void send(EventType &event) {
 	event.timestamp = hrt_absolute_time();
 
 	// We need some synchronization here because:
@@ -55,7 +52,7 @@ void send(EventType &event)
 	// - we need to ensure ordering of the sequence numbers: the sequence we set here
 	//   has to be the one published next.
 	pthread_mutex_lock(&publish_event_mutex);
-	event.event_sequence = ++event_sequence; // Set the sequence here so we're able to detect uORB queue overflows
+	event.event_sequence = ++event_sequence;  // Set the sequence here so we're able to detect uORB queue overflows
 
 	if (orb_event_pub != nullptr) {
 		orb_publish(ORB_ID(event), orb_event_pub, &event);

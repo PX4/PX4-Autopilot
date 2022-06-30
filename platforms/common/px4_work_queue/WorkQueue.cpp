@@ -31,21 +31,17 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_work_queue/WorkQueue.hpp>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
-
-#include <string.h>
-
+#include <drivers/drv_hrt.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
-#include <drivers/drv_hrt.h>
+#include <string.h>
 
-namespace px4
-{
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/WorkQueue.hpp>
 
-WorkQueue::WorkQueue(const wq_config_t &config) :
-	_config(config)
-{
+namespace px4 {
+
+WorkQueue::WorkQueue(const wq_config_t &config) : _config(config) {
 	// set the threads name
 #ifdef __PX4_DARWIN
 	pthread_setname_np(_config.name);
@@ -64,9 +60,7 @@ WorkQueue::WorkQueue(const wq_config_t &config) :
 	px4_sem_setprotocol(&_exit_lock, SEM_PRIO_NONE);
 }
 
-WorkQueue::~WorkQueue()
-{
-
+WorkQueue::~WorkQueue() {
 	work_lock();
 
 	// Synchronize with ::Detach
@@ -81,8 +75,7 @@ WorkQueue::~WorkQueue()
 #endif /* __PX4_NUTTX */
 }
 
-bool WorkQueue::Attach(WorkItem *item)
-{
+bool WorkQueue::Attach(WorkItem *item) {
 	work_lock();
 
 	if (!should_exit()) {
@@ -96,8 +89,7 @@ bool WorkQueue::Attach(WorkItem *item)
 	return false;
 }
 
-void WorkQueue::Detach(WorkItem *item)
-{
+void WorkQueue::Detach(WorkItem *item) {
 	bool exiting = false;
 
 	work_lock();
@@ -125,8 +117,7 @@ void WorkQueue::Detach(WorkItem *item)
 	}
 }
 
-void WorkQueue::Add(WorkItem *item)
-{
+void WorkQueue::Add(WorkItem *item) {
 	work_lock();
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -135,7 +126,7 @@ void WorkQueue::Add(WorkItem *item)
 		_lockstep_component = px4_lockstep_register_component();
 	}
 
-#endif // ENABLE_LOCKSTEP_SCHEDULER
+#endif  // ENABLE_LOCKSTEP_SCHEDULER
 
 	_q.push(item);
 	work_unlock();
@@ -143,8 +134,7 @@ void WorkQueue::Add(WorkItem *item)
 	SignalWorkerThread();
 }
 
-void WorkQueue::SignalWorkerThread()
-{
+void WorkQueue::SignalWorkerThread() {
 	int sem_val;
 
 	if (px4_sem_getvalue(&_process_lock, &sem_val) == 0 && sem_val <= 0) {
@@ -152,15 +142,13 @@ void WorkQueue::SignalWorkerThread()
 	}
 }
 
-void WorkQueue::Remove(WorkItem *item)
-{
+void WorkQueue::Remove(WorkItem *item) {
 	work_lock();
 	_q.remove(item);
 	work_unlock();
 }
 
-void WorkQueue::Clear()
-{
+void WorkQueue::Clear() {
 	work_lock();
 
 	while (!_q.empty()) {
@@ -170,11 +158,11 @@ void WorkQueue::Clear()
 	work_unlock();
 }
 
-void WorkQueue::Run()
-{
+void WorkQueue::Run() {
 	while (!should_exit()) {
 		// loop as the wait may be interrupted by a signal
-		do {} while (px4_sem_wait(&_process_lock) != 0);
+		do {
+		} while (px4_sem_wait(&_process_lock) != 0);
 
 		work_lock();
 
@@ -182,11 +170,11 @@ void WorkQueue::Run()
 		while (!_q.empty()) {
 			WorkItem *work = _q.pop();
 
-			work_unlock(); // unlock work queue to run (item may requeue itself)
+			work_unlock();  // unlock work queue to run (item may requeue itself)
 			work->RunPreamble();
 			work->Run();
 			// Note: after Run() we cannot access work anymore, as it might have been deleted
-			work_lock(); // re-lock
+			work_lock();  // re-lock
 		}
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -196,7 +184,7 @@ void WorkQueue::Run()
 			_lockstep_component = -1;
 		}
 
-#endif // ENABLE_LOCKSTEP_SCHEDULER
+#endif  // ENABLE_LOCKSTEP_SCHEDULER
 
 		work_unlock();
 	}
@@ -204,8 +192,7 @@ void WorkQueue::Run()
 	PX4_DEBUG("%s: exiting", _config.name);
 }
 
-void WorkQueue::print_status(bool last)
-{
+void WorkQueue::print_status(bool last) {
 	const size_t num_items = _work_items.size();
 	PX4_INFO_RAW("%-16s\n", get_name());
 	unsigned i = 0;
@@ -231,4 +218,4 @@ void WorkQueue::print_status(bool last)
 	}
 }
 
-} // namespace px4
+}  // namespace px4

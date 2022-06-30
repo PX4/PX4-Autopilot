@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include "LSM9DS1_MAG.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void LSM9DS1_MAG::print_usage()
-{
+#include "LSM9DS1_MAG.hpp"
+
+void LSM9DS1_MAG::print_usage() {
 	PRINT_MODULE_USAGE_NAME("lsm9ds1_mag", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -46,8 +45,7 @@ void LSM9DS1_MAG::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int lsm9ds1_mag_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int lsm9ds1_mag_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = LSM9DS1_MAG;
 	BusCLIArguments cli{false, true};
@@ -55,9 +53,9 @@ extern "C" __EXPORT int lsm9ds1_mag_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

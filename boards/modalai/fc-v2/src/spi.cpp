@@ -31,26 +31,31 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
 #include <drivers/drv_sensor.h>
 #include <nuttx/spi/spi.h>
+#include <px4_arch/spi_hw_description.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-	}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
-	}),
-	initSPIBus(SPI::Bus::SPI4, {
-		initSPIDevice(DRV_MAG_DEVTYPE_BMM150, SPI::CS{GPIO::PortH, GPIO::Pin15}, SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
-	}),
-	initSPIBus(SPI::Bus::SPI5, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})
-	}),
-	initSPIBusExternal(SPI::Bus::SPI6, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}),
-	}),
+	initSPIBus(SPI::Bus::SPI1,
+		   {
+			   initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortI, GPIO::Pin9},
+					 SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
+		   }),
+	initSPIBus(SPI::Bus::SPI2,
+		   {
+			   initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortH, GPIO::Pin5},
+					 SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
+		   }),
+	initSPIBus(SPI::Bus::SPI4,
+		   {
+			   initSPIDevice(DRV_MAG_DEVTYPE_BMM150, SPI::CS{GPIO::PortH, GPIO::Pin15},
+					 SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
+		   }),
+	initSPIBus(SPI::Bus::SPI5, {initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})}),
+	initSPIBusExternal(SPI::Bus::SPI6,
+			   {
+				   initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}),
+			   }),
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses);

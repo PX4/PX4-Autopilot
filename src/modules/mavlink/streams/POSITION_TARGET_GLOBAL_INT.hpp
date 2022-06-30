@@ -38,10 +38,11 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 
-class MavlinkStreamPositionTargetGlobalInt : public MavlinkStream
-{
+class MavlinkStreamPositionTargetGlobalInt : public MavlinkStream {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamPositionTargetGlobalInt(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
+		return new MavlinkStreamPositionTargetGlobalInt(mavlink);
+	}
 
 	static constexpr const char *get_name_static() { return "POSITION_TARGET_GLOBAL_INT"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT; }
@@ -49,10 +50,10 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _pos_sp_triplet_sub.advertised() ? MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT_LEN +
-		       MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _pos_sp_triplet_sub.advertised()
+			       ? MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+			       : 0;
 	}
 
 private:
@@ -62,19 +63,16 @@ private:
 	uORB::Subscription _lpos_sp_sub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_control_mode_s control_mode{};
 		_control_mode_sub.copy(&control_mode);
 
 		if (control_mode.flag_control_position_enabled) {
-
 			position_setpoint_triplet_s pos_sp_triplet{};
 			_pos_sp_triplet_sub.copy(&pos_sp_triplet);
 
-			if (pos_sp_triplet.timestamp > 0 && pos_sp_triplet.current.valid
-			    && PX4_ISFINITE(pos_sp_triplet.current.lat) && PX4_ISFINITE(pos_sp_triplet.current.lon)) {
-
+			if (pos_sp_triplet.timestamp > 0 && pos_sp_triplet.current.valid &&
+			    PX4_ISFINITE(pos_sp_triplet.current.lat) && PX4_ISFINITE(pos_sp_triplet.current.lon)) {
 				mavlink_position_target_global_int_t msg{};
 
 				msg.time_boot_ms = hrt_absolute_time() / 1000;
@@ -111,4 +109,4 @@ private:
 	}
 };
 
-#endif // POSITION_TARGET_GLOBAL_INT_HPP
+#endif  // POSITION_TARGET_GLOBAL_INT_HPP

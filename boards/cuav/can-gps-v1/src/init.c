@@ -45,36 +45,30 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/tasks.h>
-
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
+#include <arch/board/board.h>
 #include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_watchdog.h>
 #include <errno.h>
-#include <syslog.h>
-
+#include <nuttx/analog/adc.h>
 #include <nuttx/board.h>
 #include <nuttx/i2c/i2c_master.h>
-#include <nuttx/analog/adc.h>
-
+#include <px4_platform_common/init.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stm32.h>
-#include "board_config.h"
 #include <stm32_uart.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
-#include <drivers/drv_watchdog.h>
-
+#include <string.h>
+#include <syslog.h>
 #include <systemlib/px4_macros.h>
 
-#include <px4_platform_common/init.h>
+#include "board_config.h"
 
-# if defined(FLASH_BASED_PARAMS)
-#  include <parameters/flashparams/flashfs.h>
+#if defined(FLASH_BASED_PARAMS)
+#include <parameters/flashparams/flashfs.h>
 #endif
 
 /************************************************************************************
@@ -87,9 +81,7 @@
  *
  ************************************************************************************/
 
-__EXPORT void
-stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	watchdog_init();
 	// Configure CAN interface
 	stm32_configgpio(GPIO_CAN1_RX);
@@ -129,8 +121,7 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	px4_platform_init();
 
 #if defined(FLASH_BASED_PARAMS)
@@ -147,9 +138,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
 	}
 
-#endif // FLASH_BASED_PARAMS
+#endif  // FLASH_BASED_PARAMS
 
-	//px4_platform_configure();
+	// px4_platform_configure();
 
 	return OK;
 }

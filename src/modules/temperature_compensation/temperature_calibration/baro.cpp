@@ -41,14 +41,14 @@
  */
 
 #include "baro.h"
-#include <uORB/topics/sensor_baro.h>
-#include <mathlib/mathlib.h>
+
 #include <drivers/drv_hrt.h>
+#include <mathlib/mathlib.h>
+#include <uORB/topics/sensor_baro.h>
 
 TemperatureCalibrationBaro::TemperatureCalibrationBaro(float min_temperature_rise, float min_start_temperature,
-		float max_start_temperature)
-	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature, max_start_temperature)
-{
+						       float max_start_temperature)
+	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature, max_start_temperature) {
 	// init subscriptions
 	_num_sensor_instances = orb_group_count(ORB_ID(sensor_baro));
 
@@ -61,15 +61,13 @@ TemperatureCalibrationBaro::TemperatureCalibrationBaro(float min_temperature_ris
 	}
 }
 
-TemperatureCalibrationBaro::~TemperatureCalibrationBaro()
-{
+TemperatureCalibrationBaro::~TemperatureCalibrationBaro() {
 	for (unsigned i = 0; i < _num_sensor_instances; i++) {
 		orb_unsubscribe(_sensor_subs[i]);
 	}
 }
 
-int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int sensor_sub)
-{
+int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int sensor_sub) {
 	bool finished = data.hot_soaked;
 
 	bool updated;
@@ -96,9 +94,8 @@ int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int 
 
 	data.device_id = baro_data.device_id;
 
-	data.sensor_sample_filt[0] = 100.0f * baro_data.pressure; // convert from hPA to Pa
+	data.sensor_sample_filt[0] = 100.0f * baro_data.pressure;  // convert from hPA to Pa
 	data.sensor_sample_filt[1] = baro_data.temperature;
-
 
 	// wait for min start temp to be reached before starting calibration
 	if (data.sensor_sample_filt[1] < _min_start_temperature) {
@@ -114,8 +111,9 @@ int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int 
 
 			} else {
 				data.cold_soaked = true;
-				data.low_temp = data.sensor_sample_filt[1]; // Record the low temperature
-				data.high_temp = data.low_temp; // Initialise the high temperature to the initial temperature
+				data.low_temp = data.sensor_sample_filt[1];  // Record the low temperature
+				data.high_temp =
+					data.low_temp;  // Initialise the high temperature to the initial temperature
 				data.ref_temp = data.sensor_sample_filt[1] + 0.5f * _min_temperature_rise;
 				return 1;
 			}
@@ -139,7 +137,7 @@ int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int 
 		data.hot_soaked = true;
 	}
 
-	if (sensor_sub == _sensor_subs[0]) { // debug output, but only for the first sensor
+	if (sensor_sub == _sensor_subs[0]) {  // debug output, but only for the first sensor
 		TC_DEBUG("\nBaro: %.20f,%.20f,%.20f,%.20f, %.6f, %.6f, %.6f\n\n", (double)data.sensor_sample_filt[0],
 			 (double)data.sensor_sample_filt[1], (double)data.low_temp, (double)data.high_temp,
 			 (double)(data.high_temp - data.low_temp));
@@ -152,8 +150,7 @@ int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int 
 	return 1;
 }
 
-int TemperatureCalibrationBaro::finish()
-{
+int TemperatureCalibrationBaro::finish() {
 	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
 		finish_sensor_instance(_data[uorb_index], uorb_index);
 	}
@@ -168,8 +165,7 @@ int TemperatureCalibrationBaro::finish()
 	return result;
 }
 
-int TemperatureCalibrationBaro::finish_sensor_instance(PerSensorData &data, int sensor_index)
-{
+int TemperatureCalibrationBaro::finish_sensor_instance(PerSensorData &data, int sensor_index) {
 	if (!data.has_valid_temperature) {
 		PX4_WARN("Result baro %d does not have a valid temperature sensor", sensor_index);
 
@@ -182,12 +178,12 @@ int TemperatureCalibrationBaro::finish_sensor_instance(PerSensorData &data, int 
 		return 0;
 	}
 
-	double res[POLYFIT_ORDER + 1] {};
+	double res[POLYFIT_ORDER + 1]{};
 	data.P[0].fit(res);
-	res[POLYFIT_ORDER] =
-		0.0; // normalise the correction to be zero at the reference temperature by setting the X^0 coefficient to zero
-	PX4_INFO("Result baro %u %.20f %.20f %.20f %.20f %.20f %.20f", sensor_index, (double)res[0],
-		 (double)res[1], (double)res[2], (double)res[3], (double)res[4], (double)res[5]);
+	res[POLYFIT_ORDER] = 0.0;  // normalise the correction to be zero at the reference temperature by setting the
+				   // X^0 coefficient to zero
+	PX4_INFO("Result baro %u %.20f %.20f %.20f %.20f %.20f %.20f", sensor_index, (double)res[0], (double)res[1],
+		 (double)res[2], (double)res[3], (double)res[4], (double)res[5]);
 	data.tempcal_complete = true;
 
 	char str[30];

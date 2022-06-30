@@ -36,13 +36,11 @@
  */
 
 #include <AttitudeControl.hpp>
-
 #include <mathlib/math/Functions.hpp>
 
 using namespace matrix;
 
-void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_gain, const float yaw_weight)
-{
+void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_gain, const float yaw_weight) {
 	_proportional_gain = proportional_gain;
 	_yaw_w = math::constrain(yaw_weight, 0.f, 1.f);
 
@@ -52,8 +50,7 @@ void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_g
 	}
 }
 
-matrix::Vector3f AttitudeControl::update(const Quatf &q) const
-{
+matrix::Vector3f AttitudeControl::update(const Quatf &q) const {
 	Quatf qd = _attitude_setpoint_q;
 
 	// calculate reduced desired attitude neglecting vehicle's yaw to prioritize roll and pitch
@@ -64,7 +61,8 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	if (fabsf(qd_red(1)) > (1.f - 1e-5f) || fabsf(qd_red(2)) > (1.f - 1e-5f)) {
 		// In the infinitesimal corner case where the vehicle and thrust have the completely opposite direction,
 		// full attitude control anyways generates no yaw input and directly takes the combination of
-		// roll and pitch leading to the correct desired yaw. Ignoring this case would still be totally safe and stable.
+		// roll and pitch leading to the correct desired yaw. Ignoring this case would still be totally safe and
+		// stable.
 		qd_red = qd;
 
 	} else {
@@ -93,10 +91,10 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	// Feed forward the yaw setpoint rate.
 	// yawspeed_setpoint is the feed forward commanded rotation around the world z-axis,
 	// but we need to apply it in the body frame (because _rates_sp is expressed in the body frame).
-	// Therefore we infer the world z-axis (expressed in the body frame) by taking the last column of R.transposed (== q.inversed)
-	// and multiply it by the yaw setpoint rate (yawspeed_setpoint).
-	// This yields a vector representing the commanded rotatation around the world z-axis expressed in the body frame
-	// such that it can be added to the rates setpoint.
+	// Therefore we infer the world z-axis (expressed in the body frame) by taking the last column of R.transposed
+	// (== q.inversed) and multiply it by the yaw setpoint rate (yawspeed_setpoint). This yields a vector
+	// representing the commanded rotatation around the world z-axis expressed in the body frame such that it can be
+	// added to the rates setpoint.
 	if (is_finite(_yawspeed_setpoint)) {
 		rate_setpoint += q.inversed().dcm_z() * _yawspeed_setpoint;
 	}

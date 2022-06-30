@@ -45,37 +45,32 @@
  * Included Files
  ****************************************************************************/
 
+#include <arch/board/board.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
+#include <errno.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/mm/gran.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform_common/init.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
-
 #include <stdbool.h>
 #include <stdio.h>
+#include <stm32.h>
+#include <stm32_uart.h>
 #include <string.h>
-#include <debug.h>
-#include <errno.h>
 #include <syslog.h>
 
-#include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-#include <nuttx/mm/gran.h>
-
-#include <stm32.h>
 #include "board_config.h"
-#include <stm32_uart.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
-
-#include <px4_platform_common/init.h>
-#include <px4_platform/board_dma_alloc.h>
-#include <drivers/drv_pwm_output.h>
-#include <px4_arch/io_timer.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -105,8 +100,7 @@ __END_DECLS
  *          0 if just resetting
  *
  ************************************************************************************/
-__EXPORT void board_on_reset(int status)
-{
+__EXPORT void board_on_reset(int status) {
 	/* configure the GPIO pins to outputs and keep them low */
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
@@ -135,9 +129,7 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
-__EXPORT void
-stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	// Reset all PWM to Low outputs.
 
 	board_on_reset(-1);
@@ -148,13 +140,13 @@ stm32_boardinitialize(void)
 
 	/* configure ADC pins */
 
-	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	stm32_configgpio(GPIO_ADC1_IN10);	/* BATT_CURRENT_SENS */
-	stm32_configgpio(GPIO_ADC1_IN12);	/* BATT_VOLTAGE_SENS */
-	stm32_configgpio(GPIO_ADC1_IN11);	/* RSSI analog in */
-	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN4);  /* VDD_5V_SENS */
+	stm32_configgpio(GPIO_ADC1_IN10); /* BATT_CURRENT_SENS */
+	stm32_configgpio(GPIO_ADC1_IN12); /* BATT_VOLTAGE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN11); /* RSSI analog in */
+	stm32_configgpio(GPIO_ADC1_IN13); /* FMU_AUX_ADC_1 */
+	stm32_configgpio(GPIO_ADC1_IN14); /* FMU_AUX_ADC_2 */
+	stm32_configgpio(GPIO_ADC1_IN15); /* PRESSURE_SENS */
 
 	/* configure power supply control/sense pins */
 
@@ -175,7 +167,6 @@ stm32_boardinitialize(void)
 
 	stm32_configgpio(GPIO_I2C1_SCL);
 	stm32_configgpio(GPIO_I2C1_SDA);
-
 }
 
 /****************************************************************************
@@ -208,8 +199,7 @@ static struct spi_dev_s *spi2;
 static struct spi_dev_s *spi4;
 static struct sdio_dev_s *sdio;
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	px4_platform_init();
 
 	/* configure the DMA allocator */
@@ -263,13 +253,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi1, 24 * 1000 * 1000);
 	SPI_SETBITS(spi1, 8);
 
-
 	spi2 = px4_spibus_initialize(2);
 
 	/* Default SPI2 to 10MHz and de-assert the known chip selects. */
 	SPI_SETFREQUENCY(spi2, 10000000);
 	SPI_SETBITS(spi2, 8);
-
 
 #ifdef CONFIG_MMCSD
 	/* First, get an instance of the SDIO interface */

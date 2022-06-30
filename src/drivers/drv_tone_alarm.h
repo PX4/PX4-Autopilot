@@ -40,12 +40,12 @@
 
 #pragma once
 
-#include "drv_hrt.h"
 #include <lib/tunes/tune_definition.h>
 #include <uORB/topics/tune_control.h>
 
-namespace ToneAlarmInterface
-{
+#include "drv_hrt.h"
+
+namespace ToneAlarmInterface {
 
 /**
  * @brief Activates/configures the hardware registers.
@@ -63,4 +63,4 @@ hrt_abstime start_note(unsigned frequency);
  */
 void stop_note();
 
-} // ToneAlarmInterface
+}  // namespace ToneAlarmInterface

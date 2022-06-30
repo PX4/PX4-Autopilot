@@ -35,11 +35,9 @@
 
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
-class MovingDiff
-{
+class MovingDiff {
 public:
-	float update(float value, float dt_s)
-	{
+	float update(float value, float dt_s) {
 		if (!PX4_ISFINITE(value) || (dt_s < FLT_EPSILON)) {
 			// Ignore NAN
 			return NAN;
@@ -57,8 +55,7 @@ public:
 		return _difference_filter.getState();
 	}
 
-	void reset()
-	{
+	void reset() {
 		_difference_filter.reset(0.f);
 		_last_value = NAN;
 	}

@@ -41,17 +41,17 @@
  * @author David Sidrane
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/getopt.h>
+#include "dataman.h"
+
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
-
-#include "dataman.h"
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
 
 __BEGIN_DECLS
 __EXPORT int dataman_main(int argc, char *argv[]);
@@ -62,14 +62,14 @@ static constexpr int TASK_STACK_SIZE = 1220;
 /* Private File based Operations */
 static ssize_t _file_write(dm_item_t item, unsigned index, const void *buf, size_t count);
 static ssize_t _file_read(dm_item_t item, unsigned index, void *buf, size_t count);
-static int  _file_clear(dm_item_t item);
+static int _file_clear(dm_item_t item);
 static int _file_initialize(unsigned max_offset);
 static void _file_shutdown();
 
 /* Private Ram based Operations */
 static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_t count);
 static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count);
-static int  _ram_clear(dm_item_t item);
+static int _ram_clear(dm_item_t item);
 static int _ram_initialize(unsigned max_offset);
 static void _ram_shutdown();
 
@@ -83,18 +83,18 @@ typedef struct dm_operations_t {
 } dm_operations_t;
 
 static constexpr dm_operations_t dm_file_operations = {
-	.write   = _file_write,
-	.read    = _file_read,
-	.clear   = _file_clear,
+	.write = _file_write,
+	.read = _file_read,
+	.clear = _file_clear,
 	.initialize = _file_initialize,
 	.shutdown = _file_shutdown,
 	.wait = px4_sem_wait,
 };
 
 static constexpr dm_operations_t dm_ram_operations = {
-	.write   = _ram_write,
-	.read    = _ram_read,
-	.clear   = _ram_clear,
+	.write = _ram_write,
+	.read = _ram_read,
+	.clear = _ram_clear,
 	.initialize = _ram_initialize,
 	.shutdown = _ram_shutdown,
 	.wait = px4_sem_wait,
@@ -117,16 +117,11 @@ static struct {
 } dm_operations_data;
 
 /** Types of function calls supported by the worker task */
-typedef enum {
-	dm_write_func = 0,
-	dm_read_func,
-	dm_clear_func,
-	dm_number_of_funcs
-} dm_function_t;
+typedef enum { dm_write_func = 0, dm_read_func, dm_clear_func, dm_number_of_funcs } dm_function_t;
 
 /** Work task work item */
 typedef struct {
-	sq_entry_t link;	/**< list linkage */
+	sq_entry_t link; /**< list linkage */
 	px4_sem_t wait_sem;
 	unsigned char first;
 	unsigned char func;
@@ -157,25 +152,18 @@ static unsigned g_func_counts[dm_number_of_funcs];
 
 /* table of maximum number of instances for each item type */
 static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
-	DM_KEY_SAFE_POINTS_MAX,
-	DM_KEY_FENCE_POINTS_MAX,
-	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
-	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX,
-	DM_KEY_MISSION_STATE_MAX,
-	DM_KEY_COMPAT_MAX
-};
+	DM_KEY_SAFE_POINTS_MAX,          DM_KEY_FENCE_POINTS_MAX,  DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
+	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX, DM_KEY_MISSION_STATE_MAX, DM_KEY_COMPAT_MAX};
 
-#define DM_SECTOR_HDR_SIZE 4	/* data manager per item header overhead */
+#define DM_SECTOR_HDR_SIZE 4 /* data manager per item header overhead */
 
 /* Table of the len of each item type */
-static constexpr size_t g_per_item_size[DM_KEY_NUM_KEYS] = {
-	sizeof(struct mission_safe_point_s) + DM_SECTOR_HDR_SIZE,
-	sizeof(struct mission_fence_point_s) + DM_SECTOR_HDR_SIZE,
-	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
-	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
-	sizeof(struct mission_s) + DM_SECTOR_HDR_SIZE,
-	sizeof(struct dataman_compat_s) + DM_SECTOR_HDR_SIZE
-};
+static constexpr size_t g_per_item_size[DM_KEY_NUM_KEYS] = {sizeof(struct mission_safe_point_s) + DM_SECTOR_HDR_SIZE,
+							    sizeof(struct mission_fence_point_s) + DM_SECTOR_HDR_SIZE,
+							    sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
+							    sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
+							    sizeof(struct mission_s) + DM_SECTOR_HDR_SIZE,
+							    sizeof(struct dataman_compat_s) + DM_SECTOR_HDR_SIZE};
 
 /* Table of offset for index 0 of each item type */
 static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
@@ -192,58 +180,38 @@ static perf_counter_t _dm_write_perf{nullptr};
 static const char *default_device_path = PX4_STORAGEDIR "/dataman";
 static char *k_data_manager_device_path = nullptr;
 
-static enum {
-	BACKEND_NONE = 0,
-	BACKEND_FILE,
-	BACKEND_RAM,
-	BACKEND_LAST
-} backend = BACKEND_NONE;
+static enum { BACKEND_NONE = 0, BACKEND_FILE, BACKEND_RAM, BACKEND_LAST } backend = BACKEND_NONE;
 
 /* The data manager work queues */
 
 typedef struct {
-	sq_queue_t q;		/* Nuttx queue */
-	px4_sem_t mutex;		/* Mutual exclusion on work queue adds and deletes */
-	unsigned size;		/* Current size of queue */
-	unsigned max_size;	/* Maximum queue size reached */
+	sq_queue_t q;      /* Nuttx queue */
+	px4_sem_t mutex;   /* Mutual exclusion on work queue adds and deletes */
+	unsigned size;     /* Current size of queue */
+	unsigned max_size; /* Maximum queue size reached */
 } work_q_t;
 
-static work_q_t g_free_q;	/* queue of free work items. So that we don't always need to call malloc and free*/
-static work_q_t g_work_q;	/* pending work items. To be consumed by worker thread */
+static work_q_t g_free_q; /* queue of free work items. So that we don't always need to call malloc and free*/
+static work_q_t g_work_q; /* pending work items. To be consumed by worker thread */
 
-static px4_sem_t g_work_queued_sema;	/* To notify worker thread a work item has been queued */
+static px4_sem_t g_work_queued_sema; /* To notify worker thread a work item has been queued */
 static px4_sem_t g_init_sema;
 
-static bool g_task_should_exit;	/**< if true, dataman task should exit */
+static bool g_task_should_exit; /**< if true, dataman task should exit */
 
-static void init_q(work_q_t *q)
-{
-	sq_init(&(q->q));		/* Initialize the NuttX queue structure */
-	px4_sem_init(&(q->mutex), 1, 1);	/* Queue is initially unlocked */
-	q->size = q->max_size = 0;	/* Queue is initially empty */
+static void init_q(work_q_t *q) {
+	sq_init(&(q->q));                /* Initialize the NuttX queue structure */
+	px4_sem_init(&(q->mutex), 1, 1); /* Queue is initially unlocked */
+	q->size = q->max_size = 0;       /* Queue is initially empty */
 }
 
-static inline void
-destroy_q(work_q_t *q)
-{
-	px4_sem_destroy(&(q->mutex));	/* Destroy the queue lock */
-}
+static inline void destroy_q(work_q_t *q) { px4_sem_destroy(&(q->mutex)); /* Destroy the queue lock */ }
 
-static inline void
-lock_queue(work_q_t *q)
-{
-	px4_sem_wait(&(q->mutex));	/* Acquire the queue lock */
-}
+static inline void lock_queue(work_q_t *q) { px4_sem_wait(&(q->mutex)); /* Acquire the queue lock */ }
 
-static inline void
-unlock_queue(work_q_t *q)
-{
-	px4_sem_post(&(q->mutex));	/* Release the queue lock */
-}
+static inline void unlock_queue(work_q_t *q) { px4_sem_post(&(q->mutex)); /* Release the queue lock */ }
 
-static work_q_item_t *
-create_work_item()
-{
+static work_q_item_t *create_work_item() {
 	work_q_item_t *item;
 
 	/* Try to reuse item from free item queue */
@@ -281,7 +249,7 @@ create_work_item()
 
 	/* If we got one then lock the item*/
 	if (item) {
-		px4_sem_init(&item->wait_sem, 1, 0);        /* Caller will wait on this... initially locked */
+		px4_sem_init(&item->wait_sem, 1, 0); /* Caller will wait on this... initially locked */
 
 		/* item->wait_sem use case is a signal */
 
@@ -294,9 +262,7 @@ create_work_item()
 
 /* Work queue management functions */
 
-static inline void
-destroy_work_item(work_q_item_t *item)
-{
+static inline void destroy_work_item(work_q_item_t *item) {
 	px4_sem_destroy(&item->wait_sem); /* Destroy the item lock */
 	/* Return the item to the free item queue for later reuse */
 	lock_queue(&g_free_q);
@@ -310,9 +276,7 @@ destroy_work_item(work_q_item_t *item)
 	unlock_queue(&g_free_q);
 }
 
-static inline work_q_item_t *
-dequeue_work_item()
-{
+static inline work_q_item_t *dequeue_work_item() {
 	work_q_item_t *work;
 
 	/* retrieve the 1st item on the work queue */
@@ -326,9 +290,7 @@ dequeue_work_item()
 	return work;
 }
 
-static int
-enqueue_work_item_and_wait_for_result(work_q_item_t *item)
-{
+static int enqueue_work_item_and_wait_for_result(work_q_item_t *item) {
 	/* put the work item at the end of the work queue */
 	lock_queue(&g_work_q);
 	sq_addlast(&item->link, &(g_work_q.q));
@@ -353,16 +315,10 @@ enqueue_work_item_and_wait_for_result(work_q_item_t *item)
 	return result;
 }
 
-static bool is_running()
-{
-	return dm_operations_data.running;
-}
+static bool is_running() { return dm_operations_data.running; }
 
 /* Calculate the offset in file of specific item */
-static int
-calculate_offset(dm_item_t item, unsigned index)
-{
-
+static int calculate_offset(dm_item_t item, unsigned index) {
 	/* Make sure the item type is valid */
 	if (item >= DM_KEY_NUM_KEYS) {
 		return -1;
@@ -389,8 +345,7 @@ calculate_offset(dm_item_t item, unsigned index)
  */
 
 /* write to the data manager RAM buffer  */
-static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_t count)
-{
+static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_t count) {
 	/* Get the offset for this item */
 	int offset = calculate_offset(item, index);
 
@@ -425,9 +380,7 @@ static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_
 }
 
 /* write to the data manager file */
-static ssize_t
-_file_write(dm_item_t item, unsigned index, const void *buf, size_t count)
-{
+static ssize_t _file_write(dm_item_t item, unsigned index, const void *buf, size_t count) {
 	unsigned char buffer[g_per_item_size[item]];
 
 	/* Get the offset for this item */
@@ -499,8 +452,7 @@ _file_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 }
 
 /* Retrieve from the data manager RAM buffer*/
-static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count)
-{
+static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count) {
 	/* Get the offset for this item */
 	int offset = calculate_offset(item, index);
 
@@ -538,9 +490,7 @@ static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count
 }
 
 /* Retrieve from the data manager file */
-static ssize_t
-_file_read(dm_item_t item, unsigned index, void *buf, size_t count)
-{
+static ssize_t _file_read(dm_item_t item, unsigned index, void *buf, size_t count) {
 	if (item >= DM_KEY_NUM_KEYS) {
 		return -1;
 	}
@@ -615,8 +565,7 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 	return buffer[0];
 }
 
-static int  _ram_clear(dm_item_t item)
-{
+static int _ram_clear(dm_item_t item) {
 	int i;
 	int result = 0;
 
@@ -644,9 +593,7 @@ static int  _ram_clear(dm_item_t item)
 	return result;
 }
 
-static int
-_file_clear(dm_item_t item)
-{
+static int _file_clear(dm_item_t item) {
 	int i, result = 0;
 
 	/* Get the offset of 1st item of this type */
@@ -694,9 +641,7 @@ _file_clear(dm_item_t item)
 	return result;
 }
 
-static int
-_file_initialize(unsigned max_offset)
-{
+static int _file_initialize(unsigned max_offset) {
 	/* See if the data manage file exists and is a multiple of the sector size */
 	dm_operations_data.file.fd = open(k_data_manager_device_path, O_RDONLY | O_BINARY);
 
@@ -753,9 +698,7 @@ _file_initialize(unsigned max_offset)
 	return 0;
 }
 
-static int
-_ram_initialize(unsigned max_offset)
-{
+static int _ram_initialize(unsigned max_offset) {
 	/* In memory */
 	dm_operations_data.ram.data = (uint8_t *)malloc(max_offset);
 
@@ -772,24 +715,18 @@ _ram_initialize(unsigned max_offset)
 	return 0;
 }
 
-static void
-_file_shutdown()
-{
+static void _file_shutdown() {
 	close(dm_operations_data.file.fd);
 	dm_operations_data.running = false;
 }
 
-static void
-_ram_shutdown()
-{
+static void _ram_shutdown() {
 	free(dm_operations_data.ram.data);
 	dm_operations_data.running = false;
 }
 
 /** Write to the data manager file */
-__EXPORT ssize_t
-dm_write(dm_item_t item, unsigned index, const void *buf, size_t count)
-{
+__EXPORT ssize_t dm_write(dm_item_t item, unsigned index, const void *buf, size_t count) {
 	work_q_item_t *work;
 
 	/* Make sure data manager has been started and is not shutting down */
@@ -819,9 +756,7 @@ dm_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 }
 
 /** Retrieve from the data manager file */
-__EXPORT ssize_t
-dm_read(dm_item_t item, unsigned index, void *buf, size_t count)
-{
+__EXPORT ssize_t dm_read(dm_item_t item, unsigned index, void *buf, size_t count) {
 	work_q_item_t *work;
 
 	/* Make sure data manager has been started and is not shutting down */
@@ -851,9 +786,7 @@ dm_read(dm_item_t item, unsigned index, void *buf, size_t count)
 }
 
 /** Clear a data Item */
-__EXPORT int
-dm_clear(dm_item_t item)
-{
+__EXPORT int dm_clear(dm_item_t item) {
 	work_q_item_t *work;
 
 	/* Make sure data manager has been started and is not shutting down */
@@ -874,9 +807,7 @@ dm_clear(dm_item_t item)
 	return enqueue_work_item_and_wait_for_result(work);
 }
 
-__EXPORT int
-dm_lock(dm_item_t item)
-{
+__EXPORT int dm_lock(dm_item_t item) {
 	/* Make sure data manager has been started and is not shutting down */
 	if (!is_running() || g_task_should_exit) {
 		errno = EINVAL;
@@ -896,9 +827,7 @@ dm_lock(dm_item_t item)
 	return -1;
 }
 
-__EXPORT int
-dm_trylock(dm_item_t item)
-{
+__EXPORT int dm_trylock(dm_item_t item) {
 	/* Make sure data manager has been started and is not shutting down */
 	if (!is_running() || g_task_should_exit) {
 		errno = EINVAL;
@@ -919,9 +848,7 @@ dm_trylock(dm_item_t item)
 }
 
 /** Unlock a data Item */
-__EXPORT void
-dm_unlock(dm_item_t item)
-{
+__EXPORT void dm_unlock(dm_item_t item) {
 	/* Make sure data manager has been started and is not shutting down */
 	if (!is_running() || g_task_should_exit) {
 		return;
@@ -936,22 +863,20 @@ dm_unlock(dm_item_t item)
 	}
 }
 
-static int
-task_main(int argc, char *argv[])
-{
+static int task_main(int argc, char *argv[]) {
 	/* Dataman can use disk or RAM */
 	switch (backend) {
-	case BACKEND_FILE:
-		g_dm_ops = &dm_file_operations;
-		break;
+		case BACKEND_FILE:
+			g_dm_ops = &dm_file_operations;
+			break;
 
-	case BACKEND_RAM:
-		g_dm_ops = &dm_ram_operations;
-		break;
+		case BACKEND_RAM:
+			g_dm_ops = &dm_ram_operations;
+			break;
 
-	default:
-		PX4_WARN("No valid backend set.");
-		return -1;
+		default:
+			PX4_WARN("No valid backend set.");
+			return -1;
 	}
 
 	work_q_item_t *work;
@@ -963,8 +888,8 @@ task_main(int argc, char *argv[])
 		g_key_offsets[i + 1] = g_key_offsets[i] + (g_per_item_max_index[i] * g_per_item_size[i]);
 	}
 
-	unsigned max_offset = g_key_offsets[DM_KEY_NUM_KEYS - 1] + (g_per_item_max_index[DM_KEY_NUM_KEYS - 1] *
-			      g_per_item_size[DM_KEY_NUM_KEYS - 1]);
+	unsigned max_offset = g_key_offsets[DM_KEY_NUM_KEYS - 1] +
+			      (g_per_item_max_index[DM_KEY_NUM_KEYS - 1] * g_per_item_size[DM_KEY_NUM_KEYS - 1]);
 
 	for (unsigned i = 0; i < dm_number_of_funcs; i++) {
 		g_func_counts[i] = 0;
@@ -972,7 +897,7 @@ task_main(int argc, char *argv[])
 
 	/* Initialize the item type locks, for now only DM_KEY_MISSION_STATE & DM_KEY_FENCE_POINTS supports locking */
 	px4_sem_init(&g_sys_state_mutex_mission, 1, 1); /* Initially unlocked */
-	px4_sem_init(&g_sys_state_mutex_fence, 1, 1); /* Initially unlocked */
+	px4_sem_init(&g_sys_state_mutex_fence, 1, 1);   /* Initially unlocked */
 
 	for (unsigned i = 0; i < DM_KEY_NUM_KEYS; i++) {
 		g_item_locks[i] = nullptr;
@@ -992,8 +917,8 @@ task_main(int argc, char *argv[])
 
 	px4_sem_setprotocol(&g_work_queued_sema, SEM_PRIO_NONE);
 
-	_dm_read_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": read");
-	_dm_write_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": write");
+	_dm_read_perf = perf_alloc(PC_ELAPSED, MODULE_NAME ": read");
+	_dm_write_perf = perf_alloc(PC_ELAPSED, MODULE_NAME ": write");
 
 	int ret = g_dm_ops->initialize(max_offset);
 
@@ -1003,17 +928,17 @@ task_main(int argc, char *argv[])
 	}
 
 	switch (backend) {
-	case BACKEND_FILE:
-		PX4_INFO("data manager file '%s' size is %u bytes", k_data_manager_device_path, max_offset);
+		case BACKEND_FILE:
+			PX4_INFO("data manager file '%s' size is %u bytes", k_data_manager_device_path, max_offset);
 
-		break;
+			break;
 
-	case BACKEND_RAM:
-		PX4_INFO("data manager RAM size is %u bytes", max_offset);
-		break;
+		case BACKEND_RAM:
+			PX4_INFO("data manager RAM size is %u bytes", max_offset);
+			break;
 
-	default:
-		break;
+		default:
+			break;
 	}
 
 	/* Tell startup that the worker thread has completed its initialization */
@@ -1021,7 +946,6 @@ task_main(int argc, char *argv[])
 
 	/* Start the endless loop, waiting for then processing work requests */
 	while (true) {
-
 		/* do we need to exit ??? */
 		if (!g_task_should_exit) {
 			/* wait for work */
@@ -1030,29 +954,29 @@ task_main(int argc, char *argv[])
 
 		/* Empty the work queue */
 		while ((work = dequeue_work_item())) {
-
 			/* handle each work item with the appropriate handler */
 			switch (work->func) {
-			case dm_write_func:
-				g_func_counts[dm_write_func]++;
-				work->result =
-					g_dm_ops->write(work->write_params.item, work->write_params.index, work->write_params.buf, work->write_params.count);
-				break;
+				case dm_write_func:
+					g_func_counts[dm_write_func]++;
+					work->result =
+						g_dm_ops->write(work->write_params.item, work->write_params.index,
+								work->write_params.buf, work->write_params.count);
+					break;
 
-			case dm_read_func:
-				g_func_counts[dm_read_func]++;
-				work->result =
-					g_dm_ops->read(work->read_params.item, work->read_params.index, work->read_params.buf, work->read_params.count);
-				break;
+				case dm_read_func:
+					g_func_counts[dm_read_func]++;
+					work->result = g_dm_ops->read(work->read_params.item, work->read_params.index,
+								      work->read_params.buf, work->read_params.count);
+					break;
 
-			case dm_clear_func:
-				g_func_counts[dm_clear_func]++;
-				work->result = g_dm_ops->clear(work->clear_params.item);
-				break;
+				case dm_clear_func:
+					g_func_counts[dm_clear_func]++;
+					work->result = g_dm_ops->clear(work->clear_params.item);
+					break;
 
-			default: /* should never happen */
-				work->result = -1;
-				break;
+				default: /* should never happen */
+					work->result = -1;
+					break;
 			}
 
 			/* Inform the caller that work is done */
@@ -1095,9 +1019,7 @@ end:
 	return 0;
 }
 
-static int
-start()
-{
+static int start() {
 	int task;
 
 	px4_sem_init(&g_init_sema, 1, 0);
@@ -1108,8 +1030,7 @@ start()
 
 	/* start the worker thread with low priority for disk IO */
 	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10,
-				       PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main,
-				       nullptr)) < 0) {
+				       PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main, nullptr)) < 0) {
 		px4_sem_destroy(&g_init_sema);
 		PX4_ERR("task start failed");
 		return -1;
@@ -1122,9 +1043,7 @@ start()
 	return 0;
 }
 
-static void
-status()
-{
+static void status() {
 	/* display usage statistics */
 	PX4_INFO("Writes   %u", g_func_counts[dm_write_func]);
 	PX4_INFO("Reads    %u", g_func_counts[dm_read_func]);
@@ -1134,17 +1053,13 @@ status()
 	perf_print_counter(_dm_write_perf);
 }
 
-static void
-stop()
-{
+static void stop() {
 	/* Tell the worker task to shut down */
 	g_task_should_exit = true;
 	px4_sem_post(&g_work_queued_sema);
 }
 
-static void
-usage()
-{
+static void usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -1171,12 +1086,12 @@ check for geofence violations.
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('f', nullptr, "<file>", "Storage file", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('r', "Use RAM backend (NOT persistent)", true);
-	PRINT_MODULE_USAGE_PARAM_COMMENT("The options -f and -r are mutually exclusive. If nothing is specified, a file 'dataman' is used");
+	PRINT_MODULE_USAGE_PARAM_COMMENT(
+		"The options -f and -r are mutually exclusive. If nothing is specified, a file 'dataman' is used");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-static int backend_check()
-{
+static int backend_check() {
 	if (backend != BACKEND_NONE) {
 		PX4_WARN("-f and -r are mutually exclusive");
 		usage();
@@ -1186,16 +1101,13 @@ static int backend_check()
 	return 0;
 }
 
-int
-dataman_main(int argc, char *argv[])
-{
+int dataman_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		usage();
 		return -1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
-
 		if (is_running()) {
 			PX4_WARN("dataman already running");
 			return -1;
@@ -1209,28 +1121,28 @@ dataman_main(int argc, char *argv[])
 
 		while ((ch = px4_getopt(argc, argv, "f:r", &dmoptind, &dmoptarg)) != EOF) {
 			switch (ch) {
-			case 'f':
-				if (backend_check()) {
+				case 'f':
+					if (backend_check()) {
+						return -1;
+					}
+
+					backend = BACKEND_FILE;
+					k_data_manager_device_path = strdup(dmoptarg);
+					PX4_INFO("dataman file set to: %s", k_data_manager_device_path);
+					break;
+
+				case 'r':
+					if (backend_check()) {
+						return -1;
+					}
+
+					backend = BACKEND_RAM;
+					break;
+
+				// no break
+				default:
+					usage();
 					return -1;
-				}
-
-				backend = BACKEND_FILE;
-				k_data_manager_device_path = strdup(dmoptarg);
-				PX4_INFO("dataman file set to: %s", k_data_manager_device_path);
-				break;
-
-			case 'r':
-				if (backend_check()) {
-					return -1;
-				}
-
-				backend = BACKEND_RAM;
-				break;
-
-			//no break
-			default:
-				usage();
-				return -1;
 			}
 		}
 

@@ -41,36 +41,27 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
+#include <uavcan/node/GetInfo_1_0.h>
+#include <uavcan/node/ID_1_0.h>
 #include <version/version.h>
 
-#include <uavcan/node/ID_1_0.h>
-#include <uavcan/node/GetInfo_1_0.h>
-
-#include "../Subscribers/BaseSubscriber.hpp"
 #include "../Publishers/Publisher.hpp"
+#include "../Subscribers/BaseSubscriber.hpp"
 
-class UavcanGetInfoResponse : public UavcanBaseSubscriber
-{
+class UavcanGetInfoResponse : public UavcanBaseSubscriber {
 public:
-	UavcanGetInfoResponse(CanardHandle &handle) :
-		UavcanBaseSubscriber(handle, "", "GetInfo", 0) { };
+	UavcanGetInfoResponse(CanardHandle &handle) : UavcanBaseSubscriber(handle, "", "GetInfo", 0){};
 
-	void subscribe() override
-	{
+	void subscribe() override {
 		// Subscribe to requests uavcan.pnp.NodeIDAllocationData
-		_canard_handle.RxSubscribe(
-			CanardTransferKindRequest,
-			uavcan_node_GetInfo_1_0_FIXED_PORT_ID_,
-			uavcan_node_GetInfo_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
-			CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-			&_subj_sub._canard_sub);
-
+		_canard_handle.RxSubscribe(CanardTransferKindRequest, uavcan_node_GetInfo_1_0_FIXED_PORT_ID_,
+					   uavcan_node_GetInfo_Request_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
+					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC, &_subj_sub._canard_sub);
 	};
 
-	void callback(const CanardRxTransfer &receive) override
-	{
+	void callback(const CanardRxTransfer &receive) override {
 		PX4_INFO("GetInfo request");
 
 		// Setup node.GetInfo response
@@ -98,9 +89,8 @@ public:
 		board_get_px4_guid(px4_guid);
 		memcpy(node_info.unique_id, px4_guid, sizeof(node_info.unique_id));
 
-		//TODO proper name
-		strncpy((char *)node_info.name.elements,
-			px4_board_name(),
+		// TODO proper name
+		strncpy((char *)node_info.name.elements, px4_board_name(),
 			uavcan_node_GetInfo_Response_1_0_name_ARRAY_CAPACITY_);
 
 		node_info.name.count = strlen(px4_board_name());
@@ -108,32 +98,27 @@ public:
 		uint8_t response_payload_buffer[uavcan_node_GetInfo_Response_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
 		const CanardTransferMetadata transfer_metadata = {
-			.priority       = CanardPriorityNominal,
-			.transfer_kind  = CanardTransferKindResponse,
-			.port_id        = uavcan_node_GetInfo_1_0_FIXED_PORT_ID_, // This is the subject-ID.
-			.remote_node_id = receive.metadata.remote_node_id,       // Send back to request Node
-			.transfer_id    = receive.metadata.transfer_id
-		};
+			.priority = CanardPriorityNominal,
+			.transfer_kind = CanardTransferKindResponse,
+			.port_id = uavcan_node_GetInfo_1_0_FIXED_PORT_ID_,  // This is the subject-ID.
+			.remote_node_id = receive.metadata.remote_node_id,  // Send back to request Node
+			.transfer_id = receive.metadata.transfer_id};
 
-		int32_t result = uavcan_node_GetInfo_Response_1_0_serialize_(&node_info, (uint8_t *)&response_payload_buffer,
-				 &payload_size);
+		int32_t result = uavcan_node_GetInfo_Response_1_0_serialize_(
+			&node_info, (uint8_t *)&response_payload_buffer, &payload_size);
 
 		if (result == 0) {
 			// set the data ready in the buffer and chop if needed
 			result = _canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
-						       &transfer_metadata,
-						       payload_size,
-						       &response_payload_buffer);
+						       &transfer_metadata, payload_size, &response_payload_buffer);
 		}
 
-		//TODO proper error handling
+		// TODO proper error handling
 		if (result < 0) {
 			// An error has occurred: either an argument is invalid or we've ran out of memory.
-			// It is possible to statically prove that an out-of-memory will never occur for a given application if the
-			// heap is sized correctly; for background, refer to the Robson's Proof and the documentation for O1Heap.
-			// return -UAVCAN_REGISTER_ERROR_SERIALIZATION;
+			// It is possible to statically prove that an out-of-memory will never occur for a given
+			// application if the heap is sized correctly; for background, refer to the Robson's Proof and
+			// the documentation for O1Heap. return -UAVCAN_REGISTER_ERROR_SERIALIZATION;
 		}
-
 	};
-
 };

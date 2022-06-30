@@ -33,21 +33,20 @@
 
 #include "RCInput.hpp"
 
-#include "crsf_telemetry.h"
+#include <termios.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
-#include <termios.h>
+#include "crsf_telemetry.h"
 
 using namespace time_literals;
 
 constexpr char const *RCInput::RC_SCAN_STRING[];
 
-RCInput::RCInput(const char *device) :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device)),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
-	_publish_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": publish interval"))
-{
+RCInput::RCInput(const char *device)
+	: ModuleParams(nullptr),
+	  ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device)),
+	  _cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle time")),
+	  _publish_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": publish interval")) {
 	// initialize raw_rc values and count
 	for (unsigned i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; i++) {
 		_raw_rc_values[i] = UINT16_MAX;
@@ -63,8 +62,7 @@ RCInput::RCInput(const char *device) :
 	}
 }
 
-RCInput::~RCInput()
-{
+RCInput::~RCInput() {
 #if defined(SPEKTRUM_POWER_PASSIVE)
 	// Disable power controls for Spektrum receiver
 	SPEKTRUM_POWER_PASSIVE();
@@ -78,13 +76,11 @@ RCInput::~RCInput()
 	perf_free(_publish_interval_perf);
 }
 
-int
-RCInput::init()
-{
+int RCInput::init() {
 #ifdef RF_RADIO_POWER_CONTROL
 	// power radio on
 	RF_RADIO_POWER_CONTROL(true);
-#endif // RF_RADIO_POWER_CONTROL
+#endif  // RF_RADIO_POWER_CONTROL
 
 	// dsm_init sets some file static variables and returns a file descriptor
 	// it also powers on the radio if needed
@@ -97,7 +93,7 @@ RCInput::init()
 	if (board_rc_swap_rxtx(_device)) {
 #if defined(TIOCSSWAP)
 		ioctl(_rcs_fd, TIOCSSWAP, SER_SWAP_ENABLED);
-#endif // TIOCSSWAP
+#endif  // TIOCSSWAP
 	}
 
 	// assume SBUS input and immediately switch it to
@@ -108,16 +104,14 @@ RCInput::init()
 #ifdef GPIO_PPM_IN
 	// disable CPPM input by mapping it away from the timer capture input
 	px4_arch_unconfiggpio(GPIO_PPM_IN);
-#endif // GPIO_PPM_IN
+#endif  // GPIO_PPM_IN
 
 	rc_io_invert(false);
 
 	return 0;
 }
 
-int
-RCInput::task_spawn(int argc, char *argv[])
-{
+int RCInput::task_spawn(int argc, char *argv[]) {
 	bool error_flag = false;
 
 	int myoptind = 1;
@@ -126,22 +120,22 @@ RCInput::task_spawn(int argc, char *argv[])
 	const char *device_name = nullptr;
 #if defined(RC_SERIAL_PORT)
 	device_name = RC_SERIAL_PORT;
-#endif // RC_SERIAL_PORT
+#endif  // RC_SERIAL_PORT
 
 	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'd':
-			device_name = myoptarg;
-			break;
+			case 'd':
+				device_name = myoptarg;
+				break;
 
-		case '?':
-			error_flag = true;
-			break;
+			case '?':
+				error_flag = true;
+				break;
 
-		default:
-			PX4_WARN("unrecognized flag");
-			error_flag = true;
-			break;
+			default:
+				PX4_WARN("unrecognized flag");
+				error_flag = true;
+				break;
 		}
 	}
 
@@ -176,12 +170,8 @@ RCInput::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-void
-RCInput::fill_rc_in(uint16_t raw_rc_count_local,
-		    uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
-		    hrt_abstime now, bool frame_drop, bool failsafe,
-		    unsigned frame_drops, int rssi = -1)
-{
+void RCInput::fill_rc_in(uint16_t raw_rc_count_local, uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
+			 hrt_abstime now, bool frame_drop, bool failsafe, unsigned frame_drops, int rssi = -1) {
 	// fill rc_in struct for publishing
 	_rc_in.channel_count = raw_rc_count_local;
 
@@ -214,7 +204,8 @@ RCInput::fill_rc_in(uint16_t raw_rc_count_local,
 			const int32_t rssi_pwm_max = _param_rc_rssi_pwm_max.get();
 
 			// get RSSI from input channel
-			int rc_rssi = ((_rc_in.values[rssi_pwm_chan - 1] - rssi_pwm_min) * 100) / (rssi_pwm_max - rssi_pwm_min);
+			int rc_rssi = ((_rc_in.values[rssi_pwm_chan - 1] - rssi_pwm_min) * 100) /
+				      (rssi_pwm_max - rssi_pwm_min);
 			_rc_in.rssi = math::constrain(rc_rssi, 0, 100);
 
 		} else if (_analog_rc_rssi_stable) {
@@ -249,16 +240,15 @@ RCInput::fill_rc_in(uint16_t raw_rc_count_local,
 	_rc_in.rc_total_frame_count = 0;
 }
 
-void RCInput::set_rc_scan_state(RC_SCAN newState)
-{
-	if ((_param_rc_input_proto.get() > RC_SCAN::RC_SCAN_NONE)
-	    && (_param_rc_input_proto.get() <= RC_SCAN::RC_SCAN_GHST)) {
-
+void RCInput::set_rc_scan_state(RC_SCAN newState) {
+	if ((_param_rc_input_proto.get() > RC_SCAN::RC_SCAN_NONE) &&
+	    (_param_rc_input_proto.get() <= RC_SCAN::RC_SCAN_GHST)) {
 		_rc_scan_state = static_cast<RC_SCAN>(_param_rc_input_proto.get());
 
 	} else if (_param_rc_input_proto.get() < 0) {
 		// only auto change if RC_INPUT_PROTO set to auto (-1)
-		PX4_DEBUG("RCscan: %s failed, trying %s", RCInput::RC_SCAN_STRING[_rc_scan_state], RCInput::RC_SCAN_STRING[newState]);
+		PX4_DEBUG("RCscan: %s failed, trying %s", RCInput::RC_SCAN_STRING[_rc_scan_state],
+			  RCInput::RC_SCAN_STRING[newState]);
 		_rc_scan_state = newState;
 
 	} else {
@@ -269,8 +259,7 @@ void RCInput::set_rc_scan_state(RC_SCAN newState)
 	_rc_scan_locked = false;
 }
 
-void RCInput::rc_io_invert(bool invert)
-{
+void RCInput::rc_io_invert(bool invert) {
 	// First check if the board provides a board-specific inversion method (e.g. via GPIO),
 	// and if not use an IOCTL
 	if (!board_rc_invert_input(_device, invert)) {
@@ -283,12 +272,11 @@ void RCInput::rc_io_invert(bool invert)
 			ioctl(_rcs_fd, TIOCSINVERT, 0);
 		}
 
-#endif // TIOCSINVERT
+#endif  // TIOCSINVERT
 	}
 }
 
-void RCInput::Run()
-{
+void RCInput::Run() {
 	if (should_exit()) {
 		exit_and_cleanup();
 		return;
@@ -304,7 +292,6 @@ void RCInput::Run()
 		}
 
 	} else {
-
 		perf_begin(_cycle_perf);
 
 		// Check if parameters have changed
@@ -326,14 +313,12 @@ void RCInput::Run()
 
 		const hrt_abstime cycle_timestamp = hrt_absolute_time();
 
-
 		/* vehicle command */
 		vehicle_command_s vcmd;
 
 		if (_vehicle_cmd_sub.update(&vcmd)) {
 			// Check for a pairing command
 			if (vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) {
-
 				uint8_t cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 #if defined(SPEKTRUM_POWER)
 
@@ -363,7 +348,7 @@ void RCInput::Run()
 					cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
 
-#endif // SPEKTRUM_POWER
+#endif  // SPEKTRUM_POWER
 
 				// publish acknowledgement
 				vehicle_command_ack_s command_ack{};
@@ -372,11 +357,11 @@ void RCInput::Run()
 				command_ack.target_system = vcmd.source_system;
 				command_ack.target_component = vcmd.source_component;
 				command_ack.timestamp = hrt_absolute_time();
-				uORB::Publication<vehicle_command_ack_s> vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
+				uORB::Publication<vehicle_command_ack_s> vehicle_command_ack_pub{
+					ORB_ID(vehicle_command_ack)};
 				vehicle_command_ack_pub.publish(command_ack);
 			}
 		}
-
 
 #if defined(ADC_RC_RSSI_CHANNEL)
 
@@ -387,15 +372,14 @@ void RCInput::Run()
 			if (_adc_report_sub.copy(&adc)) {
 				for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
 					if (adc.channel_id[i] == ADC_RC_RSSI_CHANNEL) {
-						float adc_volt = adc.raw_data[i] *
-								 adc.v_ref /
-								 adc.resolution;
+						float adc_volt = adc.raw_data[i] * adc.v_ref / adc.resolution;
 
 						if (_analog_rc_rssi_volt < 0.0f) {
 							_analog_rc_rssi_volt = adc_volt;
 						}
 
-						_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.995f + adc_volt * 0.005f;
+						_analog_rc_rssi_volt =
+							_analog_rc_rssi_volt * 0.995f + adc_volt * 0.005f;
 
 						/* only allow this to be used if we see a high RSSI once */
 						if (_analog_rc_rssi_volt > 2.5f) {
@@ -406,7 +390,7 @@ void RCInput::Run()
 			}
 		}
 
-#endif // ADC_RC_RSSI_CHANNEL
+#endif  // ADC_RC_RSSI_CHANNEL
 
 		bool rc_updated = false;
 
@@ -431,312 +415,317 @@ void RCInput::Run()
 		const bool rc_scan_locked = _rc_scan_locked;
 
 		switch (_rc_scan_state) {
-		case RC_SCAN_NONE:
-			// do nothing
-			break;
+			case RC_SCAN_NONE:
+				// do nothing
+				break;
 
-		case RC_SCAN_SBUS:
-			if (_rc_scan_begin == 0) {
-				_rc_scan_begin = cycle_timestamp;
-				// Configure serial port for SBUS
-				sbus_config(_rcs_fd, board_rc_singlewire(_device));
-				rc_io_invert(true);
+			case RC_SCAN_SBUS:
+				if (_rc_scan_begin == 0) {
+					_rc_scan_begin = cycle_timestamp;
+					// Configure serial port for SBUS
+					sbus_config(_rcs_fd, board_rc_singlewire(_device));
+					rc_io_invert(true);
 
-				// flush serial buffer and any existing buffered data
-				tcflush(_rcs_fd, TCIOFLUSH);
-				memset(_rcs_buf, 0, sizeof(_rcs_buf));
+					// flush serial buffer and any existing buffered data
+					tcflush(_rcs_fd, TCIOFLUSH);
+					memset(_rcs_buf, 0, sizeof(_rcs_buf));
 
-			} else if (_rc_scan_locked
-				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
-
-				// parse new data
-				if (newBytes > 0) {
-					bool sbus_failsafe = false;
-					bool sbus_frame_drop = false;
-
-					rc_updated = sbus_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count, &sbus_failsafe,
-								&sbus_frame_drop, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
-
-					if (rc_updated) {
-						// we have a new SBUS frame. Publish it.
-						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SBUS;
-						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
-							   sbus_frame_drop, sbus_failsafe, frame_drops);
-						_rc_scan_locked = true;
-					}
-				}
-
-			} else {
-				// Scan the next protocol
-				rc_io_invert(false);
-				set_rc_scan_state(RC_SCAN_DSM);
-			}
-
-			break;
-
-		case RC_SCAN_DSM:
-			if (_rc_scan_begin == 0) {
-				_rc_scan_begin = cycle_timestamp;
-				// Configure serial port for DSM
-				dsm_config(_rcs_fd);
-
-				// flush serial buffer and any existing buffered data
-				tcflush(_rcs_fd, TCIOFLUSH);
-				memset(_rcs_buf, 0, sizeof(_rcs_buf));
-
-			} else if (_rc_scan_locked
-				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
-
-				if (newBytes > 0) {
-					int8_t dsm_rssi = 0;
-					bool dsm_11_bit = false;
-
+				} else if (_rc_scan_locked || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 					// parse new data
-					rc_updated = dsm_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count,
-							       &dsm_11_bit, &frame_drops, &dsm_rssi, input_rc_s::RC_INPUT_MAX_CHANNELS);
+					if (newBytes > 0) {
+						bool sbus_failsafe = false;
+						bool sbus_frame_drop = false;
 
-					if (rc_updated) {
-						// we have a new DSM frame. Publish it.
-						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_DSM;
-						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
-							   false, false, frame_drops, dsm_rssi);
-						_rc_scan_locked = true;
-					}
-				}
+						rc_updated = sbus_parse(cycle_timestamp, &_rcs_buf[0], newBytes,
+									&_raw_rc_values[0], &_raw_rc_count,
+									&sbus_failsafe, &sbus_frame_drop, &frame_drops,
+									input_rc_s::RC_INPUT_MAX_CHANNELS);
 
-			} else {
-				// Scan the next protocol
-				set_rc_scan_state(RC_SCAN_ST24);
-			}
-
-			break;
-
-		case RC_SCAN_ST24:
-			if (_rc_scan_begin == 0) {
-				_rc_scan_begin = cycle_timestamp;
-				// Configure serial port for DSM
-				dsm_config(_rcs_fd);
-
-				// flush serial buffer and any existing buffered data
-				tcflush(_rcs_fd, TCIOFLUSH);
-				memset(_rcs_buf, 0, sizeof(_rcs_buf));
-
-			} else if (_rc_scan_locked
-				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
-
-				if (newBytes > 0) {
-					// parse new data
-					uint8_t st24_rssi, lost_count;
-
-					rc_updated = false;
-
-					for (unsigned i = 0; i < (unsigned)newBytes; i++) {
-						/* set updated flag if one complete packet was parsed */
-						st24_rssi = input_rc_s::RSSI_MAX;
-						rc_updated = (OK == st24_decode(_rcs_buf[i], &st24_rssi, &lost_count,
-										&_raw_rc_count, _raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
-					}
-
-					// The st24 will keep outputting RC channels and RSSI even if RC has been lost.
-					// The only way to detect RC loss is therefore to look at the lost_count.
-
-					if (rc_updated) {
-						if (lost_count == 0) {
-							// we have a new ST24 frame. Publish it.
-							_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_ST24;
+						if (rc_updated) {
+							// we have a new SBUS frame. Publish it.
+							_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SBUS;
 							fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
-								   false, false, frame_drops, st24_rssi);
+								   sbus_frame_drop, sbus_failsafe, frame_drops);
 							_rc_scan_locked = true;
-
-						} else {
-							// if the lost count > 0 means that there is an RC loss
-							_rc_in.rc_lost = true;
 						}
 					}
+
+				} else {
+					// Scan the next protocol
+					rc_io_invert(false);
+					set_rc_scan_state(RC_SCAN_DSM);
 				}
 
-			} else {
-				// Scan the next protocol
-				set_rc_scan_state(RC_SCAN_SUMD);
-			}
+				break;
 
-			break;
+			case RC_SCAN_DSM:
+				if (_rc_scan_begin == 0) {
+					_rc_scan_begin = cycle_timestamp;
+					// Configure serial port for DSM
+					dsm_config(_rcs_fd);
 
-		case RC_SCAN_SUMD:
-			if (_rc_scan_begin == 0) {
-				_rc_scan_begin = cycle_timestamp;
-				// Configure serial port for DSM
-				dsm_config(_rcs_fd);
+					// flush serial buffer and any existing buffered data
+					tcflush(_rcs_fd, TCIOFLUSH);
+					memset(_rcs_buf, 0, sizeof(_rcs_buf));
 
-				// flush serial buffer and any existing buffered data
-				tcflush(_rcs_fd, TCIOFLUSH);
-				memset(_rcs_buf, 0, sizeof(_rcs_buf));
+				} else if (_rc_scan_locked || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+					if (newBytes > 0) {
+						int8_t dsm_rssi = 0;
+						bool dsm_11_bit = false;
 
-			} else if (_rc_scan_locked
-				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+						// parse new data
+						rc_updated = dsm_parse(cycle_timestamp, &_rcs_buf[0], newBytes,
+								       &_raw_rc_values[0], &_raw_rc_count, &dsm_11_bit,
+								       &frame_drops, &dsm_rssi,
+								       input_rc_s::RC_INPUT_MAX_CHANNELS);
 
-				if (newBytes > 0) {
-					// parse new data
-					uint8_t sumd_rssi, rx_count;
-					bool sumd_failsafe;
-
-					rc_updated = false;
-
-					for (unsigned i = 0; i < (unsigned)newBytes; i++) {
-						/* set updated flag if one complete packet was parsed */
-						sumd_rssi = input_rc_s::RSSI_MAX;
-						rc_updated = (OK == sumd_decode(_rcs_buf[i], &sumd_rssi, &rx_count,
-										&_raw_rc_count, _raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS, &sumd_failsafe));
+						if (rc_updated) {
+							// we have a new DSM frame. Publish it.
+							_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_DSM;
+							fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
+								   false, false, frame_drops, dsm_rssi);
+							_rc_scan_locked = true;
+						}
 					}
 
-					if (rc_updated) {
-						// we have a new SUMD frame. Publish it.
-						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SUMD;
-						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
-							   false, sumd_failsafe, frame_drops, sumd_rssi);
-						_rc_scan_locked = true;
-					}
+				} else {
+					// Scan the next protocol
+					set_rc_scan_state(RC_SCAN_ST24);
 				}
 
-			} else {
-				// Scan the next protocol
-				set_rc_scan_state(RC_SCAN_PPM);
-			}
+				break;
 
-			break;
+			case RC_SCAN_ST24:
+				if (_rc_scan_begin == 0) {
+					_rc_scan_begin = cycle_timestamp;
+					// Configure serial port for DSM
+					dsm_config(_rcs_fd);
 
-		case RC_SCAN_PPM:
-			// skip PPM if it's not supported
+					// flush serial buffer and any existing buffered data
+					tcflush(_rcs_fd, TCIOFLUSH);
+					memset(_rcs_buf, 0, sizeof(_rcs_buf));
+
+				} else if (_rc_scan_locked || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+					if (newBytes > 0) {
+						// parse new data
+						uint8_t st24_rssi, lost_count;
+
+						rc_updated = false;
+
+						for (unsigned i = 0; i < (unsigned)newBytes; i++) {
+							/* set updated flag if one complete packet was parsed */
+							st24_rssi = input_rc_s::RSSI_MAX;
+							rc_updated =
+								(OK == st24_decode(_rcs_buf[i], &st24_rssi, &lost_count,
+										   &_raw_rc_count, _raw_rc_values,
+										   input_rc_s::RC_INPUT_MAX_CHANNELS));
+						}
+
+						// The st24 will keep outputting RC channels and RSSI even if RC has
+						// been lost. The only way to detect RC loss is therefore to look at the
+						// lost_count.
+
+						if (rc_updated) {
+							if (lost_count == 0) {
+								// we have a new ST24 frame. Publish it.
+								_rc_in.input_source =
+									input_rc_s::RC_INPUT_SOURCE_PX4FMU_ST24;
+								fill_rc_in(_raw_rc_count, _raw_rc_values,
+									   cycle_timestamp, false, false, frame_drops,
+									   st24_rssi);
+								_rc_scan_locked = true;
+
+							} else {
+								// if the lost count > 0 means that there is an RC loss
+								_rc_in.rc_lost = true;
+							}
+						}
+					}
+
+				} else {
+					// Scan the next protocol
+					set_rc_scan_state(RC_SCAN_SUMD);
+				}
+
+				break;
+
+			case RC_SCAN_SUMD:
+				if (_rc_scan_begin == 0) {
+					_rc_scan_begin = cycle_timestamp;
+					// Configure serial port for DSM
+					dsm_config(_rcs_fd);
+
+					// flush serial buffer and any existing buffered data
+					tcflush(_rcs_fd, TCIOFLUSH);
+					memset(_rcs_buf, 0, sizeof(_rcs_buf));
+
+				} else if (_rc_scan_locked || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+					if (newBytes > 0) {
+						// parse new data
+						uint8_t sumd_rssi, rx_count;
+						bool sumd_failsafe;
+
+						rc_updated = false;
+
+						for (unsigned i = 0; i < (unsigned)newBytes; i++) {
+							/* set updated flag if one complete packet was parsed */
+							sumd_rssi = input_rc_s::RSSI_MAX;
+							rc_updated =
+								(OK == sumd_decode(_rcs_buf[i], &sumd_rssi, &rx_count,
+										   &_raw_rc_count, _raw_rc_values,
+										   input_rc_s::RC_INPUT_MAX_CHANNELS,
+										   &sumd_failsafe));
+						}
+
+						if (rc_updated) {
+							// we have a new SUMD frame. Publish it.
+							_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SUMD;
+							fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
+								   false, sumd_failsafe, frame_drops, sumd_rssi);
+							_rc_scan_locked = true;
+						}
+					}
+
+				} else {
+					// Scan the next protocol
+					set_rc_scan_state(RC_SCAN_PPM);
+				}
+
+				break;
+
+			case RC_SCAN_PPM:
+				// skip PPM if it's not supported
 #ifdef HRT_PPM_CHANNEL
-			if (_rc_scan_begin == 0) {
-				_rc_scan_begin = cycle_timestamp;
-				// Configure timer input pin for CPPM
-				px4_arch_configgpio(GPIO_PPM_IN);
+				if (_rc_scan_begin == 0) {
+					_rc_scan_begin = cycle_timestamp;
+					// Configure timer input pin for CPPM
+					px4_arch_configgpio(GPIO_PPM_IN);
 
-			} else if (_rc_scan_locked || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+				} else if (_rc_scan_locked || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+					// see if we have new PPM input data
+					if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal) &&
+					    ppm_decoded_channels > 3) {
+						// we have a new PPM frame. Publish it.
+						rc_updated = true;
+						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
+						fill_rc_in(ppm_decoded_channels, ppm_buffer, cycle_timestamp, false,
+							   false, 0);
+						_rc_scan_locked = true;
+						_rc_in.rc_ppm_frame_length = ppm_frame_length;
+						_rc_in.timestamp_last_signal = ppm_last_valid_decode;
+					}
 
-				// see if we have new PPM input data
-				if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal) && ppm_decoded_channels > 3) {
-					// we have a new PPM frame. Publish it.
-					rc_updated = true;
-					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
-					fill_rc_in(ppm_decoded_channels, ppm_buffer, cycle_timestamp, false, false, 0);
-					_rc_scan_locked = true;
-					_rc_in.rc_ppm_frame_length = ppm_frame_length;
-					_rc_in.timestamp_last_signal = ppm_last_valid_decode;
+				} else {
+					// disable CPPM input by mapping it away from the timer capture input
+					px4_arch_unconfiggpio(GPIO_PPM_IN);
+					// Scan the next protocol
+					set_rc_scan_state(RC_SCAN_CRSF);
 				}
 
-			} else {
-				// disable CPPM input by mapping it away from the timer capture input
-				px4_arch_unconfiggpio(GPIO_PPM_IN);
-				// Scan the next protocol
+#else  // skip PPM if it's not supported
 				set_rc_scan_state(RC_SCAN_CRSF);
-			}
-
-#else   // skip PPM if it's not supported
-			set_rc_scan_state(RC_SCAN_CRSF);
 
 #endif  // HRT_PPM_CHANNEL
 
-			break;
+				break;
 
-		case RC_SCAN_CRSF:
-			if (_rc_scan_begin == 0) {
-				_rc_scan_begin = cycle_timestamp;
-				// Configure serial port for CRSF
-				crsf_config(_rcs_fd);
+			case RC_SCAN_CRSF:
+				if (_rc_scan_begin == 0) {
+					_rc_scan_begin = cycle_timestamp;
+					// Configure serial port for CRSF
+					crsf_config(_rcs_fd);
 
-				// flush serial buffer and any existing buffered data
-				tcflush(_rcs_fd, TCIOFLUSH);
-				memset(_rcs_buf, 0, sizeof(_rcs_buf));
+					// flush serial buffer and any existing buffered data
+					tcflush(_rcs_fd, TCIOFLUSH);
+					memset(_rcs_buf, 0, sizeof(_rcs_buf));
 
-			} else if (_rc_scan_locked
-				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+				} else if (_rc_scan_locked || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+					// parse new data
+					if (newBytes > 0) {
+						rc_updated = crsf_parse(cycle_timestamp, &_rcs_buf[0], newBytes,
+									&_raw_rc_values[0], &_raw_rc_count,
+									input_rc_s::RC_INPUT_MAX_CHANNELS);
 
-				// parse new data
-				if (newBytes > 0) {
-					rc_updated = crsf_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count,
-								input_rc_s::RC_INPUT_MAX_CHANNELS);
+						if (rc_updated) {
+							// we have a new CRSF frame. Publish it.
+							_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
+							fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
+								   false, false, 0);
 
-					if (rc_updated) {
-						// we have a new CRSF frame. Publish it.
-						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
-						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0);
-
-						// on Pixhawk (-related) boards we cannot write to the RC UART
-						// another option is to use a different UART port
+							// on Pixhawk (-related) boards we cannot write to the RC UART
+							// another option is to use a different UART port
 #ifdef BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
-						if (!_rc_scan_locked && !_crsf_telemetry) {
-							_crsf_telemetry = new CRSFTelemetry(_rcs_fd);
-						}
+							if (!_rc_scan_locked && !_crsf_telemetry) {
+								_crsf_telemetry = new CRSFTelemetry(_rcs_fd);
+							}
 
 #endif /* BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT */
 
-						_rc_scan_locked = true;
+							_rc_scan_locked = true;
 
-						if (_crsf_telemetry) {
-							_crsf_telemetry->update(cycle_timestamp);
+							if (_crsf_telemetry) {
+								_crsf_telemetry->update(cycle_timestamp);
+							}
 						}
 					}
+
+				} else {
+					// Scan the next protocol
+					set_rc_scan_state(RC_SCAN_GHST);
 				}
 
-			} else {
-				// Scan the next protocol
-				set_rc_scan_state(RC_SCAN_GHST);
-			}
+				break;
 
-			break;
+			case RC_SCAN_GHST:
+				if (_rc_scan_begin == 0) {
+					_rc_scan_begin = cycle_timestamp;
+					// Configure serial port for GHST
+					ghst_config(_rcs_fd);
 
-		case RC_SCAN_GHST:
-			if (_rc_scan_begin == 0) {
-				_rc_scan_begin = cycle_timestamp;
-				// Configure serial port for GHST
-				ghst_config(_rcs_fd);
+					// flush serial buffer and any existing buffered data
+					tcflush(_rcs_fd, TCIOFLUSH);
+					memset(_rcs_buf, 0, sizeof(_rcs_buf));
 
-				// flush serial buffer and any existing buffered data
-				tcflush(_rcs_fd, TCIOFLUSH);
-				memset(_rcs_buf, 0, sizeof(_rcs_buf));
+				} else if (_rc_scan_locked || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+					// parse new data
+					if (newBytes > 0) {
+						int8_t ghst_rssi = -1;
+						rc_updated = ghst_parse(cycle_timestamp, &_rcs_buf[0], newBytes,
+									&_raw_rc_values[0], &ghst_rssi, &_raw_rc_count,
+									input_rc_s::RC_INPUT_MAX_CHANNELS);
 
-			} else if (_rc_scan_locked
-				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+						if (rc_updated) {
+							// we have a new GHST frame. Publish it.
+							_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_GHST;
+							fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
+								   false, false, 0, ghst_rssi);
 
-				// parse new data
-				if (newBytes > 0) {
-					int8_t ghst_rssi = -1;
-					rc_updated = ghst_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &ghst_rssi,
-								&_raw_rc_count, input_rc_s::RC_INPUT_MAX_CHANNELS);
-
-					if (rc_updated) {
-						// we have a new GHST frame. Publish it.
-						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_GHST;
-						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0, ghst_rssi);
-
-						// ghst telemetry works on fmu-v5
-						// on other Pixhawk (-related) boards we cannot write to the RC UART
-						// another option is to use a different UART port
+							// ghst telemetry works on fmu-v5
+							// on other Pixhawk (-related) boards we cannot write to the RC
+							// UART another option is to use a different UART port
 #ifdef BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
-						if (!_rc_scan_locked && !_ghst_telemetry) {
-							_ghst_telemetry = new GHSTTelemetry(_rcs_fd);
-						}
+							if (!_rc_scan_locked && !_ghst_telemetry) {
+								_ghst_telemetry = new GHSTTelemetry(_rcs_fd);
+							}
 
 #endif /* BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT */
 
-						_rc_scan_locked = true;
+							_rc_scan_locked = true;
 
-						if (_ghst_telemetry) {
-							_ghst_telemetry->update(cycle_timestamp);
+							if (_ghst_telemetry) {
+								_ghst_telemetry->update(cycle_timestamp);
+							}
 						}
 					}
+
+				} else {
+					// Scan the next protocol
+					set_rc_scan_state(RC_SCAN_SBUS);
 				}
 
-			} else {
-				// Scan the next protocol
-				set_rc_scan_state(RC_SCAN_SBUS);
-			}
-
-			break;
+				break;
 		}
 
 		perf_end(_cycle_perf);
@@ -755,10 +744,9 @@ void RCInput::Run()
 		}
 
 		// set RC_INPUT_PROTO if RC successfully locked for > 3 seconds
-		if (!_armed && rc_updated && _rc_scan_locked
-		    && ((_rc_scan_begin != 0) && hrt_elapsed_time(&_rc_scan_begin) > 3_s)
-		    && (_param_rc_input_proto.get() < 0)
-		   ) {
+		if (!_armed && rc_updated && _rc_scan_locked &&
+		    ((_rc_scan_begin != 0) && hrt_elapsed_time(&_rc_scan_begin) > 3_s) &&
+		    (_param_rc_input_proto.get() < 0)) {
 			// RC_INPUT_PROTO auto => locked selection
 			_param_rc_input_proto.set(_rc_scan_state);
 			_param_rc_input_proto.commit();
@@ -767,8 +755,7 @@ void RCInput::Run()
 }
 
 #if defined(SPEKTRUM_POWER)
-bool RCInput::bind_spektrum(int arg) const
-{
+bool RCInput::bind_spektrum(int arg) const {
 	int ret = PX4_ERROR;
 
 	/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
@@ -776,10 +763,7 @@ bool RCInput::bind_spektrum(int arg) const
 	/* only allow DSM2, DSM-X and DSM-X with more than 7 channels */
 	PX4_INFO("DSM_BIND_START: DSM%s RX", (arg == 0) ? "2" : ((arg == 1) ? "-X" : "-X8"));
 
-	if (arg == DSM2_BIND_PULSES ||
-	    arg == DSMX_BIND_PULSES ||
-	    arg == DSMX8_BIND_PULSES) {
-
+	if (arg == DSM2_BIND_PULSES || arg == DSMX_BIND_PULSES || arg == DSMX8_BIND_PULSES) {
 		dsm_bind(DSM_CMD_BIND_POWER_DOWN, 0);
 
 		dsm_bind(DSM_CMD_BIND_SET_RX_OUT, 0);
@@ -807,8 +791,7 @@ bool RCInput::bind_spektrum(int arg) const
 }
 #endif /* SPEKTRUM_POWER */
 
-int RCInput::custom_command(int argc, char *argv[])
-{
+int RCInput::custom_command(int argc, char *argv[]) {
 #if defined(SPEKTRUM_POWER)
 	const char *verb = argv[0];
 
@@ -835,52 +818,51 @@ int RCInput::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int RCInput::print_status()
-{
+int RCInput::print_status() {
 	PX4_INFO("Max update rate: %u Hz", 1000000 / _current_update_interval);
 
 	if (_device[0] != '\0') {
 		PX4_INFO("UART device: %s", _device);
-		PX4_INFO("UART RX bytes: %"  PRIu32, _bytes_rx);
+		PX4_INFO("UART RX bytes: %" PRIu32, _bytes_rx);
 	}
 
-	PX4_INFO("RC state: %s: %s", _rc_scan_locked ? "found" : "searching for signal", RC_SCAN_STRING[_rc_scan_state]);
+	PX4_INFO("RC state: %s: %s", _rc_scan_locked ? "found" : "searching for signal",
+		 RC_SCAN_STRING[_rc_scan_state]);
 
 	if (_rc_scan_locked) {
 		switch (_rc_scan_state) {
-		case RC_SCAN_NONE:
-			break;
+			case RC_SCAN_NONE:
+				break;
 
-		case RC_SCAN_CRSF:
-			PX4_INFO("CRSF Telemetry: %s", _crsf_telemetry ? "yes" : "no");
-			break;
+			case RC_SCAN_CRSF:
+				PX4_INFO("CRSF Telemetry: %s", _crsf_telemetry ? "yes" : "no");
+				break;
 
-		case RC_SCAN_GHST:
-			PX4_INFO("GHST Telemetry: %s", _ghst_telemetry ? "yes" : "no");
-			break;
+			case RC_SCAN_GHST:
+				PX4_INFO("GHST Telemetry: %s", _ghst_telemetry ? "yes" : "no");
+				break;
 
-		case RC_SCAN_SBUS:
-			PX4_INFO("SBUS frame drops: %u", sbus_dropped_frames());
-			break;
+			case RC_SCAN_SBUS:
+				PX4_INFO("SBUS frame drops: %u", sbus_dropped_frames());
+				break;
 
-
-		case RC_SCAN_DSM:
-			// DSM status output
+			case RC_SCAN_DSM:
+				// DSM status output
 #if defined(SPEKTRUM_POWER)
 #endif
-			break;
+				break;
 
-		case RC_SCAN_PPM:
-			// PPM status output
-			break;
+			case RC_SCAN_PPM:
+				// PPM status output
+				break;
 
-		case RC_SCAN_SUMD:
-			// SUMD status output
-			break;
+			case RC_SCAN_SUMD:
+				// SUMD status output
+				break;
 
-		case RC_SCAN_ST24:
-			// SUMD status output
-			break;
+			case RC_SCAN_ST24:
+				// SUMD status output
+				break;
 		}
 	}
 
@@ -902,9 +884,7 @@ int RCInput::print_status()
 	return 0;
 }
 
-int
-RCInput::print_usage(const char *reason)
-{
+int RCInput::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -935,7 +915,4 @@ This module does the RC input parsing and auto-selecting the method. Supported m
 	return 0;
 }
 
-extern "C" __EXPORT int rc_input_main(int argc, char *argv[])
-{
-	return RCInput::main(argc, argv);
-}
+extern "C" __EXPORT int rc_input_main(int argc, char *argv[]) { return RCInput::main(argc, argv); }

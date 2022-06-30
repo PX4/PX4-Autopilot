@@ -42,16 +42,16 @@
 /****************************************************************************************************
  * Included Files
  ****************************************************************************************************/
-#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdint.h>
 
 __BEGIN_DECLS
 
 /* these headers are not C++ safe */
-#include <kinetis.h>
-#include <hardware/kinetis_pinmux.h>
 #include <arch/board/board.h>
+#include <hardware/kinetis_pinmux.h>
+#include <kinetis.h>
 
 __END_DECLS
 
@@ -66,21 +66,19 @@ __END_DECLS
  *   BLUE   CMP0_IN2/ FB_AD7 / I2S0_MCLK/ FTM3_CH4/ ADC1_SE4b/ PTC8
  */
 
-#define GPIO_LED_R             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTD | PIN1)
-#define GPIO_LED_G             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN9)
-#define GPIO_LED_B             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN8)
+#define GPIO_LED_R (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTD | PIN1)
+#define GPIO_LED_G (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN9)
+#define GPIO_LED_B (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN8)
 
+#define GPIO_LED_1 (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTD | PIN13)
+#define GPIO_LED_2 (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTD | PIN14)
 
-#define GPIO_LED_1             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTD | PIN13)
-#define GPIO_LED_2             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTD | PIN14)
+#define BOARD_HAS_CONTROL_STATUS_LEDS 1  // Use D9 and D10
+#define BOARD_OVERLOAD_LED LED_AMBER
+#define BOARD_ARMED_STATE_LED LED_GREEN
 
-#define BOARD_HAS_CONTROL_STATUS_LEDS 1 // Use D9 and D10
-#define BOARD_OVERLOAD_LED     LED_AMBER
-#define BOARD_ARMED_STATE_LED  LED_GREEN
-
-#define GPIO_NFC_IO            (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTA | PIN26)
-#define GPIO_SENSOR_P_EN       (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN8)
-
+#define GPIO_NFC_IO (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTA | PIN26)
+#define GPIO_SENSOR_P_EN (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTB | PIN8)
 
 /* UART tty Mapping
  * Device   tty        alt           Connector Name
@@ -93,15 +91,14 @@ __END_DECLS
  */
 
 /* High-resolution timer */
-#define HRT_TIMER              1  /* TPM1 timer for the HRT */
-#define HRT_TIMER_CHANNEL      0  /* Use capture/compare channel 0 */
+#define HRT_TIMER 1         /* TPM1 timer for the HRT */
+#define HRT_TIMER_CHANNEL 0 /* Use capture/compare channel 0 */
 
 /* PPM IN
  */
 
-#define HRT_PPM_CHANNEL        1  /* Use TPM1 capture/compare channel 1 */
-#define GPIO_PPM_IN            PIN_TPM1_CH1_1    /* PTC3 USART1 RX and PTA9 and PIN_TPM1_CH1 AKA FrSky_IN_RC_IN */
-
+#define HRT_PPM_CHANNEL 1          /* Use TPM1 capture/compare channel 1 */
+#define GPIO_PPM_IN PIN_TPM1_CH1_1 /* PTC3 USART1 RX and PTA9 and PIN_TPM1_CH1 AKA FrSky_IN_RC_IN */
 
 /*
  *
@@ -117,23 +114,23 @@ __END_DECLS
 
 /* Power is a p-Channel FET */
 
-#define GPIO_SPEKTRUM_P_EN          (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTA | PIN7)
+#define GPIO_SPEKTRUM_P_EN (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTA | PIN7)
 
 /* For binding the Spektrum 3-pin interfaces is used with it TX (output)
  * as an input Therefore we drive are UARTx_RX (normaly an input) as an
  * output
  */
 
-#define GPIO_PPM_IN_AS_OUT          (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN3)
+#define GPIO_PPM_IN_AS_OUT (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN3)
 
 #define SPEKTRUM_RX_AS_GPIO_OUTPUT() px4_arch_configgpio(GPIO_PPM_IN_AS_OUT)
-#define SPEKTRUM_RX_AS_UART()        px4_arch_configgpio(PIN_UART1_RX)
-#define SPEKTRUM_OUT(_one_true)      px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
+#define SPEKTRUM_RX_AS_UART() px4_arch_configgpio(PIN_UART1_RX)
+#define SPEKTRUM_OUT(_one_true) px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
 /* RC input */
 
-#define RC_SERIAL_PORT          "/dev/ttyS2"      /* UART1 */
-#define GPIO_RSSI_IN            PIN_ADC1_SE13
+#define RC_SERIAL_PORT "/dev/ttyS2" /* UART1 */
+#define GPIO_RSSI_IN PIN_ADC1_SE13
 
 /* Ethernet Control
  *
@@ -141,27 +138,26 @@ __END_DECLS
  * All pins driven low to not back feed when power is off
  */
 
-#define nGPIO_ETHERNET_P_EN     (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN3)
-#define GPIO_ENET_RST           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN28)
-#define GPIO_ENET_EN            (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN29)
-#define GPIO_ENET_INH           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN8)
-#define GPIO_ENET_CONFIG0       (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN24)
-#define GPIO_ENET_CONFIG1       (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTB | PIN2)
+#define nGPIO_ETHERNET_P_EN (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE | PIN_PORTB | PIN3)
+#define GPIO_ENET_RST (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN28)
+#define GPIO_ENET_EN (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN29)
+#define GPIO_ENET_INH (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN8)
+#define GPIO_ENET_CONFIG0 (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN24)
+#define GPIO_ENET_CONFIG1 (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTB | PIN2)
 
 /* CAN Control
  * Control pin S allows two operating modes to be selected:
  * high-speed mode (Low) or silent mode (high)
  */
 
-#define GPIO_CAN0_STB           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO  | PIN_PORTC | PIN19)
-#define GPIO_CAN1_STB           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO  | PIN_PORTC | PIN18)
-
+#define GPIO_CAN0_STB (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTC | PIN19)
+#define GPIO_CAN1_STB (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTC | PIN18)
 
 /* Safety Switch
  * TBD
  */
-#define GPIO_LED_SAFETY         (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZERO  | PIN_PORTC | PIN0)
-#define GPIO_BTN_SAFETY         (GPIO_PULLUP | PIN_PORTE | PIN28)
+#define GPIO_LED_SAFETY (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTC | PIN0)
+#define GPIO_BTN_SAFETY (GPIO_PULLUP | PIN_PORTE | PIN28)
 
 /* NXP FMUK66-V3 GPIOs ****************************************************************/
 
@@ -187,7 +183,7 @@ __END_DECLS
  *
  * There is no Write Protect pin available to the K66
  */
-#define SD_CAED_P_EN       (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTD | PIN6)
+#define SD_CAED_P_EN (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE | PIN_PORTD | PIN6)
 
 //#define GPIO_SD_CARDDETECT (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTD | PIN10)
 
@@ -196,17 +192,17 @@ __END_DECLS
  */
 
 /* Init in reset */
-#define GPIO_GM_nRST                        (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO  | PIN_PORTD | PIN12)
-#define GPIO_A_RST                          (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE   | PIN_PORTA | PIN25)
+#define GPIO_GM_nRST (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTD | PIN12)
+#define GPIO_A_RST (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE | PIN_PORTA | PIN25)
 
 /* Sensor interrupts */
 
-#define GPIO_EXTI_GYRO_INT1                 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTE | PIN7)
-#define GPIO_EXTI_GYRO_INT2                 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTE | PIN6)
-#define GPIO_EXTI_ACCEL_MAG_INT1            (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTE | PIN9)
-#define GPIO_EXTI_ACCEL_MAG_INT2            (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTE | PIN10)
-#define GPIO_EXTI_BARO_INT1                 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTD | PIN11)
-#define GPIO_EXTI_BARO_INT2                 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTD | PIN7)
+#define GPIO_EXTI_GYRO_INT1 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTE | PIN7)
+#define GPIO_EXTI_GYRO_INT2 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTE | PIN6)
+#define GPIO_EXTI_ACCEL_MAG_INT1 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTE | PIN9)
+#define GPIO_EXTI_ACCEL_MAG_INT2 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTE | PIN10)
+#define GPIO_EXTI_BARO_INT1 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTD | PIN11)
+#define GPIO_EXTI_BARO_INT2 (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTD | PIN7)
 
 /*
  * ADC channels
@@ -219,39 +215,31 @@ __END_DECLS
  *         Bits 31:0 are ADC1 channels 31:0
  */
 
-#define ADC1_CH(c)    (((c) & 0x1f))	/* Define ADC number Channel number */
-#define ADC1_GPIO(n)  PIN_ADC1_SE##n
+#define ADC1_CH(c) (((c)&0x1f)) /* Define ADC number Channel number */
+#define ADC1_GPIO(n) PIN_ADC1_SE##n
 
 /* ADC defines to be used in sensors.cpp to read from a particular channel */
 
-#define ADC_USB_VBUS_VALID          ADC1_CH(0)      /* USB_VBUS_VALID   29    -    ADC1_DP0  */
-#define ADC_BATTERY_VOLTAGE_CHANNEL ADC1_CH(10)     /* BAT_VSENS        85   PTB4  ADC1_SE10 */
-#define ADC_BATTERY_CURRENT_CHANNEL ADC1_CH(11)     /* BAT_ISENS        86   PTB5  ADC1_SE11 */
-#define ADC_5V_RAIL_SENSE           ADC1_CH(12)     /* 5V_VSENS         87   PTB6  ADC1_SE12 */
-#define ADC_RSSI_IN                 ADC1_CH(13)     /* RSSI_IN          88   PTB7  ADC1_SE13 */
-#define ADC_AD1                     ADC1_CH(16)     /* AD1              35    -    ADC1_SE16 */
-#define ADC_AD2                     ADC1_CH(18)     /* AD2              37    -    ADC1_SE18 */
-#define ADC_AD3                     ADC1_CH(23)     /* AD3              39    -    ADC1_SE23 */
+#define ADC_USB_VBUS_VALID ADC1_CH(0)           /* USB_VBUS_VALID   29    -    ADC1_DP0  */
+#define ADC_BATTERY_VOLTAGE_CHANNEL ADC1_CH(10) /* BAT_VSENS        85   PTB4  ADC1_SE10 */
+#define ADC_BATTERY_CURRENT_CHANNEL ADC1_CH(11) /* BAT_ISENS        86   PTB5  ADC1_SE11 */
+#define ADC_5V_RAIL_SENSE ADC1_CH(12)           /* 5V_VSENS         87   PTB6  ADC1_SE12 */
+#define ADC_RSSI_IN ADC1_CH(13)                 /* RSSI_IN          88   PTB7  ADC1_SE13 */
+#define ADC_AD1 ADC1_CH(16)                     /* AD1              35    -    ADC1_SE16 */
+#define ADC_AD2 ADC1_CH(18)                     /* AD2              37    -    ADC1_SE18 */
+#define ADC_AD3 ADC1_CH(23)                     /* AD3              39    -    ADC1_SE23 */
 
 /* Mask use to initialize the ADC driver */
 
-#define ADC_CHANNELS ((1 << ADC_USB_VBUS_VALID) | \
-		      (1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
-		      (1 << ADC_BATTERY_CURRENT_CHANNEL) | \
-		      (1 << ADC_5V_RAIL_SENSE) | \
-		      (1 << ADC_RSSI_IN) | \
-		      (1 << ADC_AD1) | \
-		      (1 << ADC_AD2) | \
-		      (1 << ADC_AD3))
-
+#define ADC_CHANNELS                                                                                           \
+	((1 << ADC_USB_VBUS_VALID) | (1 << ADC_BATTERY_VOLTAGE_CHANNEL) | (1 << ADC_BATTERY_CURRENT_CHANNEL) | \
+	 (1 << ADC_5V_RAIL_SENSE) | (1 << ADC_RSSI_IN) | (1 << ADC_AD1) | (1 << ADC_AD2) | (1 << ADC_AD3))
 
 /* GPIO that require Configuration */
 
-#define PX4_ADC_GPIO  \
-	/* PTB4  ADC1_SE10 */  ADC1_GPIO(10),  \
-	/* PTB5  ADC1_SE11 */  ADC1_GPIO(11),  \
-	/* PTB6  ADC1_SE12 */  ADC1_GPIO(12),  \
-	/* PTB7  ADC1_SE13 */  ADC1_GPIO(13)
+#define PX4_ADC_GPIO                                                                                                   \
+	/* PTB4  ADC1_SE10 */ ADC1_GPIO(10), /* PTB5  ADC1_SE11 */ ADC1_GPIO(11), /* PTB6  ADC1_SE12 */ ADC1_GPIO(12), \
+		/* PTB7  ADC1_SE13 */ ADC1_GPIO(13)
 
 /* User GPIOs
  *
@@ -267,53 +255,51 @@ __END_DECLS
  */
 // todo:Design this!
 
-#define DIRECT_PWM_OUTPUT_CHANNELS  6
+#define DIRECT_PWM_OUTPUT_CHANNELS 6
 
-#define GPIO_ULTRASOUND_TRIGGER  /* PTD0 */  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTD | PIN0)
-#define GPIO_ULTRASOUND_ECHO     /* PTA10 */ (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTA | PIN10)
+#define GPIO_ULTRASOUND_TRIGGER /* PTD0 */ (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTD | PIN0)
+#define GPIO_ULTRASOUND_ECHO /* PTA10 */ (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTA | PIN10)
 
 /* Power supply control and monitoring GPIOs */
 // None
 
-#define GPIO_PERIPH_3V3_EN  0
-
+#define GPIO_PERIPH_3V3_EN 0
 
 /* Tone alarm output PTA11 - TMP 2_CH1 is On +P12-4, -P12-5
  * It is driving a NPN
  */
-#define TONE_ALARM_TIMER     2   /* timer */
-#define TONE_ALARM_CHANNEL   1   /* channel  */
+#define TONE_ALARM_TIMER 2   /* timer */
+#define TONE_ALARM_CHANNEL 1 /* channel  */
 #define GPIO_TONE_ALARM_IDLE (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN11)
-#define GPIO_TONE_ALARM      (PIN_TPM2_CH1_1)
+#define GPIO_TONE_ALARM (PIN_TPM2_CH1_1)
 
 /* USB
  *
  *  VBUS detection is on 29  ADC_DPM0 and PTE8
  */
-#define GPIO_USB_VBUS_VALID         /* PTE8 */ (GPIO_PULLUP | PIN_PORTE | PIN8)
+#define GPIO_USB_VBUS_VALID /* PTE8 */ (GPIO_PULLUP | PIN_PORTE | PIN8)
 
 /* PWM input driver. Use FMU PWM14 pin
  * todo:desing this
  */
-#define PWMIN_TIMER		0
-#define PWMIN_TIMER_CHANNEL	2
-#define GPIO_PWM_IN		GPIO_FTM0_CH2IN
+#define PWMIN_TIMER 0
+#define PWMIN_TIMER_CHANNEL 2
+#define GPIO_PWM_IN GPIO_FTM0_CH2IN
 
 /* Define True logic Power Control in arch agnostic form */
 
-#define VDD_ETH_EN(on_true)                px4_arch_gpiowrite(nGPIO_ETHERNET_P_EN, !(on_true))
+#define VDD_ETH_EN(on_true) px4_arch_gpiowrite(nGPIO_ETHERNET_P_EN, !(on_true))
 // Do not have #define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, !(on_true))
 // Do not have #define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_nVDD_5V_HIPOWER_EN, !(on_true))
-#define VDD_3V3_SENSORS_EN(on_true)        px4_arch_gpiowrite(GPIO_SENSOR_P_EN, (on_true))
+#define VDD_3V3_SENSORS_EN(on_true) px4_arch_gpiowrite(GPIO_SENSOR_P_EN, (on_true))
 #define VDD_3V3_SPEKTRUM_POWER_EN(on_true) px4_arch_gpiowrite(GPIO_SPEKTRUM_P_EN, !(on_true))
-#define READ_VDD_3V3_SPEKTRUM_POWER_EN()   px4_arch_gpioread(GPIO_SPEKTRUM_P_EN)
+#define READ_VDD_3V3_SPEKTRUM_POWER_EN() px4_arch_gpioread(GPIO_SPEKTRUM_P_EN)
 // Do not have #define VDD_5V_RC_EN(on_true)              px4_arch_gpiowrite(GPIO_VDD_5V_RC_EN, (on_true))
 // Do not have #define VDD_5V_WIFI_EN(on_true)            px4_arch_gpiowrite(GPIO_VDD_5V_WIFI_EN, (on_true))
-#define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(SD_CAED_P_EN, !(on_true))
+#define VDD_3V3_SD_CARD_EN(on_true) px4_arch_gpiowrite(SD_CAED_P_EN, !(on_true))
 
 /* Map to control term used in RC lib */
 #define SPEKTRUM_POWER(on_true) VDD_3V3_SPEKTRUM_POWER_EN((on_true))
-
 
 /*
  * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
@@ -322,17 +308,16 @@ __END_DECLS
  */
 
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_USB_VBUS_VALID))
-#define BOARD_ADC_BRICK_VALID   (1)
-#define BOARD_ADC_SERVO_VALID   (1)
-#define BOARD_ADC_PERIPH_5V_OC  (0)
+#define BOARD_ADC_BRICK_VALID (1)
+#define BOARD_ADC_SERVO_VALID (1)
+#define BOARD_ADC_PERIPH_5V_OC (0)
 #define BOARD_ADC_HIPOWER_5V_OC (0)
 
+#define BOARD_HAS_LED_PWM 1
 
-#define BOARD_HAS_LED_PWM              1
-
-#define LED_TIM3_CH1OUT   /* PTD1  RGB_R */ PIN_FTM3_CH1_1
-#define LED_TIM3_CH5OUT   /* PTC9  RGB_G */ PIN_FTM3_CH5_1
-#define LED_TIM3_CH4OUT   /* PTC8  RGB_B */ PIN_FTM3_CH4_1
+#define LED_TIM3_CH1OUT /* PTD1  RGB_R */ PIN_FTM3_CH1_1
+#define LED_TIM3_CH5OUT /* PTC9  RGB_G */ PIN_FTM3_CH5_1
+#define LED_TIM3_CH4OUT /* PTC8  RGB_B */ PIN_FTM3_CH4_1
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 2048
@@ -341,75 +326,54 @@ __END_DECLS
 
 #define BOARD_HAS_ON_RESET 1
 
-#define PX4_GPIO_INIT_LIST {  \
-		GPIO_LED_R,           \
-		GPIO_LED_G,           \
-		GPIO_LED_B,           \
-		GPIO_SENSOR_P_EN,     \
-		SD_CAED_P_EN,         \
-		nGPIO_ETHERNET_P_EN,  \
-		GPIO_SPEKTRUM_P_EN,   \
-		PX4_ADC_GPIO,         \
-		GPIO_GM_nRST,         \
-		GPIO_A_RST,           \
-		GPIO_USB_VBUS_VALID,  \
-		GPIO_ENET_RST,        \
-		GPIO_ENET_EN,         \
-		GPIO_ENET_INH,        \
-		GPIO_ENET_CONFIG0,    \
-		GPIO_ENET_CONFIG1,    \
-		PIN_CAN0_RX,          \
-		PIN_CAN0_TX,          \
-		PIN_CAN1_RX,          \
-		PIN_CAN1_TX,          \
-		GPIO_CAN0_STB,        \
-		GPIO_CAN1_STB,        \
-		GPIO_BTN_SAFETY,      \
-		GPIO_TONE_ALARM_IDLE, \
-		GPIO_NFC_IO,          \
-		GPIO_LED_1,           \
-		GPIO_LED_2            \
+#define PX4_GPIO_INIT_LIST                                                                                             \
+	{                                                                                                              \
+		GPIO_LED_R, GPIO_LED_G, GPIO_LED_B, GPIO_SENSOR_P_EN, SD_CAED_P_EN, nGPIO_ETHERNET_P_EN,               \
+			GPIO_SPEKTRUM_P_EN, PX4_ADC_GPIO, GPIO_GM_nRST, GPIO_A_RST, GPIO_USB_VBUS_VALID,               \
+			GPIO_ENET_RST, GPIO_ENET_EN, GPIO_ENET_INH, GPIO_ENET_CONFIG0, GPIO_ENET_CONFIG1, PIN_CAN0_RX, \
+			PIN_CAN0_TX, PIN_CAN1_RX, PIN_CAN1_TX, GPIO_CAN0_STB, GPIO_CAN1_STB, GPIO_BTN_SAFETY,          \
+			GPIO_TONE_ALARM_IDLE, GPIO_NFC_IO, GPIO_LED_1, GPIO_LED_2                                      \
 	}
 
 /* Automounter */
 
-#define HAVE_MMCSD      1
+#define HAVE_MMCSD 1
 #define HAVE_AUTOMOUNTER 1
 #if !defined(CONFIG_FS_AUTOMOUNTER) || !defined(HAVE_MMCSD)
-#  undef HAVE_AUTOMOUNTER
-#  undef CONFIG_FMUK66_SDHC_AUTOMOUNT
+#undef HAVE_AUTOMOUNTER
+#undef CONFIG_FMUK66_SDHC_AUTOMOUNT
 #endif
 
 #ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT
-#  undef HAVE_AUTOMOUNTER
+#undef HAVE_AUTOMOUNTER
 #endif
 
 /* Automounter defaults */
 
 #ifdef HAVE_AUTOMOUNTER
 
-#  ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_FSTYPE
-#    define CONFIG_FMUK66_SDHC_AUTOMOUNT_FSTYPE "vfat"
-#  endif
+#ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_FSTYPE
+#define CONFIG_FMUK66_SDHC_AUTOMOUNT_FSTYPE "vfat"
+#endif
 
-#  ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_BLKDEV
-#    define CONFIG_FMUK66_SDHC_AUTOMOUNT_BLKDEV "/dev/mmcds0"
-#  endif
+#ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_BLKDEV
+#define CONFIG_FMUK66_SDHC_AUTOMOUNT_BLKDEV "/dev/mmcds0"
+#endif
 
-#  ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_MOUNTPOINT
-#    define CONFIG_FMUK66_SDHC_AUTOMOUNT_MOUNTPOINT "/mnt/sdcard"
-#  endif
+#ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_MOUNTPOINT
+#define CONFIG_FMUK66_SDHC_AUTOMOUNT_MOUNTPOINT "/mnt/sdcard"
+#endif
 
-#  ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_DDELAY
-#    define CONFIG_FMUK66_SDHC_AUTOMOUNT_DDELAY 1000
-#  endif
+#ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_DDELAY
+#define CONFIG_FMUK66_SDHC_AUTOMOUNT_DDELAY 1000
+#endif
 
-#  ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_UDELAY
-#    define CONFIG_FMUK66_SDHC_AUTOMOUNT_UDELAY 2000
-#  endif
+#ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_UDELAY
+#define CONFIG_FMUK66_SDHC_AUTOMOUNT_UDELAY 2000
+#endif
 #endif /* HAVE_AUTOMOUNTER */
 
-#define BOARD_HAS_NOISY_FXOS8700_MAG 1 // Disable internal MAG
+#define BOARD_HAS_NOISY_FXOS8700_MAG 1  // Disable internal MAG
 
 #define BOARD_NUM_IO_TIMERS 3
 
@@ -443,7 +407,7 @@ void fmuk66_spidev_initialize(void);
  *
  ************************************************************************************/
 
-int  fmuk66_spi_bus_initialize(void);
+int fmuk66_spi_bus_initialize(void);
 
 /****************************************************************************************************
  * Name: board_spi_reset board_peripheral_reset
@@ -487,7 +451,7 @@ int fmuk66_sdhc_initialize(void);
 #ifdef HAVE_AUTOMOUNTER
 bool fmuk66_cardinserted(void);
 #else
-#  define fmuk66_cardinserted() (false)
+#define fmuk66_cardinserted() (false)
 #endif
 
 /************************************************************************************
@@ -501,7 +465,7 @@ bool fmuk66_cardinserted(void);
 #ifdef HAVE_AUTOMOUNTER
 bool fmuk66_writeprotected(void);
 #else
-#  define fmuk66_writeprotected() (false)
+#define fmuk66_writeprotected() (false)
 #endif
 
 /************************************************************************************

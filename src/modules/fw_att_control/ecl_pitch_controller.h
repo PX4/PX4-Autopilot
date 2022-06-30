@@ -53,9 +53,7 @@
 
 #include "ecl_controller.h"
 
-class ECL_PitchController :
-	public ECL_Controller
-{
+class ECL_PitchController : public ECL_Controller {
 public:
 	ECL_PitchController() = default;
 	~ECL_PitchController() = default;
@@ -65,18 +63,11 @@ public:
 	float control_bodyrate(const float dt, const ECL_ControlData &ctl_data) override;
 
 	/* Additional Setters */
-	void set_max_rate_pos(float max_rate_pos)
-	{
-		_max_rate = max_rate_pos;
-	}
+	void set_max_rate_pos(float max_rate_pos) { _max_rate = max_rate_pos; }
 
-	void set_max_rate_neg(float max_rate_neg)
-	{
-		_max_rate_neg = max_rate_neg;
-	}
+	void set_max_rate_neg(float max_rate_neg) { _max_rate_neg = max_rate_neg; }
 
-	void set_bodyrate_setpoint(float rate)
-	{
+	void set_bodyrate_setpoint(float rate) {
 		_bodyrate_setpoint = math::constrain(rate, -_max_rate_neg, _max_rate);
 	}
 
@@ -84,4 +75,4 @@ protected:
 	float _max_rate_neg{0.0f};
 };
 
-#endif // ECL_PITCH_CONTROLLER_H
+#endif  // ECL_PITCH_CONTROLLER_H

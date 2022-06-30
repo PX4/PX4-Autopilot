@@ -43,74 +43,65 @@
 
 #include <px4_platform_common/log.h>
 
-namespace launchdetection
-{
+namespace launchdetection {
 
-CatapultLaunchMethod::CatapultLaunchMethod(ModuleParams *parent) :
-	ModuleParams(parent)
-{
-}
+CatapultLaunchMethod::CatapultLaunchMethod(ModuleParams *parent) : ModuleParams(parent) {}
 
-void CatapultLaunchMethod::update(const float dt, float accel_x)
-{
+void CatapultLaunchMethod::update(const float dt, float accel_x) {
 	switch (state) {
-	case LAUNCHDETECTION_RES_NONE:
+		case LAUNCHDETECTION_RES_NONE:
 
-		/* Detect a acceleration that is longer and stronger as the minimum given by the params */
-		if (accel_x > _param_laun_cat_a.get()) {
-			_integrator += dt;
+			/* Detect a acceleration that is longer and stronger as the minimum given by the params */
+			if (accel_x > _param_laun_cat_a.get()) {
+				_integrator += dt;
 
-			if (_integrator > _param_laun_cat_t.get()) {
-				if (_param_laun_cat_mdel.get() > 0.0f) {
-					state = LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL;
-					PX4_WARN("Launch detected: enablecontrol, waiting %8.4fs until full throttle",
-						 double(_param_laun_cat_mdel.get()));
+				if (_integrator > _param_laun_cat_t.get()) {
+					if (_param_laun_cat_mdel.get() > 0.0f) {
+						state = LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL;
+						PX4_WARN(
+							"Launch detected: enablecontrol, waiting %8.4fs until full "
+							"throttle",
+							double(_param_laun_cat_mdel.get()));
 
-				} else {
-					/* No motor delay set: go directly to enablemotors state */
-					state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
-					PX4_WARN("Launch detected: enablemotors (delay not activated)");
+					} else {
+						/* No motor delay set: go directly to enablemotors state */
+						state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
+						PX4_WARN("Launch detected: enablemotors (delay not activated)");
+					}
 				}
+
+			} else {
+				reset();
 			}
 
-		} else {
-			reset();
-		}
+			break;
 
-		break;
+		case LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL:
+			/* Vehicle is currently controlling attitude but not with full throttle. Waiting until delay is
+			 * over to allow full throttle */
+			_motorDelayCounter += dt;
 
-	case LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL:
-		/* Vehicle is currently controlling attitude but not with full throttle. Waiting until delay is
-		 * over to allow full throttle */
-		_motorDelayCounter += dt;
+			if (_motorDelayCounter > _param_laun_cat_mdel.get()) {
+				PX4_INFO("Launch detected: state enablemotors");
+				state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
+			}
 
-		if (_motorDelayCounter > _param_laun_cat_mdel.get()) {
-			PX4_INFO("Launch detected: state enablemotors");
-			state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
-		}
+			break;
 
-		break;
-
-	default:
-		break;
-
+		default:
+			break;
 	}
 }
 
-LaunchDetectionResult CatapultLaunchMethod::getLaunchDetected() const
-{
-	return state;
-}
+LaunchDetectionResult CatapultLaunchMethod::getLaunchDetected() const { return state; }
 
-void CatapultLaunchMethod::reset()
-{
+void CatapultLaunchMethod::reset() {
 	_integrator = 0.0f;
 	_motorDelayCounter = 0.0f;
 	state = LAUNCHDETECTION_RES_NONE;
 }
 
-float CatapultLaunchMethod::getPitchMax(float pitchMaxDefault)
-{
+float CatapultLaunchMethod::getPitchMax(float pitchMaxDefault) {
 	/* If motor is turned on do not impose the extra limit on maximum pitch */
 	if (state == LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
 		return pitchMaxDefault;
@@ -120,4 +111,4 @@ float CatapultLaunchMethod::getPitchMax(float pitchMaxDefault)
 	}
 }
 
-} // namespace launchdetection
+}  // namespace launchdetection

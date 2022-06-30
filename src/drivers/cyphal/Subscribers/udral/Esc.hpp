@@ -51,40 +51,37 @@
 
 #include "../DynamicPortSubscriber.hpp"
 
-class UavcanEscSubscriber : public UavcanDynamicPortSubscriber
-{
+class UavcanEscSubscriber : public UavcanDynamicPortSubscriber {
 public:
-	UavcanEscSubscriber(CanardHandle &handle, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanDynamicPortSubscriber(handle, pmgr, "udral.", "esc", instance) { };
+	UavcanEscSubscriber(CanardHandle &handle, UavcanParamManager &pmgr, uint8_t instance = 0)
+		: UavcanDynamicPortSubscriber(handle, pmgr, "udral.", "esc", instance){};
 
-	void subscribe() override
-	{
+	void subscribe() override {
 		// Subscribe to messages reg.drone.service.actuator.common.sp.Vector8.0.1
-		_canard_handle.RxSubscribe(CanardTransferKindMessage,
-					   _subj_sub._canard_sub.port_id,
+		_canard_handle.RxSubscribe(CanardTransferKindMessage, _subj_sub._canard_sub.port_id,
 					   reg_udral_service_actuator_common_sp_Vector8_0_1_EXTENT_BYTES_,
-					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-					   &_subj_sub._canard_sub);
+					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC, &_subj_sub._canard_sub);
 
 		// Subscribe to messages reg.drone.service.common.Readiness.0.1
-		_canard_handle.RxSubscribe(CanardTransferKindMessage,
-					   static_cast<CanardPortID>(static_cast<uint32_t>(_subj_sub._canard_sub.port_id) + 1),
-					   reg_udral_service_common_Readiness_0_1_EXTENT_BYTES_,
-					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-					   &_canard_sub_readiness);
+		_canard_handle.RxSubscribe(
+			CanardTransferKindMessage,
+			static_cast<CanardPortID>(static_cast<uint32_t>(_subj_sub._canard_sub.port_id) + 1),
+			reg_udral_service_common_Readiness_0_1_EXTENT_BYTES_, CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+			&_canard_sub_readiness);
 	};
 
-	void callback(const CanardRxTransfer &receive) override
-	{
+	void callback(const CanardRxTransfer &receive) override {
 		// Test with Yakut:
-		// export YAKUT_TRANSPORT="pyuavcan.transport.can.CANTransport(pyuavcan.transport.can.media.slcan.SLCANMedia('/dev/serial/by-id/usb-Zubax_Robotics_Zubax_Babel_23002B000E514E413431302000000000-if00', 8, 115200), 42)"
-		// yakut pub 22.reg.drone.service.actuator.common.sp.Vector8.0.1 '{value: [1000, 2000, 3000, 4000, 0, 0, 0, 0]}'
+		// export
+		// YAKUT_TRANSPORT="pyuavcan.transport.can.CANTransport(pyuavcan.transport.can.media.slcan.SLCANMedia('/dev/serial/by-id/usb-Zubax_Robotics_Zubax_Babel_23002B000E514E413431302000000000-if00',
+		// 8, 115200), 42)" yakut pub 22.reg.drone.service.actuator.common.sp.Vector8.0.1 '{value: [1000, 2000,
+		// 3000, 4000, 0, 0, 0, 0]}'
 		PX4_INFO("EscCallback");
 
-		reg_udral_service_actuator_common_sp_Vector8_0_1 esc {};
+		reg_udral_service_actuator_common_sp_Vector8_0_1 esc{};
 		size_t esc_size_in_bits = receive.payload_size;
 		reg_udral_service_actuator_common_sp_Vector8_0_1_deserialize_(&esc, (const uint8_t *)receive.payload,
-				&esc_size_in_bits);
+									      &esc_size_in_bits);
 
 		double val1 = static_cast<double>(esc.value[0]);
 		double val2 = static_cast<double>(esc.value[1]);

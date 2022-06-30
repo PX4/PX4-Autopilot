@@ -31,16 +31,15 @@
  *
  ****************************************************************************/
 
-#include "wqueue_test.h"
-#include "wqueue_scheduled_test.h"
-
-#include <px4_platform_common/log.h>
 #include <px4_platform_common/app.h>
 #include <px4_platform_common/init.h>
+#include <px4_platform_common/log.h>
 #include <stdio.h>
 
-int PX4_MAIN(int argc, char **argv)
-{
+#include "wqueue_scheduled_test.h"
+#include "wqueue_test.h"
+
+int PX4_MAIN(int argc, char **argv) {
 	px4::init(argc, argv, "wqueue_test");
 
 	PX4_INFO("wqueue test 1");

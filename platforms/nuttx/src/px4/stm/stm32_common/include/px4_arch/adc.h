@@ -34,7 +34,6 @@
 
 #include <board_config.h>
 
-
 /* Historically PX4 used one ADC1 With FMUvnX this has changes.
  * These defines maintain compatibility while allowing the
  * new boards to override the ADC used from HW VER/REV and
@@ -46,12 +45,11 @@
  */
 
 #if !defined(HW_REV_VER_ADC_BASE)
-#  define HW_REV_VER_ADC_BASE STM32_ADC1_BASE
+#define HW_REV_VER_ADC_BASE STM32_ADC1_BASE
 #endif
 
 #if !defined(SYSTEM_ADC_BASE)
-#  define SYSTEM_ADC_BASE STM32_ADC1_BASE
+#define SYSTEM_ADC_BASE STM32_ADC1_BASE
 #endif
 
 #include <px4_platform/adc.h>
-

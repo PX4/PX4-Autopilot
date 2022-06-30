@@ -35,11 +35,11 @@
 
 #include "gpio.h"
 
-#include <cstring>
 #include <px4_arch/io_timer.h>
 
-CameraInterfaceGPIO::CameraInterfaceGPIO()
-{
+#include <cstring>
+
+CameraInterfaceGPIO::CameraInterfaceGPIO() {
 	_p_polarity = param_find("TRIG_POLARITY");
 
 	// polarity of the trigger (0 = active low, 1 = active high )
@@ -51,8 +51,7 @@ CameraInterfaceGPIO::CameraInterfaceGPIO()
 	setup();
 }
 
-CameraInterfaceGPIO::~CameraInterfaceGPIO()
-{
+CameraInterfaceGPIO::~CameraInterfaceGPIO() {
 	unsigned channel = 0;
 
 	while (_allocated_channels != 0) {
@@ -65,8 +64,7 @@ CameraInterfaceGPIO::~CameraInterfaceGPIO()
 	}
 }
 
-void CameraInterfaceGPIO::setup()
-{
+void CameraInterfaceGPIO::setup() {
 	_allocated_channels = 0;
 
 	for (unsigned i = 0, t = 0; i < arraySize(_pins); i++) {
@@ -84,8 +82,7 @@ void CameraInterfaceGPIO::setup()
 	}
 }
 
-void CameraInterfaceGPIO::trigger(bool trigger_on_true)
-{
+void CameraInterfaceGPIO::trigger(bool trigger_on_true) {
 	bool trigger_state = trigger_on_true ^ _trigger_invert;
 
 	for (unsigned i = 0; i < arraySize(_triggers); i++) {
@@ -95,8 +92,7 @@ void CameraInterfaceGPIO::trigger(bool trigger_on_true)
 	}
 }
 
-void CameraInterfaceGPIO::info()
-{
+void CameraInterfaceGPIO::info() {
 	PX4_INFO_RAW("GPIO trigger mode, pins enabled: ");
 
 	for (unsigned i = 0; i < arraySize(_pins); ++i) {

@@ -39,54 +39,48 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <assert.h>
-#include <time.h>
-#include <stdlib.h>
 #include <math.h>
-#include <mathlib/math/test/test.hpp>
+#include <px4_platform_common/defines.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
+namespace control {
 
 /**
  * A uniform random number generator
  */
-class __EXPORT BlockRandUniform: public Block
-{
+class __EXPORT BlockRandUniform : public Block {
 public:
-// methods
-	BlockRandUniform(SuperBlock *parent,
-			 const char *name) :
-		Block(parent, name),
-		_min(this, "MIN"),
-		_max(this, "MAX")
-	{
+	// methods
+	BlockRandUniform(SuperBlock *parent, const char *name)
+		: Block(parent, name), _min(this, "MIN"), _max(this, "MAX") {
 		// seed should be initialized somewhere
 		// in main program for all calls to rand
 		// XXX currently in nuttx if you seed to 0, rand breaks
 	}
 	virtual ~BlockRandUniform() = default;
-	float update()
-	{
+	float update() {
 		static float rand_max = static_cast<float>(RAND_MAX);
 		float rand_val = rand();
 		float bounds = getMax() - getMin();
 		return getMin() + (rand_val * bounds) / rand_max;
 	}
-// accessors
+	// accessors
 	float getMin() { return _min.get(); }
 	float getMax() { return _max.get(); }
+
 private:
-// attributes
+	// attributes
 	control::BlockParamFloat _min;
 	control::BlockParamFloat _max;
 };
 
-} // namespace control
+}  // namespace control

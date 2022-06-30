@@ -33,34 +33,30 @@
 
 #pragma once
 
-#include "UavcanSubscriberBase.hpp"
-
-#include <uavcan/equipment/indication/BeepCommand.hpp>
-
-#include <uORB/Publication.hpp>
 #include <uORB/topics/tune_control.h>
 
-namespace uavcannode
-{
+#include <uORB/Publication.hpp>
+#include <uavcan/equipment/indication/BeepCommand.hpp>
+
+#include "UavcanSubscriberBase.hpp"
+
+namespace uavcannode {
 
 class BeepCommand;
 
 typedef uavcan::MethodBinder<BeepCommand *,
-	void (BeepCommand::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::indication::BeepCommand>&)>
+			     void (BeepCommand::*)(
+				     const uavcan::ReceivedDataStructure<uavcan::equipment::indication::BeepCommand> &)>
 	BeepcommandBinder;
 
-class BeepCommand :
-	public UavcanSubscriberBase,
-	private uavcan::Subscriber<uavcan::equipment::indication::BeepCommand, BeepcommandBinder>
-{
+class BeepCommand : public UavcanSubscriberBase,
+		    private uavcan::Subscriber<uavcan::equipment::indication::BeepCommand, BeepcommandBinder> {
 public:
-	BeepCommand(uavcan::INode &node) :
-		UavcanSubscriberBase(uavcan::equipment::indication::BeepCommand::DefaultDataTypeID),
-		uavcan::Subscriber<uavcan::equipment::indication::BeepCommand, BeepcommandBinder>(node)
-	{}
+	BeepCommand(uavcan::INode &node)
+		: UavcanSubscriberBase(uavcan::equipment::indication::BeepCommand::DefaultDataTypeID),
+		  uavcan::Subscriber<uavcan::equipment::indication::BeepCommand, BeepcommandBinder>(node) {}
 
-	bool init()
-	{
+	bool init() {
 		if (start(BeepcommandBinder(this, &BeepCommand::callback)) < 0) {
 			PX4_ERR("uavcan::equipment::indication::BeepCommand subscription failed");
 			return false;
@@ -69,17 +65,14 @@ public:
 		return true;
 	}
 
-	void PrintInfo() const override
-	{
-		printf("\t%s:%d -> %s\n",
-		       uavcan::equipment::indication::BeepCommand::getDataTypeFullName(),
+	void PrintInfo() const override {
+		printf("\t%s:%d -> %s\n", uavcan::equipment::indication::BeepCommand::getDataTypeFullName(),
 		       uavcan::equipment::indication::BeepCommand::DefaultDataTypeID,
 		       _tune_control_pub.get_topic()->o_name);
 	}
 
 private:
-	void callback(const uavcan::ReceivedDataStructure<uavcan::equipment::indication::BeepCommand> &msg)
-	{
+	void callback(const uavcan::ReceivedDataStructure<uavcan::equipment::indication::BeepCommand> &msg) {
 		tune_control_s tune_control{};
 		tune_control.tune_id = 0;
 		tune_control.frequency = (uint16_t)msg.frequency;
@@ -91,4 +84,4 @@ private:
 
 	uORB::Publication<tune_control_s> _tune_control_pub{ORB_ID(tune_control)};
 };
-} // namespace uavcannode
+}  // namespace uavcannode

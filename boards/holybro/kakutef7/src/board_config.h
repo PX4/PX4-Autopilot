@@ -43,10 +43,9 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdint.h>
-
 #include <stm32_gpio.h>
 
 /****************************************************************************************************
@@ -57,13 +56,13 @@
 
 /* LEDs are driven with push open drain to support Anode to 5V or 3.3V */
 
-#define GPIO_nLED_BLUE       /* PA2 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN2)
+#define GPIO_nLED_BLUE /* PA2 */ \
+	(GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN2)
 
-#define BOARD_HAS_CONTROL_STATUS_LEDS      1
-#define BOARD_ARMED_STATE_LED  LED_BLUE
+#define BOARD_HAS_CONTROL_STATUS_LEDS 1
+#define BOARD_ARMED_STATE_LED LED_BLUE
 
-#define  FLASH_BASED_PARAMS
-
+#define FLASH_BASED_PARAMS
 
 /*
  * ADC channels
@@ -73,49 +72,45 @@
  */
 
 /* ADC defines to be used in sensors.cpp to read from a particular channel */
-#define ADC1_CH(n)                  (n)
-#define ADC1_GPIO(n)                GPIO_ADC1_IN##n
+#define ADC1_CH(n) (n)
+#define ADC1_GPIO(n) GPIO_ADC1_IN##n
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below */
-#define PX4_ADC_GPIO  \
-	/* PC2 */  ADC1_GPIO(12),  \
-	/* PC3 */  ADC1_GPIO(13),  \
-	/* PC5 */  ADC1_GPIO(15)
+#define PX4_ADC_GPIO /* PC2 */ ADC1_GPIO(12), /* PC3 */ ADC1_GPIO(13), /* PC5 */ ADC1_GPIO(15)
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
-#define ADC_RSSI_IN_CHANNEL                 /* PC5 */  ADC1_CH(15)
-#define ADC_BATTERY_VOLTAGE_CHANNEL         /* PC3 */  ADC1_CH(13)
-#define ADC_BATTERY_CURRENT_CHANNEL         /* PC2 */  ADC1_CH(12)
+#define ADC_RSSI_IN_CHANNEL /* PC5 */ ADC1_CH(15)
+#define ADC_BATTERY_VOLTAGE_CHANNEL /* PC3 */ ADC1_CH(13)
+#define ADC_BATTERY_CURRENT_CHANNEL /* PC2 */ ADC1_CH(12)
 
 #define ADC_CHANNELS \
-	((1 << ADC_BATTERY_VOLTAGE_CHANNEL)       | \
-	 (1 << ADC_BATTERY_CURRENT_CHANNEL)       | \
-	 (1 << ADC_RSSI_IN_CHANNEL))
+	((1 << ADC_BATTERY_VOLTAGE_CHANNEL) | (1 << ADC_BATTERY_CURRENT_CHANNEL) | (1 << ADC_RSSI_IN_CHANNEL))
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS  6
+#define DIRECT_PWM_OUTPUT_CHANNELS 6
 
 /* Tone alarm output */
-#define GPIO_TONE_ALARM_IDLE    /* PD15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN15)
-#define GPIO_TONE_ALARM_GPIO    /* PD15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN15)
+#define GPIO_TONE_ALARM_IDLE /* PD15 */ \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTD | GPIO_PIN15)
+#define GPIO_TONE_ALARM_GPIO /* PD15 */ \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_SET | GPIO_PORTD | GPIO_PIN15)
 
 /* USB OTG FS
  *
  * PA8  OTG_FS_VBUS VBUS sensing
  */
-#define GPIO_OTGFS_VBUS         /* PA8 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN8)
+#define GPIO_OTGFS_VBUS /* PA8 */ (GPIO_INPUT | GPIO_PULLDOWN | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN8)
 
 /* High-resolution timer */
-#define HRT_TIMER               2  /* use timer 2 for the HRT */
-#define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 1 */
+#define HRT_TIMER 2         /* use timer 2 for the HRT */
+#define HRT_TIMER_CHANNEL 1 /* use capture/compare channel 1 */
 
 /* RC Serial port */
 
-#define RC_SERIAL_PORT                     "/dev/ttyS4"
+#define RC_SERIAL_PORT "/dev/ttyS4"
 
-#define GPIO_RSSI_IN                       /* PC5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
-
+#define GPIO_RSSI_IN /* PC5  */ (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTC | GPIO_PIN5)
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
@@ -123,11 +118,8 @@
 /* This board provides the board_on_reset interface */
 #define BOARD_HAS_ON_RESET 1
 
-#define PX4_GPIO_INIT_LIST { \
-		PX4_ADC_GPIO,                     \
-		GPIO_TONE_ALARM_IDLE,             \
-		GPIO_RSSI_IN,                \
-	}
+#define PX4_GPIO_INIT_LIST \
+	{ PX4_ADC_GPIO, GPIO_TONE_ALARM_IDLE, GPIO_RSSI_IN, }
 
 #define BOARD_NUM_IO_TIMERS 4
 

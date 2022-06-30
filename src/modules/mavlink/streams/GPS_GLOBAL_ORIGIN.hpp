@@ -36,8 +36,7 @@
 
 #include <uORB/topics/vehicle_local_position.h>
 
-class MavlinkStreamGpsGlobalOrigin : public MavlinkStream
-{
+class MavlinkStreamGpsGlobalOrigin : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamGpsGlobalOrigin(mavlink); }
 
@@ -47,8 +46,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		if (_vehicle_local_position_sub.advertised()) {
 			return MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		}
@@ -56,8 +54,8 @@ public:
 		return 0;
 	}
 
-	bool request_message(float param2, float param3, float param4, float param5, float param6, float param7) override
-	{
+	bool request_message(float param2, float param3, float param4, float param5, float param6,
+			     float param7) override {
 		if (_valid) {
 			_force_next_send = true;
 			return true;
@@ -79,32 +77,32 @@ private:
 	bool _valid{false};
 	bool _force_next_send{true};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_local_position_s vehicle_local_position;
 
 		if (_vehicle_local_position_sub.update(&vehicle_local_position)) {
 			if (vehicle_local_position.xy_global && vehicle_local_position.z_global) {
+				static constexpr double LLA_MIN_DIFF = 0.0000001;  // ~11.132 mm at the equator
 
-				static constexpr double LLA_MIN_DIFF = 0.0000001; // ~11.132 mm at the equator
-
-				if (_force_next_send
-				    || (_ref_timestamp != vehicle_local_position.ref_timestamp)
-				    || (fabs(_ref_lat - vehicle_local_position.ref_lat) > LLA_MIN_DIFF)
-				    || (fabs(_ref_lon - vehicle_local_position.ref_lon) > LLA_MIN_DIFF)
-				    || (fabsf(_ref_alt - vehicle_local_position.ref_alt) > 0.001f)) {
-
+				if (_force_next_send || (_ref_timestamp != vehicle_local_position.ref_timestamp) ||
+				    (fabs(_ref_lat - vehicle_local_position.ref_lat) > LLA_MIN_DIFF) ||
+				    (fabs(_ref_lon - vehicle_local_position.ref_lon) > LLA_MIN_DIFF) ||
+				    (fabsf(_ref_alt - vehicle_local_position.ref_alt) > 0.001f)) {
 					mavlink_gps_global_origin_t msg{};
-					msg.latitude = round(vehicle_local_position.ref_lat * 1e7); // double degree -> int32 degreeE7
-					msg.longitude = round(vehicle_local_position.ref_lon * 1e7); // double degree -> int32 degreeE7
-					msg.altitude = roundf(vehicle_local_position.ref_alt * 1e3f); // float m -> int32 mm
-					msg.time_usec = vehicle_local_position.ref_timestamp; // int64 time since system boot
+					msg.latitude = round(vehicle_local_position.ref_lat *
+							     1e7);  // double degree -> int32 degreeE7
+					msg.longitude = round(vehicle_local_position.ref_lon *
+							      1e7);  // double degree -> int32 degreeE7
+					msg.altitude =
+						roundf(vehicle_local_position.ref_alt * 1e3f);  // float m -> int32 mm
+					msg.time_usec =
+						vehicle_local_position.ref_timestamp;  // int64 time since system boot
 					mavlink_msg_gps_global_origin_send_struct(_mavlink->get_channel(), &msg);
 
 					_ref_timestamp = vehicle_local_position.ref_timestamp;
-					_ref_lat       = vehicle_local_position.ref_lat;
-					_ref_lon       = vehicle_local_position.ref_lon;
-					_ref_alt       = vehicle_local_position.ref_alt;
+					_ref_lat = vehicle_local_position.ref_lat;
+					_ref_lon = vehicle_local_position.ref_lon;
+					_ref_alt = vehicle_local_position.ref_alt;
 
 					_force_next_send = false;
 					_valid = true;
@@ -118,4 +116,4 @@ private:
 	}
 };
 
-#endif // GPS_GLOBAL_ORIGIN_HPP
+#endif  // GPS_GLOBAL_ORIGIN_HPP

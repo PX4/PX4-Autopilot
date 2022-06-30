@@ -41,12 +41,10 @@
 
 #pragma once
 
+#include <board_config.h>
 #include <px4_platform_common/px4_config.h>
-
 #include <stdbool.h>
 #include <stdint.h>
-
-#include <board_config.h>
 
 #include "protocol.h"
 
@@ -55,83 +53,88 @@ __BEGIN_DECLS
 /*
  * Constants and limits.
  */
-#define PX4IO_BL_VERSION			3
-#define PX4IO_SERVO_COUNT			8
-#define PX4IO_CONTROL_CHANNELS		8
+#define PX4IO_BL_VERSION 3
+#define PX4IO_SERVO_COUNT 8
+#define PX4IO_CONTROL_CHANNELS 8
 
-#define PX4IO_RC_INPUT_CHANNELS		18
-#define PX4IO_RC_MAPPED_CONTROL_CHANNELS		8 /**< This is the maximum number of channels mapped/used */
+#define PX4IO_RC_INPUT_CHANNELS 18
+#define PX4IO_RC_MAPPED_CONTROL_CHANNELS 8 /**< This is the maximum number of channels mapped/used */
 
 /*
  * Debug logging
  */
 
 #ifdef DEBUG
-# include <debug.h>
-# define debug(fmt, args...)	syslog(LOG_DEBUG,fmt "\n", ##args)
+#include <debug.h>
+#define debug(fmt, args...) syslog(LOG_DEBUG, fmt "\n", ##args)
 #else
-# define debug(fmt, args...)	do {} while(0)
+#define debug(fmt, args...) \
+	do {                \
+	} while (0)
 #endif
 
 /*
  * Registers.
  */
-extern volatile uint16_t	r_page_status[];	/* PX4IO_PAGE_STATUS */
-extern uint16_t			r_page_servos[];	/* PX4IO_PAGE_SERVOS */
-extern uint16_t			r_page_direct_pwm[];	/* PX4IO_PAGE_DIRECT_PWM */
-extern uint16_t			r_page_raw_rc_input[];	/* PX4IO_PAGE_RAW_RC_INPUT */
+extern volatile uint16_t r_page_status[]; /* PX4IO_PAGE_STATUS */
+extern uint16_t r_page_servos[];          /* PX4IO_PAGE_SERVOS */
+extern uint16_t r_page_direct_pwm[];      /* PX4IO_PAGE_DIRECT_PWM */
+extern uint16_t r_page_raw_rc_input[];    /* PX4IO_PAGE_RAW_RC_INPUT */
 
-extern volatile uint16_t	r_page_setup[];		/* PX4IO_PAGE_SETUP */
-extern uint16_t			r_page_servo_failsafe[]; /* PX4IO_PAGE_FAILSAFE_PWM */
-extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
+extern volatile uint16_t r_page_setup[]; /* PX4IO_PAGE_SETUP */
+extern uint16_t r_page_servo_failsafe[]; /* PX4IO_PAGE_FAILSAFE_PWM */
+extern uint16_t r_page_servo_disarmed[]; /* PX4IO_PAGE_DISARMED_PWM */
 
 /*
  * Register aliases.
  *
  * Handy aliases for registers that are widely used.
  */
-#define r_status_flags		r_page_status[PX4IO_P_STATUS_FLAGS]
-#define r_status_alarms		r_page_status[PX4IO_P_STATUS_ALARMS]
+#define r_status_flags r_page_status[PX4IO_P_STATUS_FLAGS]
+#define r_status_alarms r_page_status[PX4IO_P_STATUS_ALARMS]
 
-#define r_raw_rc_count		r_page_raw_rc_input[PX4IO_P_RAW_RC_COUNT]
-#define r_raw_rc_values		(&r_page_raw_rc_input[PX4IO_P_RAW_RC_BASE])
-#define r_raw_rc_flags		r_page_raw_rc_input[PX4IO_P_RAW_RC_FLAGS]
+#define r_raw_rc_count r_page_raw_rc_input[PX4IO_P_RAW_RC_COUNT]
+#define r_raw_rc_values (&r_page_raw_rc_input[PX4IO_P_RAW_RC_BASE])
+#define r_raw_rc_flags r_page_raw_rc_input[PX4IO_P_RAW_RC_FLAGS]
 
-#define r_setup_features	r_page_setup[PX4IO_P_SETUP_FEATURES]
-#define r_setup_arming		r_page_setup[PX4IO_P_SETUP_ARMING]
-#define r_setup_pwm_rates	r_page_setup[PX4IO_P_SETUP_PWM_RATES]
-#define r_setup_pwm_defaultrate	r_page_setup[PX4IO_P_SETUP_PWM_DEFAULTRATE]
-#define r_setup_pwm_altrate	r_page_setup[PX4IO_P_SETUP_PWM_ALTRATE]
+#define r_setup_features r_page_setup[PX4IO_P_SETUP_FEATURES]
+#define r_setup_arming r_page_setup[PX4IO_P_SETUP_ARMING]
+#define r_setup_pwm_rates r_page_setup[PX4IO_P_SETUP_PWM_RATES]
+#define r_setup_pwm_defaultrate r_page_setup[PX4IO_P_SETUP_PWM_DEFAULTRATE]
+#define r_setup_pwm_altrate r_page_setup[PX4IO_P_SETUP_PWM_ALTRATE]
 
-#define r_setup_sbus_rate	r_page_setup[PX4IO_P_SETUP_SBUS_RATE]
+#define r_setup_sbus_rate r_page_setup[PX4IO_P_SETUP_SBUS_RATE]
 
-#define r_setup_flighttermination	r_page_setup[PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION]
+#define r_setup_flighttermination r_page_setup[PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION]
 
 /*
  * System state structure.
  */
 struct sys_state_s {
-
-	uint64_t	rc_channels_timestamp_received;
+	uint64_t rc_channels_timestamp_received;
 
 	/**
 	 * Last FMU receive time, in microseconds since system boot
 	 */
-	volatile uint64_t	fmu_data_received_time;
-
+	volatile uint64_t fmu_data_received_time;
 };
 
 extern struct sys_state_s system_state;
 
-# define ENABLE_SBUS_OUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
+#define ENABLE_SBUS_OUT(_s) px4_arch_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
 
-# define VDD_SERVO_FAULT		(!px4_arch_gpioread(GPIO_SERVO_FAULT_DETECT))
+#define VDD_SERVO_FAULT (!px4_arch_gpioread(GPIO_SERVO_FAULT_DETECT))
 
-# define PX4IO_ADC_CHANNEL_COUNT	2
-# define ADC_VSERVO			4
-# define ADC_RSSI			5
+#define PX4IO_ADC_CHANNEL_COUNT 2
+#define ADC_VSERVO 4
+#define ADC_RSSI 5
 
-#define PX4_CRITICAL_SECTION(cmd)	{ irqstate_t flags = px4_enter_critical_section(); cmd; px4_leave_critical_section(flags); }
+#define PX4_CRITICAL_SECTION(cmd)                                \
+	{                                                        \
+		irqstate_t flags = px4_enter_critical_section(); \
+		cmd;                                             \
+		px4_leave_critical_section(flags);               \
+	}
 
 void atomic_modify_or(volatile uint16_t *target, uint16_t modification);
 void atomic_modify_clear(volatile uint16_t *target, uint16_t modification);
@@ -140,45 +143,45 @@ void atomic_modify_and(volatile uint16_t *target, uint16_t modification);
 /*
  * Mixer
  */
-extern void	mixer_tick(void);
+extern void mixer_tick(void);
 
 /**
  * Safety button/LED.
  */
-extern void	safety_button_init(void);
-extern void	failsafe_led_init(void);
+extern void safety_button_init(void);
+extern void failsafe_led_init(void);
 
 /**
  * FMU communications
  */
-extern void	interface_init(void);
-extern void	interface_tick(void);
+extern void interface_init(void);
+extern void interface_tick(void);
 
 /**
  * Register space
  */
-extern int	registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
-extern int	registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_values);
+extern int registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
+extern int registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_values);
 
 /**
  * Sensors/misc inputs
  */
-extern int	adc_init(void);
-extern uint16_t	adc_measure(unsigned channel);
+extern int adc_init(void);
+extern uint16_t adc_measure(unsigned channel);
 
 /**
  * R/C receiver handling.
  *
  * Input functions return true when they receive an update from the RC controller.
  */
-extern void	controls_init(void);
-extern void	controls_tick(void);
+extern void controls_init(void);
+extern void controls_tick(void);
 
 /** global debug level for isr_debug() */
 extern volatile uint8_t debug_level;
 
 /** send a debug message to the console */
-extern void	isr_debug(uint8_t level, const char *fmt, ...);
+extern void isr_debug(uint8_t level, const char *fmt, ...);
 
 /** schedule a reboot */
 extern void schedule_reboot(uint32_t time_delta_usec);

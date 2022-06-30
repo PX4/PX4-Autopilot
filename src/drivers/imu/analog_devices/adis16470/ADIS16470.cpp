@@ -35,25 +35,20 @@
 
 using namespace time_literals;
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-ADIS16470::ADIS16470(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	I2CSPIDriver(config),
-	_drdy_gpio(config.drdy_gpio),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
-{
+ADIS16470::ADIS16470(const I2CSPIDriverConfig &config)
+	: SPI(config),
+	  I2CSPIDriver(config),
+	  _drdy_gpio(config.drdy_gpio),
+	  _px4_accel(get_device_id(), config.rotation),
+	  _px4_gyro(get_device_id(), config.rotation) {
 	if (_drdy_gpio != 0) {
-		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
+		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME ": DRDY missed");
 	}
 }
 
-ADIS16470::~ADIS16470()
-{
+ADIS16470::~ADIS16470() {
 	perf_free(_reset_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
@@ -61,8 +56,7 @@ ADIS16470::~ADIS16470()
 	perf_free(_drdy_missed_perf);
 }
 
-int ADIS16470::init()
-{
+int ADIS16470::init() {
 	int ret = SPI::init();
 
 	if (ret != PX4_OK) {
@@ -73,8 +67,7 @@ int ADIS16470::init()
 	return Reset() ? 0 : -1;
 }
 
-bool ADIS16470::Reset()
-{
+bool ADIS16470::Reset() {
 	_state = STATE::RESET;
 	DataReadyInterruptDisable();
 	ScheduleClear();
@@ -82,14 +75,12 @@ bool ADIS16470::Reset()
 	return true;
 }
 
-void ADIS16470::exit_and_cleanup()
-{
+void ADIS16470::exit_and_cleanup() {
 	DataReadyInterruptDisable();
 	I2CSPIDriverBase::exit_and_cleanup();
 }
 
-void ADIS16470::print_status()
-{
+void ADIS16470::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_reset_perf);
@@ -99,8 +90,7 @@ void ADIS16470::print_status()
 	perf_print_counter(_drdy_missed_perf);
 }
 
-int ADIS16470::probe()
-{
+int ADIS16470::probe() {
 	// Power-On Start-Up Time 205 ms
 	if (hrt_absolute_time() < 205_ms) {
 		PX4_WARN("Power-On Start-Up Time is 205 ms");
@@ -118,56 +108,56 @@ int ADIS16470::probe()
 	const uint16_t FIRM_DM = RegisterRead(Register::FIRM_DM);
 	const uint16_t FIRM_Y = RegisterRead(Register::FIRM_Y);
 
-	PX4_INFO("Serial Number: 0x%X, Firmware revision: 0x%X Date: Y %X DM %X", SERIAL_NUM, FIRM_REV, FIRM_Y, FIRM_DM);
+	PX4_INFO("Serial Number: 0x%X, Firmware revision: 0x%X Date: Y %X DM %X", SERIAL_NUM, FIRM_REV, FIRM_Y,
+		 FIRM_DM);
 
 	return PX4_OK;
 }
 
-void ADIS16470::RunImpl()
-{
+void ADIS16470::RunImpl() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-	case STATE::RESET:
-		perf_count(_reset_perf);
-		// GLOB_CMD: software reset
-		RegisterWrite(Register::GLOB_CMD, GLOB_CMD_BIT::Software_reset);
-		_reset_timestamp = now;
-		_failure_count = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(193_ms); // 193 ms Software Reset Recovery Time
-		break;
+		case STATE::RESET:
+			perf_count(_reset_perf);
+			// GLOB_CMD: software reset
+			RegisterWrite(Register::GLOB_CMD, GLOB_CMD_BIT::Software_reset);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
+			ScheduleDelayed(193_ms);  // 193 ms Software Reset Recovery Time
+			break;
 
-	case STATE::WAIT_FOR_RESET:
+		case STATE::WAIT_FOR_RESET:
 
-		if (_self_test_passed) {
-			if ((RegisterRead(Register::PROD_ID) == Product_identification)) {
-				// if reset succeeded then configure
-				_state = STATE::CONFIGURE;
-				ScheduleNow();
-
-			} else {
-				// RESET not complete
-				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-					PX4_DEBUG("Reset failed, retrying");
-					_state = STATE::RESET;
-					ScheduleDelayed(100_ms);
+			if (_self_test_passed) {
+				if ((RegisterRead(Register::PROD_ID) == Product_identification)) {
+					// if reset succeeded then configure
+					_state = STATE::CONFIGURE;
+					ScheduleNow();
 
 				} else {
-					PX4_DEBUG("Reset not complete, check again in 100 ms");
-					ScheduleDelayed(100_ms);
+					// RESET not complete
+					if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+						PX4_DEBUG("Reset failed, retrying");
+						_state = STATE::RESET;
+						ScheduleDelayed(100_ms);
+
+					} else {
+						PX4_DEBUG("Reset not complete, check again in 100 ms");
+						ScheduleDelayed(100_ms);
+					}
 				}
+
+			} else {
+				RegisterWrite(Register::GLOB_CMD, GLOB_CMD_BIT::Sensor_self_test);
+				_state = STATE::SELF_TEST_CHECK;
+				ScheduleDelayed(14_ms);  // Self Test Time
 			}
 
-		} else {
-			RegisterWrite(Register::GLOB_CMD, GLOB_CMD_BIT::Sensor_self_test);
-			_state = STATE::SELF_TEST_CHECK;
-			ScheduleDelayed(14_ms); // Self Test Time
-		}
+			break;
 
-		break;
-
-	case STATE::SELF_TEST_CHECK: {
+		case STATE::SELF_TEST_CHECK: {
 			// read DIAG_STAT to check result
 			const uint16_t DIAG_STAT = RegisterRead(Register::DIAG_STAT);
 
@@ -180,41 +170,40 @@ void ADIS16470::RunImpl()
 				_state = STATE::RESET;
 				ScheduleNow();
 			}
-		}
-		break;
+		} break;
 
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start reading
-			_state = STATE::READ;
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				// if configure succeeded then start reading
+				_state = STATE::READ;
 
-			if (DataReadyInterruptConfigure()) {
-				_data_ready_interrupt_enabled = true;
+				if (DataReadyInterruptConfigure()) {
+					_data_ready_interrupt_enabled = true;
 
-				// backup schedule as a watchdog timeout
+					// backup schedule as a watchdog timeout
+					ScheduleDelayed(100_ms);
+
+				} else {
+					_data_ready_interrupt_enabled = false;
+					ScheduleOnInterval(SAMPLE_INTERVAL_US, SAMPLE_INTERVAL_US);
+				}
+
+			} else {
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
 				ScheduleDelayed(100_ms);
-
-			} else {
-				_data_ready_interrupt_enabled = false;
-				ScheduleOnInterval(SAMPLE_INTERVAL_US, SAMPLE_INTERVAL_US);
 			}
 
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
+			break;
 
-			} else {
-				PX4_DEBUG("Configure failed, retrying");
-			}
-
-			ScheduleDelayed(100_ms);
-		}
-
-		break;
-
-	case STATE::READ: {
+		case STATE::READ: {
 			hrt_abstime timestamp_sample = now;
 
 			if (_data_ready_interrupt_enabled) {
@@ -254,8 +243,8 @@ void ADIS16470::RunImpl()
 			buffer.cmd = static_cast<uint16_t>(Register::GLOB_CMD) << 8;
 			set_frequency(SPI_SPEED_BURST);
 
-			if (transferhword((uint16_t *)&buffer, (uint16_t *)&buffer, sizeof(buffer) / sizeof(uint16_t)) == PX4_OK) {
-
+			if (transferhword((uint16_t *)&buffer, (uint16_t *)&buffer,
+					  sizeof(buffer) / sizeof(uint16_t)) == PX4_OK) {
 				// Calculate checksum and compare
 
 				// Checksum = DIAG_STAT, Bits[15:8] + DIAG_STAT, Bits[7:0] +
@@ -276,7 +265,8 @@ void ADIS16470::RunImpl()
 				}
 
 				if (buffer.checksum != checksum) {
-					//PX4_DEBUG("adis_report.checksum: %X vs calculated: %X", buffer.checksum, checksum);
+					// PX4_DEBUG("adis_report.checksum: %X vs calculated: %X", buffer.checksum,
+					// checksum);
 					perf_count(_bad_transfer_perf);
 				}
 
@@ -285,8 +275,8 @@ void ADIS16470::RunImpl()
 					// data paths have experienced an overrun condition.
 					// If this occurs, initiate a reset,
 
-					//Reset();
-					//return;
+					// Reset();
+					// return;
 				}
 
 				// Check all Status/Error Flag Indicators (DIAG_STAT)
@@ -299,7 +289,6 @@ void ADIS16470::RunImpl()
 				_px4_accel.set_temperature(temperature);
 				_px4_gyro.set_temperature(temperature);
 
-
 				int16_t accel_x = buffer.X_ACCL_OUT;
 				int16_t accel_y = buffer.Y_ACCL_OUT;
 				int16_t accel_z = buffer.Z_ACCL_OUT;
@@ -310,7 +299,6 @@ void ADIS16470::RunImpl()
 				accel_z = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
 
 				_px4_accel.update(timestamp_sample, accel_x, accel_y, accel_z);
-
 
 				int16_t gyro_x = buffer.X_GYRO_OUT;
 				int16_t gyro_y = buffer.Y_GYRO_OUT;
@@ -359,8 +347,7 @@ void ADIS16470::RunImpl()
 	}
 }
 
-bool ADIS16470::Configure()
-{
+bool ADIS16470::Configure() {
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
@@ -377,29 +364,26 @@ bool ADIS16470::Configure()
 
 	_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
 	_px4_accel.set_range(40.f * CONSTANTS_ONE_G);
-	_px4_gyro.set_scale(math::radians(1.f / 0.1f)); // 1 LSB = 0.1°/sec
+	_px4_gyro.set_scale(math::radians(1.f / 0.1f));  // 1 LSB = 0.1°/sec
 	_px4_gyro.set_range(math::radians(2000.f));
 
-	_px4_accel.set_scale(1.25f * CONSTANTS_ONE_G / 1000.0f); // accel 1.25 mg/LSB
-	_px4_gyro.set_scale(math::radians(0.025f)); // gyro 0.025 °/sec/LSB
+	_px4_accel.set_scale(1.25f * CONSTANTS_ONE_G / 1000.0f);  // accel 1.25 mg/LSB
+	_px4_gyro.set_scale(math::radians(0.025f));               // gyro 0.025 °/sec/LSB
 
 	return success;
 }
 
-int ADIS16470::DataReadyInterruptCallback(int irq, void *context, void *arg)
-{
+int ADIS16470::DataReadyInterruptCallback(int irq, void *context, void *arg) {
 	static_cast<ADIS16470 *>(arg)->DataReady();
 	return 0;
 }
 
-void ADIS16470::DataReady()
-{
+void ADIS16470::DataReady() {
 	_drdy_timestamp_sample.store(hrt_absolute_time());
 	ScheduleNow();
 }
 
-bool ADIS16470::DataReadyInterruptConfigure()
-{
+bool ADIS16470::DataReadyInterruptConfigure() {
 	if (_drdy_gpio == 0) {
 		return false;
 	}
@@ -408,8 +392,7 @@ bool ADIS16470::DataReadyInterruptConfigure()
 	return px4_arch_gpiosetevent(_drdy_gpio, false, true, false, &DataReadyInterruptCallback, this) == 0;
 }
 
-bool ADIS16470::DataReadyInterruptDisable()
-{
+bool ADIS16470::DataReadyInterruptDisable() {
 	if (_drdy_gpio == 0) {
 		return false;
 	}
@@ -417,8 +400,7 @@ bool ADIS16470::DataReadyInterruptDisable()
 	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
 }
 
-bool ADIS16470::RegisterCheck(const register_config_t &reg_cfg)
-{
+bool ADIS16470::RegisterCheck(const register_config_t &reg_cfg) {
 	bool success = true;
 
 	const uint16_t reg_value = RegisterRead(reg_cfg.reg);
@@ -429,15 +411,15 @@ bool ADIS16470::RegisterCheck(const register_config_t &reg_cfg)
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.clear_bits);
 		success = false;
 	}
 
 	return success;
 }
 
-uint16_t ADIS16470::RegisterRead(Register reg)
-{
+uint16_t ADIS16470::RegisterRead(Register reg) {
 	set_frequency(SPI_SPEED);
 
 	uint16_t cmd[1];
@@ -450,12 +432,11 @@ uint16_t ADIS16470::RegisterRead(Register reg)
 	return cmd[0];
 }
 
-void ADIS16470::RegisterWrite(Register reg, uint16_t value)
-{
+void ADIS16470::RegisterWrite(Register reg, uint16_t value) {
 	set_frequency(SPI_SPEED);
 
 	uint16_t cmd[2];
-	cmd[0] = (((static_cast<uint16_t>(reg))     | DIR_WRITE) << 8) | ((0x00FF & value));
+	cmd[0] = (((static_cast<uint16_t>(reg)) | DIR_WRITE) << 8) | ((0x00FF & value));
 	cmd[1] = (((static_cast<uint16_t>(reg) + 1) | DIR_WRITE) << 8) | ((0xFF00 & value) >> 8);
 
 	transferhword(cmd, nullptr, 1);
@@ -463,8 +444,7 @@ void ADIS16470::RegisterWrite(Register reg, uint16_t value)
 	transferhword(cmd + 1, nullptr, 1);
 }
 
-void ADIS16470::RegisterSetAndClearBits(Register reg, uint16_t setbits, uint16_t clearbits)
-{
+void ADIS16470::RegisterSetAndClearBits(Register reg, uint16_t setbits, uint16_t clearbits) {
 	const uint16_t orig_val = RegisterRead(reg);
 
 	uint16_t val = (orig_val & ~clearbits) | setbits;

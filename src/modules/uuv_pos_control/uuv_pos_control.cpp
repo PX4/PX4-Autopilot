@@ -44,8 +44,6 @@
 
 #include "uuv_pos_control.hpp"
 
-
-
 /**
  * UUV pos_controller app start / stop handling function
  *
@@ -53,22 +51,15 @@
  */
 extern "C" __EXPORT int uuv_pos_control_main(int argc, char *argv[]);
 
+UUVPOSControl::UUVPOSControl()
+	: ModuleParams(nullptr),
+	  WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	  /* performance counters */
+	  _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")) {}
 
-UUVPOSControl::UUVPOSControl():
-	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
-{
-}
+UUVPOSControl::~UUVPOSControl() { perf_free(_loop_perf); }
 
-UUVPOSControl::~UUVPOSControl()
-{
-	perf_free(_loop_perf);
-}
-
-bool UUVPOSControl::init()
-{
+bool UUVPOSControl::init() {
 	if (!_vehicle_local_position_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -77,8 +68,7 @@ bool UUVPOSControl::init()
 	return true;
 }
 
-void UUVPOSControl::parameters_update(bool force)
-{
+void UUVPOSControl::parameters_update(bool force) {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || force) {
 		// clear update
@@ -91,9 +81,8 @@ void UUVPOSControl::parameters_update(bool force)
 }
 
 void UUVPOSControl::publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
-		const float roll_des, const float pitch_des, const float yaw_des)
-{
-	//watch if inputs are not to high
+					      const float roll_des, const float pitch_des, const float yaw_des) {
+	// watch if inputs are not to high
 	vehicle_attitude_setpoint_s vehicle_attitude_setpoint = {};
 	vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
 
@@ -105,51 +94,42 @@ void UUVPOSControl::publish_attitude_setpoint(const float thrust_x, const float 
 	vehicle_attitude_setpoint.thrust_body[1] = thrust_y;
 	vehicle_attitude_setpoint.thrust_body[2] = thrust_z;
 
-
 	_att_sp_pub.publish(vehicle_attitude_setpoint);
 }
 
-void UUVPOSControl::pose_controller_6dof(const Vector3f &pos_des,
-		const float roll_des, const float pitch_des, const float yaw_des,
-		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
-{
-	//get current rotation of vehicle
+void UUVPOSControl::pose_controller_6dof(const Vector3f &pos_des, const float roll_des, const float pitch_des,
+					 const float yaw_des, vehicle_attitude_s &vehicle_attitude,
+					 vehicle_local_position_s &vlocal_pos) {
+	// get current rotation of vehicle
 	Quatf q_att(vehicle_attitude.q);
 
-	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get()
-					     * vlocal_pos.vx,
-					     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
-					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
+	Vector3f p_control_output = Vector3f(
+		_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get() * vlocal_pos.vx,
+		_param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
+		_param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
 
-	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
+	Vector3f rotated_input =
+		q_att.rotateVectorInverse(p_control_output);  // rotate the coord.sys (from global to body)
 
-	publish_attitude_setpoint(rotated_input(0),
-				  rotated_input(1),
-				  rotated_input(2),
-				  roll_des, pitch_des, yaw_des);
-
+	publish_attitude_setpoint(rotated_input(0), rotated_input(1), rotated_input(2), roll_des, pitch_des, yaw_des);
 }
 
-void UUVPOSControl::stabilization_controller_6dof(const Vector3f &pos_des,
-		const float roll_des, const float pitch_des, const float yaw_des,
-		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
-{
-	//get current rotation of vehicle
+void UUVPOSControl::stabilization_controller_6dof(const Vector3f &pos_des, const float roll_des, const float pitch_des,
+						  const float yaw_des, vehicle_attitude_s &vehicle_attitude,
+						  vehicle_local_position_s &vlocal_pos) {
+	// get current rotation of vehicle
 	Quatf q_att(vehicle_attitude.q);
 
-	Vector3f p_control_output = Vector3f(0,
-					     0,
-					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z));
-	//potential d controller missing
-	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
+	Vector3f p_control_output = Vector3f(0, 0, _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z));
+	// potential d controller missing
+	Vector3f rotated_input =
+		q_att.rotateVectorInverse(p_control_output);  // rotate the coord.sys (from global to body)
 
 	publish_attitude_setpoint(rotated_input(0) + pos_des(0), rotated_input(1) + pos_des(1), rotated_input(2),
 				  roll_des, pitch_des, yaw_des);
-
 }
 
-void UUVPOSControl::Run()
-{
+void UUVPOSControl::Run() {
 	if (should_exit()) {
 		_vehicle_local_position_sub.unregisterCallback();
 		exit_and_cleanup();
@@ -161,50 +141,45 @@ void UUVPOSControl::Run()
 	/* check vehicle control mode for changes to publication state */
 	_vcontrol_mode_sub.update(&_vcontrol_mode);
 
-
 	/* update parameters from storage */
 	parameters_update();
 
-	//vehicle_attitude_s attitude;
+	// vehicle_attitude_s attitude;
 	vehicle_local_position_s vlocal_pos;
 
 	/* only run controller if local_pos changed */
 	if (_vehicle_local_position_sub.update(&vlocal_pos)) {
-
 		/* Run geometric attitude controllers if NOT manual mode*/
-		if (!_vcontrol_mode.flag_control_manual_enabled
-		    && _vcontrol_mode.flag_control_attitude_enabled
-		    && _vcontrol_mode.flag_control_rates_enabled) {
-
-			_vehicle_attitude_sub.update(&_vehicle_attitude);//get current vehicle attitude
+		if (!_vcontrol_mode.flag_control_manual_enabled && _vcontrol_mode.flag_control_attitude_enabled &&
+		    _vcontrol_mode.flag_control_rates_enabled) {
+			_vehicle_attitude_sub.update(&_vehicle_attitude);  // get current vehicle attitude
 			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
 
 			float roll_des = 0;
 			float pitch_des = 0;
 			float yaw_des = _trajectory_setpoint.yaw;
 
-			//stabilization controller(keep pos and hold depth + angle) vs position controller(global + yaw)
+			// stabilization controller(keep pos and hold depth + angle) vs position controller(global +
+			// yaw)
 			if (_param_stabilization.get() == 0) {
-				pose_controller_6dof(Vector3f(_trajectory_setpoint.position),
-						     roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+				pose_controller_6dof(Vector3f(_trajectory_setpoint.position), roll_des, pitch_des,
+						     yaw_des, _vehicle_attitude, vlocal_pos);
 
 			} else {
-				stabilization_controller_6dof(Vector3f(_trajectory_setpoint.position),
-							      roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+				stabilization_controller_6dof(Vector3f(_trajectory_setpoint.position), roll_des,
+							      pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
 			}
 		}
 	}
 
 	/* Only publish if any of the proper modes are enabled */
-	if (_vcontrol_mode.flag_control_manual_enabled ||
-	    _vcontrol_mode.flag_control_attitude_enabled) {
+	if (_vcontrol_mode.flag_control_manual_enabled || _vcontrol_mode.flag_control_attitude_enabled) {
 	}
 
 	perf_end(_loop_perf);
 }
 
-int UUVPOSControl::task_spawn(int argc, char *argv[])
-{
+int UUVPOSControl::task_spawn(int argc, char *argv[]) {
 	UUVPOSControl *instance = new UUVPOSControl();
 
 	if (instance) {
@@ -226,14 +201,9 @@ int UUVPOSControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int UUVPOSControl::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int UUVPOSControl::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-
-int UUVPOSControl::print_usage(const char *reason)
-{
+int UUVPOSControl::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -254,14 +224,11 @@ $ uuv_pos_control status
 $ uuv_pos_control stop
 )DESCR_STR");
 
-    PRINT_MODULE_USAGE_NAME("uuv_pos_control", "controller");
-    PRINT_MODULE_USAGE_COMMAND("start")
-    PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+	PRINT_MODULE_USAGE_NAME("uuv_pos_control", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start")
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
-    return 0;
+	return 0;
 }
 
-int uuv_pos_control_main(int argc, char *argv[])
-{
-    return UUVPOSControl::main(argc, argv);
-}
+int uuv_pos_control_main(int argc, char *argv[]) { return UUVPOSControl::main(argc, argv); }

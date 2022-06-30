@@ -39,45 +39,40 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <assert.h>
-#include <time.h>
-#include <stdlib.h>
 #include <math.h>
-#include <mathlib/math/test/test.hpp>
+#include <px4_platform_common/defines.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
+namespace control {
 
 /**
  * A limiter/ saturation.
  * The output of update is the input, bounded
  * by min/max.
  */
-class __EXPORT BlockLimit : public Block
-{
+class __EXPORT BlockLimit : public Block {
 public:
-// methods
-	BlockLimit(SuperBlock *parent, const char *name) :
-		Block(parent, name),
-		_min(this, "MIN"),
-		_max(this, "MAX")
-	{}
+	// methods
+	BlockLimit(SuperBlock *parent, const char *name) : Block(parent, name), _min(this, "MIN"), _max(this, "MAX") {}
 	virtual ~BlockLimit() = default;
 	float update(float input);
-// accessors
+	// accessors
 	float getMin() { return _min.get(); }
 	float getMax() { return _max.get(); }
+
 protected:
-// attributes
+	// attributes
 	control::BlockParamFloat _min;
 	control::BlockParamFloat _max;
 };
 
-} // namespace control
+}  // namespace control

@@ -36,29 +36,24 @@
  * Tests RC input.
  */
 
-#include <px4_platform_common/px4_config.h>
-
-#include <sys/types.h>
-
-#include <stdio.h>
-#include <poll.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-
-#include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <float.h>
+#include <math.h>
+#include <poll.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
 #include <systemlib/err.h>
 #include <uORB/topics/input_rc.h>
+#include <unistd.h>
 
 #include "tests_main.h"
 
-#include <math.h>
-#include <float.h>
-
-int test_rc(int argc, char *argv[])
-{
+int test_rc(int argc, char *argv[]) {
 	int _rc_sub = orb_subscribe(ORB_ID(input_rc));
 
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
@@ -76,7 +71,6 @@ int test_rc(int argc, char *argv[])
 	PX4_INFO("This test guarantees: 10 Hz update rates, no glitches (channel values), no channel count changes.");
 
 	if (rc_updated) {
-
 		/* copy initial set */
 		for (unsigned i = 0; i < rc_input.channel_count; i++) {
 			rc_last.values[i] = rc_input.values[i];
@@ -92,19 +86,17 @@ int test_rc(int argc, char *argv[])
 		fds[1].events = POLLIN;
 
 		while (true) {
-
 			int ret = poll(fds, 2, 200);
 
 			if (ret > 0) {
-
 				if (fds[0].revents & POLLIN) {
-
 					orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
 
 					/* go and check values */
 					for (unsigned i = 0; i < rc_input.channel_count; i++) {
 						if (abs(rc_input.values[i] - rc_last.values[i]) > 20) {
-							PX4_ERR("comparison fail: RC: %d, expected: %d", rc_input.values[i], rc_last.values[i]);
+							PX4_ERR("comparison fail: RC: %d, expected: %d",
+								rc_input.values[i], rc_last.values[i]);
 							(void)orb_unsubscribe(_rc_sub);
 							return ERROR;
 						}
@@ -113,7 +105,8 @@ int test_rc(int argc, char *argv[])
 					}
 
 					if (rc_last.channel_count != rc_input.channel_count) {
-						PX4_ERR("channel count mismatch: last: %d, now: %d", rc_last.channel_count, rc_input.channel_count);
+						PX4_ERR("channel count mismatch: last: %d, now: %d",
+							rc_last.channel_count, rc_input.channel_count);
 						(void)orb_unsubscribe(_rc_sub);
 						return ERROR;
 					}
@@ -128,7 +121,6 @@ int test_rc(int argc, char *argv[])
 					/* key pressed, bye bye */
 					return 0;
 				}
-
 			}
 		}
 

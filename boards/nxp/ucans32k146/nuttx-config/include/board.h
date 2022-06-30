@@ -43,8 +43,8 @@
 #include <nuttx/config.h>
 
 #ifndef __ASSEMBLY__
-#  include <stdint.h>
-#  include <stdbool.h>
+#include <stdbool.h>
+#include <stdint.h>
 #endif
 
 /****************************************************************************
@@ -57,7 +57,7 @@
 
 #define BOARD_XTAL_FREQUENCY 8000000
 
-#define BOARD_FTM_FREQ       8000000
+#define BOARD_FTM_FREQ 8000000
 
 /* The S32K146 will run at 112MHz */
 
@@ -79,22 +79,22 @@
 
 /* LED index values for use with board_userled() */
 
-#define BOARD_LED_R       0
-#define BOARD_LED_G       1
-#define BOARD_LED_B       2
-#define BOARD_NLEDS       3
+#define BOARD_LED_R 0
+#define BOARD_LED_G 1
+#define BOARD_LED_B 2
+#define BOARD_NLEDS 3
 
 /* LED bits for use with board_userled_all() */
 
-#define BOARD_LED_R_BIT   (1 << BOARD_LED_R)
-#define BOARD_LED_G_BIT   (1 << BOARD_LED_G)
-#define BOARD_LED_B_BIT   (1 << BOARD_LED_B)
+#define BOARD_LED_R_BIT (1 << BOARD_LED_R)
+#define BOARD_LED_G_BIT (1 << BOARD_LED_G)
+#define BOARD_LED_B_BIT (1 << BOARD_LED_B)
 
 /* Board revision detection pin
  * 0 equals UCANS32K146-01
  * 1 equals UCANS32K146B
  */
-#define BOARD_REVISION_DETECT_PIN  (GPIO_INPUT | PIN_PORTA | PIN10 )
+#define BOARD_REVISION_DETECT_PIN (GPIO_INPUT | PIN_PORTA | PIN10)
 
 /* If CONFIG_ARCH_LEDs is defined, then NuttX will control the LEDs on board
  * the UCANS32K146.  The following definitions describe how NuttX
@@ -105,15 +105,15 @@
  *   -------------------  ----------------------------  -----------------
  */
 
-#define LED_STARTED       1 /* NuttX has been started    OFF   OFF    OFF */
-#define LED_HEAPALLOCATE  2 /* Heap has been allocated   OFF   OFF    ON  */
-#define LED_IRQSENABLED   0 /* Interrupts enabled        OFF   OFF    ON  */
-#define LED_STACKCREATED  3 /* Idle stack created        OFF   ON     OFF */
-#define LED_INIRQ         0 /* In an interrupt          (no change)       */
-#define LED_SIGNAL        0 /* In a signal handler      (no change)       */
-#define LED_ASSERTION     0 /* An assertion failed      (no change)       */
-#define LED_PANIC         4 /* The system has crashed    FLASH OFF    OFF */
-#undef  LED_IDLE            /* UCANS32K146 in sleep mode (Not used) */
+#define LED_STARTED 1      /* NuttX has been started    OFF   OFF    OFF */
+#define LED_HEAPALLOCATE 2 /* Heap has been allocated   OFF   OFF    ON  */
+#define LED_IRQSENABLED 0  /* Interrupts enabled        OFF   OFF    ON  */
+#define LED_STACKCREATED 3 /* Idle stack created        OFF   ON     OFF */
+#define LED_INIRQ 0        /* In an interrupt          (no change)       */
+#define LED_SIGNAL 0       /* In a signal handler      (no change)       */
+#define LED_ASSERTION 0    /* An assertion failed      (no change)       */
+#define LED_PANIC 4        /* The system has crashed    FLASH OFF    OFF */
+#undef LED_IDLE            /* UCANS32K146 in sleep mode (Not used) */
 
 /* Button definitions *******************************************************/
 
@@ -122,10 +122,10 @@
  *   SW3  PTC14
  */
 
-#define BUTTON_SW3         0
-#define NUM_BUTTONS        1
+#define BUTTON_SW3 0
+#define NUM_BUTTONS 1
 
-#define BUTTON_SW3_BIT    (1 << BUTTON_SW3)
+#define BUTTON_SW3_BIT (1 << BUTTON_SW3)
 
 /* Alternate function pin selections ****************************************/
 
@@ -135,36 +135,36 @@
  *   OpenSDA UART RX  PTC6 (LPUART1_RX)
  */
 
-#define PIN_LPUART0_CTS   PIN_LPUART0_CTS_2 /* PTC8 */
-#define PIN_LPUART0_RTS   PIN_LPUART0_RTS_2 /* PTC9 */
-#define PIN_LPUART0_RX    PIN_LPUART0_RX_1  /* PTB0 */
-#define PIN_LPUART0_TX    PIN_LPUART0_TX_1  /* PTB1 */
+#define PIN_LPUART0_CTS PIN_LPUART0_CTS_2 /* PTC8 */
+#define PIN_LPUART0_RTS PIN_LPUART0_RTS_2 /* PTC9 */
+#define PIN_LPUART0_RX PIN_LPUART0_RX_1   /* PTB0 */
+#define PIN_LPUART0_TX PIN_LPUART0_TX_1   /* PTB1 */
 
-#define PIN_LPUART1_RX    PIN_LPUART1_RX_1  /* PTC6 */
-#define PIN_LPUART1_TX    PIN_LPUART1_TX_1  /* PTC7 */
+#define PIN_LPUART1_RX PIN_LPUART1_RX_1 /* PTC6 */
+#define PIN_LPUART1_TX PIN_LPUART1_TX_1 /* PTC7 */
 
 /* SPI selections ***********************************************************/
 
-#define PIN_LPSPI0_SCK   PIN_LPSPI0_SCK_3   /* PTB2 */
-#define PIN_LPSPI0_MISO  PIN_LPSPI0_SIN_2   /* PTB3 */
-#define PIN_LPSPI0_MOSI  PIN_LPSPI0_SOUT_3  /* PTB4 */
-#define PIN_LPSPI0_PCS   PIN_LPSPI0_PCS0_2  /* PTB5 */
+#define PIN_LPSPI0_SCK PIN_LPSPI0_SCK_3   /* PTB2 */
+#define PIN_LPSPI0_MISO PIN_LPSPI0_SIN_2  /* PTB3 */
+#define PIN_LPSPI0_MOSI PIN_LPSPI0_SOUT_3 /* PTB4 */
+#define PIN_LPSPI0_PCS PIN_LPSPI0_PCS0_2  /* PTB5 */
 
 /* I2C selections ***********************************************************/
 
-#define PIN_LPI2C0_SCL   PIN_LPI2C0_SCL_2   /* PTA3 */
-#define PIN_LPI2C0_SDA	 PIN_LPI2C0_SDA_2   /* PTA2 */
+#define PIN_LPI2C0_SCL PIN_LPI2C0_SCL_2 /* PTA3 */
+#define PIN_LPI2C0_SDA PIN_LPI2C0_SDA_2 /* PTA2 */
 
 /* CAN selections ***********************************************************/
-#define PIN_CAN0_TX      PIN_CAN0_TX_4      /* PTE5 */
-#define PIN_CAN0_RX      PIN_CAN0_RX_4      /* PTE4 */
-#define PIN_CAN0_STB     (GPIO_OUTPUT | PIN_PORTE | PIN11 )
-#define PIN_CAN0_ERRN    (GPIO_INPUT  | PIN_PORTA | PIN11 )
-#define PIN_CAN0_EN      (GPIO_HIGHDRIVE  | PIN_PORTA | PIN10 )
-#define PIN_CAN1_TX      PIN_CAN1_TX_1      /* PTA13 */
-#define PIN_CAN1_RX      PIN_CAN1_RX_1      /* PTA12 */
-#define PIN_CAN1_STB     (GPIO_OUTPUT | PIN_PORTE | PIN10 )
-#define PIN_CAN1_ERRN    (GPIO_PULLDOWN  | PIN_PORTE | PIN6 )
-#define PIN_CAN1_EN      (GPIO_OUTPUT  | PIN_PORTE | PIN2 )
+#define PIN_CAN0_TX PIN_CAN0_TX_4 /* PTE5 */
+#define PIN_CAN0_RX PIN_CAN0_RX_4 /* PTE4 */
+#define PIN_CAN0_STB (GPIO_OUTPUT | PIN_PORTE | PIN11)
+#define PIN_CAN0_ERRN (GPIO_INPUT | PIN_PORTA | PIN11)
+#define PIN_CAN0_EN (GPIO_HIGHDRIVE | PIN_PORTA | PIN10)
+#define PIN_CAN1_TX PIN_CAN1_TX_1 /* PTA13 */
+#define PIN_CAN1_RX PIN_CAN1_RX_1 /* PTA12 */
+#define PIN_CAN1_STB (GPIO_OUTPUT | PIN_PORTE | PIN10)
+#define PIN_CAN1_ERRN (GPIO_PULLDOWN | PIN_PORTE | PIN6)
+#define PIN_CAN1_EN (GPIO_OUTPUT | PIN_PORTE | PIN2)
 
-#endif  /* __BOARDS_ARM_RDDRONE_UAVCAN146_INCLUDE_BOARD_H */
+#endif /* __BOARDS_ARM_RDDRONE_UAVCAN146_INCLUDE_BOARD_H */

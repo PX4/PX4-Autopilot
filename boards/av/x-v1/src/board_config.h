@@ -43,16 +43,15 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdint.h>
-
 #include <stm32_gpio.h>
 
 /* Configuration ************************************************************************************/
 
-#define BOARD_HAS_NBAT_V              1 // Only one Vbat to ADC
-#define BOARD_HAS_NBAT_I              0 // No Ibat ADC
+#define BOARD_HAS_NBAT_V 1  // Only one Vbat to ADC
+#define BOARD_HAS_NBAT_I 0  // No Ibat ADC
 
 /*
  * ADC channels
@@ -63,53 +62,44 @@
 
 /* ADC defines to be used in sensors.cpp to read from a particular channel */
 
-#define ADC1_CH(n)                      (n)
-#define ADC1_GPIO(n)                    GPIO_ADC1_IN##n
+#define ADC1_CH(n) (n)
+#define ADC1_GPIO(n) GPIO_ADC1_IN##n
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below */
 
-#define PX4_ADC_GPIO  \
-	/* PA0 */  ADC1_GPIO(0),  \
-	/* PA1 */  ADC1_GPIO(1),  \
-	/* PA2 */  ADC1_GPIO(2),  \
-	/* PA3 */  ADC1_GPIO(3),  \
-	/* PA4 */  ADC1_GPIO(4),  \
-	/* PB8 */  ADC1_GPIO(8),  \
-	/* PC0 */  ADC1_GPIO(10), \
-	/* PC1 */  ADC1_GPIO(11), \
-	/* PC2 */  ADC1_GPIO(12), \
-	/* PC3 */  ADC1_GPIO(13), \
-	/* PC4 */  ADC1_GPIO(14)
+#define PX4_ADC_GPIO                                                                                              \
+	/* PA0 */ ADC1_GPIO(0), /* PA1 */ ADC1_GPIO(1), /* PA2 */ ADC1_GPIO(2), /* PA3 */ ADC1_GPIO(3),           \
+		/* PA4 */ ADC1_GPIO(4), /* PB8 */ ADC1_GPIO(8), /* PC0 */ ADC1_GPIO(10), /* PC1 */ ADC1_GPIO(11), \
+		/* PC2 */ ADC1_GPIO(12), /* PC3 */ ADC1_GPIO(13), /* PC4 */ ADC1_GPIO(14)
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
 
-#define ADC_BATTERY1_VOLTAGE_CHANNEL        /* PA0 */  ADC1_CH(0)
+#define ADC_BATTERY1_VOLTAGE_CHANNEL /* PA0 */ ADC1_CH(0)
 
-#define ADC_CHANNELS \
-	((1 << ADC_BATTERY1_VOLTAGE_CHANNEL))
+#define ADC_CHANNELS ((1 << ADC_BATTERY1_VOLTAGE_CHANNEL))
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
-#define BOARD_ADC_OPEN_CIRCUIT_V               (5.6f)
+#define BOARD_ADC_OPEN_CIRCUIT_V (5.6f)
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS  9
+#define DIRECT_PWM_OUTPUT_CHANNELS 9
 
-#define BOARD_CAPTURE_GPIO /* PD14 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN14)
+#define BOARD_CAPTURE_GPIO /* PD14 */ (GPIO_INPUT | GPIO_FLOAT | GPIO_EXTI | GPIO_PORTD | GPIO_PIN14)
 
 /* High-resolution timer */
-#define HRT_TIMER		     5  /* use timer5 for the HRT */
-#define HRT_TIMER_CHANNEL    1  /* use capture/compare channel 3 */
+#define HRT_TIMER 5         /* use timer5 for the HRT */
+#define HRT_TIMER_CHANNEL 1 /* use capture/compare channel 3 */
 
 /* RC Serial port */
 
-#define RC_SERIAL_PORT                     "/dev/ttyS4"
+#define RC_SERIAL_PORT "/dev/ttyS4"
 
 /* Power switch controls ******************************************************/
 
-#define SDIO_SLOTNO                    0  /* Only one slot */
-#define SDIO_MINOR                     0
+#define SDIO_SLOTNO 0 /* Only one slot */
+#define SDIO_MINOR 0
 
 /* SD card bringup does not work if performed on the IDLE thread because it
  * will cause waiting.  Use either:
@@ -119,19 +109,18 @@
  */
 
 #if defined(CONFIG_BOARD_INITIALIZE) && !defined(CONFIG_LIB_BOARDCTL) && !defined(CONFIG_BOARD_INITTHREAD)
-#  warning SDIO initialization cannot be perfomed on the IDLE thread
+#warning SDIO initialization cannot be perfomed on the IDLE thread
 #endif
 
 /* AV-X_V1 never powers off the Servo rail */
 
-#define BOARD_ADC_SERVO_VALID     (1)
+#define BOARD_ADC_SERVO_VALID (1)
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL  0
-#define ADC_BATTERY_CURRENT_CHANNEL  1 // TODO: review
+#define ADC_BATTERY_VOLTAGE_CHANNEL 0
+#define ADC_BATTERY_CURRENT_CHANNEL 1  // TODO: review
 
-#define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_nVDD_5V_PERIPH_OC))
+#define BOARD_ADC_PERIPH_5V_OC (!px4_arch_gpioread(GPIO_nVDD_5V_PERIPH_OC))
 #define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_nVDD_5V_HIPOWER_OC))
-
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
@@ -140,11 +129,8 @@
 
 #define BOARD_HAS_ON_RESET 1
 
-#define PX4_GPIO_INIT_LIST { \
-		PX4_ADC_GPIO,                     \
-		GPIO_CAN1_RX,                     \
-		GPIO_CAN1_TX,                     \
-	}
+#define PX4_GPIO_INIT_LIST \
+	{ PX4_ADC_GPIO, GPIO_CAN1_RX, GPIO_CAN1_TX, }
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
@@ -187,7 +173,6 @@ int stm32_sdio_initialize(void);
 extern void stm32_spiinitialize(void);
 
 #define board_peripheral_reset(ms)
-
 
 #include <px4_platform_common/board_common.h>
 

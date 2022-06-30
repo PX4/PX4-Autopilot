@@ -35,8 +35,7 @@
 
 #include "ActuatorEffectiveness.hpp"
 
-class ActuatorEffectivenessRoverDifferential: public ActuatorEffectiveness
-{
+class ActuatorEffectivenessRoverDifferential : public ActuatorEffectiveness {
 public:
 	ActuatorEffectivenessRoverDifferential() = default;
 	virtual ~ActuatorEffectivenessRoverDifferential() = default;
@@ -44,5 +43,6 @@ public:
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
 	const char *name() const override { return "Rover (Differential)"; }
+
 private:
 };

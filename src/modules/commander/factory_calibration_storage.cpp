@@ -31,34 +31,29 @@
  *
  ****************************************************************************/
 
-#include <errno.h>
-#include <fcntl.h>
-#include <string.h>
-
-#include <lib/parameters/param.h>
-#include <px4_platform_common/log.h>
-
 #include "factory_calibration_storage.h"
 
+#include <errno.h>
+#include <fcntl.h>
+#include <lib/parameters/param.h>
+#include <px4_platform_common/log.h>
+#include <string.h>
 
 static const char *CALIBRATION_STORAGE = "/fs/mtd_caldata";
 
-static bool filter_calibration_params(param_t handle)
-{
+static bool filter_calibration_params(param_t handle) {
 	const char *name = param_name(handle);
 	// filter all non-calibration params
 	return strncmp(name, "CAL_", 4) == 0 || strncmp(name, "TC_", 3) == 0;
 }
 
-FactoryCalibrationStorage::FactoryCalibrationStorage()
-{
+FactoryCalibrationStorage::FactoryCalibrationStorage() {
 	int32_t param = 0;
 	param_get(param_find("SYS_FAC_CAL_MODE"), &param);
 	_enabled = param == 1;
 }
 
-int FactoryCalibrationStorage::open()
-{
+int FactoryCalibrationStorage::open() {
 	if (!_enabled) {
 		return 0;
 	}
@@ -74,8 +69,7 @@ int FactoryCalibrationStorage::open()
 	return 0;
 }
 
-int FactoryCalibrationStorage::store()
-{
+int FactoryCalibrationStorage::store() {
 	if (!_enabled) {
 		return 0;
 	}
@@ -89,10 +83,8 @@ int FactoryCalibrationStorage::store()
 	return ret;
 }
 
-void FactoryCalibrationStorage::cleanup()
-{
+void FactoryCalibrationStorage::cleanup() {
 	if (_enabled) {
 		param_control_autosave(true);
 	}
 }
-

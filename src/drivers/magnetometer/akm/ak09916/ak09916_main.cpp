@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include "AK09916.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void AK09916::print_usage()
-{
+#include "AK09916.hpp"
+
+void AK09916::print_usage() {
 	PRINT_MODULE_USAGE_NAME("ak09916", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -47,8 +46,7 @@ void AK09916::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int ak09916_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int ak09916_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = AK09916;
 	BusCLIArguments cli{true, false};
@@ -57,9 +55,9 @@ extern "C" __EXPORT int ak09916_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

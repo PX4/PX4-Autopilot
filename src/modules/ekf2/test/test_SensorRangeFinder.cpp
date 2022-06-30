@@ -33,34 +33,32 @@
 
 #include <gtest/gtest.h>
 #include <math.h>
+
+#include <matrix/math.hpp>
+
 #include "EKF/common.h"
 #include "EKF/sensor_range_finder.hpp"
-#include <matrix/math.hpp>
 
 using estimator::rangeSample;
 using matrix::Dcmf;
 using matrix::Eulerf;
 using namespace estimator::sensor;
 
-class SensorRangeFinderTest : public ::testing::Test
-{
+class SensorRangeFinderTest : public ::testing::Test {
 public:
 	// Setup the Ekf with synthetic measurements
-	void SetUp() override
-	{
+	void SetUp() override {
 		_range_finder.setPitchOffset(0.f);
 		_range_finder.setCosMaxTilt(0.707f);
 		_range_finder.setLimits(_min_range, _max_range);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
-	void TearDown() override
-	{
-	}
+	void TearDown() override {}
 
 protected:
 	SensorRangeFinder _range_finder{};
-	const rangeSample _good_sample{(uint64_t)2e6, 1.f, 100}; // {time_us, range, quality}
+	const rangeSample _good_sample{(uint64_t)2e6, 1.f, 100};  // {time_us, range, quality}
 	const float _min_range{0.5f};
 	const float _max_range{10.f};
 
@@ -68,8 +66,7 @@ protected:
 	void testTilt(const Eulerf &euler, bool should_pass);
 };
 
-void SensorRangeFinderTest::updateSensorAtRate(uint64_t duration_us, uint64_t dt_update_us, uint64_t dt_sensor_us)
-{
+void SensorRangeFinderTest::updateSensorAtRate(uint64_t duration_us, uint64_t dt_update_us, uint64_t dt_sensor_us) {
 	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
 
 	rangeSample new_sample = _good_sample;
@@ -79,7 +76,7 @@ void SensorRangeFinderTest::updateSensorAtRate(uint64_t duration_us, uint64_t dt
 		t_now_us += dt_update_us;
 
 		if ((i % int(dt_sensor_us / dt_update_us)) == 0) {
-			new_sample.rng += 0.2f; // update the range to not trigger the stuck detection
+			new_sample.rng += 0.2f;  // update the range to not trigger the stuck detection
 
 			if (new_sample.rng > _max_range) {
 				new_sample.rng = _min_range;
@@ -93,8 +90,7 @@ void SensorRangeFinderTest::updateSensorAtRate(uint64_t duration_us, uint64_t dt
 	}
 }
 
-void SensorRangeFinderTest::testTilt(const Eulerf &euler, bool should_pass)
-{
+void SensorRangeFinderTest::testTilt(const Eulerf &euler, bool should_pass) {
 	const Dcmf attitude{euler};
 	_range_finder.setSample(_good_sample);
 	_range_finder.runChecks(_good_sample.time_us, attitude);
@@ -109,8 +105,7 @@ void SensorRangeFinderTest::testTilt(const Eulerf &euler, bool should_pass)
 	}
 }
 
-TEST_F(SensorRangeFinderTest, setRange)
-{
+TEST_F(SensorRangeFinderTest, setRange) {
 	rangeSample sample{};
 	sample.rng = 1.f;
 	sample.time_us = 1e6;
@@ -123,8 +118,7 @@ TEST_F(SensorRangeFinderTest, setRange)
 	EXPECT_TRUE(_range_finder.isHealthy());
 }
 
-TEST_F(SensorRangeFinderTest, goodData)
-{
+TEST_F(SensorRangeFinderTest, goodData) {
 	// WHEN: the drone is leveled and the data is good
 	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
 	_range_finder.setSample(_good_sample);
@@ -135,8 +129,7 @@ TEST_F(SensorRangeFinderTest, goodData)
 	EXPECT_TRUE(_range_finder.isHealthy());
 }
 
-TEST_F(SensorRangeFinderTest, tiltExceeded)
-{
+TEST_F(SensorRangeFinderTest, tiltExceeded) {
 	const Eulerf zero(0.f, 0.f, 0.f);
 	const Eulerf pitch_46(0.f, 0.8f, 0.f);
 	const Eulerf pitch_minus46(0.f, -0.8f, 0.f);
@@ -160,11 +153,9 @@ TEST_F(SensorRangeFinderTest, tiltExceeded)
 	testTilt(roll_minus40, true);
 	testTilt(roll_28_pitch_minus28, true);
 	testTilt(roll_46_pitch_minus46, false);
-
 }
 
-TEST_F(SensorRangeFinderTest, rangeMaxExceeded)
-{
+TEST_F(SensorRangeFinderTest, rangeMaxExceeded) {
 	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
 
 	// WHEN: the measured range is larger than the maximum
@@ -178,8 +169,7 @@ TEST_F(SensorRangeFinderTest, rangeMaxExceeded)
 	EXPECT_FALSE(_range_finder.isHealthy());
 }
 
-TEST_F(SensorRangeFinderTest, rangeMinExceeded)
-{
+TEST_F(SensorRangeFinderTest, rangeMinExceeded) {
 	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
 
 	// WHEN: the measured range is shorter than the minimum
@@ -193,8 +183,7 @@ TEST_F(SensorRangeFinderTest, rangeMinExceeded)
 	EXPECT_FALSE(_range_finder.isHealthy());
 }
 
-TEST_F(SensorRangeFinderTest, outOfDate)
-{
+TEST_F(SensorRangeFinderTest, outOfDate) {
 	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
 
 	// WHEN: the data is outdated
@@ -209,8 +198,7 @@ TEST_F(SensorRangeFinderTest, outOfDate)
 	EXPECT_FALSE(_range_finder.isHealthy());
 }
 
-TEST_F(SensorRangeFinderTest, rangeStuck)
-{
+TEST_F(SensorRangeFinderTest, rangeStuck) {
 	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
 
 	// WHEN: the data is first not valid and then
@@ -257,8 +245,7 @@ TEST_F(SensorRangeFinderTest, rangeStuck)
 	EXPECT_TRUE(_range_finder.isHealthy());
 }
 
-TEST_F(SensorRangeFinderTest, qualityHysteresis)
-{
+TEST_F(SensorRangeFinderTest, qualityHysteresis) {
 	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
 
 	// WHEN: the data is first bad and then good
@@ -291,8 +278,7 @@ TEST_F(SensorRangeFinderTest, qualityHysteresis)
 	EXPECT_TRUE(_range_finder.isHealthy());
 }
 
-TEST_F(SensorRangeFinderTest, continuity)
-{
+TEST_F(SensorRangeFinderTest, continuity) {
 	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
 
 	// WHEN: the data rate is too slow
@@ -321,8 +307,7 @@ TEST_F(SensorRangeFinderTest, continuity)
 	EXPECT_TRUE(_range_finder.isHealthy());
 }
 
-TEST_F(SensorRangeFinderTest, distBottom)
-{
+TEST_F(SensorRangeFinderTest, distBottom) {
 	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
 	rangeSample sample{};
 	sample.rng = 1.f;

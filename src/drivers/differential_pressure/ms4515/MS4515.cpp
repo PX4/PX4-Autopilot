@@ -33,28 +33,21 @@
 
 #include "MS4515.hpp"
 
-MS4515::MS4515(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config)
-{
-}
+MS4515::MS4515(const I2CSPIDriverConfig &config) : I2C(config), I2CSPIDriver(config) {}
 
-MS4515::~MS4515()
-{
+MS4515::~MS4515() {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
-int MS4515::probe()
-{
+int MS4515::probe() {
 	uint8_t cmd = 0;
 	int ret = transfer(&cmd, 1, nullptr, 0);
 
 	return ret;
 }
 
-int MS4515::init()
-{
+int MS4515::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -69,8 +62,7 @@ int MS4515::init()
 	return ret;
 }
 
-int MS4515::measure()
-{
+int MS4515::measure() {
 	// Send the command to begin a measurement.
 	uint8_t cmd = 0;
 	int ret = transfer(&cmd, 1, nullptr, 0);
@@ -82,14 +74,13 @@ int MS4515::measure()
 	return ret;
 }
 
-int MS4515::collect()
-{
+int MS4515::collect() {
 	/* read from the sensor */
 	perf_begin(_sample_perf);
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	uint8_t val[4] {};
+	uint8_t val[4]{};
 	int ret = transfer(nullptr, 0, &val[0], 4);
 
 	if (ret < 0) {
@@ -101,23 +92,23 @@ int MS4515::collect()
 	uint8_t status = (val[0] & 0xC0) >> 6;
 
 	switch (status) {
-	case 0:
-		// Normal Operation. Good Data Packet
-		break;
+		case 0:
+			// Normal Operation. Good Data Packet
+			break;
 
-	case 1:
-		// Reserved
-		return -EAGAIN;
+		case 1:
+			// Reserved
+			return -EAGAIN;
 
-	case 2:
-		// Stale Data. Data has been fetched since last measurement cycle.
-		return -EAGAIN;
+		case 2:
+			// Stale Data. Data has been fetched since last measurement cycle.
+			return -EAGAIN;
 
-	case 3:
-		// Fault Detected
-		perf_count(_comms_errors);
-		perf_end(_sample_perf);
-		return -EAGAIN;
+		case 3:
+			// Fault Detected
+			perf_count(_comms_errors);
+			perf_end(_sample_perf);
+			return -EAGAIN;
 	}
 
 	/* mask the used bits */
@@ -132,7 +123,6 @@ int MS4515::collect()
 
 	// only publish changes
 	if ((dp_raw != _dp_raw_prev) || (dT_raw != _dT_raw_prev)) {
-
 		_dp_raw_prev = dp_raw;
 		_dT_raw_prev = dT_raw;
 
@@ -174,8 +164,7 @@ int MS4515::collect()
 	return PX4_OK;
 }
 
-void MS4515::RunImpl()
-{
+void MS4515::RunImpl() {
 	int ret = PX4_ERROR;
 
 	// collection phase
@@ -197,7 +186,6 @@ void MS4515::RunImpl()
 
 		// is there a collect->measure gap?
 		if (_measure_interval > CONVERSION_INTERVAL) {
-
 			// schedule a fresh cycle call when we are ready to measure again
 			ScheduleDelayed(_measure_interval - CONVERSION_INTERVAL);
 

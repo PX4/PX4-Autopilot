@@ -40,46 +40,46 @@
  * Created on: Nov 12, 2014
  **/
 
-#include <string.h>
-
 #include <drivers/device/i2c.h>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <uORB/Publication.hpp>
+#include <px4_platform_common/module.h>
+#include <string.h>
 #include <uORB/topics/irlock_report.h>
 
-/** Configuration Constants **/
-#define IRLOCK_I2C_ADDRESS		0x54 /** 7-bit address (non shifted) **/
-#define IRLOCK_CONVERSION_INTERVAL_US	20000U /** us = 20ms = 50Hz **/
+#include <uORB/Publication.hpp>
 
-#define IRLOCK_SYNC			0xAA55
-#define IRLOCK_RESYNC		0x5500
-#define IRLOCK_ADJUST		0xAA
+/** Configuration Constants **/
+#define IRLOCK_I2C_ADDRESS 0x54              /** 7-bit address (non shifted) **/
+#define IRLOCK_CONVERSION_INTERVAL_US 20000U /** us = 20ms = 50Hz **/
+
+#define IRLOCK_SYNC 0xAA55
+#define IRLOCK_RESYNC 0x5500
+#define IRLOCK_ADJUST 0xAA
 
 #define IRLOCK_RES_X 320
 #define IRLOCK_RES_Y 200
 
-#define IRLOCK_CENTER_X				(IRLOCK_RES_X/2)			// the x-axis center pixel position
-#define IRLOCK_CENTER_Y				(IRLOCK_RES_Y/2)			// the y-axis center pixel position
+#define IRLOCK_CENTER_X (IRLOCK_RES_X / 2)  // the x-axis center pixel position
+#define IRLOCK_CENTER_Y (IRLOCK_RES_Y / 2)  // the y-axis center pixel position
 
-#define IRLOCK_FOV_X (60.0f*M_PI_F/180.0f)
-#define IRLOCK_FOV_Y (35.0f*M_PI_F/180.0f)
+#define IRLOCK_FOV_X (60.0f * M_PI_F / 180.0f)
+#define IRLOCK_FOV_Y (35.0f * M_PI_F / 180.0f)
 
-#define IRLOCK_TAN_HALF_FOV_X 0.57735026919f // tan(0.5 * 60 * pi/180)
-#define IRLOCK_TAN_HALF_FOV_Y 0.31529878887f // tan(0.5 * 35 * pi/180)
+#define IRLOCK_TAN_HALF_FOV_X 0.57735026919f  // tan(0.5 * 60 * pi/180)
+#define IRLOCK_TAN_HALF_FOV_Y 0.31529878887f  // tan(0.5 * 35 * pi/180)
 
-#define IRLOCK_TAN_ANG_PER_PIXEL_X	(2*IRLOCK_TAN_HALF_FOV_X/IRLOCK_RES_X)
-#define IRLOCK_TAN_ANG_PER_PIXEL_Y	(2*IRLOCK_TAN_HALF_FOV_Y/IRLOCK_RES_Y)
+#define IRLOCK_TAN_ANG_PER_PIXEL_X (2 * IRLOCK_TAN_HALF_FOV_X / IRLOCK_RES_X)
+#define IRLOCK_TAN_ANG_PER_PIXEL_Y (2 * IRLOCK_TAN_HALF_FOV_Y / IRLOCK_RES_Y)
 
-#define IRLOCK_OBJECTS_MAX	5	/** up to 5 objects can be detected/reported **/
+#define IRLOCK_OBJECTS_MAX 5 /** up to 5 objects can be detected/reported **/
 
 struct irlock_target_s {
-	uint16_t signature;	/** target signature **/
-	float pos_x;	/** x-axis distance from center of image to center of target in units of tan(theta) **/
-	float pos_y;	/** y-axis distance from center of image to center of target in units of tan(theta) **/
-	float size_x;	/** size of target along x-axis in units of tan(theta) **/
-	float size_y;	/** size of target along y-axis in units of tan(theta) **/
+	uint16_t signature; /** target signature **/
+	float pos_x;        /** x-axis distance from center of image to center of target in units of tan(theta) **/
+	float pos_y;        /** y-axis distance from center of image to center of target in units of tan(theta) **/
+	float size_x;       /** size of target along x-axis in units of tan(theta) **/
+	float size_y;       /** size of target along y-axis in units of tan(theta) **/
 };
 
 /** irlock_s structure returned from read calls **/
@@ -89,8 +89,7 @@ struct irlock_s {
 	irlock_target_s targets[IRLOCK_OBJECTS_MAX];
 };
 
-class IRLOCK : public device::I2C, public I2CSPIDriver<IRLOCK>
-{
+class IRLOCK : public device::I2C, public I2CSPIDriver<IRLOCK> {
 public:
 	IRLOCK(const I2CSPIDriverConfig &config);
 	~IRLOCK() override = default;
@@ -102,14 +101,14 @@ public:
 	void print_status() override;
 
 	/** read from device and schedule next read **/
-	void		RunImpl();
-private:
+	void RunImpl();
 
+private:
 	/** low level communication with sensor **/
-	int 		read_device();
-	bool 		sync_device();
-	int 		read_device_word(uint16_t *word);
-	int 		read_device_block(struct irlock_target_s *block);
+	int read_device();
+	bool sync_device();
+	int read_device_word(uint16_t *word);
+	int read_device_block(struct irlock_target_s *block);
 
 	/** internal variables **/
 	uint32_t _read_failures{0};
@@ -117,14 +116,9 @@ private:
 	uORB::Publication<irlock_report_s> _irlock_report_topic{ORB_ID(irlock_report)};
 };
 
-IRLOCK::IRLOCK(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config)
-{
-}
+IRLOCK::IRLOCK(const I2CSPIDriverConfig &config) : I2C(config), I2CSPIDriver(config) {}
 
-int IRLOCK::init()
-{
+int IRLOCK::init() {
 	/** initialise I2C bus **/
 	int ret = I2C::init();
 
@@ -136,8 +130,7 @@ int IRLOCK::init()
 	return OK;
 }
 
-int IRLOCK::probe()
-{
+int IRLOCK::probe() {
 	/*
 	 * IRLock defaults to sending 0x00 when there is no block
 	 * data to return, so really all we can do is check to make
@@ -152,21 +145,16 @@ int IRLOCK::probe()
 	return OK;
 }
 
-void IRLOCK::print_status()
-{
-	PX4_INFO("read errors: %lu", (unsigned long)_read_failures);
-}
+void IRLOCK::print_status() { PX4_INFO("read errors: %lu", (unsigned long)_read_failures); }
 
-void IRLOCK::RunImpl()
-{
+void IRLOCK::RunImpl() {
 	/** ignoring failure, if we do, we will be back again right away... **/
 	read_device();
 
 	ScheduleDelayed(IRLOCK_CONVERSION_INTERVAL_US);
 }
 
-bool IRLOCK::sync_device()
-{
+bool IRLOCK::sync_device() {
 	uint8_t sync_byte;
 	uint16_t sync_word;
 
@@ -188,8 +176,7 @@ bool IRLOCK::sync_device()
 	return false;
 }
 
-int IRLOCK::read_device()
-{
+int IRLOCK::read_device() {
 	/** if we sync, then we are starting a new frame, else fail **/
 	if (!sync_device()) {
 		return -ENOTTY;
@@ -212,10 +199,10 @@ int IRLOCK::read_device()
 		irlock_report_s orb_report{};
 		orb_report.timestamp = report.timestamp;
 		orb_report.signature = report.targets[0].signature;
-		orb_report.pos_x     = report.targets[0].pos_x;
-		orb_report.pos_y     = report.targets[0].pos_y;
-		orb_report.size_x    = report.targets[0].size_x;
-		orb_report.size_y    = report.targets[0].size_y;
+		orb_report.pos_x = report.targets[0].pos_x;
+		orb_report.pos_y = report.targets[0].pos_y;
+		orb_report.size_x = report.targets[0].size_x;
+		orb_report.size_y = report.targets[0].size_y;
 
 		_irlock_report_topic.publish(orb_report);
 	}
@@ -223,9 +210,8 @@ int IRLOCK::read_device()
 	return OK;
 }
 
-int IRLOCK::read_device_word(uint16_t *word)
-{
-	uint8_t bytes[2] {};
+int IRLOCK::read_device_word(uint16_t *word) {
+	uint8_t bytes[2]{};
 
 	int status = transfer(nullptr, 0, &bytes[0], 2);
 	*word = bytes[1] << 8 | bytes[0];
@@ -233,8 +219,7 @@ int IRLOCK::read_device_word(uint16_t *word)
 	return status;
 }
 
-int IRLOCK::read_device_block(irlock_target_s *block)
-{
+int IRLOCK::read_device_block(irlock_target_s *block) {
 	uint8_t bytes[12];
 	memset(bytes, 0, sizeof bytes);
 
@@ -261,8 +246,7 @@ int IRLOCK::read_device_block(irlock_target_s *block)
 	return status;
 }
 
-void IRLOCK::print_usage()
-{
+void IRLOCK::print_usage() {
 	PRINT_MODULE_USAGE_NAME("irlock", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
@@ -270,8 +254,7 @@ void IRLOCK::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int irlock_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int irlock_main(int argc, char *argv[]) {
 	using ThisDriver = IRLOCK;
 	BusCLIArguments cli{true, false};
 	cli.i2c_address = IRLOCK_I2C_ADDRESS;

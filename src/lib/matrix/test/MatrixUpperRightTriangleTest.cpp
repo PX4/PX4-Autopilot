@@ -32,16 +32,13 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixUpperRightTriangleTest, UpperRightTriangle)
-{
-	float data[9] = {1, 2, 3,
-			 4, 5, 6,
-			 7, 8, 10
-			};
+TEST(MatrixUpperRightTriangleTest, UpperRightTriangle) {
+	float data[9] = {1, 2, 3, 4, 5, 6, 7, 8, 10};
 	float urt[6] = {1, 2, 3, 5, 6, 10};
 
 	SquareMatrix<float, 3> A(data);

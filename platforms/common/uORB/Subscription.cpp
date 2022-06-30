@@ -37,13 +37,12 @@
  */
 
 #include "Subscription.hpp"
+
 #include <px4_platform_common/defines.h>
 
-namespace uORB
-{
+namespace uORB {
 
-bool Subscription::subscribe()
-{
+bool Subscription::subscribe() {
 	// check if already subscribed
 	if (_node != nullptr) {
 		return true;
@@ -63,8 +62,7 @@ bool Subscription::subscribe()
 	return false;
 }
 
-void Subscription::unsubscribe()
-{
+void Subscription::unsubscribe() {
 	if (_node != nullptr) {
 		uORB::Manager::orb_remove_internal_subscriber(_node);
 	}
@@ -73,8 +71,7 @@ void Subscription::unsubscribe()
 	_last_generation = 0;
 }
 
-bool Subscription::ChangeInstance(uint8_t instance)
-{
+bool Subscription::ChangeInstance(uint8_t instance) {
 	if (instance != _instance) {
 		if (uORB::Manager::orb_device_node_exists(_orb_id, _instance)) {
 			// if desired new instance exists, unsubscribe from current
@@ -92,4 +89,4 @@ bool Subscription::ChangeInstance(uint8_t instance)
 	return false;
 }
 
-} // namespace uORB
+}  // namespace uORB

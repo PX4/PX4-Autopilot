@@ -50,19 +50,15 @@
 
 #include "sock_protocol.h"
 
-namespace px4_daemon
-{
+namespace px4_daemon {
 
-
-class Client
-{
+class Client {
 public:
 	Client(int instance_id = 0);
 
 	~Client();
 
-	Client(Client &&other) : _fd(other._fd), _instance_id(other._instance_id)
-	{
+	Client(Client &&other) : _fd(other._fd), _instance_id(other._instance_id) {
 		// Steal the fd from the moved-from client.
 		other._fd = -1;
 	}
@@ -81,8 +77,7 @@ private:
 	int _listen();
 
 	int _fd;
-	int _instance_id; ///< instance ID for running multiple instances of the px4 server
+	int _instance_id;  ///< instance ID for running multiple instances of the px4 server
 };
 
-} // namespace px4_daemon
-
+}  // namespace px4_daemon

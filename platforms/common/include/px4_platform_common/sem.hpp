@@ -41,7 +41,6 @@
 
 #include "sem.h"
 
-
 /**
  * @class Smart locking object that uses a semaphore. It automatically
  * takes the lock when created and releases the lock when the object goes out of
@@ -58,11 +57,14 @@
  *       //critical section end
  *   }
  */
-class SmartLock
-{
+class SmartLock {
 public:
-	SmartLock(px4_sem_t &sem) : _sem(sem) { do {} while (px4_sem_wait(&_sem) != 0); }
+	SmartLock(px4_sem_t &sem) : _sem(sem) {
+		do {
+		} while (px4_sem_wait(&_sem) != 0);
+	}
 	~SmartLock() { px4_sem_post(&_sem); }
+
 private:
 	px4_sem_t &_sem;
 };

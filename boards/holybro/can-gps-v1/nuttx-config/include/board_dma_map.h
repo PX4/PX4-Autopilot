@@ -32,14 +32,12 @@
  ****************************************************************************/
 #pragma once
 
-
 // DMA1 Channel/Stream Selections
 //--------------------------------------------//---------------------------//----------------
 // DMAMAP_USART2_RX                           // DMA1, Stream 5, Channel 4    (DEBIGT RX)
 
-
 //  DMA2 Channel/Stream Selections
 //--------------------------------------------//---------------------------//----------------
-#define DMAMAP_USART1_RX   DMAMAP_USART1_RX_1 // DMA2, Stream 2, Channel 4    (GPS RX)
-#define DMACHAN_SPI1_RX    DMAMAP_SPI1_RX_1   // DMA2, Stream 0, Channel 3    (SPI1 sensors RX)
-#define DMACHAN_SPI1_TX    DMAMAP_SPI1_TX_1   // DMA2, Stream 3, Channel 3    (SPI1 sensors TX)
+#define DMAMAP_USART1_RX DMAMAP_USART1_RX_1  // DMA2, Stream 2, Channel 4    (GPS RX)
+#define DMACHAN_SPI1_RX DMAMAP_SPI1_RX_1     // DMA2, Stream 0, Channel 3    (SPI1 sensors RX)
+#define DMACHAN_SPI1_TX DMAMAP_SPI1_TX_1     // DMA2, Stream 3, Channel 3    (SPI1 sensors TX)

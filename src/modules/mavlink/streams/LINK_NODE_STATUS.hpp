@@ -34,8 +34,7 @@
 #ifndef LINK_NODE_STATUS_HPP
 #define LINK_NODE_STATUS_HPP
 
-class MavlinkStreamLinkNodeStatus : public MavlinkStream
-{
+class MavlinkStreamLinkNodeStatus : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamLinkNodeStatus(mavlink); }
 
@@ -45,22 +44,18 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_LINK_NODE_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
+	unsigned get_size() override { return MAVLINK_MSG_ID_LINK_NODE_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES; }
 
 private:
 	explicit MavlinkStreamLinkNodeStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	bool send() override
-	{
+	bool send() override {
 		if (_mavlink->get_free_tx_buf() >= get_size()) {
 			mavlink_link_node_status_t link_node_status{};
 
 			const telemetry_status_s &tstatus = _mavlink->telemetry_status();
-			link_node_status.tx_buf = 0; // % TODO
-			link_node_status.rx_buf = 0; // % TODO
+			link_node_status.tx_buf = 0;  // % TODO
+			link_node_status.rx_buf = 0;  // % TODO
 			link_node_status.tx_rate = tstatus.tx_rate_avg;
 			link_node_status.rx_rate = tstatus.rx_rate_avg;
 			link_node_status.rx_parse_err = tstatus.rx_parse_errors;
@@ -81,4 +76,4 @@ private:
 	}
 };
 
-#endif // LINK_NODE_STATUS_HPP
+#endif  // LINK_NODE_STATUS_HPP

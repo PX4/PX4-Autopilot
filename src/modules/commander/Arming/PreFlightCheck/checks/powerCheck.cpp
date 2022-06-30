@@ -31,19 +31,19 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
 #include <drivers/drv_hrt.h>
-#include <systemlib/mavlink_log.h>
 #include <lib/parameters/param.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/system_power.h>
 #include <math.h>
+#include <systemlib/mavlink_log.h>
+#include <uORB/topics/system_power.h>
+
+#include <uORB/Subscription.hpp>
+
+#include "../PreFlightCheck.hpp"
 
 using namespace time_literals;
 
-bool PreFlightCheck::powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail)
-{
+bool PreFlightCheck::powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail) {
 	bool success = true;
 
 	if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
@@ -67,21 +67,24 @@ bool PreFlightCheck::powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_sta
 				success = false;
 
 				if (report_fail) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Avionics Power low: %6.2f Volt",
+					mavlink_log_critical(mavlink_log_pub,
+							     "Preflight Fail: Avionics Power low: %6.2f Volt",
 							     (double)avionics_power_rail_voltage);
 				}
 
 			} else if (avionics_power_rail_voltage < 4.8f) {
 				if (report_fail) {
-					mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power low: %6.2f Volt", (double)avionics_power_rail_voltage);
+					mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power low: %6.2f Volt",
+							     (double)avionics_power_rail_voltage);
 				}
 
 			} else if (avionics_power_rail_voltage > 5.4f) {
 				if (report_fail) {
-					mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power high: %6.2f Volt", (double)avionics_power_rail_voltage);
+					mavlink_log_critical(mavlink_log_pub,
+							     "CAUTION: Avionics Power high: %6.2f Volt",
+							     (double)avionics_power_rail_voltage);
 				}
 			}
-
 
 			const int power_module_count = math::countSetBits(system_power.brick_valid);
 
@@ -89,7 +92,8 @@ bool PreFlightCheck::powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_sta
 				success = false;
 
 				if (report_fail) {
-					mavlink_log_critical(mavlink_log_pub, "Power redundancy not met: %d instead of %" PRId32,
+					mavlink_log_critical(mavlink_log_pub,
+							     "Power redundancy not met: %d instead of %" PRId32,
 							     power_module_count, required_power_module_count);
 				}
 			}

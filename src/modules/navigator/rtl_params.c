@@ -58,7 +58,6 @@
  */
 PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
 
-
 /**
  * Return mode loiter altitude
  *
@@ -111,9 +110,13 @@ PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 10.0f);
  * Return mode destination and flight path (home location, rally point, mission landing pattern, reverse mission)
  *
  * @value 0 Return to closest safe point (home or rally point) via direct path.
- * @value 1 Return to closest safe point other than home (mission landing pattern or rally point), via direct path. If no mission landing or rally points are defined return home via direct path. Always chose closest safe landing point if vehicle is a VTOL in hover mode.
- * @value 2 Return to a planned mission landing, if available, using the mission path, else return to home via the reverse mission path. Do not consider rally points.
- * @value 3 Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.
+ * @value 1 Return to closest safe point other than home (mission landing pattern or rally point), via direct path. If
+ * no mission landing or rally points are defined return home via direct path. Always chose closest safe landing point
+ * if vehicle is a VTOL in hover mode.
+ * @value 2 Return to a planned mission landing, if available, using the mission path, else return to home via the
+ * reverse mission path. Do not consider rally points.
+ * @value 3 Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the
+ * destination is a mission landing pattern, follow the pattern to land.
  * @group Return Mode
  */
 PARAM_DEFINE_INT32(RTL_TYPE, 0);

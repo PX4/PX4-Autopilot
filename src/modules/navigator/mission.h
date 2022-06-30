@@ -44,30 +44,29 @@
 
 #pragma once
 
-#include "mission_block.h"
-#include "mission_feasibility_checker.h"
-#include "navigator_mode.h"
-
-#include <float.h>
-
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
+#include <float.h>
 #include <px4_platform_common/module_params.h>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_roi.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
+
+#include <uORB/Subscription.hpp>
+
+#include "mission_block.h"
+#include "mission_feasibility_checker.h"
+#include "navigator_mode.h"
 
 class Navigator;
 
-class Mission : public MissionBlock, public ModuleParams
-{
+class Mission : public MissionBlock, public ModuleParams {
 public:
 	Mission(Navigator *navigator);
 	~Mission() override = default;
@@ -85,8 +84,8 @@ public:
 	uint16_t get_land_start_index() const { return _land_start_index; }
 	bool get_land_start_available() const { return _land_start_available; }
 	bool get_mission_finished() const { return _mission_type == MISSION_TYPE_NONE; }
-	bool get_mission_changed() const { return _mission_changed ; }
-	bool get_mission_waypoints_changed() const { return _mission_waypoints_changed ; }
+	bool get_mission_changed() const { return _mission_changed; }
+	bool get_mission_waypoints_changed() const { return _mission_waypoints_changed; }
 	double get_landing_start_lat() { return _landing_start_lat; }
 	double get_landing_start_lon() { return _landing_start_lon; }
 	float get_landing_start_alt() { return _landing_start_alt; }
@@ -103,8 +102,8 @@ public:
 	 * For a list of the different modes refer to mission_result.msg
 	 */
 	void set_execution_mode(const uint8_t mode);
-private:
 
+private:
 	void mission_init();
 
 	/**
@@ -173,9 +172,10 @@ private:
 	 *
 	 * @return true if current mission item available
 	 */
-	bool prepare_mission_items(mission_item_s *mission_item,
-				   mission_item_s *next_position_mission_item, bool *has_next_position_item,
-				   mission_item_s *next_next_position_mission_item = nullptr, bool *has_next_next_position_item = nullptr);
+	bool prepare_mission_items(mission_item_s *mission_item, mission_item_s *next_position_mission_item,
+				   bool *has_next_position_item,
+				   mission_item_s *next_next_position_mission_item = nullptr,
+				   bool *has_next_next_position_item = nullptr);
 
 	/**
 	 * Read current (offset == 0) or a specific (offset > 0) mission item
@@ -234,22 +234,21 @@ private:
 
 	void publish_navigator_mission_item();
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
-		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_mis_dist_wps,
-		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mis_mnt_yaw_ctl
-	)
+	DEFINE_PARAMETERS((ParamFloat<px4::params::MIS_DIST_1WP>)_param_mis_dist_1wp,
+			  (ParamFloat<px4::params::MIS_DIST_WPS>)_param_mis_dist_wps,
+			  (ParamInt<px4::params::MIS_MNT_YAW_CTL>)_param_mis_mnt_yaw_ctl)
 
 	uORB::Publication<navigator_mission_item_s> _navigator_mission_item_pub{ORB_ID::navigator_mission_item};
 
-	uORB::Subscription	_mission_sub{ORB_ID(mission)};		/**< mission subscription */
-	mission_s		_mission {};
+	uORB::Subscription _mission_sub{ORB_ID(mission)}; /**< mission subscription */
+	mission_s _mission{};
 
 	int32_t _current_mission_index{-1};
 
 	// track location of planned mission landing
-	bool	_land_start_available{false};
-	uint16_t _land_start_index{UINT16_MAX};		/**< index of DO_LAND_START, INVALID_DO_LAND_START if no planned landing */
+	bool _land_start_available{false};
+	uint16_t _land_start_index{
+		UINT16_MAX}; /**< index of DO_LAND_START, INVALID_DO_LAND_START if no planned landing */
 	double _landing_start_lat{0.0};
 	double _landing_start_lon{0.0};
 	float _landing_start_alt{0.0f};
@@ -258,14 +257,12 @@ private:
 	double _landing_lon{0.0};
 	float _landing_alt{0.0f};
 
-	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
+	bool _need_takeoff{
+		true}; /**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 
 	hrt_abstime _time_mission_deactivated{0};
 
-	enum {
-		MISSION_TYPE_NONE,
-		MISSION_TYPE_MISSION
-	} _mission_type{MISSION_TYPE_NONE};
+	enum { MISSION_TYPE_NONE, MISSION_TYPE_MISSION } _mission_type{MISSION_TYPE_NONE};
 
 	bool _inited{false};
 	bool _home_inited{false};
@@ -274,15 +271,18 @@ private:
 	bool _mission_changed{false}; /** < true if the mission changed since the mission mode was active */
 
 	enum work_item_type {
-		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
-		WORK_ITEM_TYPE_TAKEOFF,		/**< takeoff before moving to waypoint */
-		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
-		WORK_ITEM_TYPE_ALIGN,		/**< align for next waypoint */
+		WORK_ITEM_TYPE_DEFAULT,      /**< default mission item */
+		WORK_ITEM_TYPE_TAKEOFF,      /**< takeoff before moving to waypoint */
+		WORK_ITEM_TYPE_MOVE_TO_LAND, /**< move to land waypoint before descent */
+		WORK_ITEM_TYPE_ALIGN,        /**< align for next waypoint */
 		WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF,
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
 		WORK_ITEM_TYPE_PRECISION_LAND
-	} _work_item_type{WORK_ITEM_TYPE_DEFAULT};	/**< current type of work to do (sub mission item) */
+	} _work_item_type{WORK_ITEM_TYPE_DEFAULT}; /**< current type of work to do (sub mission item) */
 
-	uint8_t _mission_execution_mode{mission_result_s::MISSION_EXECUTION_MODE_NORMAL};	/**< the current mode of how the mission is executed,look at mission_result.msg for the definition */
+	uint8_t _mission_execution_mode{
+		mission_result_s::MISSION_EXECUTION_MODE_NORMAL}; /**< the current mode of how the mission is
+								     executed,look at mission_result.msg for the
+								     definition */
 	bool _execution_mode_changed{false};
 };

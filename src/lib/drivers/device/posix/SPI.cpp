@@ -45,23 +45,17 @@
 #ifdef __PX4_LINUX
 
 #include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <linux/types.h>
 #include <linux/spi/spidev.h>
-
+#include <linux/types.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_config.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
-namespace device
-{
+namespace device {
 
-SPI::SPI(uint8_t device_type, const char *name, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency) :
-	CDev(name, nullptr),
-	_device(device),
-	_mode(mode),
-	_frequency(frequency)
-{
+SPI::SPI(uint8_t device_type, const char *name, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency)
+	: CDev(name, nullptr), _device(device), _mode(mode), _frequency(frequency) {
 	_device_id.devid_s.devtype = device_type;
 	// fill in _device_id fields for a SPI device
 	_device_id.devid_s.bus_type = DeviceBusType_SPI;
@@ -71,21 +65,16 @@ SPI::SPI(uint8_t device_type, const char *name, int bus, uint32_t device, enum s
 
 SPI::SPI(const I2CSPIDriverConfig &config)
 	: SPI(config.devid_driver_index, config.module_name, config.bus, config.spi_devid, config.spi_mode,
-	      config.bus_frequency)
-{
-}
+	      config.bus_frequency) {}
 
-SPI::~SPI()
-{
+SPI::~SPI() {
 	if (_fd >= 0) {
 		::close(_fd);
 		_fd = -1;
 	}
 }
 
-int
-SPI::init()
-{
+int SPI::init() {
 	// Open the actual SPI device
 	char dev_path[16];
 	snprintf(dev_path, sizeof(dev_path), "/dev/spidev%i.%i", get_device_bus(), PX4_SPI_DEV_ID(_device));
@@ -119,9 +108,7 @@ SPI::init()
 	return PX4_OK;
 }
 
-int
-SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
-{
+int SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len) {
 	if ((send == nullptr) && (recv == nullptr)) {
 		return -EINVAL;
 	}
@@ -152,9 +139,7 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	return PX4_OK;
 }
 
-int
-SPI::transferhword(uint16_t *send, uint16_t *recv, unsigned len)
-{
+int SPI::transferhword(uint16_t *send, uint16_t *recv, unsigned len) {
 	if ((send == nullptr) && (recv == nullptr)) {
 		return -EINVAL;
 	}
@@ -175,14 +160,14 @@ SPI::transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 		return PX4_ERROR;
 	}
 
-	spi_ioc_transfer spi_transfer[1] {};
+	spi_ioc_transfer spi_transfer[1]{};
 
 	spi_transfer[0].tx_buf = (uint64_t)send;
 	spi_transfer[0].rx_buf = (uint64_t)recv;
 	spi_transfer[0].len = len * 2;
 	spi_transfer[0].speed_hz = _frequency;
-	//spi_transfer[0].bits_per_word = 8;
-	//spi_transfer[0].delay_usecs = 10;
+	// spi_transfer[0].bits_per_word = 8;
+	// spi_transfer[0].delay_usecs = 10;
 	spi_transfer[0].cs_change = true;
 
 	result = ::ioctl(_fd, SPI_IOC_MESSAGE(1), &spi_transfer);
@@ -195,7 +180,7 @@ SPI::transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 	return PX4_OK;
 }
 
-} // namespace device
+}  // namespace device
 
-#endif // __PX4_LINUX
-#endif // CONFIG_SPI
+#endif  // __PX4_LINUX
+#endif  // CONFIG_SPI

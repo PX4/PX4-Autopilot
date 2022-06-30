@@ -31,15 +31,13 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "LPS25H.hpp"
 
-void
-LPS25H::print_usage()
-{
+void LPS25H::print_usage() {
 	PRINT_MODULE_USAGE_NAME("lps25h", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -47,8 +45,7 @@ LPS25H::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *LPS25H::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+I2CSPIDriverBase *LPS25H::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	device::Device *interface = nullptr;
 
 	if (config.bus_type == BOARD_I2C_BUS) {
@@ -84,8 +81,7 @@ I2CSPIDriverBase *LPS25H::instantiate(const I2CSPIDriverConfig &config, int runt
 	return dev;
 }
 
-extern "C" int lps25h_main(int argc, char *argv[])
-{
+extern "C" int lps25h_main(int argc, char *argv[]) {
 	using ThisDriver = LPS25H;
 	BusCLIArguments cli{true, true};
 	cli.default_i2c_frequency = 400000;

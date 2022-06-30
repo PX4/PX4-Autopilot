@@ -59,22 +59,19 @@
 #include <stdint.h>
 
 #if defined(__PX4_NUTTX)
-# include <nuttx/irq.h>
-#endif // __PX4_NUTTX
+#include <nuttx/irq.h>
+#endif  // __PX4_NUTTX
 
-namespace px4
-{
+namespace px4 {
 
 template <typename T>
-class atomic
-{
+class atomic {
 public:
-
 #if defined(__PX4_POSIX)
 	// Ensure that all operations are lock-free, so that 'atomic' can be used from
 	// IRQ handlers. This might not be required everywhere though.
 	static_assert(__atomic_always_lock_free(sizeof(T), 0), "atomic is not lock-free for the given type T");
-#endif // __PX4_POSIX
+#endif  // __PX4_POSIX
 
 	atomic() = default;
 	explicit atomic(T value) : _value(value) {}
@@ -82,8 +79,7 @@ public:
 	/**
 	 * Atomically read the current value
 	 */
-	inline T load() const
-	{
+	inline T load() const {
 #if defined(__PX4_NUTTX)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
@@ -93,7 +89,7 @@ public:
 			return val;
 
 		} else
-#endif // __PX4_NUTTX
+#endif  // __PX4_NUTTX
 		{
 			return __atomic_load_n(&_value, __ATOMIC_SEQ_CST);
 		}
@@ -102,8 +98,7 @@ public:
 	/**
 	 * Atomically store a value
 	 */
-	inline void store(T value)
-	{
+	inline void store(T value) {
 #if defined(__PX4_NUTTX)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
@@ -112,7 +107,7 @@ public:
 			leave_critical_section(flags);
 
 		} else
-#endif // __PX4_NUTTX
+#endif  // __PX4_NUTTX
 		{
 			__atomic_store(&_value, &value, __ATOMIC_SEQ_CST);
 		}
@@ -122,8 +117,7 @@ public:
 	 * Atomically add a number and return the previous value.
 	 * @return value prior to the addition
 	 */
-	inline T fetch_add(T num)
-	{
+	inline T fetch_add(T num) {
 #if defined(__PX4_NUTTX)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
@@ -133,7 +127,7 @@ public:
 			return ret;
 
 		} else
-#endif // __PX4_NUTTX
+#endif  // __PX4_NUTTX
 		{
 			return __atomic_fetch_add(&_value, num, __ATOMIC_SEQ_CST);
 		}
@@ -143,8 +137,7 @@ public:
 	 * Atomically substract a number and return the previous value.
 	 * @return value prior to the substraction
 	 */
-	inline T fetch_sub(T num)
-	{
+	inline T fetch_sub(T num) {
 #if defined(__PX4_NUTTX)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
@@ -154,7 +147,7 @@ public:
 			return ret;
 
 		} else
-#endif // __PX4_NUTTX
+#endif  // __PX4_NUTTX
 		{
 			return __atomic_fetch_sub(&_value, num, __ATOMIC_SEQ_CST);
 		}
@@ -164,8 +157,7 @@ public:
 	 * Atomic AND with a number
 	 * @return value prior to the operation
 	 */
-	inline T fetch_and(T num)
-	{
+	inline T fetch_and(T num) {
 #if defined(__PX4_NUTTX)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
@@ -176,7 +168,7 @@ public:
 			return val;
 
 		} else
-#endif // __PX4_NUTTX
+#endif  // __PX4_NUTTX
 		{
 			return __atomic_fetch_and(&_value, num, __ATOMIC_SEQ_CST);
 		}
@@ -186,8 +178,7 @@ public:
 	 * Atomic XOR with a number
 	 * @return value prior to the operation
 	 */
-	inline T fetch_xor(T num)
-	{
+	inline T fetch_xor(T num) {
 #if defined(__PX4_NUTTX)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
@@ -198,7 +189,7 @@ public:
 			return val;
 
 		} else
-#endif // __PX4_NUTTX
+#endif  // __PX4_NUTTX
 		{
 			return __atomic_fetch_xor(&_value, num, __ATOMIC_SEQ_CST);
 		}
@@ -208,8 +199,7 @@ public:
 	 * Atomic OR with a number
 	 * @return value prior to the operation
 	 */
-	inline T fetch_or(T num)
-	{
+	inline T fetch_or(T num) {
 #if defined(__PX4_NUTTX)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
@@ -220,7 +210,7 @@ public:
 			return val;
 
 		} else
-#endif // __PX4_NUTTX
+#endif  // __PX4_NUTTX
 		{
 			return __atomic_fetch_or(&_value, num, __ATOMIC_SEQ_CST);
 		}
@@ -230,8 +220,7 @@ public:
 	 * Atomic NAND (~(_value & num)) with a number
 	 * @return value prior to the operation
 	 */
-	inline T fetch_nand(T num)
-	{
+	inline T fetch_nand(T num) {
 #if defined(__PX4_NUTTX)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
@@ -242,7 +231,7 @@ public:
 			return ret;
 
 		} else
-#endif // __PX4_NUTTX
+#endif  // __PX4_NUTTX
 		{
 			return __atomic_fetch_nand(&_value, num, __ATOMIC_SEQ_CST);
 		}
@@ -256,8 +245,7 @@ public:
 	 * contents of _value are written into *expected.
 	 * @return If desired is written into _value then true is returned
 	 */
-	inline bool compare_exchange(T *expected, T desired)
-	{
+	inline bool compare_exchange(T *expected, T desired) {
 #if defined(__PX4_NUTTX)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
@@ -275,14 +263,15 @@ public:
 			}
 
 		} else
-#endif // __PX4_NUTTX
+#endif  // __PX4_NUTTX
 		{
-			return __atomic_compare_exchange(&_value, expected, &desired, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+			return __atomic_compare_exchange(&_value, expected, &desired, false, __ATOMIC_SEQ_CST,
+							 __ATOMIC_SEQ_CST);
 		}
 	}
 
 private:
-	T _value {};
+	T _value{};
 };
 
 using atomic_int = atomic<int>;

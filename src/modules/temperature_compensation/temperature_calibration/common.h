@@ -40,26 +40,25 @@
 #define TC_DEBUG(fmt, ...)
 #endif
 
-#include <px4_platform_common/log.h>
-#include <mathlib/mathlib.h>
 #include <lib/parameters/param.h>
+#include <mathlib/mathlib.h>
+#include <px4_platform_common/log.h>
 
 #include "polyfit.hpp"
 
-#define SENSOR_COUNT_MAX		3
+#define SENSOR_COUNT_MAX 3
 
-
-#define TC_ERROR_INITIAL_TEMP_TOO_HIGH 110 ///< starting temperature was above the configured allowed temperature
-#define TC_ERROR_COMMUNICATION         112 ///< no sensors found
+#define TC_ERROR_INITIAL_TEMP_TOO_HIGH 110  ///< starting temperature was above the configured allowed temperature
+#define TC_ERROR_COMMUNICATION 112          ///< no sensors found
 
 /**
  * Base class for temperature calibration types with abstract methods (for all different sensor types)
  */
-class TemperatureCalibrationBase
-{
+class TemperatureCalibrationBase {
 public:
 	TemperatureCalibrationBase(float min_temperature_rise, float min_start_temperature, float max_start_temperature)
-		: _min_temperature_rise(min_temperature_rise), _min_start_temperature(min_start_temperature),
+		: _min_temperature_rise(min_temperature_rise),
+		  _min_start_temperature(min_start_temperature),
 		  _max_start_temperature(max_start_temperature) {}
 
 	virtual ~TemperatureCalibrationBase() = default;
@@ -79,7 +78,6 @@ public:
 	virtual int finish() = 0;
 
 protected:
-
 	/**
 	 * set a system parameter (without system notification) and print an error if it fails
 	 * @param format_str for example "CAL_GYRO%u_XOFF"
@@ -89,14 +87,14 @@ protected:
 	 */
 	inline int set_parameter(const char *format_str, unsigned index, const void *value);
 
-	float _min_temperature_rise; ///< minimum difference in temperature before the process finishes
-	float _min_start_temperature; ///< minimum temperature before the process starts
-	float _max_start_temperature; ///< maximum temperature above which the process does not start and an error is declared
+	float _min_temperature_rise;   ///< minimum difference in temperature before the process finishes
+	float _min_start_temperature;  ///< minimum temperature before the process starts
+	float _max_start_temperature;  ///< maximum temperature above which the process does not start and an error is
+				       ///< declared
 };
 
-int TemperatureCalibrationBase::set_parameter(const char *format_str, unsigned index, const void *value)
-{
-	char param_str[30] {};
+int TemperatureCalibrationBase::set_parameter(const char *format_str, unsigned index, const void *value) {
+	char param_str[30]{};
 	(void)sprintf(param_str, format_str, index);
 	int result = param_set_no_notification(param_find(param_str), value);
 
@@ -112,10 +110,10 @@ int TemperatureCalibrationBase::set_parameter(const char *format_str, unsigned i
  * Common base class for all sensor types, contains shared code & data.
  */
 template <int Dim, int PolyfitOrder>
-class TemperatureCalibrationCommon : public TemperatureCalibrationBase
-{
+class TemperatureCalibrationCommon : public TemperatureCalibrationBase {
 public:
-	TemperatureCalibrationCommon(float min_temperature_rise, float min_start_temperature, float max_start_temperature)
+	TemperatureCalibrationCommon(float min_temperature_rise, float min_start_temperature,
+				     float max_start_temperature)
 		: TemperatureCalibrationBase(min_temperature_rise, min_start_temperature, max_start_temperature) {}
 
 	virtual ~TemperatureCalibrationCommon() = default;
@@ -123,8 +121,7 @@ public:
 	/**
 	 * @see TemperatureCalibrationBase::update()
 	 */
-	int update()
-	{
+	int update() {
 		int num_not_complete = 0;
 
 		if (_num_sensor_instances == 0) {
@@ -164,20 +161,19 @@ public:
 	}
 
 protected:
-
 	struct PerSensorData {
-		float sensor_sample_filt[Dim + 1]; ///< last value is the temperature
-		polyfitter < PolyfitOrder + 1 > P[Dim];
+		float sensor_sample_filt[Dim + 1];  ///< last value is the temperature
+		polyfitter<PolyfitOrder + 1> P[Dim];
 		unsigned hot_soak_sat = 0; /**< counter that increments every time the sensor temperature reduces
 									from the last reading */
-		uint32_t device_id = 0; ///< ID for the sensor being calibrated
-		bool cold_soaked = false; ///< true when the sensor cold soak starting temperature condition had been
+		uint32_t device_id = 0;    ///< ID for the sensor being calibrated
+		bool cold_soaked = false;  ///< true when the sensor cold soak starting temperature condition had been
 		/// verified and the starting temperature set
-		bool hot_soaked = false; ///< true when the sensor has achieved the specified temperature increase
-		bool tempcal_complete = false; ///< true when the calibration has been completed
-		bool has_valid_temperature = false; ///< true if this sensor has temperature sensor
-		float low_temp = 0.f; ///< low temperature recorded at start of calibration (deg C)
-		float high_temp = 0.f; ///< highest temperature recorded during calibration (deg C)
+		bool hot_soaked = false;  ///< true when the sensor has achieved the specified temperature increase
+		bool tempcal_complete = false;       ///< true when the calibration has been completed
+		bool has_valid_temperature = false;  ///< true if this sensor has temperature sensor
+		float low_temp = 0.f;                ///< low temperature recorded at start of calibration (deg C)
+		float high_temp = 0.f;               ///< highest temperature recorded during calibration (deg C)
 		float ref_temp = 0.f; /**< calibration reference temperature, nominally in the middle of the
 							calibration temperature range (deg C) */
 	};

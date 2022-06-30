@@ -35,20 +35,18 @@
 
 #include <stdint.h>
 
-namespace px4
-{
+namespace px4 {
 
-class WorkQueue; // forward declaration
+class WorkQueue;  // forward declaration
 
 struct wq_config_t {
 	const char *name;
 	uint16_t stacksize;
-	int8_t relative_priority; // relative to max
+	int8_t relative_priority;  // relative to max
 };
 
-namespace wq_configurations
-{
-static constexpr wq_config_t rate_ctrl{"wq:rate_ctrl", 3150, 0}; // PX4 inner loop highest priority
+namespace wq_configurations {
+static constexpr wq_config_t rate_ctrl{"wq:rate_ctrl", 3150, 0};  // PX4 inner loop highest priority
 
 static constexpr wq_config_t SPI0{"wq:SPI0", 2336, -1};
 static constexpr wq_config_t SPI1{"wq:SPI1", 2336, -2};
@@ -94,7 +92,7 @@ static constexpr wq_config_t lp_default{"wq:lp_default", 1920, -50};
 static constexpr wq_config_t test1{"wq:test1", 2000, 0};
 static constexpr wq_config_t test2{"wq:test2", 2000, 0};
 
-} // namespace wq_configurations
+}  // namespace wq_configurations
 
 /**
  * Start the work queue manager task.
@@ -137,5 +135,4 @@ const wq_config_t &serial_port_to_wq(const char *serial);
 
 const wq_config_t &ins_instance_to_wq(uint8_t instance);
 
-
-} // namespace px4
+}  // namespace px4

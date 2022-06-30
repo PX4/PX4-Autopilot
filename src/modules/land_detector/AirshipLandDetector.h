@@ -42,11 +42,9 @@
 
 #include "LandDetector.h"
 
-namespace land_detector
-{
+namespace land_detector {
 
-class AirshipLandDetector : public LandDetector
-{
+class AirshipLandDetector : public LandDetector {
 public:
 	AirshipLandDetector() = default;
 	~AirshipLandDetector() override = default;
@@ -54,7 +52,7 @@ public:
 protected:
 	bool _get_ground_contact_state() override;
 	bool _get_landed_state() override;
-	void _set_hysteresis_factor(const int factor) override {};
+	void _set_hysteresis_factor(const int factor) override{};
 };
 
-} // namespace land_detector
+}  // namespace land_detector

@@ -34,20 +34,18 @@
 #include "wqueue_scheduled_test.h"
 
 #include <drivers/drv_hrt.h>
+#include <inttypes.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
-
-#include <unistd.h>
 #include <stdio.h>
-#include <inttypes.h>
+#include <unistd.h>
 
 using namespace px4;
 
 AppState WQueueScheduledTest::appState;
 
-void WQueueScheduledTest::Run()
-{
-	//PX4_INFO("iter: %d elapsed: %" PRId64 " us", _iter, hrt_elapsed_time(&_qtime));
+void WQueueScheduledTest::Run() {
+	// PX4_INFO("iter: %d elapsed: %" PRId64 " us", _iter, hrt_elapsed_time(&_qtime));
 
 	if (_iter > 1000) {
 		appState.requestExit();
@@ -56,8 +54,7 @@ void WQueueScheduledTest::Run()
 	_iter++;
 }
 
-int WQueueScheduledTest::main()
-{
+int WQueueScheduledTest::main() {
 	appState.setRunning(true);
 
 	_iter = 0;
@@ -72,7 +69,7 @@ int WQueueScheduledTest::main()
 
 	PX4_INFO("WQueueScheduledTest finished");
 
-	//print_status();
+	// print_status();
 
 	px4_sleep(2);
 

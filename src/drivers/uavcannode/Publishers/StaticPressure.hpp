@@ -33,42 +33,35 @@
 
 #pragma once
 
-#include "UavcanPublisherBase.hpp"
-
-#include <uavcan/equipment/air_data/StaticPressure.hpp>
-
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/sensor_baro.h>
 
-namespace uavcannode
-{
+#include <uORB/SubscriptionCallback.hpp>
+#include <uavcan/equipment/air_data/StaticPressure.hpp>
 
-class StaticPressure :
-	public UavcanPublisherBase,
-	public uORB::SubscriptionCallbackWorkItem,
-	private uavcan::Publisher<uavcan::equipment::air_data::StaticPressure>
-{
+#include "UavcanPublisherBase.hpp"
+
+namespace uavcannode {
+
+class StaticPressure : public UavcanPublisherBase,
+		       public uORB::SubscriptionCallbackWorkItem,
+		       private uavcan::Publisher<uavcan::equipment::air_data::StaticPressure> {
 public:
-	StaticPressure(px4::WorkItem *work_item, uavcan::INode &node) :
-		UavcanPublisherBase(uavcan::equipment::air_data::StaticPressure::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_baro)),
-		uavcan::Publisher<uavcan::equipment::air_data::StaticPressure>(node)
-	{
+	StaticPressure(px4::WorkItem *work_item, uavcan::INode &node)
+		: UavcanPublisherBase(uavcan::equipment::air_data::StaticPressure::DefaultDataTypeID),
+		  uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_baro)),
+		  uavcan::Publisher<uavcan::equipment::air_data::StaticPressure>(node) {
 		this->setPriority(uavcan::TransferPriority::Default);
 	}
 
-	void PrintInfo() override
-	{
+	void PrintInfo() override {
 		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
-			printf("\t%s -> %s:%d\n",
-			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
+			printf("\t%s -> %s:%d\n", uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
 			       uavcan::equipment::air_data::StaticPressure::getDataTypeFullName(),
 			       uavcan::equipment::air_data::StaticPressure::DefaultDataTypeID);
 		}
 	}
 
-	void BroadcastAnyUpdates() override
-	{
+	void BroadcastAnyUpdates() override {
 		// sensor_baro -> uavcan::equipment::air_data::StaticPressure
 		sensor_baro_s baro;
 
@@ -82,4 +75,4 @@ public:
 		}
 	}
 };
-} // namespace uavcannode
+}  // namespace uavcannode

@@ -13,18 +13,15 @@
 #include <stdint.h>
 
 #ifndef swap16
-#define swap16(data) \
-	((((data) >> 8) & 0x00FF) | (((data) << 8) & 0xFF00))
+#define swap16(data) ((((data) >> 8) & 0x00FF) | (((data) << 8) & 0xFF00))
 #endif
 
 #ifndef swap24
-#define swap24(data) \
-	(((data) >> 16) | ((data)&0x00FF00) | (((data) << 16) & 0xFF0000))
+#define swap24(data) (((data) >> 16) | ((data)&0x00FF00) | (((data) << 16) & 0xFF0000))
 #endif
 
 #ifndef swap32
-#define swap32(data) \
-	(((data) >> 24) | (((data)&0x00FF0000) >> 8) | (((data)&0x0000FF00) << 8) | ((data) << 24))
+#define swap32(data) (((data) >> 24) | (((data)&0x00FF0000) >> 8) | (((data)&0x0000FF00) << 8) | ((data) << 24))
 #endif
 
 #ifndef swap64
@@ -37,23 +34,19 @@
 #endif
 
 #ifndef toRad
-#define toRad(deg) \
-	((deg)*PI / 180.0)
+#define toRad(deg) ((deg)*PI / 180.0)
 #endif
 
 #ifndef toDeg
-#define toDeg(rad) \
-	((rad)*180 / PI)
+#define toDeg(rad) ((rad)*180 / PI)
 #endif
 
 #ifndef toMeter
-#define toMeter(feet) \
-	((feet)*0.3048)
+#define toMeter(feet) ((feet)*0.3048)
 #endif
 
 #ifndef toFeet
-#define toFeet(meter) \
-	((meter)*3.2808)
+#define toFeet(meter) ((meter)*3.2808)
 #endif
 
 /**

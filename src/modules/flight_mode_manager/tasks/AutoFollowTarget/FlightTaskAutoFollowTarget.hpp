@@ -42,23 +42,22 @@
 
 #pragma once
 
-#include "FlightTaskAuto.hpp"
-#include "follow_target_estimator/TargetEstimator.hpp"
-#include "Sticks.hpp"
-
-#include <parameters/param.h>
 #include <mathlib/mathlib.h>
-
-#include <uORB/Subscription.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/follow_target_status.h>
+#include <parameters/param.h>
 #include <uORB/topics/follow_target_estimator.h>
+#include <uORB/topics/follow_target_status.h>
 #include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 
 #include <lib/mathlib/math/filter/second_order_reference_model.hpp>
 #include <lib/matrix/matrix/helper_functions.hpp>
 #include <motion_planning/VelocitySmoothing.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+
+#include "FlightTaskAuto.hpp"
+#include "Sticks.hpp"
+#include "follow_target_estimator/TargetEstimator.hpp"
 
 // << Follow Target Behavior related constants >>
 
@@ -116,7 +115,8 @@ static constexpr float FOLLOW_HEIGHT_USER_ADJUST_SPEED = 1.5;
 // [m] Maximum follow height that can be set by user's RC adjustment
 static constexpr float FOLLOW_HEIGHT_MAX = 100.f;
 
-// [rad/s] Angular rate with which the follow distance will be adjusted by when commanded with full deflection via RC command
+// [rad/s] Angular rate with which the follow distance will be adjusted by when commanded with full deflection via RC
+// command
 static constexpr float FOLLOW_ANGLE_USER_ADJUST_SPEED = 1.5;
 
 // [s] Time window constant that gets multiplied to user adjustment speed, to calculate the
@@ -125,9 +125,7 @@ static constexpr float FOLLOW_ANGLE_USER_ADJUST_SPEED = 1.5;
 // Prevents setpoints diverging from the vehicle's actual position too much
 static constexpr float USER_ADJUSTMENT_ERROR_TIME_WINDOW = 0.5f;
 
-
-class FlightTaskAutoFollowTarget : public FlightTask
-{
+class FlightTaskAutoFollowTarget : public FlightTask {
 public:
 	FlightTaskAutoFollowTarget();
 	virtual ~FlightTaskAutoFollowTarget();
@@ -163,7 +161,8 @@ protected:
 	 * follow_distance will be adjusted with a speed proportional to user RC command
 	 *
 	 * @param sticks Sticks object to get RC commanded values for adjustments
-	 * @param drone_to_target_vector [m] Tracked follow distance variable reference which will be updated to the new value
+	 * @param drone_to_target_vector [m] Tracked follow distance variable reference which will be updated to the new
+	 * value
 	 */
 	void updateRcAdjustedFollowDistance(const Sticks &sticks, const Vector2f &drone_to_target_vector);
 
@@ -171,17 +170,20 @@ protected:
 	 * Update the Follow angle based on RC commands
 	 *
 	 * If the drone's orbit angle in relation to target is within the an user adjustment error time window
-	 * away from the orbit angle setpoint, follow_angle will be adjusted with a speed proportional to user RC command
+	 * away from the orbit angle setpoint, follow_angle will be adjusted with a speed proportional to user RC
+	 * command
 	 *
 	 * @param sticks Sticks object to get RC commanded values for adjustments
-	 * @param measured_angle [rad] Measured current drone's orbit angle around the target (depends on tracked target orientation for reference)
+	 * @param measured_angle [rad] Measured current drone's orbit angle around the target (depends on tracked target
+	 * orientation for reference)
 	 * @param tracked_orbit_angle_setpoint [rad] Rate constrained orbit angle setpoint value from last command
 	 */
 	void updateRcAdjustedFollowAngle(const Sticks &sticks, const float measured_orbit_angle,
 					 const float tracked_orbit_angle_setpoint);
 
 	/**
-	 * Update the Second Order Target Position + Velocity Filter to track kinematically feasible target position and velocity
+	 * Update the Second Order Target Position + Velocity Filter to track kinematically feasible target position and
+	 * velocity
 	 *
 	 * @param follow_target_estimator Received value from alpha-beta-gamma target estimator filter output
 	 */
@@ -191,13 +193,15 @@ protected:
 	 * Calculate the tracked target orientation
 	 *
 	 * Note : Filtered target velocity is generated via 2nd order filter can have overshooting behaviors
-	 * when target stops it's motion. This can generate a target velocity output that is opposite direction to where target was heading originally.
-	 * To check if the filtered velocity is staying true to target's actual motion, unfiltered velocity needs to be taken into account. Since during
-	 * overshoot, the unfiltered velocity stays close to 0 (indicating target already stopped), therefore not triggering a target orientation setting.
+	 * when target stops it's motion. This can generate a target velocity output that is opposite direction to where
+	 * target was heading originally. To check if the filtered velocity is staying true to target's actual motion,
+	 * unfiltered velocity needs to be taken into account. Since during overshoot, the unfiltered velocity stays
+	 * close to 0 (indicating target already stopped), therefore not triggering a target orientation setting.
 	 *
 	 * @param current_target_orientation [rad] Tracked target orientation
 	 * @param target_velocity [m/s] Filtered Target velocity from which we will calculate target orientation
-	 * @param target_velocity_unfiltered [m/s] Unfiltered Target velocity that aids in verifying if filtered velocity is accurate
+	 * @param target_velocity_unfiltered [m/s] Unfiltered Target velocity that aids in verifying if filtered
+	 * velocity is accurate
 	 *
 	 * @return [rad] Updated target orientation
 	 */
@@ -215,12 +219,13 @@ protected:
 	float updateOrbitAngleTrajectory(const float target_orientation, const float previous_orbit_angle_setpoint);
 
 	/**
-	 * Returns the orbit tangential velocity at the orbit angle setpoint, generated by the orbit angle trajectory generator
+	 * Returns the orbit tangential velocity at the orbit angle setpoint, generated by the orbit angle trajectory
+	 * generator
 	 *
 	 * @param orbit_angle_setpoint [rad] Orbit angle setpoint
 	 *
 	 * @return [m/s] 2D Velocity Vector of current orbit position setpoint (Local NED frame)
-	*/
+	 */
 	Vector2f getOrbitTangentialVelocity(const float orbit_angle_setpoint) const;
 
 	/**
@@ -277,35 +282,35 @@ protected:
 	SecondOrderReferenceModel<matrix::Vector3f> _target_position_velocity_filter;
 
 	// Internally tracked Follow Target characteristics, to allow RC control input adjustments
-	float _follow_distance{8.0f}; // [m]
-	float _follow_height{10.0f}; // [m]
-	float _follow_angle_rad{0.0f}; // [rad]
+	float _follow_distance{8.0f};   // [m]
+	float _follow_height{10.0f};    // [m]
+	float _follow_angle_rad{0.0f};  // [rad]
 
 	// Tracked estimate of target's course (where velocity vector is pointing). Initialized as North direction
 	float _target_course_rad{0.0f};
-	// Tracked orbit angle setpoint that gets calculated from Jerk-limited trajectory. Initialized in North direction.
+	// Tracked orbit angle setpoint that gets calculated from Jerk-limited trajectory. Initialized in North
+	// direction.
 	float _orbit_angle_setpoint_rad{0.0f};
 
 	// Angular Jerk limited orbit angle setpoint trajectory generator
 	VelocitySmoothing _orbit_angle_traj_generator;
 
-	// Variable to remember the home position (take-off point) z coordinate, where the follow height will be measured from
+	// Variable to remember the home position (take-off point) z coordinate, where the follow height will be
+	// measured from
 	float _home_position_z;
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(
-		FlightTask,
-		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
-		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
-		(ParamFloat<px4::params::FLW_TGT_HT>) _param_flw_tgt_ht,
-		(ParamFloat<px4::params::FLW_TGT_DST>) _param_flw_tgt_dst,
-		(ParamFloat<px4::params::FLW_TGT_FA>) _param_flw_tgt_fa,
-		(ParamInt<px4::params::FLW_TGT_ALT_M>) _param_flw_tgt_alt_m,
-		(ParamFloat<px4::params::FLW_TGT_MAX_VEL>) _param_flw_tgt_max_vel
-	)
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask, (ParamInt<px4::params::MAV_SYS_ID>)_param_mav_sys_id,
+					(ParamInt<px4::params::MAV_COMP_ID>)_param_mav_comp_id,
+					(ParamFloat<px4::params::FLW_TGT_HT>)_param_flw_tgt_ht,
+					(ParamFloat<px4::params::FLW_TGT_DST>)_param_flw_tgt_dst,
+					(ParamFloat<px4::params::FLW_TGT_FA>)_param_flw_tgt_fa,
+					(ParamInt<px4::params::FLW_TGT_ALT_M>)_param_flw_tgt_alt_m,
+					(ParamFloat<px4::params::FLW_TGT_MAX_VEL>)_param_flw_tgt_max_vel)
 
 	uORB::Subscription _follow_target_estimator_sub{ORB_ID(follow_target_estimator)};
 
 	uORB::Publication<follow_target_status_s> _follow_target_status_pub{ORB_ID(follow_target_status)};
-	uORB::Publication<gimbal_manager_set_attitude_s> _gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
+	uORB::Publication<gimbal_manager_set_attitude_s> _gimbal_manager_set_attitude_pub{
+		ORB_ID(gimbal_manager_set_attitude)};
 	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 };

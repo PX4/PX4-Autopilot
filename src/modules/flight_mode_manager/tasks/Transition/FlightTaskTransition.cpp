@@ -36,28 +36,24 @@
  */
 
 #include "FlightTaskTransition.hpp"
+
 #include "Sticks.hpp"
 
-FlightTaskTransition::FlightTaskTransition()
-{
+FlightTaskTransition::FlightTaskTransition() {
 	_param_handle_pitch_cruise_degrees = param_find("FW_PSP_OFF");
 
 	if (_param_handle_pitch_cruise_degrees != PARAM_INVALID) {
 		param_get(_param_handle_pitch_cruise_degrees, &_param_pitch_cruise_degrees);
 	}
-
 }
 
-bool FlightTaskTransition::updateInitialize()
-{
-
+bool FlightTaskTransition::updateInitialize() {
 	updateParameters();
 	return FlightTask::updateInitialize();
 }
 
-void FlightTaskTransition::updateParameters()
-{
-// check for parameter updates
+void FlightTaskTransition::updateParameters() {
+	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
 		// clear update
 		parameter_update_s pupdate;
@@ -70,8 +66,7 @@ void FlightTaskTransition::updateParameters()
 	}
 }
 
-bool FlightTaskTransition::activate(const trajectory_setpoint_s &last_setpoint)
-{
+bool FlightTaskTransition::activate(const trajectory_setpoint_s &last_setpoint) {
 	bool ret = FlightTask::activate(last_setpoint);
 
 	_vel_z_filter.setParameters(math::constrain(_deltatime, 0.01f, 0.1f), _vel_z_filter_time_const);
@@ -86,20 +81,17 @@ bool FlightTaskTransition::activate(const trajectory_setpoint_s &last_setpoint)
 	_velocity_setpoint(2) = _vel_z_filter.getState();
 
 	return ret;
-
-
 }
 
-bool FlightTaskTransition::update()
-{
+bool FlightTaskTransition::update() {
 	// tailsitters will override attitude and thrust setpoint
 	// tiltrotors and standard vtol will overrride roll and pitch setpoint but keep vertical thrust setpoint
 	bool ret = FlightTask::update();
 
 	_position_setpoint.setAll(NAN);
 
-	// calculate a horizontal acceleration vector which corresponds to an attitude composed of pitch up by _param_pitch_cruise_degrees
-	// and zero roll angle
+	// calculate a horizontal acceleration vector which corresponds to an attitude composed of pitch up by
+	// _param_pitch_cruise_degrees and zero roll angle
 	matrix::Vector2f tmp(-1.0f, 0.0f);
 	Sticks::rotateIntoHeadingFrameXY(tmp, _yaw, NAN);
 	_acceleration_setpoint.xy() = tmp * tanf(math::radians(_param_pitch_cruise_degrees)) * CONSTANTS_ONE_G;

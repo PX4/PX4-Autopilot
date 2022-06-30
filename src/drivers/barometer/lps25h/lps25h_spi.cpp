@@ -37,40 +37,34 @@
  * SPI interface for LPS25H
  */
 
-#include "lps25h.h"
-
 #include <drivers/device/spi.h>
 
+#include "lps25h.h"
+
 /* SPI protocol address bits */
-#define DIR_READ			(1<<7)
-#define DIR_WRITE			(0<<7)
+#define DIR_READ (1 << 7)
+#define DIR_WRITE (0 << 7)
 
 device::Device *LPS25H_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 
-class LPS25H_SPI : public device::SPI
-{
+class LPS25H_SPI : public device::SPI {
 public:
 	LPS25H_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
 	~LPS25H_SPI() override = default;
 
-	int	init() override;
-	int	read(unsigned address, void *data, unsigned count) override;
-	int	write(unsigned address, void *data, unsigned count) override;
-
+	int init() override;
+	int read(unsigned address, void *data, unsigned count) override;
+	int write(unsigned address, void *data, unsigned count) override;
 };
 
-device::Device *LPS25H_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode)
-{
+device::Device *LPS25H_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode) {
 	return new LPS25H_SPI(bus, devid, bus_frequency, spi_mode);
 }
 
-LPS25H_SPI::LPS25H_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode) :
-	SPI(DRV_BARO_DEVTYPE_LPS25H, MODULE_NAME, bus, device, spi_mode, bus_frequency)
-{
-}
+LPS25H_SPI::LPS25H_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode)
+	: SPI(DRV_BARO_DEVTYPE_LPS25H, MODULE_NAME, bus, device, spi_mode, bus_frequency) {}
 
-int LPS25H_SPI::init()
-{
+int LPS25H_SPI::init() {
 	int ret = SPI::init();
 
 	if (ret != OK) {
@@ -94,8 +88,7 @@ int LPS25H_SPI::init()
 	return OK;
 }
 
-int LPS25H_SPI::write(unsigned address, void *data, unsigned count)
-{
+int LPS25H_SPI::write(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {
@@ -108,8 +101,7 @@ int LPS25H_SPI::write(unsigned address, void *data, unsigned count)
 	return transfer(&buf[0], &buf[0], count + 1);
 }
 
-int LPS25H_SPI::read(unsigned address, void *data, unsigned count)
-{
+int LPS25H_SPI::read(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {

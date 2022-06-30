@@ -39,13 +39,11 @@
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
-
 #include "SubscriptionManager.hpp"
 
 #include "ParamManager.hpp"
 
-SubscriptionManager::~SubscriptionManager()
-{
+SubscriptionManager::~SubscriptionManager() {
 	UavcanDynamicPortSubscriber *dynsub;
 
 	while (_dynsubscribers != nullptr) {
@@ -55,8 +53,7 @@ SubscriptionManager::~SubscriptionManager()
 	}
 }
 
-void SubscriptionManager::subscribe()
-{
+void SubscriptionManager::subscribe() {
 	_heartbeat_sub.subscribe();
 
 #if CONFIG_CYPHAL_GETINFO_RESPONDER
@@ -69,10 +66,8 @@ void SubscriptionManager::subscribe()
 	updateDynamicSubscriptions();
 }
 
-void SubscriptionManager::updateDynamicSubscriptions()
-{
+void SubscriptionManager::updateDynamicSubscriptions() {
 	for (auto &sub : _uavcan_subs) {
-
 		bool found_subscriber = false;
 		UavcanDynamicPortSubscriber *dynsub = _dynsubscribers;
 
@@ -100,7 +95,7 @@ void SubscriptionManager::updateDynamicSubscriptions()
 		if (_param_manager.GetParamByName(uavcan_param, value)) {
 			uint16_t port_id = value.natural16.value.elements[0];
 
-			if (port_id <= CANARD_PORT_ID_MAX) { // PortID is set, create a subscriber
+			if (port_id <= CANARD_PORT_ID_MAX) {  // PortID is set, create a subscriber
 				dynsub = sub.create_sub(_canard_handle, _param_manager);
 
 				if (dynsub == nullptr) {
@@ -133,8 +128,7 @@ void SubscriptionManager::updateDynamicSubscriptions()
 	}
 }
 
-void SubscriptionManager::printInfo()
-{
+void SubscriptionManager::printInfo() {
 	UavcanDynamicPortSubscriber *dynsub = _dynsubscribers;
 
 	while (dynsub != nullptr) {
@@ -143,8 +137,7 @@ void SubscriptionManager::printInfo()
 	}
 }
 
-void SubscriptionManager::updateParams()
-{
+void SubscriptionManager::updateParams() {
 	UavcanDynamicPortSubscriber *dynsub = _dynsubscribers;
 
 	while (dynsub != nullptr) {

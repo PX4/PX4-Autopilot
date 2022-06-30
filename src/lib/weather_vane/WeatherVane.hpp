@@ -43,23 +43,25 @@
 #pragma once
 
 #include <px4_platform_common/module_params.h>
-#include <matrix/matrix/math.hpp>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 
-class WeatherVane : public ModuleParams
-{
+#include <matrix/matrix/math.hpp>
+#include <uORB/Subscription.hpp>
+
+class WeatherVane : public ModuleParams {
 public:
 	WeatherVane(ModuleParams *parent);
 
 	~WeatherVane() = default;
 
-	void setNavigatorForceDisabled(bool navigator_force_disabled) { _navigator_force_disabled = navigator_force_disabled; };
+	void setNavigatorForceDisabled(bool navigator_force_disabled) {
+		_navigator_force_disabled = navigator_force_disabled;
+	};
 
-	bool isActive() {return _is_active;}
+	bool isActive() { return _is_active; }
 
 	void update();
 
@@ -78,11 +80,8 @@ private:
 	bool _flag_control_position_enabled{false};
 	bool _navigator_force_disabled{false};
 
-	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::WV_EN>) _param_wv_en,
-		(ParamFloat<px4::params::WV_ROLL_MIN>) _param_wv_roll_min,
-		(ParamFloat<px4::params::WV_GAIN>) _param_wv_gain,
-		(ParamFloat<px4::params::WV_YRATE_MAX>) _param_wv_yrate_max
-	)
-
+	DEFINE_PARAMETERS((ParamBool<px4::params::WV_EN>)_param_wv_en,
+			  (ParamFloat<px4::params::WV_ROLL_MIN>)_param_wv_roll_min,
+			  (ParamFloat<px4::params::WV_GAIN>)_param_wv_gain,
+			  (ParamFloat<px4::params::WV_YRATE_MAX>)_param_wv_yrate_max)
 };

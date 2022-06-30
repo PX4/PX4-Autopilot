@@ -32,25 +32,24 @@
  ****************************************************************************/
 
 /**
-* @file tailsitter.h
-*
-* @author Roman Bapst 		<bapstroman@gmail.com>
-* @author David Vorsin     <davidvorsin@gmail.com>
-*
-*/
+ * @file tailsitter.h
+ *
+ * @author Roman Bapst 		<bapstroman@gmail.com>
+ * @author David Vorsin     <davidvorsin@gmail.com>
+ *
+ */
 
 #ifndef TAILSITTER_H
 #define TAILSITTER_H
 
-#include "vtol_type.h"
-
-#include <parameters/param.h>
 #include <drivers/drv_hrt.h>
+#include <parameters/param.h>
+
 #include <matrix/matrix/math.hpp>
 
-class Tailsitter : public VtolType
-{
+#include "vtol_type.h"
 
+class Tailsitter : public VtolType {
 public:
 	Tailsitter(VtolAttitudeControl *_att_controller);
 	~Tailsitter() override = default;
@@ -63,15 +62,15 @@ public:
 
 private:
 	enum class vtol_mode {
-		MC_MODE = 0,			/**< vtol is in multicopter mode */
-		TRANSITION_FRONT_P1,	/**< vtol is in front transition part 1 mode */
-		TRANSITION_BACK,		/**< vtol is in back transition mode */
-		FW_MODE					/**< vtol is in fixed wing mode */
+		MC_MODE = 0,         /**< vtol is in multicopter mode */
+		TRANSITION_FRONT_P1, /**< vtol is in front transition part 1 mode */
+		TRANSITION_BACK,     /**< vtol is in back transition mode */
+		FW_MODE              /**< vtol is in fixed wing mode */
 	};
 
 	struct {
-		vtol_mode flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
-		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
+		vtol_mode flight_mode;        /**< vtol flight mode, defined by enum vtol_mode */
+		hrt_abstime transition_start; /**< absoulte time at which front transition started */
 	} _vtol_schedule;
 
 	matrix::Quatf _q_trans_start;
@@ -80,10 +79,6 @@ private:
 
 	void parameters_update() override;
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
-					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off
-				       )
-
-
+	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType, (ParamFloat<px4::params::FW_PSP_OFF>)_param_fw_psp_off)
 };
 #endif

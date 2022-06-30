@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include "BMM150.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void BMM150::print_usage()
-{
+#include "BMM150.hpp"
+
+void BMM150::print_usage() {
 	PRINT_MODULE_USAGE_NAME("bmm150", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -47,8 +46,7 @@ void BMM150::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int bmm150_main(int argc, char *argv[])
-{
+extern "C" int bmm150_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = BMM150;
 	BusCLIArguments cli{true, false};
@@ -57,9 +55,9 @@ extern "C" int bmm150_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

@@ -35,12 +35,11 @@
 
 #include <px4_platform_common/sem.hpp>
 
-TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count):
-	CDev(TAP_ESC_DEVICE_PATH),
-	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(device)),
-	_mixing_output{"TAP_ESC", channels_count, *this, MixingOutput::SchedulingPolicy::Auto, true},
-	_channels_count(channels_count)
-{
+TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count)
+	: CDev(TAP_ESC_DEVICE_PATH),
+	  OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(device)),
+	  _mixing_output{"TAP_ESC", channels_count, *this, MixingOutput::SchedulingPolicy::Auto, true},
+	  _channels_count(channels_count) {
 	strncpy(_device, device, sizeof(_device) - 1);
 	_device[sizeof(_device) - 1] = '\0';  // Fix in case of overflow
 
@@ -50,15 +49,13 @@ TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count):
 	_mixing_output.setAllFailsafeValues(RPMSTOPPED);
 }
 
-TAP_ESC::~TAP_ESC()
-{
+TAP_ESC::~TAP_ESC() {
 	tap_esc_common::deinitialise_uart(_uart_fd);
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
 }
 
-int TAP_ESC::init()
-{
+int TAP_ESC::init() {
 	int ret = tap_esc_common::initialise_uart(_device, _uart_fd);
 
 	if (ret != 0) {
@@ -84,7 +81,8 @@ int TAP_ESC::init()
 	/* Asign the id's to the ESCs to match the mux */
 	for (uint8_t phy_chan_index = 0; phy_chan_index < _channels_count; phy_chan_index++) {
 		config.channelMapTable[phy_chan_index] = _device_mux_map[phy_chan_index] & ESC_MASK_MAP_CHANNEL;
-		config.channelMapTable[phy_chan_index] |= (_device_dir_map[phy_chan_index] << 4) & ESC_MASK_MAP_RUNNING_DIRECTION;
+		config.channelMapTable[phy_chan_index] |=
+			(_device_dir_map[phy_chan_index] << 4) & ESC_MASK_MAP_RUNNING_DIRECTION;
 	}
 
 	config.maxChannelValue = RPMMAX;
@@ -101,11 +99,11 @@ int TAP_ESC::init()
 
 	/* Verify All ESC got the config */
 	for (uint8_t cid = 0; cid < _channels_count; cid++) {
-
 		/* Send the InfoRequest querying  CONFIG_BASIC */
 		EscPacket packet_info = {PACKET_HEAD, sizeof(InfoRequest), ESCBUS_MSG_ID_REQUEST_INFO};
 		InfoRequest &info_req = packet_info.d.reqInfo;
-		info_req.channelID = _device_mux_map[cid];;
+		info_req.channelID = _device_mux_map[cid];
+		;
 		info_req.requestInfoType = REQUEST_INFO_BASIC;
 
 		ret = tap_esc_common::send_packet(_uart_fd, packet_info, cid);
@@ -122,8 +120,8 @@ int TAP_ESC::init()
 			tap_esc_common::read_data_from_uart(_uart_fd, &_uartbuf);
 
 			if (tap_esc_common::parse_tap_esc_feedback(&_uartbuf, &_packet) == 0) {
-				valid = (_packet.msg_id == ESCBUS_MSG_ID_CONFIG_INFO_BASIC
-					 && _packet.d.rspConfigInfoBasic.channelID == _device_mux_map[cid]);
+				valid = (_packet.msg_id == ESCBUS_MSG_ID_CONFIG_INFO_BASIC &&
+					 _packet.d.rspConfigInfoBasic.channelID == _device_mux_map[cid]);
 				break;
 
 			} else {
@@ -158,9 +156,8 @@ int TAP_ESC::init()
 	return CDev::init();
 }
 
-void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
-{
-	uint16_t rpm[TAP_ESC_MAX_MOTOR_NUM] {};
+void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt) {
+	uint16_t rpm[TAP_ESC_MAX_MOTOR_NUM]{};
 	_led_controller.update(_led_control_data);
 
 	for (uint8_t i = 0; i < motor_cnt; i++) {
@@ -176,37 +173,37 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 		// apply the led color
 		if (i < BOARD_MAX_LEDS) {
 			switch (_led_control_data.leds[i].color) {
-			case led_control_s::COLOR_RED:
-				rpm[i] |= RUN_RED_LED_ON_MASK;
-				break;
+				case led_control_s::COLOR_RED:
+					rpm[i] |= RUN_RED_LED_ON_MASK;
+					break;
 
-			case led_control_s::COLOR_GREEN:
-				rpm[i] |= RUN_GREEN_LED_ON_MASK;
-				break;
+				case led_control_s::COLOR_GREEN:
+					rpm[i] |= RUN_GREEN_LED_ON_MASK;
+					break;
 
-			case led_control_s::COLOR_BLUE:
-				rpm[i] |= RUN_BLUE_LED_ON_MASK;
-				break;
+				case led_control_s::COLOR_BLUE:
+					rpm[i] |= RUN_BLUE_LED_ON_MASK;
+					break;
 
-			case led_control_s::COLOR_AMBER: //make it the same as yellow
-			case led_control_s::COLOR_YELLOW:
-				rpm[i] |= RUN_RED_LED_ON_MASK | RUN_GREEN_LED_ON_MASK;
-				break;
+				case led_control_s::COLOR_AMBER:  // make it the same as yellow
+				case led_control_s::COLOR_YELLOW:
+					rpm[i] |= RUN_RED_LED_ON_MASK | RUN_GREEN_LED_ON_MASK;
+					break;
 
-			case led_control_s::COLOR_PURPLE:
-				rpm[i] |= RUN_RED_LED_ON_MASK | RUN_BLUE_LED_ON_MASK;
-				break;
+				case led_control_s::COLOR_PURPLE:
+					rpm[i] |= RUN_RED_LED_ON_MASK | RUN_BLUE_LED_ON_MASK;
+					break;
 
-			case led_control_s::COLOR_CYAN:
-				rpm[i] |= RUN_GREEN_LED_ON_MASK | RUN_BLUE_LED_ON_MASK;
-				break;
+				case led_control_s::COLOR_CYAN:
+					rpm[i] |= RUN_GREEN_LED_ON_MASK | RUN_BLUE_LED_ON_MASK;
+					break;
 
-			case led_control_s::COLOR_WHITE:
-				rpm[i] |= RUN_RED_LED_ON_MASK | RUN_GREEN_LED_ON_MASK | RUN_BLUE_LED_ON_MASK;
-				break;
+				case led_control_s::COLOR_WHITE:
+					rpm[i] |= RUN_RED_LED_ON_MASK | RUN_GREEN_LED_ON_MASK | RUN_BLUE_LED_ON_MASK;
+					break;
 
-			default: // led_control_s::COLOR_OFF
-				break;
+				default:  // led_control_s::COLOR_OFF
+					break;
 			}
 		}
 	}
@@ -231,8 +228,7 @@ void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
 	}
 }
 
-void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
-{
+void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet) {
 	PX4_DEBUG("send_tune_packet: Frequency: %d Hz Duration %d ms, strength: %d", tune_packet.frequency,
 		  tune_packet.duration_ms, tune_packet.strength);
 
@@ -242,37 +238,36 @@ void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 }
 
 bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-			    unsigned num_control_groups_updated)
-{
+			    unsigned num_control_groups_updated) {
 	if (_initialized) {
-		uint16_t motor_out[TAP_ESC_MAX_MOTOR_NUM] {};
+		uint16_t motor_out[TAP_ESC_MAX_MOTOR_NUM]{};
 
 		// We need to remap from the system default to what PX4's normal scheme is
 		switch (num_outputs) {
-		case 4:
-			motor_out[0] = outputs[2];
-			motor_out[1] = outputs[1];
-			motor_out[2] = outputs[3];
-			motor_out[3] = outputs[0];
-			break;
+			case 4:
+				motor_out[0] = outputs[2];
+				motor_out[1] = outputs[1];
+				motor_out[2] = outputs[3];
+				motor_out[3] = outputs[0];
+				break;
 
-		case 6:
-			motor_out[0] = outputs[3];
-			motor_out[1] = outputs[0];
-			motor_out[2] = outputs[4];
-			motor_out[3] = outputs[2];
-			motor_out[4] = outputs[1];
-			motor_out[5] = outputs[5];
-			break;
+			case 6:
+				motor_out[0] = outputs[3];
+				motor_out[1] = outputs[0];
+				motor_out[2] = outputs[4];
+				motor_out[3] = outputs[2];
+				motor_out[4] = outputs[1];
+				motor_out[5] = outputs[5];
+				break;
 
-		default:
+			default:
 
-			// Use the system defaults
-			for (uint8_t i = 0; i < num_outputs; ++i) {
-				motor_out[i] = outputs[i];
-			}
+				// Use the system defaults
+				for (uint8_t i = 0; i < num_outputs; ++i) {
+					motor_out[i] = outputs[i];
+				}
 
-			break;
+				break;
 		}
 
 		// Set remaining motors to RPMSTOPPED to be on the safe side
@@ -290,30 +285,36 @@ bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], u
 
 				if (feed_back_data.channelID < esc_status_s::CONNECTED_ESC_MAX) {
 					_esc_feedback.esc[feed_back_data.channelID].timestamp = hrt_absolute_time();
-					_esc_feedback.esc[feed_back_data.channelID].actuator_function = (uint8_t)_mixing_output.outputFunction(
-								feed_back_data.channelID);
+					_esc_feedback.esc[feed_back_data.channelID].actuator_function =
+						(uint8_t)_mixing_output.outputFunction(feed_back_data.channelID);
 					_esc_feedback.esc[feed_back_data.channelID].esc_errorcount = 0;
 					_esc_feedback.esc[feed_back_data.channelID].esc_rpm = feed_back_data.speed;
 #if defined(ESC_HAVE_VOLTAGE_SENSOR)
-					_esc_feedback.esc[feed_back_data.channelID].esc_voltage = feed_back_data.voltage;
-#endif // ESC_HAVE_VOLTAGE_SENSOR
+					_esc_feedback.esc[feed_back_data.channelID].esc_voltage =
+						feed_back_data.voltage;
+#endif  // ESC_HAVE_VOLTAGE_SENSOR
 #if defined(ESC_HAVE_CURRENT_SENSOR)
-					_esc_feedback.esc[feed_back_data.channelID].esc_current = feed_back_data.current;
-#endif // ESC_HAVE_CURRENT_SENSOR
+					_esc_feedback.esc[feed_back_data.channelID].esc_current =
+						feed_back_data.current;
+#endif  // ESC_HAVE_CURRENT_SENSOR
 #if defined(ESC_HAVE_TEMPERATURE_SENSOR)
-					_esc_feedback.esc[feed_back_data.channelID].esc_temperature = static_cast<float>(feed_back_data.temperature);
-#endif // ESC_HAVE_TEMPERATURE_SENSOR
-					_esc_feedback.esc[feed_back_data.channelID].esc_state = feed_back_data.ESCStatus;
+					_esc_feedback.esc[feed_back_data.channelID].esc_temperature =
+						static_cast<float>(feed_back_data.temperature);
+#endif  // ESC_HAVE_TEMPERATURE_SENSOR
+					_esc_feedback.esc[feed_back_data.channelID].esc_state =
+						feed_back_data.ESCStatus;
 					_esc_feedback.esc[feed_back_data.channelID].failures = 0;
-					//_esc_feedback.esc[feed_back_data.channelID].esc_setpoint_raw = motor_out[feed_back_data.channelID];
-					//_esc_feedback.esc[feed_back_data.channelID].esc_setpoint = (float)motor_out[feed_back_data.channelID] * 15.13f - 16171.4f;
+					//_esc_feedback.esc[feed_back_data.channelID].esc_setpoint_raw =
+					//motor_out[feed_back_data.channelID];
+					//_esc_feedback.esc[feed_back_data.channelID].esc_setpoint =
+					//(float)motor_out[feed_back_data.channelID] * 15.13f - 16171.4f;
 
 					_esc_feedback.counter++;
 					_esc_feedback.esc_count = num_outputs;
 					_esc_feedback.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
 
 					_esc_feedback.esc_online_flags |= 1 << feed_back_data.channelID;
-					_esc_feedback.esc_armed_flags  |= 1 << feed_back_data.channelID;
+					_esc_feedback.esc_armed_flags |= 1 << feed_back_data.channelID;
 
 					_esc_feedback.timestamp = hrt_absolute_time();
 					_esc_feedback_pub.publish(_esc_feedback);
@@ -327,8 +328,7 @@ bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], u
 	return false;
 }
 
-void TAP_ESC::Run()
-{
+void TAP_ESC::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
@@ -371,7 +371,8 @@ void TAP_ESC::Run()
 			if (_tune_control_sub.copy(&tune)) {
 				if (tune.timestamp > 0) {
 					Tunes::ControlResult result = _tunes.set_control(tune);
-					PX4_DEBUG("new tune id: %d, result: %d, duration: %lu", tune.tune_id, (int)result, tune.duration);
+					PX4_DEBUG("new tune id: %d, result: %d, duration: %lu", tune.tune_id,
+						  (int)result, tune.duration);
 				}
 			}
 		}
@@ -387,7 +388,8 @@ void TAP_ESC::Run()
 
 			} else {
 				uint8_t strength = 0;
-				Tunes::Status parse_ret_val = _tunes.get_next_note(_frequency, _duration, _silence_length, strength);
+				Tunes::Status parse_ret_val =
+					_tunes.get_next_note(_frequency, _duration, _silence_length, strength);
 
 				if (parse_ret_val == Tunes::Status::Continue) {
 					// Continue playing.
@@ -395,7 +397,8 @@ void TAP_ESC::Run()
 						// Start playing the note.
 						EscbusTunePacket esc_tune_packet{};
 						esc_tune_packet.frequency = _frequency;
-						esc_tune_packet.duration_ms = (uint16_t)(_duration / 1000); // convert to ms
+						esc_tune_packet.duration_ms =
+							(uint16_t)(_duration / 1000);  // convert to ms
 						esc_tune_packet.strength = strength;
 						send_tune_packet(esc_tune_packet);
 					}
@@ -413,35 +416,32 @@ void TAP_ESC::Run()
 	perf_end(_cycle_perf);
 }
 
-int TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
+int TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg) {
 	SmartLock lock_guard(_lock);
 
 	int ret = OK;
 
 	switch (cmd) {
-	case MIXERIOCRESET:
-		_mixing_output.resetMixer();
-		break;
+		case MIXERIOCRESET:
+			_mixing_output.resetMixer();
+			break;
 
-	case MIXERIOCLOADBUF: {
+		case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
 			ret = _mixing_output.loadMixer(buf, buflen);
 			break;
 		}
 
-
-	default:
-		ret = -ENOTTY;
-		break;
+		default:
+			ret = -ENOTTY;
+			break;
 	}
 
 	return ret;
 }
 
-int TAP_ESC::task_spawn(int argc, char *argv[])
-{
+int TAP_ESC::task_spawn(int argc, char *argv[]) {
 	/* Parse arguments */
 	const char *device = nullptr;
 	uint8_t channels_count = 0;
@@ -457,13 +457,13 @@ int TAP_ESC::task_spawn(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "d:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'd':
-			device = myoptarg;
-			break;
+			case 'd':
+				device = myoptarg;
+				break;
 
-		case 'n':
-			channels_count = atoi(myoptarg);
-			break;
+			case 'n':
+				channels_count = atoi(myoptarg);
+				break;
 		}
 	}
 
@@ -491,19 +491,14 @@ int TAP_ESC::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-int TAP_ESC::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int TAP_ESC::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int TAP_ESC::print_status()
-{
+int TAP_ESC::print_status() {
 	_mixing_output.printStatus();
 	return 0;
 }
 
-int TAP_ESC::print_usage(const char *reason)
-{
+int TAP_ESC::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -532,7 +527,4 @@ tap_esc start -d /dev/ttyS2 -n <1-8>
 	return PX4_OK;
 }
 
-extern "C" __EXPORT int tap_esc_main(int argc, char *argv[])
-{
-	return TAP_ESC::main(argc, argv);
-}
+extern "C" __EXPORT int tap_esc_main(int argc, char *argv[]) { return TAP_ESC::main(argc, argv); }

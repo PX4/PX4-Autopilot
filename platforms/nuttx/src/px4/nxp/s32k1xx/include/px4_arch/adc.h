@@ -34,6 +34,6 @@
 
 #include <board_config.h>
 
-#define SYSTEM_ADC_BASE 0 // not used on s32k1xx
+#define SYSTEM_ADC_BASE 0  // not used on s32k1xx
 
 #include <px4_platform/adc.h>

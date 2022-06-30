@@ -39,7 +39,7 @@
  * @group Sensors
  * @boolean
  * @reboot_required true
-*/
+ */
 PARAM_DEFINE_INT32(SENS_EN_INA228, 0);
 
 /**
@@ -50,7 +50,7 @@ PARAM_DEFINE_INT32(SENS_EN_INA228, 0);
  * @max 65535
  * @decimal 1
  * @increment 1
-*/
+ */
 PARAM_DEFINE_INT32(INA228_CONFIG, 63779);
 
 /**

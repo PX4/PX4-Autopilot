@@ -43,27 +43,24 @@
 
 #include "heater.h"
 
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/log.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_io_heater.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
 
 #if defined(BOARD_USES_PX4IO_VERSION) and defined(PX4IO_HEATER_ENABLED)
 // Heater on some boards is on IO MCU
 // Use ioctl calls to IO driver to turn heater on/off
-#  define HEATER_PX4IO
+#define HEATER_PX4IO
 #else
 // Use direct calls to turn GPIO pin on/off
-#  ifndef GPIO_HEATER_OUTPUT
-#  error "To use the heater driver, the board_config.h must define and initialize GPIO_HEATER_OUTPUT"
-#  endif
-#  define HEATER_GPIO
+#ifndef GPIO_HEATER_OUTPUT
+#error "To use the heater driver, the board_config.h must define and initialize GPIO_HEATER_OUTPUT"
+#endif
+#define HEATER_GPIO
 #endif
 
-Heater::Heater() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
-{
+Heater::Heater() : ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default) {
 #ifdef HEATER_PX4IO
 	_io_fd = px4_open(IO_HEATER_DEVICE_PATH, O_RDWR);
 
@@ -77,13 +74,9 @@ Heater::Heater() :
 	_heater_status_pub.advertise();
 }
 
-Heater::~Heater()
-{
-	disable_heater();
-}
+Heater::~Heater() { disable_heater(); }
 
-int Heater::custom_command(int argc, char *argv[])
-{
+int Heater::custom_command(int argc, char *argv[]) {
 	// Check if the driver is running.
 	if (!is_running()) {
 		PX4_INFO("not running");
@@ -93,8 +86,7 @@ int Heater::custom_command(int argc, char *argv[])
 	return print_usage("Unrecognized command.");
 }
 
-void Heater::disable_heater()
-{
+void Heater::disable_heater() {
 	// Reset heater to off state.
 #ifdef HEATER_PX4IO
 	if (_io_fd >= 0) {
@@ -108,8 +100,7 @@ void Heater::disable_heater()
 #endif
 }
 
-void Heater::initialize_heater_io()
-{
+void Heater::initialize_heater_io() {
 	// Initialize heater to off state.
 #ifdef HEATER_PX4IO
 	if (_io_fd < 0) {
@@ -127,8 +118,7 @@ void Heater::initialize_heater_io()
 #endif
 }
 
-void Heater::heater_off()
-{
+void Heater::heater_off() {
 #ifdef HEATER_PX4IO
 
 	if (_io_fd >= 0) {
@@ -142,8 +132,7 @@ void Heater::heater_off()
 #endif
 }
 
-void Heater::heater_on()
-{
+void Heater::heater_on() {
 #ifdef HEATER_PX4IO
 
 	if (_io_fd >= 0) {
@@ -157,16 +146,14 @@ void Heater::heater_on()
 #endif
 }
 
-bool Heater::initialize_topics()
-{
+bool Heater::initialize_topics() {
 	for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		uORB::SubscriptionData<sensor_accel_s> sensor_accel_sub{ORB_ID(sensor_accel), i};
 
-		if (sensor_accel_sub.get().timestamp != 0 &&
-		    sensor_accel_sub.get().device_id != 0 &&
+		if (sensor_accel_sub.get().timestamp != 0 && sensor_accel_sub.get().device_id != 0 &&
 		    PX4_ISFINITE(sensor_accel_sub.get().temperature)) {
-
-			// If the correct ID is found, exit the for-loop with _sensor_accel_sub pointing to the correct instance.
+			// If the correct ID is found, exit the for-loop with _sensor_accel_sub pointing to the correct
+			// instance.
 			if (sensor_accel_sub.get().device_id == (uint32_t)_param_sens_temp_id.get()) {
 				_sensor_accel_sub.ChangeInstance(i);
 				_sensor_device_id = sensor_accel_sub.get().device_id;
@@ -179,8 +166,7 @@ bool Heater::initialize_topics()
 	return false;
 }
 
-void Heater::Run()
-{
+void Heater::Run() {
 	if (should_exit()) {
 #if defined(HEATER_PX4IO)
 
@@ -205,7 +191,7 @@ void Heater::Run()
 	}
 
 	sensor_accel_s sensor_accel;
-	float temperature_delta {0.f};
+	float temperature_delta{0.f};
 
 	if (_heater_on) {
 		// Turn the heater off.
@@ -214,7 +200,6 @@ void Heater::Run()
 		ScheduleDelayed(_controller_period_usec - _controller_time_on_usec);
 
 	} else if (_sensor_accel_sub.update(&sensor_accel)) {
-
 		// Update the current IMU sensor temperature if valid.
 		if (PX4_ISFINITE(sensor_accel.temperature)) {
 			temperature_delta = _param_sens_imu_temp.get() - sensor_accel.temperature;
@@ -226,8 +211,9 @@ void Heater::Run()
 
 		_integrator_value = math::constrain(_integrator_value, -0.25f, 0.25f);
 
-		_controller_time_on_usec = static_cast<int>((_param_sens_imu_temp_ff.get() + _proportional_value +
-					   _integrator_value) * static_cast<float>(_controller_period_usec));
+		_controller_time_on_usec =
+			static_cast<int>((_param_sens_imu_temp_ff.get() + _proportional_value + _integrator_value) *
+					 static_cast<float>(_controller_period_usec));
 
 		_controller_time_on_usec = math::constrain(_controller_time_on_usec, 0, _controller_period_usec);
 
@@ -235,7 +221,6 @@ void Heater::Run()
 			_temperature_target_met = true;
 
 		} else {
-
 			_temperature_target_met = false;
 		}
 
@@ -247,19 +232,18 @@ void Heater::Run()
 	publish_status();
 }
 
-void Heater::publish_status()
-{
+void Heater::publish_status() {
 	heater_status_s status{};
-	status.device_id               = _sensor_device_id;
-	status.heater_on               = _heater_on;
-	status.temperature_sensor      = _temperature_last;
-	status.temperature_target      = _param_sens_imu_temp.get();
-	status.temperature_target_met  = _temperature_target_met;
-	status.controller_period_usec  = _controller_period_usec;
+	status.device_id = _sensor_device_id;
+	status.heater_on = _heater_on;
+	status.temperature_sensor = _temperature_last;
+	status.temperature_target = _param_sens_imu_temp.get();
+	status.temperature_target_met = _temperature_target_met;
+	status.controller_period_usec = _controller_period_usec;
 	status.controller_time_on_usec = _controller_time_on_usec;
-	status.proportional_value      = _proportional_value;
-	status.integrator_value        = _integrator_value;
-	status.feed_forward_value      = _param_sens_imu_temp_ff.get();
+	status.proportional_value = _proportional_value;
+	status.integrator_value = _integrator_value;
+	status.feed_forward_value = _param_sens_imu_temp_ff.get();
 
 #ifdef HEATER_PX4IO
 	status.mode = heater_status_s::MODE_PX4IO;
@@ -272,8 +256,7 @@ void Heater::publish_status()
 	_heater_status_pub.publish(status);
 }
 
-int Heater::start()
-{
+int Heater::start() {
 	// Exit the driver if the sensor ID does not match the desired sensor.
 	if (_param_sens_temp_id.get() == 0) {
 		PX4_ERR("Valid SENS_TEMP_ID required");
@@ -286,8 +269,7 @@ int Heater::start()
 	return PX4_OK;
 }
 
-int Heater::task_spawn(int argc, char *argv[])
-{
+int Heater::task_spawn(int argc, char *argv[]) {
 	Heater *heater = new Heater();
 
 	if (!heater) {
@@ -302,8 +284,7 @@ int Heater::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-void Heater::update_params(const bool force)
-{
+void Heater::update_params(const bool force) {
 	if (_parameter_update_sub.updated() || force) {
 		// clear update
 		parameter_update_s param_update;
@@ -314,8 +295,7 @@ void Heater::update_params(const bool force)
 	}
 }
 
-int Heater::print_usage(const char *reason)
-{
+int Heater::print_usage(const char *reason) {
 	if (reason) {
 		printf("%s\n\n", reason);
 	}
@@ -335,7 +315,4 @@ This task can be started at boot from the startup scripts by setting SENS_EN_THE
 	return 0;
 }
 
-extern "C" __EXPORT int heater_main(int argc, char *argv[])
-{
-	return Heater::main(argc, argv);
-}
+extern "C" __EXPORT int heater_main(int argc, char *argv[]) { return Heater::main(argc, argv); }

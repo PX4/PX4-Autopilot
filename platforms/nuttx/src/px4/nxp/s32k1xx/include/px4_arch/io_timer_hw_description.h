@@ -33,12 +33,12 @@
 
 #pragma once
 
-
-#include <px4_arch/io_timer.h>
 #include <px4_arch/hw_description.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/io_timer_init.h>
 #include <px4_platform_common/constexpr_util.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform/io_timer_init.h>
+
 #include "hardware/s32k1xx_ftm.h"
 #include "hardware/s32k1xx_pcc.h"
 
@@ -46,105 +46,112 @@
  * It's also hard to check if it is correct. *Should* work for S32K146, not confirmed for other S32K1XX MCUs. */
 
 static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t io_timers_conf[MAX_IO_TIMERS],
-		Timer::TimerChannel timer, GPIO::GPIOPin pin)
-{
+							       Timer::TimerChannel timer, GPIO::GPIOPin pin) {
 	timer_io_channels_t ret{};
 
 	uint32_t gpio_af = 0;
 
 	switch (pin.port) {
-	case GPIO::PortA:
-		if (pin.pin == GPIO::Pin0 || pin.pin == GPIO::Pin1 || pin.pin == GPIO::Pin2 || pin.pin == GPIO::Pin3 ||
-		    pin.pin == GPIO::Pin10 || pin.pin == GPIO::Pin11 || pin.pin == GPIO::Pin12 || pin.pin == GPIO::Pin13 ||
-		    pin.pin == GPIO::Pin15 || pin.pin == GPIO::Pin16 || pin.pin == GPIO::Pin17 || pin.pin == GPIO::Pin25 ||
-		    pin.pin == GPIO::Pin26 || pin.pin == GPIO::Pin27 || pin.pin == GPIO::Pin28 || pin.pin == GPIO::Pin29 ||
-		    pin.pin == GPIO::Pin30 || pin.pin == GPIO::Pin31) {
-			gpio_af = PIN_ALT2;
-
-		} else if (pin.pin == GPIO::Pin7) {
-			gpio_af = PIN_ALT3;
-
-		} else if (pin.pin == GPIO::Pin6) {
-			gpio_af = PIN_ALT4;
-		}
-
-		break;
-
-	case GPIO::PortB:
-		if (pin.pin == GPIO::Pin2 || pin.pin == GPIO::Pin3 || pin.pin == GPIO::Pin4 || pin.pin == GPIO::Pin5 ||
-		    pin.pin == GPIO::Pin8 || pin.pin == GPIO::Pin9 || pin.pin == GPIO::Pin10 || pin.pin == GPIO::Pin11 ||
-		    pin.pin == GPIO::Pin12 || pin.pin == GPIO::Pin13 || pin.pin == GPIO::Pin14 || pin.pin == GPIO::Pin15 ||
-		    pin.pin == GPIO::Pin16 || pin.pin == GPIO::Pin17 || pin.pin == GPIO::Pin18) {
-			gpio_af = PIN_ALT2;
-
-		} else if (pin.pin == GPIO::Pin0 || pin.pin == GPIO::Pin1) {
-			gpio_af = PIN_ALT6;
-		}
-
-		break;
-
-	case GPIO::PortC:
-		if (pin.pin == GPIO::Pin0 || pin.pin == GPIO::Pin1) {
-			if (timer.timer == 0) {
+		case GPIO::PortA:
+			if (pin.pin == GPIO::Pin0 || pin.pin == GPIO::Pin1 || pin.pin == GPIO::Pin2 ||
+			    pin.pin == GPIO::Pin3 || pin.pin == GPIO::Pin10 || pin.pin == GPIO::Pin11 ||
+			    pin.pin == GPIO::Pin12 || pin.pin == GPIO::Pin13 || pin.pin == GPIO::Pin15 ||
+			    pin.pin == GPIO::Pin16 || pin.pin == GPIO::Pin17 || pin.pin == GPIO::Pin25 ||
+			    pin.pin == GPIO::Pin26 || pin.pin == GPIO::Pin27 || pin.pin == GPIO::Pin28 ||
+			    pin.pin == GPIO::Pin29 || pin.pin == GPIO::Pin30 || pin.pin == GPIO::Pin31) {
 				gpio_af = PIN_ALT2;
 
-			} else if (timer.timer == 1) {
-				gpio_af = PIN_ALT6;
-			}
-
-		} else if (pin.pin == GPIO::Pin11 || pin.pin == GPIO::Pin12 || pin.pin == GPIO::Pin13) {
-			if (timer.timer == 3) {
-				gpio_af = PIN_ALT2;
-
-			} else if (timer.timer == 2 || timer.timer == 4) {
+			} else if (pin.pin == GPIO::Pin7) {
 				gpio_af = PIN_ALT3;
-			}
 
-		} else if (pin.pin == GPIO::Pin2 || pin.pin == GPIO::Pin3 || pin.pin == GPIO::Pin4 || pin.pin == GPIO::Pin5 ||
-			   pin.pin == GPIO::Pin10 || pin.pin == GPIO::Pin14 || pin.pin == GPIO::Pin15 || pin.pin == GPIO::Pin27 ||
-			   pin.pin == GPIO::Pin28 || pin.pin == GPIO::Pin29 || pin.pin == GPIO::Pin30 || pin.pin == GPIO::Pin31) {
-			gpio_af = PIN_ALT2;
-
-		} else if (pin.pin == GPIO::Pin6 || pin.pin == GPIO::Pin7 || pin.pin == GPIO::Pin8 || pin.pin == GPIO::Pin9) {
-			gpio_af = PIN_ALT4;
-		}
-
-		break;
-
-	case GPIO::PortD:
-		if (pin.pin == GPIO::Pin0 || pin.pin == GPIO::Pin1) {
-			if (timer.timer == 0) {
-				gpio_af = PIN_ALT2;
-
-			} else if (timer.timer == 2) {
+			} else if (pin.pin == GPIO::Pin6) {
 				gpio_af = PIN_ALT4;
 			}
 
-		} else if (pin.pin == GPIO::Pin2 || pin.pin == GPIO::Pin3 || pin.pin == GPIO::Pin5 || pin.pin == GPIO::Pin10 ||
-			   pin.pin == GPIO::Pin11 || pin.pin == GPIO::Pin12 || pin.pin == GPIO::Pin13 || pin.pin == GPIO::Pin14 ||
-			   pin.pin == GPIO::Pin15 || pin.pin == GPIO::Pin16 || pin.pin == GPIO::Pin18) {
-			gpio_af = PIN_ALT2;
+			break;
 
-		} else if (pin.pin == GPIO::Pin8 || pin.pin == GPIO::Pin9) {
-			gpio_af = PIN_ALT6;
-		}
+		case GPIO::PortB:
+			if (pin.pin == GPIO::Pin2 || pin.pin == GPIO::Pin3 || pin.pin == GPIO::Pin4 ||
+			    pin.pin == GPIO::Pin5 || pin.pin == GPIO::Pin8 || pin.pin == GPIO::Pin9 ||
+			    pin.pin == GPIO::Pin10 || pin.pin == GPIO::Pin11 || pin.pin == GPIO::Pin12 ||
+			    pin.pin == GPIO::Pin13 || pin.pin == GPIO::Pin14 || pin.pin == GPIO::Pin15 ||
+			    pin.pin == GPIO::Pin16 || pin.pin == GPIO::Pin17 || pin.pin == GPIO::Pin18) {
+				gpio_af = PIN_ALT2;
 
-		break;
+			} else if (pin.pin == GPIO::Pin0 || pin.pin == GPIO::Pin1) {
+				gpio_af = PIN_ALT6;
+			}
 
-	case GPIO::PortE:
-		if (pin.pin == GPIO::Pin7 || pin.pin == GPIO::Pin8 || pin.pin == GPIO::Pin9 || pin.pin == GPIO::Pin13 ||
-		    pin.pin == GPIO::Pin20 || pin.pin == GPIO::Pin21 || pin.pin == GPIO::Pin22 || pin.pin == GPIO::Pin23 ||
-		    pin.pin == GPIO::Pin24 || pin.pin == GPIO::Pin25) {
-			gpio_af = PIN_ALT2;
+			break;
 
-		} else if (pin.pin == GPIO::Pin2 || pin.pin == GPIO::Pin4 || pin.pin == GPIO::Pin5 || pin.pin == GPIO::Pin6 ||
-			   pin.pin == GPIO::Pin10 || pin.pin == GPIO::Pin11 || pin.pin == GPIO::Pin15 || pin.pin == GPIO::Pin16) {
-			gpio_af = PIN_ALT4;
-		}
+		case GPIO::PortC:
+			if (pin.pin == GPIO::Pin0 || pin.pin == GPIO::Pin1) {
+				if (timer.timer == 0) {
+					gpio_af = PIN_ALT2;
 
-		break;
+				} else if (timer.timer == 1) {
+					gpio_af = PIN_ALT6;
+				}
 
-	default: break;
+			} else if (pin.pin == GPIO::Pin11 || pin.pin == GPIO::Pin12 || pin.pin == GPIO::Pin13) {
+				if (timer.timer == 3) {
+					gpio_af = PIN_ALT2;
+
+				} else if (timer.timer == 2 || timer.timer == 4) {
+					gpio_af = PIN_ALT3;
+				}
+
+			} else if (pin.pin == GPIO::Pin2 || pin.pin == GPIO::Pin3 || pin.pin == GPIO::Pin4 ||
+				   pin.pin == GPIO::Pin5 || pin.pin == GPIO::Pin10 || pin.pin == GPIO::Pin14 ||
+				   pin.pin == GPIO::Pin15 || pin.pin == GPIO::Pin27 || pin.pin == GPIO::Pin28 ||
+				   pin.pin == GPIO::Pin29 || pin.pin == GPIO::Pin30 || pin.pin == GPIO::Pin31) {
+				gpio_af = PIN_ALT2;
+
+			} else if (pin.pin == GPIO::Pin6 || pin.pin == GPIO::Pin7 || pin.pin == GPIO::Pin8 ||
+				   pin.pin == GPIO::Pin9) {
+				gpio_af = PIN_ALT4;
+			}
+
+			break;
+
+		case GPIO::PortD:
+			if (pin.pin == GPIO::Pin0 || pin.pin == GPIO::Pin1) {
+				if (timer.timer == 0) {
+					gpio_af = PIN_ALT2;
+
+				} else if (timer.timer == 2) {
+					gpio_af = PIN_ALT4;
+				}
+
+			} else if (pin.pin == GPIO::Pin2 || pin.pin == GPIO::Pin3 || pin.pin == GPIO::Pin5 ||
+				   pin.pin == GPIO::Pin10 || pin.pin == GPIO::Pin11 || pin.pin == GPIO::Pin12 ||
+				   pin.pin == GPIO::Pin13 || pin.pin == GPIO::Pin14 || pin.pin == GPIO::Pin15 ||
+				   pin.pin == GPIO::Pin16 || pin.pin == GPIO::Pin18) {
+				gpio_af = PIN_ALT2;
+
+			} else if (pin.pin == GPIO::Pin8 || pin.pin == GPIO::Pin9) {
+				gpio_af = PIN_ALT6;
+			}
+
+			break;
+
+		case GPIO::PortE:
+			if (pin.pin == GPIO::Pin7 || pin.pin == GPIO::Pin8 || pin.pin == GPIO::Pin9 ||
+			    pin.pin == GPIO::Pin13 || pin.pin == GPIO::Pin20 || pin.pin == GPIO::Pin21 ||
+			    pin.pin == GPIO::Pin22 || pin.pin == GPIO::Pin23 || pin.pin == GPIO::Pin24 ||
+			    pin.pin == GPIO::Pin25) {
+				gpio_af = PIN_ALT2;
+
+			} else if (pin.pin == GPIO::Pin2 || pin.pin == GPIO::Pin4 || pin.pin == GPIO::Pin5 ||
+				   pin.pin == GPIO::Pin6 || pin.pin == GPIO::Pin10 || pin.pin == GPIO::Pin11 ||
+				   pin.pin == GPIO::Pin15 || pin.pin == GPIO::Pin16) {
+				gpio_af = PIN_ALT4;
+			}
+
+			break;
+
+		default:
+			break;
 	}
 
 	uint32_t gpio_pin_port = getGPIOPort(pin.port) | getGPIOPin(pin.pin);
@@ -169,111 +176,111 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	return ret;
 }
 
-static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
-{
+static inline constexpr io_timers_t initIOTimer(Timer::Timer timer) {
 	bool nuttx_config_timer_enabled = false;
 	io_timers_t ret{};
 
 	switch (timer) {
-	case Timer::FTM0:
-		ret.base = S32K1XX_FTM0_BASE;
-		ret.clock_register = S32K1XX_PCC_FTM0;
-		ret.clock_bit = PCC_CGC;
-#if defined(CONFIG_ARCH_CHIP_S32K14X) /* S32K14X has a different vectornumber than S32K11X */
-		ret.vectorno =
-			S32K1XX_IRQ_FTM0_CH0_1; /* To Do: There are now multiple interrupts per FTM... Need to work around this somehow. */
+		case Timer::FTM0:
+			ret.base = S32K1XX_FTM0_BASE;
+			ret.clock_register = S32K1XX_PCC_FTM0;
+			ret.clock_bit = PCC_CGC;
+#if defined(CONFIG_ARCH_CHIP_S32K14X)                          /* S32K14X has a different vectornumber than S32K11X */
+			ret.vectorno = S32K1XX_IRQ_FTM0_CH0_1; /* To Do: There are now multiple interrupts per FTM...
+								  Need to work around this somehow. */
 #elif defined(CONFIG_ARCH_CHIP_S32K11X)
-		ret.vectorno = S32K1XX_IRQ_FTM0_CH0_7;
+			ret.vectorno = S32K1XX_IRQ_FTM0_CH0_7;
 #endif
 #ifdef CONFIG_S32K1XX_FTM0
-		nuttx_config_timer_enabled = true;
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::FTM1:
-		ret.base = S32K1XX_FTM1_BASE;
-		ret.clock_register = S32K1XX_PCC_FTM1;
-		ret.clock_bit = PCC_CGC;
-#if defined(CONFIG_ARCH_CHIP_S32K14X) /* S32K14X has a different vectornumber than S32K11X */
-		ret.vectorno =
-			S32K1XX_IRQ_FTM1_CH0_1; /* To Do: There are now multiple interrupts per FTM... Need to work around this somehow. */
+		case Timer::FTM1:
+			ret.base = S32K1XX_FTM1_BASE;
+			ret.clock_register = S32K1XX_PCC_FTM1;
+			ret.clock_bit = PCC_CGC;
+#if defined(CONFIG_ARCH_CHIP_S32K14X)                          /* S32K14X has a different vectornumber than S32K11X */
+			ret.vectorno = S32K1XX_IRQ_FTM1_CH0_1; /* To Do: There are now multiple interrupts per FTM...
+								  Need to work around this somehow. */
 #elif defined(CONFIG_ARCH_CHIP_S32K11X)
-		ret.vectorno = S32K1XX_IRQ_FTM1_CH0_7;
+			ret.vectorno = S32K1XX_IRQ_FTM1_CH0_7;
 #endif
 #ifdef CONFIG_S32K1XX_FTM1
-		nuttx_config_timer_enabled = true;
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::FTM2:
-		ret.base = S32K1XX_FTM2_BASE;
-		ret.clock_register = S32K1XX_PCC_FTM2;
-		ret.clock_bit = PCC_CGC;
-		ret.vectorno =
-			S32K1XX_IRQ_FTM2_CH0_1; /* To Do: There are now multiple interrupts per FTM... Need to work around this somehow. */
+		case Timer::FTM2:
+			ret.base = S32K1XX_FTM2_BASE;
+			ret.clock_register = S32K1XX_PCC_FTM2;
+			ret.clock_bit = PCC_CGC;
+			ret.vectorno = S32K1XX_IRQ_FTM2_CH0_1; /* To Do: There are now multiple interrupts per FTM...
+								  Need to work around this somehow. */
 #ifdef CONFIG_S32K1XX_FTM2
-		nuttx_config_timer_enabled = true;
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::FTM3:
-		ret.base = S32K1XX_FTM3_BASE;
-		ret.clock_register = S32K1XX_PCC_FTM3;
-		ret.clock_bit = PCC_CGC;
-		ret.vectorno =
-			S32K1XX_IRQ_FTM3_CH0_1; /* To Do: There are now multiple interrupts per FTM... Need to work around this somehow. */
+		case Timer::FTM3:
+			ret.base = S32K1XX_FTM3_BASE;
+			ret.clock_register = S32K1XX_PCC_FTM3;
+			ret.clock_bit = PCC_CGC;
+			ret.vectorno = S32K1XX_IRQ_FTM3_CH0_1; /* To Do: There are now multiple interrupts per FTM...
+								  Need to work around this somehow. */
 #ifdef CONFIG_S32K1XX_FTM3
-		nuttx_config_timer_enabled = true;
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::FTM4:
-		ret.base = S32K1XX_FTM4_BASE;
-		ret.clock_register = S32K1XX_PCC_FTM4;
-		ret.clock_bit = PCC_CGC;
-		ret.vectorno =
-			S32K1XX_IRQ_FTM4_CH0_1; /* To Do: There are now multiple interrupts per FTM... Need to work around this somehow. */
+		case Timer::FTM4:
+			ret.base = S32K1XX_FTM4_BASE;
+			ret.clock_register = S32K1XX_PCC_FTM4;
+			ret.clock_bit = PCC_CGC;
+			ret.vectorno = S32K1XX_IRQ_FTM4_CH0_1; /* To Do: There are now multiple interrupts per FTM...
+								  Need to work around this somehow. */
 #ifdef CONFIG_S32K1XX_FTM4
-		nuttx_config_timer_enabled = true;
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::FTM5:
-		ret.base = S32K1XX_FTM5_BASE;
-		ret.clock_register = S32K1XX_PCC_FTM5;
-		ret.clock_bit = PCC_CGC;
-		ret.vectorno =
-			S32K1XX_IRQ_FTM5_CH0_1; /* To Do: There are now multiple interrupts per FTM... Need to work around this somehow. */
+		case Timer::FTM5:
+			ret.base = S32K1XX_FTM5_BASE;
+			ret.clock_register = S32K1XX_PCC_FTM5;
+			ret.clock_bit = PCC_CGC;
+			ret.vectorno = S32K1XX_IRQ_FTM5_CH0_1; /* To Do: There are now multiple interrupts per FTM...
+								  Need to work around this somehow. */
 #ifdef CONFIG_S32K1XX_FTM5
-		nuttx_config_timer_enabled = true;
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::FTM6:
-		ret.base = S32K1XX_FTM6_BASE;
-		ret.clock_register = S32K1XX_PCC_FTM6;
-		ret.clock_bit = PCC_CGC;
-		ret.vectorno =
-			S32K1XX_IRQ_FTM6_CH0_1; /* To Do: There are now multiple interrupts per FTM... Need to work around this somehow. */
+		case Timer::FTM6:
+			ret.base = S32K1XX_FTM6_BASE;
+			ret.clock_register = S32K1XX_PCC_FTM6;
+			ret.clock_bit = PCC_CGC;
+			ret.vectorno = S32K1XX_IRQ_FTM6_CH0_1; /* To Do: There are now multiple interrupts per FTM...
+								  Need to work around this somehow. */
 #ifdef CONFIG_S32K1XX_FTM6
-		nuttx_config_timer_enabled = true;
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 
-	case Timer::FTM7:
-		ret.base = S32K1XX_FTM7_BASE;
-		ret.clock_register = S32K1XX_PCC_FTM7;
-		ret.clock_bit = PCC_CGC;
-		ret.vectorno =
-			S32K1XX_IRQ_FTM7_CH0_1; /* To Do: There are now multiple interrupts per FTM... Need to work around this somehow. */
+		case Timer::FTM7:
+			ret.base = S32K1XX_FTM7_BASE;
+			ret.clock_register = S32K1XX_PCC_FTM7;
+			ret.clock_bit = PCC_CGC;
+			ret.vectorno = S32K1XX_IRQ_FTM7_CH0_1; /* To Do: There are now multiple interrupts per FTM...
+								  Need to work around this somehow. */
 #ifdef CONFIG_S32K1XX_FTM7
-		nuttx_config_timer_enabled = true;
+			nuttx_config_timer_enabled = true;
 #endif
-		break;
+			break;
 	}
 
 	// This is not strictly required, but for consistency let's make sure NuttX timers are disabled
-	constexpr_assert(!nuttx_config_timer_enabled, "IO Timer requires NuttX timer config to be disabled (S32K1XX_FTMx)");
+	constexpr_assert(!nuttx_config_timer_enabled,
+			 "IO Timer requires NuttX timer config to be disabled (S32K1XX_FTMx)");
 
 	return ret;
 }

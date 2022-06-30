@@ -42,22 +42,22 @@
  * the low byte identiefies the actual IOCTL within the module
  */
 
-#define _BOARDCTLIOCBASE		(0x4000)
-#define IOCTL_IDX_TO_BASE(x)	((((x) & 0xF) << 8) | _BOARDCTLIOCBASE)
-#define IOCTL_BASE_TO_IDX(x)	(((x) & 0x0F00) >> 8)
+#define _BOARDCTLIOCBASE (0x4000)
+#define IOCTL_IDX_TO_BASE(x) ((((x)&0xF) << 8) | _BOARDCTLIOCBASE)
+#define IOCTL_BASE_TO_IDX(x) (((x)&0x0F00) >> 8)
 
-#define _ORBIOCDEVBASE				IOCTL_IDX_TO_BASE(0)
-#define _HRTIOCBASE				IOCTL_IDX_TO_BASE(1)
-#define _CRYPTOIOCBASE			IOCTL_IDX_TO_BASE(2)
-#define _PARAMIOCBASE			IOCTL_IDX_TO_BASE(3)
-#define _PLATFORMIOCBASE			IOCTL_IDX_TO_BASE(4)
+#define _ORBIOCDEVBASE IOCTL_IDX_TO_BASE(0)
+#define _HRTIOCBASE IOCTL_IDX_TO_BASE(1)
+#define _CRYPTOIOCBASE IOCTL_IDX_TO_BASE(2)
+#define _PARAMIOCBASE IOCTL_IDX_TO_BASE(3)
+#define _PLATFORMIOCBASE IOCTL_IDX_TO_BASE(4)
 #define MAX_IOCTL_PTRS 5
 
 /* The PLATFORMIOCLAUNCH IOCTL is used to launch kernel side modules
  * from the user side code
  */
 
-#define PLATFORMIOCLAUNCH		(_PX4_IOC(_PLATFORMIOCBASE, 1))
+#define PLATFORMIOCLAUNCH (_PX4_IOC(_PLATFORMIOCBASE, 1))
 
 typedef struct platformioclaunch {
 	int argc;
@@ -69,23 +69,21 @@ typedef struct platformioclaunch {
  * from the user side code
  */
 
-#define PLATFORMIOCVBUSSTATE	(_PX4_IOC(_PLATFORMIOCBASE, 2))
+#define PLATFORMIOCVBUSSTATE (_PX4_IOC(_PLATFORMIOCBASE, 2))
 
 typedef struct platformiocvbusstate {
 	int ret;
 } platformiocvbusstate_t;
 
-
 /* These IOCTLs are used to set and read external lockout state
  * from the user side code
  */
-#define PLATFORMIOCINDICATELOCKOUT	(_PX4_IOC(_PLATFORMIOCBASE, 3))
-#define PLATFORMIOCGETLOCKOUT		(_PX4_IOC(_PLATFORMIOCBASE, 4))
+#define PLATFORMIOCINDICATELOCKOUT (_PX4_IOC(_PLATFORMIOCBASE, 3))
+#define PLATFORMIOCGETLOCKOUT (_PX4_IOC(_PLATFORMIOCBASE, 4))
 
 typedef struct platformioclockoutstate {
 	bool enabled;
 } platformioclockoutstate_t;
-
 
 typedef int (*ioctl_ptr_t)(unsigned int, unsigned long);
 

@@ -32,16 +32,17 @@
  ****************************************************************************/
 
 #include "cdcacm.h"
-#include <string.h>
-#include<stdio.h>
-#include<fcntl.h>
-#include<termios.h>
 
-#include <sys/types.h>
-#include <sys/boardctl.h>
+#include <debug.h>
+#include <fcntl.h>
+#include <stdio.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <debug.h>
+#include <string.h>
+#include <sys/boardctl.h>
+#include <sys/types.h>
+#include <termios.h>
+
 #include "cdcacm.h"
 
 //#define SERIAL_TRACE
@@ -54,22 +55,21 @@ char *g_init = 0;
 int in = 0;
 int out = 0;
 // must be power of 2 length
-#define TRACE_SIZE      256
-#define TRACE_WRAP(f)   ((f) &=(TRACE_SIZE-1))
+#define TRACE_SIZE 256
+#define TRACE_WRAP(f) ((f) &= (TRACE_SIZE - 1))
 char in_trace[TRACE_SIZE];
 char out_trace[TRACE_SIZE];
 #endif
 
-void usb_cinit(void *config)
-{
+void usb_cinit(void *config) {
 #if defined(SERIAL_TRACE)
 	in = 0;
 	out = 0;
 	memset(in_trace, 0, sizeof(in_trace));
 	memset(out_trace, 0, sizeof(out_trace));
 #endif
-	g_init =  strdup(config ? (char *) config : "");
-	char *pt = strtok((char *) g_init, ",");
+	g_init = strdup(config ? (char *)config : "");
+	char *pt = strtok((char *)g_init, ",");
 
 	if (pt != NULL) {
 		g_device = pt;
@@ -83,17 +83,14 @@ void usb_cinit(void *config)
 		free(g_init);
 	}
 }
-void usb_cfini(void)
-{
+void usb_cfini(void) {
 	close(g_usb_df);
 	g_usb_df = -1;
 }
-int usb_cin(void)
-{
+int usb_cin(void) {
 	int c = -1;
 
 	if (g_usb_df < 0) {
-
 		int fd = open(g_device, O_RDWR | O_NONBLOCK);
 
 		if (fd < 0) {
@@ -116,8 +113,7 @@ int usb_cin(void)
 
 	return c;
 }
-void usb_cout(uint8_t *buf, unsigned len)
-{
+void usb_cout(uint8_t *buf, unsigned len) {
 	write(g_usb_df, buf, len);
 #if defined(SERIAL_TRACE)
 

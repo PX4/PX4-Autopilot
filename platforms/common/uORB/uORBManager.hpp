@@ -34,18 +34,19 @@
 #ifndef _uORBManager_hpp_
 #define _uORBManager_hpp_
 
-#include "uORBDeviceNode.hpp"
+#include <stdint.h>
+
+#include <uORB/topics/uORBTopics.hpp>  // For ORB_ID enum
+
 #include "uORBCommon.hpp"
 #include "uORBDeviceMaster.hpp"
-
-#include <uORB/topics/uORBTopics.hpp> // For ORB_ID enum
-#include <stdint.h>
+#include "uORBDeviceNode.hpp"
 
 #ifdef __PX4_NUTTX
 #include "ORBSet.hpp"
 #else
-#include <string>
 #include <set>
+#include <string>
 #define ORBSet std::set<std::string>
 #endif
 
@@ -53,12 +54,10 @@
 #include "uORBCommunicator.hpp"
 #endif /* ORB_COMMUNICATOR */
 
-namespace uORB
-{
+namespace uORB {
 class Manager;
 class SubscriptionCallback;
-}
-
+}  // namespace uORB
 
 /*
  * IOCTLs for manager to access device nodes using
@@ -66,7 +65,7 @@ class SubscriptionCallback;
  */
 
 #define _ORBIOCDEV(_n) (_PX4_IOC(_ORBIOCDEVBASE, _n))
-#define ORBIOCDEVEXISTS	_ORBIOCDEV(30)
+#define ORBIOCDEVEXISTS _ORBIOCDEV(30)
 typedef struct orbiocdevexists {
 	const ORB_ID orb_id;
 	const uint8_t instance;
@@ -74,7 +73,7 @@ typedef struct orbiocdevexists {
 	int ret;
 } orbiocdevexists_t;
 
-#define ORBIOCDEVADVERTISE	_ORBIOCDEV(31)
+#define ORBIOCDEVADVERTISE _ORBIOCDEV(31)
 typedef struct orbiocadvertise {
 	const struct orb_metadata *meta;
 	bool is_advertiser;
@@ -82,13 +81,13 @@ typedef struct orbiocadvertise {
 	int ret;
 } orbiocdevadvertise_t;
 
-#define ORBIOCDEVUNADVERTISE	_ORBIOCDEV(32)
+#define ORBIOCDEVUNADVERTISE _ORBIOCDEV(32)
 typedef struct orbiocunadvertise {
 	void *handle;
 	int ret;
 } orbiocdevunadvertise_t;
 
-#define ORBIOCDEVPUBLISH	_ORBIOCDEV(33)
+#define ORBIOCDEVPUBLISH _ORBIOCDEV(33)
 typedef struct orbiocpublish {
 	const struct orb_metadata *meta;
 	orb_advert_t handle;
@@ -96,7 +95,7 @@ typedef struct orbiocpublish {
 	int ret;
 } orbiocdevpublish_t;
 
-#define ORBIOCDEVADDSUBSCRIBER	_ORBIOCDEV(34)
+#define ORBIOCDEVADDSUBSCRIBER _ORBIOCDEV(34)
 typedef struct {
 	const ORB_ID orb_id;
 	const uint8_t instance;
@@ -104,15 +103,15 @@ typedef struct {
 	void *handle;
 } orbiocdevaddsubscriber_t;
 
-#define ORBIOCDEVREMSUBSCRIBER	_ORBIOCDEV(35)
+#define ORBIOCDEVREMSUBSCRIBER _ORBIOCDEV(35)
 
-#define ORBIOCDEVQUEUESIZE	_ORBIOCDEV(36)
+#define ORBIOCDEVQUEUESIZE _ORBIOCDEV(36)
 typedef struct {
 	const void *handle;
 	uint8_t size;
 } orbiocdevqueuesize_t;
 
-#define ORBIOCDEVDATACOPY	_ORBIOCDEV(37)
+#define ORBIOCDEVDATACOPY _ORBIOCDEV(37)
 typedef struct {
 	void *handle;
 	void *dst;
@@ -121,44 +120,40 @@ typedef struct {
 	bool ret;
 } orbiocdevdatacopy_t;
 
-#define ORBIOCDEVREGCALLBACK	_ORBIOCDEV(38)
+#define ORBIOCDEVREGCALLBACK _ORBIOCDEV(38)
 typedef struct {
 	void *handle;
 	class uORB::SubscriptionCallback *callback_sub;
 	bool registered;
 } orbiocdevregcallback_t;
 
-#define ORBIOCDEVUNREGCALLBACK	_ORBIOCDEV(39)
+#define ORBIOCDEVUNREGCALLBACK _ORBIOCDEV(39)
 typedef struct {
 	void *handle;
 	class uORB::SubscriptionCallback *callback_sub;
 } orbiocdevunregcallback_t;
 
-#define ORBIOCDEVGETINSTANCE	_ORBIOCDEV(40)
+#define ORBIOCDEVGETINSTANCE _ORBIOCDEV(40)
 typedef struct {
 	const void *handle;
 	uint8_t instance;
 } orbiocdevgetinstance_t;
 
-#define ORBIOCDEVUPDATESAVAIL	_ORBIOCDEV(41)
+#define ORBIOCDEVUPDATESAVAIL _ORBIOCDEV(41)
 typedef struct {
 	const void *handle;
 	unsigned last_generation;
 	unsigned ret;
 } orbiocdevupdatesavail_t;
 
-#define ORBIOCDEVISADVERTISED	_ORBIOCDEV(42)
+#define ORBIOCDEVISADVERTISED _ORBIOCDEV(42)
 typedef struct {
 	const void *handle;
 	bool ret;
 } orbiocdevisadvertised_t;
 
-typedef enum {
-	ORB_DEVMASTER_STATUS = 0,
-	ORB_DEVMASTER_TOP = 1
-} orbiocdevmastercmd_t;
-#define ORBIOCDEVMASTERCMD	_ORBIOCDEV(45)
-
+typedef enum { ORB_DEVMASTER_STATUS = 0, ORB_DEVMASTER_TOP = 1 } orbiocdevmastercmd_t;
+#define ORBIOCDEVMASTERCMD _ORBIOCDEV(45)
 
 /**
  * This is implemented as a singleton.  This class manages creating the
@@ -229,8 +224,7 @@ public:
 	 *      ORB_DEFINE with no corresponding ORB_DECLARE)
 	 *      this function will return nullptr and set errno to ENOENT.
 	 */
-	orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data, unsigned int queue_size = 1)
-	{
+	orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data, unsigned int queue_size = 1) {
 		return orb_advertise_multi(meta, data, nullptr, queue_size);
 	}
 
@@ -288,7 +282,7 @@ public:
 	 * @param data    A pointer to the data to be published.
 	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	static int  orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data);
+	static int orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data);
 
 	/**
 	 * Subscribe to a topic.
@@ -318,7 +312,7 @@ public:
 	 * @return    PX4_ERROR on error, otherwise returns a handle
 	 *      that can be used to read and update the topic.
 	 */
-	int  orb_subscribe(const struct orb_metadata *meta);
+	int orb_subscribe(const struct orb_metadata *meta);
 
 	/**
 	 * Subscribe to a multi-instance of a topic.
@@ -356,7 +350,7 @@ public:
 	 *      ORB_DEFINE_OPTIONAL with no corresponding ORB_DECLARE)
 	 *      this function will return -1 and set errno to ENOENT.
 	 */
-	int  orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance);
+	int orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance);
 
 	/**
 	 * Unsubscribe from a topic.
@@ -364,7 +358,7 @@ public:
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_unsubscribe(int handle);
+	int orb_unsubscribe(int handle);
 
 	/**
 	 * Fetch data from a topic.
@@ -382,7 +376,7 @@ public:
 	 *      using the data.
 	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_copy(const struct orb_metadata *meta, int handle, void *buffer);
+	int orb_copy(const struct orb_metadata *meta, int handle, void *buffer);
 
 	/**
 	 * Check whether a topic has been published to since the last orb_copy.
@@ -400,7 +394,7 @@ public:
 	 * @return    OK if the check was successful, PX4_ERROR otherwise with
 	 *      errno set accordingly.
 	 */
-	int  orb_check(int handle, bool *updated);
+	int orb_check(int handle, bool *updated);
 
 	/**
 	 * Check if a topic has already been created and published (advertised)
@@ -409,7 +403,7 @@ public:
 	 * @param instance  ORB instance
 	 * @return    OK if the topic exists, PX4_ERROR otherwise.
 	 */
-	static int  orb_exists(const struct orb_metadata *meta, int instance);
+	static int orb_exists(const struct orb_metadata *meta, int instance);
 
 	/**
 	 * Set the minimum interval between which updates are seen for a subscription.
@@ -429,8 +423,7 @@ public:
 	 * @param interval  An interval period in milliseconds.
 	 * @return    OK on success, PX4_ERROR otherwise with ERRNO set accordingly.
 	 */
-	int  orb_set_interval(int handle, unsigned interval);
-
+	int orb_set_interval(int handle, unsigned interval);
 
 	/**
 	 * Get the minimum interval between which updates are seen for a subscription.
@@ -441,7 +434,7 @@ public:
 	 * @param interval  The returned interval period in milliseconds.
 	 * @return    OK on success, PX4_ERROR otherwise with ERRNO set accordingly.
 	 */
-	int	orb_get_interval(int handle, unsigned *interval);
+	int orb_get_interval(int handle, unsigned *interval);
 
 	static bool orb_device_node_exists(ORB_ID orb_id, uint8_t instance);
 
@@ -461,9 +454,15 @@ public:
 
 #if defined(CONFIG_BUILD_FLAT)
 	/* These are optimized by inlining in NuttX Flat build */
-	static unsigned updates_available(const void *node_handle, unsigned last_generation) { return is_advertised(node_handle) ? static_cast<const DeviceNode *>(node_handle)->updates_available(last_generation) : 0; }
+	static unsigned updates_available(const void *node_handle, unsigned last_generation) {
+		return is_advertised(node_handle)
+			       ? static_cast<const DeviceNode *>(node_handle)->updates_available(last_generation)
+			       : 0;
+	}
 
-	static bool is_advertised(const void *node_handle) { return static_cast<const DeviceNode *>(node_handle)->is_advertised(); }
+	static bool is_advertised(const void *node_handle) {
+		return static_cast<const DeviceNode *>(node_handle)->is_advertised();
+	}
 
 #else
 	static unsigned updates_available(const void *node_handle, unsigned last_generation);
@@ -494,8 +493,7 @@ public:
 	bool is_remote_subscriber_present(const char *messageName);
 #endif /* ORB_COMMUNICATOR */
 
-private: // class methods
-
+private:  // class methods
 	/**
 	 * Common implementation for orb_advertise and orb_subscribe.
 	 *
@@ -504,7 +502,7 @@ private: // class methods
 	 */
 	int node_open(const struct orb_metadata *meta, bool advertiser, int *instance = nullptr);
 
-private: // data members
+private:  // data members
 	static Manager *_Instance;
 
 #ifdef ORB_COMMUNICATOR
@@ -517,7 +515,7 @@ private: // data members
 
 	DeviceMaster *_device_master{nullptr};
 
-private: //class methods
+private:  // class methods
 	Manager();
 	virtual ~Manager();
 
@@ -537,17 +535,17 @@ private: //class methods
 	virtual int16_t process_remote_topic(const char *topic_name, bool isAdvertisement);
 
 	/**
-	   * Interface to process a received AddSubscription from remote.
-	   * @param messageName
-	   *  This represents the uORB message Name; This message Name should be
-	   *  globally unique.
-	   * @param msgRate
-	   *  The max rate at which the subscriber can accept the messages.
-	   * @return
-	   *  0 = success; This means the messages is successfully handled in the
-	   *    handler.
-	   *  otherwise = failure.
-	   */
+	 * Interface to process a received AddSubscription from remote.
+	 * @param messageName
+	 *  This represents the uORB message Name; This message Name should be
+	 *  globally unique.
+	 * @param msgRate
+	 *  The max rate at which the subscriber can accept the messages.
+	 * @return
+	 *  0 = success; This means the messages is successfully handled in the
+	 *    handler.
+	 *  otherwise = failure.
+	 */
 	virtual int16_t process_add_subscription(const char *messageName, int32_t msgRateInHz);
 
 	/**
@@ -582,8 +580,8 @@ private: //class methods
 #ifdef ORB_USE_PUBLISHER_RULES
 
 	struct PublisherRule {
-		const char **topics; //null-terminated list of topic names
-		const char *module_name; //only this module is allowed to publish one of the topics
+		const char **topics;      // null-terminated list of topic names
+		const char *module_name;  // only this module is allowed to publish one of the topics
 		bool ignore_other_topics;
 	};
 
@@ -617,7 +615,6 @@ private: //class methods
 	bool _has_publisher_rules = false;
 
 #endif /* ORB_USE_PUBLISHER_RULES */
-
 };
 
 #endif /* _uORBManager_hpp_ */

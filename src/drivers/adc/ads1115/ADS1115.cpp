@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 #include "ADS1115.h"
+
 #include <cassert>
 
-int ADS1115::init()
-{
+int ADS1115::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -61,80 +61,79 @@ int ADS1115::init()
 	return PX4_OK;
 }
 
-int ADS1115::setChannel(ADS1115::ChannelSelection ch)
-{
+int ADS1115::setChannel(ADS1115::ChannelSelection ch) {
 	uint8_t buf[2] = {};
 	uint8_t next_mux_reg = CONFIG_HIGH_MUX_P0NG;
 
 	switch (ch) {
-	case A0:
-		next_mux_reg = CONFIG_HIGH_MUX_P0NG;
-		break;
+		case A0:
+			next_mux_reg = CONFIG_HIGH_MUX_P0NG;
+			break;
 
-	case A1:
-		next_mux_reg = CONFIG_HIGH_MUX_P1NG;
-		break;
+		case A1:
+			next_mux_reg = CONFIG_HIGH_MUX_P1NG;
+			break;
 
-	case A2:
-		next_mux_reg = CONFIG_HIGH_MUX_P2NG;
-		break;
+		case A2:
+			next_mux_reg = CONFIG_HIGH_MUX_P2NG;
+			break;
 
-	case A3:
-		next_mux_reg = CONFIG_HIGH_MUX_P3NG;
-		break;
+		case A3:
+			next_mux_reg = CONFIG_HIGH_MUX_P3NG;
+			break;
 
-	default:
-		assert(false);
-		break;
+		default:
+			assert(false);
+			break;
 	}
 
 	buf[0] = CONFIG_HIGH_OS_START_SINGLE | next_mux_reg | CONFIG_HIGH_PGA_6144 | CONFIG_HIGH_MODE_SS;
 	buf[1] = CONFIG_LOW_DR_250SPS | CONFIG_LOW_COMP_MODE_TRADITIONAL | CONFIG_LOW_COMP_POL_RESET |
 		 CONFIG_LOW_COMP_LAT_NONE | CONFIG_LOW_COMP_QU_DISABLE;
-	return writeReg(ADDRESSPOINTER_REG_CONFIG, buf, 2);    // must write whole register to take effect
+	return writeReg(ADDRESSPOINTER_REG_CONFIG, buf, 2);  // must write whole register to take effect
 }
 
-bool ADS1115::isSampleReady()
-{
+bool ADS1115::isSampleReady() {
 	uint8_t buf[1] = {0x00};
 
-	if (readReg(ADDRESSPOINTER_REG_CONFIG, buf, 1) != 0) { return false; } // Pull config register
+	if (readReg(ADDRESSPOINTER_REG_CONFIG, buf, 1) != 0) {
+		return false;
+	}  // Pull config register
 
-	return (buf[0] & (uint8_t) 0x80);
+	return (buf[0] & (uint8_t)0x80);
 }
 
-ADS1115::ChannelSelection ADS1115::getMeasurement(int16_t *value)
-{
+ADS1115::ChannelSelection ADS1115::getMeasurement(int16_t *value) {
 	uint8_t buf[2] = {0x00};
-	readReg(ADDRESSPOINTER_REG_CONFIG, buf, 1); // Pull config register
+	readReg(ADDRESSPOINTER_REG_CONFIG, buf, 1);  // Pull config register
 	ChannelSelection channel;
 
-	switch ((buf[0] & (uint8_t) 0x70) >> 4) {
-	case 0x04:
-		channel = A0;
-		break;
+	switch ((buf[0] & (uint8_t)0x70) >> 4) {
+		case 0x04:
+			channel = A0;
+			break;
 
-	case 0x05:
-		channel = A1;
-		break;
+		case 0x05:
+			channel = A1;
+			break;
 
-	case 0x06:
-		channel = A2;
-		break;
+		case 0x06:
+			channel = A2;
+			break;
 
-	case 0x07:
-		channel = A3;
-		break;
+		case 0x07:
+			channel = A3;
+			break;
 
-	default:
-		return Invalid;
+		default:
+			return Invalid;
 	}
 
 	readReg(ADDRESSPOINTER_REG_CONVERSATION, buf, 2);
 	uint16_t raw_adc_val = buf[0] * 256 + buf[1];
 
-	if (raw_adc_val & (uint16_t) 0x8000) {     // Negetive value
-		raw_adc_val = ~raw_adc_val + 1;     // 2's complement
+	if (raw_adc_val & (uint16_t)0x8000) {    // Negetive value
+		raw_adc_val = ~raw_adc_val + 1;  // 2's complement
 		*value = -raw_adc_val;
 
 	} else {
@@ -144,43 +143,42 @@ ADS1115::ChannelSelection ADS1115::getMeasurement(int16_t *value)
 	return channel;
 }
 
-ADS1115::ChannelSelection ADS1115::cycleMeasure(int16_t *value)
-{
+ADS1115::ChannelSelection ADS1115::cycleMeasure(int16_t *value) {
 	uint8_t buf[2] = {0x00};
-	readReg(ADDRESSPOINTER_REG_CONFIG, buf, 1); // Pull config register
+	readReg(ADDRESSPOINTER_REG_CONFIG, buf, 1);  // Pull config register
 	ChannelSelection channel;
 	uint8_t next_mux_reg = CONFIG_HIGH_MUX_P0NG;
 
-	switch ((buf[0] & (uint8_t) 0x70) >> 4) {
-	case 0x04:
-		channel = A0;
-		next_mux_reg = CONFIG_HIGH_MUX_P1NG;
-		break;
+	switch ((buf[0] & (uint8_t)0x70) >> 4) {
+		case 0x04:
+			channel = A0;
+			next_mux_reg = CONFIG_HIGH_MUX_P1NG;
+			break;
 
-	case 0x05:
-		channel = A1;
-		next_mux_reg = CONFIG_HIGH_MUX_P2NG;
-		break;
+		case 0x05:
+			channel = A1;
+			next_mux_reg = CONFIG_HIGH_MUX_P2NG;
+			break;
 
-	case 0x06:
-		channel = A2;
-		next_mux_reg = CONFIG_HIGH_MUX_P3NG;
-		break;
+		case 0x06:
+			channel = A2;
+			next_mux_reg = CONFIG_HIGH_MUX_P3NG;
+			break;
 
-	case 0x07:
-		channel = A3;
-		next_mux_reg = CONFIG_HIGH_MUX_P0NG;
-		break;
+		case 0x07:
+			channel = A3;
+			next_mux_reg = CONFIG_HIGH_MUX_P0NG;
+			break;
 
-	default:
-		return Invalid;
+		default:
+			return Invalid;
 	}
 
 	readReg(ADDRESSPOINTER_REG_CONVERSATION, buf, 2);
 	uint16_t raw_adc_val = buf[0] * 256 + buf[1];
 
-	if (raw_adc_val & (uint16_t) 0x8000) {     // Negetive value
-		raw_adc_val = ~raw_adc_val + 1;     // 2's complement
+	if (raw_adc_val & (uint16_t)0x8000) {    // Negetive value
+		raw_adc_val = ~raw_adc_val + 1;  // 2's complement
 		*value = -raw_adc_val;
 
 	} else {
@@ -190,19 +188,15 @@ ADS1115::ChannelSelection ADS1115::cycleMeasure(int16_t *value)
 	buf[0] = CONFIG_HIGH_OS_START_SINGLE | next_mux_reg | CONFIG_HIGH_PGA_6144 | CONFIG_HIGH_MODE_SS;
 	buf[1] = CONFIG_LOW_DR_250SPS | CONFIG_LOW_COMP_MODE_TRADITIONAL | CONFIG_LOW_COMP_POL_RESET |
 		 CONFIG_LOW_COMP_LAT_NONE | CONFIG_LOW_COMP_QU_DISABLE;
-	writeReg(ADDRESSPOINTER_REG_CONFIG, buf, 2);    // must write whole register to take effect
+	writeReg(ADDRESSPOINTER_REG_CONFIG, buf, 2);  // must write whole register to take effect
 	return channel;
 }
 
-int ADS1115::readReg(uint8_t addr, uint8_t *buf, size_t len)
-{
-	return transfer(&addr, 1, buf, len);
-}
+int ADS1115::readReg(uint8_t addr, uint8_t *buf, size_t len) { return transfer(&addr, 1, buf, len); }
 
-int ADS1115::writeReg(uint8_t addr, uint8_t *buf, size_t len)
-{
+int ADS1115::writeReg(uint8_t addr, uint8_t *buf, size_t len) {
 	uint8_t buffer[len + 1];
 	buffer[0] = addr;
-	memcpy(buffer + 1, buf, sizeof(uint8_t)*len);
+	memcpy(buffer + 1, buf, sizeof(uint8_t) * len);
 	return transfer(buffer, len + 1, nullptr, 0);
 }

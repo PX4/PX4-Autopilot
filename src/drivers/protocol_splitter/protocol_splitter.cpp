@@ -43,20 +43,19 @@
  *    /dev/rtps
  */
 
-#include <lib/cdev/CDev.hpp>
-#include <px4_platform_common/sem.hpp>
-#include <px4_platform_common/log.h>
+#include <assert.h>
+#include <errno.h>
 #include <lib/perf/perf_counter.h>
 #include <mathlib/mathlib.h>
-
+#include <px4_platform_common/log.h>
 #include <sys/ioctl.h>
-#include <assert.h>
-#include <unistd.h>
 #include <termios.h>
-#include <errno.h>
+#include <unistd.h>
+
 #include <cstdint>
 #include <cstring>
-
+#include <lib/cdev/CDev.hpp>
+#include <px4_platform_common/sem.hpp>
 
 class Mavlink2Dev;
 class RtpsDev;
@@ -66,15 +65,15 @@ extern "C" __EXPORT int protocol_splitter_main(int argc, char *argv[]);
 
 /*
  MessageType is in MSB of header[1]
-                |
-                v
-        Mavlink 0000 0000b
-        Rtps    1000 0000b
+		|
+		v
+	Mavlink 0000 0000b
+	Rtps    1000 0000b
 */
-enum class MessageType : uint8_t {Mavlink = 0x00, Rtps = 0x01};
+enum class MessageType : uint8_t { Mavlink = 0x00, Rtps = 0x01 };
 
-constexpr char  Sp2HeaderMagic = 'S';
-constexpr int   Sp2HeaderSize  = 4;
+constexpr char Sp2HeaderMagic = 'S';
+constexpr int Sp2HeaderSize = 4;
 
 /*
  Header Structure:
@@ -88,11 +87,11 @@ constexpr int   Sp2HeaderSize  = 4;
 union __attribute__((packed)) Sp2Header {
 	uint8_t bytes[4];
 	struct {
-		char magic;                // 'S'
-		uint8_t len_h:	7,         // Length MSB
-			 type:	1;         // 0=MAVLINK, 1=RTPS
-		uint8_t len_l;             // Length LSB
-		uint8_t checksum;          // XOR of the three bytes above
+		char magic;         // 'S'
+		uint8_t len_h : 7,  // Length MSB
+			type : 1;   // 0=MAVLINK, 1=RTPS
+		uint8_t len_l;      // Length LSB
+		uint8_t checksum;   // XOR of the three bytes above
 	} fields;
 };
 
@@ -105,8 +104,7 @@ struct StaticData {
 	ReadBuffer *read_buffer;
 };
 
-namespace
-{
+namespace {
 static StaticData *objects = nullptr;
 }
 
@@ -120,8 +118,7 @@ perf_counter_t rtps_messages_parsed_count;
 perf_counter_t rtps_bytes_parsed_count;
 perf_counter_t buffer_drops;
 
-class ReadBuffer
-{
+class ReadBuffer {
 public:
 	int read(int fd);
 	void copy(void *dest, size_t pos, size_t n);
@@ -149,8 +146,7 @@ public:
 	size_t header_bytes_received = 0;
 };
 
-int ReadBuffer::read(int fd)
-{
+int ReadBuffer::read(int fd) {
 	if (buf_size > BUFFER_THRESHOLD) {
 		// Drop the buffer if it's too full. This is not expected to happen, but it might, if one of the readers
 		// is too slow. In that case it's best to make space for new data, otherwise the faster reader might
@@ -196,8 +192,7 @@ int ReadBuffer::read(int fd)
 	return r;
 }
 
-void ReadBuffer::copy(void *dest, size_t pos, size_t n)
-{
+void ReadBuffer::copy(void *dest, size_t pos, size_t n) {
 	ASSERT(pos < buf_size);
 	ASSERT(pos + n <= buf_size);
 
@@ -206,8 +201,7 @@ void ReadBuffer::copy(void *dest, size_t pos, size_t n)
 	}
 }
 
-void ReadBuffer::remove(size_t pos, size_t n)
-{
+void ReadBuffer::remove(size_t pos, size_t n) {
 	ASSERT(pos < buf_size);
 	ASSERT(pos + n <= buf_size);
 
@@ -215,8 +209,7 @@ void ReadBuffer::remove(size_t pos, size_t n)
 	buf_size -= n;
 }
 
-void ReadBuffer::update_lost_stats()
-{
+void ReadBuffer::update_lost_stats() {
 	bytes_lost = bytes_received - mavlink_parsed - rtps_parsed - header_bytes_received;
 
 	if (end_mavlink > start_mavlink) {
@@ -230,57 +223,43 @@ void ReadBuffer::update_lost_stats()
 	perf_set_count(bytes_lost_count, bytes_lost);
 }
 
-void ReadBuffer::print_stats()
-{
+void ReadBuffer::print_stats() {
 	PX4_INFO_RAW("\tReceived:\n");
-	PX4_INFO_RAW("\tTotal:   %9zu bytes\n",
-		     bytes_received);
-	PX4_INFO_RAW("\tHeaders: %9zu bytes (%5.1f %%)\n",
-		     header_bytes_received,
-		     static_cast<double>(static_cast<float>(header_bytes_received)
-					 / static_cast<float>(bytes_received)
-					 * 100.f));
-	PX4_INFO_RAW("\tMAVLink: %9zu bytes (%5.1f %%)\n",
-		     mavlink_parsed,
-		     static_cast<double>(static_cast<float>(mavlink_parsed)
-					 / static_cast<float>(bytes_received - header_bytes_received)
-					 * 100.f));
-	PX4_INFO_RAW("\tRTPS:    %9zu bytes (%5.1f %%)\n",
-		     rtps_parsed,
-		     static_cast<double>(static_cast<float>(rtps_parsed)
-					 / static_cast<float>(bytes_received - header_bytes_received)
-					 * 100.f));
+	PX4_INFO_RAW("\tTotal:   %9zu bytes\n", bytes_received);
+	PX4_INFO_RAW("\tHeaders: %9zu bytes (%5.1f %%)\n", header_bytes_received,
+		     static_cast<double>(static_cast<float>(header_bytes_received) /
+					 static_cast<float>(bytes_received) * 100.f));
+	PX4_INFO_RAW("\tMAVLink: %9zu bytes (%5.1f %%)\n", mavlink_parsed,
+		     static_cast<double>(static_cast<float>(mavlink_parsed) /
+					 static_cast<float>(bytes_received - header_bytes_received) * 100.f));
+	PX4_INFO_RAW("\tRTPS:    %9zu bytes (%5.1f %%)\n", rtps_parsed,
+		     static_cast<double>(static_cast<float>(rtps_parsed) /
+					 static_cast<float>(bytes_received - header_bytes_received) * 100.f));
 
 	PX4_INFO_RAW("\tUnused:  %9zu bytes (%5.1f %%)\n", bytes_lost,
-		     static_cast<double>(static_cast<float>(bytes_lost)
-					 / static_cast<float>(bytes_received)
-					 * 100.f));
+		     static_cast<double>(static_cast<float>(bytes_lost) / static_cast<float>(bytes_received) * 100.f));
 }
 
-
-class DevCommon : public cdev::CDev
-{
+class DevCommon : public cdev::CDev {
 public:
 	DevCommon(const char *device_path, ReadBuffer *read_buffer);
 	virtual ~DevCommon();
 
-	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
 
-	virtual int	open(file *filp);
-	virtual int	close(file *filp);
+	virtual int open(file *filp);
+	virtual int close(file *filp);
 
-	enum Operation {Read, Write};
+	enum Operation { Read, Write };
 
 protected:
-
 	virtual pollevent_t poll_state(struct file *filp);
 
 	int try_to_copy_data(char *buffer, size_t buflen, MessageType message_type);
 	void scan_for_packets();
 	void cleanup();
 
-	void lock(enum Operation op)
-	{
+	void lock(enum Operation op) {
 		sem_t *this_lock = op == Read ? &objects->r_lock : &objects->w_lock;
 
 		while (sem_wait(this_lock) != 0) {
@@ -291,8 +270,7 @@ protected:
 		}
 	}
 
-	void unlock(enum Operation op)
-	{
+	void unlock(enum Operation op) {
 		sem_t *this_lock = op == Read ? &objects->r_lock : &objects->w_lock;
 		sem_post(this_lock);
 	}
@@ -304,14 +282,9 @@ protected:
 	ReadBuffer *_read_buffer;
 };
 
-DevCommon::DevCommon(const char *device_path, ReadBuffer *read_buffer)
-	: CDev(device_path)
-	, _read_buffer(read_buffer)
-{
-}
+DevCommon::DevCommon(const char *device_path, ReadBuffer *read_buffer) : CDev(device_path), _read_buffer(read_buffer) {}
 
-DevCommon::~DevCommon()
-{
+DevCommon::~DevCommon() {
 	if (_fd >= 0) {
 		// discard all pending data, as close() might block otherwise on NuttX with flow control enabled
 		tcflush(_fd, TCIOFLUSH);
@@ -319,8 +292,7 @@ DevCommon::~DevCommon()
 	}
 }
 
-int DevCommon::ioctl(struct file *filp, int cmd, unsigned long arg)
-{
+int DevCommon::ioctl(struct file *filp, int cmd, unsigned long arg) {
 	if (cmd == FIONSPACE) {
 		int ret = ::ioctl(_fd, FIONSPACE, arg);
 
@@ -339,8 +311,7 @@ int DevCommon::ioctl(struct file *filp, int cmd, unsigned long arg)
 	return ::ioctl(_fd, cmd, arg);
 }
 
-int DevCommon::open(file *filp)
-{
+int DevCommon::open(file *filp) {
 	_fd = ::open(objects->device_name, O_RDWR | O_NOCTTY);
 
 	if (_fd < 0) {
@@ -350,21 +321,18 @@ int DevCommon::open(file *filp)
 
 	CDev::open(filp);
 
-
 	return 0;
 }
 
-int DevCommon::close(file *filp)
-{
-	//int ret = ::close(_fd); // FIXME: calling this results in a dead-lock, because DevCommon::close()
+int DevCommon::close(file *filp) {
+	// int ret = ::close(_fd); // FIXME: calling this results in a dead-lock, because DevCommon::close()
 	// is called from within another close(), and NuttX seems to hold a semaphore at this point
 	_fd = -1;
 	CDev::close(filp);
 	return 0;
 }
 
-pollevent_t DevCommon::poll_state(struct file *filp)
-{
+pollevent_t DevCommon::poll_state(struct file *filp) {
 	pollfd fds[1];
 	fds[0].fd = _fd;
 	fds[0].events = POLLIN;
@@ -382,85 +350,82 @@ pollevent_t DevCommon::poll_state(struct file *filp)
 	return POLLIN;
 }
 
-int DevCommon::try_to_copy_data(char *buffer, size_t buflen, MessageType message_type)
-{
+int DevCommon::try_to_copy_data(char *buffer, size_t buflen, MessageType message_type) {
 	if (buflen == 0) {
 		return 0;
 	}
 
 	switch (message_type) {
-	case MessageType::Mavlink:
-		if (_read_buffer->start_mavlink < _read_buffer->end_mavlink) {
-			// We have Mavlink data ready to send.
-			const size_t len_available = _read_buffer->end_mavlink - _read_buffer->start_mavlink;
-			// We can only send what fits in the callers buffer.
-			const size_t len_to_copy = math::min(len_available, buflen);
+		case MessageType::Mavlink:
+			if (_read_buffer->start_mavlink < _read_buffer->end_mavlink) {
+				// We have Mavlink data ready to send.
+				const size_t len_available = _read_buffer->end_mavlink - _read_buffer->start_mavlink;
+				// We can only send what fits in the callers buffer.
+				const size_t len_to_copy = math::min(len_available, buflen);
 
-			// Copy it to the callers buffer and remove it from our buffer.
-			_read_buffer->copy(buffer, _read_buffer->start_mavlink, len_to_copy);
+				// Copy it to the callers buffer and remove it from our buffer.
+				_read_buffer->copy(buffer, _read_buffer->start_mavlink, len_to_copy);
 
-			// Shift the markers accordingly.
-			_read_buffer->start_mavlink += len_to_copy;
+				// Shift the markers accordingly.
+				_read_buffer->start_mavlink += len_to_copy;
 
-			// Keep track for stats.
-			_read_buffer->mavlink_parsed += len_to_copy;
+				// Keep track for stats.
+				_read_buffer->mavlink_parsed += len_to_copy;
 
-			// Update the lost/unused bytes count
-			_read_buffer->update_lost_stats();
+				// Update the lost/unused bytes count
+				_read_buffer->update_lost_stats();
 
-			// Update the number of MAVLink bytes parsed
-			perf_set_count(mavlink_bytes_parsed_count, _read_buffer->mavlink_parsed);
+				// Update the number of MAVLink bytes parsed
+				perf_set_count(mavlink_bytes_parsed_count, _read_buffer->mavlink_parsed);
 
-			// Update the number of MAVLink messages parsed
-			perf_count(mavlink_messages_parsed_count);
+				// Update the number of MAVLink messages parsed
+				perf_count(mavlink_messages_parsed_count);
 
-			return len_to_copy;
+				return len_to_copy;
 
-		} else {
+			} else {
+				return 0;
+			}
+
+		case MessageType::Rtps:
+			if (_read_buffer->start_rtps < _read_buffer->end_rtps) {
+				// We have Rtps data ready to send
+				const size_t len_available = _read_buffer->end_rtps - _read_buffer->start_rtps;
+				// We can only send what fits in the callers buffer.
+				const size_t len_to_copy = math::min(len_available, buflen);
+
+				// Copy it to the callers buffer and remove it from our buffer.
+				_read_buffer->copy(buffer, _read_buffer->start_rtps, len_to_copy);
+
+				// Shift the markers accordingly.
+				_read_buffer->start_rtps += len_to_copy;
+
+				// Keep track for stats.
+				_read_buffer->rtps_parsed += len_to_copy;
+
+				// Update the lost/unused bytes count
+				_read_buffer->update_lost_stats();
+
+				// Update the number of RTPS bytes parsed
+				perf_set_count(rtps_bytes_parsed_count, _read_buffer->rtps_parsed);
+
+				// Update the number of RTPS messages parsed
+				perf_count(rtps_messages_parsed_count);
+
+				return len_to_copy;
+
+			} else {
+				return 0;
+			}
+
+			break;
+
+		default:
 			return 0;
-		}
-
-	case MessageType::Rtps:
-		if (_read_buffer->start_rtps < _read_buffer->end_rtps) {
-			// We have Rtps data ready to send
-			const size_t len_available = _read_buffer->end_rtps - _read_buffer->start_rtps;
-			// We can only send what fits in the callers buffer.
-			const size_t len_to_copy = math::min(len_available, buflen);
-
-			// Copy it to the callers buffer and remove it from our buffer.
-			_read_buffer->copy(buffer, _read_buffer->start_rtps, len_to_copy);
-
-			// Shift the markers accordingly.
-			_read_buffer->start_rtps += len_to_copy;
-
-			// Keep track for stats.
-			_read_buffer->rtps_parsed += len_to_copy;
-
-			// Update the lost/unused bytes count
-			_read_buffer->update_lost_stats();
-
-			// Update the number of RTPS bytes parsed
-			perf_set_count(rtps_bytes_parsed_count, _read_buffer->rtps_parsed);
-
-			// Update the number of RTPS messages parsed
-			perf_count(rtps_messages_parsed_count);
-
-			return len_to_copy;
-
-		} else {
-			return 0;
-		}
-
-		break;
-
-
-	default:
-		return 0;
 	}
 }
 
-void DevCommon::scan_for_packets()
-{
+void DevCommon::scan_for_packets() {
 	if (_read_buffer->buf_size < Sp2HeaderSize) {
 		// We have not even one header in the buffer, no need to scan yet.
 		return;
@@ -477,7 +442,6 @@ void DevCommon::scan_for_packets()
 	const size_t begin = math::min(_read_buffer->end_mavlink, _read_buffer->end_rtps);
 
 	for (size_t i = begin; i < _read_buffer->buf_size - Sp2HeaderSize; /* ++i */) {
-
 		const Sp2Header *header = reinterpret_cast<Sp2Header *>(&_read_buffer->buffer[i]);
 
 		if (header->fields.magic != Sp2HeaderMagic) {
@@ -486,7 +450,8 @@ void DevCommon::scan_for_packets()
 			continue;
 		}
 
-		const uint8_t checksum = (_read_buffer->buffer[i] ^ _read_buffer->buffer[i + 1] ^ _read_buffer->buffer[i + 2]);
+		const uint8_t checksum =
+			(_read_buffer->buffer[i] ^ _read_buffer->buffer[i + 1] ^ _read_buffer->buffer[i + 2]);
 
 		if (header->fields.checksum != checksum) {
 			// Checksum failed.
@@ -507,9 +472,10 @@ void DevCommon::scan_for_packets()
 			// This can happen if by accident data matches the header including checksum.
 			// Given we skip most data using the last payload_len, we should not see this too often,
 			// unless the link is very lossy and we often have to re-sync.
-			PX4_DEBUG("payload size %zu > buffer size %zu: %d, protocol: %s",
-				  payload_len, sizeof(_read_buffer->buffer),
-				  (header->fields.type == static_cast<uint8_t>(MessageType::Mavlink)) ? "Mavlink" : "Rtps");
+			PX4_DEBUG("payload size %zu > buffer size %zu: %d, protocol: %s", payload_len,
+				  sizeof(_read_buffer->buffer),
+				  (header->fields.type == static_cast<uint8_t>(MessageType::Mavlink)) ? "Mavlink"
+												      : "Rtps");
 			++i;
 			continue;
 		}
@@ -549,13 +515,10 @@ void DevCommon::scan_for_packets()
 		perf_set_count(header_bytes_received_count, _read_buffer->header_bytes_received);
 
 		i += Sp2HeaderSize + payload_len;
-
 	}
 }
 
-
-void DevCommon::cleanup()
-{
+void DevCommon::cleanup() {
 	const bool mavlink_available = (_read_buffer->start_mavlink < _read_buffer->end_mavlink);
 	const bool rtps_available = (_read_buffer->start_rtps < _read_buffer->end_rtps);
 
@@ -580,29 +543,24 @@ void DevCommon::cleanup()
 	}
 }
 
-
-class Mavlink2Dev : public DevCommon
-{
+class Mavlink2Dev : public DevCommon {
 public:
 	Mavlink2Dev(ReadBuffer *read_buffer);
 	virtual ~Mavlink2Dev() {}
 
-	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
-	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
+	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t write(struct file *filp, const char *buffer, size_t buflen);
 };
 
-Mavlink2Dev::Mavlink2Dev(ReadBuffer *read_buffer)
-	: DevCommon("/dev/mavlink", read_buffer)
-{
-	_header.fields.magic 		= Sp2HeaderMagic;
-	_header.fields.len_h 		= 0;
-	_header.fields.len_l 		= 0;
-	_header.fields.checksum		= 0;
-	_header.fields.type		= static_cast<uint8_t>(MessageType::Mavlink);
+Mavlink2Dev::Mavlink2Dev(ReadBuffer *read_buffer) : DevCommon("/dev/mavlink", read_buffer) {
+	_header.fields.magic = Sp2HeaderMagic;
+	_header.fields.len_h = 0;
+	_header.fields.len_l = 0;
+	_header.fields.checksum = 0;
+	_header.fields.type = static_cast<uint8_t>(MessageType::Mavlink);
 }
 
-ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
-{
+ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen) {
 	lock(Read);
 
 	// The cleanup needs to be right after a scan, so we don't clean up
@@ -637,8 +595,7 @@ ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
 	return ret;
 }
 
-ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
-{
+ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen) {
 	_header.fields.len_h = (buflen >> 8) & 0x7f;
 	_header.fields.len_l = buflen & 0xff;
 	_header.fields.checksum = _header.bytes[0] ^ _header.bytes[1] ^ _header.bytes[2];
@@ -660,31 +617,27 @@ ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
 	return ret;
 }
 
-class RtpsDev : public DevCommon
-{
+class RtpsDev : public DevCommon {
 public:
 	RtpsDev(ReadBuffer *read_buffer);
 	virtual ~RtpsDev() {}
 
-	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
-	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
+	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t write(struct file *filp, const char *buffer, size_t buflen);
 
 protected:
 	static const uint8_t HEADER_SIZE = 10;
 };
 
-RtpsDev::RtpsDev(ReadBuffer *read_buffer)
-	: DevCommon("/dev/rtps", read_buffer)
-{
-	_header.fields.magic		= Sp2HeaderMagic;
-	_header.fields.len_h		= 0;
-	_header.fields.len_l		= 0;
-	_header.fields.checksum		= 0;
-	_header.fields.type		= static_cast<uint8_t>(MessageType::Rtps);
+RtpsDev::RtpsDev(ReadBuffer *read_buffer) : DevCommon("/dev/rtps", read_buffer) {
+	_header.fields.magic = Sp2HeaderMagic;
+	_header.fields.len_h = 0;
+	_header.fields.len_l = 0;
+	_header.fields.checksum = 0;
+	_header.fields.type = static_cast<uint8_t>(MessageType::Rtps);
 }
 
-ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
-{
+ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen) {
 	lock(Read);
 
 	scan_for_packets();
@@ -715,8 +668,7 @@ ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
 	return ret;
 }
 
-ssize_t RtpsDev::write(struct file *filp, const char *buffer, size_t buflen)
-{
+ssize_t RtpsDev::write(struct file *filp, const char *buffer, size_t buflen) {
 	_header.fields.len_h = (buflen >> 8) & 0x7f;
 	_header.fields.len_l = buflen & 0xff;
 	_header.fields.checksum = _header.bytes[0] ^ _header.bytes[1] ^ _header.bytes[2];
@@ -738,8 +690,7 @@ ssize_t RtpsDev::write(struct file *filp, const char *buffer, size_t buflen)
 	return ret;
 }
 
-int protocol_splitter_main(int argc, char *argv[])
-{
+int protocol_splitter_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		goto out;
 	}

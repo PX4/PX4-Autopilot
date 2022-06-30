@@ -43,8 +43,8 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdint.h>
 
 /****************************************************************************************************
@@ -54,97 +54,100 @@
 
 /* UVify Core GPIOs ***********************************************************************************/
 /* LEDs */
-#define GPIO_LED1                    (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN11)
-#define GPIO_LED2                    (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN1)
-#define GPIO_LED3                    (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN3)
+#define GPIO_LED1 (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN11)
+#define GPIO_LED2 (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN1)
+#define GPIO_LED3 (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN3)
 
-#define GPIO_LED_RED                 GPIO_LED1
-#define GPIO_LED_GREEN               GPIO_LED2
-#define GPIO_LED_BLUE                GPIO_LED3
+#define GPIO_LED_RED GPIO_LED1
+#define GPIO_LED_GREEN GPIO_LED2
+#define GPIO_LED_BLUE GPIO_LED3
 
 #define BOARD_HAS_CONTROL_STATUS_LEDS 1
-#define BOARD_OVERLOAD_LED     LED_RED
-#define BOARD_ARMED_LED        LED_BLUE
-#define BOARD_ARMED_STATE_LED  LED_GREEN
+#define BOARD_OVERLOAD_LED LED_RED
+#define BOARD_ARMED_LED LED_BLUE
+#define BOARD_ARMED_STATE_LED LED_GREEN
 
 #ifdef CONFIG_STM32_SPI4
-#  define BOARD_HAS_BUS_MANIFEST 1 // We support a bus manifest because spi 4 is optional
-#endif /* CONFIG_STM32_SPI4 */
+#define BOARD_HAS_BUS_MANIFEST 1  // We support a bus manifest because spi 4 is optional
+#endif                            /* CONFIG_STM32_SPI4 */
 
 /**
  * ADC channels:
- * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver.
+ * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc
+ * driver.
  */
 #define ADC_CHANNELS (1 << 2) | (1 << 3) | (1 << 4) | (1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14)
 
 /* ADC defines to be used in sensors.cpp to read from a particular channel. */
-#define ADC_BATTERY_VOLTAGE_CHANNEL  2
-#define ADC_BATTERY_CURRENT_CHANNEL  3
-#define ADC_5V_RAIL_SENSE            4
-#define ADC_RC_RSSI_CHANNEL          11
+#define ADC_BATTERY_VOLTAGE_CHANNEL 2
+#define ADC_BATTERY_CURRENT_CHANNEL 3
+#define ADC_5V_RAIL_SENSE 4
+#define ADC_RC_RSSI_CHANNEL 11
 
 /* Power supply control and monitoring GPIOs. */
-#define GPIO_VDD_BRICK_VALID         (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
-#define GPIO_VDD_USB_VALID           (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN0)
+#define GPIO_VDD_BRICK_VALID (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTB | GPIO_PIN5)
+#define GPIO_VDD_USB_VALID (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTC | GPIO_PIN0)
 
 /* Tone alarm output. */
-#define TONE_ALARM_TIMER             2    /* timer 2 */
-#define TONE_ALARM_CHANNEL           1    /* channel 1 */
-#define GPIO_TONE_ALARM_IDLE         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
-#define GPIO_TONE_ALARM              (GPIO_ALT|GPIO_AF1|GPIO_SPEED_2MHz|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN15)
+#define TONE_ALARM_TIMER 2   /* timer 2 */
+#define TONE_ALARM_CHANNEL 1 /* channel 1 */
+#define GPIO_TONE_ALARM_IDLE \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN15)
+#define GPIO_TONE_ALARM (GPIO_ALT | GPIO_AF1 | GPIO_SPEED_2MHz | GPIO_PUSHPULL | GPIO_PORTA | GPIO_PIN15)
 
 /*
  * PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS   6
+#define DIRECT_PWM_OUTPUT_CHANNELS 6
 
 /**
  * USB OTG FS:
  * PA9  OTG_FS_VBUS VBUS sensing.
  */
-#define GPIO_OTGFS_VBUS              (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
+#define GPIO_OTGFS_VBUS (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_OPENDRAIN | GPIO_PORTA | GPIO_PIN9)
 
 /* High-resolution timer */
-#define HRT_TIMER                    3  /* use timer 3 for the HRT */
-#define HRT_TIMER_CHANNEL            4  /* use capture/compare channel 4 */
+#define HRT_TIMER 3         /* use timer 3 for the HRT */
+#define HRT_TIMER_CHANNEL 4 /* use capture/compare channel 4 */
 
-#define HRT_PPM_CHANNEL              3  /* use capture/compare channel 3 */
-#define GPIO_PPM_IN                  (GPIO_ALT|GPIO_AF2|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
+#define HRT_PPM_CHANNEL 3 /* use capture/compare channel 3 */
+#define GPIO_PPM_IN (GPIO_ALT | GPIO_AF2 | GPIO_PULLUP | GPIO_PORTB | GPIO_PIN0)
 
 /* RC Serial port */
 
-#define RC_SERIAL_PORT               "/dev/ttyS4"
+#define RC_SERIAL_PORT "/dev/ttyS4"
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2. */
-#define PWMIN_TIMER                  4
-#define PWMIN_TIMER_CHANNEL          2
-#define GPIO_PWM_IN                  GPIO_TIM4_CH2IN_2
+#define PWMIN_TIMER 4
+#define PWMIN_TIMER_CHANNEL 2
+#define GPIO_PWM_IN GPIO_TIM4_CH2IN_2
 
-#define GPIO_RSSI_IN                 (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN1)
-#define GPIO_LED_SAFETY              (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN3)
-#define GPIO_BTN_SAFETY              (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN4)
-#define GPIO_PERIPH_3V3_EN           (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN5)
+#define GPIO_RSSI_IN (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTC | GPIO_PIN1)
+#define GPIO_LED_SAFETY (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_SET | GPIO_PORTC | GPIO_PIN3)
+#define GPIO_BTN_SAFETY (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTC | GPIO_PIN4)
+#define GPIO_PERIPH_3V3_EN (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_SET | GPIO_PORTC | GPIO_PIN5)
 
 /* For,this signal is active high. */
-#define GPIO_SBUS_INV                (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
+#define GPIO_SBUS_INV (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_SET | GPIO_PORTC | GPIO_PIN13)
 #define RC_INVERT_INPUT(_invert_true) px4_arch_gpiowrite(GPIO_SBUS_INV, _invert_true)
 
-#define GPIO_SPEKTRUM_PWR_EN         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
+#define GPIO_SPEKTRUM_PWR_EN \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN4)
 
 /* GPIOs */
-#define GPIO_PE2	             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN2)
-#define GPIO_PB4                     (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN4)
-#define GPIO_PE5                     (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN5)
-#define GPIO_PE6                     (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN6)
+#define GPIO_PE2 (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTE | GPIO_PIN2)
+#define GPIO_PB4 (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTB | GPIO_PIN4)
+#define GPIO_PE5 (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_SET | GPIO_PORTE | GPIO_PIN5)
+#define GPIO_PE6 (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_SET | GPIO_PORTE | GPIO_PIN6)
 
 /* Heater pins (reserved) */
-#define GPIO_HEATER_INPUT            (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTC|GPIO_PIN6)
-#define GPIO_HEATER_OUTPUT           (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN6)
-#define HEATER_OUTPUT_EN(on_true)    px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
+#define GPIO_HEATER_INPUT (GPIO_INPUT | GPIO_PULLDOWN | GPIO_PORTC | GPIO_PIN6)
+#define GPIO_HEATER_OUTPUT (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTC | GPIO_PIN6)
+#define HEATER_OUTPUT_EN(on_true) px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
 
 /* Power switch controls */
 
-#define SPEKTRUM_POWER(_on_true)     px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (!_on_true))
+#define SPEKTRUM_POWER(_on_true) px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (!_on_true))
 
 /**
  * UVify Core has separate RC_IN
@@ -155,32 +158,30 @@
  * The FMU can drive  GPIO PPM_IN as an output
  */
 
-#define GPIO_PPM_IN_AS_OUT           (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN0)
+#define GPIO_PPM_IN_AS_OUT (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN0)
 #define SPEKTRUM_RX_AS_GPIO_OUTPUT() px4_arch_configgpio(GPIO_PPM_IN_AS_OUT)
-#define SPEKTRUM_RX_AS_UART()       /* Can be left as uart */
-#define SPEKTRUM_OUT(_one_true)      px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
+#define SPEKTRUM_RX_AS_UART() /* Can be left as uart */
+#define SPEKTRUM_OUT(_one_true) px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
 /**
  * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
  * this board support the ADC system_power interface, and therefore
  * provides the true logic GPIO BOARD_ADC_xxxx macros.
  */
-#define BOARD_ADC_USB_CONNECTED      (px4_arch_gpioread(GPIO_OTGFS_VBUS))
-#define BOARD_ADC_BRICK_VALID        (px4_arch_gpioread(GPIO_VDD_BRICK_VALID))
-#define BOARD_ADC_USB_VALID          (px4_arch_gpioread(GPIO_VDD_USB_VALID))
-#define BOARD_ADC_SERVO_VALID        (1)
-#define BOARD_ADC_PERIPH_5V_OC       (0)
-#define BOARD_ADC_HIPOWER_5V_OC      (0)
-
+#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
+#define BOARD_ADC_BRICK_VALID (px4_arch_gpioread(GPIO_VDD_BRICK_VALID))
+#define BOARD_ADC_USB_VALID (px4_arch_gpioread(GPIO_VDD_USB_VALID))
+#define BOARD_ADC_SERVO_VALID (1)
+#define BOARD_ADC_PERIPH_5V_OC (0)
+#define BOARD_ADC_HIPOWER_5V_OC (0)
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
 #define BOARD_HAS_ON_RESET 1
 
-
 #define BOARD_ENABLE_CONSOLE_BUFFER
-#define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
+#define BOARD_CONSOLE_BUFFER_SIZE (1024 * 3)
 
 __BEGIN_DECLS
 

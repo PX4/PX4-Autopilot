@@ -31,21 +31,20 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
 #include <HealthFlags.h>
-
 #include <lib/parameters/param.h>
 #include <mathlib/mathlib.h>
 #include <systemlib/mavlink_log.h>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_preflight_mag.h>
+
+#include <uORB/Subscription.hpp>
+
+#include "../PreFlightCheck.hpp"
 
 // return false if the magnetomer measurements are inconsistent
 bool PreFlightCheck::magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
-		const bool report_status)
-{
-	bool pass = false; // flag for result of checks
+					 const bool report_status) {
+	bool pass = false;  // flag for result of checks
 
 	// get the sensor preflight data
 	uORB::SubscriptionData<sensor_preflight_mag_s> sensors_sub{ORB_ID(sensor_preflight_mag)};
@@ -62,7 +61,7 @@ bool PreFlightCheck::magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_
 	int32_t angle_difference_limit_deg = 90;
 	param_get(param_find("COM_ARM_MAG_ANG"), &angle_difference_limit_deg);
 
-	pass = pass || angle_difference_limit_deg < 0; // disabled, pass check
+	pass = pass || angle_difference_limit_deg < 0;  // disabled, pass check
 	pass = pass || sensors.mag_inconsistency_angle < math::radians<float>(angle_difference_limit_deg);
 
 	if (!pass && report_status) {

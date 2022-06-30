@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include "SDP3X.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void SDP3X::print_usage()
-{
+#include "SDP3X.hpp"
+
+void SDP3X::print_usage() {
 	PRINT_MODULE_USAGE_NAME("sdp3x", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -47,8 +46,7 @@ void SDP3X::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int sdp3x_main(int argc, char *argv[])
-{
+extern "C" int sdp3x_main(int argc, char *argv[]) {
 	using ThisDriver = SDP3X;
 	BusCLIArguments cli{true, false};
 	cli.i2c_address = I2C_ADDRESS_1_SDP3X;

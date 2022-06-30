@@ -38,26 +38,23 @@
 #define MODULE_NAME "cli"
 #endif
 
+#include <errno.h>
 #include <px4_platform_common/log.h>
 
-#include <cstring>
-#include <errno.h>
 #include <cstdlib>
+#include <cstring>
 
-int px4_get_parameter_value(const char *option, int &value)
-{
+int px4_get_parameter_value(const char *option, int &value) {
 	value = 0;
 
 	/* check if this is a param name */
 	if (strncmp("p:", option, 2) == 0) {
-
 		const char *param_name = option + 2;
 
 		/* user wants to use a param name */
 		param_t param_handle = param_find(param_name);
 
 		if (param_handle != PARAM_INVALID) {
-
 			if (param_type(param_handle) != PARAM_TYPE_INT32) {
 				return -EINVAL;
 			}

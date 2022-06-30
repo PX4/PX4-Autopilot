@@ -36,22 +36,18 @@
 
 #include <stdint.h>
 
-
-namespace uORBCommunicator
-{
+namespace uORBCommunicator {
 class IChannel;
 class IChannelRxHandler;
-}
+}  // namespace uORBCommunicator
 
 /**
  * Interface to enable remote subscriptions.  The implementor of this interface
  * shall manage the communication channel. It can be fastRPC or tcp or ip.
  */
 
-class uORBCommunicator::IChannel
-{
+class uORBCommunicator::IChannel {
 public:
-
 	//=========================================================================
 	//     INTERFACES FOR Control messages over a channel.
 	//=========================================================================
@@ -81,7 +77,7 @@ public:
 	 * 		Note: This does not mean that the receiver as received it.
 	 *  otherwise = failure.
 	 */
-	//virtual int16_t topic_unadvertised(const char *messageName) = 0;
+	// virtual int16_t topic_unadvertised(const char *messageName) = 0;
 
 	/**
 	 * @brief Interface to notify the remote entity of interest of a
@@ -100,8 +96,6 @@ public:
 
 	virtual int16_t add_subscription(const char *messageName, int32_t msgRateInHz) = 0;
 
-
-
 	/**
 	 * @brief Interface to notify the remote entity of removal of a subscription
 	 *
@@ -116,12 +110,10 @@ public:
 
 	virtual int16_t remove_subscription(const char *messageName) = 0;
 
-
 	/**
 	 * Register Message Handler.  This is internal for the IChannel implementer*
 	 */
 	virtual int16_t register_handler(uORBCommunicator::IChannelRxHandler *handler) = 0;
-
 
 	//=========================================================================
 	//     INTERFACES FOR Data messages
@@ -143,17 +135,14 @@ public:
 	 */
 
 	virtual int16_t send_message(const char *messageName, int32_t length, uint8_t *data) = 0;
-
 };
 
 /**
  * Class passed to the communication link implement to provide callback for received
  * messages over a channel.
  */
-class uORBCommunicator::IChannelRxHandler
-{
+class uORBCommunicator::IChannelRxHandler {
 public:
-
 	/**
 	 * Interface to process a received topic from remote.
 	 * @param topic_name
@@ -184,7 +173,6 @@ public:
 
 	virtual int16_t process_add_subscription(const char *messageName, int32_t msgRateInHz) = 0;
 
-
 	/**
 	 * Interface to process a received control msg to remove subscription
 	 * @param messageName
@@ -197,7 +185,6 @@ public:
 	 */
 
 	virtual int16_t process_remove_subscription(const char *messageName) = 0;
-
 
 	/**
 	 * Interface to process the received data message.
@@ -215,7 +202,6 @@ public:
 	 */
 
 	virtual int16_t process_received_message(const char *messageName, int32_t length, uint8_t *data) = 0;
-
 };
 
 #endif /* _uORBCommunicator_hpp_ */

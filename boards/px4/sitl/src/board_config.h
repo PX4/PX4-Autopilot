@@ -39,18 +39,18 @@
 
 #pragma once
 
-#define BOARD_OVERRIDE_UUID "SIMULATIONID0000" // must be of length 16
-#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_SITL
+#define BOARD_OVERRIDE_UUID "SIMULATIONID0000"  // must be of length 16
+#define PX4_SOC_ARCH_ID PX4_SOC_ARCH_ID_SITL
 
 #define BOARD_HAS_POWER_CONTROL 1
 
 #define PX4_NUMBER_I2C_BUSES 1
 
-#define BOARD_NUMBER_BRICKS     0
+#define BOARD_NUMBER_BRICKS 0
 #define BOARD_HAS_CONTROL_STATUS_LEDS 1
-#define BOARD_OVERLOAD_LED     LED_RED
-#define BOARD_ARMED_LED        LED_BLUE
-#define BOARD_ARMED_STATE_LED  LED_GREEN
+#define BOARD_OVERLOAD_LED LED_RED
+#define BOARD_ARMED_LED LED_BLUE
+#define BOARD_ARMED_STATE_LED LED_GREEN
 
-#include <system_config.h>
 #include <px4_platform_common/board_common.h>
+#include <system_config.h>

@@ -32,21 +32,19 @@
  ****************************************************************************/
 
 // TODO:Stubbed out for now
-#include <stdint.h>
-
 #include <chip.h>
-#include "hardware/imxrt_tmr.h"
-#include "hardware/imxrt_flexpwm.h"
-#include "imxrt_gpio.h"
-#include "imxrt_iomuxc.h"
-#include "hardware/imxrt_pinmux.h"
-#include "imxrt_xbar.h"
-#include "imxrt_periphclks.h"
-
 #include <drivers/drv_pwm_output.h>
 #include <px4_arch/io_timer_hw_description.h>
+#include <stdint.h>
 
 #include "board_config.h"
+#include "hardware/imxrt_flexpwm.h"
+#include "hardware/imxrt_pinmux.h"
+#include "hardware/imxrt_tmr.h"
+#include "imxrt_gpio.h"
+#include "imxrt_iomuxc.h"
+#include "imxrt_periphclks.h"
+#include "imxrt_xbar.h"
 
 /****************************************************************************************************
  * Definitions
@@ -58,22 +56,22 @@
 
 /* QTimer3 register accessors */
 
-#define REG(_reg) _REG(IMXRT_QTIMER3_BASE + IMXRT_TMR_OFFSET(IMXRT_TMR_CH0,(_reg)))
+#define REG(_reg) _REG(IMXRT_QTIMER3_BASE + IMXRT_TMR_OFFSET(IMXRT_TMR_CH0, (_reg)))
 
-#define rCOMP1        REG(IMXRT_TMR_COMP1_OFFSET)
-#define rCOMP2        REG(IMXRT_TMR_COMP2_OFFSET)
-#define rCAPT         REG(IMXRT_TMR_CAPT_OFFSET)
-#define rLOAD         REG(IMXRT_TMR_LOAD_OFFSET)
-#define rHOLD         REG(IMXRT_TMR_HOLD_OFFSET)
-#define rCNTR         REG(IMXRT_TMR_CNTR_OFFSET)
-#define rCTRL         REG(IMXRT_TMR_CTRL_OFFSET)
-#define rSCTRL        REG(IMXRT_TMR_SCTRL_OFFSET)
-#define rCMPLD1       REG(IMXRT_TMR_CMPLD1_OFFSET)
-#define rCMPLD2       REG(IMXRT_TMR_CMPLD2_OFFSET)
-#define rCSCTRL       REG(IMXRT_TMR_CSCTRL_OFFSET)
-#define rFILT         REG(IMXRT_TMR_FILT_OFFSET)
-#define rDMA          REG(IMXRT_TMR_DMA_OFFSET)
-#define rENBL         REG(IMXRT_TMR_ENBL_OFFSET)
+#define rCOMP1 REG(IMXRT_TMR_COMP1_OFFSET)
+#define rCOMP2 REG(IMXRT_TMR_COMP2_OFFSET)
+#define rCAPT REG(IMXRT_TMR_CAPT_OFFSET)
+#define rLOAD REG(IMXRT_TMR_LOAD_OFFSET)
+#define rHOLD REG(IMXRT_TMR_HOLD_OFFSET)
+#define rCNTR REG(IMXRT_TMR_CNTR_OFFSET)
+#define rCTRL REG(IMXRT_TMR_CTRL_OFFSET)
+#define rSCTRL REG(IMXRT_TMR_SCTRL_OFFSET)
+#define rCMPLD1 REG(IMXRT_TMR_CMPLD1_OFFSET)
+#define rCMPLD2 REG(IMXRT_TMR_CMPLD2_OFFSET)
+#define rCSCTRL REG(IMXRT_TMR_CSCTRL_OFFSET)
+#define rFILT REG(IMXRT_TMR_FILT_OFFSET)
+#define rDMA REG(IMXRT_TMR_DMA_OFFSET)
+#define rENBL REG(IMXRT_TMR_ENBL_OFFSET)
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
 	initIOPWM(PWM::FlexPWM2),
@@ -95,15 +93,11 @@ constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 constexpr io_timers_channel_mapping_t io_timers_channel_mapping =
 	initIOTimerChannelMapping(io_timers, timer_io_channels);
 
-constexpr io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
-};
+constexpr io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {};
 
-constexpr timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
-};
+constexpr timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {};
 
-
-void fmurt1062_timer_initialize(void)
-{
+void fmurt1062_timer_initialize(void) {
 	/* We must configure Qtimer 3 as the IPG divide by to yield 16 Mhz
 	 * and deliver that clock to the eFlexPWM234 via XBAR
 	 *
@@ -121,7 +115,7 @@ void fmurt1062_timer_initialize(void)
 	/* Disable Timer */
 
 	rCTRL = 0;
-	rCOMP1 = 5 - 1; // N - 1
+	rCOMP1 = 5 - 1;  // N - 1
 	rCOMP2 = 4 - 1;
 
 	rCAPT = 0;
@@ -133,15 +127,15 @@ void fmurt1062_timer_initialize(void)
 	rCMPLD1 = 0;
 	rCMPLD2 = 0;
 	rCSCTRL = 0;
-	rFILT   = 0;
-	rDMA    = 0;
+	rFILT = 0;
+	rDMA = 0;
 
 	/* Count rising edges of primary source,
 	 * Prescaler is /1
-	 * Count UP until compare, then re-initialize. a successful compare occurs when the counter reaches a COMP1 value.
-	 * Toggle OFLAG output using alternating compare registers
+	 * Count UP until compare, then re-initialize. a successful compare occurs when the counter reaches a COMP1
+	 * value. Toggle OFLAG output using alternating compare registers
 	 */
-	rCTRL   = (TMR_CTRL_CM_MODE1 | TMR_CTRL_PCS_DIV1 | TMR_CTRL_LENGTH | TMR_CTRL_OUTMODE_TOG_ALT);
+	rCTRL = (TMR_CTRL_CM_MODE1 | TMR_CTRL_PCS_DIV1 | TMR_CTRL_LENGTH | TMR_CTRL_OUTMODE_TOG_ALT);
 
 	/* QTIMER3_TIMER0  -> Flexpwm234ExtClk  */
 

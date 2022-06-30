@@ -41,8 +41,8 @@
  * Included Files
  ************************************************************/
 
-#include <stddef.h>
 #include <queue.h>
+#include <stddef.h>
 
 /************************************************************
  * Public Functions
@@ -56,8 +56,7 @@
  *   the 'queue'
  ************************************************************/
 
-void sq_addlast(sq_entry_t *node, sq_queue_t *queue)
-{
+void sq_addlast(sq_entry_t *node, sq_queue_t *queue) {
 	node->flink = NULL;
 
 	if (!queue->head) {
@@ -66,7 +65,6 @@ void sq_addlast(sq_entry_t *node, sq_queue_t *queue)
 
 	} else {
 		queue->tail->flink = node;
-		queue->tail        = node;
+		queue->tail = node;
 	}
 }
-

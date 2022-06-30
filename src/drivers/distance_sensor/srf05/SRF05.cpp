@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 
-
 /**
  * @file SRF05.c
  * @author David Sidrane <david.sidrane@nscdg.com>
@@ -46,27 +45,24 @@
 
 #include <px4_arch/micro_hal.h>
 
-SRF05::SRF05(const uint8_t rotation) :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_px4_rangefinder(0 /* no device type for GPIO input */, rotation)
-{
+SRF05::SRF05(const uint8_t rotation)
+	: ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	  _px4_rangefinder(0 /* no device type for GPIO input */, rotation) {
 	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_SRF05);
 	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND);
 	_px4_rangefinder.set_min_distance(HXSRX0X_MIN_DISTANCE);
 	_px4_rangefinder.set_max_distance(HXSRX0X_MAX_DISTANCE);
-	_px4_rangefinder.set_fov(0.261799); // 15 degree FOV
+	_px4_rangefinder.set_fov(0.261799);  // 15 degree FOV
 }
 
-SRF05::~SRF05()
-{
+SRF05::~SRF05() {
 	stop();
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 	perf_free(_sensor_resets);
 }
 
-void SRF05::OnEdge(bool state)
-{
+void SRF05::OnEdge(bool state) {
 	const hrt_abstime now = hrt_absolute_time();
 
 	if (_state == STATE::WAIT_FOR_RISING || _state == STATE::WAIT_FOR_FALLING) {
@@ -83,15 +79,12 @@ void SRF05::OnEdge(bool state)
 	}
 }
 
-int SRF05::EchoInterruptCallback(int irq, void *context, void *arg)
-{
+int SRF05::EchoInterruptCallback(int irq, void *context, void *arg) {
 	static_cast<SRF05 *>(arg)->OnEdge(px4_arch_gpioread(GPIO_ULTRASOUND_ECHO));
 	return 0;
 }
 
-int
-SRF05::init()
-{
+int SRF05::init() {
 	px4_arch_configgpio(GPIO_ULTRASOUND_TRIGGER);
 	px4_arch_configgpio(GPIO_ULTRASOUND_ECHO);
 	px4_arch_gpiowrite(GPIO_ULTRASOUND_TRIGGER, 1);
@@ -101,17 +94,14 @@ SRF05::init()
 	return PX4_OK;
 }
 
-void SRF05::stop()
-{
+void SRF05::stop() {
 	_state = STATE::EXIT;
 	px4_arch_gpiosetevent(GPIO_ULTRASOUND_ECHO, false, false, false, nullptr, nullptr);
 	px4_arch_gpiowrite(GPIO_ULTRASOUND_TRIGGER, 1);
 	ScheduleClear();
 }
 
-void
-SRF05::Run()
-{
+void SRF05::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
@@ -119,40 +109,38 @@ SRF05::Run()
 	}
 
 	switch (_state) {
+		case STATE::TRIGGER:
+			_state = STATE::WAIT_FOR_RISING;
+			px4_arch_gpiowrite(GPIO_ULTRASOUND_TRIGGER,
+					   0);  // ya ya I know they're wrong! It triggers on the falling edge.
+			break;
 
-	case STATE::TRIGGER:
-		_state = STATE::WAIT_FOR_RISING;
-		px4_arch_gpiowrite(GPIO_ULTRASOUND_TRIGGER, 0); // ya ya I know they're wrong! It triggers on the falling edge.
-		break;
+		case STATE::WAIT_FOR_RISING:
+		case STATE::WAIT_FOR_FALLING:
+			_state = STATE::TRIGGER;
+			perf_count(_sensor_resets);
+			px4_arch_gpiowrite(GPIO_ULTRASOUND_TRIGGER, 1);
+			break;
 
-	case STATE::WAIT_FOR_RISING:
-	case STATE::WAIT_FOR_FALLING:
-		_state = STATE::TRIGGER;
-		perf_count(_sensor_resets);
-		px4_arch_gpiowrite(GPIO_ULTRASOUND_TRIGGER, 1);
-		break;
+		case STATE::SAMPLE:
+			_state = STATE::MEASURE;
+			measure();
+			_state = STATE::TRIGGER;
+			break;
 
-	case STATE::SAMPLE:
-		_state = STATE::MEASURE;
-		measure();
-		_state = STATE::TRIGGER;
-		break;
-
-	case STATE::EXIT:
-	default:
-		break;
+		case STATE::EXIT:
+		default:
+			break;
 	}
 }
 
-int
-SRF05::measure()
-{
+int SRF05::measure() {
 	perf_begin(_sample_perf);
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	const hrt_abstime dt = _falling_edge_time - _rising_edge_time;
 
-	const float current_distance = dt *  343.0f / 1e6f / 2.0f;
+	const float current_distance = dt * 343.0f / 1e6f / 2.0f;
 
 	if (dt > HXSRX0X_CONVERSION_TIMEOUT) {
 		perf_count(_comms_errors);
@@ -165,15 +153,9 @@ SRF05::measure()
 	return PX4_OK;
 }
 
-int SRF05::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int SRF05::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-
-int SRF05::task_spawn(int argc, char *argv[])
-{
-
+int SRF05::task_spawn(int argc, char *argv[]) {
 	int ch = 0;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
@@ -182,13 +164,13 @@ int SRF05::task_spawn(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'R':
-			rotation = (uint8_t)atoi(myoptarg);
-			PX4_INFO("Setting sr05 orientation to %d", (int)rotation);
-			break;
+			case 'R':
+				rotation = (uint8_t)atoi(myoptarg);
+				PX4_INFO("Setting sr05 orientation to %d", (int)rotation);
+				break;
 
-		default:
-			return print_usage();
+			default:
+				return print_usage();
 		}
 	}
 
@@ -213,8 +195,7 @@ int SRF05::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int SRF05::print_usage(const char *reason)
-{
+int SRF05::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -239,9 +220,7 @@ int SRF05::print_usage(const char *reason)
 	return PX4_OK;
 }
 
-int
-SRF05::print_status()
-{
+int SRF05::print_status() {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sensor_resets);
@@ -249,10 +228,7 @@ SRF05::print_status()
 	return 0;
 }
 
-extern "C" __EXPORT int srf05_main(int argc, char *argv[])
-{
-	return SRF05::main(argc, argv);
-}
+extern "C" __EXPORT int srf05_main(int argc, char *argv[]) { return SRF05::main(argc, argv); }
 #else
-# error ("GPIO_ULTRASOUND_xxx not defined. Driver not supported.");
+#error("GPIO_ULTRASOUND_xxx not defined. Driver not supported.");
 #endif

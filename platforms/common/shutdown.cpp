@@ -36,23 +36,21 @@
  * Implementation of the API declared in px4_shutdown.h.
  */
 
+#include <drivers/drv_hrt.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/workqueue.h>
 #include <px4_platform_common/shutdown.h>
 #include <px4_platform_common/tasks.h>
-
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/workqueue.h>
 
 #ifndef MODULE_NAME
 #define MODULE_NAME "shutdown"
 #endif
 
-#include <px4_platform_common/external_reset_lockout.h>
-#include <px4_platform_common/log.h>
-
-#include <stdint.h>
 #include <errno.h>
 #include <pthread.h>
+#include <px4_platform_common/external_reset_lockout.h>
+#include <px4_platform_common/log.h>
+#include <stdint.h>
 
 #ifdef __PX4_NUTTX
 #include <nuttx/board.h>
@@ -62,11 +60,10 @@
 using namespace time_literals;
 
 static pthread_mutex_t shutdown_mutex =
-	PTHREAD_MUTEX_INITIALIZER; // protects access to shutdown_hooks & shutdown_lock_counter
+	PTHREAD_MUTEX_INITIALIZER;  // protects access to shutdown_hooks & shutdown_lock_counter
 static uint8_t shutdown_lock_counter = 0;
 
-int px4_shutdown_lock()
-{
+int px4_shutdown_lock() {
 	int ret = pthread_mutex_lock(&shutdown_mutex);
 
 	if (ret == 0) {
@@ -78,8 +75,7 @@ int px4_shutdown_lock()
 	return ret;
 }
 
-int px4_shutdown_unlock()
-{
+int px4_shutdown_unlock() {
 	int ret = pthread_mutex_lock(&shutdown_mutex);
 
 	if (ret == 0) {
@@ -103,11 +99,11 @@ int px4_shutdown_unlock()
 #if defined(CONFIG_SCHED_WORKQUEUE) || (!defined(CONFIG_BUILD_FLAT) && defined(CONFIG_LIB_USRWORK))
 
 static struct work_s shutdown_work = {};
-static uint16_t shutdown_counter = 0; ///< count how many times the shutdown worker was executed
+static uint16_t shutdown_counter = 0;  ///< count how many times the shutdown worker was executed
 
-#define SHUTDOWN_ARG_IN_PROGRESS (1<<0)
-#define SHUTDOWN_ARG_REBOOT (1<<1)
-#define SHUTDOWN_ARG_TO_BOOTLOADER (1<<2)
+#define SHUTDOWN_ARG_IN_PROGRESS (1 << 0)
+#define SHUTDOWN_ARG_REBOOT (1 << 1)
+#define SHUTDOWN_ARG_TO_BOOTLOADER (1 << 2)
 static uint8_t shutdown_args = 0;
 
 static constexpr int max_shutdown_hooks = 1;
@@ -115,10 +111,9 @@ static shutdown_hook_t shutdown_hooks[max_shutdown_hooks] = {};
 
 static hrt_abstime shutdown_time_us = 0;
 static constexpr hrt_abstime shutdown_timeout_us =
-	5_s; ///< force shutdown after this time if modules do not respond in time
+	5_s;  ///< force shutdown after this time if modules do not respond in time
 
-int px4_register_shutdown_hook(shutdown_hook_t hook)
-{
+int px4_register_shutdown_hook(shutdown_hook_t hook) {
 	pthread_mutex_lock(&shutdown_mutex);
 
 	for (int i = 0; i < max_shutdown_hooks; ++i) {
@@ -133,8 +128,7 @@ int px4_register_shutdown_hook(shutdown_hook_t hook)
 	return -ENOMEM;
 }
 
-int px4_unregister_shutdown_hook(shutdown_hook_t hook)
-{
+int px4_unregister_shutdown_hook(shutdown_hook_t hook) {
 	pthread_mutex_lock(&shutdown_mutex);
 
 	for (int i = 0; i < max_shutdown_hooks; ++i) {
@@ -153,8 +147,7 @@ int px4_unregister_shutdown_hook(shutdown_hook_t hook)
  * work queue callback method to shutdown.
  * @param arg unused
  */
-static void shutdown_worker(void *arg)
-{
+static void shutdown_worker(void *arg) {
 	PX4_DEBUG("shutdown worker (%i)", shutdown_counter);
 	bool done = true;
 
@@ -171,7 +164,8 @@ static void shutdown_worker(void *arg)
 	const hrt_abstime now = hrt_absolute_time();
 	const bool delay_elapsed = (now > shutdown_time_us);
 
-	if (delay_elapsed && ((done && shutdown_lock_counter == 0) || (now > (shutdown_time_us + shutdown_timeout_us)))) {
+	if (delay_elapsed &&
+	    ((done && shutdown_lock_counter == 0) || (now > (shutdown_time_us + shutdown_timeout_us)))) {
 		if (shutdown_args & SHUTDOWN_ARG_REBOOT) {
 #if defined(CONFIG_BOARDCTL_RESET)
 			PX4_INFO_RAW("Reboot NOW.");
@@ -197,7 +191,7 @@ static void shutdown_worker(void *arg)
 #endif
 		}
 
-		pthread_mutex_unlock(&shutdown_mutex); // must NEVER come here
+		pthread_mutex_unlock(&shutdown_mutex);  // must NEVER come here
 
 	} else {
 		pthread_mutex_unlock(&shutdown_mutex);
@@ -206,8 +200,7 @@ static void shutdown_worker(void *arg)
 }
 
 #if defined(CONFIG_BOARDCTL_RESET)
-int px4_reboot_request(bool to_bootloader, uint32_t delay_us)
-{
+int px4_reboot_request(bool to_bootloader, uint32_t delay_us) {
 	pthread_mutex_lock(&shutdown_mutex);
 
 	if (shutdown_args & SHUTDOWN_ARG_IN_PROGRESS) {
@@ -231,11 +224,10 @@ int px4_reboot_request(bool to_bootloader, uint32_t delay_us)
 	pthread_mutex_unlock(&shutdown_mutex);
 	return 0;
 }
-#endif // CONFIG_BOARDCTL_RESET
+#endif  // CONFIG_BOARDCTL_RESET
 
 #if defined(BOARD_HAS_POWER_CONTROL) || defined(__PX4_POSIX)
-int px4_shutdown_request(uint32_t delay_us)
-{
+int px4_shutdown_request(uint32_t delay_us) {
 	pthread_mutex_lock(&shutdown_mutex);
 
 	if (shutdown_args & SHUTDOWN_ARG_IN_PROGRESS) {
@@ -255,6 +247,6 @@ int px4_shutdown_request(uint32_t delay_us)
 	pthread_mutex_unlock(&shutdown_mutex);
 	return 0;
 }
-#endif // BOARD_HAS_POWER_CONTROL
+#endif  // BOARD_HAS_POWER_CONTROL
 
-#endif // CONFIG_SCHED_WORKQUEUE)
+#endif  // CONFIG_SCHED_WORKQUEUE)

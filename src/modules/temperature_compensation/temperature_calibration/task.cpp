@@ -39,35 +39,32 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
-#include <uORB/Publication.hpp>
-#include <uORB/topics/sensor_gyro.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_led.h>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_led.h>
-
+#include <uORB/topics/sensor_gyro.h>
 #include <unistd.h>
 
-#include "common.h"
-#include "temperature_calibration.h"
+#include <uORB/Publication.hpp>
+
 #include "accel.h"
 #include "baro.h"
+#include "common.h"
 #include "gyro.h"
+#include "temperature_calibration.h"
 
 class TemperatureCalibration;
 
-namespace temperature_calibration
-{
+namespace temperature_calibration {
 px4::atomic<TemperatureCalibration *> instance{nullptr};
 }
 
-class TemperatureCalibration
-{
+class TemperatureCalibration {
 public:
-
 	TemperatureCalibration(bool accel, bool baro, bool gyro) : _accel(accel), _baro(baro), _gyro(gyro) {}
 	~TemperatureCalibration() = default;
 
@@ -76,11 +73,11 @@ public:
 	 *
 	 * @return		OK on success.
 	 */
-	int		start();
+	int start();
 
 	static int do_temperature_calibration(int argc, char *argv[]);
 
-	void		task_main();
+	void task_main();
 
 	void exit_task() { _force_task_exit = true; }
 
@@ -89,19 +86,18 @@ private:
 
 	uORB::Publication<led_control_s> _led_control_pub{ORB_ID(led_control)};
 
-	bool	_force_task_exit = false;
-	int	_control_task = -1;		// task handle for task
+	bool _force_task_exit = false;
+	int _control_task = -1;  // task handle for task
 
-	const bool _accel; ///< enable accel calibration?
-	const bool _baro; ///< enable baro calibration?
-	const bool _gyro; ///< enable gyro calibration?
+	const bool _accel;  ///< enable accel calibration?
+	const bool _baro;   ///< enable baro calibration?
+	const bool _gyro;   ///< enable gyro calibration?
 };
 
-void TemperatureCalibration::task_main()
-{
+void TemperatureCalibration::task_main() {
 	// subscribe to all gyro instances
-	int gyro_sub[SENSOR_COUNT_MAX] {-1, -1, -1};
-	px4_pollfd_struct_t fds[SENSOR_COUNT_MAX] {};
+	int gyro_sub[SENSOR_COUNT_MAX]{-1, -1, -1};
+	px4_pollfd_struct_t fds[SENSOR_COUNT_MAX]{};
 	unsigned num_gyro = orb_group_count(ORB_ID(sensor_gyro));
 
 	if (num_gyro > SENSOR_COUNT_MAX) {
@@ -124,13 +120,14 @@ void TemperatureCalibration::task_main()
 	int32_t max_start_temp = 10;
 	param_get(param_find("SYS_CAL_TMAX"), &max_start_temp);
 
-	//init calibrators
-	TemperatureCalibrationBase *calibrators[3] {};
-	bool error_reported[3] {};
+	// init calibrators
+	TemperatureCalibrationBase *calibrators[3]{};
+	bool error_reported[3]{};
 	int num_calibrators = 0;
 
 	if (_accel) {
-		calibrators[num_calibrators] = new TemperatureCalibrationAccel(min_temp_rise, min_start_temp, max_start_temp);
+		calibrators[num_calibrators] =
+			new TemperatureCalibrationAccel(min_temp_rise, min_start_temp, max_start_temp);
 
 		if (calibrators[num_calibrators]) {
 			++num_calibrators;
@@ -141,7 +138,8 @@ void TemperatureCalibration::task_main()
 	}
 
 	if (_baro) {
-		calibrators[num_calibrators] = new TemperatureCalibrationBaro(min_temp_rise, min_start_temp, max_start_temp);
+		calibrators[num_calibrators] =
+			new TemperatureCalibrationBaro(min_temp_rise, min_start_temp, max_start_temp);
 
 		if (calibrators[num_calibrators]) {
 			++num_calibrators;
@@ -152,8 +150,8 @@ void TemperatureCalibration::task_main()
 	}
 
 	if (_gyro) {
-		calibrators[num_calibrators] = new TemperatureCalibrationGyro(min_temp_rise, min_start_temp, max_start_temp, gyro_sub,
-				num_gyro);
+		calibrators[num_calibrators] = new TemperatureCalibrationGyro(min_temp_rise, min_start_temp,
+									      max_start_temp, gyro_sub, num_gyro);
 
 		if (calibrators[num_calibrators]) {
 			++num_calibrators;
@@ -193,7 +191,7 @@ void TemperatureCalibration::task_main()
 			continue;
 		}
 
-		//if gyro is not enabled: we must do an orb_copy here, so that poll() does not immediately return again
+		// if gyro is not enabled: we must do an orb_copy here, so that poll() does not immediately return again
 		if (!_gyro) {
 			sensor_gyro_s gyro_data;
 
@@ -231,7 +229,7 @@ void TemperatureCalibration::task_main()
 		}
 
 		if (min_progress == 110 || abort_calibration) {
-			break; // we are done
+			break;  // we are done
 		}
 
 		int led_progress = min_progress * BOARD_MAX_LEDS / 100;
@@ -242,7 +240,7 @@ void TemperatureCalibration::task_main()
 			publish_led_control(led_control);
 		}
 
-		//print progress each second
+		// print progress each second
 		hrt_abstime now = hrt_absolute_time();
 
 		if (now > next_progress_output) {
@@ -300,20 +298,14 @@ void TemperatureCalibration::task_main()
 	PX4_INFO("Exiting temperature calibration task");
 }
 
-int TemperatureCalibration::do_temperature_calibration(int argc, char *argv[])
-{
+int TemperatureCalibration::do_temperature_calibration(int argc, char *argv[]) {
 	temperature_calibration::instance.load()->task_main();
 	return 0;
 }
 
-int TemperatureCalibration::start()
-{
-	_control_task = px4_task_spawn_cmd("temperature_calib",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_MAX - 5,
-					   5800,
-					   (px4_main_t)&TemperatureCalibration::do_temperature_calibration,
-					   nullptr);
+int TemperatureCalibration::start() {
+	_control_task = px4_task_spawn_cmd("temperature_calib", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 5800,
+					   (px4_main_t)&TemperatureCalibration::do_temperature_calibration, nullptr);
 
 	if (_control_task < 0) {
 		delete temperature_calibration::instance.load();
@@ -325,16 +317,15 @@ int TemperatureCalibration::start()
 	return 0;
 }
 
-void TemperatureCalibration::publish_led_control(led_control_s &led_control)
-{
+void TemperatureCalibration::publish_led_control(led_control_s &led_control) {
 	led_control.timestamp = hrt_absolute_time();
 	_led_control_pub.publish(led_control);
 }
 
-int run_temperature_calibration(bool accel, bool baro, bool gyro)
-{
+int run_temperature_calibration(bool accel, bool baro, bool gyro) {
 	if (temperature_calibration::instance.load() == nullptr) {
-		PX4_INFO("Starting temperature calibration task (accel=%i, baro=%i, gyro=%i)", (int)accel, (int)baro, (int)gyro);
+		PX4_INFO("Starting temperature calibration task (accel=%i, baro=%i, gyro=%i)", (int)accel, (int)baro,
+			 (int)gyro);
 		temperature_calibration::instance.store(new TemperatureCalibration(accel, baro, gyro));
 
 		if (temperature_calibration::instance.load() == nullptr) {

@@ -45,40 +45,33 @@
  * Included Files
  ****************************************************************************/
 
+#include <arch/board/board.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
+#include <errno.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/mm/gran.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform_common/init.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
-
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
-#include <syslog.h>
-
-#include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-#include <nuttx/mm/gran.h>
-
 #include <stm32.h>
-#include "board_config.h"
 #include <stm32_uart.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
-
+#include <string.h>
+#include <syslog.h>
 #include <systemlib/px4_macros.h>
 
-#include <px4_platform_common/init.h>
-#include <px4_platform/board_dma_alloc.h>
-
-#include <drivers/drv_pwm_output.h>
-#include <px4_arch/io_timer.h>
+#include "board_config.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -109,8 +102,7 @@ __END_DECLS
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
+__EXPORT void board_peripheral_reset(int ms) {
 	// Set the peripheral rails off.
 	stm32_configgpio(GPIO_PERIPH_3V3_EN);
 
@@ -128,7 +120,6 @@ __EXPORT void board_peripheral_reset(int ms)
 	// Switch the peripheral rail back on.
 	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, last);
 	stm32_gpiowrite(GPIO_PERIPH_3V3_EN, 1);
-
 }
 
 /************************************************************************************
@@ -142,8 +133,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *          0 if just resetting
  *
  ************************************************************************************/
-__EXPORT void board_on_reset(int status)
-{
+__EXPORT void board_on_reset(int status) {
 	// Configure the GPIO pins to outputs and keep them low.
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
@@ -169,21 +159,18 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
-__EXPORT void
-stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	// Reset all PWM to Low outputs.
 	board_on_reset(-1);
 
 	// Configure LEDs.
 	board_autoled_initialize();
 
-
 	// Configure ADC pins.
-	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
-	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
-	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	stm32_configgpio(GPIO_ADC1_IN11);	/* RSSI analog in */
+	stm32_configgpio(GPIO_ADC1_IN2);  /* BATT_VOLTAGE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN3);  /* BATT_CURRENT_SENS */
+	stm32_configgpio(GPIO_ADC1_IN4);  /* VDD_5V_SENS */
+	stm32_configgpio(GPIO_ADC1_IN11); /* RSSI analog in */
 
 	// Configure CAN interface
 	stm32_configgpio(GPIO_CAN1_RX);
@@ -258,8 +245,7 @@ static struct sdio_dev_s *sdio;
 static struct spi_dev_s *spi4;
 #endif
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	px4_platform_init();
 
 	// Configure the DMA allocator.
@@ -293,7 +279,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 1\n");
 		led_on(LED_RED);
 	}
-
 
 	// Default SPI1 to 1MHz and de-assert the known chip selects.
 	SPI_SETFREQUENCY(spi1, 10000000);
@@ -339,7 +324,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif /* defined(CONFIG_STM32_SPI4) */
-
 
 #ifdef CONFIG_MMCSD
 

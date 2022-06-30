@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixVector3Test, Vector3)
-{
+TEST(MatrixVector3Test, Vector3) {
 	Vector3f a(1, 0, 0);
 	Vector3f b(0, 1, 0);
 	Vector3f c = a.cross(b);

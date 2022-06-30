@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "uORBDeviceMaster.hpp"
+
 #include "uORBDeviceNode.hpp"
 #include "uORBManager.hpp"
 #include "uORBUtils.hpp"
@@ -40,27 +41,20 @@
 #include "uORBCommunicator.hpp"
 #endif /* ORB_COMMUNICATOR */
 
-#include <px4_platform_common/sem.hpp>
+#include <math.h>
 #include <systemlib/px4_macros.h>
 
-#include <math.h>
+#include <px4_platform_common/sem.hpp>
 
-#ifndef __PX4_QURT // QuRT has no poll()
+#ifndef __PX4_QURT  // QuRT has no poll()
 #include <poll.h>
-#endif // PX4_QURT
+#endif  // PX4_QURT
 
-uORB::DeviceMaster::DeviceMaster()
-{
-	px4_sem_init(&_lock, 0, 1);
-}
+uORB::DeviceMaster::DeviceMaster() { px4_sem_init(&_lock, 0, 1); }
 
-uORB::DeviceMaster::~DeviceMaster()
-{
-	px4_sem_destroy(&_lock);
-}
+uORB::DeviceMaster::~DeviceMaster() { px4_sem_destroy(&_lock); }
 
-int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance)
-{
+int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance) {
 	int ret = PX4_ERROR;
 
 	char nodepath[orb_maxpath];
@@ -120,8 +114,8 @@ int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_adver
 
 				/*
 				 * We can claim an existing node in these cases:
-				 * - The node is not advertised (yet). It means there is already one or more subscribers or it was
-				 *   unadvertised.
+				 * - The node is not advertised (yet). It means there is already one or more subscribers
+				 * or it was unadvertised.
 				 * - We are a single-instance advertiser requesting the first instance.
 				 *   (Usually we don't end up here, but we might in case of a race condition between 2
 				 *   advertisers).
@@ -131,11 +125,11 @@ int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_adver
 				 */
 				bool is_single_instance_advertiser = is_advertiser && !instance;
 
-				if (existing_node != nullptr &&
-				    (!existing_node->is_advertised() || is_single_instance_advertiser || !is_advertiser)) {
+				if (existing_node != nullptr && (!existing_node->is_advertised() ||
+								 is_single_instance_advertiser || !is_advertiser)) {
 					if (is_advertiser) {
-						/* Set as advertised to avoid race conditions (otherwise 2 multi-instance advertisers
-						 * could get the same instance).
+						/* Set as advertised to avoid race conditions (otherwise 2
+						 * multi-instance advertisers could get the same instance).
 						 */
 						existing_node->mark_as_advertised();
 					}
@@ -168,8 +162,7 @@ int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_adver
 	return ret;
 }
 
-void uORB::DeviceMaster::printStatistics()
-{
+void uORB::DeviceMaster::printStatistics() {
 	/* Add all nodes to a list while locked, and then print them in unlocked state, to avoid potential
 	 * dead-locks (where printing blocks) */
 	lock();
@@ -199,8 +192,7 @@ void uORB::DeviceMaster::printStatistics()
 }
 
 int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics,
-		size_t &max_topic_name_length, char **topic_filter, int num_filters)
-{
+					  size_t &max_topic_name_length, char **topic_filter, int num_filters) {
 	DeviceNodeStatisticsData *cur_node = nullptr;
 	num_topics = 0;
 	DeviceNodeStatisticsData *last_node = *first_node;
@@ -212,10 +204,9 @@ int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node,
 	}
 
 	for (const auto &node : _node_list) {
-
 		++num_topics;
 
-		//check if already added
+		// check if already added
 		cur_node = *first_node;
 
 		while (cur_node && cur_node->node != node) {
@@ -269,10 +260,9 @@ int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node,
 
 #define CLEAR_LINE "\033[K"
 
-void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
-{
+void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters) {
 	bool print_active_only = true;
-	bool only_once = false; // if true, run only once, then exit
+	bool only_once = false;  // if true, run only once, then exit
 
 	if (topic_filter && num_filters > 0) {
 		bool show_all = false;
@@ -286,14 +276,15 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 			}
 		}
 
-		print_active_only = only_once ? (num_filters == 1) : false; // print non-active if -a or some filter given
+		print_active_only =
+			only_once ? (num_filters == 1) : false;  // print non-active if -a or some filter given
 
 		if (show_all || print_active_only) {
 			num_filters = 0;
 		}
 	}
 
-	PX4_INFO_RAW("\033[2J\n"); //clear screen
+	PX4_INFO_RAW("\033[2J\n");  // clear screen
 
 	lock();
 
@@ -316,7 +307,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 		PX4_ERR("addNewDeviceNodes failed (%i)", ret);
 	}
 
-#ifdef __PX4_QURT // QuRT has no poll()
+#ifdef __PX4_QURT  // QuRT has no poll()
 	only_once = true;
 #else
 	const int stdin_fileno = 0;
@@ -330,7 +321,6 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 	hrt_abstime start_time = hrt_absolute_time();
 
 	while (!quit) {
-
 #ifndef __PX4_QURT
 
 		if (!only_once) {
@@ -338,10 +328,9 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 			for (int k = 0; k < 7; k++) {
 				char c;
 
-				ret = ::poll(&fds, 1, 0); //just want to check if there is new data available
+				ret = ::poll(&fds, 1, 0);  // just want to check if there is new data available
 
 				if (ret > 0) {
-
 					ret = ::read(stdin_fileno, &c, 1);
 
 					if (ret) {
@@ -354,13 +343,12 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 			}
 
 		} else {
-			px4_usleep(2000000); // 2 seconds
+			px4_usleep(2000000);  // 2 seconds
 		}
 
 #endif
 
 		if (!quit) {
-
 			// update the stats
 			int total_size = 0;
 			int total_msgs = 0;
@@ -381,41 +369,41 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 			start_time = current_time;
 
-
 			if (!only_once) {
-				PX4_INFO_RAW("\033[H"); // move cursor to top left corner
+				PX4_INFO_RAW("\033[H");  // move cursor to top left corner
 			}
 
 			PX4_INFO_RAW(CLEAR_LINE "update: 1s, topics: %i, total publications: %i, %.1f kB/s\n",
 				     num_topics, total_msgs, (double)(total_size / 1000.f));
-			PX4_INFO_RAW(CLEAR_LINE "%-*s INST #SUB RATE #Q SIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
+			PX4_INFO_RAW(CLEAR_LINE "%-*s INST #SUB RATE #Q SIZE\n", (int)max_topic_name_length - 2,
+				     "TOPIC NAME");
 			cur_node = first_node;
 
 			while (cur_node) {
-
-				if (!print_active_only || (cur_node->pub_msg_delta > 0 && cur_node->node->subscriber_count() > 0)) {
-					PX4_INFO_RAW(CLEAR_LINE "%-*s %2i %4i %4i %2i %4i \n", (int)max_topic_name_length,
-						     cur_node->node->get_meta()->o_name, (int)cur_node->node->get_instance(),
-						     (int)cur_node->node->subscriber_count(), cur_node->pub_msg_delta,
-						     cur_node->node->get_queue_size(), cur_node->node->get_meta()->o_size);
+				if (!print_active_only ||
+				    (cur_node->pub_msg_delta > 0 && cur_node->node->subscriber_count() > 0)) {
+					PX4_INFO_RAW(
+						CLEAR_LINE "%-*s %2i %4i %4i %2i %4i \n", (int)max_topic_name_length,
+						cur_node->node->get_meta()->o_name, (int)cur_node->node->get_instance(),
+						(int)cur_node->node->subscriber_count(), cur_node->pub_msg_delta,
+						cur_node->node->get_queue_size(), cur_node->node->get_meta()->o_size);
 				}
 
 				cur_node = cur_node->next;
 			}
 
-
 			if (!only_once) {
-				PX4_INFO_RAW("\033[0J"); // clear the rest of the screen
+				PX4_INFO_RAW("\033[0J");  // clear the rest of the screen
 			}
 
 			lock();
-			ret = addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
+			ret = addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter,
+						num_filters);
 			unlock();
 
 			if (ret != 0) {
 				PX4_ERR("addNewDeviceNodes failed (%i)", ret);
 			}
-
 		}
 
 		if (only_once) {
@@ -423,7 +411,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 		}
 	}
 
-	//cleanup
+	// cleanup
 	cur_node = first_node;
 
 	while (cur_node) {
@@ -435,8 +423,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 #undef CLEAR_LINE
 
-uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
-{
+uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath) {
 	lock();
 
 	for (uORB::DeviceNode *node : _node_list) {
@@ -451,8 +438,7 @@ uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
 	return nullptr;
 }
 
-uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const struct orb_metadata *meta, const uint8_t instance)
-{
+uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const struct orb_metadata *meta, const uint8_t instance) {
 	for (uORB::DeviceNode *node : _node_list) {
 		if ((strcmp(node->get_name(), meta->o_name) == 0) && (node->get_instance() == instance)) {
 			return node;

@@ -33,36 +33,38 @@
  ****************************************************************************/
 
 /**
-* @file FailureDetector.hpp
-* Base class for failure detection logic based on vehicle states
-* for failsafe triggering.
-*
-* @author Mathieu Bresciani 	<brescianimathieu@gmail.com>
-*
-*/
+ * @file FailureDetector.hpp
+ * Base class for failure detection logic based on vehicle states
+ * for failsafe triggering.
+ *
+ * @author Mathieu Bresciani 	<brescianimathieu@gmail.com>
+ *
+ */
 
 #pragma once
 
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
-#include <lib/mathlib/math/filter/AlphaFilter.hpp>
-#include <matrix/matrix/math.hpp>
 #include <px4_platform_common/module_params.h>
 
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <matrix/matrix/math.hpp>
+
 // subscriptions
-#include <uORB/Subscription.hpp>
-#include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/esc_status.h>
+#include <uORB/topics/pwm_input.h>
 #include <uORB/topics/sensor_selection.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu_status.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/esc_status.h>
-#include <uORB/topics/pwm_input.h>
+
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 
 union failure_detector_status_u {
 	struct {
@@ -75,17 +77,17 @@ union failure_detector_status_u {
 		uint16_t imbalanced_prop : 1;
 		uint16_t motor : 1;
 	} flags;
-	uint16_t value {0};
+	uint16_t value{0};
 };
 
 using uORB::SubscriptionData;
 
-class FailureInjector
-{
+class FailureInjector {
 public:
 	void update();
 
 	void manipulateEscStatus(esc_status_s &status);
+
 private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
@@ -94,8 +96,7 @@ private:
 	uint32_t _esc_wrong{};
 };
 
-class FailureDetector : public ModuleParams
-{
+class FailureDetector : public ModuleParams {
 public:
 	FailureDetector(ModuleParams *parent);
 	~FailureDetector() = default;
@@ -104,7 +105,9 @@ public:
 	const failure_detector_status_u &getStatus() const { return _status; }
 	const decltype(failure_detector_status_u::flags) &getStatusFlags() const { return _status.flags; }
 	float getImbalancedPropMetric() const { return _imbalanced_prop_lpf.getState(); }
-	uint16_t getMotorFailures() const { return _motor_failure_esc_timed_out_mask | _motor_failure_esc_under_current_mask; }
+	uint16_t getMotorFailures() const {
+		return _motor_failure_esc_timed_out_mask | _motor_failure_esc_under_current_mask;
+	}
 
 private:
 	void updateAttitudeStatus();
@@ -129,11 +132,11 @@ private:
 	uint8_t _motor_failure_esc_valid_current_mask{};  // ESC 1-8, true if ESC telemetry was valid at some point
 	uint8_t _motor_failure_esc_timed_out_mask{};      // ESC telemetry no longer available -> failure
 	uint8_t _motor_failure_esc_under_current_mask{};  // ESC drawing too little current -> failure
-	bool _motor_failure_escs_have_current{false}; // true if some ESC had non-zero current (some don't support it)
-	hrt_abstime _motor_failure_undercurrent_start_time[actuator_motors_s::NUM_CONTROLS] {};
+	bool _motor_failure_escs_have_current{false};  // true if some ESC had non-zero current (some don't support it)
+	hrt_abstime _motor_failure_undercurrent_start_time[actuator_motors_s::NUM_CONTROLS]{};
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)}; // TODO: multi-instance
+	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};  // TODO: multi-instance
 	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
@@ -141,20 +144,18 @@ private:
 
 	FailureInjector _failure_injector;
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::FD_FAIL_P>) _param_fd_fail_p,
-		(ParamInt<px4::params::FD_FAIL_R>) _param_fd_fail_r,
-		(ParamFloat<px4::params::FD_FAIL_R_TTRI>) _param_fd_fail_r_ttri,
-		(ParamFloat<px4::params::FD_FAIL_P_TTRI>) _param_fd_fail_p_ttri,
-		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
-		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
-		(ParamInt<px4::params::FD_ESCS_EN>) _param_escs_en,
-		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,
+	DEFINE_PARAMETERS((ParamInt<px4::params::FD_FAIL_P>)_param_fd_fail_p,
+			  (ParamInt<px4::params::FD_FAIL_R>)_param_fd_fail_r,
+			  (ParamFloat<px4::params::FD_FAIL_R_TTRI>)_param_fd_fail_r_ttri,
+			  (ParamFloat<px4::params::FD_FAIL_P_TTRI>)_param_fd_fail_p_ttri,
+			  (ParamBool<px4::params::FD_EXT_ATS_EN>)_param_fd_ext_ats_en,
+			  (ParamInt<px4::params::FD_EXT_ATS_TRIG>)_param_fd_ext_ats_trig,
+			  (ParamInt<px4::params::FD_ESCS_EN>)_param_escs_en,
+			  (ParamInt<px4::params::FD_IMB_PROP_THR>)_param_fd_imb_prop_thr,
 
-		// Actuator failure
-		(ParamBool<px4::params::FD_ACT_EN>) _param_fd_actuator_en,
-		(ParamFloat<px4::params::FD_ACT_MOT_THR>) _param_fd_motor_throttle_thres,
-		(ParamFloat<px4::params::FD_ACT_MOT_C2T>) _param_fd_motor_current2throttle_thres,
-		(ParamInt<px4::params::FD_ACT_MOT_TOUT>) _param_fd_motor_time_thres
-	)
+			  // Actuator failure
+			  (ParamBool<px4::params::FD_ACT_EN>)_param_fd_actuator_en,
+			  (ParamFloat<px4::params::FD_ACT_MOT_THR>)_param_fd_motor_throttle_thres,
+			  (ParamFloat<px4::params::FD_ACT_MOT_C2T>)_param_fd_motor_current2throttle_thres,
+			  (ParamInt<px4::params::FD_ACT_MOT_TOUT>)_param_fd_motor_time_thres)
 };

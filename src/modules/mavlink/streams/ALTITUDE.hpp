@@ -39,8 +39,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/wind.h>
 
-class MavlinkStreamAltitude : public MavlinkStream
-{
+class MavlinkStreamAltitude : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamAltitude(mavlink); }
 
@@ -50,8 +49,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		return _local_pos_sub.advertised() ? MAVLINK_MSG_ID_ALTITUDE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
@@ -62,8 +60,7 @@ private:
 	uORB::Subscription _home_sub{ORB_ID(home_position)};
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
 
-	bool send() override
-	{
+	bool send() override {
 		mavlink_altitude_t msg{};
 
 		msg.altitude_monotonic = NAN;
@@ -89,7 +86,6 @@ private:
 		vehicle_local_position_s local_pos{};
 
 		if (_local_pos_sub.copy(&local_pos)) {
-
 			if (local_pos.z_valid) {
 				if (local_pos.z_global) {
 					msg.altitude_amsl = -local_pos.z + local_pos.ref_alt;
@@ -134,4 +130,4 @@ private:
 	}
 };
 
-#endif // ALTITUDE_HPP
+#endif  // ALTITUDE_HPP

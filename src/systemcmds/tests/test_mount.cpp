@@ -37,33 +37,29 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/shutdown.h>
-
-#include <sys/stat.h>
 #include <dirent.h>
-#include <stdio.h>
-#include <stddef.h>
-#include <systemlib/err.h>
-#include <perf/perf_counter.h>
-#include <string.h>
-
 #include <drivers/drv_hrt.h>
+#include <perf/perf_counter.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/shutdown.h>
+#include <px4_platform_common/tasks.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <systemlib/err.h>
 
 #include "tests_main.h"
 
 const int fsync_tries = 1;
 const int abort_tries = 10;
 
-int test_mount(int argc, char *argv[])
-{
+int test_mount(int argc, char *argv[]) {
 	const unsigned iterations = 2000;
 	const unsigned alignments = 10;
 
 	const char *cmd_filename = "/fs/microsd/mount_test_cmds.txt";
-
 
 	/* check if microSD card is mounted */
 	struct stat buffer;
@@ -74,14 +70,13 @@ int test_mount(int argc, char *argv[])
 	}
 
 	/* list directory */
-	DIR		*d;
-	struct dirent	*dir;
+	DIR *d;
+	struct dirent *dir;
 	d = opendir(PX4_STORAGEDIR);
 
 	if (d) {
-
 		while ((dir = readdir(d)) != nullptr) {
-			//printf("%s\n", dir->d_name);
+			// printf("%s\n", dir->d_name);
 		}
 
 		closedir(d);
@@ -108,7 +103,6 @@ int test_mount(int argc, char *argv[])
 	int cmd_fd;
 
 	if (stat(cmd_filename, &buffer) == OK) {
-
 		/* command file exists, read off state */
 		cmd_fd = open(cmd_filename, O_RDWR | O_NONBLOCK);
 		char buf[64];
@@ -130,8 +124,8 @@ int test_mount(int argc, char *argv[])
 			it_left_abort = abort_tries;
 		}
 
-		PX4_INFO("Iterations left: #%d / #%d of %d / %d\n(%s)", it_left_fsync, it_left_abort,
-			 fsync_tries, abort_tries, buf);
+		PX4_INFO("Iterations left: #%d / #%d of %d / %d\n(%s)", it_left_fsync, it_left_abort, fsync_tries,
+			 abort_tries, buf);
 
 		int it_left_fsync_prev = it_left_fsync;
 
@@ -141,7 +135,6 @@ int test_mount(int argc, char *argv[])
 		}
 
 		if (it_left_fsync == 0 && it_left_abort > 0) {
-
 			it_left_abort--;
 
 			/* announce mode switch */
@@ -151,7 +144,6 @@ int test_mount(int argc, char *argv[])
 				fsync(fileno(stderr));
 				px4_usleep(20000);
 			}
-
 		}
 
 		if (it_left_abort == 0) {
@@ -161,7 +153,6 @@ int test_mount(int argc, char *argv[])
 		}
 
 	} else {
-
 		/* this must be the first iteration, do something */
 		cmd_fd = open(cmd_filename, O_TRUNC | O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
@@ -178,7 +169,6 @@ int test_mount(int argc, char *argv[])
 	unsigned chunk_sizes[] = {32, 64, 128, 256, 512, 600, 1200};
 
 	for (unsigned c = 0; c < (sizeof(chunk_sizes) / sizeof(chunk_sizes[0])); c++) {
-
 		printf("\n\n====== FILE TEST: %u bytes chunks (%s) ======\n", chunk_sizes[c],
 		       (it_left_fsync > 0) ? "FSYNC" : "NO FSYNC");
 		printf("unpower the system immediately (within 0.5s) when the hash (#) sign appears\n");
@@ -187,7 +177,6 @@ int test_mount(int argc, char *argv[])
 		px4_usleep(50000);
 
 		for (unsigned a = 0; a < alignments; a++) {
-
 			printf(".");
 
 			uint8_t write_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
@@ -203,7 +192,6 @@ int test_mount(int argc, char *argv[])
 			int fd = px4_open(PX4_STORAGEDIR "/testfile", O_TRUNC | O_WRONLY | O_CREAT);
 
 			for (unsigned i = 0; i < iterations; i++) {
-
 				int wret = write(fd, write_buf + a, chunk_sizes[c]);
 
 				if (wret != (int)chunk_sizes[c]) {
@@ -214,7 +202,6 @@ int test_mount(int argc, char *argv[])
 					}
 
 					return 1;
-
 				}
 
 				if (it_left_fsync > 0) {
@@ -263,7 +250,6 @@ int test_mount(int argc, char *argv[])
 					PX4_ERR("ABORTING FURTHER COMPARISON DUE TO ERROR");
 					return 1;
 				}
-
 			}
 
 			int ret = unlink(PX4_STORAGEDIR "/testfile");
@@ -274,7 +260,6 @@ int test_mount(int argc, char *argv[])
 				PX4_ERR("UNLINKING FILE FAILED");
 				return 1;
 			}
-
 		}
 	}
 

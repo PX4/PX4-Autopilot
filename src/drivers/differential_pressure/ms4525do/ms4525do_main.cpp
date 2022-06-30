@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include "MS4525DO.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void MS4525DO::print_usage()
-{
+#include "MS4525DO.hpp"
+
+void MS4525DO::print_usage() {
 	PRINT_MODULE_USAGE_NAME("ms4525do", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -46,8 +45,7 @@ void MS4525DO::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int ms4525do_main(int argc, char *argv[])
-{
+extern "C" int ms4525do_main(int argc, char *argv[]) {
 	using ThisDriver = MS4525DO;
 	BusCLIArguments cli{true, false};
 	cli.i2c_address = I2C_ADDRESS_DEFAULT;

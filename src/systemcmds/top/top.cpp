@@ -39,29 +39,26 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <string.h>
-#include <poll.h>
-
-#include <px4_platform/cpuload.h>
-#include <px4_platform_common/printload.h>
 #include <drivers/drv_hrt.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <px4_platform/cpuload.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/printload.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
-static void print_usage()
-{
+static void print_usage() {
 	PRINT_MODULE_DESCRIPTION("Monitor running processes and their CPU, stack usage, priority and state");
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("top", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("once", "print load only once");
 }
 
-extern "C" __EXPORT int top_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int top_main(int argc, char *argv[]) {
 	print_load_s load{};
 	init_print_load(&load);
 	px4_usleep(200000);
@@ -96,7 +93,6 @@ extern "C" __EXPORT int top_main(int argc, char *argv[])
 			ret = poll(&fds, 1, 0);
 
 			if (ret > 0) {
-
 				ret = read(0, &c, 1);
 
 				if (ret) {
@@ -105,13 +101,13 @@ extern "C" __EXPORT int top_main(int argc, char *argv[])
 				}
 
 				switch (c) {
-				case 0x03: // ctrl-c
-				case 0x1b: // esc
-				case 'c':
-				case 'q':
-					cpuload_monitor_stop();
-					return 0;
-					/* not reached */
+					case 0x03:  // ctrl-c
+					case 0x1b:  // esc
+					case 'c':
+					case 'q':
+						cpuload_monitor_stop();
+						return 0;
+						/* not reached */
 				}
 			}
 

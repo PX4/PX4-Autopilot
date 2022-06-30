@@ -37,21 +37,17 @@
  * sitl board shutdown backend.
  */
 
-#include <px4_platform_common/tasks.h>
 #include <board_config.h>
+#include <px4_platform_common/tasks.h>
 #include <stdio.h>
 
 #if defined(BOARD_HAS_POWER_CONTROL)
-int board_register_power_state_notification_cb(power_button_state_notification_t cb)
-{
-	return 0;
-}
+int board_register_power_state_notification_cb(power_button_state_notification_t cb) { return 0; }
 
-int board_power_off(int status)
-{
+int board_power_off(int status) {
 	printf("Exiting NOW.\n");
 	fflush(stdout);
 	system_exit(0);
 	return 0;
 }
-#endif // BOARD_HAS_POWER_CONTROL
+#endif  // BOARD_HAS_POWER_CONTROL

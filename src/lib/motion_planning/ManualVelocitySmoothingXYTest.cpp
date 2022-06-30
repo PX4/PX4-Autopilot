@@ -37,21 +37,18 @@
  */
 
 #include <gtest/gtest.h>
-#include <matrix/matrix/math.hpp>
 
+#include <matrix/matrix/math.hpp>
 #include <motion_planning/ManualVelocitySmoothingXY.hpp>
 
 using namespace matrix;
 
-class ManualVelocitySmoothingXYTest : public ::testing::Test
-{
+class ManualVelocitySmoothingXYTest : public ::testing::Test {
 public:
 	ManualVelocitySmoothingXY _smoothing;
 };
 
-
-TEST_F(ManualVelocitySmoothingXYTest, setGet)
-{
+TEST_F(ManualVelocitySmoothingXYTest, setGet) {
 	// GIVEN: Some max values
 	_smoothing.setMaxJerk(11.f);
 	_smoothing.setMaxAccel(7.f);
@@ -63,8 +60,7 @@ TEST_F(ManualVelocitySmoothingXYTest, setGet)
 	EXPECT_FLOAT_EQ(_smoothing.getMaxVel(), 5.f);
 }
 
-TEST_F(ManualVelocitySmoothingXYTest, getCurrentState)
-{
+TEST_F(ManualVelocitySmoothingXYTest, getCurrentState) {
 	// GIVEN: the initial conditions
 	Vector2f v0(11.f, 13.f);
 	_smoothing.setCurrentVelocity(v0);

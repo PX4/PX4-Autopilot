@@ -40,10 +40,9 @@
 #include <parameters/param.h>
 #include <px4_platform_common/log.h>
 
-#define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
+#define arraySize(a) (sizeof((a)) / sizeof(((a)[0])))
 
-class CameraInterface
-{
+class CameraInterface {
 public:
 	CameraInterface() = default;
 	virtual ~CameraInterface() = default;
@@ -86,7 +85,6 @@ public:
 	virtual bool is_powered_on() { return true; }
 
 protected:
-
 	/**
 	 * setup the interface
 	 */
@@ -97,6 +95,5 @@ protected:
 	 */
 	void get_pins();
 
-	int _pins[32] {};
-
+	int _pins[32]{};
 };

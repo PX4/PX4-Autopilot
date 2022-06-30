@@ -38,24 +38,20 @@
  */
 
 #include "Block.hpp"
-#include "BlockParam.hpp"
 
 #include <cstring>
 
-namespace control
-{
+#include "BlockParam.hpp"
 
-Block::Block(SuperBlock *parent, const char *name) :
-	_name(name),
-	_parent(parent)
-{
+namespace control {
+
+Block::Block(SuperBlock *parent, const char *name) : _name(name), _parent(parent) {
 	if (getParent() != nullptr) {
 		getParent()->getChildren().add(this);
 	}
 }
 
-void Block::getName(char *buf, size_t n)
-{
+void Block::getName(char *buf, size_t n) {
 	if (getParent() == nullptr) {
 		strncpy(buf, _name, n);
 		// ensure string is terminated
@@ -76,8 +72,7 @@ void Block::getName(char *buf, size_t n)
 	}
 }
 
-void Block::updateParams()
-{
+void Block::updateParams() {
 	BlockParamBase *param = getParams().getHead();
 	int count = 0;
 
@@ -89,7 +84,7 @@ void Block::updateParams()
 			break;
 		}
 
-		//printf("updating param: %s\n", param->getName());
+		// printf("updating param: %s\n", param->getName());
 		param->update();
 		param = param->getSibling();
 	}
@@ -97,8 +92,7 @@ void Block::updateParams()
 	updateParamsSubclass();
 }
 
-void SuperBlock::setDt(float dt)
-{
+void SuperBlock::setDt(float dt) {
 	Block::setDt(dt);
 	Block *child = getChildren().getHead();
 	int count = 0;
@@ -116,8 +110,7 @@ void SuperBlock::setDt(float dt)
 	}
 }
 
-void SuperBlock::updateChildParams()
-{
+void SuperBlock::updateChildParams() {
 	Block *child = getChildren().getHead();
 	int count = 0;
 
@@ -134,6 +127,6 @@ void SuperBlock::updateChildParams()
 	}
 }
 
-} // namespace control
+}  // namespace control
 
 template class List<control::BlockParamBase *>;

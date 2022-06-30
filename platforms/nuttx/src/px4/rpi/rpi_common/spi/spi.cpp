@@ -31,26 +31,23 @@
  *
  ****************************************************************************/
 
-#include <board_config.h>
-#include <systemlib/px4_macros.h>
-#include <px4_platform_common/spi.h>
-#include <px4_arch/micro_hal.h>
-
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
-#include <unistd.h>
-
-#include <nuttx/spi/spi.h>
 #include <arch/board/board.h>
 #include <arm_arch.h>
+#include <board_config.h>
 #include <chip.h>
+#include <debug.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/micro_hal.h>
+#include <px4_platform_common/spi.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <systemlib/px4_macros.h>
+#include <unistd.h>
 
 static const px4_spi_bus_t *_spi_bus0;
 static const px4_spi_bus_t *_spi_bus1;
 
-static void spi_bus_configgpio_cs(const px4_spi_bus_t *bus)
-{
+static void spi_bus_configgpio_cs(const px4_spi_bus_t *bus) {
 	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
 		if (bus->devices[i].cs_gpio != 0) {
 			px4_arch_configgpio(bus->devices[i].cs_gpio | GPIO_FUN(RP2040_GPIO_FUNC_SIO));
@@ -58,17 +55,20 @@ static void spi_bus_configgpio_cs(const px4_spi_bus_t *bus)
 	}
 }
 
-__EXPORT void rp2040_spiinitialize()
-{
+__EXPORT void rp2040_spiinitialize() {
 	px4_set_spi_buses_from_hw_version();
 	board_control_spi_sensors_power_configgpio();
 	board_control_spi_sensors_power(true, 0xffff);
 
 	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
 		switch (px4_spi_buses[i].bus) {
-		case PX4_BUS_NUMBER_TO_PX4(0): _spi_bus0 = &px4_spi_buses[i]; break;
+			case PX4_BUS_NUMBER_TO_PX4(0):
+				_spi_bus0 = &px4_spi_buses[i];
+				break;
 
-		case PX4_BUS_NUMBER_TO_PX4(1): _spi_bus1 = &px4_spi_buses[i]; break;
+			case PX4_BUS_NUMBER_TO_PX4(1):
+				_spi_bus1 = &px4_spi_buses[i];
+				break;
 		}
 	}
 
@@ -92,7 +92,7 @@ __EXPORT void rp2040_spiinitialize()
 		spi_bus_configgpio_cs(_spi_bus0);
 	}
 
-#endif // CONFIG_RP2040_SPI0
+#endif  // CONFIG_RP2040_SPI0
 
 #ifdef CONFIG_RP2040_SPI1
 	ASSERT(_spi_bus1);
@@ -101,11 +101,10 @@ __EXPORT void rp2040_spiinitialize()
 		spi_bus_configgpio_cs(_spi_bus1);
 	}
 
-#endif // CONFIG_RP2040_SPI1
+#endif  // CONFIG_RP2040_SPI1
 }
 
-static inline void rp2040_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+static inline void rp2040_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
 		if (bus->devices[i].cs_gpio == 0) {
 			break;
@@ -117,7 +116,6 @@ static inline void rp2040_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s 
 		}
 	}
 }
-
 
 /****************************************************************************
  * Name:  rp2040_spi0/1select and rp2040_spi0/1status
@@ -145,37 +143,24 @@ static inline void rp2040_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s 
  *
  ****************************************************************************/
 #ifdef CONFIG_RP2040_SPI0
-void rp2040_spi0select(FAR struct spi_dev_s *dev, uint32_t devid,
-		       bool selected)
-{
-	spiinfo("devid: %d CS: %s\n", (int)devid,
-		selected ? "assert" : "de-assert");
+void rp2040_spi0select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
+	spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 	rp2040_spixselect(_spi_bus0, dev, devid, selected);
 }
 
-uint8_t rp2040_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
+uint8_t rp2040_spi0status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
 #endif
 
 #ifdef CONFIG_RP2040_SPI1
-void rp2040_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
-		       bool selected)
-{
-	spiinfo("devid: %d CS: %s\n", (int)devid,
-		selected ? "assert" : "de-assert");
+void rp2040_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
+	spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 	rp2040_spixselect(_spi_bus1, dev, devid, selected);
 }
 
-uint8_t rp2040_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
+uint8_t rp2040_spi1status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
 #endif
 
-void board_control_spi_sensors_power(bool enable_power, int bus_mask)
-{
+void board_control_spi_sensors_power(bool enable_power, int bus_mask) {
 	const px4_spi_bus_t *buses = px4_spi_buses;
 
 	for (int bus = 0; bus < SPI_BUS_MAX_BUS_ITEMS; ++bus) {
@@ -185,8 +170,7 @@ void board_control_spi_sensors_power(bool enable_power, int bus_mask)
 
 		const bool bus_matches = bus_mask & (1 << (buses[bus].bus - 1));
 
-		if (buses[bus].power_enable_gpio == 0 ||
-		    !board_has_bus(BOARD_SPI_BUS, buses[bus].bus) ||
+		if (buses[bus].power_enable_gpio == 0 || !board_has_bus(BOARD_SPI_BUS, buses[bus].bus) ||
 		    !bus_matches) {
 			continue;
 		}
@@ -195,8 +179,7 @@ void board_control_spi_sensors_power(bool enable_power, int bus_mask)
 	}
 }
 
-void board_control_spi_sensors_power_configgpio()
-{
+void board_control_spi_sensors_power_configgpio() {
 	const px4_spi_bus_t *buses = px4_spi_buses;
 
 	for (int bus = 0; bus < SPI_BUS_MAX_BUS_ITEMS; ++bus) {
@@ -204,8 +187,7 @@ void board_control_spi_sensors_power_configgpio()
 			break;
 		}
 
-		if (buses[bus].power_enable_gpio == 0 ||
-		    !board_has_bus(BOARD_SPI_BUS, buses[bus].bus)) {
+		if (buses[bus].power_enable_gpio == 0 || !board_has_bus(BOARD_SPI_BUS, buses[bus].bus)) {
 			continue;
 		}
 
@@ -213,8 +195,7 @@ void board_control_spi_sensors_power_configgpio()
 	}
 }
 
-__EXPORT void board_spi_reset(int ms, int bus_mask)
-{
+__EXPORT void board_spi_reset(int ms, int bus_mask) {
 	bool has_power_enable = false;
 
 	// disable SPI bus
@@ -226,8 +207,7 @@ __EXPORT void board_spi_reset(int ms, int bus_mask)
 		const bool bus_requested = bus_mask & (1 << (px4_spi_buses[bus].bus - 1));
 
 		if (px4_spi_buses[bus].power_enable_gpio == 0 ||
-		    !board_has_bus(BOARD_SPI_BUS, px4_spi_buses[bus].bus) ||
-		    !bus_requested) {
+		    !board_has_bus(BOARD_SPI_BUS, px4_spi_buses[bus].bus) || !bus_requested) {
 			continue;
 		}
 
@@ -292,8 +272,7 @@ __EXPORT void board_spi_reset(int ms, int bus_mask)
 		const bool bus_requested = bus_mask & (1 << (px4_spi_buses[bus].bus - 1));
 
 		if (px4_spi_buses[bus].power_enable_gpio == 0 ||
-		    !board_has_bus(BOARD_SPI_BUS, px4_spi_buses[bus].bus) ||
-		    !bus_requested) {
+		    !board_has_bus(BOARD_SPI_BUS, px4_spi_buses[bus].bus) || !bus_requested) {
 			continue;
 		}
 

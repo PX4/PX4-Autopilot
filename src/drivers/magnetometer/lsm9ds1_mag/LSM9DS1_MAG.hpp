@@ -40,18 +40,18 @@
 
 #pragma once
 
-#include "ST_LSM9DS1_MAG_Registers.hpp"
-
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/spi.h>
-#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+
+#include "ST_LSM9DS1_MAG_Registers.hpp"
+
 using namespace ST_LSM9DS1_MAG;
 
-class LSM9DS1_MAG : public device::SPI, public I2CSPIDriver<LSM9DS1_MAG>
-{
+class LSM9DS1_MAG : public device::SPI, public I2CSPIDriver<LSM9DS1_MAG> {
 public:
 	LSM9DS1_MAG(const I2CSPIDriverConfig &config);
 	~LSM9DS1_MAG() override;
@@ -64,7 +64,6 @@ public:
 	void print_status() override;
 
 private:
-
 	struct register_config_t {
 		Register reg;
 		uint8_t set_bits{0};
@@ -85,8 +84,8 @@ private:
 
 	PX4Magnetometer _px4_mag;
 
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
-	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad register")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad transfer")};
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
@@ -101,12 +100,15 @@ private:
 
 	uint8_t _checked_register{0};
 	static constexpr uint8_t size_register_cfg{5};
-	register_config_t _register_cfg[size_register_cfg] {
+	register_config_t _register_cfg[size_register_cfg]{
 		// Register                | Set bits, Clear bits
-		{ Register::CTRL_REG1_M,   CTRL_REG1_M_BIT::TEMP_COMP | CTRL_REG1_M_BIT::OM_ULTRA_HIGH_PERFORMANCE | CTRL_REG1_M_BIT::DO_80HZ, CTRL_REG1_M_BIT::FAST_ODR | CTRL_REG1_M_BIT::ST },
-		{ Register::CTRL_REG2_M,   CTRL_REG2_M_BIT::FS_16_GAUSS, 0 },
-		{ Register::CTRL_REG3_M,   CTRL_REG3_M_BIT::I2C_DISABLE, CTRL_REG3_M_BIT::SIM | CTRL_REG3_M_BIT::MD_CONTINUOUS_MODE },
-		{ Register::CTRL_REG4_M,   CTRL_REG4_M_BIT::OMZ_ULTRA_HIGH_PERFORMANCE, 0 },
-		{ Register::CTRL_REG5_M,   CTRL_REG5_M_BIT::BDU, 0 },
+		{Register::CTRL_REG1_M,
+		 CTRL_REG1_M_BIT::TEMP_COMP | CTRL_REG1_M_BIT::OM_ULTRA_HIGH_PERFORMANCE | CTRL_REG1_M_BIT::DO_80HZ,
+		 CTRL_REG1_M_BIT::FAST_ODR | CTRL_REG1_M_BIT::ST},
+		{Register::CTRL_REG2_M, CTRL_REG2_M_BIT::FS_16_GAUSS, 0},
+		{Register::CTRL_REG3_M, CTRL_REG3_M_BIT::I2C_DISABLE,
+		 CTRL_REG3_M_BIT::SIM | CTRL_REG3_M_BIT::MD_CONTINUOUS_MODE},
+		{Register::CTRL_REG4_M, CTRL_REG4_M_BIT::OMZ_ULTRA_HIGH_PERFORMANCE, 0},
+		{Register::CTRL_REG5_M, CTRL_REG5_M_BIT::BDU, 0},
 	};
 };

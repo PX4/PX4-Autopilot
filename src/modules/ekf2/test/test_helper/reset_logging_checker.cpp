@@ -1,8 +1,7 @@
 #include "reset_logging_checker.h"
 
 // call immediately after state reset
-void ResetLoggingChecker::capturePreResetState()
-{
+void ResetLoggingChecker::capturePreResetState() {
 	float a[2];
 	float b;
 	uint8_t c;
@@ -20,8 +19,7 @@ void ResetLoggingChecker::capturePreResetState()
 }
 
 // call immediately after state reset
-void ResetLoggingChecker::capturePostResetState()
-{
+void ResetLoggingChecker::capturePostResetState() {
 	float a[2];
 	float b;
 	uint8_t c;
@@ -44,46 +42,30 @@ void ResetLoggingChecker::capturePostResetState()
 	position_after_reset = _ekf->getPosition();
 }
 
-bool ResetLoggingChecker::isVelocityDeltaLoggedCorrectly(float accuracy)
-{
-	const  Vector3f measured_delta_velocity = velocity_after_reset -
-			velocity_before_reset;
+bool ResetLoggingChecker::isVelocityDeltaLoggedCorrectly(float accuracy) {
+	const Vector3f measured_delta_velocity = velocity_after_reset - velocity_before_reset;
 
-	return matrix::isEqual(logged_delta_velocity,
-			       measured_delta_velocity,
-			       accuracy);
+	return matrix::isEqual(logged_delta_velocity, measured_delta_velocity, accuracy);
 }
 
-bool ResetLoggingChecker::isHorizontalVelocityResetCounterIncreasedBy(int offset)
-{
-	return horz_vel_reset_counter_after_reset ==
-	       horz_vel_reset_counter_before_reset + offset;
+bool ResetLoggingChecker::isHorizontalVelocityResetCounterIncreasedBy(int offset) {
+	return horz_vel_reset_counter_after_reset == horz_vel_reset_counter_before_reset + offset;
 }
 
-bool ResetLoggingChecker::isVerticalVelocityResetCounterIncreasedBy(int offset)
-{
-	return vert_vel_reset_counter_after_reset ==
-	       vert_vel_reset_counter_before_reset + offset;
+bool ResetLoggingChecker::isVerticalVelocityResetCounterIncreasedBy(int offset) {
+	return vert_vel_reset_counter_after_reset == vert_vel_reset_counter_before_reset + offset;
 }
 
-bool ResetLoggingChecker::isPositionDeltaLoggedCorrectly(float accuracy)
-{
-	const  Vector3f measured_delta_position = position_after_reset -
-			position_before_reset;
+bool ResetLoggingChecker::isPositionDeltaLoggedCorrectly(float accuracy) {
+	const Vector3f measured_delta_position = position_after_reset - position_before_reset;
 
-	return matrix::isEqual(logged_delta_position,
-			       measured_delta_position,
-			       accuracy);
+	return matrix::isEqual(logged_delta_position, measured_delta_position, accuracy);
 }
 
-bool ResetLoggingChecker::isHorizontalPositionResetCounterIncreasedBy(int offset)
-{
-	return horz_pos_reset_counter_after_reset ==
-	       horz_pos_reset_counter_before_reset + offset;
+bool ResetLoggingChecker::isHorizontalPositionResetCounterIncreasedBy(int offset) {
+	return horz_pos_reset_counter_after_reset == horz_pos_reset_counter_before_reset + offset;
 }
 
-bool ResetLoggingChecker::isVerticalPositionResetCounterIncreasedBy(int offset)
-{
-	return vert_pos_reset_counter_after_reset ==
-	       vert_pos_reset_counter_before_reset + offset;
+bool ResetLoggingChecker::isVerticalPositionResetCounterIncreasedBy(int offset) {
+	return vert_pos_reset_counter_after_reset == vert_pos_reset_counter_before_reset + offset;
 }

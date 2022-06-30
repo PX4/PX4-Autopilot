@@ -39,4 +39,3 @@
 #pragma once
 
 bool stateMachineHelperTest(void);
-

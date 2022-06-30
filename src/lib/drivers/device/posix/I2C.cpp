@@ -46,17 +46,14 @@
 
 #ifdef __PX4_LINUX
 
-#include <linux/i2c.h>
 #include <linux/i2c-dev.h>
-
+#include <linux/i2c.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
-namespace device
-{
+namespace device {
 
-I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t address, const uint32_t frequency) :
-	CDev(name, nullptr)
-{
+I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t address, const uint32_t frequency)
+	: CDev(name, nullptr) {
 	// fill in _device_id fields for a I2C device
 	_device_id.devid_s.devtype = device_type;
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
@@ -65,25 +62,20 @@ I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t ad
 }
 
 I2C::I2C(const I2CSPIDriverConfig &config)
-	: I2C(config.devid_driver_index, config.module_name, config.bus, config.i2c_address, config.bus_frequency)
-{
-}
+	: I2C(config.devid_driver_index, config.module_name, config.bus, config.i2c_address, config.bus_frequency) {}
 
-I2C::~I2C()
-{
+I2C::~I2C() {
 	if (_fd >= 0) {
 		::close(_fd);
 		_fd = -1;
 	}
 }
 
-int
-I2C::init()
-{
+int I2C::init() {
 	int ret = PX4_ERROR;
 
 	// Open the actual I2C device
-	char dev_path[16] {};
+	char dev_path[16]{};
 	snprintf(dev_path, sizeof(dev_path), "/dev/i2c-%i", get_device_bus());
 	_fd = ::open(dev_path, O_RDWR);
 
@@ -122,9 +114,7 @@ out:
 	return ret;
 }
 
-int
-I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len)
-{
+int I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len) {
 	int ret = PX4_ERROR;
 	unsigned retry_count = 0;
 
@@ -137,7 +127,7 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 		DEVICE_DEBUG("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
 
 		unsigned msgs = 0;
-		struct i2c_msg msgv[2] {};
+		struct i2c_msg msgv[2]{};
 
 		if (send_len > 0) {
 			msgv[msgs].addr = get_device_address();
@@ -160,7 +150,7 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 		}
 
 		i2c_rdwr_ioctl_data packets{};
-		packets.msgs  = msgv;
+		packets.msgs = msgv;
 		packets.nmsgs = msgs;
 
 		int ret_ioctl = ::ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
@@ -180,8 +170,8 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 	return ret;
 }
 
-} // namespace device
+}  // namespace device
 
-#endif // __PX4_LINUX
+#endif  // __PX4_LINUX
 
-#endif // CONFIG_I2C
+#endif  // CONFIG_I2C

@@ -33,7 +33,6 @@
 
 #pragma once
 
-
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/posix.h>
 #include <systemlib/mavlink_log.h>
@@ -45,8 +44,7 @@
  * - calibration
  * - param saving
  */
-class WorkerThread
-{
+class WorkerThread {
 public:
 	enum class Request {
 		GyroCalibration,
@@ -76,14 +74,13 @@ public:
 
 	bool isBusy() const { return _state.load() != (int)State::Idle; }
 	bool hasResult() const { return _state.load() == (int)State::Finished; }
-	int getResultAndReset() { _state.store((int)State::Idle); return _ret_value; }
+	int getResultAndReset() {
+		_state.store((int)State::Idle);
+		return _ret_value;
+	}
 
 private:
-	enum class State {
-		Idle,
-		Running,
-		Finished
-	};
+	enum class State { Idle, Running, Finished };
 
 	static void *threadEntryTrampoline(void *arg);
 	void threadEntry();
@@ -98,6 +95,4 @@ private:
 	float _heading_radians;
 	float _latitude;
 	float _longitude;
-
 };
-

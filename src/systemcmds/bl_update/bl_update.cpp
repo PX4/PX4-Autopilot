@@ -37,42 +37,37 @@
  * STM32F4 & STM32F7 bootloader update tool.
  */
 
-#include <px4_platform_common/px4_config.h>
+#include <arch/board/board.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <nuttx/progmem.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
-
-#include <inttypes.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <sys/stat.h>
-
-#include <arch/board/board.h>
-
-#include <nuttx/progmem.h>
+#include <unistd.h>
 
 #if defined(CONFIG_ARCH_CHIP_STM32H7)
-#  define BL_FILE_SIZE_LIMIT	128*1024
-#  define STM_RAM_BASE        STM32_AXISRAM_BASE
-#  define PAGE_SIZE_MATTERS   1
+#define BL_FILE_SIZE_LIMIT 128 * 1024
+#define STM_RAM_BASE STM32_AXISRAM_BASE
+#define PAGE_SIZE_MATTERS 1
 #elif defined(CONFIG_ARCH_CHIP_STM32F7)
-#  define BL_FILE_SIZE_LIMIT	32*1024
-#  define STM_RAM_BASE        STM32_SRAM_BASE
+#define BL_FILE_SIZE_LIMIT 32 * 1024
+#define STM_RAM_BASE STM32_SRAM_BASE
 #else
-#  define BL_FILE_SIZE_LIMIT  16384
-#  define STM_RAM_BASE        STM32_SRAM_BASE
+#define BL_FILE_SIZE_LIMIT 16384
+#define STM_RAM_BASE STM32_SRAM_BASE
 #endif
 
-#if defined (CONFIG_STM32_STM32F4XXX) || defined (CONFIG_ARCH_CHIP_STM32F7) || \
-    defined (CONFIG_ARCH_CHIP_STM32H7)
+#if defined(CONFIG_STM32_STM32F4XXX) || defined(CONFIG_ARCH_CHIP_STM32F7) || defined(CONFIG_ARCH_CHIP_STM32H7)
 
 static int setopt(void);
 
-static void print_usage(const char *reason)
-{
+static void print_usage(const char *reason) {
 	if (reason) {
 		PX4_ERR("%s", reason);
 	}
@@ -80,55 +75,49 @@ static void print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION("Utility to flash the bootloader from a file");
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("bl_update", "command");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("setopt", "Set option bits to unlock the FLASH (only needed if in locked state)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("setopt",
+					 "Set option bits to unlock the FLASH (only needed if in locked state)");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("<file>", "Bootloader bin file");
 }
 
-#endif // defined (CONFIG_STM32_STM32F4XXX) || defined (CONFIG_ARCH_CHIP_STM32F7)
+#endif  // defined (CONFIG_STM32_STM32F4XXX) || defined (CONFIG_ARCH_CHIP_STM32F7)
 
-
-extern "C" __EXPORT int bl_update_main(int argc, char *argv[])
-{
-#if !(defined (CONFIG_STM32_STM32F4XXX) || defined (CONFIG_ARCH_CHIP_STM32F7) \
-    || defined (CONFIG_ARCH_CHIP_STM32H7))
+extern "C" __EXPORT int bl_update_main(int argc, char *argv[]) {
+#if !(defined(CONFIG_STM32_STM32F4XXX) || defined(CONFIG_ARCH_CHIP_STM32F7) || defined(CONFIG_ARCH_CHIP_STM32H7))
 	PX4_ERR("Not supported on this HW");
 	return 1;
 }
 #else
 
-	if (argc != 2)
-	{
+	if (argc != 2) {
 		print_usage("missing firmware filename or command");
 		return 1;
 	}
 
-	if (!strcmp(argv[1], "setopt"))
-	{
+	if (!strcmp(argv[1], "setopt")) {
 		return setopt();
 	}
 
 	int fd = open(argv[1], O_RDONLY);
 
-	if (fd < 0)
-	{
+	if (fd < 0) {
 		PX4_ERR("open %s failed", argv[1]);
 		return 1;
 	}
 
 	struct stat s;
 
-	if (stat(argv[1], &s) != 0)
-	{
+	if (stat(argv[1], &s) != 0) {
 		PX4_ERR("stat %s failed", argv[1]);
 		close(fd);
 		return 1;
 	}
 
 	/* sanity-check file size */
-	if (s.st_size > BL_FILE_SIZE_LIMIT)
-	{
-		PX4_ERR("%s: file too large (limit: %u, actual: %jd)", argv[1], BL_FILE_SIZE_LIMIT, (intmax_t) s.st_size);
+	if (s.st_size > BL_FILE_SIZE_LIMIT) {
+		PX4_ERR("%s: file too large (limit: %u, actual: %jd)", argv[1], BL_FILE_SIZE_LIMIT,
+			(intmax_t)s.st_size);
 		close(fd);
 		return 1;
 	}
@@ -137,23 +126,21 @@ extern "C" __EXPORT int bl_update_main(int argc, char *argv[])
 	off_t image_size = file_size;
 
 #if defined(PAGE_SIZE_MATTERS)
-	size_t page_size =  up_progmem_pagesize(0) - 1;
+	size_t page_size = up_progmem_pagesize(0) - 1;
 	image_size = (file_size + page_size) & ~page_size;
 #endif
 
 	uint8_t *buf = (uint8_t *)malloc(image_size);
 
-	if (buf == nullptr)
-	{
-		PX4_ERR("failed to allocate %jd bytes for firmware buffer", (intmax_t) file_size);
+	if (buf == nullptr) {
+		PX4_ERR("failed to allocate %jd bytes for firmware buffer", (intmax_t)file_size);
 		close(fd);
 		return 1;
 	}
 
 	memset(buf, 0xff, image_size);
 
-	if (read(fd, buf, file_size) != file_size)
-	{
+	if (read(fd, buf, file_size) != file_size) {
 		PX4_ERR("firmware read error");
 		close(fd);
 		free(buf);
@@ -164,10 +151,10 @@ extern "C" __EXPORT int bl_update_main(int argc, char *argv[])
 
 	uint32_t *hdr = (uint32_t *)buf;
 
-	if ((hdr[0] < STM_RAM_BASE) ||			/* stack not below RAM */
-	    (hdr[0] > (STM_RAM_BASE + (128 * 1024))) ||	/* stack not above RAM */
-	    (hdr[1] < PX4_FLASH_BASE) ||			/* entrypoint not below flash */
-	    ((hdr[1] - PX4_FLASH_BASE) > BL_FILE_SIZE_LIMIT))  		/* entrypoint not outside bootloader */
+	if ((hdr[0] < STM_RAM_BASE) ||                        /* stack not below RAM */
+	    (hdr[0] > (STM_RAM_BASE + (128 * 1024))) ||       /* stack not above RAM */
+	    (hdr[1] < PX4_FLASH_BASE) ||                      /* entrypoint not below flash */
+	    ((hdr[1] - PX4_FLASH_BASE) > BL_FILE_SIZE_LIMIT)) /* entrypoint not outside bootloader */
 	{
 		free(buf);
 		PX4_ERR("not a bootloader image");
@@ -181,12 +168,11 @@ extern "C" __EXPORT int bl_update_main(int argc, char *argv[])
 	sched_lock();
 
 	const size_t page = 0;
-	uint8_t *base = (uint8_t *) PX4_FLASH_BASE;
+	uint8_t *base = (uint8_t *)PX4_FLASH_BASE;
 
 	ssize_t size = up_progmem_eraseblock(page);
 
-	if (size != BL_FILE_SIZE_LIMIT)
-	{
+	if (size != BL_FILE_SIZE_LIMIT) {
 		PX4_ERR("erase error at %p", &base[size]);
 	}
 
@@ -194,11 +180,10 @@ extern "C" __EXPORT int bl_update_main(int argc, char *argv[])
 
 	/* now program the bootloader - speed is not critical so use x8 mode */
 
-	size = up_progmem_write((size_t) base, buf, image_size);
+	size = up_progmem_write((size_t)base, buf, image_size);
 
-	if (size != image_size)
-	{
-		PX4_ERR("program error at %p",  &base[size]);
+	if (size != image_size) {
+		PX4_ERR("program error at %p", &base[size]);
 		goto flash_end;
 	}
 
@@ -209,8 +194,7 @@ extern "C" __EXPORT int bl_update_main(int argc, char *argv[])
 	PX4_INFO("verifying...");
 
 	/* now run a verify pass */
-	for (int i = 0; i < image_size; i++)
-	{
+	for (int i = 0; i < image_size; i++) {
 		if (base[i] != buf[i]) {
 			PX4_WARN("verify failed at %i - retry update, DO NOT reboot", i);
 			goto flash_end;
@@ -227,13 +211,11 @@ flash_end:
 	exit(0);
 }
 
-static int
-setopt(void)
-{
+static int setopt(void) {
 	volatile uint32_t *optcr = (volatile uint32_t *)0x40023c14;
 
-	const uint16_t opt_mask = (3 << 2);		/* BOR_LEV bitmask */
-	const uint16_t opt_bits = (0 << 2);		/* BOR = 0, setting for 2.7-3.6V operation */
+	const uint16_t opt_mask = (3 << 2); /* BOR_LEV bitmask */
+	const uint16_t opt_bits = (0 << 2); /* BOR = 0, setting for 2.7-3.6V operation */
 
 	if ((*optcr & opt_mask) == opt_bits) {
 		PX4_INFO("option bits are already set as required");
@@ -263,4 +245,4 @@ setopt(void)
 	PX4_ERR("option bits setting failed; readback 0x%04" PRIx32, *optcr);
 	return 1;
 }
-#endif // defined (CONFIG_STM32_STM32F4XXX) || defined (CONFIG_ARCH_CHIP_STM32F7)
+#endif  // defined (CONFIG_STM32_STM32F4XXX) || defined (CONFIG_ARCH_CHIP_STM32F7)

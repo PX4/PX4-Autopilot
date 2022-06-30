@@ -37,10 +37,11 @@
 
 #include "PreFlightCheck.hpp"
 
-#include <drivers/drv_hrt.h>
 #include <HealthFlags.h>
+#include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
 #include <systemlib/mavlink_log.h>
+
 #include <uORB/Subscription.hpp>
 
 using namespace time_literals;
@@ -54,8 +55,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 				    vehicle_status_flags_s &status_flags, const vehicle_control_mode_s &control_mode,
 				    bool report_failures, const hrt_abstime &time_since_boot,
 				    const bool safety_button_available, const bool safety_off,
-				    const bool is_arm_attempt)
-{
+				    const bool is_arm_attempt) {
 	report_failures = (report_failures && !status_flags.calibration_enabled);
 
 	bool failed = false;
@@ -69,8 +69,8 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 		param_get(param_find("SYS_HAS_MAG"), &sys_has_mag);
 
 		if (sys_has_mag == 1) {
-			failed |= !sensorAvailabilityCheck(report_failures, max_mandatory_mag_count,
-							   mavlink_log_pub, status, magnetometerCheck);
+			failed |= !sensorAvailabilityCheck(report_failures, max_mandatory_mag_count, mavlink_log_pub,
+							   status, magnetometerCheck);
 
 			/* mag consistency checks (need to be performed after the individual checks) */
 			if (!magConsistencyCheck(mavlink_log_pub, status, report_failures)) {
@@ -81,16 +81,16 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 	/* ---- ACCEL ---- */
 	{
-		failed |= !sensorAvailabilityCheck(report_failures, max_mandatory_accel_count,
-						   mavlink_log_pub, status, accelerometerCheck);
+		failed |= !sensorAvailabilityCheck(report_failures, max_mandatory_accel_count, mavlink_log_pub, status,
+						   accelerometerCheck);
 
 		// TODO: highest priority (from params)
 	}
 
 	/* ---- GYRO ---- */
 	{
-		failed |= !sensorAvailabilityCheck(report_failures, max_mandatory_gyro_count,
-						   mavlink_log_pub, status, gyroCheck);
+		failed |= !sensorAvailabilityCheck(report_failures, max_mandatory_gyro_count, mavlink_log_pub, status,
+						   gyroCheck);
 
 		// TODO: highest priority (from params)
 	}
@@ -102,7 +102,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 		if (sys_has_baro == 1) {
 			static_cast<void>(sensorAvailabilityCheck(report_failures, max_mandatory_baro_count,
-					  mavlink_log_pub, status, baroCheck));
+								  mavlink_log_pub, status, baroCheck));
 		}
 	}
 
@@ -121,16 +121,14 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 		if (sys_has_num_dist_sens > 0) {
 			static_cast<void>(sensorAvailabilityCheck(report_failures, sys_has_num_dist_sens,
-					  mavlink_log_pub, status, distSensCheck));
+								  mavlink_log_pub, status, distSensCheck));
 		}
-
 	}
 
 	/* ---- AIRSPEED ---- */
 	/* Perform airspeed check only if circuit breaker is not engaged and it's not a rotary wing */
 	if (!status_flags.circuit_breaker_engaged_airspd_check &&
 	    (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || status.is_vtol)) {
-
 		int32_t airspeed_mode = 0;
 		param_get(param_find("FW_ARSP_MODE"), &airspeed_mode);
 		const bool optional = (airspeed_mode == 1);
@@ -141,11 +139,11 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 		float airspeed_trim = 10.0f;
 		param_get(param_find("FW_AIRSPD_TRIM"), &airspeed_trim);
 
-		const float arming_max_airspeed_allowed = airspeed_trim / 2.0f; // set to half of trim airspeed
+		const float arming_max_airspeed_allowed = airspeed_trim / 2.0f;  // set to half of trim airspeed
 
-		if (!airspeedCheck(mavlink_log_pub, status, optional, report_failures, is_arm_attempt, (bool)max_airspeed_check_en,
-				   arming_max_airspeed_allowed)
-		    && !(bool)optional) {
+		if (!airspeedCheck(mavlink_log_pub, status, optional, report_failures, is_arm_attempt,
+				   (bool)max_airspeed_check_en, arming_max_airspeed_allowed) &&
+		    !(bool)optional) {
 			failed = true;
 		}
 	}
@@ -162,14 +160,16 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 			failed = true;
 
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, status_flags.rc_signal_found_once, true, false, status);
+			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, status_flags.rc_signal_found_once,
+					 true, false, status);
 			status_flags.rc_calibration_valid = false;
 
 		} else {
-			// The calibration is fine, but only set the overall health state to true if the signal is not currently lost
+			// The calibration is fine, but only set the overall health state to true if the signal is not
+			// currently lost
 			status_flags.rc_calibration_valid = true;
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, status_flags.rc_signal_found_once, true,
-					 !status.rc_signal_lost, status);
+			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, status_flags.rc_signal_found_once,
+					 true, !status.rc_signal_lost, status);
 		}
 	}
 
@@ -193,7 +193,6 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	}
 
 	if (estimator_type == 2) {
-
 		const bool in_grace_period = time_since_boot < 10_s;
 		const bool do_report_ekf2_failures = report_failures && (!in_grace_period);
 		const bool ekf_healthy = ekf2Check(mavlink_log_pub, status, false, do_report_ekf2_failures) &&
@@ -210,10 +209,8 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, true, ekf_healthy, status);
 		}
 
-
-		if (control_mode.flag_control_attitude_enabled
-		    || control_mode.flag_control_velocity_enabled
-		    || control_mode.flag_control_position_enabled) {
+		if (control_mode.flag_control_attitude_enabled || control_mode.flag_control_velocity_enabled ||
+		    control_mode.flag_control_position_enabled) {
 			// healthy estimator only required for dependent control modes
 			failed |= !ekf_healthy;
 		}
@@ -228,17 +225,16 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	failed = failed || !modeCheck(mavlink_log_pub, report_failures, status);
 	failed = failed || !cpuResourceCheck(mavlink_log_pub, report_failures);
 	failed = failed || !parachuteCheck(mavlink_log_pub, report_failures, status_flags);
-	failed = failed || !preArmCheck(mavlink_log_pub, status_flags, control_mode,
-					safety_button_available, safety_off, status, report_failures, is_arm_attempt);
+	failed = failed || !preArmCheck(mavlink_log_pub, status_flags, control_mode, safety_button_available,
+					safety_off, status, report_failures, is_arm_attempt);
 
 	/* Report status */
 	return !failed;
 }
 
-bool PreFlightCheck::sensorAvailabilityCheck(const bool report_failure,
-		const uint8_t nb_mandatory_instances, orb_advert_t *mavlink_log_pub,
-		vehicle_status_s &status, sens_check_func_t sens_check)
-{
+bool PreFlightCheck::sensorAvailabilityCheck(const bool report_failure, const uint8_t nb_mandatory_instances,
+					     orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
+					     sens_check_func_t sens_check) {
 	bool pass_check = true;
 	bool report_fail = report_failure;
 

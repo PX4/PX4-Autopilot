@@ -46,26 +46,22 @@
 
 #include "../DynamicPortSubscriber.hpp"
 
-class UavcanGnssSubscriber : public UavcanDynamicPortSubscriber
-{
+class UavcanGnssSubscriber : public UavcanDynamicPortSubscriber {
 public:
-	UavcanGnssSubscriber(CanardHandle &handle, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanDynamicPortSubscriber(handle, pmgr, "udral.", "gps", instance) { };
+	UavcanGnssSubscriber(CanardHandle &handle, UavcanParamManager &pmgr, uint8_t instance = 0)
+		: UavcanDynamicPortSubscriber(handle, pmgr, "udral.", "gps", instance){};
 
-	void subscribe() override
-	{
+	void subscribe() override {
 		// Subscribe to messages reg.drone.physics.kinematics.geodetic.Point.0.1
-		_canard_handle.RxSubscribe(CanardTransferKindMessage,
-					   _subj_sub._canard_sub.port_id,
+		_canard_handle.RxSubscribe(CanardTransferKindMessage, _subj_sub._canard_sub.port_id,
 					   reg_udral_physics_kinematics_geodetic_Point_0_1_EXTENT_BYTES_,
-					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-					   &_subj_sub._canard_sub);
+					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC, &_subj_sub._canard_sub);
 
 		/** TODO: Add additional GPS-data messages: (reg.drone.service.gnss._.0.1.uavcan):
 		 * # A compliant implementation of this service should publish the following subjects:
 		 * #
-		 * #   PUBLISHED SUBJECT NAME      SUBJECT TYPE                                            TYP. RATE [Hz]
-		 * #   point_kinematics            reg.drone.physics.kinematics.geodetic.PointStateVarTs   1...100
+		 * #   PUBLISHED SUBJECT NAME      SUBJECT TYPE                                            TYP. RATE
+		 * [Hz] #   point_kinematics            reg.drone.physics.kinematics.geodetic.PointStateVarTs   1...100
 		 * #   time                        reg.drone.service.gnss.Time                             1...10
 		 * #   heartbeat                   reg.drone.service.gnss.Heartbeat                        ~1
 		 * #   sensor_status               reg.drone.service.sensor.Status                         ~1
@@ -77,16 +73,18 @@ public:
 		 */
 	};
 
-	void callback(const CanardRxTransfer &receive) override
-	{
+	void callback(const CanardRxTransfer &receive) override {
 		// Test with Yakut:
-		// export YAKUT_TRANSPORT="pyuavcan.transport.can.CANTransport(pyuavcan.transport.can.media.slcan.SLCANMedia('/dev/serial/by-id/usb-Zubax_Robotics_Zubax_Babel_23002B000E514E413431302000000000-if00', 8, 115200), 42)"
-		// yakut pub 1500.reg.drone.physics.kinematics.geodetic.Point.0.1 '{latitude: 1.234, longitude: 2.34, altitude: {meter: 0.5}}'
+		// export
+		// YAKUT_TRANSPORT="pyuavcan.transport.can.CANTransport(pyuavcan.transport.can.media.slcan.SLCANMedia('/dev/serial/by-id/usb-Zubax_Robotics_Zubax_Babel_23002B000E514E413431302000000000-if00',
+		// 8, 115200), 42)" yakut pub 1500.reg.drone.physics.kinematics.geodetic.Point.0.1 '{latitude: 1.234,
+		// longitude: 2.34, altitude: {meter: 0.5}}'
 		PX4_INFO("GpsCallback");
 
-		reg_udral_physics_kinematics_geodetic_Point_0_1 geo {};
+		reg_udral_physics_kinematics_geodetic_Point_0_1 geo{};
 		size_t geo_size_in_bits = receive.payload_size;
-		reg_udral_physics_kinematics_geodetic_Point_0_1_deserialize_(&geo, (const uint8_t *)receive.payload, &geo_size_in_bits);
+		reg_udral_physics_kinematics_geodetic_Point_0_1_deserialize_(&geo, (const uint8_t *)receive.payload,
+									     &geo_size_in_bits);
 
 		double lat = geo.latitude;
 		double lon = geo.longitude;
@@ -94,5 +92,4 @@ public:
 		PX4_INFO("Latitude: %f, Longitude: %f, Altitude: %f", lat, lon, alt);
 		/// do something with the data
 	};
-
 };

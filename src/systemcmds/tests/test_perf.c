@@ -36,16 +36,13 @@
  * Tests related to the performance counter.
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/posix.h>
-
 #include <perf/perf_counter.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "tests_main.h"
 
-int
-test_perf(int argc, char *argv[])
-{
+int test_perf(int argc, char *argv[]) {
 	perf_counter_t cc = perf_alloc(PC_COUNT, "test_count");
 	perf_counter_t ec = perf_alloc(PC_ELAPSED, "test_elapsed");
 

@@ -33,41 +33,39 @@
 
 #pragma once
 
-#include <microRTPS_transport.h>
-
 #include <inttypes.h>
-#include <cstdio>
-#include <ctime>
+#include <microRTPS_transport.h>
 #include <pthread.h>
-#include <termios.h>
-
-#include <ucdr/microcdr.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
+#include <termios.h>
 #include <uORB/uORB.h>
+#include <ucdr/microcdr.h>
 
-#define LOOPS			-1
-#define SLEEP_US		1000
-#define MAX_SLEEP_US		1000000
-#define BAUDRATE		460800
-#define MAX_DATA_RATE		10000000
-#define DEVICE		"/dev/ttyACM0"
-#define POLL_MS		1
-#define MAX_POLL_MS		1000
-#define DEFAULT_IP		"127.0.0.1"
-#define DEFAULT_RECV_PORT	2019
-#define DEFAULT_SEND_PORT	2020
-#define MIN_TX_INTERVAL_US	1000.f
-#define MAX_TX_INTERVAL_US	1000000.f
+#include <cstdio>
+#include <ctime>
 
+#define LOOPS -1
+#define SLEEP_US 1000
+#define MAX_SLEEP_US 1000000
+#define BAUDRATE 460800
+#define MAX_DATA_RATE 10000000
+#define DEVICE "/dev/ttyACM0"
+#define POLL_MS 1
+#define MAX_POLL_MS 1000
+#define DEFAULT_IP "127.0.0.1"
+#define DEFAULT_RECV_PORT 2019
+#define DEFAULT_SEND_PORT 2020
+#define MIN_TX_INTERVAL_US 1000.f
+#define MAX_TX_INTERVAL_US 1000000.f
 
 void *send(void *args);
 void micrortps_start_topics(const uint32_t &datarate, struct timespec &begin, uint64_t &total_rcvd,
-			    uint64_t &total_sent, uint64_t &sent_last_sec,
-			    uint64_t &rcvd_last_sec, uint64_t &received, uint64_t &sent, int &rcvd_loop, int &sent_loop);
+			    uint64_t &total_sent, uint64_t &sent_last_sec, uint64_t &rcvd_last_sec, uint64_t &received,
+			    uint64_t &sent, int &rcvd_loop, int &sent_loop);
 
 struct baudtype {
 	speed_t code;
@@ -75,10 +73,7 @@ struct baudtype {
 };
 
 struct options {
-	enum class eTransports {
-		UART,
-		UDP
-	};
+	enum class eTransports { UART, UDP };
 	eTransports transport = options::eTransports::UART;
 	char device[64] = DEVICE;
 	char ip[16] = DEFAULT_IP;

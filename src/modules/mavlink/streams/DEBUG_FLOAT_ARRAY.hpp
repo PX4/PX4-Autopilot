@@ -36,8 +36,7 @@
 
 #include <uORB/topics/debug_array.h>
 
-class MavlinkStreamDebugFloatArray : public MavlinkStream
-{
+class MavlinkStreamDebugFloatArray : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamDebugFloatArray(mavlink); }
 
@@ -47,9 +46,10 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _debug_array_sub.advertised() ? MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _debug_array_sub.advertised()
+			       ? MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+			       : 0;
 	}
 
 private:
@@ -57,8 +57,7 @@ private:
 
 	uORB::Subscription _debug_array_sub{ORB_ID(debug_array)};
 
-	bool send() override
-	{
+	bool send() override {
 		debug_array_s debug;
 
 		if (_debug_array_sub.update(&debug)) {
@@ -67,7 +66,7 @@ private:
 			msg.time_usec = debug.timestamp;
 			msg.array_id = debug.id;
 			memcpy(msg.name, debug.name, sizeof(msg.name));
-			msg.name[sizeof(msg.name) - 1] = '\0'; // enforce null termination
+			msg.name[sizeof(msg.name) - 1] = '\0';  // enforce null termination
 
 			for (size_t i = 0; i < debug_array_s::ARRAY_SIZE; i++) {
 				msg.data[i] = debug.data[i];
@@ -82,4 +81,4 @@ private:
 	}
 };
 
-#endif // DEBUG_FLOAT_ARRAY_HPP
+#endif  // DEBUG_FLOAT_ARRAY_HPP

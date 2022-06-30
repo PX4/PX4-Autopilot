@@ -33,30 +33,28 @@
 
 #pragma once
 
-#include <lib/mathlib/math/Limits.hpp>
-#include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gps_position.h>
+
+#include <lib/mathlib/math/Limits.hpp>
+#include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/vehicle_gps_position.h>
 
 #include "gps_blending.hpp"
 
 using namespace time_literals;
 
-namespace sensors
-{
-class VehicleGPSPosition : public ModuleParams, public px4::ScheduledWorkItem
-{
+namespace sensors {
+class VehicleGPSPosition : public ModuleParams, public px4::ScheduledWorkItem {
 public:
-
 	VehicleGPSPosition();
 	~VehicleGPSPosition() override;
 
@@ -72,7 +70,7 @@ private:
 	void Publish(const sensor_gps_s &gps, uint8_t selected);
 
 	// defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
-	static constexpr uint8_t BLEND_MASK_USE_SPD_ACC  = 1;
+	static constexpr uint8_t BLEND_MASK_USE_SPD_ACC = 1;
 	static constexpr uint8_t BLEND_MASK_USE_HPOS_ACC = 2;
 	static constexpr uint8_t BLEND_MASK_USE_VPOS_ACC = 4;
 
@@ -85,19 +83,18 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::SubscriptionCallbackWorkItem _sensor_gps_sub[GPS_MAX_RECEIVERS] {	/**< sensor data subscription */
+	uORB::SubscriptionCallbackWorkItem _sensor_gps_sub[GPS_MAX_RECEIVERS]{
+		/**< sensor data subscription */
 		{this, ORB_ID(sensor_gps), 0},
 		{this, ORB_ID(sensor_gps), 1},
 	};
 
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")};
 
 	GpsBlending _gps_blending;
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_GPS_MASK>) _param_sens_gps_mask,
-		(ParamFloat<px4::params::SENS_GPS_TAU>) _param_sens_gps_tau,
-		(ParamInt<px4::params::SENS_GPS_PRIME>) _param_sens_gps_prime
-	)
+	DEFINE_PARAMETERS((ParamInt<px4::params::SENS_GPS_MASK>)_param_sens_gps_mask,
+			  (ParamFloat<px4::params::SENS_GPS_TAU>)_param_sens_gps_tau,
+			  (ParamInt<px4::params::SENS_GPS_PRIME>)_param_sens_gps_prime)
 };
-}; // namespace sensors
+};  // namespace sensors

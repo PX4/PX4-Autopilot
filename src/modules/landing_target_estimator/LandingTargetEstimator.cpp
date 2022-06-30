@@ -39,19 +39,17 @@
  *
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <drivers/drv_hrt.h>
-
 #include "LandingTargetEstimator.h"
+
+#include <drivers/drv_hrt.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_config.h>
 
 #define SEC2USEC 1000000.0f
 
-namespace landing_target_estimator
-{
+namespace landing_target_estimator {
 
-LandingTargetEstimator::LandingTargetEstimator()
-{
+LandingTargetEstimator::LandingTargetEstimator() {
 	_paramHandle.acc_unc = param_find("LTEST_ACC_UNC");
 	_paramHandle.meas_unc = param_find("LTEST_MEAS_UNC");
 	_paramHandle.pos_unc_init = param_find("LTEST_POS_UNC_IN");
@@ -66,8 +64,7 @@ LandingTargetEstimator::LandingTargetEstimator()
 	_check_params(true);
 }
 
-void LandingTargetEstimator::update()
-{
+void LandingTargetEstimator::update() {
 	_check_params(false);
 
 	_update_topics();
@@ -108,13 +105,14 @@ void LandingTargetEstimator::update()
 	// mark this sensor measurement as consumed
 	_new_sensorReport = false;
 
-
 	if (!_estimator_initialized) {
 		float vx_init = _vehicleLocalPosition.v_xy_valid ? -_vehicleLocalPosition.vx : 0.f;
 		float vy_init = _vehicleLocalPosition.v_xy_valid ? -_vehicleLocalPosition.vy : 0.f;
 		PX4_INFO("Init %.2f %.2f", (double)vx_init, (double)vy_init);
-		_kalman_filter_x.init(_target_position_report.rel_pos_x, vx_init, _params.pos_unc_init, _params.vel_unc_init);
-		_kalman_filter_y.init(_target_position_report.rel_pos_y, vy_init, _params.pos_unc_init, _params.vel_unc_init);
+		_kalman_filter_x.init(_target_position_report.rel_pos_x, vx_init, _params.pos_unc_init,
+				      _params.vel_unc_init);
+		_kalman_filter_y.init(_target_position_report.rel_pos_y, vy_init, _params.pos_unc_init,
+				      _params.vel_unc_init);
 
 		_estimator_initialized = true;
 		_last_update = hrt_absolute_time();
@@ -129,7 +127,8 @@ void LandingTargetEstimator::update()
 		if (!update_x || !update_y) {
 			if (!_faulty) {
 				_faulty = true;
-				PX4_WARN("Landing target measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
+				PX4_WARN("Landing target measurement rejected:%s%s", update_x ? "" : " x",
+					 update_y ? "" : " y");
 			}
 
 		} else {
@@ -154,7 +153,7 @@ void LandingTargetEstimator::update()
 			_target_pose.rel_vel_valid = true;
 			_target_pose.x_rel = x;
 			_target_pose.y_rel = y;
-			_target_pose.z_rel = _target_position_report.rel_pos_z ;
+			_target_pose.z_rel = _target_position_report.rel_pos_z;
 			_target_pose.vx_rel = xvel;
 			_target_pose.vy_rel = yvel;
 
@@ -167,7 +166,7 @@ void LandingTargetEstimator::update()
 			if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid) {
 				_target_pose.x_abs = x + _vehicleLocalPosition.x;
 				_target_pose.y_abs = y + _vehicleLocalPosition.y;
-				_target_pose.z_abs = _target_position_report.rel_pos_z  + _vehicleLocalPosition.z;
+				_target_pose.z_abs = _target_position_report.rel_pos_z + _vehicleLocalPosition.z;
 				_target_pose.abs_pos_valid = true;
 
 			} else {
@@ -194,8 +193,7 @@ void LandingTargetEstimator::update()
 	}
 }
 
-void LandingTargetEstimator::_check_params(const bool force)
-{
+void LandingTargetEstimator::_check_params(const bool force) {
 	if (_parameter_update_sub.updated() || force) {
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
@@ -204,17 +202,16 @@ void LandingTargetEstimator::_check_params(const bool force)
 	}
 }
 
-void LandingTargetEstimator::_update_topics()
-{
+void LandingTargetEstimator::_update_topics() {
 	_vehicleLocalPosition_valid = _vehicleLocalPositionSub.update(&_vehicleLocalPosition);
 	_vehicleAttitude_valid = _attitudeSub.update(&_vehicleAttitude);
 	_vehicle_acceleration_valid = _vehicle_acceleration_sub.update(&_vehicle_acceleration);
 
-
-	if (_irlockReportSub.update(&_irlockReport)) { //
+	if (_irlockReportSub.update(&_irlockReport)) {  //
 		_new_irlockReport = true;
 
-		if (!_vehicleAttitude_valid || !_vehicleLocalPosition_valid || !_vehicleLocalPosition.dist_bottom_valid) {
+		if (!_vehicleAttitude_valid || !_vehicleLocalPosition_valid ||
+		    !_vehicleLocalPosition.dist_bottom_valid) {
 			// don't have the data needed for an update
 			return;
 		}
@@ -223,9 +220,9 @@ void LandingTargetEstimator::_update_topics()
 			return;
 		}
 
-		matrix::Vector<float, 3> sensor_ray; // ray pointing towards target in body frame
-		sensor_ray(0) = _irlockReport.pos_x * _params.scale_x; // forward
-		sensor_ray(1) = _irlockReport.pos_y * _params.scale_y; // right
+		matrix::Vector<float, 3> sensor_ray;                    // ray pointing towards target in body frame
+		sensor_ray(0) = _irlockReport.pos_x * _params.scale_x;  // forward
+		sensor_ray(1) = _irlockReport.pos_y * _params.scale_y;  // right
 		sensor_ray(2) = 1.0f;
 
 		// rotate unit ray according to sensor orientation
@@ -282,8 +279,7 @@ void LandingTargetEstimator::_update_topics()
 	}
 }
 
-void LandingTargetEstimator::_update_params()
-{
+void LandingTargetEstimator::_update_params() {
 	param_get(_paramHandle.acc_unc, &_params.acc_unc);
 	param_get(_paramHandle.meas_unc, &_params.meas_unc);
 	param_get(_paramHandle.pos_unc_init, &_params.pos_unc_init);
@@ -305,5 +301,4 @@ void LandingTargetEstimator::_update_params()
 	param_get(_paramHandle.offset_z, &_params.offset_z);
 }
 
-
-} // namespace landing_target_estimator
+}  // namespace landing_target_estimator

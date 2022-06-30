@@ -32,15 +32,15 @@
  ****************************************************************************/
 
 #include <stdbool.h>
-#include "image_toc.h"
+
 #include "hw_config.h"
+#include "image_toc.h"
 
 #ifdef BOOTLOADER_USE_SECURITY
 
 #include <px4_platform_common/crypto_backend.h>
 
-bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries)
-{
+bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries) {
 	volatile uint8_t *app_signature_ptr = NULL;
 	volatile size_t len = 0;
 	bool ret;
@@ -51,19 +51,18 @@ bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries)
 	app_signature_ptr = (volatile uint8_t *)toc_entries[sig_idx].start;
 	len = (size_t)toc_entries[idx].end - (size_t)toc_entries[idx].start;
 
-	ret =  crypto_signature_check(handle, sig_key, (const uint8_t *)app_signature_ptr,
-				      (const uint8_t *)toc_entries[idx].start, len);
+	ret = crypto_signature_check(handle, sig_key, (const uint8_t *)app_signature_ptr,
+				     (const uint8_t *)toc_entries[idx].start, len);
 
 	crypto_close(&handle);
 	return ret;
 }
 
-bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries)
-{
+bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries) {
 	/*
 	 * Not implemented yet.
 	 */
 	return false;
 }
 
-#endif //BOOTLOADER_USE_SECURITY
+#endif  // BOOTLOADER_USE_SECURITY

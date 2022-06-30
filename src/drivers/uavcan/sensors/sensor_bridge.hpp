@@ -37,17 +37,17 @@
 
 #pragma once
 
-#include <containers/List.hpp>
-#include <uavcan/uavcan.hpp>
 #include <drivers/drv_orb_dev.h>
-#include <lib/drivers/device/Device.hpp>
 #include <uORB/uORB.h>
+
+#include <containers/List.hpp>
+#include <lib/drivers/device/Device.hpp>
+#include <uavcan/uavcan.hpp>
 
 /**
  * A sensor bridge class must implement this interface.
  */
-class IUavcanSensorBridge : uavcan::Noncopyable, public ListNode<IUavcanSensorBridge *>
-{
+class IUavcanSensorBridge : uavcan::Noncopyable, public ListNode<IUavcanSensorBridge *> {
 public:
 	static constexpr unsigned MAX_NAME_LEN = 20;
 
@@ -74,7 +74,7 @@ public:
 	 */
 	virtual void print_status() const = 0;
 
-	virtual void update() {};
+	virtual void update(){};
 
 	/**
 	 * Sensor bridge factory.
@@ -83,22 +83,20 @@ public:
 	static void make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list);
 };
 
-namespace uavcan_bridge
-{
+namespace uavcan_bridge {
 struct Channel {
 	int node_id{-1};
 	orb_advert_t orb_advert{nullptr};
 	int instance{-1};
 	void *h_driver{nullptr};
 };
-} // namespace uavcan_bridge
+}  // namespace uavcan_bridge
 
 /**
  * This is the base class for redundant sensors with an independent ORB topic per each redundancy channel.
  * For example, sensor_mag0, sensor_mag1, etc.
  */
-class UavcanSensorBridgeBase : public IUavcanSensorBridge, public device::Device
-{
+class UavcanSensorBridgeBase : public IUavcanSensorBridge, public device::Device {
 	const orb_id_t _orb_topic;
 	uavcan_bridge::Channel *const _channels;
 	bool _out_of_channels = false;
@@ -108,12 +106,11 @@ protected:
 	const unsigned _max_channels;
 
 	UavcanSensorBridgeBase(const char *name, const orb_id_t orb_topic_sensor,
-			       const unsigned max_channels = DEFAULT_MAX_CHANNELS) :
-		Device(name),
-		_orb_topic(orb_topic_sensor),
-		_channels(new uavcan_bridge::Channel[max_channels]),
-		_max_channels(max_channels)
-	{
+			       const unsigned max_channels = DEFAULT_MAX_CHANNELS)
+		: Device(name),
+		  _orb_topic(orb_topic_sensor),
+		  _channels(new uavcan_bridge::Channel[max_channels]),
+		  _max_channels(max_channels) {
 		set_device_bus_type(DeviceBusType_UAVCAN);
 		set_device_bus(0);
 	}

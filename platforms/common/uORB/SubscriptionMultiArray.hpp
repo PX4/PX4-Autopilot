@@ -38,22 +38,19 @@
 
 #pragma once
 
-#include <uORB/uORB.h>
-
-#include <px4_platform_common/defines.h>
 #include <lib/mathlib/mathlib.h>
+#include <px4_platform_common/defines.h>
+#include <uORB/uORB.h>
 
 #include "SubscriptionInterval.hpp"
 
-namespace uORB
-{
+namespace uORB {
 
 /**
  * An array of uORB::Subscriptions of the same topic
  */
-template<typename T, uint8_t SIZE = ORB_MULTI_MAX_INSTANCES>
-class SubscriptionMultiArray
-{
+template <typename T, uint8_t SIZE = ORB_MULTI_MAX_INSTANCES>
+class SubscriptionMultiArray {
 public:
 	static_assert(SIZE <= ORB_MULTI_MAX_INSTANCES, "size must be <= uORB max instances");
 
@@ -64,8 +61,7 @@ public:
 	 *
 	 * @param id The uORB ORB_ID enum for the topic.
 	 */
-	explicit SubscriptionMultiArray(ORB_ID id)
-	{
+	explicit SubscriptionMultiArray(ORB_ID id) {
 		for (uint8_t i = 0; i < SIZE; i++) {
 			_subscriptions[i] = SubscriptionInterval{id, 0, i};
 			_subscriptions[i].subscribe();
@@ -74,8 +70,8 @@ public:
 
 	~SubscriptionMultiArray() = default;
 
-	SubscriptionInterval &operator [](int i) { return _subscriptions[i]; }
-	const SubscriptionInterval &operator [](int i) const { return _subscriptions[i]; }
+	SubscriptionInterval &operator[](int i) { return _subscriptions[i]; }
+	const SubscriptionInterval &operator[](int i) const { return _subscriptions[i]; }
 
 	SubscriptionInterval *begin() { return _subscriptions; }
 	SubscriptionInterval *end() { return _subscriptions + SIZE; }
@@ -84,8 +80,7 @@ public:
 	const SubscriptionInterval *end() const { return _subscriptions + SIZE; }
 
 	// true if any instance is advertised
-	bool advertised()
-	{
+	bool advertised() {
 		for (auto &s : _subscriptions) {
 			if (s.advertised()) {
 				return true;
@@ -96,8 +91,7 @@ public:
 	}
 
 	// return the number of instances currently advertised
-	uint8_t advertised_count()
-	{
+	uint8_t advertised_count() {
 		uint8_t count = 0;
 
 		for (auto &s : _subscriptions) {
@@ -110,8 +104,7 @@ public:
 	}
 
 	// true if any instance is updated
-	bool updated()
-	{
+	bool updated() {
 		for (auto &s : _subscriptions) {
 			if (s.updated()) {
 				return true;
@@ -125,4 +118,4 @@ private:
 	SubscriptionInterval _subscriptions[SIZE];
 };
 
-} // namespace uORB
+}  // namespace uORB

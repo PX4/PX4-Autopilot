@@ -33,25 +33,22 @@
 
 #pragma once
 
-#include "WorkQueueManager.hpp"
-#include "WorkQueue.hpp"
-
-#include <containers/IntrusiveQueue.hpp>
-#include <containers/IntrusiveSortedList.hpp>
-#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
-
+#include <px4_platform_common/defines.h>
 #include <string.h>
 
-namespace px4
-{
+#include <containers/IntrusiveQueue.hpp>
+#include <containers/IntrusiveSortedList.hpp>
 
-class WorkItem : public IntrusiveSortedListNode<WorkItem *>, public IntrusiveQueueNode<WorkItem *>
-{
+#include "WorkQueue.hpp"
+#include "WorkQueueManager.hpp"
+
+namespace px4 {
+
+class WorkItem : public IntrusiveSortedListNode<WorkItem *>, public IntrusiveQueueNode<WorkItem *> {
 public:
-
 	WorkItem() = delete;
 
 	// no copy, assignment, move, move assignment
@@ -63,8 +60,7 @@ public:
 	// WorkItems sorted by name
 	bool operator<=(const WorkItem &rhs) const { return (strcmp(ItemName(), rhs.ItemName()) <= 0); }
 
-	inline void ScheduleNow()
-	{
+	inline void ScheduleNow() {
 		if (_wq != nullptr) {
 			_wq->Add(this);
 		}
@@ -84,7 +80,6 @@ public:
 	const char *ItemName() const { return _item_name; }
 
 protected:
-
 	explicit WorkItem(const char *name, const wq_config_t &config);
 
 	explicit WorkItem(const char *name, const WorkItem &work_item);
@@ -95,10 +90,9 @@ protected:
 	 * Remove work item from the runnable queue, if it's there
 	 */
 	void ScheduleClear();
-protected:
 
-	void RunPreamble()
-	{
+protected:
+	void RunPreamble() {
 		if (_run_count == 0) {
 			_time_first_run = hrt_absolute_time();
 			_run_count = 1;
@@ -126,14 +120,12 @@ protected:
 	float average_rate() const;
 	float average_interval() const;
 
-	hrt_abstime	_time_first_run{0};
-	const char 	*_item_name;
-	uint32_t	_run_count{0};
+	hrt_abstime _time_first_run{0};
+	const char *_item_name;
+	uint32_t _run_count{0};
 
 private:
-
-	WorkQueue	*_wq{nullptr};
-
+	WorkQueue *_wq{nullptr};
 };
 
-} // namespace px4
+}  // namespace px4

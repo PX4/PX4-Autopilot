@@ -33,28 +33,21 @@
 
 #include "ETSAirspeed.hpp"
 
-ETSAirspeed::ETSAirspeed(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config)
-{
-}
+ETSAirspeed::ETSAirspeed(const I2CSPIDriverConfig &config) : I2C(config), I2CSPIDriver(config) {}
 
-ETSAirspeed::~ETSAirspeed()
-{
+ETSAirspeed::~ETSAirspeed() {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
-int ETSAirspeed::probe()
-{
+int ETSAirspeed::probe() {
 	_retries = 1;
 	int ret = measure();
 
 	return ret;
 }
 
-int ETSAirspeed::init()
-{
+int ETSAirspeed::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -69,8 +62,7 @@ int ETSAirspeed::init()
 	return ret;
 }
 
-int ETSAirspeed::measure()
-{
+int ETSAirspeed::measure() {
 	/*
 	 * Send the command to begin a measurement.
 	 */
@@ -84,8 +76,7 @@ int ETSAirspeed::measure()
 	return ret;
 }
 
-int ETSAirspeed::collect()
-{
+int ETSAirspeed::collect() {
 	/* read from the sensor */
 	uint8_t val[2] = {0, 0};
 
@@ -123,13 +114,11 @@ int ETSAirspeed::collect()
 	return PX4_OK;
 }
 
-void ETSAirspeed::RunImpl()
-{
+void ETSAirspeed::RunImpl() {
 	int ret;
 
 	/* collection phase? */
 	if (_collect_phase) {
-
 		/* perform collection */
 		ret = collect();
 
@@ -149,7 +138,6 @@ void ETSAirspeed::RunImpl()
 		 * Is there a collect->measure gap?
 		 */
 		if (_measure_interval > CONVERSION_INTERVAL) {
-
 			/* schedule a fresh cycle call when we are ready to measure again */
 			ScheduleDelayed(_measure_interval - CONVERSION_INTERVAL);
 

@@ -55,5 +55,5 @@
 #if defined(OPT_USE_YIELD)
 void bl_sched_yield(void);
 #else
-# define bl_sched_yield()
+#define bl_sched_yield()
 #endif

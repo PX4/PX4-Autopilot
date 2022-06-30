@@ -39,23 +39,22 @@
 
 #pragma once
 
-#include <drivers/device/Device.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/topics/sensor_baro.h>
+
+#include <drivers/device/Device.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/PublicationMulti.hpp>
 
 #include "Infineon_DPS310_Registers.hpp"
 
-namespace dps310
-{
+namespace dps310 {
 
 using Infineon_DPS310::CalibrationCoefficients;
 using Infineon_DPS310::Register;
 
-class DPS310 : public I2CSPIDriver<DPS310>
-{
+class DPS310 : public I2CSPIDriver<DPS310> {
 public:
 	DPS310(const I2CSPIDriverConfig &config, device::Device *interface);
 	virtual ~DPS310();
@@ -63,31 +62,30 @@ public:
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
-	int			init();
+	int init();
 
-	void			print_status();
-	void			RunImpl();
+	void print_status();
+	void RunImpl();
 
 private:
+	void start();
+	int reset();
 
-	void			start();
-	int			reset();
-
-	uint8_t			RegisterRead(Register reg);
-	void			RegisterWrite(Register reg, uint8_t val);
-	void			RegisterSetBits(Register reg, uint8_t setbits);
-	void			RegisterClearBits(Register reg, uint8_t clearbits);
+	uint8_t RegisterRead(Register reg);
+	void RegisterWrite(Register reg, uint8_t val);
+	void RegisterSetBits(Register reg, uint8_t setbits);
+	void RegisterClearBits(Register reg, uint8_t clearbits);
 
 	static constexpr uint32_t SAMPLE_RATE{32};
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
-	device::Device		*_interface;
+	device::Device *_interface;
 
-	CalibrationCoefficients	_calibration{};
+	CalibrationCoefficients _calibration{};
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
+	perf_counter_t _sample_perf;
+	perf_counter_t _comms_errors;
 };
 
-} // namespace dps310
+}  // namespace dps310

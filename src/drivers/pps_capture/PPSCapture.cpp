@@ -39,26 +39,23 @@
  */
 
 #include "PPSCapture.hpp"
-#include <px4_arch/io_timer.h>
+
 #include <board_config.h>
 #include <parameters/param.h>
+#include <px4_arch/io_timer.h>
 
-PPSCapture::PPSCapture() :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
-{
+PPSCapture::PPSCapture() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {
 	_pps_capture_pub.advertise();
 }
 
-PPSCapture::~PPSCapture()
-{
+PPSCapture::~PPSCapture() {
 	if (_channel >= 0) {
 		io_timer_unallocate_channel(_channel);
 		px4_arch_gpiosetevent(_pps_capture_gpio, false, false, false, nullptr, nullptr);
 	}
 }
 
-bool PPSCapture::init()
-{
+bool PPSCapture::init() {
 	bool success = false;
 
 	param_t p_ctrl_alloc = param_find("SYS_CTRL_ALLOC");
@@ -69,7 +66,6 @@ bool PPSCapture::init()
 	}
 
 	if (ctrl_alloc == 1) {
-
 		for (unsigned i = 0; i < 16; ++i) {
 			char param_name[17];
 			snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "FUNC", i + 1);
@@ -77,7 +73,7 @@ bool PPSCapture::init()
 			int32_t function;
 
 			if (function_handle != PARAM_INVALID && param_get(function_handle, &function) == 0) {
-				if (function == 2064) { // PPS_Input
+				if (function == 2064) {  // PPS_Input
 					_channel = i;
 				}
 			}
@@ -105,7 +101,8 @@ bool PPSCapture::init()
 	}
 
 	_pps_capture_gpio = PX4_MAKE_GPIO_EXTI(io_timer_channel_get_as_pwm_input(_channel));
-	int ret_val = px4_arch_gpiosetevent(_pps_capture_gpio, true, false, true, &PPSCapture::gpio_interrupt_callback, this);
+	int ret_val =
+		px4_arch_gpiosetevent(_pps_capture_gpio, true, false, true, &PPSCapture::gpio_interrupt_callback, this);
 
 	if (ret_val == PX4_OK) {
 		success = true;
@@ -114,8 +111,7 @@ bool PPSCapture::init()
 	return success;
 }
 
-void PPSCapture::Run()
-{
+void PPSCapture::Run() {
 	if (should_exit()) {
 		exit_and_cleanup();
 		return;
@@ -136,25 +132,23 @@ void PPSCapture::Run()
 
 	// (For ubx F9P) The rising edge of the PPS pulse is aligned to the top of second GPS time base.
 	// So, remove the fraction of second and shift to the next second. The interrupt is triggered
-	// before the matching timestamp is received via a UART message, which means the last received GPS time is always
-	// behind.
+	// before the matching timestamp is received via a UART message, which means the last received GPS time is
+	// always behind.
 	pps_capture.rtc_timestamp = gps_utc_time - (gps_utc_time % USEC_PER_SEC) + USEC_PER_SEC;
 
 	_pps_capture_pub.publish(pps_capture);
 }
 
-int PPSCapture::gpio_interrupt_callback(int irq, void *context, void *arg)
-{
+int PPSCapture::gpio_interrupt_callback(int irq, void *context, void *arg) {
 	PPSCapture *instance = static_cast<PPSCapture *>(arg);
 
 	instance->_hrt_timestamp = hrt_absolute_time();
-	instance->ScheduleNow(); // schedule work queue to publish PPS captured time
+	instance->ScheduleNow();  // schedule work queue to publish PPS captured time
 
 	return PX4_OK;
 }
 
-int PPSCapture::task_spawn(int argc, char *argv[])
-{
+int PPSCapture::task_spawn(int argc, char *argv[]) {
 	PPSCapture *instance = new PPSCapture();
 
 	if (instance) {
@@ -176,13 +170,9 @@ int PPSCapture::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int PPSCapture::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int PPSCapture::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int PPSCapture::print_usage(const char *reason)
-{
+int PPSCapture::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -201,13 +191,9 @@ This implements capturing PPS information from the GNSS module and calculates th
 	return 0;
 }
 
-void PPSCapture::stop()
-{
-	exit_and_cleanup();
-}
+void PPSCapture::stop() { exit_and_cleanup(); }
 
-extern "C" __EXPORT int pps_capture_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int pps_capture_main(int argc, char *argv[]) {
 	if (argc >= 2 && !strcmp(argv[1], "stop") && PPSCapture::is_running()) {
 		PPSCapture::stop();
 	}

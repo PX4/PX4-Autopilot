@@ -33,27 +33,22 @@
 
 #include "VehicleGPSPosition.hpp"
 
-#include <px4_platform_common/log.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
+#include <px4_platform_common/log.h>
 
-namespace sensors
-{
-VehicleGPSPosition::VehicleGPSPosition() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
-{
+namespace sensors {
+VehicleGPSPosition::VehicleGPSPosition()
+	: ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers) {
 	_vehicle_gps_position_pub.advertise();
 }
 
-VehicleGPSPosition::~VehicleGPSPosition()
-{
+VehicleGPSPosition::~VehicleGPSPosition() {
 	Stop();
 	perf_free(_cycle_perf);
 }
 
-bool VehicleGPSPosition::Start()
-{
+bool VehicleGPSPosition::Start() {
 	// force initial updates
 	ParametersUpdate(true);
 
@@ -62,8 +57,7 @@ bool VehicleGPSPosition::Start()
 	return true;
 }
 
-void VehicleGPSPosition::Stop()
-{
+void VehicleGPSPosition::Stop() {
 	Deinit();
 
 	// clear all registered callbacks
@@ -72,8 +66,7 @@ void VehicleGPSPosition::Stop()
 	}
 }
 
-void VehicleGPSPosition::ParametersUpdate(bool force)
-{
+void VehicleGPSPosition::ParametersUpdate(bool force) {
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated() || force) {
 		// clear update
@@ -99,8 +92,7 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 	}
 }
 
-void VehicleGPSPosition::Run()
-{
+void VehicleGPSPosition::Run() {
 	perf_begin(_cycle_perf);
 	ParametersUpdate();
 
@@ -133,13 +125,12 @@ void VehicleGPSPosition::Run()
 		}
 	}
 
-	ScheduleDelayed(300_ms); // backup schedule
+	ScheduleDelayed(300_ms);  // backup schedule
 
 	perf_end(_cycle_perf);
 }
 
-void VehicleGPSPosition::Publish(const sensor_gps_s &gps, uint8_t selected)
-{
+void VehicleGPSPosition::Publish(const sensor_gps_s &gps, uint8_t selected) {
 	vehicle_gps_position_s gps_output{};
 
 	gps_output.timestamp = gps.timestamp;
@@ -174,9 +165,8 @@ void VehicleGPSPosition::Publish(const sensor_gps_s &gps, uint8_t selected)
 	_vehicle_gps_position_pub.publish(gps_output);
 }
 
-void VehicleGPSPosition::PrintStatus()
-{
-	//PX4_INFO_RAW("[vehicle_gps_position] selected GPS: %d\n", _gps_select_index);
+void VehicleGPSPosition::PrintStatus() {
+	// PX4_INFO_RAW("[vehicle_gps_position] selected GPS: %d\n", _gps_select_index);
 }
 
-}; // namespace sensors
+};  // namespace sensors

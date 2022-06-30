@@ -33,21 +33,21 @@
 
 #pragma once
 
-#include <uavcan/uavcan.hpp>
-#include <uavcan/equipment/actuator/Status.hpp>
-#include <uavcan/equipment/actuator/ArrayCommand.hpp>
-#include <lib/perf/perf_counter.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/actuator_outputs.h>
 #include <drivers/drv_hrt.h>
-#include <lib/mixer_module/mixer_module.hpp>
+#include <lib/perf/perf_counter.h>
+#include <uORB/topics/actuator_outputs.h>
 
-class UavcanServoController
-{
+#include <lib/mixer_module/mixer_module.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uavcan/equipment/actuator/ArrayCommand.hpp>
+#include <uavcan/equipment/actuator/Status.hpp>
+#include <uavcan/uavcan.hpp>
+
+class UavcanServoController {
 public:
 	static constexpr int MAX_ACTUATORS = 8;
 	static constexpr unsigned MAX_RATE_HZ = 50;
-	static constexpr unsigned UAVCAN_COMMAND_TRANSFER_PRIORITY = 6;	///< 0..31, inclusive, 0 - highest, 31 - lowest
+	static constexpr unsigned UAVCAN_COMMAND_TRANSFER_PRIORITY = 6;  ///< 0..31, inclusive, 0 - highest, 31 - lowest
 
 	UavcanServoController(uavcan::INode &node);
 	~UavcanServoController() = default;
@@ -55,6 +55,6 @@ public:
 	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs);
 
 private:
-	uavcan::INode								&_node;
+	uavcan::INode &_node;
 	uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand> _uavcan_pub_array_cmd;
 };

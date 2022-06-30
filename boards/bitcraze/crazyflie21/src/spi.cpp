@@ -31,34 +31,31 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform/gpio.h>
-
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
-#include <unistd.h>
-
-#include <nuttx/spi/spi.h>
 #include <arch/board/board.h>
-#include <systemlib/px4_macros.h>
-#include <nuttx/mmcsd.h>
-
 #include <arm_arch.h>
 #include <chip.h>
+#include <debug.h>
+#include <drivers/drv_sensor.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/spi_hw_description.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stm32_gpio.h>
+#include <systemlib/px4_macros.h>
+#include <unistd.h>
+
 #include "board_config.h"
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
-
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::PortC, GPIO::Pin12}),
-		initSPIDevice(DRV_FLOW_DEVTYPE_PMW3901, SPI::CS{GPIO::PortB, GPIO::Pin4}),
-		initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortB, GPIO::Pin5}),
-	}),
+	initSPIBus(SPI::Bus::SPI1,
+		   {
+			   initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::PortC, GPIO::Pin12}),
+			   initSPIDevice(DRV_FLOW_DEVTYPE_PMW3901, SPI::CS{GPIO::PortB, GPIO::Pin4}),
+			   initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortB, GPIO::Pin5}),
+		   }),
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses);
@@ -72,8 +69,7 @@ static constexpr bool unused = validateSPIConfig(px4_spi_buses);
  ************************************************************************************/
 static struct spi_dev_s *spi_expansion;
 
-__EXPORT int stm32_spi_bus_initialize(void)
-{
+__EXPORT int stm32_spi_bus_initialize(void) {
 	/* Configure SPI-based devices */
 
 	/* Get the external SPI port */

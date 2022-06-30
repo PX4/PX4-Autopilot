@@ -33,12 +33,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixVector2Test, Vector2)
-{
+TEST(MatrixVector2Test, Vector2) {
 	Vector2f a(1, 0);
 	Vector2f b(0, 1);
 	EXPECT_FLOAT_EQ(a % b, 1.f);

@@ -33,34 +33,35 @@
 #pragma once
 #include <stdint.h>
 
-typedef enum  {
-	MTD_PARAMETERS  = 1,
-	MTD_WAYPOINTS   = 2,
-	MTD_CALDATA     = 3,
-	MTD_MFT         = 4,
-	MTD_ID          = 5,
-	MTD_NET         = 6,
+typedef enum {
+	MTD_PARAMETERS = 1,
+	MTD_WAYPOINTS = 2,
+	MTD_CALDATA = 3,
+	MTD_MFT = 4,
+	MTD_ID = 5,
+	MTD_NET = 6,
 } px4_mtd_types_t;
-#define PX4_MFT_MTD_TYPES  {MTD_PARAMETERS, MTD_WAYPOINTS, MTD_CALDATA, MTD_MFT, MTD_ID, MTD_NET}
-#define PX4_MFT_MTD_STR_TYPES  {"MTD_PARAMETERS", "MTD_WAYPOINTS", "MTD_CALDATA", "MTD_MFT", "MTD_ID", "MTD_NET"}
+#define PX4_MFT_MTD_TYPES \
+	{ MTD_PARAMETERS, MTD_WAYPOINTS, MTD_CALDATA, MTD_MFT, MTD_ID, MTD_NET }
+#define PX4_MFT_MTD_STR_TYPES \
+	{ "MTD_PARAMETERS", "MTD_WAYPOINTS", "MTD_CALDATA", "MTD_MFT", "MTD_ID", "MTD_NET" }
 
-typedef struct  {
-	const px4_mtd_types_t   type;
-	const char              *path;
-	const uint32_t          nblocks;
+typedef struct {
+	const px4_mtd_types_t type;
+	const char *path;
+	const uint32_t nblocks;
 } px4_mtd_part_t;
 
-typedef struct  {
-	const px4_mft_device_t  *device;
-	const uint32_t           npart;
-	const px4_mtd_part_t     partd[];
+typedef struct {
+	const px4_mft_device_t *device;
+	const uint32_t npart;
+	const px4_mtd_part_t partd[];
 } px4_mtd_entry_t;
 
-typedef struct  {
-	const uint32_t        nconfigs;
+typedef struct {
+	const uint32_t nconfigs;
 	const px4_mtd_entry_t *entries[];
 } px4_mtd_manifest_t;
-
 
 __BEGIN_DECLS
 /************************************************************************************

@@ -37,5 +37,5 @@ typedef struct {
 	int handle;
 } keystore_session_handle_t;
 
-static inline void keystore_session_handle_init(keystore_session_handle_t *handle) {handle->handle = 0;}
-static inline bool keystore_session_handle_valid(keystore_session_handle_t handle) {return handle.handle > 0;}
+static inline void keystore_session_handle_init(keystore_session_handle_t *handle) { handle->handle = 0; }
+static inline bool keystore_session_handle_valid(keystore_session_handle_t handle) { return handle.handle > 0; }

@@ -42,22 +42,15 @@
 
 using namespace matrix;
 
-AirshipAttitudeControl::AirshipAttitudeControl() :
-	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
-	_actuator_controls_0_pub(ORB_ID(actuator_controls_0)),
-	_loop_perf(perf_alloc(PC_ELAPSED, "airship_att_control"))
-{
-}
+AirshipAttitudeControl::AirshipAttitudeControl()
+	: ModuleParams(nullptr),
+	  WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	  _actuator_controls_0_pub(ORB_ID(actuator_controls_0)),
+	  _loop_perf(perf_alloc(PC_ELAPSED, "airship_att_control")) {}
 
-AirshipAttitudeControl::~AirshipAttitudeControl()
-{
-	perf_free(_loop_perf);
-}
+AirshipAttitudeControl::~AirshipAttitudeControl() { perf_free(_loop_perf); }
 
-bool
-AirshipAttitudeControl::init()
-{
+bool AirshipAttitudeControl::init() {
 	if (!_vehicle_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -66,9 +59,7 @@ AirshipAttitudeControl::init()
 	return true;
 }
 
-void
-AirshipAttitudeControl::parameter_update_poll()
-{
+void AirshipAttitudeControl::parameter_update_poll() {
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
 		// clear update
@@ -80,12 +71,10 @@ AirshipAttitudeControl::parameter_update_poll()
 	}
 }
 
-void
-AirshipAttitudeControl::publish_actuator_controls()
-{
+void AirshipAttitudeControl::publish_actuator_controls() {
 	// zero actuators if not armed
 	if (_vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
-		for (uint8_t i = 0 ; i < 4 ; i++) {
+		for (uint8_t i = 0; i < 4; i++) {
 			_actuator_controls.control[i] = 0.0f;
 		}
 
@@ -102,8 +91,7 @@ AirshipAttitudeControl::publish_actuator_controls()
 	_actuator_controls_0_pub.publish(_actuator_controls);
 }
 
-void AirshipAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_sample)
-{
+void AirshipAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_sample) {
 	vehicle_torque_setpoint_s v_torque_sp = {};
 	v_torque_sp.timestamp = hrt_absolute_time();
 	v_torque_sp.timestamp_sample = timestamp_sample;
@@ -114,8 +102,7 @@ void AirshipAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_
 	_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 }
 
-void AirshipAttitudeControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
-{
+void AirshipAttitudeControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample) {
 	vehicle_thrust_setpoint_s v_thrust_sp = {};
 	v_thrust_sp.timestamp = hrt_absolute_time();
 	v_thrust_sp.timestamp_sample = timestamp_sample;
@@ -126,9 +113,7 @@ void AirshipAttitudeControl::publishThrustSetpoint(const hrt_abstime &timestamp_
 	_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 }
 
-void
-AirshipAttitudeControl::Run()
-{
+void AirshipAttitudeControl::Run() {
 	if (should_exit()) {
 		_vehicle_angular_velocity_sub.unregisterCallback();
 		exit_and_cleanup();
@@ -141,7 +126,6 @@ AirshipAttitudeControl::Run()
 	vehicle_angular_velocity_s angular_velocity;
 
 	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
-
 		_actuator_controls.timestamp_sample = angular_velocity.timestamp_sample;
 
 		/* run the rate controller immediately after a gyro update */
@@ -161,8 +145,7 @@ AirshipAttitudeControl::Run()
 	perf_end(_loop_perf);
 }
 
-int AirshipAttitudeControl::task_spawn(int argc, char *argv[])
-{
+int AirshipAttitudeControl::task_spawn(int argc, char *argv[]) {
 	AirshipAttitudeControl *instance = new AirshipAttitudeControl();
 
 	if (instance) {
@@ -184,8 +167,7 @@ int AirshipAttitudeControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int AirshipAttitudeControl::print_status()
-{
+int AirshipAttitudeControl::print_status() {
 	PX4_INFO("Running");
 
 	perf_print_counter(_loop_perf);
@@ -195,13 +177,9 @@ int AirshipAttitudeControl::print_status()
 	return 0;
 }
 
-int AirshipAttitudeControl::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int AirshipAttitudeControl::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int AirshipAttitudeControl::print_usage(const char *reason)
-{
+int AirshipAttitudeControl::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -230,7 +208,6 @@ To reduce control latency, the module directly polls on the gyro topic published
 /**
  * Airship attitude control app start / stop handling function
  */
-extern "C" __EXPORT int airship_att_control_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int airship_att_control_main(int argc, char *argv[]) {
 	return AirshipAttitudeControl::main(argc, argv);
 }

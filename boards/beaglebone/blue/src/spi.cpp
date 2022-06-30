@@ -31,12 +31,13 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
 #include <drivers/drv_sensor.h>
+#include <px4_arch/spi_hw_description.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(1, {
-		initSPIDevice(DRV_DEVTYPE_UNUSED, 1), // spidev1.1
-		initSPIDevice(DRV_DEVTYPE_UNUSED, 2), // spidev1.2
-	}),
+	initSPIBus(1,
+		   {
+			   initSPIDevice(DRV_DEVTYPE_UNUSED, 1),  // spidev1.1
+			   initSPIDevice(DRV_DEVTYPE_UNUSED, 2),  // spidev1.2
+		   }),
 };

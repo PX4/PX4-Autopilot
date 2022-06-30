@@ -40,15 +40,12 @@
 
 #include "tests_main.h"
 
-
 extern uint16_t ppm_buffer[];
 extern unsigned ppm_decoded_channels;
 // extern uint16_t ppm_edge_history[];
 // extern uint16_t ppm_pulse_history[];
 
-
-int test_ppm(int argc, char *argv[])
-{
+int test_ppm(int argc, char *argv[]) {
 #ifdef HRT_PPM_CHANNEL
 	unsigned i;
 

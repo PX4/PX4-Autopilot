@@ -32,11 +32,9 @@
  ****************************************************************************/
 #pragma once
 
-
 #include "../../../stm32_common/include/px4_arch/hw_description.h"
 
-static inline constexpr uint32_t getTimerUpdateDMAMap(Timer::Timer timer, const DMA &dma)
-{
+static inline constexpr uint32_t getTimerUpdateDMAMap(Timer::Timer timer, const DMA &dma) {
 	// not used on STM32F1
 	return 0;
 }

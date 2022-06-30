@@ -35,27 +35,22 @@
 
 using namespace time_literals;
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-ICM40609D::ICM40609D(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	I2CSPIDriver(config),
-	_drdy_gpio(config.drdy_gpio),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
-{
+ICM40609D::ICM40609D(const I2CSPIDriverConfig &config)
+	: SPI(config),
+	  I2CSPIDriver(config),
+	  _drdy_gpio(config.drdy_gpio),
+	  _px4_accel(get_device_id(), config.rotation),
+	  _px4_gyro(get_device_id(), config.rotation) {
 	if (config.drdy_gpio != 0) {
-		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
+		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME ": DRDY missed");
 	}
 
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 }
 
-ICM40609D::~ICM40609D()
-{
+ICM40609D::~ICM40609D() {
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_fifo_empty_perf);
@@ -64,8 +59,7 @@ ICM40609D::~ICM40609D()
 	perf_free(_drdy_missed_perf);
 }
 
-int ICM40609D::init()
-{
+int ICM40609D::init() {
 	int ret = SPI::init();
 
 	if (ret != PX4_OK) {
@@ -76,8 +70,7 @@ int ICM40609D::init()
 	return Reset() ? 0 : -1;
 }
 
-bool ICM40609D::Reset()
-{
+bool ICM40609D::Reset() {
 	_state = STATE::RESET;
 	DataReadyInterruptDisable();
 	ScheduleClear();
@@ -85,14 +78,12 @@ bool ICM40609D::Reset()
 	return true;
 }
 
-void ICM40609D::exit_and_cleanup()
-{
+void ICM40609D::exit_and_cleanup() {
 	DataReadyInterruptDisable();
 	I2CSPIDriverBase::exit_and_cleanup();
 }
 
-void ICM40609D::print_status()
-{
+void ICM40609D::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	PX4_INFO("FIFO empty interval: %d us (%.1f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
@@ -105,8 +96,7 @@ void ICM40609D::print_status()
 	perf_print_counter(_drdy_missed_perf);
 }
 
-int ICM40609D::probe()
-{
+int ICM40609D::probe() {
 	for (int i = 0; i < 3; i++) {
 		uint8_t whoami = RegisterRead(Register::BANK_0::WHO_AM_I);
 
@@ -120,7 +110,8 @@ int ICM40609D::probe()
 			int bank = reg_bank_sel >> 4;
 
 			if (bank >= 1 && bank <= 3) {
-				DEVICE_DEBUG("incorrect register bank for WHO_AM_I REG_BANK_SEL:0x%02x, bank:%d", reg_bank_sel, bank);
+				DEVICE_DEBUG("incorrect register bank for WHO_AM_I REG_BANK_SEL:0x%02x, bank:%d",
+					     reg_bank_sel, bank);
 				// force bank selection and retry
 				SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0, true);
 			}
@@ -130,78 +121,78 @@ int ICM40609D::probe()
 	return PX4_ERROR;
 }
 
-void ICM40609D::RunImpl()
-{
+void ICM40609D::RunImpl() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-	case STATE::RESET:
-		// DEVICE_CONFIG: Software reset configuration
-		RegisterWrite(Register::BANK_0::DEVICE_CONFIG, DEVICE_CONFIG_BIT::SOFT_RESET_CONFIG);
-		_reset_timestamp = now;
-		_failure_count = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(1_ms); // wait 1 ms for soft reset to be effective
-		break;
+		case STATE::RESET:
+			// DEVICE_CONFIG: Software reset configuration
+			RegisterWrite(Register::BANK_0::DEVICE_CONFIG, DEVICE_CONFIG_BIT::SOFT_RESET_CONFIG);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
+			ScheduleDelayed(1_ms);  // wait 1 ms for soft reset to be effective
+			break;
 
-	case STATE::WAIT_FOR_RESET:
-		if ((RegisterRead(Register::BANK_0::WHO_AM_I) == WHOAMI)
-		    && (RegisterRead(Register::BANK_0::DEVICE_CONFIG) == 0x00)) {
+		case STATE::WAIT_FOR_RESET:
+			if ((RegisterRead(Register::BANK_0::WHO_AM_I) == WHOAMI) &&
+			    (RegisterRead(Register::BANK_0::DEVICE_CONFIG) == 0x00)) {
+				// Wakeup accel and gyro and schedule remaining configuration
+				RegisterWrite(Register::BANK_0::PWR_MGMT0,
+					      PWR_MGMT0_BIT::GYRO_MODE_LOW_NOISE | PWR_MGMT0_BIT::ACCEL_MODE_LOW_NOISE);
+				_state = STATE::CONFIGURE;
+				ScheduleDelayed(
+					30_ms);  // 30 ms gyro startup time, 10 ms accel from sleep to valid data
 
-			// Wakeup accel and gyro and schedule remaining configuration
-			RegisterWrite(Register::BANK_0::PWR_MGMT0, PWR_MGMT0_BIT::GYRO_MODE_LOW_NOISE | PWR_MGMT0_BIT::ACCEL_MODE_LOW_NOISE);
-			_state = STATE::CONFIGURE;
-			ScheduleDelayed(30_ms); // 30 ms gyro startup time, 10 ms accel from sleep to valid data
+			} else {
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
 
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 10 ms");
+					ScheduleDelayed(10_ms);
+				}
+			}
+
+			break;
+
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				// if configure succeeded then start reading from FIFO
+				_state = STATE::FIFO_READ;
+
+				if (DataReadyInterruptConfigure()) {
+					_data_ready_interrupt_enabled = true;
+
+					// backup schedule as a watchdog timeout
+					ScheduleDelayed(100_ms);
+
+				} else {
+					_data_ready_interrupt_enabled = false;
+					ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
+				}
+
+				FIFOReset();
+
+			} else {
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
 				ScheduleDelayed(100_ms);
-
-			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
-			}
-		}
-
-		break;
-
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start reading from FIFO
-			_state = STATE::FIFO_READ;
-
-			if (DataReadyInterruptConfigure()) {
-				_data_ready_interrupt_enabled = true;
-
-				// backup schedule as a watchdog timeout
-				ScheduleDelayed(100_ms);
-
-			} else {
-				_data_ready_interrupt_enabled = false;
-				ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
 			}
 
-			FIFOReset();
+			break;
 
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
-
-			} else {
-				PX4_DEBUG("Configure failed, retrying");
-			}
-
-			ScheduleDelayed(100_ms);
-		}
-
-		break;
-
-	case STATE::FIFO_READ: {
+		case STATE::FIFO_READ: {
 			hrt_abstime timestamp_sample = now;
 			uint8_t samples = 0;
 
@@ -243,7 +234,8 @@ void ICM40609D::RunImpl()
 					}
 
 					if (samples > FIFO_MAX_SAMPLES) {
-						// not technically an overflow, but more samples than we expected or can publish
+						// not technically an overflow, but more samples than we expected or can
+						// publish
 						FIFOReset();
 						perf_count(_fifo_overflow_perf);
 						samples = 0;
@@ -275,10 +267,10 @@ void ICM40609D::RunImpl()
 
 			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
 				// check configuration registers periodically or immediately following any failure
-				if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0])
-				   ) {
+				if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0])) {
 					_last_config_check_timestamp = now;
-					_checked_register_bank0 = (_checked_register_bank0 + 1) % size_register_bank0_cfg;
+					_checked_register_bank0 =
+						(_checked_register_bank0 + 1) % size_register_bank0_cfg;
 
 				} else {
 					// register check failed, force reset
@@ -299,72 +291,73 @@ void ICM40609D::RunImpl()
 	}
 }
 
-void ICM40609D::ConfigureAccel()
-{
-	const uint8_t ACCEL_FS_SEL = RegisterRead(Register::BANK_0::ACCEL_CONFIG0) & (Bit7 | Bit6 | Bit5); // 7:5 ACCEL_FS_SEL
+void ICM40609D::ConfigureAccel() {
+	const uint8_t ACCEL_FS_SEL =
+		RegisterRead(Register::BANK_0::ACCEL_CONFIG0) & (Bit7 | Bit6 | Bit5);  // 7:5 ACCEL_FS_SEL
 
 	switch (ACCEL_FS_SEL) {
-	case ACCEL_FS_SEL_4G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
-		_px4_accel.set_range(4.f * CONSTANTS_ONE_G);
-		break;
+		case ACCEL_FS_SEL_4G:
+			_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
+			_px4_accel.set_range(4.f * CONSTANTS_ONE_G);
+			break;
 
-	case ACCEL_FS_SEL_8G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 4096.f);
-		_px4_accel.set_range(8.f * CONSTANTS_ONE_G);
-		break;
+		case ACCEL_FS_SEL_8G:
+			_px4_accel.set_scale(CONSTANTS_ONE_G / 4096.f);
+			_px4_accel.set_range(8.f * CONSTANTS_ONE_G);
+			break;
 
-	case ACCEL_FS_SEL_16G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
-		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
-		break;
+		case ACCEL_FS_SEL_16G:
+			_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
+			_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
+			break;
 
-	case ACCEL_FS_SEL_32G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 1024.f);
-		_px4_accel.set_range(32.f * CONSTANTS_ONE_G);
-		break;
+		case ACCEL_FS_SEL_32G:
+			_px4_accel.set_scale(CONSTANTS_ONE_G / 1024.f);
+			_px4_accel.set_range(32.f * CONSTANTS_ONE_G);
+			break;
 	}
 }
 
-void ICM40609D::ConfigureGyro()
-{
-	const uint8_t GYRO_FS_SEL = RegisterRead(Register::BANK_0::GYRO_CONFIG0) & (Bit7 | Bit6 | Bit5); // 7:5 GYRO_FS_SEL
+void ICM40609D::ConfigureGyro() {
+	const uint8_t GYRO_FS_SEL =
+		RegisterRead(Register::BANK_0::GYRO_CONFIG0) & (Bit7 | Bit6 | Bit5);  // 7:5 GYRO_FS_SEL
 
 	float range_dps = 0.f;
 
 	switch (GYRO_FS_SEL) {
-	case GYRO_FS_SEL_125_DPS:
-		range_dps = 125.f;
-		break;
+		case GYRO_FS_SEL_125_DPS:
+			range_dps = 125.f;
+			break;
 
-	case GYRO_FS_SEL_250_DPS:
-		range_dps = 250.f;
-		break;
+		case GYRO_FS_SEL_250_DPS:
+			range_dps = 250.f;
+			break;
 
-	case GYRO_FS_SEL_500_DPS:
-		range_dps = 500.f;
-		break;
+		case GYRO_FS_SEL_500_DPS:
+			range_dps = 500.f;
+			break;
 
-	case GYRO_FS_SEL_1000_DPS:
-		range_dps = 1000.f;
-		break;
+		case GYRO_FS_SEL_1000_DPS:
+			range_dps = 1000.f;
+			break;
 
-	case GYRO_FS_SEL_2000_DPS:
-		range_dps = 2000.f;
-		break;
+		case GYRO_FS_SEL_2000_DPS:
+			range_dps = 2000.f;
+			break;
 	}
 
 	_px4_gyro.set_scale(math::radians(range_dps / 32768.f));
 	_px4_gyro.set_range(math::radians(range_dps));
 }
 
-void ICM40609D::ConfigureSampleRate(int sample_rate)
-{
+void ICM40609D::ConfigureSampleRate(int sample_rate) {
 	// round down to nearest FIFO sample dt
 	const float min_interval = FIFO_SAMPLE_DT;
-	_fifo_empty_interval_us = math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
+	_fifo_empty_interval_us =
+		math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
 
-	_fifo_gyro_samples = roundf(math::min((float)_fifo_empty_interval_us / (1e6f / GYRO_RATE), (float)FIFO_MAX_SAMPLES));
+	_fifo_gyro_samples =
+		roundf(math::min((float)_fifo_empty_interval_us / (1e6f / GYRO_RATE), (float)FIFO_MAX_SAMPLES));
 
 	// recompute FIFO empty interval (us) with actual gyro sample limit
 	_fifo_empty_interval_us = _fifo_gyro_samples * (1e6f / GYRO_RATE);
@@ -372,8 +365,7 @@ void ICM40609D::ConfigureSampleRate(int sample_rate)
 	ConfigureFIFOWatermark(_fifo_gyro_samples);
 }
 
-void ICM40609D::ConfigureFIFOWatermark(uint8_t samples)
-{
+void ICM40609D::ConfigureFIFOWatermark(uint8_t samples) {
 	// FIFO watermark threshold in number of bytes
 	const uint16_t fifo_watermark_threshold = samples * sizeof(FIFO::DATA);
 
@@ -389,11 +381,10 @@ void ICM40609D::ConfigureFIFOWatermark(uint8_t samples)
 	}
 }
 
-void ICM40609D::SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force)
-{
+void ICM40609D::SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force) {
 	if (bank != _last_register_bank || force) {
 		// select BANK_0
-		uint8_t cmd_bank_sel[2] {};
+		uint8_t cmd_bank_sel[2]{};
 		cmd_bank_sel[0] = static_cast<uint8_t>(Register::BANK_0::REG_BANK_SEL);
 		cmd_bank_sel[1] = bank;
 		transfer(cmd_bank_sel, cmd_bank_sel, sizeof(cmd_bank_sel));
@@ -402,8 +393,7 @@ void ICM40609D::SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force)
 	}
 }
 
-bool ICM40609D::Configure()
-{
+bool ICM40609D::Configure() {
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_bank0_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
@@ -424,20 +414,17 @@ bool ICM40609D::Configure()
 	return success;
 }
 
-int ICM40609D::DataReadyInterruptCallback(int irq, void *context, void *arg)
-{
+int ICM40609D::DataReadyInterruptCallback(int irq, void *context, void *arg) {
 	static_cast<ICM40609D *>(arg)->DataReady();
 	return 0;
 }
 
-void ICM40609D::DataReady()
-{
+void ICM40609D::DataReady() {
 	_drdy_timestamp_sample.store(hrt_absolute_time());
 	ScheduleNow();
 }
 
-bool ICM40609D::DataReadyInterruptConfigure()
-{
+bool ICM40609D::DataReadyInterruptConfigure() {
 	if (_drdy_gpio == 0) {
 		return false;
 	}
@@ -446,8 +433,7 @@ bool ICM40609D::DataReadyInterruptConfigure()
 	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0;
 }
 
-bool ICM40609D::DataReadyInterruptDisable()
-{
+bool ICM40609D::DataReadyInterruptDisable() {
 	if (_drdy_gpio == 0) {
 		return false;
 	}
@@ -456,8 +442,7 @@ bool ICM40609D::DataReadyInterruptDisable()
 }
 
 template <typename T>
-bool ICM40609D::RegisterCheck(const T &reg_cfg)
-{
+bool ICM40609D::RegisterCheck(const T &reg_cfg) {
 	bool success = true;
 
 	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
@@ -468,7 +453,8 @@ bool ICM40609D::RegisterCheck(const T &reg_cfg)
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.clear_bits);
 		success = false;
 	}
 
@@ -476,9 +462,8 @@ bool ICM40609D::RegisterCheck(const T &reg_cfg)
 }
 
 template <typename T>
-uint8_t ICM40609D::RegisterRead(T reg)
-{
-	uint8_t cmd[2] {};
+uint8_t ICM40609D::RegisterRead(T reg) {
+	uint8_t cmd[2]{};
 	cmd[0] = static_cast<uint8_t>(reg) | DIR_READ;
 	SelectRegisterBank(reg);
 	transfer(cmd, cmd, sizeof(cmd));
@@ -486,16 +471,14 @@ uint8_t ICM40609D::RegisterRead(T reg)
 }
 
 template <typename T>
-void ICM40609D::RegisterWrite(T reg, uint8_t value)
-{
-	uint8_t cmd[2] { (uint8_t)reg, value };
+void ICM40609D::RegisterWrite(T reg, uint8_t value) {
+	uint8_t cmd[2]{(uint8_t)reg, value};
 	SelectRegisterBank(reg);
 	transfer(cmd, cmd, sizeof(cmd));
 }
 
 template <typename T>
-void ICM40609D::RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits)
-{
+void ICM40609D::RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits) {
 	const uint8_t orig_val = RegisterRead(reg);
 
 	uint8_t val = (orig_val & ~clearbits) | setbits;
@@ -505,10 +488,9 @@ void ICM40609D::RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbit
 	}
 }
 
-uint16_t ICM40609D::FIFOReadCount()
-{
+uint16_t ICM40609D::FIFOReadCount() {
 	// read FIFO count
-	uint8_t fifo_count_buf[3] {};
+	uint8_t fifo_count_buf[3]{};
 	fifo_count_buf[0] = static_cast<uint8_t>(Register::BANK_0::FIFO_COUNTH) | DIR_READ;
 	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
 
@@ -520,8 +502,7 @@ uint16_t ICM40609D::FIFOReadCount()
 	return combine(fifo_count_buf[1], fifo_count_buf[2]);
 }
 
-bool ICM40609D::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
-{
+bool ICM40609D::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples) {
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 4, FIFO::SIZE);
 	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
@@ -592,8 +573,7 @@ bool ICM40609D::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 	return false;
 }
 
-void ICM40609D::FIFOReset()
-{
+void ICM40609D::FIFOReset() {
 	perf_count(_fifo_reset_perf);
 
 	// SIGNAL_PATH_RESET: FIFO flush
@@ -603,8 +583,7 @@ void ICM40609D::FIFOReset()
 	_drdy_timestamp_sample.store(0);
 }
 
-void ICM40609D::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
-{
+void ICM40609D::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples) {
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = 0;
@@ -631,8 +610,7 @@ void ICM40609D::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 	}
 }
 
-void ICM40609D::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
-{
+void ICM40609D::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples) {
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
@@ -656,10 +634,9 @@ void ICM40609D::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 	_px4_gyro.updateFIFO(gyro);
 }
 
-void ICM40609D::UpdateTemperature()
-{
+void ICM40609D::UpdateTemperature() {
 	// read current temperature
-	uint8_t temperature_buf[3] {};
+	uint8_t temperature_buf[3]{};
 	temperature_buf[0] = static_cast<uint8_t>(Register::BANK_0::TEMP_DATA1) | DIR_READ;
 	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
 

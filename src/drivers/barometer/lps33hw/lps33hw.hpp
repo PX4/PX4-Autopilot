@@ -39,22 +39,21 @@
 
 #pragma once
 
-#include <drivers/device/Device.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/topics/sensor_baro.h>
+
+#include <drivers/device/Device.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/PublicationMulti.hpp>
 
 #include "lps33hw_registers.hpp"
 
-namespace lps33hw
-{
+namespace lps33hw {
 
 using ST_LPS33HW::Register;
 
-class LPS33HW : public I2CSPIDriver<LPS33HW>
-{
+class LPS33HW : public I2CSPIDriver<LPS33HW> {
 public:
 	LPS33HW(const I2CSPIDriverConfig &config, device::Device *interface);
 	virtual ~LPS33HW();
@@ -62,35 +61,29 @@ public:
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
-	int			init();
+	int init();
 
-	void			print_status();
-	void			RunImpl();
+	void print_status();
+	void RunImpl();
 
 private:
+	enum class State { Detect = 0, Reset, WaitForReset, Running };
 
-	enum class State {
-		Detect = 0,
-		Reset,
-		WaitForReset,
-		Running
-	};
+	int reset();
 
-	int			reset();
-
-	int			RegisterRead(Register reg, uint8_t &val);
-	int			RegisterWrite(Register reg, uint8_t val);
+	int RegisterRead(Register reg, uint8_t &val);
+	int RegisterWrite(Register reg, uint8_t val);
 
 	static constexpr uint32_t SAMPLE_RATE{75};
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
-	device::Device		*_interface;
+	device::Device *_interface;
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
-	const bool		_keep_retrying;
-	State			_state{State::Detect};
+	perf_counter_t _sample_perf;
+	perf_counter_t _comms_errors;
+	const bool _keep_retrying;
+	State _state{State::Detect};
 };
 
-} // namespace lps33hw
+}  // namespace lps33hw

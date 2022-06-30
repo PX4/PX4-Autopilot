@@ -37,28 +37,22 @@
  */
 
 #include <gtest/gtest.h>
+
 #include "EKF/ekf.h"
-#include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
+#include "sensor_simulator/sensor_simulator.h"
 #include "test_helper/reset_logging_checker.h"
 
-
-class EkfFlowTest : public ::testing::Test
-{
+class EkfFlowTest : public ::testing::Test {
 public:
-
-	EkfFlowTest(): ::testing::Test(),
-		_ekf{std::make_shared<Ekf>()},
-		_sensor_simulator(_ekf),
-		_ekf_wrapper(_ekf) {};
+	EkfFlowTest() : ::testing::Test(), _ekf{std::make_shared<Ekf>()}, _sensor_simulator(_ekf), _ekf_wrapper(_ekf){};
 
 	std::shared_ptr<Ekf> _ekf;
 	SensorSimulator _sensor_simulator;
 	EkfWrapper _ekf_wrapper;
 
 	// Setup the Ekf with synthetic measurements
-	void SetUp() override
-	{
+	void SetUp() override {
 		const float max_flow_rate = 5.f;
 		const float min_ground_distance = 0.f;
 		const float max_ground_distance = 50.f;
@@ -74,25 +68,21 @@ public:
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
-	void TearDown() override
-	{
-	}
+	void TearDown() override {}
 
 	void startRangeFinderFusion(float distance);
 	void startZeroFlowFusion();
 	void setFlowFromHorizontalVelocityAndDistance(flowSample &flow_sample, const Vector2f &simulated_horz_velocity,
-			float estimated_distance_to_ground);
+						      float estimated_distance_to_ground);
 };
 
-void EkfFlowTest::startRangeFinderFusion(float distance)
-{
+void EkfFlowTest::startRangeFinderFusion(float distance) {
 	_sensor_simulator._rng.setData(distance, 100);
 	_sensor_simulator._rng.setLimits(0.1f, 9.f);
 	_sensor_simulator.startRangeFinder();
 }
 
-void EkfFlowTest::startZeroFlowFusion()
-{
+void EkfFlowTest::startZeroFlowFusion() {
 	// Start fusing zero flow data
 	_sensor_simulator._flow.setData(_sensor_simulator._flow.dataAtRest());
 	_ekf_wrapper.enableFlowFusion();
@@ -100,15 +90,13 @@ void EkfFlowTest::startZeroFlowFusion()
 }
 
 void EkfFlowTest::setFlowFromHorizontalVelocityAndDistance(flowSample &flow_sample,
-		const Vector2f &simulated_horz_velocity, float estimated_distance_to_ground)
-{
-	flow_sample.flow_xy_rad =
-		Vector2f(simulated_horz_velocity(1) * flow_sample.dt / estimated_distance_to_ground,
-			 -simulated_horz_velocity(0) * flow_sample.dt / estimated_distance_to_ground);
+							   const Vector2f &simulated_horz_velocity,
+							   float estimated_distance_to_ground) {
+	flow_sample.flow_xy_rad = Vector2f(simulated_horz_velocity(1) * flow_sample.dt / estimated_distance_to_ground,
+					   -simulated_horz_velocity(0) * flow_sample.dt / estimated_distance_to_ground);
 }
 
-TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
-{
+TEST_F(EkfFlowTest, resetToFlowVelocityInAir) {
 	ResetLoggingChecker reset_logging_checker(_ekf);
 
 	// WHEN: simulate being 5m above ground
@@ -141,8 +129,7 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 	// THEN: estimated velocity should match simulated velocity
 	const Vector3f estimated_velocity = _ekf->getVelocity();
 	EXPECT_TRUE(isEqual(estimated_velocity, simulated_velocity))
-			<< "estimated vel = " << estimated_velocity(0) << ", "
-			<< estimated_velocity(1);
+		<< "estimated vel = " << estimated_velocity(0) << ", " << estimated_velocity(1);
 
 	// AND: the reset in velocity should be saved correctly
 	reset_logging_checker.capturePostResetState();
@@ -151,8 +138,7 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(1e-9f));
 }
 
-TEST_F(EkfFlowTest, resetToFlowVelocityOnGround)
-{
+TEST_F(EkfFlowTest, resetToFlowVelocityOnGround) {
 	ResetLoggingChecker reset_logging_checker(_ekf);
 
 	// WHEN: being on ground
@@ -163,7 +149,7 @@ TEST_F(EkfFlowTest, resetToFlowVelocityOnGround)
 
 	// WHEN: start fusing flow data
 	flowSample flow_sample = _sensor_simulator._flow.dataAtRest();
-	flow_sample.dt = 0.f; // some sensors force dt to zero when quality is low
+	flow_sample.dt = 0.f;  // some sensors force dt to zero when quality is low
 	flow_sample.quality = 0;
 	_sensor_simulator._flow.setData(flow_sample);
 	_ekf_wrapper.enableFlowFusion();
@@ -173,7 +159,7 @@ TEST_F(EkfFlowTest, resetToFlowVelocityOnGround)
 	// THEN: estimated velocity should match simulated velocity
 	const Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
 	EXPECT_TRUE(isEqual(estimated_horz_velocity, Vector2f(0.f, 0.f)))
-			<< estimated_horz_velocity(0) << ", " << estimated_horz_velocity(1);
+		<< estimated_horz_velocity(0) << ", " << estimated_horz_velocity(1);
 
 	// AND: the reset in velocity should be saved correctly
 	reset_logging_checker.capturePostResetState();
@@ -182,8 +168,7 @@ TEST_F(EkfFlowTest, resetToFlowVelocityOnGround)
 	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(1e-9f));
 }
 
-TEST_F(EkfFlowTest, inAirConvergence)
-{
+TEST_F(EkfFlowTest, inAirConvergence) {
 	// WHEN: simulate being 5m above ground
 	const float simulated_distance_to_ground = 5.f;
 	_sensor_simulator._trajectory[2].setCurrentPosition(-simulated_distance_to_ground);
@@ -209,8 +194,7 @@ TEST_F(EkfFlowTest, inAirConvergence)
 	// THEN: estimated velocity should match simulated velocity
 	Vector3f estimated_velocity = _ekf->getVelocity();
 	EXPECT_TRUE(isEqual(estimated_velocity, simulated_velocity))
-			<< "estimated vel = " << estimated_velocity(0) << ", "
-			<< estimated_velocity(1);
+		<< "estimated vel = " << estimated_velocity(0) << ", " << estimated_velocity(1);
 
 	// AND: when the velocity changes
 	simulated_velocity = Vector3f(1.8f, -1.5f, -0.5f);
@@ -220,14 +204,11 @@ TEST_F(EkfFlowTest, inAirConvergence)
 	// THEN: estimated velocity should converge to the simulated velocity
 	// This takes a bit of time because the data is inconsistent with IMU measurements
 	estimated_velocity = _ekf->getVelocity();
-	EXPECT_NEAR(estimated_velocity(0), simulated_velocity(0), 0.05f)
-			<< "estimated vel = " << estimated_velocity(0);
-	EXPECT_NEAR(estimated_velocity(1), simulated_velocity(1), 0.05f)
-			<< estimated_velocity(1);
+	EXPECT_NEAR(estimated_velocity(0), simulated_velocity(0), 0.05f) << "estimated vel = " << estimated_velocity(0);
+	EXPECT_NEAR(estimated_velocity(1), simulated_velocity(1), 0.05f) << estimated_velocity(1);
 }
 
-TEST_F(EkfFlowTest, yawMotionCorrectionWithAutopilotGyroData)
-{
+TEST_F(EkfFlowTest, yawMotionCorrectionWithAutopilotGyroData) {
 	// WHEN: fusing range finder and optical flow data in air
 	const float simulated_distance_to_ground = 5.f;
 	startRangeFinderFusion(simulated_distance_to_ground);
@@ -257,14 +238,11 @@ TEST_F(EkfFlowTest, yawMotionCorrectionWithAutopilotGyroData)
 	// THEN: the flow due to the yaw rotation and the offsets is canceled
 	// and the velocity estimate stays 0
 	const Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
-	EXPECT_NEAR(estimated_horz_velocity(0), 0.f, 0.01f)
-			<< "estimated vel = " << estimated_horz_velocity(0);
-	EXPECT_NEAR(estimated_horz_velocity(1), 0.f, 0.01f)
-			<< "estimated vel = " << estimated_horz_velocity(1);
+	EXPECT_NEAR(estimated_horz_velocity(0), 0.f, 0.01f) << "estimated vel = " << estimated_horz_velocity(0);
+	EXPECT_NEAR(estimated_horz_velocity(1), 0.f, 0.01f) << "estimated vel = " << estimated_horz_velocity(1);
 }
 
-TEST_F(EkfFlowTest, yawMotionCorrectionWithFlowGyroData)
-{
+TEST_F(EkfFlowTest, yawMotionCorrectionWithFlowGyroData) {
 	// WHEN: fusing range finder and optical flow data in air
 	const float simulated_distance_to_ground = 5.f;
 	startRangeFinderFusion(simulated_distance_to_ground);
@@ -295,8 +273,6 @@ TEST_F(EkfFlowTest, yawMotionCorrectionWithFlowGyroData)
 	// THEN: the flow due to the yaw rotation and the offsets is canceled
 	// and the velocity estimate stays 0
 	const Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
-	EXPECT_NEAR(estimated_horz_velocity(0), 0.f, 0.01f)
-			<< "estimated vel = " << estimated_horz_velocity(0);
-	EXPECT_NEAR(estimated_horz_velocity(1), 0.f, 0.01f)
-			<< "estimated vel = " << estimated_horz_velocity(1);
+	EXPECT_NEAR(estimated_horz_velocity(0), 0.f, 0.01f) << "estimated vel = " << estimated_horz_velocity(0);
+	EXPECT_NEAR(estimated_horz_velocity(1), 0.f, 0.01f) << "estimated vel = " << estimated_horz_velocity(1);
 }

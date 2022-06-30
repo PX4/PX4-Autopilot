@@ -43,15 +43,13 @@
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
+
 #include <containers/List.hpp>
 
 class Mavlink;
 
-class MavlinkStream : public ListNode<MavlinkStream *>
-{
-
+class MavlinkStream : public ListNode<MavlinkStream *> {
 public:
-
 	MavlinkStream(Mavlink *mavlink);
 	virtual ~MavlinkStream() = default;
 
@@ -95,9 +93,8 @@ public:
 	/**
 	 * This function is called in response to a MAV_CMD_REQUEST_MESSAGE command.
 	 */
-	virtual bool request_message(float param2 = 0.0, float param3 = 0.0, float param4 = 0.0,
-				     float param5 = 0.0, float param6 = 0.0, float param7 = 0.0)
-	{
+	virtual bool request_message(float param2 = 0.0, float param3 = 0.0, float param4 = 0.0, float param5 = 0.0,
+				     float param6 = 0.0, float param7 = 0.0) {
 		return send();
 	}
 
@@ -123,8 +120,8 @@ public:
 	void reset_last_sent() { _last_sent = 0; }
 
 protected:
-	Mavlink      *const _mavlink;
-	int _interval{1000000};		///< if set to negative value = unlimited rate
+	Mavlink *const _mavlink;
+	int _interval{1000000};  ///< if set to negative value = unlimited rate
 
 	virtual bool send() = 0;
 
@@ -134,12 +131,11 @@ protected:
 	 *
 	 * This function is called at every iteration of the mavlink module.
 	 */
-	virtual void update_data() { }
+	virtual void update_data() {}
 
 private:
 	hrt_abstime _last_sent{0};
 	bool _first_message_sent{false};
 };
-
 
 #endif /* MAVLINK_STREAM_H_ */

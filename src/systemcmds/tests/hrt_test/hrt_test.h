@@ -41,8 +41,7 @@
 
 #include <px4_platform_common/app.h>
 
-class HRTTest
-{
+class HRTTest {
 public:
 	HRTTest() {}
 

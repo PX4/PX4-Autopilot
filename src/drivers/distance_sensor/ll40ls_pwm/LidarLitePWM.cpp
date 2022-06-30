@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 
-
 /**
  * @file LidarLitePWM.h
  * @author Johan Jansen <jnsn.johan@gmail.com>
@@ -48,20 +47,18 @@
 
 #include <px4_arch/io_timer.h>
 
-LidarLitePWM::LidarLitePWM(const uint8_t rotation) :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_px4_rangefinder(0 /* no device type for PWM input */, rotation)
-{
+LidarLitePWM::LidarLitePWM(const uint8_t rotation)
+	: ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	  _px4_rangefinder(0 /* no device type for PWM input */, rotation) {
 	_px4_rangefinder.set_min_distance(LL40LS_MIN_DISTANCE);
 	_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE);
-	_px4_rangefinder.set_fov(0.008); // Divergence 8 mRadian
+	_px4_rangefinder.set_fov(0.008);  // Divergence 8 mRadian
 	px4_arch_configgpio(io_timer_channel_get_gpio_output(GPIO_VDD_RANGEFINDER_EN_CHAN));
 
 	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_LL40LS);
 }
 
-LidarLitePWM::~LidarLitePWM()
-{
+LidarLitePWM::~LidarLitePWM() {
 	stop();
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -69,35 +66,19 @@ LidarLitePWM::~LidarLitePWM()
 	perf_free(_sensor_zero_resets);
 }
 
-int
-LidarLitePWM::init()
-{
+int LidarLitePWM::init() {
 	start();
 
 	return PX4_OK;
 }
 
-void
-LidarLitePWM::start()
-{
-	ScheduleOnInterval(get_measure_interval());
-}
+void LidarLitePWM::start() { ScheduleOnInterval(get_measure_interval()); }
 
-void
-LidarLitePWM::stop()
-{
-	ScheduleClear();
-}
+void LidarLitePWM::stop() { ScheduleClear(); }
 
-void
-LidarLitePWM::Run()
-{
-	measure();
-}
+void LidarLitePWM::Run() { measure(); }
 
-int
-LidarLitePWM::measure()
-{
+int LidarLitePWM::measure() {
 	perf_begin(_sample_perf);
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
@@ -109,7 +90,7 @@ LidarLitePWM::measure()
 		return PX4_ERROR;
 	}
 
-	const float current_distance = float(_pwm.pulse_width) * 1e-3f;   /* 10 usec = 1 cm distance for LIDAR-Lite */
+	const float current_distance = float(_pwm.pulse_width) * 1e-3f; /* 10 usec = 1 cm distance for LIDAR-Lite */
 
 	/* Due to a bug in older versions of the LidarLite firmware, we have to reset sensor on (distance == 0) */
 	if (current_distance <= 0.0f) {
@@ -123,13 +104,10 @@ LidarLitePWM::measure()
 	return PX4_OK;
 }
 
-int
-LidarLitePWM::collect()
-{
+int LidarLitePWM::collect() {
 	pwm_input_s pwm_input;
 
 	if (_sub_pwm_input.update(&pwm_input)) {
-
 		_pwm = pwm_input;
 
 		return PX4_OK;
@@ -138,9 +116,7 @@ LidarLitePWM::collect()
 	return EAGAIN;
 }
 
-void
-LidarLitePWM::print_info()
-{
+void LidarLitePWM::print_info() {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sensor_resets);

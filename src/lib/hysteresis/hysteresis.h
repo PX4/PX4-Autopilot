@@ -43,17 +43,12 @@
 
 #include <drivers/drv_hrt.h>
 
-namespace systemlib
-{
+namespace systemlib {
 
-class Hysteresis
-{
+class Hysteresis {
 public:
-	explicit Hysteresis(bool init_state) :
-		_state(init_state),
-		_requested_state(init_state)
-	{}
-	Hysteresis() = delete; // no default constructor
+	explicit Hysteresis(bool init_state) : _state(init_state), _requested_state(init_state) {}
+	Hysteresis() = delete;  // no default constructor
 
 	~Hysteresis() = default;
 
@@ -66,7 +61,6 @@ public:
 	void update(const hrt_abstime &now_us);
 
 private:
-
 	hrt_abstime _last_time_to_change_state{0};
 
 	hrt_abstime _time_from_true_us{0};
@@ -76,4 +70,4 @@ private:
 	bool _requested_state;
 };
 
-} // namespace systemlib
+}  // namespace systemlib

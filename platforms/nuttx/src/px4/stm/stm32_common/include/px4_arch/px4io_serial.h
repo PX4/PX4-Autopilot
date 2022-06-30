@@ -40,23 +40,20 @@
 #pragma once
 
 #include <board_config.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/micro_hal.h>
-
-#include <perf/perf_counter.h>
-
 #include <drivers/device/device.h>
 #include <modules/px4iofirmware/protocol.h>
+#include <perf/perf_counter.h>
+#include <px4_platform_common/micro_hal.h>
+#include <px4_platform_common/px4_config.h>
 
-class PX4IO_serial : public device::Device
-{
+class PX4IO_serial : public device::Device {
 public:
 	PX4IO_serial();
 	virtual ~PX4IO_serial();
 
-	virtual int	init() = 0;
-	virtual int	read(unsigned offset, void *data, unsigned count = 1);
-	virtual int	write(unsigned address, void *data, unsigned count = 1);
+	virtual int init() = 0;
+	virtual int read(unsigned offset, void *data, unsigned count = 1);
+	virtual int write(unsigned address, void *data, unsigned count = 1);
 
 protected:
 	/**
@@ -64,24 +61,25 @@ protected:
 	 * @param io_buffer The IO buffer that should be used for transfers.
 	 * @return 0 on success.
 	 */
-	int		init(IOPacket *io_buffer);
+	int init(IOPacket *io_buffer);
 
 	/**
 	 * Start the transaction with IO and wait for it to complete.
 	 */
-	virtual int	_bus_exchange(IOPacket *_packet) = 0;
+	virtual int _bus_exchange(IOPacket *_packet) = 0;
 
 	/**
 	 * Performance counters.
 	 */
-	perf_counter_t		_pc_txns;
-	perf_counter_t		_pc_retries;
-	perf_counter_t		_pc_timeouts;
-	perf_counter_t		_pc_crcerrs;
-	perf_counter_t		_pc_protoerrs;
-	perf_counter_t		_pc_uerrs;
-	perf_counter_t		_pc_idle;
-	perf_counter_t		_pc_badidle;
+	perf_counter_t _pc_txns;
+	perf_counter_t _pc_retries;
+	perf_counter_t _pc_timeouts;
+	perf_counter_t _pc_crcerrs;
+	perf_counter_t _pc_protoerrs;
+	perf_counter_t _pc_uerrs;
+	perf_counter_t _pc_idle;
+	perf_counter_t _pc_badidle;
+
 private:
 	/*
 	 * XXX tune this value
@@ -94,76 +92,72 @@ private:
 	 * Maybe we can just send smaller packets (e.g. 8 regs) and loop for larger (less common)
 	 * transfers? Could cause issues with any regs expecting to be written atomically...
 	 */
-	IOPacket		*_io_buffer_ptr;
+	IOPacket *_io_buffer_ptr;
 
 	/** bus-ownership lock */
-	px4_sem_t			_bus_semaphore;
+	px4_sem_t _bus_semaphore;
 
 	/* do not allow top copying this class */
 	PX4IO_serial(PX4IO_serial &);
-	PX4IO_serial &operator = (const PX4IO_serial &);
+	PX4IO_serial &operator=(const PX4IO_serial &);
 };
-
 
 #include <stm32_dma.h>
 
-
-class ArchPX4IOSerial : public PX4IO_serial
-{
+class ArchPX4IOSerial : public PX4IO_serial {
 public:
 	ArchPX4IOSerial();
 	ArchPX4IOSerial(ArchPX4IOSerial &) = delete;
-	ArchPX4IOSerial &operator = (const ArchPX4IOSerial &) = delete;
+	ArchPX4IOSerial &operator=(const ArchPX4IOSerial &) = delete;
 	virtual ~ArchPX4IOSerial();
 
-	virtual int	init();
-	virtual int	ioctl(unsigned operation, unsigned &arg);
+	virtual int init();
+	virtual int ioctl(unsigned operation, unsigned &arg);
 
 protected:
 	/**
 	 * Start the transaction with IO and wait for it to complete.
 	 */
-	int		_bus_exchange(IOPacket *_packet);
+	int _bus_exchange(IOPacket *_packet);
 
 private:
-	DMA_HANDLE		_tx_dma;
-	DMA_HANDLE		_rx_dma;
+	DMA_HANDLE _tx_dma;
+	DMA_HANDLE _rx_dma;
 
 	IOPacket *_current_packet;
 
 	/** saved DMA status */
-	static const unsigned	_dma_status_inactive = 0x80000000;	// low bits overlap DMA_STATUS_* values
-	static const unsigned	_dma_status_waiting  = 0x00000000;
-	volatile unsigned	_rx_dma_status;
+	static const unsigned _dma_status_inactive = 0x80000000;  // low bits overlap DMA_STATUS_* values
+	static const unsigned _dma_status_waiting = 0x00000000;
+	volatile unsigned _rx_dma_status;
 
 	/** client-waiting lock/signal */
-	px4_sem_t			_completion_semaphore;
+	px4_sem_t _completion_semaphore;
 
 	/**
 	 * DMA completion handler.
 	 */
-	static void		_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
-	void			_do_rx_dma_callback(unsigned status);
+	static void _dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
+	void _do_rx_dma_callback(unsigned status);
 
 	/**
 	 * Serial interrupt handler.
 	 */
-	static int		_interrupt(int vector, void *context, void *arg);
-	void			_do_interrupt();
+	static int _interrupt(int vector, void *context, void *arg);
+	void _do_interrupt();
 
 	/**
 	 * Cancel any DMA in progress with an error.
 	 */
-	void			_abort_dma();
+	void _abort_dma();
 
 	/**
 	 * Performance counters.
 	 */
-	perf_counter_t		_pc_dmaerrs;
+	perf_counter_t _pc_dmaerrs;
 
 	/**
 	 * IO Buffer storage
 	 */
 	static uint8_t _io_buffer_storage[] px4_cache_aligned_data();
 };
-

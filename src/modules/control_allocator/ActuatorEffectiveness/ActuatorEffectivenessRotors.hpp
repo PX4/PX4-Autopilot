@@ -41,23 +41,23 @@
 
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
-
 #include <px4_platform_common/module_params.h>
+
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+
+#include "ActuatorEffectiveness.hpp"
 
 class ActuatorEffectivenessTilts;
 
 using namespace time_literals;
 
-class ActuatorEffectivenessRotors : public ModuleParams, public ActuatorEffectiveness
-{
+class ActuatorEffectivenessRotors : public ModuleParams, public ActuatorEffectiveness {
 public:
 	enum class AxisConfiguration {
-		Configurable, ///< axis can be configured
-		FixedForward, ///< axis is fixed, pointing forwards (positive X)
-		FixedUpwards, ///< axis is fixed, pointing upwards (negative Z)
+		Configurable,  ///< axis can be configured
+		FixedForward,  ///< axis is fixed, pointing forwards (positive X)
+		FixedUpwards,  ///< axis is fixed, pointing upwards (negative Z)
 	};
 
 	static constexpr int NUM_ROTORS_MAX = 12;
@@ -75,28 +75,27 @@ public:
 		int num_rotors{0};
 		bool propeller_torque_disabled{false};
 		bool yaw_by_differential_thrust_disabled{false};
-		bool propeller_torque_disabled_non_upwards{false}; ///< keeps propeller torque enabled for upward facing motors
-		bool three_dimensional_thrust_disabled{false}; ///< for handling of tiltrotor VTOL, as they pass in 1D thrust and collective tilt
+		bool propeller_torque_disabled_non_upwards{
+			false};  ///< keeps propeller torque enabled for upward facing motors
+		bool three_dimensional_thrust_disabled{
+			false};  ///< for handling of tiltrotor VTOL, as they pass in 1D thrust and collective tilt
 	};
 
-	ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable,
+	ActuatorEffectivenessRotors(ModuleParams *parent,
+				    AxisConfiguration axis_config = AxisConfiguration::Configurable,
 				    bool tilt_support = false);
 	virtual ~ActuatorEffectivenessRotors() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
-	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
-	{
+	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override {
 		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
 	}
 
-	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
-	{
-		normalize[0] = true;
-	}
+	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override { normalize[0] = true; }
 
-	static int computeEffectivenessMatrix(const Geometry &geometry,
-					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0);
+	static int computeEffectivenessMatrix(const Geometry &geometry, EffectivenessMatrix &effectiveness,
+					      int actuator_start_index = 0);
 
 	bool addActuators(Configuration &configuration);
 
@@ -131,7 +130,7 @@ public:
 private:
 	void updateParams() override;
 	const AxisConfiguration _axis_config;
-	const bool _tilt_support; ///< if true, tilt servo assignment params are loaded
+	const bool _tilt_support;  ///< if true, tilt servo assignment params are loaded
 
 	struct ParamHandles {
 		param_t position_x;

@@ -38,36 +38,39 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_platform_common/px4_config.h>
+#include <errno.h>
 #include <px4_platform_common/defines.h>
-
-#include <sys/types.h>
-
+#include <px4_platform_common/px4_config.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
+#include <sys/types.h>
 
 #include "tests_main.h"
 
 #ifdef __PX4_NUTTX
 #define _px4_system(command) system(command)
 #else
-#define _px4_system(command) system("px4-"command)
+#define _px4_system(command) system("px4-" command)
 #endif
 
-int test_cli(int argc, char *argv[])
-{
+int test_cli(int argc, char *argv[]) {
 #ifndef __PX4_NUTTX
 	// This is not a fully built out test
 	// suite yet and is more of a soak
 	// test to ensure that the command exists
 
 	// Run the commander CLI
-	if (_px4_system("commander start")) { return PX4_ERROR; }
+	if (_px4_system("commander start")) {
+		return PX4_ERROR;
+	}
 
-	if (_px4_system("commander check")) { return PX4_ERROR; }
+	if (_px4_system("commander check")) {
+		return PX4_ERROR;
+	}
 
-	if (_px4_system("commander stop")) { return PX4_ERROR; }
+	if (_px4_system("commander stop")) {
+		return PX4_ERROR;
+	}
 
 #endif
 

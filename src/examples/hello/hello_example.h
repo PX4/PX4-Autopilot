@@ -41,8 +41,7 @@
 
 #include <px4_platform_common/app.h>
 
-class HelloExample
-{
+class HelloExample {
 public:
 	HelloExample() {}
 

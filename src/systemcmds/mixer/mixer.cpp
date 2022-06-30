@@ -37,21 +37,21 @@
  * Mixer utility.
  */
 
-#include <px4_platform_common/px4_config.h>
+#include <ctype.h>
+#include <drivers/drv_mixer.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <lib/mixer/mixer_load.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/posix.h>
-#include <string.h>
-#include <stdlib.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <ctype.h>
-
-#include <drivers/drv_mixer.h>
-#include <lib/mixer/MixerGroup.hpp>
-#include <lib/mixer/mixer_load.h>
+#include <stdlib.h>
+#include <string.h>
 #include <uORB/topics/actuator_controls.h>
+#include <unistd.h>
+
+#include <lib/mixer/MixerGroup.hpp>
 
 /**
  * Mixer utility for loading mixer files to devices
@@ -60,12 +60,10 @@
  */
 extern "C" __EXPORT int mixer_main(int argc, char *argv[]);
 
-static void	usage(const char *reason);
-static int	load(const char *devname, const char *fname, bool append);
+static void usage(const char *reason);
+static int load(const char *devname, const char *fname, bool append);
 
-int
-mixer_main(int argc, char *argv[])
-{
+int mixer_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		usage("missing command");
 		return 1;
@@ -105,9 +103,7 @@ mixer_main(int argc, char *argv[])
 	return 0;
 }
 
-static void
-usage(const char *reason)
-{
+static void usage(const char *reason) {
 	if (reason && *reason) {
 		PX4_INFO("%s", reason);
 	}
@@ -120,7 +116,6 @@ Load or append mixer files to the ESC driver.
 Note that the driver must support the used ioctl's, which is the case on NuttX, but for example not on RPi.
 )DESCR_STR");
 
-
 	PRINT_MODULE_USAGE_NAME("mixer", "command");
 
 	PRINT_MODULE_USAGE_COMMAND("load");
@@ -129,9 +124,7 @@ Note that the driver must support the used ioctl's, which is the case on NuttX, 
 	PRINT_MODULE_USAGE_ARG("<file:dev> <file>", "Output device (eg. /dev/pwm_output0) and mixer file", false);
 }
 
-static int
-load(const char *devname, const char *fname, bool append)
-{
+static int load(const char *devname, const char *fname, bool append) {
 	// sleep a while to ensure device has been set up
 	px4_usleep(20000);
 

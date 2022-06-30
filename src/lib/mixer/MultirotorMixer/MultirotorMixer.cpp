@@ -40,30 +40,24 @@
 #include "MultirotorMixer.hpp"
 
 #include <float.h>
-#include <cstring>
-#include <cstdio>
-
 #include <mathlib/mathlib.h>
 
+#include <cstdio>
+#include <cstring>
+
 #ifdef MIXER_MULTIROTOR_USE_MOCK_GEOMETRY
-enum class MultirotorGeometry : MultirotorGeometryUnderlyingType {
-	QUAD_X,
-	MAX_GEOMETRY
-};
-namespace
-{
+enum class MultirotorGeometry : MultirotorGeometryUnderlyingType { QUAD_X, MAX_GEOMETRY };
+namespace {
 const MultirotorMixer::Rotor _config_quad_x[] = {
-	{ -0.707107,  0.707107,  1.000000,  1.000000 },
-	{  0.707107, -0.707107,  1.000000,  1.000000 },
-	{  0.707107,  0.707107, -1.000000,  1.000000 },
-	{ -0.707107, -0.707107, -1.000000,  1.000000 },
+	{-0.707107, 0.707107, 1.000000, 1.000000},
+	{0.707107, -0.707107, 1.000000, 1.000000},
+	{0.707107, 0.707107, -1.000000, 1.000000},
+	{-0.707107, -0.707107, -1.000000, 1.000000},
 };
-const MultirotorMixer::Rotor *_config_index[] = {
-	&_config_quad_x[0]
-};
+const MultirotorMixer::Rotor *_config_index[] = {&_config_quad_x[0]};
 const unsigned _config_rotor_count[] = {4};
 const char *_config_key[] = {"4x"};
-}
+}  // namespace
 
 #else
 
@@ -73,39 +67,35 @@ const char *_config_key[] = {"4x"};
 
 #endif /* MIXER_MULTIROTOR_USE_MOCK_GEOMETRY */
 
-
-#define debug(fmt, args...)	do { } while(0)
+#define debug(fmt, args...) \
+	do {                \
+	} while (0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 //#include <debug.h>
 //#define debug(fmt, args...)	syslog(fmt "\n", ##args)
 
-MultirotorMixer::MultirotorMixer(ControlCallback control_cb, uintptr_t cb_handle, MultirotorGeometry geometry) :
-	MultirotorMixer(control_cb, cb_handle, _config_index[(int)geometry], _config_rotor_count[(int)geometry])
-{
-}
+MultirotorMixer::MultirotorMixer(ControlCallback control_cb, uintptr_t cb_handle, MultirotorGeometry geometry)
+	: MultirotorMixer(control_cb, cb_handle, _config_index[(int)geometry], _config_rotor_count[(int)geometry]) {}
 
 MultirotorMixer::MultirotorMixer(ControlCallback control_cb, uintptr_t cb_handle, const Rotor *rotors,
-				 unsigned rotor_count) :
-	Mixer(control_cb, cb_handle),
-	_rotor_count(rotor_count),
-	_rotors(rotors),
-	_outputs_prev(new float[_rotor_count]),
-	_tmp_array(new float[_rotor_count])
-{
+				 unsigned rotor_count)
+	: Mixer(control_cb, cb_handle),
+	  _rotor_count(rotor_count),
+	  _rotors(rotors),
+	  _outputs_prev(new float[_rotor_count]),
+	  _tmp_array(new float[_rotor_count]) {
 	for (unsigned i = 0; i < _rotor_count; ++i) {
 		_outputs_prev[i] = -1.f;
 	}
 }
 
-MultirotorMixer::~MultirotorMixer()
-{
+MultirotorMixer::~MultirotorMixer() {
 	delete[] _outputs_prev;
 	delete[] _tmp_array;
 }
 
-MultirotorMixer *
-MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf, unsigned &buflen)
-{
+MultirotorMixer *MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
+					    unsigned &buflen) {
 	MultirotorGeometry geometry = MultirotorGeometry::MAX_GEOMETRY;
 	char geomname[16];
 
@@ -128,8 +118,8 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 
 	debug("remaining in buf: %d, first char: %c", buflen, buf[0]);
 
-	for (MultirotorGeometryUnderlyingType i = 0; i < (MultirotorGeometryUnderlyingType)MultirotorGeometry::MAX_GEOMETRY;
-	     i++) {
+	for (MultirotorGeometryUnderlyingType i = 0;
+	     i < (MultirotorGeometryUnderlyingType)MultirotorGeometry::MAX_GEOMETRY; i++) {
 		if (!strcmp(geomname, _config_key[i])) {
 			geometry = (MultirotorGeometry)i;
 			break;
@@ -146,15 +136,15 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	return new MultirotorMixer(control_cb, cb_handle, geometry);
 }
 
-float
-MultirotorMixer::compute_desaturation_gain(const float *desaturation_vector, const float *outputs,
-		saturation_status &sat_status, float min_output, float max_output) const
-{
+float MultirotorMixer::compute_desaturation_gain(const float *desaturation_vector, const float *outputs,
+						 saturation_status &sat_status, float min_output,
+						 float max_output) const {
 	float k_min = 0.f;
 	float k_max = 0.f;
 
 	for (unsigned i = 0; i < _rotor_count; i++) {
-		// Avoid division by zero. If desaturation_vector[i] is zero, there's nothing we can do to unsaturate anyway
+		// Avoid division by zero. If desaturation_vector[i] is zero, there's nothing we can do to unsaturate
+		// anyway
 		if (fabsf(desaturation_vector[i]) < FLT_EPSILON) {
 			continue;
 		}
@@ -162,9 +152,13 @@ MultirotorMixer::compute_desaturation_gain(const float *desaturation_vector, con
 		if (outputs[i] < min_output) {
 			float k = (min_output - outputs[i]) / desaturation_vector[i];
 
-			if (k < k_min) { k_min = k; }
+			if (k < k_min) {
+				k_min = k;
+			}
 
-			if (k > k_max) { k_max = k; }
+			if (k > k_max) {
+				k_max = k;
+			}
 
 			sat_status.flags.motor_neg = true;
 		}
@@ -172,9 +166,13 @@ MultirotorMixer::compute_desaturation_gain(const float *desaturation_vector, con
 		if (outputs[i] > max_output) {
 			float k = (max_output - outputs[i]) / desaturation_vector[i];
 
-			if (k < k_min) { k_min = k; }
+			if (k < k_min) {
+				k_min = k;
+			}
 
-			if (k > k_max) { k_max = k; }
+			if (k > k_max) {
+				k_max = k;
+			}
 
 			sat_status.flags.motor_pos = true;
 		}
@@ -184,10 +182,9 @@ MultirotorMixer::compute_desaturation_gain(const float *desaturation_vector, con
 	return k_min + k_max;
 }
 
-void
-MultirotorMixer::minimize_saturation(const float *desaturation_vector, float *outputs,
-				     saturation_status &sat_status, float min_output, float max_output, bool reduce_only) const
-{
+void MultirotorMixer::minimize_saturation(const float *desaturation_vector, float *outputs,
+					  saturation_status &sat_status, float min_output, float max_output,
+					  bool reduce_only) const {
 	float k1 = compute_desaturation_gain(desaturation_vector, outputs, sat_status, min_output, max_output);
 
 	if (reduce_only && k1 > 0.f) {
@@ -208,15 +205,12 @@ MultirotorMixer::minimize_saturation(const float *desaturation_vector, float *ou
 	}
 }
 
-void
-MultirotorMixer::mix_airmode_rp(float roll, float pitch, float yaw, float thrust, float *outputs)
-{
+void MultirotorMixer::mix_airmode_rp(float roll, float pitch, float yaw, float thrust, float *outputs) {
 	// Airmode for roll and pitch, but not yaw
 
 	// Mix without yaw
 	for (unsigned i = 0; i < _rotor_count; i++) {
-		outputs[i] = roll * _rotors[i].roll_scale +
-			     pitch * _rotors[i].pitch_scale +
+		outputs[i] = roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale +
 			     thrust * _rotors[i].thrust_scale;
 
 		// Thrust will be used to unsaturate if needed
@@ -229,17 +223,13 @@ MultirotorMixer::mix_airmode_rp(float roll, float pitch, float yaw, float thrust
 	mix_yaw(yaw, outputs);
 }
 
-void
-MultirotorMixer::mix_airmode_rpy(float roll, float pitch, float yaw, float thrust, float *outputs)
-{
+void MultirotorMixer::mix_airmode_rpy(float roll, float pitch, float yaw, float thrust, float *outputs) {
 	// Airmode for roll, pitch and yaw
 
 	// Do full mixing
 	for (unsigned i = 0; i < _rotor_count; i++) {
-		outputs[i] = roll * _rotors[i].roll_scale +
-			     pitch * _rotors[i].pitch_scale +
-			     yaw * _rotors[i].yaw_scale +
-			     thrust * _rotors[i].thrust_scale;
+		outputs[i] = roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale +
+			     yaw * _rotors[i].yaw_scale + thrust * _rotors[i].thrust_scale;
 
 		// Thrust will be used to unsaturate if needed
 		_tmp_array[i] = _rotors[i].thrust_scale;
@@ -256,15 +246,12 @@ MultirotorMixer::mix_airmode_rpy(float roll, float pitch, float yaw, float thrus
 	minimize_saturation(_tmp_array, outputs, _saturation_status);
 }
 
-void
-MultirotorMixer::mix_airmode_disabled(float roll, float pitch, float yaw, float thrust, float *outputs)
-{
+void MultirotorMixer::mix_airmode_disabled(float roll, float pitch, float yaw, float thrust, float *outputs) {
 	// Airmode disabled: never allow to increase the thrust to unsaturate a motor
 
 	// Mix without yaw
 	for (unsigned i = 0; i < _rotor_count; i++) {
-		outputs[i] = roll * _rotors[i].roll_scale +
-			     pitch * _rotors[i].pitch_scale +
+		outputs[i] = roll * _rotors[i].roll_scale + pitch * _rotors[i].pitch_scale +
 			     thrust * _rotors[i].thrust_scale;
 
 		// Thrust will be used to unsaturate if needed
@@ -291,8 +278,7 @@ MultirotorMixer::mix_airmode_disabled(float roll, float pitch, float yaw, float 
 	mix_yaw(yaw, outputs);
 }
 
-void MultirotorMixer::mix_yaw(float yaw, float *outputs)
-{
+void MultirotorMixer::mix_yaw(float yaw, float *outputs) {
 	// Add yaw to outputs
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		outputs[i] += yaw * _rotors[i].yaw_scale;
@@ -313,35 +299,33 @@ void MultirotorMixer::mix_yaw(float yaw, float *outputs)
 	minimize_saturation(_tmp_array, outputs, _saturation_status, 0.f, 1.f, true);
 }
 
-unsigned
-MultirotorMixer::mix(float *outputs, unsigned space)
-{
+unsigned MultirotorMixer::mix(float *outputs, unsigned space) {
 	if (space < _rotor_count) {
 		return 0;
 	}
 
-	float roll    = math::constrain(get_control(0, 0), -1.0f, 1.0f);
-	float pitch   = math::constrain(get_control(0, 1), -1.0f, 1.0f);
-	float yaw     = math::constrain(get_control(0, 2), -1.0f, 1.0f);
-	float thrust  = math::constrain(get_control(0, 3), 0.0f, 1.0f);
+	float roll = math::constrain(get_control(0, 0), -1.0f, 1.0f);
+	float pitch = math::constrain(get_control(0, 1), -1.0f, 1.0f);
+	float yaw = math::constrain(get_control(0, 2), -1.0f, 1.0f);
+	float thrust = math::constrain(get_control(0, 3), 0.0f, 1.0f);
 
 	// clean out class variable used to capture saturation
 	_saturation_status.value = 0;
 
 	// Do the mixing using the strategy given by the current Airmode configuration
 	switch (_airmode) {
-	case Airmode::roll_pitch:
-		mix_airmode_rp(roll, pitch, yaw, thrust, outputs);
-		break;
+		case Airmode::roll_pitch:
+			mix_airmode_rp(roll, pitch, yaw, thrust, outputs);
+			break;
 
-	case Airmode::roll_pitch_yaw:
-		mix_airmode_rpy(roll, pitch, yaw, thrust, outputs);
-		break;
+		case Airmode::roll_pitch_yaw:
+			mix_airmode_rpy(roll, pitch, yaw, thrust, outputs);
+			break;
 
-	case Airmode::disabled:
-	default: // just in case: default to disabled
-		mix_airmode_disabled(roll, pitch, yaw, thrust, outputs);
-		break;
+		case Airmode::disabled:
+		default:  // just in case: default to disabled
+			mix_airmode_disabled(roll, pitch, yaw, thrust, outputs);
+			break;
 	}
 
 	// Apply thrust model and scale outputs to range [idle_speed, 1].
@@ -351,9 +335,10 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		// Implement simple model for static relationship between applied motor pwm and motor thrust
 		// model: thrust = (1 - _thrust_factor) * PWM + _thrust_factor * PWM^2
 		if (_thrust_factor > 0.0f) {
-			outputs[i] = -(1.0f - _thrust_factor) / (2.0f * _thrust_factor) + sqrtf((1.0f - _thrust_factor) *
-					(1.0f - _thrust_factor) / (4.0f * _thrust_factor * _thrust_factor) + (outputs[i] < 0.0f ? 0.0f : outputs[i] /
-							_thrust_factor));
+			outputs[i] = -(1.0f - _thrust_factor) / (2.0f * _thrust_factor) +
+				     sqrtf((1.0f - _thrust_factor) * (1.0f - _thrust_factor) /
+						   (4.0f * _thrust_factor * _thrust_factor) +
+					   (outputs[i] < 0.0f ? 0.0f : outputs[i] / _thrust_factor));
 		}
 
 		outputs[i] = math::constrain((2.f * outputs[i] - 1.f), -1.f, 1.f);
@@ -401,7 +386,8 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		update_saturation_status(i, clipping_high, clipping_low_roll_pitch, clipping_low_yaw);
 	}
 
-	// this will force the caller of the mixer to always supply new slew rate values, otherwise no slew rate limiting will happen
+	// this will force the caller of the mixer to always supply new slew rate values, otherwise no slew rate
+	// limiting will happen
 	_delta_out_max = 0.0f;
 
 	return _rotor_count;
@@ -414,11 +400,9 @@ MultirotorMixer::mix(float *outputs, unsigned space)
  * clipping_high: true if the motor demand is being limited in the positive direction
  * clipping_low_roll_pitch: true if the motor demand is being limited in the negative direction (roll/pitch)
  * clipping_low_yaw: true if the motor demand is being limited in the negative direction (yaw)
-*/
-void
-MultirotorMixer::update_saturation_status(unsigned index, bool clipping_high, bool clipping_low_roll_pitch,
-		bool clipping_low_yaw)
-{
+ */
+void MultirotorMixer::update_saturation_status(unsigned index, bool clipping_high, bool clipping_low_roll_pitch,
+					       bool clipping_low_yaw) {
 	// The motor is saturated at the upper limit
 	// check which control axes and which directions are contributing
 	if (clipping_high) {

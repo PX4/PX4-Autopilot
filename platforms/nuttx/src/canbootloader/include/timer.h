@@ -46,21 +46,20 @@
  * Included Files
  ****************************************************************************/
 
+#include <px4_arch/micro_hal.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <px4_arch/micro_hal.h>
+
 #include "nvic.h"
 
-
 /* Types for timer access */
-typedef uint8_t bl_timer_id;             /* A timer handle */
-typedef uint32_t time_ms_t;              /* A timer value */
-typedef volatile time_ms_t *time_ref_t;  /* A pointer to the internal
-                                         counter in the structure of a timer
-                                         used to do a time out test value */
+typedef uint8_t bl_timer_id;            /* A timer handle */
+typedef uint32_t time_ms_t;             /* A timer value */
+typedef volatile time_ms_t *time_ref_t; /* A pointer to the internal
+					counter in the structure of a timer
+					used to do a time out test value */
 
-typedef uint32_t time_hrt_cycles_t;     /* A timer value type of the hrt */
-
+typedef uint32_t time_hrt_cycles_t; /* A timer value type of the hrt */
 
 /*
  *  Timers
@@ -71,15 +70,14 @@ typedef uint32_t time_hrt_cycles_t;     /* A timer value type of the hrt */
  */
 typedef enum {
 	/*  Specifies a one-shot timer. After notification timer is discarded. */
-	modeOneShot         = 1,
+	modeOneShot = 1,
 	/*  Specifies a repeating timer. */
-	modeRepeating       = 2,
+	modeRepeating = 2,
 	/* Specifies a persistent start / stop timer. */
-	modeTimeout         = 3,
+	modeTimeout = 3,
 	/* Or'ed in to start the timer when allocated */
-	modeStarted         = 0x40
+	modeStarted = 0x40
 } bl_timer_modes_t;
-
 
 /* The call back function signature type */
 
@@ -106,7 +104,6 @@ typedef struct {
 	bl_timer_ontimeout cb;
 
 } bl_timer_cb_t;
-
 
 extern const bl_timer_cb_t null_cb;
 
@@ -288,10 +285,7 @@ time_ref_t timer_ref(bl_timer_id id);
  *   Non Zero if the timer is expired otherwise zero.
  *
  ****************************************************************************/
-static inline int timer_ref_expired(time_ref_t ref)
-{
-	return *ref == 0;
-}
+static inline int timer_ref_expired(time_ref_t ref) { return *ref == 0; }
 
 /****************************************************************************
  * Name: timer_tic
@@ -324,10 +318,7 @@ time_ms_t timer_tic(void);
  *   The current value of the HW counter in the type of time_hrt_cycles_t.
  *
  ****************************************************************************/
-static inline time_hrt_cycles_t timer_hrt_read(void)
-{
-	return getreg32(NVIC_SYSTICK_CURRENT);
-}
+static inline time_hrt_cycles_t timer_hrt_read(void) { return getreg32(NVIC_SYSTICK_CURRENT); }
 
 /****************************************************************************
  * Name: timer_hrt_clear_wrap
@@ -343,10 +334,7 @@ static inline time_hrt_cycles_t timer_hrt_read(void)
  *   None
  *
  ****************************************************************************/
-static inline void timer_hrt_clear_wrap(void)
-{
-	(void)timer_hrt_read();
-}
+static inline void timer_hrt_clear_wrap(void) { (void)timer_hrt_read(); }
 /****************************************************************************
  * Name: timer_hrt_wrap
  *
@@ -361,10 +349,9 @@ static inline void timer_hrt_clear_wrap(void)
  *   Returns true  if timer counted to 0 since last time this was read.
  *
  ****************************************************************************/
-static inline bool timer_hrt_wrap(void)
-{
+static inline bool timer_hrt_wrap(void) {
 	uint32_t rv = getreg32(NVIC_SYSTICK_CTRL);
-	return ((rv  & NVIC_SYSTICK_CTRL_COUNTFLAG) ? true : false);
+	return ((rv & NVIC_SYSTICK_CTRL_COUNTFLAG) ? true : false);
 }
 
 /****************************************************************************
@@ -381,10 +368,7 @@ static inline bool timer_hrt_wrap(void)
  *   time_hrt_cycles_t.
  *
  ****************************************************************************/
-static inline time_hrt_cycles_t timer_hrt_max(void)
-{
-	return getreg32(NVIC_SYSTICK_RELOAD) + 1;
-}
+static inline time_hrt_cycles_t timer_hrt_max(void) { return getreg32(NVIC_SYSTICK_RELOAD) + 1; }
 
 /****************************************************************************
  * Name: timer_hrt_elapsed
@@ -401,8 +385,7 @@ static inline time_hrt_cycles_t timer_hrt_max(void)
  *   The difference from begin to end
  *
  ****************************************************************************/
-static inline time_hrt_cycles_t timer_hrt_elapsed(time_hrt_cycles_t begin, time_hrt_cycles_t end)
-{
+static inline time_hrt_cycles_t timer_hrt_elapsed(time_hrt_cycles_t begin, time_hrt_cycles_t end) {
 	/* It is a down count from NVIC_SYSTICK_RELOAD */
 
 	time_hrt_cycles_t elapsed = begin - end;
@@ -410,7 +393,7 @@ static inline time_hrt_cycles_t timer_hrt_elapsed(time_hrt_cycles_t begin, time_
 
 	/* Did it wrap */
 	if (elapsed > reload) {
-		elapsed +=  reload;
+		elapsed += reload;
 	}
 
 	return elapsed;

@@ -32,13 +32,13 @@
  ****************************************************************************/
 
 #include "ActuatorEffectiveness.hpp"
-#include "../ControlAllocation/ControlAllocation.hpp"
 
 #include <px4_platform_common/log.h>
 
+#include "../ControlAllocation/ControlAllocation.hpp"
+
 int ActuatorEffectiveness::Configuration::addActuator(ActuatorType type, const matrix::Vector3f &torque,
-		const matrix::Vector3f &thrust)
-{
+						      const matrix::Vector3f &thrust) {
 	int actuator_idx = num_actuators_matrix[selected_matrix];
 
 	if (actuator_idx >= NUM_ACTUATORS) {
@@ -62,8 +62,7 @@ int ActuatorEffectiveness::Configuration::addActuator(ActuatorType type, const m
 	return num_actuators_matrix[selected_matrix]++;
 }
 
-void ActuatorEffectiveness::Configuration::actuatorsAdded(ActuatorType type, int count)
-{
+void ActuatorEffectiveness::Configuration::actuatorsAdded(ActuatorType type, int count) {
 	int total_count = totalNumActuators();
 
 	for (int i = 0; i < count; ++i) {
@@ -74,8 +73,7 @@ void ActuatorEffectiveness::Configuration::actuatorsAdded(ActuatorType type, int
 	num_actuators_matrix[selected_matrix] += count;
 }
 
-int ActuatorEffectiveness::Configuration::totalNumActuators() const
-{
+int ActuatorEffectiveness::Configuration::totalNumActuators() const {
 	int total_count = 0;
 
 	for (int i = 0; i < MAX_NUM_MATRICES; ++i) {

@@ -40,58 +40,59 @@
 
 #pragma once
 
+#include <drivers/device/device.h>
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_platform_common/i2c_spi_buses.h>
-#include <drivers/device/device.h>
-#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <perf/perf_counter.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 using namespace time_literals;
 
 /* Configuration Constants */
-static constexpr uint8_t LL40LS_BASEADDR              = 0x62; /* 7-bit address */
-static constexpr uint8_t LL40LS_BASEADDR_OLD          = 0x42; /* previous 7-bit address */
+static constexpr uint8_t LL40LS_BASEADDR = 0x62;              /* 7-bit address */
+static constexpr uint8_t LL40LS_BASEADDR_OLD = 0x42;          /* previous 7-bit address */
 static constexpr uint8_t LL40LS_SIG_COUNT_VAL_DEFAULT = 0x80; /* Default maximum acquisition count */
 
 /* LL40LS Registers addresses */
-static constexpr uint8_t LL40LS_MEASURE_REG           = 0x00; /* Measure range register */
-static constexpr uint8_t LL40LS_MSRREG_RESET          = 0x00; /* reset to power on defaults */
-static constexpr uint8_t LL40LS_MSRREG_ACQUIRE        = 0x04; /* Value to acquire a measurement, version specific */
-static constexpr uint8_t LL40LS_DISTHIGH_REG          = 0x0F; /* High byte of distance register, auto increment */
-static constexpr uint8_t LL40LS_AUTO_INCREMENT        = 0x80;
-static constexpr uint8_t LL40LS_HW_VERSION            = 0x41;
-static constexpr uint8_t LL40LS_SW_VERSION            = 0x4f;
-static constexpr uint8_t LL40LS_SIGNAL_STRENGTH_REG   = 0x0e;
-static constexpr uint8_t LL40LS_PEAK_STRENGTH_REG     = 0x0c;
-static constexpr uint8_t LL40LS_UNIT_ID_HIGH          = 0x16;
-static constexpr uint8_t LL40LS_UNIT_ID_LOW           = 0x17;
+static constexpr uint8_t LL40LS_MEASURE_REG = 0x00;    /* Measure range register */
+static constexpr uint8_t LL40LS_MSRREG_RESET = 0x00;   /* reset to power on defaults */
+static constexpr uint8_t LL40LS_MSRREG_ACQUIRE = 0x04; /* Value to acquire a measurement, version specific */
+static constexpr uint8_t LL40LS_DISTHIGH_REG = 0x0F;   /* High byte of distance register, auto increment */
+static constexpr uint8_t LL40LS_AUTO_INCREMENT = 0x80;
+static constexpr uint8_t LL40LS_HW_VERSION = 0x41;
+static constexpr uint8_t LL40LS_SW_VERSION = 0x4f;
+static constexpr uint8_t LL40LS_SIGNAL_STRENGTH_REG = 0x0e;
+static constexpr uint8_t LL40LS_PEAK_STRENGTH_REG = 0x0c;
+static constexpr uint8_t LL40LS_UNIT_ID_HIGH = 0x16;
+static constexpr uint8_t LL40LS_UNIT_ID_LOW = 0x17;
 
-static constexpr uint8_t LL40LS_SIG_COUNT_VAL_REG     = 0x02; /* Maximum acquisition count register */
-static constexpr uint8_t LL40LS_SIG_COUNT_VAL_MAX     = 0xFF; /* Maximum acquisition count max value */
+static constexpr uint8_t LL40LS_SIG_COUNT_VAL_REG = 0x02; /* Maximum acquisition count register */
+static constexpr uint8_t LL40LS_SIG_COUNT_VAL_MAX = 0xFF; /* Maximum acquisition count max value */
 
-static constexpr int LL40LS_SIGNAL_STRENGTH_MIN_V3HP  = 70;  /* Min signal strength for V3HP */
-static constexpr int LL40LS_SIGNAL_STRENGTH_MAX_V3HP  = 255; /* Max signal strength for V3HP */
+static constexpr int LL40LS_SIGNAL_STRENGTH_MIN_V3HP = 70;  /* Min signal strength for V3HP */
+static constexpr int LL40LS_SIGNAL_STRENGTH_MAX_V3HP = 255; /* Max signal strength for V3HP */
 
-static constexpr int LL40LS_SIGNAL_STRENGTH_LOW       = 24;  /* Minimum signal strength for a valid measurement */
-static constexpr int LL40LS_PEAK_STRENGTH_LOW         = 135; /* Minimum peak strength for accepting a measurement */
-static constexpr int LL40LS_PEAK_STRENGTH_HIGH        = 234; /* Max peak strength raw value */
+static constexpr int LL40LS_SIGNAL_STRENGTH_LOW = 24; /* Minimum signal strength for a valid measurement */
+static constexpr int LL40LS_PEAK_STRENGTH_LOW = 135;  /* Minimum peak strength for accepting a measurement */
+static constexpr int LL40LS_PEAK_STRENGTH_HIGH = 234; /* Max peak strength raw value */
 
 static constexpr float LL40LS_MIN_DISTANCE{0.05f};
 static constexpr float LL40LS_MAX_DISTANCE{25.00f};
 static constexpr float LL40LS_MAX_DISTANCE_V2{35.00f};
 static constexpr float LL40LS_MAX_DISTANCE_V4{10.00f};
 
-static constexpr uint8_t LL40LS_HW_VERSION_V4         = 0xE1;
-static constexpr uint8_t LL40LS_SW_VERSION_V4         = 0x30;
-static constexpr uint8_t LL40LS_UNIT_ID_0_V4	      = 0x16;
-static constexpr uint8_t LL40LS_UNIT_ID_1_V4 	      = 0x17;
-static constexpr uint8_t LL40LS_UNIT_ID_2_V4	      = 0x18;
-static constexpr uint8_t LL40LS_UNIT_ID_3_V4	      = 0x19;
-static constexpr uint8_t LL40LS_DISTHIGH_REG_V4       = 0x10; /* High byte of distance register, auto increment */
+static constexpr uint8_t LL40LS_HW_VERSION_V4 = 0xE1;
+static constexpr uint8_t LL40LS_SW_VERSION_V4 = 0x30;
+static constexpr uint8_t LL40LS_UNIT_ID_0_V4 = 0x16;
+static constexpr uint8_t LL40LS_UNIT_ID_1_V4 = 0x17;
+static constexpr uint8_t LL40LS_UNIT_ID_2_V4 = 0x18;
+static constexpr uint8_t LL40LS_UNIT_ID_3_V4 = 0x19;
+static constexpr uint8_t LL40LS_DISTHIGH_REG_V4 = 0x10; /* High byte of distance register, auto increment */
 
 // Normal conversion wait time.
 static constexpr uint32_t LL40LS_CONVERSION_INTERVAL{50_ms};
@@ -99,15 +100,12 @@ static constexpr uint32_t LL40LS_CONVERSION_INTERVAL{50_ms};
 // Maximum time to wait for a conversion to complete.
 static constexpr uint32_t LL40LS_CONVERSION_TIMEOUT{100_ms};
 
-
-class LidarLiteI2C : public device::I2C, public I2CSPIDriver<LidarLiteI2C>
-{
+class LidarLiteI2C : public device::I2C, public I2CSPIDriver<LidarLiteI2C> {
 public:
 	LidarLiteI2C(const I2CSPIDriverConfig &config);
 	virtual ~LidarLiteI2C();
 
 	static void print_usage();
-
 
 	int init();
 
@@ -151,7 +149,6 @@ protected:
 	int write_reg(const uint8_t reg, const uint8_t &val);
 
 private:
-
 	int collect();
 
 	/**
@@ -195,7 +192,7 @@ private:
 
 	uint64_t _acquire_time_usec{0};
 
-	PX4Rangefinder	_px4_rangefinder;
+	PX4Rangefinder _px4_rangefinder;
 
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "ll40ls: comms errors")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "ll40ls: read")};

@@ -32,12 +32,12 @@
  *
  ****************************************************************************/
 
+#include <hardware/stm32_wdg.h>
 #include <nuttx/config.h>
 
 #include "chip.h"
-#include "stm32.h"
-#include <hardware/stm32_wdg.h>
 #include "nvic.h"
+#include "stm32.h"
 
 /****************************************************************************
  * Name: watchdog_pet()
@@ -54,10 +54,7 @@
  *
  ****************************************************************************/
 
-void watchdog_pet(void)
-{
-	putreg32(IWDG_KR_KEY_RELOAD, STM32_IWDG_KR);
-}
+void watchdog_pet(void) { putreg32(IWDG_KR_KEY_RELOAD, STM32_IWDG_KR); }
 
 /****************************************************************************
  * Name: watchdog_init_ex()
@@ -75,12 +72,9 @@ void watchdog_pet(void)
  *
  ****************************************************************************/
 
-void watchdog_init_ex(int prescale, int reload)
-{
-
-#if defined(CONFIG_STM32_JTAG_FULL_ENABLE) || \
-    defined(CONFIG_STM32_JTAG_NOJNTRST_ENABLE) || \
-    defined(CONFIG_STM32_JTAG_SW_ENABLE)
+void watchdog_init_ex(int prescale, int reload) {
+#if defined(CONFIG_STM32_JTAG_FULL_ENABLE) || defined(CONFIG_STM32_JTAG_NOJNTRST_ENABLE) || \
+	defined(CONFIG_STM32_JTAG_SW_ENABLE)
 	putreg32(getreg32(STM32_DBGMCU_CR) | DBGMCU_CR_IWDGSTOP, STM32_DBGMCU_CR);
 #endif
 
@@ -94,16 +88,14 @@ void watchdog_init_ex(int prescale, int reload)
 
 	/* Set the reload value */
 
-	putreg32((reload << IWDG_RLR_RL_SHIFT) &  IWDG_RLR_RL_MASK, STM32_IWDG_RLR);
+	putreg32((reload << IWDG_RLR_RL_SHIFT) & IWDG_RLR_RL_MASK, STM32_IWDG_RLR);
 
 	/* Start the watch dog */
 
 	putreg32(IWDG_KR_KEY_START, STM32_IWDG_KR);
 
 	watchdog_pet();
-
 }
-
 
 /****************************************************************************
  * Name: watchdog_init()
@@ -120,9 +112,7 @@ void watchdog_init_ex(int prescale, int reload)
  *
  ****************************************************************************/
 
-
-void watchdog_init(void)
-{
+void watchdog_init(void) {
 	// max prescaler and max timeout ~26214.4 ms / 4 ~= 6.5 seconds
 	watchdog_init_ex(IWDG_PR_DIV256 >> IWDG_PR_SHIFT, IWDG_RLR_MAX >> IWDG_RLR_RL_SHIFT >> 2);
 }

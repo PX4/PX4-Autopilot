@@ -31,20 +31,20 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
-#include <drivers/drv_hrt.h>
 #include <HealthFlags.h>
+#include <drivers/drv_hrt.h>
 #include <px4_defines.h>
 #include <systemlib/mavlink_log.h>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/sensor_baro.h>
 
+#include <uORB/Subscription.hpp>
+
+#include "../PreFlightCheck.hpp"
+
 using namespace time_literals;
 
-bool PreFlightCheck::isBaroRequired(const uint8_t instance)
-{
+bool PreFlightCheck::isBaroRequired(const uint8_t instance) {
 	uORB::SubscriptionData<sensor_baro_s> baro{ORB_ID(sensor_baro), instance};
 	const uint32_t device_id = static_cast<uint32_t>(baro.get().device_id);
 
@@ -63,8 +63,7 @@ bool PreFlightCheck::isBaroRequired(const uint8_t instance)
 }
 
 bool PreFlightCheck::baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-			       const bool is_mandatory, bool &report_fail)
-{
+			       const bool is_mandatory, bool &report_fail) {
 	const bool exists = (orb_exists(ORB_ID(sensor_baro), instance) == PX4_OK);
 	const bool is_required = is_mandatory || isBaroRequired(instance);
 
@@ -73,7 +72,8 @@ bool PreFlightCheck::baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	if (exists) {
 		uORB::SubscriptionData<sensor_baro_s> baro{ORB_ID(sensor_baro), instance};
 
-		valid = (baro.get().device_id != 0) && (baro.get().timestamp != 0) && (hrt_elapsed_time(&baro.get().timestamp) < 1_s);
+		valid = (baro.get().device_id != 0) && (baro.get().timestamp != 0) &&
+			(hrt_elapsed_time(&baro.get().timestamp) < 1_s);
 	}
 
 	if (instance == 0) {

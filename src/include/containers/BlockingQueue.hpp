@@ -37,25 +37,20 @@
 
 #include "LockGuard.hpp"
 
-template<class T, size_t N>
-class BlockingQueue
-{
+template <class T, size_t N>
+class BlockingQueue {
 public:
-
-	BlockingQueue()
-	{
+	BlockingQueue() {
 		px4_sem_init(&_sem_head, 0, N);
 		px4_sem_init(&_sem_tail, 0, 0);
 	}
 
-	~BlockingQueue()
-	{
+	~BlockingQueue() {
 		px4_sem_destroy(&_sem_head);
 		px4_sem_destroy(&_sem_tail);
 	}
 
-	void push(T newItem)
-	{
+	void push(T newItem) {
 		px4_sem_wait(&_sem_head);
 
 		_data[_tail] = newItem;
@@ -64,8 +59,7 @@ public:
 		px4_sem_post(&_sem_tail);
 	}
 
-	T pop()
-	{
+	T pop() {
 		px4_sem_wait(&_sem_tail);
 
 		T ret = _data[_head];
@@ -77,13 +71,11 @@ public:
 	}
 
 private:
+	px4_sem_t _sem_head;
+	px4_sem_t _sem_tail;
 
-	px4_sem_t	_sem_head;
-	px4_sem_t	_sem_tail;
-
-	T _data[N] {};
+	T _data[N]{};
 
 	size_t _head{0};
 	size_t _tail{0};
-
 };

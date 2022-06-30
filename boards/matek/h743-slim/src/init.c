@@ -41,24 +41,22 @@
  * subsystems and perform board-specific initialisation.
  */
 
-#include "board_config.h"
-
-#include <syslog.h>
-
-#include <nuttx/config.h>
-#include <nuttx/board.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
 #include <arch/board/board.h>
-#include "arm_internal.h"
-
-#include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
-#include <systemlib/px4_macros.h>
+#include <drivers/drv_hrt.h>
+#include <nuttx/board.h>
+#include <nuttx/config.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
 #include <px4_arch/io_timer.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/init.h>
+#include <syslog.h>
+#include <systemlib/px4_macros.h>
+
+#include "arm_internal.h"
+#include "board_config.h"
 
 // # if defined(FLASH_BASED_PARAMS)
 // #  include <parameters/flashparams/flashfs.h>
@@ -76,10 +74,7 @@ __END_DECLS
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
-	UNUSED(ms);
-}
+__EXPORT void board_peripheral_reset(int ms) { UNUSED(ms); }
 
 /************************************************************************************
  * Name: board_on_reset
@@ -92,8 +87,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *          0 if just resetting
  *
  ************************************************************************************/
-__EXPORT void board_on_reset(int status)
-{
+__EXPORT void board_on_reset(int status) {
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
 	}
@@ -112,8 +106,7 @@ __EXPORT void board_on_reset(int status)
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
-__EXPORT void stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	/* Reset PWM first thing */
 	board_on_reset(-1);
 
@@ -129,7 +122,6 @@ __EXPORT void stm32_boardinitialize(void)
 
 	/* configure USB interfaces */
 	stm32_usbinitialize();
-
 }
 
 /****************************************************************************
@@ -150,8 +142,7 @@ __EXPORT void stm32_boardinitialize(void)
  *   any failure to indicate the nature of the failure.
  *
  ****************************************************************************/
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	/* Need hrt running before using the ADC */
 	px4_platform_init();
 
@@ -178,24 +169,23 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #endif
 
+	// #if defined(FLASH_BASED_PARAMS)
+	// 	static sector_descriptor_t params_sector_map[] = {
+	// 		{6, 128 * 1024, 0x081C0000},
+	// 		{7, 128 * 1024, 0x081E0000},
+	// 		{0, 0, 0},
+	// 	};
 
-// #if defined(FLASH_BASED_PARAMS)
-// 	static sector_descriptor_t params_sector_map[] = {
-// 		{6, 128 * 1024, 0x081C0000},
-// 		{7, 128 * 1024, 0x081E0000},
-// 		{0, 0, 0},
-// 	};
+	// 	/* Initialize the flashfs layer to use heap allocated memory */
+	// 	int result = parameter_flashfs_init(params_sector_map, NULL, 0);
 
-// 	/* Initialize the flashfs layer to use heap allocated memory */
-// 	int result = parameter_flashfs_init(params_sector_map, NULL, 0);
+	// 	if (result != OK) {
+	// 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
+	// 		led_on(LED_BLUE);
+	// 		return -ENODEV;
+	// 	}
 
-// 	if (result != OK) {
-// 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
-// 		led_on(LED_BLUE);
-// 		return -ENODEV;
-// 	}
-
-// #endif
+	// #endif
 
 	/* Configure the HW based on the manifest */
 	px4_platform_configure();

@@ -33,6 +33,7 @@
 
 #include <gtest/gtest.h>
 #include <math.h>
+
 #include "EKF/ekf.h"
 
 struct sample {
@@ -40,16 +41,12 @@ struct sample {
 	float data[3];
 };
 
-
-class EkfRingBufferTest : public ::testing::Test
-{
+class EkfRingBufferTest : public ::testing::Test {
 public:
-
 	sample _x, _y, _z;
 	RingBuffer<sample> *_buffer{nullptr};
 
-	void SetUp() override
-	{
+	void SetUp() override {
 		_buffer = new RingBuffer<sample>(3);
 		_x.time_us = 1000000;
 		_x.data[0] = _x.data[1] = _x.data[2] = 1.5f;
@@ -61,22 +58,16 @@ public:
 		_z.data[0] = _z.data[1] = _z.data[2] = 4.0f;
 	}
 
-	void TearDown() override
-	{
-		delete _buffer;
-	}
+	void TearDown() override { delete _buffer; }
 };
 
-TEST_F(EkfRingBufferTest, goodInitialisation)
-{
+TEST_F(EkfRingBufferTest, goodInitialisation) {
 	// WHEN: buffer was allocated
 	// THEN: allocation should have succeed
 	ASSERT_EQ(true, _buffer->allocate(3));
-
 }
 
-TEST_F(EkfRingBufferTest, badInitialisation)
-{
+TEST_F(EkfRingBufferTest, badInitialisation) {
 	// WHEN: buffer allocation input is bad
 	// THEN: allocation should fail
 
@@ -85,8 +76,7 @@ TEST_F(EkfRingBufferTest, badInitialisation)
 	// ASSERT_EQ(false, _buffer->allocate(0));
 }
 
-TEST_F(EkfRingBufferTest, orderOfSamples)
-{
+TEST_F(EkfRingBufferTest, orderOfSamples) {
 	ASSERT_EQ(true, _buffer->allocate(3));
 	// GIVEN: allocated buffer
 	// WHEN: adding multiple samples
@@ -103,8 +93,7 @@ TEST_F(EkfRingBufferTest, orderOfSamples)
 	EXPECT_EQ(_y.time_us, _buffer->get_newest().time_us);
 }
 
-TEST_F(EkfRingBufferTest, popSample)
-{
+TEST_F(EkfRingBufferTest, popSample) {
 	ASSERT_EQ(true, _buffer->allocate(3));
 	_buffer->push(_x);
 	_buffer->push(_y);
@@ -128,8 +117,7 @@ TEST_F(EkfRingBufferTest, popSample)
 	// TODO: When changing the order of popping sample it does not behave as expected, fix this
 }
 
-TEST_F(EkfRingBufferTest, askingForTooNewSample)
-{
+TEST_F(EkfRingBufferTest, askingForTooNewSample) {
 	ASSERT_EQ(true, _buffer->allocate(3));
 	_buffer->push(_x);
 	_buffer->push(_y);
@@ -142,8 +130,7 @@ TEST_F(EkfRingBufferTest, askingForTooNewSample)
 	EXPECT_EQ(false, _buffer->pop_first_older_than(_y.time_us + 100000, &pop));
 }
 
-TEST_F(EkfRingBufferTest, reallocateBuffer)
-{
+TEST_F(EkfRingBufferTest, reallocateBuffer) {
 	ASSERT_EQ(true, _buffer->allocate(5));
 	_buffer->push(_x);
 	_buffer->push(_y);
@@ -156,5 +143,4 @@ TEST_F(EkfRingBufferTest, reallocateBuffer)
 	_buffer->allocate(3);
 	// THEN: its length should update
 	EXPECT_EQ(3, _buffer->get_length());
-
 }

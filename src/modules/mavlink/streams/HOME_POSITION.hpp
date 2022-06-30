@@ -36,8 +36,7 @@
 
 #include <uORB/topics/home_position.h>
 
-class MavlinkStreamHomePosition : public MavlinkStream
-{
+class MavlinkStreamHomePosition : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamHomePosition(mavlink); }
 
@@ -47,8 +46,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		return _home_sub.advertised() ? (MAVLINK_MSG_ID_HOME_POSITION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
@@ -57,8 +55,7 @@ private:
 
 	uORB::Subscription _home_sub{ORB_ID(home_position)};
 
-	bool send() override
-	{
+	bool send() override {
 		// we're sending the GPS home periodically to ensure the
 		// the GCS does pick it up at one point
 		home_position_s home;
@@ -67,9 +64,9 @@ private:
 			if (home.valid_hpos) {
 				mavlink_home_position_t msg{};
 
-				msg.latitude  = home.lat * 1e7;
+				msg.latitude = home.lat * 1e7;
 				msg.longitude = home.lon * 1e7;
-				msg.altitude  = home.alt * 1e3f;
+				msg.altitude = home.alt * 1e3f;
 
 				msg.x = home.x;
 				msg.y = home.y;
@@ -94,4 +91,4 @@ private:
 	}
 };
 
-#endif // HOME_POSITION_HPP
+#endif  // HOME_POSITION_HPP

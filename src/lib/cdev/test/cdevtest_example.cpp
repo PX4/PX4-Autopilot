@@ -43,9 +43,10 @@
 
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
-#include <lib/cdev/CDev.hpp>
-#include <unistd.h>
 #include <stdio.h>
+#include <unistd.h>
+
+#include <lib/cdev/CDev.hpp>
 
 px4::AppState CDevExample::appState;
 
@@ -53,8 +54,7 @@ px4::AppState CDevExample::appState;
 
 static bool g_exit = false;
 
-static int writer_main(int argc, char *argv[])
-{
+static int writer_main(int argc, char *argv[]) {
 	char buf[1];
 
 	int fd = px4_open(TESTDEV, PX4_F_WRONLY);
@@ -88,8 +88,7 @@ static int writer_main(int argc, char *argv[])
 	return ret;
 }
 
-class PrivData
-{
+class PrivData {
 public:
 	PrivData() : _read_offset(0) {}
 	~PrivData() = default;
@@ -97,13 +96,9 @@ public:
 	size_t _read_offset;
 };
 
-class CDevNode : public cdev::CDev
-{
+class CDevNode : public cdev::CDev {
 public:
-	CDevNode() :
-		CDev(TESTDEV),
-		_is_open_for_write(false),
-		_write_offset(0) {}
+	CDevNode() : CDev(TESTDEV), _is_open_for_write(false), _write_offset(0) {}
 
 	~CDevNode() override = default;
 
@@ -111,14 +106,14 @@ public:
 	int close(cdev::file_t *handlep) override;
 	ssize_t write(cdev::file_t *handlep, const char *buffer, size_t buflen) override;
 	ssize_t read(cdev::file_t *handlep, char *buffer, size_t buflen) override;
+
 private:
 	bool _is_open_for_write;
 	size_t _write_offset;
-	char     _buf[1000];
+	char _buf[1000];
 };
 
-int CDevNode::open(cdev::file_t *handlep)
-{
+int CDevNode::open(cdev::file_t *handlep) {
 	// Only allow one writer
 	if (_is_open_for_write && (handlep->f_oflags & PX4_F_WRONLY)) {
 		errno = EBUSY;
@@ -140,8 +135,7 @@ int CDevNode::open(cdev::file_t *handlep)
 	return 0;
 }
 
-int CDevNode::close(cdev::file_t *handlep)
-{
+int CDevNode::close(cdev::file_t *handlep) {
 	delete (PrivData *)handlep->f_priv;
 	handlep->f_priv = nullptr;
 	CDev::close(handlep);
@@ -154,8 +148,7 @@ int CDevNode::close(cdev::file_t *handlep)
 	return 0;
 }
 
-ssize_t CDevNode::write(cdev::file_t *handlep, const char *buffer, size_t buflen)
-{
+ssize_t CDevNode::write(cdev::file_t *handlep, const char *buffer, size_t buflen) {
 	for (size_t i = 0; i < buflen && _write_offset < 1000; i++) {
 		_buf[_write_offset] = buffer[i];
 		_write_offset++;
@@ -167,8 +160,7 @@ ssize_t CDevNode::write(cdev::file_t *handlep, const char *buffer, size_t buflen
 	return buflen;
 }
 
-ssize_t CDevNode::read(cdev::file_t *handlep, char *buffer, size_t buflen)
-{
+ssize_t CDevNode::read(cdev::file_t *handlep, char *buffer, size_t buflen) {
 	PrivData *p = (PrivData *)handlep->f_priv;
 	ssize_t chars_read = 0;
 	PX4_INFO("read %zu write %zu", p->_read_offset, _write_offset);
@@ -182,16 +174,14 @@ ssize_t CDevNode::read(cdev::file_t *handlep, char *buffer, size_t buflen)
 	return chars_read;
 }
 
-CDevExample::~CDevExample()
-{
+CDevExample::~CDevExample() {
 	if (_node) {
 		delete _node;
 		_node = nullptr;
 	}
 }
 
-int CDevExample::do_poll(int fd, int timeout, int iterations, int delayms_after_poll)
-{
+int CDevExample::do_poll(int fd, int timeout, int iterations, int delayms_after_poll) {
 	int pollret, readret;
 	int loop_count = 0;
 	char readbuf[10];
@@ -243,8 +233,7 @@ int CDevExample::do_poll(int fd, int timeout, int iterations, int delayms_after_
 fail:
 	return 1;
 }
-int CDevExample::main()
-{
+int CDevExample::main() {
 	appState.setRunning(true);
 
 	_node = new CDevNode();
@@ -267,11 +256,7 @@ int CDevExample::main()
 	}
 
 	// Start a task that will write something in 4 seconds
-	(void)px4_task_spawn_cmd("writer",
-				 SCHED_DEFAULT,
-				 SCHED_PRIORITY_MAX - 6,
-				 2000,
-				 writer_main,
+	(void)px4_task_spawn_cmd("writer", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 6, 2000, writer_main,
 				 (char *const *)nullptr);
 
 	int ret = 0;

@@ -32,20 +32,18 @@
  ****************************************************************************/
 
 #include "ActuatorEffectivenessFixedWing.hpp"
+
 #include <ControlAllocation/ControlAllocation.hpp>
 
 using namespace matrix;
 
 ActuatorEffectivenessFixedWing::ActuatorEffectivenessFixedWing(ModuleParams *parent)
-	: ModuleParams(parent), _rotors(this, ActuatorEffectivenessRotors::AxisConfiguration::FixedForward),
-	  _control_surfaces(this)
-{
-}
+	: ModuleParams(parent),
+	  _rotors(this, ActuatorEffectivenessRotors::AxisConfiguration::FixedForward),
+	  _control_surfaces(this) {}
 
-bool
-ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
-{
+bool ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configuration,
+							    EffectivenessUpdateReason external_update) {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
@@ -61,15 +59,15 @@ ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configurat
 	return (rotors_added_successfully && surfaces_added_successfully);
 }
 
-void ActuatorEffectivenessFixedWing::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp)
-{
+void ActuatorEffectivenessFixedWing::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+						    ActuatorVector &actuator_sp) {
 	// apply flaps
 	actuator_controls_s actuator_controls_0;
 
 	if (_actuator_controls_0_sub.copy(&actuator_controls_0)) {
 		float control_flaps = actuator_controls_0.control[actuator_controls_s::INDEX_FLAPS];
 		float airbrakes_control = actuator_controls_0.control[actuator_controls_s::INDEX_AIRBRAKES];
-		_control_surfaces.applyFlapsAndAirbrakes(control_flaps, airbrakes_control, _first_control_surface_idx, actuator_sp);
+		_control_surfaces.applyFlapsAndAirbrakes(control_flaps, airbrakes_control, _first_control_surface_idx,
+							 actuator_sp);
 	}
 }

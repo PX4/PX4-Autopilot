@@ -32,11 +32,10 @@
  ****************************************************************************/
 
 #include <board_config.h>
-#include <stdint.h>
 #include <drivers/drv_adc.h>
 #include <drivers/drv_hrt.h>
 #include <px4_arch/adc.h>
-
+#include <stdint.h>
 #include <stm32_adc.h>
 #include <stm32_gpio.h>
 
@@ -45,8 +44,8 @@
  *  ADC3 we still need ADC3 for temperature sensing.
  */
 #if SYSTEM_ADC_COUNT == 1 && SYSTEM_ADC_BASE != STM32_ADC3_BASE
-#  undef SYSTEM_ADC_COUNT
-#  define SYSTEM_ADC_COUNT 2
+#undef SYSTEM_ADC_COUNT
+#define SYSTEM_ADC_COUNT 2
 #endif
 
 /*
@@ -55,88 +54,77 @@
  */
 #define REG(base, _reg) (*(volatile uint32_t *)((base) + (_reg)))
 
-#define rCR(base)    REG((base), STM32_ADC_CR_OFFSET)
-#define rISR(base)   REG((base), STM32_ADC_ISR_OFFSET)
+#define rCR(base) REG((base), STM32_ADC_CR_OFFSET)
+#define rISR(base) REG((base), STM32_ADC_ISR_OFFSET)
 #define rSMPR1(base) REG((base), STM32_ADC_SMPR1_OFFSET)
 #define rSMPR2(base) REG((base), STM32_ADC_SMPR2_OFFSET)
 #define rPCSEL(base) REG((base), STM32_ADC_PCSEL_OFFSET)
-#define rCFG(base)   REG((base), STM32_ADC_CFGR_OFFSET)
-#define rCFG2(base)  REG((base), STM32_ADC_CFGR2_OFFSET)
-#define rCCR(base)   REG((base), STM32_ADC_CCR_OFFSET) // Offset has ADC CMN included
-#define rSQR1(base)  REG((base), STM32_ADC_SQR1_OFFSET)
-#define rSQR2(base)  REG((base), STM32_ADC_SQR2_OFFSET)
-#define rSQR3(base)  REG((base), STM32_ADC_SQR3_OFFSET)
-#define rSQR4(base)  REG((base), STM32_ADC_SQR4_OFFSET)
-#define rDR(base)    REG((base), STM32_ADC_DR_OFFSET)
+#define rCFG(base) REG((base), STM32_ADC_CFGR_OFFSET)
+#define rCFG2(base) REG((base), STM32_ADC_CFGR2_OFFSET)
+#define rCCR(base) REG((base), STM32_ADC_CCR_OFFSET)  // Offset has ADC CMN included
+#define rSQR1(base) REG((base), STM32_ADC_SQR1_OFFSET)
+#define rSQR2(base) REG((base), STM32_ADC_SQR2_OFFSET)
+#define rSQR3(base) REG((base), STM32_ADC_SQR3_OFFSET)
+#define rSQR4(base) REG((base), STM32_ADC_SQR4_OFFSET)
+#define rDR(base) REG((base), STM32_ADC_DR_OFFSET)
 
-#define ADC_SMPR_DEFAULT    ADC_SMPR_64p5 // 64.5 +7.5 * 24 Mhz is 3 uS
-#define ADC_SMPR1_DEFAULT   ((ADC_SMPR_DEFAULT << ADC_SMPR1_SMP0_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP1_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP2_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP3_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP4_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP5_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP6_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP7_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP8_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP9_SHIFT))
-#define ADC_SMPR2_DEFAULT   ((ADC_SMPR_DEFAULT << ADC_SMPR2_SMP10_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP11_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP12_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP13_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP14_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP15_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP16_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP17_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP18_SHIFT) | \
-			     (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP19_SHIFT))
-
+#define ADC_SMPR_DEFAULT ADC_SMPR_64p5  // 64.5 +7.5 * 24 Mhz is 3 uS
+#define ADC_SMPR1_DEFAULT                                                                          \
+	((ADC_SMPR_DEFAULT << ADC_SMPR1_SMP0_SHIFT) | (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP1_SHIFT) | \
+	 (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP2_SHIFT) | (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP3_SHIFT) | \
+	 (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP4_SHIFT) | (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP5_SHIFT) | \
+	 (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP6_SHIFT) | (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP7_SHIFT) | \
+	 (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP8_SHIFT) | (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP9_SHIFT))
+#define ADC_SMPR2_DEFAULT                                                                            \
+	((ADC_SMPR_DEFAULT << ADC_SMPR2_SMP10_SHIFT) | (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP11_SHIFT) | \
+	 (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP12_SHIFT) | (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP13_SHIFT) | \
+	 (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP14_SHIFT) | (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP15_SHIFT) | \
+	 (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP16_SHIFT) | (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP17_SHIFT) | \
+	 (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP18_SHIFT) | (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP19_SHIFT))
 
 /* Assuming VDC 2.4 - 3.6 */
 
 #define ADC_MAX_FADC 36000000
 
-#if STM32_PLL2P_FREQUENCY     <= ADC_MAX_FADC
-#  define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_NOT_DIV
-#elif STM32_PLL2P_FREQUENCY/2 <= ADC_MAX_FADC
-#  define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV2
-#elif STM32_PLL2P_FREQUENCY/4 <= ADC_MAX_FADC
-#  define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV4
-#elif STM32_PLL2P_FREQUENCY/6 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV6
-#elif STM32_PLL2P_FREQUENCY/8 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV8
-#elif STM32_PLL2P_FREQUENCY/10 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV10
-#elif STM32_PLL2P_FREQUENCY/12 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV12
-#elif STM32_PLL2P_FREQUENCY/16 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV16
-#elif STM32_PLL2P_FREQUENCY/32 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV32
-#elif STM32_PLL2P_FREQUENCY/64 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV64
-#elif STM32_PLL2P_FREQUENCY/128 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV128
-#elif STM32_PLL2P_FREQUENCY/256 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV256
+#if STM32_PLL2P_FREQUENCY <= ADC_MAX_FADC
+#define ADC_CCR_PRESC_DIV ADC_CCR_PRESC_NOT_DIV
+#elif STM32_PLL2P_FREQUENCY / 2 <= ADC_MAX_FADC
+#define ADC_CCR_PRESC_DIV ADC_CCR_PRESC_DIV2
+#elif STM32_PLL2P_FREQUENCY / 4 <= ADC_MAX_FADC
+#define ADC_CCR_PRESC_DIV ADC_CCR_PRESC_DIV4
+#elif STM32_PLL2P_FREQUENCY / 6 <= ADC_MAX_FADC
+#define ADC_CCR_PRESC_DIV ADC_CCR_PRESC_DIV6
+#elif STM32_PLL2P_FREQUENCY / 8 <= ADC_MAX_FADC
+#define ADC_CCR_PRESC_DIV ADC_CCR_PRESC_DIV8
+#elif STM32_PLL2P_FREQUENCY / 10 <= ADC_MAX_FADC
+#define ADC_CCR_PRESC_DIV ADC_CCR_PRESC_DIV10
+#elif STM32_PLL2P_FREQUENCY / 12 <= ADC_MAX_FADC
+#define ADC_CCR_PRESC_DIV ADC_CCR_PRESC_DIV12
+#elif STM32_PLL2P_FREQUENCY / 16 <= ADC_MAX_FADC
+#define ADC_CCR_PRESC_DIV ADC_CCR_PRESC_DIV16
+#elif STM32_PLL2P_FREQUENCY / 32 <= ADC_MAX_FADC
+#define ADC_CCR_PRESC_DIV ADC_CCR_PRESC_DIV32
+#elif STM32_PLL2P_FREQUENCY / 64 <= ADC_MAX_FADC
+#define ADC_CCR_PRESC_DIV ADC_CCR_PRESC_DIV64
+#elif STM32_PLL2P_FREQUENCY / 128 <= ADC_MAX_FADC
+#define ADC_CCR_PRESC_DIV ADC_CCR_PRESC_DIV128
+#elif STM32_PLL2P_FREQUENCY / 256 <= ADC_MAX_FADC
+#define ADC_CCR_PRESC_DIV ADC_CCR_PRESC_DIV256
 #else
-#  error "ADC STM32_PLL2P_FREQUENCY too high - no divisor found "
+#error "ADC STM32_PLL2P_FREQUENCY too high - no divisor found "
 #endif
 
-#define ADC3_INTERNAL_TEMP_SENSOR_CHANNEL 18 //define to map the internal temperature channel.
+#define ADC3_INTERNAL_TEMP_SENSOR_CHANNEL 18  // define to map the internal temperature channel.
 
-int px4_arch_adc_init(uint32_t base_address)
-{
+int px4_arch_adc_init(uint32_t base_address) {
 	/* Perform ADC init once per ADC */
 
-	static uint32_t once[SYSTEM_ADC_COUNT] {};
+	static uint32_t once[SYSTEM_ADC_COUNT]{};
 
 	uint32_t *free = nullptr;
 
 	for (uint32_t i = 0; i < SYSTEM_ADC_COUNT; i++) {
 		if (once[i] == base_address) {
-
 			/* This one was done already */
 
 			return OK;
@@ -150,7 +138,6 @@ int px4_arch_adc_init(uint32_t base_address)
 	}
 
 	if (free == nullptr) {
-
 		/* ADC misconfigured SYSTEM_ADC_COUNT too small */;
 
 		PANIC();
@@ -160,7 +147,7 @@ int px4_arch_adc_init(uint32_t base_address)
 
 	/* do calibration if supported */
 
-	rCR(base_address)  = ADC_CR_ADVREGEN | ADC_CR_BOOST;
+	rCR(base_address) = ADC_CR_ADVREGEN | ADC_CR_BOOST;
 
 	/* Wait for voltage regulator to power up */
 
@@ -168,23 +155,22 @@ int px4_arch_adc_init(uint32_t base_address)
 
 	/* enable the temperature sensor, VREFINT channel and VBAT */
 
-	rCCR(base_address) = (ADC_CCR_VREFEN | ADC_CCR_VSENSEEN | ADC_CCR_VBATEN |
-			      ADC_CCR_CKMODE_ASYCH | ADC_CCR_PRESC_DIV);
+	rCCR(base_address) =
+		(ADC_CCR_VREFEN | ADC_CCR_VSENSEEN | ADC_CCR_VBATEN | ADC_CCR_CKMODE_ASYCH | ADC_CCR_PRESC_DIV);
 
 	/* Enable ADC calibration. ADCALDIF == 0 so this is only for
 	 * single-ended conversions, not for differential ones.
 	 * Do Liner Cal first
 	 */
 
-	rCR(base_address)  |= ADC_CR_ADCALLIN;
-	rCR(base_address)  |= ADC_CR_ADCAL;
+	rCR(base_address) |= ADC_CR_ADCALLIN;
+	rCR(base_address) |= ADC_CR_ADCAL;
 
 	/* Wait for calibration to complete */
 
 	hrt_abstime now = hrt_absolute_time();
 
 	while ((rCR(base_address) & ADC_CR_ADCAL)) {
-
 		/* don't wait for more than 15000us, since that means something broke
 		 * should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 15000) {
@@ -192,23 +178,21 @@ int px4_arch_adc_init(uint32_t base_address)
 		}
 	}
 
-	rCR(base_address)  &= ~ADC_CR_ADCALLIN;
+	rCR(base_address) &= ~ADC_CR_ADCALLIN;
 
-	rCR(base_address)  |= ADC_CR_ADCAL;
+	rCR(base_address) |= ADC_CR_ADCAL;
 
 	/* Wait for calibration to complete */
 
 	now = hrt_absolute_time();
 
 	while ((rCR(base_address) & ADC_CR_ADCAL)) {
-
 		/* don't wait for more than 500us, since that means something broke
 		 * should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 500) {
 			return -2;
 		}
 	}
-
 
 	/* Enable ADC
 	 * Note: ADEN bit cannot be set during ADCAL=1 and 4 ADC clock cycle
@@ -224,7 +208,6 @@ int px4_arch_adc_init(uint32_t base_address)
 	/* Wait for hardware to be ready for conversions */
 
 	while ((rISR(base_address) & ADC_INT_ADRDY) == 0) {
-
 		/* don't wait for more than 500us, since that means something broke
 		 * should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 500) {
@@ -232,12 +215,10 @@ int px4_arch_adc_init(uint32_t base_address)
 		}
 	}
 
-
 	/* arbitrarily configure all channels for 64.5 cycle sample time */
 
 	rSMPR1(base_address) = ADC_SMPR1_DEFAULT;
 	rSMPR2(base_address) = ADC_SMPR2_DEFAULT;
-
 
 	/* Set CFGR configuration
 	 * Set the resolution of the conversion.
@@ -262,7 +243,6 @@ int px4_arch_adc_init(uint32_t base_address)
 	rCR(base_address) |= ADC_CR_ADSTART;
 
 	while (!(rISR(base_address) & ADC_INT_EOC)) {
-
 		/* don't wait for more than 50us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 50) {
 			return -4;
@@ -271,18 +251,16 @@ int px4_arch_adc_init(uint32_t base_address)
 
 	/* Read out result, clear EOC */
 
-	(void) rDR(base_address);
+	(void)rDR(base_address);
 
 	return OK;
 }
 
-void px4_arch_adc_uninit(uint32_t base_address)
-{
+void px4_arch_adc_uninit(uint32_t base_address) {
 	// nothing to do
 }
 
-uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
-{
+uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel) {
 	irqstate_t flags = px4_enter_critical_section();
 
 	/* Add a channel mapping for ADC3 on the H7 */
@@ -298,7 +276,6 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 			px4_arch_adc_init(base_address);
 		}
 	}
-
 
 	/* clear any previous EOC */
 
@@ -316,7 +293,6 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 	const hrt_abstime now = hrt_absolute_time();
 
 	while (!(rISR(base_address) & ADC_INT_EOC)) {
-
 		/* don't wait for more than 50us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 50) {
 			px4_leave_critical_section(flags);
@@ -332,17 +308,12 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 	return result;
 }
 
-float px4_arch_adc_reference_v()
-{
-	return BOARD_ADC_POS_REF_V;	// TODO: provide true vref
+float px4_arch_adc_reference_v() {
+	return BOARD_ADC_POS_REF_V;  // TODO: provide true vref
 }
 
-uint32_t px4_arch_adc_temp_sensor_mask()
-{
-	return 1 << PX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL;
-}
+uint32_t px4_arch_adc_temp_sensor_mask() { return 1 << PX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL; }
 
-uint32_t px4_arch_adc_dn_fullcount()
-{
-	return 1 << 16; // 16 bit ADC
+uint32_t px4_arch_adc_dn_fullcount() {
+	return 1 << 16;  // 16 bit ADC
 }

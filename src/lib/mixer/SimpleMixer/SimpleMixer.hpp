@@ -46,19 +46,19 @@ struct mixer_scaler_s {
 
 /** mixer input */
 struct mixer_control_s {
-	uint8_t			control_group;	/**< group from which the input reads */
-	uint8_t			control_index;	/**< index within the control group */
-	mixer_scaler_s		scaler;		/**< scaling applied to the input before use */
+	uint8_t control_group; /**< group from which the input reads */
+	uint8_t control_index; /**< index within the control group */
+	mixer_scaler_s scaler; /**< scaling applied to the input before use */
 };
 
-#define MIXER_SIMPLE_SIZE(_icount)	(sizeof(struct mixer_simple_s) + (_icount) * sizeof(struct mixer_control_s))
+#define MIXER_SIMPLE_SIZE(_icount) (sizeof(struct mixer_simple_s) + (_icount) * sizeof(struct mixer_control_s))
 
 /** simple mixer */
 struct mixer_simple_s {
-	uint8_t			control_count;	/**< number of inputs */
-	mixer_scaler_s		output_scaler;	/**< scaling for the output */
-	float 			slew_rate_rise_time{0.0f}; /**< output max rise time (slew rate limit)*/
-	mixer_control_s		controls[];	/**< actual size of the array is set by control_count */
+	uint8_t control_count;           /**< number of inputs */
+	mixer_scaler_s output_scaler;    /**< scaling for the output */
+	float slew_rate_rise_time{0.0f}; /**< output max rise time (slew rate limit)*/
+	mixer_control_s controls[];      /**< actual size of the array is set by control_count */
 };
 
 /**
@@ -66,8 +66,7 @@ struct mixer_simple_s {
  *
  * Collects zero or more inputs and mixes them to a single output.
  */
-class SimpleMixer : public Mixer
-{
+class SimpleMixer : public Mixer {
 public:
 	/**
 	 * Constructor
@@ -101,12 +100,12 @@ public:
 	 * @return			A new SimpleMixer instance, or nullptr
 	 *				if the text format is bad.
 	 */
-	static SimpleMixer		*from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
-			unsigned &buflen);
+	static SimpleMixer *from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
+				      unsigned &buflen);
 
-	unsigned			mix(float *outputs, unsigned space) override;
+	unsigned mix(float *outputs, unsigned space) override;
 
-	void				groups_required(uint32_t &groups) override;
+	void groups_required(uint32_t &groups) override;
 
 	/**
 	 * Check that the mixer configuration as loaded is sensible.
@@ -116,14 +115,13 @@ public:
 	 *
 	 * @return			Zero if the mixer makes sense, nonzero otherwise.
 	 */
-	int				check();
+	int check();
 
-	unsigned			set_trim(float trim) override;
-	unsigned			get_trim(float *trim) override;
-	void				set_dt_once(float dt) override;
+	unsigned set_trim(float trim) override;
+	unsigned get_trim(float *trim) override;
+	void set_dt_once(float dt) override;
 
 private:
-
 	/**
 	 * Perform simpler linear scaling.
 	 *
@@ -131,7 +129,7 @@ private:
 	 * @param input			The value to be scaled.
 	 * @return			The scaled value.
 	 */
-	static float			scale(const mixer_scaler_s &scaler, float input);
+	static float scale(const mixer_scaler_s &scaler, float input);
 
 	/**
 	 * Validate a scaler
@@ -139,15 +137,15 @@ private:
 	 * @param scaler		The scaler to be validated.
 	 * @return			Zero if good, nonzero otherwise.
 	 */
-	static int			scale_check(struct mixer_scaler_s &scaler);
+	static int scale_check(struct mixer_scaler_s &scaler);
 
-	static int parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler, float &slew_rate_rise_time);
-	static int parse_control_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler, uint8_t &control_group,
-					uint8_t &control_index);
+	static int parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler,
+				       float &slew_rate_rise_time);
+	static int parse_control_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler,
+					uint8_t &control_group, uint8_t &control_index);
 
-	float 				_output_prev{0.f};
-	float				_dt{0.f};
+	float _output_prev{0.f};
+	float _dt{0.f};
 
-	mixer_simple_s			*_pinfo;
-
+	mixer_simple_s *_pinfo;
 };

@@ -31,26 +31,25 @@
  *
  ****************************************************************************/
 
+#include <drivers/drv_hrt.h>
+#include <fcntl.h>
+#include <lib/parameters/param.h>
+#include <px4_platform/cpuload.h>
+#include <px4_platform_common/console_buffer.h>
+#include <px4_platform_common/defines.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_manifest.h>
-#include <px4_platform_common/console_buffer.h>
-#include <px4_platform_common/defines.h>
-#include <drivers/drv_hrt.h>
-#include <lib/parameters/param.h>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
-#include <px4_platform/cpuload.h>
-#include <uORB/uORB.h>
-
-#include <fcntl.h>
-
 #include <sys/mount.h>
 #include <syslog.h>
+#include <uORB/uORB.h>
+
+#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 
 #if defined(CONFIG_I2C)
-# include <px4_platform_common/i2c.h>
-# include <nuttx/i2c/i2c_master.h>
-#endif // CONFIG_I2C
+#include <nuttx/i2c/i2c_master.h>
+#include <px4_platform_common/i2c.h>
+#endif  // CONFIG_I2C
 
 #if defined(PX4_CRYPTO)
 #include <px4_platform_common/crypto.h>
@@ -69,8 +68,7 @@ extern initializer_t _einit;
 extern uint32_t _stext;
 extern uint32_t _etext;
 
-static void cxx_initialize(void)
-{
+static void cxx_initialize(void) {
 	initializer_t *initp;
 
 	/* Visit each entry in the initialization table */
@@ -79,21 +77,18 @@ static void cxx_initialize(void)
 		initializer_t initializer = *initp;
 
 		/* Make sure that the address is non-NULL and lies in the text
-		* region defined by the linker script.  Some toolchains may put
-		* NULL values or counts in the initialization table.
-		*/
+		 * region defined by the linker script.  Some toolchains may put
+		 * NULL values or counts in the initialization table.
+		 */
 
-		if ((FAR void *)initializer >= (FAR void *)&_stext &&
-		    (FAR void *)initializer < (FAR void *)&_etext) {
+		if ((FAR void *)initializer >= (FAR void *)&_stext && (FAR void *)initializer < (FAR void *)&_etext) {
 			initializer();
 		}
 	}
 }
 #endif
 
-int px4_platform_init()
-{
-
+int px4_platform_init() {
 #if !defined(CONFIG_BUILD_FLAT)
 	cxx_initialize();
 
@@ -129,24 +124,23 @@ int px4_platform_init()
 	cpuload_initialize_once();
 #endif
 
-
 #if defined(CONFIG_I2C)
-	I2CBusIterator i2c_bus_iterator {I2CBusIterator::FilterType::All};
+	I2CBusIterator i2c_bus_iterator{I2CBusIterator::FilterType::All};
 
 	while (i2c_bus_iterator.next()) {
 		i2c_master_s *i2c_dev = px4_i2cbus_initialize(i2c_bus_iterator.bus().bus);
 
 #if defined(CONFIG_I2C_RESET)
 		I2C_RESET(i2c_dev);
-#endif // CONFIG_I2C_RESET
+#endif  // CONFIG_I2C_RESET
 
 		// send software reset to all
-		uint8_t buf[1] {};
-		buf[0] = 0x06; // software reset
+		uint8_t buf[1]{};
+		buf[0] = 0x06;  // software reset
 
 		i2c_msg_s msg{};
 		msg.frequency = I2C_SPEED_STANDARD;
-		msg.addr = 0x00; // general call address
+		msg.addr = 0x00;  // general call address
 		msg.buffer = &buf[0];
 		msg.length = 1;
 
@@ -155,7 +149,7 @@ int px4_platform_init()
 		px4_i2cbus_uninitialize(i2c_dev);
 	}
 
-#endif // CONFIG_I2C
+#endif  // CONFIG_I2C
 
 #if defined(CONFIG_FS_PROCFS)
 	int ret_mount_procfs = mount(nullptr, "/proc", "procfs", 0, nullptr);
@@ -164,7 +158,7 @@ int px4_platform_init()
 		syslog(LOG_ERR, "ERROR: Failed to mount procfs at /proc: %d\n", ret_mount_procfs);
 	}
 
-#endif // CONFIG_FS_PROCFS
+#endif  // CONFIG_FS_PROCFS
 
 #if defined(CONFIG_FS_BINFS)
 	int ret_mount_binfs = nx_mount(nullptr, "/bin", "binfs", 0, nullptr);
@@ -173,8 +167,7 @@ int px4_platform_init()
 		syslog(LOG_ERR, "ERROR: Failed to mount binfs at /bin: %d\n", ret_mount_binfs);
 	}
 
-#endif // CONFIG_FS_BINFS
-
+#endif  // CONFIG_FS_BINFS
 
 	px4::WorkQueueManagerStart();
 
@@ -189,8 +182,4 @@ int px4_platform_init()
 	return PX4_OK;
 }
 
-int px4_platform_configure(void)
-{
-	return px4_mft_configure(board_get_manifest());
-
-}
+int px4_platform_configure(void) { return px4_mft_configure(board_get_manifest()); }

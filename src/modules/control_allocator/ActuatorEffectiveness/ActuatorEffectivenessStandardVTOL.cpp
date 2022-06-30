@@ -32,19 +32,16 @@
  ****************************************************************************/
 
 #include "ActuatorEffectivenessStandardVTOL.hpp"
+
 #include <ControlAllocation/ControlAllocation.hpp>
 
 using namespace matrix;
 
 ActuatorEffectivenessStandardVTOL::ActuatorEffectivenessStandardVTOL(ModuleParams *parent)
-	: ModuleParams(parent), _rotors(this), _control_surfaces(this)
-{
-}
+	: ModuleParams(parent), _rotors(this), _control_surfaces(this) {}
 
-bool
-ActuatorEffectivenessStandardVTOL::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
-{
+bool ActuatorEffectivenessStandardVTOL::getEffectivenessMatrix(Configuration &configuration,
+							       EffectivenessUpdateReason external_update) {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
@@ -64,8 +61,7 @@ ActuatorEffectivenessStandardVTOL::getEffectivenessMatrix(Configuration &configu
 }
 
 void ActuatorEffectivenessStandardVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp)
-{
+						       int matrix_index, ActuatorVector &actuator_sp) {
 	// apply flaps
 	if (matrix_index == 1) {
 		actuator_controls_s actuator_controls_1;
@@ -73,13 +69,13 @@ void ActuatorEffectivenessStandardVTOL::updateSetpoint(const matrix::Vector<floa
 		if (_actuator_controls_1_sub.copy(&actuator_controls_1)) {
 			float control_flaps = actuator_controls_1.control[actuator_controls_s::INDEX_FLAPS];
 			float airbrakes_control = actuator_controls_1.control[actuator_controls_s::INDEX_AIRBRAKES];
-			_control_surfaces.applyFlapsAndAirbrakes(control_flaps, airbrakes_control, _first_control_surface_idx, actuator_sp);
+			_control_surfaces.applyFlapsAndAirbrakes(control_flaps, airbrakes_control,
+								 _first_control_surface_idx, actuator_sp);
 		}
 	}
 }
 
-void ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight_phase)
-{
+void ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight_phase) {
 	if (_flight_phase == flight_phase) {
 		return;
 	}
@@ -88,14 +84,14 @@ void ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight
 
 	// update stopped motors
 	switch (flight_phase) {
-	case FlightPhase::FORWARD_FLIGHT:
-		_stopped_motors = _mc_motors_mask;
-		break;
+		case FlightPhase::FORWARD_FLIGHT:
+			_stopped_motors = _mc_motors_mask;
+			break;
 
-	case FlightPhase::HOVER_FLIGHT:
-	case FlightPhase::TRANSITION_FF_TO_HF:
-	case FlightPhase::TRANSITION_HF_TO_FF:
-		_stopped_motors = 0;
-		break;
+		case FlightPhase::HOVER_FLIGHT:
+		case FlightPhase::TRANSITION_FF_TO_HF:
+		case FlightPhase::TRANSITION_HF_TO_FF:
+			_stopped_motors = 0;
+			break;
 	}
 }

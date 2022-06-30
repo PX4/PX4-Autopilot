@@ -37,45 +37,39 @@
  * SPI interface for HMC5983
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <drivers/device/spi.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "hmc5883.h"
 
 /* SPI protocol address bits */
-#define DIR_READ			(1<<7)
-#define DIR_WRITE			(0<<7)
-#define ADDR_INCREMENT			(1<<6)
+#define DIR_READ (1 << 7)
+#define DIR_WRITE (0 << 7)
+#define ADDR_INCREMENT (1 << 6)
 
-#define HMC_MAX_SEND_LEN		4
-#define HMC_MAX_RCV_LEN			8
+#define HMC_MAX_SEND_LEN 4
+#define HMC_MAX_RCV_LEN 8
 
 device::Device *HMC5883_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 
-class HMC5883_SPI : public device::SPI
-{
+class HMC5883_SPI : public device::SPI {
 public:
 	HMC5883_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
 	virtual ~HMC5883_SPI() = default;
 
-	virtual int	init();
-	virtual int	read(unsigned address, void *data, unsigned count);
-	virtual int	write(unsigned address, void *data, unsigned count);
+	virtual int init();
+	virtual int read(unsigned address, void *data, unsigned count);
+	virtual int write(unsigned address, void *data, unsigned count);
 };
 
-device::Device *
-HMC5883_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode)
-{
+device::Device *HMC5883_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode) {
 	return new HMC5883_SPI(bus, devid, bus_frequency, spi_mode);
 }
 
-HMC5883_SPI::HMC5883_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode) :
-	SPI(DRV_MAG_DEVTYPE_HMC5883, MODULE_NAME, bus, device, spi_mode, bus_frequency)
-{
-}
+HMC5883_SPI::HMC5883_SPI(int bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode)
+	: SPI(DRV_MAG_DEVTYPE_HMC5883, MODULE_NAME, bus, device, spi_mode, bus_frequency) {}
 
-int HMC5883_SPI::init()
-{
+int HMC5883_SPI::init() {
 	int ret;
 
 	ret = SPI::init();
@@ -88,15 +82,11 @@ int HMC5883_SPI::init()
 	// read WHO_AM_I value
 	uint8_t data[3] = {0, 0, 0};
 
-	if (read(ADDR_ID_A, &data[0], 1) ||
-	    read(ADDR_ID_B, &data[1], 1) ||
-	    read(ADDR_ID_C, &data[2], 1)) {
+	if (read(ADDR_ID_A, &data[0], 1) || read(ADDR_ID_B, &data[1], 1) || read(ADDR_ID_C, &data[2], 1)) {
 		DEVICE_DEBUG("read_reg fail");
 	}
 
-	if ((data[0] != ID_A_WHO_AM_I) ||
-	    (data[1] != ID_B_WHO_AM_I) ||
-	    (data[2] != ID_C_WHO_AM_I)) {
+	if ((data[0] != ID_A_WHO_AM_I) || (data[1] != ID_B_WHO_AM_I) || (data[2] != ID_C_WHO_AM_I)) {
 		DEVICE_DEBUG("ID byte mismatch (%02x,%02x,%02x)", data[0], data[1], data[2]);
 		return -EIO;
 	}
@@ -104,8 +94,7 @@ int HMC5883_SPI::init()
 	return OK;
 }
 
-int HMC5883_SPI::write(unsigned address, void *data, unsigned count)
-{
+int HMC5883_SPI::write(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {
@@ -118,8 +107,7 @@ int HMC5883_SPI::write(unsigned address, void *data, unsigned count)
 	return transfer(&buf[0], &buf[0], count + 1);
 }
 
-int HMC5883_SPI::read(unsigned address, void *data, unsigned count)
-{
+int HMC5883_SPI::read(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {

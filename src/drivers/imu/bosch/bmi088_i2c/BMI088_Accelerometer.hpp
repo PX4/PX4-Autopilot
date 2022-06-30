@@ -33,17 +33,14 @@
 
 #pragma once
 
-#include "BMI088.hpp"
-
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 
+#include "BMI088.hpp"
 #include "Bosch_BMI088_Accelerometer_Registers.hpp"
 
-namespace Bosch::BMI088::Accelerometer
-{
+namespace Bosch::BMI088::Accelerometer {
 
-class BMI088_Accelerometer : public BMI088
-{
+class BMI088_Accelerometer : public BMI088 {
 public:
 	BMI088_Accelerometer(const I2CSPIDriverConfig &config);
 	~BMI088_Accelerometer() override;
@@ -56,10 +53,11 @@ private:
 
 	// Sensor Configuration
 	// static constexpr uint32_t RATE{1600}; // 1600 Hz
-	static constexpr uint32_t RATE{1600}; // 1600 Hz
+	static constexpr uint32_t RATE{1600};  // 1600 Hz
 	static constexpr float FIFO_SAMPLE_DT{1e6f / RATE};
 
-	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]))};
+	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(
+		FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]))};
 
 	// Transfer data
 	struct FIFOTransferBuffer {
@@ -67,14 +65,14 @@ private:
 		uint8_t dummy{0};
 		uint8_t FIFO_LENGTH_0{0};
 		uint8_t FIFO_LENGTH_1{0};
-		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
+		FIFO::DATA f[FIFO_MAX_SAMPLES]{};
 	};
 	// Transfer data without length
 	struct FIFOTransferBufferWithoutLength {
-		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
+		FIFO::DATA f[FIFO_MAX_SAMPLES]{};
 	};
 	// ensure no struct padding
-	static_assert(sizeof(FIFOTransferBuffer) == (4 + FIFO_MAX_SAMPLES *sizeof(FIFO::DATA)));
+	static_assert(sizeof(FIFOTransferBuffer) == (4 + FIFO_MAX_SAMPLES * sizeof(FIFO::DATA)));
 
 	struct register_config_t {
 		Register reg;
@@ -116,30 +114,30 @@ private:
 
 	PX4Accelerometer _px4_accel;
 
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: bad register")};
-	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: bad transfer")};
-	perf_counter_t _fifo_empty_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: FIFO empty")};
-	perf_counter_t _fifo_overflow_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: FIFO overflow")};
-	perf_counter_t _fifo_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: FIFO reset")};
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME "_accel: bad register")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME "_accel: bad transfer")};
+	perf_counter_t _fifo_empty_perf{perf_alloc(PC_COUNT, MODULE_NAME "_accel: FIFO empty")};
+	perf_counter_t _fifo_overflow_perf{perf_alloc(PC_COUNT, MODULE_NAME "_accel: FIFO overflow")};
+	perf_counter_t _fifo_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME "_accel: FIFO reset")};
 	perf_counter_t _drdy_missed_perf{nullptr};
 
 	uint8_t _fifo_samples{static_cast<uint8_t>(_fifo_empty_interval_us / (1000000 / RATE))};
 
 	uint8_t _checked_register{0};
 	static constexpr uint8_t size_register_cfg{10};
-	register_config_t _register_cfg[size_register_cfg] {
+	register_config_t _register_cfg[size_register_cfg]{
 		// Register                        | Set bits, Clear bits
-		{ Register::ACC_PWR_CONF,          0, ACC_PWR_CONF_BIT::acc_pwr_save }, //
-		{ Register::ACC_PWR_CTRL,          ACC_PWR_CTRL_BIT::acc_enable, 0 },
-		{ Register::ACC_CONF,              ACC_CONF_BIT::acc_bwp_Normal | ACC_CONF_BIT::acc_odr_1600, Bit1 | Bit0 },
-		{ Register::ACC_RANGE,             ACC_RANGE_BIT::acc_range_24g, 0 },
-		{ Register::FIFO_WTM_0,            0, 0 },
-		{ Register::FIFO_WTM_1,            0, 0 },
-		{ Register::FIFO_CONFIG_0,         FIFO_CONFIG_0_BIT::BIT1_ALWAYS | FIFO_CONFIG_0_BIT::FIFO_mode, 0 },
-		{ Register::FIFO_CONFIG_1,         FIFO_CONFIG_1_BIT::BIT4_ALWAYS | FIFO_CONFIG_1_BIT::Acc_en, 0 },
-		{ Register::INT1_IO_CONF,          INT1_IO_CONF_BIT::int1_out, 0 },
-		{ Register::INT1_INT2_MAP_DATA,    INT1_INT2_MAP_DATA_BIT::int1_fwm, 0},
+		{Register::ACC_PWR_CONF, 0, ACC_PWR_CONF_BIT::acc_pwr_save},  //
+		{Register::ACC_PWR_CTRL, ACC_PWR_CTRL_BIT::acc_enable, 0},
+		{Register::ACC_CONF, ACC_CONF_BIT::acc_bwp_Normal | ACC_CONF_BIT::acc_odr_1600, Bit1 | Bit0},
+		{Register::ACC_RANGE, ACC_RANGE_BIT::acc_range_24g, 0},
+		{Register::FIFO_WTM_0, 0, 0},
+		{Register::FIFO_WTM_1, 0, 0},
+		{Register::FIFO_CONFIG_0, FIFO_CONFIG_0_BIT::BIT1_ALWAYS | FIFO_CONFIG_0_BIT::FIFO_mode, 0},
+		{Register::FIFO_CONFIG_1, FIFO_CONFIG_1_BIT::BIT4_ALWAYS | FIFO_CONFIG_1_BIT::Acc_en, 0},
+		{Register::INT1_IO_CONF, INT1_IO_CONF_BIT::int1_out, 0},
+		{Register::INT1_INT2_MAP_DATA, INT1_INT2_MAP_DATA_BIT::int1_fwm, 0},
 	};
 };
 
-} // namespace Bosch::BMI088::Accelerometer
+}  // namespace Bosch::BMI088::Accelerometer

@@ -33,16 +33,11 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #include <drivers/drv_hrt.h>
+#include <stdint.h>
 #include <uORB/uORB.h>
 
-enum arm_auth_methods {
-	ARM_AUTH_METHOD_ARM_REQ = 0,
-	ARM_AUTH_METHOD_TWO_ARM_REQ,
-	ARM_AUTH_METHOD_LAST
-};
+enum arm_auth_methods { ARM_AUTH_METHOD_ARM_REQ = 0, ARM_AUTH_METHOD_TWO_ARM_REQ, ARM_AUTH_METHOD_LAST };
 
 void arm_auth_init(orb_advert_t *mav_log_pub, uint8_t *system_id);
 void arm_auth_update(hrt_abstime now, bool param_update = true);

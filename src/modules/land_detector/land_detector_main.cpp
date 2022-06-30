@@ -40,25 +40,22 @@
  */
 
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
 
+#include "AirshipLandDetector.h"
 #include "FixedwingLandDetector.h"
 #include "MulticopterLandDetector.h"
 #include "RoverLandDetector.h"
 #include "VtolLandDetector.h"
-#include "AirshipLandDetector.h"
 
-
-namespace land_detector
-{
+namespace land_detector {
 
 static char _currentMode[12];
 
-int LandDetector::task_spawn(int argc, char *argv[])
-{
+int LandDetector::task_spawn(int argc, char *argv[]) {
 	if (argc < 2) {
 		print_usage();
 		return PX4_ERROR;
@@ -103,13 +100,11 @@ int LandDetector::task_spawn(int argc, char *argv[])
 	return PX4_OK;
 }
 
-int LandDetector::print_status()
-{
+int LandDetector::print_status() {
 	PX4_INFO("running (%s)", _currentMode);
 	return 0;
 }
-int LandDetector::print_usage(const char *reason)
-{
+int LandDetector::print_usage(const char *reason) {
 	if (reason != nullptr) {
 		PX4_ERR("%s\n", reason);
 	}
@@ -147,9 +142,6 @@ The module runs periodically on the HP work queue.
 	return 0;
 }
 
-extern "C" __EXPORT int land_detector_main(int argc, char *argv[])
-{
-	return LandDetector::main(argc, argv);
-}
+extern "C" __EXPORT int land_detector_main(int argc, char *argv[]) { return LandDetector::main(argc, argv); }
 
-} // namespace land_detector
+}  // namespace land_detector

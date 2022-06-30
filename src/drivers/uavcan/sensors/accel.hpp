@@ -37,12 +37,11 @@
 
 #pragma once
 
-#include "sensor_bridge.hpp"
-
 #include <uavcan/equipment/ahrs/RawIMU.hpp>
 
-class UavcanAccelBridge : public UavcanSensorBridgeBase
-{
+#include "sensor_bridge.hpp"
+
+class UavcanAccelBridge : public UavcanSensorBridgeBase {
 public:
 	static const char *const NAME;
 
@@ -53,16 +52,14 @@ public:
 	int init() override;
 
 private:
-
 	void imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::RawIMU> &msg);
 
 	int init_driver(uavcan_bridge::Channel *channel) override;
 
-	typedef uavcan::MethodBinder < UavcanAccelBridge *,
-		void (UavcanAccelBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::RawIMU> &) >
+	typedef uavcan::MethodBinder<UavcanAccelBridge *,
+				     void (UavcanAccelBridge::*)(
+					     const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::RawIMU> &)>
 		ImuCbBinder;
 
 	uavcan::Subscriber<uavcan::equipment::ahrs::RawIMU, ImuCbBinder> _sub_imu_data;
-
 };

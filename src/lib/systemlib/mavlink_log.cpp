@@ -38,18 +38,17 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/posix.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-
-#include <uORB/topics/mavlink_log.h>
 #include "mavlink_log.h"
 
-__EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, const char *fmt, ...)
-{
+#include <drivers/drv_hrt.h>
+#include <px4_platform_common/posix.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <uORB/topics/mavlink_log.h>
+
+__EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, const char *fmt, ...) {
 	// TODO: add compile check for maxlen
 
 	if (!fmt) {

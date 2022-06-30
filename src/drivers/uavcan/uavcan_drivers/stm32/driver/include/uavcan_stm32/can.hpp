@@ -4,26 +4,25 @@
 
 #pragma once
 
-#include <uavcan_stm32/build_config.hpp>
-#include <uavcan_stm32/thread.hpp>
 #include <uavcan/driver/can.hpp>
+#include <uavcan_stm32/build_config.hpp>
 #include <uavcan_stm32/bxcan.hpp>
+#include <uavcan_stm32/thread.hpp>
 
-namespace uavcan_stm32
-{
+namespace uavcan_stm32 {
 /**
  * Driver error codes.
  * These values can be returned from driver functions negated.
  */
-//static const uavcan::int16_t ErrUnknown               = 1000; ///< Reserved for future use
-static const uavcan::int16_t ErrNotImplemented          = 1001; ///< Feature not implemented
-static const uavcan::int16_t ErrInvalidBitRate          = 1002; ///< Bit rate not supported
-static const uavcan::int16_t ErrLogic                   = 1003; ///< Internal logic error
-static const uavcan::int16_t ErrUnsupportedFrame        = 1004; ///< Frame not supported (e.g. RTR, CAN FD, etc)
-static const uavcan::int16_t ErrMsrInakNotSet           = 1005; ///< INAK bit of the MSR register is not 1
-static const uavcan::int16_t ErrMsrInakNotCleared       = 1006; ///< INAK bit of the MSR register is not 0
-static const uavcan::int16_t ErrBitRateNotDetected      = 1007; ///< Auto bit rate detection could not be finished
-static const uavcan::int16_t ErrFilterNumConfigs        = 1008; ///< Number of filters is more than supported
+// static const uavcan::int16_t ErrUnknown               = 1000; ///< Reserved for future use
+static const uavcan::int16_t ErrNotImplemented = 1001;      ///< Feature not implemented
+static const uavcan::int16_t ErrInvalidBitRate = 1002;      ///< Bit rate not supported
+static const uavcan::int16_t ErrLogic = 1003;               ///< Internal logic error
+static const uavcan::int16_t ErrUnsupportedFrame = 1004;    ///< Frame not supported (e.g. RTR, CAN FD, etc)
+static const uavcan::int16_t ErrMsrInakNotSet = 1005;       ///< INAK bit of the MSR register is not 1
+static const uavcan::int16_t ErrMsrInakNotCleared = 1006;   ///< INAK bit of the MSR register is not 0
+static const uavcan::int16_t ErrBitRateNotDetected = 1007;  ///< Auto bit rate detection could not be finished
+static const uavcan::int16_t ErrFilterNumConfigs = 1008;    ///< Number of filters is more than supported
 
 /**
  * RX queue item.
@@ -33,20 +32,15 @@ struct CanRxItem {
 	uavcan::uint64_t utc_usec;
 	uavcan::CanFrame frame;
 	uavcan::CanIOFlags flags;
-	CanRxItem()
-		: utc_usec(0)
-		, flags(0)
-	{ }
+	CanRxItem() : utc_usec(0), flags(0) {}
 };
 
 /**
  * Single CAN iface.
  * The application shall not use this directly.
  */
-class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
-{
-	class RxQueue
-	{
+class CanIface : public uavcan::ICanIface, uavcan::Noncopyable {
+	class RxQueue {
 		CanRxItem *const buf_;
 		const uavcan::uint8_t capacity_;
 		uavcan::uint8_t in_;
@@ -58,13 +52,7 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 
 	public:
 		RxQueue(CanRxItem *buf, uavcan::uint8_t capacity)
-			: buf_(buf)
-			, capacity_(capacity)
-			, in_(0)
-			, out_(0)
-			, len_(0)
-			, overflow_cnt_(0)
-		{ }
+			: buf_(buf), capacity_(capacity), in_(0), out_(0), len_(0), overflow_cnt_(0) {}
 
 		void push(const uavcan::CanFrame &frame, const uint64_t &utc_usec, uavcan::CanIOFlags flags);
 		void pop(uavcan::CanFrame &out_frame, uavcan::uint64_t &out_utc_usec, uavcan::CanIOFlags &out_flags);
@@ -82,12 +70,7 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 		uavcan::uint8_t bs1;
 		uavcan::uint8_t bs2;
 
-		Timings()
-			: prescaler(0)
-			, sjw(0)
-			, bs1(0)
-			, bs2(0)
-		{ }
+		Timings() : prescaler(0), sjw(0), bs1(0), bs2(0) {}
 	};
 
 	struct TxItem {
@@ -97,11 +80,7 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 		bool loopback;
 		bool abort_on_error;
 
-		TxItem()
-			: pending(false)
-			, loopback(false)
-			, abort_on_error(false)
-		{ }
+		TxItem() : pending(false), loopback(false), abort_on_error(false) {}
 	};
 
 	enum { NumTxMailboxes = 3 };
@@ -128,7 +107,7 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 					uavcan::UtcTime &out_ts_utc, uavcan::CanIOFlags &out_flags);
 
 	virtual uavcan::int16_t configureFilters(const uavcan::CanFilterConfig *filter_configs,
-			uavcan::uint16_t num_configs);
+						 uavcan::uint16_t num_configs);
 
 	virtual uavcan::uint16_t getNumFilters() const { return NumFilters; }
 
@@ -139,22 +118,18 @@ class CanIface : public uavcan::ICanIface, uavcan::Noncopyable
 public:
 	enum { MaxRxQueueCapacity = 254 };
 
-	enum OperatingMode {
-		NormalMode,
-		SilentMode
-	};
+	enum OperatingMode { NormalMode, SilentMode };
 
-	CanIface(bxcan::CanType *can, BusEvent &update_event, uavcan::uint8_t self_index,
-		 CanRxItem *rx_queue_buffer, uavcan::uint8_t rx_queue_capacity)
-		: rx_queue_(rx_queue_buffer, rx_queue_capacity)
-		, can_(can)
-		, error_cnt_(0)
-		, served_aborts_cnt_(0)
-		, update_event_(update_event)
-		, peak_tx_mailbox_index_(0)
-		, self_index_(self_index)
-		, had_activity_(false)
-	{
+	CanIface(bxcan::CanType *can, BusEvent &update_event, uavcan::uint8_t self_index, CanRxItem *rx_queue_buffer,
+		 uavcan::uint8_t rx_queue_capacity)
+		: rx_queue_(rx_queue_buffer, rx_queue_capacity),
+		  can_(can),
+		  error_cnt_(0),
+		  served_aborts_cnt_(0),
+		  update_event_(update_event),
+		  peak_tx_mailbox_index_(0),
+		  self_index_(self_index),
+		  had_activity_(false) {
 		UAVCAN_ASSERT(self_index_ < UAVCAN_STM32_NUM_IFACES);
 	}
 
@@ -227,8 +202,7 @@ public:
  * CAN driver, incorporates all available CAN ifaces.
  * Please avoid direct use, prefer @ref CanInitHelper instead.
  */
-class CanDriver : public uavcan::ICanDriver, uavcan::Noncopyable
-{
+class CanDriver : public uavcan::ICanDriver, uavcan::Noncopyable {
 	BusEvent update_event_;
 	CanIface if0_;
 #if UAVCAN_STM32_NUM_IFACES > 1
@@ -237,28 +211,29 @@ class CanDriver : public uavcan::ICanDriver, uavcan::Noncopyable
 	uint32_t enabledInterfaces_;
 
 	virtual uavcan::int16_t select(uavcan::CanSelectMasks &inout_masks,
-				       const uavcan::CanFrame * (& pending_tx)[uavcan::MaxCanIfaces],
+				       const uavcan::CanFrame *(&pending_tx)[uavcan::MaxCanIfaces],
 				       uavcan::MonotonicTime blocking_deadline);
 
 	static void initOnce();
 
 public:
 	template <unsigned RxQueueCapacity>
-	CanDriver(CanRxItem(&rx_queue_storage)[UAVCAN_STM32_NUM_IFACES][RxQueueCapacity])
-		: update_event_(*this)
-		, if0_(bxcan::Can[0], update_event_, 0, rx_queue_storage[0], RxQueueCapacity)
+	CanDriver(CanRxItem (&rx_queue_storage)[UAVCAN_STM32_NUM_IFACES][RxQueueCapacity])
+		: update_event_(*this),
+		  if0_(bxcan::Can[0], update_event_, 0, rx_queue_storage[0], RxQueueCapacity)
 #if UAVCAN_STM32_NUM_IFACES > 1
-		, if1_(bxcan::Can[1], update_event_, 1, rx_queue_storage[1], RxQueueCapacity)
+		  ,
+		  if1_(bxcan::Can[1], update_event_, 1, rx_queue_storage[1], RxQueueCapacity)
 #endif
-		, enabledInterfaces_(0x7)
-	{
-		uavcan::StaticAssert < (RxQueueCapacity <= CanIface::MaxRxQueueCapacity) >::check();
+		  ,
+		  enabledInterfaces_(0x7) {
+		uavcan::StaticAssert<(RxQueueCapacity <= CanIface::MaxRxQueueCapacity)>::check();
 	}
 
 	/**
 	 * This function returns select masks indicating which interfaces are available for read/write.
 	 */
-	uavcan::CanSelectMasks makeSelectMasks(const uavcan::CanFrame * (& pending_tx)[uavcan::MaxCanIfaces]) const;
+	uavcan::CanSelectMasks makeSelectMasks(const uavcan::CanFrame *(&pending_tx)[uavcan::MaxCanIfaces]) const;
 
 	/**
 	 * Whether there's at least one interface where receive() would return a frame.
@@ -269,7 +244,8 @@ public:
 	 * Returns zero if OK.
 	 * Returns negative value if failed (e.g. invalid bitrate).
 	 */
-	int init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode, const uavcan::uint32_t EnabledInterfaces);
+	int init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode,
+		 const uavcan::uint32_t EnabledInterfaces);
 
 	virtual CanIface *getIface(uavcan::uint8_t iface_index);
 
@@ -290,8 +266,7 @@ public:
  * 145 usec per Extended CAN frame @ 1 Mbps, e.g. 32 RX slots * 145 usec --> 4.6 msec before RX queue overruns.
  */
 template <unsigned RxQueueCapacity = 128>
-class CanInitHelper
-{
+class CanInitHelper {
 	CanRxItem queue_storage_[UAVCAN_STM32_NUM_IFACES][RxQueueCapacity];
 
 public:
@@ -300,10 +275,8 @@ public:
 	CanDriver driver;
 	uint32_t enabledInterfaces_;
 
-	CanInitHelper(const uavcan::uint32_t EnabledInterfaces = 0x7) :
-		driver(queue_storage_),
-		enabledInterfaces_(EnabledInterfaces)
-	{ }
+	CanInitHelper(const uavcan::uint32_t EnabledInterfaces = 0x7)
+		: driver(queue_storage_), enabledInterfaces_(EnabledInterfaces) {}
 
 	/**
 	 * This overload simply configures the provided bitrate.
@@ -311,10 +284,7 @@ public:
 	 * Bitrate value must be positive.
 	 * @return  Negative value on error; non-negative on success. Refer to constants Err*.
 	 */
-	int init(uavcan::uint32_t bitrate)
-	{
-		return driver.init(bitrate, CanIface::NormalMode, enabledInterfaces_);
-	}
+	int init(uavcan::uint32_t bitrate) { return driver.init(bitrate, CanIface::NormalMode, enabledInterfaces_); }
 
 	/**
 	 * This function can either initialize the driver at a fixed bit rate, or it can perform
@@ -331,20 +301,15 @@ public:
 	 * @return                  Negative value on error; non-negative on success. Refer to constants Err*.
 	 */
 	template <typename DelayCallable>
-	int init(DelayCallable delay_callable, uavcan::uint32_t &inout_bitrate = BitRateAutoDetect)
-	{
+	int init(DelayCallable delay_callable, uavcan::uint32_t &inout_bitrate = BitRateAutoDetect) {
 		if (inout_bitrate > 0) {
 			return driver.init(inout_bitrate, CanIface::NormalMode, enabledInterfaces_);
 
 		} else {
-			static const uavcan::uint32_t StandardBitRates[] = {
-				1000000,
-				500000,
-				250000,
-				125000
-			};
+			static const uavcan::uint32_t StandardBitRates[] = {1000000, 500000, 250000, 125000};
 
-			for (uavcan::uint8_t br = 0; br < sizeof(StandardBitRates) / sizeof(StandardBitRates[0]); br++) {
+			for (uavcan::uint8_t br = 0; br < sizeof(StandardBitRates) / sizeof(StandardBitRates[0]);
+			     br++) {
 				inout_bitrate = StandardBitRates[br];
 
 				const int res = driver.init(inout_bitrate, CanIface::SilentMode, enabledInterfaces_);
@@ -355,7 +320,8 @@ public:
 					for (uavcan::uint8_t iface = 0; iface < driver.getNumIfaces(); iface++) {
 						if (!driver.getIface(iface)->isRxBufferEmpty()) {
 							// Re-initializing in normal mode
-							return driver.init(inout_bitrate, CanIface::NormalMode, enabledInterfaces_);
+							return driver.init(inout_bitrate, CanIface::NormalMode,
+									   enabledInterfaces_);
 						}
 					}
 				}
@@ -368,10 +334,9 @@ public:
 	/**
 	 * Use this value for listening delay during automatic bit rate detection.
 	 */
-	static uavcan::MonotonicDuration getRecommendedListeningDelay()
-	{
+	static uavcan::MonotonicDuration getRecommendedListeningDelay() {
 		return uavcan::MonotonicDuration::fromMSec(1050);
 	}
 };
 
-}
+}  // namespace uavcan_stm32

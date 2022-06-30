@@ -35,17 +35,14 @@
 #include <nuttx/config.h>
 
 #if defined(SUPPORT_ALT_CAN_BOOTLOADER)
+#include <errno.h>
+#include <lib/systemlib/crc.h>
 #include <stdint.h>
 #include <string.h>
 
+#include "boot_alt_app_shared.h"
 #include "chip.h"
 #include "stm32.h"
-
-#include <errno.h>
-
-#include "boot_alt_app_shared.h"
-
-#include <lib/systemlib/crc.h>
 
 /****************************************************************************
  * Name: bootloader_alt_app_shared_read
@@ -73,8 +70,7 @@
  *  -EBADR  - internal data was not valid. The copy did not occur.
  *
  ****************************************************************************/
-__EXPORT int bootloader_alt_app_shared_read(bootloader_alt_app_shared_t *alt_shared)
-{
+__EXPORT int bootloader_alt_app_shared_read(bootloader_alt_app_shared_t *alt_shared) {
 	int rv = EBADR;
 	bootloader_alt_app_shared_t *bootloader_alt_app_shared = (bootloader_alt_app_shared_t *)&_sapp_bl_shared;
 
@@ -109,13 +105,10 @@ __EXPORT int bootloader_alt_app_shared_read(bootloader_alt_app_shared_t *alt_sha
  *   None.
  *
  ****************************************************************************/
-__EXPORT void bootloader_alt_app_shared_write(bootloader_alt_app_shared_t *alt_shared)
-{
-
+__EXPORT void bootloader_alt_app_shared_write(bootloader_alt_app_shared_t *alt_shared) {
 	bootloader_alt_app_shared_t *bootloader_alt_app_shared = (bootloader_alt_app_shared_t *)&_sapp_bl_shared;
-	*bootloader_alt_app_shared  = *alt_shared;
+	*bootloader_alt_app_shared = *alt_shared;
 	bootloader_alt_app_shared->signature = BL_ALT_APP_SHARED_SIGNATURE;
-
 }
 
 /****************************************************************************
@@ -135,10 +128,8 @@ __EXPORT void bootloader_alt_app_shared_write(bootloader_alt_app_shared_t *alt_s
  *   None.
  *
  ****************************************************************************/
-__EXPORT void bootloader_alt_app_shared_invalidate(void)
-{
+__EXPORT void bootloader_alt_app_shared_invalidate(void) {
 	bootloader_alt_app_shared_t *bootloader_alt_app_shared = (bootloader_alt_app_shared_t *)&_sapp_bl_shared;
 	bootloader_alt_app_shared->signature = 0;
-
 }
 #endif

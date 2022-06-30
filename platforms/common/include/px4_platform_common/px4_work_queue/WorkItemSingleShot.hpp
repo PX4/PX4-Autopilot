@@ -33,11 +33,11 @@
 
 #pragma once
 
-#include "WorkItem.hpp"
 #include <px4_platform_common/sem.h>
 
-namespace px4
-{
+#include "WorkItem.hpp"
+
+namespace px4 {
 
 /**
  * @class WorkItemSingleShot
@@ -47,8 +47,7 @@ namespace px4
  *   initializer.ScheduleNow();
  *   initializer.wait();
  */
-class WorkItemSingleShot : public px4::WorkItem
-{
+class WorkItemSingleShot : public px4::WorkItem {
 public:
 	using worker_method = void (*)(void *arg);
 
@@ -66,12 +65,14 @@ public:
 	WorkItemSingleShot &operator=(WorkItemSingleShot &&) = delete;
 
 	void wait();
+
 protected:
 	void Run() override;
+
 private:
 	void *_argument;
 	worker_method _method;
 	px4_sem_t _sem;
 };
 
-} // namespace px4
+}  // namespace px4

@@ -31,14 +31,15 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
 #include <drivers/drv_sensor.h>
+#include <px4_arch/spi_hw_description.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(0, {
-		// spidev0.0 - ublox m8n
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, 1),
-		initSPIDevice(DRV_MAG_DEVTYPE_ST_LSM9DS1_M, 2),
-		initSPIDevice(DRV_IMU_DEVTYPE_ST_LSM9DS1_AG, 3),
-	}),
+	initSPIBus(0,
+		   {
+			   // spidev0.0 - ublox m8n
+			   initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, 1),
+			   initSPIDevice(DRV_MAG_DEVTYPE_ST_LSM9DS1_M, 2),
+			   initSPIDevice(DRV_IMU_DEVTYPE_ST_LSM9DS1_AG, 3),
+		   }),
 };

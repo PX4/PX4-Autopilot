@@ -39,18 +39,19 @@
 
 #pragma once
 
-#include <drivers/device/Device.hpp>
 #include <drivers/device/spi.h>
 
-#define HMC5883L_ADDRESS		0x1E
+#include <drivers/device/Device.hpp>
 
-#define ADDR_ID_A			0x0a
-#define ADDR_ID_B			0x0b
-#define ADDR_ID_C			0x0c
+#define HMC5883L_ADDRESS 0x1E
 
-#define ID_A_WHO_AM_I			'H'
-#define ID_B_WHO_AM_I			'4'
-#define ID_C_WHO_AM_I			'3'
+#define ADDR_ID_A 0x0a
+#define ADDR_ID_B 0x0b
+#define ADDR_ID_C 0x0c
+
+#define ID_A_WHO_AM_I 'H'
+#define ID_B_WHO_AM_I '4'
+#define ID_C_WHO_AM_I '3'
 
 /* interface factories */
 extern device::Device *HMC5883_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);

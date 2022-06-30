@@ -40,33 +40,34 @@
 #pragma once
 
 #include <string.h>
+
 #include "board_config.h"
 
 /* interface ioctls */
-#define IOCTL_RESET		2
-#define IOCTL_MEASURE		3
+#define IOCTL_RESET 2
+#define IOCTL_MEASURE 3
 
-#define MS5837_ADDRESS		0x76
+#define MS5837_ADDRESS 0x76
 
-#define MS5837_RESET  		0x1E
-#define MS5837_ADC_READ  	0x00
-#define MS5837_PROM_READ  	0xA0
+#define MS5837_RESET 0x1E
+#define MS5837_ADC_READ 0x00
+#define MS5837_PROM_READ 0xA0
 
-#define MS5837_30BA26  		0x1A // Sensor version: From MS5837_30BA datasheet Version PROM Word 0
+#define MS5837_30BA26 0x1A  // Sensor version: From MS5837_30BA datasheet Version PROM Word 0
 
 /*
  * MS5837 internal constants and data structures.
  */
-#define ADDR_CMD_CONVERT_D1_OSR256		0x40	/* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D1_OSR512		0x42	/* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D1_OSR1024		0x44	/* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D1_OSR2048		0x46	/* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D1_OSR4096		0x48	/* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D2_OSR256		0x50	/* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2_OSR512		0x52	/* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2_OSR1024		0x54	/* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2_OSR2048		0x56	/* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2_OSR4096		0x58	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D1_OSR256 0x40  /* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR512 0x42  /* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR1024 0x44 /* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR2048 0x46 /* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR4096 0x48 /* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D2_OSR256 0x50  /* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR512 0x52  /* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR1024 0x54 /* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR2048 0x56 /* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR4096 0x58 /* write to this address to start temperature conversion */
 
 /*
   use an OSR of 1024 to reduce the self-heating effect of the
@@ -74,24 +75,23 @@
   are quite sensitive to this effect and that reducing the OSR can
   make a big difference
  */
-#define ADDR_CMD_CONVERT_D1			ADDR_CMD_CONVERT_D1_OSR1024
-#define ADDR_CMD_CONVERT_D2			ADDR_CMD_CONVERT_D2_OSR1024
+#define ADDR_CMD_CONVERT_D1 ADDR_CMD_CONVERT_D1_OSR1024
+#define ADDR_CMD_CONVERT_D2 ADDR_CMD_CONVERT_D2_OSR1024
 
 /*
  * Maximum internal conversion time for OSR 1024 is 2.28 ms. We set an update
  * rate of 100Hz which is be very safe not to read the ADC before the
  * conversion finished
  */
-#define MS5837_CONVERSION_INTERVAL	10000	/* microseconds */
-#define MS5837_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
+#define MS5837_CONVERSION_INTERVAL 10000 /* microseconds */
+#define MS5837_MEASUREMENT_RATIO 3       /* pressure measurements per temperature measurement */
 
-namespace ms5837
-{
+namespace ms5837 {
 
 /**
  * Calibration PROM as reported by the device.
  */
-#pragma pack(push,1)
+#pragma pack(push, 1)
 struct prom_s {
 	uint16_t serial_and_crc;
 	uint16_t c1_pressure_sens;
@@ -112,4 +112,4 @@ union prom_u {
 };
 #pragma pack(pop)
 
-} /* namespace */
+}  // namespace ms5837

@@ -39,38 +39,35 @@
  * Base class for devices connected via I2C.
  */
 
-#include "../CDev.hpp"
 #include <px4_platform_common/i2c.h>
+
+#include "../CDev.hpp"
 
 #if defined(CONFIG_I2C)
 
 struct I2CSPIDriverConfig;
 
-namespace device __EXPORT
-{
+namespace device __EXPORT {
 
 /**
  * Abstract class for character device on I2C
  */
-class __EXPORT I2C : public CDev
-{
-
+class __EXPORT I2C : public CDev {
 public:
-
 	// no copy, assignment, move, move assignment
 	I2C(const I2C &) = delete;
 	I2C &operator=(const I2C &) = delete;
 	I2C(I2C &&) = delete;
 	I2C &operator=(I2C &&) = delete;
 
-	virtual int	init() override;
+	virtual int init() override;
 
 protected:
 	/**
 	 * The number of times a read or write operation will be retried on
 	 * error.
 	 */
-	uint8_t		_retries{0};
+	uint8_t _retries{0};
 
 	/**
 	 * @ Constructor
@@ -88,7 +85,7 @@ protected:
 	/**
 	 * Check for the presence of the device on the bus.
 	 */
-	virtual int	probe() { return PX4_OK; }
+	virtual int probe() { return PX4_OK; }
 
 	/**
 	 * Perform an I2C transaction to the device.
@@ -102,15 +99,14 @@ protected:
 	 * @return		OK if the transfer was successful, -errno
 	 *			otherwise.
 	 */
-	int		transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len);
+	int transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len);
 
-	virtual bool	external() const override { return px4_i2c_bus_external(_device_id.devid_s.bus); }
+	virtual bool external() const override { return px4_i2c_bus_external(_device_id.devid_s.bus); }
 
 private:
-	int			_fd{-1};
-
+	int _fd{-1};
 };
 
-} // namespace device
+}  // namespace __EXPORT
 
-#endif // CONFIG_I2C
+#endif  // CONFIG_I2C

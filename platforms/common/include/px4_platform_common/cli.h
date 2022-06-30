@@ -38,7 +38,6 @@
 
 #pragma once
 
-
 /**
  * Parse a CLI argument to an integer. There are 2 valid formats:
  * - 'p:<param_name>'

@@ -43,27 +43,24 @@
 
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/workqueue.h>
-#include <unistd.h>
 #include <stdio.h>
+#include <unistd.h>
 
 px4::AppState WQueueTest::appState;
 
-void WQueueTest::hp_worker_cb(void *p)
-{
+void WQueueTest::hp_worker_cb(void *p) {
 	WQueueTest *wqep = (WQueueTest *)p;
 
 	wqep->do_hp_work();
 }
 
-void WQueueTest::lp_worker_cb(void *p)
-{
+void WQueueTest::lp_worker_cb(void *p) {
 	WQueueTest *wqep = (WQueueTest *)p;
 
 	wqep->do_lp_work();
 }
 
-void WQueueTest::do_lp_work()
-{
+void WQueueTest::do_lp_work() {
 	static int iter = 0;
 	printf("done lp work\n");
 
@@ -76,8 +73,7 @@ void WQueueTest::do_lp_work()
 	work_queue(LPWORK, &_lpwork, (worker_t)&lp_worker_cb, this, 1000);
 }
 
-void WQueueTest::do_hp_work()
-{
+void WQueueTest::do_hp_work() {
 	static int iter = 0;
 	printf("done hp work\n");
 
@@ -91,17 +87,14 @@ void WQueueTest::do_hp_work()
 	work_queue(HPWORK, &_hpwork, (worker_t)&hp_worker_cb, this, 1000);
 }
 
-int WQueueTest::main()
-{
+int WQueueTest::main() {
 	appState.setRunning(true);
 
-	//Put work on HP work queue
+	// Put work on HP work queue
 	work_queue(HPWORK, &_hpwork, (worker_t)&hp_worker_cb, this, 1000);
 
-
-	//Put work on LP work queue
+	// Put work on LP work queue
 	work_queue(LPWORK, &_lpwork, (worker_t)&lp_worker_cb, this, 1000);
-
 
 	// Wait for work to finsh
 	while (!appState.exitRequested() && !(_hpwork_done && _lpwork_done)) {

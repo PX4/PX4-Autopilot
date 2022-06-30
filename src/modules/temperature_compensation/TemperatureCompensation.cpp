@@ -40,16 +40,15 @@
  */
 
 #include "TemperatureCompensation.h"
+
 #include <parameters/param.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/log.h>
 
-namespace temperature_compensation
-{
+namespace temperature_compensation {
 
-int TemperatureCompensation::initialize_parameter_handles(ParameterHandles &parameter_handles)
-{
-	char nbuf[16] {};
+int TemperatureCompensation::initialize_parameter_handles(ParameterHandles &parameter_handles) {
+	char nbuf[16]{};
 	int ret = PX4_ERROR;
 
 	/* rate gyro calibration parameters */
@@ -145,8 +144,7 @@ int TemperatureCompensation::initialize_parameter_handles(ParameterHandles &para
 	return PX4_OK;
 }
 
-int TemperatureCompensation::parameters_update()
-{
+int TemperatureCompensation::parameters_update() {
 	ParameterHandles parameter_handles;
 	int ret = initialize_parameter_handles(parameter_handles);
 
@@ -159,16 +157,24 @@ int TemperatureCompensation::parameters_update()
 
 	if (_parameters.gyro_tc_enable == 1) {
 		for (unsigned j = 0; j < GYRO_COUNT_MAX; j++) {
-			if (param_get(parameter_handles.gyro_cal_handles[j].ID, &(_parameters.gyro_cal_data[j].ID)) == PX4_OK) {
-				param_get(parameter_handles.gyro_cal_handles[j].ref_temp, &(_parameters.gyro_cal_data[j].ref_temp));
-				param_get(parameter_handles.gyro_cal_handles[j].min_temp, &(_parameters.gyro_cal_data[j].min_temp));
-				param_get(parameter_handles.gyro_cal_handles[j].max_temp, &(_parameters.gyro_cal_data[j].max_temp));
+			if (param_get(parameter_handles.gyro_cal_handles[j].ID, &(_parameters.gyro_cal_data[j].ID)) ==
+			    PX4_OK) {
+				param_get(parameter_handles.gyro_cal_handles[j].ref_temp,
+					  &(_parameters.gyro_cal_data[j].ref_temp));
+				param_get(parameter_handles.gyro_cal_handles[j].min_temp,
+					  &(_parameters.gyro_cal_data[j].min_temp));
+				param_get(parameter_handles.gyro_cal_handles[j].max_temp,
+					  &(_parameters.gyro_cal_data[j].max_temp));
 
 				for (unsigned int i = 0; i < 3; i++) {
-					param_get(parameter_handles.gyro_cal_handles[j].x3[i], &(_parameters.gyro_cal_data[j].x3[i]));
-					param_get(parameter_handles.gyro_cal_handles[j].x2[i], &(_parameters.gyro_cal_data[j].x2[i]));
-					param_get(parameter_handles.gyro_cal_handles[j].x1[i], &(_parameters.gyro_cal_data[j].x1[i]));
-					param_get(parameter_handles.gyro_cal_handles[j].x0[i], &(_parameters.gyro_cal_data[j].x0[i]));
+					param_get(parameter_handles.gyro_cal_handles[j].x3[i],
+						  &(_parameters.gyro_cal_data[j].x3[i]));
+					param_get(parameter_handles.gyro_cal_handles[j].x2[i],
+						  &(_parameters.gyro_cal_data[j].x2[i]));
+					param_get(parameter_handles.gyro_cal_handles[j].x1[i],
+						  &(_parameters.gyro_cal_data[j].x1[i]));
+					param_get(parameter_handles.gyro_cal_handles[j].x0[i],
+						  &(_parameters.gyro_cal_data[j].x0[i]));
 				}
 
 			} else {
@@ -186,16 +192,24 @@ int TemperatureCompensation::parameters_update()
 
 	if (_parameters.accel_tc_enable == 1) {
 		for (unsigned j = 0; j < ACCEL_COUNT_MAX; j++) {
-			if (param_get(parameter_handles.accel_cal_handles[j].ID, &(_parameters.accel_cal_data[j].ID)) == PX4_OK) {
-				param_get(parameter_handles.accel_cal_handles[j].ref_temp, &(_parameters.accel_cal_data[j].ref_temp));
-				param_get(parameter_handles.accel_cal_handles[j].min_temp, &(_parameters.accel_cal_data[j].min_temp));
-				param_get(parameter_handles.accel_cal_handles[j].max_temp, &(_parameters.accel_cal_data[j].max_temp));
+			if (param_get(parameter_handles.accel_cal_handles[j].ID, &(_parameters.accel_cal_data[j].ID)) ==
+			    PX4_OK) {
+				param_get(parameter_handles.accel_cal_handles[j].ref_temp,
+					  &(_parameters.accel_cal_data[j].ref_temp));
+				param_get(parameter_handles.accel_cal_handles[j].min_temp,
+					  &(_parameters.accel_cal_data[j].min_temp));
+				param_get(parameter_handles.accel_cal_handles[j].max_temp,
+					  &(_parameters.accel_cal_data[j].max_temp));
 
 				for (unsigned int i = 0; i < 3; i++) {
-					param_get(parameter_handles.accel_cal_handles[j].x3[i], &(_parameters.accel_cal_data[j].x3[i]));
-					param_get(parameter_handles.accel_cal_handles[j].x2[i], &(_parameters.accel_cal_data[j].x2[i]));
-					param_get(parameter_handles.accel_cal_handles[j].x1[i], &(_parameters.accel_cal_data[j].x1[i]));
-					param_get(parameter_handles.accel_cal_handles[j].x0[i], &(_parameters.accel_cal_data[j].x0[i]));
+					param_get(parameter_handles.accel_cal_handles[j].x3[i],
+						  &(_parameters.accel_cal_data[j].x3[i]));
+					param_get(parameter_handles.accel_cal_handles[j].x2[i],
+						  &(_parameters.accel_cal_data[j].x2[i]));
+					param_get(parameter_handles.accel_cal_handles[j].x1[i],
+						  &(_parameters.accel_cal_data[j].x1[i]));
+					param_get(parameter_handles.accel_cal_handles[j].x0[i],
+						  &(_parameters.accel_cal_data[j].x0[i]));
 				}
 
 			} else {
@@ -213,10 +227,14 @@ int TemperatureCompensation::parameters_update()
 
 	if (_parameters.baro_tc_enable == 1) {
 		for (unsigned j = 0; j < BARO_COUNT_MAX; j++) {
-			if (param_get(parameter_handles.baro_cal_handles[j].ID, &(_parameters.baro_cal_data[j].ID)) == PX4_OK) {
-				param_get(parameter_handles.baro_cal_handles[j].ref_temp, &(_parameters.baro_cal_data[j].ref_temp));
-				param_get(parameter_handles.baro_cal_handles[j].min_temp, &(_parameters.baro_cal_data[j].min_temp));
-				param_get(parameter_handles.baro_cal_handles[j].max_temp, &(_parameters.baro_cal_data[j].max_temp));
+			if (param_get(parameter_handles.baro_cal_handles[j].ID, &(_parameters.baro_cal_data[j].ID)) ==
+			    PX4_OK) {
+				param_get(parameter_handles.baro_cal_handles[j].ref_temp,
+					  &(_parameters.baro_cal_data[j].ref_temp));
+				param_get(parameter_handles.baro_cal_handles[j].min_temp,
+					  &(_parameters.baro_cal_data[j].min_temp));
+				param_get(parameter_handles.baro_cal_handles[j].max_temp,
+					  &(_parameters.baro_cal_data[j].max_temp));
 				param_get(parameter_handles.baro_cal_handles[j].x5, &(_parameters.baro_cal_data[j].x5));
 				param_get(parameter_handles.baro_cal_handles[j].x4, &(_parameters.baro_cal_data[j].x4));
 				param_get(parameter_handles.baro_cal_handles[j].x3, &(_parameters.baro_cal_data[j].x3));
@@ -244,8 +262,7 @@ int TemperatureCompensation::parameters_update()
 	return ret;
 }
 
-bool TemperatureCompensation::calc_thermal_offsets_1D(SensorCalData1D &coef, float measured_temp, float &offset)
-{
+bool TemperatureCompensation::calc_thermal_offsets_1D(SensorCalData1D &coef, float measured_temp, float &offset) {
 	bool ret = true;
 
 	// clip the measured temperature to remain within the calibration range
@@ -261,7 +278,6 @@ bool TemperatureCompensation::calc_thermal_offsets_1D(SensorCalData1D &coef, flo
 
 	} else {
 		delta_temp = measured_temp - coef.ref_temp;
-
 	}
 
 	// calulate the offset
@@ -277,11 +293,10 @@ bool TemperatureCompensation::calc_thermal_offsets_1D(SensorCalData1D &coef, flo
 	offset += coef.x5 * temp_var;
 
 	return ret;
-
 }
 
-bool TemperatureCompensation::calc_thermal_offsets_3D(const SensorCalData3D &coef, float measured_temp, float offset[])
-{
+bool TemperatureCompensation::calc_thermal_offsets_3D(const SensorCalData3D &coef, float measured_temp,
+						      float offset[]) {
 	bool ret = true;
 
 	// clip the measured temperature to remain within the calibration range
@@ -297,7 +312,6 @@ bool TemperatureCompensation::calc_thermal_offsets_3D(const SensorCalData3D &coe
 
 	} else {
 		delta_temp = measured_temp - coef.ref_temp;
-
 	}
 
 	// calulate the offsets
@@ -305,14 +319,14 @@ bool TemperatureCompensation::calc_thermal_offsets_3D(const SensorCalData3D &coe
 	float delta_temp_3 = delta_temp_2 * delta_temp;
 
 	for (uint8_t i = 0; i < 3; i++) {
-		offset[i] = coef.x0[i] + coef.x1[i] * delta_temp + coef.x2[i] * delta_temp_2 + coef.x3[i] * delta_temp_3;
+		offset[i] =
+			coef.x0[i] + coef.x1[i] * delta_temp + coef.x2[i] * delta_temp_2 + coef.x3[i] * delta_temp_3;
 	}
 
 	return ret;
 }
 
-int TemperatureCompensation::set_sensor_id_gyro(uint32_t device_id, int topic_instance)
-{
+int TemperatureCompensation::set_sensor_id_gyro(uint32_t device_id, int topic_instance) {
 	if (_parameters.gyro_tc_enable != 1) {
 		return 0;
 	}
@@ -320,8 +334,7 @@ int TemperatureCompensation::set_sensor_id_gyro(uint32_t device_id, int topic_in
 	return set_sensor_id(device_id, topic_instance, _gyro_data, _parameters.gyro_cal_data, GYRO_COUNT_MAX);
 }
 
-int TemperatureCompensation::set_sensor_id_accel(uint32_t device_id, int topic_instance)
-{
+int TemperatureCompensation::set_sensor_id_accel(uint32_t device_id, int topic_instance) {
 	if (_parameters.accel_tc_enable != 1) {
 		return 0;
 	}
@@ -329,8 +342,7 @@ int TemperatureCompensation::set_sensor_id_accel(uint32_t device_id, int topic_i
 	return set_sensor_id(device_id, topic_instance, _accel_data, _parameters.accel_cal_data, ACCEL_COUNT_MAX);
 }
 
-int TemperatureCompensation::set_sensor_id_baro(uint32_t device_id, int topic_instance)
-{
+int TemperatureCompensation::set_sensor_id_baro(uint32_t device_id, int topic_instance) {
 	if (_parameters.baro_tc_enable != 1) {
 		return 0;
 	}
@@ -338,10 +350,9 @@ int TemperatureCompensation::set_sensor_id_baro(uint32_t device_id, int topic_in
 	return set_sensor_id(device_id, topic_instance, _baro_data, _parameters.baro_cal_data, BARO_COUNT_MAX);
 }
 
-template<typename T>
+template <typename T>
 int TemperatureCompensation::set_sensor_id(uint32_t device_id, int topic_instance, PerSensorData &sensor_data,
-		const T *sensor_cal_data, uint8_t sensor_count_max)
-{
+					   const T *sensor_cal_data, uint8_t sensor_count_max) {
 	for (int i = 0; i < sensor_count_max; ++i) {
 		if (device_id == (uint32_t)sensor_cal_data[i].ID) {
 			sensor_data.device_mapping[topic_instance] = i;
@@ -352,8 +363,7 @@ int TemperatureCompensation::set_sensor_id(uint32_t device_id, int topic_instanc
 	return -1;
 }
 
-int TemperatureCompensation::update_offsets_gyro(int topic_instance, float temperature, float *offsets)
-{
+int TemperatureCompensation::update_offsets_gyro(int topic_instance, float temperature, float *offsets) {
 	// Check if temperature compensation is enabled
 	if (_parameters.gyro_tc_enable != 1) {
 		return 0;
@@ -378,8 +388,7 @@ int TemperatureCompensation::update_offsets_gyro(int topic_instance, float tempe
 	return 1;
 }
 
-int TemperatureCompensation::update_offsets_accel(int topic_instance, float temperature, float *offsets)
-{
+int TemperatureCompensation::update_offsets_accel(int topic_instance, float temperature, float *offsets) {
 	// Check if temperature compensation is enabled
 	if (_parameters.accel_tc_enable != 1) {
 		return 0;
@@ -404,8 +413,7 @@ int TemperatureCompensation::update_offsets_accel(int topic_instance, float temp
 	return 1;
 }
 
-int TemperatureCompensation::update_offsets_baro(int topic_instance, float temperature, float *offsets)
-{
+int TemperatureCompensation::update_offsets_baro(int topic_instance, float temperature, float *offsets) {
 	// Check if temperature compensation is enabled
 	if (_parameters.baro_tc_enable != 1) {
 		return 0;
@@ -430,8 +438,7 @@ int TemperatureCompensation::update_offsets_baro(int topic_instance, float tempe
 	return 1;
 }
 
-void TemperatureCompensation::print_status()
-{
+void TemperatureCompensation::print_status() {
 	PX4_INFO("Temperature Compensation:");
 	PX4_INFO(" gyro: enabled: %" PRId32, _parameters.gyro_tc_enable);
 
@@ -440,7 +447,8 @@ void TemperatureCompensation::print_status()
 			uint8_t mapping = _gyro_data.device_mapping[i];
 
 			if (_gyro_data.device_mapping[i] != 255) {
-				PX4_INFO("  using device ID %" PRId32 " for topic instance %i", _parameters.gyro_cal_data[mapping].ID, i);
+				PX4_INFO("  using device ID %" PRId32 " for topic instance %i",
+					 _parameters.gyro_cal_data[mapping].ID, i);
 			}
 		}
 	}
@@ -452,7 +460,8 @@ void TemperatureCompensation::print_status()
 			uint8_t mapping = _accel_data.device_mapping[i];
 
 			if (_accel_data.device_mapping[i] != 255) {
-				PX4_INFO("  using device ID %" PRId32 " for topic instance %i", _parameters.accel_cal_data[mapping].ID, i);
+				PX4_INFO("  using device ID %" PRId32 " for topic instance %i",
+					 _parameters.accel_cal_data[mapping].ID, i);
 			}
 		}
 	}
@@ -464,10 +473,11 @@ void TemperatureCompensation::print_status()
 			uint8_t mapping = _baro_data.device_mapping[i];
 
 			if (_baro_data.device_mapping[i] != 255) {
-				PX4_INFO("  using device ID %" PRId32 " for topic instance %i", _parameters.baro_cal_data[mapping].ID, i);
+				PX4_INFO("  using device ID %" PRId32 " for topic instance %i",
+					 _parameters.baro_cal_data[mapping].ID, i);
 			}
 		}
 	}
 }
 
-} // namespace temperature_compensation
+}  // namespace temperature_compensation

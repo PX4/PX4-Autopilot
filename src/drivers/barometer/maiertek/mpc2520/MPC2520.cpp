@@ -35,29 +35,23 @@
 
 using namespace time_literals;
 
-static constexpr int32_t combine(uint8_t h, uint8_t m, uint8_t l)
-{
+static constexpr int32_t combine(uint8_t h, uint8_t m, uint8_t l) {
 	// 24 bit sign extend
 	int32_t ret = (uint32_t)(h << 24) | (uint32_t)(m << 16) | (uint32_t)(l << 8);
 	return ret >> 8;
 }
 
-MPC2520::MPC2520(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config)
-{
+MPC2520::MPC2520(const I2CSPIDriverConfig &config) : I2C(config), I2CSPIDriver(config) {
 	//_debug_enabled = true;
 }
 
-MPC2520::~MPC2520()
-{
+MPC2520::~MPC2520() {
 	perf_free(_reset_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 }
 
-int MPC2520::init()
-{
+int MPC2520::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -68,16 +62,14 @@ int MPC2520::init()
 	return Reset() ? 0 : -1;
 }
 
-bool MPC2520::Reset()
-{
+bool MPC2520::Reset() {
 	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
 }
 
-void MPC2520::print_status()
-{
+void MPC2520::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_reset_perf);
@@ -85,11 +77,10 @@ void MPC2520::print_status()
 	perf_print_counter(_bad_transfer_perf);
 }
 
-int MPC2520::probe()
-{
+int MPC2520::probe() {
 	const uint8_t ID = RegisterRead(Register::ID);
 
-	uint8_t PROD_ID = ID & 0xF0 >> 4; // Product ID Bits 7:4
+	uint8_t PROD_ID = ID & 0xF0 >> 4;  // Product ID Bits 7:4
 
 	if (PROD_ID != Product_ID) {
 		DEVICE_DEBUG("unexpected PROD_ID 0x%02x", PROD_ID);
@@ -99,31 +90,30 @@ int MPC2520::probe()
 	return PX4_OK;
 }
 
-void MPC2520::RunImpl()
-{
+void MPC2520::RunImpl() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-	case STATE::RESET:
-		// RESET: SOFT_RST
-		RegisterWrite(Register::RESET, RESET_BIT::SOFT_RST);
-		_reset_timestamp = now;
-		_failure_count = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		perf_count(_reset_perf);
-		ScheduleDelayed(50_ms); // Power On Reset: max 50ms
-		break;
+		case STATE::RESET:
+			// RESET: SOFT_RST
+			RegisterWrite(Register::RESET, RESET_BIT::SOFT_RST);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
+			perf_count(_reset_perf);
+			ScheduleDelayed(50_ms);  // Power On Reset: max 50ms
+			break;
 
-	case STATE::WAIT_FOR_RESET: {
+		case STATE::WAIT_FOR_RESET: {
 			// check MEAS_CFG SENSOR_RDY
 			const uint8_t ID = RegisterRead(Register::ID);
 
-			uint8_t PROD_ID = ID & 0xF0 >> 4; // Product ID Bits 7:4
+			uint8_t PROD_ID = ID & 0xF0 >> 4;  // Product ID Bits 7:4
 
 			if (PROD_ID == Product_ID) {
 				// if reset succeeded then read prom
 				_state = STATE::READ_PROM;
-				ScheduleDelayed(40_ms); // Time to coefficients are available.
+				ScheduleDelayed(40_ms);  // Time to coefficients are available.
 
 			} else {
 				// RESET not complete
@@ -141,8 +131,8 @@ void MPC2520::RunImpl()
 
 		break;
 
-	case STATE::READ_PROM: {
-			uint8_t	prom_buf[3] {};
+		case STATE::READ_PROM: {
+			uint8_t prom_buf[3]{};
 			uint8_t cmd = 0x10;
 			transfer(&cmd, 1, &prom_buf[0], 2);
 			_prom.c0 = (int16_t)prom_buf[0] << 4 | prom_buf[1] >> 4;
@@ -185,31 +175,30 @@ void MPC2520::RunImpl()
 
 			_state = STATE::CONFIGURE;
 			ScheduleDelayed(10_ms);
-		}
-		break;
+		} break;
 
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start measurement cycle
-			_state = STATE::READ;
-			ScheduleOnInterval(1000000 / 32); // 32 Hz
-
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				// if configure succeeded then start measurement cycle
+				_state = STATE::READ;
+				ScheduleOnInterval(1000000 / 32);  // 32 Hz
 
 			} else {
-				PX4_DEBUG("Configure failed, retrying");
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
+				ScheduleDelayed(100_ms);
 			}
 
-			ScheduleDelayed(100_ms);
-		}
+			break;
 
-		break;
-
-	case STATE::READ: {
+		case STATE::READ: {
 			bool success = false;
 
 			// read temperature first
@@ -225,21 +214,25 @@ void MPC2520::RunImpl()
 			uint8_t cmd = static_cast<uint8_t>(Register::PSR_B2);
 
 			if (transfer(&cmd, 1, (uint8_t *)&buffer, sizeof(buffer)) == PX4_OK) {
-				int32_t Traw = (int32_t)(buffer.TMP_B2 << 16) | (int32_t)(buffer.TMP_B1 << 8) | (int32_t)buffer.TMP_B0;
+				int32_t Traw = (int32_t)(buffer.TMP_B2 << 16) | (int32_t)(buffer.TMP_B1 << 8) |
+					       (int32_t)buffer.TMP_B0;
 				Traw = (Traw & 0x800000) ? (0xFF000000 | Traw) : Traw;
 
-				static constexpr float kT = 7864320; // temperature 8 times oversampling
+				static constexpr float kT = 7864320;  // temperature 8 times oversampling
 				float Traw_sc = static_cast<float>(Traw) / kT;
 				float Tcomp = _prom.c0 * 0.5f + _prom.c1 * Traw_sc;
 
-				int32_t Praw = (int32_t)(buffer.PSR_B2 << 16) | (int32_t)(buffer.PSR_B1 << 8) | (int32_t)buffer.PSR_B1;
+				int32_t Praw = (int32_t)(buffer.PSR_B2 << 16) | (int32_t)(buffer.PSR_B1 << 8) |
+					       (int32_t)buffer.PSR_B1;
 				Praw = (Praw & 0x800000) ? (0xFF000000 | Praw) : Praw;
 
-				static constexpr float kP = 7864320; // pressure 8 times oversampling
+				static constexpr float kP = 7864320;  // pressure 8 times oversampling
 				float Praw_sc = static_cast<float>(Praw) / kP;
 
 				// Calculate compensated measurement results.
-				float Pcomp = _prom.c00 + Praw_sc * (_prom.c10 + Praw_sc * (_prom.c20 + Praw_sc * _prom.c30)) + Traw_sc * _prom.c01 +
+				float Pcomp = _prom.c00 +
+					      Praw_sc * (_prom.c10 + Praw_sc * (_prom.c20 + Praw_sc * _prom.c30)) +
+					      Traw_sc * _prom.c01 +
 					      Traw_sc * Praw_sc * (_prom.c11 + Praw_sc * _prom.c21);
 
 				// publish
@@ -248,7 +241,8 @@ void MPC2520::RunImpl()
 				sensor_baro.device_id = get_device_id();
 				sensor_baro.pressure = Pcomp;
 				sensor_baro.temperature = Tcomp;
-				sensor_baro.error_count = perf_event_count(_bad_transfer_perf) + perf_event_count(_bad_register_perf);
+				sensor_baro.error_count =
+					perf_event_count(_bad_transfer_perf) + perf_event_count(_bad_register_perf);
 				sensor_baro.timestamp = hrt_absolute_time();
 				_sensor_baro_pub.publish(sensor_baro);
 
@@ -291,8 +285,7 @@ void MPC2520::RunImpl()
 	}
 }
 
-bool MPC2520::Configure()
-{
+bool MPC2520::Configure() {
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
@@ -310,8 +303,7 @@ bool MPC2520::Configure()
 	return success;
 }
 
-bool MPC2520::RegisterCheck(const register_config_t &reg_cfg)
-{
+bool MPC2520::RegisterCheck(const register_config_t &reg_cfg) {
 	bool success = true;
 
 	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
@@ -322,29 +314,27 @@ bool MPC2520::RegisterCheck(const register_config_t &reg_cfg)
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.clear_bits);
 		success = false;
 	}
 
 	return success;
 }
 
-uint8_t MPC2520::RegisterRead(Register reg)
-{
+uint8_t MPC2520::RegisterRead(Register reg) {
 	const uint8_t cmd = static_cast<uint8_t>(reg);
 	uint8_t buffer{};
 	transfer(&cmd, 1, &buffer, 1);
 	return buffer;
 }
 
-void MPC2520::RegisterWrite(Register reg, uint8_t value)
-{
-	uint8_t buffer[2] { (uint8_t)reg, value };
+void MPC2520::RegisterWrite(Register reg, uint8_t value) {
+	uint8_t buffer[2]{(uint8_t)reg, value};
 	transfer(buffer, sizeof(buffer), nullptr, 0);
 }
 
-void MPC2520::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
-{
+void MPC2520::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits) {
 	const uint8_t orig_val = RegisterRead(reg);
 	uint8_t val = (orig_val & ~clearbits) | setbits;
 

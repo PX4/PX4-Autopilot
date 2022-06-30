@@ -32,28 +32,23 @@
  *
  ****************************************************************************/
 
+#include <errno.h>
+#include <limits.h>
 #include <nuttx/config.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include <systemlib/px4_macros.h>
 
 #include "boot_config.h"
 #include "flash.h"
-
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <limits.h>
-
 #include "hardware/s32k1xx_ftfc.h"
 
-
 #define S32K1XX_PROGMEM_BLOCK_SECTOR_SIZE 4096
-#define S32K1XX_FLASH_BASE_ADDRESS        0
-#define S32K1XX_PROGMEM_PAGE_SIZE         8
+#define S32K1XX_FLASH_BASE_ADDRESS 0
+#define S32K1XX_PROGMEM_PAGE_SIZE 8
 
-CCASSERT(S32K1XX_PROGMEM_PAGE_SIZE == LATER_FLAHSED_WORDS *sizeof(uint32_t));
-
-
+CCASSERT(S32K1XX_PROGMEM_PAGE_SIZE == LATER_FLAHSED_WORDS * sizeof(uint32_t));
 
 typedef union fccob_flash_addr_t {
 	uint32_t addr;
@@ -65,22 +60,17 @@ typedef union fccob_flash_addr_t {
 	} fccobs;
 } fccob_flash_addr_t;
 
-
 static uint8_t zero_dirty = 0xff;
 
 ssize_t up_progmem_getpage(size_t addr);
 
-locate_code(".ramfunc")
-static inline void wait_ftfc_ready(void)
-{
+locate_code(".ramfunc") static inline void wait_ftfc_ready(void) {
 	while ((getreg8(S32K1XX_FTFC_FSTAT) & FTTC_FSTAT_CCIF) == 0) {
 		/* Busy */
 	}
 }
 
-locate_code(".ramfunc")
-static uint32_t execute_ftfc_command(void)
-{
+locate_code(".ramfunc") static uint32_t execute_ftfc_command(void) {
 	uint8_t regval;
 	uint32_t retval;
 
@@ -101,8 +91,7 @@ static uint32_t execute_ftfc_command(void)
 
 	retval = getreg8(S32K1XX_FTFC_FSTAT);
 
-	if (retval & (FTTC_FSTAT_MGSTAT0 | FTTC_FSTAT_FPVIOL |
-		      FTTC_FSTAT_ACCERR | FTTC_FSTAT_RDCOLERR)) {
+	if (retval & (FTTC_FSTAT_MGSTAT0 | FTTC_FSTAT_FPVIOL | FTTC_FSTAT_ACCERR | FTTC_FSTAT_RDCOLERR)) {
 		return retval; /* Error has occured */
 
 	} else {
@@ -110,16 +99,9 @@ static uint32_t execute_ftfc_command(void)
 	}
 }
 
-locate_code(".ramfunc")
-ssize_t up_progmem_getpage(size_t addr)
-{
-	return addr / S32K1XX_PROGMEM_BLOCK_SECTOR_SIZE;
-}
+locate_code(".ramfunc") ssize_t up_progmem_getpage(size_t addr) { return addr / S32K1XX_PROGMEM_BLOCK_SECTOR_SIZE; }
 
-
-locate_code(".ramfunc")
-ssize_t up_progmem_eraseblock(size_t block)
-{
+locate_code(".ramfunc") ssize_t up_progmem_eraseblock(size_t block) {
 	static bool once = false;
 
 	if (!once) {
@@ -132,8 +114,7 @@ ssize_t up_progmem_eraseblock(size_t block)
 
 	/* Clear FSTAT error bits */
 
-	putreg8(FTTC_FSTAT_FPVIOL | FTTC_FSTAT_ACCERR | FTTC_FSTAT_RDCOLERR,
-		S32K1XX_FTFC_FSTAT);
+	putreg8(FTTC_FSTAT_FPVIOL | FTTC_FSTAT_ACCERR | FTTC_FSTAT_RDCOLERR, S32K1XX_FTFC_FSTAT);
 
 	/* Set FTFC command */
 
@@ -145,36 +126,30 @@ ssize_t up_progmem_eraseblock(size_t block)
 	putreg8(dest.fccobs.fccob2, S32K1XX_FTFC_FCCOB2);
 	putreg8(dest.fccobs.fccob3, S32K1XX_FTFC_FCCOB3);
 
-	if (execute_ftfc_command() & (FTTC_FSTAT_MGSTAT0 | FTTC_FSTAT_FPVIOL |
-				      FTTC_FSTAT_ACCERR | FTTC_FSTAT_RDCOLERR)) {
+	if (execute_ftfc_command() &
+	    (FTTC_FSTAT_MGSTAT0 | FTTC_FSTAT_FPVIOL | FTTC_FSTAT_ACCERR | FTTC_FSTAT_RDCOLERR)) {
 		return -EIO; /* Error has occured */
 	}
 
 	return (ssize_t)S32K1XX_PROGMEM_BLOCK_SECTOR_SIZE;
 }
 
-
-locate_code(".ramfunc")
-ssize_t up_progmem_write(size_t addr, FAR const void *buf, size_t count)
-{
+locate_code(".ramfunc") ssize_t up_progmem_write(size_t addr, FAR const void *buf, size_t count) {
 	fccob_flash_addr_t dest;
 	uint8_t *src = (uint8_t *)buf;
 	ssize_t cashed = 0;
 
-
 	if (addr == APPLICATION_LOAD_ADDRESS) {
-
 		/* On the first pass we will not write the first 8 bytes, and leave them erased. */
 
 		if (zero_dirty == 0xff) {
 			cashed = S32K1XX_PROGMEM_PAGE_SIZE;
-			zero_dirty    = 0;
+			zero_dirty = 0;
 			addr += S32K1XX_PROGMEM_PAGE_SIZE;
 			src += S32K1XX_PROGMEM_PAGE_SIZE;
 			count -= S32K1XX_PROGMEM_PAGE_SIZE;
 
 		} else {
-
 			/* On the second pass we will write the first 8 bytes. */
 
 			cashed = count - S32K1XX_PROGMEM_PAGE_SIZE;
@@ -189,13 +164,12 @@ ssize_t up_progmem_write(size_t addr, FAR const void *buf, size_t count)
 
 	dest.addr = addr;
 
-	for (size_t i = 0; i < count / S32K1XX_PROGMEM_PAGE_SIZE ; i++) {
+	for (size_t i = 0; i < count / S32K1XX_PROGMEM_PAGE_SIZE; i++) {
 		wait_ftfc_ready();
 
 		/* Clear FSTAT error bits */
 
-		putreg8(FTTC_FSTAT_FPVIOL | FTTC_FSTAT_ACCERR | FTTC_FSTAT_RDCOLERR,
-			S32K1XX_FTFC_FSTAT);
+		putreg8(FTTC_FSTAT_FPVIOL | FTTC_FSTAT_ACCERR | FTTC_FSTAT_RDCOLERR, S32K1XX_FTFC_FSTAT);
 
 		/* Set FTFC command */
 
@@ -213,8 +187,8 @@ ssize_t up_progmem_write(size_t addr, FAR const void *buf, size_t count)
 			putreg8(src[j], S32K1XX_FTFC_FCCOB7 + j);
 		}
 
-		if (execute_ftfc_command() & (FTTC_FSTAT_MGSTAT0 | FTTC_FSTAT_FPVIOL |
-					      FTTC_FSTAT_ACCERR | FTTC_FSTAT_RDCOLERR)) {
+		if (execute_ftfc_command() &
+		    (FTTC_FSTAT_MGSTAT0 | FTTC_FSTAT_FPVIOL | FTTC_FSTAT_ACCERR | FTTC_FSTAT_RDCOLERR)) {
 			return -EIO; /* Error has occured */
 		}
 

@@ -33,20 +33,19 @@
 
 #pragma once
 
+#include <drivers/drv_hrt.h>
+#include <pthread.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/events.h>
 #include <stdint.h>
 
 #include "mavlink_bridge_header.h"
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/atomic.h>
-#include <px4_platform_common/events.h>
-#include <pthread.h>
 
 using namespace time_literals;
 
 class Mavlink;
 
-namespace events
-{
+namespace events {
 
 /**
  * @struct Event
@@ -57,7 +56,7 @@ struct Event {
 	uint32_t timestamp_ms;
 	uint32_t id;
 	uint16_t sequence;
-	uint8_t log_levels; ///< Log levels: 4 bits MSB: internal, 4 bits LSB: external
+	uint8_t log_levels;  ///< Log levels: 4 bits MSB: internal, 4 bits LSB: external
 	uint8_t arguments[MAX_ARGUMENTS_SIZE];
 };
 
@@ -66,10 +65,8 @@ struct Event {
  * Event buffer that can be shared between threads and multiple SendProtocol instances.
  * All methods are thread-safe.
  */
-class EventBuffer
-{
+class EventBuffer {
 public:
-
 	/**
 	 * Create an event buffer. Required memory: sizeof(Event) * capacity.
 	 * @param capacity maximum number of buffered events
@@ -91,12 +88,13 @@ public:
 	bool get_event(uint16_t sequence, Event &event) const;
 
 	int size() const;
+
 private:
 	::px4::atomic<uint16_t> _latest_sequence{events::initial_event_sequence};
 
-	Event *_events{nullptr}; ///< stored events, ringbuffer
+	Event *_events{nullptr};  ///< stored events, ringbuffer
 	int _capacity;
-	int _next{0}; ///< next element to use
+	int _next{0};  ///< next element to use
 	int _size{0};
 
 	mutable pthread_mutex_t _mutex;
@@ -106,8 +104,7 @@ private:
  * @class SendProtocol
  * Handles sending of events
  */
-class SendProtocol
-{
+class SendProtocol {
 public:
 	SendProtocol(EventBuffer &buffer, Mavlink &mavlink);
 
@@ -130,7 +127,6 @@ public:
 	void on_gcs_connected();
 
 private:
-
 	void send_event(const Event &event) const;
 	void send_current_sequence(const hrt_abstime &now);
 
@@ -141,6 +137,5 @@ private:
 	hrt_abstime _last_current_sequence_sent{0};
 	Mavlink &_mavlink;
 };
-
 
 } /* namespace events */

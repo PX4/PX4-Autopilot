@@ -39,11 +39,9 @@
 
 #pragma once
 
-namespace math
-{
+namespace math {
 
-namespace trajectory
-{
+namespace trajectory {
 
 /* Compute the maximum possible speed on the track given the desired speed,
  * remaining distance, the maximum acceleration and the maximum jerk.
@@ -59,11 +57,10 @@ namespace trajectory
  * @return maximum speed
  */
 inline float computeMaxSpeedFromDistance(const float jerk, const float accel, const float braking_distance,
-		const float final_speed)
-{
-	auto sqr = [](float f) {return f * f;};
-	float b =  4.0f * sqr(accel) / jerk;
-	float c = - 2.0f * accel * braking_distance - sqr(final_speed);
+					 const float final_speed) {
+	auto sqr = [](float f) { return f * f; };
+	float b = 4.0f * sqr(accel) / jerk;
+	float c = -2.0f * accel * braking_distance - sqr(final_speed);
 	float max_speed = 0.5f * (-b + sqrtf(sqr(b) - 4.0f * c));
 
 	// don't slow down more than the end speed, even if the conservative accel ramp time requests it
@@ -84,8 +81,7 @@ inline float computeMaxSpeedFromDistance(const float jerk, const float accel, co
  *
  *  @return maximum tangential speed
  */
-inline float computeMaxSpeedInWaypoint(const float alpha, const float accel, const float d)
-{
+inline float computeMaxSpeedInWaypoint(const float alpha, const float accel, const float d) {
 	float tan_alpha = tanf(alpha / 2.0f);
 	float max_speed_in_turn = sqrtf(accel * d * tan_alpha);
 
@@ -105,10 +101,9 @@ inline float computeMaxSpeedInWaypoint(const float alpha, const float accel, con
  * @return braking distance
  */
 inline float computeBrakingDistanceFromVelocity(const float velocity, const float jerk, const float accel,
-		const float accel_delay_max)
-{
+						const float accel_delay_max) {
 	return velocity * (velocity / (2.0f * accel) + accel_delay_max / jerk);
 }
 
-} /* namespace traj */
+}  // namespace trajectory
 } /* namespace math */

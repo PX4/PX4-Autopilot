@@ -39,10 +39,9 @@
 /**
  * Local functions in support of the shell command.
  */
-namespace cm8jl65
-{
+namespace cm8jl65 {
 
-CM8JL65	*g_dev;
+CM8JL65 *g_dev;
 
 int reset(const char *port);
 int start(const char *port, const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
@@ -53,9 +52,7 @@ int usage();
 /**
  * Reset the driver.
  */
-int
-reset(const char *port)
-{
+int reset(const char *port) {
 	if (stop() == PX4_OK) {
 		return start(port);
 	}
@@ -66,9 +63,7 @@ reset(const char *port)
 /**
  * Start the driver.
  */
-int
-start(const char *port, const uint8_t rotation)
-{
+int start(const char *port, const uint8_t rotation) {
 	if (port == nullptr) {
 		PX4_ERR("invalid port");
 		return PX4_ERROR;
@@ -100,9 +95,7 @@ start(const char *port, const uint8_t rotation)
 /**
  * Print the driver status.
  */
-int
-status()
-{
+int status() {
 	if (g_dev == nullptr) {
 		PX4_ERR("driver not running");
 		return PX4_ERROR;
@@ -116,8 +109,7 @@ status()
 /**
  * Stop the driver
  */
-int stop()
-{
+int stop() {
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
@@ -126,9 +118,7 @@ int stop()
 	return PX4_ERROR;
 }
 
-int
-usage()
-{
+int usage() {
 	PX4_INFO("usage: cm8jl65 command [options]");
 	PX4_INFO("command:");
 	PX4_INFO("\treset|start|status|stop");
@@ -138,14 +128,12 @@ usage()
 	return PX4_OK;
 }
 
-} // namespace cm8jl65
-
+}  // namespace cm8jl65
 
 /**
  * Driver 'main' command.
  */
-extern "C" __EXPORT int cm8jl65_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int cm8jl65_main(int argc, char *argv[]) {
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	const char *device_path = nullptr;
 	int ch;
@@ -154,7 +142,7 @@ extern "C" __EXPORT int cm8jl65_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "R:d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'R': {
+			case 'R': {
 				int rot = -1;
 
 				if (px4_get_parameter_value(myoptarg, rot) != 0) {
@@ -166,13 +154,13 @@ extern "C" __EXPORT int cm8jl65_main(int argc, char *argv[])
 				break;
 			}
 
-		case 'd':
-			device_path = myoptarg;
-			break;
+			case 'd':
+				device_path = myoptarg;
+				break;
 
-		default:
-			PX4_WARN("Unknown option!");
-			return cm8jl65::usage();
+			default:
+				PX4_WARN("Unknown option!");
+				return cm8jl65::usage();
 		}
 	}
 

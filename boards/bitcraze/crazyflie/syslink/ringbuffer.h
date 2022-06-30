@@ -43,11 +43,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
-namespace ringbuffer __EXPORT
-{
+namespace ringbuffer __EXPORT {
 
-class RingBuffer
-{
+class RingBuffer {
 public:
 	RingBuffer(unsigned num_items, size_t item_size);
 	virtual ~RingBuffer();
@@ -58,18 +56,18 @@ public:
 	 * @param val		Item to put
 	 * @return		true if the item was put, false if the buffer is full
 	 */
-	bool			put(const void *val, size_t val_size = 0);
+	bool put(const void *val, size_t val_size = 0);
 
-	bool			put(int8_t val);
-	bool			put(uint8_t val);
-	bool			put(int16_t val);
-	bool			put(uint16_t val);
-	bool			put(int32_t val);
-	bool			put(uint32_t val);
-	bool			put(int64_t val);
-	bool			put(uint64_t val);
-	bool			put(float val);
-	bool			put(double val);
+	bool put(int8_t val);
+	bool put(uint8_t val);
+	bool put(int16_t val);
+	bool put(uint16_t val);
+	bool put(int32_t val);
+	bool put(uint32_t val);
+	bool put(int64_t val);
+	bool put(uint64_t val);
+	bool put(float val);
+	bool put(double val);
 
 	/**
 	 * Force an item into the buffer, discarding an older item if there is not space.
@@ -77,18 +75,18 @@ public:
 	 * @param val		Item to put
 	 * @return		true if an item was discarded to make space
 	 */
-	bool			force(const void *val, size_t val_size = 0);
+	bool force(const void *val, size_t val_size = 0);
 
-	bool			force(int8_t val);
-	bool			force(uint8_t val);
-	bool			force(int16_t val);
-	bool			force(uint16_t val);
-	bool			force(int32_t val);
-	bool			force(uint32_t val);
-	bool			force(int64_t val);
-	bool			force(uint64_t val);
-	bool			force(float val);
-	bool			force(double val);
+	bool force(int8_t val);
+	bool force(uint8_t val);
+	bool force(int16_t val);
+	bool force(uint16_t val);
+	bool force(int32_t val);
+	bool force(uint32_t val);
+	bool force(int64_t val);
+	bool force(uint64_t val);
+	bool force(float val);
+	bool force(double val);
 
 	/**
 	 * Get an item from the buffer.
@@ -96,18 +94,18 @@ public:
 	 * @param val		Item that was gotten
 	 * @return		true if an item was got, false if the buffer was empty.
 	 */
-	bool			get(void *val, size_t val_size = 0);
+	bool get(void *val, size_t val_size = 0);
 
-	bool			get(int8_t &val);
-	bool			get(uint8_t &val);
-	bool			get(int16_t &val);
-	bool			get(uint16_t &val);
-	bool			get(int32_t &val);
-	bool			get(uint32_t &val);
-	bool			get(int64_t &val);
-	bool			get(uint64_t &val);
-	bool			get(float &val);
-	bool			get(double &val);
+	bool get(int8_t &val);
+	bool get(uint8_t &val);
+	bool get(int16_t &val);
+	bool get(uint16_t &val);
+	bool get(int32_t &val);
+	bool get(uint32_t &val);
+	bool get(int64_t &val);
+	bool get(uint64_t &val);
+	bool get(float &val);
+	bool get(double &val);
 
 	/*
 	 * Get the number of slots free in the buffer.
@@ -115,7 +113,7 @@ public:
 	 * @return		The number of items that can be put into the buffer before
 	 *			it becomes full.
 	 */
-	unsigned		space(void);
+	unsigned space(void);
 
 	/*
 	 * Get the number of items in the buffer.
@@ -123,28 +121,28 @@ public:
 	 * @return		The number of items that can be got from the buffer before
 	 *			it becomes empty.
 	 */
-	unsigned		count(void);
+	unsigned count(void);
 
 	/*
 	 * Returns true if the buffer is empty.
 	 */
-	bool			empty();
+	bool empty();
 
 	/*
 	 * Returns true if the buffer is full.
 	 */
-	bool			full();
+	bool full();
 
 	/*
 	 * Returns the capacity of the buffer, or zero if the buffer could
 	 * not be allocated.
 	 */
-	unsigned		size();
+	unsigned size();
 
 	/*
 	 * Empties the buffer.
 	 */
-	void			flush();
+	void flush();
 
 	/*
 	 * resize the buffer. This is unsafe to be called while
@@ -155,25 +153,25 @@ public:
 	 * @return		true if the resize succeeds, false if
 	 * 			not (allocation error)
 	 */
-	bool			resize(unsigned new_size);
+	bool resize(unsigned new_size);
 
 	/*
 	 * printf() some info on the buffer
 	 */
-	void			print_info(const char *name);
+	void print_info(const char *name);
 
 private:
-	unsigned		_num_items;
-	const size_t		_item_size;
-	char			*_buf;
-	volatile unsigned	_head;	/**< insertion point in _item_size units */
-	volatile unsigned	_tail;	/**< removal point in _item_size units */
+	unsigned _num_items;
+	const size_t _item_size;
+	char *_buf;
+	volatile unsigned _head; /**< insertion point in _item_size units */
+	volatile unsigned _tail; /**< removal point in _item_size units */
 
-	unsigned		_next(unsigned index);
+	unsigned _next(unsigned index);
 
 	/* we don't want this class to be copied */
 	RingBuffer(const RingBuffer &);
 	RingBuffer operator=(const RingBuffer &);
 };
 
-} // namespace ringbuffer
+}  // namespace __EXPORT

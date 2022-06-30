@@ -40,8 +40,7 @@
 
 #include <motion_planning/VelocitySmoothing.hpp>
 
-class ManualVelocitySmoothingZ final
-{
+class ManualVelocitySmoothingZ final {
 public:
 	ManualVelocitySmoothingZ() = default;
 	~ManualVelocitySmoothingZ() = default;
@@ -51,37 +50,20 @@ public:
 
 	void setVelSpFeedback(const float fb) { _velocity_setpoint_feedback = fb; }
 
-	void setMaxJerk(const float max_jerk)
-	{
-		_trajectory.setMaxJerk(max_jerk);
-	}
-	void setMaxAccelUp(const float max_accel_up)
-	{
-		_max_accel_up = max_accel_up;
-	}
-	void setMaxAccelDown(const float max_accel_down)
-	{
-		_max_accel_down = max_accel_down;
-	}
-	void setMaxVelUp(const float max_vel_up)
-	{
-		_max_vel_up = max_vel_up;
-	}
-	void setMaxVelDown(const float max_vel_down)
-	{
-		_max_vel_down = max_vel_down;
-	}
+	void setMaxJerk(const float max_jerk) { _trajectory.setMaxJerk(max_jerk); }
+	void setMaxAccelUp(const float max_accel_up) { _max_accel_up = max_accel_up; }
+	void setMaxAccelDown(const float max_accel_down) { _max_accel_down = max_accel_down; }
+	void setMaxVelUp(const float max_vel_up) { _max_vel_up = max_vel_up; }
+	void setMaxVelDown(const float max_vel_down) { _max_vel_down = max_vel_down; }
 
 	float getCurrentJerk() const { return _state.j; }
 	float getCurrentAcceleration() const { return _state.a; }
-	void setCurrentVelocity(const float vel)
-	{
+	void setCurrentVelocity(const float vel) {
 		_state.v = vel;
 		_trajectory.setCurrentVelocity(vel);
 	}
 	float getCurrentVelocity() const { return _state.v; }
-	void setCurrentPosition(const float pos)
-	{
+	void setCurrentPosition(const float pos) {
 		_state.x = pos;
 		_trajectory.setCurrentPosition(pos);
 		_position_estimate = pos;
@@ -100,7 +82,7 @@ private:
 	void checkPositionLock(float velocity_target);
 	void updateTrajDurations(float velocity_target);
 
-	VelocitySmoothing _trajectory; ///< Trajectory in z direction
+	VelocitySmoothing _trajectory;  ///< Trajectory in z direction
 
 	bool _position_lock_active{false};
 

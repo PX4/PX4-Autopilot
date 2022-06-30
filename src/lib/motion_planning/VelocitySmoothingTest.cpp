@@ -37,14 +37,14 @@
  */
 
 #include <gtest/gtest.h>
+
 #include <matrix/matrix/math.hpp>
 
 #include "VelocitySmoothing.hpp"
 
 using namespace matrix;
 
-class VelocitySmoothingTest : public ::testing::Test
-{
+class VelocitySmoothingTest : public ::testing::Test {
 public:
 	void setConstraints(float j_max, float a_max, float v_max);
 	void setInitialConditions(Vector3f acc, Vector3f vel, Vector3f pos);
@@ -53,8 +53,7 @@ public:
 	VelocitySmoothing _trajectories[3];
 };
 
-void VelocitySmoothingTest::setConstraints(float j_max, float a_max, float v_max)
-{
+void VelocitySmoothingTest::setConstraints(float j_max, float a_max, float v_max) {
 	for (int i = 0; i < 3; i++) {
 		_trajectories[i].setMaxJerk(j_max);
 		_trajectories[i].setMaxAccel(a_max);
@@ -62,8 +61,7 @@ void VelocitySmoothingTest::setConstraints(float j_max, float a_max, float v_max
 	}
 }
 
-void VelocitySmoothingTest::setInitialConditions(Vector3f a0, Vector3f v0, Vector3f x0)
-{
+void VelocitySmoothingTest::setInitialConditions(Vector3f a0, Vector3f v0, Vector3f x0) {
 	for (int i = 0; i < 3; i++) {
 		_trajectories[i].setCurrentAcceleration(a0(i));
 		_trajectories[i].setCurrentVelocity(v0(i));
@@ -71,8 +69,7 @@ void VelocitySmoothingTest::setInitialConditions(Vector3f a0, Vector3f v0, Vecto
 	}
 }
 
-void VelocitySmoothingTest::updateTrajectories(float dt, Vector3f velocity_setpoints)
-{
+void VelocitySmoothingTest::updateTrajectories(float dt, Vector3f velocity_setpoints) {
 	for (int i = 0; i < 3; i++) {
 		_trajectories[i].updateTraj(dt);
 		EXPECT_LE(fabsf(_trajectories[i].getCurrentJerk()), _trajectories[i].getMaxJerk());
@@ -87,8 +84,7 @@ void VelocitySmoothingTest::updateTrajectories(float dt, Vector3f velocity_setpo
 	VelocitySmoothing::timeSynchronization(_trajectories, 2);
 }
 
-TEST_F(VelocitySmoothingTest, testTimeSynchronization)
-{
+TEST_F(VelocitySmoothingTest, testTimeSynchronization) {
 	// GIVEN: A set of constraints
 	const float j_max = 55.2f;
 	const float a_max = 6.f;
@@ -107,13 +103,11 @@ TEST_F(VelocitySmoothingTest, testTimeSynchronization)
 	Vector3f velocity_setpoints(-3.f, 1.f, 0.f);
 	updateTrajectories(0.f, velocity_setpoints);
 
-
 	// THEN: The X and Y trajectories should have the same total time (= time sunchronized)
 	EXPECT_LE(fabsf(_trajectories[0].getTotalTime() - _trajectories[1].getTotalTime()), 0.0001);
 }
 
-TEST_F(VelocitySmoothingTest, testTimeSynchronizationSameDelta)
-{
+TEST_F(VelocitySmoothingTest, testTimeSynchronizationSameDelta) {
 	// GIVEN: a set of initial conditions
 	Vector3f a0(0.f, 0.f, 0.f);
 	Vector3f v0(0.5f, -0.2f, 0.f);
@@ -144,8 +138,7 @@ TEST_F(VelocitySmoothingTest, testTimeSynchronizationSameDelta)
 	EXPECT_FLOAT_EQ(_trajectories[2].getT3(), 0.f);
 }
 
-TEST_F(VelocitySmoothingTest, testConstantSetpoint)
-{
+TEST_F(VelocitySmoothingTest, testConstantSetpoint) {
 	// GIVEN: A set of constraints
 	const float j_max = 55.2f;
 	const float a_max = 6.f;
@@ -182,8 +175,7 @@ TEST_F(VelocitySmoothingTest, testConstantSetpoint)
 	}
 }
 
-TEST_F(VelocitySmoothingTest, testZeroSetpoint)
-{
+TEST_F(VelocitySmoothingTest, testZeroSetpoint) {
 	// GIVEN: A set of null initial conditions
 	Vector3f a0(0.f, 0.f, 0.f);
 	Vector3f v0(0.f, 0.f, 0.f);

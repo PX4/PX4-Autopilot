@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <RateControl.hpp>
 
 using namespace matrix;
 
-TEST(RateControlTest, AllZeroCase)
-{
+TEST(RateControlTest, AllZeroCase) {
 	RateControl rate_control;
 	Vector3f torque = rate_control.update(Vector3f(), Vector3f(), Vector3f(), 0.f, false);
 	EXPECT_EQ(torque, Vector3f());

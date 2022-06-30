@@ -44,18 +44,14 @@
  */
 
 /* enum for whether bootloading via USB or USART */
-enum {
-	NONE,
-	USART,
-	USB
-};
+enum { NONE, USART, USB };
 
 /* board info forwarded from board-specific code to booloader */
 struct boardinfo {
-	uint32_t  board_type;
-	uint32_t  board_rev;
-	uint32_t  fw_size;
-	uint32_t  systick_mhz;    /* systick input clock */
+	uint32_t board_type;
+	uint32_t board_rev;
+	uint32_t fw_size;
+	uint32_t systick_mhz; /* systick input clock */
 
 } __attribute__((packed));
 
@@ -65,15 +61,15 @@ extern void jump_to_app(void);
 extern void bootloader(unsigned timeout);
 extern void delay(unsigned msec);
 
-#define BL_WAIT_MAGIC 0x19710317    /* magic number in PWR regs to wait in bootloader */
+#define BL_WAIT_MAGIC 0x19710317 /* magic number in PWR regs to wait in bootloader */
 
 /* generic timers */
-#define NTIMERS   4
+#define NTIMERS 4
 #define TIMER_BL_WAIT 0
 #define TIMER_CIN 1
 #define TIMER_LED 2
 #define TIMER_DELAY 3
-extern volatile unsigned timer[NTIMERS];  /* each timer decrements every millisecond if > 0 */
+extern volatile unsigned timer[NTIMERS]; /* each timer decrements every millisecond if > 0 */
 
 /* generic receive buffer for async reads */
 extern void buf_put(uint8_t b);
@@ -84,18 +80,18 @@ extern int buf_get(void);
  */
 
 /* LEDs */
-#define LED_ACTIVITY  1
-#define LED_BOOTLOADER  2
+#define LED_ACTIVITY 1
+#define LED_BOOTLOADER 2
 
 #ifdef BOOT_DELAY_ADDRESS
-# define BOOT_DELAY_SIGNATURE1  0x92c2ecff
-# define BOOT_DELAY_SIGNATURE2  0xc5057d5d
-# define BOOT_DELAY_MAX   30
+#define BOOT_DELAY_SIGNATURE1 0x92c2ecff
+#define BOOT_DELAY_SIGNATURE2 0xc5057d5d
+#define BOOT_DELAY_MAX 30
 #endif
 
 #define MAX_DES_LENGTH 20
 
-#define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
+#define arraySize(a) (sizeof((a)) / sizeof(((a)[0])))
 extern void led_on(unsigned led);
 extern void led_off(unsigned led);
 extern void led_toggle(unsigned led);

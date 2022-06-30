@@ -41,18 +41,15 @@
 
 #include "FixedwingLandDetector.h"
 
-namespace land_detector
-{
+namespace land_detector {
 
-FixedwingLandDetector::FixedwingLandDetector()
-{
+FixedwingLandDetector::FixedwingLandDetector() {
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
 	_landed_hysteresis.set_hysteresis_time_from(false, LANDED_TRIGGER_TIME_US);
 	_landed_hysteresis.set_hysteresis_time_from(true, FLYING_TRIGGER_TIME_US);
 }
 
-bool FixedwingLandDetector::_get_landed_state()
-{
+bool FixedwingLandDetector::_get_landed_state() {
 	// Only trigger flight conditions if we are armed.
 	if (!_armed) {
 		return true;
@@ -61,10 +58,10 @@ bool FixedwingLandDetector::_get_landed_state()
 	bool landDetected = false;
 
 	if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s) {
-
 		// Horizontal velocity complimentary filter.
-		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx +
-				_vehicle_local_position.vy * _vehicle_local_position.vy);
+		float val = 0.97f * _velocity_xy_filtered +
+			    0.03f * sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx +
+					  _vehicle_local_position.vy * _vehicle_local_position.vy);
 
 		if (PX4_ISFINITE(val)) {
 			_velocity_xy_filtered = val;
@@ -83,7 +80,8 @@ bool FixedwingLandDetector::_get_landed_state()
 		bool airspeed_invalid = false;
 
 		// set _airspeed_filtered to 0 if airspeed data is invalid
-		if (!PX4_ISFINITE(airspeed_validated.true_airspeed_m_s) || hrt_elapsed_time(&airspeed_validated.timestamp) > 1_s) {
+		if (!PX4_ISFINITE(airspeed_validated.true_airspeed_m_s) ||
+		    hrt_elapsed_time(&airspeed_validated.timestamp) > 1_s) {
 			_airspeed_filtered = 0.0f;
 			airspeed_invalid = true;
 
@@ -97,16 +95,16 @@ bool FixedwingLandDetector::_get_landed_state()
 		_xy_accel_filtered = _xy_accel_filtered * 0.8f + acc_hor * 0.18f;
 
 		// make thresholds tighter if airspeed is invalid
-		const float vel_xy_max_threshold = airspeed_invalid ? 0.7f * _param_lndfw_vel_xy_max.get() :
-						   _param_lndfw_vel_xy_max.get();
-		const float vel_z_max_threshold = airspeed_invalid ? 0.7f * _param_lndfw_vel_z_max.get() :
-						  _param_lndfw_vel_z_max.get();
+		const float vel_xy_max_threshold =
+			airspeed_invalid ? 0.7f * _param_lndfw_vel_xy_max.get() : _param_lndfw_vel_xy_max.get();
+		const float vel_z_max_threshold =
+			airspeed_invalid ? 0.7f * _param_lndfw_vel_z_max.get() : _param_lndfw_vel_z_max.get();
 
 		// Crude land detector for fixedwing.
-		landDetected = _airspeed_filtered       < _param_lndfw_airspd.get()
-			       && _velocity_xy_filtered < vel_xy_max_threshold
-			       && _velocity_z_filtered  < vel_z_max_threshold
-			       && _xy_accel_filtered    < _param_lndfw_xyaccel_max.get();
+		landDetected = _airspeed_filtered < _param_lndfw_airspd.get() &&
+			       _velocity_xy_filtered < vel_xy_max_threshold &&
+			       _velocity_z_filtered < vel_z_max_threshold &&
+			       _xy_accel_filtered < _param_lndfw_xyaccel_max.get();
 
 	} else {
 		// Control state topic has timed out and we need to assume we're landed.
@@ -116,4 +114,4 @@ bool FixedwingLandDetector::_get_landed_state()
 	return landDetected;
 }
 
-} // namespace land_detector
+}  // namespace land_detector

@@ -34,37 +34,30 @@
 #pragma once
 
 #include <stdint.h>
-
 #include <uORB/uORB.h>
+
 #include <uORB/topics/uORBTopics.hpp>
 
-namespace px4
-{
-namespace logger
-{
+namespace px4 {
+namespace logger {
 
 enum class SDLogProfileMask : int32_t {
-	DEFAULT =               1 << 0,
-	ESTIMATOR_REPLAY =      1 << 1,
-	THERMAL_CALIBRATION =   1 << 2,
+	DEFAULT = 1 << 0,
+	ESTIMATOR_REPLAY = 1 << 1,
+	THERMAL_CALIBRATION = 1 << 2,
 	SYSTEM_IDENTIFICATION = 1 << 3,
-	HIGH_RATE =             1 << 4,
-	DEBUG_TOPICS =          1 << 5,
-	SENSOR_COMPARISON =     1 << 6,
-	VISION_AND_AVOIDANCE =  1 << 7,
-	RAW_IMU_GYRO_FIFO =     1 << 8,
-	RAW_IMU_ACCEL_FIFO =    1 << 9,
-	MAVLINK_TUNNEL =        1 << 10
+	HIGH_RATE = 1 << 4,
+	DEBUG_TOPICS = 1 << 5,
+	SENSOR_COMPARISON = 1 << 6,
+	VISION_AND_AVOIDANCE = 1 << 7,
+	RAW_IMU_GYRO_FIFO = 1 << 8,
+	RAW_IMU_ACCEL_FIFO = 1 << 9,
+	MAVLINK_TUNNEL = 1 << 10
 };
 
-enum class MissionLogType : int32_t {
-	Disabled =               0,
-	Complete =               1,
-	Geotagging =             2
-};
+enum class MissionLogType : int32_t { Disabled = 0, Complete = 1, Geotagging = 2 };
 
-inline bool operator&(SDLogProfileMask a, SDLogProfileMask b)
-{
+inline bool operator&(SDLogProfileMask a, SDLogProfileMask b) {
 	return static_cast<int32_t>(a) & static_cast<int32_t>(b);
 }
 
@@ -72,8 +65,7 @@ inline bool operator&(SDLogProfileMask a, SDLogProfileMask b)
  * @class LoggedTopics
  * Contains the list of configured topics
  */
-class LoggedTopics
-{
+class LoggedTopics {
 public:
 	static constexpr int MAX_TOPICS_NUM = 255; /**< Maximum number of logged topics */
 
@@ -109,7 +101,6 @@ public:
 	void set_rate_factor(float rate_factor) { _rate_factor = rate_factor; }
 
 private:
-
 	/**
 	 * Add a topic to be logged.
 	 * @param name topic name
@@ -120,8 +111,7 @@ private:
 	 */
 	bool add_topic(const char *name, uint16_t interval_ms = 0, uint8_t instance = 0, bool optional = false);
 
-	bool add_optional_topic(const char *name, uint16_t interval_ms = 0, uint8_t instance = 0)
-	{
+	bool add_optional_topic(const char *name, uint16_t interval_ms = 0, uint8_t instance = 0) {
 		return add_topic(name, interval_ms, instance, true);
 	}
 
@@ -134,12 +124,11 @@ private:
 	 * @param optional if true, the topic is only added if it exists
 	 * @return true on success
 	 */
-	bool add_topic_multi(const char *name, uint16_t interval_ms = 0, uint8_t max_num_instances = ORB_MULTI_MAX_INSTANCES,
-			     bool optional = false);
+	bool add_topic_multi(const char *name, uint16_t interval_ms = 0,
+			     uint8_t max_num_instances = ORB_MULTI_MAX_INSTANCES, bool optional = false);
 
 	bool add_optional_topic_multi(const char *name, uint16_t interval_ms = 0,
-				      uint8_t max_num_instances = ORB_MULTI_MAX_INSTANCES)
-	{
+				      uint8_t max_num_instances = ORB_MULTI_MAX_INSTANCES) {
 		return add_topic_multi(name, interval_ms, max_num_instances, true);
 	}
 
@@ -180,7 +169,8 @@ private:
 	 * add a logged topic (called by add_topic() above).
 	 * @return true on success
 	 */
-	bool add_topic(const orb_metadata *topic, uint16_t interval_ms = 0, uint8_t instance = 0, bool optional = false);
+	bool add_topic(const orb_metadata *topic, uint16_t interval_ms = 0, uint8_t instance = 0,
+		       bool optional = false);
 
 	RequestedSubscriptionArray _subscriptions;
 	int _num_mission_subs{0};
@@ -189,5 +179,5 @@ private:
 	bool _dynamic_control_allocation{false};
 };
 
-} //namespace logger
-} //namespace px4
+}  // namespace logger
+}  // namespace px4

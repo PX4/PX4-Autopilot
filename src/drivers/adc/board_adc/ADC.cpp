@@ -31,19 +31,18 @@
  *
  ****************************************************************************/
 
-#include <uORB/Subscription.hpp>
-
 #include "ADC.hpp"
+
+#include <uORB/Subscription.hpp>
 
 #ifdef CONFIG_DEV_GPIO
 #include <nuttx/ioexpander/gpio.h>
 #endif
 
-ADC::ADC(uint32_t base_address, uint32_t channels) :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
-	_base_address(base_address)
-{
+ADC::ADC(uint32_t base_address, uint32_t channels)
+	: ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": sample")),
+	  _base_address(base_address) {
 	/* always enable the temperature sensor */
 	channels |= px4_arch_adc_temp_sensor_mask();
 
@@ -74,8 +73,7 @@ ADC::ADC(uint32_t base_address, uint32_t channels) :
 	}
 }
 
-ADC::~ADC()
-{
+ADC::~ADC() {
 	ScheduleClear();
 
 	if (_samples != nullptr) {
@@ -87,8 +85,7 @@ ADC::~ADC()
 	close_gpio_devices();
 }
 
-int ADC::init()
-{
+int ADC::init() {
 	int ret_init = px4_arch_adc_init(_base_address);
 
 	if (ret_init < 0) {
@@ -102,8 +99,7 @@ int ADC::init()
 	return PX4_OK;
 }
 
-void ADC::Run()
-{
+void ADC::Run() {
 	if (_first_run) {
 		open_gpio_devices();
 		_first_run = false;
@@ -120,8 +116,7 @@ void ADC::Run()
 	update_system_power(now);
 }
 
-void ADC::open_gpio_devices()
-{
+void ADC::open_gpio_devices() {
 #ifdef BOARD_GPIO_VDD_5V_COMP_VALID
 	_5v_comp_valid_fd = open(BOARD_GPIO_VDD_5V_COMP_VALID, O_RDONLY);
 #endif
@@ -130,8 +125,7 @@ void ADC::open_gpio_devices()
 #endif
 }
 
-void ADC::close_gpio_devices()
-{
+void ADC::close_gpio_devices() {
 #ifdef BOARD_GPIO_VDD_5V_COMP_VALID
 	close(_5v_comp_valid_fd);
 #endif
@@ -140,8 +134,7 @@ void ADC::close_gpio_devices()
 #endif
 }
 
-void ADC::update_adc_report(hrt_abstime now)
-{
+void ADC::update_adc_report(hrt_abstime now) {
 	adc_report_s adc = {};
 	adc.timestamp = now;
 	adc.device_id = BUILTIN_ADC_DEVID;
@@ -159,7 +152,7 @@ void ADC::update_adc_report(hrt_abstime now)
 		adc.raw_data[i] = _samples[i].am_data;
 	}
 
-	for (; i < PX4_MAX_ADC_CHANNELS; ++i) {	// set unused channel id to -1
+	for (; i < PX4_MAX_ADC_CHANNELS; ++i) {  // set unused channel id to -1
 		adc.channel_id[i] = -1;
 	}
 
@@ -169,8 +162,7 @@ void ADC::update_adc_report(hrt_abstime now)
 	_to_adc_report.publish(adc);
 }
 
-uint8_t ADC::read_gpio_value(int fd)
-{
+uint8_t ADC::read_gpio_value(int fd) {
 #ifdef CONFIG_DEV_GPIO
 
 	if (fd == -1) {
@@ -189,45 +181,48 @@ uint8_t ADC::read_gpio_value(int fd)
 #endif /* CONFIG_DEV_GPIO */
 }
 
-void ADC::update_system_power(hrt_abstime now)
-{
-#if defined (BOARD_ADC_USB_CONNECTED)
-	system_power_s system_power {};
+void ADC::update_system_power(hrt_abstime now) {
+#if defined(BOARD_ADC_USB_CONNECTED)
+	system_power_s system_power{};
 
 	/* Assume HW provides only ADC_SCALED_V5_SENSE */
 	int cnt = 1;
 	/* HW provides both ADC_SCALED_V5_SENSE and ADC_SCALED_V3V3_SENSORS_SENSE */
-#  if defined(ADC_SCALED_V5_SENSE) && defined(ADC_SCALED_V3V3_SENSORS_SENSE)
+#if defined(ADC_SCALED_V5_SENSE) && defined(ADC_SCALED_V3V3_SENSORS_SENSE)
 	cnt += ADC_SCALED_V3V3_SENSORS_COUNT;
-#  endif
+#endif
 
 	for (unsigned i = 0; i < _channel_count; i++) {
-#  if defined(ADC_SCALED_V5_SENSE)
+#if defined(ADC_SCALED_V5_SENSE)
 
 		if (_samples[i].am_channel == ADC_SCALED_V5_SENSE) {
 			// it is 2:1 scaled
-			system_power.voltage5v_v = _samples[i].am_data * (ADC_V5_V_FULL_SCALE / px4_arch_adc_dn_fullcount());
+			system_power.voltage5v_v =
+				_samples[i].am_data * (ADC_V5_V_FULL_SCALE / px4_arch_adc_dn_fullcount());
 			cnt--;
 
 		} else
-#  endif
-#  if defined(ADC_SCALED_V3V3_SENSORS_SENSE)
+#endif
+#if defined(ADC_SCALED_V3V3_SENSORS_SENSE)
 		{
 			const int sensors_channels[ADC_SCALED_V3V3_SENSORS_COUNT] = ADC_SCALED_V3V3_SENSORS_SENSE;
-			static_assert(sizeof(system_power.sensors3v3) / sizeof(system_power.sensors3v3[0]) >= ADC_SCALED_V3V3_SENSORS_COUNT,
+			static_assert(sizeof(system_power.sensors3v3) / sizeof(system_power.sensors3v3[0]) >=
+					      ADC_SCALED_V3V3_SENSORS_COUNT,
 				      "array too small");
 
 			for (int j = 0; j < ADC_SCALED_V3V3_SENSORS_COUNT; ++j) {
 				if (_samples[i].am_channel == sensors_channels[j]) {
 					// it is 2:1 scaled
-					system_power.sensors3v3[j] = _samples[i].am_data * (ADC_3V3_SCALE * (3.3f / px4_arch_adc_dn_fullcount()));
+					system_power.sensors3v3[j] =
+						_samples[i].am_data *
+						(ADC_3V3_SCALE * (3.3f / px4_arch_adc_dn_fullcount()));
 					system_power.sensors3v3_valid |= 1 << j;
 					cnt--;
 				}
 			}
 		}
 
-#  endif
+#endif
 
 		if (cnt == 0) {
 			break;
@@ -251,11 +246,11 @@ void ADC::update_system_power(hrt_abstime now)
 
 #if defined(BOARD_BRICK_VALID_LIST)
 	/* The valid signals (HW dependent) are associated with each brick */
-	bool  valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
+	bool valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
 	system_power.brick_valid = 0;
 
 	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-		system_power.brick_valid |=  valid_chan[b] ? 1 << b : 0;
+		system_power.brick_valid |= valid_chan[b] ? 1 << b : 0;
 	}
 
 #endif
@@ -283,11 +278,10 @@ void ADC::update_system_power(hrt_abstime now)
 	system_power.timestamp = hrt_absolute_time();
 	_to_system_power.publish(system_power);
 
-#endif // BOARD_ADC_USB_CONNECTED
+#endif  // BOARD_ADC_USB_CONNECTED
 }
 
-uint32_t ADC::sample(unsigned channel)
-{
+uint32_t ADC::sample(unsigned channel) {
 	perf_begin(_sample_perf);
 	uint32_t result = px4_arch_adc_sample(_base_address, channel);
 
@@ -299,12 +293,11 @@ uint32_t ADC::sample(unsigned channel)
 	return result;
 }
 
-int ADC::test()
-{
-	uORB::Subscription	adc_sub_test{ORB_ID(adc_report)};
+int ADC::test() {
+	uORB::Subscription adc_sub_test{ORB_ID(adc_report)};
 	adc_report_s adc;
 
-	px4_usleep(20000);	// sleep 20ms and wait for adc report
+	px4_usleep(20000);  // sleep 20ms and wait for adc report
 
 	if (adc_sub_test.update(&adc)) {
 		PX4_INFO_RAW("DeviceID: %" PRId32 "\n", adc.device_id);
@@ -335,8 +328,7 @@ int ADC::test()
 	}
 }
 
-int ADC::custom_command(int argc, char *argv[])
-{
+int ADC::custom_command(int argc, char *argv[]) {
 	const char *verb = argv[0];
 
 	if (!strcmp(verb, "test")) {
@@ -350,8 +342,7 @@ int ADC::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int ADC::task_spawn(int argc, char *argv[])
-{
+int ADC::task_spawn(int argc, char *argv[]) {
 	ADC *instance = new ADC(SYSTEM_ADC_BASE, ADC_CHANNELS);
 
 	if (instance) {
@@ -373,8 +364,7 @@ int ADC::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int ADC::print_usage(const char *reason)
-{
+int ADC::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -394,7 +384,4 @@ ADC driver.
 	return 0;
 }
 
-extern "C" __EXPORT int board_adc_main(int argc, char *argv[])
-{
-	return ADC::main(argc, argv);
-}
+extern "C" __EXPORT int board_adc_main(int argc, char *argv[]) { return ADC::main(argc, argv); }

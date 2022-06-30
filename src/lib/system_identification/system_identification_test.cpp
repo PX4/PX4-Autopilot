@@ -36,21 +36,21 @@
  * Run this test only using make tests TESTFILTER=system_identification
  */
 
+#include "system_identification.hpp"
+
 #include <gtest/gtest.h>
+
 #include <matrix/matrix/math.hpp>
 
-#include "system_identification.hpp"
 #include "test_data.h"
 
 using namespace matrix;
 
-class SystemIdentificationTest : public ::testing::Test
-{
+class SystemIdentificationTest : public ::testing::Test {
 public:
-	SystemIdentificationTest() {};
+	SystemIdentificationTest(){};
 	float apply(float sample);
-	void setCoefficients(float a1, float a2, float b0, float b1, float b2)
-	{
+	void setCoefficients(float a1, float a2, float b0, float b1, float b2) {
 		_a1 = a1;
 		_a2 = a2;
 		_b0 = b0;
@@ -68,11 +68,10 @@ private:
 	float _delay_element_2{};
 };
 
-float SystemIdentificationTest::apply(float sample)
-{
+float SystemIdentificationTest::apply(float sample) {
 	// Direct Form II implementation
-	const float delay_element_0{sample - _delay_element_1 *_a1 - _delay_element_2 * _a2};
-	const float output{delay_element_0 *_b0 + _delay_element_1 *_b1 + _delay_element_2 * _b2};
+	const float delay_element_0{sample - _delay_element_1 * _a1 - _delay_element_2 * _a2};
+	const float output{delay_element_0 * _b0 + _delay_element_1 * _b1 + _delay_element_2 * _b2};
 
 	_delay_element_2 = _delay_element_1;
 	_delay_element_1 = delay_element_0;
@@ -80,8 +79,7 @@ float SystemIdentificationTest::apply(float sample)
 	return output;
 }
 
-TEST_F(SystemIdentificationTest, basicTest)
-{
+TEST_F(SystemIdentificationTest, basicTest) {
 	constexpr float fs = 800.f;
 
 	SystemIdentification _sys_id;
@@ -107,8 +105,7 @@ TEST_F(SystemIdentificationTest, basicTest)
 	_sys_id.getVariances().print();
 }
 
-TEST_F(SystemIdentificationTest, resetTest)
-{
+TEST_F(SystemIdentificationTest, resetTest) {
 	constexpr float fs = 800.f;
 
 	SystemIdentification _sys_id;
@@ -141,8 +138,7 @@ TEST_F(SystemIdentificationTest, resetTest)
 	_sys_id.getVariances().print();
 }
 
-TEST_F(SystemIdentificationTest, simulatedModelTest)
-{
+TEST_F(SystemIdentificationTest, simulatedModelTest) {
 	constexpr float fs = 200.f;
 	const float gyro_lpf_cutoff = 30.f;
 
@@ -158,8 +154,8 @@ TEST_F(SystemIdentificationTest, simulatedModelTest)
 	const float b1 = -0.25f;
 	const float b2 = 0.2f;
 	setCoefficients(a1, a2, b0, b1, b2);
-	const float u_bias = -0.1f; // constant control offset
-	const float y_bias = 0.2f; // measurement bias
+	const float u_bias = -0.1f;  // constant control offset
+	const float y_bias = 0.2f;   // measurement bias
 
 	const float dt = 1.f / fs;
 	const float duration = 2.f;
@@ -167,10 +163,8 @@ TEST_F(SystemIdentificationTest, simulatedModelTest)
 	float y = 0.f;
 
 	for (int i = 0; i < static_cast<int>(duration / dt); i++) {
-
 		// Generate square input signal
-		if (_sys_id.areFiltersInitialized()
-		    && (i % 30 == 0)) {
+		if (_sys_id.areFiltersInitialized() && (i % 30 == 0)) {
 			if (u > 0.f) {
 				u = -1.f;
 
@@ -179,7 +173,7 @@ TEST_F(SystemIdentificationTest, simulatedModelTest)
 			}
 		}
 
-		_sys_id.update(u + u_bias, y + y_bias); // apply new input and previous output
+		_sys_id.update(u + u_bias, y + y_bias);  // apply new input and previous output
 
 		y = apply(u);
 #if 0
@@ -197,8 +191,7 @@ TEST_F(SystemIdentificationTest, simulatedModelTest)
 	_sys_id.getVariances().print();
 }
 
-TEST_F(SystemIdentificationTest, realDataTest)
-{
+TEST_F(SystemIdentificationTest, realDataTest) {
 	static constexpr int n_samples_dt_avg = 100;
 	static constexpr int n_samples_test_data = sizeof(u_data) / sizeof(u_data[0]);
 	float dt_sum = 0.f;
@@ -224,7 +217,7 @@ TEST_F(SystemIdentificationTest, realDataTest)
 
 	for (int i = 0; i < n_samples_test_data; i++) {
 		u = u_data[i];
-		_sys_id.update(u, y_prev); // apply new input and previous output
+		_sys_id.update(u, y_prev);  // apply new input and previous output
 
 		y_prev = y_data[i];
 

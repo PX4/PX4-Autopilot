@@ -36,8 +36,7 @@
 
 #include <uORB/topics/rpm.h>
 
-class MavlinkStreamRawRpm : public MavlinkStream
-{
+class MavlinkStreamRawRpm : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamRawRpm(mavlink); }
 
@@ -47,8 +46,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		return _rpm_subs.advertised_count() * (MAVLINK_MSG_ID_RAW_RPM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
 	}
 
@@ -57,8 +55,7 @@ private:
 
 	uORB::SubscriptionMultiArray<rpm_s> _rpm_subs{ORB_ID::rpm};
 
-	bool send() override
-	{
+	bool send() override {
 		bool updated = false;
 
 		for (int i = 0; i < _rpm_subs.size(); i++) {
@@ -79,4 +76,4 @@ private:
 	}
 };
 
-#endif // RAW_RPM_HPP
+#endif  // RAW_RPM_HPP

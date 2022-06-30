@@ -33,16 +33,16 @@
 
 #include "param_translation.h"
 
-
-#include <px4_platform_common/log.h>
-#include <lib/drivers/device/Device.hpp>
 #include <drivers/drv_sensor.h>
-#include <lib/parameters/param.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/parameters/param.h>
+#include <px4_platform_common/log.h>
 
-bool param_modify_on_import(bson_node_t node)
-{
-	// migrate MPC_SPOOLUP_TIME -> COM_SPOOLUP_TIME (2020-12-03). This can be removed after the next release (current release=1.11)
+#include <lib/drivers/device/Device.hpp>
+
+bool param_modify_on_import(bson_node_t node) {
+	// migrate MPC_SPOOLUP_TIME -> COM_SPOOLUP_TIME (2020-12-03). This can be removed after the next release
+	// (current release=1.11)
 	if (node->type == BSON_DOUBLE) {
 		if (strcmp("MPC_SPOOLUP_TIME", node->name) == 0) {
 			strcpy(node->name, "COM_SPOOLUP_TIME");
@@ -51,7 +51,8 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	// migrate COM_ARM_AUTH -> COM_ARM_AUTH_ID, COM_ARM_AUTH_MET and COM_ARM_AUTH_TO (2020-11-06). This can be removed after the next release (current release=1.11)
+	// migrate COM_ARM_AUTH -> COM_ARM_AUTH_ID, COM_ARM_AUTH_MET and COM_ARM_AUTH_TO (2020-11-06). This can be
+	// removed after the next release (current release=1.11)
 	if (node->type == BSON_INT32) {
 		if (strcmp("COM_ARM_AUTH", node->name) == 0) {
 			union {
@@ -73,11 +74,9 @@ bool param_modify_on_import(bson_node_t node)
 			strcpy(node->name, "COM_ARM_AUTH_ID");
 			node->i32 = old_param.struct_value.authorizer_system_id;
 
-			PX4_INFO("migrating COM_ARM_AUTH: %" PRId32 " -> COM_ARM_AUTH_ID:%" PRId8 ", COM_ARM_AUTH_MET: %" PRId32
-				 " and COM_ARM_AUTH_TO: %f",
-				 old_param.param_value,
-				 old_param.struct_value.authorizer_system_id,
-				 method,
+			PX4_INFO("migrating COM_ARM_AUTH: %" PRId32 " -> COM_ARM_AUTH_ID:%" PRId8
+				 ", COM_ARM_AUTH_MET: %" PRId32 " and COM_ARM_AUTH_TO: %f",
+				 old_param.param_value, old_param.struct_value.authorizer_system_id, method,
 				 (double)timeout);
 		}
 	}
@@ -173,7 +172,6 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
-
 	// 2021-10-21: translate NAV_GPSF_LT to FW_GPSF_LT and NAV_GPSF_R to FW_GPSF_R
 	{
 		if (strcmp("NAV_GPSF_LT", node->name) == 0) {
@@ -224,7 +222,7 @@ bool param_modify_on_import(bson_node_t node)
 	// 2022-06-09: migrate EKF2_WIND_NOISE->EKF2_WIND_NSD
 	{
 		if (strcmp("EKF2_WIND_NOISE", node->name) == 0) {
-			node->d /= 10.0; // at 100Hz (EKF2 rate), NSD is sqrt(100) times smaller than std_dev
+			node->d /= 10.0;  // at 100Hz (EKF2 rate), NSD is sqrt(100) times smaller than std_dev
 			strcpy(node->name, "EKF2_WIND_NSD");
 			PX4_INFO("param migrating EKF2_WIND_NOISE (removed) -> EKF2_WIND_NSD: value=%.3f", node->d);
 			return true;

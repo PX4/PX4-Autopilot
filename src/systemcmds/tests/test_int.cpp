@@ -36,8 +36,6 @@
  * Tests for integer types.
  */
 
-#include <unit_test.h>
-
 #include <errno.h>
 #include <fcntl.h>
 #include <float.h>
@@ -48,6 +46,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <unit_test.h>
 
 typedef union {
 	int32_t i;
@@ -55,8 +54,7 @@ typedef union {
 	uint8_t b[8];
 } test_32_64_t;
 
-class IntTest : public UnitTest
-{
+class IntTest : public UnitTest {
 public:
 	virtual bool run_tests();
 
@@ -65,8 +63,7 @@ private:
 	bool math3264MixedMathTests();
 };
 
-bool IntTest::math64bitTests()
-{
+bool IntTest::math64bitTests() {
 	int64_t large = 354156329598;
 	int64_t calc = large * 5;
 
@@ -75,21 +72,19 @@ bool IntTest::math64bitTests()
 	return true;
 }
 
-bool IntTest::math3264MixedMathTests()
-{
+bool IntTest::math3264MixedMathTests() {
 	int32_t small = 50;
-	int32_t large_int = 2147483647; // MAX INT value
+	int32_t large_int = 2147483647;  // MAX INT value
 
 	uint64_t small_times_large = large_int * (uint64_t)small;
 
-	ut_assert("64bit calculation: 50 * 2147483647 (max int val) == 107374182350", small_times_large == 107374182350);
+	ut_assert("64bit calculation: 50 * 2147483647 (max int val) == 107374182350",
+		  small_times_large == 107374182350);
 
 	return true;
 }
 
-
-bool IntTest::run_tests()
-{
+bool IntTest::run_tests() {
 	ut_run_test(math64bitTests);
 	ut_run_test(math3264MixedMathTests);
 

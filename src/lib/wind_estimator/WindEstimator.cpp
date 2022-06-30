@@ -38,10 +38,8 @@
 
 #include "WindEstimator.hpp"
 
-bool
-WindEstimator::initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas,
-			  const matrix::Quatf &q_att)
-{
+bool WindEstimator::initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas,
+			       const matrix::Quatf &q_att) {
 	// do no initialise if ground velocity is low
 	// this should prevent the filter from initialising on the ground
 	if (sqrtf(velI(0) * velI(0) + velI(1) * velI(1)) < 3.0f) {
@@ -93,9 +91,7 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const matrix::Vector2f &
 	return true;
 }
 
-void
-WindEstimator::update(uint64_t time_now)
-{
+void WindEstimator::update(uint64_t time_now) {
 	if (!_initialised) {
 		return;
 	}
@@ -122,11 +118,9 @@ WindEstimator::update(uint64_t time_now)
 	_P += Qk;
 }
 
-void
-WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const matrix::Vector3f &velI,
-			     const matrix::Vector2f &velIvar, const matrix::Quatf &q_att)
-{
-	matrix::Vector2f velIvar_constrained = { math::max(0.01f, velIvar(0)), math::max(0.01f, velIvar(1)) };
+void WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const matrix::Vector3f &velI,
+				  const matrix::Vector2f &velIvar, const matrix::Quatf &q_att) {
+	matrix::Vector2f velIvar_constrained = {math::max(0.01f, velIvar(0)), math::max(0.01f, velIvar(1))};
 
 	if (!_initialised) {
 		// try to initialise
@@ -148,7 +142,7 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 
 	// calculate airspeed from ground speed and wind states (without scale)
 	const float airspeed_predicted_raw = sqrtf((v_n - _state(INDEX_W_N)) * (v_n - _state(INDEX_W_N)) +
-					     (v_e - _state(INDEX_W_E)) * (v_e - _state(INDEX_W_E)) + v_d * v_d);
+						   (v_e - _state(INDEX_W_E)) * (v_e - _state(INDEX_W_E)) + v_d * v_d);
 
 	// compute state observation matrix H
 	const float HH0 = airspeed_predicted_raw;
@@ -176,9 +170,10 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	bool reinit_filter = false;
 	bool meas_is_rejected = false;
 
-	// note: _time_rejected_tas and reinit_filter are not used anymore as filter can't get reset due to tas rejection
-	meas_is_rejected = check_if_meas_is_rejected(time_now, _tas_innov, _tas_innov_var, _tas_gate, _time_rejected_tas,
-			   reinit_filter);
+	// note: _time_rejected_tas and reinit_filter are not used anymore as filter can't get reset due to tas
+	// rejection
+	meas_is_rejected = check_if_meas_is_rejected(time_now, _tas_innov, _tas_innov_var, _tas_gate,
+						     _time_rejected_tas, reinit_filter);
 
 	if (meas_is_rejected || _tas_innov_var < 0.f) {
 		// only reset filter if _tas_innov_var gets unfeasible
@@ -201,9 +196,7 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	run_sanity_checks();
 }
 
-void
-WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const matrix::Quatf &q_att)
-{
+void WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const matrix::Quatf &q_att) {
 	if (!_initialised) {
 		_initialised = initialise(velI, matrix::Vector2f(0.1f, 0.1f), velI.length(), q_att);
 		return;
@@ -237,7 +230,8 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	float HB13 = HB12 + HB9;
 	float HB14 = HB13 * HB6 + HB4 * HB5 + v_d * (-HB0 * q_att(2) + HB2 * q_att(3));
 	float HB15 = 1.0f / HB14;
-	float HB16 = (HB4 * (-HB10 + HB11 + HB9) + HB6 * (-HB1 + HB3) + v_d * (HB0 * q_att(1) + 2.0f * q_att(2) * q_att(3))) /
+	float HB16 = (HB4 * (-HB10 + HB11 + HB9) + HB6 * (-HB1 + HB3) +
+		      v_d * (HB0 * q_att(1) + 2.0f * q_att(2) * q_att(3))) /
 		     (HB14 * HB14);
 
 	matrix::Matrix<float, 1, 3> H_beta;
@@ -270,8 +264,8 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	bool reinit_filter = false;
 	bool meas_is_rejected = false;
 
-	meas_is_rejected = check_if_meas_is_rejected(time_now, _beta_innov, _beta_innov_var, _beta_gate, _time_rejected_beta,
-			   reinit_filter);
+	meas_is_rejected = check_if_meas_is_rejected(time_now, _beta_innov, _beta_innov_var, _beta_gate,
+						     _time_rejected_beta, reinit_filter);
 
 	reinit_filter |= _beta_innov_var < 0.0f;
 
@@ -295,9 +289,7 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	run_sanity_checks();
 }
 
-void
-WindEstimator::run_sanity_checks()
-{
+void WindEstimator::run_sanity_checks() {
 	for (unsigned i = 0; i < 3; i++) {
 		if (_P(i, i) < 0.0f) {
 			// ill-conditioned covariance matrix, reset filter
@@ -314,7 +306,8 @@ WindEstimator::run_sanity_checks()
 		}
 	}
 
-	if (!PX4_ISFINITE(_state(INDEX_W_N)) || !PX4_ISFINITE(_state(INDEX_W_E)) || !PX4_ISFINITE(_state(INDEX_TAS_SCALE))) {
+	if (!PX4_ISFINITE(_state(INDEX_W_N)) || !PX4_ISFINITE(_state(INDEX_W_E)) ||
+	    !PX4_ISFINITE(_state(INDEX_TAS_SCALE))) {
 		_initialised = false;
 		return;
 	}
@@ -329,10 +322,8 @@ WindEstimator::run_sanity_checks()
 	}
 }
 
-bool
-WindEstimator::check_if_meas_is_rejected(uint64_t time_now, float innov, float innov_var, uint8_t gate_size,
-		uint64_t &time_meas_rejected, bool &reinit_filter)
-{
+bool WindEstimator::check_if_meas_is_rejected(uint64_t time_now, float innov, float innov_var, uint8_t gate_size,
+					      uint64_t &time_meas_rejected, bool &reinit_filter) {
 	if (innov * innov > gate_size * gate_size * innov_var) {
 		time_meas_rejected = time_meas_rejected == 0 ? time_now : time_meas_rejected;
 

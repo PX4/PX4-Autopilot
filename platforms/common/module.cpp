@@ -40,16 +40,15 @@
 #define MODULE_NAME "module"
 #endif
 
-#include <px4_platform_common/module.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 
 pthread_mutex_t px4_modules_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #ifndef __PX4_NUTTX
 
-void PRINT_MODULE_DESCRIPTION(const char *description)
-{
+void PRINT_MODULE_DESCRIPTION(const char *description) {
 	// TODO: the output could be improved by:
 	// - mark titles in bold (lines starting with ##)
 	// - highlight commands (lines starting with $, or `cmd`)
@@ -58,8 +57,7 @@ void PRINT_MODULE_DESCRIPTION(const char *description)
 
 #endif /* __PX4_NUTTX */
 
-void PRINT_MODULE_USAGE_NAME(const char *executable_name, const char *category)
-{
+void PRINT_MODULE_USAGE_NAME(const char *executable_name, const char *category) {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 	PX4_INFO_RAW("Usage: %s <command> [arguments...]\n", executable_name);
 	PX4_INFO_RAW(" Commands:\n");
@@ -68,20 +66,15 @@ void PRINT_MODULE_USAGE_NAME(const char *executable_name, const char *category)
 #endif
 }
 
-void PRINT_MODULE_USAGE_SUBCATEGORY(const char *subcategory)
-{
-	(void)subcategory;
-}
+void PRINT_MODULE_USAGE_SUBCATEGORY(const char *subcategory) { (void)subcategory; }
 
-void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char *category)
-{
+void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char *category) {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 	PX4_INFO_RAW("Usage: %s [arguments...]\n", executable_name);
 #endif
 }
 
-void PRINT_MODULE_USAGE_COMMAND_DESCR(const char *name, const char *description)
-{
+void PRINT_MODULE_USAGE_COMMAND_DESCR(const char *name, const char *description) {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 
 	if (description) {
@@ -94,15 +87,13 @@ void PRINT_MODULE_USAGE_COMMAND_DESCR(const char *name, const char *description)
 #endif
 }
 
-void PRINT_MODULE_USAGE_PARAM_COMMENT(const char *comment)
-{
+void PRINT_MODULE_USAGE_PARAM_COMMENT(const char *comment) {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 	PX4_INFO_RAW("\n %s\n", comment);
 #endif
 }
 
-void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool spi_support)
-{
+void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool spi_support) {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 
 	// Note: this must be kept in sync with Tools/px4moduledoc/srcparser.py
@@ -116,11 +107,12 @@ void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool spi_support
 		PRINT_MODULE_USAGE_PARAM_FLAG('S', "External SPI bus", true);
 	}
 
-	PRINT_MODULE_USAGE_PARAM_INT('b', -1, 0, 16, "board-specific bus (default=all) (external SPI: n-th bus (default=1))",
-				     true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', -1, 0, 16,
+				     "board-specific bus (default=all) (external SPI: n-th bus (default=1))", true);
 
 	if (spi_support) {
-		PRINT_MODULE_USAGE_PARAM_INT('c', -1, 0, 31, "chip-select pin (for internal SPI) or index (for external SPI)", true);
+		PRINT_MODULE_USAGE_PARAM_INT('c', -1, 0, 31,
+					     "chip-select pin (for internal SPI) or index (for external SPI)", true);
 		PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 3, "SPI mode", true);
 	}
 
@@ -129,23 +121,20 @@ void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool spi_support
 #endif
 }
 
-void PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(uint8_t default_address)
-{
+void PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(uint8_t default_address) {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 	PRINT_MODULE_USAGE_PARAM_INT('a', default_address, 0, 0xff, "I2C address", true);
 #endif
 }
 
-void PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG()
-{
+void PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG() {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 	PRINT_MODULE_USAGE_PARAM_FLAG('k', "if initialization (probing) fails, keep retrying periodically", true);
 #endif
 }
 
-void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int min_val, int max_val,
-				  const char *description, bool is_optional)
-{
+void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int min_val, int max_val, const char *description,
+				  bool is_optional) {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 
 	if (is_optional) {
@@ -163,8 +152,7 @@ void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int min_val
 }
 
 void PRINT_MODULE_USAGE_PARAM_FLOAT(char option_char, float default_val, float min_val, float max_val,
-				    const char *description, bool is_optional)
-{
+				    const char *description, bool is_optional) {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 
 	if (is_optional) {
@@ -181,8 +169,7 @@ void PRINT_MODULE_USAGE_PARAM_FLOAT(char option_char, float default_val, float m
 #endif
 }
 
-void PRINT_MODULE_USAGE_PARAM_FLAG(char option_char, const char *description, bool is_optional)
-{
+void PRINT_MODULE_USAGE_PARAM_FLAG(char option_char, const char *description, bool is_optional) {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 
 	if (is_optional) {
@@ -196,8 +183,7 @@ void PRINT_MODULE_USAGE_PARAM_FLAG(char option_char, const char *description, bo
 }
 
 void PRINT_MODULE_USAGE_PARAM_STRING(char option_char, const char *default_val, const char *values,
-				     const char *description, bool is_optional)
-{
+				     const char *description, bool is_optional) {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 
 	if (is_optional) {
@@ -224,9 +210,7 @@ void PRINT_MODULE_USAGE_PARAM_STRING(char option_char, const char *default_val, 
 #endif
 }
 
-
-void PRINT_MODULE_USAGE_ARG(const char *values, const char *description, bool is_optional)
-{
+void PRINT_MODULE_USAGE_ARG(const char *values, const char *description, bool is_optional) {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 
 	if (is_optional) {
@@ -238,4 +222,3 @@ void PRINT_MODULE_USAGE_ARG(const char *values, const char *description, bool is
 
 #endif
 }
-

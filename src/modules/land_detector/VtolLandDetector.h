@@ -45,11 +45,9 @@
 
 #include "MulticopterLandDetector.h"
 
-namespace land_detector
-{
+namespace land_detector {
 
-class VtolLandDetector : public MulticopterLandDetector
-{
+class VtolLandDetector : public MulticopterLandDetector {
 public:
 	VtolLandDetector() = default;
 	~VtolLandDetector() override = default;
@@ -63,13 +61,11 @@ protected:
 private:
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 
-	bool _was_in_air{false}; /**< indicates whether the vehicle was in the air in the previous iteration */
+	bool _was_in_air{false};        /**< indicates whether the vehicle was in the air in the previous iteration */
 	float _airspeed_filtered{0.0f}; /**< low pass filtered airspeed */
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(
-		MulticopterLandDetector,
-		(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>) _param_lndfw_airspd_max
-	);
+	DEFINE_PARAMETERS_CUSTOM_PARENT(MulticopterLandDetector,
+					(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>)_param_lndfw_airspd_max);
 };
 
-} // namespace land_detector
+}  // namespace land_detector

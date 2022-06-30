@@ -54,24 +54,18 @@
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
-#include <matrix/math.hpp>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/action_request.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed_validated.h>
-#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/tecs_status.h>
+#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -80,10 +74,18 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/vtol_vehicle_status.h>
+
+#include <matrix/math.hpp>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+
 #include "standard.h"
 #include "tailsitter.h"
 #include "tiltrotor.h"
@@ -92,12 +94,10 @@ using namespace time_literals;
 
 extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
 
-static constexpr float kMaxVTOLAttitudeControlTimeStep = 0.1f; // max time step [s]
+static constexpr float kMaxVTOLAttitudeControlTimeStep = 0.1f;  // max time step [s]
 
-class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public ModuleParams, public px4::WorkItem
-{
+class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public ModuleParams, public px4::WorkItem {
 public:
-
 	enum class QuadchuteReason {
 		TransitionTimeout = 0,
 		ExternalCommand,
@@ -126,34 +126,74 @@ public:
 
 	void quadchute(QuadchuteReason reason);
 
-	int get_transition_command() {return _transition_command;}
+	int get_transition_command() { return _transition_command; }
 
-	bool get_immediate_transition() {return _immediate_transition;}
+	bool get_immediate_transition() { return _immediate_transition; }
 
-	void reset_immediate_transition() {_immediate_transition = false;}
+	void reset_immediate_transition() { _immediate_transition = false; }
 
 	float getAirDensity() const { return _air_density; }
 
-	struct actuator_controls_s 			*get_actuators_fw_in() {return &_actuators_fw_in;}
-	struct actuator_controls_s 			*get_actuators_mc_in() {return &_actuators_mc_in;}
-	struct actuator_controls_s 			*get_actuators_out0() {return &_actuators_out_0;}
-	struct actuator_controls_s 			*get_actuators_out1() {return &_actuators_out_1;}
-	struct airspeed_validated_s 			*get_airspeed() {return &_airspeed_validated;}
-	struct position_setpoint_triplet_s		*get_pos_sp_triplet() {return &_pos_sp_triplet;}
-	struct tecs_status_s 				*get_tecs_status() {return &_tecs_status;}
-	struct vehicle_attitude_s 			*get_att() {return &_vehicle_attitude;}
-	struct vehicle_attitude_setpoint_s		*get_att_sp() {return &_vehicle_attitude_sp;}
-	struct vehicle_attitude_setpoint_s 		*get_fw_virtual_att_sp() {return &_fw_virtual_att_sp;}
-	struct vehicle_attitude_setpoint_s 		*get_mc_virtual_att_sp() {return &_mc_virtual_att_sp;}
-	struct vehicle_control_mode_s 			*get_control_mode() {return &_vehicle_control_mode;}
-	struct vehicle_land_detected_s			*get_land_detected() {return &_land_detected;}
-	struct vehicle_local_position_s 		*get_local_pos() {return &_local_pos;}
-	struct vehicle_local_position_setpoint_s	*get_local_pos_sp() {return &_local_pos_sp;}
-	struct vehicle_torque_setpoint_s 		*get_torque_setpoint_0() {return &_torque_setpoint_0;}
-	struct vehicle_torque_setpoint_s 		*get_torque_setpoint_1() {return &_torque_setpoint_1;}
-	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_0() {return &_thrust_setpoint_0;}
-	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_1() {return &_thrust_setpoint_1;}
-	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
+	struct actuator_controls_s *get_actuators_fw_in() {
+		return &_actuators_fw_in;
+	}
+	struct actuator_controls_s *get_actuators_mc_in() {
+		return &_actuators_mc_in;
+	}
+	struct actuator_controls_s *get_actuators_out0() {
+		return &_actuators_out_0;
+	}
+	struct actuator_controls_s *get_actuators_out1() {
+		return &_actuators_out_1;
+	}
+	struct airspeed_validated_s *get_airspeed() {
+		return &_airspeed_validated;
+	}
+	struct position_setpoint_triplet_s *get_pos_sp_triplet() {
+		return &_pos_sp_triplet;
+	}
+	struct tecs_status_s *get_tecs_status() {
+		return &_tecs_status;
+	}
+	struct vehicle_attitude_s *get_att() {
+		return &_vehicle_attitude;
+	}
+	struct vehicle_attitude_setpoint_s *get_att_sp() {
+		return &_vehicle_attitude_sp;
+	}
+	struct vehicle_attitude_setpoint_s *get_fw_virtual_att_sp() {
+		return &_fw_virtual_att_sp;
+	}
+	struct vehicle_attitude_setpoint_s *get_mc_virtual_att_sp() {
+		return &_mc_virtual_att_sp;
+	}
+	struct vehicle_control_mode_s *get_control_mode() {
+		return &_vehicle_control_mode;
+	}
+	struct vehicle_land_detected_s *get_land_detected() {
+		return &_land_detected;
+	}
+	struct vehicle_local_position_s *get_local_pos() {
+		return &_local_pos;
+	}
+	struct vehicle_local_position_setpoint_s *get_local_pos_sp() {
+		return &_local_pos_sp;
+	}
+	struct vehicle_torque_setpoint_s *get_torque_setpoint_0() {
+		return &_torque_setpoint_0;
+	}
+	struct vehicle_torque_setpoint_s *get_torque_setpoint_1() {
+		return &_torque_setpoint_1;
+	}
+	struct vehicle_thrust_setpoint_s *get_thrust_setpoint_0() {
+		return &_thrust_setpoint_0;
+	}
+	struct vehicle_thrust_setpoint_s *get_thrust_setpoint_1() {
+		return &_thrust_setpoint_1;
+	}
+	struct vtol_vehicle_status_s *get_vtol_vehicle_status() {
+		return &_vtol_vehicle_status;
+	}
 
 private:
 	void Run() override;
@@ -178,64 +218,67 @@ private:
 	uORB::Subscription _vehicle_cmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	uORB::Publication<actuator_controls_s>			_actuator_controls_0_pub{ORB_ID(actuator_controls_0)};		//input for the mixer (roll,pitch,yaw,thrust)
-	uORB::Publication<actuator_controls_s>			_actuator_controls_1_pub{ORB_ID(actuator_controls_1)};
-	uORB::Publication<vehicle_attitude_setpoint_s>		_vehicle_attitude_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
-	uORB::PublicationMulti<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint0_pub{ORB_ID(vehicle_thrust_setpoint)};
-	uORB::PublicationMulti<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint1_pub{ORB_ID(vehicle_thrust_setpoint)};
-	uORB::PublicationMulti<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint0_pub{ORB_ID(vehicle_torque_setpoint)};
-	uORB::PublicationMulti<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint1_pub{ORB_ID(vehicle_torque_setpoint)};
-	uORB::Publication<vtol_vehicle_status_s>		_vtol_vehicle_status_pub{ORB_ID(vtol_vehicle_status)};
+	uORB::Publication<actuator_controls_s> _actuator_controls_0_pub{
+		ORB_ID(actuator_controls_0)};  // input for the mixer (roll,pitch,yaw,thrust)
+	uORB::Publication<actuator_controls_s> _actuator_controls_1_pub{ORB_ID(actuator_controls_1)};
+	uORB::Publication<vehicle_attitude_setpoint_s> _vehicle_attitude_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::PublicationMulti<vehicle_thrust_setpoint_s> _vehicle_thrust_setpoint0_pub{
+		ORB_ID(vehicle_thrust_setpoint)};
+	uORB::PublicationMulti<vehicle_thrust_setpoint_s> _vehicle_thrust_setpoint1_pub{
+		ORB_ID(vehicle_thrust_setpoint)};
+	uORB::PublicationMulti<vehicle_torque_setpoint_s> _vehicle_torque_setpoint0_pub{
+		ORB_ID(vehicle_torque_setpoint)};
+	uORB::PublicationMulti<vehicle_torque_setpoint_s> _vehicle_torque_setpoint1_pub{
+		ORB_ID(vehicle_torque_setpoint)};
+	uORB::Publication<vtol_vehicle_status_s> _vtol_vehicle_status_pub{ORB_ID(vtol_vehicle_status)};
 
-	orb_advert_t	_mavlink_log_pub{nullptr};	// mavlink log uORB handle
+	orb_advert_t _mavlink_log_pub{nullptr};  // mavlink log uORB handle
 
-	vehicle_attitude_setpoint_s		_vehicle_attitude_sp{};	// vehicle attitude setpoint
-	vehicle_attitude_setpoint_s 		_fw_virtual_att_sp{};	// virtual fw attitude setpoint
-	vehicle_attitude_setpoint_s 		_mc_virtual_att_sp{};	// virtual mc attitude setpoint
+	vehicle_attitude_setpoint_s _vehicle_attitude_sp{};  // vehicle attitude setpoint
+	vehicle_attitude_setpoint_s _fw_virtual_att_sp{};    // virtual fw attitude setpoint
+	vehicle_attitude_setpoint_s _mc_virtual_att_sp{};    // virtual mc attitude setpoint
 
-	actuator_controls_s			_actuators_fw_in{};	//actuator controls from fw_att_control
-	actuator_controls_s			_actuators_mc_in{};	//actuator controls from mc_att_control
-	actuator_controls_s			_actuators_out_0{};	//actuator controls going to the mc mixer
-	actuator_controls_s			_actuators_out_1{};	//actuator controls going to the fw mixer (used for elevons)
+	actuator_controls_s _actuators_fw_in{};  // actuator controls from fw_att_control
+	actuator_controls_s _actuators_mc_in{};  // actuator controls from mc_att_control
+	actuator_controls_s _actuators_out_0{};  // actuator controls going to the mc mixer
+	actuator_controls_s _actuators_out_1{};  // actuator controls going to the fw mixer (used for elevons)
 
-	vehicle_torque_setpoint_s		_torque_setpoint_0{};
-	vehicle_torque_setpoint_s		_torque_setpoint_1{};
-	vehicle_thrust_setpoint_s		_thrust_setpoint_0{};
-	vehicle_thrust_setpoint_s		_thrust_setpoint_1{};
+	vehicle_torque_setpoint_s _torque_setpoint_0{};
+	vehicle_torque_setpoint_s _torque_setpoint_1{};
+	vehicle_thrust_setpoint_s _thrust_setpoint_0{};
+	vehicle_thrust_setpoint_s _thrust_setpoint_1{};
 
-	airspeed_validated_s 			_airspeed_validated{};
-	position_setpoint_triplet_s		_pos_sp_triplet{};
-	tecs_status_s				_tecs_status{};
-	vehicle_attitude_s			_vehicle_attitude{};
-	vehicle_control_mode_s			_vehicle_control_mode{};
-	vehicle_land_detected_s			_land_detected{};
-	vehicle_local_position_s		_local_pos{};
-	vehicle_local_position_setpoint_s	_local_pos_sp{};
-	vtol_vehicle_status_s 			_vtol_vehicle_status{};
+	airspeed_validated_s _airspeed_validated{};
+	position_setpoint_triplet_s _pos_sp_triplet{};
+	tecs_status_s _tecs_status{};
+	vehicle_attitude_s _vehicle_attitude{};
+	vehicle_control_mode_s _vehicle_control_mode{};
+	vehicle_land_detected_s _land_detected{};
+	vehicle_local_position_s _local_pos{};
+	vehicle_local_position_setpoint_s _local_pos_sp{};
+	vtol_vehicle_status_s _vtol_vehicle_status{};
 
-	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};	// [kg/m^3]
+	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};  // [kg/m^3]
 
 	hrt_abstime _last_run_timestamp{0};
 
 	/* For multicopters it is usual to have a non-zero idle speed of the engines
 	 * for fixed wings we want to have an idle speed of zero since we do not want
 	 * to waste energy when gliding. */
-	int		_transition_command{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
-	bool		_immediate_transition{false};
+	int _transition_command{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
+	bool _immediate_transition{false};
 
-	VtolType	*_vtol_type{nullptr};	// base class for different vtol types
+	VtolType *_vtol_type{nullptr};  // base class for different vtol types
 
-	bool		_initialized{false};
+	bool _initialized{false};
 
-	perf_counter_t	_loop_perf;		// loop performance counter
+	perf_counter_t _loop_perf;  // loop performance counter
 
-	void		action_request_poll();
+	void action_request_poll();
 
-	void		vehicle_cmd_poll();
+	void vehicle_cmd_poll();
 
-	void 		parameters_update();
+	void parameters_update();
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::VT_TYPE>) _param_vt_type
-	)
+	DEFINE_PARAMETERS((ParamInt<px4::params::VT_TYPE>)_param_vt_type)
 };

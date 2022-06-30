@@ -33,8 +33,7 @@
 
 #include <lockstep_scheduler/lockstep_scheduler.h>
 
-LockstepScheduler::~LockstepScheduler()
-{
+LockstepScheduler::~LockstepScheduler() {
 	// cleanup the linked list
 	std::unique_lock<std::mutex> lock_timed_waits(_timed_waits_mutex);
 
@@ -45,8 +44,7 @@ LockstepScheduler::~LockstepScheduler()
 	}
 }
 
-void LockstepScheduler::set_absolute_time(uint64_t time_us)
-{
+void LockstepScheduler::set_absolute_time(uint64_t time_us) {
 	_time_us = time_us;
 
 	{
@@ -73,8 +71,7 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 				continue;
 			}
 
-			if (timed_wait->time_us <= time_us &&
-			    !timed_wait->timeout) {
+			if (timed_wait->time_us <= time_us && !timed_wait->timeout) {
 				// We are abusing the condition here to signal that the time
 				// has passed.
 				pthread_mutex_lock(timed_wait->passed_lock);
@@ -91,8 +88,7 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 	}
 }
 
-int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *lock, uint64_t time_us)
-{
+int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *lock, uint64_t time_us) {
 	// A TimedWait object might still be in timed_waits_ after we return, so its lifetime needs to be
 	// longer. And using thread_local is more efficient than malloc.
 	static thread_local TimedWait timed_wait;
@@ -147,8 +143,7 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 	return result;
 }
 
-int LockstepScheduler::usleep_until(uint64_t time_us)
-{
+int LockstepScheduler::usleep_until(uint64_t time_us) {
 	pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 

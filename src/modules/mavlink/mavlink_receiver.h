@@ -41,23 +41,9 @@
 
 #pragma once
 
-#include "mavlink_ftp.h"
-#include "mavlink_log_handler.h"
-#include "mavlink_mission.h"
-#include "mavlink_parameters.h"
-#include "MavlinkStatustextHandler.hpp"
-#include "mavlink_timesync.h"
-#include "tune_publisher.h"
-
 #include <geo/geo.h>
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <px4_platform_common/module_params.h>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -71,10 +57,10 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/follow_target.h>
 #include <uORB/topics/generator_status.h>
+#include <uORB/topics/gimbal_device_attitude_status.h>
+#include <uORB/topics/gimbal_device_information.h>
 #include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <uORB/topics/gimbal_manager_set_manual_control.h>
-#include <uORB/topics/gimbal_device_information.h>
-#include <uORB/topics/gimbal_device_attitude_status.h>
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/input_rc.h>
@@ -94,8 +80,8 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/telemetry_status.h>
-#include <uORB/topics/transponder_report.h>
 #include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/transponder_report.h>
 #include <uORB/topics/tune_control.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -111,19 +97,33 @@
 #include <uORB/topics/vehicle_trajectory_bezier.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/SubscriptionInterval.hpp>
+
+#include "MavlinkStatustextHandler.hpp"
+#include "mavlink_ftp.h"
+#include "mavlink_log_handler.h"
+#include "mavlink_mission.h"
+#include "mavlink_parameters.h"
+#include "mavlink_timesync.h"
+#include "tune_publisher.h"
+
 #if !defined(CONSTRAINED_FLASH)
-# include <uORB/topics/debug_array.h>
-# include <uORB/topics/debug_key_value.h>
-# include <uORB/topics/debug_value.h>
-# include <uORB/topics/debug_vect.h>
-#endif // !CONSTRAINED_FLASH
+#include <uORB/topics/debug_array.h>
+#include <uORB/topics/debug_key_value.h>
+#include <uORB/topics/debug_value.h>
+#include <uORB/topics/debug_vect.h>
+#endif  // !CONSTRAINED_FLASH
 
 using namespace time_literals;
 
 class Mavlink;
 
-class MavlinkReceiver : public ModuleParams
-{
+class MavlinkReceiver : public ModuleParams {
 public:
 	MavlinkReceiver(Mavlink *parent);
 	~MavlinkReceiver() override;
@@ -144,14 +144,16 @@ private:
 	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress = 0);
 
 	/**
-	 * Common method to handle both mavlink command types. T is one of mavlink_command_int_t or mavlink_command_long_t.
+	 * Common method to handle both mavlink command types. T is one of mavlink_command_int_t or
+	 * mavlink_command_long_t.
 	 */
-	template<class T>
+	template <class T>
 	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
 					 const vehicle_command_s &vehicle_command);
 
 	uint8_t handle_request_message_command(uint16_t message_id, float param2 = 0.0f, float param3 = 0.0f,
-					       float param4 = 0.0f, float param5 = 0.0f, float param6 = 0.0f, float param7 = 0.0f);
+					       float param4 = 0.0f, float param5 = 0.0f, float param6 = 0.0f,
+					       float param7 = 0.0f);
 
 	void handle_message(mavlink_message_t *msg);
 
@@ -208,7 +210,7 @@ private:
 	void handle_message_debug_float_array(mavlink_message_t *msg);
 	void handle_message_debug_vect(mavlink_message_t *msg);
 	void handle_message_named_value_float(mavlink_message_t *msg);
-#endif // !CONSTRAINED_FLASH
+#endif  // !CONSTRAINED_FLASH
 	void handle_message_request_event(mavlink_message_t *msg);
 
 	void CheckHeartbeats(const hrt_abstime &t, bool force = false);
@@ -235,23 +237,23 @@ private:
 	void update_message_statistics(const mavlink_message_t &message);
 	void update_rx_stats(const mavlink_message_t &message);
 
-	px4::atomic_bool 	_should_exit{false};
-	pthread_t		_thread {};
+	px4::atomic_bool _should_exit{false};
+	pthread_t _thread{};
 	/**
 	 * @brief Updates optical flow parameters.
 	 */
 	void updateParams() override;
 
-	Mavlink				*_mavlink;
+	Mavlink *_mavlink;
 
-	MavlinkFTP			_mavlink_ftp;
-	MavlinkLogHandler		_mavlink_log_handler;
-	MavlinkMissionManager		_mission_manager;
-	MavlinkParametersManager	_parameters_manager;
-	MavlinkTimesync			_mavlink_timesync;
-	MavlinkStatustextHandler	_mavlink_statustext_handler;
+	MavlinkFTP _mavlink_ftp;
+	MavlinkLogHandler _mavlink_log_handler;
+	MavlinkMissionManager _mission_manager;
+	MavlinkParametersManager _parameters_manager;
+	MavlinkTimesync _mavlink_timesync;
+	MavlinkStatustextHandler _mavlink_statustext_handler;
 
-	mavlink_status_t		_status{}; ///< receiver status, used for mavlink_parse_char()
+	mavlink_status_t _status{};  ///< receiver status, used for mavlink_parse_char()
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
@@ -263,106 +265,112 @@ private:
 		uint8_t component_id{0};
 		uint8_t last_sequence{0};
 	};
-	ComponentState _component_states[MAX_REMOTE_COMPONENTS] {};
+	ComponentState _component_states[MAX_REMOTE_COMPONENTS]{};
 	unsigned _component_states_count{0};
 	bool _warned_component_states_full_once{false};
 
-	bool _message_statistics_enabled {false};
+	bool _message_statistics_enabled{false};
 #if !defined(CONSTRAINED_FLASH)
-	static constexpr int MAX_MSG_STAT_SLOTS {16};
+	static constexpr int MAX_MSG_STAT_SLOTS{16};
 	struct ReceivedMessageStats {
-		float avg_rate_hz{0.f}; // average rate
+		float avg_rate_hz{0.f};  // average rate
 		uint32_t last_time_received_ms{0};
 		uint16_t msg_id{0};
 		uint8_t system_id{0};
 		uint8_t component_id{0};
 	};
 	ReceivedMessageStats *_received_msg_stats{nullptr};
-#endif // !CONSTRAINED_FLASH
+#endif  // !CONSTRAINED_FLASH
 
-	uint64_t _total_received_counter{0};                            ///< The total number of successfully received messages
-	uint64_t _total_lost_counter{0};                                ///< Total messages lost during transmission.
+	uint64_t _total_received_counter{0};  ///< The total number of successfully received messages
+	uint64_t _total_lost_counter{0};      ///< Total messages lost during transmission.
 
 	uint8_t _mavlink_status_last_buffer_overrun{0};
 	uint8_t _mavlink_status_last_parse_error{0};
 	uint16_t _mavlink_status_last_packet_rx_drop_count{0};
 
 	// ORB publications
-	uORB::Publication<actuator_controls_s>			_actuator_controls_pubs[4] {ORB_ID(actuator_controls_0), ORB_ID(actuator_controls_1), ORB_ID(actuator_controls_2), ORB_ID(actuator_controls_3)};
-	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
-	uORB::Publication<battery_status_s>			_battery_pub{ORB_ID(battery_status)};
-	uORB::Publication<camera_status_s>			_camera_status_pub{ORB_ID(camera_status)};
-	uORB::Publication<cellular_status_s>			_cellular_status_pub{ORB_ID(cellular_status)};
-	uORB::Publication<collision_report_s>			_collision_report_pub{ORB_ID(collision_report)};
-	uORB::Publication<differential_pressure_s>		_differential_pressure_pub{ORB_ID(differential_pressure)};
-	uORB::Publication<follow_target_s>			_follow_target_pub{ORB_ID(follow_target)};
-	uORB::Publication<gimbal_manager_set_attitude_s>	_gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
-	uORB::Publication<gimbal_manager_set_manual_control_s>	_gimbal_manager_set_manual_control_pub{ORB_ID(gimbal_manager_set_manual_control)};
-	uORB::Publication<gimbal_device_information_s>		_gimbal_device_information_pub{ORB_ID(gimbal_device_information)};
-	uORB::Publication<gimbal_device_attitude_status_s>	_gimbal_device_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
-	uORB::Publication<irlock_report_s>			_irlock_report_pub{ORB_ID(irlock_report)};
-	uORB::Publication<landing_target_pose_s>		_landing_target_pose_pub{ORB_ID(landing_target_pose)};
-	uORB::Publication<log_message_s>			_log_message_pub{ORB_ID(log_message)};
-	uORB::Publication<mavlink_tunnel_s>			_mavlink_tunnel_pub{ORB_ID(mavlink_tunnel)};
-	uORB::Publication<obstacle_distance_s>			_obstacle_distance_pub{ORB_ID(obstacle_distance)};
-	uORB::Publication<offboard_control_mode_s>		_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
-	uORB::Publication<onboard_computer_status_s>		_onboard_computer_status_pub{ORB_ID(onboard_computer_status)};
-	uORB::Publication<generator_status_s>			_generator_status_pub{ORB_ID(generator_status)};
-	uORB::Publication<vehicle_attitude_s>			_attitude_pub{ORB_ID(vehicle_attitude)};
-	uORB::Publication<vehicle_attitude_setpoint_s>		_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
-	uORB::Publication<vehicle_attitude_setpoint_s>		_mc_virtual_att_sp_pub{ORB_ID(mc_virtual_attitude_setpoint)};
-	uORB::Publication<vehicle_attitude_setpoint_s>		_fw_virtual_att_sp_pub{ORB_ID(fw_virtual_attitude_setpoint)};
-	uORB::Publication<vehicle_global_position_s>		_global_pos_pub{ORB_ID(vehicle_global_position)};
-	uORB::Publication<vehicle_local_position_s>		_local_pos_pub{ORB_ID(vehicle_local_position)};
-	uORB::Publication<trajectory_setpoint_s>		_trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
-	uORB::Publication<vehicle_odometry_s>			_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
-	uORB::Publication<vehicle_odometry_s>			_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
-	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
-	uORB::Publication<vehicle_trajectory_bezier_s>		_trajectory_bezier_pub{ORB_ID(vehicle_trajectory_bezier)};
-	uORB::Publication<vehicle_trajectory_waypoint_s>	_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
+	uORB::Publication<actuator_controls_s> _actuator_controls_pubs[4]{
+		ORB_ID(actuator_controls_0), ORB_ID(actuator_controls_1), ORB_ID(actuator_controls_2),
+		ORB_ID(actuator_controls_3)};
+	uORB::Publication<airspeed_s> _airspeed_pub{ORB_ID(airspeed)};
+	uORB::Publication<battery_status_s> _battery_pub{ORB_ID(battery_status)};
+	uORB::Publication<camera_status_s> _camera_status_pub{ORB_ID(camera_status)};
+	uORB::Publication<cellular_status_s> _cellular_status_pub{ORB_ID(cellular_status)};
+	uORB::Publication<collision_report_s> _collision_report_pub{ORB_ID(collision_report)};
+	uORB::Publication<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
+	uORB::Publication<follow_target_s> _follow_target_pub{ORB_ID(follow_target)};
+	uORB::Publication<gimbal_manager_set_attitude_s> _gimbal_manager_set_attitude_pub{
+		ORB_ID(gimbal_manager_set_attitude)};
+	uORB::Publication<gimbal_manager_set_manual_control_s> _gimbal_manager_set_manual_control_pub{
+		ORB_ID(gimbal_manager_set_manual_control)};
+	uORB::Publication<gimbal_device_information_s> _gimbal_device_information_pub{
+		ORB_ID(gimbal_device_information)};
+	uORB::Publication<gimbal_device_attitude_status_s> _gimbal_device_attitude_status_pub{
+		ORB_ID(gimbal_device_attitude_status)};
+	uORB::Publication<irlock_report_s> _irlock_report_pub{ORB_ID(irlock_report)};
+	uORB::Publication<landing_target_pose_s> _landing_target_pose_pub{ORB_ID(landing_target_pose)};
+	uORB::Publication<log_message_s> _log_message_pub{ORB_ID(log_message)};
+	uORB::Publication<mavlink_tunnel_s> _mavlink_tunnel_pub{ORB_ID(mavlink_tunnel)};
+	uORB::Publication<obstacle_distance_s> _obstacle_distance_pub{ORB_ID(obstacle_distance)};
+	uORB::Publication<offboard_control_mode_s> _offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
+	uORB::Publication<onboard_computer_status_s> _onboard_computer_status_pub{ORB_ID(onboard_computer_status)};
+	uORB::Publication<generator_status_s> _generator_status_pub{ORB_ID(generator_status)};
+	uORB::Publication<vehicle_attitude_s> _attitude_pub{ORB_ID(vehicle_attitude)};
+	uORB::Publication<vehicle_attitude_setpoint_s> _att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Publication<vehicle_attitude_setpoint_s> _mc_virtual_att_sp_pub{ORB_ID(mc_virtual_attitude_setpoint)};
+	uORB::Publication<vehicle_attitude_setpoint_s> _fw_virtual_att_sp_pub{ORB_ID(fw_virtual_attitude_setpoint)};
+	uORB::Publication<vehicle_global_position_s> _global_pos_pub{ORB_ID(vehicle_global_position)};
+	uORB::Publication<vehicle_local_position_s> _local_pos_pub{ORB_ID(vehicle_local_position)};
+	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
+	uORB::Publication<vehicle_odometry_s> _mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
+	uORB::Publication<vehicle_odometry_s> _visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
+	uORB::Publication<vehicle_rates_setpoint_s> _rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Publication<vehicle_trajectory_bezier_s> _trajectory_bezier_pub{ORB_ID(vehicle_trajectory_bezier)};
+	uORB::Publication<vehicle_trajectory_waypoint_s> _trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
 
 #if !defined(CONSTRAINED_FLASH)
-	uORB::Publication<debug_array_s>			_debug_array_pub {ORB_ID(debug_array)};
-	uORB::Publication<debug_key_value_s>			_debug_key_value_pub{ORB_ID(debug_key_value)};
-	uORB::Publication<debug_value_s>			_debug_value_pub{ORB_ID(debug_value)};
-	uORB::Publication<debug_vect_s>				_debug_vect_pub{ORB_ID(debug_vect)};
-#endif // !CONSTRAINED_FLASH
+	uORB::Publication<debug_array_s> _debug_array_pub{ORB_ID(debug_array)};
+	uORB::Publication<debug_key_value_s> _debug_key_value_pub{ORB_ID(debug_key_value)};
+	uORB::Publication<debug_value_s> _debug_value_pub{ORB_ID(debug_value)};
+	uORB::Publication<debug_vect_s> _debug_vect_pub{ORB_ID(debug_vect)};
+#endif  // !CONSTRAINED_FLASH
 
 	// ORB publications (multi)
-	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor)};
-	uORB::PublicationMulti<input_rc_s>			_rc_pub{ORB_ID(input_rc)};
-	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_input_pub{ORB_ID(manual_control_input)};
-	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping)};
-	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
-	uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
-	uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
-	uORB::PublicationMulti<sensor_optical_flow_s>         _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
+	uORB::PublicationMulti<distance_sensor_s> _distance_sensor_pub{ORB_ID(distance_sensor)};
+	uORB::PublicationMulti<input_rc_s> _rc_pub{ORB_ID(input_rc)};
+	uORB::PublicationMulti<manual_control_setpoint_s> _manual_control_input_pub{ORB_ID(manual_control_input)};
+	uORB::PublicationMulti<ping_s> _ping_pub{ORB_ID(ping)};
+	uORB::PublicationMulti<radio_status_s> _radio_status_pub{ORB_ID(radio_status)};
+	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_optical_flow_s> _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
 	// ORB publications (queue length > 1)
-	uORB::Publication<gps_inject_data_s>     _gps_inject_data_pub{ORB_ID(gps_inject_data)};
-	uORB::Publication<transponder_report_s>  _transponder_report_pub{ORB_ID(transponder_report)};
-	uORB::Publication<vehicle_command_s>     _cmd_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<gps_inject_data_s> _gps_inject_data_pub{ORB_ID(gps_inject_data)};
+	uORB::Publication<transponder_report_s> _transponder_report_pub{ORB_ID(transponder_report)};
+	uORB::Publication<vehicle_command_s> _cmd_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	// ORB subscriptions
-	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};
-	uORB::Subscription	_home_position_sub{ORB_ID(home_position)};
-	uORB::Subscription	_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription	_vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
-	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription 	_actuator_controls_3_sub{ORB_ID(actuator_controls_3)};
-	uORB::Subscription	_autotune_attitude_control_status_sub{ORB_ID(autotune_attitude_control_status)};
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _actuator_controls_3_sub{ORB_ID(actuator_controls_3)};
+	uORB::Subscription _autotune_attitude_control_status_sub{ORB_ID(autotune_attitude_control_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	// hil_sensor and hil_state_quaternion
 	enum SensorSource {
-		ACCEL		= 0b111,
-		GYRO		= 0b111000,
-		MAG		= 0b111000000,
-		BARO		= 0b1101000000000,
-		DIFF_PRESS	= 0b10000000000
+		ACCEL = 0b111,
+		GYRO = 0b111000,
+		MAG = 0b111000000,
+		BARO = 0b1101000000000,
+		DIFF_PRESS = 0b10000000000
 	};
 	PX4Accelerometer *_px4_accel{nullptr};
 	PX4Gyroscope *_px4_gyro{nullptr};
@@ -371,7 +379,7 @@ private:
 	float _global_local_alt0{NAN};
 	MapProjection _global_local_proj_ref{};
 
-	hrt_abstime			_last_utm_global_pos_com{0};
+	hrt_abstime _last_utm_global_pos_com{0};
 
 	// Allocated if needed.
 	TunePublisher *_tune_publisher{nullptr};
@@ -395,11 +403,9 @@ private:
 	hrt_abstime _heartbeat_component_udp_bridge{0};
 	hrt_abstime _heartbeat_component_uart_bridge{0};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
-		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
-		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr
-	);
+	DEFINE_PARAMETERS((ParamFloat<px4::params::BAT_CRIT_THR>)_param_bat_crit_thr,
+			  (ParamFloat<px4::params::BAT_EMERGEN_THR>)_param_bat_emergen_thr,
+			  (ParamFloat<px4::params::BAT_LOW_THR>)_param_bat_low_thr);
 
 	// Disallow copy construction and move assignment.
 	MavlinkReceiver(const MavlinkReceiver &) = delete;

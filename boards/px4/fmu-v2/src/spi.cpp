@@ -31,9 +31,9 @@
  *
  ****************************************************************************/
 
+#include <drivers/drv_sensor.h>
 #include <nuttx/spi/spi.h>
 #include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
 
 /* Due to inconsistent use of chip select and data ready signal on
  * different board that use this build, we are using different
@@ -146,56 +146,74 @@
  */
 
 constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSIONS] = {
-	initSPIHWVersion(HW_VER_FMUV2, {
-		initSPIBus(SPI::Bus::SPI1, {
-			initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
-			initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
-			initSPIDevice(DRV_GYR_DEVTYPE_L3GD20, SPI::CS{GPIO::PortC, GPIO::Pin13}, SPI::DRDY{GPIO::PortB, GPIO::Pin0}),
-			initSPIDevice(DRV_IMU_DEVTYPE_LSM303D, SPI::CS{GPIO::PortC, GPIO::Pin15}),
-			initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
-			initSPIDevice(DRV_BARO_DEVTYPE_MS5607, SPI::CS{GPIO::PortD, GPIO::Pin7}),
-		}, {GPIO::PortE, GPIO::Pin3}),
-		initSPIBus(SPI::Bus::SPI2, {
-			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
+	initSPIHWVersion(
+		HW_VER_FMUV2,
+		{
+			initSPIBus(SPI::Bus::SPI1,
+				   {
+					   initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortC, GPIO::Pin2},
+							 SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
+					   initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortC, GPIO::Pin2},
+							 SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
+					   initSPIDevice(DRV_GYR_DEVTYPE_L3GD20, SPI::CS{GPIO::PortC, GPIO::Pin13},
+							 SPI::DRDY{GPIO::PortB, GPIO::Pin0}),
+					   initSPIDevice(DRV_IMU_DEVTYPE_LSM303D, SPI::CS{GPIO::PortC, GPIO::Pin15}),
+					   initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
+					   initSPIDevice(DRV_BARO_DEVTYPE_MS5607, SPI::CS{GPIO::PortD, GPIO::Pin7}),
+				   },
+				   {GPIO::PortE, GPIO::Pin3}),
+			initSPIBus(SPI::Bus::SPI2, {initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})}),
+			initSPIBusExternal(SPI::Bus::SPI4,
+					   {
+						   initSPIConfigExternal(SPI::CS{GPIO::PortE, GPIO::Pin4}),
+						   initSPIConfigExternal(SPI::CS{GPIO::PortC, GPIO::Pin14}),
+					   }),
 		}),
-		initSPIBusExternal(SPI::Bus::SPI4, {
-			initSPIConfigExternal(SPI::CS{GPIO::PortE, GPIO::Pin4}),
-			initSPIConfigExternal(SPI::CS{GPIO::PortC, GPIO::Pin14}),
-		}),
-	}),
 
-	initSPIHWVersion(HW_VER_FMUV3, {
-		initSPIBus(SPI::Bus::SPI1, {
-			initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
-			initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
-			initSPIDevice(DRV_MAG_DEVTYPE_HMC5883, SPI::CS{GPIO::PortC, GPIO::Pin1}), // HMC5983
-			initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
-			initSPIDevice(DRV_BARO_DEVTYPE_MS5607, SPI::CS{GPIO::PortD, GPIO::Pin7}),
-		}, {GPIO::PortE, GPIO::Pin3}),
-		initSPIBus(SPI::Bus::SPI2, {
-			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
+	initSPIHWVersion(
+		HW_VER_FMUV3,
+		{
+			initSPIBus(SPI::Bus::SPI1,
+				   {
+					   initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortC, GPIO::Pin2},
+							 SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
+					   initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortC, GPIO::Pin2},
+							 SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
+					   initSPIDevice(DRV_MAG_DEVTYPE_HMC5883,
+							 SPI::CS{GPIO::PortC, GPIO::Pin1}),  // HMC5983
+					   initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
+					   initSPIDevice(DRV_BARO_DEVTYPE_MS5607, SPI::CS{GPIO::PortD, GPIO::Pin7}),
+				   },
+				   {GPIO::PortE, GPIO::Pin3}),
+			initSPIBus(SPI::Bus::SPI2, {initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})}),
+			initSPIBus(SPI::Bus::SPI4,
+				   {
+					   initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortE, GPIO::Pin4}),
+					   initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortE, GPIO::Pin4}),
+					   initSPIDevice(DRV_GYR_DEVTYPE_L3GD20, SPI::CS{GPIO::PortC, GPIO::Pin13}),
+					   initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortC, GPIO::Pin14}),
+					   initSPIDevice(DRV_IMU_DEVTYPE_LSM303D, SPI::CS{GPIO::PortC, GPIO::Pin15}),
+				   }),
 		}),
-		initSPIBus(SPI::Bus::SPI4, {
-			initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortE, GPIO::Pin4}),
-			initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortE, GPIO::Pin4}),
-			initSPIDevice(DRV_GYR_DEVTYPE_L3GD20, SPI::CS{GPIO::PortC, GPIO::Pin13}),
-			initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortC, GPIO::Pin14}),
-			initSPIDevice(DRV_IMU_DEVTYPE_LSM303D, SPI::CS{GPIO::PortC, GPIO::Pin15}),
-		}),
-	}),
 
-	initSPIHWVersion(HW_VER_FMUV2MINI, {
-		initSPIBus(SPI::Bus::SPI1, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM20608G, SPI::CS{GPIO::PortC, GPIO::Pin15}, SPI::DRDY{GPIO::PortC, GPIO::Pin14}),
-			initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
-			initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}), // unused MPU9250
-		}, {GPIO::PortE, GPIO::Pin3}),
-		initSPIBus(SPI::Bus::SPI2, {
-			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
+	initSPIHWVersion(
+		HW_VER_FMUV2MINI,
+		{
+			initSPIBus(SPI::Bus::SPI1,
+				   {
+					   initSPIDevice(DRV_IMU_DEVTYPE_ICM20608G, SPI::CS{GPIO::PortC, GPIO::Pin15},
+							 SPI::DRDY{GPIO::PortC, GPIO::Pin14}),
+					   initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
+					   initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortC, GPIO::Pin2},
+							 SPI::DRDY{GPIO::PortD, GPIO::Pin15}),  // unused MPU9250
+				   },
+				   {GPIO::PortE, GPIO::Pin3}),
+			initSPIBus(SPI::Bus::SPI2, {initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})}),
+			initSPIBusExternal(SPI::Bus::SPI4,
+					   {
+						   // unused, but we must at least define it here
+					   }),
 		}),
-		initSPIBusExternal(SPI::Bus::SPI4, { // unused, but we must at least define it here
-		}),
-	}),
 
 	// HW_VER_FMUV2X: treat as HW_VER_FMUV2
 };

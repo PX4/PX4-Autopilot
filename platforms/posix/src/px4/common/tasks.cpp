@@ -36,28 +36,26 @@
  * Implementation of existing task API for Linux
  */
 
-#include <px4_platform_common/log.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <pthread.h>
 #include <px4_platform_common/defines.h>
-#include <unistd.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
+#include <sched.h>
+#include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <stdbool.h>
-#include <signal.h>
-#include <fcntl.h>
-#include <sched.h>
-#include <unistd.h>
 #include <string.h>
-#include <pthread.h>
-#include <limits.h>
-
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <string>
-
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/posix.h>
 #include <systemlib/err.h>
+#include <unistd.h>
+
+#include <string>
 
 #define PX4_MAX_TASKS 50
 
@@ -67,22 +65,21 @@ pthread_mutex_t task_mutex = PTHREAD_MUTEX_INITIALIZER;
 struct task_entry {
 	pthread_t pid{0};
 	std::string name{};
-	bool isused {false};
+	bool isused{false};
 };
 
-static task_entry taskmap[PX4_MAX_TASKS] {};
+static task_entry taskmap[PX4_MAX_TASKS]{};
 
 typedef struct {
 	px4_main_t entry;
-	char name[16]; //pthread_setname_np is restricted to 16 chars
+	char name[16];  // pthread_setname_np is restricted to 16 chars
 	int argc;
 	char *argv[];
 	// strings are allocated after the struct data
 } pthdata_t;
 
-static void *entry_adapter(void *ptr)
-{
-	pthdata_t *data = (pthdata_t *) ptr;
+static void *entry_adapter(void *ptr) {
+	pthdata_t *data = (pthdata_t *)ptr;
 
 	// set the threads name
 #ifdef __PX4_DARWIN
@@ -105,8 +102,7 @@ static void *entry_adapter(void *ptr)
 }
 
 px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry,
-			      char *const argv[])
-{
+			      char *const argv[]) {
 	int argc = 0;
 	unsigned int len = strlen(name) + 1;
 	struct sched_param param = {};
@@ -243,16 +239,16 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		return -ENOSPC;
 	}
 
-	rv = pthread_create(&taskmap[taskid].pid, &attr, &entry_adapter, (void *) taskdata);
+	rv = pthread_create(&taskmap[taskid].pid, &attr, &entry_adapter, (void *)taskdata);
 
 	if (rv != 0) {
-
 		if (rv == EPERM) {
-			//printf("WARNING: NOT RUNING AS ROOT, UNABLE TO RUN REALTIME THREADS\n");
-			rv = pthread_create(&taskmap[taskid].pid, nullptr, &entry_adapter, (void *) taskdata);
+			// printf("WARNING: NOT RUNING AS ROOT, UNABLE TO RUN REALTIME THREADS\n");
+			rv = pthread_create(&taskmap[taskid].pid, nullptr, &entry_adapter, (void *)taskdata);
 
 			if (rv != 0) {
-				PX4_ERR("px4_task_spawn_cmd: failed to create thread for %s (%i): %s", name, rv, strerror(rv));
+				PX4_ERR("px4_task_spawn_cmd: failed to create thread for %s (%i): %s", name, rv,
+					strerror(rv));
 				taskmap[taskid].isused = false;
 				pthread_attr_destroy(&attr);
 				pthread_mutex_unlock(&task_mutex);
@@ -274,8 +270,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	return taskid;
 }
 
-int px4_task_delete(px4_task_t id)
-{
+int px4_task_delete(px4_task_t id) {
 	int rv = 0;
 	pthread_t pid;
 	PX4_DEBUG("Called px4_task_delete");
@@ -306,8 +301,7 @@ int px4_task_delete(px4_task_t id)
 	return rv;
 }
 
-void px4_task_exit(int ret)
-{
+void px4_task_exit(int ret) {
 	pthread_t pid = pthread_self();
 
 	// Get pthread ID from the opaque ID
@@ -321,7 +315,7 @@ void px4_task_exit(int ret)
 		}
 	}
 
-	if (i >= PX4_MAX_TASKS)  {
+	if (i >= PX4_MAX_TASKS) {
 		PX4_ERR("px4_task_exit: self task not found!");
 
 	} else {
@@ -333,8 +327,7 @@ void px4_task_exit(int ret)
 	pthread_exit((void *)(unsigned long)ret);
 }
 
-int px4_task_kill(px4_task_t id, int sig)
-{
+int px4_task_kill(px4_task_t id, int sig) {
 	int rv = 0;
 	pthread_t pid;
 	PX4_DEBUG("Called px4_task_kill %d", sig);
@@ -354,8 +347,7 @@ int px4_task_kill(px4_task_t id, int sig)
 	return rv;
 }
 
-void px4_show_tasks()
-{
+void px4_show_tasks() {
 	int idx;
 	int count = 0;
 
@@ -371,11 +363,9 @@ void px4_show_tasks()
 	if (count == 0) {
 		PX4_INFO("   No running tasks");
 	}
-
 }
 
-bool px4_task_is_running(const char *taskname)
-{
+bool px4_task_is_running(const char *taskname) {
 	int idx;
 
 	for (idx = 0; idx < PX4_MAX_TASKS; idx++) {
@@ -387,8 +377,7 @@ bool px4_task_is_running(const char *taskname)
 	return false;
 }
 
-px4_task_t px4_getpid()
-{
+px4_task_t px4_getpid() {
 	pthread_t pid = pthread_self();
 	px4_task_t ret = -1;
 
@@ -404,8 +393,7 @@ px4_task_t px4_getpid()
 	return ret;
 }
 
-const char *px4_get_taskname()
-{
+const char *px4_get_taskname() {
 	pthread_t pid = pthread_self();
 	const char *prog_name = "UnknownApp";
 
@@ -422,23 +410,22 @@ const char *px4_get_taskname()
 	return prog_name;
 }
 
-int px4_prctl(int option, const char *arg2, px4_task_t pid)
-{
+int px4_prctl(int option, const char *arg2, px4_task_t pid) {
 	int rv = -1;
 
 	switch (option) {
-	case PR_SET_NAME:
-		// set the threads name
+		case PR_SET_NAME:
+			// set the threads name
 #ifdef __PX4_DARWIN
-		rv = pthread_setname_np(arg2);
+			rv = pthread_setname_np(arg2);
 #else
-		rv = pthread_setname_np(pthread_self(), arg2);
+			rv = pthread_setname_np(pthread_self(), arg2);
 #endif
-		break;
+			break;
 
-	default:
-		PX4_WARN("FAILED SETTING TASK NAME");
-		break;
+		default:
+			PX4_WARN("FAILED SETTING TASK NAME");
+			break;
 	}
 
 	return rv;

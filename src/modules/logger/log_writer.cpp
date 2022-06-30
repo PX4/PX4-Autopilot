@@ -33,14 +33,10 @@
 
 #include "log_writer.h"
 
-namespace px4
-{
-namespace logger
-{
+namespace px4 {
+namespace logger {
 
-LogWriter::LogWriter(Backend configured_backend, size_t file_buffer_size)
-	: _backend(configured_backend)
-{
+LogWriter::LogWriter(Backend configured_backend, size_t file_buffer_size) : _backend(configured_backend) {
 	if (configured_backend & BackendFile) {
 		_log_writer_file_for_write = _log_writer_file = new LogWriterFile(file_buffer_size);
 
@@ -58,8 +54,7 @@ LogWriter::LogWriter(Backend configured_backend, size_t file_buffer_size)
 	}
 }
 
-bool LogWriter::init()
-{
+bool LogWriter::init() {
 	if (_log_writer_file) {
 		if (!_log_writer_file->init()) {
 			PX4_ERR("alloc failed");
@@ -84,8 +79,7 @@ bool LogWriter::init()
 	return true;
 }
 
-LogWriter::~LogWriter()
-{
+LogWriter::~LogWriter() {
 	if (_log_writer_file) {
 		delete (_log_writer_file);
 	}
@@ -95,8 +89,7 @@ LogWriter::~LogWriter()
 	}
 }
 
-bool LogWriter::is_started(LogType type) const
-{
+bool LogWriter::is_started(LogType type) const {
 	bool ret = false;
 
 	if (_log_writer_file) {
@@ -110,8 +103,7 @@ bool LogWriter::is_started(LogType type) const
 	return ret;
 }
 
-bool LogWriter::is_started(LogType type, Backend query_backend) const
-{
+bool LogWriter::is_started(LogType type, Backend query_backend) const {
 	if (query_backend == BackendFile && _log_writer_file) {
 		return _log_writer_file->is_started(type);
 	}
@@ -123,43 +115,37 @@ bool LogWriter::is_started(LogType type, Backend query_backend) const
 	return false;
 }
 
-void LogWriter::start_log_file(LogType type, const char *filename)
-{
+void LogWriter::start_log_file(LogType type, const char *filename) {
 	if (_log_writer_file) {
 		_log_writer_file->start_log(type, filename);
 	}
 }
 
-void LogWriter::stop_log_file(LogType type)
-{
+void LogWriter::stop_log_file(LogType type) {
 	if (_log_writer_file) {
 		_log_writer_file->stop_log(type);
 	}
 }
 
-void LogWriter::start_log_mavlink()
-{
+void LogWriter::start_log_mavlink() {
 	if (_log_writer_mavlink) {
 		_log_writer_mavlink->start_log();
 	}
 }
 
-void LogWriter::stop_log_mavlink()
-{
+void LogWriter::stop_log_mavlink() {
 	if (_log_writer_mavlink) {
 		_log_writer_mavlink->stop_log();
 	}
 }
 
-void LogWriter::thread_stop()
-{
+void LogWriter::thread_stop() {
 	if (_log_writer_file) {
 		_log_writer_file->thread_stop();
 	}
 }
 
-int LogWriter::write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start)
-{
+int LogWriter::write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start) {
 	int ret_file = 0, ret_mavlink = 0;
 
 	if (_log_writer_file_for_write) {
@@ -178,8 +164,7 @@ int LogWriter::write_message(LogType type, void *ptr, size_t size, uint64_t drop
 	return ret_mavlink;
 }
 
-void LogWriter::select_write_backend(Backend sel_backend)
-{
+void LogWriter::select_write_backend(Backend sel_backend) {
 	if (sel_backend & BackendFile) {
 		_log_writer_file_for_write = _log_writer_file;
 
@@ -195,5 +180,5 @@ void LogWriter::select_write_backend(Backend sel_backend)
 	}
 }
 
-}
-}
+}  // namespace logger
+}  // namespace px4

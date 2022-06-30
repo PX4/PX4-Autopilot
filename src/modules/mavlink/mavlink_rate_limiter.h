@@ -43,16 +43,14 @@
 
 #include <drivers/drv_hrt.h>
 
-
-class MavlinkRateLimiter
-{
+class MavlinkRateLimiter {
 private:
 	hrt_abstime _last_sent{0};
 	hrt_abstime _interval{1000000};
 
 public:
 	MavlinkRateLimiter() = default;
-	MavlinkRateLimiter(unsigned int interval) : _interval(interval) {};
+	MavlinkRateLimiter(unsigned int interval) : _interval(interval){};
 
 	~MavlinkRateLimiter() = default;
 
@@ -60,6 +58,5 @@ public:
 
 	bool check(const hrt_abstime &t);
 };
-
 
 #endif /* MAVLINK_RATE_LIMITER_H_ */

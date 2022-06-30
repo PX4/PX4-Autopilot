@@ -38,14 +38,14 @@
 #ifndef EKF_EKF_LOGGER_H
 #define EKF_EKF_LOGGER_H
 
-#include "EKF/ekf.h"
-#include "EKF/estimator_interface.h"
-#include "ekf_wrapper.h"
 #include <fstream>
 #include <iostream>
 
-class EkfLogger
-{
+#include "EKF/ekf.h"
+#include "EKF/estimator_interface.h"
+#include "ekf_wrapper.h"
+
+class EkfLogger {
 public:
 	EkfLogger(std::shared_ptr<Ekf> ekf);
 	~EkfLogger() = default;
@@ -65,12 +65,11 @@ private:
 	std::string _file_path;
 	std::ofstream _file;
 
-	bool _file_opened {false};
+	bool _file_opened{false};
 
-	bool _state_logging_enabled {true};
-	bool _variance_logging_enabled {true};
+	bool _state_logging_enabled{true};
+	bool _variance_logging_enabled{true};
 
 	void writeState();
-
 };
-#endif // !EKF_EKF_LOGGER_H
+#endif  // !EKF_EKF_LOGGER_H

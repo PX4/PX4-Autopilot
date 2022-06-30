@@ -33,14 +33,14 @@
 
 #pragma once
 
-#include <matrix/matrix/math.hpp>
 #include <px4_platform_common/defines.h>
+
+#include <matrix/matrix/math.hpp>
 
 struct sphere_params {
 	matrix::Vector3f offset, diag{1.f, 1.f, 1.f}, offdiag;
 	float radius{0.2f};
 };
-
 
 /**
  * Least-squares fit of a sphere to a set of points.

@@ -42,58 +42,55 @@
 
 #pragma once
 
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_config.h>
+#include <drivers/device/i2c.h>
+#include <drivers/drv_hrt.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <drivers/device/i2c.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_config.h>
+#include <uORB/topics/rpm.h>
+
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/rpm.h>
-#include <drivers/drv_hrt.h>
 
 /* Configuration Constants */
-#define PCF8583_BASEADDR_DEFAULT             0x50
+#define PCF8583_BASEADDR_DEFAULT 0x50
 
-class PCF8583 : public device::I2C, public ModuleParams, public I2CSPIDriver<PCF8583>
-{
+class PCF8583 : public device::I2C, public ModuleParams, public I2CSPIDriver<PCF8583> {
 public:
 	PCF8583(const I2CSPIDriverConfig &config);
 	~PCF8583() override = default;
 
 	static void print_usage();
 
-	void		RunImpl();
+	void RunImpl();
 
-	int    init() override;
-	void   print_status() override;
+	int init() override;
+	void print_status() override;
 
 private:
+	int probe() override;
 
-	int  probe() override;
+	void initCounter();
+	uint32_t getCounter();
+	void resetCounter();
 
-	void           initCounter();
-	uint32_t       getCounter();
-	void           resetCounter();
+	uint8_t readRegister(uint8_t reg);
+	void setRegister(uint8_t reg, uint8_t value);
 
-	uint8_t        readRegister(uint8_t reg);
-	void           setRegister(uint8_t reg, uint8_t value);
+	uint8_t hiWord(uint8_t in) { return (in & 0x0fu); }
+	uint8_t loWord(uint8_t in) { return ((in & 0xf0u) >> 4); }
 
-	uint8_t        hiWord(uint8_t in) { return (in & 0x0fu); }
-	uint8_t        loWord(uint8_t in) { return ((in & 0xf0u) >> 4); }
-
-	uint32_t       _count{0};
-	uint16_t       _reset_count{0};
-	hrt_abstime    _last_measurement_time{0};
-	hrt_abstime    _last_reset_time{0};
-	int            _tranfer_fail_count{0};
-	uint8_t        _last_config_register_content{0x00};
+	uint32_t _count{0};
+	uint16_t _reset_count{0};
+	hrt_abstime _last_measurement_time{0};
+	hrt_abstime _last_reset_time{0};
+	int _tranfer_fail_count{0};
+	uint8_t _last_config_register_content{0x00};
 
 	uORB::PublicationMulti<rpm_s> _rpm_pub{ORB_ID(rpm)};
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::PCF8583_POOL>) _param_pcf8583_pool,
-		(ParamInt<px4::params::PCF8583_RESET>) _param_pcf8583_reset,
-		(ParamInt<px4::params::PCF8583_MAGNET>) _param_pcf8583_magnet
-	)
+	DEFINE_PARAMETERS((ParamInt<px4::params::PCF8583_POOL>)_param_pcf8583_pool,
+			  (ParamInt<px4::params::PCF8583_RESET>)_param_pcf8583_reset,
+			  (ParamInt<px4::params::PCF8583_MAGNET>)_param_pcf8583_magnet)
 };

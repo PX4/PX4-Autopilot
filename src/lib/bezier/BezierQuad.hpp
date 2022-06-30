@@ -40,43 +40,36 @@
  * pt0 and pt1 define the start and end points of the spline. ctrl point is a point in space that effects the curvature
  * of the spline. The time scaling factor (= duration) defines the time it takes to travel along the spline from pt0 to
  * pt1.
- * A bezier spline is a continuous function from which position, velocity and acceleration can be extracted. For a given spline,
- * acceleration stays constant.
+ * A bezier spline is a continuous function from which position, velocity and acceleration can be extracted. For a given
+ * spline, acceleration stays constant.
  */
-
 
 #pragma once
 
 #include <matrix/math.hpp>
 
-namespace bezier
-{
-template<typename Tp>
-class BezierQuad
-{
+namespace bezier {
+template <typename Tp>
+class BezierQuad {
 public:
-
 	using Vector3_t = matrix::Vector<Tp, 3>;
 
 	/**
 	 * Empty constructor
 	 */
-	BezierQuad() :
-		_pt0(Vector3_t()), _ctrl(Vector3_t()), _pt1(Vector3_t()), _duration(1.0f) {}
+	BezierQuad() : _pt0(Vector3_t()), _ctrl(Vector3_t()), _pt1(Vector3_t()), _duration(1.0f) {}
 
 	/**
 	 * Constructor from array
 	 */
-	BezierQuad(const Tp pt0[3], const Tp ctrl[3], const Tp pt1[3], Tp duration = 1.0f) :
-		_pt0(Vector3_t(pt0)), _ctrl(Vector3_t(ctrl)), _pt1(Vector3_t(pt1)), _duration(duration) {}
+	BezierQuad(const Tp pt0[3], const Tp ctrl[3], const Tp pt1[3], Tp duration = 1.0f)
+		: _pt0(Vector3_t(pt0)), _ctrl(Vector3_t(ctrl)), _pt1(Vector3_t(pt1)), _duration(duration) {}
 
 	/**
 	 * Constructor from vector
 	 */
-	BezierQuad(const Vector3_t &pt0, const Vector3_t &ctrl, const Vector3_t &pt1,
-		   Tp duration = 1.0f):
-		_pt0(pt0), _ctrl(ctrl), _pt1(pt1), _duration(duration) {}
-
+	BezierQuad(const Vector3_t &pt0, const Vector3_t &ctrl, const Vector3_t &pt1, Tp duration = 1.0f)
+		: _pt0(pt0), _ctrl(ctrl), _pt1(pt1), _duration(duration) {}
 
 	/*
 	 * Get bezier points
@@ -86,30 +79,29 @@ public:
 	/*
 	 * Return pt0
 	 */
-	Vector3_t getPt0() {return _pt0;}
+	Vector3_t getPt0() { return _pt0; }
 
 	/*
 	 * Return ctrl
 	 */
-	Vector3_t getCtrl() {return _ctrl;}
+	Vector3_t getCtrl() { return _ctrl; }
 
 	/*
 	 * Return pt1
 	 */
-	Vector3_t getPt1() {return _pt1;}
+	Vector3_t getPt1() { return _pt1; }
 
 	/**
 	 * Set new bezier points and duration
 	 */
-	void setBezier(const Vector3_t &pt0, const Vector3_t &ctrl, const Vector3_t &pt1,
-		       Tp duration = (Tp)1);
+	void setBezier(const Vector3_t &pt0, const Vector3_t &ctrl, const Vector3_t &pt1, Tp duration = (Tp)1);
 
 	/*
 	 * Set duration
 	 *
 	 * @param time is the total time it takes to travel along the bezier spline.
 	 */
-	void setDuration(const Tp time) {_duration = time;}
+	void setDuration(const Tp time) { _duration = time; }
 
 	/**
 	 * Return point on bezier point corresponding to time t
@@ -155,8 +147,7 @@ public:
 	 * @param acc is the acceleration for that spline
 	 * @param pose represent a position in space from which closest point is computed
 	 */
-	void getStatesClosest(Vector3_t &point, Vector3_t &vel, Vector3_t &acc,
-			      const Vector3_t pose);
+	void getStatesClosest(Vector3_t &point, Vector3_t &vel, Vector3_t &acc, const Vector3_t pose);
 
 	/*
 	 * Compute bezier from velocity at bezier end points and ctrl point
@@ -176,15 +167,15 @@ public:
 	Tp getArcLength(const Tp resolution);
 
 private:
-
-	Vector3_t _pt0; /**< Bezier starting point */
-	Vector3_t _ctrl; /**< Bezier control point */
-	Vector3_t _pt1; /**< bezier end point */
+	Vector3_t _pt0;       /**< Bezier starting point */
+	Vector3_t _ctrl;      /**< Bezier control point */
+	Vector3_t _pt1;       /**< bezier end point */
 	Tp _duration = (Tp)1; /**< Total time to travle along spline */
 
 	Tp _cached_arc_length = (Tp)0; /**< The saved arc length of the spline */
-	Tp _cached_resolution = (Tp)(-1); /**< The resolution used to compute the arc length.
-									Negative number means that cache is not up to date. */
+	Tp _cached_resolution =
+		(Tp)(-1); /**< The resolution used to compute the arc length.
+							Negative number means that cache is not up to date. */
 
 	/*
 	 * Golden section search
@@ -198,13 +189,11 @@ private:
 	 * @param pose is a 3D pose in space.
 	 */
 	Tp _getDistanceSquared(const Tp t, const Vector3_t &pose);
-
-
 };
 
 using BezierQuad_f = BezierQuad<float>;
 using BezierQuad_d = BezierQuad<double>;
-}
+}  // namespace bezier
 
 // include implementation
 #include "BezierQuad.cpp"

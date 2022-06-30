@@ -55,22 +55,18 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_log.h>
-
-#include <stdbool.h>
-#include <stdio.h>
 #include <debug.h>
 #include <errno.h>
-#include <debug.h>
-
-#include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
-
-#include "chip.h"
-#include "imxrt_usdhc.h"
+#include <nuttx/sdio.h>
+#include <px4_log.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <stdio.h>
 
 #include "board_config.h"
+#include "chip.h"
+#include "imxrt_usdhc.h"
 
 #ifdef CONFIG_IMXRT_USDHC
 /****************************************************************************
@@ -98,8 +94,7 @@
  *
  ****************************************************************************/
 
-int fmurt1062_usdhc_initialize(void)
-{
+int fmurt1062_usdhc_initialize(void) {
 	int ret;
 
 	/* Mount the SDHC-based MMC/SD block driver */

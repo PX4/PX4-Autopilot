@@ -33,28 +33,23 @@
 
 #include "PMW3901.hpp"
 
-static constexpr uint32_t TIME_us_TSWW = 11; //  - actually 10.5us
+static constexpr uint32_t TIME_us_TSWW = 11;  //  - actually 10.5us
 
-PMW3901::PMW3901(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	I2CSPIDriver(config),
-	_sample_perf(perf_alloc(PC_ELAPSED, "pmw3901: read")),
-	_comms_errors(perf_alloc(PC_COUNT, "pmw3901: com err")),
-	_yaw_rotation(config.rotation)
-{
-}
+PMW3901::PMW3901(const I2CSPIDriverConfig &config)
+	: SPI(config),
+	  I2CSPIDriver(config),
+	  _sample_perf(perf_alloc(PC_ELAPSED, "pmw3901: read")),
+	  _comms_errors(perf_alloc(PC_COUNT, "pmw3901: com err")),
+	  _yaw_rotation(config.rotation) {}
 
-PMW3901::~PMW3901()
-{
+PMW3901::~PMW3901() {
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
-int
-PMW3901::sensorInit()
-{
-	uint8_t data[5] {};
+int PMW3901::sensorInit() {
+	uint8_t data[5]{};
 
 	// Power on reset
 	writeRegister(0x3A, 0x5A);
@@ -184,7 +179,7 @@ PMW3901::sensorInit()
 	writeRegister(0x40, 0x41);
 	writeRegister(0x70, 0x00);
 
-	px4_usleep(10000); // delay 10ms
+	px4_usleep(10000);  // delay 10ms
 
 	writeRegister(0x32, 0x44);
 	writeRegister(0x7F, 0x07);
@@ -204,9 +199,7 @@ PMW3901::sensorInit()
 	return PX4_OK;
 }
 
-int
-PMW3901::init()
-{
+int PMW3901::init() {
 	/* For devices competing with NuttX SPI drivers on a bus (Crazyflie SD Card expansion board) */
 	SPI::set_lockmode(LOCK_THREADS);
 
@@ -224,12 +217,10 @@ PMW3901::init()
 	return PX4_OK;
 }
 
-int
-PMW3901::probe()
-{
-	uint8_t data[2] {};
+int PMW3901::probe() {
+	uint8_t data[2]{};
 
-	readRegister(0x00, &data[0], 1); // chip id
+	readRegister(0x00, &data[0], 1);  // chip id
 
 	// Test the SPI communication, checking chipId and inverse chipId
 	if (data[0] == 0x49) {
@@ -240,10 +231,8 @@ PMW3901::probe()
 	return -EIO;
 }
 
-int
-PMW3901::readRegister(unsigned reg, uint8_t *data, unsigned count)
-{
-	uint8_t cmd[5];	// read up to 4 bytes
+int PMW3901::readRegister(unsigned reg, uint8_t *data, unsigned count) {
+	uint8_t cmd[5];  // read up to 4 bytes
 
 	cmd[0] = DIR_READ(reg);
 
@@ -260,10 +249,8 @@ PMW3901::readRegister(unsigned reg, uint8_t *data, unsigned count)
 	return ret;
 }
 
-int
-PMW3901::writeRegister(unsigned reg, uint8_t data)
-{
-	uint8_t cmd[2]; 						// write 1 byte
+int PMW3901::writeRegister(unsigned reg, uint8_t data) {
+	uint8_t cmd[2];  // write 1 byte
 	int ret;
 
 	cmd[0] = DIR_WRITE(reg);
@@ -282,9 +269,7 @@ PMW3901::writeRegister(unsigned reg, uint8_t data)
 	return ret;
 }
 
-void
-PMW3901::RunImpl()
-{
+void PMW3901::RunImpl() {
 	perf_begin(_sample_perf);
 
 	int16_t delta_x_raw = 0;
@@ -304,7 +289,7 @@ PMW3901::RunImpl()
 	if (qual > 0) {
 		_flow_sum_x += delta_x_raw;
 		_flow_sum_y += delta_y_raw;
-		_flow_sample_counter ++;
+		_flow_sample_counter++;
 		_flow_quality_sum += qual;
 	}
 
@@ -313,8 +298,8 @@ PMW3901::RunImpl()
 		return;
 	}
 
-	delta_x = (float)_flow_sum_x / 385.0f;		// proportional factor + convert from pixels to radians
-	delta_y = (float)_flow_sum_y / 385.0f;		// proportional factor + convert from pixels to radians
+	delta_x = (float)_flow_sum_x / 385.0f;  // proportional factor + convert from pixels to radians
+	delta_y = (float)_flow_sum_y / 385.0f;  // proportional factor + convert from pixels to radians
 
 	sensor_optical_flow_s report{};
 	report.timestamp_sample = timestamp;
@@ -326,7 +311,7 @@ PMW3901::RunImpl()
 	float zeroval = 0.0f;
 	rotate_3f(_yaw_rotation, report.pixel_flow[0], report.pixel_flow[1], zeroval);
 
-	report.integration_timespan_us = _flow_dt_sum_usec; 	// microseconds
+	report.integration_timespan_us = _flow_dt_sum_usec;  // microseconds
 
 	report.quality = _flow_sample_counter > 0 ? _flow_quality_sum / _flow_sample_counter : 0;
 
@@ -336,9 +321,9 @@ PMW3901::RunImpl()
 	report.delta_angle[2] = NAN;
 
 	// set (conservative) specs according to datasheet
-	report.max_flow_rate = 5.0f;       // Datasheet: 7.4 rad/s
-	report.min_ground_distance = 0.1f; // Datasheet: 80mm
-	report.max_ground_distance = 30.0f; // Datasheet: infinity
+	report.max_flow_rate = 5.0f;         // Datasheet: 7.4 rad/s
+	report.min_ground_distance = 0.1f;   // Datasheet: 80mm
+	report.max_ground_distance = 30.0f;  // Datasheet: infinity
 
 	_flow_dt_sum_usec = 0;
 	_flow_sum_x = 0;
@@ -352,12 +337,9 @@ PMW3901::RunImpl()
 	perf_end(_sample_perf);
 }
 
-int
-PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY, uint8_t &qual)
-{
-	uint8_t data[12] = { DIR_READ(0x02), 0, DIR_READ(0x03), 0, DIR_READ(0x04), 0,
-			     DIR_READ(0x05), 0, DIR_READ(0x06), 0, DIR_READ(0x07), 0
-			   };
+int PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY, uint8_t &qual) {
+	uint8_t data[12] = {DIR_READ(0x02), 0, DIR_READ(0x03), 0, DIR_READ(0x04), 0,
+			    DIR_READ(0x05), 0, DIR_READ(0x06), 0, DIR_READ(0x07), 0};
 
 	int ret = transfer(&data[0], &data[0], 12);
 
@@ -384,22 +366,14 @@ PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY, uint8_t &qual)
 	return ret;
 }
 
-void
-PMW3901::start()
-{
+void PMW3901::start() {
 	// schedule a cycle to start things
 	ScheduleOnInterval(PMW3901_SAMPLE_INTERVAL, PMW3901_US);
 }
 
-void
-PMW3901::stop()
-{
-	ScheduleClear();
-}
+void PMW3901::stop() { ScheduleClear(); }
 
-void
-PMW3901::print_status()
-{
+void PMW3901::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);

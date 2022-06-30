@@ -44,9 +44,9 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
-
-#include <unistd.h>
 #include <stdio.h>
+#include <unistd.h>
+
 #include <cstring>
 
 px4::AppState HRTTest::appState;
@@ -54,8 +54,7 @@ px4::AppState HRTTest::appState;
 static struct hrt_call t1;
 static int update_interval = 1;
 
-static void timer_expired(void *arg)
-{
+static void timer_expired(void *arg) {
 	static int i = 0;
 	PX4_INFO("Test\n");
 
@@ -65,8 +64,7 @@ static void timer_expired(void *arg)
 	}
 }
 
-int HRTTest::main()
-{
+int HRTTest::main() {
 	appState.setRunning(true);
 
 	hrt_abstime t = hrt_absolute_time();

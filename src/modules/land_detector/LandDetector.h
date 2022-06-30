@@ -43,20 +43,13 @@
 #pragma once
 
 #include <float.h>
-#include <math.h>
-
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/perf/perf_counter.h>
+#include <math.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_selection.h>
@@ -67,22 +60,22 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+
 using namespace time_literals;
 
-namespace land_detector
-{
+namespace land_detector {
 
-class LandDetector : public ModuleBase<LandDetector>, ModuleParams, px4::ScheduledWorkItem
-{
+class LandDetector : public ModuleBase<LandDetector>, ModuleParams, px4::ScheduledWorkItem {
 public:
 	LandDetector();
 	virtual ~LandDetector();
 
 	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[])
-	{
-		return print_usage("unknown command");
-	}
+	static int custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
@@ -98,16 +91,15 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 protected:
-
 	/**
 	 * Updates parameters.
 	 */
-	virtual void _update_params() {};
+	virtual void _update_params(){};
 
 	/**
 	 * Updates subscribed uORB topics.
 	 */
-	virtual void _update_topics() {};
+	virtual void _update_topics(){};
 
 	/**
 	 * @return true if UAV is in a landed state.
@@ -138,7 +130,7 @@ protected:
 	virtual bool _get_has_low_throttle() { return false; }
 	virtual bool _get_horizontal_movement() { return false; }
 	virtual bool _get_vertical_movement() { return false; }
-	virtual bool _get_close_to_ground_or_skipped_check() {  return false; }
+	virtual bool _get_close_to_ground_or_skipped_check() { return false; }
 	virtual void _set_hysteresis_factor(const int factor) = 0;
 
 	systemlib::Hysteresis _freefall_hysteresis{false};
@@ -148,13 +140,13 @@ protected:
 	systemlib::Hysteresis _ground_effect_hysteresis{false};
 
 	vehicle_local_position_s _vehicle_local_position{};
-	vehicle_status_s         _vehicle_status{};
+	vehicle_status_s _vehicle_status{};
 
 	matrix::Vector3f _acceleration{};
 	matrix::Vector3f _angular_velocity{};
 
 	bool _armed{false};
-	bool _previous_armed_state{false};	///< stores the previous actuator_armed.armed state
+	bool _previous_armed_state{false};  ///< stores the previous actuator_armed.armed state
 	bool _dist_bottom_is_observable{false};
 
 private:
@@ -164,11 +156,11 @@ private:
 
 	vehicle_land_detected_s _land_detected{};
 	hrt_abstime _takeoff_time{0};
-	hrt_abstime _total_flight_time{0};	///< total vehicle flight time in microseconds
+	hrt_abstime _total_flight_time{0};  ///< total vehicle flight time in microseconds
 
-	hrt_abstime _time_last_move_detect_us{0};	// timestamp of last movement detection event in microseconds
+	hrt_abstime _time_last_move_detect_us{0};  // timestamp of last movement detection event in microseconds
 
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")};
 
 	uORB::Publication<vehicle_land_detected_s> _vehicle_land_detected_pub{ORB_ID(vehicle_land_detected)};
 
@@ -187,11 +179,9 @@ private:
 
 	bool _at_rest{true};
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(
-		ModuleParams,
-		(ParamInt<px4::params::LND_FLIGHT_T_HI>) _param_total_flight_time_high,
-		(ParamInt<px4::params::LND_FLIGHT_T_LO>) _param_total_flight_time_low
-	);
+	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
+					(ParamInt<px4::params::LND_FLIGHT_T_HI>)_param_total_flight_time_high,
+					(ParamInt<px4::params::LND_FLIGHT_T_LO>)_param_total_flight_time_low);
 };
 
-} // namespace land_detector
+}  // namespace land_detector

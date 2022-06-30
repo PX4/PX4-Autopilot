@@ -33,47 +33,45 @@
 
 #pragma once
 
-#include <float.h>
-#include <math.h>
-
 #include <board_config.h>
-
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
-#include <lib/cdev/CDev.hpp>
+#include <float.h>
 #include <lib/mathlib/mathlib.h>
-#include <lib/mixer_module/mixer_module.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
+#include <math.h>
 #include <px4_arch/io_timer.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
 
+#include <lib/cdev/CDev.hpp>
+#include <lib/mixer_module/mixer_module.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+
 using namespace time_literals;
 
 #if !defined(DIRECT_PWM_OUTPUT_CHANNELS)
-#  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
+#error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
 #endif
 
-#define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
+#define PX4FMU_DEVICE_PATH "/dev/px4fmu"
 
 static constexpr int PWM_OUT_MAX_INSTANCES{(DIRECT_PWM_OUTPUT_CHANNELS > 8) ? 2 : 1};
 extern pthread_mutex_t pwm_out_module_mutex;
 
-class PWMOut : public cdev::CDev, public OutputModuleInterface
-{
+class PWMOut : public cdev::CDev, public OutputModuleInterface {
 public:
 	PWMOut() = delete;
 	explicit PWMOut(int instance = 0, uint8_t output_base = 0);
@@ -107,14 +105,14 @@ public:
 
 	int init() override;
 
-	uint32_t	get_pwm_mask() const { return _pwm_mask; }
-	void		set_pwm_mask(uint32_t mask) { _pwm_mask = mask; }
-	uint32_t	get_alt_rate_channels() const { return _pwm_alt_rate_channels; }
-	unsigned	get_alt_rate() const { return _pwm_alt_rate; }
-	unsigned	get_default_rate() const { return _pwm_default_rate; }
+	uint32_t get_pwm_mask() const { return _pwm_mask; }
+	void set_pwm_mask(uint32_t mask) { _pwm_mask = mask; }
+	uint32_t get_alt_rate_channels() const { return _pwm_alt_rate_channels; }
+	unsigned get_alt_rate() const { return _pwm_alt_rate; }
+	unsigned get_default_rate() const { return _pwm_default_rate; }
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+			   unsigned num_control_groups_updated) override;
 
 private:
 	static constexpr int FMU_MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
@@ -127,41 +125,40 @@ private:
 
 	static const int MAX_PER_INSTANCE{8};
 
-	MixingOutput _mixing_output {PARAM_PREFIX, FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
+	MixingOutput _mixing_output{PARAM_PREFIX, FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
-	uint32_t	_backup_schedule_interval_us{1_s};
+	uint32_t _backup_schedule_interval_us{1_s};
 
-	unsigned	_pwm_default_rate{50};
-	unsigned	_pwm_alt_rate{50};
-	uint32_t	_pwm_alt_rate_channels{0};
+	unsigned _pwm_default_rate{50};
+	unsigned _pwm_alt_rate{50};
+	uint32_t _pwm_alt_rate_channels{0};
 
-	int _timer_rates[MAX_IO_TIMERS] {};
+	int _timer_rates[MAX_IO_TIMERS]{};
 
-	int		_current_update_rate{0};
+	int _current_update_rate{0};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	unsigned	_num_outputs{0};
-	int		_class_instance{-1};
+	unsigned _num_outputs{0};
+	int _class_instance{-1};
 
-	bool		_pwm_on{false};
-	uint32_t	_pwm_mask{0};
-	bool		_pwm_initialized{false};
+	bool _pwm_on{false};
+	uint32_t _pwm_mask{0};
+	bool _pwm_initialized{false};
 
-	unsigned	_num_disarmed_set{0};
+	unsigned _num_disarmed_set{0};
 
-	perf_counter_t	_cycle_perf;
-	perf_counter_t	_interval_perf;
+	perf_counter_t _cycle_perf;
+	perf_counter_t _interval_perf;
 
-	void		update_current_rate();
-	int			set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
-	int			pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	void update_current_rate();
+	int set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
+	int pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
-	bool		update_pwm_out_state(bool on);
+	bool update_pwm_out_state(bool on);
 
-	void		update_params();
+	void update_params();
 
 	PWMOut(const PWMOut &) = delete;
 	PWMOut operator=(const PWMOut &) = delete;
-
 };

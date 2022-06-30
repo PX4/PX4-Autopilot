@@ -41,15 +41,15 @@
  * Interface for the PulsedLight Lidar-Lite range finders.
  */
 
-#include <cstdlib>
-#include <fcntl.h>
-#include <string.h>
-#include <stdio.h>
-#include <systemlib/err.h>
-
 #include <board_config.h>
+#include <fcntl.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
+#include <stdio.h>
+#include <string.h>
+#include <systemlib/err.h>
+
+#include <cstdlib>
 
 #include "LidarLitePWM.h"
 
@@ -58,8 +58,7 @@
 /**
  * @brief Local functions in support of the shell command.
  */
-namespace ll40ls_pwm
-{
+namespace ll40ls_pwm {
 
 LidarLitePWM *instance = nullptr;
 
@@ -74,9 +73,7 @@ int usage();
  * This function only returns if the sensor is up and running
  * or could not be detected successfully.
  */
-int
-start_pwm(const uint8_t rotation)
-{
+int start_pwm(const uint8_t rotation) {
 	if (instance != nullptr) {
 		PX4_ERR("already started");
 		return PX4_OK;
@@ -107,9 +104,7 @@ start_pwm(const uint8_t rotation)
 /**
  * @brief Prints status info about the driver.
  */
-int
-status()
-{
+int status() {
 	if (instance == nullptr) {
 		PX4_ERR("driver not running");
 		return PX4_ERROR;
@@ -122,9 +117,7 @@ status()
 /**
  * @brief Stops the driver
  */
-int
-stop()
-{
+int stop() {
 	if (instance != nullptr) {
 		delete instance;
 		instance = nullptr;
@@ -136,9 +129,7 @@ stop()
 /**
  * @brief Displays driver usage at the console.
  */
-int
-usage()
-{
+int usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -152,21 +143,19 @@ Setup/usage information: https://docs.px4.io/master/en/sensor/lidar_lite.html
 
 	PRINT_MODULE_USAGE_NAME("ll40ls", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 0, 25, "Sensor rotation - downward facing by default", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status","Print driver status information");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print driver status information");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
 	return PX4_OK;
 }
 
-} // namespace ll40ls
-
+}  // namespace ll40ls_pwm
 
 /**
  * @brief Driver 'main' command.
  */
-extern "C" __EXPORT int ll40ls_pwm_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int ll40ls_pwm_main(int argc, char *argv[]) {
 	const char *myoptarg = nullptr;
 
 	int ch = 0;
@@ -176,13 +165,13 @@ extern "C" __EXPORT int ll40ls_pwm_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'R':
-			rotation = (uint8_t)atoi(myoptarg);
-			PX4_INFO("Setting Lidar orientation to %d", (int)rotation);
-			break;
+			case 'R':
+				rotation = (uint8_t)atoi(myoptarg);
+				PX4_INFO("Setting Lidar orientation to %d", (int)rotation);
+				break;
 
-		default:
-			return ll40ls_pwm::usage();
+			default:
+				return ll40ls_pwm::usage();
 		}
 	}
 
@@ -210,8 +199,7 @@ extern "C" __EXPORT int ll40ls_pwm_main(int argc, char *argv[])
 }
 
 #else
-extern "C" __EXPORT int ll40ls_pwm_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int ll40ls_pwm_main(int argc, char *argv[]) {
 	PX4_ERR("PWM input not supported.");
 	return -1;
 }

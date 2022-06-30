@@ -33,19 +33,18 @@
 
 #include "lightware_laser_serial.hpp"
 
-#include <inttypes.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <termios.h>
 
 /* Configuration Constants */
-#define LW_TAKE_RANGE_REG		'd'
+#define LW_TAKE_RANGE_REG 'd'
 
-LightwareLaserSerial::LightwareLaserSerial(const char *port, uint8_t rotation) :
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
-	_px4_rangefinder(0, rotation),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
-{
+LightwareLaserSerial::LightwareLaserSerial(const char *port, uint8_t rotation)
+	: ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
+	  _px4_rangefinder(0, rotation),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": com_err")) {
 	/* store port name */
 	strncpy(_port, port, sizeof(_port) - 1);
 
@@ -55,7 +54,7 @@ LightwareLaserSerial::LightwareLaserSerial(const char *port, uint8_t rotation) :
 	device::Device::DeviceId device_id;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType_SERIAL;
 
-	uint8_t bus_num = atoi(&_port[strlen(_port) - 1]); // Assuming '/dev/ttySx'
+	uint8_t bus_num = atoi(&_port[strlen(_port) - 1]);  // Assuming '/dev/ttySx'
 
 	if (bus_num < 10) {
 		device_id.devid_s.bus = bus_num;
@@ -65,78 +64,75 @@ LightwareLaserSerial::LightwareLaserSerial(const char *port, uint8_t rotation) :
 	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_LIGHTWARE_LASER);
 }
 
-LightwareLaserSerial::~LightwareLaserSerial()
-{
+LightwareLaserSerial::~LightwareLaserSerial() {
 	stop();
 
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
-int
-LightwareLaserSerial::init()
-{
+int LightwareLaserSerial::init() {
 	int32_t hw_model = 0;
 	param_get(param_find("SENS_EN_SF0X"), &hw_model);
 
 	switch (hw_model) {
-	case 1: /* SF02 (40m, 12 Hz)*/
-		_px4_rangefinder.set_min_distance(0.30f);
-		_px4_rangefinder.set_max_distance(40.0f);
-		_interval = 83334;
-		break;
+		case 1: /* SF02 (40m, 12 Hz)*/
+			_px4_rangefinder.set_min_distance(0.30f);
+			_px4_rangefinder.set_max_distance(40.0f);
+			_interval = 83334;
+			break;
 
-	case 2:  /* SF10/a (25m 32Hz) */
-		_px4_rangefinder.set_min_distance(0.01f);
-		_px4_rangefinder.set_max_distance(25.0f);
-		_interval = 31250;
-		break;
+		case 2: /* SF10/a (25m 32Hz) */
+			_px4_rangefinder.set_min_distance(0.01f);
+			_px4_rangefinder.set_max_distance(25.0f);
+			_interval = 31250;
+			break;
 
-	case 3:  /* SF10/b (50m 32Hz) */
-		_px4_rangefinder.set_min_distance(0.01f);
-		_px4_rangefinder.set_max_distance(50.0f);
-		_interval = 31250;
-		break;
+		case 3: /* SF10/b (50m 32Hz) */
+			_px4_rangefinder.set_min_distance(0.01f);
+			_px4_rangefinder.set_max_distance(50.0f);
+			_interval = 31250;
+			break;
 
-	case 4:  /* SF10/c (100m 16Hz) */
-		_px4_rangefinder.set_min_distance(0.01f);
-		_px4_rangefinder.set_max_distance(100.0f);
-		_interval = 62500;
-		break;
+		case 4: /* SF10/c (100m 16Hz) */
+			_px4_rangefinder.set_min_distance(0.01f);
+			_px4_rangefinder.set_max_distance(100.0f);
+			_interval = 62500;
+			break;
 
-	case 5:
-		/* SF11/c (120m 20Hz) */
-		_px4_rangefinder.set_min_distance(0.01f);
-		_px4_rangefinder.set_max_distance(120.0f);
-		_interval = 50000;
-		break;
+		case 5:
+			/* SF11/c (120m 20Hz) */
+			_px4_rangefinder.set_min_distance(0.01f);
+			_px4_rangefinder.set_max_distance(120.0f);
+			_interval = 50000;
+			break;
 
-	case 6:
-		/* SF30/B (50m 39Hz) */
-		_px4_rangefinder.set_min_distance(0.2f);
-		_px4_rangefinder.set_max_distance(50.0f);
-		_interval = 1e6 / 39;
-		_simple_serial = true;
-		break;
+		case 6:
+			/* SF30/B (50m 39Hz) */
+			_px4_rangefinder.set_min_distance(0.2f);
+			_px4_rangefinder.set_max_distance(50.0f);
+			_interval = 1e6 / 39;
+			_simple_serial = true;
+			break;
 
-	case 7:
-		/* SF30/C (100m 39Hz) */
-		_px4_rangefinder.set_min_distance(0.2f);
-		_px4_rangefinder.set_max_distance(100.0f);
-		_interval = 1e6 / 39;
-		_simple_serial = true;
-		break;
+		case 7:
+			/* SF30/C (100m 39Hz) */
+			_px4_rangefinder.set_min_distance(0.2f);
+			_px4_rangefinder.set_max_distance(100.0f);
+			_interval = 1e6 / 39;
+			_simple_serial = true;
+			break;
 
-	case 8:
-		/* LW20/c (100M 20Hz) */
-		_px4_rangefinder.set_min_distance(0.2f);
-		_px4_rangefinder.set_max_distance(100.0f);
-		_interval = 50000;
-		break;
+		case 8:
+			/* LW20/c (100M 20Hz) */
+			_px4_rangefinder.set_min_distance(0.2f);
+			_px4_rangefinder.set_max_distance(100.0f);
+			_interval = 50000;
+			break;
 
-	default:
-		PX4_ERR("invalid HW model %" PRIi32 ".", hw_model);
-		return -1;
+		default:
+			PX4_ERR("invalid HW model %" PRIi32 ".", hw_model);
+			return -1;
 	}
 
 	start();
@@ -144,8 +140,7 @@ LightwareLaserSerial::init()
 	return PX4_OK;
 }
 
-int LightwareLaserSerial::measure()
-{
+int LightwareLaserSerial::measure() {
 	// Send the command to begin a measurement.
 	char cmd = LW_TAKE_RANGE_REG;
 	int ret = ::write(_fd, &cmd, 1);
@@ -159,8 +154,7 @@ int LightwareLaserSerial::measure()
 	return PX4_OK;
 }
 
-int LightwareLaserSerial::collect()
-{
+int LightwareLaserSerial::collect() {
 	perf_begin(_sample_perf);
 
 	/* clear buffer if last read was too long ago */
@@ -225,7 +219,6 @@ int LightwareLaserSerial::collect()
 		}
 	}
 
-
 	if (!valid) {
 		return -EAGAIN;
 	}
@@ -239,8 +232,7 @@ int LightwareLaserSerial::collect()
 	return PX4_OK;
 }
 
-void LightwareLaserSerial::start()
-{
+void LightwareLaserSerial::start() {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 
@@ -248,13 +240,9 @@ void LightwareLaserSerial::start()
 	ScheduleNow();
 }
 
-void LightwareLaserSerial::stop()
-{
-	ScheduleClear();
-}
+void LightwareLaserSerial::stop() { ScheduleClear(); }
 
-void LightwareLaserSerial::Run()
-{
+void LightwareLaserSerial::Run() {
 	/* fds initialized? */
 	if (_fd < 0) {
 		/* open fd */
@@ -314,7 +302,6 @@ void LightwareLaserSerial::Run()
 
 	/* collection phase? */
 	if (_collect_phase) {
-
 		/* perform collection */
 		int collect_ret = collect();
 
@@ -326,7 +313,6 @@ void LightwareLaserSerial::Run()
 		}
 
 		if (OK != collect_ret) {
-
 			/* we know the sensor needs about four seconds to initialize */
 			if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
 				PX4_ERR("collection error #%u", _consecutive_fail_count);
@@ -359,8 +345,7 @@ void LightwareLaserSerial::Run()
 	ScheduleDelayed(_interval);
 }
 
-void LightwareLaserSerial::print_info()
-{
+void LightwareLaserSerial::print_info() {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 }

@@ -35,36 +35,29 @@
 
 using namespace Infineon_DPS310;
 
-namespace dps310
-{
+namespace dps310 {
 
-template<typename T>
-static void getTwosComplement(T &raw, uint8_t length)
-{
+template <typename T>
+static void getTwosComplement(T &raw, uint8_t length) {
 	if (raw & ((T)1 << (length - 1))) {
 		raw -= (T)1 << length;
 	}
 }
 
-DPS310::DPS310(const I2CSPIDriverConfig &config, device::Device *interface) :
-	I2CSPIDriver(config),
-	_interface(interface),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comm errors"))
-{
-}
+DPS310::DPS310(const I2CSPIDriverConfig &config, device::Device *interface)
+	: I2CSPIDriver(config),
+	  _interface(interface),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": comm errors")) {}
 
-DPS310::~DPS310()
-{
+DPS310::~DPS310() {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 
 	delete _interface;
 }
 
-int
-DPS310::init()
-{
+int DPS310::init() {
 	if (RegisterRead(Register::ID) != Infineon_DPS310::REV_AND_PROD_ID) {
 		PX4_ERR("Product_ID mismatch");
 		return PX4_ERROR;
@@ -80,12 +73,10 @@ DPS310::init()
 	return PX4_OK;
 }
 
-int
-DPS310::reset()
-{
+int DPS310::reset() {
 	// Soft Reset
 	RegisterSetBits(Register::RESET, RESET_BIT::SOFT_RST);
-	usleep(40000);	// 40 milliseconds
+	usleep(40000);  // 40 milliseconds
 
 	const uint8_t mode_and_status = RegisterRead(Register::MEAS_CFG);
 
@@ -102,9 +93,10 @@ DPS310::reset()
 		return PX4_ERROR;
 	}
 
-	// 1. Read the pressure calibration coefficients (c00, c10, c20, c30, c01, c11, and c21) from the Calibration Coefficient register.
+	// 1. Read the pressure calibration coefficients (c00, c10, c20, c30, c01, c11, and c21) from the Calibration
+	// Coefficient register.
 	//   Note: The coefficients read from the coefficient register are 2's complement numbers.
-	uint8_t coef[18] {};
+	uint8_t coef[18]{};
 
 	if (_interface->read((uint8_t)Register::COEF, coef, 18)) {
 		return PX4_ERROR;
@@ -148,7 +140,6 @@ DPS310::reset()
 	_calibration.c30 = ((uint32_t)coef[16] << 8) | (uint32_t)coef[17];
 	getTwosComplement(_calibration.c30, 16);
 
-
 	// PRS_CFG: pressure measurement rate (32 Hz) and oversampling (16 time standard)
 	RegisterSetBits(Register::PRS_CFG, PRS_CFG_BIT::PM_RATE_32HZ | PRS_CFG_BIT::PM_PRC_16);
 
@@ -165,16 +156,12 @@ DPS310::reset()
 	return PX4_OK;
 }
 
-void
-DPS310::start()
-{
+void DPS310::start() {
 	// run at twice the sample rate to capture all new data
 	ScheduleOnInterval(1000000 / SAMPLE_RATE / 2);
 }
 
-void
-DPS310::RunImpl()
-{
+void DPS310::RunImpl() {
 	perf_begin(_sample_perf);
 
 	// check if pressure ready
@@ -185,16 +172,15 @@ DPS310::RunImpl()
 		return;
 	}
 
-
-	// 2. Choose scaling factors kT (for temperature) and kP (for pressure) based on the chosen precision rate. The scaling factors are listed in Table 9.
-	static constexpr float kT = 253952;	// 16 times (Standard)
-	static constexpr float kP = 253952;	// 16 times (Standard)
-
+	// 2. Choose scaling factors kT (for temperature) and kP (for pressure) based on the chosen precision rate. The
+	// scaling factors are listed in Table 9.
+	static constexpr float kT = 253952;  // 16 times (Standard)
+	static constexpr float kP = 253952;  // 16 times (Standard)
 
 	// 3. Read the pressure and temperature result from the registers
 
 	// Read PSR_B2, PSR_B1, PSR_B0, TMP_B2, TMP_B1, TMP_B0
-	uint8_t buf[6] {};
+	uint8_t buf[6]{};
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
 	if (_interface->read((uint8_t)Register::PSR_B2, buf, 6) != PX4_OK) {
@@ -209,11 +195,9 @@ DPS310::RunImpl()
 	int32_t Traw = (buf[3] << 16) + (buf[4] << 8) + buf[5];
 	getTwosComplement(Traw, 24);
 
-
 	// 4. Calculate scaled measurement results.
 	const float Praw_sc = Praw / kP;
 	const float Traw_sc = Traw / kT;
-
 
 	// 5. Calculate compensated measurement results.
 	const auto &c00 = _calibration.c00;
@@ -224,8 +208,8 @@ DPS310::RunImpl()
 	const auto &c21 = _calibration.c21;
 	const auto &c30 = _calibration.c30;
 
-	const float Pcomp = c00 + Praw_sc * (c10 + Praw_sc * (c20 + Praw_sc * c30)) + Traw_sc * c01 + Traw_sc * Praw_sc *
-			    (c11 + Praw_sc * c21);
+	const float Pcomp = c00 + Praw_sc * (c10 + Praw_sc * (c20 + Praw_sc * c30)) + Traw_sc * c01 +
+			    Traw_sc * Praw_sc * (c11 + Praw_sc * c21);
 
 	const auto &c0 = _calibration.c0;
 	const auto &c1 = _calibration.c1;
@@ -245,24 +229,16 @@ DPS310::RunImpl()
 	perf_end(_sample_perf);
 }
 
-uint8_t
-DPS310::RegisterRead(Register reg)
-{
+uint8_t DPS310::RegisterRead(Register reg) {
 	uint8_t buf{};
 	_interface->read((uint8_t)reg, &buf, 1);
 
 	return buf;
 }
 
-void
-DPS310::RegisterWrite(Register reg, uint8_t value)
-{
-	_interface->write((uint8_t)reg, &value, 1);
-}
+void DPS310::RegisterWrite(Register reg, uint8_t value) { _interface->write((uint8_t)reg, &value, 1); }
 
-void
-DPS310::RegisterSetBits(Register reg, uint8_t setbits)
-{
+void DPS310::RegisterSetBits(Register reg, uint8_t setbits) {
 	uint8_t val = RegisterRead(reg);
 
 	if (!(val & setbits)) {
@@ -271,9 +247,7 @@ DPS310::RegisterSetBits(Register reg, uint8_t setbits)
 	}
 }
 
-void
-DPS310::RegisterClearBits(Register reg, uint8_t clearbits)
-{
+void DPS310::RegisterClearBits(Register reg, uint8_t clearbits) {
 	uint8_t val = RegisterRead(reg);
 
 	if (val & clearbits) {
@@ -282,12 +256,10 @@ DPS310::RegisterClearBits(Register reg, uint8_t clearbits)
 	}
 }
 
-void
-DPS310::print_status()
-{
+void DPS310::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 }
 
-} // namespace dps310
+}  // namespace dps310

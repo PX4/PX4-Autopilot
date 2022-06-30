@@ -36,12 +36,12 @@
  */
 
 #include "Safety.hpp"
+
 #include <circuit_breaker/circuit_breaker.h>
 
 using namespace time_literals;
 
-Safety::Safety()
-{
+Safety::Safety() {
 	// Safety can be turned off with the CBRK_IO_SAFETY parameter.
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
 
@@ -51,8 +51,7 @@ Safety::Safety()
 	}
 }
 
-bool Safety::safetyButtonHandler()
-{
+bool Safety::safetyButtonHandler() {
 	if (!_safety_disabled) {
 		if (!_button_available && _safety_button_sub.advertised()) {
 			_button_available = true;
@@ -61,7 +60,7 @@ bool Safety::safetyButtonHandler()
 		button_event_s button_event;
 
 		while (_safety_button_sub.update(&button_event)) {
-			_safety_off |= button_event.triggered; // triggered safety button activates safety off
+			_safety_off |= button_event.triggered;  // triggered safety button activates safety off
 		}
 	}
 
@@ -70,8 +69,7 @@ bool Safety::safetyButtonHandler()
 	return safety_changed;
 }
 
-void Safety::activateSafety()
-{
+void Safety::activateSafety() {
 	if (!_safety_disabled) {
 		_safety_off = false;
 	}

@@ -38,24 +38,23 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-#include "boot_config.h"
+#include "uavcan.h"
 
+#include <lib/systemlib/crc.h>
+#include <nuttx/config.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "timer.h"
-#include "uavcan.h"
+#include "boot_config.h"
 #include "can.h"
-
-#include <lib/systemlib/crc.h>
+#include "timer.h"
 
 #define CAN_REQUEST_TIMEOUT 1000
 #define ANY_NODE_ID 0
-#define THIS_NODE   1
-#define FW_SERVER   2
-#define REQ_NODE    3
+#define THIS_NODE 1
+#define FW_SERVER 2
+#define REQ_NODE 3
 
 typedef begin_packed_struct struct dsdl_t {
 	uavcan_protocol_t prototype;
@@ -68,15 +67,9 @@ typedef begin_packed_struct struct dsdl_t {
 
 /* Values used in filter initialization */
 
-typedef enum uavcan_transfer_stage_t {
-	Initialization,
-	OnStartOfTransfer
-} uavcan_transfer_stage_t;
+typedef enum uavcan_transfer_stage_t { Initialization, OnStartOfTransfer } uavcan_transfer_stage_t;
 
-typedef enum  uavcan_dsdl_ignore_t {
-	sizeDSDLTransfers = SizeDSDL - SizeDSDLComponents + 1
-} uavcan_dsdl_ignore_t;
-
+typedef enum uavcan_dsdl_ignore_t { sizeDSDLTransfers = SizeDSDL - SizeDSDLComponents + 1 } uavcan_dsdl_ignore_t;
 
 /* Forward declaration */
 extern const dsdl_t dsdl_table[sizeDSDLTransfers];
@@ -103,65 +96,54 @@ static inline uavcan_dsdl_t getDSDLOffset(uavcan_dsdl_t full) { return full - (S
  *
  ****************************************************************************/
 static void uavcan_init_comapare_masks(uavcan_transfer_stage_t stage, uavcan_protocol_t *protocol,
-				       uavcan_protocol_t *masks)
-{
+				       uavcan_protocol_t *masks) {
 	switch (stage) {
-	default:
-		break;
+		default:
+			break;
 
-	case OnStartOfTransfer:
-		masks->id.u32 |= uavcan_protocol_mask(UavCanMessageSourceNodeID);
-		masks->tail_init.u8      |= uavcan_protocol_mask(UavCanTransferID);
-		break;
+		case OnStartOfTransfer:
+			masks->id.u32 |= uavcan_protocol_mask(UavCanMessageSourceNodeID);
+			masks->tail_init.u8 |= uavcan_protocol_mask(UavCanTransferID);
+			break;
 
+		case Initialization:
 
-	case Initialization:
+			masks->tail_init.u8 =
+				uavcan_protocol_mask(UavCanToggle) | uavcan_protocol_mask(UavCanStartOfTransfer);
 
-		masks->tail_init.u8  =    uavcan_protocol_mask(UavCanToggle)
-					  | uavcan_protocol_mask(UavCanStartOfTransfer);
+			if (protocol->msg.service_not_message) {
+				/* Specific Filter initialization for a Services */
 
-		if (protocol->msg.service_not_message) {
+				masks->id.u32 = uavcan_protocol_mask(UavCanServiceTypeID) |
+						uavcan_protocol_mask(UavCanServiceRequestNotResponse) |
+						uavcan_protocol_mask(UavCanServiceDestinationNodeID) |
+						uavcan_protocol_mask(UavCanServiceServiceNotMessage);
 
-			/* Specific Filter initialization for a Services */
-
-
-			masks->id.u32        =    uavcan_protocol_mask(UavCanServiceTypeID)
-						  | uavcan_protocol_mask(UavCanServiceRequestNotResponse)
-						  | uavcan_protocol_mask(UavCanServiceDestinationNodeID)
-						  | uavcan_protocol_mask(UavCanServiceServiceNotMessage);
-
-			if (protocol->ser.source_node_id != ANY_NODE_ID) {
-
-				masks->id.u32 |= uavcan_protocol_mask(UavCanMessageSourceNodeID);
-
-			}
-
-
-		} else  {
-
-			/* Specific Filter initialization for a Message */
-
-			/* Is it anonymous? */
-
-			if (protocol->msg.source_node_id == ANY_NODE_ID) {
-
-				/* Intentional use of UavCanMessageTypeID because the response
-				 * to the anonymous message is a message and the discriminator
-				 * will be 0
-				 */
-				masks->id.u32       =  uavcan_protocol_mask(UavCanMessageTypeID)
-						       | uavcan_protocol_mask(UavCanAnonMessageServiceNotMessage);
+				if (protocol->ser.source_node_id != ANY_NODE_ID) {
+					masks->id.u32 |= uavcan_protocol_mask(UavCanMessageSourceNodeID);
+				}
 
 			} else {
+				/* Specific Filter initialization for a Message */
 
+				/* Is it anonymous? */
 
-				masks->id.u32  =        uavcan_protocol_mask(UavCanMessageTypeID)
-							| uavcan_protocol_mask(UavCanMessageServiceNotMessage)
-							| uavcan_protocol_mask(UavCanMessageSourceNodeID);
+				if (protocol->msg.source_node_id == ANY_NODE_ID) {
+					/* Intentional use of UavCanMessageTypeID because the response
+					 * to the anonymous message is a message and the discriminator
+					 * will be 0
+					 */
+					masks->id.u32 = uavcan_protocol_mask(UavCanMessageTypeID) |
+							uavcan_protocol_mask(UavCanAnonMessageServiceNotMessage);
+
+				} else {
+					masks->id.u32 = uavcan_protocol_mask(UavCanMessageTypeID) |
+							uavcan_protocol_mask(UavCanMessageServiceNotMessage) |
+							uavcan_protocol_mask(UavCanMessageSourceNodeID);
+				}
 			}
-		}
 
-		break;
+			break;
 	}
 }
 
@@ -183,9 +165,8 @@ static void uavcan_init_comapare_masks(uavcan_transfer_stage_t stage, uavcan_pro
  *
  ****************************************************************************/
 static const dsdl_t *load_dsdl_protocol(uavcan_dsdl_t dsdl, uavcan_direction_t rx_not_tx, uavcan_protocol_t *protocol,
-					uint8_t that_node_id)
-{
-	const dsdl_t *pdsdl =  &dsdl_table[getDSDLOffset(dsdl)];
+					uint8_t that_node_id) {
+	const dsdl_t *pdsdl = &dsdl_table[getDSDLOffset(dsdl)];
 
 	protocol->id.u32 = pdsdl->prototype.id.u32;
 	protocol->msg.priority = g_uavcan_priority;
@@ -195,11 +176,10 @@ static const dsdl_t *load_dsdl_protocol(uavcan_dsdl_t dsdl, uavcan_direction_t r
 
 	if (rx_not_tx) {
 		/* Rx */
-		protocol->tail_init.u8 |=  pdsdl->intail;
+		protocol->tail_init.u8 |= pdsdl->intail;
 
 		/* Service */
 		if (pdsdl->prototype.msg.service_not_message) {
-
 			protocol->ser.dest_node_id = g_this_node_id;
 			protocol->ser.source_node_id = that_node_id;
 		}
@@ -250,8 +230,7 @@ static const dsdl_t *load_dsdl_protocol(uavcan_dsdl_t dsdl, uavcan_direction_t r
  ****************************************************************************/
 CCASSERT((int)UavcanOk == (int)CAN_OK);
 
-static uavcan_error_t uavcan_tx(uavcan_protocol_t *protocol, uint8_t *frame_data, size_t length, uint8_t mailbox)
-{
+static uavcan_error_t uavcan_tx(uavcan_protocol_t *protocol, uint8_t *frame_data, size_t length, uint8_t mailbox) {
 	frame_data[length++] = protocol->tail_init.u8;
 	return can_tx(protocol->id.u32, length, frame_data, mailbox);
 }
@@ -282,8 +261,7 @@ static uavcan_error_t uavcan_tx(uavcan_protocol_t *protocol, uint8_t *frame_data
  ****************************************************************************/
 
 uavcan_error_t uavcan_tx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol, const uint8_t *transfer,
-			      size_t transfer_length)
-{
+			      size_t transfer_length) {
 	/*
 	 * Since we do not discriminate between sending a Message or a
 	 * Service (Request or Response)
@@ -307,7 +285,6 @@ uavcan_error_t uavcan_tx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol, c
 	}
 
 	for (uint32_t i = 0; i < transfer_length; i++) {
-
 		payload[m++] = transfer[i];
 
 		/* Is this the last byte? */
@@ -325,7 +302,7 @@ uavcan_error_t uavcan_tx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol, c
 			/* Increment 1 bit frame sequence number */
 
 			protocol->tail.toggle ^= true;
-			protocol->tail.sot    = false;
+			protocol->tail.sot = false;
 
 			m = 0;
 		}
@@ -365,26 +342,22 @@ bool svc = false;
 
 #endif
 
-static uint8_t uavcan_rx(uavcan_protocol_t *protocol, uint8_t *frame_data, size_t *length,  uint8_t fifo)
-{
+static uint8_t uavcan_rx(uavcan_protocol_t *protocol, uint8_t *frame_data, size_t *length, uint8_t fifo) {
 	uint8_t rv = can_rx(&protocol->id.u32, length, frame_data, fifo);
 
 	if (rv) {
-
 		/* Remove the tail byte from length */
 
 		*length -= 1;
 
 		/* Save the tail byte from the last byte of frame*/
 
-		protocol->tail_init.u8  = frame_data[*length];
+		protocol->tail_init.u8 = frame_data[*length];
 #ifdef DEBUG_DTID
 #pragma message("!!!!!!! DEBUG_DTID is enabled !!!!")
 		static volatile int count = 0;
 
-		if ((msg && protocol->msg.type_id == id)
-		    || (svc && protocol->ser.type_id == id)
-		   ) {
+		if ((msg && protocol->msg.type_id == id) || (svc && protocol->ser.type_id == id)) {
 			if (count++ == trigger) {
 				count = 0;
 				static volatile int j = 0;
@@ -397,7 +370,6 @@ static uint8_t uavcan_rx(uavcan_protocol_t *protocol, uint8_t *frame_data, size_
 
 	return rv;
 }
-
 
 /****************************************************************************
  * Name: uavcan_rx_dsdl
@@ -430,10 +402,8 @@ static uint8_t uavcan_rx(uavcan_protocol_t *protocol, uint8_t *frame_data, size_
  *
  ****************************************************************************/
 
-uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
-			      uint8_t *transfer, size_t *in_out_transfer_length,
-			      uint32_t timeout_ms)
-{
+uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol, uint8_t *transfer,
+			      size_t *in_out_transfer_length, uint32_t timeout_ms) {
 	const dsdl_t *pdsdl = load_dsdl_protocol(dsdl, InBound, protocol, protocol->msg.source_node_id);
 	bl_timer_id timer = timer_allocate(modeTimeout | modeStarted, timeout_ms, 0);
 
@@ -458,13 +428,12 @@ uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
 		uint8_t payload[CanPayloadLength];
 		size_t rx_length;
 
-		if (!uavcan_rx(&rx_protocol, payload, &rx_length, pdsdl->fifo)
-		    || BadTailState == (rx_protocol.tail_init.u8 & BadTailState)
-		    || ((rx_protocol.id.u32 ^ protocol->id.u32) & masks.id.u32)
-		    || ((rx_protocol.tail_init.u8 ^ protocol->tail_init.u8) & masks.tail_init.u8)) {
+		if (!uavcan_rx(&rx_protocol, payload, &rx_length, pdsdl->fifo) ||
+		    BadTailState == (rx_protocol.tail_init.u8 & BadTailState) ||
+		    ((rx_protocol.id.u32 ^ protocol->id.u32) & masks.id.u32) ||
+		    ((rx_protocol.tail_init.u8 ^ protocol->tail_init.u8) & masks.tail_init.u8)) {
 			continue;
 		}
-
 
 		timer_restart(timer, timeout_ms);
 
@@ -476,7 +445,6 @@ uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
 
 		/* Is this the start of transfer? */
 		if (rx_protocol.tail.sot) {
-
 			/*
 			 * We expect only one Start Of Transfer  per transfer
 			 * So knock it down
@@ -484,7 +452,7 @@ uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
 			protocol->tail.sot = false;
 
 			/* Discard any data */
-			total_rx  = 0;
+			total_rx = 0;
 
 			/*
 			 *  Capture the source node id
@@ -504,23 +472,20 @@ uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
 
 			/* Is this a multi-frame transfer? */
 			if (rx_protocol.tail.eot == false) {
-
 				/* Capture the frame CRC */
-				transfer_crc = uavcan_make_uint16(payload[PayloadOffsetCRClsb], payload[PayloadOffsetCRCmsb]);
+				transfer_crc =
+					uavcan_make_uint16(payload[PayloadOffsetCRClsb], payload[PayloadOffsetCRCmsb]);
 
 				/*
 				 * When the CRC is prepended to the payload
 				 * the index of the data is past the CRC
 				 */
 				payload_index = PayloadOffsetCRCdata;
-				rx_length    -= PayloadOffsetCRCdata;
+				rx_length -= PayloadOffsetCRCdata;
 			}
 		}
 
-
-		if (rx_protocol.tail.transfer_id > protocol->tail.transfer_id
-		    || total_rx >= *in_out_transfer_length) {
-
+		if (rx_protocol.tail.transfer_id > protocol->tail.transfer_id || total_rx >= *in_out_transfer_length) {
 			uavcan_init_comapare_masks(Initialization, protocol, &masks);
 			protocol->tail.sot = true;
 			protocol->tail.toggle = false;
@@ -543,7 +508,6 @@ uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
 		/* Is this the end of the transfer ?*/
 
 		if (rx_protocol.tail.eot) {
-
 			/* Return length of data received */
 
 			*in_out_transfer_length = total_rx;
@@ -554,9 +518,10 @@ uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
 
 	timer_free(timer);
 
-	return (!timeout && (rx_protocol.tail.sot
-			     || transfer_crc == crc16_signature(pdsdl->signature_crc16, total_rx, transfer))
-		? UavcanOk : UavcanError);
+	return (!timeout && (rx_protocol.tail.sot ||
+			     transfer_crc == crc16_signature(pdsdl->signature_crc16, total_rx, transfer))
+			? UavcanOk
+			: UavcanError);
 }
 
 /****************************************************************************
@@ -575,10 +540,8 @@ uavcan_error_t uavcan_rx_dsdl(uavcan_dsdl_t dsdl, uavcan_protocol_t *protocol,
  *   Number of bytes written.
  *
  ****************************************************************************/
-size_t uavcan_pack_GetNodeInfo_response(uavcan_GetNodeInfo_response_t *response)
-{
-	size_t contiguous_length = FixedSizeGetNodeInfo + \
-				   response->hardware_version.certificate_of_authenticity_length;
+size_t uavcan_pack_GetNodeInfo_response(uavcan_GetNodeInfo_response_t *response) {
+	size_t contiguous_length = FixedSizeGetNodeInfo + response->hardware_version.certificate_of_authenticity_length;
 	/*
 	 * Move name so it's contiguous with the end of certificate_of_authenticity[length]
 	 * which very well may be just after certificate_of_authenticity_length if the length
@@ -603,11 +566,11 @@ size_t uavcan_pack_GetNodeInfo_response(uavcan_GetNodeInfo_response_t *response)
  *   Number of bytes written.
  *
  ****************************************************************************/
-static size_t uavcan_pack_LogMessage(uint8_t *external, const uavcan_LogMessage_t *internal)
-{
+static size_t uavcan_pack_LogMessage(uint8_t *external, const uavcan_LogMessage_t *internal) {
 	/* Pack the 3 bit level in top bits followed by the length of source */
-	external[uavcan_byte_offset(LogMessage, level)] = uavcan_ppack(internal, LogMessage, level) \
-			|  uavcan_pack(uavcan_byte_count(LogMessage, source), LogMessage, source_length);
+	external[uavcan_byte_offset(LogMessage, level)] =
+		uavcan_ppack(internal, LogMessage, level) |
+		uavcan_pack(uavcan_byte_count(LogMessage, source), LogMessage, source_length);
 	memcpy(&external[uavcan_byte_offset(LogMessage, source)], internal->source,
 	       PackedSizeMsgLogMessage - sizeof_member(uavcan_LogMessage_t, level));
 	return PackedSizeMsgLogMessage;
@@ -631,8 +594,7 @@ static size_t uavcan_pack_LogMessage(uint8_t *external, const uavcan_LogMessage_
  *   None
  *
  ****************************************************************************/
-void uavcan_tx_log_message(uavcan_LogMessageConsts_t level, uint8_t stage, uint8_t status)
-{
+void uavcan_tx_log_message(uavcan_LogMessageConsts_t level, uint8_t stage, uint8_t status) {
 	static uint8_t transfer_id;
 
 	uavcan_LogMessage_t message;
@@ -674,8 +636,7 @@ void uavcan_tx_log_message(uavcan_LogMessageConsts_t level, uint8_t stage, uint8
  *
  ****************************************************************************/
 void uavcan_tx_allocation_message(uint8_t requested_node_id, size_t unique_id_length, const uint8_t *unique_id,
-				  uint8_t unique_id_offset, uint16_t random)
-{
+				  uint8_t unique_id_offset, uint16_t random) {
 	static uint8_t transfer_id;
 	uavcan_protocol_t protocol;
 	protocol.tail.transfer_id = transfer_id++;
@@ -694,8 +655,9 @@ void uavcan_tx_allocation_message(uint8_t requested_node_id, size_t unique_id_le
 		max_copy = remaining;
 	}
 
-	payload[uavcan_byte_offset(Allocation, node_id)] = uavcan_pack(requested_node_id, Allocation, node_id) |
-			(unique_id_offset ? 0 : uavcan_bit_mask(Allocation, first_part_of_unique_id));
+	payload[uavcan_byte_offset(Allocation, node_id)] =
+		uavcan_pack(requested_node_id, Allocation, node_id) |
+		(unique_id_offset ? 0 : uavcan_bit_mask(Allocation, first_part_of_unique_id));
 	/*
 	 * Copy in the remaining bytes of payload, either filling it
 	 * or on the last chunk partially filling it
@@ -718,81 +680,68 @@ void uavcan_tx_allocation_message(uint8_t requested_node_id, size_t unique_id_le
 #define UAVCAN_DSDL_BIT_DEF(data_typ_name, field_name, lsb_pos, length, payload_offset, payload_length)
 
 #define UAVCAN_DSDL_MESG_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
-	{ \
-		{\
-			.msg = \
-			       { \
-				 .source_node_id = 0, \
-				 .service_not_message = (false), \
-				 .type_id = (dtid), \
-				 .priority = 0, \
-			       }, \
-			       { \
-				 .tail_init = \
-					      { \
-						.u8 = (outbound), \
-					      } \
-			       } \
-		}, \
-		signature, \
-		inbound, \
-		outbound, \
-		mailbox, \
-		fifo, \
+	{                                                                                       \
+		{.msg =                                                                         \
+			 {                                                                      \
+				 .source_node_id = 0,                                           \
+				 .service_not_message = (false),                                \
+				 .type_id = (dtid),                                             \
+				 .priority = 0,                                                 \
+			 },                                                                     \
+		 {.tail_init =                                                                  \
+			  {                                                                     \
+				  .u8 = (outbound),                                             \
+			  }}},                                                                  \
+		signature,                                                                      \
+		inbound,                                                                        \
+		outbound,                                                                       \
+		mailbox,                                                                        \
+		fifo,                                                                           \
 	},
 
 #define UAVCAN_DSDL_SREQ_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
-	{ \
-		{\
-			.ser = \
-			       { \
-				 .source_node_id = 0, \
-				 .service_not_message = (true), \
-				 .dest_node_id = 0, \
-				 .request_not_response = (true), \
-				 .type_id = (dtid), \
-				 .priority = 0, \
-			       }, \
-			       { \
-				 .tail_init = \
-					      { \
-						.u8 = (outbound), \
-					      } \
-			       } \
-		}, \
-		signature, \
-		inbound, \
-		outbound, \
-		mailbox, \
-		fifo, \
+	{                                                                                       \
+		{.ser =                                                                         \
+			 {                                                                      \
+				 .source_node_id = 0,                                           \
+				 .service_not_message = (true),                                 \
+				 .dest_node_id = 0,                                             \
+				 .request_not_response = (true),                                \
+				 .type_id = (dtid),                                             \
+				 .priority = 0,                                                 \
+			 },                                                                     \
+		 {.tail_init =                                                                  \
+			  {                                                                     \
+				  .u8 = (outbound),                                             \
+			  }}},                                                                  \
+		signature,                                                                      \
+		inbound,                                                                        \
+		outbound,                                                                       \
+		mailbox,                                                                        \
+		fifo,                                                                           \
 	},
 
 #define UAVCAN_DSDL_SRSP_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound) \
-	{ \
-		{\
-			.ser = \
-			       { \
-				 .source_node_id = 0, \
-				 .service_not_message = (true), \
-				 .dest_node_id = 0, \
-				 .request_not_response = (false), \
-				 .type_id = (dtid), \
-				 .priority = 0, \
-			       }, \
-			       { \
-				 .tail_init = \
-					      { \
-						.u8 = (outbound), \
-					      } \
-			       } \
-		}, \
-		signature, \
-		inbound, \
-		outbound, \
-		mailbox, \
-		fifo, \
+	{                                                                                       \
+		{.ser =                                                                         \
+			 {                                                                      \
+				 .source_node_id = 0,                                           \
+				 .service_not_message = (true),                                 \
+				 .dest_node_id = 0,                                             \
+				 .request_not_response = (false),                               \
+				 .type_id = (dtid),                                             \
+				 .priority = 0,                                                 \
+			 },                                                                     \
+		 {.tail_init =                                                                  \
+			  {                                                                     \
+				  .u8 = (outbound),                                             \
+			  }}},                                                                  \
+		signature,                                                                      \
+		inbound,                                                                        \
+		outbound,                                                                       \
+		mailbox,                                                                        \
+		fifo,                                                                           \
 	},
-
 
 #define UAVCAN_DSDL_TYPE_DEF(name, dtid, signature, packsize, mailbox, fifo, inbound, outbound)
 

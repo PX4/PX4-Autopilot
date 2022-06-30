@@ -39,21 +39,20 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <assert.h>
-#include <time.h>
-#include <stdlib.h>
 #include <math.h>
-#include <mathlib/math/test/test.hpp>
+#include <px4_platform_common/defines.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
+namespace control {
 
 /**
  * A trapezoidal integrator.
@@ -63,28 +62,25 @@ namespace control
  * for windup protection.
  * @see Limit
  */
-class __EXPORT BlockIntegralTrap : public SuperBlock
-{
+class __EXPORT BlockIntegralTrap : public SuperBlock {
 public:
-// methods
-	BlockIntegralTrap(SuperBlock *parent, const char *name) :
-		SuperBlock(parent, name),
-		_u(0),
-		_y(0),
-		_limit(this, "") {}
+	// methods
+	BlockIntegralTrap(SuperBlock *parent, const char *name)
+		: SuperBlock(parent, name), _u(0), _y(0), _limit(this, "") {}
 	virtual ~BlockIntegralTrap() = default;
 	float update(float input);
-// accessors
-	float getU() {return _u;}
-	float getY() {return _y;}
-	float getMax() {return _limit.getMax();}
-	void setU(float u) {_u = u;}
-	void setY(float y) {_y = y;}
+	// accessors
+	float getU() { return _u; }
+	float getY() { return _y; }
+	float getMax() { return _limit.getMax(); }
+	void setU(float u) { _u = u; }
+	void setY(float y) { _y = y; }
+
 protected:
-// attributes
-	float _u; /**< previous input */
-	float _y; /**< previous output */
+	// attributes
+	float _u;             /**< previous input */
+	float _y;             /**< previous output */
 	BlockLimitSym _limit; /**< limiter */
 };
 
-} // namespace control
+}  // namespace control

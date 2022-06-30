@@ -17,16 +17,15 @@
 
 #include "math.hpp"
 
-namespace matrix
-{
+namespace matrix {
 
-template<typename Type>
+template <typename Type>
 class Quaternion;
 
-template<typename Type>
+template <typename Type>
 class Euler;
 
-template<typename Type>
+template <typename Type>
 class AxisAngle;
 
 /**
@@ -35,9 +34,8 @@ class AxisAngle;
  * The rotation between two coordinate frames is
  * described by this class.
  */
-template<typename Type>
-class Dcm : public SquareMatrix<Type, 3>
-{
+template <typename Type>
+class Dcm : public SquareMatrix<Type, 3> {
 public:
 	using Vector3 = Matrix<Type, 3, 1>;
 
@@ -53,27 +51,21 @@ public:
 	 *
 	 * @param _data pointer to array
 	 */
-	explicit Dcm(const Type data_[3][3]) : SquareMatrix<Type, 3>(data_)
-	{
-	}
+	explicit Dcm(const Type data_[3][3]) : SquareMatrix<Type, 3>(data_) {}
 
 	/**
 	 * Constructor from array
 	 *
 	 * @param _data pointer to array
 	 */
-	explicit Dcm(const Type data_[9]) : SquareMatrix<Type, 3>(data_)
-	{
-	}
+	explicit Dcm(const Type data_[9]) : SquareMatrix<Type, 3>(data_) {}
 
 	/**
 	 * Copy constructor
 	 *
 	 * @param other Matrix33 to set dcm to
 	 */
-	Dcm(const Matrix<Type, 3, 3> &other) : SquareMatrix<Type, 3>(other)
-	{
-	}
+	Dcm(const Matrix<Type, 3, 3> &other) : SquareMatrix<Type, 3>(other) {}
 
 	/**
 	 * Constructor from quaternion
@@ -83,8 +75,7 @@ public:
 	 *
 	 * @param q quaternion to set dcm to
 	 */
-	Dcm(const Quaternion<Type> &q)
-	{
+	Dcm(const Quaternion<Type> &q) {
 		Dcm &dcm = *this;
 		const Type a = q(0);
 		const Type b = q(1);
@@ -120,8 +111,7 @@ public:
 	 *
 	 * @param euler euler angle instance
 	 */
-	Dcm(const Euler<Type> &euler)
-	{
+	Dcm(const Euler<Type> &euler) {
 		Dcm &dcm = *this;
 		Type cosPhi = Type(cos(euler.phi()));
 		Type sinPhi = Type(sin(euler.phi()));
@@ -143,7 +133,6 @@ public:
 		dcm(2, 2) = cosPhi * cosThe;
 	}
 
-
 	/**
 	 * Constructor from axis angle
 	 *
@@ -153,24 +142,22 @@ public:
 	 *
 	 * @param euler euler angle instance
 	 */
-	Dcm(const AxisAngle<Type> &aa)
-	{
+	Dcm(const AxisAngle<Type> &aa) {
 		Dcm &dcm = *this;
 		dcm = Quaternion<Type>(aa);
 	}
 
-	Vector<Type, 3> vee() const      // inverse to Vector.hat() operation
+	Vector<Type, 3> vee() const  // inverse to Vector.hat() operation
 	{
 		const Dcm &A(*this);
 		Vector<Type, 3> v;
 		v(0) = -A(1, 2);
-		v(1) =  A(0, 2);
+		v(1) = A(0, 2);
 		v(2) = -A(0, 1);
 		return v;
 	}
 
-	void renormalize()
-	{
+	void renormalize() {
 		/* renormalize rows */
 		for (size_t r = 0; r < 3; r++) {
 			matrix::Vector3<Type> rvec(Matrix<Type, 1, 3>(this->Matrix<Type, 3, 3>::row(r)).transpose());
@@ -182,4 +169,4 @@ public:
 using Dcmf = Dcm<float>;
 using Dcmd = Dcm<double>;
 
-} // namespace matrix
+}  // namespace matrix

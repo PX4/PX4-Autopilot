@@ -38,16 +38,14 @@
 
 #pragma once
 
-#include <uORB/SubscriptionInterval.hpp>
 #include <containers/List.hpp>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 
-namespace uORB
-{
+namespace uORB {
 
 // Subscription wrapper class with callbacks on new publications
-class SubscriptionCallback : public SubscriptionInterval, public ListNode<SubscriptionCallback *>
-{
+class SubscriptionCallback : public SubscriptionInterval, public ListNode<SubscriptionCallback *> {
 public:
 	/**
 	 * Constructor
@@ -56,18 +54,12 @@ public:
 	 * @param interval_us The requested maximum update interval in microseconds.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionCallback(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
-		SubscriptionInterval(meta, interval_us, instance)
-	{
-	}
+	SubscriptionCallback(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0)
+		: SubscriptionInterval(meta, interval_us, instance) {}
 
-	virtual ~SubscriptionCallback()
-	{
-		unregisterCallback();
-	};
+	virtual ~SubscriptionCallback() { unregisterCallback(); };
 
-	bool registerCallback()
-	{
+	bool registerCallback() {
 		if (!_registered) {
 			if (_subscription.get_node() && Manager::register_callback(_subscription.get_node(), this)) {
 				// registered
@@ -79,7 +71,8 @@ public:
 
 				// try to register callback again
 				if (_subscription.subscribe()) {
-					if (_subscription.get_node() && Manager::register_callback(_subscription.get_node(), this)) {
+					if (_subscription.get_node() &&
+					    Manager::register_callback(_subscription.get_node(), this)) {
 						_registered = true;
 					}
 				}
@@ -91,8 +84,7 @@ public:
 		return _registered;
 	}
 
-	void unregisterCallback()
-	{
+	void unregisterCallback() {
 		if (_subscription.get_node()) {
 			Manager::unregister_callback(_subscription.get_node(), this);
 		}
@@ -104,8 +96,7 @@ public:
 	 * Change subscription instance
 	 * @param instance The new multi-Subscription instance
 	 */
-	bool ChangeInstance(uint8_t instance)
-	{
+	bool ChangeInstance(uint8_t instance) {
 		bool ret = false;
 
 		if (instance != get_instance()) {
@@ -136,14 +127,11 @@ public:
 	bool registered() const { return _registered; }
 
 protected:
-
 	bool _registered{false};
-
 };
 
 // Subscription with callback that schedules a WorkItem
-class SubscriptionCallbackWorkItem : public SubscriptionCallback
-{
+class SubscriptionCallbackWorkItem : public SubscriptionCallback {
 public:
 	/**
 	 * Constructor
@@ -152,19 +140,17 @@ public:
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionCallbackWorkItem(px4::WorkItem *work_item, const orb_metadata *meta, uint8_t instance = 0) :
-		SubscriptionCallback(meta, 0, instance),	// interval 0
-		_work_item(work_item)
-	{
-	}
+	SubscriptionCallbackWorkItem(px4::WorkItem *work_item, const orb_metadata *meta, uint8_t instance = 0)
+		: SubscriptionCallback(meta, 0, instance),  // interval 0
+		  _work_item(work_item) {}
 
 	virtual ~SubscriptionCallbackWorkItem() = default;
 
-	void call() override
-	{
+	void call() override {
 		// schedule immediately if updated (queue depth or subscription interval)
-		if ((_required_updates == 0)
-		    || (Manager::updates_available(_subscription.get_node(), _subscription.get_last_generation()) >= _required_updates)) {
+		if ((_required_updates == 0) ||
+		    (Manager::updates_available(_subscription.get_node(), _subscription.get_last_generation()) >=
+		     _required_updates)) {
 			if (updated()) {
 				_work_item->ScheduleNow();
 			}
@@ -176,8 +162,7 @@ public:
 	 *
 	 * @param required_updates Number of queued updates required before a callback can be called.
 	 */
-	void set_required_updates(uint8_t required_updates)
-	{
+	void set_required_updates(uint8_t required_updates) {
 		// TODO: constrain to queue depth?
 		_required_updates = required_updates;
 	}
@@ -188,4 +173,4 @@ private:
 	uint8_t _required_updates{0};
 };
 
-} // namespace uORB
+}  // namespace uORB

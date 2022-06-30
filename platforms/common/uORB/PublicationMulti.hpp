@@ -41,36 +41,28 @@
 #include <px4_platform_common/defines.h>
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
-#include "uORBDeviceNode.hpp"
 
 #include "Publication.hpp"
+#include "uORBDeviceNode.hpp"
 
-namespace uORB
-{
+namespace uORB {
 
 /**
  * Base publication multi wrapper class
  */
-template<typename T, uint8_t QSIZE = DefaultQueueSize<T>::value>
-class PublicationMulti : public PublicationBase
-{
+template <typename T, uint8_t QSIZE = DefaultQueueSize<T>::value>
+class PublicationMulti : public PublicationBase {
 public:
-
 	/**
 	 * Constructor
 	 *
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 */
-	PublicationMulti(ORB_ID id) :
-		PublicationBase(id)
-	{}
+	PublicationMulti(ORB_ID id) : PublicationBase(id) {}
 
-	PublicationMulti(const orb_metadata *meta) :
-		PublicationBase(static_cast<ORB_ID>(meta->o_id))
-	{}
+	PublicationMulti(const orb_metadata *meta) : PublicationBase(static_cast<ORB_ID>(meta->o_id)) {}
 
-	bool advertise()
-	{
+	bool advertise() {
 		if (!advertised()) {
 			int instance = 0;
 			_handle = orb_advertise_multi_queue(get_topic(), nullptr, &instance, QSIZE);
@@ -83,8 +75,7 @@ public:
 	 * Publish the struct
 	 * @param data The uORB message struct we are updating.
 	 */
-	bool publish(const T &data)
-	{
+	bool publish(const T &data) {
 		if (!advertised()) {
 			advertise();
 		}
@@ -92,8 +83,7 @@ public:
 		return (orb_publish(get_topic(), _handle, &data) == PX4_OK);
 	}
 
-	int get_instance()
-	{
+	int get_instance() {
 		// advertise if not already advertised
 		if (advertise()) {
 			return Manager::orb_get_instance(_handle);
@@ -106,9 +96,8 @@ public:
 /**
  * The publication multi class with data embedded.
  */
-template<typename T>
-class PublicationMultiData : public PublicationMulti<T>
-{
+template <typename T>
+class PublicationMultiData : public PublicationMulti<T> {
 public:
 	/**
 	 * Constructor
@@ -118,13 +107,12 @@ public:
 	PublicationMultiData(ORB_ID id) : PublicationMulti<T>(id) {}
 	PublicationMultiData(const orb_metadata *meta) : PublicationMulti<T>(meta) {}
 
-	T	&get() { return _data; }
-	void	set(const T &data) { _data = data; }
+	T &get() { return _data; }
+	void set(const T &data) { _data = data; }
 
 	// Publishes the embedded struct.
-	bool	update() { return PublicationMulti<T>::publish(_data); }
-	bool	update(const T &data)
-	{
+	bool update() { return PublicationMulti<T>::publish(_data); }
+	bool update(const T &data) {
 		_data = data;
 		return PublicationMulti<T>::publish(_data);
 	}
@@ -133,4 +121,4 @@ private:
 	T _data{};
 };
 
-} // namespace uORB
+}  // namespace uORB

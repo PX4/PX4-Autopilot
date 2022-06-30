@@ -36,10 +36,11 @@
 
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 
-class MavlinkStreamTrajectoryRepresentationWaypoints: public MavlinkStream
-{
+class MavlinkStreamTrajectoryRepresentationWaypoints : public MavlinkStream {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamTrajectoryRepresentationWaypoints(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
+		return new MavlinkStreamTrajectoryRepresentationWaypoints(mavlink);
+	}
 
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
@@ -47,8 +48,7 @@ public:
 	static constexpr const char *get_name_static() { return "TRAJECTORY_REPRESENTATION_WAYPOINTS"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_WAYPOINTS; }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		if (_traj_wp_avoidance_sub.advertised()) {
 			return MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_WAYPOINTS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		}
@@ -61,8 +61,7 @@ private:
 
 	uORB::Subscription _traj_wp_avoidance_sub{ORB_ID(vehicle_trajectory_waypoint_desired)};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_trajectory_waypoint_s traj_wp_avoidance_desired;
 
 		if (_traj_wp_avoidance_sub.update(&traj_wp_avoidance_desired)) {
@@ -88,26 +87,25 @@ private:
 				msg.vel_yaw[i] = traj_wp_avoidance_desired.waypoints[i].yaw_speed;
 
 				switch (traj_wp_avoidance_desired.waypoints[i].type) {
-				case position_setpoint_s::SETPOINT_TYPE_TAKEOFF:
-					msg.command[i] = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF;
-					break;
+					case position_setpoint_s::SETPOINT_TYPE_TAKEOFF:
+						msg.command[i] = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF;
+						break;
 
-				case position_setpoint_s::SETPOINT_TYPE_LOITER:
-					msg.command[i] = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
-					break;
+					case position_setpoint_s::SETPOINT_TYPE_LOITER:
+						msg.command[i] = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
+						break;
 
-				case position_setpoint_s::SETPOINT_TYPE_LAND:
-					msg.command[i] = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
-					break;
+					case position_setpoint_s::SETPOINT_TYPE_LAND:
+						msg.command[i] = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
+						break;
 
-				default:
-					msg.command[i] = UINT16_MAX;
+					default:
+						msg.command[i] = UINT16_MAX;
 				}
 
 				if (traj_wp_avoidance_desired.waypoints[i].point_valid) {
 					number_valid_points++;
 				}
-
 			}
 
 			msg.valid_points = number_valid_points;
@@ -121,4 +119,4 @@ private:
 	}
 };
 
-#endif // TRAJECTORY_REPRESENTATION_WAYPOINTS_HPP
+#endif  // TRAJECTORY_REPRESENTATION_WAYPOINTS_HPP

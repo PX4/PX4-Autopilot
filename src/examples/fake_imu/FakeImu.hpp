@@ -37,22 +37,22 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/topics/sensor_gyro_fifo.h>
+
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_gyro_fifo.h>
 
 // fake ESC RPM for testing dynamic notch filtering
 //#define FAKE_IMU_FAKE_ESC_STATUS
 
 #if defined(FAKE_IMU_FAKE_ESC_STATUS)
-# include <uORB/topics/esc_status.h>
-#endif // FAKE_IMU_FAKE_ESC_STATUS
+#include <uORB/topics/esc_status.h>
+#endif  // FAKE_IMU_FAKE_ESC_STATUS
 
-class FakeImu : public ModuleBase<FakeImu>, public ModuleParams, public px4::ScheduledWorkItem
-{
+class FakeImu : public ModuleBase<FakeImu>, public ModuleParams, public px4::ScheduledWorkItem {
 public:
 	FakeImu();
 	~FakeImu() override = default;
@@ -81,6 +81,6 @@ private:
 	uint32_t _sensor_interval_us{1250};
 
 #if defined(FAKE_IMU_FAKE_ESC_STATUS)
-	uORB::PublicationData<esc_status_s> _esc_status_pub {ORB_ID(esc_status)};
-#endif // FAKE_IMU_FAKE_ESC_STATUS
+	uORB::PublicationData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+#endif  // FAKE_IMU_FAKE_ESC_STATUS
 };

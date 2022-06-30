@@ -33,25 +33,20 @@
 
 #include "SRF02.hpp"
 
-SRF02::SRF02(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_px4_rangefinder(get_device_id(), config.rotation)
-{
+SRF02::SRF02(const I2CSPIDriverConfig &config)
+	: I2C(config), I2CSPIDriver(config), _px4_rangefinder(get_device_id(), config.rotation) {
 	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_SRF02);
 	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND);
 	_px4_rangefinder.set_max_distance(SRF02_MAX_DISTANCE);
 	_px4_rangefinder.set_min_distance(SRF02_MIN_DISTANCE);
 }
 
-SRF02::~SRF02()
-{
+SRF02::~SRF02() {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
-void SRF02::start()
-{
+void SRF02::start() {
 	// Reset the report ring and state machine.
 	_collect_phase = false;
 
@@ -59,8 +54,7 @@ void SRF02::start()
 	ScheduleDelayed(5);
 }
 
-int SRF02::init()
-{
+int SRF02::init() {
 	// I2C init (and probe) first.
 	if (I2C::init() != OK) {
 		return PX4_ERROR;
@@ -78,10 +72,9 @@ int SRF02::init()
 	return ret;
 }
 
-int SRF02::collect()
-{
+int SRF02::collect() {
 	// Read from the sensor.
-	uint8_t val[2] {};
+	uint8_t val[2]{};
 	uint8_t cmd = 0x02;
 	perf_begin(_sample_perf);
 
@@ -105,8 +98,7 @@ int SRF02::collect()
 	return PX4_OK;
 }
 
-int SRF02::measure()
-{
+int SRF02::measure() {
 	uint8_t cmd[2];
 	cmd[0] = 0x00;
 	cmd[1] = SRF02_TAKE_RANGE_REG;
@@ -123,8 +115,7 @@ int SRF02::measure()
 	return PX4_OK;
 }
 
-void SRF02::RunImpl()
-{
+void SRF02::RunImpl() {
 	if (_collect_phase) {
 		// Perform collection.
 		if (OK != collect()) {
@@ -150,8 +141,7 @@ void SRF02::RunImpl()
 	ScheduleDelayed(_interval);
 }
 
-void SRF02::print_status()
-{
+void SRF02::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);

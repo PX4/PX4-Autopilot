@@ -36,19 +36,18 @@
  * Tests related to the parameter system.
  */
 
+#include <parameters/param.h>
 #include <px4_platform_common/defines.h>
 #include <stdio.h>
+
 #include "systemlib/err.h"
-#include <parameters/param.h>
 #include "tests_main.h"
 
 #define PARAM_MAGIC1 12345678
 #define PARAM_MAGIC2 0xa5a5a5a5
 
-int
-test_param(int argc, char *argv[])
-{
-	param_t		p;
+int test_param(int argc, char *argv[]) {
+	param_t p;
 
 	p = param_find("TEST_PARAMS");
 
@@ -69,7 +68,7 @@ test_param(int argc, char *argv[])
 		return 1;
 	}
 
-	int32_t	val = -1;
+	int32_t val = -1;
 
 	if (param_get(p, &val) != OK) {
 		warnx("failed to read test parameter");

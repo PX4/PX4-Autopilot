@@ -35,28 +35,22 @@
  * @file bootloader_main.c
  *
  * FMU-specific early startup code for bootloader
-*/
+ */
 
-#include "board_config.h"
-#include "bl.h"
-
-#include <nuttx/config.h>
-#include <nuttx/board.h>
-#include <chip.h>
-#include <stm32_uart.h>
 #include <arch/board/board.h>
-#include "arm_internal.h"
+#include <chip.h>
+#include <nuttx/board.h>
+#include <nuttx/config.h>
 #include <px4_platform_common/init.h>
+#include <stm32_uart.h>
+
+#include "arm_internal.h"
+#include "bl.h"
+#include "board_config.h"
 
 extern int sercon_main(int c, char **argv);
 
-void board_late_initialize(void)
-{
-	sercon_main(0, NULL);
-}
+void board_late_initialize(void) { sercon_main(0, NULL); }
 
 extern void sys_tick_handler(void);
-void board_timerhook(void)
-{
-	sys_tick_handler();
-}
+void board_timerhook(void) { sys_tick_handler(); }

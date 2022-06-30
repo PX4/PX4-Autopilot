@@ -34,13 +34,11 @@
 #include "CanardSocketCAN.hpp"
 
 #include <net/if.h>
-#include <sys/ioctl.h>
-#include <string.h>
-
 #include <px4_platform_common/log.h>
+#include <string.h>
+#include <sys/ioctl.h>
 
-uint64_t getMonotonicTimestampUSec(void)
-{
+uint64_t getMonotonicTimestampUSec(void) {
 	struct timespec ts {};
 
 	clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -48,14 +46,13 @@ uint64_t getMonotonicTimestampUSec(void)
 	return ts.tv_sec * 1000000ULL + ts.tv_nsec / 1000ULL;
 }
 
-int CanardSocketCAN::init()
-{
+int CanardSocketCAN::init() {
 	const char *const can_iface_name = "can0";
 
 	struct sockaddr_can addr;
 	struct ifreq ifr;
 
-	//FIXME HOTFIX to make this code compile
+	// FIXME HOTFIX to make this code compile
 	bool can_fd = 0;
 
 	_can_fd = can_fd;
@@ -120,7 +117,7 @@ int CanardSocketCAN::init()
 
 	memset(&_send_control, 0x00, sizeof(_send_control));
 
-	_send_msg.msg_iov    = &_send_iov;
+	_send_msg.msg_iov = &_send_iov;
 	_send_msg.msg_iovlen = 1;
 	_send_msg.msg_control = &_send_control;
 	_send_msg.msg_controllen = sizeof(_send_control);
@@ -152,8 +149,7 @@ int CanardSocketCAN::init()
 	return 0;
 }
 
-int16_t CanardSocketCAN::transmit(const CanardTxQueueItem &txf, int timeout_ms)
-{
+int16_t CanardSocketCAN::transmit(const CanardTxQueueItem &txf, int timeout_ms) {
 	/* Copy CanardFrame to can_frame/canfd_frame */
 	if (_can_fd) {
 		_send_frame.can_id = txf.frame.extended_can_id | CAN_EFF_FLAG;
@@ -167,8 +163,9 @@ int16_t CanardSocketCAN::transmit(const CanardTxQueueItem &txf, int timeout_ms)
 		memcpy(&frame->data, txf.frame.payload, txf.frame.payload_size);
 	}
 
-	uint64_t deadline_systick = getMonotonicTimestampUSec() + (txf.tx_deadline_usec - hrt_absolute_time()) +
-				    CONFIG_USEC_PER_TICK; // Compensate for precision loss when converting hrt to systick
+	uint64_t deadline_systick =
+		getMonotonicTimestampUSec() + (txf.tx_deadline_usec - hrt_absolute_time()) +
+		CONFIG_USEC_PER_TICK;  // Compensate for precision loss when converting hrt to systick
 
 	/* Set CAN_RAW_TX_DEADLINE timestamp  */
 	_send_tv->tv_usec = deadline_systick % 1000000ULL;
@@ -177,8 +174,7 @@ int16_t CanardSocketCAN::transmit(const CanardTxQueueItem &txf, int timeout_ms)
 	return sendmsg(_fd, &_send_msg, 0);
 }
 
-int16_t CanardSocketCAN::receive(CanardRxFrame *rxf)
-{
+int16_t CanardSocketCAN::receive(CanardRxFrame *rxf) {
 	int32_t result = recvmsg(_fd, &_recv_msg, MSG_DONTWAIT);
 
 	if (result < 0) {
@@ -197,7 +193,7 @@ int16_t CanardSocketCAN::receive(CanardRxFrame *rxf)
 		struct can_frame *recv_frame = (struct can_frame *)&_recv_frame;
 		rxf->frame.extended_can_id = recv_frame->can_id & CAN_EFF_MASK;
 		rxf->frame.payload_size = recv_frame->can_dlc;
-		rxf->frame.payload = &recv_frame->data; //FIXME either copy or clearly state the pointer reference
+		rxf->frame.payload = &recv_frame->data;  // FIXME either copy or clearly state the pointer reference
 	}
 
 	/* Read SO_TIMESTAMP value */

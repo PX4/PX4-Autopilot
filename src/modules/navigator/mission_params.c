@@ -115,17 +115,17 @@ PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
 PARAM_DEFINE_FLOAT(MIS_DIST_WPS, 900);
 
 /**
-* Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
-*
-* If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading towards the flight direction.
-* If disabled, the vehicle will yaw towards the ROI.
-*
-* @value 0 Disable
-* @value 1 Enable
-* @min 0
-* @max 1
-* @group Mission
-*/
+ * Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
+ *
+ * If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading towards the flight
+ * direction. If disabled, the vehicle will yaw towards the ROI.
+ *
+ * @value 0 Disable
+ * @value 1 Enable
+ * @min 0
+ * @max 1
+ * @group Mission
+ */
 PARAM_DEFINE_INT32(MIS_MNT_YAW_CTL, 0);
 
 /**

@@ -35,16 +35,15 @@
 
 #include <drivers/drv_hrt.h>
 
-class DShotTelemetry
-{
+class DShotTelemetry {
 public:
 	struct EscData {
 		hrt_abstime time;
-		int8_t temperature;  ///< [deg C]
-		int16_t voltage;     ///< [0.01V]
-		int16_t current;     ///< [0.01A]
-		int16_t consumption; ///< [mAh]
-		int16_t erpm;        ///< [100ERPM]
+		int8_t temperature;   ///< [deg C]
+		int16_t voltage;      ///< [0.01V]
+		int16_t current;      ///< [0.01A]
+		int16_t consumption;  ///< [mAh]
+		int16_t erpm;         ///< [100ERPM]
 	};
 
 	static constexpr int esc_info_size_blheli32 = 64;
@@ -135,7 +134,8 @@ private:
 	int _current_motor_index_request{-1};
 	hrt_abstime _current_request_start{0};
 
-	OutputBuffer *_redirect_output{nullptr}; ///< if set, all read bytes are stored here instead of the internal buffer
+	OutputBuffer *_redirect_output{
+		nullptr};  ///< if set, all read bytes are stored here instead of the internal buffer
 
 	// statistics
 	int _num_timeouts{0};

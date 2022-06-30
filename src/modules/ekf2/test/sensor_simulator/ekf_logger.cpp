@@ -2,19 +2,11 @@
 
 #include <iomanip>
 
-EkfLogger::EkfLogger(std::shared_ptr<Ekf> ekf):
-	_ekf{ekf},
-	_ekf_wrapper(ekf)
-{
-}
+EkfLogger::EkfLogger(std::shared_ptr<Ekf> ekf) : _ekf{ekf}, _ekf_wrapper(ekf) {}
 
-void EkfLogger::setFilePath(std::string file_path)
-{
-	_file_path = file_path;
-}
+void EkfLogger::setFilePath(std::string file_path) { _file_path = file_path; }
 
-void EkfLogger::writeStateToFile()
-{
+void EkfLogger::writeStateToFile() {
 	if (!_file_opened) {
 		_file.open(_file_path);
 		_file_opened = true;
@@ -42,11 +34,9 @@ void EkfLogger::writeStateToFile()
 		std::cerr << "Can not write to output file" << std::endl;
 		system_exit(-1);
 	}
-
 }
 
-void EkfLogger::writeState()
-{
+void EkfLogger::writeState() {
 	if (_state_logging_enabled) {
 		uint64_t time = _ekf->get_imu_sample_delayed().time_us;
 		_file << time;

@@ -34,47 +34,26 @@
 #include <nuttx/spi/spi.h>
 #include <px4_platform_common/px4_manifest.h>
 //                                                              KiB BS    nB
-static const px4_mft_device_t spi5 = {             // FM25V02A on FMUM 32K 512 X 64
+static const px4_mft_device_t spi5 = {  // FM25V02A on FMUM 32K 512 X 64
 	.bus_type = px4_mft_device_t::SPI,
-	.devid    = SPIDEV_FLASH(0)
-};
+	.devid = SPIDEV_FLASH(0)};
 
 static const px4_mtd_entry_t fmum_fram = {
 	.device = &spi5,
 	.npart = 2,
-	.partd = {
-		{
-			.type = MTD_PARAMETERS,
-			.path = "/fs/mtd_params",
-			.nblocks = 32
-		},
-		{
-			.type = MTD_WAYPOINTS,
-			.path = "/fs/mtd_waypoints",
-			.nblocks = 32
+	.partd = {{.type = MTD_PARAMETERS, .path = "/fs/mtd_params", .nblocks = 32},
+		  {.type = MTD_WAYPOINTS, .path = "/fs/mtd_waypoints", .nblocks = 32
 
-		}
-	},
+		  }},
 };
 
-static const px4_mtd_manifest_t board_mtd_config = {
-	.nconfigs   = 1,
-	.entries = {
-		&fmum_fram
-	}
-};
+static const px4_mtd_manifest_t board_mtd_config = {.nconfigs = 1, .entries = {&fmum_fram}};
 
 static const px4_mft_entry_s mtd_mft = {
 	.type = MTD,
-	.pmft = (void *) &board_mtd_config,
+	.pmft = (void *)&board_mtd_config,
 };
 
-static const px4_mft_s mft = {
-	.nmft = 1,
-	.mfts = &mtd_mft
-};
+static const px4_mft_s mft = {.nmft = 1, .mfts = &mtd_mft};
 
-const px4_mft_s *board_get_manifest(void)
-{
-	return &mft;
-}
+const px4_mft_s *board_get_manifest(void) { return &mft; }

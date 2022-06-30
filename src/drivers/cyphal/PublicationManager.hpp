@@ -66,35 +66,32 @@
 
 /* Preprocessor calculation of publisher count */
 
-#define UAVCAN_PUB_COUNT CONFIG_CYPHAL_GNSS_PUBLISHER + \
-	CONFIG_CYPHAL_ESC_CONTROLLER + \
-	CONFIG_CYPHAL_READINESS_PUBLISHER + \
-	CONFIG_CYPHAL_UORB_ACTUATOR_OUTPUTS_PUBLISHER + \
-	CONFIG_CYPHAL_UORB_SENSOR_GPS_PUBLISHER
+#define UAVCAN_PUB_COUNT                                                                                  \
+	CONFIG_CYPHAL_GNSS_PUBLISHER + CONFIG_CYPHAL_ESC_CONTROLLER + CONFIG_CYPHAL_READINESS_PUBLISHER + \
+		CONFIG_CYPHAL_UORB_ACTUATOR_OUTPUTS_PUBLISHER + CONFIG_CYPHAL_UORB_SENSOR_GPS_PUBLISHER
 
-#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
-#include "Publishers/Publisher.hpp"
-#include "CanardInterface.hpp"
-
+#include <px4_platform_common/defines.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/sensor_gps.h>
 
 #include "Actuators/EscClient.hpp"
-#include "Publishers/udral/Readiness.hpp"
-#include "Publishers/udral/Gnss.hpp"
+#include "CanardInterface.hpp"
+#include "Publishers/Publisher.hpp"
 #include "Publishers/uORB/uorb_publisher.hpp"
+#include "Publishers/udral/Gnss.hpp"
+#include "Publishers/udral/Readiness.hpp"
 
 typedef struct {
-	UavcanPublisher *(*create_pub)(CanardHandle &handle, UavcanParamManager &pmgr) {};
+	UavcanPublisher *(*create_pub)(CanardHandle &handle, UavcanParamManager &pmgr){};
 	const char *subject_name;
 	const uint8_t instance;
 } UavcanDynPubBinder;
 
-class PublicationManager
-{
+class PublicationManager {
 public:
-	PublicationManager(CanardHandle &handle, UavcanParamManager &pmgr) : _canard_handle(handle), _param_manager(pmgr) {}
+	PublicationManager(CanardHandle &handle, UavcanParamManager &pmgr)
+		: _canard_handle(handle), _param_manager(pmgr) {}
 	~PublicationManager();
 
 	void update();
@@ -108,57 +105,37 @@ private:
 	UavcanParamManager &_param_manager;
 	List<UavcanPublisher *> _dynpublishers;
 
-
 	const UavcanDynPubBinder _uavcan_pubs[UAVCAN_PUB_COUNT] {
 #if CONFIG_CYPHAL_GNSS_PUBLISHER
-		{
-			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanPublisher *
-			{
-				return new UavcanGnssPublisher(handle, pmgr, 0);
-			},
-			"gps",
-			0
-		},
+		{[](CanardHandle &handle, UavcanParamManager &pmgr) -> UavcanPublisher * {
+			 return new UavcanGnssPublisher(handle, pmgr, 0);
+		 },
+		 "gps", 0},
 #endif
 #if CONFIG_CYPHAL_ESC_CONTROLLER
-		{
-			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanPublisher *
-			{
-				return new UavcanEscController(handle, pmgr);
-			},
-			"esc",
-			0
-		},
+			{[](CanardHandle &handle, UavcanParamManager &pmgr) -> UavcanPublisher * {
+				 return new UavcanEscController(handle, pmgr);
+			 },
+			 "esc", 0},
 #endif
 #if CONFIG_CYPHAL_READINESS_PUBLISHER
-		{
-			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanPublisher *
-			{
-				return new UavcanReadinessPublisher(handle, pmgr, 0);
-			},
-			"readiness",
-			0
-		},
+			{[](CanardHandle &handle, UavcanParamManager &pmgr) -> UavcanPublisher * {
+				 return new UavcanReadinessPublisher(handle, pmgr, 0);
+			 },
+			 "readiness", 0},
 #endif
 #if CONFIG_CYPHAL_UORB_ACTUATOR_OUTPUTS_PUBLISHER
-		{
-			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanPublisher *
-			{
-				return new uORB_over_UAVCAN_Publisher<actuator_outputs_s>(handle, pmgr, ORB_ID(actuator_outputs));
-			},
-			"uorb.actuator_outputs",
-			0
-		},
+			{[](CanardHandle &handle, UavcanParamManager &pmgr) -> UavcanPublisher * {
+				 return new uORB_over_UAVCAN_Publisher<actuator_outputs_s>(handle, pmgr,
+											   ORB_ID(actuator_outputs));
+			 },
+			 "uorb.actuator_outputs", 0},
 #endif
 #if CONFIG_CYPHAL_UORB_SENSOR_GPS_PUBLISHER
-		{
-			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanPublisher *
-			{
-				return new uORB_over_UAVCAN_Publisher<sensor_gps_s>(handle, pmgr, ORB_ID(sensor_gps));
-			},
-			"uorb.sensor_gps",
-			0
-		},
+			{[](CanardHandle &handle, UavcanParamManager &pmgr) -> UavcanPublisher * {
+				 return new uORB_over_UAVCAN_Publisher<sensor_gps_s>(handle, pmgr, ORB_ID(sensor_gps));
+			 },
+			 "uorb.sensor_gps", 0},
 #endif
 	};
 };

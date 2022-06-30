@@ -1,59 +1,53 @@
 /****************************************************************************
-*
-*   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions
-* are met:
-*
-* 1. Redistributions of source code must retain the above copyright
-*    notice, this list of conditions and the following disclaimer.
-* 2. Redistributions in binary form must reproduce the above copyright
-*    notice, this list of conditions and the following disclaimer in
-*    the documentation and/or other materials provided with the
-*    distribution.
-* 3. Neither the name PX4 nor the names of its contributors may be
-*    used to endorse or promote products derived from this software
-*    without specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-* OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-* AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-* POSSIBILITY OF SUCH DAMAGE.
-*
-****************************************************************************/
-
+ *
+ *   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 
 #include "output.h"
 
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/mount_orientation.h>
-#include <px4_platform_common/defines.h>
 #include <lib/geo/geo.h>
 #include <math.h>
 #include <mathlib/mathlib.h>
+#include <px4_platform_common/defines.h>
+#include <uORB/topics/mount_orientation.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_global_position.h>
+
 #include <matrix/math.hpp>
 
-namespace gimbal
-{
+namespace gimbal {
 
-OutputBase::OutputBase(const Parameters &parameters)
-	: _parameters(parameters)
-{
-	_last_update = hrt_absolute_time();
-}
+OutputBase::OutputBase(const Parameters &parameters) : _parameters(parameters) { _last_update = hrt_absolute_time(); }
 
-void OutputBase::publish()
-{
+void OutputBase::publish() {
 	mount_orientation_s mount_orientation{};
 
 	for (unsigned i = 0; i < 3; ++i) {
@@ -65,8 +59,7 @@ void OutputBase::publish()
 }
 
 float OutputBase::_calculate_pitch(double lon, double lat, float altitude,
-				   const vehicle_global_position_s &global_position)
-{
+				   const vehicle_global_position_s &global_position) {
 	if (!_projection_reference.isInitialized()) {
 		_projection_reference.initReference(global_position.lat, global_position.lon);
 	}
@@ -81,24 +74,23 @@ float OutputBase::_calculate_pitch(double lon, double lat, float altitude,
 	return atan2f(z, target_distance);
 }
 
-void OutputBase::_set_angle_setpoints(const ControlData &control_data)
-{
+void OutputBase::_set_angle_setpoints(const ControlData &control_data) {
 	switch (control_data.type) {
-	case ControlData::Type::Angle:
+		case ControlData::Type::Angle:
 
 		{
 			for (int i = 0; i < 3; ++i) {
 				switch (control_data.type_data.angle.frames[i]) {
-				case ControlData::TypeData::TypeAngle::Frame::AngularRate:
-					break;
+					case ControlData::TypeData::TypeAngle::Frame::AngularRate:
+						break;
 
-				case ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame:
-					_absolute_angle[i] = false;
-					break;
+					case ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame:
+						_absolute_angle[i] = false;
+						break;
 
-				case ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame:
-					_absolute_angle[i] = true;
-					break;
+					case ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame:
+						_absolute_angle[i] = true;
+						break;
 				}
 
 				_angle_velocity[i] = control_data.type_data.angle.angular_velocity[i];
@@ -111,24 +103,23 @@ void OutputBase::_set_angle_setpoints(const ControlData &control_data)
 
 		break;
 
-	case ControlData::Type::LonLat:
-		_handle_position_update(control_data, true);
-		break;
+		case ControlData::Type::LonLat:
+			_handle_position_update(control_data, true);
+			break;
 
-	case ControlData::Type::Neutral:
-		_q_setpoint[0] = 1.f;
-		_q_setpoint[1] = 0.f;
-		_q_setpoint[2] = 0.f;
-		_q_setpoint[3] = 0.f;
-		_angle_velocity[0] = NAN;
-		_angle_velocity[1] = NAN;
-		_angle_velocity[2] = NAN;
-		break;
+		case ControlData::Type::Neutral:
+			_q_setpoint[0] = 1.f;
+			_q_setpoint[1] = 0.f;
+			_q_setpoint[2] = 0.f;
+			_q_setpoint[3] = 0.f;
+			_angle_velocity[0] = NAN;
+			_angle_velocity[1] = NAN;
+			_angle_velocity[2] = NAN;
+			break;
 	}
 }
 
-void OutputBase::_handle_position_update(const ControlData &control_data, bool force_update)
-{
+void OutputBase::_handle_position_update(const ControlData &control_data, bool force_update) {
 	if (control_data.type != ControlData::Type::LonLat) {
 		return;
 	}
@@ -151,14 +142,13 @@ void OutputBase::_handle_position_update(const ControlData &control_data, bool f
 	const double &lon = control_data.type_data.lonlat.lon;
 	const float &alt = control_data.type_data.lonlat.altitude;
 
-	float roll = PX4_ISFINITE(control_data.type_data.lonlat.roll_offset)
-		     ? control_data.type_data.lonlat.roll_offset
-		     : 0.0f;
+	float roll = PX4_ISFINITE(control_data.type_data.lonlat.roll_offset) ? control_data.type_data.lonlat.roll_offset
+									     : 0.0f;
 
 	// interface: use fixed pitch value > -pi otherwise consider ROI altitude
-	float pitch = (control_data.type_data.lonlat.pitch_fixed_angle >= -M_PI_F) ?
-		      control_data.type_data.lonlat.pitch_fixed_angle :
-		      _calculate_pitch(lon, lat, alt, vehicle_global_position);
+	float pitch = (control_data.type_data.lonlat.pitch_fixed_angle >= -M_PI_F)
+			      ? control_data.type_data.lonlat.pitch_fixed_angle
+			      : _calculate_pitch(lon, lat, alt, vehicle_global_position);
 
 	float yaw = get_bearing_to_next_waypoint(vlat, vlon, lat, lon);
 	// We set the yaw angle in the absolute frame in this case.
@@ -180,8 +170,7 @@ void OutputBase::_handle_position_update(const ControlData &control_data, bool f
 	_angle_velocity[2] = NAN;
 }
 
-void OutputBase::_calculate_angle_output(const hrt_abstime &t)
-{
+void OutputBase::_calculate_angle_output(const hrt_abstime &t) {
 	if (_vehicle_land_detected_sub.updated()) {
 		vehicle_land_detected_s vehicle_land_detected;
 
@@ -213,8 +202,8 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 
 	float dt = math::constrain((t - _last_update) * 1.e-6f, 0.001f, 1.f);
 
-	const bool q_setpoint_valid = PX4_ISFINITE(_q_setpoint[0]) && PX4_ISFINITE(_q_setpoint[1])
-				      && PX4_ISFINITE(_q_setpoint[2]) && PX4_ISFINITE(_q_setpoint[3]);
+	const bool q_setpoint_valid = PX4_ISFINITE(_q_setpoint[0]) && PX4_ISFINITE(_q_setpoint[1]) &&
+				      PX4_ISFINITE(_q_setpoint[2]) && PX4_ISFINITE(_q_setpoint[3]);
 	matrix::Eulerf euler_gimbal{};
 
 	if (q_setpoint_valid) {
@@ -222,7 +211,6 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 	}
 
 	for (int i = 0; i < 3; ++i) {
-
 		if (q_setpoint_valid && PX4_ISFINITE(euler_gimbal(i))) {
 			_angle_outputs[i] = euler_gimbal(i);
 		}
@@ -241,23 +229,19 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 		}
 	}
 
-
 	// constrain pitch to [MNT_LND_P_MIN, MNT_LND_P_MAX] if landed
 	if (_landed) {
 		if (PX4_ISFINITE(_angle_outputs[1])) {
-			_angle_outputs[1] = math::constrain(_angle_outputs[1],
-							    math::radians(_parameters.mnt_lnd_p_min),
+			_angle_outputs[1] = math::constrain(_angle_outputs[1], math::radians(_parameters.mnt_lnd_p_min),
 							    math::radians(_parameters.mnt_lnd_p_max));
 		}
 	}
 }
 
-void OutputBase::set_stabilize(bool roll_stabilize, bool pitch_stabilize, bool yaw_stabilize)
-{
+void OutputBase::set_stabilize(bool roll_stabilize, bool pitch_stabilize, bool yaw_stabilize) {
 	_stabilize[0] = roll_stabilize;
 	_stabilize[1] = pitch_stabilize;
 	_stabilize[2] = yaw_stabilize;
 }
 
 } /* namespace gimbal */
-

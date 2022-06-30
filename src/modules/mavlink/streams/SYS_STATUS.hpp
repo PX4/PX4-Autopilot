@@ -38,8 +38,7 @@
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/vehicle_status.h>
 
-class MavlinkStreamSysStatus : public MavlinkStream
-{
+class MavlinkStreamSysStatus : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamSysStatus(mavlink); }
 
@@ -49,20 +48,17 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_SYS_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
+	unsigned get_size() override { return MAVLINK_MSG_ID_SYS_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES; }
 
 private:
 	explicit MavlinkStreamSysStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _cpuload_sub{ORB_ID(cpuload)};
-	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{
+		ORB_ID::battery_status};
 
-	bool send() override
-	{
+	bool send() override {
 		if (_status_sub.updated() || _cpuload_sub.updated() || _battery_status_subs.updated()) {
 			vehicle_status_s status{};
 			_status_sub.copy(&status);
@@ -70,7 +66,7 @@ private:
 			cpuload_s cpuload{};
 			_cpuload_sub.copy(&cpuload);
 
-			battery_status_s battery_status[battery_status_s::MAX_INSTANCES] {};
+			battery_status_s battery_status[battery_status_s::MAX_INSTANCES]{};
 
 			for (int i = 0; i < _battery_status_subs.size(); i++) {
 				_battery_status_subs[i].copy(&battery_status[i]);
@@ -80,38 +76,42 @@ private:
 
 			// No battery is connected, select the first group
 			// Low battery judgment is performed only when the current battery is connected
-			// When the last cached battery is not connected or the current battery level is lower than the cached battery level,
-			// the current battery status is replaced with the cached value
+			// When the last cached battery is not connected or the current battery level is lower than the
+			// cached battery level, the current battery status is replaced with the cached value
 			for (int i = 0; i < _battery_status_subs.size(); i++) {
-				if (battery_status[i].connected && ((!battery_status[lowest_battery_index].connected)
-								    || (battery_status[i].remaining < battery_status[lowest_battery_index].remaining))) {
+				if (battery_status[i].connected &&
+				    ((!battery_status[lowest_battery_index].connected) ||
+				     (battery_status[i].remaining < battery_status[lowest_battery_index].remaining))) {
 					lowest_battery_index = i;
 				}
 			}
 
 			mavlink_sys_status_t msg{};
 
-			msg.onboard_control_sensors_present = static_cast<uint32_t>(status.onboard_control_sensors_present & 0xFFFFFFFF) |
-							      MAV_SYS_STATUS_EXTENSION_USED;
-			msg.onboard_control_sensors_enabled = static_cast<uint32_t>(status.onboard_control_sensors_enabled & 0xFFFFFFFF) |
-							      MAV_SYS_STATUS_EXTENSION_USED;
-			msg.onboard_control_sensors_health = static_cast<uint32_t>(status.onboard_control_sensors_health & 0xFFFFFFFF) |
-							     MAV_SYS_STATUS_EXTENSION_USED;
+			msg.onboard_control_sensors_present =
+				static_cast<uint32_t>(status.onboard_control_sensors_present & 0xFFFFFFFF) |
+				MAV_SYS_STATUS_EXTENSION_USED;
+			msg.onboard_control_sensors_enabled =
+				static_cast<uint32_t>(status.onboard_control_sensors_enabled & 0xFFFFFFFF) |
+				MAV_SYS_STATUS_EXTENSION_USED;
+			msg.onboard_control_sensors_health =
+				static_cast<uint32_t>(status.onboard_control_sensors_health & 0xFFFFFFFF) |
+				MAV_SYS_STATUS_EXTENSION_USED;
 
-			msg.onboard_control_sensors_present_extended = static_cast<uint32_t>((status.onboard_control_sensors_present >> 32u) &
-					0xFFFFFFFF);
-			msg.onboard_control_sensors_enabled_extended = static_cast<uint32_t>((status.onboard_control_sensors_enabled >> 32u) &
-					0xFFFFFFFF);
-			msg.onboard_control_sensors_health_extended = static_cast<uint32_t>((status.onboard_control_sensors_health >> 32u) &
-					0xFFFFFFFF);
+			msg.onboard_control_sensors_present_extended =
+				static_cast<uint32_t>((status.onboard_control_sensors_present >> 32u) & 0xFFFFFFFF);
+			msg.onboard_control_sensors_enabled_extended =
+				static_cast<uint32_t>((status.onboard_control_sensors_enabled >> 32u) & 0xFFFFFFFF);
+			msg.onboard_control_sensors_health_extended =
+				static_cast<uint32_t>((status.onboard_control_sensors_health >> 32u) & 0xFFFFFFFF);
 
 			msg.load = cpuload.load * 1000.0f;
 
 			// TODO: Determine what data should be put here when there are multiple batteries.
-			//  Right now, it uses the lowest battery. This is a safety decision, because if a client is only checking
-			//  one battery using this message, it should be the lowest.
-			//  In the future, this should somehow determine the "main" battery, or use the "type" field of BATTERY_STATUS
-			//  to determine which battery is more important at a given time.
+			//  Right now, it uses the lowest battery. This is a safety decision, because if a client is
+			//  only checking one battery using this message, it should be the lowest. In the future, this
+			//  should somehow determine the "main" battery, or use the "type" field of BATTERY_STATUS to
+			//  determine which battery is more important at a given time.
 			const battery_status_s &lowest_battery = battery_status[lowest_battery_index];
 
 			if (lowest_battery.connected) {
@@ -133,4 +133,4 @@ private:
 	}
 };
 
-#endif // SYS_STATUS_HPP
+#endif  // SYS_STATUS_HPP

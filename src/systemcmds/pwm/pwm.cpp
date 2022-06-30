@@ -37,43 +37,40 @@
  * PWM servo output configuration and monitoring tool.
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/getopt.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <poll.h>
+#include <px4_platform_common/cli.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/cli.h>
-
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
+#include <stdbool.h>
 #include <stdio.h>
-#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <poll.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #ifdef __PX4_NUTTX
 #include <nuttx/fs/ioctl.h>
 #endif
 
-#include "systemlib/err.h"
 #include <parameters/param.h>
-#include "drivers/drv_pwm_output.h"
 
-static void	usage(const char *reason);
+#include "drivers/drv_pwm_output.h"
+#include "systemlib/err.h"
+
+static void usage(const char *reason);
 __BEGIN_DECLS
-__EXPORT int	pwm_main(int argc, char *argv[]);
+__EXPORT int pwm_main(int argc, char *argv[]);
 __END_DECLS
 
-
-static void
-usage(const char *reason)
-{
+static void usage(const char *reason) {
 	if (reason != nullptr) {
 		PX4_WARN("%s", reason);
 	}
@@ -109,7 +106,6 @@ $ pwm min -c 13 -p 1200
 
 )DESCR_STR");
 
-
 	PRINT_MODULE_USAGE_NAME("pwm", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("arm", "Arm output");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("disarm", "Disarm output");
@@ -127,27 +123,25 @@ $ pwm min -c 13 -p 1200
 	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'min' and 'max' require a PWM value:");
 	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 0, 4000, "PWM value (eg. 1100)", false);
 
-	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'rate', 'oneshot', 'min', 'max' "
-					 "additionally require to specify the channels with one of the following commands:");
-	PRINT_MODULE_USAGE_PARAM_STRING('c', nullptr, nullptr, "select channels in the form: 1234 (1 digit per channel, 1=first)",
-					true);
+	PRINT_MODULE_USAGE_PARAM_COMMENT(
+		"The commands 'rate', 'oneshot', 'min', 'max' "
+		"additionally require to specify the channels with one of the following commands:");
+	PRINT_MODULE_USAGE_PARAM_STRING('c', nullptr, nullptr,
+					"select channels in the form: 1234 (1 digit per channel, 1=first)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 4096, "Select channels via bitmask (eg. 0xF, 3)", true);
-	PRINT_MODULE_USAGE_PARAM_INT('g', -1, 0, 10, "Select channels by group (eg. 0, 1, 2. use 'pwm status' to show groups)",
-				     true);
+	PRINT_MODULE_USAGE_PARAM_INT('g', -1, 0, 10,
+				     "Select channels by group (eg. 0, 1, 2. use 'pwm status' to show groups)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Select all channels", true);
 
 	PRINT_MODULE_USAGE_PARAM_COMMENT("These parameters apply to all commands:");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/pwm_output0", "<file:dev>", "Select PWM output device", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('v', "Verbose output", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('e', "Exit with 1 instead of 0 on error", true);
-
 }
 
-int
-pwm_main(int argc, char *argv[])
-{
+int pwm_main(int argc, char *argv[]) {
 	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
-	int alt_rate = -1; // Default to indicate not set.
+	int alt_rate = -1;  // Default to indicate not set.
 	uint32_t alt_channel_groups = 0;
 	bool alt_channels_set = false;
 	bool print_verbose = false;
@@ -173,84 +167,82 @@ pwm_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "d:vec:g:m:ap:r:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+			case 'd':
+				if (nullptr == strstr(myoptarg, "/dev/")) {
+					PX4_WARN("device %s not valid", myoptarg);
+					usage(nullptr);
+					return 1;
+				}
 
-		case 'd':
-			if (nullptr == strstr(myoptarg, "/dev/")) {
-				PX4_WARN("device %s not valid", myoptarg);
+				dev = myoptarg;
+				break;
+
+			case 'v':
+				print_verbose = true;
+				break;
+
+			case 'e':
+				error_on_warn = true;
+				break;
+
+			case 'c':
+				/* Read in channels supplied as one int and convert to mask: 1234 -> 0xF */
+				channels = strtoul(myoptarg, &ep, 0);
+
+				while ((single_ch = channels % 10)) {
+					set_mask |= 1 << (single_ch - 1);
+					channels /= 10;
+				}
+
+				break;
+
+			case 'g':
+				group = strtoul(myoptarg, &ep, 0);
+
+				if ((*ep != '\0') || (group >= 32)) {
+					usage("bad channel_group value");
+					return 1;
+				}
+
+				alt_channel_groups |= (1 << group);
+				alt_channels_set = true;
+				break;
+
+			case 'm':
+				/* Read in mask directly */
+				set_mask = strtoul(myoptarg, &ep, 0);
+
+				if (*ep != '\0') {
+					usage("BAD set_mask VAL");
+					return 1;
+				}
+
+				break;
+
+			case 'a':
+				for (unsigned i = 0; i < PWM_OUTPUT_MAX_CHANNELS; i++) {
+					set_mask |= 1 << i;
+				}
+
+				break;
+
+			case 'p':
+				if (px4_get_parameter_value(myoptarg, pwm_value) != 0) {
+					PX4_ERR("CLI argument parsing for PWM value failed");
+					return 1;
+				}
+				break;
+
+			case 'r':
+				if (px4_get_parameter_value(myoptarg, alt_rate) != 0) {
+					PX4_ERR("CLI argument parsing for PWM rate failed");
+					return 1;
+				}
+				break;
+
+			default:
 				usage(nullptr);
 				return 1;
-			}
-
-			dev = myoptarg;
-			break;
-
-		case 'v':
-			print_verbose = true;
-			break;
-
-		case 'e':
-			error_on_warn = true;
-			break;
-
-		case 'c':
-			/* Read in channels supplied as one int and convert to mask: 1234 -> 0xF */
-			channels = strtoul(myoptarg, &ep, 0);
-
-			while ((single_ch = channels % 10)) {
-
-				set_mask |= 1 << (single_ch - 1);
-				channels /= 10;
-			}
-
-			break;
-
-		case 'g':
-			group = strtoul(myoptarg, &ep, 0);
-
-			if ((*ep != '\0') || (group >= 32)) {
-				usage("bad channel_group value");
-				return 1;
-			}
-
-			alt_channel_groups |= (1 << group);
-			alt_channels_set = true;
-			break;
-
-		case 'm':
-			/* Read in mask directly */
-			set_mask = strtoul(myoptarg, &ep, 0);
-
-			if (*ep != '\0') {
-				usage("BAD set_mask VAL");
-				return 1;
-			}
-
-			break;
-
-		case 'a':
-			for (unsigned i = 0; i < PWM_OUTPUT_MAX_CHANNELS; i++) {
-				set_mask |= 1 << i;
-			}
-
-			break;
-
-		case 'p':
-			if (px4_get_parameter_value(myoptarg, pwm_value) != 0) {
-				PX4_ERR("CLI argument parsing for PWM value failed");
-				return 1;
-			}
-			break;
-
-		case 'r':
-			if (px4_get_parameter_value(myoptarg, alt_rate) != 0) {
-				PX4_ERR("CLI argument parsing for PWM rate failed");
-				return 1;
-			}
-			break;
-
-		default:
-			usage(nullptr);
-			return 1;
 		}
 	}
 
@@ -329,7 +321,6 @@ pwm_main(int argc, char *argv[])
 		return 0;
 
 	} else if (oneshot || !strcmp(command, "rate")) {
-
 		/* Change alternate PWM rate or set oneshot
 		 * Either the "oneshot" command was used
 		 * and/OR -r was provided on command line and has changed the alt_rate
@@ -386,7 +377,6 @@ pwm_main(int argc, char *argv[])
 		return 0;
 
 	} else if (!strcmp(command, "min")) {
-
 		if (set_mask == 0) {
 			usage("min: no channels set");
 			return 1;
@@ -428,7 +418,6 @@ pwm_main(int argc, char *argv[])
 			return 1;
 
 		} else {
-
 			ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
 
 			if (ret != OK) {
@@ -440,7 +429,6 @@ pwm_main(int argc, char *argv[])
 		return 0;
 
 	} else if (!strcmp(command, "max")) {
-
 		if (set_mask == 0) {
 			usage("no channels set");
 			return 1;
@@ -482,7 +470,6 @@ pwm_main(int argc, char *argv[])
 			return 1;
 
 		} else {
-
 			ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
 
 			if (ret != OK) {
@@ -494,7 +481,6 @@ pwm_main(int argc, char *argv[])
 		return 0;
 
 	} else if (!strcmp(command, "status") || !strcmp(command, "info")) {
-
 		printf("device: %s\n", dev);
 
 		uint32_t info_default_rate;
@@ -574,9 +560,10 @@ pwm_main(int argc, char *argv[])
 					printf(" (default rate: %" PRIu32 " Hz", info_default_rate);
 				}
 
-
-				printf(" failsafe: %d, disarmed: %" PRIu16 " us, min: %" PRIu16 " us, max: %" PRIu16 " us)",
-				       failsafe_pwm.values[i], disarmed_pwm.values[i], min_pwm.values[i], max_pwm.values[i]);
+				printf(" failsafe: %d, disarmed: %" PRIu16 " us, min: %" PRIu16 " us, max: %" PRIu16
+				       " us)",
+				       failsafe_pwm.values[i], disarmed_pwm.values[i], min_pwm.values[i],
+				       max_pwm.values[i]);
 				printf("\n");
 
 			} else {

@@ -31,24 +31,16 @@
  *
  ****************************************************************************/
 
-
 #include "PX4Magnetometer.hpp"
 
 #include <lib/drivers/device/Device.hpp>
 
-PX4Magnetometer::PX4Magnetometer(uint32_t device_id, enum Rotation rotation) :
-	_device_id{device_id},
-	_rotation{rotation}
-{
-}
+PX4Magnetometer::PX4Magnetometer(uint32_t device_id, enum Rotation rotation)
+	: _device_id{device_id}, _rotation{rotation} {}
 
-PX4Magnetometer::~PX4Magnetometer()
-{
-	_sensor_pub.unadvertise();
-}
+PX4Magnetometer::~PX4Magnetometer() { _sensor_pub.unadvertise(); }
 
-void PX4Magnetometer::set_device_type(uint8_t devtype)
-{
+void PX4Magnetometer::set_device_type(uint8_t devtype) {
 	// current DeviceStructure
 	union device::Device::DeviceId device_id;
 	device_id.devid = _device_id;
@@ -60,8 +52,7 @@ void PX4Magnetometer::set_device_type(uint8_t devtype)
 	_device_id = device_id.devid;
 }
 
-void PX4Magnetometer::update(const hrt_abstime &timestamp_sample, float x, float y, float z)
-{
+void PX4Magnetometer::update(const hrt_abstime &timestamp_sample, float x, float y, float z) {
 	sensor_mag_s report;
 	report.timestamp_sample = timestamp_sample;
 	report.device_id = _device_id;

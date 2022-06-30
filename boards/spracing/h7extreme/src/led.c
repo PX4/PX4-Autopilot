@@ -37,16 +37,14 @@
  * PX4FMU LED backend.
  */
 
+#include <arch/board/board.h>
+#include <nuttx/board.h>
 #include <px4_platform_common/px4_config.h>
-
 #include <stdbool.h>
 
+#include "board_config.h"
 #include "chip.h"
 #include "stm32_gpio.h"
-#include "board_config.h"
-
-#include <nuttx/board.h>
-#include <arch/board/board.h>
 
 /*
  * Ideally we'd be able to get these from arm_internal.h,
@@ -67,22 +65,21 @@ static bool nuttx_owns_leds = true;
 //                                B  R  S  G
 //                                0  1  2  3
 static const uint8_t xlatpx4[] = {1, 2, 4, 0};
-#  define xlat(p) xlatpx4[(p)]
+#define xlat(p) xlatpx4[(p)]
 static uint32_t g_ledmap[] = {
-	GPIO_nLED_RED,     // Indexed by BOARD_LED_RED
+	GPIO_nLED_RED,  // Indexed by BOARD_LED_RED
 };
 
 #else
 
-#  define xlat(p) (p)
+#define xlat(p) (p)
 static uint32_t g_ledmap[] = {
-	GPIO_nLED_RED                      // Indexed by LED_RED
+	GPIO_nLED_RED  // Indexed by LED_RED
 };
 
 #endif
 
-__EXPORT void led_init(void)
-{
+__EXPORT void led_init(void) {
 	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
 		if (g_ledmap[l] != 0) {
 			stm32_configgpio(g_ledmap[l]);
@@ -90,8 +87,7 @@ __EXPORT void led_init(void)
 	}
 }
 
-static void phy_set_led(int led, bool state)
-{
+static void phy_set_led(int led, bool state) {
 	/* Drive Low to switch on */
 
 	if (g_ledmap[led] != 0) {
@@ -99,8 +95,7 @@ static void phy_set_led(int led, bool state)
 	}
 }
 
-static bool phy_get_led(int led)
-{
+static bool phy_get_led(int led) {
 	/* If Low it is on */
 	if (g_ledmap[led] != 0) {
 		return !stm32_gpioread(g_ledmap[led]);
@@ -109,20 +104,11 @@ static bool phy_get_led(int led)
 	return false;
 }
 
-__EXPORT void led_on(int led)
-{
-	phy_set_led(xlat(led), true);
-}
+__EXPORT void led_on(int led) { phy_set_led(xlat(led), true); }
 
-__EXPORT void led_off(int led)
-{
-	phy_set_led(xlat(led), false);
-}
+__EXPORT void led_off(int led) { phy_set_led(xlat(led), false); }
 
-__EXPORT void led_toggle(int led)
-{
-	phy_set_led(xlat(led), !phy_get_led(xlat(led)));
-}
+__EXPORT void led_toggle(int led) { phy_set_led(xlat(led), !phy_get_led(xlat(led))); }
 
 #ifdef CONFIG_ARCH_LEDS
 /****************************************************************************
@@ -133,51 +119,47 @@ __EXPORT void led_toggle(int led)
  * Name: board_autoled_initialize
  ****************************************************************************/
 
-void board_autoled_initialize(void)
-{
-	led_init();
-}
+void board_autoled_initialize(void) { led_init(); }
 
 /****************************************************************************
  * Name: board_autoled_on
  ****************************************************************************/
 
-void board_autoled_on(int led)
-{
+void board_autoled_on(int led) {
 	if (!nuttx_owns_leds) {
 		return;
 	}
 
 	switch (led) {
-	default:
-		break;
+		default:
+			break;
 
-	case LED_HEAPALLOCATE:
-		break;
+		case LED_HEAPALLOCATE:
+			break;
 
-	case LED_IRQSENABLED:
-		break;
+		case LED_IRQSENABLED:
+			break;
 
-	case LED_STACKCREATED:
-		break;
+		case LED_STACKCREATED:
+			break;
 
-	case LED_INIRQ:
-		break;
+		case LED_INIRQ:
+			break;
 
-	case LED_SIGNAL:
-		break;
+		case LED_SIGNAL:
+			break;
 
-	case LED_ASSERTION:
-		phy_set_led(BOARD_LED_RED, true);
-		break;
+		case LED_ASSERTION:
+			phy_set_led(BOARD_LED_RED, true);
+			break;
 
-	case LED_PANIC:
-		phy_set_led(BOARD_LED_RED, true);
-		break;
+		case LED_PANIC:
+			phy_set_led(BOARD_LED_RED, true);
+			break;
 
-	case LED_IDLE : /* IDLE */
-		phy_set_led(BOARD_LED_RED, true);
-		break;
+		case LED_IDLE: /* IDLE */
+			phy_set_led(BOARD_LED_RED, true);
+			break;
 	}
 }
 
@@ -185,33 +167,32 @@ void board_autoled_on(int led)
  * Name: board_autoled_off
  ****************************************************************************/
 
-void board_autoled_off(int led)
-{
+void board_autoled_off(int led) {
 	if (!nuttx_owns_leds) {
 		return;
 	}
 
 	switch (led) {
-	default:
-		break;
+		default:
+			break;
 
-	case LED_SIGNAL:
-		break;
+		case LED_SIGNAL:
+			break;
 
-	case LED_INIRQ:
-		break;
+		case LED_INIRQ:
+			break;
 
-	case LED_ASSERTION:
-		phy_set_led(BOARD_LED_RED, false);
-		break;
+		case LED_ASSERTION:
+			phy_set_led(BOARD_LED_RED, false);
+			break;
 
-	case LED_PANIC:
-		phy_set_led(BOARD_LED_RED, false);
-		break;
+		case LED_PANIC:
+			phy_set_led(BOARD_LED_RED, false);
+			break;
 
-	case LED_IDLE : /* IDLE */
-		phy_set_led(BOARD_LED_RED, false);
-		break;
+		case LED_IDLE: /* IDLE */
+			phy_set_led(BOARD_LED_RED, false);
+			break;
 	}
 }
 

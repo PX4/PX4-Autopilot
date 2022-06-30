@@ -45,40 +45,34 @@
  * Included Files
  ****************************************************************************/
 
+#include <arch/board/board.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/mm/gran.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform_common/init.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
-
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
-#include <syslog.h>
-
-#include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-#include <nuttx/mm/gran.h>
-
 #include <stm32.h>
-#include "board_config.h"
 #include <stm32_uart.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
-
+#include <string.h>
+#include <syslog.h>
 #include <systemlib/px4_macros.h>
 
-#include <px4_arch/io_timer.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/board_dma_alloc.h>
+#include "board_config.h"
 
-# if defined(FLASH_BASED_PARAMS)
-#  include <parameters/flashparams/flashfs.h>
+#if defined(FLASH_BASED_PARAMS)
+#include <parameters/flashparams/flashfs.h>
 #endif
 
 /****************************************************************************
@@ -110,10 +104,7 @@ __END_DECLS
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
-	UNUSED(ms);
-}
+__EXPORT void board_peripheral_reset(int ms) { UNUSED(ms); }
 
 /************************************************************************************
  * Name: board_on_reset
@@ -126,8 +117,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *          0 if just resetting
  *
  ************************************************************************************/
-__EXPORT void board_on_reset(int status)
-{
+__EXPORT void board_on_reset(int status) {
 	/* configure the GPIO pins to outputs and keep them low */
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
@@ -152,9 +142,7 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
-__EXPORT void
-stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	/* Reset all PWM to Low outputs */
 
 	board_on_reset(-1);
@@ -162,47 +150,45 @@ stm32_boardinitialize(void)
 	/* configure LEDs */
 	board_autoled_initialize();
 
-
 	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN12);	/* BATT_VOLTAGE_SENS */
-	stm32_configgpio(GPIO_ADC1_IN11);	/* BATT_CURRENT_SENS */
-	//stm32_configgpio(GPIO_ADC1_IN0);	/* RSSI analog in (TX of UART4 instead) */
+	stm32_configgpio(GPIO_ADC1_IN12); /* BATT_VOLTAGE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN11); /* BATT_CURRENT_SENS */
+	// stm32_configgpio(GPIO_ADC1_IN0);	/* RSSI analog in (TX of UART4 instead) */
 
 	// TODO: power peripherals
 	///* configure power supply control/sense pins */
-	//stm32_configgpio(GPIO_PERIPH_3V3_EN);
-	//stm32_configgpio(GPIO_VDD_BRICK_VALID);
-	//stm32_configgpio(GPIO_VDD_USB_VALID);
+	// stm32_configgpio(GPIO_PERIPH_3V3_EN);
+	// stm32_configgpio(GPIO_VDD_BRICK_VALID);
+	// stm32_configgpio(GPIO_VDD_USB_VALID);
 
 	// TODO: 3v3 Sensor?
 	///* Start with Sensor voltage off We will enable it
 	// * in board_app_initialize
 	// */
-	//stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	// stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
 
 	// TODO: SBUS inversion? SPEK power?
-	//stm32_configgpio(GPIO_SBUS_INV);
-	//stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
+	// stm32_configgpio(GPIO_SBUS_INV);
+	// stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 
 	// TODO: $$$ Unused?
-	//stm32_configgpio(GPIO_8266_GPIO0);
-	//stm32_configgpio(GPIO_8266_PD);
-	//stm32_configgpio(GPIO_8266_RST);
+	// stm32_configgpio(GPIO_8266_GPIO0);
+	// stm32_configgpio(GPIO_8266_PD);
+	// stm32_configgpio(GPIO_8266_RST);
 
 	/* Safety - led don in led driver */
 
 	// TODO: unused?
-	//stm32_configgpio(GPIO_BTN_SAFETY);
+	// stm32_configgpio(GPIO_BTN_SAFETY);
 
 	// TODO: RSSI
-	//stm32_configgpio(GPIO_RSSI_IN);
+	// stm32_configgpio(GPIO_RSSI_IN);
 
 	stm32_configgpio(GPIO_PPM_IN);
 
 	/* configure SPI all interfaces GPIO */
 
 	stm32_spiinitialize();
-
 }
 
 /****************************************************************************
@@ -234,8 +220,7 @@ static struct spi_dev_s *spi1;
 static struct spi_dev_s *spi2;
 static struct spi_dev_s *spi3;
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	px4_platform_init();
 
 	/* configure the DMA allocator */
@@ -257,7 +242,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (board_hardfault_init(2, true) != 0) {
 		led_on(LED_BLUE);
 	}
-
 
 	/* Configure SPI-based devices */
 
@@ -293,7 +277,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 	up_udelay(20);
-
 
 	// SPI3: OSD / Baro
 	spi3 = stm32_spibus_initialize(3);

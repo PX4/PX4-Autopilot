@@ -32,8 +32,8 @@
  ****************************************************************************/
 #pragma once
 
-#define CLKSOURCE_EXTERNAL  0
-#define CLKSOURCE_PROCESOR  NVIC_SYSTICK_CTRL_CLKSOURCE
+#define CLKSOURCE_EXTERNAL 0
+#define CLKSOURCE_PROCESOR NVIC_SYSTICK_CTRL_CLKSOURCE
 
 uint8_t systick_get_countflag(void);
 void systick_set_reload(uint32_t value);

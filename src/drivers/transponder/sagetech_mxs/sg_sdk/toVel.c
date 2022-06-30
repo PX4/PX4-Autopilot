@@ -15,8 +15,7 @@
 /*
  * Documented in the header file.
  */
-double toVel(const uint8_t bytes[])
-{
+double toVel(const uint8_t bytes[]) {
 	double value = toInt16(bytes);
 	value *= SV_RES_VEL;
 

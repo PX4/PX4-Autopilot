@@ -36,17 +36,15 @@
  */
 
 #include "gyro.hpp"
+
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 
 const char *const UavcanGyroBridge::NAME = "gyro";
 
-UavcanGyroBridge::UavcanGyroBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_gyro", ORB_ID(sensor_gyro)),
-	_sub_imu_data(node)
-{ }
+UavcanGyroBridge::UavcanGyroBridge(uavcan::INode &node)
+	: UavcanSensorBridgeBase("uavcan_gyro", ORB_ID(sensor_gyro)), _sub_imu_data(node) {}
 
-int UavcanGyroBridge::init()
-{
+int UavcanGyroBridge::init() {
 	int res = _sub_imu_data.start(ImuCbBinder(this, &UavcanGyroBridge::imu_sub_cb));
 
 	if (res < 0) {
@@ -57,8 +55,7 @@ int UavcanGyroBridge::init()
 	return 0;
 }
 
-void UavcanGyroBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::RawIMU> &msg)
-{
+void UavcanGyroBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::RawIMU> &msg) {
 	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
 
 	if (channel == nullptr) {
@@ -73,14 +70,10 @@ void UavcanGyroBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::eq
 		return;
 	}
 
-	gyro->update(hrt_absolute_time(),
-		     msg.rate_gyro_latest[0],
-		     msg.rate_gyro_latest[1],
-		     msg.rate_gyro_latest[2]);
+	gyro->update(hrt_absolute_time(), msg.rate_gyro_latest[0], msg.rate_gyro_latest[1], msg.rate_gyro_latest[2]);
 }
 
-int UavcanGyroBridge::init_driver(uavcan_bridge::Channel *channel)
-{
+int UavcanGyroBridge::init_driver(uavcan_bridge::Channel *channel) {
 	// update device id as we now know our device node_id
 	DeviceId device_id{_device_id};
 

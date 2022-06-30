@@ -34,16 +34,15 @@
 #pragma once
 
 #include <lib/conversion/rotation.h>
-#include <lib/matrix/matrix/math.hpp>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
-#include <uORB/Subscription.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/sensor_correction.h>
 
-namespace calibration
-{
-class Accelerometer
-{
+#include <lib/matrix/matrix/math.hpp>
+#include <uORB/Subscription.hpp>
+
+namespace calibration {
+class Accelerometer {
 public:
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -79,14 +78,12 @@ public:
 
 	// apply offsets and scale
 	// rotate corrected measurements from sensor to body frame
-	inline matrix::Vector3f Correct(const matrix::Vector3f &data) const
-	{
+	inline matrix::Vector3f Correct(const matrix::Vector3f &data) const {
 		return _rotation * matrix::Vector3f{(data - _thermal_offset - _offset).emult(_scale)};
 	}
 
 	// Compute sensor offset from bias (board frame)
-	matrix::Vector3f BiasCorrectedSensorOffset(const matrix::Vector3f &bias) const
-	{
+	matrix::Vector3f BiasCorrectedSensorOffset(const matrix::Vector3f &bias) const {
 		return (_rotation.I() * bias).edivide(_scale) + _thermal_offset + _offset;
 	}
 
@@ -116,4 +113,4 @@ private:
 
 	uint8_t _calibration_count{0};
 };
-} // namespace calibration
+}  // namespace calibration

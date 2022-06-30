@@ -34,30 +34,23 @@
 #include "SensorGpsSim.hpp"
 
 #include <drivers/drv_sensor.h>
-#include <lib/drivers/device/Device.hpp>
 #include <lib/geo/geo.h>
+
+#include <lib/drivers/device/Device.hpp>
 
 using namespace matrix;
 
-SensorGpsSim::SensorGpsSim() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
-{
-}
+SensorGpsSim::SensorGpsSim()
+	: ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {}
 
-SensorGpsSim::~SensorGpsSim()
-{
-	perf_free(_loop_perf);
-}
+SensorGpsSim::~SensorGpsSim() { perf_free(_loop_perf); }
 
-bool SensorGpsSim::init()
-{
-	ScheduleOnInterval(125_ms); // 8 Hz
+bool SensorGpsSim::init() {
+	ScheduleOnInterval(125_ms);  // 8 Hz
 	return true;
 }
 
-float SensorGpsSim::generate_wgn()
-{
+float SensorGpsSim::generate_wgn() {
 	// generate white Gaussian noise sample with std=1
 
 	// algorithm 1:
@@ -87,8 +80,7 @@ float SensorGpsSim::generate_wgn()
 	return X;
 }
 
-void SensorGpsSim::Run()
-{
+void SensorGpsSim::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
@@ -107,7 +99,6 @@ void SensorGpsSim::Run()
 	}
 
 	if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()) {
-
 		vehicle_local_position_s lpos{};
 		_vehicle_local_position_sub.copy(&lpos);
 
@@ -131,7 +122,7 @@ void SensorGpsSim::Run()
 
 		if (_sim_gps_used.get() >= 4) {
 			// fix
-			sensor_gps.fix_type = 3; // 3D fix
+			sensor_gps.fix_type = 3;  // 3D fix
 			sensor_gps.s_variance_m_s = 0.5f;
 			sensor_gps.c_variance_rad = 0.1f;
 			sensor_gps.eph = 0.9f;
@@ -141,7 +132,7 @@ void SensorGpsSim::Run()
 
 		} else {
 			// no fix
-			sensor_gps.fix_type = 0; // No fix
+			sensor_gps.fix_type = 0;  // No fix
 			sensor_gps.s_variance_m_s = 100.f;
 			sensor_gps.c_variance_rad = 100.f;
 			sensor_gps.eph = 100.f;
@@ -153,18 +144,20 @@ void SensorGpsSim::Run()
 		// sensor_gps.timestamp_sample = gpos.timestamp;
 		sensor_gps.time_utc_usec = 0;
 		sensor_gps.device_id = device_id.devid;
-		sensor_gps.lat = roundf(latitude * 1e7); // Latitude in 1E-7 degrees
-		sensor_gps.lon = roundf(longitude * 1e7); // Longitude in 1E-7 degrees
-		sensor_gps.alt = roundf(altitude * 1000.f); // Altitude in 1E-3 meters above MSL, (millimetres)
+		sensor_gps.lat = roundf(latitude * 1e7);     // Latitude in 1E-7 degrees
+		sensor_gps.lon = roundf(longitude * 1e7);    // Longitude in 1E-7 degrees
+		sensor_gps.alt = roundf(altitude * 1000.f);  // Altitude in 1E-3 meters above MSL, (millimetres)
 		sensor_gps.alt_ellipsoid = sensor_gps.alt;
 		sensor_gps.noise_per_ms = 0;
 		sensor_gps.jamming_indicator = 0;
-		sensor_gps.vel_m_s = sqrtf(gps_vel(0) * gps_vel(0) + gps_vel(1) * gps_vel(1)); // GPS ground speed, (metres/sec)
+		sensor_gps.vel_m_s =
+			sqrtf(gps_vel(0) * gps_vel(0) + gps_vel(1) * gps_vel(1));  // GPS ground speed, (metres/sec)
 		sensor_gps.vel_n_m_s = gps_vel(0);
 		sensor_gps.vel_e_m_s = gps_vel(1);
 		sensor_gps.vel_d_m_s = gps_vel(2);
-		sensor_gps.cog_rad = atan2(gps_vel(1),
-					   gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
+		sensor_gps.cog_rad = atan2(
+			gps_vel(1),
+			gps_vel(0));  // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
 		sensor_gps.timestamp_time_relative = 0;
 		sensor_gps.heading = NAN;
 		sensor_gps.heading_offset = NAN;
@@ -181,8 +174,7 @@ void SensorGpsSim::Run()
 	perf_end(_loop_perf);
 }
 
-int SensorGpsSim::task_spawn(int argc, char *argv[])
-{
+int SensorGpsSim::task_spawn(int argc, char *argv[]) {
 	SensorGpsSim *instance = new SensorGpsSim();
 
 	if (instance) {
@@ -204,13 +196,9 @@ int SensorGpsSim::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int SensorGpsSim::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int SensorGpsSim::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int SensorGpsSim::print_usage(const char *reason)
-{
+int SensorGpsSim::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -229,7 +217,4 @@ int SensorGpsSim::print_usage(const char *reason)
 	return 0;
 }
 
-extern "C" __EXPORT int sensor_gps_sim_main(int argc, char *argv[])
-{
-	return SensorGpsSim::main(argc, argv);
-}
+extern "C" __EXPORT int sensor_gps_sim_main(int argc, char *argv[]) { return SensorGpsSim::main(argc, argv); }

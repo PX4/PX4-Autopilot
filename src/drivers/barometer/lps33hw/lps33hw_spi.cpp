@@ -41,40 +41,31 @@
 
 #include <lib/drivers/device/spi.h>
 
-namespace lps33hw
-{
+namespace lps33hw {
 
 /* SPI protocol address bits */
-#define DIR_READ			(1<<7)
-#define DIR_WRITE			(0<<7)
+#define DIR_READ (1 << 7)
+#define DIR_WRITE (0 << 7)
 
 device::Device *LPS33HW_SPI_interface(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
 
-class LPS33HW_SPI : public device::SPI
-{
+class LPS33HW_SPI : public device::SPI {
 public:
 	LPS33HW_SPI(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
 	virtual ~LPS33HW_SPI() = default;
 
-	virtual int	read(unsigned address, void *data, unsigned count);
-	virtual int	write(unsigned address, void *data, unsigned count);
-
+	virtual int read(unsigned address, void *data, unsigned count);
+	virtual int write(unsigned address, void *data, unsigned count);
 };
 
-device::Device *
-LPS33HW_SPI_interface(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode)
-{
+device::Device *LPS33HW_SPI_interface(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode) {
 	return new LPS33HW_SPI(bus, device, bus_frequency, spi_mode);
 }
 
-LPS33HW_SPI::LPS33HW_SPI(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode) :
-	SPI(DRV_BARO_DEVTYPE_LPS33HW, MODULE_NAME, bus, device, spi_mode, bus_frequency)
-{
-}
+LPS33HW_SPI::LPS33HW_SPI(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode)
+	: SPI(DRV_BARO_DEVTYPE_LPS33HW, MODULE_NAME, bus, device, spi_mode, bus_frequency) {}
 
-int
-LPS33HW_SPI::read(unsigned address, void *data, unsigned count)
-{
+int LPS33HW_SPI::read(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {
@@ -88,9 +79,7 @@ LPS33HW_SPI::read(unsigned address, void *data, unsigned count)
 	return ret;
 }
 
-int
-LPS33HW_SPI::write(unsigned address, void *data, unsigned count)
-{
+int LPS33HW_SPI::write(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {
@@ -103,4 +92,4 @@ LPS33HW_SPI::write(unsigned address, void *data, unsigned count)
 	return transfer(&buf[0], &buf[0], count + 1);
 }
 
-} // namespace lps33hw
+}  // namespace lps33hw

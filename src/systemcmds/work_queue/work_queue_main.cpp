@@ -31,20 +31,19 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/module.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
+
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 
-static void	usage();
+static void usage();
 
 extern "C" {
-	__EXPORT int work_queue_main(int argc, char *argv[]);
+__EXPORT int work_queue_main(int argc, char *argv[]);
 }
 
-int
-work_queue_main(int argc, char *argv[])
-{
+int work_queue_main(int argc, char *argv[]) {
 	if (argc != 2) {
 		usage();
 		return 1;
@@ -68,10 +67,7 @@ work_queue_main(int argc, char *argv[])
 	return 0;
 }
 
-static void
-usage()
-{
-
+static void usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description

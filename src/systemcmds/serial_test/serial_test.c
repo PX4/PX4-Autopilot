@@ -76,23 +76,23 @@
  */
 
 #if defined(__PX4_NUTTX)
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/px4_config.h>
 #endif
 
-#include <stdio.h>
-#include <termios.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
 #include <fcntl.h>
-#include <stdlib.h>
-#include <strings.h>
-#include <string.h>
-#include <poll.h>
 #include <getopt.h>
+#include <poll.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <termios.h>
 #include <time.h>
+#include <unistd.h>
 #if defined(__PX4_NUTTX)
 #include <nuttx/serial/serial.h>
 #else
@@ -110,40 +110,39 @@
 
 // command line args
 struct cli_args_t {
-	int          _baud;
-	char        *_port;
-	int          _divisor;
-	int          _rx_dump;
-	int          _rx_dump_ascii;
-	int          _tx_detailed;
-	int          _stats;
-	int          _stop_on_error;
-	int          _single_byte;
-	int          _another_byte;
-	int          _rts_cts;
-	int          _2_stop_bit;
-	int          _parity;
-	int          _odd_parity;
-	int          _stick_parity;
-	int          _dump_err;
-	int          _no_rx;
-	int          _no_tx;
-	int          _rx_delay;
-	int          _tx_delay;
-	int          _tx_bytes;
-	int          _rs485_delay;
+	int _baud;
+	char *_port;
+	int _divisor;
+	int _rx_dump;
+	int _rx_dump_ascii;
+	int _tx_detailed;
+	int _stats;
+	int _stop_on_error;
+	int _single_byte;
+	int _another_byte;
+	int _rts_cts;
+	int _2_stop_bit;
+	int _parity;
+	int _odd_parity;
+	int _stick_parity;
+	int _dump_err;
+	int _no_rx;
+	int _no_tx;
+	int _rx_delay;
+	int _tx_delay;
+	int _tx_bytes;
+	int _rs485_delay;
 	unsigned int _tx_time;
 	unsigned int _rx_time;
-	int          _ascii_range;
+	int _ascii_range;
 };
 
 struct g_mod_t {
-
-	unsigned char  _write_count_value;
-	unsigned char  _read_count_value;
-	int            _fd;
+	unsigned char _write_count_value;
+	unsigned char _read_count_value;
+	int _fd;
 	unsigned char *_write_data;
-	ssize_t        _write_size;
+	ssize_t _write_size;
 
 	// keep our own counts for cases where the driver stats don't work
 	long long int _write_count;
@@ -151,8 +150,7 @@ struct g_mod_t {
 	long long int _error_count;
 };
 
-static void dump_data(unsigned char *b, int count)
-{
+static void dump_data(unsigned char *b, int count) {
 	printf("%i bytes: ", count);
 	int i;
 
@@ -163,8 +161,7 @@ static void dump_data(unsigned char *b, int count)
 	printf("\n");
 }
 
-static void dump_data_ascii(unsigned char *b, int count)
-{
+static void dump_data_ascii(unsigned char *b, int count) {
 	int i;
 
 	for (i = 0; i < count; i++) {
@@ -172,8 +169,7 @@ static void dump_data_ascii(unsigned char *b, int count)
 	}
 }
 
-static void set_baud_divisor(int fd, int speed)
-{
+static void set_baud_divisor(int fd, int speed) {
 #if defined(__PX4_NUTTX)
 	// default baud was not found, so try to set a custom divisor
 
@@ -201,8 +197,7 @@ static void set_baud_divisor(int fd, int speed)
 		exit(1);
 	}
 
-	printf("closest baud = %i, base = %i, divisor = %i\n", closest_speed, ss.baud_base,
-	       ss.custom_divisor);
+	printf("closest baud = %i, base = %i, divisor = %i\n", closest_speed, ss.baud_base, ss.custom_divisor);
 
 	if (ioctl(fd, TIOCSSERIAL, &ss) < 0) {
 		perror("TIOCSSERIAL failed");
@@ -213,86 +208,84 @@ static void set_baud_divisor(int fd, int speed)
 }
 
 // converts integer baud to Linux define
-static int get_baud(int baud)
-{
+static int get_baud(int baud) {
 	switch (baud) {
-	case 9600:
-		return B9600;
+		case 9600:
+			return B9600;
 
-	case 19200:
-		return B19200;
+		case 19200:
+			return B19200;
 
-	case 38400:
-		return B38400;
+		case 38400:
+			return B38400;
 
-	case 57600:
-		return B57600;
+		case 57600:
+			return B57600;
 
-	case 115200:
-		return B115200;
+		case 115200:
+			return B115200;
 
-	case 230400:
-		return B230400;
+		case 230400:
+			return B230400;
 
-	case 460800:
-		return B460800;
+		case 460800:
+			return B460800;
 
-	case 500000:
-		return B500000;
+		case 500000:
+			return B500000;
 
-	case 576000:
-		return B576000;
+		case 576000:
+			return B576000;
 
-	case 921600:
-		return B921600;
+		case 921600:
+			return B921600;
 #ifdef B1000000
 
-	case 1000000:
-		return B1000000;
+		case 1000000:
+			return B1000000;
 #endif
 #ifdef B1152000
 
-	case 1152000:
-		return B1152000;
+		case 1152000:
+			return B1152000;
 #endif
 #ifdef B1500000
 
-	case 1500000:
-		return B1500000;
+		case 1500000:
+			return B1500000;
 #endif
 #ifdef B2000000
 
-	case 2000000:
-		return B2000000;
+		case 2000000:
+			return B2000000;
 #endif
 #ifdef B2500000
 
-	case 2500000:
-		return B2500000;
+		case 2500000:
+			return B2500000;
 #endif
 #ifdef B3000000
 
-	case 3000000:
-		return B3000000;
+		case 3000000:
+			return B3000000;
 #endif
 #ifdef B3500000
 
-	case 3500000:
-		return B3500000;
+		case 3500000:
+			return B3500000;
 #endif
 #ifdef B4000000
 
-	case 4000000:
-		return B4000000;
+		case 4000000:
+			return B4000000;
 #endif
 
-	default:
-		return -1;
+		default:
+			return -1;
 	}
 }
 
-static void display_help(void)
-{
+static void display_help(void) {
 #if defined(__PX4_NUTTX)
 	printf("Usage: serial_test [OPTION]\n"
 #else
@@ -327,12 +320,10 @@ static void display_help(void)
 	       "  -i, --rx-time     Number of seconds to receive for (defaults to 0, meaning no limit)\n"
 	       "  -A, --ascii       Output bytes range from 32 to 126 (default is 0 to 255)\n"
 	       "example: serial_test -e -b 921600 -p /dev/ttyS2 -c -l 250\n"
-	       "\n"
-	      );
+	       "\n");
 }
 
-static void process_options(int argc, char *argv[],  struct cli_args_t *g_cl)
-{
+static void process_options(int argc, char *argv[], struct cli_args_t *g_cl) {
 #if defined(__PX4_NUTTX)
 	int myoptind = 1;
 	const char *myoptarg = NULL;
@@ -373,8 +364,7 @@ static void process_options(int argc, char *argv[],  struct cli_args_t *g_cl)
 			{0, 0, 0, 0},
 		};
 
-		int c = getopt_long(argc, argv, short_options,
-				    long_options, &option_index);
+		int c = getopt_long(argc, argv, short_options, long_options, &option_index);
 
 		if (c == EOF) {
 			break;
@@ -383,134 +373,133 @@ static void process_options(int argc, char *argv[],  struct cli_args_t *g_cl)
 		switch (c) {
 #endif
 
-		case 0:
-		case 'h':
-			display_help();
-			exit(0);
-			break;
+			case 0:
+			case 'h':
+				display_help();
+				exit(0);
+				break;
 
-		case 'b':
-			g_cl->_baud = atoi(myoptarg);
-			break;
+			case 'b':
+				g_cl->_baud = atoi(myoptarg);
+				break;
 
-		case 'p':
-			g_cl->_port = strdup(myoptarg);
-			break;
+			case 'p':
+				g_cl->_port = strdup(myoptarg);
+				break;
 
-		case 'd':
-			g_cl->_divisor = atoi(myoptarg);
-			break;
+			case 'd':
+				g_cl->_divisor = atoi(myoptarg);
+				break;
 
-		case 'R':
-			g_cl->_rx_dump = 1;
-			g_cl->_rx_dump_ascii = !strcmp(myoptarg, "ascii");
-			break;
+			case 'R':
+				g_cl->_rx_dump = 1;
+				g_cl->_rx_dump_ascii = !strcmp(myoptarg, "ascii");
+				break;
 
-		case 'T':
-			g_cl->_tx_detailed = 1;
-			break;
+			case 'T':
+				g_cl->_tx_detailed = 1;
+				break;
 
-		case 's':
-			g_cl->_stats = 1;
-			break;
+			case 's':
+				g_cl->_stats = 1;
+				break;
 
-		case 'S':
-			g_cl->_stop_on_error = 1;
-			break;
+			case 'S':
+				g_cl->_stop_on_error = 1;
+				break;
 
-		case 'y': {
+			case 'y': {
 				char *endptr;
 				g_cl->_single_byte = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
-		case 'z': {
+			case 'z': {
 				char *endptr;
 				g_cl->_another_byte = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
-		case 'c':
-			g_cl->_rts_cts = 1;
-			break;
+			case 'c':
+				g_cl->_rts_cts = 1;
+				break;
 
-		case 'B':
-			g_cl->_2_stop_bit = 1;
-			break;
+			case 'B':
+				g_cl->_2_stop_bit = 1;
+				break;
 
-		case 'P':
-			g_cl->_parity = 1;
-			g_cl->_odd_parity = (!strcmp(myoptarg, "mark") || !strcmp(myoptarg, "odd"));
-			g_cl->_stick_parity = (!strcmp(myoptarg, "mark") || !strcmp(myoptarg, "space"));
-			break;
+			case 'P':
+				g_cl->_parity = 1;
+				g_cl->_odd_parity = (!strcmp(myoptarg, "mark") || !strcmp(myoptarg, "odd"));
+				g_cl->_stick_parity = (!strcmp(myoptarg, "mark") || !strcmp(myoptarg, "space"));
+				break;
 
-		case 'e':
-			g_cl->_dump_err = 1;
-			break;
+			case 'e':
+				g_cl->_dump_err = 1;
+				break;
 
-		case 'r':
-			g_cl->_no_rx = 1;
-			break;
+			case 'r':
+				g_cl->_no_rx = 1;
+				break;
 
-		case 't':
-			g_cl->_no_tx = 1;
-			break;
+			case 't':
+				g_cl->_no_tx = 1;
+				break;
 
-		case 'l': {
+			case 'l': {
 				char *endptr;
 				g_cl->_rx_delay = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
-		case 'a': {
+			case 'a': {
 				char *endptr;
 				g_cl->_tx_delay = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
-		case 'w': {
+			case 'w': {
 				char *endptr;
 				g_cl->_tx_bytes = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
-		case 'q': {
+			case 'q': {
 				char *endptr;
 				g_cl->_rs485_delay = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
-		case 'o': {
+			case 'o': {
 				char *endptr;
 				g_cl->_tx_time = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
-		case 'i': {
+			case 'i': {
 				char *endptr;
 				g_cl->_rx_time = strtol(myoptarg, &endptr, 0);
 				break;
 			}
 
-		case 'A':
-			g_cl->_ascii_range = 1;
-			break;
+			case 'A':
+				g_cl->_ascii_range = 1;
+				break;
 		}
 	}
 }
 
-static void dump_serial_port_stats(struct g_mod_t *g_mod, struct cli_args_t *g_cl)
-{
+static void dump_serial_port_stats(struct g_mod_t *g_mod, struct cli_args_t *g_cl) {
 	printf("%s: count for this session: rx=%lld, tx=%lld, rx err=%lld\n", g_cl->_port, g_mod->_read_count,
-	       g_mod->_write_count,
-	       g_mod->_error_count);
+	       g_mod->_write_count, g_mod->_error_count);
 #if !defined(__PX4_NUTTX)
-	struct serial_icounter_struct icount = { 0 };
+	struct serial_icounter_struct icount = {0};
 
 	int ret = ioctl(g_mod->_fd, TIOCGICOUNT, &icount);
 
 	if (ret != -1) {
-		printf("%s: TIOCGICOUNT: ret=%i, rx=%i, tx=%i, frame = %i, overrun = %i, parity = %i, brk = %i, buf_overrun = %i\n",
+		printf("%s: TIOCGICOUNT: ret=%i, rx=%i, tx=%i, frame = %i, overrun = %i, parity = %i, brk = %i, "
+		       "buf_overrun = %i\n",
 		       g_cl->_port, ret, icount.rx, icount.tx, icount.frame, icount.overrun, icount.parity, icount.brk,
 		       icount.buf_overrun);
 	}
@@ -518,8 +507,7 @@ static void dump_serial_port_stats(struct g_mod_t *g_mod, struct cli_args_t *g_c
 #endif
 }
 
-static unsigned char next_count_value(unsigned char c, int ascii_range)
-{
+static unsigned char next_count_value(unsigned char c, int ascii_range) {
 	c++;
 
 	if (ascii_range && c == 127) {
@@ -529,8 +517,7 @@ static unsigned char next_count_value(unsigned char c, int ascii_range)
 	return c;
 }
 
-static void process_read_data(struct g_mod_t *g_mod, struct cli_args_t *g_cl)
-{
+static void process_read_data(struct g_mod_t *g_mod, struct cli_args_t *g_cl) {
 	unsigned char rb[1024];
 	int c = read(g_mod->_fd, &rb, sizeof(rb));
 
@@ -550,8 +537,8 @@ static void process_read_data(struct g_mod_t *g_mod, struct cli_args_t *g_cl)
 		for (i = 0; i < c; i++) {
 			if (rb[i] != g_mod->_read_count_value) {
 				if (g_cl->_dump_err) {
-					printf("Error, count: %lld, expected %02x, got %02x\n",
-					       g_mod->_read_count + i, g_mod->_read_count_value, rb[i]);
+					printf("Error, count: %lld, expected %02x, got %02x\n", g_mod->_read_count + i,
+					       g_mod->_read_count_value, rb[i]);
 				}
 
 				g_mod->_error_count++;
@@ -571,8 +558,7 @@ static void process_read_data(struct g_mod_t *g_mod, struct cli_args_t *g_cl)
 	}
 }
 
-static void process_write_data(struct g_mod_t *g_mod, struct cli_args_t *g_cl)
-{
+static void process_write_data(struct g_mod_t *g_mod, struct cli_args_t *g_cl) {
 	ssize_t count = 0;
 	int loops = 10;
 	int repeat = (g_cl->_tx_bytes == 0);
@@ -613,9 +599,7 @@ static void process_write_data(struct g_mod_t *g_mod, struct cli_args_t *g_cl)
 	}
 }
 
-
-static void setup_serial_port(int baud, struct g_mod_t *g_mod, struct cli_args_t *g_cl)
-{
+static void setup_serial_port(int baud, struct g_mod_t *g_mod, struct cli_args_t *g_cl) {
 	struct termios newtio;
 	struct serial_rs485 rs485;
 
@@ -676,9 +660,10 @@ static void setup_serial_port(int baud, struct g_mod_t *g_mod, struct cli_args_t
 	tcsetattr(g_mod->_fd, TCSANOW, &newtio);
 
 	/* enable/disable rs485 direction control */
-	if (ioctl(g_mod->_fd, TIOCGRS485, (int) &rs485) < 0) {
+	if (ioctl(g_mod->_fd, TIOCGRS485, (int)&rs485) < 0) {
 		if (g_cl->_rs485_delay >= 0) {
-			/* error could be because hardware is missing rs485 support so only print when actually trying to activate it */
+			/* error could be because hardware is missing rs485 support so only print when actually trying
+			 * to activate it */
 			perror("Error getting RS-485 mode");
 		}
 
@@ -687,7 +672,7 @@ static void setup_serial_port(int baud, struct g_mod_t *g_mod, struct cli_args_t
 		rs485.delay_rts_after_send = g_cl->_rs485_delay;
 		rs485.delay_rts_before_send = 0;
 
-		if (ioctl(g_mod->_fd, TIOCSRS485, (int) &rs485) < 0) {
+		if (ioctl(g_mod->_fd, TIOCSRS485, (int)&rs485) < 0) {
 			perror("Error setting RS-485 mode");
 		}
 
@@ -696,14 +681,13 @@ static void setup_serial_port(int baud, struct g_mod_t *g_mod, struct cli_args_t
 		rs485.delay_rts_after_send = 0;
 		rs485.delay_rts_before_send = 0;
 
-		if (ioctl(g_mod->_fd, TIOCSRS485, (int) &rs485) < 0) {
+		if (ioctl(g_mod->_fd, TIOCSRS485, (int)&rs485) < 0) {
 			perror("Error setting RS-232 mode");
 		}
 	}
 }
 
-static int diff_ms(const struct timespec *t1, const struct timespec *t2)
-{
+static int diff_ms(const struct timespec *t1, const struct timespec *t2) {
 	struct timespec diff;
 
 	diff.tv_sec = t1->tv_sec - t2->tv_sec;
@@ -718,23 +702,21 @@ static int diff_ms(const struct timespec *t1, const struct timespec *t2)
 }
 
 #if defined(__PX4_NUTTX)
-int serial_test_main(int argc, char *argv[])
-{
+int serial_test_main(int argc, char *argv[]) {
 	printf("serial test app\n");
 #else
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	printf("Linux serial test app\n");
 #endif
 
 	struct cli_args_t g_cl = {
-		._single_byte  = -1,
+		._single_byte = -1,
 		._another_byte = -1,
-		._rs485_delay  = -1,
+		._rs485_delay = -1,
 	};
 
 	struct g_mod_t g_mod = {
-		._fd           = -1,
+		._fd = -1,
 	};
 
 #if defined(__PX4_NUTTX)
@@ -852,27 +834,25 @@ int main(int argc, char *argv[])
 	fds.events = POLLIN;
 
 	while (!_exit && !(g_cl._no_rx && g_cl._no_tx)) {
-
 		ret = poll(&fds, 1, 0);
 
 		if (ret > 0) {
-
 			char c;
 			ret = read(0, &c, 1);
 
 			if (ret > 0) {
 				switch (c) {
-				case 0x03: // ctrl-c
-				case 0x1b: // esc
-				case 'c':
-				case 'q':
-					_exit = true;
-					break;
+					case 0x03:  // ctrl-c
+					case 0x1b:  // esc
+					case 'c':
+					case 'q':
+						_exit = true;
+						break;
 
-				default:
-					printf("\n");
-					fflush(stdout);
-					break;
+					default:
+						printf("\n");
+						fflush(stdout);
+						break;
 				}
 			}
 		}
@@ -950,8 +930,8 @@ int main(int argc, char *argv[])
 				}
 
 				if (tx_timeout) {
-					printf("%sNo data transmitted for %.1fs.",
-					       s, (double)(diff_ms(&current, &last_write) / 1000));
+					printf("%sNo data transmitted for %.1fs.", s,
+					       (double)(diff_ms(&current, &last_write) / 1000));
 				}
 
 				printf("\n");

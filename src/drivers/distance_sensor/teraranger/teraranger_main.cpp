@@ -31,14 +31,12 @@
  *
  ****************************************************************************/
 
-#include "TERARANGER.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void
-TERARANGER::print_usage()
-{
+#include "TERARANGER.hpp"
+
+void TERARANGER::print_usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -58,8 +56,7 @@ Setup/usage information: https://docs.px4.io/master/en/sensor/rangefinders.html#
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int teraranger_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int teraranger_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = TERARANGER;
 	BusCLIArguments cli{true, false};
@@ -69,9 +66,9 @@ extern "C" __EXPORT int teraranger_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

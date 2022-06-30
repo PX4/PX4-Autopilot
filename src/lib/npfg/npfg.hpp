@@ -60,18 +60,16 @@
 #ifndef NPFG_H_
 #define NPFG_H_
 
-#include <matrix/math.hpp>
 #include <lib/mathlib/mathlib.h>
+
+#include <matrix/math.hpp>
 
 /*
  * NPFG
  * Lateral-directional nonlinear path following guidance logic with excess wind handling
  */
-class NPFG
-{
-
+class NPFG {
 public:
-
 	/*
 	 * Set the nominal controller period [s].
 	 */
@@ -244,8 +242,8 @@ public:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateLoiter(const matrix::Vector2f &loiter_center, const matrix::Vector2f &vehicle_pos,
-			    float radius, int8_t loiter_direction, const matrix::Vector2f &ground_vel,
+	void navigateLoiter(const matrix::Vector2f &loiter_center, const matrix::Vector2f &vehicle_pos, float radius,
+			    int8_t loiter_direction, const matrix::Vector2f &ground_vel,
 			    const matrix::Vector2f &wind_vel);
 
 	/*
@@ -260,8 +258,8 @@ public:
 	 * @param[in] curvature of the path setpoint [1/m]
 	 */
 	void navigatePathTangent(const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &position_setpoint,
-				 const matrix::Vector2f &tangent_setpoint,
-				 const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature);
+				 const matrix::Vector2f &tangent_setpoint, const matrix::Vector2f &ground_vel,
+				 const matrix::Vector2f &wind_vel, const float &curvature);
 
 	/*
 	 * Navigate on a fixed heading.
@@ -274,8 +272,7 @@ public:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateHeading(float heading_ref, const matrix::Vector2f &ground_vel,
-			     const matrix::Vector2f &wind_vel);
+	void navigateHeading(float heading_ref, const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel);
 
 	/*
 	 * Navigate on a fixed bearing.
@@ -358,12 +355,12 @@ public:
 	float getRollSetpoint() { return roll_setpoint_; }
 
 private:
-
-	static constexpr float NPFG_EPSILON = 1.0e-6; // small number *bigger than machine epsilon
-	static constexpr float MIN_RADIUS = 0.5f; // minimum effective radius (avoid singularities) [m]
-	static constexpr float NTE_FRACTION = 0.5f; // normalized track error fraction (must be > 0)
-	// ^determines at what fraction of the normalized track error the maximum track keeping forward ground speed demand is reached
-	static constexpr float AIRSPEED_BUFFER = 1.5f; // airspeed buffer [m/s] (must be > 0)
+	static constexpr float NPFG_EPSILON = 1.0e-6;  // small number *bigger than machine epsilon
+	static constexpr float MIN_RADIUS = 0.5f;      // minimum effective radius (avoid singularities) [m]
+	static constexpr float NTE_FRACTION = 0.5f;    // normalized track error fraction (must be > 0)
+	// ^determines at what fraction of the normalized track error the maximum track keeping forward ground speed
+	// demand is reached
+	static constexpr float AIRSPEED_BUFFER = 1.5f;  // airspeed buffer [m/s] (must be > 0)
 	// ^the size of the feasibility transition region at cross wind angle >= 90 deg.
 	//  This must be non-zero to avoid jumpy airspeed incrementation while using wind
 	//  excess handling logic. Similarly used as buffer region around zero airspeed.
@@ -372,75 +369,88 @@ private:
 	 * tuning
 	 */
 
-	float period_{10.0f}; // nominal (desired) period -- user defined [s]
-	float damping_{0.7071f}; // nominal (desired) damping ratio -- user defined
-	float p_gain_{0.8885f}; // proportional gain (computed from period_ and damping_) [rad/s]
-	float time_const_{7.071f}; // time constant (computed from period_ and damping_) [s]
-	float adapted_period_{10.0f}; // auto-adapted period (if stability bounds enabled) [s]
+	float period_{10.0f};          // nominal (desired) period -- user defined [s]
+	float damping_{0.7071f};       // nominal (desired) damping ratio -- user defined
+	float p_gain_{0.8885f};        // proportional gain (computed from period_ and damping_) [rad/s]
+	float time_const_{7.071f};     // time constant (computed from period_ and damping_) [s]
+	float adapted_period_{10.0f};  // auto-adapted period (if stability bounds enabled) [s]
 
 	/*
 	 * user defined guidance settings
 	 */
 
 	// guidance options
-	bool en_period_lb_{true}; // enables automatic lower bound constraints on controller period
-	bool en_period_ub_{true}; // enables automatic upper bound constraints on controller period (remains disabled if lower bound is disabled)
-	bool en_min_ground_speed_{true}; // the airspeed reference is incremented to sustain a user defined minimum forward ground speed
-	bool en_track_keeping_{false}; // the airspeed reference is incremented to return to the track and sustain zero ground velocity until excess wind subsides
-	bool en_wind_excess_regulation_{true}; // the airspeed reference is incremented to regulate the excess wind, but not overcome it ...
-	// ^disabling this parameter disables all other excess wind handling options, using only the nominal airspeed for reference
+	bool en_period_lb_{true};  // enables automatic lower bound constraints on controller period
+	bool en_period_ub_{true};  // enables automatic upper bound constraints on controller period (remains disabled
+				   // if lower bound is disabled)
+	bool en_min_ground_speed_{
+		true};  // the airspeed reference is incremented to sustain a user defined minimum forward ground speed
+	bool en_track_keeping_{false};  // the airspeed reference is incremented to return to the track and sustain zero
+					// ground velocity until excess wind subsides
+	bool en_wind_excess_regulation_{
+		true};  // the airspeed reference is incremented to regulate the excess wind, but not overcome it ...
+	// ^disabling this parameter disables all other excess wind handling options, using only the nominal airspeed
+	// for reference
 
 	// guidance settings
-	float airspeed_nom_{15.0f}; // nominal (desired) airspeed reference (generally equivalent to cruise optimized airspeed) [m/s]
-	float airspeed_max_{20.0f}; // maximum airspeed reference - the maximum achievable/allowed airspeed reference [m/s]
-	float roll_time_const_{0.0f}; // autopilot roll response time constant [s]
-	float min_gsp_desired_{0.0f}; // user defined miminum desired forward ground speed [m/s]
-	float min_gsp_track_keeping_max_{5.0f}; // maximum, minimum forward ground speed demand from track keeping logic [m/s]
+	float airspeed_nom_{15.0f};  // nominal (desired) airspeed reference (generally equivalent to cruise optimized
+				     // airspeed) [m/s]
+	float airspeed_max_{
+		20.0f};  // maximum airspeed reference - the maximum achievable/allowed airspeed reference [m/s]
+	float roll_time_const_{0.0f};  // autopilot roll response time constant [s]
+	float min_gsp_desired_{0.0f};  // user defined miminum desired forward ground speed [m/s]
+	float min_gsp_track_keeping_max_{
+		5.0f};  // maximum, minimum forward ground speed demand from track keeping logic [m/s]
 
 	// guidance parameters
-	float switch_distance_multiplier_{0.32f}; // a value multiplied by the track error boundary resulting in a lower switch distance
-	// ^as the bearing angle changes quadratically (instead of linearly as in L1), the time constant (automatically calculated for on track stability) proportional track error boundary typically over estimates the required switching distance
-	float period_safety_factor_{1.5f}; // multiplied by the minimum period for conservative lower bound
+	float switch_distance_multiplier_{
+		0.32f};  // a value multiplied by the track error boundary resulting in a lower switch distance
+	// ^as the bearing angle changes quadratically (instead of linearly as in L1), the time constant (automatically
+	// calculated for on track stability) proportional track error boundary typically over estimates the required
+	// switching distance
+	float period_safety_factor_{1.5f};  // multiplied by the minimum period for conservative lower bound
 
 	/*
 	 * internal guidance states
 	 */
 
 	// speeds
-	float min_gsp_track_keeping_{0.0f}; // minimum forward ground speed demand from track keeping logic [m/s]
-	float min_ground_speed_ref_{0.0f}; // resultant minimum forward ground speed reference considering all active guidance logic [m/s]
+	float min_gsp_track_keeping_{0.0f};  // minimum forward ground speed demand from track keeping logic [m/s]
+	float min_ground_speed_ref_{
+		0.0f};  // resultant minimum forward ground speed reference considering all active guidance logic [m/s]
 
-	//bearing feasibility
-	float feas_{1.0f}; // continous representation of bearing feasibility in [0,1] (0=infeasible, 1=feasible)
-	float feas_on_track_{1.0f}; // continuous bearing feasibility "on track"
+	// bearing feasibility
+	float feas_{1.0f};  // continous representation of bearing feasibility in [0,1] (0=infeasible, 1=feasible)
+	float feas_on_track_{1.0f};  // continuous bearing feasibility "on track"
 
 	// track proximity
-	float track_error_bound_{212.13f}; // the current ground speed dependent track error bound [m]
-	float track_proximity_{0.0f}; // value in [0,1] indicating proximity to track, 0 = at track error boundary or beyond, 1 = on track
+	float track_error_bound_{212.13f};  // the current ground speed dependent track error bound [m]
+	float track_proximity_{0.0f};  // value in [0,1] indicating proximity to track, 0 = at track error boundary or
+				       // beyond, 1 = on track
 
 	// path following states
-	matrix::Vector2f unit_path_tangent_{matrix::Vector2f{1.0f, 0.0f}}; // unit path tangent vector
-	float signed_track_error_{0.0f}; // signed track error [m]
-	matrix::Vector2f bearing_vec_{matrix::Vector2f{1.0f, 0.0f}}; // bearing unit vector
+	matrix::Vector2f unit_path_tangent_{matrix::Vector2f{1.0f, 0.0f}};  // unit path tangent vector
+	float signed_track_error_{0.0f};                                    // signed track error [m]
+	matrix::Vector2f bearing_vec_{matrix::Vector2f{1.0f, 0.0f}};        // bearing unit vector
 
 	/*
 	 * guidance outputs
 	 */
 
-	float airspeed_ref_{15.0f}; // airspeed reference [m/s]
-	matrix::Vector2f air_vel_ref_{matrix::Vector2f{15.0f, 0.0f}}; // air velocity reference vector [m/s]
-	float lateral_accel_{0.0f}; // lateral acceleration reference [m/s^2]
-	float lateral_accel_ff_{0.0f}; // lateral acceleration demand to maintain path curvature [m/s^2]
+	float airspeed_ref_{15.0f};                                    // airspeed reference [m/s]
+	matrix::Vector2f air_vel_ref_{matrix::Vector2f{15.0f, 0.0f}};  // air velocity reference vector [m/s]
+	float lateral_accel_{0.0f};                                    // lateral acceleration reference [m/s^2]
+	float lateral_accel_ff_{0.0f};  // lateral acceleration demand to maintain path curvature [m/s^2]
 
 	/*
 	 * ECL_L1_Pos_Controller functionality
 	 */
 
-	float dt_{0}; // control loop time [s]
-	float roll_lim_rad_{math::radians(30.0f)}; // maximum roll angle [rad]
-	float roll_setpoint_{0.0f}; // current roll angle setpoint [rad]
-	float roll_slew_rate_{0.0f}; // roll angle setpoint slew rate limit [rad/s]
-	bool path_type_loiter_{false}; // true if the guidance law is tracking a loiter circle
+	float dt_{0};                               // control loop time [s]
+	float roll_lim_rad_{math::radians(30.0f)};  // maximum roll angle [rad]
+	float roll_setpoint_{0.0f};                 // current roll angle setpoint [rad]
+	float roll_slew_rate_{0.0f};                // roll angle setpoint slew rate limit [rad/s]
+	bool path_type_loiter_{false};              // true if the guidance law is tracking a loiter circle
 
 	/*
 	 * Computes the lateral acceleration and airspeed references necessary to track
@@ -622,8 +632,8 @@ private:
 	 * @return Air velocity vector [m/s]
 	 */
 	matrix::Vector2f refAirVelocity(const matrix::Vector2f &wind_vel, const matrix::Vector2f &bearing_vec,
-					const float wind_cross_bearing, const float wind_dot_bearing, const float wind_speed,
-					const float min_ground_speed) const;
+					const float wind_cross_bearing, const float wind_dot_bearing,
+					const float wind_speed, const float min_ground_speed) const;
 
 	/*
 	 * Projection of the air velocity vector onto the bearing line considering
@@ -659,7 +669,6 @@ private:
 	matrix::Vector2f solveWindTriangle(const float wind_cross_bearing, const float airsp_dot_bearing,
 					   const matrix::Vector2f &bearing_vec) const;
 
-
 	/*
 	 * Air velocity solution for an infeasible bearing.
 	 *
@@ -671,7 +680,6 @@ private:
 	 */
 	matrix::Vector2f infeasibleAirVelRef(const matrix::Vector2f &wind_vel, const matrix::Vector2f &bearing_vec,
 					     const float wind_speed, const float airspeed) const;
-
 
 	/*
 	 * Cacluates a continuous representation of the bearing feasibility from [0,1].
@@ -728,6 +736,6 @@ private:
 	 */
 	void updateRollSetpoint();
 
-}; // class NPFG
+};  // class NPFG
 
-#endif // NPFG_H_
+#endif  // NPFG_H_

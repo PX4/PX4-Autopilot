@@ -37,26 +37,19 @@
 
 using namespace matrix;
 
-SensorBaroSim::SensorBaroSim() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
-{
-	srand(1234); // initialize the random seed once before calling generate_wgn()
+SensorBaroSim::SensorBaroSim()
+	: ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {
+	srand(1234);  // initialize the random seed once before calling generate_wgn()
 }
 
-SensorBaroSim::~SensorBaroSim()
-{
-	perf_free(_loop_perf);
-}
+SensorBaroSim::~SensorBaroSim() { perf_free(_loop_perf); }
 
-bool SensorBaroSim::init()
-{
-	ScheduleOnInterval(50_ms); // 20 Hz
+bool SensorBaroSim::init() {
+	ScheduleOnInterval(50_ms);  // 20 Hz
 	return true;
 }
 
-float SensorBaroSim::generate_wgn()
-{
+float SensorBaroSim::generate_wgn() {
 	// generate white Gaussian noise sample with std=1
 
 	// algorithm 1:
@@ -86,8 +79,7 @@ float SensorBaroSim::generate_wgn()
 	return X;
 }
 
-void SensorBaroSim::Run()
-{
+void SensorBaroSim::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
@@ -109,18 +101,17 @@ void SensorBaroSim::Run()
 		vehicle_global_position_s gpos;
 
 		if (_vehicle_global_position_sub.copy(&gpos)) {
-
 			const float dt = math::constrain((gpos.timestamp - _last_update_time) * 1e-6f, 0.001f, 0.1f);
 
 			const float alt_msl = gpos.alt;
 
 			// calculate abs_pressure using an ISA model for the tropsphere (valid up to 11km above MSL)
-			const float lapse_rate = 0.0065f; // reduction in temperature with altitude (Kelvin/m)
-			const float temperature_msl = 288.0f; // temperature at MSL (Kelvin)
+			const float lapse_rate = 0.0065f;      // reduction in temperature with altitude (Kelvin/m)
+			const float temperature_msl = 288.0f;  // temperature at MSL (Kelvin)
 
 			const float temperature_local = temperature_msl - lapse_rate * alt_msl;
 			const float pressure_ratio = powf(temperature_msl / temperature_local, 5.256f);
-			const float pressure_msl = 101325.0f; // pressure at MSL
+			const float pressure_msl = 101325.0f;  // pressure at MSL
 			const float absolute_pressure = pressure_msl / pressure_ratio;
 
 			// generate Gaussian noise sequence using polar form of Box-Muller transformation
@@ -138,7 +129,8 @@ void SensorBaroSim::Run()
 					} while (w >= 1.0);
 
 					w = sqrt((-2.0 * log(w)) / w);
-					// calculate two values - the second value can be used next time because it is uncorrelated
+					// calculate two values - the second value can be used next time because it is
+					// uncorrelated
 					y1 = x1 * w;
 					_baro_rnd_y2 = x2 * w;
 					_baro_rnd_use_last = true;
@@ -164,12 +156,12 @@ void SensorBaroSim::Run()
 			// publish
 			sensor_baro_s sensor_baro{};
 			sensor_baro.timestamp_sample = gpos.timestamp;
-			sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+			sensor_baro.device_id =
+				6620172;  // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 			sensor_baro.pressure = pressure;
 			sensor_baro.temperature = temperature;
 			sensor_baro.timestamp = hrt_absolute_time();
 			_sensor_baro_pub.publish(sensor_baro);
-
 
 			_last_update_time = gpos.timestamp;
 		}
@@ -178,8 +170,7 @@ void SensorBaroSim::Run()
 	perf_end(_loop_perf);
 }
 
-int SensorBaroSim::task_spawn(int argc, char *argv[])
-{
+int SensorBaroSim::task_spawn(int argc, char *argv[]) {
 	SensorBaroSim *instance = new SensorBaroSim();
 
 	if (instance) {
@@ -201,13 +192,9 @@ int SensorBaroSim::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int SensorBaroSim::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int SensorBaroSim::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int SensorBaroSim::print_usage(const char *reason)
-{
+int SensorBaroSim::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -226,7 +213,4 @@ int SensorBaroSim::print_usage(const char *reason)
 	return 0;
 }
 
-extern "C" __EXPORT int sensor_baro_sim_main(int argc, char *argv[])
-{
-	return SensorBaroSim::main(argc, argv);
-}
+extern "C" __EXPORT int sensor_baro_sim_main(int argc, char *argv[]) { return SensorBaroSim::main(argc, argv); }

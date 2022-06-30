@@ -33,19 +33,19 @@
 
 #pragma once
 
-#include "MaierTek_MPC2520_registers.hpp"
-
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/i2c.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/topics/sensor_baro.h>
+
+#include <uORB/PublicationMulti.hpp>
+
+#include "MaierTek_MPC2520_registers.hpp"
 
 using namespace MaierTek_MPC2520;
 
-class MPC2520 : public device::I2C, public I2CSPIDriver<MPC2520>
-{
+class MPC2520 : public device::I2C, public I2CSPIDriver<MPC2520> {
 public:
 	MPC2520(const I2CSPIDriverConfig &config);
 	~MPC2520() override;
@@ -79,15 +79,15 @@ private:
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
-	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
-	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad register")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad transfer")};
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME ": reset")};
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
 	int _failure_count{0};
 
-#pragma pack(push,1)
+#pragma pack(push, 1)
 	struct prom_s {
 		int16_t c0;
 		int16_t c1;
@@ -111,11 +111,13 @@ private:
 
 	uint8_t _checked_register{0};
 	static constexpr uint8_t size_register_cfg{4};
-	register_config_t _register_cfg[size_register_cfg] {
+	register_config_t _register_cfg[size_register_cfg]{
 		// Register               | Set bits, Clear bits
-		{ Register::PRS_CFG,      PRS_CFG_BIT::PM_RATE_32_SET | PRS_CFG_BIT::PM_PRC_8_SET, PRS_CFG_BIT::PM_RATE_32_CLEAR | PRS_CFG_BIT::PM_PRC_8_CLEAR },
-		{ Register::TMP_CFG,      TMP_CFG_BIT::TMP_EXT | TMP_CFG_BIT::TMP_RATE_32_SET | TMP_CFG_BIT::TMP_PRC_8_SET, TMP_CFG_BIT::TMP_RATE_32_CLEAR | TMP_CFG_BIT::TMP_PRC_8_CLEAR },
-		{ Register::MEAS_CFG,     MEAS_CFG_BIT::MEAS_CTRL_CONT_PRES_TEMP, 0 },
-		{ Register::CFG_REG,      0, CFG_REG_BIT::T_SHIFT | CFG_REG_BIT::P_SHIFT },
+		{Register::PRS_CFG, PRS_CFG_BIT::PM_RATE_32_SET | PRS_CFG_BIT::PM_PRC_8_SET,
+		 PRS_CFG_BIT::PM_RATE_32_CLEAR | PRS_CFG_BIT::PM_PRC_8_CLEAR},
+		{Register::TMP_CFG, TMP_CFG_BIT::TMP_EXT | TMP_CFG_BIT::TMP_RATE_32_SET | TMP_CFG_BIT::TMP_PRC_8_SET,
+		 TMP_CFG_BIT::TMP_RATE_32_CLEAR | TMP_CFG_BIT::TMP_PRC_8_CLEAR},
+		{Register::MEAS_CFG, MEAS_CFG_BIT::MEAS_CTRL_CONT_PRES_TEMP, 0},
+		{Register::CFG_REG, 0, CFG_REG_BIT::T_SHIFT | CFG_REG_BIT::P_SHIFT},
 	};
 };

@@ -36,8 +36,7 @@
 
 #include "voxlpm.hpp"
 
-I2CSPIDriverBase *VOXLPM::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+I2CSPIDriverBase *VOXLPM::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	VOXLPM *instance = new VOXLPM(config);
 
 	if (instance == nullptr) {
@@ -47,7 +46,8 @@ I2CSPIDriverBase *VOXLPM::instantiate(const I2CSPIDriverConfig &config, int runt
 
 	if (config.keep_running) {
 		if (OK != instance->force_init()) {
-			PX4_INFO("Failed to init voxlpm type: %d on bus: %d, but will try again periodically.", config.custom1, config.bus);
+			PX4_INFO("Failed to init voxlpm type: %d on bus: %d, but will try again periodically.",
+				 config.custom1, config.bus);
 		}
 
 	} else if (OK != instance->init()) {
@@ -58,9 +58,7 @@ I2CSPIDriverBase *VOXLPM::instantiate(const I2CSPIDriverConfig &config, int runt
 	return instance;
 }
 
-void
-VOXLPM::print_usage()
-{
+void VOXLPM::print_usage() {
 	PRINT_MODULE_USAGE_NAME_SIMPLE("voxlpm", "driver");
 
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -71,9 +69,7 @@ VOXLPM::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int
-voxlpm_main(int argc, char *argv[])
-{
+extern "C" int voxlpm_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = VOXLPM;
 	BusCLIArguments cli{true, false};
@@ -84,22 +80,22 @@ voxlpm_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "T:")) != EOF) {
 		switch (ch) {
-		case 'T':
-			if (strcmp(cli.optArg(), "VBATT") == 0) {
-				cli.custom1 = VOXLPM_CH_TYPE_VBATT;
+			case 'T':
+				if (strcmp(cli.optArg(), "VBATT") == 0) {
+					cli.custom1 = VOXLPM_CH_TYPE_VBATT;
 
-			} else if (strcmp(cli.optArg(), "P5VDC") == 0) {
-				cli.custom1 = VOXLPM_CH_TYPE_P5VDC;
+				} else if (strcmp(cli.optArg(), "P5VDC") == 0) {
+					cli.custom1 = VOXLPM_CH_TYPE_P5VDC;
 
-			} else if (strcmp(cli.optArg(), "P12VDC") == 0) {
-				cli.custom1 = VOXLPM_CH_TYPE_P12VDC; //  same as P5VDC
+				} else if (strcmp(cli.optArg(), "P12VDC") == 0) {
+					cli.custom1 = VOXLPM_CH_TYPE_P12VDC;  //  same as P5VDC
 
-			} else {
-				PX4_ERR("unknown type");
-				return -1;
-			}
+				} else {
+					PX4_ERR("unknown type");
+					return -1;
+				}
 
-			break;
+				break;
 		}
 	}
 

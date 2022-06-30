@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixScalarMultiplicationTest, ScalarMultiplication)
-{
+TEST(MatrixScalarMultiplicationTest, ScalarMultiplication) {
 	float data[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
 	Matrix3f A(data);
 	A = A * 2;

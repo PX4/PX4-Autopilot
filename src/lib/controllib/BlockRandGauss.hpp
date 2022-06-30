@@ -39,39 +39,32 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <assert.h>
-#include <time.h>
-#include <stdlib.h>
 #include <math.h>
-#include <mathlib/math/test/test.hpp>
+#include <px4_platform_common/defines.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
+namespace control {
 
-class __EXPORT BlockRandGauss: public Block
-{
+class __EXPORT BlockRandGauss : public Block {
 public:
-// methods
-	BlockRandGauss(SuperBlock *parent,
-		       const char *name) :
-		Block(parent, name),
-		_mean(this, "MEAN"),
-		_stdDev(this, "DEV")
-	{
+	// methods
+	BlockRandGauss(SuperBlock *parent, const char *name)
+		: Block(parent, name), _mean(this, "MEAN"), _stdDev(this, "DEV") {
 		// seed should be initialized somewhere
 		// in main program for all calls to rand
 		// XXX currently in nuttx if you seed to 0, rand breaks
 	}
 	virtual ~BlockRandGauss() = default;
-	float update()
-	{
+	float update() {
 		static float V1, V2, S;
 		static int phase = 0;
 		float X;
@@ -94,13 +87,14 @@ public:
 		phase = 1 - phase;
 		return X * getStdDev() + getMean();
 	}
-// accessors
+	// accessors
 	float getMean() { return _mean.get(); }
 	float getStdDev() { return _stdDev.get(); }
+
 private:
-// attributes
+	// attributes
 	control::BlockParamFloat _mean;
 	control::BlockParamFloat _stdDev;
 };
 
-} // namespace control
+}  // namespace control

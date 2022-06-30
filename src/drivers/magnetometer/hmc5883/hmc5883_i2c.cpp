@@ -37,53 +37,41 @@
  * I2C interface for HMC5883 / HMC 5983
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <drivers/device/i2c.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "hmc5883.h"
 
 device::Device *HMC5883_I2C_interface(int bus, int bus_frequency);
 
-class HMC5883_I2C : public device::I2C
-{
+class HMC5883_I2C : public device::I2C {
 public:
 	HMC5883_I2C(int bus, int bus_frequency);
 	virtual ~HMC5883_I2C() = default;
 
-	virtual int	read(unsigned address, void *data, unsigned count);
-	virtual int	write(unsigned address, void *data, unsigned count);
+	virtual int read(unsigned address, void *data, unsigned count);
+	virtual int write(unsigned address, void *data, unsigned count);
 
 protected:
-	virtual int	probe();
+	virtual int probe();
 };
 
-device::Device *
-HMC5883_I2C_interface(int bus, int bus_frequency)
-{
-	return new HMC5883_I2C(bus, bus_frequency);
-}
+device::Device *HMC5883_I2C_interface(int bus, int bus_frequency) { return new HMC5883_I2C(bus, bus_frequency); }
 
-HMC5883_I2C::HMC5883_I2C(int bus, int bus_frequency) :
-	I2C(DRV_MAG_DEVTYPE_HMC5883, MODULE_NAME, bus, HMC5883L_ADDRESS, bus_frequency)
-{
-}
+HMC5883_I2C::HMC5883_I2C(int bus, int bus_frequency)
+	: I2C(DRV_MAG_DEVTYPE_HMC5883, MODULE_NAME, bus, HMC5883L_ADDRESS, bus_frequency) {}
 
-int HMC5883_I2C::probe()
-{
+int HMC5883_I2C::probe() {
 	uint8_t data[3] = {0, 0, 0};
 
 	_retries = 1;
 
-	if (read(ADDR_ID_A, &data[0], 1) ||
-	    read(ADDR_ID_B, &data[1], 1) ||
-	    read(ADDR_ID_C, &data[2], 1)) {
+	if (read(ADDR_ID_A, &data[0], 1) || read(ADDR_ID_B, &data[1], 1) || read(ADDR_ID_C, &data[2], 1)) {
 		DEVICE_DEBUG("read_reg fail");
 		return -EIO;
 	}
 
-	if ((data[0] != ID_A_WHO_AM_I) ||
-	    (data[1] != ID_B_WHO_AM_I) ||
-	    (data[2] != ID_C_WHO_AM_I)) {
+	if ((data[0] != ID_A_WHO_AM_I) || (data[1] != ID_B_WHO_AM_I) || (data[2] != ID_C_WHO_AM_I)) {
 		DEVICE_DEBUG("ID byte mismatch (%02x,%02x,%02x)", data[0], data[1], data[2]);
 		return -EIO;
 	}
@@ -91,8 +79,7 @@ int HMC5883_I2C::probe()
 	return OK;
 }
 
-int HMC5883_I2C::write(unsigned address, void *data, unsigned count)
-{
+int HMC5883_I2C::write(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {
@@ -105,8 +92,7 @@ int HMC5883_I2C::write(unsigned address, void *data, unsigned count)
 	return transfer(&buf[0], count + 1, nullptr, 0);
 }
 
-int HMC5883_I2C::read(unsigned address, void *data, unsigned count)
-{
+int HMC5883_I2C::read(unsigned address, void *data, unsigned count) {
 	uint8_t cmd = address;
 	return transfer(&cmd, 1, (uint8_t *)data, count);
 }

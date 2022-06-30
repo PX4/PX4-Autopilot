@@ -34,15 +34,17 @@
 /// @file mavlink_ftp.cpp
 ///	@author px4dev, Don Gagne <don@thegagnes.com>
 
+#include "mavlink_ftp.h"
+
 #include <crc32.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <cstring>
 
-#include "mavlink_ftp.h"
 #include "mavlink_tests/mavlink_ftp_test.h"
 
 #ifndef MAVLINK_FTP_UNIT_TEST
@@ -55,22 +57,17 @@ using namespace time_literals;
 
 constexpr const char MavlinkFTP::_root_dir[];
 
-MavlinkFTP::MavlinkFTP(Mavlink *mavlink) :
-	_mavlink(mavlink)
-{
+MavlinkFTP::MavlinkFTP(Mavlink *mavlink) : _mavlink(mavlink) {
 	// initialize session
 	_session_info.fd = -1;
 }
 
-MavlinkFTP::~MavlinkFTP()
-{
+MavlinkFTP::~MavlinkFTP() {
 	delete[] _work_buffer1;
 	delete[] _work_buffer2;
 }
 
-unsigned
-MavlinkFTP::get_size()
-{
+unsigned MavlinkFTP::get_size() {
 	if (_session_info.stream_download) {
 		return MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
@@ -80,17 +77,13 @@ MavlinkFTP::get_size()
 }
 
 #ifdef MAVLINK_FTP_UNIT_TEST
-void
-MavlinkFTP::set_unittest_worker(ReceiveMessageFunc_t rcvMsgFunc, void *worker_data)
-{
+void MavlinkFTP::set_unittest_worker(ReceiveMessageFunc_t rcvMsgFunc, void *worker_data) {
 	_utRcvMsgFunc = rcvMsgFunc;
 	_worker_data = worker_data;
 }
 #endif
 
-uint8_t
-MavlinkFTP::_getServerSystemId()
-{
+uint8_t MavlinkFTP::_getServerSystemId() {
 #ifdef MAVLINK_FTP_UNIT_TEST
 	// We use fake ids when unit testing
 	return MavlinkFtpTest::serverSystemId;
@@ -100,9 +93,7 @@ MavlinkFTP::_getServerSystemId()
 #endif
 }
 
-uint8_t
-MavlinkFTP::_getServerComponentId()
-{
+uint8_t MavlinkFTP::_getServerComponentId() {
 #ifdef MAVLINK_FTP_UNIT_TEST
 	// We use fake ids when unit testing
 	return MavlinkFtpTest::serverComponentId;
@@ -112,9 +103,7 @@ MavlinkFTP::_getServerComponentId()
 #endif
 }
 
-uint8_t
-MavlinkFTP::_getServerChannel()
-{
+uint8_t MavlinkFTP::_getServerChannel() {
 #ifdef MAVLINK_FTP_UNIT_TEST
 	// We use fake ids when unit testing
 	return MavlinkFtpTest::serverChannel;
@@ -124,10 +113,8 @@ MavlinkFTP::_getServerChannel()
 #endif
 }
 
-void
-MavlinkFTP::handle_message(const mavlink_message_t *msg)
-{
-	//warnx("MavlinkFTP::handle_message %d %d", buf_size_1, buf_size_2);
+void MavlinkFTP::handle_message(const mavlink_message_t *msg) {
+	// warnx("MavlinkFTP::handle_message %d %d", buf_size_1, buf_size_2);
 
 	if (msg->msgid == MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL) {
 		mavlink_file_transfer_protocol_t ftp_request;
@@ -144,12 +131,8 @@ MavlinkFTP::handle_message(const mavlink_message_t *msg)
 }
 
 /// @brief Processes an FTP message
-void
-MavlinkFTP::_process_request(
-	mavlink_file_transfer_protocol_t *ftp_req,
-	uint8_t target_system_id,
-	uint8_t target_comp_id)
-{
+void MavlinkFTP::_process_request(mavlink_file_transfer_protocol_t *ftp_req, uint8_t target_system_id,
+				  uint8_t target_comp_id) {
 	bool stream_send = false;
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_req->payload[0]);
 
@@ -171,12 +154,13 @@ MavlinkFTP::_process_request(
 
 	// check the sequence number: if this is a resent request, resend the last response
 	if (_last_reply_valid) {
-		mavlink_file_transfer_protocol_t *last_reply = reinterpret_cast<mavlink_file_transfer_protocol_t *>(_last_reply);
+		mavlink_file_transfer_protocol_t *last_reply =
+			reinterpret_cast<mavlink_file_transfer_protocol_t *>(_last_reply);
 		PayloadHeader *last_payload = reinterpret_cast<PayloadHeader *>(&last_reply->payload[0]);
 
 		if (payload->seq_number + 1 == last_payload->seq_number) {
-			// this is the same request as the one we replied to last. It means the (n)ack got lost, and the GCS
-			// resent the request
+			// this is the same request as the one we replied to last. It means the (n)ack got lost, and the
+			// GCS resent the request
 #ifdef MAVLINK_FTP_UNIT_TEST
 			_utRcvMsgFunc(last_reply, _worker_data);
 #else
@@ -186,78 +170,77 @@ MavlinkFTP::_process_request(
 		}
 	}
 
-
-	PX4_DEBUG("ftp: channel %" PRIu8 " opc %" PRIu8 " size %" PRIu8 " offset %" PRIu32,
-		  _getServerChannel(), payload->opcode, payload->size, payload->offset);
+	PX4_DEBUG("ftp: channel %" PRIu8 " opc %" PRIu8 " size %" PRIu8 " offset %" PRIu32, _getServerChannel(),
+		  payload->opcode, payload->size, payload->offset);
 
 	switch (payload->opcode) {
-	case kCmdNone:
-		break;
+		case kCmdNone:
+			break;
 
-	case kCmdTerminateSession:
-		errorCode = _workTerminate(payload);
-		break;
+		case kCmdTerminateSession:
+			errorCode = _workTerminate(payload);
+			break;
 
-	case kCmdResetSessions:
-		errorCode = _workReset(payload);
-		break;
+		case kCmdResetSessions:
+			errorCode = _workReset(payload);
+			break;
 
-	case kCmdListDirectory:
-		errorCode = _workList(payload);
-		break;
+		case kCmdListDirectory:
+			errorCode = _workList(payload);
+			break;
 
-	case kCmdOpenFileRO:
-		errorCode = _workOpen(payload, O_RDONLY);
-		break;
+		case kCmdOpenFileRO:
+			errorCode = _workOpen(payload, O_RDONLY);
+			break;
 
-	case kCmdCreateFile:
-		errorCode = _workOpen(payload, O_CREAT | O_TRUNC | O_WRONLY);
-		break;
+		case kCmdCreateFile:
+			errorCode = _workOpen(payload, O_CREAT | O_TRUNC | O_WRONLY);
+			break;
 
-	case kCmdOpenFileWO:
-		errorCode = _workOpen(payload, O_CREAT | O_WRONLY);
-		break;
+		case kCmdOpenFileWO:
+			errorCode = _workOpen(payload, O_CREAT | O_WRONLY);
+			break;
 
-	case kCmdReadFile:
-		errorCode = _workRead(payload);
-		break;
+		case kCmdReadFile:
+			errorCode = _workRead(payload);
+			break;
 
-	case kCmdBurstReadFile:
-		errorCode = _workBurst(payload, target_system_id, target_comp_id);
-		stream_send = true;
-		break;
+		case kCmdBurstReadFile:
+			errorCode = _workBurst(payload, target_system_id, target_comp_id);
+			stream_send = true;
+			break;
 
-	case kCmdWriteFile:
-		errorCode = _workWrite(payload);
-		break;
+		case kCmdWriteFile:
+			errorCode = _workWrite(payload);
+			break;
 
-	case kCmdRemoveFile:
-		errorCode = _workRemoveFile(payload);
-		break;
+		case kCmdRemoveFile:
+			errorCode = _workRemoveFile(payload);
+			break;
 
-	case kCmdRename:
-		errorCode = _workRename(payload);
-		break;
+		case kCmdRename:
+			errorCode = _workRename(payload);
+			break;
 
-	case kCmdTruncateFile:
-		errorCode = _workTruncateFile(payload);
-		break;
+		case kCmdTruncateFile:
+			errorCode = _workTruncateFile(payload);
+			break;
 
-	case kCmdCreateDirectory:
-		errorCode = _workCreateDirectory(payload);
-		break;
+		case kCmdCreateDirectory:
+			errorCode = _workCreateDirectory(payload);
+			break;
 
-	case kCmdRemoveDirectory:
-		errorCode = _workRemoveDirectory(payload);
-		break;
+		case kCmdRemoveDirectory:
+			errorCode = _workRemoveDirectory(payload);
+			break;
 
-	case kCmdCalcFileCRC32:
-		errorCode = _workCalcFileCRC32(payload);
-		break;
+		case kCmdCalcFileCRC32:
+			errorCode = _workCalcFileCRC32(payload);
+			break;
 
-	default:
-		errorCode = kErrUnknownCommand;
-		break;
+		default:
+			errorCode = kErrUnknownCommand;
+			break;
 	}
 
 out:
@@ -301,8 +284,7 @@ out:
 	}
 }
 
-bool MavlinkFTP::_ensure_buffers_exist()
-{
+bool MavlinkFTP::_ensure_buffers_exist() {
 	_last_work_buffer_access = hrt_absolute_time();
 
 	if (!_work_buffer1) {
@@ -317,9 +299,7 @@ bool MavlinkFTP::_ensure_buffers_exist()
 }
 
 /// @brief Sends the specified FTP response message out through mavlink
-void
-MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
-{
+void MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req) {
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_req->payload[0]);
 
 	// keep a copy of the last sent response ((n)ack), so that if it gets lost and the GCS resends the request,
@@ -339,13 +319,10 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 #else
 	mavlink_msg_file_transfer_protocol_send_struct(_mavlink->get_channel(), ftp_req);
 #endif
-
 }
 
 /// @brief Responds to a List command
-MavlinkFTP::ErrorCode
-MavlinkFTP::_workList(PayloadHeader *payload)
-{
+MavlinkFTP::ErrorCode MavlinkFTP::_workList(PayloadHeader *payload) {
 	strncpy(_work_buffer1, _root_dir, _work_buffer1_len);
 	strncpy(_work_buffer1 + _root_dir_len, _data_as_cstring(payload), _work_buffer1_len - _root_dir_len);
 	// ensure termination
@@ -373,7 +350,8 @@ MavlinkFTP::_workList(PayloadHeader *payload)
 
 	PX4_DEBUG("readdir with offset: %d", requested_offset);
 
-	while (requested_offset-- > 0 && readdir(dp)) {}
+	while (requested_offset-- > 0 && readdir(dp)) {
+	}
 
 	for (;;) {
 		errno = 0;
@@ -397,12 +375,13 @@ MavlinkFTP::_workList(PayloadHeader *payload)
 			// FIXME: does this ever happen? I would assume readdir always sets errno.
 			// no more entries?
 			if (payload->offset != 0 && offset == 0) {
-				// User is requesting subsequent dir entries but there were none. This means the user asked
-				// to seek past EOF.
+				// User is requesting subsequent dir entries but there were none. This means the user
+				// asked to seek past EOF.
 				errorCode = kErrEOF;
 			}
 
-			// Otherwise we are just at the last directory entry, so we leave the errorCode at kErrorNone to signal that
+			// Otherwise we are just at the last directory entry, so we leave the errorCode at kErrorNone to
+			// signal that
 			break;
 		}
 
@@ -413,14 +392,15 @@ MavlinkFTP::_workList(PayloadHeader *payload)
 		switch (result->d_type) {
 #ifdef __PX4_NUTTX
 
-		case DTYPE_FILE: {
+			case DTYPE_FILE: {
 #else
 
-		case DT_REG: {
+			case DT_REG: {
 #endif
 				// For files we get the file size as well
 				direntType = kDirentFile;
-				int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s/%s", _work_buffer1, result->d_name);
+				int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s/%s", _work_buffer1,
+						   result->d_name);
 				bool buf_is_ok = ((ret > 0) && (ret < _work_buffer2_len));
 
 				if (buf_is_ok) {
@@ -436,23 +416,23 @@ MavlinkFTP::_workList(PayloadHeader *payload)
 
 #ifdef __PX4_NUTTX
 
-		case DTYPE_DIRECTORY:
+			case DTYPE_DIRECTORY:
 #else
-		case DT_DIR:
+			case DT_DIR:
 #endif
-			if (strcmp(result->d_name, ".") == 0 || strcmp(result->d_name, "..") == 0) {
-				// Don't bother sending these back
+				if (strcmp(result->d_name, ".") == 0 || strcmp(result->d_name, "..") == 0) {
+					// Don't bother sending these back
+					direntType = kDirentSkip;
+
+				} else {
+					direntType = kDirentDir;
+				}
+
+				break;
+
+			default:
+				// We only send back file and diretory entries, skip everything else
 				direntType = kDirentSkip;
-
-			} else {
-				direntType = kDirentDir;
-			}
-
-			break;
-
-		default:
-			// We only send back file and diretory entries, skip everything else
-			direntType = kDirentSkip;
 		}
 
 		if (direntType == kDirentSkip) {
@@ -495,9 +475,7 @@ MavlinkFTP::_workList(PayloadHeader *payload)
 }
 
 /// @brief Responds to an Open command
-MavlinkFTP::ErrorCode
-MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
-{
+MavlinkFTP::ErrorCode MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag) {
 	if (_session_info.fd >= 0) {
 		PX4_ERR("FTP: Open failed - out of sessions\n");
 		return kErrNoSessionsAvailable;
@@ -549,9 +527,7 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 }
 
 /// @brief Responds to a Read command
-MavlinkFTP::ErrorCode
-MavlinkFTP::_workRead(PayloadHeader *payload)
-{
+MavlinkFTP::ErrorCode MavlinkFTP::_workRead(PayloadHeader *payload) {
 	if (payload->session != 0 || _session_info.fd < 0) {
 		return kErrInvalidSession;
 	}
@@ -587,9 +563,8 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 }
 
 /// @brief Responds to a Stream command
-MavlinkFTP::ErrorCode
-MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t target_component_id)
-{
+MavlinkFTP::ErrorCode MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id,
+					     uint8_t target_component_id) {
 	if (payload->session != 0 && _session_info.fd < 0) {
 		PX4_DEBUG("_workBurst: no session or no fd");
 		return kErrInvalidSession;
@@ -608,9 +583,7 @@ MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t
 }
 
 /// @brief Responds to a Write command
-MavlinkFTP::ErrorCode
-MavlinkFTP::_workWrite(PayloadHeader *payload)
-{
+MavlinkFTP::ErrorCode MavlinkFTP::_workWrite(PayloadHeader *payload) {
 	if (payload->session != 0 && _session_info.fd < 0) {
 		PX4_DEBUG("_workWrite: no session or no fd");
 		return kErrInvalidSession;
@@ -643,9 +616,7 @@ MavlinkFTP::_workWrite(PayloadHeader *payload)
 }
 
 /// @brief Responds to a RemoveFile command
-MavlinkFTP::ErrorCode
-MavlinkFTP::_workRemoveFile(PayloadHeader *payload)
-{
+MavlinkFTP::ErrorCode MavlinkFTP::_workRemoveFile(PayloadHeader *payload) {
 	strncpy(_work_buffer1, _root_dir, _work_buffer1_len);
 	strncpy(_work_buffer1 + _root_dir_len, _data_as_cstring(payload), _work_buffer1_len - _root_dir_len);
 	// ensure termination
@@ -669,9 +640,7 @@ MavlinkFTP::_workRemoveFile(PayloadHeader *payload)
 }
 
 /// @brief Responds to a TruncateFile command
-MavlinkFTP::ErrorCode
-MavlinkFTP::_workTruncateFile(PayloadHeader *payload)
-{
+MavlinkFTP::ErrorCode MavlinkFTP::_workTruncateFile(PayloadHeader *payload) {
 	strncpy(_work_buffer1, _root_dir, _work_buffer1_len);
 	strncpy(_work_buffer1 + _root_dir_len, _data_as_cstring(payload), _work_buffer1_len - _root_dir_len);
 	// ensure termination
@@ -686,7 +655,7 @@ MavlinkFTP::_workTruncateFile(PayloadHeader *payload)
 
 	// emulate truncate(_work_buffer1, payload->offset) by
 	// copying to temp and overwrite with O_TRUNC flag (NuttX does not support truncate()).
-	const char temp_file[] = PX4_STORAGEDIR"/.trunc.tmp";
+	const char temp_file[] = PX4_STORAGEDIR "/.trunc.tmp";
 
 	struct stat st;
 
@@ -789,9 +758,7 @@ MavlinkFTP::_workTruncateFile(PayloadHeader *payload)
 }
 
 /// @brief Responds to a Terminate command
-MavlinkFTP::ErrorCode
-MavlinkFTP::_workTerminate(PayloadHeader *payload)
-{
+MavlinkFTP::ErrorCode MavlinkFTP::_workTerminate(PayloadHeader *payload) {
 	if (payload->session != 0 || _session_info.fd < 0) {
 		return kErrInvalidSession;
 	}
@@ -807,9 +774,7 @@ MavlinkFTP::_workTerminate(PayloadHeader *payload)
 }
 
 /// @brief Responds to a Reset command
-MavlinkFTP::ErrorCode
-MavlinkFTP::_workReset(PayloadHeader *payload)
-{
+MavlinkFTP::ErrorCode MavlinkFTP::_workReset(PayloadHeader *payload) {
 	PX4_DEBUG("work reset: close");
 
 	if (_session_info.fd != -1) {
@@ -824,9 +789,7 @@ MavlinkFTP::_workReset(PayloadHeader *payload)
 }
 
 /// @brief Responds to a Rename command
-MavlinkFTP::ErrorCode
-MavlinkFTP::_workRename(PayloadHeader *payload)
-{
+MavlinkFTP::ErrorCode MavlinkFTP::_workRename(PayloadHeader *payload) {
 	char *ptr = _data_as_cstring(payload);
 	size_t oldpath_sz = strlen(ptr);
 
@@ -838,11 +801,11 @@ MavlinkFTP::_workRename(PayloadHeader *payload)
 
 	strncpy(_work_buffer1, _root_dir, _work_buffer1_len);
 	strncpy(_work_buffer1 + _root_dir_len, ptr, _work_buffer1_len - _root_dir_len);
-	_work_buffer1[_work_buffer1_len - 1] = '\0'; // ensure termination
+	_work_buffer1[_work_buffer1_len - 1] = '\0';  // ensure termination
 
 	strncpy(_work_buffer2, _root_dir, _work_buffer2_len);
 	strncpy(_work_buffer2 + _root_dir_len, ptr + oldpath_sz + 1, _work_buffer2_len - _root_dir_len);
-	_work_buffer2[_work_buffer2_len - 1] = '\0'; // ensure termination
+	_work_buffer2[_work_buffer2_len - 1] = '\0';  // ensure termination
 
 	if (!_validatePathIsWritable(_work_buffer2)) {
 		return kErrFailFileProtected;
@@ -862,9 +825,7 @@ MavlinkFTP::_workRename(PayloadHeader *payload)
 }
 
 /// @brief Responds to a RemoveDirectory command
-MavlinkFTP::ErrorCode
-MavlinkFTP::_workRemoveDirectory(PayloadHeader *payload)
-{
+MavlinkFTP::ErrorCode MavlinkFTP::_workRemoveDirectory(PayloadHeader *payload) {
 	strncpy(_work_buffer1, _root_dir, _work_buffer1_len);
 	strncpy(_work_buffer1 + _root_dir_len, _data_as_cstring(payload), _work_buffer1_len - _root_dir_len);
 	// ensure termination
@@ -888,9 +849,7 @@ MavlinkFTP::_workRemoveDirectory(PayloadHeader *payload)
 }
 
 /// @brief Responds to a CreateDirectory command
-MavlinkFTP::ErrorCode
-MavlinkFTP::_workCreateDirectory(PayloadHeader *payload)
-{
+MavlinkFTP::ErrorCode MavlinkFTP::_workCreateDirectory(PayloadHeader *payload) {
 	strncpy(_work_buffer1, _root_dir, _work_buffer1_len);
 	strncpy(_work_buffer1 + _root_dir_len, _data_as_cstring(payload), _work_buffer1_len - _root_dir_len);
 	// ensure termination
@@ -914,9 +873,7 @@ MavlinkFTP::_workCreateDirectory(PayloadHeader *payload)
 }
 
 /// @brief Responds to a CalcFileCRC32 command
-MavlinkFTP::ErrorCode
-MavlinkFTP::_workCalcFileCRC32(PayloadHeader *payload)
-{
+MavlinkFTP::ErrorCode MavlinkFTP::_workCalcFileCRC32(PayloadHeader *payload) {
 	uint32_t checksum = 0;
 	ssize_t bytes_read;
 	strncpy(_work_buffer2, _root_dir, _work_buffer2_len);
@@ -951,9 +908,7 @@ MavlinkFTP::_workCalcFileCRC32(PayloadHeader *payload)
 
 /// @brief Guarantees that the payload data is null terminated.
 ///     @return Returns a pointer to the payload data as a char *
-char *
-MavlinkFTP::_data_as_cstring(PayloadHeader *payload)
-{
+char *MavlinkFTP::_data_as_cstring(PayloadHeader *payload) {
 	// guarantee nul termination
 	if (payload->size < kMaxDataLength) {
 		payload->data[payload->size] = '\0';
@@ -963,13 +918,11 @@ MavlinkFTP::_data_as_cstring(PayloadHeader *payload)
 	}
 
 	// and return data
-	return (char *) & (payload->data[0]);
+	return (char *)&(payload->data[0]);
 }
 
 /// @brief Copy file (with limited space)
-int
-MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length)
-{
+int MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length) {
 	PX4_DEBUG("copy file from %s to %s", src_path, dst_path);
 
 	int src_fd = -1, dst_fd = -1;
@@ -983,9 +936,10 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 	dst_fd = ::open(dst_path, O_CREAT | O_TRUNC | O_WRONLY
 // POSIX requires the permissions to be supplied if O_CREAT passed
 #ifdef __PX4_POSIX
-			, 0666
+			,
+			0666
 #endif
-		       );
+	);
 
 	if (dst_fd < 0) {
 		_our_errno = errno;
@@ -1026,9 +980,7 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 	return (length > 0) ? -1 : 0;
 }
 
-void MavlinkFTP::send()
-{
-
+void MavlinkFTP::send() {
 	if (_work_buffer1 || _work_buffer2) {
 		// free the work buffers if they are not used for a while
 		if (hrt_elapsed_time(&_last_work_buffer_access) > 2_s) {
@@ -1062,7 +1014,8 @@ void MavlinkFTP::send()
 #ifndef MAVLINK_FTP_UNIT_TEST
 	// Skip send if not enough room
 	unsigned max_bytes_to_send = _mavlink->get_free_tx_buf();
-	PX4_DEBUG("MavlinkFTP::send max_bytes_to_send(%u) get_free_tx_buf(%u)", max_bytes_to_send, _mavlink->get_free_tx_buf());
+	PX4_DEBUG("MavlinkFTP::send max_bytes_to_send(%u) get_free_tx_buf(%u)", max_bytes_to_send,
+		  _mavlink->get_free_tx_buf());
 
 	if (max_bytes_to_send < get_size()) {
 		return;
@@ -1123,7 +1076,8 @@ void MavlinkFTP::send()
 			payload->opcode = kRspNak;
 			payload->size = 1;
 			uint8_t *pData = &payload->data[0];
-			*pData = error_code; // Straight reference to data[0] is causing bogus gcc array subscript error
+			*pData =
+				error_code;  // Straight reference to data[0] is causing bogus gcc array subscript error
 
 			if (error_code == kErrFailErrno) {
 				payload->size = 2;
@@ -1163,8 +1117,7 @@ void MavlinkFTP::send()
 	} while (more_data);
 }
 
-bool MavlinkFTP::_validatePathIsWritable(const char *path)
-{
+bool MavlinkFTP::_validatePathIsWritable(const char *path) {
 #ifdef __PX4_NUTTX
 
 	// Don't allow writes to system paths as they are in RAM

@@ -33,35 +33,35 @@
 
 #include "ADIS16497.hpp"
 
-#define DIR_READ				0x00
-#define DIR_WRITE				0x80
+#define DIR_READ 0x00
+#define DIR_WRITE 0x80
 
 // ADIS16497 registers
-static constexpr uint8_t PAGE_ID  	= 0x0; // Page identifier
+static constexpr uint8_t PAGE_ID = 0x0;  // Page identifier
 
 // Page 0x00
-static constexpr uint8_t SYS_E_FLAG 	= 0x08; // Output, system error flags
-static constexpr uint8_t DIAG_STS   	= 0x0A; // Output, self test error flags
-static constexpr uint8_t BURST_CMD  	= 0x7C; // Burst-read command
-static constexpr uint8_t PROD_ID    	= 0x7E; // Output, product identification
+static constexpr uint8_t SYS_E_FLAG = 0x08;  // Output, system error flags
+static constexpr uint8_t DIAG_STS = 0x0A;    // Output, self test error flags
+static constexpr uint8_t BURST_CMD = 0x7C;   // Burst-read command
+static constexpr uint8_t PROD_ID = 0x7E;     // Output, product identification
 
 // Page 0x03
-static constexpr uint8_t GLOB_CMD   	= 0x02; // Control, global commands
-static constexpr uint8_t FNCTIO_CTRL 	= 0x06; // Control, I/O pins, functional definitions
-static constexpr uint8_t GPIO_CTRL  	= 0x08; // Control, I/O pins, general-purpose
-static constexpr uint8_t CONFIG  	= 0x0A; // Control, clock and miscellaneous corrections
-static constexpr uint8_t DEC_RATE  	= 0x0C; // Control, output sample rate decimation
-static constexpr uint8_t NULL_CNFG  	= 0x0E; // Control, automatic bias correction configuration
-static constexpr uint8_t SYNC_SCALE  	= 0x10; // Control, automatic bias correction configuration
-static constexpr uint8_t RANG_MDL   	= 0x12; // Measurement range (model-specific) identifier
-static constexpr uint8_t FILTR_BNK_0   	= 0x16; // Filter selection
-static constexpr uint8_t FILTR_BNK_1   	= 0x18; // Filter selection
+static constexpr uint8_t GLOB_CMD = 0x02;     // Control, global commands
+static constexpr uint8_t FNCTIO_CTRL = 0x06;  // Control, I/O pins, functional definitions
+static constexpr uint8_t GPIO_CTRL = 0x08;    // Control, I/O pins, general-purpose
+static constexpr uint8_t CONFIG = 0x0A;       // Control, clock and miscellaneous corrections
+static constexpr uint8_t DEC_RATE = 0x0C;     // Control, output sample rate decimation
+static constexpr uint8_t NULL_CNFG = 0x0E;    // Control, automatic bias correction configuration
+static constexpr uint8_t SYNC_SCALE = 0x10;   // Control, automatic bias correction configuration
+static constexpr uint8_t RANG_MDL = 0x12;     // Measurement range (model-specific) identifier
+static constexpr uint8_t FILTR_BNK_0 = 0x16;  // Filter selection
+static constexpr uint8_t FILTR_BNK_1 = 0x18;  // Filter selection
 
-static constexpr uint16_t PROD_ID_ADIS16497 = 0x4071; // ADIS16497 device number
+static constexpr uint16_t PROD_ID_ADIS16497 = 0x4071;  // ADIS16497 device number
 
-static constexpr uint16_t RANG_MDL_1BMLZ = 0b0011; // ADIS16497-1 (±125°/sec)
-static constexpr uint16_t RANG_MDL_2BMLZ = 0b0111; // ADIS16497-2 (±450°/sec)
-static constexpr uint16_t RANG_MDL_3BMLZ = 0b1111; // ADIS16497-3 (±2000°/sec)
+static constexpr uint16_t RANG_MDL_1BMLZ = 0b0011;  // ADIS16497-1 (±125°/sec)
+static constexpr uint16_t RANG_MDL_2BMLZ = 0b0111;  // ADIS16497-2 (±450°/sec)
+static constexpr uint16_t RANG_MDL_3BMLZ = 0b1111;  // ADIS16497-3 (±2000°/sec)
 
 // Stall time between SPI transfers
 static constexpr uint8_t T_STALL = 2;
@@ -70,31 +70,27 @@ static constexpr uint32_t ADIS16497_DEFAULT_RATE = 1000;
 
 using namespace time_literals;
 
-ADIS16497::ADIS16497(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	I2CSPIDriver(config),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME": bad transfers")),
-	_drdy_gpio(config.drdy_gpio)
-{
+ADIS16497::ADIS16497(const I2CSPIDriverConfig &config)
+	: SPI(config),
+	  I2CSPIDriver(config),
+	  _px4_accel(get_device_id(), config.rotation),
+	  _px4_gyro(get_device_id(), config.rotation),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME ": bad transfers")),
+	  _drdy_gpio(config.drdy_gpio) {
 #ifdef GPIO_SPI1_RESET_ADIS16497
 	// Configure hardware reset line
 	px4_arch_configgpio(GPIO_SPI1_RESET_ADIS16497);
-#endif // GPIO_SPI1_RESET_ADIS16497
+#endif  // GPIO_SPI1_RESET_ADIS16497
 }
 
-ADIS16497::~ADIS16497()
-{
+ADIS16497::~ADIS16497() {
 	// delete the perf counters
 	perf_free(_sample_perf);
 	perf_free(_bad_transfers);
 }
 
-int
-ADIS16497::init()
-{
+int ADIS16497::init() {
 	int ret = SPI::init();
 
 	if (ret != OK) {
@@ -108,8 +104,7 @@ ADIS16497::init()
 	return PX4_OK;
 }
 
-int ADIS16497::reset()
-{
+int ADIS16497::reset() {
 #ifdef GPIO_SPI1_RESET_ADIS16497
 	// Hardware reset
 	px4_arch_gpiowrite(GPIO_SPI1_RESET_ADIS16497, 0);
@@ -120,11 +115,11 @@ int ADIS16497::reset()
 	px4_arch_gpiowrite(GPIO_SPI1_RESET_ADIS16497, 1);
 #else
 	// Software reset (global command bit 7)
-	uint8_t value[2] {};
+	uint8_t value[2]{};
 	value[0] = (1 << 7);
 	write_reg16(PAGE_ID, 0x03);
 	write_reg16(GLOB_CMD, (uint16_t)value[0]);
-#endif // GPIO_SPI1_RESET_ADIS16497
+#endif  // GPIO_SPI1_RESET_ADIS16497
 
 	// Reset recovery time
 	usleep(210_ms);
@@ -161,7 +156,7 @@ int ADIS16497::reset()
 	}
 
 	// Decimation Filter
-	static constexpr uint16_t DEC_RATE_DEFAULT = 0x0003; //  4250/4 = 1062 samples per second
+	static constexpr uint16_t DEC_RATE_DEFAULT = 0x0003;  //  4250/4 = 1062 samples per second
 
 	write_reg16(DEC_RATE, DEC_RATE_DEFAULT);
 
@@ -175,7 +170,7 @@ int ADIS16497::reset()
 	}
 
 	// Continious bias estimation
-	static constexpr uint16_t NULL_CNFG_DEFAULT = 0x0000; // Disable continious bias estimation
+	static constexpr uint16_t NULL_CNFG_DEFAULT = 0x0000;  // Disable continious bias estimation
 
 	write_reg16(NULL_CNFG, NULL_CNFG_DEFAULT);
 
@@ -189,8 +184,8 @@ int ADIS16497::reset()
 	}
 
 	// Bartlett Window FIR Filter
-	static constexpr uint16_t FILTR_BNK_0_SETUP = 0x0000; // Disable FIR filter
-	static constexpr uint16_t FILTR_BNK_1_SETUP = 0x0000; // Disable FIR filter
+	static constexpr uint16_t FILTR_BNK_0_SETUP = 0x0000;  // Disable FIR filter
+	static constexpr uint16_t FILTR_BNK_1_SETUP = 0x0000;  // Disable FIR filter
 
 	write_reg16(FILTR_BNK_0, FILTR_BNK_0_SETUP);
 	write_reg16(FILTR_BNK_1, FILTR_BNK_1_SETUP);
@@ -225,14 +220,11 @@ int ADIS16497::reset()
 	return OK;
 }
 
-int
-ADIS16497::probe()
-{
+int ADIS16497::probe() {
 	reset();
 
 	// read product id (5 attempts)
 	for (int i = 0; i < 5; i++) {
-
 		// Switch to output page
 		write_reg16(PAGE_ID, 0x00);
 
@@ -242,7 +234,6 @@ ADIS16497::probe()
 			PX4_DEBUG("PRODUCT: %X", product_id);
 
 			if (self_test()) {
-
 				// Switch to config page
 				write_reg16(PAGE_ID, 0x03);
 
@@ -270,18 +261,16 @@ ADIS16497::probe()
 	return -EIO;
 }
 
-bool
-ADIS16497::self_test()
-{
+bool ADIS16497::self_test() {
 	// Switch to configuration page
 	write_reg16(PAGE_ID, 0x03);
 
 	// Self test (global command bit 1)
-	uint8_t value[2] {};
+	uint8_t value[2]{};
 	value[0] = (1 << 1);
 	write_reg16(GLOB_CMD, (uint16_t)value[0]);
 
-	usleep(20_ms); // Self test time
+	usleep(20_ms);  // Self test time
 
 	// Switch to output page
 	write_reg16(PAGE_ID, 0x0);
@@ -305,40 +294,36 @@ ADIS16497::self_test()
 	return true;
 }
 
-bool
-ADIS16497::set_measurement_range(uint16_t model)
-{
-	_px4_accel.set_scale(1.25f * CONSTANTS_ONE_G / 1000.0f); // 1.25 mg/LSB
-	_px4_accel.set_range(40.0f * CONSTANTS_ONE_G); // 40g
+bool ADIS16497::set_measurement_range(uint16_t model) {
+	_px4_accel.set_scale(1.25f * CONSTANTS_ONE_G / 1000.0f);  // 1.25 mg/LSB
+	_px4_accel.set_range(40.0f * CONSTANTS_ONE_G);            // 40g
 
 	switch (model) {
-	case RANG_MDL_1BMLZ:
-		_px4_gyro.set_scale(math::radians(0.00625f)); // 0.00625 °/sec/LSB
-		_px4_gyro.set_range(math::radians(125.0f)); // 125 °/s
-		break;
+		case RANG_MDL_1BMLZ:
+			_px4_gyro.set_scale(math::radians(0.00625f));  // 0.00625 °/sec/LSB
+			_px4_gyro.set_range(math::radians(125.0f));    // 125 °/s
+			break;
 
-	case RANG_MDL_2BMLZ:
-		_px4_gyro.set_scale(math::radians(0.025f)); // 0.025 °/sec/LSB
-		_px4_gyro.set_range(math::radians(450.0f)); // 450 °/s
-		break;
+		case RANG_MDL_2BMLZ:
+			_px4_gyro.set_scale(math::radians(0.025f));  // 0.025 °/sec/LSB
+			_px4_gyro.set_range(math::radians(450.0f));  // 450 °/s
+			break;
 
-	case RANG_MDL_3BMLZ:
-		_px4_gyro.set_scale(math::radians(0.1f)); // 0.1 °/sec/LSB
-		_px4_gyro.set_range(math::radians(2000.0f)); // 2000 °/s
-		break;
+		case RANG_MDL_3BMLZ:
+			_px4_gyro.set_scale(math::radians(0.1f));     // 0.1 °/sec/LSB
+			_px4_gyro.set_range(math::radians(2000.0f));  // 2000 °/s
+			break;
 
-	default:
-		PX4_ERR("RANG_MDL: %#X", model);
-		return false;
+		default:
+			PX4_ERR("RANG_MDL: %#X", model);
+			return false;
 	}
 
 	return true;
 }
 
-uint16_t
-ADIS16497::read_reg16(uint8_t reg)
-{
-	uint16_t cmd[1] {};
+uint16_t ADIS16497::read_reg16(uint8_t reg) {
+	uint16_t cmd[1]{};
 
 	cmd[0] = ((reg | DIR_READ) << 8) & 0xff00;
 	transferhword(cmd, nullptr, 1);
@@ -349,19 +334,15 @@ ADIS16497::read_reg16(uint8_t reg)
 	return cmd[0];
 }
 
-void
-ADIS16497::write_reg(uint8_t reg, uint8_t val)
-{
-	uint8_t cmd[2] {};
+void ADIS16497::write_reg(uint8_t reg, uint8_t val) {
+	uint8_t cmd[2]{};
 	cmd[0] = reg | 0x8;
 	cmd[1] = val;
 	transfer(cmd, cmd, sizeof(cmd));
 }
 
-void
-ADIS16497::write_reg16(uint8_t reg, uint16_t value)
-{
-	uint16_t cmd[2] {};
+void ADIS16497::write_reg16(uint8_t reg, uint16_t value) {
+	uint16_t cmd[2]{};
 
 	cmd[0] = ((reg | DIR_WRITE) << 8) | (0x00ff & value);
 	cmd[1] = (((reg + 0x1) | DIR_WRITE) << 8) | ((0xff00 & value) >> 8);
@@ -372,9 +353,7 @@ ADIS16497::write_reg16(uint8_t reg, uint16_t value)
 	up_udelay(T_STALL);
 }
 
-void
-ADIS16497::start()
-{
+void ADIS16497::start() {
 	if (_drdy_gpio != 0) {
 		// Setup data ready on rising edge
 		px4_arch_gpiosetevent(_drdy_gpio, true, false, true, &ADIS16497::data_ready_interrupt, this);
@@ -385,9 +364,7 @@ ADIS16497::start()
 	}
 }
 
-void
-ADIS16497::exit_and_cleanup()
-{
+void ADIS16497::exit_and_cleanup() {
 	if (_drdy_gpio != 0) {
 		// Disable data ready callback
 		px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr);
@@ -396,9 +373,7 @@ ADIS16497::exit_and_cleanup()
 	I2CSPIDriverBase::exit_and_cleanup();
 }
 
-int
-ADIS16497::data_ready_interrupt(int irq, void *context, void *arg)
-{
+int ADIS16497::data_ready_interrupt(int irq, void *context, void *arg) {
 	ADIS16497 *dev = static_cast<ADIS16497 *>(arg);
 
 	// make another measurement
@@ -407,16 +382,12 @@ ADIS16497::data_ready_interrupt(int irq, void *context, void *arg)
 	return PX4_OK;
 }
 
-void
-ADIS16497::RunImpl()
-{
+void ADIS16497::RunImpl() {
 	// make another measurement
 	measure();
 }
 
-int
-ADIS16497::measure()
-{
+int ADIS16497::measure() {
 	perf_begin(_sample_perf);
 
 	// Fetch the full set of measurements from the ADIS16497 in one pass (burst read).
@@ -428,7 +399,8 @@ ADIS16497::measure()
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	if (OK != transferhword((uint16_t *)&adis_report, ((uint16_t *)&adis_report), sizeof(adis_report) / sizeof(uint16_t))) {
+	if (OK != transferhword((uint16_t *)&adis_report, ((uint16_t *)&adis_report),
+				sizeof(adis_report) / sizeof(uint16_t))) {
 		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
 		return -EIO;
@@ -473,7 +445,8 @@ ADIS16497::measure()
 	_px4_accel.set_error_count(error_count);
 	_px4_gyro.set_error_count(error_count);
 
-	const float temperature = (int16_t(adis_report.TEMP_OUT) * 0.0125f) + 25.0f; // 1 LSB = 0.0125°C, 0x0000 at 25°C
+	const float temperature =
+		(int16_t(adis_report.TEMP_OUT) * 0.0125f) + 25.0f;  // 1 LSB = 0.0125°C, 0x0000 at 25°C
 	_px4_accel.set_temperature(temperature);
 	_px4_gyro.set_temperature(temperature);
 
@@ -497,11 +470,8 @@ ADIS16497::measure()
 	return OK;
 }
 
-void
-ADIS16497::print_status()
-{
+void ADIS16497::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfers);
-
 }

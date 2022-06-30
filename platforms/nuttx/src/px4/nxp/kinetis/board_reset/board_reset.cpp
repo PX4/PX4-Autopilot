@@ -37,16 +37,15 @@
  * Implementation of kinetis based Board RESET API
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <errno.h>
 #include <nuttx/board.h>
+#include <px4_platform_common/px4_config.h>
 
 #ifdef CONFIG_BOARDCTL_RESET
 
-static int board_reset_enter_bootloader()
-{
+static int board_reset_enter_bootloader() {
 	uint32_t regvalue = 0xb007b007;
-	*((uint32_t *) KINETIS_VBATR_BASE) = regvalue;
+	*((uint32_t *)KINETIS_VBATR_BASE) = regvalue;
 	return OK;
 }
 
@@ -70,8 +69,7 @@ static int board_reset_enter_bootloader()
  *
  ****************************************************************************/
 
-int board_reset(int status)
-{
+int board_reset(int status) {
 	if (status == 1) {
 		board_reset_enter_bootloader();
 	}

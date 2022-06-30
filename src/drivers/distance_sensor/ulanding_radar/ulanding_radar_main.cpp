@@ -31,18 +31,16 @@
  *
  ****************************************************************************/
 
-#include "AerotennaULanding.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-namespace ulanding_radar
-{
+#include "AerotennaULanding.hpp"
+
+namespace ulanding_radar {
 
 AerotennaULanding *g_dev{nullptr};
 
-static int start(const char *port, uint8_t rotation)
-{
+static int start(const char *port, uint8_t rotation) {
 	if (g_dev != nullptr) {
 		PX4_WARN("already started");
 		return -1;
@@ -69,8 +67,7 @@ static int start(const char *port, uint8_t rotation)
 	return 0;
 }
 
-static int stop()
-{
+static int stop() {
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
@@ -82,8 +79,7 @@ static int stop()
 	return 0;
 }
 
-static int status()
-{
+static int status() {
 	if (g_dev == nullptr) {
 		PX4_ERR("driver not running");
 		return -1;
@@ -94,8 +90,7 @@ static int status()
 	return 0;
 }
 
-static int usage()
-{
+static int usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -121,10 +116,9 @@ $ ulanding_radar stop
 	return PX4_OK;
 }
 
-} // namespace ulanding_radar
+}  // namespace ulanding_radar
 
-extern "C" __EXPORT int ulanding_radar_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int ulanding_radar_main(int argc, char *argv[]) {
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	const char *device_path = nullptr;
 	int ch;
@@ -133,16 +127,16 @@ extern "C" __EXPORT int ulanding_radar_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "R:d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'R':
-			rotation = (uint8_t)atoi(myoptarg);
-			break;
+			case 'R':
+				rotation = (uint8_t)atoi(myoptarg);
+				break;
 
-		case 'd':
-			device_path = myoptarg;
-			break;
+			case 'd':
+				device_path = myoptarg;
+				break;
 
-		default:
-			return ulanding_radar::usage();
+			default:
+				return ulanding_radar::usage();
 		}
 	}
 

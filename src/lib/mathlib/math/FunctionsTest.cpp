@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include "Functions.hpp"
 
 using namespace math;
 
-TEST(FunctionsTest, signNoZero)
-{
+TEST(FunctionsTest, signNoZero) {
 	EXPECT_FLOAT_EQ(signNoZero(-123.456f), -1.f);
 	EXPECT_FLOAT_EQ(signNoZero(-1.f), -1.f);
 	EXPECT_FLOAT_EQ(signNoZero(-.0001f), -1.f);
@@ -47,8 +47,7 @@ TEST(FunctionsTest, signNoZero)
 	EXPECT_FLOAT_EQ(signNoZero(123.456f), 1.f);
 }
 
-TEST(FunctionsTest, signFromBool)
-{
+TEST(FunctionsTest, signFromBool) {
 	EXPECT_EQ(signFromBool(true), 1);
 	EXPECT_EQ(signFromBool(false), -1);
 	EXPECT_EQ(signFromBool(100), 1);
@@ -56,8 +55,7 @@ TEST(FunctionsTest, signFromBool)
 	EXPECT_EQ(signFromBool(0), -1);
 }
 
-TEST(FunctionsTest, expo)
-{
+TEST(FunctionsTest, expo) {
 	// input value limits
 	EXPECT_FLOAT_EQ(expo(-12.f, .5f), -1.f);
 	EXPECT_FLOAT_EQ(expo(-1.f, .5f), -1.f);
@@ -78,8 +76,7 @@ TEST(FunctionsTest, expo)
 	EXPECT_FLOAT_EQ(expo(-.4f, .9f), -.0976f);
 }
 
-TEST(FunctionsTest, superexpo)
-{
+TEST(FunctionsTest, superexpo) {
 	// input value limits
 	EXPECT_FLOAT_EQ(superexpo(-12.f, .5f, .5f), -1.f);
 	EXPECT_FLOAT_EQ(superexpo(-1.f, .5f, .5f), -1.f);
@@ -100,8 +97,7 @@ TEST(FunctionsTest, superexpo)
 	EXPECT_FLOAT_EQ(superexpo(-.4f, .9f, .5f), -.061000008f);
 }
 
-TEST(FunctionsTest, deadzone)
-{
+TEST(FunctionsTest, deadzone) {
 	// input value limits
 	EXPECT_FLOAT_EQ(deadzone(-12.f, .5f), -1.f);
 	EXPECT_FLOAT_EQ(deadzone(-1.f, .5f), -1.f);
@@ -124,8 +120,7 @@ TEST(FunctionsTest, deadzone)
 	EXPECT_FLOAT_EQ(deadzone(-.9f, .4f), -.83333325f);
 }
 
-TEST(FunctionsTest, expo_deadzone)
-{
+TEST(FunctionsTest, expo_deadzone) {
 	// input value limits
 	EXPECT_FLOAT_EQ(expo_deadzone(-12.f, .5f, .5f), -1.f);
 	EXPECT_FLOAT_EQ(expo_deadzone(-1.f, .5f, .5f), -1.f);
@@ -140,8 +135,7 @@ TEST(FunctionsTest, expo_deadzone)
 	EXPECT_FLOAT_EQ(expo_deadzone(-.5f, .9f, .4f), -.020833336f);
 }
 
-TEST(FunctionsTest, gradual)
-{
+TEST(FunctionsTest, gradual) {
 	// factor of *2, offset +1
 	EXPECT_FLOAT_EQ(gradual(-12.f, 0.f, 1.f, 1.f, 3.f), 1.f);
 	EXPECT_FLOAT_EQ(gradual(0.f, 0.f, 1.f, 1.f, 3.f), 1.f);
@@ -167,40 +161,20 @@ TEST(FunctionsTest, gradual)
 	EXPECT_FLOAT_EQ(gradual(1.05f, 1.1f, 1.f, 4.f, 6.f), 4.f);
 }
 
-TEST(FunctionsTest, gradual3)
-{
+TEST(FunctionsTest, gradual3) {
 	// factor of *2, offset +1
-	EXPECT_FLOAT_EQ(gradual3(-12.f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 1.f);
-	EXPECT_FLOAT_EQ(gradual3(0.f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 1.f);
-	EXPECT_FLOAT_EQ(gradual3(.25f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 1.5f);
-	EXPECT_FLOAT_EQ(gradual3(.5f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 2.f);
-	EXPECT_FLOAT_EQ(gradual3(.75f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 2.25f);
-	EXPECT_FLOAT_EQ(gradual3(1.f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 2.5f);
-	EXPECT_FLOAT_EQ(gradual3(1.25f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 2.75f);
-	EXPECT_FLOAT_EQ(gradual3(1.5f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 3.f);
-	EXPECT_FLOAT_EQ(gradual3(12.f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 3.f);
+	EXPECT_FLOAT_EQ(gradual3(-12.f, 0.f, .5f, 1.5f, 1.f, 2.f, 3.f), 1.f);
+	EXPECT_FLOAT_EQ(gradual3(0.f, 0.f, .5f, 1.5f, 1.f, 2.f, 3.f), 1.f);
+	EXPECT_FLOAT_EQ(gradual3(.25f, 0.f, .5f, 1.5f, 1.f, 2.f, 3.f), 1.5f);
+	EXPECT_FLOAT_EQ(gradual3(.5f, 0.f, .5f, 1.5f, 1.f, 2.f, 3.f), 2.f);
+	EXPECT_FLOAT_EQ(gradual3(.75f, 0.f, .5f, 1.5f, 1.f, 2.f, 3.f), 2.25f);
+	EXPECT_FLOAT_EQ(gradual3(1.f, 0.f, .5f, 1.5f, 1.f, 2.f, 3.f), 2.5f);
+	EXPECT_FLOAT_EQ(gradual3(1.25f, 0.f, .5f, 1.5f, 1.f, 2.f, 3.f), 2.75f);
+	EXPECT_FLOAT_EQ(gradual3(1.5f, 0.f, .5f, 1.5f, 1.f, 2.f, 3.f), 3.f);
+	EXPECT_FLOAT_EQ(gradual3(12.f, 0.f, .5f, 1.5f, 1.f, 2.f, 3.f), 3.f);
 }
 
-TEST(FunctionsTest, sqrt_linear)
-{
+TEST(FunctionsTest, sqrt_linear) {
 	EXPECT_FLOAT_EQ(sqrt_linear(-12.f), 0.f);
 	EXPECT_FLOAT_EQ(sqrt_linear(-2.f), 0.f);
 	EXPECT_FLOAT_EQ(sqrt_linear(0.f), 0.f);
@@ -210,8 +184,7 @@ TEST(FunctionsTest, sqrt_linear)
 	EXPECT_FLOAT_EQ(sqrt_linear(120.f), 120.f);
 }
 
-TEST(FunctionsTest, lerp)
-{
+TEST(FunctionsTest, lerp) {
 	EXPECT_FLOAT_EQ(lerp(0.f, 1.f, -.123f), -.123f);
 	EXPECT_FLOAT_EQ(lerp(0.f, 1.f, 0.f), 0.f);
 	EXPECT_FLOAT_EQ(lerp(0.f, 1.f, .123f), .123f);
@@ -222,8 +195,7 @@ TEST(FunctionsTest, lerp)
 	EXPECT_FLOAT_EQ(lerp(-.4f, .3f, 1.1f), .37f);
 }
 
-TEST(FunctionsTest, countSetBits)
-{
+TEST(FunctionsTest, countSetBits) {
 	EXPECT_EQ(countSetBits(255), 8);
 	EXPECT_EQ(countSetBits(65535), 16);
 	EXPECT_EQ(countSetBits(0), 0);

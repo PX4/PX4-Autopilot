@@ -34,11 +34,10 @@
 #pragma once
 
 #include "ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
 #include "ActuatorEffectivenessControlSurfaces.hpp"
+#include "ActuatorEffectivenessRotors.hpp"
 
-class ActuatorEffectivenessCustom : public ModuleParams, public ActuatorEffectiveness
-{
+class ActuatorEffectivenessCustom : public ModuleParams, public ActuatorEffectiveness {
 public:
 	ActuatorEffectivenessCustom(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessCustom() = default;

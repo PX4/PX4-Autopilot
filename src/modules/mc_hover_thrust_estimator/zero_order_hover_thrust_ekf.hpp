@@ -63,12 +63,12 @@
 
 #pragma once
 
-#include <matrix/matrix/math.hpp>
 #include <geo/geo.h>
 #include <mathlib/mathlib.h>
 
-class ZeroOrderHoverThrustEkf
-{
+#include <matrix/matrix/math.hpp>
+
+class ZeroOrderHoverThrustEkf {
 public:
 	ZeroOrderHoverThrustEkf() = default;
 	~ZeroOrderHoverThrustEkf() = default;
@@ -99,18 +99,18 @@ private:
 	float _hover_thr_max{0.9f};
 
 	float _gate_size{3.f};
-	float _state_var{0.01f}; ///< Initial hover thrust uncertainty variance (thrust^2)
-	float _process_var{12.5e-6f}; ///< Hover thrust process noise variance (thrust^2/s^2)
-	float _acc_var{5.f}; ///< Acceleration variance (m^2/s^3)
-	float _acc_var_scale{1.f}; ///< Multiplicator of the measurement variance, used to decrease sensivity
+	float _state_var{0.01f};       ///< Initial hover thrust uncertainty variance (thrust^2)
+	float _process_var{12.5e-6f};  ///< Hover thrust process noise variance (thrust^2/s^2)
+	float _acc_var{5.f};           ///< Acceleration variance (m^2/s^3)
+	float _acc_var_scale{1.f};     ///< Multiplicator of the measurement variance, used to decrease sensivity
 	float _dt{0.02f};
 
-	float _innov{0.f}; ///< Measurement innovation (m/s^2)
-	float _innov_var{0.f}; ///< Measurement innovation variance (m^2/s^3)
-	float _innov_test_ratio{0.f}; ///< Noramlized Innovation Squared test ratio
+	float _innov{0.f};             ///< Measurement innovation (m/s^2)
+	float _innov_var{0.f};         ///< Measurement innovation variance (m^2/s^3)
+	float _innov_test_ratio{0.f};  ///< Noramlized Innovation Squared test ratio
 
-	float _residual_lpf{}; ///< used to remove the constant bias of the residual
-	float _signed_innov_test_ratio_lpf{}; ///< used as a delay to trigger the recovery logic
+	float _residual_lpf{};                 ///< used to remove the constant bias of the residual
+	float _signed_innov_test_ratio_lpf{};  ///< used as a delay to trigger the recovery logic
 
 	float computeH(float thrust) const;
 	float computeInnovVar(float H) const;
@@ -134,6 +134,6 @@ private:
 	void updateLpf(float residual, float signed_innov_test_ratio);
 	void updateMeasurementNoise(float residual, float H);
 
-	static constexpr float _noise_learning_time_constant = 2.f; ///< in seconds
-	static constexpr float _lpf_time_constant = 1.f; ///< in seconds
+	static constexpr float _noise_learning_time_constant = 2.f;  ///< in seconds
+	static constexpr float _lpf_time_constant = 1.f;             ///< in seconds
 };

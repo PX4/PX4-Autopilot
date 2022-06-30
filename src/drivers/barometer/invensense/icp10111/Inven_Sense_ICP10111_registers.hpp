@@ -42,21 +42,20 @@
 
 #include <cstdint>
 
-namespace Inven_Sense_ICP10111
-{
-static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
+namespace Inven_Sense_ICP10111 {
+static constexpr uint32_t I2C_SPEED = 100 * 1000;  // 100 kHz I2C serial interface
 static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x63;
 
 static constexpr uint8_t Product_ID = 0x08;
 
 enum class Cmd : uint16_t {
-	READ_ID		= 0xefc8,
-	SET_ADDR 	= 0xc595,
-	READ_OTP 	= 0xc7f7,
-	MEAS_LP 	= 0x609c,
-	MEAS_N 		= 0x6825,
-	MEAS_LN 	= 0x70df,
-	MEAS_ULN  	= 0x7866,
-	SOFT_RESET 	= 0x805d
+	READ_ID = 0xefc8,
+	SET_ADDR = 0xc595,
+	READ_OTP = 0xc7f7,
+	MEAS_LP = 0x609c,
+	MEAS_N = 0x6825,
+	MEAS_LN = 0x70df,
+	MEAS_ULN = 0x7866,
+	SOFT_RESET = 0x805d
 };
-} // namespace Inven_Sense_ICP10111
+}  // namespace Inven_Sense_ICP10111

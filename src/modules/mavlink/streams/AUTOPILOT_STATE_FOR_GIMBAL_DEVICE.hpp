@@ -41,10 +41,11 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 
-class MavlinkStreamAutopilotStateForGimbalDevice : public MavlinkStream
-{
+class MavlinkStreamAutopilotStateForGimbalDevice : public MavlinkStream {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamAutopilotStateForGimbalDevice(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
+		return new MavlinkStreamAutopilotStateForGimbalDevice(mavlink);
+	}
 
 	static constexpr const char *get_name_static() { return "AUTOPILOT_STATE_FOR_GIMBAL_DEVICE"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_AUTOPILOT_STATE_FOR_GIMBAL_DEVICE; }
@@ -52,8 +53,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		if (_att_sub.advertised()) {
 			return MAVLINK_MSG_ID_AUTOPILOT_STATE_FOR_GIMBAL_DEVICE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		}
@@ -71,22 +71,21 @@ private:
 	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _landed_sub{ORB_ID(vehicle_land_detected)};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_attitude_s att;
 
 		if (_att_sub.update(&att)) {
 			mavlink_autopilot_state_for_gimbal_device_t msg{};
 
-			//msg.target_system = 0; // TODO
-			//msg.target_component = 0; // TODO
+			// msg.target_system = 0; // TODO
+			// msg.target_component = 0; // TODO
 
 			msg.time_boot_us = att.timestamp;
 			msg.q[0] = att.q[0];
 			msg.q[1] = att.q[1];
 			msg.q[2] = att.q[2];
 			msg.q[3] = att.q[3];
-			msg.q_estimated_delay_us = 0; // I don't know.
+			msg.q_estimated_delay_us = 0;  // I don't know.
 
 			{
 				vehicle_local_position_s lpos;
@@ -95,7 +94,7 @@ private:
 					msg.vx = lpos.vx;
 					msg.vy = lpos.vy;
 					msg.vz = lpos.vz;
-					msg.v_estimated_delay_us = 0; // I don't know.
+					msg.v_estimated_delay_us = 0;  // I don't know.
 				}
 			}
 
@@ -111,8 +110,8 @@ private:
 				estimator_selector_status_s estimator_selector_status;
 
 				if (_estimator_selector_status_sub.update(&estimator_selector_status)) {
-					_estimator_status_sub.ChangeInstance(estimator_selector_status.primary_instance);
-
+					_estimator_status_sub.ChangeInstance(
+						estimator_selector_status.primary_instance);
 				}
 
 				estimator_status_s est;
@@ -127,7 +126,8 @@ private:
 
 				if (_landed_sub.copy(&land_detected)) {
 					// Ignore take-off and landing states for now.
-					msg.landed_state = land_detected.landed ? MAV_LANDED_STATE_ON_GROUND : MAV_LANDED_STATE_IN_AIR;
+					msg.landed_state = land_detected.landed ? MAV_LANDED_STATE_ON_GROUND
+										: MAV_LANDED_STATE_IN_AIR;
 				}
 			}
 
@@ -140,4 +140,4 @@ private:
 	}
 };
 
-#endif // AUTOPILOT_STATE_FOR_GIMBAL_DEVICE_HPP
+#endif  // AUTOPILOT_STATE_FOR_GIMBAL_DEVICE_HPP

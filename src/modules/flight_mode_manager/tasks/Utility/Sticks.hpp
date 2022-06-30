@@ -42,13 +42,13 @@
 #pragma once
 
 #include <px4_platform_common/module_params.h>
-#include <matrix/matrix/math.hpp>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
-class Sticks : public ModuleParams
-{
+#include <matrix/matrix/math.hpp>
+#include <uORB/Subscription.hpp>
+
+class Sticks : public ModuleParams {
 public:
 	Sticks(ModuleParams *parent);
 	~Sticks() = default;
@@ -65,11 +65,15 @@ public:
 	// Helper functions to get stick values more intuitively
 	float getPitch() const { return _positions(0); }
 	float getRoll() const { return _positions(1); }
-	float getThrottleZeroCentered() const { return -_positions(2); } // Convert Z-axis(down) command to Up-axis frame
+	float getThrottleZeroCentered() const {
+		return -_positions(2);
+	}  // Convert Z-axis(down) command to Up-axis frame
 	float getYaw() const { return _positions(3); }
 	float getPitchExpo() const { return _positions_expo(0); }
 	float getRollExpo() const { return _positions_expo(1); }
-	float getThrottleZeroCenteredExpo() const { return -_positions_expo(2); } // Convert Z-axis(down) command to Up-axis frame
+	float getThrottleZeroCenteredExpo() const {
+		return -_positions_expo(2);
+	}  // Convert Z-axis(down) command to Up-axis frame
 	float getYawExpo() const { return _positions_expo(3); }
 
 	/**
@@ -88,16 +92,14 @@ public:
 
 private:
 	bool _input_available{false};
-	matrix::Vector<float, 4> _positions; ///< unmodified manual stick inputs
-	matrix::Vector<float, 4> _positions_expo; ///< modified manual sticks using expo function
+	matrix::Vector<float, 4> _positions;       ///< unmodified manual stick inputs
+	matrix::Vector<float, 4> _positions_expo;  ///< modified manual sticks using expo function
 
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_HOLD_DZ>) _param_mpc_hold_dz,
-		(ParamFloat<px4::params::MPC_XY_MAN_EXPO>) _param_mpc_xy_man_expo,
-		(ParamFloat<px4::params::MPC_Z_MAN_EXPO>) _param_mpc_z_man_expo,
-		(ParamFloat<px4::params::MPC_YAW_EXPO>) _param_mpc_yaw_expo
-	)
+	DEFINE_PARAMETERS((ParamFloat<px4::params::MPC_HOLD_DZ>)_param_mpc_hold_dz,
+			  (ParamFloat<px4::params::MPC_XY_MAN_EXPO>)_param_mpc_xy_man_expo,
+			  (ParamFloat<px4::params::MPC_Z_MAN_EXPO>)_param_mpc_z_man_expo,
+			  (ParamFloat<px4::params::MPC_YAW_EXPO>)_param_mpc_yaw_expo)
 };

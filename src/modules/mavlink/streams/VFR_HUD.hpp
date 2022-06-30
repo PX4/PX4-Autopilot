@@ -40,8 +40,7 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_local_position.h>
 
-class MavlinkStreamVFRHUD : public MavlinkStream
-{
+class MavlinkStreamVFRHUD : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamVFRHUD(mavlink); }
 
@@ -51,8 +50,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		if (_lpos_sub.advertised() || _airspeed_validated_sub.advertised()) {
 			return MAVLINK_MSG_ID_VFR_HUD_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		}
@@ -70,10 +68,8 @@ private:
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::Subscription _air_data_sub{ORB_ID(vehicle_air_data)};
 
-	bool send() override
-	{
+	bool send() override {
 		if (_lpos_sub.updated() || _airspeed_validated_sub.updated()) {
-
 			vehicle_local_position_s lpos{};
 			_lpos_sub.copy(&lpos);
 
@@ -95,13 +91,13 @@ private:
 				_act1_sub.copy(&act1);
 
 				// VFR_HUD throttle should only be used for operator feedback.
-				// VTOLs switch between actuator_controls_0 and actuator_controls_1. During transition there isn't a
-				// a single throttle value, but this should still be a useful heuristic for operator awareness.
+				// VTOLs switch between actuator_controls_0 and actuator_controls_1. During transition
+				// there isn't a a single throttle value, but this should still be a useful heuristic
+				// for operator awareness.
 				//
 				// Use ACTUATOR_CONTROL_TARGET if accurate states are needed.
-				msg.throttle = 100 * math::max(
-						       act0.control[actuator_controls_s::INDEX_THROTTLE],
-						       act1.control[actuator_controls_s::INDEX_THROTTLE]);
+				msg.throttle = 100 * math::max(act0.control[actuator_controls_s::INDEX_THROTTLE],
+							       act1.control[actuator_controls_s::INDEX_THROTTLE]);
 
 			} else {
 				msg.throttle = 0.0f;
@@ -134,4 +130,4 @@ private:
 	}
 };
 
-#endif // VFR_HUD_HPP
+#endif  // VFR_HUD_HPP

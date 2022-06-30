@@ -41,17 +41,16 @@
  */
 
 #include "battery.h"
+
 #include <mathlib/mathlib.h>
-#include <cstring>
 #include <px4_platform_common/defines.h>
+
+#include <cstring>
 
 using namespace time_literals;
 
-Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, const uint8_t source) :
-	ModuleParams(parent),
-	_index(index < 1 || index > 9 ? 1 : index),
-	_source(source)
-{
+Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, const uint8_t source)
+	: ModuleParams(parent), _index(index < 1 || index > 9 ? 1 : index), _source(source) {
 	const float expected_filter_dt = static_cast<float>(sample_interval_us) / 1_s;
 	_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
 	_current_filter_a.setParameters(expected_filter_dt, .5f);
@@ -99,20 +98,17 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	updateParams();
 }
 
-void Battery::updateVoltage(const float voltage_v)
-{
+void Battery::updateVoltage(const float voltage_v) {
 	_voltage_v = voltage_v;
 	_voltage_filter_v.update(voltage_v);
 }
 
-void Battery::updateCurrent(const float current_a)
-{
+void Battery::updateCurrent(const float current_a) {
 	_current_a = current_a;
 	_current_filter_a.update(current_a);
 }
 
-void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
-{
+void Battery::updateBatteryStatus(const hrt_abstime &timestamp) {
 	if (!_battery_initialized) {
 		_voltage_filter_v.reset(_voltage_v);
 		_current_filter_a.reset(_current_a);
@@ -134,8 +130,7 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 	}
 }
 
-battery_status_s Battery::getBatteryStatus()
-{
+battery_status_s Battery::getBatteryStatus() {
 	battery_status_s battery_status{};
 	battery_status.voltage_v = _voltage_v;
 	battery_status.voltage_filtered_v = _voltage_filter_v.getState();
@@ -158,21 +153,18 @@ battery_status_s Battery::getBatteryStatus()
 	return battery_status;
 }
 
-void Battery::publishBatteryStatus(const battery_status_s &battery_status)
-{
+void Battery::publishBatteryStatus(const battery_status_s &battery_status) {
 	if (_source == _params.source) {
 		_battery_status_pub.publish(battery_status);
 	}
 }
 
-void Battery::updateAndPublishBatteryStatus(const hrt_abstime &timestamp)
-{
+void Battery::updateAndPublishBatteryStatus(const hrt_abstime &timestamp) {
 	updateBatteryStatus(timestamp);
 	publishBatteryStatus(getBatteryStatus());
 }
 
-void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a)
-{
+void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a) {
 	// Not a valid measurement
 	if (current_a < 0.f) {
 		// Because the measurement was invalid we need to stop integration
@@ -192,8 +184,7 @@ void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a)
 	_last_timestamp = timestamp;
 }
 
-void Battery::estimateStateOfCharge(const float voltage_v, const float current_a)
-{
+void Battery::estimateStateOfCharge(const float voltage_v, const float current_a) {
 	// remaining battery capacity based on voltage
 	float cell_voltage = voltage_v / _params.n_cells;
 
@@ -235,8 +226,7 @@ void Battery::estimateStateOfCharge(const float voltage_v, const float current_a
 	}
 }
 
-uint8_t Battery::determineWarning(float state_of_charge)
-{
+uint8_t Battery::determineWarning(float state_of_charge) {
 	if (state_of_charge < _params.emergen_thr) {
 		return battery_status_s::BATTERY_WARNING_EMERGENCY;
 
@@ -251,8 +241,7 @@ uint8_t Battery::determineWarning(float state_of_charge)
 	}
 }
 
-void Battery::computeScale()
-{
+void Battery::computeScale() {
 	const float voltage_range = (_params.v_charged - _params.v_empty);
 
 	// reusing capacity calculation to get single cell voltage before drop
@@ -260,16 +249,15 @@ void Battery::computeScale()
 
 	_scale = _params.v_charged / bat_v;
 
-	if (_scale > 1.3f) { // Allow at most 30% compensation
+	if (_scale > 1.3f) {  // Allow at most 30% compensation
 		_scale = 1.3f;
 
-	} else if (!PX4_ISFINITE(_scale) || _scale < 1.f) { // Shouldn't ever be more than the power at full battery
+	} else if (!PX4_ISFINITE(_scale) || _scale < 1.f) {  // Shouldn't ever be more than the power at full battery
 		_scale = 1.f;
 	}
 }
 
-float Battery::computeRemainingTime(float current_a)
-{
+float Battery::computeRemainingTime(float current_a) {
 	float time_remaining_s = NAN;
 
 	if (_vehicle_status_sub.updated()) {
@@ -299,8 +287,7 @@ float Battery::computeRemainingTime(float current_a)
 	return time_remaining_s;
 }
 
-void Battery::updateParams()
-{
+void Battery::updateParams() {
 	param_get(_param_handles.v_empty, &_params.v_empty);
 	param_get(_param_handles.v_charged, &_params.v_charged);
 	param_get(_param_handles.n_cells, &_params.n_cells);

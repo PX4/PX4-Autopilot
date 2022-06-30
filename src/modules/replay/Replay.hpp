@@ -33,20 +33,19 @@
 
 #pragma once
 
+#include <px4_platform_common/module.h>
+#include <uORB/topics/ekf2_timestamps.h>
+
 #include <fstream>
 #include <map>
-#include <vector>
 #include <set>
 #include <string>
+#include <uORB/topics/uORBTopics.hpp>
+#include <vector>
 
 #include "definitions.hpp"
 
-#include <px4_platform_common/module.h>
-#include <uORB/topics/uORBTopics.hpp>
-#include <uORB/topics/ekf2_timestamps.h>
-
-namespace px4
-{
+namespace px4 {
 
 /**
  * @class Replay
@@ -55,8 +54,7 @@ namespace px4
  * to replay. This is necessary because data messages from different subscriptions don't need to be in
  * monotonic increasing order.
  */
-class Replay : public ModuleBase<Replay>
-{
+class Replay : public ModuleBase<Replay> {
 public:
 	Replay() = default;
 
@@ -94,12 +92,10 @@ public:
 	static bool isSetup() { return _replay_file; }
 
 protected:
-
 	/**
 	 * @class Compatibility base class to convert topics to an updated format
 	 */
-	class CompatBase
-	{
+	class CompatBase {
 	public:
 		virtual ~CompatBase() = default;
 
@@ -111,13 +107,14 @@ protected:
 		virtual void *apply(void *data) = 0;
 	};
 
-	class CompatSensorCombinedDtType : public CompatBase
-	{
+	class CompatSensorCombinedDtType : public CompatBase {
 	public:
 		CompatSensorCombinedDtType(int gyro_integral_dt_offset_log, int gyro_integral_dt_offset_intern,
-					   int accelerometer_integral_dt_offset_log, int accelerometer_integral_dt_offset_intern);
+					   int accelerometer_integral_dt_offset_log,
+					   int accelerometer_integral_dt_offset_intern);
 
 		void *apply(void *data) override;
+
 	private:
 		int _gyro_integral_dt_offset_log;
 		int _gyro_integral_dt_offset_intern;
@@ -126,16 +123,15 @@ protected:
 	};
 
 	struct Subscription {
-
-		const orb_metadata *orb_meta = nullptr; ///< if nullptr, this subscription is invalid
+		const orb_metadata *orb_meta = nullptr;  ///< if nullptr, this subscription is invalid
 		orb_advert_t orb_advert = nullptr;
 		uint8_t multi_id;
-		int timestamp_offset; ///< marks the field of the timestamp
+		int timestamp_offset;  ///< marks the field of the timestamp
 
-		bool ignored = false; ///< if true, it will not be considered for publication in the main loop
+		bool ignored = false;  ///< if true, it will not be considered for publication in the main loop
 
 		std::streampos next_read_pos;
-		uint64_t next_timestamp; ///< timestamp of the file
+		uint64_t next_timestamp;  ///< timestamp of the file
 
 		CompatBase *compat = nullptr;
 
@@ -152,7 +148,8 @@ protected:
 	 * @param field_size returned field size
 	 * @return true if found, false otherwise
 	 */
-	static bool findFieldOffset(const std::string &format, const std::string &field_name, int &offset, int &field_size);
+	static bool findFieldOffset(const std::string &format, const std::string &field_name, int &offset,
+				    int &field_size);
 
 	/**
 	 * publish an orb topic
@@ -206,30 +203,30 @@ protected:
 	 */
 	bool nextDataMessage(std::ifstream &file, Subscription &subscription, int msg_id);
 
-	virtual uint64_t getTimestampOffset()
-	{
-		//we update the timestamps from the file by a constant offset to match
-		//the current replay time
+	virtual uint64_t getTimestampOffset() {
+		// we update the timestamps from the file by a constant offset to match
+		// the current replay time
 		return _replay_start_time - _file_start_time;
 	}
 
 	std::vector<Subscription *> _subscriptions;
 	std::vector<uint8_t> _read_buffer;
 
-	float _speed_factor{1.f}; ///< from PX4_SIM_SPEED_FACTOR env variable (set to 0 to avoid usleep = unlimited rate)
+	float _speed_factor{
+		1.f};  ///< from PX4_SIM_SPEED_FACTOR env variable (set to 0 to avoid usleep = unlimited rate)
 
 private:
 	std::set<std::string> _overridden_params;
-	std::map<std::string, std::string> _file_formats; ///< all formats we read from the file
+	std::map<std::string, std::string> _file_formats;  ///< all formats we read from the file
 
 	uint64_t _file_start_time;
 	uint64_t _replay_start_time;
-	std::streampos _data_section_start; ///< first ADD_LOGGED_MSG message
+	std::streampos _data_section_start;  ///< first ADD_LOGGED_MSG message
 
 	/** keep track of file position to avoid adding a subscription multiple times. */
 	std::streampos _subscription_file_pos = 0;
 
-	int64_t _read_until_file_position = 1ULL << 60; ///< read limit if log contains appended data
+	int64_t _read_until_file_position = 1ULL << 60;  ///< read limit if log contains appended data
 
 	float _accumulated_delay{0.f};
 
@@ -242,7 +239,7 @@ private:
 	 */
 	bool readFileDefinitions(std::ifstream &file);
 
-	///file parsing methods. They return false, when further parsing should be aborted.
+	/// file parsing methods. They return false, when further parsing should be aborted.
 	bool readFormat(std::ifstream &file, uint16_t msg_size);
 	bool readAndAddSubscription(std::ifstream &file, uint16_t msg_size);
 	bool readFlagBits(std::ifstream &file, uint16_t msg_size);
@@ -282,4 +279,4 @@ private:
 	static char *_replay_file;
 };
 
-} //namespace px4
+}  // namespace px4

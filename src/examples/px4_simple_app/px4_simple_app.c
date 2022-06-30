@@ -38,23 +38,21 @@
  * @author Example User <mail@example.com>
  */
 
+#include <math.h>
+#include <poll.h>
+#include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
-#include <px4_platform_common/posix.h>
-#include <unistd.h>
 #include <stdio.h>
-#include <poll.h>
 #include <string.h>
-#include <math.h>
-
-#include <uORB/uORB.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/uORB.h>
+#include <unistd.h>
 
 __EXPORT int px4_simple_app_main(int argc, char *argv[]);
 
-int px4_simple_app_main(int argc, char *argv[])
-{
+int px4_simple_app_main(int argc, char *argv[]) {
 	PX4_INFO("Hello Sky!");
 
 	/* subscribe to vehicle_acceleration topic */
@@ -69,7 +67,7 @@ int px4_simple_app_main(int argc, char *argv[])
 
 	/* one could wait for multiple topics with this technique, just using one here */
 	px4_pollfd_struct_t fds[] = {
-		{ .fd = sensor_sub_fd,   .events = POLLIN },
+		{.fd = sensor_sub_fd, .events = POLLIN},
 		/* there could be more file descriptors here, in the form like:
 		 * { .fd = other_sub_fd,   .events = POLLIN },
 		 */
@@ -96,16 +94,13 @@ int px4_simple_app_main(int argc, char *argv[])
 			error_counter++;
 
 		} else {
-
 			if (fds[0].revents & POLLIN) {
 				/* obtained data for the first file descriptor */
 				struct vehicle_acceleration_s accel;
 				/* copy sensors raw data into local buffer */
 				orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
-				PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
-					 (double)accel.xyz[0],
-					 (double)accel.xyz[1],
-					 (double)accel.xyz[2]);
+				PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f", (double)accel.xyz[0],
+					 (double)accel.xyz[1], (double)accel.xyz[2]);
 
 				/* set att and publish this information for other apps
 				 the following does not have any meaning, it's just an example

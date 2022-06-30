@@ -37,8 +37,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/manual_control_switches.h>
 
-class MavlinkStreamManualControl : public MavlinkStream
-{
+class MavlinkStreamManualControl : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamManualControl(mavlink); }
 
@@ -48,10 +47,10 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _manual_control_setpoint_sub.advertised() ? (MAVLINK_MSG_ID_MANUAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) :
-		       0;
+	unsigned get_size() override {
+		return _manual_control_setpoint_sub.advertised()
+			       ? (MAVLINK_MSG_ID_MANUAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)
+			       : 0;
 	}
 
 private:
@@ -60,8 +59,7 @@ private:
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};
 
-	bool send() override
-	{
+	bool send() override {
 		manual_control_setpoint_s manual_control_setpoint;
 
 		if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
@@ -93,4 +91,4 @@ private:
 	}
 };
 
-#endif // MANUAL_CONTROL
+#endif  // MANUAL_CONTROL

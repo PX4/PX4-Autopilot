@@ -33,9 +33,8 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
-
 #include <drivers/device/device.h>
+#include <px4_platform_common/px4_config.h>
 
 /**
  * @file uavcan.hpp
@@ -49,23 +48,24 @@
 
 // firmware paths
 #define UAVCAN_MAX_PATH_LENGTH (128 + 40)
-#define UAVCAN_SD_ROOT_PATH    "/fs/microsd/"
-#define UAVCAN_FIRMWARE_PATH   UAVCAN_SD_ROOT_PATH"ufw"
-#define UAVCAN_ROMFS_FW_PATH   "/etc/uavcan/fw"
+#define UAVCAN_SD_ROOT_PATH "/fs/microsd/"
+#define UAVCAN_FIRMWARE_PATH UAVCAN_SD_ROOT_PATH "ufw"
+#define UAVCAN_ROMFS_FW_PATH "/etc/uavcan/fw"
 #define UAVCAN_ROMFS_FW_PREFIX "_"
 
 // logging
-#define UAVCAN_NODE_DB_PATH UAVCAN_SD_ROOT_PATH"/uavcan.db"
-#define UAVCAN_LOG_FILE     UAVCAN_NODE_DB_PATH"/trace.log"
+#define UAVCAN_NODE_DB_PATH UAVCAN_SD_ROOT_PATH "/uavcan.db"
+#define UAVCAN_LOG_FILE UAVCAN_NODE_DB_PATH "/trace.log"
 
 // device files
-// TODO: split IOCTL interface in ESC and node related functionality, then change UAVCAN_DEVICE_PATH to "/dev/uavcan/node"
-#define UAVCAN_DEVICE_PATH     "/dev/uavcan/esc"
+// TODO: split IOCTL interface in ESC and node related functionality, then change UAVCAN_DEVICE_PATH to
+// "/dev/uavcan/node"
+#define UAVCAN_DEVICE_PATH "/dev/uavcan/esc"
 #define UAVCAN_ESC_DEVICE_PATH "/dev/uavcan/esc"
 
 // ioctl interface
-#define _UAVCAN_IOC(_n)               (_IOC(_UAVCAN_IOCBASE, _n))
-#define _UAVCAN_IOCBASE               (0x4000)                        // IOCTL base for module UAVCAN
+#define _UAVCAN_IOC(_n) (_IOC(_UAVCAN_IOCBASE, _n))
+#define _UAVCAN_IOCBASE (0x4000)  // IOCTL base for module UAVCAN
 
 // public prototypes
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);

@@ -32,33 +32,28 @@
  *
  ****************************************************************************/
 
+#include <arch/board/board.h>
+#include <errno.h>
+#include <hardware/s32k1xx_flexcan.h>
+#include <lib/systemlib/crc.h>
+#include <limits.h>
 #include <nuttx/config.h>
-#include "boot_config.h"
-
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <errno.h>
-#include <limits.h>
-
-#include <hardware/s32k1xx_flexcan.h>
-#include "nvic.h"
+#include <systemlib/px4_macros.h>
 
 #include "board.h"
-#include <systemlib/px4_macros.h>
+#include "boot_config.h"
 #include "can.h"
+#include "flexcan.h"
+#include "nvic.h"
 #include "timer.h"
 
-#include <arch/board/board.h>
-#include "flexcan.h"
+#define CAN_TX_TIMEOUT_MS (200 / (1000 / (1000000 / CONFIG_USEC_PER_TICK)))
 
-#include <lib/systemlib/crc.h>
-
-
-#define CAN_TX_TIMEOUT_MS     (200 /(1000/(1000000/CONFIG_USEC_PER_TICK)))
-
-#define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
+#define MIN(X, Y) ((X) < (Y) ? (X) : (Y))
 
 /**
  * CANx register sets
@@ -66,16 +61,15 @@
 
 /*   Address of the CAN registers */
 
-CanType *CAN0 = (CanType *) S32K1XX_FLEXCAN0_BASE;   // CAN0
+CanType *CAN0 = (CanType *)S32K1XX_FLEXCAN0_BASE;  // CAN0
 enum { NumTxMesgBuffers = 6 };
 enum { NumFilters = 16 };
 
-#define CLK_FREQ     80000000
-#define CLOCKSEL     0
-#define useFIFO      1
-#define numberFIFOFilters  CAN_CTRL2_RFFN_16MB
+#define CLK_FREQ 80000000
+#define CLOCKSEL 0
+#define useFIFO 1
+#define numberFIFOFilters CAN_CTRL2_RFFN_16MB
 #define FIFO_IFLAG1 (CAN_FIFO_NE | CAN_FIFO_WARN | CAN_FIFO_OV)
-
 
 typedef struct Timings {
 	uint8_t prescaler;
@@ -118,9 +112,9 @@ int can_speed2freq(can_speed_t speed)
  *   A can_speed_t from CAN_125KBAUD to CAN_1MBAUD
  *
  ****************************************************************************/
-can_speed_t can_freq2speed(int freq)
-{
-	return (freq == 1000000u ? CAN_1MBAUD : freq == 500000u ? CAN_500KBAUD : freq == 250000u ? CAN_250KBAUD : CAN_125KBAUD);
+can_speed_t can_freq2speed(int freq) {
+	return (freq == 1000000u ? CAN_1MBAUD
+				 : freq == 500000u ? CAN_500KBAUD : freq == 250000u ? CAN_250KBAUD : CAN_125KBAUD);
 }
 
 /****************************************************************************
@@ -143,8 +137,7 @@ can_speed_t can_freq2speed(int freq)
  *   The CAN_OK of the data sent or CAN_ERROR if a time out occurred
  *
  ****************************************************************************/
-uint8_t can_tx(uint32_t message_id, size_t length, const uint8_t *message, uint8_t mailbox)
-{
+uint8_t can_tx(uint32_t message_id, size_t length, const uint8_t *message, uint8_t mailbox) {
 	timer_hrt_clear_wrap();
 	uint32_t cnt = CAN_TX_TIMEOUT_MS;
 
@@ -167,7 +160,6 @@ uint8_t can_tx(uint32_t message_id, size_t length, const uint8_t *message, uint8
 	/* Wait it the requested mailbox is busy */
 
 	while ((CAN0->IFLAG1 & mb_bit) == 0) {
-
 		/* Not indicated, but it may be:
 		 * Inactive, aborted,
 		 */
@@ -201,7 +193,7 @@ uint8_t can_tx(uint32_t message_id, size_t length, const uint8_t *message, uint8
 	cs.dlc = length;
 	mb->data.l = __builtin_bswap32(*(uint32_t *)&message[0]);
 	mb->data.h = __builtin_bswap32(*(uint32_t *)&message[4]);
-	mb->CS = cs; // Go.
+	mb->CS = cs;  // Go.
 	return CAN_OK;
 }
 
@@ -223,14 +215,12 @@ uint8_t can_tx(uint32_t message_id, size_t length, const uint8_t *message, uint8
  *   The length of the data read or 0 if the fifo was empty
  *
  ****************************************************************************/
-uint8_t can_rx(uint32_t *message_id, size_t *length, uint8_t *message, uint8_t fifo)
-{
+uint8_t can_rx(uint32_t *message_id, size_t *length, uint8_t *message, uint8_t fifo) {
 	uint8_t rv = 0;
 
 	uint32_t flags = CAN0->IFLAG1 & FIFO_IFLAG1;
 
 	if ((flags & FIFO_IFLAG1)) {
-
 		if (flags & CAN_FIFO_OV) {
 			CAN0->IFLAG1 = CAN_FIFO_OV;
 		}
@@ -245,7 +235,7 @@ uint8_t can_rx(uint32_t *message_id, size_t *length, uint8_t *message, uint8_t f
 			 * Read the frame contents
 			 */
 			*message_id = rf->ID.ext;
-			*length     = rf->CS.dlc;
+			*length = rf->CS.dlc;
 			*(uint32_t *)&message[0] = __builtin_bswap32(rf->data.l);
 			*(uint32_t *)&message[4] = __builtin_bswap32(rf->data.h);
 			(void)CAN0->TIMER;
@@ -281,22 +271,19 @@ uint8_t can_rx(uint32_t *message_id, size_t *length, uint8_t *message, uint8_t f
  *   CAN_OK - on Success or a CAN_BOOT_TIMEOUT
  *
  ****************************************************************************/
-int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout)
-{
+int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout) {
 	uint32_t message_id;
 	size_t length;
 	uint8_t message[8];
 	int rv = CAN_ERROR;
 
 	while (rv == CAN_ERROR) {
-		for (can_speed_t speed = CAN_125KBAUD; rv == CAN_ERROR  && speed <= CAN_1MBAUD; speed++) {
-
+		for (can_speed_t speed = CAN_125KBAUD; rv == CAN_ERROR && speed <= CAN_1MBAUD; speed++) {
 			can_init(speed, CAN_Mode_Silent);
 
 			bl_timer_id baudtimer = timer_allocate(modeTimeout | modeStarted, 600, 0);
 
 			do {
-
 				if (timer_expired(timeout)) {
 					rv = CAN_BOOT_TIMEOUT;
 					break;
@@ -318,9 +305,7 @@ int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout)
 	return rv;
 }
 
-
-static bool waitMCRChange(uint32_t mask, bool target_state)
-{
+static bool waitMCRChange(uint32_t mask, bool target_state) {
 	const unsigned Timeout = 1000;
 
 	for (unsigned wait_ack = 0; wait_ack < Timeout; wait_ack++) {
@@ -336,8 +321,7 @@ static bool waitMCRChange(uint32_t mask, bool target_state)
 	return false;
 }
 
-static void setMCR(uint32_t mask, bool target_state)
-{
+static void setMCR(uint32_t mask, bool target_state) {
 	if (target_state) {
 		CAN0->MCR |= mask;
 
@@ -346,13 +330,9 @@ static void setMCR(uint32_t mask, bool target_state)
 	}
 }
 
-static bool waitFreezeAckChange(bool target_state)
-{
-	return waitMCRChange(CAN_MCR_FRZACK, target_state);
-}
+static bool waitFreezeAckChange(bool target_state) { return waitMCRChange(CAN_MCR_FRZACK, target_state); }
 
-static void setFreeze(bool freeze_true)
-{
+static void setFreeze(bool freeze_true) {
 	{
 		if (freeze_true) {
 			CAN0->MCR |= CAN_MCR_FRZ;
@@ -365,22 +345,20 @@ static void setFreeze(bool freeze_true)
 	}
 }
 
-static bool setEnable(bool enable_true)
-{
+static bool setEnable(bool enable_true) {
 	setMCR(CAN_MCR_MDIS, !enable_true);
 	return waitMCRChange(CAN_MCR_LPMACK, !enable_true);
 }
 
-static int16_t doReset(Timings timings)
-{
+static int16_t doReset(Timings timings) {
 	setMCR(CAN_MCR_SOFTRST, true);
 
 	if (!waitMCRChange(CAN_MCR_SOFTRST, false)) {
 		return -ETIME;
 	}
 
-	uint8_t tasd = 25 - ((2 * (HWMaxMB + 1)) + 4 / ((1 + timings.pseg1 + timings.pseg2 + timings.propseg) *
-			     timings.prescaler));
+	uint8_t tasd = 25 - ((2 * (HWMaxMB + 1)) +
+			     4 / ((1 + timings.pseg1 + timings.pseg2 + timings.propseg) * timings.prescaler));
 
 	setMCR(CAN_MCR_SUPV, false);
 
@@ -392,7 +370,8 @@ static int16_t doReset(Timings timings)
 	}
 
 	setMCR((useFIFO ? CAN_MCR_RFEN : 0) | CAN_MCR_SLFWAK | CAN_MCR_WRNEN | CAN_MCR_SRXDIS | CAN_MCR_IRMQ |
-	       CAN_MCR_AEN | (((HWMaxMB - 1) << CAN_MCR_MAXMB_SHIFT) & CAN_MCR_MAXMB_MASK), true);
+		       CAN_MCR_AEN | (((HWMaxMB - 1) << CAN_MCR_MAXMB_SHIFT) & CAN_MCR_MAXMB_MASK),
+	       true);
 
 	CAN0->CTRL2 = numberFIFOFilters | ((tasd << CAN_CTRL2_TASD_SHIFT) & CAN_CTRL2_TASD_MASK) | CAN_CTRL2_RRS |
 		      CAN_CTRL2_EACEN;
@@ -408,8 +387,7 @@ static int16_t doReset(Timings timings)
 	return 0;
 }
 
-static int computeTimings(const uint32_t target_bitrate, Timings *out_timings)
-{
+static int computeTimings(const uint32_t target_bitrate, Timings *out_timings) {
 	if (target_bitrate < 1) {
 		return -EINVAL;
 	}
@@ -451,7 +429,7 @@ static int computeTimings(const uint32_t target_bitrate, Timings *out_timings)
 
 	for (uint32_t prescaler = 1; prescaler < 256; prescaler++) {
 		if (prescaler > nbt_prescaler) {
-			return -EINVAL;             // No solution
+			return -EINVAL;  // No solution
 		}
 
 		if ((0 == nbt_prescaler % prescaler) && (nbt_prescaler / prescaler) < max_quanta_per_bit) {
@@ -466,7 +444,6 @@ static int computeTimings(const uint32_t target_bitrate, Timings *out_timings)
 
 	out_timings->propseg = 5;
 
-
 	/* Ideal sampling point  = 87.5% given by (SYNC_SEG + PROP_SEG + PHASE_SEG1) / (PHASE_SEG2) */
 
 	uint32_t sp = (7 * NBT) / 8;
@@ -475,10 +452,8 @@ static int computeTimings(const uint32_t target_bitrate, Timings *out_timings)
 	out_timings->pseg2 = NBT - (1 + out_timings->pseg1 + out_timings->propseg);
 	out_timings->rjw = MIN(4, out_timings->pseg2);
 
-	return ((out_timings->pseg1 <= 8) && (out_timings->pseg2 <= 8) && (out_timings->propseg <= 8)) ?  0 :
-	       -EINVAL;
+	return ((out_timings->pseg1 <= 8) && (out_timings->pseg2 <= 8) && (out_timings->propseg <= 8)) ? 0 : -EINVAL;
 }
-
 
 /****************************************************************************
  * Name: can_init
@@ -496,9 +471,7 @@ static int computeTimings(const uint32_t target_bitrate, Timings *out_timings)
  *   OK - on Success or a negate errno value
  *
  ****************************************************************************/
-int can_init(can_speed_t speed, can_mode_t mode)
-{
-
+int can_init(can_speed_t speed, can_mode_t mode) {
 	/* Set the module disabled */
 
 	if (!setEnable(false)) {
@@ -548,17 +521,17 @@ int can_init(can_speed_t speed, can_mode_t mode)
 	/*
 	 * Default filter configuration
 	 */
-	volatile FilterType *filterBase = (FilterType *) &CAN0->MB[FirstFilter].mb;
+	volatile FilterType *filterBase = (FilterType *)&CAN0->MB[FirstFilter].mb;
 
 	for (uint32_t i = 0; i < NumHWFilters; i++) {
 		volatile FilterType *filter = &filterBase[i];
-		filter->w = 0; // All bits do not care
+		filter->w = 0;  // All bits do not care
 	}
 
-	CAN0->RXFGMASK = 0; // All bits do not care
+	CAN0->RXFGMASK = 0;  // All bits do not care
 
 	for (uint32_t mb = 0; mb < HWMaxMB; mb++) {
-		CAN0->RXIMR[mb].w = 0; // All bits do not care
+		CAN0->RXIMR[mb].w = 0;  // All bits do not care
 	}
 
 	CAN0->IFLAG1 = FIFO_IFLAG1 | TXMBMask;
@@ -583,18 +556,16 @@ int can_init(can_speed_t speed, can_mode_t mode)
  *   CAN_OK - on Success or a CAN_ERROR if the cancellation was needed
  *
  ****************************************************************************/
-void can_cancel_on_error(uint8_t mailbox)
-{
+void can_cancel_on_error(uint8_t mailbox) {
 	/* Wait for completion the all 1's wat set in the tx code*/
-	while (CAN_ESR1_TX == (CAN0->ESR1 & CAN_ESR1_TX));
+	while (CAN_ESR1_TX == (CAN0->ESR1 & CAN_ESR1_TX))
+		;
 
-	volatile uint32_t esr1 = CAN0->ESR1 & (CAN_ESR1_STFERR | CAN_ESR1_FRMERR |
-					       CAN_ESR1_CRCERR | CAN_ESR1_ACKERR |
+	volatile uint32_t esr1 = CAN0->ESR1 & (CAN_ESR1_STFERR | CAN_ESR1_FRMERR | CAN_ESR1_CRCERR | CAN_ESR1_ACKERR |
 					       CAN_ESR1_BIT0ERR | CAN_ESR1_BIT1ERR | CAN_ESR1_TXWRN);
 
 	/* Any errors */
 	if (esr1) {
-
 		uint32_t mbi = NumMBinFiFoAndFilters + mailbox;
 		uint32_t mb_bit = 1 << mbi;
 		MessageBufferType *mb = &CAN0->MB[mbi].mb;
@@ -603,5 +574,4 @@ void can_cancel_on_error(uint8_t mailbox)
 		CAN0->IFLAG1 = mb_bit;
 		mb->CS.code = TxMbAbort;
 	}
-
 }

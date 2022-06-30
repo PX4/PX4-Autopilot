@@ -38,34 +38,26 @@
 
 #include "rc_loss_alarm.h"
 
-#include <px4_platform_common/defines.h>
-
 #include <drivers/drv_hrt.h>
+#include <px4_platform_common/defines.h>
 #include <stdint.h>
-
 #include <tunes/tune_definition.h>
 
-namespace events
-{
-namespace rc_loss
-{
+namespace events {
+namespace rc_loss {
 
-void RC_Loss_Alarm::process()
-{
+void RC_Loss_Alarm::process() {
 	vehicle_status_s status{};
 
 	if (!_vehicle_status_sub.update(&status)) {
 		return;
 	}
 
-	if (!_was_armed &&
-	    status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-
-		_was_armed = true;	// Once true, impossible to go back to false
+	if (!_was_armed && status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		_was_armed = true;  // Once true, impossible to go back to false
 	}
 
 	if (!_had_rc && !status.rc_signal_lost) {
-
 		_had_rc = true;
 	}
 
@@ -80,8 +72,7 @@ void RC_Loss_Alarm::process()
 	}
 }
 
-void RC_Loss_Alarm::play_tune()
-{
+void RC_Loss_Alarm::play_tune() {
 	tune_control_s tune_control{};
 	tune_control.tune_id = tune_control_s::TUNE_ID_ERROR;
 	tune_control.tune_override = true;
@@ -90,8 +81,7 @@ void RC_Loss_Alarm::play_tune()
 	_tune_control_pub.publish(tune_control);
 }
 
-void RC_Loss_Alarm::stop_tune()
-{
+void RC_Loss_Alarm::stop_tune() {
 	tune_control_s tune_control{};
 	tune_control.tune_override = true;
 	tune_control.timestamp = hrt_absolute_time();

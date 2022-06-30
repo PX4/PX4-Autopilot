@@ -39,16 +39,16 @@
  */
 
 #include <gtest/gtest.h>
-#include <matrix/matrix/math.hpp>
 #include <px4_platform_common/defines.h>
+
+#include <matrix/matrix/math.hpp>
 
 #include "lm_fit.hpp"
 #include "mag_calibration_test_data.h"
 
 using matrix::Vector3f;
 
-class MagCalTest : public ::testing::Test
-{
+class MagCalTest : public ::testing::Test {
 public:
 	void generate2SidesMagData(float *x, float *y, float *z, unsigned int n_samples, float mag_str);
 
@@ -57,11 +57,11 @@ public:
 	 */
 	void generateRegularData(float *x, float *y, float *z, unsigned int n_samples, float mag_str);
 
-	void modifyOffsetScale(float *x, float *y, float *z, unsigned int n_samples, Vector3f offsets, Vector3f scale_factors);
+	void modifyOffsetScale(float *x, float *y, float *z, unsigned int n_samples, Vector3f offsets,
+			       Vector3f scale_factors);
 };
 
-void MagCalTest::generate2SidesMagData(float *x, float *y, float *z, unsigned int n_samples, float mag_str)
-{
+void MagCalTest::generate2SidesMagData(float *x, float *y, float *z, unsigned int n_samples, float mag_str) {
 	float psi = 0.f;
 	float theta = 0.f;
 	const float d_angle = 2.f * M_PI_F / float(n_samples / 2);
@@ -81,8 +81,7 @@ void MagCalTest::generate2SidesMagData(float *x, float *y, float *z, unsigned in
 	}
 }
 
-void MagCalTest::generateRegularData(float *x, float *y, float *z, unsigned int n_samples, float mag_str)
-{
+void MagCalTest::generateRegularData(float *x, float *y, float *z, unsigned int n_samples, float mag_str) {
 	const float a = 4.f * M_PI_F * mag_str * mag_str / n_samples;
 	const float d = sqrtf(a);
 	const int m_theta = static_cast<int>(M_PI_F / d);
@@ -119,8 +118,7 @@ void MagCalTest::generateRegularData(float *x, float *y, float *z, unsigned int 
 }
 
 void MagCalTest::modifyOffsetScale(float *x, float *y, float *z, unsigned int n_samples, Vector3f offsets,
-				   Vector3f scale_factors)
-{
+				   Vector3f scale_factors) {
 	for (unsigned int k = 0; k < n_samples; k++) {
 		x[k] = x[k] * scale_factors(0) + offsets(0);
 		y[k] = y[k] * scale_factors(1) + offsets(1);
@@ -128,8 +126,7 @@ void MagCalTest::modifyOffsetScale(float *x, float *y, float *z, unsigned int n_
 	}
 }
 
-TEST_F(MagCalTest, sphere2Sides)
-{
+TEST_F(MagCalTest, sphere2Sides) {
 	// GIVEN: a dataset of points located on two orthogonal circles
 	// perfectly centered on the origin
 	static constexpr unsigned int N_SAMPLES = 240;
@@ -161,8 +158,7 @@ TEST_F(MagCalTest, sphere2Sides)
 	EXPECT_NEAR(sphere.diag(2), scale_true(2), 0.001f) << "scale Z: " << sphere.diag(2);
 }
 
-TEST_F(MagCalTest, sphereRegularlySpaced)
-{
+TEST_F(MagCalTest, sphereRegularlySpaced) {
 	// GIVEN: a dataset of regularly spaced points
 	// on a perfect sphere but not centered on the origin
 	static constexpr unsigned int N_SAMPLES = 240;
@@ -195,8 +191,7 @@ TEST_F(MagCalTest, sphereRegularlySpaced)
 	EXPECT_NEAR(sphere.diag(2), scale_true(2), 0.001f) << "scale Z: " << scale_true(2);
 }
 
-TEST_F(MagCalTest, replayTestData)
-{
+TEST_F(MagCalTest, replayTestData) {
 	// GIVEN: a real test dataset with large offsets
 	// and where the two first iterations of the LM algorithm
 	// produces a negative radius and a constant fitness value

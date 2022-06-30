@@ -40,12 +40,8 @@
 
 #pragma once
 
-#include "navigator_mode.h"
-#include "navigation.h"
-
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
-#include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/position_setpoint_triplet.h>
@@ -53,10 +49,14 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
+#include <uORB/Publication.hpp>
+
+#include "navigation.h"
+#include "navigator_mode.h"
+
 class Navigator;
 
-class MissionBlock : public NavigatorMode
-{
+class MissionBlock : public NavigatorMode {
 public:
 	/**
 	 * Constructor
@@ -142,7 +142,7 @@ protected:
 
 	void issue_command(const mission_item_s &item);
 
-	float get_time_inside(const mission_item_s &item) const ;
+	float get_time_inside(const mission_item_s &item) const;
 
 	float get_absolute_altitude_for_item(const mission_item_s &mission_item) const;
 
@@ -153,5 +153,5 @@ protected:
 
 	hrt_abstime _time_wp_reached{0};
 
-	uORB::Publication<actuator_controls_s>	_actuator_pub{ORB_ID(actuator_controls_2)};
+	uORB::Publication<actuator_controls_s> _actuator_pub{ORB_ID(actuator_controls_2)};
 };

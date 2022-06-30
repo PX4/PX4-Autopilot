@@ -44,8 +44,7 @@
 #include <math.h>
 #include <stdint.h>
 
-class DataValidator
-{
+class DataValidator {
 public:
 	static const unsigned dimensions = 3;
 
@@ -176,11 +175,11 @@ private:
 
 	uint8_t _priority{0}; /**< sensor nominal priority */
 
-	float _mean[dimensions] {}; /**< mean of value */
-	float _lp[dimensions] {};   /**< low pass value */
-	float _M2[dimensions] {};   /**< RMS component value */
-	float _rms[dimensions] {};  /**< root mean square error */
-	float _value[dimensions] {}; /**< last value */
+	float _mean[dimensions]{};  /**< mean of value */
+	float _lp[dimensions]{};    /**< low pass value */
+	float _M2[dimensions]{};    /**< RMS component value */
+	float _rms[dimensions]{};   /**< root mean square error */
+	float _value[dimensions]{}; /**< last value */
 
 	unsigned _value_equal_count{0}; /**< equal values in a row */
 	unsigned _value_equal_count_threshold{

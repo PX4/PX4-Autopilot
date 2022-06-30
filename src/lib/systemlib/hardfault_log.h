@@ -51,8 +51,8 @@
 #define HARDFAULT_MAX_ULOG_FILE_LEN 64 /* must be large enough to store the full path to the log file */
 
 #define BBSRAM_SIZE_FN0 (sizeof(int))
-#define BBSRAM_SIZE_FN1 384     /* greater then 2.5 times the size of vehicle_status_s */
-#define BBSRAM_SIZE_FN2 384     /* greater then 2.5 times the size of vehicle_status_s */
+#define BBSRAM_SIZE_FN1 384 /* greater then 2.5 times the size of vehicle_status_s */
+#define BBSRAM_SIZE_FN2 384 /* greater then 2.5 times the size of vehicle_status_s */
 #define BBSRAM_SIZE_FN3 HARDFAULT_MAX_ULOG_FILE_LEN
 #define BBSRAM_SIZE_FN4 -1
 
@@ -62,62 +62,62 @@
  * It will be truncated by the call to stm32_bbsram_savepanic
  */
 #define BBSRAM_HEADER_SIZE 20 /* This is an assumption */
-#define BBSRAM_USED ((5*BBSRAM_HEADER_SIZE)+(BBSRAM_SIZE_FN0+BBSRAM_SIZE_FN1+BBSRAM_SIZE_FN2+BBSRAM_SIZE_FN3))
-#define BBSRAM_REAMINING (PX4_BBSRAM_SIZE-BBSRAM_USED)
+#define BBSRAM_USED ((5 * BBSRAM_HEADER_SIZE) + (BBSRAM_SIZE_FN0 + BBSRAM_SIZE_FN1 + BBSRAM_SIZE_FN2 + BBSRAM_SIZE_FN3))
+#define BBSRAM_REAMINING (PX4_BBSRAM_SIZE - BBSRAM_USED)
 #if CONFIG_ARCH_INTERRUPTSTACK <= 3
-#  define BBSRAM_NUMBER_STACKS 1
+#define BBSRAM_NUMBER_STACKS 1
 #else
-#  define BBSRAM_NUMBER_STACKS 2
+#define BBSRAM_NUMBER_STACKS 2
 #endif
 #define BBSRAM_FIXED_ELEMENTS_SIZE (sizeof(info_s))
-#define BBSRAM_LEFTOVER (BBSRAM_REAMINING-BBSRAM_FIXED_ELEMENTS_SIZE)
+#define BBSRAM_LEFTOVER (BBSRAM_REAMINING - BBSRAM_FIXED_ELEMENTS_SIZE)
 
-#define CONFIG_ISTACK_SIZE (BBSRAM_LEFTOVER/BBSRAM_NUMBER_STACKS/sizeof(stack_word_t))
-#define CONFIG_USTACK_SIZE (BBSRAM_LEFTOVER/BBSRAM_NUMBER_STACKS/sizeof(stack_word_t))
+#define CONFIG_ISTACK_SIZE (BBSRAM_LEFTOVER / BBSRAM_NUMBER_STACKS / sizeof(stack_word_t))
+#define CONFIG_USTACK_SIZE (BBSRAM_LEFTOVER / BBSRAM_NUMBER_STACKS / sizeof(stack_word_t))
 
 /* The path to the Battery Backed up SRAM */
 #define BBSRAM_PATH "/fs/bbr"
 /* The sizes of the files to create (-1) use rest of BBSRAM memory */
-#define BSRAM_FILE_SIZES { \
-		BBSRAM_SIZE_FN0,   /* For Time stamp only */                  \
-		BBSRAM_SIZE_FN1,   /* For Current Flight Parameters Copy A */ \
-		BBSRAM_SIZE_FN2,   /* For Current Flight Parameters Copy B */ \
-		BBSRAM_SIZE_FN3,   /* For the latest ULog file path */        \
-		BBSRAM_SIZE_FN4,   /* For the Panic Log use rest of space */  \
-		0                  /* End of table marker */                  \
+#define BSRAM_FILE_SIZES                                                            \
+	{                                                                           \
+		BBSRAM_SIZE_FN0,         /* For Time stamp only */                  \
+			BBSRAM_SIZE_FN1, /* For Current Flight Parameters Copy A */ \
+			BBSRAM_SIZE_FN2, /* For Current Flight Parameters Copy B */ \
+			BBSRAM_SIZE_FN3, /* For the latest ULog file path */        \
+			BBSRAM_SIZE_FN4, /* For the Panic Log use rest of space */  \
+			0                /* End of table marker */                  \
 	}
 
 /* For Assert keep this much of the file name*/
 #define MAX_FILE_PATH_LENGTH 40
-
 
 /* Fixed size strings
  * To change a format add the number of chars not represented by the format
  * Specifier to the xxxx_NUM definei.e %Y is YYYY so add 2 and %s is -2
  * Also xxxxTIME_FMT need to match in size. See CCASERT in hardfault_log.c
  */
-#define LOG_PATH_BASE       "/fs/microsd/"
-#define LOG_PATH_BASE_LEN    ((arraySize(LOG_PATH_BASE))-1)
+#define LOG_PATH_BASE "/fs/microsd/"
+#define LOG_PATH_BASE_LEN ((arraySize(LOG_PATH_BASE)) - 1)
 
-#define LOG_NAME_FMT        "fault_%s.log"
-#define LOG_NAME_NUM         (     -2    )
-#define LOG_NAME_LEN         ((arraySize(LOG_NAME_FMT)-1) + LOG_NAME_NUM)
+#define LOG_NAME_FMT "fault_%s.log"
+#define LOG_NAME_NUM (-2)
+#define LOG_NAME_LEN ((arraySize(LOG_NAME_FMT) - 1) + LOG_NAME_NUM)
 
-#define TIME_FMT             "%Y_%m_%d_%H_%M_%S"
-#define TIME_FMT_NUM         (2+ 0+ 0+ 0+ 0+ 0)
-#define TIME_FMT_LEN         (((arraySize(TIME_FMT)-1) + TIME_FMT_NUM))
+#define TIME_FMT "%Y_%m_%d_%H_%M_%S"
+#define TIME_FMT_NUM (2 + 0 + 0 + 0 + 0 + 0)
+#define TIME_FMT_LEN (((arraySize(TIME_FMT) - 1) + TIME_FMT_NUM))
 
-#define LOG_PATH_LEN         ((LOG_PATH_BASE_LEN + LOG_NAME_LEN + TIME_FMT_LEN))
+#define LOG_PATH_LEN ((LOG_PATH_BASE_LEN + LOG_NAME_LEN + TIME_FMT_LEN))
 
-#define HEADER_TIME_FMT      "%Y-%m-%d-%H:%M:%S"
-#define HEADER_TIME_FMT_NUM  (2+ 0+ 0+ 0+ 0+ 0)
-#define HEADER_TIME_FMT_LEN  (((arraySize(HEADER_TIME_FMT)-1) + HEADER_TIME_FMT_NUM))
+#define HEADER_TIME_FMT "%Y-%m-%d-%H:%M:%S"
+#define HEADER_TIME_FMT_NUM (2 + 0 + 0 + 0 + 0 + 0)
+#define HEADER_TIME_FMT_LEN (((arraySize(HEADER_TIME_FMT) - 1) + HEADER_TIME_FMT_NUM))
 
 /* Select which format to use. On a terminal the details are at the bottom
  * and in a file they are at the top
  */
 #define HARDFAULT_DISPLAY_FORMAT 1
-#define HARDFAULT_FILE_FORMAT    0
+#define HARDFAULT_FILE_FORMAT 0
 
 /****************************************************************************
  * Public Types
@@ -223,54 +223,53 @@ typedef struct {
 	uint32_t s31;
 } proc_regs_s;
 
-
 /* Flags to identify what is in the dump */
 typedef enum {
-	eRegsPresent          = 0x01,
-	eUserStackPresent     = 0x02,
-	eIntStackPresent      = 0x04,
-	eFaultRegPresent      = 0x08,
-	eInvalidUserStackPtr  = 0x20,
-	eInvalidIntStackPrt   = 0x40,
+	eRegsPresent = 0x01,
+	eUserStackPresent = 0x02,
+	eIntStackPresent = 0x04,
+	eFaultRegPresent = 0x08,
+	eInvalidUserStackPtr = 0x20,
+	eInvalidIntStackPrt = 0x40,
 } fault_flags_t;
 
 typedef struct {
-	uint32_t              cfsr;  /* 0x0d28 Configurable fault status register */
-	uint32_t              hfsr;  /* 0x0d2c Hard fault status register */
-	uint32_t              dfsr;  /* 0x0d30 Debug fault status register */
-	uint32_t              mmfsr; /* 0x0d34 Mem manage address register */
-	uint32_t              bfsr;  /* 0x0d38 Bus fault address register */
-	uint32_t              afsr;  /* 0x0d3c Auxiliary fault status register */
+	uint32_t cfsr;  /* 0x0d28 Configurable fault status register */
+	uint32_t hfsr;  /* 0x0d2c Hard fault status register */
+	uint32_t dfsr;  /* 0x0d30 Debug fault status register */
+	uint32_t mmfsr; /* 0x0d34 Mem manage address register */
+	uint32_t bfsr;  /* 0x0d38 Bus fault address register */
+	uint32_t afsr;  /* 0x0d3c Auxiliary fault status register */
 #if defined(CONFIG_ARCH_CORTEXM7)
-	uint32_t              abfsr; /* 0x0fa8 Auxiliary Bus Fault Status Register */
+	uint32_t abfsr; /* 0x0fa8 Auxiliary Bus Fault Status Register */
 #endif
 
 } fault_regs_s;
 
 typedef struct {
-	fault_flags_t         flags;                  /* What is in the dump */
-	uintptr_t             current_regs;           /* Used to validate the dump */
-	int                   lineno;                 /* __LINE__ to up_assert */
-	int                   pid;                    /* Process ID */
-	uint32_t              regs[XCPTCONTEXT_REGS]; /* Interrupt register save area */
-	fault_regs_s          fault_regs;             /* NVIC status */
-	stack_t               stacks;                 /* Stack info */
+	fault_flags_t flags;             /* What is in the dump */
+	uintptr_t current_regs;          /* Used to validate the dump */
+	int lineno;                      /* __LINE__ to up_assert */
+	int pid;                         /* Process ID */
+	uint32_t regs[XCPTCONTEXT_REGS]; /* Interrupt register save area */
+	fault_regs_s fault_regs;         /* NVIC status */
+	stack_t stacks;                  /* Stack info */
 #if CONFIG_TASK_NAME_SIZE > 0
-	char                  name[CONFIG_TASK_NAME_SIZE + 1]; /* Task name (with NULL
-													* terminator) */
+	char name[CONFIG_TASK_NAME_SIZE + 1]; /* Task name (with NULL
+					       * terminator) */
 #endif
-	char                  filename[MAX_FILE_PATH_LENGTH]; /* the Last of chars in
-												  * __FILE__ to up_assert */
+	char filename[MAX_FILE_PATH_LENGTH]; /* the Last of chars in
+					      * __FILE__ to up_assert */
 } info_s;
 
 typedef struct {
-	info_s    info;                       /* The info */
-#if CONFIG_ARCH_INTERRUPTSTACK > 3      /* The amount of stack data is compile time
-									 * sized backed on what is left after the
-									 * other BBSRAM files are defined
-									 * The order is such that only the
-									 * ustack should be truncated
-									 */
+	info_s info;               /* The info */
+#if CONFIG_ARCH_INTERRUPTSTACK > 3 /* The amount of stack data is compile time \
+				    * sized backed on what is left after the   \
+				    * other BBSRAM files are defined           \
+				    * The order is such that only the          \
+				    * ustack should be truncated               \
+				    */
 	stack_word_t istack[CONFIG_USTACK_SIZE];
 #endif
 	stack_word_t ustack[CONFIG_ISTACK_SIZE];

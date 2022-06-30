@@ -39,13 +39,12 @@
  * @author Robert Fu
  */
 #include <drivers/device/spi.h>
+
 #include "FXAS21002C.hpp"
 
-device::Device *FXAS21002C_SPI_interface(int bus, uint32_t chip_select, int bus_frequency,
-		spi_mode_e spi_mode);
+device::Device *FXAS21002C_SPI_interface(int bus, uint32_t chip_select, int bus_frequency, spi_mode_e spi_mode);
 
-class FXAS21002C_SPI : public device::SPI
-{
+class FXAS21002C_SPI : public device::SPI {
 public:
 	FXAS21002C_SPI(int bus, uint32_t chip_select, int bus_frequency, spi_mode_e spi_mode);
 	~FXAS21002C_SPI() override = default;
@@ -60,7 +59,7 @@ public:
 	 * @param count	The number of items to read.
 	 * @return		The number of items read on success, negative errno otherwise.
 	 */
-	int	read(unsigned reg, void *data, unsigned count) override;
+	int read(unsigned reg, void *data, unsigned count) override;
 
 	/**
 	 * Write directly to the device.
@@ -72,7 +71,7 @@ public:
 	 * @param count	The number of items to write.
 	 * @return		The number of items written on success, negative errno otherwise.
 	 */
-	int	write(unsigned reg, void *data, unsigned count) override;
+	int write(unsigned reg, void *data, unsigned count) override;
 
 	/**
 	 * Read a register from the device.
@@ -95,20 +94,14 @@ protected:
 	int probe() override;
 };
 
-device::Device *
-FXAS21002C_SPI_interface(int bus, uint32_t chip_select, int bus_frequency, spi_mode_e spi_mode)
-{
+device::Device *FXAS21002C_SPI_interface(int bus, uint32_t chip_select, int bus_frequency, spi_mode_e spi_mode) {
 	return new FXAS21002C_SPI(bus, chip_select, bus_frequency, spi_mode);
 }
 
-FXAS21002C_SPI::FXAS21002C_SPI(int bus, uint32_t chip_select, int bus_frequency, spi_mode_e spi_mode) :
-	SPI(DRV_GYR_DEVTYPE_FXAS2100C, MODULE_NAME, bus, chip_select, spi_mode, bus_frequency)
-{
-}
+FXAS21002C_SPI::FXAS21002C_SPI(int bus, uint32_t chip_select, int bus_frequency, spi_mode_e spi_mode)
+	: SPI(DRV_GYR_DEVTYPE_FXAS2100C, MODULE_NAME, bus, chip_select, spi_mode, bus_frequency) {}
 
-int
-FXAS21002C_SPI::probe()
-{
+int FXAS21002C_SPI::probe() {
 	uint8_t whoami = read_reg(FXAS21002C_WHO_AM_I);
 	bool success = (whoami == WHO_AM_I);
 
@@ -126,19 +119,18 @@ FXAS21002C_SPI::probe()
  * @param count	The number of items to read.
  * @return		The number of items read on success, negative errno otherwise.
  */
-int FXAS21002C_SPI::read(unsigned reg, void *data, unsigned count)
-{
+int FXAS21002C_SPI::read(unsigned reg, void *data, unsigned count) {
 	/* Same as in mpu9250_spi.cpp:
 	 * We want to avoid copying the data of RawGyroReport: So if the caller
 	 * supplies a buffer not RawGyroReport in size, it is assume to be a reg or reg 16 read
 	 * and we need to provied the buffer large enough for the callers data
 	 * and our command.
 	 */
-	uint8_t cmd[3] {};
+	uint8_t cmd[3]{};
 
-	uint8_t *pBuf  =  count < sizeof(RawGyroReport) ? cmd : (uint8_t *) data ;
+	uint8_t *pBuf = count < sizeof(RawGyroReport) ? cmd : (uint8_t *)data;
 
-	if (count < sizeof(RawGyroReport))  {
+	if (count < sizeof(RawGyroReport)) {
 		/* add command */
 		count++;
 	}
@@ -170,9 +162,8 @@ int FXAS21002C_SPI::read(unsigned reg, void *data, unsigned count)
  * @param count	The number of items to write.
  * @return		The number of items written on success, negative errno otherwise.
  */
-int FXAS21002C_SPI::write(unsigned reg, void *data, unsigned count)
-{
-	uint8_t cmd[2] {};
+int FXAS21002C_SPI::write(unsigned reg, void *data, unsigned count) {
+	uint8_t cmd[2]{};
 
 	if (sizeof(cmd) < (count + 1)) {
 		// same as in mpu9250_spi.cpp
@@ -193,8 +184,7 @@ int FXAS21002C_SPI::write(unsigned reg, void *data, unsigned count)
  * @param		The register to read.
  * @return		The value that was read.
  */
-uint8_t FXAS21002C_SPI::read_reg(unsigned reg)
-{
+uint8_t FXAS21002C_SPI::read_reg(unsigned reg) {
 	uint8_t cmd[2];
 
 	cmd[0] = DIR_READ(reg);
@@ -212,8 +202,7 @@ uint8_t FXAS21002C_SPI::read_reg(unsigned reg)
  * @param value		The new value to write.
  * @return		OK on success, negative errno otherwise.
  */
-int FXAS21002C_SPI::write_reg(unsigned reg, uint8_t value)
-{
+int FXAS21002C_SPI::write_reg(unsigned reg, uint8_t value) {
 	uint8_t cmd[2];
 
 	cmd[0] = DIR_WRITE(reg);

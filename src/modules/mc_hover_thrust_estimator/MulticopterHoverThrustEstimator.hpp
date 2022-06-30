@@ -48,10 +48,6 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -59,13 +55,18 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+
 #include "zero_order_hover_thrust_ekf.hpp"
 
 using namespace time_literals;
 
-class MulticopterHoverThrustEstimator : public ModuleBase<MulticopterHoverThrustEstimator>, public ModuleParams,
-	public px4::WorkItem
-{
+class MulticopterHoverThrustEstimator : public ModuleBase<MulticopterHoverThrustEstimator>,
+					public ModuleParams,
+					public px4::WorkItem {
 public:
 	MulticopterHoverThrustEstimator();
 	~MulticopterHoverThrustEstimator() override;
@@ -115,15 +116,13 @@ private:
 
 	systemlib::Hysteresis _valid_hysteresis{false};
 
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle time")};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::HTE_HT_NOISE>) _param_hte_ht_noise,
-		(ParamFloat<px4::params::HTE_ACC_GATE>) _param_hte_acc_gate,
-		(ParamFloat<px4::params::HTE_HT_ERR_INIT>) _param_hte_ht_err_init,
-		(ParamFloat<px4::params::HTE_THR_RANGE>) _param_hte_thr_range,
-		(ParamFloat<px4::params::HTE_VXY_THR>) _param_hte_vxy_thr,
-		(ParamFloat<px4::params::HTE_VZ_THR>) _param_hte_vz_thr,
-		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover
-	)
+	DEFINE_PARAMETERS((ParamFloat<px4::params::HTE_HT_NOISE>)_param_hte_ht_noise,
+			  (ParamFloat<px4::params::HTE_ACC_GATE>)_param_hte_acc_gate,
+			  (ParamFloat<px4::params::HTE_HT_ERR_INIT>)_param_hte_ht_err_init,
+			  (ParamFloat<px4::params::HTE_THR_RANGE>)_param_hte_thr_range,
+			  (ParamFloat<px4::params::HTE_VXY_THR>)_param_hte_vxy_thr,
+			  (ParamFloat<px4::params::HTE_VZ_THR>)_param_hte_vz_thr,
+			  (ParamFloat<px4::params::MPC_THR_HOVER>)_param_mpc_thr_hover)
 };

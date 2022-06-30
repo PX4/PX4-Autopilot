@@ -35,28 +35,19 @@
 
 using namespace time_literals;
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-AK8963::AK8963(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation)
-{
-}
+AK8963::AK8963(const I2CSPIDriverConfig &config)
+	: I2C(config), I2CSPIDriver(config), _px4_mag(get_device_id(), config.rotation) {}
 
-AK8963::~AK8963()
-{
+AK8963::~AK8963() {
 	perf_free(_transfer_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_magnetic_sensor_overflow_perf);
 }
 
-int AK8963::init()
-{
+int AK8963::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -67,16 +58,14 @@ int AK8963::init()
 	return Reset() ? 0 : -1;
 }
 
-bool AK8963::Reset()
-{
+bool AK8963::Reset() {
 	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
 }
 
-void AK8963::print_status()
-{
+void AK8963::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_transfer_perf);
@@ -85,8 +74,7 @@ void AK8963::print_status()
 	perf_print_counter(_magnetic_sensor_overflow_perf);
 }
 
-int AK8963::probe()
-{
+int AK8963::probe() {
 	const uint8_t WIA = RegisterRead(Register::WIA);
 
 	if (WIA != Device_ID) {
@@ -97,56 +85,56 @@ int AK8963::probe()
 	return PX4_OK;
 }
 
-void AK8963::RunImpl()
-{
+void AK8963::RunImpl() {
 	switch (_state) {
-	case STATE::RESET:
-		// CNTL2 SRST: Soft reset
-		RegisterWrite(Register::CNTL2, CNTL2_BIT::SRST);
-		_reset_timestamp = hrt_absolute_time();
-		_consecutive_failures = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(100_ms);
-		break;
+		case STATE::RESET:
+			// CNTL2 SRST: Soft reset
+			RegisterWrite(Register::CNTL2, CNTL2_BIT::SRST);
+			_reset_timestamp = hrt_absolute_time();
+			_consecutive_failures = 0;
+			_state = STATE::WAIT_FOR_RESET;
+			ScheduleDelayed(100_ms);
+			break;
 
-	case STATE::WAIT_FOR_RESET:
-		if (RegisterRead(Register::WIA) == Device_ID) {
-			// if reset succeeded then configure
-			if (!_sensitivity_adjustments_loaded) {
-				// Set Fuse ROM Access mode before reading Fuse ROM data.
-				RegisterWrite(Register::CNTL1, CNTL1_BIT::BIT_16 | CNTL1_BIT::FUSE_ROM_ACCESS_MODE);
-				_state = STATE::READ_SENSITIVITY_ADJUSTMENTS;
-				ScheduleDelayed(100_ms);
-
-			} else {
+		case STATE::WAIT_FOR_RESET:
+			if (RegisterRead(Register::WIA) == Device_ID) {
 				// if reset succeeded then configure
-				RegisterWrite(Register::CNTL1, CNTL1_BIT::CONTINUOUS_MODE_2 | CNTL1_BIT::BIT_16);
-				_state = STATE::CONFIGURE;
-				ScheduleDelayed(100_ms);
-			}
+				if (!_sensitivity_adjustments_loaded) {
+					// Set Fuse ROM Access mode before reading Fuse ROM data.
+					RegisterWrite(Register::CNTL1,
+						      CNTL1_BIT::BIT_16 | CNTL1_BIT::FUSE_ROM_ACCESS_MODE);
+					_state = STATE::READ_SENSITIVITY_ADJUSTMENTS;
+					ScheduleDelayed(100_ms);
 
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
-				ScheduleDelayed(100_ms);
+				} else {
+					// if reset succeeded then configure
+					RegisterWrite(Register::CNTL1,
+						      CNTL1_BIT::CONTINUOUS_MODE_2 | CNTL1_BIT::BIT_16);
+					_state = STATE::CONFIGURE;
+					ScheduleDelayed(100_ms);
+				}
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 100 ms");
-				ScheduleDelayed(100_ms);
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 100 ms");
+					ScheduleDelayed(100_ms);
+				}
 			}
-		}
 
-		break;
+			break;
 
-	case STATE::READ_SENSITIVITY_ADJUSTMENTS: {
+		case STATE::READ_SENSITIVITY_ADJUSTMENTS: {
 			// read FUSE ROM (to get ASA corrections)
-			uint8_t response[3] {};
+			uint8_t response[3]{};
 			uint8_t cmd = static_cast<uint8_t>(Register::ASAX);
 
 			if (transfer(&cmd, 1, response, 3) == PX4_OK) {
-
 				bool valid = true;
 
 				for (int i = 0; i < 3; i++) {
@@ -160,38 +148,38 @@ void AK8963::RunImpl()
 
 				_sensitivity_adjustments_loaded = valid;
 
-				// After reading fuse ROM data, set power-down mode (MODE[3:0]=“0000”) before the transition to another mode.
+				// After reading fuse ROM data, set power-down mode (MODE[3:0]=“0000”) before the
+				// transition to another mode.
 			}
 
 			// reset on success or failure
 			RegisterWrite(Register::CNTL1, 0);
 			_state = STATE::RESET;
 			ScheduleDelayed(100_ms);
-		}
-		break;
+		} break;
 
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start reading
-			_state = STATE::READ;
-			ScheduleOnInterval(10_ms, 10_ms); // 100 Hz
-
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				// if configure succeeded then start reading
+				_state = STATE::READ;
+				ScheduleOnInterval(10_ms, 10_ms);  // 100 Hz
 
 			} else {
-				PX4_DEBUG("Configure failed, retrying");
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
+				ScheduleDelayed(100_ms);
 			}
 
-			ScheduleDelayed(100_ms);
-		}
+			break;
 
-		break;
-
-	case STATE::READ: {
+		case STATE::READ: {
 			perf_begin(_transfer_perf);
 			TransferBuffer buffer{};
 			const hrt_abstime timestamp_sample = hrt_absolute_time();
@@ -206,16 +194,15 @@ void AK8963::RunImpl()
 					perf_count(_magnetic_sensor_overflow_perf);
 
 				} else if ((buffer.ST1 & ST1_BIT::DRDY) && (buffer.ST2 & ST2_BIT::BITM)) {
-
 					const int16_t x = combine(buffer.HXH, buffer.HXL);
 					const int16_t y = combine(buffer.HYH, buffer.HYL);
 					const int16_t z = combine(buffer.HZH, buffer.HZL);
 
 					// sensor's frame is +Y forward (X), -X right (Y), +Z down (Z)
 					// adjust with sensitivity scale factors
-					float x_f = y * _sensitivity[0];  // X := +Y
-					float y_f = -x * _sensitivity[1]; // Y := -X
-					float z_f = z * _sensitivity[2];  // Z := +Z
+					float x_f = y * _sensitivity[0];   // X := +Y
+					float y_f = -x * _sensitivity[1];  // Y := -X
+					float z_f = z * _sensitivity[2];   // Z := +Z
 
 					_px4_mag.update(timestamp_sample, x_f, y_f, z_f);
 
@@ -248,8 +235,7 @@ void AK8963::RunImpl()
 	}
 }
 
-bool AK8963::Configure()
-{
+bool AK8963::Configure() {
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_cfg) {
 		RegisterWrite(reg_cfg.reg, reg_cfg.set_bits);
@@ -270,8 +256,7 @@ bool AK8963::Configure()
 	return success;
 }
 
-bool AK8963::RegisterCheck(const register_config_t &reg_cfg)
-{
+bool AK8963::RegisterCheck(const register_config_t &reg_cfg) {
 	bool success = true;
 
 	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
@@ -282,29 +267,27 @@ bool AK8963::RegisterCheck(const register_config_t &reg_cfg)
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.clear_bits);
 		success = false;
 	}
 
 	return success;
 }
 
-uint8_t AK8963::RegisterRead(Register reg)
-{
+uint8_t AK8963::RegisterRead(Register reg) {
 	const uint8_t cmd = static_cast<uint8_t>(reg);
 	uint8_t buffer{};
 	transfer(&cmd, 1, &buffer, 1);
 	return buffer;
 }
 
-void AK8963::RegisterWrite(Register reg, uint8_t value)
-{
-	uint8_t buffer[2] { (uint8_t)reg, value };
+void AK8963::RegisterWrite(Register reg, uint8_t value) {
+	uint8_t buffer[2]{(uint8_t)reg, value};
 	transfer(buffer, sizeof(buffer), nullptr, 0);
 }
 
-void AK8963::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
-{
+void AK8963::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits) {
 	const uint8_t orig_val = RegisterRead(reg);
 	uint8_t val = (orig_val & ~clearbits) | setbits;
 

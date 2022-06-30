@@ -34,33 +34,28 @@
 #ifndef _uORBTest_UnitTest_hpp_
 #define _uORBTest_UnitTest_hpp_
 
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
+#include <uORB/topics/orb_test.h>
+#include <uORB/topics/orb_test_large.h>
+#include <uORB/topics/orb_test_medium.h>
 #include <uORB/uORB.h>
+#include <unistd.h>
+
 #include <uORB/uORBDeviceMaster.hpp>
 #include <uORB/uORBDeviceNode.hpp>
 #include <uORB/uORBManager.hpp>
-#include <uORB/topics/orb_test.h>
-#include <uORB/topics/orb_test_medium.h>
-#include <uORB/topics/orb_test_large.h>
 
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/time.h>
-#include <px4_platform_common/tasks.h>
-
-#include <drivers/drv_hrt.h>
-
-#include <errno.h>
-#include <unistd.h>
-
-namespace uORBTest
-{
+namespace uORBTest {
 class UnitTest;
 }
 
-class uORBTest::UnitTest
-{
+class uORBTest::UnitTest {
 public:
-
 	// Singleton pattern
 	static uORBTest::UnitTest &instance();
 	~UnitTest() = default;
@@ -73,10 +68,7 @@ public:
 	UnitTest(const uORBTest::UnitTest & /*unused*/) = delete;
 
 	// Assist in testing the wrap-around situation
-	static void set_generation(uORB::DeviceNode &node, unsigned generation)
-	{
-		node._generation.store(generation);
-	}
+	static void set_generation(uORB::DeviceNode &node, unsigned generation) { node._generation.store(generation); }
 
 private:
 	UnitTest() = default;
@@ -93,7 +85,7 @@ private:
 	bool pubsubtest_print{false};
 	int pubsubtest_res = OK;
 
-	orb_advert_t _pfd[4] {}; ///< used for test_multi and test_multi_reversed
+	orb_advert_t _pfd[4]{};  ///< used for test_multi and test_multi_reversed
 
 	int test_single();
 
@@ -119,4 +111,4 @@ private:
 	int test_note(const char *fmt, ...);
 };
 
-#endif // _uORBTest_UnitTest_hpp_
+#endif  // _uORBTest_UnitTest_hpp_

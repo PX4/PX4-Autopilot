@@ -37,8 +37,7 @@
 
 #include <mathlib/mathlib.h>
 
-class InnovationLpf final
-{
+class InnovationLpf final {
 public:
 	InnovationLpf() = default;
 	~InnovationLpf() = default;
@@ -53,8 +52,7 @@ public:
 	 * @param spike_limit the amplitude of the saturation at the input of the filter
 	 * @return filtered output
 	 */
-	float update(float val, float alpha, float spike_limit)
-	{
+	float update(float val, float alpha, float spike_limit) {
 		float val_constrained = math::constrain(val, -spike_limit, spike_limit);
 		float beta = 1.f - alpha;
 
@@ -69,11 +67,10 @@ public:
 	 * @param tau_inv inverse of the time constant of the filter
 	 * @return alpha, the normalized weight of a new measurement
 	 */
-	static float computeAlphaFromDtAndTauInv(float dt, float tau_inv)
-	{
+	static float computeAlphaFromDtAndTauInv(float dt, float tau_inv) {
 		return math::constrain(dt * tau_inv, 0.f, 1.f);
 	}
 
 private:
-	float _x{}; ///< current state of the filter
+	float _x{};  ///< current state of the filter
 };

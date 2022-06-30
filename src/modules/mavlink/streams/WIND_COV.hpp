@@ -37,8 +37,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/wind.h>
 
-class MavlinkStreamWindCov : public MavlinkStream
-{
+class MavlinkStreamWindCov : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamWindCov(mavlink); }
 
@@ -48,8 +47,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		return _wind_sub.advertised() ? MAVLINK_MSG_ID_WIND_COV_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
@@ -59,8 +57,7 @@ private:
 	uORB::Subscription _wind_sub{ORB_ID(wind)};
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
 
-	bool send() override
-	{
+	bool send() override {
 		wind_s wind;
 
 		if (_wind_sub.update(&wind)) {
@@ -91,4 +88,4 @@ private:
 	}
 };
 
-#endif // WIND_COV
+#endif  // WIND_COV

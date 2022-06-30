@@ -39,7 +39,6 @@
 
 #pragma once
 
-
 extern void usb_cinit(void *config);
 extern void usb_cfini(void);
 extern int usb_cin(void);

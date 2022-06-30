@@ -35,17 +35,15 @@
 
 #include <px4_platform_common/log.h>
 
-#include <uavcan/uavcan.hpp>
 #include <uavcan/protocol/debug/LogMessage.hpp>
+#include <uavcan/uavcan.hpp>
 
-class UavcanLogMessage
-{
+class UavcanLogMessage {
 public:
 	UavcanLogMessage(uavcan::INode &node) : _sub_logmessage(node) {}
 	~UavcanLogMessage() = default;
 
-	int init()
-	{
+	int init() {
 		int res = _sub_logmessage.start(LogMessageCbBinder(this, &UavcanLogMessage::logmessage_sub_cb));
 
 		if (res < 0) {
@@ -57,34 +55,35 @@ public:
 	}
 
 private:
-	typedef uavcan::MethodBinder < UavcanLogMessage *,
-		void (UavcanLogMessage::*)(const uavcan::ReceivedDataStructure<uavcan::protocol::debug::LogMessage> &) >
+	typedef uavcan::MethodBinder<
+		UavcanLogMessage *,
+		void (UavcanLogMessage::*)(const uavcan::ReceivedDataStructure<uavcan::protocol::debug::LogMessage> &)>
 		LogMessageCbBinder;
 
-	void logmessage_sub_cb(const uavcan::ReceivedDataStructure<uavcan::protocol::debug::LogMessage> &msg)
-	{
+	void logmessage_sub_cb(const uavcan::ReceivedDataStructure<uavcan::protocol::debug::LogMessage> &msg) {
 		int px4_level = _PX4_LOG_LEVEL_INFO;
 
 		switch (msg.level.value) {
-		case uavcan::protocol::debug::LogLevel::DEBUG:
-			px4_level = _PX4_LOG_LEVEL_DEBUG;
-			break;
+			case uavcan::protocol::debug::LogLevel::DEBUG:
+				px4_level = _PX4_LOG_LEVEL_DEBUG;
+				break;
 
-		case uavcan::protocol::debug::LogLevel::INFO:
-			px4_level = _PX4_LOG_LEVEL_INFO;
-			break;
+			case uavcan::protocol::debug::LogLevel::INFO:
+				px4_level = _PX4_LOG_LEVEL_INFO;
+				break;
 
-		case uavcan::protocol::debug::LogLevel::WARNING:
-			px4_level = _PX4_LOG_LEVEL_WARN;
-			break;
+			case uavcan::protocol::debug::LogLevel::WARNING:
+				px4_level = _PX4_LOG_LEVEL_WARN;
+				break;
 
-		case uavcan::protocol::debug::LogLevel::ERROR:
-			px4_level = _PX4_LOG_LEVEL_ERROR;
-			break;
+			case uavcan::protocol::debug::LogLevel::ERROR:
+				px4_level = _PX4_LOG_LEVEL_ERROR;
+				break;
 		}
 
 		char module_name_buffer[80];
-		snprintf(module_name_buffer, sizeof(module_name_buffer), "uavcan:%d:%s", msg.getSrcNodeID().get(), msg.source.c_str());
+		snprintf(module_name_buffer, sizeof(module_name_buffer), "uavcan:%d:%s", msg.getSrcNodeID().get(),
+			 msg.source.c_str());
 		px4_log_modulename(px4_level, module_name_buffer, msg.text.c_str());
 	}
 

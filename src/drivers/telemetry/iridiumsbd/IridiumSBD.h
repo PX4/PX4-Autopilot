@@ -33,17 +33,15 @@
 
 #pragma once
 
-#include <stdlib.h>
-#include <stdbool.h>
-
-#include <lib/cdev/CDev.hpp>
 #include <drivers/drv_hrt.h>
-
-#include <uORB/Publication.hpp>
-#include <uORB/topics/iridiumsbd_status.h>
-
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <uORB/topics/iridiumsbd_status.h>
+
+#include <lib/cdev/CDev.hpp>
+#include <uORB/Publication.hpp>
 
 typedef enum {
 	SATCOM_OK = 0,
@@ -71,7 +69,7 @@ typedef enum {
 	SATCOM_RESULT_NA,
 } satcom_result_code;
 
-//typedef struct
+// typedef struct
 //{
 //	uint8_t	info;
 //	uint8_t	result_code;
@@ -86,22 +84,23 @@ typedef enum {
 
 extern "C" __EXPORT int iridiumsbd_main(int argc, char *argv[]);
 
-#define SATCOM_TX_BUF_LEN			340		// TX buffer size - maximum for a SBD MO message is 340, but billed per 50
-#define SATCOM_MAX_MESSAGE_LENGTH		50		// Maximum length of the expected messages sent over this link
-#define SATCOM_RX_MSG_BUF_LEN			270		// RX buffer size for MT messages
-#define SATCOM_RX_COMMAND_BUF_LEN		50		// RX buffer size for other commands
-#define SATCOM_SIGNAL_REFRESH_DELAY		20000000 // update signal quality every 20s
+#define SATCOM_TX_BUF_LEN 340                 // TX buffer size - maximum for a SBD MO message is 340, but billed per 50
+#define SATCOM_MAX_MESSAGE_LENGTH 50          // Maximum length of the expected messages sent over this link
+#define SATCOM_RX_MSG_BUF_LEN 270             // RX buffer size for MT messages
+#define SATCOM_RX_COMMAND_BUF_LEN 50          // RX buffer size for other commands
+#define SATCOM_SIGNAL_REFRESH_DELAY 20000000  // update signal quality every 20s
 
 /**
- * The driver for the Rockblock 9602 and 9603 RockBlock module for satellite communication over the Iridium satellite system.
- * The MavLink 1 protocol should be used to ensure that the status message is 50 bytes (RockBlock bills every 50 bytes per transmission).
+ * The driver for the Rockblock 9602 and 9603 RockBlock module for satellite communication over the Iridium satellite
+ * system. The MavLink 1 protocol should be used to ensure that the status message is 50 bytes (RockBlock bills every 50
+ * bytes per transmission).
  *
  * TODO:
  * 	- Improve TX buffer handling:
- * 		- Do not reset the full TX buffer but delete the oldest HIGH_LATENCY2 message if one is in the buffer or delete the oldest message in general
+ * 		- Do not reset the full TX buffer but delete the oldest HIGH_LATENCY2 message if one is in the buffer or
+ * delete the oldest message in general
  */
-class IridiumSBD : public cdev::CDev, public ModuleBase<IridiumSBD>
-{
+class IridiumSBD : public cdev::CDev, public ModuleBase<IridiumSBD> {
 public:
 	IridiumSBD();
 	~IridiumSBD();
@@ -266,7 +265,7 @@ private:
 	 * @param filep		Pointer to the NuttX file structure.
 	 * @return		OK if the open should proceed, -errno otherwise.
 	 */
-	virtual int	open_first(struct file *filep) override;
+	virtual int open_first(struct file *filep) override;
 
 	/**
 	 * Notification of the last close of CDev.
@@ -279,7 +278,7 @@ private:
 	 * @param filep		Pointer to the NuttX file structure.
 	 * @return		OK if the open should return OK, -errno otherwise.
 	 */
-	virtual int	close_last(struct file *filep) override;
+	virtual int close_last(struct file *filep) override;
 
 	int _uart_fd = -1;
 

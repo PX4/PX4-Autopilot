@@ -35,26 +35,17 @@
 
 using namespace time_literals;
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-LSM9DS1_MAG::LSM9DS1_MAG(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation)
-{
-}
+LSM9DS1_MAG::LSM9DS1_MAG(const I2CSPIDriverConfig &config)
+	: SPI(config), I2CSPIDriver(config), _px4_mag(get_device_id(), config.rotation) {}
 
-LSM9DS1_MAG::~LSM9DS1_MAG()
-{
+LSM9DS1_MAG::~LSM9DS1_MAG() {
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 }
 
-int LSM9DS1_MAG::init()
-{
+int LSM9DS1_MAG::init() {
 	int ret = SPI::init();
 
 	if (ret != PX4_OK) {
@@ -65,24 +56,21 @@ int LSM9DS1_MAG::init()
 	return Reset() ? 0 : -1;
 }
 
-bool LSM9DS1_MAG::Reset()
-{
+bool LSM9DS1_MAG::Reset() {
 	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
 }
 
-void LSM9DS1_MAG::print_status()
-{
+void LSM9DS1_MAG::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 }
 
-int LSM9DS1_MAG::probe()
-{
+int LSM9DS1_MAG::probe() {
 	const uint8_t WHO_AM_I_M = RegisterRead(Register::WHO_AM_I_M);
 
 	if (WHO_AM_I_M != Device_identification) {
@@ -93,63 +81,62 @@ int LSM9DS1_MAG::probe()
 	return PX4_OK;
 }
 
-void LSM9DS1_MAG::RunImpl()
-{
+void LSM9DS1_MAG::RunImpl() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-	case STATE::RESET:
-		// CTRL_REG2_M: SOFT_RST
-		RegisterWrite(Register::CTRL_REG2_M, CTRL_REG2_M_BIT::SOFT_RST);
-		_reset_timestamp = now;
-		_failure_count = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(100_ms);
-		break;
-
-	case STATE::WAIT_FOR_RESET:
-		if (RegisterRead(Register::WHO_AM_I_M) == Device_identification) {
-			// if reset succeeded then configure
-			_state = STATE::CONFIGURE;
-			ScheduleDelayed(10_ms);
-
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
-				ScheduleDelayed(100_ms);
-
-			} else {
-				PX4_DEBUG("Reset not complete, check again in 100 ms");
-				ScheduleDelayed(100_ms);
-			}
-		}
-
-		break;
-
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start reading
-			_state = STATE::READ;
-			ScheduleOnInterval(1000000 / ST_LSM9DS1_MAG::M_ODR);
-
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
-
-			} else {
-				PX4_DEBUG("Configure failed, retrying");
-			}
-
+		case STATE::RESET:
+			// CTRL_REG2_M: SOFT_RST
+			RegisterWrite(Register::CTRL_REG2_M, CTRL_REG2_M_BIT::SOFT_RST);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
 			ScheduleDelayed(100_ms);
-		}
+			break;
 
-		break;
+		case STATE::WAIT_FOR_RESET:
+			if (RegisterRead(Register::WHO_AM_I_M) == Device_identification) {
+				// if reset succeeded then configure
+				_state = STATE::CONFIGURE;
+				ScheduleDelayed(10_ms);
 
-	case STATE::READ: {
+			} else {
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 100 ms");
+					ScheduleDelayed(100_ms);
+				}
+			}
+
+			break;
+
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				// if configure succeeded then start reading
+				_state = STATE::READ;
+				ScheduleOnInterval(1000000 / ST_LSM9DS1_MAG::M_ODR);
+
+			} else {
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
+				ScheduleDelayed(100_ms);
+			}
+
+			break;
+
+		case STATE::READ: {
 			struct TransferBuffer {
 				uint8_t cmd;
 				uint8_t STATUS_REG_M;
@@ -215,8 +202,7 @@ void LSM9DS1_MAG::RunImpl()
 	}
 }
 
-bool LSM9DS1_MAG::Configure()
-{
+bool LSM9DS1_MAG::Configure() {
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
@@ -237,8 +223,7 @@ bool LSM9DS1_MAG::Configure()
 	return success;
 }
 
-bool LSM9DS1_MAG::RegisterCheck(const register_config_t &reg_cfg)
-{
+bool LSM9DS1_MAG::RegisterCheck(const register_config_t &reg_cfg) {
 	bool success = true;
 
 	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
@@ -249,29 +234,27 @@ bool LSM9DS1_MAG::RegisterCheck(const register_config_t &reg_cfg)
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.clear_bits);
 		success = false;
 	}
 
 	return success;
 }
 
-uint8_t LSM9DS1_MAG::RegisterRead(Register reg)
-{
-	uint8_t cmd[2] {};
+uint8_t LSM9DS1_MAG::RegisterRead(Register reg) {
+	uint8_t cmd[2]{};
 	cmd[0] = static_cast<uint8_t>(reg) | RW_BIT_READ;
 	transfer(cmd, cmd, sizeof(cmd));
 	return cmd[1];
 }
 
-void LSM9DS1_MAG::RegisterWrite(Register reg, uint8_t value)
-{
-	uint8_t cmd[2] { (uint8_t)reg, value };
+void LSM9DS1_MAG::RegisterWrite(Register reg, uint8_t value) {
+	uint8_t cmd[2]{(uint8_t)reg, value};
 	transfer(cmd, cmd, sizeof(cmd));
 }
 
-void LSM9DS1_MAG::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
-{
+void LSM9DS1_MAG::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits) {
 	const uint8_t orig_val = RegisterRead(reg);
 
 	uint8_t val = (orig_val & ~clearbits) | setbits;

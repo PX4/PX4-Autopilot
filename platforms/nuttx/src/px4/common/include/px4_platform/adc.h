@@ -33,8 +33,7 @@
 #pragma once
 
 #if SYSTEM_ADC_BASE == HW_REV_VER_ADC_BASE
-#  define SYSTEM_ADC_COUNT 1
+#define SYSTEM_ADC_COUNT 1
 #else
-#  define SYSTEM_ADC_COUNT 2
+#define SYSTEM_ADC_COUNT 2
 #endif
-

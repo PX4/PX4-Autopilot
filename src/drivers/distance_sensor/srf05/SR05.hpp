@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 
-
 /**
  * @file SR05.hpp
  * @author David Sidrane <david.sidrane@nscdg.com>
@@ -41,18 +40,18 @@
  */
 #pragma once
 
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <board_config.h>
+#include <drivers/device/device.h>
+#include <perf/perf_counter.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-#include <uORB/Subscription.hpp>
-#include <board_config.h>
-#include <drivers/device/device.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
-#include <perf/perf_counter.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Subscription.hpp>
 
 #if defined(GPIO_ULTRASOUND_TRIGGER) && defined(GPIO_ULTRASOUND_ECHO)
-#  define HAVE_ULTRASOUND
+#define HAVE_ULTRASOUND
 #endif
 
 using namespace time_literals;
@@ -67,8 +66,7 @@ static constexpr uint32_t HXSRX0X_CONVERSION_INTERVAL{50_ms};
 // Maximum time to wait for a conversion to complete.
 static constexpr uint32_t HXSRX0X_CONVERSION_TIMEOUT{30_ms};
 
-class SRF05 : public ModuleBase<SRF05>, public px4::ScheduledWorkItem
-{
+class SRF05 : public ModuleBase<SRF05>, public px4::ScheduledWorkItem {
 public:
 	SRF05(const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~SRF05() override;
@@ -113,11 +111,9 @@ private:
 
 	STATE _state{STATE::TRIGGER};
 
+	PX4Rangefinder _px4_rangefinder;
 
-
-	PX4Rangefinder	_px4_rangefinder;
-
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME" comms errors")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME" read")};
-	perf_counter_t _sensor_resets{perf_alloc(PC_COUNT, MODULE_NAME" resets")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME " comms errors")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME " read")};
+	perf_counter_t _sensor_resets{perf_alloc(PC_COUNT, MODULE_NAME " resets")};
 };

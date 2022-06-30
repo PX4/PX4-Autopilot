@@ -44,14 +44,10 @@
 
 const char *const UavcanDifferentialPressureBridge::NAME = "differential_pressure";
 
-UavcanDifferentialPressureBridge::UavcanDifferentialPressureBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_differential_pressure", ORB_ID(differential_pressure)),
-	_sub_air(node)
-{
-}
+UavcanDifferentialPressureBridge::UavcanDifferentialPressureBridge(uavcan::INode &node)
+	: UavcanSensorBridgeBase("uavcan_differential_pressure", ORB_ID(differential_pressure)), _sub_air(node) {}
 
-int UavcanDifferentialPressureBridge::init()
-{
+int UavcanDifferentialPressureBridge::init() {
 	int res = _sub_air.start(AirCbBinder(this, &UavcanDifferentialPressureBridge::air_sub_cb));
 
 	if (res < 0) {
@@ -62,9 +58,8 @@ int UavcanDifferentialPressureBridge::init()
 	return 0;
 }
 
-void UavcanDifferentialPressureBridge::air_sub_cb(const
-		uavcan::ReceivedDataStructure<uavcan::equipment::air_data::RawAirData> &msg)
-{
+void UavcanDifferentialPressureBridge::air_sub_cb(
+	const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::RawAirData> &msg) {
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
 	_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_UAVCAN;

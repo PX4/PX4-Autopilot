@@ -31,24 +31,25 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
+
 #include <uORB/Subscription.hpp>
+
+#include "../PreFlightCheck.hpp"
 
 using namespace time_literals;
 
-bool PreFlightCheck::airframeCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status)
-{
+bool PreFlightCheck::airframeCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status) {
 	bool success = true;
 
 #ifdef CONFIG_ARCH_BOARD_PX4_FMU_V2
 
 	// We no longer support VTOL on fmu-v2, so we need to warn existing users.
 	if (status.is_vtol) {
-		mavlink_log_critical(mavlink_log_pub,
-				     "VTOL is not supported with fmu-v2, see docs.px4.io/master/en/config/firmware.html#bootloader");
+		mavlink_log_critical(
+			mavlink_log_pub,
+			"VTOL is not supported with fmu-v2, see docs.px4.io/master/en/config/firmware.html#bootloader");
 		success = false;
 	}
 

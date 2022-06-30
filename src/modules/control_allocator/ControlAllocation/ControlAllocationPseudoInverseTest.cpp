@@ -40,12 +40,12 @@
  */
 
 #include <gtest/gtest.h>
+
 #include <ControlAllocationPseudoInverse.hpp>
 
 using namespace matrix;
 
-TEST(ControlAllocationTest, AllZeroCase)
-{
+TEST(ControlAllocationTest, AllZeroCase) {
 	ControlAllocationPseudoInverse method;
 
 	matrix::Vector<float, 6> control_sp;

@@ -34,11 +34,10 @@
 #ifndef ATTITUDE_HPP
 #define ATTITUDE_HPP
 
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_attitude.h>
 
-class MavlinkStreamAttitude : public MavlinkStream
-{
+class MavlinkStreamAttitude : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamAttitude(mavlink); }
 
@@ -48,8 +47,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		return _att_sub.advertised() ? MAVLINK_MSG_ID_ATTITUDE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
@@ -59,8 +57,7 @@ private:
 	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_attitude_s att;
 
 		if (_att_sub.update(&att)) {
@@ -88,4 +85,4 @@ private:
 	}
 };
 
-#endif // ATTITUDE_HPP
+#endif  // ATTITUDE_HPP

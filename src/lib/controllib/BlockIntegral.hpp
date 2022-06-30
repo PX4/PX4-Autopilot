@@ -40,14 +40,11 @@
 #pragma once
 
 #include "BlockLimitSym.hpp"
-
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
+namespace control {
 
 /**
  * A rectangular integrator.
@@ -56,24 +53,21 @@ namespace control
  * for windup protection.
  * @see Limit
  */
-class __EXPORT BlockIntegral: public SuperBlock
-{
+class __EXPORT BlockIntegral : public SuperBlock {
 public:
-// methods
-	BlockIntegral(SuperBlock *parent, const char *name) :
-		SuperBlock(parent, name),
-		_y(0),
-		_limit(this, "") {}
+	// methods
+	BlockIntegral(SuperBlock *parent, const char *name) : SuperBlock(parent, name), _y(0), _limit(this, "") {}
 	virtual ~BlockIntegral() = default;
 	float update(float input);
-// accessors
-	float getY() {return _y;}
-	float getMax() {return _limit.getMax();}
-	void setY(float y) {_y = y;}
+	// accessors
+	float getY() { return _y; }
+	float getMax() { return _limit.getMax(); }
+	void setY(float y) { _y = y; }
+
 protected:
-// attributes
-	float _y; /**< previous output */
+	// attributes
+	float _y;             /**< previous output */
 	BlockLimitSym _limit; /**< limiter */
 };
 
-} // namespace control
+}  // namespace control

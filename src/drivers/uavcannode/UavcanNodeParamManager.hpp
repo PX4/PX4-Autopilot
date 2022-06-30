@@ -33,26 +33,23 @@
 
 #pragma once
 
-#include <uavcan/uavcan.hpp>
 #include <uavcan/protocol/param_server.hpp>
+#include <uavcan/uavcan.hpp>
 
-namespace uavcannode
-{
+namespace uavcannode {
 
-class UavcanNodeParamManager : public uavcan::IParamManager
-{
+class UavcanNodeParamManager : public uavcan::IParamManager {
 public:
 	UavcanNodeParamManager() = default;
 
 	void getParamNameByIndex(Index index, Name &out_name) const override;
 	void assignParamValue(const Name &name, const Value &value) override;
 	void readParamValue(const Name &name, Value &out_value) const override;
-	void readParamDefaultMaxMin(const Name &name, Value &out_default,
-				    NumericValue &out_max, NumericValue &out_min) const override;
+	void readParamDefaultMaxMin(const Name &name, Value &out_default, NumericValue &out_max,
+				    NumericValue &out_min) const override;
 	int saveAllParams() override;
 	int eraseAllParams() override;
 
 private:
-
 };
-} // namespace uavcannode
+}  // namespace uavcannode

@@ -47,26 +47,21 @@
  * Address 0x44 - measures battery voltage and current with a 0.0005 ohm sense resistor
  * Address 0x45 - measures 5VDC/12VDC ouptut voltage and current with a 0.005 ohm sense resistor
  */
-VOXLPM::VOXLPM(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	ModuleParams(nullptr),
-	I2CSPIDriver(config),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")),
-	_ch_type((VOXLPM_CH_TYPE)config.custom1),
-	_battery(1, this, _meas_interval_us, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
-{
-}
+VOXLPM::VOXLPM(const I2CSPIDriverConfig &config)
+	: I2C(config),
+	  ModuleParams(nullptr),
+	  I2CSPIDriver(config),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": sample")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": comms_errors")),
+	  _ch_type((VOXLPM_CH_TYPE)config.custom1),
+	  _battery(1, this, _meas_interval_us, battery_status_s::BATTERY_SOURCE_POWER_MODULE) {}
 
-VOXLPM::~VOXLPM()
-{
+VOXLPM::~VOXLPM() {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
-int
-VOXLPM::init()
-{
+int VOXLPM::init() {
 	_initialized = false;
 	int ret = PX4_ERROR;
 
@@ -108,17 +103,13 @@ VOXLPM::init()
 	return ret;
 }
 
-int
-VOXLPM::force_init()
-{
+int VOXLPM::force_init() {
 	int ret = init();
 	start();
 	return ret;
 }
 
-int
-VOXLPM::probe()
-{
+int VOXLPM::probe() {
 	int ret = PX4_ERROR;
 	uint8_t data[2];
 
@@ -155,15 +146,12 @@ VOXLPM::probe()
 	return ret;
 }
 
-int
-VOXLPM::load_params(VOXLPM_TYPE pm_type, VOXLPM_CH_TYPE ch_type)
-{
+int VOXLPM::load_params(VOXLPM_TYPE pm_type, VOXLPM_CH_TYPE ch_type) {
 	if (pm_type == VOXLPM_TYPE_V2_LTC) {
 		/* No configuration needed */
 		_rshunt = (ch_type == VOXLPM_CH_TYPE_VBATT) ? VOXLPM_LTC2946_VBAT_SHUNT : VOXLPM_LTC2946_VREG_SHUNT;
 
 	} else if (pm_type == VOXLPM_TYPE_V3_INA) {
-
 		_rshunt = -1.0f;
 		float fvalue = -1.0f;
 		param_t ph;
@@ -185,25 +173,21 @@ VOXLPM::load_params(VOXLPM_TYPE pm_type, VOXLPM_CH_TYPE ch_type)
 		}
 
 		if (_rshunt < 0) {
-			_rshunt = (_ch_type == VOXLPM_CH_TYPE_VBATT) ? VOXLPM_INA231_VBAT_SHUNT : VOXLPM_INA231_VREG_SHUNT;
+			_rshunt = (_ch_type == VOXLPM_CH_TYPE_VBATT) ? VOXLPM_INA231_VBAT_SHUNT
+								     : VOXLPM_INA231_VREG_SHUNT;
 		}
-
 	}
 
 	return PX4_OK;
 }
 
-int
-VOXLPM::init_ltc2946()
-{
+int VOXLPM::init_ltc2946() {
 	write_reg(VOXLPM_LTC2946_CTRLA_REG, DEFAULT_LTC2946_CTRLA_REG_VAL);
 	write_reg(VOXLPM_LTC2946_CTRLB_REG, DEFAULT_LTC2946_CTRLB_REG_VAL);
 	return PX4_OK;
 }
 
-int
-VOXLPM::init_ina231()
-{
+int VOXLPM::init_ina231() {
 	int ret = PX4_OK;
 	uint16_t cmd;
 
@@ -243,40 +227,38 @@ VOXLPM::init_ina231()
 	return PX4_OK;
 }
 
-void
-VOXLPM::print_status()
-{
+void VOXLPM::print_status() {
 	perf_print_counter(_sample_perf);
 
 	switch (_pm_type) {
-	case VOXLPM_TYPE_V2_LTC:
-		printf("- V2 (LTC2964)\n");
-		break;
+		case VOXLPM_TYPE_V2_LTC:
+			printf("- V2 (LTC2964)\n");
+			break;
 
-	case VOXLPM_TYPE_V3_INA:
-		printf("- V3 (INA231)\n");
-		break;
+		case VOXLPM_TYPE_V3_INA:
+			printf("- V3 (INA231)\n");
+			break;
 
-	default:
-		break;
+		default:
+			break;
 	}
 
 	switch (_ch_type) {
-	case VOXLPM_CH_TYPE_VBATT:
-		printf("- type: BATT\n");
-		break;
+		case VOXLPM_CH_TYPE_VBATT:
+			printf("- type: BATT\n");
+			break;
 
-	case VOXLPM_CH_TYPE_P5VDC:
-		printf("- type: P5VDC\n");
-		break;
+		case VOXLPM_CH_TYPE_P5VDC:
+			printf("- type: P5VDC\n");
+			break;
 
-	case VOXLPM_CH_TYPE_P12VDC:
-		printf("- type: P12VDC\n");
-		break;
+		case VOXLPM_CH_TYPE_P12VDC:
+			printf("- type: P12VDC\n");
+			break;
 
-	default:
-		printf("- type: UNKOWN\n");
-		break;
+		default:
+			printf("- type: UNKOWN\n");
+			break;
 	}
 
 	printf("  - voltage: %9.4f VDC \n", (double)_voltage);
@@ -286,21 +268,11 @@ VOXLPM::print_status()
 	printf("  - meas interval:  %u us \n", _meas_interval_us);
 }
 
-void
-VOXLPM::start()
-{
-	ScheduleOnInterval(_meas_interval_us, 1000);
-}
+void VOXLPM::start() { ScheduleOnInterval(_meas_interval_us, 1000); }
 
-void
-VOXLPM::RunImpl()
-{
-	measure();
-}
+void VOXLPM::RunImpl() { measure(); }
 
-int
-VOXLPM::measure()
-{
+int VOXLPM::measure() {
 	int ret = PX4_ERROR;
 
 	if (!_initialized) {
@@ -326,57 +298,53 @@ VOXLPM::measure()
 	hrt_abstime tnow = hrt_absolute_time();
 
 	switch (_pm_type) {
-	case VOXLPM_TYPE_V2_LTC:
-		ret = measure_ltc2946();
-		break;
+		case VOXLPM_TYPE_V2_LTC:
+			ret = measure_ltc2946();
+			break;
 
-	case VOXLPM_TYPE_V3_INA:
-		ret = measure_ina231();
-		break;
+		case VOXLPM_TYPE_V3_INA:
+			ret = measure_ina231();
+			break;
 
-	default:
-		break;
+		default:
+			break;
 	}
 
 	if (ret == PX4_OK) {
 		switch (_ch_type) {
-		case VOXLPM_CH_TYPE_VBATT: {
-
+			case VOXLPM_CH_TYPE_VBATT: {
 				_battery.setConnected(true);
 				_battery.updateVoltage(_voltage);
 				_battery.updateCurrent(_amperage);
 				_battery.updateAndPublishBatteryStatus(tnow);
 			}
 
-		// fallthrough
-		case VOXLPM_CH_TYPE_P5VDC:
-		case VOXLPM_CH_TYPE_P12VDC: {
+			// fallthrough
+			case VOXLPM_CH_TYPE_P5VDC:
+			case VOXLPM_CH_TYPE_P12VDC: {
 				memset(&_pm_status, 0x00, sizeof(_pm_status));
 				_pm_status.timestamp = tnow;
-				_pm_status.voltage_v = (float) _voltage;
-				_pm_status.current_a = (float) _amperage;
+				_pm_status.voltage_v = (float)_voltage;
+				_pm_status.current_a = (float)_amperage;
 
 				//_pm_pub_topic.power_w   = (float) _power * _power_lsb;
 				_pm_pub_topic.publish(_pm_status);
-			}
-			break;
-
+			} break;
 		}
 
 	} else {
 		perf_count(_comms_errors);
 
 		switch (_ch_type) {
-		case VOXLPM_CH_TYPE_VBATT: {
+			case VOXLPM_CH_TYPE_VBATT: {
 				_battery.setConnected(true);
 				_battery.updateVoltage(0.f);
 				_battery.updateCurrent(0.f);
 				_battery.updateAndPublishBatteryStatus(tnow);
-			}
-			break;
+			} break;
 
-		default:
-			break;
+			default:
+				break;
 		}
 	}
 
@@ -385,9 +353,7 @@ VOXLPM::measure()
 	return ret;
 }
 
-int
-VOXLPM::measure_ltc2946()
-{
+int VOXLPM::measure_ltc2946() {
 	int ret = PX4_ERROR;
 	uint8_t vraw[2];
 	uint8_t iraw[2];
@@ -396,22 +362,20 @@ VOXLPM::measure_ltc2946()
 	int volt_ret = read_reg_buf(VOXLPM_LTC2946_VIN_MSB_REG, vraw, sizeof(vraw));         // 0x1E
 
 	if ((amp_ret == 0) && (volt_ret == 0)) {
-		uint16_t volt16 = (((uint16_t)vraw[0]) << 8) | vraw[1];   // MSB first
-		volt16        >>= 4;                                      // data is 12 bit and left-aligned
-		_voltage        = (volt16 / VOXLPM_LTC2946_RESOLUTION) * VOXLPM_LTC2946_VFS_SENSE;
+		uint16_t volt16 = (((uint16_t)vraw[0]) << 8) | vraw[1];  // MSB first
+		volt16 >>= 4;                                            // data is 12 bit and left-aligned
+		_voltage = (volt16 / VOXLPM_LTC2946_RESOLUTION) * VOXLPM_LTC2946_VFS_SENSE;
 
-		uint16_t curr16 = (((uint16_t)iraw[0]) << 8) | iraw[1];   // MSB first
-		curr16        >>= 4;                                      // data is 12 bit and left-aligned
-		_amperage       = curr16 / VOXLPM_LTC2946_RESOLUTION * VOXLPM_LTC2946_VFS_DELTA_SENSE / _rshunt;
+		uint16_t curr16 = (((uint16_t)iraw[0]) << 8) | iraw[1];  // MSB first
+		curr16 >>= 4;                                            // data is 12 bit and left-aligned
+		_amperage = curr16 / VOXLPM_LTC2946_RESOLUTION * VOXLPM_LTC2946_VFS_DELTA_SENSE / _rshunt;
 		ret = PX4_OK;
 	}
 
 	return ret;
 }
 
-int
-VOXLPM::measure_ina231()
-{
+int VOXLPM::measure_ina231() {
 	int ret = PX4_ERROR;
 
 	uint8_t raw_vshunt[2];
@@ -428,21 +392,21 @@ VOXLPM::measure_ina231()
 
 	if ((vshunt_ret == 0) && (vbus_ret == 0) && (amp_ret == 0)) {
 		vshunt = (((int16_t)raw_vshunt[0]) << 8) | raw_vshunt[1];  // MSB first
-		vbus   = (((uint16_t)raw_vbus[0]) << 8) | raw_vbus[1];  // MSB first
-		amps   = (((uint16_t)raw_amps[0]) << 8) | raw_amps[1];  // MSB first
+		vbus = (((uint16_t)raw_vbus[0]) << 8) | raw_vbus[1];       // MSB first
+		amps = (((uint16_t)raw_amps[0]) << 8) | raw_amps[1];       // MSB first
 
-		_voltage = (float) vbus * INA231_VBUSSCALE;
-		_vshunt = (float) vshunt * INA231_VSHUNTSCALE;
+		_voltage = (float)vbus * INA231_VBUSSCALE;
+		_vshunt = (float)vshunt * INA231_VSHUNTSCALE;
 
 		if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
 			/* vshunt is in microvolts, convert to AMPs */
-			_vshuntamps = ((float) _vshunt / VOXLPM_INA231_VBAT_SHUNT);
-			_amperage = (float) amps * VOXLPM_INA231_VBAT_I_LSB;
+			_vshuntamps = ((float)_vshunt / VOXLPM_INA231_VBAT_SHUNT);
+			_amperage = (float)amps * VOXLPM_INA231_VBAT_I_LSB;
 
 		} else {
 			/* vshunt is in microvolts, convert to AMPs */
-			_vshuntamps = ((float) _vshunt / VOXLPM_INA231_VREG_SHUNT);
-			_amperage = (float) amps * VOXLPM_INA231_VREG_I_LSB;
+			_vshuntamps = ((float)_vshunt / VOXLPM_INA231_VREG_SHUNT);
+			_amperage = (float)amps * VOXLPM_INA231_VREG_I_LSB;
 		}
 
 		ret = PX4_OK;
@@ -451,31 +415,23 @@ VOXLPM::measure_ina231()
 	return ret;
 }
 
-uint8_t
-VOXLPM::read_reg(uint8_t addr)
-{
-	uint8_t cmd[2] = { (uint8_t)(addr), 0};
+uint8_t VOXLPM::read_reg(uint8_t addr) {
+	uint8_t cmd[2] = {(uint8_t)(addr), 0};
 	transfer(&cmd[0], 1, &cmd[1], 1);
 	return cmd[1];
 }
 
-int
-VOXLPM::read_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len)
-{
+int VOXLPM::read_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len) {
 	const uint8_t cmd = (uint8_t)(addr);
 	return transfer(&cmd, sizeof(cmd), buf, len);
 }
 
-int
-VOXLPM::write_reg(uint8_t addr, uint8_t value)
-{
-	uint8_t cmd[2] = { (uint8_t)(addr), value};
+int VOXLPM::write_reg(uint8_t addr, uint8_t value) {
+	uint8_t cmd[2] = {(uint8_t)(addr), value};
 	return transfer(cmd, sizeof(cmd), nullptr, 0);
 }
 
-int
-VOXLPM::write_word_swapped(uint8_t addr, uint16_t value)
-{
+int VOXLPM::write_word_swapped(uint8_t addr, uint16_t value) {
 	uint8_t data[3] = {};
 	data[0] = addr;
 	data[1] = (value & 0xFF00) >> 8;

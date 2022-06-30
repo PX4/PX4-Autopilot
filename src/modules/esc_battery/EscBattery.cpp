@@ -37,16 +37,12 @@
 
 using namespace time_literals;
 
-EscBattery::EscBattery() :
-	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
-	_battery(1, this, ESC_BATTERY_INTERVAL_US, battery_status_s::BATTERY_SOURCE_ESCS)
-{
-}
+EscBattery::EscBattery()
+	: ModuleParams(nullptr),
+	  WorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
+	  _battery(1, this, ESC_BATTERY_INTERVAL_US, battery_status_s::BATTERY_SOURCE_ESCS) {}
 
-bool
-EscBattery::init()
-{
+bool EscBattery::init() {
 	if (!_esc_status_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -57,15 +53,9 @@ EscBattery::init()
 	return true;
 }
 
-void
-EscBattery::parameters_updated()
-{
-	ModuleParams::updateParams();
-}
+void EscBattery::parameters_updated() { ModuleParams::updateParams(); }
 
-void
-EscBattery::Run()
-{
+void EscBattery::Run() {
 	if (should_exit()) {
 		_esc_status_sub.unregisterCallback();
 		exit_and_cleanup();
@@ -83,7 +73,6 @@ EscBattery::Run()
 	esc_status_s esc_status;
 
 	if (_esc_status_sub.copy(&esc_status)) {
-
 		if (esc_status.esc_count == 0 || esc_status.esc_count > esc_status_s::CONNECTED_ESC_MAX) {
 			return;
 		}
@@ -108,8 +97,7 @@ EscBattery::Run()
 	}
 }
 
-int EscBattery::task_spawn(int argc, char *argv[])
-{
+int EscBattery::task_spawn(int argc, char *argv[]) {
 	EscBattery *instance = new EscBattery();
 
 	if (instance) {
@@ -131,13 +119,9 @@ int EscBattery::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int EscBattery::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int EscBattery::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int EscBattery::print_usage(const char *reason)
-{
+int EscBattery::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -156,7 +140,4 @@ This implements using information from the ESC status and publish it as battery 
 	return 0;
 }
 
-extern "C" __EXPORT int esc_battery_main(int argc, char *argv[])
-{
-	return EscBattery::main(argc, argv);
-}
+extern "C" __EXPORT int esc_battery_main(int argc, char *argv[]) { return EscBattery::main(argc, argv); }

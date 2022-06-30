@@ -39,15 +39,15 @@
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
-#define PNP_UNIQUE_ID_SIZE 16 // 128 bit unique id
+#define PNP_UNIQUE_ID_SIZE 16  // 128 bit unique id
 
-#include <crc64.h>
 #include "NodeClient.hpp"
 
-void NodeClient::callback(const CanardRxTransfer &receive)
-{
-	if (receive.metadata.remote_node_id != CANARD_NODE_ID_UNSET && _canard_handle.node_id() == CANARD_NODE_ID_UNSET) {
+#include <crc64.h>
 
+void NodeClient::callback(const CanardRxTransfer &receive) {
+	if (receive.metadata.remote_node_id != CANARD_NODE_ID_UNSET &&
+	    _canard_handle.node_id() == CANARD_NODE_ID_UNSET) {
 		int32_t allocated = CANARD_NODE_ID_UNSET;
 		px4_guid_t px4_guid;
 		board_get_px4_guid(px4_guid);
@@ -57,7 +57,7 @@ void NodeClient::callback(const CanardRxTransfer &receive)
 
 			size_t msg_size_in_bytes = receive.payload_size;
 			uavcan_pnp_NodeIDAllocationData_2_0_deserialize_(&msg, (const uint8_t *)receive.payload,
-					&msg_size_in_bytes);
+									 &msg_size_in_bytes);
 
 			if (memcmp(msg.unique_id, px4_guid, sizeof(msg.unique_id)) == 0) {
 				allocated = msg.node_id.value;
@@ -68,7 +68,7 @@ void NodeClient::callback(const CanardRxTransfer &receive)
 
 			size_t msg_size_in_bytes = receive.payload_size;
 			uavcan_pnp_NodeIDAllocationData_1_0_deserialize_(&msg, (const uint8_t *)receive.payload,
-					&msg_size_in_bytes);
+									 &msg_size_in_bytes);
 
 			if (msg.allocated_node_id.count > 0) {
 				if (msg.unique_id_hash == (crc64(px4_guid, PNP_UNIQUE_ID_SIZE) & 0xFFFFFFFFFFFF)) {
@@ -78,11 +78,11 @@ void NodeClient::callback(const CanardRxTransfer &receive)
 		}
 
 		if (allocated == CANARD_NODE_ID_UNSET) {
-			return;        // UID mismatch.
+			return;  // UID mismatch.
 		}
 
 		if (allocated <= 0 || allocated >= (int32_t)CANARD_NODE_ID_MAX)
-			// Allocated node-ID ignored because it exceeds max_node_id
+		// Allocated node-ID ignored because it exceeds max_node_id
 		{
 			return;
 		}
@@ -90,15 +90,12 @@ void NodeClient::callback(const CanardRxTransfer &receive)
 		_canard_handle.set_node_id(allocated);
 
 		PX4_INFO("Allocated Node ID %d", _canard_handle.node_id());
-
 	}
 }
 
-
-void NodeClient::update()
-{
-	if (hrt_elapsed_time(&_nodealloc_request_last) >= hrt_abstime(2 *
-			1000000ULL)) { // Compiler hates me here, some 1_s doesn't work
+void NodeClient::update() {
+	if (hrt_elapsed_time(&_nodealloc_request_last) >=
+	    hrt_abstime(2 * 1000000ULL)) {  // Compiler hates me here, some 1_s doesn't work
 
 		int32_t result;
 
@@ -116,26 +113,25 @@ void NodeClient::update()
 			px4_guid_t px4_guid;
 			board_get_px4_guid(px4_guid);
 			memcpy(node_id_alloc_msg.unique_id, px4_guid, sizeof(node_id_alloc_msg.unique_id));
-			//node_id_alloc_msg.node_id.value = preffered_node_id; //FIXME preffered ID PX4 Param
+			// node_id_alloc_msg.node_id.value = preffered_node_id; //FIXME preffered ID PX4 Param
 
 			const CanardTransferMetadata transfer_metadata = {
-				.priority       = CanardPriorityNominal,
-				.transfer_kind  = CanardTransferKindMessage,
-				.port_id        = PNP2_PORT_ID,                // This is the subject-ID.
-				.remote_node_id = CANARD_NODE_ID_UNSET,       // Messages cannot be unicast, so use UNSET.
-				.transfer_id    = _node_id_alloc_transfer_id,
+				.priority = CanardPriorityNominal,
+				.transfer_kind = CanardTransferKindMessage,
+				.port_id = PNP2_PORT_ID,                 // This is the subject-ID.
+				.remote_node_id = CANARD_NODE_ID_UNSET,  // Messages cannot be unicast, so use UNSET.
+				.transfer_id = _node_id_alloc_transfer_id,
 			};
 
-			result = uavcan_pnp_NodeIDAllocationData_2_0_serialize_(&node_id_alloc_msg, (uint8_t *)&node_id_alloc_payload_buffer,
-					&payload_size);
+			result = uavcan_pnp_NodeIDAllocationData_2_0_serialize_(
+				&node_id_alloc_msg, (uint8_t *)&node_id_alloc_payload_buffer, &payload_size);
 
 			if (result == 0) {
 				// set the data ready in the buffer and chop if needed
-				++_node_id_alloc_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
+				++_node_id_alloc_transfer_id;  // The transfer-ID shall be incremented after every
+							       // transmission on this subject.
 				_canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
-						      &transfer_metadata,
-						      payload_size,
-						      &node_id_alloc_payload_buffer);
+						      &transfer_metadata, payload_size, &node_id_alloc_payload_buffer);
 			}
 
 		} else {
@@ -150,23 +146,22 @@ void NodeClient::update()
 			node_id_alloc_msg.unique_id_hash = (crc64(px4_guid, PNP_UNIQUE_ID_SIZE) & 0xFFFFFFFFFFFF);
 
 			const CanardTransferMetadata transfer_metadata = {
-				.priority       = CanardPriorityNominal,
-				.transfer_kind  = CanardTransferKindMessage,
-				.port_id        = PNP1_PORT_ID,                // This is the subject-ID.
-				.remote_node_id = CANARD_NODE_ID_UNSET,       // Messages cannot be unicast, so use UNSET.
-				.transfer_id    = _node_id_alloc_transfer_id,
+				.priority = CanardPriorityNominal,
+				.transfer_kind = CanardTransferKindMessage,
+				.port_id = PNP1_PORT_ID,                 // This is the subject-ID.
+				.remote_node_id = CANARD_NODE_ID_UNSET,  // Messages cannot be unicast, so use UNSET.
+				.transfer_id = _node_id_alloc_transfer_id,
 			};
 
-			result = uavcan_pnp_NodeIDAllocationData_1_0_serialize_(&node_id_alloc_msg, (uint8_t *)&node_id_alloc_payload_buffer,
-					&payload_size);
+			result = uavcan_pnp_NodeIDAllocationData_1_0_serialize_(
+				&node_id_alloc_msg, (uint8_t *)&node_id_alloc_payload_buffer, &payload_size);
 
 			if (result == 0) {
 				// set the data ready in the buffer and chop if needed
-				++_node_id_alloc_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
+				++_node_id_alloc_transfer_id;  // The transfer-ID shall be incremented after every
+							       // transmission on this subject.
 				_canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
-						      &transfer_metadata,
-						      payload_size,
-						      &node_id_alloc_payload_buffer);
+						      &transfer_metadata, payload_size, &node_id_alloc_payload_buffer);
 			}
 		}
 

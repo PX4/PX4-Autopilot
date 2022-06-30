@@ -31,15 +31,13 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "bmp388.h"
 
-void
-BMP388::print_usage()
-{
+void BMP388::print_usage() {
 	PRINT_MODULE_USAGE_NAME("bmp388", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -48,8 +46,7 @@ BMP388::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *BMP388::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+I2CSPIDriverBase *BMP388::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	IBMP388 *interface = nullptr;
 
 	if (config.bus_type == BOARD_I2C_BUS) {
@@ -85,8 +82,7 @@ I2CSPIDriverBase *BMP388::instantiate(const I2CSPIDriverConfig &config, int runt
 	return dev;
 }
 
-extern "C" int bmp388_main(int argc, char *argv[])
-{
+extern "C" int bmp388_main(int argc, char *argv[]) {
 	using ThisDriver = BMP388;
 	BusCLIArguments cli{true, true};
 	cli.i2c_address = 0x76;

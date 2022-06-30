@@ -39,17 +39,16 @@
 #ifndef EKF_SENSOR_H
 #define EKF_SENSOR_H
 
-#include "EKF/ekf.h"
 #include <math.h>
+
 #include <memory>
 
-namespace sensor_simulator
-{
+#include "EKF/ekf.h"
 
-class Sensor
-{
+namespace sensor_simulator {
+
+class Sensor {
 public:
-
 	Sensor(std::shared_ptr<Ekf> ekf);
 	virtual ~Sensor();
 
@@ -66,7 +65,6 @@ public:
 	bool should_send(uint64_t time) const;
 
 protected:
-
 	std::shared_ptr<Ekf> _ekf;
 	// time in microseconds
 	uint32_t _update_period;
@@ -79,8 +77,7 @@ protected:
 
 	// call set*Data function of Ekf
 	virtual void send(uint64_t time) = 0;
-
 };
 
-} // namespace sensor_simulator
-#endif // !EKF_SENSOR_H
+}  // namespace sensor_simulator
+#endif  // !EKF_SENSOR_H

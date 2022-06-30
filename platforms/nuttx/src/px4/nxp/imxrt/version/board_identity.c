@@ -37,16 +37,16 @@
  * Implementation of imxrt based Board identity API
  */
 
+#include <arm_arch.h>
+#include <hardware/imxrt_ocotp.h>
 #include <px4_platform_common/px4_config.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <arm_arch.h>
-#include <hardware/imxrt_ocotp.h>
 
-#define CPU_UUID_BYTE_FORMAT_ORDER          {3, 2, 1, 0, 7, 6, 5, 4}
-#define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00ff0000) >> 8) | (((x) & 0x0000ff00) << 8) | ((x) << 24))
-
+#define CPU_UUID_BYTE_FORMAT_ORDER \
+	{ 3, 2, 1, 0, 7, 6, 5, 4 }
+#define SWAP_UINT32(x) (((x) >> 24) | (((x)&0x00ff0000) >> 8) | (((x)&0x0000ff00) << 8) | ((x) << 24))
 
 static const uint16_t soc_arch_id = PX4_SOC_ARCH_ID;
 
@@ -55,8 +55,7 @@ static const uint16_t soc_arch_id = PX4_SOC_ARCH_ID;
 
 typedef const uint8_t uuid_uint8_reorder_t[PX4_CPU_UUID_BYTE_LENGTH];
 
-void board_get_uuid(uuid_byte_t uuid_bytes)
-{
+void board_get_uuid(uuid_byte_t uuid_bytes) {
 	uuid_uint8_reorder_t reorder = CPU_UUID_BYTE_FORMAT_ORDER;
 
 	union {
@@ -75,8 +74,7 @@ void board_get_uuid(uuid_byte_t uuid_bytes)
 	}
 }
 
-void board_get_uuid32(uuid_uint32_t uuid_words)
-{
+void board_get_uuid32(uuid_uint32_t uuid_words) {
 	/* IMXRT_OCOTP_CFG1:0x420[10:0], IMXRT_OCOTP_CFG0:0x410[31:0] LOT_NO_ENC[42:0](SJC_CHALL/UNIQUE_ID[42:0])
 	 *    43 bits  FSL-wide unique,encoded LOT ID STD II/SJC CHALLENGE/ Unique ID
 	 * 0x420[15:11] WAFER_NO[4:0]( SJC_CHALL[47:43] /UNIQUE_ID[47:43])
@@ -94,10 +92,7 @@ void board_get_uuid32(uuid_uint32_t uuid_words)
 	uuid_words[1] = getreg32(IMXRT_OCOTP_CFG0);
 }
 
-int board_get_uuid32_formated(char *format_buffer, int size,
-			      const char *format,
-			      const char *seperator)
-{
+int board_get_uuid32_formated(char *format_buffer, int size, const char *format, const char *seperator) {
 	uuid_uint32_t uuid;
 	board_get_uuid32(uuid);
 
@@ -116,18 +111,16 @@ int board_get_uuid32_formated(char *format_buffer, int size,
 	return 0;
 }
 
-int board_get_mfguid(mfguid_t mfgid)
-{
-	board_get_uuid(* (uuid_byte_t *) mfgid);
+int board_get_mfguid(mfguid_t mfgid) {
+	board_get_uuid(*(uuid_byte_t *)mfgid);
 	return PX4_CPU_MFGUID_BYTE_LENGTH;
 }
 
-int board_get_mfguid_formated(char *format_buffer, int size)
-{
+int board_get_mfguid_formated(char *format_buffer, int size) {
 	mfguid_t mfguid;
 
 	board_get_mfguid(mfguid);
-	int offset  = 0;
+	int offset = 0;
 
 	for (unsigned int i = 0; i < PX4_CPU_MFGUID_BYTE_LENGTH; i++) {
 		offset += snprintf(&format_buffer[offset], size - offset, "%02x", mfguid[i]);
@@ -136,9 +129,8 @@ int board_get_mfguid_formated(char *format_buffer, int size)
 	return offset;
 }
 
-int board_get_px4_guid(px4_guid_t px4_guid)
-{
-	uint8_t  *pb = (uint8_t *) &px4_guid[0];
+int board_get_px4_guid(px4_guid_t px4_guid) {
+	uint8_t *pb = (uint8_t *)&px4_guid[0];
 	*pb++ = (soc_arch_id >> 8) & 0xff;
 	*pb++ = (soc_arch_id & 0xff);
 
@@ -150,11 +142,10 @@ int board_get_px4_guid(px4_guid_t px4_guid)
 	return PX4_GUID_BYTE_LENGTH;
 }
 
-int board_get_px4_guid_formated(char *format_buffer, int size)
-{
+int board_get_px4_guid_formated(char *format_buffer, int size) {
 	px4_guid_t px4_guid;
 	board_get_px4_guid(px4_guid);
-	int offset  = 0;
+	int offset = 0;
 
 	/* size should be 2 per byte + 1 for termination
 	 * So it needs to be odd

@@ -33,7 +33,8 @@
 
 /*
  * @file LandingTargetEstimator.h
- * Landing target position estimator. Filter and publish the position of a landing target on the ground as observed by an onboard sensor.
+ * Landing target position estimator. Filter and publish the position of a landing target on the ground as observed by
+ * an onboard sensor.
  *
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  * @author Mohammed Kabir <kabir@uasys.io>
@@ -42,37 +43,36 @@
 
 #pragma once
 
-#include <px4_platform_common/workqueue.h>
 #include <drivers/drv_hrt.h>
+#include <lib/conversion/rotation.h>
+#include <mathlib/mathlib.h>
 #include <parameters/param.h>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionInterval.hpp>
+#include <px4_platform_common/workqueue.h>
+#include <uORB/topics/estimator_sensor_bias.h>
+#include <uORB/topics/irlock_report.h>
+#include <uORB/topics/landing_target_innovations.h>
+#include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/uwb_distance.h>
+#include <uORB/topics/uwb_grid.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/irlock_report.h>
-#include <uORB/topics/landing_target_pose.h>
-#include <uORB/topics/landing_target_innovations.h>
-#include <uORB/topics/uwb_distance.h>
-#include <uORB/topics/uwb_grid.h>
-#include <uORB/topics/estimator_sensor_bias.h>
-#include <uORB/topics/parameter_update.h>
-#include <matrix/math.hpp>
-#include <mathlib/mathlib.h>
+
 #include <matrix/Matrix.hpp>
-#include <lib/conversion/rotation.h>
+#include <matrix/math.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
+
 #include "KalmanFilter.h"
 
 using namespace time_literals;
 
-namespace landing_target_estimator
-{
+namespace landing_target_estimator {
 
-class LandingTargetEstimator
-{
+class LandingTargetEstimator {
 public:
-
 	LandingTargetEstimator();
 	virtual ~LandingTargetEstimator() = default;
 
@@ -82,7 +82,6 @@ public:
 	void update();
 
 protected:
-
 	/*
 	 * Update uORB topics.
 	 */
@@ -105,15 +104,11 @@ protected:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
-
-	enum class TargetMode {
-		Moving = 0,
-		Stationary
-	};
+	enum class TargetMode { Moving = 0, Stationary };
 
 	/**
-	* Handles for parameters
-	**/
+	 * Handles for parameters
+	 **/
 	struct {
 		param_t acc_unc;
 		param_t meas_unc;
@@ -155,12 +150,12 @@ private:
 	uORB::Subscription _irlockReportSub{ORB_ID(irlock_report)};
 	uORB::Subscription _uwbDistanceSub{ORB_ID(uwb_distance)};
 
-	vehicle_local_position_s	_vehicleLocalPosition{};
-	vehicle_attitude_s		_vehicleAttitude{};
-	vehicle_acceleration_s		_vehicle_acceleration{};
-	irlock_report_s			_irlockReport{};
-	uwb_grid_s		_uwbGrid{};
-	uwb_distance_s		_uwbDistance{};
+	vehicle_local_position_s _vehicleLocalPosition{};
+	vehicle_attitude_s _vehicleAttitude{};
+	vehicle_acceleration_s _vehicle_acceleration{};
+	irlock_report_s _irlockReport{};
+	uwb_grid_s _uwbGrid{};
+	uwb_distance_s _uwbDistance{};
 
 	// keep track of which topics we have received
 	bool _vehicleLocalPosition_valid{false};
@@ -172,17 +167,17 @@ private:
 	// keep track of whether last measurement was rejected
 	bool _faulty{false};
 
-	matrix::Dcmf _R_att; //Orientation of the body frame
-	matrix::Dcmf _S_att; //Orientation of the sensor relative to body frame
+	matrix::Dcmf _R_att;  // Orientation of the body frame
+	matrix::Dcmf _S_att;  // Orientation of the sensor relative to body frame
 	matrix::Vector2f _rel_pos;
 	KalmanFilter _kalman_filter_x;
 	KalmanFilter _kalman_filter_y;
-	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
-	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
+	hrt_abstime _last_predict{0};  // timestamp of last filter prediction
+	hrt_abstime _last_update{0};   // timestamp of last filter update (used to check timeout)
 	float _dist_z{1.0f};
 
 	void _check_params(const bool force);
 
 	void _update_state();
 };
-} // namespace landing_target_estimator
+}  // namespace landing_target_estimator

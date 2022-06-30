@@ -36,23 +36,20 @@
  */
 
 #include "FlightTaskManualPosition.hpp"
-#include <mathlib/mathlib.h>
+
 #include <float.h>
+#include <mathlib/mathlib.h>
 
 using namespace matrix;
 
-bool FlightTaskManualPosition::updateInitialize()
-{
+bool FlightTaskManualPosition::updateInitialize() {
 	bool ret = FlightTaskManualAltitude::updateInitialize();
 	// require valid position / velocity in xy
-	return ret && PX4_ISFINITE(_position(0))
-	       && PX4_ISFINITE(_position(1))
-	       && PX4_ISFINITE(_velocity(0))
-	       && PX4_ISFINITE(_velocity(1));
+	return ret && PX4_ISFINITE(_position(0)) && PX4_ISFINITE(_position(1)) && PX4_ISFINITE(_velocity(0)) &&
+	       PX4_ISFINITE(_velocity(1));
 }
 
-bool FlightTaskManualPosition::activate(const trajectory_setpoint_s &last_setpoint)
-{
+bool FlightTaskManualPosition::activate(const trajectory_setpoint_s &last_setpoint) {
 	// all requirements from altitude-mode still have to hold
 	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
 
@@ -65,8 +62,7 @@ bool FlightTaskManualPosition::activate(const trajectory_setpoint_s &last_setpoi
 	return ret;
 }
 
-void FlightTaskManualPosition::_scaleSticks()
-{
+void FlightTaskManualPosition::_scaleSticks() {
 	/* Use same scaling as for FlightTaskManualAltitude */
 	FlightTaskManualAltitude::_scaleSticks();
 
@@ -102,8 +98,7 @@ void FlightTaskManualPosition::_scaleSticks()
 	_velocity_setpoint.xy() = vel_sp_xy;
 }
 
-void FlightTaskManualPosition::_updateXYlock()
-{
+void FlightTaskManualPosition::_updateXYlock() {
 	/* If position lock is not active, position setpoint is set to NAN.*/
 	const float vel_xy_norm = Vector2f(_velocity).length();
 	const bool apply_brake = Vector2f(_velocity_setpoint).length() < FLT_EPSILON;
@@ -129,19 +124,19 @@ void FlightTaskManualPosition::_updateXYlock()
 	}
 }
 
-void FlightTaskManualPosition::_updateSetpoints()
-{
-	FlightTaskManualAltitude::_updateSetpoints(); // needed to get yaw and setpoints in z-direction
-	_acceleration_setpoint.setNaN(); // don't use the horizontal setpoints from FlightTaskAltitude
+void FlightTaskManualPosition::_updateSetpoints() {
+	FlightTaskManualAltitude::_updateSetpoints();  // needed to get yaw and setpoints in z-direction
+	_acceleration_setpoint.setNaN();               // don't use the horizontal setpoints from FlightTaskAltitude
 
-	_updateXYlock(); // check for position lock
+	_updateXYlock();  // check for position lock
 
 	_weathervane.update();
 
 	if (_weathervane.isActive()) {
 		_yaw_setpoint = NAN;
 
-		// only enable the weathervane to change the yawrate when position lock is active (and thus the pos. sp. are NAN)
+		// only enable the weathervane to change the yawrate when position lock is active (and thus the pos. sp.
+		// are NAN)
 		if (PX4_ISFINITE(_position_setpoint(0)) && PX4_ISFINITE(_position_setpoint(1))) {
 			// vehicle is steady
 			_yawspeed_setpoint += _weathervane.getWeathervaneYawrate();

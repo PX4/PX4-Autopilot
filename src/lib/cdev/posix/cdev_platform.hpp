@@ -7,8 +7,7 @@
 #define ATOMIC_ENTER lock()
 #define ATOMIC_LEAVE unlock()
 
-namespace cdev
-{
+namespace cdev {
 
 struct file_operations {
 	void *op;
@@ -28,8 +27,8 @@ struct file_t {
 	file_t(int f, CDev *c) : f_oflags(f), cdev(c) {}
 };
 
-} // namespace cdev
+}  // namespace cdev
 
-extern "C" __EXPORT int register_driver(const char *name, const cdev::px4_file_operations_t *fops,
-					cdev::mode_t mode, void *data);
+extern "C" __EXPORT int register_driver(const char *name, const cdev::px4_file_operations_t *fops, cdev::mode_t mode,
+					void *data);
 extern "C" __EXPORT int unregister_driver(const char *path);

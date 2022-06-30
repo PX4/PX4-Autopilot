@@ -36,17 +36,15 @@
  *
  * Simple ADC support for PX4IO on STM32.
  */
+#include <arch/stm32/chip.h>
+#include <drivers/drv_hrt.h>
+#include <nuttx/arch.h>
 #include <px4_platform_common/px4_config.h>
 #include <stdint.h>
-
-#include <nuttx/arch.h>
-#include <arch/stm32/chip.h>
 #include <stm32.h>
 
-#include <drivers/drv_hrt.h>
-
 #if defined(PX4IO_PERF)
-# include <perf/perf_counter.h>
+#include <perf/perf_counter.h>
 #endif
 
 #define DEBUG
@@ -56,36 +54,34 @@
  * Register accessors.
  * For now, no reason not to just use ADC1.
  */
-#define REG(_reg)	(*(volatile uint32_t *)(STM32_ADC1_BASE + _reg))
+#define REG(_reg) (*(volatile uint32_t *)(STM32_ADC1_BASE + _reg))
 
-#define rSR		REG(STM32_ADC_SR_OFFSET)
-#define rCR1		REG(STM32_ADC_CR1_OFFSET)
-#define rCR2		REG(STM32_ADC_CR2_OFFSET)
-#define rSMPR1		REG(STM32_ADC_SMPR1_OFFSET)
-#define rSMPR2		REG(STM32_ADC_SMPR2_OFFSET)
-#define rJOFR1		REG(STM32_ADC_JOFR1_OFFSET)
-#define rJOFR2		REG(STM32_ADC_JOFR2_OFFSET)
-#define rJOFR3		REG(STM32_ADC_JOFR3_OFFSET)
-#define rJOFR4		REG(STM32_ADC_JOFR4_OFFSET)
-#define rHTR		REG(STM32_ADC_HTR_OFFSET)
-#define rLTR		REG(STM32_ADC_LTR_OFFSET)
-#define rSQR1		REG(STM32_ADC_SQR1_OFFSET)
-#define rSQR2		REG(STM32_ADC_SQR2_OFFSET)
-#define rSQR3		REG(STM32_ADC_SQR3_OFFSET)
-#define rJSQR		REG(STM32_ADC_JSQR_OFFSET)
-#define rJDR1		REG(STM32_ADC_JDR1_OFFSET)
-#define rJDR2		REG(STM32_ADC_JDR2_OFFSET)
-#define rJDR3		REG(STM32_ADC_JDR3_OFFSET)
-#define rJDR4		REG(STM32_ADC_JDR4_OFFSET)
-#define rDR		REG(STM32_ADC_DR_OFFSET)
+#define rSR REG(STM32_ADC_SR_OFFSET)
+#define rCR1 REG(STM32_ADC_CR1_OFFSET)
+#define rCR2 REG(STM32_ADC_CR2_OFFSET)
+#define rSMPR1 REG(STM32_ADC_SMPR1_OFFSET)
+#define rSMPR2 REG(STM32_ADC_SMPR2_OFFSET)
+#define rJOFR1 REG(STM32_ADC_JOFR1_OFFSET)
+#define rJOFR2 REG(STM32_ADC_JOFR2_OFFSET)
+#define rJOFR3 REG(STM32_ADC_JOFR3_OFFSET)
+#define rJOFR4 REG(STM32_ADC_JOFR4_OFFSET)
+#define rHTR REG(STM32_ADC_HTR_OFFSET)
+#define rLTR REG(STM32_ADC_LTR_OFFSET)
+#define rSQR1 REG(STM32_ADC_SQR1_OFFSET)
+#define rSQR2 REG(STM32_ADC_SQR2_OFFSET)
+#define rSQR3 REG(STM32_ADC_SQR3_OFFSET)
+#define rJSQR REG(STM32_ADC_JSQR_OFFSET)
+#define rJDR1 REG(STM32_ADC_JDR1_OFFSET)
+#define rJDR2 REG(STM32_ADC_JDR2_OFFSET)
+#define rJDR3 REG(STM32_ADC_JDR3_OFFSET)
+#define rJDR4 REG(STM32_ADC_JDR4_OFFSET)
+#define rDR REG(STM32_ADC_DR_OFFSET)
 
 #if defined(PX4IO_PERF)
-perf_counter_t		adc_perf;
+perf_counter_t adc_perf;
 #endif
 
-int
-adc_init(void)
-{
+int adc_init(void) {
 #if defined(PX4IO_PERF)
 	adc_perf = perf_alloc(PC_ELAPSED, "adc");
 #endif
@@ -127,12 +123,12 @@ adc_init(void)
 	rSMPR1 = 0b00000000011011011011011011011011;
 	rSMPR2 = 0b00011011011011011011011011011011;
 
-	rCR2 |=	ADC_CR2_TSVREFE;		/* enable the temperature sensor / Vrefint channel */
+	rCR2 |= ADC_CR2_TSVREFE; /* enable the temperature sensor / Vrefint channel */
 
 	/* configure for a single-channel sequence */
 	rSQR1 = 0;
 	rSQR2 = 0;
-	rSQR3 = 0;	/* will be updated with the channel at conversion time */
+	rSQR3 = 0; /* will be updated with the channel at conversion time */
 
 	return 0;
 }
@@ -140,9 +136,7 @@ adc_init(void)
 /*
   return one measurement, or 0xffff on error
  */
-uint16_t
-adc_measure(unsigned channel)
-{
+uint16_t adc_measure(unsigned channel) {
 #if defined(PX4IO_PERF)
 	perf_begin(adc_perf);
 #endif
@@ -159,7 +153,6 @@ adc_measure(unsigned channel)
 	hrt_abstime now = hrt_absolute_time();
 
 	while (!(rSR & ADC_SR_EOC)) {
-
 		/* never spin forever - this will give a bogus result though */
 		if (hrt_elapsed_time(&now) > 100) {
 #if defined(PX4IO_PERF)

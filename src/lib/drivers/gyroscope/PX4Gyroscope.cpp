@@ -31,16 +31,15 @@
  *
  ****************************************************************************/
 
-
 #include "PX4Gyroscope.hpp"
 
-#include <lib/drivers/device/Device.hpp>
 #include <lib/parameters/param.h>
+
+#include <lib/drivers/device/Device.hpp>
 
 using namespace time_literals;
 
-static constexpr int32_t sum(const int16_t samples[], uint8_t len)
-{
+static constexpr int32_t sum(const int16_t samples[], uint8_t len) {
 	int32_t sum = 0;
 
 	for (int n = 0; n < len; n++) {
@@ -50,8 +49,7 @@ static constexpr int32_t sum(const int16_t samples[], uint8_t len)
 	return sum;
 }
 
-static constexpr uint8_t clipping(const int16_t samples[], uint8_t len)
-{
+static constexpr uint8_t clipping(const int16_t samples[], uint8_t len) {
 	unsigned clip_count = 0;
 
 	for (int n = 0; n < len; n++) {
@@ -66,24 +64,19 @@ static constexpr uint8_t clipping(const int16_t samples[], uint8_t len)
 	return clip_count;
 }
 
-PX4Gyroscope::PX4Gyroscope(uint32_t device_id, enum Rotation rotation) :
-	_device_id{device_id},
-	_rotation{rotation}
-{
+PX4Gyroscope::PX4Gyroscope(uint32_t device_id, enum Rotation rotation) : _device_id{device_id}, _rotation{rotation} {
 	// advertise immediately to keep instance numbering in sync
 	_sensor_pub.advertise();
 
 	param_get(param_find("IMU_GYRO_RATEMAX"), &_imu_gyro_rate_max);
 }
 
-PX4Gyroscope::~PX4Gyroscope()
-{
+PX4Gyroscope::~PX4Gyroscope() {
 	_sensor_pub.unadvertise();
 	_sensor_fifo_pub.unadvertise();
 }
 
-void PX4Gyroscope::set_device_type(uint8_t devtype)
-{
+void PX4Gyroscope::set_device_type(uint8_t devtype) {
 	// current DeviceStructure
 	union device::Device::DeviceId device_id;
 	device_id.devid = _device_id;
@@ -95,8 +88,7 @@ void PX4Gyroscope::set_device_type(uint8_t devtype)
 	_device_id = device_id.devid;
 }
 
-void PX4Gyroscope::set_scale(float scale)
-{
+void PX4Gyroscope::set_scale(float scale) {
 	if (fabsf(scale - _scale) > FLT_EPSILON) {
 		// rescale last sample on scale change
 		float rescale = _scale / scale;
@@ -111,8 +103,7 @@ void PX4Gyroscope::set_scale(float scale)
 	}
 }
 
-void PX4Gyroscope::update(const hrt_abstime &timestamp_sample, float x, float y, float z)
-{
+void PX4Gyroscope::update(const hrt_abstime &timestamp_sample, float x, float y, float z) {
 	// Apply rotation (before scaling)
 	rotate_3f(_rotation, x, y, z);
 
@@ -134,8 +125,7 @@ void PX4Gyroscope::update(const hrt_abstime &timestamp_sample, float x, float y,
 	_sensor_pub.publish(report);
 }
 
-void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
-{
+void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample) {
 	// rotate all raw samples and publish fifo
 	const uint8_t N = sample.samples;
 
@@ -147,7 +137,6 @@ void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
 	sample.scale = _scale;
 	sample.timestamp = hrt_absolute_time();
 	_sensor_fifo_pub.publish(sample);
-
 
 	// publish
 	sensor_gyro_s report;
@@ -175,8 +164,7 @@ void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
 	_sensor_pub.publish(report);
 }
 
-void PX4Gyroscope::UpdateClipLimit()
-{
+void PX4Gyroscope::UpdateClipLimit() {
 	// 99.9% of potential max
 	_clip_limit = math::constrain((_range / _scale) * 0.999f, 0.f, (float)INT16_MAX);
 }

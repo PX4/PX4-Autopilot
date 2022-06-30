@@ -38,21 +38,21 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
+#include <drivers/drv_hrt.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
-#include <stdint.h>
-#include <signal.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <queue.h>
 #include <px4_platform_common/workqueue.h>
-#include <drivers/drv_hrt.h>
-#include "hrt_work.h"
-
+#include <queue.h>
+#include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+
+#include "hrt_work.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -94,10 +94,7 @@ static void _sighandler(int sig_num);
  *   None
  *
  ****************************************************************************/
-static void _sighandler(int sig_num)
-{
-	PX4_DEBUG("RECEIVED SIGNAL %d", sig_num);
-}
+static void _sighandler(int sig_num) { PX4_DEBUG("RECEIVED SIGNAL %d", sig_num); }
 
 /****************************************************************************
  * Name: work_process
@@ -113,11 +110,10 @@ static void _sighandler(int sig_num)
  *
  ****************************************************************************/
 
-static void hrt_work_process()
-{
+static void hrt_work_process() {
 	struct wqueue_s *wqueue = &g_hrt_work;
 	volatile struct work_s *work;
-	worker_t  worker;
+	worker_t worker;
 	void *arg;
 	uint64_t elapsed;
 	uint32_t remaining;
@@ -128,7 +124,7 @@ static void hrt_work_process()
 	pthread_setname_np("HRT");
 #else
 	// The Linux headers do not actually contain this
-	//rv = pthread_setname_np(pthread_self(), "HRT");
+	// rv = pthread_setname_np(pthread_self(), "HRT");
 #endif
 
 	/* Then process queued work.  We need to keep interrupts disabled while
@@ -136,11 +132,11 @@ static void hrt_work_process()
 	 */
 
 	/* Default to sleeping for 1 sec */
-	next  = 1000000;
+	next = 1000000;
 
 	hrt_work_lock();
 
-	work  = (struct work_s *)wqueue->q.head;
+	work = (struct work_s *)wqueue->q.head;
 
 	while (work) {
 		/* Is this work ready?  It is ready if there is no delay or if
@@ -151,19 +147,19 @@ static void hrt_work_process()
 
 		elapsed = hrt_absolute_time() - work->qtime;
 
-		//PX4_INFO("hrt work_process: in usec elapsed=%lu delay=%u work=%p", elapsed, work->delay, work);
+		// PX4_INFO("hrt work_process: in usec elapsed=%lu delay=%u work=%p", elapsed, work->delay, work);
 		if (elapsed >= work->delay) {
 			/* Remove the ready-to-execute work from the list */
 
 			(void)dq_rem((dq_entry_t *)&work->dq, &wqueue->q);
-			//PX4_INFO("Dequeued work=%p", work);
+			// PX4_INFO("Dequeued work=%p", work);
 
 			/* Extract the work description from the entry (in case the work
 			 * instance by the re-used after it has been de-queued).
 			 */
 
 			worker = work->worker;
-			arg    = work->arg;
+			arg = work->arg;
 
 			/* Mark the work as no longer being queued */
 
@@ -188,7 +184,7 @@ static void hrt_work_process()
 			 */
 
 			hrt_work_lock();
-			work  = (struct work_s *)wqueue->q.head;
+			work = (struct work_s *)wqueue->q.head;
 
 		} else {
 			/* This one is not ready.. will it be ready before the next
@@ -198,7 +194,7 @@ static void hrt_work_process()
 			/* Here: elapsed < work->delay */
 			remaining = work->delay - elapsed;
 
-			//PX4_INFO("remaining=%u delay=%u elapsed=%lu", remaining, work->delay, elapsed);
+			// PX4_INFO("remaining=%u delay=%u elapsed=%lu", remaining, work->delay, elapsed);
 			if (remaining < next) {
 				/* Yes.. Then schedule to wake up when the work is ready */
 
@@ -208,7 +204,7 @@ static void hrt_work_process()
 			/* Then try the next in the list. */
 
 			work = (struct work_s *)work->dq.flink;
-			//PX4_INFO("next %u work %p", next, work);
+			// PX4_INFO("next %u work %p", next, work);
 		}
 	}
 
@@ -218,7 +214,7 @@ static void hrt_work_process()
 	hrt_work_unlock();
 
 	/* might sleep less if a signal received and new item was queued */
-	//PX4_INFO("Sleeping for %u usec", next);
+	// PX4_INFO("Sleeping for %u usec", next);
 	px4_usleep(next);
 }
 
@@ -247,8 +243,7 @@ static void hrt_work_process()
  *
  ****************************************************************************/
 
-static int work_hrtthread(int argc, char *argv[])
-{
+static int work_hrtthread(int argc, char *argv[]) {
 	/* Loop forever */
 
 	for (;;) {
@@ -273,19 +268,13 @@ static int work_hrtthread(int argc, char *argv[])
  * Public Functions
  ****************************************************************************/
 
-void hrt_work_queue_init(void)
-{
+void hrt_work_queue_init(void) {
 	px4_sem_init(&_hrt_work_lock, 0, 1);
 	memset(&g_hrt_work, 0, sizeof(g_hrt_work));
 
 	// Create high priority worker thread
-	g_hrt_work.pid = px4_task_spawn_cmd("wkr_hrt",
-					    SCHED_DEFAULT,
-					    SCHED_PRIORITY_MAX,
-					    2000,
-					    work_hrtthread,
+	g_hrt_work.pid = px4_task_spawn_cmd("wkr_hrt", SCHED_DEFAULT, SCHED_PRIORITY_MAX, 2000, work_hrtthread,
 					    (char *const *)NULL);
-
 
 #ifdef __PX4_QURT
 	signal(SIGALRM, _sighandler);
@@ -293,4 +282,3 @@ void hrt_work_queue_init(void)
 	signal(SIGCONT, _sighandler);
 #endif
 }
-

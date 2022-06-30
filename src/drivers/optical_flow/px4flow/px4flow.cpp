@@ -42,35 +42,35 @@
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module.h>
-#include <uORB/PublicationMulti.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/sensor_optical_flow.h>
 
+#include <uORB/PublicationMulti.hpp>
+
 /* Configuration Constants */
-#define I2C_FLOW_ADDRESS_DEFAULT    0x42	///< 7-bit address. 8-bit address is 0x84, range 0x42 - 0x49
-#define I2C_FLOW_ADDRESS_MIN        0x42	///< 7-bit address.
-#define I2C_FLOW_ADDRESS_MAX        0x49	///< 7-bit address.
+#define I2C_FLOW_ADDRESS_DEFAULT 0x42  ///< 7-bit address. 8-bit address is 0x84, range 0x42 - 0x49
+#define I2C_FLOW_ADDRESS_MIN 0x42      ///< 7-bit address.
+#define I2C_FLOW_ADDRESS_MAX 0x49      ///< 7-bit address.
 
 /* PX4FLOW Registers addresses */
-#define PX4FLOW_REG			0x16	///< Measure Register 22
+#define PX4FLOW_REG 0x16  ///< Measure Register 22
 
-#define PX4FLOW_CONVERSION_INTERVAL_DEFAULT 100000	///< in microseconds! = 10Hz
-#define PX4FLOW_CONVERSION_INTERVAL_MIN      10000	///< in microseconds! = 100 Hz
-#define PX4FLOW_CONVERSION_INTERVAL_MAX    1000000	///< in microseconds! = 1 Hz
+#define PX4FLOW_CONVERSION_INTERVAL_DEFAULT 100000  ///< in microseconds! = 10Hz
+#define PX4FLOW_CONVERSION_INTERVAL_MIN 10000       ///< in microseconds! = 100 Hz
+#define PX4FLOW_CONVERSION_INTERVAL_MAX 1000000     ///< in microseconds! = 1 Hz
 
-#define PX4FLOW_I2C_MAX_BUS_SPEED	400000	///< 400 KHz maximum speed
+#define PX4FLOW_I2C_MAX_BUS_SPEED 400000  ///< 400 KHz maximum speed
 
 #define PX4FLOW_MAX_DISTANCE 5.0f
 #define PX4FLOW_MIN_DISTANCE 0.3f
 
 #include "i2c_frame.h"
 
-class PX4FLOW: public device::I2C, public I2CSPIDriver<PX4FLOW>
-{
+class PX4FLOW : public device::I2C, public I2CSPIDriver<PX4FLOW> {
 public:
 	PX4FLOW(const I2CSPIDriverConfig &config);
 	virtual ~PX4FLOW();
@@ -85,18 +85,18 @@ public:
 	 * Perform a poll cycle; collect from the previous measurement
 	 * and start a new one.
 	 */
-	void				RunImpl();
+	void RunImpl();
 
 private:
-	int			probe() override;
+	int probe() override;
 
-	bool				_sensor_ok{false};
-	bool				_collect_phase{false};
+	bool _sensor_ok{false};
+	bool _collect_phase{false};
 
 	uORB::PublicationMulti<sensor_optical_flow_s> _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
+	perf_counter_t _sample_perf;
+	perf_counter_t _comms_errors;
 
 	i2c_frame _frame;
 
@@ -107,7 +107,7 @@ private:
 	 * @param address	The I2C bus address to probe.
 	 * @return		True if the device is present.
 	 */
-	int					probe_address(uint8_t address);
+	int probe_address(uint8_t address);
 
 	/**
 	 * Initialise the automatic measurement state machine and start it.
@@ -115,30 +115,24 @@ private:
 	 * @note This function is called at open and error time.  It might make sense
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
-	void				start();
+	void start();
 
-	int					measure();
-	int					collect();
-
+	int measure();
+	int collect();
 };
 
-PX4FLOW::PX4FLOW(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
-{
-}
+PX4FLOW::PX4FLOW(const I2CSPIDriverConfig &config)
+	: I2C(config),
+	  I2CSPIDriver(config),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": com_err")) {}
 
-PX4FLOW::~PX4FLOW()
-{
+PX4FLOW::~PX4FLOW() {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
-int
-PX4FLOW::init()
-{
+int PX4FLOW::init() {
 	int ret = PX4_ERROR;
 
 	/* do I2C init (and probe) first */
@@ -155,10 +149,8 @@ PX4FLOW::init()
 	return ret;
 }
 
-int
-PX4FLOW::probe()
-{
-	uint8_t val[I2C_FRAME_SIZE] {};
+int PX4FLOW::probe() {
+	uint8_t val[I2C_FRAME_SIZE]{};
 
 	// to be sure this is not a ll40ls Lidar (which can also be on
 	// 0x42) we check if a I2C_FRAME_SIZE byte transfer works from address
@@ -172,9 +164,7 @@ PX4FLOW::probe()
 	return measure();
 }
 
-int
-PX4FLOW::measure()
-{
+int PX4FLOW::measure() {
 	/*
 	 * Send the command to begin a measurement.
 	 */
@@ -190,13 +180,11 @@ PX4FLOW::measure()
 	return PX4_OK;
 }
 
-int
-PX4FLOW::collect()
-{
+int PX4FLOW::collect() {
 	int ret = -EIO;
 
 	/* read from the sensor */
-	uint8_t val[I2C_FRAME_SIZE + I2C_INTEGRAL_FRAME_SIZE] = { };
+	uint8_t val[I2C_FRAME_SIZE + I2C_INTEGRAL_FRAME_SIZE] = {};
 
 	perf_begin(_sample_perf);
 
@@ -226,7 +214,6 @@ PX4FLOW::collect()
 		memcpy(&_frame_integral, val, I2C_INTEGRAL_FRAME_SIZE);
 	}
 
-
 	DeviceId device_id;
 	device_id.devid = get_device_id();
 	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_PX4FLOW;
@@ -237,20 +224,25 @@ PX4FLOW::collect()
 	report.timestamp_sample = hrt_absolute_time();
 	report.device_id = device_id.devid;
 
-	report.pixel_flow[0] = static_cast<float>(_frame_integral.pixel_flow_x_integral) / 10000.f; //convert to radians
-	report.pixel_flow[1] = static_cast<float>(_frame_integral.pixel_flow_y_integral) / 10000.f; //convert to radians
+	report.pixel_flow[0] =
+		static_cast<float>(_frame_integral.pixel_flow_x_integral) / 10000.f;  // convert to radians
+	report.pixel_flow[1] =
+		static_cast<float>(_frame_integral.pixel_flow_y_integral) / 10000.f;  // convert to radians
 
 	report.delta_angle_available = true;
-	report.delta_angle[0] = static_cast<float>(_frame_integral.gyro_x_rate_integral) / 10000.0f; // convert to radians
-	report.delta_angle[1] = static_cast<float>(_frame_integral.gyro_y_rate_integral) / 10000.0f; // convert to radians
-	report.delta_angle[2] = static_cast<float>(_frame_integral.gyro_z_rate_integral) / 10000.0f; // convert to radians
+	report.delta_angle[0] =
+		static_cast<float>(_frame_integral.gyro_x_rate_integral) / 10000.0f;  // convert to radians
+	report.delta_angle[1] =
+		static_cast<float>(_frame_integral.gyro_y_rate_integral) / 10000.0f;  // convert to radians
+	report.delta_angle[2] =
+		static_cast<float>(_frame_integral.gyro_z_rate_integral) / 10000.0f;  // convert to radians
 
-	report.distance_m = static_cast<float>(_frame_integral.ground_distance) / 1000.f; // convert to meters
+	report.distance_m = static_cast<float>(_frame_integral.ground_distance) / 1000.f;  // convert to meters
 	report.distance_available = true;
 
-	report.integration_timespan_us = _frame_integral.integration_timespan; // microseconds
+	report.integration_timespan_us = _frame_integral.integration_timespan;  // microseconds
 
-	report.quality = _frame_integral.qual; // 0:bad ; 255 max quality
+	report.quality = _frame_integral.qual;  // 0:bad ; 255 max quality
 
 	report.max_flow_rate = 2.5f;
 	report.min_ground_distance = PX4FLOW_MIN_DISTANCE;
@@ -264,9 +256,7 @@ PX4FLOW::collect()
 	return PX4_OK;
 }
 
-void
-PX4FLOW::start()
-{
+void PX4FLOW::start() {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 
@@ -274,9 +264,7 @@ PX4FLOW::start()
 	ScheduleNow();
 }
 
-void
-PX4FLOW::RunImpl()
-{
+void PX4FLOW::RunImpl() {
 	if (OK != measure()) {
 		DEVICE_DEBUG("measure error");
 	}
@@ -292,17 +280,13 @@ PX4FLOW::RunImpl()
 	ScheduleDelayed(PX4FLOW_CONVERSION_INTERVAL_DEFAULT);
 }
 
-void
-PX4FLOW::print_status()
-{
+void PX4FLOW::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 }
 
-void
-PX4FLOW::print_usage()
-{
+void PX4FLOW::print_usage() {
 	PRINT_MODULE_USAGE_NAME("px4flow", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
@@ -310,8 +294,7 @@ PX4FLOW::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int px4flow_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int px4flow_main(int argc, char *argv[]) {
 	using ThisDriver = PX4FLOW;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = PX4FLOW_I2C_MAX_BUS_SPEED;

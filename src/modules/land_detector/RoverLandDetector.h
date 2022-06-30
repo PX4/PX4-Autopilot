@@ -43,11 +43,9 @@
 
 #include "LandDetector.h"
 
-namespace land_detector
-{
+namespace land_detector {
 
-class RoverLandDetector : public LandDetector
-{
+class RoverLandDetector : public LandDetector {
 public:
 	RoverLandDetector() = default;
 	~RoverLandDetector() override = default;
@@ -55,7 +53,7 @@ public:
 protected:
 	bool _get_ground_contact_state() override;
 	bool _get_landed_state() override;
-	void _set_hysteresis_factor(const int factor) override {};
+	void _set_hysteresis_factor(const int factor) override{};
 };
 
-} // namespace land_detector
+}  // namespace land_detector

@@ -35,16 +35,15 @@
 
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
+
+#include <uORB/SubscriptionInterval.hpp>
 
 using namespace time_literals;
 
 extern "C" __EXPORT int template_module_main(int argc, char *argv[]);
 
-
-class TemplateModule : public ModuleBase<TemplateModule>, public ModuleParams
-{
+class TemplateModule : public ModuleBase<TemplateModule>, public ModuleParams {
 public:
 	TemplateModule(int example_param, bool example_flag);
 
@@ -69,7 +68,6 @@ public:
 	int print_status() override;
 
 private:
-
 	/**
 	 * Check for parameter changes and update them if needed.
 	 * @param parameter_update_sub uorb subscription to parameter_update
@@ -77,14 +75,10 @@ private:
 	 */
 	void parameters_update(bool force = false);
 
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
+	DEFINE_PARAMETERS((ParamInt<px4::params::SYS_AUTOSTART>)_param_sys_autostart,  /**< example parameter */
+			  (ParamInt<px4::params::SYS_AUTOCONFIG>)_param_sys_autoconfig /**< another parameter */
 	)
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
 };
-

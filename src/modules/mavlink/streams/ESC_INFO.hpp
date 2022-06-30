@@ -36,8 +36,7 @@
 
 #include <uORB/topics/esc_status.h>
 
-class MavlinkStreamESCInfo : public MavlinkStream
-{
+class MavlinkStreamESCInfo : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamESCInfo(mavlink); }
 
@@ -47,8 +46,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		static constexpr unsigned size_per_batch = MAVLINK_MSG_ID_ESC_INFO_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		return _esc_status_sub.advertised() ? size_per_batch * _number_of_batches : 0;
 	}
@@ -59,8 +57,7 @@ private:
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uint8_t _number_of_batches{0};
 
-	bool send() override
-	{
+	bool send() override {
 		static constexpr uint8_t batch_size = MAVLINK_MSG_ESC_INFO_FIELD_TEMPERATURE_LEN;
 		esc_status_s esc_status;
 
@@ -79,11 +76,12 @@ private:
 			for (int batch_number = 0; batch_number < _number_of_batches; batch_number++) {
 				msg.index = batch_number * batch_size;
 
-				for (int esc_index = 0; esc_index < batch_size ; esc_index++) {
+				for (int esc_index = 0; esc_index < batch_size; esc_index++) {
 					msg.failure_flags[esc_index] = esc_status.esc[esc_index].failures;
 					msg.error_count[esc_index] = esc_status.esc[esc_index].esc_errorcount;
-					msg.temperature[esc_index] = static_cast<int16_t>(esc_status.esc[esc_index].esc_temperature *
-								     100.f); // convert to centiDegrees
+					msg.temperature[esc_index] =
+						static_cast<int16_t>(esc_status.esc[esc_index].esc_temperature *
+								     100.f);  // convert to centiDegrees
 				}
 
 				mavlink_msg_esc_info_send_struct(_mavlink->get_channel(), &msg);
@@ -96,4 +94,4 @@ private:
 	}
 };
 
-#endif // ESC_INFO_HPP
+#endif  // ESC_INFO_HPP

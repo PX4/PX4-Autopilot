@@ -43,8 +43,7 @@
 
 class Navigator;
 
-class NavigatorMode
-{
+class NavigatorMode {
 public:
 	NavigatorMode(Navigator *navigator);
 	virtual ~NavigatorMode() = default;

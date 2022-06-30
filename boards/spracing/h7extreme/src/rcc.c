@@ -41,10 +41,9 @@
  * Included Files
  ************************************************************************************/
 #include "board_config.h"
-
-#include "stm32_pwr.h"
 #include "hardware/stm32_axi.h"
 #include "hardware/stm32_syscfg.h"
+#include "stm32_pwr.h"
 
 /************************************************************************************
  * Definitions
@@ -68,47 +67,43 @@
 /* Voltage output scale (default to Scale 1 mode) */
 
 #ifndef STM32_PWR_VOS_SCALE
-#	define STM32_PWR_VOS_SCALE PWR_D3CR_VOS_SCALE_1
+#define STM32_PWR_VOS_SCALE PWR_D3CR_VOS_SCALE_1
 #endif
 
 #if !defined(BOARD_FLASH_PROGDELAY)
-#	if STM32_PWR_VOS_SCALE == PWR_D3CR_VOS_SCALE_1
-#		if STM32_SYSCLK_FREQUENCY <= 70000000 && BOARD_FLASH_WAITSTATES == 0
-#			define BOARD_FLASH_PROGDELAY	0
-#		elif STM32_SYSCLK_FREQUENCY <= 140000000 && BOARD_FLASH_WAITSTATES == 1
-#			define BOARD_FLASH_PROGDELAY	10
-#		elif STM32_SYSCLK_FREQUENCY <= 185000000 && BOARD_FLASH_WAITSTATES == 2
-#			define BOARD_FLASH_PROGDELAY	1
-#		elif STM32_SYSCLK_FREQUENCY <= 210000000 && BOARD_FLASH_WAITSTATES == 2
-#			define BOARD_FLASH_PROGDELAY	2
-#		elif STM32_SYSCLK_FREQUENCY <= 225000000 && BOARD_FLASH_WAITSTATES == 3
-#			define BOARD_FLASH_PROGDELAY	2
-#		else
-#			define BOARD_FLASH_PROGDELAY	2
-#		endif
-#	endif
+#if STM32_PWR_VOS_SCALE == PWR_D3CR_VOS_SCALE_1
+#if STM32_SYSCLK_FREQUENCY <= 70000000 && BOARD_FLASH_WAITSTATES == 0
+#define BOARD_FLASH_PROGDELAY 0
+#elif STM32_SYSCLK_FREQUENCY <= 140000000 && BOARD_FLASH_WAITSTATES == 1
+#define BOARD_FLASH_PROGDELAY 10
+#elif STM32_SYSCLK_FREQUENCY <= 185000000 && BOARD_FLASH_WAITSTATES == 2
+#define BOARD_FLASH_PROGDELAY 1
+#elif STM32_SYSCLK_FREQUENCY <= 210000000 && BOARD_FLASH_WAITSTATES == 2
+#define BOARD_FLASH_PROGDELAY 2
+#elif STM32_SYSCLK_FREQUENCY <= 225000000 && BOARD_FLASH_WAITSTATES == 3
+#define BOARD_FLASH_PROGDELAY 2
+#else
+#define BOARD_FLASH_PROGDELAY 2
+#endif
+#endif
 #endif
 
 /* PLL are only enabled if the P,Q or R outputs are enabled. */
 
 #undef USE_PLL1
-#if STM32_PLLCFG_PLL1CFG & (RCC_PLLCFGR_DIVP1EN | RCC_PLLCFGR_DIVQ1EN | \
-														RCC_PLLCFGR_DIVR1EN)
-#	define USE_PLL1
+#if STM32_PLLCFG_PLL1CFG & (RCC_PLLCFGR_DIVP1EN | RCC_PLLCFGR_DIVQ1EN | RCC_PLLCFGR_DIVR1EN)
+#define USE_PLL1
 #endif
 
 #undef USE_PLL2
-#if STM32_PLLCFG_PLL2CFG & (RCC_PLLCFGR_DIVP2EN | RCC_PLLCFGR_DIVQ2EN | \
-														RCC_PLLCFGR_DIVR2EN)
-#	define USE_PLL2
+#if STM32_PLLCFG_PLL2CFG & (RCC_PLLCFGR_DIVP2EN | RCC_PLLCFGR_DIVQ2EN | RCC_PLLCFGR_DIVR2EN)
+#define USE_PLL2
 #endif
 
 #undef USE_PLL3
-#if STM32_PLLCFG_PLL3CFG & (RCC_PLLCFGR_DIVP3EN | RCC_PLLCFGR_DIVQ3EN | \
-														RCC_PLLCFGR_DIVR3EN)
-#	define USE_PLL3
+#if STM32_PLLCFG_PLL3CFG & (RCC_PLLCFGR_DIVP3EN | RCC_PLLCFGR_DIVQ3EN | RCC_PLLCFGR_DIVR3EN)
+#define USE_PLL3
 #endif
-
 
 /************************************************************************************
  * Private Functions
@@ -128,15 +123,14 @@ extern uint32_t _start_sram;
 extern uint32_t _end_sram;
 extern uint32_t _load_sram;
 
-__ramfunc__ void stm32_board_clockconfig(void)
-{
+__ramfunc__ void stm32_board_clockconfig(void) {
 	volatile uint32_t regval = 0;
 	volatile int32_t timeout;
 
 	/* This is not the	best place for copying code to ITCM and RAM.
-	* Since our code work to slow in External Flash, we need to copy it to ITCM and RAM.
-	* This currently way to do it inside board specific code.
-	*/
+	 * Since our code work to slow in External Flash, we need to copy it to ITCM and RAM.
+	 * This currently way to do it inside board specific code.
+	 */
 
 	const uint32_t *src;
 	uint32_t *dest;
@@ -152,8 +146,8 @@ __ramfunc__ void stm32_board_clockconfig(void)
 #ifdef STM32_BOARD_USEHSI
 	/* Enable Internal High-Speed Clock (HSI) */
 
-	regval	= getreg32(STM32_RCC_CR);
-	regval |= RCC_CR_HSION;					 /* Enable HSI */
+	regval = getreg32(STM32_RCC_CR);
+	regval |= RCC_CR_HSION; /* Enable HSI */
 	putreg32(regval, STM32_RCC_CR);
 
 	/* Wait until the HSI is ready (or until a timeout elapsed) */
@@ -168,16 +162,16 @@ __ramfunc__ void stm32_board_clockconfig(void)
 		}
 	}
 
-#else /* if STM32_BOARD_USEHSE */
+#else                      /* if STM32_BOARD_USEHSE */
 	/* Enable External High-Speed Clock (HSE) */
 
-	regval	= getreg32(STM32_RCC_CR);
-#ifdef STM32_HSEBYP_ENABLE					/* May be defined in board.h header file */
-	regval |= RCC_CR_HSEBYP;					/* Enable HSE clock bypass */
+	regval = getreg32(STM32_RCC_CR);
+#ifdef STM32_HSEBYP_ENABLE /* May be defined in board.h header file */
+	regval |= RCC_CR_HSEBYP; /* Enable HSE clock bypass */
 #else
-	regval &= ~RCC_CR_HSEBYP;				 /* Disable HSE clock bypass */
+	regval &= ~RCC_CR_HSEBYP; /* Disable HSE clock bypass */
 #endif
-	regval |= RCC_CR_HSEON;					 /* Enable HSE */
+	regval |= RCC_CR_HSEON;  /* Enable HSE */
 	putreg32(regval, STM32_RCC_CR);
 
 	/* Wait until the HSE is ready (or until a timeout elapsed) */
@@ -197,7 +191,7 @@ __ramfunc__ void stm32_board_clockconfig(void)
 #ifdef CONFIG_STM32H7_HSI48
 	/* Enable HSI48 */
 
-	regval	= getreg32(STM32_RCC_CR);
+	regval = getreg32(STM32_RCC_CR);
 	regval |= RCC_CR_HSI48ON;
 	putreg32(regval, STM32_RCC_CR);
 
@@ -261,15 +255,9 @@ __ramfunc__ void stm32_board_clockconfig(void)
 		/* Configure PLL123 clock source and multipiers */
 
 #ifdef STM32_BOARD_USEHSI
-		regval = (RCC_PLLCKSELR_PLLSRC_HSI |
-			  STM32_PLLCFG_PLL1M |
-			  STM32_PLLCFG_PLL2M |
-			  STM32_PLLCFG_PLL3M);
+		regval = (RCC_PLLCKSELR_PLLSRC_HSI | STM32_PLLCFG_PLL1M | STM32_PLLCFG_PLL2M | STM32_PLLCFG_PLL3M);
 #else /* if STM32_BOARD_USEHSE */
-		regval = (RCC_PLLCKSELR_PLLSRC_HSE |
-			  STM32_PLLCFG_PLL1M |
-			  STM32_PLLCFG_PLL2M |
-			  STM32_PLLCFG_PLL3M);
+		regval = (RCC_PLLCKSELR_PLLSRC_HSE | STM32_PLLCFG_PLL1M | STM32_PLLCFG_PLL2M | STM32_PLLCFG_PLL3M);
 #endif
 		putreg32(regval, STM32_RCC_PLLCKSELR);
 
@@ -277,33 +265,22 @@ __ramfunc__ void stm32_board_clockconfig(void)
 
 		/* Configure PLL1 dividers */
 
-		regval = (STM32_PLLCFG_PLL1N |
-			  STM32_PLLCFG_PLL1P |
-			  STM32_PLLCFG_PLL1Q |
-			  STM32_PLLCFG_PLL1R);
+		regval = (STM32_PLLCFG_PLL1N | STM32_PLLCFG_PLL1P | STM32_PLLCFG_PLL1Q | STM32_PLLCFG_PLL1R);
 		putreg32(regval, STM32_RCC_PLL1DIVR);
 
 		/* Configure PLL2 dividers */
 
-		regval = (STM32_PLLCFG_PLL2N |
-			  STM32_PLLCFG_PLL2P |
-			  STM32_PLLCFG_PLL2Q |
-			  STM32_PLLCFG_PLL2R);
+		regval = (STM32_PLLCFG_PLL2N | STM32_PLLCFG_PLL2P | STM32_PLLCFG_PLL2Q | STM32_PLLCFG_PLL2R);
 		putreg32(regval, STM32_RCC_PLL2DIVR);
 
 		/* Configure PLL3 dividers */
 
-		regval = (STM32_PLLCFG_PLL3N |
-			  STM32_PLLCFG_PLL3P |
-			  STM32_PLLCFG_PLL3Q |
-			  STM32_PLLCFG_PLL3R);
+		regval = (STM32_PLLCFG_PLL3N | STM32_PLLCFG_PLL3P | STM32_PLLCFG_PLL3Q | STM32_PLLCFG_PLL3R);
 		putreg32(regval, STM32_RCC_PLL3DIVR);
 
 		/* Configure PLLs */
 
-		regval = (STM32_PLLCFG_PLL1CFG |
-			  STM32_PLLCFG_PLL2CFG |
-			  STM32_PLLCFG_PLL3CFG);
+		regval = (STM32_PLLCFG_PLL1CFG | STM32_PLLCFG_PLL2CFG | STM32_PLLCFG_PLL3CFG);
 		putreg32(regval, STM32_RCC_PLLCFGR);
 
 		regval = getreg32(STM32_RCC_CR);
@@ -382,9 +359,7 @@ __ramfunc__ void stm32_board_clockconfig(void)
 		 *		over 400 Mhz.
 		 */
 
-		if ((STM32_PWR_VOS_SCALE == PWR_D3CR_VOS_SCALE_1) &&
-		    STM32_SYSCLK_FREQUENCY > 400000000) {
-
+		if ((STM32_PWR_VOS_SCALE == PWR_D3CR_VOS_SCALE_1) && STM32_SYSCLK_FREQUENCY > 400000000) {
 			/* Enable System configuration controller clock to Enable ODEN */
 
 			regval = getreg32(STM32_RCC_APB4ENR);
@@ -403,9 +378,7 @@ __ramfunc__ void stm32_board_clockconfig(void)
 
 		/* Configure FLASH wait states */
 
-		regval = FLASH_ACR_WRHIGHFREQ(BOARD_FLASH_PROGDELAY) |
-			 FLASH_ACR_LATENCY(BOARD_FLASH_WAITSTATES);
-
+		regval = FLASH_ACR_WRHIGHFREQ(BOARD_FLASH_PROGDELAY) | FLASH_ACR_LATENCY(BOARD_FLASH_WAITSTATES);
 
 		putreg32(regval, STM32_FLASH_ACR);
 
@@ -427,8 +400,7 @@ __ramfunc__ void stm32_board_clockconfig(void)
 
 		/* Wait until the PLL source is used as the system clock source */
 
-		while ((getreg32(STM32_RCC_CFGR) & RCC_CFGR_SWS_MASK) !=
-		       RCC_CFGR_SWS_PLL1) {
+		while ((getreg32(STM32_RCC_CFGR) & RCC_CFGR_SWS_MASK) != RCC_CFGR_SWS_PLL1) {
 		}
 
 		/* Configure I2C source clock */
@@ -436,9 +408,9 @@ __ramfunc__ void stm32_board_clockconfig(void)
 #if (STM32_RCC_D2CCIP2R_I2C123SRC == RCC_D2CCIP2R_I2C123SEL_HSI)
 		/* Enable Internal High-Speed Clock (HSI) */
 
-		regval	= getreg32(STM32_RCC_CR);
-		regval |= RCC_CR_HSION;					 /* Enable HSI */
-		regval |= RCC_CR_HSIDIV_4;		/* Set HSI to 16 MHz */
+		regval = getreg32(STM32_RCC_CR);
+		regval |= RCC_CR_HSION;    /* Enable HSI */
+		regval |= RCC_CR_HSIDIV_4; /* Set HSI to 16 MHz */
 		putreg32(regval, STM32_RCC_CR);
 
 		/* Wait until the HSI is ready (or until a timeout elapsed) */
@@ -526,7 +498,6 @@ __ramfunc__ void stm32_board_clockconfig(void)
 		stm32_rcc_enablelse();
 #endif
 	}
-
 }
 
-#endif //#if defined(CONFIG_STM32H7_CUSTOM_CLOCKCONFIG)
+#endif  //#if defined(CONFIG_STM32H7_CUSTOM_CLOCKCONFIG)

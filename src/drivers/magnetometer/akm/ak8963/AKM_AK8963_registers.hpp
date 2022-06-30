@@ -42,8 +42,7 @@
 
 #include <cstdint>
 
-namespace AKM_AK8963
-{
+namespace AKM_AK8963 {
 
 // TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
@@ -55,28 +54,28 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-static constexpr uint32_t I2C_SPEED = 400 * 1000; // 400 kHz I2C serial interface
+static constexpr uint32_t I2C_SPEED = 400 * 1000;  // 400 kHz I2C serial interface
 static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x0C;
 
-static constexpr uint8_t Device_ID = 0x48; // Device ID of AKM
+static constexpr uint8_t Device_ID = 0x48;  // Device ID of AKM
 
 enum class Register : uint8_t {
-	WIA   = 0x00, // Device ID
+	WIA = 0x00,  // Device ID
 
-	ST1   = 0x02, // Status 1
-	HXL   = 0x03,
-	HXH   = 0x04,
-	HYL   = 0x05,
-	HYH   = 0x06,
-	HZL   = 0x07,
-	HZH   = 0x08,
-	ST2   = 0x09, // Status 2
-	CNTL1 = 0x0A, // Control 1
-	CNTL2 = 0x0B, // Control 2
+	ST1 = 0x02,  // Status 1
+	HXL = 0x03,
+	HXH = 0x04,
+	HYL = 0x05,
+	HYH = 0x06,
+	HZL = 0x07,
+	HZH = 0x08,
+	ST2 = 0x09,    // Status 2
+	CNTL1 = 0x0A,  // Control 1
+	CNTL2 = 0x0B,  // Control 2
 
-	ASAX  = 0x10, // X-axis sensitivity adjustment value
-	ASAY  = 0x11, // Y-axis sensitivity adjustment value
-	ASAZ  = 0x12, // Z-axis sensitivity adjustment value
+	ASAX = 0x10,  // X-axis sensitivity adjustment value
+	ASAY = 0x11,  // Y-axis sensitivity adjustment value
+	ASAZ = 0x12,  // Z-axis sensitivity adjustment value
 };
 
 // ST1
@@ -86,25 +85,25 @@ enum ST1_BIT : uint8_t {
 
 // ST2
 enum ST2_BIT : uint8_t {
-	BITM = Bit4, // Output bit setting (mirror)
-	HOFL = Bit3, // Magnetic sensor overflow
+	BITM = Bit4,  // Output bit setting (mirror)
+	HOFL = Bit3,  // Magnetic sensor overflow
 };
 
 // CNTL1
 enum CNTL1_BIT : uint8_t {
-	BIT_16 = Bit4, // Output bit setting (16-bit output)
+	BIT_16 = Bit4,  // Output bit setting (16-bit output)
 
 	// MODE[3:0]: Operation mode setting
-	POWER_DOWN_MODE         = 0,
+	POWER_DOWN_MODE = 0,
 	SINGLE_MEASUREMENT_MODE = Bit0,
-	CONTINUOUS_MODE_1       = Bit1,        //   8 Hz
-	CONTINUOUS_MODE_2       = Bit2 | Bit1, // 100 Hz
-	FUSE_ROM_ACCESS_MODE    = Bit3 | Bit2 | Bit1 | Bit0, // MODE[3:0]=“1111”
+	CONTINUOUS_MODE_1 = Bit1,                          //   8 Hz
+	CONTINUOUS_MODE_2 = Bit2 | Bit1,                   // 100 Hz
+	FUSE_ROM_ACCESS_MODE = Bit3 | Bit2 | Bit1 | Bit0,  // MODE[3:0]=“1111”
 };
 
 // CNTL2
 enum CNTL2_BIT : uint8_t {
-	SRST = Bit0, // Reset
+	SRST = Bit0,  // Reset
 };
 
-} // namespace AKM_AK8963
+}  // namespace AKM_AK8963

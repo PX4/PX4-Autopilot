@@ -37,7 +37,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <stm32_dma.h>
 
-#define DSHOT_MOTOR_PWM_BIT_WIDTH		20u
+#define DSHOT_MOTOR_PWM_BIT_WIDTH 20u
 
 /* Configuration for each timer to setup DShot. Some timers have only one while others have two choices for the stream.
  *
@@ -57,6 +57,6 @@
 /* The structure which contains configuration for DShot
  */
 typedef struct dshot_conf_t {
-	uint32_t			dma_base;
-	uint32_t			dmamap;
+	uint32_t dma_base;
+	uint32_t dmamap;
 } dshot_conf_t;

@@ -38,46 +38,34 @@
 #include "StickAccelerationXY.hpp"
 
 #include <geo/geo.h>
+
 #include "Sticks.hpp"
 
 using namespace matrix;
 
-StickAccelerationXY::StickAccelerationXY(ModuleParams *parent) :
-	ModuleParams(parent)
-{
+StickAccelerationXY::StickAccelerationXY(ModuleParams *parent) : ModuleParams(parent) {
 	_brake_boost_filter.reset(1.f);
 	resetPosition();
 }
 
-void StickAccelerationXY::resetPosition()
-{
-	_position_setpoint.setNaN();
-}
+void StickAccelerationXY::resetPosition() { _position_setpoint.setNaN(); }
 
-void StickAccelerationXY::resetPosition(const matrix::Vector2f &position)
-{
-	_position_setpoint = position;
-}
+void StickAccelerationXY::resetPosition(const matrix::Vector2f &position) { _position_setpoint = position; }
 
-void StickAccelerationXY::resetVelocity(const matrix::Vector2f &velocity)
-{
-	_velocity_setpoint = velocity;
-}
+void StickAccelerationXY::resetVelocity(const matrix::Vector2f &velocity) { _velocity_setpoint = velocity; }
 
-void StickAccelerationXY::resetAcceleration(const matrix::Vector2f &acceleration)
-{
+void StickAccelerationXY::resetAcceleration(const matrix::Vector2f &acceleration) {
 	_acceleration_slew_rate_x.setForcedValue(acceleration(0));
 	_acceleration_slew_rate_y.setForcedValue(acceleration(1));
 }
 
 void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, const float yaw_sp, const Vector3f &pos,
-		const matrix::Vector2f &vel_sp_feedback, const float dt)
-{
+					    const matrix::Vector2f &vel_sp_feedback, const float dt) {
 	// maximum commanded acceleration and velocity
 	Vector2f acceleration_scale(_param_mpc_acc_hor.get(), _param_mpc_acc_hor.get());
 	Vector2f velocity_scale(_param_mpc_vel_manual.get(), _param_mpc_vel_manual.get());
 
-	acceleration_scale *= 2.f; // because of drag the average acceleration is half
+	acceleration_scale *= 2.f;  // because of drag the average acceleration is half
 
 	// Map stick input to acceleration
 	Sticks::limitStickUnitLengthXY(stick_xy);
@@ -88,10 +76,10 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	// Add drag to limit speed and brake again
 	Vector2f drag = calculateDrag(acceleration_scale.edivide(velocity_scale), dt, stick_xy, _velocity_setpoint);
 
-	// Don't allow the drag to change the sign of the velocity, otherwise we might get into oscillations around 0, due
-	// to discretization
-	if (_acceleration_setpoint.norm_squared() < FLT_EPSILON
-	    && _velocity_setpoint.norm_squared() < drag.norm_squared() * dt * dt) {
+	// Don't allow the drag to change the sign of the velocity, otherwise we might get into oscillations around 0,
+	// due to discretization
+	if (_acceleration_setpoint.norm_squared() < FLT_EPSILON &&
+	    _velocity_setpoint.norm_squared() < drag.norm_squared() * dt * dt) {
 		drag.setZero();
 		_velocity_setpoint.setZero();
 	}
@@ -107,15 +95,13 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	_acceleration_setpoint_prev = _acceleration_setpoint;
 }
 
-void StickAccelerationXY::getSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, Vector3f &acc_sp)
-{
+void StickAccelerationXY::getSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, Vector3f &acc_sp) {
 	pos_sp.xy() = _position_setpoint;
 	vel_sp.xy() = _velocity_setpoint;
 	acc_sp.xy() = _acceleration_setpoint;
 }
 
-void StickAccelerationXY::applyJerkLimit(const float dt)
-{
+void StickAccelerationXY::applyJerkLimit(const float dt) {
 	// Apply jerk limit - acceleration slew rate
 	// Scale each jerk limit with the normalized projection of the acceleration
 	// setpoint increment to produce a synchronized motion
@@ -129,8 +115,7 @@ void StickAccelerationXY::applyJerkLimit(const float dt)
 }
 
 Vector2f StickAccelerationXY::calculateDrag(Vector2f drag_coefficient, const float dt, const Vector2f &stick_xy,
-		const Vector2f &vel_sp)
-{
+					    const Vector2f &vel_sp) {
 	_brake_boost_filter.setParameters(dt, .8f);
 
 	if (stick_xy.norm_squared() < FLT_EPSILON) {
@@ -147,8 +132,7 @@ Vector2f StickAccelerationXY::calculateDrag(Vector2f drag_coefficient, const flo
 	return drag_coefficient.emult(velocity_with_sqrt_boost);
 }
 
-void StickAccelerationXY::applyTiltLimit(Vector2f &acceleration)
-{
+void StickAccelerationXY::applyTiltLimit(Vector2f &acceleration) {
 	// fetch the tilt limit which is lower than the maximum during takeoff
 	takeoff_status_s takeoff_status{};
 	_takeoff_status_sub.copy(&takeoff_status);
@@ -162,8 +146,7 @@ void StickAccelerationXY::applyTiltLimit(Vector2f &acceleration)
 	}
 }
 
-void StickAccelerationXY::lockPosition(const Vector3f &pos, const matrix::Vector2f &vel_sp_feedback, const float dt)
-{
+void StickAccelerationXY::lockPosition(const Vector3f &pos, const matrix::Vector2f &vel_sp_feedback, const float dt) {
 	const bool moving = _velocity_setpoint.norm_squared() > FLT_EPSILON;
 	const bool position_locked = PX4_ISFINITE(_position_setpoint(0)) || PX4_ISFINITE(_position_setpoint(1));
 

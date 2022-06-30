@@ -33,21 +33,18 @@
 
 #include "UavcanNodeParamManager.hpp"
 
-#include <px4_platform_common/defines.h>
 #include <lib/parameters/param.h>
+#include <px4_platform_common/defines.h>
 
-namespace uavcannode
-{
+namespace uavcannode {
 
-void UavcanNodeParamManager::getParamNameByIndex(Index index, Name &out_name) const
-{
+void UavcanNodeParamManager::getParamNameByIndex(Index index, Name &out_name) const {
 	if (index < param_count_used()) {
 		out_name = param_name(param_for_used_index(index));
 	}
 }
 
-void UavcanNodeParamManager::assignParamValue(const Name &name, const Value &value)
-{
+void UavcanNodeParamManager::assignParamValue(const Name &name, const Value &value) {
 	param_t param_handle = param_find(name.c_str());
 
 	if (param_handle == PARAM_INVALID) {
@@ -73,8 +70,7 @@ void UavcanNodeParamManager::assignParamValue(const Name &name, const Value &val
 	}
 }
 
-void UavcanNodeParamManager::readParamValue(const Name &name, Value &out_value) const
-{
+void UavcanNodeParamManager::readParamValue(const Name &name, Value &out_value) const {
 	param_t param_handle = param_find(name.c_str());
 
 	if (param_handle == PARAM_INVALID) {
@@ -97,9 +93,8 @@ void UavcanNodeParamManager::readParamValue(const Name &name, Value &out_value) 
 	}
 }
 
-void UavcanNodeParamManager::readParamDefaultMaxMin(const Name &name, Value &out_default,
-		NumericValue &out_max, NumericValue &out_min) const
-{
+void UavcanNodeParamManager::readParamDefaultMaxMin(const Name &name, Value &out_default, NumericValue &out_max,
+						    NumericValue &out_min) const {
 	// TODO: get actual default value (will require a new function in param.h)
 	param_t param_handle = param_find(name.c_str());
 
@@ -128,16 +123,14 @@ void UavcanNodeParamManager::readParamDefaultMaxMin(const Name &name, Value &out
 	}
 }
 
-int UavcanNodeParamManager::saveAllParams()
-{
+int UavcanNodeParamManager::saveAllParams() {
 	// Nothing to do here assuming autosave is turned on
 	return 0;
 }
 
-int UavcanNodeParamManager::eraseAllParams()
-{
+int UavcanNodeParamManager::eraseAllParams() {
 	param_reset_all();
 	return 0;
 }
 
-} // namespace uavcannode
+}  // namespace uavcannode

@@ -41,16 +41,12 @@
 
 #include "rm3100.h"
 
-RM3100::RM3100(device::Device *interface, const I2CSPIDriverConfig &config) :
-	I2CSPIDriver(config),
-	_px4_mag(interface->get_device_id(), config.rotation),
-	_interface(interface)
-{
+RM3100::RM3100(device::Device *interface, const I2CSPIDriverConfig &config)
+	: I2CSPIDriver(config), _px4_mag(interface->get_device_id(), config.rotation), _interface(interface) {
 	_px4_mag.set_scale(1.f / (RM3100_SENSITIVITY * UTESLA_TO_GAUSS));
 }
 
-RM3100::~RM3100()
-{
+RM3100::~RM3100() {
 	// free perf counters
 	perf_free(_reset_perf);
 	perf_free(_range_error_perf);
@@ -59,8 +55,7 @@ RM3100::~RM3100()
 	delete _interface;
 }
 
-int RM3100::self_test()
-{
+int RM3100::self_test() {
 	bool complete = false;
 
 	uint8_t cmd = (CMM_DEFAULT | POLLING_MODE);
@@ -82,7 +77,6 @@ int RM3100::self_test()
 	const hrt_abstime t_start = hrt_absolute_time();
 
 	while ((hrt_absolute_time() - t_start) < BIST_DUR_USEC) {
-
 		// Re-disable DRDY clear
 		cmd = HSHAKE_NO_DRDY_CLEAR;
 		ret = _interface->write(ADDR_HSHAKE, &cmd, 1);
@@ -144,8 +138,7 @@ int RM3100::self_test()
 	return PX4_ERROR;
 }
 
-void RM3100::RunImpl()
-{
+void RM3100::RunImpl() {
 	// full reset if things are failing consistently
 	if (_failure_count > 10) {
 		_failure_count = 0;
@@ -180,10 +173,8 @@ void RM3100::RunImpl()
 	convert_signed(&zraw);
 
 	// valid range: -8388608 to 8388607
-	if (xraw < -8388608 || xraw > 8388607 ||
-	    yraw < -8388608 || yraw > 8388607 ||
-	    zraw < -8388608 || zraw > 8388607) {
-
+	if (xraw < -8388608 || xraw > 8388607 || yraw < -8388608 || yraw > 8388607 || zraw < -8388608 ||
+	    zraw > 8388607) {
 		_failure_count++;
 
 		perf_count(_range_error_perf);
@@ -192,9 +183,7 @@ void RM3100::RunImpl()
 
 	// only publish changes
 	if (_raw_data_prev[0] != xraw || _raw_data_prev[1] != yraw || _raw_data_prev[2] != zraw) {
-
-		_px4_mag.set_error_count(perf_event_count(_bad_transfer_perf)
-					 + perf_event_count(_range_error_perf));
+		_px4_mag.set_error_count(perf_event_count(_bad_transfer_perf) + perf_event_count(_range_error_perf));
 
 		_px4_mag.update(timestamp_sample, xraw, yraw, zraw);
 
@@ -211,16 +200,14 @@ void RM3100::RunImpl()
 	}
 }
 
-void RM3100::convert_signed(int32_t *n)
-{
+void RM3100::convert_signed(int32_t *n) {
 	/* Sensor returns values as 24 bit signed values, so we need to manually convert to 32 bit signed values */
 	if ((*n & (1 << 23)) == (1 << 23)) {
 		*n |= 0xFF000000;
 	}
 }
 
-int RM3100::init()
-{
+int RM3100::init() {
 	int ret = self_test();
 
 	if (ret != PX4_OK) {
@@ -235,16 +222,14 @@ int RM3100::init()
 	return PX4_ERROR;
 }
 
-void RM3100::print_status()
-{
+void RM3100::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_reset_perf);
 	perf_print_counter(_range_error_perf);
 	perf_print_counter(_bad_transfer_perf);
 }
 
-int RM3100::set_default_register_values()
-{
+int RM3100::set_default_register_values() {
 	perf_count(_reset_perf);
 
 	uint8_t cmd[2] = {0, 0};

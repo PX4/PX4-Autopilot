@@ -12,36 +12,32 @@
 #include <cstring>
 
 #if defined(SUPPORT_STDIOSTREAM)
-#include <iostream>
 #include <iomanip>
-#endif // defined(SUPPORT_STDIOSTREAM)
+#include <iostream>
+#endif  // defined(SUPPORT_STDIOSTREAM)
 
 #include "math.hpp"
 
-namespace matrix
-{
+namespace matrix {
 
 template <typename Type, size_t M>
 class Vector;
 
-template<typename Type, size_t M, size_t N>
+template <typename Type, size_t M, size_t N>
 class Matrix;
 
 template <typename Type, size_t P, size_t Q, size_t M, size_t N>
 class Slice;
 
-template<typename Type, size_t M, size_t N>
-class Matrix
-{
-	Type _data[M][N] {};
+template <typename Type, size_t M, size_t N>
+class Matrix {
+	Type _data[M][N]{};
 
 public:
-
 	// Constructors
 	Matrix() = default;
 
-	explicit Matrix(const Type data_[M * N])
-	{
+	explicit Matrix(const Type data_[M * N]) {
 		for (size_t i = 0; i < M; i++) {
 			for (size_t j = 0; j < N; j++) {
 				_data[i][j] = data_[N * i + j];
@@ -49,8 +45,7 @@ public:
 		}
 	}
 
-	explicit Matrix(const Type data_[M][N])
-	{
+	explicit Matrix(const Type data_[M][N]) {
 		for (size_t i = 0; i < M; i++) {
 			for (size_t j = 0; j < N; j++) {
 				_data[i][j] = data_[i][j];
@@ -58,8 +53,7 @@ public:
 		}
 	}
 
-	Matrix(const Matrix &other)
-	{
+	Matrix(const Matrix &other) {
 		for (size_t i = 0; i < M; i++) {
 			for (size_t j = 0; j < N; j++) {
 				_data[i][j] = other(i, j);
@@ -67,9 +61,8 @@ public:
 		}
 	}
 
-	template<size_t P, size_t Q>
-	Matrix(const Slice<Type, M, N, P, Q> &in_slice)
-	{
+	template <size_t P, size_t Q>
+	Matrix(const Slice<Type, M, N, P, Q> &in_slice) {
 		Matrix<Type, M, N> &self = *this;
 
 		for (size_t i = 0; i < M; i++) {
@@ -83,25 +76,21 @@ public:
 	 * Accessors/ Assignment etc.
 	 */
 
-
-	inline const Type &operator()(size_t i, size_t j) const
-	{
+	inline const Type &operator()(size_t i, size_t j) const {
 		assert(i < M);
 		assert(j < N);
 
 		return _data[i][j];
 	}
 
-	inline Type &operator()(size_t i, size_t j)
-	{
+	inline Type &operator()(size_t i, size_t j) {
 		assert(i < M);
 		assert(j < N);
 
 		return _data[i][j];
 	}
 
-	Matrix<Type, M, N> &operator=(const Matrix<Type, M, N> &other)
-	{
+	Matrix<Type, M, N> &operator=(const Matrix<Type, M, N> &other) {
 		if (this != &other) {
 			Matrix<Type, M, N> &self = *this;
 
@@ -115,8 +104,7 @@ public:
 		return (*this);
 	}
 
-	void copyTo(Type dst[M * N]) const
-	{
+	void copyTo(Type dst[M * N]) const {
 		const Matrix<Type, M, N> &self = *this;
 
 		for (size_t i = 0; i < M; i++) {
@@ -126,8 +114,7 @@ public:
 		}
 	}
 
-	void copyToColumnMajor(Type dst[M * N]) const
-	{
+	void copyToColumnMajor(Type dst[M * N]) const {
 		const Matrix<Type, M, N> &self = *this;
 
 		for (size_t i = 0; i < M; i++) {
@@ -145,9 +132,8 @@ public:
 	// since it instantiates a class for every
 	// required mult pair, but it provides
 	// compile time size_t checking
-	template<size_t P>
-	Matrix<Type, M, P> operator*(const Matrix<Type, N, P> &other) const
-	{
+	template <size_t P>
+	Matrix<Type, M, P> operator*(const Matrix<Type, N, P> &other) const {
 		const Matrix<Type, M, N> &self = *this;
 		Matrix<Type, M, P> res{};
 
@@ -162,8 +148,7 @@ public:
 		return res;
 	}
 
-	Matrix<Type, M, N> emult(const Matrix<Type, M, N> &other) const
-	{
+	Matrix<Type, M, N> emult(const Matrix<Type, M, N> &other) const {
 		Matrix<Type, M, N> res;
 		const Matrix<Type, M, N> &self = *this;
 
@@ -176,8 +161,7 @@ public:
 		return res;
 	}
 
-	Matrix<Type, M, N> edivide(const Matrix<Type, M, N> &other) const
-	{
+	Matrix<Type, M, N> edivide(const Matrix<Type, M, N> &other) const {
 		Matrix<Type, M, N> res;
 		const Matrix<Type, M, N> &self = *this;
 
@@ -190,8 +174,7 @@ public:
 		return res;
 	}
 
-	Matrix<Type, M, N> operator+(const Matrix<Type, M, N> &other) const
-	{
+	Matrix<Type, M, N> operator+(const Matrix<Type, M, N> &other) const {
 		Matrix<Type, M, N> res;
 		const Matrix<Type, M, N> &self = *this;
 
@@ -204,8 +187,7 @@ public:
 		return res;
 	}
 
-	Matrix<Type, M, N> operator-(const Matrix<Type, M, N> &other) const
-	{
+	Matrix<Type, M, N> operator-(const Matrix<Type, M, N> &other) const {
 		Matrix<Type, M, N> res;
 		const Matrix<Type, M, N> &self = *this;
 
@@ -219,8 +201,7 @@ public:
 	}
 
 	// unary minus
-	Matrix<Type, M, N> operator-() const
-	{
+	Matrix<Type, M, N> operator-() const {
 		Matrix<Type, M, N> res;
 		const Matrix<Type, M, N> &self = *this;
 
@@ -233,8 +214,7 @@ public:
 		return res;
 	}
 
-	void operator+=(const Matrix<Type, M, N> &other)
-	{
+	void operator+=(const Matrix<Type, M, N> &other) {
 		Matrix<Type, M, N> &self = *this;
 
 		for (size_t i = 0; i < M; i++) {
@@ -244,8 +224,7 @@ public:
 		}
 	}
 
-	void operator-=(const Matrix<Type, M, N> &other)
-	{
+	void operator-=(const Matrix<Type, M, N> &other) {
 		Matrix<Type, M, N> &self = *this;
 
 		for (size_t i = 0; i < M; i++) {
@@ -255,9 +234,8 @@ public:
 		}
 	}
 
-	template<size_t P>
-	void operator*=(const Matrix<Type, N, P> &other)
-	{
+	template <size_t P>
+	void operator*=(const Matrix<Type, N, P> &other) {
 		Matrix<Type, M, N> &self = *this;
 		self = self * other;
 	}
@@ -266,8 +244,7 @@ public:
 	 * Scalar Operations
 	 */
 
-	Matrix<Type, M, N> operator*(Type scalar) const
-	{
+	Matrix<Type, M, N> operator*(Type scalar) const {
 		Matrix<Type, M, N> res;
 		const Matrix<Type, M, N> &self = *this;
 
@@ -280,13 +257,9 @@ public:
 		return res;
 	}
 
-	inline Matrix<Type, M, N> operator/(Type scalar) const
-	{
-		return (*this) * (1 / scalar);
-	}
+	inline Matrix<Type, M, N> operator/(Type scalar) const { return (*this) * (1 / scalar); }
 
-	Matrix<Type, M, N> operator+(Type scalar) const
-	{
+	Matrix<Type, M, N> operator+(Type scalar) const {
 		Matrix<Type, M, N> res;
 		const Matrix<Type, M, N> &self = *this;
 
@@ -299,13 +272,9 @@ public:
 		return res;
 	}
 
-	inline Matrix<Type, M, N> operator-(Type scalar) const
-	{
-		return (*this) + (-1 * scalar);
-	}
+	inline Matrix<Type, M, N> operator-(Type scalar) const { return (*this) + (-1 * scalar); }
 
-	void operator*=(Type scalar)
-	{
+	void operator*=(Type scalar) {
 		Matrix<Type, M, N> &self = *this;
 
 		for (size_t i = 0; i < M; i++) {
@@ -315,14 +284,12 @@ public:
 		}
 	}
 
-	void operator/=(Type scalar)
-	{
+	void operator/=(Type scalar) {
 		Matrix<Type, M, N> &self = *this;
 		self *= (Type(1) / scalar);
 	}
 
-	inline void operator+=(Type scalar)
-	{
+	inline void operator+=(Type scalar) {
 		Matrix<Type, M, N> &self = *this;
 
 		for (size_t i = 0; i < M; i++) {
@@ -332,19 +299,14 @@ public:
 		}
 	}
 
-	inline void operator-=(Type scalar)
-	{
+	inline void operator-=(Type scalar) {
 		Matrix<Type, M, N> &self = *this;
 		self += (-scalar);
 	}
 
-	bool operator==(const Matrix<Type, M, N> &other) const
-	{
-		return isEqual(*this, other);
-	}
+	bool operator==(const Matrix<Type, M, N> &other) const { return isEqual(*this, other); }
 
-	bool operator!=(const Matrix<Type, M, N> &other) const
-	{
+	bool operator!=(const Matrix<Type, M, N> &other) const {
 		const Matrix<Type, M, N> &self = *this;
 		return !(self == other);
 	}
@@ -353,22 +315,21 @@ public:
 	 * Misc. Functions
 	 */
 
-	void write_string(char *buf, size_t n) const
-	{
-		buf[0] = '\0'; // make an empty string to begin with (we need the '\0' for strlen to work)
+	void write_string(char *buf, size_t n) const {
+		buf[0] = '\0';  // make an empty string to begin with (we need the '\0' for strlen to work)
 		const Matrix<Type, M, N> &self = *this;
 
 		for (size_t i = 0; i < M; i++) {
 			for (size_t j = 0; j < N; j++) {
-				snprintf(buf + strlen(buf), n - strlen(buf), "\t%8.8g", double(self(i, j))); // directly append to the string buffer
+				snprintf(buf + strlen(buf), n - strlen(buf), "\t%8.8g",
+					 double(self(i, j)));  // directly append to the string buffer
 			}
 
 			snprintf(buf + strlen(buf), n - strlen(buf), "\n");
 		}
 	}
 
-	void print() const
-	{
+	void print() const {
 		// element: tab, point, 8 digits, 4 scientific notation chars; row: newline; string: \0 end
 		static const size_t n = 15 * N * M + M + 1;
 		char *buf = new char[n];
@@ -377,8 +338,7 @@ public:
 		delete[] buf;
 	}
 
-	Matrix<Type, N, M> transpose() const
-	{
+	Matrix<Type, N, M> transpose() const {
 		Matrix<Type, N, M> res;
 		const Matrix<Type, M, N> &self = *this;
 
@@ -392,75 +352,39 @@ public:
 	}
 
 	// tranpose alias
-	inline Matrix<Type, N, M> T() const
-	{
-		return transpose();
-	}
+	inline Matrix<Type, N, M> T() const { return transpose(); }
 
-	template<size_t P, size_t Q>
-	const Slice<Type, P, Q, M, N> slice(size_t x0, size_t y0) const
-	{
+	template <size_t P, size_t Q>
+	const Slice<Type, P, Q, M, N> slice(size_t x0, size_t y0) const {
 		return Slice<Type, P, Q, M, N>(x0, y0, this);
 	}
 
-	template<size_t P, size_t Q>
-	Slice<Type, P, Q, M, N> slice(size_t x0, size_t y0)
-	{
+	template <size_t P, size_t Q>
+	Slice<Type, P, Q, M, N> slice(size_t x0, size_t y0) {
 		return Slice<Type, P, Q, M, N>(x0, y0, this);
 	}
 
-	const Slice<Type, 1, N, M, N> row(size_t i) const
-	{
-		return slice<1, N>(i, 0);
-	}
+	const Slice<Type, 1, N, M, N> row(size_t i) const { return slice<1, N>(i, 0); }
 
-	Slice<Type, 1, N, M, N> row(size_t i)
-	{
-		return slice<1, N>(i, 0);
-	}
+	Slice<Type, 1, N, M, N> row(size_t i) { return slice<1, N>(i, 0); }
 
-	const Slice<Type, M, 1, M, N> col(size_t j) const
-	{
-		return slice<M, 1>(0, j);
-	}
+	const Slice<Type, M, 1, M, N> col(size_t j) const { return slice<M, 1>(0, j); }
 
-	Slice<Type, M, 1, M, N> col(size_t j)
-	{
-		return slice<M, 1>(0, j);
-	}
+	Slice<Type, M, 1, M, N> col(size_t j) { return slice<M, 1>(0, j); }
 
-	void setRow(size_t i, const Matrix<Type, N, 1> &row_in)
-	{
-		slice<1, N>(i, 0) = row_in.transpose();
-	}
+	void setRow(size_t i, const Matrix<Type, N, 1> &row_in) { slice<1, N>(i, 0) = row_in.transpose(); }
 
-	void setRow(size_t i, Type val)
-	{
-		slice<1, N>(i, 0) = val;
-	}
+	void setRow(size_t i, Type val) { slice<1, N>(i, 0) = val; }
 
-	void setCol(size_t j, const Matrix<Type, M, 1> &column)
-	{
-		slice<M, 1>(0, j) = column;
-	}
+	void setCol(size_t j, const Matrix<Type, M, 1> &column) { slice<M, 1>(0, j) = column; }
 
-	void setCol(size_t j, Type val)
-	{
-		slice<M, 1>(0, j) = val;
-	}
+	void setCol(size_t j, Type val) { slice<M, 1>(0, j) = val; }
 
-	void setZero()
-	{
-		memset(_data, 0, sizeof(_data));
-	}
+	void setZero() { memset(_data, 0, sizeof(_data)); }
 
-	inline void zero()
-	{
-		setZero();
-	}
+	inline void zero() { setZero(); }
 
-	void setAll(Type val)
-	{
+	void setAll(Type val) {
 		Matrix<Type, M, N> &self = *this;
 
 		for (size_t i = 0; i < M; i++) {
@@ -470,18 +394,11 @@ public:
 		}
 	}
 
-	inline void setOne()
-	{
-		setAll(1);
-	}
+	inline void setOne() { setAll(1); }
 
-	inline void setNaN()
-	{
-		setAll(NAN);
-	}
+	inline void setNaN() { setAll(NAN); }
 
-	void setIdentity()
-	{
+	void setIdentity() {
 		setZero();
 		Matrix<Type, M, N> &self = *this;
 
@@ -492,13 +409,9 @@ public:
 		}
 	}
 
-	inline void identity()
-	{
-		setIdentity();
-	}
+	inline void identity() { setIdentity(); }
 
-	inline void swapRows(size_t a, size_t b)
-	{
+	inline void swapRows(size_t a, size_t b) {
 		assert(a < M);
 		assert(b < M);
 
@@ -515,8 +428,7 @@ public:
 		}
 	}
 
-	inline void swapCols(size_t a, size_t b)
-	{
+	inline void swapCols(size_t a, size_t b) {
 		assert(a < N);
 		assert(b < N);
 
@@ -533,8 +445,7 @@ public:
 		}
 	}
 
-	Matrix<Type, M, N> abs() const
-	{
+	Matrix<Type, M, N> abs() const {
 		Matrix<Type, M, N> r;
 
 		for (size_t i = 0; i < M; i++) {
@@ -546,8 +457,7 @@ public:
 		return r;
 	}
 
-	Type max() const
-	{
+	Type max() const {
 		Type max_val = (*this)(0, 0);
 
 		for (size_t i = 0; i < M; i++) {
@@ -563,8 +473,7 @@ public:
 		return max_val;
 	}
 
-	Type min() const
-	{
+	Type min() const {
 		Type min_val = (*this)(0, 0);
 
 		for (size_t i = 0; i < M; i++) {
@@ -580,8 +489,7 @@ public:
 		return min_val;
 	}
 
-	bool isAllNan() const
-	{
+	bool isAllNan() const {
 		const Matrix<float, M, N> &self = *this;
 		bool result = true;
 
@@ -595,40 +503,34 @@ public:
 	}
 };
 
-template<typename Type, size_t M, size_t N>
-Matrix<Type, M, N> zeros()
-{
+template <typename Type, size_t M, size_t N>
+Matrix<Type, M, N> zeros() {
 	Matrix<Type, M, N> m;
 	m.setZero();
 	return m;
 }
 
-template<typename Type, size_t M, size_t N>
-Matrix<Type, M, N> ones()
-{
+template <typename Type, size_t M, size_t N>
+Matrix<Type, M, N> ones() {
 	Matrix<Type, M, N> m;
 	m.setOne();
 	return m;
 }
 
-template<size_t M, size_t N>
-Matrix<float, M, N> nans()
-{
+template <size_t M, size_t N>
+Matrix<float, M, N> nans() {
 	Matrix<float, M, N> m;
 	m.setNaN();
 	return m;
 }
 
-template<typename Type, size_t  M, size_t N>
-Matrix<Type, M, N> operator*(Type scalar, const Matrix<Type, M, N> &other)
-{
+template <typename Type, size_t M, size_t N>
+Matrix<Type, M, N> operator*(Type scalar, const Matrix<Type, M, N> &other) {
 	return other * scalar;
 }
 
-template<typename Type, size_t  M, size_t N>
-bool isEqual(const Matrix<Type, M, N> &x,
-	     const Matrix<Type, M, N> &y, const Type eps = Type(1e-4f))
-{
+template <typename Type, size_t M, size_t N>
+bool isEqual(const Matrix<Type, M, N> &x, const Matrix<Type, M, N> &y, const Type eps = Type(1e-4f)) {
 	for (size_t i = 0; i < M; i++) {
 		for (size_t j = 0; j < N; j++) {
 			if (!isEqualF(x(i, j), y(i, j), eps)) {
@@ -640,11 +542,9 @@ bool isEqual(const Matrix<Type, M, N> &x,
 	return true;
 }
 
-namespace typeFunction
-{
-template<typename Type>
-Type min(const Type x, const Type y)
-{
+namespace typeFunction {
+template <typename Type>
+Type min(const Type x, const Type y) {
 	bool x_is_nan = isnan(x);
 	bool y_is_nan = isnan(y);
 
@@ -661,9 +561,8 @@ Type min(const Type x, const Type y)
 	return (x < y) ? x : y;
 }
 
-template<typename Type>
-Type max(const Type x, const Type y)
-{
+template <typename Type>
+Type max(const Type x, const Type y) {
 	bool x_is_nan = isnan(x);
 	bool y_is_nan = isnan(y);
 
@@ -680,9 +579,8 @@ Type max(const Type x, const Type y)
 	return (x > y) ? x : y;
 }
 
-template<typename Type>
-Type constrain(const Type x, const Type lower_bound, const Type upper_bound)
-{
+template <typename Type>
+Type constrain(const Type x, const Type lower_bound, const Type upper_bound) {
 	if (lower_bound > upper_bound) {
 		return NAN;
 
@@ -693,11 +591,10 @@ Type constrain(const Type x, const Type lower_bound, const Type upper_bound)
 		return typeFunction::max(lower_bound, typeFunction::min(upper_bound, x));
 	}
 }
-}
+}  // namespace typeFunction
 
-template<typename Type, size_t  M, size_t N>
-Matrix<Type, M, N> min(const Matrix<Type, M, N> &x, const Type scalar_upper_bound)
-{
+template <typename Type, size_t M, size_t N>
+Matrix<Type, M, N> min(const Matrix<Type, M, N> &x, const Type scalar_upper_bound) {
 	Matrix<Type, M, N> m;
 
 	for (size_t i = 0; i < M; i++) {
@@ -709,15 +606,13 @@ Matrix<Type, M, N> min(const Matrix<Type, M, N> &x, const Type scalar_upper_boun
 	return m;
 }
 
-template<typename Type, size_t  M, size_t N>
-Matrix<Type, M, N> min(const Type scalar_upper_bound, const Matrix<Type, M, N> &x)
-{
+template <typename Type, size_t M, size_t N>
+Matrix<Type, M, N> min(const Type scalar_upper_bound, const Matrix<Type, M, N> &x) {
 	return min(x, scalar_upper_bound);
 }
 
-template<typename Type, size_t  M, size_t N>
-Matrix<Type, M, N> min(const Matrix<Type, M, N> &x1, const Matrix<Type, M, N> &x2)
-{
+template <typename Type, size_t M, size_t N>
+Matrix<Type, M, N> min(const Matrix<Type, M, N> &x1, const Matrix<Type, M, N> &x2) {
 	Matrix<Type, M, N> m;
 
 	for (size_t i = 0; i < M; i++) {
@@ -729,9 +624,8 @@ Matrix<Type, M, N> min(const Matrix<Type, M, N> &x1, const Matrix<Type, M, N> &x
 	return m;
 }
 
-template<typename Type, size_t  M, size_t N>
-Matrix<Type, M, N> max(const Matrix<Type, M, N> &x, const Type scalar_lower_bound)
-{
+template <typename Type, size_t M, size_t N>
+Matrix<Type, M, N> max(const Matrix<Type, M, N> &x, const Type scalar_lower_bound) {
 	Matrix<Type, M, N> m;
 
 	for (size_t i = 0; i < M; i++) {
@@ -743,15 +637,13 @@ Matrix<Type, M, N> max(const Matrix<Type, M, N> &x, const Type scalar_lower_boun
 	return m;
 }
 
-template<typename Type, size_t  M, size_t N>
-Matrix<Type, M, N> max(const Type scalar_lower_bound, const Matrix<Type, M, N> &x)
-{
+template <typename Type, size_t M, size_t N>
+Matrix<Type, M, N> max(const Type scalar_lower_bound, const Matrix<Type, M, N> &x) {
 	return max(x, scalar_lower_bound);
 }
 
-template<typename Type, size_t  M, size_t N>
-Matrix<Type, M, N> max(const Matrix<Type, M, N> &x1, const Matrix<Type, M, N> &x2)
-{
+template <typename Type, size_t M, size_t N>
+Matrix<Type, M, N> max(const Matrix<Type, M, N> &x1, const Matrix<Type, M, N> &x2) {
 	Matrix<Type, M, N> m;
 
 	for (size_t i = 0; i < M; i++) {
@@ -763,11 +655,9 @@ Matrix<Type, M, N> max(const Matrix<Type, M, N> &x1, const Matrix<Type, M, N> &x
 	return m;
 }
 
-template<typename Type, size_t  M, size_t N>
-Matrix<Type, M, N> constrain(const Matrix<Type, M, N> &x,
-			     const Type scalar_lower_bound,
-			     const Type scalar_upper_bound)
-{
+template <typename Type, size_t M, size_t N>
+Matrix<Type, M, N> constrain(const Matrix<Type, M, N> &x, const Type scalar_lower_bound,
+			     const Type scalar_upper_bound) {
 	Matrix<Type, M, N> m;
 
 	if (scalar_lower_bound > scalar_upper_bound) {
@@ -784,11 +674,9 @@ Matrix<Type, M, N> constrain(const Matrix<Type, M, N> &x,
 	return m;
 }
 
-template<typename Type, size_t  M, size_t N>
-Matrix<Type, M, N> constrain(const Matrix<Type, M, N> &x,
-			     const Matrix<Type, M, N> &x_lower_bound,
-			     const Matrix<Type, M, N> &x_upper_bound)
-{
+template <typename Type, size_t M, size_t N>
+Matrix<Type, M, N> constrain(const Matrix<Type, M, N> &x, const Matrix<Type, M, N> &x_lower_bound,
+			     const Matrix<Type, M, N> &x_upper_bound) {
 	Matrix<Type, M, N> m;
 
 	for (size_t i = 0; i < M; i++) {
@@ -801,10 +689,8 @@ Matrix<Type, M, N> constrain(const Matrix<Type, M, N> &x,
 }
 
 #if defined(SUPPORT_STDIOSTREAM)
-template<typename Type, size_t  M, size_t N>
-std::ostream &operator<<(std::ostream &os,
-			 const matrix::Matrix<Type, M, N> &matrix)
-{
+template <typename Type, size_t M, size_t N>
+std::ostream &operator<<(std::ostream &os, const matrix::Matrix<Type, M, N> &matrix) {
 	for (size_t i = 0; i < M; ++i) {
 		os << "[";
 
@@ -818,6 +704,6 @@ std::ostream &operator<<(std::ostream &os,
 
 	return os;
 }
-#endif // defined(SUPPORT_STDIOSTREAM)
+#endif  // defined(SUPPORT_STDIOSTREAM)
 
-} // namespace matrix
+}  // namespace matrix

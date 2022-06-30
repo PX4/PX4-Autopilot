@@ -40,9 +40,7 @@
 
 #include "mavlink_rate_limiter.h"
 
-bool
-MavlinkRateLimiter::check(const hrt_abstime &t)
-{
+bool MavlinkRateLimiter::check(const hrt_abstime &t) {
 	uint64_t dt = t - _last_sent;
 
 	if (dt > 0 && dt >= _interval) {

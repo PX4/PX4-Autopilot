@@ -34,51 +34,48 @@
 #pragma once
 
 #include <nuttx/can/can.h>
-
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-
-#include <uORB/Publication.hpp>
 #include <uORB/topics/battery_status.h>
+
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
 
 using namespace time_literals;
 
-typedef struct __attribute__((packed))
-{
-	int16_t     manufacturer;
-	uint16_t    sku;
-	uint16_t    voltage;
-	int16_t     current;
-	int16_t     temperature;
-	uint16_t    remaining_percent;
-	uint16_t    cycle_life;
-	int16_t     health_status;
-	uint16_t    cell_1_voltage;
-	uint16_t    cell_2_voltage;
-	uint16_t    cell_3_voltage;
-	uint16_t    cell_4_voltage;
-	uint16_t    cell_5_voltage;
-	uint16_t    cell_6_voltage;
-	uint16_t    cell_7_voltage;
-	uint16_t    cell_8_voltage;
-	uint16_t    cell_9_voltage;
-	uint16_t    cell_10_voltage;
-	uint16_t    cell_11_voltage;
-	uint16_t    cell_12_voltage;
-	uint16_t    standard_capacity;
-	uint16_t    remaining_capacity_mah;
-	uint32_t    error_info;
+typedef struct __attribute__((packed)) {
+	int16_t manufacturer;
+	uint16_t sku;
+	uint16_t voltage;
+	int16_t current;
+	int16_t temperature;
+	uint16_t remaining_percent;
+	uint16_t cycle_life;
+	int16_t health_status;
+	uint16_t cell_1_voltage;
+	uint16_t cell_2_voltage;
+	uint16_t cell_3_voltage;
+	uint16_t cell_4_voltage;
+	uint16_t cell_5_voltage;
+	uint16_t cell_6_voltage;
+	uint16_t cell_7_voltage;
+	uint16_t cell_8_voltage;
+	uint16_t cell_9_voltage;
+	uint16_t cell_10_voltage;
+	uint16_t cell_11_voltage;
+	uint16_t cell_12_voltage;
+	uint16_t standard_capacity;
+	uint16_t remaining_capacity_mah;
+	uint32_t error_info;
 } Tattu12SBatteryMessage;
 
 typedef struct {
 	uint64_t timestamp_usec;
 	uint32_t extended_can_id;
-	size_t      payload_size;
+	size_t payload_size;
 	const void *payload;
 } CanFrame;
 
-class TattuCan : public ModuleBase<TattuCan>, public px4::ScheduledWorkItem
-{
+class TattuCan : public ModuleBase<TattuCan>, public px4::ScheduledWorkItem {
 public:
 	TattuCan();
 
@@ -94,7 +91,7 @@ public:
 	int16_t receive(CanFrame *received_frame);
 
 private:
-	static constexpr uint32_t SAMPLE_RATE{100}; // samples per second (10ms)
+	static constexpr uint32_t SAMPLE_RATE{100};  // samples per second (10ms)
 	static constexpr size_t TAIL_BYTE_START_OF_TRANSFER{128};
 
 	void Run() override;

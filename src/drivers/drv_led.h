@@ -39,10 +39,8 @@
 
 #pragma once
 
-
-#include <uORB/topics/led_control.h>
-
 #include <board_config.h>
+#include <uORB/topics/led_control.h>
 
 // allow the board to override the number (or maxiumum number) of LED's it has
 #ifndef BOARD_MAX_LEDS
@@ -51,6 +49,6 @@
 
 static_assert(led_control_s::ORB_QUEUE_LENGTH >= BOARD_MAX_LEDS, "led_control_s::ORB_QUEUE_LENGTH too small");
 
-#if BOARD_MAX_LEDS > 8 // because led_mask is uint8_t
+#if BOARD_MAX_LEDS > 8  // because led_mask is uint8_t
 #error "BOARD_MAX_LEDS too large. You need to change the led_mask type in the led_control uorb topic (and where it's used)"
 #endif

@@ -8,8 +8,7 @@
 
 #include "math.hpp"
 
-namespace matrix
-{
+namespace matrix {
 
 template <typename Type>
 class Dcm;
@@ -26,9 +25,8 @@ class AxisAngle;
  * The rotation between two coordinate frames is
  * described by this class.
  */
-template<typename Type>
-class AxisAngle : public Vector<Type, 3>
-{
+template <typename Type>
+class AxisAngle : public Vector<Type, 3> {
 public:
 	using Matrix31 = Matrix<Type, 3, 1>;
 
@@ -37,10 +35,7 @@ public:
 	 *
 	 * @param data_ array
 	 */
-	explicit AxisAngle(const Type data_[3]) :
-		Vector<Type, 3>(data_)
-	{
-	}
+	explicit AxisAngle(const Type data_[3]) : Vector<Type, 3>(data_) {}
 
 	/**
 	 * Standard constructor
@@ -52,10 +47,7 @@ public:
 	 *
 	 * @param other Matrix31 to copy
 	 */
-	AxisAngle(const Matrix31 &other) :
-		Vector<Type, 3>(other)
-	{
-	}
+	AxisAngle(const Matrix31 &other) : Vector<Type, 3>(other) {}
 
 	/**
 	 * Constructor from quaternion
@@ -66,8 +58,7 @@ public:
 	 *
 	 * @param q quaternion
 	 */
-	AxisAngle(const Quaternion<Type> &q)
-	{
+	AxisAngle(const Quaternion<Type> &q) {
 		AxisAngle &v = *this;
 		Type mag = q.imag().norm();
 
@@ -87,8 +78,7 @@ public:
 	 *
 	 * @param dcm dcm to set quaternion to
 	 */
-	AxisAngle(const Dcm<Type> &dcm)
-	{
+	AxisAngle(const Dcm<Type> &dcm) {
 		AxisAngle &v = *this;
 		v = AxisAngle<Type>(Quaternion<Type>(dcm));
 	}
@@ -102,8 +92,7 @@ public:
 	 *
 	 * @param euler euler angle instance
 	 */
-	AxisAngle(const Euler<Type> &euler)
-	{
+	AxisAngle(const Euler<Type> &euler) {
 		AxisAngle &v = *this;
 		v = AxisAngle<Type>(Quaternion<Type>(euler));
 	}
@@ -115,8 +104,7 @@ public:
 	 * @param y r_y*angle
 	 * @param z r_z*angle
 	 */
-	AxisAngle(Type x, Type y, Type z)
-	{
+	AxisAngle(Type x, Type y, Type z) {
 		AxisAngle &v = *this;
 		v(0) = x;
 		v(1) = y;
@@ -129,8 +117,7 @@ public:
 	 * @param axis An axis of rotation, normalized if not unit length
 	 * @param angle The amount to rotate
 	 */
-	AxisAngle(const Matrix31 &axis_, Type angle_)
-	{
+	AxisAngle(const Matrix31 &axis_, Type angle_) {
 		AxisAngle &v = *this;
 		// make sure axis is a unit vector
 		Vector<Type, 3> a = axis_;
@@ -140,9 +127,7 @@ public:
 		v(2) = a(2) * angle_;
 	}
 
-
-	Vector<Type, 3> axis()
-	{
+	Vector<Type, 3> axis() {
 		if (Vector<Type, 3>::norm() > 0) {
 			return Vector<Type, 3>::unit();
 
@@ -151,13 +136,10 @@ public:
 		}
 	}
 
-	Type angle()
-	{
-		return Vector<Type, 3>::norm();
-	}
+	Type angle() { return Vector<Type, 3>::norm(); }
 };
 
 using AxisAnglef = AxisAngle<float>;
 using AxisAngled = AxisAngle<double>;
 
-} // namespace matrix
+}  // namespace matrix

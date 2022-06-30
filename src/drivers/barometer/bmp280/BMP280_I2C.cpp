@@ -37,64 +37,55 @@
  * SPI interface for BMP280
  */
 
-#include "bmp280.h"
-
-#include <px4_platform_common/px4_config.h>
 #include <drivers/device/i2c.h>
+#include <px4_platform_common/px4_config.h>
+
+#include "bmp280.h"
 
 #if defined(CONFIG_I2C)
 
-class BMP280_I2C: public device::I2C, public bmp280::IBMP280
-{
+class BMP280_I2C : public device::I2C, public bmp280::IBMP280 {
 public:
 	BMP280_I2C(uint8_t bus, uint32_t device, int bus_frequency);
 	virtual ~BMP280_I2C() override = default;
 
 	int init() override { return I2C::init(); }
 
-	uint8_t	get_reg(uint8_t addr) override;
-	int	set_reg(uint8_t value, uint8_t addr) override;
+	uint8_t get_reg(uint8_t addr) override;
+	int set_reg(uint8_t value, uint8_t addr) override;
 
-	bmp280::data_s		*get_data(uint8_t addr) override;
-	bmp280::calibration_s	*get_calibration(uint8_t addr) override;
+	bmp280::data_s *get_data(uint8_t addr) override;
+	bmp280::calibration_s *get_calibration(uint8_t addr) override;
 
 	uint32_t get_device_id() const override { return device::I2C::get_device_id(); }
 
 	uint8_t get_device_address() const override { return device::I2C::get_device_address(); }
+
 private:
-	bmp280::calibration_s	_cal{};
-	bmp280::data_s		_data{};
+	bmp280::calibration_s _cal{};
+	bmp280::data_s _data{};
 };
 
-bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint32_t device, int bus_frequency)
-{
+bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint32_t device, int bus_frequency) {
 	return new BMP280_I2C(busnum, device, bus_frequency);
 }
 
-BMP280_I2C::BMP280_I2C(uint8_t bus, uint32_t device, int bus_frequency) :
-	I2C(DRV_BARO_DEVTYPE_BMP280, MODULE_NAME, bus, device, bus_frequency)
-{
-}
+BMP280_I2C::BMP280_I2C(uint8_t bus, uint32_t device, int bus_frequency)
+	: I2C(DRV_BARO_DEVTYPE_BMP280, MODULE_NAME, bus, device, bus_frequency) {}
 
-uint8_t
-BMP280_I2C::get_reg(uint8_t addr)
-{
-	uint8_t cmd[2] = { (uint8_t)(addr), 0};
+uint8_t BMP280_I2C::get_reg(uint8_t addr) {
+	uint8_t cmd[2] = {(uint8_t)(addr), 0};
 	transfer(&cmd[0], 1, &cmd[1], 1);
 
 	return cmd[1];
 }
 
-int
-BMP280_I2C::set_reg(uint8_t value, uint8_t addr)
-{
-	uint8_t cmd[2] = { (uint8_t)(addr), value};
+int BMP280_I2C::set_reg(uint8_t value, uint8_t addr) {
+	uint8_t cmd[2] = {(uint8_t)(addr), value};
 	return transfer(cmd, sizeof(cmd), nullptr, 0);
 }
 
-bmp280::data_s *
-BMP280_I2C::get_data(uint8_t addr)
-{
+bmp280::data_s *BMP280_I2C::get_data(uint8_t addr) {
 	const uint8_t cmd = addr;
 
 	if (transfer(&cmd, sizeof(cmd), (uint8_t *)&_data, sizeof(bmp280::data_s)) == OK) {
@@ -105,9 +96,7 @@ BMP280_I2C::get_data(uint8_t addr)
 	}
 }
 
-bmp280::calibration_s *
-BMP280_I2C::get_calibration(uint8_t addr)
-{
+bmp280::calibration_s *BMP280_I2C::get_calibration(uint8_t addr) {
 	const uint8_t cmd = addr;
 
 	if (transfer(&cmd, sizeof(cmd), (uint8_t *)&_cal, sizeof(bmp280::calibration_s)) == OK) {
@@ -118,4 +107,4 @@ BMP280_I2C::get_calibration(uint8_t addr)
 	}
 }
 
-#endif // CONFIG_I2C
+#endif  // CONFIG_I2C

@@ -41,43 +41,41 @@
 
 #pragma once
 
-#include <ActuatorEffectiveness.hpp>
-#include <ActuatorEffectivenessMultirotor.hpp>
-#include <ActuatorEffectivenessStandardVTOL.hpp>
-#include <ActuatorEffectivenessTiltrotorVTOL.hpp>
-#include <ActuatorEffectivenessTailsitterVTOL.hpp>
-#include <ActuatorEffectivenessRoverAckermann.hpp>
-#include <ActuatorEffectivenessRoverDifferential.hpp>
-#include <ActuatorEffectivenessFixedWing.hpp>
-#include <ActuatorEffectivenessMCTilt.hpp>
-#include <ActuatorEffectivenessCustom.hpp>
-#include <ActuatorEffectivenessHelicopter.hpp>
-
-#include <ControlAllocation.hpp>
-#include <ControlAllocationPseudoInverse.hpp>
-#include <ControlAllocationSequentialDesaturation.hpp>
-
-#include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/actuator_servos.h>
 #include <uORB/topics/actuator_servos_trim.h>
 #include <uORB/topics/control_allocator_status.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_torque_setpoint.h>
-#include <uORB/topics/vehicle_thrust_setpoint.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failure_detector_status.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
 
-class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::ScheduledWorkItem
-{
+#include <ActuatorEffectiveness.hpp>
+#include <ActuatorEffectivenessCustom.hpp>
+#include <ActuatorEffectivenessFixedWing.hpp>
+#include <ActuatorEffectivenessHelicopter.hpp>
+#include <ActuatorEffectivenessMCTilt.hpp>
+#include <ActuatorEffectivenessMultirotor.hpp>
+#include <ActuatorEffectivenessRoverAckermann.hpp>
+#include <ActuatorEffectivenessRoverDifferential.hpp>
+#include <ActuatorEffectivenessStandardVTOL.hpp>
+#include <ActuatorEffectivenessTailsitterVTOL.hpp>
+#include <ActuatorEffectivenessTiltrotorVTOL.hpp>
+#include <ControlAllocation.hpp>
+#include <ControlAllocationPseudoInverse.hpp>
+#include <ControlAllocationSequentialDesaturation.hpp>
+#include <lib/matrix/matrix/math.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+
+class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::ScheduledWorkItem {
 public:
 	static constexpr int NUM_ACTUATORS = ControlAllocation::NUM_ACTUATORS;
 	static constexpr int NUM_AXES = ControlAllocation::NUM_AXES;
@@ -108,7 +106,6 @@ public:
 	bool init();
 
 private:
-
 	struct ParamHandles {
 		param_t slew_rate_motors[MAX_NUM_MOTORS];
 		param_t slew_rate_servos[MAX_NUM_SERVOS];
@@ -136,7 +133,8 @@ private:
 	void publish_actuator_controls();
 
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
-	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
+	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES]{};  ///< class for control
+											    ///< allocation calculations
 	int _num_control_allocation{0};
 	hrt_abstime _last_effectiveness_update{0};
 
@@ -161,24 +159,29 @@ private:
 	};
 
 	EffectivenessSource _effectiveness_source_id{EffectivenessSource::NONE};
-	ActuatorEffectiveness *_actuator_effectiveness{nullptr}; 	///< class providing actuator effectiveness
+	ActuatorEffectiveness *_actuator_effectiveness{nullptr};  ///< class providing actuator effectiveness
 
-	uint8_t _control_allocation_selection_indexes[NUM_ACTUATORS * ActuatorEffectiveness::MAX_NUM_MATRICES] {};
-	int _num_actuators[(int)ActuatorType::COUNT] {};
+	uint8_t _control_allocation_selection_indexes[NUM_ACTUATORS * ActuatorEffectiveness::MAX_NUM_MATRICES]{};
+	int _num_actuators[(int)ActuatorType::COUNT]{};
 
 	// Inputs
-	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_sub{this, ORB_ID(vehicle_torque_setpoint)};  /**< vehicle torque setpoint subscription */
-	uORB::SubscriptionCallbackWorkItem _vehicle_thrust_setpoint_sub{this, ORB_ID(vehicle_thrust_setpoint)};	 /**< vehicle thrust setpoint subscription */
+	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_sub{
+		this, ORB_ID(vehicle_torque_setpoint)}; /**< vehicle torque setpoint subscription */
+	uORB::SubscriptionCallbackWorkItem _vehicle_thrust_setpoint_sub{
+		this, ORB_ID(vehicle_thrust_setpoint)}; /**< vehicle thrust setpoint subscription */
 
-	uORB::Subscription _vehicle_torque_setpoint1_sub{ORB_ID(vehicle_torque_setpoint), 1};  /**< vehicle torque setpoint subscription (2. instance) */
-	uORB::Subscription _vehicle_thrust_setpoint1_sub{ORB_ID(vehicle_thrust_setpoint), 1};	 /**< vehicle thrust setpoint subscription (2. instance) */
+	uORB::Subscription _vehicle_torque_setpoint1_sub{ORB_ID(vehicle_torque_setpoint),
+							 1}; /**< vehicle torque setpoint subscription (2. instance) */
+	uORB::Subscription _vehicle_thrust_setpoint1_sub{ORB_ID(vehicle_thrust_setpoint),
+							 1}; /**< vehicle thrust setpoint subscription (2. instance) */
 
 	// Outputs
-	uORB::Publication<control_allocator_status_s>	_control_allocator_status_pub{ORB_ID(control_allocator_status)};	/**< actuator setpoint publication */
+	uORB::Publication<control_allocator_status_s> _control_allocator_status_pub{
+		ORB_ID(control_allocator_status)}; /**< actuator setpoint publication */
 
-	uORB::Publication<actuator_motors_s>	_actuator_motors_pub{ORB_ID(actuator_motors)};
-	uORB::Publication<actuator_servos_s>	_actuator_servos_pub{ORB_ID(actuator_servos)};
-	uORB::Publication<actuator_servos_trim_s>	_actuator_servos_trim_pub{ORB_ID(actuator_servos_trim)};
+	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
+	uORB::Publication<actuator_servos_trim_s> _actuator_servos_trim_pub{ORB_ID(actuator_servos_trim)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -192,7 +195,7 @@ private:
 	// For example, the system might report two motor failures, but only the first one is handled by CA
 	uint16_t _handled_motor_failure_bitmask{0};
 
-	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
+	perf_counter_t _loop_perf; /**< loop duration performance counter */
 
 	bool _armed{false};
 	hrt_abstime _last_run{0};
@@ -203,11 +206,8 @@ private:
 	Params _params{};
 	bool _has_slew_rate{false};
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
-		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
-		(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
-		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
-	)
-
+	DEFINE_PARAMETERS((ParamInt<px4::params::CA_AIRFRAME>)_param_ca_airframe,
+			  (ParamInt<px4::params::CA_METHOD>)_param_ca_method,
+			  (ParamInt<px4::params::CA_FAILURE_MODE>)_param_ca_failure_mode,
+			  (ParamInt<px4::params::CA_R_REV>)_param_r_rev)
 };

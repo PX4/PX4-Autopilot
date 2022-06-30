@@ -43,8 +43,8 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdint.h>
 
 // todo:NCP5623  datasheet says 0x38 driver says 0x39 - needs testing
@@ -57,35 +57,32 @@
  * can be used by the Px4 Firmware in the adc driver
  */
 
-
-#define ADC1_CH(n)                  (n)
-#define ADC1_GPIO(n)                GPIO_ADC1_IN##n
+#define ADC1_CH(n) (n)
+#define ADC1_GPIO(n) GPIO_ADC1_IN##n
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below */
 
-#define PX4_ADC_GPIO  \
-	/* PA0 */  ADC1_GPIO(0),  \
-	/* PA1 */  ADC1_GPIO(1)
+#define PX4_ADC_GPIO /* PA0 */ ADC1_GPIO(0), /* PA1 */ ADC1_GPIO(1)
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
 
-#define ADC_HW_REV_SENSE_CHANNEL            /* PA0 */ ADC1_CH(0)
-#define ADC_HW_VER_SENSE_CHANNEL            /* PA1 */ ADC1_CH(1)
+#define ADC_HW_REV_SENSE_CHANNEL /* PA0 */ ADC1_CH(0)
+#define ADC_HW_VER_SENSE_CHANNEL /* PA1 */ ADC1_CH(1)
 
-#define ADC_CHANNELS \
-	((1 << ADC_HW_REV_SENSE_CHANNEL)           | \
-	 (1 << ADC_HW_VER_SENSE_CHANNEL))
+#define ADC_CHANNELS ((1 << ADC_HW_REV_SENSE_CHANNEL) | (1 << ADC_HW_VER_SENSE_CHANNEL))
 
 /* HW Version and Revision drive signals Default to 1 to detect */
 
 #define BOARD_HAS_HW_VERSIONING
 
-#define GPIO_HW_VER_REV_DRIVE /* PB1 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN1)
-#define GPIO_HW_REV_SENSE     /* PA0 */ ADC1_GPIO(0)
-#define GPIO_HW_VER_SENSE     /* PA1 */ ADC1_GPIO(1)
-#define HW_INFO_INIT         {'C','A','N','G','P','S','x', 'x',0}
-#define HW_INFO_INIT_VER     6
-#define HW_INFO_INIT_REV     7
+#define GPIO_HW_VER_REV_DRIVE /* PB1 */ \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN1)
+#define GPIO_HW_REV_SENSE /* PA0 */ ADC1_GPIO(0)
+#define GPIO_HW_VER_SENSE /* PA1 */ ADC1_GPIO(1)
+#define HW_INFO_INIT \
+	{ 'C', 'A', 'N', 'G', 'P', 'S', 'x', 'x', 0 }
+#define HW_INFO_INIT_VER 6
+#define HW_INFO_INIT_REV 7
 
 #define FLASH_BASED_PARAMS
 
@@ -93,54 +90,50 @@
  *
  * Silent mode control
  */
-#define GPIO_MCU_CAN1_SILENT  /* PB2 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN2)
-#define GPIO_MCU_CAN2_SILENT  /* PA4 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN4)
+#define GPIO_MCU_CAN1_SILENT /* PB2 */ \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN2)
+#define GPIO_MCU_CAN2_SILENT /* PA4 */ \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN4)
 
 // SPI pinning for ICM20649 is in spi.ccp
 
 // GPIO_MCU_SPI1_DRDY                   /* PB0  */
 // GPIO_MCU_SPI1_NCS_ACC                /* PA8  */
 
-#define GPIO_SENSOR_3V3_EN              /* PC15 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN15)
+#define GPIO_SENSOR_3V3_EN /* PC15 */ \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTC | GPIO_PIN15)
 
-#define VDD_3V3_SENSORS_EN(on_true)       px4_arch_gpiowrite(GPIO_SENSOR_3V3_EN, (on_true))
+#define VDD_3V3_SENSORS_EN(on_true) px4_arch_gpiowrite(GPIO_SENSOR_3V3_EN, (on_true))
 
-#define GPIO_MCU_I2C1_SCL_RESET         /* PB6  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN6)
-#define GPIO_MCU_I2C1_SDA_RESET         /* PB7  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN7)
+#define GPIO_MCU_I2C1_SCL_RESET /* PB6  */ \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN6)
+#define GPIO_MCU_I2C1_SDA_RESET /* PB7  */ \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN7)
 
-#define GPIO_MCU_I2C2_SCL_RESET         /* PB10 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
-#define GPIO_MCU_I2C2_SDA_RESET         /* PB3  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN3)
+#define GPIO_MCU_I2C2_SCL_RESET /* PB10 */ \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN10)
+#define GPIO_MCU_I2C2_SDA_RESET /* PB3  */ \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTB | GPIO_PIN3)
 
+#define GPIO_NOPT_WAIT_FOR_GETNODEINFO /* PC14 */ (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTC | GPIO_PIN14)
 
-#define GPIO_NOPT_WAIT_FOR_GETNODEINFO  /* PC14 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN14)
+#define GPIO_TIM1_CH1N /* PA7  */ GPIO_TIM1_CH1N_1 /* NLED_RED  */
+#define GPIO_TIM1_CH2N /* PB14 */ GPIO_TIM1_CH2N_2 /* NLED_BLUE */
+#define GPIO_TIM1_CH3N /* PB15 */ GPIO_TIM1_CH3N_2 /* NLED_GREEN */
 
-#define GPIO_TIM1_CH1N                  /* PA7  */  GPIO_TIM1_CH1N_1 /* NLED_RED  */
-#define GPIO_TIM1_CH2N                  /* PB14 */  GPIO_TIM1_CH2N_2 /* NLED_BLUE */
-#define GPIO_TIM1_CH3N                  /* PB15 */  GPIO_TIM1_CH3N_2 /* NLED_GREEN */
-
-#define GPIO_TIM2_CH1                   /* PA15 */  GPIO_TIM2_CH1_3  /* GPS_PPS_IN */ // todo:needs Driver
-#define GPIO_GPS_PPS_IN                 /* PA15 */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN15)
+#define GPIO_TIM2_CH1 /* PA15 */ GPIO_TIM2_CH1_3 /* GPS_PPS_IN */  // todo:needs Driver
+#define GPIO_GPS_PPS_IN /* PA15 */ (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTA | GPIO_PIN15)
 
 /* High-resolution timer */
-#define HRT_TIMER                       3  /* use timer 3 for the HRT */
-#define HRT_TIMER_CHANNEL               4  /* use capture/compare channel 4 */
+#define HRT_TIMER 3         /* use timer 3 for the HRT */
+#define HRT_TIMER_CHANNEL 4 /* use capture/compare channel 4 */
 
-#define PX4_GPIO_INIT_LIST { \
-		PX4_ADC_GPIO,                   \
-		GPIO_HW_VER_REV_DRIVE,          \
-		GPIO_SENSOR_3V3_EN,             \
-		GPIO_MCU_I2C1_SCL_RESET,        \
-		GPIO_MCU_I2C1_SDA_RESET,        \
-		GPIO_MCU_I2C2_SCL_RESET,        \
-		GPIO_MCU_I2C2_SDA_RESET,        \
-		GPIO_CAN1_TX,                   \
-		GPIO_CAN1_RX,                   \
-		GPIO_CAN2_TX,                   \
-		GPIO_CAN2_RX,                   \
-		GPIO_MCU_CAN1_SILENT,           \
-		GPIO_MCU_CAN2_SILENT,           \
-		GPIO_NOPT_WAIT_FOR_GETNODEINFO, \
-		GPIO_GPS_PPS_IN                 \
+#define PX4_GPIO_INIT_LIST                                                                                       \
+	{                                                                                                        \
+		PX4_ADC_GPIO, GPIO_HW_VER_REV_DRIVE, GPIO_SENSOR_3V3_EN, GPIO_MCU_I2C1_SCL_RESET,                \
+			GPIO_MCU_I2C1_SDA_RESET, GPIO_MCU_I2C2_SCL_RESET, GPIO_MCU_I2C2_SDA_RESET, GPIO_CAN1_TX, \
+			GPIO_CAN1_RX, GPIO_CAN2_TX, GPIO_CAN2_RX, GPIO_MCU_CAN1_SILENT, GPIO_MCU_CAN2_SILENT,    \
+			GPIO_NOPT_WAIT_FOR_GETNODEINFO, GPIO_GPS_PPS_IN                                          \
 	}
 
 __BEGIN_DECLS

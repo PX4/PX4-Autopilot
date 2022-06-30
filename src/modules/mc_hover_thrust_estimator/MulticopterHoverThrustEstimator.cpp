@@ -43,22 +43,16 @@
 
 using namespace time_literals;
 
-MulticopterHoverThrustEstimator::MulticopterHoverThrustEstimator() :
-	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
-{
+MulticopterHoverThrustEstimator::MulticopterHoverThrustEstimator()
+	: ModuleParams(nullptr), WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers) {
 	_valid_hysteresis.set_hysteresis_time_from(false, 2_s);
 	updateParams();
 	reset();
 }
 
-MulticopterHoverThrustEstimator::~MulticopterHoverThrustEstimator()
-{
-	perf_free(_cycle_perf);
-}
+MulticopterHoverThrustEstimator::~MulticopterHoverThrustEstimator() { perf_free(_cycle_perf); }
 
-bool MulticopterHoverThrustEstimator::init()
-{
+bool MulticopterHoverThrustEstimator::init() {
 	if (!_vehicle_local_position_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -67,15 +61,13 @@ bool MulticopterHoverThrustEstimator::init()
 	return true;
 }
 
-void MulticopterHoverThrustEstimator::reset()
-{
+void MulticopterHoverThrustEstimator::reset() {
 	_hover_thrust_ekf.setHoverThrust(_param_mpc_thr_hover.get());
 	_hover_thrust_ekf.setHoverThrustStdDev(_param_hte_ht_err_init.get());
 	_hover_thrust_ekf.resetAccelNoise();
 }
 
-void MulticopterHoverThrustEstimator::updateParams()
-{
+void MulticopterHoverThrustEstimator::updateParams() {
 	const float ht_err_init_prev = _param_hte_ht_err_init.get();
 	ModuleParams::updateParams();
 
@@ -87,14 +79,13 @@ void MulticopterHoverThrustEstimator::updateParams()
 
 	_hover_thrust_ekf.setAccelInnovGate(_param_hte_acc_gate.get());
 
-	_hover_thrust_ekf.setMinHoverThrust(math::constrain(_param_mpc_thr_hover.get() - _param_hte_thr_range.get(), 0.f,
-					    0.8f));
-	_hover_thrust_ekf.setMaxHoverThrust(math::constrain(_param_mpc_thr_hover.get() + _param_hte_thr_range.get(), 0.2f,
-					    0.9f));
+	_hover_thrust_ekf.setMinHoverThrust(
+		math::constrain(_param_mpc_thr_hover.get() - _param_hte_thr_range.get(), 0.f, 0.8f));
+	_hover_thrust_ekf.setMaxHoverThrust(
+		math::constrain(_param_mpc_thr_hover.get() + _param_hte_thr_range.get(), 0.2f, 0.9f));
 }
 
-void MulticopterHoverThrustEstimator::Run()
-{
+void MulticopterHoverThrustEstimator::Run() {
 	if (should_exit()) {
 		_vehicle_local_position_sub.unregisterCallback();
 		exit_and_cleanup();
@@ -163,7 +154,6 @@ void MulticopterHoverThrustEstimator::Run()
 	_timestamp_last = local_pos.timestamp;
 
 	if (_armed && _in_air && (dt > 0.001f) && (dt < 1.f) && PX4_ISFINITE(local_pos.az)) {
-
 		_hover_thrust_ekf.predict(dt);
 
 		vehicle_local_position_setpoint_s local_pos_sp;
@@ -171,14 +161,19 @@ void MulticopterHoverThrustEstimator::Run()
 		if (_vehicle_local_position_setpoint_sub.copy(&local_pos_sp)) {
 			if (PX4_ISFINITE(local_pos_sp.thrust[2])) {
 				// Inform the hover thrust estimator about the measured vertical
-				// acceleration (positive acceleration is up) and the current thrust (positive thrust is up)
-				// Guard against fast up and down motions biasing the estimator due to large drag and prop wash effects
-				const float meas_noise_coeff_z = fmaxf((fabsf(local_pos.vz) - _param_hte_vz_thr.get()) + 1.f, 1.f);
-				const float meas_noise_coeff_xy = fmaxf((matrix::Vector2f(local_pos.vx,
-									local_pos.vy).norm() - _param_hte_vxy_thr.get()) + 1.f,
-									1.f);
+				// acceleration (positive acceleration is up) and the current thrust (positive thrust is
+				// up) Guard against fast up and down motions biasing the estimator due to large drag
+				// and prop wash effects
+				const float meas_noise_coeff_z =
+					fmaxf((fabsf(local_pos.vz) - _param_hte_vz_thr.get()) + 1.f, 1.f);
+				const float meas_noise_coeff_xy =
+					fmaxf((matrix::Vector2f(local_pos.vx, local_pos.vy).norm() -
+					       _param_hte_vxy_thr.get()) +
+						      1.f,
+					      1.f);
 
-				_hover_thrust_ekf.setMeasurementNoiseScale(fmaxf(meas_noise_coeff_xy, meas_noise_coeff_z));
+				_hover_thrust_ekf.setMeasurementNoiseScale(
+					fmaxf(meas_noise_coeff_xy, meas_noise_coeff_z));
 				_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2]);
 
 				bool valid = (_hover_thrust_ekf.getHoverThrustEstimateVar() < 0.001f);
@@ -213,8 +208,7 @@ void MulticopterHoverThrustEstimator::Run()
 	perf_end(_cycle_perf);
 }
 
-void MulticopterHoverThrustEstimator::publishStatus(const hrt_abstime &timestamp_sample)
-{
+void MulticopterHoverThrustEstimator::publishStatus(const hrt_abstime &timestamp_sample) {
 	hover_thrust_estimate_s status_msg{};
 
 	status_msg.timestamp_sample = timestamp_sample;
@@ -234,8 +228,7 @@ void MulticopterHoverThrustEstimator::publishStatus(const hrt_abstime &timestamp
 	_hover_thrust_ekf_pub.publish(status_msg);
 }
 
-void MulticopterHoverThrustEstimator::publishInvalidStatus()
-{
+void MulticopterHoverThrustEstimator::publishInvalidStatus() {
 	hover_thrust_estimate_s status_msg{};
 
 	status_msg.hover_thrust = NAN;
@@ -250,8 +243,7 @@ void MulticopterHoverThrustEstimator::publishInvalidStatus()
 	_hover_thrust_ekf_pub.publish(status_msg);
 }
 
-int MulticopterHoverThrustEstimator::task_spawn(int argc, char *argv[])
-{
+int MulticopterHoverThrustEstimator::task_spawn(int argc, char *argv[]) {
 	MulticopterHoverThrustEstimator *instance = new MulticopterHoverThrustEstimator();
 
 	if (instance) {
@@ -273,20 +265,15 @@ int MulticopterHoverThrustEstimator::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int MulticopterHoverThrustEstimator::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int MulticopterHoverThrustEstimator::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int MulticopterHoverThrustEstimator::print_status()
-{
+int MulticopterHoverThrustEstimator::print_status() {
 	perf_print_counter(_cycle_perf);
 
 	return 0;
 }
 
-int MulticopterHoverThrustEstimator::print_usage(const char *reason)
-{
+int MulticopterHoverThrustEstimator::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -304,7 +291,6 @@ int MulticopterHoverThrustEstimator::print_usage(const char *reason)
 	return 0;
 }
 
-extern "C" __EXPORT int mc_hover_thrust_estimator_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int mc_hover_thrust_estimator_main(int argc, char *argv[]) {
 	return MulticopterHoverThrustEstimator::main(argc, argv);
 }

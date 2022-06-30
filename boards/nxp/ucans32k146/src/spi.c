@@ -37,26 +37,22 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include <stdint.h>
-#include <stdbool.h>
-#include <errno.h>
+#include <arch/board/board.h>
 #include <debug.h>
-
+#include <errno.h>
+#include <nuttx/config.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/spi/spi_transfer.h>
-#include <arch/board/board.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "arm_arch.h"
-
+#include "board_config.h"
 #include "s32k1xx_config.h"
 #include "s32k1xx_lpspi.h"
 #include "s32k1xx_pin.h"
-#include "board_config.h"
 
-#if defined(CONFIG_S32K1XX_LPSPI0) || defined(CONFIG_S32K1XX_LPSPI1) || \
-    defined(CONFIG_S32K1XX_LPSPI2)
+#if defined(CONFIG_S32K1XX_LPSPI0) || defined(CONFIG_S32K1XX_LPSPI1) || defined(CONFIG_S32K1XX_LPSPI2)
 
 /****************************************************************************
  * Public Functions
@@ -71,8 +67,7 @@
  *
  ****************************************************************************/
 
-void weak_function s32k1xx_spidev_initialize(void)
-{
+void weak_function s32k1xx_spidev_initialize(void) {
 #ifdef CONFIG_S32K1XX_LPSPI0
 	s32k1xx_pinconfig(PIN_LPSPI0_PCS);
 
@@ -146,55 +141,34 @@ void weak_function s32k1xx_spidev_initialize(void)
  ****************************************************************************/
 
 #ifdef CONFIG_S32K1XX_LPSPI0
-void s32k1xx_lpspi0select(FAR struct spi_dev_s *dev, uint32_t devid,
-			  bool selected)
-{
-	spiinfo("devid: %d CS: %s\n", (int)devid,
-		selected ? "assert" : "de-assert");
+void s32k1xx_lpspi0select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
+	spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 
 	s32k1xx_gpiowrite(PIN_LPSPI0_PCS, !selected);
 }
 
-uint8_t s32k1xx_lpspi0status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return 0;
-}
+uint8_t s32k1xx_lpspi0status(FAR struct spi_dev_s *dev, uint32_t devid) { return 0; }
 #endif
 
 #ifdef CONFIG_S32K1XX_LPSPI1
-void s32k1xx_lpspi1select(FAR struct spi_dev_s *dev,
-			  uint32_t devid, bool selected)
-{
-	spiinfo("devid: %d CS: %s\n", (int)devid,
-		selected ? "assert" : "de-assert");
+void s32k1xx_lpspi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
+	spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 
 	s32k1xx_gpiowrite(PIN_LPSPI1_PCS, !selected);
 }
 
-uint8_t s32k1xx_lpspi1status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return 0;
-}
+uint8_t s32k1xx_lpspi1status(FAR struct spi_dev_s *dev, uint32_t devid) { return 0; }
 #endif
 
 #ifdef CONFIG_S32K1XX_LPSPI2
-void s32k1xx_lpspi2select(FAR struct spi_dev_s *dev,
-			  uint32_t devid, bool selected)
-{
-	spiinfo("devid: %d CS: %s\n", (int)devid,
-		selected ? "assert" : "de-assert");
+void s32k1xx_lpspi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
+	spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 
 	s32k1xx_gpiowrite(PIN_LPSPI2_PCS, !selected);
 }
 
-uint8_t s32k1xx_lpspi2status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return 0;
-}
+uint8_t s32k1xx_lpspi2status(FAR struct spi_dev_s *dev, uint32_t devid) { return 0; }
 #endif
 
-__EXPORT void board_spi_reset(int ms, int bus_mask)
-{
-
-}
+__EXPORT void board_spi_reset(int ms, int bus_mask) {}
 #endif /* CONFIG_S32K1XX_LPSPI0 || CONFIG_S32K1XX_LPSPI01 || CONFIG_S32K1XX_LPSPI2 */

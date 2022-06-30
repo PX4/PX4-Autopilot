@@ -43,22 +43,20 @@
 
 #pragma once
 
-#include "ControlAllocationPseudoInverse.hpp"
-
 #include <px4_platform_common/module_params.h>
 
-class ControlAllocationSequentialDesaturation: public ControlAllocationPseudoInverse, public ModuleParams
-{
-public:
+#include "ControlAllocationPseudoInverse.hpp"
 
+class ControlAllocationSequentialDesaturation : public ControlAllocationPseudoInverse, public ModuleParams {
+public:
 	ControlAllocationSequentialDesaturation() : ModuleParams(nullptr) {}
 	virtual ~ControlAllocationSequentialDesaturation() = default;
 
 	void allocate() override;
 
 	void updateParameters() override;
-private:
 
+private:
 	/**
 	 * Minimize the saturation of the actuators by adding or substracting a fraction of desaturation_vector.
 	 * desaturation_vector is the vector that added to the output outputs, modifies the thrust or angular
@@ -122,7 +120,6 @@ private:
 	 */
 	void mixYaw();
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode   ///< air-mode
+	DEFINE_PARAMETERS((ParamInt<px4::params::MC_AIRMODE>)_param_mc_airmode  ///< air-mode
 	);
 };

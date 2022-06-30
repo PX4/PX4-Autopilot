@@ -40,25 +40,22 @@
  *
  */
 
-#include <px4_platform_common/px4_config.h>
+#include <assert.h>
+#include <board_config.h>
+#include <debug.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/shutdown.h>
-
+#include <sched.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <sys/boardctl.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <sched.h>
-#include <errno.h>
-
-#include <assert.h>
-#include <debug.h>
-
-#include <board_config.h>
-#include <drivers/drv_hrt.h>
-#include <sys/boardctl.h>
 
 static px4_task_t g_usr_hrt_task = -1;
 
@@ -66,9 +63,7 @@ static px4_task_t g_usr_hrt_task = -1;
  * Fetch a never-wrapping absolute time value in microseconds from
  * some arbitrary epoch shortly after system start.
  */
-hrt_abstime
-hrt_absolute_time(void)
-{
+hrt_abstime hrt_absolute_time(void) {
 	hrt_abstime abstime = 0;
 	boardctl(HRT_ABSOLUTE_TIME, (uintptr_t)&abstime);
 	return abstime;
@@ -77,9 +72,7 @@ hrt_absolute_time(void)
 /**
  * Store the absolute time in an interrupt-safe fashion
  */
-void
-hrt_store_absolute_time(volatile hrt_abstime *t)
-{
+void hrt_store_absolute_time(volatile hrt_abstime *t) {
 	irqstate_t flags = px4_enter_critical_section();
 	*t = hrt_absolute_time();
 	px4_leave_critical_section(flags);
@@ -88,9 +81,7 @@ hrt_store_absolute_time(volatile hrt_abstime *t)
 /**
  * Event dispatcher thread
  */
-int
-event_thread(int argc, char *argv[])
-{
+int event_thread(int argc, char *argv[]) {
 	struct hrt_call *entry = NULL;
 
 	while (1) {
@@ -109,8 +100,7 @@ event_thread(int argc, char *argv[])
 /**
  * Request stop.
  */
-bool hrt_request_stop()
-{
+bool hrt_request_stop() {
 	px4_task_delete(g_usr_hrt_task);
 	return true;
 }
@@ -118,9 +108,7 @@ bool hrt_request_stop()
 /**
  * Initialise the high-resolution timing module.
  */
-void
-hrt_init(void)
-{
+void hrt_init(void) {
 	px4_register_shutdown_hook(hrt_request_stop);
 	g_usr_hrt_task = px4_task_spawn_cmd("usr_hrt", SCHED_DEFAULT, SCHED_PRIORITY_MAX, 1000, event_thread, NULL);
 }
@@ -128,9 +116,7 @@ hrt_init(void)
 /**
  * Call callout(arg) after interval has elapsed.
  */
-void
-hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, void *arg)
-{
+void hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, void *arg) {
 	hrt_boardctl_t ioc_parm;
 	ioc_parm.entry = entry;
 	ioc_parm.time = delay;
@@ -145,9 +131,7 @@ hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, v
 /**
  * Call callout(arg) at calltime.
  */
-void
-hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, void *arg)
-{
+void hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, void *arg) {
 	hrt_boardctl_t ioc_parm;
 	ioc_parm.entry = entry;
 	ioc_parm.time = calltime;
@@ -163,9 +147,7 @@ hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, v
 /**
  * Call callout(arg) every period.
  */
-void
-hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg)
-{
+void hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg) {
 	hrt_boardctl_t ioc_parm;
 	ioc_parm.entry = entry;
 	ioc_parm.time = delay;
@@ -181,32 +163,18 @@ hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, 
 /**
  * Remove the entry from the callout list.
  */
-void
-hrt_cancel(struct hrt_call *entry)
-{
-	boardctl(HRT_CANCEL, (uintptr_t)entry);
-}
+void hrt_cancel(struct hrt_call *entry) { boardctl(HRT_CANCEL, (uintptr_t)entry); }
 
-void
-hrt_call_init(struct hrt_call *entry)
-{
-	memset(entry, 0, sizeof(*entry));
-}
+void hrt_call_init(struct hrt_call *entry) { memset(entry, 0, sizeof(*entry)); }
 
 /**
  * If this returns true, the call has been invoked and removed from the callout list.
  *
  * Always returns false for repeating callouts.
  */
-bool
-hrt_called(struct hrt_call *entry)
-{
-	return (entry->deadline == 0);
-}
+bool hrt_called(struct hrt_call *entry) { return (entry->deadline == 0); }
 
-latency_info_t
-get_latency(uint16_t bucket_idx, uint16_t counter_idx)
-{
+latency_info_t get_latency(uint16_t bucket_idx, uint16_t counter_idx) {
 	latency_boardctl_t latency_ioc;
 	latency_ioc.bucket_idx = bucket_idx;
 	latency_ioc.counter_idx = counter_idx;
@@ -215,7 +183,4 @@ get_latency(uint16_t bucket_idx, uint16_t counter_idx)
 	return latency_ioc.latency;
 }
 
-void reset_latency_counters()
-{
-	boardctl(HRT_RESET_LATENCY, NULL);
-}
+void reset_latency_counters() { boardctl(HRT_RESET_LATENCY, NULL); }

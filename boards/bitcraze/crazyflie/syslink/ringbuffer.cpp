@@ -38,59 +38,35 @@
  */
 
 #include "ringbuffer.h"
+
 #include <string.h>
 
-namespace ringbuffer
-{
+namespace ringbuffer {
 
-RingBuffer::RingBuffer(unsigned num_items, size_t item_size) :
-	_num_items(num_items),
-	_item_size(item_size),
-	_buf(new char[(_num_items + 1) * item_size]),
-	_head(_num_items),
-	_tail(_num_items)
-{}
+RingBuffer::RingBuffer(unsigned num_items, size_t item_size)
+	: _num_items(num_items),
+	  _item_size(item_size),
+	  _buf(new char[(_num_items + 1) * item_size]),
+	  _head(_num_items),
+	  _tail(_num_items) {}
 
-RingBuffer::~RingBuffer()
-{
-	delete[] _buf;
-}
+RingBuffer::~RingBuffer() { delete[] _buf; }
 
-unsigned
-RingBuffer::_next(unsigned index)
-{
-	return (0 == index) ? _num_items : (index - 1);
-}
+unsigned RingBuffer::_next(unsigned index) { return (0 == index) ? _num_items : (index - 1); }
 
-bool
-RingBuffer::empty()
-{
-	return _tail == _head;
-}
+bool RingBuffer::empty() { return _tail == _head; }
 
-bool
-RingBuffer::full()
-{
-	return _next(_head) == _tail;
-}
+bool RingBuffer::full() { return _next(_head) == _tail; }
 
-unsigned
-RingBuffer::size()
-{
-	return (_buf != nullptr) ? _num_items : 0;
-}
+unsigned RingBuffer::size() { return (_buf != nullptr) ? _num_items : 0; }
 
-void
-RingBuffer::flush()
-{
+void RingBuffer::flush() {
 	while (!empty()) {
 		get(nullptr);
 	}
 }
 
-bool
-RingBuffer::put(const void *val, size_t val_size)
-{
+bool RingBuffer::put(const void *val, size_t val_size) {
 	unsigned next = _next(_head);
 
 	if (next != _tail) {
@@ -107,69 +83,27 @@ RingBuffer::put(const void *val, size_t val_size)
 	}
 }
 
-bool
-RingBuffer::put(int8_t val)
-{
-	return put(&val, sizeof(val));
-}
+bool RingBuffer::put(int8_t val) { return put(&val, sizeof(val)); }
 
-bool
-RingBuffer::put(uint8_t val)
-{
-	return put(&val, sizeof(val));
-}
+bool RingBuffer::put(uint8_t val) { return put(&val, sizeof(val)); }
 
-bool
-RingBuffer::put(int16_t val)
-{
-	return put(&val, sizeof(val));
-}
+bool RingBuffer::put(int16_t val) { return put(&val, sizeof(val)); }
 
-bool
-RingBuffer::put(uint16_t val)
-{
-	return put(&val, sizeof(val));
-}
+bool RingBuffer::put(uint16_t val) { return put(&val, sizeof(val)); }
 
-bool
-RingBuffer::put(int32_t val)
-{
-	return put(&val, sizeof(val));
-}
+bool RingBuffer::put(int32_t val) { return put(&val, sizeof(val)); }
 
-bool
-RingBuffer::put(uint32_t val)
-{
-	return put(&val, sizeof(val));
-}
+bool RingBuffer::put(uint32_t val) { return put(&val, sizeof(val)); }
 
-bool
-RingBuffer::put(int64_t val)
-{
-	return put(&val, sizeof(val));
-}
+bool RingBuffer::put(int64_t val) { return put(&val, sizeof(val)); }
 
-bool
-RingBuffer::put(uint64_t val)
-{
-	return put(&val, sizeof(val));
-}
+bool RingBuffer::put(uint64_t val) { return put(&val, sizeof(val)); }
 
-bool
-RingBuffer::put(float val)
-{
-	return put(&val, sizeof(val));
-}
+bool RingBuffer::put(float val) { return put(&val, sizeof(val)); }
 
-bool
-RingBuffer::put(double val)
-{
-	return put(&val, sizeof(val));
-}
+bool RingBuffer::put(double val) { return put(&val, sizeof(val)); }
 
-bool
-RingBuffer::force(const void *val, size_t val_size)
-{
+bool RingBuffer::force(const void *val, size_t val_size) {
 	bool overwrote = false;
 
 	for (;;) {
@@ -184,69 +118,27 @@ RingBuffer::force(const void *val, size_t val_size)
 	return overwrote;
 }
 
-bool
-RingBuffer::force(int8_t val)
-{
-	return force(&val, sizeof(val));
-}
+bool RingBuffer::force(int8_t val) { return force(&val, sizeof(val)); }
 
-bool
-RingBuffer::force(uint8_t val)
-{
-	return force(&val, sizeof(val));
-}
+bool RingBuffer::force(uint8_t val) { return force(&val, sizeof(val)); }
 
-bool
-RingBuffer::force(int16_t val)
-{
-	return force(&val, sizeof(val));
-}
+bool RingBuffer::force(int16_t val) { return force(&val, sizeof(val)); }
 
-bool
-RingBuffer::force(uint16_t val)
-{
-	return force(&val, sizeof(val));
-}
+bool RingBuffer::force(uint16_t val) { return force(&val, sizeof(val)); }
 
-bool
-RingBuffer::force(int32_t val)
-{
-	return force(&val, sizeof(val));
-}
+bool RingBuffer::force(int32_t val) { return force(&val, sizeof(val)); }
 
-bool
-RingBuffer::force(uint32_t val)
-{
-	return force(&val, sizeof(val));
-}
+bool RingBuffer::force(uint32_t val) { return force(&val, sizeof(val)); }
 
-bool
-RingBuffer::force(int64_t val)
-{
-	return force(&val, sizeof(val));
-}
+bool RingBuffer::force(int64_t val) { return force(&val, sizeof(val)); }
 
-bool
-RingBuffer::force(uint64_t val)
-{
-	return force(&val, sizeof(val));
-}
+bool RingBuffer::force(uint64_t val) { return force(&val, sizeof(val)); }
 
-bool
-RingBuffer::force(float val)
-{
-	return force(&val, sizeof(val));
-}
+bool RingBuffer::force(float val) { return force(&val, sizeof(val)); }
 
-bool
-RingBuffer::force(double val)
-{
-	return force(&val, sizeof(val));
-}
+bool RingBuffer::force(double val) { return force(&val, sizeof(val)); }
 
-bool
-RingBuffer::get(void *val, size_t val_size)
-{
+bool RingBuffer::get(void *val, size_t val_size) {
 	if (_tail != _head) {
 		unsigned candidate;
 		unsigned next;
@@ -277,69 +169,27 @@ RingBuffer::get(void *val, size_t val_size)
 	}
 }
 
-bool
-RingBuffer::get(int8_t &val)
-{
-	return get(&val, sizeof(val));
-}
+bool RingBuffer::get(int8_t &val) { return get(&val, sizeof(val)); }
 
-bool
-RingBuffer::get(uint8_t &val)
-{
-	return get(&val, sizeof(val));
-}
+bool RingBuffer::get(uint8_t &val) { return get(&val, sizeof(val)); }
 
-bool
-RingBuffer::get(int16_t &val)
-{
-	return get(&val, sizeof(val));
-}
+bool RingBuffer::get(int16_t &val) { return get(&val, sizeof(val)); }
 
-bool
-RingBuffer::get(uint16_t &val)
-{
-	return get(&val, sizeof(val));
-}
+bool RingBuffer::get(uint16_t &val) { return get(&val, sizeof(val)); }
 
-bool
-RingBuffer::get(int32_t &val)
-{
-	return get(&val, sizeof(val));
-}
+bool RingBuffer::get(int32_t &val) { return get(&val, sizeof(val)); }
 
-bool
-RingBuffer::get(uint32_t &val)
-{
-	return get(&val, sizeof(val));
-}
+bool RingBuffer::get(uint32_t &val) { return get(&val, sizeof(val)); }
 
-bool
-RingBuffer::get(int64_t &val)
-{
-	return get(&val, sizeof(val));
-}
+bool RingBuffer::get(int64_t &val) { return get(&val, sizeof(val)); }
 
-bool
-RingBuffer::get(uint64_t &val)
-{
-	return get(&val, sizeof(val));
-}
+bool RingBuffer::get(uint64_t &val) { return get(&val, sizeof(val)); }
 
-bool
-RingBuffer::get(float &val)
-{
-	return get(&val, sizeof(val));
-}
+bool RingBuffer::get(float &val) { return get(&val, sizeof(val)); }
 
-bool
-RingBuffer::get(double &val)
-{
-	return get(&val, sizeof(val));
-}
+bool RingBuffer::get(double &val) { return get(&val, sizeof(val)); }
 
-unsigned
-RingBuffer::space()
-{
+unsigned RingBuffer::space() {
 	unsigned tail, head;
 
 	/*
@@ -358,9 +208,7 @@ RingBuffer::space()
 	return (tail >= head) ? (_num_items - (tail - head)) : (head - tail - 1);
 }
 
-unsigned
-RingBuffer::count()
-{
+unsigned RingBuffer::count() {
 	/*
 	 * Note that due to the conservative nature of space(), this may
 	 * over-estimate the number of items in the buffer.
@@ -368,11 +216,9 @@ RingBuffer::count()
 	return _num_items - space();
 }
 
-bool
-RingBuffer::resize(unsigned new_size)
-{
+bool RingBuffer::resize(unsigned new_size) {
 	char *old_buffer;
-	char *new_buffer = new char [(new_size + 1) * _item_size];
+	char *new_buffer = new char[(new_size + 1) * _item_size];
 
 	if (new_buffer == nullptr) {
 		return false;
@@ -387,16 +233,9 @@ RingBuffer::resize(unsigned new_size)
 	return true;
 }
 
-void
-RingBuffer::print_info(const char *name)
-{
-	printf("%s	%u/%lu (%u/%u @ %p)\n",
-	       name,
-	       _num_items,
-	       (unsigned long)_num_items * _item_size,
-	       _head,
-	       _tail,
+void RingBuffer::print_info(const char *name) {
+	printf("%s	%u/%lu (%u/%u @ %p)\n", name, _num_items, (unsigned long)_num_items * _item_size, _head, _tail,
 	       _buf);
 }
 
-} // namespace ringbuffer
+}  // namespace ringbuffer

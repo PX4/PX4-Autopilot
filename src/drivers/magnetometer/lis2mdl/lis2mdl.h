@@ -41,9 +41,10 @@
 
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/i2c_spi_buses.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 
 /**
@@ -51,42 +52,41 @@
  */
 
 /* Max measurement rate is 20Hz */
-#define LIS2MDL_CONVERSION_INTERVAL     (1000000 / 20)
+#define LIS2MDL_CONVERSION_INTERVAL (1000000 / 20)
 
-#define ADDR_WHO_AM_I                   0x4f
-#define ID_WHO_AM_I                     0x40
+#define ADDR_WHO_AM_I 0x4f
+#define ID_WHO_AM_I 0x40
 
-#define ADDR_CFG_REG_A                  0x60
-#define ADDR_CFG_REG_B                  0x61
-#define ADDR_CFG_REG_C                  0x62
-#define ADDR_INT_CTRL_REG               0x63
+#define ADDR_CFG_REG_A 0x60
+#define ADDR_CFG_REG_B 0x61
+#define ADDR_CFG_REG_C 0x62
+#define ADDR_INT_CTRL_REG 0x63
 
-#define ADDR_STATUS_REG                 0x67
-#define ADDR_OUT_X_L                    0x68
-#define ADDR_OUT_X_H                    0x69
-#define ADDR_OUT_Y_L                    0x6a
-#define ADDR_OUT_Y_H                    0x6b
-#define ADDR_OUT_Z_L                    0x6c
-#define ADDR_OUT_Z_H                    0x6d
-#define ADDR_OUT_T_L                    0x6e
-#define ADDR_OUT_T_H                    0x6f
+#define ADDR_STATUS_REG 0x67
+#define ADDR_OUT_X_L 0x68
+#define ADDR_OUT_X_H 0x69
+#define ADDR_OUT_Y_L 0x6a
+#define ADDR_OUT_Y_H 0x6b
+#define ADDR_OUT_Z_L 0x6c
+#define ADDR_OUT_Z_H 0x6d
+#define ADDR_OUT_T_L 0x6e
+#define ADDR_OUT_T_H 0x6f
 
-#define CFG_REG_A_TEMP_COMP_EN          (1 << 7)
-#define CFG_REG_A_ODR                   (1 << 2) /* 20Hz (100Hz or 50Hz creates spikes randomly) */
-#define CFG_REG_A_MD                    (0 << 0) /* continuous mode */
+#define CFG_REG_A_TEMP_COMP_EN (1 << 7)
+#define CFG_REG_A_ODR (1 << 2) /* 20Hz (100Hz or 50Hz creates spikes randomly) */
+#define CFG_REG_A_MD (0 << 0)  /* continuous mode */
 
-#define CFG_REG_B_LPF                   (1 << 0) /* LPF */
+#define CFG_REG_B_LPF (1 << 0) /* LPF */
 
-#define CFG_REG_C_BDU                   (1 << 4) /* avoids reading of incorrect data due to async reads */
+#define CFG_REG_C_BDU (1 << 4) /* avoids reading of incorrect data due to async reads */
 
 /* interface factories */
 extern device::Device *LIS2MDL_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 extern device::Device *LIS2MDL_I2C_interface(int bus, int bus_frequency);
 
-#define LIS2MDLL_ADDRESS        0x1e
+#define LIS2MDLL_ADDRESS 0x1e
 
-class LIS2MDL : public I2CSPIDriver<LIS2MDL>
-{
+class LIS2MDL : public I2CSPIDriver<LIS2MDL> {
 public:
 	LIS2MDL(device::Device *interface, const I2CSPIDriverConfig &config);
 	virtual ~LIS2MDL();
@@ -149,5 +149,4 @@ private:
 	 * @return              OK on write success.
 	 */
 	int write_reg(uint8_t reg, uint8_t val);
-
 };

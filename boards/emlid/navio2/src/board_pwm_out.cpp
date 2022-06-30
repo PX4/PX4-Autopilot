@@ -36,17 +36,16 @@
 
 #include "board_pwm_out.h"
 
-#include <fcntl.h>
 #include <errno.h>
-#include <unistd.h>
+#include <fcntl.h>
 #include <px4_platform_common/log.h>
+#include <unistd.h>
 
 using namespace pwm_out;
 
 const char NavioSysfsPWMOut::_device[] = "/sys/class/pwm/pwmchip0";
 
-NavioSysfsPWMOut::NavioSysfsPWMOut(int max_num_outputs)
-{
+NavioSysfsPWMOut::NavioSysfsPWMOut(int max_num_outputs) {
 	if (max_num_outputs > MAX_NUM_PWM) {
 		PX4_WARN("number of outputs too large. Setting to %i", MAX_NUM_PWM);
 		max_num_outputs = MAX_NUM_PWM;
@@ -59,8 +58,7 @@ NavioSysfsPWMOut::NavioSysfsPWMOut(int max_num_outputs)
 	_pwm_num = max_num_outputs;
 }
 
-NavioSysfsPWMOut::~NavioSysfsPWMOut()
-{
+NavioSysfsPWMOut::~NavioSysfsPWMOut() {
 	for (int i = 0; i < MAX_NUM_PWM; ++i) {
 		if (_pwm_fd[i] != -1) {
 			::close(_pwm_fd[i]);
@@ -68,8 +66,7 @@ NavioSysfsPWMOut::~NavioSysfsPWMOut()
 	}
 }
 
-int NavioSysfsPWMOut::init()
-{
+int NavioSysfsPWMOut::init() {
 	int i;
 	char path[128];
 
@@ -110,8 +107,7 @@ int NavioSysfsPWMOut::init()
 	return 0;
 }
 
-int NavioSysfsPWMOut::send_output_pwm(const uint16_t *pwm, int num_outputs)
-{
+int NavioSysfsPWMOut::send_output_pwm(const uint16_t *pwm, int num_outputs) {
 	char data[16];
 
 	if (num_outputs > _pwm_num) {
@@ -120,7 +116,7 @@ int NavioSysfsPWMOut::send_output_pwm(const uint16_t *pwm, int num_outputs)
 
 	int ret = 0;
 
-	//convert this to duty_cycle in ns
+	// convert this to duty_cycle in ns
 	for (int i = 0; i < num_outputs; ++i) {
 		int n = ::snprintf(data, sizeof(data), "%u", pwm[i] * 1000);
 		int write_ret = ::write(_pwm_fd[i], data, n);
@@ -133,8 +129,7 @@ int NavioSysfsPWMOut::send_output_pwm(const uint16_t *pwm, int num_outputs)
 	return ret;
 }
 
-int NavioSysfsPWMOut::pwm_write_sysfs(char *path, int value)
-{
+int NavioSysfsPWMOut::pwm_write_sysfs(char *path, int value) {
 	int fd = ::open(path, O_WRONLY | O_CLOEXEC);
 	int n;
 	char data[16];
@@ -146,11 +141,10 @@ int NavioSysfsPWMOut::pwm_write_sysfs(char *path, int value)
 	n = ::snprintf(data, sizeof(data), "%u", value);
 
 	if (n > 0) {
-		n = ::write(fd, data, n);	// This n is not used, but to avoid a compiler error.
+		n = ::write(fd, data, n);  // This n is not used, but to avoid a compiler error.
 	}
 
 	::close(fd);
 
 	return 0;
 }
-

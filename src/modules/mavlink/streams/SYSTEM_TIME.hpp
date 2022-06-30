@@ -34,8 +34,7 @@
 #ifndef SYSTEM_TIME_HPP
 #define SYSTEM_TIME_HPP
 
-class MavlinkStreamSystemTime : public MavlinkStream
-{
+class MavlinkStreamSystemTime : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamSystemTime(mavlink); }
 
@@ -45,16 +44,12 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_SYSTEM_TIME_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
+	unsigned get_size() override { return MAVLINK_MSG_ID_SYSTEM_TIME_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES; }
 
 private:
 	explicit MavlinkStreamSystemTime(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	bool send() override
-	{
+	bool send() override {
 		timespec tv;
 		px4_clock_gettime(CLOCK_REALTIME, &tv);
 
@@ -73,4 +68,4 @@ private:
 	}
 };
 
-#endif // SYSTEM_TIME_HPP
+#endif  // SYSTEM_TIME_HPP

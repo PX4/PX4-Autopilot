@@ -41,36 +41,30 @@
  * subsystems and perform board-specific initialization.
  */
 
+#include <arch/board/board.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_watchdog.h>
+#include <errno.h>
+#include <nuttx/board.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/init.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
-
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
-#include <syslog.h>
-
-#include <nuttx/board.h>
-
 #include <stm32.h>
-#include "board_config.h"
-#include "led.h"
 #include <stm32_uart.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
-#include <drivers/drv_watchdog.h>
-
+#include <string.h>
+#include <syslog.h>
 #include <systemlib/px4_macros.h>
 
-#include <px4_platform_common/init.h>
-#include <px4_platform/gpio.h>
+#include "board_config.h"
+#include "led.h"
 
-# if defined(FLASH_BASED_PARAMS)
-#  include <parameters/flashparams/flashfs.h>
+#if defined(FLASH_BASED_PARAMS)
+#include <parameters/flashparams/flashfs.h>
 #endif
 
 /************************************************************************************
@@ -83,8 +77,7 @@
  *
  ************************************************************************************/
 
-__EXPORT void stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	watchdog_init();
 
 	/* configure pins */
@@ -135,8 +128,7 @@ __EXPORT void stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	px4_platform_init();
 
 #if defined(SERIAL_HAVE_RXDMA)
@@ -159,7 +151,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
 	}
 
-#endif // FLASH_BASED_PARAMS
+#endif  // FLASH_BASED_PARAMS
 
 	/* Configure the HW based on the manifest */
 

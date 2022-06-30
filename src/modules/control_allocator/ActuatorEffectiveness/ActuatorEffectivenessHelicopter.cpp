@@ -32,13 +32,12 @@
  ****************************************************************************/
 
 #include "ActuatorEffectivenessHelicopter.hpp"
+
 #include <lib/mathlib/mathlib.h>
 
 using namespace matrix;
 
-ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *parent)
-	: ModuleParams(parent)
-{
+ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *parent) : ModuleParams(parent) {
 	for (int i = 0; i < NUM_SWASH_PLATE_SERVOS_MAX; ++i) {
 		char buffer[17];
 		snprintf(buffer, sizeof(buffer), "CA_SP0_ANG%u", i);
@@ -60,8 +59,7 @@ ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *p
 	updateParams();
 }
 
-void ActuatorEffectivenessHelicopter::updateParams()
-{
+void ActuatorEffectivenessHelicopter::updateParams() {
 	ModuleParams::updateParams();
 
 	int32_t count = 0;
@@ -86,10 +84,8 @@ void ActuatorEffectivenessHelicopter::updateParams()
 	}
 }
 
-bool
-ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
-{
+bool ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &configuration,
+							     EffectivenessUpdateReason external_update) {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
@@ -111,8 +107,7 @@ ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &configura
 }
 
 void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp)
-{
+						     int matrix_index, ActuatorVector &actuator_sp) {
 	// Find index to use for curves
 	float thrust_cmd = -control_sp(ControlAxis::THRUST_Z);
 	float num_intervals = NUM_CURVE_POINTS - 1;
@@ -135,9 +130,11 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 	actuator_sp(0) = throttle;
 
 	for (int i = 0; i < _geometry.num_swash_plate_servos; i++) {
-		actuator_sp(_first_swash_plate_servo_index + i) = collective_pitch
-				+ cosf(_geometry.swash_plate_servos[i].angle) * pitch_cmd * _geometry.swash_plate_servos[i].arm_length
-				- sinf(_geometry.swash_plate_servos[i].angle) * roll_cmd * _geometry.swash_plate_servos[i].arm_length;
+		actuator_sp(_first_swash_plate_servo_index + i) =
+			collective_pitch +
+			cosf(_geometry.swash_plate_servos[i].angle) * pitch_cmd *
+				_geometry.swash_plate_servos[i].arm_length -
+			sinf(_geometry.swash_plate_servos[i].angle) * roll_cmd *
+				_geometry.swash_plate_servos[i].arm_length;
 	}
-
 }

@@ -42,31 +42,31 @@
 #include <drivers/device/spi.h>
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/i2c_spi_buses.h>
-#include <uORB/Subscription.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 
+#include <uORB/Subscription.hpp>
+
 #define OSD_SPI_BUS_SPEED (2000000L) /*  2 MHz  */
 
 #define DIR_READ(a) ((a) | (1 << 7))
-#define DIR_WRITE(a) ((a) & 0x7f)
+#define DIR_WRITE(a) ((a)&0x7f)
 
-#define OSD_CHARS_PER_ROW	30
-#define OSD_NUM_ROWS_PAL	16
-#define OSD_NUM_ROWS_NTSC	13
+#define OSD_CHARS_PER_ROW 30
+#define OSD_NUM_ROWS_PAL 16
+#define OSD_NUM_ROWS_NTSC 13
 #define OSD_ZERO_BYTE 0x00
 #define OSD_PAL_TX_MODE 0x40
 
 extern "C" __EXPORT int atxxxx_main(int argc, char *argv[]);
 
-class OSDatxxxx : public device::SPI, public ModuleParams, public I2CSPIDriver<OSDatxxxx>
-{
+class OSDatxxxx : public device::SPI, public ModuleParams, public I2CSPIDriver<OSDatxxxx> {
 public:
 	OSDatxxxx(const I2CSPIDriverConfig &config);
 	virtual ~OSDatxxxx() = default;
@@ -126,7 +126,5 @@ private:
 	// flight mode
 	uint8_t _nav_state{0};
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::OSD_ATXXXX_CFG>) _param_osd_atxxxx_cfg
-	)
+	DEFINE_PARAMETERS((ParamInt<px4::params::OSD_ATXXXX_CFG>)_param_osd_atxxxx_cfg)
 };

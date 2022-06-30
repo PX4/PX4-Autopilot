@@ -33,20 +33,15 @@
 
 #pragma once
 
-class ORBSet
-{
+class ORBSet {
 public:
 	struct Node {
 		struct Node *next;
 		const char *node_name;
 	};
 
-	ORBSet() :
-		_top(nullptr),
-		_end(nullptr)
-	{ }
-	~ORBSet()
-	{
+	ORBSet() : _top(nullptr), _end(nullptr) {}
+	~ORBSet() {
 		while (_top != nullptr) {
 			unlinkNext(_top);
 
@@ -57,8 +52,7 @@ public:
 			}
 		}
 	}
-	void insert(const char *node_name)
-	{
+	void insert(const char *node_name) {
 		Node **p;
 
 		if (_top == nullptr) {
@@ -81,8 +75,7 @@ public:
 		_end->node_name = strdup(node_name);
 	}
 
-	bool find(const char *node_name)
-	{
+	bool find(const char *node_name) {
 		Node *p = _top;
 
 		while (p) {
@@ -96,8 +89,7 @@ public:
 		return false;
 	}
 
-	bool erase(const char *node_name)
-	{
+	bool erase(const char *node_name) {
 		Node *p = _top;
 
 		if (_top && (strcmp(_top->node_name, node_name) == 0)) {
@@ -124,9 +116,7 @@ public:
 	}
 
 private:
-
-	void unlinkNext(Node *a)
-	{
+	void unlinkNext(Node *a) {
 		Node *b = a->next;
 
 		if (b != nullptr) {

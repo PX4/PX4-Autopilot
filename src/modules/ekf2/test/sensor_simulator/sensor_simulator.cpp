@@ -1,24 +1,13 @@
 #include "sensor_simulator.h"
 
-
-SensorSimulator::SensorSimulator(std::shared_ptr<Ekf> ekf):
-	_airspeed(ekf),
-	_baro(ekf),
-	_flow(ekf),
-	_gps(ekf),
-	_imu(ekf),
-	_mag(ekf),
-	_rng(ekf),
-	_vio(ekf),
-	_ekf{ekf}
-{
+SensorSimulator::SensorSimulator(std::shared_ptr<Ekf> ekf)
+	: _airspeed(ekf), _baro(ekf), _flow(ekf), _gps(ekf), _imu(ekf), _mag(ekf), _rng(ekf), _vio(ekf), _ekf{ekf} {
 	setSensorRateToDefault();
 	setSensorDataToDefault();
 	startBasicSensor();
 }
 
-void SensorSimulator::loadSensorDataFromFile(std::string file_name)
-{
+void SensorSimulator::loadSensorDataFromFile(std::string file_name) {
 	std::ifstream file(file_name);
 	std::string line;
 
@@ -30,7 +19,7 @@ void SensorSimulator::loadSensorDataFromFile(std::string file_name)
 
 		getline(file, timestamp, ',');
 
-		if (!timestamp.compare("")) { // empty line at end of file
+		if (!timestamp.compare("")) {  // empty line at end of file
 			break;
 		}
 
@@ -107,8 +96,7 @@ void SensorSimulator::loadSensorDataFromFile(std::string file_name)
 	_has_replay_data = true;
 }
 
-void SensorSimulator::setSensorRateToDefault()
-{
+void SensorSimulator::setSensorRateToDefault() {
 	_imu.setRateHz(200);
 	_mag.setRateHz(80);
 	_baro.setRateHz(80);
@@ -119,8 +107,7 @@ void SensorSimulator::setSensorRateToDefault()
 	_airspeed.setRateHz(100);
 }
 
-void SensorSimulator::setSensorDataToDefault()
-{
+void SensorSimulator::setSensorDataToDefault() {
 	_airspeed.setData(0.0f, 0.0f);
 	_baro.setData(122.2f);
 	_flow.setData(_flow.dataAtRest());
@@ -131,20 +118,15 @@ void SensorSimulator::setSensorDataToDefault()
 	_vio.setData(_vio.dataAtRest());
 }
 
-void SensorSimulator::startBasicSensor()
-{
+void SensorSimulator::startBasicSensor() {
 	_baro.start();
 	_imu.start();
 	_mag.start();
 }
 
-void SensorSimulator::runSeconds(float duration_seconds)
-{
-	runMicroseconds(uint32_t(duration_seconds * 1e6f));
-}
+void SensorSimulator::runSeconds(float duration_seconds) { runMicroseconds(uint32_t(duration_seconds * 1e6f)); }
 
-void SensorSimulator::runMicroseconds(uint32_t duration)
-{
+void SensorSimulator::runMicroseconds(uint32_t duration) {
 	// simulate in 1000us steps
 	const uint64_t start_time = _time;
 
@@ -163,8 +145,7 @@ void SensorSimulator::runMicroseconds(uint32_t duration)
 	}
 }
 
-void SensorSimulator::updateSensors()
-{
+void SensorSimulator::updateSensors() {
 	_imu.update(_time);
 	_mag.update(_time);
 	_baro.update(_time);
@@ -175,13 +156,11 @@ void SensorSimulator::updateSensors()
 	_airspeed.update(_time);
 }
 
-void SensorSimulator::runReplaySeconds(float duration_seconds)
-{
+void SensorSimulator::runReplaySeconds(float duration_seconds) {
 	runReplayMicroseconds(uint32_t(duration_seconds * 1e6f));
 }
 
-void SensorSimulator::runReplayMicroseconds(uint32_t duration)
-{
+void SensorSimulator::runReplayMicroseconds(uint32_t duration) {
 	if (!_has_replay_data) {
 		std::cout << "Can not run replay without replay data" << std::endl;
 		system_exit(-1);
@@ -206,8 +185,7 @@ void SensorSimulator::runReplayMicroseconds(uint32_t duration)
 	}
 }
 
-void SensorSimulator::setSensorDataFromReplayData()
-{
+void SensorSimulator::setSensorDataFromReplayData() {
 	if (_replay_data.size() > 0) {
 		sensor_info sample = _replay_data[_current_replay_data_index];
 
@@ -215,7 +193,7 @@ void SensorSimulator::setSensorDataFromReplayData()
 			setSingleReplaySample(sample);
 
 			if (_current_replay_data_index < _replay_data.size()) {
-				_current_replay_data_index ++;
+				_current_replay_data_index++;
 
 			} else {
 				break;
@@ -230,47 +208,37 @@ void SensorSimulator::setSensorDataFromReplayData()
 	}
 }
 
-void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
-{
+void SensorSimulator::setSingleReplaySample(const sensor_info &sample) {
 	if (sample.sensor_type == sensor_info::measurement_t::IMU) {
-		Vector3f accel{(float) sample.sensor_data[0],
-			       (float) sample.sensor_data[1],
-			       (float) sample.sensor_data[2]};
-		Vector3f gyro{(float) sample.sensor_data[3],
-			      (float) sample.sensor_data[4],
-			      (float) sample.sensor_data[5]};
+		Vector3f accel{(float)sample.sensor_data[0], (float)sample.sensor_data[1],
+			       (float)sample.sensor_data[2]};
+		Vector3f gyro{(float)sample.sensor_data[3], (float)sample.sensor_data[4], (float)sample.sensor_data[5]};
 		_imu.setData(accel, gyro);
 
 	} else if (sample.sensor_type == sensor_info::measurement_t::MAG) {
-		Vector3f mag{(float) sample.sensor_data[0],
-			     (float) sample.sensor_data[1],
-			     (float) sample.sensor_data[2]};
+		Vector3f mag{(float)sample.sensor_data[0], (float)sample.sensor_data[1], (float)sample.sensor_data[2]};
 		_mag.setData(mag);
 
 	} else if (sample.sensor_type == sensor_info::measurement_t::BARO) {
-		_baro.setData((float) sample.sensor_data[0]);
+		_baro.setData((float)sample.sensor_data[0]);
 
 	} else if (sample.sensor_type == sensor_info::measurement_t::GPS) {
-		_gps.setAltitude((int32_t) sample.sensor_data[0]);
-		_gps.setLatitude((int32_t) sample.sensor_data[1]);
-		_gps.setLongitude((int32_t) sample.sensor_data[2]);
-		_gps.setVelocity(Vector3f((float) sample.sensor_data[3],
-					  (float) sample.sensor_data[4],
-					  (float) sample.sensor_data[5]));
+		_gps.setAltitude((int32_t)sample.sensor_data[0]);
+		_gps.setLatitude((int32_t)sample.sensor_data[1]);
+		_gps.setLongitude((int32_t)sample.sensor_data[2]);
+		_gps.setVelocity(Vector3f((float)sample.sensor_data[3], (float)sample.sensor_data[4],
+					  (float)sample.sensor_data[5]));
 
 	} else if (sample.sensor_type == sensor_info::measurement_t::AIRSPEED) {
-		_airspeed.setData((float) sample.sensor_data[0], (float) sample.sensor_data[1]);
+		_airspeed.setData((float)sample.sensor_data[0], (float)sample.sensor_data[1]);
 
 	} else if (sample.sensor_type == sensor_info::measurement_t::RANGE) {
-		_rng.setData((float) sample.sensor_data[0], (float) sample.sensor_data[1]);
+		_rng.setData((float)sample.sensor_data[0], (float)sample.sensor_data[1]);
 
 	} else if (sample.sensor_type == sensor_info::measurement_t::FLOW) {
 		flowSample flow_sample;
-		flow_sample.flow_xy_rad = Vector2f(sample.sensor_data[0],
-						   sample.sensor_data[1]);
-		flow_sample.gyro_xyz = Vector3f(sample.sensor_data[2],
-						sample.sensor_data[3],
-						sample.sensor_data[4]);
+		flow_sample.flow_xy_rad = Vector2f(sample.sensor_data[0], sample.sensor_data[1]);
+		flow_sample.gyro_xyz = Vector3f(sample.sensor_data[2], sample.sensor_data[3], sample.sensor_data[4]);
 		flow_sample.quality = sample.sensor_data[5];
 		_flow.setData(flow_sample);
 
@@ -293,8 +261,7 @@ void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
 	}
 }
 
-void SensorSimulator::setTrajectoryTargetVelocity(const Vector3f &velocity_target)
-{
+void SensorSimulator::setTrajectoryTargetVelocity(const Vector3f &velocity_target) {
 	for (int i = 0; i < 3; i++) {
 		_trajectory[i].updateDurations(velocity_target(i));
 	}
@@ -302,18 +269,15 @@ void SensorSimulator::setTrajectoryTargetVelocity(const Vector3f &velocity_targe
 	VelocitySmoothing::timeSynchronization(_trajectory, 3);
 }
 
-void SensorSimulator::runTrajectorySeconds(float duration_seconds)
-{
+void SensorSimulator::runTrajectorySeconds(float duration_seconds) {
 	runTrajectoryMicroseconds(uint32_t(duration_seconds * 1e6f));
 }
 
-void SensorSimulator::runTrajectoryMicroseconds(uint32_t duration)
-{
+void SensorSimulator::runTrajectoryMicroseconds(uint32_t duration) {
 	// simulate in 1000us steps
 	const uint64_t start_time = _time;
 
 	for (; _time < start_time + duration; _time += 1000) {
-
 		for (int i = 0; i < 3; i++) {
 			_trajectory[i].updateTraj(1e-3f);
 		}
@@ -333,13 +297,10 @@ void SensorSimulator::runTrajectoryMicroseconds(uint32_t duration)
 	}
 }
 
-void SensorSimulator::setSensorDataFromTrajectory()
-{
-	const Vector3f accel_world{_trajectory[0].getCurrentAcceleration(),
-				   _trajectory[1].getCurrentAcceleration(),
+void SensorSimulator::setSensorDataFromTrajectory() {
+	const Vector3f accel_world{_trajectory[0].getCurrentAcceleration(), _trajectory[1].getCurrentAcceleration(),
 				   _trajectory[2].getCurrentAcceleration()};
-	const Vector3f vel_world{_trajectory[0].getCurrentVelocity(),
-				 _trajectory[1].getCurrentVelocity(),
+	const Vector3f vel_world{_trajectory[0].getCurrentVelocity(), _trajectory[1].getCurrentVelocity(),
 				 _trajectory[2].getCurrentVelocity()};
 
 	// IMU
@@ -373,9 +334,8 @@ void SensorSimulator::setSensorDataFromTrajectory()
 	if (_flow.isRunning()) {
 		flowSample flow_sample = _flow.dataAtRest();
 		const Vector3f vel_body = R_world_to_body * vel_world;
-		flow_sample.flow_xy_rad =
-			Vector2f(vel_body(1) * flow_sample.dt / distance_to_ground,
-				 -vel_body(0) * flow_sample.dt / distance_to_ground);
+		flow_sample.flow_xy_rad = Vector2f(vel_body(1) * flow_sample.dt / distance_to_ground,
+						   -vel_body(0) * flow_sample.dt / distance_to_ground);
 		_flow.setData(flow_sample);
 	}
 
@@ -387,32 +347,26 @@ void SensorSimulator::setSensorDataFromTrajectory()
 	}
 }
 
-void SensorSimulator::setGpsLatitude(const double latitude)
-{
+void SensorSimulator::setGpsLatitude(const double latitude) {
 	int32_t lat = static_cast<int32_t>(latitude * 1e7);
 	_gps.setLatitude(lat);
 }
 
-void SensorSimulator::setGpsLongitude(const double longitude)
-{
+void SensorSimulator::setGpsLongitude(const double longitude) {
 	int32_t lon = static_cast<int32_t>(longitude * 1e7);
 	_gps.setLongitude(lon);
 }
 
-void SensorSimulator::setGpsAltitude(const float altitude)
-{
+void SensorSimulator::setGpsAltitude(const float altitude) {
 	int32_t alt = static_cast<int32_t>(altitude * 1e3f);
 	_gps.setAltitude(alt);
 }
 
-void SensorSimulator::setImuBias(Vector3f accel_bias, Vector3f gyro_bias)
-{
-	_imu.setData(Vector3f{0.0f, 0.0f, -CONSTANTS_ONE_G} + accel_bias,
-		     Vector3f{0.0f, 0.0f, 0.0f} + gyro_bias);
+void SensorSimulator::setImuBias(Vector3f accel_bias, Vector3f gyro_bias) {
+	_imu.setData(Vector3f{0.0f, 0.0f, -CONSTANTS_ONE_G} + accel_bias, Vector3f{0.0f, 0.0f, 0.0f} + gyro_bias);
 }
 
-void SensorSimulator::simulateOrientation(Quatf orientation)
-{
+void SensorSimulator::simulateOrientation(Quatf orientation) {
 	_R_body_to_world = Dcmf(orientation);
 
 	const Vector3f world_sensed_gravity = {0.0f, 0.0f, -CONSTANTS_ONE_G};

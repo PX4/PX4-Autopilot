@@ -35,22 +35,15 @@
 
 using namespace time_literals;
 
-ICP10111::ICP10111(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config)
-{
-}
+ICP10111::ICP10111(const I2CSPIDriverConfig &config) : I2C(config), I2CSPIDriver(config) {}
 
-ICP10111::~ICP10111()
-{
+ICP10111::~ICP10111() {
 	perf_free(_reset_perf);
 	perf_free(_sample_perf);
 	perf_free(_bad_transfer_perf);
 }
 
-int
-ICP10111::init()
-{
+int ICP10111::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -61,27 +54,21 @@ ICP10111::init()
 	return Reset() ? 0 : -1;
 }
 
-bool
-ICP10111::Reset()
-{
+bool ICP10111::Reset() {
 	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
 }
 
-void
-ICP10111::print_status()
-{
+void ICP10111::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_reset_perf);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfer_perf);
 }
 
-int
-ICP10111::probe()
-{
+int ICP10111::probe() {
 	uint16_t ID = 0;
 	read_response(Cmd::READ_ID, (uint8_t *)&ID, 2);
 	uint8_t PROD_ID = (ID >> 8) & 0x3f;
@@ -94,32 +81,30 @@ ICP10111::probe()
 	return PX4_OK;
 }
 
-void
-ICP10111::RunImpl()
-{
+void ICP10111::RunImpl() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-	case STATE::RESET:
-		// Software Reset
-		send_command(Cmd::SOFT_RESET);
-		_reset_timestamp = now;
-		_failure_count = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		perf_count(_reset_perf);
-		ScheduleDelayed(100_ms); // Power On Reset: max 100ms
-		break;
+		case STATE::RESET:
+			// Software Reset
+			send_command(Cmd::SOFT_RESET);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
+			perf_count(_reset_perf);
+			ScheduleDelayed(100_ms);  // Power On Reset: max 100ms
+			break;
 
-	case STATE::WAIT_FOR_RESET: {
+		case STATE::WAIT_FOR_RESET: {
 			// check product id
 			uint16_t ID = 0;
 			read_response(Cmd::READ_ID, (uint8_t *)&ID, 2);
-			uint8_t PROD_ID = (ID >> 8) & 0x3f; // Product ID Bits 5:0
+			uint8_t PROD_ID = (ID >> 8) & 0x3f;  // Product ID Bits 5:0
 
 			if (PROD_ID == Product_ID) {
 				// if reset succeeded then read otp
 				_state = STATE::READ_OTP;
-				ScheduleDelayed(10_ms); // Time to coefficients are available.
+				ScheduleDelayed(10_ms);  // Time to coefficients are available.
 
 			} else {
 				// RESET not complete
@@ -133,10 +118,9 @@ ICP10111::RunImpl()
 					ScheduleDelayed(10_ms);
 				}
 			}
-		}
-		break;
+		} break;
 
-	case STATE::READ_OTP: {
+		case STATE::READ_OTP: {
 			// read otp
 			uint8_t addr_otp_cmd[3] = {0x00, 0x66, 0x9c};
 			uint8_t otp_buf[3];
@@ -170,48 +154,48 @@ ICP10111::RunImpl()
 			}
 
 			ScheduleDelayed(10_ms);
-		}
-		break;
+		} break;
 
-	case STATE::MEASURE:
-		if (Measure()) {
-			// if configure succeeded then start measurement cycle
-			_state = STATE::READ;
-			perf_begin(_sample_perf);
-			ScheduleDelayed(_measure_interval);
-
-		} else {
-			// MEASURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Measure failed, resetting");
-				_state = STATE::RESET;
+		case STATE::MEASURE:
+			if (Measure()) {
+				// if configure succeeded then start measurement cycle
+				_state = STATE::READ;
+				perf_begin(_sample_perf);
+				ScheduleDelayed(_measure_interval);
 
 			} else {
-				PX4_DEBUG("Measure failed, retrying");
+				// MEASURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Measure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Measure failed, retrying");
+				}
+
+				ScheduleDelayed(_measure_interval);
 			}
 
-			ScheduleDelayed(_measure_interval);
-		}
+			break;
 
-		break;
-
-	case STATE::READ: {
-			uint8_t comp_data[9] {};
+		case STATE::READ: {
+			uint8_t comp_data[9]{};
 			bool success = false;
 
 			if (read_measure_results(comp_data, 9) == PX4_OK) {
 				perf_end(_sample_perf);
 
 				uint16_t _raw_t = (comp_data[0] << 8) | comp_data[1];
-				uint32_t L_res_buf3 = comp_data[3];	// expand result bytes to 32bit to fix issues on 8-bit MCUs
+				uint32_t L_res_buf3 =
+					comp_data[3];  // expand result bytes to 32bit to fix issues on 8-bit MCUs
 				uint32_t L_res_buf4 = comp_data[4];
 				uint32_t L_res_buf6 = comp_data[6];
 				uint32_t _raw_p = (L_res_buf3 << 16) | (L_res_buf4 << 8) | L_res_buf6;
 
 				// constants for presure calculation
-				static constexpr float _pcal[3] = { 45000.0, 80000.0, 105000.0 };
-				static constexpr float _lut_lower = 3.5 * 0x100000;	// 1<<20
-				static constexpr float _lut_upper = 11.5 * 0x100000;	// 1<<20
+				static constexpr float _pcal[3] = {45000.0, 80000.0, 105000.0};
+				static constexpr float _lut_lower = 3.5 * 0x100000;   // 1<<20
+				static constexpr float _lut_upper = 11.5 * 0x100000;  // 1<<20
 				static constexpr float _quadr_factor = 1 / 16777216.0;
 				static constexpr float _offst_factor = 2048.0;
 
@@ -223,18 +207,16 @@ ICP10111::RunImpl()
 				float s1 = _lut_lower + (float)(_scal[0] * t * t) * _quadr_factor;
 				float s2 = _offst_factor * _scal[3] + (float)(_scal[1] * t * t) * _quadr_factor;
 				float s3 = _lut_upper + (float)(_scal[2] * t * t) * _quadr_factor;
-				float c = (s1 * s2 * (_pcal[0] - _pcal[1]) +
-					   s2 * s3 * (_pcal[1] - _pcal[2]) +
+				float c = (s1 * s2 * (_pcal[0] - _pcal[1]) + s2 * s3 * (_pcal[1] - _pcal[2]) +
 					   s3 * s1 * (_pcal[2] - _pcal[0])) /
-					  (s3 * (_pcal[0] - _pcal[1]) +
-					   s1 * (_pcal[1] - _pcal[2]) +
+					  (s3 * (_pcal[0] - _pcal[1]) + s1 * (_pcal[1] - _pcal[2]) +
 					   s2 * (_pcal[2] - _pcal[0]));
 				float a = (_pcal[0] * s1 - _pcal[1] * s2 - (_pcal[1] - _pcal[0]) * c) / (s1 - s2);
 				float b = (_pcal[0] - a) * (s1 + c);
 				float _pressure_Pa = a + b / (c + _raw_p);
 
 				float temperature = _temperature_C;
-				float pressure = _pressure_Pa; // to Pascal
+				float pressure = _pressure_Pa;  // to Pascal
 
 				// publish
 				sensor_baro_s sensor_baro{};
@@ -268,16 +250,14 @@ ICP10111::RunImpl()
 				}
 			}
 
-			ScheduleDelayed(1000_ms / 8 - _measure_interval); // 8Hz
+			ScheduleDelayed(1000_ms / 8 - _measure_interval);  // 8Hz
 		}
 
 		break;
 	}
 }
 
-bool
-ICP10111::Measure()
-{
+bool ICP10111::Measure() {
 	/*
 	  From ds-000186-icp-101xx-v1.0.pdf, page 6, table 1
 
@@ -291,26 +271,26 @@ ICP10111::Measure()
 	Cmd cmd;
 
 	switch (_mode) {
-	case MODE::FAST:
-		cmd = Cmd::MEAS_LP;
-		_measure_interval = 2_ms;
-		break;
+		case MODE::FAST:
+			cmd = Cmd::MEAS_LP;
+			_measure_interval = 2_ms;
+			break;
 
-	case MODE::ACCURATE:
-		cmd = Cmd::MEAS_LN;
-		_measure_interval = 24_ms;
-		break;
+		case MODE::ACCURATE:
+			cmd = Cmd::MEAS_LN;
+			_measure_interval = 24_ms;
+			break;
 
-	case MODE::VERY_ACCURATE:
-		cmd = Cmd::MEAS_ULN;
-		_measure_interval = 95_ms;
-		break;
+		case MODE::VERY_ACCURATE:
+			cmd = Cmd::MEAS_ULN;
+			_measure_interval = 95_ms;
+			break;
 
-	case MODE::NORMAL:
-	default:
-		cmd = Cmd::MEAS_N;
-		_measure_interval = 7_ms;
-		break;
+		case MODE::NORMAL:
+		default:
+			cmd = Cmd::MEAS_N;
+			_measure_interval = 7_ms;
+			break;
 	}
 
 	if (send_command(cmd) != PX4_OK) {
@@ -320,9 +300,7 @@ ICP10111::Measure()
 	return true;
 }
 
-int8_t
-ICP10111::cal_crc(uint8_t seed, uint8_t data)
-{
+int8_t ICP10111::cal_crc(uint8_t seed, uint8_t data) {
 	int8_t poly = 0x31;
 	int8_t var2;
 	uint8_t i;
@@ -343,33 +321,23 @@ ICP10111::cal_crc(uint8_t seed, uint8_t data)
 	return (int8_t)seed;
 }
 
-int
-ICP10111::read_measure_results(uint8_t *buf, uint8_t len)
-{
-	return transfer(nullptr, 0, buf, len);
-}
+int ICP10111::read_measure_results(uint8_t *buf, uint8_t len) { return transfer(nullptr, 0, buf, len); }
 
-int
-ICP10111::read_response(Cmd cmd, uint8_t *buf, uint8_t len)
-{
+int ICP10111::read_response(Cmd cmd, uint8_t *buf, uint8_t len) {
 	uint8_t buff[2];
 	buff[0] = ((uint16_t)cmd >> 8) & 0xff;
 	buff[1] = (uint16_t)cmd & 0xff;
 	return transfer(&buff[0], 2, buf, len);
 }
 
-int
-ICP10111::send_command(Cmd cmd)
-{
+int ICP10111::send_command(Cmd cmd) {
 	uint8_t buf[2];
 	buf[0] = ((uint16_t)cmd >> 8) & 0xff;
 	buf[1] = (uint16_t)cmd & 0xff;
 	return transfer(buf, sizeof(buf), nullptr, 0);
 }
 
-int
-ICP10111::send_command(Cmd cmd, uint8_t *data, uint8_t len)
-{
+int ICP10111::send_command(Cmd cmd, uint8_t *data, uint8_t len) {
 	uint8_t buf[5];
 	buf[0] = ((uint16_t)cmd >> 8) & 0xff;
 	buf[1] = (uint16_t)cmd & 0xff;

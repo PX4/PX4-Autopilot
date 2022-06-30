@@ -32,31 +32,31 @@
  ****************************************************************************/
 
 #pragma once
-#include <cstdint>
 #include <drivers/device/i2c.h>
 #include <drivers/drv_pwm_output.h>
 
-namespace drv_pca9685_pwm
-{
+#include <cstdint>
 
-#define PCA9685_REG_MODE1 0x00			// Mode  register  1
-#define PCA9685_REG_MODE2 0x01			// Mode  register  2
-#define PCA9685_REG_SUBADR1 0x02		// I2C-bus subaddress 1
-#define PCA9685_REG_SUBADR2 0x03		// I2C-bus subaddress 2
-#define PCA9685_REG_SUBADR3 0x04		// I2C-bus subaddress 3
-#define PCA9685_REG_ALLCALLADR 0x05     // LED All Call I2C-bus address
-#define PCA9685_REG_LED0 0x06			// LED0 start register
-#define PCA9685_REG_LED0_ON_L 0x06		// LED0 output and brightness control byte 0
-#define PCA9685_REG_LED0_ON_H 0x07		// LED0 output and brightness control byte 1
-#define PCA9685_REG_LED0_OFF_L 0x08		// LED0 output and brightness control byte 2
-#define PCA9685_REG_LED0_OFF_H 0x09		// LED0 output and brightness control byte 3
-#define PCA9685_REG_LED_INCREMENT 4 	// compute the other 15 channels
-#define PCA9685_REG_ALLLED_ON_L 0xFA    // load all the LEDn_ON registers, byte 0 (turn 0-7 channels on)
-#define PCA9685_REG_ALLLED_ON_H 0xFB	// load all the LEDn_ON registers, byte 1 (turn 8-15 channels on)
-#define PCA9685_REG_ALLLED_OFF_L 0xFC	// load all the LEDn_OFF registers, byte 0 (turn 0-7 channels off)
-#define PCA9685_REG_ALLLED_OFF_H 0xFD	// load all the LEDn_OFF registers, byte 1 (turn 8-15 channels off)
-#define PCA9685_REG_PRE_SCALE 0xFE		// prescaler for output frequency
-#define PCA9685_REG_TESTMODE 0xFF       // test mode register
+namespace drv_pca9685_pwm {
+
+#define PCA9685_REG_MODE1 0x00         // Mode  register  1
+#define PCA9685_REG_MODE2 0x01         // Mode  register  2
+#define PCA9685_REG_SUBADR1 0x02       // I2C-bus subaddress 1
+#define PCA9685_REG_SUBADR2 0x03       // I2C-bus subaddress 2
+#define PCA9685_REG_SUBADR3 0x04       // I2C-bus subaddress 3
+#define PCA9685_REG_ALLCALLADR 0x05    // LED All Call I2C-bus address
+#define PCA9685_REG_LED0 0x06          // LED0 start register
+#define PCA9685_REG_LED0_ON_L 0x06     // LED0 output and brightness control byte 0
+#define PCA9685_REG_LED0_ON_H 0x07     // LED0 output and brightness control byte 1
+#define PCA9685_REG_LED0_OFF_L 0x08    // LED0 output and brightness control byte 2
+#define PCA9685_REG_LED0_OFF_H 0x09    // LED0 output and brightness control byte 3
+#define PCA9685_REG_LED_INCREMENT 4    // compute the other 15 channels
+#define PCA9685_REG_ALLLED_ON_L 0xFA   // load all the LEDn_ON registers, byte 0 (turn 0-7 channels on)
+#define PCA9685_REG_ALLLED_ON_H 0xFB   // load all the LEDn_ON registers, byte 1 (turn 8-15 channels on)
+#define PCA9685_REG_ALLLED_OFF_L 0xFC  // load all the LEDn_OFF registers, byte 0 (turn 0-7 channels off)
+#define PCA9685_REG_ALLLED_OFF_H 0xFD  // load all the LEDn_OFF registers, byte 1 (turn 8-15 channels off)
+#define PCA9685_REG_PRE_SCALE 0xFE     // prescaler for output frequency
+#define PCA9685_REG_TESTMODE 0xFF      // test mode register
 
 // Mode register 1
 #define PCA9685_MODE1_RESTART_MASK 0x80
@@ -83,23 +83,24 @@ namespace drv_pca9685_pwm
 #define PCA9685_PRE_SCALE_MASK 0xFF
 
 #define PCA9685_PWM_CHANNEL_COUNT 16
-#define PCA9685_PWM_RES 4096        //Resolution 4096=12bit
+#define PCA9685_PWM_RES 4096  // Resolution 4096=12bit
 /* This should be 25000000 ideally,
  * but it seems most chips have its oscillator working at a higher frequency
- * Reference: https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library/blob/6664ce936210eea53259b814062009d9569a4213/Adafruit_PWMServoDriver.h#L66 */
-#define PCA9685_CLOCK_INT 26075000.0 //25MHz internal clock
+ * Reference:
+ * https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library/blob/6664ce936210eea53259b814062009d9569a4213/Adafruit_PWMServoDriver.h#L66
+ */
+#define PCA9685_CLOCK_INT 26075000.0  // 25MHz internal clock
 #ifndef PCA9685_CLOCK_EXT
-#define PCA9685_CLOCK_FREQ PCA9685_CLOCK_INT   // use int clk
+#define PCA9685_CLOCK_FREQ PCA9685_CLOCK_INT  // use int clk
 #else
-#define PCA9685_CLOCK_FREQ PCA9685_CLOCK_EXT   // use ext clk
+#define PCA9685_CLOCK_FREQ PCA9685_CLOCK_EXT  // use ext clk
 #endif
 
-#define PCA9685_DEVICE_BASE_PATH	"/dev/pca9685"
-#define PWM_DEFAULT_FREQUENCY 50    // default pwm frequency
+#define PCA9685_DEVICE_BASE_PATH "/dev/pca9685"
+#define PWM_DEFAULT_FREQUENCY 50  // default pwm frequency
 
 //! Main class that exports features for PCA9685 chip
-class PCA9685 : public device::I2C
-{
+class PCA9685 : public device::I2C {
 public:
 	PCA9685(int bus, int addr);
 
@@ -116,7 +117,7 @@ public:
 
 	int initReg();
 
-	inline float getFrequency() {return _Freq;}
+	inline float getFrequency() { return _Freq; }
 
 	/*
 	 * disable all of the output
@@ -124,8 +125,8 @@ public:
 	void disableAllOutput();
 
 	/*
-	* turn off oscillator
-	*/
+	 * turn off oscillator
+	 */
 	void stopOscillator();
 
 	/*
@@ -168,7 +169,6 @@ protected:
 	void setDivider(uint8_t value);
 
 private:
-
 };
 
-}
+}  // namespace drv_pca9685_pwm

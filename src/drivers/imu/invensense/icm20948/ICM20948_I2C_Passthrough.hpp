@@ -40,18 +40,17 @@
 
 #pragma once
 
-#include "InvenSense_ICM20948_registers.hpp"
-
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/i2c.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
+#include "InvenSense_ICM20948_registers.hpp"
+
 using namespace InvenSense_ICM20948;
 
-class ICM20948_I2C_Passthrough : public device::I2C, public I2CSPIDriver<ICM20948_I2C_Passthrough>
-{
+class ICM20948_I2C_Passthrough : public device::I2C, public I2CSPIDriver<ICM20948_I2C_Passthrough> {
 public:
 	ICM20948_I2C_Passthrough(const I2CSPIDriverConfig &config);
 	~ICM20948_I2C_Passthrough() override;
@@ -79,16 +78,20 @@ private:
 	void SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force = false);
 	void SelectRegisterBank(Register::BANK_0 reg) { SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0); }
 
-	template <typename T> bool RegisterCheck(const T &reg_cfg);
+	template <typename T>
+	bool RegisterCheck(const T &reg_cfg);
 
-	template <typename T> uint8_t RegisterRead(T reg);
-	template <typename T> void RegisterWrite(T reg, uint8_t value);
-	template <typename T> void RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits);
+	template <typename T>
+	uint8_t RegisterRead(T reg);
+	template <typename T>
+	void RegisterWrite(T reg, uint8_t value);
+	template <typename T>
+	void RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits);
 
 	void UpdateTemperature();
 
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
-	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad register")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad transfer")};
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
@@ -97,7 +100,7 @@ private:
 
 	float _temperature{NAN};
 
-	enum REG_BANK_SEL_BIT _last_register_bank {REG_BANK_SEL_BIT::USER_BANK_0};
+	enum REG_BANK_SEL_BIT _last_register_bank { REG_BANK_SEL_BIT::USER_BANK_0 };
 
 	enum class STATE : uint8_t {
 		RESET,
@@ -108,10 +111,11 @@ private:
 
 	uint8_t _checked_register_bank0{0};
 	static constexpr uint8_t size_register_bank0_cfg{3};
-	register_bank0_config_t _register_bank0_cfg[size_register_bank0_cfg] {
+	register_bank0_config_t _register_bank0_cfg[size_register_bank0_cfg]{
 		// Register                             | Set bits, Clear bits
-		{ Register::BANK_0::USER_CTRL,          0, USER_CTRL_BIT::DMP_EN | USER_CTRL_BIT::I2C_MST_EN | USER_CTRL_BIT::I2C_IF_DIS },
-		{ Register::BANK_0::PWR_MGMT_1,         0, PWR_MGMT_1_BIT::DEVICE_RESET | PWR_MGMT_1_BIT::SLEEP },
-		{ Register::BANK_0::INT_PIN_CFG,        INT_PIN_CFG_BIT::BYPASS_EN, 0 },
+		{Register::BANK_0::USER_CTRL, 0,
+		 USER_CTRL_BIT::DMP_EN | USER_CTRL_BIT::I2C_MST_EN | USER_CTRL_BIT::I2C_IF_DIS},
+		{Register::BANK_0::PWR_MGMT_1, 0, PWR_MGMT_1_BIT::DEVICE_RESET | PWR_MGMT_1_BIT::SLEEP},
+		{Register::BANK_0::INT_PIN_CFG, INT_PIN_CFG_BIT::BYPASS_EN, 0},
 	};
 };

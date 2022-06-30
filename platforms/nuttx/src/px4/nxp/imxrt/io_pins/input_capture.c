@@ -43,48 +43,43 @@
  *
  */
 
-#include <px4_platform_common/px4_config.h>
+#include <arch/board/board.h>
+#include <assert.h>
+#include <chip.h>
+#include <debug.h>
+#include <drivers/drv_input_capture.h>
+#include <errno.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
-
-#include <sys/types.h>
-#include <stdbool.h>
-
-#include <assert.h>
-#include <debug.h>
-#include <time.h>
-#include <queue.h>
-#include <errno.h>
-#include <string.h>
-#include <stdio.h>
-
-#include <arch/board/board.h>
-#include <drivers/drv_input_capture.h>
 #include <px4_arch/io_timer.h>
+#include <px4_platform_common/px4_config.h>
+#include <queue.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
+#include <time.h>
 
-#include <chip.h>
 #include "hardware/imxrt_flexpwm.h"
 
 #define MAX_CHANNELS_PER_TIMER 2
 
-#define SM_SPACING (IMXRT_FLEXPWM_SM1CNT_OFFSET-IMXRT_FLEXPWM_SM0CNT_OFFSET)
+#define SM_SPACING (IMXRT_FLEXPWM_SM1CNT_OFFSET - IMXRT_FLEXPWM_SM0CNT_OFFSET)
 
 #define _REG(_addr) (*(volatile uint16_t *)(_addr))
 #define _REG16(_base, _reg) (*(volatile uint16_t *)(_base + _reg))
-#define REG(_tmr, _sm, _reg)    _REG16(io_timers[(_tmr)].base + ((_sm) * SM_SPACING), (_reg))
+#define REG(_tmr, _sm, _reg) _REG16(io_timers[(_tmr)].base + ((_sm)*SM_SPACING), (_reg))
 
 static input_capture_stats_t channel_stats[MAX_TIMER_IO_CHANNELS];
 
 static struct channel_handler_entry {
 	capture_callback_t callback;
-	void			  *context;
+	void *context;
 } channel_handlers[MAX_TIMER_IO_CHANNELS];
 
 static void input_capture_chan_handler(void *context, const io_timers_t *timer, uint32_t chan_index,
-				       const timer_io_channels_t *chan,
-				       hrt_abstime isrs_time, uint16_t isrs_rcnt,
-				       uint16_t capture)
-{
+				       const timer_io_channels_t *chan, hrt_abstime isrs_time, uint16_t isrs_rcnt,
+				       uint16_t capture) {
 	channel_stats[chan_index].last_edge = px4_arch_gpioread(chan->gpio_in);
 
 	if ((isrs_rcnt - capture) > channel_stats[chan_index].latency) {
@@ -93,38 +88,32 @@ static void input_capture_chan_handler(void *context, const io_timers_t *timer, 
 
 	channel_stats[chan_index].edges++;
 	channel_stats[chan_index].last_time = isrs_time - (isrs_rcnt - capture);
-	uint32_t overflow = 0;//_REG32(timer, KINETIS_FTM_CSC_OFFSET(chan->timer_channel - 1)) & FTM_CSC_CHF;
+	uint32_t overflow = 0;  //_REG32(timer, KINETIS_FTM_CSC_OFFSET(chan->timer_channel - 1)) & FTM_CSC_CHF;
 
 	if (overflow) {
-
 		/* Error we has a second edge before we cleared CCxR */
 
 		channel_stats[chan_index].overflows++;
 	}
 
-	if (channel_handlers[chan_index].callback)  {
+	if (channel_handlers[chan_index].callback) {
 		channel_handlers[chan_index].callback(channel_handlers[chan_index].context, chan_index,
 						      channel_stats[chan_index].last_time,
 						      channel_stats[chan_index].last_edge, overflow);
 	}
 }
 
-static void input_capture_bind(unsigned channel, capture_callback_t callback, void *context)
-{
+static void input_capture_bind(unsigned channel, capture_callback_t callback, void *context) {
 	irqstate_t flags = px4_enter_critical_section();
 	channel_handlers[channel].callback = callback;
 	channel_handlers[channel].context = context;
 	px4_leave_critical_section(flags);
 }
 
-static void input_capture_unbind(unsigned channel)
-{
-	input_capture_bind(channel, NULL, NULL);
-}
+static void input_capture_unbind(unsigned channel) { input_capture_bind(channel, NULL, NULL); }
 
 int up_input_capture_set(unsigned channel, input_capture_edge edge, capture_filter_t filter,
-			 capture_callback_t callback, void *context)
-{
+			 capture_callback_t callback, void *context) {
 	if (edge > Both) {
 		return -EINVAL;
 	}
@@ -133,15 +122,14 @@ int up_input_capture_set(unsigned channel, input_capture_edge edge, capture_filt
 
 	if (rv == 0) {
 		if (edge == Disabled) {
-
 			io_timer_set_enable(false, IOTimerChanMode_Capture, 1 << channel);
 			input_capture_unbind(channel);
 
 		} else {
-
 			input_capture_bind(channel, callback, context);
 
-			rv = io_timer_channel_init(channel, IOTimerChanMode_Capture, input_capture_chan_handler, context);
+			rv = io_timer_channel_init(channel, IOTimerChanMode_Capture, input_capture_chan_handler,
+						   context);
 
 			if (rv != 0) {
 				return rv;
@@ -162,98 +150,88 @@ int up_input_capture_set(unsigned channel, input_capture_edge edge, capture_filt
 	return rv;
 }
 
-int up_input_capture_get_filter(unsigned channel, capture_filter_t *filter)
-{
-	return 0;
-}
-int up_input_capture_set_filter(unsigned channel,  capture_filter_t filter)
-{
-	return 0;
-}
+int up_input_capture_get_filter(unsigned channel, capture_filter_t *filter) { return 0; }
+int up_input_capture_set_filter(unsigned channel, capture_filter_t filter) { return 0; }
 
-int up_input_capture_get_trigger(unsigned channel,  input_capture_edge *edge)
-{
+int up_input_capture_get_trigger(unsigned channel, input_capture_edge *edge) {
 	int rv = io_timer_validate_channel_index(channel);
 
 	if (rv == 0) {
-
 		rv = -ENXIO;
 
 		/* Any pins in capture mode */
 
 		if (io_timer_get_channel_mode(channel) == IOTimerChanMode_Capture) {
-
 			rv = OK;
 
 			uint32_t timer = timer_io_channels[channel].timer_index;
-			uint32_t offset =  timer_io_channels[channel].val_offset == PWMA_VAL ? IMXRT_FLEXPWM_SM0CAPTCTRLA_OFFSET :
-					   IMXRT_FLEXPWM_SM0CAPTCTRLB_OFFSET;
+			uint32_t offset = timer_io_channels[channel].val_offset == PWMA_VAL
+						  ? IMXRT_FLEXPWM_SM0CAPTCTRLA_OFFSET
+						  : IMXRT_FLEXPWM_SM0CAPTCTRLB_OFFSET;
 			uint32_t rvalue = REG(timer, timer_io_channels[channel].sub_module, offset);
 			rvalue &= SMC_EDGA0_BOTH;
 
 			switch (rvalue) {
+				case (SMC_EDGA0_RISING):
+					*edge = Rising;
+					break;
 
-			case (SMC_EDGA0_RISING):
-				*edge = Rising;
-				break;
+				case (SMC_EDGA0_FALLING):
+					*edge = Falling;
+					break;
 
-			case (SMC_EDGA0_FALLING):
-				*edge = Falling;
-				break;
+				case (SMC_EDGA0_BOTH):
+					*edge = Both;
+					break;
 
-			case (SMC_EDGA0_BOTH):
-				*edge = Both;
-				break;
-
-			default:
-				rv = -EIO;
+				default:
+					rv = -EIO;
 			}
 		}
 	}
 
 	return rv;
 }
-int up_input_capture_set_trigger(unsigned channel,  input_capture_edge edge)
-{
+int up_input_capture_set_trigger(unsigned channel, input_capture_edge edge) {
 	int rv = io_timer_validate_channel_index(channel);
 
 	if (rv == 0) {
-
 		rv = -ENXIO;
 
 		/* Any pins in capture mode */
 
 		if (io_timer_get_channel_mode(channel) == IOTimerChanMode_Capture) {
-
 			uint16_t edge_bits = 0;
 
 			switch (edge) {
-			case Disabled:
-				break;
+				case Disabled:
+					break;
 
-			case Rising:
-				edge_bits = SMC_EDGA0_RISING;
-				break;
+				case Rising:
+					edge_bits = SMC_EDGA0_RISING;
+					break;
 
-			case Falling:
-				edge_bits = SMC_EDGA0_FALLING;
-				break;
+				case Falling:
+					edge_bits = SMC_EDGA0_FALLING;
+					break;
 
-			case Both:
-				edge_bits = SMC_EDGA0_BOTH;
-				break;
+				case Both:
+					edge_bits = SMC_EDGA0_BOTH;
+					break;
 
-			default:
-				return -EINVAL;;
+				default:
+					return -EINVAL;
+					;
 			}
 
 			uint32_t timer = timer_io_channels[channel].timer_index;
-			uint32_t offset =  timer_io_channels[channel].val_offset == PWMA_VAL ? IMXRT_FLEXPWM_SM0CAPTCTRLA_OFFSET :
-					   IMXRT_FLEXPWM_SM0CAPTCTRLB_OFFSET;
+			uint32_t offset = timer_io_channels[channel].val_offset == PWMA_VAL
+						  ? IMXRT_FLEXPWM_SM0CAPTCTRLA_OFFSET
+						  : IMXRT_FLEXPWM_SM0CAPTCTRLB_OFFSET;
 			irqstate_t flags = px4_enter_critical_section();
 			uint32_t rvalue = REG(timer, timer_io_channels[channel].sub_module, offset);
 			rvalue &= ~SMC_EDGA0_BOTH;
-			rvalue |=  edge_bits;
+			rvalue |= edge_bits;
 			REG(timer, timer_io_channels[channel].sub_module, offset) = rvalue;
 			px4_leave_critical_section(flags);
 			rv = OK;
@@ -263,18 +241,15 @@ int up_input_capture_set_trigger(unsigned channel,  input_capture_edge edge)
 	return rv;
 }
 
-int up_input_capture_get_callback(unsigned channel, capture_callback_t *callback, void **context)
-{
+int up_input_capture_get_callback(unsigned channel, capture_callback_t *callback, void **context) {
 	int rv = io_timer_validate_channel_index(channel);
 
 	if (rv == 0) {
-
 		rv = -ENXIO;
 
 		/* Any pins in capture mode */
 
 		if (io_timer_get_channel_mode(channel) == IOTimerChanMode_Capture) {
-
 			irqstate_t flags = px4_enter_critical_section();
 			*callback = channel_handlers[channel].callback;
 			*context = channel_handlers[channel].context;
@@ -284,15 +259,12 @@ int up_input_capture_get_callback(unsigned channel, capture_callback_t *callback
 	}
 
 	return rv;
-
 }
 
-int up_input_capture_set_callback(unsigned channel, capture_callback_t callback, void *context)
-{
+int up_input_capture_set_callback(unsigned channel, capture_callback_t callback, void *context) {
 	int rv = io_timer_validate_channel_index(channel);
 
 	if (rv == 0) {
-
 		rv = -ENXIO;
 
 		/* Any pins in capture mode */
@@ -306,13 +278,12 @@ int up_input_capture_set_callback(unsigned channel, capture_callback_t callback,
 	return rv;
 }
 
-int up_input_capture_get_stats(unsigned channel, input_capture_stats_t *stats, bool clear)
-{
+int up_input_capture_get_stats(unsigned channel, input_capture_stats_t *stats, bool clear) {
 	int rv = io_timer_validate_channel_index(channel);
 
 	if (rv == 0) {
 		irqstate_t flags = px4_enter_critical_section();
-		*stats =  channel_stats[channel];
+		*stats = channel_stats[channel];
 
 		if (clear) {
 			memset(&channel_stats[channel], 0, sizeof(*stats));

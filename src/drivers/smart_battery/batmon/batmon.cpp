@@ -42,24 +42,21 @@
  */
 
 #include "batmon.h"
+
 #include <mathlib/mathlib.h>
 
 extern "C" __EXPORT int batmon_main(int argc, char *argv[]);
 
-Batmon::Batmon(const I2CSPIDriverConfig &config, SMBus *interface):
-	SMBUS_SBS_BaseClass(config, interface)
-{
-}
+Batmon::Batmon(const I2CSPIDriverConfig &config, SMBus *interface) : SMBUS_SBS_BaseClass(config, interface) {}
 
-I2CSPIDriverBase *Batmon::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+I2CSPIDriverBase *Batmon::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	SMBus *interface = new SMBus(config.devid_driver_index, config.bus, config.i2c_address);
 
 	int32_t batmon_en_param = 0;
 	param_get(param_find("BATMON_DRIVER_EN"), &batmon_en_param);
 
-	if (batmon_en_param == 0) {	// BATMON_DRIVER_EN is set to disabled. Do not start driver
-		return nullptr;        // TODO: add option for autodetect I2C address
+	if (batmon_en_param == 0) {  // BATMON_DRIVER_EN is set to disabled. Do not start driver
+		return nullptr;      // TODO: add option for autodetect I2C address
 	}
 
 	if (interface == nullptr) {
@@ -82,7 +79,6 @@ I2CSPIDriverBase *Batmon::instantiate(const I2CSPIDriverConfig &config, int runt
 		return nullptr;
 	}
 
-
 	// Setting the BAT_SOURCE to "external"
 	int32_t battsource = 1;
 	param_set(param_find("BAT_SOURCE"), &battsource);
@@ -92,8 +88,7 @@ I2CSPIDriverBase *Batmon::instantiate(const I2CSPIDriverConfig &config, int runt
 	return instance;
 }
 
-void Batmon::print_usage()
-{
+void Batmon::print_usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -118,8 +113,7 @@ $ batmon start -X -a 11 -b 4
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-void Batmon::RunImpl()
-{
+void Batmon::RunImpl() {
 	int ret = PX4_OK;
 
 	// Temporary variable for storing SMBUS reads.
@@ -181,8 +175,8 @@ void Batmon::RunImpl()
 	new_report.remaining = (float)result / 100.0f;
 
 	// Read Max Error
-	//ret |= _interface->read_word(BATT_SMBUS_MAX_ERROR, result); //TODO: to be implemented
-	//new_report.max_error = result;
+	// ret |= _interface->read_word(BATT_SMBUS_MAX_ERROR, result); //TODO: to be implemented
+	// new_report.max_error = result;
 
 	// Read battery temperature and covert to Celsius.
 	ret |= _interface->read_word(BATT_SMBUS_TEMP, result);
@@ -199,7 +193,7 @@ void Batmon::RunImpl()
 
 		// TODO: This critical setting should be set with BMS info or through a paramter
 		// Setting a hard coded BATT_CELL_VOLTAGE_THRESHOLD_FAILED may not be appropriate
-		//if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
+		// if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
 		//	new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
 		if (new_report.remaining > _low_thr) {
@@ -224,8 +218,7 @@ void Batmon::RunImpl()
 	}
 }
 
-int Batmon::get_batmon_startup_info()
-{
+int Batmon::get_batmon_startup_info() {
 	int ret = PX4_OK;
 
 	// Read battery threshold params on startup.
@@ -244,9 +237,8 @@ int Batmon::get_batmon_startup_info()
 	return ret;
 }
 
-void Batmon::custom_method(const BusCLIArguments &cli)
-{
-	switch(cli.custom1) {
+void Batmon::custom_method(const BusCLIArguments &cli) {
+	switch (cli.custom1) {
 		case 1:
 			// TODO: analyze why these statements are not printed
 			PX4_INFO("The manufacturer name: %s", _manufacturer_name);
@@ -262,21 +254,20 @@ void Batmon::custom_method(const BusCLIArguments &cli)
 	}
 }
 
-
-int Batmon::get_cell_voltages()
-{
+int Batmon::get_cell_voltages() {
 	// Temporary variable for storing SMBUS reads.
 	uint16_t result = 0;
 	uint8_t ret = 0;
 
-	// Making the assumption that the register value of BATT_SMBUS_CELL_1_VOLTAGE and BATT_SMBUS_CELL_10_VOLTAGE are sequential and decreasing order.
-	for (int i = 0 ; i < _cell_count; i++) {
+	// Making the assumption that the register value of BATT_SMBUS_CELL_1_VOLTAGE and BATT_SMBUS_CELL_10_VOLTAGE are
+	// sequential and decreasing order.
+	for (int i = 0; i < _cell_count; i++) {
 		ret |= _interface->read_word(BATT_SMBUS_CELL_1_VOLTAGE - i, result);
 		// Convert millivolts to volts.
 		_cell_voltages[i] = ((float)result) * 0.001f;
 	}
 
-	//Calculate max cell delta
+	// Calculate max cell delta
 	_min_cell_voltage = _cell_voltages[0];
 	float max_cell_voltage = _cell_voltages[0];
 
@@ -286,14 +277,13 @@ int Batmon::get_cell_voltages()
 	}
 
 	// Calculate the max difference between the min and max cells with complementary filter.
-	_max_cell_voltage_delta = (0.5f * (max_cell_voltage - _min_cell_voltage)) +
-				  (0.5f * _last_report.max_cell_voltage_delta);
+	_max_cell_voltage_delta =
+		(0.5f * (max_cell_voltage - _min_cell_voltage)) + (0.5f * _last_report.max_cell_voltage_delta);
 
 	return ret;
 }
 
-extern "C" __EXPORT int batmon_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int batmon_main(int argc, char *argv[]) {
 	using ThisDriver = Batmon;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;

@@ -40,13 +40,13 @@
 
 #pragma once
 
+#include <lib/weather_vane/WeatherVane.hpp>
+
 #include "FlightTaskManualAltitudeSmoothVel.hpp"
 #include "StickAccelerationXY.hpp"
 #include "StickYaw.hpp"
-#include <lib/weather_vane/WeatherVane.hpp>
 
-class FlightTaskManualAcceleration : public FlightTaskManualAltitudeSmoothVel
-{
+class FlightTaskManualAcceleration : public FlightTaskManualAltitudeSmoothVel {
 public:
 	FlightTaskManualAcceleration() = default;
 	virtual ~FlightTaskManualAcceleration() = default;
@@ -60,5 +60,6 @@ private:
 	StickAccelerationXY _stick_acceleration_xy{this};
 	StickYaw _stick_yaw;
 
-	WeatherVane _weathervane{this}; /**< weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
+	WeatherVane _weathervane{this}; /**< weathervane library, used to implement a yaw control law that turns the
+					   vehicle nose into the wind */
 };

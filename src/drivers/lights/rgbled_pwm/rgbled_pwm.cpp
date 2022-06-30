@@ -39,58 +39,50 @@
  *
  */
 
-#include <string.h>
-
 #include <lib/led/led.h>
 #include <px4_platform_common/getopt.h>
+#include <string.h>
+
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-class RGBLED_PWM : public px4::ScheduledWorkItem
-{
+class RGBLED_PWM : public px4::ScheduledWorkItem {
 public:
 	RGBLED_PWM();
 	virtual ~RGBLED_PWM();
 
-	int			init();
-	int			status();
+	int init();
+	int status();
 
 private:
+	uint8_t _r{0};
+	uint8_t _g{0};
+	uint8_t _b{0};
 
-	uint8_t			_r{0};
-	uint8_t			_g{0};
-	uint8_t			_b{0};
+	volatile bool _running{false};
+	volatile bool _should_run{true};
 
-	volatile bool		_running{false};
-	volatile bool		_should_run{true};
+	LedController _led_controller;
 
-	LedController		_led_controller;
+	void Run() override;
 
-	void			Run() override;
-
-	int			send_led_rgb();
-	int			get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
+	int send_led_rgb();
+	int get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
 };
 
-extern int led_pwm_servo_set(unsigned channel, uint8_t  value);
+extern int led_pwm_servo_set(unsigned channel, uint8_t value);
 extern int led_pwm_servo_set_ex(uint8_t r, uint8_t g, uint8_t b, uint8_t led_count);
 extern unsigned led_pwm_servo_get(unsigned channel);
 extern int led_pwm_servo_init(void);
 extern void led_pwm_servo_deinit(void);
 
-
 /* for now, we only support one RGBLED */
-namespace
-{
+namespace {
 RGBLED_PWM *g_rgbled = nullptr;
 }
 
-RGBLED_PWM::RGBLED_PWM() :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
-{
-}
+RGBLED_PWM::RGBLED_PWM() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default) {}
 
-RGBLED_PWM::~RGBLED_PWM()
-{
+RGBLED_PWM::~RGBLED_PWM() {
 	_should_run = false;
 	int counter = 0;
 
@@ -99,9 +91,7 @@ RGBLED_PWM::~RGBLED_PWM()
 	}
 }
 
-int
-RGBLED_PWM::init()
-{
+int RGBLED_PWM::init() {
 	/* switch off LED on start */
 	led_pwm_servo_init();
 	send_led_rgb();
@@ -114,9 +104,7 @@ RGBLED_PWM::init()
 	return OK;
 }
 
-int
-RGBLED_PWM::status()
-{
+int RGBLED_PWM::status() {
 	bool on, powersave;
 	uint8_t r, g, b;
 
@@ -137,9 +125,7 @@ RGBLED_PWM::status()
 /**
  * Main loop function
  */
-void
-RGBLED_PWM::Run()
-{
+void RGBLED_PWM::Run() {
 	if (!_should_run) {
 		_running = false;
 		return;
@@ -151,38 +137,54 @@ RGBLED_PWM::Run()
 		uint8_t brightness = led_control_data.leds[0].brightness;
 
 		switch (led_control_data.leds[0].color) {
-		case led_control_s::COLOR_RED:
-			_r = brightness; _g = 0; _b = 0;
-			break;
+			case led_control_s::COLOR_RED:
+				_r = brightness;
+				_g = 0;
+				_b = 0;
+				break;
 
-		case led_control_s::COLOR_GREEN:
-			_r = 0; _g = brightness; _b = 0;
-			break;
+			case led_control_s::COLOR_GREEN:
+				_r = 0;
+				_g = brightness;
+				_b = 0;
+				break;
 
-		case led_control_s::COLOR_BLUE:
-			_r = 0; _g = 0; _b = brightness;
-			break;
+			case led_control_s::COLOR_BLUE:
+				_r = 0;
+				_g = 0;
+				_b = brightness;
+				break;
 
-		case led_control_s::COLOR_AMBER: //make it the same as yellow
-		case led_control_s::COLOR_YELLOW:
-			_r = brightness; _g = brightness; _b = 0;
-			break;
+			case led_control_s::COLOR_AMBER:  // make it the same as yellow
+			case led_control_s::COLOR_YELLOW:
+				_r = brightness;
+				_g = brightness;
+				_b = 0;
+				break;
 
-		case led_control_s::COLOR_PURPLE:
-			_r = brightness; _g = 0; _b = brightness;
-			break;
+			case led_control_s::COLOR_PURPLE:
+				_r = brightness;
+				_g = 0;
+				_b = brightness;
+				break;
 
-		case led_control_s::COLOR_CYAN:
-			_r = 0; _g = brightness; _b = brightness;
-			break;
+			case led_control_s::COLOR_CYAN:
+				_r = 0;
+				_g = brightness;
+				_b = brightness;
+				break;
 
-		case led_control_s::COLOR_WHITE:
-			_r = brightness; _g = brightness; _b = brightness;
-			break;
+			case led_control_s::COLOR_WHITE:
+				_r = brightness;
+				_g = brightness;
+				_b = brightness;
+				break;
 
-		default: // led_control_s::COLOR_OFF
-			_r = 0; _g = 0; _b = 0;
-			break;
+			default:  // led_control_s::COLOR_OFF
+				_r = 0;
+				_g = 0;
+				_b = 0;
+				break;
 		}
 
 		send_led_rgb();
@@ -195,9 +197,7 @@ RGBLED_PWM::Run()
 /**
  * Send RGB PWM settings to LED driver according to current color and brightness
  */
-int
-RGBLED_PWM::send_led_rgb()
-{
+int RGBLED_PWM::send_led_rgb() {
 #if defined(BOARD_HAS_LED_PWM)
 	led_pwm_servo_set(0, _r);
 	led_pwm_servo_set(1, _g);
@@ -212,9 +212,7 @@ RGBLED_PWM::send_led_rgb()
 	return (OK);
 }
 
-int
-RGBLED_PWM::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
-{
+int RGBLED_PWM::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b) {
 	powersave = OK;
 	on = _r > 0 || _g > 0 || _b > 0;
 	r = _r;
@@ -223,15 +221,9 @@ RGBLED_PWM::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
 	return OK;
 }
 
-static void
-rgbled_usage()
-{
-	PX4_INFO("missing command: try 'start', 'status', 'stop'");
-}
+static void rgbled_usage() { PX4_INFO("missing command: try 'start', 'status', 'stop'"); }
 
-extern "C" __EXPORT int
-rgbled_pwm_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int rgbled_pwm_main(int argc, char *argv[]) {
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
@@ -239,15 +231,15 @@ rgbled_pwm_main(int argc, char *argv[])
 	/* jump over start/off/etc and look at options first */
 	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'a':
-			break;
+			case 'a':
+				break;
 
-		case 'b':
-			break;
+			case 'b':
+				break;
 
-		default:
-			rgbled_usage();
-			return 1;
+			default:
+				rgbled_usage();
+				return 1;
 		}
 	}
 

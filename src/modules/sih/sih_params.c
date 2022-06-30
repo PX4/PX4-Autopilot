@@ -302,7 +302,7 @@ PARAM_DEFINE_FLOAT(SIH_LOC_H0, 32.34f);
  * @increment 0.001
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIH_LOC_MU_X,  0.179f);
+PARAM_DEFINE_FLOAT(SIH_LOC_MU_X, 0.179f);
 
 /**
  * East magnetic field at the initial location
@@ -342,7 +342,7 @@ PARAM_DEFINE_FLOAT(SIH_LOC_MU_Y, -0.045f);
  * @increment 0.001
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIH_LOC_MU_Z,  0.504f);
+PARAM_DEFINE_FLOAT(SIH_LOC_MU_Z, 0.504f);
 
 /**
  * Number of GPS satellites used
@@ -361,7 +361,7 @@ PARAM_DEFINE_INT32(SIH_GPS_USED, 10);
  * @unit m
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIH_BARO_OFFSET,  0.0f);
+PARAM_DEFINE_FLOAT(SIH_BARO_OFFSET, 0.0f);
 
 /**
  * magnetometer X offset in Gauss
@@ -371,7 +371,7 @@ PARAM_DEFINE_FLOAT(SIH_BARO_OFFSET,  0.0f);
  * @unit gauss
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIH_MAG_OFFSET_X,  0.0f);
+PARAM_DEFINE_FLOAT(SIH_MAG_OFFSET_X, 0.0f);
 
 /**
  * magnetometer Y offset in Gauss
@@ -381,7 +381,7 @@ PARAM_DEFINE_FLOAT(SIH_MAG_OFFSET_X,  0.0f);
  * @unit gauss
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIH_MAG_OFFSET_Y,  0.0f);
+PARAM_DEFINE_FLOAT(SIH_MAG_OFFSET_Y, 0.0f);
 /**
  * magnetometer Z offset in Gauss
  *
@@ -390,7 +390,7 @@ PARAM_DEFINE_FLOAT(SIH_MAG_OFFSET_Y,  0.0f);
  * @unit gauss
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIH_MAG_OFFSET_Z,  0.0f);
+PARAM_DEFINE_FLOAT(SIH_MAG_OFFSET_Z, 0.0f);
 
 /**
  * distance sensor minimun range

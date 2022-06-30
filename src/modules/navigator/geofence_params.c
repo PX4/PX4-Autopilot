@@ -104,7 +104,8 @@ PARAM_DEFINE_INT32(GF_COUNT, -1);
 /**
  * Max horizontal distance in meters.
  *
- * Maximum horizontal distance in meters the vehicle can be from home before triggering a geofence action. Disabled if 0.
+ * Maximum horizontal distance in meters the vehicle can be from home before triggering a geofence action. Disabled if
+ * 0.
  *
  * @unit m
  * @min 0

@@ -38,15 +38,13 @@
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#include "hrt_test.h"
-
-#include <stdio.h>
-
 #include <px4_platform_common/app.h>
 #include <px4_platform_common/init.h>
+#include <stdio.h>
 
-int PX4_MAIN(int argc, char **argv)
-{
+#include "hrt_test.h"
+
+int PX4_MAIN(int argc, char **argv) {
 	px4::init(argc, argv, "hrt_test");
 
 	printf("starting\n");

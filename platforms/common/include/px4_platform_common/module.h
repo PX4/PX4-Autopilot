@@ -38,14 +38,13 @@
 #pragma once
 
 #include <pthread.h>
-#include <unistd.h>
-#include <stdbool.h>
-
 #include <px4_platform_common/atomic.h>
-#include <px4_platform_common/time.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
+#include <stdbool.h>
 #include <systemlib/px4_macros.h>
+#include <unistd.h>
 
 #ifdef __cplusplus
 
@@ -111,9 +110,8 @@ extern pthread_mutex_t px4_modules_mutex;
  *              // on error return != 0 (and _task_id must be -1)
  *      }
  */
-template<class T>
-class ModuleBase
-{
+template <class T>
+class ModuleBase {
 public:
 	ModuleBase() : _task_should_exit{false} {}
 	virtual ~ModuleBase() {}
@@ -125,13 +123,9 @@ public:
 	 * @param argc Pointer to the task argument variable array.
 	 * @return Returns 0 iff successful, -1 otherwise.
 	 */
-	static int main(int argc, char *argv[])
-	{
-		if (argc <= 1 ||
-		    strcmp(argv[1], "-h")    == 0 ||
-		    strcmp(argv[1], "help")  == 0 ||
-		    strcmp(argv[1], "info")  == 0 ||
-		    strcmp(argv[1], "usage") == 0) {
+	static int main(int argc, char *argv[]) {
+		if (argc <= 1 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "help") == 0 ||
+		    strcmp(argv[1], "info") == 0 || strcmp(argv[1], "usage") == 0) {
 			return T::print_usage();
 		}
 
@@ -148,7 +142,7 @@ public:
 			return stop_command();
 		}
 
-		lock_module(); // Lock here, as the method could access _object.
+		lock_module();  // Lock here, as the method could access _object.
 		int ret = T::custom_command(argc - 1, argv + 1);
 		unlock_module();
 
@@ -165,8 +159,7 @@ public:
 	 * @param argc Pointer to the task argument variable array.
 	 * @return Returns 0 iff successful, -1 otherwise.
 	 */
-	static int run_trampoline(int argc, char *argv[])
-	{
+	static int run_trampoline(int argc, char *argv[]) {
 		int ret = 0;
 
 		// We don't need the task name at this point.
@@ -196,8 +189,7 @@ public:
 	 * @param argc Pointer to the task argument variable array.
 	 * @return Returns 0 iff successful, -1 otherwise.
 	 */
-	static int start_command_base(int argc, char *argv[])
-	{
+	static int start_command_base(int argc, char *argv[]) {
 		int ret = 0;
 		lock_module();
 
@@ -222,8 +214,7 @@ public:
 	 *        and waits for the task to complete.
 	 * @return Returns 0 iff successful, -1 otherwise.
 	 */
-	static int stop_command()
-	{
+	static int stop_command() {
 		int ret = 0;
 		lock_module();
 
@@ -237,10 +228,10 @@ public:
 
 				do {
 					unlock_module();
-					px4_usleep(10000); // 10 ms
+					px4_usleep(10000);  // 10 ms
 					lock_module();
 
-					if (++i > 500 && _task_id != -1) { // wait at most 5 sec
+					if (++i > 500 && _task_id != -1) {  // wait at most 5 sec
 						PX4_ERR("timeout, forcing stop");
 
 						if (_task_id != task_id_is_work_queue) {
@@ -274,8 +265,7 @@ public:
 	 * @brief Handle 'command status': check if running and call print_status() if it is
 	 * @return Returns 0 iff successful, -1 otherwise.
 	 */
-	static int status_command()
-	{
+	static int status_command() {
 		int ret = -1;
 		lock_module();
 
@@ -296,8 +286,7 @@ public:
 	 * more specific information.
 	 * @return Returns 0 iff successful, -1 otherwise.
 	 */
-	virtual int print_status()
-	{
+	virtual int print_status() {
 		PX4_INFO("running");
 		return 0;
 	}
@@ -306,45 +295,32 @@ public:
 	 * @brief Main loop method for modules running in their own thread. Called from run_trampoline().
 	 *        This method must return when should_exit() returns true.
 	 */
-	virtual void run()
-	{
-	}
+	virtual void run() {}
 
 	/**
 	 * @brief Returns the status of the module.
 	 * @return Returns true if the module is running, false otherwise.
 	 */
-	static bool is_running()
-	{
-		return _task_id != -1;
-	}
+	static bool is_running() { return _task_id != -1; }
 
 protected:
-
 	/**
 	 * @brief Tells the module to stop (used from outside or inside the module thread).
 	 */
-	virtual void request_stop()
-	{
-		_task_should_exit.store(true);
-	}
+	virtual void request_stop() { _task_should_exit.store(true); }
 
 	/**
 	 * @brief Checks if the module should stop (used within the module thread).
 	 * @return Returns True iff successful, false otherwise.
 	 */
-	bool should_exit() const
-	{
-		return _task_should_exit.load();
-	}
+	bool should_exit() const { return _task_should_exit.load(); }
 
 	/**
 	 * @brief Exits the module and delete the object. Called from within the module's thread.
 	 *        For work queue modules, this needs to be called from the derived class in the
 	 *        cycle method, when should_exit() returns true.
 	 */
-	static void exit_and_cleanup()
-	{
+	static void exit_and_cleanup() {
 		// Take the lock here:
 		// - if startup fails and we're faster than the parent thread, it will set
 		//   _task_id and subsequently it will look like the task is running.
@@ -354,7 +330,7 @@ protected:
 		delete _object.load();
 		_object.store(nullptr);
 
-		_task_id = -1; // Signal a potentially waiting thread for the module to exit that it can continue.
+		_task_id = -1;  // Signal a potentially waiting thread for the module to exit that it can continue.
 		unlock_module();
 	}
 
@@ -362,8 +338,7 @@ protected:
 	 * @brief Waits until _object is initialized, (from the new thread). This can be called from task_spawn().
 	 * @return Returns 0 iff successful, -1 on timeout or otherwise.
 	 */
-	static int wait_until_running(int timeout_ms = 1000)
-	{
+	static int wait_until_running(int timeout_ms = 1000) {
 		int i = 0;
 
 		do {
@@ -382,10 +357,7 @@ protected:
 	/**
 	 * @brief Get the module's object instance, (this is null if it's not running).
 	 */
-	static T *get_instance()
-	{
-		return (T *)_object.load();
-	}
+	static T *get_instance() { return (T *)_object.load(); }
 
 	/**
 	 * @var _object Instance if the module is running.
@@ -403,32 +375,24 @@ private:
 	/**
 	 * @brief lock_module Mutex to lock the module thread.
 	 */
-	static void lock_module()
-	{
-		pthread_mutex_lock(&px4_modules_mutex);
-	}
+	static void lock_module() { pthread_mutex_lock(&px4_modules_mutex); }
 
 	/**
 	 * @brief unlock_module Mutex to unlock the module thread.
 	 */
-	static void unlock_module()
-	{
-		pthread_mutex_unlock(&px4_modules_mutex);
-	}
+	static void unlock_module() { pthread_mutex_unlock(&px4_modules_mutex); }
 
 	/** @var _task_should_exit Boolean flag to indicate if the task should exit. */
 	px4::atomic_bool _task_should_exit{false};
 };
 
-template<class T>
+template <class T>
 px4::atomic<T *> ModuleBase<T>::_object{nullptr};
 
-template<class T>
+template <class T>
 int ModuleBase<T>::_task_id = -1;
 
-
 #endif /* __cplusplus */
-
 
 __BEGIN_DECLS
 
@@ -482,20 +446,18 @@ __EXPORT void PRINT_MODULE_USAGE_SUBCATEGORY(const char *subcategory);
  */
 __EXPORT void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char *category);
 
-
 /**
  * @brief Prints a command with a short description what it does.
  */
 __EXPORT void PRINT_MODULE_USAGE_COMMAND_DESCR(const char *name, const char *description);
 
-#define PRINT_MODULE_USAGE_COMMAND(name) \
-	PRINT_MODULE_USAGE_COMMAND_DESCR(name, NULL);
+#define PRINT_MODULE_USAGE_COMMAND(name) PRINT_MODULE_USAGE_COMMAND_DESCR(name, NULL);
 
 /**
  * @brief Prints the default commands: stop & status.
  */
 #define PRINT_MODULE_USAGE_DEFAULT_COMMANDS() \
-	PRINT_MODULE_USAGE_COMMAND("stop"); \
+	PRINT_MODULE_USAGE_COMMAND("stop");   \
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "print status info");
 
 /**
@@ -527,7 +489,7 @@ __EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG(void);
  * @param is_optional true if this parameter is optional
  */
 __EXPORT void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int min_val, int max_val,
-		const char *description, bool is_optional);
+					   const char *description, bool is_optional);
 
 /**
  * @brief Prints a float parameter.
@@ -539,7 +501,7 @@ __EXPORT void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, in
  * @param is_optional true if this parameter is optional
  */
 __EXPORT void PRINT_MODULE_USAGE_PARAM_FLOAT(char option_char, float default_val, float min_val, float max_val,
-		const char *description, bool is_optional);
+					     const char *description, bool is_optional);
 
 /**
  * @brief Prints a flag parameter, without any value.
@@ -564,7 +526,7 @@ __EXPORT void PRINT_MODULE_USAGE_PARAM_FLAG(char option_char, const char *descri
  * @param is_optional True iff this parameter is optional.
  */
 __EXPORT void PRINT_MODULE_USAGE_PARAM_STRING(char option_char, const char *default_val, const char *values,
-		const char *description, bool is_optional);
+					      const char *description, bool is_optional);
 
 /**
  * @brief Prints a comment, that applies to the next arguments or parameters. For example to indicate that
@@ -572,7 +534,6 @@ __EXPORT void PRINT_MODULE_USAGE_PARAM_STRING(char option_char, const char *defa
  * @param comment
  */
 __EXPORT void PRINT_MODULE_USAGE_PARAM_COMMENT(const char *comment);
-
 
 /**
  * @brief Prints the definition for an argument, which does not have the typical -p <val> form,
@@ -582,6 +543,5 @@ __EXPORT void PRINT_MODULE_USAGE_PARAM_COMMENT(const char *comment);
  * @param is_optional true if this parameter is optional
  */
 __EXPORT void PRINT_MODULE_USAGE_ARG(const char *values, const char *description, bool is_optional);
-
 
 __END_DECLS

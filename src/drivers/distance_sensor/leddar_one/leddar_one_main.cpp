@@ -31,18 +31,16 @@
  *
  ****************************************************************************/
 
-#include "LeddarOne.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-namespace leddar_one
-{
+#include "LeddarOne.hpp"
+
+namespace leddar_one {
 
 LeddarOne *g_dev{nullptr};
 
-static int start(const char *port, const uint8_t rotation)
-{
+static int start(const char *port, const uint8_t rotation) {
 	if (g_dev != nullptr) {
 		PX4_ERR("already started");
 		return PX4_ERROR;
@@ -69,8 +67,7 @@ static int start(const char *port, const uint8_t rotation)
 	return PX4_OK;
 }
 
-static int status()
-{
+static int status() {
 	if (g_dev == nullptr) {
 		PX4_ERR("driver not running");
 		return PX4_ERROR;
@@ -81,20 +78,17 @@ static int status()
 	return PX4_OK;
 }
 
-static int stop()
-{
+static int stop() {
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
-
 	}
 
 	PX4_INFO("driver stopped");
 	return PX4_OK;
 }
 
-static int usage()
-{
+static int usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -122,10 +116,9 @@ $ leddar_one stop
 	return PX4_OK;
 }
 
-} // namespace
+}  // namespace leddar_one
 
-extern "C" __EXPORT int leddar_one_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int leddar_one_main(int argc, char *argv[]) {
 	const char *myoptarg = nullptr;
 
 	int ch = 0;
@@ -136,17 +129,17 @@ extern "C" __EXPORT int leddar_one_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "d:r", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'd':
-			port = myoptarg;
-			break;
+			case 'd':
+				port = myoptarg;
+				break;
 
-		case 'r':
-			rotation = (uint8_t)atoi(myoptarg);
-			break;
+			case 'r':
+				rotation = (uint8_t)atoi(myoptarg);
+				break;
 
-		default:
-			PX4_WARN("Unknown option");
-			return leddar_one::usage();
+			default:
+				PX4_WARN("Unknown option");
+				return leddar_one::usage();
 		}
 	}
 

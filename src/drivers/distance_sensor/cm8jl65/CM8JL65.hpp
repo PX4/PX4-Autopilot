@@ -43,19 +43,18 @@
 
 #pragma once
 
-#include <termios.h>
-
 #include <drivers/drv_hrt.h>
-#include <drivers/rangefinder/PX4Rangefinder.hpp>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <termios.h>
 
+#include <drivers/rangefinder/PX4Rangefinder.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 using namespace time_literals;
 
 /* Configuration Constants */
-static constexpr uint32_t CM8JL65_MEASURE_INTERVAL{50_ms};	// 50ms default sensor conversion time.
+static constexpr uint32_t CM8JL65_MEASURE_INTERVAL{50_ms};  // 50ms default sensor conversion time.
 
 /* Frame start delimiter */
 static constexpr unsigned char START_FRAME_DIGIT1{0xA5};
@@ -72,8 +71,7 @@ static constexpr uint8_t DISTANCE_MSB_POS{2};
 static constexpr uint8_t DISTANCE_LSB_POS{3};
 static constexpr uint8_t PARSER_BUF_LENGTH{4};
 
-class CM8JL65 : public px4::ScheduledWorkItem
-{
+class CM8JL65 : public px4::ScheduledWorkItem {
 public:
 	/**
 	 * Default Constructor
@@ -97,15 +95,7 @@ public:
 	void print_info();
 
 private:
-
-	enum class PARSE_STATE {
-		WAITING_FRAME = 0,
-		DIGIT_1,
-		DIGIT_2,
-		MSB_DATA,
-		LSB_DATA,
-		CHECKSUM
-	};
+	enum class PARSE_STATE { WAITING_FRAME = 0, DIGIT_1, DIGIT_2, MSB_DATA, LSB_DATA, CHECKSUM };
 
 	/**
 	 * Calculates the 16 byte crc value for the data frame.
@@ -146,21 +136,20 @@ private:
 	 */
 	void stop();
 
+	PX4Rangefinder _px4_rangefinder;
 
-	PX4Rangefinder	_px4_rangefinder;
+	char _port[20]{};
 
-	char _port[20] {};
-
-	unsigned char _frame_data[PARSER_BUF_LENGTH] {START_FRAME_DIGIT1, START_FRAME_DIGIT2, 0, 0};
+	unsigned char _frame_data[PARSER_BUF_LENGTH]{START_FRAME_DIGIT1, START_FRAME_DIGIT2, 0, 0};
 
 	int _file_descriptor{-1};
 
-	uint8_t _linebuf[25] {};
+	uint8_t _linebuf[25]{};
 
 	uint16_t _crc16{0};
 
 	PARSE_STATE _parse_state{PARSE_STATE::WAITING_FRAME};
 
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME ": com_err")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": read")};
 };

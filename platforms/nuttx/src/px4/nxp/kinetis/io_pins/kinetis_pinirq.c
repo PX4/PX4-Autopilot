@@ -31,15 +31,13 @@
  *
  ****************************************************************************/
 
+#include <arch/board/board.h>
+#include <errno.h>
 #include <px4_platform_common/px4_config.h>
 #include <systemlib/px4_macros.h>
 
-#include <arch/board/board.h>
-
-#include <errno.h>
-
-#include "kinetis.h"
 #include "hardware/kinetis_port.h"
+#include "kinetis.h"
 
 /****************************************************************************
  * Name: kinetis_gpiosetevent
@@ -60,9 +58,7 @@
  *
  ****************************************************************************/
 #if defined(CONFIG_KINETIS_GPIOIRQ)
-int kinetis_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
-			 bool event, xcpt_t func, void *arg)
-{
+int kinetis_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func, void *arg) {
 	int ret = -ENOSYS;
 
 	if (func == NULL) {

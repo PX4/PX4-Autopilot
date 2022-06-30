@@ -36,10 +36,11 @@
 
 #include <uORB/topics/gimbal_manager_information.h>
 
-class MavlinkStreamGimbalManagerInformation : public MavlinkStream
-{
+class MavlinkStreamGimbalManagerInformation : public MavlinkStream {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamGimbalManagerInformation(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
+		return new MavlinkStreamGimbalManagerInformation(mavlink);
+	}
 
 	static constexpr const char *get_name_static() { return "GIMBAL_MANAGER_INFORMATION"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_GIMBAL_MANAGER_INFORMATION; }
@@ -47,8 +48,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		if (_gimbal_manager_information_sub.advertised()) {
 			return MAVLINK_MSG_ID_GIMBAL_MANAGER_INFORMATION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		}
@@ -61,11 +61,11 @@ private:
 
 	uORB::Subscription _gimbal_manager_information_sub{ORB_ID(gimbal_manager_information)};
 
-	bool send() override
-	{
+	bool send() override {
 		gimbal_manager_information_s gimbal_manager_information;
 
-		if (_gimbal_manager_information_sub.advertised() && _gimbal_manager_information_sub.copy(&gimbal_manager_information)) {
+		if (_gimbal_manager_information_sub.advertised() &&
+		    _gimbal_manager_information_sub.copy(&gimbal_manager_information)) {
 			// send out gimbal_manager_info with info from gimbal_manager_information
 			mavlink_gimbal_manager_information_t msg{};
 
@@ -88,4 +88,4 @@ private:
 	}
 };
 
-#endif // GIMBAL_MANAGER_INFORMATION_HPP
+#endif  // GIMBAL_MANAGER_INFORMATION_HPP

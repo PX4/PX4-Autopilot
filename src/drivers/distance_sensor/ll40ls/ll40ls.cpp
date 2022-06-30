@@ -46,9 +46,7 @@
 
 #include "LidarLiteI2C.h"
 
-void
-LidarLiteI2C::print_usage()
-{
+void LidarLiteI2C::print_usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -70,14 +68,9 @@ Setup/usage information: https://docs.px4.io/master/en/sensor/lidar_lite.html
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-void
-LidarLiteI2C::custom_method(const BusCLIArguments &cli)
-{
-	print_registers();
-}
+void LidarLiteI2C::custom_method(const BusCLIArguments &cli) { print_registers(); }
 
-extern "C" __EXPORT int ll40ls_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int ll40ls_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = LidarLiteI2C;
 	BusCLIArguments cli{true, false};
@@ -87,9 +80,9 @@ extern "C" __EXPORT int ll40ls_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

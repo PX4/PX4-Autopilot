@@ -39,12 +39,12 @@
  */
 
 #include <gtest/gtest.h>
+
 #include <matrix/matrix/math.hpp>
 
 #include "BezierN.hpp"
 
-TEST(BezierN_calculateBezier, checks_validity)
-{
+TEST(BezierN_calculateBezier, checks_validity) {
 	matrix::Vector3f points[10];
 	matrix::Vector3f a, b;
 	EXPECT_FALSE(bezier::calculateBezierPosVel(nullptr, 10, 0.5f, a, b));
@@ -53,8 +53,7 @@ TEST(BezierN_calculateBezier, checks_validity)
 	EXPECT_FALSE(bezier::calculateBezierPosVel(points, 10, 1.5f, a, b));
 }
 
-TEST(BezierN_calculateBezier, checks_validity_accel)
-{
+TEST(BezierN_calculateBezier, checks_validity_accel) {
 	matrix::Vector3f points[10];
 	matrix::Vector3f a, b, c;
 	EXPECT_FALSE(bezier::calculateBezierPosVelAcc(nullptr, 10, 0.5f, a, b, c));
@@ -63,8 +62,7 @@ TEST(BezierN_calculateBezier, checks_validity_accel)
 	EXPECT_FALSE(bezier::calculateBezierPosVelAcc(points, 10, 1.5f, a, b, c));
 }
 
-TEST(BezierN_calculateBezier, work_1_point)
-{
+TEST(BezierN_calculateBezier, work_1_point) {
 	// GIVEN: a single point bezier curve
 	matrix::Vector3f points[2] = {matrix::Vector3f(1, 2, 3), matrix::Vector3f(NAN, NAN, NAN)};
 	matrix::Vector3f pos, vel;
@@ -79,10 +77,10 @@ TEST(BezierN_calculateBezier, work_1_point)
 	EXPECT_EQ(vel.norm(), 0.f);
 }
 
-TEST(BezierN_calculateBezier, works_2_points)
-{
+TEST(BezierN_calculateBezier, works_2_points) {
 	// GIVEN: a 2-point bezier curve
-	matrix::Vector3f points[3] = {matrix::Vector3f(1, 2, 3), matrix::Vector3f(5, 0, 1), matrix::Vector3f(NAN, NAN, NAN)};
+	matrix::Vector3f points[3] = {matrix::Vector3f(1, 2, 3), matrix::Vector3f(5, 0, 1),
+				      matrix::Vector3f(NAN, NAN, NAN)};
 	matrix::Vector3f pos, vel;
 	pos *= NAN;
 	vel *= NAN;
@@ -109,10 +107,10 @@ TEST(BezierN_calculateBezier, works_2_points)
 	EXPECT_FLOAT_EQ((vel - (points[1] - points[0])).norm(), 0.f);
 }
 
-TEST(BezierN_calculateBezier, works_3_points_zero_accel)
-{
+TEST(BezierN_calculateBezier, works_3_points_zero_accel) {
 	// GIVEN: 3 points bezier, evenly spaced in a straight line
-	matrix::Vector3f points[4] = {matrix::Vector3f(1, 2, 3), matrix::Vector3f(5, 0, 1), matrix::Vector3f(9, -2, -1), matrix::Vector3f(NAN, NAN, NAN)};
+	matrix::Vector3f points[4] = {matrix::Vector3f(1, 2, 3), matrix::Vector3f(5, 0, 1), matrix::Vector3f(9, -2, -1),
+				      matrix::Vector3f(NAN, NAN, NAN)};
 	matrix::Vector3f pos, vel;
 	pos *= NAN;
 	vel *= NAN;
@@ -129,7 +127,8 @@ TEST(BezierN_calculateBezier, works_3_points_zero_accel)
 	// WHEN: we use the accel interface
 	EXPECT_TRUE(bezier::calculateBezierPosVelAcc(points, 3, 0.5f, pos2, vel2, accel2));
 
-	// THEN: it should give same position, velocity as the non-accel interface, and zero accel (since this curve is 0 accel)
+	// THEN: it should give same position, velocity as the non-accel interface, and zero accel (since this curve is
+	// 0 accel)
 	EXPECT_FLOAT_EQ((pos2 - pos).norm(), 0.f);
 	EXPECT_FLOAT_EQ((vel2 - vel).norm(), 0.f);
 	EXPECT_FLOAT_EQ(accel2.norm(), 0.f);
@@ -157,10 +156,10 @@ TEST(BezierN_calculateBezier, works_3_points_zero_accel)
 	EXPECT_FLOAT_EQ(accel2.norm(), 0.f);
 }
 
-TEST(BezierN_calculateBezier, works_3_points_accel)
-{
+TEST(BezierN_calculateBezier, works_3_points_accel) {
 	// GIVEN: 3 points bezier, in a curve
-	matrix::Vector3f points[4] = {matrix::Vector3f(1, 2, 3), matrix::Vector3f(5, 0, 1), matrix::Vector3f(19, -8, 1), matrix::Vector3f(NAN, NAN, NAN)};
+	matrix::Vector3f points[4] = {matrix::Vector3f(1, 2, 3), matrix::Vector3f(5, 0, 1), matrix::Vector3f(19, -8, 1),
+				      matrix::Vector3f(NAN, NAN, NAN)};
 	matrix::Vector3f pos, vel;
 	pos *= NAN;
 	vel *= NAN;
@@ -170,7 +169,6 @@ TEST(BezierN_calculateBezier, works_3_points_accel)
 
 	matrix::Vector3f accel_start, accel_mid, accel_end;
 	matrix::Vector3f vel_start, vel_mid, vel_end;
-
 
 	// WHEN: we check at the beginning
 	EXPECT_TRUE(bezier::calculateBezierPosVel(points, 3, 0.f, pos, vel));
@@ -192,7 +190,6 @@ TEST(BezierN_calculateBezier, works_3_points_accel)
 	// AND: the accel should be the same as the start
 	EXPECT_FLOAT_EQ((accel_mid - accel_start).norm(), 0.f);
 
-
 	// WHEN: we check at the end
 	EXPECT_TRUE(bezier::calculateBezierPosVel(points, 3, 1.f, pos, vel));
 	EXPECT_TRUE(bezier::calculateBezierPosVelAcc(points, 3, 1.f, pos2, vel_end, accel_end));
@@ -207,8 +204,7 @@ TEST(BezierN_calculateBezier, works_3_points_accel)
 	EXPECT_FLOAT_EQ((vel_mid - 0.5f * (vel_start + vel_end)).norm(), 0.f);
 }
 
-TEST(BezierN_calculateBezierYaw, checks_validity)
-{
+TEST(BezierN_calculateBezierYaw, checks_validity) {
 	float points[10];
 	float a, b;
 	EXPECT_FALSE(bezier::calculateBezierYaw(nullptr, 10, 0.5f, a, b));
@@ -217,8 +213,7 @@ TEST(BezierN_calculateBezierYaw, checks_validity)
 	EXPECT_FALSE(bezier::calculateBezierYaw(points, 10, 1.5f, a, b));
 }
 
-TEST(BezierN_calculateBezierYaw, work_1_point)
-{
+TEST(BezierN_calculateBezierYaw, work_1_point) {
 	// GIVEN: a single yaw point
 	float points[2] = {M_PI / 2, NAN};
 	float yaw, yaw_speed;
@@ -231,8 +226,7 @@ TEST(BezierN_calculateBezierYaw, work_1_point)
 	EXPECT_FLOAT_EQ(yaw_speed, 0);
 }
 
-TEST(BezierN_calculateBezierYaw, work_2_points)
-{
+TEST(BezierN_calculateBezierYaw, work_2_points) {
 	// GIVEN: a single yaw point
 	float points[3] = {0, M_PI / 2, NAN};
 	float yaw, yaw_speed;
@@ -259,8 +253,7 @@ TEST(BezierN_calculateBezierYaw, work_2_points)
 	EXPECT_FLOAT_EQ(yaw_speed, M_PI / 2);
 }
 
-TEST(BezierN_calculateBezierYaw, work_2_points_wrap)
-{
+TEST(BezierN_calculateBezierYaw, work_2_points_wrap) {
 	// GIVEN: 2 yaw points on either side of the +- PI wrap line
 	float points[3] = {-M_PI + 0.1, M_PI - 0.1, NAN};
 	float yaw, yaw_speed;
@@ -268,14 +261,16 @@ TEST(BezierN_calculateBezierYaw, work_2_points_wrap)
 	// WHEN: we get the beginning
 	EXPECT_TRUE(bezier::calculateBezierYaw(points, 2, 0.f, yaw, yaw_speed));
 
-	// THEN: it should have the beginning value, and the velocity should be the wrapped distance between first and last
+	// THEN: it should have the beginning value, and the velocity should be the wrapped distance between first and
+	// last
 	EXPECT_FLOAT_EQ(yaw, -M_PI + 0.1);
 	EXPECT_NEAR(yaw_speed, -0.2, 1e-6f);
 
 	// WHEN: we get the middle
 	EXPECT_TRUE(bezier::calculateBezierYaw(points, 2, 0.5f, yaw, yaw_speed));
 
-	// THEN: it should have the wrapped middle value, and the velocity should be the wrapped distance between first and last
+	// THEN: it should have the wrapped middle value, and the velocity should be the wrapped distance between first
+	// and last
 	EXPECT_FLOAT_EQ(matrix::wrap_pi(yaw - float(M_PI)), 0);
 	EXPECT_NEAR(yaw_speed, -0.2, 1e-6f);
 
@@ -287,18 +282,14 @@ TEST(BezierN_calculateBezierYaw, work_2_points_wrap)
 	EXPECT_NEAR(yaw_speed, -0.2, 1e-6f);
 }
 
-
-TEST(BezierN_calculateT, rejects_bad_timestamps)
-{
+TEST(BezierN_calculateT, rejects_bad_timestamps) {
 	float f = NAN;
 	EXPECT_FALSE(bezier::calculateT(100, 1000, 99, f));
 	EXPECT_FALSE(bezier::calculateT(100, 1000, 1001, f));
 	EXPECT_FALSE(bezier::calculateT(1001, 1000, 1001, f));
 }
 
-
-TEST(BezierN_calculateT, begin_middle_end)
-{
+TEST(BezierN_calculateT, begin_middle_end) {
 	float f = NAN;
 	EXPECT_TRUE(bezier::calculateT(100, 1000, 100, f));
 	EXPECT_FLOAT_EQ(f, 0.f);
@@ -310,9 +301,8 @@ TEST(BezierN_calculateT, begin_middle_end)
 	EXPECT_FLOAT_EQ(f, 1.f);
 }
 
-TEST(BezierN_calculateT, giant_offset)
-{
-	int64_t offset = 0xFFFFFFFFFFFF; // 48 bit max
+TEST(BezierN_calculateT, giant_offset) {
+	int64_t offset = 0xFFFFFFFFFFFF;  // 48 bit max
 	float f = NAN;
 	EXPECT_TRUE(bezier::calculateT(offset + 100, offset + 1000, offset + 100, f));
 	EXPECT_FLOAT_EQ(f, 0.f);

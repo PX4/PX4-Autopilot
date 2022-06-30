@@ -36,8 +36,7 @@
 
 #include <uORB/topics/orbit_status.h>
 
-class MavlinkStreamOrbitStatus : public MavlinkStream
-{
+class MavlinkStreamOrbitStatus : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamOrbitStatus(mavlink); }
 
@@ -47,9 +46,10 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _orbit_status_subs.advertised() ? MAVLINK_MSG_ID_ORBIT_EXECUTION_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _orbit_status_subs.advertised()
+			       ? MAVLINK_MSG_ID_ORBIT_EXECUTION_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+			       : 0;
 	}
 
 private:
@@ -57,8 +57,7 @@ private:
 
 	uORB::SubscriptionMultiArray<orbit_status_s, 2> _orbit_status_subs{ORB_ID::orbit_status};
 
-	bool send() override
-	{
+	bool send() override {
 		orbit_status_s orbit_status;
 		bool updated = false;
 
@@ -73,7 +72,8 @@ private:
 				msg_orbit_execution_status.y = orbit_status.y * 1e7;
 				msg_orbit_execution_status.z = orbit_status.z;
 
-				mavlink_msg_orbit_execution_status_send_struct(_mavlink->get_channel(), &msg_orbit_execution_status);
+				mavlink_msg_orbit_execution_status_send_struct(_mavlink->get_channel(),
+									       &msg_orbit_execution_status);
 
 				// only one subscription should ever be active at any time, so we can exit here
 				updated = true;
@@ -85,4 +85,4 @@ private:
 	}
 };
 
-#endif // ORBIT_EXECUTION_STATUS_HPP
+#endif  // ORBIT_EXECUTION_STATUS_HPP

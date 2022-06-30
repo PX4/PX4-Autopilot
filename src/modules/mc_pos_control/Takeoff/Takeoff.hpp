@@ -39,8 +39,8 @@
 
 #pragma once
 
-#include <lib/hysteresis/hysteresis.h>
 #include <drivers/drv_hrt.h>
+#include <lib/hysteresis/hysteresis.h>
 #include <uORB/topics/takeoff_status.h>
 
 using namespace time_literals;
@@ -53,14 +53,15 @@ enum class TakeoffState {
 	flight = takeoff_status_s::TAKEOFF_STATE_FLIGHT
 };
 
-class TakeoffHandling
-{
+class TakeoffHandling {
 public:
 	TakeoffHandling() = default;
 	~TakeoffHandling() = default;
 
 	// initialize parameters
-	void setSpoolupTime(const float seconds) { _spoolup_time_hysteresis.set_hysteresis_time_from(false, seconds * 1_s); }
+	void setSpoolupTime(const float seconds) {
+		_spoolup_time_hysteresis.set_hysteresis_time_from(false, seconds * 1_s);
+	}
 	void setTakeoffRampTime(const float seconds) { _takeoff_ramp_time = seconds; }
 
 	/**
@@ -81,8 +82,8 @@ public:
 
 	/**
 	 * Update and return the velocity constraint ramp value during takeoff.
-	 * By ramping up _takeoff_ramp_vz during the takeoff and using it to constain the maximum climb rate a smooth takeoff behavior is achieved.
-	 * Returns zero on the ground and takeoff_desired_vz in flight.
+	 * By ramping up _takeoff_ramp_vz during the takeoff and using it to constain the maximum climb rate a smooth
+	 * takeoff behavior is achieved. Returns zero on the ground and takeoff_desired_vz in flight.
 	 * @param dt time in seconds since the last call/loop iteration
 	 * @param takeoff_desired_vz end value for the velocity ramp
 	 * @return true if setpoint has updated correctly
@@ -94,9 +95,10 @@ public:
 private:
 	TakeoffState _takeoff_state = TakeoffState::disarmed;
 
-	systemlib::Hysteresis _spoolup_time_hysteresis{false}; ///< becomes true COM_SPOOLUP_TIME seconds after the vehicle was armed
+	systemlib::Hysteresis _spoolup_time_hysteresis{
+		false};  ///< becomes true COM_SPOOLUP_TIME seconds after the vehicle was armed
 
 	float _takeoff_ramp_time{0.f};
-	float _takeoff_ramp_vz_init{0.f}; ///< verticval velocity resulting in zero thrust
-	float _takeoff_ramp_progress{0.f}; ///< asecnding from 0 to 1
+	float _takeoff_ramp_vz_init{0.f};   ///< verticval velocity resulting in zero thrust
+	float _takeoff_ramp_progress{0.f};  ///< asecnding from 0 to 1
 };

@@ -37,74 +37,65 @@
 
 using namespace time_literals;
 
-namespace AKM_AK09916
-{
+namespace AKM_AK09916 {
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-ICM20948_AK09916::ICM20948_AK09916(ICM20948 &icm20948, enum Rotation rotation) :
-	ScheduledWorkItem("icm20948_ak09916", px4::device_bus_to_wq(icm20948.get_device_id())),
-	_icm20948(icm20948),
-	_px4_mag(icm20948.get_device_id(), rotation)
-{
+ICM20948_AK09916::ICM20948_AK09916(ICM20948 &icm20948, enum Rotation rotation)
+	: ScheduledWorkItem("icm20948_ak09916", px4::device_bus_to_wq(icm20948.get_device_id())),
+	  _icm20948(icm20948),
+	  _px4_mag(icm20948.get_device_id(), rotation) {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AK09916);
 
 	// mag resolution is 1.5 milli Gauss per bit (0.15 μT/LSB)
 	_px4_mag.set_scale(1.5e-3f);
 }
 
-ICM20948_AK09916::~ICM20948_AK09916()
-{
+ICM20948_AK09916::~ICM20948_AK09916() {
 	perf_free(_bad_transfer_perf);
 	perf_free(_magnetic_sensor_overflow_perf);
 }
 
-bool ICM20948_AK09916::Reset()
-{
+bool ICM20948_AK09916::Reset() {
 	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
 }
 
-void ICM20948_AK09916::PrintInfo()
-{
+void ICM20948_AK09916::PrintInfo() {
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_magnetic_sensor_overflow_perf);
 }
 
-void ICM20948_AK09916::Run()
-{
+void ICM20948_AK09916::Run() {
 	switch (_state) {
-	case STATE::RESET:
-		// CNTL3 SRST: Soft reset
-		_icm20948.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL3, CNTL3_BIT::SRST);
-		_reset_timestamp = hrt_absolute_time();
-		_failure_count = 0;
-		_state = STATE::READ_WHO_AM_I;
-		ScheduleDelayed(100_ms);
-		break;
+		case STATE::RESET:
+			// CNTL3 SRST: Soft reset
+			_icm20948.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL3, CNTL3_BIT::SRST);
+			_reset_timestamp = hrt_absolute_time();
+			_failure_count = 0;
+			_state = STATE::READ_WHO_AM_I;
+			ScheduleDelayed(100_ms);
+			break;
 
-	case STATE::READ_WHO_AM_I:
-		_icm20948.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::WIA1, 1);
-		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(100_ms);
-		break;
+		case STATE::READ_WHO_AM_I:
+			_icm20948.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::WIA1, 1);
+			_state = STATE::WAIT_FOR_RESET;
+			ScheduleDelayed(100_ms);
+			break;
 
-	case STATE::WAIT_FOR_RESET: {
-
+		case STATE::WAIT_FOR_RESET: {
 			uint8_t WIA1 = 0;
 			_icm20948.I2CSlaveExternalSensorDataRead(&WIA1, 1);
 
 			if (WIA1 == Company_ID) {
 				// set continuous mode 3 (50 Hz)
-				_icm20948.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL2, CNTL2_BIT::MODE3);
+				_icm20948.I2CSlaveRegisterWrite(I2C_ADDRESS_DEFAULT, (uint8_t)Register::CNTL2,
+								CNTL2_BIT::MODE3);
 
 				_state = STATE::READ;
-				ScheduleOnInterval(20_ms, 100_ms); // 50 Hz
+				ScheduleOnInterval(20_ms, 100_ms);  // 50 Hz
 
 			} else {
 				// RESET not complete
@@ -122,7 +113,7 @@ void ICM20948_AK09916::Run()
 
 		break;
 
-	case STATE::READ: {
+		case STATE::READ: {
 			TransferBuffer buffer{};
 			const hrt_abstime timestamp_sample = hrt_absolute_time();
 			bool ret = _icm20948.I2CSlaveExternalSensorDataRead((uint8_t *)&buffer, sizeof(TransferBuffer));
@@ -160,11 +151,12 @@ void ICM20948_AK09916::Run()
 			}
 
 			// ensure icm20948 slave sensor reading is configured
-			_icm20948.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::ST1, sizeof(TransferBuffer));
+			_icm20948.I2CSlaveExternalSensorDataEnable(I2C_ADDRESS_DEFAULT, (uint8_t)Register::ST1,
+								   sizeof(TransferBuffer));
 		}
 
 		break;
 	}
 }
 
-} // namespace AKM_AK09916
+}  // namespace AKM_AK09916

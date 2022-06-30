@@ -39,18 +39,18 @@
 
 #pragma once
 
-#include <string.h>
-
-#include <drivers/device/Device.hpp>
 #include <drivers/device/i2c.h>
 #include <drivers/device/spi.h>
+#include <string.h>
 #include <systemlib/err.h>
 
-#define ADDR_WHO_AM_I		0x0F
+#include <drivers/device/Device.hpp>
 
-#define ID_WHO_AM_I		0xBD
+#define ADDR_WHO_AM_I 0x0F
 
-#define LPS25H_ADDRESS		0x5D
+#define ID_WHO_AM_I 0xBD
+
+#define LPS25H_ADDRESS 0x5D
 
 /* interface factories */
 extern device::Device *LPS25H_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);

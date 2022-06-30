@@ -39,8 +39,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
-class MavlinkStreamGlobalPositionInt : public MavlinkStream
-{
+class MavlinkStreamGlobalPositionInt : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamGlobalPositionInt(mavlink); }
 
@@ -50,9 +49,9 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _gpos_sub.advertised() ? MAVLINK_MSG_ID_GLOBAL_POSITION_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _gpos_sub.advertised() ? MAVLINK_MSG_ID_GLOBAL_POSITION_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+					      : 0;
 	}
 
 private:
@@ -63,13 +62,11 @@ private:
 	uORB::Subscription _home_sub{ORB_ID(home_position)};
 	uORB::Subscription _air_data_sub{ORB_ID(vehicle_air_data)};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_global_position_s gpos;
 		vehicle_local_position_s lpos;
 
 		if (_gpos_sub.update(&gpos) && _lpos_sub.update(&lpos)) {
-
 			mavlink_global_position_int_t msg{};
 
 			if (lpos.z_valid && lpos.z_global) {
@@ -121,4 +118,4 @@ private:
 	}
 };
 
-#endif // GLOBAL_POSITION_INT_HPP
+#endif  // GLOBAL_POSITION_INT_HPP

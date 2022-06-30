@@ -39,43 +39,38 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <px4_platform_common/px4_config.h>
+#include <arch/board/board.h>
+#include <board_config.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <math.h>
+#include <nuttx/drivers/drivers.h>
+#include <nuttx/fs/ioctl.h>
+#include <nuttx/fs/nxffs.h>
+#include <nuttx/mtd/mtd.h>
+#include <nuttx/spi/spi.h>
+#include <parameters/param.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/spi.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_mtd.h>
-#include <px4_platform_common/getopt.h>
-
-#include <inttypes.h>
+#include <px4_platform_common/spi.h>
+#include <stdbool.h>
 #include <stdio.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <math.h>
-#include <fcntl.h>
-#include <sys/mount.h>
 #include <sys/ioctl.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
-
-#include <nuttx/spi/spi.h>
-#include <nuttx/mtd/mtd.h>
-#include <nuttx/fs/nxffs.h>
-#include <nuttx/fs/ioctl.h>
-#include <nuttx/drivers/drivers.h>
-
-#include <arch/board/board.h>
+#include <unistd.h>
 
 #include "systemlib/px4_macros.h"
-#include <parameters/param.h>
-
-#include <board_config.h>
 
 extern "C" __EXPORT int mtd_main(int argc, char *argv[]);
 
-static int mtd_status(void)
-{
+static int mtd_status(void) {
 	int ret = 0;
 	bool running = false;
 	unsigned int num_instances;
@@ -85,18 +80,17 @@ static int mtd_status(void)
 	if (instances) {
 		for (unsigned int i = 0; i < num_instances; ++i) {
 			if (instances[i].mtd_dev) {
-
 				unsigned long blocksize;
 				unsigned long erasesize;
 				unsigned long neraseblocks;
-				unsigned int  blkpererase;
-				unsigned int  nblocks;
-				unsigned int  partsize;
+				unsigned int blkpererase;
+				unsigned int nblocks;
+				unsigned int partsize;
 
-				ret = px4_mtd_get_geometry(&instances[i], &blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks, &partsize);
+				ret = px4_mtd_get_geometry(&instances[i], &blocksize, &erasesize, &neraseblocks,
+							   &blkpererase, &nblocks, &partsize);
 
 				if (ret == 0) {
-
 					PX4_INFO("Flash Geometry of instance %i:", i);
 
 					printf("  blocksize:      %lu\n", blocksize);
@@ -104,22 +98,24 @@ static int mtd_status(void)
 					printf("  neraseblocks:   %lu\n", neraseblocks);
 					printf("  No. partitions: %u\n", instances[i].n_partitions_current);
 
-
-					unsigned int  totalnblocks = 0;
-					unsigned int  totalpartsize = 0;
+					unsigned int totalnblocks = 0;
+					unsigned int totalpartsize = 0;
 
 					for (unsigned int p = 0; p < instances[i].n_partitions_current; p++) {
 						FAR struct mtd_geometry_s geo;
-						ret = instances[i].part_dev[p]->ioctl(instances[i].part_dev[p], MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
+						ret = instances[i].part_dev[p]->ioctl(instances[i].part_dev[p],
+										      MTDIOC_GEOMETRY,
+										      (unsigned long)((uintptr_t)&geo));
 						printf("    partition: %u:\n", p);
 						printf("     name:   %s\n", instances[i].partition_names[p]);
-						printf("     blocks: %" PRIu32 " (%lu bytes)\n", geo.neraseblocks, erasesize * geo.neraseblocks);
+						printf("     blocks: %" PRIu32 " (%lu bytes)\n", geo.neraseblocks,
+						       erasesize * geo.neraseblocks);
 						totalnblocks += geo.neraseblocks;
 						totalpartsize += erasesize * geo.neraseblocks;
 					}
 
 					printf("  Device size: %u Blocks (%u bytes)\n", totalnblocks, totalpartsize);
-					printf("  TOTAL SIZE: %u KiB\n", totalpartsize  / 1024);
+					printf("  TOTAL SIZE: %u KiB\n", totalpartsize / 1024);
 				}
 
 				running |= true;
@@ -135,11 +131,11 @@ static int mtd_status(void)
 	return ret;
 }
 
-static void print_usage()
-{
+static void print_usage() {
 #if !defined(CONSTRAINED_FLASH)
 
-	PRINT_MODULE_DESCRIPTION("Utility to mount and test partitions (based on FRAM/EEPROM storage as defined by the board)");
+	PRINT_MODULE_DESCRIPTION(
+		"Utility to mount and test partitions (based on FRAM/EEPROM storage as defined by the board)");
 
 	PRINT_MODULE_USAGE_NAME("mtd", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print status information");
@@ -156,13 +152,11 @@ static void print_usage()
 #endif
 }
 
-int mtd_erase(mtd_instance_s &instance)
-{
+int mtd_erase(mtd_instance_s &instance) {
 	uint8_t v[64];
 	memset(v, 0xFF, sizeof(v));
 
 	for (uint8_t i = 0; i < instance.n_partitions_current; i++) {
-
 		uint32_t count = 0;
 		printf("Erasing %s\n", instance.partition_names[i]);
 		int fd = open(instance.partition_names[i], O_WRONLY);
@@ -190,8 +184,7 @@ int mtd_erase(mtd_instance_s &instance)
   responding on the bus. It relies on the driver returning an error on
   bad reads (the ramtron driver does return an error)
  */
-int mtd_readtest(const mtd_instance_s &instance)
-{
+int mtd_readtest(const mtd_instance_s &instance) {
 	uint8_t v[128];
 
 	for (uint8_t i = 0; i < instance.n_partitions_current; i++) {
@@ -234,8 +227,7 @@ int mtd_readtest(const mtd_instance_s &instance)
   blocks and writes the data back, then reads it again, failing if the
   data isn't the same
  */
-int mtd_rwtest(const mtd_instance_s &instance)
-{
+int mtd_rwtest(const mtd_instance_s &instance) {
 	uint8_t v[128], v2[128];
 
 	for (uint8_t i = 0; i < instance.n_partitions_current; i++) {
@@ -301,8 +293,7 @@ int mtd_rwtest(const mtd_instance_s &instance)
 }
 #endif
 
-int mtd_main(int argc, char *argv[])
-{
+int mtd_main(int argc, char *argv[]) {
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 	int ch;
@@ -310,14 +301,14 @@ int mtd_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "i:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'i':
-			instance = atoi(myoptarg);
-			break;
+			case 'i':
+				instance = atoi(myoptarg);
+				break;
 
-		default:
-			print_usage();
-			return -1;
-			break;
+			default:
+				print_usage();
+				return -1;
+				break;
 		}
 	}
 
@@ -330,7 +321,7 @@ int mtd_main(int argc, char *argv[])
 			return -1;
 		}
 
-		if (instance < 0 || (unsigned) instance >= num_instances) {
+		if (instance < 0 || (unsigned)instance >= num_instances) {
 			PX4_ERR("invalid instance");
 			return -1;
 		}
@@ -351,7 +342,7 @@ int mtd_main(int argc, char *argv[])
 			return mtd_status();
 		}
 
-		if (!strcmp(argv[myoptind],  "erase")) {
+		if (!strcmp(argv[myoptind], "erase")) {
 			return mtd_erase(instances[instance]);
 		}
 	}

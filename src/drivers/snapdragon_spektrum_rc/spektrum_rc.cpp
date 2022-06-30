@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 
-
 /**
  * @file spektrum_rc.cpp
  *
@@ -39,28 +38,25 @@
  * on the serial port. By default port J12 (next to J13, power module side) is used.
  */
 
-#include <string.h>
-
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/getopt.h>
-
-#include <lib/rc/dsm.h>
 #include <drivers/drv_hrt.h>
-
-#include <uORB/uORB.h>
+#include <lib/rc/dsm.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
+#include <string.h>
 #include <uORB/topics/input_rc.h>
+#include <uORB/uORB.h>
 
 // Snapdraogon: use J12 (next to J13, power module side)
 #define SPEKTRUM_UART_DEVICE_PATH "/dev/tty-3"
 
 #define UNUSED(x) (void)(x)
 
-extern "C" { __EXPORT int spektrum_rc_main(int argc, char *argv[]); }
+extern "C" {
+__EXPORT int spektrum_rc_main(int argc, char *argv[]);
+}
 
-
-namespace spektrum_rc
-{
+namespace spektrum_rc {
 
 volatile bool _task_should_exit = false;
 static bool _is_running = false;
@@ -72,12 +68,10 @@ int info();
 void usage();
 void task_main(int argc, char *argv[]);
 
-void fill_input_rc(uint16_t raw_rc_count, uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
-		   hrt_abstime now, bool frame_drop, bool failsafe, unsigned frame_drops, int rssi,
-		   input_rc_s &input_rc);
+void fill_input_rc(uint16_t raw_rc_count, uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS], hrt_abstime now,
+		   bool frame_drop, bool failsafe, unsigned frame_drops, int rssi, input_rc_s &input_rc);
 
-void task_main(int argc, char *argv[])
-{
+void task_main(int argc, char *argv[]) {
 	const char *device_path = SPEKTRUM_UART_DEVICE_PATH;
 	int ch;
 	int myoptind = 1;
@@ -85,12 +79,12 @@ void task_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'd':
-			device_path = myoptarg;
-			break;
+			case 'd':
+				device_path = myoptarg;
+				break;
 
-		default:
-			break;
+			default:
+				break;
 		}
 	}
 
@@ -112,7 +106,6 @@ void task_main(int argc, char *argv[])
 
 	// Main loop
 	while (!_task_should_exit) {
-
 		int newbytes = ::read(uart_fd, &rx_buf[0], sizeof(rx_buf));
 
 		if (newbytes < 0) {
@@ -131,16 +124,14 @@ void task_main(int argc, char *argv[])
 		int8_t dsm_rssi;
 
 		// parse new data
-		bool rc_updated = dsm_parse(now, rx_buf, newbytes, &raw_rc_values[0], &raw_rc_count,
-					    &dsm_11_bit, &frame_drops, &dsm_rssi, input_rc_s::RC_INPUT_MAX_CHANNELS);
+		bool rc_updated = dsm_parse(now, rx_buf, newbytes, &raw_rc_values[0], &raw_rc_count, &dsm_11_bit,
+					    &frame_drops, &dsm_rssi, input_rc_s::RC_INPUT_MAX_CHANNELS);
 		UNUSED(dsm_11_bit);
 
 		if (rc_updated) {
-
 			input_rc_s input_rc = {};
 
-			fill_input_rc(raw_rc_count, raw_rc_values, now, false, false, frame_drops, dsm_rssi,
-				      input_rc);
+			fill_input_rc(raw_rc_count, raw_rc_values, now, false, false, frame_drops, dsm_rssi, input_rc);
 
 			if (rc_pub == nullptr) {
 				rc_pub = orb_advertise(ORB_ID(input_rc), &input_rc);
@@ -152,7 +143,6 @@ void task_main(int argc, char *argv[])
 
 		// sleep since no poll for qurt
 		usleep(10000);
-
 	}
 
 	orb_unadvertise(rc_pub);
@@ -161,10 +151,8 @@ void task_main(int argc, char *argv[])
 	_is_running = false;
 }
 
-void fill_input_rc(uint16_t raw_rc_count, uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS],
-		   hrt_abstime now, bool frame_drop, bool failsafe, unsigned frame_drops, int rssi,
-		   input_rc_s &input_rc)
-{
+void fill_input_rc(uint16_t raw_rc_count, uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS], hrt_abstime now,
+		   bool frame_drop, bool failsafe, unsigned frame_drops, int rssi, input_rc_s &input_rc) {
 	input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_QURT;
 
 	input_rc.channel_count = raw_rc_count;
@@ -189,7 +177,6 @@ void fill_input_rc(uint16_t raw_rc_count, uint16_t raw_rc_values[input_rc_s::RC_
 
 	/* fake rssi if no value was provided */
 	if (rssi == -1) {
-
 		input_rc.rssi = 255;
 
 	} else {
@@ -206,8 +193,7 @@ void fill_input_rc(uint16_t raw_rc_count, uint16_t raw_rc_values[input_rc_s::RC_
 	input_rc.rc_total_frame_count = 0;
 }
 
-int start(int argc, char *argv[])
-{
+int start(int argc, char *argv[]) {
 	if (_is_running) {
 		PX4_WARN("already running");
 		return -1;
@@ -215,12 +201,8 @@ int start(int argc, char *argv[])
 
 	_task_should_exit = false;
 
-	_task_handle = px4_task_spawn_cmd("spektrum_rc_main",
-					  SCHED_DEFAULT,
-					  SCHED_PRIORITY_DEFAULT,
-					  2000,
-					  (px4_main_t)&task_main,
-					  (char *const *)argv);
+	_task_handle = px4_task_spawn_cmd("spektrum_rc_main", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 2000,
+					  (px4_main_t)&task_main, (char *const *)argv);
 
 	if (_task_handle < 0) {
 		PX4_ERR("task start failed");
@@ -230,8 +212,7 @@ int start(int argc, char *argv[])
 	return 0;
 }
 
-int stop()
-{
+int stop() {
 	if (!_is_running) {
 		PX4_WARN("not running");
 		return -1;
@@ -248,24 +229,17 @@ int stop()
 	return 0;
 }
 
-int info()
-{
+int info() {
 	PX4_INFO("running: %s", _is_running ? "yes" : "no");
 
 	return 0;
 }
 
-void
-usage()
-{
-	PX4_INFO("Usage: spektrum_rc {start|info|stop}");
-}
+void usage() { PX4_INFO("Usage: spektrum_rc {start|info|stop}"); }
 
-} // namespace spektrum_rc
+}  // namespace spektrum_rc
 
-
-int spektrum_rc_main(int argc, char *argv[])
-{
+int spektrum_rc_main(int argc, char *argv[]) {
 	int myoptind = 1;
 
 	if (argc <= 1) {
@@ -274,7 +248,6 @@ int spektrum_rc_main(int argc, char *argv[])
 	}
 
 	const char *verb = argv[myoptind];
-
 
 	if (!strcmp(verb, "start")) {
 		return spektrum_rc::start(argc - 1, argv + 1);

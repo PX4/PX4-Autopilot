@@ -45,9 +45,7 @@
 #include <systemlib/err.h>
 #include <termios.h>
 
-int
-open_uart(const char *device)
-{
+int open_uart(const char *device) {
 	/* baud rate */
 	static const speed_t speed = B19200;
 

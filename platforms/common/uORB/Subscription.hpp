@@ -38,37 +38,29 @@
 
 #pragma once
 
-#include <uORB/uORB.h>
-#include <uORB/topics/uORBTopics.hpp>
-
-#include <px4_platform_common/defines.h>
 #include <lib/mathlib/mathlib.h>
+#include <px4_platform_common/defines.h>
+#include <uORB/uORB.h>
+
+#include <uORB/topics/uORBTopics.hpp>
 
 #include "uORBManager.hpp"
 #include "uORBUtils.hpp"
 
-namespace uORB
-{
+namespace uORB {
 
 class SubscriptionCallback;
 
 // Base subscription wrapper class
-class Subscription
-{
+class Subscription {
 public:
-
 	/**
 	 * Constructor
 	 *
 	 * @param id The uORB ORB_ID enum for the topic.
 	 * @param instance The instance for multi sub.
 	 */
-	Subscription(ORB_ID id, uint8_t instance = 0) :
-		_orb_id(id),
-		_instance(instance)
-	{
-		subscribe();
-	}
+	Subscription(ORB_ID id, uint8_t instance = 0) : _orb_id(id), _instance(instance) { subscribe(); }
 
 	/**
 	 * Constructor
@@ -76,10 +68,8 @@ public:
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 * @param instance The instance for multi sub.
 	 */
-	Subscription(const orb_metadata *meta, uint8_t instance = 0) :
-		_orb_id((meta == nullptr) ? ORB_ID::INVALID : static_cast<ORB_ID>(meta->o_id)),
-		_instance(instance)
-	{
+	Subscription(const orb_metadata *meta, uint8_t instance = 0)
+		: _orb_id((meta == nullptr) ? ORB_ID::INVALID : static_cast<ORB_ID>(meta->o_id)), _instance(instance) {
 		subscribe();
 	}
 
@@ -90,8 +80,7 @@ public:
 	Subscription(const Subscription &&other) noexcept : _orb_id(other._orb_id), _instance(other._instance) {}
 
 	// copy assignment
-	Subscription &operator=(const Subscription &other)
-	{
+	Subscription &operator=(const Subscription &other) {
 		unsubscribe();
 		_orb_id = other._orb_id;
 		_instance = other._instance;
@@ -99,25 +88,20 @@ public:
 	}
 
 	// move assignment
-	Subscription &operator=(Subscription &&other) noexcept
-	{
+	Subscription &operator=(Subscription &&other) noexcept {
 		unsubscribe();
 		_orb_id = other._orb_id;
 		_instance = other._instance;
 		return *this;
 	}
 
-	~Subscription()
-	{
-		unsubscribe();
-	}
+	~Subscription() { unsubscribe(); }
 
 	bool subscribe();
 	void unsubscribe();
 
 	bool valid() const { return _node != nullptr; }
-	bool advertised()
-	{
+	bool advertised() {
 		if (valid()) {
 			return Manager::is_advertised(_node);
 		}
@@ -136,8 +120,7 @@ public:
 	/**
 	 * Check if there is a new update.
 	 */
-	bool updated()
-	{
+	bool updated() {
 		if (!valid()) {
 			subscribe();
 		}
@@ -149,8 +132,7 @@ public:
 	 * Update the struct
 	 * @param dst The uORB message struct we are updating.
 	 */
-	bool update(void *dst)
-	{
+	bool update(void *dst) {
 		if (!valid()) {
 			subscribe();
 		}
@@ -162,8 +144,7 @@ public:
 	 * Copy the struct
 	 * @param dst The uORB message struct we are updating.
 	 */
-	bool copy(void *dst)
-	{
+	bool copy(void *dst) {
 		if (!valid()) {
 			subscribe();
 		}
@@ -177,12 +158,11 @@ public:
 	 */
 	bool ChangeInstance(uint8_t instance);
 
-	uint8_t  get_instance() const { return _instance; }
+	uint8_t get_instance() const { return _instance; }
 	unsigned get_last_generation() const { return _last_generation; }
 	orb_id_t get_topic() const { return get_orb_meta(_orb_id); }
 
 protected:
-
 	friend class SubscriptionCallback;
 	friend class SubscriptionCallbackWorkItem;
 
@@ -197,9 +177,8 @@ protected:
 };
 
 // Subscription wrapper class with data
-template<class T>
-class SubscriptionData : public Subscription
-{
+template <class T>
+class SubscriptionData : public Subscription {
 public:
 	/**
 	 * Constructor
@@ -207,11 +186,7 @@ public:
 	 * @param id The uORB metadata ORB_ID enum for the topic.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionData(ORB_ID id, uint8_t instance = 0) :
-		Subscription(id, instance)
-	{
-		copy(&_data);
-	}
+	SubscriptionData(ORB_ID id, uint8_t instance = 0) : Subscription(id, instance) { copy(&_data); }
 
 	/**
 	 * Constructor
@@ -219,9 +194,7 @@ public:
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionData(const orb_metadata *meta, uint8_t instance = 0) :
-		Subscription(meta, instance)
-	{
+	SubscriptionData(const orb_metadata *meta, uint8_t instance = 0) : Subscription(meta, instance) {
 		copy(&_data);
 	}
 
@@ -239,8 +212,7 @@ public:
 	const T &get() const { return _data; }
 
 private:
-
 	T _data{};
 };
 
-} // namespace uORB
+}  // namespace uORB

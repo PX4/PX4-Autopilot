@@ -43,17 +43,14 @@
 
 #include "tcbp001ta.hpp"
 
-TCBP001TA::TCBP001TA(tcbp001ta::ITCBP001TA *interface) :
-	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
-	_interface(interface),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
-	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
-{
-}
+TCBP001TA::TCBP001TA(tcbp001ta::ITCBP001TA *interface)
+	: ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
+	  _interface(interface),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": sample")),
+	  _measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": measure")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": comms errors")) {}
 
-TCBP001TA::~TCBP001TA()
-{
+TCBP001TA::~TCBP001TA() {
 	// make sure we are truly inactive
 	Stop();
 
@@ -65,9 +62,7 @@ TCBP001TA::~TCBP001TA()
 	delete _interface;
 }
 
-int
-TCBP001TA::init()
-{
+int TCBP001TA::init() {
 	// reset sensor
 	_interface->set_reg(TCBP001TA_VALUE_RESET, TCBP001TA_ADDR_RESET);
 	usleep(10000);
@@ -124,23 +119,23 @@ TCBP001TA::init()
 	}
 
 	_fcal.c01 = (_cal->c01l + (_cal->c01h << 8));
-	//if(_fcal.c01 > POW_2_15_MINUS_1)
+	// if(_fcal.c01 > POW_2_15_MINUS_1)
 	//_fcal.c01 = _fcal.c01 - POW_2_16;
 
 	_fcal.c11 = (_cal->c11l + (_cal->c11h << 8));
-	//if(_fcal.c11 > POW_2_15_MINUS_1)
+	// if(_fcal.c11 > POW_2_15_MINUS_1)
 	//_fcal.c11 = _fcal.c11 - POW_2_16;
 
 	_fcal.c20 = (_cal->c20l + (_cal->c20h << 8));
-	//if(_fcal.c20 > POW_2_15_MINUS_1)
+	// if(_fcal.c20 > POW_2_15_MINUS_1)
 	//_fcal.c20 = _fcal.c20 - POW_2_16;
 
 	_fcal.c21 = (_cal->c21l + (_cal->c21h << 8));
-	//if(_fcal.c21 > POW_2_15_MINUS_1)
+	// if(_fcal.c21 > POW_2_15_MINUS_1)
 	//_fcal.c21 = _fcal.c21 - POW_2_16;
 
 	_fcal.c30 = (_cal->c30l + (_cal->c30h << 8));
-	//if(_fcal.c30 > POW_2_15_MINUS_1)
+	// if(_fcal.c30 > POW_2_15_MINUS_1)
 	//_fcal.c30 = _fcal.c30 - POW_2_16;
 
 	Start();
@@ -148,9 +143,7 @@ TCBP001TA::init()
 	return OK;
 }
 
-void
-TCBP001TA::Start()
-{
+void TCBP001TA::Start() {
 	// reset the report ring and state machine
 	_collect_phase = false;
 
@@ -158,15 +151,9 @@ TCBP001TA::Start()
 	ScheduleNow();
 }
 
-void
-TCBP001TA::Stop()
-{
-	ScheduleClear();
-}
+void TCBP001TA::Stop() { ScheduleClear(); }
 
-void
-TCBP001TA::Run()
-{
+void TCBP001TA::Run() {
 	if (_collect_phase) {
 		collect();
 
@@ -177,36 +164,32 @@ TCBP001TA::Run()
 	ScheduleDelayed(_measure_interval);
 }
 
-int
-TCBP001TA::measure()
-{
+int TCBP001TA::measure() {
 	perf_begin(_measure_perf);
 
 	_collect_phase = true;
 
 	// start measure
-	//int ret = _interface->set_reg(_curr_ctrl | TCBP001TA_CTRL_MODE_FORCE, TCBP001TA_ADDR_CTRL);
+	// int ret = _interface->set_reg(_curr_ctrl | TCBP001TA_CTRL_MODE_FORCE, TCBP001TA_ADDR_CTRL);
 
-	//if (ret != OK) {
-	//perf_count(_comms_errors);
-	//perf_cancel(_measure_perf);
-	//return -EIO;
+	// if (ret != OK) {
+	// perf_count(_comms_errors);
+	// perf_cancel(_measure_perf);
+	// return -EIO;
 	//}
 	perf_end(_measure_perf);
 
 	return OK;
 }
 
-int
-TCBP001TA::collect()
-{
+int TCBP001TA::collect() {
 	perf_begin(_sample_perf);
 
 	_collect_phase = false;
 	// this should be fairly close to the end of the conversion, so the best approximation of the time
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	//write 0x02 to reg 0x08  Temperature
+	// write 0x02 to reg 0x08  Temperature
 	_interface->set_reg(0x02, TCBP001TA_ADDR_MEAS_CFG);
 
 	tcbp001ta::data_s *data_temp = _interface->get_data(TCBP001TA_ADDR_TMP_DATA);
@@ -219,7 +202,7 @@ TCBP001TA::collect()
 
 	uint32_t p_raw = (data_temp->p_msb << 16 | data_temp->p_lsb << 8) + (data_temp->p_xlsb);
 
-	//write 0x01 to reg 0x08  Pressure
+	// write 0x01 to reg 0x08  Pressure
 	_interface->set_reg(0x01, TCBP001TA_ADDR_MEAS_CFG);
 
 	tcbp001ta::data_s *data_pres = _interface->get_data(TCBP001TA_ADDR_PRS_DATA);
@@ -243,12 +226,10 @@ TCBP001TA::collect()
 	const float T = (_fcal.c0 / 2.0f) + (float)(_fcal.c1 * Traw_sc);
 
 	// Pressure
-	float Praw_sc = (float) p_raw / (float)(prs_osr_scale_coeff);
+	float Praw_sc = (float)p_raw / (float)(prs_osr_scale_coeff);
 
-	const float P = _fcal.c00 +
-			Praw_sc * (_fcal.c10 + Praw_sc * (_fcal.c20 + Praw_sc * _fcal.c30)) +
-			Praw_sc * _fcal.c01 +
-			Praw_sc * Praw_sc * (_fcal.c11 + Praw_sc * _fcal.c21);
+	const float P = _fcal.c00 + Praw_sc * (_fcal.c10 + Praw_sc * (_fcal.c20 + Praw_sc * _fcal.c30)) +
+			Praw_sc * _fcal.c01 + Praw_sc * Praw_sc * (_fcal.c11 + Praw_sc * _fcal.c21);
 
 	// publish
 	sensor_baro_s sensor_baro{};
@@ -265,56 +246,51 @@ TCBP001TA::collect()
 	return OK;
 }
 
-void
-TCBP001TA::print_info()
-{
+void TCBP001TA::print_info() {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_measure_perf);
 	perf_print_counter(_comms_errors);
 }
 
-uint32_t
-TCBP001TA::TCBP001TA_get_scaling_coef(uint8_t osr)
-{
+uint32_t TCBP001TA::TCBP001TA_get_scaling_coef(uint8_t osr) {
 	uint32_t scaling_coeff;
 
 	switch (osr) {
+		case 0:
+			scaling_coeff = 524288;
+			break;
 
-	case 0:
-		scaling_coeff = 524288;
-		break;
+		case 1:
+			scaling_coeff = 1572864;
+			break;
 
-	case 1:
-		scaling_coeff = 1572864;
-		break;
+		case 2:
+			scaling_coeff = 3670016;
+			break;
 
-	case 2:
-		scaling_coeff = 3670016;
-		break;
+		case 3:
+			scaling_coeff = 7864320;
+			break;
 
-	case 3:
-		scaling_coeff = 7864320;
-		break;
+		case 4:
+			scaling_coeff = 253952;
+			break;
 
-	case 4:
-		scaling_coeff = 253952;
-		break;
+		case 5:
+			scaling_coeff = 516096;
+			break;
 
-	case 5:
-		scaling_coeff = 516096;
-		break;
+		case 6:
+			scaling_coeff = 1040384;
+			break;
 
-	case 6:
-		scaling_coeff = 1040384;
-		break;
+		case 7:
+			scaling_coeff = 2088960;
+			break;
 
-	case 7:
-		scaling_coeff = 2088960;
-		break;
-
-	default:
-		scaling_coeff = 524288;
-		break;
+		default:
+			scaling_coeff = 524288;
+			break;
 	}
 
 	return scaling_coeff;

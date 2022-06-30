@@ -35,18 +35,17 @@
  * This is an alternative main entrypoint for fuzz testing.
  */
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <stdint.h>
 
+#include "apps.h"
+#include "common/mavlink.h"
+#include "px4_daemon/client.h"
+#include "px4_daemon/pxh.h"
+#include "px4_daemon/server.h"
 #include "px4_platform_common/init.h"
 #include "px4_platform_common/posix.h"
-#include "apps.h"
-#include "px4_daemon/client.h"
-#include "px4_daemon/server.h"
-#include "px4_daemon/pxh.h"
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include "common/mavlink.h"
 
 #define MODULE_NAME "px4"
 
@@ -54,9 +53,7 @@
 #define PATH_MAX 1024
 #endif
 
-
-namespace px4
-{
+namespace px4 {
 void init_once();
 }
 
@@ -64,9 +61,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, const size_t size);
 void initialize_fake_px4_once();
 void send_mavlink(const uint8_t *data, const size_t size);
 
-
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, const size_t size)
-{
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, const size_t size) {
 	initialize_fake_px4_once();
 
 	send_mavlink(data, size);
@@ -74,8 +69,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, const size_t size)
 	return 0;
 }
 
-void initialize_fake_px4_once()
-{
+void initialize_fake_px4_once() {
 	static bool first_time = true;
 
 	if (!first_time) {
@@ -107,8 +101,7 @@ void initialize_fake_px4_once()
 	pxh.process_line("mavlink boot_complete", true);
 }
 
-void send_mavlink(const uint8_t *data, const size_t size)
-{
+void send_mavlink(const uint8_t *data, const size_t size) {
 	int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
 
 	if (socket_fd < 0) {
@@ -130,13 +123,12 @@ void send_mavlink(const uint8_t *data, const size_t size)
 		return;
 	}
 
-	mavlink_message_t message {};
-	uint8_t buffer[MAVLINK_MAX_PACKET_LEN] {};
+	mavlink_message_t message{};
+	uint8_t buffer[MAVLINK_MAX_PACKET_LEN]{};
 
 	for (size_t i = 0; i < size; i += sizeof(message)) {
-
 		const size_t copy_len = std::min(sizeof(message), size - i);
-		//printf("copy_len: %zu, %zu (%zu)\n", i, copy_len, size);
+		// printf("copy_len: %zu, %zu (%zu)\n", i, copy_len, size);
 		memcpy(reinterpret_cast<void *>(&message), data + i, copy_len);
 
 		const ssize_t buffer_len = mavlink_msg_to_send_buffer(buffer, &message);
@@ -152,7 +144,6 @@ void send_mavlink(const uint8_t *data, const size_t size)
 			PX4_ERR("sendto error: %s", strerror(errno));
 		}
 	}
-
 
 	close(socket_fd);
 }

@@ -43,10 +43,12 @@
 /**
  * Landing target mode
  *
- * Configure the mode of the landing target. Depending on the mode, the landing target observations are used differently to aid position estimation.
+ * Configure the mode of the landing target. Depending on the mode, the landing target observations are used differently
+ * to aid position estimation.
  *
- * Mode Moving:     The landing target may be moving around while in the field of view of the vehicle. Landing target measurements are not used to aid positioning.
- * Mode Stationary: The landing target is stationary. Measured velocity w.r.t. the landing target is used to aid velocity estimation.
+ * Mode Moving:     The landing target may be moving around while in the field of view of the vehicle. Landing target
+ * measurements are not used to aid positioning. Mode Stationary: The landing target is stationary. Measured velocity
+ * w.r.t. the landing target is used to aid velocity estimation.
  *
  * @min 0
  * @max 1
@@ -74,7 +76,8 @@ PARAM_DEFINE_FLOAT(LTEST_ACC_UNC, 10.0f);
  * Landing target measurement uncertainty
  *
  * Variance of the landing target measurement from the driver.
- * Higher values result in less aggressive following of the measurement and a smoother output as well as fewer rejected measurements.
+ * Higher values result in less aggressive following of the measurement and a smoother output as well as fewer rejected
+ * measurements.
  *
  * @unit tan(rad)^2
  * @decimal 4
@@ -132,7 +135,6 @@ PARAM_DEFINE_FLOAT(LTEST_SCALE_X, 1.0f);
  * @group Landing target Estimator
  */
 PARAM_DEFINE_FLOAT(LTEST_SCALE_Y, 1.0f);
-
 
 /**
  * Rotation of IRLOCK sensor relative to airframe

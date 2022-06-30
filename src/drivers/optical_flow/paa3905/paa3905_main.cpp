@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
-#include "PAA3905.hpp"
 #include <px4_platform_common/module.h>
 
-void PAA3905::print_usage()
-{
+#include "PAA3905.hpp"
+
+void PAA3905::print_usage() {
 	PRINT_MODULE_USAGE_NAME("paa3905", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
@@ -43,8 +43,7 @@ void PAA3905::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int paa3905_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int paa3905_main(int argc, char *argv[]) {
 	int ch = 0;
 	using ThisDriver = PAA3905;
 	BusCLIArguments cli{false, true};
@@ -54,9 +53,9 @@ extern "C" __EXPORT int paa3905_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "Y:")) != EOF) {
 		switch (ch) {
-		case 'Y':
-			cli.custom1 = atoi(cli.optArg());
-			break;
+			case 'Y':
+				cli.custom1 = atoi(cli.optArg());
+				break;
 		}
 	}
 

@@ -31,20 +31,20 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
 #include <drivers/drv_hrt.h>
 #include <px4_defines.h>
 #include <systemlib/mavlink_log.h>
-#include <uORB/uORB.h>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/uORB.h>
+
+#include <uORB/Subscription.hpp>
+
+#include "../PreFlightCheck.hpp"
 
 using namespace time_literals;
 
 bool PreFlightCheck::distSensCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-				   const bool is_mandatory, bool &report_fail)
-{
+				   const bool is_mandatory, bool &report_fail) {
 	const bool exists = (orb_exists(ORB_ID(distance_sensor), instance) == PX4_OK);
 	bool valid = false;
 
@@ -62,7 +62,8 @@ bool PreFlightCheck::distSensCheck(orb_advert_t *mavlink_log_pub, vehicle_status
 			report_fail = false;
 
 		} else if (!valid) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from distance sensor %u", instance);
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from distance sensor %u",
+					     instance);
 			report_fail = false;
 		}
 	}

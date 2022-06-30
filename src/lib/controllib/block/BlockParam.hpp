@@ -39,20 +39,19 @@
 
 #pragma once
 
-#include "Block.hpp"
+#include <parameters/param.h>
+#include <px4_platform_common/defines.h>
 
 #include <containers/List.hpp>
-#include <px4_platform_common/defines.h>
-#include <parameters/param.h>
 
-namespace control
-{
+#include "Block.hpp"
+
+namespace control {
 
 class Block;
 
 // A base class for block params that enables traversing linked list.
-class BlockParamBase : public ListNode<BlockParamBase *>
-{
+class BlockParamBase : public ListNode<BlockParamBase *> {
 public:
 	/**
 	 * Instantiate a block param base.
@@ -71,8 +70,7 @@ protected:
 
 // Parameters that are tied to blocks for updating and naming.
 template <class T>
-class __EXPORT BlockParam final : public BlockParamBase
-{
+class __EXPORT BlockParam final : public BlockParamBase {
 public:
 	BlockParam(Block *block, const char *name, bool parent_prefix = true);
 	BlockParam(Block *block, const char *name, bool parent_prefix, T &extern_val);
@@ -90,7 +88,8 @@ public:
 	// Store the parameter value to the parameter storage (@see param_set())
 	bool commit() { return (param_set(_handle, &_val) == PX4_OK); }
 
-	// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
+	// Store the parameter value to the parameter storage, w/o notifying the system (@see
+	// param_set_no_notification())
 	bool commit_no_notification() { return (param_set_no_notification(_handle, &_val) == PX4_OK); }
 
 	void set(T val) { _val = val; }
@@ -110,4 +109,4 @@ typedef BlockParam<bool> BlockParamBool;
 typedef BlockParam<float &> BlockParamExtFloat;
 typedef BlockParam<int32_t &> BlockParamExtInt;
 
-} // namespace control
+}  // namespace control

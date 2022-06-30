@@ -37,11 +37,12 @@
  * Board-specific USB functions.
  */
 
-#include "board_config.h"
+#include <debug.h>
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
 #include <stm32_otg.h>
-#include <debug.h>
+
+#include "board_config.h"
 
 /************************************************************************************
  * Name: stm32_usbinitialize
@@ -51,8 +52,7 @@
  *
  ************************************************************************************/
 
-__EXPORT void stm32_usbinitialize(void)
-{
+__EXPORT void stm32_usbinitialize(void) {
 	/* The OTG FS has an internal soft pull-up */
 
 	/* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
@@ -72,7 +72,4 @@ __EXPORT void stm32_usbinitialize(void)
  *   while the USB is suspended.
  *
  ************************************************************************************/
-__EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
-{
-	uinfo("resume: %d\n", resume);
-}
+__EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume) { uinfo("resume: %d\n", resume); }

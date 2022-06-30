@@ -41,39 +41,32 @@
 
 using namespace matrix;
 
-FwAutotuneAttitudeControl::FwAutotuneAttitudeControl(bool is_vtol) :
-	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_actuator_controls_sub(this, is_vtol ? ORB_ID(actuator_controls_1) : ORB_ID(actuator_controls_0)),
-	_actuator_controls_status_sub(is_vtol ? ORB_ID(actuator_controls_status_1) : ORB_ID(actuator_controls_status_0))
-{
+FwAutotuneAttitudeControl::FwAutotuneAttitudeControl(bool is_vtol)
+	: ModuleParams(nullptr),
+	  WorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	  _actuator_controls_sub(this, is_vtol ? ORB_ID(actuator_controls_1) : ORB_ID(actuator_controls_0)),
+	  _actuator_controls_status_sub(is_vtol ? ORB_ID(actuator_controls_status_1)
+						: ORB_ID(actuator_controls_status_0)) {
 	_autotune_attitude_control_status_pub.advertise();
 	reset();
 }
 
-FwAutotuneAttitudeControl::~FwAutotuneAttitudeControl()
-{
-	perf_free(_cycle_perf);
-}
+FwAutotuneAttitudeControl::~FwAutotuneAttitudeControl() { perf_free(_cycle_perf); }
 
-bool FwAutotuneAttitudeControl::init()
-{
+bool FwAutotuneAttitudeControl::init() {
 	if (!_parameter_update_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
 
-	_signal_filter.setParameters(_publishing_dt_s, .2f); // runs in the slow publishing loop
+	_signal_filter.setParameters(_publishing_dt_s, .2f);  // runs in the slow publishing loop
 
 	return true;
 }
 
-void FwAutotuneAttitudeControl::reset()
-{
-}
+void FwAutotuneAttitudeControl::reset() {}
 
-void FwAutotuneAttitudeControl::Run()
-{
+void FwAutotuneAttitudeControl::Run() {
 	if (should_exit()) {
 		_parameter_update_sub.unregisterCallback();
 		_actuator_controls_sub.unregisterCallback();
@@ -93,8 +86,7 @@ void FwAutotuneAttitudeControl::Run()
 	}
 
 	// new control data needed every iteration
-	if (_state == state::idle
-	    || !_actuator_controls_sub.updated()) {
+	if (_state == state::idle || !_actuator_controls_sub.updated()) {
 		return;
 	}
 
@@ -117,8 +109,7 @@ void FwAutotuneAttitudeControl::Run()
 	actuator_controls_s controls;
 	vehicle_angular_velocity_s angular_velocity;
 
-	if (!_actuator_controls_sub.copy(&controls)
-	    || !_vehicle_angular_velocity_sub.copy(&angular_velocity)) {
+	if (!_actuator_controls_sub.copy(&controls) || !_vehicle_angular_velocity_sub.copy(&angular_velocity)) {
 		return;
 	}
 
@@ -166,17 +157,18 @@ void FwAutotuneAttitudeControl::Run()
 
 		const Vector3f num(coeff(2), coeff(3), coeff(4));
 		const Vector3f den(1.f, coeff(0), coeff(1));
-		_kiff(2) = (1.f + coeff(0) + coeff(1)) / (coeff(2) + coeff(3) + coeff(4)); // inverse of the static gain
-		const Vector3f num_design = num * _kiff(2); // PID algorithm design works better with systems having unit static gain
+		_kiff(2) =
+			(1.f + coeff(0) + coeff(1)) / (coeff(2) + coeff(3) + coeff(4));  // inverse of the static gain
+		const Vector3f num_design =
+			num * _kiff(2);  // PID algorithm design works better with systems having unit static gain
 		Vector3f kid = pid_design::computePidGmvc(num_design, den, _sample_interval_avg, 0.2f, 0.f, 0.4f);
 		_kiff(0) = kid(0);
 		_kiff(1) = kid(1);
-		_attitude_p = 8.f / (M_PI_F * (_kiff(2) + _kiff(0))); // Maximum control power at an attitude error of pi/8
+		_attitude_p =
+			8.f / (M_PI_F * (_kiff(2) + _kiff(0)));  // Maximum control power at an attitude error of pi/8
 
 		const Vector<float, 5> &coeff_var = _sys_id.getVariances();
-		const Vector3f rate_sp = _sys_id.areFiltersInitialized()
-					 ? getIdentificationSignal()
-					 : Vector3f();
+		const Vector3f rate_sp = _sys_id.areFiltersInitialized() ? getIdentificationSignal() : Vector3f();
 
 		autotune_attitude_control_status_s status{};
 		status.timestamp = now;
@@ -189,7 +181,7 @@ void FwAutotuneAttitudeControl::Run()
 		status.y_filt = _sys_id.getFilteredOutputData();
 		status.kc = _kiff(0);
 		status.ki = _kiff(1);
-		status.kd = kid(2); // FW rate controller has no derivative gain
+		status.kd = kid(2);  // FW rate controller has no derivative gain
 		status.kff = _kiff(2);
 		status.att_p = _attitude_p;
 		rate_sp.copyTo(status.rate_sp);
@@ -202,8 +194,7 @@ void FwAutotuneAttitudeControl::Run()
 	perf_end(_cycle_perf);
 }
 
-void FwAutotuneAttitudeControl::checkFilters()
-{
+void FwAutotuneAttitudeControl::checkFilters() {
 	if (_interval_count > 1000) {
 		// calculate sensor update rate
 		_sample_interval_avg = _interval_sum / _interval_count;
@@ -230,8 +221,7 @@ void FwAutotuneAttitudeControl::checkFilters()
 	}
 }
 
-void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
-{
+void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now) {
 	// when identifying an axis, check if the estimate has converged
 	const float converged_thr = 1.f;
 
@@ -239,181 +229,175 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	const Vector<float, 5> sys_id_init(temp);
 
 	switch (_state) {
-	case state::idle:
-		if (_param_fw_at_start.get()) {
-			if (registerActuatorControlsCallback()) {
-				_state = state::init;
+		case state::idle:
+			if (_param_fw_at_start.get()) {
+				if (registerActuatorControlsCallback()) {
+					_state = state::init;
+
+				} else {
+					_state = state::fail;
+				}
+
+				_state_start_time = now;
+			}
+
+			break;
+
+		case state::init:
+			if (_are_filters_initialized) {
+				_state = state::roll;
+				_state_start_time = now;
+				_sys_id.reset(sys_id_init);
+				// first step needs to be shorter to keep the drone centered
+				_steps_counter = 5;
+				_max_steps = 10;
+				_signal_sign = 1;
+				_input_scale = 1.f / _param_fw_rr_p.get();
+				_signal_filter.reset(0.f);
+				_gains_backup_available = false;
+			}
+
+			break;
+
+		case state::roll:
+			if (!(_param_fw_at_axes.get() & Axes::roll)) {
+				// Should not tune this axis, skip
+				_state = state::roll_pause;
+			}
+
+			if ((_sys_id.getFitness() < converged_thr) && ((now - _state_start_time) > 5_s)) {
+				copyGains(0);
+
+				// wait for the drone to stabilize
+				_state = state::roll_pause;
+				_state_start_time = now;
+			}
+
+			break;
+
+		case state::roll_pause:
+			if ((now - _state_start_time) > 2_s) {
+				_state = state::pitch;
+				_state_start_time = now;
+				_sys_id.reset(sys_id_init);
+				_input_scale = 1.f / _param_fw_pr_p.get();
+				_signal_sign = 1;
+				// first step needs to be shorter to keep the drone centered
+				_steps_counter = 5;
+				_max_steps = 10;
+				_signal_filter.reset(0.f);
+			}
+
+			break;
+
+		case state::pitch:
+			if (!(_param_fw_at_axes.get() & Axes::pitch)) {
+				// Should not tune this axis, skip
+				_state = state::pitch_pause;
+			}
+
+			if ((_sys_id.getFitness() < converged_thr) && ((now - _state_start_time) > 5_s)) {
+				copyGains(1);
+				_state = state::pitch_pause;
+				_state_start_time = now;
+			}
+
+			break;
+
+		case state::pitch_pause:
+			if ((now - _state_start_time) > 2_s) {
+				_state = state::yaw;
+				_state_start_time = now;
+				_sys_id.reset(sys_id_init);
+				_input_scale = 1.f / _param_fw_yr_p.get();
+				_signal_sign = 1;
+				// first step needs to be shorter to keep the drone centered
+				_steps_counter = 5;
+				_max_steps = 10;
+
+				// reset yaw signal filter states
+				_signal_filter.reset(0.f);
+			}
+
+			break;
+
+		case state::yaw:
+			if (!(_param_fw_at_axes.get() & Axes::yaw)) {
+				// Should not tune this axis, skip
+				_state = state::yaw_pause;
+			}
+
+			if ((_sys_id.getFitness() < converged_thr) && ((now - _state_start_time) > 5_s)) {
+				copyGains(2);
+				_state = state::yaw_pause;
+				_state_start_time = now;
+			}
+
+			break;
+
+		case state::yaw_pause:
+			_signal_filter.reset(0.f);
+			_state = state::verification;
+
+		// fallthrough
+		case state::verification:
+			_state = areGainsGood() ? state::apply : state::fail;
+
+			_state_start_time = now;
+			break;
+
+		case state::apply:
+			if ((_param_fw_at_apply.get() == 1)) {
+				_state = state::wait_for_disarm;
+
+			} else if (_param_fw_at_apply.get() == 2) {
+				backupAndSaveGainsToParams();
+				_state = state::test;
 
 			} else {
-				_state = state::fail;
+				_state = state::complete;
 			}
 
 			_state_start_time = now;
-		}
 
-		break;
+			break;
 
-	case state::init:
-		if (_are_filters_initialized) {
-			_state = state::roll;
-			_state_start_time = now;
-			_sys_id.reset(sys_id_init);
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
-			_signal_sign = 1;
-			_input_scale = 1.f / _param_fw_rr_p.get();
-			_signal_filter.reset(0.f);
-			_gains_backup_available = false;
-		}
+		case state::wait_for_disarm:
+			if (!_armed) {
+				saveGainsToParams();
+				_state = state::complete;
+				_state_start_time = now;
+			}
 
-		break;
+			break;
 
-	case state::roll:
-		if (!(_param_fw_at_axes.get() & Axes::roll)) {
-			// Should not tune this axis, skip
-			_state = state::roll_pause;
-		}
+		case state::test:
+			if ((now - _state_start_time) > 4_s) {
+				_state = state::complete;
+				_state_start_time = now;
 
-		if ((_sys_id.getFitness() < converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
-			copyGains(0);
+			} else if ((now - _state_start_time) < 4_s && (now - _state_start_time) > 1_s &&
+				   _control_power.longerThan(0.1f)) {
+				_state = state::fail;
+				revertParamGains();
+				_state_start_time = now;
+			}
 
-			// wait for the drone to stabilize
-			_state = state::roll_pause;
-			_state_start_time = now;
-		}
+			break;
 
-		break;
+		case state::complete:
 
-	case state::roll_pause:
-		if ((now - _state_start_time) > 2_s) {
-			_state = state::pitch;
-			_state_start_time = now;
-			_sys_id.reset(sys_id_init);
-			_input_scale = 1.f / _param_fw_pr_p.get();
-			_signal_sign = 1;
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
-			_signal_filter.reset(0.f);
-		}
+		// fallthrough
+		case state::fail:
 
-		break;
+			// Wait a bit in that state to make sure
+			// the other components are aware of the final result
+			if ((now - _state_start_time) > 2_s) {
+				_state = state::idle;
+				stopAutotune();
+			}
 
-	case state::pitch:
-		if (!(_param_fw_at_axes.get() & Axes::pitch)) {
-			// Should not tune this axis, skip
-			_state = state::pitch_pause;
-		}
-
-		if ((_sys_id.getFitness() < converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
-			copyGains(1);
-			_state = state::pitch_pause;
-			_state_start_time = now;
-		}
-
-		break;
-
-	case state::pitch_pause:
-		if ((now - _state_start_time) > 2_s) {
-			_state = state::yaw;
-			_state_start_time = now;
-			_sys_id.reset(sys_id_init);
-			_input_scale = 1.f / _param_fw_yr_p.get();
-			_signal_sign = 1;
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
-
-			// reset yaw signal filter states
-			_signal_filter.reset(0.f);
-		}
-
-		break;
-
-	case state::yaw:
-		if (!(_param_fw_at_axes.get() & Axes::yaw)) {
-			// Should not tune this axis, skip
-			_state = state::yaw_pause;
-		}
-
-		if ((_sys_id.getFitness() < converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
-			copyGains(2);
-			_state = state::yaw_pause;
-			_state_start_time = now;
-		}
-
-		break;
-
-	case state::yaw_pause:
-		_signal_filter.reset(0.f);
-		_state = state::verification;
-
-	// fallthrough
-	case state::verification:
-		_state = areGainsGood()
-			 ? state::apply
-			 : state::fail;
-
-		_state_start_time = now;
-		break;
-
-	case state::apply:
-		if ((_param_fw_at_apply.get() == 1)) {
-			_state = state::wait_for_disarm;
-
-		} else if (_param_fw_at_apply.get() == 2) {
-			backupAndSaveGainsToParams();
-			_state = state::test;
-
-		} else {
-			_state = state::complete;
-		}
-
-		_state_start_time = now;
-
-		break;
-
-	case state::wait_for_disarm:
-		if (!_armed) {
-			saveGainsToParams();
-			_state = state::complete;
-			_state_start_time = now;
-		}
-
-		break;
-
-	case state::test:
-		if ((now - _state_start_time) > 4_s) {
-			_state = state::complete;
-			_state_start_time = now;
-
-		} else if ((now - _state_start_time) < 4_s
-			   && (now - _state_start_time) > 1_s
-			   && _control_power.longerThan(0.1f)) {
-			_state = state::fail;
-			revertParamGains();
-			_state_start_time = now;
-		}
-
-		break;
-
-	case state::complete:
-
-	// fallthrough
-	case state::fail:
-
-		// Wait a bit in that state to make sure
-		// the other components are aware of the final result
-		if ((now - _state_start_time) > 2_s) {
-			_state = state::idle;
-			stopAutotune();
-		}
-
-		break;
+			break;
 	}
 
 	// In case of convergence timeout or pilot intervention,
@@ -421,18 +405,15 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 
-	if (_state != state::wait_for_disarm
-	    && _state != state::idle
-	    && (((now - _state_start_time) > 20_s)
-		|| (fabsf(manual_control_setpoint.x) > 0.2f)
-		|| (fabsf(manual_control_setpoint.y) > 0.2f))) {
+	if (_state != state::wait_for_disarm && _state != state::idle &&
+	    (((now - _state_start_time) > 20_s) || (fabsf(manual_control_setpoint.x) > 0.2f) ||
+	     (fabsf(manual_control_setpoint.y) > 0.2f))) {
 		_state = state::fail;
 		_state_start_time = now;
 	}
 }
 
-bool FwAutotuneAttitudeControl::registerActuatorControlsCallback()
-{
+bool FwAutotuneAttitudeControl::registerActuatorControlsCallback() {
 	if (!_actuator_controls_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -441,8 +422,7 @@ bool FwAutotuneAttitudeControl::registerActuatorControlsCallback()
 	return true;
 }
 
-void FwAutotuneAttitudeControl::copyGains(int index)
-{
+void FwAutotuneAttitudeControl::copyGains(int index) {
 	if (index <= 2) {
 		_rate_k(index) = _kiff(0);
 		_rate_i(index) = _kiff(1);
@@ -451,26 +431,21 @@ void FwAutotuneAttitudeControl::copyGains(int index)
 	}
 }
 
-bool FwAutotuneAttitudeControl::areGainsGood() const
-{
+bool FwAutotuneAttitudeControl::areGainsGood() const {
 	bool are_positive = true;
 	bool are_small_enough = true;
 
 	for (int i = 0; i < 3; i++) {
-		if (((i == 0) && (_param_fw_at_axes.get() & Axes::roll))
-		    || ((i == 1) && (_param_fw_at_axes.get() & Axes::pitch))
-		    || ((i == 2) && (_param_fw_at_axes.get() & Axes::yaw))) {
-			are_positive &= _rate_k(i) > 0.f
-					&& _rate_i(i) > 0.f
-					&& _rate_ff(i) > 0.f;
+		if (((i == 0) && (_param_fw_at_axes.get() & Axes::roll)) ||
+		    ((i == 1) && (_param_fw_at_axes.get() & Axes::pitch)) ||
+		    ((i == 2) && (_param_fw_at_axes.get() & Axes::yaw))) {
+			are_positive &= _rate_k(i) > 0.f && _rate_i(i) > 0.f && _rate_ff(i) > 0.f;
 
-			are_small_enough &= _rate_k(i) < 4.0f
-					    && _rate_i(i) < 10.f
-					    && _rate_ff(i) < 2.f;
+			are_small_enough &= _rate_k(i) < 4.0f && _rate_i(i) < 10.f && _rate_ff(i) < 2.f;
 
 			if (i < 3) {
 				// There is no yaw attitude controller
-				are_positive &=	_att_p(i) > 0.f;
+				are_positive &= _att_p(i) > 0.f;
 				are_small_enough &= _att_p(i) < 12.f;
 			}
 		}
@@ -479,8 +454,7 @@ bool FwAutotuneAttitudeControl::areGainsGood() const
 	return are_positive && are_small_enough;
 }
 
-void FwAutotuneAttitudeControl::backupAndSaveGainsToParams()
-{
+void FwAutotuneAttitudeControl::backupAndSaveGainsToParams() {
 	float backup_gains[11] = {};
 	backup_gains[0] = _param_fw_rr_p.get();
 	backup_gains[1] = _param_fw_rr_i.get();
@@ -511,15 +485,13 @@ void FwAutotuneAttitudeControl::backupAndSaveGainsToParams()
 	_gains_backup_available = true;
 }
 
-void FwAutotuneAttitudeControl::revertParamGains()
-{
+void FwAutotuneAttitudeControl::revertParamGains() {
 	if (_gains_backup_available) {
 		saveGainsToParams();
 	}
 }
 
-void FwAutotuneAttitudeControl::saveGainsToParams()
-{
+void FwAutotuneAttitudeControl::saveGainsToParams() {
 	if (_param_fw_at_axes.get() & Axes::roll) {
 		_param_fw_rr_p.set(_rate_k(0));
 		_param_fw_rr_i.set(_rate_k(0) * _rate_i(0));
@@ -564,15 +536,13 @@ void FwAutotuneAttitudeControl::saveGainsToParams()
 	}
 }
 
-void FwAutotuneAttitudeControl::stopAutotune()
-{
+void FwAutotuneAttitudeControl::stopAutotune() {
 	_param_fw_at_start.set(false);
 	_param_fw_at_start.commit();
 	_actuator_controls_sub.unregisterCallback();
 }
 
-const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
-{
+const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal() {
 	if (_steps_counter > _max_steps) {
 		_signal_sign = (_signal_sign == 1) ? 0 : 1;
 		_steps_counter = 0;
@@ -600,13 +570,12 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 		rate_sp(0) = signal_scaled - _signal_filter.getState();
 	}
 
-	if (_state ==  state::pitch || _state == state::test) {
+	if (_state == state::pitch || _state == state::test) {
 		signal_scaled = signal * M_PI_F / (8.f * _param_fw_p_tc.get());
 		rate_sp(1) = signal_scaled - _signal_filter.getState();
-
 	}
 
-	if (_state ==  state::yaw) {
+	if (_state == state::yaw) {
 		// Do not send a signal that produces more than a full deflection of the rudder
 		signal_scaled = math::min(signal, 1.f / (_param_fw_yr_ff.get() + _param_fw_yr_p.get()));
 		rate_sp(2) = signal_scaled - _signal_filter.getState();
@@ -617,8 +586,7 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 	return rate_sp;
 }
 
-int FwAutotuneAttitudeControl::task_spawn(int argc, char *argv[])
-{
+int FwAutotuneAttitudeControl::task_spawn(int argc, char *argv[]) {
 	bool is_vtol = false;
 
 	if (argc > 1) {
@@ -648,20 +616,15 @@ int FwAutotuneAttitudeControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int FwAutotuneAttitudeControl::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int FwAutotuneAttitudeControl::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int FwAutotuneAttitudeControl::print_status()
-{
+int FwAutotuneAttitudeControl::print_status() {
 	perf_print_counter(_cycle_perf);
 
 	return 0;
 }
 
-int FwAutotuneAttitudeControl::print_usage(const char *reason)
-{
+int FwAutotuneAttitudeControl::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -680,7 +643,6 @@ int FwAutotuneAttitudeControl::print_usage(const char *reason)
 	return 0;
 }
 
-extern "C" __EXPORT int fw_autotune_attitude_control_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int fw_autotune_attitude_control_main(int argc, char *argv[]) {
 	return FwAutotuneAttitudeControl::main(argc, argv);
 }

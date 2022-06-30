@@ -35,24 +35,23 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
-#include "boot_config.h"
-
 #include <stdint.h>
 #include <stdlib.h>
+
+#include "boot_config.h"
 
 /* Force the interface to be defined. Even if the NuttX config is not
  * providing the driver, but the the bootloader is.
  */
 
 #if !defined(CONFIG_ARCH_HAVE_PROGMEM)
-#  define CONFIG_ARCH_HAVE_PROGMEM
+#define CONFIG_ARCH_HAVE_PROGMEM
 #endif
 
 #include <nuttx/progmem.h>
 
-#include "flash.h"
 #include "blsched.h"
+#include "flash.h"
 
 /****************************************************************************
  * Name: bl_flash_erase
@@ -72,15 +71,13 @@
  *
  ****************************************************************************/
 
-flash_error_t bl_flash_erase(size_t address, size_t nbytes)
-{
+flash_error_t bl_flash_erase(size_t address, size_t nbytes) {
 	/*
 	 * FIXME (?): this may take a long time, and while flash is being erased it
 	 * might not be possible to execute interrupts, send NodeStatus messages etc.
 	 * We can pass a per page callback or yeild */
 
 	flash_error_t status = FLASH_ERROR_AFU;
-
 
 	ssize_t bllastpage = up_progmem_getpage(address - 1);
 
@@ -98,7 +95,6 @@ flash_error_t bl_flash_erase(size_t address, size_t nbytes)
 	status = FLASH_ERROR_SUICIDE;
 
 	if (bllastpage >= 0 && appstartpage > bllastpage) {
-
 		/* Erase the whole application flash region */
 
 		status = FLASH_OK;
@@ -134,15 +130,12 @@ flash_error_t bl_flash_erase(size_t address, size_t nbytes)
  *
  ****************************************************************************/
 
-flash_error_t bl_flash_write(uint32_t flash_address, uint8_t *data, ssize_t count)
-{
-
+flash_error_t bl_flash_write(uint32_t flash_address, uint8_t *data, ssize_t count) {
 	flash_error_t status = FLASH_ERROR;
 
 	if (flash_address >= APPLICATION_LOAD_ADDRESS &&
-	    (flash_address + count) <= (uint32_t) APPLICATION_LAST_8BIT_ADDRRESS) {
-		if (count  ==
-		    up_progmem_write((size_t) flash_address, (void *)data, count)) {
+	    (flash_address + count) <= (uint32_t)APPLICATION_LAST_8BIT_ADDRRESS) {
+		if (count == up_progmem_write((size_t)flash_address, (void *)data, count)) {
 			status = FLASH_OK;
 		}
 	}

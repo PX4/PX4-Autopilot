@@ -37,18 +37,17 @@
  * Board-specific I2C functions.
  */
 
-#include "board_config.h"
-#include <px4_platform_common/i2c.h>
 #include <px4_arch/i2c_hw_description.h>
+#include <px4_platform_common/i2c.h>
+
+#include "board_config.h"
 
 constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
 	initI2CBusExternal(1),
 	initI2CBusInternal(2),
 };
 
-
-bool px4_i2c_bus_external(const px4_i2c_bus_t &bus)
-{
+bool px4_i2c_bus_external(const px4_i2c_bus_t &bus) {
 	if (HW_VER_FMUV3 == board_get_hw_version()) {
 		/* All FMUV3 2.1 i2c buses are external */
 		return true;

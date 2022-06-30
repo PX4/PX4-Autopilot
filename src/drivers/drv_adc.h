@@ -53,13 +53,11 @@
  */
 #define PX4_MAX_ADC_CHANNELS arraySize(adc_report_s::channel_id)
 typedef struct __attribute__((packed)) px4_adc_msg_t {
-	uint8_t      am_channel;               /* The 8-bit ADC Channel */
-	int32_t      am_data;                  /* ADC convert result (4 bytes) */
+	uint8_t am_channel; /* The 8-bit ADC Channel */
+	int32_t am_data;    /* ADC convert result (4 bytes) */
 } px4_adc_msg_t;
 
-
-#define BUILTIN_ADC_DEVID	0xffffffff	// TODO: integrate into existing ID management
-
+#define BUILTIN_ADC_DEVID 0xffffffff  // TODO: integrate into existing ID management
 
 __BEGIN_DECLS
 

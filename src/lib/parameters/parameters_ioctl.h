@@ -40,45 +40,45 @@
 #pragma once
 
 #define PARAM_IMPLEMENTATION
-#include "param.h"
 #include <px4_platform/board_ctrl.h>
+
+#include "param.h"
 
 #define _PARAMIOC(_n) (_PX4_IOC(_PARAMIOCBASE, _n))
 
-#define PARAMIOCNOTIFY	_PARAMIOC(1)
+#define PARAMIOCNOTIFY _PARAMIOC(1)
 
-#define PARAMIOCFIND	_PARAMIOC(2)
+#define PARAMIOCFIND _PARAMIOC(2)
 typedef struct paramiocfind {
 	const char *name;
 	const bool notification;
 	param_t ret;
 } paramiocfind_t;
 
-
-#define PARAMIOCCOUNTUSED	_PARAMIOC(3)
+#define PARAMIOCCOUNTUSED _PARAMIOC(3)
 typedef struct paramioccountused {
 	unsigned ret;
 } paramioccountused_t;
 
-#define PARAMIOCFORUSEDINDEX	_PARAMIOC(4)
+#define PARAMIOCFORUSEDINDEX _PARAMIOC(4)
 typedef struct paramiocforusedindex {
 	const unsigned index;
 	param_t ret;
 } paramiocforusedindex_t;
 
-#define PARAMIOCGETUSEDINDEX	_PARAMIOC(5)
+#define PARAMIOCGETUSEDINDEX _PARAMIOC(5)
 typedef struct paramiocgetusedindex {
 	const param_t param;
 	unsigned ret;
 } paramiocgetusedindex_t;
 
-#define PARAMIOCUNSAVED	_PARAMIOC(6)
+#define PARAMIOCUNSAVED _PARAMIOC(6)
 typedef struct paramiocunsaved {
 	const param_t param;
 	bool ret;
 } paramiocunsaved_t;
 
-#define PARAMIOCGET	_PARAMIOC(7)
+#define PARAMIOCGET _PARAMIOC(7)
 typedef struct paramiocget {
 	const param_t param;
 	const bool deflt;
@@ -86,12 +86,12 @@ typedef struct paramiocget {
 	int ret;
 } paramiocget_t;
 
-#define PARAMIOCAUTOSAVE	_PARAMIOC(8)
+#define PARAMIOCAUTOSAVE _PARAMIOC(8)
 typedef struct paramiocautosave {
 	const bool enable;
 } paramiocautosave_t;
 
-#define PARAMIOCSET	_PARAMIOC(9)
+#define PARAMIOCSET _PARAMIOC(9)
 typedef struct paramiocset {
 	const param_t param;
 	const bool notification;
@@ -99,37 +99,33 @@ typedef struct paramiocset {
 	int ret;
 } paramiocset_t;
 
-#define PARAMIOCUSED	_PARAMIOC(10)
+#define PARAMIOCUSED _PARAMIOC(10)
 typedef struct paramiocused {
 	const param_t param;
 	bool ret;
 } paramiocused_t;
 
-#define PARAMIOCSETUSED	_PARAMIOC(11)
+#define PARAMIOCSETUSED _PARAMIOC(11)
 typedef struct paramiocsetused {
 	const param_t param;
 } paramiocsetused_t;
 
-#define PARAMIOCSETDEFAULT	_PARAMIOC(12)
+#define PARAMIOCSETDEFAULT _PARAMIOC(12)
 typedef struct paramiocsetdefault {
 	const param_t param;
 	const void *val;
 	int ret;
 } paramiocsetdefault_t;
 
-#define PARAMIOCRESET	_PARAMIOC(13)
+#define PARAMIOCRESET _PARAMIOC(13)
 typedef struct paramiocreset {
 	const param_t param;
 	const bool notification;
 	int ret;
 } paramiocreset_t;
 
-#define PARAMIOCRESETGROUP	_PARAMIOC(14)
-typedef enum {
-	PARAM_RESET_ALL,
-	PARAM_RESET_EXCLUDES,
-	PARAM_RESET_SPECIFIC
-} param_reset_type_t;
+#define PARAMIOCRESETGROUP _PARAMIOC(14)
+typedef enum { PARAM_RESET_ALL, PARAM_RESET_EXCLUDES, PARAM_RESET_SPECIFIC } param_reset_type_t;
 
 typedef struct paramiocresetgroup {
 	param_reset_type_t type;
@@ -137,24 +133,23 @@ typedef struct paramiocresetgroup {
 	const int num_in_group;
 } paramiocresetgroup_t;
 
-#define PARAMIOCSAVEDEFAULT	_PARAMIOC(15)
+#define PARAMIOCSAVEDEFAULT _PARAMIOC(15)
 typedef struct paramiocsavedefault {
 	int ret;
 } paramiocsavedefault_t;
 
-#define PARAMIOCLOADDEFAULT	_PARAMIOC(16)
+#define PARAMIOCLOADDEFAULT _PARAMIOC(16)
 typedef struct paramiocloaddefault {
 	int ret;
 } paramiocloaddefault_t;
 
-
-#define PARAMIOCEXPORT	_PARAMIOC(17)
+#define PARAMIOCEXPORT _PARAMIOC(17)
 typedef struct paramiocexport {
 	const char *filename;
 	int ret;
 } paramiocexport_t;
 
-#define PARAMIOCHASH	_PARAMIOC(18)
+#define PARAMIOCHASH _PARAMIOC(18)
 typedef struct paramiochash {
 	uint32_t ret;
 } paramiochash_t;

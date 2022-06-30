@@ -39,21 +39,20 @@
 
 #include "messages.h"
 
+#include <drivers/drv_hrt.h>
+#include <lib/geo/geo.h>
 #include <math.h>
+#include <px4_platform_common/defines.h>
 #include <stdio.h>
 #include <string.h>
-#include <lib/geo/geo.h>
-#include <unistd.h>
-#include <px4_platform_common/defines.h>
+#include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/esc_status.h>
-#include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_gps_position.h>
-
-#include <drivers/drv_hrt.h>
+#include <unistd.h>
 
 /* The board is very roughly 5 deg warmer than the surrounding air */
 #define BOARD_TEMP_OFFSET_DEG 5
@@ -71,9 +70,7 @@ static bool _home_position_set = false;
 static double _home_lat = 0.0d;
 static double _home_lon = 0.0d;
 
-void
-init_sub_messages(void)
-{
+void init_sub_messages(void) {
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_home_sub = orb_subscribe(ORB_ID(home_position));
@@ -82,14 +79,9 @@ init_sub_messages(void)
 	_esc_sub = orb_subscribe(ORB_ID(esc_status));
 }
 
-void
-init_pub_messages(void)
-{
-}
+void init_pub_messages(void) {}
 
-void
-build_gam_request(uint8_t *buffer, size_t *size)
-{
+void build_gam_request(uint8_t *buffer, size_t *size) {
 	struct gam_module_poll_msg msg;
 	*size = sizeof(msg);
 	memset(&msg, 0, *size);
@@ -100,9 +92,7 @@ build_gam_request(uint8_t *buffer, size_t *size)
 	memcpy(buffer, &msg, *size);
 }
 
-void
-publish_gam_message(const uint8_t *buffer)
-{
+void publish_gam_message(const uint8_t *buffer) {
 	struct gam_module_msg msg;
 	size_t size = sizeof(msg);
 	memset(&msg, 0, size);
@@ -130,9 +120,7 @@ publish_gam_message(const uint8_t *buffer)
 	}
 }
 
-void
-build_eam_response(uint8_t *buffer, size_t *size)
-{
+void build_eam_response(uint8_t *buffer, size_t *size) {
 	/* get a local copy of the current sensor values */
 	vehicle_air_data_s airdata = {};
 	orb_copy(ORB_ID(vehicle_air_data), _airdata_sub, &airdata);
@@ -172,9 +160,7 @@ build_eam_response(uint8_t *buffer, size_t *size)
 	memcpy(buffer, &msg, *size);
 }
 
-void
-build_gam_response(uint8_t *buffer, size_t *size)
-{
+void build_gam_response(uint8_t *buffer, size_t *size) {
 	/* get a local copy of the ESC Status values */
 	struct esc_status_s esc;
 	memset(&esc, 0, sizeof(esc));
@@ -188,8 +174,8 @@ build_gam_response(uint8_t *buffer, size_t *size)
 	msg.gam_sensor_id = GAM_SENSOR_ID;
 	msg.sensor_text_id = GAM_SENSOR_TEXT_ID;
 
-	const int16_t esc_temp_offset_degC = (esc.esc[0].esc_temperature + 20) > UINT8_MAX ? UINT8_MAX :
-					     (esc.esc[0].esc_temperature + 20);
+	const int16_t esc_temp_offset_degC =
+		(esc.esc[0].esc_temperature + 20) > UINT8_MAX ? UINT8_MAX : (esc.esc[0].esc_temperature + 20);
 	msg.temperature1 = (esc_temp_offset_degC < 0) ? 0 : esc_temp_offset_degC;
 	msg.temperature2 = 20;  // 0 deg. C.
 
@@ -209,9 +195,7 @@ build_gam_response(uint8_t *buffer, size_t *size)
 	memcpy(buffer, &msg, *size);
 }
 
-void
-build_gps_response(uint8_t *buffer, size_t *size)
-{
+void build_gps_response(uint8_t *buffer, size_t *size) {
 	/* get a local copy of the battery data */
 	struct vehicle_gps_position_s gps;
 	memset(&gps, 0, sizeof(gps));
@@ -314,7 +298,8 @@ build_gps_response(uint8_t *buffer, size_t *size)
 			msg.distance_H = (uint8_t)(dist >> 8) & 0xff;
 
 			/* Direction back to home */
-			uint16_t bearing = (uint16_t)(get_bearing_to_next_waypoint(_home_lat, _home_lon, lat, lon) * M_RAD_TO_DEG_F);
+			uint16_t bearing = (uint16_t)(get_bearing_to_next_waypoint(_home_lat, _home_lon, lat, lon) *
+						      M_RAD_TO_DEG_F);
 			msg.home_direction = (uint8_t)bearing >> 1;
 		}
 	}
@@ -323,9 +308,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 	memcpy(buffer, &msg, *size);
 }
 
-void
-convert_to_degrees_minutes_seconds(double val, int *deg, int *min, int *sec)
-{
+void convert_to_degrees_minutes_seconds(double val, int *deg, int *min, int *sec) {
 	*deg = (int)val;
 
 	double delta = val - *deg;

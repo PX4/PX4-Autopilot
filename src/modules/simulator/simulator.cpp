@@ -39,20 +39,19 @@
  * such as jMAVSim or Gazebo.
  */
 
+#include "simulator.h"
+
+#include <drivers/drv_board_led.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
 #include <systemlib/err.h>
-#include <drivers/drv_board_led.h>
-
-#include "simulator.h"
 
 static px4_task_t g_sim_task = -1;
 
 Simulator *Simulator::_instance = nullptr;
 
-void Simulator::parameters_update(bool force)
-{
+void Simulator::parameters_update(bool force) {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || force) {
 		// clear update
@@ -64,12 +63,10 @@ void Simulator::parameters_update(bool force)
 	}
 }
 
-int Simulator::start(int argc, char *argv[])
-{
+int Simulator::start(int argc, char *argv[]) {
 	_instance = new Simulator();
 
 	if (_instance) {
-
 		if (argc == 5 && strcmp(argv[3], "-u") == 0) {
 			_instance->set_ip(InternetProtocol::UDP);
 			_instance->set_port(atoi(argv[4]));
@@ -106,8 +103,7 @@ int Simulator::start(int argc, char *argv[])
 	}
 }
 
-static void usage()
-{
+static void usage() {
 	PX4_INFO("Usage: simulator {start -[spt] [-u udp_port / -c tcp_port] |stop|status}");
 	PX4_INFO("Start simulator:     simulator start");
 	PX4_INFO("Connect using UDP: simulator start -u udp_port");
@@ -120,21 +116,14 @@ __BEGIN_DECLS
 extern int simulator_main(int argc, char *argv[]);
 __END_DECLS
 
-
-int simulator_main(int argc, char *argv[])
-{
+int simulator_main(int argc, char *argv[]) {
 	if (argc > 1 && strcmp(argv[1], "start") == 0) {
-
 		if (g_sim_task >= 0) {
 			PX4_WARN("Simulator already started");
 			return 0;
 		}
 
-		g_sim_task = px4_task_spawn_cmd("simulator",
-						SCHED_DEFAULT,
-						SCHED_PRIORITY_MAX,
-						1500,
-						Simulator::start,
+		g_sim_task = px4_task_spawn_cmd("simulator", SCHED_DEFAULT, SCHED_PRIORITY_MAX, 1500, Simulator::start,
 						argv);
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)

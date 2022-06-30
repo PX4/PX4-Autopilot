@@ -34,36 +34,33 @@
 #include "VL53L0X.hpp"
 
 /* VL53L0X Registers addresses */
-#define VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HW_REG            0x89
-#define MSRC_CONFIG_CONTROL_REG                         0x60
+#define VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HW_REG 0x89
+#define MSRC_CONFIG_CONTROL_REG 0x60
 #define FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT_REG 0x44
-#define SYSTEM_SEQUENCE_CONFIG_REG                      0x01
-#define DYNAMIC_SPAD_REF_EN_START_OFFSET_REG            0x4F
-#define DYNAMIC_SPAD_NUM_REQUESTED_REF_SPAD_REG         0x4E
-#define GLOBAL_CONFIG_REF_EN_START_SELECT_REG           0xB6
-#define GLOBAL_CONFIG_SPAD_ENABLES_REF_0_REG            0xB0
-#define SYSTEM_INTERRUPT_CONFIG_GPIO_REG                0x0A
-#define SYSTEM_SEQUENCE_CONFIG_REG                      0x01
-#define SYSRANGE_START_REG                              0x00
-#define RESULT_INTERRUPT_STATUS_REG                     0x13
-#define SYSTEM_INTERRUPT_CLEAR_REG                      0x0B
-#define GLOBAL_CONFIG_SPAD_ENABLES_REF_0_REG            0xB0
-#define GPIO_HV_MUX_ACTIVE_HIGH_REG                     0x84
-#define SYSTEM_INTERRUPT_CLEAR_REG                      0x0B
-#define RESULT_RANGE_STATUS_REG                         0x14
-#define VL53L0X_RA_IDENTIFICATION_MODEL_ID              0xC0
-#define VL53L0X_IDENTIFICATION_MODEL_ID                 0xEEAA
+#define SYSTEM_SEQUENCE_CONFIG_REG 0x01
+#define DYNAMIC_SPAD_REF_EN_START_OFFSET_REG 0x4F
+#define DYNAMIC_SPAD_NUM_REQUESTED_REF_SPAD_REG 0x4E
+#define GLOBAL_CONFIG_REF_EN_START_SELECT_REG 0xB6
+#define GLOBAL_CONFIG_SPAD_ENABLES_REF_0_REG 0xB0
+#define SYSTEM_INTERRUPT_CONFIG_GPIO_REG 0x0A
+#define SYSTEM_SEQUENCE_CONFIG_REG 0x01
+#define SYSRANGE_START_REG 0x00
+#define RESULT_INTERRUPT_STATUS_REG 0x13
+#define SYSTEM_INTERRUPT_CLEAR_REG 0x0B
+#define GLOBAL_CONFIG_SPAD_ENABLES_REF_0_REG 0xB0
+#define GPIO_HV_MUX_ACTIVE_HIGH_REG 0x84
+#define SYSTEM_INTERRUPT_CLEAR_REG 0x0B
+#define RESULT_RANGE_STATUS_REG 0x14
+#define VL53L0X_RA_IDENTIFICATION_MODEL_ID 0xC0
+#define VL53L0X_IDENTIFICATION_MODEL_ID 0xEEAA
 
-#define VL53L0X_US                                      1000    // 1ms
-#define VL53L0X_SAMPLE_RATE                             50000   // 50ms
+#define VL53L0X_US 1000            // 1ms
+#define VL53L0X_SAMPLE_RATE 50000  // 50ms
 
-#define VL53L0X_BUS_CLOCK                               400000 // 400kHz bus clock speed
+#define VL53L0X_BUS_CLOCK 400000  // 400kHz bus clock speed
 
-VL53L0X::VL53L0X(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_px4_rangefinder(get_device_id(), config.rotation)
-{
+VL53L0X::VL53L0X(const I2CSPIDriverConfig &config)
+	: I2C(config), I2CSPIDriver(config), _px4_rangefinder(get_device_id(), config.rotation) {
 	// VL53L0X typical range 0-2 meters with 25 degree field of view
 	_px4_rangefinder.set_min_distance(0.f);
 	_px4_rangefinder.set_max_distance(2.f);
@@ -75,15 +72,13 @@ VL53L0X::VL53L0X(const I2CSPIDriverConfig &config) :
 	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_VL53L0X);
 }
 
-VL53L0X::~VL53L0X()
-{
+VL53L0X::~VL53L0X() {
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
-int VL53L0X::init()
-{
+int VL53L0X::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -94,10 +89,9 @@ int VL53L0X::init()
 	return PX4_OK;
 }
 
-int VL53L0X::collect()
-{
+int VL53L0X::collect() {
 	// Read from the sensor.
-	uint8_t val[2] {};
+	uint8_t val[2]{};
 	perf_begin(_sample_perf);
 
 	_collect_phase = false;
@@ -120,8 +114,7 @@ int VL53L0X::collect()
 	return PX4_OK;
 }
 
-int VL53L0X::measure()
-{
+int VL53L0X::measure() {
 	uint8_t wait_for_measurement = 0;
 	uint8_t system_start = 0;
 
@@ -129,7 +122,6 @@ int VL53L0X::measure()
 	const uint8_t cmd = RESULT_RANGE_STATUS_REG + 10;
 
 	if (_new_measurement) {
-
 		_new_measurement = false;
 
 		writeRegister(0x80, 0x01);
@@ -154,7 +146,6 @@ int VL53L0X::measure()
 	}
 
 	if (!_collect_phase && !_measurement_started) {
-
 		readRegister(SYSRANGE_START_REG, system_start);
 
 		if ((system_start & 0x01) == 1) {
@@ -169,7 +160,7 @@ int VL53L0X::measure()
 	readRegister(RESULT_INTERRUPT_STATUS_REG, wait_for_measurement);
 
 	if ((wait_for_measurement & 0x07) == 0) {
-		ScheduleDelayed(VL53L0X_US); // reschedule every 1 ms until measurement is ready
+		ScheduleDelayed(VL53L0X_US);  // reschedule every 1 ms until measurement is ready
 		return PX4_OK;
 	}
 
@@ -186,15 +177,13 @@ int VL53L0X::measure()
 	return PX4_OK;
 }
 
-void VL53L0X::print_status()
-{
+void VL53L0X::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sample_perf);
 }
 
-int VL53L0X::probe()
-{
+int VL53L0X::probe() {
 	if (sensorInit() == PX4_OK) {
 		return PX4_OK;
 	}
@@ -203,8 +192,7 @@ int VL53L0X::probe()
 	return -EIO;
 }
 
-int VL53L0X::readRegister(const uint8_t reg_address, uint8_t &value)
-{
+int VL53L0X::readRegister(const uint8_t reg_address, uint8_t &value) {
 	// Write register address to the sensor.
 	int ret = transfer(&reg_address, sizeof(reg_address), nullptr, 0);
 
@@ -224,8 +212,7 @@ int VL53L0X::readRegister(const uint8_t reg_address, uint8_t &value)
 	return PX4_OK;
 }
 
-int VL53L0X::readRegisterMulti(const uint8_t reg_address, uint8_t *value, const uint8_t length)
-{
+int VL53L0X::readRegisterMulti(const uint8_t reg_address, uint8_t *value, const uint8_t length) {
 	// Write register address to the sensor.
 	int ret = transfer(&reg_address, 1, nullptr, 0);
 
@@ -245,12 +232,10 @@ int VL53L0X::readRegisterMulti(const uint8_t reg_address, uint8_t *value, const 
 	return PX4_OK;
 }
 
-void VL53L0X::RunImpl()
-{
+void VL53L0X::RunImpl() {
 	measure();
 
 	if (_collect_phase) {
-
 		_collect_phase = false;
 		_new_measurement = true;
 
@@ -260,8 +245,7 @@ void VL53L0X::RunImpl()
 	}
 }
 
-int VL53L0X::spadCalculations()
-{
+int VL53L0X::spadCalculations() {
 	uint8_t val = 0;
 	uint8_t spad_count = 0;
 	uint8_t ref_spad_map[6] = {};
@@ -298,7 +282,7 @@ int VL53L0X::spadCalculations()
 	writeRegister(0xFF, 0x06);
 
 	readRegister(0x83, val);
-	writeRegister(0x83, val  & ~0x04);
+	writeRegister(0x83, val & ~0x04);
 
 	writeRegister(0xFF, 0x01);
 	writeRegister(0x00, 0x01);
@@ -329,10 +313,10 @@ int VL53L0X::spadCalculations()
 
 	sensorTuning();
 
-	writeRegister(SYSTEM_INTERRUPT_CONFIG_GPIO_REG, 4);		// 4: GPIO interrupt on new data.
+	writeRegister(SYSTEM_INTERRUPT_CONFIG_GPIO_REG, 4);  // 4: GPIO interrupt on new data.
 	readRegister(GPIO_HV_MUX_ACTIVE_HIGH_REG, val);
 
-	writeRegister(GPIO_HV_MUX_ACTIVE_HIGH_REG, val & ~0x10);	// Active low.
+	writeRegister(GPIO_HV_MUX_ACTIVE_HIGH_REG, val & ~0x10);  // Active low.
 	writeRegister(SYSTEM_INTERRUPT_CLEAR_REG, 0x01);
 	writeRegister(SYSTEM_SEQUENCE_CONFIG_REG, 0xE8);
 	writeRegister(SYSTEM_SEQUENCE_CONFIG_REG, 0x01);
@@ -343,13 +327,12 @@ int VL53L0X::spadCalculations()
 
 	singleRefCalibration(0x00);
 
-	writeRegister(SYSTEM_SEQUENCE_CONFIG_REG, 0xE8);		// Restore config.
+	writeRegister(SYSTEM_SEQUENCE_CONFIG_REG, 0xE8);  // Restore config.
 
 	return OK;
 }
 
-int VL53L0X::sensorInit()
-{
+int VL53L0X::sensorInit() {
 	uint8_t val = 0;
 
 	// I2C at 2.8V on sensor side of level shifter
@@ -397,8 +380,7 @@ int VL53L0X::sensorInit()
 	return PX4_OK;
 }
 
-int VL53L0X::sensorTuning()
-{
+int VL53L0X::sensorTuning() {
 	// Magic register settings taken from the ST Micro API.
 	writeRegister(0xFF, 0x01);
 	writeRegister(0x00, 0x00);
@@ -484,11 +466,10 @@ int VL53L0X::sensorTuning()
 	return PX4_OK;
 }
 
-int VL53L0X::singleRefCalibration(const uint8_t byte)
-{
+int VL53L0X::singleRefCalibration(const uint8_t byte) {
 	uint8_t val = 0;
 
-	writeRegister(SYSRANGE_START_REG, byte | 0x01);         // VL53L0X_REG_SYSRANGE_MODE_START_STOP
+	writeRegister(SYSRANGE_START_REG, byte | 0x01);  // VL53L0X_REG_SYSRANGE_MODE_START_STOP
 	readRegister(RESULT_INTERRUPT_STATUS_REG, val);
 
 	while ((val & 0x07) == 0) {
@@ -501,9 +482,8 @@ int VL53L0X::singleRefCalibration(const uint8_t byte)
 	return PX4_OK;
 }
 
-int VL53L0X::writeRegister(const uint8_t reg_address, const uint8_t value)
-{
-	uint8_t cmd[2] {reg_address, value};
+int VL53L0X::writeRegister(const uint8_t reg_address, const uint8_t value) {
+	uint8_t cmd[2]{reg_address, value};
 	int ret = transfer(&cmd[0], 2, nullptr, 0);
 
 	if (ret != PX4_OK) {
@@ -514,15 +494,14 @@ int VL53L0X::writeRegister(const uint8_t reg_address, const uint8_t value)
 	return PX4_OK;
 }
 
-int VL53L0X::writeRegisterMulti(const uint8_t reg_address, const uint8_t *value, const uint8_t length)
-{
+int VL53L0X::writeRegisterMulti(const uint8_t reg_address, const uint8_t *value, const uint8_t length) {
 	if (length > 6 || length < 1) {
 		DEVICE_LOG("VL53L0X::writeRegisterMulti length out of range");
 		return PX4_ERROR;
 	}
 
 	/* be careful: for uint16_t to send first higher byte */
-	uint8_t cmd[7] {};
+	uint8_t cmd[7]{};
 	cmd[0] = reg_address;
 
 	memcpy(&cmd[1], &value[0], length);
@@ -537,8 +516,7 @@ int VL53L0X::writeRegisterMulti(const uint8_t reg_address, const uint8_t *value,
 	return PX4_OK;
 }
 
-void VL53L0X::print_usage()
-{
+void VL53L0X::print_usage() {
 	PRINT_MODULE_USAGE_NAME("vl53l0x", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -548,8 +526,7 @@ void VL53L0X::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int vl53l0x_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int vl53l0x_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = VL53L0X;
 	BusCLIArguments cli{true, false};
@@ -559,9 +536,9 @@ extern "C" __EXPORT int vl53l0x_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

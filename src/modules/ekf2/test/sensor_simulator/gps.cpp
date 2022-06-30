@@ -1,20 +1,13 @@
 #include "gps.h"
 
-namespace sensor_simulator
-{
-namespace sensor
-{
+namespace sensor_simulator {
+namespace sensor {
 
-Gps::Gps(std::shared_ptr<Ekf> ekf): Sensor(ekf)
-{
-}
+Gps::Gps(std::shared_ptr<Ekf> ekf) : Sensor(ekf) {}
 
-Gps::~Gps()
-{
-}
+Gps::~Gps() {}
 
-void Gps::send(const uint64_t time)
-{
+void Gps::send(const uint64_t time) {
 	const float dt = static_cast<float>(time - _gps_data.time_usec) * 1e-6f;
 
 	_gps_data.time_usec = time;
@@ -30,73 +23,36 @@ void Gps::send(const uint64_t time)
 	_ekf->setGpsData(_gps_data);
 }
 
-void Gps::setData(const gpsMessage &gps)
-{
-	_gps_data = gps;
-}
+void Gps::setData(const gpsMessage &gps) { _gps_data = gps; }
 
-void Gps::setAltitude(const int32_t alt)
-{
-	_gps_data.alt = alt;
-}
+void Gps::setAltitude(const int32_t alt) { _gps_data.alt = alt; }
 
-void Gps::setLatitude(const int32_t lat)
-{
-	_gps_data.lat = lat;
-}
+void Gps::setLatitude(const int32_t lat) { _gps_data.lat = lat; }
 
-void Gps::setLongitude(const int32_t lon)
-{
-	_gps_data.lon = lon;
-}
+void Gps::setLongitude(const int32_t lon) { _gps_data.lon = lon; }
 
-void Gps::setVelocity(const Vector3f &vel)
-{
-	_gps_data.vel_ned = vel;
-}
+void Gps::setVelocity(const Vector3f &vel) { _gps_data.vel_ned = vel; }
 
-void Gps::setYaw(const float yaw)
-{
-	_gps_data.yaw = yaw;
-}
+void Gps::setYaw(const float yaw) { _gps_data.yaw = yaw; }
 
-void Gps::setYawOffset(const float yaw_offset)
-{
-	_gps_data.yaw_offset = yaw_offset;
-}
+void Gps::setYawOffset(const float yaw_offset) { _gps_data.yaw_offset = yaw_offset; }
 
-void Gps::setFixType(const int fix_type)
-{
-	_gps_data.fix_type = fix_type;
-}
+void Gps::setFixType(const int fix_type) { _gps_data.fix_type = fix_type; }
 
-void Gps::setNumberOfSatellites(const int num_satellites)
-{
-	_gps_data.nsats = num_satellites;
-}
+void Gps::setNumberOfSatellites(const int num_satellites) { _gps_data.nsats = num_satellites; }
 
-void Gps::setPdop(const float pdop)
-{
-	_gps_data.pdop = pdop;
-}
+void Gps::setPdop(const float pdop) { _gps_data.pdop = pdop; }
 
-void Gps::setPositionRateNED(const Vector3f &rate)
-{
-	_gps_pos_rate = rate;
-}
+void Gps::setPositionRateNED(const Vector3f &rate) { _gps_pos_rate = rate; }
 
-void Gps::stepHeightByMeters(const float hgt_change)
-{
-	_gps_data.alt += hgt_change * 1e3f;
-}
+void Gps::stepHeightByMeters(const float hgt_change) { _gps_data.alt += hgt_change * 1e3f; }
 
-void Gps::stepHorizontalPositionByMeters(const Vector2f hpos_change)
-{
-	float hposN_curr {0.f};
-	float hposE_curr {0.f};
+void Gps::stepHorizontalPositionByMeters(const Vector2f hpos_change) {
+	float hposN_curr{0.f};
+	float hposE_curr{0.f};
 
-	double lat_new {0.0};
-	double lon_new {0.0};
+	double lat_new{0.0};
+	double lon_new{0.0};
 
 	_ekf->global_origin().project(_gps_data.lat * 1e-7, _gps_data.lon * 1e-7, hposN_curr, hposE_curr);
 
@@ -108,8 +64,7 @@ void Gps::stepHorizontalPositionByMeters(const Vector2f hpos_change)
 	_gps_data.lat = static_cast<int32_t>(lat_new * 1e7);
 }
 
-gpsMessage Gps::getDefaultGpsData()
-{
+gpsMessage Gps::getDefaultGpsData() {
 	gpsMessage gps_data{};
 	gps_data.time_usec = 0;
 	gps_data.lat = 473566094;
@@ -130,5 +85,5 @@ gpsMessage Gps::getDefaultGpsData()
 	return gps_data;
 }
 
-} // namespace sensor
-} // namespace sensor_simulator
+}  // namespace sensor
+}  // namespace sensor_simulator

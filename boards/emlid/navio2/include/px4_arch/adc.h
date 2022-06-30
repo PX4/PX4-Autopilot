@@ -33,6 +33,6 @@
 
 #pragma once
 
-#define SYSTEM_ADC_BASE 0 // not used
+#define SYSTEM_ADC_BASE 0  // not used
 
 #define px4_arch_adc_temp_sensor_mask() (0)

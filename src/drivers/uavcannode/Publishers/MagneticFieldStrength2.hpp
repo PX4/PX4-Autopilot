@@ -33,42 +33,35 @@
 
 #pragma once
 
-#include "UavcanPublisherBase.hpp"
-
-#include <uavcan/equipment/ahrs/MagneticFieldStrength2.hpp>
-
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/vehicle_magnetometer.h>
 
-namespace uavcannode
-{
+#include <uORB/SubscriptionCallback.hpp>
+#include <uavcan/equipment/ahrs/MagneticFieldStrength2.hpp>
 
-class MagneticFieldStrength2 :
-	public UavcanPublisherBase,
-	public uORB::SubscriptionCallbackWorkItem,
-	private uavcan::Publisher<uavcan::equipment::ahrs::MagneticFieldStrength2>
-{
+#include "UavcanPublisherBase.hpp"
+
+namespace uavcannode {
+
+class MagneticFieldStrength2 : public UavcanPublisherBase,
+			       public uORB::SubscriptionCallbackWorkItem,
+			       private uavcan::Publisher<uavcan::equipment::ahrs::MagneticFieldStrength2> {
 public:
-	MagneticFieldStrength2(px4::WorkItem *work_item, uavcan::INode &node) :
-		UavcanPublisherBase(uavcan::equipment::ahrs::MagneticFieldStrength2::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(vehicle_magnetometer)),
-		uavcan::Publisher<uavcan::equipment::ahrs::MagneticFieldStrength2>(node)
-	{
+	MagneticFieldStrength2(px4::WorkItem *work_item, uavcan::INode &node)
+		: UavcanPublisherBase(uavcan::equipment::ahrs::MagneticFieldStrength2::DefaultDataTypeID),
+		  uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(vehicle_magnetometer)),
+		  uavcan::Publisher<uavcan::equipment::ahrs::MagneticFieldStrength2>(node) {
 		this->setPriority(uavcan::TransferPriority::Default);
 	}
 
-	void PrintInfo() override
-	{
+	void PrintInfo() override {
 		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
-			printf("\t%s -> %s:%d\n",
-			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
+			printf("\t%s -> %s:%d\n", uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
 			       uavcan::equipment::ahrs::MagneticFieldStrength2::getDataTypeFullName(),
 			       uavcan::equipment::ahrs::MagneticFieldStrength2::DefaultDataTypeID);
 		}
 	}
 
-	void BroadcastAnyUpdates() override
-	{
+	void BroadcastAnyUpdates() override {
 		// vehicle_magnetometer -> uavcan::equipment::ahrs::MagneticFieldStrength2
 		vehicle_magnetometer_s vehicle_magnetometer;
 
@@ -85,4 +78,4 @@ public:
 		}
 	}
 };
-} // namespace uavcannode
+}  // namespace uavcannode

@@ -40,8 +40,7 @@
 
 static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-class BMI088 : public device::I2C, public I2CSPIDriver<BMI088>
-{
+class BMI088 : public device::I2C, public I2CSPIDriver<BMI088> {
 public:
 	BMI088(const I2CSPIDriverConfig &config);
 
@@ -56,7 +55,6 @@ public:
 	virtual void print_status() = 0;
 
 protected:
-
 	bool Reset();
 
 	const spi_drdy_gpio_t _drdy_gpio;
@@ -71,7 +69,6 @@ protected:
 	int _empty_count{0};
 	int _total_failure_count{0};
 
-
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
 
@@ -83,6 +80,5 @@ protected:
 		FIFO_READ,
 	} _state{STATE::SELFTEST};
 
-	uint16_t _fifo_empty_interval_us{2500}; // 2500 us / 400 Hz transfer interval
-
+	uint16_t _fifo_empty_interval_us{2500};  // 2500 us / 400 Hz transfer interval
 };

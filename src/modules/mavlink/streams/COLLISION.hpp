@@ -36,8 +36,7 @@
 
 #include <uORB/topics/collision_report.h>
 
-class MavlinkStreamCollision : public MavlinkStream
-{
+class MavlinkStreamCollision : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamCollision(mavlink); }
 
@@ -47,8 +46,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		return _collision_sub.advertised() ? MAVLINK_MSG_ID_COLLISION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
@@ -57,8 +55,7 @@ private:
 
 	uORB::Subscription _collision_sub{ORB_ID(collision_report)};
 
-	bool send() override
-	{
+	bool send() override {
 		collision_report_s report;
 		bool sent = false;
 
@@ -81,4 +78,4 @@ private:
 	}
 };
 
-#endif // COLLISION_HPP
+#endif  // COLLISION_HPP

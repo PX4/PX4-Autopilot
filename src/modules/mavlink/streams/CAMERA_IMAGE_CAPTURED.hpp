@@ -36,8 +36,7 @@
 
 #include <uORB/topics/camera_capture.h>
 
-class MavlinkStreamCameraImageCaptured : public MavlinkStream
-{
+class MavlinkStreamCameraImageCaptured : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamCameraImageCaptured(mavlink); }
 
@@ -49,9 +48,10 @@ public:
 
 	bool const_rate() override { return true; }
 
-	unsigned get_size() override
-	{
-		return _capture_sub.advertised() ? MAVLINK_MSG_ID_CAMERA_IMAGE_CAPTURED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _capture_sub.advertised()
+			       ? MAVLINK_MSG_ID_CAMERA_IMAGE_CAPTURED_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+			       : 0;
 	}
 
 private:
@@ -59,8 +59,7 @@ private:
 
 	uORB::Subscription _capture_sub{ORB_ID(camera_capture)};
 
-	bool send() override
-	{
+	bool send() override {
 		camera_capture_s capture;
 
 		if ((_mavlink->get_free_tx_buf() >= get_size()) && _capture_sub.update(&capture)) {
@@ -68,7 +67,7 @@ private:
 
 			msg.time_boot_ms = capture.timestamp / 1000;
 			msg.time_utc = capture.timestamp_utc;
-			msg.camera_id = 1;	// FIXME : get this from uORB
+			msg.camera_id = 1;  // FIXME : get this from uORB
 			msg.lat = capture.lat * 1e7;
 			msg.lon = capture.lon * 1e7;
 			msg.alt = capture.alt * 1e3f;
@@ -90,4 +89,4 @@ private:
 	}
 };
 
-#endif // CAMERA_IMAGE_CAPTURED_HPP
+#endif  // CAMERA_IMAGE_CAPTURED_HPP

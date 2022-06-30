@@ -39,8 +39,7 @@
 
 using namespace matrix;
 
-bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_setpoint)
-{
+bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_setpoint) {
 	bool ret = FlightTaskManualAltitudeSmoothVel::activate(last_setpoint);
 
 	_stick_acceleration_xy.resetPosition();
@@ -59,16 +58,15 @@ bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_se
 	return ret;
 }
 
-bool FlightTaskManualAcceleration::update()
-{
+bool FlightTaskManualAcceleration::update() {
 	bool ret = FlightTaskManualAltitudeSmoothVel::update();
 
 	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint,
-				       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _is_yaw_good_for_control, _deltatime);
+				       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw,
+				       _is_yaw_good_for_control, _deltatime);
 
 	_stick_acceleration_xy.generateSetpoints(_sticks.getPositionExpo().slice<2, 1>(0, 0), _yaw, _yaw_setpoint,
-			_position,
-			_velocity_setpoint_feedback.xy(), _deltatime);
+						 _position, _velocity_setpoint_feedback.xy(), _deltatime);
 	_stick_acceleration_xy.getSetpoints(_position_setpoint, _velocity_setpoint, _acceleration_setpoint);
 
 	_constraints.want_takeoff = _checkTakeoff();
@@ -79,7 +77,8 @@ bool FlightTaskManualAcceleration::update()
 	if (_weathervane.isActive()) {
 		_yaw_setpoint = NAN;
 
-		// only enable the weathervane to change the yawrate when position lock is active (and thus the pos. sp. are NAN)
+		// only enable the weathervane to change the yawrate when position lock is active (and thus the pos. sp.
+		// are NAN)
 		if (PX4_ISFINITE(_position_setpoint(0)) && PX4_ISFINITE(_position_setpoint(1))) {
 			// vehicle is steady
 			_yawspeed_setpoint += _weathervane.getWeathervaneYawrate();
@@ -89,12 +88,10 @@ bool FlightTaskManualAcceleration::update()
 	return ret;
 }
 
-void FlightTaskManualAcceleration::_ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy)
-{
+void FlightTaskManualAcceleration::_ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) {
 	_stick_acceleration_xy.resetPosition();
 }
 
-void FlightTaskManualAcceleration::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy)
-{
+void FlightTaskManualAcceleration::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) {
 	_stick_acceleration_xy.resetVelocity(_velocity.xy());
 }

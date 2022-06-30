@@ -43,80 +43,78 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-namespace Infineon_DPS310
-{
+namespace Infineon_DPS310 {
 
 static constexpr uint8_t REV_AND_PROD_ID = 0x10;
 
-enum class
-Register : uint8_t {
+enum class Register : uint8_t {
 
-	PSR_B2		= 0x00,
-	PSR_B1		= 0x01,
-	PSR_B0		= 0x02,
-	TMP_B2		= 0x03,
-	TMP_B1		= 0x04,
-	TMP_B0		= 0x05,
-	PRS_CFG		= 0x06,
-	TMP_CFG		= 0x07,
-	MEAS_CFG	= 0x08,
-	CFG_REG		= 0x09,
+	PSR_B2 = 0x00,
+	PSR_B1 = 0x01,
+	PSR_B0 = 0x02,
+	TMP_B2 = 0x03,
+	TMP_B1 = 0x04,
+	TMP_B0 = 0x05,
+	PRS_CFG = 0x06,
+	TMP_CFG = 0x07,
+	MEAS_CFG = 0x08,
+	CFG_REG = 0x09,
 
-	RESET		= 0x0C,
-	ID		= 0x0D,
+	RESET = 0x0C,
+	ID = 0x0D,
 
-	COEF		= 0x10,
+	COEF = 0x10,
 	//	c0	= 0x10
 	//	 .
 	//	c30	= 0x21
 
-	COEF_SRCE	= 0x28,
+	COEF_SRCE = 0x28,
 
 };
 
 enum PRS_CFG_BIT : uint8_t {
-	PM_RATE_32HZ	= Bit6 | Bit4,	//  101 - 32 measurements pr. sec.
-	PM_PRC_16	= Bit2,		// 0100 - 16 times (Standard).
+	PM_RATE_32HZ = Bit6 | Bit4,  //  101 - 32 measurements pr. sec.
+	PM_PRC_16 = Bit2,            // 0100 - 16 times (Standard).
 };
 
 enum TMP_CFG_BIT : uint8_t {
-	TMP_EXT		= Bit7,
-	TMP_RATE_32HZ	= Bit6 | Bit4,	//  101 - 32 measurements pr. sec.
-	TMP_PRC_16	= Bit2,		// 0100 - 16 times.
+	TMP_EXT = Bit7,
+	TMP_RATE_32HZ = Bit6 | Bit4,  //  101 - 32 measurements pr. sec.
+	TMP_PRC_16 = Bit2,            // 0100 - 16 times.
 };
 
 enum CFG_REG_BIT : uint8_t {
-	T_SHIFT	= Bit3,
-	P_SHIFT	= Bit2,
+	T_SHIFT = Bit3,
+	P_SHIFT = Bit2,
 };
 
 enum MEAS_CFG_BIT : uint8_t {
-	COEF_RDY	= Bit7,
-	SENSOR_RDY	= Bit6,
-	TMP_RDY		= Bit5,
-	PRS_RDY		= Bit4,
+	COEF_RDY = Bit7,
+	SENSOR_RDY = Bit6,
+	TMP_RDY = Bit5,
+	PRS_RDY = Bit4,
 
-	MEAS_CTRL_CONT	= Bit2 | Bit1 | Bit0,	// 111 - Continous pressure and temperature measurement
+	MEAS_CTRL_CONT = Bit2 | Bit1 | Bit0,  // 111 - Continous pressure and temperature measurement
 };
 
 enum RESET_BIT : uint8_t {
-	SOFT_RST = Bit3 | Bit0,	// Write '1001' to generate a soft reset
+	SOFT_RST = Bit3 | Bit0,  // Write '1001' to generate a soft reset
 };
 
 enum COEF_SRCE_BIT : uint8_t {
-	TMP_COEF_SRCE = Bit7,	// TMP_COEF_SRCE
+	TMP_COEF_SRCE = Bit7,  // TMP_COEF_SRCE
 };
 
 struct CalibrationCoefficients {
-	int16_t c0;	// 12bit
-	int16_t c1;	// 12bit
-	int32_t c00;	// 20bit
-	int32_t c10;	// 20bit
-	int16_t c01;	// 16bit
-	int16_t c11;	// 16bit
-	int16_t c20;	// 16bit
-	int16_t c21;	// 16bit
-	int16_t c30;	// 16bit
+	int16_t c0;   // 12bit
+	int16_t c1;   // 12bit
+	int32_t c00;  // 20bit
+	int32_t c10;  // 20bit
+	int16_t c01;  // 16bit
+	int16_t c11;  // 16bit
+	int16_t c20;  // 16bit
+	int16_t c21;  // 16bit
+	int16_t c30;  // 16bit
 };
 
-} // namespace Infineon_DPS310
+}  // namespace Infineon_DPS310

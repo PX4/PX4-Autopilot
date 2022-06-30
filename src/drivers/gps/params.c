@@ -107,7 +107,6 @@ PARAM_DEFINE_INT32(GPS_SAT_INFO, 0);
  */
 PARAM_DEFINE_INT32(GPS_UBX_MODE, 0);
 
-
 /**
  * Heading/Yaw offset for dual antenna GPS
  *
@@ -116,7 +115,8 @@ PARAM_DEFINE_INT32(GPS_UBX_MODE, 0);
  * Set this to 0 if the antennas are parallel to the forward-facing direction of the vehicle and the rover antenna is in
  * front. The offset angle increases clockwise.
  *
- * Set this to 90 if the rover antenna is placed on the right side of the vehicle and the moving base antenna is on the left side.
+ * Set this to 90 if the rover antenna is placed on the right side of the vehicle and the moving base antenna is on the
+ * left side.
  *
  * @min 0
  * @max 360

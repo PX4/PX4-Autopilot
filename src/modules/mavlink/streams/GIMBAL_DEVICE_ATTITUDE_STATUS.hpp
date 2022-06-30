@@ -36,10 +36,11 @@
 
 #include <uORB/topics/gimbal_device_attitude_status.h>
 
-class MavlinkStreamGimbalDeviceAttitudeStatus : public MavlinkStream
-{
+class MavlinkStreamGimbalDeviceAttitudeStatus : public MavlinkStream {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamGimbalDeviceAttitudeStatus(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) {
+		return new MavlinkStreamGimbalDeviceAttitudeStatus(mavlink);
+	}
 
 	static constexpr const char *get_name_static() { return "GIMBAL_DEVICE_ATTITUDE_STATUS"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_GIMBAL_DEVICE_ATTITUDE_STATUS; }
@@ -47,8 +48,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		if (_gimbal_device_attitude_status_sub.advertised()) {
 			return MAVLINK_MSG_ID_GIMBAL_DEVICE_ATTITUDE_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		}
@@ -61,12 +61,10 @@ private:
 
 	uORB::Subscription _gimbal_device_attitude_status_sub{ORB_ID(gimbal_device_attitude_status)};
 
-	bool send() override
-	{
+	bool send() override {
 		gimbal_device_attitude_status_s gimbal_device_attitude_status{};
 
 		if (_gimbal_device_attitude_status_sub.update(&gimbal_device_attitude_status)) {
-
 			if (gimbal_device_attitude_status.received_from_mavlink) {
 				// If we have already received the gimbal device's attitude via
 				// mavlink it is already forwarded directly and we don't need
@@ -103,4 +101,4 @@ private:
 	}
 };
 
-#endif // GIMBAL_DEVICE_ATTITUDE_STATUS
+#endif  // GIMBAL_DEVICE_ATTITUDE_STATUS

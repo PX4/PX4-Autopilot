@@ -33,25 +33,24 @@
 
 #pragma once
 
+#include <px4_platform_common/posix.h>
 #include <stdint.h>
 
-#include "uORBCommon.hpp"
 #include <uORB/topics/uORBTopics.hpp>
 
-#include <px4_platform_common/posix.h>
+#include "uORBCommon.hpp"
 
-namespace uORB
-{
+namespace uORB {
 class DeviceNode;
 class DeviceMaster;
 class Manager;
-}
+}  // namespace uORB
 
-#include <string.h>
+#include <px4_platform_common/atomic_bitset.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <containers/IntrusiveSortedList.hpp>
-#include <px4_platform_common/atomic_bitset.h>
 
 using px4::AtomicBitset;
 
@@ -61,10 +60,8 @@ using px4::AtomicBitset;
  * Used primarily to create new objects via the ORBIOCCREATE
  * ioctl.
  */
-class uORB::DeviceMaster
-{
+class uORB::DeviceMaster {
 public:
-
 	int advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance);
 
 	/**
@@ -72,8 +69,7 @@ public:
 	 * @return node if exists, nullptr otherwise
 	 */
 	uORB::DeviceNode *getDeviceNode(const char *node_name);
-	uORB::DeviceNode *getDeviceNode(const struct orb_metadata *meta, const uint8_t instance)
-	{
+	uORB::DeviceNode *getDeviceNode(const struct orb_metadata *meta, const uint8_t instance) {
 		if (meta == nullptr) {
 			return nullptr;
 		}
@@ -86,14 +82,12 @@ public:
 		uORB::DeviceNode *node = getDeviceNodeLocked(meta, instance);
 		unlock();
 
-		//We can safely return the node that can be used by any thread, because
-		//a DeviceNode never gets deleted.
+		// We can safely return the node that can be used by any thread, because
+		// a DeviceNode never gets deleted.
 		return node;
-
 	}
 
-	bool deviceNodeExists(ORB_ID id, const uint8_t instance)
-	{
+	bool deviceNodeExists(ORB_ID id, const uint8_t instance) {
 		if ((id == ORB_ID::INVALID) || (instance > ORB_MULTI_MAX_INSTANCES - 1)) {
 			return false;
 		}
@@ -110,7 +104,8 @@ public:
 	 * Continuously print statistics, like the unix top command for processes.
 	 * Exited when the user presses the enter key.
 	 * @param topic_filter list of topic filters: if set, each string can be a substring for topics to match.
-	 *        Or it can be '-a', which means to print all topics instead of only ones currently publishing with subscribers.
+	 *        Or it can be '-a', which means to print all topics instead of only ones currently publishing with
+	 * subscribers.
 	 * @param num_filters
 	 */
 	void showTop(char **topic_filter, int num_filters);
@@ -142,8 +137,11 @@ private:
 	IntrusiveSortedList<uORB::DeviceNode *> _node_list;
 	AtomicBitset<ORB_TOPICS_COUNT> _node_exists[ORB_MULTI_MAX_INSTANCES];
 
-	px4_sem_t	_lock; /**< lock to protect access to all class members (also for derived classes) */
+	px4_sem_t _lock; /**< lock to protect access to all class members (also for derived classes) */
 
-	void		lock() { do {} while (px4_sem_wait(&_lock) != 0); }
-	void		unlock() { px4_sem_post(&_lock); }
+	void lock() {
+		do {
+		} while (px4_sem_wait(&_lock) != 0);
+	}
+	void unlock() { px4_sem_post(&_lock); }
 };

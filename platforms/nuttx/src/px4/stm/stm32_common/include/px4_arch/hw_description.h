@@ -33,13 +33,11 @@
 
 #pragma once
 
+#include <px4_platform_common/constexpr_util.h>
 #include <stdint.h>
-
+#include <stm32_dma.h>
 #include <stm32_gpio.h>
 #include <stm32_tim.h>
-#include <stm32_dma.h>
-
-#include <px4_platform_common/constexpr_util.h>
 
 /*
  * DMA
@@ -54,28 +52,27 @@ struct DMA {
 	Channel channel;
 };
 
-static inline constexpr uint32_t getDMABaseRegister(const DMA &dma)
-{
+static inline constexpr uint32_t getDMABaseRegister(const DMA &dma) {
 	switch (dma.index) {
-	case DMA::Index1: return STM32_DMA1_BASE;
+		case DMA::Index1:
+			return STM32_DMA1_BASE;
 
-	case DMA::Index2: return STM32_DMA2_BASE;
+		case DMA::Index2:
+			return STM32_DMA2_BASE;
 
-	case DMA::Invalid:
-		constexpr_assert(false, "Trying to get DMA base register for invalid config");
-		break;
+		case DMA::Invalid:
+			constexpr_assert(false, "Trying to get DMA base register for invalid config");
+			break;
 	}
 
 	return 0;
 }
 
-
 /*
  * Timers
  */
 
-namespace Timer
-{
+namespace Timer {
 enum Timer {
 	Timer1 = 1,
 	Timer2,
@@ -111,85 +108,100 @@ struct TimerChannel {
 	Timer timer;
 	Channel channel;
 };
-}
+}  // namespace Timer
 
-static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
-{
+static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer) {
 	switch (timer) {
-	case Timer::Timer1: return STM32_TIM1_BASE;
+		case Timer::Timer1:
+			return STM32_TIM1_BASE;
 
-	case Timer::Timer2: return STM32_TIM2_BASE;
+		case Timer::Timer2:
+			return STM32_TIM2_BASE;
 
-	case Timer::Timer3: return STM32_TIM3_BASE;
+		case Timer::Timer3:
+			return STM32_TIM3_BASE;
 
-	case Timer::Timer4: return STM32_TIM4_BASE;
+		case Timer::Timer4:
+			return STM32_TIM4_BASE;
 
-	case Timer::Timer5: return STM32_TIM5_BASE;
+		case Timer::Timer5:
+			return STM32_TIM5_BASE;
 
-	case Timer::Timer6: return STM32_TIM6_BASE;
+		case Timer::Timer6:
+			return STM32_TIM6_BASE;
 
-	case Timer::Timer7: return STM32_TIM7_BASE;
+		case Timer::Timer7:
+			return STM32_TIM7_BASE;
 
-	case Timer::Timer8: return STM32_TIM8_BASE;
+		case Timer::Timer8:
+			return STM32_TIM8_BASE;
 
-#ifdef STM32_TIM9_BASE // STM32F1 only goes up to TIM8
+#ifdef STM32_TIM9_BASE  // STM32F1 only goes up to TIM8
 
-	case Timer::Timer9: return STM32_TIM9_BASE;
+		case Timer::Timer9:
+			return STM32_TIM9_BASE;
 #endif
 
 #ifdef STM32_TIM10_BASE
 
-	case Timer::Timer10: return STM32_TIM10_BASE;
+		case Timer::Timer10:
+			return STM32_TIM10_BASE;
 #endif
 
 #ifdef STM32_TIM11_BASE
 
-	case Timer::Timer11: return STM32_TIM11_BASE;
+		case Timer::Timer11:
+			return STM32_TIM11_BASE;
 #endif
 
 #ifdef STM32_TIM12_BASE
 
-	case Timer::Timer12: return STM32_TIM12_BASE;
+		case Timer::Timer12:
+			return STM32_TIM12_BASE;
 #endif
 
 #ifdef STM32_TIM13_BASE
 
-	case Timer::Timer13: return STM32_TIM13_BASE;
+		case Timer::Timer13:
+			return STM32_TIM13_BASE;
 #endif
 
 #ifdef STM32_TIM14_BASE
 
-	case Timer::Timer14: return STM32_TIM14_BASE;
+		case Timer::Timer14:
+			return STM32_TIM14_BASE;
 #endif
 
 #ifdef STM32_TIM15_BASE
 
-	case Timer::Timer15: return STM32_TIM15_BASE;
+		case Timer::Timer15:
+			return STM32_TIM15_BASE;
 #endif
 
 #ifdef STM32_TIM16_BASE
 
-	case Timer::Timer16: return STM32_TIM16_BASE;
+		case Timer::Timer16:
+			return STM32_TIM16_BASE;
 #endif
 
 #ifdef STM32_TIM17_BASE
 
-	case Timer::Timer17: return STM32_TIM17_BASE;
+		case Timer::Timer17:
+			return STM32_TIM17_BASE;
 #endif
 
-	default: break;
+		default:
+			break;
 	}
 
 	return 0;
 }
 
-
 /*
  * GPIO
  */
 
-namespace GPIO
-{
+namespace GPIO {
 enum Port {
 	PortInvalid = 0,
 	PortA,
@@ -226,92 +238,117 @@ struct GPIOPin {
 	Port port;
 	Pin pin;
 };
-}
+}  // namespace GPIO
 
-static inline constexpr uint32_t getGPIOPort(GPIO::Port port)
-{
+static inline constexpr uint32_t getGPIOPort(GPIO::Port port) {
 	switch (port) {
-	case GPIO::PortA: return GPIO_PORTA;
+		case GPIO::PortA:
+			return GPIO_PORTA;
 
-	case GPIO::PortB: return GPIO_PORTB;
+		case GPIO::PortB:
+			return GPIO_PORTB;
 
-	case GPIO::PortC: return GPIO_PORTC;
+		case GPIO::PortC:
+			return GPIO_PORTC;
 
-	case GPIO::PortD: return GPIO_PORTD;
+		case GPIO::PortD:
+			return GPIO_PORTD;
 
-	case GPIO::PortE: return GPIO_PORTE;
+		case GPIO::PortE:
+			return GPIO_PORTE;
 #ifdef GPIO_PORTF
 
-	case GPIO::PortF: return GPIO_PORTF;
+		case GPIO::PortF:
+			return GPIO_PORTF;
 #endif
 #ifdef GPIO_PORTG
 
-	case GPIO::PortG: return GPIO_PORTG;
+		case GPIO::PortG:
+			return GPIO_PORTG;
 #endif
 #ifdef GPIO_PORTH
 
-	case GPIO::PortH: return GPIO_PORTH;
+		case GPIO::PortH:
+			return GPIO_PORTH;
 #endif
 #ifdef GPIO_PORTI
 
-	case GPIO::PortI: return GPIO_PORTI;
+		case GPIO::PortI:
+			return GPIO_PORTI;
 #endif
 #ifdef GPIO_PORTJ
 
-	case GPIO::PortJ: return GPIO_PORTJ;
+		case GPIO::PortJ:
+			return GPIO_PORTJ;
 #endif
 #ifdef GPIO_PORTK
 
-	case GPIO::PortK: return GPIO_PORTK;
+		case GPIO::PortK:
+			return GPIO_PORTK;
 #endif
 
-	default: break;
+		default:
+			break;
 	}
 
 	return 0;
 }
 
-static inline constexpr uint32_t getGPIOPin(GPIO::Pin pin)
-{
+static inline constexpr uint32_t getGPIOPin(GPIO::Pin pin) {
 	switch (pin) {
-	case GPIO::Pin0: return GPIO_PIN0;
+		case GPIO::Pin0:
+			return GPIO_PIN0;
 
-	case GPIO::Pin1: return GPIO_PIN1;
+		case GPIO::Pin1:
+			return GPIO_PIN1;
 
-	case GPIO::Pin2: return GPIO_PIN2;
+		case GPIO::Pin2:
+			return GPIO_PIN2;
 
-	case GPIO::Pin3: return GPIO_PIN3;
+		case GPIO::Pin3:
+			return GPIO_PIN3;
 
-	case GPIO::Pin4: return GPIO_PIN4;
+		case GPIO::Pin4:
+			return GPIO_PIN4;
 
-	case GPIO::Pin5: return GPIO_PIN5;
+		case GPIO::Pin5:
+			return GPIO_PIN5;
 
-	case GPIO::Pin6: return GPIO_PIN6;
+		case GPIO::Pin6:
+			return GPIO_PIN6;
 
-	case GPIO::Pin7: return GPIO_PIN7;
+		case GPIO::Pin7:
+			return GPIO_PIN7;
 
-	case GPIO::Pin8: return GPIO_PIN8;
+		case GPIO::Pin8:
+			return GPIO_PIN8;
 
-	case GPIO::Pin9: return GPIO_PIN9;
+		case GPIO::Pin9:
+			return GPIO_PIN9;
 
-	case GPIO::Pin10: return GPIO_PIN10;
+		case GPIO::Pin10:
+			return GPIO_PIN10;
 
-	case GPIO::Pin11: return GPIO_PIN11;
+		case GPIO::Pin11:
+			return GPIO_PIN11;
 
-	case GPIO::Pin12: return GPIO_PIN12;
+		case GPIO::Pin12:
+			return GPIO_PIN12;
 
-	case GPIO::Pin13: return GPIO_PIN13;
+		case GPIO::Pin13:
+			return GPIO_PIN13;
 
-	case GPIO::Pin14: return GPIO_PIN14;
+		case GPIO::Pin14:
+			return GPIO_PIN14;
 
-	case GPIO::Pin15: return GPIO_PIN15;
+		case GPIO::Pin15:
+			return GPIO_PIN15;
 	}
 
 	return 0;
 }
 
-namespace SPI
-{
+namespace SPI {
 
 enum class Bus {
 	SPI1 = 1,
@@ -322,12 +359,12 @@ enum class Bus {
 	SPI6,
 };
 
-using CS = GPIO::GPIOPin; ///< chip-select pin
-using DRDY = GPIO::GPIOPin; ///< data ready pin
+using CS = GPIO::GPIOPin;    ///< chip-select pin
+using DRDY = GPIO::GPIOPin;  ///< data ready pin
 
 struct bus_device_external_cfg_t {
 	CS cs_gpio;
 	DRDY drdy_gpio;
 };
 
-} // namespace SPI
+}  // namespace SPI

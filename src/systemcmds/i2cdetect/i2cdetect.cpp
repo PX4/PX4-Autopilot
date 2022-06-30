@@ -38,16 +38,14 @@
  *
  */
 
-#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/px4_config.h>
 
-namespace i2cdetect
-{
+namespace i2cdetect {
 
-int detect(int bus)
-{
+int detect(int bus) {
 	printf("Scanning I2C bus: %d\n", bus);
 
 	int ret = PX4_ERROR;
@@ -66,7 +64,6 @@ int detect(int bus)
 		printf("%02x: ", i);
 
 		for (int j = 0; j < 16; j++) {
-
 			fflush(stdout);
 
 			uint8_t addr = i + j;
@@ -79,7 +76,7 @@ int detect(int bus)
 			do {
 				uint8_t send_data = 0;
 				uint8_t recv_data = 0;
-				i2c_msg_s msgv[2] {};
+				i2c_msg_s msgv[2]{};
 
 				// send
 				msgv[0].frequency = 100000;
@@ -92,7 +89,8 @@ int detect(int bus)
 				msgv[1].frequency = 100000;
 				msgv[1].addr = addr;
 				msgv[1].flags = I2C_M_READ;
-				msgv[1].buffer = &recv_data;;
+				msgv[1].buffer = &recv_data;
+				;
 				msgv[1].length = sizeof(recv_data);
 
 				ret = I2C_TRANSFER(i2c_dev, &msgv[0], 2);
@@ -107,7 +105,7 @@ int detect(int bus)
 				if ((retry_count >= 1) || (retry_count >= retries)) {
 #if defined(CONFIG_I2C_RESET)
 					I2C_RESET(i2c_dev);
-#endif // CONFIG_I2C_RESET
+#endif  // CONFIG_I2C_RESET
 				}
 
 			} while (retry_count++ < retries);
@@ -128,8 +126,7 @@ int detect(int bus)
 	return ret;
 }
 
-int usage(const char *reason = nullptr)
-{
+int usage(const char *reason = nullptr) {
 	if (reason) {
 		PX4_ERR("%s", reason);
 	}
@@ -142,14 +139,13 @@ int usage(const char *reason = nullptr)
 	return PX4_OK;
 }
 
-} // namespace i2cdetect
+}  // namespace i2cdetect
 
 extern "C" {
-	__EXPORT int i2cdetect_main(int argc, char *argv[]);
+__EXPORT int i2cdetect_main(int argc, char *argv[]);
 }
 
-int i2cdetect_main(int argc, char *argv[])
-{
+int i2cdetect_main(int argc, char *argv[]) {
 	int i2c_bus = 1;
 
 	int myoptind = 1;
@@ -158,15 +154,15 @@ int i2cdetect_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'b':
-			// set i2c bus
-			i2c_bus = strtol(myoptarg, nullptr, 0);
-			break;
+			case 'b':
+				// set i2c bus
+				i2c_bus = strtol(myoptarg, nullptr, 0);
+				break;
 
-		default:
-			i2cdetect::usage();
-			return -1;
-			break;
+			default:
+				i2cdetect::usage();
+				return -1;
+				break;
 		}
 	}
 

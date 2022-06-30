@@ -33,28 +33,28 @@
 
 #pragma once
 
+#include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_config.h>
 #include <termios.h>
 
-#include <drivers/drv_hrt.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
-#include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 using namespace time_literals;
 
-#define LEDDAR_ONE_FIELD_OF_VIEW        (0.105f) // 6 deg cone angle.
+#define LEDDAR_ONE_FIELD_OF_VIEW (0.105f)  // 6 deg cone angle.
 
-#define LEDDAR_ONE_MAX_DISTANCE         40.0f
-#define LEDDAR_ONE_MIN_DISTANCE         0.01f
+#define LEDDAR_ONE_MAX_DISTANCE 40.0f
+#define LEDDAR_ONE_MIN_DISTANCE 0.01f
 
-#define LEDDAR_ONE_MEASURE_INTERVAL     100_ms // 10Hz
+#define LEDDAR_ONE_MEASURE_INTERVAL 100_ms  // 10Hz
 
-#define MODBUS_SLAVE_ADDRESS            0x01
-#define MODBUS_READING_FUNCTION         0x04
-#define READING_START_ADDR              0x14
-#define READING_LEN                     0xA
+#define MODBUS_SLAVE_ADDRESS 0x01
+#define MODBUS_READING_FUNCTION 0x04
+#define READING_START_ADDR 0x14
+#define READING_LEN 0xA
 
 static const uint8_t request_reading_msg[] = {
 	MODBUS_SLAVE_ADDRESS,
@@ -64,7 +64,7 @@ static const uint8_t request_reading_msg[] = {
 	0, /* number of bytes to read high byte */
 	READING_LEN,
 	0x30, /* CRC low */
-	0x09 /* CRC high */
+	0x09  /* CRC high */
 };
 
 struct __attribute__((__packed__)) reading_msg {
@@ -94,10 +94,10 @@ struct __attribute__((__packed__)) reading_msg {
 	uint16_t crc; /* little-endian */
 };
 
-class LeddarOne : public px4::ScheduledWorkItem
-{
+class LeddarOne : public px4::ScheduledWorkItem {
 public:
-	LeddarOne(const char *serial_port, const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	LeddarOne(const char *serial_port,
+		  const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	~LeddarOne() override;
 
 	int init();
@@ -118,7 +118,6 @@ public:
 	void stop();
 
 private:
-
 	/**
 	 * Calculates the 16 byte crc value for the data frame.
 	 * @param data_frame The data frame to compute a checksum for.
@@ -155,6 +154,6 @@ private:
 
 	hrt_abstime _measurement_time{0};
 
-	perf_counter_t _comms_error{perf_alloc(PC_COUNT, MODULE_NAME": comms_error")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": sample")};
+	perf_counter_t _comms_error{perf_alloc(PC_COUNT, MODULE_NAME ": comms_error")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": sample")};
 };

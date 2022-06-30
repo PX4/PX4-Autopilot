@@ -33,42 +33,35 @@
 
 #pragma once
 
-#include "UavcanPublisherBase.hpp"
-
-#include <uavcan/equipment/range_sensor/Measurement.hpp>
-
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/distance_sensor.h>
 
-namespace uavcannode
-{
+#include <uORB/SubscriptionCallback.hpp>
+#include <uavcan/equipment/range_sensor/Measurement.hpp>
 
-class RangeSensorMeasurement :
-	public UavcanPublisherBase,
-	public uORB::SubscriptionCallbackWorkItem,
-	private uavcan::Publisher<uavcan::equipment::range_sensor::Measurement>
-{
+#include "UavcanPublisherBase.hpp"
+
+namespace uavcannode {
+
+class RangeSensorMeasurement : public UavcanPublisherBase,
+			       public uORB::SubscriptionCallbackWorkItem,
+			       private uavcan::Publisher<uavcan::equipment::range_sensor::Measurement> {
 public:
-	RangeSensorMeasurement(px4::WorkItem *work_item, uavcan::INode &node, uint8_t instance = 0) :
-		UavcanPublisherBase(uavcan::equipment::range_sensor::Measurement::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(distance_sensor), instance),
-		uavcan::Publisher<uavcan::equipment::range_sensor::Measurement>(node)
-	{
+	RangeSensorMeasurement(px4::WorkItem *work_item, uavcan::INode &node, uint8_t instance = 0)
+		: UavcanPublisherBase(uavcan::equipment::range_sensor::Measurement::DefaultDataTypeID),
+		  uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(distance_sensor), instance),
+		  uavcan::Publisher<uavcan::equipment::range_sensor::Measurement>(node) {
 		this->setPriority(uavcan::TransferPriority::Default);
 	}
 
-	void PrintInfo() override
-	{
+	void PrintInfo() override {
 		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
-			printf("\t%s -> %s:%d\n",
-			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
+			printf("\t%s -> %s:%d\n", uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
 			       uavcan::equipment::range_sensor::Measurement::getDataTypeFullName(),
 			       uavcan::equipment::range_sensor::Measurement::DefaultDataTypeID);
 		}
 	}
 
-	void BroadcastAnyUpdates() override
-	{
+	void BroadcastAnyUpdates() override {
 		// distance_sensor[] -> uavcan::equipment::range_sensor::Measurement
 		distance_sensor_s dist;
 
@@ -81,36 +74,44 @@ public:
 
 			// sensor type
 			switch (dist.type) {
-			case distance_sensor_s::MAV_DISTANCE_SENSOR_LASER:
-				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_LIDAR;
-				break;
+				case distance_sensor_s::MAV_DISTANCE_SENSOR_LASER:
+					range_sensor.sensor_type =
+						uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_LIDAR;
+					break;
 
-			case distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND:
-				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_SONAR;
-				break;
+				case distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND:
+					range_sensor.sensor_type =
+						uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_SONAR;
+					break;
 
-			case distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR:
-				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_RADAR;
-				break;
+				case distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR:
+					range_sensor.sensor_type =
+						uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_RADAR;
+					break;
 
-			case distance_sensor_s::MAV_DISTANCE_SENSOR_INFRARED:
-			default:
-				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_UNDEFINED;
-				break;
+				case distance_sensor_s::MAV_DISTANCE_SENSOR_INFRARED:
+				default:
+					range_sensor.sensor_type =
+						uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_UNDEFINED;
+					break;
 			}
 
 			// reading_type
 			if (dist.current_distance >= dist.max_distance) {
-				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_TOO_FAR;
+				range_sensor.reading_type =
+					uavcan::equipment::range_sensor::Measurement::READING_TYPE_TOO_FAR;
 
 			} else if (dist.current_distance <= dist.min_distance) {
-				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_TOO_CLOSE;
+				range_sensor.reading_type =
+					uavcan::equipment::range_sensor::Measurement::READING_TYPE_TOO_CLOSE;
 
 			} else if (dist.signal_quality != 0) {
-				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_VALID_RANGE;
+				range_sensor.reading_type =
+					uavcan::equipment::range_sensor::Measurement::READING_TYPE_VALID_RANGE;
 
 			} else {
-				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_UNDEFINED;
+				range_sensor.reading_type =
+					uavcan::equipment::range_sensor::Measurement::READING_TYPE_UNDEFINED;
 			}
 
 			uavcan::Publisher<uavcan::equipment::range_sensor::Measurement>::broadcast(range_sensor);
@@ -120,4 +121,4 @@ public:
 		}
 	}
 };
-} // namespace uavcannode
+}  // namespace uavcannode

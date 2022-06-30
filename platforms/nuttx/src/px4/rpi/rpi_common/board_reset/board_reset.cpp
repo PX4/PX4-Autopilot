@@ -37,11 +37,10 @@
  * Implementation of RP2040 based Board RESET API
  */
 
+#include <errno.h>
+#include <nuttx/board.h>
 #include <px4_platform_common/px4_config.h>
 #include <systemlib/px4_macros.h>
-#include <errno.h>
-
-#include <nuttx/board.h>
 
 // Functions in here are modified so that board_reset() function resembles
 // the one available in nuttx's boards/raspberrypi-pico folder.
@@ -117,8 +116,7 @@
  *
  ****************************************************************************/
 
-int board_reset(int status)
-{
+int board_reset(int status) {
 	if (status == 1) {
 		// board_configure_reset(BOARD_RESET_MODE_BOOT_TO_BL, 0);
 	}
@@ -147,9 +145,8 @@ int board_reset(int status)
  *   true if booted byt a PX4 bootloader.
  *
  ****************************************************************************/
-bool board_booted_by_px4(void)
-{
-	uint32_t *vectors = (uint32_t *) STM32_FLASH_BASE;
+bool board_booted_by_px4(void) {
+	uint32_t *vectors = (uint32_t *)STM32_FLASH_BASE;
 
 	/* Nuttx uses common vector */
 

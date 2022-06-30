@@ -40,18 +40,15 @@
 #include "LPS22HB.hpp"
 
 /* Max measurement rate is 25Hz */
-#define LPS22HB_CONVERSION_INTERVAL	(1000000 / 25)	/* microseconds */
+#define LPS22HB_CONVERSION_INTERVAL (1000000 / 25) /* microseconds */
 
-LPS22HB::LPS22HB(const I2CSPIDriverConfig &config, device::Device *interface) :
-	I2CSPIDriver(config),
-	_interface(interface),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
-{
-}
+LPS22HB::LPS22HB(const I2CSPIDriverConfig &config, device::Device *interface)
+	: I2CSPIDriver(config),
+	  _interface(interface),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": comms errors")) {}
 
-LPS22HB::~LPS22HB()
-{
+LPS22HB::~LPS22HB() {
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -59,8 +56,7 @@ LPS22HB::~LPS22HB()
 	delete _interface;
 }
 
-int LPS22HB::init()
-{
+int LPS22HB::init() {
 	if (reset() != OK) {
 		return PX4_ERROR;
 	}
@@ -70,8 +66,7 @@ int LPS22HB::init()
 	return PX4_OK;
 }
 
-void LPS22HB::start()
-{
+void LPS22HB::start() {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 
@@ -79,16 +74,11 @@ void LPS22HB::start()
 	ScheduleNow();
 }
 
-int LPS22HB::reset()
-{
-	return write_reg(CTRL_REG2, BOOT | SWRESET);
-}
+int LPS22HB::reset() { return write_reg(CTRL_REG2, BOOT | SWRESET); }
 
-void LPS22HB::RunImpl()
-{
+void LPS22HB::RunImpl() {
 	/* collection phase? */
 	if (_collect_phase) {
-
 		/* perform collection */
 		if (OK != collect()) {
 			PX4_DEBUG("collection error");
@@ -113,8 +103,7 @@ void LPS22HB::RunImpl()
 	ScheduleDelayed(LPS22HB_CONVERSION_INTERVAL);
 }
 
-int LPS22HB::measure()
-{
+int LPS22HB::measure() {
 	// Send the command to begin a 16-bit measurement.
 	int ret = write_reg(CTRL_REG2, IF_ADD_INC | ONE_SHOT);
 
@@ -125,18 +114,17 @@ int LPS22HB::measure()
 	return ret;
 }
 
-int LPS22HB::collect()
-{
+int LPS22HB::collect() {
 	perf_begin(_sample_perf);
 
 	/* get measurements from the device : MSB enables register address auto-increment */
 	struct {
-		uint8_t		STATUS;
-		uint8_t		PRESS_OUT_XL;
-		uint8_t		PRESS_OUT_L;
-		uint8_t		PRESS_OUT_H;
-		uint8_t		TEMP_OUT_L;
-		uint8_t		TEMP_OUT_H;
+		uint8_t STATUS;
+		uint8_t PRESS_OUT_XL;
+		uint8_t PRESS_OUT_L;
+		uint8_t PRESS_OUT_H;
+		uint8_t TEMP_OUT_L;
+		uint8_t TEMP_OUT_H;
 	} report{};
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
@@ -152,7 +140,8 @@ int LPS22HB::collect()
 	uint32_t TEMP_OUT = report.TEMP_OUT_L + (report.TEMP_OUT_H << 8);
 	float temperature = 42.5f + (TEMP_OUT / 480.0f);
 
-	// To obtain the pressure in hPa, take the two’s complement of the complete word and then divide by 4096 LSB/hPa.
+	// To obtain the pressure in hPa, take the two’s complement of the complete word and then divide by 4096
+	// LSB/hPa.
 	uint32_t P = report.PRESS_OUT_XL + (report.PRESS_OUT_L << 8) + (report.PRESS_OUT_H << 16);
 
 	/* Pressure and MSL in mBar */
@@ -173,22 +162,19 @@ int LPS22HB::collect()
 	return PX4_OK;
 }
 
-int LPS22HB::write_reg(uint8_t reg, uint8_t val)
-{
+int LPS22HB::write_reg(uint8_t reg, uint8_t val) {
 	uint8_t buf = val;
 	return _interface->write(reg, &buf, 1);
 }
 
-int LPS22HB::read_reg(uint8_t reg, uint8_t &val)
-{
+int LPS22HB::read_reg(uint8_t reg, uint8_t &val) {
 	uint8_t buf = val;
 	int ret = _interface->read(reg, &buf, 1);
 	val = buf;
 	return ret;
 }
 
-void LPS22HB::print_status()
-{
+void LPS22HB::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);

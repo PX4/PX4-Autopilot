@@ -33,26 +33,25 @@
 
 #pragma once
 
-#include "status_display.h"
-#include "rc_loss_alarm.h"
-
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
-namespace events
-{
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+
+#include "rc_loss_alarm.h"
+#include "status_display.h"
+
+namespace events {
 
 extern "C" __EXPORT int send_event_main(int argc, char *argv[]);
 
-/** @class SendEvent The SendEvent class manages the RC loss audible alarm, LED status display, and thermal calibration. */
-class SendEvent : public ModuleBase<SendEvent>, public ModuleParams, public px4::ScheduledWorkItem
-{
+/** @class SendEvent The SendEvent class manages the RC loss audible alarm, LED status display, and thermal calibration.
+ */
+class SendEvent : public ModuleBase<SendEvent>, public ModuleParams, public px4::ScheduledWorkItem {
 public:
-
 	SendEvent();
 
 	~SendEvent();
@@ -84,7 +83,6 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 private:
-
 	/**
 	 * @brief Returns an ACK to a vehicle_command.
 	 * @param cmd The vehicle command struct being referenced.
@@ -119,11 +117,10 @@ private:
 	/** @note Declare local parameters using defined parameters. */
 	DEFINE_PARAMETERS(
 		/** @var _param_status_display Parameter to enable/disable the LED status display. */
-		(ParamBool<px4::params::EV_TSK_STAT_DIS>) _param_ev_tsk_stat_dis,
+		(ParamBool<px4::params::EV_TSK_STAT_DIS>)_param_ev_tsk_stat_dis,
 
 		/** @var _param_rc_loss The RC comms loss status flag. */
-		(ParamBool<px4::params::EV_TSK_RC_LOSS>) _param_ev_tsk_rc_loss
-	)
+		(ParamBool<px4::params::EV_TSK_RC_LOSS>)_param_ev_tsk_rc_loss)
 };
 
-} // namespace events
+}  // namespace events

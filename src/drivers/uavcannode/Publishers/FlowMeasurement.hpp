@@ -33,49 +33,42 @@
 
 #pragma once
 
-#include "UavcanPublisherBase.hpp"
-
-#include <com/hex/equipment/flow/Measurement.hpp>
 #include <conversion/rotation.h>
-
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/vehicle_optical_flow.h>
 
-namespace uavcannode
-{
+#include <com/hex/equipment/flow/Measurement.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 
-class FlowMeasurement :
-	public UavcanPublisherBase,
-	public uORB::SubscriptionCallbackWorkItem,
-	private uavcan::Publisher<com::hex::equipment::flow::Measurement>
-{
+#include "UavcanPublisherBase.hpp"
+
+namespace uavcannode {
+
+class FlowMeasurement : public UavcanPublisherBase,
+			public uORB::SubscriptionCallbackWorkItem,
+			private uavcan::Publisher<com::hex::equipment::flow::Measurement> {
 public:
-	FlowMeasurement(px4::WorkItem *work_item, uavcan::INode &node) :
-		UavcanPublisherBase(com::hex::equipment::flow::Measurement::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(vehicle_optical_flow)),
-		uavcan::Publisher<com::hex::equipment::flow::Measurement>(node)
-	{
+	FlowMeasurement(px4::WorkItem *work_item, uavcan::INode &node)
+		: UavcanPublisherBase(com::hex::equipment::flow::Measurement::DefaultDataTypeID),
+		  uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(vehicle_optical_flow)),
+		  uavcan::Publisher<com::hex::equipment::flow::Measurement>(node) {
 		this->setPriority(uavcan::TransferPriority::Default);
 	}
 
-	void PrintInfo() override
-	{
+	void PrintInfo() override {
 		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
-			printf("\t%s -> %s:%d\n",
-			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
+			printf("\t%s -> %s:%d\n", uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
 			       com::hex::equipment::flow::Measurement::getDataTypeFullName(),
 			       com::hex::equipment::flow::Measurement::DefaultDataTypeID);
 		}
 	}
 
-	void BroadcastAnyUpdates() override
-	{
+	void BroadcastAnyUpdates() override {
 		// optical_flow -> com::hex::equipment::flow::Measurement
 		vehicle_optical_flow_s optical_flow;
 
 		if (uORB::SubscriptionCallbackWorkItem::update(&optical_flow)) {
 			com::hex::equipment::flow::Measurement measurement{};
-			measurement.integration_interval  = optical_flow.integration_timespan_us * 1e-6f; // us -> s
+			measurement.integration_interval = optical_flow.integration_timespan_us * 1e-6f;  // us -> s
 
 			// rotate measurements in yaw from sensor frame to body frame
 			measurement.rate_gyro_integral[0] = optical_flow.delta_angle[0];
@@ -92,7 +85,8 @@ public:
 			uORB::SubscriptionCallbackWorkItem::registerCallback();
 		}
 	}
+
 private:
 	matrix::Dcmf _rotation;
 };
-} // namespace uavcannode
+}  // namespace uavcannode

@@ -31,20 +31,18 @@
  *
  ****************************************************************************/
 
-#include <board_config.h>
-#include <systemlib/px4_macros.h>
-#include <px4_platform_common/spi.h>
-
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
-#include <unistd.h>
-
-#include <nuttx/spi/spi.h>
 #include <arch/board/board.h>
 #include <arm_arch.h>
+#include <board_config.h>
 #include <chip.h>
+#include <debug.h>
+#include <nuttx/spi/spi.h>
+#include <px4_platform_common/spi.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stm32_gpio.h>
+#include <systemlib/px4_macros.h>
+#include <unistd.h>
 
 // wrapper for stm32f7
 #ifdef CONFIG_STM32F7_SPI1
@@ -93,8 +91,7 @@ static const px4_spi_bus_t *_spi_bus4;
 static const px4_spi_bus_t *_spi_bus5;
 static const px4_spi_bus_t *_spi_bus6;
 
-static void spi_bus_configgpio_cs(const px4_spi_bus_t *bus)
-{
+static void spi_bus_configgpio_cs(const px4_spi_bus_t *bus) {
 	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
 		if (bus->devices[i].cs_gpio != 0) {
 			px4_arch_configgpio(bus->devices[i].cs_gpio);
@@ -102,25 +99,36 @@ static void spi_bus_configgpio_cs(const px4_spi_bus_t *bus)
 	}
 }
 
-__EXPORT void stm32_spiinitialize()
-{
+__EXPORT void stm32_spiinitialize() {
 	px4_set_spi_buses_from_hw_version();
 	board_control_spi_sensors_power_configgpio();
 	board_control_spi_sensors_power(true, 0xffff);
 
 	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
 		switch (px4_spi_buses[i].bus) {
-		case 1: _spi_bus1 = &px4_spi_buses[i]; break;
+			case 1:
+				_spi_bus1 = &px4_spi_buses[i];
+				break;
 
-		case 2: _spi_bus2 = &px4_spi_buses[i]; break;
+			case 2:
+				_spi_bus2 = &px4_spi_buses[i];
+				break;
 
-		case 3: _spi_bus3 = &px4_spi_buses[i]; break;
+			case 3:
+				_spi_bus3 = &px4_spi_buses[i];
+				break;
 
-		case 4: _spi_bus4 = &px4_spi_buses[i]; break;
+			case 4:
+				_spi_bus4 = &px4_spi_buses[i];
+				break;
 
-		case 5: _spi_bus5 = &px4_spi_buses[i]; break;
+			case 5:
+				_spi_bus5 = &px4_spi_buses[i];
+				break;
 
-		case 6: _spi_bus6 = &px4_spi_buses[i]; break;
+			case 6:
+				_spi_bus6 = &px4_spi_buses[i];
+				break;
 		}
 	}
 
@@ -131,8 +139,7 @@ __EXPORT void stm32_spiinitialize()
 		spi_bus_configgpio_cs(_spi_bus1);
 	}
 
-#endif // CONFIG_STM32_SPI1
-
+#endif  // CONFIG_STM32_SPI1
 
 #if defined(CONFIG_STM32_SPI2)
 	ASSERT(_spi_bus2);
@@ -141,7 +148,7 @@ __EXPORT void stm32_spiinitialize()
 		spi_bus_configgpio_cs(_spi_bus2);
 	}
 
-#endif // CONFIG_STM32_SPI2
+#endif  // CONFIG_STM32_SPI2
 
 #ifdef CONFIG_STM32_SPI3
 	ASSERT(_spi_bus3);
@@ -150,7 +157,7 @@ __EXPORT void stm32_spiinitialize()
 		spi_bus_configgpio_cs(_spi_bus3);
 	}
 
-#endif // CONFIG_STM32_SPI3
+#endif  // CONFIG_STM32_SPI3
 
 #ifdef CONFIG_STM32_SPI4
 	ASSERT(_spi_bus4);
@@ -159,8 +166,7 @@ __EXPORT void stm32_spiinitialize()
 		spi_bus_configgpio_cs(_spi_bus4);
 	}
 
-#endif // CONFIG_STM32_SPI4
-
+#endif  // CONFIG_STM32_SPI4
 
 #ifdef CONFIG_STM32_SPI5
 	ASSERT(_spi_bus5);
@@ -169,8 +175,7 @@ __EXPORT void stm32_spiinitialize()
 		spi_bus_configgpio_cs(_spi_bus5);
 	}
 
-#endif // CONFIG_STM32_SPI5
-
+#endif  // CONFIG_STM32_SPI5
 
 #ifdef CONFIG_STM32_SPI6
 	ASSERT(_spi_bus6);
@@ -179,11 +184,10 @@ __EXPORT void stm32_spiinitialize()
 		spi_bus_configgpio_cs(_spi_bus6);
 	}
 
-#endif // CONFIG_STM32_SPI6
+#endif  // CONFIG_STM32_SPI6
 }
 
-static inline void stm32_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+static inline void stm32_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
 		if (bus->devices[i].cs_gpio == 0) {
 			break;
@@ -196,7 +200,6 @@ static inline void stm32_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s *
 	}
 }
 
-
 /************************************************************************************
  * Name: stm32_spi1select and stm32_spi1status
  *
@@ -206,16 +209,12 @@ static inline void stm32_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s *
  ************************************************************************************/
 #ifdef CONFIG_STM32_SPI1
 
-__EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+__EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	stm32_spixselect(_spi_bus1, dev, devid, selected);
 }
 
-__EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
-#endif // CONFIG_STM32_SPI1
+__EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
+#endif  // CONFIG_STM32_SPI1
 
 /************************************************************************************
  * Name: stm32_spi2select and stm32_spi2status
@@ -225,16 +224,12 @@ __EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
  *
  ************************************************************************************/
 #if defined(CONFIG_STM32_SPI2)
-__EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+__EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	stm32_spixselect(_spi_bus2, dev, devid, selected);
 }
 
-__EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
-#endif // CONFIG_STM32_SPI2
+__EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
+#endif  // CONFIG_STM32_SPI2
 
 /************************************************************************************
  * Name: stm32_spi3select and stm32_spi3status
@@ -244,16 +239,12 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
  *
  ************************************************************************************/
 #if defined(CONFIG_STM32_SPI3)
-__EXPORT void stm32_spi3select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+__EXPORT void stm32_spi3select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	stm32_spixselect(_spi_bus3, dev, devid, selected);
 }
 
-__EXPORT uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
-#endif // CONFIG_STM32_SPI3
+__EXPORT uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
+#endif  // CONFIG_STM32_SPI3
 
 /************************************************************************************
  * Name: stm32_spi4select and stm32_spi4status
@@ -264,16 +255,12 @@ __EXPORT uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, uint32_t devid)
  ************************************************************************************/
 #ifdef CONFIG_STM32_SPI4
 
-__EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+__EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	stm32_spixselect(_spi_bus4, dev, devid, selected);
 }
 
-__EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
-#endif // CONFIG_STM32_SPI4
+__EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
+#endif  // CONFIG_STM32_SPI4
 
 /************************************************************************************
  * Name: stm32_spi5select and stm32_spi5status
@@ -284,16 +271,12 @@ __EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, uint32_t devid)
  ************************************************************************************/
 #ifdef CONFIG_STM32_SPI5
 
-__EXPORT void stm32_spi5select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+__EXPORT void stm32_spi5select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	stm32_spixselect(_spi_bus5, dev, devid, selected);
 }
 
-__EXPORT uint8_t stm32_spi5status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
-#endif // CONFIG_STM32_SPI5
+__EXPORT uint8_t stm32_spi5status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
+#endif  // CONFIG_STM32_SPI5
 
 /************************************************************************************
  * Name: stm32_spi6select and stm32_spi6status
@@ -304,20 +287,14 @@ __EXPORT uint8_t stm32_spi5status(FAR struct spi_dev_s *dev, uint32_t devid)
  ************************************************************************************/
 #ifdef CONFIG_STM32_SPI6
 
-__EXPORT void stm32_spi6select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
+__EXPORT void stm32_spi6select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected) {
 	stm32_spixselect(_spi_bus6, dev, devid, selected);
 }
 
-__EXPORT uint8_t stm32_spi6status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-	return SPI_STATUS_PRESENT;
-}
-#endif // CONFIG_STM32_SPI6
+__EXPORT uint8_t stm32_spi6status(FAR struct spi_dev_s *dev, uint32_t devid) { return SPI_STATUS_PRESENT; }
+#endif  // CONFIG_STM32_SPI6
 
-
-void board_control_spi_sensors_power(bool enable_power, int bus_mask)
-{
+void board_control_spi_sensors_power(bool enable_power, int bus_mask) {
 	const px4_spi_bus_t *buses = px4_spi_buses;
 	// this might be called very early on boot where we have not yet determined the hw version
 	// (we expect all versions to have the same power GPIO)
@@ -336,8 +313,7 @@ void board_control_spi_sensors_power(bool enable_power, int bus_mask)
 
 		const bool bus_matches = bus_mask & (1 << (buses[bus].bus - 1));
 
-		if (buses[bus].power_enable_gpio == 0 ||
-		    !board_has_bus(BOARD_SPI_BUS, buses[bus].bus) ||
+		if (buses[bus].power_enable_gpio == 0 || !board_has_bus(BOARD_SPI_BUS, buses[bus].bus) ||
 		    !bus_matches) {
 			continue;
 		}
@@ -346,8 +322,7 @@ void board_control_spi_sensors_power(bool enable_power, int bus_mask)
 	}
 }
 
-void board_control_spi_sensors_power_configgpio()
-{
+void board_control_spi_sensors_power_configgpio() {
 	const px4_spi_bus_t *buses = px4_spi_buses;
 	// this might be called very early on boot where we have yet not determined the hw version
 	// (we expect all versions to have the same power GPIO)
@@ -364,8 +339,7 @@ void board_control_spi_sensors_power_configgpio()
 			break;
 		}
 
-		if (buses[bus].power_enable_gpio == 0 ||
-		    !board_has_bus(BOARD_SPI_BUS, buses[bus].bus)) {
+		if (buses[bus].power_enable_gpio == 0 || !board_has_bus(BOARD_SPI_BUS, buses[bus].bus)) {
 			continue;
 		}
 
@@ -373,10 +347,9 @@ void board_control_spi_sensors_power_configgpio()
 	}
 }
 
-#define _PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz))
+#define _PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT | GPIO_PULLDOWN | GPIO_SPEED_2MHz))
 
-__EXPORT void board_spi_reset(int ms, int bus_mask)
-{
+__EXPORT void board_spi_reset(int ms, int bus_mask) {
 	bool has_power_enable = false;
 
 	// disable SPI bus
@@ -388,8 +361,7 @@ __EXPORT void board_spi_reset(int ms, int bus_mask)
 		const bool bus_requested = bus_mask & (1 << (px4_spi_buses[bus].bus - 1));
 
 		if (px4_spi_buses[bus].power_enable_gpio == 0 ||
-		    !board_has_bus(BOARD_SPI_BUS, px4_spi_buses[bus].bus) ||
-		    !bus_requested) {
+		    !board_has_bus(BOARD_SPI_BUS, px4_spi_buses[bus].bus) || !bus_requested) {
 			continue;
 		}
 
@@ -490,8 +462,7 @@ __EXPORT void board_spi_reset(int ms, int bus_mask)
 		const bool bus_requested = bus_mask & (1 << (px4_spi_buses[bus].bus - 1));
 
 		if (px4_spi_buses[bus].power_enable_gpio == 0 ||
-		    !board_has_bus(BOARD_SPI_BUS, px4_spi_buses[bus].bus) ||
-		    !bus_requested) {
+		    !board_has_bus(BOARD_SPI_BUS, px4_spi_buses[bus].bus) || !bus_requested) {
 			continue;
 		}
 

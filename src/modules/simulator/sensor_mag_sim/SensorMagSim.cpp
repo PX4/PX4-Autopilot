@@ -38,26 +38,19 @@
 
 using namespace matrix;
 
-SensorMagSim::SensorMagSim() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
-{
+SensorMagSim::SensorMagSim()
+	: ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_MAGSIM);
 }
 
-SensorMagSim::~SensorMagSim()
-{
-	perf_free(_loop_perf);
-}
+SensorMagSim::~SensorMagSim() { perf_free(_loop_perf); }
 
-bool SensorMagSim::init()
-{
-	ScheduleOnInterval(20_ms); // 50 Hz
+bool SensorMagSim::init() {
+	ScheduleOnInterval(20_ms);  // 50 Hz
 	return true;
 }
 
-float SensorMagSim::generate_wgn()
-{
+float SensorMagSim::generate_wgn() {
 	// generate white Gaussian noise sample with std=1
 
 	// algorithm 1:
@@ -87,8 +80,7 @@ float SensorMagSim::generate_wgn()
 	return X;
 }
 
-void SensorMagSim::Run()
-{
+void SensorMagSim::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
@@ -111,13 +103,13 @@ void SensorMagSim::Run()
 
 		if (_vehicle_global_position_sub.copy(&gpos)) {
 			if (gpos.eph < 1000) {
-
 				// magnetic field data returned by the geo library using the current GPS position
 				const float mag_declination_gps = get_mag_declination_radians(gpos.lat, gpos.lon);
 				const float mag_inclination_gps = get_mag_inclination_radians(gpos.lat, gpos.lon);
 				const float mag_strength_gps = get_mag_strength_gauss(gpos.lat, gpos.lon);
 
-				_mag_earth_pred = Dcmf(Eulerf(0, -mag_inclination_gps, mag_declination_gps)) * Vector3f(mag_strength_gps, 0, 0);
+				_mag_earth_pred = Dcmf(Eulerf(0, -mag_inclination_gps, mag_declination_gps)) *
+						  Vector3f(mag_strength_gps, 0, 0);
 
 				_mag_earth_available = true;
 			}
@@ -128,12 +120,11 @@ void SensorMagSim::Run()
 		vehicle_attitude_s attitude;
 
 		if (_vehicle_attitude_sub.update(&attitude)) {
-			Vector3f expected_field = Dcmf{Quatf{attitude.q}} .transpose() * _mag_earth_pred;
+			Vector3f expected_field = Dcmf{Quatf{attitude.q}}.transpose() * _mag_earth_pred;
 
 			expected_field += noiseGauss3f(0.02f, 0.02f, 0.03f);
 
-			_px4_mag.update(attitude.timestamp,
-					expected_field(0) + _sim_mag_offset_x.get(),
+			_px4_mag.update(attitude.timestamp, expected_field(0) + _sim_mag_offset_x.get(),
 					expected_field(1) + _sim_mag_offset_y.get(),
 					expected_field(2) + _sim_mag_offset_z.get());
 		}
@@ -142,8 +133,7 @@ void SensorMagSim::Run()
 	perf_end(_loop_perf);
 }
 
-int SensorMagSim::task_spawn(int argc, char *argv[])
-{
+int SensorMagSim::task_spawn(int argc, char *argv[]) {
 	SensorMagSim *instance = new SensorMagSim();
 
 	if (instance) {
@@ -165,13 +155,9 @@ int SensorMagSim::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int SensorMagSim::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int SensorMagSim::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int SensorMagSim::print_usage(const char *reason)
-{
+int SensorMagSim::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -190,7 +176,4 @@ int SensorMagSim::print_usage(const char *reason)
 	return 0;
 }
 
-extern "C" __EXPORT int sensor_mag_sim_main(int argc, char *argv[])
-{
-	return SensorMagSim::main(argc, argv);
-}
+extern "C" __EXPORT int sensor_mag_sim_main(int argc, char *argv[]) { return SensorMagSim::main(argc, argv); }

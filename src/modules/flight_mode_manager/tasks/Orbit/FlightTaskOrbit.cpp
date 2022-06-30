@@ -37,20 +37,16 @@
 
 #include "FlightTaskOrbit.hpp"
 
+#include <lib/geo/geo.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/events.h>
-#include <lib/geo/geo.h>
 
 using namespace matrix;
 
-FlightTaskOrbit::FlightTaskOrbit()
-{
-	_sticks_data_required = false;
-}
+FlightTaskOrbit::FlightTaskOrbit() { _sticks_data_required = false; }
 
-bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
-{
+bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command) {
 	bool ret = true;
 	// save previous velocity and roatation direction
 	bool new_is_clockwise = _orbit_velocity > 0;
@@ -121,11 +117,10 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	return ret;
 }
 
-bool FlightTaskOrbit::sendTelemetry()
-{
+bool FlightTaskOrbit::sendTelemetry() {
 	orbit_status_s orbit_status{};
 	orbit_status.radius = math::signNoZero(_orbit_velocity) * _orbit_radius;
-	orbit_status.frame = 0; // MAV_FRAME::MAV_FRAME_GLOBAL
+	orbit_status.frame = 0;  // MAV_FRAME::MAV_FRAME_GLOBAL
 	orbit_status.yaw_behaviour = _yaw_behaviour;
 
 	if (_geo_projection.isInitialized()) {
@@ -134,7 +129,7 @@ bool FlightTaskOrbit::sendTelemetry()
 		orbit_status.z = _global_local_alt0 - _position_setpoint(2);
 
 	} else {
-		return false; // don't send the message if the transformation failed
+		return false;  // don't send the message if the transformation failed
 	}
 
 	orbit_status.timestamp = hrt_absolute_time();
@@ -143,8 +138,7 @@ bool FlightTaskOrbit::sendTelemetry()
 	return true;
 }
 
-void FlightTaskOrbit::_sanitizeParams(float &radius, float &velocity) const
-{
+void FlightTaskOrbit::_sanitizeParams(float &radius, float &velocity) const {
 	// clip the radius to be within range
 	radius = math::constrain(radius, _radius_min, _radius_max);
 	velocity = math::constrain(velocity, -fabsf(_velocity_max), fabsf(_velocity_max));
@@ -158,8 +152,7 @@ void FlightTaskOrbit::_sanitizeParams(float &radius, float &velocity) const
 	}
 }
 
-bool FlightTaskOrbit::activate(const trajectory_setpoint_s &last_setpoint)
-{
+bool FlightTaskOrbit::activate(const trajectory_setpoint_s &last_setpoint) {
 	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
 	_orbit_radius = _radius_min;
 	_orbit_velocity = 1.f;
@@ -169,12 +162,8 @@ bool FlightTaskOrbit::activate(const trajectory_setpoint_s &last_setpoint)
 	_slew_rate_yaw.setSlewRate(math::radians(_param_mpc_yawrauto_max.get()));
 
 	// need a valid position and velocity
-	ret = ret && PX4_ISFINITE(_position(0))
-	      && PX4_ISFINITE(_position(1))
-	      && PX4_ISFINITE(_position(2))
-	      && PX4_ISFINITE(_velocity(0))
-	      && PX4_ISFINITE(_velocity(1))
-	      && PX4_ISFINITE(_velocity(2));
+	ret = ret && PX4_ISFINITE(_position(0)) && PX4_ISFINITE(_position(1)) && PX4_ISFINITE(_position(2)) &&
+	      PX4_ISFINITE(_velocity(0)) && PX4_ISFINITE(_velocity(1)) && PX4_ISFINITE(_velocity(2));
 
 	Vector3f pos_prev{last_setpoint.position};
 	Vector3f vel_prev{last_setpoint.velocity};
@@ -182,13 +171,19 @@ bool FlightTaskOrbit::activate(const trajectory_setpoint_s &last_setpoint)
 
 	for (int i = 0; i < 3; i++) {
 		// If the position setpoint is unknown, set to the current position
-		if (!PX4_ISFINITE(pos_prev(i))) { pos_prev(i) = _position(i); }
+		if (!PX4_ISFINITE(pos_prev(i))) {
+			pos_prev(i) = _position(i);
+		}
 
 		// If the velocity setpoint is unknown, set to the current velocity
-		if (!PX4_ISFINITE(vel_prev(i))) { vel_prev(i) = _velocity(i); }
+		if (!PX4_ISFINITE(vel_prev(i))) {
+			vel_prev(i) = _velocity(i);
+		}
 
 		// No acceleration estimate available, set to zero if the setpoint is NAN
-		if (!PX4_ISFINITE(accel_prev(i))) { accel_prev(i) = 0.f; }
+		if (!PX4_ISFINITE(accel_prev(i))) {
+			accel_prev(i) = 0.f;
+		}
 	}
 
 	_position_smoothing.reset(accel_prev, vel_prev, pos_prev);
@@ -197,8 +192,7 @@ bool FlightTaskOrbit::activate(const trajectory_setpoint_s &last_setpoint)
 	return ret;
 }
 
-bool FlightTaskOrbit::update()
-{
+bool FlightTaskOrbit::update() {
 	bool ret = true;
 	_updateTrajectoryBoundaries();
 	_adjustParametersByStick();
@@ -234,8 +228,7 @@ bool FlightTaskOrbit::update()
 	return ret;
 }
 
-void FlightTaskOrbit::_updateTrajectoryBoundaries()
-{
+void FlightTaskOrbit::_updateTrajectoryBoundaries() {
 	// update params of the position smoothing
 	_position_smoothing.setMaxAllowedHorizontalError(_param_mpc_xy_err_max.get());
 	_position_smoothing.setVerticalAcceptanceRadius(_param_nav_mc_alt_rad.get());
@@ -244,49 +237,47 @@ void FlightTaskOrbit::_updateTrajectoryBoundaries()
 	_position_smoothing.setTargetAcceptanceRadius(_horizontal_acceptance_radius);
 
 	// Update the constraints of the trajectories
-	_position_smoothing.setMaxAccelerationXY(_param_mpc_acc_hor.get()); // TODO : Should be computed using heading
+	_position_smoothing.setMaxAccelerationXY(_param_mpc_acc_hor.get());  // TODO : Should be computed using heading
 	_position_smoothing.setMaxVelocityXY(_param_mpc_xy_vel_max.get());
 	float max_jerk = _param_mpc_jerk_auto.get();
-	_position_smoothing.setMaxJerk({max_jerk, max_jerk, max_jerk}); // TODO : Should be computed using heading
+	_position_smoothing.setMaxJerk({max_jerk, max_jerk, max_jerk});  // TODO : Should be computed using heading
 
-	if (_velocity_setpoint(2) < 0.f) { // up
+	if (_velocity_setpoint(2) < 0.f) {  // up
 		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_up.get());
 		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_up_max.get());
 
-	} else { // down
+	} else {  // down
 		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
 		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_dn.get());
 	}
-
 }
 
-bool FlightTaskOrbit::_is_position_on_circle() const
-{
-	return (fabsf(Vector2f(_position - _center).length() - _orbit_radius) < _horizontal_acceptance_radius)
-	       && fabsf(_position(2) - _center(2)) < _param_nav_mc_alt_rad.get();
-
+bool FlightTaskOrbit::_is_position_on_circle() const {
+	return (fabsf(Vector2f(_position - _center).length() - _orbit_radius) < _horizontal_acceptance_radius) &&
+	       fabsf(_position(2) - _center(2)) < _param_nav_mc_alt_rad.get();
 }
 
-void FlightTaskOrbit::_adjustParametersByStick()
-{
+void FlightTaskOrbit::_adjustParametersByStick() {
 	float radius = _orbit_radius;
 	float velocity = _orbit_velocity;
 
 	switch (_yaw_behaviour) {
-	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE:
-		radius -= signFromBool(_started_clockwise) * _sticks.getPositionExpo()(1) * _deltatime * _param_mpc_xy_cruise.get();
-		velocity += signFromBool(_started_clockwise) * _sticks.getPositionExpo()(0) * _deltatime * _param_mpc_acc_hor.get();
-		break;
+		case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE:
+			radius -= signFromBool(_started_clockwise) * _sticks.getPositionExpo()(1) * _deltatime *
+				  _param_mpc_xy_cruise.get();
+			velocity += signFromBool(_started_clockwise) * _sticks.getPositionExpo()(0) * _deltatime *
+				    _param_mpc_acc_hor.get();
+			break;
 
-	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING:
-	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_UNCONTROLLED:
-	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED:
-	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER:
-	default:
-		// stick input adjusts parameters within a fixed time frame
-		radius -= _sticks.getPositionExpo()(0) * _deltatime * _param_mpc_xy_cruise.get();
-		velocity -= _sticks.getPositionExpo()(1) * _deltatime * _param_mpc_acc_hor.get();
-		break;
+		case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING:
+		case orbit_status_s::ORBIT_YAW_BEHAVIOUR_UNCONTROLLED:
+		case orbit_status_s::ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED:
+		case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER:
+		default:
+			// stick input adjusts parameters within a fixed time frame
+			radius -= _sticks.getPositionExpo()(0) * _deltatime * _param_mpc_xy_cruise.get();
+			velocity -= _sticks.getPositionExpo()(1) * _deltatime * _param_mpc_acc_hor.get();
+			break;
 	}
 
 	_sanitizeParams(radius, velocity);
@@ -294,18 +285,17 @@ void FlightTaskOrbit::_adjustParametersByStick()
 	_orbit_velocity = velocity;
 }
 
-void FlightTaskOrbit::_generate_circle_approach_setpoints()
-{
+void FlightTaskOrbit::_generate_circle_approach_setpoints() {
 	const Vector2f center2d = Vector2f(_center);
 	const Vector2f position_to_center_xy = center2d - Vector2f(_position);
 	Vector2f closest_point_on_circle = Vector2f(_position) + position_to_center_xy.unit_or_zero() *
-					   (position_to_center_xy.norm() - _orbit_radius);
+									 (position_to_center_xy.norm() - _orbit_radius);
 
 	const Vector3f target_circle_point{closest_point_on_circle(0), closest_point_on_circle(1), _center(2)};
 
 	PositionSmoothing::PositionSmoothingSetpoints out_setpoints;
-	_position_smoothing.generateSetpoints(_position, target_circle_point,
-	{0.f, 0.f, 0.f}, _deltatime, false, out_setpoints);
+	_position_smoothing.generateSetpoints(_position, target_circle_point, {0.f, 0.f, 0.f}, _deltatime, false,
+					      out_setpoints);
 
 	_yaw_setpoint = atan2f(position_to_center_xy(1), position_to_center_xy(0));
 
@@ -315,8 +305,7 @@ void FlightTaskOrbit::_generate_circle_approach_setpoints()
 	_jerk_setpoint = out_setpoints.jerk;
 }
 
-void FlightTaskOrbit::_generate_circle_setpoints()
-{
+void FlightTaskOrbit::_generate_circle_setpoints() {
 	Vector3f center_to_position = _position - _center;
 	// xy velocity to go around in a circle
 	Vector2f velocity_xy(-center_to_position(1), center_to_position(0));
@@ -328,42 +317,41 @@ void FlightTaskOrbit::_generate_circle_setpoints()
 
 	_position_setpoint(0) = _position_setpoint(1) = NAN;
 	_velocity_setpoint.xy() = velocity_xy;
-	_acceleration_setpoint.xy() = -Vector2f(center_to_position.unit_or_zero()) * _orbit_velocity * _orbit_velocity /
-				      _orbit_radius;
+	_acceleration_setpoint.xy() =
+		-Vector2f(center_to_position.unit_or_zero()) * _orbit_velocity * _orbit_velocity / _orbit_radius;
 }
 
-void FlightTaskOrbit::_generate_circle_yaw_setpoints()
-{
+void FlightTaskOrbit::_generate_circle_yaw_setpoints() {
 	Vector3f center_to_position = _position - _center;
 
 	switch (_yaw_behaviour) {
-	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING:
-		// make vehicle keep the same heading as when the orbit was commanded
-		_yaw_setpoint = _initial_heading;
-		_yawspeed_setpoint = NAN;
-		break;
+		case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING:
+			// make vehicle keep the same heading as when the orbit was commanded
+			_yaw_setpoint = _initial_heading;
+			_yawspeed_setpoint = NAN;
+			break;
 
-	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_UNCONTROLLED:
-		// no yaw setpoint
-		_yaw_setpoint = NAN;
-		_yawspeed_setpoint = NAN;
-		break;
+		case orbit_status_s::ORBIT_YAW_BEHAVIOUR_UNCONTROLLED:
+			// no yaw setpoint
+			_yaw_setpoint = NAN;
+			_yawspeed_setpoint = NAN;
+			break;
 
-	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE:
-		_yaw_setpoint = atan2f(signFromBool(_started_clockwise) * center_to_position(0),
-				       -signFromBool(_started_clockwise) * center_to_position(1));
-		_yawspeed_setpoint = _orbit_velocity / _orbit_radius;
-		break;
+		case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE:
+			_yaw_setpoint = atan2f(signFromBool(_started_clockwise) * center_to_position(0),
+					       -signFromBool(_started_clockwise) * center_to_position(1));
+			_yawspeed_setpoint = _orbit_velocity / _orbit_radius;
+			break;
 
-	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED:
-		// inherit setpoint from altitude flight task
-		break;
+		case orbit_status_s::ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED:
+			// inherit setpoint from altitude flight task
+			break;
 
-	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER:
-	default:
-		_yaw_setpoint = atan2f(-center_to_position(1), -center_to_position(0));
-		// yawspeed feed-forward because we know the necessary angular rate
-		_yawspeed_setpoint = _orbit_velocity / _orbit_radius;
-		break;
+		case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER:
+		default:
+			_yaw_setpoint = atan2f(-center_to_position(1), -center_to_position(0));
+			// yawspeed feed-forward because we know the necessary angular rate
+			_yawspeed_setpoint = _orbit_velocity / _orbit_radius;
+			break;
 	}
 }

@@ -37,13 +37,13 @@
  * Provide a kernel-userspace boardctl_ioctl interface
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform/board_ctrl.h>
-#include "board_config.h"
-
-#include <nuttx/lib/builtin.h>
 #include <NuttX/kernel_builtin/kernel_builtin_proto.h>
+#include <nuttx/lib/builtin.h>
+#include <px4_platform/board_ctrl.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_config.h>
+
+#include "board_config.h"
 
 FAR const struct builtin_s g_kernel_builtins[] = {
 #include <NuttX/kernel_builtin/kernel_builtin_list.h>
@@ -51,9 +51,7 @@ FAR const struct builtin_s g_kernel_builtins[] = {
 
 const int g_n_kernel_builtins = sizeof(g_kernel_builtins) / sizeof(struct builtin_s);
 
-static struct {
-	ioctl_ptr_t ioctl_func;
-} ioctl_ptrs[MAX_IOCTL_PTRS];
+static struct { ioctl_ptr_t ioctl_func; } ioctl_ptrs[MAX_IOCTL_PTRS];
 
 /************************************************************************************
  * Name: px4_register_boardct_ioctl
@@ -63,9 +61,7 @@ static struct {
  *
  ************************************************************************************/
 
-
-int px4_register_boardct_ioctl(unsigned base, ioctl_ptr_t func)
-{
+int px4_register_boardct_ioctl(unsigned base, ioctl_ptr_t func) {
 	unsigned i = IOCTL_BASE_TO_IDX(base);
 	int ret = PX4_ERROR;
 
@@ -85,8 +81,7 @@ int px4_register_boardct_ioctl(unsigned base, ioctl_ptr_t func)
  *
  ************************************************************************************/
 
-int board_ioctl(unsigned int cmd, uintptr_t arg)
-{
+int board_ioctl(unsigned int cmd, uintptr_t arg) {
 	unsigned i = IOCTL_BASE_TO_IDX(cmd);
 	int ret = -EINVAL;
 
@@ -105,8 +100,7 @@ int board_ioctl(unsigned int cmd, uintptr_t arg)
  *
  ************************************************************************************/
 
-static int launch_kernel_builtin(int argc, char **argv)
-{
+static int launch_kernel_builtin(int argc, char **argv) {
 	int i;
 	FAR const struct builtin_s *builtin = NULL;
 
@@ -134,43 +128,37 @@ static int launch_kernel_builtin(int argc, char **argv)
  *
  ************************************************************************************/
 
-static int platform_ioctl(unsigned int cmd, unsigned long arg)
-{
+static int platform_ioctl(unsigned int cmd, unsigned long arg) {
 	int ret = PX4_OK;
 
 	switch (cmd) {
-	case PLATFORMIOCLAUNCH: {
+		case PLATFORMIOCLAUNCH: {
 			platformioclaunch_t *data = (platformioclaunch_t *)arg;
 			data->ret = launch_kernel_builtin(data->argc, data->argv);
-		}
-		break;
+		} break;
 
-	case PLATFORMIOCVBUSSTATE: {
+		case PLATFORMIOCVBUSSTATE: {
 			platformiocvbusstate_t *data = (platformiocvbusstate_t *)arg;
 			data->ret = px4_arch_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1;
-		}
-		break;
+		} break;
 
-	case PLATFORMIOCINDICATELOCKOUT: {
+		case PLATFORMIOCINDICATELOCKOUT: {
 			platformioclockoutstate_t *data = (platformioclockoutstate_t *)arg;
 			px4_arch_configgpio(data->enabled ? GPIO_nARMED : GPIO_nARMED_INIT);
-		}
-		break;
+		} break;
 
-	case PLATFORMIOCGETLOCKOUT: {
+		case PLATFORMIOCGETLOCKOUT: {
 			platformioclockoutstate_t *data = (platformioclockoutstate_t *)arg;
 			data->enabled = px4_arch_gpioread(GPIO_nARMED);
-		}
-		break;
+		} break;
 
-	default:
-		ret = -ENOTTY;
-		break;
+		default:
+			ret = -ENOTTY;
+			break;
 	}
 
 	return ret;
 }
-
 
 /************************************************************************************
  * Name: kernel_ioctl_initialize
@@ -180,8 +168,7 @@ static int platform_ioctl(unsigned int cmd, unsigned long arg)
  *
  ************************************************************************************/
 
-void kernel_ioctl_initialize(void)
-{
+void kernel_ioctl_initialize(void) {
 	for (int i = 0; i < MAX_IOCTL_PTRS; i++) {
 		ioctl_ptrs[i].ioctl_func = NULL;
 	}

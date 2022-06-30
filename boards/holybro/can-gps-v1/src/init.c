@@ -45,39 +45,31 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/tasks.h>
-
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
+#include <arch/board/board.h>
 #include <debug.h>
+#include <drivers/drv_hrt.h>
 #include <errno.h>
-#include <syslog.h>
-
+#include <nuttx/analog/adc.h>
 #include <nuttx/board.h>
 #include <nuttx/i2c/i2c_master.h>
-#include <nuttx/analog/adc.h>
-
-#include <stm32.h>
-#include "board_config.h"
-#include <stm32_uart.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/drv_hrt.h>
-
-#include "led.h"
-
-#include <systemlib/px4_macros.h>
-
-#include <px4_platform_common/init.h>
-
-#include <px4_platform/gpio.h>
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
-# if defined(FLASH_BASED_PARAMS)
-#  include <parameters/flashparams/flashfs.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stm32.h>
+#include <stm32_uart.h>
+#include <string.h>
+#include <syslog.h>
+#include <systemlib/px4_macros.h>
+
+#include "board_config.h"
+#include "led.h"
+#if defined(FLASH_BASED_PARAMS)
+#include <parameters/flashparams/flashfs.h>
 #endif
 
 /************************************************************************************
@@ -90,9 +82,7 @@
  *
  ************************************************************************************/
 
-__EXPORT void
-stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	/* configure LEDs */
 
 	board_autoled_initialize();
@@ -133,8 +123,7 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	VDD_3V3_SENSORS_EN(true);
 
 	px4_platform_init();
@@ -164,7 +153,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
 	}
 
-#endif // FLASH_BASED_PARAMS
+#endif  // FLASH_BASED_PARAMS
 
 #if defined(SERIAL_HAVE_RXDMA)
 	// set up the serial DMA polling at 1ms intervals for received bytes that have not triggered a DMA event.

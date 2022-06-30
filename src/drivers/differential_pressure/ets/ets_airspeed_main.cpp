@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include "ETSAirspeed.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void ETSAirspeed::print_usage()
-{
+#include "ETSAirspeed.hpp"
+
+void ETSAirspeed::print_usage() {
 	PRINT_MODULE_USAGE_NAME("ets_airspeed", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -46,8 +45,7 @@ void ETSAirspeed::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int ets_airspeed_main(int argc, char *argv[])
-{
+extern "C" int ets_airspeed_main(int argc, char *argv[]) {
 	using ThisDriver = ETSAirspeed;
 	BusCLIArguments cli{true, false};
 	cli.i2c_address = I2C_ADDRESS_DEFAULT;

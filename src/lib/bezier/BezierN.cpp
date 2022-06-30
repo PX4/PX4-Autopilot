@@ -40,30 +40,26 @@
 #include <bezier/BezierN.hpp>
 #include <matrix/Dual.hpp>
 
-namespace
-{
+namespace {
 
 /*
  * Generic in-place bezier implementation. Leaves result in first element.
  *
  */
 template <typename Scalar, size_t D>
-void calculateBezier(matrix::Vector<Scalar, D> *positions, int N, Scalar t, Scalar one_minus_t)
-{
+void calculateBezier(matrix::Vector<Scalar, D> *positions, int N, Scalar t, Scalar one_minus_t) {
 	for (int bezier_order = 1; bezier_order < N; bezier_order++) {
 		for (int i = 0; i < N - bezier_order; i++) {
 			positions[i] = positions[i] * one_minus_t + positions[i + 1] * t;
 		}
 	}
 }
-}
+}  // namespace
 
-namespace bezier
-{
+namespace bezier {
 
-bool calculateBezierPosVel(const matrix::Vector3f *positions, int N, float t,
-			   matrix::Vector3f &position, matrix::Vector3f &velocity)
-{
+bool calculateBezierPosVel(const matrix::Vector3f *positions, int N, float t, matrix::Vector3f &position,
+			   matrix::Vector3f &velocity) {
 	if (positions == nullptr || N == 0 || t < 0 || t > 1) {
 		return false;
 	}
@@ -79,7 +75,7 @@ bool calculateBezierPosVel(const matrix::Vector3f *positions, int N, float t,
 		}
 	}
 
-	Df dual_t(t, 0); // derivative with respect to time
+	Df dual_t(t, 0);  // derivative with respect to time
 	calculateBezier(intermediates, N, dual_t, Df(1) - dual_t);
 
 	position = matrix::collectReals(intermediates[0]);
@@ -88,9 +84,8 @@ bool calculateBezierPosVel(const matrix::Vector3f *positions, int N, float t,
 	return true;
 }
 
-bool calculateBezierPosVelAcc(const matrix::Vector3f *positions, int N, float t,
-			      matrix::Vector3f &position, matrix::Vector3f &velocity, matrix::Vector3f &acceleration)
-{
+bool calculateBezierPosVelAcc(const matrix::Vector3f *positions, int N, float t, matrix::Vector3f &position,
+			      matrix::Vector3f &velocity, matrix::Vector3f &acceleration) {
 	if (positions == nullptr || N == 0 || t < 0 || t > 1) {
 		return false;
 	}
@@ -107,7 +102,7 @@ bool calculateBezierPosVelAcc(const matrix::Vector3f *positions, int N, float t,
 		}
 	}
 
-	DDf dual_t(Df(t, 0), 0); // 1st and 2nd derivative with respect to time
+	DDf dual_t(Df(t, 0), 0);  // 1st and 2nd derivative with respect to time
 	calculateBezier(intermediates, N, dual_t, Df(1) - dual_t);
 
 	position = matrix::collectReals(matrix::collectReals(intermediates[0]));
@@ -117,12 +112,10 @@ bool calculateBezierPosVelAcc(const matrix::Vector3f *positions, int N, float t,
 	return true;
 }
 
-bool calculateBezierYaw(const float *setpoints, int N, float t, float &yaw_setpoint, float &yaw_vel_setpoint)
-{
+bool calculateBezierYaw(const float *setpoints, int N, float t, float &yaw_setpoint, float &yaw_vel_setpoint) {
 	if (setpoints == nullptr || N == 0 || t < 0 || t > 1) {
 		return false;
 	}
-
 
 	using Df = matrix::Dual<float, 1>;
 	using Vector1Df = matrix::Vector<Df, 1>;
@@ -136,7 +129,7 @@ bool calculateBezierYaw(const float *setpoints, int N, float t, float &yaw_setpo
 		intermediates[i](0) = matrix::wrap_pi(setpoints[i] - offset);
 	}
 
-	Df dual_t (t, 0); // derivative with respect to time
+	Df dual_t(t, 0);  // derivative with respect to time
 	calculateBezier(intermediates, N, dual_t, Df(1) - dual_t);
 
 	Df result = intermediates[0](0);
@@ -146,8 +139,7 @@ bool calculateBezierYaw(const float *setpoints, int N, float t, float &yaw_setpo
 	return true;
 }
 
-bool calculateT(int64_t start_time, int64_t end_time, int64_t now, float &T)
-{
+bool calculateT(int64_t start_time, int64_t end_time, int64_t now, float &T) {
 	if (now < start_time || end_time < now) {
 		return false;
 	}
@@ -155,9 +147,9 @@ bool calculateT(int64_t start_time, int64_t end_time, int64_t now, float &T)
 	int64_t total_duration = end_time - start_time;
 	int64_t elapsed_duration = now - start_time;
 
-	T = (float) elapsed_duration / (float) total_duration;
+	T = (float)elapsed_duration / (float)total_duration;
 
 	return true;
 }
 
-}
+}  // namespace bezier

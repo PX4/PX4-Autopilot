@@ -43,11 +43,10 @@
 #define MODULE_NAME "PX4_MANIFEST"
 #endif
 
+#include <errno.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_manifest.h>
-#include <px4_platform_common/log.h>
-
-#include <errno.h>
 
 __EXPORT const px4_mft_s *board_get_manifest(void) weak_function;
 
@@ -56,31 +55,21 @@ static const px4_mft_entry_s mtd_mft = {
 	.type = MTD,
 };
 
-static const px4_mft_s default_mft = {
-	.nmft = 1,
-	.mfts = &mtd_mft
-};
+static const px4_mft_s default_mft = {.nmft = 1, .mfts = &mtd_mft};
 
+const px4_mft_s *board_get_manifest(void) { return &default_mft; }
 
-const px4_mft_s *board_get_manifest(void)
-{
-	return &default_mft;
-}
-
-
-__EXPORT int px4_mft_configure(const px4_mft_s *mft)
-{
-
+__EXPORT int px4_mft_configure(const px4_mft_s *mft) {
 	if (mft != nullptr) {
 		for (uint32_t m = 0; m < mft->nmft; m++) {
 			switch (mft->mfts[m].type) {
-			case MTD:
-				px4_mtd_config(static_cast<const px4_mtd_manifest_t *>(mft->mfts[m].pmft));
-				break;
+				case MTD:
+					px4_mtd_config(static_cast<const px4_mtd_manifest_t *>(mft->mfts[m].pmft));
+					break;
 
-			case MFT:
-			default:
-				break;
+				case MFT:
+				default:
+					break;
 			}
 		}
 	}
@@ -88,23 +77,20 @@ __EXPORT int px4_mft_configure(const px4_mft_s *mft)
 	return 0;
 }
 
-__EXPORT int px4_mft_query(const px4_mft_s *mft, px4_manifest_types_e type,
-			   const char *sub, const char *val)
-{
+__EXPORT int px4_mft_query(const px4_mft_s *mft, px4_manifest_types_e type, const char *sub, const char *val) {
 	int rv = -EINVAL;
 
 	if (mft != nullptr) {
 		for (uint32_t m = 0; m < mft->nmft; m++) {
-			if (mft->mfts[m].type == type)
-				switch (type) {
-				case MTD:
-					return px4_mtd_query(sub, val);
-					break;
+			if (mft->mfts[m].type == type) switch (type) {
+					case MTD:
+						return px4_mtd_query(sub, val);
+						break;
 
-				case MFT:
-				default:
-					rv = -ENODATA;
-					break;
+					case MFT:
+					default:
+						rv = -ENODATA;
+						break;
 				}
 		}
 	}

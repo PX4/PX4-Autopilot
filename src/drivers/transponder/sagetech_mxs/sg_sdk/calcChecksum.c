@@ -13,8 +13,7 @@
 /*
  * Documented in the header file
  */
-uint8_t calcChecksum(uint8_t *buffer, uint8_t len)
-{
+uint8_t calcChecksum(uint8_t *buffer, uint8_t len) {
 	uint8_t sum = 0x00;
 
 	// Add all bytes excluding checksum

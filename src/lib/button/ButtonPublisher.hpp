@@ -40,19 +40,19 @@
 
 #pragma once
 
-#include <drivers/drv_tone_alarm.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_tone_alarm.h>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/button_event.h>
+#include <uORB/topics/led_control.h>
+#include <uORB/topics/tune_control.h>
+#include <uORB/topics/vehicle_command.h>
+
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/button_event.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/led_control.h>
-#include <uORB/topics/tune_control.h>
 
-class ButtonPublisher
-{
+class ButtonPublisher {
 public:
 	ButtonPublisher();
 	~ButtonPublisher() = default;
@@ -70,8 +70,8 @@ public:
 	static constexpr uint8_t PAIRING_BUTTON_EVENT_COUNT{3};
 
 private:
-	uORB::Publication<button_event_s>		_safety_button_pub{ORB_ID(safety_button)};
-	uORB::Publication<vehicle_command_s>	_vehicle_command_pub{ORB_ID(vehicle_command)};
-	uORB::Publication<led_control_s> 		_led_control_pub{ORB_ID(led_control)};
-	uORB::Publication<tune_control_s> 		_tune_control_pub{ORB_ID(tune_control)};
+	uORB::Publication<button_event_s> _safety_button_pub{ORB_ID(safety_button)};
+	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<led_control_s> _led_control_pub{ORB_ID(led_control)};
+	uORB::Publication<tune_control_s> _tune_control_pub{ORB_ID(tune_control)};
 };

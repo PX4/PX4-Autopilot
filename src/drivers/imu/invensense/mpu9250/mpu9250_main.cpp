@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include "MPU9250.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void MPU9250::print_usage()
-{
+#include "MPU9250.hpp"
+
+void MPU9250::print_usage() {
 	PRINT_MODULE_USAGE_NAME("mpu9520", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -47,8 +46,7 @@ void MPU9250::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int mpu9250_main(int argc, char *argv[])
-{
+extern "C" int mpu9250_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = MPU9250;
 	BusCLIArguments cli{false, true};
@@ -56,13 +54,13 @@ extern "C" int mpu9250_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "MR:")) != EOF) {
 		switch (ch) {
-		case 'M':
-			cli.custom1 = 1;
-			break;
+			case 'M':
+				cli.custom1 = 1;
+				break;
 
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

@@ -39,7 +39,6 @@
  * @author Roman Bapst	<roman@px4.io>
  */
 
-
 /**
  * Enable/disable usage of fixed-wing actuators in hover to generate forward force (instead of pitching down).
  *
@@ -54,8 +53,10 @@
  * @value 2 Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT1.
  * @value 3 Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT2.
  * @value 4 Enable FW forward actuation in hover in altitude, position and auto modes.
- * @value 5 Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT1 (except LANDING).
- * @value 6 Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT2 (except LANDING).
+ * @value 5 Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT1 (except
+ * LANDING).
+ * @value 6 Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT2 (except
+ * LANDING).
  *
  * @group VTOL Attitude Control
  */
@@ -100,7 +101,6 @@ PARAM_DEFINE_FLOAT(VT_B_TRANS_RAMP, 3.0f);
  */
 PARAM_DEFINE_FLOAT(VT_B_REV_OUT, 0.0f);
 
-
 /**
  * Delay in seconds before applying back transition throttle
  *
@@ -118,8 +118,8 @@ PARAM_DEFINE_FLOAT(VT_B_REV_DEL, 0.0f);
 /**
  * Pusher throttle ramp up window
  *
- * Defines the time window during which the pusher throttle will be ramped up linearly to VT_F_TRANS_THR during a transition
- * to fixed wing mode. Zero or negative values will produce an instant throttle rise to VT_F_TRANS_THR.
+ * Defines the time window during which the pusher throttle will be ramped up linearly to VT_F_TRANS_THR during a
+ * transition to fixed wing mode. Zero or negative values will produce an instant throttle rise to VT_F_TRANS_THR.
  *
  * @max 20
  * @increment 0.01

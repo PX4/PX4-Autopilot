@@ -39,16 +39,14 @@
 
 #include <lib/drivers/device/Device.hpp>
 
-LeddarOne::LeddarOne(const char *serial_port, uint8_t device_orientation):
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(serial_port)),
-	_px4_rangefinder(0, device_orientation)
-{
+LeddarOne::LeddarOne(const char *serial_port, uint8_t device_orientation)
+	: ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(serial_port)), _px4_rangefinder(0, device_orientation) {
 	_serial_port = strdup(serial_port);
 
 	device::Device::DeviceId device_id;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SERIAL;
 
-	uint8_t bus_num = atoi(&_serial_port[strlen(_serial_port) - 1]); // Assuming '/dev/ttySx'
+	uint8_t bus_num = atoi(&_serial_port[strlen(_serial_port) - 1]);  // Assuming '/dev/ttySx'
 
 	if (bus_num < 10) {
 		device_id.devid_s.bus = bus_num;
@@ -62,8 +60,7 @@ LeddarOne::LeddarOne(const char *serial_port, uint8_t device_orientation):
 	_px4_rangefinder.set_fov(LEDDAR_ONE_FIELD_OF_VIEW);
 }
 
-LeddarOne::~LeddarOne()
-{
+LeddarOne::~LeddarOne() {
 	stop();
 
 	free((char *)_serial_port);
@@ -71,9 +68,7 @@ LeddarOne::~LeddarOne()
 	perf_free(_sample_perf);
 }
 
-uint16_t
-LeddarOne::crc16_calc(const unsigned char *data_frame, const uint8_t crc16_length)
-{
+uint16_t LeddarOne::crc16_calc(const unsigned char *data_frame, const uint8_t crc16_length) {
 	uint16_t crc = 0xFFFF;
 
 	for (uint8_t i = 0; i < crc16_length; i++) {
@@ -92,9 +87,7 @@ LeddarOne::crc16_calc(const unsigned char *data_frame, const uint8_t crc16_lengt
 	return crc;
 }
 
-int
-LeddarOne::collect()
-{
+int LeddarOne::collect() {
 	perf_begin(_sample_perf);
 
 	const int buffer_size = sizeof(_buffer);
@@ -114,12 +107,10 @@ LeddarOne::collect()
 		return PX4_OK;
 	}
 
-	reading_msg *msg {nullptr};
+	reading_msg *msg{nullptr};
 	msg = (reading_msg *)_buffer;
 
-	if (msg->slave_addr != MODBUS_SLAVE_ADDRESS ||
-	    msg->function != MODBUS_READING_FUNCTION) {
-
+	if (msg->slave_addr != MODBUS_SLAVE_ADDRESS || msg->function != MODBUS_READING_FUNCTION) {
 		PX4_ERR("slave address or function read error");
 		perf_count(_comms_error);
 		perf_end(_sample_perf);
@@ -150,16 +141,14 @@ LeddarOne::collect()
 	return measure();
 }
 
-int
-LeddarOne::init()
-{
+int LeddarOne::init() {
 	if (open_serial_port() != PX4_OK) {
 		return PX4_ERROR;
 	}
 
 	hrt_abstime time_now = hrt_absolute_time();
 
-	const hrt_abstime timeout_usec = time_now + 500000_us; // 0.5sec
+	const hrt_abstime timeout_usec = time_now + 500000_us;  // 0.5sec
 
 	while (time_now < timeout_usec) {
 		if (measure() == PX4_OK) {
@@ -181,9 +170,7 @@ LeddarOne::init()
 	return PX4_ERROR;
 }
 
-int
-LeddarOne::measure()
-{
+int LeddarOne::measure() {
 	// Flush the receive buffer.
 	tcflush(_file_descriptor, TCIFLUSH);
 
@@ -199,9 +186,7 @@ LeddarOne::measure()
 	return PX4_OK;
 }
 
-int
-LeddarOne::open_serial_port(const speed_t speed)
-{
+int LeddarOne::open_serial_port(const speed_t speed) {
 	// File descriptor already initialized?
 	if (_file_descriptor > 0) {
 		// PX4_INFO("serial port already open");
@@ -276,32 +261,24 @@ LeddarOne::open_serial_port(const speed_t speed)
 	return PX4_OK;
 }
 
-void
-LeddarOne::print_info()
-{
+void LeddarOne::print_info() {
 	perf_print_counter(_comms_error);
 	perf_print_counter(_sample_perf);
 }
 
-void
-LeddarOne::Run()
-{
+void LeddarOne::Run() {
 	// Ensure the serial port is open.
 	open_serial_port();
 
 	collect();
 }
 
-void
-LeddarOne::start()
-{
+void LeddarOne::start() {
 	// Schedule the driver at regular intervals.
 	ScheduleOnInterval(LEDDAR_ONE_MEASURE_INTERVAL, LEDDAR_ONE_MEASURE_INTERVAL);
 }
 
-void
-LeddarOne::stop()
-{
+void LeddarOne::stop() {
 	// Ensure the serial port is closed.
 	::close(_file_descriptor);
 	_file_descriptor = -1;

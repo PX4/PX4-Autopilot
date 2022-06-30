@@ -37,10 +37,11 @@
  * LED driver to control the onboard LED(s) via ioctl interface.
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <lib/cdev/CDev.hpp>
 #include <drivers/drv_board_led.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdio.h>
+
+#include <lib/cdev/CDev.hpp>
 
 /*
  * Ideally we'd be able to get these from arm_internal.h,
@@ -56,25 +57,21 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
-class LED : cdev::CDev
-{
+class LED : cdev::CDev {
 public:
 	LED();
 	~LED() override = default;
 
-	int	init() override;
-	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
+	int init() override;
+	int ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 };
 
-LED::LED() : CDev(LED0_DEVICE_PATH)
-{
+LED::LED() : CDev(LED0_DEVICE_PATH) {
 	// force immediate init/device registration
 	init();
 }
 
-int
-LED::init()
-{
+int LED::init() {
 	PX4_DEBUG("LED::init");
 
 	CDev::init();
@@ -84,39 +81,34 @@ LED::init()
 	return 0;
 }
 
-int
-LED::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
-{
+int LED::ioctl(cdev::file_t *filp, int cmd, unsigned long arg) {
 	int result = OK;
 
 	switch (cmd) {
-	case LED_ON:
-		led_on(arg);
-		break;
+		case LED_ON:
+			led_on(arg);
+			break;
 
-	case LED_OFF:
-		led_off(arg);
-		break;
+		case LED_OFF:
+			led_off(arg);
+			break;
 
-	case LED_TOGGLE:
-		led_toggle(arg);
-		break;
+		case LED_TOGGLE:
+			led_toggle(arg);
+			break;
 
-	default:
-		result = CDev::ioctl(filp, cmd, arg);
+		default:
+			result = CDev::ioctl(filp, cmd, arg);
 	}
 
 	return result;
 }
 
-namespace
-{
-LED	*gLED;
+namespace {
+LED *gLED;
 }
 
-void
-drv_led_start(void)
-{
+void drv_led_start(void) {
 	if (gLED == nullptr) {
 		gLED = new LED;
 	}

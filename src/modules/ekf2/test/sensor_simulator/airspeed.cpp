@@ -1,20 +1,13 @@
 #include "airspeed.h"
 
-namespace sensor_simulator
-{
-namespace sensor
-{
+namespace sensor_simulator {
+namespace sensor {
 
-Airspeed::Airspeed(std::shared_ptr<Ekf> ekf): Sensor(ekf)
-{
-}
+Airspeed::Airspeed(std::shared_ptr<Ekf> ekf) : Sensor(ekf) {}
 
-Airspeed::~Airspeed()
-{
-}
+Airspeed::~Airspeed() {}
 
-void Airspeed::send(uint64_t time)
-{
+void Airspeed::send(uint64_t time) {
 	if (_true_airspeed_data > FLT_EPSILON && _indicated_airspeed_data > FLT_EPSILON) {
 		airspeedSample airspeed_sample;
 		airspeed_sample.time_us = time;
@@ -24,11 +17,10 @@ void Airspeed::send(uint64_t time)
 	}
 }
 
-void Airspeed::setData(float true_airspeed, float indicated_airspeed)
-{
+void Airspeed::setData(float true_airspeed, float indicated_airspeed) {
 	_true_airspeed_data = true_airspeed;
 	_indicated_airspeed_data = indicated_airspeed;
 }
 
-} // namespace sensor
-} // namespace sensor_simulator
+}  // namespace sensor
+}  // namespace sensor_simulator

@@ -39,7 +39,6 @@
 #pragma once
 
 #include <px4_platform_common/defines.h>
-
 #include <stdint.h>
 
 __BEGIN_DECLS
@@ -53,12 +52,12 @@ __BEGIN_DECLS
  *			will not be configured as PWM.
  * @return <0 on error, the initialized channels mask.
  */
-__EXPORT extern int	up_pwm_trigger_init(uint32_t channel_mask);
+__EXPORT extern int up_pwm_trigger_init(uint32_t channel_mask);
 
 /**
  * De-initialise the PWM trigger outputs.
  */
-__EXPORT extern void	up_pwm_trigger_deinit(void);
+__EXPORT extern void up_pwm_trigger_deinit(void);
 
 /**
  * Arm or disarm trigger outputs.
@@ -69,7 +68,7 @@ __EXPORT extern void	up_pwm_trigger_deinit(void);
  * @param armed		If true, outputs are armed; if false they
  *			are disarmed.
  */
-__EXPORT extern void	up_pwm_trigger_arm(bool armed);
+__EXPORT extern void up_pwm_trigger_arm(bool armed);
 
 /**
  * Set the current output value for a channel.
@@ -77,6 +76,6 @@ __EXPORT extern void	up_pwm_trigger_arm(bool armed);
  * @param channel	The channel to set.
  * @param value		The output pulse width in microseconds.
  */
-__EXPORT extern int	up_pwm_trigger_set(unsigned channel, uint16_t value);
+__EXPORT extern int up_pwm_trigger_set(unsigned channel, uint16_t value);
 
 __END_DECLS

@@ -38,31 +38,27 @@
 
 #pragma once
 
-#include <mathlib/math/Functions.hpp>
 #include <float.h>
+
+#include <mathlib/math/Functions.hpp>
 #include <matrix/math.hpp>
 
-namespace math
-{
+namespace math {
 
-template<typename T>
-class LowPassFilter2p
-{
+template <typename T>
+class LowPassFilter2p {
 public:
 	LowPassFilter2p() = default;
 
-	LowPassFilter2p(float sample_freq, float cutoff_freq)
-	{
+	LowPassFilter2p(float sample_freq, float cutoff_freq) {
 		// set initial parameters
 		set_cutoff_frequency(sample_freq, cutoff_freq);
 	}
 
 	// Change filter parameters
-	void set_cutoff_frequency(float sample_freq, float cutoff_freq)
-	{
-		if ((sample_freq <= 0.f) || (cutoff_freq <= 0.f) || (cutoff_freq >= sample_freq / 2)
-		    || !isFinite(sample_freq) || !isFinite(cutoff_freq)) {
-
+	void set_cutoff_frequency(float sample_freq, float cutoff_freq) {
+		if ((sample_freq <= 0.f) || (cutoff_freq <= 0.f) || (cutoff_freq >= sample_freq / 2) ||
+		    !isFinite(sample_freq) || !isFinite(cutoff_freq)) {
 			disable();
 			return;
 		}
@@ -95,12 +91,11 @@ public:
 	 *
 	 * @return retrieve the filtered result
 	 */
-	inline T apply(const T &sample)
-	{
+	inline T apply(const T &sample) {
 		// Direct Form II implementation
-		T delay_element_0{sample - _delay_element_1 *_a1 - _delay_element_2 * _a2};
+		T delay_element_0{sample - _delay_element_1 * _a1 - _delay_element_2 * _a2};
 
-		const T output{delay_element_0 *_b0 + _delay_element_1 *_b1 + _delay_element_2 * _b2};
+		const T output{delay_element_0 * _b0 + _delay_element_1 * _b1 + _delay_element_2 * _b2};
 
 		_delay_element_2 = _delay_element_1;
 		_delay_element_1 = delay_element_0;
@@ -109,8 +104,7 @@ public:
 	}
 
 	// Filter array of samples in place using the Direct form II.
-	inline void applyArray(T samples[], int num_samples)
-	{
+	inline void applyArray(T samples[], int num_samples) {
 		for (int n = 0; n < num_samples; n++) {
 			samples[n] = apply(samples[n]);
 		}
@@ -125,8 +119,7 @@ public:
 	float getMagnitudeResponse(float frequency) const;
 
 	// Reset the filter state to this value
-	T reset(const T &sample)
-	{
+	T reset(const T &sample) {
 		const T input = isFinite(sample) ? sample : T{};
 
 		if (fabsf(1 + _a1 + _a2) > FLT_EPSILON) {
@@ -143,8 +136,7 @@ public:
 		return apply(input);
 	}
 
-	void disable()
-	{
+	void disable() {
 		// no filtering
 		_sample_freq = 0.f;
 		_cutoff_freq = 0.f;
@@ -161,8 +153,8 @@ public:
 	}
 
 protected:
-	T _delay_element_1{}; // buffered sample -1
-	T _delay_element_2{}; // buffered sample -2
+	T _delay_element_1{};  // buffered sample -1
+	T _delay_element_2{};  // buffered sample -2
 
 	// All the coefficients are normalized by a0, so a0 becomes 1 here
 	float _a1{0.f};
@@ -176,4 +168,4 @@ protected:
 	float _sample_freq{0.f};
 };
 
-} // namespace math
+}  // namespace math

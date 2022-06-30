@@ -31,30 +31,28 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/tasks.h>
-#include <drivers/drv_hrt.h>
-
-#include <nuttx/config.h>
-
-#include <cstdlib>
-#include <cstring>
-#include <cctype>
-#include <fcntl.h>
-#include <dirent.h>
-#include <pthread.h>
-#include <mathlib/mathlib.h>
-#include <systemlib/err.h>
-#include <parameters/param.h>
-#include <version/version.h>
-
-#include <arch/chip/chip.h>
-
-#include "uavcan_main.hpp"
 #include "uavcan_servers.hpp"
 
+#include <arch/chip/chip.h>
+#include <dirent.h>
+#include <drivers/drv_hrt.h>
+#include <fcntl.h>
+#include <mathlib/mathlib.h>
+#include <nuttx/config.h>
+#include <parameters/param.h>
+#include <pthread.h>
+#include <px4_platform_common/tasks.h>
+#include <systemlib/err.h>
+#include <version/version.h>
+
+#include <cctype>
+#include <cstdlib>
+#include <cstring>
 #include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
 #include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
 #include <uavcan_posix/firmware_version_checker.hpp>
+
+#include "uavcan_main.hpp"
 
 /**
  * @file uavcan_servers.cpp
@@ -65,17 +63,14 @@
  *         David Sidrane <david_s5@nscdg.com>
  */
 
-UavcanServers::UavcanServers(uavcan::INode &node, uavcan::NodeInfoRetriever &node_info_retriever) :
-	_server_instance(node, _storage_backend, _tracer),
-	_fileserver_backend(node),
-	_fw_upgrade_trigger(node, _fw_version_checker),
-	_fw_server(node, _fileserver_backend),
-	_node_info_retriever(node_info_retriever)
-{
-}
+UavcanServers::UavcanServers(uavcan::INode &node, uavcan::NodeInfoRetriever &node_info_retriever)
+	: _server_instance(node, _storage_backend, _tracer),
+	  _fileserver_backend(node),
+	  _fw_upgrade_trigger(node, _fw_version_checker),
+	  _fw_server(node, _fileserver_backend),
+	  _node_info_retriever(node_info_retriever) {}
 
-int UavcanServers::init()
-{
+int UavcanServers::init() {
 	/*
 	 * Initialize the fw version checker.
 	 * giving it its path
@@ -141,8 +136,7 @@ int UavcanServers::init()
 	return 0;
 }
 
-void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_path)
-{
+void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_path) {
 	/*
 	Copy Any bin files with APDes into appropriate location on SD card
 	overriding any firmware the user has already loaded there.
@@ -179,13 +173,11 @@ void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_p
 	struct dirent *dev_dirent = NULL;
 
 	while ((dev_dirent = readdir(sd_root_dir)) != nullptr) {
-
 		uavcan_posix::FirmwareVersionChecker::AppDescriptor descriptor;
 
 		// Looking for all uavcan.bin files.
 
 		if (DIRENT_ISFILE(dev_dirent->d_type) && strstr(dev_dirent->d_name, ".bin") != nullptr) {
-
 			// Make sure the path fits
 
 			size_t filename_len = strlen(dev_dirent->d_name);
@@ -219,10 +211,9 @@ void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_p
 	}
 }
 
-int UavcanServers::copyFw(const char *dst, const char *src)
-{
+int UavcanServers::copyFw(const char *dst, const char *src) {
 	int rv = 0;
-	uint8_t buffer[512] {};
+	uint8_t buffer[512]{};
 
 	int dfd = open(dst, O_WRONLY | O_CREAT, 0666);
 
@@ -263,7 +254,7 @@ int UavcanServers::copyFw(const char *dst, const char *src)
 
 				} else {
 					total_written += written;
-					remaining -=  written;
+					remaining -= written;
 				}
 			} while (written > 0 && remaining > 0);
 		}

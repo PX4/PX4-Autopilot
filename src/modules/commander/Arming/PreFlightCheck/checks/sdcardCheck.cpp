@@ -31,20 +31,19 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
 #include <lib/parameters/param.h>
 #include <systemlib/mavlink_log.h>
 
+#include "../PreFlightCheck.hpp"
+
 #ifdef __PX4_DARWIN
-#include <sys/param.h>
 #include <sys/mount.h>
+#include <sys/param.h>
 #else
 #include <sys/statfs.h>
 #endif
 
-bool PreFlightCheck::sdcardCheck(orb_advert_t *mavlink_log_pub, bool &sd_card_detected_once,
-				 const bool report_fail)
-{
+bool PreFlightCheck::sdcardCheck(orb_advert_t *mavlink_log_pub, bool &sd_card_detected_once, const bool report_fail) {
 	bool success = true;
 
 	int32_t param_com_arm_sdcard{0};
@@ -54,7 +53,8 @@ bool PreFlightCheck::sdcardCheck(orb_advert_t *mavlink_log_pub, bool &sd_card_de
 		struct statfs statfs_buf;
 
 		if (!sd_card_detected_once && statfs(PX4_STORAGEDIR, &statfs_buf) == 0) {
-			// on NuttX we get a data block count f_blocks and byte count per block f_bsize if an SD card is inserted
+			// on NuttX we get a data block count f_blocks and byte count per block f_bsize if an SD card is
+			// inserted
 			sd_card_detected_once = (statfs_buf.f_blocks > 0) && (statfs_buf.f_bsize > 0);
 		}
 

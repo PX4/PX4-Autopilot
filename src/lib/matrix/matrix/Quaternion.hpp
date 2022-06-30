@@ -30,8 +30,7 @@
 
 #include "math.hpp"
 
-namespace matrix
-{
+namespace matrix {
 
 template <typename Type>
 class Dcm;
@@ -42,16 +41,14 @@ class Euler;
 template <typename Type>
 class AxisAngle;
 
-
 /**
  * Quaternion class
  *
  * The rotation between two coordinate frames is
  * described by this class.
  */
-template<typename Type>
-class Quaternion : public Vector<Type, 4>
-{
+template <typename Type>
+class Quaternion : public Vector<Type, 4> {
 public:
 	using Matrix41 = Matrix<Type, 4, 1>;
 	using Matrix31 = Matrix<Type, 3, 1>;
@@ -61,16 +58,12 @@ public:
 	 *
 	 * @param data_ array
 	 */
-	explicit Quaternion(const Type data_[4]) :
-		Vector<Type, 4>(data_)
-	{
-	}
+	explicit Quaternion(const Type data_[4]) : Vector<Type, 4>(data_) {}
 
 	/**
 	 * Standard constructor
 	 */
-	Quaternion()
-	{
+	Quaternion() {
 		Quaternion &q = *this;
 		q(0) = 1;
 		q(1) = 0;
@@ -83,10 +76,7 @@ public:
 	 *
 	 * @param other Matrix41 to copy
 	 */
-	Quaternion(const Matrix41 &other) :
-		Vector<Type, 4>(other)
-	{
-	}
+	Quaternion(const Matrix41 &other) : Vector<Type, 4>(other) {}
 
 	/**
 	 * Constructor from dcm
@@ -96,8 +86,7 @@ public:
 	 *
 	 * @param dcm dcm to set quaternion to
 	 */
-	Quaternion(const Dcm<Type> &R)
-	{
+	Quaternion(const Dcm<Type> &R) {
 		Quaternion &q = *this;
 		Type t = R.trace();
 
@@ -144,8 +133,7 @@ public:
 	 *
 	 * @param euler euler angle instance
 	 */
-	Quaternion(const Euler<Type> &euler)
-	{
+	Quaternion(const Euler<Type> &euler) {
 		Quaternion &q = *this;
 		Type cosPhi_2 = Type(cos(euler.phi() / Type(2)));
 		Type cosTheta_2 = Type(cos(euler.theta() / Type(2)));
@@ -153,14 +141,10 @@ public:
 		Type sinPhi_2 = Type(sin(euler.phi() / Type(2)));
 		Type sinTheta_2 = Type(sin(euler.theta() / Type(2)));
 		Type sinPsi_2 = Type(sin(euler.psi() / Type(2)));
-		q(0) = cosPhi_2 * cosTheta_2 * cosPsi_2 +
-		       sinPhi_2 * sinTheta_2 * sinPsi_2;
-		q(1) = sinPhi_2 * cosTheta_2 * cosPsi_2 -
-		       cosPhi_2 * sinTheta_2 * sinPsi_2;
-		q(2) = cosPhi_2 * sinTheta_2 * cosPsi_2 +
-		       sinPhi_2 * cosTheta_2 * sinPsi_2;
-		q(3) = cosPhi_2 * cosTheta_2 * sinPsi_2 -
-		       sinPhi_2 * sinTheta_2 * cosPsi_2;
+		q(0) = cosPhi_2 * cosTheta_2 * cosPsi_2 + sinPhi_2 * sinTheta_2 * sinPsi_2;
+		q(1) = sinPhi_2 * cosTheta_2 * cosPsi_2 - cosPhi_2 * sinTheta_2 * sinPsi_2;
+		q(2) = cosPhi_2 * sinTheta_2 * cosPsi_2 + sinPhi_2 * cosTheta_2 * sinPsi_2;
+		q(3) = cosPhi_2 * cosTheta_2 * sinPsi_2 - sinPhi_2 * sinTheta_2 * cosPsi_2;
 	}
 
 	/**
@@ -168,8 +152,7 @@ public:
 	 *
 	 * @param aa axis-angle vector
 	 */
-	Quaternion(const AxisAngle<Type> &aa)
-	{
+	Quaternion(const AxisAngle<Type> &aa) {
 		Quaternion &q = *this;
 		Type angle = aa.norm();
 		Vector<Type, 3> axis = aa.unit();
@@ -195,8 +178,7 @@ public:
 	 * @param src source vector (no need to normalize)
 	 * @param eps epsilon threshold which decides if a value is considered zero
 	 */
-	Quaternion(const Vector3<Type> &src, const Vector3<Type> &dst, const Type eps = Type(1e-5))
-	{
+	Quaternion(const Vector3<Type> &src, const Vector3<Type> &dst, const Type eps = Type(1e-5)) {
 		Quaternion &q = *this;
 		Vector3<Type> cr = src.cross(dst);
 		const float dt = src.dot(dst);
@@ -250,8 +232,7 @@ public:
 	 * @param c set quaternion value 2
 	 * @param d set quaternion value 3
 	 */
-	Quaternion(Type a, Type b, Type c, Type d)
-	{
+	Quaternion(Type a, Type b, Type c, Type d) {
 		Quaternion &q = *this;
 		q(0) = a;
 		q(1) = b;
@@ -265,14 +246,12 @@ public:
 	 * @param q quaternion to multiply with
 	 * @return product
 	 */
-	Quaternion operator*(const Quaternion &p) const
-	{
+	Quaternion operator*(const Quaternion &p) const {
 		const Quaternion &q = *this;
-		return {
-			q(0) *p(0) - q(1) *p(1) - q(2) *p(2) - q(3) *p(3),
-			q(1) *p(0) + q(0) *p(1) - q(3) *p(2) + q(2) *p(3),
-			q(2) *p(0) + q(3) *p(1) + q(0) *p(2) - q(1) *p(3),
-			q(3) *p(0) - q(2) *p(1) + q(1) *p(2) + q(0) *p(3) };
+		return {q(0) * p(0) - q(1) * p(1) - q(2) * p(2) - q(3) * p(3),
+			q(1) * p(0) + q(0) * p(1) - q(3) * p(2) + q(2) * p(3),
+			q(2) * p(0) + q(3) * p(1) + q(0) * p(2) - q(1) * p(3),
+			q(3) * p(0) - q(2) * p(1) + q(1) * p(2) + q(0) * p(3)};
 	}
 
 	/**
@@ -280,8 +259,7 @@ public:
 	 *
 	 * @param other quaternion to multiply with
 	 */
-	void operator*=(const Quaternion &other)
-	{
+	void operator*=(const Quaternion &other) {
 		Quaternion &self = *this;
 		self = self * other;
 	}
@@ -292,8 +270,7 @@ public:
 	 * @param scalar scalar to multiply with
 	 * @return product
 	 */
-	Quaternion operator*(Type scalar) const
-	{
+	Quaternion operator*(Type scalar) const {
 		const Quaternion &q = *this;
 		return scalar * q;
 	}
@@ -303,8 +280,7 @@ public:
 	 *
 	 * @param scalar scalar to multiply with
 	 */
-	void operator*=(Type scalar)
-	{
+	void operator*=(Type scalar) {
 		Quaternion &q = *this;
 		q = q * scalar;
 	}
@@ -317,11 +293,10 @@ public:
 	 *
 	 * @param w angular rate in frame 1 (typically body frame)
 	 */
-	Matrix41 derivative1(const Matrix31 &w) const
-	{
+	Matrix41 derivative1(const Matrix31 &w) const {
 		const Quaternion &q = *this;
 		Quaternion<Type> v(0, w(0, 0), w(1, 0), w(2, 0));
-		return q * v  * Type(0.5);
+		return q * v * Type(0.5);
 	}
 
 	/**
@@ -332,42 +307,40 @@ public:
 	 *
 	 * @param w angular rate in frame 2 (typically reference frame)
 	 */
-	Matrix41 derivative2(const Matrix31 &w) const
-	{
+	Matrix41 derivative2(const Matrix31 &w) const {
 		const Quaternion &q = *this;
 		Quaternion<Type> v(0, w(0, 0), w(1, 0), w(2, 0));
-		return v * q  * Type(0.5);
+		return v * q * Type(0.5);
 	}
 
 	/**
-	  * Computes the quaternion exponential of the 3D vector u
-	  * as proposed in
-	  * [1] Sveier A, Sjøberg AM, Egeland O. "Applied Runge–Kutta–Munthe-Kaas Integration
-	  *     for the Quaternion Kinematics".Journal of Guidance, Control, and Dynamics. 2019
-	  *
-	  * return a quaternion computed as
-	  * expq(u)=[cos||u||, sinc||u||*u]
-	  * sinc(x)=sin(x)/x in the sin cardinal function
-	  *
-	  * This can be used to update a quaternion from the body rates
-	  * rather than using
-	  * qk+1=qk+qk.derivative1(wb)*dt
-	  * we can use
-	  * qk+1=qk*expq(dt*wb/2)
-	  * which is a more robust update.
-	  * A re-normalization step might necessary with both methods.
-	  *
-	  * @param u 3D vector u
-	  */
-	static Quaternion expq(const Vector3<Type> &u)
-	{
-		const Type tol = Type(0.2);           // ensures an error < 10^-10
-		const Type c2 = Type(1.0 / 2.0);      // 1 / 2!
-		const Type c3 = Type(1.0 / 6.0);      // 1 / 3!
-		const Type c4 = Type(1.0 / 24.0);     // 1 / 4!
-		const Type c5 = Type(1.0 / 120.0);    // 1 / 5!
-		const Type c6 = Type(1.0 / 720.0);    // 1 / 6!
-		const Type c7 = Type(1.0 / 5040.0);   // 1 / 7!
+	 * Computes the quaternion exponential of the 3D vector u
+	 * as proposed in
+	 * [1] Sveier A, Sjøberg AM, Egeland O. "Applied Runge–Kutta–Munthe-Kaas Integration
+	 *     for the Quaternion Kinematics".Journal of Guidance, Control, and Dynamics. 2019
+	 *
+	 * return a quaternion computed as
+	 * expq(u)=[cos||u||, sinc||u||*u]
+	 * sinc(x)=sin(x)/x in the sin cardinal function
+	 *
+	 * This can be used to update a quaternion from the body rates
+	 * rather than using
+	 * qk+1=qk+qk.derivative1(wb)*dt
+	 * we can use
+	 * qk+1=qk*expq(dt*wb/2)
+	 * which is a more robust update.
+	 * A re-normalization step might necessary with both methods.
+	 *
+	 * @param u 3D vector u
+	 */
+	static Quaternion expq(const Vector3<Type> &u) {
+		const Type tol = Type(0.2);          // ensures an error < 10^-10
+		const Type c2 = Type(1.0 / 2.0);     // 1 / 2!
+		const Type c3 = Type(1.0 / 6.0);     // 1 / 3!
+		const Type c4 = Type(1.0 / 24.0);    // 1 / 4!
+		const Type c5 = Type(1.0 / 120.0);   // 1 / 5!
+		const Type c6 = Type(1.0 / 720.0);   // 1 / 6!
+		const Type c7 = Type(1.0 / 5040.0);  // 1 / 7!
 
 		Type u_norm = u.norm();
 		Type sinc_u, cos_u;
@@ -387,73 +360,62 @@ public:
 		}
 
 		Vector<Type, 3> v = sinc_u * u;
-		return Quaternion<Type> (cos_u, v(0), v(1), v(2));
+		return Quaternion<Type>(cos_u, v(0), v(1), v(2));
 	}
 
 	/** inverse right Jacobian of the quaternion logarithm u
-	  * equation (20) in reference
-	  * [1] Sveier A, Sjøberg AM, Egeland O. "Applied Runge–Kutta–Munthe-Kaas Integration
-	  *     for the Quaternion Kinematics".Journal of Guidance, Control, and Dynamics. 2019
-	  *
-	  * This can be used to update a quaternion kinematic cleanly
-	  * with higher order integration methods (like RK4) on the quaternion logarithm u.
-	  *
-	  * @param u 3D vector u
-	  */
-	static Dcm<Type> inv_r_jacobian(const Vector3<Type> &u)
-	{
+	 * equation (20) in reference
+	 * [1] Sveier A, Sjøberg AM, Egeland O. "Applied Runge–Kutta–Munthe-Kaas Integration
+	 *     for the Quaternion Kinematics".Journal of Guidance, Control, and Dynamics. 2019
+	 *
+	 * This can be used to update a quaternion kinematic cleanly
+	 * with higher order integration methods (like RK4) on the quaternion logarithm u.
+	 *
+	 * @param u 3D vector u
+	 */
+	static Dcm<Type> inv_r_jacobian(const Vector3<Type> &u) {
 		const Type tol = Type(1.0e-4);
 		Type u_norm = u.norm();
 		Dcm<Type> u_hat = u.hat();
 
-		if (u_norm < tol) { 	// result smaller than O(||.||^3)
-			return Type(0.5) * (Dcm<Type>() + u_hat + (Type(1.0 / 3.0) + u_norm * u_norm / Type(45.0)) * u_hat * u_hat);
+		if (u_norm < tol) {  // result smaller than O(||.||^3)
+			return Type(0.5) *
+			       (Dcm<Type>() + u_hat + (Type(1.0 / 3.0) + u_norm * u_norm / Type(45.0)) * u_hat * u_hat);
 
 		} else {
-			return Type(0.5) * (Dcm<Type>() + u_hat + (Type(1.0) - u_norm * Type(cos(u_norm) / sin(u_norm))) /
-					    (u_norm * u_norm) * u_hat * u_hat);
+			return Type(0.5) * (Dcm<Type>() + u_hat +
+					    (Type(1.0) - u_norm * Type(cos(u_norm) / sin(u_norm))) / (u_norm * u_norm) *
+						    u_hat * u_hat);
 		}
 	}
 
 	/**
 	 * Invert quaternion in place
 	 */
-	void invert()
-	{
-		*this = this->inversed();
-	}
+	void invert() { *this = this->inversed(); }
 
 	/**
 	 * Invert quaternion
 	 *
 	 * @return inverted quaternion
 	 */
-	Quaternion inversed() const
-	{
+	Quaternion inversed() const {
 		const Quaternion &q = *this;
 		Type normSq = q.dot(q);
-		return Quaternion(
-			       q(0) / normSq,
-			       -q(1) / normSq,
-			       -q(2) / normSq,
-			       -q(3) / normSq);
+		return Quaternion(q(0) / normSq, -q(1) / normSq, -q(2) / normSq, -q(3) / normSq);
 	}
 
 	/**
 	 * Bring quaternion to canonical form
 	 */
-	void canonicalize()
-	{
-		*this = this->canonical();
-	}
+	void canonicalize() { *this = this->canonical(); }
 
 	/**
 	 * Return canonical form of the quaternion
 	 *
 	 * @return quaternion in canonical from
 	 */
-	Quaternion canonical() const
-	{
+	Quaternion canonical() const {
 		const Quaternion &q = *this;
 
 		for (size_t i = 0; i < 4; i++) {
@@ -470,8 +432,7 @@ public:
 	 *
 	 * @param vec rotation vector
 	 */
-	void rotate(const AxisAngle<Type> &vec)
-	{
+	void rotate(const AxisAngle<Type> &vec) {
 		Quaternion res(vec);
 		(*this) = res * (*this);
 	}
@@ -485,8 +446,7 @@ public:
 	 * @param vec vector to rotate in frame 1 (typically body frame)
 	 * @return rotated vector in frame 2 (typically reference frame)
 	 */
-	Vector3<Type> rotateVector(const Vector3<Type> &vec) const
-	{
+	Vector3<Type> rotateVector(const Vector3<Type> &vec) const {
 		const Quaternion &q = *this;
 		Quaternion v(Type(0), vec(0), vec(1), vec(2));
 		Quaternion res = q * v * q.inversed();
@@ -502,8 +462,7 @@ public:
 	 * @param vec vector to rotate in frame 2 (typically reference frame)
 	 * @return rotated vector in frame 1 (typically body frame)
 	 */
-	Vector3<Type> rotateVectorInverse(const Vector3<Type> &vec) const
-	{
+	Vector3<Type> rotateVectorInverse(const Vector3<Type> &vec) const {
 		const Quaternion &q = *this;
 		Quaternion v(Type(0), vec(0), vec(1), vec(2));
 		Quaternion res = q.inversed() * v * q;
@@ -513,8 +472,7 @@ public:
 	/**
 	 * Imaginary components of quaternion
 	 */
-	Vector3<Type> imag() const
-	{
+	Vector3<Type> imag() const {
 		const Quaternion &q = *this;
 		return Vector3<Type>(q(1), q(2), q(3));
 	}
@@ -526,8 +484,7 @@ public:
 	 * == last column of the equivalent rotation matrix
 	 * but calculated more efficiently than a full conversion
 	 */
-	Vector3<Type> dcm_z() const
-	{
+	Vector3<Type> dcm_z() const {
 		const Quaternion &q = *this;
 		Vector3<Type> R_z;
 		const Type a = q(0);
@@ -547,4 +504,4 @@ using Quaternionf = Quaternion<float>;
 using Quatd = Quaternion<double>;
 using Quaterniond = Quaternion<double>;
 
-} // namespace matrix
+}  // namespace matrix

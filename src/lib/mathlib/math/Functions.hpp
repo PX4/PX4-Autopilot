@@ -39,18 +39,17 @@
 
 #pragma once
 
-#include "Limits.hpp"
-
 #include <px4_platform_common/defines.h>
+
 #include <matrix/matrix/math.hpp>
 
-namespace math
-{
+#include "Limits.hpp"
+
+namespace math {
 
 // Type-safe signum function with zero treated as positive
-template<typename T>
-int signNoZero(T val)
-{
+template <typename T>
+int signNoZero(T val) {
 	return (T(0) <= val) - (val < T(0));
 }
 
@@ -60,14 +59,10 @@ int signNoZero(T val)
  * @param[in] positive Truth value to take the sign from
  * @return 1 if positive is true, -1 if positive is false
  */
-inline int signFromBool(bool positive)
-{
-	return positive ? 1 : -1;
-}
+inline int signFromBool(bool positive) { return positive ? 1 : -1; }
 
-template<typename T>
-T sq(T val)
-{
+template <typename T>
+T sq(T val) {
 	return val * val;
 }
 
@@ -80,11 +75,10 @@ T sq(T val)
  * 		1 - pure cubic function
  * @return result of function output
  */
-template<typename T>
-const T expo(const T &value, const T &e)
-{
-	T x = constrain(value, (T) - 1, (T) 1);
-	T ec = constrain(e, (T) 0, (T) 1);
+template <typename T>
+const T expo(const T &value, const T &e) {
+	T x = constrain(value, (T)-1, (T)1);
+	T ec = constrain(e, (T)0, (T)1);
 	return (1 - ec) * x + ec * x * x * x;
 }
 
@@ -99,11 +93,10 @@ const T expo(const T &value, const T &e)
  * 		0.99 - very strong bent curve, stays zero until maximum stick input
  * @return result of function output
  */
-template<typename T>
-const T superexpo(const T &value, const T &e, const T &g)
-{
-	T x = constrain(value, (T) - 1, (T) 1);
-	T gc = constrain(g, (T) 0, (T) 0.99);
+template <typename T>
+const T superexpo(const T &value, const T &e, const T &g) {
+	T x = constrain(value, (T)-1, (T)1);
+	T gc = constrain(g, (T)0, (T)0.99);
 	return expo(x, e) * (1 - gc) / (1 - fabsf(x) * gc);
 }
 
@@ -121,23 +114,20 @@ const T superexpo(const T &value, const T &e, const T &g)
  * 		0.5 - deadzone is half of the span [-0.5,0.5]
  * 		0.99 - almost entire span is deadzone
  */
-template<typename T>
-const T deadzone(const T &value, const T &dz)
-{
-	T x = constrain(value, (T) - 1, (T) 1);
-	T dzc = constrain(dz, (T) 0, (T) 0.99);
+template <typename T>
+const T deadzone(const T &value, const T &dz) {
+	T x = constrain(value, (T)-1, (T)1);
+	T dzc = constrain(dz, (T)0, (T)0.99);
 	// Rescale the input such that we get a piecewise linear function that will be continuous with applied deadzone
 	T out = (x - matrix::sign(x) * dzc) / (1 - dzc);
 	// apply the deadzone (values zero around the middle)
 	return out * (fabsf(x) > dzc);
 }
 
-template<typename T>
-const T expo_deadzone(const T &value, const T &e, const T &dz)
-{
+template <typename T>
+const T expo_deadzone(const T &value, const T &e, const T &dz) {
 	return expo(deadzone(value, dz), e);
 }
-
 
 /*
  * Constant, linear, constant function with the two corner points as parameters
@@ -148,9 +138,8 @@ const T expo_deadzone(const T &value, const T &e, const T &dz)
  * y_low -------
  *         x_low   x_high
  */
-template<typename T>
-const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low, const T &y_high)
-{
+template <typename T>
+const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low, const T &y_high) {
 	if (value <= x_low) {
 		return y_low;
 
@@ -161,7 +150,7 @@ const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low,
 		/* linear function between the two points */
 		T a = (y_high - y_low) / (x_high - x_low);
 		T b = y_low - a * x_low;
-		return  a * value + b;
+		return a * value + b;
 	}
 }
 
@@ -177,11 +166,9 @@ const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low,
  * y_low -------
  *         x_low x_middle x_high
  */
-template<typename T>
-const T gradual3(const T &value,
-		 const T &x_low, const T &x_middle, const T &x_high,
-		 const T &y_low, const T &y_middle, const T &y_high)
-{
+template <typename T>
+const T gradual3(const T &value, const T &x_low, const T &x_middle, const T &x_high, const T &y_low, const T &y_middle,
+		 const T &y_high) {
 	if (value < x_middle) {
 		return gradual(value, x_low, x_middle, y_low, y_middle);
 
@@ -202,9 +189,8 @@ const T gradual3(const T &value,
  * 0     -------
  *             0    1
  */
-template<typename T>
-const T sqrt_linear(const T &value)
-{
+template <typename T>
+const T sqrt_linear(const T &value) {
 	if (value < static_cast<T>(0)) {
 		return static_cast<T>(0);
 
@@ -222,22 +208,19 @@ const T sqrt_linear(const T &value)
  * s=1 returns b
  * Any value for s is valid.
  */
-template<typename T>
-const T lerp(const T &a, const T &b, const T &s)
-{
+template <typename T>
+const T lerp(const T &a, const T &b, const T &s) {
 	return (static_cast<T>(1) - s) * a + s * b;
 }
 
-template<typename T>
-constexpr T negate(T value)
-{
+template <typename T>
+constexpr T negate(T value) {
 	static_assert(sizeof(T) > 2, "implement for T");
 	return -value;
 }
 
-template<>
-constexpr int16_t negate<int16_t>(int16_t value)
-{
+template <>
+constexpr int16_t negate<int16_t>(int16_t value) {
 	if (value == INT16_MAX) {
 		return INT16_MIN;
 
@@ -253,9 +236,8 @@ constexpr int16_t negate<int16_t>(int16_t value)
  * in a given integer.
  */
 
-template<typename T>
-int countSetBits(T n)
-{
+template <typename T>
+int countSetBits(T n) {
 	int count = 0;
 
 	while (n) {
@@ -266,13 +248,9 @@ int countSetBits(T n)
 	return count;
 }
 
-inline bool isFinite(const float &value)
-{
-	return PX4_ISFINITE(value);
-}
+inline bool isFinite(const float &value) { return PX4_ISFINITE(value); }
 
-inline bool isFinite(const matrix::Vector3f &value)
-{
+inline bool isFinite(const matrix::Vector3f &value) {
 	return PX4_ISFINITE(value(0)) && PX4_ISFINITE(value(1)) && PX4_ISFINITE(value(2));
 }
 

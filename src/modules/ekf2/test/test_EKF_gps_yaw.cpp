@@ -37,19 +37,16 @@
  */
 
 #include <gtest/gtest.h>
+
 #include "EKF/ekf.h"
-#include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
+#include "sensor_simulator/sensor_simulator.h"
 #include "test_helper/reset_logging_checker.h"
 
-class EkfGpsHeadingTest : public ::testing::Test
-{
+class EkfGpsHeadingTest : public ::testing::Test {
 public:
-
-	EkfGpsHeadingTest(): ::testing::Test(),
-		_ekf{std::make_shared<Ekf>()},
-		_sensor_simulator(_ekf),
-		_ekf_wrapper(_ekf) {};
+	EkfGpsHeadingTest()
+		: ::testing::Test(), _ekf{std::make_shared<Ekf>()}, _sensor_simulator(_ekf), _ekf_wrapper(_ekf){};
 
 	std::shared_ptr<Ekf> _ekf;
 	SensorSimulator _sensor_simulator;
@@ -59,8 +56,7 @@ public:
 	void checkConvergence(float truth, float tolerance = FLT_EPSILON);
 
 	// Setup the Ekf with synthetic measurements
-	void SetUp() override
-	{
+	void SetUp() override {
 		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
 		_sensor_simulator.runSeconds(0.1);
@@ -79,8 +75,7 @@ public:
 	const uint32_t _init_duration_s{4};
 };
 
-void EkfGpsHeadingTest::runConvergenceScenario(float yaw_offset_rad, float antenna_offset_rad)
-{
+void EkfGpsHeadingTest::runConvergenceScenario(float yaw_offset_rad, float antenna_offset_rad) {
 	// GIVEN: an initial GPS yaw, not aligned with the current one
 	float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + yaw_offset_rad);
 
@@ -95,15 +90,13 @@ void EkfGpsHeadingTest::runConvergenceScenario(float yaw_offset_rad, float anten
 	checkConvergence(gps_heading, 0.05f);
 }
 
-void EkfGpsHeadingTest::checkConvergence(float truth, float tolerance_deg)
-{
+void EkfGpsHeadingTest::checkConvergence(float truth, float tolerance_deg) {
 	const float yaw_est = _ekf_wrapper.getYawAngle();
 	EXPECT_LT(fabsf(matrix::wrap_pi(yaw_est - truth)), math::radians(tolerance_deg))
-			<< "yaw est: " << math::degrees(yaw_est) << "gps yaw: " << math::degrees(truth);
+		<< "yaw est: " << math::degrees(yaw_est) << "gps yaw: " << math::degrees(truth);
 }
 
-TEST_F(EkfGpsHeadingTest, fusionStartWithReset)
-{
+TEST_F(EkfGpsHeadingTest, fusionStartWithReset) {
 	// GIVEN:EKF that fuses GPS
 
 	// WHEN: enabling GPS heading fusion and heading difference is bigger than 15 degrees
@@ -128,8 +121,7 @@ TEST_F(EkfGpsHeadingTest, fusionStartWithReset)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 }
 
-TEST_F(EkfGpsHeadingTest, yawConvergence)
-{
+TEST_F(EkfGpsHeadingTest, yawConvergence) {
 	// GIVEN: an initial GPS yaw, not aligned with the current one
 	const float initial_yaw = math::radians(10.f);
 	float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + initial_yaw);
@@ -153,41 +145,33 @@ TEST_F(EkfGpsHeadingTest, yawConvergence)
 	checkConvergence(gps_heading, 0.5f);
 }
 
-TEST_F(EkfGpsHeadingTest, yaw0)
-{
-	runConvergenceScenario();
-}
+TEST_F(EkfGpsHeadingTest, yaw0) { runConvergenceScenario(); }
 
-TEST_F(EkfGpsHeadingTest, yaw60)
-{
+TEST_F(EkfGpsHeadingTest, yaw60) {
 	const float yaw_offset_rad = math::radians(60.f);
 	const float antenna_offset_rad = math::radians(80.f);
 	runConvergenceScenario(yaw_offset_rad, antenna_offset_rad);
 }
 
-TEST_F(EkfGpsHeadingTest, yaw180)
-{
+TEST_F(EkfGpsHeadingTest, yaw180) {
 	const float yaw_offset_rad = math::radians(180.f);
 	const float antenna_offset_rad = math::radians(-20.f);
 	runConvergenceScenario(yaw_offset_rad, antenna_offset_rad);
 }
 
-TEST_F(EkfGpsHeadingTest, yawMinus120)
-{
+TEST_F(EkfGpsHeadingTest, yawMinus120) {
 	const float yaw_offset_rad = math::radians(120.f);
 	const float antenna_offset_rad = math::radians(-42.f);
 	runConvergenceScenario(yaw_offset_rad, antenna_offset_rad);
 }
 
-TEST_F(EkfGpsHeadingTest, yawMinus30)
-{
+TEST_F(EkfGpsHeadingTest, yawMinus30) {
 	const float yaw_offset_rad = math::radians(-30.f);
 	const float antenna_offset_rad = math::radians(10.f);
 	runConvergenceScenario(yaw_offset_rad, antenna_offset_rad);
 }
 
-TEST_F(EkfGpsHeadingTest, fallBackToMag)
-{
+TEST_F(EkfGpsHeadingTest, fallBackToMag) {
 	// GIVEN: an initial GPS yaw, not aligned with the current one
 	// GPS yaw is expected to arrive a bit later, first feed some NANs
 	// to the filter
@@ -218,9 +202,9 @@ TEST_F(EkfGpsHeadingTest, fallBackToMag)
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
 }
 
-TEST_F(EkfGpsHeadingTest, fallBackToYawEmergencyEstimator)
-{
-	// GIVEN: an initial GPS yaw, not aligned with the current one (e.g.: wrong orientation of the antenna array) and no mag.
+TEST_F(EkfGpsHeadingTest, fallBackToYawEmergencyEstimator) {
+	// GIVEN: an initial GPS yaw, not aligned with the current one (e.g.: wrong orientation of the antenna array)
+	// and no mag.
 	_ekf_wrapper.setMagFuseTypeNone();
 	_sensor_simulator.runSeconds(6);
 
@@ -261,8 +245,7 @@ TEST_F(EkfGpsHeadingTest, fallBackToYawEmergencyEstimator)
 	checkConvergence(true_heading, 5.f);
 }
 
-TEST_F(EkfGpsHeadingTest, yawJmpOnGround)
-{
+TEST_F(EkfGpsHeadingTest, yawJmpOnGround) {
 	// GIVEN: the GPS yaw fusion activated
 	float gps_heading = _ekf_wrapper.getYawAngle();
 	_sensor_simulator._gps.setYaw(gps_heading);
@@ -281,8 +264,7 @@ TEST_F(EkfGpsHeadingTest, yawJmpOnGround)
 	EXPECT_LT(fabsf(matrix::wrap_pi(_ekf_wrapper.getYawAngle() - gps_heading)), math::radians(1.f));
 }
 
-TEST_F(EkfGpsHeadingTest, yawJumpInAir)
-{
+TEST_F(EkfGpsHeadingTest, yawJumpInAir) {
 	// GIVEN: the GPS yaw fusion activated
 	float gps_heading = _ekf_wrapper.getYawAngle();
 	_sensor_simulator._gps.setYaw(gps_heading);
@@ -309,8 +291,7 @@ TEST_F(EkfGpsHeadingTest, yawJumpInAir)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
 }
 
-TEST_F(EkfGpsHeadingTest, stopOnGround)
-{
+TEST_F(EkfGpsHeadingTest, stopOnGround) {
 	// GIVEN: the GPS yaw fusion activated and there is no mag data
 	_sensor_simulator._mag.stop();
 	float gps_heading = _ekf_wrapper.getYawAngle();

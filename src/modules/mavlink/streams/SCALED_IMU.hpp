@@ -35,14 +35,13 @@
 #define SCALED_IMU_HPP
 
 #include <lib/geo/geo.h>
-#include <lib/matrix/matrix/math.hpp>
-
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_imu_status.h>
 
-class MavlinkStreamScaledIMU : public MavlinkStream
-{
+#include <lib/matrix/matrix/math.hpp>
+
+class MavlinkStreamScaledIMU : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamScaledIMU(mavlink); }
 
@@ -52,10 +51,9 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		if (_vehicle_imu_sub.advertised() || _sensor_mag_sub.advertised()) {
-			return MAVLINK_MSG_ID_SCALED_IMU_LEN  + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+			return MAVLINK_MSG_ID_SCALED_IMU_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		}
 
 		return 0;
@@ -68,8 +66,7 @@ private:
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status), 0};
 	uORB::Subscription _sensor_mag_sub{ORB_ID(sensor_mag), 0};
 
-	bool send() override
-	{
+	bool send() override {
 		if (_vehicle_imu_sub.updated() || _sensor_mag_sub.updated()) {
 			mavlink_scaled_imu_t msg{};
 
@@ -82,7 +79,8 @@ private:
 
 				// Accelerometer in mG
 				const float accel_dt_inv = 1.e6f / (float)imu.delta_velocity_dt;
-				const Vector3f accel = Vector3f{imu.delta_velocity} * accel_dt_inv * 1000.0f / CONSTANTS_ONE_G;
+				const Vector3f accel =
+					Vector3f{imu.delta_velocity} * accel_dt_inv * 1000.0f / CONSTANTS_ONE_G;
 				msg.xacc = (int16_t)accel(0);
 				msg.yacc = (int16_t)accel(1);
 				msg.zacc = (int16_t)accel(2);
@@ -114,9 +112,9 @@ private:
 					msg.time_boot_ms = sensor_mag.timestamp / 1000;
 				}
 
-				msg.xmag = sensor_mag.x * 1000.0f; // Gauss -> MilliGauss
-				msg.ymag = sensor_mag.y * 1000.0f; // Gauss -> MilliGauss
-				msg.zmag = sensor_mag.z * 1000.0f; // Gauss -> MilliGauss
+				msg.xmag = sensor_mag.x * 1000.0f;  // Gauss -> MilliGauss
+				msg.ymag = sensor_mag.y * 1000.0f;  // Gauss -> MilliGauss
+				msg.zmag = sensor_mag.z * 1000.0f;  // Gauss -> MilliGauss
 
 				if (!PX4_ISFINITE(temperature) && PX4_ISFINITE(sensor_mag.temperature)) {
 					temperature = sensor_mag.temperature;
@@ -125,7 +123,8 @@ private:
 
 			if (PX4_ISFINITE(temperature)) {
 				// degrees -> centi-degrees constrained to int16
-				msg.temperature = math::constrain(roundf(temperature * 100.f), (float)INT16_MIN, (float)INT16_MAX);
+				msg.temperature = math::constrain(roundf(temperature * 100.f), (float)INT16_MIN,
+								  (float)INT16_MAX);
 
 				if (msg.temperature == 0) {
 					// if the IMU is at 0C it must send 1 (0.01C).

@@ -38,11 +38,9 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_platform_common/px4_config.h>
-
-#include <stdbool.h>
-
 #include <drivers/drv_hrt.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
 
 #include "px4io.h"
 
@@ -58,36 +56,30 @@ static unsigned counter = 0;
 /*
  * Define the various LED flash sequences for each system state.
  */
-#define LED_PATTERN_FMU_OK_TO_ARM		0x0003			/**< slow blinking			*/
-#define LED_PATTERN_FMU_REFUSE_TO_ARM	0x5555			/**< fast blinking			*/
-#define LED_PATTERN_IO_ARMED			0x5050			/**< long off, then double blink 	*/
-#define LED_PATTERN_FMU_ARMED			0x5500			/**< long off, then quad blink 		*/
-#define LED_PATTERN_IO_FMU_ARMED		0xffff			/**< constantly on			*/
+#define LED_PATTERN_FMU_OK_TO_ARM 0x0003     /**< slow blinking			*/
+#define LED_PATTERN_FMU_REFUSE_TO_ARM 0x5555 /**< fast blinking			*/
+#define LED_PATTERN_IO_ARMED 0x5050          /**< long off, then double blink 	*/
+#define LED_PATTERN_FMU_ARMED 0x5500         /**< long off, then quad blink 		*/
+#define LED_PATTERN_IO_FMU_ARMED 0xffff      /**< constantly on			*/
 
 static unsigned blink_counter = 0;
 
-#define SAFETY_SWITCH_THRESHOLD	10
+#define SAFETY_SWITCH_THRESHOLD 10
 
 static void safety_button_check(void *arg);
 static void failsafe_blink(void *arg);
 
-void
-safety_button_init(void)
-{
+void safety_button_init(void) {
 	/* arrange for the button handler to be called at 10Hz */
 	hrt_call_every(&safety_button_call, 1000, 100000, safety_button_check, NULL);
 }
 
-void
-failsafe_led_init(void)
-{
+void failsafe_led_init(void) {
 	/* arrange for the failsafe blinker to be called at 8Hz */
 	hrt_call_every(&failsafe_call, 1000, 125000, failsafe_blink, NULL);
 }
 
-static void
-safety_button_check(void *arg)
-{
+static void safety_button_check(void *arg) {
 	const bool safety_button_pressed = px4_arch_gpioread(GPIO_BTN_SAFETY);
 
 	/* Keep safety button pressed for one second to trigger safety button event.
@@ -95,7 +87,6 @@ safety_button_check(void *arg)
 	 */
 
 	if (safety_button_pressed && !(r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_BUTTON_EVENT)) {
-
 		counter++;
 
 		if (counter >= SAFETY_SWITCH_THRESHOLD) {
@@ -122,7 +113,6 @@ safety_button_check(void *arg)
 
 	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK) {
 		pattern = LED_PATTERN_FMU_OK_TO_ARM;
-
 	}
 
 	/* Turn the LED on if we have a 1 at the current bit position */
@@ -133,9 +123,7 @@ safety_button_check(void *arg)
 	}
 }
 
-static void
-failsafe_blink(void *arg)
-{
+static void failsafe_blink(void *arg) {
 	/* indicate that a serious initialisation error occured */
 	if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)) {
 		LED_AMBER(true);

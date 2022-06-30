@@ -2,27 +2,21 @@
 
 #include "math.hpp"
 
-namespace matrix
-{
+namespace matrix {
 
-template<typename Type, size_t M, size_t N>
-int integrate_rk4(
-	Vector<Type, M> (*f)(Type, const Matrix<Type, M, 1> &x, const Matrix<Type, N, 1> &u),
-	const Matrix<Type, M, 1> &y0,
-	const Matrix<Type, N, 1> &u,
-	Type t0,
-	Type tf,
-	Type h0,
-	Matrix<Type, M, 1> &y1
-)
-{
+template <typename Type, size_t M, size_t N>
+int integrate_rk4(Vector<Type, M> (*f)(Type, const Matrix<Type, M, 1> &x, const Matrix<Type, N, 1> &u),
+		  const Matrix<Type, M, 1> &y0, const Matrix<Type, N, 1> &u, Type t0, Type tf, Type h0,
+		  Matrix<Type, M, 1> &y1) {
 	// https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
 	Type t1 = t0;
 	y1 = y0;
 	Type h = h0;
 	Vector<Type, M> k1, k2, k3, k4;
 
-	if (tf < t0) { return -1; } // make sure t1 > t0
+	if (tf < t0) {
+		return -1;
+	}  // make sure t1 > t0
 
 	while (t1 < tf) {
 		if (t1 + h0 < tf) {
@@ -43,4 +37,4 @@ int integrate_rk4(
 	return 0;
 }
 
-} // namespace matrix
+}  // namespace matrix

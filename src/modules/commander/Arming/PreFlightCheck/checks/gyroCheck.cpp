@@ -31,21 +31,21 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
-#include <drivers/drv_hrt.h>
 #include <HealthFlags.h>
-#include <px4_defines.h>
-#include <lib/sensor_calibration/Utilities.hpp>
+#include <drivers/drv_hrt.h>
 #include <lib/systemlib/mavlink_log.h>
-#include <uORB/Subscription.hpp>
+#include <px4_defines.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/sensor_gyro.h>
 
+#include <lib/sensor_calibration/Utilities.hpp>
+#include <uORB/Subscription.hpp>
+
+#include "../PreFlightCheck.hpp"
+
 using namespace time_literals;
 
-bool PreFlightCheck::isGyroRequired(const uint8_t instance)
-{
+bool PreFlightCheck::isGyroRequired(const uint8_t instance) {
 	uORB::SubscriptionData<sensor_gyro_s> gyro{ORB_ID(sensor_gyro), instance};
 	const uint32_t device_id = static_cast<uint32_t>(gyro.get().device_id);
 
@@ -64,8 +64,7 @@ bool PreFlightCheck::isGyroRequired(const uint8_t instance)
 }
 
 bool PreFlightCheck::gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-			       const bool is_mandatory, bool &report_fail)
-{
+			       const bool is_mandatory, bool &report_fail) {
 	const bool exists = (orb_exists(ORB_ID(sensor_gyro), instance) == PX4_OK);
 	const bool is_required = is_mandatory || isGyroRequired(instance);
 
@@ -75,14 +74,15 @@ bool PreFlightCheck::gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	if (exists) {
 		uORB::SubscriptionData<sensor_gyro_s> gyro{ORB_ID(sensor_gyro), instance};
 
-		is_valid = (gyro.get().device_id != 0) && (gyro.get().timestamp != 0)
-			   && (hrt_elapsed_time(&gyro.get().timestamp) < 1_s);
+		is_valid = (gyro.get().device_id != 0) && (gyro.get().timestamp != 0) &&
+			   (hrt_elapsed_time(&gyro.get().timestamp) < 1_s);
 
 		if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 			is_calibration_valid = true;
 
 		} else {
-			is_calibration_valid = (calibration::FindCurrentCalibrationIndex("GYRO", gyro.get().device_id) >= 0);
+			is_calibration_valid =
+				(calibration::FindCurrentCalibrationIndex("GYRO", gyro.get().device_id) >= 0);
 		}
 	}
 

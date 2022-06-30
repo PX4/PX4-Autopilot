@@ -60,9 +60,7 @@ void dump_validator_state(DataValidator *validator);
  * @param value_io (in/out) in: initial value, out: final value
  * @param timestamp_io (in/out) in: initial timestamp, out: final timestamp
  */
-void fill_validator_with_samples(DataValidator *validator,
-				 const float incr_value,
-				 float *value_io,
+void fill_validator_with_samples(DataValidator *validator, const float incr_value, float *value_io,
 				 uint64_t *timestamp_io);
 
-#endif //ECL_TESTS_COMMON_H
+#endif  // ECL_TESTS_COMMON_H

@@ -38,42 +38,40 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
+#include "calibration_routines.h"
+
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_tone_alarm.h>
+#include <lib/geo/geo.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/systemlib/mavlink_log.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_tone_alarm.h>
-
-#include <lib/geo/geo.h>
-#include <lib/mathlib/mathlib.h>
-#include <lib/systemlib/mavlink_log.h>
-#include <matrix/math.hpp>
-
-#include <uORB/Publication.hpp>
-#include <uORB/SubscriptionBlocking.hpp>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
-#include "calibration_routines.h"
+#include <matrix/math.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/SubscriptionBlocking.hpp>
+
 #include "calibration_messages.h"
 #include "commander_helper.h"
 
 using namespace time_literals;
 
-enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub, bool lenient_still_position)
-{
+enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub, bool lenient_still_position) {
 	static constexpr unsigned ndim = 3;
 
-	float accel_ema[ndim] {};                       // exponential moving average of accel
-	float accel_disp[3] {};                         // max-hold dispersion of accel
-	static constexpr float ema_len = 0.5f;          // EMA time constant in seconds
-	static constexpr float normal_still_thr = 0.25; // normal still threshold
+	float accel_ema[ndim]{};                         // exponential moving average of accel
+	float accel_disp[3]{};                           // max-hold dispersion of accel
+	static constexpr float ema_len = 0.5f;           // EMA time constant in seconds
+	static constexpr float normal_still_thr = 0.25;  // normal still threshold
 	float still_thr2 = powf(lenient_still_position ? (normal_still_thr * 3) : normal_still_thr, 2);
-	static constexpr float accel_err_thr = 5.0f;    // set accel error threshold to 5m/s^2
-	const hrt_abstime still_time = lenient_still_position ? 500000 : 1300000; // still time required in us
+	static constexpr float accel_err_thr = 5.0f;  // set accel error threshold to 5m/s^2
+	const hrt_abstime still_time = lenient_still_position ? 500000 : 1300000;  // still time required in us
 
 	/* set timeout to 90s */
 	static constexpr hrt_abstime timeout = 90_s;
@@ -99,7 +97,6 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 			float w = dt / ema_len;
 
 			for (unsigned i = 0; i < ndim; i++) {
-
 				float di = accel.xyz[i];
 
 				float d = di - accel_ema[i];
@@ -117,27 +114,25 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 			}
 
 			/* still detector with hysteresis */
-			if (accel_disp[0] < still_thr2 &&
-			    accel_disp[1] < still_thr2 &&
-			    accel_disp[2] < still_thr2) {
-
+			if (accel_disp[0] < still_thr2 && accel_disp[1] < still_thr2 && accel_disp[2] < still_thr2) {
 				/* is still now */
 				if (t_still == 0) {
 					/* first time */
-					calibration_log_info(mavlink_log_pub, "[cal] detected rest position, hold still...");
+					calibration_log_info(mavlink_log_pub,
+							     "[cal] detected rest position, hold still...");
 					t_still = t;
 					t_timeout = t + timeout;
 
 				} else {
 					/* still since t_still */
 					if (t > t_still + still_time) {
-						/* vehicle is still, exit from the loop to detection of its orientation */
+						/* vehicle is still, exit from the loop to detection of its orientation
+						 */
 						break;
 					}
 				}
 
-			} else if (accel_disp[0] > still_thr2 * 4.0f ||
-				   accel_disp[1] > still_thr2 * 4.0f ||
+			} else if (accel_disp[0] > still_thr2 * 4.0f || accel_disp[1] > still_thr2 * 4.0f ||
 				   accel_disp[2] > still_thr2 * 4.0f) {
 				/* not still, reset still start time */
 				if (t_still != 0) {
@@ -161,66 +156,56 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 		}
 	}
 
-	if (fabsf(accel_ema[0] - CONSTANTS_ONE_G) < accel_err_thr &&
-	    fabsf(accel_ema[1]) < accel_err_thr &&
+	if (fabsf(accel_ema[0] - CONSTANTS_ONE_G) < accel_err_thr && fabsf(accel_ema[1]) < accel_err_thr &&
 	    fabsf(accel_ema[2]) < accel_err_thr) {
-		return ORIENTATION_TAIL_DOWN;        // [ g, 0, 0 ]
+		return ORIENTATION_TAIL_DOWN;  // [ g, 0, 0 ]
 	}
 
-	if (fabsf(accel_ema[0] + CONSTANTS_ONE_G) < accel_err_thr &&
-	    fabsf(accel_ema[1]) < accel_err_thr &&
+	if (fabsf(accel_ema[0] + CONSTANTS_ONE_G) < accel_err_thr && fabsf(accel_ema[1]) < accel_err_thr &&
 	    fabsf(accel_ema[2]) < accel_err_thr) {
-		return ORIENTATION_NOSE_DOWN;        // [ -g, 0, 0 ]
+		return ORIENTATION_NOSE_DOWN;  // [ -g, 0, 0 ]
 	}
 
-	if (fabsf(accel_ema[0]) < accel_err_thr &&
-	    fabsf(accel_ema[1] - CONSTANTS_ONE_G) < accel_err_thr &&
+	if (fabsf(accel_ema[0]) < accel_err_thr && fabsf(accel_ema[1] - CONSTANTS_ONE_G) < accel_err_thr &&
 	    fabsf(accel_ema[2]) < accel_err_thr) {
-		return ORIENTATION_LEFT;        // [ 0, g, 0 ]
+		return ORIENTATION_LEFT;  // [ 0, g, 0 ]
 	}
 
-	if (fabsf(accel_ema[0]) < accel_err_thr &&
-	    fabsf(accel_ema[1] + CONSTANTS_ONE_G) < accel_err_thr &&
+	if (fabsf(accel_ema[0]) < accel_err_thr && fabsf(accel_ema[1] + CONSTANTS_ONE_G) < accel_err_thr &&
 	    fabsf(accel_ema[2]) < accel_err_thr) {
-		return ORIENTATION_RIGHT;        // [ 0, -g, 0 ]
+		return ORIENTATION_RIGHT;  // [ 0, -g, 0 ]
 	}
 
-	if (fabsf(accel_ema[0]) < accel_err_thr &&
-	    fabsf(accel_ema[1]) < accel_err_thr &&
+	if (fabsf(accel_ema[0]) < accel_err_thr && fabsf(accel_ema[1]) < accel_err_thr &&
 	    fabsf(accel_ema[2] - CONSTANTS_ONE_G) < accel_err_thr) {
-		return ORIENTATION_UPSIDE_DOWN;        // [ 0, 0, g ]
+		return ORIENTATION_UPSIDE_DOWN;  // [ 0, 0, g ]
 	}
 
-	if (fabsf(accel_ema[0]) < accel_err_thr &&
-	    fabsf(accel_ema[1]) < accel_err_thr &&
+	if (fabsf(accel_ema[0]) < accel_err_thr && fabsf(accel_ema[1]) < accel_err_thr &&
 	    fabsf(accel_ema[2] + CONSTANTS_ONE_G) < accel_err_thr) {
-		return ORIENTATION_RIGHTSIDE_UP;        // [ 0, 0, -g ]
+		return ORIENTATION_RIGHTSIDE_UP;  // [ 0, 0, -g ]
 	}
 
 	calibration_log_critical(mavlink_log_pub, "ERROR: invalid orientation");
 
-	return ORIENTATION_ERROR;	// Can't detect orientation
+	return ORIENTATION_ERROR;  // Can't detect orientation
 }
 
-const char *detect_orientation_str(enum detect_orientation_return orientation)
-{
-	static const char *rgOrientationStrs[] = {
-		"back",		// tail down
-		"front",	// nose down
-		"left",
-		"right",
-		"up",		// upside-down
-		"down",		// right-side up
-		"error"
-	};
+const char *detect_orientation_str(enum detect_orientation_return orientation) {
+	static const char *rgOrientationStrs[] = {"back",   // tail down
+						  "front",  // nose down
+						  "left",  "right",
+						  "up",    // upside-down
+						  "down",  // right-side up
+						  "error"};
 
 	return rgOrientationStrs[orientation];
 }
 
 calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
-		bool side_data_collected[detect_orientation_side_count], calibration_from_orientation_worker_t calibration_worker,
-		void *worker_data, bool lenient_still_position)
-{
+					    bool side_data_collected[detect_orientation_side_count],
+					    calibration_from_orientation_worker_t calibration_worker, void *worker_data,
+					    bool lenient_still_position) {
 	const hrt_abstime calibration_started = hrt_absolute_time();
 	calibrate_return result = calibrate_return_ok;
 
@@ -257,10 +242,13 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		char pendingStr[80];
 		pendingStr[0] = 0;
 
-		for (unsigned int cur_orientation = 0; cur_orientation < detect_orientation_side_count; cur_orientation++) {
+		for (unsigned int cur_orientation = 0; cur_orientation < detect_orientation_side_count;
+		     cur_orientation++) {
 			if (!side_data_collected[cur_orientation]) {
 				strncat(pendingStr, " ", sizeof(pendingStr) - 1);
-				strncat(pendingStr, detect_orientation_str((enum detect_orientation_return)cur_orientation), sizeof(pendingStr) - 1);
+				strncat(pendingStr,
+					detect_orientation_str((enum detect_orientation_return)cur_orientation),
+					sizeof(pendingStr) - 1);
 			}
 		}
 
@@ -281,7 +269,8 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		if (side_data_collected[orient]) {
 			orientation_failures++;
 			set_tune(tune_control_s::TUNE_ID_NOTIFY_NEGATIVE);
-			calibration_log_info(mavlink_log_pub, "[cal] %s side already completed", detect_orientation_str(orient));
+			calibration_log_info(mavlink_log_pub, "[cal] %s side already completed",
+					     detect_orientation_str(orient));
 			px4_usleep(20000);
 			continue;
 		}
@@ -318,8 +307,7 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 	return result;
 }
 
-bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, const hrt_abstime &calibration_started)
-{
+bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, const hrt_abstime &calibration_started) {
 	bool ret = false;
 
 	uORB::Subscription vehicle_command_sub{ORB_ID(vehicle_command)};
@@ -329,16 +317,10 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, const hrt_abstime &ca
 		if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION) {
 			// only handle commands sent after calibration started from external sources
 			if ((cmd.timestamp > calibration_started) && cmd.from_external) {
-
 				vehicle_command_ack_s command_ack{};
 
-				if ((int)cmd.param1 == 0 &&
-				    (int)cmd.param2 == 0 &&
-				    (int)cmd.param3 == 0 &&
-				    (int)cmd.param4 == 0 &&
-				    (int)cmd.param5 == 0 &&
-				    (int)cmd.param6 == 0) {
-
+				if ((int)cmd.param1 == 0 && (int)cmd.param2 == 0 && (int)cmd.param3 == 0 &&
+				    (int)cmd.param4 == 0 && (int)cmd.param5 == 0 && (int)cmd.param6 == 0) {
 					command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 					mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
 					tune_positive(true);
@@ -346,8 +328,11 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, const hrt_abstime &ca
 
 				} else {
 					command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
-					mavlink_log_critical(mavlink_log_pub, "command denied during calibration: %" PRIu32 "\t", cmd.command);
-					events::send<uint32_t>(events::ID("commander_cal_cmd_denied"), {events::Log::Error, events::LogInternal::Info},
+					mavlink_log_critical(mavlink_log_pub,
+							     "command denied during calibration: %" PRIu32 "\t",
+							     cmd.command);
+					events::send<uint32_t>(events::ID("commander_cal_cmd_denied"),
+							       {events::Log::Error, events::LogInternal::Info},
 							       "Command denied during calibration: {1}", cmd.command);
 					tune_negative(true);
 					ret = false;

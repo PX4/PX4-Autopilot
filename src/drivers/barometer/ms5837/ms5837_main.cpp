@@ -31,15 +31,14 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "MS5837.hpp"
 
-void MS5837::print_usage()
-{
+void MS5837::print_usage() {
 	PRINT_MODULE_USAGE_NAME("ms5837", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -47,8 +46,7 @@ void MS5837::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int ms5837_main(int argc, char *argv[])
-{
+extern "C" int ms5837_main(int argc, char *argv[]) {
 	using ThisDriver = MS5837;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;

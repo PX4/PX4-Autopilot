@@ -39,29 +39,29 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/i2c_spi_buses.h>
-#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/px4_config.h>
+
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 
 /* Configuration Constants */
-#define GY_US42_BASEADDR 				0x70 	// 7-bit address. 8-bit address is 0xE0.
+#define GY_US42_BASEADDR 0x70  // 7-bit address. 8-bit address is 0xE0.
 
 /* GY_US42 Registers addresses */
-#define GY_US42_TAKE_RANGE_REG			0x51	// Measure range Register.
-#define GY_US42_SET_ADDRESS_CMD1			0xAA	// Change address 1 cmd.
-#define GY_US42_SET_ADDRESS_CMD2			0xA5	// Change address 2 cmd.
+#define GY_US42_TAKE_RANGE_REG 0x51    // Measure range Register.
+#define GY_US42_SET_ADDRESS_CMD1 0xAA  // Change address 1 cmd.
+#define GY_US42_SET_ADDRESS_CMD2 0xA5  // Change address 2 cmd.
 
 /* Device limits */
-#define GY_US42_MIN_DISTANCE 			(0.20f)
-#define GY_US42_MAX_DISTANCE 			(7.2f)
+#define GY_US42_MIN_DISTANCE (0.20f)
+#define GY_US42_MAX_DISTANCE (7.2f)
 
-#define GY_US42_CONVERSION_INTERVAL 		50000	// 50ms for one sonar.
+#define GY_US42_CONVERSION_INTERVAL 50000  // 50ms for one sonar.
 
-class GY_US42 : public device::I2C, public I2CSPIDriver<GY_US42>
-{
+class GY_US42 : public device::I2C, public I2CSPIDriver<GY_US42> {
 public:
 	GY_US42(const I2CSPIDriverConfig &config);
 	~GY_US42() override;
@@ -74,13 +74,7 @@ public:
 	void RunImpl();
 
 private:
-
-	enum class STATE : uint8_t {
-		INIT,
-		POWERON_WAIT,
-		MEASURE_WAIT,
-		MODIFYADDR_WAIT
-	};
+	enum class STATE : uint8_t { INIT, POWERON_WAIT, MEASURE_WAIT, MODIFYADDR_WAIT };
 	STATE _state{STATE::INIT};
 
 	int collect();
@@ -95,6 +89,6 @@ private:
 
 	PX4Rangefinder _px4_rangefinder;
 
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED,  MODULE_NAME": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME ": com_err")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": read")};
 };

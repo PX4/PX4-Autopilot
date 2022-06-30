@@ -41,66 +41,47 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
-#include <version/version.h>
-
+#include <px4_platform_common/px4_config.h>
 #include <uavcan/_register/List_1_0.h>
+#include <version/version.h>
 
 #include "../Subscribers/BaseSubscriber.hpp"
 
-
-class UavcanServiceRequestInterface
-{
+class UavcanServiceRequestInterface {
 public:
 	virtual void response_callback(const CanardRxTransfer &receive) = 0;
 };
 
-class UavcanServiceRequest : public UavcanBaseSubscriber
-{
+class UavcanServiceRequest : public UavcanBaseSubscriber {
 public:
-	UavcanServiceRequest(CanardHandle &handle, const char *prefix_name, const char *subject_name, CanardPortID portID,
-			     size_t extent) :
-		UavcanBaseSubscriber(handle, prefix_name, subject_name, 0), _portID(portID), _extent(extent) { };
+	UavcanServiceRequest(CanardHandle &handle, const char *prefix_name, const char *subject_name,
+			     CanardPortID portID, size_t extent)
+		: UavcanBaseSubscriber(handle, prefix_name, subject_name, 0), _portID(portID), _extent(extent){};
 
-
-	void subscribe() override
-	{
+	void subscribe() override {
 		// Subscribe to requests response
-		_canard_handle.RxSubscribe(CanardTransferKindResponse,
-					   _portID,
-					   _extent,
-					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-					   &_subj_sub._canard_sub);
+		_canard_handle.RxSubscribe(CanardTransferKindResponse, _portID, _extent,
+					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC, &_subj_sub._canard_sub);
 	};
 
-	bool request(const CanardMicrosecond             tx_deadline_usec,
-		     const CanardTransferMetadata        *transfer_metadata,
-		     const size_t                        payload_size,
-		     const void *const                   payload,
-		     UavcanServiceRequestInterface       *handler)
-	{
+	bool request(const CanardMicrosecond tx_deadline_usec, const CanardTransferMetadata *transfer_metadata,
+		     const size_t payload_size, const void *const payload, UavcanServiceRequestInterface *handler) {
 		_response_callback = handler;
 		remote_node_id = transfer_metadata->remote_node_id;
-		++request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-		return _canard_handle.TxPush(tx_deadline_usec,
-					     transfer_metadata,
-					     payload_size,
-					     payload) > 0;
+		++request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this
+					// subject.
+		return _canard_handle.TxPush(tx_deadline_usec, transfer_metadata, payload_size, payload) > 0;
 	}
 
-	void callback(const CanardRxTransfer &receive) override
-	{
+	void callback(const CanardRxTransfer &receive) override {
 		PX4_INFO("Response");
 
-		if (_response_callback != nullptr &&
-		    receive.metadata.transfer_id == (request_transfer_id - 1) &&
+		if (_response_callback != nullptr && receive.metadata.transfer_id == (request_transfer_id - 1) &&
 		    receive.metadata.remote_node_id == remote_node_id) {
 			_response_callback->response_callback(receive);
 		}
 	};
-
-
 
 protected:
 	CanardTransferID request_transfer_id = 0;
@@ -109,5 +90,4 @@ protected:
 	const CanardPortID _portID;
 	const size_t _extent;
 	UavcanServiceRequestInterface *_response_callback = nullptr;
-
 };

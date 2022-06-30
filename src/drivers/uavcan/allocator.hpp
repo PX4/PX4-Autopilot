@@ -38,12 +38,12 @@
 #pragma once
 
 #include <systemlib/err.h>
-#include <uavcan/uavcan.hpp>
+
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
+#include <uavcan/uavcan.hpp>
 
 // TODO: Entire UAVCAN application should be moved into a namespace later; this is the first step.
-namespace uavcan_node
-{
+namespace uavcan_node {
 
 struct AllocatorSynchronizer {
 	const ::irqstate_t state = ::enter_critical_section();
@@ -54,17 +54,16 @@ struct Allocator : public uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSiz
 	static constexpr unsigned CapacitySoftLimit = 250;
 	static constexpr unsigned CapacityHardLimit = 500;
 
-	Allocator() :
-		uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, AllocatorSynchronizer>(CapacitySoftLimit, CapacityHardLimit)
-	{ }
+	Allocator()
+		: uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, AllocatorSynchronizer>(CapacitySoftLimit,
+												  CapacityHardLimit) {}
 
-	~Allocator()
-	{
+	~Allocator() {
 		if (getNumAllocatedBlocks() > 0) {
-			PX4_ERR("UAVCAN LEAKS MEMORY: %u BLOCKS (%u BYTES) LOST",
-				getNumAllocatedBlocks(), getNumAllocatedBlocks() * uavcan::MemPoolBlockSize);
+			PX4_ERR("UAVCAN LEAKS MEMORY: %u BLOCKS (%u BYTES) LOST", getNumAllocatedBlocks(),
+				getNumAllocatedBlocks() * uavcan::MemPoolBlockSize);
 		}
 	}
 };
 
-}
+}  // namespace uavcan_node

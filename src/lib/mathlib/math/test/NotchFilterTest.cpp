@@ -37,15 +37,14 @@
  */
 
 #include <gtest/gtest.h>
-#include <matrix/matrix/math.hpp>
 
 #include <lib/mathlib/math/filter/NotchFilter.hpp>
+#include <matrix/matrix/math.hpp>
 
 using namespace math;
 using matrix::Vector3f;
 
-class NotchFilterTest : public ::testing::Test
-{
+class NotchFilterTest : public ::testing::Test {
 public:
 	NotchFilter<float> _notch_float;
 	NotchFilter<Vector3f> _notch_vector3f;
@@ -56,8 +55,7 @@ public:
 	const float _epsilon_near = 1e-6f;
 };
 
-TEST_F(NotchFilterTest, simple)
-{
+TEST_F(NotchFilterTest, simple) {
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
 	EXPECT_EQ(_notch_float.getBandwidth(), _bandwidth);
 	EXPECT_EQ(_notch_float.getNotchFreq(), _notch_freq);
@@ -77,14 +75,13 @@ TEST_F(NotchFilterTest, simple)
 	}
 }
 
-TEST_F(NotchFilterTest, filteringLowSide)
-{
+TEST_F(NotchFilterTest, filteringLowSide) {
 	// Send a 25Hz sinusoidal signal into a 50Hz notch filter
 	_notch_float.reset(0.0f);
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
 	const float signal_freq = 25.f;
 	const float omega = 2.f * M_PI_F * signal_freq;
-	float phase_delay = 11.4f * M_PI_F / 180.f; // Given by simulation
+	float phase_delay = 11.4f * M_PI_F / 180.f;  // Given by simulation
 	float t = 0.f;
 	float dt = 1.f / _sample_freq;
 	float out = 0.f;
@@ -102,14 +99,13 @@ TEST_F(NotchFilterTest, filteringLowSide)
 	}
 }
 
-TEST_F(NotchFilterTest, filteringLowSideDF1)
-{
+TEST_F(NotchFilterTest, filteringLowSideDF1) {
 	// Send a 25Hz sinusoidal signal into a 50Hz notch filter
 	_notch_float.reset(0.0f);
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
 	const float signal_freq = 25.f;
 	const float omega = 2.f * M_PI_F * signal_freq;
-	float phase_delay = 11.4f * M_PI_F / 180.f; // Given by simulation
+	float phase_delay = 11.4f * M_PI_F / 180.f;  // Given by simulation
 	float t = 0.f;
 	float dt = 1.f / _sample_freq;
 	float out = 0.f;
@@ -127,14 +123,13 @@ TEST_F(NotchFilterTest, filteringLowSideDF1)
 	}
 }
 
-TEST_F(NotchFilterTest, filteringHighSide)
-{
+TEST_F(NotchFilterTest, filteringHighSide) {
 	// Send a 98 sinusoidal signal into a 50Hz notch filter
 	_notch_float.reset(0.0f);
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
 	const float signal_freq = 98.4f;
 	const float omega = 2.f * M_PI_F * signal_freq;
-	float phase_delay = 11.4f * M_PI_F / 180.f; // Given by simulation
+	float phase_delay = 11.4f * M_PI_F / 180.f;  // Given by simulation
 	float t = 0.f;
 	float dt = 1.f / _sample_freq;
 	float out = 0.f;
@@ -152,14 +147,13 @@ TEST_F(NotchFilterTest, filteringHighSide)
 	}
 }
 
-TEST_F(NotchFilterTest, filteringHighSideDF1)
-{
+TEST_F(NotchFilterTest, filteringHighSideDF1) {
 	// Send a 98 sinusoidal signal into a 50Hz notch filter
 	_notch_float.reset(0.0f);
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
 	const float signal_freq = 98.4f;
 	const float omega = 2.f * M_PI_F * signal_freq;
-	float phase_delay = 11.4f * M_PI_F / 180.f; // Given by simulation
+	float phase_delay = 11.4f * M_PI_F / 180.f;  // Given by simulation
 	float t = 0.f;
 	float dt = 1.f / _sample_freq;
 	float out = 0.f;
@@ -177,8 +171,7 @@ TEST_F(NotchFilterTest, filteringHighSideDF1)
 	}
 }
 
-TEST_F(NotchFilterTest, filterOnNotch)
-{
+TEST_F(NotchFilterTest, filterOnNotch) {
 	// Send a 50 sinusoidal signal into a 50Hz notch filter
 	_notch_float.reset(0.0f);
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
@@ -200,8 +193,7 @@ TEST_F(NotchFilterTest, filterOnNotch)
 	}
 }
 
-TEST_F(NotchFilterTest, filterOnNotchDF1)
-{
+TEST_F(NotchFilterTest, filterOnNotchDF1) {
 	// Send a 50 sinusoidal signal into a 50Hz notch filter
 	_notch_float.reset(0.0f);
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
@@ -223,8 +215,7 @@ TEST_F(NotchFilterTest, filterOnNotchDF1)
 	}
 }
 
-TEST_F(NotchFilterTest, updateFilter)
-{
+TEST_F(NotchFilterTest, updateFilter) {
 	_notch_float.reset(0.0f);
 	_notch_float.setParameters(_sample_freq, _notch_freq, _bandwidth);
 	float new_notch_freq = 100.f;
@@ -233,11 +224,9 @@ TEST_F(NotchFilterTest, updateFilter)
 
 	EXPECT_EQ(new_notch_freq, _notch_float.getNotchFreq());
 	EXPECT_EQ(new_bandwidth, _notch_float.getBandwidth());
-
 }
 
-TEST_F(NotchFilterTest, filterVector3f)
-{
+TEST_F(NotchFilterTest, filterVector3f) {
 	// Send three sinusoidal signals (25, 50 and 98.5Hz) into a 50Hz triple notch filter
 	_notch_vector3f.setParameters(_sample_freq, _notch_freq, _bandwidth);
 
@@ -265,8 +254,7 @@ TEST_F(NotchFilterTest, filterVector3f)
 	}
 }
 
-TEST_F(NotchFilterTest, filterVector3fDF1)
-{
+TEST_F(NotchFilterTest, filterVector3fDF1) {
 	// Send three sinusoidal signals (25, 50 and 98.5Hz) into a 50Hz triple notch filter
 	_notch_vector3f.setParameters(_sample_freq, _notch_freq, _bandwidth);
 
@@ -294,8 +282,7 @@ TEST_F(NotchFilterTest, filterVector3fDF1)
 	}
 }
 
-TEST_F(NotchFilterTest, disabled)
-{
+TEST_F(NotchFilterTest, disabled) {
 	const float zero_notch_freq = 0.f;
 	_notch_float.setParameters(_sample_freq, zero_notch_freq, _bandwidth);
 
@@ -330,9 +317,7 @@ TEST_F(NotchFilterTest, disabled)
 	}
 }
 
-TEST_F(NotchFilterTest, setCoefficients)
-{
-
+TEST_F(NotchFilterTest, setCoefficients) {
 	float a_new[2] = {1.f, 2.f};
 	float b_new[3] = {1.f, 2.f, 3.f};
 	float a[3];
@@ -342,7 +327,9 @@ TEST_F(NotchFilterTest, setCoefficients)
 	_notch_float.getCoefficients(a, b);
 
 	for (int i = 0; i < 3; i++) {
-		if (i >= 1) {EXPECT_EQ(a[i], a_new[i - 1]);} //a0 is not part of set function
+		if (i >= 1) {
+			EXPECT_EQ(a[i], a_new[i - 1]);
+		}  // a0 is not part of set function
 
 		EXPECT_EQ(b[i], b_new[i]);
 	}

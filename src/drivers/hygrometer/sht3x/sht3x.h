@@ -45,41 +45,31 @@
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/i2c_spi_buses.h>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_hygrometer.h>
 
-#define SHT3X_CMD_READ_STATUS			0xF32D
-#define SHT3X_CMD_CLEAR_STATUS			0x3041
-#define SHT3x_CMD_PERIODIC_2HZ_MEDIUM	0x2220
-#define SHT3x_CMD_FETCH_DATA			0xE000
-#define SHT3x_CMD_READ_SN				0x3780
+#include <uORB/PublicationMulti.hpp>
 
+#define SHT3X_CMD_READ_STATUS 0xF32D
+#define SHT3X_CMD_CLEAR_STATUS 0x3041
+#define SHT3x_CMD_PERIODIC_2HZ_MEDIUM 0x2220
+#define SHT3x_CMD_FETCH_DATA 0xE000
+#define SHT3x_CMD_READ_SN 0x3780
 
 using namespace time_literals;
 
 extern "C" __EXPORT int sht3x_main(int argc, char *argv[]);
 
-enum sht3x_state {
-	ERROR_GENERAL,
-	ERROR_READOUT,
-	INIT,
-	MEASUREMENT
-};
-const char *sht_state_names[] = {"General error", "Readout error", "Initialization",
-				 "Measurement"
-				};
-
+enum sht3x_state { ERROR_GENERAL, ERROR_READOUT, INIT, MEASUREMENT };
+const char *sht_state_names[] = {"General error", "Readout error", "Initialization", "Measurement"};
 
 struct sht_info {
 	uint32_t serial_number;
 };
 
-
-class SHT3X : public device::I2C, public ModuleParams, public I2CSPIDriver<SHT3X>
-{
+class SHT3X : public device::I2C, public ModuleParams, public I2CSPIDriver<SHT3X> {
 public:
 	SHT3X(const I2CSPIDriverConfig &config);
 	~SHT3X() = default;
@@ -87,10 +77,10 @@ public:
 	static void print_usage();
 	void RunImpl();
 
-	int    init() override;
-	int    probe() override;
-	int    init_sensor();
-	void   print_status() override;
+	int init() override;
+	int probe() override;
+	int init_sensor();
+	void print_status() override;
 
 	void custom_method(const BusCLIArguments &cli);
 
@@ -103,7 +93,6 @@ public:
 	uint8_t calc_crc(uint8_t data[2]);
 
 private:
-
 	float measured_temperature = 0;
 	float measured_humidity = 0;
 	uint32_t measurement_time = 0;
@@ -116,7 +105,5 @@ private:
 	uint16_t _last_command = 0;
 	uORB::PublicationMulti<sensor_hygrometer_s> _sensor_hygrometer_pub{ORB_ID(sensor_hygrometer)};
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_EN_SHT3X>) _param_sens_en_sht3x
-	)
+	DEFINE_PARAMETERS((ParamInt<px4::params::SENS_EN_SHT3X>)_param_sens_en_sht3x)
 };

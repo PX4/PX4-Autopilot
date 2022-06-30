@@ -40,14 +40,12 @@
 
 #include "tests_main.h"
 
-#include <px4_platform_common/px4_config.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <px4_platform_common/log.h>
-
+#include <px4_platform_common/px4_config.h>
 #include <stdio.h>
 #include <string.h>
-#include <fcntl.h>
-#include <errno.h>
-
 
 static int test_help(int argc, char *argv[]);
 static int test_runner(unsigned option);
@@ -56,63 +54,60 @@ static int test_all(int argc, char *argv[]);
 static int test_jig(int argc, char *argv[]);
 
 const struct {
-	const char 	*name;
-	int	(* fn)(int argc, char *argv[]);
-	unsigned	options;
-#define OPT_NOHELP	(1<<0)
-#define OPT_NOALLTEST	(1<<1)
-#define OPT_NOJIGTEST	(1<<2)
-} tests[] = {
-	{"help",		test_help,		OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST},
-	{"all",			test_all,		OPT_NOALLTEST | OPT_NOJIGTEST},
-	{"jig",			test_jig,		OPT_NOJIGTEST | OPT_NOALLTEST},
+	const char *name;
+	int (*fn)(int argc, char *argv[]);
+	unsigned options;
+#define OPT_NOHELP (1 << 0)
+#define OPT_NOALLTEST (1 << 1)
+#define OPT_NOJIGTEST (1 << 2)
+} tests[] = {{"help", test_help, OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST},
+	     {"all", test_all, OPT_NOALLTEST | OPT_NOJIGTEST},
+	     {"jig", test_jig, OPT_NOJIGTEST | OPT_NOALLTEST},
 
 #ifdef __PX4_NUTTX
-	{"file",		test_file,		OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"led",			test_led,		0},
-	{"mount",		test_mount,		OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"time",		test_time,		OPT_NOJIGTEST},
-	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST},
-	{"uart_break",		test_uart_break,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"uart_console",	test_uart_console,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	     {"file", test_file, OPT_NOJIGTEST | OPT_NOALLTEST},
+	     {"led", test_led, 0},
+	     {"mount", test_mount, OPT_NOJIGTEST | OPT_NOALLTEST},
+	     {"time", test_time, OPT_NOJIGTEST},
+	     {"uart_baudchange", test_uart_baudchange, OPT_NOJIGTEST},
+	     {"uart_break", test_uart_break, OPT_NOJIGTEST | OPT_NOALLTEST},
+	     {"uart_console", test_uart_console, OPT_NOJIGTEST | OPT_NOALLTEST},
 #endif /* __PX4_NUTTX */
 
-	{"atomic_bitset",	test_atomic_bitset,	0},
-	{"bezier",		test_bezierQuad,	0},
-	{"bitset",		test_bitset,		0},
-	{"bson",		test_bson,		0},
-	{"dataman",		test_dataman,		OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"file2",		test_file2,		OPT_NOJIGTEST},
-	{"float",		test_float,		0},
-	{"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"hrt",			test_hrt,		OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"int",			test_int,		0},
-	{"i2c_spi_cli",		test_i2c_spi_cli,		0},
-	{"IntrusiveQueue",	test_IntrusiveQueue,	0},
-	{"IntrusiveSortedList",	test_IntrusiveSortedList, 0},
-	{"List",		test_List,		0},
-	{"mathlib",		test_mathlib,		0},
-	{"matrix",		test_matrix,		0},
-	{"mixer",		test_mixer,		OPT_NOJIGTEST},
-	{"param",		test_param,		0},
-	{"parameters",		test_parameters,	0},
-	{"perf",		test_perf,		OPT_NOJIGTEST},
-	{"ppm",			test_ppm,		OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"rc",			test_rc,		OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"search_min",		test_search_min,	0},
-	{"sleep",		test_sleep,		OPT_NOJIGTEST},
-	{"uart_loopback",	test_uart_loopback,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"uart_send",		test_uart_send,		OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"versioning",		test_versioning,	0},
+	     {"atomic_bitset", test_atomic_bitset, 0},
+	     {"bezier", test_bezierQuad, 0},
+	     {"bitset", test_bitset, 0},
+	     {"bson", test_bson, 0},
+	     {"dataman", test_dataman, OPT_NOJIGTEST | OPT_NOALLTEST},
+	     {"file2", test_file2, OPT_NOJIGTEST},
+	     {"float", test_float, 0},
+	     {"hott_telemetry", test_hott_telemetry, OPT_NOJIGTEST | OPT_NOALLTEST},
+	     {"hrt", test_hrt, OPT_NOJIGTEST | OPT_NOALLTEST},
+	     {"int", test_int, 0},
+	     {"i2c_spi_cli", test_i2c_spi_cli, 0},
+	     {"IntrusiveQueue", test_IntrusiveQueue, 0},
+	     {"IntrusiveSortedList", test_IntrusiveSortedList, 0},
+	     {"List", test_List, 0},
+	     {"mathlib", test_mathlib, 0},
+	     {"matrix", test_matrix, 0},
+	     {"mixer", test_mixer, OPT_NOJIGTEST},
+	     {"param", test_param, 0},
+	     {"parameters", test_parameters, 0},
+	     {"perf", test_perf, OPT_NOJIGTEST},
+	     {"ppm", test_ppm, OPT_NOJIGTEST | OPT_NOALLTEST},
+	     {"rc", test_rc, OPT_NOJIGTEST | OPT_NOALLTEST},
+	     {"search_min", test_search_min, 0},
+	     {"sleep", test_sleep, OPT_NOJIGTEST},
+	     {"uart_loopback", test_uart_loopback, OPT_NOJIGTEST | OPT_NOALLTEST},
+	     {"uart_send", test_uart_send, OPT_NOJIGTEST | OPT_NOALLTEST},
+	     {"versioning", test_versioning, 0},
 
-	{NULL,			NULL, 		0}
-};
+	     {NULL, NULL, 0}};
 
 #define NTESTS (sizeof(tests) / sizeof(tests[0]))
 
-static int test_help(int argc, char *argv[])
-{
-	unsigned	i;
+static int test_help(int argc, char *argv[]) {
+	unsigned i;
 
 	printf("Available tests:\n");
 
@@ -123,18 +118,11 @@ static int test_help(int argc, char *argv[])
 	return 0;
 }
 
-static int test_all(int argc, char *argv[])
-{
-	return test_runner(OPT_NOALLTEST);
-}
+static int test_all(int argc, char *argv[]) { return test_runner(OPT_NOALLTEST); }
 
-static int test_jig(int argc, char *argv[])
-{
-	return test_runner(OPT_NOJIGTEST);
-}
+static int test_jig(int argc, char *argv[]) { return test_runner(OPT_NOJIGTEST); }
 
-static int test_runner(unsigned option)
-{
+static int test_runner(unsigned option) {
 	size_t i;
 	char *args[2] = {"all", NULL};
 	unsigned int failcount = 0;
@@ -210,7 +198,8 @@ static int test_runner(unsigned option)
 
 	for (size_t k = 0; k < i; k++) {
 		if (!passed[k] && !(tests[k].options & option)) {
-			printf(" [%s] to obtain details, please re-run with\n\t nsh> tests %s\n\n", tests[k].name, tests[k].name);
+			printf(" [%s] to obtain details, please re-run with\n\t nsh> tests %s\n\n", tests[k].name,
+			       tests[k].name);
 		}
 	}
 
@@ -218,8 +207,7 @@ static int test_runner(unsigned option)
 	return (failcount > 0);
 }
 
-__EXPORT int tests_main(int argc, char *argv[])
-{
+__EXPORT int tests_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		PX4_WARN("tests: missing test name - 'tests help' for a list of tests");
 		return 1;

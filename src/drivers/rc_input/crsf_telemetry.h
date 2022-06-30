@@ -39,23 +39,22 @@
 
 #pragma once
 
-#include <uORB/Subscription.hpp>
+#include <drivers/drv_hrt.h>
+#include <mathlib/mathlib.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <drivers/drv_hrt.h>
 
 #include <matrix/math.hpp>
-#include <mathlib/mathlib.h>
+#include <uORB/Subscription.hpp>
 
 using namespace time_literals;
 
 /**
  * High-level class that handles sending of CRSF telemetry data
  */
-class CRSFTelemetry
-{
+class CRSFTelemetry {
 public:
 	/**
 	 * @param uart_fd file descriptor for the UART to use. It is expected to be configured
@@ -85,7 +84,7 @@ private:
 
 	hrt_abstime _last_update{0};
 
-	static constexpr int num_data_types{4}; ///< number of different telemetry data types
+	static constexpr int num_data_types{4};  ///< number of different telemetry data types
 	int _next_type{0};
 
 	int _uart_fd;

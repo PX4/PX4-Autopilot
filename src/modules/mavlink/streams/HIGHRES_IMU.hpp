@@ -34,9 +34,9 @@
 #ifndef HIGHRES_IMU_HPP
 #define HIGHRES_IMU_HPP
 
-#include <uORB/topics/estimator_sensor_bias.h>
-#include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/estimator_selector_status.h>
+#include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_imu.h>
@@ -44,8 +44,7 @@
 
 using matrix::Vector3f;
 
-class MavlinkStreamHighresIMU : public MavlinkStream
-{
+class MavlinkStreamHighresIMU : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamHighresIMU(mavlink); }
 
@@ -55,10 +54,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_HIGHRES_IMU_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
+	unsigned get_size() override { return MAVLINK_MSG_ID_HIGHRES_IMU_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES; }
 
 private:
 	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink) {}
@@ -71,8 +67,7 @@ private:
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 	uORB::Subscription _air_data_sub{ORB_ID(vehicle_air_data)};
 
-	bool send() override
-	{
+	bool send() override {
 		bool updated = false;
 
 		sensor_selection_s sensor_selection{};
@@ -92,8 +87,8 @@ private:
 		if (updated) {
 			uint16_t fields_updated = 0;
 
-			fields_updated |= (1 << 0) | (1 << 1) | (1 << 2); // accel
-			fields_updated |= (1 << 3) | (1 << 4) | (1 << 5); // gyro
+			fields_updated |= (1 << 0) | (1 << 1) | (1 << 2);  // accel
+			fields_updated |= (1 << 3) | (1 << 4) | (1 << 5);  // gyro
 
 			vehicle_magnetometer_s magnetometer{};
 
@@ -110,7 +105,8 @@ private:
 				estimator_selector_status_s estimator_selector_status;
 
 				if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
-					_estimator_sensor_bias_sub.ChangeInstance(estimator_selector_status.primary_instance);
+					_estimator_sensor_bias_sub.ChangeInstance(
+						estimator_selector_status.primary_instance);
 				}
 			}
 
@@ -122,7 +118,8 @@ private:
 				estimator_sensor_bias_s bias;
 
 				if (_estimator_sensor_bias_sub.copy(&bias)) {
-					if ((bias.accel_device_id != 0) && (bias.accel_device_id == imu.accel_device_id)) {
+					if ((bias.accel_device_id != 0) &&
+					    (bias.accel_device_id == imu.accel_device_id)) {
 						accel_bias = Vector3f{bias.accel_bias};
 					}
 
@@ -130,21 +127,23 @@ private:
 						gyro_bias = Vector3f{bias.gyro_bias};
 					}
 
-					if ((bias.mag_device_id != 0) && (bias.mag_device_id == magnetometer.device_id)) {
+					if ((bias.mag_device_id != 0) &&
+					    (bias.mag_device_id == magnetometer.device_id)) {
 						mag_bias = Vector3f{bias.mag_bias};
 
 					} else {
 						// find primary mag
-						uORB::SubscriptionMultiArray<vehicle_magnetometer_s> mag_subs{ORB_ID::vehicle_magnetometer};
+						uORB::SubscriptionMultiArray<vehicle_magnetometer_s> mag_subs{
+							ORB_ID::vehicle_magnetometer};
 
 						for (int i = 0; i < mag_subs.size(); i++) {
-							if (mag_subs[i].advertised() && mag_subs[i].copy(&magnetometer)) {
+							if (mag_subs[i].advertised() &&
+							    mag_subs[i].copy(&magnetometer)) {
 								if (magnetometer.device_id == bias.mag_device_id) {
 									_magnetometer_sub.ChangeInstance(i);
 									break;
 								}
 							}
-
 						}
 					}
 				}
@@ -204,4 +203,4 @@ private:
 		return false;
 	}
 };
-#endif // HIGHRES_IMU_HPP
+#endif  // HIGHRES_IMU_HPP

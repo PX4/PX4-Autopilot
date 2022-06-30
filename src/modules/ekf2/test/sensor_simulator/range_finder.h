@@ -40,13 +40,10 @@
 
 #include "sensor.h"
 
-namespace sensor_simulator
-{
-namespace sensor
-{
+namespace sensor_simulator {
+namespace sensor {
 
-class RangeFinder: public Sensor
-{
+class RangeFinder : public Sensor {
 public:
 	RangeFinder(std::shared_ptr<Ekf> ekf);
 	~RangeFinder();
@@ -62,6 +59,6 @@ private:
 	void send(uint64_t time) override;
 };
 
-} // namespace sensor
-} // namespace sensor_simulator
-#endif // !EKF_RANGE_FINDER_H
+}  // namespace sensor
+}  // namespace sensor_simulator
+#endif  // !EKF_RANGE_FINDER_H

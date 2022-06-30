@@ -58,8 +58,7 @@
  * MAX:
  * 		The maximum value is tracked.
  */
-class SimpleAnalyzer
-{
+class SimpleAnalyzer {
 public:
 	enum Mode {
 		AVERAGE = 0,
@@ -116,8 +115,7 @@ public:
 	 * @param[out] ret: The scaled and rounded value of the current analyzer result.
 	 * @parma[in] scalingfactor: The factor which is used to scale the result.
 	 */
-	void get_scaled(uint8_t &ret, float scalingfactor) const
-	{
+	void get_scaled(uint8_t &ret, float scalingfactor) const {
 		float avg = get_scaled(scalingfactor);
 		int_round(avg);
 		check_limits(avg, 0, UINT8_MAX);
@@ -125,8 +123,7 @@ public:
 		ret = static_cast<uint8_t>(avg);
 	}
 
-	void get_scaled(int8_t &ret, float scalingfactor) const
-	{
+	void get_scaled(int8_t &ret, float scalingfactor) const {
 		float avg = get_scaled(scalingfactor);
 		int_round(avg);
 		check_limits(avg, INT8_MIN, INT8_MAX);
@@ -135,10 +132,10 @@ public:
 	}
 
 private:
-	unsigned int _n = 0; /**< The number of added samples */
+	unsigned int _n = 0;   /**< The number of added samples */
 	float _window = 60.0f; /**< The window size for the moving average filter [s] */
-	Mode _mode = AVERAGE; /**< The mode of the simple analyzer */
-	float _result = 0.0f; /**< The result of the analyzed data. */
+	Mode _mode = AVERAGE;  /**< The mode of the simple analyzer */
+	float _result = 0.0f;  /**< The result of the analyzed data. */
 
 	void check_limits(float &x, float min, float max) const;
 	void int_round(float &x) const;

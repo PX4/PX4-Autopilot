@@ -36,10 +36,10 @@
 #include "common.h"
 #include "polyfit.hpp"
 
-class TemperatureCalibrationAccel : public TemperatureCalibrationCommon<3, 3>
-{
+class TemperatureCalibrationAccel : public TemperatureCalibrationCommon<3, 3> {
 public:
-	TemperatureCalibrationAccel(float min_temperature_rise, float min_start_temperature, float max_start_temperature);
+	TemperatureCalibrationAccel(float min_temperature_rise, float min_start_temperature,
+				    float max_start_temperature);
 	virtual ~TemperatureCalibrationAccel();
 
 	/**
@@ -48,7 +48,6 @@ public:
 	int finish();
 
 private:
-
 	virtual inline int update_sensor_instance(PerSensorData &data, int sensor_sub);
 
 	inline int finish_sensor_instance(PerSensorData &data, int sensor_index);

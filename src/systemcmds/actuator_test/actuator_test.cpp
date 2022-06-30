@@ -38,33 +38,33 @@
  */
 
 #include <drivers/drv_hrt.h>
+#include <math.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
-#include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_test.h>
-#include <math.h>
+
+#include <uORB/Publication.hpp>
 
 extern "C" __EXPORT int actuator_test_main(int argc, char *argv[]);
 
 static void actuator_test(int function, float value, int timeout_ms, bool release_control);
 static void usage(const char *reason);
 
-void actuator_test(int function, float value, int timeout_ms, bool release_control)
-{
+void actuator_test(int function, float value, int timeout_ms, bool release_control) {
 	actuator_test_s actuator_test{};
 	actuator_test.timestamp = hrt_absolute_time();
 	actuator_test.function = function;
 	actuator_test.value = value;
-	actuator_test.action = release_control ? actuator_test_s::ACTION_RELEASE_CONTROL : actuator_test_s::ACTION_DO_CONTROL;
+	actuator_test.action =
+		release_control ? actuator_test_s::ACTION_RELEASE_CONTROL : actuator_test_s::ACTION_DO_CONTROL;
 	actuator_test.timeout_ms = timeout_ms;
 
 	uORB::Publication<actuator_test_s> actuator_test_pub{ORB_ID(actuator_test)};
 	actuator_test_pub.publish(actuator_test);
 }
 
-static void usage(const char *reason)
-{
+static void usage(const char *reason) {
 	if (reason != nullptr) {
 		PX4_WARN("%s", reason);
 	}
@@ -88,12 +88,12 @@ WARNING: remove all props before using this command.
 	PRINT_MODULE_USAGE_PARAM_FLOAT('v', 0, -1, 1, "value (-1...1)", false);
 	PRINT_MODULE_USAGE_PARAM_INT('t', 0, 0, 100, "Timeout in seconds (run interactive if not set)", true);
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("iterate-motors", "Iterate all motors starting and stopping one after the other");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("iterate-motors",
+					 "Iterate all motors starting and stopping one after the other");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("iterate-servos", "Iterate all servos deflecting one after the other");
 }
 
-int actuator_test_main(int argc, char *argv[])
-{
+int actuator_test_main(int argc, char *argv[]) {
 	int function = 0;
 	float value = 10.0f;
 	int ch;
@@ -104,42 +104,39 @@ int actuator_test_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "m:s:f:v:t:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+			case 'm':
+				function = actuator_test_s::FUNCTION_MOTOR1 + (int)strtol(myoptarg, nullptr, 0) - 1;
+				break;
 
-		case 'm':
-			function = actuator_test_s::FUNCTION_MOTOR1 + (int)strtol(myoptarg, nullptr, 0) - 1;
-			break;
+			case 's':
+				function = actuator_test_s::FUNCTION_SERVO1 + (int)strtol(myoptarg, nullptr, 0) - 1;
+				break;
 
-		case 's':
-			function = actuator_test_s::FUNCTION_SERVO1 + (int)strtol(myoptarg, nullptr, 0) - 1;
-			break;
+			case 'f':
+				function = (int)strtol(myoptarg, nullptr, 0);
+				break;
 
-		case 'f':
-			function = (int)strtol(myoptarg, nullptr, 0);
-			break;
+			case 'v':
+				value = strtof(myoptarg, nullptr);
 
-		case 'v':
-			value = strtof(myoptarg, nullptr);
+				if (value < -1.f || value > 1.f) {
+					usage("value invalid");
+					return 1;
+				}
+				break;
 
-			if (value < -1.f || value > 1.f) {
-				usage("value invalid");
+			case 't':
+				timeout_ms = strtof(myoptarg, nullptr) * 1000.f;
+				break;
+
+			default:
+				usage(nullptr);
 				return 1;
-			}
-			break;
-
-		case 't':
-			timeout_ms = strtof(myoptarg, nullptr) * 1000.f;
-			break;
-
-		default:
-			usage(nullptr);
-			return 1;
 		}
 	}
 
-
 	if (myoptind >= 0 && myoptind < argc) {
 		if (strcmp("set", argv[myoptind]) == 0) {
-
 			if (value > 9.f) {
 				usage("Missing argument: value");
 				return 1;
@@ -172,8 +169,8 @@ int actuator_test_main(int argc, char *argv[])
 		} else if (strcmp("iterate-motors", argv[myoptind]) == 0) {
 			value = 0.15f;
 			for (int i = 0; i < actuator_test_s::MAX_NUM_MOTORS; ++i) {
-				PX4_INFO("Motor %i (%.0f%%)", i, (double)(value*100.f));
-				actuator_test(actuator_test_s::FUNCTION_MOTOR1+i, value, 400, false);
+				PX4_INFO("Motor %i (%.0f%%)", i, (double)(value * 100.f));
+				actuator_test(actuator_test_s::FUNCTION_MOTOR1 + i, value, 400, false);
 				px4_usleep(600000);
 			}
 			return 0;
@@ -181,8 +178,8 @@ int actuator_test_main(int argc, char *argv[])
 		} else if (strcmp("iterate-servos", argv[myoptind]) == 0) {
 			value = 0.3f;
 			for (int i = 0; i < actuator_test_s::MAX_NUM_SERVOS; ++i) {
-				PX4_INFO("Servo %i (%.0f%%)", i, (double)(value*100.f));
-				actuator_test(actuator_test_s::FUNCTION_SERVO1+i, value, 800, false);
+				PX4_INFO("Servo %i (%.0f%%)", i, (double)(value * 100.f));
+				actuator_test(actuator_test_s::FUNCTION_SERVO1 + i, value, 800, false);
 				px4_usleep(1000000);
 			}
 			return 0;

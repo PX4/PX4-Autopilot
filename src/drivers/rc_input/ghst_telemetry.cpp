@@ -41,29 +41,25 @@
  */
 
 #include "ghst_telemetry.hpp"
+
 #include <lib/rc/ghst.hpp>
 
-using time_literals::operator ""_s;
+using time_literals::operator""_s;
 
-GHSTTelemetry::GHSTTelemetry(int uart_fd) :
-	_uart_fd(uart_fd)
-{
-}
+GHSTTelemetry::GHSTTelemetry(int uart_fd) : _uart_fd(uart_fd) {}
 
-bool GHSTTelemetry::update(const hrt_abstime &now)
-{
+bool GHSTTelemetry::update(const hrt_abstime &now) {
 	bool success = false;
 
 	if ((now - _last_update) > (1_s / (UPDATE_RATE_HZ * NUM_DATA_TYPES))) {
-
 		switch (_next_type) {
-		case 0U:
-			success = send_battery_status();
-			break;
+			case 0U:
+				success = send_battery_status();
+				break;
 
-		default:
-			success = false;
-			break;
+			default:
+				success = false;
+				break;
 		}
 
 		_last_update = now;
@@ -73,8 +69,7 @@ bool GHSTTelemetry::update(const hrt_abstime &now)
 	return success;
 }
 
-bool GHSTTelemetry::send_battery_status()
-{
+bool GHSTTelemetry::send_battery_status() {
 	bool success = false;
 	float voltage_in_10mV;
 	float current_in_10mA;
@@ -85,10 +80,9 @@ bool GHSTTelemetry::send_battery_status()
 		voltage_in_10mV = battery_status.voltage_filtered_v * FACTOR_VOLTS_TO_10MV;
 		current_in_10mA = battery_status.current_filtered_a * FACTOR_AMPS_TO_10MA;
 		fuel_in_10mAh = battery_status.discharged_mah * FACTOR_MAH_TO_10MAH;
-		success = ghst_send_telemetry_battery_status(_uart_fd,
-				static_cast<uint16_t>(voltage_in_10mV),
-				static_cast<uint16_t>(current_in_10mA),
-				static_cast<uint16_t>(fuel_in_10mAh));
+		success = ghst_send_telemetry_battery_status(_uart_fd, static_cast<uint16_t>(voltage_in_10mV),
+							     static_cast<uint16_t>(current_in_10mA),
+							     static_cast<uint16_t>(fuel_in_10mAh));
 	}
 
 	return success;

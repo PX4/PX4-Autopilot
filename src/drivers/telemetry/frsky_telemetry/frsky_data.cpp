@@ -41,31 +41,29 @@
  */
 
 #include "frsky_data.h"
-#include "common.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdbool.h>
+#include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
-#include <stdbool.h>
 #include <math.h>
-
-#include <uORB/Subscription.hpp>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_air_data.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 
-#include <drivers/drv_hrt.h>
+#include <uORB/Subscription.hpp>
+
+#include "common.h"
 
 #define frac(f) (f - (int)f)
 
 struct frsky_subscription_data_s {
-
 	uORB::SubscriptionData<battery_status_s> battery_status_sub{ORB_ID(battery_status)};
 	uORB::SubscriptionData<vehicle_acceleration_s> vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::SubscriptionData<vehicle_air_data_s> vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
@@ -80,8 +78,7 @@ static struct frsky_subscription_data_s *subscription_data = nullptr;
 /**
  * Initializes the uORB subscriptions.
  */
-bool frsky_init()
-{
+bool frsky_init() {
 	subscription_data = new frsky_subscription_data_s();
 
 	if (!subscription_data) {
@@ -91,8 +88,7 @@ bool frsky_init()
 	return true;
 }
 
-void frsky_deinit()
-{
+void frsky_deinit() {
 	if (subscription_data) {
 		delete subscription_data;
 		subscription_data = nullptr;
@@ -102,8 +98,7 @@ void frsky_deinit()
 /**
  * Sends a 0x5E start/stop byte.
  */
-static void frsky_send_startstop(int uart)
-{
+static void frsky_send_startstop(int uart) {
 	static const uint8_t c = 0x5E;
 	write(uart, &c, sizeof(c));
 }
@@ -111,31 +106,29 @@ static void frsky_send_startstop(int uart)
 /**
  * Sends one byte, performing byte-stuffing if necessary.
  */
-static void frsky_send_byte(int uart, uint8_t value)
-{
-	const uint8_t x5E[] = { 0x5D, 0x3E };
-	const uint8_t x5D[] = { 0x5D, 0x3D };
+static void frsky_send_byte(int uart, uint8_t value) {
+	const uint8_t x5E[] = {0x5D, 0x3E};
+	const uint8_t x5D[] = {0x5D, 0x3D};
 
 	switch (value) {
-	case 0x5E:
-		write(uart, x5E, sizeof(x5E));
-		break;
+		case 0x5E:
+			write(uart, x5E, sizeof(x5E));
+			break;
 
-	case 0x5D:
-		write(uart, x5D, sizeof(x5D));
-		break;
+		case 0x5D:
+			write(uart, x5D, sizeof(x5D));
+			break;
 
-	default:
-		write(uart, &value, sizeof(value));
-		break;
+		default:
+			write(uart, &value, sizeof(value));
+			break;
 	}
 }
 
 /**
  * Sends one data id/value pair.
  */
-static void frsky_send_data(int uart, uint8_t id, int16_t data)
-{
+static void frsky_send_data(int uart, uint8_t id, int16_t data) {
 	/* Cast data to unsigned, because signed shift might behave incorrectly */
 	uint16_t udata = data;
 
@@ -146,8 +139,7 @@ static void frsky_send_data(int uart, uint8_t id, int16_t data)
 	frsky_send_byte(uart, udata >> 8); /* MSB */
 }
 
-void frsky_update_topics()
-{
+void frsky_update_topics() {
 	subscription_data->battery_status_sub.update();
 	subscription_data->vehicle_acceleration_sub.update();
 	subscription_data->vehicle_air_data_sub.update();
@@ -161,8 +153,7 @@ void frsky_update_topics()
  * Sends frame 1 (every 200ms):
  *   acceleration values, barometer altitude, temperature, battery voltage & current
  */
-void frsky_send_frame1(int uart)
-{
+void frsky_send_frame1(int uart) {
 	/* send formatted frame */
 	const vehicle_acceleration_s &vehicle_acceleration = subscription_data->vehicle_acceleration_sub.get();
 	frsky_send_data(uart, FRSKY_ID_ACCEL_X, roundf(vehicle_acceleration.xyz[0] * 1000.0f));
@@ -178,7 +169,8 @@ void frsky_send_frame1(int uart)
 	frsky_send_data(uart, FRSKY_ID_CURRENT, (bat.current_a < 0) ? 0 : roundf(bat.current_a * 10.0f));
 
 	int16_t telem_flight_mode = get_telemetry_flight_mode(subscription_data->vehicle_status_sub.get().nav_state);
-	frsky_send_data(uart, FRSKY_ID_TEMP1, telem_flight_mode); // send flight mode as TEMP1. This matches with OpenTX & APM
+	frsky_send_data(uart, FRSKY_ID_TEMP1,
+			telem_flight_mode);  // send flight mode as TEMP1. This matches with OpenTX & APM
 
 	const vehicle_gps_position_s &gps = subscription_data->vehicle_gps_position_sub.get();
 	frsky_send_data(uart, FRSKY_ID_TEMP2, gps.satellites_used * 10 + gps.fix_type);
@@ -189,9 +181,8 @@ void frsky_send_frame1(int uart)
 /**
  * Formats the decimal latitude/longitude to the required degrees/minutes.
  */
-static float frsky_format_gps(float dec)
-{
-	float dm_deg = (int) dec;
+static float frsky_format_gps(float dec) {
+	float dm_deg = (int)dec;
 	return (dm_deg * 100.0f) + (dec - dm_deg) * 60;
 }
 
@@ -199,8 +190,7 @@ static float frsky_format_gps(float dec)
  * Sends frame 2 (every 1000ms):
  *   GPS course, latitude, longitude, ground speed, GPS altitude, remaining battery level
  */
-void frsky_send_frame2(int uart)
-{
+void frsky_send_frame2(int uart) {
 	const vehicle_global_position_s &gpos = subscription_data->vehicle_global_position_sub.get();
 	const vehicle_local_position_s &lpos = subscription_data->vehicle_local_position_sub.get();
 	const battery_status_s &battery_status = subscription_data->battery_status_sub.get();
@@ -214,23 +204,23 @@ void frsky_send_frame2(int uart)
 	if (gpos.timestamp != 0 && hrt_absolute_time() < gpos.timestamp + 20000) {
 		course = lpos.heading / M_PI_F * 180.0f;
 
-		if (course < 0.f) { // course is in range [0, 360], 0=north, CW
+		if (course < 0.f) {  // course is in range [0, 360], 0=north, CW
 			course += 360.f;
 		}
 
-		lat    = frsky_format_gps(fabsf(gpos.lat));
+		lat = frsky_format_gps(fabsf(gpos.lat));
 		lat_ns = (gpos.lat < 0) ? 'S' : 'N';
-		lon    = frsky_format_gps(fabsf(gpos.lon));
+		lon = frsky_format_gps(fabsf(gpos.lon));
 		lon_ew = (gpos.lon < 0) ? 'W' : 'E';
-		speed  = sqrtf(lpos.vx * lpos.vx + lpos.vy * lpos.vy) * 25.0f / 46.0f;
-		alt    = gpos.alt;
+		speed = sqrtf(lpos.vx * lpos.vx + lpos.vy * lpos.vy) * 25.0f / 46.0f;
+		alt = gpos.alt;
 	}
 
 	if (gps.timestamp != 0 && hrt_absolute_time() < gps.timestamp + 20000) {
 		time_t time_gps = gps.time_utc_usec / 1000000ULL;
 		struct tm *tm_gps = gmtime(&time_gps);
 
-		sec    = tm_gps->tm_sec;
+		sec = tm_gps->tm_sec;
 	}
 
 	frsky_send_data(uart, FRSKY_ID_GPS_COURS_BP, course);
@@ -261,8 +251,7 @@ void frsky_send_frame2(int uart)
  * Sends frame 3 (every 5000ms):
  *   GPS date & time
  */
-void frsky_send_frame3(int uart)
-{
+void frsky_send_frame3(int uart) {
 	/* send formatted frame */
 	time_t time_gps = subscription_data->vehicle_gps_position_sub.get().time_utc_usec / 1000000ULL;
 
@@ -277,68 +266,62 @@ void frsky_send_frame3(int uart)
 }
 
 /* parse 11 byte frames */
-bool frsky_parse_host(uint8_t *sbuf, int nbytes, struct adc_linkquality *v)
-{
+bool frsky_parse_host(uint8_t *sbuf, int nbytes, struct adc_linkquality *v) {
 	bool data_ready = false;
 	static int dcount = 0;
 	static uint8_t type = 0;
 	static uint8_t data[11];
-	static enum {
-		HEADER = 0,
-		TYPE,
-		DATA,
-		TRAILER
-	} state = HEADER;
+	static enum { HEADER = 0, TYPE, DATA, TRAILER } state = HEADER;
 
 	for (int i = 0; i < nbytes; i++) {
 		switch (state) {
-		case HEADER:
-			if (sbuf[i] == 0x7E) {
-				state = TYPE;
-			}
-
-			break;
-
-		case TYPE:
-			if (sbuf[i] != 0x7E) {
-				state = DATA;
-				type = sbuf[i];
-				dcount = 0;
-			}
-
-			break;
-
-		case DATA:
-
-			/* read 8 data bytes */
-			if (dcount < 7) {
-				data[dcount++] = sbuf[i];
-
-			} else {
-				/* received all data bytes */
-				state = TRAILER;
-			}
-
-			break;
-
-		case TRAILER:
-			state = HEADER;
-
-			if (sbuf[i] != 0x7E) {
-//				warnx("host packet error: %x", sbuf[i]);
-
-			} else {
-				data_ready = true;
-
-				if (type == 0xFE) {
-					/* this is an adc_linkquality packet */
-					v->ad1 = data[0];
-					v->ad2 = data[1];
-					v->linkq = data[2];
+			case HEADER:
+				if (sbuf[i] == 0x7E) {
+					state = TYPE;
 				}
-			}
 
-			break;
+				break;
+
+			case TYPE:
+				if (sbuf[i] != 0x7E) {
+					state = DATA;
+					type = sbuf[i];
+					dcount = 0;
+				}
+
+				break;
+
+			case DATA:
+
+				/* read 8 data bytes */
+				if (dcount < 7) {
+					data[dcount++] = sbuf[i];
+
+				} else {
+					/* received all data bytes */
+					state = TRAILER;
+				}
+
+				break;
+
+			case TRAILER:
+				state = HEADER;
+
+				if (sbuf[i] != 0x7E) {
+					//				warnx("host packet error: %x", sbuf[i]);
+
+				} else {
+					data_ready = true;
+
+					if (type == 0xFE) {
+						/* this is an adc_linkquality packet */
+						v->ad1 = data[0];
+						v->ad2 = data[1];
+						v->linkq = data[2];
+					}
+				}
+
+				break;
 		}
 	}
 

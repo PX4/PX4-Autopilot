@@ -42,43 +42,34 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define debug(fmt, args...)	do { } while(0)
+#define debug(fmt, args...) \
+	do {                \
+	} while (0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 
-SimpleMixer::SimpleMixer(ControlCallback control_cb, uintptr_t cb_handle, mixer_simple_s *mixinfo) :
-	Mixer(control_cb, cb_handle),
-	_pinfo(mixinfo)
-{
-}
+SimpleMixer::SimpleMixer(ControlCallback control_cb, uintptr_t cb_handle, mixer_simple_s *mixinfo)
+	: Mixer(control_cb, cb_handle), _pinfo(mixinfo) {}
 
-SimpleMixer::~SimpleMixer()
-{
+SimpleMixer::~SimpleMixer() {
 	if (_pinfo != nullptr) {
 		free(_pinfo);
 	}
 }
 
-unsigned SimpleMixer::set_trim(float trim)
-{
+unsigned SimpleMixer::set_trim(float trim) {
 	_pinfo->output_scaler.offset = trim;
 	return 1;
 }
 
-unsigned SimpleMixer::get_trim(float *trim)
-{
+unsigned SimpleMixer::get_trim(float *trim) {
 	*trim = _pinfo->output_scaler.offset;
 	return 1;
 }
 
-void
-SimpleMixer::set_dt_once(float dt)
-{
-	_dt = dt;
-}
+void SimpleMixer::set_dt_once(float dt) { _dt = dt; }
 
-int
-SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler, float &slew_rate_rise_time)
-{
+int SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler,
+				     float &slew_rate_rise_time) {
 	int ret;
 	int s[6];
 	int n = -1;
@@ -90,8 +81,7 @@ SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler
 		return -1;
 	}
 
-	if ((ret = sscanf(buf, "O: %d %d %d %d %d %d %n",
-			  &s[0], &s[1], &s[2], &s[3], &s[4], &s[5], &n)) < 5) {
+	if ((ret = sscanf(buf, "O: %d %d %d %d %d %d %n", &s[0], &s[1], &s[2], &s[3], &s[4], &s[5], &n)) < 5) {
 		debug("out scaler parse failed on '%s' (got %d, consumed %d)", buf, ret, n);
 		return -1;
 	}
@@ -108,20 +98,18 @@ SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler
 		return -1;
 	}
 
-	scaler.negative_scale	= s[0] / 10000.0f;
-	scaler.positive_scale	= s[1] / 10000.0f;
-	scaler.offset		= s[2] / 10000.0f;
-	scaler.min_output	= s[3] / 10000.0f;
-	scaler.max_output	= s[4] / 10000.0f;
-	slew_rate_rise_time	= s[5] / 10000.0f;
+	scaler.negative_scale = s[0] / 10000.0f;
+	scaler.positive_scale = s[1] / 10000.0f;
+	scaler.offset = s[2] / 10000.0f;
+	scaler.min_output = s[3] / 10000.0f;
+	scaler.max_output = s[4] / 10000.0f;
+	slew_rate_rise_time = s[5] / 10000.0f;
 
 	return 0;
 }
 
-int
-SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler, uint8_t &control_group,
-				  uint8_t &control_index)
-{
+int SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler, uint8_t &control_group,
+				      uint8_t &control_index) {
 	unsigned u[2];
 	int s[5];
 
@@ -132,8 +120,7 @@ SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scale
 		return -1;
 	}
 
-	if (sscanf(buf, "S: %u %u %d %d %d %d %d",
-		   &u[0], &u[1], &s[0], &s[1], &s[2], &s[3], &s[4]) != 7) {
+	if (sscanf(buf, "S: %u %u %d %d %d %d %d", &u[0], &u[1], &s[0], &s[1], &s[2], &s[3], &s[4]) != 7) {
 		debug("control parse failed on '%s'", buf);
 		return -1;
 	}
@@ -145,20 +132,19 @@ SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scale
 		return -1;
 	}
 
-	control_group		= u[0];
-	control_index		= u[1];
-	scaler.negative_scale	= s[0] / 10000.0f;
-	scaler.positive_scale	= s[1] / 10000.0f;
-	scaler.offset		= s[2] / 10000.0f;
-	scaler.min_output	= s[3] / 10000.0f;
-	scaler.max_output	= s[4] / 10000.0f;
+	control_group = u[0];
+	control_index = u[1];
+	scaler.negative_scale = s[0] / 10000.0f;
+	scaler.positive_scale = s[1] / 10000.0f;
+	scaler.offset = s[2] / 10000.0f;
+	scaler.min_output = s[3] / 10000.0f;
+	scaler.max_output = s[4] / 10000.0f;
 
 	return 0;
 }
 
-SimpleMixer *
-SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf, unsigned &buflen)
-{
+SimpleMixer *SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
+				    unsigned &buflen) {
 	SimpleMixer *sm = nullptr;
 	mixer_simple_s *mixinfo = nullptr;
 	unsigned inputs;
@@ -207,12 +193,12 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 		 * Corresponds to:
 		 * O:      10000  10000      0 -10000  10000 0
 		 */
-		mixinfo->output_scaler.negative_scale	= 1.0f;
-		mixinfo->output_scaler.positive_scale	= 1.0f;
-		mixinfo->output_scaler.offset		= 0.f;
-		mixinfo->output_scaler.min_output	= -1.0f;
-		mixinfo->output_scaler.max_output	= 1.0f;
-		mixinfo->slew_rate_rise_time		= 0.0f;
+		mixinfo->output_scaler.negative_scale = 1.0f;
+		mixinfo->output_scaler.positive_scale = 1.0f;
+		mixinfo->output_scaler.offset = 0.f;
+		mixinfo->output_scaler.min_output = -1.0f;
+		mixinfo->output_scaler.max_output = 1.0f;
+		mixinfo->slew_rate_rise_time = 0.0f;
 
 	} else {
 		if (parse_output_scaler(end - buflen, buflen, mixinfo->output_scaler, mixinfo->slew_rate_rise_time)) {
@@ -222,10 +208,8 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 	}
 
 	for (unsigned i = 0; i < inputs; i++) {
-		if (parse_control_scaler(end - buflen, buflen,
-					 mixinfo->controls[i].scaler,
-					 mixinfo->controls[i].control_group,
-					 mixinfo->controls[i].control_index)) {
+		if (parse_control_scaler(end - buflen, buflen, mixinfo->controls[i].scaler,
+					 mixinfo->controls[i].control_group, mixinfo->controls[i].control_index)) {
 			debug("simple mixer parser failed parsing ctrl scaler tag, ret: '%s'", buf);
 			goto out;
 		}
@@ -250,9 +234,7 @@ out:
 	return sm;
 }
 
-unsigned
-SimpleMixer::mix(float *outputs, unsigned space)
-{
+unsigned SimpleMixer::mix(float *outputs, unsigned space) {
 	float sum = 0.0f;
 
 	if (_pinfo == nullptr) {
@@ -266,10 +248,7 @@ SimpleMixer::mix(float *outputs, unsigned space)
 	for (unsigned i = 0; i < _pinfo->control_count; i++) {
 		float input = 0.0f;
 
-		_control_cb(_cb_handle,
-			    _pinfo->controls[i].control_group,
-			    _pinfo->controls[i].control_index,
-			    input);
+		_control_cb(_cb_handle, _pinfo->controls[i].control_group, _pinfo->controls[i].control_index, input);
 
 		sum += scale(_pinfo->controls[i].scaler, input);
 	}
@@ -277,7 +256,6 @@ SimpleMixer::mix(float *outputs, unsigned space)
 	*outputs = scale(_pinfo->output_scaler, sum);
 
 	if (_dt > FLT_EPSILON && _pinfo->slew_rate_rise_time > FLT_EPSILON) {
-
 		// factor 2 is needed because actuator outputs are in the range [-1,1]
 		const float output_delta_max = 2.0f * _dt / _pinfo->slew_rate_rise_time;
 
@@ -289,10 +267,10 @@ SimpleMixer::mix(float *outputs, unsigned space)
 		} else if (delta_out < -output_delta_max) {
 			*outputs = _output_prev - output_delta_max;
 		}
-
 	}
 
-	// this will force the caller of the mixer to always supply dt values, otherwise no slew rate limiting will happen
+	// this will force the caller of the mixer to always supply dt values, otherwise no slew rate limiting will
+	// happen
 	_dt = 0.f;
 
 	_output_prev = *outputs;
@@ -300,17 +278,13 @@ SimpleMixer::mix(float *outputs, unsigned space)
 	return 1;
 }
 
-void
-SimpleMixer::groups_required(uint32_t &groups)
-{
+void SimpleMixer::groups_required(uint32_t &groups) {
 	for (unsigned i = 0; i < _pinfo->control_count; i++) {
 		groups |= 1 << _pinfo->controls[i].control_group;
 	}
 }
 
-int
-SimpleMixer::check()
-{
+int SimpleMixer::check() {
 	float junk;
 
 	/* sanity that presumes that a mixer includes a control no more than once */
@@ -328,11 +302,8 @@ SimpleMixer::check()
 
 	/* validate input scalers */
 	for (unsigned i = 0; i < _pinfo->control_count; i++) {
-
 		/* verify that we can fetch the control */
-		if (_control_cb(_cb_handle,
-				_pinfo->controls[i].control_group,
-				_pinfo->controls[i].control_index,
+		if (_control_cb(_cb_handle, _pinfo->controls[i].control_group, _pinfo->controls[i].control_index,
 				junk) != 0) {
 			return -3;
 		}
@@ -348,9 +319,7 @@ SimpleMixer::check()
 	return 0;
 }
 
-float
-SimpleMixer::scale(const mixer_scaler_s &scaler, float input)
-{
+float SimpleMixer::scale(const mixer_scaler_s &scaler, float input) {
 	float output;
 
 	if (input < 0.0f) {
@@ -363,9 +332,7 @@ SimpleMixer::scale(const mixer_scaler_s &scaler, float input)
 	return math::constrain(output, scaler.min_output, scaler.max_output);
 }
 
-int
-SimpleMixer::scale_check(mixer_scaler_s &scaler)
-{
+int SimpleMixer::scale_check(mixer_scaler_s &scaler) {
 	if (scaler.offset > 1.001f) {
 		return 1;
 	}

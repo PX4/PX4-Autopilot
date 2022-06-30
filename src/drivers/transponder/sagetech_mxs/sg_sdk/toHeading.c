@@ -15,8 +15,7 @@
 /*
  * Documented in the header file.
  */
-double toHeading(const uint8_t bytes[])
-{
+double toHeading(const uint8_t bytes[]) {
 	double value = bytes[0];
 	value *= SV_RES_HEAD;
 

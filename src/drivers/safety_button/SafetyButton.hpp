@@ -33,15 +33,14 @@
 
 #pragma once
 
-#include <float.h>
-
 #include <drivers/drv_hrt.h>
+#include <float.h>
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <button/ButtonPublisher.hpp>
 
-class SafetyButton : public ModuleBase<SafetyButton>, public px4::ScheduledWorkItem
-{
+#include <button/ButtonPublisher.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
+class SafetyButton : public ModuleBase<SafetyButton>, public px4::ScheduledWorkItem {
 public:
 	SafetyButton();
 	~SafetyButton() override;
@@ -64,16 +63,15 @@ private:
 	void CheckPairingRequest(bool button_pressed);
 	void FlashButton();
 
-	bool			_has_px4io{false};
-	ButtonPublisher	_button_publisher;
-	uint8_t			_button_counter{0};
-	uint8_t			_blink_counter{0};
-	bool			_button_prev_sate{false};	///< Previous state of the HW button
+	bool _has_px4io{false};
+	ButtonPublisher _button_publisher;
+	uint8_t _button_counter{0};
+	uint8_t _blink_counter{0};
+	bool _button_prev_sate{false};  ///< Previous state of the HW button
 
 	// Pairing request
-	hrt_abstime		_pairing_start{0};
-	int				_pairing_button_counter{0};
+	hrt_abstime _pairing_start{0};
+	int _pairing_button_counter{0};
 
-	uORB::Subscription	_armed_sub{ORB_ID(actuator_armed)};
-
+	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 };

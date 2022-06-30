@@ -33,43 +33,35 @@
 
 #pragma once
 
-#include "UavcanPublisherBase.hpp"
-
-#include <ardupilot/gnss/RelPosHeading.hpp>
-
-#include <lib/drivers/device/Device.hpp>
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/sensor_gnss_relative.h>
 
-namespace uavcannode
-{
+#include <ardupilot/gnss/RelPosHeading.hpp>
+#include <lib/drivers/device/Device.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 
-class RelPosHeadingPub :
-	public UavcanPublisherBase,
-	public uORB::SubscriptionCallbackWorkItem,
-	private uavcan::Publisher<ardupilot::gnss::RelPosHeading>
-{
+#include "UavcanPublisherBase.hpp"
+
+namespace uavcannode {
+
+class RelPosHeadingPub : public UavcanPublisherBase,
+			 public uORB::SubscriptionCallbackWorkItem,
+			 private uavcan::Publisher<ardupilot::gnss::RelPosHeading> {
 public:
-	RelPosHeadingPub(px4::WorkItem *work_item, uavcan::INode &node) :
-		UavcanPublisherBase(ardupilot::gnss::RelPosHeading::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_gnss_relative)),
-		uavcan::Publisher<ardupilot::gnss::RelPosHeading>(node)
-	{
+	RelPosHeadingPub(px4::WorkItem *work_item, uavcan::INode &node)
+		: UavcanPublisherBase(ardupilot::gnss::RelPosHeading::DefaultDataTypeID),
+		  uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_gnss_relative)),
+		  uavcan::Publisher<ardupilot::gnss::RelPosHeading>(node) {
 		this->setPriority(uavcan::TransferPriority::NumericallyMax);
 	}
 
-	void PrintInfo() override
-	{
+	void PrintInfo() override {
 		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
-			printf("\t%s -> %s:%d\n",
-			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
-			       ardupilot::gnss::RelPosHeading::getDataTypeFullName(),
-			       id());
+			printf("\t%s -> %s:%d\n", uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
+			       ardupilot::gnss::RelPosHeading::getDataTypeFullName(), id());
 		}
 	}
 
-	void BroadcastAnyUpdates() override
-	{
+	void BroadcastAnyUpdates() override {
 		using ardupilot::gnss::RelPosHeading;
 
 		// sensor_gnss_relative -> ardupilot::gnss::RelPosHeading
@@ -81,11 +73,12 @@ public:
 			// TODO: FIX (timestamp_sample and UAVCAN timestamp)
 			rel_pos_heading.timestamp = uavcan::UtcTime::fromUSec(getNode().getMonotonicTime().toUSec());
 
-			rel_pos_heading.reported_heading_acc_available = sensor_gnss_relative.heading_valid; // bool
-			rel_pos_heading.reported_heading_deg = math::degrees(sensor_gnss_relative.heading); // float32
-			rel_pos_heading.reported_heading_acc_deg = math::degrees(sensor_gnss_relative.heading_accuracy); // float32
-			rel_pos_heading.relative_distance_m = sensor_gnss_relative.position_length; // float16
-			rel_pos_heading.relative_down_pos_m = sensor_gnss_relative.position[2]; // float16
+			rel_pos_heading.reported_heading_acc_available = sensor_gnss_relative.heading_valid;  // bool
+			rel_pos_heading.reported_heading_deg = math::degrees(sensor_gnss_relative.heading);   // float32
+			rel_pos_heading.reported_heading_acc_deg =
+				math::degrees(sensor_gnss_relative.heading_accuracy);                // float32
+			rel_pos_heading.relative_distance_m = sensor_gnss_relative.position_length;  // float16
+			rel_pos_heading.relative_down_pos_m = sensor_gnss_relative.position[2];      // float16
 
 			uavcan::Publisher<ardupilot::gnss::RelPosHeading>::broadcast(rel_pos_heading);
 
@@ -94,4 +87,4 @@ public:
 		}
 	}
 };
-} // namespace uavcannode
+}  // namespace uavcannode

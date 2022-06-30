@@ -34,9 +34,9 @@
 #include <px4_arch/io_timer_hw_description.h>
 
 constexpr io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
-#  if defined(BOARD_HAS_LED_PWM) && !defined(BOARD_HAS_CONTROL_STATUS_LEDS)
+#if defined(BOARD_HAS_LED_PWM) && !defined(BOARD_HAS_CONTROL_STATUS_LEDS)
 	initIOTimer(Timer::Timer3),
-#  endif
+#endif
 };
 
 /* Support driving active low (preferred) or active high LED
@@ -46,38 +46,37 @@ constexpr io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
  * if the LED has a 5 Volt supply that the LED will be
  * off when high.
  */
-#define CCER_C1_NUM_BITS   4
-#define ACTIVE_LOW(c)      (GTIM_CCER_CC1P << (((c)-1) * CCER_C1_NUM_BITS))
-#define ACTIVE_HIGH(c)     0
+#define CCER_C1_NUM_BITS 4
+#define ACTIVE_LOW(c) (GTIM_CCER_CC1P << (((c)-1) * CCER_C1_NUM_BITS))
+#define ACTIVE_HIGH(c) 0
 
 #if defined(BOARD_LED_PWM_DRIVE_ACTIVE_LOW)
-#  define POLARITY(c)      ACTIVE_LOW(c)
-#  define DRIVE_TYPE(p)    ((p)|GPIO_OPENDRAIN)
+#define POLARITY(c) ACTIVE_LOW(c)
+#define DRIVE_TYPE(p) ((p) | GPIO_OPENDRAIN)
 #else
-#  define POLARITY(c)      ACTIVE_HIGH((c))
-#  define DRIVE_TYPE(p)    (p)
+#define POLARITY(c) ACTIVE_HIGH((c))
+#define DRIVE_TYPE(p) (p)
 #endif
 
 #if defined(BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW)
-#  define UI_POLARITY(c)    ACTIVE_LOW(c)
-#  define UI_DRIVE_TYPE(p)  ((p)|GPIO_OPENDRAIN)
+#define UI_POLARITY(c) ACTIVE_LOW(c)
+#define UI_DRIVE_TYPE(p) ((p) | GPIO_OPENDRAIN)
 #else
-#  define UI_POLARITY(c)    ACTIVE_HIGH((c))
-#  define UI_DRIVE_TYPE(p)  (p)
+#define UI_POLARITY(c) ACTIVE_HIGH((c))
+#define UI_DRIVE_TYPE(p) (p)
 #endif
 
 static inline constexpr timer_io_channels_t initIOTimerChannelUILED(const io_timers_t io_timers_conf[MAX_LED_TIMERS],
-		Timer::TimerChannel timer, GPIO::GPIOPin pin, int ui_polarity)
-{
+								    Timer::TimerChannel timer, GPIO::GPIOPin pin,
+								    int ui_polarity) {
 	timer_io_channels_t ret = initIOTimerChannel(io_timers_conf, timer, pin);
 	ret.gpio_out = UI_DRIVE_TYPE(ret.gpio_out);
 	ret.masks = UI_POLARITY(ui_polarity);
 	return ret;
 }
 
-static inline constexpr timer_io_channels_t initIOTimerChannelControlLED(const io_timers_t
-		io_timers_conf[MAX_LED_TIMERS], Timer::TimerChannel timer, GPIO::GPIOPin pin, int polarity)
-{
+static inline constexpr timer_io_channels_t initIOTimerChannelControlLED(
+	const io_timers_t io_timers_conf[MAX_LED_TIMERS], Timer::TimerChannel timer, GPIO::GPIOPin pin, int polarity) {
 	timer_io_channels_t ret = initIOTimerChannel(io_timers_conf, timer, pin);
 	ret.gpio_out = DRIVE_TYPE(ret.gpio_out);
 	ret.masks = POLARITY(polarity);
@@ -85,9 +84,9 @@ static inline constexpr timer_io_channels_t initIOTimerChannelControlLED(const i
 }
 
 constexpr timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
-#  if defined(BOARD_HAS_LED_PWM) && !defined(BOARD_HAS_CONTROL_STATUS_LEDS)
+#if defined(BOARD_HAS_LED_PWM) && !defined(BOARD_HAS_CONTROL_STATUS_LEDS)
 	initIOTimerChannelControlLED(led_pwm_timers, {Timer::Timer3, Timer::Channel4}, {GPIO::PortB, GPIO::Pin1}, 4),
 	initIOTimerChannelControlLED(led_pwm_timers, {Timer::Timer3, Timer::Channel1}, {GPIO::PortC, GPIO::Pin6}, 1),
 	initIOTimerChannelControlLED(led_pwm_timers, {Timer::Timer3, Timer::Channel2}, {GPIO::PortC, GPIO::Pin7}, 2),
-#  endif
+#endif
 };

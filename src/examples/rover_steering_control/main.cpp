@@ -39,34 +39,34 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <lib/geo/geo.h>
+#include <math.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
+#include <poll.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
+#include <systemlib/err.h>
 #include <time.h>
-#include <drivers/drv_hrt.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/parameter_update.h>
-#include <parameters/param.h>
-#include <lib/geo/geo.h>
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
+#include <uORB/topics/vehicle_status.h>
+#include <unistd.h>
+
 #include <matrix/math.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 
 /* process-specific header files */
 #include "params.h"
@@ -130,30 +130,27 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 		      struct actuator_controls_s *actuators);
 
 /* Variables */
-static bool thread_should_exit = false;		/**< Daemon exit flag */
-static bool thread_running = false;		/**< Daemon status flag */
-static int deamon_task;				/**< Handle of deamon task / thread */
+static bool thread_should_exit = false; /**< Daemon exit flag */
+static bool thread_running = false;     /**< Daemon status flag */
+static int deamon_task;                 /**< Handle of deamon task / thread */
 static struct params pp;
 static struct param_handles ph;
 
-int parameters_init(struct param_handles *h)
-{
+int parameters_init(struct param_handles *h) {
 	/* PID parameters */
-	h->yaw_p 	=	param_find("RV_YAW_P");
+	h->yaw_p = param_find("RV_YAW_P");
 
 	return OK;
 }
 
-int parameter_update(const struct param_handles *h, struct params *p)
-{
+int parameter_update(const struct param_handles *h, struct params *p) {
 	param_get(h->yaw_p, &(p->yaw_p));
 
 	return OK;
 }
 
 void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
-		      struct actuator_controls_s *actuators)
-{
+		      struct actuator_controls_s *actuators) {
 	/*
 	 * The PX4 architecture provides a mixer outside of the controller.
 	 * The mixer is fed with a default vector of actuator controls, representing
@@ -191,8 +188,7 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 }
 
 /* Main Thread */
-int rover_steering_control_thread_main(int argc, char *argv[])
-{
+int rover_steering_control_thread_main(int argc, char *argv[]) {
 	/* read arguments */
 	bool verbose = false;
 
@@ -205,7 +201,6 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 	/* initialize parameters, first the handles, then the values */
 	parameters_init(&ph);
 	parameter_update(&ph, &pp);
-
 
 	/*
 	 * PX4 uses a publish/subscribe design pattern to enable
@@ -222,9 +217,6 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 	 * http://en.wikipedia.org/wiki/Publish–subscribe_pattern
 	 *
 	 */
-
-
-
 
 	/*
 	 * Declare and safely initialize all structs to zero.
@@ -248,7 +240,6 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 	/* output structs - this is what is sent to the mixer */
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
-
 
 	/* publish actuator controls with zero values */
 	for (unsigned i = 0; i < (sizeof(actuators.control) / sizeof(actuators.control[0])); i++) {
@@ -278,14 +269,13 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 
 	/* Setup of loop */
 
-	struct pollfd fds[1] {};
+	struct pollfd fds[1]{};
 
 	fds[0].fd = att_sub;
 
 	fds[0].events = POLLIN;
 
 	while (!thread_should_exit) {
-
 		/*
 		 * Wait for a sensor or param update, check for exit condition every 500 ms.
 		 * This means that the execution will block here without consuming any resources,
@@ -308,7 +298,6 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 		} else if (ret == 0) {
 			/* no return value = nothing changed for 500 ms, ignore */
 		} else {
-
 			// check for parameter updates
 			if (parameter_update_sub.updated()) {
 				// clear update
@@ -321,8 +310,6 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 
 			/* only run controller if attitude changed */
 			if (fds[0].revents & POLLIN) {
-
-
 				/* Check if there is a new position measurement or position setpoint */
 				bool pos_updated;
 				orb_check(global_pos_sub, &pos_updated);
@@ -342,9 +329,10 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 				control_attitude(&_att_sp, &att, &actuators);
 
 				if (manual_control_setpoint_updated)
-					/* get the RC (or otherwise user based) input */
+				/* get the RC (or otherwise user based) input */
 				{
-					orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual_control_setpoint);
+					orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub,
+						 &manual_control_setpoint);
 				}
 
 				// XXX copy from manual depending on flight / usage mode to override
@@ -353,10 +341,8 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(vehicle_status), vstatus_sub, &vstatus);
 
 				/* sanity check and publish actuator outputs */
-				if (PX4_ISFINITE(actuators.control[0]) &&
-				    PX4_ISFINITE(actuators.control[1]) &&
-				    PX4_ISFINITE(actuators.control[2]) &&
-				    PX4_ISFINITE(actuators.control[3])) {
+				if (PX4_ISFINITE(actuators.control[0]) && PX4_ISFINITE(actuators.control[1]) &&
+				    PX4_ISFINITE(actuators.control[2]) && PX4_ISFINITE(actuators.control[3])) {
 					orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 					if (verbose) {
@@ -386,9 +372,7 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 
 /* Startup Functions */
 
-static void
-usage(const char *reason)
-{
+static void usage(const char *reason) {
 	if (reason) {
 		fprintf(stderr, "%s\n", reason);
 	}
@@ -404,15 +388,13 @@ usage(const char *reason)
  * The actual stack size should be set in the call
  * to px4_task_spawn_cmd().
  */
-int rover_steering_control_main(int argc, char *argv[])
-{
+int rover_steering_control_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		usage("missing command");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
-
 		if (thread_running) {
 			warnx("running");
 			/* this is not an error */
@@ -420,10 +402,7 @@ int rover_steering_control_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = px4_task_spawn_cmd("rover_steering_control",
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_MAX - 20,
-						 2048,
+		deamon_task = px4_task_spawn_cmd("rover_steering_control", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 20, 2048,
 						 rover_steering_control_thread_main,
 						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 		thread_running = true;
@@ -449,6 +428,3 @@ int rover_steering_control_main(int argc, char *argv[])
 	usage("unrecognized command");
 	return 1;
 }
-
-
-

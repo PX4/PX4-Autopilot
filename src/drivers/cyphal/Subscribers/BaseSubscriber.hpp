@@ -41,35 +41,29 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
-
 #include <lib/parameters/param.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "../CanardHandle.hpp"
 #include "../CanardInterface.hpp"
 #include "../ParamManager.hpp"
 
-class UavcanBaseSubscriber
-{
+class UavcanBaseSubscriber {
 public:
-	UavcanBaseSubscriber(CanardHandle &handle, const char *prefix_name, const char *subject_name, uint8_t instance = 0) :
-		_canard_handle(handle), _prefix_name(prefix_name), _instance(instance)
-	{
+	UavcanBaseSubscriber(CanardHandle &handle, const char *prefix_name, const char *subject_name,
+			     uint8_t instance = 0)
+		: _canard_handle(handle), _prefix_name(prefix_name), _instance(instance) {
 		_subj_sub._subject_name = subject_name;
 		_subj_sub._canard_sub.user_reference = this;
 		_subj_sub._canard_sub.port_id = CANARD_PORT_ID_UNSET;
 	}
 
-	virtual ~UavcanBaseSubscriber()
-	{
-		unsubscribe();
-	}
+	virtual ~UavcanBaseSubscriber() { unsubscribe(); }
 
 	bool isValidPortId(int32_t id) const { return id >= 0 && id <= CANARD_PORT_ID_MAX; }
 
 	virtual void subscribe() = 0;
-	virtual void unsubscribe()
-	{
+	virtual void unsubscribe() {
 		SubjectSubscription *curSubj = &_subj_sub;
 
 		while (curSubj != nullptr) {
@@ -80,8 +74,7 @@ public:
 
 	virtual void callback(const CanardRxTransfer &msg) = 0;
 
-	CanardPortID id(uint32_t instance = 0)
-	{
+	CanardPortID id(uint32_t instance = 0) {
 		uint32_t i = 0;
 		SubjectSubscription *curSubj = &_subj_sub;
 
@@ -94,11 +87,10 @@ public:
 			i++;
 		}
 
-		return CANARD_PORT_ID_UNSET; // Wrong id return unset
+		return CANARD_PORT_ID_UNSET;  // Wrong id return unset
 	}
 
-	bool hasPortID(CanardPortID port_id)
-	{
+	bool hasPortID(CanardPortID port_id) {
 		if (!isValidPortId((int32_t)port_id)) {
 			return false;
 		}
@@ -116,23 +108,17 @@ public:
 		return false;
 	}
 
-	const char *getSubjectName()
-	{
-		return _subj_sub._subject_name;
-	}
+	const char *getSubjectName() { return _subj_sub._subject_name; }
 
-	uint8_t getInstance()
-	{
-		return _instance;
-	}
+	uint8_t getInstance() { return _instance; }
 
-	void printInfo()
-	{
+	void printInfo() {
 		SubjectSubscription *curSubj = &_subj_sub;
 
 		while (curSubj != nullptr) {
 			if (curSubj->_canard_sub.port_id != CANARD_PORT_ID_UNSET) {
-				PX4_INFO("Subscribed %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub.port_id);
+				PX4_INFO("Subscribed %s.%d on port %d", curSubj->_subject_name, _instance,
+					 curSubj->_canard_sub.port_id);
 			}
 
 			curSubj = curSubj->next;
@@ -143,12 +129,12 @@ protected:
 	struct SubjectSubscription {
 		CanardRxSubscription _canard_sub;
 		const char *_subject_name;
-		struct SubjectSubscription *next {nullptr};
+		struct SubjectSubscription *next{nullptr};
 	};
 
 	CanardHandle &_canard_handle;
 	const char *_prefix_name;
 	SubjectSubscription _subj_sub;
-	uint8_t _instance {0};
+	uint8_t _instance{0};
 	/// TODO: 'type' parameter? uavcan.pub.PORT_NAME.type (see 384.Access.1.0.uavcan)
 };

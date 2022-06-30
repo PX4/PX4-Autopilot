@@ -32,34 +32,30 @@
  ****************************************************************************/
 
 #include <px4_platform_common/crypto_algorithms.h>
-#include <string.h>
 #include <stdbool.h>
-#include "public_key.h"
+#include <string.h>
+
 #include "keystore_backend_definitions.h"
+#include "public_key.h"
 /*
  * For now, this is just a dummy up/down counter for tracking open/close calls
  */
 static int keystore_open_count = 0;
 
-void keystore_init(void)
-{
-}
+void keystore_init(void) {}
 
-keystore_session_handle_t keystore_open(void)
-{
+keystore_session_handle_t keystore_open(void) {
 	keystore_session_handle_t ret;
 	ret.handle = ++keystore_open_count;
 	return ret;
 }
 
-void keystore_close(keystore_session_handle_t *handle)
-{
+void keystore_close(keystore_session_handle_t *handle) {
 	keystore_open_count--;
 	handle->handle = 0;
 }
 
-size_t keystore_get_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *key_buf, size_t key_buf_size)
-{
+size_t keystore_get_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *key_buf, size_t key_buf_size) {
 	size_t ret = 0;
 
 	if (idx < NPERSISTENT_KEYS) {
@@ -78,7 +74,4 @@ size_t keystore_get_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *
 	return ret;
 }
 
-bool keystore_put_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *key, size_t key_size)
-{
-	return false;
-}
+bool keystore_put_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *key, size_t key_size) { return false; }

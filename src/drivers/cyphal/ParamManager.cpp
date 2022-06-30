@@ -40,10 +40,10 @@
  */
 
 #include "ParamManager.hpp"
+
 #include <px4_platform_common/defines.h>
 
-bool UavcanParamManager::GetParamByName(const char *param_name, uavcan_register_Value_1_0 &value)
-{
+bool UavcanParamManager::GetParamByName(const char *param_name, uavcan_register_Value_1_0 &value) {
 	for (auto &param : _uavcan_params) {
 		if (strcmp(param_name, param.uavcan_name) == 0) {
 			param_t param_handle = param_find(param.px4_name);
@@ -59,8 +59,7 @@ bool UavcanParamManager::GetParamByName(const char *param_name, uavcan_register_
 	return false;
 }
 
-bool UavcanParamManager::GetParamByName(const uavcan_register_Name_1_0 &name, uavcan_register_Value_1_0 &value)
-{
+bool UavcanParamManager::GetParamByName(const uavcan_register_Name_1_0 &name, uavcan_register_Value_1_0 &value) {
 	for (auto &param : _uavcan_params) {
 		if (strncmp((char *)name.name.elements, param.uavcan_name, name.name.count) == 0) {
 			param_t param_handle = param_find(param.px4_name);
@@ -76,21 +75,20 @@ bool UavcanParamManager::GetParamByName(const uavcan_register_Name_1_0 &name, ua
 	return false;
 }
 
-bool UavcanParamManager::GetParamName(uint32_t id, uavcan_register_Name_1_0 &name)
-{
+bool UavcanParamManager::GetParamName(uint32_t id, uavcan_register_Name_1_0 &name) {
 	if (id >= sizeof(_uavcan_params) / sizeof(UavcanParamBinder)) {
 		return false;
 	}
 
-	strncpy((char *)name.name.elements, _uavcan_params[id].uavcan_name, uavcan_register_Name_1_0_name_ARRAY_CAPACITY_);
+	strncpy((char *)name.name.elements, _uavcan_params[id].uavcan_name,
+		uavcan_register_Name_1_0_name_ARRAY_CAPACITY_);
 
 	name.name.count = strlen(_uavcan_params[id].uavcan_name);
 
 	return true;
 }
 
-bool UavcanParamManager::SetParamByName(const uavcan_register_Name_1_0 &name, const uavcan_register_Value_1_0 &value)
-{
+bool UavcanParamManager::SetParamByName(const uavcan_register_Name_1_0 &name, const uavcan_register_Value_1_0 &value) {
 	for (auto &param : _uavcan_params) {
 		if (strncmp((char *)name.name.elements, param.uavcan_name, name.name.count) == 0) {
 			param_t param_handle = param_find(param.px4_name);

@@ -52,94 +52,93 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-namespace InvenSense_ICM20602
-{
-static constexpr uint32_t SPI_SPEED = 10 * 1000 * 1000; // 10MHz SPI serial interface
+namespace InvenSense_ICM20602 {
+static constexpr uint32_t SPI_SPEED = 10 * 1000 * 1000;  // 10MHz SPI serial interface
 static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHOAMI = 0x12;
 
-static constexpr float TEMPERATURE_SENSITIVITY = 326.8f; // LSB/°C
-static constexpr float TEMPERATURE_OFFSET = 25.f; // °C
-static constexpr float TEMPERATURE_SENSOR_MIN = -40.f; // °C
-static constexpr float TEMPERATURE_SENSOR_MAX = 85.f; // °C
+static constexpr float TEMPERATURE_SENSITIVITY = 326.8f;  // LSB/°C
+static constexpr float TEMPERATURE_OFFSET = 25.f;         // °C
+static constexpr float TEMPERATURE_SENSOR_MIN = -40.f;    // °C
+static constexpr float TEMPERATURE_SENSOR_MAX = 85.f;     // °C
 
 enum class Register : uint8_t {
 
-	XG_OFFS_TC_H      = 0x04,
-	XG_OFFS_TC_L      = 0x05,
+	XG_OFFS_TC_H = 0x04,
+	XG_OFFS_TC_L = 0x05,
 
-	YG_OFFS_TC_H      = 0x07,
-	YG_OFFS_TC_L      = 0x08,
+	YG_OFFS_TC_H = 0x07,
+	YG_OFFS_TC_L = 0x08,
 
-	ZG_OFFS_TC_H      = 0x0A,
-	ZG_OFFS_TC_L      = 0x0B,
+	ZG_OFFS_TC_H = 0x0A,
+	ZG_OFFS_TC_L = 0x0B,
 
-	CONFIG            = 0x1A,
-	GYRO_CONFIG       = 0x1B,
-	ACCEL_CONFIG      = 0x1C,
-	ACCEL_CONFIG2     = 0x1D,
+	CONFIG = 0x1A,
+	GYRO_CONFIG = 0x1B,
+	ACCEL_CONFIG = 0x1C,
+	ACCEL_CONFIG2 = 0x1D,
 
-	FIFO_EN           = 0x23,
+	FIFO_EN = 0x23,
 
-	INT_PIN_CFG       = 0x37,
-	INT_ENABLE        = 0x38,
+	INT_PIN_CFG = 0x37,
+	INT_ENABLE = 0x38,
 
-	TEMP_OUT_H        = 0x41,
-	TEMP_OUT_L        = 0x42,
+	TEMP_OUT_H = 0x41,
+	TEMP_OUT_L = 0x42,
 
-	FIFO_WM_TH1       = 0x60,
-	FIFO_WM_TH2       = 0x61,
+	FIFO_WM_TH1 = 0x60,
+	FIFO_WM_TH2 = 0x61,
 
 	SIGNAL_PATH_RESET = 0x68,
 
-	USER_CTRL         = 0x6A,
-	PWR_MGMT_1        = 0x6B,
+	USER_CTRL = 0x6A,
+	PWR_MGMT_1 = 0x6B,
 
-	I2C_IF            = 0x70,
+	I2C_IF = 0x70,
 
-	FIFO_COUNTH       = 0x72,
-	FIFO_COUNTL       = 0x73,
-	FIFO_R_W          = 0x74,
-	WHO_AM_I          = 0x75,
+	FIFO_COUNTH = 0x72,
+	FIFO_COUNTL = 0x73,
+	FIFO_R_W = 0x74,
+	WHO_AM_I = 0x75,
 
-	XA_OFFSET_H       = 0x77,
-	XA_OFFSET_L       = 0x78,
+	XA_OFFSET_H = 0x77,
+	XA_OFFSET_L = 0x78,
 
-	YA_OFFSET_H       = 0x7A,
-	YA_OFFSET_L       = 0x7B,
+	YA_OFFSET_H = 0x7A,
+	YA_OFFSET_L = 0x7B,
 
-	ZA_OFFSET_H       = 0x7D,
-	ZA_OFFSET_L       = 0x7E,
+	ZA_OFFSET_H = 0x7D,
+	ZA_OFFSET_L = 0x7E,
 };
 
 // CONFIG
 enum CONFIG_BIT : uint8_t {
 	// Bit7 - FIFO_WM_TH[9:0] User should ensure that bit 7 of register 0x1A is set to 0 before using this feature
-	FIFO_MODE = Bit6, // when the FIFO is full, additional writes will not be written to FIFO
+	FIFO_MODE = Bit6,  // when the FIFO is full, additional writes will not be written to FIFO
 
-	DLPF_CFG_BYPASS_DLPF_8KHZ = 7, // Rate 8 kHz [2:0]
+	DLPF_CFG_BYPASS_DLPF_8KHZ = 7,  // Rate 8 kHz [2:0]
 };
 
 // GYRO_CONFIG
 enum GYRO_CONFIG_BIT : uint8_t {
 	// FS_SEL [4:3]
-	FS_SEL_250_DPS	= 0,           // 0b00000
-	FS_SEL_500_DPS	= Bit3,        // 0b01000
-	FS_SEL_1000_DPS	= Bit4,        // 0b10000
-	FS_SEL_2000_DPS	= Bit4 | Bit3, // 0b11000
+	FS_SEL_250_DPS = 0,             // 0b00000
+	FS_SEL_500_DPS = Bit3,          // 0b01000
+	FS_SEL_1000_DPS = Bit4,         // 0b10000
+	FS_SEL_2000_DPS = Bit4 | Bit3,  // 0b11000
 
 	// FCHOICE_B [1:0]
-	FCHOICE_B_8KHZ_BYPASS_DLPF = Bit1 | Bit0, // 0b00 - 3-dB BW: 3281 Noise BW (Hz): 3451.0   8 kHz
+	FCHOICE_B_8KHZ_BYPASS_DLPF = Bit1 | Bit0,  // 0b00 - 3-dB BW: 3281 Noise BW (Hz): 3451.0   8 kHz
 };
 
 // ACCEL_CONFIG
 enum ACCEL_CONFIG_BIT : uint8_t {
 	// ACCEL_FS_SEL [4:3]
-	ACCEL_FS_SEL_2G  = 0,           // 0b00000
-	ACCEL_FS_SEL_4G  = Bit3,        // 0b01000
-	ACCEL_FS_SEL_8G  = Bit4,        // 0b10000
-	ACCEL_FS_SEL_16G = Bit4 | Bit3, // 0b11000
+	ACCEL_FS_SEL_2G = 0,             // 0b00000
+	ACCEL_FS_SEL_4G = Bit3,          // 0b01000
+	ACCEL_FS_SEL_8G = Bit4,          // 0b10000
+	ACCEL_FS_SEL_16G = Bit4 | Bit3,  // 0b11000
 };
 
 // ACCEL_CONFIG2
@@ -149,13 +148,13 @@ enum ACCEL_CONFIG2_BIT : uint8_t {
 
 // FIFO_EN
 enum FIFO_EN_BIT : uint8_t {
-	GYRO_FIFO_EN  = Bit4,
+	GYRO_FIFO_EN = Bit4,
 	ACCEL_FIFO_EN = Bit3,
 };
 
 // INT_PIN_CFG
 enum INT_PIN_CFG_BIT : uint8_t {
-	INT_LEVEL    = Bit7,
+	INT_LEVEL = Bit7,
 
 	LATCH_INT_EN = Bit5,
 	INT_RD_CLEAR = Bit4,
@@ -169,33 +168,31 @@ enum INT_ENABLE_BIT : uint8_t {
 // SIGNAL_PATH_RESET
 enum SIGNAL_PATH_RESET_BIT : uint8_t {
 	ACCEL_RST = Bit1,
-	TEMP_RST  = Bit0,
+	TEMP_RST = Bit0,
 };
 
 // USER_CTRL
 enum USER_CTRL_BIT : uint8_t {
-	FIFO_EN      = Bit6,
-	FIFO_RST     = Bit2,
+	FIFO_EN = Bit6,
+	FIFO_RST = Bit2,
 	SIG_COND_RST = Bit0,
 };
 
 // PWR_MGMT_1
 enum PWR_MGMT_1_BIT : uint8_t {
 	DEVICE_RESET = Bit7,
-	SLEEP        = Bit6,
+	SLEEP = Bit6,
 
 	// CLKSEL[2:0]
-	CLKSEL_0     = Bit0, // It is required that CLKSEL[2:0] be set to 001 to achieve full gyroscope performance.
+	CLKSEL_0 = Bit0,  // It is required that CLKSEL[2:0] be set to 001 to achieve full gyroscope performance.
 };
 
 // I2C_IF
 enum I2C_IF_BIT : uint8_t {
-	I2C_IF_DIS = Bit6, // 1 – Disable I2C Slave module and put the serial interface in SPI mode only.
+	I2C_IF_DIS = Bit6,  // 1 – Disable I2C Slave module and put the serial interface in SPI mode only.
 };
 
-
-namespace FIFO
-{
+namespace FIFO {
 static constexpr size_t SIZE = 1008;
 
 // FIFO_DATA layout when FIFO_EN has both GYRO_FIFO_EN and ACCEL_FIFO_EN set
@@ -215,6 +212,6 @@ struct DATA {
 	uint8_t GYRO_ZOUT_H;
 	uint8_t GYRO_ZOUT_L;
 };
-}
+}  // namespace FIFO
 
-} // namespace InvenSense_ICM20602
+}  // namespace InvenSense_ICM20602

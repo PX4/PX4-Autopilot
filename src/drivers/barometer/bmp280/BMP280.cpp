@@ -33,17 +33,14 @@
 
 #include "BMP280.hpp"
 
-BMP280::BMP280(const I2CSPIDriverConfig &config, bmp280::IBMP280 *interface) :
-	I2CSPIDriver(config),
-	_interface(interface),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
-	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
-{
-}
+BMP280::BMP280(const I2CSPIDriverConfig &config, bmp280::IBMP280 *interface)
+	: I2CSPIDriver(config),
+	  _interface(interface),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": sample")),
+	  _measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": measure")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": comms errors")) {}
 
-BMP280::~BMP280()
-{
+BMP280::~BMP280() {
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_measure_perf);
@@ -52,9 +49,7 @@ BMP280::~BMP280()
 	delete _interface;
 }
 
-int
-BMP280::init()
-{
+int BMP280::init() {
 	// reset sensor
 	_interface->set_reg(BMP280_VALUE_RESET, BMP280_ADDR_RESET);
 	usleep(10000);
@@ -72,15 +67,15 @@ BMP280::init()
 	// get calibration and pre process them
 	_cal = _interface->get_calibration(BMP280_ADDR_CAL);
 
-	_fcal.t1 = _cal->t1 * powf(2,  4);
+	_fcal.t1 = _cal->t1 * powf(2, 4);
 	_fcal.t2 = _cal->t2 * powf(2, -14);
 	_fcal.t3 = _cal->t3 * powf(2, -34);
 
-	_fcal.p1 = _cal->p1            * (powf(2,  4) / -100000.0f);
+	_fcal.p1 = _cal->p1 * (powf(2, 4) / -100000.0f);
 	_fcal.p2 = _cal->p1 * _cal->p2 * (powf(2, -31) / -100000.0f);
 	_fcal.p3 = _cal->p1 * _cal->p3 * (powf(2, -51) / -100000.0f);
 
-	_fcal.p4 = _cal->p4 * powf(2,  4) - powf(2, 20);
+	_fcal.p4 = _cal->p4 * powf(2, 4) - powf(2, 20);
 	_fcal.p5 = _cal->p5 * powf(2, -14);
 	_fcal.p6 = _cal->p6 * powf(2, -31);
 
@@ -93,9 +88,7 @@ BMP280::init()
 	return OK;
 }
 
-void
-BMP280::Start()
-{
+void BMP280::Start() {
 	// reset the report ring and state machine
 	_collect_phase = false;
 
@@ -103,9 +96,7 @@ BMP280::Start()
 	ScheduleNow();
 }
 
-void
-BMP280::RunImpl()
-{
+void BMP280::RunImpl() {
 	if (_collect_phase) {
 		collect();
 
@@ -116,9 +107,7 @@ BMP280::RunImpl()
 	ScheduleDelayed(_measure_interval);
 }
 
-int
-BMP280::measure()
-{
+int BMP280::measure() {
 	perf_begin(_measure_perf);
 
 	_collect_phase = true;
@@ -137,9 +126,7 @@ BMP280::measure()
 	return OK;
 }
 
-int
-BMP280::collect()
-{
+int BMP280::collect() {
 	perf_begin(_sample_perf);
 
 	_collect_phase = false;
@@ -159,7 +146,7 @@ BMP280::collect()
 	uint32_t t_raw = data->t_msb << 12 | data->t_lsb << 4 | data->t_xlsb >> 4;
 
 	// Temperature
-	float ofs = (float) t_raw - _fcal.t1;
+	float ofs = (float)t_raw - _fcal.t1;
 	float t_fine = (ofs * _fcal.t3 + _fcal.t2) * ofs;
 	const float T = t_fine * (1.0f / 5120.0f);
 
@@ -168,7 +155,7 @@ BMP280::collect()
 	float x1 = (tf * _fcal.p6 + _fcal.p5) * tf + _fcal.p4;
 	float x2 = (tf * _fcal.p3 + _fcal.p2) * tf + _fcal.p1;
 
-	float pf = ((float) p_raw + x1) / x2;
+	float pf = ((float)p_raw + x1) / x2;
 	const float P = (pf * _fcal.p9 + _fcal.p8) * pf + _fcal.p7;
 
 	// publish
@@ -186,9 +173,7 @@ BMP280::collect()
 	return OK;
 }
 
-void
-BMP280::print_status()
-{
+void BMP280::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_measure_perf);

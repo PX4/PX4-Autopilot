@@ -40,24 +40,19 @@
  * @author Jacob Crabill <jacob@flyvoly.com>
  */
 
-
 #include "PublicationManager.hpp"
 
-PublicationManager::~PublicationManager()
-{
-	_dynpublishers.clear();
-}
+PublicationManager::~PublicationManager() { _dynpublishers.clear(); }
 
-void PublicationManager::updateDynamicPublications()
-{
+void PublicationManager::updateDynamicPublications() {
 	for (auto &sub : _uavcan_pubs) {
-
 		bool found_publisher = false;
 
 		for (auto &dynpub : _dynpublishers) {
 			// Check if subscriber has already been created
 			char full_subj_name[200];
-			snprintf(full_subj_name, sizeof(full_subj_name), "%s%s", dynpub->getPrefixName(), dynpub->getSubjectName());
+			snprintf(full_subj_name, sizeof(full_subj_name), "%s%s", dynpub->getPrefixName(),
+				 dynpub->getSubjectName());
 			const uint8_t instance = dynpub->getInstance();
 
 			if (strcmp(full_subj_name, sub.subject_name) == 0 && instance == sub.instance) {
@@ -77,7 +72,7 @@ void PublicationManager::updateDynamicPublications()
 		if (_param_manager.GetParamByName(uavcan_param, value)) {
 			uint16_t port_id = value.natural16.value.elements[0];
 
-			if (port_id <= CANARD_PORT_ID_MAX) { // PortID is set, create a subscriber
+			if (port_id <= CANARD_PORT_ID_MAX) {  // PortID is set, create a subscriber
 				UavcanPublisher *dynpub = sub.create_pub(_canard_handle, _param_manager);
 
 				if (dynpub == nullptr) {
@@ -97,15 +92,13 @@ void PublicationManager::updateDynamicPublications()
 	}
 }
 
-void PublicationManager::printInfo()
-{
+void PublicationManager::printInfo() {
 	for (auto &dynpub : _dynpublishers) {
 		dynpub->printInfo();
 	}
 }
 
-void PublicationManager::updateParams()
-{
+void PublicationManager::updateParams() {
 	for (auto &dynpub : _dynpublishers) {
 		dynpub->updateParam();
 	}
@@ -114,8 +107,7 @@ void PublicationManager::updateParams()
 	updateDynamicPublications();
 }
 
-void PublicationManager::update()
-{
+void PublicationManager::update() {
 	for (auto &dynpub : _dynpublishers) {
 		dynpub->update();
 	}

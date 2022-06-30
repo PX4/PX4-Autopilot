@@ -48,24 +48,17 @@
 
 extern orb_advert_t mavlink_log_pub;
 
-TattuCan::TattuCan() :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan)
-{
-}
+TattuCan::TattuCan() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan) {}
 
-TattuCan::~TattuCan()
-{
-}
+TattuCan::~TattuCan() {}
 
-void TattuCan::Run()
-{
+void TattuCan::Run() {
 	if (should_exit()) {
 		exit_and_cleanup();
 		return;
 	}
 
 	if (!_initialized) {
-
 		_fd = ::open("/dev/can0", O_RDWR);
 
 		if (_fd < 0) {
@@ -76,16 +69,16 @@ void TattuCan::Run()
 		_initialized = true;
 	}
 
-	uint8_t data[64] {};
+	uint8_t data[64]{};
 	CanFrame received_frame{};
 	received_frame.payload = &data;
 
 	Tattu12SBatteryMessage tattu_message = {};
 
 	while (receive(&received_frame) > 0) {
-
 		// Find the start of a transferr
-		if ((received_frame.payload_size == 8) && ((uint8_t *)received_frame.payload)[7] == TAIL_BYTE_START_OF_TRANSFER) {
+		if ((received_frame.payload_size == 8) &&
+		    ((uint8_t *)received_frame.payload)[7] == TAIL_BYTE_START_OF_TRANSFER) {
 		} else {
 			continue;
 		}
@@ -95,7 +88,6 @@ void TattuCan::Run()
 		memcpy(&tattu_message, &(((uint8_t *)received_frame.payload)[2]), offset);
 
 		while (receive(&received_frame) > 0) {
-
 			size_t payload_size = received_frame.payload_size - 1;
 			// TODO: add check to prevent buffer overflow from a corrupt 'payload_size' value
 			// TODO: AND look for TAIL_BYTE_START_OF_TRANSFER to indicate end of transfer. Untested...
@@ -138,8 +130,7 @@ void TattuCan::Run()
 	}
 }
 
-int16_t TattuCan::receive(CanFrame *received_frame)
-{
+int16_t TattuCan::receive(CanFrame *received_frame) {
 	if ((_fd < 0) || (received_frame == nullptr)) {
 		PX4_INFO("fd < 0");
 		return -1;
@@ -156,7 +147,6 @@ int16_t TattuCan::receive(CanFrame *received_frame)
 
 	// Only execute this part if can0 is changed.
 	if (fds.revents & POLLIN) {
-
 		// Try to read.
 		struct can_msg_s receive_msg;
 		const ssize_t nbytes = ::read(fds.fd, &receive_msg, sizeof(receive_msg));
@@ -176,8 +166,7 @@ int16_t TattuCan::receive(CanFrame *received_frame)
 	return 0;
 }
 
-int TattuCan::start()
-{
+int TattuCan::start() {
 	// There is a race condition at boot that sometimes causes opening of
 	// /dev/can0 to fail. We will delay 0.5s to be safe.
 	uint32_t delay_us = 500000;
@@ -185,8 +174,7 @@ int TattuCan::start()
 	return PX4_OK;
 }
 
-int TattuCan::task_spawn(int argc, char *argv[])
-{
+int TattuCan::task_spawn(int argc, char *argv[]) {
 	TattuCan *instance = new TattuCan();
 
 	if (!instance) {
@@ -201,8 +189,7 @@ int TattuCan::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-int TattuCan::print_usage(const char *reason)
-{
+int TattuCan::print_usage(const char *reason) {
 	if (reason) {
 		printf("%s\n\n", reason);
 	}
@@ -221,8 +208,7 @@ Driver for reading data from the Tattu 12S 16000mAh smart battery.
 	return 0;
 }
 
-int TattuCan::custom_command(int argc, char *argv[])
-{
+int TattuCan::custom_command(int argc, char *argv[]) {
 	if (!is_running()) {
 		PX4_INFO("not running");
 		return PX4_ERROR;
@@ -231,7 +217,4 @@ int TattuCan::custom_command(int argc, char *argv[])
 	return print_usage("Unrecognized command.");
 }
 
-extern "C" __EXPORT int tattu_can_main(int argc, char *argv[])
-{
-	return TattuCan::main(argc, argv);
-}
+extern "C" __EXPORT int tattu_can_main(int argc, char *argv[]) { return TattuCan::main(argc, argv); }

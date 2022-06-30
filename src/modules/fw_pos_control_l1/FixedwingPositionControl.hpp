@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 
-
 /**
  * @file fw_pos_control_l1_main.hpp
  * Implementation of a generic position controller based on the L1 norm. Outputs a bank / roll
@@ -48,33 +47,20 @@
 #ifndef FIXEDWINGPOSITIONCONTROL_HPP_
 #define FIXEDWINGPOSITIONCONTROL_HPP_
 
-#include "launchdetection/LaunchDetector.h"
-#include "runway_takeoff/RunwayTakeoff.h"
-
-#include <float.h>
-
 #include <drivers/drv_hrt.h>
+#include <float.h>
 #include <lib/geo/geo.h>
-#include <lib/l1/ECL_L1_Pos_Controller.hpp>
-#include <lib/npfg/npfg.hpp>
-#include <lib/tecs/TECS.hpp>
-#include <lib/landing_slope/Landingslope.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
-#include <lib/slew_rate/SlewRate.hpp>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/npfg_status.h>
+#include <uORB/topics/orbit_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
@@ -93,8 +79,21 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
-#include <uORB/topics/orbit_status.h>
 #include <uORB/uORB.h>
+
+#include <lib/l1/ECL_L1_Pos_Controller.hpp>
+#include <lib/landing_slope/Landingslope.hpp>
+#include <lib/npfg/npfg.hpp>
+#include <lib/slew_rate/SlewRate.hpp>
+#include <lib/tecs/TECS.hpp>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+
+#include "launchdetection/LaunchDetector.h"
+#include "runway_takeoff/RunwayTakeoff.h"
 
 using namespace launchdetection;
 using namespace runwaytakeoff;
@@ -136,9 +135,9 @@ static constexpr float MIN_AUTO_TIMESTEP = 0.01f;
 // [s] maximum time step between auto control updates
 static constexpr float MAX_AUTO_TIMESTEP = 0.05f;
 
-class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
-	public px4::WorkItem
-{
+class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>,
+				       public ModuleParams,
+				       public px4::WorkItem {
 public:
 	FixedwingPositionControl(bool vtol = false);
 	~FixedwingPositionControl() override;
@@ -157,7 +156,7 @@ public:
 private:
 	void Run() override;
 
-	orb_advert_t	_mavlink_log_pub{nullptr};
+	orb_advert_t _mavlink_log_pub{nullptr};
 
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};
 
@@ -180,8 +179,9 @@ private:
 	uORB::Publication<vehicle_attitude_setpoint_s> _attitude_sp_pub;
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::Publication<npfg_status_s> _npfg_status_pub{ORB_ID(npfg_status)};
-	uORB::Publication<position_controller_status_s>	_pos_ctrl_status_pub{ORB_ID(position_controller_status)};
-	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};
+	uORB::Publication<position_controller_status_s> _pos_ctrl_status_pub{ORB_ID(position_controller_status)};
+	uORB::Publication<position_controller_landing_status_s> _pos_ctrl_landing_status_pub{
+		ORB_ID(position_controller_landing_status)};
 	uORB::Publication<tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 
@@ -196,7 +196,7 @@ private:
 	double _current_longitude{0};
 	float _current_altitude{0.f};
 
-	perf_counter_t _loop_perf; // loop performance counter
+	perf_counter_t _loop_perf;  // loop performance counter
 
 	MapProjection _global_local_proj_ref{};
 	float _global_local_alt0{NAN};
@@ -207,13 +207,13 @@ private:
 	// [rad] yaw setpoint for manual position mode heading hold
 	float _hdg_hold_yaw{0.0f};
 
-	bool _hdg_hold_enabled{false}; // heading hold enabled
-	bool _yaw_lock_engaged{false}; // yaw is locked for heading hold
+	bool _hdg_hold_enabled{false};  // heading hold enabled
+	bool _yaw_lock_engaged{false};  // yaw is locked for heading hold
 
 	float _min_current_sp_distance_xy{FLT_MAX};
 
-	position_setpoint_s _hdg_hold_prev_wp{}; // position where heading hold started
-	position_setpoint_s _hdg_hold_curr_wp{}; // position to which heading hold flies
+	position_setpoint_s _hdg_hold_prev_wp{};  // position where heading hold started
+	position_setpoint_s _hdg_hold_curr_wp{};  // position to which heading hold flies
 
 	// [us] Last absolute time position control has been called
 	hrt_abstime _last_time_position_control_called{0};
@@ -248,7 +248,7 @@ private:
 	// [m] estimated height to ground at which flare started
 	float _flare_curve_alt_rel_last{0.0f};
 
-	float _target_bearing{0.0f}; // [rad]
+	float _target_bearing{0.0f};  // [rad]
 
 	// indicates whether the plane was in the air in the previous interation
 	bool _was_in_air{false};
@@ -283,7 +283,7 @@ private:
 
 	bool _wind_valid{false};
 
-	hrt_abstime _time_wind_last_received{0}; // [us]
+	hrt_abstime _time_wind_last_received{0};  // [us]
 
 	float _pitch{0.0f};
 	float _yaw{0.0f};
@@ -295,7 +295,7 @@ private:
 	bool _reinitialize_tecs{true};
 	bool _is_tecs_running{false};
 
-	hrt_abstime _time_last_tecs_update{0}; // [us]
+	hrt_abstime _time_last_tecs_update{0};  // [us]
 
 	float _airspeed_after_transition{0.0f};
 	bool _was_in_transition{false};
@@ -321,7 +321,7 @@ private:
 	// [m/s] airspeed setpoint for manual modes commanded via MAV_CMD_DO_CHANGE_SPEED
 	float _commanded_airspeed_setpoint{NAN};
 
-	hrt_abstime _time_in_fixed_bank_loiter{0}; // [us]
+	hrt_abstime _time_in_fixed_bank_loiter{0};  // [us]
 
 	// L1 guidance - lateral-directional position control
 	ECL_L1_Pos_Controller _l1_control;
@@ -343,11 +343,11 @@ private:
 		FW_POSCTRL_MODE_MANUAL_POSITION,
 		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
 		FW_POSCTRL_MODE_OTHER
-	} _control_mode_current{FW_POSCTRL_MODE_OTHER}; // used to check if the mode has changed
+	} _control_mode_current{FW_POSCTRL_MODE_OTHER};  // used to check if the mode has changed
 
 	param_t _param_handle_airspeed_trans{PARAM_INVALID};
 
-	float _param_airspeed_trans{NAN}; // [m/s]
+	float _param_airspeed_trans{NAN};  // [m/s]
 
 	enum StickConfig {
 		STICK_CONFIG_SWAP_STICKS_BIT = (1 << 0),
@@ -432,7 +432,7 @@ private:
 	 * @param pos_sp_curr Current position setpoint
 	 * @return Adjusted position setpoint type
 	 */
-	uint8_t	handle_setpoint_type(const position_setpoint_s &pos_sp_curr);
+	uint8_t handle_setpoint_type(const position_setpoint_s &pos_sp_curr);
 
 	/* automatic control methods */
 
@@ -447,7 +447,8 @@ private:
 	 * @param pos_sp_next next position setpoint
 	 */
 	void control_auto(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-			  const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+			  const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr,
+			  const position_setpoint_s &pos_sp_next);
 
 	/**
 	 * @brief Controls altitude and airspeed for a fixed-bank loiter.
@@ -490,7 +491,8 @@ private:
 	 * @param pos_sp_next next position setpoint
 	 */
 	void control_auto_loiter(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-				 const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+				 const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr,
+				 const position_setpoint_s &pos_sp_next);
 
 	/**
 	 * @brief Controls a desired airspeed, bearing, and height rate.
@@ -514,7 +516,8 @@ private:
 	 * @param pos_sp_curr current position setpoint
 	 */
 	void control_auto_takeoff(const hrt_abstime &now, const float control_interval, const Vector2d &curr_pos,
-				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
+				  const position_setpoint_s &pos_sp_curr);
 
 	/**
 	 * @brief Controls automatic landing.
@@ -528,7 +531,8 @@ private:
 	 * @param pos_sp_curr current position setpoint
 	 */
 	void control_auto_landing(const hrt_abstime &now, const float control_interval, const Vector2d &curr_pos,
-				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
+				  const position_setpoint_s &pos_sp_curr);
 
 	/* manual control methods */
 
@@ -539,7 +543,8 @@ private:
 	 * @param curr_pos Current 2D local position vector of vehicle [m]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
 	 */
-	void control_manual_altitude(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed);
+	void control_manual_altitude(const float control_interval, const Vector2d &curr_pos,
+				     const Vector2f &ground_speed);
 
 	/**
 	 * @brief Controls user commanded altitude, airspeed, and bearing.
@@ -548,7 +553,8 @@ private:
 	 * @param curr_pos Current 2D local position vector of vehicle [m]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
 	 */
-	void control_manual_position(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed);
+	void control_manual_position(const float control_interval, const Vector2d &curr_pos,
+				     const Vector2f &ground_speed);
 
 	float get_tecs_pitch();
 	float get_tecs_thrust();
@@ -615,102 +621,100 @@ private:
 	 * @param hgt_rate_sp Height rate setpoint [m/s]
 	 */
 	void tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,
-					float pitch_min_rad, float pitch_max_rad,
-					float throttle_min, float throttle_max, float throttle_cruise,
-					bool climbout_mode, float climbout_pitch_min_rad,
-					bool disable_underspeed_detection = false, float hgt_rate_sp = NAN);
+					float pitch_min_rad, float pitch_max_rad, float throttle_min,
+					float throttle_max, float throttle_cruise, bool climbout_mode,
+					float climbout_pitch_min_rad, bool disable_underspeed_detection = false,
+					float hgt_rate_sp = NAN);
 
 	DEFINE_PARAMETERS(
 
-		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
-		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
-		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
-		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
+		(ParamFloat<px4::params::FW_AIRSPD_MAX>)_param_fw_airspd_max,
+		(ParamFloat<px4::params::FW_AIRSPD_MIN>)_param_fw_airspd_min,
+		(ParamFloat<px4::params::FW_AIRSPD_TRIM>)_param_fw_airspd_trim,
+		(ParamFloat<px4::params::FW_AIRSPD_STALL>)_param_fw_airspd_stall,
 
-		(ParamFloat<px4::params::FW_CLMBOUT_DIFF>) _param_fw_clmbout_diff,
+		(ParamFloat<px4::params::FW_CLMBOUT_DIFF>)_param_fw_clmbout_diff,
 
-		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min,
+		(ParamFloat<px4::params::FW_GND_SPD_MIN>)_param_fw_gnd_spd_min,
 
-		(ParamFloat<px4::params::FW_L1_DAMPING>) _param_fw_l1_damping,
-		(ParamFloat<px4::params::FW_L1_PERIOD>) _param_fw_l1_period,
-		(ParamFloat<px4::params::FW_L1_R_SLEW_MAX>) _param_fw_l1_r_slew_max,
-		(ParamFloat<px4::params::FW_R_LIM>) _param_fw_r_lim,
+		(ParamFloat<px4::params::FW_L1_DAMPING>)_param_fw_l1_damping,
+		(ParamFloat<px4::params::FW_L1_PERIOD>)_param_fw_l1_period,
+		(ParamFloat<px4::params::FW_L1_R_SLEW_MAX>)_param_fw_l1_r_slew_max,
+		(ParamFloat<px4::params::FW_R_LIM>)_param_fw_r_lim,
 
-		(ParamBool<px4::params::FW_USE_NPFG>) _param_fw_use_npfg,
-		(ParamFloat<px4::params::NPFG_PERIOD>) _param_npfg_period,
-		(ParamFloat<px4::params::NPFG_DAMPING>) _param_npfg_damping,
-		(ParamBool<px4::params::NPFG_LB_PERIOD>) _param_npfg_en_period_lb,
-		(ParamBool<px4::params::NPFG_UB_PERIOD>) _param_npfg_en_period_ub,
-		(ParamBool<px4::params::NPFG_TRACK_KEEP>) _param_npfg_en_track_keeping,
-		(ParamBool<px4::params::NPFG_EN_MIN_GSP>) _param_npfg_en_min_gsp,
-		(ParamBool<px4::params::NPFG_WIND_REG>) _param_npfg_en_wind_reg,
-		(ParamFloat<px4::params::NPFG_GSP_MAX_TK>) _param_npfg_track_keeping_gsp_max,
-		(ParamFloat<px4::params::NPFG_ROLL_TC>) _param_npfg_roll_time_const,
-		(ParamFloat<px4::params::NPFG_SW_DST_MLT>) _param_npfg_switch_distance_multiplier,
-		(ParamFloat<px4::params::NPFG_PERIOD_SF>) _param_npfg_period_safety_factor,
+		(ParamBool<px4::params::FW_USE_NPFG>)_param_fw_use_npfg,
+		(ParamFloat<px4::params::NPFG_PERIOD>)_param_npfg_period,
+		(ParamFloat<px4::params::NPFG_DAMPING>)_param_npfg_damping,
+		(ParamBool<px4::params::NPFG_LB_PERIOD>)_param_npfg_en_period_lb,
+		(ParamBool<px4::params::NPFG_UB_PERIOD>)_param_npfg_en_period_ub,
+		(ParamBool<px4::params::NPFG_TRACK_KEEP>)_param_npfg_en_track_keeping,
+		(ParamBool<px4::params::NPFG_EN_MIN_GSP>)_param_npfg_en_min_gsp,
+		(ParamBool<px4::params::NPFG_WIND_REG>)_param_npfg_en_wind_reg,
+		(ParamFloat<px4::params::NPFG_GSP_MAX_TK>)_param_npfg_track_keeping_gsp_max,
+		(ParamFloat<px4::params::NPFG_ROLL_TC>)_param_npfg_roll_time_const,
+		(ParamFloat<px4::params::NPFG_SW_DST_MLT>)_param_npfg_switch_distance_multiplier,
+		(ParamFloat<px4::params::NPFG_PERIOD_SF>)_param_npfg_period_safety_factor,
 
-		(ParamFloat<px4::params::FW_LND_AIRSPD_SC>) _param_fw_lnd_airspd_sc,
-		(ParamFloat<px4::params::FW_LND_ANG>) _param_fw_lnd_ang,
-		(ParamFloat<px4::params::FW_LND_FL_PMAX>) _param_fw_lnd_fl_pmax,
-		(ParamFloat<px4::params::FW_LND_FL_PMIN>) _param_fw_lnd_fl_pmin,
-		(ParamFloat<px4::params::FW_LND_FLALT>) _param_fw_lnd_flalt,
-		(ParamFloat<px4::params::FW_LND_HHDIST>) _param_fw_lnd_hhdist,
-		(ParamFloat<px4::params::FW_LND_HVIRT>) _param_fw_lnd_hvirt,
-		(ParamFloat<px4::params::FW_LND_THRTC_SC>) _param_fw_thrtc_sc,
-		(ParamFloat<px4::params::FW_LND_TLALT>) _param_fw_lnd_tlalt,
-		(ParamBool<px4::params::FW_LND_EARLYCFG>) _param_fw_lnd_earlycfg,
-		(ParamBool<px4::params::FW_LND_USETER>) _param_fw_lnd_useter,
+		(ParamFloat<px4::params::FW_LND_AIRSPD_SC>)_param_fw_lnd_airspd_sc,
+		(ParamFloat<px4::params::FW_LND_ANG>)_param_fw_lnd_ang,
+		(ParamFloat<px4::params::FW_LND_FL_PMAX>)_param_fw_lnd_fl_pmax,
+		(ParamFloat<px4::params::FW_LND_FL_PMIN>)_param_fw_lnd_fl_pmin,
+		(ParamFloat<px4::params::FW_LND_FLALT>)_param_fw_lnd_flalt,
+		(ParamFloat<px4::params::FW_LND_HHDIST>)_param_fw_lnd_hhdist,
+		(ParamFloat<px4::params::FW_LND_HVIRT>)_param_fw_lnd_hvirt,
+		(ParamFloat<px4::params::FW_LND_THRTC_SC>)_param_fw_thrtc_sc,
+		(ParamFloat<px4::params::FW_LND_TLALT>)_param_fw_lnd_tlalt,
+		(ParamBool<px4::params::FW_LND_EARLYCFG>)_param_fw_lnd_earlycfg,
+		(ParamBool<px4::params::FW_LND_USETER>)_param_fw_lnd_useter,
 
-		(ParamFloat<px4::params::FW_P_LIM_MAX>) _param_fw_p_lim_max,
-		(ParamFloat<px4::params::FW_P_LIM_MIN>) _param_fw_p_lim_min,
+		(ParamFloat<px4::params::FW_P_LIM_MAX>)_param_fw_p_lim_max,
+		(ParamFloat<px4::params::FW_P_LIM_MIN>)_param_fw_p_lim_min,
 
-		(ParamFloat<px4::params::FW_T_CLMB_MAX>) _param_fw_t_clmb_max,
-		(ParamFloat<px4::params::FW_T_HRATE_FF>) _param_fw_t_hrate_ff,
-		(ParamFloat<px4::params::FW_T_ALT_TC>) _param_fw_t_h_error_tc,
-		(ParamFloat<px4::params::FW_T_I_GAIN_THR>) _param_fw_t_I_gain_thr,
-		(ParamFloat<px4::params::FW_T_I_GAIN_PIT>) _param_fw_t_I_gain_pit,
-		(ParamFloat<px4::params::FW_T_PTCH_DAMP>) _param_fw_t_ptch_damp,
-		(ParamFloat<px4::params::FW_T_RLL2THR>) _param_fw_t_rll2thr,
-		(ParamFloat<px4::params::FW_T_SINK_MAX>) _param_fw_t_sink_max,
-		(ParamFloat<px4::params::FW_T_SINK_MIN>) _param_fw_t_sink_min,
-		(ParamFloat<px4::params::FW_T_SPD_OMEGA>) _param_fw_t_spd_omega,
-		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_fw_t_spdweight,
-		(ParamFloat<px4::params::FW_T_TAS_TC>) _param_fw_t_tas_error_tc,
-		(ParamFloat<px4::params::FW_T_THR_DAMP>) _param_fw_t_thr_damp,
-		(ParamFloat<px4::params::FW_T_VERT_ACC>) _param_fw_t_vert_acc,
-		(ParamFloat<px4::params::FW_T_STE_R_TC>) _param_ste_rate_time_const,
-		(ParamFloat<px4::params::FW_T_TAS_R_TC>) _param_tas_rate_time_const,
-		(ParamFloat<px4::params::FW_T_SEB_R_FF>) _param_seb_rate_ff,
-		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_climbrate_target,
-		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,
+		(ParamFloat<px4::params::FW_T_CLMB_MAX>)_param_fw_t_clmb_max,
+		(ParamFloat<px4::params::FW_T_HRATE_FF>)_param_fw_t_hrate_ff,
+		(ParamFloat<px4::params::FW_T_ALT_TC>)_param_fw_t_h_error_tc,
+		(ParamFloat<px4::params::FW_T_I_GAIN_THR>)_param_fw_t_I_gain_thr,
+		(ParamFloat<px4::params::FW_T_I_GAIN_PIT>)_param_fw_t_I_gain_pit,
+		(ParamFloat<px4::params::FW_T_PTCH_DAMP>)_param_fw_t_ptch_damp,
+		(ParamFloat<px4::params::FW_T_RLL2THR>)_param_fw_t_rll2thr,
+		(ParamFloat<px4::params::FW_T_SINK_MAX>)_param_fw_t_sink_max,
+		(ParamFloat<px4::params::FW_T_SINK_MIN>)_param_fw_t_sink_min,
+		(ParamFloat<px4::params::FW_T_SPD_OMEGA>)_param_fw_t_spd_omega,
+		(ParamFloat<px4::params::FW_T_SPDWEIGHT>)_param_fw_t_spdweight,
+		(ParamFloat<px4::params::FW_T_TAS_TC>)_param_fw_t_tas_error_tc,
+		(ParamFloat<px4::params::FW_T_THR_DAMP>)_param_fw_t_thr_damp,
+		(ParamFloat<px4::params::FW_T_VERT_ACC>)_param_fw_t_vert_acc,
+		(ParamFloat<px4::params::FW_T_STE_R_TC>)_param_ste_rate_time_const,
+		(ParamFloat<px4::params::FW_T_TAS_R_TC>)_param_tas_rate_time_const,
+		(ParamFloat<px4::params::FW_T_SEB_R_FF>)_param_seb_rate_ff,
+		(ParamFloat<px4::params::FW_T_CLMB_R_SP>)_param_climbrate_target,
+		(ParamFloat<px4::params::FW_T_SINK_R_SP>)_param_sinkrate_target,
 
-		(ParamFloat<px4::params::FW_THR_ALT_SCL>) _param_fw_thr_alt_scl,
-		(ParamFloat<px4::params::FW_THR_CRUISE>) _param_fw_thr_cruise,
-		(ParamFloat<px4::params::FW_THR_IDLE>) _param_fw_thr_idle,
-		(ParamFloat<px4::params::FW_THR_LND_MAX>) _param_fw_thr_lnd_max,
-		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
-		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
-		(ParamFloat<px4::params::FW_THR_SLEW_MAX>) _param_fw_thr_slew_max,
+		(ParamFloat<px4::params::FW_THR_ALT_SCL>)_param_fw_thr_alt_scl,
+		(ParamFloat<px4::params::FW_THR_CRUISE>)_param_fw_thr_cruise,
+		(ParamFloat<px4::params::FW_THR_IDLE>)_param_fw_thr_idle,
+		(ParamFloat<px4::params::FW_THR_LND_MAX>)_param_fw_thr_lnd_max,
+		(ParamFloat<px4::params::FW_THR_MAX>)_param_fw_thr_max,
+		(ParamFloat<px4::params::FW_THR_MIN>)_param_fw_thr_min,
+		(ParamFloat<px4::params::FW_THR_SLEW_MAX>)_param_fw_thr_slew_max,
 
-		(ParamInt<px4::params::FW_POS_STK_CONF>) _param_fw_pos_stk_conf,
+		(ParamInt<px4::params::FW_POS_STK_CONF>)_param_fw_pos_stk_conf,
 
-		(ParamInt<px4::params::FW_GPSF_LT>) _param_nav_gpsf_lt,
-		(ParamFloat<px4::params::FW_GPSF_R>) _param_nav_gpsf_r,
+		(ParamInt<px4::params::FW_GPSF_LT>)_param_nav_gpsf_lt,
+		(ParamFloat<px4::params::FW_GPSF_R>)_param_nav_gpsf_r,
 
 		// external parameters
-		(ParamInt<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
+		(ParamInt<px4::params::FW_ARSP_MODE>)_param_fw_arsp_mode,
 
-		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
-		(ParamFloat<px4::params::FW_MAN_P_MAX>) _param_fw_man_p_max,
-		(ParamFloat<px4::params::FW_MAN_R_MAX>) _param_fw_man_r_max,
+		(ParamFloat<px4::params::FW_PSP_OFF>)_param_fw_psp_off,
+		(ParamFloat<px4::params::FW_MAN_P_MAX>)_param_fw_man_p_max,
+		(ParamFloat<px4::params::FW_MAN_R_MAX>)_param_fw_man_r_max,
 
-		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,
+		(ParamFloat<px4::params::NAV_LOITER_RAD>)_param_nav_loiter_rad,
 
-		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min,
+		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>)_takeoff_pitch_min,
 
-		(ParamFloat<px4::params::NAV_FW_ALT_RAD>) _param_nav_fw_alt_rad
-	)
-
+		(ParamFloat<px4::params::NAV_FW_ALT_RAD>)_param_nav_fw_alt_rad)
 };
 
-#endif // FIXEDWINGPOSITIONCONTROL_HPP_
+#endif  // FIXEDWINGPOSITIONCONTROL_HPP_

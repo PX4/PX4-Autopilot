@@ -42,7 +42,6 @@
  * @author Timothy Scott <timothy@auterion.com>
  */
 
-
 /**
  * Uart write period
  *

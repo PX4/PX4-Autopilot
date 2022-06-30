@@ -36,21 +36,20 @@
  * Run this test only using make tests TESTFILTER=arx_rls
  */
 
-#include <gtest/gtest.h>
-#include <matrix/matrix/math.hpp>
-
 #include "arx_rls.hpp"
+
+#include <gtest/gtest.h>
+
+#include <matrix/matrix/math.hpp>
 
 using namespace matrix;
 
-class ArxRlsTest : public ::testing::Test
-{
+class ArxRlsTest : public ::testing::Test {
 public:
-	ArxRlsTest() {};
+	ArxRlsTest(){};
 };
 
-TEST_F(ArxRlsTest, test211)
-{
+TEST_F(ArxRlsTest, test211) {
 	ArxRls<2, 1, 1> _rls;
 
 	for (int i = 0; i < (2 + 1 + 1); i++) {
@@ -62,14 +61,13 @@ TEST_F(ArxRlsTest, test211)
 	_rls.update(3, 4);
 	_rls.update(5, 6);
 	const Vector<float, 4> coefficients = _rls.getCoefficients();
-	float data_check[] = {-1.79f, 0.97f, 0.42f, -0.48f}; // generated from Python script
+	float data_check[] = {-1.79f, 0.97f, 0.42f, -0.48f};  // generated from Python script
 	const Vector<float, 4> coefficients_check(data_check);
 	float eps = 1e-2;
 	EXPECT_TRUE((coefficients - coefficients_check).abs().max() < eps);
 }
 
-TEST_F(ArxRlsTest, test221)
-{
+TEST_F(ArxRlsTest, test221) {
 	ArxRls<2, 2, 1> _rls;
 
 	for (int i = 0; i < (2 + 2 + 1); i++) {
@@ -90,8 +88,7 @@ TEST_F(ArxRlsTest, test221)
 	coefficients_check.print();
 }
 
-TEST_F(ArxRlsTest, resetTest)
-{
+TEST_F(ArxRlsTest, resetTest) {
 	ArxRls<2, 2, 1> _rls;
 	_rls.update(1, 2);
 	_rls.update(3, 4);

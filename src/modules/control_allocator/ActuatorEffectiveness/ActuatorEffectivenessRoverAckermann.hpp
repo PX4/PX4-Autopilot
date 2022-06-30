@@ -35,8 +35,7 @@
 
 #include "ActuatorEffectiveness.hpp"
 
-class ActuatorEffectivenessRoverAckermann : public ActuatorEffectiveness
-{
+class ActuatorEffectivenessRoverAckermann : public ActuatorEffectiveness {
 public:
 	ActuatorEffectivenessRoverAckermann() = default;
 	virtual ~ActuatorEffectivenessRoverAckermann() = default;
@@ -44,5 +43,6 @@ public:
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
 	const char *name() const override { return "Rover (Ackermann)"; }
+
 private:
 };

@@ -13,8 +13,7 @@
 /*
  * Documented in the header file.
  */
-void uint322Buf(uint8_t *bufferPos, uint32_t value)
-{
+void uint322Buf(uint8_t *bufferPos, uint32_t value) {
 	bufferPos[0] = (value & 0xFF000000) >> 24;
 	bufferPos[1] = (value & 0x00FF0000) >> 16;
 	bufferPos[2] = (value & 0x0000FF00) >> 8;

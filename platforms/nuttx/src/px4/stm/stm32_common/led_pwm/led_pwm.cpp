@@ -32,90 +32,75 @@
  ****************************************************************************/
 
 /**
-* @file drv_led_pwm.cpp
-*
-*
-*/
-
-#include <px4_platform_common/px4_config.h>
+ * @file drv_led_pwm.cpp
+ *
+ *
+ */
 
 #include <board_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
 #include <ctype.h>
-
-
+#include <drivers/drv_pwm_output.h>
+#include <fcntl.h>
 #include <perf/perf_counter.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
 #include <systemlib/err.h>
 #include <systemlib/px4_macros.h>
-
-#include <drivers/drv_pwm_output.h>
-#include <px4_arch/io_timer.h>
-
-
+#include <unistd.h>
 
 #if defined(BOARD_HAS_LED_PWM)
 
 /* Board can override rate */
 
 #if (BOARD_LED_PWM_RATE)
-#  define LED_PWM_RATE BOARD_LED_PWM_RATE
+#define LED_PWM_RATE BOARD_LED_PWM_RATE
 #else
-#  define LED_PWM_RATE 50
+#define LED_PWM_RATE 50
 #endif
 
 #define REG(_tmr, _reg) (*(volatile uint32_t *)(led_pwm_timers[_tmr].base + _reg))
 
-#define rCR1(_tmr)      REG(_tmr, STM32_GTIM_CR1_OFFSET)
-#define rCR2(_tmr)      REG(_tmr, STM32_GTIM_CR2_OFFSET)
-#define rSMCR(_tmr)     REG(_tmr, STM32_GTIM_SMCR_OFFSET)
-#define rDIER(_tmr)     REG(_tmr, STM32_GTIM_DIER_OFFSET)
-#define rSR(_tmr)       REG(_tmr, STM32_GTIM_SR_OFFSET)
-#define rEGR(_tmr)      REG(_tmr, STM32_GTIM_EGR_OFFSET)
-#define rCCMR1(_tmr)    REG(_tmr, STM32_GTIM_CCMR1_OFFSET)
-#define rCCMR2(_tmr)    REG(_tmr, STM32_GTIM_CCMR2_OFFSET)
-#define rCCER(_tmr)     REG(_tmr, STM32_GTIM_CCER_OFFSET)
-#define rCNT(_tmr)      REG(_tmr, STM32_GTIM_CNT_OFFSET)
-#define rPSC(_tmr)      REG(_tmr, STM32_GTIM_PSC_OFFSET)
-#define rARR(_tmr)      REG(_tmr, STM32_GTIM_ARR_OFFSET)
-#define rCCR1(_tmr)     REG(_tmr, STM32_GTIM_CCR1_OFFSET)
-#define rCCR2(_tmr)     REG(_tmr, STM32_GTIM_CCR2_OFFSET)
-#define rCCR3(_tmr)     REG(_tmr, STM32_GTIM_CCR3_OFFSET)
-#define rCCR4(_tmr)     REG(_tmr, STM32_GTIM_CCR4_OFFSET)
-#define rDCR(_tmr)      REG(_tmr, STM32_GTIM_DCR_OFFSET)
-#define rDMAR(_tmr)     REG(_tmr, STM32_GTIM_DMAR_OFFSET)
-#define rBDTR(_tmr)     REG(_tmr, STM32_ATIM_BDTR_OFFSET)
+#define rCR1(_tmr) REG(_tmr, STM32_GTIM_CR1_OFFSET)
+#define rCR2(_tmr) REG(_tmr, STM32_GTIM_CR2_OFFSET)
+#define rSMCR(_tmr) REG(_tmr, STM32_GTIM_SMCR_OFFSET)
+#define rDIER(_tmr) REG(_tmr, STM32_GTIM_DIER_OFFSET)
+#define rSR(_tmr) REG(_tmr, STM32_GTIM_SR_OFFSET)
+#define rEGR(_tmr) REG(_tmr, STM32_GTIM_EGR_OFFSET)
+#define rCCMR1(_tmr) REG(_tmr, STM32_GTIM_CCMR1_OFFSET)
+#define rCCMR2(_tmr) REG(_tmr, STM32_GTIM_CCMR2_OFFSET)
+#define rCCER(_tmr) REG(_tmr, STM32_GTIM_CCER_OFFSET)
+#define rCNT(_tmr) REG(_tmr, STM32_GTIM_CNT_OFFSET)
+#define rPSC(_tmr) REG(_tmr, STM32_GTIM_PSC_OFFSET)
+#define rARR(_tmr) REG(_tmr, STM32_GTIM_ARR_OFFSET)
+#define rCCR1(_tmr) REG(_tmr, STM32_GTIM_CCR1_OFFSET)
+#define rCCR2(_tmr) REG(_tmr, STM32_GTIM_CCR2_OFFSET)
+#define rCCR3(_tmr) REG(_tmr, STM32_GTIM_CCR3_OFFSET)
+#define rCCR4(_tmr) REG(_tmr, STM32_GTIM_CCR4_OFFSET)
+#define rDCR(_tmr) REG(_tmr, STM32_GTIM_DCR_OFFSET)
+#define rDMAR(_tmr) REG(_tmr, STM32_GTIM_DMAR_OFFSET)
+#define rBDTR(_tmr) REG(_tmr, STM32_ATIM_BDTR_OFFSET)
 
+static void led_pwm_channel_init(unsigned channel);
 
-static void             led_pwm_channel_init(unsigned channel);
-
-int led_pwm_servo_set(unsigned channel, uint8_t  value);
+int led_pwm_servo_set(unsigned channel, uint8_t value);
 unsigned led_pwm_servo_get(unsigned channel);
 int led_pwm_servo_init(void);
 void led_pwm_servo_deinit(void);
 void led_pwm_servo_arm(bool armed);
 unsigned led_pwm_timer_get_period(unsigned timer);
 
-
-unsigned
-led_pwm_timer_get_period(unsigned timer)
-{
-	return (rARR(timer));
-}
+unsigned led_pwm_timer_get_period(unsigned timer) { return (rARR(timer)); }
 
 #if !defined(BOARD_HAS_SHARED_PWM_TIMERS)
 
-static void led_pwm_timer_init_timer(unsigned timer)
-{
+static void led_pwm_timer_init_timer(unsigned timer) {
 	if (led_pwm_timers[timer].base) {
-
 		irqstate_t flags = px4_enter_critical_section();
 
 		/* enable the timer clock before we try to talk to it */
@@ -137,8 +122,8 @@ static void led_pwm_timer_init_timer(unsigned timer)
 		rCCER(timer) = 0;
 		rDCR(timer) = 0;
 
-		if ((led_pwm_timers[timer].base == STM32_TIM1_BASE) || (led_pwm_timers[timer].base == STM32_TIM8_BASE)) {
-
+		if ((led_pwm_timers[timer].base == STM32_TIM1_BASE) ||
+		    (led_pwm_timers[timer].base == STM32_TIM8_BASE)) {
 			/* master output enable = on */
 
 			rBDTR(timer) = ATIM_BDTR_MOE;
@@ -160,17 +145,13 @@ static void led_pwm_timer_init_timer(unsigned timer)
 
 		px4_leave_critical_section(flags);
 	}
-
 }
 #endif
 
-static void
-led_pwm_channel_init(unsigned channel)
-{
+static void led_pwm_channel_init(unsigned channel) {
 	/* Only initialize used channels */
 
 	if (led_pwm_channels[channel].timer_channel) {
-
 		unsigned timer = led_pwm_channels[channel].timer_index;
 
 		/* configure the GPIO first */
@@ -180,32 +161,30 @@ led_pwm_channel_init(unsigned channel)
 
 		/* configure the channel */
 		switch (led_pwm_channels[channel].timer_channel) {
-		case 1:
-			rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE;
-			rCCER(timer) |= polarity | GTIM_CCER_CC1E;
-			break;
+			case 1:
+				rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE;
+				rCCER(timer) |= polarity | GTIM_CCER_CC1E;
+				break;
 
-		case 2:
-			rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC2M_SHIFT) | GTIM_CCMR1_OC2PE;
-			rCCER(timer) |= polarity | GTIM_CCER_CC2E;
-			break;
+			case 2:
+				rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC2M_SHIFT) | GTIM_CCMR1_OC2PE;
+				rCCER(timer) |= polarity | GTIM_CCER_CC2E;
+				break;
 
-		case 3:
-			rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC3M_SHIFT) | GTIM_CCMR2_OC3PE;
-			rCCER(timer) |= polarity | GTIM_CCER_CC3E;
-			break;
+			case 3:
+				rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC3M_SHIFT) | GTIM_CCMR2_OC3PE;
+				rCCER(timer) |= polarity | GTIM_CCER_CC3E;
+				break;
 
-		case 4:
-			rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC4M_SHIFT) | GTIM_CCMR2_OC4PE;
-			rCCER(timer) |= polarity | GTIM_CCER_CC4E;
-			break;
+			case 4:
+				rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC4M_SHIFT) | GTIM_CCMR2_OC4PE;
+				rCCER(timer) |= polarity | GTIM_CCER_CC4E;
+				break;
 		}
 	}
 }
 
-int
-led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
-{
+int led_pwm_servo_set(unsigned channel, uint8_t cvalue) {
 	if (channel >= arraySize(led_pwm_channels)) {
 		return -1;
 	}
@@ -213,8 +192,7 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 	unsigned timer = led_pwm_channels[channel].timer_index;
 
 	/* test timer for validity */
-	if ((led_pwm_timers[timer].base == 0) ||
-	    (led_pwm_channels[channel].gpio_out == 0)) {
+	if ((led_pwm_timers[timer].base == 0) || (led_pwm_channels[channel].gpio_out == 0)) {
 		return -1;
 	}
 
@@ -227,33 +205,30 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 		value--;
 	}
 
-
 	switch (led_pwm_channels[channel].timer_channel) {
-	case 1:
-		rCCR1(timer) = value;
-		break;
+		case 1:
+			rCCR1(timer) = value;
+			break;
 
-	case 2:
-		rCCR2(timer) = value;
-		break;
+		case 2:
+			rCCR2(timer) = value;
+			break;
 
-	case 3:
-		rCCR3(timer) = value;
-		break;
+		case 3:
+			rCCR3(timer) = value;
+			break;
 
-	case 4:
-		rCCR4(timer) = value;
-		break;
+		case 4:
+			rCCR4(timer) = value;
+			break;
 
-	default:
-		return -1;
+		default:
+			return -1;
 	}
 
 	return 0;
 }
-unsigned
-led_pwm_servo_get(unsigned channel)
-{
+unsigned led_pwm_servo_get(unsigned channel) {
 	if (channel >= 3) {
 		return 0;
 	}
@@ -262,36 +237,33 @@ led_pwm_servo_get(unsigned channel)
 	servo_position_t value = 0;
 
 	/* test timer for validity */
-	if ((led_pwm_timers[timer].base == 0) ||
-	    (led_pwm_channels[channel].timer_channel == 0)) {
+	if ((led_pwm_timers[timer].base == 0) || (led_pwm_channels[channel].timer_channel == 0)) {
 		return 0;
 	}
 
 	/* configure the channel */
 	switch (led_pwm_channels[channel].timer_channel) {
-	case 1:
-		value = rCCR1(timer);
-		break;
+		case 1:
+			value = rCCR1(timer);
+			break;
 
-	case 2:
-		value = rCCR2(timer);
-		break;
+		case 2:
+			value = rCCR2(timer);
+			break;
 
-	case 3:
-		value = rCCR3(timer);
-		break;
+		case 3:
+			value = rCCR3(timer);
+			break;
 
-	case 4:
-		value = rCCR4(timer);
-		break;
+		case 4:
+			value = rCCR4(timer);
+			break;
 	}
 
 	unsigned period = led_pwm_timer_get_period(timer);
 	return ((value + 1) * 255 / period);
 }
-int
-led_pwm_servo_init(void)
-{
+int led_pwm_servo_init(void) {
 	/* do basic timer initialisation first */
 	for (unsigned i = 0; i < arraySize(led_pwm_timers); i++) {
 #if defined(BOARD_HAS_SHARED_PWM_TIMERS)
@@ -315,15 +287,11 @@ led_pwm_servo_init(void)
 	return OK;
 }
 
-void
-led_pwm_servo_deinit(void)
-{
+void led_pwm_servo_deinit(void) {
 	/* disable the timers */
 	led_pwm_servo_arm(false);
 }
-void
-led_pwm_servo_arm(bool armed)
-{
+void led_pwm_servo_arm(bool armed) {
 	/* iterate timers and arm/disarm appropriately */
 	for (unsigned i = 0; i < arraySize(led_pwm_timers); i++) {
 		if (led_pwm_timers[i].base != 0) {
@@ -341,4 +309,4 @@ led_pwm_servo_arm(bool armed)
 	}
 }
 
-#endif // BOARD_HAS_LED_PWM
+#endif  // BOARD_HAS_LED_PWM

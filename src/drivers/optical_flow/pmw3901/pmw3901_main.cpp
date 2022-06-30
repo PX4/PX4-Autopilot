@@ -31,14 +31,13 @@
  *
  ****************************************************************************/
 
-#include "PMW3901.hpp"
 #include <px4_platform_common/module.h>
+
+#include "PMW3901.hpp"
 
 extern "C" __EXPORT int pmw3901_main(int argc, char *argv[]);
 
-void
-PMW3901::print_usage()
-{
+void PMW3901::print_usage() {
 	PRINT_MODULE_USAGE_NAME("pmw3901", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
@@ -46,9 +45,7 @@ PMW3901::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-int
-pmw3901_main(int argc, char *argv[])
-{
+int pmw3901_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = PMW3901;
 	BusCLIArguments cli{false, true};
@@ -57,9 +54,9 @@ pmw3901_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

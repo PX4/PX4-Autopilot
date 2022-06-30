@@ -8,14 +8,14 @@
  *
  */
 
-#include "sgUtil.h"
 #include <ctype.h>
+
+#include "sgUtil.h"
 
 /*
  * Documented in the header file.
  */
-void charArray2Buf(uint8_t *bufferPos, char arr[], uint8_t len)
-{
+void charArray2Buf(uint8_t *bufferPos, char arr[], uint8_t len) {
 	for (uint8_t i = 0; i < len; ++i) {
 		bufferPos[i] = toupper(arr[i]);
 	}

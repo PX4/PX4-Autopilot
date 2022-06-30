@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include "SlewRateYaw.hpp"
 
-TEST(SlewRateYawTest, SlewUpLimited)
-{
+TEST(SlewRateYawTest, SlewUpLimited) {
 	SlewRateYaw<float> _slew_rate_yaw;
 	_slew_rate_yaw.setSlewRate(.15f);
 	_slew_rate_yaw.setForcedValue(1.1f);
@@ -45,8 +45,7 @@ TEST(SlewRateYawTest, SlewUpLimited)
 	}
 }
 
-TEST(SlewRateYawTest, SlewDownLimited)
-{
+TEST(SlewRateYawTest, SlewDownLimited) {
 	SlewRateYaw<float> _slew_rate_yaw;
 	_slew_rate_yaw.setSlewRate(.1f);
 	_slew_rate_yaw.setForcedValue(.5f);
@@ -56,8 +55,7 @@ TEST(SlewRateYawTest, SlewDownLimited)
 	}
 }
 
-TEST(SlewRateYawTest, ReachValueSlewed)
-{
+TEST(SlewRateYawTest, ReachValueSlewed) {
 	SlewRateYaw<float> _slew_rate_yaw;
 	_slew_rate_yaw.setSlewRate(.2f);
 	_slew_rate_yaw.setForcedValue(1.f);
@@ -71,8 +69,7 @@ TEST(SlewRateYawTest, ReachValueSlewed)
 	}
 }
 
-TEST(SlewRateYawTest, SlewUpWrappedOutput)
-{
+TEST(SlewRateYawTest, SlewUpWrappedOutput) {
 	// put the goal value always a bit further away such that at some point the output has to wrap
 	SlewRateYaw<float> _slew_rate_yaw;
 	_slew_rate_yaw.setSlewRate(.2f);
@@ -83,8 +80,7 @@ TEST(SlewRateYawTest, SlewUpWrappedOutput)
 	}
 }
 
-TEST(SlewRateYawTest, SlewDownWrappedOutput)
-{
+TEST(SlewRateYawTest, SlewDownWrappedOutput) {
 	// put the goal value always a bit further away such that at some point the output has to wrap
 	SlewRateYaw<float> _slew_rate_yaw;
 	_slew_rate_yaw.setSlewRate(.2f);
@@ -95,8 +91,7 @@ TEST(SlewRateYawTest, SlewDownWrappedOutput)
 	}
 }
 
-TEST(SlewRateYawTest, SlewUpWrappedInput)
-{
+TEST(SlewRateYawTest, SlewUpWrappedInput) {
 	// put the goal value always a bit further away such that at some point the output has to wrap
 	SlewRateYaw<float> _slew_rate_yaw;
 	_slew_rate_yaw.setSlewRate(.2f);
@@ -107,8 +102,7 @@ TEST(SlewRateYawTest, SlewUpWrappedInput)
 	}
 }
 
-TEST(SlewRateYawTest, SlewShortWayInput)
-{
+TEST(SlewRateYawTest, SlewShortWayInput) {
 	SlewRateYaw<float> _slew_rate_yaw;
 	_slew_rate_yaw.setSlewRate(1.f);
 	_slew_rate_yaw.setForcedValue(0.f);

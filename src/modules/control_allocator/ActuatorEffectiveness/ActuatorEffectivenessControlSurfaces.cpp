@@ -31,15 +31,14 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/log.h>
-
 #include "ActuatorEffectivenessControlSurfaces.hpp"
+
+#include <px4_platform_common/log.h>
 
 using namespace matrix;
 
 ActuatorEffectivenessControlSurfaces::ActuatorEffectivenessControlSurfaces(ModuleParams *parent)
-	: ModuleParams(parent)
-{
+	: ModuleParams(parent) {
 	for (int i = 0; i < MAX_COUNT; ++i) {
 		char buffer[17];
 		snprintf(buffer, sizeof(buffer), "CA_SV_CS%u_TYPE", i);
@@ -58,8 +57,7 @@ ActuatorEffectivenessControlSurfaces::ActuatorEffectivenessControlSurfaces(Modul
 	updateParams();
 }
 
-void ActuatorEffectivenessControlSurfaces::updateParams()
-{
+void ActuatorEffectivenessControlSurfaces::updateParams() {
 	ModuleParams::updateParams();
 
 	int32_t count = 0;
@@ -84,48 +82,46 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 
 		// TODO: enforce limits (note that tailsitter uses different limits)?
 		switch (_params[i].type) {
+			case Type::LeftAileron:
+				break;
 
-		case Type::LeftAileron:
-			break;
+			case Type::RightAileron:
+				break;
 
-		case Type::RightAileron:
-			break;
+			case Type::Elevator:
+				break;
 
-		case Type::Elevator:
-			break;
+			case Type::Rudder:
+				break;
 
-		case Type::Rudder:
-			break;
+			case Type::LeftElevon:
+				break;
 
-		case Type::LeftElevon:
-			break;
+			case Type::RightElevon:
+				break;
 
-		case Type::RightElevon:
-			break;
+			case Type::LeftVTail:
+				break;
 
-		case Type::LeftVTail:
-			break;
+			case Type::RightVTail:
+				break;
 
-		case Type::RightVTail:
-			break;
+			case Type::LeftFlaps:
+			case Type::RightFlaps:
+				torque.setZero();
+				break;
 
-		case Type::LeftFlaps:
-		case Type::RightFlaps:
-			torque.setZero();
-			break;
+			case Type::Airbrakes:
+				torque.setZero();
+				break;
 
-		case Type::Airbrakes:
-			torque.setZero();
-			break;
-
-		case Type::Custom:
-			break;
+			case Type::Custom:
+				break;
 		}
 	}
 }
 
-bool ActuatorEffectivenessControlSurfaces::addActuators(Configuration &configuration)
-{
+bool ActuatorEffectivenessControlSurfaces::addActuators(Configuration &configuration) {
 	for (int i = 0; i < _count; i++) {
 		int actuator_idx = configuration.addActuator(ActuatorType::SERVOS, _params[i].torque, Vector3f{});
 
@@ -138,27 +134,25 @@ bool ActuatorEffectivenessControlSurfaces::addActuators(Configuration &configura
 }
 
 void ActuatorEffectivenessControlSurfaces::applyFlapsAndAirbrakes(float flaps_control, float airbrakes_control,
-		int first_actuator_idx,
-		ActuatorVector &actuator_sp) const
-{
+								  int first_actuator_idx,
+								  ActuatorVector &actuator_sp) const {
 	for (int i = 0; i < _count; ++i) {
 		switch (_params[i].type) {
-		// TODO: check sign
-		case ActuatorEffectivenessControlSurfaces::Type::LeftFlaps:
-			actuator_sp(i + first_actuator_idx) += flaps_control;
-			break;
+			// TODO: check sign
+			case ActuatorEffectivenessControlSurfaces::Type::LeftFlaps:
+				actuator_sp(i + first_actuator_idx) += flaps_control;
+				break;
 
-		case ActuatorEffectivenessControlSurfaces::Type::RightFlaps:
-			actuator_sp(i + first_actuator_idx) -= flaps_control;
-			break;
+			case ActuatorEffectivenessControlSurfaces::Type::RightFlaps:
+				actuator_sp(i + first_actuator_idx) -= flaps_control;
+				break;
 
-		case ActuatorEffectivenessControlSurfaces::Type::Airbrakes:
-			actuator_sp(i + first_actuator_idx) += airbrakes_control;
-			break;
+			case ActuatorEffectivenessControlSurfaces::Type::Airbrakes:
+				actuator_sp(i + first_actuator_idx) += airbrakes_control;
+				break;
 
-		default:
-			break;
+			default:
+				break;
 		}
 	}
-
 }

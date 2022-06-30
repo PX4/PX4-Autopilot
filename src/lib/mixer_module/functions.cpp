@@ -34,37 +34,30 @@
 #include "functions.hpp"
 
 FunctionMotors::FunctionMotors(const Context &context)
-	: _topic(&context.work_item, ORB_ID(actuator_motors)),
-	  _thrust_factor(context.thrust_factor)
-{
+	: _topic(&context.work_item, ORB_ID(actuator_motors)), _thrust_factor(context.thrust_factor) {
 	for (int i = 0; i < actuator_motors_s::NUM_CONTROLS; ++i) {
 		_data.control[i] = NAN;
 	}
 }
-void FunctionMotors::update()
-{
+void FunctionMotors::update() {
 	if (_topic.update(&_data)) {
 		updateValues(_data.reversible_flags, _thrust_factor, _data.control, actuator_motors_s::NUM_CONTROLS);
 	}
 }
 
-FunctionServos::FunctionServos(const Context &context)
-	: _topic(&context.work_item, ORB_ID(actuator_servos))
-{
+FunctionServos::FunctionServos(const Context &context) : _topic(&context.work_item, ORB_ID(actuator_servos)) {
 	for (int i = 0; i < actuator_servos_s::NUM_CONTROLS; ++i) {
 		_data.control[i] = NAN;
 	}
 }
 
-FunctionActuatorSet::FunctionActuatorSet()
-{
+FunctionActuatorSet::FunctionActuatorSet() {
 	for (int i = 0; i < max_num_actuators; ++i) {
 		_data[i] = NAN;
 	}
 }
 
-void FunctionActuatorSet::update()
-{
+void FunctionActuatorSet::update() {
 	vehicle_command_s vehicle_command;
 
 	while (_topic.update(&vehicle_command)) {
@@ -83,8 +76,7 @@ void FunctionActuatorSet::update()
 	}
 }
 
-void FunctionLandingGear::update()
-{
+void FunctionLandingGear::update() {
 	landing_gear_s landing_gear;
 
 	if (_topic.update(&landing_gear)) {
@@ -97,22 +89,20 @@ void FunctionLandingGear::update()
 	}
 }
 
-FunctionManualRC::FunctionManualRC()
-{
+FunctionManualRC::FunctionManualRC() {
 	for (int i = 0; i < num_data_points; ++i) {
 		_data[i] = NAN;
 	}
 }
 
-void FunctionManualRC::update()
-{
+void FunctionManualRC::update() {
 	manual_control_setpoint_s manual_control_setpoint;
 
 	if (_topic.update(&manual_control_setpoint)) {
-		_data[0] = manual_control_setpoint.y; // roll
-		_data[1] = manual_control_setpoint.x; // pitch
-		_data[2] = manual_control_setpoint.z * 2.f - 1.f; // throttle
-		_data[3] = manual_control_setpoint.r; // yaw
+		_data[0] = manual_control_setpoint.y;              // roll
+		_data[1] = manual_control_setpoint.x;              // pitch
+		_data[2] = manual_control_setpoint.z * 2.f - 1.f;  // throttle
+		_data[3] = manual_control_setpoint.r;              // yaw
 		_data[4] = manual_control_setpoint.flaps;
 		_data[5] = manual_control_setpoint.aux1;
 		_data[6] = manual_control_setpoint.aux2;
@@ -123,8 +113,7 @@ void FunctionManualRC::update()
 	}
 }
 
-void FunctionGimbal::update()
-{
+void FunctionGimbal::update() {
 	actuator_controls_s actuator_controls;
 
 	if (_topic.update(&actuator_controls)) {

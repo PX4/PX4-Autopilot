@@ -36,69 +36,64 @@
  * Tests for the microbench math library.
  */
 
+#include <drivers/drv_hrt.h>
+#include <math.h>
+#include <perf/perf_counter.h>
+#include <px4_platform_common/micro_hal.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
 #include <unit_test.h>
 
-#include <time.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <math.h>
-
-#include <drivers/drv_hrt.h>
-#include <perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/micro_hal.h>
-
-namespace MicroBenchMath
-{
+namespace MicroBenchMath {
 
 #ifdef __PX4_NUTTX
 #include <nuttx/irq.h>
 static irqstate_t flags;
 #endif
 
-void lock()
-{
+void lock() {
 #ifdef __PX4_NUTTX
 	flags = px4_enter_critical_section();
 #endif
 }
 
-void unlock()
-{
+void unlock() {
 #ifdef __PX4_NUTTX
 	px4_leave_critical_section(flags);
 #endif
 }
 
-#define PERF(name, op, count) do { \
-		reset(); \
+#define PERF(name, op, count)                                    \
+	do {                                                     \
+		reset();                                         \
 		perf_counter_t p = perf_alloc(PC_ELAPSED, name); \
-		for (int rep = 0; rep < 10; rep++) { \
-			px4_usleep(1000); \
-			lock(); \
-			perf_begin(p); \
-			for (int i = 0; i < (count)/10; i++) { \
-				op; \
-				op; \
-				op; \
-				op; \
-				op; \
-				op; \
-				op; \
-				op; \
-				op; \
-				op; \
-			} \
-			perf_end(p); \
-			unlock(); \
-			reset(); \
-		} \
-		perf_print_counter(p); \
-		perf_free(p); \
+		for (int rep = 0; rep < 10; rep++) {             \
+			px4_usleep(1000);                        \
+			lock();                                  \
+			perf_begin(p);                           \
+			for (int i = 0; i < (count) / 10; i++) { \
+				op;                              \
+				op;                              \
+				op;                              \
+				op;                              \
+				op;                              \
+				op;                              \
+				op;                              \
+				op;                              \
+				op;                              \
+				op;                              \
+			}                                        \
+			perf_end(p);                             \
+			unlock();                                \
+			reset();                                 \
+		}                                                \
+		perf_print_counter(p);                           \
+		perf_free(p);                                    \
 	} while (0)
 
-class MicroBenchMath : public UnitTest
-{
+class MicroBenchMath : public UnitTest {
 public:
 	virtual bool run_tests();
 
@@ -138,8 +133,7 @@ private:
 	volatile uint64_t u_64_out;
 };
 
-bool MicroBenchMath::run_tests()
-{
+bool MicroBenchMath::run_tests() {
 	ut_run_test(time_single_precision_float);
 	ut_run_test(time_single_precision_float_trig);
 	ut_run_test(time_double_precision_float);
@@ -152,19 +146,17 @@ bool MicroBenchMath::run_tests()
 	return (_tests_failed == 0);
 }
 
-template<typename T>
-T random(T min, T max)
-{
-	const T scale = rand() / (T) RAND_MAX; /* [0, 1.0] */
-	return min + scale * (max - min);      /* [min, max] */
+template <typename T>
+T random(T min, T max) {
+	const T scale = rand() / (T)RAND_MAX; /* [0, 1.0] */
+	return min + scale * (max - min);     /* [min, max] */
 }
 
-void MicroBenchMath::reset()
-{
+void MicroBenchMath::reset() {
 	srand(time(nullptr));
 
 	// initialize with random data
-	f32 = random(-2.0f * M_PI, 2.0f * M_PI);		// somewhat representative range for angles in radians
+	f32 = random(-2.0f * M_PI, 2.0f * M_PI);  // somewhat representative range for angles in radians
 	f32_out = random(-2.0f * M_PI, 2.0f * M_PI);
 
 	f64 = random(-2.0 * M_PI, 2.0 * M_PI);
@@ -188,8 +180,7 @@ void MicroBenchMath::reset()
 
 ut_declare_test_c(test_microbench_math, MicroBenchMath)
 
-bool MicroBenchMath::time_single_precision_float()
-{
+	bool MicroBenchMath::time_single_precision_float() {
 	PERF("float add (10k ops)", f32_out += f32, 10000);
 	PERF("float sub (10k ops)", f32_out -= f32, 10000);
 	PERF("float mul (10k ops)", f32_out *= f32, 10000);
@@ -199,8 +190,7 @@ bool MicroBenchMath::time_single_precision_float()
 	return true;
 }
 
-bool MicroBenchMath::time_single_precision_float_trig()
-{
+bool MicroBenchMath::time_single_precision_float_trig() {
 	PERF("sinf() (1k ops)", f32_out = sinf(f32), 1000);
 	PERF("cosf() (1k ops)", f32_out = cosf(f32), 1000);
 	PERF("tanf() (1k ops)", f32_out = tanf(f32), 1000);
@@ -212,8 +202,7 @@ bool MicroBenchMath::time_single_precision_float_trig()
 	return true;
 }
 
-bool MicroBenchMath::time_double_precision_float()
-{
+bool MicroBenchMath::time_double_precision_float() {
 	PERF("double add (1k ops)", f64_out += f64, 1000);
 	PERF("double sub (1k ops)", f64_out -= f64, 1000);
 	PERF("double mul (1k ops)", f64_out *= f64, 1000);
@@ -223,8 +212,7 @@ bool MicroBenchMath::time_double_precision_float()
 	return true;
 }
 
-bool MicroBenchMath::time_double_precision_float_trig()
-{
+bool MicroBenchMath::time_double_precision_float_trig() {
 	PERF("sin() (100 ops)", f64_out = sin(f64), 100);
 	PERF("cos() (100 ops)", f64_out = cos(f64), 100);
 	PERF("tan() (100 ops)", f64_out = tan(f64), 100);
@@ -236,9 +224,7 @@ bool MicroBenchMath::time_double_precision_float_trig()
 	return true;
 }
 
-
-bool MicroBenchMath::time_8bit_integers()
-{
+bool MicroBenchMath::time_8bit_integers() {
 	PERF("int8 add (10k ops)", i_8_out += i_8, 10000);
 	PERF("int8 sub (10k ops)", i_8_out -= i_8, 10000);
 	PERF("int8 mul (10k ops)", i_8_out *= i_8, 10000);
@@ -247,8 +233,7 @@ bool MicroBenchMath::time_8bit_integers()
 	return true;
 }
 
-bool MicroBenchMath::time_16bit_integers()
-{
+bool MicroBenchMath::time_16bit_integers() {
 	PERF("int16 add (10k ops)", i_16_out += i_16, 10000);
 	PERF("int16 sub (10k ops)", i_16_out -= i_16, 10000);
 	PERF("int16 mul (10k ops)", i_16_out *= i_16, 10000);
@@ -257,8 +242,7 @@ bool MicroBenchMath::time_16bit_integers()
 	return true;
 }
 
-bool MicroBenchMath::time_32bit_integers()
-{
+bool MicroBenchMath::time_32bit_integers() {
 	PERF("int32 add (10k ops)", i_32_out += i_32, 10000);
 	PERF("int32 sub (10k ops)", i_32_out -= i_32, 10000);
 	PERF("int32 mul (10k ops)", i_32_out *= i_32, 10000);
@@ -267,8 +251,7 @@ bool MicroBenchMath::time_32bit_integers()
 	return true;
 }
 
-bool MicroBenchMath::time_64bit_integers()
-{
+bool MicroBenchMath::time_64bit_integers() {
 	PERF("int64 add (1k ops)", i_64_out += i_64, 1000);
 	PERF("int64 sub (1k ops)", i_64_out -= i_64, 1000);
 	PERF("int64 mul (1k ops)", i_64_out *= i_64, 1000);
@@ -277,4 +260,4 @@ bool MicroBenchMath::time_64bit_integers()
 	return true;
 }
 
-} // namespace MicroBenchMath
+}  // namespace MicroBenchMath

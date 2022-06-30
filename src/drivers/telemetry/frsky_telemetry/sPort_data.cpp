@@ -42,25 +42,24 @@
  */
 
 #include "sPort_data.h"
-#include "common.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-
+#include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
-
-#include <uORB/Subscription.hpp>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_gps_position.h>
 
-#include <drivers/drv_hrt.h>
+#include <uORB/Subscription.hpp>
+
+#include "common.h"
 
 #define frac(f) (f - (int)f)
 
@@ -76,12 +75,10 @@ struct s_port_subscription_data_s {
 
 static struct s_port_subscription_data_s *s_port_subscription_data = nullptr;
 
-
 /**
  * Initializes the uORB subscriptions.
  */
-bool sPort_init()
-{
+bool sPort_init() {
 	s_port_subscription_data = new s_port_subscription_data_s();
 
 	if (s_port_subscription_data == nullptr) {
@@ -91,16 +88,14 @@ bool sPort_init()
 	return true;
 }
 
-void sPort_deinit()
-{
+void sPort_deinit() {
 	if (s_port_subscription_data) {
 		delete s_port_subscription_data;
 		s_port_subscription_data = nullptr;
 	}
 }
 
-void sPort_update_topics()
-{
+void sPort_update_topics() {
 	s_port_subscription_data->battery_status_sub.update();
 	s_port_subscription_data->vehicle_acceleration_sub.update();
 	s_port_subscription_data->vehicle_air_data_sub.update();
@@ -110,8 +105,7 @@ void sPort_update_topics()
 	s_port_subscription_data->vehicle_status_sub.update();
 }
 
-static void update_crc(uint16_t *crc, unsigned char b)
-{
+static void update_crc(uint16_t *crc, unsigned char b) {
 	*crc += b;
 	*crc += *crc >> 8;
 	*crc &= 0xFF;
@@ -120,31 +114,29 @@ static void update_crc(uint16_t *crc, unsigned char b)
 /**
  * Sends one byte, performing byte-stuffing if necessary.
  */
-static void sPort_send_byte(int uart, uint8_t value)
-{
-	const uint8_t x7E[] = { 0x7D, 0x5E };
-	const uint8_t x7D[] = { 0x7D, 0x5D };
+static void sPort_send_byte(int uart, uint8_t value) {
+	const uint8_t x7E[] = {0x7D, 0x5E};
+	const uint8_t x7D[] = {0x7D, 0x5D};
 
 	switch (value) {
-	case 0x7E:
-		write(uart, x7E, sizeof(x7E));
-		break;
+		case 0x7E:
+			write(uart, x7E, sizeof(x7E));
+			break;
 
-	case 0x7D:
-		write(uart, x7D, sizeof(x7D));
-		break;
+		case 0x7D:
+			write(uart, x7D, sizeof(x7D));
+			break;
 
-	default:
-		write(uart, &value, sizeof(value));
-		break;
+		default:
+			write(uart, &value, sizeof(value));
+			break;
 	}
 }
 
 /**
  * Sends one data id/value pair.
  */
-void sPort_send_data(int uart, uint16_t id, uint32_t data)
-{
+void sPort_send_data(int uart, uint16_t id, uint32_t data) {
 	union {
 		uint32_t word;
 		uint8_t byte[4];
@@ -161,31 +153,28 @@ void sPort_send_data(int uart, uint16_t id, uint32_t data)
 
 	for (int i = 0; i < 2; i++) {
 		update_crc(&crc, buf.byte[i]);
-		sPort_send_byte(uart, buf.byte[i]);      /* LSB first */
+		sPort_send_byte(uart, buf.byte[i]); /* LSB first */
 	}
 
 	buf.word = data;
 
 	for (int i = 0; i < 4; i++) {
 		update_crc(&crc, buf.byte[i]);
-		sPort_send_byte(uart, buf.byte[i]);      /* LSB first */
+		sPort_send_byte(uart, buf.byte[i]); /* LSB first */
 	}
 
 	sPort_send_byte(uart, 0xFF - crc);
 }
 
-
 // scaling correct with OpenTX 2.1.7
-void sPort_send_BATV(int uart)
-{
+void sPort_send_BATV(int uart) {
 	/* send battery voltage as VFAS */
 	uint32_t voltage = (int)(100 * s_port_subscription_data->battery_status_sub.get().voltage_v);
 	sPort_send_data(uart, SMARTPORT_ID_VFAS, voltage);
 }
 
 // verified scaling
-void sPort_send_CUR(int uart)
-{
+void sPort_send_CUR(int uart) {
 	/* send data */
 	uint32_t current = (int)(10 * s_port_subscription_data->battery_status_sub.get().current_a);
 	sPort_send_data(uart, SMARTPORT_ID_CURR, current);
@@ -194,16 +183,14 @@ void sPort_send_CUR(int uart)
 // verified scaling for "custom" altitude option
 // OpenTX uses the initial reading as field elevation and displays
 // the difference (altitude - field)
-void sPort_send_ALT(int uart)
-{
+void sPort_send_ALT(int uart) {
 	/* send data */
 	uint32_t alt = (int)(100 * s_port_subscription_data->vehicle_air_data_sub.get().baro_alt_meter);
 	sPort_send_data(uart, SMARTPORT_ID_ALT, alt);
 }
 
 // verified scaling for "calculated" option
-void sPort_send_SPD(int uart)
-{
+void sPort_send_SPD(int uart) {
 	const vehicle_local_position_s &local_pos = s_port_subscription_data->vehicle_local_position_sub.get();
 
 	/* send data for A2 */
@@ -213,67 +200,66 @@ void sPort_send_SPD(int uart)
 }
 
 // TODO: verify scaling
-void sPort_send_VSPD(int uart, float speed)
-{
+void sPort_send_VSPD(int uart, float speed) {
 	/* send data for VARIO vertical speed: int16 cm/sec */
 	int32_t ispeed = (int)(100 * speed);
 	sPort_send_data(uart, SMARTPORT_ID_VARIO, ispeed);
 }
 
 // verified scaling
-void sPort_send_FUEL(int uart)
-{
+void sPort_send_FUEL(int uart) {
 	/* send data */
 	uint32_t fuel = (int)(100 * s_port_subscription_data->battery_status_sub.get().remaining);
 	sPort_send_data(uart, SMARTPORT_ID_FUEL, fuel);
 }
 
-void sPort_send_GPS_LON(int uart)
-{
+void sPort_send_GPS_LON(int uart) {
 	/* send longitude */
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 1 and bit 30=sign */
 	/* precision is approximately 0.1m */
-	uint32_t iLon =  6E-2 * fabs(s_port_subscription_data->vehicle_gps_position_sub.get().lon);
+	uint32_t iLon = 6E-2 * fabs(s_port_subscription_data->vehicle_gps_position_sub.get().lon);
 
 	iLon |= (1 << 31);
 
-	if (s_port_subscription_data->vehicle_gps_position_sub.get().lon < 0) { iLon |= (1 << 30); }
+	if (s_port_subscription_data->vehicle_gps_position_sub.get().lon < 0) {
+		iLon |= (1 << 30);
+	}
 
 	sPort_send_data(uart, SMARTPORT_ID_GPS_LON_LAT, iLon);
 }
 
-void sPort_send_GPS_LAT(int uart)
-{
+void sPort_send_GPS_LAT(int uart) {
 	/* send latitude */
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 0 and bit 30=sign */
 	uint32_t iLat = 6E-2 * fabs(s_port_subscription_data->vehicle_gps_position_sub.get().lat);
 
-	if (s_port_subscription_data->vehicle_gps_position_sub.get().lat < 0) { iLat |= (1 << 30); }
+	if (s_port_subscription_data->vehicle_gps_position_sub.get().lat < 0) {
+		iLat |= (1 << 30);
+	}
 
 	sPort_send_data(uart, SMARTPORT_ID_GPS_LON_LAT, iLat);
 }
 
-void sPort_send_GPS_ALT(int uart)
-{
+void sPort_send_GPS_ALT(int uart) {
 	/* send altitude */
 	uint32_t iAlt = s_port_subscription_data->vehicle_gps_position_sub.get().alt / 10;
 	sPort_send_data(uart, SMARTPORT_ID_GPS_ALT, iAlt);
 }
 
-void sPort_send_GPS_CRS(int uart)
-{
+void sPort_send_GPS_CRS(int uart) {
 	/* send course */
 
 	/* convert to 30 bit signed magnitude degrees*6E5 with MSb = 1 and bit 30=sign */
 	int32_t iYaw = s_port_subscription_data->vehicle_local_position_sub.get().heading * 18000.0f / M_PI_F;
 
-	if (iYaw < 0) { iYaw += 36000; }
+	if (iYaw < 0) {
+		iYaw += 36000;
+	}
 
 	sPort_send_data(uart, SMARTPORT_ID_GPS_CRS, iYaw);
 }
 
-void sPort_send_GPS_TIME(int uart)
-{
+void sPort_send_GPS_TIME(int uart) {
 	static int date = 0;
 
 	/* send formatted frame */
@@ -281,22 +267,20 @@ void sPort_send_GPS_TIME(int uart)
 	struct tm *tm_gps = gmtime(&time_gps);
 
 	if (date) {
-
 		sPort_send_data(uart, SMARTPORT_ID_GPS_TIME,
-				(uint32_t) 0xff | (tm_gps->tm_mday << 8) | ((tm_gps->tm_mon + 1) << 16) | ((tm_gps->tm_year - 100) << 24));
+				(uint32_t)0xff | (tm_gps->tm_mday << 8) | ((tm_gps->tm_mon + 1) << 16) |
+					((tm_gps->tm_year - 100) << 24));
 		date = 0;
 
 	} else {
-
-		sPort_send_data(uart, SMARTPORT_ID_GPS_TIME,
-				(uint32_t) 0x00 | (tm_gps->tm_sec << 8) | (tm_gps->tm_min  << 16) | (tm_gps->tm_hour << 24));
+		sPort_send_data(
+			uart, SMARTPORT_ID_GPS_TIME,
+			(uint32_t)0x00 | (tm_gps->tm_sec << 8) | (tm_gps->tm_min << 16) | (tm_gps->tm_hour << 24));
 		date = 1;
-
 	}
 }
 
-void sPort_send_GPS_SPD(int uart)
-{
+void sPort_send_GPS_SPD(int uart) {
 	const vehicle_local_position_s &local_pos = s_port_subscription_data->vehicle_local_position_sub.get();
 
 	/* send 100 * knots */
@@ -308,8 +292,7 @@ void sPort_send_GPS_SPD(int uart)
 /*
  * Sends nav_state + 128
  */
-void sPort_send_NAV_STATE(int uart)
-{
+void sPort_send_NAV_STATE(int uart) {
 	uint32_t navstate = (int)(128 + s_port_subscription_data->vehicle_status_sub.get().nav_state);
 
 	/* send data */
@@ -318,8 +301,7 @@ void sPort_send_NAV_STATE(int uart)
 
 // verified scaling
 // sends number of sats and type of gps fix
-void sPort_send_GPS_FIX(int uart)
-{
+void sPort_send_GPS_FIX(int uart) {
 	/* send data */
 	uint32_t satcount = (int)(s_port_subscription_data->vehicle_gps_position_sub.get().satellites_used);
 	uint32_t fixtype = (int)(s_port_subscription_data->vehicle_gps_position_sub.get().fix_type);
@@ -327,15 +309,15 @@ void sPort_send_GPS_FIX(int uart)
 	sPort_send_data(uart, SMARTPORT_ID_DIY_GPSFIX, t2);
 }
 
-void sPort_send_flight_mode(int uart)
-{
-	int16_t telem_flight_mode = get_telemetry_flight_mode(s_port_subscription_data->vehicle_status_sub.get().nav_state);
+void sPort_send_flight_mode(int uart) {
+	int16_t telem_flight_mode =
+		get_telemetry_flight_mode(s_port_subscription_data->vehicle_status_sub.get().nav_state);
 
-	sPort_send_data(uart, FRSKY_ID_TEMP1, telem_flight_mode); // send flight mode as TEMP1. This matches with OpenTX & APM
+	sPort_send_data(uart, FRSKY_ID_TEMP1,
+			telem_flight_mode);  // send flight mode as TEMP1. This matches with OpenTX & APM
 }
 
-void sPort_send_GPS_info(int uart)
-{
+void sPort_send_GPS_info(int uart) {
 	const vehicle_gps_position_s &gps = s_port_subscription_data->vehicle_gps_position_sub.get();
 	sPort_send_data(uart, FRSKY_ID_TEMP2, gps.satellites_used * 10 + gps.fix_type);
 }

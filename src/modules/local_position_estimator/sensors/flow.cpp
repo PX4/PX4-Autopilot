@@ -1,17 +1,18 @@
-#include "../BlockLocalPositionEstimator.hpp"
 #include <systemlib/mavlink_log.h>
+
 #include <matrix/math.hpp>
+
+#include "../BlockLocalPositionEstimator.hpp"
 
 // mavlink pub
 extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
-static const uint32_t		REQ_FLOW_INIT_COUNT = 10;
-static const uint32_t		FLOW_TIMEOUT = 1000000;	// 1 s
+static const uint32_t REQ_FLOW_INIT_COUNT = 10;
+static const uint32_t FLOW_TIMEOUT = 1000000;  // 1 s
 
-void BlockLocalPositionEstimator::flowInit()
-{
+void BlockLocalPositionEstimator::flowInit() {
 	// measure
 	Vector<float, n_y_flow> y;
 
@@ -22,17 +23,16 @@ void BlockLocalPositionEstimator::flowInit()
 
 	// if finished
 	if (_flowQStats.getCount() > REQ_FLOW_INIT_COUNT) {
-		mavlink_log_info(&mavlink_log_pub, "[lpe] flow init: "
+		mavlink_log_info(&mavlink_log_pub,
+				 "[lpe] flow init: "
 				 "quality %d std %d",
-				 int(_flowQStats.getMean()(0)),
-				 int(_flowQStats.getStdDev()(0)));
+				 int(_flowQStats.getMean()(0)), int(_flowQStats.getStdDev()(0)));
 		_sensorTimeout &= ~SENSOR_FLOW;
 		_sensorFault &= ~SENSOR_FLOW;
 	}
 }
 
-int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
-{
+int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y) {
 	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
 
 	// check for sane pitch/roll
@@ -78,15 +78,12 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 		gyro_y_rad = _flow_gyro_y_high_pass.update(_sub_flow.get().delta_angle[1]);
 	}
 
-	//warnx("flow x: %10.4f y: %10.4f gyro_x: %10.4f gyro_y: %10.4f d: %10.4f",
-	//double(flow_x_rad), double(flow_y_rad), double(gyro_x_rad), double(gyro_y_rad), double(d));
+	// warnx("flow x: %10.4f y: %10.4f gyro_x: %10.4f gyro_y: %10.4f d: %10.4f",
+	// double(flow_x_rad), double(flow_y_rad), double(gyro_x_rad), double(gyro_y_rad), double(d));
 
 	// compute velocities in body frame using ground distance
 	// note that the integral rates in the optical_flow uORB topic are RH rotations about body axes
-	Vector3f delta_b(
-		+(flow_y_rad - gyro_y_rad) * d,
-		-(flow_x_rad - gyro_x_rad) * d,
-		0);
+	Vector3f delta_b(+(flow_y_rad - gyro_y_rad) * d, -(flow_x_rad - gyro_x_rad) * d, 0);
 
 	// rotation of flow from body to nav frame
 	Vector3f delta_n = _R_att * delta_b;
@@ -103,12 +100,13 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	return OK;
 }
 
-void BlockLocalPositionEstimator::flowCorrect()
-{
+void BlockLocalPositionEstimator::flowCorrect() {
 	// measure flow
 	Vector<float, n_y_flow> y;
 
-	if (flowMeasure(y) != OK) { return; }
+	if (flowMeasure(y) != OK) {
+		return;
+	}
 
 	// flow measurement matrix and noise matrix
 	Matrix<float, n_y_flow, n_x> C;
@@ -121,7 +119,7 @@ void BlockLocalPositionEstimator::flowCorrect()
 
 	// polynomial noise model, found using least squares fit
 	// h, h**2, v, v*h, v*h**2
-	const float p[5] = {0.04005232f, -0.00656446f, -0.26265873f,  0.13686658f, -0.00397357f};
+	const float p[5] = {0.04005232f, -0.00656446f, -0.26265873f, 0.13686658f, -0.00397357f};
 
 	// prevent extrapolation past end of polynomial fit by bounding independent variables
 	float h = agl();
@@ -151,9 +149,7 @@ void BlockLocalPositionEstimator::flowCorrect()
 	float flow_vxy_stddev = p[0] * h + p[1] * h * h + p[2] * v + p[3] * v * h + p[4] * v * h * h;
 
 	const Vector3f rates{_sub_angular_velocity.get().xyz};
-	float rotrate_sq = rates(0) * rates(0)
-			   + rates(1) * rates(1)
-			   + rates(2) * rates(2);
+	float rotrate_sq = rates(0) * rates(0) + rates(1) * rates(1) + rates(2) * rates(2);
 
 	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
 	float rot_sq = euler.phi() * euler.phi() + euler.theta() * euler.theta();
@@ -193,16 +189,14 @@ void BlockLocalPositionEstimator::flowCorrect()
 	}
 
 	if (!(_sensorFault & SENSOR_FLOW)) {
-		Matrix<float, n_x, n_y_flow> K =
-			m_P * C.transpose() * S_I;
+		Matrix<float, n_x, n_y_flow> K = m_P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
 		_x += dx;
 		m_P -= K * C * m_P;
 	}
 }
 
-void BlockLocalPositionEstimator::flowCheckTimeout()
-{
+void BlockLocalPositionEstimator::flowCheckTimeout() {
 	if (_timeStamp - _time_last_flow > FLOW_TIMEOUT) {
 		if (!(_sensorTimeout & SENSOR_FLOW)) {
 			_sensorTimeout |= SENSOR_FLOW;

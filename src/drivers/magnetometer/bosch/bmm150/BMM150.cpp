@@ -35,15 +35,10 @@
 
 using namespace time_literals;
 
-BMM150::BMM150(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation)
-{
-}
+BMM150::BMM150(const I2CSPIDriverConfig &config)
+	: I2C(config), I2CSPIDriver(config), _px4_mag(get_device_id(), config.rotation) {}
 
-BMM150::~BMM150()
-{
+BMM150::~BMM150() {
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_reset_perf);
@@ -51,8 +46,7 @@ BMM150::~BMM150()
 	perf_free(_self_test_failed_perf);
 }
 
-int BMM150::init()
-{
+int BMM150::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -63,8 +57,7 @@ int BMM150::init()
 	return Reset() ? 0 : -1;
 }
 
-bool BMM150::Reset()
-{
+bool BMM150::Reset() {
 	RegisterWrite(Register::POWER_CONTROL, 0);
 	_state = STATE::RESET;
 	ScheduleClear();
@@ -72,8 +65,7 @@ bool BMM150::Reset()
 	return true;
 }
 
-void BMM150::print_status()
-{
+void BMM150::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_reset_perf);
@@ -83,8 +75,7 @@ void BMM150::print_status()
 	perf_print_counter(_self_test_failed_perf);
 }
 
-int BMM150::probe()
-{
+int BMM150::probe() {
 	// 3 retries
 	for (int i = 0; i < 3; i++) {
 		const uint8_t POWER_CONTROL = RegisterRead(Register::POWER_CONTROL);
@@ -104,14 +95,15 @@ int BMM150::probe()
 	return PX4_ERROR;
 }
 
-float BMM150::compensate_x(int16_t mag_data_x, uint16_t data_rhall)
-{
+float BMM150::compensate_x(int16_t mag_data_x, uint16_t data_rhall) {
 	float retval = 0;
 
 	// Overflow condition check
 	if ((mag_data_x != OVERFLOW_XYAXES) && (data_rhall != 0) && (_trim_data.dig_xyz1 != 0)) {
 		// Processing compensation equations
-		//  not documented, but derived from https://github.com/BoschSensortec/BMM150-Sensor-API/blob/a20641f216057f0c54de115fe81b57368e119c01/bmm150.c#L1624-L1633 as of 2020-09-25
+		//  not documented, but derived from
+		//  https://github.com/BoschSensortec/BMM150-Sensor-API/blob/a20641f216057f0c54de115fe81b57368e119c01/bmm150.c#L1624-L1633
+		//  as of 2020-09-25
 		float process_comp_x0 = (((float)_trim_data.dig_xyz1) * 16384.0f / data_rhall);
 		retval = (process_comp_x0 - 16384.0f);
 		float process_comp_x1 = ((float)_trim_data.dig_xy2) * (retval * retval / 268435456.0f);
@@ -124,8 +116,7 @@ float BMM150::compensate_x(int16_t mag_data_x, uint16_t data_rhall)
 	return retval;
 }
 
-float BMM150::compensate_y(int16_t mag_data_y, uint16_t data_rhall)
-{
+float BMM150::compensate_y(int16_t mag_data_y, uint16_t data_rhall) {
 	float retval = 0;
 
 	// Overflow condition check
@@ -143,30 +134,29 @@ float BMM150::compensate_y(int16_t mag_data_y, uint16_t data_rhall)
 	return retval;
 }
 
-float BMM150::compensate_z(int16_t mag_data_z, uint16_t data_rhall)
-{
+float BMM150::compensate_z(int16_t mag_data_z, uint16_t data_rhall) {
 	float retval = 0;
 
 	// Overflow condition check
-	if ((mag_data_z != OVERFLOW_ZAXIS)
-	    && (_trim_data.dig_z2 != 0) && (_trim_data.dig_z1 != 0) && (_trim_data.dig_xyz1 != 0)
-	    && (data_rhall != 0)) {
+	if ((mag_data_z != OVERFLOW_ZAXIS) && (_trim_data.dig_z2 != 0) && (_trim_data.dig_z1 != 0) &&
+	    (_trim_data.dig_xyz1 != 0) && (data_rhall != 0)) {
 		// Processing compensation equations
-		//  not documented, but derived from https://github.com/BoschSensortec/BMM150-Sensor-API/blob/a20641f216057f0c54de115fe81b57368e119c01/bmm150.c#L1696-L1703 as of 2020-09-25
+		//  not documented, but derived from
+		//  https://github.com/BoschSensortec/BMM150-Sensor-API/blob/a20641f216057f0c54de115fe81b57368e119c01/bmm150.c#L1696-L1703
+		//  as of 2020-09-25
 		float process_comp_z0 = ((float)mag_data_z) - ((float)_trim_data.dig_z4);
 		float process_comp_z1 = ((float)data_rhall) - ((float)_trim_data.dig_xyz1);
 		float process_comp_z2 = (((float)_trim_data.dig_z3) * process_comp_z1);
 		float process_comp_z3 = ((float)_trim_data.dig_z1) * ((float)data_rhall) / 32768.0f;
 		float process_comp_z4 = ((float)_trim_data.dig_z2) + process_comp_z3;
 		float process_comp_z5 = (process_comp_z0 * 131072.0f) - process_comp_z2;
-		retval = (process_comp_z5 / ((process_comp_z4) * 4.0f)) / 16.0f;
+		retval = (process_comp_z5 / ((process_comp_z4)*4.0f)) / 16.0f;
 	}
 
 	return retval;
 }
 
-static constexpr int16_t combine_xy_int13(const uint8_t msb, const uint8_t lsb)
-{
+static constexpr int16_t combine_xy_int13(const uint8_t msb, const uint8_t lsb) {
 	// msb: 8-bit MSB part [12:5] of the 13 bit output data
 	// lsb: 5-bit LSB part [4:0] of the 13 bit output data
 	int16_t msb_data = ((int16_t)((int8_t)msb)) << 5;
@@ -175,8 +165,7 @@ static constexpr int16_t combine_xy_int13(const uint8_t msb, const uint8_t lsb)
 	return (int16_t)(msb_data | lsb_data);
 }
 
-static constexpr int16_t combine_z_int15(const uint8_t msb, const uint8_t lsb)
-{
+static constexpr int16_t combine_z_int15(const uint8_t msb, const uint8_t lsb) {
 	// msb: 8-bit MSB part [12:5] of the 13 bit output data
 	// lsb: 7-bit LSB part [6:0] of the 15 bit output data
 	int16_t msb_data = ((int16_t)((int8_t)msb)) << 7;
@@ -185,8 +174,7 @@ static constexpr int16_t combine_z_int15(const uint8_t msb, const uint8_t lsb)
 	return (int16_t)(msb_data | lsb_data);
 }
 
-static constexpr uint16_t combine_rhall_uint14(const uint8_t msb, const uint8_t lsb)
-{
+static constexpr uint16_t combine_rhall_uint14(const uint8_t msb, const uint8_t lsb) {
 	// msb: 8-bit MSB part [13:6] of the 14 bit output data
 	// lsb: 6-bit LSB part [5:0] of the 14 bit output data
 	uint16_t msb_data = ((uint16_t)((uint16_t)msb)) << 6;
@@ -195,53 +183,53 @@ static constexpr uint16_t combine_rhall_uint14(const uint8_t msb, const uint8_t 
 	return (uint16_t)(msb_data | lsb_data);
 }
 
-void BMM150::RunImpl()
-{
+void BMM150::RunImpl() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-	case STATE::RESET:
-		// POWER_CONTROL: soft reset
-		RegisterWrite(Register::POWER_CONTROL, POWER_CONTROL_BIT::SoftReset | POWER_CONTROL_BIT::PowerControl);
-		_reset_timestamp = now;
-		_failure_count = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		perf_count(_reset_perf);
-		ScheduleDelayed(10_ms); // 3.0 ms start-up time from suspend to sleep
-		break;
+		case STATE::RESET:
+			// POWER_CONTROL: soft reset
+			RegisterWrite(Register::POWER_CONTROL,
+				      POWER_CONTROL_BIT::SoftReset | POWER_CONTROL_BIT::PowerControl);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
+			perf_count(_reset_perf);
+			ScheduleDelayed(10_ms);  // 3.0 ms start-up time from suspend to sleep
+			break;
 
-	case STATE::WAIT_FOR_RESET:
+		case STATE::WAIT_FOR_RESET:
 
-		// Soft reset always brings the device into sleep mode (power off -> suspend -> sleep)
-		if ((RegisterRead(Register::CHIP_ID) == chip_identification_number)
-		    && (RegisterRead(Register::POWER_CONTROL) & POWER_CONTROL_BIT::PowerControl)
-		    && !(RegisterRead(Register::POWER_CONTROL) & POWER_CONTROL_BIT::SoftReset)
-		    && (RegisterRead(Register::OP_MODE) == OP_MODE_BIT::Opmode_Sleep)) {
+			// Soft reset always brings the device into sleep mode (power off -> suspend -> sleep)
+			if ((RegisterRead(Register::CHIP_ID) == chip_identification_number) &&
+			    (RegisterRead(Register::POWER_CONTROL) & POWER_CONTROL_BIT::PowerControl) &&
+			    !(RegisterRead(Register::POWER_CONTROL) & POWER_CONTROL_BIT::SoftReset) &&
+			    (RegisterRead(Register::OP_MODE) == OP_MODE_BIT::Opmode_Sleep)) {
+				// if reset succeeded then start self test
+				RegisterSetBits(Register::OP_MODE, OP_MODE_BIT::Self_Test);
 
-			// if reset succeeded then start self test
-			RegisterSetBits(Register::OP_MODE, OP_MODE_BIT::Self_Test);
-
-			_state = STATE::SELF_TEST_CHECK;
-			ScheduleDelayed(10_ms);
-
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
-				ScheduleDelayed(100_ms);
+				_state = STATE::SELF_TEST_CHECK;
+				ScheduleDelayed(10_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 10 ms");
+					ScheduleDelayed(10_ms);
+				}
 			}
-		}
 
-		break;
+			break;
 
-	case STATE::SELF_TEST_CHECK: {
+		case STATE::SELF_TEST_CHECK: {
 			// After performing self test OpMode "Self test" bit is set to 0
-			const bool opmode_self_test_cleared = ((RegisterRead(Register::OP_MODE) & OP_MODE_BIT::Self_Test) == 0);
+			const bool opmode_self_test_cleared =
+				((RegisterRead(Register::OP_MODE) & OP_MODE_BIT::Self_Test) == 0);
 
 			if (opmode_self_test_cleared) {
 				// When self-test is successful, the corresponding self-test result bits are set
@@ -288,18 +276,18 @@ void BMM150::RunImpl()
 
 		break;
 
-	case STATE::READ_TRIM: {
+		case STATE::READ_TRIM: {
 			// Trim register value is read
 			uint8_t cmd = static_cast<uint8_t>(Register::DIG_X1);
-			uint8_t trim_x1y1[2] {};
+			uint8_t trim_x1y1[2]{};
 
 			if (transfer(&cmd, 1, trim_x1y1, 2) == PX4_OK) {
 				cmd = static_cast<uint8_t>(Register::DIG_Z4_LSB);
-				uint8_t trim_xyz_data[4] {};
+				uint8_t trim_xyz_data[4]{};
 
 				if (transfer(&cmd, 1, trim_xyz_data, 4) == PX4_OK) {
 					cmd = static_cast<uint8_t>(Register::DIG_Z2_LSB);
-					uint8_t trim_xy1xy2[10] {};
+					uint8_t trim_xy1xy2[10]{};
 
 					if (transfer(&cmd, 1, trim_xy1xy2, 10) == PX4_OK) {
 						_trim_data.dig_x1 = (int8_t)trim_x1y1[0];
@@ -327,7 +315,8 @@ void BMM150::RunImpl()
 						temp_msb = ((uint16_t)(trim_xy1xy2[5] & 0x7F)) << 8;
 						_trim_data.dig_xyz1 = (uint16_t)(temp_msb | trim_xy1xy2[4]);
 
-						if ((_trim_data.dig_xyz1 != 0) && (_trim_data.dig_z2 != 0) && (_trim_data.dig_z1 != 0)) {
+						if ((_trim_data.dig_xyz1 != 0) && (_trim_data.dig_z2 != 0) &&
+						    (_trim_data.dig_z1 != 0)) {
 							_state = STATE::CONFIGURE;
 							ScheduleDelayed(1_ms);
 							return;
@@ -345,28 +334,28 @@ void BMM150::RunImpl()
 
 		break;
 
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start reading every 50 ms (20 Hz)
-			_state = STATE::READ;
-			ScheduleOnInterval(50_ms, 50_ms);
-
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				// if configure succeeded then start reading every 50 ms (20 Hz)
+				_state = STATE::READ;
+				ScheduleOnInterval(50_ms, 50_ms);
 
 			} else {
-				PX4_DEBUG("Configure failed, retrying");
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
+				ScheduleDelayed(100_ms);
 			}
 
-			ScheduleDelayed(100_ms);
-		}
+			break;
 
-		break;
-
-	case STATE::READ: {
+		case STATE::READ: {
 			struct TransferBuffer {
 				uint8_t DATAX_LSB;
 				uint8_t DATAX_MSB;
@@ -384,7 +373,6 @@ void BMM150::RunImpl()
 			uint8_t cmd = static_cast<uint8_t>(Register::DATAX_LSB);
 
 			if (transfer(&cmd, 1, (uint8_t *)&buffer, sizeof(buffer)) == PX4_OK) {
-
 				int16_t x = combine_xy_int13(buffer.DATAX_MSB, buffer.DATAX_LSB);
 				int16_t y = combine_xy_int13(buffer.DATAY_MSB, buffer.DATAY_LSB);
 				int16_t z = combine_z_int15(buffer.DATAZ_MSB, buffer.DATAZ_LSB);
@@ -393,15 +381,17 @@ void BMM150::RunImpl()
 				const bool data_ready = buffer.RHALL_LSB & Bit0;
 
 				if (data_ready && (rhall != 0)) {
-					if ((buffer.STATUS & STATUS_BIT::Overflow) ||
-					    (x == OVERFLOW_XYAXES) || (y == OVERFLOW_XYAXES) || (z == OVERFLOW_ZAXIS)) {
+					if ((buffer.STATUS & STATUS_BIT::Overflow) || (x == OVERFLOW_XYAXES) ||
+					    (y == OVERFLOW_XYAXES) || (z == OVERFLOW_ZAXIS)) {
 						// overflow ADC value, record error, but don't publish
 						perf_count(_overflow_perf);
 
 					} else {
-						_px4_mag.set_error_count(perf_event_count(_bad_register_perf)
-									 + perf_event_count(_bad_transfer_perf) + perf_event_count(_self_test_failed_perf));
-						_px4_mag.update(now, compensate_x(x, rhall), compensate_y(y, rhall), compensate_z(z, rhall));
+						_px4_mag.set_error_count(perf_event_count(_bad_register_perf) +
+									 perf_event_count(_bad_transfer_perf) +
+									 perf_event_count(_self_test_failed_perf));
+						_px4_mag.update(now, compensate_x(x, rhall), compensate_y(y, rhall),
+								compensate_z(z, rhall));
 
 						success = true;
 
@@ -443,8 +433,7 @@ void BMM150::RunImpl()
 	}
 }
 
-bool BMM150::Configure()
-{
+bool BMM150::Configure() {
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
@@ -465,8 +454,7 @@ bool BMM150::Configure()
 	return success;
 }
 
-bool BMM150::RegisterCheck(const register_config_t &reg_cfg)
-{
+bool BMM150::RegisterCheck(const register_config_t &reg_cfg) {
 	bool success = true;
 
 	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
@@ -477,15 +465,15 @@ bool BMM150::RegisterCheck(const register_config_t &reg_cfg)
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.clear_bits);
 		success = false;
 	}
 
 	return success;
 }
 
-uint8_t BMM150::RegisterRead(Register reg)
-{
+uint8_t BMM150::RegisterRead(Register reg) {
 	const uint8_t cmd = static_cast<uint8_t>(reg);
 	uint8_t buffer{};
 	int ret = transfer(&cmd, 1, &buffer, 1);
@@ -498,9 +486,8 @@ uint8_t BMM150::RegisterRead(Register reg)
 	return buffer;
 }
 
-void BMM150::RegisterWrite(Register reg, uint8_t value)
-{
-	uint8_t buffer[2] { (uint8_t)reg, value };
+void BMM150::RegisterWrite(Register reg, uint8_t value) {
+	uint8_t buffer[2]{(uint8_t)reg, value};
 	int ret = transfer(buffer, sizeof(buffer), nullptr, 0);
 
 	if (ret != PX4_OK) {
@@ -508,8 +495,7 @@ void BMM150::RegisterWrite(Register reg, uint8_t value)
 	}
 }
 
-void BMM150::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
-{
+void BMM150::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits) {
 	const uint8_t orig_val = RegisterRead(reg);
 	uint8_t val = (orig_val & ~clearbits) | setbits;
 

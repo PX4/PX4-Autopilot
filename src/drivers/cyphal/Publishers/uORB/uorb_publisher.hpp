@@ -34,60 +34,53 @@
 /**
  * @file uorb_template.hpp
  *
-* Defines generic, templatized uORB over UAVCANv1 publisher
+ * Defines generic, templatized uORB over UAVCANv1 publisher
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
 #pragma once
 
-#include "../Publisher.hpp"
-
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_outputs.h>
 
+#include <uORB/Subscription.hpp>
+
+#include "../Publisher.hpp"
+
 template <class T>
-class uORB_over_UAVCAN_Publisher : public UavcanPublisher
-{
+class uORB_over_UAVCAN_Publisher : public UavcanPublisher {
 public:
 	uORB_over_UAVCAN_Publisher(CanardHandle &handle, UavcanParamManager &pmgr, const orb_metadata *meta,
-				   uint8_t instance = 0) :
-		UavcanPublisher(handle, pmgr, "uorb.", meta->o_name, instance),
-		_uorb_meta{meta},
-		_uorb_sub(meta)
-	{};
+				   uint8_t instance = 0)
+		: UavcanPublisher(handle, pmgr, "uorb.", meta->o_name, instance), _uorb_meta{meta}, _uorb_sub(meta){};
 
 	~uORB_over_UAVCAN_Publisher() override = default;
 
 	// Update the uORB Subscription and broadcast a UAVCAN message
-	virtual void update() override
-	{
+	virtual void update() override {
 		// Not sure if actuator_armed is a good indication of readiness but seems close to it
 		if (_uorb_sub.updated() && _port_id != CANARD_PORT_ID_UNSET) {
-			T data {};
+			T data{};
 			_uorb_sub.update(&data);
 
 			const CanardTransferMetadata transfer_metadata = {
-				.priority       = CanardPriorityNominal,
-				.transfer_kind  = CanardTransferKindMessage,
-				.port_id        = _port_id, // This is the subject-ID.
+				.priority = CanardPriorityNominal,
+				.transfer_kind = CanardTransferKindMessage,
+				.port_id = _port_id,  // This is the subject-ID.
 				.remote_node_id = CANARD_NODE_ID_UNSET,
-				.transfer_id    = _transfer_id
-			};
+				.transfer_id = _transfer_id};
 
 			// set the data ready in the buffer and chop if needed
-			++_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-			_canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
-					      &transfer_metadata,
-					      get_payload_size(&data),
-					      &data);
+			++_transfer_id;  // The transfer-ID shall be incremented after every transmission on this
+					 // subject.
+			_canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC, &transfer_metadata,
+					      get_payload_size(&data), &data);
 		}
 	};
 
 protected:
 	// Default payload-size function -- can specialize in derived class
-	size_t get_payload_size(T *msg)
-	{
+	size_t get_payload_size(T *msg) {
 		(void)msg;
 		return sizeof(T);
 	}
@@ -99,5 +92,5 @@ private:
 
 /* ---- Specializations of get_payload_size() to reduce wasted bandwidth where possible ---- */
 
-template<>
+template <>
 size_t uORB_over_UAVCAN_Publisher<actuator_outputs_s>::get_payload_size(actuator_outputs_s *msg);

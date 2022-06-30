@@ -38,32 +38,29 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <float.h>
+#include <math.h>
 #include <px4_platform_common/px4_config.h>
-
-#include <sys/types.h>
-
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
 
 #include "tests_main.h"
 
-#include <math.h>
-#include <float.h>
-#include <drivers/drv_hrt.h>
-
-
-int test_uart_send(int argc, char *argv[])
-{
+int test_uart_send(int argc, char *argv[]) {
 	/* input handling */
 	char *uart_name = "/dev/ttyS3";
 
-	if (argc > 1) { uart_name = argv[1]; }
+	if (argc > 1) {
+		uart_name = argv[1];
+	}
 
 	/* assuming NuttShell is on UART1 (/dev/ttyS0) */
-	int test_uart = open(uart_name, O_RDWR | O_NONBLOCK | O_NOCTTY); //
+	int test_uart = open(uart_name, O_RDWR | O_NONBLOCK | O_NOCTTY);  //
 
 	if (test_uart < 0) {
 		printf("ERROR opening UART %s, aborting..\n", uart_name);
@@ -73,7 +70,7 @@ int test_uart_send(int argc, char *argv[])
 		printf("Writing to UART %s\n", uart_name);
 	}
 
-	char sample_test_uart[25];// = {'S', 'A', 'M', 'P', 'L', 'E', ' ', '\n'};
+	char sample_test_uart[25];  // = {'S', 'A', 'M', 'P', 'L', 'E', ' ', '\n'};
 
 	int i, n;
 

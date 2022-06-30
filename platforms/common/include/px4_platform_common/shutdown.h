@@ -38,10 +38,9 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
-
-#include <stdbool.h>
 #include <inttypes.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
 
 __BEGIN_DECLS
 
@@ -50,7 +49,6 @@ __BEGIN_DECLS
  * @return true if it's ok to shutdown, false if more time needed for cleanup
  */
 typedef bool (*shutdown_hook_t)(void);
-
 
 /**
  * Register a method that should be called when powering off (and also on reboot).
@@ -62,14 +60,12 @@ typedef bool (*shutdown_hook_t)(void);
  */
 __EXPORT int px4_register_shutdown_hook(shutdown_hook_t hook);
 
-
 /**
  * Unregister a shutdown hook
  * @param hook callback method to be removed
  * @return 0 on success, <0 on error
  */
 __EXPORT int px4_unregister_shutdown_hook(shutdown_hook_t hook);
-
 
 /**
  * Request the system to reboot.
@@ -84,8 +80,7 @@ __EXPORT int px4_unregister_shutdown_hook(shutdown_hook_t hook);
  */
 #if defined(CONFIG_BOARDCTL_RESET)
 __EXPORT int px4_reboot_request(bool to_bootloader = false, uint32_t delay_us = 0);
-#endif // CONFIG_BOARDCTL_RESET
-
+#endif  // CONFIG_BOARDCTL_RESET
 
 /**
  * Request the system to shut down or reboot.
@@ -99,8 +94,7 @@ __EXPORT int px4_reboot_request(bool to_bootloader = false, uint32_t delay_us = 
  */
 #if defined(BOARD_HAS_POWER_CONTROL) || defined(__PX4_POSIX)
 __EXPORT int px4_shutdown_request(uint32_t delay_us = 0);
-#endif // BOARD_HAS_POWER_CONTROL
-
+#endif  // BOARD_HAS_POWER_CONTROL
 
 /**
  * Grab the shutdown lock. It will prevent the system from shutting down until the lock is released.
@@ -109,12 +103,10 @@ __EXPORT int px4_shutdown_request(uint32_t delay_us = 0);
  */
 __EXPORT int px4_shutdown_lock(void);
 
-
 /**
  * Release the shutdown lock.
  * @return 0 on success, <0 on error
  */
 __EXPORT int px4_shutdown_unlock(void);
-
 
 __END_DECLS

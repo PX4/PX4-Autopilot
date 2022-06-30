@@ -7,8 +7,9 @@
  * @date    December 11, 2020, 12:50 AM
  */
 
-#include <stdlib.h>
 #include "target.h"
+
+#include <stdlib.h>
 
 static ownship_t ownship;
 static target_t targets[XPNDR_ADSB_TARGETS] = {
@@ -20,24 +21,17 @@ static target_t targets[XPNDR_ADSB_TARGETS] = {
 /*
  * Documented in the header file.
  */
-target_t *targetList(void)
-{
-	return targets;
-}
+target_t *targetList(void) { return targets; }
 
 /*
  * Documented in the header file.
  */
-ownship_t *targetOwnship(void)
-{
-	return &ownship;
-}
+ownship_t *targetOwnship(void) { return &ownship; }
 
 /*
  * Documented in the header file.
  */
-target_t *targetFind(uint32_t icao)
-{
+target_t *targetFind(uint32_t icao) {
 	for (uint16_t i = 0; i < XPNDR_ADSB_TARGETS; i++) {
 		if (icao == targets[i].icao) {
 			// clear strike counter and set find flag while preserving the used bit.
@@ -52,8 +46,7 @@ target_t *targetFind(uint32_t icao)
 /*
  * Documented in the header file.
  */
-void targetPurge(void)
-{
+void targetPurge(void) {
 	for (uint16_t i = 0; i < XPNDR_ADSB_TARGETS; i++) {
 		// the the found flag was not set increment the strike counter.
 		if ((targets[i].flag & TARGET_FLAG_USED) && ((targets[i].flag & TARGET_FLAG_FOUND) == 0)) {
@@ -79,8 +72,7 @@ void targetPurge(void)
 /*
  * Documented in the header file.
  */
-void targetAdd(target_t *target)
-{
+void targetAdd(target_t *target) {
 	for (uint16_t i = 0; i < XPNDR_ADSB_TARGETS; i++) {
 		if ((targets[i].flag & TARGET_FLAG_USED) == 0x0) {
 			memcpy(&targets[i], target, sizeof(target_t));
@@ -93,8 +85,7 @@ void targetAdd(target_t *target)
 /*
  * Documented in the header file.
  */
-targetclimb_t targetClimb(int16_t vrate)
-{
+targetclimb_t targetClimb(int16_t vrate) {
 	if (abs(vrate) < 500) {
 		return trafLevel;
 
@@ -109,11 +100,7 @@ targetclimb_t targetClimb(int16_t vrate)
 /*
  * Documented in the header file.
  */
-targetalert_t targetAlert(double dist,
-			  uint16_t alt,
-			  int16_t nvel,
-			  int16_t evel)
-{
+targetalert_t targetAlert(double dist, uint16_t alt, int16_t nvel, int16_t evel) {
 	if (alt <= 3000) {
 		if (dist <= 3.0) {
 			return trafResolution;

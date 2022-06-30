@@ -31,8 +31,6 @@
  *
  ****************************************************************************/
 
-
-
 /**
  * @file roboclaw_main.cpp
  *
@@ -43,21 +41,19 @@
  *
  */
 
-#include <px4_platform_common/px4_config.h>
+#include <math.h>
+#include <parameters/param.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
-#include <unistd.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-
-#include <parameters/param.h>
-
+#include <unistd.h>
 
 #include "RoboClaw.hpp"
 
-static bool thread_running = false;     /**< Deamon status flag */
+static bool thread_running = false; /**< Deamon status flag */
 px4_task_t deamon_task;
 
 /**
@@ -75,8 +71,7 @@ int roboclaw_thread_main(int argc, char *argv[]);
  */
 static void usage();
 
-static void usage()
-{
+static void usage() {
 	PRINT_MODULE_USAGE_NAME("roboclaw", "driver");
 
 	PRINT_MODULE_DESCRIPTION(R"DESCR_STR(
@@ -130,15 +125,12 @@ All available commands are:
  * The actual stack size should be set in the call
  * to task_create().
  */
-int roboclaw_main(int argc, char *argv[])
-{
-
+int roboclaw_main(int argc, char *argv[]) {
 	if (argc < 4) {
 		usage();
 	}
 
 	if (!strcmp(argv[1], "start")) {
-
 		if (thread_running) {
 			printf("roboclaw already running\n");
 			/* this is not an error */
@@ -146,21 +138,15 @@ int roboclaw_main(int argc, char *argv[])
 		}
 
 		RoboClaw::taskShouldExit = false;
-		deamon_task = px4_task_spawn_cmd("roboclaw",
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_MAX - 10,
-						 2000,
-						 roboclaw_thread_main,
-						 (char *const *)argv);
+		deamon_task = px4_task_spawn_cmd("roboclaw", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 10, 2000,
+						 roboclaw_thread_main, (char *const *)argv);
 		return 0;
 
 	} else if (!strcmp(argv[1], "stop")) {
-
 		RoboClaw::taskShouldExit = true;
 		return 0;
 
 	} else if (!strcmp(argv[1], "status")) {
-
 		if (thread_running) {
 			printf("\troboclaw app is running\n");
 
@@ -175,8 +161,7 @@ int roboclaw_main(int argc, char *argv[])
 	return 1;
 }
 
-int roboclaw_thread_main(int argc, char *argv[])
-{
+int roboclaw_thread_main(int argc, char *argv[]) {
 	printf("[roboclaw] starting\n");
 
 	// skip parent process args

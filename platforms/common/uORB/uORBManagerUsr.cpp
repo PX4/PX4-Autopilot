@@ -31,25 +31,22 @@
  *
  ****************************************************************************/
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdarg.h>
 #include <fcntl.h>
-
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
-
+#include <stdarg.h>
 #include <sys/boardctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "uORBDeviceNode.hpp"
-#include "uORBUtils.hpp"
 #include "uORBManager.hpp"
+#include "uORBUtils.hpp"
 
 uORB::Manager *uORB::Manager::_Instance = nullptr;
 
-bool uORB::Manager::initialize()
-{
+bool uORB::Manager::initialize() {
 	if (_Instance == nullptr) {
 		_Instance = new uORB::Manager();
 	}
@@ -57,8 +54,7 @@ bool uORB::Manager::initialize()
 	return _Instance != nullptr;
 }
 
-bool uORB::Manager::terminate()
-{
+bool uORB::Manager::terminate() {
 	if (_Instance != nullptr) {
 		delete _Instance;
 		_Instance = nullptr;
@@ -68,16 +64,11 @@ bool uORB::Manager::terminate()
 	return false;
 }
 
-uORB::Manager::Manager()
-{
-}
+uORB::Manager::Manager() {}
 
-uORB::Manager::~Manager()
-{
-}
+uORB::Manager::~Manager() {}
 
-int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
-{
+int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance) {
 	// instance valid range: [0, ORB_MULTI_MAX_INSTANCES)
 	if ((instance < 0) || (instance > (ORB_MULTI_MAX_INSTANCES - 1))) {
 		return PX4_ERROR;
@@ -90,8 +81,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 }
 
 orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-		unsigned int queue_size)
-{
+						unsigned int queue_size) {
 	/* open the node as an advertiser */
 	int fd = node_open(meta, true, instance);
 
@@ -133,40 +123,30 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	return advertiser;
 }
 
-int uORB::Manager::orb_unadvertise(orb_advert_t handle)
-{
+int uORB::Manager::orb_unadvertise(orb_advert_t handle) {
 	orbiocdevunadvertise_t data = {handle, PX4_ERROR};
 	boardctl(ORBIOCDEVUNADVERTISE, reinterpret_cast<unsigned long>(&data));
 
 	return data.ret;
 }
 
-int uORB::Manager::orb_subscribe(const struct orb_metadata *meta)
-{
-	return node_open(meta, false);
-}
+int uORB::Manager::orb_subscribe(const struct orb_metadata *meta) { return node_open(meta, false); }
 
-int uORB::Manager::orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance)
-{
+int uORB::Manager::orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance) {
 	int inst = instance;
 	return node_open(meta, false, &inst);
 }
 
-int uORB::Manager::orb_unsubscribe(int fd)
-{
-	return px4_close(fd);
-}
+int uORB::Manager::orb_unsubscribe(int fd) { return px4_close(fd); }
 
-int uORB::Manager::orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data)
-{
+int uORB::Manager::orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data) {
 	orbiocdevpublish_t d = {meta, handle, data, PX4_ERROR};
 	boardctl(ORBIOCDEVPUBLISH, reinterpret_cast<unsigned long>(&d));
 
 	return d.ret;
 }
 
-int uORB::Manager::orb_copy(const struct orb_metadata *meta, int handle, void *buffer)
-{
+int uORB::Manager::orb_copy(const struct orb_metadata *meta, int handle, void *buffer) {
 	int ret;
 
 	ret = px4_read(handle, buffer, meta->o_size);
@@ -183,27 +163,23 @@ int uORB::Manager::orb_copy(const struct orb_metadata *meta, int handle, void *b
 	return PX4_OK;
 }
 
-int uORB::Manager::orb_check(int handle, bool *updated)
-{
+int uORB::Manager::orb_check(int handle, bool *updated) {
 	/* Set to false here so that if `px4_ioctl` fails to false. */
 	*updated = false;
 	return px4_ioctl(handle, ORBIOCUPDATED, (unsigned long)(uintptr_t)updated);
 }
 
-int uORB::Manager::orb_set_interval(int handle, unsigned interval)
-{
+int uORB::Manager::orb_set_interval(int handle, unsigned interval) {
 	return px4_ioctl(handle, ORBIOCSETINTERVAL, interval * 1000);
 }
 
-int uORB::Manager::orb_get_interval(int handle, unsigned *interval)
-{
+int uORB::Manager::orb_get_interval(int handle, unsigned *interval) {
 	int ret = px4_ioctl(handle, ORBIOCGETINTERVAL, (unsigned long)interval);
 	*interval /= 1000;
 	return ret;
 }
 
-int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, int *instance)
-{
+int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, int *instance) {
 	char path[orb_maxpath];
 	int fd = -1;
 	int ret = PX4_ERROR;
@@ -274,37 +250,32 @@ int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, i
 	return fd;
 }
 
-bool uORB::Manager::orb_device_node_exists(ORB_ID orb_id, uint8_t instance)
-{
+bool uORB::Manager::orb_device_node_exists(ORB_ID orb_id, uint8_t instance) {
 	orbiocdevexists_t data = {orb_id, instance, false, 0};
 	boardctl(ORBIOCDEVEXISTS, reinterpret_cast<unsigned long>(&data));
 
 	return data.ret == PX4_OK ? true : false;
 }
 
-void *uORB::Manager::orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance, unsigned *initial_generation)
-{
+void *uORB::Manager::orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance, unsigned *initial_generation) {
 	orbiocdevaddsubscriber_t data = {orb_id, instance, initial_generation, nullptr};
 	boardctl(ORBIOCDEVADDSUBSCRIBER, reinterpret_cast<unsigned long>(&data));
 
 	return data.handle;
 }
 
-void uORB::Manager::orb_remove_internal_subscriber(void *node_handle)
-{
+void uORB::Manager::orb_remove_internal_subscriber(void *node_handle) {
 	boardctl(ORBIOCDEVREMSUBSCRIBER, reinterpret_cast<unsigned long>(node_handle));
 }
 
-uint8_t uORB::Manager::orb_get_queue_size(const void *node_handle)
-{
+uint8_t uORB::Manager::orb_get_queue_size(const void *node_handle) {
 	orbiocdevqueuesize_t data = {node_handle, 0};
 	boardctl(ORBIOCDEVQUEUESIZE, reinterpret_cast<unsigned long>(&data));
 
 	return data.size;
 }
 
-bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated)
-{
+bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated) {
 	orbiocdevdatacopy_t data = {node_handle, dst, generation, only_if_updated, false};
 	boardctl(ORBIOCDEVDATACOPY, reinterpret_cast<unsigned long>(&data));
 	generation = data.generation;
@@ -312,37 +283,32 @@ bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &genera
 	return data.ret;
 }
 
-bool uORB::Manager::register_callback(void *node_handle, SubscriptionCallback *callback_sub)
-{
+bool uORB::Manager::register_callback(void *node_handle, SubscriptionCallback *callback_sub) {
 	orbiocdevregcallback_t data = {node_handle, callback_sub, false};
 	boardctl(ORBIOCDEVREGCALLBACK, reinterpret_cast<unsigned long>(&data));
 
 	return data.registered;
 }
 
-void uORB::Manager::unregister_callback(void *node_handle, SubscriptionCallback *callback_sub)
-{
+void uORB::Manager::unregister_callback(void *node_handle, SubscriptionCallback *callback_sub) {
 	orbiocdevunregcallback_t data = {node_handle, callback_sub};
 	boardctl(ORBIOCDEVUNREGCALLBACK, reinterpret_cast<unsigned long>(&data));
 }
 
-uint8_t uORB::Manager::orb_get_instance(const void *node_handle)
-{
+uint8_t uORB::Manager::orb_get_instance(const void *node_handle) {
 	orbiocdevgetinstance_t data = {node_handle, 0};
 	boardctl(ORBIOCDEVGETINSTANCE, reinterpret_cast<unsigned long>(&data));
 
 	return data.instance;
 }
 
-unsigned uORB::Manager::updates_available(const void *node_handle, unsigned last_generation)
-{
+unsigned uORB::Manager::updates_available(const void *node_handle, unsigned last_generation) {
 	orbiocdevupdatesavail_t data = {node_handle, last_generation, 0};
 	boardctl(ORBIOCDEVUPDATESAVAIL, reinterpret_cast<unsigned long>(&data));
 	return data.ret;
 }
 
-bool uORB::Manager::is_advertised(const void *node_handle)
-{
+bool uORB::Manager::is_advertised(const void *node_handle) {
 	orbiocdevisadvertised_t data = {node_handle, false};
 	boardctl(ORBIOCDEVISADVERTISED, reinterpret_cast<unsigned long>(&data));
 	return data.ret;

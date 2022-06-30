@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
-#include "PAW3902.hpp"
 #include <px4_platform_common/module.h>
 
-void PAW3902::print_usage()
-{
+#include "PAW3902.hpp"
+
+void PAW3902::print_usage() {
 	PRINT_MODULE_USAGE_NAME("paw3902", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
@@ -43,8 +43,7 @@ void PAW3902::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int paw3902_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int paw3902_main(int argc, char *argv[]) {
 	int ch = 0;
 	using ThisDriver = PAW3902;
 	BusCLIArguments cli{false, true};
@@ -54,9 +53,9 @@ extern "C" __EXPORT int paw3902_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "Y:")) != EOF) {
 		switch (ch) {
-		case 'Y':
-			cli.custom1 = atoi(cli.optArg());
-			break;
+			case 'Y':
+				cli.custom1 = atoi(cli.optArg());
+				break;
 		}
 	}
 

@@ -35,30 +35,35 @@
 
 #include <drivers/device/device.h>
 #include <drivers/device/i2c.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
+#include <uORB/topics/sensor_baro.h>
+
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/PublicationMulti.hpp>
 
 #include "ms5837_registers.h"
 
 /* helper macro for handling report buffer indices */
-#define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
+#define INCREMENT(_x, _lim)                   \
+	do {                                  \
+		__typeof__(_x) _tmp = _x + 1; \
+		if (_tmp >= _lim) _tmp = 0;   \
+		_x = _tmp;                    \
+	} while (0)
 
 /* helper macro for arithmetic - returns the square of the argument */
-#define POW2(_x)		((_x) * (_x))
+#define POW2(_x) ((_x) * (_x))
 
-class MS5837 : public device::I2C, public I2CSPIDriver<MS5837>
-{
+class MS5837 : public device::I2C, public I2CSPIDriver<MS5837> {
 public:
 	MS5837(const I2CSPIDriverConfig &config);
 	~MS5837() override;
 
-	static void 		print_usage();
+	static void print_usage();
 
-	int			init();
+	int init();
 
 	/**
 	 * Perform a poll cycle; collect from the previous measurement
@@ -73,29 +78,29 @@ public:
 	 * and measurement to provide the most recent measurement possible
 	 * at the next interval.
 	 */
-	void			RunImpl();
-	void 			print_status() override;
-	int			read(unsigned offset, void *data, unsigned count) override;
+	void RunImpl();
+	void print_status() override;
+	int read(unsigned offset, void *data, unsigned count) override;
 
 private:
-	int			probe() override;
+	int probe() override;
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
-	ms5837::prom_u	   	_prom{};
+	ms5837::prom_u _prom{};
 
-	bool			_collect_phase{false};
-	unsigned		_measure_phase{false};
+	bool _collect_phase{false};
+	unsigned _measure_phase{false};
 
 	/* intermediate temperature values per MS5611/MS5607 datasheet */
-	int64_t			_OFF{0};
-	int64_t			_SENS{0};
+	int64_t _OFF{0};
+	int64_t _SENS{0};
 
 	float _last_temperature{NAN};
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_measure_perf;
-	perf_counter_t		_comms_errors;
+	perf_counter_t _sample_perf;
+	perf_counter_t _measure_perf;
+	perf_counter_t _comms_errors;
 
 	/**
 	 * Initialize the automatic measurement state machine and start it.
@@ -103,35 +108,35 @@ private:
 	 * @note This function is called at open and error time.  It might make sense
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
-	void		_start();
+	void _start();
 
 	/**
 	 * Issue a measurement command for the current state.
 	 *
 	 * @return		OK if the measurement command was successful.
 	 */
-	int			_measure();
+	int _measure();
 
 	/**
 	 * Collect the result of the most recent measurement.
 	 */
-	int			_collect();
+	int _collect();
 
-	int			_probe_address(uint8_t address);
+	int _probe_address(uint8_t address);
 
 	/**
 	 * Send a reset command to the MS5837.
 	 *
 	 * This is required after any bus reset.
 	 */
-	int			_reset();
+	int _reset();
 
 	/**
 	 * Read the MS5837 PROM
 	 *
 	 * @return		PX4_OK if the PROM reads successfully.
 	 */
-	int			_read_prom();
+	int _read_prom();
 
-	bool		_crc4(uint16_t *n_prom);
+	bool _crc4(uint16_t *n_prom);
 };

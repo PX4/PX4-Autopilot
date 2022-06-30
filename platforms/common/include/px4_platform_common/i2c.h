@@ -40,11 +40,12 @@
 #define I2C_BUS_MAX_BUS_ITEMS PX4_NUMBER_I2C_BUSES
 
 struct px4_i2c_bus_t {
-	int bus{-1}; ///< physical bus number (1, ...) (-1 means this is unused)
-	bool is_external; ///< static external configuration. Use px4_i2c_bus_external() to check if a bus is really external
+	int bus{-1};       ///< physical bus number (1, ...) (-1 means this is unused)
+	bool is_external;  ///< static external configuration. Use px4_i2c_bus_external() to check if a bus is really
+			   ///< external
 };
 
-__EXPORT extern const px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS]; ///< board-specific I2C bus configuration
+__EXPORT extern const px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS];  ///< board-specific I2C bus configuration
 
 /**
  * runtime-check if a board has a specific bus as external.
@@ -55,8 +56,7 @@ __EXPORT bool px4_i2c_bus_external(const px4_i2c_bus_t &bus);
 /**
  * runtime-check if a board has a specific bus as external.
  */
-static inline bool px4_i2c_bus_external(int bus)
-{
+static inline bool px4_i2c_bus_external(int bus) {
 	for (int i = 0; i < I2C_BUS_MAX_BUS_ITEMS; ++i) {
 		if (px4_i2c_buses[i].bus == bus) {
 			return px4_i2c_bus_external(px4_i2c_buses[i]);
@@ -66,26 +66,23 @@ static inline bool px4_i2c_bus_external(int bus)
 	return true;
 }
 
-
 /**
  * @class I2CBusIterator
  * Iterate over configured I2C buses by the board
  */
-class I2CBusIterator
-{
+class I2CBusIterator {
 public:
 	enum class FilterType {
-		All, ///< specific or all buses
-		InternalBus, ///< specific or all internal buses
-		ExternalBus, ///< specific or all external buses
+		All,          ///< specific or all buses
+		InternalBus,  ///< specific or all internal buses
+		ExternalBus,  ///< specific or all external buses
 	};
 
 	/**
 	 * @param bus specify bus: starts with 1, -1=all. Internal: arch-specific bus numbering is used,
 	 *             external: n-th external bus
 	 */
-	I2CBusIterator(FilterType filter, int bus = -1)
-		: _filter(filter), _bus(bus) {}
+	I2CBusIterator(FilterType filter, int bus = -1) : _filter(filter), _bus(bus) {}
 
 	bool next();
 
@@ -102,4 +99,4 @@ private:
 	int _external_bus_counter{0};
 };
 
-#endif // CONFIG_I2C
+#endif  // CONFIG_I2C

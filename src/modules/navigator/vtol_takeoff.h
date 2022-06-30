@@ -39,14 +39,12 @@
 
 #pragma once
 
-#include "navigator_mode.h"
-#include "mission_block.h"
-
 #include <lib/mathlib/mathlib.h>
-
 #include <px4_platform_common/module_params.h>
-class VtolTakeoff : public MissionBlock, public ModuleParams
-{
+
+#include "mission_block.h"
+#include "navigator_mode.h"
+class VtolTakeoff : public MissionBlock, public ModuleParams {
 public:
 	VtolTakeoff(Navigator *navigator);
 	~VtolTakeoff() = default;
@@ -54,13 +52,12 @@ public:
 	void on_activation() override;
 	void on_active() override;
 
-	void setTransitionAltitudeAbsolute(const float alt_amsl) {_transition_alt_amsl = alt_amsl; }
+	void setTransitionAltitudeAbsolute(const float alt_amsl) { _transition_alt_amsl = alt_amsl; }
 
 	void setLoiterLocation(matrix::Vector2d loiter_location) { _loiter_location = loiter_location; }
 	void setLoiterHeight(const float height_m) { _loiter_height = height_m; }
 
 private:
-
 	enum class vtol_takeoff_state {
 		TAKEOFF_HOVER = 0,
 		ALIGN_HEADING,
@@ -69,13 +66,11 @@ private:
 		ABORT_TAKEOFF_AND_LAND
 	} _takeoff_state;
 
-	float _transition_alt_amsl{0.f};	// absolute altitude at which vehicle will transition to forward flight
+	float _transition_alt_amsl{0.f};  // absolute altitude at which vehicle will transition to forward flight
 	matrix::Vector2d _loiter_location;
 	float _loiter_height{0};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::VTO_LOITER_ALT>) _param_loiter_alt
-	)
+	DEFINE_PARAMETERS((ParamFloat<px4::params::VTO_LOITER_ALT>)_param_loiter_alt)
 
 	void set_takeoff_position();
 };

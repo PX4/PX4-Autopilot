@@ -41,30 +41,25 @@
 #ifndef MAVLINK_MESSAGES_H_
 #define MAVLINK_MESSAGES_H_
 
-#include "mavlink_stream.h"
-
 #include <commander/px4_custom_mode.h>
 
-class StreamListItem
-{
+#include "mavlink_stream.h"
 
+class StreamListItem {
 public:
 	MavlinkStream *(*new_instance)(Mavlink *mavlink);
 	const char *name;
 	uint16_t id;
 
-	StreamListItem(MavlinkStream * (*inst)(Mavlink *mavlink), const char *_name, uint16_t _id) :
-		new_instance(inst),
-		name(_name),
-		id(_id) {}
+	StreamListItem(MavlinkStream *(*inst)(Mavlink *mavlink), const char *_name, uint16_t _id)
+		: new_instance(inst), name(_name), id(_id) {}
 
 	const char *get_name() const { return name; }
 	uint16_t get_id() const { return id; }
 };
 
 template <class T>
-static StreamListItem create_stream_list_item()
-{
+static StreamListItem create_stream_list_item() {
 	return StreamListItem(&T::new_instance, T::get_name_static(), T::get_id_static());
 }
 

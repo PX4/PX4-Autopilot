@@ -39,16 +39,17 @@
 
 #include "Mixer.hpp"
 
-#include <math.h>
-#include <cstring>
 #include <ctype.h>
+#include <math.h>
 
-#define debug(fmt, args...)	do { } while(0)
+#include <cstring>
+
+#define debug(fmt, args...) \
+	do {                \
+	} while (0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 
-float
-Mixer::get_control(uint8_t group, uint8_t index)
-{
+float Mixer::get_control(uint8_t group, uint8_t index) {
 	float value;
 
 	_control_cb(_cb_handle, group, index, value);
@@ -56,9 +57,7 @@ Mixer::get_control(uint8_t group, uint8_t index)
 	return value;
 }
 
-const char *
-Mixer::findtag(const char *buf, unsigned &buflen, char tag)
-{
+const char *Mixer::findtag(const char *buf, unsigned &buflen, char tag) {
 	while (buflen >= 2) {
 		if ((buf[0] == tag) && (buf[1] == ':')) {
 			return buf;
@@ -71,9 +70,7 @@ Mixer::findtag(const char *buf, unsigned &buflen, char tag)
 	return nullptr;
 }
 
-char
-Mixer::findnexttag(const char *buf, unsigned buflen)
-{
+char Mixer::findnexttag(const char *buf, unsigned buflen) {
 	while (buflen >= 2) {
 		if (isupper(buf[0]) && buf[1] == ':') {
 			return buf[0];
@@ -86,9 +83,7 @@ Mixer::findnexttag(const char *buf, unsigned buflen)
 	return 0;
 }
 
-const char *
-Mixer::skipline(const char *buf, unsigned &buflen)
-{
+const char *Mixer::skipline(const char *buf, unsigned &buflen) {
 	const char *p;
 
 	/* if we can find a CR or NL in the buffer, skip up to it */
@@ -101,9 +96,7 @@ Mixer::skipline(const char *buf, unsigned &buflen)
 	return nullptr;
 }
 
-bool
-Mixer::string_well_formed(const char *buf, unsigned &buflen)
-{
+bool Mixer::string_well_formed(const char *buf, unsigned &buflen) {
 	/* enforce that the mixer ends with a new line */
 	for (int i = buflen - 1; i >= 0; i--) {
 		if (buf[i] == '\0') {
@@ -115,7 +108,6 @@ Mixer::string_well_formed(const char *buf, unsigned &buflen)
 			/* found a line ending, so no split symbols / numbers. good. */
 			return true;
 		}
-
 	}
 
 	debug("pre-parser rejected: No newline in buf");

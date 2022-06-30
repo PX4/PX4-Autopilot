@@ -32,26 +32,23 @@
  ****************************************************************************/
 
 /**
-* @file standard.h
-* VTOL with fixed multirotor motor configurations (such as quad) and a pusher
-* (or puller aka tractor) motor for forward flight.
-*
-* @author Simon Wilks 		<simon@uaventure.com>
-* @author Roman Bapst 		<bapstroman@gmail.com>
-* @author Andreas Antener	<andreas@uaventure.com>
-* @author Sander Smeets 	<sander@droneslab.com>
-*
-*/
+ * @file standard.h
+ * VTOL with fixed multirotor motor configurations (such as quad) and a pusher
+ * (or puller aka tractor) motor for forward flight.
+ *
+ * @author Simon Wilks 		<simon@uaventure.com>
+ * @author Roman Bapst 		<bapstroman@gmail.com>
+ * @author Andreas Antener	<andreas@uaventure.com>
+ * @author Sander Smeets 	<sander@droneslab.com>
+ *
+ */
 
 #ifndef STANDARD_H
 #define STANDARD_H
 #include "vtol_type.h"
 
-class Standard : public VtolType
-{
-
+class Standard : public VtolType {
 public:
-
 	Standard(VtolAttitudeControl *_att_controller);
 	~Standard() override = default;
 
@@ -64,17 +61,11 @@ public:
 	void blendThrottleAfterFrontTransition(float scale) override;
 
 private:
-
-	enum class vtol_mode {
-		MC_MODE = 0,
-		TRANSITION_TO_FW,
-		TRANSITION_TO_MC,
-		FW_MODE
-	};
+	enum class vtol_mode { MC_MODE = 0, TRANSITION_TO_FW, TRANSITION_TO_MC, FW_MODE };
 
 	struct {
-		vtol_mode flight_mode;			// indicates in which mode the vehicle is in
-		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
+		vtol_mode flight_mode;         // indicates in which mode the vehicle is in
+		hrt_abstime transition_start;  // at what time did we start a transition (front- or backtransition)
 	} _vtol_schedule;
 
 	float _pusher_throttle{0.0f};
@@ -83,12 +74,10 @@ private:
 
 	void parameters_update() override;
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
-					(ParamFloat<px4::params::VT_PSHER_RMP_DT>) _param_vt_psher_rmp_dt,
-					(ParamFloat<px4::params::VT_B_TRANS_RAMP>) _param_vt_b_trans_ramp,
-					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
-					(ParamFloat<px4::params::VT_B_REV_OUT>) _param_vt_b_rev_out,
-					(ParamFloat<px4::params::VT_B_REV_DEL>) _param_vt_b_rev_del
-				       )
+	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType, (ParamFloat<px4::params::VT_PSHER_RMP_DT>)_param_vt_psher_rmp_dt,
+					(ParamFloat<px4::params::VT_B_TRANS_RAMP>)_param_vt_b_trans_ramp,
+					(ParamFloat<px4::params::FW_PSP_OFF>)_param_fw_psp_off,
+					(ParamFloat<px4::params::VT_B_REV_OUT>)_param_vt_b_rev_out,
+					(ParamFloat<px4::params::VT_B_REV_DEL>)_param_vt_b_rev_del)
 };
 #endif

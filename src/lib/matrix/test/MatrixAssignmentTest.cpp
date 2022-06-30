@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixAssignmentTest, Assignment)
-{
+TEST(MatrixAssignmentTest, Assignment) {
 	Matrix3f m;
 	m.setZero();
 	m.zero();
@@ -71,11 +71,7 @@ TEST(MatrixAssignmentTest, Assignment)
 
 	EXPECT_TRUE(m_nan.isAllNan());
 
-	float data2d[3][3] = {
-		{1, 2, 3},
-		{4, 5, 6},
-		{7, 8, 9}
-	};
+	float data2d[3][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
 	m2 = Matrix3f(data2d);
 
 	for (size_t i = 0; i < 3; i++) {
@@ -110,18 +106,10 @@ TEST(MatrixAssignmentTest, Assignment)
 	// set rows and columns to value
 	Matrix3f m2e(data2d);
 
-	float data2e_check1[3][3] = {
-		{1, 11, 3},
-		{4, 11, 6},
-		{7, 11, 9}
-	};
+	float data2e_check1[3][3] = {{1, 11, 3}, {4, 11, 6}, {7, 11, 9}};
 	Matrix3f m2e_check1(data2e_check1);
 
-	float data2e_check2[3][3] = {
-		{1, 11, 3},
-		{4, 11, 6},
-		{0, 0, 0}
-	};
+	float data2e_check2[3][3] = {{1, 11, 3}, {4, 11, 6}, {0, 0, 0}};
 	Matrix3f m2e_check2(data2e_check2);
 
 	m2e.setCol(1, 11);
@@ -130,16 +118,10 @@ TEST(MatrixAssignmentTest, Assignment)
 	EXPECT_EQ(m2e, m2e_check2);
 
 	float data_row_02_swap[9] = {
-		7, 8, 9,
-		4, 5, 6,
-		1, 2, 3,
+		7, 8, 9, 4, 5, 6, 1, 2, 3,
 	};
 
-	float data_col_02_swap[9] = {
-		3, 2, 1,
-		6, 5, 4,
-		9, 8, 7
-	};
+	float data_col_02_swap[9] = {3, 2, 1, 6, 5, 4, 9, 8, 7};
 
 	Matrix3f m4(data);
 
@@ -247,22 +229,20 @@ TEST(MatrixAssignmentTest, Assignment)
 
 	// check write_string()
 	float comma[6] = {
-		1.f, 12345.123f,
-		12345.1228f, .1234567891011f,
-		12345678910.123456789f, 1234567891011.123456789101112f
-	};
+		1.f, 12345.123f, 12345.1228f, .1234567891011f, 12345678910.123456789f, 1234567891011.123456789101112f};
 	Matrix<float, 3, 2> Comma(comma);
 	const size_t len = 15 * 2 * 3 + 2 + 1;
 	char buffer[len];
-	Comma.print(); // for debugging in case of failure
+	Comma.print();  // for debugging in case of failure
 	Comma.write_string(buffer, len);
-	printf("%s\n", buffer); // for debugging in case of failure
+	printf("%s\n", buffer);  // for debugging in case of failure
 	char output[] = "\t       1\t12345.123\n\t12345.123\t0.12345679\n\t1.2345679e+10\t1.234568e+12\n";
-	printf("%s\n", output); // for debugging in case of failure
+	printf("%s\n", output);  // for debugging in case of failure
 
 	for (size_t i = 0; i < len; i++) {
-		if (buffer[i] != output[i]) { // for debugging in case of failure
-			printf("%d: \"%c\" != \"%c\"", int(i), buffer[i], output[i]); // LCOV_EXCL_LINE only print on failure
+		if (buffer[i] != output[i]) {  // for debugging in case of failure
+			printf("%d: \"%c\" != \"%c\"", int(i), buffer[i],
+			       output[i]);  // LCOV_EXCL_LINE only print on failure
 		}
 
 		EXPECT_EQ(buffer[i], output[i]);

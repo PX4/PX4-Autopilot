@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include "ICM20948_I2C_Passthrough.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void ICM20948_I2C_Passthrough::print_usage()
-{
+#include "ICM20948_I2C_Passthrough.hpp"
+
+void ICM20948_I2C_Passthrough::print_usage() {
 	PRINT_MODULE_USAGE_NAME("icm20948_i2c_passthrough", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -46,8 +45,7 @@ void ICM20948_I2C_Passthrough::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int icm20948_i2c_passthrough_main(int argc, char *argv[])
-{
+extern "C" int icm20948_i2c_passthrough_main(int argc, char *argv[]) {
 	using ThisDriver = ICM20948_I2C_Passthrough;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = I2C_SPEED;

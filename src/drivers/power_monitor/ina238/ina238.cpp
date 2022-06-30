@@ -37,16 +37,14 @@
 
 #include "ina238.h"
 
-
-INA238::INA238(const I2CSPIDriverConfig &config, int battery_index) :
-	I2C(config),
-	ModuleParams(nullptr),
-	I2CSPIDriver(config),
-	_sample_perf(perf_alloc(PC_ELAPSED, "ina238_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "ina238_com_err")),
-	_collection_errors(perf_alloc(PC_COUNT, "ina238_collection_err")),
-	_battery(battery_index, this, INA238_SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
-{
+INA238::INA238(const I2CSPIDriverConfig &config, int battery_index)
+	: I2C(config),
+	  ModuleParams(nullptr),
+	  I2CSPIDriver(config),
+	  _sample_perf(perf_alloc(PC_ELAPSED, "ina238_read")),
+	  _comms_errors(perf_alloc(PC_COUNT, "ina238_com_err")),
+	  _collection_errors(perf_alloc(PC_COUNT, "ina238_collection_err")),
+	  _battery(battery_index, this, INA238_SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE) {
 	float fvalue = DEFAULT_MAX_CURRENT;
 	_max_current = fvalue;
 	param_t ph = param_find("INA238_CURRENT");
@@ -67,23 +65,22 @@ INA238::INA238(const I2CSPIDriverConfig &config, int battery_index) :
 
 	_current_lsb = _max_current / INA238_DN_MAX;
 
-	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
+	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance
+	// 0
 	_battery.setConnected(false);
 	_battery.updateVoltage(0.f);
 	_battery.updateCurrent(0.f);
 	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 }
 
-INA238::~INA238()
-{
+INA238::~INA238() {
 	/* free perf counters */
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 	perf_free(_collection_errors);
 }
 
-int INA238::read(uint8_t address, uint16_t &data)
-{
+int INA238::read(uint8_t address, uint16_t &data) {
 	// read desired little-endian value via I2C
 	uint16_t received_bytes;
 	const int ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
@@ -99,14 +96,12 @@ int INA238::read(uint8_t address, uint16_t &data)
 	return ret;
 }
 
-int INA238::write(uint8_t address, uint16_t value)
-{
+int INA238::write(uint8_t address, uint16_t value) {
 	uint8_t data[3] = {address, ((uint8_t)((value & 0xff00) >> 8)), (uint8_t)(value & 0xff)};
 	return transfer(data, sizeof(data), nullptr, 0);
 }
 
-int INA238::init()
-{
+int INA238::init() {
 	int ret = PX4_ERROR;
 
 	/* do I2C init (and probe) first */
@@ -129,7 +124,7 @@ int INA238::init()
 	}
 
 	// Set the CONFIG for max I
-	if (write(INA238_REG_CONFIG, (uint16_t) _range) != PX4_OK) {
+	if (write(INA238_REG_CONFIG, (uint16_t)_range) != PX4_OK) {
 		return ret;
 	}
 
@@ -143,8 +138,7 @@ int INA238::init()
 	return ret;
 }
 
-int INA238::force_init()
-{
+int INA238::force_init() {
 	int ret = init();
 
 	start();
@@ -152,8 +146,7 @@ int INA238::force_init()
 	return ret;
 }
 
-int INA238::probe()
-{
+int INA238::probe() {
 	uint16_t value{0};
 
 	if (read(INA238_MANUFACTURER_ID, value) != PX4_OK || value != INA238_MFG_ID_TI) {
@@ -161,9 +154,7 @@ int INA238::probe()
 		return -1;
 	}
 
-	if (read(INA238_DEVICE_ID, value) != PX4_OK || (
-		    INA238_DEVICEID(value) != INA238_MFG_DIE
-	    )) {
+	if (read(INA238_DEVICE_ID, value) != PX4_OK || (INA238_DEVICEID(value) != INA238_MFG_DIE)) {
 		PX4_DEBUG("probe die id %d", value);
 		return -1;
 	}
@@ -171,9 +162,7 @@ int INA238::probe()
 	return PX4_OK;
 }
 
-
-int INA238::collect()
-{
+int INA238::collect() {
 	perf_begin(_sample_perf);
 
 	if (_parameter_update_sub.updated()) {
@@ -185,7 +174,8 @@ int INA238::collect()
 	}
 
 	// read from the sensor
-	// Note: If the power module is connected backwards, then the values of _current will be negative but otherwise valid.
+	// Note: If the power module is connected backwards, then the values of _current will be negative but otherwise
+	// valid.
 	bool success{true};
 	int16_t bus_voltage{0};
 	int16_t current{0};
@@ -213,8 +203,7 @@ int INA238::collect()
 	}
 }
 
-void INA238::start()
-{
+void INA238::start() {
 	ScheduleClear();
 
 	/* reset the report ring and state machine */
@@ -226,8 +215,7 @@ void INA238::start()
 	ScheduleDelayed(5);
 }
 
-void INA238::RunImpl()
-{
+void INA238::RunImpl() {
 	if (_initialized) {
 		if (_collect_phase) {
 			/* perform collection */
@@ -266,8 +254,7 @@ void INA238::RunImpl()
 	}
 }
 
-void INA238::print_status()
-{
+void INA238::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	if (_initialized) {

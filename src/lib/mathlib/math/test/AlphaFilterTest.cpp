@@ -38,29 +38,26 @@
  */
 
 #include <gtest/gtest.h>
-#include <cmath>
-#include <matrix/math.hpp>
 
+#include <cmath>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <matrix/math.hpp>
 
 using matrix::Vector3f;
 
-TEST(AlphaFilterTest, initializeToZero)
-{
+TEST(AlphaFilterTest, initializeToZero) {
 	AlphaFilter<float> filter_float{};
 	ASSERT_EQ(filter_float.getState(), 0.f);
 }
 
-TEST(AlphaFilterTest, resetToValue)
-{
+TEST(AlphaFilterTest, resetToValue) {
 	AlphaFilter<float> filter_float{};
 	const float reset_value = 42.42f;
 	filter_float.reset(reset_value);
 	ASSERT_EQ(filter_float.getState(), reset_value);
 }
 
-TEST(AlphaFilterTest, runZero)
-{
+TEST(AlphaFilterTest, runZero) {
 	AlphaFilter<float> filter_float{};
 	const float input = 0.f;
 
@@ -71,8 +68,7 @@ TEST(AlphaFilterTest, runZero)
 	ASSERT_EQ(filter_float.getState(), input);
 }
 
-TEST(AlphaFilterTest, runPositive)
-{
+TEST(AlphaFilterTest, runPositive) {
 	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.9)
 	AlphaFilter<float> filter_float{};
 	const float input = 1.f;
@@ -87,8 +83,7 @@ TEST(AlphaFilterTest, runPositive)
 	ASSERT_NEAR(filter_float.getState(), 0.63f, 0.02);
 }
 
-TEST(AlphaFilterTest, runNegative)
-{
+TEST(AlphaFilterTest, runNegative) {
 	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.9)
 	AlphaFilter<float> filter_float{};
 	const float input = -1.f;
@@ -103,8 +98,7 @@ TEST(AlphaFilterTest, runNegative)
 	ASSERT_NEAR(filter_float.getState(), -0.63f, 0.02);
 }
 
-TEST(AlphaFilterTest, riseTime)
-{
+TEST(AlphaFilterTest, riseTime) {
 	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.9)
 	AlphaFilter<float> filter_float{};
 	const float input = 1.f;
@@ -119,8 +113,7 @@ TEST(AlphaFilterTest, riseTime)
 	ASSERT_NEAR(filter_float.getState(), 0.95f, 0.02f);
 }
 
-TEST(AlphaFilterTest, convergence)
-{
+TEST(AlphaFilterTest, convergence) {
 	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.9)
 	AlphaFilter<float> filter_float{};
 	const float input = 1.f;
@@ -135,8 +128,7 @@ TEST(AlphaFilterTest, convergence)
 	ASSERT_NEAR(filter_float.getState(), 1.f, 0.01f);
 }
 
-TEST(AlphaFilterTest, convergenceVector3f)
-{
+TEST(AlphaFilterTest, convergenceVector3f) {
 	// GIVEN an Vector3f input in a filter with a default time constant of 9 (alpha = 0.9)
 	AlphaFilter<Vector3f> filter_v3{};
 	const Vector3f input = {3.f, 7.f, -11.f};
@@ -155,8 +147,7 @@ TEST(AlphaFilterTest, convergenceVector3f)
 	}
 }
 
-TEST(AlphaFilterTest, convergenceVector3fAlpha)
-{
+TEST(AlphaFilterTest, convergenceVector3fAlpha) {
 	// GIVEN a Vector3f input in a filter with a defined time constant and the default sampling time
 	AlphaFilter<Vector3f> filter_v3{};
 	const Vector3f input = {3.f, 7.f, -11.f};
@@ -166,7 +157,7 @@ TEST(AlphaFilterTest, convergenceVector3fAlpha)
 
 	// WHEN we run the filter 18 times (1 * time constant)
 	for (int i = 0; i < 18; i++) {
-		filter_v3.update(input); // dt is assumed equal to 1
+		filter_v3.update(input);  // dt is assumed equal to 1
 	}
 
 	// THEN the state of the filter should have reached 65% (2% error allowed)
@@ -177,8 +168,7 @@ TEST(AlphaFilterTest, convergenceVector3fAlpha)
 	}
 }
 
-TEST(AlphaFilterTest, convergenceVector3fTauDt)
-{
+TEST(AlphaFilterTest, convergenceVector3fTauDt) {
 	// GIVEN a Vector3f input in a filter with a defined time constant and sampling time
 	AlphaFilter<Vector3f> filter_v3{};
 	const Vector3f input = {51.f, 7.f, -11.f};
@@ -211,15 +201,13 @@ TEST(AlphaFilterTest, convergenceVector3fTauDt)
 	}
 }
 
-TEST(AlphaFilterTest, AllZeroTest)
-{
+TEST(AlphaFilterTest, AllZeroTest) {
 	AlphaFilter<float> _alpha_filter;
 	_alpha_filter.update(0.f);
 	EXPECT_FLOAT_EQ(_alpha_filter.getState(), 0.f);
 }
 
-TEST(AlphaFilterTest, AlphaOneTest)
-{
+TEST(AlphaFilterTest, AlphaOneTest) {
 	AlphaFilter<float> _alpha_filter;
 	_alpha_filter.setParameters(1e-5f, 1e5f);
 
@@ -229,8 +217,7 @@ TEST(AlphaFilterTest, AlphaOneTest)
 	}
 }
 
-TEST(AlphaFilterTest, AlphaZeroTest)
-{
+TEST(AlphaFilterTest, AlphaZeroTest) {
 	AlphaFilter<float> _alpha_filter;
 	_alpha_filter.setParameters(.1f, 0.f);
 
@@ -241,13 +228,12 @@ TEST(AlphaFilterTest, AlphaZeroTest)
 	}
 }
 
-TEST(AlphaFilterTest, SetFrequencyTest)
-{
+TEST(AlphaFilterTest, SetFrequencyTest) {
 	AlphaFilter<float> _alpha_filter;
 	const float fs = .1f;
 
 	EXPECT_FALSE(_alpha_filter.setCutoffFreq(fs, 0.f));
-	EXPECT_FALSE(_alpha_filter.setCutoffFreq(fs, fs)); // Cutoff above Nyquist freq
+	EXPECT_FALSE(_alpha_filter.setCutoffFreq(fs, fs));  // Cutoff above Nyquist freq
 	EXPECT_FALSE(_alpha_filter.setCutoffFreq(0.f, fs / 4.f));
 	EXPECT_FALSE(_alpha_filter.setCutoffFreq(0.f, 0.f));
 	EXPECT_FALSE(_alpha_filter.setCutoffFreq(-fs, fs / 4.f));
@@ -257,8 +243,7 @@ TEST(AlphaFilterTest, SetFrequencyTest)
 	EXPECT_TRUE(_alpha_filter.setCutoffFreq(fs, fs / 4.f));
 }
 
-TEST(AlphaFilterTest, ConvergenceTest)
-{
+TEST(AlphaFilterTest, ConvergenceTest) {
 	AlphaFilter<float> _alpha_filter;
 	_alpha_filter.setParameters(.1f, 1.f);
 

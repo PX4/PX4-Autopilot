@@ -36,12 +36,11 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include <sched.h>
-#include <stdlib.h>
 #include <assert.h>
 #include <debug.h>
+#include <nuttx/config.h>
+#include <sched.h>
+#include <stdlib.h>
 #include <syslog.h>
 
 #ifdef CONFIG_HAVE_CXXINITIALIZE
@@ -93,15 +92,13 @@ extern uintptr_t _etext;
  *
  ****************************************************************************/
 
-void cxx_initialize(void)
-{
+void cxx_initialize(void) {
 	static int inited = 0;
 
 	if (inited == 0) {
 		initializer_t *initp;
 
-		sinfo("_sinit: %p _einit: %p _stext: %p _etext: %p\n",
-		      &_sinit, &_einit, &_stext, &_etext);
+		sinfo("_sinit: %p _einit: %p _stext: %p _etext: %p\n", &_sinit, &_einit, &_stext, &_etext);
 
 		/* Visit each entry in the initialization table */
 

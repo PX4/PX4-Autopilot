@@ -37,10 +37,9 @@
 
 #include <px4_platform_common/atomic.h>
 
-static px4::atomic<uint8_t> lockout_states {0};
+static px4::atomic<uint8_t> lockout_states{0};
 
-void px4_indicate_external_reset_lockout(LockoutComponent component, bool enabled)
-{
+void px4_indicate_external_reset_lockout(LockoutComponent component, bool enabled) {
 	const uint8_t component_mask = 1 << (uint8_t)component;
 	uint8_t current_state;
 
@@ -59,4 +58,3 @@ void px4_indicate_external_reset_lockout(LockoutComponent component, bool enable
 void px4_indicate_external_reset_lockout(LockoutComponent component, bool enabled) {}
 
 #endif /* BOARD_INDICATE_EXTERNAL_LOCKOUT_STATE */
-

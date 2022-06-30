@@ -44,8 +44,8 @@
  * Included Files
  ************************************************************************************/
 #include <errno.h>
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 /************************************************************************************
  * Definitions
@@ -57,19 +57,23 @@
  */
 
 #if defined(BOARD_I2C_BUS_CLOCK_INIT)
-#  define PX4_I2C_BUS_CLOCK_INIT BOARD_I2C_BUS_CLOCK_INIT
+#define PX4_I2C_BUS_CLOCK_INIT BOARD_I2C_BUS_CLOCK_INIT
 #else
-#  if (PX4_NUMBER_I2C_BUSES) == 1
-#    define PX4_I2C_BUS_CLOCK_INIT {100000}
-#  elif (PX4_NUMBER_I2C_BUSES) == 2
-#    define PX4_I2C_BUS_CLOCK_INIT {100000, 100000}
-#  elif (PX4_NUMBER_I2C_BUSES) == 3
-#    define PX4_I2C_BUS_CLOCK_INIT {100000, 100000, 100000}
-#  elif (PX4_NUMBER_I2C_BUSES) == 4
-#    define PX4_I2C_BUS_CLOCK_INIT {100000, 100000, 100000, 100000}
-#  else
-#    error PX4_NUMBER_I2C_BUSES not supported
-#  endif
+#if (PX4_NUMBER_I2C_BUSES) == 1
+#define PX4_I2C_BUS_CLOCK_INIT \
+	{ 100000 }
+#elif (PX4_NUMBER_I2C_BUSES) == 2
+#define PX4_I2C_BUS_CLOCK_INIT \
+	{ 100000, 100000 }
+#elif (PX4_NUMBER_I2C_BUSES) == 3
+#define PX4_I2C_BUS_CLOCK_INIT \
+	{ 100000, 100000, 100000 }
+#elif (PX4_NUMBER_I2C_BUSES) == 4
+#define PX4_I2C_BUS_CLOCK_INIT \
+	{ 100000, 100000, 100000, 100000 }
+#else
+#error PX4_NUMBER_I2C_BUSES not supported
+#endif
 #endif
 
 #ifdef BOARD_SPI_BUS_MAX_BUS_ITEMS
@@ -92,25 +96,25 @@
  * defaults
  */
 #if !defined(ADC_V5_V_FULL_SCALE)
-#define ADC_V5_V_FULL_SCALE             (6.6f)  // 5 volt Rail full scale voltage
+#define ADC_V5_V_FULL_SCALE (6.6f)  // 5 volt Rail full scale voltage
 #endif
 #if !defined(ADC_V5_SCALE)
-#define ADC_V5_SCALE                    (2.0f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
+#define ADC_V5_SCALE (2.0f)  // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
 #endif
 
 #if !defined(ADC_3V3_V_FULL_SCALE)
-#define ADC_3V3_V_FULL_SCALE             (3.6f)  // 3.3V volt Rail full scale voltage
+#define ADC_3V3_V_FULL_SCALE (3.6f)  // 3.3V volt Rail full scale voltage
 #endif
 #if !defined(ADC_3V3_SCALE)
-#define ADC_3V3_SCALE                    (2.0f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
+#define ADC_3V3_SCALE (2.0f)  // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
 #endif
 
 #ifndef BOARD_ADC_POS_REF_V
-#define BOARD_ADC_POS_REF_V              (3.3f) // Default reference voltage for every channels
+#define BOARD_ADC_POS_REF_V (3.3f)  // Default reference voltage for every channels
 #endif
 
-#if !defined(ADC_DP_V_DIV)						// Analog differential pressure (analog airspeed sensor)
-#define ADC_DP_V_DIV                    (2.0f)	// The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
+#if !defined(ADC_DP_V_DIV)   // Analog differential pressure (analog airspeed sensor)
+#define ADC_DP_V_DIV (2.0f)  // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
 #endif
 
 /* Provide define for Bricks and Battery */
@@ -118,7 +122,7 @@
 /* Define the default maximum voltage resulting from the bias on ADC termination */
 
 #if !defined(BOARD_ADC_OPEN_CIRCUIT_V)
-#  define BOARD_ADC_OPEN_CIRCUIT_V  (1.5f)
+#define BOARD_ADC_OPEN_CIRCUIT_V (1.5f)
 #endif
 
 /* Define the default Under voltage Window on the LTC4417 as set by resistors on the
@@ -126,70 +130,98 @@
  */
 
 #if !defined(BOARD_VALID_UV)
-#  define BOARD_VALID_UV  (3.7f)
+#define BOARD_VALID_UV (3.7f)
 #endif
 
 /* Legacy default */
 
 #if !defined(BOARD_NUMBER_BRICKS)
-#  define BOARD_NUMBER_BRICKS 1
-#  if !defined(BOARD_ADC_BRICK_VALID)
-#    define BOARD_ADC_BRICK_VALID (1)
-#  endif
+#define BOARD_NUMBER_BRICKS 1
+#if !defined(BOARD_ADC_BRICK_VALID)
+#define BOARD_ADC_BRICK_VALID (1)
+#endif
 #endif
 
 #if BOARD_NUMBER_BRICKS == 0
 /* allow SITL to disable all bricks */
 #elif BOARD_NUMBER_BRICKS == 1
-#  define BOARD_BATT_V_LIST       {ADC_BATTERY_VOLTAGE_CHANNEL}
-#  define BOARD_BATT_I_LIST       {ADC_BATTERY_CURRENT_CHANNEL}
-#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK_VALID}
+#define BOARD_BATT_V_LIST \
+	{ ADC_BATTERY_VOLTAGE_CHANNEL }
+#define BOARD_BATT_I_LIST \
+	{ ADC_BATTERY_CURRENT_CHANNEL }
+#define BOARD_BRICK_VALID_LIST \
+	{ BOARD_ADC_BRICK_VALID }
 #elif BOARD_NUMBER_BRICKS == 2
-#  if  defined(BOARD_NUMBER_DIGITAL_BRICKS)
-#    define BOARD_BATT_V_LIST       {-1, -1}
-#    define BOARD_BATT_I_LIST       {-1, -1}
-#  else
-#    define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL}
-#    define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL}
-#  endif
-#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID}
-#elif BOARD_NUMBER_BRICKS == 3
-#  define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL, ADC_BATTERY3_VOLTAGE_CHANNEL}
-#  define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL, ADC_BATTERY3_CURRENT_CHANNEL}
-#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID, BOARD_ADC_BRICK3_VALID}
-#elif BOARD_NUMBER_BRICKS == 4
-#  define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL, ADC_BATTERY3_VOLTAGE_CHANNEL, ADC_BATTERY4_VOLTAGE_CHANNEL}
-#  define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL, ADC_BATTERY3_CURRENT_CHANNEL, ADC_BATTERY4_CURRENT_CHANNEL}
-#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID, BOARD_ADC_BRICK3_VALID, BOARD_ADC_BRICK4_VALID}
+#if defined(BOARD_NUMBER_DIGITAL_BRICKS)
+#define BOARD_BATT_V_LIST \
+	{ -1, -1 }
+#define BOARD_BATT_I_LIST \
+	{ -1, -1 }
 #else
-#  error Unsuported BOARD_NUMBER_BRICKS number.
+#define BOARD_BATT_V_LIST \
+	{ ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL }
+#define BOARD_BATT_I_LIST \
+	{ ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL }
+#endif
+#define BOARD_BRICK_VALID_LIST \
+	{ BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID }
+#elif BOARD_NUMBER_BRICKS == 3
+#define BOARD_BATT_V_LIST \
+	{ ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL, ADC_BATTERY3_VOLTAGE_CHANNEL }
+#define BOARD_BATT_I_LIST \
+	{ ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL, ADC_BATTERY3_CURRENT_CHANNEL }
+#define BOARD_BRICK_VALID_LIST \
+	{ BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID, BOARD_ADC_BRICK3_VALID }
+#elif BOARD_NUMBER_BRICKS == 4
+#define BOARD_BATT_V_LIST                                                                                 \
+	{                                                                                                 \
+		ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL, ADC_BATTERY3_VOLTAGE_CHANNEL, \
+			ADC_BATTERY4_VOLTAGE_CHANNEL                                                      \
+	}
+#define BOARD_BATT_I_LIST                                                                                 \
+	{                                                                                                 \
+		ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL, ADC_BATTERY3_CURRENT_CHANNEL, \
+			ADC_BATTERY4_CURRENT_CHANNEL                                                      \
+	}
+#define BOARD_BRICK_VALID_LIST \
+	{ BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID, BOARD_ADC_BRICK3_VALID, BOARD_ADC_BRICK4_VALID }
+#else
+#error Unsuported BOARD_NUMBER_BRICKS number.
 #endif
 
 /* Choose the source for ADC_SCALED_V5_SENSE */
 #if defined(ADC_5V_RAIL_SENSE)
 #define ADC_SCALED_V5_SENSE ADC_5V_RAIL_SENSE
 #else
-#  if defined(ADC_SCALED_V5_CHANNEL)
-#    define ADC_SCALED_V5_SENSE ADC_SCALED_V5_CHANNEL
-#  endif
+#if defined(ADC_SCALED_V5_CHANNEL)
+#define ADC_SCALED_V5_SENSE ADC_SCALED_V5_CHANNEL
+#endif
 #endif
 
 /* Define the source for ADC_SCALED_V3V3_SENSORS_SENSE */
 
 #if defined(ADC_SCALED_VDD_3V3_SENSORS_CHANNEL)
-#  define ADC_SCALED_V3V3_SENSORS_SENSE { ADC_SCALED_VDD_3V3_SENSORS_CHANNEL }
-#  define ADC_SCALED_V3V3_SENSORS_COUNT 1
+#define ADC_SCALED_V3V3_SENSORS_SENSE \
+	{ ADC_SCALED_VDD_3V3_SENSORS_CHANNEL }
+#define ADC_SCALED_V3V3_SENSORS_COUNT 1
 #elif defined(ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL)
-#  define ADC_SCALED_V3V3_SENSORS_SENSE { ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL, ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL, \
-		ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL, ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL }
-#  define ADC_SCALED_V3V3_SENSORS_COUNT 4
+#define ADC_SCALED_V3V3_SENSORS_SENSE                                                            \
+	{                                                                                        \
+		ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL, ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL,        \
+			ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL, ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL \
+	}
+#define ADC_SCALED_V3V3_SENSORS_COUNT 4
 #elif defined(ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL)
-#  define ADC_SCALED_V3V3_SENSORS_SENSE { ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL, ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL, \
-		ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL }
-#  define ADC_SCALED_V3V3_SENSORS_COUNT 3
+#define ADC_SCALED_V3V3_SENSORS_SENSE                                                     \
+	{                                                                                 \
+		ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL, ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL, \
+			ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL                               \
+	}
+#define ADC_SCALED_V3V3_SENSORS_COUNT 3
 #elif defined(ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL)
-#  define ADC_SCALED_V3V3_SENSORS_SENSE { ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL, ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL }
-#  define ADC_SCALED_V3V3_SENSORS_COUNT 2
+#define ADC_SCALED_V3V3_SENSORS_SENSE \
+	{ ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL, ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL }
+#define ADC_SCALED_V3V3_SENSORS_COUNT 2
 #endif
 
 /* Define an overridable default of 0.0f V for batery v div
@@ -221,78 +253,79 @@
  * We then publish the logical BOARD_USES_PX4IO
  */
 #if defined(BOARD_USES_PX4IO_VERSION)
-#  define BOARD_USES_PX4IO	1
-#  if defined(BOARD_HAS_STATIC_MANIFEST) && BOARD_HAS_STATIC_MANIFEST == 1
-#     define PX4_MFT_HW_SUPPORTED_PX4_MFT_PX4IO 1
-#  endif
+#define BOARD_USES_PX4IO 1
+#if defined(BOARD_HAS_STATIC_MANIFEST) && BOARD_HAS_STATIC_MANIFEST == 1
+#define PX4_MFT_HW_SUPPORTED_PX4_MFT_PX4IO 1
+#endif
 /*  Allow a board_config to override the PX4IO FW search paths */
-#  if defined(BOARD_PX4IO_FW_SEARCH_PATHS)
-#    define PX4IO_FW_SEARCH_PATHS BOARD_PX4IO_FW_SEARCH_PATHS
-#  else
+#if defined(BOARD_PX4IO_FW_SEARCH_PATHS)
+#define PX4IO_FW_SEARCH_PATHS BOARD_PX4IO_FW_SEARCH_PATHS
+#else
 /*  Use PX4IO FW search paths defaults based on version */
-#    if BOARD_USES_PX4IO_VERSION == 2
-#      define PX4IO_FW_SEARCH_PATHS {"/etc/extras/px4_io-v2_default.bin","/fs/microsd/px4_io-v2_default.bin", "/fs/microsd/px4io2.bin", nullptr }
-#    endif
-#  endif
+#if BOARD_USES_PX4IO_VERSION == 2
+#define PX4IO_FW_SEARCH_PATHS \
+	{ "/etc/extras/px4_io-v2_default.bin", "/fs/microsd/px4_io-v2_default.bin", "/fs/microsd/px4io2.bin", nullptr }
+#endif
+#endif
 #endif
 
 /* Provide an overridable default nop
  * for BOARD_EEPROM_WP_CTRL
  */
 #if !defined(BOARD_EEPROM_WP_CTRL)
-#  define BOARD_EEPROM_WP_CTRL(on_true)
+#define BOARD_EEPROM_WP_CTRL(on_true)
 #endif
 
 /*
  * Defined when a supports version and type API.
  */
 #if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
-#  define BOARD_HAS_VERSIONING 1
-#  define HW_VER_SIMPLE(s)	     0x90000+(s)
+#define BOARD_HAS_VERSIONING 1
+#define HW_VER_SIMPLE(s) 0x90000 + (s)
 
-#  define HW_VER_FMUV2           HW_VER_SIMPLE(HW_VER_FMUV2_STATE)
-#  define HW_VER_FMUV3           HW_VER_SIMPLE(HW_VER_FMUV3_STATE)
-#  define HW_VER_FMUV2MINI       HW_VER_SIMPLE(HW_VER_FMUV2MINI_STATE)
-#  define HW_VER_FMUV2X          HW_VER_SIMPLE(HW_VER_FMUV2X_STATE)
+#define HW_VER_FMUV2 HW_VER_SIMPLE(HW_VER_FMUV2_STATE)
+#define HW_VER_FMUV3 HW_VER_SIMPLE(HW_VER_FMUV3_STATE)
+#define HW_VER_FMUV2MINI HW_VER_SIMPLE(HW_VER_FMUV2MINI_STATE)
+#define HW_VER_FMUV2X HW_VER_SIMPLE(HW_VER_FMUV2X_STATE)
 #endif
 
 #if defined(BOARD_HAS_HW_VERSIONING)
-#  define BOARD_HAS_VERSIONING 1
-#  define HW_VER_REV(v,r)       ((uint32_t)((v) & 0xff) << 8) | ((uint32_t)(r) & 0xff)
+#define BOARD_HAS_VERSIONING 1
+#define HW_VER_REV(v, r) ((uint32_t)((v)&0xff) << 8) | ((uint32_t)(r)&0xff)
 #endif
 
 /* Default LED logical to color mapping */
 
 #if defined(BOARD_OVERLOAD_LED)
-#  define BOARD_OVERLOAD_LED_TOGGLE() led_toggle(BOARD_OVERLOAD_LED)
-#  define BOARD_OVERLOAD_LED_OFF()    led_off(BOARD_OVERLOAD_LED)
+#define BOARD_OVERLOAD_LED_TOGGLE() led_toggle(BOARD_OVERLOAD_LED)
+#define BOARD_OVERLOAD_LED_OFF() led_off(BOARD_OVERLOAD_LED)
 #else
-#  define BOARD_OVERLOAD_LED_TOGGLE()
-#  define BOARD_OVERLOAD_LED_OFF()
+#define BOARD_OVERLOAD_LED_TOGGLE()
+#define BOARD_OVERLOAD_LED_OFF()
 #endif
 
 #if defined(BOARD_HAS_CONTROL_STATUS_LEDS)
 
-#  if defined(BOARD_ARMED_LED)
-#    define BOARD_ARMED_LED_TOGGLE() led_toggle(BOARD_ARMED_LED)
-#    define BOARD_ARMED_LED_OFF()    led_off(BOARD_ARMED_LED)
-#    define BOARD_ARMED_LED_ON()     led_on(BOARD_ARMED_LED)
-#  else
-#    define BOARD_ARMED_LED_TOGGLE()
-#    define BOARD_ARMED_LED_OFF()
-#    define BOARD_ARMED_LED_ON()
-#  endif
+#if defined(BOARD_ARMED_LED)
+#define BOARD_ARMED_LED_TOGGLE() led_toggle(BOARD_ARMED_LED)
+#define BOARD_ARMED_LED_OFF() led_off(BOARD_ARMED_LED)
+#define BOARD_ARMED_LED_ON() led_on(BOARD_ARMED_LED)
+#else
+#define BOARD_ARMED_LED_TOGGLE()
+#define BOARD_ARMED_LED_OFF()
+#define BOARD_ARMED_LED_ON()
+#endif
 
-#  if defined(BOARD_ARMED_STATE_LED)
-#    define BOARD_ARMED_STATE_LED_TOGGLE() led_toggle(BOARD_ARMED_STATE_LED)
-#    define BOARD_ARMED_STATE_LED_OFF()    led_off(BOARD_ARMED_STATE_LED)
-#    define BOARD_ARMED_STATE_LED_ON()     led_on(BOARD_ARMED_STATE_LED)
-#  else
-#    define BOARD_ARMED_STATE_LED_TOGGLE()
-#    define BOARD_ARMED_STATE_LED_OFF()
-#    define BOARD_ARMED_STATE_LED_ON()
-#  endif
-#endif //
+#if defined(BOARD_ARMED_STATE_LED)
+#define BOARD_ARMED_STATE_LED_TOGGLE() led_toggle(BOARD_ARMED_STATE_LED)
+#define BOARD_ARMED_STATE_LED_OFF() led_off(BOARD_ARMED_STATE_LED)
+#define BOARD_ARMED_STATE_LED_ON() led_on(BOARD_ARMED_STATE_LED)
+#else
+#define BOARD_ARMED_STATE_LED_TOGGLE()
+#define BOARD_ARMED_STATE_LED_OFF()
+#define BOARD_ARMED_STATE_LED_ON()
+#endif
+#endif  //
 
 /************************************************************************************
  * Public Data
@@ -300,14 +333,14 @@
 
 /* board power button state notification */
 typedef enum board_power_button_state_notification_e {
-	PWR_BUTTON_IDEL,                       /* Button went up without meeting shutdown button down time */
-	PWR_BUTTON_DOWN,                       /* Button went Down */
-	PWR_BUTTON_UP,                         /* Button went Up */
-	PWR_BUTTON_REQUEST_SHUT_DOWN,          /* Button went up after meeting shutdown button down time */
+	PWR_BUTTON_IDEL,              /* Button went up without meeting shutdown button down time */
+	PWR_BUTTON_DOWN,              /* Button went Down */
+	PWR_BUTTON_UP,                /* Button went Up */
+	PWR_BUTTON_REQUEST_SHUT_DOWN, /* Button went up after meeting shutdown button down time */
 
 	PWR_BUTTON_RESPONSE_SHUT_DOWN_PENDING, /* Response from call back board code does nothing the
-                                            * expectation is that board_shutdown will be called.
-                                            */
+						* expectation is that board_shutdown will be called.
+						*/
 	PWR_BUTTON_RESPONSE_SHUT_DOWN_NOW,     /* Response from call back board code does shutdown now. */
 } board_power_button_state_notification_e;
 
@@ -319,32 +352,30 @@ typedef int (*power_button_state_notification_t)(board_power_button_state_notifi
  *  prepended to a padded Soc ID.
  */
 
-
 typedef enum PX4_SOC_ARCH_ID_t {
 
-	PX4_SOC_ARCH_ID_UNUSED         =  0x0000,
+	PX4_SOC_ARCH_ID_UNUSED = 0x0000,
 
-	PX4_SOC_ARCH_ID_STM32F4        =  0x0001,
-	PX4_SOC_ARCH_ID_STM32F7        =  0x0002,
-	PX4_SOC_ARCH_ID_KINETISK66     =  0x0003,
-	PX4_SOC_ARCH_ID_SAMV7          =  0x0004,
-	PX4_SOC_ARCH_ID_NXPIMXRT1062   =  0x0005,
+	PX4_SOC_ARCH_ID_STM32F4 = 0x0001,
+	PX4_SOC_ARCH_ID_STM32F7 = 0x0002,
+	PX4_SOC_ARCH_ID_KINETISK66 = 0x0003,
+	PX4_SOC_ARCH_ID_SAMV7 = 0x0004,
+	PX4_SOC_ARCH_ID_NXPIMXRT1062 = 0x0005,
 
-	PX4_SOC_ARCH_ID_STM32H7        =  0x0006,
+	PX4_SOC_ARCH_ID_STM32H7 = 0x0006,
 
-	PX4_SOC_ARCH_ID_NXPS32K146     =  0x0007,
+	PX4_SOC_ARCH_ID_NXPS32K146 = 0x0007,
 
-	PX4_SOC_ARCH_ID_EAGLE          =  0x1001,
-	PX4_SOC_ARCH_ID_QURT           =  0x1002,
+	PX4_SOC_ARCH_ID_EAGLE = 0x1001,
+	PX4_SOC_ARCH_ID_QURT = 0x1002,
 
-	PX4_SOC_ARCH_ID_RPI            =  0x1004,
-	PX4_SOC_ARCH_ID_SIM            =  0x1005,
-	PX4_SOC_ARCH_ID_SITL           =  0x1006,
+	PX4_SOC_ARCH_ID_RPI = 0x1004,
+	PX4_SOC_ARCH_ID_SIM = 0x1005,
+	PX4_SOC_ARCH_ID_SITL = 0x1006,
 
-	PX4_SOC_ARCH_ID_BBBLUE         =  0x1008,
+	PX4_SOC_ARCH_ID_BBBLUE = 0x1008,
 
 } PX4_SOC_ARCH_ID_t;
-
 
 /* UUID
  *
@@ -386,8 +417,8 @@ typedef enum PX4_SOC_ARCH_ID_t {
  */
 
 /* Define the PX4 Globally unique ID (GUID) length and format size */
-#define PX4_GUID_BYTE_LENGTH              18
-#define PX4_GUID_FORMAT_SIZE              ((2*PX4_GUID_BYTE_LENGTH)+1)
+#define PX4_GUID_BYTE_LENGTH 18
+#define PX4_GUID_FORMAT_SIZE ((2 * PX4_GUID_BYTE_LENGTH) + 1)
 
 /* DEPRICATED as of 1.7.0 A type suitable for defining the 8 bit format of the CPU UUID */
 typedef uint8_t uuid_byte_t[PX4_CPU_UUID_BYTE_LENGTH];
@@ -410,7 +441,6 @@ typedef uint8_t px4_guid_t[PX4_GUID_BYTE_LENGTH];
  * Public Functions
  ************************************************************************************/
 __BEGIN_DECLS
-
 
 /************************************************************************************
  * Name: board_rc_singlewire
@@ -474,9 +504,11 @@ static inline bool board_rc_swap_rxtx(const char *device) { return false; }
  ************************************************************************************/
 
 #ifdef RC_INVERT_INPUT
-static inline bool board_rc_invert_input(const char *device, bool invert)
-{
-	if (strcmp(device, RC_SERIAL_PORT) == 0) { RC_INVERT_INPUT(invert); return true; }
+static inline bool board_rc_invert_input(const char *device, bool invert) {
+	if (strcmp(device, RC_SERIAL_PORT) == 0) {
+		RC_INVERT_INPUT(invert);
+		return true;
+	}
 
 	return false;
 }
@@ -503,14 +535,13 @@ static inline bool board_rc_invert_input(const char *device, bool invert) { retu
  ************************************************************************************/
 
 #if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
-inline static int board_read_VBUS_state(void)
-{
+inline static int board_read_VBUS_state(void) {
 	platformiocvbusstate_t state = {false};
 	boardctl(PLATFORMIOCVBUSSTATE, (uintptr_t)&state);
 	return state.ret;
 }
 #elif defined(GPIO_OTGFS_VBUS)
-#  define board_read_VBUS_state() (px4_arch_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1)
+#define board_read_VBUS_state() (px4_arch_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1)
 #else
 int board_read_VBUS_state(void);
 #endif
@@ -542,7 +573,7 @@ int board_read_VBUS_state(void);
 
 #if defined(BOARD_HAS_ON_RESET)
 __EXPORT void board_on_reset(int status);
-#endif // BOARD_HAS_ON_RESET
+#endif  // BOARD_HAS_ON_RESET
 
 /****************************************************************************
  * Name: board_power_off
@@ -565,7 +596,7 @@ __EXPORT void board_on_reset(int status);
 
 #if defined(BOARD_HAS_POWER_CONTROL)
 int board_power_off(int status);
-#endif // BOARD_HAS_POWER_CONTROL
+#endif  // BOARD_HAS_POWER_CONTROL
 
 /****************************************************************************
  * Name: board_reset
@@ -609,12 +640,12 @@ int board_reset(int status);
 
 #ifdef CONFIG_BOARDCTL_RESET
 
-typedef enum  reset_mode_e {
-	BOARD_RESET_MODE_CLEAR             = 0, /* Clear the mode */
-	BOARD_RESET_MODE_BOOT_TO_BL        = 1, /* Reboot and stay in the bootloader */
+typedef enum reset_mode_e {
+	BOARD_RESET_MODE_CLEAR = 0,             /* Clear the mode */
+	BOARD_RESET_MODE_BOOT_TO_BL = 1,        /* Reboot and stay in the bootloader */
 	BOARD_RESET_MODE_BOOT_TO_VALID_APP = 2, /* Reboot to a valid app or stay in bootloader */
-	BOARD_RESET_MODE_CAN_BL            = 3, /* Used to pass a node ID and stay in the can bootloader */
-	BOARD_RESET_MODE_RTC_BOOT_FWOK     = 4  /* Set by a a watch dogged application after running > 30 Seconds */
+	BOARD_RESET_MODE_CAN_BL = 3,            /* Used to pass a node ID and stay in the can bootloader */
+	BOARD_RESET_MODE_RTC_BOOT_FWOK = 4      /* Set by a a watch dogged application after running > 30 Seconds */
 } reset_mode_e;
 
 int board_configure_reset(reset_mode_e mode, uint32_t arg);
@@ -654,52 +685,51 @@ bool board_booted_by_px4(void);
 
 typedef enum {
 	PX4_MFT_PX4IO = 0,
-	PX4_MFT_USB   = 1,
-	PX4_MFT_CAN2  = 2,
-	PX4_MFT_CAN3  = 3,
+	PX4_MFT_USB = 1,
+	PX4_MFT_CAN2 = 2,
+	PX4_MFT_CAN3 = 3,
 } px4_hw_mft_item_id_t;
 
 typedef enum {
-	px4_hw_con_unknown  = 0,
-	px4_hw_con_onboard  = 1,
+	px4_hw_con_unknown = 0,
+	px4_hw_con_onboard = 1,
 	px4_hw_con_connector = 3,
 } px4_hw_connection_t;
 
-
 typedef struct {
-	unsigned int present:    1;   /* 1 if this board have this item */
-	unsigned int mandatory:  1;   /* 1 if this item has to be present and working */
-	unsigned int connection: 2;   /* See px4_hw_connection_t */
+	unsigned int present : 1;    /* 1 if this board have this item */
+	unsigned int mandatory : 1;  /* 1 if this item has to be present and working */
+	unsigned int connection : 2; /* See px4_hw_connection_t */
 } px4_hw_mft_item_t;
 
-typedef const px4_hw_mft_item_t  *px4_hw_mft_item;
-#define px4_hw_mft_uninitialized (px4_hw_mft_item) -1
-#define px4_hw_mft_unsupported   (px4_hw_mft_item) 0
+typedef const px4_hw_mft_item_t *px4_hw_mft_item;
+#define px4_hw_mft_uninitialized (px4_hw_mft_item) - 1
+#define px4_hw_mft_unsupported (px4_hw_mft_item)0
 
 #if defined(BOARD_HAS_VERSIONING)
 __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id);
 
-#  define PX4_MFT_HW_SUPPORTED(ID)           (board_query_manifest((ID))->present)
-#  define PX4_MFT_HW_REQUIRED(ID)            (board_query_manifest((ID))->mandatory)
-#  define PX4_MFT_HW_IS_ONBOARD(ID)          (board_query_manifest((ID))->connection == px4_hw_con_onboard)
-#  define PX4_MFT_HW_IS_OFFBOARD(ID)         (board_query_manifest((ID))->connection == px4_hw_con_connector)
-#  define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) (board_query_manifest((ID))->connection != px4_hw_con_unknown)
+#define PX4_MFT_HW_SUPPORTED(ID) (board_query_manifest((ID))->present)
+#define PX4_MFT_HW_REQUIRED(ID) (board_query_manifest((ID))->mandatory)
+#define PX4_MFT_HW_IS_ONBOARD(ID) (board_query_manifest((ID))->connection == px4_hw_con_onboard)
+#define PX4_MFT_HW_IS_OFFBOARD(ID) (board_query_manifest((ID))->connection == px4_hw_con_connector)
+#define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) (board_query_manifest((ID))->connection != px4_hw_con_unknown)
 #elif defined(BOARD_HAS_STATIC_MANIFEST) && BOARD_HAS_STATIC_MANIFEST == 1
 /* Board has a static configuration and will supply what it has */
-#  define PX4_MFT_HW_SUPPORTED(ID)           PX4_MFT_HW_SUPPORTED_##ID
-#  define PX4_MFT_HW_REQUIRED(ID)            PX4_MFT_HW_REQUIRED_##ID
-#  define PX4_MFT_HW_IS_ONBOARD(ID)          PX4_MFT_HW_IS_ONBOARD_##ID
-#  define PX4_MFT_HW_IS_OFFBOARD(ID)         PX4_MFT_HW_IS_OFFBOARD_##ID
-#  define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) PX4_MFT_HW_IS_CONNECTION_KNOWN_##ID
-#  define board_query_manifest(_na)          px4_hw_mft_unsupported
+#define PX4_MFT_HW_SUPPORTED(ID) PX4_MFT_HW_SUPPORTED_##ID
+#define PX4_MFT_HW_REQUIRED(ID) PX4_MFT_HW_REQUIRED_##ID
+#define PX4_MFT_HW_IS_ONBOARD(ID) PX4_MFT_HW_IS_ONBOARD_##ID
+#define PX4_MFT_HW_IS_OFFBOARD(ID) PX4_MFT_HW_IS_OFFBOARD_##ID
+#define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) PX4_MFT_HW_IS_CONNECTION_KNOWN_##ID
+#define board_query_manifest(_na) px4_hw_mft_unsupported
 #else
 /* Default are Not Supported */
-#  define PX4_MFT_HW_SUPPORTED(ID)           (0)
-#  define PX4_MFT_HW_REQUIRED(ID)            (0)
-#  define PX4_MFT_HW_IS_ONBOARD(ID)          (0)
-#  define PX4_MFT_HW_IS_OFFBOARD(ID)         (0)
-#  define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) (0)
-#  define board_query_manifest(_na)          px4_hw_mft_unsupported
+#define PX4_MFT_HW_SUPPORTED(ID) (0)
+#define PX4_MFT_HW_REQUIRED(ID) (0)
+#define PX4_MFT_HW_IS_ONBOARD(ID) (0)
+#define PX4_MFT_HW_IS_OFFBOARD(ID) (0)
+#define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) (0)
+#define board_query_manifest(_na) px4_hw_mft_unsupported
 #endif
 
 /************************************************************************************
@@ -812,7 +842,7 @@ __EXPORT int board_get_hw_revision(void);
  *
  ************************************************************************************/
 
-__EXPORT void board_get_uuid(uuid_byte_t uuid_bytes); // DEPRICATED use board_get_px4_guid
+__EXPORT void board_get_uuid(uuid_byte_t uuid_bytes);  // DEPRICATED use board_get_px4_guid
 
 /************************************************************************************
  * Name: board_get_uuid32 DEPRICATED use board_get_px4_guid
@@ -834,7 +864,7 @@ __EXPORT void board_get_uuid(uuid_byte_t uuid_bytes); // DEPRICATED use board_ge
  *   The uuid_words array is populated with the CPU uuid.
  *
  ************************************************************************************/
-__EXPORT void board_get_uuid32(uuid_uint32_t uuid_words); // DEPRICATED use board_get_px4_guid
+__EXPORT void board_get_uuid32(uuid_uint32_t uuid_words);  // DEPRICATED use board_get_px4_guid
 
 /************************************************************************************
  * Name: board_get_uuid32_formated DEPRICATED use board_get_px4_guid_formated
@@ -867,9 +897,8 @@ __EXPORT void board_get_uuid32(uuid_uint32_t uuid_words); // DEPRICATED use boar
  *   Zero (OK) is returned on success;
  *
  ************************************************************************************/
-__EXPORT int board_get_uuid32_formated(char *format_buffer, int size,
-				       const char *format,
-				       const char *seperator); // DEPRICATED use board_get_px4_guid_formated
+__EXPORT int board_get_uuid32_formated(char *format_buffer, int size, const char *format,
+				       const char *seperator);  // DEPRICATED use board_get_px4_guid_formated
 
 /************************************************************************************
  * Name: board_get_mfguid
@@ -910,7 +939,7 @@ int board_get_mfguid(mfguid_t mfgid);
  *
  ************************************************************************************/
 
-int board_get_mfguid_formated(char *format_buffer, int size); // DEPRICATED use board_get_px4_guid_formated
+int board_get_mfguid_formated(char *format_buffer, int size);  // DEPRICATED use board_get_px4_guid_formated
 
 /************************************************************************************
  * Name: board_get_px4_guid
@@ -994,7 +1023,7 @@ int board_get_px4_guid_formated(char *format_buffer, int size);
 #define board_mcu_version(rev, revstr, errata) BOARD_OVERRIDE_CPU_VERSION
 #else
 __EXPORT int board_mcu_version(char *rev, const char **revstr, const char **errata);
-#endif // !defined(BOARD_OVERRIDE_CPU_VERSION)
+#endif  // !defined(BOARD_OVERRIDE_CPU_VERSION)
 
 #if defined(BOARD_HAS_POWER_CONTROL)
 /************************************************************************************
@@ -1027,10 +1056,10 @@ enum board_bus_types {
 	BOARD_INVALID_BUS = 0,
 #if defined(CONFIG_SPI)
 	BOARD_SPI_BUS = 1,
-#endif // CONFIG_SPI
+#endif  // CONFIG_SPI
 #if defined(CONFIG_I2C)
 	BOARD_I2C_BUS = 2
-#endif // CONFIG_I2C
+#endif  // CONFIG_I2C
 };
 
 #if defined(BOARD_HAS_BUS_MANIFEST)
@@ -1038,9 +1067,8 @@ enum board_bus_types {
 __EXPORT bool board_has_bus(enum board_bus_types type, uint32_t bus);
 
 #else
-#  define board_has_bus(t, b) true
+#define board_has_bus(t, b) true
 #endif /* BOARD_HAS_BUS_MANIFEST */
-
 
 /************************************************************************************
  * Name: board_spi_reset

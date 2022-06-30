@@ -39,8 +39,7 @@
 
 #include "FlightTask.hpp"
 
-class FlightTaskDescend : public FlightTask
-{
+class FlightTaskDescend : public FlightTask {
 public:
 	FlightTaskDescend() = default;
 	virtual ~FlightTaskDescend() = default;
@@ -49,8 +48,9 @@ public:
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 
 private:
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover, ///< thrust at hover equilibrium
-					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed ///< velocity for controlled descend
-				       )
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		FlightTask,
+		(ParamFloat<px4::params::MPC_THR_HOVER>)_param_mpc_thr_hover,   ///< thrust at hover equilibrium
+		(ParamFloat<px4::params::MPC_LAND_SPEED>)_param_mpc_land_speed  ///< velocity for controlled descend
+	)
 };

@@ -31,7 +31,7 @@ extern "C" {
 #define O1HEAP_VERSION_MAJOR 1
 
 /// The guaranteed alignment depends on the platform pointer width.
-#define O1HEAP_ALIGNMENT (sizeof(void*) * 4U)
+#define O1HEAP_ALIGNMENT (sizeof(void *) * 4U)
 
 /// The definition is private, so the user code can only operate on pointers. This is done to enforce encapsulation.
 typedef struct O1HeapInstance O1HeapInstance;
@@ -52,7 +52,8 @@ typedef struct {
 	size_t capacity;
 
 	/// The amount of memory that is currently allocated, including the per-fragment overhead and size alignment.
-	/// For example, if the application requested a fragment of size 1 byte, the value reported here may be 32 bytes.
+	/// For example, if the application requested a fragment of size 1 byte, the value reported here may be 32
+	/// bytes.
 	size_t allocated;
 
 	/// The maximum value of 'allocated' seen since initialization. This parameter is never decreased.
@@ -92,9 +93,7 @@ typedef struct {
 /// it can be discarded without any de-initialization procedures.
 ///
 /// The time complexity is unspecified.
-O1HeapInstance *o1heapInit(void *const      base,
-			   const size_t     size,
-			   const O1HeapHook critical_section_enter,
+O1HeapInstance *o1heapInit(void *const base, const size_t size, const O1HeapHook critical_section_enter,
 			   const O1HeapHook critical_section_leave);
 
 /// The semantics follows malloc() with additional guarantees the full list of which is provided below.

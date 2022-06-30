@@ -36,8 +36,7 @@
 
 #include <uORB/topics/gimbal_manager_status.h>
 
-class MavlinkStreamGimbalManagerStatus : public MavlinkStream
-{
+class MavlinkStreamGimbalManagerStatus : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamGimbalManagerStatus(mavlink); }
 
@@ -47,8 +46,7 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
+	unsigned get_size() override {
 		if (_gimbal_manager_status_sub.advertised()) {
 			return MAVLINK_MSG_ID_GIMBAL_MANAGER_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		}
@@ -61,11 +59,11 @@ private:
 
 	uORB::Subscription _gimbal_manager_status_sub{ORB_ID(gimbal_manager_status)};
 
-	bool send() override
-	{
+	bool send() override {
 		gimbal_manager_status_s gimbal_manager_status;
 
-		if (_gimbal_manager_status_sub.advertised() && _gimbal_manager_status_sub.copy(&gimbal_manager_status)) {
+		if (_gimbal_manager_status_sub.advertised() &&
+		    _gimbal_manager_status_sub.copy(&gimbal_manager_status)) {
 			mavlink_gimbal_manager_status_t msg{};
 
 			msg.time_boot_ms = gimbal_manager_status.timestamp / 1000;
@@ -85,4 +83,4 @@ private:
 	}
 };
 
-#endif // GIMBAL_MANAGER_STATUS_HPP
+#endif  // GIMBAL_MANAGER_STATUS_HPP

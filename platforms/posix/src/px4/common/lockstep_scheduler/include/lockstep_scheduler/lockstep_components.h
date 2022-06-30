@@ -33,18 +33,17 @@
 
 #pragma once
 
-#include <cstdint>
-#include <atomic>
-
 #include <px4_platform_common/sem.h>
+
+#include <atomic>
+#include <cstdint>
 
 /**
  * @class LockstepComponents
  * Allows to register components (threads) that need to be updated or waited for in every lockstep cycle (barrier).
  * Registered components need to ensure they poll on topics that is updated in every lockstep cycle.
  */
-class LockstepComponents
-{
+class LockstepComponents {
 public:
 	LockstepComponents();
 	~LockstepComponents();
@@ -69,10 +68,8 @@ public:
 	void wait_for_components();
 
 private:
-
 	px4_sem_t _components_sem;
 
 	std::atomic_int _components_used_bitset{0};
 	std::atomic_int _components_progress_bitset{0};
 };
-

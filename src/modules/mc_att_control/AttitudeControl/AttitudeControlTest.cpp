@@ -32,30 +32,27 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <AttitudeControl.hpp>
 #include <mathlib/math/Functions.hpp>
 
 using namespace matrix;
 
-TEST(AttitudeControlTest, AllZeroCase)
-{
+TEST(AttitudeControlTest, AllZeroCase) {
 	AttitudeControl attitude_control;
 	Vector3f rate_setpoint = attitude_control.update(Quatf());
 	EXPECT_EQ(rate_setpoint, Vector3f());
 }
 
-class AttitudeControlConvergenceTest : public ::testing::Test
-{
+class AttitudeControlConvergenceTest : public ::testing::Test {
 public:
-	AttitudeControlConvergenceTest()
-	{
+	AttitudeControlConvergenceTest() {
 		_attitude_control.setProportionalGain(Vector3f(.5f, .6f, .3f), .4f);
 		_attitude_control.setRateLimit(Vector3f(100.f, 100.f, 100.f));
 	}
 
-	void checkConvergence()
-	{
-		int i; // need function scope to check how many steps
+	void checkConvergence() {
+		int i;  // need function scope to check how many steps
 		Vector3f rate_setpoint(1000.f, 1000.f, 1000.f);
 
 		_attitude_control.setAttitudeSetpoint(_quat_goal, 0.f);
@@ -65,7 +62,8 @@ public:
 			const Vector3f rate_setpoint_new = _attitude_control.update(_quat_state);
 			// rotate the simulated state quaternion according to the rate setpoint
 			_quat_state = _quat_state * Quatf(AxisAnglef(rate_setpoint_new));
-			_quat_state = -_quat_state; // produce intermittent antipodal quaternion states to test against unwinding problem
+			_quat_state = -_quat_state;  // produce intermittent antipodal quaternion states to test against
+						     // unwinding problem
 
 			// expect the error and hence also the output to get smaller with each iteration
 			if (rate_setpoint_new.norm() >= rate_setpoint.norm()) {
@@ -85,20 +83,17 @@ public:
 	Quatf _quat_goal;
 };
 
-TEST_F(AttitudeControlConvergenceTest, AttitudeControlConvergence)
-{
+TEST_F(AttitudeControlConvergenceTest, AttitudeControlConvergence) {
 	const int inputs = 8;
 
-	const Quatf QArray[inputs] = {
-		Quatf(),
-		Quatf(0, 1, 0, 0),
-		Quatf(0, 0, 1, 0),
-		Quatf(0, 0, 0, 1),
-		Quatf(0.698f, 0.024f, -0.681f, -0.220f),
-		Quatf(-0.820f, -0.313f, 0.225f, -0.423f),
-		Quatf(0.599f, -0.172f, 0.755f, -0.204f),
-		Quatf(0.216f, -0.662f, 0.290f, -0.656f)
-	};
+	const Quatf QArray[inputs] = {Quatf(),
+				      Quatf(0, 1, 0, 0),
+				      Quatf(0, 0, 1, 0),
+				      Quatf(0, 0, 0, 1),
+				      Quatf(0.698f, 0.024f, -0.681f, -0.220f),
+				      Quatf(-0.820f, -0.313f, 0.225f, -0.423f),
+				      Quatf(0.599f, -0.172f, 0.755f, -0.204f),
+				      Quatf(0.216f, -0.662f, 0.290f, -0.656f)};
 
 	for (int i = 0; i < inputs; i++) {
 		for (int j = 0; j < inputs; j++) {
@@ -112,8 +107,7 @@ TEST_F(AttitudeControlConvergenceTest, AttitudeControlConvergence)
 	}
 }
 
-TEST(AttitudeControlTest, YawWeightScaling)
-{
+TEST(AttitudeControlTest, YawWeightScaling) {
 	// GIVEN: default tuning and pure yaw turn command
 	AttitudeControl attitude_control;
 	const float yaw_gain = 2.8f;

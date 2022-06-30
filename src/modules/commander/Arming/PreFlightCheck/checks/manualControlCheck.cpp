@@ -31,23 +31,22 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
 #include <systemlib/mavlink_log.h>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/manual_control_switches.h>
+
+#include <uORB/Subscription.hpp>
+
+#include "../PreFlightCheck.hpp"
 
 using namespace time_literals;
 
-bool PreFlightCheck::manualControlCheck(orb_advert_t *mavlink_log_pub, const bool report_fail)
-{
+bool PreFlightCheck::manualControlCheck(orb_advert_t *mavlink_log_pub, const bool report_fail) {
 	bool success = true;
 
 	uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	const manual_control_switches_s &manual_control_switches = manual_control_switches_sub.get();
 
 	if (manual_control_switches.timestamp != 0) {
-
 		// check action switches
 		if (manual_control_switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
 			success = false;
@@ -69,10 +68,10 @@ bool PreFlightCheck::manualControlCheck(orb_advert_t *mavlink_log_pub, const boo
 			success = false;
 
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Failure: Landing gear switch set in UP position");
+				mavlink_log_critical(mavlink_log_pub,
+						     "Failure: Landing gear switch set in UP position");
 			}
 		}
-
 	}
 
 	return success;

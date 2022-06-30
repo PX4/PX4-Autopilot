@@ -43,8 +43,8 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdint.h>
 
 /****************************************************************************************************
@@ -55,85 +55,80 @@
 /* Crazyflie GPIOs **********************************************************************************/
 /* LEDs */
 
-
 /* Radio TX indicator */
-#define GPIO_LED_RED_L       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-			      GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN0)
+#define GPIO_LED_RED_L (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTC | GPIO_PIN0)
 /* Radio RX indicator */
-#define GPIO_LED_GREEN_L       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-				GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN1)
-#define GPIO_LED_GREEN_R       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-				GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN2)
-#define GPIO_LED_RED_R       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-			      GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN3)
+#define GPIO_LED_GREEN_L (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTC | GPIO_PIN1)
+#define GPIO_LED_GREEN_R (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTC | GPIO_PIN2)
+#define GPIO_LED_RED_R (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTC | GPIO_PIN3)
 
 /* PX4: armed state indicator ; Stock FW: Blinking while charging */
-#define GPIO_LED_BLUE_L		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN2)
+#define GPIO_LED_BLUE_L (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTD | GPIO_PIN2)
 
 #define BOARD_HAS_CONTROL_STATUS_LEDS 1
-#define BOARD_OVERLOAD_LED     LED_RED
-#define BOARD_ARMED_LED        LED_BLUE
-#define BOARD_ARMED_STATE_LED  LED_GREEN
+#define BOARD_OVERLOAD_LED LED_RED
+#define BOARD_ARMED_LED LED_BLUE
+#define BOARD_ARMED_STATE_LED LED_GREEN
 
 #define LED_TX 4
 #define LED_RX 5
 
-#define GPIO_FSYNC_MPU9250		(GPIO_OUTPUT|GPIO_PORTC|GPIO_PIN14) // Needs to be set low
-#define GPIO_DRDY_MPU9250		(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN13)
+#define GPIO_FSYNC_MPU9250 (GPIO_OUTPUT | GPIO_PORTC | GPIO_PIN14)  // Needs to be set low
+#define GPIO_DRDY_MPU9250 (GPIO_INPUT | GPIO_FLOAT | GPIO_EXTI | GPIO_PORTC | GPIO_PIN13)
 
+#define GPIO_NRF_TXEN (GPIO_INPUT | GPIO_PULLUP | GPIO_EXTI | GPIO_PORTA | GPIO_PIN4)
 
-#define GPIO_NRF_TXEN			(GPIO_INPUT|GPIO_PULLUP|GPIO_EXTI|GPIO_PORTA|GPIO_PIN4)
-
-#define GPIO_I2C4_DRDY1_BMP388        	(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTG|GPIO_PIN5)
+#define GPIO_I2C4_DRDY1_BMP388 (GPIO_INPUT | GPIO_FLOAT | GPIO_EXTI | GPIO_PORTG | GPIO_PIN5)
 
 /*
  * I2C busses
  */
-#define PX4_I2C_BUS_ONBOARD_HZ      400000
-#define PX4_I2C_BUS_EXPANSION_HZ      400000
+#define PX4_I2C_BUS_ONBOARD_HZ 400000
+#define PX4_I2C_BUS_EXPANSION_HZ 400000
 
-#define PX4_I2C_BUS_MTD	1
+#define PX4_I2C_BUS_MTD 1
 
-#define BOARD_NUMBER_I2C_BUSES  3
-#define BOARD_I2C_BUS_CLOCK_INIT {PX4_I2C_BUS_ONBOARD_HZ, 400000, PX4_I2C_BUS_EXPANSION_HZ}
-
+#define BOARD_NUMBER_I2C_BUSES 3
+#define BOARD_I2C_BUS_CLOCK_INIT \
+	{ PX4_I2C_BUS_ONBOARD_HZ, 400000, PX4_I2C_BUS_EXPANSION_HZ }
 
 /* Devices on the onboard bus.
  *
  * Note that these are unshifted addresses.
  */
-#define PX4_I2C_OBDEV_MPU9250	0x69
+#define PX4_I2C_OBDEV_MPU9250 0x69
 
 /* USB OTG FS
  *
  * PA9  OTG_FS_VBUS VBUS sensing
  */
-#define GPIO_OTGFS_VBUS		(GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
+#define GPIO_OTGFS_VBUS (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_OPENDRAIN | GPIO_PORTA | GPIO_PIN9)
 
 /*
  * ADC channels
  *
- * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
+ * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc
+ * driver
  */
 #define ADC_CHANNELS 0
 
 /* Tone alarm output : These are only applicable when the buzzer deck is attached */
-#define TONE_ALARM_TIMER	5	/* timer 5 */
-#define TONE_ALARM_CHANNEL 3	/* channel 3 */
-#define GPIO_TONE_ALARM_IDLE	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN2)
-#define GPIO_TONE_ALARM		(GPIO_ALT|GPIO_AF2|GPIO_SPEED_2MHz|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN2)
-#define GPIO_TONE_ALARM_NEG (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN3)
+#define TONE_ALARM_TIMER 5   /* timer 5 */
+#define TONE_ALARM_CHANNEL 3 /* channel 3 */
+#define GPIO_TONE_ALARM_IDLE \
+	(GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN2)
+#define GPIO_TONE_ALARM (GPIO_ALT | GPIO_AF2 | GPIO_SPEED_2MHz | GPIO_PUSHPULL | GPIO_PORTA | GPIO_PIN2)
+#define GPIO_TONE_ALARM_NEG (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN3)
 
 /* PWM
-*/
+ */
 
-#define DIRECT_PWM_OUTPUT_CHANNELS	4
+#define DIRECT_PWM_OUTPUT_CHANNELS 4
 
 /* This board overrides the defaults by providing
  * PX4_PWM_ALTERNATE_RANGES and a replacement set of
  * constants
  */
-
 
 /* PWM directly wired to transistor. Duty cycle directly corresponds to power
  * So we need to override the defaults
@@ -141,8 +136,8 @@
 
 #define PX4_PWM_ALTERNATE_RANGES
 #define PWM_LOWEST_MIN 0
-#define PWM_MOTOR_OFF	0
-#define PWM_SERVO_STOP	0
+#define PWM_MOTOR_OFF 0
+#define PWM_SERVO_STOP 0
 #define PWM_DEFAULT_MIN 20
 #define PWM_HIGHEST_MIN 0
 #define PWM_HIGHEST_MAX 255
@@ -150,14 +145,12 @@
 #define PWM_LOWEST_MAX 255
 #define PWM_DEFAULT_TRIM 1500
 
-
 /* High-resolution timer */
-#define HRT_TIMER		8	/* use timer8 for the HRT */
-#define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
-
+#define HRT_TIMER 8         /* use timer8 for the HRT */
+#define HRT_TIMER_CHANNEL 1 /* use capture/compare channel */
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
-#define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
+#define BOARD_CONSOLE_BUFFER_SIZE (1024 * 3)
 
 __BEGIN_DECLS
 
@@ -224,7 +217,6 @@ extern void stm32_spiinitialize(void);
  ************************************************************************************/
 
 extern int stm32_spi_bus_initialize(void);
-
 
 #include <px4_platform_common/board_common.h>
 

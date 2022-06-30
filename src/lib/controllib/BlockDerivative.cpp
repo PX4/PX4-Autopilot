@@ -37,16 +37,14 @@
  * Controller library code
  */
 
-#include <math.h>
 #include <float.h>
+#include <math.h>
 
 #include "blocks.hpp"
 
-namespace control
-{
+namespace control {
 
-float BlockDerivative::update(float input)
-{
+float BlockDerivative::update(float input) {
 	float output;
 
 	if (_initialized) {
@@ -67,4 +65,4 @@ float BlockDerivative::update(float input)
 	return output;
 }
 
-} // namespace control
+}  // namespace control

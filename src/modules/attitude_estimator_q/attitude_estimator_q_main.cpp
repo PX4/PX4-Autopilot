@@ -39,21 +39,16 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <float.h>
-
 #include <drivers/drv_hrt.h>
+#include <float.h>
 #include <lib/geo/geo.h>
-#include <lib/world_magnetic_model/geo_mag_declination.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
-#include <matrix/math.hpp>
+#include <lib/world_magnetic_model/geo_mag_declination.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -61,6 +56,11 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_odometry.h>
+
+#include <matrix/math.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 
 using matrix::Dcmf;
 using matrix::Eulerf;
@@ -70,10 +70,8 @@ using matrix::wrap_pi;
 
 using namespace time_literals;
 
-class AttitudeEstimatorQ : public ModuleBase<AttitudeEstimatorQ>, public ModuleParams, public px4::WorkItem
-{
+class AttitudeEstimatorQ : public ModuleBase<AttitudeEstimatorQ>, public ModuleParams, public px4::WorkItem {
 public:
-
 	AttitudeEstimatorQ();
 	~AttitudeEstimatorQ() override = default;
 
@@ -89,7 +87,6 @@ public:
 	bool init();
 
 private:
-
 	void Run() override;
 
 	bool init_attitude_q();
@@ -115,7 +112,7 @@ private:
 	// Update magnetic declination (in rads) immediately changing yaw rotation
 	void update_mag_declination(float new_declination);
 
-	const float _eo_max_std_dev = 100.0f;           /**< Maximum permissible standard deviation for estimated orientation */
+	const float _eo_max_std_dev = 100.0f; /**< Maximum permissible standard deviation for estimated orientation */
 	const float _dt_min = 0.00001f;
 	const float _dt_max = 0.02f;
 
@@ -132,54 +129,49 @@ private:
 
 	uORB::Publication<vehicle_attitude_s> _vehicle_attitude_pub{ORB_ID(vehicle_attitude)};
 
-	Vector3f    _accel{};
-	Vector3f    _gyro{};
-	Vector3f    _gyro_bias{};
-	Vector3f    _rates{};
+	Vector3f _accel{};
+	Vector3f _gyro{};
+	Vector3f _gyro_bias{};
+	Vector3f _rates{};
 
-	Vector3f    _mag{};
-	Vector3f    _mocap_hdg{};
-	Vector3f    _vision_hdg{};
+	Vector3f _mag{};
+	Vector3f _mocap_hdg{};
+	Vector3f _vision_hdg{};
 
-	Vector3f    _pos_acc{};
-	Vector3f    _vel_prev{};
+	Vector3f _pos_acc{};
+	Vector3f _vel_prev{};
 
-	Quatf       _q{};
+	Quatf _q{};
 
 	hrt_abstime _imu_timestamp{};
 	hrt_abstime _imu_prev_timestamp{};
 	hrt_abstime _vel_prev_timestamp{};
 
-	float       _bias_max{};
-	float       _mag_decl{};
+	float _bias_max{};
+	float _mag_decl{};
 
-	bool        _data_good{false};
-	bool        _ext_hdg_good{false};
-	bool        _initialized{false};
+	bool _data_good{false};
+	bool _ext_hdg_good{false};
+	bool _initialized{false};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::ATT_W_ACC>)       _param_att_w_acc,
-		(ParamFloat<px4::params::ATT_W_MAG>)       _param_att_w_mag,
-		(ParamFloat<px4::params::ATT_W_EXT_HDG>)   _param_att_w_ext_hdg,
-		(ParamFloat<px4::params::ATT_W_GYRO_BIAS>) _param_att_w_gyro_bias,
-		(ParamFloat<px4::params::ATT_MAG_DECL>)    _param_att_mag_decl,
-		(ParamInt<px4::params::ATT_MAG_DECL_A>)    _param_att_mag_decl_a,
-		(ParamInt<px4::params::ATT_EXT_HDG_M>)     _param_att_ext_hdg_m,
-		(ParamInt<px4::params::ATT_ACC_COMP>)      _param_att_acc_comp,
-		(ParamFloat<px4::params::ATT_BIAS_MAX>)    _param_att_bias_mas,
-		(ParamInt<px4::params::SYS_HAS_MAG>)       _param_sys_has_mag
-	)
+	DEFINE_PARAMETERS((ParamFloat<px4::params::ATT_W_ACC>)_param_att_w_acc,
+			  (ParamFloat<px4::params::ATT_W_MAG>)_param_att_w_mag,
+			  (ParamFloat<px4::params::ATT_W_EXT_HDG>)_param_att_w_ext_hdg,
+			  (ParamFloat<px4::params::ATT_W_GYRO_BIAS>)_param_att_w_gyro_bias,
+			  (ParamFloat<px4::params::ATT_MAG_DECL>)_param_att_mag_decl,
+			  (ParamInt<px4::params::ATT_MAG_DECL_A>)_param_att_mag_decl_a,
+			  (ParamInt<px4::params::ATT_EXT_HDG_M>)_param_att_ext_hdg_m,
+			  (ParamInt<px4::params::ATT_ACC_COMP>)_param_att_acc_comp,
+			  (ParamFloat<px4::params::ATT_BIAS_MAX>)_param_att_bias_mas,
+			  (ParamInt<px4::params::SYS_HAS_MAG>)_param_sys_has_mag)
 };
 
-AttitudeEstimatorQ::AttitudeEstimatorQ() :
-	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
-{
+AttitudeEstimatorQ::AttitudeEstimatorQ()
+	: ModuleParams(nullptr), WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers) {
 	update_parameters(true);
 }
 
-bool AttitudeEstimatorQ::init()
-{
+bool AttitudeEstimatorQ::init() {
 	if (!_sensors_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -188,8 +180,7 @@ bool AttitudeEstimatorQ::init()
 	return true;
 }
 
-void AttitudeEstimatorQ::Run()
-{
+void AttitudeEstimatorQ::Run() {
 	if (should_exit()) {
 		_sensors_sub.unregisterCallback();
 		exit_and_cleanup();
@@ -211,8 +202,7 @@ void AttitudeEstimatorQ::Run()
 	}
 }
 
-void AttitudeEstimatorQ::update_gps_position()
-{
+void AttitudeEstimatorQ::update_gps_position() {
 	if (_vehicle_gps_position_sub.updated()) {
 		vehicle_gps_position_s gps;
 
@@ -225,8 +215,7 @@ void AttitudeEstimatorQ::update_gps_position()
 	}
 }
 
-void AttitudeEstimatorQ::update_magnetometer()
-{
+void AttitudeEstimatorQ::update_magnetometer() {
 	// Update magnetometer
 	if (_vehicle_magnetometer_sub.updated()) {
 		vehicle_magnetometer_s magnetometer;
@@ -244,18 +233,22 @@ void AttitudeEstimatorQ::update_magnetometer()
 	}
 }
 
-void AttitudeEstimatorQ::update_motion_capture_odometry()
-{
+void AttitudeEstimatorQ::update_motion_capture_odometry() {
 	if (_vehicle_mocap_odometry_sub.updated()) {
 		vehicle_odometry_s mocap;
 
 		if (_vehicle_mocap_odometry_sub.update(&mocap)) {
 			// validation check for mocap attitude data
-			bool mocap_att_valid = PX4_ISFINITE(mocap.q[0])
-					       && (PX4_ISFINITE(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_ROLL_VARIANCE]) ? sqrtf(fmaxf(
-							       mocap.pose_covariance[mocap.COVARIANCE_MATRIX_ROLL_VARIANCE],
-							       fmaxf(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_PITCH_VARIANCE],
-									       mocap.pose_covariance[mocap.COVARIANCE_MATRIX_YAW_VARIANCE]))) <= _eo_max_std_dev : true);
+			bool mocap_att_valid =
+				PX4_ISFINITE(mocap.q[0]) &&
+				(PX4_ISFINITE(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_ROLL_VARIANCE])
+					 ? sqrtf(fmaxf(
+						   mocap.pose_covariance[mocap.COVARIANCE_MATRIX_ROLL_VARIANCE],
+						   fmaxf(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_PITCH_VARIANCE],
+							 mocap.pose_covariance
+								 [mocap.COVARIANCE_MATRIX_YAW_VARIANCE]))) <=
+						   _eo_max_std_dev
+					 : true);
 
 			if (mocap_att_valid) {
 				Dcmf Rmoc = Quatf(mocap.q);
@@ -269,15 +262,15 @@ void AttitudeEstimatorQ::update_motion_capture_odometry()
 				// Motion Capture external heading usage (ATT_EXT_HDG_M 2)
 				if (_param_att_ext_hdg_m.get() == 2) {
 					// Check for timeouts on data
-					_ext_hdg_good = mocap.timestamp_sample > 0 && (hrt_elapsed_time(&mocap.timestamp_sample) < 500000);
+					_ext_hdg_good = mocap.timestamp_sample > 0 &&
+							(hrt_elapsed_time(&mocap.timestamp_sample) < 500000);
 				}
 			}
 		}
 	}
 }
 
-void AttitudeEstimatorQ::update_sensors()
-{
+void AttitudeEstimatorQ::update_sensors() {
 	sensor_combined_s sensors;
 
 	if (_sensors_sub.update(&sensors)) {
@@ -302,8 +295,7 @@ void AttitudeEstimatorQ::update_sensors()
 	}
 }
 
-void AttitudeEstimatorQ::update_vehicle_attitude()
-{
+void AttitudeEstimatorQ::update_vehicle_attitude() {
 	// time from previous iteration
 	hrt_abstime now = hrt_absolute_time();
 	const float dt = math::constrain((now - _imu_prev_timestamp) / 1e6f, _dt_min, _dt_max);
@@ -320,16 +312,13 @@ void AttitudeEstimatorQ::update_vehicle_attitude()
 	}
 }
 
-void AttitudeEstimatorQ::update_vehicle_local_position()
-{
+void AttitudeEstimatorQ::update_vehicle_local_position() {
 	if (_vehicle_local_position_sub.updated()) {
 		vehicle_local_position_s lpos;
 
 		if (_vehicle_local_position_sub.update(&lpos)) {
-
-			if (_param_att_acc_comp.get() && (hrt_elapsed_time(&lpos.timestamp) < 20_ms)
-			    && lpos.v_xy_valid && lpos.v_z_valid && (lpos.eph < 5.0f) && _initialized) {
-
+			if (_param_att_acc_comp.get() && (hrt_elapsed_time(&lpos.timestamp) < 20_ms) &&
+			    lpos.v_xy_valid && lpos.v_z_valid && (lpos.eph < 5.0f) && _initialized) {
 				/* position data is actual */
 				const Vector3f vel(lpos.vx, lpos.vy, lpos.vz);
 
@@ -353,18 +342,22 @@ void AttitudeEstimatorQ::update_vehicle_local_position()
 	}
 }
 
-void AttitudeEstimatorQ::update_visual_odometry()
-{
+void AttitudeEstimatorQ::update_visual_odometry() {
 	if (_vehicle_visual_odometry_sub.updated()) {
 		vehicle_odometry_s vision;
 
 		if (_vehicle_visual_odometry_sub.update(&vision)) {
 			// validation check for vision attitude data
-			bool vision_att_valid = PX4_ISFINITE(vision.q[0])
-						&& (PX4_ISFINITE(vision.pose_covariance[vision.COVARIANCE_MATRIX_ROLL_VARIANCE]) ? sqrtf(fmaxf(
-								vision.pose_covariance[vision.COVARIANCE_MATRIX_ROLL_VARIANCE],
-								fmaxf(vision.pose_covariance[vision.COVARIANCE_MATRIX_PITCH_VARIANCE],
-										vision.pose_covariance[vision.COVARIANCE_MATRIX_YAW_VARIANCE]))) <= _eo_max_std_dev : true);
+			bool vision_att_valid =
+				PX4_ISFINITE(vision.q[0]) &&
+				(PX4_ISFINITE(vision.pose_covariance[vision.COVARIANCE_MATRIX_ROLL_VARIANCE])
+					 ? sqrtf(fmaxf(vision.pose_covariance[vision.COVARIANCE_MATRIX_ROLL_VARIANCE],
+						       fmaxf(vision.pose_covariance
+								     [vision.COVARIANCE_MATRIX_PITCH_VARIANCE],
+							     vision.pose_covariance
+								     [vision.COVARIANCE_MATRIX_YAW_VARIANCE]))) <=
+						   _eo_max_std_dev
+					 : true);
 
 			if (vision_att_valid) {
 				Dcmf Rvis = Quatf(vision.q);
@@ -378,15 +371,15 @@ void AttitudeEstimatorQ::update_visual_odometry()
 				// vision external heading usage (ATT_EXT_HDG_M 1)
 				if (_param_att_ext_hdg_m.get() == 1) {
 					// Check for timeouts on data
-					_ext_hdg_good = vision.timestamp_sample > 0 && (hrt_elapsed_time(&vision.timestamp_sample) < 500000);
+					_ext_hdg_good = vision.timestamp_sample > 0 &&
+							(hrt_elapsed_time(&vision.timestamp_sample) < 500000);
 				}
 			}
 		}
 	}
 }
 
-void AttitudeEstimatorQ::update_parameters(bool force)
-{
+void AttitudeEstimatorQ::update_parameters(bool force) {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || force) {
 		// clear update
@@ -412,8 +405,7 @@ void AttitudeEstimatorQ::update_parameters(bool force)
 	}
 }
 
-bool AttitudeEstimatorQ::init_attitude_q()
-{
+bool AttitudeEstimatorQ::init_attitude_q() {
 	// Rotation matrix can be easily constructed from acceleration and mag field vectors
 	// 'k' is Earth Z axis (Down) unit vector in body frame
 	Vector3f k = -_accel;
@@ -441,8 +433,7 @@ bool AttitudeEstimatorQ::init_attitude_q()
 
 	_q.normalize();
 
-	if (PX4_ISFINITE(_q(0)) && PX4_ISFINITE(_q(1)) &&
-	    PX4_ISFINITE(_q(2)) && PX4_ISFINITE(_q(3)) &&
+	if (PX4_ISFINITE(_q(0)) && PX4_ISFINITE(_q(1)) && PX4_ISFINITE(_q(2)) && PX4_ISFINITE(_q(3)) &&
 	    _q.length() > 0.95f && _q.length() < 1.05f) {
 		_initialized = true;
 
@@ -453,10 +444,8 @@ bool AttitudeEstimatorQ::init_attitude_q()
 	return _initialized;
 }
 
-bool AttitudeEstimatorQ::update(float dt)
-{
+bool AttitudeEstimatorQ::update(float dt) {
 	if (!_initialized) {
-
 		if (!_data_good) {
 			return false;
 		}
@@ -477,7 +466,8 @@ bool AttitudeEstimatorQ::update(float dt)
 			Vector3f vision_hdg_earth = _q.rotateVector(_vision_hdg);
 			float vision_hdg_err = wrap_pi(atan2f(vision_hdg_earth(1), vision_hdg_earth(0)));
 			// Project correction to body frame
-			corr += _q.rotateVectorInverse(Vector3f(0.0f, 0.0f, -vision_hdg_err)) * _param_att_w_ext_hdg.get();
+			corr += _q.rotateVectorInverse(Vector3f(0.0f, 0.0f, -vision_hdg_err)) *
+				_param_att_w_ext_hdg.get();
 		}
 
 		if (_param_att_ext_hdg_m.get() == 2) {
@@ -486,7 +476,8 @@ bool AttitudeEstimatorQ::update(float dt)
 			Vector3f mocap_hdg_earth = _q.rotateVector(_mocap_hdg);
 			float mocap_hdg_err = wrap_pi(atan2f(mocap_hdg_earth(1), mocap_hdg_earth(0)));
 			// Project correction to body frame
-			corr += _q.rotateVectorInverse(Vector3f(0.0f, 0.0f, -mocap_hdg_err)) * _param_att_w_ext_hdg.get();
+			corr += _q.rotateVectorInverse(Vector3f(0.0f, 0.0f, -mocap_hdg_err)) *
+				_param_att_w_ext_hdg.get();
 		}
 	}
 
@@ -508,16 +499,12 @@ bool AttitudeEstimatorQ::update(float dt)
 
 	_q.normalize();
 
-
 	// Accelerometer correction
 	// Project 'k' unit vector of earth frame to body frame
 	// Vector3f k = _q.rotateVectorInverse(Vector3f(0.0f, 0.0f, 1.0f));
 	// Optimized version with dropped zeros
-	Vector3f k(
-		2.0f * (_q(1) * _q(3) - _q(0) * _q(2)),
-		2.0f * (_q(2) * _q(3) + _q(0) * _q(1)),
-		(_q(0) * _q(0) - _q(1) * _q(1) - _q(2) * _q(2) + _q(3) * _q(3))
-	);
+	Vector3f k(2.0f * (_q(1) * _q(3) - _q(0) * _q(2)), 2.0f * (_q(2) * _q(3) + _q(0) * _q(1)),
+		   (_q(0) * _q(0) - _q(1) * _q(1) - _q(2) * _q(2) + _q(3) * _q(3)));
 
 	// If we are not using acceleration compensation based on GPS velocity,
 	// fuse accel data only if its norm is close to 1 g (reduces drift).
@@ -527,7 +514,6 @@ bool AttitudeEstimatorQ::update(float dt)
 
 	if (_param_att_acc_comp.get() || ((accel_norm_sq > lower_accel_limit * lower_accel_limit) &&
 					  (accel_norm_sq < upper_accel_limit * upper_accel_limit))) {
-
 		corr += (k % (_accel - _pos_acc).normalized()) * _param_att_w_acc.get();
 	}
 
@@ -538,7 +524,6 @@ bool AttitudeEstimatorQ::update(float dt)
 		for (int i = 0; i < 3; i++) {
 			_gyro_bias(i) = math::constrain(_gyro_bias(i), -_bias_max, _bias_max);
 		}
-
 	}
 
 	_rates = _gyro + _gyro_bias;
@@ -552,9 +537,7 @@ bool AttitudeEstimatorQ::update(float dt)
 	// Normalize quaternion
 	_q.normalize();
 
-	if (!(PX4_ISFINITE(_q(0)) && PX4_ISFINITE(_q(1)) &&
-	      PX4_ISFINITE(_q(2)) && PX4_ISFINITE(_q(3)))) {
-
+	if (!(PX4_ISFINITE(_q(0)) && PX4_ISFINITE(_q(1)) && PX4_ISFINITE(_q(2)) && PX4_ISFINITE(_q(3)))) {
 		// Reset quaternion to last good state
 		_q = q_last;
 		_rates.zero();
@@ -565,8 +548,7 @@ bool AttitudeEstimatorQ::update(float dt)
 	return true;
 }
 
-void AttitudeEstimatorQ::update_mag_declination(float new_declination)
-{
+void AttitudeEstimatorQ::update_mag_declination(float new_declination) {
 	// Apply initial declination or trivial rotations without changing estimation
 	if (!_initialized || fabsf(new_declination - _mag_decl) < 0.0001f) {
 		_mag_decl = new_declination;
@@ -579,13 +561,9 @@ void AttitudeEstimatorQ::update_mag_declination(float new_declination)
 	}
 }
 
-int AttitudeEstimatorQ::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int AttitudeEstimatorQ::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int AttitudeEstimatorQ::task_spawn(int argc, char *argv[])
-{
+int AttitudeEstimatorQ::task_spawn(int argc, char *argv[]) {
 	AttitudeEstimatorQ *instance = new AttitudeEstimatorQ();
 
 	if (instance) {
@@ -607,8 +585,7 @@ int AttitudeEstimatorQ::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int AttitudeEstimatorQ::print_usage(const char *reason)
-{
+int AttitudeEstimatorQ::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -627,7 +604,6 @@ Attitude estimator q.
 	return 0;
 }
 
-extern "C" __EXPORT int attitude_estimator_q_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int attitude_estimator_q_main(int argc, char *argv[]) {
 	return AttitudeEstimatorQ::main(argc, argv);
 }

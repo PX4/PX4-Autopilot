@@ -40,8 +40,8 @@
 #ifndef _CDEV_HPP
 #define _CDEV_HPP
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
 
 #ifdef __PX4_NUTTX
 #include "nuttx/cdev_platform.hpp"
@@ -49,14 +49,12 @@
 #include "posix/cdev_platform.hpp"
 #endif
 
-namespace cdev
-{
+namespace cdev {
 
 /**
  * Abstract class for any character device
  */
-class __EXPORT CDev
-{
+class __EXPORT CDev {
 public:
 	/**
 	 * Constructor
@@ -74,7 +72,7 @@ public:
 
 	virtual ~CDev();
 
-	virtual int	init();
+	virtual int init();
 
 	/**
 	 * Handle an open of the device.
@@ -85,7 +83,7 @@ public:
 	 * @param filep		Pointer to the NuttX file structure.
 	 * @return		OK if the open is allowed, -errno otherwise.
 	 */
-	virtual int	open(file_t *filep);
+	virtual int open(file_t *filep);
 
 	/**
 	 * Handle a close of the device.
@@ -96,7 +94,7 @@ public:
 	 * @param filep		Pointer to the NuttX file structure.
 	 * @return		OK if the close was successful, -errno otherwise.
 	 */
-	virtual int	close(file_t *filep);
+	virtual int close(file_t *filep);
 
 	/**
 	 * Perform a read from the device.
@@ -108,7 +106,7 @@ public:
 	 * @param buflen	The number of bytes to be read.
 	 * @return		The number of bytes read or -errno otherwise.
 	 */
-	virtual ssize_t	read(file_t *filep, char *buffer, size_t buflen) { return -ENOSYS; }
+	virtual ssize_t read(file_t *filep, char *buffer, size_t buflen) { return -ENOSYS; }
 
 	/**
 	 * Perform a write to the device.
@@ -120,7 +118,7 @@ public:
 	 * @param buflen	The number of bytes to be written.
 	 * @return		The number of bytes written or -errno otherwise.
 	 */
-	virtual ssize_t	write(file_t *filep, const char *buffer, size_t buflen) { return -ENOSYS; }
+	virtual ssize_t write(file_t *filep, const char *buffer, size_t buflen) { return -ENOSYS; }
 
 	/**
 	 * Perform a logical seek operation on the device.
@@ -132,7 +130,7 @@ public:
 	 * @param whence	SEEK_OFS, SEEK_CUR or SEEK_END.
 	 * @return		The previous offset, or -errno otherwise.
 	 */
-	virtual off_t	seek(file_t *filep, off_t offset, int whence) { return -ENOSYS; }
+	virtual off_t seek(file_t *filep, off_t offset, int whence) { return -ENOSYS; }
 
 	/**
 	 * Perform an ioctl operation on the device.
@@ -146,7 +144,7 @@ public:
 	 * @param arg		The ioctl argument value.
 	 * @return		OK on success, or -errno otherwise.
 	 */
-	virtual int	ioctl(file_t *filep, int cmd, unsigned long arg) { return -ENOTTY; };
+	virtual int ioctl(file_t *filep, int cmd, unsigned long arg) { return -ENOTTY; };
 
 	/**
 	 * Perform a poll setup/teardown operation.
@@ -159,21 +157,21 @@ public:
 	 *			it is being torn down.
 	 * @return		OK on success, or -errno otherwise.
 	 */
-	int	poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup);
+	int poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup);
 
 	/**
 	 * Get the device name.
 	 *
 	 * @return the file system string of the device handle
 	 */
-	const char	*get_devname() const { return _devname; }
+	const char *get_devname() const { return _devname; }
 
 protected:
 	/**
 	 * Pointer to the default cdev file operations table; useful for
 	 * registering clone devices etc.
 	 */
-	static const px4_file_operations_t	fops;
+	static const px4_file_operations_t fops;
 
 	/**
 	 * Check the current state of the device for poll events from the
@@ -197,7 +195,7 @@ protected:
 	 *
 	 * @param events	The new event(s) being announced.
 	 */
-	void	poll_notify(px4_pollevent_t events);
+	void poll_notify(px4_pollevent_t events);
 
 	/**
 	 * Internal implementation of poll_notify.
@@ -205,7 +203,7 @@ protected:
 	 * @param fds		A poll waiter to notify.
 	 * @param events	The event(s) to send to the waiter.
 	 */
-	virtual void	poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events);
+	virtual void poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events);
 
 	/**
 	 * Notification of the first open.
@@ -218,7 +216,7 @@ protected:
 	 * @param filep		Pointer to the NuttX file structure.
 	 * @return		OK if the open should proceed, -errno otherwise.
 	 */
-	virtual int	open_first(file_t *filep) { return PX4_OK; }
+	virtual int open_first(file_t *filep) { return PX4_OK; }
 
 	/**
 	 * Notification of the last close.
@@ -231,7 +229,7 @@ protected:
 	 * @param filep		Pointer to the NuttX file structure.
 	 * @return		OK if the open should return OK, -errno otherwise.
 	 */
-	virtual int	close_last(file_t *filep) { return PX4_OK; }
+	virtual int close_last(file_t *filep) { return PX4_OK; }
 
 	/**
 	 * Register a class device name, automatically adding device
@@ -261,24 +259,27 @@ protected:
 	 *
 	 * Careful: lock() calls cannot be nested!
 	 */
-	void		lock() { do {} while (px4_sem_wait(&_lock) != 0); }
+	void lock() {
+		do {
+		} while (px4_sem_wait(&_lock) != 0);
+	}
 
 	/**
 	 * Release the driver lock.
 	 */
-	void		unlock() { px4_sem_post(&_lock); }
+	void unlock() { px4_sem_post(&_lock); }
 
-	px4_sem_t	_lock; /**< lock to protect access to all class members (also for derived classes) */
+	px4_sem_t _lock; /**< lock to protect access to all class members (also for derived classes) */
 
 private:
-	const char	*_devname{nullptr};		/**< device node name */
+	const char *_devname{nullptr}; /**< device node name */
 
-	px4_pollfd_struct_t	**_pollset{nullptr};
+	px4_pollfd_struct_t **_pollset{nullptr};
 
-	bool		_registered{false};		/**< true if device name was registered */
+	bool _registered{false}; /**< true if device name was registered */
 
-	uint8_t		_max_pollwaiters{0};		/**< size of the _pollset array */
-	uint16_t	_open_count{0};			/**< number of successful opens */
+	uint8_t _max_pollwaiters{0}; /**< size of the _pollset array */
+	uint16_t _open_count{0};     /**< number of successful opens */
 
 	/**
 	 * Store a pollwaiter in a slot where we can find it later.
@@ -287,17 +288,16 @@ private:
 	 *
 	 * @return		OK, or -errno on error.
 	 */
-	inline int	store_poll_waiter(px4_pollfd_struct_t *fds);
+	inline int store_poll_waiter(px4_pollfd_struct_t *fds);
 
 	/**
 	 * Remove a poll waiter.
 	 *
 	 * @return		OK, or -errno on error.
 	 */
-	inline int	remove_poll_waiter(px4_pollfd_struct_t *fds);
-
+	inline int remove_poll_waiter(px4_pollfd_struct_t *fds);
 };
 
-} // namespace cdev
+}  // namespace cdev
 
 #endif /* _CDEV_HPP */

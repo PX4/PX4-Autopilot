@@ -37,14 +37,13 @@
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
-#include "cdevtest_example.h"
-
 #include <px4_platform_common/app.h>
 #include <px4_platform_common/init.h>
 #include <stdio.h>
 
-int PX4_MAIN(int argc, char **argv)
-{
+#include "cdevtest_example.h"
+
+int PX4_MAIN(int argc, char **argv) {
 	px4::init(argc, argv, "cdevtest");
 
 	printf("cdevtest\n");

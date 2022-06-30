@@ -33,8 +33,7 @@
 
 #include "param_translation.h"
 
-bool param_modify_on_import(bson_node_t node)
-{
+bool param_modify_on_import(bson_node_t node) {
 	// don't modify params for unit tests
 	return false;
 }

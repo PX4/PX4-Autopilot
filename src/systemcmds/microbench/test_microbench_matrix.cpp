@@ -36,65 +36,59 @@
  * Tests for the microbench matrix math library.
  */
 
-#include <unit_test.h>
-
-#include <time.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/micro_hal.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+#include <unit_test.h>
 
 #include <matrix/math.hpp>
 
-namespace MicroBenchMatrix
-{
+namespace MicroBenchMatrix {
 
 #ifdef __PX4_NUTTX
 #include <nuttx/irq.h>
 static irqstate_t flags;
 #endif
 
-void lock()
-{
+void lock() {
 #ifdef __PX4_NUTTX
 	flags = px4_enter_critical_section();
 #endif
 }
 
-void unlock()
-{
+void unlock() {
 #ifdef __PX4_NUTTX
 	px4_leave_critical_section(flags);
 #endif
 }
 
-#define PERF(name, op, count) do { \
-		px4_usleep(1000); \
-		reset(); \
+#define PERF(name, op, count)                                    \
+	do {                                                     \
+		px4_usleep(1000);                                \
+		reset();                                         \
 		perf_counter_t p = perf_alloc(PC_ELAPSED, name); \
-		for (int i = 0; i < count; i++) { \
-			px4_usleep(1); \
-			lock(); \
-			perf_begin(p); \
-			op; \
-			perf_end(p); \
-			unlock(); \
-			reset(); \
-		} \
-		perf_print_counter(p); \
-		perf_free(p); \
+		for (int i = 0; i < count; i++) {                \
+			px4_usleep(1);                           \
+			lock();                                  \
+			perf_begin(p);                           \
+			op;                                      \
+			perf_end(p);                             \
+			unlock();                                \
+			reset();                                 \
+		}                                                \
+		perf_print_counter(p);                           \
+		perf_free(p);                                    \
 	} while (0)
 
-class MicroBenchMatrix : public UnitTest
-{
+class MicroBenchMatrix : public UnitTest {
 public:
 	virtual bool run_tests();
 
 private:
-
 	bool time_matrix_euler();
 	bool time_matrix_quaternion();
 	bool time_matrix_dcm();
@@ -110,8 +104,7 @@ private:
 	matrix::Matrix<float, 6, 16> B16_4;
 };
 
-bool MicroBenchMatrix::run_tests()
-{
+bool MicroBenchMatrix::run_tests() {
 	ut_run_test(time_matrix_euler);
 	ut_run_test(time_matrix_quaternion);
 	ut_run_test(time_matrix_dcm);
@@ -120,20 +113,19 @@ bool MicroBenchMatrix::run_tests()
 	return (_tests_failed == 0);
 }
 
-template<typename T>
-T random(T min, T max)
-{
-	const T scale = rand() / (T) RAND_MAX; /* [0, 1.0] */
-	return min + scale * (max - min);      /* [min, max] */
+template <typename T>
+T random(T min, T max) {
+	const T scale = rand() / (T)RAND_MAX; /* [0, 1.0] */
+	return min + scale * (max - min);     /* [min, max] */
 }
 
-void MicroBenchMatrix::reset()
-{
+void MicroBenchMatrix::reset() {
 	srand(time(nullptr));
 
 	// initialize with random data
 	q = matrix::Quatf(rand(), rand(), rand(), rand());
-	e = matrix::Eulerf(random(-2.0 * M_PI, 2.0 * M_PI), random(-2.0 * M_PI, 2.0 * M_PI), random(-2.0 * M_PI, 2.0 * M_PI));
+	e = matrix::Eulerf(random(-2.0 * M_PI, 2.0 * M_PI), random(-2.0 * M_PI, 2.0 * M_PI),
+			   random(-2.0 * M_PI, 2.0 * M_PI));
 	d = q;
 
 	for (size_t j = 0; j < 6; j++) {
@@ -147,29 +139,25 @@ void MicroBenchMatrix::reset()
 	}
 }
 
-bool MicroBenchMatrix::time_matrix_euler()
-{
+bool MicroBenchMatrix::time_matrix_euler() {
 	PERF("matrix Euler from Quaternion", e = q, 100);
 	PERF("matrix Euler from Dcm", e = d, 100);
 	return true;
 }
 
-bool MicroBenchMatrix::time_matrix_quaternion()
-{
+bool MicroBenchMatrix::time_matrix_quaternion() {
 	PERF("matrix Quaternion from Euler", q = e, 100);
 	PERF("matrix Quaternion from Dcm", q = d, 100);
 	return true;
 }
 
-bool MicroBenchMatrix::time_matrix_dcm()
-{
+bool MicroBenchMatrix::time_matrix_dcm() {
 	PERF("matrix Dcm from Euler", d = e, 100);
 	PERF("matrix Dcm from Quaternion", d = q, 100);
 	return true;
 }
 
-bool MicroBenchMatrix::time_matrix_pseduo_inverse()
-{
+bool MicroBenchMatrix::time_matrix_pseduo_inverse() {
 	PERF("matrix 6x16 pseudo inverse (all non-zero columns)", matrix::geninv(B16, A16), 100);
 	PERF("matrix 6x16 pseudo inverse (4 non-zero columns)", matrix::geninv(B16_4, A16), 100);
 	return true;
@@ -177,4 +165,4 @@ bool MicroBenchMatrix::time_matrix_pseduo_inverse()
 
 ut_declare_test_c(test_microbench_matrix, MicroBenchMatrix)
 
-} // namespace MicroBenchMatrix
+}  // namespace MicroBenchMatrix

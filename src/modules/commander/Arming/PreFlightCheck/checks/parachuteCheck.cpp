@@ -31,16 +31,15 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
 #include <lib/parameters/param.h>
 #include <lib/systemlib/mavlink_log.h>
+
+#include "../PreFlightCheck.hpp"
 
 using namespace time_literals;
 
 bool PreFlightCheck::parachuteCheck(orb_advert_t *mavlink_log_pub, const bool report_fail,
-				    const vehicle_status_flags_s &status_flags)
-{
+				    const vehicle_status_flags_s &status_flags) {
 	bool success = true;
 
 	int32_t param_com_parachute = false;

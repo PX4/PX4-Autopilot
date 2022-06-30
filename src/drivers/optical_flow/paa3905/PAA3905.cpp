@@ -33,25 +33,18 @@
 
 #include "PAA3905.hpp"
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-PAA3905::PAA3905(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	I2CSPIDriver(config),
-	_drdy_gpio(config.drdy_gpio)
-{
+PAA3905::PAA3905(const I2CSPIDriverConfig &config) : SPI(config), I2CSPIDriver(config), _drdy_gpio(config.drdy_gpio) {
 	if (_drdy_gpio != 0) {
-		_no_motion_interrupt_perf = perf_alloc(PC_COUNT, MODULE_NAME": no motion interrupt");
+		_no_motion_interrupt_perf = perf_alloc(PC_COUNT, MODULE_NAME ": no motion interrupt");
 	}
 
 	float yaw_rotation_degrees = (float)config.custom1;
 
 	if (yaw_rotation_degrees >= 0.f) {
-		PX4_INFO("using yaw rotation %.3f degrees (%.3f radians)",
-			 (double)yaw_rotation_degrees, (double)math::radians(yaw_rotation_degrees));
+		PX4_INFO("using yaw rotation %.3f degrees (%.3f radians)", (double)yaw_rotation_degrees,
+			 (double)math::radians(yaw_rotation_degrees));
 
 		_rotation = matrix::Dcmf{matrix::Eulerf{0.f, 0.f, math::radians(yaw_rotation_degrees)}};
 
@@ -60,8 +53,7 @@ PAA3905::PAA3905(const I2CSPIDriverConfig &config) :
 	}
 }
 
-PAA3905::~PAA3905()
-{
+PAA3905::~PAA3905() {
 	// free perf counters
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
@@ -73,8 +65,7 @@ PAA3905::~PAA3905()
 	perf_free(_no_motion_interrupt_perf);
 }
 
-int PAA3905::init()
-{
+int PAA3905::init() {
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
 		return PX4_ERROR;
@@ -85,8 +76,7 @@ int PAA3905::init()
 	return PX4_OK;
 }
 
-int PAA3905::probe()
-{
+int PAA3905::probe() {
 	for (int retry = 0; retry < 3; retry++) {
 		const uint8_t Product_ID = RegisterRead(Register::Product_ID);
 		const uint8_t Revision_ID = RegisterRead(Register::Revision_ID);
@@ -113,20 +103,17 @@ int PAA3905::probe()
 	return PX4_ERROR;
 }
 
-int PAA3905::DataReadyInterruptCallback(int irq, void *context, void *arg)
-{
+int PAA3905::DataReadyInterruptCallback(int irq, void *context, void *arg) {
 	static_cast<PAA3905 *>(arg)->DataReady();
 	return 0;
 }
 
-void PAA3905::DataReady()
-{
+void PAA3905::DataReady() {
 	_drdy_timestamp_sample.store(hrt_absolute_time());
 	ScheduleNow();
 }
 
-bool PAA3905::DataReadyInterruptConfigure()
-{
+bool PAA3905::DataReadyInterruptConfigure() {
 	if (_drdy_gpio == 0) {
 		_data_ready_interrupt_enabled = false;
 		return false;
@@ -142,8 +129,7 @@ bool PAA3905::DataReadyInterruptConfigure()
 	return false;
 }
 
-bool PAA3905::DataReadyInterruptDisable()
-{
+bool PAA3905::DataReadyInterruptDisable() {
 	_data_ready_interrupt_enabled = false;
 
 	if (_drdy_gpio == 0) {
@@ -153,14 +139,12 @@ bool PAA3905::DataReadyInterruptDisable()
 	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
 }
 
-void PAA3905::exit_and_cleanup()
-{
+void PAA3905::exit_and_cleanup() {
 	DataReadyInterruptDisable();
 	I2CSPIDriverBase::exit_and_cleanup();
 }
 
-void PAA3905::Reset()
-{
+void PAA3905::Reset() {
 	perf_count(_reset_perf);
 
 	DataReadyInterruptDisable();
@@ -181,8 +165,7 @@ void PAA3905::Reset()
 	RegisterRead(0x06);
 }
 
-void PAA3905::Configure()
-{
+void PAA3905::Configure() {
 	Reset();
 
 	ConfigureStandardDetectionSetting();
@@ -204,8 +187,7 @@ void PAA3905::Configure()
 	}
 }
 
-void PAA3905::ConfigureStandardDetectionSetting()
-{
+void PAA3905::ConfigureStandardDetectionSetting() {
 	// Standard Detection Setting is recommended for general tracking operations. In this mode, the chip can detect
 	// when it is operating over striped, checkerboard, and glossy tile surfaces where tracking performance is
 	// compromised.
@@ -273,12 +255,11 @@ void PAA3905::ConfigureStandardDetectionSetting()
 	RegisterWrite(0x5B, 0xA0);
 }
 
-void PAA3905::ConfigureEnhancedDetectionMode()
-{
+void PAA3905::ConfigureEnhancedDetectionMode() {
 	// Enhance Detection Setting relatively has better detection sensitivity, it is recommended where yaw motion
-	// detection is required, and also where more sensitive challenging surface detection is required. The recommended
-	// operating height must be greater than 15 cm to avoid false detection on challenging surfaces due to increasing of
-	// sensitivity.
+	// detection is required, and also where more sensitive challenging surface detection is required. The
+	// recommended operating height must be greater than 15 cm to avoid false detection on challenging surfaces due
+	// to increasing of sensitivity.
 
 	RegisterWrite(0x7F, 0x00);
 	RegisterWrite(0x51, 0xFF);
@@ -343,8 +324,7 @@ void PAA3905::ConfigureEnhancedDetectionMode()
 	RegisterWrite(0x5B, 0xA0);
 }
 
-void PAA3905::ConfigureAutomaticModeSwitching()
-{
+void PAA3905::ConfigureAutomaticModeSwitching() {
 	// Automatic switching between Mode 0, 1 and 2:
 	RegisterWrite(0x7F, 0x08);
 	RegisterWrite(0x68, 0x02);
@@ -357,16 +337,14 @@ void PAA3905::ConfigureAutomaticModeSwitching()
 	// RegisterWrite(0x7F, 0x00);
 }
 
-void PAA3905::EnableLed()
-{
+void PAA3905::EnableLed() {
 	// Enable LED_N controls
 	RegisterWrite(0x7F, 0x14);
 	RegisterWrite(0x6F, 0x0C);
 	RegisterWrite(0x7F, 0x00);
 }
 
-bool PAA3905::UpdateMode(const uint8_t observation)
-{
+bool PAA3905::UpdateMode(const uint8_t observation) {
 	bool mode_changed = false;
 
 	// Bit [7:6] AMS mode
@@ -406,8 +384,7 @@ bool PAA3905::UpdateMode(const uint8_t observation)
 	return mode_changed;
 }
 
-uint8_t PAA3905::RegisterRead(uint8_t reg)
-{
+uint8_t PAA3905::RegisterRead(uint8_t reg) {
 	// tSWR SPI Time Between Write And Read Commands
 	const hrt_abstime elapsed_last_write = hrt_elapsed_time(&_last_write_time);
 
@@ -431,8 +408,7 @@ uint8_t PAA3905::RegisterRead(uint8_t reg)
 	return cmd[1];
 }
 
-void PAA3905::RegisterWrite(uint8_t reg, uint8_t data)
-{
+void PAA3905::RegisterWrite(uint8_t reg, uint8_t data) {
 	// tSWW SPI Time Between Write Commands
 	const hrt_abstime elapsed_last_write = hrt_elapsed_time(&_last_write_time);
 
@@ -447,8 +423,7 @@ void PAA3905::RegisterWrite(uint8_t reg, uint8_t data)
 	hrt_store_absolute_time(&_last_write_time);
 }
 
-void PAA3905::RunImpl()
-{
+void PAA3905::RunImpl() {
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
@@ -514,10 +489,9 @@ void PAA3905::RunImpl()
 	}
 
 	// check SQUAL & Shutter values
-	// To suppress false motion reports, discard Delta X and Delta Y values if the SQUAL and Shutter values meet the condition
-	// Bright Mode,          SQUAL < 0x19, Shutter ≥ 0x00FF80
-	// Low Light Mode,       SQUAL < 0x46, Shutter ≥ 0x00FF80
-	// Super Low Light Mode, SQUAL < 0x55, Shutter ≥ 0x025998
+	// To suppress false motion reports, discard Delta X and Delta Y values if the SQUAL and Shutter values meet the
+	// condition Bright Mode,          SQUAL < 0x19, Shutter ≥ 0x00FF80 Low Light Mode,       SQUAL < 0x46, Shutter
+	// ≥ 0x00FF80 Super Low Light Mode, SQUAL < 0x55, Shutter ≥ 0x025998
 
 	// 23-bit Shutter register
 	const uint8_t Shutter_Lower = buf.data.Shutter_Lower;
@@ -533,38 +507,38 @@ void PAA3905::RunImpl()
 	bool data_valid = (buf.data.SQUAL > 0);
 
 	switch (_mode) {
-	case Mode::Bright:
+		case Mode::Bright:
 
-		// quality < 25 (0x19) and shutter >= 0x00FF80
-		if ((buf.data.SQUAL < 0x19) && (shutter >= 0x00FF80)) {
-			// false motion report, discarding
-			perf_count(_false_motion_perf);
-			data_valid = false;
-		}
+			// quality < 25 (0x19) and shutter >= 0x00FF80
+			if ((buf.data.SQUAL < 0x19) && (shutter >= 0x00FF80)) {
+				// false motion report, discarding
+				perf_count(_false_motion_perf);
+				data_valid = false;
+			}
 
-		break;
+			break;
 
-	case Mode::LowLight:
+		case Mode::LowLight:
 
-		// quality < 70 (0x46) and shutter >= 0x00FF80
-		if ((buf.data.SQUAL < 0x46) && (shutter >= 0x00FF80)) {
-			// false motion report, discarding
-			perf_count(_false_motion_perf);
-			data_valid = false;
-		}
+			// quality < 70 (0x46) and shutter >= 0x00FF80
+			if ((buf.data.SQUAL < 0x46) && (shutter >= 0x00FF80)) {
+				// false motion report, discarding
+				perf_count(_false_motion_perf);
+				data_valid = false;
+			}
 
-		break;
+			break;
 
-	case Mode::SuperLowLight:
+		case Mode::SuperLowLight:
 
-		// quality < 85 (0x55) and shutter >= 0x025998
-		if ((buf.data.SQUAL < 0x55) && (shutter >= 0x025998)) {
-			// false motion report, discarding
-			perf_count(_false_motion_perf);
-			data_valid = false;
-		}
+			// quality < 85 (0x55) and shutter >= 0x025998
+			if ((buf.data.SQUAL < 0x55) && (shutter >= 0x025998)) {
+				// false motion report, discarding
+				perf_count(_false_motion_perf);
+				data_valid = false;
+			}
 
-		break;
+			break;
 	}
 
 	if (data_valid) {
@@ -577,22 +551,22 @@ void PAA3905::RunImpl()
 		report.quality = buf.data.SQUAL;
 
 		// set specs according to datasheet
-		report.max_flow_rate = 7.4f;           // Datasheet: 7.4 rad/s
-		report.min_ground_distance = 0.08f;    // Datasheet: 80mm
-		report.max_ground_distance = INFINITY; // Datasheet: infinity
+		report.max_flow_rate = 7.4f;            // Datasheet: 7.4 rad/s
+		report.min_ground_distance = 0.08f;     // Datasheet: 80mm
+		report.max_ground_distance = INFINITY;  // Datasheet: infinity
 
 		switch (_mode) {
-		case Mode::Bright:
-			report.mode = sensor_optical_flow_s::MODE_BRIGHT;
-			break;
+			case Mode::Bright:
+				report.mode = sensor_optical_flow_s::MODE_BRIGHT;
+				break;
 
-		case Mode::LowLight:
-			report.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
-			break;
+			case Mode::LowLight:
+				report.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
+				break;
 
-		case Mode::SuperLowLight:
-			report.mode = sensor_optical_flow_s::MODE_SUPER_LOWLIGHT;
-			break;
+			case Mode::SuperLowLight:
+				report.mode = sensor_optical_flow_s::MODE_SUPER_LOWLIGHT;
+				break;
 		}
 
 		if (motion_detected) {
@@ -601,10 +575,12 @@ void PAA3905::RunImpl()
 			const int16_t delta_y_raw = combine(buf.data.Delta_Y_H, buf.data.Delta_Y_L);
 
 			// rotate measurements in yaw from sensor frame to body frame
-			const matrix::Vector3f pixel_flow_rotated = _rotation * matrix::Vector3f{(float)delta_x_raw, (float)delta_y_raw, 0.f};
+			const matrix::Vector3f pixel_flow_rotated =
+				_rotation * matrix::Vector3f{(float)delta_x_raw, (float)delta_y_raw, 0.f};
 
 			// datasheet provides 11.914 CPI (count per inch) scaling per meter of height
-			static constexpr float PIXART_RESOLUTION = 11.914f; // counts per inch (CPI) per meter (from surface)
+			static constexpr float PIXART_RESOLUTION =
+				11.914f;  // counts per inch (CPI) per meter (from surface)
 			static constexpr float INCHES_PER_METER = 39.3701f;
 
 			// CPI/m -> radians
@@ -625,8 +601,7 @@ void PAA3905::RunImpl()
 	perf_end(_cycle_perf);
 }
 
-void PAA3905::print_status()
-{
+void PAA3905::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_cycle_perf);

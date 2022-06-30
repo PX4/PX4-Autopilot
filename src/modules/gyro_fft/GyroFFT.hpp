@@ -34,18 +34,11 @@
 #ifndef GYRO_FFT_HPP
 #define GYRO_FFT_HPP
 
-#include <lib/mathlib/math/filter/MedianFilter.hpp>
-#include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_gyro_fft.h>
@@ -53,13 +46,20 @@
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_imu_status.h>
 
-#include "arm_math.h"
+#include <lib/mathlib/math/filter/MedianFilter.hpp>
+#include <lib/matrix/matrix/math.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+
 #include "arm_const_structs.h"
+#include "arm_math.h"
 
 using namespace time_literals;
 
-class GyroFFT : public ModuleBase<GyroFFT>, public ModuleParams, public px4::ScheduledWorkItem
-{
+class GyroFFT : public ModuleBase<GyroFFT>, public ModuleParams, public px4::ScheduledWorkItem {
 public:
 	GyroFFT();
 	~GyroFFT() override;
@@ -81,8 +81,8 @@ public:
 private:
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
-	static constexpr int MAX_NUM_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x) / sizeof(
-			sensor_gyro_fft_s::peak_frequencies_x[0]);
+	static constexpr int MAX_NUM_PEAKS =
+		sizeof(sensor_gyro_fft_s::peak_frequencies_x) / sizeof(sensor_gyro_fft_s::peak_frequencies_x[0]);
 
 	void Run() override;
 	inline void FindPeaks(const hrt_abstime &timestamp_sample, int axis, q15_t *fft_outupt_buffer);
@@ -94,9 +94,8 @@ private:
 				 float peak_snr[MAX_NUM_PEAKS], int num_peaks_found);
 	void VehicleIMUStatusUpdate(bool force = false);
 
-	template<size_t N>
-	bool AllocateBuffers()
-	{
+	template <size_t N>
+	bool AllocateBuffers() {
 		_gyro_data_buffer_x = new q15_t[N];
 		_gyro_data_buffer_y = new q15_t[N];
 		_gyro_data_buffer_z = new q15_t[N];
@@ -106,10 +105,8 @@ private:
 
 		_peak_magnitudes_all = new float[N];
 
-		return (_gyro_data_buffer_x && _gyro_data_buffer_y && _gyro_data_buffer_z
-			&& _hanning_window
-			&& _fft_input_buffer
-			&& _fft_outupt_buffer);
+		return (_gyro_data_buffer_x && _gyro_data_buffer_y && _gyro_data_buffer_z && _hanning_window &&
+			_fft_input_buffer && _fft_outupt_buffer);
 	}
 
 	uORB::Publication<sensor_gyro_fft_s> _sensor_gyro_fft_pub{ORB_ID(sensor_gyro_fft)};
@@ -122,9 +119,9 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub{this, ORB_ID(sensor_gyro)};
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_fifo_sub{this, ORB_ID(sensor_gyro_fifo)};
 
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-	perf_counter_t _cycle_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
-	perf_counter_t _fft_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": FFT")};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")};
+	perf_counter_t _cycle_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME ": cycle interval")};
+	perf_counter_t _fft_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": FFT")};
 	perf_counter_t _gyro_generation_gap_perf{nullptr};
 	perf_counter_t _gyro_fifo_generation_gap_perf{nullptr};
 
@@ -143,31 +140,29 @@ private:
 
 	float *_peak_magnitudes_all{nullptr};
 
-	float _gyro_sample_rate_hz{8000}; // 8 kHz default
+	float _gyro_sample_rate_hz{8000};  // 8 kHz default
 
 	float _fifo_last_scale{0};
 
-	int _fft_buffer_index[3] {};
+	int _fft_buffer_index[3]{};
 
 	unsigned _gyro_last_generation{0};
 
-	math::MedianFilter<float, 7> _median_filter[3][MAX_NUM_PEAKS] {};
+	math::MedianFilter<float, 7> _median_filter[3][MAX_NUM_PEAKS]{};
 
 	sensor_gyro_fft_s _sensor_gyro_fft{};
 
-	hrt_abstime _last_update[3][MAX_NUM_PEAKS] {};
+	hrt_abstime _last_update[3][MAX_NUM_PEAKS]{};
 
 	int32_t _imu_gyro_fft_len{256};
 
 	bool _fft_updated{false};
 	bool _publish{false};
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::IMU_GYRO_FFT_LEN>) _param_imu_gyro_fft_len,
-		(ParamFloat<px4::params::IMU_GYRO_FFT_MIN>) _param_imu_gyro_fft_min,
-		(ParamFloat<px4::params::IMU_GYRO_FFT_MAX>) _param_imu_gyro_fft_max,
-		(ParamFloat<px4::params::IMU_GYRO_FFT_SNR>) _param_imu_gyro_fft_snr
-	)
+	DEFINE_PARAMETERS((ParamInt<px4::params::IMU_GYRO_FFT_LEN>)_param_imu_gyro_fft_len,
+			  (ParamFloat<px4::params::IMU_GYRO_FFT_MIN>)_param_imu_gyro_fft_min,
+			  (ParamFloat<px4::params::IMU_GYRO_FFT_MAX>)_param_imu_gyro_fft_max,
+			  (ParamFloat<px4::params::IMU_GYRO_FFT_SNR>)_param_imu_gyro_fft_snr)
 };
 
-#endif // !GYRO_FFT_HPP
+#endif  // !GYRO_FFT_HPP

@@ -35,11 +35,11 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/conversion/rotation.h>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_mag.h>
 
-class PX4Magnetometer
-{
+#include <uORB/PublicationMulti.hpp>
+
+class PX4Magnetometer {
 public:
 	PX4Magnetometer(uint32_t device_id, enum Rotation rotation = ROTATION_NONE);
 	~PX4Magnetometer();
@@ -57,10 +57,10 @@ public:
 private:
 	uORB::PublicationMulti<sensor_mag_s> _sensor_pub{ORB_ID(sensor_mag)};
 
-	uint32_t		_device_id{0};
-	const enum Rotation	_rotation;
+	uint32_t _device_id{0};
+	const enum Rotation _rotation;
 
-	float			_scale{1.f};
-	float			_temperature{NAN};
-	uint32_t		_error_count{0};
+	float _scale{1.f};
+	float _temperature{NAN};
+	uint32_t _error_count{0};
 };

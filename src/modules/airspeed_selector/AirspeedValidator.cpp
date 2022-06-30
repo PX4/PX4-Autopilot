@@ -39,14 +39,11 @@
 
 #include "AirspeedValidator.hpp"
 
-AirspeedValidator::AirspeedValidator()
-{
-	reset_CAS_scale_check(); //this resets all elements of the Vectors to NAN
+AirspeedValidator::AirspeedValidator() {
+	reset_CAS_scale_check();  // this resets all elements of the Vectors to NAN
 }
 
-void
-AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_data &input_data)
-{
+void AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_data &input_data) {
 	// get indicated airspeed from input data (raw airspeed)
 	_IAS = input_data.airspeed_indicated_raw;
 
@@ -63,26 +60,23 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 	update_airspeed_valid_status(input_data.timestamp);
 }
 
-void
-AirspeedValidator::reset_airspeed_to_invalid(const uint64_t timestamp)
-{
+void AirspeedValidator::reset_airspeed_to_invalid(const uint64_t timestamp) {
 	_airspeed_valid = false;
 	_time_checks_failed = timestamp;
 }
 
-void
-AirspeedValidator::update_wind_estimator(const uint64_t time_now_usec, float airspeed_true_raw, bool lpos_valid,
-		const matrix::Vector3f &vI, float lpos_evh, float lpos_evv, const float att_q[4])
-{
+void AirspeedValidator::update_wind_estimator(const uint64_t time_now_usec, float airspeed_true_raw, bool lpos_valid,
+					      const matrix::Vector3f &vI, float lpos_evh, float lpos_evv,
+					      const float att_q[4]) {
 	_wind_estimator.update(time_now_usec);
 
 	if (lpos_valid && _in_fixed_wing_flight) {
-
 		Quatf q(att_q);
 
 		// airspeed fusion (with raw TAS)
-		const Vector3f vel_var{Dcmf(q) *Vector3f{lpos_evh, lpos_evh, lpos_evv}};
-		_wind_estimator.fuse_airspeed(time_now_usec, airspeed_true_raw, vI, Vector2f{vel_var(0), vel_var(1)}, q);
+		const Vector3f vel_var{Dcmf(q) * Vector3f{lpos_evh, lpos_evh, lpos_evv}};
+		_wind_estimator.fuse_airspeed(time_now_usec, airspeed_true_raw, vI, Vector2f{vel_var(0), vel_var(1)},
+					      q);
 
 		// sideslip fusion
 		_wind_estimator.fuse_beta(time_now_usec, vI, q);
@@ -90,9 +84,7 @@ AirspeedValidator::update_wind_estimator(const uint64_t time_now_usec, float air
 }
 
 // this function returns the current states of the wind estimator to be published in the airspeed module
-airspeed_wind_s
-AirspeedValidator::get_wind_estimator_states(uint64_t timestamp)
-{
+airspeed_wind_s AirspeedValidator::get_wind_estimator_states(uint64_t timestamp) {
 	airspeed_wind_s wind_est = {};
 
 	wind_est.timestamp = timestamp;
@@ -110,9 +102,8 @@ AirspeedValidator::get_wind_estimator_states(uint64_t timestamp)
 	return wind_est;
 }
 
-void
-AirspeedValidator::update_CAS_scale_validated(bool lpos_valid, const matrix::Vector3f &vI, float airspeed_true_raw)
-{
+void AirspeedValidator::update_CAS_scale_validated(bool lpos_valid, const matrix::Vector3f &vI,
+						   float airspeed_true_raw) {
 	if (!_in_fixed_wing_flight || !lpos_valid) {
 		return;
 	}
@@ -130,7 +121,6 @@ AirspeedValidator::update_CAS_scale_validated(bool lpos_valid, const matrix::Vec
 
 	// run check if all segments are filled
 	if (PX4_ISFINITE(_scale_check_groundspeed.norm_squared())) {
-
 		float ground_speed_sum = 0.f;
 		float TAS_sum = 0.f;
 
@@ -144,10 +134,10 @@ AirspeedValidator::update_CAS_scale_validated(bool lpos_valid, const matrix::Vec
 
 		// check passes if the average airspeed with the scale applied is closer to groundspeed than without
 		if (fabsf(TAS_to_grounspeed_error_new) < fabsf(TAS_to_grounspeed_error_current)) {
-
 			// constrain the scale update to max 0.01 at a time
-			const float new_scale_constrained = math::constrain(_wind_estimator.get_tas_scale(), _CAS_scale_validated - 0.01f,
-							    _CAS_scale_validated + 0.01f);
+			const float new_scale_constrained =
+				math::constrain(_wind_estimator.get_tas_scale(), _CAS_scale_validated - 0.01f,
+						_CAS_scale_validated + 0.01f);
 
 			_CAS_scale_validated = new_scale_constrained;
 		}
@@ -156,46 +146,37 @@ AirspeedValidator::update_CAS_scale_validated(bool lpos_valid, const matrix::Vec
 	}
 }
 
-void
-AirspeedValidator::reset_CAS_scale_check()
-{
-
+void AirspeedValidator::reset_CAS_scale_check() {
 	_scale_check_groundspeed.setAll(NAN);
 	_scale_check_TAS.setAll(NAN);
 
 	_begin_current_scale_check = hrt_absolute_time();
 }
 
-void
-AirspeedValidator::update_CAS_scale_applied()
-{
+void AirspeedValidator::update_CAS_scale_applied() {
 	switch (_tas_scale_apply) {
-	default:
+		default:
 
-	/* fallthrough */
-	case 0:
+		/* fallthrough */
+		case 0:
 
-	/* fallthrough */
-	case 1:
-		_CAS_scale_applied = _tas_scale_init;
-		break;
+		/* fallthrough */
+		case 1:
+			_CAS_scale_applied = _tas_scale_init;
+			break;
 
-	case 2:
-		_CAS_scale_applied = _CAS_scale_validated;
-		break;
+		case 2:
+			_CAS_scale_applied = _CAS_scale_validated;
+			break;
 	}
 }
 
-void
-AirspeedValidator::update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius)
-{
+void AirspeedValidator::update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius) {
 	_CAS = calc_CAS_from_IAS(_IAS, _CAS_scale_applied);
 	_TAS = calc_TAS_from_CAS(_CAS, air_pressure_pa, air_temperature_celsius);
 }
 
-void
-AirspeedValidator::check_airspeed_data_stuck(uint64_t time_now)
-{
+void AirspeedValidator::check_airspeed_data_stuck(uint64_t time_now) {
 	// data stuck test: trigger when IAS is not changing for DATA_STUCK_TIMEOUT (2s)
 
 	if (!_data_stuck_check_enabled) {
@@ -211,10 +192,8 @@ AirspeedValidator::check_airspeed_data_stuck(uint64_t time_now)
 	_data_stuck_test_failed = hrt_elapsed_time(&_time_last_unequal_data) > DATA_STUCK_TIMEOUT;
 }
 
-void
-AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_status_vel_test_ratio,
-		float estimator_status_mag_test_ratio, const matrix::Vector3f &vI)
-{
+void AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_status_vel_test_ratio,
+						  float estimator_status_mag_test_ratio, const matrix::Vector3f &vI) {
 	// Check normalised innovation levels with requirement for continuous data and use of hysteresis
 	// to prevent false triggering.
 
@@ -223,27 +202,29 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 	}
 
 	// reset states if check is disabled, we are not flying or wind estimator was just initialized/reset
-	if (!_innovation_check_enabled || !_in_fixed_wing_flight || (time_now - _time_wind_estimator_initialized) < 5_s
-	    || _tas_innov_integ_threshold <= 0.f) {
+	if (!_innovation_check_enabled || !_in_fixed_wing_flight ||
+	    (time_now - _time_wind_estimator_initialized) < 5_s || _tas_innov_integ_threshold <= 0.f) {
 		_innovations_check_failed = false;
 		_time_last_tas_pass = time_now;
 		_apsd_innov_integ_state = 0.f;
 
 	} else if (estimator_status_vel_test_ratio > 1.f || estimator_status_mag_test_ratio > 1.f) {
-		//nav velocity data is likely not good
-		//don't run the test but don't reset the check if it had previously failed when nav velocity data was still likely good
+		// nav velocity data is likely not good
+		// don't run the test but don't reset the check if it had previously failed when nav velocity data was
+		// still likely good
 		_time_last_tas_pass = time_now;
 		_apsd_innov_integ_state = 0.f;
 
 	} else {
 		// nav velocity data is likely good so airspeed innovations are able to be used
-		const float dt_s = math::constrain((time_now - _time_last_aspd_innov_check) / 1e6f, 0.01f, 0.2f); // limit to [5,100] Hz
+		const float dt_s = math::constrain((time_now - _time_last_aspd_innov_check) / 1e6f, 0.01f,
+						   0.2f);  // limit to [5,100] Hz
 		matrix::Vector2f wind_2d(_wind_estimator.get_wind());
-		matrix::Vector3f air_vel = vI - matrix::Vector3f {wind_2d(0), wind_2d(1), 0.f};
+		matrix::Vector3f air_vel = vI - matrix::Vector3f{wind_2d(0), wind_2d(1), 0.f};
 		const float tas_innov = fabsf(_TAS - air_vel.norm());
 
 		if (tas_innov > _tas_innov_threshold) {
-			_apsd_innov_integ_state += dt_s * (tas_innov - _tas_innov_threshold); // integrate exceedance
+			_apsd_innov_integ_state += dt_s * (tas_innov - _tas_innov_threshold);  // integrate exceedance
 
 		} else {
 			// reset integrator used to trigger and record pass if integrator check is disabled
@@ -260,10 +241,7 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 	_time_last_aspd_innov_check = time_now;
 }
 
-
-void
-AirspeedValidator::check_load_factor(float accel_z)
-{
+void AirspeedValidator::check_load_factor(float accel_z) {
 	// Check if the airspeed reading is lower than physically possible given the load factor
 
 	if (!_load_factor_check_enabled) {
@@ -273,7 +251,6 @@ AirspeedValidator::check_load_factor(float accel_z)
 	}
 
 	if (_in_fixed_wing_flight) {
-
 		float max_lift_ratio = fmaxf(_CAS, 0.7f) / fmaxf(_airspeed_stall, 1.0f);
 		max_lift_ratio *= max_lift_ratio;
 		_load_factor_ratio = 0.95f * _load_factor_ratio + 0.05f * (fabsf(accel_z) / 9.81f) / max_lift_ratio;
@@ -281,19 +258,16 @@ AirspeedValidator::check_load_factor(float accel_z)
 		_load_factor_check_failed = (_load_factor_ratio > 1.1f);
 
 	} else {
-		_load_factor_ratio = 0.5f; // reset if not in fixed-wing flight (and not in takeoff condition)
+		_load_factor_ratio = 0.5f;  // reset if not in fixed-wing flight (and not in takeoff condition)
 	}
 }
 
-
-void
-AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
-{
+void AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp) {
 	if (_data_stuck_test_failed || _innovations_check_failed || _load_factor_check_failed) {
 		// at least one check (data stuck, innovation or load factor) failed, so record timestamp
 		_time_checks_failed = timestamp;
 
-	} else if (! _data_stuck_test_failed && !_innovations_check_failed && !_load_factor_check_failed) {
+	} else if (!_data_stuck_test_failed && !_innovations_check_failed && !_load_factor_check_failed) {
 		// all checks(data stuck, innovation and load factor) must pass to declare airspeed good
 		_time_checks_passed = timestamp;
 	}
@@ -308,7 +282,6 @@ AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 		const bool single_check_fail_timeout = (timestamp - _time_checks_passed) > _checks_fail_delay * 1_s;
 
 		if (both_checks_failed || single_check_fail_timeout || _data_stuck_test_failed) {
-
 			_airspeed_valid = false;
 		}
 

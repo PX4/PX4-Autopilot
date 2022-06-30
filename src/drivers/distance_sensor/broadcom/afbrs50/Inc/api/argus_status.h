@@ -1,38 +1,58 @@
-/*************************************************************************//**
- * @file
- * @brief    	This file is part of the AFBR-S50 API.
- * @details		Provides status codes for the AFBR-S50 API.
- *
- * @copyright
- *
- * Copyright (c) 2021, Broadcom Inc
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived from
- *    this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *****************************************************************************/
+/*************************************************************************/ /**
+									     * @file
+									     * @brief    	This file is part of the
+									     *AFBR-S50 API.
+									     * @details		Provides status codes for the
+									     *AFBR-S50 API.
+									     *
+									     * @copyright
+									     *
+									     * Copyright (c) 2021, Broadcom Inc
+									     * All rights reserved.
+									     *
+									     * Redistribution and use in source and
+									     *binary forms, with or without
+									     * modification, are permitted provided that
+									     *the following conditions are met:
+									     *
+									     * 1. Redistributions of source code must
+									     *retain the above copyright notice, this
+									     *    list of conditions and the following
+									     *disclaimer.
+									     *
+									     * 2. Redistributions in binary form must
+									     *reproduce the above copyright notice, this
+									     *list of conditions and the following
+									     *disclaimer in the documentation and/or
+									     *other materials provided with the
+									     *distribution.
+									     *
+									     * 3. Neither the name of the copyright
+									     *holder nor the names of its contributors
+									     *may be used to endorse or promote products
+									     *derived from this software without
+									     *specific prior written permission.
+									     *
+									     * THIS SOFTWARE IS PROVIDED BY THE
+									     *COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+									     * AND ANY EXPRESS OR IMPLIED WARRANTIES,
+									     *INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+									     *WARRANTIES OF MERCHANTABILITY AND FITNESS
+									     *FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+									     *IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+									     *CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+									     *INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+									     *OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+									     *NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+									     *GOODS OR SERVICES; LOSS OF USE, DATA, OR
+									     *PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+									     * CAUSED AND ON ANY THEORY OF LIABILITY,
+									     *WHETHER IN CONTRACT, STRICT LIABILITY, OR
+									     *TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+									     *ARISING IN ANY WAY OUT OF THE USE OF THIS
+									     *SOFTWARE, EVEN IF ADVISED OF THE
+									     *POSSIBILITY OF SUCH DAMAGE.
+									     *****************************************************************************/
 
 #ifndef ARGUS_STATUS_H
 #define ARGUS_STATUS_H
@@ -110,7 +130,6 @@ enum Status {
 	/*! -9: Error for yet not implemented functions. */
 	ERROR_NOT_IMPLEMENTED = -9,
 
-
 	/**********************************************************************************************
 	 ********** S2PI Layer Status *****************************************************************
 	 *********************************************************************************************/
@@ -133,7 +152,6 @@ enum Status {
 	/*! -55: The specified slave identifier is not valid. */
 	ERROR_S2PI_INVALID_SLAVE = -55,
 
-
 	/**********************************************************************************************
 	 ********** NVM / Flash  Layer Status *********************************************************
 	 *********************************************************************************************/
@@ -143,7 +161,6 @@ enum Status {
 
 	/*! -99: Flash Error: The memory is out of range. */
 	ERROR_NVM_OUT_OF_RANGE = -99,
-
 
 	/**********************************************************************************************
 	 ********** AFBR-S50 Specific Status **********************************************************
@@ -183,14 +200,12 @@ enum Status {
 	/*! -102: AFBR-S50 Error: Inconsistent configuration parameters. */
 	ERROR_ARGUS_INVALID_CFG = -102,
 
-
 	/*! -105: AFBR-S50 Error: Invalid measurement mode configuration parameter. */
 	ERROR_ARGUS_INVALID_MODE = -105,
 
 	/*! -107: AFBR-S50 Error: The APD bias voltage is reinitializing due to a dropout.
 	 *  The current measurement data set is invalid! */
 	ERROR_ARGUS_BIAS_VOLTAGE_REINIT = -107,
-
 
 	/*! -109: AFBR-S50 Error: The EEPROM readout has failed. The failure is detected
 	 *  by three distinct read attempts, each resulting in invalid data.
@@ -224,7 +239,6 @@ enum Status {
 	 *  requested command. */
 	ERROR_ARGUS_BUSY = -191,
 
-
 	/*! -199: AFBR-S50 Error: Unknown module number. */
 	ERROR_ARGUS_UNKNOWN_MODULE = -199,
 
@@ -233,8 +247,6 @@ enum Status {
 
 	/*! -197: AFBR-S50 Error: Unknown laser type number. */
 	ERROR_ARGUS_UNKNOWN_LASER = -197,
-
-
 
 	/*! 193: AFBR-S50 Status (internal): The device is currently busy with updating the
 	 *  configuration (i.e. with writing register values). */
@@ -252,15 +264,12 @@ enum Status {
 	 *  cycle. */
 	STATUS_ARGUS_BUSY_MEAS = 196,
 
-
 	/*! 100: AFBR-S50 Status (internal): The ASIC is initializing a new measurement, i.e.
 	 *  a register value is written that starts an integration cycle on the ASIC. */
 	STATUS_ARGUS_STARTING = 100,
 
 	/*! 103: AFBR-S50 Status (internal): The ASIC is performing an integration cycle. */
 	STATUS_ARGUS_ACTIVE = 103,
-
-
 
 };
 

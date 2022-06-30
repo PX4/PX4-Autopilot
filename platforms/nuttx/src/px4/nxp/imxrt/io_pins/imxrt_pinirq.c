@@ -31,16 +31,14 @@
  *
  ****************************************************************************/
 
+#include <arch/board/board.h>
+#include <errno.h>
 #include <px4_platform_common/px4_config.h>
 #include <systemlib/px4_macros.h>
 
-#include <arch/board/board.h>
-
-#include <errno.h>
-
 #include "chip.h"
-#include "imxrt_irq.h"
 #include "hardware/imxrt_gpio.h"
+#include "imxrt_irq.h"
 
 typedef struct {
 	int low;
@@ -48,14 +46,10 @@ typedef struct {
 } lh_t;
 
 const lh_t port_to_irq[9] = {
-	{_IMXRT_GPIO1_0_15_BASE, _IMXRT_GPIO1_16_31_BASE},
-	{_IMXRT_GPIO2_0_15_BASE, _IMXRT_GPIO2_16_31_BASE},
-	{_IMXRT_GPIO3_0_15_BASE, _IMXRT_GPIO3_16_31_BASE},
-	{_IMXRT_GPIO4_0_15_BASE, _IMXRT_GPIO4_16_31_BASE},
-	{_IMXRT_GPIO5_0_15_BASE, _IMXRT_GPIO5_16_31_BASE},
-	{_IMXRT_GPIO6_0_15_BASE, _IMXRT_GPIO6_16_31_BASE},
-	{_IMXRT_GPIO7_0_15_BASE, _IMXRT_GPIO7_16_31_BASE},
-	{_IMXRT_GPIO8_0_15_BASE, _IMXRT_GPIO8_16_31_BASE},
+	{_IMXRT_GPIO1_0_15_BASE, _IMXRT_GPIO1_16_31_BASE}, {_IMXRT_GPIO2_0_15_BASE, _IMXRT_GPIO2_16_31_BASE},
+	{_IMXRT_GPIO3_0_15_BASE, _IMXRT_GPIO3_16_31_BASE}, {_IMXRT_GPIO4_0_15_BASE, _IMXRT_GPIO4_16_31_BASE},
+	{_IMXRT_GPIO5_0_15_BASE, _IMXRT_GPIO5_16_31_BASE}, {_IMXRT_GPIO6_0_15_BASE, _IMXRT_GPIO6_16_31_BASE},
+	{_IMXRT_GPIO7_0_15_BASE, _IMXRT_GPIO7_16_31_BASE}, {_IMXRT_GPIO8_0_15_BASE, _IMXRT_GPIO8_16_31_BASE},
 	{_IMXRT_GPIO9_0_15_BASE, _IMXRT_GPIO9_16_31_BASE},
 };
 
@@ -77,10 +71,9 @@ const lh_t port_to_irq[9] = {
  *
  ****************************************************************************/
 
-static int imxrt_pin_irqattach(gpio_pinset_t pinset, xcpt_t func, void *arg)
-{
-	volatile int port   = (pinset & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT;
-	volatile int pin    = (pinset & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
+static int imxrt_pin_irqattach(gpio_pinset_t pinset, xcpt_t func, void *arg) {
+	volatile int port = (pinset & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT;
+	volatile int pin = (pinset & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
 	volatile int irq;
 	lh_t irqlh = port_to_irq[port];
 	irq = (pin < 16) ? irqlh.low : irqlh.hi;
@@ -109,9 +102,7 @@ static int imxrt_pin_irqattach(gpio_pinset_t pinset, xcpt_t func, void *arg)
  *
  ****************************************************************************/
 #if defined(CONFIG_IMXRT_GPIO_IRQ)
-int imxrt_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
-		       bool event, xcpt_t func, void *arg)
-{
+int imxrt_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func, void *arg) {
 	int ret = -ENOSYS;
 
 	if (func == NULL) {
@@ -120,7 +111,6 @@ int imxrt_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
 		ret = imxrt_config_gpio(pinset);
 
 	} else {
-
 		pinset &= ~GPIO_INTCFG_MASK;
 
 		if (risingedge & fallingedge) {

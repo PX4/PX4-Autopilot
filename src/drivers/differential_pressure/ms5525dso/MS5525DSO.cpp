@@ -33,27 +33,20 @@
 
 #include "MS5525DSO.hpp"
 
-MS5525DSO::MS5525DSO(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config)
-{
-}
+MS5525DSO::MS5525DSO(const I2CSPIDriverConfig &config) : I2C(config), I2CSPIDriver(config) {}
 
-MS5525DSO::~MS5525DSO()
-{
+MS5525DSO::~MS5525DSO() {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
-int MS5525DSO::probe()
-{
+int MS5525DSO::probe() {
 	_retries = 1;
 
 	return init_ms5525dso() ? PX4_OK : PX4_ERROR;
 }
 
-int MS5525DSO::init()
-{
+int MS5525DSO::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -68,16 +61,14 @@ int MS5525DSO::init()
 	return ret;
 }
 
-void MS5525DSO::print_status()
-{
+void MS5525DSO::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 }
 
-int MS5525DSO::measure()
-{
+int MS5525DSO::measure() {
 	int ret = PX4_ERROR;
 
 	if (_inited) {
@@ -100,8 +91,7 @@ int MS5525DSO::measure()
 	return ret;
 }
 
-bool MS5525DSO::init_ms5525dso()
-{
+bool MS5525DSO::init_ms5525dso() {
 	// Step 1 - reset
 	uint8_t cmd = CMD_RESET;
 	int ret = transfer(&cmd, 1, nullptr, 0);
@@ -119,7 +109,7 @@ bool MS5525DSO::init_ms5525dso()
 	// 0 factory data and the setup
 	// 1-6 calibration coefficients
 	// 7 serial code and CRC
-	uint16_t prom[8] {};
+	uint16_t prom[8]{};
 	bool prom_all_zero = true;
 
 	for (uint8_t i = 0; i < 8; i++) {
@@ -178,16 +168,15 @@ bool MS5525DSO::init_ms5525dso()
 	return false;
 }
 
-uint8_t MS5525DSO::prom_crc4(uint16_t n_prom[]) const
-{
+uint8_t MS5525DSO::prom_crc4(uint16_t n_prom[]) const {
 	// see Measurement Specialties AN520
 
 	// crc remainder
 	unsigned int n_rem = 0x00;
 
 	// original value of the crc
-	unsigned int crc_read = n_prom[7]; // save read CRC
-	n_prom[7] = (0xFF00 & (n_prom[7])); // CRC byte is replaced by 0
+	unsigned int crc_read = n_prom[7];   // save read CRC
+	n_prom[7] = (0xFF00 & (n_prom[7]));  // CRC byte is replaced by 0
 
 	// operation is performed on bytes
 	for (int cnt = 0; cnt < 16; cnt++) {
@@ -209,14 +198,13 @@ uint8_t MS5525DSO::prom_crc4(uint16_t n_prom[]) const
 		}
 	}
 
-	n_rem = (0x000F & (n_rem >> 12)); // final 4-bit reminder is CRC code
-	n_prom[7] = crc_read; // restore the crc_read to its original place
+	n_rem = (0x000F & (n_rem >> 12));  // final 4-bit reminder is CRC code
+	n_prom[7] = crc_read;              // restore the crc_read to its original place
 
 	return (n_rem ^ 0x00);
 }
 
-int MS5525DSO::collect()
-{
+int MS5525DSO::collect() {
 	perf_begin(_sample_perf);
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
@@ -232,7 +220,7 @@ int MS5525DSO::collect()
 	}
 
 	// read 24 bits from the sensor
-	uint8_t val[3] {};
+	uint8_t val[3]{};
 	ret = transfer(nullptr, 0, &val[0], 3);
 
 	if (ret != PX4_OK) {
@@ -243,10 +231,10 @@ int MS5525DSO::collect()
 
 	uint32_t adc = (val[0] << 16) | (val[1] << 8) | val[2];
 
-	// If the conversion is not executed before the ADC read command, or the ADC read command is repeated, it will give 0 as the output
-	// result. If the ADC read command is sent during conversion the result will be 0, the conversion will not stop and
-	// the final result will be wrong. Conversion sequence sent during the already started conversion process will yield
-	// incorrect result as well.
+	// If the conversion is not executed before the ADC read command, or the ADC read command is repeated, it will
+	// give 0 as the output result. If the ADC read command is sent during conversion the result will be 0, the
+	// conversion will not stop and the final result will be wrong. Conversion sequence sent during the already
+	// started conversion process will yield incorrect result as well.
 	if (adc == 0) {
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
@@ -318,8 +306,7 @@ int MS5525DSO::collect()
 	return PX4_OK;
 }
 
-void MS5525DSO::RunImpl()
-{
+void MS5525DSO::RunImpl() {
 	int ret = PX4_ERROR;
 
 	// collection phase
@@ -341,7 +328,6 @@ void MS5525DSO::RunImpl()
 
 		// is there a collect->measure gap?
 		if (_measure_interval > CONVERSION_INTERVAL) {
-
 			// schedule a fresh cycle call when we are ready to measure again
 			ScheduleDelayed(_measure_interval - CONVERSION_INTERVAL);
 

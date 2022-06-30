@@ -45,38 +45,32 @@
  * Included Files
  ****************************************************************************/
 
+#include <arch/board/board.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <nuttx/mm/gran.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform_common/init.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
-
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
-#include <syslog.h>
-
-#include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-#include <nuttx/mm/gran.h>
-
 #include <stm32.h>
-#include "board_config.h"
 #include <stm32_uart.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
-
+#include <string.h>
+#include <syslog.h>
 #include <systemlib/px4_macros.h>
 
-#include <px4_arch/io_timer.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/board_dma_alloc.h>
+#include "board_config.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -107,18 +101,16 @@ __END_DECLS
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
+__EXPORT void board_peripheral_reset(int ms) {
 	/* set the peripheral and sensor rails off */
 	stm32_gpiowrite(GPIO_VDD_3V3_PERIPH_EN, 0);
 	board_control_spi_sensors_power(false, 0xffff);
 	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
 	stm32_gpiowrite(GPIO_VDD_5V_HIPOWER_EN, 1);
 
-
-//	bool last = stm32_gpioread(GPIO_SPEKTRUM_PWR_EN);
+	//	bool last = stm32_gpioread(GPIO_SPEKTRUM_PWR_EN);
 	/* Keep Spektum on to discharge rail*/
-//	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, 1);
+	//	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, 1);
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
@@ -127,7 +119,7 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* re-enable power */
 
 	/* switch the peripheral rail back on */
-//	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, last);
+	//	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, last);
 	stm32_gpiowrite(GPIO_VDD_3V3_PERIPH_EN, 1);
 	board_control_spi_sensors_power(true, 0xffff);
 	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 0);
@@ -145,8 +137,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *          0 if just resetting
  *
  ************************************************************************************/
-__EXPORT void board_on_reset(int status)
-{
+__EXPORT void board_on_reset(int status) {
 	/* configure the GPIO pins to outputs and keep them low */
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
@@ -180,9 +171,7 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
-__EXPORT void
-stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	/* Reset all PWM to Low outputs */
 
 	board_on_reset(-1);
@@ -195,11 +184,11 @@ stm32_boardinitialize(void)
 	board_control_spi_sensors_power_configgpio();
 
 	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
-	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
-	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	stm32_configgpio(GPIO_ADC1_IN11);	/* BATT2_VOLTAGE_SENS */
-	stm32_configgpio(GPIO_ADC1_IN13);	/* BATT2_CURRENT_SENS */
+	stm32_configgpio(GPIO_ADC1_IN2);  /* BATT_VOLTAGE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN3);  /* BATT_CURRENT_SENS */
+	stm32_configgpio(GPIO_ADC1_IN4);  /* VDD_5V_SENS */
+	stm32_configgpio(GPIO_ADC1_IN11); /* BATT2_VOLTAGE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN13); /* BATT2_CURRENT_SENS */
 
 	/* configure CAN interfaces */
 
@@ -222,11 +211,10 @@ stm32_boardinitialize(void)
 
 	stm32_configgpio(GPIO_SBUS_INV);
 	stm32_configgpio(GPIO_8266_GPIO0);
-//	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
+	//	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 	stm32_configgpio(GPIO_8266_PD);
 	stm32_configgpio(GPIO_8266_RST);
 	stm32_configgpio(GPIO_BTN_SAFETY_FMU);
-
 
 	/* configure SPI interfaces
 	 * is deferred to board_app_initialize
@@ -235,7 +223,6 @@ stm32_boardinitialize(void)
 	 */
 
 	stm32_usbinitialize();
-
 }
 
 /****************************************************************************
@@ -269,9 +256,7 @@ static struct spi_dev_s *spi5;
 static struct spi_dev_s *spi6;
 static struct sdio_dev_s *sdio;
 
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
-
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	/* Now it is ok to drvie the pins high
 	 * so configure SPI CPIO */
 

@@ -38,14 +38,14 @@
  */
 
 #include <gtest/gtest.h>
-#include <matrix/math.hpp>
+
 #include <lib/mathlib/math/filter/second_order_reference_model.hpp>
+#include <matrix/math.hpp>
 
 using math::SecondOrderReferenceModel;
 using matrix::Vector3f;
 
-TEST(SecondOrderReferenceModel, FloatDefaultConstructorInitializesStatesToZero)
-{
+TEST(SecondOrderReferenceModel, FloatDefaultConstructorInitializesStatesToZero) {
 	SecondOrderReferenceModel<float> sys_float;
 
 	// default constructor leaves states initialized to zero
@@ -54,8 +54,7 @@ TEST(SecondOrderReferenceModel, FloatDefaultConstructorInitializesStatesToZero)
 	EXPECT_FLOAT_EQ(sys_float.getAccel(), 0.0f);
 }
 
-TEST(SecondOrderReferenceModel, FloatReset)
-{
+TEST(SecondOrderReferenceModel, FloatReset) {
 	SecondOrderReferenceModel<float> sys_float;
 
 	// reset the system states
@@ -74,8 +73,7 @@ TEST(SecondOrderReferenceModel, FloatReset)
 	EXPECT_FLOAT_EQ(sys_float.getAccel(), 0.0f);
 }
 
-TEST(SecondOrderReferenceModel, Vector3DefaultConstructorInitializesStatesToZero)
-{
+TEST(SecondOrderReferenceModel, Vector3DefaultConstructorInitializesStatesToZero) {
 	SecondOrderReferenceModel<Vector3f> sys_vector3f;
 
 	// default constructor leaves states initialized to zero
@@ -93,8 +91,7 @@ TEST(SecondOrderReferenceModel, Vector3DefaultConstructorInitializesStatesToZero
 	EXPECT_FLOAT_EQ(accel(2), 0.0f);
 }
 
-TEST(SecondOrderReferenceModel, Vector3Reset)
-{
+TEST(SecondOrderReferenceModel, Vector3Reset) {
 	SecondOrderReferenceModel<Vector3f> sys_vector3f;
 
 	// reset the system states

@@ -38,25 +38,22 @@
  * @author Example User <mail@example.com>
  */
 
+#include <drivers/drv_hrt.h>
+#include <poll.h>
 #include <px4_platform_common/px4_config.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
-#include <poll.h>
-
 #include <systemlib/err.h>
-#include <drivers/drv_hrt.h>
-
-#include <uORB/uORB.h>
+#include <uORB/topics/debug_array.h>
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/debug_value.h>
 #include <uORB/topics/debug_vect.h>
-#include <uORB/topics/debug_array.h>
+#include <uORB/uORB.h>
+#include <unistd.h>
 
 extern "C" __EXPORT int px4_mavlink_debug_main(int argc, char *argv[]);
 
-int px4_mavlink_debug_main(int argc, char *argv[])
-{
+int px4_mavlink_debug_main(int argc, char *argv[]) {
 	printf("Hello Debug!\n");
 
 	/* advertise named debug value */

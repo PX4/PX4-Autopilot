@@ -37,51 +37,40 @@
  * I2C interface for RM3100
  */
 
-#include <px4_platform_common/px4_config.h>
-
 #include <assert.h>
 #include <debug.h>
+#include <drivers/device/i2c.h>
 #include <errno.h>
-#include <stdint.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <drivers/device/i2c.h>
-
 #include "board_config.h"
 #include "rm3100.h"
 
-class RM3100_I2C : public device::I2C
-{
+class RM3100_I2C : public device::I2C {
 public:
 	RM3100_I2C(int bus, int bus_frequency);
 	~RM3100_I2C() override = default;
 
-	int     read(unsigned address, void *data, unsigned count) override;
-	int     write(unsigned address, void *data, unsigned count) override;
+	int read(unsigned address, void *data, unsigned count) override;
+	int write(unsigned address, void *data, unsigned count) override;
 
 protected:
-	int     probe() override;
+	int probe() override;
 };
 
-device::Device *
-RM3100_I2C_interface(int bus, int bus_frequency);
+device::Device *RM3100_I2C_interface(int bus, int bus_frequency);
 
-device::Device *
-RM3100_I2C_interface(int bus, int bus_frequency)
-{
-	return new RM3100_I2C(bus, bus_frequency);
-}
+device::Device *RM3100_I2C_interface(int bus, int bus_frequency) { return new RM3100_I2C(bus, bus_frequency); }
 
-RM3100_I2C::RM3100_I2C(int bus, int bus_frequency) :
-	I2C(DRV_MAG_DEVTYPE_RM3100, MODULE_NAME, bus, RM3100_ADDRESS, bus_frequency)
-{
-}
+RM3100_I2C::RM3100_I2C(int bus, int bus_frequency)
+	: I2C(DRV_MAG_DEVTYPE_RM3100, MODULE_NAME, bus, RM3100_ADDRESS, bus_frequency) {}
 
-int RM3100_I2C::probe()
-{
+int RM3100_I2C::probe() {
 	uint8_t data = 0;
 
 	if (read(ADDR_REVID, &data, 1)) {
@@ -99,8 +88,7 @@ int RM3100_I2C::probe()
 	return OK;
 }
 
-int RM3100_I2C::read(unsigned address, void *data, unsigned count)
-{
+int RM3100_I2C::read(unsigned address, void *data, unsigned count) {
 	uint8_t cmd = address;
 	int ret;
 
@@ -117,8 +105,7 @@ int RM3100_I2C::read(unsigned address, void *data, unsigned count)
 	return ret;
 }
 
-int RM3100_I2C::write(unsigned address, void *data, unsigned count)
-{
+int RM3100_I2C::write(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {

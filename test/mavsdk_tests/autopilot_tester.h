@@ -33,8 +33,8 @@
 
 #pragma once
 
-#include <mavsdk/mavsdk.h>
 #include <mavsdk/geometry.h>
+#include <mavsdk/mavsdk.h>
 #include <mavsdk/plugins/action/action.h>
 #include <mavsdk/plugins/failure/failure.h>
 #include <mavsdk/plugins/info/info.h>
@@ -42,9 +42,9 @@
 #include <mavsdk/plugins/mission/mission.h>
 #include <mavsdk/plugins/mission_raw/mission_raw.h>
 #include <mavsdk/plugins/offboard/offboard.h>
-#include <mavsdk/plugins/telemetry/telemetry.h>
 #include <mavsdk/plugins/param/param.h>
-#include "catch2/catch.hpp"
+#include <mavsdk/plugins/telemetry/telemetry.h>
+
 #include <atomic>
 #include <chrono>
 #include <ctime>
@@ -53,15 +53,15 @@
 #include <optional>
 #include <thread>
 
+#include "catch2/catch.hpp"
+
 extern std::string connection_url;
 extern std::optional<float> speed_factor;
 
 using namespace mavsdk;
 using namespace mavsdk::geometry;
 
-
-inline std::string time_str()
-{
+inline std::string time_str() {
 	time_t rawtime;
 	time(&rawtime);
 	struct tm *timeinfo = localtime(&rawtime);
@@ -70,26 +70,18 @@ inline std::string time_str()
 	return time_buffer;
 }
 
-class AutopilotTester
-{
+class AutopilotTester {
 public:
 	struct MissionOptions {
-		double leg_length_m {20.0};
-		double relative_altitude_m {10.0};
-		bool rtl_at_end {false};
-		bool fly_through {false};
+		double leg_length_m{20.0};
+		double relative_altitude_m{10.0};
+		bool rtl_at_end{false};
+		bool fly_through{false};
 	};
 
-	enum class HeightSource {
-		Baro,
-		Gps
-	};
+	enum class HeightSource { Baro, Gps };
 
-	enum class RcLossException {
-		Mission = 0,
-		Hold = 1,
-		Offboard = 2
-	};
+	enum class RcLossException { Mission = 0, Hold = 1, Offboard = 2 };
 
 	AutopilotTester();
 	~AutopilotTester();
@@ -110,7 +102,8 @@ public:
 	void transition_to_fixedwing();
 	void transition_to_multicopter();
 	void wait_until_disarmed(std::chrono::seconds timeout_duration = std::chrono::seconds(60));
-	void wait_until_hovering(); // TODO: name suggests, that function waits for drone velocity to be zero and not just drone in the air
+	void wait_until_hovering();  // TODO: name suggests, that function waits for drone velocity to be zero and not
+				     // just drone in the air
 	void wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout);
 	void wait_until_speed_lower_than(float speed, std::chrono::seconds timeout);
 	void prepare_square_mission(MissionOptions mission_options);
@@ -140,18 +133,16 @@ public:
 	// Blocking call to get the drone's current position in NED frame
 	std::array<float, 3> get_current_position_ned();
 
-	void set_param_int(const std::string &param, int32_t value)
-	{
+	void set_param_int(const std::string &param, int32_t value) {
 		CHECK(_param->set_param_int(param, value) == Param::Result::Success);
 	}
 
 protected:
-	mavsdk::Param *getParams() const { return _param.get();}
-	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
-	mavsdk::ManualControl *getManualControl() const { return _manual_control.get();}
-	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
-	Telemetry::GroundTruth getHome()
-	{
+	mavsdk::Param *getParams() const { return _param.get(); }
+	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get(); }
+	mavsdk::ManualControl *getManualControl() const { return _manual_control.get(); }
+	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0); }
+	Telemetry::GroundTruth getHome() {
 		// Check if home was stored before it is accessed
 		CHECK(_home.absolute_altitude_m != NAN);
 		CHECK(_home.latitude_deg != NAN);
@@ -159,20 +150,19 @@ protected:
 		return _home;
 	}
 
-	template<typename Rep, typename Period>
-	void sleep_for(std::chrono::duration<Rep, Period> duration)
-	{
+	template <typename Rep, typename Period>
+	void sleep_for(std::chrono::duration<Rep, Period> duration) {
 		const std::chrono::microseconds duration_us(duration);
 
 		if (_telemetry && _telemetry->attitude_quaternion().timestamp_us != 0) {
-
 			const int64_t start_time_us = _telemetry->attitude_quaternion().timestamp_us;
 
 			while (true) {
 				// Hopefully this is often enough not to have PX4 time out on us.
 				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-				const int64_t elapsed_time_us = _telemetry->attitude_quaternion().timestamp_us - start_time_us;
+				const int64_t elapsed_time_us =
+					_telemetry->attitude_quaternion().timestamp_us - start_time_us;
 
 				if (elapsed_time_us > duration_us.count()) {
 					return;
@@ -188,13 +178,14 @@ private:
 	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
 	mavsdk::Mission::MissionItem create_mission_item(
 		const mavsdk::geometry::CoordinateTransformation::LocalCoordinate &local_coordinate,
-		const MissionOptions &mission_options,
-		const mavsdk::geometry::CoordinateTransformation &ct);
+		const MissionOptions &mission_options, const mavsdk::geometry::CoordinateTransformation &ct);
 
-	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
+	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos,
+						       float acceptance_radius_m);
 	bool ground_truth_horizontal_position_far_from(const Telemetry::GroundTruth &target_pos, float min_distance_m);
 	bool estimated_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
-	bool estimated_horizontal_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
+	bool estimated_horizontal_position_close_to(const Offboard::PositionNedYaw &target_pos,
+						    float acceptance_radius_m);
 	void start_and_wait_for_first_mission_item();
 	void wait_for_flight_mode(Telemetry::FlightMode flight_mode, std::chrono::seconds timeout);
 	void wait_for_landed_state(Telemetry::LandedState landed_state, std::chrono::seconds timeout);
@@ -204,10 +195,8 @@ private:
 
 	void report_speed_factor();
 
-	template<typename Rep, typename Period>
-	bool poll_condition_with_timeout(
-		std::function<bool()> fun, std::chrono::duration<Rep, Period> duration)
-	{
+	template <typename Rep, typename Period>
+	bool poll_condition_with_timeout(std::function<bool()> fun, std::chrono::duration<Rep, Period> duration) {
 		static constexpr unsigned check_resolution = 100;
 
 		const std::chrono::microseconds duration_us(duration);
@@ -219,14 +208,16 @@ private:
 			while (!fun()) {
 				std::this_thread::sleep_for(duration_us / check_resolution);
 
-				// This might potentially loop forever and the test needs to be killed by a watchdog outside.
-				// The reason not to include an absolute timeout here is that it can happen if the host is
-				// busy and PX4 doesn't run fast enough.
-				const int64_t elapsed_time_us = _telemetry->attitude_quaternion().timestamp_us - start_time_us;
+				// This might potentially loop forever and the test needs to be killed by a watchdog
+				// outside. The reason not to include an absolute timeout here is that it can happen if
+				// the host is busy and PX4 doesn't run fast enough.
+				const int64_t elapsed_time_us =
+					_telemetry->attitude_quaternion().timestamp_us - start_time_us;
 
 				if (elapsed_time_us > duration_us.count()) {
-					std::cout << time_str() << "Timeout, connected to vehicle but waiting for test for " << static_cast<double>
-						  (elapsed_time_us) / 1e6 << " seconds\n";
+					std::cout << time_str()
+						  << "Timeout, connected to vehicle but waiting for test for "
+						  << static_cast<double>(elapsed_time_us) / 1e6 << " seconds\n";
 					return false;
 				}
 			}
@@ -237,13 +228,13 @@ private:
 
 			while (!fun()) {
 				std::this_thread::sleep_for(duration_us / check_resolution);
-				const auto elapsed_time_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() -
-							     start_time);
+				const auto elapsed_time_us = std::chrono::duration_cast<std::chrono::microseconds>(
+					std::chrono::steady_clock::now() - start_time);
 
 				if (elapsed_time_us > duration_us) {
 					std::cout << time_str() << "Timeout, waiting for the vehicle for "
-						  << elapsed_time_us.count() * std::chrono::steady_clock::period::num
-						  / static_cast<double>(std::chrono::steady_clock::period::den)
+						  << elapsed_time_us.count() * std::chrono::steady_clock::period::num /
+							     static_cast<double>(std::chrono::steady_clock::period::den)
 						  << " seconds\n";
 					return false;
 				}
@@ -252,8 +243,6 @@ private:
 
 		return true;
 	}
-
-
 
 	mavsdk::Mavsdk _mavsdk{};
 	std::unique_ptr<mavsdk::Action> _action{};
@@ -268,6 +257,6 @@ private:
 
 	Telemetry::GroundTruth _home{NAN, NAN, NAN};
 
-	std::atomic<bool> _should_exit {false};
-	std::thread _real_time_report_thread {};
+	std::atomic<bool> _should_exit{false};
+	std::thread _real_time_report_thread{};
 };

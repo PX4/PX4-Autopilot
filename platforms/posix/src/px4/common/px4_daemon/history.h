@@ -42,14 +42,12 @@
  */
 #pragma once
 
-#include <vector>
 #include <string>
+#include <vector>
 
-namespace px4_daemon
-{
+namespace px4_daemon {
 
-class History
-{
+class History {
 public:
 	/**
 	 * Try to append the current line to the history.
@@ -78,7 +76,6 @@ public:
 	 */
 	void try_to_save_current_line(const std::string &line);
 
-
 	/**
 	 * Set the previous (earlier) command from the history.
 	 *
@@ -94,11 +91,11 @@ public:
 	void get_next(std::string &line);
 
 	static const unsigned MAX_HISTORY_SIZE = 100;
+
 private:
 	std::vector<std::string> _history;
 	std::vector<std::string>::iterator _current_history_entry;
 	std::string _current_line;
 };
 
-} // namespace px4_daemon
-
+}  // namespace px4_daemon

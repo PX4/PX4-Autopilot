@@ -40,24 +40,24 @@
 
 #pragma once
 
-#include "Analog_Devices_ADIS16448_registers.hpp"
-
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/spi.h>
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
 #include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/topics/sensor_baro.h>
+
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <uORB/PublicationMulti.hpp>
+
+#include "Analog_Devices_ADIS16448_registers.hpp"
 
 using namespace Analog_Devices_ADIS16448;
 
-class ADIS16448 : public device::SPI, public I2CSPIDriver<ADIS16448>
-{
+class ADIS16448 : public device::SPI, public I2CSPIDriver<ADIS16448> {
 public:
 	ADIS16448(const I2CSPIDriverConfig &config);
 	~ADIS16448() override;
@@ -104,9 +104,9 @@ private:
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
-	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
-	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME ": reset")};
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad register")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME ": bad transfer")};
 	perf_counter_t _perf_crc_bad{nullptr};
 	perf_counter_t _drdy_missed_perf{nullptr};
 
@@ -117,11 +117,11 @@ private:
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
 
-	bool _check_crc{false}; // CRC-16 not supported on earlier models (eg ADIS16448AMLZ)
+	bool _check_crc{false};  // CRC-16 not supported on earlier models (eg ADIS16448AMLZ)
 	bool _self_test_passed{false};
 
-	int16_t _accel_prev[3] {};
-	int16_t _gyro_prev[3] {};
+	int16_t _accel_prev[3]{};
+	int16_t _gyro_prev[3]{};
 
 	enum class STATE : uint8_t {
 		RESET,
@@ -133,10 +133,12 @@ private:
 
 	uint8_t _checked_register{0};
 	static constexpr uint8_t size_register_cfg{3};
-	register_config_t _register_cfg[size_register_cfg] {
+	register_config_t _register_cfg[size_register_cfg]{
 		// Register               | Set bits, Clear bits
-		{ Register::MSC_CTRL,     MSC_CTRL_BIT::CRC16_for_burst, 0 },
-		{ Register::SMPL_PRD,     SMPL_PRD_BIT::internal_sampling_clock, SMPL_PRD_BIT::decimation_rate },
-		{ Register::SENS_AVG,     SENS_AVG_BIT::Measurement_range_1000_set | SENS_AVG_BIT::Filter_Size_Variable_B_set, SENS_AVG_BIT::Measurement_range_1000_clear | SENS_AVG_BIT::Filter_Size_Variable_B_clear },
+		{Register::MSC_CTRL, MSC_CTRL_BIT::CRC16_for_burst, 0},
+		{Register::SMPL_PRD, SMPL_PRD_BIT::internal_sampling_clock, SMPL_PRD_BIT::decimation_rate},
+		{Register::SENS_AVG,
+		 SENS_AVG_BIT::Measurement_range_1000_set | SENS_AVG_BIT::Filter_Size_Variable_B_set,
+		 SENS_AVG_BIT::Measurement_range_1000_clear | SENS_AVG_BIT::Filter_Size_Variable_B_clear},
 	};
 };

@@ -40,24 +40,19 @@
 
 #include "hysteresis.h"
 
-
 static constexpr hrt_abstime SOME_START_TIME = 1558359616134000llu;
 
-
-TEST(Hysteresis, InitFalse)
-{
+TEST(Hysteresis, InitFalse) {
 	systemlib::Hysteresis hysteresis(false);
 	EXPECT_FALSE(hysteresis.get_state());
 }
 
-TEST(Hysteresis, InitTrue)
-{
+TEST(Hysteresis, InitTrue) {
 	systemlib::Hysteresis hysteresis(true);
 	EXPECT_TRUE(hysteresis.get_state());
 }
 
-TEST(Hysteresis, Zero)
-{
+TEST(Hysteresis, Zero) {
 	hrt_abstime time_us = SOME_START_TIME;
 
 	// Default is 0 hysteresis.
@@ -78,8 +73,7 @@ TEST(Hysteresis, Zero)
 	EXPECT_TRUE(hysteresis.get_state());
 }
 
-TEST(Hysteresis, ChangeAfterTime)
-{
+TEST(Hysteresis, ChangeAfterTime) {
 	hrt_abstime time_us = SOME_START_TIME;
 
 	systemlib::Hysteresis hysteresis(false);
@@ -107,8 +101,7 @@ TEST(Hysteresis, ChangeAfterTime)
 	EXPECT_FALSE(hysteresis.get_state());
 }
 
-TEST(Hysteresis, HysteresisChanged)
-{
+TEST(Hysteresis, HysteresisChanged) {
 	hrt_abstime time_us = SOME_START_TIME;
 
 	systemlib::Hysteresis hysteresis(false);
@@ -139,8 +132,7 @@ TEST(Hysteresis, HysteresisChanged)
 	EXPECT_FALSE(hysteresis.get_state());
 }
 
-TEST(Hysteresis, ChangeAfterMultipleSets)
-{
+TEST(Hysteresis, ChangeAfterMultipleSets) {
 	hrt_abstime time_us = SOME_START_TIME;
 
 	systemlib::Hysteresis hysteresis(false);
@@ -168,8 +160,7 @@ TEST(Hysteresis, ChangeAfterMultipleSets)
 	EXPECT_FALSE(hysteresis.get_state());
 }
 
-TEST(Hysteresis, TakeChangeBack)
-{
+TEST(Hysteresis, TakeChangeBack) {
 	hrt_abstime time_us = SOME_START_TIME;
 
 	systemlib::Hysteresis hysteresis(false);

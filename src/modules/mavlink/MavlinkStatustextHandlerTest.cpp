@@ -31,8 +31,9 @@
  *
  ****************************************************************************/
 
-#include "MavlinkStatustextHandler.hpp"
 #include <gtest/gtest.h>
+
+#include "MavlinkStatustextHandler.hpp"
 
 static constexpr uint64_t some_time = 12345678;
 static constexpr uint64_t some_other_time = 99999999;
@@ -41,11 +42,10 @@ static constexpr auto some_other_text = "Some more short text";
 static constexpr uint8_t some_severity = MAV_SEVERITY_CRITICAL;
 static constexpr uint8_t some_other_severity = MAV_SEVERITY_INFO;
 
-TEST(MavlinkStatustextHandler, Singles)
-{
+TEST(MavlinkStatustextHandler, Singles) {
 	MavlinkStatustextHandler handler;
 
-	mavlink_statustext_t statustext1 {};
+	mavlink_statustext_t statustext1{};
 	statustext1.severity = some_severity;
 	strncpy(statustext1.text, some_text, sizeof(statustext1.text));
 
@@ -55,7 +55,7 @@ TEST(MavlinkStatustextHandler, Singles)
 	EXPECT_EQ(handler.log_message().severity, some_severity);
 	EXPECT_EQ(handler.log_message().timestamp, some_time);
 
-	mavlink_statustext_t statustext2 {};
+	mavlink_statustext_t statustext2{};
 	statustext2.severity = some_other_severity;
 	strncpy(statustext2.text, some_other_text, sizeof(statustext2.text));
 
@@ -66,12 +66,11 @@ TEST(MavlinkStatustextHandler, Singles)
 	EXPECT_EQ(handler.log_message().timestamp, some_other_time);
 }
 
-TEST(MavlinkStatustextHandler, Multiple)
-{
+TEST(MavlinkStatustextHandler, Multiple) {
 	MavlinkStatustextHandler handler;
 
-	mavlink_statustext_t statustext1 {};
-	mavlink_statustext_t statustext2 {};
+	mavlink_statustext_t statustext1{};
+	mavlink_statustext_t statustext2{};
 
 	statustext1.severity = some_severity;
 	statustext2.severity = some_severity;
@@ -103,14 +102,13 @@ TEST(MavlinkStatustextHandler, Multiple)
 	EXPECT_EQ(handler.log_message().timestamp, some_time);
 }
 
-TEST(MavlinkStatustextHandler, TooMany)
-{
+TEST(MavlinkStatustextHandler, TooMany) {
 	// If we receive too many, we need to cap it.
 	MavlinkStatustextHandler handler;
 
-	mavlink_statustext_t statustext1 {};
-	mavlink_statustext_t statustext2 {};
-	mavlink_statustext_t statustext3 {};
+	mavlink_statustext_t statustext1{};
+	mavlink_statustext_t statustext2{};
+	mavlink_statustext_t statustext3{};
 
 	statustext1.id = 1;
 	statustext2.id = 1;
@@ -135,14 +133,13 @@ TEST(MavlinkStatustextHandler, TooMany)
 	EXPECT_EQ(strlen(handler.log_message().text), sizeof(log_message_s::text) - 1);
 }
 
-TEST(MavlinkStatustextHandler, LastMissing)
-{
+TEST(MavlinkStatustextHandler, LastMissing) {
 	// Here we fail to send the last multi-chunk but we still want to
 	// publish the incomplete message.
 
 	MavlinkStatustextHandler handler;
 
-	mavlink_statustext_t statustext1 {};
+	mavlink_statustext_t statustext1{};
 	statustext1.id = 1;
 	statustext1.chunk_seq = 0;
 
@@ -153,7 +150,7 @@ TEST(MavlinkStatustextHandler, LastMissing)
 	EXPECT_FALSE(handler.should_publish_current(statustext1, some_time));
 
 	// Now we send a single and we expect the previous one to be published.
-	mavlink_statustext_t statustext2 {};
+	mavlink_statustext_t statustext2{};
 	memset(statustext2.text, 'b', 10);
 	statustext2.id = 0;
 
@@ -169,14 +166,13 @@ TEST(MavlinkStatustextHandler, LastMissing)
 	EXPECT_EQ(handler.log_message().text[5], 'b');
 }
 
-TEST(MavlinkStatustextHandler, FirstMissing)
-{
+TEST(MavlinkStatustextHandler, FirstMissing) {
 	// Here we fail to send the first multi-chunk but we still want to
 	// publish the incomplete message.
 
 	MavlinkStatustextHandler handler;
 
-	mavlink_statustext_t statustext2 {};
+	mavlink_statustext_t statustext2{};
 	statustext2.id = 1;
 	statustext2.chunk_seq = 1;
 
@@ -192,13 +188,12 @@ TEST(MavlinkStatustextHandler, FirstMissing)
 	EXPECT_EQ(handler.log_message().text[20], 'b');
 }
 
-TEST(MavlinkStatustextHandler, MiddleMissing)
-{
+TEST(MavlinkStatustextHandler, MiddleMissing) {
 	// This time one message in the middle goes missing.
 	MavlinkStatustextHandler handler;
 
-	mavlink_statustext_t statustext1 {};
-	mavlink_statustext_t statustext3 {};
+	mavlink_statustext_t statustext1{};
+	mavlink_statustext_t statustext3{};
 
 	statustext1.id = 1;
 	statustext3.id = 1;
@@ -221,8 +216,7 @@ TEST(MavlinkStatustextHandler, MiddleMissing)
 	EXPECT_EQ(handler.log_message().text[70], 'c');
 }
 
-TEST(MavlinkStatustextHandler, NoGarbageAfterZeroTermination)
-{
+TEST(MavlinkStatustextHandler, NoGarbageAfterZeroTermination) {
 	// It would be nicer not to publish garbage after the zero termination
 	// from previous publications but to zero it out nicely.
 	// Otherwise, someone looking at the raw bytes might get confused.
@@ -232,7 +226,7 @@ TEST(MavlinkStatustextHandler, NoGarbageAfterZeroTermination)
 	const auto long_text = "Some rather long text, ramble ramble";
 	const auto short_text = "Short short";
 
-	mavlink_statustext_t statustext1 {};
+	mavlink_statustext_t statustext1{};
 	statustext1.severity = some_severity;
 	strncpy(statustext1.text, long_text, sizeof(statustext1.text));
 
@@ -244,7 +238,7 @@ TEST(MavlinkStatustextHandler, NoGarbageAfterZeroTermination)
 		EXPECT_EQ(handler.log_message().text[i], '\0');
 	}
 
-	mavlink_statustext_t statustext2 {};
+	mavlink_statustext_t statustext2{};
 	statustext2.severity = some_other_severity;
 	strncpy(statustext2.text, short_text, sizeof(statustext2.text));
 

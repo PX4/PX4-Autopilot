@@ -37,12 +37,12 @@
 
 #pragma once
 
-#include <uORB/SubscriptionMultiArray.hpp>
-#include <uORB/Publication.hpp>
 #include <uORB/topics/button_event.h>
 
-class Safety
-{
+#include <uORB/Publication.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
+
+class Safety {
 public:
 	Safety();
 	~Safety() = default;
@@ -56,8 +56,8 @@ public:
 private:
 	uORB::Subscription _safety_button_sub{ORB_ID::safety_button};
 
-	bool _button_available{false};///< Set to true if a safety button is connected
-	bool _safety_off{false}; ///< Set to true if safety is off
-	bool _previous_safety_off{false}; ///< Previous safety value
-	bool _safety_disabled{false}; ///< Set to true if safety is disabled
+	bool _button_available{false};     ///< Set to true if a safety button is connected
+	bool _safety_off{false};           ///< Set to true if safety is off
+	bool _previous_safety_off{false};  ///< Previous safety value
+	bool _safety_disabled{false};      ///< Set to true if safety is disabled
 };

@@ -36,24 +36,21 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
 #include <board_config.h>
-
-#include <stdbool.h>
-#include <stdio.h>
 #include <debug.h>
 #include <errno.h>
-
-#include <nuttx/sdio.h>
+#include <nuttx/config.h>
 #include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
+#include <stdbool.h>
+#include <stdio.h>
 
-#include "chip.h"
 #include "board_config.h"
+#include "chip.h"
 #include "stm32_gpio.h"
 #include "stm32_sdmmc.h"
 
 #ifdef CONFIG_MMCSD
-
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -61,9 +58,9 @@
 
 /* Card detections requires card support and a card detection GPIO */
 
-#define HAVE_NCD   1
+#define HAVE_NCD 1
 #if !defined(GPIO_SDMMC1_NCD)
-#  undef HAVE_NCD
+#undef HAVE_NCD
 #endif
 
 /****************************************************************************
@@ -88,8 +85,7 @@ static bool g_sd_inserted = 0xff; /* Impossible value */
  ****************************************************************************/
 
 #ifdef HAVE_NCD
-static int stm32_ncd_interrupt(int irq, FAR void *context)
-{
+static int stm32_ncd_interrupt(int irq, FAR void *context) {
 	bool present = !stm32_gpioread(GPIO_SDMMC1_NCD);
 
 	if (sdio_dev && present != g_sd_inserted) {
@@ -113,8 +109,7 @@ static int stm32_ncd_interrupt(int irq, FAR void *context)
  *
  ****************************************************************************/
 
-int stm32_sdio_initialize(void)
-{
+int stm32_sdio_initialize(void) {
 	int ret;
 
 #ifdef HAVE_NCD

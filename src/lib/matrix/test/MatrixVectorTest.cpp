@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixVectorTest, Vector)
-{
+TEST(MatrixVectorTest, Vector) {
 	// test data
 	float data1[] = {1, 2, 3, 4, 5};
 	float data2[] = {6, 7, 8, 9, 10};

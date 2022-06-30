@@ -37,8 +37,8 @@
  * Implementation of generic user-space version API
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "board_config.h"
 
@@ -46,23 +46,13 @@ static int hw_version = 0;
 static int hw_revision = 0;
 static char hw_info[] = HW_INFO_INIT;
 
-__EXPORT const char *board_get_hw_type_name(void)
-{
-	return (const char *) hw_info;
-}
+__EXPORT const char *board_get_hw_type_name(void) { return (const char *)hw_info; }
 
-__EXPORT int board_get_hw_version(void)
-{
-	return  hw_version;
-}
+__EXPORT int board_get_hw_version(void) { return hw_version; }
 
-__EXPORT int board_get_hw_revision()
-{
-	return  hw_revision;
-}
+__EXPORT int board_get_hw_revision() { return hw_revision; }
 
-__EXPORT void board_get_uuid32(uuid_uint32_t uuid_words)
-{
+__EXPORT void board_get_uuid32(uuid_uint32_t uuid_words) {
 	/* TODO: This is a stub for userspace build. Use some proper interface
 	 * to fetch the uuid32 from the kernel
 	 */
@@ -74,30 +64,27 @@ __EXPORT void board_get_uuid32(uuid_uint32_t uuid_words)
 	}
 }
 
-int board_mcu_version(char *rev, const char **revstr, const char **errata)
-{
+int board_mcu_version(char *rev, const char **revstr, const char **errata) {
 	/* TODO: This is a stub for userspace build. Use some proper interface
 	 * to fetch the version from the kernel
 	 */
 	return -1;
 }
 
-int board_get_px4_guid(px4_guid_t px4_guid)
-{
+int board_get_px4_guid(px4_guid_t px4_guid) {
 	/* TODO: This is a stub for userspace build. Use some proper interface
 	 * to fetch the guid from the kernel
 	 */
-	uint8_t  *pb = (uint8_t *) &px4_guid[0];
+	uint8_t *pb = (uint8_t *)&px4_guid[0];
 	memset(pb, 0, PX4_GUID_BYTE_LENGTH);
 
 	return PX4_GUID_BYTE_LENGTH;
 }
 
-int board_get_px4_guid_formated(char *format_buffer, int size)
-{
+int board_get_px4_guid_formated(char *format_buffer, int size) {
 	px4_guid_t px4_guid;
 	board_get_px4_guid(px4_guid);
-	int offset  = 0;
+	int offset = 0;
 
 	/* size should be 2 per byte + 1 for termination
 	 * So it needs to be odd
@@ -111,4 +98,3 @@ int board_get_px4_guid_formated(char *format_buffer, int size)
 
 	return offset;
 }
-

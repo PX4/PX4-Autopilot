@@ -41,32 +41,24 @@
 
 #pragma once
 
-#include "../NodeManager.hpp"
-
 #include <uavcan/node/Heartbeat_1_0.h>
 
+#include "../NodeManager.hpp"
 #include "BaseSubscriber.hpp"
 
-class UavcanHeartbeatSubscriber : public UavcanBaseSubscriber
-{
+class UavcanHeartbeatSubscriber : public UavcanBaseSubscriber {
 public:
-	UavcanHeartbeatSubscriber(CanardHandle &handle) :
-		UavcanBaseSubscriber(handle, "", "Heartbeat", 0) { };
+	UavcanHeartbeatSubscriber(CanardHandle &handle) : UavcanBaseSubscriber(handle, "", "Heartbeat", 0){};
 
-	void subscribe() override
-	{
+	void subscribe() override {
 		// Subscribe to heartbeat messages
 		_canard_handle.RxSubscribe(CanardTransferKindMessage,
 					   uavcan_node_Heartbeat_1_0_FIXED_PORT_ID_,  // The fixed Subject-ID
 					   uavcan_node_Heartbeat_1_0_EXTENT_BYTES_,
-					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
-					   &_subj_sub._canard_sub);
-
+					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC, &_subj_sub._canard_sub);
 	};
 
-	void callback(const CanardRxTransfer &receive) override
-	{
-		//TODO heartbeat management
+	void callback(const CanardRxTransfer &receive) override{
+		// TODO heartbeat management
 	};
-
 };

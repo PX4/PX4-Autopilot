@@ -34,15 +34,16 @@
 #include <parameters/param.h>
 #include <px4_platform_common/cli.h>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/time.h>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
+#include <string.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
-#include <string.h>
+
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 
 using namespace time_literals;
 
@@ -52,21 +53,21 @@ struct FailureUnit {
 };
 
 static constexpr FailureUnit failure_units[] = {
-	{ "gyro", vehicle_command_s::FAILURE_UNIT_SENSOR_GYRO},
-	{ "accel", vehicle_command_s::FAILURE_UNIT_SENSOR_ACCEL},
-	{ "mag", vehicle_command_s::FAILURE_UNIT_SENSOR_MAG},
-	{ "baro", vehicle_command_s::FAILURE_UNIT_SENSOR_BARO},
-	{ "gps", vehicle_command_s::FAILURE_UNIT_SENSOR_GPS},
-	{ "optical_flow", vehicle_command_s::FAILURE_UNIT_SENSOR_OPTICAL_FLOW},
-	{ "vio", vehicle_command_s::FAILURE_UNIT_SENSOR_VIO},
-	{ "distance_sensor", vehicle_command_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR},
-	{ "airspeed", vehicle_command_s::FAILURE_UNIT_SENSOR_AIRSPEED},
-	{ "battery", vehicle_command_s::FAILURE_UNIT_SYSTEM_BATTERY},
-	{ "motor", vehicle_command_s::FAILURE_UNIT_SYSTEM_MOTOR},
-	{ "servo", vehicle_command_s::FAILURE_UNIT_SYSTEM_SERVO},
-	{ "avoidance", vehicle_command_s::FAILURE_UNIT_SYSTEM_AVOIDANCE},
-	{ "rc_signal", vehicle_command_s::FAILURE_UNIT_SYSTEM_RC_SIGNAL},
-	{ "mavlink_signal", vehicle_command_s::FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL},
+	{"gyro", vehicle_command_s::FAILURE_UNIT_SENSOR_GYRO},
+	{"accel", vehicle_command_s::FAILURE_UNIT_SENSOR_ACCEL},
+	{"mag", vehicle_command_s::FAILURE_UNIT_SENSOR_MAG},
+	{"baro", vehicle_command_s::FAILURE_UNIT_SENSOR_BARO},
+	{"gps", vehicle_command_s::FAILURE_UNIT_SENSOR_GPS},
+	{"optical_flow", vehicle_command_s::FAILURE_UNIT_SENSOR_OPTICAL_FLOW},
+	{"vio", vehicle_command_s::FAILURE_UNIT_SENSOR_VIO},
+	{"distance_sensor", vehicle_command_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR},
+	{"airspeed", vehicle_command_s::FAILURE_UNIT_SENSOR_AIRSPEED},
+	{"battery", vehicle_command_s::FAILURE_UNIT_SYSTEM_BATTERY},
+	{"motor", vehicle_command_s::FAILURE_UNIT_SYSTEM_MOTOR},
+	{"servo", vehicle_command_s::FAILURE_UNIT_SYSTEM_SERVO},
+	{"avoidance", vehicle_command_s::FAILURE_UNIT_SYSTEM_AVOIDANCE},
+	{"rc_signal", vehicle_command_s::FAILURE_UNIT_SYSTEM_RC_SIGNAL},
+	{"mavlink_signal", vehicle_command_s::FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL},
 };
 
 struct FailureType {
@@ -75,18 +76,17 @@ struct FailureType {
 };
 
 static constexpr FailureType failure_types[] = {
-	{ "ok", vehicle_command_s::FAILURE_TYPE_OK},
-	{ "off", vehicle_command_s::FAILURE_TYPE_OFF},
-	{ "stuck", vehicle_command_s::FAILURE_TYPE_STUCK},
-	{ "garbage", vehicle_command_s::FAILURE_TYPE_GARBAGE},
-	{ "wrong", vehicle_command_s::FAILURE_TYPE_WRONG},
-	{ "slow", vehicle_command_s::FAILURE_TYPE_SLOW},
-	{ "delayed", vehicle_command_s::FAILURE_TYPE_DELAYED},
-	{ "intermittent", vehicle_command_s::FAILURE_TYPE_INTERMITTENT},
+	{"ok", vehicle_command_s::FAILURE_TYPE_OK},
+	{"off", vehicle_command_s::FAILURE_TYPE_OFF},
+	{"stuck", vehicle_command_s::FAILURE_TYPE_STUCK},
+	{"garbage", vehicle_command_s::FAILURE_TYPE_GARBAGE},
+	{"wrong", vehicle_command_s::FAILURE_TYPE_WRONG},
+	{"slow", vehicle_command_s::FAILURE_TYPE_SLOW},
+	{"delayed", vehicle_command_s::FAILURE_TYPE_DELAYED},
+	{"intermittent", vehicle_command_s::FAILURE_TYPE_INTERMITTENT},
 };
 
-static void print_usage()
-{
+static void print_usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -118,9 +118,9 @@ failure gps off
 	}
 }
 
-int inject_failure(const FailureUnit& unit, const FailureType& type, uint8_t instance)
-{
-	PX4_WARN("inject failure unit: %s (%d), type: %s (%d), instance: %d", unit.key, unit.value, type.key, type.value, instance);
+int inject_failure(const FailureUnit &unit, const FailureType &type, uint8_t instance) {
+	PX4_WARN("inject failure unit: %s (%d), type: %s (%d), instance: %d", unit.key, unit.value, type.key,
+		 type.value, instance);
 
 	uORB::Subscription command_ack_sub{ORB_ID(vehicle_command_ack)};
 
@@ -156,8 +156,7 @@ int inject_failure(const FailureUnit& unit, const FailureType& type, uint8_t ins
 	return 1;
 }
 
-extern "C" __EXPORT int failure_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int failure_main(int argc, char *argv[]) {
 	int32_t param = 0;
 
 	if (PX4_OK != param_get(param_find("SYS_FAILURE_EN"), &param)) {
@@ -189,14 +188,14 @@ extern "C" __EXPORT int failure_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "i:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'i':
-			instance = (uint8_t)atoi(myoptarg);
-			break;
+			case 'i':
+				instance = (uint8_t)atoi(myoptarg);
+				break;
 
-		default:
-			PX4_WARN("Unknown option");
-			print_usage();
-			return 1;
+			default:
+				PX4_WARN("Unknown option");
+				print_usage();
+				return 1;
 		}
 	}
 

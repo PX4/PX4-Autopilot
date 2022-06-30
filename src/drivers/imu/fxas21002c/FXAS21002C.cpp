@@ -33,13 +33,14 @@
 
 #include "FXAS21002C.hpp"
 
-#define DEF_REG(r)   {r, #r}
+#define DEF_REG(r) \
+	{ r, #r }
 
 /* default values for this device */
-#define FXAS21002C_MAX_RATE              800
-#define FXAS21002C_DEFAULT_RATE          FXAS21002C_MAX_RATE
-#define FXAS21002C_DEFAULT_RANGE_DPS     2000
-#define FXAS21002C_DEFAULT_ONCHIP_FILTER_FREQ 	64 // ODR dependant
+#define FXAS21002C_MAX_RATE 800
+#define FXAS21002C_DEFAULT_RATE FXAS21002C_MAX_RATE
+#define FXAS21002C_DEFAULT_RANGE_DPS 2000
+#define FXAS21002C_DEFAULT_ONCHIP_FILTER_FREQ 64  // ODR dependant
 
 /*
   we set the timer interrupt to run a bit faster than the desired
@@ -48,45 +49,36 @@
   due to other timers
   Typical reductions for the MPU6000 is 20% so 20% of 1/800 is 250 us
  */
-#define FXAS21002C_TIMER_REDUCTION				250
+#define FXAS21002C_TIMER_REDUCTION 250
 
 /*
   list of registers that will be checked in check_registers(). Note
   that ADDR_WHO_AM_I must be first in the list.
  */
-static constexpr uint8_t _checked_registers[] {
-	FXAS21002C_WHO_AM_I,
-	FXAS21002C_F_SETUP,
-	FXAS21002C_CTRL_REG0,
-	FXAS21002C_CTRL_REG1,
-	FXAS21002C_CTRL_REG2,
-	FXAS21002C_CTRL_REG3,
+static constexpr uint8_t _checked_registers[]{
+	FXAS21002C_WHO_AM_I,  FXAS21002C_F_SETUP,   FXAS21002C_CTRL_REG0,
+	FXAS21002C_CTRL_REG1, FXAS21002C_CTRL_REG2, FXAS21002C_CTRL_REG3,
 };
 
 using namespace time_literals;
 
-FXAS21002C::FXAS21002C(device::Device *interface, const I2CSPIDriverConfig &config) :
-	I2CSPIDriver(config),
-	_interface(interface),
-	_px4_gyro(_interface->get_device_id(), config.rotation),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_errors(perf_alloc(PC_COUNT, MODULE_NAME": err")),
-	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad register")),
-	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": duplicate reading"))
-{
-}
+FXAS21002C::FXAS21002C(device::Device *interface, const I2CSPIDriverConfig &config)
+	: I2CSPIDriver(config),
+	  _interface(interface),
+	  _px4_gyro(_interface->get_device_id(), config.rotation),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _errors(perf_alloc(PC_COUNT, MODULE_NAME ": err")),
+	  _bad_registers(perf_alloc(PC_COUNT, MODULE_NAME ": bad register")),
+	  _duplicates(perf_alloc(PC_COUNT, MODULE_NAME ": duplicate reading")) {}
 
-FXAS21002C::~FXAS21002C()
-{
+FXAS21002C::~FXAS21002C() {
 	perf_free(_sample_perf);
 	perf_free(_errors);
 	perf_free(_bad_registers);
 	perf_free(_duplicates);
 }
 
-int
-FXAS21002C::init()
-{
+int FXAS21002C::init() {
 	/* do SPI/I2C init (and probe) first */
 	if (_interface->init() != OK) {
 		PX4_ERR("SPI/I2C interface init failed");
@@ -104,8 +96,7 @@ FXAS21002C::init()
 	return PX4_OK;
 }
 
-void FXAS21002C::reset()
-{
+void FXAS21002C::reset() {
 	/* write 0 0 0 000 00 = 0x00 to CTRL_REG1 to place FXOS21002 in Standby
 	 * [6]: RST=0
 	 * [5]: ST=0 self test disabled
@@ -132,8 +123,7 @@ void FXAS21002C::reset()
 	set_onchip_lowpass_filter(FXAS21002C_DEFAULT_ONCHIP_FILTER_FREQ);
 }
 
-void FXAS21002C::write_checked_reg(unsigned reg, uint8_t value)
-{
+void FXAS21002C::write_checked_reg(unsigned reg, uint8_t value) {
 	write_reg(reg, value);
 
 	for (uint8_t i = 0; i < FXAS21002C_NUM_CHECKED_REGISTERS; i++) {
@@ -143,16 +133,14 @@ void FXAS21002C::write_checked_reg(unsigned reg, uint8_t value)
 	}
 }
 
-void FXAS21002C::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
-{
-	uint8_t	val = read_reg(reg);
+void FXAS21002C::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits) {
+	uint8_t val = read_reg(reg);
 	val &= ~clearbits;
 	val |= setbits;
 	write_checked_reg(reg, val);
 }
 
-int FXAS21002C::set_range(unsigned max_dps)
-{
+int FXAS21002C::set_range(unsigned max_dps) {
 	uint8_t bits = CTRL_REG0_FS_250_DPS;
 	float new_range_scale_dps_digit;
 
@@ -161,22 +149,22 @@ int FXAS21002C::set_range(unsigned max_dps)
 	}
 
 	if (max_dps <= 250) {
-		//new_range = 250;
+		// new_range = 250;
 		new_range_scale_dps_digit = 7.8125e-3f;
 		bits = CTRL_REG0_FS_250_DPS;
 
 	} else if (max_dps <= 500) {
-		//new_range = 500;
+		// new_range = 500;
 		new_range_scale_dps_digit = 15.625e-3f;
 		bits = CTRL_REG0_FS_500_DPS;
 
 	} else if (max_dps <= 1000) {
-		//new_range = 1000;
+		// new_range = 1000;
 		new_range_scale_dps_digit = 31.25e-3f;
 		bits = CTRL_REG0_FS_1000_DPS;
 
 	} else if (max_dps <= 2000) {
-		//new_range = 2000;
+		// new_range = 2000;
 		new_range_scale_dps_digit = 62.5e-3f;
 		bits = CTRL_REG0_FS_2000_DPS;
 
@@ -194,8 +182,7 @@ int FXAS21002C::set_range(unsigned max_dps)
 	return OK;
 }
 
-void FXAS21002C::set_standby(int rate, bool standby_true)
-{
+void FXAS21002C::set_standby(int rate, bool standby_true) {
 	uint8_t c = 0;
 	uint8_t s = 0;
 
@@ -215,8 +202,7 @@ void FXAS21002C::set_standby(int rate, bool standby_true)
 	usleep(wait_ms * 1000);
 }
 
-int FXAS21002C::set_samplerate(unsigned frequency)
-{
+int FXAS21002C::set_samplerate(unsigned frequency) {
 	uint8_t bits = 0;
 
 	unsigned last_rate = _current_rate;
@@ -264,10 +250,9 @@ int FXAS21002C::set_samplerate(unsigned frequency)
 	return OK;
 }
 
-void FXAS21002C::set_onchip_lowpass_filter(int frequency_hz)
-{
+void FXAS21002C::set_onchip_lowpass_filter(int frequency_hz) {
 	int high = 256 / (800 / _current_rate);
-	int med = high / 2 ;
+	int med = high / 2;
 	int low = med / 2;
 
 	if (_current_rate <= 25) {
@@ -299,14 +284,12 @@ void FXAS21002C::set_onchip_lowpass_filter(int frequency_hz)
 	set_standby(_current_rate, false);
 }
 
-void FXAS21002C::start()
-{
+void FXAS21002C::start() {
 	/* start polling at the specified rate */
 	ScheduleOnInterval((1_s / FXAS21002C_DEFAULT_RATE) - FXAS21002C_TIMER_REDUCTION);
 }
 
-void FXAS21002C::check_registers()
-{
+void FXAS21002C::check_registers() {
 	uint8_t v;
 
 	if ((v = read_reg(_checked_registers[_checked_next])) != _checked_values[_checked_next]) {
@@ -334,8 +317,7 @@ void FXAS21002C::check_registers()
 	_checked_next = (_checked_next + 1) % FXAS21002C_NUM_CHECKED_REGISTERS;
 }
 
-void FXAS21002C::RunImpl()
-{
+void FXAS21002C::RunImpl() {
 	// start the performance counter
 	perf_begin(_sample_perf);
 
@@ -397,8 +379,7 @@ void FXAS21002C::RunImpl()
 	perf_end(_sample_perf);
 }
 
-void FXAS21002C::print_status()
-{
+void FXAS21002C::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_errors);
@@ -410,43 +391,24 @@ void FXAS21002C::print_status()
 		uint8_t v = read_reg(_checked_registers[i]);
 
 		if (v != _checked_values[i]) {
-			::printf("reg %02x:%02x should be %02x\n",
-				 (unsigned)_checked_registers[i],
-				 (unsigned)v,
+			::printf("reg %02x:%02x should be %02x\n", (unsigned)_checked_registers[i], (unsigned)v,
 				 (unsigned)_checked_values[i]);
 		}
 	}
-
 }
 
-void
-FXAS21002C::print_registers()
-{
+void FXAS21002C::print_registers() {
 	const struct {
 		uint8_t reg;
 		const char *name;
 	} regmap[] = {
-		DEF_REG(FXAS21002C_STATUS),
-		DEF_REG(FXAS21002C_OUT_X_MSB),
-		DEF_REG(FXAS21002C_OUT_X_LSB),
-		DEF_REG(FXAS21002C_OUT_Y_MSB),
-		DEF_REG(FXAS21002C_OUT_Y_LSB),
-		DEF_REG(FXAS21002C_OUT_Z_MSB),
-		DEF_REG(FXAS21002C_OUT_Z_LSB),
-		DEF_REG(FXAS21002C_DR_STATUS),
-		DEF_REG(FXAS21002C_F_STATUS),
-		DEF_REG(FXAS21002C_F_SETUP),
-		DEF_REG(FXAS21002C_F_EVENT),
-		DEF_REG(FXAS21002C_INT_SRC_FLAG),
-		DEF_REG(FXAS21002C_WHO_AM_I),
-		DEF_REG(FXAS21002C_CTRL_REG0),
-		DEF_REG(FXAS21002C_RT_CFG),
-		DEF_REG(FXAS21002C_RT_SRC),
-		DEF_REG(FXAS21002C_RT_THS),
-		DEF_REG(FXAS21002C_RT_COUNT),
-		DEF_REG(FXAS21002C_TEMP),
-		DEF_REG(FXAS21002C_CTRL_REG1),
-		DEF_REG(FXAS21002C_CTRL_REG2),
+		DEF_REG(FXAS21002C_STATUS),    DEF_REG(FXAS21002C_OUT_X_MSB), DEF_REG(FXAS21002C_OUT_X_LSB),
+		DEF_REG(FXAS21002C_OUT_Y_MSB), DEF_REG(FXAS21002C_OUT_Y_LSB), DEF_REG(FXAS21002C_OUT_Z_MSB),
+		DEF_REG(FXAS21002C_OUT_Z_LSB), DEF_REG(FXAS21002C_DR_STATUS), DEF_REG(FXAS21002C_F_STATUS),
+		DEF_REG(FXAS21002C_F_SETUP),   DEF_REG(FXAS21002C_F_EVENT),   DEF_REG(FXAS21002C_INT_SRC_FLAG),
+		DEF_REG(FXAS21002C_WHO_AM_I),  DEF_REG(FXAS21002C_CTRL_REG0), DEF_REG(FXAS21002C_RT_CFG),
+		DEF_REG(FXAS21002C_RT_SRC),    DEF_REG(FXAS21002C_RT_THS),    DEF_REG(FXAS21002C_RT_COUNT),
+		DEF_REG(FXAS21002C_TEMP),      DEF_REG(FXAS21002C_CTRL_REG1), DEF_REG(FXAS21002C_CTRL_REG2),
 		DEF_REG(FXAS21002C_CTRL_REG3),
 	};
 
@@ -455,9 +417,7 @@ FXAS21002C::print_registers()
 	}
 }
 
-void
-FXAS21002C::test_error()
-{
+void FXAS21002C::test_error() {
 	// trigger an error
 	write_reg(FXAS21002C_CTRL_REG1, 0);
 }

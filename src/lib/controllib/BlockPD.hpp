@@ -39,50 +39,41 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <assert.h>
-#include <time.h>
-#include <stdlib.h>
 #include <math.h>
-#include <mathlib/math/test/test.hpp>
+#include <px4_platform_common/defines.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
+namespace control {
 
 /**
  * A proportional-derivative controller.
  * @link http://en.wikipedia.org/wiki/PID_controller
  */
-class __EXPORT BlockPD: public SuperBlock
-{
+class __EXPORT BlockPD : public SuperBlock {
 public:
-// methods
-	BlockPD(SuperBlock *parent, const char *name) :
-		SuperBlock(parent, name),
-		_derivative(this, "D"),
-		_kP(this, "P"),
-		_kD(this, "D")
-	{}
+	// methods
+	BlockPD(SuperBlock *parent, const char *name)
+		: SuperBlock(parent, name), _derivative(this, "D"), _kP(this, "P"), _kD(this, "D") {}
 	virtual ~BlockPD() = default;
-	float update(float input)
-	{
-		return getKP() * input +
-		       getKD() * getDerivative().update(input);
-	}
-// accessors
+	float update(float input) { return getKP() * input + getKD() * getDerivative().update(input); }
+	// accessors
 	float getKP() { return _kP.get(); }
 	float getKD() { return _kD.get(); }
 	BlockDerivative &getDerivative() { return _derivative; }
+
 private:
 	BlockDerivative _derivative;
 	control::BlockParamFloat _kP;
 	control::BlockParamFloat _kD;
 };
 
-} // namespace control
+}  // namespace control

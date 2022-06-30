@@ -32,5 +32,4 @@
  ****************************************************************************/
 #pragma once
 
-
 #include "../../../s32k1xx/include/px4_arch/io_timer_hw_description.h"

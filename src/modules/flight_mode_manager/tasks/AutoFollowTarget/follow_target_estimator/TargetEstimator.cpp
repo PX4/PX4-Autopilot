@@ -43,23 +43,15 @@
 #include <px4_platform_common/log.h>
 
 using matrix::Vector2f;
-using matrix::Vector3f;
 using matrix::Vector3;
+using matrix::Vector3f;
 
-TargetEstimator::TargetEstimator() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
-{
+TargetEstimator::TargetEstimator()
+	: ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers) {}
 
-}
+TargetEstimator::~TargetEstimator() { Stop(); }
 
-TargetEstimator::~TargetEstimator()
-{
-	Stop();
-}
-
-bool TargetEstimator::Start()
-{
+bool TargetEstimator::Start() {
 	// Initialize this filter
 	reset();
 
@@ -78,8 +70,7 @@ bool TargetEstimator::Start()
 	return true;
 }
 
-void TargetEstimator::Stop()
-{
+void TargetEstimator::Stop() {
 	// clear all registered callbacks
 	_follow_target_sub.unregisterCallback();
 	_vehicle_local_position_sub.unregisterCallback();
@@ -87,15 +78,13 @@ void TargetEstimator::Stop()
 	Deinit();
 }
 
-void TargetEstimator::Run()
-{
+void TargetEstimator::Run() {
 	ScheduleDelayed(10_ms);
 
 	update();
 }
 
-void TargetEstimator::parameters_update(bool force)
-{
+void TargetEstimator::parameters_update(bool force) {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || force) {
 		// clear update
@@ -107,8 +96,7 @@ void TargetEstimator::parameters_update(bool force)
 	}
 }
 
-void TargetEstimator::update()
-{
+void TargetEstimator::update() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	// compute deltatime between update() calls
@@ -123,7 +111,6 @@ void TargetEstimator::update()
 	parameters_update();
 	update_filter_gains(_filter_gains);
 
-
 	// Get GPS reference location for NED frame, needed for projection
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
 
@@ -133,7 +120,6 @@ void TargetEstimator::update()
 	follow_target_s follow_target;
 
 	if (_follow_target_sub.update(&follow_target)) {
-
 		// Don't perform measurement update if two follow_target messages with identical timestamps are used
 		// This can happen when using the MAVSDK and more than one outgoing follow_target message is queued.
 		const bool duplicate_measurement_received = follow_target.timestamp == _last_follow_target_timestamp;
@@ -179,8 +165,7 @@ void TargetEstimator::update()
 	_follow_target_estimator_pub.publish(follow_target_estimator);
 }
 
-void TargetEstimator::update_filter_gains(filter_gains_s &filter_gains) const
-{
+void TargetEstimator::update_filter_gains(filter_gains_s &filter_gains) const {
 	const float responsiveness_param = math::constrain(_param_flw_tgt_rs.get(), .1F, 1.0F);
 
 	if (fabsf(filter_gains.responsiveness - responsiveness_param) < FLT_EPSILON) {
@@ -194,7 +179,7 @@ void TargetEstimator::update_filter_gains(filter_gains_s &filter_gains) const
 	// From alpha-beta-gamma filter equations: G = 1-beta^3
 	// Therefore: beta = (1-Gp)^(1/3) = (1-(1-responsiveness))^(1/3) = (r)^(1/3)
 	const float beta_p = pow((filter_gains.responsiveness), 1.0f / 3.0f);
-	const float beta_v = 0.9f * beta_p; // velocity fusion gain is slightly lower. TODO: individual parameter?
+	const float beta_v = 0.9f * beta_p;  // velocity fusion gain is slightly lower. TODO: individual parameter?
 
 	// Estimator gains for horizontal position update
 	filter_gains.G_p = 1.0f - beta_p * beta_p * beta_p;
@@ -202,35 +187,32 @@ void TargetEstimator::update_filter_gains(filter_gains_s &filter_gains) const
 	filter_gains.K_p = 0.5f * (1.0f - beta_p) * (1.0f - beta_p) * (1.0f - beta_p);
 
 	// Estimator gains for velocity update
-	filter_gains.G_v = 1.0f - beta_v * beta_v ;
+	filter_gains.G_v = 1.0f - beta_v * beta_v;
 	filter_gains.H_v = (1.0f - beta_v) * (1.0f - beta_v);
 }
 
 bool TargetEstimator::measurement_can_be_fused(const Vector3f &current_measurement,
-		const Vector3f &previous_measurement,
-		uint64_t last_fusion_timestamp, float min_delta_t) const
-{
-	const bool measurement_valid = PX4_ISFINITE(current_measurement(0)) && PX4_ISFINITE(current_measurement(1))
-				       && PX4_ISFINITE(current_measurement(2));
+					       const Vector3f &previous_measurement, uint64_t last_fusion_timestamp,
+					       float min_delta_t) const {
+	const bool measurement_valid = PX4_ISFINITE(current_measurement(0)) && PX4_ISFINITE(current_measurement(1)) &&
+				       PX4_ISFINITE(current_measurement(2));
 
-	const bool sensor_data_changed = Vector3f(current_measurement - previous_measurement).longerThan(2.0f * FLT_EPSILON)
-					 || !PX4_ISFINITE(previous_measurement(0)) || !PX4_ISFINITE(previous_measurement(1))
-					 || !PX4_ISFINITE(previous_measurement(2));
+	const bool sensor_data_changed =
+		Vector3f(current_measurement - previous_measurement).longerThan(2.0f * FLT_EPSILON) ||
+		!PX4_ISFINITE(previous_measurement(0)) || !PX4_ISFINITE(previous_measurement(1)) ||
+		!PX4_ISFINITE(previous_measurement(2));
 
 	// This is required as a throttle
-	const bool fusion_old_enough = hrt_absolute_time() - last_fusion_timestamp >
-				       min_delta_t * 1000;
+	const bool fusion_old_enough = hrt_absolute_time() - last_fusion_timestamp > min_delta_t * 1000;
 
 	// TODO: Remove this workaround
-	const bool fusion_too_old = hrt_absolute_time() - last_fusion_timestamp >
-				    2 * min_delta_t * 1000;
+	const bool fusion_too_old = hrt_absolute_time() - last_fusion_timestamp > 2 * min_delta_t * 1000;
 
 	return measurement_valid && fusion_old_enough && (sensor_data_changed || fusion_too_old);
 	// return measurement_valid;
 }
 
-void TargetEstimator::measurement_update(follow_target_s follow_target)
-{
+void TargetEstimator::measurement_update(follow_target_s follow_target) {
 	_fusion_count++;
 	// Decompose follow_target message into the individual measurements for position and velocity
 	const Vector3f vel_measured{follow_target.vx, follow_target.vy, follow_target.vz};
@@ -266,17 +248,18 @@ void TargetEstimator::measurement_update(follow_target_s follow_target)
 				     MINIMUM_TIME_BETWEEN_POS_FUSIONS_MS)) {
 		// Update with only position measurement
 
-		const float dt_update_pos = math::constrain((follow_target.timestamp - _last_position_fusion_timestamp) * 1e-6f, 1e-3f,
-					    20.0f);  // seconds
+		const float dt_update_pos =
+			math::constrain((follow_target.timestamp - _last_position_fusion_timestamp) * 1e-6f, 1e-3f,
+					20.0f);  // seconds
 		_last_position_fusion_timestamp = follow_target.timestamp;
 
 		const Vector3f pos_innovation = pos_measured - _filter_states.pos_ned_est;
 
 		// Position, velocity and acceleration update
 		_filter_states.pos_ned_est += _filter_gains.G_p * pos_innovation;
-		_filter_states.vel_ned_est += _filter_gains.H_p / (dt_update_pos) * pos_innovation;
-		_filter_states.acc_ned_est += 2.0f * _filter_gains.K_p /
-					      (dt_update_pos * dt_update_pos) * pos_innovation;
+		_filter_states.vel_ned_est += _filter_gains.H_p / (dt_update_pos)*pos_innovation;
+		_filter_states.acc_ned_est +=
+			2.0f * _filter_gains.K_p / (dt_update_pos * dt_update_pos) * pos_innovation;
 
 		_pos_measurement_old = pos_measured;
 	}
@@ -287,66 +270,66 @@ void TargetEstimator::measurement_update(follow_target_s follow_target)
 	// - the last velocity fusion is a while ago to prevent repeated measurements to cause a quick convergence
 	// - the target is considered to be moving. Otherwise it's enough to only update the position
 	// - the GPS velocity measurement from the target is not stale
-	// Additionally also wait with first velocity fusion until at least one position fusion has been done (states become finite)
+	// Additionally also wait with first velocity fusion until at least one position fusion has been done (states
+	// become finite)
 	if (measurement_can_be_fused(vel_measured, _vel_measurement_old, _last_velocity_fusion_timestamp,
 				     MINIMUM_TIME_BETWEEN_VEL_FUSIONS_MS)) {
 		// Update with only velocity measurement
 
-		const float dt_update_vel = math::constrain((follow_target.timestamp - _last_velocity_fusion_timestamp) * 1e-6f, 1e-3f,
-					    20.0f); // seconds
+		const float dt_update_vel =
+			math::constrain((follow_target.timestamp - _last_velocity_fusion_timestamp) * 1e-6f, 1e-3f,
+					20.0f);  // seconds
 		_last_velocity_fusion_timestamp = follow_target.timestamp;
 
 		const Vector3f vel_innovation = vel_measured - _filter_states.vel_ned_est;
 
 		// Velocity and acceleration update
 		_filter_states.vel_ned_est += _filter_gains.G_v * vel_innovation;
-		_filter_states.acc_ned_est += _filter_gains.H_v / (dt_update_vel) * vel_innovation;
+		_filter_states.acc_ned_est += _filter_gains.H_v / (dt_update_vel)*vel_innovation;
 
 		_vel_measurement_old = vel_measured;
 	}
 
 	_filter_states.saturate_acceleration(ACCELERATION_SATURATION);
-
 }
 
-void TargetEstimator::prediction_update(float deltatime)
-{
+void TargetEstimator::prediction_update(float deltatime) {
 	_prediction_count++;
 	// Temporary copy to not mix old and new values during the update calculations
 	const Vector3f vel_ned_est_prev = _filter_states.vel_ned_est;
 	const Vector3f acc_ned_est_prev = _filter_states.acc_ned_est;
 
-	if (PX4_ISFINITE(vel_ned_est_prev(0)) && PX4_ISFINITE(vel_ned_est_prev(1)) && PX4_ISFINITE(vel_ned_est_prev(2))) {
-		_filter_states.pos_ned_est += deltatime * vel_ned_est_prev + 0.5f * acc_ned_est_prev * deltatime * deltatime;
+	if (PX4_ISFINITE(vel_ned_est_prev(0)) && PX4_ISFINITE(vel_ned_est_prev(1)) &&
+	    PX4_ISFINITE(vel_ned_est_prev(2))) {
+		_filter_states.pos_ned_est +=
+			deltatime * vel_ned_est_prev + 0.5f * acc_ned_est_prev * deltatime * deltatime;
 	}
 
-	if (PX4_ISFINITE(acc_ned_est_prev(0)) && PX4_ISFINITE(acc_ned_est_prev(1)) && PX4_ISFINITE(acc_ned_est_prev(2))) {
+	if (PX4_ISFINITE(acc_ned_est_prev(0)) && PX4_ISFINITE(acc_ned_est_prev(1)) &&
+	    PX4_ISFINITE(acc_ned_est_prev(2))) {
 		_filter_states.vel_ned_est += deltatime * acc_ned_est_prev;
 	}
 }
 
-Vector3<double> TargetEstimator::get_lat_lon_alt_est() const
-{
+Vector3<double> TargetEstimator::get_lat_lon_alt_est() const {
 	Vector3<double> lat_lon_alt{(double)NAN, (double)NAN, (double)NAN};
 
 	if (PX4_ISFINITE(_filter_states.pos_ned_est(0)) && PX4_ISFINITE(_filter_states.pos_ned_est(0))) {
-		_reference_position.reproject(_filter_states.pos_ned_est(0), _filter_states.pos_ned_est(1), lat_lon_alt(0),
-					      lat_lon_alt(1));
+		_reference_position.reproject(_filter_states.pos_ned_est(0), _filter_states.pos_ned_est(1),
+					      lat_lon_alt(0), lat_lon_alt(1));
 		lat_lon_alt(2) = -(double)_filter_states.pos_ned_est(2) + (double)_vehicle_local_position.ref_alt;
 	}
 
 	return lat_lon_alt;
 }
 
-bool TargetEstimator::is_stale(const float timeout_duration_ms) const
-{
-	const bool measurements_stale = (hrt_absolute_time() - _last_follow_target_timestamp) / 1000.0f >=
-					timeout_duration_ms;
+bool TargetEstimator::is_stale(const float timeout_duration_ms) const {
+	const bool measurements_stale =
+		(hrt_absolute_time() - _last_follow_target_timestamp) / 1000.0f >= timeout_duration_ms;
 	return measurements_stale;
 }
 
-void TargetEstimator::reset()
-{
+void TargetEstimator::reset() {
 	_last_filter_reset_timestamp = hrt_absolute_time();  // debug only
 	_last_position_fusion_timestamp = _last_velocity_fusion_timestamp = 0;
 	_last_follow_target_timestamp = 0;

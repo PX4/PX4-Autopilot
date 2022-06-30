@@ -33,15 +33,13 @@
 
 #pragma once
 
+#include <px4_platform_common/module_params.h>
+
 #include "ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
 
-#include <px4_platform_common/module_params.h>
-
-class ActuatorEffectivenessTilts : public ModuleParams, public ActuatorEffectiveness
-{
+class ActuatorEffectivenessTilts : public ModuleParams, public ActuatorEffectiveness {
 public:
-
 	static constexpr int MAX_COUNT = 4;
 
 	enum class Control : int32_t {
@@ -92,8 +90,8 @@ private:
 	ParamHandles _param_handles[MAX_COUNT];
 	param_t _count_handle;
 
-	Params _params[MAX_COUNT] {};
+	Params _params[MAX_COUNT]{};
 	int _count{0};
 
-	matrix::Vector3f _torque[MAX_COUNT] {};
+	matrix::Vector3f _torque[MAX_COUNT]{};
 };

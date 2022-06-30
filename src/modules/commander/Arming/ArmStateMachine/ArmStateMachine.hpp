@@ -33,7 +33,6 @@
 
 #pragma once
 
-#include "../PreFlightCheck/PreFlightCheck.hpp"
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
 #include <uORB/topics/actuator_armed.h>
@@ -41,24 +40,26 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 
-#include "../../state_machine_helper.h" // TODO: get independent of transition_result_t
+#include "../../state_machine_helper.h"  // TODO: get independent of transition_result_t
+#include "../PreFlightCheck/PreFlightCheck.hpp"
 
 using arm_disarm_reason_t = events::px4::enums::arm_disarm_reason_t;
 
-class ArmStateMachine
-{
+class ArmStateMachine {
 public:
 	ArmStateMachine() = default;
 	~ArmStateMachine() = default;
 
 	void forceArmState(uint8_t new_arm_state) { _arm_state = new_arm_state; }
 
-	transition_result_t
-	arming_state_transition(vehicle_status_s &status, const vehicle_control_mode_s &control_mode,
-				const bool safety_button_available, const bool safety_off, const arming_state_t new_arming_state,
-				actuator_armed_s &armed, const bool fRunPreArmChecks, orb_advert_t *mavlink_log_pub,
-				vehicle_status_flags_s &status_flags,
-				const hrt_abstime &time_since_boot, arm_disarm_reason_t calling_reason);
+	transition_result_t arming_state_transition(vehicle_status_s &status,
+						    const vehicle_control_mode_s &control_mode,
+						    const bool safety_button_available, const bool safety_off,
+						    const arming_state_t new_arming_state, actuator_armed_s &armed,
+						    const bool fRunPreArmChecks, orb_advert_t *mavlink_log_pub,
+						    vehicle_status_flags_s &status_flags,
+						    const hrt_abstime &time_since_boot,
+						    arm_disarm_reason_t calling_reason);
 
 	// Getters
 	uint8_t getArmState() const { return _arm_state; }
@@ -81,14 +82,16 @@ private:
 	// will be true for a valid transition or false for a invalid transition. In some cases even
 	// though the transition is marked as true additional checks must be made. See arming_state_transition
 	// code for those checks.
-	static constexpr bool arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle_status_s::ARMING_STATE_MAX]
-	= {
-		//                                                    INIT,  STANDBY, ARMED, STANDBY_ERROR, SHUTDOWN, IN_AIR_RESTORE
-		{ /* vehicle_status_s::ARMING_STATE_INIT */           true,  true,    false, true,          false,    false },
-		{ /* vehicle_status_s::ARMING_STATE_STANDBY */        true,  true,    true,  false,         false,    false },
-		{ /* vehicle_status_s::ARMING_STATE_ARMED */          false, true,    true,  false,         false,    true },
-		{ /* vehicle_status_s::ARMING_STATE_STANDBY_ERROR */  true,  true,    true,  true,          false,    false },
-		{ /* vehicle_status_s::ARMING_STATE_SHUTDOWN */       true,  true,    false, true,          true,     true },
-		{ /* vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE */ false, false,   false, false,         false,    false }, // NYI
+	static constexpr bool
+		arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle_status_s::ARMING_STATE_MAX] = {
+			//                                                    INIT,  STANDBY, ARMED, STANDBY_ERROR,
+			//                                                    SHUTDOWN, IN_AIR_RESTORE
+			{/* vehicle_status_s::ARMING_STATE_INIT */ true, true, false, true, false, false},
+			{/* vehicle_status_s::ARMING_STATE_STANDBY */ true, true, true, false, false, false},
+			{/* vehicle_status_s::ARMING_STATE_ARMED */ false, true, true, false, false, true},
+			{/* vehicle_status_s::ARMING_STATE_STANDBY_ERROR */ true, true, true, true, false, false},
+			{/* vehicle_status_s::ARMING_STATE_SHUTDOWN */ true, true, false, true, true, true},
+			{/* vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE */ false, false, false, false, false,
+			 false},  // NYI
 	};
 };

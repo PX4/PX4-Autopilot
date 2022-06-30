@@ -340,7 +340,7 @@ PARAM_DEFINE_FLOAT(RC5_REV, 1.0f);
  * @max 100.0
  * @group Radio Calibration
  */
-PARAM_DEFINE_FLOAT(RC5_DZ,  10.0f);
+PARAM_DEFINE_FLOAT(RC5_DZ, 10.0f);
 
 /**
  * RC channel 6 minimum

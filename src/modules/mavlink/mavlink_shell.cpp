@@ -39,11 +39,11 @@
  */
 
 #include "mavlink_shell.h"
-#include <px4_platform_common/defines.h>
 
-#include <unistd.h>
 #include <errno.h>
+#include <px4_platform_common/defines.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
 
 #ifdef __PX4_NUTTX
 #include <nshlib/nshlib.h>
@@ -57,9 +57,8 @@
 #include <asm/socket.h>
 #endif
 
-MavlinkShell::~MavlinkShell()
-{
-	//closing the pipes will stop the thread as well
+MavlinkShell::~MavlinkShell() {
+	// closing the pipes will stop the thread as well
 	if (_to_shell_fd >= 0) {
 		PX4_INFO("Stopping mavlink shell");
 		close(_to_shell_fd);
@@ -70,9 +69,8 @@ MavlinkShell::~MavlinkShell()
 	}
 }
 
-int MavlinkShell::start()
-{
-	//this currently only works for NuttX & POSIX
+int MavlinkShell::start() {
+	// this currently only works for NuttX & POSIX
 #if !defined(__PX4_NUTTX) && !defined(__PX4_POSIX)
 	return -1;
 #endif
@@ -100,9 +98,9 @@ int MavlinkShell::start()
 
 	int ret = 0;
 
-	_from_shell_fd  = p1[0];
+	_from_shell_fd = p1[0];
 	_to_shell_fd = p2[1];
-	_shell_fds[0]  = p2[0];
+	_shell_fds[0] = p2[0];
 	_shell_fds[1] = p1[1];
 
 	/*
@@ -116,8 +114,8 @@ int MavlinkShell::start()
 	fflush(stderr);
 
 #ifdef __PX4_POSIX
-	int remote_in_fd = dup(_shell_fds[0]);	// Input file descriptor for the remote shell
-	int remote_out_fd = dup(_shell_fds[1]); // Output file descriptor for the remote shell
+	int remote_in_fd = dup(_shell_fds[0]);   // Input file descriptor for the remote shell
+	int remote_out_fd = dup(_shell_fds[1]);  // Output file descriptor for the remote shell
 
 	char r_in[32];
 	char r_out[32];
@@ -126,7 +124,7 @@ int MavlinkShell::start()
 	char *const argv[3] = {r_in, r_out, nullptr};
 
 #else
-	int fd_backups[2]; //we don't touch stderr, we will redirect it to stdout in the startup of the shell task
+	int fd_backups[2];  // we don't touch stderr, we will redirect it to stdout in the startup of the shell task
 
 	for (int i = 0; i < 2; ++i) {
 		fd_backups[i] = dup(i);
@@ -141,10 +139,7 @@ int MavlinkShell::start()
 #endif
 
 	if (ret == 0) {
-		_task = px4_task_spawn_cmd("mavlink_shell",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_DEFAULT,
-					   2048,
+		_task = px4_task_spawn_cmd("mavlink_shell", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT, 2048,
 					   &MavlinkShell::shell_start_thread,
 #ifdef __PX4_POSIX
 					   argv);
@@ -159,7 +154,7 @@ int MavlinkShell::start()
 
 #if !defined(__PX4_POSIX)
 
-	//restore fd's
+	// restore fd's
 	for (int i = 0; i < 2; ++i) {
 		if (dup2(fd_backups[i], i) == -1) {
 			ret = -errno;
@@ -170,7 +165,7 @@ int MavlinkShell::start()
 
 #endif
 
-	//close unused pipe fd's
+	// close unused pipe fd's
 	close(_shell_fds[0]);
 	close(_shell_fds[1]);
 
@@ -181,10 +176,9 @@ int MavlinkShell::start()
 	return ret;
 }
 
-int MavlinkShell::shell_start_thread(int argc, char *argv[])
-{
+int MavlinkShell::shell_start_thread(int argc, char *argv[]) {
 #ifdef __PX4_NUTTX
-	dup2(1, 2); //redirect stderror to stdout
+	dup2(1, 2);  // redirect stderror to stdout
 
 	nsh_consolemain(0, NULL);
 #endif /* __PX4_NUTTX */
@@ -206,18 +200,11 @@ int MavlinkShell::shell_start_thread(int argc, char *argv[])
 	return 0;
 }
 
-size_t MavlinkShell::write(uint8_t *buffer, size_t len)
-{
-	return ::write(_to_shell_fd, buffer, len);
-}
+size_t MavlinkShell::write(uint8_t *buffer, size_t len) { return ::write(_to_shell_fd, buffer, len); }
 
-size_t MavlinkShell::read(uint8_t *buffer, size_t len)
-{
-	return ::read(_from_shell_fd, buffer, len);
-}
+size_t MavlinkShell::read(uint8_t *buffer, size_t len) { return ::read(_from_shell_fd, buffer, len); }
 
-size_t MavlinkShell::available()
-{
+size_t MavlinkShell::available() {
 	int ret = 0;
 
 	if (ioctl(_from_shell_fd, FIONREAD, (unsigned long)&ret) == OK) {

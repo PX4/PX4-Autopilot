@@ -41,8 +41,8 @@
  * Included Files
  ************************************************************/
 
-#include <stddef.h>
 #include <queue.h>
+#include <stddef.h>
 
 /************************************************************
  * Public Functions
@@ -56,8 +56,7 @@
  *
  ************************************************************/
 
-void dq_addlast(dq_entry_t *node, dq_queue_t *queue)
-{
+void dq_addlast(dq_entry_t *node, dq_queue_t *queue) {
 	node->flink = NULL;
 	node->blink = queue->tail;
 
@@ -67,7 +66,6 @@ void dq_addlast(dq_entry_t *node, dq_queue_t *queue)
 
 	} else {
 		queue->tail->flink = node;
-		queue->tail        = node;
+		queue->tail = node;
 	}
 }
-

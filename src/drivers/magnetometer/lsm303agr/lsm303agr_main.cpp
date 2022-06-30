@@ -31,14 +31,12 @@
  *
  ****************************************************************************/
 
-#include "LSM303AGR.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void
-LSM303AGR::print_usage()
-{
+#include "LSM303AGR.hpp"
+
+void LSM303AGR::print_usage() {
 	PRINT_MODULE_USAGE_NAME("lsm303agr", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
@@ -46,8 +44,7 @@ LSM303AGR::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int lsm303agr_main(int argc, char *argv[])
-{
+extern "C" int lsm303agr_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = LSM303AGR;
 	BusCLIArguments cli{false, true};
@@ -55,9 +52,9 @@ extern "C" int lsm303agr_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

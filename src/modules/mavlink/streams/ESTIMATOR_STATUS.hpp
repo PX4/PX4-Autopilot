@@ -37,8 +37,7 @@
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
 
-class MavlinkStreamEstimatorStatus : public MavlinkStream
-{
+class MavlinkStreamEstimatorStatus : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamEstimatorStatus(mavlink); }
 
@@ -48,9 +47,10 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _estimator_status_sub.advertised() ? MAVLINK_MSG_ID_ESTIMATOR_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _estimator_status_sub.advertised()
+			       ? MAVLINK_MSG_ID_ESTIMATOR_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+			       : 0;
 	}
 
 private:
@@ -59,15 +59,16 @@ private:
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
 
-	bool send() override
-	{
+	bool send() override {
 		// use primary estimator_status
 		if (_estimator_selector_status_sub.updated()) {
 			estimator_selector_status_s estimator_selector_status;
 
 			if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
-				if (estimator_selector_status.primary_instance != _estimator_status_sub.get_instance()) {
-					_estimator_status_sub.ChangeInstance(estimator_selector_status.primary_instance);
+				if (estimator_selector_status.primary_instance !=
+				    _estimator_status_sub.get_instance()) {
+					_estimator_status_sub.ChangeInstance(
+						estimator_selector_status.primary_instance);
 				}
 			}
 		}
@@ -95,4 +96,4 @@ private:
 	}
 };
 
-#endif // ESTIMATOR_STATUS_HPP
+#endif  // ESTIMATOR_STATUS_HPP

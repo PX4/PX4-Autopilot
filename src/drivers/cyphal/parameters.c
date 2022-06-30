@@ -131,7 +131,6 @@ PARAM_DEFINE_INT32(UCAN1_BMS_BP_SUB, -1);
  */
 PARAM_DEFINE_INT32(UCAN1_LG_BMS_SUB, -1);
 
-
 /**
  * sensor_gps uORB over Cyphal subscription port ID.
  *
@@ -140,7 +139,6 @@ PARAM_DEFINE_INT32(UCAN1_LG_BMS_SUB, -1);
  * @group Cyphal
  */
 PARAM_DEFINE_INT32(UCAN1_UORB_GPS, -1);
-
 
 /**
  * sensor_gps uORB over Cyphal publication port ID.

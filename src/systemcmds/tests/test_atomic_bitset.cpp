@@ -31,12 +31,10 @@
  *
  ****************************************************************************/
 
+#include <px4_platform_common/atomic_bitset.h>
 #include <unit_test.h>
 
-#include <px4_platform_common/atomic_bitset.h>
-
-class AtomicBitsetTest : public UnitTest
-{
+class AtomicBitsetTest : public UnitTest {
 public:
 	virtual bool run_tests();
 
@@ -44,11 +42,9 @@ private:
 	bool constructTest();
 	bool setAllTest();
 	bool setRandomTest();
-
 };
 
-bool AtomicBitsetTest::run_tests()
-{
+bool AtomicBitsetTest::run_tests() {
 	ut_run_test(constructTest);
 	ut_run_test(setAllTest);
 	ut_run_test(setRandomTest);
@@ -56,11 +52,9 @@ bool AtomicBitsetTest::run_tests()
 	return (_tests_failed == 0);
 }
 
-
 ut_declare_test_c(test_atomic_bitset, AtomicBitsetTest)
 
-bool AtomicBitsetTest::constructTest()
-{
+	bool AtomicBitsetTest::constructTest() {
 	px4::AtomicBitset<10> test_bitset1;
 
 	ut_compare("bitset size 10", test_bitset1.size(), 10);
@@ -73,8 +67,7 @@ bool AtomicBitsetTest::constructTest()
 	return true;
 }
 
-bool AtomicBitsetTest::setAllTest()
-{
+bool AtomicBitsetTest::setAllTest() {
 	px4::AtomicBitset<100> test_bitset2;
 
 	ut_compare("bitset size 100", test_bitset2.size(), 100);
@@ -113,8 +106,7 @@ bool AtomicBitsetTest::setAllTest()
 	return true;
 }
 
-bool AtomicBitsetTest::setRandomTest()
-{
+bool AtomicBitsetTest::setRandomTest() {
 	px4::AtomicBitset<999> test_bitset3;
 
 	ut_compare("bitset size 999", test_bitset3.size(), 999);
@@ -126,7 +118,7 @@ bool AtomicBitsetTest::setRandomTest()
 
 	// random set and verify 100 elements
 	const int random_test_size = 5;
-	int random_array[random_test_size] = { 3, 1, 4, 5, 9 };
+	int random_array[random_test_size] = {3, 1, 4, 5, 9};
 
 	// set random elements
 	for (auto x : random_array) {
@@ -139,7 +131,6 @@ bool AtomicBitsetTest::setRandomTest()
 
 	// check that only random elements are set
 	for (int i = 0; i < test_bitset3.size(); i++) {
-
 		// is i in the random test array
 		// if so it should be set
 		bool i_in_random = false;

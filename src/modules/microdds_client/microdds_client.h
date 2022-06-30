@@ -34,19 +34,13 @@
 #pragma once
 
 #include <px4_platform_common/module.h>
-
 #include <src/modules/micrortps_bridge/micrortps_client/dds_topics.h>
 
 extern "C" __EXPORT int microdds_client_main(int argc, char *argv[]);
 
-
-class MicroddsClient : public ModuleBase<MicroddsClient>
-{
+class MicroddsClient : public ModuleBase<MicroddsClient> {
 public:
-	enum class Transport {
-		Serial,
-		Udp
-	};
+	enum class Transport { Serial, Udp };
 
 	MicroddsClient(Transport transport, const char *device, int baudrate, const char *host, const char *port,
 		       bool localhost_only);
@@ -84,8 +78,7 @@ private:
 	uxrCommunication *_comm{nullptr};
 	int _fd{-1};
 
-	int _last_payload_tx_rate{}; ///< in B/s
-	int _last_payload_rx_rate{}; ///< in B/s
+	int _last_payload_tx_rate{};  ///< in B/s
+	int _last_payload_rx_rate{};  ///< in B/s
 	bool _connected{false};
 };
-

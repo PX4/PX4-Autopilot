@@ -32,27 +32,25 @@
  ****************************************************************************/
 
 #include <drivers/drv_sensor.h>
+
 #include <px4_platform/gpio/mcp23009.hpp>
+
 #include "mcp23009_registers.hpp"
 
 using namespace Microchip_MCP23009;
 
 const struct gpio_operations_s MCP23009::gpio_ops = {
-go_read : MCP23009::go_read,
-go_write : MCP23009::go_write,
-go_attach : nullptr,
-go_enable : nullptr,
-go_setpintype : MCP23009::go_setpintype,
+	go_read : MCP23009::go_read,
+	go_write : MCP23009::go_write,
+	go_attach : nullptr,
+	go_enable : nullptr,
+	go_setpintype : MCP23009::go_setpintype,
 };
 
-MCP23009::MCP23009(int bus, int address, int first_minor, int bus_frequency) :
-	I2C(DRV_GPIO_DEVTYPE_MCP23009, "MCP23009", bus, address, bus_frequency),
-	_first_minor(first_minor)
-{
-}
+MCP23009::MCP23009(int bus, int address, int first_minor, int bus_frequency)
+	: I2C(DRV_GPIO_DEVTYPE_MCP23009, "MCP23009", bus, address, bus_frequency), _first_minor(first_minor) {}
 
-MCP23009::~MCP23009()
-{
+MCP23009::~MCP23009() {
 	/* set all as input & unregister */
 	for (int i = 0; i < num_gpios; ++i) {
 		go_setpintype(i, GPIO_INPUT_PIN);
@@ -60,38 +58,29 @@ MCP23009::~MCP23009()
 	}
 }
 
-int MCP23009::go_read(struct gpio_dev_s *dev, bool *value)
-{
+int MCP23009::go_read(struct gpio_dev_s *dev, bool *value) {
 	mcp23009_gpio_dev_s *gpio = (struct mcp23009_gpio_dev_s *)dev;
 	return gpio->obj->go_read(gpio->id, value);
 }
 
-int MCP23009::go_write(struct gpio_dev_s *dev, bool value)
-{
+int MCP23009::go_write(struct gpio_dev_s *dev, bool value) {
 	mcp23009_gpio_dev_s *gpio = (struct mcp23009_gpio_dev_s *)dev;
 	return gpio->obj->go_write(gpio->id, value);
 }
 
-int MCP23009::go_setpintype(struct gpio_dev_s *dev, enum gpio_pintype_e pintype)
-{
+int MCP23009::go_setpintype(struct gpio_dev_s *dev, enum gpio_pintype_e pintype) {
 	mcp23009_gpio_dev_s *gpio = (struct mcp23009_gpio_dev_s *)dev;
 	return gpio->obj->go_setpintype(gpio->id, pintype);
 }
 
+int MCP23009::read_reg(Register address, uint8_t &data) { return transfer((uint8_t *)&address, 1, &data, 1); }
 
-int MCP23009::read_reg(Register address, uint8_t &data)
-{
-	return transfer((uint8_t *)&address, 1, &data, 1);
-}
-
-int MCP23009::write_reg(Register address, uint8_t value)
-{
+int MCP23009::write_reg(Register address, uint8_t value) {
 	uint8_t data[2] = {(uint8_t)address, value};
 	return transfer(data, sizeof(data), nullptr, 0);
 }
 
-int MCP23009::init(uint8_t direction, uint8_t intital, uint8_t pull_up)
-{
+int MCP23009::init(uint8_t direction, uint8_t intital, uint8_t pull_up) {
 	/* do I2C init (and probe) first */
 	int ret = I2C::init();
 
@@ -125,16 +114,13 @@ int MCP23009::init(uint8_t direction, uint8_t intital, uint8_t pull_up)
 	return ret;
 }
 
-int MCP23009::probe()
-{
+int MCP23009::probe() {
 	// no whoami, try to read IOCON
 	uint8_t data;
 	return read_reg(Register::IOCON, data);
 }
 
-int MCP23009::go_read(int id, bool *value)
-{
-
+int MCP23009::go_read(int id, bool *value) {
 	uint8_t data;
 	int ret = read_reg(Register::GPIO, data);
 
@@ -146,8 +132,7 @@ int MCP23009::go_read(int id, bool *value)
 	return 0;
 }
 
-int MCP23009::go_write(int id, bool value)
-{
+int MCP23009::go_write(int id, bool value) {
 	uint8_t data;
 	int ret = read_reg(Register::GPIO, data);
 
@@ -165,8 +150,7 @@ int MCP23009::go_write(int id, bool value)
 	return write_reg(Register::GPIO, data);
 }
 
-int MCP23009::go_setpintype(int id, enum gpio_pintype_e pintype)
-{
+int MCP23009::go_setpintype(int id, enum gpio_pintype_e pintype) {
 	uint8_t direction;
 	int ret = read_reg(Register::IODIR, direction);
 
@@ -182,22 +166,22 @@ int MCP23009::go_setpintype(int id, enum gpio_pintype_e pintype)
 	}
 
 	switch (pintype) {
-	case GPIO_INPUT_PIN:
-		direction |= (1 << id);
-		pullup &= ~(1 << id);
-		break;
+		case GPIO_INPUT_PIN:
+			direction |= (1 << id);
+			pullup &= ~(1 << id);
+			break;
 
-	case GPIO_INPUT_PIN_PULLUP:
-		direction |= (1 << id);
-		pullup |= (1 << id);
-		break;
+		case GPIO_INPUT_PIN_PULLUP:
+			direction |= (1 << id);
+			pullup |= (1 << id);
+			break;
 
-	case GPIO_OUTPUT_PIN:
-		direction &= ~(1 << id);
-		break;
+		case GPIO_OUTPUT_PIN:
+			direction &= ~(1 << id);
+			break;
 
-	default:
-		return -EINVAL;
+		default:
+			return -EINVAL;
 	}
 
 	_gpio[id].gpio.gp_pintype = pintype;

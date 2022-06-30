@@ -39,25 +39,21 @@
  * @author David Sidrane <david_s5@nscdg.com>
  */
 
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <float.h>
+#include <math.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
-
-#include <sys/types.h>
-
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
 
 #include "tests_main.h"
 
-#include <math.h>
-#include <float.h>
-#include <drivers/drv_hrt.h>
-
-static void *receive_loop(void *arg)
-{
+static void *receive_loop(void *arg) {
 	int uart_usb = open("/dev/ttyACM0", O_RDONLY | O_NOCTTY);
 
 	while (1) {
@@ -70,8 +66,7 @@ static void *receive_loop(void *arg)
 	return NULL;
 }
 
-int test_uart_console(int argc, char *argv[])
-{
+int test_uart_console(int argc, char *argv[]) {
 	/* assuming NuttShell is on UART1 (/dev/ttyS0) */
 	int uart_usb = open("/dev/ttyACM0", O_WRONLY | O_NOCTTY);
 
@@ -86,7 +81,7 @@ int test_uart_console(int argc, char *argv[])
 
 	pthread_create(&receive_thread, NULL, receive_loop, NULL);
 
-	//wait for threads to complete:
+	// wait for threads to complete:
 	pthread_join(receive_thread, NULL);
 
 	for (int i = 0; i < 30; i++) {
@@ -96,45 +91,45 @@ int test_uart_console(int argc, char *argv[])
 		px4_sleep(1);
 	}
 
-//	uint64_t start_time = hrt_absolute_time();
-//
-////	while (true)
-//	for (int i = 0; i < 1000; i++)
-//	{
-//		//write(uart_usb, sample_uart_usb, sizeof(sample_uart_usb));
-//		int nread = 0;
-//		char c;
-//		do {
-//			nread = read(uart_usb, &c, 1);
-//			if (nread > 0)
-//			{
-//				printf("%c", c);
-//			}
-//		} while (nread > 0);
-//
-//		do {
-//			nread = read(uart_console, &c, 1);
-//			if (nread > 0)
-//			{
-//				if (c == 0x03)
-//				{
-//					close(uart_usb);
-//					close(uart_console);
-//					exit(OK);
-//				}
-//				else
-//				{
-//					write(uart_usb, &c, 1);
-//				}
-//			}
-//		} while (nread > 0);
-//		usleep(10000);
-//	}
-//
-//	int interval = hrt_absolute_time() - start_time;
+	//	uint64_t start_time = hrt_absolute_time();
+	//
+	////	while (true)
+	//	for (int i = 0; i < 1000; i++)
+	//	{
+	//		//write(uart_usb, sample_uart_usb, sizeof(sample_uart_usb));
+	//		int nread = 0;
+	//		char c;
+	//		do {
+	//			nread = read(uart_usb, &c, 1);
+	//			if (nread > 0)
+	//			{
+	//				printf("%c", c);
+	//			}
+	//		} while (nread > 0);
+	//
+	//		do {
+	//			nread = read(uart_console, &c, 1);
+	//			if (nread > 0)
+	//			{
+	//				if (c == 0x03)
+	//				{
+	//					close(uart_usb);
+	//					close(uart_console);
+	//					exit(OK);
+	//				}
+	//				else
+	//				{
+	//					write(uart_usb, &c, 1);
+	//				}
+	//			}
+	//		} while (nread > 0);
+	//		usleep(10000);
+	//	}
+	//
+	//	int interval = hrt_absolute_time() - start_time;
 
 	close(uart_usb);
-//	close(uart_console);
+	//	close(uart_console);
 
 	return 0;
 }

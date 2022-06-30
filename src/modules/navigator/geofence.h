@@ -40,25 +40,24 @@
 
 #pragma once
 
-#include <float.h>
-
-#include <lib/mathlib/mathlib.h>
-#include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
+#include <float.h>
 #include <lib/geo/geo.h>
+#include <lib/mathlib/mathlib.h>
 #include <px4_platform_common/defines.h>
-#include <uORB/Subscription.hpp>
+#include <px4_platform_common/module_params.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/vehicle_air_data.h>
 
-#define GEOFENCE_FILENAME PX4_STORAGEDIR"/etc/geofence.txt"
+#include <uORB/Subscription.hpp>
+
+#define GEOFENCE_FILENAME PX4_STORAGEDIR "/etc/geofence.txt"
 
 class Navigator;
 
-class Geofence : public ModuleParams
-{
+class Geofence : public ModuleParams {
 public:
 	Geofence(Navigator *navigator);
 	Geofence(const Geofence &) = delete;
@@ -66,16 +65,10 @@ public:
 	virtual ~Geofence();
 
 	/* Altitude mode, corresponding to the param GF_ALTMODE */
-	enum {
-		GF_ALT_MODE_WGS84 = 0,
-		GF_ALT_MODE_AMSL = 1
-	};
+	enum { GF_ALT_MODE_WGS84 = 0, GF_ALT_MODE_AMSL = 1 };
 
 	/* Source, corresponding to the param GF_SOURCE */
-	enum {
-		GF_SOURCE_GLOBALPOS = 0,
-		GF_SOURCE_GPS = 1
-	};
+	enum { GF_SOURCE_GLOBALPOS = 0, GF_SOURCE_GPS = 1 };
 
 	/**
 	 * update the geofence from dataman.
@@ -153,9 +146,8 @@ public:
 	void printStatus();
 
 private:
-
 	struct PolygonInfo {
-		uint16_t fence_type; ///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
+		uint16_t fence_type;  ///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
 		uint16_t dataman_index;
 		union {
 			uint16_t vertex_count;
@@ -163,7 +155,7 @@ private:
 		};
 	};
 
-	Navigator   *_navigator{nullptr};
+	Navigator *_navigator{nullptr};
 	PolygonInfo *_polygons{nullptr};
 
 	hrt_abstime _last_horizontal_range_warning{0};
@@ -174,12 +166,12 @@ private:
 
 	int _num_polygons{0};
 
-	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
+	MapProjection _projection_reference{};  ///< class to convert (lon, lat) to local [m]
 
 	uORB::SubscriptionData<vehicle_air_data_s> _sub_airdata;
 
 	int _outside_counter{0};
-	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
+	uint16_t _update_counter{0};  ///< dataman update counter: if it does not match, we polygon data was updated
 
 	/**
 	 * implementation of updateFence(), but without locking
@@ -198,8 +190,6 @@ private:
 	 */
 	bool checkPolygons(double lat, double lon, float altitude);
 
-
-
 	bool checkAll(const vehicle_global_position_s &global_position);
 	bool checkAll(const vehicle_global_position_s &global_position, float baro_altitude_amsl);
 
@@ -216,13 +206,11 @@ private:
 	 */
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
-		(ParamInt<px4::params::GF_ALTMODE>)        _param_gf_altmode,
-		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
-		(ParamInt<px4::params::GF_COUNT>)          _param_gf_count,
-		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
-		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
-		(ParamBool<px4::params::GF_PREDICT>)       _param_gf_predict
-	)
+	DEFINE_PARAMETERS((ParamInt<px4::params::GF_ACTION>)_param_gf_action,
+			  (ParamInt<px4::params::GF_ALTMODE>)_param_gf_altmode,
+			  (ParamInt<px4::params::GF_SOURCE>)_param_gf_source,
+			  (ParamInt<px4::params::GF_COUNT>)_param_gf_count,
+			  (ParamFloat<px4::params::GF_MAX_HOR_DIST>)_param_gf_max_hor_dist,
+			  (ParamFloat<px4::params::GF_MAX_VER_DIST>)_param_gf_max_ver_dist,
+			  (ParamBool<px4::params::GF_PREDICT>)_param_gf_predict)
 };

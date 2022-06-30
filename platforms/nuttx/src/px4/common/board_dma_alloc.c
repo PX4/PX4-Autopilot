@@ -37,14 +37,13 @@
  * Provide the board dma allocator interface.
  */
 
-#include <px4_platform_common/px4_config.h>
-#include "board_config.h"
-
-#include <stdint.h>
 #include <errno.h>
 #include <nuttx/mm/gran.h>
-
 #include <perf/perf_counter.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdint.h>
+
+#include "board_config.h"
 
 /************************************************************************************
  * Name: board_dma_alloc_init
@@ -78,13 +77,10 @@ static uint16_t dma_heap_peak_use;
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-__EXPORT int
-board_dma_alloc_init(void)
-{
-	dma_allocator = gran_initialize(g_dma_heap,
-					sizeof(g_dma_heap),
-					7,  /* 128B granule - must be > alignment (XXX bug?) */
-					6); /* 64B alignment */
+__EXPORT int board_dma_alloc_init(void) {
+	dma_allocator =
+		gran_initialize(g_dma_heap, sizeof(g_dma_heap), 7, /* 128B granule - must be > alignment (XXX bug?) */
+				6);                                /* 64B alignment */
 
 	if (dma_allocator == NULL) {
 		return -ENOMEM;
@@ -98,9 +94,7 @@ board_dma_alloc_init(void)
 	return OK;
 }
 
-__EXPORT int
-board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16_t *dma_peak_used)
-{
+__EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16_t *dma_peak_used) {
 	*dma_total = sizeof(g_dma_heap);
 	*dma_used = dma_heap_inuse;
 	*dma_peak_used = dma_heap_peak_use;
@@ -108,9 +102,7 @@ board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16_t *dma_peak_
 	return OK;
 }
 
-__EXPORT void *
-board_dma_alloc(size_t size)
-{
+__EXPORT void *board_dma_alloc(size_t size) {
 	void *rv = NULL;
 	perf_count(g_dma_perf);
 	rv = gran_alloc(dma_allocator, size);
@@ -126,9 +118,7 @@ board_dma_alloc(size_t size)
 	return rv;
 }
 
-__EXPORT void
-board_dma_free(FAR void *memory, size_t size)
-{
+__EXPORT void board_dma_free(FAR void *memory, size_t size) {
 	gran_free(dma_allocator, memory, size);
 	dma_heap_inuse -= size;
 }

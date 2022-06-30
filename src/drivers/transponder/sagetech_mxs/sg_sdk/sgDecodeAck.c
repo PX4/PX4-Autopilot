@@ -10,9 +10,9 @@
  * parses the payload into a data struct.
  */
 
-#include <string.h>
-#include <stdbool.h>
 #include <math.h>
+#include <stdbool.h>
+#include <string.h>
 
 #include "sg.h"
 #include "sgUtil.h"
@@ -25,8 +25,7 @@
 #define SG_ACK_ALT_SOURCE 0x20
 #define SG_ACK_OP_MODE 0xC0
 
-typedef struct __attribute__((packed))
-{
+typedef struct __attribute__((packed)) {
 	uint8_t start;
 	uint8_t type;
 	uint8_t id;
@@ -41,8 +40,7 @@ typedef struct __attribute__((packed))
 /*
  * Documented in the header file.
  */
-bool sgDecodeAck(uint8_t *buffer, sg_ack_t *ack)
-{
+bool sgDecodeAck(uint8_t *buffer, sg_ack_t *ack) {
 	ack_t sgAck;
 	memcpy(&sgAck, buffer, sizeof(ack_t));
 

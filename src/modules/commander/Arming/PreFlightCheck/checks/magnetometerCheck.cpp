@@ -31,21 +31,21 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
-#include <drivers/drv_hrt.h>
 #include <HealthFlags.h>
-#include <px4_defines.h>
-#include <lib/sensor_calibration/Utilities.hpp>
+#include <drivers/drv_hrt.h>
 #include <lib/systemlib/mavlink_log.h>
-#include <uORB/Subscription.hpp>
+#include <px4_defines.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/sensor_mag.h>
 
+#include <lib/sensor_calibration/Utilities.hpp>
+#include <uORB/Subscription.hpp>
+
+#include "../PreFlightCheck.hpp"
+
 using namespace time_literals;
 
-bool PreFlightCheck::isMagRequired(const uint8_t instance)
-{
+bool PreFlightCheck::isMagRequired(const uint8_t instance) {
 	uORB::SubscriptionData<sensor_mag_s> magnetometer{ORB_ID(sensor_mag), instance};
 	const uint32_t device_id = static_cast<uint32_t>(magnetometer.get().device_id);
 
@@ -55,7 +55,8 @@ bool PreFlightCheck::isMagRequired(const uint8_t instance)
 		uORB::SubscriptionData<estimator_status_s> estimator_status_sub{ORB_ID(estimator_status), i};
 
 		if (device_id > 0 && estimator_status_sub.get().mag_device_id == device_id) {
-			is_used_by_nav = true;;
+			is_used_by_nav = true;
+			;
 			break;
 		}
 	}
@@ -64,8 +65,7 @@ bool PreFlightCheck::isMagRequired(const uint8_t instance)
 }
 
 bool PreFlightCheck::magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-				       const bool is_mandatory, bool &report_fail)
-{
+				       const bool is_mandatory, bool &report_fail) {
 	const bool exists = (orb_exists(ORB_ID(sensor_mag), instance) == PX4_OK);
 	const bool is_required = is_mandatory || isMagRequired(instance);
 
@@ -77,20 +77,23 @@ bool PreFlightCheck::magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_st
 		uORB::SubscriptionData<sensor_mag_s> magnetometer{ORB_ID(sensor_mag), instance};
 
 		const sensor_mag_s &mag_data = magnetometer.get();
-		is_valid = (mag_data.device_id != 0) && (mag_data.timestamp != 0) && (hrt_elapsed_time(&mag_data.timestamp) < 1_s);
+		is_valid = (mag_data.device_id != 0) && (mag_data.timestamp != 0) &&
+			   (hrt_elapsed_time(&mag_data.timestamp) < 1_s);
 
 		if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 			is_calibration_valid = true;
 
 		} else {
-			is_calibration_valid = (calibration::FindCurrentCalibrationIndex("MAG", mag_data.device_id) >= 0);
+			is_calibration_valid =
+				(calibration::FindCurrentCalibrationIndex("MAG", mag_data.device_id) >= 0);
 		}
 
 		for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 			uORB::SubscriptionData<estimator_status_s> estimator_status_sub{ORB_ID(estimator_status), i};
 
 			if (estimator_status_sub.get().mag_device_id == static_cast<uint32_t>(mag_data.device_id)) {
-				if (estimator_status_sub.get().control_mode_flags & (1 << estimator_status_s::CS_MAG_FAULT)) {
+				if (estimator_status_sub.get().control_mode_flags &
+				    (1 << estimator_status_s::CS_MAG_FAULT)) {
 					is_mag_fault = true;
 					break;
 				}
@@ -113,7 +116,8 @@ bool PreFlightCheck::magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_st
 			report_fail = false;
 
 		} else if (!is_valid) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Compass %u", instance);
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Compass %u",
+					     instance);
 			report_fail = false;
 
 		} else if (!is_calibration_valid) {

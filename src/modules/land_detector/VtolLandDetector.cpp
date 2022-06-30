@@ -39,21 +39,17 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <drivers/drv_hrt.h>
-#include <matrix/math.hpp>
-
 #include "VtolLandDetector.h"
 
-namespace land_detector
-{
+#include <drivers/drv_hrt.h>
 
-void VtolLandDetector::_update_topics()
-{
-	MulticopterLandDetector::_update_topics();
-}
+#include <matrix/math.hpp>
 
-bool VtolLandDetector::_get_maybe_landed_state()
-{
+namespace land_detector {
+
+void VtolLandDetector::_update_topics() { MulticopterLandDetector::_update_topics(); }
+
+bool VtolLandDetector::_get_maybe_landed_state() {
 	// If in Fixed-wing mode, only trigger if disarmed
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		return !_armed;
@@ -62,8 +58,7 @@ bool VtolLandDetector::_get_maybe_landed_state()
 	return MulticopterLandDetector::_get_maybe_landed_state();
 }
 
-bool VtolLandDetector::_get_landed_state()
-{
+bool VtolLandDetector::_get_landed_state() {
 	// If in Fixed-wing mode, only trigger if disarmed
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		return !_armed;
@@ -76,8 +71,8 @@ bool VtolLandDetector::_get_landed_state()
 	airspeed_validated_s airspeed_validated{};
 	_airspeed_validated_sub.copy(&airspeed_validated);
 
-	if (hrt_elapsed_time(&airspeed_validated.timestamp) < 1_s && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)) {
-
+	if (hrt_elapsed_time(&airspeed_validated.timestamp) < 1_s &&
+	    PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)) {
 		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * airspeed_validated.true_airspeed_m_s;
 
 	} else {
@@ -96,8 +91,7 @@ bool VtolLandDetector::_get_landed_state()
 	return landed;
 }
 
-bool VtolLandDetector::_get_freefall_state()
-{
+bool VtolLandDetector::_get_freefall_state() {
 	// true if falling or in a parabolic flight (low gravity)
 	bool free_fall_detected = MulticopterLandDetector::_get_freefall_state();
 
@@ -105,4 +99,4 @@ bool VtolLandDetector::_get_freefall_state()
 	return _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING && free_fall_detected;
 }
 
-} // namespace land_detector
+}  // namespace land_detector

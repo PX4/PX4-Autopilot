@@ -33,9 +33,7 @@
 
 #include "autopilot_tester.h"
 
-
-TEST_CASE("Land on GPS lost during mission (baro height mode)", "[multicopter]")
-{
+TEST_CASE("Land on GPS lost during mission (baro height mode)", "[multicopter]") {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 
@@ -51,8 +49,7 @@ TEST_CASE("Land on GPS lost during mission (baro height mode)", "[multicopter]")
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-TEST_CASE("Land on GPS lost during mission (GPS height mode)", "[multicopter]")
-{
+TEST_CASE("Land on GPS lost during mission (GPS height mode)", "[multicopter]") {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 
@@ -68,8 +65,7 @@ TEST_CASE("Land on GPS lost during mission (GPS height mode)", "[multicopter]")
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-TEST_CASE("Continue on mag lost during mission", "[multicopter]")
-{
+TEST_CASE("Continue on mag lost during mission", "[multicopter]") {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();
@@ -102,8 +98,7 @@ TEST_CASE("Continue on mag stuck during mission", "[multicopter][vtol]")
 }
 #endif
 
-TEST_CASE("Continue on baro lost during mission (baro height mode)", "[multicopter]")
-{
+TEST_CASE("Continue on baro lost during mission (baro height mode)", "[multicopter]") {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 	tester.set_height_source(AutopilotTester::HeightSource::Baro);
@@ -118,8 +113,7 @@ TEST_CASE("Continue on baro lost during mission (baro height mode)", "[multicopt
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-TEST_CASE("Continue on baro lost during mission (GPS height mode)", "[multicopter]")
-{
+TEST_CASE("Continue on baro lost during mission (GPS height mode)", "[multicopter]") {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 	tester.set_height_source(AutopilotTester::HeightSource::Gps);
@@ -134,8 +128,7 @@ TEST_CASE("Continue on baro lost during mission (GPS height mode)", "[multicopte
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-TEST_CASE("Continue on baro stuck during mission (baro height mode)", "[multicopter]")
-{
+TEST_CASE("Continue on baro stuck during mission (baro height mode)", "[multicopter]") {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 	tester.set_height_source(AutopilotTester::HeightSource::Baro);
@@ -150,8 +143,7 @@ TEST_CASE("Continue on baro stuck during mission (baro height mode)", "[multicop
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-TEST_CASE("Continue on baro stuck during mission (GPS height mode)", "[multicopter]")
-{
+TEST_CASE("Continue on baro stuck during mission (GPS height mode)", "[multicopter]") {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 	tester.set_height_source(AutopilotTester::HeightSource::Gps);

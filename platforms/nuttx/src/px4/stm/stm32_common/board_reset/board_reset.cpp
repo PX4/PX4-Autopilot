@@ -37,12 +37,12 @@
  * Implementation of STM32 based Board RESET API
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <systemlib/px4_macros.h>
 #include <errno.h>
+#include <nuttx/board.h>
+#include <px4_platform_common/px4_config.h>
 #include <stm32_pwr.h>
 #include <stm32_rtc.h>
-#include <nuttx/board.h>
+#include <systemlib/px4_macros.h>
 
 #ifdef CONFIG_BOARDCTL_RESET
 
@@ -64,19 +64,16 @@
 
 static const uint32_t modes[] = {
 	/*                                      to  tb   */
-	/* BOARD_RESET_MODE_CLEAR                5   y   */  0,
-	/* BOARD_RESET_MODE_BOOT_TO_BL           0   n   */  0xb007b007,
-	/* BOARD_RESET_MODE_BOOT_TO_VALID_APP    0   y   */  0xb0070002,
-	/* BOARD_RESET_MODE_CAN_BL               10  n   */  0xb0080000,
-	/* BOARD_RESET_MODE_RTC_BOOT_FWOK        0   n   */  0xb0093a26
-};
+	/* BOARD_RESET_MODE_CLEAR                5   y   */ 0,
+	/* BOARD_RESET_MODE_BOOT_TO_BL           0   n   */ 0xb007b007,
+	/* BOARD_RESET_MODE_BOOT_TO_VALID_APP    0   y   */ 0xb0070002,
+	/* BOARD_RESET_MODE_CAN_BL               10  n   */ 0xb0080000,
+	/* BOARD_RESET_MODE_RTC_BOOT_FWOK        0   n   */ 0xb0093a26};
 
-int board_configure_reset(reset_mode_e mode, uint32_t arg)
-{
+int board_configure_reset(reset_mode_e mode, uint32_t arg) {
 	int rv = -1;
 
 	if (mode < arraySize(modes)) {
-
 		stm32_pwr_enablebkp(true);
 
 		arg = mode == BOARD_RESET_MODE_CAN_BL ? arg & ~0xff : 0;
@@ -115,8 +112,7 @@ int board_configure_reset(reset_mode_e mode, uint32_t arg)
  *
  ****************************************************************************/
 
-int board_reset(int status)
-{
+int board_reset(int status) {
 	if (status == 1) {
 		board_configure_reset(BOARD_RESET_MODE_BOOT_TO_BL, 0);
 	}
@@ -145,9 +141,8 @@ int board_reset(int status)
  *   true if booted byt a PX4 bootloader.
  *
  ****************************************************************************/
-bool board_booted_by_px4(void)
-{
-	uint32_t *vectors = (uint32_t *) STM32_FLASH_BASE;
+bool board_booted_by_px4(void) {
+	uint32_t *vectors = (uint32_t *)STM32_FLASH_BASE;
 
 	/* Nuttx uses common vector */
 

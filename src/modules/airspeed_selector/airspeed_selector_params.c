@@ -143,7 +143,6 @@ PARAM_DEFINE_FLOAT(ASPD_SCALE_3, 1.0f);
  */
 PARAM_DEFINE_INT32(ASPD_PRIMARY, 1);
 
-
 /**
  * Enable checks on airspeed sensors
  *
@@ -176,10 +175,10 @@ PARAM_DEFINE_INT32(ASPD_FALLBACK_GW, 0);
 /**
  * Airspeed failure innovation threshold
  *
- * This specifies the minimum airspeed innovation required to trigger a failsafe. Larger values make the check less sensitive,
- * smaller values make it more sensitive. Large innovations indicate an inconsistency between predicted (groundspeed - windspeeed)
- * and measured airspeed.
- * The time required to detect a fault when the threshold is exceeded depends on the size of the exceedance and is controlled by the ASPD_FS_INTEG parameter.
+ * This specifies the minimum airspeed innovation required to trigger a failsafe. Larger values make the check less
+ * sensitive, smaller values make it more sensitive. Large innovations indicate an inconsistency between predicted
+ * (groundspeed - windspeeed) and measured airspeed. The time required to detect a fault when the threshold is exceeded
+ * depends on the size of the exceedance and is controlled by the ASPD_FS_INTEG parameter.
  *
  * @unit m/s
  * @min 0.5

@@ -33,42 +33,34 @@
 
 #pragma once
 
-#include "UavcanPublisherBase.hpp"
-
-#include <uavcan/equipment/gnss/Fix2.hpp>
-
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/sensor_gps.h>
 
-namespace uavcannode
-{
+#include <uORB/SubscriptionCallback.hpp>
+#include <uavcan/equipment/gnss/Fix2.hpp>
 
-class GnssFix2 :
-	public UavcanPublisherBase,
-	public uORB::SubscriptionCallbackWorkItem,
-	private uavcan::Publisher<uavcan::equipment::gnss::Fix2>
-{
+#include "UavcanPublisherBase.hpp"
+
+namespace uavcannode {
+
+class GnssFix2 : public UavcanPublisherBase,
+		 public uORB::SubscriptionCallbackWorkItem,
+		 private uavcan::Publisher<uavcan::equipment::gnss::Fix2> {
 public:
-	GnssFix2(px4::WorkItem *work_item, uavcan::INode &node) :
-		UavcanPublisherBase(uavcan::equipment::gnss::Fix2::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_gps)),
-		uavcan::Publisher<uavcan::equipment::gnss::Fix2>(node)
-	{
+	GnssFix2(px4::WorkItem *work_item, uavcan::INode &node)
+		: UavcanPublisherBase(uavcan::equipment::gnss::Fix2::DefaultDataTypeID),
+		  uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_gps)),
+		  uavcan::Publisher<uavcan::equipment::gnss::Fix2>(node) {
 		this->setPriority(uavcan::TransferPriority::OneLowerThanHighest);
 	}
 
-	void PrintInfo() override
-	{
+	void PrintInfo() override {
 		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
-			printf("\t%s -> %s:%d\n",
-			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
-			       uavcan::equipment::gnss::Fix2::getDataTypeFullName(),
-			       id());
+			printf("\t%s -> %s:%d\n", uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
+			       uavcan::equipment::gnss::Fix2::getDataTypeFullName(), id());
 		}
 	}
 
-	void BroadcastAnyUpdates() override
-	{
+	void BroadcastAnyUpdates() override {
 		using uavcan::equipment::gnss::Fix2;
 
 		// sensor_gps -> uavcan::equipment::gnss::Fix2
@@ -87,27 +79,27 @@ public:
 			fix2.ned_velocity[0] = gps.vel_n_m_s;
 			fix2.ned_velocity[1] = gps.vel_e_m_s;
 			fix2.ned_velocity[2] = gps.vel_d_m_s;
-			fix2.pdop = gps.hdop > gps.vdop ? gps.hdop :
-				    gps.vdop; // Use pdop for both hdop and vdop since uavcan v0 spec does not support them
+			fix2.pdop = gps.hdop > gps.vdop ? gps.hdop : gps.vdop;  // Use pdop for both hdop and vdop since
+										// uavcan v0 spec does not support them
 			fix2.sats_used = gps.satellites_used;
 
 			fix2.mode = Fix2::MODE_SINGLE;
 			fix2.sub_mode = 0;
 
 			switch (fix2.status) {
-			case 4:
-				fix2.mode = Fix2::MODE_DGPS;
-				break;
+				case 4:
+					fix2.mode = Fix2::MODE_DGPS;
+					break;
 
-			case 5:
-				fix2.mode = Fix2::MODE_RTK;
-				fix2.sub_mode = Fix2::SUB_MODE_RTK_FLOAT;
-				break;
+				case 5:
+					fix2.mode = Fix2::MODE_RTK;
+					fix2.sub_mode = Fix2::SUB_MODE_RTK_FLOAT;
+					break;
 
-			case 6:
-				fix2.mode = Fix2::MODE_RTK;
-				fix2.sub_mode = Fix2::SUB_MODE_RTK_FIXED;
-				break;
+				case 6:
+					fix2.mode = Fix2::MODE_RTK;
+					fix2.sub_mode = Fix2::SUB_MODE_RTK_FIXED;
+					break;
 			}
 
 			// Diagonal matrix
@@ -147,4 +139,4 @@ public:
 		}
 	}
 };
-} // namespace uavcannode
+}  // namespace uavcannode

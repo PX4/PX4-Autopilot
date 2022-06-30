@@ -42,6 +42,5 @@
  */
 
 __BEGIN_DECLS
-size_t px4_get_secure_random(uint8_t *out,
-			     size_t outlen);
+size_t px4_get_secure_random(uint8_t *out, size_t outlen);
 __END_DECLS

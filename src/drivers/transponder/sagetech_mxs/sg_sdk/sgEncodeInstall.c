@@ -11,39 +11,38 @@
  */
 
 #include <ctype.h>
-#include <string.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "sg.h"
 #include "sgUtil.h"
 
-#define SG_PAYLOAD_LEN_INSTALL SG_MSG_LEN_INSTALL - 5 /// the payload length.
+#define SG_PAYLOAD_LEN_INSTALL SG_MSG_LEN_INSTALL - 5  /// the payload length.
 
-#define PBASE 4             /// the payload offset.
-#define OFFSET_ICAO 0       /// the icao address offset in the payload.
-#define OFFSET_REG 3        /// the registration offset in the payload.
-#define OFFSET_RSVD1 10     /// the first reserved field offset in the payload.
-#define OFFSET_COM0 12      /// the COM port 0 offset in the payload.
-#define OFFSET_COM1 13      /// the COM port 1 offset in the payload.
-#define OFFSET_IP 14        /// the IP address offset in the payload.
-#define OFFSET_MASK 18      /// the net mask offset in the payload.
-#define OFFSET_PORT 22      /// the port number offset in the payload.
-#define OFFSET_GPS 24       /// the GPS integrity offset in the payload.
-#define OFFSET_EMIT_SET 25  /// the emitter category offset in the payload.
-#define OFFSET_EMIT_TYPE 26 /// the emitter type offset in the payload.
-#define OFFSET_SIZE 27      /// the aircraft size offset in the payload.
-#define OFFSET_SPEED 28     /// the maximum airspeed offset in the payload.
-#define OFFSET_ENCODER 29   /// the altitude-encoder-offset offset in the payload.
-#define OFFSET_RSVD2 31     /// the second reserved field offset in the payload.
-#define OFFSET_CONFIG 33    /// the configuration offset in the payload.
-#define OFFSET_RSVD3 34     /// the third reserved field offset in the payload.
+#define PBASE 4              /// the payload offset.
+#define OFFSET_ICAO 0        /// the icao address offset in the payload.
+#define OFFSET_REG 3         /// the registration offset in the payload.
+#define OFFSET_RSVD1 10      /// the first reserved field offset in the payload.
+#define OFFSET_COM0 12       /// the COM port 0 offset in the payload.
+#define OFFSET_COM1 13       /// the COM port 1 offset in the payload.
+#define OFFSET_IP 14         /// the IP address offset in the payload.
+#define OFFSET_MASK 18       /// the net mask offset in the payload.
+#define OFFSET_PORT 22       /// the port number offset in the payload.
+#define OFFSET_GPS 24        /// the GPS integrity offset in the payload.
+#define OFFSET_EMIT_SET 25   /// the emitter category offset in the payload.
+#define OFFSET_EMIT_TYPE 26  /// the emitter type offset in the payload.
+#define OFFSET_SIZE 27       /// the aircraft size offset in the payload.
+#define OFFSET_SPEED 28      /// the maximum airspeed offset in the payload.
+#define OFFSET_ENCODER 29    /// the altitude-encoder-offset offset in the payload.
+#define OFFSET_RSVD2 31      /// the second reserved field offset in the payload.
+#define OFFSET_CONFIG 33     /// the configuration offset in the payload.
+#define OFFSET_RSVD3 34      /// the third reserved field offset in the payload.
 
-#define REG_LEN 7 /// the registration field length.
+#define REG_LEN 7  /// the registration field length.
 /*
  * Documented in the header file.
  */
-bool sgEncodeInstall(uint8_t *buffer, sg_install_t *stl, uint8_t msgId)
-{
+bool sgEncodeInstall(uint8_t *buffer, sg_install_t *stl, uint8_t msgId) {
 	// populate header
 	buffer[0] = SG_MSG_START_BYTE;
 	buffer[1] = SG_MSG_TYPE_HOST_INSTALL;
@@ -75,26 +74,25 @@ bool sgEncodeInstall(uint8_t *buffer, sg_install_t *stl, uint8_t msgId)
 	uint162Buf(&buffer[PBASE + OFFSET_PORT], stl->eth.portNumber);
 
 	// populate gps integrity
-	buffer[PBASE + OFFSET_GPS] = stl->sil << 4 |
-				     stl->sda;
+	buffer[PBASE + OFFSET_GPS] = stl->sil << 4 | stl->sda;
 
 	// populate emitter category set and type
 	uint8_t emitSet;
 	uint8_t emitType;
 
-	if (stl->emitter < SG_EMIT_OFFSET_B) { // group A
+	if (stl->emitter < SG_EMIT_OFFSET_B) {  // group A
 		emitSet = SG_EMIT_GROUP_A;
 		emitType = stl->emitter - SG_EMIT_OFFSET_A;
 
-	} else if (stl->emitter < SG_EMIT_OFFSET_C) { // group B
+	} else if (stl->emitter < SG_EMIT_OFFSET_C) {  // group B
 		emitSet = SG_EMIT_GROUP_B;
 		emitType = stl->emitter - SG_EMIT_OFFSET_B;
 
-	} else if (stl->emitter < SG_EMIT_OFFSET_D) { // group C
+	} else if (stl->emitter < SG_EMIT_OFFSET_D) {  // group C
 		emitSet = SG_EMIT_GROUP_C;
 		emitType = stl->emitter - SG_EMIT_OFFSET_C;
 
-	} else { // group D
+	} else {  // group D
 		emitSet = SG_EMIT_GROUP_D;
 		emitType = stl->emitter - SG_EMIT_OFFSET_D;
 	}
@@ -115,12 +113,8 @@ bool sgEncodeInstall(uint8_t *buffer, sg_install_t *stl, uint8_t msgId)
 	uint162Buf(&buffer[PBASE + OFFSET_RSVD2], 0);
 
 	// populate install configuration
-	buffer[PBASE + OFFSET_CONFIG] = stl->wowConnected << 7 |
-					stl->heater << 6 |
-					stl->airspeedTrue << 5 |
-					stl->hdgTrueNorth << 4 |
-					stl->altRes100 << 3 |
-					stl->antenna;
+	buffer[PBASE + OFFSET_CONFIG] = stl->wowConnected << 7 | stl->heater << 6 | stl->airspeedTrue << 5 |
+					stl->hdgTrueNorth << 4 | stl->altRes100 << 3 | stl->antenna;
 
 	// populate reserved fields
 	uint162Buf(&buffer[PBASE + OFFSET_RSVD3], 0);

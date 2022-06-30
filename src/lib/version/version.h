@@ -43,50 +43,35 @@
 #pragma once
 
 #include <px4_platform_common/px4_config.h>
-#include <systemlib/px4_macros.h>
 #include <stdint.h>
+#include <systemlib/px4_macros.h>
 
 __BEGIN_DECLS
 
 /**
  * get the board name as string (including the version if there are multiple)
  */
-static inline const char *px4_board_name(void)
-{
-	return PX4_BOARD_NAME;
-}
+static inline const char *px4_board_name(void) { return PX4_BOARD_NAME; }
 
 /**
  * get the board build target variant
  */
-static inline const char *px4_board_target_label(void)
-{
-	return PX4_BOARD_LABEL;
-}
+static inline const char *px4_board_target_label(void) { return PX4_BOARD_LABEL; }
 
 /**
  * get the board sub type
  */
-static inline const char *px4_board_sub_type(void)
-{
-	return board_get_hw_type_name();
-}
+static inline const char *px4_board_sub_type(void) { return board_get_hw_type_name(); }
 
 /**
  * get the board HW version
  */
-static inline int px4_board_hw_version(void)
-{
-	return board_get_hw_version();
-}
+static inline int px4_board_hw_version(void) { return board_get_hw_version(); }
 
 /**
  * get the board HW revision
  */
-static inline int px4_board_hw_revision(void)
-{
-	return board_get_hw_revision();
-}
+static inline int px4_board_hw_revision(void) { return board_get_hw_revision(); }
 
 /**
  * get the build URI (used for crash logging)
@@ -201,4 +186,3 @@ __EXPORT uint64_t px4_os_version_binary(void);
 __EXPORT const char *px4_firmware_oem_version_string(void);
 
 __END_DECLS
-

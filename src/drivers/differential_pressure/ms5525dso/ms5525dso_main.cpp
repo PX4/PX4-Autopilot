@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include "MS5525DSO.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void MS5525DSO::print_usage()
-{
+#include "MS5525DSO.hpp"
+
+void MS5525DSO::print_usage() {
 	PRINT_MODULE_USAGE_NAME("ms5525dso", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -46,8 +45,7 @@ void MS5525DSO::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int ms5525dso_main(int argc, char *argv[])
-{
+extern "C" int ms5525dso_main(int argc, char *argv[]) {
 	using ThisDriver = MS5525DSO;
 	BusCLIArguments cli{true, false};
 	cli.i2c_address = I2C_ADDRESS_DEFAULT;

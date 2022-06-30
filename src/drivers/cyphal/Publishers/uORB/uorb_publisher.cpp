@@ -34,7 +34,7 @@
 /**
  * @file uorb_template.cpp
  *
-* Defines generic, templatized uORB over UAVCANv1 publisher
+ * Defines generic, templatized uORB over UAVCANv1 publisher
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  * @author Jacob Crabill <jacob@flyvoly.com>
@@ -44,9 +44,8 @@
 
 /* ---- Specializations of get_payload_size() to reduce wasted bandwidth where possible ---- */
 
-template<>
-size_t uORB_over_UAVCAN_Publisher<actuator_outputs_s>::get_payload_size(actuator_outputs_s *msg)
-{
+template <>
+size_t uORB_over_UAVCAN_Publisher<actuator_outputs_s>::get_payload_size(actuator_outputs_s *msg) {
 	// Remove unvalid output & padding from payload_size to save bandwidth
 	return sizeof(struct actuator_outputs_s) - sizeof(msg->_padding0) -
 	       ((sizeof(msg->output) / sizeof(msg->output[0]) - msg->noutputs) * sizeof(msg->output[0]));

@@ -33,16 +33,14 @@
 
 #pragma once
 
-#include "autopilot_tester.h"
-
 #include <mavsdk/mavsdk.h>
 #include <mavsdk/plugins/action/action.h>
 #include <mavsdk/plugins/follow_me/follow_me.h>
 
+#include "autopilot_tester.h"
 
 // Simulate a target moving on a straight line in X+ direction
-class FollowTargetSimulator
-{
+class FollowTargetSimulator {
 public:
 	FollowTargetSimulator(std::array<float, 3> initial_position_ned, mavsdk::Telemetry::GroundTruth home);
 	~FollowTargetSimulator();
@@ -72,24 +70,28 @@ public:
 	// Retrieve ground truth of position state in global coordinate frame (lat, lon, alt)
 	std::array<double, 3> get_position_global_ground_truth();
 
-	// Run checks whether the drone has the correct angle towards the target, specified by the follow-me configuration
+	// Run checks whether the drone has the correct angle towards the target, specified by the follow-me
+	// configuration
 	void check_follow_angle(FollowMe::Config config, std::array<float, 3> drone_pos_ned,
 				std::array<float, 3> target_pos_ned, float tolerance);
 
 private:
 	// Retrieve estimate with the option to add deterministic gaussian noise
 	//
-	// @param add_noise: Add gaussian noise to the state. Noise is deterministic and changes with each inokation of update()
+	// @param add_noise: Add gaussian noise to the state. Noise is deterministic and changes with each inokation of
+	// update()
 	std::array<double, 3> get_position_global(bool add_noise);
 
 	// Retrieve estimate with the option to add deterministic gaussian noise
 	//
-	// @param add_noise: Add gaussian noise to the state. Noise is deterministic and changes with each inokation of update()
+	// @param add_noise: Add gaussian noise to the state. Noise is deterministic and changes with each inokation of
+	// update()
 	std::array<float, 3> get_position_ned(bool add_noise);
 
 	// Retrieve estimate with the option to add deterministic gaussian noise
 	//
-	// @param add_noise: Add gaussian noise to the state. Noise is deterministic and changes with each inokation of update()
+	// @param add_noise: Add gaussian noise to the state. Noise is deterministic and changes with each inokation of
+	// update()
 	std::array<float, 3> get_velocity_ned(bool add_noise);
 
 	std::array<float, 3> _position_ned;
@@ -103,8 +105,7 @@ private:
 	std::unique_ptr<mavsdk::Telemetry> _telemetry{};
 };
 
-class AutopilotTesterFollowMe : public AutopilotTester
-{
+class AutopilotTesterFollowMe : public AutopilotTester {
 public:
 	AutopilotTesterFollowMe() = default;
 	~AutopilotTesterFollowMe() = default;

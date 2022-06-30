@@ -36,19 +36,20 @@
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 
 #include <sched.h>
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 struct system_load_taskinfo_s {
-	uint64_t total_runtime{0};		///< Runtime since start (start_time - total_runtime)/(start_time - current_time) = load
-	uint64_t curr_start_time{0};		///< Start time of the current scheduling slot
-	struct tcb_s *tcb {nullptr};
-	bool valid{false};			///< Task is currently active / valid
+	uint64_t total_runtime{
+		0};  ///< Runtime since start (start_time - total_runtime)/(start_time - current_time) = load
+	uint64_t curr_start_time{0};  ///< Start time of the current scheduling slot
+	struct tcb_s *tcb{nullptr};
+	bool valid{false};  ///< Task is currently active / valid
 };
 
 struct system_load_s {
 	uint64_t start_time{0};
-	system_load_taskinfo_s tasks[CONFIG_FS_PROCFS_MAX_TASKS] {};
+	system_load_taskinfo_s tasks[CONFIG_FS_PROCFS_MAX_TASKS]{};
 	int total_count{0};
 	int running_count{0};
 	bool initialized{false};

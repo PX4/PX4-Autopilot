@@ -31,14 +31,12 @@
  *
  ****************************************************************************/
 
-#include "MPL3115A2.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void
-MPL3115A2::print_usage()
-{
+#include "MPL3115A2.hpp"
+
+void MPL3115A2::print_usage() {
 	PRINT_MODULE_USAGE_NAME("mpl3115a2", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -47,8 +45,7 @@ MPL3115A2::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int mpl3115a2_main(int argc, char *argv[])
-{
+extern "C" int mpl3115a2_main(int argc, char *argv[]) {
 	using ThisDriver = MPL3115A2;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;

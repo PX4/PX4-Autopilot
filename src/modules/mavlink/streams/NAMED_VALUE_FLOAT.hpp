@@ -36,8 +36,7 @@
 
 #include <uORB/topics/debug_key_value.h>
 
-class MavlinkStreamNamedValueFloat : public MavlinkStream
-{
+class MavlinkStreamNamedValueFloat : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamNamedValueFloat(mavlink); }
 
@@ -47,9 +46,10 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _debug_key_value_sub.advertised() ? MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _debug_key_value_sub.advertised()
+			       ? MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+			       : 0;
 	}
 
 private:
@@ -57,8 +57,7 @@ private:
 
 	uORB::Subscription _debug_key_value_sub{ORB_ID(debug_key_value)};
 
-	bool send() override
-	{
+	bool send() override {
 		debug_key_value_s debug;
 
 		if (_debug_key_value_sub.update(&debug)) {
@@ -66,7 +65,7 @@ private:
 
 			msg.time_boot_ms = debug.timestamp / 1000ULL;
 			memcpy(msg.name, debug.key, sizeof(msg.name));
-			msg.name[sizeof(msg.name) - 1] = '\0'; // enforce null termination
+			msg.name[sizeof(msg.name) - 1] = '\0';  // enforce null termination
 			msg.value = debug.value;
 
 			mavlink_msg_named_value_float_send_struct(_mavlink->get_channel(), &msg);
@@ -78,4 +77,4 @@ private:
 	}
 };
 
-#endif // NAMED_VALUE_FLOAT_HPP
+#endif  // NAMED_VALUE_FLOAT_HPP

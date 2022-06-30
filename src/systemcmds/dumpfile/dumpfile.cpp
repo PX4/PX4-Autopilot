@@ -37,28 +37,27 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4_platform_common/px4_config.h>
+#include <fcntl.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
-#include <unistd.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <termios.h>
-
+#include <string.h>
 #include <systemlib/err.h>
+#include <termios.h>
+#include <unistd.h>
 
-static void print_usage()
-{
-	PRINT_MODULE_DESCRIPTION("Dump file utility. Prints file size and contents in binary mode (don't replace LF with CR LF) to stdout.");
+static void print_usage() {
+	PRINT_MODULE_DESCRIPTION(
+		"Dump file utility. Prints file size and contents in binary mode (don't replace LF with CR LF) to "
+		"stdout.");
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("dumpfile", "command");
 	PRINT_MODULE_USAGE_ARG("<file>", "File to dump", false);
 }
 
-extern "C" __EXPORT int dumpfile_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int dumpfile_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		print_usage();
 		return 1;

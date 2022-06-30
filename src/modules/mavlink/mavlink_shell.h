@@ -38,16 +38,14 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
-
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/tasks.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/atomic.h>
 
 #pragma once
 
-class MavlinkShell
-{
+class MavlinkShell {
 public:
 	MavlinkShell() = default;
 
@@ -58,7 +56,7 @@ public:
 	 *
 	 * @return		0 on success.
 	 */
-	int		start();
+	int start();
 
 	/**
 	 * Write to the shell
@@ -78,18 +76,21 @@ public:
 	 */
 	size_t available();
 
-	void setTargetID(uint8_t sysid, uint8_t compid) { _target_sysid.store(sysid); _target_compid.store(compid); }
+	void setTargetID(uint8_t sysid, uint8_t compid) {
+		_target_sysid.store(sysid);
+		_target_compid.store(compid);
+	}
 
 	uint8_t targetSysid() const { return _target_sysid.load(); }
 	uint8_t targetCompid() const { return _target_compid.load(); }
-private:
 
+private:
 	px4::atomic<uint8_t> _target_sysid{};
 	px4::atomic<uint8_t> _target_compid{};
 
-	int _to_shell_fd = -1; /** fd to write to the shell */
-	int _from_shell_fd = -1; /** fd to read from the shell */
-	int _shell_fds[2] = { -1, -1}; /** stdin & out used by the shell */
+	int _to_shell_fd = -1;        /** fd to write to the shell */
+	int _from_shell_fd = -1;      /** fd to read from the shell */
+	int _shell_fds[2] = {-1, -1}; /** stdin & out used by the shell */
 	px4_task_t _task;
 
 	static int shell_start_thread(int argc, char *argv[]);

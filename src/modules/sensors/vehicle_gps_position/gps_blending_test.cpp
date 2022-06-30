@@ -38,15 +38,15 @@
  * @author Mathieu Bresciani <mathieu@auterion.com>
  */
 
-#include <gtest/gtest.h>
-#include <matrix/matrix/math.hpp>
-
 #include "gps_blending.hpp"
+
+#include <gtest/gtest.h>
+
+#include <matrix/matrix/math.hpp>
 
 using matrix::Vector3f;
 
-class GpsBlendingTest : public ::testing::Test
-{
+class GpsBlendingTest : public ::testing::Test {
 public:
 	sensor_gps_s getDefaultGpsData();
 	void runSeconds(float duration_s, GpsBlending &gps_blending, sensor_gps_s &gps_data, int instance);
@@ -55,8 +55,7 @@ public:
 	uint64_t _time_now_us{1000000};
 };
 
-sensor_gps_s GpsBlendingTest::getDefaultGpsData()
-{
+sensor_gps_s GpsBlendingTest::getDefaultGpsData() {
 	sensor_gps_s gps_data{};
 	gps_data.timestamp = _time_now_us - 10e3;
 	gps_data.time_utc_usec = 0;
@@ -87,8 +86,7 @@ sensor_gps_s GpsBlendingTest::getDefaultGpsData()
 	return gps_data;
 }
 
-void GpsBlendingTest::runSeconds(float duration_s, GpsBlending &gps_blending, sensor_gps_s &gps_data, int instance)
-{
+void GpsBlendingTest::runSeconds(float duration_s, GpsBlending &gps_blending, sensor_gps_s &gps_data, int instance) {
 	const float dt = 0.1;
 	const uint64_t dt_us = static_cast<uint64_t>(dt * 1e6f);
 
@@ -102,8 +100,7 @@ void GpsBlendingTest::runSeconds(float duration_s, GpsBlending &gps_blending, se
 }
 
 void GpsBlendingTest::runSeconds(float duration_s, GpsBlending &gps_blending, sensor_gps_s &gps_data0,
-				 sensor_gps_s &gps_data1)
-{
+				 sensor_gps_s &gps_data1) {
 	const float dt = 0.1;
 	const uint64_t dt_us = static_cast<uint64_t>(dt * 1e6f);
 
@@ -119,8 +116,7 @@ void GpsBlendingTest::runSeconds(float duration_s, GpsBlending &gps_blending, se
 	}
 }
 
-TEST_F(GpsBlendingTest, noData)
-{
+TEST_F(GpsBlendingTest, noData) {
 	GpsBlending gps_blending;
 
 	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
@@ -132,8 +128,7 @@ TEST_F(GpsBlendingTest, noData)
 	EXPECT_FALSE(gps_blending.isNewOutputDataAvailable());
 }
 
-TEST_F(GpsBlendingTest, singleReceiver)
-{
+TEST_F(GpsBlendingTest, singleReceiver) {
 	GpsBlending gps_blending;
 
 	gps_blending.setPrimaryInstance(-1);
@@ -160,8 +155,7 @@ TEST_F(GpsBlendingTest, singleReceiver)
 	EXPECT_FALSE(gps_blending.isNewOutputDataAvailable());
 }
 
-TEST_F(GpsBlendingTest, dualReceiverNoBlending)
-{
+TEST_F(GpsBlendingTest, dualReceiverNoBlending) {
 	GpsBlending gps_blending;
 
 	// GIVEN: two receivers with the same prioity
@@ -169,7 +163,7 @@ TEST_F(GpsBlendingTest, dualReceiverNoBlending)
 	sensor_gps_s gps_data0 = getDefaultGpsData();
 	sensor_gps_s gps_data1 = getDefaultGpsData();
 
-	gps_data1.satellites_used = gps_data0.satellites_used + 2; // gps1 has more satellites than gps0
+	gps_data1.satellites_used = gps_data0.satellites_used + 2;  // gps1 has more satellites than gps0
 	gps_blending.setGpsData(gps_data0, 0);
 	gps_blending.setGpsData(gps_data1, 1);
 	gps_blending.update(_time_now_us);
@@ -179,7 +173,7 @@ TEST_F(GpsBlendingTest, dualReceiverNoBlending)
 	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 2);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 
-	gps_data1.satellites_used = gps_data0.satellites_used - 2; // gps1 has less satellites than gps0
+	gps_data1.satellites_used = gps_data0.satellites_used - 2;  // gps1 has less satellites than gps0
 	gps_blending.setGpsData(gps_data0, 0);
 	gps_blending.setGpsData(gps_data1, 1);
 	gps_blending.update(_time_now_us);
@@ -190,8 +184,7 @@ TEST_F(GpsBlendingTest, dualReceiverNoBlending)
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 }
 
-TEST_F(GpsBlendingTest, dualReceiverBlendingHPos)
-{
+TEST_F(GpsBlendingTest, dualReceiverBlendingHPos) {
 	GpsBlending gps_blending;
 
 	sensor_gps_s gps_data0 = getDefaultGpsData();
@@ -210,11 +203,10 @@ TEST_F(GpsBlendingTest, dualReceiverBlendingHPos)
 	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 2);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 	EXPECT_LT(gps_blending.getOutputGpsData().eph, gps_data0.eph);
-	EXPECT_FLOAT_EQ(gps_blending.getOutputGpsData().eph, gps_data1.eph); // TODO: should be greater than
+	EXPECT_FLOAT_EQ(gps_blending.getOutputGpsData().eph, gps_data1.eph);  // TODO: should be greater than
 }
 
-TEST_F(GpsBlendingTest, dualReceiverFailover)
-{
+TEST_F(GpsBlendingTest, dualReceiverFailover) {
 	GpsBlending gps_blending;
 
 	// GIVEN: a dual GPS setup with the first instance (0)

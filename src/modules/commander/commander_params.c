@@ -672,10 +672,13 @@ PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
  * Position control navigation loss response.
  *
  * This sets the flight mode that will be used if navigation accuracy is no longer adequate for position control.
- * Navigation accuracy checks can be disabled using the CBRK_VELPOSERR parameter, but doing so will remove protection for all flight modes.
+ * Navigation accuracy checks can be disabled using the CBRK_VELPOSERR parameter, but doing so will remove protection
+ * for all flight modes.
  *
- * @value 0 Altitude/Manual. Assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
- * @value 1 Land/Terminate. Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
+ * @value 0 Altitude/Manual. Assume use of remote control after fallback. Switch to Altitude mode if a height estimate
+ * is available, else switch to MANUAL.
+ * @value 1 Land/Terminate. Assume no use of remote control after fallback. Switch to Land mode if a height estimate is
+ * available, else switch to TERMINATION.
  *
  * @group Commander
  */
@@ -733,7 +736,8 @@ PARAM_DEFINE_FLOAT(COM_ARM_AUTH_TO, 1);
  * Loss of position failsafe activation delay.
  *
  * This sets number of seconds that the position checks need to be failed before the failsafe will activate.
- * The default value has been optimised for rotary wing applications. For fixed wing applications, a larger value between 5 and 10 should be used.
+ * The default value has been optimised for rotary wing applications. For fixed wing applications, a larger value
+ * between 5 and 10 should be used.
  *
  * @unit s
  * @group Commander
@@ -745,7 +749,8 @@ PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
 /**
  * Horizontal position error threshold.
  *
- * This is the horizontal position error (EPH) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * This is the horizontal position error (EPH) threshold that will trigger a failsafe. The default is appropriate for a
+ * multicopter. Can be increased for a fixed-wing.
  *
  * @unit m
  * @group Commander
@@ -755,7 +760,8 @@ PARAM_DEFINE_FLOAT(COM_POS_FS_EPH, 5);
 /**
  * Vertical position error threshold.
  *
- * This is the vertical position error (EPV) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * This is the vertical position error (EPV) threshold that will trigger a failsafe. The default is appropriate for a
+ * multicopter. Can be increased for a fixed-wing.
  *
  * @unit m
  * @group Commander
@@ -765,7 +771,8 @@ PARAM_DEFINE_FLOAT(COM_POS_FS_EPV, 10);
 /**
  * Horizontal velocity error threshold.
  *
- * This is the horizontal velocity error (EVH) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * This is the horizontal velocity error (EVH) threshold that will trigger a failsafe. The default is appropriate for a
+ * multicopter. Can be increased for a fixed-wing.
  *
  * @unit m/s
  * @group Commander
@@ -888,7 +895,8 @@ PARAM_DEFINE_INT32(COM_PARACHUTE, 0);
  *
  * Describes the intended use of the vehicle.
  * Can be used by ground control software or log post processing.
- * This param does not influence the behavior within the firmware. This means for example the control logic is independent of the setting of this param (but depends on other params).
+ * This param does not influence the behavior within the firmware. This means for example the control logic is
+ * independent of the setting of this param (but depends on other params).
  *
  * @value 0 Default
  * @value 100 Pro User
@@ -972,8 +980,8 @@ PARAM_DEFINE_FLOAT(COM_CPU_MAX, 90.0f);
 /**
  * Required number of redundant power modules
  *
- * This configures a check to verify the expected number of 5V rail power supplies are present. By default only one is expected.
- * Note: CBRK_SUPPLY_CHK disables all power checks including this one.
+ * This configures a check to verify the expected number of 5V rail power supplies are present. By default only one is
+ * expected. Note: CBRK_SUPPLY_CHK disables all power checks including this one.
  *
  * @group Commander
  * @min 0
@@ -984,10 +992,10 @@ PARAM_DEFINE_INT32(COM_POWER_COUNT, 1);
 /**
  * Timeout for detecting a failure after takeoff
  *
- * A non-zero, positive value specifies the timeframe in seconds within failure detector is allowed to put the vehicle into
- * a lockdown state if attitude exceeds the limits defined in FD_FAIL_P and FD_FAIL_R.
- * The check is not executed for flight modes that do support acrobatic maneuvers, e.g: Acro (MC/FW) and Manual (FW).
- * A zero or negative value means that the check is disabled.
+ * A non-zero, positive value specifies the timeframe in seconds within failure detector is allowed to put the vehicle
+ * into a lockdown state if attitude exceeds the limits defined in FD_FAIL_P and FD_FAIL_R. The check is not executed
+ * for flight modes that do support acrobatic maneuvers, e.g: Acro (MC/FW) and Manual (FW). A zero or negative value
+ * means that the check is disabled.
  *
  * @group Commander
  * @unit s
@@ -998,15 +1006,15 @@ PARAM_DEFINE_INT32(COM_POWER_COUNT, 1);
 PARAM_DEFINE_FLOAT(COM_LKDOWN_TKO, 3.0f);
 
 /**
-* Enable preflight check for maximal allowed airspeed when arming.
-*
-* Deny arming if the current airspeed measurement is greater than half the cruise airspeed (FW_AIRSPD_TRIM).
-* Excessive airspeed measurements on ground are either caused by wind or bad airspeed calibration.
-*
-* @group Commander
-* @value 0 Disabled
-* @value 1 Enabled
-*/
+ * Enable preflight check for maximal allowed airspeed when arming.
+ *
+ * Deny arming if the current airspeed measurement is greater than half the cruise airspeed (FW_AIRSPD_TRIM).
+ * Excessive airspeed measurements on ground are either caused by wind or bad airspeed calibration.
+ *
+ * @group Commander
+ * @value 0 Disabled
+ * @value 1 Enabled
+ */
 PARAM_DEFINE_INT32(COM_ARM_ARSP_EN, 1);
 
 /**

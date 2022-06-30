@@ -38,27 +38,27 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
-#include <sys/types.h>
 #include <sys/mount.h>
+#include <sys/types.h>
 #include <syslog.h>
 
 #ifdef CONFIG_BUTTONS
-#  include <nuttx/input/buttons.h>
+#include <nuttx/input/buttons.h>
 #endif
 
 #ifdef CONFIG_USERLED
-#  include <nuttx/leds/userled.h>
+#include <nuttx/leds/userled.h>
 #endif
 
 #ifdef CONFIG_I2C_DRIVER
-#  include "s32k1xx_pin.h"
-#  include <nuttx/i2c/i2c_master.h>
-#  include "s32k1xx_lpi2c.h"
+#include <nuttx/i2c/i2c_master.h>
+
+#include "s32k1xx_lpi2c.h"
+#include "s32k1xx_pin.h"
 #endif
 
 #ifdef CONFIG_S32K1XX_EEEPROM
-#  include "s32k1xx_eeeprom.h"
+#include "s32k1xx_eeeprom.h"
 #endif
 
 #include "board_config.h"
@@ -81,8 +81,7 @@
  *
  ****************************************************************************/
 
-int s32k1xx_bringup(void)
-{
+int s32k1xx_bringup(void) {
 	int ret = OK;
 
 #ifdef CONFIG_BUTTONS
@@ -158,13 +157,13 @@ int s32k1xx_bringup(void)
 
 	if (s32k1xx_gpioread(BOARD_REVISION_DETECT_PIN)) {
 		/* STB high -> active CAN phy */
-		s32k1xx_pinconfig(PIN_CAN0_STB  | GPIO_OUTPUT_ONE);
-		s32k1xx_pinconfig(PIN_CAN1_STB  | GPIO_OUTPUT_ONE);
+		s32k1xx_pinconfig(PIN_CAN0_STB | GPIO_OUTPUT_ONE);
+		s32k1xx_pinconfig(PIN_CAN1_STB | GPIO_OUTPUT_ONE);
 
 	} else {
 		/* STB low -> active CAN phy */
-		s32k1xx_pinconfig(PIN_CAN0_STB  | GPIO_OUTPUT_ZERO);
-		s32k1xx_pinconfig(PIN_CAN1_STB  | GPIO_OUTPUT_ZERO);
+		s32k1xx_pinconfig(PIN_CAN0_STB | GPIO_OUTPUT_ZERO);
+		s32k1xx_pinconfig(PIN_CAN1_STB | GPIO_OUTPUT_ZERO);
 	}
 
 #endif

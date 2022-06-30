@@ -31,36 +31,36 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/topics/input_rc.h>
 
+#include "../PreFlightCheck.hpp"
+
 /**
  * Maximum deadzone value
  */
-#define RC_INPUT_MAX_DEADZONE_US	500
+#define RC_INPUT_MAX_DEADZONE_US 500
 
 /**
  * Minimum value
  */
-#define RC_INPUT_LOWEST_MIN_US	0
+#define RC_INPUT_LOWEST_MIN_US 0
 
 /**
  * Maximum value
  */
-#define RC_INPUT_HIGHEST_MAX_US	2500
+#define RC_INPUT_HIGHEST_MAX_US 2500
 
-int PreFlightCheck::rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool report_fail)
-{
+int PreFlightCheck::rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool report_fail) {
 	char nbuf[20];
-	param_t _parameter_handles_min, _parameter_handles_trim, _parameter_handles_max,
-		_parameter_handles_rev, _parameter_handles_dz;
+	param_t _parameter_handles_min, _parameter_handles_trim, _parameter_handles_max, _parameter_handles_rev,
+		_parameter_handles_dz;
 
 	unsigned map_fail_count = 0;
 
-	const char *rc_map_mandatory[] = {	/*"RC_MAP_MODE_SW",*/
+	const char *rc_map_mandatory[] = {
+		/*"RC_MAP_MODE_SW",*/
 		/* needs discussion if this should be mandatory "RC_MAP_POSCTL_SW"*/
 		nullptr /* end marker */
 	};
@@ -69,11 +69,13 @@ int PreFlightCheck::rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool repor
 
 	/* first check channel mappings */
 	while (rc_map_mandatory[j] != nullptr) {
-
 		param_t map_parm = param_find(rc_map_mandatory[j]);
 
 		if (map_parm == PARAM_INVALID) {
-			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: PARAM %s MISSING.", rc_map_mandatory[j]); }
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "RC ERROR: PARAM %s MISSING.",
+						     rc_map_mandatory[j]);
+			}
 
 			/* give system time to flush error message in case there are more */
 			px4_usleep(100000);
@@ -86,7 +88,10 @@ int PreFlightCheck::rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool repor
 		param_get(map_parm, &mapping);
 
 		if (mapping > input_rc_s::RC_INPUT_MAX_CHANNELS) {
-			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: %s >= NUMBER OF CHANNELS.", rc_map_mandatory[j]); }
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "RC ERROR: %s >= NUMBER OF CHANNELS.",
+						     rc_map_mandatory[j]);
+			}
 
 			/* give system time to flush error message in case there are more */
 			px4_usleep(100000);
@@ -94,7 +99,10 @@ int PreFlightCheck::rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool repor
 		}
 
 		if (mapping == 0) {
-			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: mandatory %s is unmapped.", rc_map_mandatory[j]); }
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "RC ERROR: mandatory %s is unmapped.",
+						     rc_map_mandatory[j]);
+			}
 
 			/* give system time to flush error message in case there are more */
 			px4_usleep(100000);
@@ -147,7 +155,10 @@ int PreFlightCheck::rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool repor
 		if (param_min < RC_INPUT_LOWEST_MIN_US) {
 			count++;
 
-			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_MIN < %u.", i + 1, RC_INPUT_LOWEST_MIN_US); }
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_MIN < %u.", i + 1,
+						     RC_INPUT_LOWEST_MIN_US);
+			}
 
 			/* give system time to flush error message in case there are more */
 			px4_usleep(100000);
@@ -156,7 +167,10 @@ int PreFlightCheck::rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool repor
 		if (param_max > RC_INPUT_HIGHEST_MAX_US) {
 			count++;
 
-			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_MAX > %u.", i + 1, RC_INPUT_HIGHEST_MAX_US); }
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_MAX > %u.", i + 1,
+						     RC_INPUT_HIGHEST_MAX_US);
+			}
 
 			/* give system time to flush error message in case there are more */
 			px4_usleep(100000);
@@ -165,7 +179,10 @@ int PreFlightCheck::rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool repor
 		if (param_trim < param_min) {
 			count++;
 
-			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_TRIM < MIN (%d/%d).", i + 1, (int)param_trim, (int)param_min); }
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_TRIM < MIN (%d/%d).", i + 1,
+						     (int)param_trim, (int)param_min);
+			}
 
 			/* give system time to flush error message in case there are more */
 			px4_usleep(100000);
@@ -174,7 +191,10 @@ int PreFlightCheck::rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool repor
 		if (param_trim > param_max) {
 			count++;
 
-			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_TRIM > MAX (%d/%d).", i + 1, (int)param_trim, (int)param_max); }
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_TRIM > MAX (%d/%d).", i + 1,
+						     (int)param_trim, (int)param_max);
+			}
 
 			/* give system time to flush error message in case there are more */
 			px4_usleep(100000);
@@ -182,7 +202,10 @@ int PreFlightCheck::rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool repor
 
 		/* assert deadzone is sane */
 		if (param_dz > RC_INPUT_MAX_DEADZONE_US) {
-			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_DZ > %u.", i + 1, RC_INPUT_MAX_DEADZONE_US); }
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "RC ERROR: RC%d_DZ > %u.", i + 1,
+						     RC_INPUT_MAX_DEADZONE_US);
+			}
 
 			/* give system time to flush error message in case there are more */
 			px4_usleep(100000);
@@ -201,8 +224,8 @@ int PreFlightCheck::rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool repor
 
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "%d config error%s for %d RC channel%s.",
-					     total_fail_count,
-					     (total_fail_count > 1) ? "s" : "", channels_failed, (channels_failed > 1) ? "s" : "");
+					     total_fail_count, (total_fail_count > 1) ? "s" : "", channels_failed,
+					     (channels_failed > 1) ? "s" : "");
 		}
 
 		px4_usleep(100000);

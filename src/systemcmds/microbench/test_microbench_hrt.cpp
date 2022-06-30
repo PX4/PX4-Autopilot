@@ -36,76 +36,68 @@
  * Tests for the microbench high resolution timer.
  */
 
-#include <unit_test.h>
-
-#include <time.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/micro_hal.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+#include <unit_test.h>
 
-namespace MicroBenchHRT
-{
+namespace MicroBenchHRT {
 
 #ifdef __PX4_NUTTX
 #include <nuttx/irq.h>
 static irqstate_t flags;
 #endif
 
-void lock()
-{
+void lock() {
 #ifdef __PX4_NUTTX
 	flags = px4_enter_critical_section();
 #endif
 }
 
-void unlock()
-{
+void unlock() {
 #ifdef __PX4_NUTTX
 	px4_leave_critical_section(flags);
 #endif
 }
 
-#define PERF(name, op, count) do { \
-		px4_usleep(1000); \
-		reset(); \
+#define PERF(name, op, count)                                    \
+	do {                                                     \
+		px4_usleep(1000);                                \
+		reset();                                         \
 		perf_counter_t p = perf_alloc(PC_ELAPSED, name); \
-		for (int i = 0; i < count; i++) { \
-			px4_usleep(1); \
-			lock(); \
-			perf_begin(p); \
-			op; \
-			perf_end(p); \
-			unlock(); \
-			reset(); \
-		} \
-		perf_print_counter(p); \
-		perf_free(p); \
+		for (int i = 0; i < count; i++) {                \
+			px4_usleep(1);                           \
+			lock();                                  \
+			perf_begin(p);                           \
+			op;                                      \
+			perf_end(p);                             \
+			unlock();                                \
+			reset();                                 \
+		}                                                \
+		perf_print_counter(p);                           \
+		perf_free(p);                                    \
 	} while (0)
 
-class MicroBenchHRT : public UnitTest
-{
+class MicroBenchHRT : public UnitTest {
 public:
 	virtual bool run_tests();
 
 private:
-
 	bool time_px4_hrt();
 
 	void reset();
 
-	void lock()
-	{
+	void lock() {
 #ifdef __PX4_NUTTX
 		flags = px4_enter_critical_section();
 #endif
 	}
 
-	void unlock()
-	{
+	void unlock() {
 #ifdef __PX4_NUTTX
 		px4_leave_critical_section(flags);
 #endif
@@ -115,22 +107,19 @@ private:
 	uint64_t u_64_out;
 };
 
-bool MicroBenchHRT::run_tests()
-{
+bool MicroBenchHRT::run_tests() {
 	ut_run_test(time_px4_hrt);
 
 	return (_tests_failed == 0);
 }
 
-template<typename T>
-T random(T min, T max)
-{
-	const T scale = rand() / (T) RAND_MAX; /* [0, 1.0] */
-	return min + scale * (max - min);      /* [min, max] */
+template <typename T>
+T random(T min, T max) {
+	const T scale = rand() / (T)RAND_MAX; /* [0, 1.0] */
+	return min + scale * (max - min);     /* [min, max] */
 }
 
-void MicroBenchHRT::reset()
-{
+void MicroBenchHRT::reset() {
 	srand(time(nullptr));
 
 	// initialize with random data
@@ -140,12 +129,11 @@ void MicroBenchHRT::reset()
 
 ut_declare_test_c(test_microbench_hrt, MicroBenchHRT)
 
-bool MicroBenchHRT::time_px4_hrt()
-{
+	bool MicroBenchHRT::time_px4_hrt() {
 	PERF("hrt_absolute_time()", u_64_out = hrt_absolute_time(), 1000);
 	PERF("hrt_elapsed_time()", u_64_out = hrt_elapsed_time(&u_64), 1000);
 
 	return true;
 }
 
-} // namespace MicroBenchHRT
+}  // namespace MicroBenchHRT

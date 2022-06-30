@@ -78,34 +78,20 @@ static const uint8_t public_key3[] = {
 };
 #endif
 
-
-static const persistent_key_t public_keys[] = {
-	{
-		.key = public_key0,
-		.key_size = sizeof(public_key0)
-	}
+static const persistent_key_t public_keys[] = {{.key = public_key0, .key_size = sizeof(public_key0)}
 
 #ifdef PUBLIC_KEY1
-	,
-	{
-		.key = public_key1,
-		.key_size = sizeof(public_key1)
-	}
+					       ,
+					       {.key = public_key1, .key_size = sizeof(public_key1)}
 #endif
 
 #ifdef PUBLIC_KEY2
-	,
-	{
-		.key = public_key2,
-		.key_size = sizeof(public_key2)
-	}
+					       ,
+					       {.key = public_key2, .key_size = sizeof(public_key2)}
 #endif
 
 #ifdef PUBLIC_KEY3
-	{
-		.key = public_key3,
-		.key_size = sizeof(public_key3)
-	}
+					       {.key = public_key3, .key_size = sizeof(public_key3)}
 #endif
 
 };

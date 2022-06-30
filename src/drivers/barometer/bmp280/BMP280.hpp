@@ -33,18 +33,18 @@
 
 #pragma once
 
-#include "bmp280.h"
-
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/px4_config.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/px4_config.h>
+#include <uORB/topics/sensor_baro.h>
+
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
-#include <lib/perf/perf_counter.h>
 
-class BMP280 : public I2CSPIDriver<BMP280>
-{
+#include "bmp280.h"
+
+class BMP280 : public I2CSPIDriver<BMP280> {
 public:
 	BMP280(const I2CSPIDriverConfig &config, bmp280::IBMP280 *interface);
 	virtual ~BMP280();
@@ -52,30 +52,31 @@ public:
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
-	int			init();
-	void			print_status();
+	int init();
+	void print_status();
 
-	void			RunImpl();
+	void RunImpl();
+
 private:
-	void			Start();
+	void Start();
 
-	int			measure(); //start measure
-	int			collect(); //get results and publish
+	int measure();  // start measure
+	int collect();  // get results and publish
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
-	bmp280::IBMP280		*_interface;
+	bmp280::IBMP280 *_interface;
 
 	// set config, recommended settings
-	static constexpr uint8_t	_curr_ctrl{BMP280_CTRL_P16 | BMP280_CTRL_T2};
-	static constexpr uint32_t	_measure_interval{BMP280_MT_INIT + BMP280_MT *(16 - 1 + 2 - 1)};
+	static constexpr uint8_t _curr_ctrl{BMP280_CTRL_P16 | BMP280_CTRL_T2};
+	static constexpr uint32_t _measure_interval{BMP280_MT_INIT + BMP280_MT * (16 - 1 + 2 - 1)};
 
-	bool			_collect_phase{false};
+	bool _collect_phase{false};
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_measure_perf;
-	perf_counter_t		_comms_errors;
+	perf_counter_t _sample_perf;
+	perf_counter_t _measure_perf;
+	perf_counter_t _comms_errors;
 
-	bmp280::calibration_s	*_cal{nullptr}; //stored calibration constants
-	bmp280::fcalibration_s	_fcal{}; //pre processed calibration constants
+	bmp280::calibration_s *_cal{nullptr};  // stored calibration constants
+	bmp280::fcalibration_s _fcal{};        // pre processed calibration constants
 };

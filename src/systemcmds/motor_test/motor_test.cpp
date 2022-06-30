@@ -39,20 +39,20 @@
  */
 
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
-#include <uORB/Publication.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/test_motor.h>
+
+#include <uORB/Publication.hpp>
 
 extern "C" __EXPORT int motor_test_main(int argc, char *argv[]);
 
 static void motor_test(unsigned channel, float value, uint8_t driver_instance, int timeout_ms);
 static void usage(const char *reason);
 
-void motor_test(unsigned channel, float value, uint8_t driver_instance, int timeout_ms)
-{
+void motor_test(unsigned channel, float value, uint8_t driver_instance, int timeout_ms) {
 	test_motor_s test_motor{};
 	test_motor.timestamp = hrt_absolute_time();
 	test_motor.motor_number = channel;
@@ -73,8 +73,7 @@ void motor_test(unsigned channel, float value, uint8_t driver_instance, int time
 	}
 }
 
-static void usage(const char *reason)
-{
+static void usage(const char *reason) {
 	if (reason != nullptr) {
 		PX4_WARN("%s", reason);
 	}
@@ -94,12 +93,10 @@ WARNING: remove all props before using this command.
 	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 4, "driver instance", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop all motors");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("iterate", "Iterate all motors starting and stopping one after the other");
-
 }
 
-int motor_test_main(int argc, char *argv[])
-{
-	int channel = -1; //default to all channels
+int motor_test_main(int argc, char *argv[]) {
+	int channel = -1;  // default to all channels
 	unsigned long lval;
 	float value = 0.0f;
 	uint8_t driver_instance = 0;
@@ -111,35 +108,34 @@ int motor_test_main(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "i:m:p:t:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+			case 'i':
+				driver_instance = (uint8_t)strtol(myoptarg, nullptr, 0);
+				break;
 
-		case 'i':
-			driver_instance = (uint8_t)strtol(myoptarg, nullptr, 0);
-			break;
+			case 'm':
+				/* Read in motor number and adjust for 1-based indexing */
+				channel = (int)strtol(myoptarg, nullptr, 0) - 1;
+				break;
 
-		case 'm':
-			/* Read in motor number and adjust for 1-based indexing */
-			channel = (int)strtol(myoptarg, nullptr, 0) - 1;
-			break;
+			case 'p':
+				/* Read in power value */
+				lval = strtoul(myoptarg, nullptr, 0);
 
-		case 'p':
-			/* Read in power value */
-			lval = strtoul(myoptarg, nullptr, 0);
+				if (lval > 100) {
+					usage("value invalid");
+					return 1;
+				}
 
-			if (lval > 100) {
-				usage("value invalid");
+				value = ((float)lval) / 100.f;
+				break;
+
+			case 't':
+				timeout_ms = strtol(myoptarg, nullptr, 0) * 1000;
+				break;
+
+			default:
+				usage(nullptr);
 				return 1;
-			}
-
-			value = ((float)lval) / 100.f;
-			break;
-
-		case 't':
-			timeout_ms = strtol(myoptarg, nullptr, 0) * 1000;
-			break;
-
-		default:
-			usage(nullptr);
-			return 1;
 		}
 	}
 

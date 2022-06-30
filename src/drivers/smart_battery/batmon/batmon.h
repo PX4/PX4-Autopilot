@@ -43,16 +43,15 @@
 
 #pragma once
 
-#include <lib/drivers/smbus_sbs/SBS.hpp>
 #include <px4_platform_common/module.h>
+
+#include <lib/drivers/smbus_sbs/SBS.hpp>
 
 #define MAX_CELL_COUNT 16
 
-#define BATMON_DEFAULT_SMBUS_ADDR                       0x0B            ///< Default 7 bit address I2C address. 8 bit = 0x16
+#define BATMON_DEFAULT_SMBUS_ADDR 0x0B  ///< Default 7 bit address I2C address. 8 bit = 0x16
 
-class Batmon : public SMBUS_SBS_BaseClass<Batmon>
-{
-
+class Batmon : public SMBUS_SBS_BaseClass<Batmon> {
 public:
 	Batmon(const I2CSPIDriverConfig &config, SMBus *interface);
 	~Batmon() = default;
@@ -64,29 +63,28 @@ public:
 	void RunImpl();
 
 	enum BATMON_REGISTERS {
-		BATT_SMBUS_TEMP_EXTERNAL_1		=	0x48,
-		BATT_SMBUS_TEMP_EXTERNAL_2		=	0x49,
-		BATT_SMBUS_CELL_1_VOLTAGE               =       0x3F,
-		BATT_SMBUS_CELL_2_VOLTAGE               =       0x3E,
-		BATT_SMBUS_CELL_3_VOLTAGE               =       0x3D,
-		BATT_SMBUS_CELL_4_VOLTAGE               =       0x3C,
-		BATT_SMBUS_CELL_5_VOLTAGE               =       0x3B,
-		BATT_SMBUS_CELL_6_VOLTAGE               =       0x3A,
-		BATT_SMBUS_CELL_7_VOLTAGE               =       0x39,
-		BATT_SMBUS_CELL_8_VOLTAGE               =       0x38,
-		BATT_SMBUS_CELL_9_VOLTAGE               =       0x37,
-		BATT_SMBUS_CELL_10_VOLTAGE              =       0x36,
-		BATT_SMBUS_CELL_11_VOLTAGE              =       0x35,
-		BATT_SMBUS_CELL_12_VOLTAGE              =       0x34,
-		BATT_SMBUS_CELL_13_VOLTAGE              =       0x33,
-		BATT_SMBUS_CELL_14_VOLTAGE              =       0x32,
-		BATT_SMBUS_CELL_15_VOLTAGE              =       0x31,
-		BATT_SMBUS_CELL_16_VOLTAGE              =       0x30,
-		BATT_SMBUS_CELL_COUNT                   =       0x40
+		BATT_SMBUS_TEMP_EXTERNAL_1 = 0x48,
+		BATT_SMBUS_TEMP_EXTERNAL_2 = 0x49,
+		BATT_SMBUS_CELL_1_VOLTAGE = 0x3F,
+		BATT_SMBUS_CELL_2_VOLTAGE = 0x3E,
+		BATT_SMBUS_CELL_3_VOLTAGE = 0x3D,
+		BATT_SMBUS_CELL_4_VOLTAGE = 0x3C,
+		BATT_SMBUS_CELL_5_VOLTAGE = 0x3B,
+		BATT_SMBUS_CELL_6_VOLTAGE = 0x3A,
+		BATT_SMBUS_CELL_7_VOLTAGE = 0x39,
+		BATT_SMBUS_CELL_8_VOLTAGE = 0x38,
+		BATT_SMBUS_CELL_9_VOLTAGE = 0x37,
+		BATT_SMBUS_CELL_10_VOLTAGE = 0x36,
+		BATT_SMBUS_CELL_11_VOLTAGE = 0x35,
+		BATT_SMBUS_CELL_12_VOLTAGE = 0x34,
+		BATT_SMBUS_CELL_13_VOLTAGE = 0x33,
+		BATT_SMBUS_CELL_14_VOLTAGE = 0x32,
+		BATT_SMBUS_CELL_15_VOLTAGE = 0x31,
+		BATT_SMBUS_CELL_16_VOLTAGE = 0x30,
+		BATT_SMBUS_CELL_COUNT = 0x40
 	};
 
 private:
-
 	float _cell_voltages[MAX_CELL_COUNT] = {};
 
 	float _max_cell_voltage_delta{0};
@@ -110,5 +108,4 @@ private:
 
 	/** @param _low_thr Low battery threshold param. */
 	float _low_thr{0.f};
-
 };

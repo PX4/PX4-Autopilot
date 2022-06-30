@@ -33,15 +33,14 @@
 
 #pragma once
 
+#include <lib/led/led.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_config.h>
+
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-#include <lib/led/led.h>
-
-class NavioRGBLed : public ModuleBase<NavioRGBLed>, public px4::ScheduledWorkItem
-{
+class NavioRGBLed : public ModuleBase<NavioRGBLed>, public px4::ScheduledWorkItem {
 public:
 	NavioRGBLed();
 	~NavioRGBLed() override;
@@ -58,14 +57,11 @@ public:
 	int init();
 
 private:
-
 	void Run() override;
 
 	LedController _led_controller;
 
-
-	class SysRGBLED
-	{
+	class SysRGBLED {
 	public:
 		explicit SysRGBLED(const char *path) : _fd(open(path, O_WRONLY)) {}
 		~SysRGBLED() { close(_fd); }

@@ -39,12 +39,10 @@
 
 #pragma once
 
+#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
 #include <matrix/matrix/math.hpp>
 
-#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
-
-class AngularVelocityControl
-{
+class AngularVelocityControl {
 public:
 	AngularVelocityControl() = default;
 	~AngularVelocityControl() = default;
@@ -102,19 +100,19 @@ public:
 	 * Get the desired angular acceleration
 	 * @see _angular_accel_sp
 	 */
-	const matrix::Vector3f &getAngularAccelerationSetpoint() {return _angular_accel_sp;};
+	const matrix::Vector3f &getAngularAccelerationSetpoint() { return _angular_accel_sp; };
 
 	/**
 	 * Get the torque vector to apply to the vehicle
 	 * @see _torque_sp
 	 */
-	const matrix::Vector3f &getTorqueSetpoint() {return _torque_sp;};
+	const matrix::Vector3f &getTorqueSetpoint() { return _torque_sp; };
 
 	/**
 	 * Get the integral term
 	 * @see _torque_sp
 	 */
-	const matrix::Vector3f &getIntegral() {return _angular_velocity_int;};
+	const matrix::Vector3f &getIntegral() { return _angular_velocity_int; };
 
 	/**
 	 * Set the integral term to 0 to prevent windup
@@ -131,12 +129,12 @@ private:
 	void updateIntegral(matrix::Vector3f &angular_velocity_error, const float dt);
 
 	// Gains
-	matrix::Vector3f _gain_p; ///< proportional gain for all axes x, y, z
-	matrix::Vector3f _gain_i; ///< integral gain
-	matrix::Vector3f _gain_d; ///< derivative gain
-	matrix::Vector3f _lim_int; ///< integrator term maximum absolute value
-	matrix::Vector3f _gain_ff; ///< direct angular velocity to torque feed forward gain
-	matrix::Matrix3f _inertia{matrix::eye<float, 3>()}; ///< inertia matrix
+	matrix::Vector3f _gain_p;                            ///< proportional gain for all axes x, y, z
+	matrix::Vector3f _gain_i;                            ///< integral gain
+	matrix::Vector3f _gain_d;                            ///< derivative gain
+	matrix::Vector3f _lim_int;                           ///< integrator term maximum absolute value
+	matrix::Vector3f _gain_ff;                           ///< direct angular velocity to torque feed forward gain
+	matrix::Matrix3f _inertia{matrix::eye<float, 3>()};  ///< inertia matrix
 
 	// States
 	matrix::Vector3f _angular_velocity_int;
@@ -144,6 +142,6 @@ private:
 	matrix::Vector<bool, 3> _saturation_negative;
 
 	// Output
-	matrix::Vector3f _angular_accel_sp; 	//< Angular acceleration setpoint computed using P and D gains
-	matrix::Vector3f _torque_sp;		//< Torque setpoint to apply to the vehicle
+	matrix::Vector3f _angular_accel_sp;  //< Angular acceleration setpoint computed using P and D gains
+	matrix::Vector3f _torque_sp;         //< Torque setpoint to apply to the vehicle
 };

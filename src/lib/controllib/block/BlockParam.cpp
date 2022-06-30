@@ -39,15 +39,12 @@
 
 #include "BlockParam.hpp"
 
+#include <containers/List.hpp>
 #include <cstring>
 
-#include <containers/List.hpp>
+namespace control {
 
-namespace control
-{
-
-BlockParamBase::BlockParamBase(Block *parent, const char *name, bool parent_prefix)
-{
+BlockParamBase::BlockParamBase(Block *parent, const char *name, bool parent_prefix) {
 	char fullname[blockNameLengthMax];
 
 	if (parent == nullptr) {
@@ -85,16 +82,13 @@ BlockParamBase::BlockParamBase(Block *parent, const char *name, bool parent_pref
 };
 
 template <>
-BlockParam<bool>::BlockParam(Block *block, const char *name, bool parent_prefix) :
-	BlockParamBase(block, name, parent_prefix),
-	_val()
-{
+BlockParam<bool>::BlockParam(Block *block, const char *name, bool parent_prefix)
+	: BlockParamBase(block, name, parent_prefix), _val() {
 	update();
 }
 
 template <>
-bool BlockParam<bool>::update()
-{
+bool BlockParam<bool>::update() {
 	int32_t tmp = 0;
 	int ret = param_get(_handle, &tmp);
 
@@ -109,35 +103,27 @@ bool BlockParam<bool>::update()
 }
 
 template <>
-BlockParam<int32_t>::BlockParam(Block *block, const char *name, bool parent_prefix) :
-	BlockParamBase(block, name, parent_prefix),
-	_val()
-{
+BlockParam<int32_t>::BlockParam(Block *block, const char *name, bool parent_prefix)
+	: BlockParamBase(block, name, parent_prefix), _val() {
 	update();
 }
 
 template <>
-BlockParam<float>::BlockParam(Block *block, const char *name, bool parent_prefix) :
-	BlockParamBase(block, name, parent_prefix),
-	_val()
-{
+BlockParam<float>::BlockParam(Block *block, const char *name, bool parent_prefix)
+	: BlockParamBase(block, name, parent_prefix), _val() {
 	update();
 }
 
 template <>
-BlockParam<int32_t &>::BlockParam(Block *block, const char *name, bool parent_prefix, int32_t &extern_val) :
-	BlockParamBase(block, name, parent_prefix),
-	_val(extern_val)
-{
+BlockParam<int32_t &>::BlockParam(Block *block, const char *name, bool parent_prefix, int32_t &extern_val)
+	: BlockParamBase(block, name, parent_prefix), _val(extern_val) {
 	update();
 }
 
 template <>
-BlockParam<float &>::BlockParam(Block *block, const char *name, bool parent_prefix, float &extern_val) :
-	BlockParamBase(block, name, parent_prefix),
-	_val(extern_val)
-{
+BlockParam<float &>::BlockParam(Block *block, const char *name, bool parent_prefix, float &extern_val)
+	: BlockParamBase(block, name, parent_prefix), _val(extern_val) {
 	update();
 }
 
-} // namespace control
+}  // namespace control

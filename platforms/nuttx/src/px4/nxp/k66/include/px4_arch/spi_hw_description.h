@@ -36,8 +36,5 @@
 
 #include "../../../kinetis/include/px4_arch/spi_hw_description.h"
 
-constexpr bool validateSPIConfig(const px4_spi_bus_t spi_busses_conf[SPI_BUS_MAX_BUS_ITEMS])
-{
-	return true;
-}
-#endif // CONFIG_SPI
+constexpr bool validateSPIConfig(const px4_spi_bus_t spi_busses_conf[SPI_BUS_MAX_BUS_ITEMS]) { return true; }
+#endif  // CONFIG_SPI

@@ -32,40 +32,31 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
-#include <matrix/math.hpp>
+
 #include <iostream>
+#include <matrix/math.hpp>
 
 using namespace matrix;
 
 template <typename Scalar, size_t N>
-bool isEqualAll(Dual<Scalar, N> a, Dual<Scalar, N> b)
-{
+bool isEqualAll(Dual<Scalar, N> a, Dual<Scalar, N> b) {
 	return isEqualF(a.value, b.value) && a.derivative == b.derivative;
 }
 
 template <typename T>
-T testFunction(const Vector<T, 3> &point)
-{
+T testFunction(const Vector<T, 3> &point) {
 	// function is f(x,y,z) = x^2 + 2xy + 3y^2 + z
-	return point(0) * point(0)
-	       + 2.f * point(0) * point(1)
-	       + 3.f * point(1) * point(1)
-	       + point(2);
+	return point(0) * point(0) + 2.f * point(0) * point(1) + 3.f * point(1) * point(1) + point(2);
 }
 
 template <typename Scalar>
-Vector<Scalar, 3> positionError(const Vector<Scalar, 3> &positionState,
-				const Vector<Scalar, 3> &velocityStateBody,
-				const Quaternion<Scalar> &bodyOrientation,
-				const Vector<Scalar, 3> &positionMeasurement,
-				Scalar dt
-			       )
-{
-	return positionMeasurement - (positionState +  bodyOrientation.rotateVector(velocityStateBody) * dt);
+Vector<Scalar, 3> positionError(const Vector<Scalar, 3> &positionState, const Vector<Scalar, 3> &velocityStateBody,
+				const Quaternion<Scalar> &bodyOrientation, const Vector<Scalar, 3> &positionMeasurement,
+				Scalar dt) {
+	return positionMeasurement - (positionState + bodyOrientation.rotateVector(velocityStateBody) * dt);
 }
 
-TEST(MatrixDualTest, Dual)
-{
+TEST(MatrixDualTest, Dual) {
 	const Dual<float, 1> a(3, 0);
 	const Dual<float, 1> b(6, 0);
 
@@ -221,37 +212,39 @@ TEST(MatrixDualTest, Dual)
 	{
 		// sin/cos/tan
 		EXPECT_FLOAT_EQ(sin(a).value, sin(a.value));
-		EXPECT_FLOAT_EQ(sin(a).derivative(0), cos(a.value)); // sin'(x) = cos(x)
+		EXPECT_FLOAT_EQ(sin(a).derivative(0), cos(a.value));  // sin'(x) = cos(x)
 
 		EXPECT_FLOAT_EQ(cos(a).value, cos(a.value));
-		EXPECT_FLOAT_EQ(cos(a).derivative(0), -sin(a.value)); // cos'(x) = -sin(x)
+		EXPECT_FLOAT_EQ(cos(a).derivative(0), -sin(a.value));  // cos'(x) = -sin(x)
 
 		EXPECT_FLOAT_EQ(tan(a).value, tan(a.value));
-		EXPECT_FLOAT_EQ(tan(a).derivative(0), 1.f + tan(a.value)*tan(a.value)); // tan'(x) = 1 + tan^2(x)
+		EXPECT_FLOAT_EQ(tan(a).derivative(0), 1.f + tan(a.value) * tan(a.value));  // tan'(x) = 1 + tan^2(x)
 	}
 
 	{
 		// asin/acos/atan
 		Dual<float, 1> c(0.3f, 0);
 		EXPECT_FLOAT_EQ(asin(c).value, asin(c.value));
-		EXPECT_FLOAT_EQ(asin(c).derivative(0), 1.f / sqrt(1.f - 0.3f * 0.3f)); // asin'(x) = 1/sqrt(1-x^2)
+		EXPECT_FLOAT_EQ(asin(c).derivative(0), 1.f / sqrt(1.f - 0.3f * 0.3f));  // asin'(x) = 1/sqrt(1-x^2)
 
 		EXPECT_FLOAT_EQ(acos(c).value, acos(c.value));
-		EXPECT_FLOAT_EQ(acos(c).derivative(0), -1.f / sqrt(1.f - 0.3f * 0.3f)); // acos'(x) = -1/sqrt(1-x^2)
+		EXPECT_FLOAT_EQ(acos(c).derivative(0), -1.f / sqrt(1.f - 0.3f * 0.3f));  // acos'(x) = -1/sqrt(1-x^2)
 
 		EXPECT_FLOAT_EQ(atan(c).value, atan(c.value));
-		EXPECT_FLOAT_EQ(atan(c).derivative(0), 1.f / (1.f + 0.3f * 0.3f)); // tan'(x) = 1 + x^2
+		EXPECT_FLOAT_EQ(atan(c).derivative(0), 1.f / (1.f + 0.3f * 0.3f));  // tan'(x) = 1 + x^2
 	}
 
 	{
 		// atan2
 		EXPECT_FLOAT_EQ(atan2(a, b).value, atan2(a.value, b.value));
-		EXPECT_TRUE(isEqualAll(atan2(a, Dual<float, 1>(b.value)), atan(a / b.value))); // atan2'(y, x) = atan'(y/x)
+		EXPECT_TRUE(
+			isEqualAll(atan2(a, Dual<float, 1>(b.value)), atan(a / b.value)));  // atan2'(y, x) = atan'(y/x)
 	}
 
 	{
 		// partial derivatives
-		// function is f(x,y,z) = x^2 + 2xy + 3y^2 + z, we need with respect to d/dx and d/dy at the point (0.5, -0.8, 2)
+		// function is f(x,y,z) = x^2 + 2xy + 3y^2 + z, we need with respect to d/dx and d/dy at the point (0.5,
+		// -0.8, 2)
 
 		using D = Dual<float, 2>;
 
@@ -293,22 +286,17 @@ TEST(MatrixDualTest, Dual)
 			Vector3f positionMeasurement(4.5f, 6.2f, 7.9f);
 			float dt = 0.1f;
 
-			direct_error = positionError(positionState,
-						     velocityState,
-						     velocityOrientation,
-						     positionMeasurement,
-						     dt);
+			direct_error = positionError(positionState, velocityState, velocityOrientation,
+						     positionMeasurement, dt);
 			float h = 0.001f;
 
 			for (size_t i = 0; i < 4; i++) {
 				Quaternion<float> h4 = velocityOrientation;
 				h4(i) += h;
-				numerical_jacobian.col(i) = (positionError(positionState,
-							     velocityState,
-							     h4,
-							     positionMeasurement,
-							     dt)
-							     - direct_error) / h;
+				numerical_jacobian.col(i) =
+					(positionError(positionState, velocityState, h4, positionMeasurement, dt) -
+					 direct_error) /
+					h;
 			}
 		}
 		Vector3f auto_error;
@@ -326,12 +314,8 @@ TEST(MatrixDualTest, Dual)
 			Vector3d4 positionMeasurement(D4(4.5f), D4(6.2f), D4(7.9f));
 			D4 dt(0.1f);
 
-
-			Vector3d4 error = positionError(positionState,
-							velocityState,
-							velocityOrientation,
-							positionMeasurement,
-							dt);
+			Vector3d4 error = positionError(positionState, velocityState, velocityOrientation,
+							positionMeasurement, dt);
 			auto_error = collectReals(error);
 			auto_jacobian = collectDerivatives(error);
 		}

@@ -42,16 +42,14 @@
  * @author ThunderFly s.r.o., Roman Dvorak <dvorakroman@thunderfly.cz>
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <drivers/drv_hrt.h>
-
-#include <uORB/Publication.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/rpm.h>
 
-extern "C" __EXPORT int rpm_simulator_main(int argc, char *argv[]);
-int rpm_simulator_main(int argc, char *argv[])
-{
+#include <uORB/Publication.hpp>
 
+extern "C" __EXPORT int rpm_simulator_main(int argc, char *argv[]);
+int rpm_simulator_main(int argc, char *argv[]) {
 	// check input
 	if (argc != 2) {
 		PX4_INFO("Usage: rpm_simulator <published RPM>");

@@ -39,16 +39,14 @@
  */
 
 #include "ecl_roll_controller.h"
+
 #include <float.h>
 #include <lib/geo/geo.h>
 #include <mathlib/mathlib.h>
 
-float ECL_RollController::control_attitude(const float dt, const ECL_ControlData &ctl_data)
-{
+float ECL_RollController::control_attitude(const float dt, const ECL_ControlData &ctl_data) {
 	/* Do not calculate control signal with bad inputs */
-	if (!(PX4_ISFINITE(ctl_data.roll_setpoint) &&
-	      PX4_ISFINITE(ctl_data.roll))) {
-
+	if (!(PX4_ISFINITE(ctl_data.roll_setpoint) && PX4_ISFINITE(ctl_data.roll))) {
 		return _rate_setpoint;
 	}
 
@@ -61,17 +59,12 @@ float ECL_RollController::control_attitude(const float dt, const ECL_ControlData
 	return _rate_setpoint;
 }
 
-float ECL_RollController::control_bodyrate(const float dt, const ECL_ControlData &ctl_data)
-{
+float ECL_RollController::control_bodyrate(const float dt, const ECL_ControlData &ctl_data) {
 	/* Do not calculate control signal with bad inputs */
-	if (!(PX4_ISFINITE(ctl_data.pitch) &&
-	      PX4_ISFINITE(ctl_data.body_x_rate) &&
-	      PX4_ISFINITE(ctl_data.body_z_rate) &&
-	      PX4_ISFINITE(ctl_data.yaw_rate_setpoint) &&
-	      PX4_ISFINITE(ctl_data.airspeed_min) &&
-	      PX4_ISFINITE(ctl_data.airspeed_max) &&
+	if (!(PX4_ISFINITE(ctl_data.pitch) && PX4_ISFINITE(ctl_data.body_x_rate) &&
+	      PX4_ISFINITE(ctl_data.body_z_rate) && PX4_ISFINITE(ctl_data.yaw_rate_setpoint) &&
+	      PX4_ISFINITE(ctl_data.airspeed_min) && PX4_ISFINITE(ctl_data.airspeed_max) &&
 	      PX4_ISFINITE(ctl_data.scaler))) {
-
 		return math::constrain(_last_output, -1.0f, 1.0f);
 	}
 
@@ -79,7 +72,6 @@ float ECL_RollController::control_bodyrate(const float dt, const ECL_ControlData
 	_rate_error = _bodyrate_setpoint - ctl_data.body_x_rate;
 
 	if (!ctl_data.lock_integrator && _k_i > 0.0f) {
-
 		/* Integral term scales with 1/IAS^2 */
 		float id = _rate_error * dt * ctl_data.scaler * ctl_data.scaler;
 
@@ -102,16 +94,15 @@ float ECL_RollController::control_bodyrate(const float dt, const ECL_ControlData
 	/* Apply PI rate controller and store non-limited output */
 	/* FF terms scales with 1/TAS and P,I with 1/IAS^2 */
 	_last_output = _bodyrate_setpoint * _k_ff * ctl_data.scaler +
-		       _rate_error * _k_p * ctl_data.scaler * ctl_data.scaler
-		       + _integrator;
+		       _rate_error * _k_p * ctl_data.scaler * ctl_data.scaler + _integrator;
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }
 
-float ECL_RollController::control_euler_rate(const float dt, const ECL_ControlData &ctl_data, float bodyrate_ff)
-{
+float ECL_RollController::control_euler_rate(const float dt, const ECL_ControlData &ctl_data, float bodyrate_ff) {
 	/* Transform setpoint to body angular rates (jacobian) */
-	_bodyrate_setpoint = ctl_data.roll_rate_setpoint - sinf(ctl_data.pitch) * ctl_data.yaw_rate_setpoint + bodyrate_ff;
+	_bodyrate_setpoint =
+		ctl_data.roll_rate_setpoint - sinf(ctl_data.pitch) * ctl_data.yaw_rate_setpoint + bodyrate_ff;
 
 	set_bodyrate_setpoint(_bodyrate_setpoint);
 

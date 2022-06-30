@@ -36,27 +36,24 @@
  * Tests the Graupner HoTT telemetry support.
  */
 
-#include <px4_platform_common/time.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/posix.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
 
 #include "tests_main.h"
 
-
-static int open_uart(const char *device)
-{
+static int open_uart(const char *device) {
 	/* baud rate */
 	int speed = B19200;
 
@@ -91,8 +88,7 @@ static int open_uart(const char *device)
 	return uart;
 }
 
-int test_hott_telemetry(int argc, char *argv[])
-{
+int test_hott_telemetry(int argc, char *argv[]) {
 	PX4_INFO("HoTT Telemetry Test Requirements:");
 	PX4_INFO("- Radio on and Electric Air. Mod on (telemetry -> sensor select).");
 	PX4_INFO("- Receiver telemetry port must be in telemetry mode.");
@@ -117,7 +113,7 @@ int test_hott_telemetry(int argc, char *argv[])
 
 	/* Since TX and RX are now connected we should be able to read in what we wrote */
 	const int timeout = 1000;
-	struct pollfd fds[] = { { .fd = fd, .events = POLLIN } };
+	struct pollfd fds[] = {{.fd = fd, .events = POLLIN}};
 
 	if (poll(fds, 1, timeout) == 0) {
 		PX4_ERR("FAIL: Could not read sent data.");
@@ -127,7 +123,6 @@ int test_hott_telemetry(int argc, char *argv[])
 	char receive;
 	read(fd, &receive, 1);
 	PX4_INFO("PASS: Single wire enabled. Sent %x and received %x", send, receive);
-
 
 	/* Attempt to read HoTT poll messages from the HoTT receiver */
 	int received_count = 0;
@@ -154,11 +149,14 @@ int test_hott_telemetry(int argc, char *argv[])
 
 	if (received_count > 0 && valid_count > 0) {
 		if (received_count == max_polls && valid_count == max_polls) {
-			PX4_INFO("PASS: Received %d out of %d valid byte pairs from the HoTT receiver device.", received_count, max_polls);
+			PX4_INFO("PASS: Received %d out of %d valid byte pairs from the HoTT receiver device.",
+				 received_count, max_polls);
 
 		} else {
-			PX4_WARN("WARN: Received %d out of %d byte pairs of which %d were valid from the HoTT receiver device.", received_count,
-				 max_polls, valid_count);
+			PX4_WARN(
+				"WARN: Received %d out of %d byte pairs of which %d were valid from the HoTT receiver "
+				"device.",
+				received_count, max_polls, valid_count);
 		}
 
 	} else {
@@ -174,14 +172,10 @@ int test_hott_telemetry(int argc, char *argv[])
 		}
 	}
 
-
 	/* Attempt to send a HoTT response messages */
-	uint8_t response[] = {0x7c, 0x8e, 0x00, 0xe0, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, \
-			      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
-			      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf4, 0x01, 0x00, 0x00, \
-			      0x19, 0x00, 0x00, 0x00, 0x30, 0x75, 0x78, 0x00, 0x00, 0x00, \
-			      0x00, 0x00, 0x00, 0x7d, 0x12
-			     };
+	uint8_t response[] = {0x7c, 0x8e, 0x00, 0xe0, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf4, 0x01, 0x00, 0x00,
+			      0x19, 0x00, 0x00, 0x00, 0x30, 0x75, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7d, 0x12};
 
 	px4_usleep(5000);
 
@@ -191,7 +185,6 @@ int test_hott_telemetry(int argc, char *argv[])
 	}
 
 	PX4_INFO("PASS: Response sent to the HoTT receiver device. Voltage should now show 2.5V.");
-
 
 #ifdef TIOCSSINGLEWIRE
 	/* Disable single wire */

@@ -40,23 +40,21 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
+#include <drivers/drv_tone_alarm.h>
+#include <lib/circuit_breaker/circuit_breaker.h>
+#include <lib/tunes/tunes.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/circuit_breaker/circuit_breaker.h>
-#include <lib/tunes/tunes.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
+#include <px4_platform_common/px4_config.h>
+#include <string.h>
 #include <uORB/topics/tune_control.h>
 
-#include <drivers/drv_tone_alarm.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 
-#include <string.h>
-
-class ToneAlarm : public ModuleBase<ToneAlarm>, public px4::ScheduledWorkItem
-{
+class ToneAlarm : public ModuleBase<ToneAlarm>, public px4::ScheduledWorkItem {
 public:
 	ToneAlarm();
 	~ToneAlarm() override;

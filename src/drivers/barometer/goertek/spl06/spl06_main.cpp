@@ -31,19 +31,18 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
+#include <drivers/drv_sensor.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "SPL06.hpp"
 
-#include <drivers/drv_sensor.h>
+extern "C" {
+__EXPORT int spl06_main(int argc, char *argv[]);
+}
 
-extern "C" { __EXPORT int spl06_main(int argc, char *argv[]); }
-
-void
-SPL06::print_usage()
-{
+void SPL06::print_usage() {
 	PRINT_MODULE_USAGE_NAME("spl06", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -56,25 +55,23 @@ SPL06::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *SPL06::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+I2CSPIDriverBase *SPL06::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	spl06::ISPL06 *interface = nullptr;
 
 #if defined(CONFIG_I2C)
 
 	if (config.bus_type == BOARD_I2C_BUS) {
 		interface = spl06_i2c_interface(config.bus, config.i2c_address, config.bus_frequency);
-
 	}
 
-#endif // CONFIG_I2C
+#endif  // CONFIG_I2C
 #if defined(CONFIG_SPI)
 
 	if (config.bus_type == BOARD_SPI_BUS) {
 		interface = spl06_spi_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
 	}
 
-#endif // CONFIG_SPI
+#endif  // CONFIG_SPI
 
 	if (interface == nullptr) {
 		PX4_ERR("failed creating interface for bus %i", config.bus);
@@ -102,18 +99,16 @@ I2CSPIDriverBase *SPL06::instantiate(const I2CSPIDriverConfig &config, int runti
 	return dev;
 }
 
-int
-spl06_main(int argc, char *argv[])
-{
+int spl06_main(int argc, char *argv[]) {
 	using ThisDriver = SPL06;
 	BusCLIArguments cli{true, true};
 #if defined(CONFIG_I2C)
 	cli.i2c_address = 0x76;
 	cli.default_i2c_frequency = 100 * 1000;
-#endif // CONFIG_I2C
+#endif  // CONFIG_I2C
 #if defined(CONFIG_SPI)
 	cli.default_spi_frequency = 10 * 1000 * 1000;
-#endif // CONFIG_SPI
+#endif  // CONFIG_SPI
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 

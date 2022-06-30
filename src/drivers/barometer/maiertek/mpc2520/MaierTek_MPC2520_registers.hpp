@@ -52,75 +52,75 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-namespace MaierTek_MPC2520
-{
-static constexpr uint32_t I2C_SPEED = 400 * 1000; // 400 kHz I2C serial interface
+namespace MaierTek_MPC2520 {
+static constexpr uint32_t I2C_SPEED = 400 * 1000;  // 400 kHz I2C serial interface
 static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x76;
 
 static constexpr uint8_t Product_ID = 0x0;
 static constexpr uint8_t Revision_ID = 0x0;
 
 enum class Register : uint8_t {
-	PSR_B2     = 0x00, // PSR[23:16] (r)
-	PSR_B1     = 0x01, // PSR[15:8]  (r)
-	PSR_B0     = 0x02, // PSR[7:0]   (r)
-	TMP_B2     = 0x03, // TMP[23:16] (r)
-	TMP_B1     = 0x04, // TMP[15:8]  (r)
-	TMP_B0     = 0x05, // TMP[7:0]   (r)
-	PRS_CFG    = 0x06,
-	TMP_CFG    = 0x07,
-	MEAS_CFG   = 0x08,
-	CFG_REG    = 0x09,
+	PSR_B2 = 0x00,  // PSR[23:16] (r)
+	PSR_B1 = 0x01,  // PSR[15:8]  (r)
+	PSR_B0 = 0x02,  // PSR[7:0]   (r)
+	TMP_B2 = 0x03,  // TMP[23:16] (r)
+	TMP_B1 = 0x04,  // TMP[15:8]  (r)
+	TMP_B0 = 0x05,  // TMP[7:0]   (r)
+	PRS_CFG = 0x06,
+	TMP_CFG = 0x07,
+	MEAS_CFG = 0x08,
+	CFG_REG = 0x09,
 
-	RESET      = 0x0C,
-	ID         = 0x0D, // PROD_ID [3:0] (r) REV_ID [3:0] (r)
+	RESET = 0x0C,
+	ID = 0x0D,  // PROD_ID [3:0] (r) REV_ID [3:0] (r)
 
-	COEF       = 0x10,
+	COEF = 0x10,
 };
 
 // PRS_CFG
 enum PRS_CFG_BIT : uint8_t {
 	// PM_RATE[6:4]
-	PM_RATE_32_SET   = Bit6 | Bit4, // 101 - 32 measurements pr. sec.
+	PM_RATE_32_SET = Bit6 | Bit4,  // 101 - 32 measurements pr. sec.
 	PM_RATE_32_CLEAR = Bit5,
 
 	// PM_PRC[3:0]
-	PM_PRC_8_SET     = Bit1 | Bit0, // 0011 - 8 times.
-	PM_PRC_8_CLEAR   = Bit3 | Bit2,
+	PM_PRC_8_SET = Bit1 | Bit0,  // 0011 - 8 times.
+	PM_PRC_8_CLEAR = Bit3 | Bit2,
 };
 
 // TMP_CFG
 enum TMP_CFG_BIT : uint8_t {
-	TMP_EXT           = Bit7,
+	TMP_EXT = Bit7,
 
 	// TMP_RATE[6:4]
-	TMP_RATE_32_SET   = Bit6 | Bit4, // 101 - 32 measurements pr. sec.
+	TMP_RATE_32_SET = Bit6 | Bit4,  // 101 - 32 measurements pr. sec.
 	TMP_RATE_32_CLEAR = Bit5,
 
 	// PM_PRC[2:0]
-	TMP_PRC_8_SET     = Bit1 | Bit0, // 011 - 8 times.
-	TMP_PRC_8_CLEAR   = Bit2,
+	TMP_PRC_8_SET = Bit1 | Bit0,  // 011 - 8 times.
+	TMP_PRC_8_CLEAR = Bit2,
 };
 
 // MEAS_CFG
 enum MEAS_CFG_BIT : uint8_t {
 	COEF_RDY = Bit7,
 	SENSOR_RDY = Bit6,
-	TMP_RDY    = Bit5,
-	PRS_RDY    = Bit4,
+	TMP_RDY = Bit5,
+	PRS_RDY = Bit4,
 
-	MEAS_CTRL_CONT_PRES_TEMP = Bit2 | Bit1 | Bit0, // 111 - Continuous pressure and temperature measurement
+	MEAS_CTRL_CONT_PRES_TEMP = Bit2 | Bit1 | Bit0,  // 111 - Continuous pressure and temperature measurement
 };
 
 // RESET
 enum RESET_BIT : uint8_t {
-	SOFT_RST = Bit3 | Bit0, // Write '1001' to generate a soft reset.
+	SOFT_RST = Bit3 | Bit0,  // Write '1001' to generate a soft reset.
 };
 
 // CFG_REG
 enum CFG_REG_BIT : uint8_t {
-	T_SHIFT = Bit3, // Temperature result bit-shift, Note: Must be set to '1' when the oversampling rate is >8 times.
-	P_SHIFT = Bit2, // Pressure result bit-shift, Note: Must be set to '1' when the oversampling rate is >8 times.
+	T_SHIFT =
+		Bit3,  // Temperature result bit-shift, Note: Must be set to '1' when the oversampling rate is >8 times.
+	P_SHIFT = Bit2,  // Pressure result bit-shift, Note: Must be set to '1' when the oversampling rate is >8 times.
 };
 
-} // namespace MaierTek_MPC2520
+}  // namespace MaierTek_MPC2520

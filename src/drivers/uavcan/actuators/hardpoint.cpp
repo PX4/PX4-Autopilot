@@ -38,24 +38,17 @@
  */
 
 #include "hardpoint.hpp"
+
 #include <systemlib/err.h>
 
-UavcanHardpointController::UavcanHardpointController(uavcan::INode &node) :
-	_node(node),
-	_uavcan_pub_raw_cmd(node),
-	_timer(node)
-{
+UavcanHardpointController::UavcanHardpointController(uavcan::INode &node)
+	: _node(node), _uavcan_pub_raw_cmd(node), _timer(node) {
 	_uavcan_pub_raw_cmd.setPriority(uavcan::TransferPriority::MiddleLower);
 }
 
-UavcanHardpointController::~UavcanHardpointController()
-{
+UavcanHardpointController::~UavcanHardpointController() {}
 
-}
-
-int
-UavcanHardpointController::init()
-{
+int UavcanHardpointController::init() {
 	/*
 	 * Setup timer and call back function for periodic updates
 	 */
@@ -63,9 +56,7 @@ UavcanHardpointController::init()
 	return 0;
 }
 
-void
-UavcanHardpointController::set_command(uint8_t hardpoint_id, uint16_t command)
-{
+void UavcanHardpointController::set_command(uint8_t hardpoint_id, uint16_t command) {
 	_cmd.command = command;
 	_cmd.hardpoint_id = hardpoint_id;
 
@@ -80,12 +71,9 @@ UavcanHardpointController::set_command(uint8_t hardpoint_id, uint16_t command)
 	if (!_timer.isRunning()) {
 		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
 	}
-
 }
 
-void
-UavcanHardpointController::periodic_update(const uavcan::TimerEvent &)
-{
+void UavcanHardpointController::periodic_update(const uavcan::TimerEvent &) {
 	// Broadcast command at MAX_RATE_HZ
 	_uavcan_pub_raw_cmd.broadcast(_cmd);
 }

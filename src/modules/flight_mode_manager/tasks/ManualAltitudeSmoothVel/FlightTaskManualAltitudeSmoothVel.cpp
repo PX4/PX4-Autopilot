@@ -41,8 +41,7 @@
 
 using namespace matrix;
 
-bool FlightTaskManualAltitudeSmoothVel::activate(const trajectory_setpoint_s &last_setpoint)
-{
+bool FlightTaskManualAltitudeSmoothVel::activate(const trajectory_setpoint_s &last_setpoint) {
 	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
 
 	// Check if the previous FlightTask provided setpoints
@@ -61,18 +60,15 @@ bool FlightTaskManualAltitudeSmoothVel::activate(const trajectory_setpoint_s &la
 	return ret;
 }
 
-void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerPositionZ(float delta_z)
-{
+void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerPositionZ(float delta_z) {
 	_smoothing.setCurrentPosition(_position(2));
 }
 
-void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerVelocityZ(float delta_vz)
-{
+void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerVelocityZ(float delta_vz) {
 	_smoothing.setCurrentVelocity(_velocity(2));
 }
 
-void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
-{
+void FlightTaskManualAltitudeSmoothVel::_updateSetpoints() {
 	// Set max accel/vel/jerk
 	// Has to be done before _updateTrajectories()
 	_updateTrajConstraints();
@@ -89,8 +85,7 @@ void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
 	_setOutputState();
 }
 
-void FlightTaskManualAltitudeSmoothVel::_updateTrajConstraints()
-{
+void FlightTaskManualAltitudeSmoothVel::_updateTrajConstraints() {
 	_smoothing.setMaxJerk(_param_mpc_jerk_max.get());
 
 	_smoothing.setMaxAccelUp(_param_mpc_acc_up_max.get());
@@ -100,9 +95,7 @@ void FlightTaskManualAltitudeSmoothVel::_updateTrajConstraints()
 	_smoothing.setMaxVelDown(_constraints.speed_down);
 }
 
-
-void FlightTaskManualAltitudeSmoothVel::_setOutputState()
-{
+void FlightTaskManualAltitudeSmoothVel::_setOutputState() {
 	_jerk_setpoint(2) = _smoothing.getCurrentJerk();
 	_acceleration_setpoint(2) = _smoothing.getCurrentAcceleration();
 	_velocity_setpoint(2) = _smoothing.getCurrentVelocity();

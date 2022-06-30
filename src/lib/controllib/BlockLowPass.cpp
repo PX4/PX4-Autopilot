@@ -37,24 +37,22 @@
  * Controller library code
  */
 
-#include <math.h>
 #include <float.h>
+#include <math.h>
 
 #include "blocks.hpp"
 
-namespace control
-{
+namespace control {
 
-float BlockLowPass::update(float input)
-{
+float BlockLowPass::update(float input) {
 	if (!PX4_ISFINITE(getState())) {
 		setState(input);
 	}
 
 	float b = 2 * float(M_PI) * getFCut() * getDt();
 	float a = b / (1 + b);
-	setState(a * input + (1 - a)*getState());
+	setState(a * input + (1 - a) * getState());
 	return getState();
 }
 
-} // namespace control
+}  // namespace control

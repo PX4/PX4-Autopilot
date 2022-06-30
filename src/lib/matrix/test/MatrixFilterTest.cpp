@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/filter.hpp>
 
 using namespace matrix;
 
-TEST(MatrixFilterTest, Filter)
-{
+TEST(MatrixFilterTest, Filter) {
 	const size_t n_x = 6;
 	const size_t n_y = 5;
 	SquareMatrix<float, n_x> P = eye<float, n_x>();

@@ -31,14 +31,13 @@
  *
  ****************************************************************************/
 
-#include "autopilot_tester.h"
 #include <chrono>
 
+#include "autopilot_tester.h"
 
-TEST_CASE("Offboard takeoff and land", "[multicopter][offboard]")
-{
+TEST_CASE("Offboard takeoff and land", "[multicopter][offboard]") {
 	AutopilotTester tester;
-	Offboard::PositionNedYaw takeoff_position {0.0f, 0.0f, -2.0f, 0.0f};
+	Offboard::PositionNedYaw takeoff_position{0.0f, 0.0f, -2.0f, 0.0f};
 	tester.connect(connection_url);
 	tester.wait_until_ready();
 	tester.store_home();
@@ -51,13 +50,12 @@ TEST_CASE("Offboard takeoff and land", "[multicopter][offboard]")
 	tester.check_home_within(1.0f);
 }
 
-TEST_CASE("Offboard position control", "[multicopter][offboard]")
-{
+TEST_CASE("Offboard position control", "[multicopter][offboard]") {
 	AutopilotTester tester;
-	Offboard::PositionNedYaw takeoff_position {0.0f, 0.0f, -2.0f, 0.0f};
-	Offboard::PositionNedYaw setpoint_1 {0.0f, 5.0f, -2.0f, 180.0f};
-	Offboard::PositionNedYaw setpoint_2 {5.0f, 5.0f, -4.0f, 180.0f};
-	Offboard::PositionNedYaw setpoint_3 {5.0f, 0.0f, -4.0f, 90.0f};
+	Offboard::PositionNedYaw takeoff_position{0.0f, 0.0f, -2.0f, 0.0f};
+	Offboard::PositionNedYaw setpoint_1{0.0f, 5.0f, -2.0f, 180.0f};
+	Offboard::PositionNedYaw setpoint_2{5.0f, 5.0f, -4.0f, 180.0f};
+	Offboard::PositionNedYaw setpoint_3{5.0f, 0.0f, -4.0f, 90.0f};
 	tester.connect(connection_url);
 	tester.wait_until_ready();
 	tester.store_home();

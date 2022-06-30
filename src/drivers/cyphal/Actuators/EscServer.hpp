@@ -54,13 +54,13 @@
 
 #pragma once
 
-
+#include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/esc_status.h>
-#include <drivers/drv_hrt.h>
+
 #include <lib/mixer_module/mixer_module.hpp>
+#include <uORB/PublicationMulti.hpp>
 
 // UDRAL Specification Messages
 #include <reg/drone/service/actuator/common/sp/Vector31_0_1.h>
@@ -68,7 +68,6 @@
 
 #include "../Publishers/Publisher.hpp"
 
-class EscServer : public UavcanSubscription
-{
-/// TODO
+class EscServer : public UavcanSubscription {
+	/// TODO
 }

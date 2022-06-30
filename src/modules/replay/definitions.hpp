@@ -33,14 +33,11 @@
 
 #pragma once
 
-namespace px4
-{
-namespace replay
-{
+namespace px4 {
+namespace replay {
 
-static const char __attribute__((unused)) *ENV_FILENAME = "replay"; ///< name for getenv()
+static const char __attribute__((unused)) *ENV_FILENAME = "replay";   ///< name for getenv()
 static const char __attribute__((unused)) *ENV_MODE = "replay_mode";  ///< name for getenv()
 
-
-} //namespace replay
-} //namespace px4
+}  // namespace replay
+}  // namespace px4

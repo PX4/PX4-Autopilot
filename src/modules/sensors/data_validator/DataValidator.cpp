@@ -43,14 +43,12 @@
 
 #include <px4_platform_common/log.h>
 
-void DataValidator::put(uint64_t timestamp, float val, uint32_t error_count_in, uint8_t priority_in)
-{
+void DataValidator::put(uint64_t timestamp, float val, uint32_t error_count_in, uint8_t priority_in) {
 	float data[dimensions] = {val};  // sets the first value and all others to 0
 	put(timestamp, data, error_count_in, priority_in);
 }
 
-void DataValidator::put(uint64_t timestamp, const float val[dimensions], uint32_t error_count_in, uint8_t priority_in)
-{
+void DataValidator::put(uint64_t timestamp, const float val[dimensions], uint32_t error_count_in, uint8_t priority_in) {
 	_event_count++;
 
 	if (error_count_in > _error_count) {
@@ -96,9 +94,7 @@ void DataValidator::put(uint64_t timestamp, const float val[dimensions], uint32_
 	_time_last = timestamp;
 }
 
-float DataValidator::confidence(uint64_t timestamp)
-{
-
+float DataValidator::confidence(uint64_t timestamp) {
 	float ret = 1.0f;
 
 	/* check if we have any data */
@@ -140,8 +136,7 @@ float DataValidator::confidence(uint64_t timestamp)
 	return ret;
 }
 
-void DataValidator::print()
-{
+void DataValidator::print() {
 	if (_time_last == 0) {
 		PX4_INFO_RAW("\tno data\n");
 		return;
@@ -149,6 +144,7 @@ void DataValidator::print()
 
 	for (unsigned i = 0; i < dimensions; i++) {
 		PX4_INFO_RAW("\tval: %8.4f, lp: %8.4f mean dev: %8.4f RMS: %8.4f conf: %8.4f\n", (double)_value[i],
-			     (double)_lp[i], (double)_mean[i], (double)_rms[i], (double)confidence(hrt_absolute_time()));
+			     (double)_lp[i], (double)_mean[i], (double)_rms[i],
+			     (double)confidence(hrt_absolute_time()));
 	}
 }

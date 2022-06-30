@@ -48,23 +48,23 @@
 #include <cstring>
 #include <uavcan_stm32h7/can.hpp>
 #include <uavcan_stm32h7/clock.hpp>
+
 #include "internal.hpp"
 
 #if UAVCAN_STM32H7_NUTTX
-# include <nuttx/arch.h>
-# include <nuttx/irq.h>
-# include <arch/board/board.h>
+#include <arch/board/board.h>
+#include <nuttx/arch.h>
+#include <nuttx/irq.h>
 #else
-# error "Unknown OS"
+#error "Unknown OS"
 #endif
 
 #define WORD_LENGTH 4U
-#define FIFO_ELEMENT_SIZE 4U // size in words of a FIFO element in message RAM
+#define FIFO_ELEMENT_SIZE 4U  // size in words of a FIFO element in message RAM
 
 // Rx FIFO element definition for classic CAN frame
 // RM0433 page 2536
-typedef struct __attribute__((__packed__))
-{
+typedef struct __attribute__((__packed__)) {
 	// word R0
 	uint32_t id : 29;
 	uint32_t RTR : 1;
@@ -73,12 +73,12 @@ typedef struct __attribute__((__packed__))
 
 	// word R1
 	uint16_t RXTS;
-	uint8_t DLC : 4;  // Data Length Code
-	uint8_t BRS : 1;  // Bit Rate Switching
-	uint8_t FDF : 1;  // CAN-FD Flag
-	uint8_t RES : 2;  // Reserved
-	uint8_t FIDX : 7; // Filter Index
-	uint8_t ANMF : 1; // Accepted non-matching frame
+	uint8_t DLC : 4;   // Data Length Code
+	uint8_t BRS : 1;   // Bit Rate Switching
+	uint8_t FDF : 1;   // CAN-FD Flag
+	uint8_t RES : 2;   // Reserved
+	uint8_t FIDX : 7;  // Filter Index
+	uint8_t ANMF : 1;  // Accepted non-matching frame
 
 	// words R2, R3
 	uint8_t data[8];
@@ -108,28 +108,24 @@ typedef struct {
 
 } TxFifoElement;
 
-extern "C"
-{
-	static int can1_irq(const int irq, void *, void *);
+extern "C" {
+static int can1_irq(const int irq, void *, void *);
 #if UAVCAN_STM32H7_NUM_IFACES > 1
-	static int can2_irq(const int irq, void *, void *);
+static int can2_irq(const int irq, void *, void *);
 #endif
 }
 
-namespace uavcan_stm32h7
-{
-namespace
-{
+namespace uavcan_stm32h7 {
+namespace {
 
-CanIface *ifaces[UAVCAN_STM32H7_NUM_IFACES] = {
-	UAVCAN_NULLPTR
+CanIface *ifaces[UAVCAN_STM32H7_NUM_IFACES] = {UAVCAN_NULLPTR
 #if UAVCAN_STM32H7_NUM_IFACES > 1
-	, UAVCAN_NULLPTR
+					       ,
+					       UAVCAN_NULLPTR
 #endif
 };
 
-inline void handleTxInterrupt(uavcan::uint8_t iface_index)
-{
+inline void handleTxInterrupt(uavcan::uint8_t iface_index) {
 	UAVCAN_ASSERT(iface_index < UAVCAN_STM32H7_NUM_IFACES);
 
 	if (ifaces[iface_index] == UAVCAN_NULLPTR) {
@@ -150,8 +146,7 @@ inline void handleTxInterrupt(uavcan::uint8_t iface_index)
 	}
 }
 
-inline void handleRxInterrupt(uavcan::uint8_t iface_index)
-{
+inline void handleRxInterrupt(uavcan::uint8_t iface_index) {
 	UAVCAN_ASSERT(iface_index < UAVCAN_STM32H7_NUM_IFACES);
 
 	/*
@@ -189,23 +184,21 @@ inline void handleRxInterrupt(uavcan::uint8_t iface_index)
 	}
 }
 
-} // namespace
+}  // namespace
 
 /*
  * CanIface::RxQueue
  */
-void CanIface::RxQueue::registerOverflow()
-{
+void CanIface::RxQueue::registerOverflow() {
 	if (overflow_cnt_ < 0xFFFFFFFF) {
 		overflow_cnt_++;
 	}
 }
 
-void CanIface::RxQueue::push(const uavcan::CanFrame &frame, const uint64_t &utc_usec, uavcan::CanIOFlags flags)
-{
-	buf_[in_].frame    = frame;
+void CanIface::RxQueue::push(const uavcan::CanFrame &frame, const uint64_t &utc_usec, uavcan::CanIOFlags flags) {
+	buf_[in_].frame = frame;
 	buf_[in_].utc_usec = utc_usec;
-	buf_[in_].flags    = flags;
+	buf_[in_].flags = flags;
 	in_++;
 
 	if (in_ >= capacity_) {
@@ -225,12 +218,12 @@ void CanIface::RxQueue::push(const uavcan::CanFrame &frame, const uint64_t &utc_
 	}
 }
 
-void CanIface::RxQueue::pop(uavcan::CanFrame &out_frame, uavcan::uint64_t &out_utc_usec, uavcan::CanIOFlags &out_flags)
-{
+void CanIface::RxQueue::pop(uavcan::CanFrame &out_frame, uavcan::uint64_t &out_utc_usec,
+			    uavcan::CanIOFlags &out_flags) {
 	if (len_ > 0) {
-		out_frame    = buf_[out_].frame;
+		out_frame = buf_[out_].frame;
 		out_utc_usec = buf_[out_].utc_usec;
-		out_flags    = buf_[out_].flags;
+		out_flags = buf_[out_].flags;
 		out_++;
 
 		if (out_ >= capacity_) {
@@ -239,11 +232,12 @@ void CanIface::RxQueue::pop(uavcan::CanFrame &out_frame, uavcan::uint64_t &out_u
 
 		len_--;
 
-	} else { UAVCAN_ASSERT(0); }
+	} else {
+		UAVCAN_ASSERT(0);
+	}
 }
 
-void CanIface::RxQueue::reset()
-{
+void CanIface::RxQueue::reset() {
 	in_ = 0;
 	out_ = 0;
 	len_ = 0;
@@ -254,8 +248,7 @@ void CanIface::RxQueue::reset()
  * CanIface
  */
 
-int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out_timings)
-{
+int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out_timings) {
 	if (target_bitrate < 1) {
 		return -ErrInvalidBitRate;
 	}
@@ -308,7 +301,7 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 
 	while ((prescaler_bs % (1 + bs1_bs2_sum)) != 0) {
 		if (bs1_bs2_sum <= 2) {
-			return -ErrInvalidBitRate;          // No solution
+			return -ErrInvalidBitRate;  // No solution
 		}
 
 		bs1_bs2_sum--;
@@ -317,14 +310,15 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 	const uavcan::uint32_t prescaler = prescaler_bs / (1 + bs1_bs2_sum);
 
 	if ((prescaler < 1U) || (prescaler > 1024U)) {
-		return -ErrInvalidBitRate;              // No solution
+		return -ErrInvalidBitRate;  // No solution
 	}
 
 	/*
 	 * Now we have a constraint: (BS1 + BS2) == bs1_bs2_sum.
 	 * We need to find the values so that the sample point is as close as possible to the optimal value.
 	 *
-	 *   Solve[(1 + bs1)/(1 + bs1 + bs2) == 7/8, bs2]  (* Where 7/8 is 0.875, the recommended sample point location *)
+	 *   Solve[(1 + bs1)/(1 + bs1 + bs2) == 7/8, bs2]  (* Where 7/8 is 0.875, the recommended sample point location
+	 * *)
 	 *   {{bs2 -> (1 + bs1)/7}}
 	 *
 	 * Hence:
@@ -343,17 +337,12 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 		uavcan::uint8_t bs2;
 		uavcan::uint16_t sample_point_permill;
 
-		BsPair() :
-			bs1(0),
-			bs2(0),
-			sample_point_permill(0)
-		{ }
+		BsPair() : bs1(0), bs2(0), sample_point_permill(0) {}
 
-		BsPair(uavcan::uint8_t bs1_bs2_sum, uavcan::uint8_t arg_bs1) :
-			bs1(arg_bs1),
-			bs2(uavcan::uint8_t(bs1_bs2_sum - bs1)),
-			sample_point_permill(uavcan::uint16_t(1000 * (1 + bs1) / (1 + bs1 + bs2)))
-		{
+		BsPair(uavcan::uint8_t bs1_bs2_sum, uavcan::uint8_t arg_bs1)
+			: bs1(arg_bs1),
+			  bs2(uavcan::uint8_t(bs1_bs2_sum - bs1)),
+			  sample_point_permill(uavcan::uint16_t(1000 * (1 + bs1) / (1 + bs1 + bs2))) {
 			UAVCAN_ASSERT(bs1_bs2_sum > arg_bs1);
 		}
 
@@ -386,15 +375,14 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 			   int(1 + solution.bs1 + solution.bs2), double(solution.sample_point_permill) / 10.);
 
 	out_timings.prescaler = uavcan::uint16_t(prescaler - 1U);
-	out_timings.sjw = 0;                                        // Which means one
+	out_timings.sjw = 0;  // Which means one
 	out_timings.bs1 = uavcan::uint8_t(solution.bs1 - 1);
 	out_timings.bs2 = uavcan::uint8_t(solution.bs2 - 1);
 	return 0;
 }
 
 uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicTime tx_deadline,
-			       uavcan::CanIOFlags flags)
-{
+			       uavcan::CanIOFlags flags) {
 	if (frame.isErrorFrame() || frame.dlc > 8) {
 		return -ErrUnsupportedFrame;
 	}
@@ -426,7 +414,7 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	const uint8_t index = (can_->TXFQS & FDCAN_TXFQS_TFQPI) >> FDCAN_TXFQS_TFQPI_Pos;
 
 	// Now, we can copy the CAN frame to the FIFO (in message RAM)
-	uint32_t *txbuf  = (uint32_t *)(message_ram_.TxFIFOSA + (index * FIFO_ELEMENT_SIZE * WORD_LENGTH));
+	uint32_t *txbuf = (uint32_t *)(message_ram_.TxFIFOSA + (index * FIFO_ELEMENT_SIZE * WORD_LENGTH));
 
 	// Copy the ID; special case for standard ID frames
 	if (frame.isExtended()) {
@@ -447,20 +435,16 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 
 	txbuf[1] = (frame.dlc << fdcan::T1_DLC_Pos);
 
-	txbuf[1] &= ~(1 << fdcan::T1_FDF_Pos);   // Classic CAN frame, not CAN-FD
-	txbuf[1] &= ~(1 << fdcan::T1_BRS_Pos);   // No bitrate switching
-	txbuf[1] &= ~(1 << fdcan::T1_EFC_Pos);   // Don't store Tx events
-	txbuf[1] |= (index << fdcan::T1_MM_Pos); // Marker for our use; just give it the FIFO index
+	txbuf[1] &= ~(1 << fdcan::T1_FDF_Pos);    // Classic CAN frame, not CAN-FD
+	txbuf[1] &= ~(1 << fdcan::T1_BRS_Pos);    // No bitrate switching
+	txbuf[1] &= ~(1 << fdcan::T1_EFC_Pos);    // Don't store Tx events
+	txbuf[1] |= (index << fdcan::T1_MM_Pos);  // Marker for our use; just give it the FIFO index
 
 	// Store the data bytes
-	txbuf[2] = (uavcan::uint32_t(frame.data[3]) << 24) |
-		   (uavcan::uint32_t(frame.data[2]) << 16) |
-		   (uavcan::uint32_t(frame.data[1]) << 8)  |
-		   (uavcan::uint32_t(frame.data[0]) << 0);
-	txbuf[3] = (uavcan::uint32_t(frame.data[7]) << 24) |
-		   (uavcan::uint32_t(frame.data[6]) << 16) |
-		   (uavcan::uint32_t(frame.data[5]) << 8)  |
-		   (uavcan::uint32_t(frame.data[4]) << 0);
+	txbuf[2] = (uavcan::uint32_t(frame.data[3]) << 24) | (uavcan::uint32_t(frame.data[2]) << 16) |
+		   (uavcan::uint32_t(frame.data[1]) << 8) | (uavcan::uint32_t(frame.data[0]) << 0);
+	txbuf[3] = (uavcan::uint32_t(frame.data[7]) << 24) | (uavcan::uint32_t(frame.data[6]) << 16) |
+		   (uavcan::uint32_t(frame.data[5]) << 8) | (uavcan::uint32_t(frame.data[4]) << 0);
 
 	// Submit the transmission request for this element
 	can_->TXBAR = 1 << index;
@@ -469,19 +453,18 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	 * Registering the pending transmission so we can track its deadline and loopback it as needed
 	 */
 	TxItem &txi = pending_tx_[index];
-	txi.deadline       = tx_deadline;
-	txi.frame          = frame;
-	txi.loopback       = (flags & uavcan::CanIOFlagLoopback) != 0;
+	txi.deadline = tx_deadline;
+	txi.frame = frame;
+	txi.loopback = (flags & uavcan::CanIOFlagLoopback) != 0;
 	txi.abort_on_error = (flags & uavcan::CanIOFlagAbortOnError) != 0;
-	txi.index          = index;
-	txi.pending        = true;
+	txi.index = index;
+	txi.pending = true;
 
 	return 1;
 }
 
 uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::MonotonicTime &out_ts_monotonic,
-				  uavcan::UtcTime &out_ts_utc, uavcan::CanIOFlags &out_flags)
-{
+				  uavcan::UtcTime &out_ts_utc, uavcan::CanIOFlags &out_flags) {
 	out_ts_monotonic = clock::getMonotonic();  // High precision is not required for monotonic timestamps
 	uavcan::uint64_t utc_usec = 0;
 	{
@@ -498,8 +481,7 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 }
 
 uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter_configs,
-		uavcan::uint16_t num_configs)
-{
+					   uavcan::uint16_t num_configs) {
 	/*
 	 * The FDCAN controller handles standard ID and extended ID filters separately.
 	 * We must scan through the requested filter configurations, and group them by
@@ -526,8 +508,7 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter
 	return 0;
 }
 
-bool CanIface::waitCCCRBitStateChange(uint32_t mask, bool target_state)
-{
+bool CanIface::waitCCCRBitStateChange(uint32_t mask, bool target_state) {
 #if UAVCAN_STM32_NUTTX
 	const unsigned Timeout = 1000;
 #else
@@ -549,8 +530,7 @@ bool CanIface::waitCCCRBitStateChange(uint32_t mask, bool target_state)
 	return false;
 }
 
-int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
-{
+int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode) {
 	/*
 	 * Wake up the device and enable configuration changes
 	 */
@@ -565,7 +545,6 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 			can_->CCCR |= FDCAN_CCCR_INIT;
 			return -ErrCCCrCSANotCleared;
 		}
-
 
 		// Request Init mode, then wait for completion
 		can_->CCCR |= FDCAN_CCCR_INIT;
@@ -582,7 +561,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 		// Disable interrupts while we configure the hardware
 		can_->IE = 0;
 
-	} // End Critcal section
+	}  // End Critcal section
 
 	/*
 	 * Object state - interrupts are disabled, so it's safe to modify it now
@@ -605,23 +584,19 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 		return timings_res;
 	}
 
-	UAVCAN_STM32H7_LOG("Timings: presc=%u sjw=%u bs1=%u bs2=%u",
-			   unsigned(timings.prescaler), unsigned(timings.sjw), unsigned(timings.bs1), unsigned(timings.bs2));
+	UAVCAN_STM32H7_LOG("Timings: presc=%u sjw=%u bs1=%u bs2=%u", unsigned(timings.prescaler), unsigned(timings.sjw),
+			   unsigned(timings.bs1), unsigned(timings.bs2));
 
 	/*
 	 * Set bit timings and prescalers (Nominal and Data bitrates)
 	 */
 
 	//  We're not using CAN-FD, so set same timings for both
-	can_->NBTP = ((timings.sjw << FDCAN_NBTP_NSJW_Pos)   |
-		      (timings.bs1 << FDCAN_NBTP_NTSEG1_Pos) |
-		      (timings.bs2 << FDCAN_NBTP_TSEG2_Pos)  |
-		      (timings.prescaler << FDCAN_NBTP_NBRP_Pos));
+	can_->NBTP = ((timings.sjw << FDCAN_NBTP_NSJW_Pos) | (timings.bs1 << FDCAN_NBTP_NTSEG1_Pos) |
+		      (timings.bs2 << FDCAN_NBTP_TSEG2_Pos) | (timings.prescaler << FDCAN_NBTP_NBRP_Pos));
 
-	can_->DBTP = ((timings.sjw << FDCAN_DBTP_DSJW_Pos)   |
-		      (timings.bs1 << FDCAN_DBTP_DTSEG1_Pos) |
-		      (timings.bs2 << FDCAN_DBTP_DTSEG2_Pos)  |
-		      (timings.prescaler << FDCAN_DBTP_DBRP_Pos));
+	can_->DBTP = ((timings.sjw << FDCAN_DBTP_DSJW_Pos) | (timings.bs1 << FDCAN_DBTP_DTSEG1_Pos) |
+		      (timings.bs2 << FDCAN_DBTP_DTSEG2_Pos) | (timings.prescaler << FDCAN_DBTP_DBRP_Pos));
 
 	/*
 	 * Operation Configuration
@@ -631,7 +606,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	can_->CCCR &= ~FDCAN_CCCR_FDOE;
 
 	// Disable Time Triggered (TT) operation -- TODO (must use TTCAN_TypeDef)
-	//ttcan_->TTOCF &= ~FDCAN_TTOCF_OM
+	// ttcan_->TTOCF &= ~FDCAN_TTOCF_OM
 
 	/*
 	 * Configure Interrupts
@@ -639,10 +614,10 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 
 	// Clear all interrupt flags
 	// Note: A flag is cleared by writing a 1 to the corresponding bit position
-	can_->IR = 0xFFFFFFFF; //FDCAN_IR_MASK;
+	can_->IR = 0xFFFFFFFF;  // FDCAN_IR_MASK;
 
 	// Enable relevant interrupts
-	can_->IE = FDCAN_IE_TCE     // Transmit Complete
+	can_->IE = FDCAN_IE_TCE       // Transmit Complete
 		   | FDCAN_IE_RF0NE   // Rx FIFO 0 new message
 		   | FDCAN_IE_RF0FE   // Rx FIFO 0 FIFO full
 		   | FDCAN_IE_RF1NE   // Rx FIFO 1 new message
@@ -690,20 +665,18 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	// Standard ID Filters: Allow space for 128 filters (128 words)
 	const uint8_t n_stdid = 128;
 	message_ram_.StdIdFilterSA = gl_ram_base + ram_offset * WORD_LENGTH;
-	can_->SIDFC = ((n_stdid << FDCAN_SIDFC_LSS_Pos)
-		       | ram_offset << FDCAN_SIDFC_FLSSA_Pos);
+	can_->SIDFC = ((n_stdid << FDCAN_SIDFC_LSS_Pos) | ram_offset << FDCAN_SIDFC_FLSSA_Pos);
 	ram_offset += n_stdid;
 
 	// Extended ID Filters: Allow space for 128 filters (128 words)
 	const uint8_t n_extid = 128;
 	message_ram_.ExtIdFilterSA = gl_ram_base + ram_offset * WORD_LENGTH;
-	can_->XIDFC = ((n_extid << FDCAN_XIDFC_LSE_Pos)
-		       | ram_offset << FDCAN_XIDFC_FLESA_Pos);
+	can_->XIDFC = ((n_extid << FDCAN_XIDFC_LSE_Pos) | ram_offset << FDCAN_XIDFC_FLESA_Pos);
 	ram_offset += n_extid;
 
 	// Set size of each element in the Rx/Tx buffers and FIFOs
-	can_->RXESC = 0; // 8 byte space for every element (Rx buffer, FIFO1, FIFO0)
-	can_->TXESC = 0; // 8 byte space for every element (Tx buffer)
+	can_->RXESC = 0;  // 8 byte space for every element (Rx buffer, FIFO1, FIFO0)
+	can_->TXESC = 0;  // 8 byte space for every element (Tx buffer)
 
 	// Rx FIFO0 (64 elements max)
 	const uint8_t n_fifo0 = 64;
@@ -715,7 +688,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	// Set Tx FIFO size (32 elements max)
 	message_ram_.TxFIFOSA = gl_ram_base + ram_offset * WORD_LENGTH;
 	can_->TXBC = 32U << FDCAN_TXBC_TFQS_Pos;
-	can_->TXBC &= ~FDCAN_TXBC_TFQM; // Use FIFO
+	can_->TXBC &= ~FDCAN_TXBC_TFQM;  // Use FIFO
 	can_->TXBC |= ram_offset << FDCAN_TXBC_TBSA_Pos;
 
 	/*
@@ -734,8 +707,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	return 0;
 }
 
-void CanIface::handleTxInterrupt(const uavcan::uint64_t utc_usec)
-{
+void CanIface::handleTxInterrupt(const uavcan::uint64_t utc_usec) {
 	// Update counters for successful transmissions
 	// Process loopback messages
 	for (uint8_t i = 0; i < NumTxMailboxes; i++) {
@@ -754,19 +726,18 @@ void CanIface::handleTxInterrupt(const uavcan::uint64_t utc_usec)
 	pollErrorFlagsFromISR();
 }
 
-void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index)
-{
+void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index) {
 	UAVCAN_ASSERT(fifo_index < 2);
 
 	// Bitwise register definitions are the same for FIFO 0/1
-	constexpr uint32_t FDCAN_RXFnC_FnS      = FDCAN_RXF0C_F0S;  // Rx FIFO Size
-	constexpr uint32_t FDCAN_RXFnS_RFnL     = FDCAN_RXF0S_RF0L; // Rx Message Lost
-	constexpr uint32_t FDCAN_RXFnS_FnFL     = FDCAN_RXF0S_F0FL; // Rx FIFO Fill Level
-	constexpr uint32_t FDCAN_RXFnS_FnGI     = FDCAN_RXF0S_F0GI; // Rx FIFO Get Index
+	constexpr uint32_t FDCAN_RXFnC_FnS = FDCAN_RXF0C_F0S;    // Rx FIFO Size
+	constexpr uint32_t FDCAN_RXFnS_RFnL = FDCAN_RXF0S_RF0L;  // Rx Message Lost
+	constexpr uint32_t FDCAN_RXFnS_FnFL = FDCAN_RXF0S_F0FL;  // Rx FIFO Fill Level
+	constexpr uint32_t FDCAN_RXFnS_FnGI = FDCAN_RXF0S_F0GI;  // Rx FIFO Get Index
 	constexpr uint32_t FDCAN_RXFnS_FnGI_Pos = FDCAN_RXF0S_F0GI_Pos;
-	//constexpr uint32_t FDCAN_RXFnS_FnPI     = FDCAN_RXF0S_F0PI; // Rx FIFO Put Index
-	//constexpr uint32_t FDCAN_RXFnS_FnPI_Pos = FDCAN_RXF0S_F0PI_Pos;
-	//constexpr uint32_t FDCAN_RXFnS_FnF      = FDCAN_RXF0S_F0F; // Rx FIFO Full
+	// constexpr uint32_t FDCAN_RXFnS_FnPI     = FDCAN_RXF0S_F0PI; // Rx FIFO Put Index
+	// constexpr uint32_t FDCAN_RXFnS_FnPI_Pos = FDCAN_RXF0S_F0PI_Pos;
+	// constexpr uint32_t FDCAN_RXFnS_FnF      = FDCAN_RXF0S_F0F; // Rx FIFO Full
 
 	volatile uint32_t *const RXFnC = (fifo_index == 0) ? &(can_->RXF0C) : &(can_->RXF1C);
 	volatile uint32_t *const RXFnS = (fifo_index == 0) ? &(can_->RXF0S) : &(can_->RXF1S);
@@ -801,7 +772,8 @@ void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index)
 
 		const uint8_t index = (*RXFnS & FDCAN_RXFnS_FnGI) >> FDCAN_RXFnS_FnGI_Pos;
 
-		RxFifoElement *rx = (RxFifoElement *)(message_ram_.RxFIFO0SA + (index * FIFO_ELEMENT_SIZE * WORD_LENGTH));
+		RxFifoElement *rx =
+			(RxFifoElement *)(message_ram_.RxFIFO0SA + (index * FIFO_ELEMENT_SIZE * WORD_LENGTH));
 
 		// Note that we must shift Standard IDs to the lowest bit range of ID
 		if (rx->XTD) {
@@ -844,13 +816,11 @@ void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index)
 	pollErrorFlagsFromISR();
 }
 
-void CanIface::pollErrorFlagsFromISR()
-{
+void CanIface::pollErrorFlagsFromISR() {
 	// Read CAN Error Logging counter (This also resets the error counter)
 	const uavcan::uint8_t cel = ((can_->ECR & FDCAN_ECR_CEL) >> FDCAN_ECR_CEL_Pos);
 
 	if (cel > 0) {
-
 		// Serve abort requests
 		for (uint8_t i = 0; i < NumTxMailboxes; i++) {
 			TxItem &txi = pending_tx_[i];
@@ -866,8 +836,7 @@ void CanIface::pollErrorFlagsFromISR()
 	}
 }
 
-void CanIface::discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time)
-{
+void CanIface::discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time) {
 	CriticalSectionLocker lock;
 
 	for (uint8_t i = 0; i < NumTxMailboxes; i++) {
@@ -882,8 +851,7 @@ void CanIface::discardTimedOutTxMailboxes(uavcan::MonotonicTime current_time)
 	}
 }
 
-bool CanIface::canAcceptNewTxFrame(const uavcan::CanFrame &frame) const
-{
+bool CanIface::canAcceptNewTxFrame(const uavcan::CanFrame &frame) const {
 	// Check that we even _have_ a Tx FIFO allocated
 	if ((can_->TXBC & FDCAN_TXBC_TFQS) == 0) {
 		// Your FIFO size is 0, you did something wrong
@@ -899,26 +867,22 @@ bool CanIface::canAcceptNewTxFrame(const uavcan::CanFrame &frame) const
 	return true;
 }
 
-bool CanIface::isRxBufferEmpty() const
-{
+bool CanIface::isRxBufferEmpty() const {
 	CriticalSectionLocker lock;
 	return rx_queue_.getLength() == 0;
 }
 
-uavcan::uint64_t CanIface::getErrorCount() const
-{
+uavcan::uint64_t CanIface::getErrorCount() const {
 	CriticalSectionLocker lock;
 	return error_cnt_ + rx_queue_.getOverflowCount();
 }
 
-unsigned CanIface::getRxQueueLength() const
-{
+unsigned CanIface::getRxQueueLength() const {
 	CriticalSectionLocker lock;
 	return rx_queue_.getLength();
 }
 
-bool CanIface::hadActivity()
-{
+bool CanIface::hadActivity() {
 	CriticalSectionLocker lock;
 	const bool ret = had_activity_;
 	had_activity_ = false;
@@ -928,8 +892,7 @@ bool CanIface::hadActivity()
 /*
  * CanDriver
  */
-uavcan::CanSelectMasks CanDriver::makeSelectMasks(const uavcan::CanFrame * (& pending_tx)[uavcan::MaxCanIfaces]) const
-{
+uavcan::CanSelectMasks CanDriver::makeSelectMasks(const uavcan::CanFrame *(&pending_tx)[uavcan::MaxCanIfaces]) const {
 	uavcan::CanSelectMasks msk;
 
 	for (uint8_t i = 0; i < num_ifaces_; i++) {
@@ -943,8 +906,7 @@ uavcan::CanSelectMasks CanDriver::makeSelectMasks(const uavcan::CanFrame * (& pe
 	return msk;
 }
 
-bool CanDriver::hasReadableInterfaces() const
-{
+bool CanDriver::hasReadableInterfaces() const {
 	for (uint8_t i = 0; i < num_ifaces_; i++) {
 		if (!ifaces[i]->isRxBufferEmpty()) {
 			return true;
@@ -955,13 +917,12 @@ bool CanDriver::hasReadableInterfaces() const
 }
 
 uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
-				  const uavcan::CanFrame * (& pending_tx)[uavcan::MaxCanIfaces],
-				  const uavcan::MonotonicTime blocking_deadline)
-{
+				  const uavcan::CanFrame *(&pending_tx)[uavcan::MaxCanIfaces],
+				  const uavcan::MonotonicTime blocking_deadline) {
 	const uavcan::CanSelectMasks in_masks = inout_masks;
 	const uavcan::MonotonicTime time = clock::getMonotonic();
 
-	if0_.discardTimedOutTxMailboxes(time);              // Check TX timeouts - this may release some TX slots
+	if0_.discardTimedOutTxMailboxes(time);  // Check TX timeouts - this may release some TX slots
 	{
 		CriticalSectionLocker cs_locker;
 		if0_.pollErrorFlagsFromISR();
@@ -975,33 +936,30 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
 	}
 #endif
 
-	inout_masks = makeSelectMasks(pending_tx);          // Check if we already have some of the requested events
+	inout_masks = makeSelectMasks(pending_tx);  // Check if we already have some of the requested events
 
-	if ((inout_masks.read  & in_masks.read)  != 0 ||
-	    (inout_masks.write & in_masks.write) != 0) {
+	if ((inout_masks.read & in_masks.read) != 0 || (inout_masks.write & in_masks.write) != 0) {
 		return 1;
 	}
 
-	(void)update_event_.wait(blocking_deadline - time); // Block until timeout expires or any iface updates
+	(void)update_event_.wait(blocking_deadline - time);  // Block until timeout expires or any iface updates
 	inout_masks = makeSelectMasks(pending_tx);  // Return what we got even if none of the requested events are set
 	return 1;                                   // Return value doesn't matter as long as it is non-negative
 }
 
-
-void CanDriver::initOnce()
-{
+void CanDriver::initOnce() {
 	/*
 	 * FDCAN1, FDCAN2 - Enable peripheral, clock
 	 */
 	{
 		CriticalSectionLocker lock;
 #if UAVCAN_STM32H7_NUTTX
-		modifyreg32(STM32_RCC_APB1HENR,  0, RCC_APB1HENR_FDCANEN);
+		modifyreg32(STM32_RCC_APB1HENR, 0, RCC_APB1HENR_FDCANEN);
 		modifyreg32(STM32_RCC_APB1HRSTR, 0, RCC_APB1HRSTR_FDCANRST);
 		modifyreg32(STM32_RCC_APB1HRSTR, RCC_APB1HRSTR_FDCANRST, 0);
 #else
-		RCC->APB1HENR  |=  RCC_APB1HENR_FDCANEN;
-		RCC->APB1HRSTR |=  RCC_APB1HRSTR_FDCANRST;
+		RCC->APB1HENR |= RCC_APB1HENR_FDCANEN;
+		RCC->APB1HRSTR |= RCC_APB1HRSTR_FDCANRST;
 		RCC->APB1HRSTR &= ~RCC_APB1HRSTR_FDCANRST;
 #endif
 	}
@@ -1010,26 +968,25 @@ void CanDriver::initOnce()
 	 * IRQ
 	 */
 #if UAVCAN_STM32H7_NUTTX
-# define IRQ_ATTACH(irq, handler)                          \
-	{                                                      \
-		const int res = irq_attach(irq, handler, NULL);    \
-		(void)res;                                         \
-		assert(res >= 0);                                  \
-		up_enable_irq(irq);                                \
+#define IRQ_ATTACH(irq, handler)                                \
+	{                                                       \
+		const int res = irq_attach(irq, handler, NULL); \
+		(void)res;                                      \
+		assert(res >= 0);                               \
+		up_enable_irq(irq);                             \
 	}
 	IRQ_ATTACH(STM32_IRQ_FDCAN1_0, can1_irq);
 	IRQ_ATTACH(STM32_IRQ_FDCAN1_1, can1_irq);
-# if UAVCAN_STM32H7_NUM_IFACES > 1
+#if UAVCAN_STM32H7_NUM_IFACES > 1
 	IRQ_ATTACH(STM32_IRQ_FDCAN2_0, can2_irq);
 	IRQ_ATTACH(STM32_IRQ_FDCAN2_1, can2_irq);
-# endif
-# undef IRQ_ATTACH
+#endif
+#undef IRQ_ATTACH
 #endif
 }
 
 int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode,
-		    const uavcan::uint32_t enabledInterfaces)
-{
+		    const uavcan::uint32_t enabledInterfaces) {
 	int res = 0;
 
 	enabledInterfaces_ = enabledInterfaces;
@@ -1050,10 +1007,10 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
 	if (enabledInterfaces_ & 1) {
 		num_ifaces_ = 1;
 		UAVCAN_STM32H7_LOG("Initing iface 0...");
-		ifaces[0] = &if0_;                          // This link must be initialized first,
-		res = if0_.init(bitrate, mode);             // otherwise an IRQ may fire while the interface is not linked yet;
+		ifaces[0] = &if0_;               // This link must be initialized first,
+		res = if0_.init(bitrate, mode);  // otherwise an IRQ may fire while the interface is not linked yet;
 
-		if (res < 0) {                              // a typical race condition.
+		if (res < 0) {  // a typical race condition.
 			UAVCAN_STM32H7_LOG("Iface 0 init failed %i", res);
 			ifaces[0] = UAVCAN_NULLPTR;
 			goto fail;
@@ -1068,7 +1025,7 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
 	if (enabledInterfaces_ & 2) {
 		num_ifaces_ = 2;
 		UAVCAN_STM32H7_LOG("Initing iface 1...");
-		ifaces[1] = &if1_;                          // Same thing here.
+		ifaces[1] = &if1_;  // Same thing here.
 		res = if1_.init(bitrate, mode);
 
 		if (res < 0) {
@@ -1090,8 +1047,7 @@ fail:
 	return res;
 }
 
-CanIface *CanDriver::getIface(uavcan::uint8_t iface_index)
-{
+CanIface *CanDriver::getIface(uavcan::uint8_t iface_index) {
 	if (iface_index < UAVCAN_STM32H7_NUM_IFACES) {
 		return ifaces[iface_index];
 	}
@@ -1099,8 +1055,7 @@ CanIface *CanDriver::getIface(uavcan::uint8_t iface_index)
 	return UAVCAN_NULLPTR;
 }
 
-bool CanDriver::hadActivity()
-{
+bool CanDriver::hadActivity() {
 	bool ret = if0_.hadActivity();
 #if UAVCAN_STM32H7_NUM_IFACES > 1
 	ret |= if1_.hadActivity();
@@ -1108,101 +1063,92 @@ bool CanDriver::hadActivity()
 	return ret;
 }
 
-} // namespace uavcan_stm32
+}  // namespace uavcan_stm32h7
 
 /*
  * Interrupt handlers
  */
-extern "C"
-{
+extern "C" {
 
 #if UAVCAN_STM32H7_NUTTX
 
-	static int can1_irq(const int irq, void *, void *)
-	{
-		if (irq == STM32_IRQ_FDCAN1_0) {
-			// We've put only Rx interrupts on Line 0
-			uavcan_stm32h7::handleRxInterrupt(0);
+static int can1_irq(const int irq, void *, void *) {
+	if (irq == STM32_IRQ_FDCAN1_0) {
+		// We've put only Rx interrupts on Line 0
+		uavcan_stm32h7::handleRxInterrupt(0);
 
-		} else if (irq == STM32_IRQ_FDCAN1_1) {
-			// And only Tx interrupts on Line 1
-			uavcan_stm32h7::handleTxInterrupt(0);
+	} else if (irq == STM32_IRQ_FDCAN1_1) {
+		// And only Tx interrupts on Line 1
+		uavcan_stm32h7::handleTxInterrupt(0);
 
-		} else {
-			PANIC();
-		}
-
-		return 0;
+	} else {
+		PANIC();
 	}
 
-# if UAVCAN_STM32H7_NUM_IFACES > 1
+	return 0;
+}
 
-	static int can2_irq(const int irq, void *, void *)
-	{
-		if (irq == STM32_IRQ_FDCAN2_0) {
-			// We've put only Rx interrupts on Line 0
-			uavcan_stm32h7::handleRxInterrupt(1);
+#if UAVCAN_STM32H7_NUM_IFACES > 1
 
-		} else if (irq == STM32_IRQ_FDCAN2_1) {
-			// And only Tx interrupts on Line 1
-			uavcan_stm32h7::handleTxInterrupt(1);
+static int can2_irq(const int irq, void *, void *) {
+	if (irq == STM32_IRQ_FDCAN2_0) {
+		// We've put only Rx interrupts on Line 0
+		uavcan_stm32h7::handleRxInterrupt(1);
 
-		} else {
-			PANIC();
-		}
+	} else if (irq == STM32_IRQ_FDCAN2_1) {
+		// And only Tx interrupts on Line 1
+		uavcan_stm32h7::handleTxInterrupt(1);
 
-		return 0;
+	} else {
+		PANIC();
 	}
 
-# endif
+	return 0;
+}
 
-#else // UAVCAN_STM32H7_NUTTX
-
-#if !defined(FDCAN1_IT0_IRQHandler) ||\
-    !defined(FDCAN1_IT1_IRQHandler)
-# error "Misconfigured build"
 #endif
 
-	UAVCAN_STM32H7_IRQ_HANDLER(FDCAN1_IT0_IRQHandler);
-	UAVCAN_STM32H7_IRQ_HANDLER(FDCAN1_IT0_IRQHandler)
-	{
-		UAVCAN_STM32H7_IRQ_PROLOGUE();
-		uavcan_stm32h7::handleInterrupt(0, 0);
-		UAVCAN_STM32H7_IRQ_EPILOGUE();
-	}
+#else  // UAVCAN_STM32H7_NUTTX
 
-	UAVCAN_STM32H7_IRQ_HANDLER(FDCAN1_IT1_IRQHandler);
-	UAVCAN_STM32H7_IRQ_HANDLER(FDCAN1_IT1_IRQHandler)
-	{
-		UAVCAN_STM32H7_IRQ_PROLOGUE();
-		uavcan_stm32h7::handleInterrupt(0, 1);
-		UAVCAN_STM32H7_IRQ_EPILOGUE();
-	}
-
-# if UAVCAN_STM32H7_NUM_IFACES > 1
-
-#if !defined(FDCAN2_IT0_IRQHandler) || \
-	!defined(FDCAN2_IT1_IRQHandler)
-# error "Misconfigured build"
+#if !defined(FDCAN1_IT0_IRQHandler) || !defined(FDCAN1_IT1_IRQHandler)
+#error "Misconfigured build"
 #endif
 
-	UAVCAN_STM32H7_IRQ_HANDLER(FDCAN2_IT0_IRQHandler);
-	UAVCAN_STM32H7_IRQ_HANDLER(FDCAN2_IT0_IRQHandler)
-	{
-		UAVCAN_STM32H7_IRQ_PROLOGUE();
-		uavcan_stm32h7::handleInterrupt(1, 0);
-		UAVCAN_STM32H7_IRQ_EPILOGUE();
-	}
+UAVCAN_STM32H7_IRQ_HANDLER(FDCAN1_IT0_IRQHandler);
+UAVCAN_STM32H7_IRQ_HANDLER(FDCAN1_IT0_IRQHandler) {
+	UAVCAN_STM32H7_IRQ_PROLOGUE();
+	uavcan_stm32h7::handleInterrupt(0, 0);
+	UAVCAN_STM32H7_IRQ_EPILOGUE();
+}
 
-	UAVCAN_STM32H7_IRQ_HANDLER(FDCAN2_IT1_IRQHandler);
-	UAVCAN_STM32H7_IRQ_HANDLER(FDCAN2_IT1_IRQHandler)
-	{
-		UAVCAN_STM32H7_IRQ_PROLOGUE();
-		uavcan_stm32h7::handleInterrupt(1, 1);
-		UAVCAN_STM32H7_IRQ_EPILOGUE();
-	}
+UAVCAN_STM32H7_IRQ_HANDLER(FDCAN1_IT1_IRQHandler);
+UAVCAN_STM32H7_IRQ_HANDLER(FDCAN1_IT1_IRQHandler) {
+	UAVCAN_STM32H7_IRQ_PROLOGUE();
+	uavcan_stm32h7::handleInterrupt(0, 1);
+	UAVCAN_STM32H7_IRQ_EPILOGUE();
+}
 
-# endif
-#endif // UAVCAN_STM32H7_NUTTX
+#if UAVCAN_STM32H7_NUM_IFACES > 1
 
-} // extern "C"
+#if !defined(FDCAN2_IT0_IRQHandler) || !defined(FDCAN2_IT1_IRQHandler)
+#error "Misconfigured build"
+#endif
+
+UAVCAN_STM32H7_IRQ_HANDLER(FDCAN2_IT0_IRQHandler);
+UAVCAN_STM32H7_IRQ_HANDLER(FDCAN2_IT0_IRQHandler) {
+	UAVCAN_STM32H7_IRQ_PROLOGUE();
+	uavcan_stm32h7::handleInterrupt(1, 0);
+	UAVCAN_STM32H7_IRQ_EPILOGUE();
+}
+
+UAVCAN_STM32H7_IRQ_HANDLER(FDCAN2_IT1_IRQHandler);
+UAVCAN_STM32H7_IRQ_HANDLER(FDCAN2_IT1_IRQHandler) {
+	UAVCAN_STM32H7_IRQ_PROLOGUE();
+	uavcan_stm32h7::handleInterrupt(1, 1);
+	UAVCAN_STM32H7_IRQ_EPILOGUE();
+}
+
+#endif
+#endif  // UAVCAN_STM32H7_NUTTX
+
+}  // extern "C"

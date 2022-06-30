@@ -37,8 +37,7 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 
-class MavlinkStreamAttitudeTarget : public MavlinkStream
-{
+class MavlinkStreamAttitudeTarget : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamAttitudeTarget(mavlink); }
 
@@ -48,9 +47,9 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _att_sp_sub.advertised() ? MAVLINK_MSG_ID_ATTITUDE_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	unsigned get_size() override {
+		return _att_sp_sub.advertised() ? MAVLINK_MSG_ID_ATTITUDE_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+						: 0;
 	}
 
 private:
@@ -60,8 +59,7 @@ private:
 	uORB::Subscription _att_rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};
 	hrt_abstime _last_att_sp_update{0};
 
-	bool send() override
-	{
+	bool send() override {
 		vehicle_attitude_setpoint_s att_sp;
 
 		bool updated = false;
@@ -102,4 +100,4 @@ private:
 	}
 };
 
-#endif // ATTITUDE_TARGET_HPP
+#endif  // ATTITUDE_TARGET_HPP

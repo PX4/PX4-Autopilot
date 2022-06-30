@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include "MPU9250_I2C.hpp"
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void MPU9250_I2C::print_usage()
-{
+#include "MPU9250_I2C.hpp"
+
+void MPU9250_I2C::print_usage() {
 	PRINT_MODULE_USAGE_NAME("mpu9520_i2c", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -47,8 +46,7 @@ void MPU9250_I2C::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int mpu9250_i2c_main(int argc, char *argv[])
-{
+extern "C" int mpu9250_i2c_main(int argc, char *argv[]) {
 	int ch;
 	using ThisDriver = MPU9250_I2C;
 	BusCLIArguments cli{true, false};
@@ -57,9 +55,9 @@ extern "C" int mpu9250_i2c_main(int argc, char *argv[])
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
+			case 'R':
+				cli.rotation = (enum Rotation)atoi(cli.optArg());
+				break;
 		}
 	}
 

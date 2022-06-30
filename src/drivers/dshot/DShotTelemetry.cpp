@@ -33,24 +33,19 @@
 
 #include "DShotTelemetry.h"
 
-#include <px4_platform_common/log.h>
-
-#include <unistd.h>
-#include <fcntl.h>
-#include <termios.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <px4_platform_common/log.h>
+#include <termios.h>
+#include <unistd.h>
 
 using namespace time_literals;
 
 #define DSHOT_TELEMETRY_UART_BAUDRATE 115200
 
-DShotTelemetry::~DShotTelemetry()
-{
-	deinit();
-}
+DShotTelemetry::~DShotTelemetry() { deinit(); }
 
-int DShotTelemetry::init(const char *uart_device)
-{
+int DShotTelemetry::init(const char *uart_device) {
 	deinit();
 	_uart_fd = ::open(uart_device, O_RDONLY | O_NOCTTY);
 
@@ -65,16 +60,14 @@ int DShotTelemetry::init(const char *uart_device)
 	return setBaudrate(DSHOT_TELEMETRY_UART_BAUDRATE);
 }
 
-void DShotTelemetry::deinit()
-{
+void DShotTelemetry::deinit() {
 	if (_uart_fd >= 0) {
 		close(_uart_fd);
 		_uart_fd = -1;
 	}
 }
 
-int DShotTelemetry::redirectOutput(OutputBuffer &buffer)
-{
+int DShotTelemetry::redirectOutput(OutputBuffer &buffer) {
 	if (expectingData()) {
 		// Error: cannot override while we already expect data
 		return -EBUSY;
@@ -87,8 +80,7 @@ int DShotTelemetry::redirectOutput(OutputBuffer &buffer)
 	return 0;
 }
 
-int DShotTelemetry::update()
-{
+int DShotTelemetry::update() {
 	if (_uart_fd < 0) {
 		return -1;
 	}
@@ -116,7 +108,8 @@ int DShotTelemetry::update()
 				_current_motor_index_request = -1;
 
 			} else {
-				PX4_DEBUG("ESC telemetry timeout for motor %i (frame pos=%i)", _current_motor_index_request, _frame_position);
+				PX4_DEBUG("ESC telemetry timeout for motor %i (frame pos=%i)",
+					  _current_motor_index_request, _frame_position);
 				++_num_timeouts;
 			}
 
@@ -161,8 +154,7 @@ int DShotTelemetry::update()
 	return ret;
 }
 
-bool DShotTelemetry::decodeByte(uint8_t byte, bool &successful_decoding)
-{
+bool DShotTelemetry::decodeByte(uint8_t byte, bool &successful_decoding) {
 	_frame_buffer[_frame_position++] = byte;
 	successful_decoding = false;
 
@@ -179,8 +171,8 @@ bool DShotTelemetry::decodeByte(uint8_t byte, bool &successful_decoding)
 			_latest_data.consumption = (_frame_buffer[5]) << 8 | _frame_buffer[6];
 			_latest_data.erpm = (_frame_buffer[7] << 8) | _frame_buffer[8];
 			PX4_DEBUG("Motor %i: temp=%i, V=%i, cur=%i, consumpt=%i, rpm=%i", _current_motor_index_request,
-				  _latest_data.temperature, _latest_data.voltage, _latest_data.current, _latest_data.consumption,
-				  _latest_data.erpm);
+				  _latest_data.temperature, _latest_data.voltage, _latest_data.current,
+				  _latest_data.consumption, _latest_data.erpm);
 			++_num_successful_responses;
 			successful_decoding = true;
 		}
@@ -191,14 +183,12 @@ bool DShotTelemetry::decodeByte(uint8_t byte, bool &successful_decoding)
 	return false;
 }
 
-void DShotTelemetry::printStatus() const
-{
+void DShotTelemetry::printStatus() const {
 	PX4_INFO("Number of successful ESC frames: %i", _num_successful_responses);
 	PX4_INFO("Number of timeouts: %i", _num_timeouts);
 }
 
-uint8_t DShotTelemetry::updateCrc8(uint8_t crc, uint8_t crc_seed)
-{
+uint8_t DShotTelemetry::updateCrc8(uint8_t crc, uint8_t crc_seed) {
 	uint8_t crc_u = crc ^ crc_seed;
 
 	for (int i = 0; i < 8; ++i) {
@@ -208,9 +198,7 @@ uint8_t DShotTelemetry::updateCrc8(uint8_t crc, uint8_t crc_seed)
 	return crc_u;
 }
 
-
-uint8_t DShotTelemetry::crc8(const uint8_t *buf, uint8_t len)
-{
+uint8_t DShotTelemetry::crc8(const uint8_t *buf, uint8_t len) {
 	uint8_t crc = 0;
 
 	for (int i = 0; i < len; ++i) {
@@ -220,16 +208,13 @@ uint8_t DShotTelemetry::crc8(const uint8_t *buf, uint8_t len)
 	return crc;
 }
 
-
-void DShotTelemetry::requestNextMotor()
-{
+void DShotTelemetry::requestNextMotor() {
 	_current_motor_index_request = (_current_motor_index_request + 1) % _num_motors;
 	_current_request_start = 0;
 	_frame_position = 0;
 }
 
-int DShotTelemetry::getRequestMotorIndex()
-{
+int DShotTelemetry::getRequestMotorIndex() {
 	if (_current_request_start != 0) {
 		// already in progress, do not send another request
 		return -1;
@@ -239,8 +224,7 @@ int DShotTelemetry::getRequestMotorIndex()
 	return _current_motor_index_request;
 }
 
-void DShotTelemetry::decodeAndPrintEscInfoPacket(const OutputBuffer &buffer)
-{
+void DShotTelemetry::decodeAndPrintEscInfoPacket(const OutputBuffer &buffer) {
 	static constexpr int version_position = 12;
 	const uint8_t *data = buffer.buffer;
 
@@ -285,68 +269,71 @@ void DShotTelemetry::decodeAndPrintEscInfoPacket(const OutputBuffer &buffer)
 	uint8_t esc_type = 0;
 
 	switch (version) {
-	case ESCVersionInfo::KissV1:
-		esc_firmware_version = data[12];
-		esc_firmware_subversion = (data[13] & 0x1f) + 97;
-		esc_type = (data[13] & 0xe0) >> 5;
-		break;
+		case ESCVersionInfo::KissV1:
+			esc_firmware_version = data[12];
+			esc_firmware_subversion = (data[13] & 0x1f) + 97;
+			esc_type = (data[13] & 0xe0) >> 5;
+			break;
 
-	case ESCVersionInfo::KissV2:
-	case ESCVersionInfo::BLHELI32:
-		esc_firmware_version = data[13];
-		esc_firmware_subversion = data[14];
-		esc_type = data[15];
-		break;
+		case ESCVersionInfo::KissV2:
+		case ESCVersionInfo::BLHELI32:
+			esc_firmware_version = data[13];
+			esc_firmware_subversion = data[14];
+			esc_type = data[15];
+			break;
 	}
 
 	const char *esc_type_str = "";
 
 	switch (version) {
-	case ESCVersionInfo::KissV1:
-	case ESCVersionInfo::KissV2:
-		switch (esc_type) {
-		case 1: esc_type_str = "KISS8A";
+		case ESCVersionInfo::KissV1:
+		case ESCVersionInfo::KissV2:
+			switch (esc_type) {
+				case 1:
+					esc_type_str = "KISS8A";
+					break;
+
+				case 2:
+					esc_type_str = "KISS16A";
+					break;
+
+				case 3:
+					esc_type_str = "KISS24A";
+					break;
+
+				case 5:
+					esc_type_str = "KISS Ultralite";
+					break;
+
+				default:
+					esc_type_str = "KISS (unknown)";
+					break;
+			}
+
 			break;
 
-		case 2: esc_type_str = "KISS16A";
-			break;
-
-		case 3: esc_type_str = "KISS24A";
-			break;
-
-		case 5: esc_type_str = "KISS Ultralite";
-			break;
-
-		default: esc_type_str = "KISS (unknown)";
-			break;
-		}
-
-		break;
-
-	case ESCVersionInfo::BLHELI32: {
+		case ESCVersionInfo::BLHELI32: {
 			char *esc_type_mutable = (char *)(data + 31);
 			esc_type_mutable[32] = 0;
 			esc_type_str = esc_type_mutable;
-		}
-		break;
+		} break;
 	}
 
 	PX4_INFO("ESC Type: %s", esc_type_str);
 
-	PX4_INFO("MCU Serial Number: %02x%02x%02x-%02x%02x%02x-%02x%02x%02x-%02x%02x%02x",
-		 data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8],
-		 data[9], data[10], data[11]);
+	PX4_INFO("MCU Serial Number: %02x%02x%02x-%02x%02x%02x-%02x%02x%02x-%02x%02x%02x", data[0], data[1], data[2],
+		 data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11]);
 
 	switch (version) {
-	case ESCVersionInfo::KissV1:
-	case ESCVersionInfo::KissV2:
-		PX4_INFO("Firmware version: %d.%d%c", esc_firmware_version / 100, esc_firmware_version % 100,
-			 (char)esc_firmware_subversion);
-		break;
+		case ESCVersionInfo::KissV1:
+		case ESCVersionInfo::KissV2:
+			PX4_INFO("Firmware version: %d.%d%c", esc_firmware_version / 100, esc_firmware_version % 100,
+				 (char)esc_firmware_subversion);
+			break;
 
-	case ESCVersionInfo::BLHELI32:
-		PX4_INFO("Firmware version: %d.%d", esc_firmware_version, esc_firmware_subversion);
-		break;
+		case ESCVersionInfo::BLHELI32:
+			PX4_INFO("Firmware version: %d.%d", esc_firmware_version, esc_firmware_subversion);
+			break;
 	}
 
 	if (version == ESCVersionInfo::KissV2 || version == ESCVersionInfo::BLHELI32) {
@@ -358,33 +345,33 @@ void DShotTelemetry::decodeAndPrintEscInfoPacket(const OutputBuffer &buffer)
 		uint8_t setting = data[18];
 
 		switch (setting) {
-		case 0:
-			PX4_INFO("Low voltage Limit: off");
-			break;
+			case 0:
+				PX4_INFO("Low voltage Limit: off");
+				break;
 
-		case 255:
-			PX4_INFO("Low voltage Limit: unsupported");
-			break;
+			case 255:
+				PX4_INFO("Low voltage Limit: unsupported");
+				break;
 
-		default:
-			PX4_INFO("Low voltage Limit: %d.%01d V", setting / 10, setting % 10);
-			break;
+			default:
+				PX4_INFO("Low voltage Limit: %d.%01d V", setting / 10, setting % 10);
+				break;
 		}
 
 		setting = data[19];
 
 		switch (setting) {
-		case 0:
-			PX4_INFO("Current Limit: off");
-			break;
+			case 0:
+				PX4_INFO("Current Limit: off");
+				break;
 
-		case 255:
-			PX4_INFO("Current Limit: unsupported");
-			break;
+			case 255:
+				PX4_INFO("Current Limit: unsupported");
+				break;
 
-		default:
-			PX4_INFO("Current Limit: %d A", setting);
-			break;
+			default:
+				PX4_INFO("Current Limit: %d A", setting);
+				break;
 		}
 
 		for (int i = 0; i < 4; ++i) {
@@ -392,29 +379,38 @@ void DShotTelemetry::decodeAndPrintEscInfoPacket(const OutputBuffer &buffer)
 			PX4_INFO("LED %d: %s", i, setting ? (setting == 255 ? "unsupported" : "on") : "off");
 		}
 	}
-
-
 }
 
-int DShotTelemetry::setBaudrate(unsigned baud)
-{
+int DShotTelemetry::setBaudrate(unsigned baud) {
 	int speed;
 
 	switch (baud) {
-	case 9600:   speed = B9600;   break;
+		case 9600:
+			speed = B9600;
+			break;
 
-	case 19200:  speed = B19200;  break;
+		case 19200:
+			speed = B19200;
+			break;
 
-	case 38400:  speed = B38400;  break;
+		case 38400:
+			speed = B38400;
+			break;
 
-	case 57600:  speed = B57600;  break;
+		case 57600:
+			speed = B57600;
+			break;
 
-	case 115200: speed = B115200; break;
+		case 115200:
+			speed = B115200;
+			break;
 
-	case 230400: speed = B230400; break;
+		case 230400:
+			speed = B230400;
+			break;
 
-	default:
-		return -EINVAL;
+		default:
+			return -EINVAL;
 	}
 
 	struct termios uart_config;
@@ -432,8 +428,7 @@ int DShotTelemetry::setBaudrate(unsigned baud)
 	// no input parity check, don't strip high bit off,
 	// no XON/XOFF software flow control
 	//
-	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL |
-				 INLCR | PARMRK | INPCK | ISTRIP | IXON);
+	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
 	//
 	// Output flags - Turn off output processing
 	//
@@ -472,4 +467,3 @@ int DShotTelemetry::setBaudrate(unsigned baud)
 
 	return 0;
 }
-

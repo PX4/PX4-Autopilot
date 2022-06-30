@@ -37,15 +37,13 @@
 
 #define BOARD_PWM_OUT_IMPL NavioSysfsPWMOut
 
-namespace pwm_out
-{
+namespace pwm_out {
 
 /**
  ** class NavioSysfsPWMOut
  * PWM output class for Navio Sysfs
  */
-class NavioSysfsPWMOut : public PWMOutBase
-{
+class NavioSysfsPWMOut : public PWMOutBase {
 public:
 	NavioSysfsPWMOut(int max_num_outputs);
 	virtual ~NavioSysfsPWMOut();
@@ -66,4 +64,4 @@ private:
 	static const char _device[];
 };
 
-}
+}  // namespace pwm_out

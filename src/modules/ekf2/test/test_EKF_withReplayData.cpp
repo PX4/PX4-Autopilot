@@ -33,20 +33,22 @@
 
 #include <gtest/gtest.h>
 #include <math.h>
-#include <memory>
-#include "EKF/ekf.h"
-#include "sensor_simulator/sensor_simulator.h"
-#include "sensor_simulator/ekf_wrapper.h"
-#include "sensor_simulator/ekf_logger.h"
 
-class EkfReplayTest : public ::testing::Test
-{
+#include <memory>
+
+#include "EKF/ekf.h"
+#include "sensor_simulator/ekf_logger.h"
+#include "sensor_simulator/ekf_wrapper.h"
+#include "sensor_simulator/sensor_simulator.h"
+
+class EkfReplayTest : public ::testing::Test {
 public:
-	EkfReplayTest(): ::testing::Test(),
-		_ekf{std::make_shared<Ekf>()},
-		_sensor_simulator(_ekf),
-		_ekf_wrapper(_ekf),
-		_ekf_logger(_ekf) {};
+	EkfReplayTest()
+		: ::testing::Test(),
+		  _ekf{std::make_shared<Ekf>()},
+		  _sensor_simulator(_ekf),
+		  _ekf_wrapper(_ekf),
+		  _ekf_logger(_ekf){};
 
 	std::shared_ptr<Ekf> _ekf;
 	SensorSimulator _sensor_simulator;
@@ -54,10 +56,9 @@ public:
 	EkfLogger _ekf_logger;
 };
 
-TEST_F(EkfReplayTest, irisGps)
-{
-	_sensor_simulator.loadSensorDataFromFile(TEST_DATA_PATH"/replay_data/iris_gps.csv");
-	_ekf_logger.setFilePath(TEST_DATA_PATH"/change_indication/iris_gps.csv");
+TEST_F(EkfReplayTest, irisGps) {
+	_sensor_simulator.loadSensorDataFromFile(TEST_DATA_PATH "/replay_data/iris_gps.csv");
+	_ekf_logger.setFilePath(TEST_DATA_PATH "/change_indication/iris_gps.csv");
 
 	// Start simulation and enable fusion of additional sensor types here
 	// By default the IMU, Baro and Mag sensor simulators are already running
@@ -72,10 +73,9 @@ TEST_F(EkfReplayTest, irisGps)
 	}
 }
 
-TEST_F(EkfReplayTest, ekfGsfReset)
-{
-	_sensor_simulator.loadSensorDataFromFile(TEST_DATA_PATH"/replay_data/ekf_gsf_reset.csv");
-	_ekf_logger.setFilePath(TEST_DATA_PATH"/change_indication/ekf_gsf_reset.csv");
+TEST_F(EkfReplayTest, ekfGsfReset) {
+	_sensor_simulator.loadSensorDataFromFile(TEST_DATA_PATH "/replay_data/ekf_gsf_reset.csv");
+	_ekf_logger.setFilePath(TEST_DATA_PATH "/change_indication/ekf_gsf_reset.csv");
 
 	// Start simulation and enable fusion of additional sensor types here
 	// By default the IMU, Baro and Mag sensor simulators are already running

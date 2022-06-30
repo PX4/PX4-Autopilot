@@ -33,20 +33,17 @@
 
 #include "lps33hw.hpp"
 
-namespace lps33hw
-{
+namespace lps33hw {
 extern device::Device *LPS33HW_SPI_interface(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
 extern device::Device *LPS33HW_I2C_interface(uint8_t bus, uint32_t device, int bus_frequency);
-}
+}  // namespace lps33hw
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
 using namespace lps33hw;
 
-void
-LPS33HW::print_usage()
-{
+void LPS33HW::print_usage() {
 	PRINT_MODULE_USAGE_NAME("lps33hw", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -56,8 +53,7 @@ LPS33HW::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *LPS33HW::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+I2CSPIDriverBase *LPS33HW::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	device::Device *interface = nullptr;
 
 	if (config.bus_type == BOARD_I2C_BUS) {
@@ -93,8 +89,7 @@ I2CSPIDriverBase *LPS33HW::instantiate(const I2CSPIDriverConfig &config, int run
 	return dev;
 }
 
-extern "C" int lps33hw_main(int argc, char *argv[])
-{
+extern "C" int lps33hw_main(int argc, char *argv[]) {
 	using ThisDriver = LPS33HW;
 	BusCLIArguments cli{true, true};
 	cli.i2c_address = 0x5D;

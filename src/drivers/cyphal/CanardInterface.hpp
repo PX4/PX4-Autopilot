@@ -43,8 +43,7 @@ struct CanardRxFrame {
 	CanardFrame frame;
 };
 
-class CanardInterface
-{
+class CanardInterface {
 public:
 	CanardInterface() = default;
 	virtual ~CanardInterface() = default;
@@ -64,5 +63,4 @@ public:
 	virtual int16_t receive(CanardRxFrame *rxf) = 0;
 
 private:
-
 };

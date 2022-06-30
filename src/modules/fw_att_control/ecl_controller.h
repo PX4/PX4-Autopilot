@@ -73,8 +73,7 @@ struct ECL_ControlData {
 	bool lock_integrator;
 };
 
-class ECL_Controller
-{
+class ECL_Controller {
 public:
 	ECL_Controller();
 	virtual ~ECL_Controller() = default;

@@ -43,17 +43,25 @@
 #include <sys/types.h>
 
 #ifdef __cplusplus
-#include <cstddef>	// NULL
+#include <cstddef>  // NULL
 #else
-#include <stddef.h>	// NULL
+#include <stddef.h>  // NULL
 #endif
 
 /************************************************************************
  * Pre-processor Definitions
  ************************************************************************/
 
-#define sq_init(q) do { (q)->head = NULL; (q)->tail = NULL; } while (0)
-#define dq_init(q) do { (q)->head = NULL; (q)->tail = NULL; } while (0)
+#define sq_init(q)                \
+	do {                      \
+		(q)->head = NULL; \
+		(q)->tail = NULL; \
+	} while (0)
+#define dq_init(q)                \
+	do {                      \
+		(q)->head = NULL; \
+		(q)->tail = NULL; \
+	} while (0)
 
 #define sq_next(p) ((p)->flink)
 #define dq_next(p) ((p)->flink)
@@ -62,8 +70,8 @@
 #define sq_empty(q) ((q)->head == NULL)
 #define dq_empty(q) ((q)->head == NULL)
 
-#define sq_peek(q)  ((q)->head)
-#define dq_peek(q)  ((q)->head)
+#define sq_peek(q) ((q)->head)
+#define dq_peek(q) ((q)->head)
 
 // Required for Linux
 #define FAR
@@ -87,7 +95,7 @@ struct sq_queue_s {
 	FAR sq_entry_t *head;
 	FAR sq_entry_t *tail;
 };
-typedef struct sq_queue_s  sq_queue_t;
+typedef struct sq_queue_s sq_queue_t;
 
 struct dq_queue_s {
 	FAR dq_entry_t *head;
@@ -106,20 +114,17 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-EXTERN void  sq_addfirst(FAR sq_entry_t *node, sq_queue_t *queue);
-EXTERN void  dq_addfirst(FAR dq_entry_t *node, dq_queue_t *queue);
-EXTERN void  sq_addlast(FAR sq_entry_t *node, sq_queue_t *queue);
-EXTERN void  dq_addlast(FAR dq_entry_t *node, dq_queue_t *queue);
-EXTERN void  sq_addafter(FAR sq_entry_t *prev, FAR sq_entry_t *node,
-			 sq_queue_t *queue);
-EXTERN void  dq_addafter(FAR dq_entry_t *prev, FAR dq_entry_t *node,
-			 dq_queue_t *queue);
-EXTERN void  dq_addbefore(FAR dq_entry_t *next, FAR dq_entry_t *node,
-			  dq_queue_t *queue);
+EXTERN void sq_addfirst(FAR sq_entry_t *node, sq_queue_t *queue);
+EXTERN void dq_addfirst(FAR dq_entry_t *node, dq_queue_t *queue);
+EXTERN void sq_addlast(FAR sq_entry_t *node, sq_queue_t *queue);
+EXTERN void dq_addlast(FAR dq_entry_t *node, dq_queue_t *queue);
+EXTERN void sq_addafter(FAR sq_entry_t *prev, FAR sq_entry_t *node, sq_queue_t *queue);
+EXTERN void dq_addafter(FAR dq_entry_t *prev, FAR dq_entry_t *node, dq_queue_t *queue);
+EXTERN void dq_addbefore(FAR dq_entry_t *next, FAR dq_entry_t *node, dq_queue_t *queue);
 
 EXTERN FAR sq_entry_t *sq_remafter(FAR sq_entry_t *node, sq_queue_t *queue);
-EXTERN void            sq_rem(FAR sq_entry_t *node, sq_queue_t *queue);
-EXTERN void            dq_rem(FAR dq_entry_t *node, dq_queue_t *queue);
+EXTERN void sq_rem(FAR sq_entry_t *node, sq_queue_t *queue);
+EXTERN void dq_rem(FAR dq_entry_t *node, dq_queue_t *queue);
 EXTERN FAR sq_entry_t *sq_remlast(sq_queue_t *queue);
 EXTERN FAR dq_entry_t *dq_remlast(dq_queue_t *queue);
 EXTERN FAR sq_entry_t *sq_remfirst(sq_queue_t *queue);
@@ -131,4 +136,3 @@ EXTERN FAR dq_entry_t *dq_remfirst(dq_queue_t *queue);
 #endif
 
 #endif /* __INCLUDE_QUEUE_H_ */
-

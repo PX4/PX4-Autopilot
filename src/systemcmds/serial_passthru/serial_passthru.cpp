@@ -35,23 +35,19 @@
  * @file nshterm.c
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <termios.h>
-
-
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/cli.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <termios.h>
 
-static constexpr int TASK_STACK_SIZE   = PX4_STACK_ADJUSTED(1224);
+static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(1224);
 static constexpr int THREAD_STACK_SIZE = PX4_STACK_ADJUSTED(1224);
 
-class SERIALPASSTHRU : public ModuleBase<SERIALPASSTHRU>
-{
+class SERIALPASSTHRU : public ModuleBase<SERIALPASSTHRU> {
 public:
-
 	SERIALPASSTHRU(const char *external_path, const char *internal_path, unsigned baudrate, bool trackbaud);
 	~SERIALPASSTHRU() override;
 
@@ -70,49 +66,42 @@ public:
 	/** @see ModuleBase::run() */
 	void run() override;
 
-
 	void thread_run();
 
 	void thread_start();
 	void thread_stop();
 	static void *trampoline(void *context);
 
-
 private:
-	int        _fd_ext{-1};       ///< the connection to the outside device
-	int        _fd_int{-1};       ///< the connection to the inside device
-	unsigned   _baudrate{0};      ///< baudrate passed
-	char       _ext_path[20] {}; ///< external device / serial port path
-	char       _int_path[20] {}; ///< internal device / serial port path
-	bool       _track_baud{false}; ///< track baudrate from external and dynmaicaly reconfigure internal
+	int _fd_ext{-1};          ///< the connection to the outside device
+	int _fd_int{-1};          ///< the connection to the inside device
+	unsigned _baudrate{0};    ///< baudrate passed
+	char _ext_path[20]{};     ///< external device / serial port path
+	char _int_path[20]{};     ///< internal device / serial port path
+	bool _track_baud{false};  ///< track baudrate from external and dynmaicaly reconfigure internal
 
 #if defined(DEBUG_BUILD)
 	enum dbg_t {
 		NONE = 0,
-		INT   = 1,
-		EXT  = 2,
+		INT = 1,
+		EXT = 2,
 		BAUD = 4,
 	};
 
-	enum dbg_t _debug_level {BAUD};
+	enum dbg_t _debug_level { BAUD };
 
 #endif
 
-	pthread_t _thread{0};      ///< worker task id
+	pthread_t _thread{0};  ///< worker task id
 	px4::atomic_bool _thread_should_exit{false};
 
 	int setBaudrate(int fd, unsigned baud);
-	void dump(const char *dirin, const char *dirout, int read, int written,
-		  char *buffer);
+	void dump(const char *dirin, const char *dirout, int read, int written, char *buffer);
 };
 
-
-
-void SERIALPASSTHRU::dump(const char *dirin, const char *dirout, int read, int written,
-			  char *buffer)
-{
+void SERIALPASSTHRU::dump(const char *dirin, const char *dirout, int read, int written, char *buffer) {
 #if defined(DEBUG_BUILD)
-	enum dbg_t mgtype =  dirin[0] == 'i' ? INT : EXT;
+	enum dbg_t mgtype = dirin[0] == 'i' ? INT : EXT;
 
 	if ((_debug_level & mgtype) && read > 0) {
 		fprintf(stderr, "%s %d bytes read\n", dirin, read);
@@ -128,8 +117,7 @@ void SERIALPASSTHRU::dump(const char *dirin, const char *dirout, int read, int w
 #endif
 }
 
-void SERIALPASSTHRU::thread_run()
-{
+void SERIALPASSTHRU::thread_run() {
 	px4_prctl(PR_SET_NAME, "serial_passthru-ext->int", px4_getpid());
 
 	struct termios uart_config;
@@ -137,7 +125,6 @@ void SERIALPASSTHRU::thread_run()
 	tcgetattr(_fd_ext, &uart_config);
 
 	do {
-
 		if (_track_baud) {
 			// Get the current extenral settings
 			tcgetattr(_fd_ext, &uart_config);
@@ -176,7 +163,6 @@ void SERIALPASSTHRU::thread_run()
 
 		if (ret > 0) {
 			if (fds[0].revents & POLLIN) {
-
 				char buf[80];
 				int nread = read(_fd_ext, &buf, sizeof(buf));
 
@@ -190,8 +176,7 @@ void SERIALPASSTHRU::thread_run()
 	} while (!_thread_should_exit.load());
 }
 
-void SERIALPASSTHRU::thread_start()
-{
+void SERIALPASSTHRU::thread_start() {
 	pthread_attr_t loop_attr;
 	pthread_attr_init(&loop_attr);
 
@@ -205,23 +190,19 @@ void SERIALPASSTHRU::thread_start()
 	pthread_attr_destroy(&loop_attr);
 }
 
-void *SERIALPASSTHRU::trampoline(void *context)
-{
+void *SERIALPASSTHRU::trampoline(void *context) {
 	SERIALPASSTHRU *self = reinterpret_cast<SERIALPASSTHRU *>(context);
 	self->thread_run();
 	return nullptr;
 }
 
-void SERIALPASSTHRU::thread_stop()
-{
+void SERIALPASSTHRU::thread_stop() {
 	_thread_should_exit.store(true);
 	pthread_join(_thread, nullptr);
 }
 
-SERIALPASSTHRU::SERIALPASSTHRU(const char *path1, const char *path2, unsigned baudrate, bool trackbaud) :
-	_baudrate(baudrate),
-	_track_baud(trackbaud)
-{
+SERIALPASSTHRU::SERIALPASSTHRU(const char *path1, const char *path2, unsigned baudrate, bool trackbaud)
+	: _baudrate(baudrate), _track_baud(trackbaud) {
 	strncpy(_ext_path, path1, sizeof(_ext_path) - 1);
 	_ext_path[sizeof(_ext_path) - 1] = '\0';
 
@@ -229,21 +210,17 @@ SERIALPASSTHRU::SERIALPASSTHRU(const char *path1, const char *path2, unsigned ba
 	_int_path[sizeof(_int_path) - 1] = '\0';
 }
 
-SERIALPASSTHRU::~SERIALPASSTHRU()
-{
-}
+SERIALPASSTHRU::~SERIALPASSTHRU() {}
 
-
-int SERIALPASSTHRU::print_usage(const char *reason)
-{
+int SERIALPASSTHRU::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
 
-	PRINT_MODULE_DESCRIPTION("Pass data from one device to another.\n"
-				 "\n"
-				 "This can be used to use u-center connected to USB with a GPS on a serial port.\n"
-				);
+	PRINT_MODULE_DESCRIPTION(
+		"Pass data from one device to another.\n"
+		"\n"
+		"This can be used to use u-center connected to USB with a GPS on a serial port.\n");
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("serial_passthru", "command");
 	PRINT_MODULE_USAGE_PARAM_STRING('e', nullptr, "<file:dev>", "External device path", false);
@@ -253,13 +230,10 @@ int SERIALPASSTHRU::print_usage(const char *reason)
 	return 0;
 }
 
-void
-SERIALPASSTHRU::run()
-{
+void SERIALPASSTHRU::run() {
 	px4_prctl(PR_SET_NAME, "serial_passthru-int->ext", px4_getpid());
 
 	while (!should_exit()) {
-
 		if (_fd_ext < 0) {
 			/* open the serial port */
 			_fd_ext = ::open(_ext_path, O_RDWR | O_NOCTTY);
@@ -306,39 +280,54 @@ SERIALPASSTHRU::run()
 	close(_fd_int);
 }
 
-int SERIALPASSTHRU::setBaudrate(int fd, unsigned baud)
-{
+int SERIALPASSTHRU::setBaudrate(int fd, unsigned baud) {
 	/* process baud rate */
 	int speed;
 
 	switch (baud) {
-	case 9600:   speed = B9600;   break;
+		case 9600:
+			speed = B9600;
+			break;
 
-	case 19200:  speed = B19200;  break;
+		case 19200:
+			speed = B19200;
+			break;
 
-	case 38400:  speed = B38400;  break;
+		case 38400:
+			speed = B38400;
+			break;
 
-	case 57600:  speed = B57600;  break;
+		case 57600:
+			speed = B57600;
+			break;
 
-	case 115200: speed = B115200; break;
+		case 115200:
+			speed = B115200;
+			break;
 
-	case 230400: speed = B230400; break;
+		case 230400:
+			speed = B230400;
+			break;
 
 #ifndef B460800
 #define B460800 460800
 #endif
 
-	case 460800: speed = B460800; break;
+		case 460800:
+			speed = B460800;
+			break;
 
 #ifndef B921600
 #define B921600 921600
 #endif
 
-	case 921600: speed = B921600; break;
+		case 921600:
+			speed = B921600;
+			break;
 
-	default:
-		PX4_ERR("ERR: unknown baudrate: %d", baud);
-		return -EINVAL;
+		default:
+			PX4_ERR("ERR: unknown baudrate: %d", baud);
+			return -EINVAL;
 	}
 
 	struct termios uart_config;
@@ -358,8 +347,7 @@ int SERIALPASSTHRU::setBaudrate(int fd, unsigned baud)
 	// no input parity check, don't strip high bit off,
 	// no XON/XOFF software flow control
 	//
-	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL |
-				 INLCR | PARMRK | INPCK | ISTRIP | IXON);
+	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
 	//
 	// Output flags - Turn off output processing
 	//
@@ -402,10 +390,8 @@ int SERIALPASSTHRU::setBaudrate(int fd, unsigned baud)
 	return 0;
 }
 
-int SERIALPASSTHRU::task_spawn(int argc, char *argv[])
-{
-	int task_id = px4_task_spawn_cmd("passthru", SCHED_DEFAULT,
-					 SCHED_PRIORITY_SLOW_DRIVER, TASK_STACK_SIZE,
+int SERIALPASSTHRU::task_spawn(int argc, char *argv[]) {
+	int task_id = px4_task_spawn_cmd("passthru", SCHED_DEFAULT, SCHED_PRIORITY_SLOW_DRIVER, TASK_STACK_SIZE,
 					 run_trampoline, (char *const *)argv);
 
 	if (task_id < 0) {
@@ -417,8 +403,7 @@ int SERIALPASSTHRU::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-SERIALPASSTHRU *SERIALPASSTHRU::instantiate(int argc, char *argv[])
-{
+SERIALPASSTHRU *SERIALPASSTHRU::instantiate(int argc, char *argv[]) {
 	const char *ext_device = nullptr;
 	const char *int_device = nullptr;
 	int baudrate = 115200;
@@ -429,54 +414,48 @@ SERIALPASSTHRU *SERIALPASSTHRU::instantiate(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "b:d:e:t", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+			case 't':
+				trackbaud = true;
+				break;
 
-		case 't':
-			trackbaud = true;
-			break;
+			case 'b':
+				if (px4_get_parameter_value(myoptarg, baudrate) != 0) {
+					PX4_ERR("baudrate parsing failed");
+					return nullptr;
+				}
 
-		case 'b':
-			if (px4_get_parameter_value(myoptarg, baudrate) != 0) {
-				PX4_ERR("baudrate parsing failed");
-				return nullptr;
-			}
+				break;
 
-			break;
+			case 'e':
+				ext_device = myoptarg;
+				break;
 
-		case 'e':
-			ext_device = myoptarg;
-			break;
-
-		case 'd':
-			int_device = myoptarg;
-			break;
-
+			case 'd':
+				int_device = myoptarg;
+				break;
 		}
 	}
 
 	SERIALPASSTHRU *serial_passthru = nullptr;
-	bool lok =  ext_device && (access(ext_device, R_OK | W_OK) == 0);
-	bool rok =  int_device && (access(int_device, R_OK | W_OK) == 0);
+	bool lok = ext_device && (access(ext_device, R_OK | W_OK) == 0);
+	bool rok = int_device && (access(int_device, R_OK | W_OK) == 0);
 
 	if (rok && lok) {
 		serial_passthru = new SERIALPASSTHRU(ext_device, int_device, baudrate, trackbaud);
 
 	} else {
 		if (!lok) {
-			PX4_ERR("Invalid external device (-e) %s", ext_device ? ext_device  : "");
+			PX4_ERR("Invalid external device (-e) %s", ext_device ? ext_device : "");
 		}
 
 		if (rok) {
-			PX4_ERR("Invalid internal device (-r) %s", int_device ? int_device  : "");
+			PX4_ERR("Invalid internal device (-r) %s", int_device ? int_device : "");
 		}
 	}
 
 	return serial_passthru;
 }
 
-
 extern "C" __EXPORT int serial_passthru_main(int argc, char *argv[]);
 
-int serial_passthru_main(int argc, char *argv[])
-{
-	return SERIALPASSTHRU::main(argc, argv);
-}
+int serial_passthru_main(int argc, char *argv[]) { return SERIALPASSTHRU::main(argc, argv); }

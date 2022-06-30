@@ -35,10 +35,7 @@
 
 #include "autopilot_tester_follow_me.h"
 
-
-
-TEST_CASE("Follow target - Position streaming", "[multicopter]")
-{
+TEST_CASE("Follow target - Position streaming", "[multicopter]") {
 	const bool stream_velocity = false;
 	AutopilotTesterFollowMe tester;
 	tester.connect(connection_url);
@@ -58,8 +55,7 @@ TEST_CASE("Follow target - Position streaming", "[multicopter]")
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-TEST_CASE("Follow target - Position and velocity streaming", "[multicopter]")
-{
+TEST_CASE("Follow target - Position and velocity streaming", "[multicopter]") {
 	const bool stream_velocity = true;
 	AutopilotTesterFollowMe tester;
 	tester.connect(connection_url);
@@ -79,8 +75,7 @@ TEST_CASE("Follow target - Position and velocity streaming", "[multicopter]")
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-TEST_CASE("Follow target - Velocity streaming only", "[multicopter]")
-{
+TEST_CASE("Follow target - Velocity streaming only", "[multicopter]") {
 	// Streaming only velocity should not work, the drone should not move.
 	// There needs to be at least one position message for follow-me
 	// to be able to integrate velocity.
@@ -103,8 +98,7 @@ TEST_CASE("Follow target - Velocity streaming only", "[multicopter]")
 	tester.check_home_within(1.0f);
 }
 
-TEST_CASE("Follow target - RC Adjustment", "[multicopter]")
-{
+TEST_CASE("Follow target - RC Adjustment", "[multicopter]") {
 	AutopilotTesterFollowMe tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();

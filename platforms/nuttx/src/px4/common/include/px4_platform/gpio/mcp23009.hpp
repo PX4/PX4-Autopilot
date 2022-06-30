@@ -34,18 +34,15 @@
 #pragma once
 
 #include <drivers/device/i2c.h>
-
 #include <nuttx/ioexpander/gpio.h>
 
 using namespace time_literals;
 
-namespace Microchip_MCP23009
-{
+namespace Microchip_MCP23009 {
 enum class Register : uint8_t;
 }
 
-class MCP23009 : public device::I2C
-{
+class MCP23009 : public device::I2C {
 public:
 	MCP23009(int bus, int address, int first_minor = 0, int bus_frequency = 400000);
 	virtual ~MCP23009();
@@ -57,7 +54,7 @@ protected:
 
 private:
 	static constexpr int num_gpios = 8;
-	static const gpio_operations_s	gpio_ops;
+	static const gpio_operations_s gpio_ops;
 
 	struct mcp23009_gpio_dev_s {
 		struct gpio_dev_s gpio;
@@ -77,5 +74,5 @@ private:
 	int write_reg(Microchip_MCP23009::Register address, uint8_t data);
 
 	const int _first_minor;
-	mcp23009_gpio_dev_s _gpio[num_gpios] {};
+	mcp23009_gpio_dev_s _gpio[num_gpios]{};
 };

@@ -39,30 +39,29 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/i2c_spi_buses.h>
 #include <drivers/device/i2c.h>
-#include <systemlib/err.h>
-#include <string.h>
-#include <stdlib.h>
 #include <math.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdlib.h>
+#include <string.h>
+#include <systemlib/err.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_gps_position.h>
+
 #include <matrix/math.hpp>
+#include <uORB/Subscription.hpp>
 
 using namespace matrix;
 using namespace time_literals;
 
-#define BST_ADDR		0x76
+#define BST_ADDR 0x76
 
-namespace px4
-{
-namespace bst
-{
+namespace px4 {
+namespace bst {
 
 #pragma pack(push, 1)
 
@@ -108,83 +107,66 @@ struct BSTBattery {
 
 #pragma pack(pop)
 
-class BST : public device::I2C, public I2CSPIDriver<BST>
-{
+class BST : public device::I2C, public I2CSPIDriver<BST> {
 public:
 	BST(const I2CSPIDriverConfig &config);
 	~BST() override = default;
 
 	static void print_usage();
 
-	int		init() override;
+	int init() override;
 
-	int		probe() override;
+	int probe() override;
 
-	void			RunImpl();
+	void RunImpl();
+
 private:
+	static constexpr unsigned _interval{100_ms};
 
-	static constexpr unsigned		_interval{100_ms};
-
-	uORB::Subscription	_gps_sub{ORB_ID(vehicle_gps_position)};
-	uORB::Subscription	_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription	_battery_sub{ORB_ID(battery_status)};
-
+	uORB::Subscription _gps_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
 
 	template <typename T>
-	void			send_packet(BSTPacket<T> &packet)
-	{
-		packet.length = sizeof(packet) - 1;	// Length
+	void send_packet(BSTPacket<T> &packet) {
+		packet.length = sizeof(packet) - 1;  // Length
 		packet.crc = crc8(reinterpret_cast<uint8_t *>(&packet.type), sizeof(packet) - 2);
 
 		transfer(reinterpret_cast<uint8_t *>(&packet), sizeof(packet), nullptr, 0);
 	}
 
 	template <typename T_SEND, typename T_RECV>
-	void				send_packet(BSTPacket<T_SEND> &packet_send, BSTPacket<T_RECV> &packet_recv)
-	{
-		packet_send.length = sizeof(packet_send) - 1;	// Length
+	void send_packet(BSTPacket<T_SEND> &packet_send, BSTPacket<T_RECV> &packet_recv) {
+		packet_send.length = sizeof(packet_send) - 1;  // Length
 		packet_send.crc = crc8(reinterpret_cast<uint8_t *>(&packet_send.type), sizeof(packet_send) - 2);
-		transfer(reinterpret_cast<uint8_t *>(&packet_send), sizeof(packet_send), reinterpret_cast<uint8_t *>(&packet_recv),
-			 sizeof(packet_recv));
+		transfer(reinterpret_cast<uint8_t *>(&packet_send), sizeof(packet_send),
+			 reinterpret_cast<uint8_t *>(&packet_recv), sizeof(packet_recv));
 	}
 
-	static uint8_t	crc8(uint8_t *data, size_t len);
+	static uint8_t crc8(uint8_t *data, size_t len);
 
 	//! Byte swap unsigned short
-	uint16_t swap_uint16(uint16_t val)
-	{
-		return (val << 8) | (val >> 8);
-	}
+	uint16_t swap_uint16(uint16_t val) { return (val << 8) | (val >> 8); }
 
 	//! Byte swap short
-	int16_t swap_int16(int16_t val)
-	{
-		return (val << 8) | ((val >> 8) & 0xFF);
-	}
+	int16_t swap_int16(int16_t val) { return (val << 8) | ((val >> 8) & 0xFF); }
 
 	//! Byte swap unsigned int
-	uint32_t swap_uint32(uint32_t val)
-	{
+	uint32_t swap_uint32(uint32_t val) {
 		val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF);
 		return (val << 16) | (val >> 16);
 	}
 
 	//! Byte swap int
-	int32_t swap_int32(int32_t val)
-	{
+	int32_t swap_int32(int32_t val) {
 		val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF);
 		return (val << 16) | ((val >> 16) & 0xFFFF);
 	}
 };
 
-BST::BST(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config)
-{
-}
+BST::BST(const I2CSPIDriverConfig &config) : I2C(config), I2CSPIDriver(config) {}
 
-int BST::probe()
-{
+int BST::probe() {
 	BSTPacket<BSTDeviceInfoRequest> dev_info_req = {};
 	dev_info_req.type = 0x0A;
 	dev_info_req.payload.cmd = 0x04;
@@ -215,8 +197,7 @@ int BST::probe()
 	return OK;
 }
 
-int BST::init()
-{
+int BST::init() {
 	int ret = I2C::init();
 
 	if (ret != OK) {
@@ -228,8 +209,7 @@ int BST::init()
 	return OK;
 }
 
-void BST::RunImpl()
-{
+void BST::RunImpl() {
 	if (_attitude_sub.updated()) {
 		vehicle_attitude_s att;
 		_attitude_sub.copy(&att);
@@ -282,8 +262,7 @@ void BST::RunImpl()
 	ScheduleDelayed(_interval);
 }
 
-uint8_t BST::crc8(uint8_t *data, size_t len)
-{
+uint8_t BST::crc8(uint8_t *data, size_t len) {
 	uint8_t crc = 0x00;
 
 	while (len--) {
@@ -297,14 +276,12 @@ uint8_t BST::crc8(uint8_t *data, size_t len)
 	return crc;
 }
 
-}
-}
+}  // namespace bst
+}  // namespace px4
 
 using namespace px4::bst;
 
-void
-BST::print_usage()
-{
+void BST::print_usage() {
 	PRINT_MODULE_USAGE_NAME("bst", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
@@ -312,8 +289,7 @@ BST::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" __EXPORT int bst_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int bst_main(int argc, char *argv[]) {
 	using ThisDriver = BST;
 	BusCLIArguments cli{true, false};
 	cli.i2c_address = BST_ADDR;

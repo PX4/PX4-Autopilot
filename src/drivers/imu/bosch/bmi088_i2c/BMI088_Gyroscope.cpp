@@ -37,22 +37,18 @@
 
 using namespace time_literals;
 
-namespace Bosch::BMI088::Gyroscope
-{
+namespace Bosch::BMI088::Gyroscope {
 
-BMI088_Gyroscope::BMI088_Gyroscope(const I2CSPIDriverConfig &config) :
-	BMI088(config),
-	_px4_gyro(get_device_id(), config.rotation)
-{
+BMI088_Gyroscope::BMI088_Gyroscope(const I2CSPIDriverConfig &config)
+	: BMI088(config), _px4_gyro(get_device_id(), config.rotation) {
 	if (config.drdy_gpio != 0) {
-		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_gyro: DRDY missed");
+		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME "_gyro: DRDY missed");
 	}
 
 	ConfigureSampleRate(2000);
 }
 
-BMI088_Gyroscope::~BMI088_Gyroscope()
-{
+BMI088_Gyroscope::~BMI088_Gyroscope() {
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_fifo_empty_perf);
@@ -61,14 +57,12 @@ BMI088_Gyroscope::~BMI088_Gyroscope()
 	perf_free(_drdy_missed_perf);
 }
 
-void BMI088_Gyroscope::exit_and_cleanup()
-{
+void BMI088_Gyroscope::exit_and_cleanup() {
 	DataReadyInterruptDisable();
 	I2CSPIDriverBase::exit_and_cleanup();
 }
 
-void BMI088_Gyroscope::print_status()
-{
+void BMI088_Gyroscope::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	PX4_INFO("FIFO empty interval: %d us (%.1f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
@@ -81,8 +75,7 @@ void BMI088_Gyroscope::print_status()
 	perf_print_counter(_drdy_missed_perf);
 }
 
-int BMI088_Gyroscope::probe()
-{
+int BMI088_Gyroscope::probe() {
 	const uint8_t chipid = RegisterRead(Register::GYRO_CHIP_ID);
 
 	if (chipid != ID) {
@@ -93,126 +86,123 @@ int BMI088_Gyroscope::probe()
 	return PX4_OK;
 }
 
-void BMI088_Gyroscope::RunImpl()
-{
+void BMI088_Gyroscope::RunImpl() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-
-	case STATE::SELFTEST:
-		//SelfTest();
-		_state = STATE::RESET;
-		ScheduleDelayed(1_ms);
-		break;
-
-	case STATE::RESET:
-		// GYRO_SOFTRESET: Writing a value of 0xB6 to this register resets the sensor.
-		// Following a delay of 30 ms, all configuration settings are overwritten with their reset value.
-		RegisterWrite(Register::GYRO_SOFTRESET, 0xB6);
-		_reset_timestamp = now;
-		_failure_count = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(30_ms);
-		break;
-
-	case STATE::WAIT_FOR_RESET:
-		if ((RegisterRead(Register::GYRO_CHIP_ID) == ID)) {
-			// if reset succeeded then configure
-			_state = STATE::CONFIGURE;
+		case STATE::SELFTEST:
+			// SelfTest();
+			_state = STATE::RESET;
 			ScheduleDelayed(1_ms);
+			break;
 
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
+		case STATE::RESET:
+			// GYRO_SOFTRESET: Writing a value of 0xB6 to this register resets the sensor.
+			// Following a delay of 30 ms, all configuration settings are overwritten with their reset
+			// value.
+			RegisterWrite(Register::GYRO_SOFTRESET, 0xB6);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
+			ScheduleDelayed(30_ms);
+			break;
+
+		case STATE::WAIT_FOR_RESET:
+			if ((RegisterRead(Register::GYRO_CHIP_ID) == ID)) {
+				// if reset succeeded then configure
+				_state = STATE::CONFIGURE;
+				ScheduleDelayed(1_ms);
+
+			} else {
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 10 ms");
+					ScheduleDelayed(10_ms);
+				}
+			}
+
+			break;
+
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				// if configure succeeded then start reading from FIFO
+				_state = STATE::FIFO_READ;
+
+				if (DataReadyInterruptConfigure()) {
+					_data_ready_interrupt_enabled = true;
+
+					// backup schedule as a watchdog timeout
+					ScheduleDelayed(100_ms);
+
+				} else {
+					_data_ready_interrupt_enabled = false;
+					ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
+				}
+
+				FIFOReset();
+
+			} else {
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
 				ScheduleDelayed(100_ms);
-
-			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
-			}
-		}
-
-		break;
-
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start reading from FIFO
-			_state = STATE::FIFO_READ;
-
-			if (DataReadyInterruptConfigure()) {
-				_data_ready_interrupt_enabled = true;
-
-				// backup schedule as a watchdog timeout
-				ScheduleDelayed(100_ms);
-
-			} else {
-				_data_ready_interrupt_enabled = false;
-				ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
 			}
 
-			FIFOReset();
+			break;
 
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
-
-			} else {
-				PX4_DEBUG("Configure failed, retrying");
-			}
-
-			ScheduleDelayed(100_ms);
-		}
-
-		break;
-
-	case STATE::FIFO_READ: {
+		case STATE::FIFO_READ: {
 			SimpleFIFORead(now);
-		}
-		break;
+		} break;
 	}
 }
 
-void BMI088_Gyroscope::ConfigureGyro()
-{
+void BMI088_Gyroscope::ConfigureGyro() {
 	const uint8_t GYRO_RANGE = RegisterRead(Register::GYRO_RANGE) & (Bit3 | Bit2 | Bit1 | Bit0);
 
 	switch (GYRO_RANGE) {
-	case gyro_range_2000_dps:
-		_px4_gyro.set_scale(math::radians(1.f / 16.384f));
-		_px4_gyro.set_range(math::radians(2000.f));
-		break;
+		case gyro_range_2000_dps:
+			_px4_gyro.set_scale(math::radians(1.f / 16.384f));
+			_px4_gyro.set_range(math::radians(2000.f));
+			break;
 
-	case gyro_range_1000_dps:
-		_px4_gyro.set_scale(math::radians(1.f / 32.768f));
-		_px4_gyro.set_range(math::radians(1000.f));
-		break;
+		case gyro_range_1000_dps:
+			_px4_gyro.set_scale(math::radians(1.f / 32.768f));
+			_px4_gyro.set_range(math::radians(1000.f));
+			break;
 
-	case gyro_range_500_dps:
-		_px4_gyro.set_scale(math::radians(1.f / 65.536f));
-		_px4_gyro.set_range(math::radians(500.f));
-		break;
+		case gyro_range_500_dps:
+			_px4_gyro.set_scale(math::radians(1.f / 65.536f));
+			_px4_gyro.set_range(math::radians(500.f));
+			break;
 
-	case gyro_range_250_dps:
-		_px4_gyro.set_scale(math::radians(1.f / 131.072f));
-		_px4_gyro.set_range(math::radians(250.f));
-		break;
+		case gyro_range_250_dps:
+			_px4_gyro.set_scale(math::radians(1.f / 131.072f));
+			_px4_gyro.set_range(math::radians(250.f));
+			break;
 
-	case gyro_range_125_dps:
-		_px4_gyro.set_scale(math::radians(1.f / 262.144f));
-		_px4_gyro.set_range(math::radians(125.f));
-		break;
+		case gyro_range_125_dps:
+			_px4_gyro.set_scale(math::radians(1.f / 262.144f));
+			_px4_gyro.set_range(math::radians(125.f));
+			break;
 	}
 }
 
-void BMI088_Gyroscope::ConfigureSampleRate(int sample_rate)
-{
+void BMI088_Gyroscope::ConfigureSampleRate(int sample_rate) {
 	// round down to nearest FIFO sample dt * SAMPLES_PER_TRANSFER
 	const float min_interval = FIFO_SAMPLE_DT;
-	_fifo_empty_interval_us = math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
+	_fifo_empty_interval_us =
+		math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
 
 	_fifo_samples = math::min((float)_fifo_empty_interval_us / (1e6f / RATE), (float)FIFO_MAX_SAMPLES);
 
@@ -222,8 +212,7 @@ void BMI088_Gyroscope::ConfigureSampleRate(int sample_rate)
 	ConfigureFIFOWatermark(_fifo_samples);
 }
 
-void BMI088_Gyroscope::ConfigureFIFOWatermark(uint8_t samples)
-{
+void BMI088_Gyroscope::ConfigureFIFOWatermark(uint8_t samples) {
 	// FIFO watermark threshold
 	for (auto &r : _register_cfg) {
 		if (r.reg == Register::FIFO_CONFIG_0) {
@@ -233,8 +222,7 @@ void BMI088_Gyroscope::ConfigureFIFOWatermark(uint8_t samples)
 	}
 }
 
-bool BMI088_Gyroscope::Configure()
-{
+bool BMI088_Gyroscope::Configure() {
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
@@ -254,20 +242,17 @@ bool BMI088_Gyroscope::Configure()
 	return success;
 }
 
-int BMI088_Gyroscope::DataReadyInterruptCallback(int irq, void *context, void *arg)
-{
+int BMI088_Gyroscope::DataReadyInterruptCallback(int irq, void *context, void *arg) {
 	static_cast<BMI088_Gyroscope *>(arg)->DataReady();
 	return 0;
 }
 
-void BMI088_Gyroscope::DataReady()
-{
+void BMI088_Gyroscope::DataReady() {
 	_drdy_timestamp_sample.store(hrt_absolute_time());
 	ScheduleNow();
 }
 
-bool BMI088_Gyroscope::DataReadyInterruptConfigure()
-{
+bool BMI088_Gyroscope::DataReadyInterruptConfigure() {
 	if (_drdy_gpio == 0) {
 		return false;
 	}
@@ -276,8 +261,7 @@ bool BMI088_Gyroscope::DataReadyInterruptConfigure()
 	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0;
 }
 
-bool BMI088_Gyroscope::DataReadyInterruptDisable()
-{
+bool BMI088_Gyroscope::DataReadyInterruptDisable() {
 	if (_drdy_gpio == 0) {
 		return false;
 	}
@@ -285,8 +269,7 @@ bool BMI088_Gyroscope::DataReadyInterruptDisable()
 	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
 }
 
-bool BMI088_Gyroscope::RegisterCheck(const register_config_t &reg_cfg)
-{
+bool BMI088_Gyroscope::RegisterCheck(const register_config_t &reg_cfg) {
 	bool success = true;
 
 	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
@@ -297,30 +280,28 @@ bool BMI088_Gyroscope::RegisterCheck(const register_config_t &reg_cfg)
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.clear_bits);
 		success = false;
 	}
 
 	return success;
 }
 
-uint8_t BMI088_Gyroscope::RegisterRead(Register reg)
-{
+uint8_t BMI088_Gyroscope::RegisterRead(Register reg) {
 	uint8_t add = static_cast<uint8_t>(reg);
 	uint8_t cmd[2] = {add, 0};
 	transfer(&cmd[0], 1, &cmd[1], 1);
 	return cmd[1];
 }
 
-void BMI088_Gyroscope::RegisterWrite(Register reg, uint8_t value)
-{
+void BMI088_Gyroscope::RegisterWrite(Register reg, uint8_t value) {
 	uint8_t add = static_cast<uint8_t>(reg);
 	uint8_t cmd[2] = {add, value};
 	transfer(cmd, sizeof(cmd), nullptr, 0);
 }
 
-void BMI088_Gyroscope::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
-{
+void BMI088_Gyroscope::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits) {
 	const uint8_t orig_val = RegisterRead(reg);
 
 	uint8_t val = (orig_val & ~clearbits) | setbits;
@@ -330,12 +311,11 @@ void BMI088_Gyroscope::RegisterSetAndClearBits(Register reg, uint8_t setbits, ui
 	}
 }
 
-bool BMI088_Gyroscope::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
-{
+bool BMI088_Gyroscope::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples) {
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
 
-	//PX4_WARN("Estimated transfer size: %d", transfer_size);
+	// PX4_WARN("Estimated transfer size: %d", transfer_size);
 	if (transfer((uint8_t *)&buffer, 1, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
 		return false;
@@ -368,14 +348,14 @@ bool BMI088_Gyroscope::FIFORead(const hrt_abstime &timestamp_sample, uint8_t sam
 	return true;
 }
 
-void BMI088_Gyroscope::FIFOReset()
-{
+void BMI088_Gyroscope::FIFOReset() {
 	perf_count(_fifo_reset_perf);
 
 	// FIFO_CONFIG_0: Writing to water mark level trigger in register 0x3D (FIFO_CONFIG_0) clears the FIFO buffer.
 	RegisterWrite(Register::FIFO_CONFIG_0, 0);
 
-	// FIFO_CONFIG_1: FIFO overrun condition can only be cleared by writing to the FIFO configuration register FIFO_CONFIG_1
+	// FIFO_CONFIG_1: FIFO overrun condition can only be cleared by writing to the FIFO configuration register
+	// FIFO_CONFIG_1
 	RegisterWrite(Register::FIFO_CONFIG_1, 0);
 
 	// reset while FIFO is disabled
@@ -390,11 +370,10 @@ void BMI088_Gyroscope::FIFOReset()
 	}
 }
 
-bool BMI088_Gyroscope::SelfTest()
-{
-	//Datasheet page 17 self test
+bool BMI088_Gyroscope::SelfTest() {
+	// Datasheet page 17 self test
 
-	//Set bit0 to enable built in self test
+	// Set bit0 to enable built in self test
 	RegisterWrite(Register::SELF_TEST, 0x01);
 	usleep(10000);
 	uint8_t res = 0;
@@ -420,8 +399,7 @@ bool BMI088_Gyroscope::SelfTest()
 	return test_res;
 }
 
-bool BMI088_Gyroscope::NormalRead(const hrt_abstime &timestamp_sample)
-{
+bool BMI088_Gyroscope::NormalRead(const hrt_abstime &timestamp_sample) {
 	float x = 0;
 	float y = 0;
 	float z = 0;
@@ -452,8 +430,7 @@ bool BMI088_Gyroscope::NormalRead(const hrt_abstime &timestamp_sample)
 	return true;
 }
 
-bool BMI088_Gyroscope::SimpleFIFORead(const hrt_abstime &timestamp_sample)
-{
+bool BMI088_Gyroscope::SimpleFIFORead(const hrt_abstime &timestamp_sample) {
 	uint8_t n_frames;
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
@@ -481,17 +458,14 @@ bool BMI088_Gyroscope::SimpleFIFORead(const hrt_abstime &timestamp_sample)
 	data[0] = static_cast<uint8_t>(Register::FIFO_DATA);
 
 	if (transfer(&data[0], 1, &data[0], 6 * n_frames) != PX4_OK) {
-		//PX4_WARN("transfer(&data[0], 1, &data[0], fifo_fill_level) != PX4_OK");
+		// PX4_WARN("transfer(&data[0], 1, &data[0], fifo_fill_level) != PX4_OK");
 		return false;
 	}
 
 	for (uint8_t i = 0; i < n_frames; i++) {
 		const uint8_t *d = &data[i * 6];
-		int16_t xyz[3] {
-			int16_t(uint16_t(d[0] | d[1] << 8)),
-			int16_t(uint16_t(d[2] | d[3] << 8)),
-			int16_t(uint16_t(d[4] | d[5] << 8))
-		};
+		int16_t xyz[3]{int16_t(uint16_t(d[0] | d[1] << 8)), int16_t(uint16_t(d[2] | d[3] << 8)),
+			       int16_t(uint16_t(d[4] | d[5] << 8))};
 
 		gyro.x[i] = xyz[0];
 		gyro.y[i] = (xyz[1] == INT16_MIN) ? INT16_MAX : -xyz[1];
@@ -503,12 +477,11 @@ bool BMI088_Gyroscope::SimpleFIFORead(const hrt_abstime &timestamp_sample)
 				  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
 
 	if (gyro.samples > 0) {
-		//PX4_WARN("accel.samples: %d", accel.samples);
+		// PX4_WARN("accel.samples: %d", accel.samples);
 		_px4_gyro.updateFIFO(gyro);
 		return true;
 	}
 
 	return true;
-
 }
-} // namespace Bosch::BMI088::Gyroscope
+}  // namespace Bosch::BMI088::Gyroscope

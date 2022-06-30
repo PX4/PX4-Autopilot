@@ -41,29 +41,27 @@
 #ifndef RUNWAYTAKEOFF_H
 #define RUNWAYTAKEOFF_H
 
+#include <drivers/drv_hrt.h>
+#include <math.h>
+#include <mathlib/mathlib.h>
+#include <px4_platform_common/module_params.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <math.h>
-
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/module_params.h>
 #include <systemlib/mavlink_log.h>
-#include <mathlib/mathlib.h>
+
 #include <matrix/math.hpp>
 
-namespace runwaytakeoff
-{
+namespace runwaytakeoff {
 
 enum RunwayTakeoffState {
-	THROTTLE_RAMP = 0, /**< ramping up throttle */
+	THROTTLE_RAMP = 0,     /**< ramping up throttle */
 	CLAMPED_TO_RUNWAY = 1, /**< clamped to runway, controlling yaw directly (wheel or rudder) */
-	TAKEOFF = 2, /**< taking off, get ground clearance, roll 0 */
-	CLIMBOUT = 3, /**< climbout to safe height before navigation, roll limited */
-	FLY = 4 /**< fly towards takeoff waypoint */
+	TAKEOFF = 2,           /**< taking off, get ground clearance, roll 0 */
+	CLIMBOUT = 3,          /**< climbout to safe height before navigation, roll limited */
+	FLY = 4                /**< fly towards takeoff waypoint */
 };
 
-class __EXPORT RunwayTakeoff : public ModuleParams
-{
+class __EXPORT RunwayTakeoff : public ModuleParams {
 public:
 	RunwayTakeoff(ModuleParams *parent);
 	~RunwayTakeoff() = default;
@@ -101,22 +99,19 @@ private:
 	bool _climbout{false};
 	matrix::Vector2d _start_wp;
 
-	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::RWTO_TKOFF>) _param_rwto_tkoff,
-		(ParamInt<px4::params::RWTO_HDG>) _param_rwto_hdg,
-		(ParamFloat<px4::params::RWTO_NAV_ALT>) _param_rwto_nav_alt,
-		(ParamFloat<px4::params::RWTO_MAX_THR>) _param_rwto_max_thr,
-		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
-		(ParamFloat<px4::params::RWTO_MAX_PITCH>) _param_rwto_max_pitch,
-		(ParamFloat<px4::params::RWTO_MAX_ROLL>) _param_rwto_max_roll,
-		(ParamFloat<px4::params::RWTO_AIRSPD_SCL>) _param_rwto_airspd_scl,
-		(ParamFloat<px4::params::RWTO_RAMP_TIME>) _param_rwto_ramp_time,
-		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
-		(ParamFloat<px4::params::FW_CLMBOUT_DIFF>) _param_fw_clmbout_diff
-	)
-
+	DEFINE_PARAMETERS((ParamBool<px4::params::RWTO_TKOFF>)_param_rwto_tkoff,
+			  (ParamInt<px4::params::RWTO_HDG>)_param_rwto_hdg,
+			  (ParamFloat<px4::params::RWTO_NAV_ALT>)_param_rwto_nav_alt,
+			  (ParamFloat<px4::params::RWTO_MAX_THR>)_param_rwto_max_thr,
+			  (ParamFloat<px4::params::RWTO_PSP>)_param_rwto_psp,
+			  (ParamFloat<px4::params::RWTO_MAX_PITCH>)_param_rwto_max_pitch,
+			  (ParamFloat<px4::params::RWTO_MAX_ROLL>)_param_rwto_max_roll,
+			  (ParamFloat<px4::params::RWTO_AIRSPD_SCL>)_param_rwto_airspd_scl,
+			  (ParamFloat<px4::params::RWTO_RAMP_TIME>)_param_rwto_ramp_time,
+			  (ParamFloat<px4::params::FW_AIRSPD_MIN>)_param_fw_airspd_min,
+			  (ParamFloat<px4::params::FW_CLMBOUT_DIFF>)_param_fw_clmbout_diff)
 };
 
-}
+}  // namespace runwaytakeoff
 
-#endif // RUNWAYTAKEOFF_H
+#endif  // RUNWAYTAKEOFF_H

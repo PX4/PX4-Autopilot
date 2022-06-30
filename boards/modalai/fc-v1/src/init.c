@@ -45,35 +45,33 @@
  * Included Files
  ****************************************************************************/
 
-#include "board_config.h"
-
+#include <arch/board/board.h>
+#include <chip.h>
+#include <debug.h>
+#include <drivers/drv_board_led.h>
+#include <drivers/drv_hrt.h>
+#include <errno.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/board.h>
+#include <nuttx/config.h>
+#include <nuttx/mm/gran.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/sdio.h>
+#include <nuttx/spi/spi.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform/board_determine_hw_info.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/init.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
-#include <syslog.h>
-
-#include <nuttx/config.h>
-#include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-#include <nuttx/mm/gran.h>
-#include <chip.h>
 #include <stm32_uart.h>
-#include <arch/board/board.h>
-#include "arm_internal.h"
-
-#include <px4_arch/io_timer.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
+#include <string.h>
+#include <syslog.h>
 #include <systemlib/px4_macros.h>
-#include <px4_platform_common/init.h>
-#include <px4_platform/board_determine_hw_info.h>
-#include <px4_platform/gpio.h>
-#include <px4_platform/board_dma_alloc.h>
+
+#include "arm_internal.h"
+#include "board_config.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -94,15 +92,13 @@ extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
 
-
 /************************************************************************************
  * Name: board_peripheral_reset
  *
  * Description:
  *
  ************************************************************************************/
-__EXPORT void board_peripheral_reset(int ms)
-{
+__EXPORT void board_peripheral_reset(int ms) {
 	/* set the peripheral rails off */
 
 	// NA, rails not controlled in ModalAI FC-v1
@@ -121,7 +117,6 @@ __EXPORT void board_peripheral_reset(int ms)
 	VDD_3V3_SPEKTRUM_POWER_EN(last);
 
 	// NA, rails not controlled in ModalAI FC-v1
-
 }
 
 /************************************************************************************
@@ -135,8 +130,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *          0 if just resetting
  *
  ************************************************************************************/
-__EXPORT void board_on_reset(int status)
-{
+__EXPORT void board_on_reset(int status) {
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
 	}
@@ -165,10 +159,7 @@ __EXPORT void board_on_reset(int status)
  ****************************************************************************/
 
 #ifdef CONFIG_BOARDCTL_FINALINIT
-int board_app_finalinitialize(uintptr_t arg)
-{
-	return 0;
-}
+int board_app_finalinitialize(uintptr_t arg) { return 0; }
 #endif
 
 /************************************************************************************
@@ -181,9 +172,7 @@ int board_app_finalinitialize(uintptr_t arg)
  *
  ************************************************************************************/
 
-__EXPORT void
-stm32_boardinitialize(void)
-{
+__EXPORT void stm32_boardinitialize(void) {
 	board_on_reset(-1); /* Reset PWM first thing */
 
 	/* configure LEDs */
@@ -202,7 +191,6 @@ stm32_boardinitialize(void)
 	/* configure USB interfaces */
 
 	stm32_usbinitialize();
-
 }
 
 /****************************************************************************
@@ -230,9 +218,7 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-
-__EXPORT int board_app_initialize(uintptr_t arg)
-{
+__EXPORT int board_app_initialize(uintptr_t arg) {
 	/* Power on Interfaces */
 
 	VDD_3V3_SD_CARD_EN(true);
@@ -265,7 +251,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* initial LED state */
 	drv_led_start();
 	led_off(LED_RED);
-	led_on(LED_GREEN); // Indicate Power.
+	led_on(LED_GREEN);  // Indicate Power.
 	led_off(LED_BLUE);
 
 	if (board_hardfault_init(2, true) != 0) {

@@ -37,26 +37,23 @@
  * Implementation of existing task API for NuttX
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/tasks.h>
-
+#include <errno.h>
 #include <nuttx/board.h>
 #include <nuttx/kthread.h>
-
-#include <sys/wait.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
+#include <sched.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
 #include <string.h>
-#include <sched.h>
-#include <errno.h>
-#include <stdbool.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
-int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char *const argv[])
-{
+int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry,
+		       char *const argv[]) {
 	sched_lock();
 
 #if !defined(CONFIG_DISABLE_ENVIRON)
@@ -77,7 +74,7 @@ int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_
 
 	if (pid > 0) {
 		/* configure the scheduler */
-		struct sched_param param = { .sched_priority = priority };
+		struct sched_param param = {.sched_priority = priority};
 		sched_setscheduler(pid, scheduler, &param);
 	}
 
@@ -86,15 +83,11 @@ int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_
 	return pid;
 }
 
-int px4_task_delete(int pid)
-{
-	return task_delete(pid);
-}
+int px4_task_delete(int pid) { return task_delete(pid); }
 
-const char *px4_get_taskname(void)
-{
+const char *px4_get_taskname(void) {
 #if CONFIG_TASK_NAME_SIZE > 0 && (defined(__KERNEL__) || defined(CONFIG_BUILD_FLAT))
-	FAR struct tcb_s	*thisproc = nxsched_self();
+	FAR struct tcb_s *thisproc = nxsched_self();
 
 	return thisproc->name;
 #else

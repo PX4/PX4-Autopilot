@@ -39,8 +39,7 @@ constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
 };
 
 static inline constexpr timer_io_channels_t initIOTimerChannelPulldown(const io_timers_t io_timers_conf[MAX_IO_TIMERS],
-		Timer::TimerChannel timer, GPIO::GPIOPin pin)
-{
+								       Timer::TimerChannel timer, GPIO::GPIOPin pin) {
 	timer_io_channels_t ret = initIOTimerChannel(io_timers_conf, timer, pin);
 	ret.gpio_out |= GPIO_OUTPUT_CLEAR | GPIO_PULLDOWN;
 	return ret;

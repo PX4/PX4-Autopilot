@@ -31,25 +31,14 @@
  *
  ****************************************************************************/
 
-
-#include "syslink_main.h"
-
-#include "drv_deck.h"
-
 #include <cstring>
 
+#include "drv_deck.h"
+#include "syslink_main.h"
 
-SyslinkMemory::SyslinkMemory(Syslink *link) :
-	CDev(DECK_DEVICE_PATH),
-	_link(link),
-	_activeI(0)
-{
-}
+SyslinkMemory::SyslinkMemory(Syslink *link) : CDev(DECK_DEVICE_PATH), _link(link), _activeI(0) {}
 
-
-int
-SyslinkMemory::init()
-{
+int SyslinkMemory::init() {
 	int ret = CDev::init();
 
 	/* if init failed, bail now */
@@ -58,54 +47,44 @@ SyslinkMemory::init()
 		return ret;
 	}
 
-
 	return ret;
 }
 
-ssize_t
-SyslinkMemory::read(struct file *filp, char *buffer, size_t buflen)
-{
+ssize_t SyslinkMemory::read(struct file *filp, char *buffer, size_t buflen) {
 	return read(_activeI, 0, buffer, buflen);
 }
 
-ssize_t
-SyslinkMemory::write(struct file *filp, const char *buffer, size_t buflen)
-{
+ssize_t SyslinkMemory::write(struct file *filp, const char *buffer, size_t buflen) {
 	// For now, unsupported
 	return -1;
-//	return buflen;
+	//	return buflen;
 }
 
-int
-SyslinkMemory::ioctl(struct file *filp, int cmd, unsigned long arg)
-{
+int SyslinkMemory::ioctl(struct file *filp, int cmd, unsigned long arg) {
 	switch (cmd) {
-	case DECKIOGNUM:
-		*((int *) arg) = scan();
-		return 0;
+		case DECKIOGNUM:
+			*((int *)arg) = scan();
+			return 0;
 
-	case DECKIOSNUM:
-		_activeI = *((int *) arg);
-		return 0;
+		case DECKIOSNUM:
+			_activeI = *((int *)arg);
+			return 0;
 
-	case DECKIOID: {
-			syslink_ow_getinfo_t *data = (syslink_ow_getinfo_t *) &msgbuf.data;
+		case DECKIOID: {
+			syslink_ow_getinfo_t *data = (syslink_ow_getinfo_t *)&msgbuf.data;
 			getinfo(_activeI);
 			*((uint8_t **)arg) = data->id;
 			return 8;
 		}
 
-	default:
-		CDev::ioctl(filp, cmd, arg);
-		return 0;
+		default:
+			CDev::ioctl(filp, cmd, arg);
+			return 0;
 	}
 }
 
-
-uint8_t
-SyslinkMemory::scan()
-{
-	syslink_ow_scan_t *data = (syslink_ow_scan_t *) &msgbuf.data;
+uint8_t SyslinkMemory::scan() {
+	syslink_ow_scan_t *data = (syslink_ow_scan_t *)&msgbuf.data;
 	msgbuf.type = SYSLINK_OW_SCAN;
 	msgbuf.length = 0;
 	sendAndWait();
@@ -113,26 +92,21 @@ SyslinkMemory::scan()
 	return data->nmems;
 }
 
-void
-SyslinkMemory::getinfo(int i)
-{
-	syslink_ow_getinfo_t *data = (syslink_ow_getinfo_t *) &msgbuf.data;
+void SyslinkMemory::getinfo(int i) {
+	syslink_ow_getinfo_t *data = (syslink_ow_getinfo_t *)&msgbuf.data;
 	msgbuf.type = SYSLINK_OW_GETINFO;
 	msgbuf.length = 1;
 	data->idx = i;
 	sendAndWait();
 }
 
-int
-SyslinkMemory::read(int i, uint16_t addr, char *buf, int length)
-{
-	syslink_ow_read_t *data = (syslink_ow_read_t *) &msgbuf.data;
+int SyslinkMemory::read(int i, uint16_t addr, char *buf, int length) {
+	syslink_ow_read_t *data = (syslink_ow_read_t *)&msgbuf.data;
 	msgbuf.type = SYSLINK_OW_READ;
 
 	int nread = 0;
 
 	while (nread < length) {
-
 		msgbuf.length = 3;
 		data->idx = i;
 		data->addr = addr;
@@ -154,16 +128,12 @@ SyslinkMemory::read(int i, uint16_t addr, char *buf, int length)
 	return nread;
 }
 
-int
-SyslinkMemory::write(int i, uint16_t addr, const char *buf, int length)
-{
+int SyslinkMemory::write(int i, uint16_t addr, const char *buf, int length) {
 	// TODO: Unimplemented
 	return -1;
 }
 
-void
-SyslinkMemory::sendAndWait()
-{
+void SyslinkMemory::sendAndWait() {
 	// TODO: Force the syslink thread to wake up
 	_link->_queue.force(&msgbuf, sizeof(msgbuf));
 	px4_sem_wait(&_link->memory_sem);

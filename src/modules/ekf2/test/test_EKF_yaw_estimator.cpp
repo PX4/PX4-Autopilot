@@ -37,27 +37,23 @@
  */
 
 #include <gtest/gtest.h>
+
 #include "EKF/ekf.h"
-#include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
+#include "sensor_simulator/sensor_simulator.h"
 #include "test_helper/reset_logging_checker.h"
 
-class EKFYawEstimatorTest : public ::testing::Test
-{
+class EKFYawEstimatorTest : public ::testing::Test {
 public:
-
-	EKFYawEstimatorTest(): ::testing::Test(),
-		_ekf{std::make_shared<Ekf>()},
-		_sensor_simulator(_ekf),
-		_ekf_wrapper(_ekf) {};
+	EKFYawEstimatorTest()
+		: ::testing::Test(), _ekf{std::make_shared<Ekf>()}, _sensor_simulator(_ekf), _ekf_wrapper(_ekf){};
 
 	std::shared_ptr<Ekf> _ekf;
 	SensorSimulator _sensor_simulator;
 	EkfWrapper _ekf_wrapper;
 
 	// Setup the Ekf with mag aiding disabled
-	void SetUp() override
-	{
+	void SetUp() override {
 		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
 		_sensor_simulator.runSeconds(0.1);
@@ -72,16 +68,13 @@ public:
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
-	void TearDown() override
-	{
-	}
+	void TearDown() override {}
 };
 
-TEST_F(EKFYawEstimatorTest, inAirYawAlignment)
-{
+TEST_F(EKFYawEstimatorTest, inAirYawAlignment) {
 	// GIVEN: an accelerating vehicle with unknown heading
-	EXPECT_EQ(1, (int) _ekf->control_status_flags().tilt_align);
-	EXPECT_EQ(0, (int) _ekf->control_status_flags().yaw_align);
+	EXPECT_EQ(1, (int)_ekf->control_status_flags().tilt_align);
+	EXPECT_EQ(0, (int)_ekf->control_status_flags().yaw_align);
 
 	// AND: a true heading far from North
 	const float yaw = math::radians(-130.f);

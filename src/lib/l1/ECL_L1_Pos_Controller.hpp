@@ -60,14 +60,14 @@
 #ifndef ECL_L1_POS_CONTROLLER_H
 #define ECL_L1_POS_CONTROLLER_H
 
-#include <matrix/math.hpp>
 #include <lib/mathlib/mathlib.h>
+
+#include <matrix/math.hpp>
 
 /**
  * L1 Nonlinear Guidance Logic
  */
-class ECL_L1_Pos_Controller
-{
+class ECL_L1_Pos_Controller {
 public:
 	/**
 	 * The current target bearing
@@ -153,8 +153,8 @@ public:
 	 *
 	 * @return sets _lateral_accel setpoint
 	 */
-	void navigate_loiter(const matrix::Vector2f &vector_A, const matrix::Vector2f &vector_curr_position, float radius,
-			     int8_t loiter_direction, const matrix::Vector2f &ground_speed_vector);
+	void navigate_loiter(const matrix::Vector2f &vector_A, const matrix::Vector2f &vector_curr_position,
+			     float radius, int8_t loiter_direction, const matrix::Vector2f &ground_speed_vector);
 
 	/**
 	 * Navigate on a fixed bearing.
@@ -200,43 +200,40 @@ public:
 	/**
 	 * Set control loop dt. The value will be used to apply roll angle setpoint slew rate limiting.
 	 */
-	void set_dt(float dt) { _dt = dt;}
+	void set_dt(float dt) { _dt = dt; }
 
 	void reset_has_guidance_updated() { _has_guidance_updated = false; }
 
 	bool has_guidance_updated() { return _has_guidance_updated; }
 
 private:
+	float _lateral_accel{0.0f};     ///< Lateral acceleration setpoint in m/s^2
+	float _L1_distance{20.0f};      ///< L1 lead distance, defined by period and damping
+	bool _circle_mode{false};       ///< flag for loiter mode
+	float _nav_bearing{0.0f};       ///< bearing to L1 reference point
+	float _bearing_error{0.0f};     ///< bearing error
+	float _crosstrack_error{0.0f};  ///< crosstrack error in meters
+	float _target_bearing{0.0f};    ///< the heading setpoint
 
-	float _lateral_accel{0.0f};		///< Lateral acceleration setpoint in m/s^2
-	float _L1_distance{20.0f};		///< L1 lead distance, defined by period and damping
-	bool _circle_mode{false};		///< flag for loiter mode
-	float _nav_bearing{0.0f};		///< bearing to L1 reference point
-	float _bearing_error{0.0f};		///< bearing error
-	float _crosstrack_error{0.0f};	///< crosstrack error in meters
-	float _target_bearing{0.0f};		///< the heading setpoint
+	float _L1_period{25.0f};     ///< L1 tracking period in seconds
+	float _L1_damping{0.75f};    ///< L1 damping ratio
+	float _L1_ratio{5.0f};       ///< L1 ratio for navigation
+	float _K_L1{2.0f};           ///< L1 control gain for _L1_damping
+	float _heading_omega{1.0f};  ///< Normalized frequency
 
-	float _L1_period{25.0f};		///< L1 tracking period in seconds
-	float _L1_damping{0.75f};		///< L1 damping ratio
-	float _L1_ratio{5.0f};		///< L1 ratio for navigation
-	float _K_L1{2.0f};			///< L1 control gain for _L1_damping
-	float _heading_omega{1.0f};		///< Normalized frequency
+	float _roll_lim_rad{math::radians(30.0f)};  ///< maximum roll angle in radians
+	float _roll_setpoint{0.0f};                 ///< current roll angle setpoint in radians
+	float _roll_slew_rate{0.0f};                ///< roll angle setpoint slew rate limit in rad/s
+	float _dt{0};                               ///< control loop time in seconds
 
-	float _roll_lim_rad{math::radians(30.0f)};  ///<maximum roll angle in radians
-	float _roll_setpoint{0.0f};	///< current roll angle setpoint in radians
-	float _roll_slew_rate{0.0f};	///< roll angle setpoint slew rate limit in rad/s
-	float _dt{0};				///< control loop time in seconds
-
-	bool _has_guidance_updated =
-		false;	///< this flag is set to true by any of the guidance methods. This flag has to be manually reset using has_guidance_updated_reset()
+	bool _has_guidance_updated = false;  ///< this flag is set to true by any of the guidance methods. This flag has
+					     ///< to be manually reset using has_guidance_updated_reset()
 
 	/**
 	 * Update roll angle setpoint. This will also apply slew rate limits if set.
 	 *
 	 */
 	void update_roll_setpoint();
-
 };
-
 
 #endif /* ECL_L1_POS_CONTROLLER_H */

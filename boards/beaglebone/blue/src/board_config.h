@@ -39,39 +39,35 @@
 
 #pragma once
 
-#define BOARD_OVERRIDE_UUID "BBBLUEID00000000" // must be of length 16
-#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_BBBLUE
+#define BOARD_OVERRIDE_UUID "BBBLUEID00000000"  // must be of length 16
+#define PX4_SOC_ARCH_ID PX4_SOC_ARCH_ID_BBBLUE
 
-#define BOARD_MAX_LEDS 4 // Number external of LED's this board has
-
+#define BOARD_MAX_LEDS 4  // Number external of LED's this board has
 
 // I2C
 #define CONFIG_I2C 1
-#define PX4_NUMBER_I2C_BUSES    2
+#define PX4_NUMBER_I2C_BUSES 2
 
 #define PX4_I2C_OBDEV_MPU9250 0x68
 
-
 // SPI
 #define CONFIG_SPI 1
-
 
 // ADC channels:
 #define ADC_CHANNELS (1 << 5)
 #define BOARD_ADC_POS_REF_V (1.8f)
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL  5
-#define ADC_BATTERY_CURRENT_CHANNEL  ((uint8_t)(-1))
+#define ADC_BATTERY_VOLTAGE_CHANNEL 5
+#define ADC_BATTERY_CURRENT_CHANNEL ((uint8_t)(-1))
 
-
-#include <system_config.h>
 #include <px4_platform_common/board_common.h>
+#include <system_config.h>
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-int  rc_init(void);
+int rc_init(void);
 void rc_cleaning(void);
 
 #ifdef __cplusplus
@@ -79,16 +75,16 @@ void rc_cleaning(void);
 #endif
 
 #ifdef __RC_V0_3
-#define rc_i2c_lock_bus 	rc_i2c_claim_bus
-#define rc_i2c_unlock_bus	rc_i2c_release_bus
-#define rc_i2c_get_lock		rc_i2c_get_in_use_state
+#define rc_i2c_lock_bus rc_i2c_claim_bus
+#define rc_i2c_unlock_bus rc_i2c_release_bus
+#define rc_i2c_get_lock rc_i2c_get_in_use_state
 
-#define rc_servo_send_pulse_us			rc_send_servo_pulse_us
+#define rc_servo_send_pulse_us rc_send_servo_pulse_us
 
-#define rc_filter_empty					rc_empty_filter
-#define rc_filter_march					rc_march_filter
-#define rc_filter_prefill_inputs		rc_prefill_filter_inputs
-#define rc_filter_prefill_outputs		rc_prefill_filter_outputs
-#define rc_filter_butterworth_lowpass	rc_butterworth_lowpass
+#define rc_filter_empty rc_empty_filter
+#define rc_filter_march rc_march_filter
+#define rc_filter_prefill_inputs rc_prefill_filter_inputs
+#define rc_filter_prefill_outputs rc_prefill_filter_outputs
+#define rc_filter_butterworth_lowpass rc_butterworth_lowpass
 
 #endif

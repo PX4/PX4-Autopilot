@@ -41,17 +41,14 @@
  * Included Files
  ************************************************************************************/
 
+#include <arch/board/board.h>
+#include <chip.h>
+#include <debug.h>
+#include <errno.h>
+#include <nuttx/can/can.h>
 #include <px4_platform_common/px4_config.h>
 
-#include <errno.h>
-#include <debug.h>
-
-#include <nuttx/can/can.h>
-#include <arch/board/board.h>
-
-#include <chip.h>
 #include "arm_arch.h"
-
 #include "board_config.h"
 
 #ifdef CONFIG_CAN
@@ -61,15 +58,14 @@
  ************************************************************************************/
 /* Configuration ********************************************************************/
 
-#if defined(CONFIG_IMXRT_FLEXCAN1) && defined(CONFIG_IMXRT_FLEXCAN2) \
-  && defined(CONFIG_IMXRT_FLEXCAN3)
-#  warning "CAN1 and CAN2 and CAN2 are enabled.  Assuming only CAN1."
+#if defined(CONFIG_IMXRT_FLEXCAN1) && defined(CONFIG_IMXRT_FLEXCAN2) && defined(CONFIG_IMXRT_FLEXCAN3)
+#warning "CAN1 and CAN2 and CAN2 are enabled.  Assuming only CAN1."
 #endif
 
 #ifdef CONFIG_IMXRT_FLEXCAN1
-#  define CAN_PORT 1
+#define CAN_PORT 1
 #else
-#  define CAN_PORT 2
+#define CAN_PORT 2
 #endif
 
 /************************************************************************************
@@ -90,8 +86,7 @@ int can_devinit(void);
  *
  ************************************************************************************/
 
-int can_devinit(void)
-{
+int can_devinit(void) {
 	static bool initialized = false;
 	struct can_dev_s *can;
 	int ret;
@@ -99,7 +94,6 @@ int can_devinit(void)
 	/* Check if we have already initialized */
 
 	if (!initialized) {
-
 		/* Call imxrt_caninitialize() to get an instance of the CAN interface */
 
 		can = imxrt_can_initialize(CAN_PORT);

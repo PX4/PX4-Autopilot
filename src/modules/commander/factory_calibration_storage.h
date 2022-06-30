@@ -37,8 +37,7 @@
  * @class FactoryCalibrationStorage
  * Stores calibration parameters to a separate storage, if enabled by parameter
  */
-class FactoryCalibrationStorage
-{
+class FactoryCalibrationStorage {
 public:
 	FactoryCalibrationStorage();
 	~FactoryCalibrationStorage() { cleanup(); }

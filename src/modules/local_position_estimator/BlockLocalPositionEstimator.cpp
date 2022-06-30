@@ -1,113 +1,114 @@
 #include "BlockLocalPositionEstimator.hpp"
-#include <systemlib/mavlink_log.h>
+
 #include <fcntl.h>
 #include <systemlib/err.h>
-#include <matrix/math.hpp>
+#include <systemlib/mavlink_log.h>
+
 #include <cstdlib>
+#include <matrix/math.hpp>
 
 orb_advert_t mavlink_log_pub = nullptr;
 
 // required standard deviation of estimate for estimator to publish data
-static const uint32_t		EST_STDDEV_XY_VALID = 2.0;	// 2.0 m
-static const uint32_t		EST_STDDEV_Z_VALID = 2.0;	// 2.0 m
-static const uint32_t		EST_STDDEV_TZ_VALID = 2.0;	// 2.0 m
+static const uint32_t EST_STDDEV_XY_VALID = 2.0;  // 2.0 m
+static const uint32_t EST_STDDEV_Z_VALID = 2.0;   // 2.0 m
+static const uint32_t EST_STDDEV_TZ_VALID = 2.0;  // 2.0 m
 
-static const float P_MAX = 1.0e6f;	// max allowed value in state covariance
-static const float LAND_RATE = 10.0f;	// rate of land detector correction
+static const float P_MAX = 1.0e6f;     // max allowed value in state covariance
+static const float LAND_RATE = 10.0f;  // rate of land detector correction
 
-static const char *msg_label = "[lpe] ";	// rate of land detector correction
+static const char *msg_label = "[lpe] ";  // rate of land detector correction
 
-BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
-	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::INS0),
+BlockLocalPositionEstimator::BlockLocalPositionEstimator()
+	: ModuleParams(nullptr),
+	  WorkItem(MODULE_NAME, px4::wq_configurations::INS0),
 
-	// this block has no parent, and has name LPE
-	SuperBlock(nullptr, "LPE"),
+	  // this block has no parent, and has name LPE
+	  SuperBlock(nullptr, "LPE"),
 
-	// flow gyro
-	_flow_gyro_x_high_pass(this, "FGYRO_HP"),
-	_flow_gyro_y_high_pass(this, "FGYRO_HP"),
+	  // flow gyro
+	  _flow_gyro_x_high_pass(this, "FGYRO_HP"),
+	  _flow_gyro_y_high_pass(this, "FGYRO_HP"),
 
-	// stats
-	_baroStats(this, ""),
-	_sonarStats(this, ""),
-	_lidarStats(this, ""),
-	_flowQStats(this, ""),
-	_visionStats(this, ""),
-	_mocapStats(this, ""),
-	_gpsStats(this, ""),
+	  // stats
+	  _baroStats(this, ""),
+	  _sonarStats(this, ""),
+	  _lidarStats(this, ""),
+	  _flowQStats(this, ""),
+	  _visionStats(this, ""),
+	  _mocapStats(this, ""),
+	  _gpsStats(this, ""),
 
-	// low pass
-	_xLowPass(this, "X_LP"),
+	  // low pass
+	  _xLowPass(this, "X_LP"),
 
-	// use same lp constant for agl
-	_aglLowPass(this, "X_LP"),
+	  // use same lp constant for agl
+	  _aglLowPass(this, "X_LP"),
 
-	// delay
-	_xDelay(this, ""),
-	_tDelay(this, ""),
+	  // delay
+	  _xDelay(this, ""),
+	  _tDelay(this, ""),
 
-	// misc
-	_timeStamp(hrt_absolute_time()),
-	_time_origin(0),
-	_timeStampLastBaro(hrt_absolute_time()),
-	_time_last_hist(0),
-	_time_last_flow(0),
-	_time_last_baro(0),
-	_time_last_gps(0),
-	_time_last_lidar(0),
-	_time_last_sonar(0),
-	_time_init_sonar(0),
-	_time_last_vision_p(0),
-	_time_last_mocap(0),
-	_time_last_land(0),
-	_time_last_target(0),
+	  // misc
+	  _timeStamp(hrt_absolute_time()),
+	  _time_origin(0),
+	  _timeStampLastBaro(hrt_absolute_time()),
+	  _time_last_hist(0),
+	  _time_last_flow(0),
+	  _time_last_baro(0),
+	  _time_last_gps(0),
+	  _time_last_lidar(0),
+	  _time_last_sonar(0),
+	  _time_init_sonar(0),
+	  _time_last_vision_p(0),
+	  _time_last_mocap(0),
+	  _time_last_land(0),
+	  _time_last_target(0),
 
-	// reference altitudes
-	_altOrigin(0),
-	_altOriginInitialized(false),
-	_altOriginGlobal(false),
-	_baroAltOrigin(0),
-	_gpsAltOrigin(0),
+	  // reference altitudes
+	  _altOrigin(0),
+	  _altOriginInitialized(false),
+	  _altOriginGlobal(false),
+	  _baroAltOrigin(0),
+	  _gpsAltOrigin(0),
 
-	// status
-	_receivedGps(false),
-	_lastArmedState(false),
+	  // status
+	  _receivedGps(false),
+	  _lastArmedState(false),
 
-	// masks
-	_sensorTimeout(UINT16_MAX),
-	_sensorFault(0),
-	_estimatorInitialized(0),
+	  // masks
+	  _sensorTimeout(UINT16_MAX),
+	  _sensorFault(0),
+	  _estimatorInitialized(0),
 
-	// sensor update flags
-	_flowUpdated(false),
-	_gpsUpdated(false),
-	_visionUpdated(false),
-	_mocapUpdated(false),
-	_lidarUpdated(false),
-	_sonarUpdated(false),
-	_landUpdated(false),
-	_baroUpdated(false),
+	  // sensor update flags
+	  _flowUpdated(false),
+	  _gpsUpdated(false),
+	  _visionUpdated(false),
+	  _mocapUpdated(false),
+	  _lidarUpdated(false),
+	  _sonarUpdated(false),
+	  _landUpdated(false),
+	  _baroUpdated(false),
 
-	// sensor validation flags
-	_vision_xy_valid(false),
-	_vision_z_valid(false),
-	_mocap_xy_valid(false),
-	_mocap_z_valid(false),
+	  // sensor validation flags
+	  _vision_xy_valid(false),
+	  _vision_z_valid(false),
+	  _mocap_xy_valid(false),
+	  _mocap_z_valid(false),
 
-	// sensor std deviations
-	_vision_eph(0.0),
-	_vision_epv(0.0),
-	_mocap_eph(0.0),
-	_mocap_epv(0.0),
+	  // sensor std deviations
+	  _vision_eph(0.0),
+	  _vision_epv(0.0),
+	  _mocap_eph(0.0),
+	  _mocap_epv(0.0),
 
-	// local to global coversion related variables
-	_is_global_cov_init(false),
-	_ref_lat(0.0),
-	_ref_lon(0.0),
-	_ref_alt(0.0)
-{
-	_sensors_sub.set_interval_ms(10); // main prediction loop, 100 hz (lockstep requires to run at full rate)
+	  // local to global coversion related variables
+	  _is_global_cov_init(false),
+	  _ref_lat(0.0),
+	  _ref_lon(0.0),
+	  _ref_alt(0.0) {
+	_sensors_sub.set_interval_ms(10);  // main prediction loop, 100 hz (lockstep requires to run at full rate)
 
 	// assign distance subs to array
 	_dist_subs[0] = &_sub_dist0;
@@ -121,22 +122,17 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	initSS();
 
 	// print fusion settings to console
-	PX4_INFO("fuse gps: %d, flow: %d, vis_pos: %d, "
-		 "landing_target: %d, land: %d, pub_agl_z: %d, flow_gyro: %d, "
-		 "baro: %d\n",
-		 (_param_lpe_fusion.get() & FUSE_GPS) != 0,
-		 (_param_lpe_fusion.get() & FUSE_FLOW) != 0,
-		 (_param_lpe_fusion.get() & FUSE_VIS_POS) != 0,
-		 (_param_lpe_fusion.get() & FUSE_LAND_TARGET) != 0,
-		 (_param_lpe_fusion.get() & FUSE_LAND) != 0,
-		 (_param_lpe_fusion.get() & FUSE_PUB_AGL_Z) != 0,
-		 (_param_lpe_fusion.get() & FUSE_FLOW_GYRO_COMP) != 0,
-		 (_param_lpe_fusion.get() & FUSE_BARO) != 0);
+	PX4_INFO(
+		"fuse gps: %d, flow: %d, vis_pos: %d, "
+		"landing_target: %d, land: %d, pub_agl_z: %d, flow_gyro: %d, "
+		"baro: %d\n",
+		(_param_lpe_fusion.get() & FUSE_GPS) != 0, (_param_lpe_fusion.get() & FUSE_FLOW) != 0,
+		(_param_lpe_fusion.get() & FUSE_VIS_POS) != 0, (_param_lpe_fusion.get() & FUSE_LAND_TARGET) != 0,
+		(_param_lpe_fusion.get() & FUSE_LAND) != 0, (_param_lpe_fusion.get() & FUSE_PUB_AGL_Z) != 0,
+		(_param_lpe_fusion.get() & FUSE_FLOW_GYRO_COMP) != 0, (_param_lpe_fusion.get() & FUSE_BARO) != 0);
 }
 
-bool
-BlockLocalPositionEstimator::init()
-{
+bool BlockLocalPositionEstimator::init() {
 	if (!_sensors_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -146,15 +142,12 @@ BlockLocalPositionEstimator::init()
 }
 
 Vector<float, BlockLocalPositionEstimator::n_x> BlockLocalPositionEstimator::dynamics(
-	float t,
-	const Vector<float, BlockLocalPositionEstimator::n_x> &x,
-	const Vector<float, BlockLocalPositionEstimator::n_u> &u)
-{
+	float t, const Vector<float, BlockLocalPositionEstimator::n_x> &x,
+	const Vector<float, BlockLocalPositionEstimator::n_u> &u) {
 	return m_A * x + m_B * u;
 }
 
-void BlockLocalPositionEstimator::Run()
-{
+void BlockLocalPositionEstimator::Run() {
 	if (should_exit()) {
 		_sensors_sub.unregisterCallback();
 		exit_and_cleanup();
@@ -173,7 +166,8 @@ void BlockLocalPositionEstimator::Run()
 				_global_local_proj_ref.initReference(latitude, longitude, vehicle_command.timestamp);
 				_global_local_alt0 = altitude;
 
-				PX4_INFO("New NED origin (LLA): %3.10f, %3.10f, %4.3f\n", latitude, longitude, static_cast<double>(altitude));
+				PX4_INFO("New NED origin (LLA): %3.10f, %3.10f, %4.3f\n", latitude, longitude,
+					 static_cast<double>(altitude));
 			}
 		}
 	}
@@ -200,23 +194,28 @@ void BlockLocalPositionEstimator::Run()
 		for (size_t i = 0; i < N_DIST_SUBS; i++) {
 			auto *s = _dist_subs[i];
 
-			if (s == _sub_lidar || s == _sub_sonar) { continue; }
+			if (s == _sub_lidar || s == _sub_sonar) {
+				continue;
+			}
 
 			if (s->update()) {
-
-				if (s->get().timestamp == 0) { continue; }
+				if (s->get().timestamp == 0) {
+					continue;
+				}
 
 				if (s->get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_LASER &&
 				    s->get().orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING &&
 				    _sub_lidar == nullptr) {
 					_sub_lidar = s;
-					mavlink_log_info(&mavlink_log_pub, "%sDownward-facing Lidar detected with ID %zu", msg_label, i);
+					mavlink_log_info(&mavlink_log_pub,
+							 "%sDownward-facing Lidar detected with ID %zu", msg_label, i);
 
 				} else if (s->get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND &&
 					   s->get().orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING &&
 					   _sub_sonar == nullptr) {
 					_sub_sonar = s;
-					mavlink_log_info(&mavlink_log_pub, "%sDownward-facing Sonar detected with ID %zu", msg_label, i);
+					mavlink_log_info(&mavlink_log_pub,
+							 "%sDownward-facing Sonar detected with ID %zu", msg_label, i);
 				}
 			}
 		}
@@ -267,7 +266,7 @@ void BlockLocalPositionEstimator::Run()
 	_mocapUpdated = _sub_mocap_odom.update();
 	_lidarUpdated = (_sub_lidar != nullptr) && _sub_lidar->update();
 	_sonarUpdated = (_sub_sonar != nullptr) && _sub_sonar->update();
-	_landUpdated = landed() && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE);// throttle rate
+	_landUpdated = landed() && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE);  // throttle rate
 	bool targetPositionUpdated = _sub_landing_target_pose.update();
 
 	// get new data
@@ -300,13 +299,9 @@ void BlockLocalPositionEstimator::Run()
 
 	} else {
 		if (vxy_stddev_ok) {
-			if (!(_sensorTimeout & SENSOR_GPS)
-			    || !(_sensorTimeout & SENSOR_FLOW)
-			    || !(_sensorTimeout & SENSOR_VISION)
-			    || !(_sensorTimeout & SENSOR_MOCAP)
-			    || !(_sensorTimeout & SENSOR_LAND)
-			    || !(_sensorTimeout & SENSOR_LAND_TARGET)
-			   ) {
+			if (!(_sensorTimeout & SENSOR_GPS) || !(_sensorTimeout & SENSOR_FLOW) ||
+			    !(_sensorTimeout & SENSOR_VISION) || !(_sensorTimeout & SENSOR_MOCAP) ||
+			    !(_sensorTimeout & SENSOR_LAND) || !(_sensorTimeout & SENSOR_LAND_TARGET)) {
 				_estimatorInitialized |= EST_XY;
 			}
 		}
@@ -346,14 +341,13 @@ void BlockLocalPositionEstimator::Run()
 
 	// if we have no lat, lon initialize projection to LPE_LAT, LPE_LON parameters
 	if (!_map_ref.isInitialized() && (_estimatorInitialized & EST_XY) && _param_lpe_fake_origin.get()) {
-		_map_ref.initReference(
-			(double)_param_lpe_lat.get(),
-			(double)_param_lpe_lon.get());
+		_map_ref.initReference((double)_param_lpe_lat.get(), (double)_param_lpe_lon.get());
 
 		// set timestamp when origin was set to current time
 		_time_origin = _timeStamp;
 
-		mavlink_log_info(&mavlink_log_pub, "[lpe] global origin init (parameter) : lat %6.2f lon %6.2f alt %5.1f m",
+		mavlink_log_info(&mavlink_log_pub,
+				 "[lpe] global origin init (parameter) : lat %6.2f lon %6.2f alt %5.1f m",
 				 double(_param_lpe_lat.get()), double(_param_lpe_lon.get()), double(_altOrigin));
 	}
 
@@ -385,16 +379,15 @@ void BlockLocalPositionEstimator::Run()
 	for (size_t i = 0; i < n_x; i++) {
 		for (size_t j = 0; j <= i; j++) {
 			if (!PX4_ISFINITE(m_P(i, j))) {
-				mavlink_log_info(&mavlink_log_pub,
-						 "%sreinit P (%zu, %zu) not finite", msg_label, i, j);
+				mavlink_log_info(&mavlink_log_pub, "%sreinit P (%zu, %zu) not finite", msg_label, i, j);
 				reinit_P = true;
 			}
 
 			if (i == j) {
 				// make sure diagonal elements are positive
 				if (m_P(i, i) <= 0) {
-					mavlink_log_info(&mavlink_log_pub,
-							 "%sreinit P (%zu, %zu) negative", msg_label, i, j);
+					mavlink_log_info(&mavlink_log_pub, "%sreinit P (%zu, %zu) negative", msg_label,
+							 i, j);
 					reinit_P = true;
 				}
 
@@ -404,10 +397,14 @@ void BlockLocalPositionEstimator::Run()
 				m_P(j, i) = m_P(i, j);
 			}
 
-			if (reinit_P) { break; }
+			if (reinit_P) {
+				break;
+			}
 		}
 
-		if (reinit_P) { break; }
+		if (reinit_P) {
+			break;
+		}
 	}
 
 	if (reinit_P) {
@@ -523,16 +520,14 @@ void BlockLocalPositionEstimator::Run()
 	// needs to be propagated with frozen state
 	float dt_hist = 1.0e-6f * (_timeStamp - _time_last_hist);
 
-	if (_time_last_hist == 0 ||
-	    (dt_hist > HIST_STEP)) {
+	if (_time_last_hist == 0 || (dt_hist > HIST_STEP)) {
 		_tDelay.update(Scalar<uint64_t>(_timeStamp));
 		_xDelay.update(_x);
 		_time_last_hist = _timeStamp;
 	}
 }
 
-void BlockLocalPositionEstimator::checkTimeouts()
-{
+void BlockLocalPositionEstimator::checkTimeouts() {
 	baroCheckTimeout();
 	gpsCheckTimeout();
 	lidarCheckTimeout();
@@ -544,8 +539,7 @@ void BlockLocalPositionEstimator::checkTimeouts()
 	landingTargetCheckTimeout();
 }
 
-bool BlockLocalPositionEstimator::landed()
-{
+bool BlockLocalPositionEstimator::landed() {
 	if (!(_param_lpe_fusion.get() & FUSE_LAND)) {
 		return false;
 	}
@@ -557,8 +551,7 @@ bool BlockLocalPositionEstimator::landed()
 	return _sub_land.get().landed || disarmed_not_falling;
 }
 
-void BlockLocalPositionEstimator::publishLocalPos()
-{
+void BlockLocalPositionEstimator::publishLocalPos() {
 	const Vector<float, n_x> &xLP = _xLowPass.getState();
 
 	// lie about eph/epv to allow visual odometry only navigation when velocity est. good
@@ -581,9 +574,8 @@ void BlockLocalPositionEstimator::publishLocalPos()
 	}
 
 	// publish local position
-	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
-	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
-	    && PX4_ISFINITE(_x(X_vz))) {
+	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) && PX4_ISFINITE(_x(X_vx)) &&
+	    PX4_ISFINITE(_x(X_vy)) && PX4_ISFINITE(_x(X_vz))) {
 		_pub_lpos.get().timestamp_sample = _timeStamp;
 
 		_pub_lpos.get().xy_valid = _estimatorInitialized & EST_XY;
@@ -591,28 +583,29 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().v_xy_valid = _estimatorInitialized & EST_XY;
 		_pub_lpos.get().v_z_valid = _estimatorInitialized & EST_Z;
 
-		_pub_lpos.get().x = xLP(X_x);	// north
-		_pub_lpos.get().y = xLP(X_y);	// east
+		_pub_lpos.get().x = xLP(X_x);  // north
+		_pub_lpos.get().y = xLP(X_y);  // east
 
 		if (_param_lpe_fusion.get() & FUSE_PUB_AGL_Z) {
-			_pub_lpos.get().z = -_aglLowPass.getState();	// agl
+			_pub_lpos.get().z = -_aglLowPass.getState();  // agl
 
 		} else {
-			_pub_lpos.get().z = xLP(X_z);	// down
+			_pub_lpos.get().z = xLP(X_z);  // down
 		}
 
 		_pub_lpos.get().heading = matrix::Eulerf(matrix::Quatf(_sub_att.get().q)).psi();
 
-		_pub_lpos.get().vx = xLP(X_vx);		// north
-		_pub_lpos.get().vy = xLP(X_vy);		// east
-		_pub_lpos.get().vz = xLP(X_vz);		// down
+		_pub_lpos.get().vx = xLP(X_vx);  // north
+		_pub_lpos.get().vy = xLP(X_vy);  // east
+		_pub_lpos.get().vz = xLP(X_vz);  // down
 
-		// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
+		// this estimator does not provide a separate vertical position time derivative estimate, so use the
+		// vertical velocity
 		_pub_lpos.get().z_deriv = xLP(X_vz);
 
-		_pub_lpos.get().ax = _u(U_ax);		// north
-		_pub_lpos.get().ay = _u(U_ay);		// east
-		_pub_lpos.get().az = _u(U_az);		// down
+		_pub_lpos.get().ax = _u(U_ax);  // north
+		_pub_lpos.get().ay = _u(U_ay);  // east
+		_pub_lpos.get().az = _u(U_az);  // down
 
 		_pub_lpos.get().xy_global = _estimatorInitialized & EST_XY;
 		_pub_lpos.get().z_global = !(_sensorTimeout & SENSOR_BARO) && _altOriginGlobal;
@@ -634,32 +627,30 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().vz_max = INFINITY;
 		_pub_lpos.get().hagl_min = INFINITY;
 		_pub_lpos.get().hagl_max = INFINITY;
-		_pub_lpos.get().timestamp = hrt_absolute_time();;
+		_pub_lpos.get().timestamp = hrt_absolute_time();
+		;
 		_pub_lpos.update();
 	}
 }
 
-void BlockLocalPositionEstimator::publishOdom()
-{
+void BlockLocalPositionEstimator::publishOdom() {
 	const Vector<float, n_x> &xLP = _xLowPass.getState();
 
 	// publish vehicle odometry
-	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
-	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
-	    && PX4_ISFINITE(_x(X_vz))) {
-
+	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) && PX4_ISFINITE(_x(X_vx)) &&
+	    PX4_ISFINITE(_x(X_vy)) && PX4_ISFINITE(_x(X_vz))) {
 		_pub_odom.get().timestamp_sample = _timeStamp;
 		_pub_odom.get().local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
 
 		// position
-		_pub_odom.get().x = xLP(X_x);	// north
-		_pub_odom.get().y = xLP(X_y);	// east
+		_pub_odom.get().x = xLP(X_x);  // north
+		_pub_odom.get().y = xLP(X_y);  // east
 
 		if (_param_lpe_fusion.get() & FUSE_PUB_AGL_Z) {
-			_pub_odom.get().z = -_aglLowPass.getState();	// agl
+			_pub_odom.get().z = -_aglLowPass.getState();  // agl
 
 		} else {
-			_pub_odom.get().z = xLP(X_z);	// down
+			_pub_odom.get().z = xLP(X_z);  // down
 		}
 
 		// orientation
@@ -668,19 +659,20 @@ void BlockLocalPositionEstimator::publishOdom()
 
 		// linear velocity
 		_pub_odom.get().velocity_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
-		_pub_odom.get().vx = xLP(X_vx);		// vel north
-		_pub_odom.get().vy = xLP(X_vy);		// vel east
-		_pub_odom.get().vz = xLP(X_vz);		// vel down
+		_pub_odom.get().vx = xLP(X_vx);  // vel north
+		_pub_odom.get().vy = xLP(X_vy);  // vel east
+		_pub_odom.get().vz = xLP(X_vz);  // vel down
 
 		// angular velocity
-		_pub_odom.get().rollspeed = _sub_angular_velocity.get().xyz[0]; // roll rate
-		_pub_odom.get().pitchspeed = _sub_angular_velocity.get().xyz[1]; // pitch rate
-		_pub_odom.get().yawspeed = _sub_angular_velocity.get().xyz[2]; // yaw rate
+		_pub_odom.get().rollspeed = _sub_angular_velocity.get().xyz[0];   // roll rate
+		_pub_odom.get().pitchspeed = _sub_angular_velocity.get().xyz[1];  // pitch rate
+		_pub_odom.get().yawspeed = _sub_angular_velocity.get().xyz[2];    // yaw rate
 
 		// get the covariance matrix size
-		const size_t POS_URT_SIZE = sizeof(_pub_odom.get().pose_covariance) / sizeof(_pub_odom.get().pose_covariance[0]);
-		const size_t VEL_URT_SIZE = sizeof(_pub_odom.get().velocity_covariance) / sizeof(
-						    _pub_odom.get().velocity_covariance[0]);
+		const size_t POS_URT_SIZE =
+			sizeof(_pub_odom.get().pose_covariance) / sizeof(_pub_odom.get().pose_covariance[0]);
+		const size_t VEL_URT_SIZE =
+			sizeof(_pub_odom.get().velocity_covariance) / sizeof(_pub_odom.get().velocity_covariance[0]);
 
 		// initially set pose covariances to 0
 		for (size_t i = 0; i < POS_URT_SIZE; i++) {
@@ -718,8 +710,7 @@ void BlockLocalPositionEstimator::publishOdom()
 	}
 }
 
-void BlockLocalPositionEstimator::publishEstimatorStatus()
-{
+void BlockLocalPositionEstimator::publishEstimatorStatus() {
 	_pub_est_states.get().timestamp_sample = _timeStamp;
 
 	for (size_t i = 0; i < n_x; i++) {
@@ -773,8 +764,7 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 	_pub_est_status.update();
 }
 
-void BlockLocalPositionEstimator::publishGlobalPos()
-{
+void BlockLocalPositionEstimator::publishGlobalPos() {
 	// publish global position
 	double lat = 0;
 	double lon = 0;
@@ -800,9 +790,8 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		}
 	}
 
-	if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt) &&
-	    PX4_ISFINITE(xLP(X_vx)) && PX4_ISFINITE(xLP(X_vy)) &&
-	    PX4_ISFINITE(xLP(X_vz))) {
+	if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt) && PX4_ISFINITE(xLP(X_vx)) &&
+	    PX4_ISFINITE(xLP(X_vy)) && PX4_ISFINITE(xLP(X_vz))) {
 		_pub_gpos.get().timestamp_sample = _timeStamp;
 		_pub_gpos.get().lat = lat;
 		_pub_gpos.get().lon = lon;
@@ -817,8 +806,7 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 	}
 }
 
-void BlockLocalPositionEstimator::initP()
-{
+void BlockLocalPositionEstimator::initP() {
 	m_P.setZero();
 	// initialize to twice valid condition
 	m_P(X_x, X_x) = 2 * EST_STDDEV_XY_VALID * EST_STDDEV_XY_VALID;
@@ -835,8 +823,7 @@ void BlockLocalPositionEstimator::initP()
 	m_P(X_tz, X_tz) = 2 * EST_STDDEV_TZ_VALID * EST_STDDEV_TZ_VALID;
 }
 
-void BlockLocalPositionEstimator::initSS()
-{
+void BlockLocalPositionEstimator::initSS() {
 	initP();
 
 	// dynamics matrix
@@ -857,8 +844,7 @@ void BlockLocalPositionEstimator::initSS()
 	updateSSParams();
 }
 
-void BlockLocalPositionEstimator::updateSSStates()
-{
+void BlockLocalPositionEstimator::updateSSStates() {
 	// derivative of velocity is accelerometer acceleration
 	// (in input matrix) - bias (in body frame)
 	m_A(X_vx, X_bx) = -_R_att(0, 0);
@@ -874,8 +860,7 @@ void BlockLocalPositionEstimator::updateSSStates()
 	m_A(X_vz, X_bz) = -_R_att(2, 2);
 }
 
-void BlockLocalPositionEstimator::updateSSParams()
-{
+void BlockLocalPositionEstimator::updateSSParams() {
 	// input noise covariance matrix
 	m_R.setZero();
 	m_R(U_ax, U_ax) = _param_lpe_acc_xy.get() * _param_lpe_acc_xy.get();
@@ -902,20 +887,18 @@ void BlockLocalPositionEstimator::updateSSParams()
 	m_Q(X_bz, X_bz) = pn_b_sq;
 
 	// terrain random walk noise ((m/s)/sqrt(hz)), scales with velocity
-	float pn_t_noise_density =
-		_param_lpe_pn_t.get() +
-		(_param_lpe_t_max_grade.get() / 100.0f) * sqrtf(_x(X_vx) * _x(X_vx) + _x(X_vy) * _x(X_vy));
+	float pn_t_noise_density = _param_lpe_pn_t.get() + (_param_lpe_t_max_grade.get() / 100.0f) *
+								   sqrtf(_x(X_vx) * _x(X_vx) + _x(X_vy) * _x(X_vy));
 	m_Q(X_tz, X_tz) = pn_t_noise_density * pn_t_noise_density;
 }
 
-void BlockLocalPositionEstimator::predict(const sensor_combined_s &imu)
-{
+void BlockLocalPositionEstimator::predict(const sensor_combined_s &imu) {
 	// get acceleration
 	_R_att = matrix::Dcm<float>(matrix::Quatf(_sub_att.get().q));
 	Vector3f a(imu.accelerometer_m_s2);
 	// note, bias is removed in dynamics function
 	_u = _R_att * a;
-	_u(U_az) += CONSTANTS_ONE_G;	// add g
+	_u(U_az) += CONSTANTS_ONE_G;  // add g
 
 	// update state space based on new states
 	updateSSStates();
@@ -933,7 +916,7 @@ void BlockLocalPositionEstimator::predict(const sensor_combined_s &imu)
 	Vector<float, n_x> dx = (k1 + k2 * 2 + k3 * 2 + k4) * (h / 6);
 
 	// don't integrate position if no valid xy data
-	if (!(_estimatorInitialized & EST_XY))  {
+	if (!(_estimatorInitialized & EST_XY)) {
 		dx(X_x) = 0;
 		dx(X_vx) = 0;
 		dx(X_y) = 0;
@@ -941,12 +924,12 @@ void BlockLocalPositionEstimator::predict(const sensor_combined_s &imu)
 	}
 
 	// don't integrate z if no valid z data
-	if (!(_estimatorInitialized & EST_Z))  {
+	if (!(_estimatorInitialized & EST_Z)) {
 		dx(X_z) = 0;
 	}
 
 	// don't integrate tz if no valid tz data
-	if (!(_estimatorInitialized & EST_TZ))  {
+	if (!(_estimatorInitialized & EST_TZ)) {
 		dx(X_tz) = 0;
 	}
 
@@ -972,8 +955,7 @@ void BlockLocalPositionEstimator::predict(const sensor_combined_s &imu)
 
 	// propagate
 	_x += dx;
-	Matrix<float, n_x, n_x> dP = (m_A * m_P + m_P * m_A.transpose() +
-				      m_B * m_R * m_B.transpose() + m_Q) * getDt();
+	Matrix<float, n_x, n_x> dP = (m_A * m_P + m_P * m_A.transpose() + m_B * m_R * m_B.transpose() + m_Q) * getDt();
 
 	// covariance propagation logic
 	for (size_t i = 0; i < n_x; i++) {
@@ -993,8 +975,7 @@ void BlockLocalPositionEstimator::predict(const sensor_combined_s &imu)
 	_aglLowPass.update(agl());
 }
 
-int BlockLocalPositionEstimator::getDelayPeriods(float delay, uint8_t *periods)
-{
+int BlockLocalPositionEstimator::getDelayPeriods(float delay, uint8_t *periods) {
 	float t_delay = 0;
 	uint8_t i_hist = 0;
 
@@ -1016,15 +997,9 @@ int BlockLocalPositionEstimator::getDelayPeriods(float delay, uint8_t *periods)
 	return OK;
 }
 
-int
-BlockLocalPositionEstimator::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int BlockLocalPositionEstimator::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int
-BlockLocalPositionEstimator::task_spawn(int argc, char *argv[])
-{
+int BlockLocalPositionEstimator::task_spawn(int argc, char *argv[]) {
 	BlockLocalPositionEstimator *instance = new BlockLocalPositionEstimator();
 
 	if (instance) {
@@ -1046,9 +1021,7 @@ BlockLocalPositionEstimator::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int
-BlockLocalPositionEstimator::print_usage(const char *reason)
-{
+int BlockLocalPositionEstimator::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -1067,7 +1040,6 @@ Attitude and position estimator using an Extended Kalman Filter.
 	return 0;
 }
 
-extern "C" __EXPORT int local_position_estimator_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int local_position_estimator_main(int argc, char *argv[]) {
 	return BlockLocalPositionEstimator::main(argc, argv);
 }

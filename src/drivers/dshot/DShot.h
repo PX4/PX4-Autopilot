@@ -35,33 +35,33 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_input_capture.h>
 #include <drivers/drv_mixer.h>
-#include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
+#include <lib/mixer_module/mixer_module.hpp>
+
 #include "DShotTelemetry.h"
 
 using namespace time_literals;
 
 #if !defined(DIRECT_PWM_OUTPUT_CHANNELS)
-#  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
+#error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
 #endif
 
 /** Dshot PWM frequency, Hz */
-static constexpr unsigned int DSHOT150  =  150000u;
-static constexpr unsigned int DSHOT300  =  300000u;
-static constexpr unsigned int DSHOT600  =  600000u;
+static constexpr unsigned int DSHOT150 = 150000u;
+static constexpr unsigned int DSHOT300 = 300000u;
+static constexpr unsigned int DSHOT600 = 600000u;
 static constexpr unsigned int DSHOT1200 = 1200000u;
 
 static constexpr int DSHOT_DISARM_VALUE = 0;
 static constexpr int DSHOT_MIN_THROTTLE = 1;
 static constexpr int DSHOT_MAX_THROTTLE = 1999;
 
-class DShot : public cdev::CDev, public ModuleBase<DShot>, public OutputModuleInterface
-{
+class DShot : public cdev::CDev, public ModuleBase<DShot>, public OutputModuleInterface {
 public:
 	DShot();
 	virtual ~DShot();
@@ -97,20 +97,19 @@ public:
 
 	bool telemetry_enabled() const { return _telemetry != nullptr; }
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+			   unsigned num_control_groups_updated) override;
 
 private:
-
 	/** Disallow copy construction and move assignment. */
 	DShot(const DShot &) = delete;
 	DShot operator=(const DShot &) = delete;
 
 	enum class DShotConfig {
-		Disabled  = 0,
-		DShot150  = 150,
-		DShot300  = 300,
-		DShot600  = 600,
+		Disabled = 0,
+		DShot150 = 150,
+		DShot300 = 300,
+		DShot600 = 600,
 		DShot1200 = 1200,
 	};
 
@@ -128,7 +127,7 @@ private:
 		DShotTelemetry handler{};
 		uORB::PublicationMultiData<esc_status_s> esc_status_pub{ORB_ID(esc_status)};
 		int last_telemetry_index{-1};
-		uint8_t actuator_functions[esc_status_s::CONNECTED_ESC_MAX] {};
+		uint8_t actuator_functions[esc_status_s::CONNECTED_ESC_MAX]{};
 	};
 
 	void enable_dshot_outputs(const bool enabled);
@@ -147,7 +146,8 @@ private:
 
 	void handle_vehicle_commands();
 
-	MixingOutput _mixing_output {PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	MixingOutput _mixing_output{
+		PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 	uint32_t _reversible_outputs{};
 
 	Telemetry *_telemetry{nullptr};
@@ -168,7 +168,7 @@ private:
 
 	int _class_instance{-1};
 
-	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")};
 
 	Command _current_command{};
 
@@ -176,12 +176,10 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::DSHOT_CONFIG>)   _param_dshot_config,
-		(ParamFloat<px4::params::DSHOT_MIN>)    _param_dshot_min,
-		(ParamBool<px4::params::DSHOT_3D_ENABLE>) _param_dshot_3d_enable,
-		(ParamInt<px4::params::DSHOT_3D_DEAD_H>) _param_dshot_3d_dead_h,
-		(ParamInt<px4::params::DSHOT_3D_DEAD_L>) _param_dshot_3d_dead_l,
-		(ParamInt<px4::params::MOT_POLE_COUNT>) _param_mot_pole_count
-	)
+	DEFINE_PARAMETERS((ParamInt<px4::params::DSHOT_CONFIG>)_param_dshot_config,
+			  (ParamFloat<px4::params::DSHOT_MIN>)_param_dshot_min,
+			  (ParamBool<px4::params::DSHOT_3D_ENABLE>)_param_dshot_3d_enable,
+			  (ParamInt<px4::params::DSHOT_3D_DEAD_H>)_param_dshot_3d_dead_h,
+			  (ParamInt<px4::params::DSHOT_3D_DEAD_L>)_param_dshot_3d_dead_l,
+			  (ParamInt<px4::params::MOT_POLE_COUNT>)_param_mot_pole_count)
 };

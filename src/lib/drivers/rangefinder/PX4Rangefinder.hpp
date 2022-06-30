@@ -35,11 +35,11 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/conversion/rotation.h>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/distance_sensor.h>
 
-class PX4Rangefinder
-{
+#include <uORB/PublicationMulti.hpp>
+
+class PX4Rangefinder {
 public:
 	PX4Rangefinder(const uint32_t device_id,
 		       const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
@@ -51,7 +51,10 @@ public:
 	void set_device_id(const uint32_t device_id) { _distance_sensor_pub.get().device_id = device_id; };
 	void set_device_type(const uint8_t device_type);
 
-	void set_fov(const float fov) { set_hfov(fov); set_vfov(fov); }
+	void set_fov(const float fov) {
+		set_hfov(fov);
+		set_vfov(fov);
+	}
 	void set_hfov(const float fov) { _distance_sensor_pub.get().h_fov = fov; }
 	void set_vfov(const float fov) { _distance_sensor_pub.get().v_fov = fov; }
 

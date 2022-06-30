@@ -41,39 +41,39 @@
 #pragma once
 
 #include <drivers/device/i2c.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/i2c_spi_buses.h>
-#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/px4_config.h>
+
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 
 using namespace time_literals;
 
 /* Configuration Constants */
-#define TERARANGER_ONE_BASEADDR                 0x30 // 7-bit address.
-#define TERARANGER_EVO_BASEADDR                 0x31 // 7-bit address.
+#define TERARANGER_ONE_BASEADDR 0x30  // 7-bit address.
+#define TERARANGER_EVO_BASEADDR 0x31  // 7-bit address.
 
 /* TERARANGER Registers addresses */
-#define TERARANGER_MEASURE_REG                  0x00 // Measure range register.
-#define TERARANGER_WHO_AM_I_REG                 0x01 // Who am I test register.
-#define TERARANGER_WHO_AM_I_REG_VAL             0xA1
+#define TERARANGER_MEASURE_REG 0x00   // Measure range register.
+#define TERARANGER_WHO_AM_I_REG 0x01  // Who am I test register.
+#define TERARANGER_WHO_AM_I_REG_VAL 0xA1
 
 /* Device limits */
-#define TERARANGER_ONE_MAX_DISTANCE             (14.00f)
-#define TERARANGER_ONE_MIN_DISTANCE             (0.20f)
+#define TERARANGER_ONE_MAX_DISTANCE (14.00f)
+#define TERARANGER_ONE_MIN_DISTANCE (0.20f)
 
-#define TERARANGER_EVO_3M_MAX_DISTANCE          (3.0f)
-#define TERARANGER_EVO_3M_MIN_DISTANCE          (0.10f)
+#define TERARANGER_EVO_3M_MAX_DISTANCE (3.0f)
+#define TERARANGER_EVO_3M_MIN_DISTANCE (0.10f)
 
-#define TERARANGER_EVO_60M_MAX_DISTANCE         (60.0f)
-#define TERARANGER_EVO_60M_MIN_DISTANCE         (0.50f)
+#define TERARANGER_EVO_60M_MAX_DISTANCE (60.0f)
+#define TERARANGER_EVO_60M_MIN_DISTANCE (0.50f)
 
-#define TERARANGER_EVO_600HZ_MAX_DISTANCE       (8.0f)
-#define TERARANGER_EVO_600HZ_MIN_DISTANCE       (0.75f)
+#define TERARANGER_EVO_600HZ_MAX_DISTANCE (8.0f)
+#define TERARANGER_EVO_600HZ_MIN_DISTANCE (0.75f)
 
-#define TERARANGER_MEASUREMENT_INTERVAL         10_ms
+#define TERARANGER_MEASUREMENT_INTERVAL 10_ms
 
-class TERARANGER : public device::I2C, public I2CSPIDriver<TERARANGER>
-{
+class TERARANGER : public device::I2C, public I2CSPIDriver<TERARANGER> {
 public:
 	TERARANGER(const I2CSPIDriverConfig &config);
 	~TERARANGER() override;
@@ -84,8 +84,8 @@ public:
 	void print_status() override;
 
 	void RunImpl();
-protected:
 
+protected:
 	virtual int probe() override;
 
 private:
@@ -94,19 +94,18 @@ private:
 	int measure();
 
 	/**
-	* Test whether the device supported by the driver is present at a
-	* specific address.
-	*
-	* @param address The I2C bus address to probe.
-	* @return True if the device is present.
-	*/
+	 * Test whether the device supported by the driver is present at a
+	 * specific address.
+	 *
+	 * @param address The I2C bus address to probe.
+	 * @return True if the device is present.
+	 */
 	int probe_address(const uint8_t address);
-
 
 	PX4Rangefinder _px4_rangefinder;
 
 	bool _collect_phase{false};
 
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": comm_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME ": comm_err")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": read")};
 };

@@ -35,16 +35,13 @@
 
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/getopt.h>
-
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 
 #include <px4_platform_common/sem.hpp>
+#include <uORB/Subscription.hpp>
 
-PWMSim::PWMSim(bool hil_mode_enabled) :
-	CDev(PWM_OUTPUT0_DEVICE_PATH),
-	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
-{
+PWMSim::PWMSim(bool hil_mode_enabled)
+	: CDev(PWM_OUTPUT0_DEVICE_PATH), OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default) {
 	_mixing_output.setAllDisarmedValues(PWM_SIM_DISARMED_MAGIC);
 	_mixing_output.setAllFailsafeValues(PWM_SIM_FAILSAFE_MAGIC);
 	_mixing_output.setAllMinValues(PWM_SIM_PWM_MIN_MAGIC);
@@ -55,9 +52,7 @@ PWMSim::PWMSim(bool hil_mode_enabled) :
 	CDev::init();
 }
 
-void
-PWMSim::Run()
-{
+void PWMSim::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
@@ -81,10 +76,8 @@ PWMSim::Run()
 	_mixing_output.updateSubscriptions(true);
 }
 
-bool
-PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-		      unsigned num_control_groups_updated)
-{
+bool PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+			   unsigned num_control_groups_updated) {
 	// Only publish once we receive actuator_controls (important for lock-step to work correctly)
 	if (num_control_groups_updated > 0) {
 		actuator_outputs_s actuator_outputs{};
@@ -94,15 +87,16 @@ PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigne
 
 		for (int i = 0; i < (int)num_outputs; i++) {
 			if (outputs[i] != PWM_SIM_DISARMED_MAGIC) {
-
 				OutputFunction function = _mixing_output.outputFunction(i);
 				bool is_reversible = reversible_outputs & (1u << i);
 				float output = outputs[i];
 
-				if (((int)function >= (int)OutputFunction::Motor1 && (int)function <= (int)OutputFunction::MotorMax)
-				    && !is_reversible) {
+				if (((int)function >= (int)OutputFunction::Motor1 &&
+				     (int)function <= (int)OutputFunction::MotorMax) &&
+				    !is_reversible) {
 					// Scale non-reversible motors to [0, 1]
-					actuator_outputs.output[i] = (output - PWM_SIM_PWM_MIN_MAGIC) / (PWM_SIM_PWM_MAX_MAGIC - PWM_SIM_PWM_MIN_MAGIC);
+					actuator_outputs.output[i] = (output - PWM_SIM_PWM_MIN_MAGIC) /
+								     (PWM_SIM_PWM_MAX_MAGIC - PWM_SIM_PWM_MIN_MAGIC);
 
 				} else {
 					// Scale everything else to [-1, 1]
@@ -121,21 +115,19 @@ PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigne
 	return false;
 }
 
-int
-PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
+int PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg) {
 	SmartLock lock_guard(_lock);
 
 	int ret = OK;
 
 	switch (cmd) {
-	case PWM_SERVO_ARM:
-		break;
+		case PWM_SERVO_ARM:
+			break;
 
-	case PWM_SERVO_DISARM:
-		break;
+		case PWM_SERVO_DISARM:
+			break;
 
-	case PWM_SERVO_SET_MIN_PWM: {
+		case PWM_SERVO_SET_MIN_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < pwm->channel_count; i++) {
@@ -147,7 +139,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_SET_MAX_PWM: {
+		case PWM_SERVO_SET_MAX_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < pwm->channel_count; i++) {
@@ -159,26 +151,26 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_SET_UPDATE_RATE:
-		// PWMSim does not limit the update rate
-		break;
+		case PWM_SERVO_SET_UPDATE_RATE:
+			// PWMSim does not limit the update rate
+			break;
 
-	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
-		break;
+		case PWM_SERVO_SET_SELECT_UPDATE_RATE:
+			break;
 
-	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
-		*(uint32_t *)arg = 9999;
-		break;
+		case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
+			*(uint32_t *)arg = 9999;
+			break;
 
-	case PWM_SERVO_GET_UPDATE_RATE:
-		*(uint32_t *)arg = 9999;
-		break;
+		case PWM_SERVO_GET_UPDATE_RATE:
+			*(uint32_t *)arg = 9999;
+			break;
 
-	case PWM_SERVO_GET_SELECT_UPDATE_RATE:
-		*(uint32_t *)arg = 0;
-		break;
+		case PWM_SERVO_GET_SELECT_UPDATE_RATE:
+			*(uint32_t *)arg = 0;
+			break;
 
-	case PWM_SERVO_GET_FAILSAFE_PWM: {
+		case PWM_SERVO_GET_FAILSAFE_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < OutputModuleInterface::MAX_ACTUATORS; i++) {
@@ -189,7 +181,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_GET_DISARMED_PWM: {
+		case PWM_SERVO_GET_DISARMED_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < OutputModuleInterface::MAX_ACTUATORS; i++) {
@@ -200,7 +192,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_GET_MIN_PWM: {
+		case PWM_SERVO_GET_MIN_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < OutputModuleInterface::MAX_ACTUATORS; i++) {
@@ -211,7 +203,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_GET_MAX_PWM: {
+		case PWM_SERVO_GET_MAX_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < OutputModuleInterface::MAX_ACTUATORS; i++) {
@@ -222,7 +214,7 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_GET_RATEGROUP(0) ... PWM_SERVO_GET_RATEGROUP(PWM_OUTPUT_MAX_CHANNELS - 1): {
+		case PWM_SERVO_GET_RATEGROUP(0)... PWM_SERVO_GET_RATEGROUP(PWM_OUTPUT_MAX_CHANNELS - 1): {
 			// no restrictions on output grouping
 			unsigned channel = cmd - PWM_SERVO_GET_RATEGROUP(0);
 
@@ -230,32 +222,30 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_GET_COUNT:
-		*(unsigned *)arg = OutputModuleInterface::MAX_ACTUATORS;
-		break;
+		case PWM_SERVO_GET_COUNT:
+			*(unsigned *)arg = OutputModuleInterface::MAX_ACTUATORS;
+			break;
 
-	case MIXERIOCRESET:
-		_mixing_output.resetMixer();
-		break;
+		case MIXERIOCRESET:
+			_mixing_output.resetMixer();
+			break;
 
-	case MIXERIOCLOADBUF: {
+		case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
 			ret = _mixing_output.loadMixer(buf, buflen);
 			break;
 		}
 
-	default:
-		ret = -ENOTTY;
-		break;
+		default:
+			ret = -ENOTTY;
+			break;
 	}
 
 	return ret;
 }
 
-int
-PWMSim::task_spawn(int argc, char *argv[])
-{
+int PWMSim::task_spawn(int argc, char *argv[]) {
 	bool hil_mode = false;
 
 	int myoptind = 1;
@@ -264,12 +254,12 @@ PWMSim::task_spawn(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "m:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'm':
-			hil_mode = strcmp(myoptarg, "hil") == 0;
-			break;
+			case 'm':
+				hil_mode = strcmp(myoptarg, "hil") == 0;
+				break;
 
-		default:
-			return print_usage("unrecognized flag");
+			default:
+				return print_usage("unrecognized flag");
 		}
 	}
 
@@ -286,19 +276,14 @@ PWMSim::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-int PWMSim::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int PWMSim::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int PWMSim::print_status()
-{
+int PWMSim::print_status() {
 	_mixing_output.printStatus();
 	return 0;
 }
 
-int PWMSim::print_usage(const char *reason)
-{
+int PWMSim::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -324,7 +309,4 @@ It is used in SITL and HITL.
 	return 0;
 }
 
-extern "C" __EXPORT int pwm_out_sim_main(int argc, char *argv[])
-{
-	return PWMSim::main(argc, argv);
-}
+extern "C" __EXPORT int pwm_out_sim_main(int argc, char *argv[]) { return PWMSim::main(argc, argv); }

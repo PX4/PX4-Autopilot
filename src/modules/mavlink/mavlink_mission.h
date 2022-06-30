@@ -46,9 +46,10 @@
 #pragma once
 
 #include <dataman/dataman.h>
+#include <uORB/topics/mission_result.h>
+
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/mission_result.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
@@ -69,13 +70,12 @@ enum MAVLINK_WPM_CODES {
 	MAVLINK_WPM_CODE_ENUM_END
 };
 
-static constexpr uint64_t MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT = 5000000; ///< Protocol action timeout in us
-static constexpr uint64_t MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT = 250000; ///< Protocol retry timeout in us
+static constexpr uint64_t MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT = 5000000;  ///< Protocol action timeout in us
+static constexpr uint64_t MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT = 250000;      ///< Protocol retry timeout in us
 
 class Mavlink;
 
-class MavlinkMissionManager
-{
+class MavlinkMissionManager {
 public:
 	explicit MavlinkMissionManager(Mavlink *mavlink);
 
@@ -92,60 +92,62 @@ public:
 	void check_active_mission(void);
 
 private:
-	enum MAVLINK_WPM_STATES _state {MAVLINK_WPM_STATE_IDLE};	///< Current state
-	enum MAV_MISSION_TYPE _mission_type {MAV_MISSION_TYPE_MISSION};	///< mission type of current transmission (only one at a time possible)
+	enum MAVLINK_WPM_STATES _state { MAVLINK_WPM_STATE_IDLE };  ///< Current state
+	enum MAV_MISSION_TYPE _mission_type {
+		MAV_MISSION_TYPE_MISSION
+	};  ///< mission type of current transmission (only one at a time possible)
 
-	uint64_t		_time_last_recv{0};
-	uint64_t		_time_last_sent{0};
+	uint64_t _time_last_recv{0};
+	uint64_t _time_last_sent{0};
 
-	uint8_t			_reached_sent_count{0};			///< last time when the vehicle reached a waypoint
+	uint8_t _reached_sent_count{0};  ///< last time when the vehicle reached a waypoint
 
-	bool			_int_mode{false};			///< Use accurate int32 instead of float
+	bool _int_mode{false};  ///< Use accurate int32 instead of float
 
-	unsigned		_filesystem_errcount{0};		///< File system error count
+	unsigned _filesystem_errcount{0};  ///< File system error count
 
-	static dm_item_t		_dataman_id;				///< Global Dataman storage ID for active mission
-	dm_item_t			_my_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};			///< class Dataman storage ID
+	static dm_item_t _dataman_id;                           ///< Global Dataman storage ID for active mission
+	dm_item_t _my_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};  ///< class Dataman storage ID
 
-	static bool		_dataman_init;				///< Dataman initialized
+	static bool _dataman_init;  ///< Dataman initialized
 
-	static uint16_t		_count[3];				///< Count of items in (active) mission for each MAV_MISSION_TYPE
-	static int32_t		_current_seq;				///< Current item sequence in active mission
+	static uint16_t _count[3];    ///< Count of items in (active) mission for each MAV_MISSION_TYPE
+	static int32_t _current_seq;  ///< Current item sequence in active mission
 
-	int32_t			_last_reached{-1};			///< Last reached waypoint in active mission (-1 means nothing reached)
+	int32_t _last_reached{-1};  ///< Last reached waypoint in active mission (-1 means nothing reached)
 
-	dm_item_t			_transfer_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_1};		///< Dataman storage ID for current transmission
+	dm_item_t _transfer_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_1};  ///< Dataman storage ID for current transmission
 
-	uint16_t		_transfer_count{0};			///< Items count in current transmission
-	uint16_t		_transfer_seq{0};			///< Item sequence in current transmission
+	uint16_t _transfer_count{0};  ///< Items count in current transmission
+	uint16_t _transfer_seq{0};    ///< Item sequence in current transmission
 
-	int32_t			_transfer_current_seq{-1};		///< Current item ID for current transmission (-1 means not initialized)
+	int32_t _transfer_current_seq{-1};  ///< Current item ID for current transmission (-1 means not initialized)
 
-	uint8_t			_transfer_partner_sysid{0};		///< Partner system ID for current transmission
-	uint8_t			_transfer_partner_compid{0};		///< Partner component ID for current transmission
+	uint8_t _transfer_partner_sysid{0};   ///< Partner system ID for current transmission
+	uint8_t _transfer_partner_compid{0};  ///< Partner component ID for current transmission
 
-	static bool		_transfer_in_progress;			///< Global variable checking for current transmission
+	static bool _transfer_in_progress;  ///< Global variable checking for current transmission
 
-	uORB::Subscription	_mission_result_sub{ORB_ID(mission_result)};
+	uORB::Subscription _mission_result_sub{ORB_ID(mission_result)};
 
-	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
+	uORB::Publication<mission_s> _offboard_mission_pub{ORB_ID(mission)};
 
-	static uint16_t		_geofence_update_counter;
-	static uint16_t		_safepoint_update_counter;
-	bool			_geofence_locked{false};		///< if true, we currently hold the dm_lock for the geofence (transaction in progress)
+	static uint16_t _geofence_update_counter;
+	static uint16_t _safepoint_update_counter;
+	bool _geofence_locked{
+		false};  ///< if true, we currently hold the dm_lock for the geofence (transaction in progress)
 
-	MavlinkRateLimiter	_slow_rate_limiter{100 * 1000};		///< Rate limit sending of the current WP sequence to 10 Hz
+	MavlinkRateLimiter _slow_rate_limiter{100 * 1000};  ///< Rate limit sending of the current WP sequence to 10 Hz
 
 	Mavlink *_mavlink;
 
-	static constexpr unsigned int	FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT =
-		2;	///< Error count limit before stopping to report FS errors
-	static constexpr uint16_t	MAX_COUNT[] = {
-		DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
-		DM_KEY_FENCE_POINTS_MAX - 1,
-		DM_KEY_SAFE_POINTS_MAX - 1
-	};	/**< Maximum number of mission items for each type
-					(fence & safe points use the first item for the stats) */
+	static constexpr unsigned int FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT =
+		2;  ///< Error count limit before stopping to report FS errors
+	static constexpr uint16_t MAX_COUNT[] = {
+		DM_KEY_WAYPOINTS_OFFBOARD_0_MAX, DM_KEY_FENCE_POINTS_MAX - 1,
+		DM_KEY_SAFE_POINTS_MAX -
+			1}; /**< Maximum number of mission items for each type
+						    (fence & safe points use the first item for the stats) */
 
 	/** get the maximum number of item count for the current _mission_type */
 	uint16_t current_max_item_count();
@@ -155,7 +157,7 @@ private:
 
 	/* do not allow top copying this class */
 	MavlinkMissionManager(MavlinkMissionManager &);
-	MavlinkMissionManager &operator = (const MavlinkMissionManager &);
+	MavlinkMissionManager &operator=(const MavlinkMissionManager &);
 
 	void init_offboard_mission();
 
@@ -229,7 +231,8 @@ private:
 	 *			       depending on _int_mode
 	 * @param mission_item	       pointer to mission_item to construct
 	 */
-	int parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item);
+	int parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item,
+				       struct mission_item_s *mission_item);
 
 	/**
 	 * Format mission_item_s as mavlink MISSION_ITEM(_INT) message.

@@ -42,23 +42,22 @@
 #pragma once
 
 #ifdef __EXPORT
-#  undef __EXPORT
+#undef __EXPORT
 #endif
-#define __EXPORT __attribute__ ((visibility ("default")))
+#define __EXPORT __attribute__((visibility("default")))
 
 #ifdef __PRIVATE
-#  undef __PRIVATE
+#undef __PRIVATE
 #endif
-#define __PRIVATE __attribute__ ((visibility ("hidden")))
+#define __PRIVATE __attribute__((visibility("hidden")))
 
 #ifdef __cplusplus
-#  define __BEGIN_DECLS		extern "C" {
-#  define __END_DECLS		}
+#define __BEGIN_DECLS extern "C" {
+#define __END_DECLS }
 #else
-#  define __BEGIN_DECLS
-#  define __END_DECLS
+#define __BEGIN_DECLS
+#define __END_DECLS
 #endif
-
 
 #ifdef __PX4_NUTTX
 /* On NuttX we call clearenv() so we cannot use getenv() and others (see px4_task_spawn_cmd() in px4_nuttx_tasks.c).

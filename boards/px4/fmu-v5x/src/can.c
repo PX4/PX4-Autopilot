@@ -43,10 +43,8 @@
 
 #include "board_config.h"
 
-
 __EXPORT
-uint16_t board_get_can_interfaces(void)
-{
+uint16_t board_get_can_interfaces(void) {
 	uint16_t enabled_interfaces = 0x3;
 
 	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_CAN2)) {
@@ -58,18 +56,15 @@ uint16_t board_get_can_interfaces(void)
 
 #else
 
-#include <errno.h>
-#include <debug.h>
-
-#include <nuttx/can/can.h>
 #include <arch/board/board.h>
+#include <debug.h>
+#include <errno.h>
+#include <nuttx/can/can.h>
 
-#include "chip.h"
 #include "arm_arch.h"
-
+#include "board_config.h"
 #include "chip.h"
 #include "stm32_can.h"
-#include "board_config.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -77,14 +72,14 @@ uint16_t board_get_can_interfaces(void)
 /* Configuration ********************************************************************/
 
 #if defined(CONFIG_STM32F7_CAN1) && defined(CONFIG_STM32F7_CAN2)
-#  warning "Both CAN1 and CAN2 are enabled.  Assuming only CAN1."
-#  undef CONFIG_STM32F7_CAN2
+#warning "Both CAN1 and CAN2 are enabled.  Assuming only CAN1."
+#undef CONFIG_STM32F7_CAN2
 #endif
 
 #ifdef CONFIG_STM32F7_CAN1
-#  define CAN_PORT 1
+#define CAN_PORT 1
 #else
-#  define CAN_PORT 2
+#define CAN_PORT 2
 #endif
 
 /************************************************************************************
@@ -105,8 +100,7 @@ int can_devinit(void);
  *
  ************************************************************************************/
 
-int can_devinit(void)
-{
+int can_devinit(void) {
 	static bool initialized = false;
 	struct can_dev_s *can;
 	int ret;

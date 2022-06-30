@@ -35,10 +35,8 @@
 
 #include <lib/drivers/device/Device.hpp>
 
-AerotennaULanding::AerotennaULanding(const char *port, uint8_t rotation) :
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
-	_px4_rangefinder(0, rotation)
-{
+AerotennaULanding::AerotennaULanding(const char *port, uint8_t rotation)
+	: ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)), _px4_rangefinder(0, rotation) {
 	/* store port name */
 	strncpy(_port, port, sizeof(_port) - 1);
 
@@ -48,7 +46,7 @@ AerotennaULanding::AerotennaULanding(const char *port, uint8_t rotation) :
 	device::Device::DeviceId device_id;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType_SERIAL;
 
-	uint8_t bus_num = atoi(&_port[strlen(_port) - 1]); // Assuming '/dev/ttySx'
+	uint8_t bus_num = atoi(&_port[strlen(_port) - 1]);  // Assuming '/dev/ttySx'
 
 	if (bus_num < 10) {
 		device_id.devid_s.bus = bus_num;
@@ -62,23 +60,20 @@ AerotennaULanding::AerotennaULanding(const char *port, uint8_t rotation) :
 	_px4_rangefinder.set_max_distance(ULANDING_MAX_DISTANCE);
 }
 
-AerotennaULanding::~AerotennaULanding()
-{
+AerotennaULanding::~AerotennaULanding() {
 	stop();
 
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
-int AerotennaULanding::init()
-{
+int AerotennaULanding::init() {
 	start();
 
 	return PX4_OK;
 }
 
-int AerotennaULanding::collect()
-{
+int AerotennaULanding::collect() {
 	perf_begin(_sample_perf);
 
 	int bytes_processed = 0;
@@ -102,7 +97,9 @@ int AerotennaULanding::collect()
 
 				while (bytes_processed < bytes_read && !checksum_passed) {
 					if (ULANDING_VERSION == 1) {
-						uint8_t checksum_value = (_buffer[index + 1] + _buffer[index + 2] + _buffer[index + 3] + _buffer[index + 4]) & 0xFF;
+						uint8_t checksum_value = (_buffer[index + 1] + _buffer[index + 2] +
+									  _buffer[index + 3] + _buffer[index + 4]) &
+									 0xFF;
 						uint8_t checksum_byte = _buffer[index + 5];
 
 						if (checksum_value == checksum_byte) {
@@ -138,8 +135,7 @@ int AerotennaULanding::collect()
 	return PX4_OK;
 }
 
-int AerotennaULanding::open_serial_port(const speed_t speed)
-{
+int AerotennaULanding::open_serial_port(const speed_t speed) {
 	// File descriptor initialized?
 	if (_file_descriptor > 0) {
 		PX4_DEBUG("serial port already open");
@@ -175,7 +171,8 @@ int AerotennaULanding::open_serial_port(const speed_t speed)
 	// No parity, one stop bit.
 	uart_config.c_cflag &= ~(CSTOPB | PARENB);
 
-	// No line processing - echo off, echo newline off, canonical mode off, extended input processing off, signal chars off
+	// No line processing - echo off, echo newline off, canonical mode off, extended input processing off, signal
+	// chars off
 	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
 
 	// Set the input baud rate in the uart_config struct.
@@ -209,22 +206,19 @@ int AerotennaULanding::open_serial_port(const speed_t speed)
 	return PX4_OK;
 }
 
-void AerotennaULanding::Run()
-{
+void AerotennaULanding::Run() {
 	// Ensure the serial port is open.
 	open_serial_port();
 
 	collect();
 }
 
-void AerotennaULanding::start()
-{
+void AerotennaULanding::start() {
 	// Schedule the driver at regular intervals.
 	ScheduleOnInterval(ULANDING_MEASURE_INTERVAL, 0);
 }
 
-void AerotennaULanding::stop()
-{
+void AerotennaULanding::stop() {
 	// Ensure the serial port is closed.
 	::close(_file_descriptor);
 
@@ -232,8 +226,7 @@ void AerotennaULanding::stop()
 	ScheduleClear();
 }
 
-void AerotennaULanding::print_info()
-{
+void AerotennaULanding::print_info() {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 }

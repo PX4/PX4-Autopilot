@@ -42,8 +42,7 @@
 
 #include <cstdint>
 
-namespace AKM_AK09916
-{
+namespace AKM_AK09916 {
 
 // TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
@@ -55,48 +54,48 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-static constexpr uint32_t I2C_SPEED = 400 * 1000; // 400 kHz I2C serial interface
+static constexpr uint32_t I2C_SPEED = 400 * 1000;  // 400 kHz I2C serial interface
 static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0b0001100;
 
 static constexpr uint8_t Company_ID = 0x48;
 static constexpr uint8_t Device_ID = 0x09;
 
 enum class Register : uint8_t {
-	WIA1  = 0x00, // Company ID of AKM
-	WIA2  = 0x01, // Device ID of AK09916
+	WIA1 = 0x00,  // Company ID of AKM
+	WIA2 = 0x01,  // Device ID of AK09916
 
-	ST1   = 0x10, // Status 1
-	HXL   = 0x11,
-	HXH   = 0x12,
-	HYL   = 0x13,
-	HYH   = 0x14,
-	HZL   = 0x15,
-	HZH   = 0x16,
+	ST1 = 0x10,  // Status 1
+	HXL = 0x11,
+	HXH = 0x12,
+	HYL = 0x13,
+	HYH = 0x14,
+	HZL = 0x15,
+	HZH = 0x16,
 
-	ST2   = 0x18, // Status 2
+	ST2 = 0x18,  // Status 2
 
-	CNTL2 = 0x31, // Control 2
-	CNTL3 = 0x32, // Control 3
+	CNTL2 = 0x31,  // Control 2
+	CNTL3 = 0x32,  // Control 3
 };
 
 // ST1
 enum ST1_BIT : uint8_t {
-	DOR  = Bit1, // Data overrun
-	DRDY = Bit0, // Data is ready
+	DOR = Bit1,   // Data overrun
+	DRDY = Bit0,  // Data is ready
 };
 
 // ST2
 enum ST2_BIT : uint8_t {
-	HOFL = Bit3, // Magnetic sensor overflow
+	HOFL = Bit3,  // Magnetic sensor overflow
 };
 
 // CNTL2
 enum CNTL2_BIT : uint8_t {
 	// MODE[4:0] bits
-	MODE1 = Bit1,        // “00010”: Continuous measurement mode 1 (10Hz)
-	MODE2 = Bit2,        // “00100”: Continuous measurement mode 2 (20Hz)
-	MODE3 = Bit2 | Bit1, // “00110”: Continuous measurement mode 3 (50Hz)
-	MODE4 = Bit3,        // “01000”: Continuous measurement mode 4 (100Hz)
+	MODE1 = Bit1,         // “00010”: Continuous measurement mode 1 (10Hz)
+	MODE2 = Bit2,         // “00100”: Continuous measurement mode 2 (20Hz)
+	MODE3 = Bit2 | Bit1,  // “00110”: Continuous measurement mode 3 (50Hz)
+	MODE4 = Bit3,         // “01000”: Continuous measurement mode 4 (100Hz)
 };
 
 // CNTL3
@@ -104,4 +103,4 @@ enum CNTL3_BIT : uint8_t {
 	SRST = Bit0,
 };
 
-} // namespace AKM_AK09916
+}  // namespace AKM_AK09916

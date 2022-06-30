@@ -39,16 +39,14 @@
 
 #pragma once
 
-#define BOARD_OVERRIDE_UUID "RPIID00000000000" // must be of length 16
-#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_RPI
+#define BOARD_OVERRIDE_UUID "RPIID00000000000"  // must be of length 16
+#define PX4_SOC_ARCH_ID PX4_SOC_ARCH_ID_RPI
 
-#define BOARD_MAX_LEDS 1 // Number of external LED's this board has
-
+#define BOARD_MAX_LEDS 1  // Number of external LED's this board has
 
 // I2C
 #define CONFIG_I2C 1
-#define PX4_NUMBER_I2C_BUSES    1
-
+#define PX4_NUMBER_I2C_BUSES 1
 
 // SPI
 #define CONFIG_SPI 1
@@ -61,12 +59,11 @@
 // A4 - ADC2 (ADC port)
 // A5 - ADC3 (ADC port)
 #define ADC_CHANNELS (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5)
-#define BOARD_ADC_POS_REF_V (4.096f)	// TODO: need confirmation
+#define BOARD_ADC_POS_REF_V (4.096f)  // TODO: need confirmation
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL  2
-#define ADC_BATTERY_CURRENT_CHANNEL  3
-#define ADC_5V_RAIL_SENSE            0
+#define ADC_BATTERY_VOLTAGE_CHANNEL 2
+#define ADC_BATTERY_CURRENT_CHANNEL 3
+#define ADC_5V_RAIL_SENSE 0
 
-
-#include <system_config.h>
 #include <px4_platform_common/board_common.h>
+#include <system_config.h>

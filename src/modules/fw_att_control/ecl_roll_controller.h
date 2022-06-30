@@ -51,9 +51,7 @@
 
 #include "ecl_controller.h"
 
-class ECL_RollController :
-	public ECL_Controller
-{
+class ECL_RollController : public ECL_Controller {
 public:
 	ECL_RollController() = default;
 	~ECL_RollController() = default;
@@ -63,4 +61,4 @@ public:
 	float control_bodyrate(const float dt, const ECL_ControlData &ctl_data) override;
 };
 
-#endif // ECL_ROLL_CONTROLLER_H
+#endif  // ECL_ROLL_CONTROLLER_H

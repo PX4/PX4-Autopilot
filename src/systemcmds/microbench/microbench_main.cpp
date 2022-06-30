@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <px4_platform_common/log.h>
-
+#include <px4_platform_common/px4_config.h>
 #include <stdio.h>
 #include <string.h>
-#include <fcntl.h>
-#include <errno.h>
 
 __BEGIN_DECLS
 
@@ -54,28 +53,25 @@ static int microbench_all(int argc, char *argv[]);
 static int microbench_runner(unsigned option);
 
 const struct {
-	const char 	*name;
-	int	(* fn)(int argc, char *argv[]);
-	unsigned	options;
-#define OPT_NOHELP	(1<<0)
-#define OPT_NOALLTEST	(1<<1)
-} microbenchmarks[] = {
-	{"help",		microbench_help,		OPT_NOALLTEST | OPT_NOHELP},
-	{"all",		microbench_all,		OPT_NOALLTEST},
+	const char *name;
+	int (*fn)(int argc, char *argv[]);
+	unsigned options;
+#define OPT_NOHELP (1 << 0)
+#define OPT_NOALLTEST (1 << 1)
+} microbenchmarks[] = {{"help", microbench_help, OPT_NOALLTEST | OPT_NOHELP},
+		       {"all", microbench_all, OPT_NOALLTEST},
 
-	{"microbench_atomic",	test_microbench_atomic,	0},
-	{"microbench_hrt",	test_microbench_hrt,	0},
-	{"microbench_math",	test_microbench_math,	0},
-	{"microbench_matrix",	test_microbench_matrix,	0},
-	{"microbench_uorb",	test_microbench_uorb,	0},
+		       {"microbench_atomic", test_microbench_atomic, 0},
+		       {"microbench_hrt", test_microbench_hrt, 0},
+		       {"microbench_math", test_microbench_math, 0},
+		       {"microbench_matrix", test_microbench_matrix, 0},
+		       {"microbench_uorb", test_microbench_uorb, 0},
 
-	{nullptr,			nullptr, 		0}
-};
+		       {nullptr, nullptr, 0}};
 
 #define NMICROBENCHMARKS (sizeof(microbenchmarks) / sizeof(microbenchmarks[0]))
 
-static int microbench_help(int argc, char *argv[])
-{
+static int microbench_help(int argc, char *argv[]) {
 	printf("Available tests:\n");
 
 	for (int i = 0; microbenchmarks[i].name; i++) {
@@ -85,13 +81,9 @@ static int microbench_help(int argc, char *argv[])
 	return 0;
 }
 
-static int microbench_all(int argc, char *argv[])
-{
-	return microbench_runner(OPT_NOALLTEST);
-}
+static int microbench_all(int argc, char *argv[]) { return microbench_runner(OPT_NOALLTEST); }
 
-static int microbench_runner(unsigned option)
-{
+static int microbench_runner(unsigned option) {
 	size_t i;
 	char *args[2] = {"all", nullptr};
 	unsigned int failcount = 0;
@@ -134,16 +126,15 @@ static int microbench_runner(unsigned option)
 
 	for (size_t k = 0; k < i; k++) {
 		if (!passed[k] && !(microbenchmarks[k].options & option)) {
-			printf(" [%s] to obtain details, please re-run with\n\t nsh> microbench %s\n\n", microbenchmarks[k].name,
-			       microbenchmarks[k].name);
+			printf(" [%s] to obtain details, please re-run with\n\t nsh> microbench %s\n\n",
+			       microbenchmarks[k].name, microbenchmarks[k].name);
 		}
 	}
 
 	return 0;
 }
 
-extern "C" __EXPORT int microbench_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int microbench_main(int argc, char *argv[]) {
 	if (argc < 2) {
 		PX4_WARN("missing test name - 'microbench help' for a list of tests");
 		return 1;

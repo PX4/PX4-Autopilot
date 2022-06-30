@@ -39,8 +39,8 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <parameters/param.h>
+#include <px4_platform_common/px4_config.h>
 
 /**
  * Set usage of IO board

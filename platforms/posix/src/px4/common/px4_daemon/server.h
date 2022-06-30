@@ -49,20 +49,18 @@
  */
 #pragma once
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <pthread.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+
 #include <map>
 
 #include "sock_protocol.h"
 
+namespace px4_daemon {
 
-namespace px4_daemon
-{
-
-class Server
-{
+class Server {
 public:
 	Server(int instance_id = 0);
 	~Server();
@@ -76,32 +74,21 @@ public:
 	int start();
 
 	struct CmdThreadSpecificData {
-		FILE *thread_stdout; // stdout of this thread
-		bool is_atty; // whether file descriptor refers to a terminal
+		FILE *thread_stdout;  // stdout of this thread
+		bool is_atty;         // whether file descriptor refers to a terminal
 	};
 
-	static bool is_running()
-	{
-		return _instance != nullptr;
-	}
+	static bool is_running() { return _instance != nullptr; }
 
-	static pthread_key_t get_pthread_key()
-	{
-		return _instance->_key;
-	}
+	static pthread_key_t get_pthread_key() { return _instance->_key; }
+
 private:
 	static void *_server_main_trampoline(void *arg);
 	void _server_main();
 
-	void _lock()
-	{
-		pthread_mutex_lock(&_mutex);
-	}
+	void _lock() { pthread_mutex_lock(&_mutex); }
 
-	void _unlock()
-	{
-		pthread_mutex_unlock(&_mutex);
-	}
+	void _unlock() { pthread_mutex_unlock(&_mutex); }
 
 	static void *_handle_client(void *arg);
 	static void _cleanup(int fd);
@@ -109,11 +96,11 @@ private:
 	pthread_t _server_main_pthread;
 
 	std::map<int, pthread_t> _fd_to_thread;
-	pthread_mutex_t _mutex; ///< Protects _fd_to_thread.
+	pthread_mutex_t _mutex;  ///< Protects _fd_to_thread.
 
 	pthread_key_t _key;
 
-	int _instance_id; ///< instance ID for running multiple instances of the px4 server
+	int _instance_id;  ///< instance ID for running multiple instances of the px4 server
 
 	int _fd;
 
@@ -122,6 +109,4 @@ private:
 	static Server *_instance;
 };
 
-
-} // namespace px4_daemon
-
+}  // namespace px4_daemon

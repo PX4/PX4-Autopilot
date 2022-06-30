@@ -41,32 +41,31 @@
 
 #pragma once
 
+#include <drivers/drv_hrt.h>
 #include <fcntl.h>
+#include <lib/perf/perf_counter.h>
 #include <poll.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_config.h>
 #include <termios.h>
 #include <unistd.h>
 
-#include <drivers/drv_hrt.h>
-#include <lib/perf/perf_counter.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/perf/perf_counter.h>
 
 using namespace time_literals;
 
-#define ULANDING_MEASURE_INTERVAL       10_ms
-#define ULANDING_MAX_DISTANCE	        50.0f
-#define ULANDING_MIN_DISTANCE	        0.315f
-#define ULANDING_VERSION	        1
+#define ULANDING_MEASURE_INTERVAL 10_ms
+#define ULANDING_MAX_DISTANCE 50.0f
+#define ULANDING_MIN_DISTANCE 0.315f
+#define ULANDING_VERSION 1
 
 #if ULANDING_VERSION == 1
-#define ULANDING_PACKET_HDR     254
-#define ULANDING_BUFFER_LENGTH  18
+#define ULANDING_PACKET_HDR 254
+#define ULANDING_BUFFER_LENGTH 18
 #else
-#define ULANDING_PACKET_HDR     72
-#define ULANDING_BUFFER_LENGTH  9
+#define ULANDING_PACKET_HDR 72
+#define ULANDING_BUFFER_LENGTH 9
 #endif
 
 /**
@@ -74,10 +73,9 @@ using namespace time_literals;
  * Static bench tests have shown that the sensor ouput does
  * not vary if the unit is not moved.
  */
-#define SENS_VARIANCE           0.045f * 0.045f
+#define SENS_VARIANCE 0.045f * 0.045f
 
-class AerotennaULanding : public px4::ScheduledWorkItem
-{
+class AerotennaULanding : public px4::ScheduledWorkItem {
 public:
 	/**
 	 * Default Constructor
@@ -91,7 +89,6 @@ public:
 	void print_info();
 
 private:
-
 	/**
 	 * Reads data from serial UART and places it into a buffer.
 	 */
@@ -109,13 +106,12 @@ private:
 
 	PX4Rangefinder _px4_rangefinder;
 
-	char _port[20] {};
+	char _port[20]{};
 
 	int _file_descriptor{-1};
 
-	uint8_t _buffer[ULANDING_BUFFER_LENGTH] {};
+	uint8_t _buffer[ULANDING_BUFFER_LENGTH]{};
 
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
-
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME ": com_err")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": read")};
 };

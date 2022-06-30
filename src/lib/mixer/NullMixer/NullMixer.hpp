@@ -40,8 +40,7 @@
  *
  * Used as a placeholder for output channels that are unassigned in groups.
  */
-class NullMixer : public Mixer
-{
+class NullMixer : public Mixer {
 public:
 	NullMixer() : Mixer(nullptr, 0) {}
 	virtual ~NullMixer() = default;
@@ -65,11 +64,10 @@ public:
 	 * @return			A new NullMixer instance, or nullptr
 	 *				if the text format is bad.
 	 */
-	static NullMixer		*from_text(const char *buf, unsigned &buflen);
+	static NullMixer *from_text(const char *buf, unsigned &buflen);
 
-	unsigned			mix(float *outputs, unsigned space) override;
+	unsigned mix(float *outputs, unsigned space) override;
 
-	unsigned			set_trim(float trim) override { return 1; }
-	unsigned			get_trim(float *trim) override { return 1; }
-
+	unsigned set_trim(float trim) override { return 1; }
+	unsigned get_trim(float *trim) override { return 1; }
 };

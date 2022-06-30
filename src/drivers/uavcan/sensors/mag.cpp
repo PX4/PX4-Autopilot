@@ -44,15 +44,10 @@
 
 const char *const UavcanMagnetometerBridge::NAME = "mag";
 
-UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_mag", ORB_ID(sensor_mag)),
-	_sub_mag(node),
-	_sub_mag2(node)
-{
-}
+UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode &node)
+	: UavcanSensorBridgeBase("uavcan_mag", ORB_ID(sensor_mag)), _sub_mag(node), _sub_mag2(node) {}
 
-int UavcanMagnetometerBridge::init()
-{
+int UavcanMagnetometerBridge::init() {
 	int res = _sub_mag.start(MagCbBinder(this, &UavcanMagnetometerBridge::mag_sub_cb));
 
 	if (res < 0) {
@@ -70,9 +65,8 @@ int UavcanMagnetometerBridge::init()
 	return 0;
 }
 
-void UavcanMagnetometerBridge::mag_sub_cb(const
-		uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength> &msg)
-{
+void UavcanMagnetometerBridge::mag_sub_cb(
+	const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength> &msg) {
 	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
 
 	if (channel == nullptr) {
@@ -94,10 +88,8 @@ void UavcanMagnetometerBridge::mag_sub_cb(const
 	mag->update(hrt_absolute_time(), x, y, z);
 }
 
-void
-UavcanMagnetometerBridge::mag2_sub_cb(const
-				      uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength2> &msg)
-{
+void UavcanMagnetometerBridge::mag2_sub_cb(
+	const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength2> &msg) {
 	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
 
 	if (channel == nullptr || channel->instance < 0) {
@@ -119,8 +111,7 @@ UavcanMagnetometerBridge::mag2_sub_cb(const
 	mag->update(hrt_absolute_time(), x, y, z);
 }
 
-int UavcanMagnetometerBridge::init_driver(uavcan_bridge::Channel *channel)
-{
+int UavcanMagnetometerBridge::init_driver(uavcan_bridge::Channel *channel) {
 	// update device id as we now know our device node_id
 	DeviceId device_id{_device_id};
 

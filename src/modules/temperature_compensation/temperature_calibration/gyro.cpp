@@ -39,15 +39,15 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
+#include "gyro.h"
+
+#include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
 #include <uORB/topics/sensor_gyro.h>
-#include "gyro.h"
-#include <drivers/drv_hrt.h>
 
 TemperatureCalibrationGyro::TemperatureCalibrationGyro(float min_temperature_rise, float min_start_temperature,
-		float max_start_temperature, int gyro_subs[], int num_gyros)
-	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature, max_start_temperature)
-{
+						       float max_start_temperature, int gyro_subs[], int num_gyros)
+	: TemperatureCalibrationCommon(min_temperature_rise, min_start_temperature, max_start_temperature) {
 	for (int i = 0; i < num_gyros; ++i) {
 		_sensor_subs[i] = gyro_subs[i];
 	}
@@ -55,8 +55,7 @@ TemperatureCalibrationGyro::TemperatureCalibrationGyro(float min_temperature_ris
 	_num_sensor_instances = num_gyros;
 }
 
-int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int sensor_sub)
-{
+int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int sensor_sub) {
 	bool finished = data.hot_soaked;
 
 	bool updated;
@@ -102,8 +101,9 @@ int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int 
 
 			} else {
 				data.cold_soaked = true;
-				data.low_temp = data.sensor_sample_filt[3]; // Record the low temperature
-				data.high_temp = data.low_temp; // Initialise the high temperature to the initial temperature
+				data.low_temp = data.sensor_sample_filt[3];  // Record the low temperature
+				data.high_temp =
+					data.low_temp;  // Initialise the high temperature to the initial temperature
 				data.ref_temp = data.sensor_sample_filt[3] + 0.5f * _min_temperature_rise;
 				return 1;
 			}
@@ -127,14 +127,14 @@ int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int 
 		data.hot_soaked = true;
 	}
 
-	if (sensor_sub == _sensor_subs[0]) { // debug output, but only for the first sensor
+	if (sensor_sub == _sensor_subs[0]) {  // debug output, but only for the first sensor
 		TC_DEBUG("\nGyro: %.20f,%.20f,%.20f,%.20f, %.6f, %.6f, %.6f\n\n", (double)data.sensor_sample_filt[0],
-			 (double)data.sensor_sample_filt[1],
-			 (double)data.sensor_sample_filt[2], (double)data.sensor_sample_filt[3], (double)data.low_temp, (double)data.high_temp,
+			 (double)data.sensor_sample_filt[1], (double)data.sensor_sample_filt[2],
+			 (double)data.sensor_sample_filt[3], (double)data.low_temp, (double)data.high_temp,
 			 (double)(data.high_temp - data.low_temp));
 	}
 
-	//update linear fit matrices
+	// update linear fit matrices
 	double relative_temperature = (double)data.sensor_sample_filt[3] - (double)data.ref_temp;
 	data.P[0].update(relative_temperature, (double)data.sensor_sample_filt[0]);
 	data.P[1].update(relative_temperature, (double)data.sensor_sample_filt[1]);
@@ -143,8 +143,7 @@ int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int 
 	return 1;
 }
 
-int TemperatureCalibrationGyro::finish()
-{
+int TemperatureCalibrationGyro::finish() {
 	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
 		finish_sensor_instance(_data[uorb_index], uorb_index);
 	}
@@ -159,8 +158,7 @@ int TemperatureCalibrationGyro::finish()
 	return result;
 }
 
-int TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int sensor_index)
-{
+int TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int sensor_index) {
 	if (!data.has_valid_temperature) {
 		PX4_WARN("Result Gyro %d does not have a valid temperature sensor", sensor_index);
 		data.tempcal_complete = true;
@@ -174,22 +172,19 @@ int TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int 
 		return 0;
 	}
 
-	double res[3][4] {};
+	double res[3][4]{};
 	data.P[0].fit(res[0]);
 	PX4_INFO("Result Gyro %d Axis 0: %.20f %.20f %.20f %.20f", sensor_index, (double)res[0][0], (double)res[0][1],
-		 (double)res[0][2],
-		 (double)res[0][3]);
+		 (double)res[0][2], (double)res[0][3]);
 	data.P[1].fit(res[1]);
 	PX4_INFO("Result Gyro %d Axis 1: %.20f %.20f %.20f %.20f", sensor_index, (double)res[1][0], (double)res[1][1],
-		 (double)res[1][2],
-		 (double)res[1][3]);
+		 (double)res[1][2], (double)res[1][3]);
 	data.P[2].fit(res[2]);
 	PX4_INFO("Result Gyro %d Axis 2: %.20f %.20f %.20f %.20f", sensor_index, (double)res[2][0], (double)res[2][1],
-		 (double)res[2][2],
-		 (double)res[2][3]);
+		 (double)res[2][2], (double)res[2][3]);
 	data.tempcal_complete = true;
 
-	char str[30] {};
+	char str[30]{};
 	float param = 0.0f;
 	int result = PX4_OK;
 

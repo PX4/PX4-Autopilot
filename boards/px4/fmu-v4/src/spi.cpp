@@ -31,44 +31,53 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
 #include <drivers/drv_sensor.h>
 #include <nuttx/spi/spi.h>
+#include <px4_arch/spi_hw_description.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortC, GPIO::Pin15}, SPI::DRDY{GPIO::PortC, GPIO::Pin14}),
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20608G, SPI::CS{GPIO::PortC, GPIO::Pin15}, SPI::DRDY{GPIO::PortC, GPIO::Pin14}),
-		initSPIDevice(DRV_MAG_DEVTYPE_HMC5883, SPI::CS{GPIO::PortE, GPIO::Pin15}, SPI::DRDY{GPIO::PortE, GPIO::Pin12}), // hmc5983
-		initSPIDevice(DRV_MAG_DEVTYPE_LIS3MDL, SPI::CS{GPIO::PortE, GPIO::Pin15}, SPI::DRDY{GPIO::PortE, GPIO::Pin12}),
-	}, {GPIO::PortE, GPIO::Pin3}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10}),
-		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
-	}),
-	initSPIBusExternal(SPI::Bus::SPI4, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin8}),
-	}),
+	initSPIBus(SPI::Bus::SPI1,
+		   {
+			   initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortC, GPIO::Pin2},
+					 SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
+			   initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortC, GPIO::Pin15},
+					 SPI::DRDY{GPIO::PortC, GPIO::Pin14}),
+			   initSPIDevice(DRV_IMU_DEVTYPE_ICM20608G, SPI::CS{GPIO::PortC, GPIO::Pin15},
+					 SPI::DRDY{GPIO::PortC, GPIO::Pin14}),
+			   initSPIDevice(DRV_MAG_DEVTYPE_HMC5883, SPI::CS{GPIO::PortE, GPIO::Pin15},
+					 SPI::DRDY{GPIO::PortE, GPIO::Pin12}),  // hmc5983
+			   initSPIDevice(DRV_MAG_DEVTYPE_LIS3MDL, SPI::CS{GPIO::PortE, GPIO::Pin15},
+					 SPI::DRDY{GPIO::PortE, GPIO::Pin12}),
+		   },
+		   {GPIO::PortE, GPIO::Pin3}),
+	initSPIBus(SPI::Bus::SPI2,
+		   {
+			   initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10}),
+			   initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
+		   }),
+	initSPIBusExternal(SPI::Bus::SPI4,
+			   {
+				   initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin8}),
+			   }),
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses);
 
-__EXPORT bool board_has_bus(enum board_bus_types type, uint32_t bus)
-{
+__EXPORT bool board_has_bus(enum board_bus_types type, uint32_t bus) {
 	bool rv = true;
 
 	switch (type) {
-	case BOARD_SPI_BUS:
+		case BOARD_SPI_BUS:
 #ifdef CONFIG_STM32_SPI4
-		rv = bus != 4 || (stm32_gpioread(GPIO_8266_GPIO2) == 0);
+			rv = bus != 4 || (stm32_gpioread(GPIO_8266_GPIO2) == 0);
 #endif /* CONFIG_STM32_SPI4 */
-		break;
+			break;
 
-	case BOARD_I2C_BUS:
-		break;
+		case BOARD_I2C_BUS:
+			break;
 
-	default: break;
+		default:
+			break;
 	}
 
 	return rv;

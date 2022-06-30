@@ -33,43 +33,39 @@
 
 #include "MPL3115A2.hpp"
 
-#define MPL3115A2_REG_WHO_AM_I   0x0c
-#define MPL3115A2_WHO_AM_I       0xC4
+#define MPL3115A2_REG_WHO_AM_I 0x0c
+#define MPL3115A2_WHO_AM_I 0xC4
 
-#define OUT_P_MSB                0x01
+#define OUT_P_MSB 0x01
 
-#define MPL3115A2_CTRL_REG1      0x26
-#  define CTRL_REG1_ALT          (1 << 7)
-#  define CTRL_REG1_RAW          (1 << 6)
-#  define CTRL_REG1_OS_SHIFTS    (3)
-#  define CTRL_REG1_OS_MASK      (0x7 << CTRL_REG1_OS_SHIFTS)
-#  define CTRL_REG1_OS(n)        (((n)& 0x7) << CTRL_REG1_OS_SHIFTS)
-#  define CTRL_REG1_RST          (1 << 2)
-#  define CTRL_REG1_OST          (1 << 1)
-#  define CTRL_REG1_SBYB         (1 << 0)
+#define MPL3115A2_CTRL_REG1 0x26
+#define CTRL_REG1_ALT (1 << 7)
+#define CTRL_REG1_RAW (1 << 6)
+#define CTRL_REG1_OS_SHIFTS (3)
+#define CTRL_REG1_OS_MASK (0x7 << CTRL_REG1_OS_SHIFTS)
+#define CTRL_REG1_OS(n) (((n)&0x7) << CTRL_REG1_OS_SHIFTS)
+#define CTRL_REG1_RST (1 << 2)
+#define CTRL_REG1_OST (1 << 1)
+#define CTRL_REG1_SBYB (1 << 0)
 
-#define MPL3115A2_CONVERSION_INTERVAL	10000	/* microseconds */
-#define MPL3115A2_OSR                   2       /* Over Sample rate of 4 18MS Minimum time between data samples */
-#define MPL3115A2_CTRL_TRIGGER          (CTRL_REG1_OST | CTRL_REG1_OS(MPL3115A2_OSR))
+#define MPL3115A2_CONVERSION_INTERVAL 10000 /* microseconds */
+#define MPL3115A2_OSR 2                     /* Over Sample rate of 4 18MS Minimum time between data samples */
+#define MPL3115A2_CTRL_TRIGGER (CTRL_REG1_OST | CTRL_REG1_OS(MPL3115A2_OSR))
 
-MPL3115A2::MPL3115A2(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
-{
-}
+MPL3115A2::MPL3115A2(const I2CSPIDriverConfig &config)
+	: I2C(config),
+	  I2CSPIDriver(config),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": measure")),
+	  _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME ": com_err")) {}
 
-MPL3115A2::~MPL3115A2()
-{
+MPL3115A2::~MPL3115A2() {
 	perf_free(_sample_perf);
 	perf_free(_measure_perf);
 	perf_free(_comms_errors);
 }
 
-int MPL3115A2::init()
-{
+int MPL3115A2::init() {
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
@@ -82,12 +78,10 @@ int MPL3115A2::init()
 	return PX4_OK;
 }
 
-int MPL3115A2::probe()
-{
+int MPL3115A2::probe() {
 	uint8_t whoami = 0;
 
 	if ((RegisterRead(MPL3115A2_REG_WHO_AM_I, &whoami) > 0) && (whoami == MPL3115A2_WHO_AM_I)) {
-
 		return PX4_OK;
 	}
 
@@ -96,22 +90,19 @@ int MPL3115A2::probe()
 	return -EIO;
 }
 
-int MPL3115A2::RegisterRead(uint8_t reg, void *data, unsigned count)
-{
+int MPL3115A2::RegisterRead(uint8_t reg, void *data, unsigned count) {
 	uint8_t cmd = reg;
 	int ret = transfer(&cmd, 1, (uint8_t *)data, count);
 	return ret == PX4_OK ? count : ret;
 }
 
-int MPL3115A2::RegisterWrite(uint8_t reg, uint8_t data)
-{
-	uint8_t buf[2] = { reg, data};
+int MPL3115A2::RegisterWrite(uint8_t reg, uint8_t data) {
+	uint8_t buf[2] = {reg, data};
 	int ret = transfer(buf, sizeof(buf), NULL, 0);
 	return ret == PX4_OK ? 2 : ret;
 }
 
-void MPL3115A2::start()
-{
+void MPL3115A2::start() {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 
@@ -119,8 +110,7 @@ void MPL3115A2::start()
 	ScheduleNow();
 }
 
-int MPL3115A2::reset()
-{
+int MPL3115A2::reset() {
 	int max = 10;
 	RegisterWrite(MPL3115A2_CTRL_REG1, CTRL_REG1_RST);
 	int rv = CTRL_REG1_RST;
@@ -134,13 +124,11 @@ int MPL3115A2::reset()
 	return ret == 1 ? PX4_OK : ret;
 }
 
-void MPL3115A2::RunImpl()
-{
+void MPL3115A2::RunImpl() {
 	int ret = PX4_ERROR;
 
 	/* collection phase? */
 	if (_collect_phase) {
-
 		/* perform collection */
 		ret = collect();
 
@@ -187,8 +175,7 @@ void MPL3115A2::RunImpl()
 	ScheduleDelayed(MPL3115A2_CONVERSION_INTERVAL);
 }
 
-int MPL3115A2::measure()
-{
+int MPL3115A2::measure() {
 	perf_begin(_measure_perf);
 
 	// Send the command to read the ADC for P and T.
@@ -205,8 +192,7 @@ int MPL3115A2::measure()
 	return PX4_OK;
 }
 
-int MPL3115A2::collect()
-{
+int MPL3115A2::collect() {
 	perf_begin(_sample_perf);
 
 	uint8_t ctrl{};
@@ -222,11 +208,10 @@ int MPL3115A2::collect()
 		return -EAGAIN;
 	}
 
-
 	/* read the most recent measurement
 	 * 3 Pressure and 2 temprtture
 	 */
-	uint8_t	b[3 + 2] {};
+	uint8_t b[3 + 2]{};
 	uint8_t reg = OUT_P_MSB;
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	ret = transfer(&reg, 1, &b[0], sizeof(b));
@@ -242,21 +227,21 @@ int MPL3115A2::collect()
 		union {
 			uint32_t q;
 			uint16_t w[sizeof(q) / sizeof(uint16_t)];
-			uint8_t  b[sizeof(q) / sizeof(uint8_t)];
+			uint8_t b[sizeof(q) / sizeof(uint8_t)];
 		} pressure;
 
 		union {
 			uint16_t w;
-			uint8_t  b[sizeof(w)];
+			uint8_t b[sizeof(w)];
 		} temperature;
 	} reading;
 #pragma pack(pop)
 
-	reading.pressure.q = ((uint32_t)b[0]) << 18 | ((uint32_t) b[1]) << 10 | (((uint32_t)b[2]) & 0xc0) << 2 | ((
-				     b[2] & 0x30) >> 4);
-	reading.temperature.w = ((uint16_t) b[3]) << 8 | (b[4] >> 4);
+	reading.pressure.q =
+		((uint32_t)b[0]) << 18 | ((uint32_t)b[1]) << 10 | (((uint32_t)b[2]) & 0xc0) << 2 | ((b[2] & 0x30) >> 4);
+	reading.temperature.w = ((uint16_t)b[3]) << 8 | (b[4] >> 4);
 
-	float T = (float) reading.temperature.b[1] + ((float)(reading.temperature.b[0]) / 16.0f);
+	float T = (float)reading.temperature.b[1] + ((float)(reading.temperature.b[0]) / 16.0f);
 	float P = (float)(reading.pressure.q >> 8) + ((float)(reading.pressure.b[0]) / 4.0f);
 
 	// publish
@@ -274,8 +259,7 @@ int MPL3115A2::collect()
 	return PX4_OK;
 }
 
-void MPL3115A2::print_status()
-{
+void MPL3115A2::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);

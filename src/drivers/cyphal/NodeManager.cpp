@@ -43,28 +43,26 @@
 
 #include "NodeManager.hpp"
 
-void NodeManager::callback(const CanardRxTransfer &receive)
-{
+void NodeManager::callback(const CanardRxTransfer &receive) {
 	if (_canard_handle.mtu() == CANARD_MTU_CAN_FD) {
-		uavcan_pnp_NodeIDAllocationData_2_0 node_id_alloc_msg {};
+		uavcan_pnp_NodeIDAllocationData_2_0 node_id_alloc_msg{};
 		size_t msg_size_in_bytes = receive.payload_size;
 		uavcan_pnp_NodeIDAllocationData_2_0_deserialize_(&node_id_alloc_msg, (const uint8_t *)receive.payload,
-				&msg_size_in_bytes);
+								 &msg_size_in_bytes);
 		/// do something with the data
 		HandleNodeIDRequest(node_id_alloc_msg);
 
 	} else {
-		uavcan_pnp_NodeIDAllocationData_1_0 node_id_alloc_msg {};
+		uavcan_pnp_NodeIDAllocationData_1_0 node_id_alloc_msg{};
 		size_t msg_size_in_bytes = receive.payload_size;
 		uavcan_pnp_NodeIDAllocationData_1_0_deserialize_(&node_id_alloc_msg, (const uint8_t *)receive.payload,
-				&msg_size_in_bytes);
+								 &msg_size_in_bytes);
 		/// do something with the data
 		HandleNodeIDRequest(node_id_alloc_msg);
 	}
 }
 
-bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
-{
+bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg) {
 	if (msg.allocated_node_id.count == 0) {
 		uint32_t i;
 
@@ -74,47 +72,51 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 		/* Search for an available NodeID to assign */
 		for (i = 1; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
 			if (i == _canard_handle.node_id()) {
-				continue; // Don't give our NodeID to a node
+				continue;  // Don't give our NodeID to a node
 
-			} else if (nodeid_registry[i].node_id == 0) { // Unused
+			} else if (nodeid_registry[i].node_id == 0) {  // Unused
 				nodeid_registry[i].node_id = i;
 				memcpy(&nodeid_registry[i].unique_id, &msg.unique_id_hash, 6);
 				break;
 
 			} else if (memcmp(&nodeid_registry[i].unique_id[0], &msg.unique_id_hash, 6) == 0) {
-				msg.allocated_node_id.elements[0].value = nodeid_registry[i].node_id; // Existing NodeID
+				msg.allocated_node_id.elements[0].value =
+					nodeid_registry[i].node_id;  // Existing NodeID
 				break;
 			}
 		}
 
-		nodeid_registry[i].register_setup = false; // Re-instantiate register setup
+		nodeid_registry[i].register_setup = false;  // Re-instantiate register setup
 		nodeid_registry[i].register_index = 0;
 		nodeid_registry[i].retry_count = 0;
 
 		if (msg.allocated_node_id.elements[0].value != CANARD_NODE_ID_UNSET) {
+			PX4_INFO("Received NodeID allocation request assigning %i",
+				 msg.allocated_node_id.elements[0].value);
 
-			PX4_INFO("Received NodeID allocation request assigning %i", msg.allocated_node_id.elements[0].value);
-
-			uint8_t node_id_alloc_payload_buffer[uavcan_pnp_NodeIDAllocationData_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
+			uint8_t node_id_alloc_payload_buffer
+				[uavcan_pnp_NodeIDAllocationData_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
 			size_t payload_size = uavcan_pnp_NodeIDAllocationData_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_;
 
 			const CanardTransferMetadata transfer_metadata = {
-				.priority       = CanardPriorityNominal,
-				.transfer_kind  = CanardTransferKindMessage,
-				.port_id        = uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_, // This is the subject-ID.
-				.remote_node_id = CANARD_NODE_ID_UNSET,       // Messages cannot be unicast, so use UNSET.
-				.transfer_id    = _uavcan_pnp_nodeidallocation_v1_transfer_id,
+				.priority = CanardPriorityNominal,
+				.transfer_kind = CanardTransferKindMessage,
+				.port_id =
+					uavcan_pnp_NodeIDAllocationData_1_0_FIXED_PORT_ID_,  // This is the subject-ID.
+				.remote_node_id = CANARD_NODE_ID_UNSET,  // Messages cannot be unicast, so use UNSET.
+				.transfer_id = _uavcan_pnp_nodeidallocation_v1_transfer_id,
 			};
 
-			int result = uavcan_pnp_NodeIDAllocationData_1_0_serialize_(&msg, node_id_alloc_payload_buffer, &payload_size);
+			int result = uavcan_pnp_NodeIDAllocationData_1_0_serialize_(&msg, node_id_alloc_payload_buffer,
+										    &payload_size);
 
 			if (result == 0) {
 				// set the data ready in the buffer and chop if needed
-				++_uavcan_pnp_nodeidallocation_v1_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
+				++_uavcan_pnp_nodeidallocation_v1_transfer_id;  // The transfer-ID shall be incremented
+										// after every transmission on this
+										// subject.
 				_canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
-						      &transfer_metadata,
-						      payload_size,
-						      &node_id_alloc_payload_buffer);
+						      &transfer_metadata, payload_size, &node_id_alloc_payload_buffer);
 			}
 
 			_register_request_last = hrt_absolute_time();
@@ -126,15 +128,12 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 	return false;
 }
 
-bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg)
-{
-	//TODO v2 node id
+bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg) {
+	// TODO v2 node id
 	return false;
 }
 
-
-void NodeManager::HandleListResponse(const CanardRxTransfer &receive)
-{
+void NodeManager::HandleListResponse(const CanardRxTransfer &receive) {
 	uavcan_register_List_Response_1_0 msg;
 
 	size_t register_in_size_bits = receive.payload_size;
@@ -144,20 +143,21 @@ void NodeManager::HandleListResponse(const CanardRxTransfer &receive)
 		// Index doesn't exist, we've parsed through all registers
 		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
 			if (nodeid_registry[i].node_id == receive.metadata.remote_node_id) {
-				nodeid_registry[i].register_setup = true; // Don't update anymore
+				nodeid_registry[i].register_setup = true;  // Don't update anymore
 			}
 		}
 
 	} else {
 		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
 			if (nodeid_registry[i].node_id == receive.metadata.remote_node_id) {
-				nodeid_registry[i].register_index++; // Increment index counter for next update()
+				nodeid_registry[i].register_index++;  // Increment index counter for next update()
 				nodeid_registry[i].register_setup = false;
 				nodeid_registry[i].retry_count = 0;
 			}
 		}
 
-		if (_access_request.setPortId(receive.metadata.remote_node_id, msg.name, NULL)) { //FIXME confirm handler
+		if (_access_request.setPortId(receive.metadata.remote_node_id, msg.name,
+					      NULL)) {  // FIXME confirm handler
 			PX4_INFO("Set portID succesfull");
 
 		} else {
@@ -165,18 +165,18 @@ void NodeManager::HandleListResponse(const CanardRxTransfer &receive)
 		}
 	}
 }
-void NodeManager::update()
-{
-	if (hrt_elapsed_time(&_register_request_last) >= hrt_abstime(2 *
-			1000000ULL)) { // Compiler hates me here, some 1_s doesn't work
+void NodeManager::update() {
+	if (hrt_elapsed_time(&_register_request_last) >=
+	    hrt_abstime(2 * 1000000ULL)) {  // Compiler hates me here, some 1_s doesn't work
 		for (uint32_t i = 0; i < sizeof(nodeid_registry) / sizeof(nodeid_registry[0]); i++) {
 			if (nodeid_registry[i].node_id != 0 && nodeid_registry[i].register_setup == false) {
-				//Setting up registers
-				_list_request.getIndex(nodeid_registry[i].node_id, nodeid_registry[i].register_index, this);
+				// Setting up registers
+				_list_request.getIndex(nodeid_registry[i].node_id, nodeid_registry[i].register_index,
+						       this);
 				nodeid_registry[i].retry_count++;
 
 				if (nodeid_registry[i].retry_count > RETRY_COUNT) {
-					nodeid_registry[i].register_setup = true; // Don't update anymore
+					nodeid_registry[i].register_setup = true;  // Don't update anymore
 				}
 			}
 		}

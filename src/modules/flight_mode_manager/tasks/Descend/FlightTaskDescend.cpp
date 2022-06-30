@@ -36,8 +36,7 @@
 
 #include "FlightTaskDescend.hpp"
 
-bool FlightTaskDescend::activate(const trajectory_setpoint_s &last_setpoint)
-{
+bool FlightTaskDescend::activate(const trajectory_setpoint_s &last_setpoint) {
 	bool ret = FlightTask::activate(last_setpoint);
 	// stay level to minimize horizontal drift
 	_acceleration_setpoint = matrix::Vector3f(0.f, 0.f, NAN);
@@ -46,8 +45,7 @@ bool FlightTaskDescend::activate(const trajectory_setpoint_s &last_setpoint)
 	return ret;
 }
 
-bool FlightTaskDescend::update()
-{
+bool FlightTaskDescend::update() {
 	bool ret = FlightTask::update();
 
 	if (PX4_ISFINITE(_velocity(2))) {

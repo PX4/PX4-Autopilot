@@ -36,6 +36,7 @@
  */
 
 #include "ObstacleAvoidance.hpp"
+
 #include "bezier/BezierN.hpp"
 
 using namespace matrix;
@@ -47,19 +48,15 @@ static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
 static constexpr uint64_t TIME_BEFORE_FAILSAFE = 500_ms;
 static constexpr uint64_t Z_PROGRESS_TIMEOUT_US = 2_s;
 
-ObstacleAvoidance::ObstacleAvoidance(ModuleParams *parent) :
-	ModuleParams(parent)
-{
+ObstacleAvoidance::ObstacleAvoidance(ModuleParams *parent) : ModuleParams(parent) {
 	_desired_waypoint = empty_trajectory_waypoint;
 	_failsafe_position.setNaN();
 	_avoidance_point_not_valid_hysteresis.set_hysteresis_time_from(false, TIME_BEFORE_FAILSAFE);
 	_no_progress_z_hysteresis.set_hysteresis_time_from(false, Z_PROGRESS_TIMEOUT_US);
-
 }
 
 void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, float &yaw_sp,
-		float &yaw_speed_sp)
-{
+						 float &yaw_speed_sp) {
 	_sub_vehicle_status.update();
 	_sub_vehicle_trajectory_waypoint.update();
 	_sub_vehicle_trajectory_bezier.update();
@@ -69,18 +66,19 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 
 	const bool avoidance_data_timeout =
 		hrt_elapsed_time((hrt_abstime *)&wp_msg.timestamp) > TRAJECTORY_STREAM_TIMEOUT_US &&
-		hrt_elapsed_time((hrt_abstime *)&bezier_msg.timestamp) > hrt_abstime(bezier_msg.control_points[bezier_msg.bezier_order -
-							1].delta * 1e6f);
+		hrt_elapsed_time((hrt_abstime *)&bezier_msg.timestamp) >
+			hrt_abstime(bezier_msg.control_points[bezier_msg.bezier_order - 1].delta * 1e6f);
 
 	const bool avoidance_point_valid = wp_msg.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid;
 	const bool avoidance_bezier_valid = bezier_msg.bezier_order > 0;
 
-	_avoidance_point_not_valid_hysteresis.set_state_and_update(!avoidance_point_valid
-			&& !avoidance_bezier_valid, hrt_absolute_time());
+	_avoidance_point_not_valid_hysteresis.set_state_and_update(!avoidance_point_valid && !avoidance_bezier_valid,
+								   hrt_absolute_time());
 
 	const bool avoidance_invalid = (avoidance_data_timeout || _avoidance_point_not_valid_hysteresis.get_state());
 
-	if ((_sub_vehicle_status.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) && avoidance_invalid) {
+	if ((_sub_vehicle_status.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) &&
+	    avoidance_invalid) {
 		// if in nav_state LOITER and avoidance isn't healthy, don't inject setpoints from avoidance system
 		return;
 	}
@@ -89,8 +87,8 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 		PX4_WARN("Obstacle Avoidance system failed, loitering");
 		_publishVehicleCmdDoLoiter();
 
-		if (!PX4_ISFINITE(_failsafe_position(0)) || !PX4_ISFINITE(_failsafe_position(1))
-		    || !PX4_ISFINITE(_failsafe_position(2))) {
+		if (!PX4_ISFINITE(_failsafe_position(0)) || !PX4_ISFINITE(_failsafe_position(1)) ||
+		    !PX4_ISFINITE(_failsafe_position(2))) {
 			// save vehicle position when entering failsafe
 			_failsafe_position = _position;
 		}
@@ -112,27 +110,25 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 
 		if (!_ext_yaw_active) {
 			// inject yaw setpoints only if weathervane isn't active
-			yaw_sp =  point0.yaw;
+			yaw_sp = point0.yaw;
 			yaw_speed_sp = point0.yaw_speed;
 		}
 
 	} else if (avoidance_bezier_valid) {
-
 		float yaw = NAN, yaw_speed = NAN;
 		_generateBezierSetpoints(pos_sp, vel_sp, yaw, yaw_speed);
 
 		if (!_ext_yaw_active) {
 			// inject yaw setpoints only if weathervane isn't active
-			yaw_sp =  yaw;
+			yaw_sp = yaw;
 			yaw_speed_sp = yaw_speed;
 		}
 	}
 }
 
-void ObstacleAvoidance::_generateBezierSetpoints(matrix::Vector3f &position, matrix::Vector3f &velocity,
-		float &yaw, float &yaw_velocity)
-{
-	const auto &msg =  _sub_vehicle_trajectory_bezier.get();
+void ObstacleAvoidance::_generateBezierSetpoints(matrix::Vector3f &position, matrix::Vector3f &velocity, float &yaw,
+						 float &yaw_velocity) {
+	const auto &msg = _sub_vehicle_trajectory_bezier.get();
 	int bezier_order = msg.bezier_order;
 	matrix::Vector3f bezier_points[bezier_order];
 	float bezier_yaws[bezier_order];
@@ -151,8 +147,7 @@ void ObstacleAvoidance::_generateBezierSetpoints(matrix::Vector3f &position, mat
 
 	if (bezier::calculateT(start, end, now, T) &&
 	    bezier::calculateBezierPosVel(bezier_points, bezier_order, T, position, velocity) &&
-	    bezier::calculateBezierYaw(bezier_yaws, bezier_order, T, yaw, yaw_velocity)
-	   ) {
+	    bezier::calculateBezierYaw(bezier_yaws, bezier_order, T, yaw, yaw_velocity)) {
 		// translate bezier velocities T [0;1] into real velocities m/s
 		yaw_velocity /= duration_s;
 		velocity /= duration_s;
@@ -162,11 +157,10 @@ void ObstacleAvoidance::_generateBezierSetpoints(matrix::Vector3f &position, mat
 	}
 }
 
-
 void ObstacleAvoidance::updateAvoidanceDesiredWaypoints(const Vector3f &curr_wp, const float curr_yaw,
-		const float curr_yawspeed, const Vector3f &next_wp, const float next_yaw, const float next_yawspeed,
-		const bool ext_yaw_active, const int wp_type)
-{
+							const float curr_yawspeed, const Vector3f &next_wp,
+							const float next_yaw, const float next_yawspeed,
+							const bool ext_yaw_active, const int wp_type) {
 	_desired_waypoint.timestamp = hrt_absolute_time();
 	_desired_waypoint.type = vehicle_trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
 	_curr_wp = curr_wp;
@@ -174,7 +168,8 @@ void ObstacleAvoidance::updateAvoidanceDesiredWaypoints(const Vector3f &curr_wp,
 
 	curr_wp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].position);
 	Vector3f(NAN, NAN, NAN).copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].velocity);
-	Vector3f(NAN, NAN, NAN).copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].acceleration);
+	Vector3f(NAN, NAN, NAN)
+		.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].acceleration);
 
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].yaw = curr_yaw;
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].yaw_speed = curr_yawspeed;
@@ -183,15 +178,16 @@ void ObstacleAvoidance::updateAvoidanceDesiredWaypoints(const Vector3f &curr_wp,
 
 	next_wp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].position);
 	Vector3f(NAN, NAN, NAN).copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].velocity);
-	Vector3f(NAN, NAN, NAN).copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].acceleration);
+	Vector3f(NAN, NAN, NAN)
+		.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].acceleration);
 
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].yaw = next_yaw;
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].yaw_speed = next_yawspeed;
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].point_valid = true;
 }
 
-void ObstacleAvoidance::updateAvoidanceDesiredSetpoints(const Vector3f &pos_sp, const Vector3f &vel_sp, const int type)
-{
+void ObstacleAvoidance::updateAvoidanceDesiredSetpoints(const Vector3f &pos_sp, const Vector3f &vel_sp,
+							const int type) {
 	pos_sp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_0].position);
 	vel_sp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity);
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_0].type = type;
@@ -203,8 +199,7 @@ void ObstacleAvoidance::updateAvoidanceDesiredSetpoints(const Vector3f &pos_sp, 
 }
 
 void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector3f &prev_wp,
-		float target_acceptance_radius, const Vector2f &closest_pt)
-{
+					       float target_acceptance_radius, const Vector2f &closest_pt) {
 	_position = pos;
 	position_controller_status_s pos_control_status = {};
 	pos_control_status.timestamp = hrt_absolute_time();
@@ -229,8 +224,8 @@ void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector
 	bool no_progress_z = (pos_to_target_z > _prev_pos_to_target_z);
 	_no_progress_z_hysteresis.set_state_and_update(no_progress_z, hrt_absolute_time());
 
-	if (pos_to_target.length() < target_acceptance_radius && pos_to_target_z > _param_nav_mc_alt_rad.get()
-	    && _no_progress_z_hysteresis.get_state()) {
+	if (pos_to_target.length() < target_acceptance_radius && pos_to_target_z > _param_nav_mc_alt_rad.get() &&
+	    _no_progress_z_hysteresis.get_state()) {
 		// vehicle above or below the target waypoint
 		pos_control_status.altitude_acceptance = pos_to_target_z + 0.5f;
 	}
@@ -243,13 +238,12 @@ void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector
 	_pub_pos_control_status.publish(pos_control_status);
 }
 
-void ObstacleAvoidance::_publishVehicleCmdDoLoiter()
-{
+void ObstacleAvoidance::_publishVehicleCmdDoLoiter() {
 	vehicle_command_s command{};
 	command.timestamp = hrt_absolute_time();
 	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
-	command.param1 = (float)1; // base mode
-	command.param3 = (float)0; // sub mode
+	command.param1 = (float)1;  // base mode
+	command.param3 = (float)0;  // sub mode
 	command.target_system = 1;
 	command.target_component = 1;
 	command.source_system = 1;

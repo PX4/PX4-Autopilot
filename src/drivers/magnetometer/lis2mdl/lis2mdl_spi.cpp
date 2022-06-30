@@ -37,55 +37,45 @@
  * SPI interface for LIS2MDL
  */
 
-#include <px4_platform_common/px4_config.h>
-
 #include <assert.h>
 #include <debug.h>
+#include <drivers/device/spi.h>
 #include <errno.h>
-#include <stdint.h>
+#include <px4_platform_common/px4_config.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include <drivers/device/spi.h>
 
 #include "board_config.h"
 #include "lis2mdl.h"
 
 /* SPI protocol address bits */
-#define DIR_READ        (1<<7)
-#define DIR_WRITE       (0<<7)
-#define ADDR_INCREMENT  (1<<6)
+#define DIR_READ (1 << 7)
+#define DIR_WRITE (0 << 7)
+#define ADDR_INCREMENT (1 << 6)
 
-class LIS2MDL_SPI : public device::SPI
-{
+class LIS2MDL_SPI : public device::SPI {
 public:
 	LIS2MDL_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 	virtual ~LIS2MDL_SPI() = default;
 
-	virtual int     init();
-	virtual int     read(unsigned address, void *data, unsigned count);
-	virtual int     write(unsigned address, void *data, unsigned count);
+	virtual int init();
+	virtual int read(unsigned address, void *data, unsigned count);
+	virtual int write(unsigned address, void *data, unsigned count);
 };
 
-device::Device *
-LIS2MDL_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
+device::Device *LIS2MDL_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 
-device::Device *
-LIS2MDL_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode)
-{
+device::Device *LIS2MDL_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode) {
 	return new LIS2MDL_SPI(bus, devid, bus_frequency, spi_mode);
 }
 
-LIS2MDL_SPI::LIS2MDL_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode) :
-	SPI(DRV_MAG_DEVTYPE_LIS2MDL, "LIS2MDL_SPI", bus, devid, spi_mode, bus_frequency)
-{
-}
+LIS2MDL_SPI::LIS2MDL_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode)
+	: SPI(DRV_MAG_DEVTYPE_LIS2MDL, "LIS2MDL_SPI", bus, devid, spi_mode, bus_frequency) {}
 
-int
-LIS2MDL_SPI::init()
-{
+int LIS2MDL_SPI::init() {
 	int ret;
 
 	ret = SPI::init();
@@ -110,9 +100,7 @@ LIS2MDL_SPI::init()
 	return OK;
 }
 
-int
-LIS2MDL_SPI::read(unsigned address, void *data, unsigned count)
-{
+int LIS2MDL_SPI::read(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {
@@ -126,9 +114,7 @@ LIS2MDL_SPI::read(unsigned address, void *data, unsigned count)
 	return ret;
 }
 
-int
-LIS2MDL_SPI::write(unsigned address, void *data, unsigned count)
-{
+int LIS2MDL_SPI::write(unsigned address, void *data, unsigned count) {
 	uint8_t buf[32];
 
 	if (sizeof(buf) < (count + 1)) {

@@ -126,8 +126,9 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_THR, 1.0f);
  * tailsitter, tiltrotor: main throttle
  *
  * Note for standard vtol:
- * For ESCs and mixers that support reverse thrust on low PWM values set this to a negative value to apply active breaking
- * For ESCs that support thrust reversal with a control channel please set VT_B_REV_OUT and set this to a positive value to apply active breaking
+ * For ESCs and mixers that support reverse thrust on low PWM values set this to a negative value to apply active
+ * breaking For ESCs that support thrust reversal with a control channel please set VT_B_REV_OUT and set this to a
+ * positive value to apply active breaking
  *
  * @min -1
  * @max 1
@@ -141,8 +142,9 @@ PARAM_DEFINE_FLOAT(VT_B_TRANS_THR, 0.0f);
  * Approximate deceleration during back transition
  *
  * The approximate deceleration during a back transition in m/s/s
- * Used to calculate back transition distance in mission mode. A lower value will make the VTOL transition further from the destination waypoint.
- * For standard vtol and tiltrotors a controller is used to track this value during the transition.
+ * Used to calculate back transition distance in mission mode. A lower value will make the VTOL transition further from
+ * the destination waypoint. For standard vtol and tiltrotors a controller is used to track this value during the
+ * transition.
  *
  * @unit m/s^2
  * @min 0.5
@@ -221,8 +223,8 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
 /**
  * Adaptive QuadChute
  *
- * Maximum negative altitude error for fixed wing flight. If the altitude drops below this value below the altitude setpoint
- * the vehicle will transition back to MC mode and enter failsafe RTL.
+ * Maximum negative altitude error for fixed wing flight. If the altitude drops below this value below the altitude
+ * setpoint the vehicle will transition back to MC mode and enter failsafe RTL.
  * @min 0.0
  * @max 200.0
  * @group VTOL Attitude Control

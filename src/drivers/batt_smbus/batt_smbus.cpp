@@ -47,23 +47,20 @@
 
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
-BATT_SMBUS::BATT_SMBUS(const I2CSPIDriverConfig &config, SMBus *interface) :
-	I2CSPIDriver(config),
-	_interface(interface)
-{
+BATT_SMBUS::BATT_SMBUS(const I2CSPIDriverConfig &config, SMBus *interface)
+	: I2CSPIDriver(config), _interface(interface) {
 	int32_t battsource = 1;
 	int32_t batt_device_type = static_cast<int32_t>(SMBUS_DEVICE_TYPE::UNDEFINED);
 
 	param_set(param_find("BAT1_SOURCE"), &battsource);
 	param_get(param_find("BAT1_SMBUS_MODEL"), &batt_device_type);
 
-
-	//TODO: probe the device and autodetect its type
+	// TODO: probe the device and autodetect its type
 	if ((SMBUS_DEVICE_TYPE)batt_device_type == SMBUS_DEVICE_TYPE::BQ40Z80) {
 		_device_type = SMBUS_DEVICE_TYPE::BQ40Z80;
 
 	} else {
-		//default
+		// default
 		_device_type = SMBUS_DEVICE_TYPE::BQ40Z50;
 	}
 
@@ -74,8 +71,7 @@ BATT_SMBUS::BATT_SMBUS(const I2CSPIDriverConfig &config, SMBus *interface) :
 	unseal();
 }
 
-BATT_SMBUS::~BATT_SMBUS()
-{
+BATT_SMBUS::~BATT_SMBUS() {
 	orb_unadvertise(_batt_topic);
 	perf_free(_cycle);
 
@@ -87,8 +83,7 @@ BATT_SMBUS::~BATT_SMBUS()
 	param_set(param_find("BAT1_SOURCE"), &battsource);
 }
 
-void BATT_SMBUS::RunImpl()
-{
+void BATT_SMBUS::RunImpl() {
 	int ret = PX4_OK;
 
 	// Temporary variable for storing SMBUS reads.
@@ -197,18 +192,11 @@ void BATT_SMBUS::RunImpl()
 	}
 }
 
-void BATT_SMBUS::suspend()
-{
-	ScheduleClear();
-}
+void BATT_SMBUS::suspend() { ScheduleClear(); }
 
-void BATT_SMBUS::resume()
-{
-	ScheduleOnInterval(BATT_SMBUS_MEASUREMENT_INTERVAL_US);
-}
+void BATT_SMBUS::resume() { ScheduleOnInterval(BATT_SMBUS_MEASUREMENT_INTERVAL_US); }
 
-int BATT_SMBUS::get_cell_voltages()
-{
+int BATT_SMBUS::get_cell_voltages() {
 	// Temporary variable for storing SMBUS reads.
 	uint16_t result = 0;
 	int ret = PX4_OK;
@@ -234,9 +222,9 @@ int BATT_SMBUS::get_cell_voltages()
 		_cell_voltages[6] = 0;
 
 	} else if (_device_type == SMBUS_DEVICE_TYPE::BQ40Z80) {
-		uint8_t DAstatus1[32 + 2] = {}; // 32 bytes of data and 2 bytes of address
+		uint8_t DAstatus1[32 + 2] = {};  // 32 bytes of data and 2 bytes of address
 
-		//TODO: need to consider if set voltages to 0? -1?
+		// TODO: need to consider if set voltages to 0? -1?
 		if (PX4_OK != manufacturer_read(BATT_SMBUS_DASTATUS1, DAstatus1, sizeof(DAstatus1))) {
 			return PX4_ERROR;
 		}
@@ -247,12 +235,12 @@ int BATT_SMBUS::get_cell_voltages()
 		_cell_voltages[2] = ((float)((DAstatus1[5] << 8) | DAstatus1[4]) / 1000.0f);
 		_cell_voltages[3] = ((float)((DAstatus1[7] << 8) | DAstatus1[6]) / 1000.0f);
 
-		_pack_power = ((float)((DAstatus1[29] << 8) | DAstatus1[28]) / 100.0f); //TODO: decide if both needed
+		_pack_power = ((float)((DAstatus1[29] << 8) | DAstatus1[28]) / 100.0f);  // TODO: decide if both needed
 		_pack_average_power = ((float)((DAstatus1[31] << 8) | DAstatus1[30]) / 100.0f);
 
-		uint8_t DAstatus3[18 + 2] = {}; // 18 bytes of data and 2 bytes of address
+		uint8_t DAstatus3[18 + 2] = {};  // 18 bytes of data and 2 bytes of address
 
-		//TODO: need to consider if set voltages to 0? -1?
+		// TODO: need to consider if set voltages to 0? -1?
 		if (PX4_OK != manufacturer_read(BATT_SMBUS_DASTATUS3, DAstatus3, sizeof(DAstatus3))) {
 			return PX4_ERROR;
 		}
@@ -260,10 +248,9 @@ int BATT_SMBUS::get_cell_voltages()
 		_cell_voltages[4] = ((float)((DAstatus3[1] << 8) | DAstatus3[0]) / 1000.0f);
 		_cell_voltages[5] = ((float)((DAstatus3[7] << 8) | DAstatus3[6]) / 1000.0f);
 		_cell_voltages[6] = ((float)((DAstatus3[13] << 8) | DAstatus3[12]) / 1000.0f);
-
 	}
 
-	//Calculate max cell delta
+	// Calculate max cell delta
 	_min_cell_voltage = _cell_voltages[0];
 	float max_cell_voltage = _cell_voltages[0];
 
@@ -273,14 +260,13 @@ int BATT_SMBUS::get_cell_voltages()
 	}
 
 	// Calculate the max difference between the min and max cells with complementary filter.
-	_max_cell_voltage_delta = (0.5f * (max_cell_voltage - _min_cell_voltage)) +
-				  (0.5f * _last_report.max_cell_voltage_delta);
+	_max_cell_voltage_delta =
+		(0.5f * (max_cell_voltage - _min_cell_voltage)) + (0.5f * _last_report.max_cell_voltage_delta);
 
 	return ret;
 }
 
-void BATT_SMBUS::set_undervoltage_protection(float average_current)
-{
+void BATT_SMBUS::set_undervoltage_protection(float average_current) {
 	// Disable undervoltage protection if armed. Enable if disarmed and cell voltage is above limit.
 	if (average_current > BATT_CURRENT_UNDERVOLTAGE_THRESHOLD) {
 		if (_cell_undervoltage_protection_status != 0) {
@@ -314,12 +300,10 @@ void BATT_SMBUS::set_undervoltage_protection(float average_current)
 			}
 		}
 	}
-
 }
 
 //@NOTE: Currently unused, could be helpful for debugging a parameter set though.
-int BATT_SMBUS::dataflash_read(const uint16_t address, void *data, const unsigned length)
-{
+int BATT_SMBUS::dataflash_read(const uint16_t address, void *data, const unsigned length) {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
 
 	int ret = _interface->block_write(code, &address, 2, true);
@@ -333,8 +317,7 @@ int BATT_SMBUS::dataflash_read(const uint16_t address, void *data, const unsigne
 	return ret;
 }
 
-int BATT_SMBUS::dataflash_write(const uint16_t address, void *data, const unsigned length)
-{
+int BATT_SMBUS::dataflash_write(const uint16_t address, void *data, const unsigned length) {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
 
 	uint8_t tx_buf[MAC_DATA_BUFFER_SIZE + 2] = {};
@@ -354,8 +337,7 @@ int BATT_SMBUS::dataflash_write(const uint16_t address, void *data, const unsign
 	return ret;
 }
 
-int BATT_SMBUS::get_startup_info()
-{
+int BATT_SMBUS::get_startup_info() {
 	int ret = PX4_OK;
 
 	// Read battery threshold params on startup.
@@ -369,8 +351,8 @@ int BATT_SMBUS::get_startup_info()
 	param_get(param_find("BAT1_N_CELLS"), &cell_count_param);
 	_cell_count = math::min((uint8_t)cell_count_param, MAX_NUM_OF_CELLS);
 
-	ret |= _interface->block_read(BATT_SMBUS_MANUFACTURER_NAME, _manufacturer_name, BATT_SMBUS_MANUFACTURER_NAME_SIZE,
-				      true);
+	ret |= _interface->block_read(BATT_SMBUS_MANUFACTURER_NAME, _manufacturer_name,
+				      BATT_SMBUS_MANUFACTURER_NAME_SIZE, true);
 	_manufacturer_name[sizeof(_manufacturer_name) - 1] = '\0';
 
 	uint16_t serial_num;
@@ -418,8 +400,7 @@ int BATT_SMBUS::get_startup_info()
 	return ret;
 }
 
-int BATT_SMBUS::manufacturer_read(const uint16_t cmd_code, void *data, const unsigned length)
-{
+int BATT_SMBUS::manufacturer_read(const uint16_t cmd_code, void *data, const unsigned length) {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
 
 	uint8_t address[2] = {};
@@ -433,13 +414,12 @@ int BATT_SMBUS::manufacturer_read(const uint16_t cmd_code, void *data, const uns
 	}
 
 	ret = _interface->block_read(code, data, length, true);
-	memmove(data, &((uint8_t *)data)[2], length - 2); // remove the address bytes
+	memmove(data, &((uint8_t *)data)[2], length - 2);  // remove the address bytes
 
 	return ret;
 }
 
-int BATT_SMBUS::manufacturer_write(const uint16_t cmd_code, void *data, const unsigned length)
-{
+int BATT_SMBUS::manufacturer_write(const uint16_t cmd_code, void *data, const unsigned length) {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
 
 	uint8_t tx_buf[MAC_DATA_BUFFER_SIZE + 2] = {};
@@ -455,8 +435,7 @@ int BATT_SMBUS::manufacturer_write(const uint16_t cmd_code, void *data, const un
 	return ret;
 }
 
-int BATT_SMBUS::unseal()
-{
+int BATT_SMBUS::unseal() {
 	// See bq40z50 technical reference.
 	uint16_t keys[2] = {0x0414, 0x3672};
 
@@ -467,34 +446,30 @@ int BATT_SMBUS::unseal()
 	return ret;
 }
 
-int BATT_SMBUS::seal()
-{
+int BATT_SMBUS::seal() {
 	// See bq40z50 technical reference.
 	return manufacturer_write(BATT_SMBUS_SEAL, nullptr, 0);
 }
 
-int BATT_SMBUS::lifetime_data_flush()
-{
-	return manufacturer_write(BATT_SMBUS_LIFETIME_FLUSH, nullptr, 0);
-}
+int BATT_SMBUS::lifetime_data_flush() { return manufacturer_write(BATT_SMBUS_LIFETIME_FLUSH, nullptr, 0); }
 
-int BATT_SMBUS::lifetime_read_block_one()
-{
-	uint8_t lifetime_block_one[32 + 2] = {}; // 32 bytes of data and 2 bytes of address
+int BATT_SMBUS::lifetime_read_block_one() {
+	uint8_t lifetime_block_one[32 + 2] = {};  // 32 bytes of data and 2 bytes of address
 
-	if (PX4_OK != manufacturer_read(BATT_SMBUS_LIFETIME_BLOCK_ONE, lifetime_block_one, sizeof(lifetime_block_one))) {
+	if (PX4_OK !=
+	    manufacturer_read(BATT_SMBUS_LIFETIME_BLOCK_ONE, lifetime_block_one, sizeof(lifetime_block_one))) {
 		PX4_INFO("Failed to read lifetime block 1.");
 		return PX4_ERROR;
 	}
 
-	//Get max cell voltage delta and convert from mV to V.
+	// Get max cell voltage delta and convert from mV to V.
 	if (_device_type == SMBUS_DEVICE_TYPE::BQ40Z50) {
-
-		_lifetime_max_delta_cell_voltage = (float)(lifetime_block_one[17] << 8 | lifetime_block_one[16]) / 1000.0f;
+		_lifetime_max_delta_cell_voltage =
+			(float)(lifetime_block_one[17] << 8 | lifetime_block_one[16]) / 1000.0f;
 
 	} else if (_device_type == SMBUS_DEVICE_TYPE::BQ40Z80) {
-
-		_lifetime_max_delta_cell_voltage = (float)(lifetime_block_one[29] << 8 | lifetime_block_one[28]) / 1000.0f;
+		_lifetime_max_delta_cell_voltage =
+			(float)(lifetime_block_one[29] << 8 | lifetime_block_one[28]) / 1000.0f;
 	}
 
 	PX4_INFO("Max Cell Delta: %4.2f", (double)_lifetime_max_delta_cell_voltage);
@@ -502,8 +477,7 @@ int BATT_SMBUS::lifetime_read_block_one()
 	return PX4_OK;
 }
 
-void BATT_SMBUS::print_usage()
-{
+void BATT_SMBUS::print_usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -527,15 +501,15 @@ $ batt_smbus -X write_flash 19069 2 27 0
 	PRINT_MODULE_USAGE_COMMAND_DESCR("suspend", "Suspends the driver from rescheduling the cycle.");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("resume", "Resumes the driver from suspension.");
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("write_flash", "Writes to flash. The device must first be unsealed with the unseal command.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("write_flash",
+					 "Writes to flash. The device must first be unsealed with the unseal command.");
 	PRINT_MODULE_USAGE_ARG("address", "The address to start writing.", true);
 	PRINT_MODULE_USAGE_ARG("number of bytes", "Number of bytes to send.", true);
 	PRINT_MODULE_USAGE_ARG("data[0]...data[n]", "One byte of data at a time separated by spaces.", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *BATT_SMBUS::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+I2CSPIDriverBase *BATT_SMBUS::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	SMBus *interface = new SMBus(DRV_BAT_DEVTYPE_SMBUS, config.bus, config.i2c_address);
 	if (interface == nullptr) {
 		PX4_ERR("alloc failed");
@@ -560,16 +534,13 @@ I2CSPIDriverBase *BATT_SMBUS::instantiate(const I2CSPIDriverConfig &config, int 
 	return instance;
 }
 
-void
-BATT_SMBUS::custom_method(const BusCLIArguments &cli)
-{
-	switch(cli.custom1) {
+void BATT_SMBUS::custom_method(const BusCLIArguments &cli) {
+	switch (cli.custom1) {
 		case 1: {
 			PX4_INFO("The manufacturer name: %s", _manufacturer_name);
 			PX4_INFO("The manufacturer date: %" PRId16, _manufacture_date);
 			PX4_INFO("The serial number: %d" PRId16, _serial_number);
-		}
-			break;
+		} break;
 		case 2:
 			unseal();
 			break;
@@ -585,10 +556,10 @@ BATT_SMBUS::custom_method(const BusCLIArguments &cli)
 		case 6:
 			if (cli.custom_data) {
 				unsigned address = cli.custom2;
-				uint8_t *tx_buf = (uint8_t*)cli.custom_data;
+				uint8_t *tx_buf = (uint8_t *)cli.custom_data;
 				unsigned length = tx_buf[0];
 
-				if (PX4_OK != dataflash_write(address, tx_buf+1, length)) {
+				if (PX4_OK != dataflash_write(address, tx_buf + 1, length)) {
 					PX4_ERR("Dataflash write failed: %u", address);
 				}
 				px4_usleep(100_ms);
@@ -597,8 +568,7 @@ BATT_SMBUS::custom_method(const BusCLIArguments &cli)
 	}
 }
 
-extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[])
-{
+extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]) {
 	using ThisDriver = BATT_SMBUS;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;
@@ -661,7 +631,7 @@ extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[])
 			// Data needs to be fed in 1 byte (0x01) at a time.
 			for (unsigned i = 0; i < length; i++) {
 				if ((unsigned)argc <= 3 + i) {
-					tx_buf[i+1] = atoi(argv[3 + i]);
+					tx_buf[i + 1] = atoi(argv[3 + i]);
 				}
 			}
 			cli.custom2 = address;

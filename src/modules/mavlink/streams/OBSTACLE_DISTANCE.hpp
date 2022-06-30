@@ -36,8 +36,7 @@
 
 #include <uORB/topics/obstacle_distance.h>
 
-class MavlinkStreamObstacleDistance : public MavlinkStream
-{
+class MavlinkStreamObstacleDistance : public MavlinkStream {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamObstacleDistance(mavlink); }
 
@@ -47,10 +46,10 @@ public:
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
-	unsigned get_size() override
-	{
-		return _obstacle_distance_fused_sub.advertised() ? (MAVLINK_MSG_ID_OBSTACLE_DISTANCE_LEN +
-				MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	unsigned get_size() override {
+		return _obstacle_distance_fused_sub.advertised()
+			       ? (MAVLINK_MSG_ID_OBSTACLE_DISTANCE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)
+			       : 0;
 	}
 
 private:
@@ -58,8 +57,7 @@ private:
 
 	uORB::Subscription _obstacle_distance_fused_sub{ORB_ID(obstacle_distance_fused)};
 
-	bool send() override
-	{
+	bool send() override {
 		obstacle_distance_s obstacle_distance;
 
 		if (_obstacle_distance_fused_sub.update(&obstacle_distance)) {
@@ -84,4 +82,4 @@ private:
 	}
 };
 
-#endif // OBSTACLE_DISTANCE_HPP
+#endif  // OBSTACLE_DISTANCE_HPP

@@ -44,11 +44,10 @@
 
 #if defined(CONFIG_I2C)
 
-#include <px4_platform_common/i2c_spi_buses.h>
 #include <nuttx/i2c/i2c_master.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 
-namespace device
-{
+namespace device {
 /*
  *  N.B. By defaulting the value of _bus_clocks to non Zero
  *  All calls to init() will NOT set the buss frequency
@@ -56,10 +55,8 @@ namespace device
 
 unsigned int I2C::_bus_clocks[PX4_NUMBER_I2C_BUSES] = PX4_I2C_BUS_CLOCK_INIT;
 
-I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t address, const uint32_t frequency) :
-	CDev(name, nullptr),
-	_frequency(frequency)
-{
+I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t address, const uint32_t frequency)
+	: CDev(name, nullptr), _frequency(frequency) {
 	// fill in _device_id fields for a I2C device
 	_device_id.devid_s.devtype = device_type;
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
@@ -68,21 +65,16 @@ I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t ad
 }
 
 I2C::I2C(const I2CSPIDriverConfig &config)
-	: I2C(config.devid_driver_index, config.module_name, config.bus, config.i2c_address, config.bus_frequency)
-{
-}
+	: I2C(config.devid_driver_index, config.module_name, config.bus, config.i2c_address, config.bus_frequency) {}
 
-I2C::~I2C()
-{
+I2C::~I2C() {
 	if (_dev) {
 		px4_i2cbus_uninitialize(_dev);
 		_dev = nullptr;
 	}
 }
 
-int
-I2C::set_bus_clock(unsigned bus, unsigned clock_hz)
-{
+int I2C::set_bus_clock(unsigned bus, unsigned clock_hz) {
 	int index = bus - 1;
 
 	if (index < 0 || index >= static_cast<int>(sizeof(_bus_clocks) / sizeof(_bus_clocks[0]))) {
@@ -98,9 +90,7 @@ I2C::set_bus_clock(unsigned bus, unsigned clock_hz)
 	return OK;
 }
 
-int
-I2C::init()
-{
+int I2C::init() {
 	int ret = PX4_ERROR;
 	unsigned bus_index;
 
@@ -122,8 +112,8 @@ I2C::init()
 	if (_bus_clocks[bus_index] > _frequency) {
 		(void)px4_i2cbus_uninitialize(_dev);
 		_dev = nullptr;
-		DEVICE_LOG("FAIL: too slow for bus #%u: %u KHz, device max: %" PRIu32 " KHz)",
-			   get_device_bus(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
+		DEVICE_LOG("FAIL: too slow for bus #%u: %u KHz, device max: %" PRIu32 " KHz)", get_device_bus(),
+			   _bus_clocks[bus_index] / 1000, _frequency / 1000);
 		ret = -EINVAL;
 		goto out;
 	}
@@ -161,8 +151,8 @@ I2C::init()
 	}
 
 	// tell the world where we are
-	DEVICE_DEBUG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %" PRIu32 " KHz)",
-		     get_device_bus(), get_device_address(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
+	DEVICE_DEBUG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %" PRIu32 " KHz)", get_device_bus(),
+		     get_device_address(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
 
 out:
 
@@ -174,9 +164,7 @@ out:
 	return ret;
 }
 
-int
-I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len)
-{
+int I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len) {
 	int ret = PX4_ERROR;
 	unsigned retry_count = 0;
 
@@ -188,7 +176,7 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 	do {
 		DEVICE_DEBUG("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
 
-		i2c_msg_s msgv[2] {};
+		i2c_msg_s msgv[2]{};
 		unsigned msgs = 0;
 
 		if (send_len > 0) {
@@ -229,7 +217,7 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 		if ((retry_count >= 1) || (retry_count >= _retries)) {
 #if defined(CONFIG_I2C_RESET)
 			I2C_RESET(_dev);
-#endif // CONFIG_I2C_RESET
+#endif  // CONFIG_I2C_RESET
 		}
 
 	} while (retry_count++ < _retries);
@@ -237,6 +225,6 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 	return ret;
 }
 
-} // namespace device
+}  // namespace device
 
-#endif // CONFIG_I2C
+#endif  // CONFIG_I2C

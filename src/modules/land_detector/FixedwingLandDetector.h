@@ -42,29 +42,26 @@
 
 #pragma once
 
-#include <matrix/math.hpp>
 #include <uORB/topics/airspeed_validated.h>
+
+#include <matrix/math.hpp>
 
 #include "LandDetector.h"
 
 using namespace time_literals;
 
-namespace land_detector
-{
+namespace land_detector {
 
-class FixedwingLandDetector final : public LandDetector
-{
+class FixedwingLandDetector final : public LandDetector {
 public:
 	FixedwingLandDetector();
 	~FixedwingLandDetector() override = default;
 
 protected:
-
 	bool _get_landed_state() override;
-	void _set_hysteresis_factor(const int factor) override {};
+	void _set_hysteresis_factor(const int factor) override{};
 
 private:
-
 	/** Time in us that landing conditions have to hold before triggering a land. */
 	static constexpr hrt_abstime LANDED_TRIGGER_TIME_US = 2_s;
 	static constexpr hrt_abstime FLYING_TRIGGER_TIME_US = 0_us;
@@ -76,13 +73,11 @@ private:
 	float _velocity_z_filtered{0.0f};
 	float _xy_accel_filtered{0.0f};
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(
-		LandDetector,
-		(ParamFloat<px4::params::LNDFW_XYACC_MAX>)  _param_lndfw_xyaccel_max,
-		(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>) _param_lndfw_airspd,
-		(ParamFloat<px4::params::LNDFW_VEL_XY_MAX>) _param_lndfw_vel_xy_max,
-		(ParamFloat<px4::params::LNDFW_VEL_Z_MAX>)  _param_lndfw_vel_z_max
-	);
+	DEFINE_PARAMETERS_CUSTOM_PARENT(LandDetector,
+					(ParamFloat<px4::params::LNDFW_XYACC_MAX>)_param_lndfw_xyaccel_max,
+					(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>)_param_lndfw_airspd,
+					(ParamFloat<px4::params::LNDFW_VEL_XY_MAX>)_param_lndfw_vel_xy_max,
+					(ParamFloat<px4::params::LNDFW_VEL_Z_MAX>)_param_lndfw_vel_z_max);
 };
 
-} // namespace land_detector
+}  // namespace land_detector

@@ -33,9 +33,7 @@
 
 #include "autopilot_tester.h"
 
-
-TEST_CASE("Fly forward in position control", "[multicopter][vtol]")
-{
+TEST_CASE("Fly forward in position control", "[multicopter][vtol]") {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();
@@ -47,8 +45,7 @@ TEST_CASE("Fly forward in position control", "[multicopter][vtol]")
 	tester.check_home_not_within(5.f);
 }
 
-TEST_CASE("Fly forward in altitude control", "[multicopter][vtol]")
-{
+TEST_CASE("Fly forward in altitude control", "[multicopter][vtol]") {
 	AutopilotTester tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();

@@ -36,12 +36,10 @@
  * Tests for floating point arithmetic.
  */
 
-#include <unit_test.h>
-
-#include <px4_platform_common/px4_config.h>
-
 #include <float.h>
 #include <math.h>
+#include <px4_platform_common/px4_config.h>
+#include <unit_test.h>
 
 typedef union {
 	float f;
@@ -49,10 +47,7 @@ typedef union {
 	uint8_t b[8];
 } test_float_double_t;
 
-
-
-class FloatTest : public UnitTest
-{
+class FloatTest : public UnitTest {
 public:
 	virtual bool run_tests();
 
@@ -61,8 +56,7 @@ private:
 	bool doublePrecisionTests();
 };
 
-bool FloatTest::singlePrecisionTests()
-{
+bool FloatTest::singlePrecisionTests() {
 	float sinf_zero = sinf(0.0f);
 	float sinf_one = sinf(1.0f);
 	float sqrt_two = sqrtf(2.0f);
@@ -71,7 +65,8 @@ bool FloatTest::singlePrecisionTests()
 	ut_assert("sinf(1.0f) == 0.84147f", fabsf((sinf_one - 0.841470956802368164062500000000f)) < FLT_EPSILON);
 
 	float asinf_one = asinf(1.0f);
-	ut_assert("asinf(1.0f) == 1.57079f", fabsf((asinf_one - 1.570796251296997070312500000000f)) < FLT_EPSILON * 1.5f);
+	ut_assert("asinf(1.0f) == 1.57079f",
+		  fabsf((asinf_one - 1.570796251296997070312500000000f)) < FLT_EPSILON * 1.5f);
 
 	float cosf_one = cosf(1.0f);
 	ut_assert("cosf(1.0f) == 0.54030f", fabsf((cosf_one - 0.540302336215972900390625000000f)) < FLT_EPSILON);
@@ -100,7 +95,7 @@ bool FloatTest::singlePrecisionTests()
 	ut_compare("sbuf[7]", sbuf[7], '4');
 	ut_compare("sbuf[8]", sbuf[8], '\0');
 
-	sprintf(sbuf, "%8.4f", (double) - 0.553415f);
+	sprintf(sbuf, "%8.4f", (double)-0.553415f);
 	ut_compare("sbuf[0]", sbuf[0], ' ');
 	ut_compare("sbuf[1]", sbuf[1], '-');
 	ut_compare("sbuf[2]", sbuf[2], '0');
@@ -114,9 +109,7 @@ bool FloatTest::singlePrecisionTests()
 	return true;
 }
 
-
-bool FloatTest::doublePrecisionTests()
-{
+bool FloatTest::doublePrecisionTests() {
 	float f1 = 1.55f;
 
 	double d1 = 1.0111;
@@ -131,17 +124,16 @@ bool FloatTest::doublePrecisionTests()
 
 	ut_assert("(float) 1.55f == 1.55 (double)", fabsf(f1 - (float)d1) < FLT_EPSILON);
 
-
 	double sin_zero = sin(0.0);
 	double sin_one = sin(1.0);
 	double atan2_ones = atan2(1.0, 1.0);
 
 	ut_assert("sin(0.0) == 0.0", fabs(sin_zero - 0.0) < DBL_EPSILON);
 	ut_assert("sin(1.0) == 0.84147098480", fabs(sin_one - 0.841470984807896504875657228695) < DBL_EPSILON);
-	ut_assert("atan2(1.0, 1.0) == 0.785398", fabs(atan2_ones - 0.785398163397448278999490867136) < 2.0 * DBL_EPSILON);
+	ut_assert("atan2(1.0, 1.0) == 0.785398",
+		  fabs(atan2_ones - 0.785398163397448278999490867136) < 2.0 * DBL_EPSILON);
 	ut_assert("testing pow() with magic value",
-		  (44330.0 * (1.0 - pow((96286LL / 101325.0), 0.190295))) - 428.2293 <  DBL_EPSILON);
-
+		  (44330.0 * (1.0 - pow((96286LL / 101325.0), 0.190295))) - 428.2293 < DBL_EPSILON);
 
 	char sbuf[30];
 	sprintf(sbuf, "%8.4f", 0.553415);
@@ -154,7 +146,6 @@ bool FloatTest::doublePrecisionTests()
 	ut_compare("sbuf[6]", sbuf[6], '3');
 	ut_compare("sbuf[7]", sbuf[7], '4');
 	ut_compare("sbuf[8]", sbuf[8], '\0');
-
 
 	sprintf(sbuf, "%8.4f", -0.553415);
 	ut_compare("sbuf[0]", sbuf[0], ' ');
@@ -170,8 +161,7 @@ bool FloatTest::doublePrecisionTests()
 	return true;
 }
 
-bool FloatTest::run_tests()
-{
+bool FloatTest::run_tests() {
 	ut_run_test(singlePrecisionTests);
 	ut_run_test(doublePrecisionTests);
 

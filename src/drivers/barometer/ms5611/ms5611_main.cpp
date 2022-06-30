@@ -31,17 +31,15 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module.h>
-
+#include <px4_platform_common/px4_config.h>
 
 #include "MS5611.hpp"
 #include "ms5611.h"
 
-I2CSPIDriverBase *MS5611::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
+I2CSPIDriverBase *MS5611::instantiate(const I2CSPIDriverConfig &config, int runtime_instance) {
 	ms5611::prom_u prom_buf;
 	device::Device *interface = nullptr;
 
@@ -51,10 +49,11 @@ I2CSPIDriverBase *MS5611::instantiate(const I2CSPIDriverConfig &config, int runt
 		interface = MS5611_i2c_interface(prom_buf, config.spi_devid, config.bus, config.bus_frequency);
 
 	} else
-#endif // CONFIG_I2C
+#endif  // CONFIG_I2C
 		if (config.bus_type == BOARD_SPI_BUS) {
-			interface = MS5611_spi_interface(prom_buf, config.spi_devid, config.bus, config.bus_frequency, config.spi_mode);
-		}
+		interface = MS5611_spi_interface(prom_buf, config.spi_devid, config.bus, config.bus_frequency,
+						 config.spi_mode);
+	}
 
 	if (interface == nullptr) {
 		PX4_ERR("alloc failed");
@@ -82,8 +81,7 @@ I2CSPIDriverBase *MS5611::instantiate(const I2CSPIDriverConfig &config, int runt
 	return dev;
 }
 
-void MS5611::print_usage()
-{
+void MS5611::print_usage() {
 	PRINT_MODULE_USAGE_NAME("ms5611", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -96,23 +94,22 @@ void MS5611::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int ms5611_main(int argc, char *argv[])
-{
+extern "C" int ms5611_main(int argc, char *argv[]) {
 	using ThisDriver = MS5611;
 	int ch;
 #if defined(CONFIG_I2C)
-	BusCLIArguments cli {true, true};
+	BusCLIArguments cli{true, true};
 	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = MS5611_ADDRESS_1;
 #else
-	BusCLIArguments cli {false, true};
+	BusCLIArguments cli{false, true};
 #endif
 	cli.default_spi_frequency = 16 * 1000 * 1000;
 	uint16_t dev_type_driver = DRV_BARO_DEVTYPE_MS5611;
 
 	while ((ch = cli.getOpt(argc, argv, "T:")) != EOF) {
 		switch (ch) {
-		case 'T': {
+			case 'T': {
 				int val = atoi(cli.optArg());
 
 				if (val == 5611) {
@@ -121,8 +118,7 @@ extern "C" int ms5611_main(int argc, char *argv[])
 				} else if (val == 5607) {
 					dev_type_driver = DRV_BARO_DEVTYPE_MS5607;
 				}
-			}
-			break;
+			} break;
 		}
 	}
 

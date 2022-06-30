@@ -39,37 +39,37 @@
 
 #include "baro_calibration.h"
 
-#include "commander_helper.h"
-#include "calibration_routines.h"
-#include "calibration_messages.h"
-
+#include <drivers/drv_hrt.h>
+#include <lib/geo/geo.h>
+#include <lib/systemlib/err.h>
+#include <lib/systemlib/mavlink_log.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
-#include <drivers/drv_hrt.h>
-#include <matrix/math.hpp>
-#include <lib/geo/geo.h>
-#include <lib/sensor_calibration/Barometer.hpp>
-#include <lib/sensor_calibration/Utilities.hpp>
-#include <lib/systemlib/mavlink_log.h>
-#include <lib/systemlib/err.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
+
+#include <lib/sensor_calibration/Barometer.hpp>
+#include <lib/sensor_calibration/Utilities.hpp>
+#include <matrix/math.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
+
+#include "calibration_messages.h"
+#include "calibration_routines.h"
+#include "commander_helper.h"
 
 using namespace matrix;
 using namespace time_literals;
 
-static constexpr char sensor_name[] {"baro"};
+static constexpr char sensor_name[]{"baro"};
 
 static constexpr int MAX_SENSOR_COUNT = 4;
 
-static float PressureToAltitude(float pressure_pa, float temperature)
-{
+static float PressureToAltitude(float pressure_pa, float temperature) {
 	// calculate altitude using the hypsometric equation
-	static constexpr float T1 = 15.f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
-	static constexpr float a = -6.5f / 1000.f; // temperature gradient in degrees per metre
+	static constexpr float T1 = 15.f - CONSTANTS_ABSOLUTE_NULL_CELSIUS;  // temperature at base height in Kelvin
+	static constexpr float a = -6.5f / 1000.f;  // temperature gradient in degrees per metre
 
 	// current pressure at MSL in kPa (QNH in hPa)
 	const float p1 = 1013.25f * 0.1f;
@@ -91,8 +91,7 @@ static float PressureToAltitude(float pressure_pa, float temperature)
 	return altitude;
 }
 
-int do_baro_calibration(orb_advert_t *mavlink_log_pub)
-{
+int do_baro_calibration(orb_advert_t *mavlink_log_pub) {
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
 
 	// GPS (used for reference)
@@ -100,19 +99,17 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 	float gps_altitude_sum = NAN;
 	int gps_altitude_sum_count = 0;
 
-
 	uORB::SubscriptionMultiArray<sensor_baro_s, MAX_SENSOR_COUNT> sensor_baro_subs{ORB_ID::sensor_baro};
-	calibration::Barometer calibration[MAX_SENSOR_COUNT] {};
+	calibration::Barometer calibration[MAX_SENSOR_COUNT]{};
 
-	uint64_t timestamp_sample_sum[MAX_SENSOR_COUNT] {0};
-	float data_sum[MAX_SENSOR_COUNT] {};
-	float temperature_sum[MAX_SENSOR_COUNT] {};
-	int data_sum_count[MAX_SENSOR_COUNT] {};
+	uint64_t timestamp_sample_sum[MAX_SENSOR_COUNT]{0};
+	float data_sum[MAX_SENSOR_COUNT]{};
+	float temperature_sum[MAX_SENSOR_COUNT]{};
+	int data_sum_count[MAX_SENSOR_COUNT]{};
 
 	const hrt_abstime time_start_us = hrt_absolute_time();
 
 	while (hrt_elapsed_time(&time_start_us) < 3_s) {
-
 		for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
 			sensor_baro_s sensor_baro;
 
@@ -133,9 +130,8 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 			sensor_gps_s sensor_gps;
 
 			if (gps_sub.update(&sensor_gps)) {
-				if ((hrt_elapsed_time(&sensor_gps.timestamp) < 1_s)
-				    && (sensor_gps.fix_type >= 2) && (sensor_gps.epv < 100)) {
-
+				if ((hrt_elapsed_time(&sensor_gps.timestamp) < 1_s) && (sensor_gps.fix_type >= 2) &&
+				    (sensor_gps.epv < 100)) {
 					float alt = sensor_gps.alt * 0.001f;
 
 					if (PX4_ISFINITE(gps_altitude_sum)) {
@@ -168,7 +164,6 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 
 	for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
 		if ((calibration[instance].device_id() != 0) && (data_sum_count[instance] > 0)) {
-
 			const float pressure_pa = data_sum[instance] / data_sum_count[instance];
 			const float temperature = temperature_sum[instance] / data_sum_count[instance];
 

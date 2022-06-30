@@ -36,32 +36,27 @@
  * Implementation of RP2040 based SoC version API
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_config.h>
 
-#define RP2040_CPUID_BASE	(RP2040_PPB_BASE + 0xed00)
+#define RP2040_CPUID_BASE (RP2040_PPB_BASE + 0xed00)
 
 /* magic numbers from reference manual */
 
-enum MCU_REV {
-	MCU_REV_RP2040_REV_1 = 0x1
-};
+enum MCU_REV { MCU_REV_RP2040_REV_1 = 0x1 };
 
 /* Define any issues with the Silicon as lines separated by \n
  * omitting the last \n
  */
 #define RP2040_ERRATA "This device does not have a unique id!"
 
-
 // RP2040 datasheet CPUID register
-# define REVID_MASK    0xF
-# define DEVID_MASK    0xFFFFFFF0
+#define REVID_MASK 0xF
+#define DEVID_MASK 0xFFFFFFF0
 
-# define RP2040_DEVICE_ID	0x410CC60
+#define RP2040_DEVICE_ID 0x410CC60
 
-
-int board_mcu_version(char *rev, const char **revstr, const char **errata)
-{
+int board_mcu_version(char *rev, const char **revstr, const char **errata) {
 	uint32_t abc = getreg32(RP2040_CPUID_BASE);
 
 	int32_t chip_version = (abc & DEVID_MASK) > 4;
@@ -69,28 +64,25 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 	const char *chip_errata = NULL;
 
 	switch (chip_version) {
+		case RP2040_DEVICE_ID:
+			*revstr = "RP2040";
+			chip_errata = RP2040_ERRATA;
+			break;
 
-
-	case RP2040_DEVICE_ID:
-		*revstr = "RP2040";
-		chip_errata = RP2040_ERRATA;
-		break;
-
-	default:
-		*revstr = "RPI???";
-		break;
+		default:
+			*revstr = "RPI???";
+			break;
 	}
 
 	switch (revid) {
+		case MCU_REV_RP2040_REV_1:
+			*rev = '1';
+			break;
 
-	case MCU_REV_RP2040_REV_1:
-		*rev = '1';
-		break;
-
-	default:
-		*rev = '?';
-		revid = -1;
-		break;
+		default:
+			*rev = '?';
+			revid = -1;
+			break;
 	}
 
 	if (errata) {

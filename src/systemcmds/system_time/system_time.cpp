@@ -36,29 +36,27 @@
 
 using namespace time_literals;
 
-static void	usage();
+static void usage();
 
 extern "C" {
-	__EXPORT int system_time_main(int argc, char *argv[]);
+__EXPORT int system_time_main(int argc, char *argv[]);
 }
 
-int
-system_time_main(int argc, char *argv[])
-{
+int system_time_main(int argc, char *argv[]) {
 	if (argc >= 2) {
 		if (!strcmp(argv[1], "get")) {
-			//get system time
+			// get system time
 			struct timespec ts = {};
 			px4_clock_gettime(CLOCK_REALTIME, &ts);
 			time_t utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
 
-			//convert to date time
+			// convert to date time
 			char buf[80];
 			struct tm date_time;
 			localtime_r(&utc_time_sec, &date_time);
 			strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S %Z", &date_time);
 
-			//get time since boot
+			// get time since boot
 			hrt_abstime since_boot_sec = hrt_absolute_time() / 1_s;
 
 			PX4_INFO("Unix epoch time: %ld", (long)utc_time_sec);
@@ -69,7 +67,7 @@ system_time_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "set")) {
 			if (argc == 3) {
-				//set system time
+				// set system time
 				struct timespec ts = {};
 				ts.tv_sec = (time_t)strtoul(argv[2], nullptr, 0);
 				ts.tv_nsec = 0.0;
@@ -91,22 +89,19 @@ system_time_main(int argc, char *argv[])
 			}
 		}
 
-		//unknown command
+		// unknown command
 		PX4_ERR("system_time: Unknown subcommand");
 		usage();
 		return 1;
 	}
 
-	//not enough arguments
+	// not enough arguments
 	PX4_ERR("system_time: not enough arguments");
 	usage();
 	return 1;
 }
 
-static void
-usage()
-{
-
+static void usage() {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
@@ -123,5 +118,4 @@ $ system_time get
 	PRINT_MODULE_USAGE_NAME("system_time", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("set", "Set the system time, provide time in unix epoch time format");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("get", "Get the system time");
-
 }

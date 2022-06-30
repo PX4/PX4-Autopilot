@@ -36,15 +36,10 @@
 using namespace matrix;
 
 ActuatorEffectivenessMultirotor::ActuatorEffectivenessMultirotor(ModuleParams *parent)
-	: ModuleParams(parent),
-	  _mc_rotors(this)
-{
-}
+	: ModuleParams(parent), _mc_rotors(this) {}
 
-bool
-ActuatorEffectivenessMultirotor::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
-{
+bool ActuatorEffectivenessMultirotor::getEffectivenessMatrix(Configuration &configuration,
+							     EffectivenessUpdateReason external_update) {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}

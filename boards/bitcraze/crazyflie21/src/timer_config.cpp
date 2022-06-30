@@ -39,8 +39,7 @@
  */
 #define TIMx_CLKIN 1000000
 
-static inline constexpr io_timers_t initIOTimerOverrideClockFreq(Timer::Timer timer)
-{
+static inline constexpr io_timers_t initIOTimerOverrideClockFreq(Timer::Timer timer) {
 	io_timers_t ret = initIOTimer(timer);
 	ret.clock_freq = TIMx_CLKIN;
 	return ret;

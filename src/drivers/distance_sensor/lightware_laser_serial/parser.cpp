@@ -39,112 +39,105 @@
  */
 
 #include "parser.h"
-#include <string.h>
+
 #include <stdlib.h>
+#include <string.h>
 
 //#define LW_DEBUG
 
 #ifdef LW_DEBUG
 #include <stdio.h>
 
-const char *parser_state[] = {
-	"0_UNSYNC",
-	"1_SYNC",
-	"2_GOT_DIGIT0",
-	"3_GOT_DOT",
-	"4_GOT_DIGIT1",
-	"5_GOT_DIGIT2",
-	"6_GOT_CARRIAGE_RETURN"
-};
+const char *parser_state[] = {"0_UNSYNC",     "1_SYNC",       "2_GOT_DIGIT0",         "3_GOT_DOT",
+			      "4_GOT_DIGIT1", "5_GOT_DIGIT2", "6_GOT_CARRIAGE_RETURN"};
 #endif
 
-int lightware_parser(char c, char *parserbuf, unsigned *parserbuf_index, enum LW_PARSE_STATE *state, float *dist)
-{
+int lightware_parser(char c, char *parserbuf, unsigned *parserbuf_index, enum LW_PARSE_STATE *state, float *dist) {
 	int ret = -1;
 	char *end;
 
 	switch (*state) {
-	case LW_PARSE_STATE0_UNSYNC:
-		if (c == '\n') {
-			*state = LW_PARSE_STATE1_SYNC;
-			(*parserbuf_index) = 0;
-		}
+		case LW_PARSE_STATE0_UNSYNC:
+			if (c == '\n') {
+				*state = LW_PARSE_STATE1_SYNC;
+				(*parserbuf_index) = 0;
+			}
 
-		break;
+			break;
 
-	case LW_PARSE_STATE1_SYNC:
-		if (c >= '0' && c <= '9') {
-			*state = LW_PARSE_STATE2_GOT_DIGIT0;
-			parserbuf[*parserbuf_index] = c;
-			(*parserbuf_index)++;
-		}
+		case LW_PARSE_STATE1_SYNC:
+			if (c >= '0' && c <= '9') {
+				*state = LW_PARSE_STATE2_GOT_DIGIT0;
+				parserbuf[*parserbuf_index] = c;
+				(*parserbuf_index)++;
+			}
 
-		break;
+			break;
 
-	case LW_PARSE_STATE2_GOT_DIGIT0:
-		if (c >= '0' && c <= '9') {
-			*state = LW_PARSE_STATE2_GOT_DIGIT0;
-			parserbuf[*parserbuf_index] = c;
-			(*parserbuf_index)++;
+		case LW_PARSE_STATE2_GOT_DIGIT0:
+			if (c >= '0' && c <= '9') {
+				*state = LW_PARSE_STATE2_GOT_DIGIT0;
+				parserbuf[*parserbuf_index] = c;
+				(*parserbuf_index)++;
 
-		} else if (c == '.') {
-			*state = LW_PARSE_STATE3_GOT_DOT;
-			parserbuf[*parserbuf_index] = c;
-			(*parserbuf_index)++;
+			} else if (c == '.') {
+				*state = LW_PARSE_STATE3_GOT_DOT;
+				parserbuf[*parserbuf_index] = c;
+				(*parserbuf_index)++;
 
-		} else {
-			*state = LW_PARSE_STATE0_UNSYNC;
-		}
+			} else {
+				*state = LW_PARSE_STATE0_UNSYNC;
+			}
 
-		break;
+			break;
 
-	case LW_PARSE_STATE3_GOT_DOT:
-		if (c >= '0' && c <= '9') {
-			*state = LW_PARSE_STATE4_GOT_DIGIT1;
-			parserbuf[*parserbuf_index] = c;
-			(*parserbuf_index)++;
+		case LW_PARSE_STATE3_GOT_DOT:
+			if (c >= '0' && c <= '9') {
+				*state = LW_PARSE_STATE4_GOT_DIGIT1;
+				parserbuf[*parserbuf_index] = c;
+				(*parserbuf_index)++;
 
-		} else {
-			*state = LW_PARSE_STATE0_UNSYNC;
-		}
+			} else {
+				*state = LW_PARSE_STATE0_UNSYNC;
+			}
 
-		break;
+			break;
 
-	case LW_PARSE_STATE4_GOT_DIGIT1:
-		if (c >= '0' && c <= '9') {
-			*state = LW_PARSE_STATE5_GOT_DIGIT2;
-			parserbuf[*parserbuf_index] = c;
-			(*parserbuf_index)++;
+		case LW_PARSE_STATE4_GOT_DIGIT1:
+			if (c >= '0' && c <= '9') {
+				*state = LW_PARSE_STATE5_GOT_DIGIT2;
+				parserbuf[*parserbuf_index] = c;
+				(*parserbuf_index)++;
 
-		} else {
-			*state = LW_PARSE_STATE0_UNSYNC;
-		}
+			} else {
+				*state = LW_PARSE_STATE0_UNSYNC;
+			}
 
-		break;
+			break;
 
-	case LW_PARSE_STATE5_GOT_DIGIT2:
-		if (c == '\r') {
-			*state = LW_PARSE_STATE6_GOT_CARRIAGE_RETURN;
+		case LW_PARSE_STATE5_GOT_DIGIT2:
+			if (c == '\r') {
+				*state = LW_PARSE_STATE6_GOT_CARRIAGE_RETURN;
 
-		} else {
-			*state = LW_PARSE_STATE0_UNSYNC;
-		}
+			} else {
+				*state = LW_PARSE_STATE0_UNSYNC;
+			}
 
-		break;
+			break;
 
-	case LW_PARSE_STATE6_GOT_CARRIAGE_RETURN:
-		if (c == '\n') {
-			parserbuf[*parserbuf_index] = '\0';
-			*dist = strtod(parserbuf, &end);
-			*state = LW_PARSE_STATE1_SYNC;
-			*parserbuf_index = 0;
-			ret = 0;
+		case LW_PARSE_STATE6_GOT_CARRIAGE_RETURN:
+			if (c == '\n') {
+				parserbuf[*parserbuf_index] = '\0';
+				*dist = strtod(parserbuf, &end);
+				*state = LW_PARSE_STATE1_SYNC;
+				*parserbuf_index = 0;
+				ret = 0;
 
-		} else {
-			*state = LW_PARSE_STATE0_UNSYNC;
-		}
+			} else {
+				*state = LW_PARSE_STATE0_UNSYNC;
+			}
 
-		break;
+			break;
 	}
 
 #ifdef LW_DEBUG

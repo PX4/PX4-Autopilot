@@ -37,9 +37,7 @@
 
 #include "geo_mag_declination.h"
 
-
-TEST(GeoLookupTest, declination)
-{
+TEST(GeoLookupTest, declination) {
 	EXPECT_NEAR(get_mag_declination_degrees(-50, -180), 31.38463, 0.40064 + 2);
 	EXPECT_NEAR(get_mag_declination_degrees(-50, -175), 31.58121, 0.3937 + 2);
 	EXPECT_NEAR(get_mag_declination_degrees(-50, -170), 31.59888, 0.38792 + 2);
@@ -1721,8 +1719,7 @@ TEST(GeoLookupTest, declination)
 	EXPECT_NEAR(get_mag_declination_degrees(60, 180), 1.55253, 0.4075 + 1);
 }
 
-TEST(GeoLookupTest, inclination)
-{
+TEST(GeoLookupTest, inclination) {
 	EXPECT_NEAR(get_mag_inclination_degrees(-50, -180), -71.59569, 0.21 + 2);
 	EXPECT_NEAR(get_mag_inclination_degrees(-50, -175), -70.60943, 0.21 + 2);
 	EXPECT_NEAR(get_mag_inclination_degrees(-50, -170), -69.63818, 0.21 + 2);
@@ -3404,8 +3401,7 @@ TEST(GeoLookupTest, inclination)
 	EXPECT_NEAR(get_mag_inclination_degrees(60, 180), 70.58177, 0.21 + 1.2);
 }
 
-TEST(GeoLookupTest, strength)
-{
+TEST(GeoLookupTest, strength) {
 	EXPECT_NEAR(get_mag_strength_tesla(-50, -180) * 1e9, 58450.3, 145 + 500);
 	EXPECT_NEAR(get_mag_strength_tesla(-50, -175) * 1e9, 57308.3, 145 + 500);
 	EXPECT_NEAR(get_mag_strength_tesla(-50, -170) * 1e9, 56153.1, 145 + 500);

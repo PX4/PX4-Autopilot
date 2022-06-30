@@ -41,48 +41,46 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
-#include <drivers/drv_hrt.h>
 #include <drivers/device/device.h>
+#include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/px4_config.h>
+
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #include "parser.h"
 
-class LightwareLaserSerial : public px4::ScheduledWorkItem
-{
+class LightwareLaserSerial : public px4::ScheduledWorkItem {
 public:
 	LightwareLaserSerial(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	~LightwareLaserSerial() override;
 
-	int 			init();
-	void				print_info();
+	int init();
+	void print_info();
 
 private:
+	void start();
+	void stop();
+	void Run() override;
+	int measure();
+	int collect();
 
-	void				start();
-	void				stop();
-	void				Run() override;
-	int				measure();
-	int				collect();
+	PX4Rangefinder _px4_rangefinder;
 
-	PX4Rangefinder                  _px4_rangefinder;
+	char _port[20]{};
+	int _interval{100000};
+	bool _collect_phase{false};
+	int _fd{-1};
+	char _linebuf[10]{};
+	unsigned _linebuf_index{0};
+	enum LW_PARSE_STATE _parse_state { LW_PARSE_STATE0_UNSYNC };
+	hrt_abstime _last_read{0};
+	bool _simple_serial{false};
 
-	char 				_port[20] {};
-	int         		        _interval{100000};
-	bool				_collect_phase{false};
-	int				_fd{-1};
-	char				_linebuf[10] {};
-	unsigned			_linebuf_index{0};
-	enum LW_PARSE_STATE		_parse_state {LW_PARSE_STATE0_UNSYNC};
-	hrt_abstime			_last_read{0};
-	bool				_simple_serial{false};
+	unsigned _consecutive_fail_count;
 
-	unsigned			_consecutive_fail_count;
-
-	perf_counter_t			_sample_perf;
-	perf_counter_t			_comms_errors;
-
+	perf_counter_t _sample_perf;
+	perf_counter_t _comms_errors;
 };

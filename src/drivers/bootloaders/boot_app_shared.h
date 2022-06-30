@@ -44,18 +44,15 @@ __BEGIN_DECLS
  * revision number of 00 used in app_descriptor_t
  */
 
-#define APP_DESCRIPTOR_SIGNATURE { 0x40, 0xa2, 0xe4, 0xf1, 0x64, 0x68, 0x91, 0x06 }
+#define APP_DESCRIPTOR_SIGNATURE \
+	{ 0x40, 0xa2, 0xe4, 0xf1, 0x64, 0x68, 0x91, 0x06 }
 
 /* N.B. the .ld file must emit this sections */
-# define boot_app_shared_section __attribute__((section(".app_descriptor")))
+#define boot_app_shared_section __attribute__((section(".app_descriptor")))
 
 /* eRole defines the role of the bootloader_app_shared_t structure */
 
-typedef enum eRole  {
-	Invalid,
-	App,
-	BootLoader
-} eRole_t;
+typedef enum eRole { Invalid, App, BootLoader } eRole_t;
 
 /****************************************************************************
  *
@@ -80,7 +77,7 @@ typedef enum eRole  {
  *      registers by bootloader_app_shared_read and
  *      bootloader_app_shared_write.
  *
-****************************************************************************/
+ ****************************************************************************/
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wattributes"
@@ -88,7 +85,7 @@ typedef begin_packed_struct struct bootloader_app_shared_t {
 	union {
 		uint64_t ull;
 		uint32_t ul[2];
-		uint8_t  valid;
+		uint8_t valid;
 	} crc;
 	uint32_t signature;
 	uint32_t bus_speed;
@@ -118,7 +115,7 @@ typedef begin_packed_struct struct bootloader_app_shared_t {
  *      4) The calculated CRC 64 is stored in image_crc
  *      5) The new image file is then written to a file a ".img" extension.
  *
-****************************************************************************/
+ ****************************************************************************/
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wattributes"
@@ -134,10 +131,10 @@ typedef begin_packed_struct struct app_descriptor_t {
 	};
 	uint32_t image_size;
 	uint32_t git_hash;
-	uint8_t  major_version;
-	uint8_t  minor_version;
+	uint8_t major_version;
+	uint8_t minor_version;
 	uint16_t board_id;
-	uint8_t reserved[ 3 + 3 + 2];
+	uint8_t reserved[3 + 3 + 2];
 } end_packed_struct app_descriptor_t;
 #pragma GCC diagnostic pop
 

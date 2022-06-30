@@ -36,23 +36,16 @@
 using namespace time_literals;
 using matrix::Vector3f;
 
-namespace mag_bias_estimator
-{
+namespace mag_bias_estimator {
 
-MagBiasEstimator::MagBiasEstimator() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
-{
+MagBiasEstimator::MagBiasEstimator()
+	: ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default) {
 	_magnetometer_bias_estimate_pub.advertise();
 }
 
-MagBiasEstimator::~MagBiasEstimator()
-{
-	perf_free(_cycle_perf);
-}
+MagBiasEstimator::~MagBiasEstimator() { perf_free(_cycle_perf); }
 
-int MagBiasEstimator::task_spawn(int argc, char *argv[])
-{
+int MagBiasEstimator::task_spawn(int argc, char *argv[]) {
 	MagBiasEstimator *obj = new MagBiasEstimator();
 
 	if (!obj) {
@@ -69,13 +62,11 @@ int MagBiasEstimator::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-void MagBiasEstimator::start()
-{
-	ScheduleOnInterval(20_ms); // 50 Hz
+void MagBiasEstimator::start() {
+	ScheduleOnInterval(20_ms);  // 50 Hz
 }
 
-void MagBiasEstimator::Run()
-{
+void MagBiasEstimator::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
@@ -157,7 +148,6 @@ void MagBiasEstimator::Run()
 	vehicle_angular_velocity_s vehicle_angular_velocity;
 
 	if (_vehicle_angular_velocity_sub.update(&vehicle_angular_velocity)) {
-
 		const Vector3f angular_velocity{vehicle_angular_velocity.xyz};
 
 		bool updated = false;
@@ -166,13 +156,13 @@ void MagBiasEstimator::Run()
 			sensor_mag_s sensor_mag;
 
 			while (_sensor_mag_subs[mag_index].update(&sensor_mag)) {
-
 				updated = true;
 
 				// apply existing mag calibration
 				_calibration[mag_index].set_device_id(sensor_mag.device_id);
 
-				const Vector3f mag_calibrated = _calibration[mag_index].Correct(Vector3f{sensor_mag.x, sensor_mag.y, sensor_mag.z});
+				const Vector3f mag_calibrated = _calibration[mag_index].Correct(
+					Vector3f{sensor_mag.x, sensor_mag.y, sensor_mag.z});
 
 				float dt = (sensor_mag.timestamp_sample - _timestamp_last_update[mag_index]) * 1e-6f;
 				_timestamp_last_update[mag_index] = sensor_mag.timestamp_sample;
@@ -200,21 +190,25 @@ void MagBiasEstimator::Run()
 					const Vector3f &bias = _bias_estimator[mag_index].getBias();
 					const Vector3f bias_rate = (bias - bias_prev) / dt;
 
-					if (!PX4_ISFINITE(bias(0)) || !PX4_ISFINITE(bias(1)) || !PX4_ISFINITE(bias(2)) || bias.longerThan(5.f)) {
+					if (!PX4_ISFINITE(bias(0)) || !PX4_ISFINITE(bias(1)) ||
+					    !PX4_ISFINITE(bias(2)) || bias.longerThan(5.f)) {
 						_reset_field_estimator[mag_index] = true;
 						_valid[mag_index] = false;
 						_time_valid[mag_index] = 0;
 
 					} else {
-
 						Vector3f fitness{
-							fabsf(angular_velocity(0)) / fmaxf(fabsf(bias_rate(1)) + fabsf(bias_rate(2)), 0.02f),
-							fabsf(angular_velocity(1)) / fmaxf(fabsf(bias_rate(0)) + fabsf(bias_rate(2)), 0.02f),
-							fabsf(angular_velocity(2)) / fmaxf(fabsf(bias_rate(0)) + fabsf(bias_rate(1)), 0.02f)
-						};
+							fabsf(angular_velocity(0)) /
+								fmaxf(fabsf(bias_rate(1)) + fabsf(bias_rate(2)), 0.02f),
+							fabsf(angular_velocity(1)) /
+								fmaxf(fabsf(bias_rate(0)) + fabsf(bias_rate(2)), 0.02f),
+							fabsf(angular_velocity(2)) /
+								fmaxf(fabsf(bias_rate(0)) + fabsf(bias_rate(1)),
+								      0.02f)};
 
 						const bool bias_significant = bias.longerThan(0.04f);
-						const bool has_converged = fitness(0) > 20.f || fitness(1) > 20.f || fitness(2) > 20.f;
+						const bool has_converged =
+							fitness(0) > 20.f || fitness(1) > 20.f || fitness(2) > 20.f;
 
 						if (bias_significant && has_converged) {
 							if (!_valid[mag_index]) {
@@ -236,8 +230,7 @@ void MagBiasEstimator::Run()
 	perf_end(_cycle_perf);
 }
 
-void MagBiasEstimator::publishMagBiasEstimate()
-{
+void MagBiasEstimator::publishMagBiasEstimate() {
 	magnetometer_bias_estimate_s mag_bias_est{};
 
 	for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
@@ -258,19 +251,15 @@ void MagBiasEstimator::publishMagBiasEstimate()
 	_magnetometer_bias_estimate_pub.publish(mag_bias_est);
 }
 
-int MagBiasEstimator::print_status()
-{
+int MagBiasEstimator::print_status() {
 	for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
 		if (_calibration[mag_index].device_id() != 0) {
-
 			_calibration[mag_index].PrintStatus();
 
 			const Vector3f &bias = _bias_estimator[mag_index].getBias();
 
-			PX4_INFO("%d (%" PRIu32 ") bias: [% 05.3f % 05.3f % 05.3f]",
-				 mag_index, _calibration[mag_index].device_id(),
-				 (double)bias(0),
-				 (double)bias(1),
+			PX4_INFO("%d (%" PRIu32 ") bias: [% 05.3f % 05.3f % 05.3f]", mag_index,
+				 _calibration[mag_index].device_id(), (double)bias(0), (double)bias(1),
 				 (double)bias(2));
 		}
 	}
@@ -278,8 +267,7 @@ int MagBiasEstimator::print_status()
 	return 0;
 }
 
-int MagBiasEstimator::print_usage(const char *reason)
-{
+int MagBiasEstimator::print_usage(const char *reason) {
 	if (reason) {
 		PX4_ERR("%s\n", reason);
 	}
@@ -296,9 +284,6 @@ Online magnetometer bias estimator.
 	return 0;
 }
 
-extern "C" __EXPORT int mag_bias_estimator_main(int argc, char *argv[])
-{
-	return MagBiasEstimator::main(argc, argv);
-}
+extern "C" __EXPORT int mag_bias_estimator_main(int argc, char *argv[]) { return MagBiasEstimator::main(argc, argv); }
 
-} // namespace load_mon
+}  // namespace mag_bias_estimator

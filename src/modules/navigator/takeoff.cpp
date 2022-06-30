@@ -39,23 +39,16 @@
  */
 
 #include "takeoff.h"
-#include "navigator.h"
+
 #include <px4_platform_common/events.h>
 
-Takeoff::Takeoff(Navigator *navigator) :
-	MissionBlock(navigator)
-{
-}
+#include "navigator.h"
 
-void
-Takeoff::on_activation()
-{
-	set_takeoff_position();
-}
+Takeoff::Takeoff(Navigator *navigator) : MissionBlock(navigator) {}
 
-void
-Takeoff::on_active()
-{
+void Takeoff::on_activation() { set_takeoff_position(); }
+
+void Takeoff::on_active() {
 	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
 
 	if (rep->current.valid) {
@@ -89,9 +82,7 @@ Takeoff::on_active()
 	}
 }
 
-void
-Takeoff::set_takeoff_position()
-{
+void Takeoff::set_takeoff_position() {
 	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
 
 	float abs_altitude = 0.0f;
@@ -100,10 +91,10 @@ Takeoff::set_takeoff_position()
 
 	// TODO: review this, comments are talking about home pos, the validity is checked but the
 	// current altitude is used instead. Also, the "else" case does not consider the current altitude at all.
-	if (_navigator->home_alt_valid()) { //only use home position if it is valid
+	if (_navigator->home_alt_valid()) {  // only use home position if it is valid
 		min_abs_altitude = _navigator->get_global_position()->alt + _navigator->get_takeoff_min_alt();
 
-	} else { //e.g. flow
+	} else {  // e.g. flow
 		min_abs_altitude = _navigator->get_takeoff_min_alt();
 	}
 
@@ -115,9 +106,11 @@ Takeoff::set_takeoff_position()
 
 		// If the altitude suggestion is lower than home + minimum clearance, raise it and complain.
 		if (abs_altitude < min_abs_altitude) {
-			if (abs_altitude < min_abs_altitude - 0.1f) { // don't complain if difference is smaller than 10cm
+			if (abs_altitude <
+			    min_abs_altitude - 0.1f) {  // don't complain if difference is smaller than 10cm
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-						     "Using minimum takeoff altitude: %.2f m\t", (double)_navigator->get_takeoff_min_alt());
+						     "Using minimum takeoff altitude: %.2f m\t",
+						     (double)_navigator->get_takeoff_min_alt());
 				log_level = events::LogLevel::Warning;
 			}
 
@@ -127,22 +120,22 @@ Takeoff::set_takeoff_position()
 	} else {
 		// Use home + minimum clearance but only notify.
 		abs_altitude = min_abs_altitude;
-		mavlink_log_info(_navigator->get_mavlink_log_pub(),
-				 "Using minimum takeoff altitude: %.2f m\t", (double)_navigator->get_takeoff_min_alt());
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Using minimum takeoff altitude: %.2f m\t",
+				 (double)_navigator->get_takeoff_min_alt());
 		log_level = events::LogLevel::Info;
 	}
 
 	if (log_level != events::LogLevel::Disabled) {
 		events::send<float>(events::ID("navigator_takeoff_min_alt"), {log_level, events::LogInternal::Info},
-				    "Using minimum takeoff altitude: {1:.2m}",
-				    _navigator->get_takeoff_min_alt());
+				    "Using minimum takeoff altitude: {1:.2m}", _navigator->get_takeoff_min_alt());
 	}
 
 	if (abs_altitude < _navigator->get_global_position()->alt) {
 		// If the suggestion is lower than our current alt, let's not go down.
 		abs_altitude = _navigator->get_global_position()->alt;
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already higher than takeoff altitude\t");
-		events::send(events::ID("navigator_takeoff_already_higher"), {events::Log::Error, events::LogInternal::Info},
+		events::send(events::ID("navigator_takeoff_already_higher"),
+			     {events::Log::Error, events::LogInternal::Info},
 			     "Already higher than takeoff altitude (not descending)");
 	}
 
@@ -162,7 +155,6 @@ Takeoff::set_takeoff_position()
 	pos_sp_triplet->next.valid = false;
 
 	if (rep->current.valid) {
-
 		// Go on and check which changes had been requested
 		if (PX4_ISFINITE(rep->current.yaw)) {
 			pos_sp_triplet->current.yaw = rep->current.yaw;

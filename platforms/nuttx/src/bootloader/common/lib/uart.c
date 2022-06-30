@@ -32,10 +32,11 @@
  ****************************************************************************/
 
 #include "uart.h"
+
+#include <fcntl.h>
+#include <stdio.h>
 #include <string.h>
-#include<stdio.h>
-#include<fcntl.h>
-#include<termios.h>
+#include <termios.h>
 //#define SERIAL_TRACE
 
 int g_uart_df = -1;
@@ -47,11 +48,9 @@ char in_trace[254];
 char out_trace[254];
 #endif
 
-
-void uart_cinit(void *config)
-{
-	char *init =  strdup(config ? (char *) config : "");
-	char *pt = strtok((char *) init, ",");
+void uart_cinit(void *config) {
+	char *init = strdup(config ? (char *)config : "");
+	char *pt = strtok((char *)init, ",");
 	char *device = "/dev/ttyS0";
 	int baud = 115200;
 
@@ -67,7 +66,6 @@ void uart_cinit(void *config)
 	int fd = open(device, O_RDWR | O_NONBLOCK);
 
 	if (fd >= 0) {
-
 		g_uart_df = fd;
 		struct termios t;
 
@@ -81,13 +79,11 @@ void uart_cinit(void *config)
 	free(init);
 }
 
-void uart_cfini(void)
-{
+void uart_cfini(void) {
 	close(g_uart_df);
 	g_uart_df = -1;
 }
-int uart_cin(void)
-{
+int uart_cin(void) {
 	int c = -1;
 
 	if (g_uart_df >= 0) {
@@ -105,11 +101,10 @@ int uart_cin(void)
 
 	return c;
 }
-void uart_cout(uint8_t *buf, unsigned len)
-{
+void uart_cout(uint8_t *buf, unsigned len) {
 	uint32_t timeout = 1000;
 
-	for (unsigned i = 0; i  < len; i++) {
+	for (unsigned i = 0; i < len; i++) {
 		while (timeout) {
 			if (write(g_uart_df, &buf[i], 1) == 1) {
 #if defined(SERIAL_TRACE)
@@ -120,7 +115,7 @@ void uart_cout(uint8_t *buf, unsigned len)
 				timeout = 1000;
 				break;
 
-			}  else {
+			} else {
 				if (timeout-- == 0) {
 					return;
 				}

@@ -40,34 +40,35 @@
 using namespace time_literals;
 using namespace matrix;
 
-Sticks::Sticks(ModuleParams *parent) :
-	ModuleParams(parent)
-{}
+Sticks::Sticks(ModuleParams *parent) : ModuleParams(parent) {}
 
-bool Sticks::checkAndUpdateStickInputs()
-{
+bool Sticks::checkAndUpdateStickInputs() {
 	// Sticks are rescaled linearly and exponentially to [-1,1]
 	manual_control_setpoint_s manual_control_setpoint;
 
 	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
 		// Linear scale
-		_positions(0) = manual_control_setpoint.x; // NED x, pitch [-1,1]
-		_positions(1) = manual_control_setpoint.y; // NED y, roll [-1,1]
+		_positions(0) = manual_control_setpoint.x;  // NED x, pitch [-1,1]
+		_positions(1) = manual_control_setpoint.y;  // NED y, roll [-1,1]
 		_positions(2) = -(math::constrain(manual_control_setpoint.z, 0.0f,
-						  1.0f) - 0.5f) * 2.f; // NED z, thrust resacaled from [0,1] to [-1,1]
-		_positions(3) = manual_control_setpoint.r; // yaw [-1,1]
+						  1.0f) -
+				  0.5f) *
+				2.f;                        // NED z, thrust resacaled from [0,1] to [-1,1]
+		_positions(3) = manual_control_setpoint.r;  // yaw [-1,1]
 
 		// Exponential scale
-		_positions_expo(0) = math::expo_deadzone(_positions(0), _param_mpc_xy_man_expo.get(), _param_mpc_hold_dz.get());
-		_positions_expo(1) = math::expo_deadzone(_positions(1), _param_mpc_xy_man_expo.get(), _param_mpc_hold_dz.get());
-		_positions_expo(2) = math::expo_deadzone(_positions(2), _param_mpc_z_man_expo.get(),  _param_mpc_hold_dz.get());
-		_positions_expo(3) = math::expo_deadzone(_positions(3), _param_mpc_yaw_expo.get(),    _param_mpc_hold_dz.get());
+		_positions_expo(0) =
+			math::expo_deadzone(_positions(0), _param_mpc_xy_man_expo.get(), _param_mpc_hold_dz.get());
+		_positions_expo(1) =
+			math::expo_deadzone(_positions(1), _param_mpc_xy_man_expo.get(), _param_mpc_hold_dz.get());
+		_positions_expo(2) =
+			math::expo_deadzone(_positions(2), _param_mpc_z_man_expo.get(), _param_mpc_hold_dz.get());
+		_positions_expo(3) =
+			math::expo_deadzone(_positions(3), _param_mpc_yaw_expo.get(), _param_mpc_hold_dz.get());
 
 		// valid stick inputs are required
-		const bool valid_sticks = PX4_ISFINITE(_positions(0))
-					  && PX4_ISFINITE(_positions(1))
-					  && PX4_ISFINITE(_positions(2))
-					  && PX4_ISFINITE(_positions(3));
+		const bool valid_sticks = PX4_ISFINITE(_positions(0)) && PX4_ISFINITE(_positions(1)) &&
+					  PX4_ISFINITE(_positions(2)) && PX4_ISFINITE(_positions(3));
 
 		_input_available = valid_sticks;
 
@@ -90,8 +91,7 @@ bool Sticks::checkAndUpdateStickInputs()
 	return _input_available;
 }
 
-void Sticks::limitStickUnitLengthXY(Vector2f &v)
-{
+void Sticks::limitStickUnitLengthXY(Vector2f &v) {
 	const float vl = v.length();
 
 	if (vl > 1.0f) {
@@ -99,8 +99,7 @@ void Sticks::limitStickUnitLengthXY(Vector2f &v)
 	}
 }
 
-void Sticks::rotateIntoHeadingFrameXY(Vector2f &v, const float yaw, const float yaw_setpoint)
-{
+void Sticks::rotateIntoHeadingFrameXY(Vector2f &v, const float yaw, const float yaw_setpoint) {
 	Vector3f v3(v(0), v(1), 0.f);
 	const float yaw_rotate = PX4_ISFINITE(yaw_setpoint) ? yaw_setpoint : yaw;
 	v = Vector2f(Dcmf(Eulerf(0.0f, 0.0f, yaw_rotate)) * v3);

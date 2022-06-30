@@ -40,14 +40,11 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
-
-#define DECK_DEVICE_PATH	"/dev/deck"
-
-
+#define DECK_DEVICE_PATH "/dev/deck"
 
 /* structure of the data stored in deck memory */
 typedef struct {
-	uint8_t header; // Should be 0xEB
+	uint8_t header;  // Should be 0xEB
 	uint32_t pins;
 	uint8_t vendorId;
 	uint8_t productId;
@@ -56,24 +53,19 @@ typedef struct {
 
 } __attribute__((packed)) deck_descriptor_t;
 
-
-
 /*
  * ioctl() definitions
  */
 
-#define _DECKIOCBASE		(0x4100)
-#define _DECKIOC(_n)		(_PX4_IOC(_DECKIOCBASE, _n))
+#define _DECKIOCBASE (0x4100)
+#define _DECKIOC(_n) (_PX4_IOC(_DECKIOCBASE, _n))
 
 /** get the number of connected deck memory devices */
-#define DECKIOGNUM	_DECKIOC(0)
+#define DECKIOGNUM _DECKIOC(0)
 
 /** set the index of the current deck memory being accessed */
-#define DECKIOSNUM	_DECKIOC(1)
+#define DECKIOSNUM _DECKIOC(1)
 
-#define DECKIOID	_DECKIOC(2)
-
-
-
+#define DECKIOID _DECKIOC(2)
 
 #endif

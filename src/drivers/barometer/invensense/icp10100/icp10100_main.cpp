@@ -31,15 +31,13 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
 
 #include "ICP10100.hpp"
 
-void
-ICP10100::print_usage()
-{
+void ICP10100::print_usage() {
 	PRINT_MODULE_USAGE_NAME("icp10100", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -48,8 +46,7 @@ ICP10100::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int icp10100_main(int argc, char *argv[])
-{
+extern "C" int icp10100_main(int argc, char *argv[]) {
 	using ThisDriver = ICP10100;
 	BusCLIArguments cli{true, false};
 	cli.i2c_address = I2C_ADDRESS_DEFAULT;

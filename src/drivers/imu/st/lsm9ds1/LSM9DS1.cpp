@@ -35,22 +35,17 @@
 
 using namespace time_literals;
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
 
-LSM9DS1::LSM9DS1(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	I2CSPIDriver(config),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
-{
+LSM9DS1::LSM9DS1(const I2CSPIDriverConfig &config)
+	: SPI(config),
+	  I2CSPIDriver(config),
+	  _px4_accel(get_device_id(), config.rotation),
+	  _px4_gyro(get_device_id(), config.rotation) {
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 }
 
-LSM9DS1::~LSM9DS1()
-{
+LSM9DS1::~LSM9DS1() {
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_fifo_empty_perf);
@@ -58,8 +53,7 @@ LSM9DS1::~LSM9DS1()
 	perf_free(_fifo_reset_perf);
 }
 
-int LSM9DS1::init()
-{
+int LSM9DS1::init() {
 	int ret = SPI::init();
 
 	if (ret != PX4_OK) {
@@ -70,21 +64,16 @@ int LSM9DS1::init()
 	return Reset() ? 0 : -1;
 }
 
-bool LSM9DS1::Reset()
-{
+bool LSM9DS1::Reset() {
 	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
 }
 
-void LSM9DS1::exit_and_cleanup()
-{
-	I2CSPIDriverBase::exit_and_cleanup();
-}
+void LSM9DS1::exit_and_cleanup() { I2CSPIDriverBase::exit_and_cleanup(); }
 
-void LSM9DS1::print_status()
-{
+void LSM9DS1::print_status() {
 	I2CSPIDriverBase::print_status();
 
 	PX4_INFO("FIFO empty interval: %d us (%.1f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
@@ -96,8 +85,7 @@ void LSM9DS1::print_status()
 	perf_print_counter(_fifo_reset_perf);
 }
 
-int LSM9DS1::probe()
-{
+int LSM9DS1::probe() {
 	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
 
 	if (whoami != WHO_AM_I_ID) {
@@ -108,68 +96,68 @@ int LSM9DS1::probe()
 	return PX4_OK;
 }
 
-void LSM9DS1::RunImpl()
-{
+void LSM9DS1::RunImpl() {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-	case STATE::RESET:
-		// PWR_MGMT_1: Device Reset
-		RegisterWrite(Register::CTRL_REG8, CTRL_REG8_BIT::SW_RESET);
-		_reset_timestamp = now;
-		_failure_count = 0;
-		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(100_ms);
-		break;
-
-	case STATE::WAIT_FOR_RESET:
-		if ((RegisterRead(Register::WHO_AM_I) == WHO_AM_I_ID)) {
-
-			// Disable I2C, wakeup, and reset digital signal path
-			RegisterWrite(Register::CTRL_REG9, CTRL_REG9_BIT::I2C_DISABLE); // set immediately to prevent switching into I2C mode
-
-			// if reset succeeded then configure
-			_state = STATE::CONFIGURE;
+		case STATE::RESET:
+			// PWR_MGMT_1: Device Reset
+			RegisterWrite(Register::CTRL_REG8, CTRL_REG8_BIT::SW_RESET);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
 			ScheduleDelayed(100_ms);
+			break;
 
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
+		case STATE::WAIT_FOR_RESET:
+			if ((RegisterRead(Register::WHO_AM_I) == WHO_AM_I_ID)) {
+				// Disable I2C, wakeup, and reset digital signal path
+				RegisterWrite(Register::CTRL_REG9,
+					      CTRL_REG9_BIT::I2C_DISABLE);  // set immediately to prevent switching into
+									    // I2C mode
+
+				// if reset succeeded then configure
+				_state = STATE::CONFIGURE;
 				ScheduleDelayed(100_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 10 ms");
+					ScheduleDelayed(10_ms);
+				}
 			}
-		}
 
-		break;
+			break;
 
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start reading from FIFO
-			_state = STATE::FIFO_READ;
-			ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
-			FIFOReset();
-
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
+		case STATE::CONFIGURE:
+			if (Configure()) {
+				// if configure succeeded then start reading from FIFO
+				_state = STATE::FIFO_READ;
+				ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
+				FIFOReset();
 
 			} else {
-				PX4_DEBUG("Configure failed, retrying");
+				// CONFIGURE not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Configure failed, resetting");
+					_state = STATE::RESET;
+
+				} else {
+					PX4_DEBUG("Configure failed, retrying");
+				}
+
+				ScheduleDelayed(100_ms);
 			}
 
-			ScheduleDelayed(100_ms);
-		}
+			break;
 
-		break;
-
-	case STATE::FIFO_READ: {
+		case STATE::FIFO_READ: {
 			hrt_abstime timestamp_sample = now;
 
 			// always check current FIFO count
@@ -244,20 +232,20 @@ void LSM9DS1::RunImpl()
 	}
 }
 
-void LSM9DS1::ConfigureSampleRate(int sample_rate)
-{
+void LSM9DS1::ConfigureSampleRate(int sample_rate) {
 	// round down to nearest FIFO sample dt
 	const float min_interval = FIFO_SAMPLE_DT;
-	_fifo_empty_interval_us = math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
+	_fifo_empty_interval_us =
+		math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
 
-	_fifo_gyro_samples = roundf(math::min((float)_fifo_empty_interval_us / (1e6f / GYRO_RATE), (float)FIFO_MAX_SAMPLES));
+	_fifo_gyro_samples =
+		roundf(math::min((float)_fifo_empty_interval_us / (1e6f / GYRO_RATE), (float)FIFO_MAX_SAMPLES));
 
 	// recompute FIFO empty interval (us) with actual gyro sample limit
 	_fifo_empty_interval_us = _fifo_gyro_samples * (1e6f / GYRO_RATE);
 }
 
-bool LSM9DS1::Configure()
-{
+bool LSM9DS1::Configure() {
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
@@ -273,18 +261,17 @@ bool LSM9DS1::Configure()
 	}
 
 	// Gyroscope configuration 2000 degrees/second
-	_px4_gyro.set_scale(math::radians(70.f / 1000.f)); // 70 mdps/LSB
+	_px4_gyro.set_scale(math::radians(70.f / 1000.f));  // 70 mdps/LSB
 	_px4_gyro.set_range(math::radians(2000.f));
 
 	// Accelerometer configuration 16 G range
-	_px4_accel.set_scale(0.732f * (CONSTANTS_ONE_G / 1000.f)); // 0.732 mg/LSB
+	_px4_accel.set_scale(0.732f * (CONSTANTS_ONE_G / 1000.f));  // 0.732 mg/LSB
 	_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
 
 	return success;
 }
 
-bool LSM9DS1::RegisterCheck(const register_config_t &reg_cfg)
-{
+bool LSM9DS1::RegisterCheck(const register_config_t &reg_cfg) {
 	bool success = true;
 
 	const uint8_t reg_value = RegisterRead(reg_cfg.reg);
@@ -295,29 +282,27 @@ bool LSM9DS1::RegisterCheck(const register_config_t &reg_cfg)
 	}
 
 	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
+		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value,
+			  reg_cfg.clear_bits);
 		success = false;
 	}
 
 	return success;
 }
 
-uint8_t LSM9DS1::RegisterRead(Register reg)
-{
-	uint8_t cmd[2] {};
+uint8_t LSM9DS1::RegisterRead(Register reg) {
+	uint8_t cmd[2]{};
 	cmd[0] = static_cast<uint8_t>(reg) | DIR_READ;
 	transfer(cmd, cmd, sizeof(cmd));
 	return cmd[1];
 }
 
-void LSM9DS1::RegisterWrite(Register reg, uint8_t value)
-{
-	uint8_t cmd[2] { (uint8_t)reg, value };
+void LSM9DS1::RegisterWrite(Register reg, uint8_t value) {
+	uint8_t cmd[2]{(uint8_t)reg, value};
 	transfer(cmd, cmd, sizeof(cmd));
 }
 
-void LSM9DS1::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
-{
+void LSM9DS1::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits) {
 	const uint8_t orig_val = RegisterRead(reg);
 
 	uint8_t val = (orig_val & ~clearbits) | setbits;
@@ -327,8 +312,7 @@ void LSM9DS1::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t cle
 	}
 }
 
-bool LSM9DS1::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
-{
+bool LSM9DS1::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples) {
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = 0;
@@ -412,23 +396,23 @@ bool LSM9DS1::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 	return (accel.samples > 0) && (gyro.samples > 0);
 }
 
-void LSM9DS1::FIFOReset()
-{
+void LSM9DS1::FIFOReset() {
 	perf_count(_fifo_reset_perf);
 
 	// FIFO_CTRL: to reset FIFO content, Bypass mode (0) should be selected
 	RegisterWrite(Register::FIFO_CTRL, 0);
 
-	// After this reset command, it is possible to restart FIFO mode by writing FIFO_CTRL (2Eh) (FMODE [2:0]) to '001'.
+	// After this reset command, it is possible to restart FIFO mode by writing FIFO_CTRL (2Eh) (FMODE [2:0]) to
+	// '001'.
 	for (auto &r : _register_cfg) {
-		if ((r.reg == Register::CTRL_REG8) || (r.reg == Register::CTRL_REG9) || (r.reg == Register::FIFO_CTRL)) {
+		if ((r.reg == Register::CTRL_REG8) || (r.reg == Register::CTRL_REG9) ||
+		    (r.reg == Register::FIFO_CTRL)) {
 			RegisterSetAndClearBits(r.reg, r.set_bits, r.clear_bits);
 		}
 	}
 }
 
-void LSM9DS1::UpdateTemperature()
-{
+void LSM9DS1::UpdateTemperature() {
 	// read current temperature
 	struct TransferBuffer {
 		uint8_t cmd{static_cast<uint8_t>(Register::OUT_TEMP_L) | DIR_READ};
@@ -441,7 +425,8 @@ void LSM9DS1::UpdateTemperature()
 		return;
 	}
 
-	// 16 bits in two’s complement format with a sensitivity of 256 LSB/°C. The output zero level corresponds to 25 °C.
+	// 16 bits in two’s complement format with a sensitivity of 256 LSB/°C. The output zero level corresponds to 25
+	// °C.
 	const int16_t OUT_TEMP = combine(buffer.OUT_TEMP_H, buffer.OUT_TEMP_L);
 	const float temperature = (OUT_TEMP / 256.0f) + 25.0f;
 

@@ -38,15 +38,13 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <string.h>
-#include "mavlink_bridge_header.h"
 #include <parameters/param.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
-mavlink_system_t mavlink_system = {
-	1,
-	1
-}; // System ID, 1-255, Component/Subsystem ID, 1-255
+#include "mavlink_bridge_header.h"
+
+mavlink_system_t mavlink_system = {1, 1};  // System ID, 1-255, Component/Subsystem ID, 1-255

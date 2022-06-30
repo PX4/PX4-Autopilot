@@ -35,16 +35,13 @@
 
 #include "uORBTest_UnitTest.hpp"
 
-extern "C" { __EXPORT int uorb_tests_main(int argc, char *argv[]); }
-
-static void usage()
-{
-	PX4_INFO("Usage: uorb_tests [latency_test]");
+extern "C" {
+__EXPORT int uorb_tests_main(int argc, char *argv[]);
 }
 
-int
-uorb_tests_main(int argc, char *argv[])
-{
+static void usage() { PX4_INFO("Usage: uorb_tests [latency_test]"); }
+
+int uorb_tests_main(int argc, char *argv[]) {
 	/*
 	 * Test the driver/device.
 	 */

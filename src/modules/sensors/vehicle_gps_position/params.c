@@ -34,10 +34,9 @@
 /**
  * Multi GPS Blending Control Mask.
  *
- * Set bits in the following positions to set which GPS accuracy metrics will be used to calculate the blending weight. Set to zero to disable and always used first GPS instance.
- * 0 : Set to true to use speed accuracy
- * 1 : Set to true to use horizontal position accuracy
- * 2 : Set to true to use vertical position accuracy
+ * Set bits in the following positions to set which GPS accuracy metrics will be used to calculate the blending weight.
+ * Set to zero to disable and always used first GPS instance. 0 : Set to true to use speed accuracy 1 : Set to true to
+ * use horizontal position accuracy 2 : Set to true to use vertical position accuracy
  *
  * @group Sensors
  * @min 0
@@ -51,7 +50,8 @@ PARAM_DEFINE_INT32(SENS_GPS_MASK, 0);
 /**
  * Multi GPS Blending Time Constant
  *
- * Sets the longest time constant that will be applied to the calculation of GPS position and height offsets used to correct data from multiple GPS data for steady state position differences.
+ * Sets the longest time constant that will be applied to the calculation of GPS position and height offsets used to
+ * correct data from multiple GPS data for steady state position differences.
  *
  *
  * @group Sensors

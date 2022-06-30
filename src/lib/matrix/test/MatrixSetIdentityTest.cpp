@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixSetIdentityTest, SetIdentity)
-{
+TEST(MatrixSetIdentityTest, SetIdentity) {
 	Matrix3f A;
 	A.setIdentity();
 

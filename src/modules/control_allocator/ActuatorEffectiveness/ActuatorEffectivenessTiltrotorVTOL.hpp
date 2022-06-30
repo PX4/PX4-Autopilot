@@ -41,16 +41,16 @@
 
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
-#include "ActuatorEffectivenessControlSurfaces.hpp"
-#include "ActuatorEffectivenessTilts.hpp"
-
 #include <uORB/topics/actuator_controls.h>
+
 #include <uORB/Subscription.hpp>
 
-class ActuatorEffectivenessTiltrotorVTOL : public ModuleParams, public ActuatorEffectiveness
-{
+#include "ActuatorEffectiveness.hpp"
+#include "ActuatorEffectivenessControlSurfaces.hpp"
+#include "ActuatorEffectivenessRotors.hpp"
+#include "ActuatorEffectivenessTilts.hpp"
+
+class ActuatorEffectivenessTiltrotorVTOL : public ModuleParams, public ActuatorEffectiveness {
 public:
 	ActuatorEffectivenessTiltrotorVTOL(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessTiltrotorVTOL() = default;
@@ -59,15 +59,13 @@ public:
 
 	int numMatrices() const override { return 2; }
 
-	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
-	{
+	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override {
 		static_assert(MAX_NUM_MATRICES >= 2, "expecting at least 2 matrices");
 		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
 		allocation_method_out[1] = AllocationMethod::PSEUDO_INVERSE;
 	}
 
-	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
-	{
+	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override {
 		normalize[0] = true;
 		normalize[1] = false;
 	}
@@ -80,17 +78,18 @@ public:
 	const char *name() const override { return "VTOL Tiltrotor"; }
 
 	uint32_t getStoppedMotors() const override { return _stopped_motors; }
+
 protected:
 	bool _combined_tilt_updated{true};
 	ActuatorEffectivenessRotors _mc_rotors;
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
 	ActuatorEffectivenessTilts _tilts;
 
-	uint32_t _nontilted_motors{}; ///< motors that are not tiltable
-	uint32_t _stopped_motors{}; ///< currently stopped motors
+	uint32_t _nontilted_motors{};  ///< motors that are not tiltable
+	uint32_t _stopped_motors{};    ///< currently stopped motors
 
-	int _first_control_surface_idx{0}; ///< applies to matrix 1
-	int _first_tilt_idx{0}; ///< applies to matrix 0
+	int _first_control_surface_idx{0};  ///< applies to matrix 1
+	int _first_tilt_idx{0};             ///< applies to matrix 0
 
 	float _last_tilt_control{NAN};
 

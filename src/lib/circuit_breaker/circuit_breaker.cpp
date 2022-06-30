@@ -44,18 +44,14 @@
 
 #include "circuit_breaker.h"
 
-#include <stdint.h>
-#include <px4_platform_common/defines.h>
 #include <lib/parameters/param.h>
+#include <px4_platform_common/defines.h>
+#include <stdint.h>
 
-bool circuit_breaker_enabled(const char *breaker, int32_t magic)
-{
+bool circuit_breaker_enabled(const char *breaker, int32_t magic) {
 	int32_t val = -1;
 
 	return (param_get(param_find(breaker), &val) == 0) && (val == magic);
 }
 
-bool circuit_breaker_enabled_by_val(int32_t breaker_val, int32_t magic)
-{
-	return (breaker_val == magic);
-}
+bool circuit_breaker_enabled_by_val(int32_t breaker_val, int32_t magic) { return (breaker_val == magic); }

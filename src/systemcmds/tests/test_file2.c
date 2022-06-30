@@ -36,18 +36,18 @@
  * File write test.
  */
 
-#include <px4_platform_common/defines.h>
-#include <sys/stat.h>
 #include <dirent.h>
-#include <inttypes.h>
-#include <stdio.h>
-#include <stddef.h>
-#include <unistd.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <perf/perf_counter.h>
-#include <string.h>
-#include <stdlib.h>
+#include <px4_platform_common/defines.h>
 #include <px4_platform_common/getopt.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "tests_main.h"
 
@@ -59,8 +59,7 @@
 /*
   return a predictable value for any file offset to allow detection of corruption
  */
-static uint8_t get_value(uint32_t ofs)
-{
+static uint8_t get_value(uint32_t ofs) {
 	union {
 		uint32_t ofs;
 		uint8_t buf[4];
@@ -69,10 +68,9 @@ static uint8_t get_value(uint32_t ofs)
 	return u.buf[ofs % 4];
 }
 
-static int test_corruption(const char *filename, uint32_t write_chunk, uint32_t write_size, uint16_t flags)
-{
-	printf("Testing on %s with write_chunk=%" PRIu32 " write_size=%" PRIu32 "\n",
-	       filename, write_chunk, write_size);
+static int test_corruption(const char *filename, uint32_t write_chunk, uint32_t write_size, uint16_t flags) {
+	printf("Testing on %s with write_chunk=%" PRIu32 " write_size=%" PRIu32 "\n", filename, write_chunk,
+	       write_size);
 
 	uint32_t ofs = 0;
 	int fd = open(filename, O_CREAT | O_RDWR | O_TRUNC, PX4_O_MODE_666);
@@ -161,8 +159,7 @@ static int test_corruption(const char *filename, uint32_t write_chunk, uint32_t 
 	return 0;
 }
 
-static void usage(void)
-{
+static void usage(void) {
 	printf("test file2 [options] [filename]\n");
 	printf("\toptions:\n");
 	printf("\t-s SIZE     set file size\n");
@@ -171,8 +168,7 @@ static void usage(void)
 	printf("\t-L          lseek on every read\n");
 }
 
-int test_file2(int argc, char *argv[])
-{
+int test_file2(int argc, char *argv[]) {
 	int opt;
 	uint16_t flags = 0;
 	const char *filename = LOG_PATH "/testfile2.dat";
@@ -184,26 +180,26 @@ int test_file2(int argc, char *argv[])
 
 	while ((opt = px4_getopt(argc, argv, "c:s:FLh", &myoptind, &myoptarg)) != EOF) {
 		switch (opt) {
-		case 'F':
-			flags |= FLAG_FSYNC;
-			break;
+			case 'F':
+				flags |= FLAG_FSYNC;
+				break;
 
-		case 'L':
-			flags |= FLAG_LSEEK;
-			break;
+			case 'L':
+				flags |= FLAG_LSEEK;
+				break;
 
-		case 's':
-			write_size = strtoul(myoptarg, NULL, 0);
-			break;
+			case 's':
+				write_size = strtoul(myoptarg, NULL, 0);
+				break;
 
-		case 'c':
-			write_chunk = strtoul(myoptarg, NULL, 0);
-			break;
+			case 'c':
+				write_chunk = strtoul(myoptarg, NULL, 0);
+				break;
 
-		case 'h':
-		default:
-			usage();
-			return 1;
+			case 'h':
+			default:
+				usage();
+				return 1;
 		}
 	}
 
@@ -224,4 +220,3 @@ int test_file2(int argc, char *argv[])
 
 	return test_corruption(filename, write_chunk, write_size, flags);
 }
-

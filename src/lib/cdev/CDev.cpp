@@ -39,16 +39,13 @@
 
 #include "CDev.hpp"
 
-#include <cstring>
-
 #include <px4_platform_common/posix.h>
 
-namespace cdev
-{
+#include <cstring>
 
-CDev::CDev(const char *devname) :
-	_devname(devname)
-{
+namespace cdev {
+
+CDev::CDev(const char *devname) : _devname(devname) {
 	PX4_DEBUG("CDev::CDev");
 
 	int ret = px4_sem_init(&_lock, 0, 1);
@@ -58,8 +55,7 @@ CDev::CDev(const char *devname) :
 	}
 }
 
-CDev::~CDev()
-{
+CDev::~CDev() {
 	PX4_DEBUG("CDev::~CDev");
 
 	if (_registered) {
@@ -73,9 +69,7 @@ CDev::~CDev()
 	px4_sem_destroy(&_lock);
 }
 
-int
-CDev::register_class_devname(const char *class_devname)
-{
+int CDev::register_class_devname(const char *class_devname) {
 	PX4_DEBUG("CDev::register_class_devname %s", class_devname);
 
 	if (class_devname == nullptr) {
@@ -104,9 +98,7 @@ CDev::register_class_devname(const char *class_devname)
 	return class_instance;
 }
 
-int
-CDev::unregister_class_devname(const char *class_devname, unsigned class_instance)
-{
+int CDev::unregister_class_devname(const char *class_devname, unsigned class_instance) {
 	PX4_DEBUG("CDev::unregister_class_devname");
 
 	char name[32];
@@ -114,9 +106,7 @@ CDev::unregister_class_devname(const char *class_devname, unsigned class_instanc
 	return unregister_driver(name);
 }
 
-int
-CDev::init()
-{
+int CDev::init() {
 	PX4_DEBUG("CDev::init");
 
 	int ret = PX4_OK;
@@ -139,9 +129,7 @@ CDev::init()
 /*
  * Default implementations of the character device interface
  */
-int
-CDev::open(file_t *filep)
-{
+int CDev::open(file_t *filep) {
 	PX4_DEBUG("CDev::open");
 	int ret = PX4_OK;
 
@@ -150,7 +138,6 @@ CDev::open(file_t *filep)
 	_open_count++;
 
 	if (_open_count == 1) {
-
 		/* first-open callback may decline the open */
 		ret = open_first(filep);
 
@@ -164,9 +151,7 @@ CDev::open(file_t *filep)
 	return ret;
 }
 
-int
-CDev::close(file_t *filep)
-{
+int CDev::close(file_t *filep) {
 	PX4_DEBUG("CDev::close");
 	int ret = PX4_OK;
 
@@ -190,9 +175,7 @@ CDev::close(file_t *filep)
 	return ret;
 }
 
-int
-CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
-{
+int CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup) {
 	PX4_DEBUG("CDev::Poll %s", setup ? "setup" : "teardown");
 	int ret = PX4_OK;
 
@@ -213,10 +196,9 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 		 * Try to store the fds for later use and handle array resizing.
 		 */
 		while ((ret = store_poll_waiter(fds)) == -ENFILE) {
-
 			// No free slot found. Resize the pollset. This is expensive, but it's only needed initially.
 
-			if (_max_pollwaiters >= 256 / 2) { //_max_pollwaiters is uint8_t
+			if (_max_pollwaiters >= 256 / 2) {  //_max_pollwaiters is uint8_t
 				ret = -ENOMEM;
 				break;
 			}
@@ -242,7 +224,8 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 				}
 
 				if (_max_pollwaiters > 0) {
-					memset(new_pollset + _max_pollwaiters, 0, sizeof(px4_pollfd_struct_t *) * (new_count - _max_pollwaiters));
+					memset(new_pollset + _max_pollwaiters, 0,
+					       sizeof(px4_pollfd_struct_t *) * (new_count - _max_pollwaiters));
 					memcpy(new_pollset, _pollset, sizeof(px4_pollfd_struct_t *) * _max_pollwaiters);
 				}
 
@@ -250,7 +233,8 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 				_pollset[_max_pollwaiters] = fds;
 				_max_pollwaiters = new_count;
 
-				// free the previous _pollset (we need to unlock here which is fine because we don't access _pollset anymore)
+				// free the previous _pollset (we need to unlock here which is fine because we don't
+				// access _pollset anymore)
 #ifdef __PX4_NUTTX
 				px4_leave_critical_section(flags);
 #endif
@@ -279,7 +263,6 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 		}
 
 		if (ret == PX4_OK) {
-
 			/*
 			 * Check to see whether we should send a poll notification
 			 * immediately.
@@ -290,7 +273,6 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 			if (fds->revents != 0) {
 				px4_sem_post(fds->sem);
 			}
-
 		}
 
 		ATOMIC_LEAVE;
@@ -307,9 +289,7 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 	return ret;
 }
 
-void
-CDev::poll_notify(px4_pollevent_t events)
-{
+void CDev::poll_notify(px4_pollevent_t events) {
 	PX4_DEBUG("CDev::poll_notify events = %0x", events);
 
 	/* lock against poll() as well as other wakeups */
@@ -324,9 +304,7 @@ CDev::poll_notify(px4_pollevent_t events)
 	ATOMIC_LEAVE;
 }
 
-void
-CDev::poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events)
-{
+void CDev::poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events) {
 	PX4_DEBUG("CDev::poll_notify_one");
 
 	/* update the reported event set */
@@ -339,15 +317,12 @@ CDev::poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events)
 	}
 }
 
-int
-CDev::store_poll_waiter(px4_pollfd_struct_t *fds)
-{
+int CDev::store_poll_waiter(px4_pollfd_struct_t *fds) {
 	// Look for a free slot.
 	PX4_DEBUG("CDev::store_poll_waiter");
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (nullptr == _pollset[i]) {
-
 			/* save the pollfd */
 			_pollset[i] = fds;
 
@@ -358,17 +333,13 @@ CDev::store_poll_waiter(px4_pollfd_struct_t *fds)
 	return -ENFILE;
 }
 
-int
-CDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
-{
+int CDev::remove_poll_waiter(px4_pollfd_struct_t *fds) {
 	PX4_DEBUG("CDev::remove_poll_waiter");
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (fds == _pollset[i]) {
-
 			_pollset[i] = nullptr;
 			return PX4_OK;
-
 		}
 	}
 
@@ -376,4 +347,4 @@ CDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 	return -EINVAL;
 }
 
-} // namespace cdev
+}  // namespace cdev

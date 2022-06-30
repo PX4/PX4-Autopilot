@@ -37,16 +37,16 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/workqueue.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
-
+#include <px4_platform_common/workqueue.h>
+#include <queue.h>
+#include <semaphore.h>
 #include <signal.h>
 #include <stdint.h>
-#include <queue.h>
 #include <stdio.h>
-#include <semaphore.h>
+
 #include "work_lock.h"
 
 #ifdef CONFIG_SCHED_WORKQUEUE
@@ -104,17 +104,16 @@
  *
  ****************************************************************************/
 
-int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_t delay)
-{
+int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_t delay) {
 	struct wqueue_s *wqueue = &g_work[qid];
 
-	//DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
+	// DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
 
 	/* First, initialize the work structure */
 
-	work->worker = worker;           /* Work callback */
-	work->arg    = arg;              /* Callback argument */
-	work->delay  = delay;            /* Delay until work performed */
+	work->worker = worker; /* Work callback */
+	work->arg = arg;       /* Callback argument */
+	work->delay = delay;   /* Delay until work performed */
 
 	/* Now, time-tag that entry and put it in the work queue.  This must be
 	 * done with interrupts disabled.  This permits this function to be called
@@ -122,13 +121,13 @@ int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_
 	 */
 
 	work_lock(qid);
-	work->qtime  = clock_systimer(); /* Time work queued */
+	work->qtime = clock_systimer(); /* Time work queued */
 
 	dq_addlast((dq_entry_t *)work, &wqueue->q);
 #ifdef __PX4_QURT
-	px4_task_kill(wqueue->pid, SIGALRM);      /* Wake up the worker thread */
+	px4_task_kill(wqueue->pid, SIGALRM); /* Wake up the worker thread */
 #else
-	px4_task_kill(wqueue->pid, SIGCONT);      /* Wake up the worker thread */
+	px4_task_kill(wqueue->pid, SIGCONT); /* Wake up the worker thread */
 #endif
 
 	work_unlock(qid);

@@ -40,31 +40,27 @@
 
 #pragma once
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 
-namespace math
-{
+namespace math {
 
-template<typename T, int WINDOW = 3>
-class MedianFilter
-{
+template <typename T, int WINDOW = 3>
+class MedianFilter {
 public:
 	static_assert(WINDOW >= 3, "MedianFilter window size must be >= 3");
-	static_assert(WINDOW % 2, "MedianFilter window size must be odd"); // odd
+	static_assert(WINDOW % 2, "MedianFilter window size must be odd");  // odd
 
 	MedianFilter() = default;
 
-	void insert(const T &sample)
-	{
+	void insert(const T &sample) {
 		_head = (_head + 1) % WINDOW;
 		_buffer[_head] = sample;
 	}
 
-	T median()
-	{
+	T median() {
 		T sorted[WINDOW];
 		memcpy(sorted, _buffer, sizeof(_buffer));
 		qsort(&sorted, WINDOW, sizeof(T), cmp);
@@ -72,21 +68,16 @@ public:
 		return sorted[WINDOW / 2];
 	}
 
-	T apply(const T &sample)
-	{
+	T apply(const T &sample) {
 		insert(sample);
 		return median();
 	}
 
 private:
+	static int cmp(const void *a, const void *b) { return (*(T *)a >= *(T *)b) ? 1 : -1; }
 
-	static int cmp(const void *a, const void *b)
-	{
-		return (*(T *)a >= *(T *)b) ? 1 : -1;
-	}
-
-	T _buffer[WINDOW] {};
+	T _buffer[WINDOW]{};
 	uint8_t _head{0};
 };
 
-} // namespace math
+}  // namespace math

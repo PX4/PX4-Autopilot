@@ -33,18 +33,18 @@
 
 #include "ADIS16477.hpp"
 
-#define DIR_READ				0x00
-#define DIR_WRITE				0x80
+#define DIR_READ 0x00
+#define DIR_WRITE 0x80
 
 //  ADIS16477 registers
-static constexpr uint8_t DIAG_STAT	= 0x02; // Output, system error flags
-static constexpr uint8_t FILT_CTRL	= 0x5C;
-static constexpr uint8_t MSC_CTRL	= 0x60;
-static constexpr uint8_t DEC_RATE	= 0x64;
-static constexpr uint8_t GLOB_CMD	= 0x68;
-static constexpr uint8_t PROD_ID	= 0x72;
+static constexpr uint8_t DIAG_STAT = 0x02;  // Output, system error flags
+static constexpr uint8_t FILT_CTRL = 0x5C;
+static constexpr uint8_t MSC_CTRL = 0x60;
+static constexpr uint8_t DEC_RATE = 0x64;
+static constexpr uint8_t GLOB_CMD = 0x68;
+static constexpr uint8_t PROD_ID = 0x72;
 
-static constexpr uint16_t PROD_ID_ADIS16477 = 0x405D;	// ADIS16477 Identification, device number
+static constexpr uint16_t PROD_ID_ADIS16477 = 0x405D;  // ADIS16477 Identification, device number
 
 // Stall time between SPI transfers
 static constexpr uint8_t T_STALL = 16;
@@ -53,34 +53,30 @@ static constexpr uint32_t ADIS16477_DEFAULT_RATE = 1000;
 
 using namespace time_literals;
 
-ADIS16477::ADIS16477(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	I2CSPIDriver(config),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME": bad transfers")),
-	_drdy_gpio(config.drdy_gpio)
-{
+ADIS16477::ADIS16477(const I2CSPIDriverConfig &config)
+	: SPI(config),
+	  I2CSPIDriver(config),
+	  _px4_accel(get_device_id(), config.rotation),
+	  _px4_gyro(get_device_id(), config.rotation),
+	  _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": read")),
+	  _bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME ": bad transfers")),
+	  _drdy_gpio(config.drdy_gpio) {
 #ifdef GPIO_SPI1_RESET_ADIS16477
 	// Configure hardware reset line
 	px4_arch_configgpio(GPIO_SPI1_RESET_ADIS16477);
-#endif // GPIO_SPI1_RESET_ADIS16477
+#endif  // GPIO_SPI1_RESET_ADIS16477
 
-	_px4_accel.set_scale(1.25f * CONSTANTS_ONE_G / 1000.0f); // accel 1.25 mg/LSB
-	_px4_gyro.set_scale(math::radians(0.025f)); // gyro 0.025 °/sec/LSB
+	_px4_accel.set_scale(1.25f * CONSTANTS_ONE_G / 1000.0f);  // accel 1.25 mg/LSB
+	_px4_gyro.set_scale(math::radians(0.025f));               // gyro 0.025 °/sec/LSB
 }
 
-ADIS16477::~ADIS16477()
-{
+ADIS16477::~ADIS16477() {
 	// delete the perf counters
 	perf_free(_sample_perf);
 	perf_free(_bad_transfers);
 }
 
-int
-ADIS16477::init()
-{
+int ADIS16477::init() {
 	int ret = SPI::init();
 
 	if (ret != OK) {
@@ -94,8 +90,7 @@ ADIS16477::init()
 	return PX4_OK;
 }
 
-int ADIS16477::reset()
-{
+int ADIS16477::reset() {
 #ifdef GPIO_SPI1_RESET_ADIS16477
 	// Hardware reset
 	px4_arch_gpiowrite(GPIO_SPI1_RESET_ADIS16477, 0);
@@ -106,14 +101,13 @@ int ADIS16477::reset()
 	px4_arch_gpiowrite(GPIO_SPI1_RESET_ADIS16477, 1);
 #else
 	// Software reset (global command bit 7)
-	uint8_t value[2] {};
+	uint8_t value[2]{};
 	value[0] = (1 << 7);
 	write_reg16(GLOB_CMD, (uint16_t)value[0]);
-#endif // GPIO_SPI1_RESET_ADIS16477
+#endif  // GPIO_SPI1_RESET_ADIS16477
 
 	// Reset recovery time
 	usleep(193_ms);
-
 
 	// Miscellaneous Control Register (MSC_CTRL)
 	static constexpr uint16_t MSC_CTRL_DEFAULT = 0x00C1;
@@ -126,9 +120,8 @@ int ADIS16477::reset()
 		return PX4_ERROR;
 	}
 
-
 	// Bartlett Window FIR Filter
-	static constexpr uint16_t FILT_CTRL_SETUP = 0x0004; // (disabled: 0x0000, 2 taps: 0x0001, 16 taps: 0x0004)
+	static constexpr uint16_t FILT_CTRL_SETUP = 0x0004;  // (disabled: 0x0000, 2 taps: 0x0001, 16 taps: 0x0004)
 	write_reg16(FILT_CTRL, FILT_CTRL_SETUP);
 	usleep(100);
 	// verify
@@ -138,7 +131,6 @@ int ADIS16477::reset()
 		PX4_ERR("invalid setup, FILT_CTRL=%#X", filt_ctrl);
 		return PX4_ERROR;
 	}
-
 
 	// Decimation Filter
 	//  set for 1000 samples per second
@@ -156,9 +148,7 @@ int ADIS16477::reset()
 	return OK;
 }
 
-int
-ADIS16477::probe()
-{
+int ADIS16477::probe() {
 	reset();
 
 	// read product id (5 attempts)
@@ -185,16 +175,14 @@ ADIS16477::probe()
 	return -EIO;
 }
 
-bool
-ADIS16477::self_test_memory()
-{
+bool ADIS16477::self_test_memory() {
 	DEVICE_DEBUG("self test memory");
 
 	// self test (global command bit 4)
-	uint8_t value[2] {};
+	uint8_t value[2]{};
 	value[0] = (1 << 4);
 	write_reg16(GLOB_CMD, (uint16_t)value[0]);
-	usleep(32_ms); // Flash Memory Test Time
+	usleep(32_ms);  // Flash Memory Test Time
 
 	// read DIAG_STAT to check result
 	uint16_t diag_stat = read_reg16(DIAG_STAT);
@@ -207,16 +195,14 @@ ADIS16477::self_test_memory()
 	return true;
 }
 
-bool
-ADIS16477::self_test_sensor()
-{
+bool ADIS16477::self_test_sensor() {
 	PX4_DEBUG("self test sensor");
 
 	// self test (global command bit 2)
-	uint8_t value[2] {};
+	uint8_t value[2]{};
 	value[0] = (1 << 2);
 	write_reg16(GLOB_CMD, (uint16_t)value[0]);
-	usleep(14_ms); // Self Test Time
+	usleep(14_ms);  // Self Test Time
 
 	// read DIAG_STAT to check result
 	uint16_t diag_stat = read_reg16(DIAG_STAT);
@@ -229,10 +215,8 @@ ADIS16477::self_test_sensor()
 	return true;
 }
 
-uint16_t
-ADIS16477::read_reg16(uint8_t reg)
-{
-	uint16_t cmd[1] {};
+uint16_t ADIS16477::read_reg16(uint8_t reg) {
+	uint16_t cmd[1]{};
 
 	cmd[0] = ((reg | DIR_READ) << 8) & 0xff00;
 	transferhword(cmd, nullptr, 1);
@@ -243,19 +227,15 @@ ADIS16477::read_reg16(uint8_t reg)
 	return cmd[0];
 }
 
-int
-ADIS16477::write_reg(uint8_t reg, uint8_t val)
-{
-	uint8_t cmd[2] {};
+int ADIS16477::write_reg(uint8_t reg, uint8_t val) {
+	uint8_t cmd[2]{};
 	cmd[0] = reg | 0x8;
 	cmd[1] = val;
 	return transfer(cmd, cmd, sizeof(cmd));
 }
 
-void
-ADIS16477::write_reg16(uint8_t reg, uint16_t value)
-{
-	uint16_t cmd[2] {};
+void ADIS16477::write_reg16(uint8_t reg, uint16_t value) {
+	uint16_t cmd[2]{};
 
 	cmd[0] = ((reg | DIR_WRITE) << 8) | (0x00ff & value);
 	cmd[1] = (((reg + 0x1) | DIR_WRITE) << 8) | ((0xff00 & value) >> 8);
@@ -266,9 +246,7 @@ ADIS16477::write_reg16(uint8_t reg, uint16_t value)
 	px4_udelay(T_STALL);
 }
 
-void
-ADIS16477::start()
-{
+void ADIS16477::start() {
 	if (_drdy_gpio != 0) {
 		// Setup data ready on rising edge
 		px4_arch_gpiosetevent(_drdy_gpio, true, false, true, &ADIS16477::data_ready_interrupt, this);
@@ -279,9 +257,7 @@ ADIS16477::start()
 	}
 }
 
-void
-ADIS16477::exit_and_cleanup()
-{
+void ADIS16477::exit_and_cleanup() {
 	if (_drdy_gpio != 0) {
 		// Disable data ready callback
 		px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr);
@@ -290,9 +266,7 @@ ADIS16477::exit_and_cleanup()
 	I2CSPIDriverBase::exit_and_cleanup();
 }
 
-int
-ADIS16477::data_ready_interrupt(int irq, void *context, void *arg)
-{
+int ADIS16477::data_ready_interrupt(int irq, void *context, void *arg) {
 	ADIS16477 *dev = static_cast<ADIS16477 *>(arg);
 
 	// make another measurement
@@ -301,16 +275,12 @@ ADIS16477::data_ready_interrupt(int irq, void *context, void *arg)
 	return PX4_OK;
 }
 
-void
-ADIS16477::RunImpl()
-{
+void ADIS16477::RunImpl() {
 	// make another measurement
 	measure();
 }
 
-int
-ADIS16477::measure()
-{
+int ADIS16477::measure() {
 	perf_begin(_sample_perf);
 
 	// Fetch the full set of measurements from the ADIS16477 in one pass (burst read).
@@ -322,7 +292,8 @@ ADIS16477::measure()
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	if (OK != transferhword((uint16_t *)&adis_report, ((uint16_t *)&adis_report), sizeof(adis_report) / sizeof(uint16_t))) {
+	if (OK != transferhword((uint16_t *)&adis_report, ((uint16_t *)&adis_report),
+				sizeof(adis_report) / sizeof(uint16_t))) {
 		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
 		return -EIO;
@@ -377,11 +348,8 @@ ADIS16477::measure()
 	return OK;
 }
 
-void
-ADIS16477::print_status()
-{
+void ADIS16477::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfers);
-
 }

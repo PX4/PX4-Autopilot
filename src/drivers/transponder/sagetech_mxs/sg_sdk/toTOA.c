@@ -13,8 +13,7 @@
 /*
  * Documented in the header file.
  */
-float toTOA(const uint8_t bytes[])
-{
+float toTOA(const uint8_t bytes[]) {
 	float toa = toInt16(bytes) & 0xFFFF;
-	return toa / (float) 128.0;
+	return toa / (float)128.0;
 }

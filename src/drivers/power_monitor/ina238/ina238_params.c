@@ -39,7 +39,7 @@
  * @group Sensors
  * @boolean
  * @reboot_required true
-*/
+ */
 PARAM_DEFINE_INT32(SENS_EN_INA238, 0);
 
 /**

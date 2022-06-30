@@ -41,19 +41,17 @@
  * Included Files
  ************************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
-
-#include <nuttx/usb/usbdev.h>
-#include <nuttx/usb/usbdev_trace.h>
-
 #include <arm_arch.h>
 #include <chip.h>
+#include <debug.h>
 #include <hardware/imxrt_usb_analog.h>
+#include <nuttx/usb/usbdev.h>
+#include <nuttx/usb/usbdev_trace.h>
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <sys/types.h>
+
 #include "board_config.h"
 #include "imxrt_periphclks.h"
 
@@ -68,8 +66,7 @@
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
-int imxrt_usb_initialize(void)
-{
+int imxrt_usb_initialize(void) {
 	imxrt_clockall_usboh3();
 	return 0;
 }
@@ -86,8 +83,7 @@ int imxrt_usb_initialize(void)
  ************************************************************************************/
 
 __EXPORT
-int imxrt_usbpullup(FAR struct usbdev_s *dev, bool enable)
-{
+int imxrt_usbpullup(FAR struct usbdev_s *dev, bool enable) {
 	usbtrace(TRACE_DEVPULLUP, (uint16_t)enable);
 
 	return OK;
@@ -105,10 +101,7 @@ int imxrt_usbpullup(FAR struct usbdev_s *dev, bool enable)
  ************************************************************************************/
 
 __EXPORT
-void imxrt_usbsuspend(FAR struct usbdev_s *dev, bool resume)
-{
-	uinfo("resume: %d\n", resume);
-}
+void imxrt_usbsuspend(FAR struct usbdev_s *dev, bool resume) { uinfo("resume: %d\n", resume); }
 
 /************************************************************************************
  * Name: board_read_VBUS_state
@@ -122,8 +115,6 @@ void imxrt_usbsuspend(FAR struct usbdev_s *dev, bool resume)
  *
  ************************************************************************************/
 
-int board_read_VBUS_state(void)
-{
-
+int board_read_VBUS_state(void) {
 	return (getreg32(IMXRT_USB_ANALOG_USB1_VBUS_DETECT_STAT) & USB_ANALOG_USB_VBUS_DETECT_STAT_VBUS_VALID) ? 0 : 1;
 }

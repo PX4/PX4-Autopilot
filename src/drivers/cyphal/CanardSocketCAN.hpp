@@ -33,25 +33,20 @@
 
 #pragma once
 
+#include <canard.h>
+#include <netpacket/can.h>
+#include <nuttx/can.h>
 #include <px4_platform_common/px4_config.h>
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <unistd.h>
-
-#include <sys/time.h>
 #include <sys/socket.h>
-
-#include <nuttx/can.h>
-#include <netpacket/can.h>
-
-#include <canard.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 #include "CanardInterface.hpp"
 
-class CanardSocketCAN : public CanardInterface
-{
+class CanardSocketCAN : public CanardInterface {
 public:
 	CanardSocketCAN() = default;
 	~CanardSocketCAN() override = default;
@@ -63,10 +58,7 @@ public:
 	int init();
 
 	/// Close socket connection
-	int close()
-	{
-		return ::close(_fd);
-	}
+	int close() { return ::close(_fd); }
 
 	/// Send a CanardFrame to the CanardSocketInstance socket
 	/// This function is blocking
@@ -79,25 +71,24 @@ public:
 	int16_t receive(CanardRxFrame *rxf);
 
 	// TODO implement ioctl for CAN filter
-	//int16_t socketcanConfigureFilter(const fd_t fd, const size_t num_filters, const struct can_filter *filters);
+	// int16_t socketcanConfigureFilter(const fd_t fd, const size_t num_filters, const struct can_filter *filters);
 
 private:
-
-	int               _fd{-1};
-	bool              _can_fd{false};
+	int _fd{-1};
+	bool _can_fd{false};
 
 	//// Send msg structure
-	struct iovec       _send_iov {};
+	struct iovec _send_iov {};
 	struct canfd_frame _send_frame {};
-	struct msghdr      _send_msg {};
-	struct cmsghdr     *_send_cmsg {};
-	struct timeval     *_send_tv {};  /* TX deadline timestamp */
-	uint8_t            _send_control[sizeof(struct cmsghdr) + sizeof(struct timeval)] {};
+	struct msghdr _send_msg {};
+	struct cmsghdr *_send_cmsg{};
+	struct timeval *_send_tv{}; /* TX deadline timestamp */
+	uint8_t _send_control[sizeof(struct cmsghdr) + sizeof(struct timeval)]{};
 
 	//// Receive msg structure
-	struct iovec       _recv_iov {};
+	struct iovec _recv_iov {};
 	struct canfd_frame _recv_frame {};
-	struct msghdr      _recv_msg {};
-	struct cmsghdr     *_recv_cmsg {};
-	uint8_t            _recv_control[sizeof(struct cmsghdr) + sizeof(struct timeval)] {};
+	struct msghdr _recv_msg {};
+	struct cmsghdr *_recv_cmsg{};
+	uint8_t _recv_control[sizeof(struct cmsghdr) + sizeof(struct timeval)]{};
 };

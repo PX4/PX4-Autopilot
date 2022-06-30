@@ -31,27 +31,23 @@
  *
  ****************************************************************************/
 
+#include <board_config.h>
 #include <drivers/drv_tone_alarm.h>
 #include <px4_platform_common/defines.h>
-#include <board_config.h>
 
-namespace ToneAlarmInterface
-{
+namespace ToneAlarmInterface {
 
-void init()
-{
+void init() {
 	// Configure the GPIO to the idle state.
 	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
 }
 
-hrt_abstime start_note(unsigned frequency)
-{
+hrt_abstime start_note(unsigned frequency) {
 	px4_arch_gpiowrite(GPIO_TONE_ALARM_GPIO, 1);
 	return hrt_absolute_time();
 }
 
-void stop_note()
-{
+void stop_note() {
 	// Stop the current note.
 	px4_arch_gpiowrite(GPIO_TONE_ALARM_GPIO, 0);
 }

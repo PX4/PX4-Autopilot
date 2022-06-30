@@ -41,8 +41,8 @@
  * Included Files
  ************************************************************/
 
-#include <stddef.h>
 #include <queue.h>
+#include <stddef.h>
 
 /************************************************************
  * Public Functions
@@ -57,8 +57,7 @@
  *
  ************************************************************/
 
-sq_entry_t *sq_remfirst(sq_queue_t *queue)
-{
+sq_entry_t *sq_remfirst(sq_queue_t *queue) {
 	sq_entry_t *ret = queue->head;
 
 	if (ret) {
@@ -73,4 +72,3 @@ sq_entry_t *sq_remfirst(sq_queue_t *queue)
 
 	return ret;
 }
-

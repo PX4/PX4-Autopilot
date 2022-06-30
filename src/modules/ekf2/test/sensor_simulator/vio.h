@@ -40,13 +40,10 @@
 
 #include "sensor.h"
 
-namespace sensor_simulator
-{
-namespace sensor
-{
+namespace sensor_simulator {
+namespace sensor {
 
-class Vio: public Sensor
-{
+class Vio : public Sensor {
 public:
 	Vio(std::shared_ptr<Ekf> ekf);
 	~Vio();
@@ -68,9 +65,8 @@ private:
 	extVisionSample _vio_data;
 
 	void send(uint64_t time) override;
-
 };
 
-} // namespace sensor
-} // namespace sensor_simulator
-#endif // !EKF_VIO_H
+}  // namespace sensor
+}  // namespace sensor_simulator
+#endif  // !EKF_VIO_H

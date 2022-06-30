@@ -39,43 +39,39 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
 #include <assert.h>
-#include <time.h>
-#include <stdlib.h>
 #include <math.h>
-#include <mathlib/math/test/test.hpp>
+#include <px4_platform_common/defines.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"
-
 #include "matrix/math.hpp"
 
-namespace control
-{
+namespace control {
 
 /**
  * A proportional controller.
  * @link http://en.wikipedia.org/wiki/PID_controller
  */
-class __EXPORT BlockP: public Block
-{
+class __EXPORT BlockP : public Block {
 public:
-// methods
-	BlockP(SuperBlock *parent, const char *name) :
-		Block(parent, name),
-		_kP(this, "") // only one param, no need to name
+	// methods
+	BlockP(SuperBlock *parent, const char *name)
+		: Block(parent, name),
+		  _kP(this, "")  // only one param, no need to name
 	{}
 	virtual ~BlockP() = default;
-	float update(float input)
-	{
-		return getKP() * input;
-	}
-// accessors
+	float update(float input) { return getKP() * input; }
+	// accessors
 	float getKP() { return _kP.get(); }
+
 protected:
 	control::BlockParamFloat _kP;
 };
 
-} // namespace control
+}  // namespace control

@@ -42,32 +42,21 @@
   list of registers that will be checked in check_registers(). Note
   that ADDR_WHO_AM_I must be first in the list.
  */
-static constexpr uint8_t _checked_registers[] = {
-	ADDR_WHO_AM_I,
-	ADDR_CTRL_REG1,
-	ADDR_CTRL_REG2,
-	ADDR_CTRL_REG3,
-	ADDR_CTRL_REG4,
-	ADDR_CTRL_REG5,
-	ADDR_CTRL_REG6,
-	ADDR_CTRL_REG7
-};
+static constexpr uint8_t _checked_registers[] = {ADDR_WHO_AM_I,  ADDR_CTRL_REG1, ADDR_CTRL_REG2, ADDR_CTRL_REG3,
+						 ADDR_CTRL_REG4, ADDR_CTRL_REG5, ADDR_CTRL_REG6, ADDR_CTRL_REG7};
 
-LSM303D::LSM303D(const I2CSPIDriverConfig &config) :
-	SPI(config),
-	I2CSPIDriver(config),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_mag(get_device_id(), config.rotation),
-	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d: acc_read")),
-	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d: mag_read")),
-	_bad_registers(perf_alloc(PC_COUNT, "lsm303d: bad_reg")),
-	_bad_values(perf_alloc(PC_COUNT, "lsm303d: bad_val")),
-	_accel_duplicates(perf_alloc(PC_COUNT, "lsm303d: acc_dupe"))
-{
-}
+LSM303D::LSM303D(const I2CSPIDriverConfig &config)
+	: SPI(config),
+	  I2CSPIDriver(config),
+	  _px4_accel(get_device_id(), config.rotation),
+	  _px4_mag(get_device_id(), config.rotation),
+	  _accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d: acc_read")),
+	  _mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d: mag_read")),
+	  _bad_registers(perf_alloc(PC_COUNT, "lsm303d: bad_reg")),
+	  _bad_values(perf_alloc(PC_COUNT, "lsm303d: bad_val")),
+	  _accel_duplicates(perf_alloc(PC_COUNT, "lsm303d: acc_dupe")) {}
 
-LSM303D::~LSM303D()
-{
+LSM303D::~LSM303D() {
 	// delete the perf counter
 	perf_free(_accel_sample_perf);
 	perf_free(_mag_sample_perf);
@@ -76,9 +65,7 @@ LSM303D::~LSM303D()
 	perf_free(_accel_duplicates);
 }
 
-int
-LSM303D::init()
-{
+int LSM303D::init() {
 	/* do SPI init (and probe) first */
 	int ret = SPI::init();
 
@@ -94,9 +81,7 @@ LSM303D::init()
 	return ret;
 }
 
-void
-LSM303D::disable_i2c(void)
-{
+void LSM303D::disable_i2c(void) {
 	uint8_t a = read_reg(0x02);
 	write_reg(0x02, (0x10 | a));
 	a = read_reg(0x02);
@@ -107,21 +92,19 @@ LSM303D::disable_i2c(void)
 	write_reg(0x02, (0xE7 & a));
 }
 
-void
-LSM303D::reset()
-{
+void LSM303D::reset() {
 	// ensure the chip doesn't interpret any other bus traffic as I2C
 	disable_i2c();
 
 	// enable accel
-	write_checked_reg(ADDR_CTRL_REG1, REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE |
-			  REG1_RATE_800HZ_A);
+	write_checked_reg(ADDR_CTRL_REG1,
+			  REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE | REG1_RATE_800HZ_A);
 
 	// enable mag
 	write_checked_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
 	write_checked_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M | REG5_ENABLE_T);
-	write_checked_reg(ADDR_CTRL_REG3, 0x04); // DRDY on ACCEL on INT1
-	write_checked_reg(ADDR_CTRL_REG4, 0x04); // DRDY on MAG on INT2
+	write_checked_reg(ADDR_CTRL_REG3, 0x04);  // DRDY on ACCEL on INT1
+	write_checked_reg(ADDR_CTRL_REG4, 0x04);  // DRDY on MAG on INT2
 
 	accel_set_range(LSM303D_ACCEL_DEFAULT_RANGE_G);
 	accel_set_samplerate(LSM303D_ACCEL_DEFAULT_RATE);
@@ -136,9 +119,7 @@ LSM303D::reset()
 	mag_set_samplerate(LSM303D_MAG_DEFAULT_RATE);
 }
 
-int
-LSM303D::probe()
-{
+int LSM303D::probe() {
 	// read dummy value to void to clear SPI statemachine on sensor
 	read_reg(ADDR_WHO_AM_I);
 
@@ -151,10 +132,8 @@ LSM303D::probe()
 	return -EIO;
 }
 
-uint8_t
-LSM303D::read_reg(unsigned reg)
-{
-	uint8_t cmd[2] {};
+uint8_t LSM303D::read_reg(unsigned reg) {
+	uint8_t cmd[2]{};
 	cmd[0] = reg | DIR_READ;
 
 	transfer(cmd, cmd, sizeof(cmd));
@@ -162,10 +141,8 @@ LSM303D::read_reg(unsigned reg)
 	return cmd[1];
 }
 
-int
-LSM303D::write_reg(unsigned reg, uint8_t value)
-{
-	uint8_t	cmd[2] {};
+int LSM303D::write_reg(unsigned reg, uint8_t value) {
+	uint8_t cmd[2]{};
 
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
@@ -173,9 +150,7 @@ LSM303D::write_reg(unsigned reg, uint8_t value)
 	return transfer(cmd, nullptr, sizeof(cmd));
 }
 
-void
-LSM303D::write_checked_reg(unsigned reg, uint8_t value)
-{
+void LSM303D::write_checked_reg(unsigned reg, uint8_t value) {
 	write_reg(reg, value);
 
 	for (uint8_t i = 0; i < LSM303D_NUM_CHECKED_REGISTERS; i++) {
@@ -185,18 +160,14 @@ LSM303D::write_checked_reg(unsigned reg, uint8_t value)
 	}
 }
 
-void
-LSM303D::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
-{
-	uint8_t	val = read_reg(reg);
+void LSM303D::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits) {
+	uint8_t val = read_reg(reg);
 	val &= ~clearbits;
 	val |= setbits;
 	write_checked_reg(reg, val);
 }
 
-int
-LSM303D::accel_set_range(unsigned max_g)
-{
+int LSM303D::accel_set_range(unsigned max_g) {
 	uint8_t setbits = 0;
 	uint8_t clearbits = REG2_FULL_SCALE_BITS_A;
 	float new_scale_g_digit = 0.0f;
@@ -243,9 +214,7 @@ LSM303D::accel_set_range(unsigned max_g)
 	return OK;
 }
 
-int
-LSM303D::mag_set_range(unsigned max_ga)
-{
+int LSM303D::mag_set_range(unsigned max_ga) {
 	uint8_t setbits = 0;
 	uint8_t clearbits = REG6_FULL_SCALE_BITS_M;
 	float new_scale_ga_digit = 0.0f;
@@ -285,9 +254,7 @@ LSM303D::mag_set_range(unsigned max_ga)
 	return OK;
 }
 
-int
-LSM303D::accel_set_onchip_lowpass_filter_bandwidth(unsigned bandwidth)
-{
+int LSM303D::accel_set_onchip_lowpass_filter_bandwidth(unsigned bandwidth) {
 	uint8_t setbits = 0;
 	uint8_t clearbits = REG2_ANTIALIAS_FILTER_BW_BITS_A;
 
@@ -320,9 +287,7 @@ LSM303D::accel_set_onchip_lowpass_filter_bandwidth(unsigned bandwidth)
 	return OK;
 }
 
-int
-LSM303D::accel_set_samplerate(unsigned frequency)
-{
+int LSM303D::accel_set_samplerate(unsigned frequency) {
 	uint8_t setbits = 0;
 	uint8_t clearbits = REG1_RATE_BITS_A;
 
@@ -363,9 +328,7 @@ LSM303D::accel_set_samplerate(unsigned frequency)
 	return OK;
 }
 
-int
-LSM303D::mag_set_samplerate(unsigned frequency)
-{
+int LSM303D::mag_set_samplerate(unsigned frequency) {
 	uint8_t setbits = 0;
 	uint8_t clearbits = REG5_RATE_BITS_M;
 
@@ -398,16 +361,12 @@ LSM303D::mag_set_samplerate(unsigned frequency)
 	return OK;
 }
 
-void
-LSM303D::start()
-{
+void LSM303D::start() {
 	// start polling at the specified rate
 	ScheduleOnInterval(_call_accel_interval - LSM303D_TIMER_REDUCTION);
 }
 
-void
-LSM303D::RunImpl()
-{
+void LSM303D::RunImpl() {
 	// make another accel measurement
 	measureAccelerometer();
 
@@ -416,9 +375,7 @@ LSM303D::RunImpl()
 	}
 }
 
-void
-LSM303D::check_registers(void)
-{
+void LSM303D::check_registers(void) {
 	uint8_t v = 0;
 
 	if ((v = read_reg(_checked_registers[_checked_next])) != _checked_values[_checked_next]) {
@@ -446,19 +403,17 @@ LSM303D::check_registers(void)
 	_checked_next = (_checked_next + 1) % LSM303D_NUM_CHECKED_REGISTERS;
 }
 
-void
-LSM303D::measureAccelerometer()
-{
+void LSM303D::measureAccelerometer() {
 	perf_begin(_accel_sample_perf);
 
 	// status register and data as read back from the device
 #pragma pack(push, 1)
 	struct {
-		uint8_t		cmd;
-		uint8_t		status;
-		int16_t		x;
-		int16_t		y;
-		int16_t		z;
+		uint8_t cmd;
+		uint8_t status;
+		int16_t x;
+		int16_t y;
+		int16_t z;
 	} raw_accel_report{};
 #pragma pack(pop)
 
@@ -488,10 +443,8 @@ LSM303D::measureAccelerometer()
 	  large value. We want to detect this and mark the sensor as
 	  being faulty
 	 */
-	if (((_last_accel[0] - raw_accel_report.x) == 0) &&
-	    ((_last_accel[1] - raw_accel_report.y) == 0) &&
+	if (((_last_accel[0] - raw_accel_report.x) == 0) && ((_last_accel[1] - raw_accel_report.y) == 0) &&
 	    ((_last_accel[2] - raw_accel_report.z) == 0)) {
-
 		_constant_accel_count++;
 
 	} else {
@@ -527,20 +480,18 @@ LSM303D::measureAccelerometer()
 	perf_end(_accel_sample_perf);
 }
 
-void
-LSM303D::measureMagnetometer()
-{
+void LSM303D::measureMagnetometer() {
 	perf_begin(_mag_sample_perf);
 
 	// status register and data as read back from the device
 #pragma pack(push, 1)
 	struct {
-		uint8_t		cmd;
-		int16_t		temperature;
-		uint8_t		status;
-		int16_t		x;
-		int16_t		y;
-		int16_t		z;
+		uint8_t cmd;
+		int16_t temperature;
+		uint8_t status;
+		int16_t x;
+		int16_t y;
+		int16_t z;
 	} raw_mag_report{};
 #pragma pack(pop)
 
@@ -564,9 +515,7 @@ LSM303D::measureMagnetometer()
 	perf_end(_mag_sample_perf);
 }
 
-void
-LSM303D::print_status()
-{
+void LSM303D::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_accel_sample_perf);
 	perf_print_counter(_mag_sample_perf);
@@ -580,9 +529,7 @@ LSM303D::print_status()
 		uint8_t v = read_reg(_checked_registers[i]);
 
 		if (v != _checked_values[i]) {
-			::printf("reg %02x:%02x should be %02x\n",
-				 (unsigned)_checked_registers[i],
-				 (unsigned)v,
+			::printf("reg %02x:%02x should be %02x\n", (unsigned)_checked_registers[i], (unsigned)v,
 				 (unsigned)_checked_values[i]);
 		}
 	}

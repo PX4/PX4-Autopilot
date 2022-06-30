@@ -36,16 +36,16 @@
 #include <drivers/drv_hrt.h>
 #include <px4_arch/micro_hal.h>
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/pps_capture.h>
 #include <uORB/topics/sensor_gps.h>
 
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+
 using namespace time_literals;
 
-class PPSCapture : public ModuleBase<PPSCapture>, public px4::ScheduledWorkItem
-{
+class PPSCapture : public ModuleBase<PPSCapture>, public px4::ScheduledWorkItem {
 public:
 	PPSCapture();
 	virtual ~PPSCapture();
@@ -71,12 +71,11 @@ private:
 
 	int _channel{-1};
 	uint32_t _pps_capture_gpio{0};
-	uORB::Publication<pps_capture_s>	_pps_capture_pub{ORB_ID(pps_capture)};
-	uORB::Subscription								_sensor_gps_sub{ORB_ID(sensor_gps)};
+	uORB::Publication<pps_capture_s> _pps_capture_pub{ORB_ID(pps_capture)};
+	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps)};
 
 	hrt_abstime _hrt_timestamp{0};
 
-	hrt_abstime	_last_gps_timestamp{0};
-	uint64_t		_last_gps_utc_timestamp{0};
-
+	hrt_abstime _last_gps_timestamp{0};
+	uint64_t _last_gps_utc_timestamp{0};
 };

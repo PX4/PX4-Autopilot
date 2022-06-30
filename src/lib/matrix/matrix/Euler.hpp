@@ -17,8 +17,7 @@
 
 #include "math.hpp"
 
-namespace matrix
-{
+namespace matrix {
 
 template <typename Type>
 class Dcm;
@@ -32,9 +31,8 @@ class Quaternion;
  * This class describes the rotation from frame 1
  * to frame 2 via 3-2-1 intrinsic Tait-Bryan rotation sequence.
  */
-template<typename Type>
-class Euler : public Vector<Type, 3>
-{
+template <typename Type>
+class Euler : public Vector<Type, 3> {
 public:
 	/**
 	 * Standard constructor
@@ -46,20 +44,14 @@ public:
 	 *
 	 * @param other vector to copy
 	 */
-	Euler(const Vector<Type, 3> &other) :
-		Vector<Type, 3>(other)
-	{
-	}
+	Euler(const Vector<Type, 3> &other) : Vector<Type, 3>(other) {}
 
 	/**
 	 * Constructor from Matrix31
 	 *
 	 * @param other Matrix31 to copy
 	 */
-	Euler(const Matrix<Type, 3, 1> &other) :
-		Vector<Type, 3>(other)
-	{
-	}
+	Euler(const Matrix<Type, 3, 1> &other) : Vector<Type, 3>(other) {}
 
 	/**
 	 * Constructor from euler angles
@@ -72,8 +64,7 @@ public:
 	 * @param theta_ rotation angle about Y axis
 	 * @param psi_ rotation angle about Z axis
 	 */
-	Euler(Type phi_, Type theta_, Type psi_) : Vector<Type, 3>()
-	{
+	Euler(Type phi_, Type theta_, Type psi_) : Vector<Type, 3>() {
 		phi() = phi_;
 		theta() = theta_;
 		psi() = psi_;
@@ -88,9 +79,8 @@ public:
 	 * Tait-Bryan rotation sequence from frame 1 to frame 2.
 	 *
 	 * @param dcm Direction cosine matrix
-	*/
-	Euler(const Dcm<Type> &dcm)
-	{
+	 */
+	Euler(const Dcm<Type> &dcm) {
 		theta() = asin(-dcm(2, 0));
 
 		if ((fabs(theta() - Type(M_PI / 2))) < Type(1.0e-3)) {
@@ -116,40 +106,19 @@ public:
 	 * Tait-Bryan rotation sequence from frame 1 to frame 2.
 	 *
 	 * @param q quaternion
-	*/
-	Euler(const Quaternion<Type> &q) : Vector<Type, 3>(Euler(Dcm<Type>(q)))
-	{
-	}
+	 */
+	Euler(const Quaternion<Type> &q) : Vector<Type, 3>(Euler(Dcm<Type>(q))) {}
 
-	inline Type phi() const
-	{
-		return (*this)(0);
-	}
-	inline Type theta() const
-	{
-		return (*this)(1);
-	}
-	inline Type psi() const
-	{
-		return (*this)(2);
-	}
+	inline Type phi() const { return (*this)(0); }
+	inline Type theta() const { return (*this)(1); }
+	inline Type psi() const { return (*this)(2); }
 
-	inline Type &phi()
-	{
-		return (*this)(0);
-	}
-	inline Type &theta()
-	{
-		return (*this)(1);
-	}
-	inline Type &psi()
-	{
-		return (*this)(2);
-	}
-
+	inline Type &phi() { return (*this)(0); }
+	inline Type &theta() { return (*this)(1); }
+	inline Type &psi() { return (*this)(2); }
 };
 
 using Eulerf = Euler<float>;
 using Eulerd = Euler<double>;
 
-} // namespace matrix
+}  // namespace matrix

@@ -32,5 +32,4 @@
  ****************************************************************************/
 #pragma once
 
-
 #include "../../../kinetis/include/px4_arch/hw_description.h"

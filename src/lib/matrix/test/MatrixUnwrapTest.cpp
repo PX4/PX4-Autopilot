@@ -1,10 +1,10 @@
-#include <matrix/math.hpp>
 #include <gtest/gtest.h>
+
+#include <matrix/math.hpp>
 
 using namespace matrix;
 
-TEST(MatrixUnwrapTest, UnwrapFloats)
-{
+TEST(MatrixUnwrapTest, UnwrapFloats) {
 	const float M_TWO_PI_F = float(M_PI * 2);
 
 	float unwrapped_angles[6] = {0.0, 0.25, 0.5, 0.75, 1.0, 1.25};
@@ -32,8 +32,7 @@ TEST(MatrixUnwrapTest, UnwrapFloats)
 	}
 }
 
-TEST(MatrixUnwrapTest, UnwrapDoubles)
-{
+TEST(MatrixUnwrapTest, UnwrapDoubles) {
 	const double M_TWO_PI = M_PI * 2;
 
 	double unwrapped_angles[6] = {0.0, 0.25, 0.5, 0.75, 1.0, 1.25};

@@ -32,15 +32,12 @@
  ****************************************************************************/
 
 #include "crsf_telemetry.h"
+
 #include <lib/rc/crsf.h>
 
-CRSFTelemetry::CRSFTelemetry(int uart_fd) :
-	_uart_fd(uart_fd)
-{
-}
+CRSFTelemetry::CRSFTelemetry(int uart_fd) : _uart_fd(uart_fd) {}
 
-bool CRSFTelemetry::update(const hrt_abstime &now)
-{
+bool CRSFTelemetry::update(const hrt_abstime &now) {
 	const int update_rate_hz = 10;
 
 	if (now - _last_update <= 1_s / (update_rate_hz * num_data_types)) {
@@ -50,21 +47,21 @@ bool CRSFTelemetry::update(const hrt_abstime &now)
 	bool sent = false;
 
 	switch (_next_type) {
-	case 0:
-		sent = send_battery();
-		break;
+		case 0:
+			sent = send_battery();
+			break;
 
-	case 1:
-		sent = send_gps();
-		break;
+		case 1:
+			sent = send_gps();
+			break;
 
-	case 2:
-		sent = send_attitude();
-		break;
+		case 2:
+			sent = send_attitude();
+			break;
 
-	case 3:
-		sent = send_flight_mode();
-		break;
+		case 3:
+			sent = send_flight_mode();
+			break;
 	}
 
 	_last_update = now;
@@ -73,8 +70,7 @@ bool CRSFTelemetry::update(const hrt_abstime &now)
 	return sent;
 }
 
-bool CRSFTelemetry::send_battery()
-{
+bool CRSFTelemetry::send_battery() {
 	battery_status_s battery_status;
 
 	if (!_battery_status_sub.update(&battery_status)) {
@@ -88,8 +84,7 @@ bool CRSFTelemetry::send_battery()
 	return crsf_send_telemetry_battery(_uart_fd, voltage, current, fuel, remaining);
 }
 
-bool CRSFTelemetry::send_gps()
-{
+bool CRSFTelemetry::send_gps() {
 	vehicle_gps_position_s vehicle_gps_position;
 
 	if (!_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
@@ -103,12 +98,11 @@ bool CRSFTelemetry::send_gps()
 	uint16_t altitude = vehicle_gps_position.alt + 1000;
 	uint8_t num_satellites = vehicle_gps_position.satellites_used;
 
-	return crsf_send_telemetry_gps(_uart_fd, latitude, longitude, groundspeed,
-				       gps_heading, altitude, num_satellites);
+	return crsf_send_telemetry_gps(_uart_fd, latitude, longitude, groundspeed, gps_heading, altitude,
+				       num_satellites);
 }
 
-bool CRSFTelemetry::send_attitude()
-{
+bool CRSFTelemetry::send_attitude() {
 	vehicle_attitude_s vehicle_attitude;
 
 	if (!_vehicle_attitude_sub.update(&vehicle_attitude)) {
@@ -122,8 +116,7 @@ bool CRSFTelemetry::send_attitude()
 	return crsf_send_telemetry_attitude(_uart_fd, pitch, roll, yaw);
 }
 
-bool CRSFTelemetry::send_flight_mode()
-{
+bool CRSFTelemetry::send_flight_mode() {
 	vehicle_status_s vehicle_status;
 
 	if (!_vehicle_status_sub.update(&vehicle_status)) {
@@ -133,50 +126,50 @@ bool CRSFTelemetry::send_flight_mode()
 	const char *flight_mode = "(unknown)";
 
 	switch (vehicle_status.nav_state) {
-	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-		flight_mode = "Manual";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+			flight_mode = "Manual";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-		flight_mode = "Altitude";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+			flight_mode = "Altitude";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-		flight_mode = "Position";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+			flight_mode = "Position";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-		flight_mode = "Return";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+			flight_mode = "Return";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-		flight_mode = "Mission";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
+			flight_mode = "Mission";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
-		flight_mode = "Auto";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
+			flight_mode = "Auto";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_ACRO:
-		flight_mode = "Acro";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_ACRO:
+			flight_mode = "Acro";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
-		flight_mode = "Terminate";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
+			flight_mode = "Terminate";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-		flight_mode = "Offboard";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
+			flight_mode = "Offboard";
+			break;
 
-	case vehicle_status_s::NAVIGATION_STATE_STAB:
-		flight_mode = "Stabilized";
-		break;
+		case vehicle_status_s::NAVIGATION_STATE_STAB:
+			flight_mode = "Stabilized";
+			break;
 	}
 
 	return crsf_send_telemetry_flight_mode(_uart_fd, flight_mode);

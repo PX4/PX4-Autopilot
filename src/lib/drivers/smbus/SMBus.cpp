@@ -45,20 +45,15 @@
  */
 
 #include "SMBus.hpp"
+
 #include <mathlib/mathlib.h>
 
-SMBus::SMBus(uint8_t device_id, int bus_num, uint16_t address) :
-	I2C(device_id, MODULE_NAME, bus_num, address, 100000)
-{
-}
+SMBus::SMBus(uint8_t device_id, int bus_num, uint16_t address)
+	: I2C(device_id, MODULE_NAME, bus_num, address, 100000) {}
 
-SMBus::~SMBus()
-{
-	perf_free(_interface_errors);
-}
+SMBus::~SMBus() { perf_free(_interface_errors); }
 
-int SMBus::read_word(const uint8_t cmd_code, uint16_t &data)
-{
+int SMBus::read_word(const uint8_t cmd_code, uint16_t &data) {
 	uint8_t buf[6];
 	// 2 data bytes + pec byte
 	int result = transfer(&cmd_code, 1, buf + 3, 3);
@@ -85,8 +80,7 @@ int SMBus::read_word(const uint8_t cmd_code, uint16_t &data)
 	return result;
 }
 
-int SMBus::write_word(const uint8_t cmd_code, uint16_t data)
-{
+int SMBus::write_word(const uint8_t cmd_code, uint16_t data) {
 	// 2 data bytes + pec byte
 	uint8_t buf[5];
 	buf[0] = (get_device_address() << 1) | 0x10;
@@ -105,8 +99,7 @@ int SMBus::write_word(const uint8_t cmd_code, uint16_t data)
 	return result;
 }
 
-int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, const bool use_pec)
-{
+int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, const bool use_pec) {
 	uint8_t byte_count = 0;
 	// addr(wr), cmd_code, addr(r), byte_count, data (MAX_BLOCK_LEN bytes max), pec
 	uint8_t rx_data[MAX_BLOCK_LEN + 5];
@@ -143,8 +136,7 @@ int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, 
 	return result;
 }
 
-int SMBus::block_write(const uint8_t cmd_code, const void *data, uint8_t byte_count, const bool use_pec)
-{
+int SMBus::block_write(const uint8_t cmd_code, const void *data, uint8_t byte_count, const bool use_pec) {
 	// cmd code[1], byte count[1], data[byte_count] (MAX_BLOCK_LEN max), pec[1] (optional)
 	uint8_t buf[MAX_BLOCK_LEN + 2];
 
@@ -178,8 +170,7 @@ int SMBus::block_write(const uint8_t cmd_code, const void *data, uint8_t byte_co
 	return result;
 }
 
-uint8_t SMBus::get_pec(uint8_t *buff, const uint8_t len)
-{
+uint8_t SMBus::get_pec(uint8_t *buff, const uint8_t len) {
 	// TODO: use "return crc8ccitt(buff, len);"
 
 	// Initialise CRC to zero.

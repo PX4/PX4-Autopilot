@@ -33,42 +33,35 @@
 
 #pragma once
 
-#include "UavcanPublisherBase.hpp"
-
-#include <ardupilot/indication/Button.hpp>
-
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/button_event.h>
 
-namespace uavcannode
-{
+#include <ardupilot/indication/Button.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 
-class SafetyButton :
-	public UavcanPublisherBase,
-	public uORB::SubscriptionCallbackWorkItem,
-	private uavcan::Publisher<ardupilot::indication::Button>
-{
+#include "UavcanPublisherBase.hpp"
+
+namespace uavcannode {
+
+class SafetyButton : public UavcanPublisherBase,
+		     public uORB::SubscriptionCallbackWorkItem,
+		     private uavcan::Publisher<ardupilot::indication::Button> {
 public:
-	SafetyButton(px4::WorkItem *work_item, uavcan::INode &node) :
-		UavcanPublisherBase(ardupilot::indication::Button::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(safety_button)),
-		uavcan::Publisher<ardupilot::indication::Button>(node)
-	{
+	SafetyButton(px4::WorkItem *work_item, uavcan::INode &node)
+		: UavcanPublisherBase(ardupilot::indication::Button::DefaultDataTypeID),
+		  uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(safety_button)),
+		  uavcan::Publisher<ardupilot::indication::Button>(node) {
 		this->setPriority(uavcan::TransferPriority::Default);
 	}
 
-	void PrintInfo() override
-	{
+	void PrintInfo() override {
 		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
-			printf("\t%s -> %s:%d\n",
-			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
+			printf("\t%s -> %s:%d\n", uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
 			       ardupilot::indication::Button::getDataTypeFullName(),
 			       ardupilot::indication::Button::DefaultDataTypeID);
 		}
 	}
 
-	void BroadcastAnyUpdates() override
-	{
+	void BroadcastAnyUpdates() override {
 		button_event_s safety_button;
 
 		if (uORB::SubscriptionCallbackWorkItem::update(&safety_button)) {
@@ -81,4 +74,4 @@ public:
 		}
 	}
 };
-} // namespace uavcannode
+}  // namespace uavcannode

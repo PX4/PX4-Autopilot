@@ -33,43 +33,35 @@
 
 #pragma once
 
-#include "UavcanPublisherBase.hpp"
-
-#include <ardupilot/gnss/MovingBaselineData.hpp>
-
-#include <lib/drivers/device/Device.hpp>
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/gps_inject_data.h>
 
-namespace uavcannode
-{
+#include <ardupilot/gnss/MovingBaselineData.hpp>
+#include <lib/drivers/device/Device.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 
-class MovingBaselineDataPub :
-	public UavcanPublisherBase,
-	public uORB::SubscriptionCallbackWorkItem,
-	private uavcan::Publisher<ardupilot::gnss::MovingBaselineData>
-{
+#include "UavcanPublisherBase.hpp"
+
+namespace uavcannode {
+
+class MovingBaselineDataPub : public UavcanPublisherBase,
+			      public uORB::SubscriptionCallbackWorkItem,
+			      private uavcan::Publisher<ardupilot::gnss::MovingBaselineData> {
 public:
-	MovingBaselineDataPub(px4::WorkItem *work_item, uavcan::INode &node) :
-		UavcanPublisherBase(ardupilot::gnss::MovingBaselineData::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(gps_inject_data)),
-		uavcan::Publisher<ardupilot::gnss::MovingBaselineData>(node)
-	{
+	MovingBaselineDataPub(px4::WorkItem *work_item, uavcan::INode &node)
+		: UavcanPublisherBase(ardupilot::gnss::MovingBaselineData::DefaultDataTypeID),
+		  uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(gps_inject_data)),
+		  uavcan::Publisher<ardupilot::gnss::MovingBaselineData>(node) {
 		this->setPriority(uavcan::TransferPriority::NumericallyMax);
 	}
 
-	void PrintInfo() override
-	{
+	void PrintInfo() override {
 		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
-			printf("\t%s -> %s:%d\n",
-			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
-			       ardupilot::gnss::MovingBaselineData::getDataTypeFullName(),
-			       id());
+			printf("\t%s -> %s:%d\n", uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
+			       ardupilot::gnss::MovingBaselineData::getDataTypeFullName(), id());
 		}
 	}
 
-	void BroadcastAnyUpdates() override
-	{
+	void BroadcastAnyUpdates() override {
 		using ardupilot::gnss::MovingBaselineData;
 
 		// gps_inject_data -> ardupilot::gnss::MovingBaselineData
@@ -99,7 +91,8 @@ public:
 						written += 1;
 					}
 
-					result = uavcan::Publisher<ardupilot::gnss::MovingBaselineData>::broadcast(movingbaselinedata);
+					result = uavcan::Publisher<ardupilot::gnss::MovingBaselineData>::broadcast(
+						movingbaselinedata);
 
 					// ensure callback is registered
 					uORB::SubscriptionCallbackWorkItem::registerCallback();
@@ -110,4 +103,4 @@ public:
 		}
 	}
 };
-} // namespace uavcannode
+}  // namespace uavcannode

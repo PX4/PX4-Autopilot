@@ -40,7 +40,7 @@
  * @group Sensors
  * @value 0 Disabled
  * @value 1 Enabled
-  */
+ */
 PARAM_DEFINE_INT32(SENS_EN_ADIS164X, 0);
 
 /**
@@ -52,5 +52,5 @@ PARAM_DEFINE_INT32(SENS_EN_ADIS164X, 0);
  * @group Sensors
  * @value 0 ROTATION_NONE
  * @value 4 ROTATION_YAW_180
-  */
+ */
 PARAM_DEFINE_INT32(SENS_OR_ADIS164X, 0);

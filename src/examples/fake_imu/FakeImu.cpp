@@ -35,29 +35,27 @@
 
 using namespace time_literals;
 
-FakeImu::FakeImu() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_px4_accel(1310988), // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	_px4_gyro(1310988)   // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+FakeImu::FakeImu()
+	: ModuleParams(nullptr),
+	  ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	  _px4_accel(1310988),  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	  _px4_gyro(1310988)    // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 {
 	_sensor_interval_us = roundf(1.e6f / _px4_gyro.get_max_rate_hz());
 
 	PX4_INFO("Rate %.3f, Interval: %" PRId32 " us", (double)_px4_gyro.get_max_rate_hz(), _sensor_interval_us);
 
-	_px4_accel.set_range(2000.f); // don't care
+	_px4_accel.set_range(2000.f);  // don't care
 
-	_px4_gyro.set_scale(math::radians(2000.f) / static_cast<float>(INT16_MAX - 1)); // 2000 degrees/second max
+	_px4_gyro.set_scale(math::radians(2000.f) / static_cast<float>(INT16_MAX - 1));  // 2000 degrees/second max
 }
 
-bool FakeImu::init()
-{
+bool FakeImu::init() {
 	ScheduleOnInterval(_sensor_interval_us);
 	return true;
 }
 
-void FakeImu::Run()
-{
+void FakeImu::Run() {
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
@@ -71,14 +69,14 @@ void FakeImu::Run()
 
 	const double dt_s = 1 / IMU_RATE_HZ;
 
-	const double x_f0 = 0.0;    //    0 Hz X frequency start
-	const double x_f1 = 10.0;   //   10 Hz X frequency stop
+	const double x_f0 = 0.0;   //    0 Hz X frequency start
+	const double x_f1 = 10.0;  //   10 Hz X frequency stop
 
 	const double y_f0 = 0.0;    //   10 Hz Y frequency start
 	const double y_f1 = 100.0;  // 1000 Hz Y frequency stop
 
-	const double z_f0 = 0.0;    //  100 Hz Z frequency start
-	const double z_f1 = 1000.0; // 1000 Hz Z frequency stop
+	const double z_f0 = 0.0;     //  100 Hz Z frequency start
+	const double z_f1 = 1000.0;  // 1000 Hz Z frequency stop
 
 	// amplitude
 	static constexpr double A = (INT16_MAX - 1);
@@ -160,11 +158,10 @@ void FakeImu::Run()
 		_esc_status_pub.update();
 	}
 
-#endif // FAKE_IMU_FAKE_ESC_STATUS
+#endif  // FAKE_IMU_FAKE_ESC_STATUS
 }
 
-int FakeImu::task_spawn(int argc, char *argv[])
-{
+int FakeImu::task_spawn(int argc, char *argv[]) {
 	FakeImu *instance = new FakeImu();
 
 	if (instance) {
@@ -186,13 +183,9 @@ int FakeImu::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int FakeImu::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+int FakeImu::custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
 
-int FakeImu::print_usage(const char *reason)
-{
+int FakeImu::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -209,7 +202,4 @@ int FakeImu::print_usage(const char *reason)
 	return 0;
 }
 
-extern "C" __EXPORT int fake_imu_main(int argc, char *argv[])
-{
-	return FakeImu::main(argc, argv);
-}
+extern "C" __EXPORT int fake_imu_main(int argc, char *argv[]) { return FakeImu::main(argc, argv); }

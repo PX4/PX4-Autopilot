@@ -42,26 +42,25 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
+#include <mathlib/mathlib.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/SubscriptionInterval.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <uORB/topics/heater_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
 
-#include <mathlib/mathlib.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 
 using namespace time_literals;
 
-#define CONTROLLER_PERIOD_DEFAULT    10000
+#define CONTROLLER_PERIOD_DEFAULT 10000
 #define TEMPERATURE_TARGET_THRESHOLD 2.5f
 
-class Heater : public ModuleBase<Heater>, public ModuleParams, public px4::ScheduledWorkItem
-{
+class Heater : public ModuleBase<Heater>, public ModuleParams, public px4::ScheduledWorkItem {
 public:
 	Heater();
 
@@ -101,7 +100,6 @@ public:
 	int start();
 
 private:
-
 	/** Disables the heater (either by GPIO or PX4IO). */
 	void disable_heater();
 
@@ -135,17 +133,17 @@ private:
 
 	/** File descriptor for PX4IO for heater ioctl's */
 #if defined(PX4IO_HEATER_ENABLED)
-	int _io_fd {-1};
+	int _io_fd{-1};
 #endif
 
-	bool _heater_initialized     = false;
-	bool _heater_on              = false;
+	bool _heater_initialized = false;
+	bool _heater_on = false;
 	bool _temperature_target_met = false;
 
 	int _controller_period_usec = CONTROLLER_PERIOD_DEFAULT;
 	int _controller_time_on_usec = 0;
 
-	float _integrator_value   = 0.0f;
+	float _integrator_value = 0.0f;
 	float _proportional_value = 0.0f;
 
 	uORB::Publication<heater_status_s> _heater_status_pub{ORB_ID(heater_status)};
@@ -158,11 +156,9 @@ private:
 
 	float _temperature_last{NAN};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SENS_IMU_TEMP_FF>) _param_sens_imu_temp_ff,
-		(ParamFloat<px4::params::SENS_IMU_TEMP_I>)  _param_sens_imu_temp_i,
-		(ParamFloat<px4::params::SENS_IMU_TEMP_P>)  _param_sens_imu_temp_p,
-		(ParamFloat<px4::params::SENS_IMU_TEMP>)    _param_sens_imu_temp,
-		(ParamInt<px4::params::SENS_TEMP_ID>)       _param_sens_temp_id
-	)
+	DEFINE_PARAMETERS((ParamFloat<px4::params::SENS_IMU_TEMP_FF>)_param_sens_imu_temp_ff,
+			  (ParamFloat<px4::params::SENS_IMU_TEMP_I>)_param_sens_imu_temp_i,
+			  (ParamFloat<px4::params::SENS_IMU_TEMP_P>)_param_sens_imu_temp_p,
+			  (ParamFloat<px4::params::SENS_IMU_TEMP>)_param_sens_imu_temp,
+			  (ParamInt<px4::params::SENS_TEMP_ID>)_param_sens_temp_id)
 };

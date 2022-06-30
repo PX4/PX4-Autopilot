@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 
-
 /**
  * @file LidarLiteI2C.cpp
  * @author Allyson Kreft
@@ -41,29 +40,23 @@
 
 #include "LidarLiteI2C.h"
 
-LidarLiteI2C::LidarLiteI2C(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_px4_rangefinder(get_device_id(), config.rotation)
-{
+LidarLiteI2C::LidarLiteI2C(const I2CSPIDriverConfig &config)
+	: I2C(config), I2CSPIDriver(config), _px4_rangefinder(get_device_id(), config.rotation) {
 	_px4_rangefinder.set_min_distance(LL40LS_MIN_DISTANCE);
 	_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE);
-	_px4_rangefinder.set_fov(0.008); // Divergence 8 mRadian
+	_px4_rangefinder.set_fov(0.008);  // Divergence 8 mRadian
 
-	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_LL40LS); /// TODO
+	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_LL40LS);  /// TODO
 }
 
-LidarLiteI2C::~LidarLiteI2C()
-{
+LidarLiteI2C::~LidarLiteI2C() {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 	perf_free(_sensor_resets);
 	perf_free(_sensor_zero_resets);
 }
 
-int
-LidarLiteI2C::init()
-{
+int LidarLiteI2C::init() {
 	// Perform I2C init (and probe) first.
 	if (I2C::init() != PX4_OK) {
 		return PX4_ERROR;
@@ -73,9 +66,7 @@ LidarLiteI2C::init()
 	return PX4_OK;
 }
 
-void
-LidarLiteI2C::print_status()
-{
+void LidarLiteI2C::print_status() {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -84,22 +75,14 @@ LidarLiteI2C::print_status()
 	printf("poll interval:  %" PRIu32 "\n", get_measure_interval());
 }
 
-int
-LidarLiteI2C::read_reg(const uint8_t reg, uint8_t &val)
-{
-	return lidar_transfer(&reg, 1, &val, 1);
-}
+int LidarLiteI2C::read_reg(const uint8_t reg, uint8_t &val) { return lidar_transfer(&reg, 1, &val, 1); }
 
-int
-LidarLiteI2C::write_reg(const uint8_t reg, const uint8_t &val)
-{
-	const uint8_t cmd[2] = { reg, val };
+int LidarLiteI2C::write_reg(const uint8_t reg, const uint8_t &val) {
+	const uint8_t cmd[2] = {reg, val};
 	return transfer(&cmd[0], 2, nullptr, 0);
 }
 
-int
-LidarLiteI2C::lidar_transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len)
-{
+int LidarLiteI2C::lidar_transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len) {
 	if (send != nullptr && send_len > 0) {
 		int ret = transfer(send, send_len, nullptr, 0);
 
@@ -115,17 +98,14 @@ LidarLiteI2C::lidar_transfer(const uint8_t *send, const unsigned send_len, uint8
 	return PX4_ERROR;
 }
 
-int
-LidarLiteI2C::probe()
-{
+int LidarLiteI2C::probe() {
 	// cope with both old and new I2C bus address
-	const uint8_t addresses[2] = { LL40LS_BASEADDR, LL40LS_BASEADDR_OLD };
+	const uint8_t addresses[2] = {LL40LS_BASEADDR, LL40LS_BASEADDR_OLD};
 
 	uint8_t id_high = 0;
 	uint8_t id_low = 0;
 
 	for (uint8_t i = 0; i < sizeof(addresses); i++) {
-
 		set_device_address(addresses[i]);
 
 		/**
@@ -136,7 +116,7 @@ LidarLiteI2C::probe()
 		 * It would be better if we had a proper WHOAMI register.
 		 */
 
-		if (read_reg(LL40LS_HW_VERSION_V4, _hw_version) == OK  &&
+		if (read_reg(LL40LS_HW_VERSION_V4, _hw_version) == OK &&
 		    read_reg(LL40LS_SW_VERSION_V4, _sw_version) == OK) {
 			if (_hw_version > 0) {
 				PX4_DEBUG("probe success - hw: %u, sw: %u", _hw_version, _sw_version);
@@ -150,15 +130,14 @@ LidarLiteI2C::probe()
 				    read_reg(LL40LS_UNIT_ID_1_V4, id_byte_1) == OK &&
 				    read_reg(LL40LS_UNIT_ID_2_V4, id_byte_2) == OK &&
 				    read_reg(LL40LS_UNIT_ID_3_V4, id_byte_3) == OK) {
-					_unit_id = ((uint32_t)id_byte_3 << 24) | ((uint32_t)id_byte_2 << 16) | ((uint32_t)id_byte_1 << 8) |
-						   (uint32_t)id_byte_0;
+					_unit_id = ((uint32_t)id_byte_3 << 24) | ((uint32_t)id_byte_2 << 16) |
+						   ((uint32_t)id_byte_1 << 8) | (uint32_t)id_byte_0;
 				}
 
 				_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE_V4);
 				_model = Model::v4;
 				return OK;
 			}
-
 		}
 
 		if ((read_reg(LL40LS_HW_VERSION, _hw_version) == OK) &&
@@ -171,19 +150,19 @@ LidarLiteI2C::probe()
 			}
 
 			if (_hw_version > 0) {
-
 				if (_unit_id > 0) {
 					// v2
-					PX4_DEBUG("probe success - hw: %" PRIu8 ", sw:%" PRIu8 ", id: %" PRIu16, _hw_version, _sw_version, _unit_id);
+					PX4_DEBUG("probe success - hw: %" PRIu8 ", sw:%" PRIu8 ", id: %" PRIu16,
+						  _hw_version, _sw_version, _unit_id);
 					_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE_V2);
 
 				} else {
 					// v1 and v3
-					PX4_DEBUG("probe success - hw: %" PRIu8 ", sw:%" PRIu8, _hw_version, _sw_version);
+					PX4_DEBUG("probe success - hw: %" PRIu8 ", sw:%" PRIu8, _hw_version,
+						  _sw_version);
 				}
 
 			} else {
-
 				if (_unit_id > 0) {
 					// v3hp
 					_model = Model::v3hp;
@@ -196,17 +175,14 @@ LidarLiteI2C::probe()
 		}
 
 		PX4_DEBUG("probe failed unit_id=0x%02" PRIx16 " hw_version=0x%02" PRIu8 " sw_version=0x%02" PRIu8,
-			  _unit_id,  _hw_version, _sw_version);
-
+			  _unit_id, _hw_version, _sw_version);
 	}
 
 	// not found on any address
 	return -EIO;
 }
 
-int
-LidarLiteI2C::measure()
-{
+int LidarLiteI2C::measure() {
 	if (_pause_measurements) {
 		// we are in print_registers() and need to avoid
 		// acquisition to keep the I2C peripheral on the
@@ -238,9 +214,7 @@ LidarLiteI2C::measure()
 	return OK;
 }
 
-int
-LidarLiteI2C::reset_sensor()
-{
+int LidarLiteI2C::reset_sensor() {
 	px4_usleep(15_ms);
 
 	int ret = write_reg(LL40LS_SIG_COUNT_VAL_REG, LL40LS_SIG_COUNT_VAL_MAX);
@@ -252,7 +226,6 @@ LidarLiteI2C::reset_sensor()
 	px4_usleep(15_ms);
 	ret = write_reg(LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET);
 
-
 	if (ret != PX4_OK) {
 		uint8_t sig_cnt;
 
@@ -262,7 +235,6 @@ LidarLiteI2C::reset_sensor()
 		if ((ret != PX4_OK) || (sig_cnt != LL40LS_SIG_COUNT_VAL_DEFAULT)) {
 			PX4_INFO("Error: ll40ls reset failure. Exiting!\n");
 			return ret;
-
 		}
 	}
 
@@ -280,9 +252,7 @@ LidarLiteI2C::reset_sensor()
 	return OK;
 }
 
-void
-LidarLiteI2C::print_registers()
-{
+void LidarLiteI2C::print_registers() {
 	_pause_measurements = true;
 	PX4_INFO("registers");
 	// wait for a while to ensure the lidar is in a ready state
@@ -308,12 +278,9 @@ LidarLiteI2C::print_registers()
 	_pause_measurements = false;
 }
 
-int
-LidarLiteI2C::collect()
-{
-
+int LidarLiteI2C::collect() {
 	// read from the sensor
-	uint8_t val[2] {};
+	uint8_t val[2]{};
 	int ret = 0;
 
 	perf_begin(_sample_perf);
@@ -427,7 +394,7 @@ LidarLiteI2C::collect()
 
 		// We detect if V3HP is being used
 		if (_model == Model::v3hp) {
-			//Normalize signal strength to 0...100 percent using the absolute signal strength.
+			// Normalize signal strength to 0...100 percent using the absolute signal strength.
 			signal_quality = 100 * math::max(ll40ls_signal_strength - LL40LS_SIGNAL_STRENGTH_MIN_V3HP, 0) /
 					 (LL40LS_SIGNAL_STRENGTH_MAX_V3HP - LL40LS_SIGNAL_STRENGTH_MIN_V3HP);
 
@@ -463,18 +430,17 @@ LidarLiteI2C::collect()
 
 			uint8_t ll40ls_peak_strength = val[0];
 
-			// For v2 and v3 use ll40ls_signal_strength (a relative measure, i.e. peak strength to noise!) to reject potentially ambiguous measurements
+			// For v2 and v3 use ll40ls_signal_strength (a relative measure, i.e. peak strength to noise!)
+			// to reject potentially ambiguous measurements
 			if (ll40ls_signal_strength <= LL40LS_SIGNAL_STRENGTH_LOW || distance_m < LL40LS_MIN_DISTANCE) {
 				signal_quality = 0;
 
 			} else {
-				//Normalize signal strength to 0...100 percent using the absolute signal peak strength.
+				// Normalize signal strength to 0...100 percent using the absolute signal peak strength.
 				signal_quality = 100 * math::max(ll40ls_peak_strength - LL40LS_PEAK_STRENGTH_LOW, 0) /
 						 (LL40LS_PEAK_STRENGTH_HIGH - LL40LS_PEAK_STRENGTH_LOW);
-
 			}
 		}
-
 	}
 
 	_px4_rangefinder.update(timestamp_sample, distance_m, signal_quality);
@@ -483,8 +449,7 @@ LidarLiteI2C::collect()
 	return OK;
 }
 
-void LidarLiteI2C::start()
-{
+void LidarLiteI2C::start() {
 	// reset the report ring and state machine
 	_collect_phase = false;
 
@@ -492,11 +457,9 @@ void LidarLiteI2C::start()
 	ScheduleNow();
 }
 
-void LidarLiteI2C::RunImpl()
-{
+void LidarLiteI2C::RunImpl() {
 	/* collection phase? */
 	if (_collect_phase) {
-
 		/* try a collection */
 		if (OK != collect()) {
 			PX4_DEBUG("collection error");
@@ -515,7 +478,6 @@ void LidarLiteI2C::RunImpl()
 			 * Is there a collect->measure gap?
 			 */
 			if (get_measure_interval() > LL40LS_CONVERSION_INTERVAL) {
-
 				/* schedule a fresh cycle call when we are ready to measure again */
 				ScheduleDelayed(get_measure_interval() - LL40LS_CONVERSION_INTERVAL);
 
