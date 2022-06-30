@@ -375,6 +375,10 @@ format:
 	$(call colorecho,'Formatting with astyle')
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh --fix
 
+format_clang:
+	$(call colorecho,'Formatting with clang-format')
+	@"$(SRC_DIR)"/Tools/astyle/files_to_check_code_style.sh | xargs clang-format -i -style=file
+
 # Testing
 # --------------------------------------------------------------------
 .PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard tests_avoidance
