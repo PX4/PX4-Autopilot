@@ -330,6 +330,8 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 		subscriber->init();
 	}
 
+	_log_message_sub.registerCallback();
+
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
 
 	int rv = _node.start();
