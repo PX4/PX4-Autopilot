@@ -32,7 +32,7 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__invensense__icp10111
+	MODULE drivers__barometer__invensense__icp10111
 	MAIN icp10111
 	COMPILE_FLAGS
 	SRCS
