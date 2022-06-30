@@ -66,6 +66,7 @@
 #include <lib/perf/perf_counter.h>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/parameter_update.h>
@@ -171,7 +172,7 @@ private:
 	IntrusiveSortedList<UavcanSubscriberBase *> _subscriber_list;
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uORB::Subscription _log_message_sub{ORB_ID(log_message)};
+	uORB::SubscriptionCallbackWorkItem _log_message_sub{this, ORB_ID(log_message)};
 
 	UavcanNodeParamManager _param_manager;
 	uavcan::ParamServer _param_server;
