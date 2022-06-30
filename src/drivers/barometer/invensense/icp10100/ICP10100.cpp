@@ -233,7 +233,6 @@ ICP10100::RunImpl()
 				float b = (_pcal[0] - a) * (s1 + c);
 				float _pressure_Pa = a + b / (c + _raw_p);
 
-				const hrt_abstime nowx = hrt_absolute_time();
 				float temperature = _temperature_C;
 				float pressure = _pressure_Pa;
 
