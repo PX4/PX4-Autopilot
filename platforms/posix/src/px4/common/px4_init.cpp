@@ -33,6 +33,7 @@
 
 #include <px4_platform_common/init.h>
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/console_buffer.h>
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
@@ -41,6 +42,12 @@
 
 int px4_platform_init(void)
 {
+	int ret = px4_console_buffer_init();
+
+	if (ret < 0) {
+		PX4_ERR("Failed to initialize the console buffer");
+	}
+
 	hrt_init();
 
 	param_init();

@@ -43,7 +43,11 @@
 #include <px4_platform_common/px4_config.h>
 
 
+#if defined (__PX4_POSIX)
+#define CONSOLE_BUFFER_DEVICE "/tmp/console_buf"
+#else
 #define CONSOLE_BUFFER_DEVICE "/dev/console_buf"
+#endif
 
 #ifdef BOARD_ENABLE_CONSOLE_BUFFER
 

@@ -45,6 +45,7 @@ add_library(px4_layer
 	lib_crc32.c
 	drv_hrt.cpp
 	cpuload.cpp
+	console_buffer.cpp
 	print_load.cpp
 )
 target_compile_definitions(px4_layer PRIVATE MODULE_NAME="px4")
