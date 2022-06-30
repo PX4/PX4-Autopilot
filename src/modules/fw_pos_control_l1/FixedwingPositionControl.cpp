@@ -1631,6 +1631,12 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 	const Vector2f landing_approach_vector = calculateLandingApproachVector();
 
 	const float airspeed_land = _param_fw_lnd_airspd_sc.get() * _param_fw_airspd_min.get();
+
+	if (airspeed_land < _param_fw_airspd_min.get()) {
+		// adjust underspeed detection bounds for landing airspeed
+		_tecs.set_equivalent_airspeed_min(airspeed_land);
+	}
+
 	float target_airspeed = get_auto_airspeed_setpoint(control_interval, airspeed_land, ground_speed);
 
 	// calculate the altitude setpoint based on the landing glide slope
@@ -1787,6 +1793,8 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 		_att_sp.thrust_body[0] = (_landed) ? 0.0f : get_tecs_thrust();
 	}
+
+	_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get()); // reset after TECS calculation
 
 	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, terrain_alt);
 
