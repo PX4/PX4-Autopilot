@@ -1009,7 +1009,7 @@ void Ekf::controlAirDataFusion()
 	// control activation and initialisation/reset of wind states required for airspeed fusion
 
 	// If both airspeed and sideslip fusion have timed out and we are not using a drag observation model then we no longer have valid wind estimates
-	const bool airspeed_timed_out = isTimedOut(_time_last_arsp_fuse, (uint64_t)10e6);
+	const bool airspeed_timed_out = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
 	const bool sideslip_timed_out = isTimedOut(_time_last_beta_fuse, (uint64_t)10e6);
 
 	if (_using_synthetic_position || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & SensorFusionMask::USE_DRAG))) {
@@ -1022,6 +1022,10 @@ void Ekf::controlAirDataFusion()
 	}
 
 	if (_tas_data_ready) {
+		updateAirspeed(_airspeed_sample_delayed, _aid_src_airspeed);
+
+		_innov_check_fail_status.flags.reject_airspeed = _aid_src_airspeed.innovation_rejected; // TODO: remove this redundant flag
+
 		const bool continuing_conditions_passing = _control_status.flags.in_air && _control_status.flags.fixed_wing && !_using_synthetic_position;
 		const bool is_airspeed_significant = _airspeed_sample_delayed.true_airspeed > _params.arsp_thr;
 		const bool starting_conditions_passing = continuing_conditions_passing && is_airspeed_significant;
@@ -1029,10 +1033,10 @@ void Ekf::controlAirDataFusion()
 		if (_control_status.flags.fuse_aspd) {
 			if (continuing_conditions_passing) {
 				if (is_airspeed_significant) {
-					fuseAirspeed();
+					fuseAirspeed(_aid_src_airspeed);
 				}
 
-				const bool is_fusion_failing = isTimedOut(_time_last_arsp_fuse, (uint64_t)10e6);
+				const bool is_fusion_failing = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
 
 				if (is_fusion_failing) {
 					stopAirspeedFusion();
