@@ -101,6 +101,27 @@ def generate_observation_equations(P,state,observation,variance,varname="HK"):
 
     return HK_simple
 
+def generate_observation_equations_innov_var_only(P,state,observation,variance,varname="IV"):
+    H = Matrix([observation]).jacobian(state)
+    innov_var = H * P * H.T + Matrix([variance])
+    assert(innov_var.shape[0] == 1)
+    assert(innov_var.shape[1] == 1)
+    extension="0:1000"
+    var_string = varname+extension
+    IV_simple = cse(Matrix([zeros(24,1), zeros(24,1), observation, innov_var]), symbols(var_string), optimizations='basic')
+
+    return IV_simple
+
+def generate_observation_equations_hk_only(P,state,observation,varname="HK"):
+    H = Matrix([observation]).jacobian(state)
+    K = P * H.T / Symbol("innov_var")
+    extension="0:1000"
+    var_string = varname+extension
+    # optimizations=None produces a set of equations that fits nicely in a for-loop
+    HK_simple = cse(Matrix([H.transpose(), K, observation]), symbols(var_string), optimizations=None)
+
+    return HK_simple
+
 # generate equations for observation vector Jacobian and Kalman gain
 # n_obs is the vector dimension and must be >= 2
 def generate_observation_vector_equations(P,state,observation,variance,n_obs):
@@ -130,7 +151,11 @@ def write_equations_to_file(equations,code_generator_id,n_obs):
         code_generator_id.print_string("Observation Jacobians")
         code_generator_id.write_matrix(Matrix(equations[1][0][0:24]), "Hfusion", False, ".at<", ">()")
         code_generator_id.print_string("Kalman gains")
-        code_generator_id.write_matrix(Matrix(equations[1][0][24:]), "Kfusion", False, "(", ")")
+        code_generator_id.write_matrix(Matrix(equations[1][0][24:48]), "Kfusion", False, "(", ")")
+        code_generator_id.print_string("Predicted observation")
+        code_generator_id.write_matrix(Matrix(equations[1][0][48:49]), "meas_pred")
+        code_generator_id.print_string("Innovation variance")
+        code_generator_id.write_matrix(Matrix(equations[1][0][49:50]), "innov_var", False, "(", ")")
     else:
         code_generator_id.print_string("Sub Expressions")
         code_generator_id.write_subexpressions(equations[0])
@@ -401,6 +426,18 @@ def tas_observation(P,state,vx,vy,vz,wx,wy):
     equations = generate_observation_equations(P,state,observation,obs_var)
 
     tas_code_generator = CodeGenerator("./generated/tas_generated.cpp")
+    write_equations_to_file(equations,tas_code_generator,1)
+    tas_code_generator.close()
+
+    equations = generate_observation_equations_innov_var_only(P,state,observation,obs_var)
+
+    tas_code_generator = CodeGenerator("./generated/tas_var_generated.cpp")
+    write_equations_to_file(equations,tas_code_generator,1)
+    tas_code_generator.close()
+
+    equations = generate_observation_equations_hk_only(P,state,observation)
+
+    tas_code_generator = CodeGenerator("./generated/tas_hk_generated.cpp")
     write_equations_to_file(equations,tas_code_generator,1)
     tas_code_generator.close()
 
