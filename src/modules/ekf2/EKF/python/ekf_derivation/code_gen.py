@@ -17,7 +17,18 @@ class CodeGenerator:
         self.file.write("// " + string + "\n")
 
     def get_ccode(self, expression):
-        return ccode(expression, type_aliases={real:float32})
+        custom_functions = {
+                "Pow": [
+                    (lambda b, e: e == 2, lambda b, e: f"({b})*({b})"),
+                    (lambda b, e: e == -1, lambda b, e: f"1.0F/({b})"),
+                    (lambda b, e: e == -2, lambda b, e: f"1.0F/(({b})*({b}))"),
+                    (lambda b, e: e == 0.5, lambda b, e: f"sqrtf({b})"),
+                    (lambda b, e: e == -0.5, lambda b, e: f"1.0F/sqrtf({b})"),
+                    (lambda b, e: True, "ecl::powf"),
+                    ]
+        }
+
+        return ccode(expression, type_aliases={real:float32}, user_functions=custom_functions)
 
     def write_subexpressions(self,subexpressions):
         write_string = ""
