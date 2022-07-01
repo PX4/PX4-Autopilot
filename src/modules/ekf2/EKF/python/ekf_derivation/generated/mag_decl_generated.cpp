@@ -43,3 +43,9 @@ Kfusion(22) = -HK9*(HK5*P(16,22) - P(17,22));
 Kfusion(23) = -HK9*(HK5*P(16,23) - P(17,23));
 
 
+// Predicted observation
+
+
+// Innovation variance
+
+
