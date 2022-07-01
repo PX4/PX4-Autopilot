@@ -42,15 +42,20 @@ class CodeGenerator:
         write_string = ""
 
         if matrix.shape[0] * matrix.shape[1] == 1:
-            write_string = write_string + variable_name + " = " + self.get_ccode(matrix[0]) + ";\n"
+            if matrix[0] != 0:
+                write_string = write_string + variable_name + " = " + self.get_ccode(matrix[0]) + ";\n"
         elif matrix.shape[0] == 1 or matrix.shape[1] == 1:
             for i in range(0,len(matrix)):
+                if matrix[i] == 0:
+                    continue
                 write_string = write_string + variable_name + pre_bracket + str(i) + post_bracket + " = " + self.get_ccode(matrix[i]) + ";\n"
 
         else:
             for j in range(0, matrix.shape[1]):
                 for i in range(0, matrix.shape[0]):
                     if j >= i or not is_symmetric:
+                        if matrix[i,j] == 0:
+                            continue
                         write_string = write_string + variable_name + pre_bracket + str(i) + "," + str(j) + post_bracket + " = " + self.get_ccode(matrix[i,j]) + ";\n"
 
         write_string = write_string + "\n\n"

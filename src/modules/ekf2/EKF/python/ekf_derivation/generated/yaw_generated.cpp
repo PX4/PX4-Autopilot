@@ -14,26 +14,6 @@ H_YAW.at<0>() = SA7*q3;
 H_YAW.at<1>() = SA7*q2;
 H_YAW.at<2>() = SA5*(SA1*SA6 + SA8*q2);
 H_YAW.at<3>() = SA5*(SA0*SA6 + SA8*q3);
-H_YAW.at<4>() = 0;
-H_YAW.at<5>() = 0;
-H_YAW.at<6>() = 0;
-H_YAW.at<7>() = 0;
-H_YAW.at<8>() = 0;
-H_YAW.at<9>() = 0;
-H_YAW.at<10>() = 0;
-H_YAW.at<11>() = 0;
-H_YAW.at<12>() = 0;
-H_YAW.at<13>() = 0;
-H_YAW.at<14>() = 0;
-H_YAW.at<15>() = 0;
-H_YAW.at<16>() = 0;
-H_YAW.at<17>() = 0;
-H_YAW.at<18>() = 0;
-H_YAW.at<19>() = 0;
-H_YAW.at<20>() = 0;
-H_YAW.at<21>() = 0;
-H_YAW.at<22>() = 0;
-H_YAW.at<23>() = 0;
 
 
 // calculate 321 yaw observation matrix - option B
@@ -52,26 +32,6 @@ H_YAW.at<0>() = SB7*q3;
 H_YAW.at<1>() = SB7*q2;
 H_YAW.at<2>() = -SB5*(-SB1*SB6 - SB8*q2);
 H_YAW.at<3>() = -SB5*(-SB0*SB6 - SB8*q3);
-H_YAW.at<4>() = 0;
-H_YAW.at<5>() = 0;
-H_YAW.at<6>() = 0;
-H_YAW.at<7>() = 0;
-H_YAW.at<8>() = 0;
-H_YAW.at<9>() = 0;
-H_YAW.at<10>() = 0;
-H_YAW.at<11>() = 0;
-H_YAW.at<12>() = 0;
-H_YAW.at<13>() = 0;
-H_YAW.at<14>() = 0;
-H_YAW.at<15>() = 0;
-H_YAW.at<16>() = 0;
-H_YAW.at<17>() = 0;
-H_YAW.at<18>() = 0;
-H_YAW.at<19>() = 0;
-H_YAW.at<20>() = 0;
-H_YAW.at<21>() = 0;
-H_YAW.at<22>() = 0;
-H_YAW.at<23>() = 0;
 
 
 // calculate 312 yaw observation matrix - option A
@@ -90,26 +50,6 @@ H_YAW.at<0>() = SA7*q3;
 H_YAW.at<1>() = SA5*(-SA1*SA6 + SA8*q1);
 H_YAW.at<2>() = -SA7*q1;
 H_YAW.at<3>() = SA5*(SA0*SA6 + SA8*q3);
-H_YAW.at<4>() = 0;
-H_YAW.at<5>() = 0;
-H_YAW.at<6>() = 0;
-H_YAW.at<7>() = 0;
-H_YAW.at<8>() = 0;
-H_YAW.at<9>() = 0;
-H_YAW.at<10>() = 0;
-H_YAW.at<11>() = 0;
-H_YAW.at<12>() = 0;
-H_YAW.at<13>() = 0;
-H_YAW.at<14>() = 0;
-H_YAW.at<15>() = 0;
-H_YAW.at<16>() = 0;
-H_YAW.at<17>() = 0;
-H_YAW.at<18>() = 0;
-H_YAW.at<19>() = 0;
-H_YAW.at<20>() = 0;
-H_YAW.at<21>() = 0;
-H_YAW.at<22>() = 0;
-H_YAW.at<23>() = 0;
 
 
 // calculate 312 yaw observation matrix - option B
@@ -127,25 +67,5 @@ H_YAW.at<0>() = -SB6*q3;
 H_YAW.at<1>() = -SB4*(-2*SB5*q2 + SB7*q1);
 H_YAW.at<2>() = SB6*q1;
 H_YAW.at<3>() = -SB4*(SB0*SB5 + SB7*q3);
-H_YAW.at<4>() = 0;
-H_YAW.at<5>() = 0;
-H_YAW.at<6>() = 0;
-H_YAW.at<7>() = 0;
-H_YAW.at<8>() = 0;
-H_YAW.at<9>() = 0;
-H_YAW.at<10>() = 0;
-H_YAW.at<11>() = 0;
-H_YAW.at<12>() = 0;
-H_YAW.at<13>() = 0;
-H_YAW.at<14>() = 0;
-H_YAW.at<15>() = 0;
-H_YAW.at<16>() = 0;
-H_YAW.at<17>() = 0;
-H_YAW.at<18>() = 0;
-H_YAW.at<19>() = 0;
-H_YAW.at<20>() = 0;
-H_YAW.at<21>() = 0;
-H_YAW.at<22>() = 0;
-H_YAW.at<23>() = 0;
 
 

@@ -19,28 +19,9 @@ const float HK16 = HK3/(-HK10*HK14 + HK10*HK9 + HK12*HK13 - HK13*HK15 + HK6*HK7*
 
 
 // Observation Jacobians
-Hfusion.at<0>() = 0;
-Hfusion.at<1>() = 0;
-Hfusion.at<2>() = 0;
-Hfusion.at<3>() = 0;
 Hfusion.at<4>() = HK4;
 Hfusion.at<5>() = HK5;
 Hfusion.at<6>() = HK3*vd;
-Hfusion.at<7>() = 0;
-Hfusion.at<8>() = 0;
-Hfusion.at<9>() = 0;
-Hfusion.at<10>() = 0;
-Hfusion.at<11>() = 0;
-Hfusion.at<12>() = 0;
-Hfusion.at<13>() = 0;
-Hfusion.at<14>() = 0;
-Hfusion.at<15>() = 0;
-Hfusion.at<16>() = 0;
-Hfusion.at<17>() = 0;
-Hfusion.at<18>() = 0;
-Hfusion.at<19>() = 0;
-Hfusion.at<20>() = 0;
-Hfusion.at<21>() = 0;
 Hfusion.at<22>() = -HK4;
 Hfusion.at<23>() = -HK5;
 
