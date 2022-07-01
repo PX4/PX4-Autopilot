@@ -1,11 +1,11 @@
 // Sub Expressions
 const float HK0 = vn - vwn;
 const float HK1 = ve - vwe;
-const float HK2 = powf(HK0, 2) + powf(HK1, 2) + powf(vd, 2);
-const float HK3 = powf(HK2, -1.0F/2.0F);
+const float HK2 = (HK0)*(HK0) + (HK1)*(HK1) + (vd)*(vd);
+const float HK3 = 1.0F/sqrtf(HK2);
 const float HK4 = HK0*HK3;
 const float HK5 = HK1*HK3;
-const float HK6 = 1.0F/HK2;
+const float HK6 = 1.0F/(HK2);
 const float HK7 = HK0*P(4,6) - HK0*P(6,22) + HK1*P(5,6) - HK1*P(6,23) + P(6,6)*vd;
 const float HK8 = HK1*P(5,23);
 const float HK9 = HK0*P(4,5) - HK0*P(5,22) + HK1*P(5,5) - HK8 + P(5,6)*vd;
