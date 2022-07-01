@@ -30,26 +30,10 @@ Hfusion.at<0>() = -2*HKX0;
 Hfusion.at<1>() = 2*HKX1;
 Hfusion.at<2>() = -2*HKX3;
 Hfusion.at<3>() = 2*HKX4;
-Hfusion.at<4>() = 0;
-Hfusion.at<5>() = 0;
-Hfusion.at<6>() = 0;
-Hfusion.at<7>() = 0;
-Hfusion.at<8>() = 0;
-Hfusion.at<9>() = 0;
-Hfusion.at<10>() = 0;
-Hfusion.at<11>() = 0;
-Hfusion.at<12>() = 0;
-Hfusion.at<13>() = 0;
-Hfusion.at<14>() = 0;
-Hfusion.at<15>() = 0;
 Hfusion.at<16>() = -HKX5;
 Hfusion.at<17>() = 2*HKX6;
 Hfusion.at<18>() = -2*HKX7;
 Hfusion.at<19>() = 1;
-Hfusion.at<20>() = 0;
-Hfusion.at<21>() = 0;
-Hfusion.at<22>() = 0;
-Hfusion.at<23>() = 0;
 
 
 // Kalman gains
@@ -111,26 +95,10 @@ Hfusion.at<0>() = 2*HKY0;
 Hfusion.at<1>() = 2*HKY2;
 Hfusion.at<2>() = 2*HKY3;
 Hfusion.at<3>() = -2*HKY4;
-Hfusion.at<4>() = 0;
-Hfusion.at<5>() = 0;
-Hfusion.at<6>() = 0;
-Hfusion.at<7>() = 0;
-Hfusion.at<8>() = 0;
-Hfusion.at<9>() = 0;
-Hfusion.at<10>() = 0;
-Hfusion.at<11>() = 0;
-Hfusion.at<12>() = 0;
-Hfusion.at<13>() = 0;
-Hfusion.at<14>() = 0;
-Hfusion.at<15>() = 0;
 Hfusion.at<16>() = -2*HKY5;
 Hfusion.at<17>() = -HKY6;
 Hfusion.at<18>() = 2*HKY7;
-Hfusion.at<19>() = 0;
 Hfusion.at<20>() = 1;
-Hfusion.at<21>() = 0;
-Hfusion.at<22>() = 0;
-Hfusion.at<23>() = 0;
 
 
 // Kalman gains
@@ -192,26 +160,10 @@ Hfusion.at<0>() = -2*HKZ0;
 Hfusion.at<1>() = -2*HKZ2;
 Hfusion.at<2>() = 2*HKZ3;
 Hfusion.at<3>() = 2*HKZ4;
-Hfusion.at<4>() = 0;
-Hfusion.at<5>() = 0;
-Hfusion.at<6>() = 0;
-Hfusion.at<7>() = 0;
-Hfusion.at<8>() = 0;
-Hfusion.at<9>() = 0;
-Hfusion.at<10>() = 0;
-Hfusion.at<11>() = 0;
-Hfusion.at<12>() = 0;
-Hfusion.at<13>() = 0;
-Hfusion.at<14>() = 0;
-Hfusion.at<15>() = 0;
 Hfusion.at<16>() = 2*HKZ5;
 Hfusion.at<17>() = -2*HKZ6;
 Hfusion.at<18>() = -HKZ7;
-Hfusion.at<19>() = 0;
-Hfusion.at<20>() = 0;
 Hfusion.at<21>() = 1;
-Hfusion.at<22>() = 0;
-Hfusion.at<23>() = 0;
 
 
 // Kalman gains
