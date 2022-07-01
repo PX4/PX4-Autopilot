@@ -75,6 +75,12 @@ Kfusion(22) = HK33*(-HK12*P(2,22) - HK13*P(6,22) + HK29 - HK7*P(22,22));
 Kfusion(23) = HK33*(-HK12*P(2,23) - HK13*P(6,23) + HK24 - HK7*P(22,23));
 
 
+// Predicted observation
+
+
+// Innovation variance
+
+
 // Axis 1 equations
 // Sub Expressions
 const float HK0 = ve - vwe;
@@ -150,5 +156,11 @@ Kfusion(20) = HK33*(-HK12*P(3,20) + HK13*P(20,22) - HK13*P(4,20) + HK14*P(0,20) 
 Kfusion(21) = HK33*(-HK12*P(3,21) + HK13*P(21,22) - HK13*P(4,21) + HK14*P(0,21) + HK15*P(1,21) + HK16*P(2,21) + HK17*P(6,21) - HK9*P(21,23) + HK9*P(5,21));
 Kfusion(22) = HK33*(-HK12*P(3,22) + HK24 - HK25 - HK9*P(22,23));
 Kfusion(23) = HK33*(-HK12*P(3,23) - HK13*P(4,23) + HK29 - HK9*P(23,23));
+
+
+// Predicted observation
+
+
+// Innovation variance
 
 

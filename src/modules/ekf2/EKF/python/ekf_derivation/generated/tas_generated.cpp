@@ -53,3 +53,9 @@ Kfusion(22) = HK15*HK16;
 Kfusion(23) = HK14*HK16;
 
 
+// Predicted observation
+
+
+// Innovation variance
+
+

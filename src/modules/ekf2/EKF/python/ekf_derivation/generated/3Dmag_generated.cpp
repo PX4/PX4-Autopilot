@@ -62,6 +62,12 @@ Kfusion(22) = HKX21*(HKX10*P(0,22) - HKX11*P(2,22) + HKX12*P(3,22) + HKX4*P(16,2
 Kfusion(23) = HKX21*(HKX10*P(0,23) - HKX11*P(2,23) + HKX12*P(3,23) + HKX4*P(16,23) + HKX7*P(17,23) - HKX8*P(18,23) + HKX9*P(1,23) + P(19,23));
 
 
+// Predicted observation
+
+
+// Innovation variance
+
+
 // Axis 1 equations
 // Sub Expressions
 const float HKY0 = magD*q1 + magE*q0 - magN*q3;
@@ -126,6 +132,12 @@ Kfusion(22) = HKY21*(HKY10*P(0,22) + HKY11*P(1,22) - HKY12*P(3,22) + HKY5*P(17,2
 Kfusion(23) = HKY21*(HKY10*P(0,23) + HKY11*P(1,23) - HKY12*P(3,23) + HKY5*P(17,23) + HKY7*P(18,23) - HKY8*P(16,23) + HKY9*P(2,23) + P(20,23));
 
 
+// Predicted observation
+
+
+// Innovation variance
+
+
 // Axis 2 equations
 // Sub Expressions
 const float HKZ0 = magD*q0 - magE*q1 + magN*q2;
@@ -188,5 +200,11 @@ Kfusion(20) = HKZ21*(HKZ10*P(0,20) - HKZ11*P(1,20) + HKZ12*P(2,20) + HKZ6*P(18,2
 Kfusion(21) = HKZ20*HKZ21;
 Kfusion(22) = HKZ21*(HKZ10*P(0,22) - HKZ11*P(1,22) + HKZ12*P(2,22) + HKZ6*P(18,22) + HKZ7*P(16,22) - HKZ8*P(17,22) + HKZ9*P(3,22) + P(21,22));
 Kfusion(23) = HKZ21*(HKZ10*P(0,23) - HKZ11*P(1,23) + HKZ12*P(2,23) + HKZ6*P(18,23) + HKZ7*P(16,23) - HKZ8*P(17,23) + HKZ9*P(3,23) + P(21,23));
+
+
+// Predicted observation
+
+
+// Innovation variance
 
 
