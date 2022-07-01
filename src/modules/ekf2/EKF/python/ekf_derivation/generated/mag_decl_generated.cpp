@@ -1,14 +1,14 @@
 // Sub Expressions
-const float HK0 = powf(magN, -2);
-const float HK1 = HK0*powf(magE, 2) + 1;
-const float HK2 = 1.0F/HK1;
-const float HK3 = 1.0F/magN;
+const float HK0 = 1.0F/((magN)*(magN));
+const float HK1 = HK0*(magE)*(magE) + 1;
+const float HK2 = 1.0F/(HK1);
+const float HK3 = 1.0F/(magN);
 const float HK4 = HK2*HK3;
 const float HK5 = HK3*magE;
 const float HK6 = HK5*P(16,17) - P(17,17);
-const float HK7 = powf(HK1, -2);
+const float HK7 = 1.0F/((HK1)*(HK1));
 const float HK8 = HK5*P(16,16) - P(16,17);
-const float HK9 = HK4/(-HK0*HK6*HK7 + HK7*HK8*magE/powf(magN, 3) + R_DECL);
+const float HK9 = HK4/(-HK0*HK6*HK7 + HK7*HK8*magE/ecl::powf(magN, 3) + R_DECL);
 
 
 // Observation Jacobians

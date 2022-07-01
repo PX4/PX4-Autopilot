@@ -1,8 +1,8 @@
 // Intermediate variables
-const float t0 = powf(P(0,1), 2);
+const float t0 = (P(0,1))*(P(0,1));
 const float t1 = -t0;
-const float t2 = P(0,0)*P(1,1) + P(0,0)*velObsVar + P(1,1)*velObsVar + t1 + powf(velObsVar, 2);
-const float t3 = 1.0F/t2;
+const float t2 = P(0,0)*P(1,1) + P(0,0)*velObsVar + P(1,1)*velObsVar + t1 + (velObsVar)*(velObsVar);
+const float t3 = 1.0F/(t2);
 const float t4 = P(1,1) + velObsVar;
 const float t5 = P(0,1)*t3;
 const float t6 = -t5;
@@ -13,7 +13,7 @@ const float t10 = -P(1,1)*t7 + t0;
 const float t11 = P(0,1)*P(1,2) - P(0,2)*t4;
 const float t12 = P(0,1)*P(0,2) - P(1,2)*t7;
 const float t13 = t0*velObsVar;
-const float t14 = powf(t2, -2);
+const float t14 = 1.0F/((t2)*(t2));
 const float t15 = t4*velObsVar + t8;
 const float t16 = t14*t15;
 const float t17 = t14*(t13 + t7*t8);
