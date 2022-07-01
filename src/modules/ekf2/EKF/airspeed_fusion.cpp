@@ -45,8 +45,11 @@
 #include "ekf.h"
 #include <mathlib/mathlib.h>
 
-void Ekf::fuseAirspeed()
+void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source_1d_s &airspeed) const
 {
+	// reset flags
+	resetEstimatorAidStatusFlags(airspeed);
+
 	const float vn = _state.vel(0); // Velocity in north direction
 	const float ve = _state.vel(1); // Velocity in east direction
 	const float vd = _state.vel(2); // Velocity in downwards direction
@@ -55,7 +58,51 @@ void Ekf::fuseAirspeed()
 
 	// Variance for true airspeed measurement - (m/sec)^2
 	const float R_TAS = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) *
-			       math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f, 10.0f));
+			       math::constrain(airspeed_sample.eas2tas, 0.9f, 10.0f));
+
+	// Intermediate variables
+	const float IV0 = ve - vwe;
+	const float IV1 = vn - vwn;
+	const float IV2 = (IV0)*(IV0) + (IV1)*(IV1) + (vd)*(vd);
+
+	const float predicted_airspeed = sqrtf(IV2);
+
+	if (fabsf(predicted_airspeed) < FLT_EPSILON) {
+		return;
+	}
+
+	const float IV3 = 1.0F/(IV2);
+	const float IV4 = IV0*P(5,23);
+	const float IV5 = IV0*IV3;
+	const float IV6 = IV1*P(4,22);
+	const float IV7 = IV1*IV3;
+
+	const float innov_var = IV3*vd*(IV0*P(5,6) - IV0*P(6,23) + IV1*P(4,6) - IV1*P(6,22) + P(6,6)*vd) - IV5*(-IV0*P(23,23) - IV1*P(22,23) + IV1*P(4,23) + IV4 + P(6,23)*vd) + IV5*(IV0*P(5,5) + IV1*P(4,5) - IV1*P(5,22) - IV4 + P(5,6)*vd) - IV7*(-IV0*P(22,23) + IV0*P(5,22) - IV1*P(22,22) + IV6 + P(6,22)*vd) + IV7*(-IV0*P(4,23) + IV0*P(4,5) + IV1*P(4,4) - IV6 + P(4,6)*vd) + R_TAS;
+
+	airspeed.observation = airspeed_sample.true_airspeed;
+	airspeed.observation_variance = R_TAS;
+	airspeed.innovation = predicted_airspeed - airspeed.observation;
+	airspeed.innovation_variance = innov_var;
+
+	airspeed.fusion_enabled = _control_status.flags.fuse_aspd;
+
+	airspeed.timestamp_sample = airspeed_sample.time_us;
+
+	const float innov_gate = fmaxf(_params.tas_innov_gate, 1.f);
+	setEstimatorAidStatusTestRatio(airspeed, innov_gate);
+}
+
+void Ekf::fuseAirspeed(estimator_aid_source_1d_s &airspeed)
+{
+	if (airspeed.innovation_rejected) {
+		return;
+	}
+
+	const float vn = _state.vel(0); // Velocity in north direction
+	const float ve = _state.vel(1); // Velocity in east direction
+	const float vd = _state.vel(2); // Velocity in downwards direction
+	const float vwn = _state.wind_vel(0); // Wind speed in north direction
+	const float vwe = _state.wind_vel(1); // Wind speed in east direction
 
 	// determine if we need the airspeed fusion to correct states other than wind
 	const bool update_wind_only = !_control_status.flags.wind_dead_reckoning;
@@ -63,34 +110,25 @@ void Ekf::fuseAirspeed()
 	// Intermediate variables
 	const float HK0 = vn - vwn;
 	const float HK1 = ve - vwe;
-	const float HK2 = ecl::powf(HK0, 2) + ecl::powf(HK1, 2) + ecl::powf(vd, 2);
-	const float v_tas_pred = sqrtf(HK2); // predicted airspeed
+	const float HK2 = sqrtf((HK0)*(HK0) + (HK1)*(HK1) + (vd)*(vd));
 
-	//const float HK3 = powf(HK2, -1.0F/2.0F);
-	if (v_tas_pred < 1.0f) {
+	const float predicted_airspeed = HK2;
+
+	if (predicted_airspeed < 1.0f) {
 		// calculation can be badly conditioned for very low airspeed values so don't fuse this time
 		return;
 	}
 
-	const float HK3 = 1.0f / v_tas_pred;
+	const float HK3 = 1.0F/(HK2);
 	const float HK4 = HK0*HK3;
 	const float HK5 = HK1*HK3;
-	const float HK6 = 1.0F/HK2;
-	const float HK7 = HK0*P(4,6) - HK0*P(6,22) + HK1*P(5,6) - HK1*P(6,23) + P(6,6)*vd;
-	const float HK8 = HK1*P(5,23);
-	const float HK9 = HK0*P(4,5) - HK0*P(5,22) + HK1*P(5,5) - HK8 + P(5,6)*vd;
-	const float HK10 = HK1*HK6;
-	const float HK11 = HK0*P(4,22);
-	const float HK12 = HK0*P(4,4) - HK1*P(4,23) + HK1*P(4,5) - HK11 + P(4,6)*vd;
-	const float HK13 = HK0*HK6;
-	const float HK14 = -HK0*P(22,23) + HK0*P(4,23) - HK1*P(23,23) + HK8 + P(6,23)*vd;
-	const float HK15 = -HK0*P(22,22) - HK1*P(22,23) + HK1*P(5,22) + HK11 + P(6,22)*vd;
-	//const float HK16 = HK3/(-HK10*HK14 + HK10*HK9 + HK12*HK13 - HK13*HK15 + HK6*HK7*vd + R_TAS);
+	const float HK6 = HK3*vd;
+	const float HK7 = -HK0*HK3;
+	const float HK8 = -HK1*HK3;
 
-	// innovation variance - check for badly conditioned calculation
-	_airspeed_innov_var = (-HK10 * HK14 + HK10 * HK9 + HK12 * HK13 - HK13 * HK15 + HK6 * HK7 * vd + R_TAS);
+	const float innov_var = airspeed.innovation_variance;
 
-	if (_airspeed_innov_var < R_TAS) { //
+	if (innov_var < airspeed.observation_variance || innov_var < FLT_EPSILON) {
 		// Reset the estimator covariance matrix
 		// if we are getting aiding from other sources, warn and reset the wind states and covariances only
 		const char *action_string = nullptr;
@@ -112,58 +150,37 @@ void Ekf::fuseAirspeed()
 		return;
 	}
 
-	const float HK16 = HK3 / _airspeed_innov_var;
+	const float HK9 = 1.0F/(innov_var);
+
 	_fault_status.flags.bad_airspeed = false;
 
 	// Observation Jacobians
 	SparseVector24f<4,5,6,22,23> Hfusion;
 	Hfusion.at<4>() = HK4;
 	Hfusion.at<5>() = HK5;
-	Hfusion.at<6>() = HK3*vd;
-	Hfusion.at<22>() = -HK4;
-	Hfusion.at<23>() = -HK5;
+	Hfusion.at<6>() = HK6;
+	Hfusion.at<22>() = HK7;
+	Hfusion.at<23>() = HK8;
 
 	Vector24f Kfusion; // Kalman gain vector
 
 	if (!update_wind_only) {
 		// we have no other source of aiding, so use airspeed measurements to correct states
-		for (unsigned row = 0; row <= 3; row++) {
-			Kfusion(row) = HK16*(HK0*P(4,row) - HK0*P(row,22) + HK1*P(5,row) - HK1*P(row,23) + P(6,row)*vd);
-		}
-
-		Kfusion(4) = HK12*HK16;
-		Kfusion(5) = HK16*HK9;
-		Kfusion(6) = HK16*HK7;
-
-		for (unsigned row = 7; row <= 21; row++) {
-			Kfusion(row) = HK16*(HK0*P(4,row) - HK0*P(row,22) + HK1*P(5,row) - HK1*P(row,23) + P(6,row)*vd);
+		for (unsigned row = 0; row <= 21; row++) {
+			Kfusion(row) = HK9*(HK4*P(row,4) + HK5*P(row,5) + HK6*P(row,6) + HK7*P(row,22) + HK8*P(row,23));
 		}
 	}
 
-	Kfusion(22) = HK15*HK16;
-	Kfusion(23) = HK14*HK16;
+	Kfusion(22) = HK9*(HK4*P(4,22) + HK5*P(5,22) + HK6*P(6,22) + HK7*P(22,22) + HK8*P(22,23));
+	Kfusion(23) = HK9*(HK4*P(4,23) + HK5*P(5,23) + HK6*P(6,23) + HK7*P(22,23) + HK8*P(23,23));
 
-	// Calculate measurement innovation
-	_airspeed_innov = v_tas_pred - _airspeed_sample_delayed.true_airspeed;
+	const bool is_fused = measurementUpdate(Kfusion, Hfusion, airspeed.innovation);
 
-	// Compute the ratio of innovation to gate size
-	_tas_test_ratio = sq(_airspeed_innov) / (sq(fmaxf(_params.tas_innov_gate, 1.0f)) * _airspeed_innov_var);
-
-	// If the innovation consistency check fails then don't fuse the sample and indicate bad airspeed health
-	if (_tas_test_ratio > 1.0f) {
-		_innov_check_fail_status.flags.reject_airspeed = true;
-		return;
-
-	} else {
-		_innov_check_fail_status.flags.reject_airspeed = false;
-	}
-
-	const bool is_fused = measurementUpdate(Kfusion, Hfusion, _airspeed_innov);
-
+	airspeed.fused = is_fused;
 	_fault_status.flags.bad_airspeed = !is_fused;
 
 	if (is_fused) {
-		_time_last_arsp_fuse = _time_last_imu;
+		airspeed.time_last_fuse = _time_last_imu;
 	}
 }
 
@@ -195,7 +212,7 @@ void Ekf::resetWindUsingAirspeed()
 
 	resetWindCovarianceUsingAirspeed();
 
-	_time_last_arsp_fuse = _time_last_imu;
+	_aid_src_airspeed.time_last_fuse = _time_last_imu;
 }
 
 void Ekf::resetWindToZero()
