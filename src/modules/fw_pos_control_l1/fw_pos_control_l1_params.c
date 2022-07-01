@@ -368,7 +368,10 @@ PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.15f);
 PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 10.0f);
 
 /**
- * Landing slope angle
+ * Maximum landing slope angle
+ *
+ * Typically the desired landing slope angle when landing configuration (flaps, airspeed) is enabled.
+ * Set this value within the vehicle's performance limits.
  *
  * @unit deg
  * @min 1.0

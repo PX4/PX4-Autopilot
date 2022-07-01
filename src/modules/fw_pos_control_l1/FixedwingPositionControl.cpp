@@ -1618,6 +1618,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 	initializeAutoLanding(now, pos_sp_prev, pos_sp_curr, local_position, local_land_point);
 
+	// touchdown may get nudged by manual inputs
 	local_land_point = calculateTouchdownPosition(control_interval, local_land_point);
 	const Vector2f landing_approach_vector = calculateLandingApproachVector();
 
@@ -1627,9 +1628,9 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 	// calculate the altitude setpoint based on the landing glide slope
 	const float along_track_dist_to_touchdown = -landing_approach_vector.unit_or_zero().dot(
 				local_position - local_land_point);
-	const float glide_slope_rel_alt = math::constrain(along_track_dist_to_touchdown * tanf(math::radians(
-			_param_fw_lnd_ang.get())),
-					  0.0f, _landing_approach_entrance_rel_alt);
+	const float glide_slope = _landing_approach_entrance_rel_alt / _landing_approach_entrance_offset_vector.norm();
+	const float glide_slope_rel_alt = math::constrain(along_track_dist_to_touchdown * glide_slope, 0.0f,
+					  _landing_approach_entrance_rel_alt);
 
 	const float terrain_alt = getLandingTerrainAltitudeEstimate(now, pos_sp_curr.alt);
 	float altitude_setpoint;
@@ -2514,13 +2515,21 @@ FixedwingPositionControl::initializeAutoLanding(const hrt_abstime &now, const po
 
 		_landing_approach_entrance_rel_alt = height_above_land_point;
 
-		const float landing_approach_distance = _landing_approach_entrance_rel_alt / tanf(math::radians(
-				_param_fw_lnd_ang.get()));
+		const Vector2f landing_approach_vector = local_land_point - local_approach_entrance;
+		float landing_approach_distance = landing_approach_vector.norm();
 
-		const Vector2f vector_aircraft_to_land_point = local_land_point - local_approach_entrance;
+		const float max_glide_slope = tanf(math::radians(_param_fw_lnd_ang.get()));
+		const float glide_slope = _landing_approach_entrance_rel_alt / landing_approach_distance;
 
-		if (vector_aircraft_to_land_point.norm_squared() > FLT_EPSILON) {
-			_landing_approach_entrance_offset_vector = -vector_aircraft_to_land_point.unit_or_zero() * landing_approach_distance;
+		if (glide_slope > max_glide_slope) {
+			// rescale the landing distance - this will have the same effect as dropping down the approach
+			// entrance altitude on the vehicle's behavior. if we reach here.. it means the navigator checks
+			// didn't work, or something is using the control_auto_landing() method inappropriately
+			landing_approach_distance = _landing_approach_entrance_rel_alt / max_glide_slope;
+		}
+
+		if (landing_approach_vector.norm_squared() > FLT_EPSILON) {
+			_landing_approach_entrance_offset_vector = -landing_approach_vector.unit_or_zero() * landing_approach_distance;
 
 		} else {
 			// land in direction of airframe
