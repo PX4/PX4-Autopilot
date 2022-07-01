@@ -32,26 +32,6 @@ Hfusion.at<0>() = HK10*HK13;
 Hfusion.at<1>() = -HK13*HK17;
 Hfusion.at<2>() = -HK13*HK18;
 Hfusion.at<3>() = HK13*HK19;
-Hfusion.at<4>() = 0;
-Hfusion.at<5>() = 0;
-Hfusion.at<6>() = 0;
-Hfusion.at<7>() = 0;
-Hfusion.at<8>() = 0;
-Hfusion.at<9>() = 0;
-Hfusion.at<10>() = 0;
-Hfusion.at<11>() = 0;
-Hfusion.at<12>() = 0;
-Hfusion.at<13>() = 0;
-Hfusion.at<14>() = 0;
-Hfusion.at<15>() = 0;
-Hfusion.at<16>() = 0;
-Hfusion.at<17>() = 0;
-Hfusion.at<18>() = 0;
-Hfusion.at<19>() = 0;
-Hfusion.at<20>() = 0;
-Hfusion.at<21>() = 0;
-Hfusion.at<22>() = 0;
-Hfusion.at<23>() = 0;
 
 
 // Kalman gains
