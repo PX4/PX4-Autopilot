@@ -984,7 +984,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	}
 
 	// return the airspeed fusion innovation test ratio
-	tas = sqrtf(_tas_test_ratio);
+	tas = sqrtf(_aid_src_airspeed.test_ratio);
 
 	// return the terrain height innovation test ratio
 	hagl = sqrtf(_hagl_test_ratio);
@@ -1045,7 +1045,7 @@ void Ekf::update_deadreckoning_status()
 	const bool optFlowAiding = _control_status.flags.opt_flow && isRecent(_time_last_of_fuse, _params.no_aid_timeout_max);
 
 	const bool airDataAiding = _control_status.flags.wind &&
-				   isRecent(_time_last_arsp_fuse, _params.no_aid_timeout_max) &&
+				   isRecent(_aid_src_airspeed.time_last_fuse, _params.no_aid_timeout_max) &&
 				   isRecent(_time_last_beta_fuse, _params.no_aid_timeout_max);
 
 	_control_status.flags.wind_dead_reckoning = !velPosAiding && !optFlowAiding && airDataAiding;
