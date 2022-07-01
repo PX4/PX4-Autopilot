@@ -136,7 +136,7 @@ PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 100);
  * @reboot_required true
  * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_EV_DELAY, 175);
+PARAM_DEFINE_FLOAT(EKF2_EV_DELAY, 0);
 
 /**
  * Auxillary Velocity Estimate (e.g from a landing target) delay relative to IMU measurements
