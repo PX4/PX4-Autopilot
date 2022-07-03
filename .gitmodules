@@ -67,3 +67,6 @@
 [submodule "src/modules/microdds_client/Micro-XRCE-DDS-Client"]
 	path = src/modules/microdds_client/Micro-XRCE-DDS-Client
 	url = https://github.com/eProsima/Micro-XRCE-DDS-Client.git
+[submodule "src/modules/mavlink/zenoh-pico"]
+	path = src/modules/mavlink/zenoh-pico
+	url = git@github.com:eclipse-zenoh/zenoh-pico.git

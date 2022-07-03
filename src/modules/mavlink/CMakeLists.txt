@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -70,12 +70,71 @@ target_include_directories(mavlink_c INTERFACE ${MAVLINK_LIBRARY_DIR} ${MAVLINK_
 target_compile_options(mavlink_c INTERFACE -Wno-address-of-packed-member -Wno-cast-align)
 
 
+
+px4_add_git_submodule(TARGET git_zenoh_pico PATH "${CMAKE_CURRENT_SOURCE_DIR}/zenoh-pico")
+
+# Zenoh-pico
+include(ExternalProject)
+ExternalProject_Add(zenoh_pico
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-pico
+	CMAKE_ARGS
+		-DCMAKE_SYSTEM_NAME=Linux
+
+		-DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
+		-DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
+		-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+		-DCMAKE_C_FLAGS:STRING=${c_flags_with_includes}
+		-DCMAKE_CXX_FLAGS:STRING=${cxx_flags_with_includes}
+		-DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_CURRENT_BINARY_DIR}
+		-DCMAKE_PREFIX_PATH:PATH=${CMAKE_CURRENT_BINARY_DIR}
+		#-DCMAKE_TOOLCHAIN_FILE:STRING=${CMAKE_TOOLCHAIN_FILE}
+
+		-DZENOH_DEBUG=3
+
+		-DBUILD_SHARED_LIBS=OFF
+		-DBUILD_EXAMPLES=OFF
+		-DBUILD_TESTING=OFF
+	INSTALL_COMMAND ""
+	TEST_COMMAND ""
+	LOG_DOWNLOAD ON
+	LOG_UPDATE ON
+	LOG_PATCH ON
+	LOG_CONFIGURE ON
+	LOG_BUILD ON
+	LOG_INSTALL ON
+	LOG_TEST ON
+	LOG_OUTPUT_ON_FAILURE ON
+
+	USES_TERMINAL_CONFIGURE ON
+	USES_TERMINAL_BUILD ON
+	USES_TERMINAL_INSTALL ON
+
+	BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/external/Build/zenoh_pico/lib/libzenohpico.a
+)
+
+add_dependencies(zenoh_pico git_zenoh_pico)
+
+ExternalProject_Get_Property(zenoh_pico binary_dir)
+message(STATUS "Zenoh-pico install dir: ${binary_dir}")
+
+add_library(zenohpico STATIC IMPORTED)
+#set_target_properties(zenohpico PROPERTIES IMPORTED_LOCATION ${binary_dir}/lib/libzenohpico.a)
+set_target_properties(zenohpico PROPERTIES IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/external/Build/zenoh_pico/lib/libzenohpico.a)
+add_dependencies(zenohpico zenoh_pico)
+
+# add to prebuild
+add_dependencies(prebuild_targets zenoh_pico)
+
 px4_add_module(
 	MODULE modules__mavlink
 	MAIN mavlink
 	COMPILE_FLAGS
 		-Wno-enum-compare # ROTATION <-> MAV_SENSOR_ROTATION
 		#-DDEBUG_BUILD
+
+	INCLUDES
+		${ZENOHPICO_INC_DIR}
 	SRCS
 		mavlink.c
 		mavlink_command_sender.cpp
@@ -109,8 +168,26 @@ px4_add_module(
 		mavlink_c
 		tunes
 		version
+
+		#zenohpico # library
 	UNITY_BUILD
-	)
+)
+
+
+px4_add_module(
+	MODULE modules__mavlink_zenoh_test
+	MAIN zenoh_test
+	INCLUDES
+		${CMAKE_CURRENT_SOURCE_DIR}/zenoh-pico/include
+	COMPILE_FLAGS
+		-DZENOH_LINUX
+		-DZENOH_DEBUG=3
+		-Wno-error
+	SRCS
+		zenoh_test.cpp
+	DEPENDS
+		zenohpico # library
+)
 
 if(PX4_TESTING)
 	add_subdirectory(mavlink_tests)
