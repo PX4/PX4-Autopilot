@@ -41,7 +41,7 @@
 
 #include <matrix/matrix/math.hpp>
 
-#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
+#include <mathlib/mathlib.h>
 #include <uORB/topics/rate_ctrl_status.h>
 
 class RateControl
