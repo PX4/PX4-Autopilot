@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019, 2022 PX4 Development Team. All rights reserved.
  *   Author: @author David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,8 @@
 #    define GPIO_HW_VER_DRIVE GPIO_HW_VER_REV_DRIVE
 #  endif
 
-#define HW_INFO_SIZE 20 //<! Size to fit hw_info string
+#define HW_INFO_SIZE (int) arraySize(HW_INFO_INIT_PREFIX) + HW_INFO_VER_DIGITS + HW_INFO_REV_DIGITS
+
 
 /****************************************************************************
  * Private Data
@@ -196,7 +197,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 	/* Are Resistors in place ?*/
 
 	uint32_t dn_sum = 0;
-	uint16_t dn = 0;
+	uint32_t dn = 0;
 
 	if ((high ^ low) && low == 0) {
 		/* Yes - Fire up the ADC (it has once control) */
@@ -207,14 +208,14 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 			for (unsigned av = 0; av < samples; av++) {
 				dn = px4_arch_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
 
-				if (dn == 0xffff) {
+				if (dn == UINT32_MAX) {
 					break;
 				}
 
 				dn_sum  += dn;
 			}
 
-			if (dn != 0xffff) {
+			if (dn != UINT32_MAX) {
 				*id = dn_sum / samples;
 				rv = OK;
 			}
@@ -344,12 +345,8 @@ int board_determine_hw_info()
 
 		if (rv == OK) {
 
-			int hw_info_size = snprintf(hw_info, HW_INFO_SIZE, HW_INFO_INIT, hw_version, hw_revision);
+			snprintf(hw_info, sizeof(hw_info), HW_INFO_INIT_PREFIX HW_INFO_SUFFIX, hw_version, hw_revision);
 
-			if ((hw_info_size < 0) || (hw_info_size >= HW_INFO_SIZE)) {
-				printf("[boot] Error, hw_info string hasn't been completely written\n");
-				rv = -1;
-			}
 		}
 	}
 

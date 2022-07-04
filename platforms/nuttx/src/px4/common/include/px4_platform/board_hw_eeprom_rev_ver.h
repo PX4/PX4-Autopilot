@@ -71,6 +71,7 @@ __BEGIN_DECLS
  * Function for writing hardware info to EEPROM
  *
  * Input Parameters:
+ *   *path        - path to mtd_mft
  *   *mtd_mft_unk - pointer to mtd_mft to write hw_info
  *
  * Returned Value:
@@ -80,9 +81,9 @@ __BEGIN_DECLS
  ************************************************************************************/
 
 #if !defined(BOARD_HAS_SIMPLE_HW_VERSIONING) && defined(BOARD_HAS_VERSIONING)
-__EXPORT int board_set_eeprom_hw_info(mtd_mft_t *mtd_mft_unk);
+__EXPORT int board_set_eeprom_hw_info(const char *path, mtd_mft_t *mtd_mft_unk);
 #else
-static inline int board_set_eeprom_hw_info(mtd_mft_t *mtd_mft_unk) { return -ENOSYS; }
+static inline int board_set_eeprom_hw_info(const char *path, mtd_mft_t *mtd_mft_unk) { return -ENOSYS; }
 #endif
 
 /************************************************************************************
@@ -101,9 +102,9 @@ static inline int board_set_eeprom_hw_info(mtd_mft_t *mtd_mft_unk) { return -ENO
  ************************************************************************************/
 
 #if !defined(BOARD_HAS_SIMPLE_HW_VERSIONING) && defined(BOARD_HAS_VERSIONING)
-__EXPORT int board_get_eeprom_hw_info(mtd_mft_t *mtd_mft);
+__EXPORT int board_get_eeprom_hw_info(const char *path, mtd_mft_t *mtd_mft);
 #else
-static inline int board_get_eeprom_hw_info(mtd_mft_t *mtd_mft) { return -ENOSYS; }
+static inline int board_get_eeprom_hw_info(const char *path, mtd_mft_t *mtd_mft) { return -ENOSYS; }
 #endif
 
 __END_DECLS

@@ -52,7 +52,6 @@
 #include <string.h>
 #include <debug.h>
 #include <errno.h>
-#include <syslog.h>
 
 #include <nuttx/config.h>
 #include <nuttx/board.h>
@@ -71,6 +70,7 @@
 #include <systemlib/px4_macros.h>
 #include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
+#include <px4_platform_common/px4_manifest.h>
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
@@ -219,6 +219,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	px4_platform_init();
 
+	// Use the default HW_VER_REV(0x0,0x0) for Ramtron
+
+	stm32_spiinitialize();
+
+	/* Configure the HW based on the manifest */
+
+	px4_platform_configure();
 
 	if (OK == board_determine_hw_info()) {
 		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
@@ -228,11 +235,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
 
+	/* Configure the Actual SPI interfaces (after we determined the HW version)  */
+
 	stm32_spiinitialize();
 
 	board_spi_reset(10, 0xffff);
 
-	/* configure the DMA allocator */
+	/* Configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
@@ -264,13 +273,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (ret != OK) {
 		led_on(LED_RED);
+		return ret;
 	}
 
 #endif /* CONFIG_MMCSD */
-
-	/* Configure the HW based on the manifest */
-
-	px4_platform_configure();
 
 	return OK;
 }

@@ -211,21 +211,21 @@
 #define GPIO_HW_VER_REV_DRIVE  /* PG0 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_REV_SENSE      /* PH4 */  GPIO_ADC3_INP15
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
-#define HW_INFO_INIT           "V6X%04x%04x"
+#define HW_INFO_INIT_PREFIX    "V6X"
 
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 6 // Rev 0 and Rev 3,4 Sensor sets
 //                 Base/FMUM
-#define V6X00000000   HW_VER_REV(0x0,0x0) // FMUV6X,                 Rev 0
-#define V6X00000001   HW_VER_REV(0x0,0x1) // FMUV6X,     BMI388 I2C2 Rev 1
-#define V6X00000003   HW_VER_REV(0x0,0x3) // FMUV6X,     Sensor Set  Rev 3
-#define V6X00000004   HW_VER_REV(0x0,0x4) // FMUV6X,     Sensor Set  Rev 4
-#define V6X00010000   HW_VER_REV(0x1,0x0) // NO PX4IO,               Rev 0
-#define V6X00010003   HW_VER_REV(0x1,0x3) // NO PX4IO,   Sensor Set  Rev 3
-#define V6X00010004   HW_VER_REV(0x1,0x4) // NO PX4IO,   Sensor Set  Rev 4
-#define V6X00050000   HW_VER_REV(0x5,0x0) // FMUV6X,                    HB Mini Rev 0
-#define V6X00050001   HW_VER_REV(0x5,0x1) // FMUV6X,     BMI388 I2C2    HB Mini Rev 1
-#define V6X00050003   HW_VER_REV(0x5,0x3) // FMUV6X,     Sensor Set     HB Mini Rev 3
-#define V6X00050004   HW_VER_REV(0x5,0x4) // FMUV6X,     Sensor Set     HB Mini Rev 4
+#define V6X00   HW_VER_REV(0x0,0x0) // FMUV6X,                 Rev 0
+#define V6X01   HW_VER_REV(0x0,0x1) // FMUV6X,     BMI388 I2C2 Rev 1
+#define V6X03   HW_VER_REV(0x0,0x3) // FMUV6X,     Sensor Set  Rev 3
+#define V6X04   HW_VER_REV(0x0,0x4) // FMUV6X,     Sensor Set  Rev 4
+#define V6X10   HW_VER_REV(0x1,0x0) // NO PX4IO,               Rev 0
+#define V6X13   HW_VER_REV(0x1,0x3) // NO PX4IO,   Sensor Set  Rev 3
+#define V6X14   HW_VER_REV(0x1,0x4) // NO PX4IO,   Sensor Set  Rev 4
+#define V6X50   HW_VER_REV(0x5,0x0) // FMUV6X,                    HB Mini Rev 0
+#define V6X51   HW_VER_REV(0x5,0x1) // FMUV6X,     BMI388 I2C2    HB Mini Rev 1
+#define V6X53   HW_VER_REV(0x5,0x3) // FMUV6X,     Sensor Set     HB Mini Rev 3
+#define V6X54   HW_VER_REV(0x5,0x4) // FMUV6X,     Sensor Set     HB Mini Rev 4
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
 
