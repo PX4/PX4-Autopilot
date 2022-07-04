@@ -32,6 +32,7 @@
 ############################################################################
 
 add_subdirectory(RateControl)
+add_subdirectory(AttitudeControl)
 
 px4_add_module(
 	MODULE modules__fw_att_control
@@ -47,6 +48,7 @@ px4_add_module(
 		ecl_yaw_controller.cpp
 	DEPENDS
 		px4_work_queue
-		RateControl2
+		FWRateControl
+		FWAttitudeControl
 		SlewRate
 	)

@@ -31,12 +31,11 @@
 #
 ############################################################################
 
-px4_add_library(FWRateControl
-	RateControl.cpp
-	RateControl.hpp
+px4_add_library(FWAttitudeControl
+	AttitudeControl.cpp
+	AttitudeControl.hpp
 )
-target_compile_options(FWRateControl PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
-target_include_directories(FWRateControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(FWRateControl PRIVATE mathlib)
+target_compile_options(FWAttitudeControl PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(FWAttitudeControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-px4_add_unit_gtest(SRC RateControlTest.cpp LINKLIBS FWRateControl)
+px4_add_unit_gtest(SRC AttitudeControlTest.cpp LINKLIBS FWAttitudeControl)
