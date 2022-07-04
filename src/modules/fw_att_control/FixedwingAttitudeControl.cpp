@@ -34,6 +34,8 @@
 #include "FixedwingAttitudeControl.hpp"
 
 using namespace time_literals;
+using namespace matrix;
+
 using math::constrain;
 using math::gradual;
 using math::radians;
@@ -105,6 +107,19 @@ FixedwingAttitudeControl::parameters_update()
 	_wheel_ctrl.set_k_ff(_param_fw_wr_ff.get());
 	_wheel_ctrl.set_integrator_max(_param_fw_wr_imax.get());
 	_wheel_ctrl.set_max_rate(radians(_param_fw_w_rmax.get()));
+
+	const Vector3f rate_p = Vector3f(_param_fw_rr_p.get(), _param_fw_pr_p.get(), _param_fw_yr_p.get());
+	const Vector3f rate_i = Vector3f(_param_fw_rr_i.get(), _param_fw_pr_i.get(), _param_fw_yr_i.get());
+	const Vector3f rate_d = Vector3f(0.0f, 0.0f, 0.0f);
+
+	_rate_control.setGains(rate_p, rate_i, rate_d);
+
+	_rate_control.setIntegratorLimit(
+		Vector3f(_param_fw_rr_imax.get(), _param_fw_pr_imax.get(), _param_fw_yr_imax.get()));
+
+	_rate_control.setFeedForwardGain(
+		Vector3f(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get()));
+
 
 	return PX4_OK;
 }
@@ -342,6 +357,9 @@ void FixedwingAttitudeControl::Run()
 			rollspeed = -yawspeed;
 			yawspeed = helper;
 		}
+
+
+		const Vector3f rates(rollspeed, pitchspeed, yawspeed);
 
 		const matrix::Eulerf euler_angles(R);
 
@@ -607,19 +625,20 @@ void FixedwingAttitudeControl::Run()
 			} else {
 				vehicle_rates_setpoint_poll();
 
-				_roll_ctrl.set_bodyrate_setpoint(_rates_sp.roll);
-				_yaw_ctrl.set_bodyrate_setpoint(_rates_sp.yaw);
-				_pitch_ctrl.set_bodyrate_setpoint(_rates_sp.pitch);
+				///TODO: Link angular acceleration to
+				vehicle_angular_acceleration_s v_angular_acceleration{};
+				// _vehicle_angular_acceleration_sub.copy(&v_angular_acceleration);
+				const Vector3f angular_accel{v_angular_acceleration.xyz};
 
-				float roll_u = _roll_ctrl.control_bodyrate(dt, control_input);
-				_actuator_controls.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(roll_u)) ? roll_u + trim_roll : trim_roll;
+				const Vector3f rates_setpoint = Vector3f(_rates_sp.roll, _rates_sp.pitch, _rates_sp.yaw);
+				const Vector3f att_control = _rate_control.update(rates, rates_setpoint, angular_accel, dt, _landed);
 
-				float pitch_u = _pitch_ctrl.control_bodyrate(dt, control_input);
-				_actuator_controls.control[actuator_controls_s::INDEX_PITCH] = (PX4_ISFINITE(pitch_u)) ? pitch_u + trim_pitch :
-						trim_pitch;
-
-				float yaw_u = _yaw_ctrl.control_bodyrate(dt, control_input);
-				_actuator_controls.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + trim_yaw : trim_yaw;
+				_actuator_controls.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(att_control(0))) ? att_control(
+							0) + trim_roll : trim_roll;
+				_actuator_controls.control[actuator_controls_s::INDEX_PITCH] = (PX4_ISFINITE(att_control(1))) ? att_control(
+							1) + trim_pitch : trim_pitch;
+				_actuator_controls.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(att_control(2))) ? att_control(
+							2) + trim_yaw : trim_yaw;
 
 				_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ?
 						_rates_sp.thrust_body[0] : 0.0f;
