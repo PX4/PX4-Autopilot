@@ -188,15 +188,16 @@
 #define GPIO_HW_REV_SENSE    /* PC3   */ ADC1_GPIO(13)
 #define GPIO_HW_VER_DRIVE    /* PG0   */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_VER_SENSE    /* PC2   */ ADC1_GPIO(12)
-#define HW_INFO_INIT         "V5%04x%04x"
+
+#define HW_INFO_INIT_PREFIX         "V5"
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 3
-#define V500000000   HW_VER_REV(0x0,0x0) // FMUV5,                    Rev 0
-#define V500010005   HW_VER_REV(0x1,0x5) // CUAV V5,                  Rev 5
-#define V500040000   HW_VER_REV(0x4,0x0) // HolyBro mini no can 2,3,  Rev 0
-#define V500050000   HW_VER_REV(0x5,0x0) // CUAV V5+,                 Rev 0
-#define V500050002   HW_VER_REV(0x5,0x2) // CUAV V5+ ICM42688P,       Rev 2
-#define V500060000   HW_VER_REV(0x6,0x0) // CUAV V5nano with can 2,   Rev 0
-#define V500060002   HW_VER_REV(0x6,0x2) // CUAV V5nano ICM42688P,    Rev 2
+#define V500   HW_VER_REV(0x0,0x0) // FMUV5,                    Rev 0
+#define V515   HW_VER_REV(0x1,0x5) // CUAV V5,                  Rev 5
+#define V540   HW_VER_REV(0x4,0x0) // HolyBro mini no can 2,3,  Rev 0
+#define V550   HW_VER_REV(0x5,0x0) // CUAV V5+,                 Rev 0
+#define V552   HW_VER_REV(0x5,0x2) // CUAV V5+ ICM42688P,       Rev 2
+#define V560   HW_VER_REV(0x6,0x0) // CUAV V5nano with can 2,   Rev 0
+#define V562   HW_VER_REV(0x6,0x2) // CUAV V5nano ICM42688P,    Rev 2
 
 /* CAN Silence
  *

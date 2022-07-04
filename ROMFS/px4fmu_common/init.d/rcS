@@ -303,7 +303,7 @@ else
 	then
 		# Check for the mini using build with px4io fw file
 		# but not a px4IO
-		if ver hwtypecmp V540 V560
+		if ver hwtypecmp V5004000 V5006000
 		then
 			param set SYS_USE_IO 0
 		else

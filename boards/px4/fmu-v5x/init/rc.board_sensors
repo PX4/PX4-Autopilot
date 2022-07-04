@@ -5,7 +5,7 @@
 
 set HAVE_PM2 yes
 
-if ver hwtypecmp V5X50 V5X51 V5X52
+if ver hwtypecmp V5X005000 V5X005001 V5X005002
 then
 	set HAVE_PM2 no
 fi
@@ -48,11 +48,11 @@ then
 	fi
 fi
 
-if ver hwtypecmp V5X00000000 V5X00000001 V5X00000002 V5X00010000
+if ver hwtypecmp V5X000000 V5X000001 V5X000002 V5X001000
 then
 	#FMUv5Xbase board orientation
 
-	if ver hwtypecmp V5X00000000 V5X00000001
+	if ver hwtypecmp V5X000000 V5X000001
 	then
 		# Internal SPI BMI088
 		bmi088 -A -R 4 -s start
@@ -74,7 +74,7 @@ then
 else
 	#SKYNODE base fmu board orientation
 
-	if ver hwtypecmp V5X00090000 V5X00090001 V5X000a0000 V5X000a0001 V5X00080000 V5X00080001 V5X00100001
+	if ver hwtypecmp V5X009000 V5X009001 V5X00a000 V5X00a001 V5X008000 V5X008001 V5X010001
 	then
 		# Internal SPI BMI088
 		bmi088 -A -R 2 -s start
@@ -104,7 +104,7 @@ ist8310 -X -b 1 -R 10 start
 if param compare SENS_INT_BARO_EN 1
 then
 	bmp388 -I -a 0x77 start
-	if ver hwtypecmp V5X00000000 V5X00010000 V5X00080000 V5X00090000 V5X000a0000
+	if ver hwtypecmp V5X000000 V5X001000 V5X008000 V5X009000 V5X00a000
 	then
 		bmp388 -I start
 	else

@@ -173,8 +173,8 @@
 #define GPIO_HW_VER_REV_DRIVE  /* PG0 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_REV_SENSE      /* PF5 */  ADC3_GPIO(15)
 #define GPIO_HW_VER_SENSE      /* PF4 */  ADC3_GPIO(14)
-#define HW_INFO_INIT           "V5X%04x%04x"
-
+#define HW_INFO_INIT_PREFIX     "SDSA"
+#define SDSA0501                 HW_VER_REV(0x05,0x01)
 /* HEATER
  * PWM in future
  */

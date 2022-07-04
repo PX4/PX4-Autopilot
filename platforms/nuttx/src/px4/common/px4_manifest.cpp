@@ -100,7 +100,7 @@ __EXPORT int px4_mft_query(const px4_mft_s *mft, px4_manifest_types_e type,
 			if (mft->mfts[m]->type == type)
 				switch (type) {
 				case MTD:
-					return px4_mtd_query(sub, val);
+					return px4_mtd_query(sub, val, nullptr);
 					break;
 
 				case MFT:
