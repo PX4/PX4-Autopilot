@@ -503,6 +503,7 @@ void FixedwingAttitudeControl::Run()
 			if (_vcontrol_mode.flag_control_attitude_enabled) {
 				if (PX4_ISFINITE(_att_sp.roll_body) && PX4_ISFINITE(_att_sp.pitch_body)) {
 					/* Run ATTITUDE controller */
+					_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
 					rates_setpoint = _attitude_control.update(Quatf(att.q));
 
 					if (wheel_control) {
