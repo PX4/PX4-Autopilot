@@ -142,6 +142,13 @@ VtolTakeoff::on_active()
 
 		case vtol_takeoff_state::CLIMB: {
 
+				// reset any potentially valid reposition triplet which was not handled
+				// we do this to avoid random loiter locations after switching to loiter mode after this
+				position_setpoint_triplet_s *reposition_triplet = _navigator->get_reposition_triplet();
+				_navigator->reset_position_setpoint(reposition_triplet->previous);
+				_navigator->reset_position_setpoint(reposition_triplet->current);
+				_navigator->reset_position_setpoint(reposition_triplet->next);
+
 				// the VTOL takeoff is done, proceed loitering and upate the navigation state to LOITER
 				_navigator->get_mission_result()->finished = true;
 				_navigator->set_mission_result_updated();
