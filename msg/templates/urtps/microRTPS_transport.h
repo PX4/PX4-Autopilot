@@ -56,7 +56,9 @@ public:
 
 	virtual int init() {return 0;}
 	virtual uint8_t close() {return 0;}
-	ssize_t read(uint8_t *topic_id, char out_buffer[], size_t buffer_len);
+
+	ssize_t read();
+	bool parse(uint8_t *topic_id, char out_buffer[], size_t buffer_len);
 
 	/**
 	 * write a buffer
@@ -76,6 +78,10 @@ public:
 	size_t get_header_length();
 
 private:
+#ifndef PX4_DEBUG
+	void print_buffer_debug();
+#endif /* PX4_DEBUG */
+
 	struct __attribute__((packed)) Header {
 		char marker[3];
 		uint8_t topic_id;
