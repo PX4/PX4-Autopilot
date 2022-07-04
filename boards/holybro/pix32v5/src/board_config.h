@@ -185,7 +185,10 @@
 #define GPIO_HW_REV_SENSE    /* PC3   */ ADC1_GPIO(13)
 #define GPIO_HW_VER_DRIVE    /* PG0   */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_VER_SENSE    /* PC2   */ ADC1_GPIO(12)
-#define HW_INFO_INIT         "V5%04x%04x"
+#define HW_INFO_INIT_PREFIX         "VPIX32V5"
+
+#define VPIX32V500   HW_VER_REV(0x0,0x0) // PIX32V5           Rev 0
+#define VPIX32V540   HW_VER_REV(0x4,0x0) // HolyBro mini no can 2,3
 
 /* CAN Silence
  *

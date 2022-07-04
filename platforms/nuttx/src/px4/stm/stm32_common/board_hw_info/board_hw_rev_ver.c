@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017, 2022 PX4 Development Team. All rights reserved.
  *   Author: @author David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,7 @@
 #include <px4_arch/adc.h>
 #include <px4_platform_common/micro_hal.h>
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_manifest.h>
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_hw_eeprom_rev_ver.h>
 #include <stdio.h>
@@ -57,7 +58,8 @@
 #    define GPIO_HW_VER_DRIVE GPIO_HW_VER_REV_DRIVE
 #  endif
 
-#define HW_INFO_SIZE 20 //<! Size to fit hw_info string
+#define HW_INFO_SIZE (int) arraySize(HW_INFO_INIT_PREFIX) + HW_INFO_VER_DIGITS + HW_INFO_REV_DIGITS
+
 
 /****************************************************************************
  * Private Data
@@ -65,8 +67,6 @@
 static int hw_version = 0;
 static int hw_revision = 0;
 static char hw_info[HW_INFO_SIZE] = {0};
-
-static const char *mtd_mft_path = "/fs/mtd_mft";
 
 /****************************************************************************
  * Protected Functions
@@ -445,16 +445,19 @@ __EXPORT int board_get_hw_revision()
 
 int board_determine_hw_info()
 {
-	// ADC hw version range: {0x1 - 0xF}
+	// MFT supported?
+	const char *path;
+	int rvmft = px4_mtd_query("MTD_MFT", NULL, &path);
+
+	// Read ADC jumpering hw_info
 	int rv = determine_hw_info(&hw_revision, &hw_version);
 
 	if (rv == OK) {
 
-		/* EEPROM hw version range: {0x10 - 0xFFFF} */
-		if (hw_version == HW_VERSION_EEPROM) {
+		if (rvmft == OK && path != NULL && hw_version == HW_VERSION_EEPROM) {
 
 			mtd_mft_v0_t mtd_mft = {MTD_MFT_v0};
-			rv = board_get_eeprom_hw_info((mtd_mft_t *)&mtd_mft);
+			rv = board_get_eeprom_hw_info(path, (mtd_mft_t *)&mtd_mft);
 
 			if (rv == OK) {
 				hw_version = mtd_mft.hw_extended_ver;
@@ -463,13 +466,7 @@ int board_determine_hw_info()
 	}
 
 	if (rv == OK) {
-
-		int hw_info_size = snprintf(hw_info, HW_INFO_SIZE, HW_INFO_INIT, hw_version, hw_revision);
-
-		if ((hw_info_size < 0) || (hw_info_size >= HW_INFO_SIZE)) {
-			printf("[boot] Error, hw_info string hasn't been completely written\n");
-			rv = -1;
-		}
+		snprintf(hw_info, sizeof(hw_info), HW_INFO_INIT_PREFIX HW_INFO_SUFFIX, hw_version, hw_revision);
 	}
 
 	return rv;
@@ -490,10 +487,10 @@ int board_determine_hw_info()
  *
  ************************************************************************************/
 
-int board_set_eeprom_hw_info(mtd_mft_t *mtd_mft_unk)
+int board_set_eeprom_hw_info(const char *path, mtd_mft_t *mtd_mft_unk)
 {
-	if (mtd_mft_unk == NULL) {
-		return -1;
+	if (mtd_mft_unk == NULL || path == NULL) {
+		return -EINVAL;
 	}
 
 	// Later this will be a demux on type
@@ -509,7 +506,7 @@ int board_set_eeprom_hw_info(mtd_mft_t *mtd_mft_unk)
 		return -EINVAL;
 	}
 
-	int fd = open(mtd_mft_path, O_WRONLY);
+	int fd = open(path, O_WRONLY);
 
 	if (fd < 0) {
 		return -errno;
@@ -545,13 +542,13 @@ int board_set_eeprom_hw_info(mtd_mft_t *mtd_mft_unk)
  *   -1    - Error while reading from EEPROM
  *
  ************************************************************************************/
-__EXPORT int board_get_eeprom_hw_info(mtd_mft_t *mtd_mft)
+__EXPORT int board_get_eeprom_hw_info(const char *path, mtd_mft_t *mtd_mft)
 {
-	if (mtd_mft == NULL) {
+	if (mtd_mft == NULL || path == NULL) {
 		return -EINVAL;
 	}
 
-	int fd = open(mtd_mft_path, O_RDONLY);
+	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
 		return -errno;

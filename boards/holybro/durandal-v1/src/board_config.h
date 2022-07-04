@@ -152,12 +152,12 @@
 #define GPIO_HW_REV_SENSE    /* PC3   */ GPIO_ADC12_INP13
 #define GPIO_HW_VER_DRIVE    /* PG0   */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_VER_SENSE    /* PC2   */ GPIO_ADC123_INP12
-#define HW_INFO_INIT         "VD%04x%04x"
+#define HW_INFO_INIT_PREFIX         "VD"
 
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 2
 
-#define VD00000000   HW_VER_REV(0x0,0x0) // Durandal,  Ver 0        Rev 0
-#define VD00000001   HW_VER_REV(0x0,0x1) // Durandal,  Ver 0        Rev 1
+#define VD00   HW_VER_REV(0x0,0x0) // Durandal,  Ver 0        Rev 0
+#define VD01   HW_VER_REV(0x0,0x1) // Durandal,  Ver 0        Rev 1
 
 /* CAN Silence
  *

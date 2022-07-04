@@ -115,7 +115,7 @@
 #define GPIO_HW_REV_SENSE    /* PC3   */ ADC1_GPIO(13)
 #define GPIO_HW_VER_DRIVE    /* PG0   */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_VER_SENSE    /* PC2   */ ADC1_GPIO(12)
-#define HW_INFO_INIT         "V5%04x%04x"
+#define HW_INFO_INIT_PREFIX    "VAM"
 
 #define BOARD_TAP_ESC_MODE 2 // select closed-loop control mode for the esc
 // #define BOARD_USE_ESC_CURRENT_REPORT

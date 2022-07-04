@@ -44,7 +44,7 @@
 
 static int hw_version = 0;
 static int hw_revision = 0;
-static char hw_info[] = HW_INFO_INIT;
+static char hw_info[] = HW_INFO_INIT_PREFIX HW_INFO_SUFFIX;
 
 __EXPORT const char *board_get_hw_type_name(void)
 {

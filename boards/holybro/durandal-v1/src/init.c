@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019, 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -206,7 +206,6 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
@@ -219,6 +218,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	px4_platform_init();
 
+	// Use the default HW_VER_REV(0x0,0x0) for Ramtron
+
+	stm32_spiinitialize();
+
+	/* Configure the HW based on the manifest */
+
+	px4_platform_configure();
 
 	if (OK == board_determine_hw_info()) {
 		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
@@ -228,7 +234,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
 
-	/* configure SPI interfaces (after we determined the HW version) */
+	/* Configure the actual SPI interfaces (after we determined the HW version) */
 
 	stm32_spiinitialize();
 
@@ -267,10 +273,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif /* CONFIG_MMCSD */
-
-	/* Configure the HW based on the manifest */
-
-	px4_platform_configure();
 
 	return OK;
 }

@@ -104,7 +104,7 @@ static const px4_hw_mft_item_t hw_mft_list_v0000[] = {
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
 // ver/rev
-	{0x00000000, hw_mft_list_v0000,        arraySize(hw_mft_list_v0000)},
+	{CANGPS00, hw_mft_list_v0000,        arraySize(hw_mft_list_v0000)},
 };
 
 /************************************************************************************

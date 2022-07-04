@@ -265,6 +265,9 @@
 #  define HW_VER_REV(v,r)       ((uint32_t)((v) & 0xffff) << 16) | ((uint32_t)(r) & 0xffff)
 #endif
 
+#define HW_INFO_REV_DIGITS    3
+#define HW_INFO_VER_DIGITS    3
+
 /* Default LED logical to color mapping */
 
 #if defined(BOARD_OVERLOAD_LED)
