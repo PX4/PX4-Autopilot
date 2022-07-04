@@ -73,7 +73,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	uint8_t instance = 0;
 
 	for (instance = 0; instance < battery_status_s::MAX_INSTANCES; instance++) {
-		if (battery_status[instance].id == msg.getSrcNodeID().get() || battery_status[instance].id == 0) {
+		if (_battery_status[instance].id == msg.getSrcNodeID().get() || _battery_status[instance].id == 0) {
 			break;
 		}
 	}
@@ -82,51 +82,51 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 		return;
 	}
 
-	battery_status[instance].timestamp = hrt_absolute_time();
-	battery_status[instance].voltage_v = msg.voltage;
-	battery_status[instance].voltage_filtered_v = msg.voltage;
-	battery_status[instance].current_a = msg.current;
-	battery_status[instance].current_filtered_a = msg.current;
-	battery_status[instance].current_average_a = msg.current;
+	_battery_status[instance].timestamp = hrt_absolute_time();
+	_battery_status[instance].voltage_v = msg.voltage;
+	_battery_status[instance].voltage_filtered_v = msg.voltage;
+	_battery_status[instance].current_a = msg.current;
+	_battery_status[instance].current_filtered_a = msg.current;
+	_battery_status[instance].current_average_a = msg.current;
 
 	if (battery_aux_support[instance] == false) {
-		sumDischarged(battery_status[instance].timestamp, battery_status[instance].current_a);
-		battery_status[instance].discharged_mah = _discharged_mah;
+		sumDischarged(_battery_status[instance].timestamp, _battery_status[instance].current_a);
+		_battery_status[instance].discharged_mah = _discharged_mah;
 	}
 
-	battery_status[instance].remaining = msg.state_of_charge_pct / 100.0f; // between 0 and 1
-	// battery_status[instance].scale = msg.; // Power scaling factor, >= 1, or -1 if unknown
-	battery_status[instance].temperature = msg.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // Kelvin to Celcius
-	// battery_status[instance].cell_count = msg.;
-	battery_status[instance].connected = true;
-	battery_status[instance].source = msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
-	// battery_status[instance].priority = msg.;
-	battery_status[instance].capacity = msg.full_charge_capacity_wh;
-	battery_status[instance].full_charge_capacity_wh = msg.full_charge_capacity_wh;
-	battery_status[instance].remaining_capacity_wh = msg.remaining_capacity_wh;
-	// battery_status[instance].cycle_count = msg.;
-	battery_status[instance].time_remaining_s = NAN;
-	// battery_status[instance].average_time_to_empty = msg.;
-	battery_status[instance].serial_number = msg.model_instance_id;
-	battery_status[instance].id = msg.getSrcNodeID().get();
+	_battery_status[instance].remaining = msg.state_of_charge_pct / 100.0f; // between 0 and 1
+	// _battery_status[instance].scale = msg.; // Power scaling factor, >= 1, or -1 if unknown
+	_battery_status[instance].temperature = msg.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // Kelvin to Celcius
+	// _battery_status[instance].cell_count = msg.;
+	_battery_status[instance].connected = true;
+	_battery_status[instance].source = msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
+	// _battery_status[instance].priority = msg.;
+	_battery_status[instance].capacity = msg.full_charge_capacity_wh;
+	_battery_status[instance].full_charge_capacity_wh = msg.full_charge_capacity_wh;
+	_battery_status[instance].remaining_capacity_wh = msg.remaining_capacity_wh;
+	// _battery_status[instance].cycle_count = msg.;
+	_battery_status[instance].time_remaining_s = NAN;
+	// _battery_status[instance].average_time_to_empty = msg.;
+	_battery_status[instance].serial_number = msg.model_instance_id;
+	_battery_status[instance].id = msg.getSrcNodeID().get();
 
 	if (battery_aux_support[instance] == false) {
 		// Mavlink 2 needs individual cell voltages or cell[0] if cell voltages are not available.
-		battery_status[instance].voltage_cell_v[0] = msg.voltage;
+		_battery_status[instance].voltage_cell_v[0] = msg.voltage;
 
 		// Set cell count to 1 so the the battery code in mavlink_messages.cpp copies the values correctly (hack?)
-		battery_status[instance].cell_count = 1;
+		_battery_status[instance].cell_count = 1;
 	}
 
-	// battery_status[instance].max_cell_voltage_delta = msg.;
+	// _battery_status[instance].max_cell_voltage_delta = msg.;
 
-	// battery_status[instance].is_powering_off = msg.;
+	// _battery_status[instance].is_powering_off = msg.;
 
-	determineWarning(battery_status[instance].remaining);
-	battery_status[instance].warning = _warning;
+	determineWarning(_battery_status[instance].remaining);
+	_battery_status[instance].warning = _warning;
 
 	if (battery_aux_support[instance] == false) {
-		publish(msg.getSrcNodeID().get(), &battery_status[instance]);
+		publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
 	}
 }
 
@@ -137,7 +137,7 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 	uint8_t instance = 0;
 
 	for (instance = 0; instance < battery_status_s::MAX_INSTANCES; instance++) {
-		if (battery_status[instance].id == msg.getSrcNodeID().get()) {
+		if (_battery_status[instance].id == msg.getSrcNodeID().get()) {
 			break;
 		}
 	}
@@ -148,23 +148,23 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 
 	battery_aux_support[instance] = true;
 
-	battery_status[instance].discharged_mah = (battery_status[instance].full_charge_capacity_wh -
-			battery_status[instance].remaining_capacity_wh) / msg.nominal_voltage *
+	_battery_status[instance].discharged_mah = (_battery_status[instance].full_charge_capacity_wh -
+			_battery_status[instance].remaining_capacity_wh) / msg.nominal_voltage *
 			1000;
-	battery_status[instance].cell_count = math::min((uint8_t)msg.voltage_cell.size(), (uint8_t)14);
-	battery_status[instance].cycle_count = msg.cycle_count;
-	battery_status[instance].over_discharge_count = msg.over_discharge_count;
-	battery_status[instance].nominal_voltage = msg.nominal_voltage;
-	battery_status[instance].time_remaining_s = math::isZero(battery_status[instance].current_a) ? 0 :
-			(battery_status[instance].remaining_capacity_wh /
-			 battery_status[instance].nominal_voltage / battery_status[instance].current_a * 3600);
-	battery_status[instance].is_powering_off = msg.is_powering_off;
+	_battery_status[instance].cell_count = math::min((uint8_t)msg.voltage_cell.size(), (uint8_t)14);
+	_battery_status[instance].cycle_count = msg.cycle_count;
+	_battery_status[instance].over_discharge_count = msg.over_discharge_count;
+	_battery_status[instance].nominal_voltage = msg.nominal_voltage;
+	_battery_status[instance].time_remaining_s = math::isZero(_battery_status[instance].current_a) ? 0 :
+			(_battery_status[instance].remaining_capacity_wh /
+			 _battery_status[instance].nominal_voltage / _battery_status[instance].current_a * 3600);
+	_battery_status[instance].is_powering_off = msg.is_powering_off;
 
-	for (uint8_t i = 0; i < battery_status[instance].cell_count; i++) {
-		battery_status[instance].voltage_cell_v[i] = msg.voltage_cell[i];
+	for (uint8_t i = 0; i < _battery_status[instance].cell_count; i++) {
+		_battery_status[instance].voltage_cell_v[i] = msg.voltage_cell[i];
 	}
 
-	publish(msg.getSrcNodeID().get(), &battery_status[instance]);
+	publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
 }
 
 void
