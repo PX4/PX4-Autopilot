@@ -52,10 +52,10 @@ FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	parameters_update();
 
 	// set initial maximum body rate setpoints
-	_roll_ctrl.set_max_rate(radians(_param_fw_acro_x_max.get()));
-	_pitch_ctrl.set_max_rate_pos(radians(_param_fw_acro_y_max.get()));
-	_pitch_ctrl.set_max_rate_neg(radians(_param_fw_acro_y_max.get()));
-	_yaw_ctrl.set_max_rate(radians(_param_fw_acro_z_max.get()));
+	// _roll_ctrl.set_max_rate(radians(_param_fw_acro_x_max.get()));
+	// _pitch_ctrl.set_max_rate_pos(radians(_param_fw_acro_y_max.get()));
+	// _pitch_ctrl.set_max_rate_neg(radians(_param_fw_acro_y_max.get()));
+	// _yaw_ctrl.set_max_rate(radians(_param_fw_acro_z_max.get()));
 
 	_rate_ctrl_status_pub.advertise();
 	_spoiler_setpoint_with_slewrate.setSlewRate(kSpoilerSlewRate);
@@ -81,26 +81,6 @@ FixedwingAttitudeControl::init()
 int
 FixedwingAttitudeControl::parameters_update()
 {
-	/* pitch control parameters */
-	_pitch_ctrl.set_time_constant(_param_fw_p_tc.get());
-	_pitch_ctrl.set_k_p(_param_fw_pr_p.get());
-	_pitch_ctrl.set_k_i(_param_fw_pr_i.get());
-	_pitch_ctrl.set_k_ff(_param_fw_pr_ff.get());
-	_pitch_ctrl.set_integrator_max(_param_fw_pr_imax.get());
-
-	/* roll control parameters */
-	_roll_ctrl.set_time_constant(_param_fw_r_tc.get());
-	_roll_ctrl.set_k_p(_param_fw_rr_p.get());
-	_roll_ctrl.set_k_i(_param_fw_rr_i.get());
-	_roll_ctrl.set_k_ff(_param_fw_rr_ff.get());
-	_roll_ctrl.set_integrator_max(_param_fw_rr_imax.get());
-
-	/* yaw control parameters */
-	_yaw_ctrl.set_k_p(_param_fw_yr_p.get());
-	_yaw_ctrl.set_k_i(_param_fw_yr_i.get());
-	_yaw_ctrl.set_k_ff(_param_fw_yr_ff.get());
-	_yaw_ctrl.set_integrator_max(_param_fw_yr_imax.get());
-
 	/* wheel control parameters */
 	_wheel_ctrl.set_k_p(_param_fw_wr_p.get());
 	_wheel_ctrl.set_k_i(_param_fw_wr_i.get());
@@ -406,16 +386,16 @@ void FixedwingAttitudeControl::Run()
 			const float airspeed = get_airspeed_and_update_scaling();
 
 			/* reset integrals where needed */
-			if (_att_sp.roll_reset_integral) {
-				_roll_ctrl.reset_integrator();
-			}
+			// if (_att_sp.roll_reset_integral) {
+			// 	_roll_ctrl.reset_integrator();
+			// }
 
-			if (_att_sp.pitch_reset_integral) {
-				_pitch_ctrl.reset_integrator();
-			}
+			// if (_att_sp.pitch_reset_integral) {
+			// 	_pitch_ctrl.reset_integrator();
+			// }
 
 			if (_att_sp.yaw_reset_integral) {
-				_yaw_ctrl.reset_integrator();
+				// _yaw_ctrl.reset_integrator();
 				_wheel_ctrl.reset_integrator();
 			}
 
@@ -426,9 +406,9 @@ void FixedwingAttitudeControl::Run()
 			    || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 				&& !_vehicle_status.in_transition_mode && !_vehicle_status.is_vtol_tailsitter)) {
 
-				_roll_ctrl.reset_integrator();
-				_pitch_ctrl.reset_integrator();
-				_yaw_ctrl.reset_integrator();
+				// _roll_ctrl.reset_integrator();
+				// _pitch_ctrl.reset_integrator();
+				// _yaw_ctrl.reset_integrator();
 				_wheel_ctrl.reset_integrator();
 			}
 
@@ -472,16 +452,17 @@ void FixedwingAttitudeControl::Run()
 			if ((_vcontrol_mode.flag_control_attitude_enabled != _flag_control_attitude_enabled_last) || params_updated) {
 				if (_vcontrol_mode.flag_control_attitude_enabled
 				    || _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-					_roll_ctrl.set_max_rate(radians(_param_fw_r_rmax.get()));
-					_pitch_ctrl.set_max_rate_pos(radians(_param_fw_p_rmax_pos.get()));
-					_pitch_ctrl.set_max_rate_neg(radians(_param_fw_p_rmax_neg.get()));
-					_yaw_ctrl.set_max_rate(radians(_param_fw_y_rmax.get()));
+					using math::radians;
+					// _roll_ctrl.set_max_rate(radians(_param_fw_r_rmax.get()));
+					// _pitch_ctrl.set_max_rate_pos(radians(_param_fw_p_rmax_pos.get()));
+					// _pitch_ctrl.set_max_rate_neg(radians(_param_fw_p_rmax_neg.get()));
+					// _yaw_ctrl.set_max_rate(radians(_param_fw_y_rmax.get()));
 
 				} else {
-					_roll_ctrl.set_max_rate(radians(_param_fw_acro_x_max.get()));
-					_pitch_ctrl.set_max_rate_pos(radians(_param_fw_acro_y_max.get()));
-					_pitch_ctrl.set_max_rate_neg(radians(_param_fw_acro_y_max.get()));
-					_yaw_ctrl.set_max_rate(radians(_param_fw_acro_z_max.get()));
+					// _roll_ctrl.set_max_rate(radians(_param_fw_acro_x_max.get()));
+					// _pitch_ctrl.set_max_rate_pos(radians(_param_fw_acro_y_max.get()));
+					// _pitch_ctrl.set_max_rate_neg(radians(_param_fw_acro_y_max.get()));
+					// _yaw_ctrl.set_max_rate(radians(_param_fw_acro_z_max.get()));
 				}
 			}
 
@@ -517,25 +498,20 @@ void FixedwingAttitudeControl::Run()
 			trim_pitch += _spoiler_setpoint_with_slewrate.getState() * _param_fw_dtrim_p_spoil.get();
 
 			/* Run attitude controllers */
+			Vector3f rates_setpoint;
+
 			if (_vcontrol_mode.flag_control_attitude_enabled) {
 				if (PX4_ISFINITE(_att_sp.roll_body) && PX4_ISFINITE(_att_sp.pitch_body)) {
-					_roll_ctrl.control_attitude(dt, control_input);
-					_pitch_ctrl.control_attitude(dt, control_input);
+					/* Run ATTITUDE controller */
+					rates_setpoint = _attitude_control.update(Quatf(att.q));
 
 					if (wheel_control) {
 						_wheel_ctrl.control_attitude(dt, control_input);
-						_yaw_ctrl.reset_integrator();
 
 					} else {
 						// runs last, because is depending on output of roll and pitch attitude
-						_yaw_ctrl.control_attitude(dt, control_input);
 						_wheel_ctrl.reset_integrator();
 					}
-
-					/* Update input data for rate controllers */
-					control_input.roll_rate_setpoint = _roll_ctrl.get_desired_rate();
-					control_input.pitch_rate_setpoint = _pitch_ctrl.get_desired_rate();
-					control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
 
 					const hrt_abstime now = hrt_absolute_time();
 					autotune_attitude_control_status_s pid_autotune;
@@ -552,22 +528,28 @@ void FixedwingAttitudeControl::Run()
 						}
 					}
 
+					vehicle_angular_acceleration_s v_angular_acceleration{};
+					// _vehicle_angular_acceleration_sub.copy(&v_angular_acceleration);
+					const Vector3f angular_accel{v_angular_acceleration.xyz};
+
 					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
-					float roll_u = _roll_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(0));
+					const Vector3f att_control = _rate_control.update(rates, rates_setpoint, angular_accel, dt, _landed);
+
+					float roll_u = att_control(0);
 					_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
 						(PX4_ISFINITE(roll_u)) ? roll_u + trim_roll : trim_roll;
 
-					if (!PX4_ISFINITE(roll_u)) {
-						_roll_ctrl.reset_integrator();
-					}
+					// if (!PX4_ISFINITE(roll_u)) {
+					// 	_roll_ctrl.reset_integrator();
+					// }
 
-					float pitch_u = _pitch_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(1));
+					float pitch_u = att_control(1);
 					_actuator_controls.control[actuator_controls_s::INDEX_PITCH] =
 						(PX4_ISFINITE(pitch_u)) ? pitch_u + trim_pitch : trim_pitch;
 
-					if (!PX4_ISFINITE(pitch_u)) {
-						_pitch_ctrl.reset_integrator();
-					}
+					// if (!PX4_ISFINITE(pitch_u)) {
+					// 	_pitch_ctrl.reset_integrator();
+					// }
 
 					float yaw_u = 0.0f;
 
@@ -575,7 +557,7 @@ void FixedwingAttitudeControl::Run()
 						yaw_u = _wheel_ctrl.control_bodyrate(dt, control_input);
 
 					} else {
-						yaw_u = _yaw_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(2));
+						yaw_u = att_control(2);
 					}
 
 					_actuator_controls.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + trim_yaw : trim_yaw;
@@ -586,7 +568,7 @@ void FixedwingAttitudeControl::Run()
 					}
 
 					if (!PX4_ISFINITE(yaw_u)) {
-						_yaw_ctrl.reset_integrator();
+						// _yaw_ctrl.reset_integrator();
 						_wheel_ctrl.reset_integrator();
 					}
 
@@ -614,9 +596,9 @@ void FixedwingAttitudeControl::Run()
 				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
 				 * only once available
 				 */
-				_rates_sp.roll = _roll_ctrl.get_desired_bodyrate();
-				_rates_sp.pitch = _pitch_ctrl.get_desired_bodyrate();
-				_rates_sp.yaw = _yaw_ctrl.get_desired_bodyrate();
+				_rates_sp.roll = rates_setpoint(0);
+				_rates_sp.pitch = rates_setpoint(1);
+				_rates_sp.yaw = rates_setpoint(2);
 
 				_rates_sp.timestamp = hrt_absolute_time();
 
@@ -630,7 +612,7 @@ void FixedwingAttitudeControl::Run()
 				// _vehicle_angular_acceleration_sub.copy(&v_angular_acceleration);
 				const Vector3f angular_accel{v_angular_acceleration.xyz};
 
-				const Vector3f rates_setpoint = Vector3f(_rates_sp.roll, _rates_sp.pitch, _rates_sp.yaw);
+				rates_setpoint = Vector3f(_rates_sp.roll, _rates_sp.pitch, _rates_sp.yaw);
 				const Vector3f att_control = _rate_control.update(rates, rates_setpoint, angular_accel, dt, _landed);
 
 				_actuator_controls.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(att_control(0))) ? att_control(
@@ -646,14 +628,14 @@ void FixedwingAttitudeControl::Run()
 
 			rate_ctrl_status_s rate_ctrl_status{};
 			rate_ctrl_status.timestamp = hrt_absolute_time();
-			rate_ctrl_status.rollspeed_integ = _roll_ctrl.get_integrator();
-			rate_ctrl_status.pitchspeed_integ = _pitch_ctrl.get_integrator();
+			// rate_ctrl_status.rollspeed_integ = _roll_ctrl.get_integrator();
+			// rate_ctrl_status.pitchspeed_integ = _pitch_ctrl.get_integrator();
 
 			if (wheel_control) {
 				rate_ctrl_status.additional_integ1 = _wheel_ctrl.get_integrator();
 
 			} else {
-				rate_ctrl_status.yawspeed_integ = _yaw_ctrl.get_integrator();
+				// rate_ctrl_status.yawspeed_integ = _yaw_ctrl.get_integrator();
 			}
 
 			_rate_ctrl_status_pub.publish(rate_ctrl_status);

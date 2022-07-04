@@ -34,12 +34,10 @@
 #pragma once
 
 #include <RateControl.hpp>
+#include <AttitudeControl.hpp>
 
 #include <drivers/drv_hrt.h>
-#include "ecl_pitch_controller.h"
-#include "ecl_roll_controller.h"
 #include "ecl_wheel_controller.h"
-#include "ecl_yaw_controller.h"
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
@@ -234,11 +232,9 @@ private:
 		(ParamFloat<px4::params::TRIM_YAW>) _param_trim_yaw
 	)
 
-	ECL_RollController		_roll_ctrl;
-	ECL_PitchController		_pitch_ctrl;
-	ECL_YawController		_yaw_ctrl;
 	ECL_WheelController		_wheel_ctrl;
 	RateControl _rate_control; ///< class for rate control calculations
+	AttitudeControl _attitude_control; /**< class for attitude control calculations */
 
 	/**
 	 * @brief Update flap control setting

@@ -42,10 +42,7 @@ px4_add_module(
 		FixedwingAttitudeControl.hpp
 
 		ecl_controller.cpp
-		ecl_pitch_controller.cpp
-		ecl_roll_controller.cpp
 		ecl_wheel_controller.cpp
-		ecl_yaw_controller.cpp
 	DEPENDS
 		px4_work_queue
 		FWRateControl
