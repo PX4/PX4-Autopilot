@@ -253,10 +253,14 @@ void micrortps_start_topics(const uint32_t &datarate, struct timespec &begin, ui
 
 	while (!_should_exit_task) {
 @[if recv_topics]@
-		while (0 < (read = transport_node->read(&topic_ID, data_buffer, BUFFER_SIZE))) {
+
+		read = transport_node->read();
+		if (read > 0) {
 			total_rcvd += read;
 			rx_last_sec_read += read;
+		}
 
+		while (transport_node->parse(&topic_ID, data_buffer, BUFFER_SIZE)) {
 			uint64_t read_time = hrt_absolute_time();
 
 			switch (topic_ID) {
