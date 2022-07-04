@@ -146,11 +146,8 @@ bool FlightTaskAuto::update()
 		_velocity_setpoint(2) = NAN;
 		break;
 
-	case WaypointType::takeoff:
-		// Takeoff is completely defined by target position
-		_gear.landing_gear = landing_gear_s::GEAR_DOWN;
-
 	// FALLTHROUGH
+	case WaypointType::takeoff:
 	case WaypointType::loiter:
 	case WaypointType::position:
 	default:
