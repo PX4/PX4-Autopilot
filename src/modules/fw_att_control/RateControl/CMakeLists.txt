@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,22 +31,12 @@
 #
 ############################################################################
 
-add_subdirectory(RateControl)
+px4_add_library(RateControl2
+	RateControl.cpp
+	RateControl.hpp
+)
+target_compile_options(RateControl2 PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(RateControl2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(RateControl2 PRIVATE mathlib)
 
-px4_add_module(
-	MODULE modules__fw_att_control
-	MAIN fw_att_control
-	SRCS
-		FixedwingAttitudeControl.cpp
-		FixedwingAttitudeControl.hpp
-
-		ecl_controller.cpp
-		ecl_pitch_controller.cpp
-		ecl_roll_controller.cpp
-		ecl_wheel_controller.cpp
-		ecl_yaw_controller.cpp
-	DEPENDS
-		px4_work_queue
-		RateControl2
-		SlewRate
-	)
+px4_add_unit_gtest(SRC RateControlTest.cpp LINKLIBS RateControl2)

@@ -31,6 +31,10 @@
  *
  ****************************************************************************/
 
+#pragma once
+
+#include <RateControl.hpp>
+
 #include <drivers/drv_hrt.h>
 #include "ecl_pitch_controller.h"
 #include "ecl_roll_controller.h"
@@ -233,6 +237,7 @@ private:
 	ECL_PitchController		_pitch_ctrl;
 	ECL_YawController		_yaw_ctrl;
 	ECL_WheelController		_wheel_ctrl;
+	RateControl _rate_control; ///< class for rate control calculations
 
 	/**
 	 * @brief Update flap control setting
