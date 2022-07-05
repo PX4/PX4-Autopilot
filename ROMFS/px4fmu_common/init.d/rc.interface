@@ -17,17 +17,21 @@ set OUTPUT_DEV none
 set OUTPUT_AUX_DEV /dev/pwm_output1
 set OUTPUT_EXTRA_DEV /dev/pwm_output0
 
-# set these before starting the modules
+# set ESC mask before starting the modules
+# setting the numeric parameter to "none" would make the startup script fail
 if [ $PWM_AUX_OUT != none ]
 then
-
 	param set PWM_AUX_OUT ${PWM_AUX_OUT}
+else
+	param set PWM_AUX_OUT 0
 fi
 
 
 if [ $PWM_OUT != none ]
 then
 	param set PWM_MAIN_OUT ${PWM_OUT}
+else
+	param set PWM_AUX_OUT 0
 fi
 
 #
