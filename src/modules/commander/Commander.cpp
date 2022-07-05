@@ -840,7 +840,7 @@ Commander::Commander() :
 	_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
 	_vehicle_gps_position_valid.set_hysteresis_time_from(false, GPS_VALID_TIME);
-	_vehicle_gps_position_valid.set_hysteresis_time_from(true, GPS_VALID_TIME);
+	_vehicle_gps_position_valid.set_hysteresis_time_from(true, 0);
 
 	_param_mav_comp_id = param_find("MAV_COMP_ID");
 	_param_mav_sys_id = param_find("MAV_SYS_ID");
@@ -4229,11 +4229,20 @@ void Commander::estimator_check()
 			bool eph = vehicle_gps_position.eph < _param_com_pos_fs_eph.get();
 			bool epv = vehicle_gps_position.epv < _param_com_pos_fs_epv.get();
 			bool evh = vehicle_gps_position.s_variance_m_s < _param_com_vel_fs_evh.get();
+			bool no_jamming = (vehicle_gps_position.jamming_state != sensor_gps_s::JAMMING_STATE_CRITICAL);
 
-			_vehicle_gps_position_valid.set_state_and_update(time && fix && eph && epv && evh, hrt_absolute_time());
+			_vehicle_gps_position_valid.set_state_and_update(time && fix && eph && epv && evh && no_jamming, hrt_absolute_time());
 			_vehicle_status_flags.gps_position_valid = _vehicle_gps_position_valid.get_state();
 
 			_vehicle_gps_position_timestamp_last = vehicle_gps_position.timestamp;
+
+			if (condition_gps_position_was_valid) {
+				if (vehicle_gps_position.jamming_state == sensor_gps_s::JAMMING_STATE_CRITICAL) {
+					mavlink_log_warning(&_mavlink_log_pub, "GPS jamming state critical\t");
+					events::send(events::ID("commander_gps_jamming_critical"), {events::Log::Critical, events::LogInternal::Info},
+						     "GPS jamming state critical");
+				}
+			}
 		}
 
 	} else {
@@ -4247,6 +4256,13 @@ void Commander::estimator_check()
 
 	if (condition_gps_position_was_valid && !_vehicle_status_flags.gps_position_valid) {
 		PX4_DEBUG("GPS no longer valid");
+
+		// report GPS failure if flying and the global position estimate is still valid
+		if (!_vehicle_land_detected.landed && _vehicle_status_flags.global_position_valid) {
+			mavlink_log_warning(&_mavlink_log_pub, "GPS no longer valid\t");
+			events::send(events::ID("commander_gps_lost"), {events::Log::Critical, events::LogInternal::Info},
+				     "GPS no longer valid");
+		}
 	}
 }
 
