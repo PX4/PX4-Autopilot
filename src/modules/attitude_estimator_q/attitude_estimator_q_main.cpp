@@ -57,7 +57,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_odometry.h>
@@ -214,7 +214,7 @@ void AttitudeEstimatorQ::Run()
 void AttitudeEstimatorQ::update_gps_position()
 {
 	if (_vehicle_gps_position_sub.updated()) {
-		vehicle_gps_position_s gps;
+		sensor_gps_s gps;
 
 		if (_vehicle_gps_position_sub.update(&gps)) {
 			if (_param_att_mag_decl_a.get() && (gps.eph < 20.0f)) {

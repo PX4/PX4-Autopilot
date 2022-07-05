@@ -1779,7 +1779,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF GPS message
 	const unsigned last_generation = _vehicle_gps_position_sub.get_last_generation();
-	vehicle_gps_position_s vehicle_gps_position;
+	sensor_gps_s vehicle_gps_position;
 
 	if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
 		if (_msg_missed_gps_perf == nullptr) {

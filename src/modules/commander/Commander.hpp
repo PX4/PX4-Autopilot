@@ -81,13 +81,13 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/power_button_state.h>
 #include <uORB/topics/rtl_time_estimate.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>

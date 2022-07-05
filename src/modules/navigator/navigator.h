@@ -73,7 +73,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
@@ -356,7 +356,7 @@ private:
 	home_position_s					_home_pos{};		/**< home position for RTL */
 	mission_result_s				_mission_result{};
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
-	vehicle_gps_position_s				_gps_pos{};		/**< gps position */
+	sensor_gps_s				_gps_pos{};		/**< gps position */
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
