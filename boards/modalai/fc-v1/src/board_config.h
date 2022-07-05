@@ -142,9 +142,10 @@
 #define GPIO_HW_VER_REV_DRIVE  /* PG0 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_REV_SENSE      /* PF5 */  ADC3_GPIO(15)
 #define GPIO_HW_VER_SENSE      /* PF4 */  ADC3_GPIO(14)
-#define HW_INFO_INIT           {'V','1','x', 'x',0}
-#define HW_INFO_INIT_VER       2 /* Offset in above string of the VER */
-#define HW_INFO_INIT_REV       3 /* Offset in above string of the REV */
+#define HW_INFO_INIT_PREFIX           "V1"
+#define V10006   HW_VER_REV(0x0,0x6) // V1006              Rev 6
+#define V10100   HW_VER_REV(0x1,0x0) // V1010              Rev 0
+
 
 /* PWM
  */

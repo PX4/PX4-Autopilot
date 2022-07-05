@@ -52,7 +52,7 @@ static constexpr unsigned max_mandatory_baro_count = 1;
 
 bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 				    vehicle_status_flags_s &status_flags, const vehicle_control_mode_s &control_mode,
-				    bool report_failures, const hrt_abstime &time_since_boot,
+				    bool report_failures,
 				    const bool safety_button_available, const bool safety_off,
 				    const bool is_arm_attempt)
 {
@@ -193,23 +193,10 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	}
 
 	if (estimator_type == 2) {
+		const bool ekf_healthy = ekf2Check(mavlink_log_pub, status, report_failures) &&
+					 ekf2CheckSensorBias(mavlink_log_pub, report_failures);
 
-		const bool in_grace_period = time_since_boot < 10_s;
-		const bool do_report_ekf2_failures = report_failures && (!in_grace_period);
-		const bool ekf_healthy = ekf2Check(mavlink_log_pub, status, false, do_report_ekf2_failures) &&
-					 ekf2CheckSensorBias(mavlink_log_pub, do_report_ekf2_failures);
-
-		// For the first 10 seconds the ekf2 can be unhealthy, and we just mark it
-		// as not present.
-		// After that or if we're forced to report, we'll set the flags as is.
-
-		if (!ekf_healthy && !do_report_ekf2_failures) {
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, false, false, status);
-
-		} else {
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, true, ekf_healthy, status);
-		}
-
+		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, true, ekf_healthy, status);
 
 		if (control_mode.flag_control_attitude_enabled
 		    || control_mode.flag_control_velocity_enabled

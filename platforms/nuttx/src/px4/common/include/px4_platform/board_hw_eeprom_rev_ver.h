@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,75 +31,80 @@
  *
  ****************************************************************************/
 #pragma once
-#include <stdint.h>
 
-typedef enum  {
-	MTD_PARAMETERS  = 1,
-	MTD_WAYPOINTS   = 2,
-	MTD_CALDATA     = 3,
-	MTD_MFT         = 4,
-	MTD_ID          = 5,
-	MTD_NET         = 6,
-} px4_mtd_types_t;
-#define PX4_MFT_MTD_TYPES  {MTD_PARAMETERS, MTD_WAYPOINTS, MTD_CALDATA, MTD_MFT, MTD_ID, MTD_NET}
-#define PX4_MFT_MTD_STR_TYPES  {"MTD_PARAMETERS", "MTD_WAYPOINTS", "MTD_CALDATA", "MTD_MFT", "MTD_ID", "MTD_NET"}
+#define HW_VERSION_EEPROM 		0x7		//!< Get hw_info from EEPROM
+#define HW_EEPROM_VERSION_MIN	0x10	//!< Minimum supported version
 
-typedef struct  {
-	const px4_mtd_types_t   type;
-	const char              *path;
-	const uint32_t          nblocks;
-} px4_mtd_part_t;
+#pragma pack(push, 1)
 
-typedef struct  {
-	const px4_mft_device_t  *device;
-	const uint32_t           npart;
-	const px4_mtd_part_t     partd[];
-} px4_mtd_entry_t;
+typedef struct {
+	uint16_t id;
+} mtd_mft_t;
 
-typedef struct  {
-	const uint32_t        nconfigs;
-	const px4_mtd_entry_t *entries[];
-} px4_mtd_manifest_t;
+typedef struct {
+	mtd_mft_t version;
+	uint16_t hw_extended_ver;
+	uint16_t crc;
+} mtd_mft_v0_t;
 
+typedef struct {
+	mtd_mft_t  version;
+	uint16_t hw_extended_ver;
+	//{device tree overlay}
+	uint16_t crc;
+} mtd_mft_v1_t;
+
+
+#pragma pack(pop)
+
+#define MTD_MFT_v0 0U //<! EEPROM MTD MFT structure version 0
+#define MTD_MFT_v1 1U //<! EEPROM MTD MFT structure version 1
+
+#define MTD_MFT_OFFSET 0 //<! Offset in EEPROM where mtd_mft data starts
 
 __BEGIN_DECLS
+
 /************************************************************************************
- * Name: px4_mtd_config
+  * Name: board_set_eeprom_hw_info
  *
  * Description:
- *   A board will call this function, to set up the mtd partitions
+ * Function for writing hardware info to EEPROM
  *
  * Input Parameters:
- *  mtd_list    - px4_mtd_config list/count
+ *   *path        - path to mtd_mft
+ *   *mtd_mft_unk - pointer to mtd_mft to write hw_info
  *
  * Returned Value:
- *   non zero if error
+ *    0    - Successful storing to EEPROM
+ *   -1    - Error while storing to EEPROM
  *
  ************************************************************************************/
 
-__EXPORT int px4_mtd_config(const px4_mtd_manifest_t *mft_mtd);
+#if !defined(BOARD_HAS_SIMPLE_HW_VERSIONING) && defined(BOARD_HAS_VERSIONING)
+__EXPORT int board_set_eeprom_hw_info(const char *path, mtd_mft_t *mtd_mft_unk);
+#else
+static inline int board_set_eeprom_hw_info(const char *path, mtd_mft_t *mtd_mft_unk) { return -ENOSYS; }
+#endif
 
 /************************************************************************************
- * Name: px4_mtd_query
+  * Name: board_get_eeprom_hw_info
  *
  * Description:
- *   A Query interface that will lookup a type and either a) verify it exists  by
- *   value.
+ * Function for reading hardware info from EEPROM
  *
- *   or it will return the path for a type.
- *
- *
- * Input Parameters:
- *  type  - a string-ized version of px4_mtd_types_t
- *  value - string to verity is that type.
- *  get   - a pointer to a string to optionally return the path for the type.
+ * Output Parameters:
+ *   *mtd_mft - pointer to mtd_mft to read hw_info
  *
  * Returned Value:
- *   non zero if error
- *   0 (get == null) item by type and value was found.
- *   0 (get !=null) item by type's value is returned at get;
+ *    0    - Successful reading from EEPROM
+ *   -1    - Error while reading from EEPROM
  *
  ************************************************************************************/
-__EXPORT int px4_mtd_query(const char *type, const char *val, const char **get);
+
+#if !defined(BOARD_HAS_SIMPLE_HW_VERSIONING) && defined(BOARD_HAS_VERSIONING)
+__EXPORT int board_get_eeprom_hw_info(const char *path, mtd_mft_t *mtd_mft);
+#else
+static inline int board_get_eeprom_hw_info(const char *path, mtd_mft_t *mtd_mft) { return -ENOSYS; }
+#endif
 
 __END_DECLS

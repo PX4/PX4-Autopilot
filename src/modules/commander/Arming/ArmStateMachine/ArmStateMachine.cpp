@@ -42,7 +42,7 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 		const vehicle_control_mode_s &control_mode, const bool safety_button_available, const bool safety_off,
 		const arming_state_t new_arming_state, actuator_armed_s &armed, const bool fRunPreArmChecks,
 		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s &status_flags,
-		const hrt_abstime &time_since_boot, arm_disarm_reason_t calling_reason)
+		arm_disarm_reason_t calling_reason)
 {
 	// Double check that our static arrays are still valid
 	static_assert(vehicle_status_s::ARMING_STATE_INIT == 0, "ARMING_STATE_INIT == 0");
@@ -69,7 +69,6 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 
 			if (!PreFlightCheck::preflightCheck(mavlink_log_pub, status, status_flags, control_mode,
 							    true, // report_failures
-							    time_since_boot,
 							    safety_button_available, safety_off,
 							    true)) { // is_arm_attempt
 				feedback_provided = true; // Preflight checks report error messages

@@ -600,34 +600,6 @@ void PWMOut::update_params()
 			}
 		}
 
-		// PWM_MAIN_FAILx
-		{
-			sprintf(str, "%s_FAIL%u", prefix, i + 1);
-			int32_t pwm_failsafe = -1;
-
-			if (param_get(param_find(str), &pwm_failsafe) == PX4_OK) {
-				if (pwm_failsafe >= 0) {
-					_mixing_output.failsafeValue(i) = math::constrain(pwm_failsafe, (int32_t) 0, (int32_t) PWM_HIGHEST_MAX);
-
-					if (pwm_failsafe != _mixing_output.failsafeValue(i)) {
-						int32_t pwm_fail_new = _mixing_output.failsafeValue(i);
-						param_set(param_find(str), &pwm_fail_new);
-					}
-
-				} else {
-					if (pwm_default_channel_mask & 1 << i) {
-						_mixing_output.failsafeValue(i) = PWM_MOTOR_OFF;
-
-					} else {
-						_mixing_output.failsafeValue(i) = PWM_SERVO_STOP;
-					}
-				}
-
-			} else {
-				PX4_ERR("param %s not found", str);
-			}
-		}
-
 		// PWM_MAIN_DISx
 		{
 			sprintf(str, "%s_DIS%u", prefix, i + 1);
@@ -652,6 +624,30 @@ void PWMOut::update_params()
 
 			if (_mixing_output.disarmedValue(i) > 0) {
 				num_disarmed_set++;
+			}
+		}
+
+		// PWM_MAIN_FAILx
+		{
+			sprintf(str, "%s_FAIL%u", prefix, i + 1);
+			int32_t pwm_failsafe = -1;
+
+			if (param_get(param_find(str), &pwm_failsafe) == PX4_OK) {
+				if (pwm_failsafe >= 0) {
+					_mixing_output.failsafeValue(i) = math::constrain(pwm_failsafe, (int32_t) 0, (int32_t) PWM_HIGHEST_MAX);
+
+					if (pwm_failsafe != _mixing_output.failsafeValue(i)) {
+						int32_t pwm_fail_new = _mixing_output.failsafeValue(i);
+						param_set(param_find(str), &pwm_fail_new);
+					}
+
+				} else {
+					// if no channel specific failsafe value is configured, use the disarmed value
+					_mixing_output.failsafeValue(i) = _mixing_output.disarmedValue(i);
+				}
+
+			} else {
+				PX4_ERR("param %s not found", str);
 			}
 		}
 

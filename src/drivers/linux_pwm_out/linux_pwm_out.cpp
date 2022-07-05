@@ -168,6 +168,7 @@ void LinuxPWMOut::update_params()
 	int32_t pwm_min_default = PWM_DEFAULT_MIN;
 	int32_t pwm_max_default = PWM_DEFAULT_MAX;
 	int32_t pwm_disarmed_default = 0;
+	int32_t pwm_default_channels = 0;
 
 	const char *prefix;
 
@@ -177,6 +178,7 @@ void LinuxPWMOut::update_params()
 		param_get(param_find("PWM_MAIN_MIN"), &pwm_min_default);
 		param_get(param_find("PWM_MAIN_MAX"), &pwm_max_default);
 		param_get(param_find("PWM_MAIN_DISARM"), &pwm_disarmed_default);
+		param_get(param_find("PWM_MAIN_OUT"), &pwm_default_channels);
 
 	} else if (_class_instance == CLASS_DEVICE_SECONDARY) {
 		prefix = "PWM_AUX";
@@ -184,6 +186,7 @@ void LinuxPWMOut::update_params()
 		param_get(param_find("PWM_AUX_MIN"), &pwm_min_default);
 		param_get(param_find("PWM_AUX_MAX"), &pwm_max_default);
 		param_get(param_find("PWM_AUX_DISARM"), &pwm_disarmed_default);
+		param_get(param_find("PWM_AUX_OUT"), &pwm_default_channels);
 
 	} else if (_class_instance == CLASS_DEVICE_TERTIARY) {
 		prefix = "PWM_EXTRA";
@@ -195,6 +198,14 @@ void LinuxPWMOut::update_params()
 	} else {
 		PX4_ERR("invalid class instance %d", _class_instance);
 		return;
+	}
+
+	uint32_t single_ch = 0;
+	uint32_t pwm_default_channel_mask = 0;
+
+	while ((single_ch = pwm_default_channels % 10)) {
+		pwm_default_channel_mask |= 1 << (single_ch - 1);
+		pwm_default_channels /= 10;
 	}
 
 	char str[17];
@@ -213,7 +224,7 @@ void LinuxPWMOut::update_params()
 					param_set(param_find(str), &pwm_min_new);
 				}
 
-			} else {
+			} else if (pwm_default_channel_mask & 1 << i) {
 				_mixing_output.minValue(i) = pwm_min_default;
 			}
 		}
@@ -231,23 +242,8 @@ void LinuxPWMOut::update_params()
 					param_set(param_find(str), &pwm_max_new);
 				}
 
-			} else {
+			} else if (pwm_default_channel_mask & 1 << i) {
 				_mixing_output.maxValue(i) = pwm_max_default;
-			}
-		}
-
-		// PWM_MAIN_FAILx
-		{
-			sprintf(str, "%s_FAIL%u", prefix, i + 1);
-			int32_t pwm_failsafe = -1;
-
-			if (param_get(param_find(str), &pwm_failsafe) == PX4_OK && pwm_failsafe >= 0) {
-				_mixing_output.failsafeValue(i) = math::constrain(pwm_failsafe, 0, PWM_HIGHEST_MAX);
-
-				if (pwm_failsafe != _mixing_output.failsafeValue(i)) {
-					int32_t pwm_fail_new = _mixing_output.failsafeValue(i);
-					param_set(param_find(str), &pwm_fail_new);
-				}
 			}
 		}
 
@@ -264,8 +260,27 @@ void LinuxPWMOut::update_params()
 					param_set(param_find(str), &pwm_dis_new);
 				}
 
-			} else {
+			} else if (pwm_default_channel_mask & 1 << i) {
 				_mixing_output.disarmedValue(i) = pwm_disarmed_default;
+			}
+		}
+
+		// PWM_MAIN_FAILx
+		{
+			sprintf(str, "%s_FAIL%u", prefix, i + 1);
+			int32_t pwm_failsafe = -1;
+
+			if (param_get(param_find(str), &pwm_failsafe) == PX4_OK && pwm_failsafe >= 0) {
+				_mixing_output.failsafeValue(i) = math::constrain(pwm_failsafe, 0, PWM_HIGHEST_MAX);
+
+				if (pwm_failsafe != _mixing_output.failsafeValue(i)) {
+					int32_t pwm_fail_new = _mixing_output.failsafeValue(i);
+					param_set(param_find(str), &pwm_fail_new);
+				}
+
+			} else {
+				// if no channel specific failsafe value is configured, use the disarmed value
+				_mixing_output.failsafeValue(i) = _mixing_output.disarmedValue(i);
 			}
 		}
 

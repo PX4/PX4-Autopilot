@@ -42,6 +42,8 @@
 #include <px4_arch/io_timer.h>
 #include <board_config.h>
 #include <parameters/param.h>
+#include <px4_platform_common/events.h>
+#include <systemlib/mavlink_log.h>
 
 PPSCapture::PPSCapture() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -130,6 +132,7 @@ void PPSCapture::Run()
 
 	pps_capture_s pps_capture;
 	pps_capture.timestamp = _hrt_timestamp;
+	pps_capture.pps_rate_exceeded_counter = _pps_rate_exceeded_counter;
 	// GPS UTC time when the GPIO interrupt was triggered
 	// Last UTC time received from the GPS + elapsed time to the PPS interrupt
 	uint64_t gps_utc_time = _last_gps_utc_timestamp + (_hrt_timestamp - _last_gps_timestamp);
@@ -141,13 +144,32 @@ void PPSCapture::Run()
 	pps_capture.rtc_timestamp = gps_utc_time - (gps_utc_time % USEC_PER_SEC) + USEC_PER_SEC;
 
 	_pps_capture_pub.publish(pps_capture);
+
+	if (_pps_rate_failure.load()) {
+		mavlink_log_warning(&_mavlink_log_pub, "Hardware fault: GPS PPS disabled\t");
+		events::send(events::ID("pps_capture_pps_rate_exceeded"),
+			     events::Log::Error, "Hardware fault: GPS PPS disabled");
+		_pps_rate_failure.store(false);
+	}
 }
 
 int PPSCapture::gpio_interrupt_callback(int irq, void *context, void *arg)
 {
 	PPSCapture *instance = static_cast<PPSCapture *>(arg);
 
-	instance->_hrt_timestamp = hrt_absolute_time();
+	hrt_abstime interrupt_time = hrt_absolute_time();
+
+	if ((interrupt_time - instance->_hrt_timestamp) < 50_ms) {
+		++(instance->_pps_rate_exceeded_counter);
+
+		if (instance->_pps_rate_exceeded_counter >= 10) {
+			// Trigger rate too high, stop future interrupts
+			px4_arch_gpiosetevent(instance->_pps_capture_gpio, false, false, false, nullptr, nullptr);
+			instance->_pps_rate_failure.store(true);
+		}
+	}
+
+	instance->_hrt_timestamp = interrupt_time;
 	instance->ScheduleNow(); // schedule work queue to publish PPS captured time
 
 	return PX4_OK;

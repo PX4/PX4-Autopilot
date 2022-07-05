@@ -4,7 +4,7 @@
 #------------------------------------------------------------------------------
 set HAVE_PM2 yes
 
-if ver hwtypecmp V6X50 V6X51 V6X53 V6X54
+if ver hwtypecmp V6X005000 V6X005001 V6X005003 V6X005004
 then
 	set HAVE_PM2 no
 fi
@@ -47,7 +47,7 @@ then
 	fi
 fi
 
-if ver hwtypecmp V6X04 V6X14 V6X54
+if ver hwtypecmp V6X000004 V6X001004 V6X005004
 then
 	# Internal SPI bus ICM20649
 	icm20649 -s -R 6 start
@@ -60,7 +60,7 @@ fi
 # Internal SPI bus ICM42688p
 icm42688p -R 6 -s start
 
-if ver hwtypecmp V6X03 V6X13 V6X04 V6X14 V6X53 V6X54
+if ver hwtypecmp V6X000003 V6X001003 V6X000004 V6X001004 V6X005003 V6X005004
 then
 	# Internal SPI bus ICM-42670-P (hard-mounted)
 	icm42670p -R 10 -s start
@@ -78,7 +78,7 @@ ist8310 -X -b 1 -R 10 start
 # Possible internal Baro
 bmp388 -I -a 0x77 start
 
-if ver hwtypecmp V6X00 V6X10
+if ver hwtypecmp V6X000000 V6X001000
 then
 	bmp388 -I start
 else

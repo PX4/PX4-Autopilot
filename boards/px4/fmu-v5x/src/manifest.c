@@ -172,6 +172,7 @@ static px4_hw_mft_list_entry_t mft_lists[] = {
 	{V5Xa0, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB (Q),             Rev 0
 	{V5Xa1, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB (Q) I2C2 BMP388, Rev 1
 	{V5Xa2, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB (Q) I2C2 BMP388, Rev 2
+	{V5X101, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB I2C2 BMP388,     Rev 1
 };
 
 /************************************************************************************
@@ -194,7 +195,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 	static px4_hw_mft_list_entry boards_manifest = px4_hw_mft_list_uninitialized;
 
 	if (boards_manifest == px4_hw_mft_list_uninitialized) {
-		uint32_t ver_rev = board_get_hw_version() << 8;
+		uint32_t ver_rev = board_get_hw_version() << 16;
 		ver_rev |= board_get_hw_revision();
 
 		for (unsigned i = 0; i < arraySize(mft_lists); i++) {
@@ -205,7 +206,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 		}
 
 		if (boards_manifest == px4_hw_mft_list_uninitialized) {
-			syslog(LOG_ERR, "[boot] Board %4"  PRIx32 " is not supported!\n", ver_rev);
+			syslog(LOG_ERR, "[boot] Board %08"  PRIx32 " is not supported!\n", ver_rev);
 		}
 	}
 
