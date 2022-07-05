@@ -638,6 +638,9 @@ void EKF2::Run()
 
 void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 {
+	// airspeed
+	PublishAidSourceStatus(_ekf.aid_src_airspeed(), _status_airspeed_pub_last, _estimator_aid_src_airspeed_pub);
+
 	// baro height
 	PublishAidSourceStatus(_ekf.aid_src_baro_hgt(), _status_baro_hgt_pub_last, _estimator_aid_src_baro_hgt_pub);
 
