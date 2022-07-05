@@ -598,7 +598,7 @@ FixedwingPositionINDIControl::Run()
         float AoA_approx = (((2.f*Fz)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f) - _C_L0)/_C_L1) / 
                             (1 - ((2.f*Fx)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f)/_C_L1));
         AoA_approx = constrain(AoA_approx,-0.2f,0.2f);
-        Vector3f vel_air = R_ib*(Vector3f{_airspeed,0.f,tanf(AoA_approx)*_airspeed});
+        Vector3f vel_air = R_ib*(Vector3f{_airspeed,0.f,tanf(AoA_approx-_aoa_offset)*_airspeed});
         Vector3f wind = _vel - vel_air;
         wind(0) = _lp_filter_wind[0].apply(wind(0));
         wind(1) = _lp_filter_wind[1].apply(wind(1));
