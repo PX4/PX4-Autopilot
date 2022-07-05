@@ -49,7 +49,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <matrix/math.hpp>
@@ -262,7 +262,7 @@ void BST::RunImpl()
 	}
 
 	if (_gps_sub.updated()) {
-		vehicle_gps_position_s gps;
+		sensor_gps_s gps;
 		_gps_sub.copy(&gps);
 
 		if (gps.fix_type >= 3 && gps.eph < 50.0f) {

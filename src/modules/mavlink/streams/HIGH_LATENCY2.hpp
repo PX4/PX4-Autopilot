@@ -51,7 +51,7 @@
 #include <uORB/topics/wind.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
@@ -550,7 +550,7 @@ private:
 
 	void update_gps()
 	{
-		vehicle_gps_position_s gps;
+		sensor_gps_s gps;
 
 		if (_gps_sub.update(&gps)) {
 			_eph.add_value(gps.eph, _update_rate_filtered);
