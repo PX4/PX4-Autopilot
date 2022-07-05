@@ -90,8 +90,4 @@ public:
 	bool checkMissionFeasible(const mission_s &mission,
 				  float max_distance_to_1st_waypoint, float max_distance_between_waypoints,
 				  bool land_start_req);
-
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::FW_LND_ANG>) _param_fw_lnd_ang
-	)
 };
