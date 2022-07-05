@@ -487,6 +487,19 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 		if (missionitem.nav_cmd == NAV_CMD_LAND) {
 			mission_item_s missionitem_previous {};
 
+			float param_fw_lnd_ang = 0.0f;
+			const param_t param_handle_fw_lnd_ang = param_find("FW_LND_ANG");
+
+			if (param_handle_fw_lnd_ang == PARAM_INVALID) {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: FW_LND_ANG parameter is missing.\t");
+				events::send(events::ID("navigator_mis_land_angle_param_missing"), {events::Log::Error, events::LogInternal::Info},
+					     "Mission rejected: FW_LND_ANG parameter is missing");
+				return false;
+
+			} else {
+				param_get(param_handle_fw_lnd_ang, &param_fw_lnd_ang);
+			}
+
 			if (i > 0) {
 				landing_approach_index = i - 1;
 
@@ -553,13 +566,13 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 					// rounding on next check with small (arbitrary) 0.1 deg buffer, as the
 					// landing angle parameter is what is typically used for steepest glide
 					// in landing config
-					const float max_glide_slope = tanf(math::radians(_param_fw_lnd_ang.get() + 0.1f));
+					const float max_glide_slope = tanf(math::radians(param_fw_lnd_ang + 0.1f));
 
 					if (glide_slope > max_glide_slope) {
 
-						const uint8_t land_angle_left_of_decimal = (uint8_t)_param_fw_lnd_ang.get();
-						const uint8_t land_angle_first_after_decimal = (uint8_t)((_param_fw_lnd_ang.get() - floorf(
-									_param_fw_lnd_ang.get())) * 10.0f);
+						const uint8_t land_angle_left_of_decimal = (uint8_t)param_fw_lnd_ang;
+						const uint8_t land_angle_first_after_decimal = (uint8_t)((param_fw_lnd_ang - floorf(
+									param_fw_lnd_ang)) * 10.0f);
 
 						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 								     "Mission rejected: the landing glide slope is steeper than the vehicle setting of %d.%d degrees.\t",
