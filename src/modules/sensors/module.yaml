@@ -393,9 +393,46 @@ parameters:
                 38: Roll 90°, Pitch 68°, Yaw 293°
                 39: Pitch 315°
                 40: Roll 90°, Pitch 315°
+                100: Custom Euler Angle
             min: -1
-            max: 40
+            max: 100
             default: -1
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        CAL_MAG${i}_ROLL:
+            description:
+                short: Magnetometer ${i} Custom Euler Roll Angle
+            category: System
+            type: float
+            default: 0.0
+            min: -180
+            max: 180
+            unit: deg
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        CAL_MAG${i}_PITCH:
+            description:
+                short: Magnetometer ${i} Custom Euler Pitch Angle
+            category: System
+            type: float
+            default: 0.0
+            min: -180
+            max: 180
+            unit: deg
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        CAL_MAG${i}_YAW:
+            description:
+                short: Magnetometer ${i} Custom Euler Yaw Angle
+            category: System
+            type: float
+            default: 0.0
+            min: -180
+            max: 180
+            unit: deg
             num_instances: *max_num_sensor_instances
             instance_start: 0
 

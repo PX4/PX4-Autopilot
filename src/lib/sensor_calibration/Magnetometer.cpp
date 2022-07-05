@@ -119,12 +119,27 @@ bool Magnetometer::set_offdiagonal(const Vector3f &offdiagonal)
 	return false;
 }
 
-void Magnetometer::set_rotation(Rotation rotation)
+void Magnetometer::set_rotation(const Rotation rotation)
 {
 	_rotation_enum = rotation;
 
 	// always apply board level adjustments
 	_rotation = Dcmf(GetSensorLevelAdjustment()) * get_rot_matrix(rotation);
+}
+
+void Magnetometer::set_custom_rotation(const Dcmf &rot_matrix)
+{
+	_rotation_enum = ROTATION_CUSTOM;
+
+	// always apply board level adjustments
+	_rotation = Dcmf(GetSensorLevelAdjustment()) * rot_matrix;
+
+	// TODO: Note that ideally this shouldn't be necessary for an external sensors, as the definition of *rotation
+	// between sensor frame & vehicle's body frame isn't affected by the rotation of the Autopilot.
+	// however, since while doing the 'level-calibration', users don't put the vehicle truly *horizontal, the
+	// measured board roll/pitch offset isn't true. So this affects external sensors as well (which is why we apply
+	// internal SensorLevelAdjustment to all the sensors). We need to figure out how to set the sensor board offset
+	// values properly (i.e. finding Vehicle's true Forward-Right-Down frame in a user's perspective)
 }
 
 bool Magnetometer::set_calibration_index(int calibration_index)
@@ -166,7 +181,23 @@ bool Magnetometer::ParametersLoad()
 				rotation_value = ROTATION_NONE;
 			}
 
-			set_rotation(static_cast<Rotation>(rotation_value));
+			// Handle custom specified euler angle
+			if (rotation_value == ROTATION_CUSTOM) {
+				const float euler_roll_deg = GetCalibrationParamFloat(SensorString(), "ROLL", _calibration_index);
+				const float euler_pitch_deg = GetCalibrationParamFloat(SensorString(), "PITCH", _calibration_index);
+				const float euler_yaw_deg = GetCalibrationParamFloat(SensorString(), "YAW", _calibration_index);
+
+				const matrix::Dcmf rotation_matrix = matrix::Dcmf{matrix::Eulerf{
+						math::radians(euler_roll_deg),
+						math::radians(euler_pitch_deg),
+						math::radians(euler_yaw_deg)}};
+
+				set_custom_rotation(rotation_matrix);
+
+			} else {
+				set_rotation(static_cast<Rotation>(rotation_value));
+
+			}
 
 		} else {
 			// internal sensors follow board rotation

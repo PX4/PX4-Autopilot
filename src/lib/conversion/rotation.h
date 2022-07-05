@@ -91,8 +91,10 @@ enum Rotation : uint8_t {
 	ROTATION_ROLL_90_PITCH_68_YAW_293 = 38,
 	ROTATION_PITCH_315                = 39,
 	ROTATION_ROLL_90_PITCH_315        = 40,
+	ROTATION_MAX,
 
-	ROTATION_MAX
+	// Rotation Enum reserved for custom rotation using Euler Angles
+	ROTATION_CUSTOM                  = 100
 };
 
 struct rot_lookup_t {
