@@ -1028,7 +1028,9 @@ void Ekf::controlAirDataFusion()
 
 		const bool continuing_conditions_passing = _control_status.flags.in_air && _control_status.flags.fixed_wing && !_using_synthetic_position;
 		const bool is_airspeed_significant = _airspeed_sample_delayed.true_airspeed > _params.arsp_thr;
-		const bool starting_conditions_passing = continuing_conditions_passing && is_airspeed_significant;
+		const bool is_airspeed_consistent = (_aid_src_airspeed.test_ratio > 0.f && _aid_src_airspeed.test_ratio < 1.f);
+		const bool starting_conditions_passing = continuing_conditions_passing && is_airspeed_significant
+		                                         && (is_airspeed_consistent || !_control_status.flags.wind); // if wind isn't already estimated, the states are reset when starting airspeed fusion
 
 		if (_control_status.flags.fuse_aspd) {
 			if (continuing_conditions_passing) {
