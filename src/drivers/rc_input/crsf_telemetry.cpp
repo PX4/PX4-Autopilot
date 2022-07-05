@@ -90,7 +90,7 @@ bool CRSFTelemetry::send_battery()
 
 bool CRSFTelemetry::send_gps()
 {
-	vehicle_gps_position_s vehicle_gps_position;
+	sensor_gps_s vehicle_gps_position;
 
 	if (!_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
 		return false;

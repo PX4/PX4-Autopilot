@@ -1864,7 +1864,7 @@ Commander::hasMovedFromCurrentHomeLocation()
 			epv = gpos.epv;
 
 		} else if (_vehicle_status_flags.gps_position_valid) {
-			vehicle_gps_position_s gps;
+			sensor_gps_s gps;
 			_vehicle_gps_position_sub.copy(&gps);
 			const double lat = static_cast<double>(gps.lat) * 1e-7;
 			const double lon = static_cast<double>(gps.lon) * 1e-7;
@@ -1911,7 +1911,7 @@ Commander::set_home_position()
 
 	} else if (_vehicle_status_flags.gps_position_valid) {
 		// Set home using GNSS position
-		vehicle_gps_position_s gps_pos;
+		sensor_gps_s gps_pos;
 		_vehicle_gps_position_sub.copy(&gps_pos);
 		const double lat = static_cast<double>(gps_pos.lat) * 1e-7;
 		const double lon = static_cast<double>(gps_pos.lon) * 1e-7;
@@ -1970,7 +1970,7 @@ Commander::set_in_air_home_position()
 			// Back-compute lon, lat and alt of home position given the local home position
 			// and current positions in local and global (GNSS raw) frames
 			const vehicle_local_position_s &lpos = _local_position_sub.get();
-			vehicle_gps_position_s gps;
+			sensor_gps_s gps;
 			_vehicle_gps_position_sub.copy(&gps);
 
 			const double lat = static_cast<double>(gps.lat) * 1e-7;
@@ -4219,7 +4219,7 @@ void Commander::estimator_check()
 	const bool condition_gps_position_was_valid = _vehicle_status_flags.gps_position_valid;
 
 	if (_vehicle_gps_position_sub.updated()) {
-		vehicle_gps_position_s vehicle_gps_position;
+		sensor_gps_s vehicle_gps_position;
 
 		if (_vehicle_gps_position_sub.copy(&vehicle_gps_position)) {
 

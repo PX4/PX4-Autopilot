@@ -50,7 +50,7 @@
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 
 class FakeMagnetometer : public ModuleBase<FakeMagnetometer>, public ModuleParams, public px4::ScheduledWorkItem
 {
