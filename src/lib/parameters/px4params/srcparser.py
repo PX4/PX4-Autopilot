@@ -364,6 +364,7 @@ class SourceParser(object):
                                 'S', 'A/%', '(m/s^2)^2', 'm/m',  'tan(rad)^2', '(m/s)^2', 'm/rad',
                                 'm/s^3/sqrt(Hz)', 'm/s/sqrt(Hz)', 's/(1000*PWM)', '%m/s', 'min', 'us/C',
                                 'N/(m/s)', 'Nm/rad', 'Nm/(rad/s)', 'Nm', 'N',
+                                'RPM',
                                 'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD',''])
         for group in self.GetParamGroups():
             for param in group.GetParams():
