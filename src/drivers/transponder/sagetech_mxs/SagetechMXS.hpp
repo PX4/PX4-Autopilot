@@ -156,6 +156,7 @@ private:
 	static constexpr uint16_t INVALID_SQUAWK{7777};
 	static constexpr unsigned BAUD_460800{0010004};			// B460800 not defined in MacOS termios
 	static constexpr unsigned BAUD_921600{0010007};			// B921600 not defined in MacOS termios
+	static constexpr double GPS_SCALE{1.0E-7};
 
 	// Stored variables
 	uint64_t _loop_count;
@@ -238,7 +239,7 @@ private:
 	} last;
 
 	// External Vehicle List
-	transponder_report_s *vehicle_list;
+	transponder_report_s *vehicle_list = nullptr;
 	uint16_t list_size_allocated;
 	uint16_t vehicle_count = 0;
 	uint16_t furthest_vehicle_index = 0;
@@ -256,7 +257,7 @@ private:
 	bool find_index(const transponder_report_s &vehicle, uint16_t *index) const;
 	void set_vehicle(const uint16_t index, const transponder_report_s &vehicle);
 	void delete_vehicle(const uint16_t index);
-	bool is_special_vehicle(uint32_t icao) const {return _adsb_icao_specl.get() != 0 && (_adsb_icao_specl.get() == (int32_t) icao);}
+	bool is_special_vehicle(uint32_t icao) const {return (_adsb_icao_specl.get() != 0) && (_adsb_icao_specl.get() == (int32_t) icao);}
 	void handle_vehicle(const transponder_report_s &vehicle);
 	void determine_furthest_aircraft();
 	void send_data_req(const sg_datatype_t dataReqType);
