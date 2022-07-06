@@ -112,23 +112,17 @@ add_custom_command(
 		${PX4_SOURCE_DIR}/Tools/px4airframes/xmlout.py
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 	)
-set(romfs_extract_stamp ${CMAKE_CURRENT_BINARY_DIR}/romfs_extract.stamp)
-add_custom_command(
-	OUTPUT ${romfs_extract_stamp}
-	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/*
-	COMMAND ${CMAKE_COMMAND} -E tar xf ${romfs_tar_file}
-	COMMAND ${CMAKE_COMMAND} -E touch ${romfs_extract_stamp}
-	WORKING_DIRECTORY ${romfs_gen_root_dir}
-	DEPENDS ${romfs_tar_file}
-	VERBATIM
-	)
 
+
+set(romfs_copy_stamp ${CMAKE_CURRENT_BINARY_DIR}/romfs_copy.stamp)
 add_custom_command(
 	OUTPUT
 		${romfs_gen_root_dir}/init.d/rc.serial
 		${romfs_gen_root_dir}/init.d/rc.autostart
 		${romfs_gen_root_dir}/init.d/rc.autostart.post
-		romfs_copy.stamp
+		${romfs_copy_stamp}
+	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/*
+	COMMAND ${CMAKE_COMMAND} -E tar xf ${romfs_tar_file}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		--airframes-path ${romfs_gen_root_dir}/init.d
 		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
@@ -137,9 +131,9 @@ add_custom_command(
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--serial-ports ${board_serial_ports} ${added_arguments}
 		--config-files ${module_config_files} #--verbose
-	COMMAND ${CMAKE_COMMAND} -E touch romfs_copy.stamp
-	DEPENDS
-		${romfs_extract_stamp}
+	COMMAND ${CMAKE_COMMAND} -E touch ${romfs_copy_stamp}
+	WORKING_DIRECTORY ${romfs_gen_root_dir}
+	DEPENDS ${romfs_tar_file}
 	COMMENT "ROMFS: copying, generating airframes"
 	)
 
@@ -311,7 +305,7 @@ add_custom_command(OUTPUT romfs_extras.stamp
 
 add_custom_target(romfs_gen_files_target
 	DEPENDS
-		${romfs_extract_stamp}
+		${romfs_copy_stamp}
 		${romfs_gen_root_dir}/init.d/rc.serial
 		romfs_extras.stamp
 	)
