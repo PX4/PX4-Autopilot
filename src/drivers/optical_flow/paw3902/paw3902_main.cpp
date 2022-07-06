@@ -32,6 +32,8 @@
  ****************************************************************************/
 
 #include "PAW3902.hpp"
+
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
 void PAW3902::print_usage()
@@ -49,7 +51,7 @@ extern "C" __EXPORT int paw3902_main(int argc, char *argv[])
 	using ThisDriver = PAW3902;
 	BusCLIArguments cli{false, true};
 	cli.custom1 = -1;
-	cli.spi_mode = SPIDEV_MODE0;
+	cli.spi_mode = SPIDEV_MODE3;
 	cli.default_spi_frequency = SPI_SPEED;
 
 	while ((ch = cli.getOpt(argc, argv, "Y:")) != EOF) {

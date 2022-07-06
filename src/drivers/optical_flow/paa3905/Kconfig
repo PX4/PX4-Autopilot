@@ -2,4 +2,4 @@ menuconfig DRIVERS_OPTICAL_FLOW_PAA3905
 	bool "paa3905"
 	default n
 	---help---
-		Enable support for paa3905
+		Enable support for PixArt paa3905
