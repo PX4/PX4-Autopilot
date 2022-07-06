@@ -2,4 +2,4 @@ menuconfig DRIVERS_OPTICAL_FLOW_PAW3902
 	bool "paw3902"
 	default n
 	---help---
-		Enable support for paw3902
+		Enable support for PixArt paw3902

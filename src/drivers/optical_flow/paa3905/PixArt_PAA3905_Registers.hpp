@@ -86,14 +86,13 @@ enum Register : uint8_t {
 	Power_Up_Reset     = 0x3A,
 	Shutdown           = 0x3B,
 
-	Resolution	   = 0x4E,
+	Resolution         = 0x4E,
 
 	Inverse_Product_ID = 0x5F,
 };
 
 enum Motion_Bit : uint8_t {
 	MotionOccurred     = Bit7, // Motion since last report
-
 	ChallengingSurface = Bit0, // Challenging surface is detected
 };
 

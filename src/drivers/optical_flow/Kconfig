@@ -8,6 +8,6 @@ menu "Optical flow"
         select DRIVERS_OPTICAL_FLOW_PX4FLOW
         select DRIVERS_OPTICAL_FLOW_THONEFLOW
         ---help---
-            Enable default set of magnetometer drivers
+            Enable default set of optical flow drivers
     rsource "*/Kconfig"
 endmenu

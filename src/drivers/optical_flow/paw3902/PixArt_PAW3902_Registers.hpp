@@ -84,7 +84,7 @@ enum Register : uint8_t {
 
 	Power_Up_Reset     = 0x3A,
 
-	Resolution	   = 0x4E,
+	Resolution         = 0x4E,
 
 	Inverse_Product_ID = 0x5F,
 };
