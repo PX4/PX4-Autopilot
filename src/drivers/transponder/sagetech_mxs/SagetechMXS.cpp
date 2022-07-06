@@ -455,7 +455,8 @@ void SagetechMXS::determine_furthest_aircraft()
 			continue;
 		}
 
-		const float distance = get_distance_to_next_waypoint(_gps.lat*GPS_SCALE, _gps.lon*GPS_SCALE, vehicle_list[index].lat,
+		const float distance = get_distance_to_next_waypoint(_gps.lat * GPS_SCALE, _gps.lon * GPS_SCALE,
+				       vehicle_list[index].lat,
 				       vehicle_list[index].lon);
 
 		if ((max_distance < distance) || (index == 0)) {
@@ -492,7 +493,8 @@ void SagetechMXS::handle_vehicle(const transponder_report_s &vehicle)
 	// and which to keep, allocating new vehicles, and publishing to the transponder_report topic
 	uint16_t index = list_size_allocated + 1; // Make invalid to start with.
 	const bool my_loc_is_zero = (_gps.lat == 0) && (_gps.lon == 0);
-	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gps.lat*GPS_SCALE, _gps.lon*GPS_SCALE, vehicle.lat, vehicle.lon);
+	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gps.lat * GPS_SCALE, _gps.lon * GPS_SCALE,
+			vehicle.lat, vehicle.lon);
 	const bool is_tracked_in_list = find_index(vehicle, &index);
 	// const bool is_special = is_special_vehicle(vehicle.icao_address);
 	const uint16_t required_flags_position = transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
@@ -668,6 +670,7 @@ int SagetechMXS::msg_write(const uint8_t *data, const uint16_t len) const
 
 	if (_fd >= 0) {
 		ret = write(_fd, data, len);
+
 	} else {
 		return PX4_ERROR;
 	}
