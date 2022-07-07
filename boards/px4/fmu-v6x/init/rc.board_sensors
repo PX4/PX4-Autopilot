@@ -70,7 +70,7 @@ else
 fi
 
 # Internal magnetometer on I2c
-if ver hwtypecmp V6X21
+if ver hwtypecmp V6X002001
 then
 	rm3100 -I -b 4 start
 else
@@ -81,7 +81,7 @@ fi
 ist8310 -X -b 1 -R 10 start
 
 # Possible internal Baro
-if ver hwtypecmp V6X21
+if ver hwtypecmp V6X002001
 then
 	icp201xx -I -a 0x64 start
 else
@@ -92,7 +92,7 @@ if ver hwtypecmp V6X000000 V6X001000
 then
 	bmp388 -I start
 else
-	if ver hwtypecmp V6X21
+	if ver hwtypecmp V6X002001
 	then
 		icp201xx -X start
 	else
