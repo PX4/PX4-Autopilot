@@ -207,6 +207,26 @@ else
 	unset BOARD_RC_DEFAULTS
 
 	#
+	# Set parameters and env variables for selected SYS_AUTOSTART.
+	#
+	set AUTOSTART_PATH etc/init.d/rc.autostart
+	if ! param compare SYS_AUTOSTART 0
+	then
+		if param greater SYS_AUTOSTART 1000000
+		then
+			# Use external startup file
+			if [ $SDCARD_AVAILABLE = yes ]
+			then
+				set AUTOSTART_PATH etc/init.d/rc.autostart_ext
+			else
+				echo "ERROR [init] SD card not mounted - trying to load airframe from ROMFS"
+			fi
+		fi
+		. ${R}$AUTOSTART_PATH
+	fi
+	unset AUTOSTART_PATH
+
+	#
 	# Start the tone_alarm driver.
 	# Needs to be started after the parameters are loaded (for CBRK_BUZZER).
 	#
@@ -242,26 +262,6 @@ else
 	#
 	rgbled start -X -q
 	rgbled_ncp5623c start -X -q
-
-	#
-	# Set parameters and env variables for selected AUTOSTART.
-	#
-	set AUTOSTART_PATH etc/init.d/rc.autostart
-	if ! param compare SYS_AUTOSTART 0
-	then
-		if param greater SYS_AUTOSTART 1000000
-		then
-			# Use external startup file
-			if [ $SDCARD_AVAILABLE = yes ]
-			then
-				set AUTOSTART_PATH etc/init.d/rc.autostart_ext
-			else
-				echo "ERROR [init] SD card not mounted - trying to load airframe from ROMFS"
-			fi
-		fi
-		. ${R}$AUTOSTART_PATH
-	fi
-	unset AUTOSTART_PATH
 
 	#
 	# Override parameters from user configuration file.
