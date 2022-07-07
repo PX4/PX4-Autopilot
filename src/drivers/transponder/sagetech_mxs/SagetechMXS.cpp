@@ -325,14 +325,14 @@ void SagetechMXS::Run()
 			ret = read(_fd, &data, 1);
 
 			if (ret < 0) {
-				PX4_ERR("Read Err.");
+				// PX4_ERR("Read Err.");
 				perf_count(_comms_errors);
 				continue;
 			}
 
 			// PX4_INFO("GOT BYTE: %02x", (uint8_t)data);
+			bytes_available -= ret;
 			parse_byte((uint8_t)data);
-			bytes_available -= 1;
 		}
 	}
 
@@ -455,7 +455,8 @@ void SagetechMXS::determine_furthest_aircraft()
 			continue;
 		}
 
-		const float distance = get_distance_to_next_waypoint(_gps.lat, _gps.lon, vehicle_list[index].lat,
+		const float distance = get_distance_to_next_waypoint(_gps.lat * GPS_SCALE, _gps.lon * GPS_SCALE,
+				       vehicle_list[index].lat,
 				       vehicle_list[index].lon);
 
 		if ((max_distance < distance) || (index == 0)) {
@@ -492,7 +493,8 @@ void SagetechMXS::handle_vehicle(const transponder_report_s &vehicle)
 	// and which to keep, allocating new vehicles, and publishing to the transponder_report topic
 	uint16_t index = list_size_allocated + 1; // Make invalid to start with.
 	const bool my_loc_is_zero = (_gps.lat == 0) && (_gps.lon == 0);
-	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gps.lat, _gps.lon, vehicle.lat, vehicle.lon);
+	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gps.lat * GPS_SCALE, _gps.lon * GPS_SCALE,
+			vehicle.lat, vehicle.lon);
 	const bool is_tracked_in_list = find_index(vehicle, &index);
 	// const bool is_special = is_special_vehicle(vehicle.icao_address);
 	const uint16_t required_flags_position = transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
@@ -546,10 +548,10 @@ void SagetechMXS::handle_vehicle(const transponder_report_s &vehicle)
 
 void SagetechMXS::handle_ack(const sg_ack_t ack)
 {
-	if ((ack.ackId != last.msg.id) || (ack.ackType != last.msg.type)) {
-		// The message id doesn't match the last message sent.
-		PX4_ERR("Message Id %d of type %d not Acked by MXS", last.msg.id, last.msg.type);
-	}
+	// if ((ack.ackId != last.msg.id) || (ack.ackType != last.msg.type)) {
+	// 	// The message id doesn't match the last message sent.
+	// 	PX4_ERR("Message Id %d of type %d not Acked by MXS", last.msg.id, last.msg.type);
+	// }
 
 	// System health
 	if (ack.failXpdr && !last.failXpdr) {
@@ -820,10 +822,7 @@ void SagetechMXS::send_gps_msg()
 	snprintf((char *)&gps.grdSpeed, 7, "%03u.%02u", (unsigned)speed_knots,
 		 unsigned((speed_knots - (int)speed_knots) * (float)1.0E2));
 
-	// const float heading = math::degrees(matrix::wrap_2pi(_gps.cog_rad));
 	const float heading = matrix::wrap_2pi(_gps.cog_rad) * (180.0f / M_PI_F);
-	// PX4_INFO("CoG: %f. Heading: %f", (double) _gps.cog_rad, (double) _gps.heading);
-	// PX4_INFO("Heading: %f", (double)heading);
 
 	snprintf((char *)&gps.grdTrack, 9, "%03u.%04u", unsigned(heading), unsigned((heading - (int)heading) * (float)1.0E4));
 
@@ -836,7 +835,6 @@ void SagetechMXS::send_gps_msg()
 	struct tm *tm = gmtime(&time_sec);
 	snprintf((char *)&gps.timeOfFix, 11, "%02u%02u%06.3f", tm->tm_hour, tm->tm_min,
 		 tm->tm_sec + (_gps.time_utc_usec % 1000000) * 1.0e-6);
-	// PX4_INFO("send_gps_msg: ToF %s, Longitude %s, Latitude %s, Grd Speed %s, Grd Track %s", gps.timeOfFix, gps.longitude, gps.latitude, gps.grdSpeed, gps.grdTrack);
 
 	gps.height = _gps.alt_ellipsoid * 1E-3;
 
@@ -997,12 +995,14 @@ bool SagetechMXS::parse_byte(const uint8_t data)
 			handle_packet(_message_in.packet);
 
 		} else if (data == SG_MSG_START_BYTE) {
-			PX4_INFO("ERROR: Byte Lost. Catching new packet.");
+			// PX4_INFO("ERROR: Byte Lost. Catching new packet.");
+			perf_count(_comms_errors);
 			_message_in.state = ParseState::WaitingFor_MsgType;
 			_message_in.checksum = data;
 
 		} else {
-			PX4_INFO("ERROR: Checksum Mismatch. Expected %02x. Received %02x.", _message_in.checksum, data);
+			// PX4_INFO("ERROR: Checksum Mismatch. Expected %02x. Received %02x.", _message_in.checksum, data);
+			perf_count(_comms_errors);
 		}
 
 		break;
