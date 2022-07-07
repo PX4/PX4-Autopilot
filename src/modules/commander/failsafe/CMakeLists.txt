@@ -58,6 +58,11 @@ set_property(TARGET failsafe_test PROPERTY LINK_DEPENDS ${html_output_file})
 add_dependencies(failsafe_test failsafe_uorb_struct_header uorb_headers parameters_header events_header)
 target_compile_definitions(failsafe_test PUBLIC EMSCRIPTEN_BUILD PRINTF_LOG MODULE_NAME=\"failsafe\")
 set_target_properties(failsafe_test PROPERTIES OUTPUT_NAME "index.html")
+
+get_target_property(failsafe_test_compile_options failsafe_test COMPILE_OPTIONS)
+list(REMOVE_ITEM failsafe_test_compile_options "$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>")
+set_property(TARGET failsafe_test PROPERTY COMPILE_OPTIONS ${failsafe_test_compile_options})
+
 target_link_libraries(failsafe_test embind)
 target_link_options(failsafe_test PUBLIC
     --shell-file ${html_output_file}
