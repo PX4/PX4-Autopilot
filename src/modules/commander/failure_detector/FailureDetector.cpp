@@ -124,8 +124,8 @@ void FailureInjector::update()
 			ack.command = vehicle_command.command;
 			ack.from_external = false;
 			ack.result = supported ?
-				     vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED :
-				     vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED;
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 			ack.timestamp = hrt_absolute_time();
 			_command_ack_pub.publish(ack);
 		}

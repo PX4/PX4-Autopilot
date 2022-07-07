@@ -139,7 +139,7 @@ int inject_failure(const FailureUnit& unit, const FailureType& type, uint8_t ins
 	while (hrt_elapsed_time(&command.timestamp) < 1_s) {
 		if (command_ack_sub.update(&ack)) {
 			if (ack.command == command.command) {
-				if (ack.result != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
+				if (ack.result != vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
 					PX4_ERR("Result: %d", ack.result);
 					return 1;
 

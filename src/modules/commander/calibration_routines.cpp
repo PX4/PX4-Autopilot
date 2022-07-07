@@ -339,13 +339,13 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, const hrt_abstime &ca
 				    (int)cmd.param5 == 0 &&
 				    (int)cmd.param6 == 0) {
 
-					command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 					mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
 					tune_positive(true);
 					ret = true;
 
 				} else {
-					command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 					mavlink_log_critical(mavlink_log_pub, "command denied during calibration: %" PRIu32 "\t", cmd.command);
 					events::send<uint32_t>(events::ID("commander_cal_cmd_denied"), {events::Log::Error, events::LogInternal::Info},
 							       "Command denied during calibration: {1}", cmd.command);
