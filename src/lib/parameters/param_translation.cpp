@@ -246,5 +246,14 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2022-07-07: translate FW_THR_CRUISE->FW_THR_TRIM
+	{
+		if (strcmp("FW_THR_CRUISE", node->name) == 0) {
+			strcpy(node->name, "FW_THR_TRIM");
+			PX4_INFO("copying %s -> %s", "FW_THR_CRUISE", "FW_THR_TRIM");
+			return true;
+		}
+	}
+
 	return false;
 }

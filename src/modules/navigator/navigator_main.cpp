@@ -1074,7 +1074,7 @@ void Navigator::reset_position_setpoint(position_setpoint_s &sp)
 
 float Navigator::get_cruising_throttle()
 {
-	/* Return the mission-requested cruise speed, or default FW_THR_CRUISE value */
+	/* Return the mission-requested cruise speed, or default FW_THR_TRIM value */
 	if (_mission_throttle > FLT_EPSILON) {
 		return _mission_throttle;
 

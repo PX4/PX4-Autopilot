@@ -51,7 +51,7 @@ param set-default FW_PSP_OFF 2
 param set-default FW_P_LIM_MAX 32
 param set-default FW_P_LIM_MIN -15
 param set-default FW_RR_P 0.2
-param set-default FW_THR_CRUISE 0.33
+param set-default FW_THR_TRIM 0.33
 param set-default FW_THR_MAX 0.6
 param set-default FW_THR_MIN 0.05
 param set-default FW_T_ALT_TC 2

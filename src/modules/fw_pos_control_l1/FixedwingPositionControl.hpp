@@ -685,7 +685,7 @@ private:
 		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,
 
 		(ParamFloat<px4::params::FW_THR_ALT_SCL>) _param_fw_thr_alt_scl,
-		(ParamFloat<px4::params::FW_THR_CRUISE>) _param_fw_thr_cruise,
+		(ParamFloat<px4::params::FW_THR_TRIM>) _param_fw_thr_trim,
 		(ParamFloat<px4::params::FW_THR_IDLE>) _param_fw_thr_idle,
 		(ParamFloat<px4::params::FW_THR_LND_MAX>) _param_fw_thr_lnd_max,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
