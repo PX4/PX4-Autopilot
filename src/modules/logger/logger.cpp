@@ -1160,23 +1160,23 @@ void Logger::handle_vehicle_command_update()
 		if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
 
 			if ((int)(command.param1 + 0.5f) != 0) {
-				ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
+				ack_vehicle_command(&command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
 
 			} else if (can_start_mavlink_log()) {
-				ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+				ack_vehicle_command(&command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 				start_log_mavlink();
 
 			} else {
-				ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+				ack_vehicle_command(&command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 			}
 
 		} else if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP) {
 			if (_writer.is_started(LogType::Full, LogWriter::BackendMavlink)) {
-				ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_IN_PROGRESS);
+				ack_vehicle_command(&command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS);
 				stop_log_mavlink();
 			}
 
-			ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+			ack_vehicle_command(&command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		}
 	}
 }

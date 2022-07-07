@@ -624,7 +624,7 @@ void DShot::handle_vehicle_commands()
 			command_ack.command = vehicle_command.command;
 			command_ack.target_system = vehicle_command.source_system;
 			command_ack.target_component = vehicle_command.source_component;
-			command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+			command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
 			if (index != -1) {
 				PX4_DEBUG("setting command: index: %i type: %i", index, type);
@@ -646,7 +646,7 @@ void DShot::handle_vehicle_commands()
 					PX4_WARN("unknown command: %i", type);
 
 				} else {
-					command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 					_current_command.motor_mask = 1 << index;
 					_current_command.num_repetitions = 10;
 					_current_command.save = true;

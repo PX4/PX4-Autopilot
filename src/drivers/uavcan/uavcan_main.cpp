@@ -866,7 +866,7 @@ UavcanNode::Run()
 		vehicle_command_s cmd{};
 		_vcmd_sub.copy(&cmd);
 
-		uint8_t cmd_ack_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+		uint8_t cmd_ack_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_STORAGE) {
 			acknowledge = true;
