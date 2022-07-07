@@ -146,9 +146,6 @@ void Ekf::fuseGpsYaw()
 	// innovation test ratio
 	_yaw_test_ratio = sq(_heading_innov) / (sq(innov_gate) * _heading_innov_var);
 
-	// we are no longer using 3-axis fusion so set the reported test levels to zero
-	_mag_test_ratio.setZero();
-
 	if (_yaw_test_ratio > 1.0f) {
 		_innov_check_fail_status.flags.reject_yaw = true;
 		return;
@@ -159,8 +156,8 @@ void Ekf::fuseGpsYaw()
 
 	_yaw_signed_test_ratio_lpf.update(matrix::sign(_heading_innov) * _yaw_test_ratio);
 
-	if (!_control_status.flags.in_air
-	    && fabsf(_yaw_signed_test_ratio_lpf.getState()) > 0.2f) {
+	if ((fabsf(_yaw_signed_test_ratio_lpf.getState()) > 0.2f)
+		&& !_control_status.flags.in_air && isTimedOut(_time_last_heading_fuse, (uint64_t)1e6)) {
 
 		// A constant large signed test ratio is a sign of wrong gyro bias
 		// Reset the yaw gyro variance to converge faster and avoid
@@ -192,6 +189,7 @@ void Ekf::fuseGpsYaw()
 
 	if (is_fused) {
 		_time_last_gps_yaw_fuse = _time_last_imu;
+		_time_last_heading_fuse = _time_last_imu;
 	}
 }
 
