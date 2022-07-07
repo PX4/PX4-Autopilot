@@ -29,7 +29,7 @@ param set-default FW_SPOILERS_LND 0.4
 
 param set-default FW_THR_MAX 0.6
 param set-default FW_THR_MIN 0.05
-param set-default FW_THR_CRUISE 0.25
+param set-default FW_THR_TRIM 0.25
 
 param set-default FW_T_CLMB_MAX 8
 param set-default FW_T_SINK_MAX 2.7

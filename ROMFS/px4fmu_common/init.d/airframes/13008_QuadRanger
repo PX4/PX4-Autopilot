@@ -14,7 +14,7 @@
 . ${R}etc/init.d/rc.vtol_defaults
 
 
-param set-default FW_THR_CRUISE 65
+param set-default FW_THR_TRIM 65
 param set-default FW_RR_FF 0.6
 
 param set-default MIS_YAW_TMT 10
