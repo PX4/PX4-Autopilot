@@ -231,7 +231,7 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
  * With value 0 a valid RC transmitter calibration is required.
  * A value of 1 allows joystick control only and disables RC input handling and the associated checks.
  * A value of 2 allows both sources and will fall back to the next valid one once the stream in use gets invalid.
- * A value of 3 allows either input from RC or joystick. The first available source is kept until reboot.
+ * A value of 3 allows either input from RC or joystick. The first available source is selected and used until reboot.
  * A value of 4 ignores any stick input.
  *
  * @group Commander
