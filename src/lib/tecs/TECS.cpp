@@ -170,7 +170,13 @@ void TECS::_update_speed_setpoint()
 	_TAS_setpoint_adj = constrain(_TAS_setpoint, _TAS_min, _TAS_max);
 
 	// calculate the demanded true airspeed rate of change based on first order response of true airspeed error
-	_TAS_rate_setpoint = constrain((_TAS_setpoint_adj - _tas_state) * _airspeed_error_gain, velRateMin, velRateMax);
+	// if airspeed measurement is not enabled then always set the rate setpoint to zero in order to avoid constant rate setpoints
+	if (airspeed_sensor_enabled()) {
+		_TAS_rate_setpoint = constrain((_TAS_setpoint_adj - _tas_state) * _airspeed_error_gain, velRateMin, velRateMax);
+
+	} else {
+		_TAS_rate_setpoint = 0.0f;
+	}
 
 }
 
