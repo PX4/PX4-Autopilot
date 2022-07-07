@@ -144,7 +144,6 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_speed_derivative_time_constant(_param_tas_rate_time_const.get());
 	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
 
-
 	// Landing slope
 	/* check if negative value for 2/3 of flare altitude is set for throttle cut */
 	float land_thrust_lim_alt_relative = _param_fw_lnd_tlalt.get();
@@ -251,16 +250,19 @@ FixedwingPositionControl::vehicle_command_poll()
 				abort_landing(true);
 			}
 
-		} else if ((vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED)
-			   && (static_cast<uint8_t>(vehicle_command.param1 + .5f) == vehicle_command_s::SPEED_TYPE_AIRSPEED)
-			   && (vehicle_command.param2 > 0.f)) {
+		} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
 
-			if (_control_mode_current == FW_POSCTRL_MODE_AUTO) {
-				_pos_sp_triplet.current.cruising_speed = vehicle_command.param2;
+			if ((static_cast<uint8_t>(vehicle_command.param1 + .5f) == vehicle_command_s::SPEED_TYPE_AIRSPEED)) {
+				if (vehicle_command.param2 > FLT_EPSILON) {	// param2 is an equivalent airspeed setpoint
+					if (_control_mode_current == FW_POSCTRL_MODE_AUTO) {
+						_pos_sp_triplet.current.cruising_speed = vehicle_command.param2;
 
-			} else if (_control_mode_current == FW_POSCTRL_MODE_MANUAL_ALTITUDE
-				   || _control_mode_current == FW_POSCTRL_MODE_MANUAL_POSITION) {
-				_commanded_airspeed_setpoint = vehicle_command.param2;
+					} else if (_control_mode_current == FW_POSCTRL_MODE_MANUAL_ALTITUDE
+						   || _control_mode_current == FW_POSCTRL_MODE_MANUAL_POSITION) {
+						_commanded_manual_airspeed_setpoint = vehicle_command.param2;
+					}
+
+				}
 			}
 
 		}
@@ -406,8 +408,8 @@ FixedwingPositionControl::get_manual_airspeed_setpoint()
 					   (_manual_control_setpoint_for_airspeed * 2 - 1);
 		}
 
-	} else if (PX4_ISFINITE(_commanded_airspeed_setpoint)) {
-		altctrl_airspeed = _commanded_airspeed_setpoint;
+	} else if (PX4_ISFINITE(_commanded_manual_airspeed_setpoint)) {
+		altctrl_airspeed = _commanded_manual_airspeed_setpoint;
 	}
 
 	return altctrl_airspeed;
