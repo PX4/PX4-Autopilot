@@ -95,6 +95,7 @@ public:
 	float get_throttle_setpoint() { return _last_throttle_setpoint; }
 	float get_pitch_setpoint() { return _last_pitch_setpoint; }
 	float get_speed_weight() { return _pitch_speed_weight; }
+	float get_throttle_trim() { return _throttle_trim; }
 
 	void reset_state() { _states_initialized = false; }
 
@@ -139,7 +140,6 @@ public:
 	void set_speed_derivative_time_constant(float time_const) { _speed_derivative_time_const = time_const; }
 
 	void set_seb_rate_ff_gain(float ff_gain) { _SEB_rate_ff = ff_gain; }
-
 
 	// TECS status
 	uint64_t timestamp() { return _pitch_update_timestamp; }
