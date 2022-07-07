@@ -329,7 +329,7 @@ private:
 	float _manual_control_setpoint_for_airspeed{0.0f};
 
 	// [m/s] airspeed setpoint for manual modes commanded via MAV_CMD_DO_CHANGE_SPEED
-	float _commanded_airspeed_setpoint{NAN};
+	float _commanded_manual_airspeed_setpoint{NAN};
 
 	hrt_abstime _time_in_fixed_bank_loiter{0}; // [us]
 
