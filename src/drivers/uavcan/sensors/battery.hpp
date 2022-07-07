@@ -41,8 +41,11 @@
 #include <uORB/topics/battery_status.h>
 #include <uavcan/equipment/power/BatteryInfo.hpp>
 #include <ardupilot/equipment/power/BatteryInfoAux.hpp>
+#include <battery/battery.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
+
+using namespace time_literals;
 
 class UavcanBatteryBridge : public UavcanSensorBridgeBase, public ModuleParams
 {
@@ -57,10 +60,18 @@ public:
 
 private:
 
+	/* Different options to update the battery status */
+	enum class BatteryDataType {
+		Raw, // data from BatteryInfo message only
+		RawAux, // data combination from BatteryInfo and BatteryInfoAux messages
+		Filter, // filter data from BatteryInfo message with Battery library
+	};
+
 	void battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg);
 	void battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryInfoAux> &msg);
 	void sumDischarged(hrt_abstime timestamp, float current_a);
 	void determineWarning(float remaining);
+	void filterData(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg, uint8_t instance);
 
 	typedef uavcan::MethodBinder < UavcanBatteryBridge *,
 		void (UavcanBatteryBridge::*)
@@ -85,5 +96,11 @@ private:
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
 	battery_status_s _battery_status[battery_status_s::MAX_INSTANCES] {};
-	bool battery_aux_support[battery_status_s::MAX_INSTANCES] {false};
+	BatteryDataType _batt_update_mod[battery_status_s::MAX_INSTANCES] {};
+
+	static constexpr int FILTER_DATA = 2;
+	static constexpr int BATTERY_INDEX = 1;
+	static constexpr int SAMPLE_INTERVAL_US = 20_ms; // assume higher frequency UAVCAN feedback than 50Hz
+	Battery _battery{BATTERY_INDEX, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_EXTERNAL};
+
 };

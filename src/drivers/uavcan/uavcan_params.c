@@ -228,7 +228,15 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_BARO, 0);
  *  uavcan::equipment::power::BatteryInfo
  *  ardupilot::equipment::power::BatteryInfoAux
  *
- * @boolean
+ *  0 - Disable
+ *  1 - Use raw data. Recommended for Smart battery
+ *  2 - Filter the data with internal battery library
+ *
+ * @min 0
+ * @max 2
+ * @value 0 Disable
+ * @value 1 Raw data
+ * @value 2 Filter data
  * @reboot_required true
  * @group UAVCAN
  */
