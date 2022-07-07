@@ -980,3 +980,30 @@ PARAM_DEFINE_INT32(FW_GPSF_LT, 30);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(FW_GPSF_R, 15.0f);
+
+/**
+ * Vehicle base weight.
+ *
+ * This is the weight of the vehicle at which it's performance limits were derived. A zero or negative value
+ * disables trim throttle and minimum airspeed compensation based on weight.
+ *
+ * @unit kg
+ * @decimal 1
+ * @increment 0.5
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(WEIGHT_BASE, -1.0f);
+
+/**
+ * Vehicle gross weight.
+ *
+ * This is the actual weight of the vehicle at any time. This value will differ from WEIGHT_BASE in case weight was added
+ * or removed from the base weight. Examples are the addition of payloads or larger batteries. A zero or negative value
+ * disables trim throttle and minimum airspeed compensation based on weight.
+ *
+ * @unit kg
+ * @decimal 1
+ * @increment 0.1
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(WEIGHT_GROSS, -1.0f);

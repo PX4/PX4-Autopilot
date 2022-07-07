@@ -380,7 +380,7 @@ FixedwingPositionControl::vehicle_attitude_poll()
 		_body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
 		_body_velocity = R.transpose() * Vector3f{_local_pos.vx, _local_pos.vy, _local_pos.vz};
 
-		// update TECS load factor
+		// load factor due to banking
 		const float load_factor = 1.f / cosf(euler_angles(0));
 		_tecs.set_load_factor(load_factor);
 	}
@@ -442,19 +442,23 @@ FixedwingPositionControl::get_auto_airspeed_setpoint(const float control_interva
 
 	float airspeed_min_adjusted = _param_fw_airspd_min.get();
 
-	/*
-	 * Calculate accelerated stall airspeed factor from commanded bank angle and use it to increase minimum airspeed.
-	 *
-	 * Increase lift vector to balance additional weight in bank
-	 * cos(bank angle) = W/L = 1/n, n is the load factor
-	 *
-	 * lift is proportional to airspeed^2 so the increase in stall speed is Vsacc = Vs * sqrt(n)
-	 */
+	float load_factor = 1.0f;
 
-	if (_airspeed_valid && PX4_ISFINITE(_att_sp.roll_body)) {
-		airspeed_min_adjusted = constrain(_param_fw_airspd_stall.get() / sqrtf(cosf(_att_sp.roll_body)),
-						  airspeed_min_adjusted, _param_fw_airspd_max.get());
+	if (PX4_ISFINITE(_att_sp.roll_body)) {
+		load_factor = 1.0f / sqrtf(cosf(_att_sp.roll_body));
 	}
+
+	float weight_ratio = 1.0f;
+
+	if (_param_weight_base.get() > FLT_EPSILON && _param_weight_gross.get() > FLT_EPSILON) {
+		weight_ratio = math::constrain(_param_weight_gross.get() / _param_weight_base.get(), MIN_WEIGHT_RATIO,
+					       MAX_WEIGHT_RATIO);
+	}
+
+	// Stall speed increases with the square root of the load factor times the weight ratio
+	// Vs ~ sqrt(load_factor * weight_ratio)
+	airspeed_min_adjusted = constrain(_param_fw_airspd_stall.get() * sqrtf(load_factor * weight_ratio),
+					  airspeed_min_adjusted, _param_fw_airspd_max.get());
 
 	// constrain setpoint
 	airspeed_setpoint = constrain(airspeed_setpoint, airspeed_min_adjusted, _param_fw_airspd_max.get());
@@ -2356,6 +2360,12 @@ FixedwingPositionControl::Run()
 		vehicle_control_mode_poll();
 		wind_poll();
 
+		vehicle_air_data_s air_data;
+
+		if (_vehicle_air_data_sub.update(&air_data)) {
+			_air_density = PX4_ISFINITE(air_data.rho) ? air_data.rho : _air_density;
+		}
+
 		if (_vehicle_land_detected_sub.updated()) {
 			vehicle_land_detected_s vehicle_land_detected;
 
@@ -2562,6 +2572,29 @@ FixedwingPositionControl::get_nav_speed_2d(const Vector2f &ground_speed)
 	return nav_speed_2d;
 }
 
+float FixedwingPositionControl::compensateTrimThrottleForDensityAndWeight(float throttle_trim, float throttle_min,
+		float throttle_max)
+{
+	float weight_ratio = 1.0f;
+
+	if (_param_weight_base.get() > FLT_EPSILON && _param_weight_gross.get() > FLT_EPSILON) {
+		weight_ratio = math::constrain(_param_weight_gross.get() / _param_weight_base.get(), MIN_WEIGHT_RATIO,
+					       MAX_WEIGHT_RATIO);
+	}
+
+	float air_density_throttle_scale = 1.0f;
+
+	if (PX4_ISFINITE(_air_density)) {
+		// scale throttle as a function of sqrt(rho0/rho)
+		const float eas2tas = sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / _air_density);
+		const float eas2tas_at_5000m_amsl = sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / AIR_DENSITY_STANDARD_ATMOS_5000_AMSL);
+		air_density_throttle_scale = constrain(eas2tas, 1.f, eas2tas_at_5000m_amsl);
+	}
+
+	// compensate trim throttle for both weight and air density
+	return math::constrain(throttle_trim * sqrtf(weight_ratio) * air_density_throttle_scale, throttle_min, throttle_max);
+}
+
 void
 FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,
 		float pitch_min_rad, float pitch_max_rad,
@@ -2636,21 +2669,8 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	_tecs.update_vehicle_state_estimates(_airspeed, _body_acceleration(0), (_local_pos.timestamp > 0), in_air_alt_control,
 					     _current_altitude, _local_pos.vz);
 
-	/* scale throttle cruise by baro pressure */
-	if (_param_fw_thr_alt_scl.get() > FLT_EPSILON) {
-		vehicle_air_data_s air_data;
-
-		if (_vehicle_air_data_sub.copy(&air_data)) {
-			if (PX4_ISFINITE(air_data.baro_pressure_pa) && PX4_ISFINITE(_param_fw_thr_alt_scl.get())) {
-				// scale throttle as a function of sqrt(p0/p) (~ EAS -> TAS at low speeds and altitudes ignoring temperature)
-				const float eas2tas = sqrtf(CONSTANTS_STD_PRESSURE_PA / air_data.baro_pressure_pa);
-				const float scale = constrain((eas2tas - 1.0f) * _param_fw_thr_alt_scl.get() + 1.f, 1.f, 2.f);
-
-				throttle_max = constrain(throttle_max * scale, throttle_min, 1.0f);
-				throttle_cruise = constrain(throttle_cruise * scale, throttle_min + 0.01f, throttle_max - 0.01f);
-			}
-		}
-	}
+	const float throttle_trim_comp = compensateTrimThrottleForDensityAndWeight(_param_fw_thr_trim.get(), throttle_min,
+					 throttle_max);
 
 	_tecs.update_pitch_throttle(_pitch - radians(_param_fw_psp_off.get()),
 				    _current_altitude,
