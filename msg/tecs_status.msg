@@ -40,5 +40,6 @@ float32 pitch_integ
 
 float32 throttle_sp
 float32 pitch_sp_rad
+float32 throttle_trim	# estimated throttle value [0,1] required to fly level at equivalent_airspeed_sp in the current atmospheric conditions
 
 uint8 mode
