@@ -40,7 +40,7 @@ param set-default FW_RR_P 0.013
 param set-default FW_P_RMAX_NEG 70
 param set-default FW_P_RMAX_POS 70
 param set-default FW_R_RMAX 70
-param set-default FW_THR_CRUISE 0.55
+param set-default FW_THR_TRIM 0.55
 
 param set-default LNDFW_AIRSPD_MAX 6
 param set-default LNDFW_XYACC_MAX 4
