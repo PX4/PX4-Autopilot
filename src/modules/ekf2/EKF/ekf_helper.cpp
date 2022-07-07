@@ -1262,6 +1262,10 @@ void Ekf::stopMag3DFusion()
 	// save covariance data for re-use if currently doing 3-axis fusion
 	if (_control_status.flags.mag_3D) {
 		saveMagCovData();
+
+		// we are no longer using 3-axis fusion so set the reported test levels to zero
+		_mag_test_ratio.setZero();
+
 		_control_status.flags.mag_3D = false;
 	}
 }
@@ -1774,6 +1778,8 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 		_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
 
 	}
+
+	_last_static_yaw = NAN;
 
 	// capture the reset event
 	_state_reset_status.quat_counter++;

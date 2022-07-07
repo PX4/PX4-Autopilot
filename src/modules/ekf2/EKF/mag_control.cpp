@@ -78,25 +78,11 @@ void Ekf::controlMagFusion()
 		_num_bad_flight_yaw_events = 0;
 	}
 
-	// When operating without a magnetometer and no other source of yaw aiding is active,
-	// yaw fusion is run selectively to enable yaw gyro bias learning when stationary on
-	// ground and to prevent uncontrolled yaw variance growth
-	// Also fuse zero heading innovation during the leveling fine alignment step to keep the yaw variance low
 	if (_params.mag_fusion_type >= MagFuseType::NONE
 	    || _control_status.flags.mag_fault
 	    || !_control_status.flags.tilt_align) {
 
 		stopMagFusion();
-
-		if (noOtherYawAidingThanMag()) {
-			// TODO: setting _is_yaw_fusion_inhibited to true is required to tell
-			// fuseHeading to perform a "zero innovation heading fusion"
-			// We should refactor it to avoid using this flag here
-			_is_yaw_fusion_inhibited = true;
-			fuseHeading();
-			_is_yaw_fusion_inhibited = false;
-		}
-
 		return;
 	}
 
@@ -347,16 +333,19 @@ void Ekf::runMagAndMagDeclFusions(const Vector3f &mag)
 	if (_control_status.flags.mag_3D) {
 		run3DMagAndDeclFusions(mag);
 
-	} else if (_control_status.flags.mag_hdg) {
+	} else if (_control_status.flags.mag_hdg && !_is_yaw_fusion_inhibited) {
 		// Rotate the measurements into earth frame using the zero yaw angle
 		Dcmf R_to_earth = shouldUse321RotationSequence(_R_to_earth) ? updateEuler321YawInRotMat(0.f, _R_to_earth) : updateEuler312YawInRotMat(0.f, _R_to_earth);
 
 		Vector3f mag_earth_pred = R_to_earth * (mag - _state.mag_B);
 
 		// the angle of the projection onto the horizontal gives the yaw angle
+		// calculate the yaw innovation and wrap to the interval between +-pi
 		float measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 
-		fuseHeading(measured_hdg, sq(_params.mag_heading_noise));
+		float innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
+		float obs_var = fmaxf(sq(_params.mag_heading_noise), 1.e-4f);
+		fuseYaw(innovation, obs_var);
 	}
 }
 
