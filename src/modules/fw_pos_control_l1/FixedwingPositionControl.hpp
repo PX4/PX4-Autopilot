@@ -136,6 +136,15 @@ static constexpr float MIN_AUTO_TIMESTEP = 0.01f;
 // [s] maximum time step between auto control updates
 static constexpr float MAX_AUTO_TIMESTEP = 0.05f;
 
+// [.] minimum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
+static constexpr float MIN_WEIGHT_RATIO = 0.5f;
+
+// [.] maximum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
+static constexpr float MAX_WEIGHT_RATIO = 2.0f;
+
+// air density of standard athmosphere at 5000m above mean sea level [kg/m^3]
+static constexpr float AIR_DENSITY_STANDARD_ATMOS_5000_AMSL = 0.7363f;
+
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
 {
@@ -275,6 +284,7 @@ private:
 
 	float _airspeed{0.0f};
 	float _eas2tas{1.0f};
+	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};
 
 	/* wind estimates */
 
@@ -594,6 +604,16 @@ private:
 	 */
 	void set_control_mode_current(const hrt_abstime &now, bool pos_sp_curr_valid);
 
+	/**
+	 * @brief Compensate trim throttle for air density and vehicle weight.
+	 *
+	 * @param trim throttle required at sea level during standard conditions.
+	 * @param throttle_min Minimum allowed trim throttle.
+	 * @param throttle_max Maximum allowed trim throttle.
+	 * @return Trim throttle compensated for air density and vehicle weight.
+	 */
+	float compensateTrimThrottleForDensityAndWeight(float throttle_trim, float throttle_min, float throttle_max);
+
 	void publishOrbitStatus(const position_setpoint_s pos_sp);
 
 	SlewRate<float> _airspeed_slew_rate_controller;
@@ -684,7 +704,6 @@ private:
 		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_climbrate_target,
 		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,
 
-		(ParamFloat<px4::params::FW_THR_ALT_SCL>) _param_fw_thr_alt_scl,
 		(ParamFloat<px4::params::FW_THR_TRIM>) _param_fw_thr_trim,
 		(ParamFloat<px4::params::FW_THR_IDLE>) _param_fw_thr_idle,
 		(ParamFloat<px4::params::FW_THR_LND_MAX>) _param_fw_thr_lnd_max,
@@ -708,7 +727,11 @@ private:
 
 		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min,
 
-		(ParamFloat<px4::params::NAV_FW_ALT_RAD>) _param_nav_fw_alt_rad
+		(ParamFloat<px4::params::NAV_FW_ALT_RAD>) _param_nav_fw_alt_rad,
+
+		(ParamFloat<px4::params::WEIGHT_BASE>) _param_weight_base,
+		(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross
+
 	)
 
 };
