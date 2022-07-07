@@ -620,6 +620,10 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->cruising_speed = _navigator->get_cruising_speed();
 	sp->cruising_throttle = _navigator->get_cruising_throttle();
 
+	// for fixed wing we don't use cruising_throttle directly anymore, instead we command airspeed setpoints via cruising_speed
+	// we still use cruising throttle here to determine if gliding is enabled
+	sp->gliding_enabled = (_navigator->get_cruising_throttle() < FLT_EPSILON);
+
 	switch (item.nav_cmd) {
 	case NAV_CMD_IDLE:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
