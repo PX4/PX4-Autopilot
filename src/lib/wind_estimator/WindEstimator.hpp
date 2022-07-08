@@ -41,6 +41,8 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
+#include "python/generated/fuse_airspeed.h"
+
 using namespace time_literals;
 
 class WindEstimator

@@ -141,37 +141,11 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 
 	_time_last_airspeed_fuse = time_now;
 
-	// assign helper variables
-	const float v_n = velI(0);
-	const float v_e = velI(1);
-	const float v_d = velI(2);
-
-	// calculate airspeed from ground speed and wind states (without scale)
-	const float airspeed_predicted_raw = sqrtf((v_n - _state(INDEX_W_N)) * (v_n - _state(INDEX_W_N)) +
-					     (v_e - _state(INDEX_W_E)) * (v_e - _state(INDEX_W_E)) + v_d * v_d);
-
-	// compute state observation matrix H
-	const float HH0 = airspeed_predicted_raw;
-	const float HH1 = _state(INDEX_TAS_SCALE) / math::max(HH0, 0.1f);
-
 	matrix::Matrix<float, 1, 3> H_tas;
-	H_tas(0, 0) = HH1 * (-v_n + _state(INDEX_W_N));
-	H_tas(0, 1) = HH1 * (-v_e + _state(INDEX_W_E));
-	H_tas(0, 2) = HH0;
+	matrix::Matrix<float, 3, 1> K;
 
-	// compute innovation covariance S
-	const matrix::Matrix<float, 1, 1> S = H_tas * _P * H_tas.transpose() + _tas_var;
-
-	// compute Kalman gain
-	matrix::Matrix<float, 3, 1> K = _P * H_tas.transpose();
-	K /= S(0, 0);
-
-	// compute innovation
-	const float airspeed_pred = _state(INDEX_TAS_SCALE) * airspeed_predicted_raw;
-	_tas_innov = true_airspeed - airspeed_pred;
-
-	// innovation variance
-	_tas_innov_var = S(0, 0);
+	sym::FuseAirspeed(velI, _state, _P, true_airspeed, _tas_var, FLT_EPSILON,
+			  &H_tas, &K, &_tas_innov_var, &_tas_innov);
 
 	bool reinit_filter = false;
 	bool meas_is_rejected = false;
