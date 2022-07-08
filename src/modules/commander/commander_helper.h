@@ -72,7 +72,7 @@ void set_tune_override(const int tune_id);
  *
  * 1. Current playing tune is non-repeating and has ended
  * 2. Current playing tune is non-repeating, but the requested tune is also non-repeating, and they are different tunes
- * 3. Current playing tune is repeating, and the requested tune is different from teh current tune
+ * 3. Current playing tune is repeating, and the requested tune is different from the current tune
  *
  * This is to prevent repeating tunes from overriding single-play tunes.
  */
