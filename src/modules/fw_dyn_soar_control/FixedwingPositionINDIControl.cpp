@@ -1210,22 +1210,27 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // ==============================================================
     Vector3f vel_air = _vel - _wind_estimate;
     Vector3f vel_normalized = vel_air.normalized();
-    Vector3f f = _mass*_acc;
+    Vector3f f = _mass*(_acc);
     Vector3f f_normalized = f.normalized();
     // compute ideal angular velocity
     Vector3f omega_turn_ref_normalized = vel_normalized.cross(f_normalized);
     Vector3f omega_turn_ref;
+    // constuct acc perpendicular to flight path
+    Vector3f acc_perp = _acc - (_acc*vel_normalized)*vel_normalized;
     if (_airspeed_valid&&_airspeed>_stall_speed) {
-        omega_turn_ref = sqrtf(_acc*_acc) / (_airspeed) * R_bi * omega_turn_ref_normalized.normalized();
+        omega_turn_ref = sqrtf(acc_perp*acc_perp) / (_airspeed) * R_bi * omega_turn_ref_normalized.normalized();
         //PX4_INFO("yaw rate ref, yaw rate: \t%.2f\t%.2f", (double)(omega_turn_ref(2)), (double)(omega_filtered(2)));
     }
     else {
-        omega_turn_ref = sqrtf(_acc*_acc) / (_stall_speed) * R_bi * omega_turn_ref_normalized.normalized();
-        //PX4_ERR("No valid airspeed message detected or airspeed to low");
+        omega_turn_ref = sqrtf(acc_perp*acc_perp) / (_stall_speed) * R_bi * omega_turn_ref_normalized.normalized();
+        //PX4_ERR("No valid airspeed message detected or airspeed too low");
     }
     
+    // transform rate vector to body frame
+    omega_turn_ref = R_bi*omega_turn_ref;
+
     // not really a accel command, rather a FF-P command
-    rot_acc_command(2) = _K_q(2,2)*omega_turn_ref(2) + _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2));
+    rot_acc_command(2) = _K_q(2,2)*omega_turn_ref(2);// + _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2));
 
     return rot_acc_command;
 }
@@ -1265,8 +1270,8 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
     deflection(2) = (moment_command(2) + _k_d_yaw*q*omega_filtered(2))/fmaxf((_k_rud*q),0.0001f);
 
     // overwrite rudder deflection with NDI turn coordination (no INDI)
-    Vector3f moment_ref = _inertia*ctrl + _omega.cross(_inertia*_omega);
-    deflection(2) = (moment_ref(2) + _k_d_yaw*q*_omega(2)) / fmaxf((_k_rud*q),0.0001f);
+    Vector3f moment_ref = _inertia*ctrl + omega_filtered.cross(_inertia*omega_filtered);
+    deflection(2) = (moment_ref(2) + _k_d_yaw*q*omega_filtered(2)) / fmaxf((_k_rud*q),0.0001f);
 
     return deflection;
 }
