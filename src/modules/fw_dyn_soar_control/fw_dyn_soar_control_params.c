@@ -179,7 +179,7 @@ PARAM_DEFINE_FLOAT(DS_C_D2, 1.984f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_AOA_OFFSET, 0.03f);
+PARAM_DEFINE_FLOAT(DS_AOA_OFFSET, 0.07f);
 
 /**
  * stall speed of the aircraft
@@ -243,7 +243,7 @@ PARAM_DEFINE_FLOAT(DS_LIN_K_Z, 1.0f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_LIN_C_X, 0.75f);
+PARAM_DEFINE_FLOAT(DS_LIN_C_X, 1.0f);
 
 /**
  * normalized damping coefficient of position PD-controller (body y-direction)
@@ -255,7 +255,7 @@ PARAM_DEFINE_FLOAT(DS_LIN_C_X, 0.75f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_LIN_C_Y, 0.75f);
+PARAM_DEFINE_FLOAT(DS_LIN_C_Y, 1.0f);
 
 /**
  * normalized damping coefficient of position PD-controller (body z-direction)
@@ -267,7 +267,7 @@ PARAM_DEFINE_FLOAT(DS_LIN_C_Y, 0.75f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_LIN_C_Z, 0.75f);
+PARAM_DEFINE_FLOAT(DS_LIN_C_Z, 1.0f);
 
 /**
  * acceleration feedback gain of position PD-controller (body x-direction)
@@ -351,7 +351,7 @@ PARAM_DEFINE_FLOAT(DS_ROT_K_YAW, 0.5f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ROT_C_ROLL, 0.75f);
+PARAM_DEFINE_FLOAT(DS_ROT_C_ROLL, 1.0f);
 
 /**
  * normalized damping coefficient of attitude PD-controller (body pitch-direction)
@@ -363,7 +363,7 @@ PARAM_DEFINE_FLOAT(DS_ROT_C_ROLL, 0.75f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ROT_C_PITCH, 0.75f);
+PARAM_DEFINE_FLOAT(DS_ROT_C_PITCH, 1.0f);
 
 /**
  * normalized damping coefficient of rudder (turn coordination)
@@ -375,7 +375,7 @@ PARAM_DEFINE_FLOAT(DS_ROT_C_PITCH, 0.75f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ROT_C_YAW, 0.75f);
+PARAM_DEFINE_FLOAT(DS_ROT_C_YAW, 1.0f);
 
 
 // =============================
@@ -503,7 +503,7 @@ PARAM_DEFINE_FLOAT(DS_ORIGIN_ALT, 537.0f);
  * 
  * @unit 
  * @min 0
- * @max 5
+ * @max 7
  * @decimal 1
  * @increment 1
  * @group FW DYN SOAR Control
