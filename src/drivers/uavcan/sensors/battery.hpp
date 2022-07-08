@@ -99,8 +99,18 @@ private:
 	BatteryDataType _batt_update_mod[battery_status_s::MAX_INSTANCES] {};
 
 	static constexpr int FILTER_DATA = 2;
-	static constexpr int BATTERY_INDEX = 1;
+	static constexpr int BATTERY_INDEX_1 = 1;
+	static constexpr int BATTERY_INDEX_2 = 2;
+	static constexpr int BATTERY_INDEX_3 = 3;
+	static constexpr int BATTERY_INDEX_4 = 4;
 	static constexpr int SAMPLE_INTERVAL_US = 20_ms; // assume higher frequency UAVCAN feedback than 50Hz
-	Battery _battery{BATTERY_INDEX, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_EXTERNAL};
 
+	static_assert(battery_status_s::MAX_INSTANCES <= BATTERY_INDEX_4, "Battery array too big");
+
+	Battery battery1 = {BATTERY_INDEX_1, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_EXTERNAL};
+	Battery battery2 = {BATTERY_INDEX_2, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_EXTERNAL};
+	Battery battery3 = {BATTERY_INDEX_3, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_EXTERNAL};
+	Battery battery4 = {BATTERY_INDEX_4, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_EXTERNAL};
+
+	Battery *_battery[battery_status_s::MAX_INSTANCES] = { &battery1, &battery2, &battery3, &battery4 };
 };
