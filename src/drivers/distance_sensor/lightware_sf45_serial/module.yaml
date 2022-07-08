@@ -45,7 +45,7 @@ parameters:
                 1: Rotation downward
               reboot_required: true
               num_instances: 1 
-              default: 1
+              default: 0
 
           SF45_YAW_CFG:
               description:

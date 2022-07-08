@@ -45,7 +45,6 @@
 
 /* Configuration Constants */
 #define SF45_MAX_PAYLOAD 256
-#define SF45_ID 1
 #define SF45_SCALE_FACTOR 0.01f
 
 SF45LaserSerial::SF45LaserSerial(const char *port, uint8_t rotation) :
@@ -379,7 +378,6 @@ void SF45LaserSerial::sf45_request_handle(int return_val, uint8_t *input_buf)
 	        // start of frame is valid, continue
 	        _sop_valid = true;
           _calc_crc = sf45_format_crc(_calc_crc, _start_of_frame);
-          //PX4_DEBUG("SOP valid");
 	        _parsed_state = 1;
 	        break;
 	      }
@@ -389,7 +387,7 @@ void SF45LaserSerial::sf45_request_handle(int return_val, uint8_t *input_buf)
 	        _parsed_state = 0;
 	        restart_flag = true;
 	        _calc_crc = 0;
-          PX4_DEBUG("ERROR: start of packet not valid");
+          PX4_INFO("INFO: start of packet not valid");
           break;
         } // end else
     } // end case 0
@@ -406,9 +404,8 @@ void SF45LaserSerial::sf45_request_handle(int return_val, uint8_t *input_buf)
 	      rx_field.data_len = (rx_field.flags_hi << 2) | (rx_field.flags_lo >> 6);
         _calc_crc = sf45_format_crc(_calc_crc, rx_field.flags_hi);
         // Check payload length against known max value
-        //PX4_DEBUG("PAYLOAD LEN: %d", rx_field.data_len);
         if (rx_field.data_len > 17) {
-          PX4_DEBUG("WARNING: payload length invalid, restarting data request");
+          PX4_INFO("INFO: payload length invalid, restarting data request");
            _parsed_state = 0;
            restart_flag = true;
            _calc_crc = 0;
@@ -426,7 +423,6 @@ void SF45LaserSerial::sf45_request_handle(int return_val, uint8_t *input_buf)
     	  if (rx_field.msg_id == SF_PRODUCT_NAME || rx_field.msg_id == SF_UPDATE_RATE || rx_field.msg_id == SF_DISTANCE_OUTPUT || rx_field.msg_id == SF_STREAM || rx_field.msg_id == SF_DISTANCE_DATA_CM) {
 
 	      if (rx_field.msg_id == SF_DISTANCE_DATA_CM && rx_field.data_len > 1) {
-          //PX4_DEBUG("Sensor ready---------------");
 	      	_sensor_ready = true;
 	      }
 	      else {
@@ -434,7 +430,6 @@ void SF45LaserSerial::sf45_request_handle(int return_val, uint8_t *input_buf)
 	      }
         _calc_crc = sf45_format_crc(_calc_crc, rx_field.msg_id);
 
-        //PX4_DEBUG("MESSAGE ID: %d", rx_field.msg_id);
         _parsed_state = 4;
         break;
         }
@@ -502,7 +497,7 @@ void SF45LaserSerial::sf45_request_handle(int return_val, uint8_t *input_buf)
         break;
 	    }
 	    else {
-        PX4_DEBUG("CRC mismatch");
+        PX4_INFO("INFO: CRC mismatch");
         _crc_valid = false;
         _init_complete = false;
         _parsed_state = 0;
@@ -593,7 +588,7 @@ void SF45LaserSerial::sf45_send(uint8_t msg_id, bool write, int *data, uint8_t d
 
     else {
       // Product Name
-      PX4_DEBUG("Product name");
+      PX4_INFO("INFO: Product name");
     }
     uint8_t crc_lo = crc_val & 0xFF;
     uint8_t crc_hi = (crc_val >> 8) & 0xFF;
@@ -607,7 +602,7 @@ void SF45LaserSerial::sf45_send(uint8_t msg_id, bool write, int *data, uint8_t d
 
     // DEBUG
     for (uint8_t i = 0; i < packet_len; ++i) {
-      PX4_DEBUG("Send byte: %d", packet_buff[i]);
+      PX4_INFO("INFO: Send byte: %d", packet_buff[i]);
     }
     ret = ::write(_fd, packet_buff, packet_len);
     if (ret != packet_len) {
@@ -651,11 +646,8 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m){
 						// Convert to meters for rangefinder update
             *distance_m = raw_distance * SF45_SCALE_FACTOR;
             obstacle_dist_cm = (uint16_t)raw_distance;
-            //PX4_DEBUG("Raw sensor yaw: %d", scaled_yaw);
-            //PX4_DEBUG("Distance: %d", *distance_cm);
 
             uint8_t current_bin = sf45_convert_angle(scaled_yaw);
-            //const float cm_to_mm = 10.0;
             // If we have moved to a new bin
             if (current_bin != _previous_bin) {
               

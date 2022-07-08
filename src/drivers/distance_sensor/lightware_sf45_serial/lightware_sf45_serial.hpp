@@ -96,7 +96,6 @@ private:
   bool                            _sensor_ready{false};
   uint8_t                         _sensor_state{0};
   int                             _baud_rate{0};
-  uint8_t                         _num_data_fields{2};
   int                             _product_name[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   int                             _stream_data{0};
   int32_t                         _update_rate{1};
@@ -107,8 +106,8 @@ private:
   bool                            _sop_valid{false};
   uint16_t                        _calc_crc{0};
   uint8_t                         _num_retries{2};
-  int32_t                        _yaw_cfg{0};
-  int32_t                        _orient_cfg{0};
+  int32_t                         _yaw_cfg{0};
+  int32_t                         _orient_cfg{0};
   // Since the sf45/b scans 0 - 160 & 0 - (-160) degrees, leaving 40 degrees not covered by the sensor
   // Obstacle distance array = 72
   // r = 72/2pi = 11.46
