@@ -195,6 +195,30 @@ PARAM_DEFINE_INT32(UAVCAN_LGT_NAV, 3);
 PARAM_DEFINE_INT32(UAVCAN_LGT_LAND, 0);
 
 /**
+ * publish RTCM stream
+ *
+ * Enable UAVCAN RTCM stream publication
+ *  uavcan::equipment::gnss::RTCMStream
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_PUB_RTCM, 0);
+
+/**
+ * publish moving baseline data RTCM stream
+ *
+ * Enable UAVCAN RTCM stream publication
+ *  ardupilot::gnss::MovingBaselineData
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_PUB_MBD, 0);
+
+/**
  * subscription airspeed
  *
  * Enable UAVCAN airspeed subscriptions.
