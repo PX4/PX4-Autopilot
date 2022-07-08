@@ -231,13 +231,13 @@ void
 UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg,
 				uint8_t instance)
 {
-	_battery.setConnected(true);
-	_battery.updateVoltage(msg.voltage);
-	_battery.updateCurrent(msg.current);
-	_battery.updateBatteryStatus(hrt_absolute_time());
+	_battery[instance]->setConnected(true);
+	_battery[instance]->updateVoltage(msg.voltage);
+	_battery[instance]->updateCurrent(msg.current);
+	_battery[instance]->updateBatteryStatus(hrt_absolute_time());
 
 	/* Override data that is expected to arrive from UAVCAN msg*/
-	_battery_status[instance] = _battery.getBatteryStatus();
+	_battery_status[instance] = _battery[instance]->getBatteryStatus();
 	_battery_status[instance].temperature = msg.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // Kelvin to Celcius
 	_battery_status[instance].serial_number = msg.model_instance_id;
 	_battery_status[instance].id = msg.getSrcNodeID().get(); // overwrite zeroed index from _battery
