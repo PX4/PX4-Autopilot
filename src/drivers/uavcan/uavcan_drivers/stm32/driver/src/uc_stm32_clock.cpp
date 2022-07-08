@@ -6,49 +6,10 @@
 #include <uavcan_stm32/thread.hpp>
 #include "internal.hpp"
 
-#if UAVCAN_STM32_TIMER_NUMBER
+#include <drivers/drv_hrt.h>
 
 #include <cassert>
 #include <math.h>
-
-/*
- * Timer instance
- */
-# if UAVCAN_STM32_NUTTX
-#  define TIMX                    UAVCAN_STM32_GLUE3(STM32_TIM, UAVCAN_STM32_TIMER_NUMBER, _BASE)
-#  define  TMR_REG(o)              (TIMX + (o))
-#  define TIMX_INPUT_CLOCK         UAVCAN_STM32_GLUE3(STM32_APB1_TIM, UAVCAN_STM32_TIMER_NUMBER, _CLKIN)
-
-#  define TIMX_IRQn                UAVCAN_STM32_GLUE2(STM32_IRQ_TIM, UAVCAN_STM32_TIMER_NUMBER)
-# endif
-
-# if UAVCAN_STM32_TIMER_NUMBER >= 2 && UAVCAN_STM32_TIMER_NUMBER <= 7
-#  define TIMX_RCC_ENR           RCC->APB1ENR
-#  define TIMX_RCC_RSTR          RCC->APB1RSTR
-#  define TIMX_RCC_ENR_MASK      UAVCAN_STM32_GLUE3(RCC_APB1ENR_TIM,  UAVCAN_STM32_TIMER_NUMBER, EN)
-#  define TIMX_RCC_RSTR_MASK     UAVCAN_STM32_GLUE3(RCC_APB1RSTR_TIM, UAVCAN_STM32_TIMER_NUMBER, RST)
-# else
-#  error "This UAVCAN_STM32_TIMER_NUMBER is not supported yet"
-# endif
-
-/**
- * UAVCAN_STM32_TIMX_INPUT_CLOCK can be used to manually override the auto-detected timer clock speed.
- * This is useful at least with certain versions of ChibiOS which do not support the bit
- * RCC_DKCFGR.TIMPRE that is available in newer models of STM32. In that case, if TIMPRE is active,
- * the auto-detected value of TIMX_INPUT_CLOCK will be twice lower than the actual clock speed.
- * Read this for additional context: http://www.chibios.com/forum/viewtopic.php?f=35&t=3870
- * A normal way to use the override feature is to provide an alternative macro, e.g.:
- *
- *      -DUAVCAN_STM32_TIMX_INPUT_CLOCK=STM32_HCLK
- *
- * Alternatively, the new clock rate can be specified directly.
- */
-# ifdef UAVCAN_STM32_TIMX_INPUT_CLOCK
-#  undef TIMX_INPUT_CLOCK
-#  define TIMX_INPUT_CLOCK      UAVCAN_STM32_TIMX_INPUT_CLOCK
-# endif
-
-extern "C" UAVCAN_STM32_IRQ_HANDLER(TIMX_IRQHandler);
 
 namespace uavcan_stm32
 {
@@ -77,8 +38,46 @@ uavcan::MonotonicTime prev_utc_adj_at;
 uavcan::uint64_t time_mono = 0;
 uavcan::uint64_t time_utc = 0;
 
+int32_t hrt_to_utc_offset = 0;
+
 }
 
+/**
+ * Timer interrupt handler
+ */
+static void timer_callback(void *arg)
+{
+	using namespace uavcan_stm32::clock;
+	UAVCAN_ASSERT(initialized);
+
+	time_mono += USecPerOverflow;
+
+	if (utc_set) {
+		time_utc += USecPerOverflow;
+		utc_accumulated_correction_nsec += utc_correction_nsec_per_overflow;
+
+		if (std::abs(utc_accumulated_correction_nsec) >= 1000) {
+			time_utc = uavcan::uint64_t(uavcan::int64_t(time_utc) + utc_accumulated_correction_nsec / 1000);
+			utc_accumulated_correction_nsec %= 1000;
+		}
+
+		hrt_to_utc_offset = (int64_t)time_mono - (int64_t)time_utc;
+
+		// Correction decay - 1 nsec per 65536 usec
+		if (utc_correction_nsec_per_overflow > 0) {
+			utc_correction_nsec_per_overflow--;
+
+		} else if (utc_correction_nsec_per_overflow < 0) {
+			utc_correction_nsec_per_overflow++;
+
+		} else {
+			; // Zero
+		}
+	}
+}
+
+
+static struct hrt_call timer_call {};
 
 void init()
 {
@@ -90,34 +89,7 @@ void init()
 
 	initialized = true;
 
-
-# if UAVCAN_STM32_NUTTX
-
-	// Attach IRQ
-	irq_attach(TIMX_IRQn, &TIMX_IRQHandler, NULL);
-
-	// Power-on and reset
-	modifyreg32(STM32_RCC_APB1ENR, 0, TIMX_RCC_ENR_MASK);
-	modifyreg32(STM32_RCC_APB1RSTR, 0, TIMX_RCC_RSTR_MASK);
-	modifyreg32(STM32_RCC_APB1RSTR, TIMX_RCC_RSTR_MASK, 0);
-
-
-	// Start the timer
-	putreg32(0xFFFF, TMR_REG(STM32_BTIM_ARR_OFFSET));
-	putreg16(((TIMX_INPUT_CLOCK / 1000000) - 1), TMR_REG(STM32_BTIM_PSC_OFFSET));
-	putreg16(BTIM_CR1_URS, TMR_REG(STM32_BTIM_CR1_OFFSET));
-	putreg16(0, TMR_REG(STM32_BTIM_SR_OFFSET));
-	putreg16(BTIM_EGR_UG, TMR_REG(STM32_BTIM_EGR_OFFSET)); // Reload immediately
-	putreg16(BTIM_DIER_UIE, TMR_REG(STM32_BTIM_DIER_OFFSET));
-	putreg16(BTIM_CR1_CEN, TMR_REG(STM32_BTIM_CR1_OFFSET)); // Start
-
-	// Prioritize and Enable  IRQ
-// todo: Currently changing the NVIC_SYSH_HIGH_PRIORITY is HARD faulting
-// need to investigate
-//    up_prioritize_irq(TIMX_IRQn, NVIC_SYSH_HIGH_PRIORITY);
-	up_enable_irq(TIMX_IRQn);
-
-# endif
+	hrt_call_every(&timer_call, USecPerOverflow, USecPerOverflow, timer_callback, nullptr);
 }
 
 void setUtc(uavcan::UtcTime time)
@@ -139,23 +111,9 @@ void setUtc(uavcan::UtcTime time)
 
 static uavcan::uint64_t sampleUtcFromCriticalSection()
 {
-# if UAVCAN_STM32_NUTTX
-
 	UAVCAN_ASSERT(initialized);
-	UAVCAN_ASSERT(getreg16(TMR_REG(STM32_BTIM_DIER_OFFSET)) & BTIM_DIER_UIE);
 
-	volatile uavcan::uint64_t time = time_utc;
-	volatile uavcan::uint32_t cnt = getreg16(TMR_REG(STM32_BTIM_CNT_OFFSET));
-
-	if (getreg16(TMR_REG(STM32_BTIM_SR_OFFSET)) & BTIM_SR_UIF) {
-		cnt = getreg16(TMR_REG(STM32_BTIM_CNT_OFFSET));
-		const uavcan::int32_t add = uavcan::int32_t(USecPerOverflow) +
-					    (utc_accumulated_correction_nsec + utc_correction_nsec_per_overflow) / 1000;
-		time = uavcan::uint64_t(uavcan::int64_t(time) + add);
-	}
-
-	return time + cnt;
-# endif
+	return hrt_absolute_time() - hrt_to_utc_offset;
 }
 
 uavcan::uint64_t getUtcUSecFromCanInterrupt()
@@ -165,34 +123,7 @@ uavcan::uint64_t getUtcUSecFromCanInterrupt()
 
 uavcan::MonotonicTime getMonotonic()
 {
-	uavcan::uint64_t usec = 0;
-	// Scope Critical section
-	{
-		CriticalSectionLocker locker;
-
-		volatile uavcan::uint64_t time = time_mono;
-
-# if UAVCAN_STM32_NUTTX
-
-		volatile uavcan::uint32_t cnt = getreg16(TMR_REG(STM32_BTIM_CNT_OFFSET));
-
-		if (getreg16(TMR_REG(STM32_BTIM_SR_OFFSET)) & BTIM_SR_UIF) {
-			cnt = getreg16(TMR_REG(STM32_BTIM_CNT_OFFSET));
-# endif
-			time += USecPerOverflow;
-		}
-
-		usec = time + cnt;
-
-# ifndef NDEBUG
-		static uavcan::uint64_t prev_usec = 0;      // Self-test
-		UAVCAN_ASSERT(prev_usec <= usec);
-		(void)prev_usec;
-		prev_usec = usec;
-# endif
-	} // End Scope Critical section
-
-	return uavcan::MonotonicTime::fromUSec(usec);
+	return uavcan::MonotonicTime::fromUSec(hrt_absolute_time());
 }
 
 uavcan::UtcTime getUtc()
@@ -353,48 +284,3 @@ SystemClock &SystemClock::instance()
 }
 
 } // namespace uavcan_stm32
-
-
-/**
- * Timer interrupt handler
- */
-
-extern "C"
-UAVCAN_STM32_IRQ_HANDLER(TIMX_IRQHandler)
-{
-	UAVCAN_STM32_IRQ_PROLOGUE();
-
-# if UAVCAN_STM32_NUTTX
-	putreg16(0, TMR_REG(STM32_BTIM_SR_OFFSET));
-# endif
-
-	using namespace uavcan_stm32::clock;
-	UAVCAN_ASSERT(initialized);
-
-	time_mono += USecPerOverflow;
-
-	if (utc_set) {
-		time_utc += USecPerOverflow;
-		utc_accumulated_correction_nsec += utc_correction_nsec_per_overflow;
-
-		if (std::abs(utc_accumulated_correction_nsec) >= 1000) {
-			time_utc = uavcan::uint64_t(uavcan::int64_t(time_utc) + utc_accumulated_correction_nsec / 1000);
-			utc_accumulated_correction_nsec %= 1000;
-		}
-
-		// Correction decay - 1 nsec per 65536 usec
-		if (utc_correction_nsec_per_overflow > 0) {
-			utc_correction_nsec_per_overflow--;
-
-		} else if (utc_correction_nsec_per_overflow < 0) {
-			utc_correction_nsec_per_overflow++;
-
-		} else {
-			; // Zero
-		}
-	}
-
-	UAVCAN_STM32_IRQ_EPILOGUE();
-}
-
-#endif

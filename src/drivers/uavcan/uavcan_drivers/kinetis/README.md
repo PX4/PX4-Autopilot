@@ -15,7 +15,6 @@ and the following commandline defines:
 |      Setting      |                             Description                                           |
 |-------------------|-----------------------------------------------------------------------------------|
 |UAVCAN_KINETIS_NUM_IFACES   | - {1..2}  Sets the number of CAN interfaces the SW will support |
-|UAVCAN_KINETIS_TIMER_NUMBER | - {0..3}  Sets the Periodic Interrupt Timer (PITn) channel |
 
 Things that could be improved:
 1. Build time command line configuartion of Mailbox/FIFO and filters

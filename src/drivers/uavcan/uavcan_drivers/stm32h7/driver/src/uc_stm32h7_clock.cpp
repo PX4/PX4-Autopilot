@@ -6,30 +6,8 @@
 #include <uavcan_stm32h7/thread.hpp>
 #include "internal.hpp"
 
-#if UAVCAN_STM32H7_TIMER_NUMBER
-
 #include <cassert>
 #include <math.h>
-
-/*
- * Timer instance
- */
-# if UAVCAN_STM32H7_NUTTX
-#  define TIMX                    UAVCAN_STM32H7_GLUE3(STM32_TIM, UAVCAN_STM32H7_TIMER_NUMBER, _BASE)
-#  define  TMR_REG(o)              (TIMX + (o))
-#  define TIMX_INPUT_CLOCK         UAVCAN_STM32H7_GLUE3(STM32_APB1_TIM, UAVCAN_STM32H7_TIMER_NUMBER, _CLKIN)
-
-#  define TIMX_IRQn                UAVCAN_STM32H7_GLUE2(STM32_IRQ_TIM, UAVCAN_STM32H7_TIMER_NUMBER)
-# endif
-
-# if UAVCAN_STM32H7_TIMER_NUMBER >= 2 && UAVCAN_STM32H7_TIMER_NUMBER <= 7
-#  define TIMX_RCC_ENR           RCC->APB1ENR
-#  define TIMX_RCC_RSTR          RCC->APB1RSTR
-#  define TIMX_RCC_ENR_MASK      UAVCAN_STM32H7_GLUE3(RCC_APB1ENR_TIM,  UAVCAN_STM32H7_TIMER_NUMBER, EN)
-#  define TIMX_RCC_RSTR_MASK     UAVCAN_STM32H7_GLUE3(RCC_APB1RSTR_TIM, UAVCAN_STM32H7_TIMER_NUMBER, RST)
-# else
-#  error "This UAVCAN_STM32H7_TIMER_NUMBER is not supported yet"
-# endif
 
 /**
  * UAVCAN_STM32H7_TIMX_INPUT_CLOCK can be used to manually override the auto-detected timer clock speed.
@@ -396,5 +374,3 @@ UAVCAN_STM32H7_IRQ_HANDLER(TIMX_IRQHandler)
 
 	UAVCAN_STM32H7_IRQ_EPILOGUE();
 }
-
-#endif

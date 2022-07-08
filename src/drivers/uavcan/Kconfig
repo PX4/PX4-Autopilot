@@ -17,8 +17,3 @@ depends on DRIVERS_UAVCAN
     string "UAVCAN peripheral firmware"
     help
         list of UAVCAN peripheral firmware to build and embed
-
-menuconfig BOARD_UAVCAN_TIMER_OVERRIDE
-depends on DRIVERS_UAVCAN
-    int "UAVCAN timer override"
-    default 0

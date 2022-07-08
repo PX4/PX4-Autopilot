@@ -7,29 +7,8 @@
 #include <uavcan_kinetis/thread.hpp>
 #include "internal.hpp"
 
-#if UAVCAN_KINETIS_TIMER_NUMBER
 # include <cassert>
 # include <math.h>
-
-/*
- * Timer instance
- * todo:Consider using Lifetime Timer support
- */
-# define TIMX_IRQHandler         UAVCAN_KINETIS_GLUE3(PIT, UAVCAN_KINETIS_TIMER_NUMBER, _IRQHandler)
-# define TIMX                    (KINETIS_PIT_BASE + (UAVCAN_KINETIS_TIMER_NUMBER << 4))
-# define TMR_REG(o)              (TIMX + (o))
-# define TIMX_INPUT_CLOCK        BOARD_BUS_FREQ
-# define TIMX_INTERRUPT_FREQ     16
-# define TIMX_IRQn               UAVCAN_KINETIS_GLUE2(KINETIS_IRQ_PITCH, UAVCAN_KINETIS_TIMER_NUMBER)
-
-# if UAVCAN_KINETIS_TIMER_NUMBER >= 0 && UAVCAN_KINETIS_TIMER_NUMBER <= 3
-#  define KINETIS_PIT_LDVAL_OFFSET KINETIS_PIT_LDVAL0_OFFSET
-#  define KINETIS_PIT_CVAL_OFFSET  KINETIS_PIT_CVAL0_OFFSET
-#  define KINETIS_PIT_TCTRL_OFFSET KINETIS_PIT_TCTRL0_OFFSET
-#  define KINETIS_PIT_TFLG_OFFSET  KINETIS_PIT_TFLG0_OFFSET
-# else
-#  error "This UAVCAN_KINETIS_TIMER_NUMBER is not supported yet"
-# endif
 
 extern "C" UAVCAN_KINETIS_IRQ_HANDLER(TIMX_IRQHandler);
 
@@ -361,5 +340,3 @@ UAVCAN_KINETIS_IRQ_HANDLER(TIMX_IRQHandler)
 
 	return 0;
 }
-
-#endif
