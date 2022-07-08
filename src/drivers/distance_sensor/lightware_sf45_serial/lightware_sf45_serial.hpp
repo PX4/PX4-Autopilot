@@ -60,12 +60,12 @@ public:
 
 	int 			        init();
 	void				print_info();
-  void                            sf45_request_handle(int val, uint8_t *value);
-  void                            sf45_send(uint8_t msg_id, bool r_w, int *data, uint8_t data_len);
-  uint16_t                        sf45_format_crc(uint16_t crc, uint8_t data_value);
-  void                            sf45_process_replies(float *data);
-  uint8_t                         sf45_convert_angle(const int16_t yaw);
-  float                           sf45_wrap_360(float f);
+	void                            sf45_request_handle(int val, uint8_t *value);
+	void                            sf45_send(uint8_t msg_id, bool r_w, int *data, uint8_t data_len);
+	uint16_t                        sf45_format_crc(uint16_t crc, uint8_t data_value);
+	void                            sf45_process_replies(float *data);
+	uint8_t                         sf45_convert_angle(const int16_t yaw);
+	float                           sf45_wrap_360(float f);
 protected:
 
 	obstacle_distance_s                       _obstacle_map_msg{};
@@ -78,7 +78,7 @@ private:
 	void				Run() override;
 	int				measure();
 	int				collect();
-  bool                            _crc_valid{false};
+	bool                            _crc_valid{false};
 	PX4Rangefinder                  _px4_rangefinder;
 
 	char 				_port[20] {};
@@ -89,34 +89,34 @@ private:
 	unsigned		_linebuf_index{0};
 	hrt_abstime _last_read{0};
 
-  // SF45/B uses a binary protocol to include header,flags
-  // message ID, payload, and checksum
-  bool                            _is_sf45{false};
-  bool                            _init_complete{false};
-  bool                            _sensor_ready{false};
-  uint8_t                         _sensor_state{0};
-  int                             _baud_rate{0};
-  int                             _product_name[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  int                             _stream_data{0};
-  int32_t                         _update_rate{1};
-  int                             _data_output{0};
-  const uint8_t                   _start_of_frame{0xAA};
-  uint16_t                        _data_bytes_recv{0};
-  uint8_t                         _parsed_state{0};
-  bool                            _sop_valid{false};
-  uint16_t                        _calc_crc{0};
-  uint8_t                         _num_retries{2};
-  int32_t                         _yaw_cfg{0};
-  int32_t                         _orient_cfg{0};
-  // Since the sf45/b scans 0 - 160 & 0 - (-160) degrees, leaving 40 degrees not covered by the sensor
-  // Obstacle distance array = 72
-  // r = 72/2pi = 11.46
-  // r * theta(40 degrees) = 7.9 ~=8
-  // 72 - 8 = # of obstacle distance zones applicable
-  uint16_t                        _map_used_bins{64};
-  uint16_t                        _previous_bin{0};
+	// SF45/B uses a binary protocol to include header,flags
+	// message ID, payload, and checksum
+	bool                            _is_sf45{false};
+	bool                            _init_complete{false};
+	bool                            _sensor_ready{false};
+	uint8_t                         _sensor_state{0};
+	int                             _baud_rate{0};
+	int                             _product_name[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	int                             _stream_data{0};
+	int32_t                         _update_rate{1};
+	int                             _data_output{0};
+	const uint8_t                   _start_of_frame{0xAA};
+	uint16_t                        _data_bytes_recv{0};
+	uint8_t                         _parsed_state{0};
+	bool                            _sop_valid{false};
+	uint16_t                        _calc_crc{0};
+	uint8_t                         _num_retries{2};
+	int32_t                         _yaw_cfg{0};
+	int32_t                         _orient_cfg{0};
+	// Since the sf45/b scans 0 - 160 & 0 - (-160) degrees, leaving 40 degrees not covered by the sensor
+	// Obstacle distance array = 72
+	// r = 72/2pi = 11.46
+	// r * theta(40 degrees) = 7.9 ~=8
+	// 72 - 8 = # of obstacle distance zones applicable
+	uint16_t                        _map_used_bins{64};
+	uint16_t                        _previous_bin{0};
 
-  // end of SF45/B data members
+	// end of SF45/B data members
 
 	unsigned			                  _consecutive_fail_count;
 
