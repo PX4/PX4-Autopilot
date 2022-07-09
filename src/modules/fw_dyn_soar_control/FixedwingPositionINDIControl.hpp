@@ -210,7 +210,9 @@ private:
 		// thrust params
 		(ParamFloat<px4::params::DS_THRUST>) _param_thrust,
 		// RC feedthrough params
-		(ParamInt<px4::params::DS_SWITCH_MANUAL>) _param_switch_manual
+		(ParamInt<px4::params::DS_SWITCH_MANUAL>) _param_switch_manual,
+		// force saturation
+		(ParamInt<px4::params::DS_SWITCH_SAT>) _param_switch_saturation
 
 	)
 
@@ -340,6 +342,8 @@ private:
 	float _thrust;
 	// controller mode
 	bool _switch_manual;
+	// force limit
+	bool _switch_saturation;
 
 	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
 	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.
@@ -363,6 +367,8 @@ private:
 	Dcmf _R_ned_to_enu;	// rotation matrix from NED to ENU frame
 	Dcmf _R_enu_to_ned;	// rotation matrix from ENU to NED frame
 	Vector3f _zero_crossing_local_pos;	// vector denoting the zero crossing of the trajectories in NED frame
+	Vector3f _f_command_filtered {};
+	Vector3f _m_command_filtered {};
 
 };
 

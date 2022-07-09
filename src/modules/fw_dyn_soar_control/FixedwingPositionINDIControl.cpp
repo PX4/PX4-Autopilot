@@ -171,6 +171,8 @@ FixedwingPositionINDIControl::parameters_update()
 
     _switch_manual = _param_switch_manual.get();
 
+    _switch_saturation = _param_switch_saturation.get();
+
 
 	// sanity check parameters
     // TODO: include sanity check
@@ -1093,7 +1095,8 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // =========================================
     Vector3f acc_command = R_ib*(_K_x*R_bi*(pos_ref-_pos) + _K_v*R_bi*(vel_ref-_vel) + _K_a*R_bi*(acc_ref-acc_filtered)) + acc_ref;
     // add gravity
-    acc_command(2) += 9.81f;
+    //acc_command(2) += 9.81f;
+    //acc_filtered(2) += 9.81f;
 
     // ==================================
     // compute expected aerodynamic force
@@ -1106,17 +1109,28 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     float factor = -0.5f*_rho*_area*sqrtf(vel_body*vel_body);
     Vector3f w_x = vel_body;
     Vector3f w_z = w_x.cross(Vector3f{0.f,1.f,0.f});
-    f_current = R_ib*(factor*(C_l*w_z + C_d*w_x)) + Vector3f{0.f,0.f,-_mass*9.81f};
+    f_current = R_ib*(factor*(C_l*w_z + C_d*w_x));
     // apply LP filter to force
     Vector3f f_current_filtered;
     f_current_filtered(0) = _lp_filter_force[0].apply(f_current(0));
     f_current_filtered(1) = _lp_filter_force[1].apply(f_current(1));
     f_current_filtered(2) = _lp_filter_force[2].apply(f_current(2));
 
-    // ===============================
-    // get force comand in world frame
-    // ===============================
+    // ================================
+    // get force command in world frame
+    // ================================
     Vector3f f_command = _mass*(acc_command - acc_filtered) + f_current_filtered;
+    // limit maximum lift force by the maximum lift force, the aircraft can produce (assume max force at 12° aoa)
+    //PX4_INFO("force current, command: \t%.2f\t%.2f", (double)sqrtf(f_current_filtered*f_current_filtered), (double)sqrtf(f_command*f_command));
+
+    if (_switch_saturation){
+        float f_max = -factor*sqrtf(vel_body*vel_body)*(_C_L0 + _C_L1*0.2f);
+        float f_now = sqrtf(f_command*f_command);
+        if (f_now>f_max){
+            f_command = f_max/f_now * f_command;
+        }
+    }
+
 
     // ==========================================================================
     // get required attitude (assuming we can fly the target velocity), and error
@@ -1210,10 +1224,9 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // ==============================================================
     Vector3f vel_air = _vel - _wind_estimate;
     Vector3f vel_normalized = vel_air.normalized();
-    Vector3f f = _mass*(_acc);
-    Vector3f f_normalized = f.normalized();
+    Vector3f acc_normalized = _acc.normalized();
     // compute ideal angular velocity
-    Vector3f omega_turn_ref_normalized = vel_normalized.cross(f_normalized);
+    Vector3f omega_turn_ref_normalized = vel_normalized.cross(acc_normalized);
     Vector3f omega_turn_ref;
     // constuct acc perpendicular to flight path
     Vector3f acc_perp = _acc - (_acc*vel_normalized)*vel_normalized;
@@ -1227,10 +1240,12 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     }
     
     // transform rate vector to body frame
-    omega_turn_ref = R_bi*omega_turn_ref;
+    //omega_turn_ref = R_bi*omega_turn_ref;
 
     // not really a accel command, rather a FF-P command
-    rot_acc_command(2) = _K_q(2,2)*omega_turn_ref(2);// + _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2));
+    rot_acc_command(2) = _K_q(2,2)*omega_turn_ref(2) + _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2));
+    //PX4_INFO("omega turn ref: \t%.2f\t%.2f\t%.2f", (double)omega_turn_ref(0), (double)omega_turn_ref(1), (double)omega_turn_ref(2));
+    //PX4_INFO("omega turn    : \t%.2f\t%.2f\t%.2f", (double)_omega(0), (double)_omega(1), (double)_omega(2));
 
     return rot_acc_command;
 }
@@ -1268,7 +1283,6 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
     deflection(0) = (moment_command(0) + _k_d_roll*q*omega_filtered(0))/fmaxf((_k_ail*q),0.0001f);
     deflection(1) = (moment_command(1) + _k_d_pitch*q*omega_filtered(1))/fmaxf((_k_ele*q),0.0001f);
     deflection(2) = (moment_command(2) + _k_d_yaw*q*omega_filtered(2))/fmaxf((_k_rud*q),0.0001f);
-
     // overwrite rudder deflection with NDI turn coordination (no INDI)
     Vector3f moment_ref = _inertia*ctrl + omega_filtered.cross(_inertia*omega_filtered);
     deflection(2) = (moment_ref(2) + _k_d_yaw*q*omega_filtered(2)) / fmaxf((_k_rud*q),0.0001f);

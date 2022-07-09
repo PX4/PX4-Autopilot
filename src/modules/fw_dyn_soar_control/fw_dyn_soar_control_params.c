@@ -184,7 +184,7 @@ PARAM_DEFINE_FLOAT(DS_AOA_OFFSET, 0.07f);
 /**
  * stall speed of the aircraft
  * 
- * @unit rad
+ * @unit m/s
  * @min 5
  * @max 10
  * @decimal 1
@@ -540,3 +540,19 @@ PARAM_DEFINE_FLOAT(DS_THRUST, 0);
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_INT32(DS_SWITCH_MANUAL, 0);
+
+// ======================================================
+// ============= controller force saturation ============
+// ======================================================
+
+/**
+ * integer in {0,1} defining if the commanded force has an upper bound (saturates), 0=no saturation, 1=saturation
+ * 
+ * @unit 
+ * @min 0
+ * @max 1
+ * @decimal 1
+ * @increment 1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_INT32(DS_SWITCH_SAT, 0);
