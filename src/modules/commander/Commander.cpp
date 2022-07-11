@@ -3134,9 +3134,6 @@ Commander::get_circuit_breaker_params()
 	_vehicle_status_flags.circuit_breaker_flight_termination_disabled = circuit_breaker_enabled_by_val(
 				_param_cbrk_flightterm.get(),
 				CBRK_FLIGHTTERM_KEY);
-	_vehicle_status_flags.circuit_breaker_engaged_posfailure_check = circuit_breaker_enabled_by_val(
-				_param_cbrk_velposerr.get(),
-				CBRK_VELPOSERR_KEY);
 	_vehicle_status_flags.circuit_breaker_vtol_fw_arming_check = circuit_breaker_enabled_by_val(
 				_param_cbrk_vtolarming.get(),
 				CBRK_VTOLARMING_KEY);
@@ -3988,7 +3985,7 @@ void Commander::battery_status_check()
 void Commander::estimator_check()
 {
 	// Check if quality checking of position accuracy and consistency is to be performed
-	const bool run_quality_checks = !_vehicle_status_flags.circuit_breaker_engaged_posfailure_check;
+	const bool run_quality_checks = true;
 
 	_local_position_sub.update();
 	_global_position_sub.update();

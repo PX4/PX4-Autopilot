@@ -144,7 +144,7 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 	param_get(param_find("COM_ARM_WO_GPS"), &_param_com_arm_wo_gps);
 	const bool global_position_required = (_param_com_arm_wo_gps == 0);
 
-	if (global_position_required && !status_flags.circuit_breaker_engaged_posfailure_check) {
+	if (global_position_required) {
 		if (!status_flags.global_position_valid) {
 			if (prearm_ok) {
 				if (report_fail) { mavlink_log_critical(mavlink_log_pub, "Global position required"); }

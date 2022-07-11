@@ -150,20 +150,6 @@ PARAM_DEFINE_INT32(CBRK_BUZZER, 0);
 PARAM_DEFINE_INT32(CBRK_USB_CHK, 197848);
 
 /**
- * Circuit breaker for position error check
- *
- * Setting this parameter to 201607 will disable the position and velocity
- * accuracy checks in the commander.
- * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
- *
- * @min 0
- * @max 201607
- * @category Developer
- * @group Circuit Breaker
- */
-PARAM_DEFINE_INT32(CBRK_VELPOSERR, 0);
-
-/**
  * Circuit breaker for arming in fixed-wing mode check
  *
  * Setting this parameter to 159753 will enable arming in fixed-wing
