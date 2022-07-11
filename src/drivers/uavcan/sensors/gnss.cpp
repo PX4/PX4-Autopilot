@@ -282,11 +282,11 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 	if (!msg.ecef_position_velocity.empty()) {
 		heading = msg.ecef_position_velocity[0].velocity_xyz[0];
 
-		if (!isnan(msg.ecef_position_velocity[0].velocity_xyz[1])) {
+		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[1])) {
 			heading_offset = msg.ecef_position_velocity[0].velocity_xyz[1];
 		}
 
-		if (!isnan(msg.ecef_position_velocity[0].velocity_xyz[2])) {
+		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[2])) {
 			heading_accuracy = msg.ecef_position_velocity[0].velocity_xyz[2];
 		}
 	}

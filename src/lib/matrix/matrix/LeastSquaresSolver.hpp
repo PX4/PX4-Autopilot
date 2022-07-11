@@ -47,7 +47,7 @@ public:
 				normx += _A(i, j) * _A(i, j);
 			}
 
-			normx = sqrt(normx);
+			normx = std::sqrt(normx);
 			Type s = _A(j, j) > 0 ? Type(-1) : Type(1);
 			Type u1 = _A(j, j) - s * normx;
 
