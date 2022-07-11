@@ -4257,9 +4257,23 @@ void Commander::estimator_check()
 
 		// report GPS failure if flying and the global position estimate is still valid
 		if (!_vehicle_land_detected.landed && _vehicle_status_flags.global_position_valid) {
-			mavlink_log_warning(&_mavlink_log_pub, "GPS no longer valid\t");
-			events::send(events::ID("commander_gps_lost"), {events::Log::Critical, events::LogInternal::Info},
-				     "GPS no longer valid");
+
+			if (_param_com_gnss_ivd_rtl.get() && (_commander_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER
+							      || _commander_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION
+							      || _commander_state.main_state == commander_state_s::MAIN_STATE_POSCTL)) {
+
+				main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_RTL, _vehicle_status_flags, _commander_state);
+				_status_changed = true;
+				mavlink_log_critical(&_mavlink_log_pub, "GPS no longer valid, returning\t");
+				events::send(events::ID("commander_gps_lost_rtl"), {events::Log::Critical, events::LogInternal::Info},
+					     "GPS no longer valid, returning");
+
+			} else {
+				mavlink_log_warning(&_mavlink_log_pub, "GPS no longer valid\t");
+				events::send(events::ID("commander_gps_lost"), {events::Log::Critical, events::LogInternal::Info},
+					     "GPS no longer valid");
+			}
+
 		}
 
 	} else if (!condition_gps_position_was_valid && _vehicle_status_flags.gps_position_valid) {

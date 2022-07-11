@@ -1090,3 +1090,16 @@ PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, -1);
  * @unit m/s
  */
 PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
+
+/**
+ * Trigger RTL when GNSS gets invalid.
+ *
+ * Even after the loss of GNSS sensoring capabilities on the vehicle, its position can still be estimated
+ * by relying on the remaining sensor data. As the quality of the estimate in that case though deteriorates
+ * with time, it is recommended to start returning to launch as soon as the GNSS failure is detected. By setting
+ * this parameter to true, this is done automatically for Mission, Loiter and Position flight mode.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_GNSS_IVD_RTL, 1);
