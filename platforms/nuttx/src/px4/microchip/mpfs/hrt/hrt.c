@@ -188,10 +188,10 @@ hrt_abstime
 hrt_absolute_time(void)
 {
 	hrt_abstime	abstime;
-	hrt_abstime	base_time;
+	hrt_abstime	curr_time;
 
-	base_time = hrt_calc_base_time(0);
-	abstime = HRT_COUNTER_SCALE(base_time);
+	curr_time = hrt_calc_base_time(0);
+	abstime = HRT_COUNTER_SCALE(curr_time);
 
 	return abstime;
 }
@@ -230,6 +230,7 @@ static inline hrt_abstime hrt_calc_base_time(uint32_t newloadval)
 	static volatile hrt_abstime base_time;
 	static volatile uint32_t last_count;
 	irqstate_t	flags;
+	hrt_abstime	curr_time;
 
 	/* prevent re-entry */
 	flags = px4_enter_critical_section();
@@ -239,7 +240,6 @@ static inline hrt_abstime hrt_calc_base_time(uint32_t newloadval)
 
 	/* get the previous loaded value */
 	loadval = getreg32(MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1LOADVAL_OFFSET);
-
 
 	/* Determine whether the counter has wrapped since the
 	 * last time we're called.
@@ -251,11 +251,17 @@ static inline hrt_abstime hrt_calc_base_time(uint32_t newloadval)
 		base_time += loadval;
 	}
 
+	/* calculate the current time. if loadval < count this wraps around correctly */
+	curr_time = base_time + (loadval - count);
+
 	/* set new last counter val if needed */
 	if (newloadval != 0) {
+		putreg32(newloadval, MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1LOADVAL_OFFSET);
+
 		last_count = newloadval;
-		/* store current counter value into base_time */
-		base_time += (loadval - count);
+
+		/* store current time into base_time */
+		base_time = curr_time;
 
 	} else {
 		/* save the count for next time */
@@ -264,15 +270,13 @@ static inline hrt_abstime hrt_calc_base_time(uint32_t newloadval)
 
 	px4_leave_critical_section(flags);
 
-	return base_time;
+	return curr_time;
 }
 
 static void hrt_set_new_deadline(uint32_t deadline)
 {
-	/* calculate base time at this point because counter value will be changed */
+	/* calculate base time and set a new counter value */
 	hrt_calc_base_time(deadline);
-
-	putreg32(deadline, MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1LOADVAL_OFFSET);
 }
 
 /**
