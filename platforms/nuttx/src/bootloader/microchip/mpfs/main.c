@@ -50,6 +50,7 @@
 #include "bl.h"
 #include "uart.h"
 #include "lib/flash_cache.h"
+#include "riscv_internal.h"
 
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/fs/partition.h>
