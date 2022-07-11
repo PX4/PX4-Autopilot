@@ -43,8 +43,8 @@ void FuseAirspeed(const matrix::Matrix<Scalar, 3, 1>& v_local,
   // Intermediate terms (11)
   const Scalar _tmp0 = -state(0, 0) + v_local(0, 0);
   const Scalar _tmp1 = -state(1, 0) + v_local(1, 0);
-  const Scalar _tmp2 = matrix::sqrt(Scalar(matrix::pow(_tmp0, Scalar(2)) + matrix::pow(_tmp1, Scalar(2)) +
-                                        epsilon + matrix::pow(v_local(2, 0), Scalar(2))));
+  const Scalar _tmp2 = std::sqrt(Scalar(std::pow(_tmp0, Scalar(2)) + std::pow(_tmp1, Scalar(2)) +
+                                        epsilon + std::pow(v_local(2, 0), Scalar(2))));
   const Scalar _tmp3 = state(2, 0) / _tmp2;
   const Scalar _tmp4 = _tmp0 * _tmp3;
   const Scalar _tmp5 = _tmp1 * _tmp3;
