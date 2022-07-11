@@ -190,17 +190,15 @@ private:
 		// attitude PD control params
 		(ParamFloat<px4::params::DS_ROT_K_ROLL>) _param_rot_k_roll,
 		(ParamFloat<px4::params::DS_ROT_K_PITCH>) _param_rot_k_pitch,
-		(ParamFloat<px4::params::DS_ROT_K_YAW>) _param_rot_k_yaw,
+		(ParamFloat<px4::params::DS_ROT_FF_YAW>) _param_rot_ff_yaw,
 		(ParamFloat<px4::params::DS_ROT_C_ROLL>) _param_rot_c_roll,
 		(ParamFloat<px4::params::DS_ROT_C_PITCH>) _param_rot_c_pitch,
-		(ParamFloat<px4::params::DS_ROT_C_YAW>) _param_rot_c_yaw,
+		(ParamFloat<px4::params::DS_ROT_P_YAW>) _param_rot_p_yaw,
 		// low-level controller params (INDI)
 		(ParamFloat<px4::params::DS_K_ACT_ROLL>) _param_k_act_roll,
 		(ParamFloat<px4::params::DS_K_ACT_PITCH>) _param_k_act_pitch,
-		(ParamFloat<px4::params::DS_K_ACT_YAW>) _param_k_act_yaw,
 		(ParamFloat<px4::params::DS_K_DAMP_ROLL>) _param_k_damping_roll,
 		(ParamFloat<px4::params::DS_K_DAMP_PITCH>) _param_k_damping_pitch,
-		(ParamFloat<px4::params::DS_K_DAMP_YAW>) _param_k_damping_yaw,
 		// location params
 		(ParamFloat<px4::params::DS_ORIGIN_LAT>) _param_origin_lat,
 		(ParamFloat<px4::params::DS_ORIGIN_LON>) _param_origin_lon,
@@ -293,10 +291,8 @@ private:
 	Vector3f _alpha;	// angular acceleration vector
 	float _k_ail;
     float _k_ele;
-    float _k_rud;
     float _k_d_roll;
     float _k_d_pitch;
-    float _k_d_yaw;
 	hrt_abstime _last_run{0};
 
 	// controller frequency

@@ -310,7 +310,7 @@ PARAM_DEFINE_FLOAT(DS_LIN_FF_Z, 0.5f);
  * 
  * @unit 
  * @min 0
- * @max 20
+ * @max 100
  * @decimal 1
  * @increment 0.1
  * @group FW DYN SOAR Control
@@ -322,7 +322,7 @@ PARAM_DEFINE_FLOAT(DS_ROT_K_ROLL, 10.0f);
  * 
  * @unit 
  * @min 0
- * @max 20
+ * @max 100
  * @decimal 1
  * @increment 0.1
  * @group FW DYN SOAR Control
@@ -330,16 +330,16 @@ PARAM_DEFINE_FLOAT(DS_ROT_K_ROLL, 10.0f);
 PARAM_DEFINE_FLOAT(DS_ROT_K_PITCH, 10.0f);
 
 /**
- * rudder turn coordination P-gain
+ * rudder turn coordination FF-gain
  * 
  * @unit 
  * @min 0
- * @max 20
+ * @max 100
  * @decimal 1
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ROT_K_YAW, 0.5f);
+PARAM_DEFINE_FLOAT(DS_ROT_FF_YAW, 1.0f);
 
 /**
  * normalized damping coefficient of attitude PD-controller (body roll-direction)
@@ -366,16 +366,16 @@ PARAM_DEFINE_FLOAT(DS_ROT_C_ROLL, 1.0f);
 PARAM_DEFINE_FLOAT(DS_ROT_C_PITCH, 1.0f);
 
 /**
- * normalized damping coefficient of rudder (turn coordination)
+ * rudder turn coordination P-gain
  * 
  * @unit 
  * @min 0
- * @max 2
+ * @max 100
  * @decimal 2
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ROT_C_YAW, 1.0f);
+PARAM_DEFINE_FLOAT(DS_ROT_P_YAW, 1.0f);
 
 
 // =============================
@@ -406,17 +406,6 @@ PARAM_DEFINE_FLOAT(DS_K_ACT_ROLL, 0.25f);
  */
 PARAM_DEFINE_FLOAT(DS_K_ACT_PITCH, 0.05f);
 
-/**
- * yaw gain of K_ACT (actuator deflection gain)
- * 
- * @unit 
- * @min 0
- * @max 100
- * @decimal 4
- * @increment 0.0001
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_FLOAT(DS_K_ACT_YAW, 0.01f);
 
 /**
  * roll gain of K_ACT_DAMPING (actuator damping gain)
@@ -442,17 +431,6 @@ PARAM_DEFINE_FLOAT(DS_K_DAMP_ROLL, 0.04f);
  */
 PARAM_DEFINE_FLOAT(DS_K_DAMP_PITCH, 0.02f);
 
-/**
- * yaw gain of K_ACT_DAMPING (actuator damping gain)
- * 
- * @unit 
- * @min 0
- * @max 100
- * @decimal 4
- * @increment 0.0001
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_FLOAT(DS_K_DAMP_YAW, 0.0f);
 
 // ===================================================
 // ==============  trajectory center =================

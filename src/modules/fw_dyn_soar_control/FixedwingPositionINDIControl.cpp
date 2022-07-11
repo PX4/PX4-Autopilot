@@ -119,10 +119,10 @@ FixedwingPositionINDIControl::parameters_update()
     _K_a(2,2) = _param_lin_ff_z.get();
     _K_q(0,0) = _param_rot_k_roll.get();
     _K_q(1,1) = _param_rot_k_pitch.get();
-    _K_q(2,2) = _param_rot_k_yaw.get(); // rudder is controlled via turn coordination, not INDI
+    _K_q(2,2) = _param_rot_ff_yaw.get(); // rudder is controlled via turn coordination, not INDI
     _K_w(0,0) = _param_rot_c_roll.get()*2.f*sqrtf(_param_rot_k_roll.get());
     _K_w(1,1) = _param_rot_c_pitch.get()*2.f*sqrtf(_param_rot_k_pitch.get());
-    _K_w(2,2) = _param_rot_c_yaw.get()*2.f*sqrtf(_param_rot_k_yaw.get()); // rudder is controlled via turn coordination, not INDI
+    _K_w(2,2) = _param_rot_p_yaw.get(); // rudder is controlled via turn coordination, not INDI
 
     // aircraft parameters
     _inertia(0,0) = _param_fw_inertia_roll.get();
@@ -139,14 +139,11 @@ FixedwingPositionINDIControl::parameters_update()
     _aoa_offset = _param_aoa_offset.get();
     _stall_speed = _param_stall_speed.get();
 
-
     // actuator gains
     _k_ail = _param_k_act_roll.get();
     _k_ele = _param_k_act_pitch.get();
-    _k_rud = _param_k_act_yaw.get();
     _k_d_roll = _param_k_damping_roll.get();
     _k_d_pitch = _param_k_damping_pitch.get();
-    _k_d_yaw = _param_k_damping_yaw.get();
 
     // trajectory origin
     _origin_lat = _param_origin_lat.get();
@@ -776,8 +773,8 @@ FixedwingPositionINDIControl::Run()
         // ====================
         // publish debug values
         // ====================
-        Vector3f vel_body = R_bi*_vel;
-        _slip = atan2f(vel_body(1), vel_body(0));
+        Vector3f vel_body = R_bi*(_vel - _wind_estimate);
+        _slip = atan2f(vel_body(1), vel_body(0))*180.f/M_PI_2_F;
         _debug_value.timestamp = hrt_absolute_time();
         _debug_value.value = _slip;
         _debug_value_pub.publish(_debug_value);
@@ -1240,10 +1237,10 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     }
     
     // transform rate vector to body frame
-    //omega_turn_ref = R_bi*omega_turn_ref;
+    float scaler = (_stall_speed*_stall_speed)/fmaxf(sqrtf(vel_body*vel_body)*vel_body(0), _stall_speed*_stall_speed);
+    // not really an accel command, rather a FF-P command
+    rot_acc_command(2) = _K_q(2,2)*omega_turn_ref(2)*scaler + _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2))* scaler*scaler;
 
-    // not really a accel command, rather a FF-P command
-    rot_acc_command(2) = _K_q(2,2)*omega_turn_ref(2) + _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2));
     //PX4_INFO("omega turn ref: \t%.2f\t%.2f\t%.2f", (double)omega_turn_ref(0), (double)omega_turn_ref(1), (double)omega_turn_ref(2));
     //PX4_INFO("omega turn    : \t%.2f\t%.2f\t%.2f", (double)_omega(0), (double)_omega(1), (double)_omega(2));
 
@@ -1269,7 +1266,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
     Vector3f moment;
     moment(0) = _k_ail*q*_actuators.control[actuator_controls_s::INDEX_ROLL] - _k_d_roll*q*omega_filtered(0);
     moment(1) = _k_ele*q*_actuators.control[actuator_controls_s::INDEX_PITCH] - _k_d_pitch*q*omega_filtered(1);
-    moment(2) = _k_rud*q*_actuators.control[actuator_controls_s::INDEX_YAW] - _k_d_yaw*q*omega_filtered(2);
+    moment(2) = 0.f;
     // introduce artificial time delay that is also present in acceleration
     Vector3f moment_filtered;
     moment_filtered(0) = _lp_filter_delay[0].apply(moment(0));
@@ -1282,10 +1279,8 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
     Vector3f deflection;
     deflection(0) = (moment_command(0) + _k_d_roll*q*omega_filtered(0))/fmaxf((_k_ail*q),0.0001f);
     deflection(1) = (moment_command(1) + _k_d_pitch*q*omega_filtered(1))/fmaxf((_k_ele*q),0.0001f);
-    deflection(2) = (moment_command(2) + _k_d_yaw*q*omega_filtered(2))/fmaxf((_k_rud*q),0.0001f);
     // overwrite rudder deflection with NDI turn coordination (no INDI)
-    Vector3f moment_ref = _inertia*ctrl + omega_filtered.cross(_inertia*omega_filtered);
-    deflection(2) = (moment_ref(2) + _k_d_yaw*q*omega_filtered(2)) / fmaxf((_k_rud*q),0.0001f);
+    deflection(2) = ctrl(2);
 
     return deflection;
 }
