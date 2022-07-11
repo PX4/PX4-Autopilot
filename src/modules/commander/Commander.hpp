@@ -254,7 +254,6 @@ private:
 		(ParamInt<px4::params::CBRK_USB_CHK>) _param_cbrk_usb_chk,
 		(ParamInt<px4::params::CBRK_AIRSPD_CHK>) _param_cbrk_airspd_chk,
 		(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
-		(ParamInt<px4::params::CBRK_VELPOSERR>) _param_cbrk_velposerr,
 		(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming,
 
 		(ParamInt<px4::params::COM_FLT_TIME_MAX>) _param_com_flt_time_max,
