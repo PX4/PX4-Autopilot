@@ -136,7 +136,7 @@ hrt_tim_init(void)
 		/* Assumes that the clock for timer is enabled and not in reset */
 
 		/* set an initial timeout */
-		putreg32(0x0fff, MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1LOADVAL_OFFSET);
+		hrt_calc_base_time(0x0fff);
 
 		/* enable interrupt for timer, set periodic mode and enable timer */
 		putreg32((MPFS_MSTIMER_INTEN_MASK | MPFS_MSTIMER_ENABLE_MASK) & ~(MPFS_MSTIMER_MODE_MASK),
@@ -226,7 +226,7 @@ hrt_store_absolute_time(volatile hrt_abstime *t)
 static inline hrt_abstime hrt_calc_base_time(uint32_t newloadval)
 {
 	uint32_t	count;
-	uint32_t	loadval;
+	static volatile uint32_t loadval;
 	static volatile hrt_abstime base_time;
 	static volatile uint32_t last_count;
 	irqstate_t	flags;
@@ -237,9 +237,6 @@ static inline hrt_abstime hrt_calc_base_time(uint32_t newloadval)
 
 	/* get the current counter value */
 	count = getreg32(MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1VALUE_OFFSET);
-
-	/* get the previous loaded value */
-	loadval = getreg32(MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1LOADVAL_OFFSET);
 
 	/* Determine whether the counter has wrapped since the
 	 * last time we're called.
@@ -257,16 +254,15 @@ static inline hrt_abstime hrt_calc_base_time(uint32_t newloadval)
 	/* set new last counter val if needed */
 	if (newloadval != 0) {
 		putreg32(newloadval, MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1LOADVAL_OFFSET);
-
-		last_count = newloadval;
+		loadval = newloadval;
+		count = newloadval;
 
 		/* store current time into base_time */
 		base_time = curr_time;
-
-	} else {
-		/* save the count for next time */
-		last_count = count;
 	}
+
+	/* save the count for next time */
+	last_count = count;
 
 	px4_leave_critical_section(flags);
 
