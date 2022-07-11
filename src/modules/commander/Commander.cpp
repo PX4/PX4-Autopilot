@@ -4261,6 +4261,15 @@ void Commander::estimator_check()
 			events::send(events::ID("commander_gps_lost"), {events::Log::Critical, events::LogInternal::Info},
 				     "GPS no longer valid");
 		}
+
+	} else if (!condition_gps_position_was_valid && _vehicle_status_flags.gps_position_valid) {
+
+		// report GPS valid if flying and global position is (still) valid
+		if (!_vehicle_land_detected.landed && _vehicle_status_flags.global_position_valid) {
+			mavlink_log_warning(&_mavlink_log_pub, "GPS valid\t");
+			events::send(events::ID("commander_gps_valid_in_flight"), {events::Log::Warning, events::LogInternal::Info},
+				     "GPS valid");
+		}
 	}
 }
 
