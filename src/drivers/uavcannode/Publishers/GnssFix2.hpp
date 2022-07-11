@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include <cmath>
+
 #include "UavcanPublisherBase.hpp"
 
 #include <uavcan/equipment/gnss/Fix2.hpp>
@@ -126,14 +128,14 @@ public:
 			ecefpositionvelocity.velocity_xyz[2] = NAN;
 
 			// Use ecef_position_velocity for now... There is no heading field
-			if (!isnan(gps.heading)) {
+			if (!std::isnan(gps.heading)) {
 				ecefpositionvelocity.velocity_xyz[0] = gps.heading;
 
-				if (!isnan(gps.heading_offset)) {
+				if (!std::isnan(gps.heading_offset)) {
 					ecefpositionvelocity.velocity_xyz[1] = gps.heading_offset;
 				}
 
-				if (!isnan(gps.heading_accuracy)) {
+				if (!std::isnan(gps.heading_accuracy)) {
 					ecefpositionvelocity.velocity_xyz[2] = gps.heading_accuracy;
 				}
 

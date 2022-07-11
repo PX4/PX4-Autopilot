@@ -58,6 +58,7 @@
 #include <lib/mixer_module/mixer_module.hpp>
 
 // UDRAL Specification Messages
+using std::isfinite;
 #include <reg/udral/service/actuator/common/sp/Vector31_0_1.h>
 #include <reg/udral/service/common/Readiness_0_1.h>
 

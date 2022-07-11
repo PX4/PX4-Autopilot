@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+#include <cmath>
+
 #include <gtest/gtest.h>
 #include <matrix/math.hpp>
 #include <iostream>
@@ -162,7 +164,7 @@ TEST(MatrixDualTest, Dual)
 
 	{
 		// sqrt
-		EXPECT_FLOAT_EQ(sqrt(a).value, sqrt(a.value));
+		EXPECT_FLOAT_EQ(sqrt(a).value, std::sqrt(a.value));
 		EXPECT_FLOAT_EQ(sqrt(a).derivative(0), 1.f / sqrt(12.f));
 	}
 
@@ -202,7 +204,7 @@ TEST(MatrixDualTest, Dual)
 	{
 		// isnan
 		EXPECT_FALSE(IsNan(a));
-		Dual<float, 1> c(sqrt(-1.f), 0);
+		Dual<float, 1> c(std::sqrt(-1.f), 0);
 		EXPECT_TRUE(IsNan(c));
 	}
 
@@ -210,7 +212,7 @@ TEST(MatrixDualTest, Dual)
 		// isfinite/isinf
 		EXPECT_TRUE(IsFinite(a));
 		EXPECT_FALSE(IsInf(a));
-		Dual<float, 1> c(sqrt(-1.f), 0);
+		Dual<float, 1> c(std::sqrt(-1.f), 0);
 		EXPECT_FALSE(IsFinite(c));
 		EXPECT_FALSE(IsInf(c));
 		Dual<float, 1> d(INFINITY, 0);
@@ -221,25 +223,25 @@ TEST(MatrixDualTest, Dual)
 	{
 		// sin/cos/tan
 		EXPECT_FLOAT_EQ(sin(a).value, sin(a.value));
-		EXPECT_FLOAT_EQ(sin(a).derivative(0), cos(a.value)); // sin'(x) = cos(x)
+		EXPECT_FLOAT_EQ(sin(a).derivative(0), std::cos(a.value)); // sin'(x) = cos(x)
 
 		EXPECT_FLOAT_EQ(cos(a).value, cos(a.value));
-		EXPECT_FLOAT_EQ(cos(a).derivative(0), -sin(a.value)); // cos'(x) = -sin(x)
+		EXPECT_FLOAT_EQ(cos(a).derivative(0), -std::sin(a.value)); // cos'(x) = -sin(x)
 
 		EXPECT_FLOAT_EQ(tan(a).value, tan(a.value));
-		EXPECT_FLOAT_EQ(tan(a).derivative(0), 1.f + tan(a.value)*tan(a.value)); // tan'(x) = 1 + tan^2(x)
+		EXPECT_FLOAT_EQ(tan(a).derivative(0), 1.f + std::tan(a.value)*std::tan(a.value)); // tan'(x) = 1 + tan^2(x)
 	}
 
 	{
 		// asin/acos/atan
 		Dual<float, 1> c(0.3f, 0);
-		EXPECT_FLOAT_EQ(asin(c).value, asin(c.value));
-		EXPECT_FLOAT_EQ(asin(c).derivative(0), 1.f / sqrt(1.f - 0.3f * 0.3f)); // asin'(x) = 1/sqrt(1-x^2)
+		EXPECT_FLOAT_EQ(asin(c).value, std::asin(c.value));
+		EXPECT_FLOAT_EQ(asin(c).derivative(0), 1.f / std::sqrt(1.f - 0.3f * 0.3f)); // asin'(x) = 1/sqrt(1-x^2)
 
-		EXPECT_FLOAT_EQ(acos(c).value, acos(c.value));
-		EXPECT_FLOAT_EQ(acos(c).derivative(0), -1.f / sqrt(1.f - 0.3f * 0.3f)); // acos'(x) = -1/sqrt(1-x^2)
+		EXPECT_FLOAT_EQ(acos(c).value, std::acos(c.value));
+		EXPECT_FLOAT_EQ(acos(c).derivative(0), -1.f / std::sqrt(1.f - 0.3f * 0.3f)); // acos'(x) = -1/sqrt(1-x^2)
 
-		EXPECT_FLOAT_EQ(atan(c).value, atan(c.value));
+		EXPECT_FLOAT_EQ(atan(c).value, std::atan(c.value));
 		EXPECT_FLOAT_EQ(atan(c).derivative(0), 1.f / (1.f + 0.3f * 0.3f)); // tan'(x) = 1 + x^2
 	}
 

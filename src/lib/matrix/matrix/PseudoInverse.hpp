@@ -106,7 +106,7 @@ SquareMatrix<Type, N> fullRankCholesky(const SquareMatrix<Type, N> &A,
 		}
 
 		if (L(k, r) > tol) {
-			L(k, r) = sqrt(L(k, r));
+			L(k, r) = std::sqrt(L(k, r));
 
 			if (k < N - 1) {
 				for (size_t i = k + 1; i < N; i++) {

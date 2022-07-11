@@ -42,6 +42,8 @@
 #ifndef EKF_COMMON_H
 #define EKF_COMMON_H
 
+#include <cstdint>
+
 #include <matrix/math.hpp>
 
 namespace estimator
