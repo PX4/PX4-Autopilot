@@ -44,7 +44,6 @@ import fileinput
 with fileinput.FileInput(os.path.abspath(metadata.generated_files[0]), inplace=True, backup='.bak') as file:
     for line in file:
         line = line.replace("std::max", "math::max")
-        line = line.replace("std", "matrix")
         line = line.replace("Eigen", "matrix")
         line = line.replace("matrix/Dense", "matrix/math.hpp")
         print(line, end='')
