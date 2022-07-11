@@ -57,21 +57,6 @@
 PARAM_DEFINE_INT32(CBRK_SUPPLY_CHK, 0);
 
 /**
- * Circuit breaker for rate controller output
- *
- * Setting this parameter to 140253 will disable the rate
- * controller uORB publication.
- * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
- *
- * @reboot_required true
- * @min 0
- * @max 140253
- * @category Developer
- * @group Circuit Breaker
- */
-PARAM_DEFINE_INT32(CBRK_RATE_CTRL, 0);
-
-/**
  * Circuit breaker for IO safety
  *
  * Setting this parameter to 22027 will disable IO safety.

@@ -94,8 +94,6 @@ MulticopterRateControl::parameters_updated()
 	// manual rate control acro mode rate limits
 	_acro_rate_max = Vector3f(radians(_param_mc_acro_r_max.get()), radians(_param_mc_acro_p_max.get()),
 				  radians(_param_mc_acro_y_max.get()));
-
-	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled_by_val(_param_cbrk_rate_ctrl.get(), CBRK_RATE_CTRL_KEY);
 }
 
 void
@@ -207,7 +205,7 @@ MulticopterRateControl::Run()
 		}
 
 		// run the rate controller
-		if (_vehicle_control_mode.flag_control_rates_enabled && !_actuators_0_circuit_breaker_enabled) {
+		if (_vehicle_control_mode.flag_control_rates_enabled) {
 
 			// reset integral if disarmed
 			if (!_vehicle_control_mode.flag_armed || _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
