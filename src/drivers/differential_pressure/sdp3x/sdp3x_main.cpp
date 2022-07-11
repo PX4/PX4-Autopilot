@@ -53,6 +53,7 @@ extern "C" int sdp3x_main(int argc, char *argv[])
 	BusCLIArguments cli{true, false};
 	cli.i2c_address = I2C_ADDRESS_1_SDP3X;
 	cli.default_i2c_frequency = I2C_SPEED;
+	cli.support_keep_running = true;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 
