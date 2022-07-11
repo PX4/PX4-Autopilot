@@ -285,7 +285,7 @@ public:
 
 	Type norm() const
 	{
-		return matrix::sqrt(norm_squared());
+		return std::sqrt(norm_squared());
 	}
 
 	bool longerThan(Type testVal) const

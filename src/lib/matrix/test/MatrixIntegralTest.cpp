@@ -50,6 +50,6 @@ TEST(MatrixIntegralTest, Integral)
 	float tf = 2;
 	float h = 0.001f;
 	integrate_rk4(f, y, u, t0, tf, h, y);
-	float v = 1 + cos(tf) - cos(t0);
+	float v = 1 + std::cos(tf) - std::cos(t0);
 	EXPECT_EQ(y, (ones<float, 6, 1>()*v));
 }

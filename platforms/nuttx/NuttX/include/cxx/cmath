@@ -1,0 +1,114 @@
+/****************************************************************************
+ *
+ *   Copyright (C) 2022 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+// minimal cmath
+
+#pragma once
+
+#include <cstdlib>
+#include <inttypes.h>
+
+#include <math.h>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+namespace std
+{
+
+#if !defined(FLT_EPSILON)
+#define FLT_EPSILON     __FLT_EPSILON__
+#endif
+
+
+#ifdef isfinite
+#undef isfinite
+#endif  // isfinite
+
+inline bool isfinite(float value) { return __builtin_isfinite(value); }
+inline bool isfinite(double value) { return __builtin_isfinite(value); }
+inline bool isfinite(long double value) { return __builtin_isfinite(value); }
+
+
+#ifdef isnan
+#undef isnan
+#endif  // isnan
+
+inline bool isnan(float value) { return __builtin_isnan(value); }
+inline bool isnan(double value) { return __builtin_isnan(value); }
+inline bool isnan(long double value) { return __builtin_isnan(value); }
+
+
+#ifdef isinf
+#undef isinf
+#endif  // isinf
+
+inline bool isinf(float value) { return __builtin_isinf_sign(value); }
+inline bool isinf(double value) { return __builtin_isinf_sign(value); }
+inline bool isinf(long double value) { return __builtin_isinf_sign(value); }
+
+/*
+ * NuttX has no usable C++ math library, so we need to provide the needed definitions here manually.
+ */
+#define NUTTX_WRAP_MATH_FUN_UNARY(name)                                   \
+	inline float       name(float x)       { return ::name##f(x); }          \
+	inline double      name(double x)      { return ::name(x); }             \
+	inline long double name(long double x) { return ::name##l(x); }
+
+#define NUTTX_WRAP_MATH_FUN_BINARY(name)                                                    \
+	inline float       name(float x, float y)             { return ::name##f(x, y); }          \
+	inline double      name(double x, double y)           { return ::name(x, y); }             \
+	inline long double name(long double x, long double y) { return ::name##l(x, y); }
+
+NUTTX_WRAP_MATH_FUN_UNARY(fabs)
+NUTTX_WRAP_MATH_FUN_UNARY(log)
+NUTTX_WRAP_MATH_FUN_UNARY(log10)
+NUTTX_WRAP_MATH_FUN_UNARY(exp)
+NUTTX_WRAP_MATH_FUN_UNARY(sqrt)
+NUTTX_WRAP_MATH_FUN_UNARY(sin)
+NUTTX_WRAP_MATH_FUN_UNARY(cos)
+NUTTX_WRAP_MATH_FUN_UNARY(tan)
+NUTTX_WRAP_MATH_FUN_UNARY(asin)
+NUTTX_WRAP_MATH_FUN_UNARY(acos)
+NUTTX_WRAP_MATH_FUN_UNARY(atan)
+NUTTX_WRAP_MATH_FUN_UNARY(sinh)
+NUTTX_WRAP_MATH_FUN_UNARY(cosh)
+NUTTX_WRAP_MATH_FUN_UNARY(tanh)
+NUTTX_WRAP_MATH_FUN_UNARY(ceil)
+NUTTX_WRAP_MATH_FUN_UNARY(floor)
+
+NUTTX_WRAP_MATH_FUN_BINARY(pow)
+NUTTX_WRAP_MATH_FUN_BINARY(atan2)
+
+}

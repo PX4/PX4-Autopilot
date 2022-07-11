@@ -784,7 +784,7 @@ bool FlightTaskAuto::isTargetModified() const
 {
 	const bool xy_modified = (_target - _position_setpoint).xy().longerThan(FLT_EPSILON);
 	const bool z_valid = PX4_ISFINITE(_position_setpoint(2));
-	const bool z_modified =  z_valid && fabs((_target - _position_setpoint)(2)) > FLT_EPSILON;
+	const bool z_modified =  z_valid && std::fabs((_target - _position_setpoint)(2)) > FLT_EPSILON;
 
 	return xy_modified || z_modified;
 }
