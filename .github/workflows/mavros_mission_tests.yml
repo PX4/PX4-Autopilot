@@ -3,7 +3,7 @@ name: MAVROS Mission Tests
 on:
   push:
     branches:
-    - 'master'
+    - 'main'
   pull_request:
     branches:
     - '*'

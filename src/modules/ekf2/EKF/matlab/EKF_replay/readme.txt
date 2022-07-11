@@ -33,7 +33,7 @@ Copy the generated .mat files into the /EKF_replay/TestData/APM directory.
 3b) If replaying PX4 data:
 
 Collect data with EK2_REC_RPL = 1
-Convert the .ulg log file to .csv files using the PX4/pyulog python script https://github.com/PX4/pyulog/blob/master/pyulog/ulog2csv.py
+Convert the .ulg log file to .csv files using the PX4/pyulog python script https://github.com/PX4/pyulog/blob/main/pyulog/ulog2csv.py
 
 Make this directory your current MARLAB working directory and fill these variables with the paths to the CSV files:
 - sensors_file: path to *_sensor_combined_0.csv

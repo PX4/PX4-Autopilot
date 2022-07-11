@@ -3,7 +3,7 @@ name: Nuttx Targets
 on:
   push:
     branches:
-    - 'master'
+    - 'main'
   pull_request:
     branches:
     - '*'
@@ -112,8 +112,8 @@ jobs:
       run: make ${{matrix.config}} bloaty_templates || true
     - name: make ${{matrix.config}} bloaty_ram
       run: make ${{matrix.config}} bloaty_ram || true
-    - name: make ${{matrix.config}} bloaty_compare_master
-      run: make ${{matrix.config}} bloaty_compare_master || true
+    - name: make ${{matrix.config}} bloaty_compare_main
+      run: make ${{matrix.config}} bloaty_compare_main || true
     - name: ccache post-run
       run: ccache -s
 

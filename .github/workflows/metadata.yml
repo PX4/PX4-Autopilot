@@ -3,7 +3,7 @@ name: Metadata
 on:
   push:
     branches:
-    - 'master'
+    - 'main'
     - 'release/*'
     - 'pr-metadata-test'
 
@@ -114,7 +114,7 @@ jobs:
         make uorb_graphs
         cd Tools/uorb_graph
         ls -ls *
-      # TODO: deploy graph_px4_sitl.json to S3 px4-travis:Firmware/master/
+      # TODO: deploy graph_px4_sitl.json to S3 px4-travis:Firmware/main/
 
   micrortps_agent:
     runs-on: ubuntu-latest

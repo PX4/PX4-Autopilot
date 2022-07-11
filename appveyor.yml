@@ -4,7 +4,7 @@ version: "{build}"
 
 branches:
   only:
-  - master
+  - main
   - beta
   - stable
 

@@ -79,7 +79,7 @@ if validate:
         print("  v1.9.0-beta1")
         print("  v1.9.0-1.0.0")
         print("  v1.9.0-1.0.0-alpha2")
-        print("See also https://dev.px4.io/master/en/setup/building_px4.html#firmware_version")
+        print("See also https://dev.px4.io/main/en/setup/building_px4.html#firmware_version")
         print("")
         sys.exit(1)
 

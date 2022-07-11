@@ -146,7 +146,7 @@ pipeline {
     //   }
     //   when {
     //     anyOf {
-    //       branch 'master'
+    //       branch 'main'
     //       branch 'beta'
     //       branch 'stable'
     //       branch 'pr-jenkins' // for testing

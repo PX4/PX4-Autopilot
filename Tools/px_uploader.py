@@ -331,7 +331,7 @@ class uploader(object):
 
         except NotImplementedError:
             raise RuntimeError("Programing not supported for this version of silicon!\n"
-                               "See https://docs.px4.io/master/en/flight_controller/silicon_errata.html")
+                               "See https://docs.px4.io/main/en/flight_controller/silicon_errata.html")
         except RuntimeError:
             # timeout, no response yet
             return False
@@ -635,7 +635,7 @@ class uploader(object):
 
                 # This check should also check if the revision is an unaffected revision
                 # and thus can support the full flash, see
-                # https://github.com/PX4/Firmware/blob/master/src/drivers/boards/common/stm32/board_mcu_version.c#L125-L144
+                # https://github.com/PX4/Firmware/blob/main/src/drivers/boards/common/stm32/board_mcu_version.c#L125-L144
 
                 if self.fw_maxsize > fw.property('image_maxsize') and not force:
                     raise RuntimeError("Board can accept larger flash images (%u bytes) than board config (%u bytes). Please use the correct board configuration to avoid lacking critical functionality."

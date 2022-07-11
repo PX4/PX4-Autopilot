@@ -7,7 +7,7 @@ pipeline {
     stage('Analysis') {
       when {
         anyOf {
-          branch 'master'
+          branch 'main'
           branch 'pr-jenkins' // for testing
         }
       }
@@ -211,13 +211,13 @@ pipeline {
               sh('cp -R graph_*.json px4_user_guide/.vuepress/public/en/middleware/')
               sh('cp -R msg_docs/*.md px4_user_guide/en/msg_docs/')
               sh('cd px4_user_guide; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
-              sh('cd px4_user_guide; git push origin master || true')
+              sh('cd px4_user_guide; git push origin main || true')
               sh('rm -rf px4_user_guide')
             }
           }
           when {
             anyOf {
-              branch 'master'
+              branch 'main'
               branch 'pr-jenkins' // for testing
             }
           }
@@ -239,13 +239,13 @@ pipeline {
               sh('cp airframes.xml qgroundcontrol/src/AutoPilotPlugins/PX4/AirframeFactMetaData.xml')
               sh('cp parameters.xml qgroundcontrol/src/FirmwarePlugin/PX4/PX4ParameterFactMetaData.xml')
               sh('cd qgroundcontrol; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
-              sh('cd qgroundcontrol; git push origin master || true')
+              sh('cd qgroundcontrol; git push origin main || true')
               sh('rm -rf qgroundcontrol')
             }
           }
           when {
             anyOf {
-              branch 'master'
+              branch 'main'
               branch 'pr-jenkins' // for testing
             }
           }
@@ -278,7 +278,7 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'master'
+              branch 'main'
               branch 'pr-jenkins' // for testing
             }
           }
@@ -293,10 +293,10 @@ pipeline {
             sh('make distclean; git clean -ff -x -d .')
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_msgs.git")
-              // 'master' branch
+              // 'main' branch
               sh('./msg/tools/uorb_to_ros_msgs.py msg/ px4_msgs/msg/')
               sh('cd px4_msgs; git status; git add .; git commit -a -m "Update message definitions `date`" || true')
-              sh('cd px4_msgs; git push origin master || true')
+              sh('cd px4_msgs; git push origin main || true')
               // 'ros1' branch
               sh('cd px4_msgs; git checkout ros1')
               sh('./msg/tools/uorb_to_ros_msgs.py msg/ px4_msgs/msg/')
@@ -307,7 +307,7 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'master'
+              branch 'main'
               branch 'pr-jenkins' // for testing
             }
           }
@@ -350,7 +350,7 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'master'
+              branch 'main'
               branch 'pr-jenkins' // for testing
             }
           }
@@ -366,14 +366,14 @@ pipeline {
             unstash 'metadata_parameters'
             sh('ls')
             withAWS(credentials: 'px4_aws_s3_key', region: 'us-east-1') {
-              s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'airframes.xml', path: 'Firmware/master/')
-              s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'parameters.xml', path: 'Firmware/master/')
-              s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'parameters.json.xz', path: 'Firmware/master/')
+              s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'airframes.xml', path: 'Firmware/main/')
+              s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'parameters.xml', path: 'Firmware/main/')
+              s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'parameters.json.xz', path: 'Firmware/main/')
             }
           }
           when {
             anyOf {
-              branch 'master'
+              branch 'main'
               branch 'pr-jenkins' // for testing
             }
           }

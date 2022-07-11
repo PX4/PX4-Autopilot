@@ -78,10 +78,10 @@ if (BLOATY_PROGRAM)
 		USES_TERMINAL
 		)
 
-	# bloaty compare with last master build
-	add_custom_target(bloaty_compare_master
-		COMMAND wget --continue --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf -O master.elf
-		COMMAND ${BLOATY_PROGRAM} -d symbols ${BLOATY_OPTS} $<TARGET_FILE:px4> -- master.elf
+	# bloaty compare with last main build
+	add_custom_target(bloaty_compare_main
+		COMMAND wget --continue --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/main/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf -O main.elf
+		COMMAND ${BLOATY_PROGRAM} -d symbols ${BLOATY_OPTS} $<TARGET_FILE:px4> -- main.elf
 		DEPENDS px4
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		VERBATIM
