@@ -276,7 +276,7 @@ private:
 
 	// AUTO TAKEOFF
 
-	// [m] ground altitude where the plane was launched
+	// [m] ground altitude AMSL where the plane was launched
 	float _takeoff_ground_alt{0.0f};
 
 	// class handling launch detection methods for fixed-wing takeoff
