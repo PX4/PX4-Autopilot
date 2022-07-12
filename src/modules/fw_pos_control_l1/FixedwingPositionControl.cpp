@@ -680,18 +680,6 @@ FixedwingPositionControl::get_waypoint_heading_distance(float heading, position_
 }
 
 float
-FixedwingPositionControl::get_terrain_altitude_takeoff(float takeoff_alt)
-{
-	float terrain_alt = _local_pos.ref_alt - (_local_pos.dist_bottom + _local_pos.z);
-
-	if (PX4_ISFINITE(terrain_alt) && _local_pos.dist_bottom_valid) {
-		return terrain_alt;
-	}
-
-	return takeoff_alt;
-}
-
-float
 FixedwingPositionControl::getManualHeightRateSetpoint()
 {
 	/*
@@ -852,7 +840,6 @@ FixedwingPositionControl::update_in_air_states(const hrt_abstime now)
 	if (!_was_in_air && !_landed) {
 		_was_in_air = true;
 		_time_went_in_air = now;
-		_takeoff_ground_alt = _current_altitude; // XXX: is this really a good idea?
 
 		_tecs.resetIntegrals();
 		_tecs.resetTrajectoryGenerators(_current_altitude);
@@ -1390,14 +1377,10 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 	Vector2f local_2D_position{_local_pos.x, _local_pos.y};
 
-	float terrain_alt = _takeoff_ground_alt;
-
 	if (_runway_takeoff.runwayTakeoffEnabled()) {
 		if (!_runway_takeoff.isInitialized()) {
 			_runway_takeoff.init(now, _yaw, global_position);
 
-			/* need this already before takeoff is detected
-			 * doesn't matter if it gets reset when takeoff is detected eventually */
 			_takeoff_ground_alt = _current_altitude;
 
 			mavlink_log_info(&_mavlink_log_pub, "Takeoff on runway\t");
@@ -1408,9 +1391,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_runway_takeoff.forceSetFlyState();
 		}
 
-		terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt);
-
-		_runway_takeoff.update(now, _airspeed, _current_altitude - terrain_alt, clearance_altitude_amsl - _takeoff_ground_alt,
+		_runway_takeoff.update(now, _airspeed, _current_altitude - _takeoff_ground_alt,
+				       clearance_altitude_amsl - _takeoff_ground_alt,
 				       &_mavlink_log_pub);
 
 		const float takeoff_airspeed = _runway_takeoff.getMinAirspeedScaling() * _param_fw_airspd_min.get();
@@ -1538,6 +1520,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		if (!_launch_detected && _launch_detection_state != LAUNCHDETECTION_RES_NONE) {
 			_launch_detected = true;
 			_launch_global_position = global_position;
+			_takeoff_ground_alt = _current_altitude;
 		}
 
 		const Vector2f launch_local_position = _global_local_proj_ref.project(_launch_global_position(0),
@@ -1632,7 +1615,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 	}
 
-	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, terrain_alt);
+	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, _takeoff_ground_alt);
 
 	if (!_vehicle_status.in_transition_to_fw) {
 		publishLocalPositionSetpoint(pos_sp_curr);
@@ -2467,6 +2450,8 @@ FixedwingPositionControl::reset_takeoff_state()
 	_last_time_launch_detection_notified = 0;
 
 	_launch_detected = false;
+
+	_takeoff_ground_alt = _current_altitude;
 }
 
 void
