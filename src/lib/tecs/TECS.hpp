@@ -219,12 +219,8 @@ public:
 
 private:
 
-	// [m/s] bound on expected (safe) true airspeed tracking errors, including TAS = TAS_min - TAS_ERROR_BOUND
-	static constexpr float TAS_ERROR_BOUND = 2.0f;
-
-	// [m/s] true airspeed soft boundary region below the accepted TAS error region (below TAS_min - TAS_ERROR_BOUND)
-	// underspeed mitigation measures are ramped in from zero to full within this region
-	static constexpr float TAS_UNDERSPEED_SOFT_BOUND = 1.5f;
+	// [0,1] percentage of true airspeed trim corresponding to expected (safe) true airspeed tracking errors
+	static constexpr float kTASErrorPercentage = 0.15;
 
 	static constexpr float _jerk_max =
 		1000.0f;
