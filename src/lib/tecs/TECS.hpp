@@ -291,8 +291,8 @@ private:
 
 	// vehicle physical limits
 	float _pitch_setpoint_unc{0.0f};				///< pitch demand before limiting (rad)
-	float _STE_rate_max{0.0f};					///< specific total energy rate upper limit achieved when throttle is at _throttle_setpoint_max (m**2/sec**3)
-	float _STE_rate_min{0.0f};					///< specific total energy rate lower limit acheived when throttle is at _throttle_setpoint_min (m**2/sec**3)
+	float _STE_rate_max{FLT_EPSILON};				///< specific total energy rate upper limit achieved when throttle is at _throttle_setpoint_max (m**2/sec**3)
+	float _STE_rate_min{-FLT_EPSILON};				///< specific total energy rate lower limit acheived when throttle is at _throttle_setpoint_min (m**2/sec**3)
 	float _throttle_setpoint_max{0.0f};				///< normalised throttle upper limit
 	float _throttle_setpoint_min{0.0f};				///< normalised throttle lower limit
 	float _throttle_trim{0.0f};					///< throttle required to fly level at _EAS_setpoint, compensated for air density and vehicle weight

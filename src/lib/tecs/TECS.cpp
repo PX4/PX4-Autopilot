@@ -168,9 +168,8 @@ void TECS::_update_speed_setpoint()
 
 	// Calculate limits for the demanded rate of change of speed based on physical performance limits
 	// with a 50% margin to allow the total energy controller to correct for errors.
-	// NOTE: at zero airspeed, the true airspeed rate setpoint is unbounded
-	const float max_tas_rate_sp = 0.5f * _STE_rate_max / _tas_state;
-	const float min_tas_rate_sp = 0.5f * _STE_rate_min / _tas_state;
+	const float max_tas_rate_sp = 0.5f * _STE_rate_max / math::max(_tas_state, FLT_EPSILON);
+	const float min_tas_rate_sp = 0.5f * _STE_rate_min / math::max(_tas_state, FLT_EPSILON);
 
 	_TAS_setpoint_adj = constrain(_TAS_setpoint, _TAS_min, _TAS_max);
 
@@ -548,10 +547,10 @@ void TECS::_initialize_states(float pitch, float throttle_trim, float baro_altit
 void TECS::_update_STE_rate_lim()
 {
 	// Calculate the specific total energy upper rate limits from the max throttle climb rate
-	_STE_rate_max = _max_climb_rate * CONSTANTS_ONE_G;
+	_STE_rate_max = math::max(_max_climb_rate, FLT_EPSILON) * CONSTANTS_ONE_G;
 
 	// Calculate the specific total energy lower rate limits from the min throttle sink rate
-	_STE_rate_min = - _min_sink_rate * CONSTANTS_ONE_G;
+	_STE_rate_min = - math::max(_min_sink_rate, FLT_EPSILON) * CONSTANTS_ONE_G;
 }
 
 void TECS::update_pitch_throttle(float pitch, float baro_altitude, float hgt_setpoint,
