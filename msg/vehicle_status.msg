@@ -58,18 +58,6 @@ uint8 NAVIGATION_STATE_ORBIT = 21               # Orbit in a circle
 uint8 NAVIGATION_STATE_AUTO_VTOL_TAKEOFF = 22   # Takeoff, transition, establish loiter
 uint8 NAVIGATION_STATE_MAX = 23
 
-# Bitmask of detected failures
-uint16 failure_detector_status
-uint16 FAILURE_NONE = 0
-uint16 FAILURE_ROLL = 1              # (1 << 0)
-uint16 FAILURE_PITCH = 2             # (1 << 1)
-uint16 FAILURE_ALT = 4               # (1 << 2)
-uint16 FAILURE_EXT = 8               # (1 << 3)
-uint16 FAILURE_ARM_ESC = 16          # (1 << 4)
-uint16 FAILURE_BATTERY = 32          # (1 << 5)
-uint16 FAILURE_IMBALANCED_PROP = 64  # (1 << 6)
-uint16 FAILURE_MOTOR = 128           # (1 << 7)
-
 uint8 hil_state
 uint8 HIL_STATE_OFF = 0
 uint8 HIL_STATE_ON = 1

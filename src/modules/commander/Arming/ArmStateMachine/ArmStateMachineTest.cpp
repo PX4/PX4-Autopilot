@@ -257,11 +257,13 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 		status_flags.circuit_breaker_engaged_power_check = true;
 
 		vehicle_control_mode_s control_mode{};
+		failure_detector_status_s failure_detector_status{};
 
 		// Attempt transition
 		transition_result_t result = arm_state_machine.arming_state_transition(
 						     status,
 						     control_mode,
+						     failure_detector_status,
 						     test->safety_button_available,
 						     test->safety_off,
 						     test->requested_state,

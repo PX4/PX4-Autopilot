@@ -52,6 +52,7 @@ static constexpr unsigned max_mandatory_baro_count = 1;
 
 bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 				    vehicle_status_flags_s &status_flags, const vehicle_control_mode_s &control_mode,
+				    const failure_detector_status_s failure_detector_status,
 				    bool report_failures,
 				    const bool safety_button_available, const bool safety_off,
 				    const bool is_arm_attempt)
@@ -206,11 +207,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 		}
 	}
 
-	/* ---- Failure Detector ---- */
-	if (!failureDetectorCheck(mavlink_log_pub, status, report_failures)) {
-		failed = true;
-	}
-
+	failed = failed || !failureDetectorCheck(mavlink_log_pub, failure_detector_status, report_failures);
 	failed = failed || !manualControlCheck(mavlink_log_pub, report_failures);
 	failed = failed || !modeCheck(mavlink_log_pub, report_failures, status);
 	failed = failed || !cpuResourceCheck(mavlink_log_pub, report_failures);

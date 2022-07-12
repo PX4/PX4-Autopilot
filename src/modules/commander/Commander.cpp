@@ -294,8 +294,12 @@ int Commander::custom_command(int argc, char *argv[])
 		vehicle_control_mode_s vehicle_control_mode{};
 		vehicle_control_mode_sub.copy(&vehicle_control_mode);
 
+		uORB::Subscription failure_detector_status_sub{ORB_ID(failure_detector_status)};
+		failure_detector_status_s failure_detector_status{};
+		failure_detector_status_sub.copy(&failure_detector_status);
+
 		bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, vehicle_status, vehicle_status_flags,
-					   vehicle_control_mode,
+					   vehicle_control_mode, failure_detector_status,
 					   true, // report_failures
 					   false, // safety_buttton_available not known
 					   false); // safety_off not known
@@ -490,6 +494,7 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 bool Commander::shutdown_if_allowed()
 {
 	return TRANSITION_DENIED != _arm_state_machine.arming_state_transition(_vehicle_status, _vehicle_control_mode,
+			_failure_detector.getFailureDetectorStatus(),
 			_safety.isButtonAvailable(), _safety.isSafetyOff(),
 			vehicle_status_s::ARMING_STATE_SHUTDOWN,
 			_actuator_armed, false /* fRunPreArmChecks */, &_mavlink_log_pub, _vehicle_status_flags,
@@ -743,6 +748,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	}
 
 	transition_result_t arming_res = _arm_state_machine.arming_state_transition(_vehicle_status, _vehicle_control_mode,
+					 _failure_detector.getFailureDetectorStatus(),
 					 _safety.isButtonAvailable(), _safety.isSafetyOff(),
 					 vehicle_status_s::ARMING_STATE_ARMED, _actuator_armed, run_preflight_checks,
 					 &_mavlink_log_pub, _vehicle_status_flags,
@@ -787,6 +793,7 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 	}
 
 	transition_result_t arming_res = _arm_state_machine.arming_state_transition(_vehicle_status, _vehicle_control_mode,
+					 _failure_detector.getFailureDetectorStatus(),
 					 _safety.isButtonAvailable(), _safety.isSafetyOff(),
 					 vehicle_status_s::ARMING_STATE_STANDBY, _actuator_armed, false,
 					 &_mavlink_log_pub, _vehicle_status_flags,
@@ -849,6 +856,7 @@ Commander::Commander() :
 
 	// run preflight immediately to find all relevant parameters, but don't report
 	PreFlightCheck::preflightCheck(&_mavlink_log_pub, _vehicle_status, _vehicle_status_flags, _vehicle_control_mode,
+				       _failure_detector.getFailureDetectorStatus(),
 				       false, // report_failures
 				       false, // safety_buttton_available not known
 				       false); // safety_off not known
@@ -1401,6 +1409,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				/* try to go to INIT/PREFLIGHT arming state */
 				if (TRANSITION_DENIED == _arm_state_machine.arming_state_transition(_vehicle_status, _vehicle_control_mode,
+						_failure_detector.getFailureDetectorStatus(),
 						_safety.isButtonAvailable(), _safety.isSafetyOff(),
 						vehicle_status_s::ARMING_STATE_INIT, _actuator_armed,
 						false /* fRunPreArmChecks */, &_mavlink_log_pub, _vehicle_status_flags,
@@ -2450,6 +2459,7 @@ Commander::run()
 		if (!_vehicle_status_flags.calibration_enabled && _arm_state_machine.isInit()) {
 
 			_arm_state_machine.arming_state_transition(_vehicle_status, _vehicle_control_mode,
+					_failure_detector.getFailureDetectorStatus(),
 					_safety.isButtonAvailable(), _safety.isSafetyOff(),
 					vehicle_status_s::ARMING_STATE_STANDBY, _actuator_armed,
 					true /* fRunPreArmChecks */, &_mavlink_log_pub, _vehicle_status_flags,
@@ -2705,12 +2715,11 @@ Commander::run()
 		}
 
 		/* Check for failure detector status */
+		const bool previous_motor_failure_flag = _failure_detector.getStatus().flags.motor;
+
 		if (_failure_detector.update(_vehicle_status, _vehicle_control_mode)) {
-			const bool motor_failure_changed = ((_vehicle_status.failure_detector_status & vehicle_status_s::FAILURE_MOTOR) > 0) !=
-							   _failure_detector.getStatus().flags.motor;
-			_vehicle_status.failure_detector_status = _failure_detector.getStatus().value;
-			auto fd_status_flags = _failure_detector.getStatusFlags();
 			_status_changed = true;
+			decltype(failure_detector_status_u::flags) fd_status_flags = _failure_detector.getStatusFlags();
 
 			if (_arm_state_machine.isArmed()) {
 				if (fd_status_flags.arm_escs) {
@@ -2773,7 +2782,7 @@ Commander::run()
 			}
 
 			// One-time actions based on motor failure
-			if (motor_failure_changed) {
+			if (fd_status_flags.motor != previous_motor_failure_flag) {
 				if (fd_status_flags.motor) {
 					mavlink_log_critical(&_mavlink_log_pub, "Motor failure detected\t");
 					events::send(events::ID("commander_motor_failure"), events::Log::Emergency,
@@ -2992,6 +3001,7 @@ Commander::run()
 				_vehicle_status_flags.pre_flight_checks_pass = PreFlightCheck::preflightCheck(nullptr, _vehicle_status,
 						_vehicle_status_flags,
 						_vehicle_control_mode,
+						_failure_detector.getFailureDetectorStatus(),
 						false, // report_failures
 						_safety.isButtonAvailable(), _safety.isSafetyOff());
 				perf_end(_preflight_check_perf);
@@ -3023,17 +3033,7 @@ Commander::run()
 			_commander_state_pub.publish(_commander_state);
 
 			// failure_detector_status publish
-			failure_detector_status_s fd_status{};
-			fd_status.fd_roll = _failure_detector.getStatusFlags().roll;
-			fd_status.fd_pitch = _failure_detector.getStatusFlags().pitch;
-			fd_status.fd_alt = _failure_detector.getStatusFlags().alt;
-			fd_status.fd_ext = _failure_detector.getStatusFlags().ext;
-			fd_status.fd_arm_escs = _failure_detector.getStatusFlags().arm_escs;
-			fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
-			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
-			fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
-			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
-			fd_status.motor_failure_mask = _failure_detector.getMotorFailures();
+			failure_detector_status_s fd_status = _failure_detector.getFailureDetectorStatus();
 			fd_status.timestamp = hrt_absolute_time();
 			_failure_detector_status_pub.publish(fd_status);
 		}
@@ -3621,6 +3621,7 @@ void Commander::data_link_check()
 					if (!_arm_state_machine.isArmed() && !_vehicle_status_flags.calibration_enabled) {
 						// make sure to report preflight check failures to a connecting GCS
 						PreFlightCheck::preflightCheck(&_mavlink_log_pub, _vehicle_status, _vehicle_status_flags, _vehicle_control_mode,
+									       _failure_detector.getFailureDetectorStatus(),
 									       true, // report_failures
 									       _safety.isButtonAvailable(), _safety.isSafetyOff());
 					}

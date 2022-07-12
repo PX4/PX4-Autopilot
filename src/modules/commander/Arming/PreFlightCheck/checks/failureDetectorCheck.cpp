@@ -35,34 +35,35 @@
 
 #include <systemlib/mavlink_log.h>
 
-bool PreFlightCheck::failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
+bool PreFlightCheck::failureDetectorCheck(orb_advert_t *mavlink_log_pub,
+		const failure_detector_status_s failure_detector_status,
 		const bool report_fail)
 {
-	if (status.failure_detector_status != vehicle_status_s::FAILURE_NONE) {
-		if (report_fail) {
-			if (status.failure_detector_status & vehicle_status_s::FAILURE_ROLL) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Roll failure detected");
-			}
-
-			if (status.failure_detector_status & vehicle_status_s::FAILURE_PITCH) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Pitch failure detected");
-			}
-
-			if (status.failure_detector_status & vehicle_status_s::FAILURE_ALT) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Altitude failure detected");
-			}
-
-			if (status.failure_detector_status & vehicle_status_s::FAILURE_EXT) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Parachute failure detected");
-			}
-
-			if (status.failure_detector_status & vehicle_status_s::FAILURE_ARM_ESC) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: ESC failure detected");
-			}
+	if (report_fail) {
+		if (failure_detector_status.fd_roll) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Roll failure detected");
 		}
 
-		return false;
+		if (failure_detector_status.fd_pitch) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Pitch failure detected");
+		}
+
+		if (failure_detector_status.fd_alt) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Altitude failure detected");
+		}
+
+		if (failure_detector_status.fd_ext) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Parachute failure detected");
+		}
+
+		if (failure_detector_status.fd_arm_escs) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: ESC failure detected");
+		}
 	}
 
-	return true;
+	return !failure_detector_status.fd_roll
+	       && !failure_detector_status.fd_pitch
+	       && !failure_detector_status.fd_alt
+	       && !failure_detector_status.fd_ext
+	       && !failure_detector_status.fd_arm_escs;
 }
