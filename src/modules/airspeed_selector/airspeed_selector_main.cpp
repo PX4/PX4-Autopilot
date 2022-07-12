@@ -505,7 +505,9 @@ void AirspeedModule::poll_topics()
 
 
 	_vehicle_local_position_valid = (_time_now_usec - _vehicle_local_position.timestamp < 1_s)
-					&& (_vehicle_local_position.timestamp > 0) && _vehicle_local_position.v_xy_valid;
+					&& (_vehicle_local_position.timestamp > 0)
+					&& _vehicle_local_position.v_xy_valid
+					&& !_vehicle_local_position.dead_reckoning;
 }
 
 void AirspeedModule::update_wind_estimator_sideslip()
