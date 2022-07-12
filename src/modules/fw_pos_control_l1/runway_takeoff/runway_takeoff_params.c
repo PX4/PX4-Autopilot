@@ -48,10 +48,11 @@
 PARAM_DEFINE_INT32(RWTO_TKOFF, 0);
 
 /**
- * Specifies which heading should be held during runnway takeoff.
+ * Specifies which heading should be held during the runway takeoff ground roll.
  *
- * 0: airframe heading
- * 1: position control along runway direction (defined by operator in MAV_CMD)
+ * 0: airframe heading when takeoff is initiated
+ * 1: position control along runway direction (bearing defined from vehicle position on takeoff initiation to MAV_CMD_TAKEOFF
+ *    position defined by operator)
  *
  * @value 0 Airframe
  * @value 1 Runway
@@ -147,6 +148,9 @@ PARAM_DEFINE_FLOAT(RWTO_L1_PERIOD, 5.0f);
 
 /**
  * Enable use of yaw stick for nudging the wheel during runway ground roll
+ *
+ * This is useful when map, GNSS, or yaw errors on ground are misaligned with what the operator intends for takeoff course.
+ * Particularly useful for skinny runways or if the wheel servo is a bit off trim.
  *
  * @boolean
  * @group Runway Takeoff
