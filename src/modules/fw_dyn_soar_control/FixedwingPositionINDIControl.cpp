@@ -94,6 +94,15 @@ FixedwingPositionINDIControl::init()
 	_R_ned_to_enu.renormalize();
     _R_enu_to_ned = _R_ned_to_enu;
 
+    // initialize wind shear params
+    _shear_V_max = 0.f;
+    _shear_alpha = 0.f;
+    _shear_h_ref = 0.f;
+    _shear_heading = M_PI_2_F;
+
+    // initialize transform to trajec frame
+    _compute_trajectory_transform();
+
 	return true;
 }
 
@@ -355,6 +364,15 @@ FixedwingPositionINDIControl::soaring_controller_status_poll()
 }
 
 void
+FixedwingPositionINDIControl::_compute_trajectory_transform()
+{
+    Eulerf e(0.f, 0.f, _shear_heading);
+    _R_enu_to_trajec = Dcmf(e);
+    _R_trajec_to_enu = _R_enu_to_trajec.transpose();
+    _vec_enu_to_trajec = Vector3f{0.f,0.f,_shear_h_ref};
+}
+
+void
 FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
 {
     _wind_estimate = wind;
@@ -396,6 +414,28 @@ FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
     default:
         strcpy(filename,"trajectory0.csv");
     }
+
+    /* 
+    We read a trajectory based on initial energy available at the beginning of the trajectory.
+    So the trajectory is selected based on two criteria, first the correct wind shear params (alpha and V_max) and the initial energy (potential + kinetic).
+    
+    The filename structure of the trajectories is the following:
+    trajec_<type>_<energy>_<V_max>_<alpha>
+    with
+    <type> in {nominal, robust}
+    <energy> in [E_min, E_max]
+    <V_max> in [8,24]
+    <alpha> in [0.1, 1.0]
+    */
+
+    /*
+    Also, we need to place the current trajectory, centered around zero height and assuming wind from the west, into the soaring frame.
+    Since the necessary computations for position, velocity and acceleration require the basis coefficients, which are not easy to transform, 
+    we choose to transform our position in soaring frame into the "trajectory frame", compute position vector and it's derivatives from the basis coeffs
+    in the trajectory frame, and then transform these back to soaring frame for control purposes.
+
+    Therefore we define a new transform between the soaring frame and the trajectory frame.
+    */
     
 
     _read_trajectory_coeffs_csv(filename);
@@ -587,6 +627,9 @@ FixedwingPositionINDIControl::Run()
         vehicle_angular_velocity_poll();
         vehicle_angular_acceleration_poll();
         soaring_controller_status_poll();
+
+        // update transform from trajectory frame to ENU frame (soaring frame)
+        _compute_trajectory_transform();
 
         // ===============================
         // compute wind pseudo-measurement
@@ -835,7 +878,7 @@ FixedwingPositionINDIControl::_get_position_ref(float t)
     float x = _basis_coeffs_x*basis;
     float y = _basis_coeffs_y*basis;
     float z = _basis_coeffs_z*basis;
-    return Vector3f{x, y, z};
+    return _R_trajec_to_enu*Vector3f{x, y, z} + _vec_enu_to_trajec;
 }
 
 Vector3f
@@ -845,7 +888,7 @@ FixedwingPositionINDIControl::_get_velocity_ref(float t, float T)
     float x = _basis_coeffs_x*basis;
     float y = _basis_coeffs_y*basis;
     float z = _basis_coeffs_z*basis;
-    return Vector3f{x, y, z}/T;
+    return _R_trajec_to_enu*(Vector3f{x, y, z}/T);
 }
 
 Vector3f
@@ -855,7 +898,7 @@ FixedwingPositionINDIControl::_get_acceleration_ref(float t, float T)
     float x = _basis_coeffs_x*basis;
     float y = _basis_coeffs_y*basis;
     float z = _basis_coeffs_z*basis;
-    return Vector3f{x, y, z}/powf(T,2);
+    return _R_trajec_to_enu*(Vector3f{x, y, z}/powf(T,2));
 }
 
 Quatf
@@ -975,7 +1018,6 @@ FixedwingPositionINDIControl::_get_closest_t(Vector3f pos)
     //PX4_INFO("closest t: %.2f", (double)t);
     //PX4_INFO("closest distance:%.2f", (double)sqrtf(min_dist));
 
-    
     const uint n_1 = 20;
     Vector<float, n_1> distances;
     float t_ref;
@@ -1120,9 +1162,22 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // limit maximum lift force by the maximum lift force, the aircraft can produce (assume max force at 12° aoa)
     //PX4_INFO("force current, command: \t%.2f\t%.2f", (double)sqrtf(f_current_filtered*f_current_filtered), (double)sqrtf(f_command*f_command));
 
+    // ====================================================================
+    // saturate force command to avoid overly agressive maneuvers and stall
+    // ====================================================================
     if (_switch_saturation){
-        float f_max = -factor*sqrtf(vel_body*vel_body)*(_C_L0 + _C_L1*0.2f);
+        float speed = vel_body*vel_body;
+        // compute amximum achievable force
+        float f_max;
+        if (speed>_stall_speed){
+            f_max = -factor*sqrtf(vel_body*vel_body)*(_C_L0 + _C_L1*0.25f); // assume stall at 15° AoA
+        }
+        else {
+            f_max = -factor*_stall_speed*(_C_L0 + _C_L1*0.25f); // assume stall at 15° AoA
+        }
+        // compute current command
         float f_now = sqrtf(f_command*f_command);
+        // saturate current command
         if (f_now>f_max){
             f_command = f_max/f_now * f_command;
         }

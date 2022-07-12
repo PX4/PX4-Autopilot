@@ -250,6 +250,7 @@ private:
 	const static size_t _num_basis_funs = 16;			// number of basis functions used for the trajectory approximation
 
 	// controller methods
+	void _compute_trajectory_transform();						// compute the transform between trajectory frame and ENU frame (soaring frame) based on shear params
 	void _select_trajectory(float initial_energy);				// select the correct trajectory based on available energy
 	void _read_trajectory_coeffs_csv(char *filename);				// read in the correct coefficients of the appropriate trajectory
 	void _set_wind_estimate(Vector3f wind);
@@ -332,6 +333,11 @@ private:
 	float _origin_N;
 	float _origin_E;
 	float _origin_D;
+	// wind shear parameters
+	float _shear_V_max;
+	float _shear_alpha;
+	float _shear_h_ref;
+	float _shear_heading;
 	// loiter circle
 	int _loiter;
 	// thrust
@@ -354,14 +360,17 @@ private:
 	float _slip{0.0f};
 
 	// vectors defining the initial velocities, wind speed and shear strength
-	Vector<float, 10> _initial_velocities_trajectory = {};	
-	Vector<float, 10> _wind_speed_trajectory = {};	
-	Vector<float, 10> _shear_param_trajectory = {};	
+	Vector<float, 10> _initial_energy_arr = {};	
+	Vector<float, 10> _V_max_arr = {};	
+	Vector<float, 10> _alpha_arr = {};	
 
 
 	// helper variables
 	Dcmf _R_ned_to_enu;	// rotation matrix from NED to ENU frame
 	Dcmf _R_enu_to_ned;	// rotation matrix from ENU to NED frame
+	Dcmf _R_trajec_to_enu; // rotation matrix from trajectory frame to ENU frame
+	Dcmf _R_enu_to_trajec; // rotation matrix from ENU frame to trajectory frame
+	Vector3f _vec_enu_to_trajec; // 3D vector from ENU origin to trajectory frame origin (expressed in ENU)
 	Vector3f _zero_crossing_local_pos;	// vector denoting the zero crossing of the trajectories in NED frame
 	Vector3f _f_command_filtered {};
 	Vector3f _m_command_filtered {};
