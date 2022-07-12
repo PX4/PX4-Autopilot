@@ -752,7 +752,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 		return; // do not publish the setpoint
 	}
 
-	FW_POSCTRL_MODE last_position_control_mode = _control_mode_current;
+	FW_POSCTRL_MODE commanded_position_control_mode = _control_mode_current;
 
 	_skipping_takeoff_detection = false;
 
@@ -770,7 +770,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 			} else {
 				_control_mode_current = FW_POSCTRL_MODE_AUTO_TAKEOFF;
 
-				if (last_position_control_mode != FW_POSCTRL_MODE_AUTO_TAKEOFF && !_landed) {
+				if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_TAKEOFF && !_landed) {
 					// skip takeoff detection when switching from any other mode, auto or manual,
 					// while already in air.
 					// TODO: find a better place for / way of doing this
@@ -796,14 +796,14 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 		   && pos_sp_curr_valid) {
 
 		// reset timer the first time we switch into this mode
-		if (last_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE
-		    && last_position_control_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE) {
+		if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE
+		    && commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE) {
 			_time_in_fixed_bank_loiter = now;
 		}
 
 		if (hrt_elapsed_time(&_time_in_fixed_bank_loiter) < (_param_nav_gpsf_lt.get() * 1_s)
 		    && !_vehicle_status.in_transition_mode) {
-			if (last_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE) {
+			if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE) {
 				// Need to init because last loop iteration was in a different mode
 				mavlink_log_critical(&_mavlink_log_pub, "Start loiter with fixed bank angle.\t");
 				events::send(events::ID("fixedwing_position_control_fb_loiter"), events::Log::Critical,
@@ -813,7 +813,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 			_control_mode_current = FW_POSCTRL_MODE_AUTO_ALTITUDE;
 
 		} else {
-			if (last_position_control_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE && !_vehicle_status.in_transition_mode) {
+			if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE && !_vehicle_status.in_transition_mode) {
 				mavlink_log_critical(&_mavlink_log_pub, "Start descending.\t");
 				events::send(events::ID("fixedwing_position_control_descend"), events::Log::Critical, "Start descending");
 			}
@@ -823,7 +823,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 
 
 	} else if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_position_enabled) {
-		if (last_position_control_mode != FW_POSCTRL_MODE_MANUAL_POSITION) {
+		if (commanded_position_control_mode != FW_POSCTRL_MODE_MANUAL_POSITION) {
 			/* Need to init because last loop iteration was in a different mode */
 			_hdg_hold_yaw = _yaw; // yaw is not controlled, so set setpoint to current yaw
 			_hdg_hold_enabled = false; // this makes sure the waypoints are reset below
