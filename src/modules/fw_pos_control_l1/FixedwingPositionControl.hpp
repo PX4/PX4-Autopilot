@@ -148,6 +148,10 @@ static constexpr float AIR_DENSITY_STANDARD_ATMOS_5000_AMSL = 0.7363f;
 // [rad] minimum pitch while airspeed has not yet reached a controllable value in manual position controlled takeoff modes
 static constexpr float MIN_PITCH_DURING_MANUAL_TAKEOFF = 0.0f;
 
+// [m] arbitrary buffer altitude added to clearance altitude setpoint during takeoff to ensure aircraft passes the clearance
+// altitude while waiting for navigator to flag it exceeded
+static constexpr float kClearanceAltitudeBuffer = 10.0f;
+
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
 {

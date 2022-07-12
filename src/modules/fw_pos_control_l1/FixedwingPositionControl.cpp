@@ -1373,7 +1373,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 	// set the altitude to something above the clearance altitude to ensure the vehicle climbs past the value
 	// (navigator will accept the takeoff as complete once crossing the clearance altitude)
-	const float altitude_setpoint_amsl = clearance_altitude_amsl + _param_nav_fw_alt_rad.get();
+	const float altitude_setpoint_amsl = clearance_altitude_amsl + kClearanceAltitudeBuffer;
 
 	Vector2f local_2D_position{_local_pos.x, _local_pos.y};
 
