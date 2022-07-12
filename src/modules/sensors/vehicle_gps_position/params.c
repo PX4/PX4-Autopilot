@@ -46,7 +46,7 @@
  * @bit 1 use hpos accuracy
  * @bit 2 use vpos accuracy
  */
-PARAM_DEFINE_INT32(SENS_GPS_MASK, 0);
+PARAM_DEFINE_INT32(SENS_GPS_MASK, 7);
 
 /**
  * Multi GPS Blending Time Constant
