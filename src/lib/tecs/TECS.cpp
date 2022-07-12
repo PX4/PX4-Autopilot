@@ -216,8 +216,17 @@ void TECS::_detect_underspeed()
 		return;
 	}
 
-	const float tas_fully_undersped = math::max(_TAS_min - TAS_ERROR_BOUND - TAS_UNDERSPEED_SOFT_BOUND, 0.0f);
-	const float tas_starting_to_underspeed = math::max(_TAS_min - TAS_ERROR_BOUND, tas_fully_undersped);
+	// this is the expected (something like standard) deviation from the airspeed setpoint that we allow the airspeed
+	// to vary in before ramping in underspeed mitigation
+	const float tas_error_bound = kTASErrorPercentage * _equivalent_airspeed_trim;
+
+	// this is the soft boundary where underspeed mitigation is ramped in
+	// NOTE: it's currently the same as the error bound, but separated here to indicate these values do not in general
+	// need to be the same
+	const float tas_underspeed_soft_bound = kTASErrorPercentage * _equivalent_airspeed_trim;
+
+	const float tas_fully_undersped = math::max(_TAS_min - tas_error_bound - tas_underspeed_soft_bound, 0.0f);
+	const float tas_starting_to_underspeed = math::max(_TAS_min - tas_error_bound, tas_fully_undersped);
 
 	_percent_undersped = 1.0f - math::constrain((_tas_state - tas_fully_undersped) /
 			     math::max(tas_starting_to_underspeed - tas_fully_undersped, FLT_EPSILON), 0.0f, 1.0f);
