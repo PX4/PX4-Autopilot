@@ -738,8 +738,7 @@ FixedwingPositionControl::updateManualTakeoffStatus()
 		const bool at_controllable_airspeed = _airspeed > _param_fw_airspd_min.get()
 						      || !_airspeed_valid;
 		_completed_manual_takeoff = !_landed
-					    && at_controllable_airspeed
-					    && !_vehicle_status.is_vtol;
+					    && at_controllable_airspeed;
 	}
 }
 
