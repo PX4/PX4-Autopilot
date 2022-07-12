@@ -1584,6 +1584,11 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			break;
 		}
 
+	case vehicle_command_s::VEHICLE_CMD_RUN_PREARM_CHECKS:
+		_health_and_arming_checks.update(true);
+		answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
