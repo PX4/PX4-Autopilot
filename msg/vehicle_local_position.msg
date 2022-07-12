@@ -64,6 +64,8 @@ float32 epv				# Standard deviation of vertical position error, (metres)
 float32 evh				# Standard deviation of horizontal velocity error, (metres/sec)
 float32 evv				# Standard deviation of horizontal velocity error, (metres/sec)
 
+bool dead_reckoning                     # True if this position is estimated through dead-reckoning
+
 # estimator specified vehicle limits
 float32 vxy_max				# maximum horizontal speed - set to 0 when limiting not required (meters/sec)
 float32 vz_max				# maximum vertical speed - set to 0 when limiting not required (meters/sec)

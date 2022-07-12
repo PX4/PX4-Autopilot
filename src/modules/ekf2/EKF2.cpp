@@ -1019,6 +1019,9 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	_ekf.get_posNE_reset(&lpos.delta_xy[0], &lpos.xy_reset_counter);
 	_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
 
+	lpos.dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning
+			      || _ekf.control_status_flags().wind_dead_reckoning;
+
 	// get control limit information
 	_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.vz_max, &lpos.hagl_min, &lpos.hagl_max);
 
