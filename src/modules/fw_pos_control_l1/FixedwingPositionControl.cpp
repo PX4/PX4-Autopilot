@@ -725,8 +725,9 @@ FixedwingPositionControl::updateManualTakeoffStatus()
 	if (!_completed_manual_takeoff) {
 		const bool at_controllable_airspeed = _airspeed > _param_fw_airspd_min.get()
 						      || !_airspeed_valid;
-		_completed_manual_takeoff = !_landed
-					    && at_controllable_airspeed;
+		const bool is_hovering = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+					 && _control_mode.flag_armed;
+		_completed_manual_takeoff = (!_landed && at_controllable_airspeed) || is_hovering;
 	}
 }
 
