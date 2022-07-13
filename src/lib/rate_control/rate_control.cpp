@@ -35,7 +35,7 @@
  * @file RateControl.cpp
  */
 
-#include <RateControl.hpp>
+#include "rate_control.hpp"
 #include <px4_platform_common/defines.h>
 
 using namespace matrix;

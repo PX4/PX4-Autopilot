@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file RateControl.hpp
+ * @file rate_control.hpp
  *
  * PID 3 axis angular rate / angular velocity control.
  */
