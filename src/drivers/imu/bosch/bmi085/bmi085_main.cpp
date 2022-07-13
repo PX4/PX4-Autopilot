@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,28 +31,71 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20948, SPI::CS{GPIO::PortE, GPIO::Pin15}, SPI::DRDY{GPIO::PortE, GPIO::Pin12}),
-	}, {GPIO::PortE, GPIO::Pin3}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10}),
-		initSPIDevice(DRV_BARO_DEVTYPE_DPS310, SPI::CS{GPIO::PortD, GPIO::Pin7}),
-	}),
-	initSPIBus(SPI::Bus::SPI5, {
-		initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortF, GPIO::Pin10}, SPI::DRDY{GPIO::PortF, GPIO::Pin3}),
-		initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortF, GPIO::Pin6}, SPI::DRDY{GPIO::PortF, GPIO::Pin1}),
-		initSPIDevice(DRV_GYR_DEVTYPE_BMI085, SPI::CS{GPIO::PortF, GPIO::Pin10}, SPI::DRDY{GPIO::PortF, GPIO::Pin3}),
-		initSPIDevice(DRV_ACC_DEVTYPE_BMI085, SPI::CS{GPIO::PortF, GPIO::Pin6}, SPI::DRDY{GPIO::PortF, GPIO::Pin1}),
-	}),
-	initSPIBusExternal(SPI::Bus::SPI6, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortG, GPIO::Pin9}),
-	}),
-};
+#include "BMI085.hpp"
 
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);
+void BMI085::print_usage()
+{
+	PRINT_MODULE_USAGE_NAME("bmi085", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_FLAG('A', "Accel", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('G', "Gyro", true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
+
+extern "C" int bmi085_main(int argc, char *argv[])
+{
+	int ch;
+	using ThisDriver = BMI085;
+	BusCLIArguments cli{false, true};
+	uint16_t type = 0;
+	cli.default_spi_frequency = 10000000;
+	const char *name = MODULE_NAME;
+
+	while ((ch = cli.getOpt(argc, argv, "AGR:")) != EOF) {
+		switch (ch) {
+		case 'A':
+			type = DRV_ACC_DEVTYPE_BMI085;
+			name = MODULE_NAME "_accel";
+			break;
+
+		case 'G':
+			type = DRV_GYR_DEVTYPE_BMI085;
+			name = MODULE_NAME "_gyro";
+			break;
+
+		case 'R':
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
+			break;
+		}
+	}
+
+	const char *verb = cli.optArg();
+
+	if (!verb || type == 0) {
+		ThisDriver::print_usage();
+		return -1;
+	}
+
+	BusInstanceIterator iterator(name, cli, type);
+
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
+	}
+
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
+}
