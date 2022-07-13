@@ -130,6 +130,7 @@ __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *
 __attribute__((format(printf, 3, 4)));
 __EXPORT void px4_log_raw(int level, const char *fmt, ...)
 __attribute__((format(printf, 2, 3)));
+__EXPORT void px4_log_history(FILE *out);
 
 #if __GNUC__
 // Allow empty format strings.

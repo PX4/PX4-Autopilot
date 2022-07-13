@@ -41,6 +41,7 @@
 #endif
 
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/log_history.h>
 #if defined(__PX4_POSIX)
 #include <px4_daemon/server_io.h>
 #endif
@@ -49,6 +50,10 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/log_message.h>
 #include <drivers/drv_hrt.h>
+
+#if defined(BOARD_ENABLE_LOG_HISTORY)
+static LogHistory g_log_history;
+#endif
 
 static orb_advert_t orb_log_message_pub = nullptr;
 
@@ -146,6 +151,25 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 
 		fputs(buf, out);
 
+#if defined(BOARD_ENABLE_LOG_HISTORY)
+
+#if defined(PX4_LOG_COLORIZED_OUTPUT)
+
+		// No color formatting for log history
+		if (use_color) {
+			pos = snprintf(buf, max_length, __px4__log_level_fmt, __px4_log_level_str[level]);
+			pos += snprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), __px4__log_modulename_pfmt, module_name);
+			va_start(argptr, fmt);
+			pos += vsnprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), fmt, argptr);
+			va_end(argptr);
+			pos += sprintf(buf + math::min(pos, max_length - (ssize_t)1), "\n");
+			buf[max_length] = 0; // ensure NULL termination
+		}
+
+#endif
+		g_log_history.write(buf);
+#endif // BOARD_ENABLE_LOG_HISTORY
+
 #if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 		// Without flushing it's tricky to see stdout output when PX4 is started by
 		// a script like for the MAVSDK tests.
@@ -227,5 +251,38 @@ __EXPORT void px4_log_raw(int level, const char *fmt, ...)
 		buf[max_length] = 0;
 
 		fputs(buf, out);
+
+#if defined(BOARD_ENABLE_LOG_HISTORY)
+
+#if defined(PX4_LOG_COLORIZED_OUTPUT)
+
+		// No color formatting for log history
+		if (use_color) {
+			va_start(argptr, fmt);
+			pos = vsnprintf(buf, max_length, fmt, argptr);
+			va_end(argptr);
+
+			if (pos > max_length) {
+				// preserve newline if necessary
+				if (fmt[strlen(fmt) - 1] == '\n') {
+					buf[max_length - 1] = '\n';
+				}
+			}
+
+			buf[max_length] = 0; // ensure NULL termination
+		}
+
+#endif
+		g_log_history.write(buf);
+#endif // BOARD_ENABLE_LOG_HISTORY
 	}
+}
+
+__EXPORT void px4_log_history(FILE *out)
+{
+
+#if defined(BOARD_ENABLE_LOG_HISTORY)
+
+	g_log_history.print(out);
+#endif // BOARD_ENABLE_LOG_HISTORY
 }
