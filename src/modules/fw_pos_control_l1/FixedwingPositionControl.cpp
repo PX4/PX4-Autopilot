@@ -600,29 +600,50 @@ FixedwingPositionControl::status_publish()
 }
 
 void
-FixedwingPositionControl::landing_status_publish()
+FixedwingPositionControl::landing_status_publish(const uint8_t abort_reason)
 {
 	position_controller_landing_status_s pos_ctrl_landing_status = {};
 
 	pos_ctrl_landing_status.lateral_touchdown_offset = _lateral_touchdown_position_offset;
+	pos_ctrl_landing_status.flaring = _flaring;
 	pos_ctrl_landing_status.abort_landing = _land_abort;
+	pos_ctrl_landing_status.abort_reason = abort_reason;
 	pos_ctrl_landing_status.timestamp = hrt_absolute_time();
 
 	_pos_ctrl_landing_status_pub.publish(pos_ctrl_landing_status);
 }
 
 void
-FixedwingPositionControl::abort_landing(bool abort)
+FixedwingPositionControl::abort_landing(const bool abort, const uint8_t abort_reason)
 {
 	// only announce changes
 	if (abort && !_land_abort) {
-		mavlink_log_critical(&_mavlink_log_pub, "Landing aborted\t");
-		// TODO: add reason
-		events::send(events::ID("fixedwing_position_control_land_aborted"), events::Log::Critical, "Landing aborted");
+
+		switch (abort_reason) {
+		case (position_controller_landing_status_s::kAbortReasonTerrainNotFound): {
+				mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: terrain estimate not found\t");
+				events::send(events::ID("fixedwing_position_control_land_aborted_terrain_not_found"), events::Log::Critical,
+					     "Landing aborted: terrain measurement not found");
+				break;
+			}
+
+		case (position_controller_landing_status_s::kAbortReasonTerrainTimeout): {
+				mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: terrain estimate timed out\t");
+				events::send(events::ID("fixedwing_position_control_land_aborted_terrain_timeout"), events::Log::Critical,
+					     "Landing aborted: terrain estimate timed out");
+				break;
+			}
+
+		default: {
+				mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: reason unspecified\t");
+				events::send(events::ID("fixedwing_position_control_land_aborted"), events::Log::Critical,
+					     "Landing aborted: reason unspecified");
+			}
+		}
 	}
 
 	_land_abort = abort;
-	landing_status_publish();
+	landing_status_publish(abort_reason);
 }
 
 void
@@ -2609,44 +2630,45 @@ FixedwingPositionControl::calculateLandingApproachVector() const
 float
 FixedwingPositionControl::getLandingTerrainAltitudeEstimate(const hrt_abstime &now, const float land_point_altitude)
 {
-	float terrain_alt = land_point_altitude;
+	if (_param_fw_lnd_useter.get()) {
 
-	if (_param_fw_lnd_useter.get() == 1) {
 		if (_local_pos.dist_bottom_valid) {
-			// all good, have valid terrain altitude
-			float terrain_vpos = _local_pos.dist_bottom + _local_pos.z;
-			terrain_alt = (_local_pos.ref_alt - terrain_vpos);
-			_last_valid_terrain_alt_estimate = terrain_alt;
+
+			const float terrain_estimate = _local_pos.ref_alt + -_local_pos.z - _local_pos.dist_bottom;
+			_last_valid_terrain_alt_estimate = terrain_estimate;
 			_last_time_terrain_alt_was_valid = now;
 
-		} else if (_last_time_terrain_alt_was_valid == 0) {
-			// we have started landing phase but don't have valid terrain
-			// wait for some time, maybe we will soon get a valid estimate
-			// until then just use the altitude of the landing waypoint
-			if ((now - _time_started_landing) < TERRAIN_ALT_FIRST_MEASUREMENT_TIMEOUT) {
-				terrain_alt = land_point_altitude;
+			return terrain_estimate;
+		}
 
-			} else {
-				// still no valid terrain, abort landing
-				terrain_alt = land_point_altitude;
-				abort_landing(true);
+		if (_last_time_terrain_alt_was_valid == 0) {
+
+			const bool terrain_first_measurement_timed_out = (now - _time_started_landing) > TERRAIN_ALT_FIRST_MEASUREMENT_TIMEOUT;
+			const bool abort_on_terrain_measurement_timeout = _param_fw_lnd_abort.get() &
+					position_controller_landing_status_s::kAbortReasonTerrainNotFound;
+
+			if (terrain_first_measurement_timed_out && abort_on_terrain_measurement_timeout) {
+				abort_landing(true, position_controller_landing_status_s::kAbortReasonTerrainNotFound);
 			}
 
-		} else if ((!_local_pos.dist_bottom_valid && (now - _last_time_terrain_alt_was_valid) < TERRAIN_ALT_TIMEOUT)
-			   || _flaring) {
-			// use previous terrain estimate for some time and hope to recover
-			// if we are already flaring (land_noreturn_vertical) then just
-			//  go with the old estimate
-			terrain_alt = _last_valid_terrain_alt_estimate;
+			return land_point_altitude;
+		}
 
-		} else {
-			// terrain alt was not valid for long time, abort landing
-			terrain_alt = _last_valid_terrain_alt_estimate;
-			abort_landing(true);
+		if (!_local_pos.dist_bottom_valid) {
+
+			const bool terrain_timed_out = (now - _last_time_terrain_alt_was_valid) > TERRAIN_ALT_TIMEOUT;
+			const bool abort_on_terrain_timeout = _param_fw_lnd_abort.get() &
+							      position_controller_landing_status_s::kAbortReasonTerrainTimeout;
+
+			if (terrain_timed_out && abort_on_terrain_timeout) {
+				abort_landing(true, position_controller_landing_status_s::kAbortReasonTerrainTimeout);
+			}
+
+			return _last_valid_terrain_alt_estimate;
 		}
 	}
 
-	return terrain_alt;
+	return land_point_altitude;
 }
 
 void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint)
