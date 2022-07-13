@@ -4,5 +4,5 @@ serial_config:
       port_config_param:
         name: MXS_SER_CFG
         group: Transponder
-        default: TEL2
+        default: 0
       label: Sagetech MXS Serial Port
