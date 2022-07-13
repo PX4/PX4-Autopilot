@@ -2534,11 +2534,7 @@ FixedwingPositionControl::initializeAutoLanding(const hrt_abstime &now, const po
 			local_approach_entrance = local_position;
 		}
 
-		if (height_above_land_point < FLT_EPSILON) {
-			height_above_land_point = FLT_EPSILON;
-		}
-
-		_landing_approach_entrance_rel_alt = height_above_land_point;
+		_landing_approach_entrance_rel_alt = math::max(height_above_land_point, FLT_EPSILON);
 
 		const Vector2f landing_approach_vector = local_land_point - local_approach_entrance;
 		float landing_approach_distance = landing_approach_vector.norm();
