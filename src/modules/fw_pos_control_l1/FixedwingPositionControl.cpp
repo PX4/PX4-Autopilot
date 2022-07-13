@@ -1775,11 +1775,11 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 			// make a fake waypoint beyond the land point in the direction of the landing approach bearing
 			// (always HDG_HOLD_DIST_NEXT meters in front of the aircraft's progress along the landing approach vector)
 
-			const float along_track_distance_from_entrance = local_approach_entrance.unit_or_zero().dot(
+			const float along_track_distance_from_entrance = landing_approach_vector.unit_or_zero().dot(
 						local_position - local_approach_entrance);
 
 			const Vector2f virtual_waypoint = local_approach_entrance + (along_track_distance_from_entrance + HDG_HOLD_DIST_NEXT) *
-							  local_approach_entrance.unit_or_zero();
+							  landing_approach_vector.unit_or_zero();
 
 			_l1_control.navigate_waypoints(local_approach_entrance, virtual_waypoint, local_position, ground_speed);
 			_att_sp.roll_body = _l1_control.get_roll_setpoint();
