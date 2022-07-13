@@ -38,6 +38,8 @@ px4_add_module(
 	SRCS
 		MagBiasEstimator.cpp
 		MagBiasEstimator.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_work_queue
 )

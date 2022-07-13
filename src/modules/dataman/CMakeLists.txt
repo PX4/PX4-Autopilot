@@ -37,4 +37,6 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		dataman.cpp
+	MODULE_CONFIG
+		module.yaml
 	)

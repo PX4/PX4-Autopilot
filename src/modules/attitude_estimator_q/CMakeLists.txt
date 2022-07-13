@@ -38,6 +38,8 @@ px4_add_module(
 	STACK_MAX 1600
 	SRCS
 		attitude_estimator_q_main.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		world_magnetic_model
 	)

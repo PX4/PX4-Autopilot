@@ -1,0 +1,27 @@
+module_name: events
+parameters:
+- definitions:
+    EV_TSK_RC_LOSS:
+      default: 0
+      description:
+        long: Enable/disable event task for RC Loss. When enabled, an alarm tune will
+          be played via buzzer or ESCs, if supported. The alarm will sound after a
+          disarm, if the vehicle was previously armed and only if the vehicle had
+          RC signal at some point. Particularly useful for locating crashed drones
+          without a GPS sensor.
+        short: RC Loss Alarm
+      reboot_required: 'true'
+      type: boolean
+      volatile: false
+    EV_TSK_STAT_DIS:
+      default: 0
+      description:
+        long: Enable/disable event task for displaying the vehicle status using arm-mounted
+          LEDs. When enabled and if the vehicle supports it, LEDs will flash indicating
+          various vehicle status changes. Currently PX4 has not implemented any specific
+          status events. -
+        short: Status Display
+      reboot_required: 'true'
+      type: boolean
+      volatile: false
+  group: Events

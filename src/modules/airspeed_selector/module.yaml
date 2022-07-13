@@ -1,0 +1,210 @@
+module_name: airspeed_selector
+parameters:
+- definitions:
+    ASPD_BETA_GATE:
+      default: 1
+      description:
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+        short: 'Airspeed Selector: Gate size for sideslip angle fusion'
+      max: 5
+      min: 1
+      type: int32
+      unit: SD
+      volatile: false
+    ASPD_BETA_NOISE:
+      decimal: 3
+      default: 0.3
+      description:
+        long: Sideslip measurement noise of the internal wind estimator(s) of the
+          airspeed selector.
+        short: 'Airspeed Selector: Wind estimator sideslip measurement noise'
+      max: 1
+      min: 0
+      type: float
+      unit: rad
+      volatile: false
+    ASPD_DO_CHECKS:
+      bit:
+        0: Only data missing check (triggers if more than 1s no data)
+        1: Data stuck (triggers if data is exactly constant for 2s)
+        2: Innovation check (see ASPD_FS_INNOV)
+        3: Load factor check (triggers if measurement is below stall speed)
+      default: 7
+      description:
+        long: Controls which checks are run to check airspeed data for validity. Only
+          applied if ASPD_PRIMARY > 0. Note that the data missing check is enabled
+          if any of the options is set.
+        short: Enable checks on airspeed sensors
+      max: 15
+      min: 0
+      type: bitmask
+      volatile: false
+    ASPD_FALLBACK_GW:
+      default: 0
+      description:
+        long: If set to true and airspeed checks are enabled, it will use a sensor-less
+          airspeed estimation based on groundspeed minus windspeed if no other airspeed
+          sensor available to fall back to.
+        short: Enable fallback to sensor-less airspeed estimation
+      type: boolean
+      volatile: false
+    ASPD_FS_INNOV:
+      decimal: 1
+      default: 5.0
+      description:
+        long: This specifies the minimum airspeed innovation required to trigger a
+          failsafe. Larger values make the check less sensitive, smaller values make
+          it more sensitive. Large innovations indicate an inconsistency between predicted
+          (groundspeed - windspeeed) and measured airspeed. The time required to detect
+          a fault when the threshold is exceeded depends on the size of the exceedance
+          and is controlled by the ASPD_FS_INTEG parameter.
+        short: Airspeed failure innovation threshold
+      max: 10.0
+      min: 0.5
+      type: float
+      unit: m/s
+      volatile: false
+    ASPD_FS_INTEG:
+      decimal: 1
+      default: 10.0
+      description:
+        long: This sets the time integral of airspeed innovation exceedance above
+          ASPD_FS_INNOV required to trigger a failsafe. Larger values make the check
+          less sensitive, smaller positive values make it more sensitive.
+        short: Airspeed failure innovation integral threshold
+      max: 50.0
+      min: 0.0
+      type: float
+      unit: m
+      volatile: false
+    ASPD_FS_T_START:
+      default: -1
+      description:
+        long: Delay before switching back to using airspeed sensor if checks indicate
+          sensor is good. Set to a negative value to disable the re-enabling in flight.
+        short: Airspeed failsafe start delay
+      max: 1000
+      min: -1
+      type: int32
+      unit: s
+      volatile: false
+    ASPD_FS_T_STOP:
+      default: 2
+      description:
+        long: Delay before stopping use of airspeed sensor if checks indicate sensor
+          is bad.
+        short: Airspeed failsafe stop delay
+      max: 10
+      min: 1
+      type: int32
+      unit: s
+      volatile: false
+    ASPD_PRIMARY:
+      default: 1
+      description:
+        short: Index or primary airspeed measurement source
+      reboot_required: 'true'
+      type: enum
+      values:
+        -1: Disabled
+        0: Groundspeed minus windspeed
+        1: First airspeed sensor
+        2: Second airspeed sensor
+        3: Third airspeed sensor
+      volatile: false
+    ASPD_SCALE_1:
+      decimal: 2
+      default: 1.0
+      description:
+        long: This is the scale IAS --> CAS of the first airspeed sensor instance
+        short: Scale of airspeed sensor 1
+      max: 2.0
+      min: 0.5
+      reboot_required: 'true'
+      type: float
+      volatile: true
+    ASPD_SCALE_2:
+      decimal: 2
+      default: 1.0
+      description:
+        long: This is the scale IAS --> CAS of the second airspeed sensor instance
+        short: Scale of airspeed sensor 2
+      max: 2.0
+      min: 0.5
+      reboot_required: 'true'
+      type: float
+      volatile: true
+    ASPD_SCALE_3:
+      decimal: 2
+      default: 1.0
+      description:
+        long: This is the scale IAS --> CAS of the third airspeed sensor instance
+        short: Scale of airspeed sensor 3
+      max: 2.0
+      min: 0.5
+      reboot_required: 'true'
+      type: float
+      volatile: true
+    ASPD_SCALE_APPLY:
+      default: 2
+      description:
+        short: Controls when to apply the new estimated airspeed scale(s)
+      type: enum
+      values:
+        0: Do not automatically apply the estimated scale
+        1: Apply the estimated scale after disarm
+        2: Apply the estimated scale in air
+      volatile: false
+    ASPD_SCALE_NSD:
+      decimal: 5
+      default: 0.0001
+      description:
+        long: Airspeed scale process noise of the internal wind estimator(s) of the
+          airspeed selector. When unaided, the scale uncertainty (1-sigma, unitless)
+          increases by this amount every second.
+        short: 'Airspeed Selector: Wind estimator true airspeed scale process noise
+          spectral density'
+      max: 0.1
+      min: 0
+      type: float
+      unit: 1/s/sqrt(Hz)
+      volatile: false
+    ASPD_TAS_GATE:
+      default: 3
+      description:
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+        short: 'Airspeed Selector: Gate size for true airspeed fusion'
+      max: 5
+      min: 1
+      type: int32
+      unit: SD
+      volatile: false
+    ASPD_TAS_NOISE:
+      decimal: 1
+      default: 1.4
+      description:
+        long: True airspeed measurement noise of the internal wind estimator(s) of
+          the airspeed selector.
+        short: 'Airspeed Selector: Wind estimator true airspeed measurement noise'
+      max: 4
+      min: 0
+      type: float
+      unit: m/s
+      volatile: false
+    ASPD_WIND_NSD:
+      decimal: 2
+      default: 0.01
+      description:
+        long: Wind process noise of the internal wind estimator(s) of the airspeed
+          selector. When unaided, the wind estimate uncertainty (1-sigma, in m/s)
+          increases by this amount every second.
+        short: 'Airspeed Selector: Wind estimator wind process noise noise spectral
+          density'
+      max: 1
+      min: 0
+      type: float
+      unit: m/s^2/sqrt(Hz)
+      volatile: false
+  group: Airspeed Validator

@@ -1,0 +1,52 @@
+module_name: gyro_fft
+parameters:
+  - definitions:
+      IMU_GYRO_FFT_EN:
+        default: 0
+        description:
+          short: IMU gyro FFT enable
+        reboot_required: 'true'
+        type: boolean
+        volatile: false
+      IMU_GYRO_FFT_LEN:
+        default: 512
+        description:
+          short: IMU gyro FFT length
+        reboot_required: 'true'
+        type: enum
+        unit: Hz
+        values:
+          256: '256'
+          512: '512'
+          1024: '1024'
+          4096: '4096'
+        volatile: false
+      IMU_GYRO_FFT_MAX:
+        default: 150.0
+        description:
+          short: IMU gyro FFT maximum frequency
+        max: 1000
+        min: 1
+        reboot_required: 'true'
+        type: float
+        unit: Hz
+        volatile: false
+      IMU_GYRO_FFT_MIN:
+        default: 30.0
+        description:
+          short: IMU gyro FFT minimum frequency
+        max: 1000
+        min: 1
+        reboot_required: 'true'
+        type: float
+        unit: Hz
+        volatile: false
+      IMU_GYRO_FFT_SNR:
+        default: 10.0
+        description:
+          short: IMU gyro FFT SNR
+        max: 30
+        min: 1
+        type: float
+        volatile: false
+    group: Sensors

@@ -1,0 +1,11 @@
+module_name: manual_control
+parameters:
+  - definitions:
+      MAN_ARM_GESTURE:
+        default: 1
+        description:
+          long: This determines if moving the left stick to the lower right arms and to the lower left disarms the vehicle.
+          short: Enable arm/disarm stick gesture
+        type: boolean
+        volatile: false
+    group: Manual Control

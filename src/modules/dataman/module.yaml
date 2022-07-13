@@ -1,0 +1,11 @@
+module_name: dataman
+parameters:
+  - definitions:
+      SYS_DM_BACKEND:
+        default: 0
+        description:
+          short: Dataman storage backend
+        reboot_required: 'true'
+        type: boolean
+        volatile: false
+    group: System
