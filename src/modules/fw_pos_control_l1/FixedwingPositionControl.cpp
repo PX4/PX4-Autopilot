@@ -1788,7 +1788,8 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		/* longitudinal guidance */
 
 		// open the desired max sink rate to encompass the glide slope if within the aircraft's performance limits
-		const float glide_slope_sink_rate = airspeed_land * sinf(math::radians(_param_fw_lnd_ang.get()));
+		// x/sqrt(x^2+1) = sin(arctan(x))
+		const float glide_slope_sink_rate = airspeed_land * glide_slope / sqrtf(glide_slope * glide_slope + 1.0f);
 		const float desired_max_sinkrate = math::min(math::max(glide_slope_sink_rate, _param_sinkrate_target.get()),
 						   _param_fw_t_sink_max.get());
 
