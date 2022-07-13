@@ -166,6 +166,7 @@ private:
 		(ParamFloat<px4::params::DS_INERTIA_ROLL>) _param_fw_inertia_roll,
 		(ParamFloat<px4::params::DS_INERTIA_PITCH>) _param_fw_inertia_pitch,
 		(ParamFloat<px4::params::DS_INERTIA_YAW>) _param_fw_inertia_yaw,
+		(ParamFloat<px4::params::DS_INERTIA_RP>) _param_fw_inertia_rp,
 		(ParamFloat<px4::params::DS_MASS>) _param_fw_mass,
 		(ParamFloat<px4::params::DS_WING_AREA>) _param_fw_wing_area,
 		(ParamFloat<px4::params::DS_RHO>) _param_rho,

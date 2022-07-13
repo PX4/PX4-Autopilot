@@ -53,6 +53,20 @@ PARAM_DEFINE_FLOAT(DS_INERTIA_PITCH, 0.1458929f);
 PARAM_DEFINE_FLOAT(DS_INERTIA_YAW, 0.1477f);
 
 /**
+ * inertia tensor term in body xz-axis (roll-yaw coupling)
+ * 
+ * This is the inertia of the aircraft, used for the INDI
+ * 
+ * @unit kg
+ * @min -0.5
+ * @max 0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(DS_INERTIA_RP, -0.0f);
+
+/**
  * total takeoff mass
  * 
  * This is the mass of the aircraft, used for the INDI

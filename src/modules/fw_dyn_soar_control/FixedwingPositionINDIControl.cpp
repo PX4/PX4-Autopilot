@@ -137,6 +137,8 @@ FixedwingPositionINDIControl::parameters_update()
     _inertia(0,0) = _param_fw_inertia_roll.get();
     _inertia(1,1) = _param_fw_inertia_pitch.get();
     _inertia(2,2) = _param_fw_inertia_yaw.get();
+    _inertia(0,2) = _param_fw_inertia_rp.get();
+    _inertia(2,0) = _param_fw_inertia_rp.get();
     _mass = _param_fw_mass.get();
     _area = _param_fw_wing_area.get();
     _rho = _param_rho.get();
@@ -448,8 +450,8 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // =======================================================================
     bool error = false;
 
-    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-    //char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     //PX4_ERR(home_dir);
     strcat(home_dir,filename);
     FILE* fp = fopen(home_dir, "r");
@@ -1276,12 +1278,12 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // ==============================================================
     Vector3f vel_air = _vel - _wind_estimate;
     Vector3f vel_normalized = vel_air.normalized();
-    Vector3f acc_normalized = _acc.normalized();
+    Vector3f acc_normalized = acc_filtered.normalized();
     // compute ideal angular velocity
     Vector3f omega_turn_ref_normalized = vel_normalized.cross(acc_normalized);
     Vector3f omega_turn_ref;
     // constuct acc perpendicular to flight path
-    Vector3f acc_perp = _acc - (_acc*vel_normalized)*vel_normalized;
+    Vector3f acc_perp = acc_filtered - (acc_filtered*vel_normalized)*vel_normalized;
     if (_airspeed_valid&&_airspeed>_stall_speed) {
         omega_turn_ref = sqrtf(acc_perp*acc_perp) / (_airspeed) * R_bi * omega_turn_ref_normalized.normalized();
         //PX4_INFO("yaw rate ref, yaw rate: \t%.2f\t%.2f", (double)(omega_turn_ref(2)), (double)(omega_filtered(2)));
