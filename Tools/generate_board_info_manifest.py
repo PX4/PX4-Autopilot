@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-Script to print out the board information JSON manifest
+Script to print out the board information manifest in JSON format like this:
 
-Example:
 {
     "include":
         [
@@ -29,42 +28,23 @@ parser.add_argument('-p', '--pretty', dest='pretty', action='store_true',
                     help='Pretty output instead of a single line')
 args = parser.parse_args()
 
-# GLOBAL VARIABLES
+## GLOBAL VARIABLES
 verbose = args.verbose
 build_configs = []
 excluded_manufacturers = ['atlflight']
-excluded_platforms = ['qurt']
+
+# Labels (board variants) we will exclude
 excluded_labels = [
-    'stackcheck',
-    'nolockstep', 'replay', 'test',
+    'stackcheck', 'nolockstep', 'replay', 'test',
     'uavcanv1' # TODO: fix and enable
     ]
+
 
 # Supress warning output while parsing KConfig
 kconf = Kconfig()
 kconf.warn_assign_undef = False
 kconf.warn_assign_override = False
 kconf.warn_assign_redun = False
-
-''' Turn given firmware.prototype into a dictionary with board information '''
-def process_target_firmware_prototype_file(manufacturer, board, file):
-    if not (file.is_file() and file.name == 'firmware.prototype'):
-        return None
-
-    global verbose, excluded_labels
-    target_name = manufacturer.name + '_' + board.name
-
-    with open(file.path, 'r') as f:
-        data = json.load(f)
-        board_info_dict = dict()
-        board_info_dict['board_name'] = data['summary']
-        board_info_dict['target_name'] = target_name
-        board_info_dict['description'] = data['description']
-        board_info_dict['board_id'] = data['board_id']
-        board_info_dict['image_max_size'] = data['image_maxsize']
-        board_info_dict['build_variants'] = []
-
-        return board_info_dict
 
 '''
 Process the firmware.prototype files and create board information Json file
@@ -80,8 +60,25 @@ In this following format:
     "build_variants"    = [ {"name": "VARIANT_1"}, ... ]    (labels)
 }
 '''
+def process_target_firmware_prototype_file(manufacturer, board, file):
+    if not (file.is_file() and file.name == 'firmware.prototype'):
+        return None
+    target_name = manufacturer.name + '_' + board.name
+    with open(file.path, 'r') as f:
+        data = json.load(f)
+        board_info_dict = dict()
+        board_info_dict['board_name'] = data['summary']
+        board_info_dict['target_name'] = target_name
+        board_info_dict['description'] = data['description']
+        board_info_dict['board_id'] = data['board_id']
+        board_info_dict['image_max_size'] = data['image_maxsize']
+        board_info_dict['build_variants'] = []
+
+        return board_info_dict
+
+''' Function that receives board list dictionary and creates the final JSON output '''
 def print_board_information(board_list: list):
-    global args, verbose
+    global args, verbose, excluded_labels
     board_info_list = []        # Board information list
 
     for board in board_list:
@@ -89,11 +86,12 @@ def print_board_information(board_list: list):
         board_variants = []     # Save different board variants (labels)
 
         for file in board['files']:
-
             # Process all the board variants
             if file.name.endswith(".px4board"):
                 label = file.name.split(".px4board")[0]
-                board_variants.append({"name": label}) # For now we only have the 'name' attribute (e.g. default, rtps, etc.)
+
+                if label not in excluded_labels:
+                    board_variants.append({"name": label}) # For now we only have the 'name' attribute (e.g. default, rtps, etc.)
 
             # Process the firwmare.prototype
             elif file.name == "firmware.prototype":
@@ -114,7 +112,6 @@ def print_board_information(board_list: list):
         extra_args['indent'] = 2
 
     print(json.dumps(board_info_dict, **extra_args))
-
 
 def main():
     global verbose, build_configs
