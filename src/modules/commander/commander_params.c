@@ -185,10 +185,11 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
 /**
  * RC control input mode
  *
- * The default value of 0 requires a valid RC transmitter setup.
- * Setting this to 1 allows joystick control and disables RC input handling and the associated checks. A value of
- * 2 will generate RC control data from manual input received via MAVLink instead
- * of directly forwarding the manual input data.
+ * A value of 0 enables RC transmitter control (only). A valid RC transmitter calibration is required.
+ * A value of 1 allows joystick control only. RC input handling and the associated checks are disabled.
+ * A value of 2 allows either RC Transmitter or Joystick input. The first valid input is used, will fallback to other sources if the input stream becomes invalid.
+ * A value of 3 allows either input from RC or joystick. The first available source is selected and used until reboot.
+ * A value of 4 ignores any stick input.
  *
  * @group Commander
  * @min 0
