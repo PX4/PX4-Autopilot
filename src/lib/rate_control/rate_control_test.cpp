@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
-#include <RateControl.hpp>
+#include <lib/rate_control/rate_control.hpp>
 
 using namespace matrix;
 

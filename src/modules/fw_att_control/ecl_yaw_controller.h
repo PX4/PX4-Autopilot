@@ -59,8 +59,6 @@ public:
 	~ECL_YawController() = default;
 
 	float control_attitude(const float dt, const ECL_ControlData &ctl_data) override;
-	float control_euler_rate(const float dt, const ECL_ControlData &ctl_data, float bodyrate_ff) override;
-	float control_bodyrate(const float dt, const ECL_ControlData &ctl_data) override;
 
 protected:
 	float _max_rate{0.0f};
