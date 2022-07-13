@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,19 +31,6 @@
 #
 ############################################################################
 
-add_library(wind_estimator
-	WindEstimator.cpp
-	WindEstimator.hpp
-)
-add_dependencies(wind_estimator prebuild_targets)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 
-add_subdirectory(test)
-
-add_custom_target(wind_estimator_generate_airspeed_fusion
-	COMMAND ${PYTHON_EXECUTABLE} derivation.py
-	#DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/python/derivation.py
-	#BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/python/generated/fuse_airspeed.h
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/python
-	COMMENT "Generating fuse_airspeed"
-	USES_TERMINAL
-)
+px4_add_unit_gtest(SRC test_airspeed_fusion.cpp)
