@@ -1,0 +1,5 @@
+menuconfig SYSTEMCMDS_HIST
+	bool "hist"
+	default n
+	---help---
+		Enable support for hist
