@@ -68,7 +68,7 @@ table {
                         min_val='?'
                     if not max_val:
                         max_val='?'
-                    max_min_combined+='%s, %s ' % (min_val, max_val)
+                    max_min_combined+='[%s, %s] ' % (min_val, max_val)
                 if increment:
                     max_min_combined+='(%s)' % increment
 
