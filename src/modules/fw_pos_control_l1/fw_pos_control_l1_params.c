@@ -400,14 +400,15 @@ PARAM_DEFINE_FLOAT(FW_TKO_PITCH_MIN, 10.0f);
 /**
  * Landing flare altitude (relative to landing altitude)
  *
+ * NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * |z-velocity|) is taken as the flare altitude
+ *
  * @unit m
  * @min 0.0
- * @max 25.0
  * @decimal 1
  * @increment 0.5
  * @group FW L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_LND_FLALT, 3.0f);
+PARAM_DEFINE_FLOAT(FW_LND_FLALT, 0.5f);
 
 /**
  * Use terrain estimate during landing.
@@ -440,7 +441,7 @@ PARAM_DEFINE_INT32(FW_LND_EARLYCFG, 0);
  * Flare, minimum pitch
  *
  * Minimum pitch during flare, a positive sign means nose up
- * Applied once FW_LND_FLALT is reached
+ * Applied once flaring is triggered
  *
  * @unit deg
  * @min 0
@@ -455,7 +456,7 @@ PARAM_DEFINE_FLOAT(FW_LND_FL_PMIN, 2.5f);
  * Flare, maximum pitch
  *
  * Maximum pitch during flare, a positive sign means nose up
- * Applied once FW_LND_FLALT is reached
+ * Applied once flaring is triggered
  *
  * @unit deg
  * @min 0
@@ -990,6 +991,8 @@ PARAM_DEFINE_FLOAT(FW_WING_HEIGHT, 0.5);
  *
  * Multiplied by the descent rate to calculate a dynamic altitude at which
  * to trigger the flare.
+ *
+ * NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * |z-velocity|) is taken as the flare altitude
  *
  * @unit s
  * @min 0.0
