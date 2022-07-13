@@ -117,10 +117,12 @@ static constexpr float HDG_HOLD_YAWRATE_THRESH = 0.15f;
 // [.] max manual roll/yaw normalized input from user which does not change the locked heading
 static constexpr float HDG_HOLD_MAN_INPUT_THRESH = 0.01f;
 
-// [us] time after which we abort landing if terrain estimate is not valid
+// [us] time after which we abort landing if terrain estimate is not valid. this timer start whenever the terrain altitude
+// was previously valid, and has changed to invalid.
 static constexpr hrt_abstime TERRAIN_ALT_TIMEOUT = 1_s;
 
-// [us] if no altimeter measurement is made within this timeout, the land waypoint altitude is used for terrain altitude
+// [us] within this timeout, if a distance sensor measurement not yet made, the land waypoint altitude is used for terrain
+// altitude. this timer starts at the beginning of the landing glide slope.
 static constexpr hrt_abstime TERRAIN_ALT_FIRST_MEASUREMENT_TIMEOUT = 10_s;
 
 // [.] max throttle from user which will not lead to motors spinning up in altitude controlled modes
@@ -323,7 +325,9 @@ private:
 		kNudgeApproachPath
 	};
 
-	hrt_abstime _time_started_landing{0}; // [us]
+	// [us] Start time of the landing approach. If a fixed-wing landing pattern is used, this timer starts *after any
+	// orbit to altitude only when the aircraft has entered the final *straight approach.
+	hrt_abstime _time_started_landing{0};
 
 	// [m] lateral touchdown position offset manually commanded during landing
 	float _lateral_touchdown_position_offset{0.0f};
@@ -417,11 +421,18 @@ private:
 	void wind_poll();
 
 	void status_publish();
-	void landing_status_publish();
+	void landing_status_publish(const uint8_t abort_reason = position_controller_landing_status_s::kAbortReasonNone);
 	void tecs_status_publish();
 	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
 
-	void abort_landing(bool abort);
+	/**
+	 * @brief Sets the aborted landing state and publishes landing status.
+	 *
+	 * @param abort If true, the aircraft should abort the landing
+	 * @param abort_reason Singular bit which triggered the abort
+	 */
+	void abort_landing(const bool abort,
+			   const uint8_t abort_reason = position_controller_landing_status_s::kAbortReasonNone);
 
 	/**
 	 * @brief Get a new waypoint based on heading and distance from current position
@@ -836,7 +847,8 @@ private:
 		(ParamFloat<px4::params::FW_LND_FL_TIME>) _param_fw_lnd_fl_time,
 		(ParamFloat<px4::params::FW_LND_FL_SINK>) _param_fw_lnd_fl_sink,
 		(ParamFloat<px4::params::FW_LND_TD_OFF>) _param_fw_lnd_td_off,
-		(ParamInt<px4::params::FW_LND_NUDGE>) _param_fw_lnd_nudge
+		(ParamInt<px4::params::FW_LND_NUDGE>) _param_fw_lnd_nudge,
+		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort
 	)
 
 };

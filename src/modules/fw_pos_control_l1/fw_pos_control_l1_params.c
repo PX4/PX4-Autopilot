@@ -1044,3 +1044,24 @@ PARAM_DEFINE_FLOAT(FW_LND_TD_OFF, 3.0);
  * @group FW L1 Control
  */
 PARAM_DEFINE_INT32(FW_LND_NUDGE, 0);
+
+/**
+ * Bit mask to set the automatic landing abort conditions.
+ *
+ * Terrain estimation:
+ * 0: Abort if terrain is not found
+ * 1: Abort if terrain times out (after a first successful measurement)
+ *
+ * The last estimate is always used as ground, whether the last valid measurement or the land waypoint, depending on the
+ * selected abort criteria, until an abort condition is entered. If FW_LND_USETER == 0, these bits are ignored.
+ *
+ * TODO: Extend automatic abort conditions
+ * e.g. glide slope tracking error (horizontal and vertical)
+ *
+ * @min 0
+ * @max 3
+ * @bit 0 Abort if terrain is not found
+ * @bit 1 Abort if terrain times out (after a first successful measurement)
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_INT32(FW_LND_ABORT, 0);
