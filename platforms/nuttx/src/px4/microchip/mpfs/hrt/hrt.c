@@ -46,7 +46,6 @@
 #include <systemlib/px4_macros.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
-
 #include <sys/types.h>
 #include <stdbool.h>
 
@@ -85,17 +84,18 @@
  * Scaling factor(s) for the free-running counter; convert an input
  * in counts to a time in microseconds.
  */
-#define HRT_COUNTER_SCALE(_c)	(_c / CLOCK_RATE_MHZ)
 
-#define HRT_TIME_TO_COUNTS(_a)  (_a * CLOCK_RATE_MHZ)
+#define HRT_COUNTER_SCALE(_c)	((_c) / CLOCK_RATE_MHZ)
+#define HRT_TIME_TO_COUNTS(_a)  ((_a) * CLOCK_RATE_MHZ)
 
 /*
  * Queue of callout entries.
  */
 static struct sq_queue_s	callout_queue;
 
-/* latency baseline (last compare value applied) */
-static uint32_t			latency_baseline;
+/* timer static variables */
+static volatile uint64_t base_time;
+static volatile uint32_t loadval;
 
 /* timer count at interrupt (for latency purposes) */
 static uint32_t			latency_actual;
@@ -116,8 +116,58 @@ static void hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_
 static void hrt_call_enter(struct hrt_call *entry);
 static void hrt_call_reschedule(void);
 static void hrt_call_invoke(void);
-static inline hrt_abstime hrt_calc_base_time(uint32_t newloadval);
-static void hrt_set_new_deadline(uint32_t deadline);
+
+/**
+ * function to retrieve current timestamp in timer resolution.
+ * this handles the possible overflows and returns a monotonically
+ * increasing time.
+ *
+ * Always call with interrupts disabled.
+ */
+
+inline static uint64_t hrt_get_curr_time(void)
+{
+	uint64_t	curr_time;
+	static volatile uint64_t	prev_curr_time;
+
+	/* get the current counter value */
+	uint32_t count = getreg32(MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1VALUE_OFFSET);
+
+	curr_time = base_time + (loadval - count);
+
+	/* This takes care of timer wrapping over during some other isr, and this
+	 * function being called several times before the base_time is updated in the
+	 * timer isr.
+	*/
+
+	if (prev_curr_time > curr_time) {
+		curr_time += loadval;
+
+		if (prev_curr_time > curr_time) {
+			_err("HRT not monotonic\n");
+		}
+	}
+
+	prev_curr_time = curr_time;
+
+	return curr_time;
+}
+
+/**
+ * function to set new time to the the next interrupt.
+ *
+ * Always call with interrupts disabled.
+ */
+
+inline static void hrt_set_new_deadline(uint32_t deadline)
+{
+	uint64_t curr_time = hrt_get_curr_time();
+
+	/* load the new deadline into register and store it locally */
+	putreg32(deadline, MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1LOADVAL_OFFSET);
+	loadval = deadline;
+	base_time = curr_time;
+}
 
 /**
  * Initialize the timer we are going to use.
@@ -135,8 +185,8 @@ hrt_tim_init(void)
 
 		/* Assumes that the clock for timer is enabled and not in reset */
 
-		/* set an initial timeout */
-		hrt_calc_base_time(0x0fff);
+		/* set an initial timeout to 1 ms*/
+		hrt_set_new_deadline(HRT_TIME_TO_COUNTS(1000));
 
 		/* enable interrupt for timer, set periodic mode and enable timer */
 		putreg32((MPFS_MSTIMER_INTEN_MASK | MPFS_MSTIMER_ENABLE_MASK) & ~(MPFS_MSTIMER_MODE_MASK),
@@ -144,13 +194,11 @@ hrt_tim_init(void)
 
 		/* enable interrupts */
 		up_enable_irq(MPFS_IRQ_TIMER1);
-
 	}
 }
 
-
 /**
- * Handle the compare interrupt by calling the callout dispatcher
+ * Handle the timer interrupt by calling the callout dispatcher
  * and then re-scheduling the next deadline.
  */
 static int
@@ -158,10 +206,16 @@ hrt_tim_isr(int irq, void *context, void *arg)
 {
 	uint32_t status;
 
+	/* get the current (wrapped over) counter value for
+	   latency tracking purposes */
+	latency_actual = getreg32(MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1VALUE_OFFSET);
+
 	status = getreg32(MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1RIS_OFFSET);
 
 	/* was this a timer tick? */
 	if (status & MPFS_MSTIMER_RIS_MASK) {
+		/* update base_time */
+		base_time += loadval;
 
 		/* do latency calculations */
 		hrt_latency_update();
@@ -179,7 +233,6 @@ hrt_tim_isr(int irq, void *context, void *arg)
 	return OK;
 }
 
-
 /**
  * Fetch a never-wrapping absolute time value in microseconds from
  * some arbitrary epoch shortly after system start.
@@ -187,13 +240,17 @@ hrt_tim_isr(int irq, void *context, void *arg)
 hrt_abstime
 hrt_absolute_time(void)
 {
-	hrt_abstime	abstime;
-	hrt_abstime	curr_time;
+	uint64_t	curr_time;
+	irqstate_t	flags;
 
-	curr_time = hrt_calc_base_time(0);
-	abstime = HRT_COUNTER_SCALE(curr_time);
+	/* prevent re-entry */
+	flags = px4_enter_critical_section();
 
-	return abstime;
+	curr_time = hrt_get_curr_time();
+
+	px4_leave_critical_section(flags);
+
+	return HRT_COUNTER_SCALE(curr_time);
 }
 
 /**
@@ -220,59 +277,6 @@ hrt_store_absolute_time(volatile hrt_abstime *t)
 	irqstate_t flags = px4_enter_critical_section();
 	*t = hrt_absolute_time();
 	px4_leave_critical_section(flags);
-}
-
-
-static inline hrt_abstime hrt_calc_base_time(uint32_t newloadval)
-{
-	uint32_t	count;
-	static volatile uint32_t loadval;
-	static volatile hrt_abstime base_time;
-	static volatile uint32_t last_count;
-	irqstate_t	flags;
-	hrt_abstime	curr_time;
-
-	/* prevent re-entry */
-	flags = px4_enter_critical_section();
-
-	/* get the current counter value */
-	count = getreg32(MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1VALUE_OFFSET);
-
-	/* Determine whether the counter has wrapped since the
-	 * last time we're called.
-	 *
-	 * This simple test is sufficient due to the guarantee that
-	 * we are always called at least once per counter period.
-	 */
-	if (count > last_count) {
-		base_time += loadval;
-	}
-
-	/* calculate the current time. if loadval < count this wraps around correctly */
-	curr_time = base_time + (loadval - count);
-
-	/* set new last counter val if needed */
-	if (newloadval != 0) {
-		putreg32(newloadval, MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1LOADVAL_OFFSET);
-		loadval = newloadval;
-		count = newloadval;
-
-		/* store current time into base_time */
-		base_time = curr_time;
-	}
-
-	/* save the count for next time */
-	last_count = count;
-
-	px4_leave_critical_section(flags);
-
-	return curr_time;
-}
-
-static void hrt_set_new_deadline(uint32_t deadline)
-{
-	/* calculate base time and set a new counter value */
-	hrt_calc_base_time(deadline);
 }
 
 /**
@@ -464,7 +468,6 @@ hrt_call_reschedule()
 {
 	hrt_abstime	now = hrt_absolute_time();
 	struct hrt_call	*next = (struct hrt_call *)sq_peek(&callout_queue);
-	hrt_abstime	absdeadline = now + HRT_INTERVAL_MAX;
 	uint32_t	deadline = HRT_COUNTER_MAX;
 
 	/*
@@ -482,7 +485,7 @@ hrt_call_reschedule()
 			/* set a minimal deadline so that we call ASAP */
 			deadline = HRT_COUNTER_MIN;
 
-		} else if (next->deadline < absdeadline) {
+		} else if (next->deadline < now + HRT_INTERVAL_MAX) {
 			hrtinfo("due soon\n");
 			/* calculate how much time we have to the next deadline */
 			uint32_t deadline_us = (next->deadline - now);
@@ -491,11 +494,7 @@ hrt_call_reschedule()
 		}
 	}
 
-
-	hrtinfo("schedule for %"PRIu64" at %"PRIu64"\n", next->deadline, now);
-
-	/* set the new compare value and remember it for latency tracking */
-	latency_baseline = deadline;
+	hrtinfo("schedule for %"PRIu64" at %"PRIu64"\n", HRT_COUNTER_SCALE(deadline), now);
 
 	/* set next deadline */
 	hrt_set_new_deadline(deadline);
@@ -504,7 +503,7 @@ hrt_call_reschedule()
 static void
 hrt_latency_update(void)
 {
-	uint16_t latency = latency_actual - latency_baseline;
+	uint32_t latency = HRT_COUNTER_SCALE(loadval - latency_actual);
 	unsigned	index;
 
 	/* bounded buckets */
