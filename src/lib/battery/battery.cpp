@@ -206,6 +206,10 @@ void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a)
 
 float Battery::calculateStateOfChargeVoltageBased(const float voltage_v, const float current_a)
 {
+	if (_params.n_cells == 0) {
+		return -1.0f;
+	}
+
 	// remaining battery capacity based on voltage
 	float cell_voltage = voltage_v / _params.n_cells;
 
