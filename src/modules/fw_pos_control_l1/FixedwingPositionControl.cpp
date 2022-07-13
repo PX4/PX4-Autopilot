@@ -1722,7 +1722,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 		/* set the attitude and throttle commands */
 
-		// TECS has authority (though constrained) over pitch during flare, throttle is killed
+		// TECS has authority (though constrained) over pitch during flare, throttle is hard set to idle
 		_att_sp.pitch_body = get_tecs_pitch();
 
 		// flaring is just before touchdown, align the yaw as much as possible with the landing vector
@@ -1731,7 +1731,9 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		// enable direct yaw control using rudder/wheel
 		_att_sp.fw_control_yaw = true;
 
-		_att_sp.thrust_body[0] = 0.0f;
+		// idle throttle may be >0 for internal combustion engines
+		// normally set to zero for electric motors
+		_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
 
 	} else {
 
@@ -1791,7 +1793,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		// enable direct yaw control using rudder/wheel
 		_att_sp.fw_control_yaw = false;
 
-		_att_sp.thrust_body[0] = (_landed) ? 0.0f : get_tecs_thrust();
+		_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_idle.get() : get_tecs_thrust();
 	}
 
 	_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get()); // reset after TECS calculation

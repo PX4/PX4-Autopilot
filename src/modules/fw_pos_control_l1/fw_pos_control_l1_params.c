@@ -338,8 +338,11 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
  *
  * This is the minimum throttle while on the ground
  *
- * For aircraft with internal combustion engine this parameter should be set
- * above desired idle rpm.
+ * For aircraft with internal combustion engines, this parameter should be set
+ * above the desired idle rpm. For electric motors, idle should typically be set
+ * to zero.
+ *
+ * Note that in automatic modes, "landed" conditions will engage idle throttle.
  *
  * @unit norm
  * @min 0.0
@@ -348,7 +351,7 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
  * @increment 0.01
  * @group FW L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.15f);
+PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.0f);
 
 /**
  * Climbout Altitude difference
