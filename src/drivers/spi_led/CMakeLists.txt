@@ -33,7 +33,7 @@
 
 px4_add_module(
 	MODULE drivers__spi_led
-	MAIN spi_led_driver
+	MAIN spi_led
 	COMPILE_FLAGS
 		#-DDEBUG_BUILD   # uncomment for PX4_DEBUG output
 		#-O0             # uncomment when debugging

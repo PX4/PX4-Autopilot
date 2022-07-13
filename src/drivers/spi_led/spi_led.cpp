@@ -83,20 +83,17 @@ void spi_led::Run()
 	perf_count(_loop_interval_perf);
 
 	if (_spi_led_sub.updated()) {
-		//printf("spi led sub updated\n");
 		struct spi_led_s led_struct;
 
 		if (_spi_led_sub.copy(&led_struct)) {
-			//printf("copied\n");
-			// DO WORK
-			uint32_t size = led_struct.number_leds + (led_struct.number_leds % 10) + 2;
+
+			uint32_t size = led_struct.number_leds + 11;
 			if(size != _size) {
 				_size = size;
 				delete _buf;
 				delete _rbuf;
 				_buf = new uint32_t[size];
 				_rbuf = new uint32_t[size];
-				//printf("created buffers\n");
 				for(uint32_t i = 0; i < size; i++) {
 					_buf[i] = 0x00000000;
 				}
@@ -105,20 +102,14 @@ void spi_led::Run()
 
 			//printf("offset: %d\n", (led_struct.offset_group*10)+1);
 			for(uint32_t i = 0; i < 10; i++) {
-				_buf[i + (led_struct.offset_group*10) + 1] = led_struct.led_values[i];
+				if ((i + (led_struct.offset_group*10)) < led_struct.number_leds) {
+					_buf[i + (1+led_struct.offset_group)*10] = led_struct.led_values[i];
+				}
 			}
 
-			//printf("%p \n", _buf);
-			//memcpy(_buf + (led_struct.offset_group*10)+1, &led_struct.led_values, 10);
-			//printf("buf: ");
-			for(uint32_t i = 0; i < size; i++) {
-				//printf("0x%08" PRIx32 " ", _buf[i]);
-			}
-			//printf("\n");
-			//printf("copied data\n");
 
 			transfer((uint8_t *)_buf, (uint8_t *)_rbuf, _size*4);
-			//printf("transferred\n");
+
 		}
 	}
 
@@ -180,7 +171,7 @@ spi_led driver for leds like apa102c and sk9822.
 	return 0;
 }
 
-extern "C" __EXPORT int spi_led_driver_main(int argc, char *argv[])
+extern "C" __EXPORT int spi_led_main(int argc, char *argv[])
 {
 	return spi_led::main(argc, argv);
 }
