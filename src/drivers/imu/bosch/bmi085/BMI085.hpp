@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,28 +31,51 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
+#pragma once
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20948, SPI::CS{GPIO::PortE, GPIO::Pin15}, SPI::DRDY{GPIO::PortE, GPIO::Pin12}),
-	}, {GPIO::PortE, GPIO::Pin3}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10}),
-		initSPIDevice(DRV_BARO_DEVTYPE_DPS310, SPI::CS{GPIO::PortD, GPIO::Pin7}),
-	}),
-	initSPIBus(SPI::Bus::SPI5, {
-		initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortF, GPIO::Pin10}, SPI::DRDY{GPIO::PortF, GPIO::Pin3}),
-		initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortF, GPIO::Pin6}, SPI::DRDY{GPIO::PortF, GPIO::Pin1}),
-		initSPIDevice(DRV_GYR_DEVTYPE_BMI085, SPI::CS{GPIO::PortF, GPIO::Pin10}, SPI::DRDY{GPIO::PortF, GPIO::Pin3}),
-		initSPIDevice(DRV_ACC_DEVTYPE_BMI085, SPI::CS{GPIO::PortF, GPIO::Pin6}, SPI::DRDY{GPIO::PortF, GPIO::Pin1}),
-	}),
-	initSPIBusExternal(SPI::Bus::SPI6, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortG, GPIO::Pin9}),
-	}),
+#include <drivers/drv_hrt.h>
+#include <lib/drivers/device/spi.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+
+static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
+
+class BMI085 : public device::SPI, public I2CSPIDriver<BMI085>
+{
+public:
+	BMI085(const I2CSPIDriverConfig &config);
+
+	virtual ~BMI085() = default;
+
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
+	static void print_usage();
+
+	virtual void RunImpl() = 0;
+
+	int init() override;
+	virtual void print_status() = 0;
+
+protected:
+
+	bool Reset();
+
+	const spi_drdy_gpio_t _drdy_gpio;
+
+	hrt_abstime _reset_timestamp{0};
+	hrt_abstime _last_config_check_timestamp{0};
+	hrt_abstime _temperature_update_timestamp{0};
+	int _failure_count{0};
+
+	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
+	bool _data_ready_interrupt_enabled{false};
+
+	enum class STATE : uint8_t {
+		RESET,
+		WAIT_FOR_RESET,
+		CONFIGURE,
+		FIFO_READ,
+	} _state{STATE::RESET};
+
+	uint16_t _fifo_empty_interval_us{2500}; // 2500 us / 400 Hz transfer interval
+
 };
-
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);

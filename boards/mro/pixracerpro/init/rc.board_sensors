@@ -8,8 +8,14 @@ board_adc start
 icm20602 -s -b 1 -R 8 start
 
 # Internal SPI bus BMI088 accel & gyro
-bmi088 -A -s -b 5 -R 8 start
-bmi088 -G -s -b 5 -R 8 start
+if bmi088 -A -s -b 5 -R 8 start
+then
+	bmi088 -G -s -b 5 -R 8 start
+else
+	# otherwise try BMI085
+	bmi085 -A -s -b 5 -R 8 start
+	bmi085 -G -s -b 5 -R 8 start
+fi
 
 # Internal ICM-20948 (with magnetometer)
 icm20948 -s -b 1 -R 8 -M start
