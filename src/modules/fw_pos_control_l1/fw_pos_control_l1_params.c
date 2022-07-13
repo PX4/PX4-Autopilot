@@ -1032,6 +1032,10 @@ PARAM_DEFINE_FLOAT(FW_LND_TD_OFF, 3.0);
  * Approach angle nudging: shifts the touchdown point laterally while keeping the approach entrance point constant
  * Approach path nudging: shifts the touchdown point laterally along with the entire approach path
  *
+ * This is useful for manually adjusting the landing point in real time when map or GNSS errors cause an offset from the
+ * desired landing vector. Nuding is done with yaw stick, constrained to FW_LND_TD_OFF (in meters) and the direction is
+ * relative to the vehicle heading (stick deflection to the right = land point moves to the right as seen by the vehicle).
+ *
  * @min 0
  * @max 2
  * @value 0 Disable nudging

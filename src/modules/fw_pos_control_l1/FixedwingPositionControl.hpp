@@ -316,6 +316,13 @@ private:
 
 	// AUTO LANDING
 
+	// corresponds to param FW_LND_NUDGE
+	enum LandingNudgingOption {
+		kNudgingDisabled = 0,
+		kNudgeApproachAngle,
+		kNudgeApproachPath
+	};
+
 	hrt_abstime _time_started_landing{0}; // [us]
 
 	// [m] lateral touchdown position offset manually commanded during landing
