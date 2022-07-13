@@ -2566,7 +2566,8 @@ FixedwingPositionControl::initializeAutoLanding(const hrt_abstime &now, const po
 Vector2f
 FixedwingPositionControl::calculateTouchdownPosition(const float control_interval, const Vector2f &local_land_position)
 {
-	if (fabsf(_manual_control_setpoint.r) > MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE && _param_fw_lnd_nudge.get() > 0) {
+	if (fabsf(_manual_control_setpoint.r) > MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE
+	    && _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled) {
 		// laterally nudge touchdown location with yaw stick
 		// positive is defined in the direction of a right hand turn starting from the approach vector direction
 		const float signed_deadzone_threshold = MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE * math::signNoZero(
@@ -2590,17 +2591,17 @@ FixedwingPositionControl::calculateLandingApproachVector() const
 	const Vector2f approach_unit_vector = landing_approach_vector.unit_or_zero();
 	const Vector2f approach_unit_normal_vector{-approach_unit_vector(1), approach_unit_vector(0)};
 
-	// if _param_fw_lnd_nudge.get() == 0, no nudging
-
-	if (_param_fw_lnd_nudge.get() == 1) {
+	if (_param_fw_lnd_nudge.get() == LandingNudgingOption::kNudgeApproachAngle) {
 		// nudge the approach angle -- i.e. we adjust the approach vector to reach from the original approach
 		// entrance position to the newly nudged touchdown point
 		// NOTE: this lengthens the landing distance.. which will adjust the glideslope height slightly
 		landing_approach_vector += approach_unit_normal_vector * _lateral_touchdown_position_offset;
 	}
 
-	// if _param_fw_lnd_nudge.get() == 2, the full path (including approach entrance point) is nudged with the touchdown
-	// point, which does not require any additions to the approach vector
+	// if _param_fw_lnd_nudge.get() == LandingNudgingOption::kNudgingDisabled, no nudging
+
+	// if _param_fw_lnd_nudge.get() == LandingNudgingOption::kNudgeApproachPath, the full path (including approach
+	// entrance point) is nudged with the touchdown point, which does not require any additions to the approach vector
 
 	return landing_approach_vector;
 }
