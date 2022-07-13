@@ -61,8 +61,6 @@ public:
 	~ECL_PitchController() = default;
 
 	float control_attitude(const float dt, const ECL_ControlData &ctl_data) override;
-	float control_euler_rate(const float dt, const ECL_ControlData &ctl_data, float bodyrate_ff) override;
-	float control_bodyrate(const float dt, const ECL_ControlData &ctl_data) override;
 
 	/* Additional Setters */
 	void set_max_rate_pos(float max_rate_pos)
