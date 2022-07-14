@@ -57,6 +57,8 @@ ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *p
 		_param_handles.pitch_curve[i] = param_find(buffer);
 	}
 
+	_param_handles.yaw_collective_pitch_scale = param_find("CA_HELI_YAW_CP_S");
+
 	updateParams();
 }
 
@@ -84,6 +86,8 @@ void ActuatorEffectivenessHelicopter::updateParams()
 		param_get(_param_handles.throttle_curve[i], &_geometry.throttle_curve[i]);
 		param_get(_param_handles.pitch_curve[i], &_geometry.pitch_curve[i]);
 	}
+
+	param_get(_param_handles.yaw_collective_pitch_scale, &_geometry.yaw_collective_pitch_scale);
 }
 
 bool
@@ -97,8 +101,8 @@ ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &configura
 	// As the allocation is non-linear, we use updateSetpoint() instead of the matrix
 	configuration.addActuator(ActuatorType::MOTORS, Vector3f{}, Vector3f{});
 
-	// Tail (yaw) servo
-	configuration.addActuator(ActuatorType::SERVOS, Vector3f{0.f, 0.f, 1.f}, Vector3f{});
+	// Tail (yaw) motor
+	configuration.addActuator(ActuatorType::MOTORS, Vector3f{}, Vector3f{});
 
 	// N swash plate servos
 	_first_swash_plate_servo_index = configuration.num_actuators_matrix[0];
@@ -133,6 +137,8 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 	float pitch_cmd = control_sp(ControlAxis::PITCH);
 
 	actuator_sp(0) = throttle;
+
+	actuator_sp(1) = control_sp(ControlAxis::YAW) + collective_pitch * _geometry.yaw_collective_pitch_scale;
 
 	for (int i = 0; i < _geometry.num_swash_plate_servos; i++) {
 		actuator_sp(_first_swash_plate_servo_index + i) = collective_pitch
