@@ -52,6 +52,8 @@ px4_add_library(ActuatorEffectiveness
 	ActuatorEffectivenessRotors.hpp
 	ActuatorEffectivenessStandardVTOL.cpp
 	ActuatorEffectivenessStandardVTOL.hpp
+	ActuatorEffectivenessStandardVTOLUnified.cpp
+	ActuatorEffectivenessStandardVTOLUnified.hpp
 	ActuatorEffectivenessTiltrotorVTOL.cpp
 	ActuatorEffectivenessTiltrotorVTOL.hpp
 	ActuatorEffectivenessTailsitterVTOL.cpp

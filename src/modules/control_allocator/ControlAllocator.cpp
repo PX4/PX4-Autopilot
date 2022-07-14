@@ -260,6 +260,10 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessHelicopter(this);
 			break;
 
+		case EffectivenessSource::STANDARD_VTOL_UNIFIED:
+			tmp = new ActuatorEffectivenessStandardVTOLUnified(this);
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;

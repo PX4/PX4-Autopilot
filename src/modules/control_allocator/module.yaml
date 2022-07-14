@@ -28,6 +28,7 @@ parameters:
                 8: Multirotor with Tilt
                 9: Custom
                 10: Helicopter
+                11: Standard VTOL Unified (testing)
             default: 0
 
         CA_METHOD:
