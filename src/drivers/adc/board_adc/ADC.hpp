@@ -102,7 +102,7 @@ private:
 
 	static const hrt_abstime	kINTERVAL{10_ms};	/**< 100Hz base rate */
 
-	bool 				_publish_adc_report;
+	const bool 			_publish_adc_report;
 
 	perf_counter_t			_sample_perf;
 
