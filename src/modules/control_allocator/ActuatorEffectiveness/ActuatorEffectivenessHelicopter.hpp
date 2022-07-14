@@ -54,6 +54,7 @@ public:
 		int num_swash_plate_servos{0};
 		float throttle_curve[NUM_CURVE_POINTS];
 		float pitch_curve[NUM_CURVE_POINTS];
+		float yaw_collective_pitch_scale;
 	};
 
 	ActuatorEffectivenessHelicopter(ModuleParams *parent);
@@ -80,6 +81,7 @@ private:
 		param_t num_swash_plate_servos;
 		param_t throttle_curve[NUM_CURVE_POINTS];
 		param_t pitch_curve[NUM_CURVE_POINTS];
+		param_t yaw_collective_pitch_scale;
 	};
 	ParamHandles _param_handles{};
 

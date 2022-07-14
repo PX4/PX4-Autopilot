@@ -440,6 +440,19 @@ parameters:
             min: 0
             max: 1
             default: [0.05, 0.15, 0.25, 0.35, 0.45]
+        CA_HELI_YAW_CP_S:
+          description:
+            short: Yaw scaling by collective pitch
+            long: |
+              This allows to add a proportional factor of the collective pitch command to the yaw command.
+
+              tail_output += CA_HELI_YAW_CP_S * collective_pitch
+          type: float
+          decimal: 3
+          increment: 0.1
+          min: -2
+          max: 2
+          default: 0.0
 
         # Others
         CA_FAILURE_MODE:
@@ -876,8 +889,8 @@ mixer:
                   - actuator_type: 'motor'
                     count: 1
                     item_label_prefix: ['Rotor']
-                  - actuator_type: 'servo'
-                    item_label_prefix: ['Yaw tail servo']
+                  - actuator_type: 'motor'
+                    item_label_prefix: ['Yaw tail Motor']
                     count: 1
                   - actuator_type: 'servo'
                     group_label: 'Swash plate servos'
