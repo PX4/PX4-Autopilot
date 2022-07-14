@@ -7,23 +7,46 @@ actuator_output:
       channel_label_module_name_prefix: false
       timer_config_file: "boards/px4/io-v2/src/timer_config.cpp"
       standard_params:
-        disarmed: { min: 800, max: 2200, default: 900 }
-        min: { min: 800, max: 1400, default: 1000 }
-        max: { min: 1600, max: 2200, default: 2000 }
-        failsafe: { min: 800, max: 2200 }
+        disarmed: {min: 800, max: 2200, default: 900}
+        min: {min: 800, max: 1400, default: 1000}
+        max: {min: 1600, max: 2200, default: 2000}
+        failsafe: {min: 800, max: 2200}
       pwm_timer_param:
         description:
-            short: Output Protocol Configuration for ${label}
-            long: |
-                Select which Output Protocol to use for outputs ${label}.
+          short: Output Protocol Configuration for ${label}
+          long: |
+            Select which Output Protocol to use for outputs ${label}.
 
-                Custom PWM rates can be used by directly setting any value >0.
+            Custom PWM rates can be used by directly setting any value >0.
         type: enum
         default: 400
         values:
-            -1: OneShot
-            50: PWM 50 Hz
-            100: PWM 100 Hz
-            200: PWM 200 Hz
-            400: PWM 400 Hz
+          -1: OneShot
+          50: PWM 50 Hz
+          100: PWM 100 Hz
+          200: PWM 200 Hz
+          400: PWM 400 Hz
         reboot_required: true
+parameters:
+  - definitions:
+      PWM_SBUS_MODE:
+        default: 0
+        description:
+          long: Set to 1 to enable S.BUS version 1 output instead of RSSI.
+          short: S.BUS out
+        type: boolean
+        volatile: false
+    group: PWM Outputs
+  - definitions:
+      SYS_USE_IO:
+        default: 1
+        description:
+          long: Can be used to use a configure the use of the IO board.
+          short: Set usage of IO board
+        reboot_required: true
+        type: enum
+        values:
+          0: IO PWM disabled (RC only)
+          1: IO enabled (RC & PWM)
+        volatile: false
+    group: System

@@ -39,6 +39,8 @@ px4_add_module(
 		ms4525do_main.cpp
 		MS4525DO.cpp
 		MS4525DO.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_work_queue
 	)

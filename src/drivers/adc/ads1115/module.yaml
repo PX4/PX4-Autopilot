@@ -1,0 +1,12 @@
+module_name: ads1115
+parameters:
+  - definitions:
+      ADC_ADS1115_EN:
+        default: 0
+        description:
+          long: If enabled, the internal ADC is not used.
+          short: Enable external ADS1115 ADC
+        reboot_required: true
+        type: boolean
+        volatile: false
+    group: Sensors

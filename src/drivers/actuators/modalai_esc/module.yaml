@@ -1,0 +1,113 @@
+module_name: modalai_esc
+parameters:
+  - definitions:
+      UART_ESC_BAUD:
+        default: 250000
+        description:
+          long: Default rate is 250Kbps, which is used in off-the-shelf MoadalAI ESC products.
+          short: UART ESC baud rate
+        type: int32
+        unit: bit/s
+        volatile: false
+      UART_ESC_CONFIG:
+        default: 0
+        description:
+          long: Selects what type of UART ESC, if any, is being used.
+          short: UART ESC configuration
+        max: 1
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: '- Disabled'
+          1: '- VOXL ESC'
+        volatile: false
+      UART_ESC_MODE:
+        default: 0
+        description:
+          long: Selects what type of mode is enabled, if any
+          short: UART ESC Mode
+        max: 2
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: '- None'
+          1: '- Turtle Mode enabled via AUX1'
+          2: '- Turtle Mode enabled via AUX2'
+        volatile: false
+      UART_ESC_MOTOR1:
+        default: 3
+        description:
+          short: UART ESC Motor 1 Mapping.  1-4 (negative for reversal)
+        max: 4
+        min: -4
+        type: int32
+        volatile: false
+      UART_ESC_MOTOR2:
+        default: 2
+        description:
+          short: UART ESC Motor 2 Mapping.  1-4 (negative for reversal)
+        max: 4
+        min: -4
+        type: int32
+        volatile: false
+      UART_ESC_MOTOR3:
+        default: 4
+        description:
+          short: UART ESC Motor 3 Mapping.  1-4 (negative for reversal)
+        max: 4
+        min: -4
+        type: int32
+        volatile: false
+      UART_ESC_MOTOR4:
+        default: 1
+        description:
+          short: UART ESC Motor 4 Mapping.  1-4 (negative for reversal)
+        max: 4
+        min: -4
+        type: int32
+        volatile: false
+      UART_ESC_RPM_MAX:
+        default: 15000
+        description:
+          long: Maximum RPM for ESC
+          short: UART ESC RPM Max
+        type: int32
+        unit: RPM
+        volatile: false
+      UART_ESC_RPM_MIN:
+        default: 5500
+        description:
+          long: Minimum RPM for ESC
+          short: UART ESC RPM Min
+        type: int32
+        unit: RPM
+        volatile: false
+    group: UART ESC
+  - definitions:
+      UART_ESC_DEAD1:
+        decimal: 10
+        default: 0.3
+        description:
+          long: Must be greater than Deadzone 2. Absolute value of stick position needed to activate a motor.
+          short: UART ESC Mode Deadzone 1
+        increment: 0.01
+        max: 0.99
+        min: 0.01
+        type: float
+        volatile: false
+    group: UART ESC Mode Deadzone 1
+  - definitions:
+      UART_ESC_DEAD2:
+        decimal: 10
+        default: 0.02
+        description:
+          long: Must be less than Deadzone 1. Absolute value of stick position considered no longer on the X or Y axis, thus targetting a specific motor (single).
+          short: UART ESC Mode Deadzone 2
+        increment: 0.01
+        max: 0.99
+        min: 0.01
+        type: float
+        volatile: false
+    group: UART ESC Mode Deadzone 2

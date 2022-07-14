@@ -12,16 +12,255 @@ actuator_output:
       group_label: 'ESCs'
       channel_label: 'ESC'
       standard_params:
-        min: { min: 0, max: 8191, default: 1 }
-        max: { min: 0, max: 8191, default: 8191 }
-        failsafe: { min: 0, max: 8191 }
+        min: {min: 0, max: 8191, default: 1}
+        max: {min: 0, max: 8191, default: 8191}
+        failsafe: {min: 0, max: 8191}
       num_channels: 8
     - param_prefix: UAVCAN_SV
       group_label: 'Servos'
       channel_label: 'Servo'
       standard_params:
-        disarmed: { min: 0, max: 1000, default: 500 }
-        min: { min: 0, max: 1000, default: 0 }
-        max: { min: 0, max: 1000, default: 1000 }
-        failsafe: { min: 0, max: 1000 }
+        disarmed: {min: 0, max: 1000, default: 500}
+        min: {min: 0, max: 1000, default: 0}
+        max: {min: 0, max: 1000, default: 1000}
+        failsafe: {min: 0, max: 1000}
       num_channels: 8
+parameters:
+  - definitions:
+      UAVCAN_BITRATE:
+        default: 1000000
+        description:
+          short: UAVCAN CAN bus bitrate
+        max: 1000000
+        min: 20000
+        reboot_required: true
+        type: int32
+        unit: bit/s
+        volatile: false
+      UAVCAN_ENABLE:
+        default: 0
+        description:
+          long: 0 - UAVCAN disabled. 1 - Enables support for UAVCAN sensors without dynamic node ID allocation and firmware update. 2 - Enables support for UAVCAN sensors with dynamic node ID allocation and firmware update. 3 - Enables support for UAVCAN sensors and actuators with dynamic node ID allocation and firmware update. Also sets the motor control outputs to UAVCAN.
+          short: UAVCAN mode
+        max: 3
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Disabled
+          1: Sensors Manual Config
+          2: Sensors Automatic Config
+          3: Sensors and Actuators (ESCs) Automatic Config
+        volatile: false
+      UAVCAN_ESC_IDLT:
+        default: 1
+        description:
+          short: UAVCAN ESC will spin at idle throttle when armed, even if the mixer outputs zero setpoints
+        reboot_required: true
+        type: boolean
+        volatile: false
+      UAVCAN_LGT_ANTCL:
+        default: 2
+        description:
+          long: This parameter defines the minimum condition under which the system will command the ANTI_COLLISION lights on 0 - Always off 1 - When autopilot is armed 2 - When autopilot is prearmed 3 - Always on
+          short: UAVCAN ANTI_COLLISION light operating mode
+        max: 3
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Always off
+          1: When autopilot is armed
+          2: When autopilot is prearmed
+          3: Always on
+        volatile: false
+      UAVCAN_LGT_LAND:
+        default: 0
+        description:
+          long: This parameter defines the minimum condition under which the system will command the LIGHT_ID_LANDING lights on 0 - Always off 1 - When autopilot is armed 2 - When autopilot is prearmed 3 - Always on
+          short: UAVCAN LIGHT_ID_LANDING light operating mode
+        max: 3
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Always off
+          1: When autopilot is armed
+          2: When autopilot is prearmed
+          3: Always on
+        volatile: false
+      UAVCAN_LGT_NAV:
+        default: 3
+        description:
+          long: This parameter defines the minimum condition under which the system will command the RIGHT_OF_WAY lights on 0 - Always off 1 - When autopilot is armed 2 - When autopilot is prearmed 3 - Always on
+          short: UAVCAN RIGHT_OF_WAY light operating mode
+        max: 3
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Always off
+          1: When autopilot is armed
+          2: When autopilot is prearmed
+          3: Always on
+        volatile: false
+      UAVCAN_LGT_STROB:
+        default: 1
+        description:
+          long: This parameter defines the minimum condition under which the system will command the STROBE lights on 0 - Always off 1 - When autopilot is armed 2 - When autopilot is prearmed 3 - Always on
+          short: UAVCAN STROBE light operating mode
+        max: 3
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Always off
+          1: When autopilot is armed
+          2: When autopilot is prearmed
+          3: Always on
+        volatile: false
+      UAVCAN_NODE_ID:
+        default: 1
+        description:
+          long: Read the specs at http://uavcan.org to learn more about Node ID.
+          short: UAVCAN Node ID
+        max: 125
+        min: 1
+        reboot_required: true
+        type: int32
+        volatile: false
+      UAVCAN_PUB_MBD:
+        default: 0
+        description:
+          long: Enable UAVCAN RTCM stream publication ardupilot::gnss::MovingBaselineData
+          short: publish moving baseline data RTCM stream
+        reboot_required: true
+        type: boolean
+        volatile: false
+      UAVCAN_PUB_RTCM:
+        default: 0
+        description:
+          long: Enable UAVCAN RTCM stream publication uavcan::equipment::gnss::RTCMStream
+          short: publish RTCM stream
+        reboot_required: true
+        type: boolean
+        volatile: false
+      UAVCAN_RNG_MAX:
+        default: 200.0
+        description:
+          long: This parameter defines the maximum valid range for a rangefinder connected via UAVCAN.
+          short: UAVCAN rangefinder maximum range
+        type: float
+        unit: m
+        volatile: false
+      UAVCAN_RNG_MIN:
+        default: 0.3
+        description:
+          long: This parameter defines the minimum valid range for a rangefinder connected via UAVCAN.
+          short: UAVCAN rangefinder minimum range
+        type: float
+        unit: m
+        volatile: false
+      UAVCAN_SUB_ASPD:
+        default: 0
+        description:
+          long: Enable UAVCAN airspeed subscriptions. uavcan::equipment::air_data::IndicatedAirspeed uavcan::equipment::air_data::TrueAirspeed uavcan::equipment::air_data::StaticTemperature
+          short: subscription airspeed
+        reboot_required: true
+        type: boolean
+        volatile: false
+      UAVCAN_SUB_BARO:
+        default: 0
+        description:
+          long: Enable UAVCAN barometer subscription. uavcan::equipment::air_data::StaticPressure uavcan::equipment::air_data::StaticTemperature
+          short: subscription barometer
+        reboot_required: true
+        type: boolean
+        volatile: false
+      UAVCAN_SUB_BAT:
+        default: 0
+        description:
+          long: Enable UAVCAN battery subscription. uavcan::equipment::power::BatteryInfo ardupilot::equipment::power::BatteryInfoAux 0 - Disable 1 - Use raw data. Recommended for Smart battery 2 - Filter the data with internal battery library
+          short: subscription battery
+        max: 2
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Disable
+          1: Raw data
+          2: Filter data
+        volatile: false
+      UAVCAN_SUB_BTN:
+        default: 0
+        description:
+          long: Enable UAVCAN button subscription. ardupilot::indication::Button
+          short: subscription button
+        reboot_required: true
+        type: boolean
+        volatile: false
+      UAVCAN_SUB_DPRES:
+        default: 0
+        description:
+          long: Enable UAVCAN differential pressure subscription. uavcan::equipment::air_data::RawAirData
+          short: subscription differential pressure
+        reboot_required: true
+        type: boolean
+        volatile: false
+      UAVCAN_SUB_FLOW:
+        default: 0
+        description:
+          long: Enable UAVCAN optical flow subscription.
+          short: subscription flow
+        reboot_required: true
+        type: boolean
+        volatile: false
+      UAVCAN_SUB_GPS:
+        default: 1
+        description:
+          long: Enable UAVCAN GPS subscriptions. uavcan::equipment::gnss::Fix uavcan::equipment::gnss::Fix2 uavcan::equipment::gnss::Auxiliary
+          short: subscription GPS
+        reboot_required: true
+        type: boolean
+        volatile: false
+      UAVCAN_SUB_HYGRO:
+        default: 0
+        description:
+          long: Enable UAVCAN hygrometer subscriptions. dronecan::sensors::hygrometer::Hygrometer
+          short: subscription hygrometer
+        reboot_required: true
+        type: boolean
+        volatile: false
+      UAVCAN_SUB_ICE:
+        default: 0
+        description:
+          long: Enable UAVCAN internal combusion engine (ICE) subscription. uavcan::equipment::ice::reciprocating::Status
+          short: subscription ICE
+        reboot_required: true
+        type: boolean
+        volatile: false
+      UAVCAN_SUB_IMU:
+        default: 0
+        description:
+          long: Enable UAVCAN IMU subscription. uavcan::equipment::ahrs::RawIMU
+          short: subscription IMU
+        reboot_required: true
+        type: boolean
+        volatile: false
+      UAVCAN_SUB_MAG:
+        default: 1
+        description:
+          long: Enable UAVCAN mag subscription. uavcan::equipment::ahrs::MagneticFieldStrength uavcan::equipment::ahrs::MagneticFieldStrength2
+          short: subscription magnetometer
+        reboot_required: true
+        type: boolean
+        volatile: false
+      UAVCAN_SUB_RNG:
+        default: 0
+        description:
+          long: Enable UAVCAN range finder subscription. uavcan::equipment::range_sensor::Measurement
+          short: subscription range finder
+        reboot_required: true
+        type: boolean
+        volatile: false
+    group: UAVCAN

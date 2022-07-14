@@ -1,0 +1,17 @@
+module_name: ll40ls
+parameters:
+  - definitions:
+      SENS_EN_LL40LS:
+        default: 0
+        description:
+          short: Lidar-Lite (LL40LS)
+        max: 2
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Disabled
+          1: PWM
+          2: I2C
+        volatile: false
+    group: Sensors

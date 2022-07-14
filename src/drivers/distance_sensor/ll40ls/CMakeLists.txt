@@ -38,6 +38,8 @@ px4_add_module(
 	SRCS
 		ll40ls.cpp
 		LidarLiteI2C.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		drivers_rangefinder
 	)

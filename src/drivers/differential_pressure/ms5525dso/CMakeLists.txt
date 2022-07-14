@@ -39,6 +39,8 @@ px4_add_module(
 		ms5525dso_main.cpp
 		MS5525DSO.cpp
 		MS5525DSO.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_work_queue
 	)

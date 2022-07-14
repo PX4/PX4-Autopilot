@@ -1,0 +1,12 @@
+module_name: pps_capture
+parameters:
+  - definitions:
+      PPS_CAP_ENABLE:
+        default: 0
+        description:
+          long: Enables the PPS capture module. This switches mode of FMU channel 7 to be the PPS input channel.
+          short: PPS Capture Enable
+        reboot_required: true
+        type: boolean
+        volatile: false
+    group: GPS

@@ -38,6 +38,8 @@ px4_add_module(
 		ets_airspeed_main.cpp
 		ETSAirspeed.cpp
 		ETSAirspeed.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_work_queue
 	)

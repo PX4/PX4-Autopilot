@@ -36,6 +36,8 @@ px4_add_module(
 	SRCS
 		voxlpm.cpp
 		voxlpm_main.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		battery
 		px4_work_queue

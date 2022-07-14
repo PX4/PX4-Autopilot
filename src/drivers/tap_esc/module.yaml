@@ -1,6 +1,33 @@
-module_name: TAP ESC Output
+module_name: tap_esc
 actuator_output:
   output_groups:
     - param_prefix: TAP_ESC
       channel_label: 'ESC'
       num_channels: 8
+parameters:
+  - definitions:
+      ESC_BL_VER:
+        default: 0
+        description:
+          short: Required esc bootloader version
+        max: 65535
+        min: 0
+        type: int32
+        volatile: false
+      ESC_FW_VER:
+        default: 0
+        description:
+          short: Required esc firmware version
+        max: 65535
+        min: 0
+        type: int32
+        volatile: false
+      ESC_HW_VER:
+        default: 0
+        description:
+          short: Required esc hardware version
+        max: 65535
+        min: 0
+        type: int32
+        volatile: false
+    group: ESC

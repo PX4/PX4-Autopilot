@@ -1,15 +1,45 @@
-module_name: Iridium (with MAVLink)
+module_name: iridiumsbd
 serial_config:
-    - command: |
-        # add a sleep here to make sure that the module is powered
-        usleep 200000
-        if iridiumsbd start -d ${SERIAL_DEV}
-        then
-            mavlink start -d /dev/iridium -m iridium -b 115200
-        else
-            tune_control play error
-        fi
-      port_config_param:
-        name: ISBD_CONFIG
-        group: Iridium SBD
-
+  - command: |
+      # add a sleep here to make sure that the module is powered
+      usleep 200000
+      if iridiumsbd start -d ${SERIAL_DEV}
+      then
+          mavlink start -d /dev/iridium -m iridium -b 115200
+      else
+          tune_control play error
+      fi
+    port_config_param:
+      name: ISBD_CONFIG
+      group: Iridium SBD
+parameters:
+  - definitions:
+      ISBD_READ_INT:
+        default: 0
+        description:
+          short: Satellite radio read interval. Only required to be nonzero if data is not sent using a ring call
+        max: 5000
+        min: 0
+        type: int32
+        unit: s
+        volatile: false
+      ISBD_SBD_TIMEOUT:
+        default: 60
+        description:
+          short: Iridium SBD session timeout
+        max: 300
+        min: 0
+        type: int32
+        unit: s
+        volatile: false
+      ISBD_STACK_TIME:
+        default: 0
+        description:
+          long: Value 0 turns the functionality off
+          short: Time the Iridium driver will wait for additional mavlink messages to combine them into one SBD message
+        max: 500
+        min: 0
+        type: int32
+        unit: ms
+        volatile: false
+    group: Iridium SBD

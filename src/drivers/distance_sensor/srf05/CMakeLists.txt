@@ -36,6 +36,8 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		SRF05.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		drivers_rangefinder
 	)

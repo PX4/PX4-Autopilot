@@ -1,0 +1,35 @@
+module_name: uavcannode
+parameters:
+  - definitions:
+      CANNODE_BITRATE:
+        default: 1000000
+        description:
+          short: UAVCAN CAN bus bitrate
+        max: 1000000
+        min: 20000
+        type: int32
+        volatile: false
+      CANNODE_GPS_RTCM:
+        default: 0
+        description:
+          short: Enable RTCM pub/sub
+        max: 1
+        type: boolean
+        volatile: false
+      CANNODE_NODE_ID:
+        default: 120
+        description:
+          long: Read the specs at http://uavcan.org to learn more about Node ID.
+          short: UAVCAN Node ID
+        max: 125
+        min: 1
+        type: int32
+        volatile: false
+      CANNODE_TERM:
+        default: 0
+        description:
+          short: CAN built-in bus termination
+        max: 1
+        type: boolean
+        volatile: false
+    group: UAVCAN

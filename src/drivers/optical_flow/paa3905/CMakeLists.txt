@@ -39,6 +39,8 @@ px4_add_module(
 		PAA3905.cpp
 		PAA3905.hpp
 		PixArt_PAA3905_Registers.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		conversion
 		drivers__device

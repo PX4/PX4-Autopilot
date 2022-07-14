@@ -1,16 +1,150 @@
-module_name: GPS
+module_name: gps
 serial_config:
-    # secondary gps must be first
-    - command: set DUAL_GPS_ARGS "-e ${SERIAL_DEV} -g p:${BAUD_PARAM}"
-      port_config_param:
-        name: GPS_2_CONFIG
-        group: GPS
-      label: Secondary GPS
-
-    - command: gps start -d ${SERIAL_DEV} -b p:${BAUD_PARAM} ${DUAL_GPS_ARGS}
-      port_config_param:
-        name: GPS_1_CONFIG
-        group: GPS
-        default: GPS1
-      label: Main GPS
-
+  # secondary gps must be first
+  - command: set DUAL_GPS_ARGS "-e ${SERIAL_DEV} -g p:${BAUD_PARAM}"
+    port_config_param:
+      name: GPS_2_CONFIG
+      group: GPS
+    label: Secondary GPS
+  - command: gps start -d ${SERIAL_DEV} -b p:${BAUD_PARAM} ${DUAL_GPS_ARGS}
+    port_config_param:
+      name: GPS_1_CONFIG
+      group: GPS
+      default: GPS1
+    label: Main GPS
+parameters:
+  - definitions:
+      GPS_1_GNSS:
+        bit:
+          0: GPS (with QZSS)
+          1: SBAS
+          2: Galileo
+          3: BeiDou
+          4: GLONASS
+        default: 0
+        description:
+          long: 'This integer bitmask controls the set of GNSS systems used by the receiver. Check your receiver''s documentation on how many systems are supported to be used in parallel. Currently this functionality is just implemented for u-blox receivers. When no bits are set, the receiver''s default configuration should be used. Set bits true to enable: 0 : Use GPS (with QZSS) 1 : Use SBAS (multiple GPS augmentation systems) 2 : Use Galileo 3 : Use BeiDou 4 : Use GLONASS'
+          short: GNSS Systems for Primary GPS (integer bitmask)
+        max: 31
+        min: 0
+        reboot_required: true
+        type: bitmask
+        volatile: false
+      GPS_1_PROTOCOL:
+        default: 1
+        description:
+          long: Select the GPS protocol over serial. Auto-detection will probe all protocols, and thus is a bit slower.
+          short: Protocol for Main GPS
+        max: 5
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Auto detect
+          1: u-blox
+          2: MTK
+          3: Ashtech / Trimble
+          4: Emlid Reach
+          5: Femtomes
+          6: NMEA (generic)
+        volatile: false
+      GPS_2_GNSS:
+        bit:
+          0: GPS (with QZSS)
+          1: SBAS
+          2: Galileo
+          3: BeiDou
+          4: GLONASS
+        default: 0
+        description:
+          long: 'This integer bitmask controls the set of GNSS systems used by the receiver. Check your receiver''s documentation on how many systems are supported to be used in parallel. Currently this functionality is just implemented for u-blox receivers. When no bits are set, the receiver''s default configuration should be used. Set bits true to enable: 0 : Use GPS (with QZSS) 1 : Use SBAS (multiple GPS augmentation systems) 2 : Use Galileo 3 : Use BeiDou 4 : Use GLONASS'
+          short: GNSS Systems for Secondary GPS (integer bitmask)
+        max: 31
+        min: 0
+        reboot_required: true
+        type: bitmask
+        volatile: false
+      GPS_2_PROTOCOL:
+        default: 1
+        description:
+          long: Select the GPS protocol over serial. Auto-detection will probe all protocols, and thus is a bit slower.
+          short: Protocol for Secondary GPS
+        max: 5
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Auto detect
+          1: u-blox
+          2: MTK
+          3: Ashtech / Trimble
+          4: Emlid Reach
+          5: Femtomes
+          6: NMEA (generic)
+        volatile: false
+      GPS_DUMP_COMM:
+        default: 0
+        description:
+          long: If this is set to 1, all GPS communication data will be published via uORB, and written to the log file as gps_dump message. If this is set to 2, the main GPS is configured to output RTCM data, which is then logged as gps_dump and can be used for PPK.
+          short: Log GPS communication data
+        max: 2
+        min: 0
+        type: enum
+        values:
+          0: Disable
+          1: Full communication
+          2: RTCM output (PPK)
+        volatile: false
+      GPS_SAT_INFO:
+        default: 0
+        description:
+          long: Enable publication of satellite info (ORB_ID(satellite_info)) if possible. Not available on MTK.
+          short: Enable sat info (if available)
+        reboot_required: true
+        type: boolean
+        volatile: false
+      GPS_UBX_DYNMODEL:
+        default: 7
+        description:
+          long: u-blox receivers support different dynamic platform models to adjust the navigation engine to the expected application environment.
+          short: u-blox GPS dynamic platform model
+        max: 9
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          2: stationary
+          4: automotive
+          6: airborne with <1g acceleration
+          7: airborne with <2g acceleration
+          8: airborne with <4g acceleration
+        volatile: false
+      GPS_UBX_MODE:
+        default: 0
+        description:
+          long: Select the u-blox configuration setup. Most setups will use the default, including RTK and dual GPS without heading. The Heading mode requires 2 F9P devices to be attached. The main GPS will act as rover and output heading information, whereas the secondary will act as moving base. Modes 1 and 2 require each F9P UART1 to be connected to the Autopilot. In addition, UART2 on the F9P units are connected to each other. Modes 3 and 4 only require UART1 on each F9P connected to the Autopilot or Can Node. UART RX DMA is required. RTK is still possible with this setup.
+          short: u-blox GPS Mode
+        max: 1
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Default
+          1: Heading (Rover With Moving Base UART1 Connected To Autopilot, UART2 Connected To Moving Base)
+          2: Moving Base (UART1 Connected To Autopilot, UART2 Connected To Rover)
+          3: Heading (Rover With Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
+          4: Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
+        volatile: false
+      GPS_YAW_OFFSET:
+        decimal: 0
+        default: 0.0
+        description:
+          long: Heading offset angle for dual antenna GPS setups that support heading estimation. Set this to 0 if the antennas are parallel to the forward-facing direction of the vehicle and the rover antenna is in front. The offset angle increases clockwise. Set this to 90 if the rover antenna is placed on the right side of the vehicle and the moving base antenna is on the left side.
+          short: Heading/Yaw offset for dual antenna GPS
+        max: 360
+        min: 0
+        reboot_required: true
+        type: float
+        unit: deg
+        volatile: false
+    group: GPS

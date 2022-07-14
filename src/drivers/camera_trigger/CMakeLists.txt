@@ -48,6 +48,8 @@ px4_add_module(
 		interfaces/src/pwm.cpp
 		interfaces/src/seagull_map2.cpp
 		interfaces/src/gpio.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_work_queue
 	)

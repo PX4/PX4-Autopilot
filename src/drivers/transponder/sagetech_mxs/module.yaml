@@ -1,7 +1,213 @@
-module_name: Sagetech MXS
+module_name: sagetech_mxs
 serial_config:
-    - command: sagetech_mxs start -d ${SERIAL_DEV}
-      port_config_param:
-        name: MXS_SER_CFG
-        group: Transponder
-      label: Sagetech MXS Serial Port
+  - command: sagetech_mxs start -d ${SERIAL_DEV}
+    port_config_param:
+      name: MXS_SER_CFG
+      group: Transponder
+    label: Sagetech MXS Serial Port
+parameters:
+  - definitions:
+      SER_MXS_BAUD:
+        default: 5
+        description:
+          long: Baudrate for the Serial Port connected to the MXS Transponder
+          short: MXS Serial Communication Baud rate
+        max: 10
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: '38400'
+          1: '600'
+          2: '4800'
+          3: '9600'
+          4: RESERVED
+          5: '57600'
+          6: '115200'
+          7: '230400'
+          8: '19200'
+          9: '460800'
+          10: '921600'
+        volatile: false
+    group: Serial
+  - definitions:
+      ADSB_EMERGC:
+        default: 0
+        description:
+          long: Sets the vehicle emergency state
+          short: ADSB-Out Emergency State
+        max: 6
+        min: 0
+        reboot_required: false
+        type: enum
+        values:
+          0: NoEmergency
+          1: General
+          2: Medical
+          3: LowFuel
+          4: NoCommunications
+          5: Interference
+          6: Downed
+        volatile: false
+      ADSB_EMIT_TYPE:
+        default: 14
+        description:
+          long: Configure the emitter type of the vehicle.
+          short: ADSB-Out Vehicle Emitter Type
+        max: 15
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Unknown
+          1: Light
+          2: Small
+          3: Large
+          4: HighVortex
+          5: Heavy
+          6: Performance
+          7: Rotorcraft
+          8: RESERVED
+          9: Glider
+          10: LightAir
+          11: Parachute
+          12: UltraLight
+          13: RESERVED
+          14: UAV
+          15: Space
+          16: RESERVED
+          17: EmergencySurf
+          18: ServiceSurf
+          19: PointObstacle
+        volatile: false
+      ADSB_ICAO_ID:
+        default: 1194684
+        description:
+          long: Defines the ICAO ID of the vehicle
+          short: ADSB-Out ICAO configuration
+        max: 16777215
+        min: -1
+        reboot_required: true
+        type: int32
+        volatile: false
+      ADSB_ICAO_SPECL:
+        default: 0
+        description:
+          long: This vehicle is always tracked. Use 0 to disable.
+          short: ADSB-In Special ICAO configuration
+        max: 16777215
+        min: 0
+        reboot_required: false
+        type: int32
+        volatile: false
+      ADSB_IDENT:
+        default: 0
+        description:
+          long: Enable Identification of Position feature
+          short: ADSB-Out Ident Configuration
+        reboot_required: false
+        type: boolean
+        volatile: false
+      ADSB_LEN_WIDTH:
+        default: 1
+        description:
+          long: Report the length and width of the vehicle in meters. In most cases, use '1' for the smallest vehicle size.
+          short: ADSB-Out Vehicle Size Configuration
+        max: 15
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: SizeUnknown
+          1: Len15_Wid23
+          2: Len25_Wid28
+          3: Len25_Wid34
+          4: Len35_Wid33
+          5: Len35_Wid38
+          6: Len45_Wid39
+          7: Len45_Wid45
+          8: Len55_Wid45
+          9: Len55_Wid52
+          10: Len65_Wid59
+          11: Len65_Wid67
+          12: Len75_Wid72
+          13: Len75_Wid80
+          14: Len85_Wid80
+          15: Len85_Wid90
+        volatile: false
+      ADSB_LIST_MAX:
+        default: 25
+        description:
+          long: Change number of targets to track
+          short: ADSB-In Vehicle List Size
+        max: 50
+        min: 0
+        reboot_required: true
+        type: int32
+        volatile: false
+      ADSB_MAX_SPEED:
+        default: 0
+        description:
+          long: Informs ADSB vehicles of this vehicle's max speed capability
+          short: ADSB-Out Vehicle Max Speed
+        max: 6
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: UnknownMaxSpeed
+          1: 75Kts
+          2: 150Kts
+          3: 300Kts
+          4: 600Kts
+          5: 1200Kts
+          6: Over1200Kts
+        volatile: false
+      ADSB_SQUAWK:
+        default: 1200
+        description:
+          long: This parameter defines the squawk code. Value should be between 0000 and 7777.
+          short: ADSB-Out squawk code configuration
+        max: 7777
+        min: 0
+        reboot_required: false
+        type: int32
+        volatile: false
+      MXS_EXT_CFG:
+        default: 0
+        description:
+          long: Disables auto-configuration mode enabling MXS config through external software.
+          short: Sagetech External Configuration Mode
+        reboot_required: true
+        type: boolean
+        volatile: false
+      MXS_OP_MODE:
+        default: 0
+        description:
+          long: This parameter defines the operating mode of the MXS
+          short: Sagetech MXS mode configuration
+        max: 3
+        min: 0
+        reboot_required: false
+        type: enum
+        values:
+          0: 'Off'
+          1: 'On'
+          2: Standby
+          3: Alt
+        volatile: false
+      MXS_TARG_PORT:
+        default: 1
+        description:
+          long: The MXS communication port to receive Target data from
+          short: Sagetech MXS Participant Configuration
+        max: 2
+        min: 0
+        reboot_required: false
+        type: enum
+        values:
+          0: Auto
+          1: COM0
+          2: COM1
+        volatile: false
+    group: Transponder

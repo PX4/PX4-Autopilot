@@ -1,0 +1,16 @@
+module_name: atxxxx
+parameters:
+  - definitions:
+      OSD_ATXXXX_CFG:
+        default: 0
+        description:
+          long: Configure the ATXXXX OSD Chip (mounted on the OmnibusF4SD board) and select the transmission standard.
+          short: Enable/Disable the ATXXX OSD Chip
+        reboot_required: true
+        type: enum
+        values:
+          0: Disabled
+          1: NTSC
+          2: PAL
+        volatile: false
+    group: OSD

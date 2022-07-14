@@ -39,6 +39,8 @@ px4_add_module(
 		sdp3x_main.cpp
 		SDP3X.cpp
 		SDP3X.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_work_queue
 	)

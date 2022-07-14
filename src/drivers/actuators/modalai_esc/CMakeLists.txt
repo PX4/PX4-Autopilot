@@ -45,6 +45,8 @@ px4_add_module(
 		qc_esc_packet_types.h
 		qc_esc_packet.c
 		qc_esc_packet.h
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_work_queue
 	)

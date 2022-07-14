@@ -1,0 +1,10 @@
+module_name: SIM
+actuator_output:
+  show_subgroups_if: 'SYS_HITL>0'
+  output_groups:
+    - param_prefix: HIL_ACT
+      channel_label: Channel
+      num_channels: 16
+    - param_prefix: PWM_MAIN
+      channel_label: Channel
+      num_channels: 16

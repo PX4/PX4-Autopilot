@@ -37,6 +37,8 @@ px4_add_module(
 	SRCS
 		vl53l1x.cpp
 		vl53l1x.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		drivers_rangefinder
 		px4_work_queue
