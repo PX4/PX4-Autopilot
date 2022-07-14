@@ -616,17 +616,18 @@ private:
 	float get_manual_airspeed_setpoint();
 
 	/**
-	 * @brief Returns an calibrated airspeed setpoint for auto modes.
+	 * @brief Returns a calibrated airspeed setpoint for auto modes.
 	 *
 	 * Adjusts the setpoint for wind, accelerated stall, and slew rates.
 	 *
 	 * @param control_interval Time since the last position control update [s]
-	 * @param pos_sp_cru_airspeed The commanded cruise airspeed from the position setpoint [s]
-	 * @param ground_speed Vehicle ground velocity vector [m/s]
-	 * @return Calibrated airspeed setpoint [m/s]
+	 * @param calibrated_airspeed_setpoint Calibrated airspeed septoint (generally from the position setpoint) [m/s]
+	 * @param calibrated_min_airspeed Minimum calibrated airspeed [m/s]
+	 * @param ground_speed Vehicle ground velocity vector (NE) [m/s]
+	 * @return Adjusted calibrated airspeed setpoint [m/s]
 	 */
-	float get_auto_airspeed_setpoint(const float control_interval, const float pos_sp_cru_airspeed,
-					 const Vector2f &ground_speed);
+	float get_auto_airspeed_setpoint(const float control_interval, float calibrated_airspeed_setpoint,
+					 float calibrated_min_airspeed, const Vector2f &ground_speed);
 
 	void reset_takeoff_state();
 	void reset_landing_state();
