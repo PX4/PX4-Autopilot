@@ -125,7 +125,7 @@ int RM3100::self_test()
 					PX4_ERR("built-in self test failed: 0x%2X x:%s y:%s z:%s", cmd,
 						cmd & 0x10 ? "Pass" : "Fail",
 						cmd & 0x20 ? "Pass" : "Fail",
-						cmd & 0x40 ? "Pass" : "Fail" );
+						cmd & 0x40 ? "Pass" : "Fail");
 					return PX4_ERROR;
 
 				} else {
