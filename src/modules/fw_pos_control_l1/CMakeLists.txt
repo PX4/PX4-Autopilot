@@ -40,6 +40,8 @@ px4_add_module(
 	SRCS
 		FixedwingPositionControl.cpp
 		FixedwingPositionControl.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		l1
 		launchdetection

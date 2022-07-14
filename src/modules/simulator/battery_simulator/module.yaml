@@ -1,0 +1,26 @@
+module_name: battery_simulator
+parameters:
+- definitions:
+    SIM_BAT_DRAIN:
+      default: 60
+      description:
+        short: Simulator Battery drain interval
+      increment: 1
+      max: 86400
+      min: 1
+      type: float
+      unit: s
+      volatile: false
+    SIM_BAT_MIN_PCT:
+      default: 50.0
+      description:
+        long: Can be used to alter the battery level during SITL- or HITL-simulation
+          on the fly. Particularly useful for testing different low-battery behaviour.
+        short: Simulator Battery minimal percentage
+      increment: 0.1
+      max: 100
+      min: 0
+      type: float
+      unit: '%'
+      volatile: false
+  group: SITL

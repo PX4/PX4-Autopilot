@@ -41,6 +41,8 @@ px4_add_module(
 	SRCS
 		AngularVelocityController.cpp
 		AngularVelocityController.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		circuit_breaker
 		mathlib

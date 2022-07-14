@@ -37,4 +37,6 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		uuv_att_control.cpp
+	MODULE_CONFIG
+		module.yaml
 	)

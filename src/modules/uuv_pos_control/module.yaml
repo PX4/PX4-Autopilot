@@ -1,0 +1,49 @@
+module_name: uuv_pos_control
+parameters:
+  - definitions:
+      UUV_GAIN_X_D:
+        default: 0.2
+        description:
+          short: Gain of D controller X
+        type: float
+        volatile: false
+      UUV_GAIN_X_P:
+        default: 1.0
+        description:
+          short: Gain of P controller X
+        type: float
+        volatile: false
+      UUV_GAIN_Y_D:
+        default: 0.2
+        description:
+          short: Gain of D controller Y
+        type: float
+        volatile: false
+      UUV_GAIN_Y_P:
+        default: 1.0
+        description:
+          short: Gain of P controller Y
+        type: float
+        volatile: false
+      UUV_GAIN_Z_D:
+        default: 0.2
+        description:
+          short: Gain of D controller Z
+        type: float
+        volatile: false
+      UUV_GAIN_Z_P:
+        default: 1.0
+        description:
+          short: Gain of P controller Z
+        type: float
+        volatile: false
+      UUV_STAB_MODE:
+        default: 1
+        description:
+          short: Stabilization mode(1) or Position Control(0)
+        type: enum
+        values:
+          0: Position Control
+          1: Stabilization Mode
+        volatile: false
+    group: UUV Position Control

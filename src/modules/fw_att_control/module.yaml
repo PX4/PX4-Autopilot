@@ -1,0 +1,572 @@
+module_name: fw_att_control
+parameters:
+  - definitions:
+      FW_ACRO_X_MAX:
+        default: 90
+        description:
+          long: This is the rate the controller is trying to achieve if the user applies full roll stick input in acro mode.
+          short: Acro body x max rate
+        max: 720
+        min: 45
+        type: float
+        unit: deg
+        volatile: false
+      FW_ACRO_Y_MAX:
+        default: 90
+        description:
+          long: This is the body y rate the controller is trying to achieve if the user applies full pitch stick input in acro mode.
+          short: Acro body y max rate
+        max: 720
+        min: 45
+        type: float
+        unit: deg
+        volatile: false
+      FW_ACRO_Z_MAX:
+        default: 45
+        description:
+          long: This is the body z rate the controller is trying to achieve if the user applies full yaw stick input in acro mode.
+          short: Acro body z max rate
+        max: 180
+        min: 10
+        type: float
+        unit: deg
+        volatile: false
+      FW_ARSP_MODE:
+        default: 0
+        description:
+          long: For small wings or VTOL without airspeed sensor this parameter can be used to enable flying without an airspeed reading
+          short: Airspeed mode
+        type: enum
+        values:
+          0: Normal (use airspeed if available)
+          1: Airspeed disabled
+        volatile: false
+      FW_ARSP_SCALE_EN:
+        default: 1
+        description:
+          long: 'This enables a logic that automatically adjusts the output of the rate controller to take into account the real torque produced by an aerodynamic control surface given the current deviation from the trim airspeed (FW_AIRSPD_TRIM). Enable when using aerodynamic control surfaces (e.g.: plane) Disable when using rotor wings (e.g.: autogyro)'
+          short: Enable airspeed scaling
+        type: boolean
+        volatile: false
+      FW_BAT_SCALE_EN:
+        default: 0
+        description:
+          long: This compensates for voltage drop of the battery over time by attempting to normalize performance across the operating range of the battery. The fixed wing should constantly behave as if it was fully charged with reduced max thrust at lower battery percentages. i.e. if cruise speed is at 0.5 throttle at 100% battery, it will still be 0.5 at 60% battery.
+          short: Whether to scale throttle by battery power level
+        type: boolean
+        volatile: false
+      FW_DTRIM_P_FLPS:
+        decimal: 2
+        default: 0.0
+        description:
+          long: This increment is added to the pitch trim whenever flaps are fully deployed.
+          short: Pitch trim increment for flaps configuration
+        increment: 0.01
+        max: 0.25
+        min: -0.25
+        type: float
+        volatile: false
+      FW_DTRIM_P_SPOIL:
+        decimal: 2
+        default: 0.0
+        description:
+          long: This increment is added to the pitch trim whenever spoilers are fully deployed.
+          short: Pitch trim increment for spoiler configuration
+        increment: 0.01
+        max: 0.25
+        min: -0.25
+        type: float
+        volatile: false
+      FW_DTRIM_P_VMAX:
+        decimal: 2
+        default: 0.0
+        description:
+          long: This increment is added to TRIM_PITCH when airspeed is FW_AIRSPD_MAX.
+          short: Pitch trim increment at maximum airspeed
+        increment: 0.01
+        max: 0.25
+        min: -0.25
+        type: float
+        volatile: false
+      FW_DTRIM_P_VMIN:
+        decimal: 2
+        default: 0.0
+        description:
+          long: This increment is added to TRIM_PITCH when airspeed is FW_AIRSPD_MIN.
+          short: Pitch trim increment at minimum airspeed
+        increment: 0.01
+        max: 0.25
+        min: -0.25
+        type: float
+        volatile: false
+      FW_DTRIM_R_FLPS:
+        decimal: 2
+        default: 0.0
+        description:
+          long: This increment is added to TRIM_ROLL whenever flaps are fully deployed.
+          short: Roll trim increment for flaps configuration
+        increment: 0.01
+        max: 0.25
+        min: -0.25
+        type: float
+        volatile: false
+      FW_DTRIM_R_VMAX:
+        decimal: 2
+        default: 0.0
+        description:
+          long: This increment is added to TRIM_ROLL when airspeed is FW_AIRSPD_MAX.
+          short: Roll trim increment at maximum airspeed
+        increment: 0.01
+        max: 0.25
+        min: -0.25
+        type: float
+        volatile: false
+      FW_DTRIM_R_VMIN:
+        decimal: 2
+        default: 0.0
+        description:
+          long: This increment is added to TRIM_ROLL when airspeed is FW_AIRSPD_MIN.
+          short: Roll trim increment at minimum airspeed
+        increment: 0.01
+        max: 0.25
+        min: -0.25
+        type: float
+        volatile: false
+      FW_DTRIM_Y_VMAX:
+        decimal: 2
+        default: 0.0
+        description:
+          long: This increment is added to TRIM_YAW when airspeed is FW_AIRSPD_MAX.
+          short: Yaw trim increment at maximum airspeed
+        increment: 0.01
+        max: 0.25
+        min: -0.25
+        type: float
+        volatile: false
+      FW_DTRIM_Y_VMIN:
+        decimal: 2
+        default: 0.0
+        description:
+          long: This increment is added to TRIM_YAW when airspeed is FW_AIRSPD_MIN.
+          short: Yaw trim increment at minimum airspeed
+        increment: 0.01
+        max: 0.25
+        min: -0.25
+        type: float
+        volatile: false
+      FW_FLAPS_LND_SCL:
+        decimal: 2
+        default: 1.0
+        description:
+          long: Sets a fraction of full flaps during landing. Also applies to flaperons if enabled in the mixer/allocation.
+          short: Flaps setting during landing
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      FW_FLAPS_TO_SCL:
+        decimal: 2
+        default: 0.0
+        description:
+          long: Sets a fraction of full flaps during take-off. Also applies to flaperons if enabled in the mixer/allocation.
+          short: Flaps setting during take-off
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      FW_MAN_P_MAX:
+        decimal: 1
+        default: 45.0
+        description:
+          long: Maximum manual pitch angle setpoint (positive & negative) in manual attitude-only stabilized mode
+          short: Maximum manual pitch angle
+        increment: 0.5
+        max: 90.0
+        min: 0.0
+        type: float
+        unit: deg
+        volatile: false
+      FW_MAN_P_SC:
+        decimal: 2
+        default: 1.0
+        description:
+          long: Scale factor applied to the desired pitch actuator command in full manual mode. This parameter allows to adjust the throws of the control surfaces.
+          short: Manual pitch scale
+        increment: 0.01
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      FW_MAN_R_MAX:
+        decimal: 1
+        default: 45.0
+        description:
+          long: Maximum manual roll angle setpoint (positive & negative) in manual attitude-only stabilized mode
+          short: Maximum manual roll angle
+        increment: 0.5
+        max: 90.0
+        min: 0.0
+        type: float
+        unit: deg
+        volatile: false
+      FW_MAN_R_SC:
+        decimal: 2
+        default: 1.0
+        description:
+          long: Scale factor applied to the desired roll actuator command in full manual mode. This parameter allows to adjust the throws of the control surfaces.
+          short: Manual roll scale
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      FW_MAN_Y_SC:
+        decimal: 2
+        default: 1.0
+        description:
+          long: Scale factor applied to the desired yaw actuator command in full manual mode. This parameter allows to adjust the throws of the control surfaces.
+          short: Manual yaw scale
+        increment: 0.01
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      FW_PR_FF:
+        decimal: 2
+        default: 0.5
+        description:
+          long: Direct feed forward from rate setpoint to control surface output
+          short: Pitch rate feed forward
+        increment: 0.05
+        max: 10.0
+        min: 0.0
+        type: float
+        unit: '%/rad/s'
+        volatile: false
+      FW_PR_I:
+        decimal: 3
+        default: 0.1
+        description:
+          long: This gain defines how much control response will result out of a steady state error. It trims any constant error.
+          short: Pitch rate integrator gain
+        increment: 0.005
+        max: 0.5
+        min: 0.0
+        type: float
+        unit: '%/rad'
+        volatile: false
+      FW_PR_IMAX:
+        decimal: 2
+        default: 0.4
+        description:
+          long: The portion of the integrator part in the control surface deflection is limited to this value
+          short: Pitch rate integrator limit
+        increment: 0.05
+        max: 1.0
+        min: 0.0
+        type: float
+        volatile: false
+      FW_PR_P:
+        decimal: 3
+        default: 0.08
+        description:
+          long: This defines how much the elevator input will be commanded depending on the current body angular rate error.
+          short: Pitch rate proportional gain
+        increment: 0.005
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: '%/rad/s'
+        volatile: false
+      FW_PSP_OFF:
+        decimal: 1
+        default: 0.0
+        description:
+          long: An airframe specific offset of the pitch setpoint in degrees, the value is added to the pitch setpoint and should correspond to the pitch at typical cruise speed of the airframe.
+          short: Pitch setpoint offset (pitch at level flight)
+        increment: 0.5
+        max: 90.0
+        min: -90.0
+        type: float
+        unit: deg
+        volatile: false
+      FW_P_RMAX_NEG:
+        decimal: 1
+        default: 60.0
+        description:
+          long: This limits the maximum pitch down up angular rate the controller will output (in degrees per second).
+          short: Maximum negative / down pitch rate
+        increment: 0.5
+        max: 90.0
+        min: 0.0
+        type: float
+        unit: deg/s
+        volatile: false
+      FW_P_RMAX_POS:
+        decimal: 1
+        default: 60.0
+        description:
+          long: This limits the maximum pitch up angular rate the controller will output (in degrees per second).
+          short: Maximum positive / up pitch rate
+        increment: 0.5
+        max: 90.0
+        min: 0.0
+        type: float
+        unit: deg/s
+        volatile: false
+      FW_P_TC:
+        decimal: 2
+        default: 0.4
+        description:
+          long: This defines the latency between a pitch step input and the achieved setpoint (inverse to a P gain). Half a second is a good start value and fits for most average systems. Smaller systems may require smaller values, but as this will wear out servos faster, the value should only be decreased as needed.
+          short: Attitude pitch time constant
+        increment: 0.05
+        max: 1.0
+        min: 0.2
+        type: float
+        unit: s
+        volatile: false
+      FW_RLL_TO_YAW_FF:
+        decimal: 1
+        default: 0.0
+        description:
+          long: This gain can be used to counteract the "adverse yaw" effect for fixed wings. When the plane enters a roll it will tend to yaw the nose out of the turn. This gain enables the use of a yaw actuator (rudder, airbrakes, ...) to counteract this effect.
+          short: Roll control to yaw control feedforward gain
+        increment: 0.01
+        min: 0.0
+        type: float
+        volatile: false
+      FW_RR_FF:
+        decimal: 2
+        default: 0.5
+        description:
+          long: Direct feed forward from rate setpoint to control surface output. Use this to obtain a tigher response of the controller without introducing noise amplification.
+          short: Roll rate feed forward
+        increment: 0.05
+        max: 10.0
+        min: 0.0
+        type: float
+        unit: '%/rad/s'
+        volatile: false
+      FW_RR_I:
+        decimal: 3
+        default: 0.1
+        description:
+          long: This gain defines how much control response will result out of a steady state error. It trims any constant error.
+          short: Roll rate integrator Gain
+        increment: 0.005
+        max: 0.2
+        min: 0.0
+        type: float
+        unit: '%/rad'
+        volatile: false
+      FW_RR_IMAX:
+        decimal: 2
+        default: 0.2
+        description:
+          long: The portion of the integrator part in the control surface deflection is limited to this value.
+          short: Roll integrator anti-windup
+        increment: 0.05
+        max: 1.0
+        min: 0.0
+        type: float
+        volatile: false
+      FW_RR_P:
+        decimal: 3
+        default: 0.05
+        description:
+          long: This defines how much the aileron input will be commanded depending on the current body angular rate error.
+          short: Roll rate proportional Gain
+        increment: 0.005
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: '%/rad/s'
+        volatile: false
+      FW_R_RMAX:
+        decimal: 1
+        default: 70.0
+        description:
+          long: This limits the maximum roll rate the controller will output (in degrees per second).
+          short: Maximum roll rate
+        increment: 0.5
+        max: 90.0
+        min: 0.0
+        type: float
+        unit: deg/s
+        volatile: false
+      FW_R_TC:
+        decimal: 2
+        default: 0.4
+        description:
+          long: This defines the latency between a roll step input and the achieved setpoint (inverse to a P gain). Half a second is a good start value and fits for most average systems. Smaller systems may require smaller values, but as this will wear out servos faster, the value should only be decreased as needed.
+          short: Attitude Roll Time Constant
+        increment: 0.05
+        max: 1.0
+        min: 0.4
+        type: float
+        unit: s
+        volatile: false
+      FW_SPOILERS_DESC:
+        decimal: 2
+        default: 0.0
+        description:
+          short: Spoiler descend setting
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      FW_SPOILERS_LND:
+        decimal: 2
+        default: 0.0
+        description:
+          short: Spoiler landing setting
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      FW_SPOILERS_MAN:
+        default: 0
+        description:
+          long: Chose source for manual setting of spoilers in manual flight modes.
+          short: Spoiler input in manual flight
+        type: enum
+        values:
+          0: Disabled
+          1: Flaps channel
+          2: Aux1
+        volatile: false
+      FW_WR_FF:
+        decimal: 2
+        default: 0.2
+        description:
+          long: Direct feed forward from rate setpoint to control surface output
+          short: Wheel steering rate feed forward
+        increment: 0.05
+        max: 10.0
+        min: 0.0
+        type: float
+        unit: '%/rad/s'
+        volatile: false
+      FW_WR_I:
+        decimal: 3
+        default: 0.1
+        description:
+          long: This gain defines how much control response will result out of a steady state error. It trims any constant error.
+          short: Wheel steering rate integrator gain
+        increment: 0.005
+        max: 0.5
+        min: 0.0
+        type: float
+        unit: '%/rad'
+        volatile: false
+      FW_WR_IMAX:
+        decimal: 2
+        default: 1.0
+        description:
+          long: The portion of the integrator part in the control surface deflection is limited to this value
+          short: Wheel steering rate integrator limit
+        increment: 0.05
+        max: 1.0
+        min: 0.0
+        type: float
+        volatile: false
+      FW_WR_P:
+        decimal: 3
+        default: 0.5
+        description:
+          long: This defines how much the wheel steering input will be commanded depending on the current body angular rate error.
+          short: Wheel steering rate proportional gain
+        increment: 0.005
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: '%/rad/s'
+        volatile: false
+      FW_W_EN:
+        default: 0
+        description:
+          short: Enable wheel steering controller
+        type: boolean
+        volatile: false
+      FW_W_RMAX:
+        decimal: 1
+        default: 30.0
+        description:
+          long: This limits the maximum wheel steering rate the controller will output (in degrees per second).
+          short: Maximum wheel steering rate
+        increment: 0.5
+        max: 90.0
+        min: 0.0
+        type: float
+        unit: deg/s
+        volatile: false
+      FW_YR_FF:
+        decimal: 2
+        default: 0.3
+        description:
+          long: Direct feed forward from rate setpoint to control surface output
+          short: Yaw rate feed forward
+        increment: 0.05
+        max: 10.0
+        min: 0.0
+        type: float
+        unit: '%/rad/s'
+        volatile: false
+      FW_YR_I:
+        decimal: 1
+        default: 0.1
+        description:
+          long: This gain defines how much control response will result out of a steady state error. It trims any constant error.
+          short: Yaw rate integrator gain
+        increment: 0.5
+        max: 50.0
+        min: 0.0
+        type: float
+        unit: '%/rad'
+        volatile: false
+      FW_YR_IMAX:
+        decimal: 2
+        default: 0.2
+        description:
+          long: The portion of the integrator part in the control surface deflection is limited to this value
+          short: Yaw rate integrator limit
+        increment: 0.05
+        max: 1.0
+        min: 0.0
+        type: float
+        volatile: false
+      FW_YR_P:
+        decimal: 3
+        default: 0.05
+        description:
+          long: This defines how much the rudder input will be commanded depending on the current body angular rate error.
+          short: Yaw rate proportional gain
+        increment: 0.005
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: '%/rad/s'
+        volatile: false
+      FW_Y_RMAX:
+        decimal: 1
+        default: 50.0
+        description:
+          long: This limits the maximum yaw rate the controller will output (in degrees per second).
+          short: Maximum yaw rate
+        increment: 0.5
+        max: 90.0
+        min: 0.0
+        type: float
+        unit: deg/s
+        volatile: false
+    group: FW Attitude Control

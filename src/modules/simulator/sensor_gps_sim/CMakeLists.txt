@@ -38,6 +38,8 @@ px4_add_module(
 	SRCS
 		SensorGpsSim.cpp
 		SensorGpsSim.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_work_queue
 	)

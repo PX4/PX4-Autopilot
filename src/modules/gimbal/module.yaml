@@ -103,7 +103,7 @@ parameters:
           short: Mount input mode
         max: 4
         min: -1
-        reboot_required: 'true'
+        reboot_required: true
         type: enum
         values:
           -1: DISABLED
@@ -120,7 +120,7 @@ parameters:
           short: Mount output mode
         max: 2
         min: 0
-        reboot_required: 'true'
+        reboot_required: true
         type: enum
         values:
           0: AUX

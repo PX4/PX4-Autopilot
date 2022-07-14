@@ -1,0 +1,957 @@
+module_name: commander
+parameters:
+  - definitions:
+      COM_ACT_FAIL_ACT:
+        default: 0
+        description:
+          long: 'Note: actuator failure needs to be enabled and configured via FD_ACT_* parameters.'
+          short: Set the actuator failure failsafe mode
+        max: 3
+        min: 0
+        type: enum
+        values:
+          0: Disabled
+          1: Hold mode
+          2: Land mode
+          3: Return mode
+          4: Terminate
+        volatile: false
+      COM_ARM_ARSP_EN:
+        default: 1
+        description:
+          long: Deny arming if the current airspeed measurement is greater than half the cruise airspeed (FW_AIRSPD_TRIM). Excessive airspeed measurements on ground are either caused by wind or bad airspeed calibration.
+          short: Enable preflight check for maximal allowed airspeed when arming
+        type: enum
+        values:
+          0: Disabled
+          1: Enabled
+        volatile: false
+      COM_ARM_AUTH_ID:
+        default: 10
+        description:
+          long: Used if arm authorization is requested by COM_ARM_AUTH_REQ.
+          short: Arm authorizer system id
+        type: int32
+        volatile: false
+      COM_ARM_AUTH_MET:
+        default: 0
+        description:
+          long: 'Methods: - one arm: request authorization and arm when authorization is received - two step arm: 1st arm command request an authorization and 2nd arm command arm the drone if authorized Used if arm authorization is requested by COM_ARM_AUTH_REQ.'
+          short: Arm authorization method
+        type: enum
+        values:
+          0: one arm
+          1: two step arm
+        volatile: false
+      COM_ARM_AUTH_REQ:
+        default: 0
+        description:
+          long: By default off. The default allows to arm the vehicle without a arm authorization.
+          short: Require arm authorization to arm
+        type: boolean
+        volatile: false
+      COM_ARM_AUTH_TO:
+        decimal: 1
+        default: 1
+        description:
+          long: Timeout for authorizer answer. Used if arm authorization is requested by COM_ARM_AUTH_REQ.
+          short: Arm authorization timeout
+        increment: 0.1
+        type: float
+        unit: s
+        volatile: false
+      COM_ARM_CHK_ESCS:
+        default: 0
+        description:
+          long: If this parameter is set, the system will check ESC's online status and failures. This param is specific for ESCs reporting status. It shall be used only if ESCs support telemetry.
+          short: Enable checks on ESCs that report telemetry
+        type: boolean
+        volatile: false
+      COM_ARM_EKF_HGT:
+        decimal: 2
+        default: 1.0
+        description:
+          short: Maximum EKF height innovation test ratio that will allow arming
+        increment: 0.05
+        max: 1.0
+        min: 0.1
+        type: float
+        volatile: false
+      COM_ARM_EKF_POS:
+        decimal: 2
+        default: 0.5
+        description:
+          short: Maximum EKF position innovation test ratio that will allow arming
+        increment: 0.05
+        max: 1.0
+        min: 0.1
+        type: float
+        volatile: false
+      COM_ARM_EKF_VEL:
+        decimal: 2
+        default: 0.5
+        description:
+          short: Maximum EKF velocity innovation test ratio that will allow arming
+        increment: 0.05
+        max: 1.0
+        min: 0.1
+        type: float
+        volatile: false
+      COM_ARM_EKF_YAW:
+        decimal: 2
+        default: 0.5
+        description:
+          short: Maximum EKF yaw innovation test ratio that will allow arming
+        increment: 0.05
+        max: 1.0
+        min: 0.1
+        type: float
+        volatile: false
+      COM_ARM_IMU_ACC:
+        decimal: 2
+        default: 0.7
+        description:
+          short: Max accel inconsistency between IMU units that will allow arming
+        increment: 0.05
+        max: 1.0
+        min: 0.1
+        type: float
+        unit: m/s^2
+        volatile: false
+      COM_ARM_IMU_GYR:
+        decimal: 3
+        default: 0.25
+        description:
+          short: Max rate gyro inconsistency between IMU units that will allow arming
+        increment: 0.01
+        max: 0.3
+        min: 0.02
+        type: float
+        unit: rad/s
+        volatile: false
+      COM_ARM_MAG_ANG:
+        default: 45
+        description:
+          long: Set -1 to disable the check.
+          short: Max magnetic field inconsistency between units that will allow arming
+        max: 180
+        min: 3
+        type: int32
+        unit: deg
+        volatile: false
+      COM_ARM_MAG_STR:
+        default: 2
+        description:
+          long: Check if the estimator detects a strong magnetic disturbance (check enabled by EKF2_MAG_CHECK)
+          short: Enable mag strength preflight check
+        type: enum
+        values:
+          0: Disabled
+          1: Deny arming
+          2: Warning only
+        volatile: false
+      COM_ARM_MIS_REQ:
+        default: 0
+        description:
+          long: The default allows to arm the vehicle without a valid mission.
+          short: Require valid mission to arm
+        type: boolean
+        volatile: false
+      COM_ARM_SDCARD:
+        default: 1
+        description:
+          long: This check detects if the FMU SD card is missing. Depending on the value of the parameter, the check can be disabled, warn only or deny arming.
+          short: Enable FMU SD card detection check
+        type: enum
+        values:
+          0: Disabled
+          1: Warning only
+          2: Enforce SD card presence
+        volatile: false
+      COM_ARM_SWISBTN:
+        default: 0
+        description:
+          long: '0: Arming/disarming triggers on switch transition. 1: Arming/disarming triggers when holding the momentary button down for COM_RC_ARM_HYST like the stick gesture.'
+          short: Arm switch is a momentary button
+        type: boolean
+        volatile: false
+      COM_ARM_WO_GPS:
+        default: 1
+        description:
+          long: The default allows the vehicle to arm without GPS signal.
+          short: Allow arming without GPS
+        type: enum
+        values:
+          0: Require GPS lock to arm
+          1: Allow arming without GPS
+        volatile: false
+      COM_BAT_ACT_T:
+        decimal: 3
+        default: 5.0
+        description:
+          long: Battery state requires action -> wait COM_BAT_ACT_T seconds in Hold mode for the user to realize and take a custom action -> React with failsafe action COM_LOW_BAT_ACT A zero value disables the delay.
+          short: Delay between battery state change and failsafe reaction
+        max: 25.0
+        min: 0.0
+        type: float
+        unit: s
+        volatile: false
+      COM_CPU_MAX:
+        default: 90.0
+        description:
+          long: A negative value disables the check.
+          short: Maximum allowed CPU load to still arm
+        increment: 1
+        max: 100
+        min: -1
+        type: float
+        unit: '%'
+        volatile: false
+      COM_DISARM_LAND:
+        decimal: 2
+        default: 2.0
+        description:
+          long: A non-zero, positive value specifies the time-out period in seconds after which the vehicle will be automatically disarmed in case a landing situation has been detected during this period. A zero or negative value means that automatic disarming triggered by landing detection is disabled.
+          short: Time-out for auto disarm after landing
+        type: float
+        unit: s
+        volatile: false
+      COM_DISARM_PRFLT:
+        decimal: 2
+        default: 10.0
+        description:
+          long: A non-zero, positive value specifies the time in seconds, within which the vehicle is expected to take off after arming. In case the vehicle didn't takeoff within the timeout it disarms again. A negative value disables autmoatic disarming triggered by a pre-takeoff timeout.
+          short: Time-out for auto disarm if not taking off
+        type: float
+        unit: s
+        volatile: false
+      COM_DL_LOSS_T:
+        decimal: 1
+        default: 10
+        description:
+          long: After this amount of seconds without datalink the data link lost mode triggers
+          short: Datalink loss time threshold
+        increment: 1
+        max: 300
+        min: 5
+        type: int32
+        unit: s
+        volatile: false
+      COM_FLIGHT_UUID:
+        category: System
+        default: 0
+        description:
+          long: This number is incremented automatically after every flight on disarming in order to remember the next flight UUID. The first flight is 0.
+          short: Next flight UUID
+        min: 0
+        type: int32
+        volatile: true
+      COM_FLTMODE1:
+        default: -1
+        description:
+          long: If the main switch channel is in this range the selected flight mode will be applied.
+          short: First flightmode slot (1000-1160)
+        type: enum
+        values:
+          -1: Unassigned
+          0: Manual
+          1: Altitude
+          2: Position
+          3: Mission
+          4: Hold
+          5: Return
+          6: Acro
+          7: Offboard
+          8: Stabilized
+          10: Takeoff
+          11: Land
+          12: Follow Me
+          13: Precision Land
+        volatile: false
+      COM_FLTMODE2:
+        default: -1
+        description:
+          long: If the main switch channel is in this range the selected flight mode will be applied.
+          short: Second flightmode slot (1160-1320)
+        type: enum
+        values:
+          -1: Unassigned
+          0: Manual
+          1: Altitude
+          2: Position
+          3: Mission
+          4: Hold
+          5: Return
+          6: Acro
+          7: Offboard
+          8: Stabilized
+          10: Takeoff
+          11: Land
+          12: Follow Me
+          13: Precision Land
+        volatile: false
+      COM_FLTMODE3:
+        default: -1
+        description:
+          long: If the main switch channel is in this range the selected flight mode will be applied.
+          short: Third flightmode slot (1320-1480)
+        type: enum
+        values:
+          -1: Unassigned
+          0: Manual
+          1: Altitude
+          2: Position
+          3: Mission
+          4: Hold
+          5: Return
+          6: Acro
+          7: Offboard
+          8: Stabilized
+          10: Takeoff
+          11: Land
+          12: Follow Me
+          13: Precision Land
+        volatile: false
+      COM_FLTMODE4:
+        default: -1
+        description:
+          long: If the main switch channel is in this range the selected flight mode will be applied.
+          short: Fourth flightmode slot (1480-1640)
+        type: enum
+        values:
+          -1: Unassigned
+          0: Manual
+          1: Altitude
+          2: Position
+          3: Mission
+          4: Hold
+          5: Return
+          6: Acro
+          7: Offboard
+          8: Stabilized
+          10: Takeoff
+          11: Land
+          12: Follow Me
+          13: Precision Land
+        volatile: false
+      COM_FLTMODE5:
+        default: -1
+        description:
+          long: If the main switch channel is in this range the selected flight mode will be applied.
+          short: Fifth flightmode slot (1640-1800)
+        type: enum
+        values:
+          -1: Unassigned
+          0: Manual
+          1: Altitude
+          2: Position
+          3: Mission
+          4: Hold
+          5: Return
+          6: Acro
+          7: Offboard
+          8: Stabilized
+          10: Takeoff
+          11: Land
+          12: Follow Me
+          13: Precision Land
+        volatile: false
+      COM_FLTMODE6:
+        default: -1
+        description:
+          long: If the main switch channel is in this range the selected flight mode will be applied.
+          short: Sixth flightmode slot (1800-2000)
+        type: enum
+        values:
+          -1: Unassigned
+          0: Manual
+          1: Altitude
+          2: Position
+          3: Mission
+          4: Hold
+          5: Return
+          6: Acro
+          7: Offboard
+          8: Stabilized
+          10: Takeoff
+          11: Land
+          12: Follow Me
+          13: Precision Land
+        volatile: false
+      COM_FLT_PROFILE:
+        default: 0
+        description:
+          long: Describes the intended use of the vehicle. Can be used by ground control software or log post processing. This param does not influence the behavior within the firmware. This means for example the control logic is independent of the setting of this param (but depends on other params).
+          short: User Flight Profile
+        type: enum
+        values:
+          0: Default
+          100: Pro User
+          200: Flight Tester
+          300: Developer
+        volatile: false
+      COM_FLT_TIME_MAX:
+        default: -1
+        description:
+          long: The vehicle aborts the current operation and returns to launch when the time since takeoff is above this value. It is not possible to resume the mission or switch to any mode other than RTL or Land. Set a nagative value to disable.
+          short: Maximum allowed flight time
+        max: 10000
+        min: -1
+        type: enum
+        unit: s
+        values:
+          0: Disable
+        volatile: false
+      COM_FORCE_SAFETY:
+        default: 0
+        description:
+          long: Force safety when the vehicle disarms
+          short: Enable force safety
+        type: boolean
+        volatile: false
+      COM_HLDL_LOSS_T:
+        default: 120
+        description:
+          long: After this amount of seconds without datalink the data link lost mode triggers
+          short: High Latency Datalink loss time threshold
+        max: 3600
+        min: 60
+        type: int32
+        unit: s
+        volatile: false
+      COM_HLDL_REG_T:
+        default: 0
+        description:
+          long: 'After a data link loss: after this number of seconds with a healthy datalink the ''datalink loss'' flag is set back to false'
+          short: High Latency Datalink regain time threshold
+        max: 60
+        min: 0
+        type: int32
+        unit: s
+        volatile: false
+      COM_HOME_EN:
+        default: 1
+        description:
+          long: Set home position automatically if possible.
+          short: Home position enabled
+        reboot_required: true
+        type: boolean
+        volatile: false
+      COM_HOME_IN_AIR:
+        default: 0
+        description:
+          long: If set to true, the autopilot is allowed to set its home position after takeoff The true home position is back-computed if a local position is estimate if available. If no local position is available, home is set to the current position.
+          short: Allows setting the home position after takeoff
+        type: boolean
+        volatile: false
+      COM_IMB_PROP_ACT:
+        decimal: 0
+        default: 0
+        description:
+          long: Action the system takes when an imbalanced propeller is detected by the failure detector. See also FD_IMB_PROP_THR to set the failure threshold.
+          short: Imbalanced propeller failsafe mode
+        increment: 1
+        type: enum
+        values:
+          -1: Disabled
+          0: Warning
+          1: Return
+          2: Land
+        volatile: false
+      COM_KILL_DISARM:
+        default: 5.0
+        description:
+          short: Timeout value for disarming when kill switch is engaged
+        increment: 0.1
+        max: 30.0
+        min: 0.0
+        type: float
+        unit: s
+        volatile: false
+      COM_LKDOWN_TKO:
+        decimal: 3
+        default: 3.0
+        description:
+          long: 'A non-zero, positive value specifies the timeframe in seconds within failure detector is allowed to put the vehicle into a lockdown state if attitude exceeds the limits defined in FD_FAIL_P and FD_FAIL_R. The check is not executed for flight modes that do support acrobatic maneuvers, e.g: Acro (MC/FW) and Manual (FW). A zero or negative value means that the check is disabled.'
+          short: Timeout for detecting a failure after takeoff
+        max: 5.0
+        min: -1.0
+        type: float
+        unit: s
+        volatile: false
+      COM_LOW_BAT_ACT:
+        decimal: 0
+        default: 0
+        description:
+          long: Action the system takes at critical battery. See also BAT_CRIT_THR and BAT_EMERGEN_THR for definition of battery states.
+          short: Battery failsafe mode
+        increment: 1
+        type: enum
+        values:
+          0: Warning
+          2: Land mode
+          3: Return at critical level, land at emergency level
+        volatile: false
+      COM_MOT_TEST_EN:
+        default: 1
+        description:
+          long: If set, enables the motor test interface via MAVLink (DO_MOTOR_TEST), that allows spinning the motors for testing purposes.
+          short: Enable Motor Testing
+        type: boolean
+        volatile: false
+      COM_OBC_LOSS_T:
+        default: 5.0
+        description:
+          short: Timeout when onboard computer connection is lost before warning
+        increment: 0.01
+        max: 60
+        min: 0
+        type: float
+        unit: s
+        volatile: false
+      COM_OBL_ACT:
+        default: 0
+        description:
+          long: The offboard loss failsafe will only be entered after a timeout, set by COM_OF_LOSS_T in seconds.
+          short: Set offboard loss failsafe mode
+        type: enum
+        values:
+          -1: Disabled
+          0: Land mode
+          1: Hold mode
+          2: Return mode
+          3: Terminate
+          4: Lockdown
+        volatile: false
+      COM_OBL_RC_ACT:
+        default: 0
+        description:
+          long: The offboard loss failsafe will only be entered after a timeout, set by COM_OF_LOSS_T in seconds.
+          short: Set offboard loss failsafe mode when RC is available
+        type: enum
+        values:
+          -1: Disabled
+          0: Position mode
+          1: Altitude mode
+          2: Manual
+          3: Return mode
+          4: Land mode
+          5: Hold mode
+          6: Terminate
+          7: Lockdown
+        volatile: false
+      COM_OBS_AVOID:
+        default: 0
+        description:
+          short: Flag to enable obstacle avoidance
+        type: boolean
+        volatile: false
+      COM_OF_LOSS_T:
+        default: 1.0
+        description:
+          long: See COM_OBL_ACT and COM_OBL_RC_ACT to configure action.
+          short: Timeout when offboard connection is lost before triggering
+        increment: 0.01
+        max: 60
+        min: 0
+        type: float
+        unit: s
+        volatile: false
+      COM_PARACHUTE:
+        default: 0
+        description:
+          short: Expect and require a healthy MAVLink parachute system
+        type: boolean
+        volatile: false
+      COM_POSCTL_NAVL:
+        default: 0
+        description:
+          long: This sets the flight mode that will be used if navigation accuracy is no longer adequate for position control.
+          short: Position control navigation loss response
+        type: enum
+        values:
+          0: Altitude/Manual. Assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
+          1: Land/Terminate. Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
+        volatile: false
+      COM_POS_FS_DELAY:
+        default: 1
+        description:
+          long: This sets number of seconds that the position checks need to be failed before the failsafe will activate. The default value has been optimised for rotary wing applications. For fixed wing applications, a larger value between 5 and 10 should be used.
+          short: Loss of position failsafe activation delay
+        max: 100
+        min: 1
+        type: int32
+        unit: s
+        volatile: false
+      COM_POS_FS_EPH:
+        default: 5
+        description:
+          long: This is the horizontal position error (EPH) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+          short: Horizontal position error threshold
+        type: float
+        unit: m
+        volatile: false
+      COM_POS_FS_EPV:
+        default: 10
+        description:
+          long: This is the vertical position error (EPV) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+          short: Vertical position error threshold
+        type: float
+        unit: m
+        volatile: false
+      COM_POWER_COUNT:
+        default: 1
+        description:
+          long: 'This configures a check to verify the expected number of 5V rail power supplies are present. By default only one is expected. Note: CBRK_SUPPLY_CHK disables all power checks including this one.'
+          short: Required number of redundant power modules
+        max: 4
+        min: 0
+        type: int32
+        volatile: false
+      COM_PREARM_MODE:
+        default: 0
+        description:
+          long: Condition to enter the prearmed state, an intermediate state between disarmed and armed in which non-throttling actuators are active.
+          short: Condition to enter prearmed mode
+        type: enum
+        values:
+          0: Disabled
+          1: Safety button
+          2: Always
+        volatile: false
+      COM_QC_ACT:
+        default: 0
+        description:
+          short: Set command after a quadchute
+        type: enum
+        values:
+          -1: 'No action: stay in current flight mode'
+          0: Return mode
+          1: Land mode
+          2: Hold mode
+        volatile: false
+      COM_RCL_ACT_T:
+        decimal: 3
+        default: 15.0
+        description:
+          long: RC signal not updated -> still use data for COM_RC_LOSS_T seconds Consider RC signal lost -> wait COM_RCL_ACT_T seconds in Hold mode to regain signal React with failsafe action NAV_RCL_ACT A zero value disables the delay.
+          short: Delay between RC loss and configured reaction
+        max: 25.0
+        min: 0.0
+        type: float
+        unit: s
+        volatile: false
+      COM_RCL_EXCEPT:
+        bit:
+          0: Mission
+          1: Hold
+          2: Offboard
+        default: 0
+        description:
+          long: Specify modes in which RC loss is ignored and the failsafe action not triggered.
+          short: RC loss exceptions
+        max: 31
+        min: 0
+        type: bitmask
+        volatile: false
+      COM_RC_ARM_HYST:
+        default: 1000
+        description:
+          long: The default value of 1000 requires the stick to be held in the arm or disarm position for 1 second.
+          short: RC input arm/disarm command duration
+        max: 1500
+        min: 100
+        type: int32
+        unit: ms
+        volatile: false
+      COM_RC_IN_MODE:
+        default: 3
+        description:
+          long: A value of 0 enables RC transmitter control (only). A valid RC transmitter calibration is required. A value of 1 allows joystick control only. RC input handling and the associated checks are disabled. A value of 2 allows either RC Transmitter or Joystick input. The first valid input is used, will fallback to other sources if the input stream becomes invalid. A value of 3 allows either input from RC or joystick. The first available source is selected and used until reboot. A value of 4 ignores any stick input.
+          short: RC control input mode
+        max: 4
+        min: 0
+        type: enum
+        values:
+          0: RC Transmitter only
+          1: Joystick only
+          2: RC and Joystick with fallback
+          3: RC or Joystick keep first
+          4: Stick input disabled
+        volatile: false
+      COM_RC_LOSS_T:
+        decimal: 1
+        default: 0.5
+        description:
+          long: After this amount of seconds without RC connection it's considered lost and not used anymore
+          short: RC loss time threshold
+        increment: 0.1
+        max: 35
+        min: 0
+        type: float
+        unit: s
+        volatile: false
+      COM_RC_OVERRIDE:
+        bit:
+          0: Enable override during auto modes (except for in critical battery reaction)
+          1: Enable override during offboard mode
+        default: 1
+        description:
+          long: 'When RC stick override is enabled, moving the RC sticks more than COM_RC_STICK_OV immediately gives control back to the pilot by switching to Position mode and if position is unavailable Altitude mode. Note: Only has an effect on multicopters, and VTOLs in multicopter mode. This parameter is not considered in case of a GPS failure (Descend flight mode), where stick override is always enabled.'
+          short: Enable RC stick override of auto and/or offboard modes
+        max: 3
+        min: 0
+        type: bitmask
+        volatile: false
+      COM_RC_STICK_OV:
+        decimal: 0
+        default: 30.0
+        description:
+          long: If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold the autopilot the pilot takes over control.
+          short: RC stick override threshold
+        increment: 0.05
+        max: 80
+        min: 5
+        type: float
+        unit: '%'
+        volatile: false
+      COM_SPOOLUP_TIME:
+        default: 1.0
+        description:
+          long: 'The minimal time from arming the motors until moving the vehicle is possible is COM_SPOOLUP_TIME seconds. Goal: - Motors and propellers spool up to idle speed before getting commanded to spin faster - Timeout for ESCs and smart batteries to successfulyy do failure checks e.g. for stuck rotors before the vehicle is off the ground'
+          short: Enforced delay between arming and further navigation
+        max: 5
+        min: 0
+        type: float
+        unit: s
+        volatile: false
+      COM_TAKEOFF_ACT:
+        default: 0
+        description:
+          long: The mode transition after TAKEOFF has completed successfully.
+          short: Action after TAKEOFF has been accepted
+        type: enum
+        values:
+          0: Hold
+          1: Mission (if valid)
+        volatile: false
+      COM_VEL_FS_EVH:
+        default: 1
+        description:
+          long: This is the horizontal velocity error (EVH) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+          short: Horizontal velocity error threshold
+        type: float
+        unit: m/s
+        volatile: false
+      COM_WIND_MAX:
+        decimal: 1
+        default: -1.0
+        description:
+          long: Wind speed threshold above which an automatic return to launch is triggered and enforced as long as the threshold is exceeded. A negative value disables the feature.
+          short: Wind speed RLT threshold
+        increment: 0.1
+        max: 30
+        min: -1
+        type: float
+        unit: m/s
+        volatile: false
+      COM_WIND_WARN:
+        decimal: 1
+        default: -1.0
+        description:
+          long: A warning is triggered if the currently estimated wind speed is above this value. Warning is sent periodically (every 1min). A negative value disables the feature.
+          short: Wind speed warning threshold
+        increment: 0.1
+        max: 30
+        min: -1
+        type: float
+        unit: m/s
+        volatile: false
+      NAV_DLL_ACT:
+        default: 0
+        description:
+          long: The data link loss failsafe will only be entered after a timeout, set by COM_DL_LOSS_T in seconds. Once the timeout occurs the selected action will be executed.
+          short: Set data link loss failsafe mode
+        max: 6
+        min: 0
+        type: enum
+        values:
+          0: Disabled
+          1: Hold mode
+          2: Return mode
+          3: Land mode
+          5: Terminate
+          6: Lockdown
+        volatile: false
+      NAV_RCL_ACT:
+        default: 2
+        description:
+          long: The RC loss failsafe will only be entered after a timeout, set by COM_RC_LOSS_T in seconds. If RC input checks have been disabled by setting the COM_RC_IN_MODE param it will not be triggered.
+          short: Set RC loss failsafe mode
+        max: 6
+        min: 1
+        type: enum
+        values:
+          1: Hold mode
+          2: Return mode
+          3: Land mode
+          5: Terminate
+          6: Lockdown
+        volatile: false
+    group: Commander
+  - definitions:
+      TRIM_PITCH:
+        decimal: 2
+        default: 0.0
+        description:
+          long: The trim value is the actuator control value the system needs for straight and level flight. It can be calibrated by flying manually straight and level using the RC trims and copying them using the GCS.
+          short: Pitch trim
+        increment: 0.01
+        max: 0.25
+        min: -0.25
+        type: float
+        volatile: false
+      TRIM_ROLL:
+        decimal: 2
+        default: 0.0
+        description:
+          long: The trim value is the actuator control value the system needs for straight and level flight. It can be calibrated by flying manually straight and level using the RC trims and copying them using the GCS.
+          short: Roll trim
+        increment: 0.01
+        max: 0.25
+        min: -0.25
+        type: float
+        volatile: false
+      TRIM_YAW:
+        decimal: 2
+        default: 0.0
+        description:
+          long: The trim value is the actuator control value the system needs for straight and level flight. It can be calibrated by flying manually straight and level using the RC trims and copying them using the GCS.
+          short: Yaw trim
+        increment: 0.01
+        max: 0.25
+        min: -0.25
+        type: float
+        volatile: false
+    group: Radio Calibration
+  - definitions:
+      FD_ACT_EN:
+        default: 1
+        description:
+          long: If enabled, failure detector will verify that for motors, a minimum amount of ESC current per throttle level is being consumed. Otherwise this indicates an motor failure.
+          short: Enable Actuator Failure check
+        reboot_required: true
+        type: boolean
+        volatile: false
+      FD_ACT_MOT_C2T:
+        decimal: 2
+        default: 2.0
+        description:
+          long: Motor failure triggers only below this current value
+          short: Motor Failure Current/Throttle Threshold
+        increment: 1
+        max: 50.0
+        min: 0.0
+        type: float
+        unit: A/%
+        volatile: false
+      FD_ACT_MOT_THR:
+        decimal: 2
+        default: 0.2
+        description:
+          long: Motor failure triggers only above this throttle value.
+          short: Motor Failure Throttle Threshold
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      FD_ACT_MOT_TOUT:
+        default: 100
+        description:
+          long: Motor failure triggers only if the throttle threshold and the current to throttle threshold are violated for this time.
+          short: Motor Failure Time Threshold
+        increment: 100
+        max: 10000
+        min: 10
+        type: int32
+        unit: ms
+        volatile: false
+      FD_ESCS_EN:
+        default: 1
+        description:
+          long: If enabled, failure detector will verify that all the ESCs have successfully armed when the vehicle has transitioned to the armed state. Timeout for receiving an acknowledgement from the ESCs is 0.3s, if no feedback is received the failure detector will auto disarm the vehicle.
+          short: Enable checks on ESCs that report their arming state
+        type: boolean
+        volatile: false
+      FD_EXT_ATS_EN:
+        default: 0
+        description:
+          long: Enabled on either AUX5 or MAIN5 depending on board. External ATS is required by ASTM F3322-18.
+          short: Enable PWM input on for engaging failsafe from external trigger system
+        reboot_required: true
+        type: boolean
+        volatile: false
+      FD_EXT_ATS_TRIG:
+        decimal: 2
+        default: 1900
+        description:
+          long: External ATS is required by ASTM F3322-18.
+          short: PWM threshold from external trigger system to engage failsafe
+        type: int32
+        unit: us
+        volatile: false
+      FD_FAIL_P:
+        default: 60
+        description:
+          long: Maximum pitch angle before FailureDetector triggers the attitude_failure flag. The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0), which sets outputs to their failsafe values. On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM), which disarms motors but does not set outputs to failsafe values. Setting this parameter to 0 disables the check
+          short: FailureDetector Max Pitch
+        max: 180
+        min: 0
+        type: int32
+        unit: deg
+        volatile: false
+      FD_FAIL_P_TTRI:
+        decimal: 2
+        default: 0.3
+        description:
+          long: Seconds (decimal) that pitch has to exceed FD_FAIL_P before being considered as a failure.
+          short: Pitch failure trigger time
+        max: 5
+        min: 0.02
+        type: float
+        unit: s
+        volatile: false
+      FD_FAIL_R:
+        default: 60
+        description:
+          long: Maximum roll angle before FailureDetector triggers the attitude_failure flag. The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0), which sets outputs to their failsafe values. On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM), which disarms motors but does not set outputs to failsafe values. Setting this parameter to 0 disables the check
+          short: FailureDetector Max Roll
+        max: 180
+        min: 0
+        type: int32
+        unit: deg
+        volatile: false
+      FD_FAIL_R_TTRI:
+        decimal: 2
+        default: 0.3
+        description:
+          long: Seconds (decimal) that roll has to exceed FD_FAIL_R before being considered as a failure.
+          short: Roll failure trigger time
+        max: 5
+        min: 0.02
+        type: float
+        unit: s
+        volatile: false
+      FD_IMB_PROP_THR:
+        default: 30
+        description:
+          long: Value at which the imbalanced propeller metric (based on horizontal and vertical acceleration variance) triggers a failure Setting this value to 0 disables the feature.
+          short: Imbalanced propeller check threshold
+        increment: 1
+        max: 1000
+        min: 0
+        type: int32
+        volatile: false
+    group: Failure Detector

@@ -1,0 +1,650 @@
+module_name: mc_pos_control
+parameters:
+  - definitions:
+      MPC_YAW_MODE:
+        default: 0
+        description:
+          long: Specifies the heading in Auto.
+          short: Yaw mode
+        max: 4
+        min: 0
+        type: enum
+        values:
+          0: towards waypoint
+          1: towards home
+          2: away from home
+          3: along trajectory
+          4: towards waypoint (yaw first)
+        volatile: false
+    group: Mission
+  - definitions:
+      MPC_YAWRAUTO_MAX:
+        decimal: 1
+        default: 45.0
+        description:
+          long: Limit the rate of change of the yaw setpoint in autonomous mode to avoid large control output and mixer saturation.
+          short: Max yaw rate in auto mode
+        increment: 5
+        max: 360.0
+        min: 0.0
+        type: float
+        unit: deg/s
+        volatile: false
+    group: Multicopter Attitude Control
+  - definitions:
+      MPC_ACC_DOWN_MAX:
+        decimal: 2
+        default: 3.0
+        description:
+          short: Maximum vertical acceleration in velocity controlled modes down
+        increment: 1
+        max: 15.0
+        min: 2.0
+        type: float
+        unit: m/s^2
+        volatile: false
+      MPC_ACC_HOR:
+        decimal: 2
+        default: 3.0
+        description:
+          long: 'Note: In manual, this parameter is only used in MPC_POS_MODE 4.'
+          short: Acceleration for auto and for manual
+        increment: 1
+        max: 15.0
+        min: 2.0
+        type: float
+        unit: m/s^2
+        volatile: false
+      MPC_ACC_HOR_MAX:
+        decimal: 2
+        default: 5.0
+        description:
+          long: MPC_POS_MODE 1 just deceleration 3 acceleration and deceleration 4 just acceleration
+          short: Maximum horizontal acceleration for auto mode and for manual mode
+        increment: 1
+        max: 15.0
+        min: 2.0
+        type: float
+        unit: m/s^2
+        volatile: false
+      MPC_ACC_UP_MAX:
+        decimal: 2
+        default: 4.0
+        description:
+          short: Maximum vertical acceleration in velocity controlled modes upward
+        increment: 1
+        max: 15.0
+        min: 2.0
+        type: float
+        unit: m/s^2
+        volatile: false
+      MPC_ALT_MODE:
+        default: 0
+        description:
+          long: Set to 0 to control height relative to the earth frame origin. This origin may move up and down in flight due to sensor drift. Set to 1 to control height relative to estimated distance to ground. The vehicle will move up and down with terrain height variation. Requires a distance to ground sensor. The height controller will revert to using height above origin if the distance to ground estimate becomes invalid as indicated by the local_position.distance_bottom_valid message being false. Set to 2 to control height relative to ground (requires a distance sensor) when stationary and relative to earth frame origin when moving horizontally. The speed threshold is controlled by the MPC_HOLD_MAX_XY parameter.
+          short: Altitude control mode
+        max: 2
+        min: 0
+        type: enum
+        values:
+          0: Altitude following
+          1: Terrain following
+          2: Terrain hold
+        volatile: false
+      MPC_HOLD_DZ:
+        decimal: 2
+        default: 0.1
+        description:
+          short: Deadzone of sticks where position hold is enabled
+        max: 1.0
+        min: 0.0
+        type: float
+        volatile: false
+      MPC_HOLD_MAX_XY:
+        decimal: 2
+        default: 0.8
+        description:
+          short: Maximum horizontal velocity for which position hold is enabled (use 0 to disable check)
+        max: 3.0
+        min: 0.0
+        type: float
+        unit: m/s
+        volatile: false
+      MPC_HOLD_MAX_Z:
+        decimal: 2
+        default: 0.6
+        description:
+          short: Maximum vertical velocity for which position hold is enabled (use 0 to disable check)
+        max: 3.0
+        min: 0.0
+        type: float
+        unit: m/s
+        volatile: false
+      MPC_JERK_AUTO:
+        decimal: 1
+        default: 4.0
+        description:
+          long: Limit the maximum jerk of the vehicle (how fast the acceleration can change). A lower value leads to smoother vehicle motions, but it also limits its agility.
+          short: Jerk limit in auto mode
+        increment: 1
+        max: 80.0
+        min: 1.0
+        type: float
+        unit: m/s^3
+        volatile: false
+      MPC_JERK_MAX:
+        decimal: 2
+        default: 8.0
+        description:
+          long: 'Limit the maximum jerk of the vehicle (how fast the acceleration can change). A lower value leads to smoother vehicle motions, but it also limits its agility (how fast it can change directions or break). Setting this to the maximum value essentially disables the limit. Note: This is only used when MPC_POS_MODE is set to a smoothing mode 3 or 4.'
+          short: Maximum jerk limit
+        increment: 1
+        max: 500.0
+        min: 0.5
+        type: float
+        unit: m/s^3
+        volatile: false
+      MPC_LAND_ALT1:
+        decimal: 1
+        default: 10.0
+        description:
+          long: Below this altitude descending velocity gets limited to a value between "MPC_Z_VEL_MAX_DN" (or "MPC_Z_V_AUTO_DN") and "MPC_LAND_SPEED" Value needs to be higher than "MPC_LAND_ALT2"
+          short: Altitude for 1. step of slow landing (descend)
+        max: 122
+        min: 0
+        type: float
+        unit: m
+        volatile: false
+      MPC_LAND_ALT2:
+        decimal: 1
+        default: 5.0
+        description:
+          long: Below this altitude descending velocity gets limited to "MPC_LAND_SPEED" Value needs to be lower than "MPC_LAND_ALT1"
+          short: Altitude for 2. step of slow landing (landing)
+        max: 122
+        min: 0
+        type: float
+        unit: m
+        volatile: false
+      MPC_LAND_ALT3:
+        decimal: 1
+        default: 1.0
+        description:
+          long: Below this altitude descending velocity gets limited to "MPC_LAND_CRWL", if LIDAR available. No effect if LIDAR not available
+          short: Altitude for 3. step of slow landing
+        max: 122
+        min: 0
+        type: float
+        unit: m
+        volatile: false
+      MPC_LAND_CRWL:
+        decimal: 1
+        default: 0.3
+        description:
+          short: Land crawl descend rate. Used below
+        min: 0.3
+        type: float
+        unit: m/s
+        volatile: false
+      MPC_LAND_SPEED:
+        decimal: 1
+        default: 0.7
+        description:
+          short: Landing descend rate
+        min: 0.6
+        type: float
+        unit: m/s
+        volatile: false
+      MPC_MANTHR_MIN:
+        decimal: 2
+        default: 0.08
+        description:
+          long: Minimum vertical thrust. It's recommended to set it > 0 to avoid free fall with zero thrust. With MC_AIRMODE set to 1, this can safely be set to 0.
+          short: Minimum manual thrust
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      MPC_MAN_TILT_MAX:
+        decimal: 1
+        default: 35.0
+        description:
+          short: Maximal tilt angle in manual or altitude mode
+        max: 90.0
+        min: 0.0
+        type: float
+        unit: deg
+        volatile: false
+      MPC_MAN_Y_MAX:
+        decimal: 1
+        default: 150.0
+        description:
+          short: Max manual yaw rate
+        max: 400
+        min: 0.0
+        type: float
+        unit: deg/s
+        volatile: false
+      MPC_MAN_Y_TAU:
+        decimal: 2
+        default: 0.08
+        description:
+          long: Setting this parameter to 0 disables the filter
+          short: Manual yaw rate input filter time constant
+        max: 5.0
+        min: 0.0
+        type: float
+        unit: s
+        volatile: false
+      MPC_POS_MODE:
+        default: 4
+        description:
+          long: 'The supported sub-modes are: 0 Simple position control where sticks map directly to velocity setpoints without smoothing. Useful for velocity control tuning. 3 Smooth position control with maximum acceleration and jerk limits based on jerk optimized trajectory generator (different algorithm than 1). 4 Smooth position control where sticks map to acceleration and there''s a virtual brake drag'
+          short: Manual-Position control sub-mode
+        type: enum
+        values:
+          0: Simple position control
+          3: Smooth position control (Jerk optimized)
+          4: Acceleration based input
+        volatile: false
+      MPC_THR_CURVE:
+        default: 0
+        description:
+          long: 'This parameter defines how the throttle stick input is mapped to commanded thrust in Manual/Stabilized flight mode. In case the default is used (''Rescale to hover thrust''), the stick input is linearly rescaled, such that a centered stick corresponds to the hover throttle (see MPC_THR_HOVER). Select ''No Rescale'' to directly map the stick 1:1 to the output. This can be useful in case the hover thrust is very low and the default would lead to too much distortion (e.g. if hover thrust is set to 20%, 80% of the upper thrust range is squeezed into the upper half of the stick range). Note: In case MPC_THR_HOVER is set to 50%, the modes 0 and 1 are the same.'
+          short: Thrust curve in Manual Mode
+        type: enum
+        values:
+          0: Rescale to hover thrust
+          1: No Rescale
+        volatile: false
+      MPC_THR_HOVER:
+        decimal: 2
+        default: 0.5
+        description:
+          long: Vertical thrust required to hover. This value is mapped to center stick for manual throttle control. With this value set to the thrust required to hover, transition from manual to Altitude or Position mode while hovering will occur with the throttle stick near center, which is then interpreted as (near) zero demand for vertical speed. This parameter is also important for the landing detection to work correctly.
+          short: Hover thrust
+        increment: 0.01
+        max: 0.8
+        min: 0.1
+        type: float
+        unit: norm
+        volatile: false
+      MPC_THR_MAX:
+        decimal: 2
+        default: 1.0
+        description:
+          long: Limit max allowed thrust
+          short: Maximum thrust in auto thrust control
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      MPC_THR_MIN:
+        decimal: 2
+        default: 0.12
+        description:
+          long: 'It''s recommended to set it > 0 to avoid free fall with zero thrust. Note: Without airmode zero thrust leads to zero roll/pitch control authority. (see MC_AIRMODE)'
+          short: Minimum collective thrust in auto thrust control
+        increment: 0.01
+        max: 1.0
+        min: 0.05
+        type: float
+        unit: norm
+        volatile: false
+      MPC_THR_XY_MARG:
+        decimal: 2
+        default: 0.3
+        description:
+          long: Margin that is kept for horizontal control when prioritizing vertical thrust. To avoid completely starving horizontal control with high vertical error.
+          short: Horizontal thrust margin
+        increment: 0.01
+        max: 0.5
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      MPC_TILTMAX_AIR:
+        decimal: 1
+        default: 45.0
+        description:
+          long: Limits maximum tilt in AUTO and POSCTRL modes during flight.
+          short: Maximum tilt angle in air
+        max: 89.0
+        min: 20.0
+        type: float
+        unit: deg
+        volatile: false
+      MPC_TILTMAX_LND:
+        decimal: 1
+        default: 12.0
+        description:
+          long: Limits maximum tilt angle on landing.
+          short: Maximum tilt during landing
+        max: 89.0
+        min: 10.0
+        type: float
+        unit: deg
+        volatile: false
+      MPC_TKO_RAMP_T:
+        default: 3.0
+        description:
+          long: Increasing this value will make automatic and manual takeoff slower. If it's too slow the drone might scratch the ground and tip over. A time constant of 0 disables the ramp
+          short: Position control smooth takeoff ramp time constant
+        max: 5
+        min: 0
+        type: float
+        volatile: false
+      MPC_TKO_SPEED:
+        decimal: 2
+        default: 1.5
+        description:
+          short: Takeoff climb rate
+        max: 5
+        min: 1
+        type: float
+        unit: m/s
+        volatile: false
+      MPC_USE_HTE:
+        default: 1
+        description:
+          long: Set false to use the fixed parameter MPC_THR_HOVER Set true to use the value computed by the hover thrust estimator
+          short: Hover thrust source selector
+        type: boolean
+        volatile: false
+      MPC_VELD_LP:
+        decimal: 2
+        default: 5.0
+        description:
+          short: Low pass filter cut freq. for numerical velocity derivative
+        max: 10
+        min: 0.0
+        type: float
+        unit: Hz
+        volatile: false
+      MPC_VEL_MANUAL:
+        decimal: 2
+        default: 10.0
+        description:
+          long: If velocity setpoint larger than MPC_XY_VEL_MAX is set, then the setpoint will be capped to MPC_XY_VEL_MAX The maximum sideways and backward speed can be set differently using MPC_VEL_MAN_SIDE and MPC_VEL_MAN_BACK, respectively.
+          short: Maximum horizontal velocity setpoint in Position mode
+        increment: 1
+        max: 20.0
+        min: 3.0
+        type: float
+        unit: m/s
+        volatile: false
+      MPC_VEL_MAN_BACK:
+        decimal: 2
+        default: -1.0
+        description:
+          long: If set to a negative value or larger than MPC_VEL_MANUAL then MPC_VEL_MANUAL is used.
+          short: Maximum backward velocity in Position mode
+        increment: 0.1
+        max: 20.0
+        min: -1.0
+        type: float
+        unit: m/s
+        volatile: false
+      MPC_VEL_MAN_SIDE:
+        decimal: 2
+        default: -1.0
+        description:
+          long: If set to a negative value or larger than MPC_VEL_MANUAL then MPC_VEL_MANUAL is used.
+          short: Maximum sideways velocity in Position mode
+        increment: 0.1
+        max: 20.0
+        min: -1.0
+        type: float
+        unit: m/s
+        volatile: false
+      MPC_XY_CRUISE:
+        decimal: 2
+        default: 5.0
+        description:
+          long: Horizontal velocity used when flying autonomously in e.g. Missions, RTL, Goto.
+          short: Default horizontal velocity in mission
+        increment: 1
+        max: 20.0
+        min: 3.0
+        type: float
+        unit: m/s
+        volatile: false
+      MPC_XY_ERR_MAX:
+        decimal: 1
+        default: 2.0
+        description:
+          long: The integration speed of the trajectory setpoint is linearly reduced with the horizontal position tracking error. When the error is above this parameter, the integration of the trajectory is stopped to wait for the drone. This value can be adjusted depending on the tracking capabilities of the vehicle.
+          short: Maximum horizontal error allowed by the trajectory generator
+        max: 10.0
+        min: 0.1
+        type: float
+        volatile: false
+      MPC_XY_MAN_EXPO:
+        decimal: 2
+        default: 0.6
+        description:
+          long: The higher the value the less sensitivity the stick has around zero while still reaching the maximum value with full stick deflection. 0 Purely linear input curve (default) 1 Purely cubic input curve
+          short: Manual position control stick exponential curve sensitivity
+        max: 1
+        min: 0
+        type: float
+        volatile: false
+      MPC_XY_P:
+        decimal: 2
+        default: 0.95
+        description:
+          short: Proportional gain for horizontal position error
+        max: 2.0
+        min: 0.0
+        type: float
+        volatile: false
+      MPC_XY_TRAJ_P:
+        decimal: 1
+        default: 0.5
+        description:
+          short: Proportional gain for horizontal trajectory position error
+        max: 1.0
+        min: 0.1
+        type: float
+        volatile: false
+      MPC_XY_VEL_ALL:
+        decimal: 1
+        default: -10.0
+        description:
+          long: If set to a value greater than zero, other parameters are automatically set (such as MPC_XY_VEL_MAX or MPC_VEL_MANUAL). If set to a negative value, the existing individual parameters are used.
+          short: Overall Horizonal Velocity Limit
+        increment: 1
+        max: 20
+        min: -20
+        type: float
+        volatile: false
+      MPC_XY_VEL_D_ACC:
+        decimal: 3
+        default: 0.2
+        description:
+          long: Small values help reduce fast oscillations. If value is too big oscillations will appear again. Defined as correction acceleration in m/s^2 per m/s^2 velocity derivative
+          short: Differential gain for horizontal velocity error.
+        max: 2.0
+        min: 0.1
+        type: float
+        volatile: false
+      MPC_XY_VEL_I_ACC:
+        decimal: 3
+        default: 0.4
+        description:
+          long: defined as correction acceleration in m/s^2 per m velocity integral Non-zero value allows to eliminate steady state errors in the presence of disturbances like wind.
+          short: Integral gain for horizontal velocity error
+        max: 60.0
+        min: 0.0
+        type: float
+        volatile: false
+      MPC_XY_VEL_MAX:
+        decimal: 2
+        default: 12.0
+        description:
+          long: Maximum horizontal velocity in AUTO mode. If higher speeds are commanded in a mission they will be capped to this velocity.
+          short: Maximum horizontal velocity
+        increment: 1
+        max: 20.0
+        min: 0.0
+        type: float
+        unit: m/s
+        volatile: false
+      MPC_XY_VEL_P_ACC:
+        decimal: 2
+        default: 1.8
+        description:
+          long: defined as correction acceleration in m/s^2 per m/s velocity error
+          short: Proportional gain for horizontal velocity error
+        max: 5.0
+        min: 1.2
+        type: float
+        volatile: false
+      MPC_YAW_EXPO:
+        decimal: 2
+        default: 0.6
+        description:
+          long: The higher the value the less sensitivity the stick has around zero while still reaching the maximum value with full stick deflection. 0 Purely linear input curve (default) 1 Purely cubic input curve
+          short: Manual control stick yaw rotation exponential curve
+        max: 1
+        min: 0
+        type: float
+        volatile: false
+      MPC_Z_MAN_EXPO:
+        decimal: 2
+        default: 0.6
+        description:
+          long: The higher the value the less sensitivity the stick has around zero while still reaching the maximum value with full stick deflection. 0 Purely linear input curve (default) 1 Purely cubic input curve
+          short: Manual control stick vertical exponential curve
+        max: 1
+        min: 0
+        type: float
+        volatile: false
+      MPC_Z_P:
+        decimal: 2
+        default: 1.0
+        description:
+          short: Proportional gain for vertical position error
+        max: 1.5
+        min: 0.0
+        type: float
+        volatile: false
+      MPC_Z_VEL_ALL:
+        decimal: 1
+        default: -3.0
+        description:
+          long: If set to a value greater than zero, other parameters are automatically set (such as MPC_Z_VEL_MAX_UP or MPC_LAND_SPEED). If set to a negative value, the existing individual parameters are used.
+          short: Overall Vertical Velocity Limit
+        increment: 0.5
+        max: 8
+        min: -3
+        type: float
+        volatile: false
+      MPC_Z_VEL_D_ACC:
+        decimal: 3
+        default: 0.0
+        description:
+          long: defined as correction acceleration in m/s^2 per m/s^2 velocity derivative
+          short: Differential gain for vertical velocity error
+        max: 2.0
+        min: 0.0
+        type: float
+        volatile: false
+      MPC_Z_VEL_I_ACC:
+        decimal: 3
+        default: 2.0
+        description:
+          long: defined as correction acceleration in m/s^2 per m velocity integral Non zero value allows hovering thrust estimation on stabilized or autonomous takeoff.
+          short: Integral gain for vertical velocity error
+        max: 3.0
+        min: 0.2
+        type: float
+        volatile: false
+      MPC_Z_VEL_MAX_DN:
+        decimal: 1
+        default: 1.0
+        description:
+          long: Descent velocity in manual modes and offboard. For auto modes, see MPC_Z_V_AUTO_DN
+          short: Maximum descent velocity
+        increment: 0.1
+        max: 4.0
+        min: 0.5
+        type: float
+        unit: m/s
+        volatile: false
+      MPC_Z_VEL_MAX_UP:
+        decimal: 1
+        default: 3.0
+        description:
+          long: Ascent velocity in manual modes and offboard. For auto modes, see MPC_Z_V_AUTO_UP
+          short: Maximum ascent velocity
+        increment: 0.1
+        max: 8.0
+        min: 0.5
+        type: float
+        unit: m/s
+        volatile: false
+      MPC_Z_VEL_P_ACC:
+        decimal: 2
+        default: 4.0
+        description:
+          long: defined as correction acceleration in m/s^2 per m/s velocity error
+          short: Proportional gain for vertical velocity error
+        max: 15.0
+        min: 2.0
+        type: float
+        volatile: false
+      MPC_Z_V_AUTO_DN:
+        decimal: 1
+        default: 1.0
+        description:
+          long: Descent velocity in auto modes. For manual modes and offboard, see MPC_Z_VEL_MAX_DN
+          short: Automatic descent velocity
+        increment: 0.1
+        max: 4.0
+        min: 0.5
+        type: float
+        unit: m/s
+        volatile: false
+      MPC_Z_V_AUTO_UP:
+        decimal: 1
+        default: 3.0
+        description:
+          long: Ascent velocity in auto modes. For manual modes and offboard, see MPC_Z_VEL_MAX_UP
+          short: Automatic ascent velocity
+        increment: 0.1
+        max: 8.0
+        min: 0.5
+        type: float
+        unit: m/s
+        volatile: false
+      SYS_VEHICLE_RESP:
+        decimal: 2
+        default: -0.4
+        description:
+          long: Changes the overall responsiveness of the vehicle. The higher the value, the faster the vehicle will react. If set to a value greater than zero, other parameters are automatically set (such as the acceleration or jerk limits). If set to a negative value, the existing individual parameters are used.
+          short: Responsiveness
+        increment: 0.05
+        max: 1
+        min: -1
+        type: float
+        volatile: false
+    group: Multicopter Position Control
+  - definitions:
+      MPC_LAND_RC_HELP:
+        default: 0
+        description:
+          long: 'When enabled, descent speed will be: stick full up - 0 stick centered - MPC_LAND_SPEED stick full down - 2 * MPC_LAND_SPEED'
+          short: Enable user assisted descent speed for autonomous land routine
+        max: 1
+        min: 0
+        type: enum
+        values:
+          0: Fixed descent speed of MPC_LAND_SPEED
+          1: User assisted descent speed
+        volatile: false
+    group: Miscellaneous

@@ -26,7 +26,7 @@ parameters:
           short: Maximum number of log directories to keep
         max: 1000
         min: 0
-        reboot_required: 'true'
+        reboot_required: true
         type: int32
         volatile: false
       SDLOG_EXCH_KEY:
@@ -52,7 +52,7 @@ parameters:
         description:
           long: If enabled, a small additional "mission" log file will be written to the SD card. The log contains just those messages that are useful for tasks like generating flight statistics and geotagging. The different modes can be used to further reduce the logged data (and thus the log file size). For example, choose geotagging mode to only log data required for geotagging. Note that the normal/full log is still created, and contains all the data in the mission log (and more).
           short: Mission Log
-        reboot_required: 'true'
+        reboot_required: true
         type: enum
         values:
           0: Disabled
@@ -64,7 +64,7 @@ parameters:
         description:
           long: Determines when to start and stop logging. By default, logging is started when arming the system, and stopped when disarming.
           short: Logging Mode
-        reboot_required: 'true'
+        reboot_required: true
         type: enum
         values:
           -1: disabled
@@ -92,7 +92,7 @@ parameters:
           short: Logging topic profile (integer bitmask)
         max: 2047
         min: 0
-        reboot_required: 'true'
+        reboot_required: true
         type: bitmask
         volatile: false
       SDLOG_UTC_OFFSET:

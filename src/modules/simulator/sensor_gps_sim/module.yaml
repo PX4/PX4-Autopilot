@@ -1,0 +1,12 @@
+module_name: sensor_gps_sim
+parameters:
+- definitions:
+    SIM_GPS_USED:
+      default: 10
+      description:
+        short: simulated GPS number of satellites used
+      max: 50
+      min: 0
+      type: int32
+      volatile: false
+  group: Simulator

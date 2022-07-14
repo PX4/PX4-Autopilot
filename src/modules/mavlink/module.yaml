@@ -1,178 +1,272 @@
 __max_num_config_instances: &max_num_config_instances 3
-
 module_name: MAVLink
 serial_config:
-    - command: |
-        if [ $SERIAL_DEV != ethernet ]; then
-            set MAV_ARGS "-d ${SERIAL_DEV} -b p:${BAUD_PARAM} -m p:MAV_${i}_MODE -r p:MAV_${i}_RATE"
-        else
-            set MAV_ARGS "-u p:MAV_${i}_UDP_PRT -o p:MAV_${i}_REMOTE_PRT -m p:MAV_${i}_MODE -r p:MAV_${i}_RATE"
-            if param compare MAV_${i}_BROADCAST 1
-            then
-                set MAV_ARGS "${MAV_ARGS} -p"
-            fi
-            if param compare MAV_${i}_BROADCAST 2
-            then
-                set MAV_ARGS "${MAV_ARGS} -c"
-            fi
-        fi
-        if param compare MAV_${i}_FORWARD 1
-        then
-            set MAV_ARGS "${MAV_ARGS} -f"
-        fi
-        if param compare MAV_${i}_RADIO_CTL 1
-        then
-            set MAV_ARGS "${MAV_ARGS} -s"
-        fi
-        if param compare MAV_${i}_FLOW_CTRL 0
-        then
-            set MAV_ARGS "${MAV_ARGS} -Z"
-        fi
-        if param compare MAV_${i}_FLOW_CTRL 1
-        then
-            set MAV_ARGS "${MAV_ARGS} -z"
-        fi
-        mavlink start ${MAV_ARGS} -x
-      port_config_param:
-        name: MAV_${i}_CONFIG
-        group: MAVLink
-        # MAVLink instances:
-        # 0: Telem1 Port (Telemetry Link)
-        # 1: Telem2 Port (Companion Link). Disabled by default to reduce RAM usage
-        # 2: Board-specific / no fixed function or port
-        default: [TEL1, "", ""]
-      num_instances: *max_num_config_instances
-      supports_networking: true
-
+  - command: |
+      if [ $SERIAL_DEV != ethernet ]; then
+          set MAV_ARGS "-d ${SERIAL_DEV} -b p:${BAUD_PARAM} -m p:MAV_${i}_MODE -r p:MAV_${i}_RATE"
+      else
+          set MAV_ARGS "-u p:MAV_${i}_UDP_PRT -o p:MAV_${i}_REMOTE_PRT -m p:MAV_${i}_MODE -r p:MAV_${i}_RATE"
+          if param compare MAV_${i}_BROADCAST 1
+          then
+              set MAV_ARGS "${MAV_ARGS} -p"
+          fi
+          if param compare MAV_${i}_BROADCAST 2
+          then
+              set MAV_ARGS "${MAV_ARGS} -c"
+          fi
+      fi
+      if param compare MAV_${i}_FORWARD 1
+      then
+          set MAV_ARGS "${MAV_ARGS} -f"
+      fi
+      if param compare MAV_${i}_RADIO_CTL 1
+      then
+          set MAV_ARGS "${MAV_ARGS} -s"
+      fi
+      if param compare MAV_${i}_FLOW_CTRL 0
+      then
+          set MAV_ARGS "${MAV_ARGS} -Z"
+      fi
+      if param compare MAV_${i}_FLOW_CTRL 1
+      then
+          set MAV_ARGS "${MAV_ARGS} -z"
+      fi
+      mavlink start ${MAV_ARGS} -x
+    port_config_param:
+      name: MAV_${i}_CONFIG
+      group: MAVLink
+      # MAVLink instances:
+      # 0: Telem1 Port (Telemetry Link)
+      # 1: Telem2 Port (Companion Link). Disabled by default to reduce RAM usage
+      # 2: Board-specific / no fixed function or port
+      default: [TEL1, "", ""]
+    num_instances: *max_num_config_instances
+    supports_networking: true
 parameters:
-    - group: MAVLink
-      definitions:
-        MAV_${i}_MODE:
-            description:
-                short: MAVLink Mode for instance ${i}
-                long: |
-                    The MAVLink Mode defines the set of streamed messages (for example the
-                    vehicle's attitude) and their sending rates.
+  - group: MAVLink
+    definitions:
+      MAV_${i}_MODE:
+        description:
+          short: MAVLink Mode for instance ${i}
+          long: |
+            The MAVLink Mode defines the set of streamed messages (for example the
+            vehicle's attitude) and their sending rates.
+        type: enum
+        values:
+          0: Normal
+          1: Custom
+          2: Onboard
+          3: OSD
+          4: Magic
+          5: Config
+          #6: Iridium # as the user does not need to configure this, hide it from the UI
+          7: Minimal
+          8: External Vision
+          #9: External Vision Minimal # hidden
+          10: Gimbal
+          11: Onboard Low Bandwidth
+        reboot_required: true
+        num_instances: *max_num_config_instances
+        default: [0, 2, 0]
+      MAV_${i}_RATE:
+        description:
+          short: Maximum MAVLink sending rate for instance ${i}
+          long: |
+            Configure the maximum sending rate for the MAVLink streams in Bytes/sec.
+            If the configured streams exceed the maximum rate, the sending rate of
+            each stream is automatically decreased.
 
-            type: enum
-            values:
-                0: Normal
-                1: Custom
-                2: Onboard
-                3: OSD
-                4: Magic
-                5: Config
-                #6: Iridium # as the user does not need to configure this, hide it from the UI
-                7: Minimal
-                8: External Vision
-                #9: External Vision Minimal # hidden
-                10: Gimbal
-                11: Onboard Low Bandwidth
-            reboot_required: true
-            num_instances: *max_num_config_instances
-            default: [0, 2, 0]
+            If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
+            This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
+            8N1-configured links).
+        type: int32
+        min: 0
+        unit: B/s
+        reboot_required: true
+        num_instances: *max_num_config_instances
+        default: [1200, 0, 0]
+      MAV_${i}_FORWARD:
+        description:
+          short: Enable MAVLink Message forwarding for instance ${i}
+          long: |
+            If enabled, forward incoming MAVLink messages to other MAVLink ports if the
+            message is either broadcast or the target is not the autopilot.
 
-        MAV_${i}_RATE:
-            description:
-                short: Maximum MAVLink sending rate for instance ${i}
-                long: |
-                    Configure the maximum sending rate for the MAVLink streams in Bytes/sec.
-                    If the configured streams exceed the maximum rate, the sending rate of
-                    each stream is automatically decreased.
+            This allows for example a GCS to talk to a camera that is connected to the
+            autopilot via MAVLink (on a different link than the GCS).
+        type: boolean
+        reboot_required: true
+        num_instances: *max_num_config_instances
+        default: [true, false, false]
+      MAV_${i}_RADIO_CTL:
+        description:
+          short: Enable software throttling of mavlink on instance ${i}
+          long: |
+            If enabled, MAVLink messages will be throttled according to
+            `txbuf` field reported by radio_status.
 
-                    If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
-                    This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-                    8N1-configured links).
-
-            type: int32
-            min: 0
-            unit: B/s
-            reboot_required: true
-            num_instances: *max_num_config_instances
-            default: [1200, 0, 0]
-
-        MAV_${i}_FORWARD:
-            description:
-                short: Enable MAVLink Message forwarding for instance ${i}
-                long: |
-                    If enabled, forward incoming MAVLink messages to other MAVLink ports if the
-                    message is either broadcast or the target is not the autopilot.
-
-                    This allows for example a GCS to talk to a camera that is connected to the
-                    autopilot via MAVLink (on a different link than the GCS).
-
-            type: boolean
-            reboot_required: true
-            num_instances: *max_num_config_instances
-            default: [true, false, false]
-
-        MAV_${i}_RADIO_CTL:
-            description:
-                short: Enable software throttling of mavlink on instance ${i}
-                long: |
-                    If enabled, MAVLink messages will be throttled according to
-                    `txbuf` field reported by radio_status.
-
-                    Requires a radio to send the mavlink message RADIO_STATUS.
-
-            type: boolean
-            reboot_required: true
-            num_instances: *max_num_config_instances
-            default: [true, true, true]
-
-        MAV_${i}_UDP_PRT:
-            description:
-                short: MAVLink Network Port for instance ${i}
-                long: |
-                    If ethernet enabled and selected as configuration for MAVLink instance ${i},
-                    selected udp port will be set and used in MAVLink instance ${i}.
-
-            type: int32
-            reboot_required: true
-            num_instances: *max_num_config_instances
-            default: [14556, 0, 0]
-            requires_ethernet: true
-
-        MAV_${i}_REMOTE_PRT:
-            description:
-                short: MAVLink Remote Port for instance ${i}
-                long: |
-                    If ethernet enabled and selected as configuration for MAVLink instance ${i},
-                    selected remote port will be set and used in MAVLink instance ${i}.
-
-            type: int32
-            reboot_required: true
-            num_instances: *max_num_config_instances
-            default: [14550, 0, 0]
-            requires_ethernet: true
-
-        MAV_${i}_BROADCAST:
-            description:
-                short: Broadcast heartbeats on local network for MAVLink instance ${i}
-                long: |
-                    This allows a ground control station to automatically find the drone
-                    on the local network.
-
-            type: enum
-            values:
-                0: Never broadcast
-                1: Always broadcast
-                2: Only multicast
-            num_instances: *max_num_config_instances
-            default: [1, 0, 0]
-            requires_ethernet: true
-
-        MAV_${i}_FLOW_CTRL:
-            description:
-                short: Enable serial flow control for instance ${i}
-                long: |
-                    This is used to force flow control on or off for the the mavlink
-                    instance. By default it is auto detected. Use when auto detction fails.
-
-            type: enum
-            values:
-                0: Force off
-                1: Force on
-                2: Auto-detected
-            num_instances: *max_num_config_instances
-            default: [2, 2, 2]
+            Requires a radio to send the mavlink message RADIO_STATUS.
+        type: boolean
+        reboot_required: true
+        num_instances: *max_num_config_instances
+        default: [true, true, true]
+      MAV_${i}_UDP_PRT:
+        description:
+          short: MAVLink Network Port for instance ${i}
+          long: |
+            If ethernet enabled and selected as configuration for MAVLink instance ${i},
+            selected udp port will be set and used in MAVLink instance ${i}.
+        type: int32
+        reboot_required: true
+        num_instances: *max_num_config_instances
+        default: [14556, 0, 0]
+        requires_ethernet: true
+      MAV_${i}_REMOTE_PRT:
+        description:
+          short: MAVLink Remote Port for instance ${i}
+          long: |
+            If ethernet enabled and selected as configuration for MAVLink instance ${i},
+            selected remote port will be set and used in MAVLink instance ${i}.
+        type: int32
+        reboot_required: true
+        num_instances: *max_num_config_instances
+        default: [14550, 0, 0]
+        requires_ethernet: true
+      MAV_${i}_BROADCAST:
+        description:
+          short: Broadcast heartbeats on local network for MAVLink instance ${i}
+          long: |
+            This allows a ground control station to automatically find the drone
+            on the local network.
+        type: enum
+        values:
+          0: Never broadcast
+          1: Always broadcast
+          2: Only multicast
+        num_instances: *max_num_config_instances
+        default: [1, 0, 0]
+        requires_ethernet: true
+      MAV_${i}_FLOW_CTRL:
+        description:
+          short: Enable serial flow control for instance ${i}
+          long: |
+            This is used to force flow control on or off for the the mavlink
+            instance. By default it is auto detected. Use when auto detction fails.
+        type: enum
+        values:
+          0: Force off
+          1: Force on
+          2: Auto-detected
+        num_instances: *max_num_config_instances
+        default: [2, 2, 2]
+  - definitions:
+      MAV_COMP_ID:
+        default: 1
+        description:
+          short: MAVLink component ID
+        max: 250
+        min: 1
+        reboot_required: true
+        type: int32
+        volatile: false
+      MAV_FWDEXTSP:
+        default: 1
+        description:
+          long: If set to 1 incoming external setpoint messages will be directly forwarded to the controllers if in offboard control mode
+          short: Forward external setpoint messages
+        type: boolean
+        volatile: false
+      MAV_HASH_CHK_EN:
+        default: 1
+        description:
+          long: Disabling the parameter hash check functionality will make the mavlink instance stream parameters continuously.
+          short: Parameter hash check
+        type: boolean
+        volatile: false
+      MAV_HB_FORW_EN:
+        default: 1
+        description:
+          long: The mavlink heartbeat message will not be forwarded if this parameter is set to 'disabled'. The main reason for disabling heartbeats to be forwarded is because they confuse dronekit.
+          short: Heartbeat message forwarding
+        type: boolean
+        volatile: false
+      MAV_ODOM_LP:
+        default: 0
+        description:
+          long: If set, it gets the data from 'vehicle_visual_odometry' instead of 'vehicle_odometry' serving as a loopback of the received ODOMETRY messages on the Mavlink receiver.
+          short: Activate ODOMETRY loopback
+        type: boolean
+        volatile: false
+      MAV_PROTO_VER:
+        default: 0
+        description:
+          short: MAVLink protocol version
+        type: enum
+        values:
+          0: Default to 1, switch to 2 if GCS sends version 2
+          1: Always use version 1
+          2: Always use version 2
+        volatile: false
+      MAV_RADIO_TOUT:
+        default: 5
+        description:
+          long: If the connected radio stops reporting RADIO_STATUS for a certain time, a warning is triggered and, if MAV_X_RADIO_CTL is enabled, the software-flow control is reset.
+          short: Timeout in seconds for the RADIO_STATUS reports coming in
+        max: 250
+        min: 1
+        type: int32
+        unit: s
+        volatile: false
+      MAV_SIK_RADIO_ID:
+        default: 0
+        description:
+          long: When non-zero the MAVLink app will attempt to configure the SiK radio to this ID and re-set the parameter to 0. If the value is negative it will reset the complete radio config to factory defaults. Only applies if this mavlink instance is going through a SiK radio
+          short: MAVLink SiK Radio ID
+        max: 240
+        min: -1
+        type: int32
+        volatile: false
+      MAV_SYS_ID:
+        default: 1
+        description:
+          short: MAVLink system ID
+        max: 250
+        min: 1
+        reboot_required: true
+        type: int32
+        volatile: false
+      MAV_TYPE:
+        default: 0
+        description:
+          short: MAVLink airframe type
+        max: 22
+        min: 0
+        type: enum
+        values:
+          0: Generic micro air vehicle
+          1: Fixed wing aircraft
+          2: Quadrotor
+          3: Coaxial helicopter
+          4: Normal helicopter with tail rotor
+          7: Airship, controlled
+          8: Free balloon, uncontrolled
+          10: Ground rover
+          11: Surface vessel, boat, ship
+          12: Submarine
+          13: Hexarotor
+          14: Octorotor
+          15: Tricopter
+          19: VTOL Two-rotor Tailsitter
+          20: VTOL Quad-rotor Tailsitter
+          21: VTOL Tiltrotor
+          22: VTOL Standard (separate fixed rotors for hover and cruise flight)
+          23: VTOL Tailsitter
+        volatile: false
+      MAV_USEHILGPS:
+        default: 0
+        description:
+          long: If set to 1 incoming HIL GPS messages are parsed.
+          short: Use/Accept HIL GPS message even if not in HIL mode
+        type: boolean
+        volatile: false
+    group: MAVLink

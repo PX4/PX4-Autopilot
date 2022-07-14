@@ -1,0 +1,409 @@
+module_name: local_position_estimator
+parameters:
+  - definitions:
+      LPE_ACC_XY:
+        decimal: 4
+        default: 0.012
+        description:
+          long: Data sheet noise density = 150ug/sqrt(Hz) = 0.0015 m/s^2/sqrt(Hz) Larger than data sheet to account for tilt error.
+          short: Accelerometer xy noise density
+        max: 2
+        min: 1.0e-05
+        type: float
+        unit: m/s^2/sqrt(Hz)
+        volatile: false
+      LPE_ACC_Z:
+        decimal: 4
+        default: 0.02
+        description:
+          long: Data sheet noise density = 150ug/sqrt(Hz) = 0.0015 m/s^2/sqrt(Hz)
+          short: Accelerometer z noise density
+        max: 2
+        min: 1.0e-05
+        type: float
+        unit: m/s^2/sqrt(Hz)
+        volatile: false
+      LPE_BAR_Z:
+        decimal: 2
+        default: 3.0
+        description:
+          short: Barometric presssure altitude z standard deviation
+        max: 100
+        min: 0.01
+        type: float
+        unit: m
+        volatile: false
+      LPE_EPH_MAX:
+        decimal: 3
+        default: 3.0
+        description:
+          short: Max EPH allowed for GPS initialization
+        max: 5.0
+        min: 1.0
+        type: float
+        unit: m
+        volatile: false
+      LPE_EPV_MAX:
+        decimal: 3
+        default: 5.0
+        description:
+          short: Max EPV allowed for GPS initialization
+        max: 5.0
+        min: 1.0
+        type: float
+        unit: m
+        volatile: false
+      LPE_FAKE_ORIGIN:
+        default: 0
+        description:
+          long: (e.g. for AUTO missions using Optical Flow). Initialize the estimator to the LPE_LAT/LON parameters when global information is unavailable
+          short: Enable publishing of a fake global position
+        max: 1
+        min: 0
+        type: int32
+        volatile: false
+      LPE_FGYRO_HP:
+        decimal: 3
+        default: 0.001
+        description:
+          short: Flow gyro high pass filter cut off frequency
+        max: 2
+        min: 0
+        type: float
+        unit: Hz
+        volatile: false
+      LPE_FLW_OFF_Z:
+        decimal: 3
+        default: 0.0
+        description:
+          short: Optical flow z offset from center
+        max: 1
+        min: -1
+        type: float
+        unit: m
+        volatile: false
+      LPE_FLW_QMIN:
+        decimal: 0
+        default: 150
+        description:
+          short: Optical flow minimum quality threshold
+        max: 255
+        min: 0
+        type: int32
+        volatile: false
+      LPE_FLW_R:
+        decimal: 3
+        default: 7.0
+        description:
+          short: Optical flow rotation (roll/pitch) noise gain
+        max: 10.0
+        min: 0.1
+        type: float
+        unit: m/s/rad
+        volatile: false
+      LPE_FLW_RR:
+        decimal: 3
+        default: 7.0
+        description:
+          short: Optical flow angular velocity noise gain
+        max: 10.0
+        min: 0.0
+        type: float
+        unit: m/rad
+        volatile: false
+      LPE_FLW_SCALE:
+        decimal: 3
+        default: 1.3
+        description:
+          short: Optical flow scale
+        max: 10.0
+        min: 0.1
+        type: float
+        unit: m
+        volatile: false
+      LPE_FUSION:
+        bit:
+          0: fuse GPS, requires GPS for alt. init
+          1: fuse optical flow
+          2: fuse vision position
+          3: fuse landing target
+          4: fuse land detector
+          5: pub agl as lpos down
+          6: flow gyro compensation
+          7: fuse baro
+        default: 145
+        description:
+          long: 'Set bits in the following positions to enable: 0 : Set to true to fuse GPS data if available, also requires GPS for altitude init 1 : Set to true to fuse optical flow data if available 2 : Set to true to fuse vision position 3 : Set to true to enable landing target 4 : Set to true to fuse land detector 5 : Set to true to publish AGL as local position down component 6 : Set to true to enable flow gyro compensation 7 : Set to true to enable baro fusion default (145 - GPS, baro, land detector)'
+          short: Integer bitmask controlling data fusion
+        max: 255
+        min: 0
+        type: bitmask
+        volatile: false
+      LPE_GPS_DELAY:
+        decimal: 2
+        default: 0.29
+        description:
+          short: GPS delay compensaton
+        max: 0.4
+        min: 0
+        type: float
+        unit: s
+        volatile: false
+      LPE_GPS_VXY:
+        decimal: 3
+        default: 0.25
+        description:
+          long: EPV used if greater than this value.
+          short: GPS xy velocity standard deviation
+        max: 2
+        min: 0.01
+        type: float
+        unit: m/s
+        volatile: false
+      LPE_GPS_VZ:
+        decimal: 3
+        default: 0.25
+        description:
+          short: GPS z velocity standard deviation
+        max: 2
+        min: 0.01
+        type: float
+        unit: m/s
+        volatile: false
+      LPE_GPS_XY:
+        decimal: 2
+        default: 1.0
+        description:
+          short: Minimum GPS xy standard deviation, uses reported EPH if greater
+        max: 5
+        min: 0.01
+        type: float
+        unit: m
+        volatile: false
+      LPE_GPS_Z:
+        decimal: 2
+        default: 3.0
+        description:
+          short: Minimum GPS z standard deviation, uses reported EPV if greater
+        max: 200
+        min: 0.01
+        type: float
+        unit: m
+        volatile: false
+      LPE_LAND_VXY:
+        decimal: 3
+        default: 0.05
+        description:
+          short: Land detector xy velocity standard deviation
+        max: 10.0
+        min: 0.01
+        type: float
+        unit: m/s
+        volatile: false
+      LPE_LAND_Z:
+        decimal: 3
+        default: 0.03
+        description:
+          short: Land detector z standard deviation
+        max: 10.0
+        min: 0.001
+        type: float
+        unit: m
+        volatile: false
+      LPE_LAT:
+        decimal: 8
+        default: 47.397742
+        description:
+          short: Local origin latitude for nav w/o GPS
+        max: 90
+        min: -90
+        type: float
+        unit: deg
+        volatile: false
+      LPE_LDR_OFF_Z:
+        decimal: 3
+        default: 0.0
+        description:
+          short: Lidar z offset from center of vehicle +down
+        max: 1
+        min: -1
+        type: float
+        unit: m
+        volatile: false
+      LPE_LDR_Z:
+        decimal: 3
+        default: 0.03
+        description:
+          short: Lidar z standard deviation
+        max: 1
+        min: 0.01
+        type: float
+        unit: m
+        volatile: false
+      LPE_LON:
+        decimal: 8
+        default: 8.545594
+        description:
+          short: Local origin longitude for nav w/o GPS
+        max: 180
+        min: -180
+        type: float
+        unit: deg
+        volatile: false
+      LPE_LT_COV:
+        decimal: 2
+        default: 0.0001
+        description:
+          short: Minimum landing target standard covariance
+          long: Uses reported covariance if greater
+        max: 10
+        min: 0.0
+        type: float
+        unit: m^2
+        volatile: false
+      LPE_PN_B:
+        decimal: 8
+        default: 0.001
+        description:
+          short: Accel bias propagation noise density
+        max: 1
+        min: 0
+        type: float
+        unit: m/s^3/sqrt(Hz)
+        volatile: false
+      LPE_PN_P:
+        decimal: 8
+        default: 0.1
+        description:
+          long: Increase to trust measurements more. Decrease to trust model more.
+          short: Position propagation noise density
+        max: 1
+        min: 0
+        type: float
+        unit: m/s/sqrt(Hz)
+        volatile: false
+      LPE_PN_T:
+        decimal: 3
+        default: 0.001
+        description:
+          short: Terrain random walk noise density
+          long: hilly/outdoor (0.1), flat/indoor (0.001)
+        max: 1
+        min: 0
+        type: float
+        unit: m/s/sqrt(Hz)
+        volatile: false
+      LPE_PN_V:
+        decimal: 8
+        default: 0.1
+        description:
+          long: Increase to trust measurements more. Decrease to trust model more.
+          short: Velocity propagation noise density
+        max: 1
+        min: 0
+        type: float
+        unit: m/s^2/sqrt(Hz)
+        volatile: false
+      LPE_SNR_OFF_Z:
+        decimal: 3
+        default: 0.0
+        description:
+          short: Sonar z offset from center of vehicle +down
+        max: 1
+        min: -1
+        type: float
+        unit: m
+        volatile: false
+      LPE_SNR_Z:
+        decimal: 3
+        default: 0.05
+        description:
+          short: Sonar z standard deviation
+        max: 1
+        min: 0.01
+        type: float
+        unit: m
+        volatile: false
+      LPE_T_MAX_GRADE:
+        decimal: 3
+        default: 1.0
+        description:
+          long: Used to calculate increased terrain random walk nosie due to movement. hilly/outdoor (100 = 45 deg), flat/indoor (0 = 0 deg)
+          short: Terrain maximum percent grade
+        max: 100
+        min: 0
+        type: float
+        unit: '%'
+        volatile: false
+      LPE_VIC_P:
+        decimal: 4
+        default: 0.001
+        description:
+          short: Vicon position standard deviation
+        max: 1
+        min: 0.0001
+        type: float
+        unit: m
+        volatile: false
+      LPE_VIS_DELAY:
+        decimal: 2
+        default: 0.1
+        description:
+          long: Set to zero to enable automatic compensation from measurement timestamps
+          short: Vision delay compensation
+        max: 0.1
+        min: 0
+        type: float
+        unit: s
+        volatile: false
+      LPE_VIS_XY:
+        decimal: 3
+        default: 0.1
+        description:
+          short: Vision xy standard deviation
+        max: 1
+        min: 0.01
+        type: float
+        unit: m
+        volatile: false
+      LPE_VIS_Z:
+        decimal: 3
+        default: 0.5
+        description:
+          short: Vision z standard deviation
+        max: 100
+        min: 0.01
+        type: float
+        unit: m
+        volatile: false
+      LPE_VXY_PUB:
+        decimal: 3
+        default: 0.3
+        description:
+          short: Required velocity xy standard deviation to publish position
+        max: 1.0
+        min: 0.01
+        type: float
+        unit: m/s
+        volatile: false
+      LPE_X_LP:
+        decimal: 0
+        default: 5.0
+        description:
+          short: Cut frequency for state publication
+        max: 1000
+        min: 5
+        type: float
+        unit: Hz
+        volatile: false
+      LPE_Z_PUB:
+        decimal: 1
+        default: 1.0
+        description:
+          short: Required z standard deviation to publish altitude/ terrain
+        max: 5.0
+        min: 0.3
+        type: float
+        unit: m
+        volatile: false
+    group: Local Position Estimator

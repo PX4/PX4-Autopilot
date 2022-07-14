@@ -36,6 +36,8 @@ px4_add_module(
 	SRCS
 		RoverPositionControl.cpp
 		RoverPositionControl.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		l1
 		pid

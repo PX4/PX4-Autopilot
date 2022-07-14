@@ -5,14 +5,14 @@ parameters:
         default: 0
         description:
           short: IMU gyro FFT enable
-        reboot_required: 'true'
+        reboot_required: true
         type: boolean
         volatile: false
       IMU_GYRO_FFT_LEN:
         default: 512
         description:
           short: IMU gyro FFT length
-        reboot_required: 'true'
+        reboot_required: true
         type: enum
         unit: Hz
         values:
@@ -27,7 +27,7 @@ parameters:
           short: IMU gyro FFT maximum frequency
         max: 1000
         min: 1
-        reboot_required: 'true'
+        reboot_required: true
         type: float
         unit: Hz
         volatile: false
@@ -37,7 +37,7 @@ parameters:
           short: IMU gyro FFT minimum frequency
         max: 1000
         min: 1
-        reboot_required: 'true'
+        reboot_required: true
         type: float
         unit: Hz
         volatile: false

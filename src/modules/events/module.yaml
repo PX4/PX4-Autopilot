@@ -10,7 +10,7 @@ parameters:
           RC signal at some point. Particularly useful for locating crashed drones
           without a GPS sensor.
         short: RC Loss Alarm
-      reboot_required: 'true'
+      reboot_required: true
       type: boolean
       volatile: false
     EV_TSK_STAT_DIS:
@@ -21,7 +21,7 @@ parameters:
           various vehicle status changes. Currently PX4 has not implemented any specific
           status events. -
         short: Status Display
-      reboot_required: 'true'
+      reboot_required: true
       type: boolean
       volatile: false
   group: Events

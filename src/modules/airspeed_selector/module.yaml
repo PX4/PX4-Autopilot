@@ -47,7 +47,10 @@ parameters:
           airspeed estimation based on groundspeed minus windspeed if no other airspeed
           sensor available to fall back to.
         short: Enable fallback to sensor-less airspeed estimation
-      type: boolean
+      type: enum
+      values:
+        0: Disable fallback to sensor-less estimation
+        1: Enable fallback to sensor-less estimation
       volatile: false
     ASPD_FS_INNOV:
       decimal: 1
@@ -104,7 +107,7 @@ parameters:
       default: 1
       description:
         short: Index or primary airspeed measurement source
-      reboot_required: 'true'
+      reboot_required: true
       type: enum
       values:
         -1: Disabled
@@ -121,7 +124,7 @@ parameters:
         short: Scale of airspeed sensor 1
       max: 2.0
       min: 0.5
-      reboot_required: 'true'
+      reboot_required: true
       type: float
       volatile: true
     ASPD_SCALE_2:
@@ -132,7 +135,7 @@ parameters:
         short: Scale of airspeed sensor 2
       max: 2.0
       min: 0.5
-      reboot_required: 'true'
+      reboot_required: true
       type: float
       volatile: true
     ASPD_SCALE_3:
@@ -143,7 +146,7 @@ parameters:
         short: Scale of airspeed sensor 3
       max: 2.0
       min: 0.5
-      reboot_required: 'true'
+      reboot_required: true
       type: float
       volatile: true
     ASPD_SCALE_APPLY:

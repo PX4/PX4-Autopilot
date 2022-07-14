@@ -1,0 +1,90 @@
+module_name: uuv_att_control
+parameters:
+  - definitions:
+      UUV_DIRCT_PITCH:
+        default: 0.0
+        description:
+          short: Direct pitch input
+        type: float
+        volatile: false
+      UUV_DIRCT_ROLL:
+        default: 0.0
+        description:
+          short: Direct roll input
+        type: float
+        volatile: false
+      UUV_DIRCT_THRUST:
+        default: 0.0
+        description:
+          short: Direct thrust input
+        type: float
+        volatile: false
+      UUV_DIRCT_YAW:
+        default: 0.0
+        description:
+          short: Direct yaw input
+        type: float
+        volatile: false
+      UUV_INPUT_MODE:
+        default: 0
+        description:
+          short: Select Input Mode
+        type: enum
+        values:
+          0: use Attitude Setpoints
+          1: Direct Feedthrough
+        volatile: false
+      UUV_PITCH_D:
+        decimal: 2
+        default: 2.0
+        description:
+          short: Pitch differential gain
+        type: float
+        volatile: false
+      UUV_PITCH_P:
+        decimal: 2
+        default: 4.0
+        description:
+          short: Pitch proportional gain
+        type: float
+        volatile: false
+      UUV_ROLL_D:
+        decimal: 2
+        default: 1.5
+        description:
+          short: Roll differential gain
+        type: float
+        volatile: false
+      UUV_ROLL_P:
+        decimal: 2
+        default: 4.0
+        description:
+          short: Roll proportional gain
+        type: float
+        volatile: false
+      UUV_YAW_D:
+        decimal: 2
+        default: 2.0
+        description:
+          short: Yaw differential gain
+        type: float
+        volatile: false
+      UUV_YAW_P:
+        decimal: 2
+        default: 4.0
+        description:
+          short: Yawh proportional gain
+        type: float
+        volatile: false
+    group: UUV Attitude Control
+  - definitions:
+      UUV_SKIP_CTRL:
+        default: 0
+        description:
+          short: Skip the controller
+        type: enum
+        values:
+          0: use the module's controller
+          1: skip the controller and feedthrough the setpoints
+        volatile: false
+    group: Miscellaneous

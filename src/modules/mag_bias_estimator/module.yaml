@@ -6,7 +6,7 @@ parameters:
         description:
           long: This enables continuous calibration of the magnetometers before takeoff using gyro data.
           short: Enable online mag bias calibration
-        reboot_required: 'true'
+        reboot_required: true
         type: boolean
         volatile: false
       MBE_LEARN_GAIN:
