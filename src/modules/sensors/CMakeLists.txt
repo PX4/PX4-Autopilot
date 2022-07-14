@@ -62,9 +62,12 @@ px4_add_module(
 		${CMAKE_CURRENT_SOURCE_DIR}
 	SRCS
 		sensors.cpp
+<<<<<<< HEAD
 		voted_sensors_update.cpp
 		voted_sensors_update.h
 		Integrator.hpp
+=======
+>>>>>>> b2d0cb0053 (sensors: switch to yaml params definition)
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
