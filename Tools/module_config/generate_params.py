@@ -130,6 +130,8 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
                 for tag in ['decimal', 'increment', 'category', 'volatile',
                             'min', 'max', 'unit', 'reboot_required']:
                     if tag in param:
+                        if type(param[tag]) is bool and not param[tag]:
+                            continue
                         tags += '\n * @{:} {:}'.format(tag, param[tag])
 
                 for i in range(num_instances):
