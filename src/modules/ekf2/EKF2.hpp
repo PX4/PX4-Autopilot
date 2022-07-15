@@ -228,7 +228,7 @@ private:
 	InFlightCalibration _gyro_cal{};
 	InFlightCalibration _mag_cal{};
 
-	uint64_t _gps_time_usec{0};
+	uint64_t _gps_time_us{0};
 	int32_t _gps_alttitude_ellipsoid{0};			///< altitude in 1E-3 meters (millimeters) above ellipsoid
 	uint64_t _gps_alttitude_ellipsoid_previous_timestamp{0}; ///< storage for previous timestamp to compute dt
 	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84

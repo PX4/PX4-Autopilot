@@ -48,18 +48,59 @@ void Ekf::controlGpsFusion()
 
 	// Check for new GPS data that has fallen behind the fusion time horizon
 	if (_gps_data_ready) {
+		const gpsSample gps_sample{_gps_sample_delayed};
 
 		// reset flags
 		resetEstimatorAidStatusFlags(_aid_src_gnss_vel);
 		resetEstimatorAidStatusFlags(_aid_src_gnss_pos);
 
-		updateGpsVel(_gps_sample_delayed);
-		updateGpsPos(_gps_sample_delayed);
+
+		// correct velocity for offset relative to IMU
+		const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
+		const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
+		const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
+
+		// correct position and height for offset relative to IMU
+		const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+
+		const Vector3f gnss_velocity = gps_sample.vel - vel_offset_earth;
+
+		Vector3f gnss_position;
+		gnss_position.xy() = _pos_ref.project(gps_sample.lat, gps_sample.lon) - pos_offset_earth.xy();
+
+		// GPS height: update offset
+		if (!_control_status.flags.gps_hgt) {
+			// calculate a filtered offset between the GNSS origin and local NED origin if we are not
+			// using the GNSS as a height reference
+			if (_delta_time_gnss_us != 0) {
+				const float local_time_step = math::constrain(1e-6f * _delta_time_gnss_us, 0.0f, 1.0f);
+
+				// apply a 10 second first order low pass filter to offset
+				const float hgt_offset = gps_sample.alt + pos_offset_earth(2) - getEkfGlobalOriginAltitude() + _state.pos(2);
+
+				const float offset_rate_correction = 0.1f * (hgt_offset + _state.pos(2) - _gps_hgt_offset);
+				_gps_hgt_offset += local_time_step * math::constrain(offset_rate_correction, -0.1f, 0.1f);
+			}
+		}
+
+		// vertical position - gps measurement has opposite sign to earth z axis
+		gnss_position(2) = -((gps_sample.alt + pos_offset_earth(2)) - getEkfGlobalOriginAltitude() - _gps_hgt_offset);
+
+		updateGpsVel(gps_sample.time_us, gnss_velocity, gps_sample.sacc);
+		updateGpsPos(gps_sample.time_us, gnss_position, gps_sample.hacc, gps_sample.vacc);
 
 		const bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
 		const bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
 
-		controlGpsYawFusion(gps_checks_passing, gps_checks_failing);
+
+		// Yaw EKFGSF update
+		if (gps_checks_passing && !gps_checks_failing) {
+			_yawEstimator.setVelocity(gnss_velocity.xy(), gps_sample.vacc);
+		}
+
+		// GPS yaw
+		controlGpsYawFusion(gps_sample, gps_checks_passing, gps_checks_failing);
+
 
 		// Determine if we should use GPS aiding for velocity and horizontal position
 		// To start using GPS we need angular alignment completed, the local NED origin set and GPS data that has not failed checks recently
@@ -79,7 +120,7 @@ void Ekf::controlGpsFusion()
 					fuseGpsPos();
 
 					if (shouldResetGpsFusion()) {
-						const bool was_gps_signal_lost = isTimedOut(_time_prev_gps_us, 1000000);
+						const bool was_gps_signal_lost = isTimedOut(_time_prev_gps_us, 1'000'000);
 
 						/* A reset is not performed when getting GPS back after a significant period of no data
 						 * because the timeout could have been caused by bad GPS.
@@ -89,7 +130,7 @@ void Ekf::controlGpsFusion()
 						    && _control_status.flags.in_air
 						    && !was_gps_signal_lost
 						    && _ekfgsf_yaw_reset_count < _params.EKFGSF_reset_count_limit
-						    && isTimedOut(_ekfgsf_yaw_reset_time, 5000000)) {
+						    && isTimedOut(_ekfgsf_yaw_reset_time, 5'000'000)) {
 							// The minimum time interval between resets to the EKF-GSF estimate is limited to allow the EKF-GSF time
 							// to improve its estimate if the previous reset was not successful.
 							if (resetYawToEKFGSF()) {
@@ -107,8 +148,15 @@ void Ekf::controlGpsFusion()
 							ECL_WARN("GPS fusion timeout - resetting");
 						}
 
-						resetVelocityToGps(_gps_sample_delayed);
-						resetHorizontalPositionToGps(_gps_sample_delayed);
+						ECL_INFO("reset velocity & position to GNSS");
+						_information_events.flags.reset_vel_to_gps = true;
+						_information_events.flags.reset_pos_to_gps = true;
+
+						resetVelocityTo(gnss_velocity);
+						resetHorizontalPositionTo(gnss_position.xy());
+
+						P.uncorrelateCovarianceSetVariance<3>(4, sq(gps_sample.sacc));
+						P.uncorrelateCovarianceSetVariance<2>(7, sq(gps_sample.hacc));
 					}
 
 				} else {
@@ -142,7 +190,26 @@ void Ekf::controlGpsFusion()
 					_inhibit_ev_yaw_use = true;
 
 				} else {
-					startGpsFusion();
+
+					if (!_control_status.flags.gps) {
+						_information_events.flags.starting_gps_fusion = true;
+						ECL_INFO("starting GPS fusion");
+
+						_information_events.flags.reset_pos_to_gps = true;
+						resetHorizontalPositionTo(gnss_position.xy());
+						P.uncorrelateCovarianceSetVariance<2>(7, sq(gps_sample.hacc));
+
+						// when already using another velocity source velocity reset is not necessary
+						if (!_control_status.flags.opt_flow && !_control_status.flags.ev_vel) {
+							// resetVelocityToGps
+							ECL_INFO("reset velocity to GPS");
+							_information_events.flags.reset_vel_to_gps = true;
+							resetVelocityTo(gnss_velocity);
+							P.uncorrelateCovarianceSetVariance<3>(4, sq(gps_sample.sacc));
+						}
+
+						_control_status.flags.gps = true;
+					}
 				}
 
 			} else if (gps_checks_passing && !_control_status.flags.yaw_align && (_params.mag_fusion_type == MagFuseType::NONE)) {
@@ -150,18 +217,24 @@ void Ekf::controlGpsFusion()
 				if (resetYawToEKFGSF()) {
 					_information_events.flags.yaw_aligned_to_imu_gps = true;
 					ECL_INFO("Yaw aligned using IMU and GPS");
-					resetVelocityToGps(_gps_sample_delayed);
-					resetHorizontalPositionToGps(_gps_sample_delayed);
+
+					_information_events.flags.reset_vel_to_gps = true;
+					_information_events.flags.reset_pos_to_gps = true;
+
+					resetVelocityTo(gnss_velocity);
+					resetHorizontalPositionTo(gnss_position.xy());
+					P.uncorrelateCovarianceSetVariance<3>(4, sq(gps_sample.sacc));
+					P.uncorrelateCovarianceSetVariance<2>(7, sq(gps_sample.hacc));
 				}
 			}
 		}
 
-	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
+	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _time_prev_gps_us > (uint64_t)10e6)) {
 		stopGpsFusion();
 		_warning_events.flags.gps_data_stopped = true;
 		ECL_WARN("GPS data stopped");
 
-	}  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)1e6)
+	}  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _time_prev_gps_us > (uint64_t)1e6)
 		    && isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 		// Handle the case where we are fusing another position source along GPS,
 		// stop waiting for GPS after 1 s of lost signal

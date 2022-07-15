@@ -167,7 +167,7 @@ public:
 	matrix::SquareMatrix<float, 3> position_covariances() const { return P.slice<3, 3>(7, 7); }
 
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
-	bool collect_gps(const gpsMessage &gps) override;
+	bool collect_gps(const gpsSample &gps);
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	// return true if the origin is valid
@@ -425,6 +425,8 @@ private:
 
 	uint64_t _time_acc_bias_check{0};	///< last time the  accel bias check passed (uSec)
 	uint64_t _delta_time_baro_us{0};	///< delta time between two consecutive delayed baro samples from the buffer (uSec)
+	uint64_t _delta_time_gnss_us{0};	///< delta time between two consecutive delayed GNSS samples from the buffer (uSec)
+	uint64_t _delta_time_ev_us{0};	///< delta time between two consecutive delayed EV samples from the buffer (uSec)
 
 	Vector3f _earth_rate_NED{};	///< earth rotation vector (NED) in rad/s
 
@@ -629,11 +631,11 @@ private:
 			      const Vector4f &yaw_jacobian);
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
-	void fuseGpsYaw();
+	void fuseGpsYaw(const gpsSample &gps_sample);
 
 	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
 	// return true if the reset was successful
-	bool resetYawToGps();
+	bool resetYawToGps(const gpsSample& gps_sample);
 
 	// fuse magnetometer declination measurement
 	// argument passed in is the declination uncertainty in radians
@@ -683,7 +685,7 @@ private:
 	void resetHeightToRng();
 	void resetHeightToEv();
 
-	void resetVerticalVelocityToGps(const gpsSample &gps_sample_delayed);
+	void resetVerticalVelocityToGps();
 	void resetVerticalVelocityToZero();
 
 	// fuse optical flow line of sight rate measurements
@@ -701,10 +703,10 @@ private:
 	bool fuseVerticalPosition(float innov, float innov_gate, float obs_var,
 				  float &innov_var, float &test_ratio);
 
-	void updateGpsVel(const gpsSample &gps_sample);
+	void updateGpsVel(const uint64_t& time_us, const Vector3f vel, float sacc);
 	void fuseGpsVel();
 
-	void updateGpsPos(const gpsSample &gps_sample);
+	void updateGpsPos(const uint64_t& time_us, const Vector3f& position, float hacc, float vacc);
 	void fuseGpsPos();
 
 	// calculate optical flow body angular rate compensation
@@ -838,7 +840,7 @@ private:
 	Vector3f calcEarthRateNED(float lat_rad) const;
 
 	// return true id the GPS quality is good enough to set an origin and start aiding
-	bool gps_is_good(const gpsMessage &gps);
+	bool gps_is_good(const gpsSample &gps);
 
 	// Control the filter fusion modes
 	void controlFusionModes();
@@ -857,7 +859,7 @@ private:
 	bool hasHorizontalAidingTimedOut() const;
 	bool isYawFailure() const;
 
-	void controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing);
+	void controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing);
 
 	// control fusion of magnetometer observations
 	void controlMagFusion();
@@ -948,13 +950,12 @@ private:
 	void startRngAidHgtFusion();
 	void startEvHgtFusion();
 
-	void updateBaroHgtOffset();
 	void updateBaroHgtBias();
 
 	void updateGroundEffect();
 
 	// return an estimation of the sensor altitude variance
-	float getGpsHeightVariance();
+	float getGpsHeightVariance(float vacc);
 	float getRngHeightVariance() const;
 
 	// calculate the measurement variance for the optical flow sensor
@@ -1017,12 +1018,11 @@ private:
 	void startAirspeedFusion();
 	void stopAirspeedFusion();
 
-	void startGpsFusion();
 	void stopGpsFusion();
 	void stopGpsPosFusion();
 	void stopGpsVelFusion();
 
-	void startGpsYawFusion();
+	void startGpsYawFusion(const gpsSample& gps_sample);
 	void stopGpsYawFusion();
 
 	void startEvPosFusion();

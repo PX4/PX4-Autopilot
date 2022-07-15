@@ -251,9 +251,9 @@ void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
 		_baro.setData((float) sample.sensor_data[0]);
 
 	} else if (sample.sensor_type == sensor_info::measurement_t::GPS) {
-		_gps.setAltitude((int32_t) sample.sensor_data[0]);
-		_gps.setLatitude((int32_t) sample.sensor_data[1]);
-		_gps.setLongitude((int32_t) sample.sensor_data[2]);
+		_gps.setAltitude(sample.sensor_data[0]);
+		_gps.setLatitude(sample.sensor_data[1]);
+		_gps.setLongitude(sample.sensor_data[2]);
 		_gps.setVelocity(Vector3f((float) sample.sensor_data[3],
 					  (float) sample.sensor_data[4],
 					  (float) sample.sensor_data[5]));
@@ -389,20 +389,17 @@ void SensorSimulator::setSensorDataFromTrajectory()
 
 void SensorSimulator::setGpsLatitude(const double latitude)
 {
-	int32_t lat = static_cast<int32_t>(latitude * 1e7);
-	_gps.setLatitude(lat);
+	_gps.setLatitude(latitude);
 }
 
 void SensorSimulator::setGpsLongitude(const double longitude)
 {
-	int32_t lon = static_cast<int32_t>(longitude * 1e7);
-	_gps.setLongitude(lon);
+	_gps.setLongitude(longitude);
 }
 
 void SensorSimulator::setGpsAltitude(const float altitude)
 {
-	int32_t alt = static_cast<int32_t>(altitude * 1e3f);
-	_gps.setAltitude(alt);
+	_gps.setAltitude(altitude);
 }
 
 void SensorSimulator::setImuBias(Vector3f accel_bias, Vector3f gyro_bias)

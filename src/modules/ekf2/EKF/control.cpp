@@ -89,13 +89,13 @@ void Ekf::controlFusionModes()
 		// check for intermittent data
 		_baro_hgt_intermittent = !isRecent(_time_last_baro, 2 * BARO_MAX_INTERVAL);
 
-		const uint64_t baro_time_prev = _baro_sample_delayed.time_us;
+		const uint64_t time_prev = _baro_sample_delayed.time_us;
 		_baro_data_ready = _baro_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed);
 
 		// if we have a new baro sample save the delta time between this sample and the last sample which is
 		// used below for baro offset calculations
-		if (_baro_data_ready && baro_time_prev != 0) {
-			_delta_time_baro_us = _baro_sample_delayed.time_us - baro_time_prev;
+		if (_baro_data_ready && time_prev != 0) {
+			_delta_time_baro_us = _baro_sample_delayed.time_us - time_prev;
 		}
 	}
 
@@ -104,22 +104,21 @@ void Ekf::controlFusionModes()
 		_gps_intermittent = !isRecent(_time_last_gps, 2 * GPS_MAX_INTERVAL);
 
 		// check for arrival of new sensor data at the fusion time horizon
-		_time_prev_gps_us = _gps_sample_delayed.time_us;
+		const uint64_t time_prev = _gps_sample_delayed.time_us;
 		_gps_data_ready = _gps_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed);
 
 		if (_gps_data_ready) {
-			// correct velocity for offset relative to IMU
-			const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
-			const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
-			const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
-			_gps_sample_delayed.vel -= vel_offset_earth;
+			if (time_prev) {
+				// if we have a new sample save the delta time between this sample and the last sample which is
+				// used below for height offset calculations
+				_delta_time_gnss_us = _gps_sample_delayed.time_us - time_prev;
+			}
 
-			// correct position and height for offset relative to IMU
-			const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-			_gps_sample_delayed.pos -= pos_offset_earth.xy();
-			_gps_sample_delayed.hgt += pos_offset_earth(2);
+			_gps_data_ready = collect_gps(_gps_sample_delayed);
 
-			_gps_sample_delayed.sacc = fmaxf(_gps_sample_delayed.sacc, _params.gps_vel_noise);
+			if (_gps_data_ready) {
+				_time_prev_gps_us = _gps_sample_delayed.time_us;
+			}
 		}
 	}
 
@@ -554,7 +553,7 @@ void Ekf::resetOnGroundMotionForOpticalFlowChecks()
 	_time_good_motion_us = _imu_sample_delayed.time_us;
 }
 
-void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
+void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing)
 {
 	if (!(_params.fusion_mode & SensorFusionMask::USE_GPS_YAW)
 	    || _control_status.flags.gps_yaw_fault) {
@@ -563,7 +562,7 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 		return;
 	}
 
-	const bool is_new_data_available = PX4_ISFINITE(_gps_sample_delayed.yaw);
+	const bool is_new_data_available = PX4_ISFINITE(gps_sample.yaw);
 
 	if (is_new_data_available) {
 
@@ -583,14 +582,14 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 
 			if (continuing_conditions_passing) {
 
-				fuseGpsYaw();
+				fuseGpsYaw(gps_sample);
 
 				const bool is_fusion_failing = isTimedOut(_time_last_gps_yaw_fuse, _params.reset_timeout_max);
 
 				if (is_fusion_failing) {
 					if (_nb_gps_yaw_reset_available > 0) {
 						// Data seems good, attempt a reset
-						resetYawToGps();
+						resetYawToGps(gps_sample);
 
 						if (_control_status.flags.in_air) {
 							_nb_gps_yaw_reset_available--;
@@ -619,7 +618,7 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 		} else {
 			if (starting_conditions_passing) {
 				// Try to activate GPS yaw fusion
-				startGpsYawFusion();
+				startGpsYawFusion(gps_sample);
 
 				if (_control_status.flags.gps_yaw) {
 					_nb_gps_yaw_reset_available = 1;
@@ -761,7 +760,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 		// Also reset the vertical velocity
 		if (_control_status.flags.gps && !_gps_intermittent && _gps_checks_passed) {
-			resetVerticalVelocityToGps(_gps_sample_delayed);
+			resetVerticalVelocityToGps();
 
 		} else {
 			resetVerticalVelocityToZero();
@@ -915,7 +914,7 @@ void Ekf::controlHeightFusion()
 	case VerticalHeightSensor::GPS:
 
 		// NOTE: emergency fallback due to extended loss of currently selected sensor data or failure
-		// to pass innovation cinsistency checks is handled elsewhere in Ekf::controlHeightSensorTimeouts.
+		// to pass innovation consistency checks is handled elsewhere in Ekf::controlHeightSensorTimeouts.
 		// Do switching between GPS and rangefinder if using range finder as a height source when close
 		// to ground and moving slowly. Also handle switch back from emergency Baro sensor when GPS recovers.
 		if (do_range_aid) {
@@ -949,10 +948,24 @@ void Ekf::controlHeightFusion()
 	}
 
 	updateBaroHgtBias();
-	updateBaroHgtOffset();
+
 	updateGroundEffect();
 
 	if (_baro_data_ready) {
+		if (!_control_status.flags.baro_hgt) {
+			// calculate a filtered offset between the baro origin and local NED origin if we are not
+			// using the baro as a height reference
+			if (_delta_time_baro_us != 0) {
+				const float local_time_step = math::constrain(1e-6f * _delta_time_baro_us, 0.0f, 1.0f);
+
+				// apply a 10 second first order low pass filter to baro offset
+				const float unbiased_baro = _baro_sample_delayed.hgt - _baro_b_est.getBias();
+
+				const float offset_rate_correction = 0.1f * (unbiased_baro + _state.pos(2) - _baro_hgt_offset);
+				_baro_hgt_offset += local_time_step * math::constrain(offset_rate_correction, -0.1f, 0.1f);
+			}
+		}
+
 		updateBaroHgt(_baro_sample_delayed, _aid_src_baro_hgt);
 
 		if (_control_status.flags.baro_hgt && !_baro_hgt_faulty) {

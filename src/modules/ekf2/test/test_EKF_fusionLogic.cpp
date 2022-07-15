@@ -162,6 +162,8 @@ TEST_F(EkfFusionLogicTest, rejectGpsSignalJump)
 	pos_new = _ekf->getPosition();
 	vel_new = _ekf->getVelocity();
 	accel_bias_new = _ekf->getAccelBias();
+	pos_new.print();
+	pos_old.print();
 	EXPECT_TRUE(matrix::isEqual(pos_new, pos_old + pos_step, 0.01f));
 	EXPECT_TRUE(matrix::isEqual(vel_new, vel_old, 0.01f));
 	EXPECT_TRUE(matrix::isEqual(accel_bias_new, accel_bias_old, 0.01f));

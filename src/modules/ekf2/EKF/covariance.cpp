@@ -73,7 +73,7 @@ void Ekf::initialiseCovariance()
 		P(9,9) = sq(fmaxf(_params.range_noise, 0.01f));
 
 	} else if (_control_status.flags.gps_hgt) {
-		P(9,9) = getGpsHeightVariance();
+		P(9,9) = sq(fmaxf(1.5f * _params.gps_pos_noise, 0.01f));
 
 	} else {
 		P(9,9) = sq(fmaxf(_params.baro_noise, 0.01f));

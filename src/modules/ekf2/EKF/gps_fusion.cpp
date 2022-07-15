@@ -39,9 +39,9 @@
 /* #include <mathlib/mathlib.h> */
 #include "ekf.h"
 
-void Ekf::updateGpsVel(const gpsSample &gps_sample)
+void Ekf::updateGpsVel(const uint64_t& time_us, const Vector3f vel, float sacc)
 {
-	const float vel_var = sq(gps_sample.sacc);
+	const float vel_var = sq(sacc);
 	const Vector3f obs_var{vel_var, vel_var, vel_var * sq(1.5f)};
 
 	// innovation gate size
@@ -50,10 +50,10 @@ void Ekf::updateGpsVel(const gpsSample &gps_sample)
 	auto &gps_vel = _aid_src_gnss_vel;
 
 	for (int i = 0; i < 3; i++) {
-		gps_vel.observation[i] = gps_sample.vel(i);
+		gps_vel.observation[i] = vel(i);
 		gps_vel.observation_variance[i] = obs_var(i);
 
-		gps_vel.innovation[i] = _state.vel(i) - gps_sample.vel(i);
+		gps_vel.innovation[i] = _state.vel(i) - vel(i);
 		gps_vel.innovation_variance[i] = P(4 + i, 4 + i) + obs_var(i);
 	}
 
@@ -67,18 +67,11 @@ void Ekf::updateGpsVel(const gpsSample &gps_sample)
 		gps_vel.innovation_rejected[2] = false;
 	}
 
-	gps_vel.timestamp_sample = gps_sample.time_us;
+	gps_vel.timestamp_sample = time_us;
 }
 
-void Ekf::updateGpsPos(const gpsSample &gps_sample)
+void Ekf::updateGpsPos(const uint64_t& time_us, const Vector3f& position, float hacc, float vacc)
 {
-	Vector3f position;
-	position(0) = gps_sample.pos(0);
-	position(1) = gps_sample.pos(1);
-
-	// vertical position - gps measurement has opposite sign to earth z axis
-	position(2) = -(gps_sample.hgt - getEkfGlobalOriginAltitude() - _gps_hgt_offset);
-
 	const float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
 
 	Vector3f obs_var;
@@ -86,16 +79,16 @@ void Ekf::updateGpsPos(const gpsSample &gps_sample)
 	if (isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 		// if we are using other sources of aiding, then relax the upper observation
 		// noise limit which prevents bad GPS perturbing the position estimate
-		obs_var(0) = obs_var(1) = sq(fmaxf(gps_sample.hacc, lower_limit));
+		obs_var(0) = obs_var(1) = sq(fmaxf(hacc, lower_limit));
 
 	} else {
 		// if we are not using another source of aiding, then we are reliant on the GPS
 		// observations to constrain attitude errors and must limit the observation noise value.
 		float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
-		obs_var(0) = obs_var(1) = sq(math::constrain(gps_sample.hacc, lower_limit, upper_limit));
+		obs_var(0) = obs_var(1) = sq(math::constrain(hacc, lower_limit, upper_limit));
 	}
 
-	obs_var(2) = getGpsHeightVariance();
+	obs_var(2) = getGpsHeightVariance(vacc);
 
 	// innovation gate size
 	float innov_gate = fmaxf(_params.gps_pos_innov_gate, 1.f);
@@ -120,7 +113,7 @@ void Ekf::updateGpsPos(const gpsSample &gps_sample)
 		gps_pos.innovation_rejected[2] = false;
 	}
 
-	gps_pos.timestamp_sample = gps_sample.time_us;
+	gps_pos.timestamp_sample = time_us;
 }
 
 void Ekf::fuseGpsVel()

@@ -129,7 +129,7 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 	}
 }
 
-void EstimatorInterface::setGpsData(const gpsMessage &gps)
+void EstimatorInterface::setGpsData(const gpsSample &gps)
 {
 	if (!_initialised) {
 		return;
@@ -147,44 +147,18 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 		}
 	}
 
-	if ((gps.time_usec - _time_last_gps) > _min_obs_interval_us) {
-		_time_last_gps = gps.time_usec;
+	if ((gps.time_us - _time_last_gps) > _min_obs_interval_us) {
+		_time_last_gps = gps.time_us;
 
-		gpsSample gps_sample_new;
+		gpsSample gps_sample_new{gps};
 
-		gps_sample_new.time_us = gps.time_usec - static_cast<uint64_t>(_params.gps_delay_ms * 1000);
+		gps_sample_new.time_us = gps.time_us - static_cast<uint64_t>(_params.gps_delay_ms * 1000);
 		gps_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
-		gps_sample_new.vel = gps.vel_ned;
-
-		_gps_speed_valid = gps.vel_ned_valid;
-		gps_sample_new.sacc = gps.sacc;
-		gps_sample_new.hacc = gps.eph;
-		gps_sample_new.vacc = gps.epv;
-
-		gps_sample_new.hgt = (float)gps.alt * 1e-3f;
-
-		gps_sample_new.yaw = gps.yaw;
-
-		if (PX4_ISFINITE(gps.yaw_offset)) {
-			_gps_yaw_offset = gps.yaw_offset;
-
-		} else {
-			_gps_yaw_offset = 0.0f;
-		}
-
-		// Only calculate the relative position if the WGS-84 location of the origin is set
-		if (collect_gps(gps)) {
-			gps_sample_new.pos = _pos_ref.project((gps.lat / 1.0e7), (gps.lon / 1.0e7));
-
-		} else {
-			gps_sample_new.pos(0) = 0.0f;
-			gps_sample_new.pos(1) = 0.0f;
-		}
-
 		_gps_buffer->push(gps_sample_new);
+
 	} else {
-		ECL_ERR("GPS data too fast %" PRIu64, gps.time_usec - _time_last_gps);
+		ECL_ERR("GPS data too fast %" PRIu64, gps.time_us - _time_last_gps);
 	}
 }
 
