@@ -69,7 +69,7 @@ public:
 protected:
 
 	obstacle_distance_s                       _obstacle_map_msg{};
-	uORB::Publication<obstacle_distance_s>		_obstacle_distance_pub{ORB_ID(obstacle_distance_fused)};	/**< obstacle_distance publication */
+	uORB::Publication<obstacle_distance_s>		_obstacle_distance_pub{ORB_ID(obstacle_distance)};	/**< obstacle_distance publication */
 
 private:
 
