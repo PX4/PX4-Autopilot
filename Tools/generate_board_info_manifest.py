@@ -1,23 +1,40 @@
 #!/usr/bin/env python3
 """
-Script to print out the board information manifest in JSON format like this:
+Script to print out the board information manifest.
 
+The format in JSON will be something like this:
 {
-    "include":
-        [
-            {
-                "target": "px4_fmu-v5x_default",
-                "board_id": "51"
-            },
+    "board_info":
+    [
+        {
+            "board_name"        = "HUMAN_READABLE_BOARD_NAME",      (summary)
+            "target_name"       = "TARGET_NAME_FOR_BUILD",          (manufacturer_board_label)
+            "description"       = "DESCRIPTION",                    (description)
+            "board_id"          = "BOOTLOADER_ID",
+            "image_maxsize"     = "FLASH_SIZE",
+            "build_variants"    = [ {"name": "VARIANT_1"}, ... ]    (labels)
+        },
         ...
-        ]
+    ],
+
+    "binary_urls":
+    {
+        "stable":
+        {
+            "url": "http://px4-travis.s3.amazonaws.com/Firmware/stable/${target_name}_${build_variant}.px4"
+        },
+        "beta":
+        {
+            "url": "http://px4-travis.s3.amazonaws.com/Firmware/beta/${target_name}_${build_variant}.px4"
+        },
+        ...
+    }
 }
 """
 
 import argparse
 import os
 import json
-import re
 from kconfiglib import Kconfig
 
 parser = argparse.ArgumentParser(description='Generate build targets')
@@ -32,39 +49,32 @@ args = parser.parse_args()
 verbose = args.verbose
 build_configs = []
 excluded_manufacturers = ['atlflight']
-
-# Labels (board variants) we will exclude
 excluded_labels = [
     'stackcheck', 'nolockstep', 'replay', 'test',
     'uavcanv1' # TODO: fix and enable
     ]
 
+DEFCONFIG_FILE_PATH = 'nuttx-config/nsh/defconfig'
+DEFCONFIG_PRODUCTID_KEY = 'CDCACM_PRODUCTID'
+DEFCONFIG_PRODUCTSTR_KEY = 'CDCACM_PRODUCTSTR' # Property that defines how the board shows up as when connected via USB
+DEFCONFIG_VENDORID_KEY = 'CDCACM_VENDORID'
+DEFCONFIG_VENDORSTR_KEY = 'CDCACM_VENDORSTR'
+
+FIRMWRAE_PROTOTYPE_FILE_PATH = 'firmware.prototype'
 
 # Supress warning output while parsing KConfig
-kconf = Kconfig()
+kconf = Kconfig(filename = 'Kconfig') # Create a Kconfig object based off of the base 'Kconfig' file in the PX4-Autopilot directory
 kconf.warn_assign_undef = False
 kconf.warn_assign_override = False
 kconf.warn_assign_redun = False
 
-'''
-Process the firmware.prototype files and create board information Json file
-
-In this following format:
-
-{
-    "board_name"        = "HUMAN_READABLE_BOARD_NAME",      (summary)
-    "target_name"       = "TARGET_NAME_FOR_BUILD",          (manufacturer_board_label)
-    "description"       = "DESCRIPTION",                    (description)
-    "board_id"          = "BOOTLOADER_ID",
-    "image_maxsize"     = "FLASH_SIZE",
-    "build_variants"    = [ {"name": "VARIANT_1"}, ... ]    (labels)
-}
-'''
-def process_target_firmware_prototype_file(manufacturer, board, file):
-    if not (file.is_file() and file.name == 'firmware.prototype'):
+''' Processes firmware.prototype file in target directory '''
+def process_target_firmware_prototype_file(manufacturer, board, file_path):
+    if not (os.path.isfile(file_path) and os.path.basename(file_path) == 'firmware.prototype'):
+        if verbose: print("Can't process the firmware.prototype file because it isn't!! : {}".format(file_path))
         return None
-    target_name = manufacturer.name + '_' + board.name
-    with open(file.path, 'r') as f:
+    target_name = manufacturer + '_' + board
+    with open(file_path, 'r') as f:
         data = json.load(f)
         board_info_dict = dict()
         board_info_dict['board_name'] = data['summary']
@@ -73,36 +83,66 @@ def process_target_firmware_prototype_file(manufacturer, board, file):
         board_info_dict['board_id'] = data['board_id']
         board_info_dict['image_max_size'] = data['image_maxsize']
         board_info_dict['build_variants'] = []
-
         return board_info_dict
 
-''' Function that receives board list dictionary and creates the final JSON output '''
+''' Processes defconfig file in target directory '''
+def process_target_defconfig_file(file_path):
+    if not (os.path.isfile(file_path) and os.path.basename(file_path) == 'defconfig'):
+        if verbose: print("Can't process the defconfig file because it isn't!! : {}".format(file_path))
+        return None
+    board_info_dict = dict()
+    try:
+        kconf.load_config(file_path, replace=True) # Load the Kconfig symbols from the file
+        print(kconf.syms)
+        if DEFCONFIG_PRODUCTID_KEY in kconf.syms:
+            board_info_dict['product_id'] = kconf.syms[DEFCONFIG_PRODUCTID_KEY].str_value
+        if DEFCONFIG_VENDORID_KEY in kconf.syms:
+            board_info_dict['vendor_id'] = kconf.syms[DEFCONFIG_VENDORID_KEY].str_value
+        if DEFCONFIG_PRODUCTSTR_KEY in kconf.syms:
+            board_info_dict['product_name'] = kconf.syms[DEFCONFIG_PRODUCTSTR_KEY].str_value
+        if DEFCONFIG_VENDORSTR_KEY in kconf.syms:
+            board_info_dict['vendor_name'] = kconf.syms[DEFCONFIG_VENDORSTR_KEY].str_value
+    except:
+        print('Error while parsing defconfig!')
+        print(board_info_dict)
+    return board_info_dict
+
+''' Function that receives board list and goes through the files to create the final Board Information metadata JSON '''
 def print_board_information(board_list: list):
     global args, verbose, excluded_labels
-    board_info_list = []        # Board information list
+    board_info_list = []
 
     for board in board_list:
-        board_info = dict()     # Board information that will be extracted from firmware.prototype
-        board_variants = []     # Save different board variants (labels)
+        board_info = dict()
 
-        for file in board['files']:
-            # Process all the board variants
-            if file.name.endswith(".px4board"):
+        # Process the deconf file to get USB Autoconnect info
+        if (os.path.isfile(os.path.join(board['path'], DEFCONFIG_FILE_PATH))):
+            defconfig_result = process_target_defconfig_file(os.path.join(board['path'], DEFCONFIG_FILE_PATH))
+            print(defconfig_result)
+            board_info = {**board_info, **defconfig_result}
+        else:
+            if verbose: print("Error, didn't detect valid defconfig for the board! : {} - {}".format(board['manufacturer'], board['board']))
+
+        # Process the firmware.prototype file to get general information
+        if (os.path.isfile(os.path.join(board['path'], FIRMWRAE_PROTOTYPE_FILE_PATH))):
+            firmware_prototype_result = process_target_firmware_prototype_file(board['manufacturer'], board['board'], os.path.join(board['path'], FIRMWRAE_PROTOTYPE_FILE_PATH))
+            if firmware_prototype_result is not None:
+                board_info = {**board_info, **firmware_prototype_result}
+            else:
+                if verbose: print("Firmware.prototype result was None for : {} - {}".format(board['manufacturer'], board['board']))
+        else:
+            if verbose: print("Error, didn't detect valid firmware.prototype for the board! : {} - {}".format(board['manufacturer'], board['board']))
+
+        # Process the *.px4board files for getting build variants
+        board_variants = []
+        for file in os.scandir(board['path']):
+            if (os.path.isfile(file) and file.name.endswith(".px4board")):
                 label = file.name.split(".px4board")[0]
-
                 if label not in excluded_labels:
                     board_variants.append({"name": label}) # For now we only have the 'name' attribute (e.g. default, rtps, etc.)
+        board_info['build_variants'] = board_variants
 
-            # Process the firwmare.prototype
-            elif file.name == "firmware.prototype":
-                board_info = process_target_firmware_prototype_file(board['manufacturer'], board['board'], file)
-
-        if board_info is None and verbose:
-            print("Error, didn't detect valid firmware.prototype for the board. This board won't be added to the Board information JSON file! : {} - {}".format(board['manufacturer'], board['file']))
-
-        if board_info is not None:
-            board_info['build_variants'] = board_variants
-            board_info_list.append(board_info)
+        board_info_list.append(board_info)
 
     # Final dictionary that will be turned into the JSON file
     board_info_dict = { 'board_info' : board_info_list }
@@ -113,11 +153,12 @@ def print_board_information(board_list: list):
 
     print(json.dumps(board_info_dict, **extra_args))
 
+''' Go through the boards/* to get list of boards and it's directory '''
 def main():
     global verbose, build_configs
     source_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
-
     board_list = []
+
     for manufacturer in os.scandir(os.path.join(source_dir, 'boards')):
         if not manufacturer.is_dir():
             continue
@@ -128,14 +169,9 @@ def main():
         for board in os.scandir(manufacturer.path):
             if not board.is_dir():
                 continue
+            board_list.append({'manufacturer': manufacturer.name, 'board' : board.name, 'path' : board.path})
 
-            file_list = [] # Group the files under same board together
-            for file in os.scandir(board.path):
-                if not file.is_dir():
-                    file_list.append(file)
-
-            board_list.append({'manufacturer': manufacturer, 'board' : board, 'files' : file_list})
-
+    # Process the board list and output the JSON
     print_board_information(board_list)
 
 if __name__ == '__main__':
