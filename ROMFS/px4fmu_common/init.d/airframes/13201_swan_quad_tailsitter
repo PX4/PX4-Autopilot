@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# @name Swan K1 Quad Tailsitter VTOL
+#
+# @type VTOL Quad Tailsitter
+# @class VTOL
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.vtol_defaults
+
+param set-default MAV_TYPE 20
+
+param set-default SYS_CTRL_ALLOC 1
+
+param set-default CA_AIRFRAME 4
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.15
+param set-default CA_ROTOR0_PY 0.23
+param set-default CA_ROTOR1_PX -0.15
+param set-default CA_ROTOR1_PY -0.23
+param set-default CA_ROTOR2_PX 0.15
+param set-default CA_ROTOR2_PY -0.23
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.15
+param set-default CA_ROTOR3_PY 0.23
+param set-default CA_ROTOR3_KM -0.05
+
+#output allocation
+#min pwm (1100)
+#controller tuning
+
+param set-default VT_ELEV_MC_LOCK 0
+
+param set-default VT_TYPE 0
+
+param set-default SENS_EN_MS4525DO 1
