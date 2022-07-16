@@ -1921,7 +1921,6 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 			_ekf.set_rangefinder_limits(distance_sensor.min_distance, distance_sensor.max_distance);
 
 			_last_range_sensor_update = distance_sensor.timestamp;
-			return;
 		}
 
 		ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)distance_sensor.timestamp / 100 -
