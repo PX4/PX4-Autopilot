@@ -344,13 +344,13 @@ static const StreamListItem streams_list[] = {
 #if defined(SCALED_IMU3_HPP)
 	create_stream_list_item<MavlinkStreamScaledIMU3>(),
 #endif // SCALED_IMU3_HPP
-#if defined(SCALED_PRESSURE)
+#if defined(SCALED_PRESSURE_HPP)
 	create_stream_list_item<MavlinkStreamScaledPressure>(),
 #endif // SCALED_PRESSURE
-#if defined(SCALED_PRESSURE2)
+#if defined(SCALED_PRESSURE2_HPP)
 	create_stream_list_item<MavlinkStreamScaledPressure2>(),
 #endif // SCALED_PRESSURE2
-#if defined(SCALED_PRESSURE3)
+#if defined(SCALED_PRESSURE3_HPP)
 	create_stream_list_item<MavlinkStreamScaledPressure3>(),
 #endif // SCALED_PRESSURE3
 #if defined(ACTUATOR_OUTPUT_STATUS_HPP)
