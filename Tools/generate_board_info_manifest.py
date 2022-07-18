@@ -117,6 +117,7 @@ def process_target_defconfig_file(file_path):
 ''' Function that receives board list and goes through the files to create the final Board Information metadata JSON '''
 def print_board_information(board_list: list):
     global args, verbose, excluded_labels
+    # Objects that we will be using to create the JSON at the end of this function
     board_info_list = []
 
     for board in board_list:
@@ -153,14 +154,21 @@ def print_board_information(board_list: list):
 
         board_info_list.append(board_info)
 
+    # Include binary URL information
+    binary_urls_dict = {"stable" : {"url" : "http://px4-travis.s3.amazonaws.com/Firmware/stable/${target_name}_${build_variant}.px4"},
+                        "beta" : {"url" : "http://px4-travis.s3.amazonaws.com/Firmware/beta/${target_name}_${build_variant}.px4"},
+                        "main" : {"url" : "http://px4-travis.s3.amazonaws.com/Firmware/main/${target_name}_${build_variant}.px4"},
+                        }
+
     # Final dictionary that will be turned into the JSON file
-    board_info_dict = { 'board_info' : board_info_list }
+    final_json_dict = { 'board_info' : board_info_list,
+                        'binary_urls' : binary_urls_dict}
 
     extra_args = dict()         # Extra arg that will be added to the JSON
     if args.pretty:
         extra_args['indent'] = 2
 
-    print(json.dumps(board_info_dict, **extra_args))
+    print(json.dumps(final_json_dict, **extra_args))
 
 ''' Go through the boards/* to get list of boards and it's directory '''
 def main():
