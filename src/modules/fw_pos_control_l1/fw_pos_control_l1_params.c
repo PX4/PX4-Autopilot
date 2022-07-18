@@ -1068,3 +1068,17 @@ PARAM_DEFINE_INT32(FW_LND_NUDGE, 0);
  * @group FW L1 Control
  */
 PARAM_DEFINE_INT32(FW_LND_ABORT, 0);
+
+/**
+ * Calculate the landing glide slope relative to the terrain estimate.
+ *
+ * If enabled, the terrain estimate (e.g. via distance sensor) will be used as the glide slope reference altitude, following
+ * all bumps in the terrain below the landing approach.
+ *
+ * If disabled, the land waypoint altitude will be a fixed glide slope reference, and the distance sensor (if enabled via
+ * FW_LND_USETER) will only be used to trigger the flare.
+ *
+ * @boolean
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_INT32(FW_LND_TER_REL, 0);

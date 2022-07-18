@@ -1681,9 +1681,15 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 	const float terrain_alt = getLandingTerrainAltitudeEstimate(now, pos_sp_curr.alt);
 	float altitude_setpoint;
 
-	if (_current_altitude > terrain_alt + glide_slope_rel_alt) {
+	// by default the landing waypoint altitude is used for the glide slope reference. this ensures a constant slope
+	// during the landing approach, despite any terrain bumps (think tall trees below the landing approach) disrupting
+	// the glide behavior. in this case, when FW_LND_USETER==1, the terrain estimate is only used to trigger the flare.
+	// however - the option still exists to make the glide slope terrain relative via FW_LND_TER_REL.
+	const float glide_slope_reference_alt = (_param_fw_lnd_ter_rel.get()) ? terrain_alt : pos_sp_curr.alt;
+
+	if (_current_altitude > glide_slope_reference_alt + glide_slope_rel_alt) {
 		// descend to the glide slope
-		altitude_setpoint = terrain_alt + glide_slope_rel_alt;
+		altitude_setpoint = glide_slope_reference_alt + glide_slope_rel_alt;
 
 	} else {
 		// continue horizontally
