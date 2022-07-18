@@ -211,7 +211,9 @@ private:
 		// RC feedthrough params
 		(ParamInt<px4::params::DS_SWITCH_MANUAL>) _param_switch_manual,
 		// force saturation
-		(ParamInt<px4::params::DS_SWITCH_SAT>) _param_switch_saturation
+		(ParamInt<px4::params::DS_SWITCH_SAT>) _param_switch_saturation,
+		// command filtering
+		(ParamInt<px4::params::DS_SWITCH_FILTER>) _param_switch_filter
 
 	)
 
@@ -306,6 +308,7 @@ private:
 	math::LowPassFilter2p _lp_filter_omega[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// body rates
 	// smoothing filter to reject HF noise in control output
 	const float _cutoff_frequency_smoothing = 30.f; // we want to attenuate noise at 30Hz with -10dB -> need cutoff frequency 5 times lower (6Hz)
+	math::LowPassFilter2p _lp_filter_ctrl0[3] {{_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}};	// force command stage 1
 	math::LowPassFilter2p _lp_filter_ctrl1[3] {{_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}};	// control output stage 1
 	// Low-Pass filters stage 2
 	const float _cutoff_frequency_2 = 30.f; // MUST MATCH PARAM "IMU_DGYRO_CUTOFF"
@@ -350,6 +353,8 @@ private:
 	bool _switch_manual;
 	// force limit
 	bool _switch_saturation;
+	//
+	bool _switch_filter;
 
 	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
 	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.

@@ -181,6 +181,8 @@ FixedwingPositionINDIControl::parameters_update()
 
     _switch_saturation = _param_switch_saturation.get();
 
+    _switch_filter = _param_switch_filter.get();
+
 
 	// sanity check parameters
     // TODO: include sanity check
@@ -1165,6 +1167,15 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // get force command in world frame
     // ================================
     Vector3f f_command = _mass*(acc_command - acc_filtered) + f_current_filtered;
+
+    // ============================================================================================================
+    // apply some filtering to the force command. This introduces some time delay,
+    // which is not desired for stability reasons, but it rejects some of the noise fed to the low-level controller
+    // ============================================================================================================
+    f_command(0) = _lp_filter_ctrl0[0].apply(f_command(0));
+    f_command(1) = _lp_filter_ctrl0[1].apply(f_command(1));
+    f_command(2) = _lp_filter_ctrl0[2].apply(f_command(2));
+
     // limit maximum lift force by the maximum lift force, the aircraft can produce (assume max force at 12° aoa)
     //PX4_INFO("force current, command: \t%.2f\t%.2f", (double)sqrtf(f_current_filtered*f_current_filtered), (double)sqrtf(f_command*f_command));
 
@@ -1215,7 +1226,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // =========================================
     // apply PD control law on the body attitude
     // =========================================
-    Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-omega_filtered) + alpha_ref;
+    Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-_omega) + alpha_ref;
 
     // ==========================================
     // input meant for tuning the INDI controller
@@ -1269,7 +1280,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
         }
 
         // compute rot acc command
-        rot_acc_command = _K_q*w_err + _K_w*(Vector3f{0.f,0.f,0.f}-omega_filtered);
+        rot_acc_command = _K_q*w_err + _K_w*(Vector3f{0.f,0.f,0.f}-_omega);
         
     }
 
@@ -1305,9 +1316,11 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // filter the stage 1 controller outputs to filter out high-frequency components.
     // This is desirable as the provided commands might be very noisy otherwise (not feasible)
     // =======================================================================================
-    rot_acc_command(0) = _lp_filter_ctrl1[0].apply(rot_acc_command(0));
-    rot_acc_command(1) = _lp_filter_ctrl1[1].apply(rot_acc_command(1));
-    rot_acc_command(2) = _lp_filter_ctrl1[2].apply(rot_acc_command(2));
+    if (_switch_filter) {
+        rot_acc_command(0) = _lp_filter_ctrl1[0].apply(rot_acc_command(0));
+        rot_acc_command(1) = _lp_filter_ctrl1[1].apply(rot_acc_command(1));
+        rot_acc_command(2) = _lp_filter_ctrl1[2].apply(rot_acc_command(2));
+    }
     
 
     return rot_acc_command;

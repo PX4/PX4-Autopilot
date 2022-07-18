@@ -548,3 +548,18 @@ PARAM_DEFINE_INT32(DS_SWITCH_MANUAL, 0);
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_INT32(DS_SWITCH_SAT, 1);
+
+// ======================================================
+// ============= controller output filtering ============
+// ======================================================
+
+/**
+ * integer in {0,1} defining if the rotation acceleration command will get filtered before performing INDI
+ * @unit 
+ * @min 0
+ * @max 1
+ * @decimal 1
+ * @increment 1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_INT32(DS_SWITCH_FILTER, 0);
