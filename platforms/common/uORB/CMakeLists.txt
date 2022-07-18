@@ -40,6 +40,7 @@ set(SRCS_COMMON
 	ORBSet.hpp
 	Publication.hpp
 	PublicationMulti.hpp
+	Service.hpp
 	Subscription.cpp
 	Subscription.hpp
 	SubscriptionCallback.hpp
