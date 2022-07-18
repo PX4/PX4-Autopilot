@@ -411,16 +411,17 @@ PARAM_DEFINE_FLOAT(FW_TKO_PITCH_MIN, 10.0f);
 PARAM_DEFINE_FLOAT(FW_LND_FLALT, 0.5f);
 
 /**
- * Use terrain estimate during landing.
+ * Use terrain estimate during landing. This is critical for detecting when to flare, and should be enabled if possible.
  *
- * This is turned off by default and a waypoint or return altitude is normally used (or sea level for an arbitrary land
- * position). If enabled and no measurement is found within a given timeout, the landing waypoint will be used or the
+ * If enabled and no measurement is found within a given timeout, the landing waypoint will be used or the
  * landing will be aborted, depending on the criteria set in FW_LND_ABORT.
+ *
+ * If disabled, FW_LND_ABORT terrain based criteria are ignored.
  *
  * @boolean
  * @group FW L1 Control
  */
-PARAM_DEFINE_INT32(FW_LND_USETER, 0);
+PARAM_DEFINE_INT32(FW_LND_USETER, 1);
 
 /**
  * Early landing configuration deployment
@@ -1045,7 +1046,7 @@ PARAM_DEFINE_FLOAT(FW_LND_TD_OFF, 3.0);
  * @value 0 Disable nudging
  * @value 1 Nudge approach angle
  * @value 2 Nudge approach path
- * @group FW L1 ControlW
+ * @group FW L1 Control
  */
 PARAM_DEFINE_INT32(FW_LND_NUDGE, 2);
 
@@ -1068,7 +1069,7 @@ PARAM_DEFINE_INT32(FW_LND_NUDGE, 2);
  * @bit 1 Abort if terrain times out (after a first successful measurement)
  * @group FW L1 Control
  */
-PARAM_DEFINE_INT32(FW_LND_ABORT, 0);
+PARAM_DEFINE_INT32(FW_LND_ABORT, 3);
 
 /**
  * Calculate the landing glide slope relative to the terrain estimate.
