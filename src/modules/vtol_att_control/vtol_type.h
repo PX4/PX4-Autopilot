@@ -97,6 +97,13 @@ enum class pwm_limit_type {
 	TYPE_MAXIMUM
 };
 
+// enum for bitmask of VT_FW_DIFTHR_EN parameter options
+enum class VtFwDifthrEnBits : int32_t {
+	YAW_BIT = (1 << 0),
+	ROLL_BIT = (1 << 1),
+	PITCH_BIT = (1 << 2),
+};
+
 class VtolAttitudeControl;
 
 class VtolType:  public ModuleParams
@@ -291,8 +298,8 @@ protected:
 					(ParamBool<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
 					(ParamFloat<px4::params::VT_TRANS_TIMEOUT>) _param_vt_trans_timeout,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
-					(ParamBool<px4::params::VT_FW_DIFTHR_EN>) _param_vt_fw_difthr_en,
-					(ParamFloat<px4::params::VT_FW_DIFTHR_SC>) _param_vt_fw_difthr_sc,
+					(ParamInt<px4::params::VT_FW_DIFTHR_EN>) _param_vt_fw_difthr_en,
+					(ParamFloat<px4::params::VT_FW_DIFTHR_S_Y>) _param_vt_fw_difthr_s_y,
 					(ParamFloat<px4::params::VT_B_DEC_FF>) _param_vt_b_dec_ff,
 					(ParamFloat<px4::params::VT_B_DEC_I>) _param_vt_b_dec_i,
 					(ParamFloat<px4::params::VT_B_DEC_MSS>) _param_vt_b_dec_mss,
