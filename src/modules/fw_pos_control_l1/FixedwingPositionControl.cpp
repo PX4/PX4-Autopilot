@@ -1669,7 +1669,13 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 	const float along_track_dist_to_touchdown = -landing_approach_vector.unit_or_zero().dot(
 				local_position - local_land_point);
 	const float glide_slope = _landing_approach_entrance_rel_alt / _landing_approach_entrance_offset_vector.norm();
-	const float glide_slope_rel_alt = math::constrain(along_track_dist_to_touchdown * glide_slope, 0.0f,
+
+	// NOTE: this relative altitude can go below zero, this is intentional. in the case the vehicle is tracking the glide
+	// slope at an offset above the track, making the altitude setpoint constant on intersection with terrain causes
+	// an increase in throttle (to slow down and smoothly intersect the flattened altitude setpoint), which is undesirable
+	// directly before the flare. instead, we keep the steady state behavior, and let the flare get triggered once at
+	// the desired altitude
+	const float glide_slope_rel_alt = math::min(along_track_dist_to_touchdown * glide_slope,
 					  _landing_approach_entrance_rel_alt);
 
 	const float terrain_alt = getLandingTerrainAltitudeEstimate(now, pos_sp_curr.alt);
