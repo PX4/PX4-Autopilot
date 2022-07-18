@@ -413,8 +413,9 @@ PARAM_DEFINE_FLOAT(FW_LND_FLALT, 0.5f);
 /**
  * Use terrain estimate during landing.
  *
- * This is turned off by default and a waypoint or return altitude is normally used
- * (or sea level for an arbitrary land position).
+ * This is turned off by default and a waypoint or return altitude is normally used (or sea level for an arbitrary land
+ * position). If enabled and no measurement is found within a given timeout, the landing waypoint will be used or the
+ * landing will be aborted, depending on the criteria set in FW_LND_ABORT.
  *
  * @boolean
  * @group FW L1 Control
@@ -992,7 +993,7 @@ PARAM_DEFINE_FLOAT(FW_WING_HEIGHT, 0.5);
  * Multiplied by the descent rate to calculate a dynamic altitude at which
  * to trigger the flare.
  *
- * NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * |z-velocity|) is taken as the flare altitude
+ * NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * descent rate) is taken as the flare altitude
  *
  * @unit s
  * @min 0.0
