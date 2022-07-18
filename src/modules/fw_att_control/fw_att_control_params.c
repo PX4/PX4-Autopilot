@@ -97,6 +97,21 @@ PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
 PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
 
 /**
+ * Pitch rate derivative gain.
+ *
+ * This defines how much the elevator input will be commanded depending on the
+ * current body angular acceleration error.
+ *
+ * @unit %/rad/s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_PR_D, 0.00f);
+
+/**
  * Pitch rate integrator gain.
  *
  * This gain defines how much control response will result out of a steady
@@ -171,6 +186,21 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
 PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
 
 /**
+ * Roll rate derivative Gain
+ *
+ * This defines how much the aileron input will be commanded depending on the
+ * current body angular acceleration error.
+ *
+ * @unit %/rad/s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_RR_D, 0.00f);
+
+/**
  * Roll rate integrator Gain
  *
  * This gain defines how much control response will result out of a steady
@@ -227,6 +257,21 @@ PARAM_DEFINE_FLOAT(FW_R_RMAX, 70.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f);
+
+/**
+ * Yaw rate derivative gain
+ *
+ * This defines how much the rudder input will be commanded depending on the
+ * current body angular acceleration error.
+ *
+ * @unit %/rad/s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_YR_D, 0.0f);
 
 /**
  * Yaw rate integrator gain
