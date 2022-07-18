@@ -644,7 +644,7 @@ mixer:
                             label: 'Trim'
                     parameters:
                       - label: 'Lock control surfaces in hover'
-                        name: VT_ELEV_MC_LOCK
+                        name: VT_MC_CS_LOCK
 
             3: # Tiltrotor VTOL
                 title: 'Tiltrotor VTOL'
@@ -685,7 +685,7 @@ mixer:
                             label: 'Trim'
                     parameters:
                       - label: 'Lock control surfaces in hover'
-                        name: VT_ELEV_MC_LOCK
+                        name: VT_MC_CS_LOCK
                   - actuator_type: 'servo'
                     group_label: 'Tilt Servos'
                     count: 'CA_SV_TL_COUNT'
@@ -738,7 +738,7 @@ mixer:
                             label: 'Trim'
                     parameters:
                       - label: 'Lock control surfaces in hover'
-                        name: VT_ELEV_MC_LOCK
+                        name: VT_MC_CS_LOCK
 
             5: # Rover (Ackermann)
                 title: 'Rover (Ackermann)'

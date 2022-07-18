@@ -64,7 +64,7 @@ param set-default VT_MOT_ID 123
 param set-default VT_TILT_TRANS   0.45
 param set-default VT_TRANS_MIN_TM 1.2
 param set-default VT_TRANS_P2_DUR 1.3
-param set-default VT_ELEV_MC_LOCK 0
+param set-default VT_MC_CS_LOCK 0
 param set-default VT_TYPE 1
 
 set MIXER vtol_convergence
@@ -74,4 +74,4 @@ then
 	set PWM_OUT 1234
 else
 	set PWM_OUT 3456
-fi	
+fi

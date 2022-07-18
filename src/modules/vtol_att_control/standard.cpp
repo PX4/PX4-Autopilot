@@ -341,9 +341,9 @@ void Standard::fill_actuator_outputs()
 		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_DOWN;
 
 		// FW out = 0, other than roll and pitch depending on elevon lock
-		fw_out[actuator_controls_s::INDEX_ROLL]         = _param_vt_elev_mc_lock.get() ? 0 :
+		fw_out[actuator_controls_s::INDEX_ROLL]         = _param_vt_mc_cs_lock.get() ? 0 :
 				fw_in[actuator_controls_s::INDEX_ROLL];
-		fw_out[actuator_controls_s::INDEX_PITCH]        = _param_vt_elev_mc_lock.get() ? 0 :
+		fw_out[actuator_controls_s::INDEX_PITCH]        = _param_vt_mc_cs_lock.get() ? 0 :
 				fw_in[actuator_controls_s::INDEX_PITCH];
 		fw_out[actuator_controls_s::INDEX_YAW]          = 0;
 		fw_out[actuator_controls_s::INDEX_THROTTLE]     = _pusher_throttle;

@@ -21,7 +21,7 @@
 
 param set-default MAV_TYPE 19
 
-param set-default VT_ELEV_MC_LOCK 0
+param set-default VT_MC_CS_LOCK 0
 param set-default VT_MOT_COUNT 2
 param set-default VT_TYPE 0
 

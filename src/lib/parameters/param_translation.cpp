@@ -255,5 +255,14 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2022-07-18: translate VT_ELEV_MC_LOCK->VT_MC_CS_LOCK
+	{
+		if (strcmp("VT_ELEV_MC_LOCK", node->name) == 0) {
+			strcpy(node->name, "VT_MC_CS_LOCK");
+			PX4_INFO("copying %s -> %s", "VT_ELEV_MC_LOCK", "VT_MC_CS_LOCK");
+			return true;
+		}
+	}
+
 	return false;
 }

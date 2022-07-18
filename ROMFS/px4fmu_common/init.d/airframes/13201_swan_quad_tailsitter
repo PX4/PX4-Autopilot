@@ -32,7 +32,7 @@ param set-default CA_ROTOR3_KM -0.05
 #min pwm (1100)
 #controller tuning
 
-param set-default VT_ELEV_MC_LOCK 0
+param set-default VT_MC_CS_LOCK 0
 
 param set-default VT_TYPE 0
 

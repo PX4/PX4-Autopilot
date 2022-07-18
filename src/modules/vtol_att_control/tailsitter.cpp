@@ -358,7 +358,7 @@ void Tailsitter::fill_actuator_outputs()
 		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_UP;
 	}
 
-	if (_param_vt_elev_mc_lock.get() && _vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
+	if (_param_vt_mc_cs_lock.get() && _vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
 		fw_out[actuator_controls_s::INDEX_ROLL]  = 0;
 		fw_out[actuator_controls_s::INDEX_PITCH] = 0;
 

@@ -274,7 +274,7 @@ protected:
 	float _dt{0.0025f}; // time step [s]
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
-					(ParamBool<px4::params::VT_ELEV_MC_LOCK>) _param_vt_elev_mc_lock,
+					(ParamBool<px4::params::VT_MC_CS_LOCK>) _param_vt_mc_cs_lock,
 					(ParamFloat<px4::params::VT_FW_MIN_ALT>) _param_vt_fw_min_alt,
 					(ParamFloat<px4::params::VT_FW_ALT_ERR>) _param_vt_fw_alt_err,
 					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,

@@ -8,7 +8,7 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-param set-default VT_ELEV_MC_LOCK 0
+param set-default VT_MC_CS_LOCK 0
 param set-default VT_TYPE 0
 param set-default VT_FW_DIFTHR_EN 1
 param set-default VT_FW_DIFTHR_SC 0.3
