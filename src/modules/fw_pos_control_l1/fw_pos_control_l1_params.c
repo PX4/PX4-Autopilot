@@ -411,14 +411,20 @@ PARAM_DEFINE_FLOAT(FW_TKO_PITCH_MIN, 10.0f);
 PARAM_DEFINE_FLOAT(FW_LND_FLALT, 0.5f);
 
 /**
- * Use terrain estimate during landing. This is critical for detecting when to flare, and should be enabled if possible.
+ * Use terrain estimation during landing. This is critical for detecting when to flare, and should be enabled if possible.
  *
- * If enabled and no measurement is found within a given timeout, the landing waypoint will be used or the
- * landing will be aborted, depending on the criteria set in FW_LND_ABORT.
+ * NOTE: terrain estimate is currently solely derived from a distance sensor.
+ *
+ * If enabled and no measurement is found within a given timeout, the landing waypoint altitude will be used OR the landing
+ * will be aborted, depending on the criteria set in FW_LND_ABORT.
  *
  * If disabled, FW_LND_ABORT terrain based criteria are ignored.
  *
- * @boolean
+ * @min 0
+ * @max 2
+ * @value 0 Disable the terrain estimate
+ * @value 1 Use the terrain estimate to trigger the flare (only)
+ * @value 2 Calculate landing glide slope relative to the terrain estimate
  * @group FW L1 Control
  */
 PARAM_DEFINE_INT32(FW_LND_USETER, 1);
@@ -1070,17 +1076,3 @@ PARAM_DEFINE_INT32(FW_LND_NUDGE, 2);
  * @group FW L1 Control
  */
 PARAM_DEFINE_INT32(FW_LND_ABORT, 3);
-
-/**
- * Calculate the landing glide slope relative to the terrain estimate.
- *
- * If enabled, the terrain estimate (e.g. via distance sensor) will be used as the glide slope reference altitude, following
- * all bumps in the terrain below the landing approach.
- *
- * If disabled, the land waypoint altitude will be a fixed glide slope reference, and the distance sensor (if enabled via
- * FW_LND_USETER) will only be used to trigger the flare.
- *
- * @boolean
- * @group FW L1 Control
- */
-PARAM_DEFINE_INT32(FW_LND_TER_REL, 0);
