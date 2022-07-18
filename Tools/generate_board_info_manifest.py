@@ -2,6 +2,10 @@
 """
 Script to print out the board information manifest.
 
+This includes generic information about all the board targets, and is intended to be used in
+QGC / Ground Control Station side to have an up-to-date information on which board targets are supported,
+where the build binaries can be downloaded from, and so on.
+
 The format in JSON will be something like this:
 {
     "board_info":
@@ -62,11 +66,10 @@ DEFCONFIG_VENDORSTR_KEY = 'CDCACM_VENDORSTR'
 
 FIRMWRAE_PROTOTYPE_FILE_PATH = 'firmware.prototype'
 
-# Supress warning output while parsing KConfig
-kconf = Kconfig(filename = 'Kconfig') # Create a Kconfig object based off of the base 'Kconfig' file in the PX4-Autopilot directory
-kconf.warn_assign_undef = False
-kconf.warn_assign_override = False
-kconf.warn_assign_redun = False
+# Create a Kconfig object with the usbdev driver's Kconfig configuration, which includes definition
+# for the CDCACM_* configuration parameters that we will be using.
+# Also supress warning output while parsing KConfig
+kconf = Kconfig(filename = 'platforms/nuttx/NuttX/nuttx/drivers/usbdev/Kconfig', warn=False)
 
 ''' Processes firmware.prototype file in target directory '''
 def process_target_firmware_prototype_file(manufacturer, board, file_path):
@@ -93,7 +96,6 @@ def process_target_defconfig_file(file_path):
     board_info_dict = dict()
     try:
         kconf.load_config(file_path, replace=True) # Load the Kconfig symbols from the file
-        print(kconf.syms)
         if DEFCONFIG_PRODUCTID_KEY in kconf.syms:
             board_info_dict['product_id'] = kconf.syms[DEFCONFIG_PRODUCTID_KEY].str_value
         if DEFCONFIG_VENDORID_KEY in kconf.syms:
@@ -103,8 +105,13 @@ def process_target_defconfig_file(file_path):
         if DEFCONFIG_VENDORSTR_KEY in kconf.syms:
             board_info_dict['vendor_name'] = kconf.syms[DEFCONFIG_VENDORSTR_KEY].str_value
     except:
-        print('Error while parsing defconfig!')
-        print(board_info_dict)
+        return None
+
+    # Sanity check to verify we have a properly parsed defconfig file
+    # This can happen for some targets where the defconfig file doesn't include key strings like vendor-id!
+    if board_info_dict['product_id'] == '':
+        return None
+
     return board_info_dict
 
 ''' Function that receives board list and goes through the files to create the final Board Information metadata JSON '''
@@ -115,11 +122,13 @@ def print_board_information(board_list: list):
     for board in board_list:
         board_info = dict()
 
-        # Process the deconf file to get USB Autoconnect info
+        # Process the defconfig file to get USB Autoconnect info
         if (os.path.isfile(os.path.join(board['path'], DEFCONFIG_FILE_PATH))):
             defconfig_result = process_target_defconfig_file(os.path.join(board['path'], DEFCONFIG_FILE_PATH))
-            print(defconfig_result)
-            board_info = {**board_info, **defconfig_result}
+            if defconfig_result is not None:
+                board_info = {**board_info, **defconfig_result}
+            else:
+                if verbose: print("Error, Couldn't parse defconfig for the board: {} - {}".format(board['manufacturer'], board['board']))
         else:
             if verbose: print("Error, didn't detect valid defconfig for the board! : {} - {}".format(board['manufacturer'], board['board']))
 
