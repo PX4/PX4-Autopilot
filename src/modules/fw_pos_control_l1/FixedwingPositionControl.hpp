@@ -350,6 +350,12 @@ private:
 	// [us] time at which we had last valid terrain alt
 	hrt_abstime _last_time_terrain_alt_was_valid{0};
 
+	enum TerrainEstimateUseOnLanding {
+		kDisableTerrainEstimation = 0,
+		kTriggerFlareWithTerrainEstimate,
+		kFollowTerrainRelativeLandingGlideSlope
+	};
+
 	// AIRSPEED
 
 	float _airspeed{0.0f};
@@ -794,7 +800,7 @@ private:
 		(ParamFloat<px4::params::FW_LND_FLALT>) _param_fw_lnd_flalt,
 		(ParamFloat<px4::params::FW_LND_THRTC_SC>) _param_fw_thrtc_sc,
 		(ParamBool<px4::params::FW_LND_EARLYCFG>) _param_fw_lnd_earlycfg,
-		(ParamBool<px4::params::FW_LND_USETER>) _param_fw_lnd_useter,
+		(ParamInt<px4::params::FW_LND_USETER>) _param_fw_lnd_useter,
 
 		(ParamFloat<px4::params::FW_P_LIM_MAX>) _param_fw_p_lim_max,
 		(ParamFloat<px4::params::FW_P_LIM_MIN>) _param_fw_p_lim_min,
@@ -856,8 +862,7 @@ private:
 		(ParamFloat<px4::params::FW_LND_FL_SINK>) _param_fw_lnd_fl_sink,
 		(ParamFloat<px4::params::FW_LND_TD_OFF>) _param_fw_lnd_td_off,
 		(ParamInt<px4::params::FW_LND_NUDGE>) _param_fw_lnd_nudge,
-		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort,
-		(ParamBool<px4::params::FW_LND_TER_REL>) _param_fw_lnd_ter_rel
+		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort
 	)
 
 };
