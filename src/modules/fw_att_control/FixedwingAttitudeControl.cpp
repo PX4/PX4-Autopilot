@@ -96,7 +96,7 @@ FixedwingAttitudeControl::parameters_update()
 
 	const Vector3f rate_p = Vector3f(_param_fw_rr_p.get(), _param_fw_pr_p.get(), _param_fw_yr_p.get());
 	const Vector3f rate_i = Vector3f(_param_fw_rr_i.get(), _param_fw_pr_i.get(), _param_fw_yr_i.get());
-	const Vector3f rate_d = Vector3f(0.0f, 0.0f, 0.0f);
+	const Vector3f rate_d = Vector3f(_param_fw_rr_d.get(), _param_fw_pr_d.get(), _param_fw_yr_d.get());
 
 	_rate_control.setGains(rate_p, rate_i, rate_d);
 
