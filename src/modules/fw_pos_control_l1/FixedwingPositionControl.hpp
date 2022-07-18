@@ -338,7 +338,7 @@ private:
 	// [m] relative height above land point
 	float _landing_approach_entrance_rel_alt{0.0f};
 
-	bool _land_abort{false};
+	uint8_t _landing_abort_status{position_controller_landing_status_s::kNotAborted};
 
 	bool _flaring{false};
 	hrt_abstime _time_started_flaring{0}; // [us]
@@ -421,18 +421,25 @@ private:
 	void wind_poll();
 
 	void status_publish();
-	void landing_status_publish(const uint8_t abort_reason = position_controller_landing_status_s::kAbortReasonNone);
+	void landing_status_publish();
 	void tecs_status_publish();
 	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
 
 	/**
-	 * @brief Sets the aborted landing state and publishes landing status.
+	 * @brief Sets the landing abort status and publishes landing status.
 	 *
-	 * @param abort If true, the aircraft should abort the landing
-	 * @param abort_reason Singular bit which triggered the abort
+	 * @param new_abort_status Either 0 (not aborted) or the singular bit >0 which triggered the abort
 	 */
-	void abort_landing(const bool abort,
-			   const uint8_t abort_reason = position_controller_landing_status_s::kAbortReasonNone);
+	void updateLandingAbortStatus(const uint8_t new_abort_status = position_controller_landing_status_s::kNotAborted);
+
+	/**
+	 * @brief Checks if the automatic abort bitmask (from FW_LND_ABORT) contains the given abort criterion.
+	 *
+	 * @param automatic_abort_criteria_bitmask Bitmask containing all active abort criteria
+	 * @param landing_abort_criterion The specifc criterion we are checking for
+	 * @return true if the bitmask contains the criterion
+	 */
+	bool checkLandingAbortBitMask(const uint8_t automatic_abort_criteria_bitmask, uint8_t landing_abort_criterion);
 
 	/**
 	 * @brief Get a new waypoint based on heading and distance from current position

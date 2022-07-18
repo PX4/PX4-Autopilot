@@ -234,7 +234,7 @@ FixedwingPositionControl::vehicle_command_poll()
 			    _pos_sp_triplet.current.valid &&
 			    (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND)) {
 
-				abort_landing(true);
+				updateLandingAbortStatus(position_controller_landing_status_s::kAbortedByOperator);
 			}
 
 		} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
@@ -594,50 +594,57 @@ FixedwingPositionControl::status_publish()
 }
 
 void
-FixedwingPositionControl::landing_status_publish(const uint8_t abort_reason)
+FixedwingPositionControl::landing_status_publish()
 {
 	position_controller_landing_status_s pos_ctrl_landing_status = {};
 
 	pos_ctrl_landing_status.lateral_touchdown_offset = _lateral_touchdown_position_offset;
 	pos_ctrl_landing_status.flaring = _flaring;
-	pos_ctrl_landing_status.abort_landing = _land_abort;
-	pos_ctrl_landing_status.abort_reason = abort_reason;
+	pos_ctrl_landing_status.abort_status = _landing_abort_status;
 	pos_ctrl_landing_status.timestamp = hrt_absolute_time();
 
 	_pos_ctrl_landing_status_pub.publish(pos_ctrl_landing_status);
 }
 
 void
-FixedwingPositionControl::abort_landing(const bool abort, const uint8_t abort_reason)
+FixedwingPositionControl::updateLandingAbortStatus(const uint8_t new_abort_status)
 {
 	// only announce changes
-	if (abort && !_land_abort) {
+	if (new_abort_status > 0 && _landing_abort_status != new_abort_status) {
 
-		switch (abort_reason) {
-		case (position_controller_landing_status_s::kAbortReasonTerrainNotFound): {
+		switch (new_abort_status) {
+		case (position_controller_landing_status_s::kAbortedByOperator): {
+				mavlink_log_critical(&_mavlink_log_pub, "Landing aborted by operator\t");
+				events::send(events::ID("fixedwing_position_control_landing_abort_status_operator_abort"), events::Log::Critical,
+					     "Landing aborted by operator");
+				break;
+			}
+
+		case (position_controller_landing_status_s::kTerrainNotFound): {
 				mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: terrain estimate not found\t");
-				events::send(events::ID("fixedwing_position_control_land_aborted_terrain_not_found"), events::Log::Critical,
+				events::send(events::ID("fixedwing_position_control_landing_abort_status_terrain_not_found"), events::Log::Critical,
 					     "Landing aborted: terrain measurement not found");
 				break;
 			}
 
-		case (position_controller_landing_status_s::kAbortReasonTerrainTimeout): {
+		case (position_controller_landing_status_s::kTerrainTimeout): {
 				mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: terrain estimate timed out\t");
-				events::send(events::ID("fixedwing_position_control_land_aborted_terrain_timeout"), events::Log::Critical,
+				events::send(events::ID("fixedwing_position_control_landing_abort_status_terrain_timeout"), events::Log::Critical,
 					     "Landing aborted: terrain estimate timed out");
 				break;
 			}
 
 		default: {
-				mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: reason unspecified\t");
-				events::send(events::ID("fixedwing_position_control_land_aborted"), events::Log::Critical,
-					     "Landing aborted: reason unspecified");
+				mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: unknown criterion\t");
+				events::send(events::ID("fixedwing_position_control_landing_abort_status_unknown_criterion"), events::Log::Critical,
+					     "Landing aborted: unknown criterion");
 			}
 		}
 	}
 
-	_land_abort = abort;
-	landing_status_publish(abort_reason);
+	_landing_abort_status = (new_abort_status >= position_controller_landing_status_s::kUnknownAbortCriterion) ?
+				position_controller_landing_status_s::kUnknownAbortCriterion : new_abort_status;
+	landing_status_publish();
 }
 
 void
@@ -1341,10 +1348,10 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 
 	float alt_sp = pos_sp_curr.alt;
 
-	if (_land_abort) {
+	if (_landing_abort_status) {
 		if (pos_sp_curr.alt - _current_altitude  < _param_fw_clmbout_diff.get()) {
 			// aborted landing complete, normal loiter over landing point
-			abort_landing(false);
+			updateLandingAbortStatus(position_controller_landing_status_s::kNotAborted);
 
 		} else {
 			// continue straight until vehicle has sufficient altitude
@@ -2357,9 +2364,9 @@ FixedwingPositionControl::reset_landing_state()
 	_last_time_terrain_alt_was_valid = 0;
 
 	// reset abort land, unless loitering after an abort
-	if (_land_abort && (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+	if (_landing_abort_status && (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LOITER)) {
 
-		abort_landing(false);
+		updateLandingAbortStatus(position_controller_landing_status_s::kNotAborted);
 	}
 }
 
@@ -2596,7 +2603,7 @@ FixedwingPositionControl::initializeAutoLanding(const hrt_abstime &now, const po
 			_landing_approach_entrance_offset_vector = Vector2f({cosf(_yaw), sinf(_yaw)}) * landing_approach_distance;
 		}
 
-		// save time at which we started landing and reset abort_landing
+		// save time at which we started landing and reset landing abort status
 		reset_landing_state();
 		_time_started_landing = now;
 	}
@@ -2662,11 +2669,11 @@ FixedwingPositionControl::getLandingTerrainAltitudeEstimate(const hrt_abstime &n
 		if (_last_time_terrain_alt_was_valid == 0) {
 
 			const bool terrain_first_measurement_timed_out = (now - _time_started_landing) > TERRAIN_ALT_FIRST_MEASUREMENT_TIMEOUT;
-			const bool abort_on_terrain_measurement_timeout = _param_fw_lnd_abort.get() &
-					position_controller_landing_status_s::kAbortReasonTerrainNotFound;
+			const bool abort_on_terrain_measurement_timeout = checkLandingAbortBitMask(_param_fw_lnd_abort.get(),
+					position_controller_landing_status_s::kTerrainNotFound);
 
 			if (terrain_first_measurement_timed_out && abort_on_terrain_measurement_timeout) {
-				abort_landing(true, position_controller_landing_status_s::kAbortReasonTerrainNotFound);
+				updateLandingAbortStatus(position_controller_landing_status_s::kTerrainNotFound);
 			}
 
 			return land_point_altitude;
@@ -2675,11 +2682,11 @@ FixedwingPositionControl::getLandingTerrainAltitudeEstimate(const hrt_abstime &n
 		if (!_local_pos.dist_bottom_valid) {
 
 			const bool terrain_timed_out = (now - _last_time_terrain_alt_was_valid) > TERRAIN_ALT_TIMEOUT;
-			const bool abort_on_terrain_timeout = _param_fw_lnd_abort.get() &
-							      position_controller_landing_status_s::kAbortReasonTerrainTimeout;
+			const bool abort_on_terrain_timeout = checkLandingAbortBitMask(_param_fw_lnd_abort.get(),
+							      position_controller_landing_status_s::kTerrainTimeout);
 
 			if (terrain_timed_out && abort_on_terrain_timeout) {
-				abort_landing(true, position_controller_landing_status_s::kAbortReasonTerrainTimeout);
+				updateLandingAbortStatus(position_controller_landing_status_s::kTerrainTimeout);
 			}
 
 			return _last_valid_terrain_alt_estimate;
@@ -2687,6 +2694,20 @@ FixedwingPositionControl::getLandingTerrainAltitudeEstimate(const hrt_abstime &n
 	}
 
 	return land_point_altitude;
+}
+
+bool FixedwingPositionControl::checkLandingAbortBitMask(const uint8_t automatic_abort_criteria_bitmask,
+		uint8_t landing_abort_criterion)
+{
+	// landing abort status contains a manual criterion at abort_status==1, need to subtract 2 to directly compare
+	// to automatic criteria bits from the parameter FW_LND_ABORT
+	if (landing_abort_criterion <= 1) {
+		return false;
+	}
+
+	landing_abort_criterion -= 2;
+
+	return ((1 << landing_abort_criterion) & automatic_abort_criteria_bitmask) == (1 << landing_abort_criterion);
 }
 
 void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint)

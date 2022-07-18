@@ -1407,7 +1407,7 @@ bool Navigator::abort_landing()
 			// landing status from position controller must be newer than navigator's last position setpoint
 			if (_pos_ctrl_landing_status_sub.copy(&landing_status)) {
 				if (landing_status.timestamp > _pos_sp_triplet.timestamp) {
-					should_abort = landing_status.abort_landing;
+					should_abort = (landing_status.abort_status > 0);
 				}
 			}
 		}
