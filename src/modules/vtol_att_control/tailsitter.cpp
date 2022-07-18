@@ -335,7 +335,19 @@ void Tailsitter::fill_actuator_outputs()
 		// FW thrust is allocated on mc_thrust_sp[0] for tailsitter with dynamic control allocation
 		_thrust_setpoint_0->xyz[2] = -fw_in[actuator_controls_s::INDEX_THROTTLE];
 
-		/* allow differential thrust if enabled */
+		// output differential thrust for roll if enabled (to achieve roll contorl in FW we need controller yaw output)
+		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::ROLL_BIT)) {
+			mc_out[actuator_controls_s::INDEX_YAW] = -fw_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_r.get() ;
+			_torque_setpoint_0->xyz[2] = -fw_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_r.get() ;
+		}
+
+		// output differential thrust for pitch if enabled
+		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::PITCH_BIT)) {
+			mc_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH] * _param_vt_fw_difthr_s_p.get() ;
+			_torque_setpoint_0->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH] * _param_vt_fw_difthr_s_p.get() ;
+		}
+
+		// output differential thrust for yaw if enabled (to achieve yaw contorl in FW we need controller roll output)
 		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::YAW_BIT)) {
 			mc_out[actuator_controls_s::INDEX_ROLL] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_y.get() ;
 			_torque_setpoint_0->xyz[0] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_y.get() ;
