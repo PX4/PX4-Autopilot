@@ -1045,9 +1045,9 @@ PARAM_DEFINE_FLOAT(FW_LND_TD_OFF, 3.0);
  * @value 0 Disable nudging
  * @value 1 Nudge approach angle
  * @value 2 Nudge approach path
- * @group FW L1 Control
+ * @group FW L1 ControlW
  */
-PARAM_DEFINE_INT32(FW_LND_NUDGE, 0);
+PARAM_DEFINE_INT32(FW_LND_NUDGE, 2);
 
 /**
  * Bit mask to set the automatic landing abort conditions.
