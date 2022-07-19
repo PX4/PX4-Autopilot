@@ -175,6 +175,12 @@ include(kconfig)
 message(STATUS "PX4 config: ${PX4_CONFIG}")
 message(STATUS "PX4 platform: ${PX4_PLATFORM}")
 
+if($ENV{CLION_IDE})
+	# CLion automatically executes some compiler commands after configuring the
+	# project. This would fail on NuttX, as visibility.h tries to (indirectly)
+	# include nuttx/config.h, which at that point does not exist yet
+	add_definitions(-DPX4_DISABLE_GCC_POISON)
+endif()
 
 if(${PX4_PLATFORM} STREQUAL "posix")
 	if(ENABLE_LOCKSTEP_SCHEDULER)
