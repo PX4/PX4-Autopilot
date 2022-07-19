@@ -58,6 +58,8 @@
 
 #include "image_toc.h"
 
+extern int sercon_main(int c, char **argv);
+
 #define MK_GPIO_INPUT(def) (((def) & (~(GPIO_OUTPUT)))  | GPIO_INPUT)
 
 #define APP_SIZE_MAX			BOARD_FLASH_SIZE
@@ -98,6 +100,7 @@ typedef enum {
 	UNINITIALIZED = -1,
 	IN_PROGRESS,
 	DONE,
+	INTERRUPTED,
 	LOAD_FAIL
 } image_loading_status_t;
 
@@ -375,16 +378,12 @@ static void create_px4_file(void)
 			_alert("boot directory creation failed %d\n", ret);
 		}
 
-		px4_fd = open("/sdcard/boot/" IMAGE_FN, O_RDWR | O_CREAT);
+		px4_fd = open("/sdcard/boot/" IMAGE_FN, O_CREAT | O_TRUNC, 0644);
 	}
 
 	if (px4_fd < 0) {
 		_alert("FATAL: Not able to create px4 fw image!\n");
 
-	} else {
-		/* Truncate the file to 0 size */
-		lseek(px4_fd, 0, SEEK_SET);
-		ftruncate(px4_fd, 0);
 	}
 }
 #endif
@@ -396,20 +395,23 @@ flash_func_erase_sector(unsigned sector)
 	unsigned ss = flash_func_sector_size(sector);
 	uint64_t *addr = (uint64_t *)((uint64_t)APP_LOAD_ADDRESS + sector * ss);
 
-	/* Break any loading process */
-
-	/* This is a hack, there is no callback from
-	 * common code for "start flash"
+	/**
+	 * Break any loading process
+	 *
+	 * Wait for loading to stop. Loading always ends up with either
+	 * LOAD_FAIL or DONE, and any other values are intermediate
 	 */
 
-	if (loading_status == IN_PROGRESS) {
-		loading_status = UNINITIALIZED;
+	irqstate_t flags = px4_enter_critical_section();
 
-		/* Wait for loading to stop */
+	if (loading_status != LOAD_FAIL && loading_status != DONE) {
+		loading_status = INTERRUPTED;
+	}
 
-		while (loading_status != LOAD_FAIL) {
-			usleep(1000);
-		}
+	px4_leave_critical_section(flags);
+
+	while (loading_status != LOAD_FAIL && loading_status != DONE) {
+		usleep(1000);
 	}
 
 	/* In case there has been an interrupted flashing previously */
@@ -430,7 +432,7 @@ flash_func_erase_sector(unsigned sector)
 #if defined(CONFIG_MMCSD)
 	/* Flashing into eMMC/SD */
 
-	/* Erase the whole file when erasing the first sector */
+	/* Create the file when erasing the first sector */
 	if (sector == 0) {
 		create_px4_file();
 	}
@@ -634,8 +636,6 @@ arch_do_jump(const uint32_t *app_base)
 
 	}
 
-
-
 	// TODO. monitor?
 	while (1) {
 		usleep(1000000);
@@ -668,15 +668,13 @@ static size_t get_image_size(void)
 
 static int loader_main(int argc, char *argv[])
 {
-	int ret;
 	ssize_t image_sz = 0;
 
 	loading_status = IN_PROGRESS;
-	_alert("%s %d\n", __func__, __LINE__);
 
 #if defined(CONFIG_MMCSD)
 
-	ret = load_sdcard_images("/sdcard/boot/" IMAGE_FN, APP_LOAD_ADDRESS);
+	int ret = load_sdcard_images("/sdcard/boot/" IMAGE_FN, APP_LOAD_ADDRESS);
 
 	if (ret == 0) {
 		image_sz = get_image_size();
@@ -710,7 +708,7 @@ static int loader_main(int argc, char *argv[])
 
 				// read the rest in FLASH_RW_BLOCK blocks
 				for (unsigned i = 1; i < reads_left + 1; i++) {
-					if (loading_status != IN_PROGRESS) {
+					if (loading_status == INTERRUPTED) {
 						image_sz = -1;
 						break;
 					}
@@ -778,9 +776,13 @@ int start_image_loading(void)
 	/* create the task */
 	loader_task = task_create("loader", SCHED_PRIORITY_MAX - 6, 2000, loader_main, (char *const *)0);
 
+	/* wait for the task to start */
+	while (loading_status == UNINITIALIZED) {
+		usleep(1000);
+	}
+
 	return 0;
 }
-
 
 int
 bootloader_main(void)
@@ -836,11 +838,6 @@ bootloader_main(void)
 #endif
 
 	while (1) {
-		/* look to see if we can boot the app */
-		if (try_boot && loading_status == DONE) {
-			jump_to_app();
-		}
-
 		/* run the bootloader, come back after an app is uploaded or we time out */
 		bootloader(timeout);
 
@@ -871,5 +868,12 @@ bootloader_main(void)
 			loading_status = DONE;
 			try_boot = !board_test_force_pin();
 		}
+
+		/* look to see if we can boot the app */
+		if (try_boot && loading_status == DONE) {
+			jump_to_app();
+		}
+
+
 	}
 }
