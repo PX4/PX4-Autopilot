@@ -450,13 +450,13 @@ void RTL::set_rtl_item()
 		}
 
 	case RTL_STATE_LOITER: {
-			const bool autoland = (_param_rtl_land_delay.get() > FLT_EPSILON);
+			const bool autocontinue = (_param_rtl_land_delay.get() > FLT_EPSILON);
 
-			if (autoland) {
+			if (autocontinue) {
 				_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs\t",
-						 (double)get_time_inside(_mission_item));
-				events::send<float>(events::ID("rtl_loiter"), events::Log::Info, "RTL: loiter {1:.1}s", get_time_inside(_mission_item));
+						 (double)_param_rtl_land_delay.get());
+				events::send<float>(events::ID("rtl_loiter"), events::Log::Info, "RTL: loiter {1:.1}s", _param_rtl_land_delay.get());
 
 			} else {
 				_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
@@ -479,7 +479,7 @@ void RTL::set_rtl_item()
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = max(_param_rtl_land_delay.get(), 0.0f);
-			_mission_item.autocontinue = autoland;
+			_mission_item.autocontinue = autocontinue;
 			_mission_item.origin = ORIGIN_ONBOARD;
 
 			_navigator->set_can_loiter_at_sp(true);
