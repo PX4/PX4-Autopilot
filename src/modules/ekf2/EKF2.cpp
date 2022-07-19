@@ -680,7 +680,7 @@ void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 {
 	if (_device_id_baro != 0) {
-		const BaroBiasEstimator::status &status = _ekf.getBaroBiasEstimatorStatus();
+		const BiasEstimator::status &status = _ekf.getBaroBiasEstimatorStatus();
 
 		if (fabsf(status.bias - _last_baro_bias_published) > 0.001f) {
 			estimator_baro_bias_s baro_bias{};
