@@ -32,17 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file baro_bias_estimator.hpp
- * @brief Implementation of a single-state baro bias estimator
+ * @file bias_estimator.hpp
+ * @brief Implementation of a single-state bias estimator
  *
- * state: baro bias (in meters)
+ * state: bias
  *
  * The state is noise driven: Transition matrix A = 1
  * x[k+1] = Ax[k] + v with v ~ N(0, Q)
  * y[k] = x[k] + w with w ~ N(0, R)
- *
- * The difference between the current barometric altitude and another absolute
- * reference (e.g.: GNSS altitude) is used as a bias measurement.
  *
  * During the measurment update step, the Normalized Innovation Squared (NIS) is checked
  * and the measurement is rejected if larger than the gate size.
@@ -50,14 +47,13 @@
  * @author Mathieu Bresciani 	<mathieu@auterion.com>
  */
 
-#ifndef EKF_BARO_BIAS_ESTIMATOR_HPP
-#define EKF_BARO_BIAS_ESTIMATOR_HPP
+#pragma once
 
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/AlphaFilter.hpp>
 
-class BaroBiasEstimator
+class BiasEstimator
 {
 public:
 	struct status {
@@ -68,8 +64,8 @@ public:
 		float innov_test_ratio;
 	};
 
-	BaroBiasEstimator() = default;
-	~BaroBiasEstimator() = default;
+	BiasEstimator() = default;
+	~BiasEstimator() = default;
 
 	void predict(float dt);
 	void fuseBias(float measurement, float measurement_var);
@@ -127,4 +123,3 @@ private:
 	static constexpr float _innov_sequence_monitnoring_time_constant{10.f}; ///< in seconds
 	static constexpr float _process_var_boost_gain{1.0e3f};
 };
-#endif // !EKF_BARO_BIAS_ESTIMATOR_HPP

@@ -46,7 +46,7 @@
 #include "estimator_interface.h"
 
 #include "EKFGSF_yaw.h"
-#include "baro_bias_estimator.hpp"
+#include "bias_estimator.hpp"
 
 #include <uORB/topics/estimator_aid_source_1d.h>
 #include <uORB/topics/estimator_aid_source_2d.h>
@@ -345,7 +345,7 @@ public:
 	// Returns true if the output of the yaw emergency estimator can be used for a reset
 	bool isYawEmergencyEstimateAvailable() const;
 
-	const BaroBiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
+	const BiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
 
 	const auto &aid_src_airspeed() const { return _aid_src_airspeed; }
 
@@ -1042,7 +1042,7 @@ private:
 	// yaw estimator instance
 	EKFGSF_yaw _yawEstimator{};
 
-	BaroBiasEstimator _baro_b_est{};
+	BiasEstimator _baro_b_est{};
 
 	int64_t _ekfgsf_yaw_reset_time{0};	///< timestamp of last emergency yaw reset (uSec)
 	uint8_t _ekfgsf_yaw_reset_count{0};	// number of times the yaw has been reset to the EKF-GSF estimate
