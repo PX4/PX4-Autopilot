@@ -89,6 +89,9 @@ static struct mtd_geometry_s geo;
 
 #if defined(CONFIG_MTD_M25P)
 static struct spi_dev_s *spinor = 0;
+#endif
+
+#if defined(CONFIG_MTD_M25P) || defined(CONFIG_MMCSD)
 static uintptr_t end_address = 0;
 static uintptr_t first_unwritten = 0;
 #endif
@@ -351,6 +354,12 @@ inline void arch_setvtor(const uint32_t *address)
 {
 }
 
+inline static uint32_t
+flash_func_block_size(void)
+{
+	return mtd ? geo.blocksize : 4096;
+}
+
 uint32_t
 flash_func_sector_size(unsigned sector)
 {
@@ -445,14 +454,31 @@ flash_func_erase_sector(unsigned sector)
 
 }
 
-#ifdef CONFIG_MTD_M25P
+#if defined(CONFIG_MTD_M25P) || defined(CONFIG_MMCSD)
 static void flash_write_pages(off_t start, unsigned n_pages, uint8_t *src)
 {
+#ifdef CONFIG_MTD_M25P
 	size_t ret = MTD_BWRITE(mtd, start, n_pages, src);
 
 	if (ret != n_pages) {
 		_alert("SPI NOR write error in pages %d-%d ret %d\n", start, start + n_pages, ret);
 	}
+
+#elif defined(CONFIG_MMCSD)
+	ssize_t ret = -2;
+
+	/* Write to file, from the app_load_address */
+	if (lseek(px4_fd, start * flash_func_block_size(), SEEK_SET) >= 0) {
+		ret = write(px4_fd, (void *)src, n_pages * flash_func_block_size());
+	}
+
+	if (ret != n_pages * flash_func_block_size()) {
+		_alert("eMMC write error at 0x%x-0x%x ret %d\n", start * flash_func_block_size(),
+		       (start + n_pages) * flash_func_block_size(), ret);
+	}
+
+#endif
+
 }
 #endif
 
@@ -464,11 +490,11 @@ flash_func_write_word(uintptr_t address, uint32_t word)
 
 	*app_load_addr = word;
 
-#ifdef CONFIG_MTD_M25P
+#if defined(CONFIG_MTD_M25P) || defined(CONFIG_MMCSD)
 
 	// Write a single page every time we got a full one
 
-	unsigned pgs_per_block = (FLASH_RW_BLOCK / geo.blocksize);
+	unsigned pgs_per_block = (FLASH_RW_BLOCK / flash_func_block_size());
 
 	if (address > 0 &&
 	    ((address + sizeof(uint32_t)) % FLASH_RW_BLOCK) == 0) {
@@ -487,15 +513,6 @@ flash_func_write_word(uintptr_t address, uint32_t word)
 	// update the end of the image
 	if (address + sizeof(uint32_t) > end_address) {
 		end_address = address + sizeof(uint32_t);
-	}
-
-#endif
-
-#ifdef CONFIG_MMCSD
-
-	/* Write also to file, from the app_load_address */
-	if (lseek(px4_fd, address, SEEK_SET) >= 0) {
-		write(px4_fd, (void *)app_load_addr, 4);
 	}
 
 #endif
@@ -692,7 +709,7 @@ static int loader_main(int argc, char *argv[])
 	// Read first FLASH_RW_BLOCK size data, search if TOC exists
 
 	if (image_sz == 0) {
-		const unsigned pgs_per_block = FLASH_RW_BLOCK / geo.blocksize;
+		const unsigned pgs_per_block = FLASH_RW_BLOCK / flash_func_block_size();
 		size_t pages = MTD_BREAD(mtd, 0, pgs_per_block, (uint8_t *)APP_LOAD_ADDRESS);
 
 		if (pages == pgs_per_block) {
@@ -774,7 +791,7 @@ static int loader_main(int argc, char *argv[])
 int start_image_loading(void)
 {
 	/* create the task */
-	loader_task = task_create("loader", SCHED_PRIORITY_MAX - 6, 2000, loader_main, (char *const *)0);
+	loader_task = task_create("loader", SCHED_PRIORITY_MAX - 6, 8192, loader_main, (char *const *)0);
 
 	/* wait for the task to start */
 	while (loading_status == UNINITIALIZED) {
@@ -844,17 +861,17 @@ bootloader_main(void)
 		/* If device was just flashed, finalize flashing */
 
 		if (device_flashed) {
-#ifdef CONFIG_MTD_M25P
+#if defined(CONFIG_MTD_M25P) || defined(CONFIG_MMCSD)
 			/* Write the residue */
 			unsigned bytes = end_address - first_unwritten;
-			unsigned n_pages = bytes / geo.blocksize;
+			unsigned n_pages = bytes / flash_func_block_size();
 
-			if (bytes % geo.blocksize) {
+			if (bytes % flash_func_block_size()) {
 				n_pages += 1;
 			}
 
 			if (n_pages) {
-				flash_write_pages(first_unwritten / geo.blocksize, n_pages,
+				flash_write_pages(first_unwritten / flash_func_block_size(), n_pages,
 						  (uint8_t *)(APP_LOAD_ADDRESS + first_unwritten));
 			}
 
