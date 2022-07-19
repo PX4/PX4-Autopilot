@@ -93,9 +93,9 @@ public:
 
 	int get_rtl_type() const { return _param_rtl_type.get(); }
 
-	void setClimbAndReturnDone(bool done) { _climb_and_return_done = done; }
+	void setLoiterDone(bool done) { _loiter_done = done; }
 
-	bool getClimbAndReturnDone() { return _climb_and_return_done; }
+	bool getLoiterDone() { return _loiter_done; }
 
 	void get_rtl_xy_z_speed(float &xy, float &z);
 	matrix::Vector2f get_wind();
@@ -160,7 +160,7 @@ private:
 	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
 	float _rtl_loiter_rad{50.0f};		// radius at which a fixed wing would loiter while descending
 
-	bool _climb_and_return_done{false};	// this flag is set to true if RTL is active and we are past the climb state and return state
+	bool _loiter_done{false}; // this flag is set to true if RTL is active and we are past the loiter state
 	bool _rtl_alt_min{false};
 	bool _should_engange_mission_for_landing{false};
 
