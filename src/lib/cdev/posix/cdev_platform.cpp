@@ -40,6 +40,8 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
 
+#include <stdlib.h>
+
 const cdev::px4_file_operations_t cdev::CDev::fops = {};
 
 pthread_mutex_t devmutex = PTHREAD_MUTEX_INITIALIZER;

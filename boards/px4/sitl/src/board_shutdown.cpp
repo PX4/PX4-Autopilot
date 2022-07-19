@@ -40,6 +40,7 @@
 #include <px4_platform_common/tasks.h>
 #include <board_config.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #if defined(BOARD_HAS_POWER_CONTROL)
 int board_register_power_state_notification_cb(power_button_state_notification_t cb)
