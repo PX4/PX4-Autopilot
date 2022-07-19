@@ -394,6 +394,7 @@ if(ENABLE_LOCKSTEP_SCHEDULER STREQUAL "no")
 		rascal
 		rascal-electric
 		tf-g1
+		tf-g2
 		tf-r1
 	)
 	set(all_posix_vmd_make_targets)
