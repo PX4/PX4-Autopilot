@@ -582,7 +582,7 @@ void Navigator::run()
 				case RTL::RTL_TYPE_MISSION_LANDING:
 				case RTL::RTL_TYPE_CLOSEST:
 
-					if (!rtl_activated && _rtl.getClimbAndReturnDone()
+					if (!rtl_activated && _rtl.getLoiterDone()
 					    && _rtl.getShouldEngageMissionForLanding()) {
 						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
 

@@ -235,14 +235,13 @@ void RTL::find_RTL_destination()
 		_rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
 
 	} else {
-		_rtl_alt = max(global_position.alt, max(_destination.alt,
-							_navigator->get_home_position()->alt + _param_rtl_return_alt.get()));
+		_rtl_alt = max(global_position.alt, _destination.alt + _param_rtl_return_alt.get());
 	}
 }
 
 void RTL::on_activation()
 {
-	setClimbAndReturnDone(false);
+	setLoiterDone(false);
 
 	// if a mission landing is desired we should only execute mission navigation mode if we currently are in fw mode
 	// In multirotor mode no landing pattern is required so we can just navigate to the land point directly and don't need to run mission
@@ -276,9 +275,9 @@ void RTL::on_activation()
 		_rtl_state = RTL_STATE_LANDED;
 
 	} else if ((_destination.type == RTL_DESTINATION_MISSION_LANDING) && _navigator->getMissionLandingInProgress()) {
-		// we were just on a mission landing, set _rtl_state past RTL_STATE_RETURN such that navigator will engage mission mode,
+		// we were just on a mission landing, set _rtl_state past RTL_STATE_LOITER such that navigator will engage mission mode,
 		// which will continue executing the landing
-		_rtl_state = RTL_STATE_DESCEND;
+		_rtl_state = RTL_STATE_LAND;
 
 
 	} else if ((global_position.alt < _destination.alt + _param_rtl_return_alt.get()) || _rtl_alt_min) {
@@ -292,7 +291,7 @@ void RTL::on_activation()
 		_rtl_state = RTL_STATE_RETURN;
 	}
 
-	setClimbAndReturnDone(_rtl_state > RTL_STATE_RETURN);
+	setLoiterDone(_rtl_state > RTL_STATE_LOITER);
 
 	// reset cruising speed and throttle to default for RTL
 	_navigator->set_cruising_speed();
@@ -332,8 +331,7 @@ void RTL::set_rtl_item()
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	const float destination_dist = get_distance_to_next_waypoint(_destination.lat, _destination.lon, gpos.lat, gpos.lon);
-	const float descend_altitude_target = min(_destination.alt + _param_rtl_descend_alt.get(), gpos.alt);
-	const float loiter_altitude = min(descend_altitude_target, _rtl_alt);
+	const float loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), _rtl_alt);
 
 	const RTLHeadingMode rtl_heading_mode = static_cast<RTLHeadingMode>(_param_rtl_hdg_md.get());
 
@@ -430,7 +428,8 @@ void RTL::set_rtl_item()
 				_mission_item.yaw = _destination.yaw;
 			}
 
-			if (_navigator->get_vstatus()->is_vtol) {
+			if (_navigator->get_vstatus()->is_vtol
+			    || _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 				_mission_item.loiter_radius = _rtl_loiter_rad;
 			}
 
@@ -617,8 +616,6 @@ void RTL::advance_rtl()
 		break;
 
 	case RTL_STATE_RETURN:
-		setClimbAndReturnDone(true);
-
 		if (vtol_in_fw_mode || descend_and_loiter) {
 			_rtl_state = RTL_STATE_DESCEND;
 
@@ -643,6 +640,9 @@ void RTL::advance_rtl()
 		break;
 
 	case RTL_STATE_LOITER:
+
+		setLoiterDone(true);
+
 		if (vtol_in_fw_mode) {
 			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
 
