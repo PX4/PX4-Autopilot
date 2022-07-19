@@ -76,6 +76,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/rpm.h>
 
 #include <random>
 
@@ -250,6 +251,9 @@ private:
 	uORB::Publication<vehicle_global_position_s>	_gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Publication<vehicle_local_position_s>	_lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
 	uORB::Publication<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
+
+	//rpm
+	uORB::Publication<rpm_s>			_rpm_pub{ORB_ID(rpm)};
 
 	// HIL GPS
 	static constexpr int MAX_GPS = 3;
