@@ -247,10 +247,6 @@ private:
 	Vector3f _last_gyro_bias_published{};
 	Vector3f _last_mag_bias_published{};
 
-	Vector3f _last_accel_calibration_published{};
-	Vector3f _last_gyro_calibration_published{};
-	Vector3f _last_mag_calibration_published{};
-
 	hrt_abstime _last_sensor_bias_published{0};
 	hrt_abstime _last_gps_status_published{0};
 
