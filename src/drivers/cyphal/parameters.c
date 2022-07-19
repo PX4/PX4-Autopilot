@@ -41,7 +41,7 @@
  * @reboot_required true
  * @group Cyphal
  */
-PARAM_DEFINE_INT32(CYPHAL_ENABLE, 0);
+PARAM_DEFINE_INT32(CYPHAL_ENABLE, 1);
 
 /**
  * Cyphal Node ID.

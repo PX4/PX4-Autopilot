@@ -1,136 +1,64 @@
 /*
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
+ * NuttX SocketCAN port Copyright (C) 2022 NXP Semiconductors
+ *
+ *
+ *
  */
+
+/****************************************************************************
+ *
+ *   Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
+ *   NuttX SocketCAN port Copyright (C) 2022 NXP Semiconductors
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 
 #include <uavcan_nuttx/socketcan.hpp>
 #include <uavcan_nuttx/clock.hpp>
 #include <uavcan/util/templates.hpp>
 
-#define UAVCAN_SOCKETCAN_RX_QUEUE_LEN 64
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <string.h>
 
-struct CriticalSectionLocker {
-	const irqstate_t flags_;
+#include <nuttx/can.h>
+#include <netpacket/can.h>
 
-	CriticalSectionLocker()
-		: flags_(enter_critical_section())
-	{
-	}
+#define MODULE_NAME "UAVCAN_SOCKETCAN"
 
-	~CriticalSectionLocker()
-	{
-		leave_critical_section(flags_);
-	}
-};
+#include <px4_platform_common/log.h>
 
 namespace uavcan_socketcan
 {
 namespace
 {
-/**
- * Hardware message objects are allocated as follows:
- *  - 1 - Single TX object
- *  - 2..32 - RX objects
- * TX priority is defined by the message object number, not by the CAN ID (chapter 16.7.3.5 of the user manual),
- * hence we can't use more than one object because that would cause priority inversion on long transfers.
- */
-constexpr unsigned NumberOfMessageObjects   = 32;
-constexpr unsigned NumberOfTxMessageObjects = 1;
-constexpr unsigned NumberOfRxMessageObjects = NumberOfMessageObjects - NumberOfTxMessageObjects;
-constexpr unsigned TxMessageObjectNumber    = 1;
-
-/**
- * Total number of CAN errors.
- * Does not overflow.
- */
-volatile std::uint32_t error_cnt = 0;
-
-/**
- * False if there's no pending TX frame, i.e. write is possible.
- */
-volatile bool tx_pending = false;
-
-/**
- * Currently pending frame must be aborted on first error.
- */
-volatile bool tx_abort_on_error = false;
-
-/**
- * Gets updated every time the CAN IRQ handler is being called.
- */
-volatile std::uint64_t last_irq_utc_timestamp = 0;
-
-/**
- * Set by the driver on every successful TX or RX; reset by the application.
- */
-volatile bool had_activity = false;
-
-/**
- * After a received message gets extracted from C_CAN, it will be stored in the RX queue until libuavcan
- * reads it via select()/receive() calls.
- */
-class RxQueue
-{
-	struct Item {
-		std::uint64_t utc_usec = 0;
-		uavcan::CanFrame frame;
-	};
-
-	Item buf_[UAVCAN_SOCKETCAN_RX_QUEUE_LEN];
-	std::uint32_t overflow_cnt_ = 0;
-	std::uint8_t in_ = 0;
-	std::uint8_t out_ = 0;
-	std::uint8_t len_ = 0;
-
-public:
-	void push(const uavcan::CanFrame &frame, const volatile std::uint64_t &utc_usec)
-	{
-		buf_[in_].frame    = frame;
-		buf_[in_].utc_usec = utc_usec;
-		in_++;
-
-		if (in_ >= UAVCAN_SOCKETCAN_RX_QUEUE_LEN) {
-			in_ = 0;
-		}
-
-		len_++;
-
-		if (len_ > UAVCAN_SOCKETCAN_RX_QUEUE_LEN) {
-			len_ = UAVCAN_SOCKETCAN_RX_QUEUE_LEN;
-
-			if (overflow_cnt_ < 0xFFFFFFFF) {
-				overflow_cnt_++;
-			}
-
-			out_++;
-
-			if (out_ >= UAVCAN_SOCKETCAN_RX_QUEUE_LEN) {
-				out_ = 0;
-			}
-		}
-	}
-
-	void pop(uavcan::CanFrame &out_frame, std::uint64_t &out_utc_usec)
-	{
-		if (len_ > 0) {
-			out_frame    = buf_[out_].frame;
-			out_utc_usec = buf_[out_].utc_usec;
-			out_++;
-
-			if (out_ >= UAVCAN_SOCKETCAN_RX_QUEUE_LEN) {
-				out_ = 0;
-			}
-
-			len_--;
-		}
-	}
-
-	unsigned getLength() const { return len_; }
-
-	std::uint32_t getOverflowCount() const { return overflow_cnt_; }
-};
-
-RxQueue rx_queue;
-
 
 struct BitTimingSettings {
 	std::uint32_t canclkdiv;
@@ -141,7 +69,199 @@ struct BitTimingSettings {
 
 } // namespace
 
-CanDriver CanDriver::self;
+uavcan::uint32_t CanIface::socketInit(const char *can_iface_name)
+{
+
+	struct sockaddr_can addr;
+	struct ifreq ifr;
+
+	//FIXME Change this when we update to DroneCAN with CAN FD support
+	bool can_fd = 0;
+
+	_can_fd = can_fd;
+
+	/* open socket */
+	if ((_fd = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
+		PX4_ERR("socket");
+		return -1;
+	}
+
+	strncpy(ifr.ifr_name, can_iface_name, IFNAMSIZ - 1);
+	ifr.ifr_name[IFNAMSIZ - 1] = '\0';
+	ifr.ifr_ifindex = if_nametoindex(ifr.ifr_name);
+
+	if (!ifr.ifr_ifindex) {
+		PX4_ERR("if_nametoindex");
+		return -1;
+	}
+
+	memset(&addr, 0, sizeof(addr));
+	addr.can_family = AF_CAN;
+	addr.can_ifindex = ifr.ifr_ifindex;
+
+	const int on = 1;
+	/* RX Timestamping */
+
+	if (setsockopt(_fd, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0) {
+		PX4_ERR("SO_TIMESTAMP is disabled");
+		return -1;
+	}
+
+	/* NuttX Feature: Enable TX deadline when sending CAN frames
+	 * When a deadline occurs the driver will remove the CAN frame
+	 */
+
+	if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_TX_DEADLINE, &on, sizeof(on)) < 0) {
+		PX4_ERR("CAN_RAW_TX_DEADLINE is disabled");
+		return -1;
+	}
+
+	if (can_fd) {
+		if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &on, sizeof(on)) < 0) {
+			PX4_ERR("no CAN FD support");
+			return -1;
+		}
+	}
+
+	if (bind(_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+		PX4_ERR("bind");
+		return -1;
+	}
+
+	// Setup TX msg
+	_send_iov.iov_base = &_send_frame;
+
+	if (_can_fd) {
+		_send_iov.iov_len = sizeof(struct canfd_frame);
+
+	} else {
+		_send_iov.iov_len = sizeof(struct can_frame);
+	}
+
+	memset(&_send_control, 0x00, sizeof(_send_control));
+
+	_send_msg.msg_iov    = &_send_iov;
+	_send_msg.msg_iovlen = 1;
+	_send_msg.msg_control = &_send_control;
+	_send_msg.msg_controllen = sizeof(_send_control);
+
+	_send_cmsg = CMSG_FIRSTHDR(&_send_msg);
+	_send_cmsg->cmsg_level = SOL_CAN_RAW;
+	_send_cmsg->cmsg_type = CAN_RAW_TX_DEADLINE;
+	_send_cmsg->cmsg_len = sizeof(struct timeval);
+	_send_tv = (struct timeval *)CMSG_DATA(_send_cmsg);
+
+	// Setup RX msg
+	_recv_iov.iov_base = &_recv_frame;
+
+	if (can_fd) {
+		_recv_iov.iov_len = sizeof(struct canfd_frame);
+
+	} else {
+		_recv_iov.iov_len = sizeof(struct can_frame);
+	}
+
+	memset(_recv_control, 0x00, sizeof(_recv_control));
+
+	_recv_msg.msg_iov = &_recv_iov;
+	_recv_msg.msg_iovlen = 1;
+	_recv_msg.msg_control = &_recv_control;
+	_recv_msg.msg_controllen = sizeof(_recv_control);
+	_recv_cmsg = CMSG_FIRSTHDR(&_recv_msg);
+
+	return 0;
+}
+
+uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicTime tx_deadline,
+			       uavcan::CanIOFlags flags)
+{
+	int res = -1;
+
+	/* Copy CanardFrame to can_frame/canfd_frame */
+	if (_can_fd) {
+		_send_frame.can_id = frame.id | CAN_EFF_FLAG;
+		_send_frame.len = frame.dlc;
+		memcpy(&_send_frame.data, frame.data, frame.dlc);
+
+	} else {
+		struct can_frame *net_frame = (struct can_frame *)&_send_frame;
+		net_frame->can_id = frame.id | CAN_EFF_FLAG;
+		net_frame->can_dlc = frame.dlc;
+		memcpy(&net_frame->data, frame.data, frame.dlc);
+	}
+
+	/* Set CAN_RAW_TX_DEADLINE timestamp  */
+	_send_tv->tv_usec = tx_deadline.toUSec() % 1000000ULL;
+	_send_tv->tv_sec = (tx_deadline.toUSec() - _send_tv->tv_usec) / 1000000ULL;
+
+	res = sendmsg(_fd, &_send_msg, 0);
+
+	if (res > 0) {
+		return 1;
+
+	} else {
+		return res;
+	}
+}
+
+uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::MonotonicTime &out_ts_monotonic,
+				  uavcan::UtcTime &out_ts_utc, uavcan::CanIOFlags &out_flags)
+{
+	int32_t result = recvmsg(_fd, &_recv_msg, MSG_DONTWAIT);
+
+	if (result < 0) {
+		return result;
+	}
+
+	/* Copy SocketCAN frame to CanardFrame */
+
+	if (_can_fd) {
+		struct canfd_frame *recv_frame = (struct canfd_frame *)&_recv_frame;
+		out_frame.id = recv_frame->can_id;
+		out_frame.dlc = recv_frame->len;
+		memcpy(out_frame.data, &recv_frame->data, recv_frame->len);
+
+	} else {
+		struct can_frame *recv_frame = (struct can_frame *)&_recv_frame;
+		out_frame.id = recv_frame->can_id;
+		out_frame.dlc = recv_frame->can_dlc;
+		memcpy(out_frame.data, &recv_frame->data, recv_frame->can_dlc);
+	}
+
+	/* Read SO_TIMESTAMP value */
+
+	if (_recv_cmsg->cmsg_level == SOL_SOCKET && _recv_cmsg->cmsg_type == SO_TIMESTAMP) {
+		struct timeval *tv = (struct timeval *)CMSG_DATA(_recv_cmsg);
+		out_ts_monotonic = uavcan::MonotonicTime::fromUSec(tv->tv_sec * 1000000ULL + tv->tv_usec);
+	}
+
+	return result;
+}
+
+
+uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter_configs,
+		uavcan::uint16_t num_configs)
+{
+	//FIXME
+	return 0;
+}
+
+uavcan::uint64_t CanIface::getErrorCount() const
+{
+	//FIXME query SocketCAN network stack
+	return 0;
+}
+
+uavcan::uint16_t CanIface::getNumFilters() const
+{
+	//FIXME
+	return 0;
+}
+
+int CanIface::getFD()
+{
+	return _fd;
+}
 
 uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
 {
@@ -151,126 +271,74 @@ uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
 
 int CanDriver::init(uavcan::uint32_t bitrate)
 {
-	{
-		//FIXME
-	}
+	pfds[0].fd     = if_[0].getFD();
+	pfds[0].events = POLLIN | POLLOUT;
+#if UAVCAN_SOCKETCAN_NUM_IFACES > 1
+	pfds[1].fd     = if_[1].getFD();
+	pfds[1].events = POLLIN | POLLOUT;
+#endif
 
 	/*
-	 * Applying default filter configuration (accept all)
+	 * TODO add filter configuration ioctl
 	 */
-	if (configureFilters(nullptr, 0) < 0) {
-		return -1;
-	}
 
 	return 0;
 }
 
-bool CanDriver::hasReadyRx() const
-{
-	CriticalSectionLocker locker;
-	return rx_queue.getLength() > 0;
-}
-
-bool CanDriver::hasEmptyTx() const
-{
-	CriticalSectionLocker locker;
-	return !tx_pending;
-}
-
-bool CanDriver::hadActivity()
-{
-	CriticalSectionLocker locker;
-	const bool ret = had_activity;
-	had_activity = false;
-	return ret;
-}
-
 uavcan::uint32_t CanDriver::getRxQueueOverflowCount() const
 {
-	CriticalSectionLocker locker;
-	return rx_queue.getOverflowCount();
+	//FIXME query SocketCAN network stack
+	return 0;
 }
 
 bool CanDriver::isInBusOffState() const
 {
-	//FIXME
+	//FIXME no interface available yet, maybe make a NuttX ioctl
 	return false;
-}
-
-uavcan::int16_t CanDriver::send(const uavcan::CanFrame &frame, uavcan::MonotonicTime tx_deadline,
-				uavcan::CanIOFlags flags)
-{
-	//FIXME
-	return 1;
-}
-
-uavcan::int16_t CanDriver::receive(uavcan::CanFrame &out_frame, uavcan::MonotonicTime &out_ts_monotonic,
-				   uavcan::UtcTime &out_ts_utc, uavcan::CanIOFlags &out_flags)
-{
-	out_ts_monotonic = clock.getMonotonic();
-	out_flags = 0;                                            // We don't support any IO flags
-
-	CriticalSectionLocker locker;
-
-	if (rx_queue.getLength() == 0) {
-		return 0;
-	}
-
-	std::uint64_t ts_utc = 0;
-	rx_queue.pop(out_frame, ts_utc);
-	out_ts_utc = uavcan::UtcTime::fromUSec(ts_utc);
-	return 1;
 }
 
 uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
 				  const uavcan::CanFrame * (&)[uavcan::MaxCanIfaces],
 				  uavcan::MonotonicTime blocking_deadline)
 {
+	std::int64_t timeout_usec = (blocking_deadline - clock.getMonotonic()).toUSec();
 
-
-	const bool noblock = ((inout_masks.read  == 1) && hasReadyRx()) ||
-			     ((inout_masks.write == 1) && hasEmptyTx());
-
-	if (!noblock && (clock.getMonotonic() > blocking_deadline)) {
-
+	if (timeout_usec < 0) {
+		timeout_usec = 0;
 	}
 
-	inout_masks.read  = hasReadyRx() ? 1 : 0;
+	inout_masks.read = 0;
+	//FIXME NuttX SocketCAN implement POLLOUT
+	inout_masks.write = 0x3;
 
-	inout_masks.write = (hasEmptyTx()) ? 1 : 0;     // Disable write while in bus-off
+	if (poll(pfds, UAVCAN_SOCKETCAN_NUM_IFACES, timeout_usec / 1000) > 0) {
+		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+			if (pfds[i].revents & POLLIN) {
+				inout_masks.read |= 1U << i;
+			}
+
+			if (pfds[i].revents & POLLOUT) {
+				inout_masks.write |= 1U << i;
+			}
+		}
+	}
 
 	return 0;           // Return value doesn't matter as long as it is non-negative
 }
 
-uavcan::int16_t CanDriver::configureFilters(const uavcan::CanFilterConfig *filter_configs,
-		uavcan::uint16_t num_configs)
-{
-	CriticalSectionLocker locker;
-
-	//FIXME
-
-	return 0;
-}
-
-uavcan::uint64_t CanDriver::getErrorCount() const
-{
-	CriticalSectionLocker locker;
-	return std::uint64_t(error_cnt) + std::uint64_t(rx_queue.getOverflowCount());
-}
-
-uavcan::uint16_t CanDriver::getNumFilters() const
-{
-	return NumberOfRxMessageObjects;
-}
 
 uavcan::ICanIface *CanDriver::getIface(uavcan::uint8_t iface_index)
 {
-	return (iface_index == 0) ? this : nullptr;
+	if (iface_index > (UAVCAN_SOCKETCAN_NUM_IFACES - 1)) {
+		return nullptr;
+	}
+
+	return &if_[iface_index];
 }
 
 uavcan::uint8_t CanDriver::getNumIfaces() const
 {
-	return 1;
+	return UAVCAN_SOCKETCAN_NUM_IFACES;
 }
 
 }
