@@ -120,7 +120,8 @@ public:
 	typedef UAVCAN_DRIVER::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
 	typedef uavcan::protocol::file::BeginFirmwareUpdate BeginFirmwareUpdate;
 
-	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
+	UavcanNode(CanInitHelper *can_init, uint32_t bitrate, uavcan::ICanDriver &can_driver,
+		   uavcan::ISystemClock &system_clock);
 
 	virtual		~UavcanNode();
 
@@ -139,6 +140,9 @@ public:
 
 	/* The bit rate that can be passed back to the bootloader */
 	int32_t active_bitrate{0};
+	uint32_t _bitrate;
+
+	CanInitHelper *_can;
 
 private:
 	void Run() override;
