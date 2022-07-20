@@ -65,9 +65,11 @@
 #include <uORB/topics/vehicle_imu.h>
 
 #include "voted_sensors_update.h"
-#include "vehicle_acceleration/VehicleAcceleration.hpp"
-#include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
 #include "vehicle_imu/VehicleIMU.hpp"
+
+#if defined(CONFIG_SENSORS_VEHICLE_ACCELERATION)
+# include "vehicle_acceleration/VehicleAcceleration.hpp"
+#endif // CONFIG_SENSORS_VEHICLE_ACCELERATION
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 # include <drivers/drv_sensor.h>
@@ -82,6 +84,10 @@
 # include <uORB/topics/sensor_baro.h>
 # include "vehicle_air_data/VehicleAirData.hpp"
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
+
+#if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
+# include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
+#endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 # include "vehicle_gps_position/VehicleGPSPosition.hpp"
@@ -196,8 +202,13 @@ private:
 
 	VotedSensorsUpdate _voted_sensors_update;
 
-	VehicleAcceleration	_vehicle_acceleration;
+#if defined(CONFIG_SENSORS_VEHICLE_ACCELERATION)
+	VehicleAcceleration _vehicle_acceleration;
+#endif // CONFIG_SENSORS_VEHICLE_ACCELERATION
+
+#if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
 	VehicleAngularVelocity	_vehicle_angular_velocity;
+#endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
 	VehicleAirData *_vehicle_air_data {nullptr};
@@ -276,8 +287,13 @@ Sensors::Sensors(bool hil_enabled) :
 {
 	_sensor_pub.advertise();
 
+#if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
 	_vehicle_angular_velocity.Start();
+#endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
+
+#if defined(CONFIG_SENSORS_VEHICLE_ACCELERATION)
 	_vehicle_acceleration.Start();
+#endif // CONFIG_SENSORS_VEHICLE_ACCELERATION
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 	/* Differential pressure offset */
@@ -315,8 +331,13 @@ Sensors::~Sensors()
 		sub.unregisterCallback();
 	}
 
+#if defined(CONFIG_SENSORS_VEHICLE_ACCELERATION)
 	_vehicle_acceleration.Stop();
+#endif // CONFIG_SENSORS_VEHICLE_ACCELERATION
+
+#if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
 	_vehicle_angular_velocity.Stop();
+#endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
 
@@ -936,11 +957,15 @@ int Sensors::print_status()
 
 #endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
 
+#if defined(CONFIG_SENSORS_VEHICLE_ACCELERATION)
 	PX4_INFO_RAW("\n");
 	_vehicle_acceleration.PrintStatus();
+#endif // CONFIG_SENSORS_VEHICLE_ACCELERATION
 
+#if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
 	PX4_INFO_RAW("\n");
 	_vehicle_angular_velocity.PrintStatus();
+#endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 
