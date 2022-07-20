@@ -223,7 +223,7 @@ PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
  *
  * If set to the number of distance sensors, the preflight check will check
  * for their presence and valid data publication. Disable with 0 if no distance
- * sensor present or to disbale the preflight check.
+ * sensor present or to disable the preflight check.
  *
  * @reboot_required true
  *

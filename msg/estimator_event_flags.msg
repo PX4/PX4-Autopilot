@@ -30,7 +30,7 @@ bool gps_data_stopped_using_alternate   #  3 - true when the gps data has stoppe
 bool height_sensor_timeout              #  4 - true when the height sensor has not been used to correct the state estimates for a significant time period
 bool stopping_navigation                #  5 - true when the filter has insufficient data to estimate velocity and position and is falling back to an attitude, height and height rate mode of operation
 bool invalid_accel_bias_cov_reset       #  6 - true when the filter has detected bad acceerometer bias state esitmstes and has reset the corresponding covariance matrix elements
-bool bad_yaw_using_gps_course           #  7 - true when the fiter has detected an invalid yaw esitmate and has reset the yaw angle to the GPS ground course
+bool bad_yaw_using_gps_course           #  7 - true when the filter has detected an invalid yaw estimate and has reset the yaw angle to the GPS ground course
 bool stopping_mag_use                   #  8 - true when the filter has detected bad magnetometer data and is stopping further use of the magnetomer data
 bool vision_data_stopped                #  9 - true when the vision system data has stopped for a significant time period
 bool emergency_yaw_reset_mag_stopped    # 10 - true when the filter has detected bad magnetometer data, has reset the yaw to anothter source of data and has stopped further use of the magnetomer data

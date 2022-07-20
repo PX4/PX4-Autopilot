@@ -511,17 +511,22 @@ int TAP_ESC::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
+
 This module controls the TAP_ESC hardware via UART. It listens on the
 actuator_controls topics, does the mixing and writes the PWM outputs.
 
 ### Implementation
-Currently the module is implementd as a threaded version only, meaning that it
+
+Currently the module is implemented as a threaded version only, meaning that it
 runs in its own thread instead of on the work queue.
 
 ### Example
-The module is typically started with:
-tap_esc start -d /dev/ttyS2 -n <1-8>
 
+The module is typically started with:
+
+```
+tap_esc start -d /dev/ttyS2 -n <1-8>
+```
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("tap_esc", "driver");
