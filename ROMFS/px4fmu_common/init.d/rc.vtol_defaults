@@ -29,8 +29,6 @@ param set-default MPC_Z_VEL_MAX_DN 1.5
 param set-default MPC_JERK_MAX 4.5
 param set-default MPC_YAW_MODE 4
 
-param set-default NAV_ACC_RAD 3
-
 param set-default PWM_AUX_RATE 50
 param set-default PWM_MAIN_RATE 400
 
