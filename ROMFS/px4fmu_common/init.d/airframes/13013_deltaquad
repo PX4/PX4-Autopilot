@@ -90,7 +90,6 @@ param set-default MPC_ACC_HOR_MAX 2
 param set-default MPC_LAND_SPEED 1.2
 param set-default MPC_TILTMAX_LND 35
 param set-default MPC_Z_VEL_MAX_UP 1.5
-param set-default MPC_Z_VEL_MAX_DN 1.5
 param set-default MPC_HOLD_MAX_XY 0.5
 param set-default MPC_HOLD_MAX_Z 0.5
 param set-default MPC_TKO_RAMP_T 0.8
