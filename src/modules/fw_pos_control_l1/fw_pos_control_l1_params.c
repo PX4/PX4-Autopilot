@@ -381,7 +381,7 @@ PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 10.0f);
  * @max 15.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
 
@@ -406,7 +406,7 @@ PARAM_DEFINE_FLOAT(FW_TKO_PITCH_MIN, 10.0f);
  * @min 0.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_FLOAT(FW_LND_FLALT, 0.5f);
 
@@ -425,7 +425,7 @@ PARAM_DEFINE_FLOAT(FW_LND_FLALT, 0.5f);
  * @value 0 Disable the terrain estimate
  * @value 1 Use the terrain estimate to trigger the flare (only)
  * @value 2 Calculate landing glide slope relative to the terrain estimate
- * @group FW L1 Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_INT32(FW_LND_USETER, 1);
 
@@ -441,7 +441,7 @@ PARAM_DEFINE_INT32(FW_LND_USETER, 1);
  *
  * @boolean
  *
- * @group FW L1 Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_INT32(FW_LND_EARLYCFG, 0);
 
@@ -456,7 +456,7 @@ PARAM_DEFINE_INT32(FW_LND_EARLYCFG, 0);
  * @max 15.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_FLOAT(FW_LND_FL_PMIN, 2.5f);
 
@@ -471,7 +471,7 @@ PARAM_DEFINE_FLOAT(FW_LND_FL_PMIN, 2.5f);
  * @max 45.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_FLOAT(FW_LND_FL_PMAX, 15.0f);
 
@@ -487,7 +487,7 @@ PARAM_DEFINE_FLOAT(FW_LND_FL_PMAX, 15.0f);
  * @max 1.5
  * @decimal 2
  * @increment 0.01
- * @group FW L1 Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
 
@@ -503,7 +503,7 @@ PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
  * @min 0.2
  * @max 1.0
  * @increment 0.1
- * @group FW L1 Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 
@@ -1007,7 +1007,7 @@ PARAM_DEFINE_FLOAT(FW_WING_HEIGHT, 0.5);
  * @max 5.0
  * @decimal 1
  * @increment 0.1
- * @group FW L1 Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_FLOAT(FW_LND_FL_TIME, 1.0f);
 
@@ -1021,7 +1021,7 @@ PARAM_DEFINE_FLOAT(FW_LND_FL_TIME, 1.0f);
  * @max 1.0
  * @decimal 1
  * @increment 0.1
- * @group FW L1 Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_FLOAT(FW_LND_FL_SINK, 0.25f);
 
@@ -1033,7 +1033,7 @@ PARAM_DEFINE_FLOAT(FW_LND_FL_SINK, 0.25f);
  * @max 10.0
  * @decimal 1
  * @increment 1
- * @group FW L1 Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_FLOAT(FW_LND_TD_OFF, 3.0);
 
@@ -1052,7 +1052,7 @@ PARAM_DEFINE_FLOAT(FW_LND_TD_OFF, 3.0);
  * @value 0 Disable nudging
  * @value 1 Nudge approach angle
  * @value 2 Nudge approach path
- * @group FW L1 Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_INT32(FW_LND_NUDGE, 2);
 
@@ -1073,6 +1073,6 @@ PARAM_DEFINE_INT32(FW_LND_NUDGE, 2);
  * @max 3
  * @bit 0 Abort if terrain is not found
  * @bit 1 Abort if terrain times out (after a first successful measurement)
- * @group FW L1 Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_INT32(FW_LND_ABORT, 3);
