@@ -42,7 +42,6 @@
 #include <matrix/matrix/math.hpp>
 
 #include <mathlib/mathlib.h>
-#include <uORB/topics/rate_ctrl_status.h>
 
 class RateControl
 {
@@ -78,6 +77,12 @@ public:
 	void setSaturationStatus(const matrix::Vector<bool, 3> &saturation_positive,
 				 const matrix::Vector<bool, 3> &saturation_negative);
 
+	void clearSaturationStatus()
+	{
+		_control_allocator_saturation_negative.zero();
+		_control_allocator_saturation_positive.zero();
+	}
+
 	/**
 	 * Run one control loop cycle calculation
 	 * @param rate estimation of the current vehicle angular rate
@@ -95,10 +100,9 @@ public:
 	void resetIntegral() { _rate_int.zero(); }
 
 	/**
-	 * Get status message of controller for logging/debugging
-	 * @param rate_ctrl_status status message to fill with internal states
+	 * Get integral for logging/debugging
 	 */
-	void getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status);
+	const matrix::Vector3f &getIntegral() const { return _rate_int; }
 
 private:
 	void updateIntegral(matrix::Vector3f &rate_error, const float dt);
@@ -111,7 +115,7 @@ private:
 	matrix::Vector3f _gain_ff; ///< direct rate to torque feed forward gain only useful for helicopters
 
 	// States
-	matrix::Vector3f _rate_int; ///< integral term of the rate controller
+	matrix::Vector3f _rate_int{}; ///< integral term of the rate controller
 
 	// Feedback from control allocation
 	matrix::Vector<bool, 3> _control_allocator_saturation_negative;

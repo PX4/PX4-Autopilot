@@ -42,7 +42,6 @@ px4_add_module(
 		MulticopterRateControl.cpp
 		MulticopterRateControl.hpp
 	DEPENDS
-		circuit_breaker
 		mathlib
 		RateControl
 		px4_work_queue
