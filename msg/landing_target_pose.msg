@@ -1,6 +1,7 @@
 # Relative position of precision land target in navigation (body fixed, north aligned, NED) and inertial (world fixed, north aligned, NED) frames
 
-uint64 timestamp		# time since system start (microseconds)
+uint64 timestamp                # time since system start (microseconds)
+uint64 timestamp_sample         # the timestamp of the raw data (microseconds)
 
 bool is_static			# Flag indicating whether the landing target is static or moving with respect to the ground
 
