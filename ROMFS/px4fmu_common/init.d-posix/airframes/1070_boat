@@ -34,19 +34,16 @@ param set-default GND_MAX_ANG 0.6
 
 param set-default CA_AIRFRAME 9
 
-param set-default CA_ROTOR_COUNT 2
+param set-default CA_ROTOR_COUNT 1
 param set-default CA_ROTOR0_AX 1
 param set-default CA_ROTOR0_AZ 0
 param set-default CA_ROTOR0_KM 0
 param set-default CA_ROTOR0_PX -2
-param set-default CA_ROTOR0_PY -1
-param set-default CA_ROTOR1_AX 1
-param set-default CA_ROTOR1_AZ 0
-param set-default CA_ROTOR1_KM 0
-param set-default CA_ROTOR1_PX -2
-param set-default CA_ROTOR1_PY 1
-param set-default CA_R_REV 3
+param set-default CA_ROTOR0_PY 0
 
+# Thruster at MAIN1
 param set-default PWM_MAIN_FUNC1 101
-param set-default PWM_MAIN_FUNC2 102
+
+# Steering Servo at MAIN2
+param set-default PWM_MAIN_FUNC2 201
 

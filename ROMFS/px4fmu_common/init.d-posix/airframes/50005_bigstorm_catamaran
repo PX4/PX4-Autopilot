@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# @name Amewi Big Storm racing boat
+#
+# A generic boat with a thruster and a rudder (not thrust-vectored)
+#
+# @type Rover
+# @class Rover
+#
+# @output MAIN1 Thruster
+# @output MAIN5 Steering servo
+
+
+# Setup Rover default environment variables
+. ${R}etc/init.d/rc.rover_defaults
+
+# Enable control allocation & set airframe as Ackermann Rover (Throttle & Steering)
+param set-default SYS_CTRL_ALLOC 1
+param set-default CA_AIRFRAME 5
