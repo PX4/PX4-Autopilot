@@ -117,6 +117,7 @@ private:
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};             // airspeed 
     uORB::Subscription _airflow_aoa_sub{ORB_ID(airflow_aoa)};                           // angle of attack
     uORB::Subscription _airflow_slip_sub{ORB_ID(airflow_slip)};                         // angle of sideslip
+	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};     	// linear acceleration
     uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};     // local NED position
     uORB::Subscription _home_position_sub{ORB_ID(home_position)};						// home position
     uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};                 // vehicle attitude
@@ -143,6 +144,7 @@ private:
 	actuator_controls_s			_actuators {};			// actuator commands
 	manual_control_setpoint_s	_manual_control_setpoint {};			///< r/c channel data
 	vehicle_local_position_s	_local_pos {};			///< vehicle local position
+	vehicle_acceleration_s		_acceleration {};		///< vehicle acceleration
 	vehicle_attitude_s			_attitude {};			///< vehicle attitude
 	vehicle_attitude_setpoint_s	_attitude_sp {};		///< vehicle attitude setpoint
 	vehicle_angular_velocity_s 	_angular_vel {};		///< vehicle angular velocity
@@ -235,6 +237,7 @@ private:
 	void 		airflow_slip_poll();
 
 	void		vehicle_local_position_poll();
+	void		vehicle_acceleration_poll();
 	void		vehicle_attitude_poll();
 	void		vehicle_angular_velocity_poll();
 	void		vehicle_angular_acceleration_poll();

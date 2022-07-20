@@ -299,7 +299,7 @@ FixedwingPositionINDIControl::vehicle_attitude_poll()
         //PX4_INFO("attitude euler angles:\t%.4f\t%.4f\t%.4f", (double)e(0),(double)e(1),(double)e(2));
         //PX4_INFO("attitude quaternion:\t%.4f\t%.4f\t%.4f\t%.4f", (double)_att(0),(double)_att(1),(double)_att(2),(double)_att(3));
     }
-    if(hrt_absolute_time()-_attitude.timestamp > 50_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
+    if(hrt_absolute_time()-_attitude.timestamp > 20_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
         PX4_ERR("attitude sample is too old");
     }
 }
@@ -311,7 +311,7 @@ FixedwingPositionINDIControl::vehicle_angular_velocity_poll()
     //
     //PX4_INFO("angular velocity:\t%.4f\t%.4f\t%.4f", (double)_omega(0),(double)_omega(1),(double)_omega(2));
     _omega = Vector3f(_angular_vel.xyz);
-    if(hrt_absolute_time()-_angular_vel.timestamp > 50_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
+    if(hrt_absolute_time()-_angular_vel.timestamp > 20_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
         PX4_ERR("angular velocity sample is too old");
     }
 }
@@ -323,7 +323,7 @@ FixedwingPositionINDIControl::vehicle_angular_acceleration_poll()
 		_alpha = Vector3f(_angular_accel.xyz);
         //PX4_INFO("angular accel:\t%.4f\t%.4f\t%.4f", (double)_alpha(0),(double)_alpha(1),(double)_alpha(2));
     }
-    if(hrt_absolute_time()-_angular_accel.timestamp > 50_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
+    if(hrt_absolute_time()-_angular_accel.timestamp > 20_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
         PX4_ERR("angular acceleration sample is too old");
     }
 }
@@ -335,7 +335,7 @@ FixedwingPositionINDIControl::vehicle_local_position_poll()
     if (_vehicle_local_position_sub.update(&_local_pos)){
 		_pos = _R_ned_to_enu*Vector3f{_local_pos.x,_local_pos.y,_local_pos.z};
         _vel = _R_ned_to_enu*Vector3f{_local_pos.vx,_local_pos.vy,_local_pos.vz};
-        _acc = _R_ned_to_enu*Vector3f{_local_pos.ax,_local_pos.ay,_local_pos.az};
+        //_acc = _R_ned_to_enu*Vector3f{_local_pos.ax,_local_pos.ay,_local_pos.az}; // take accel from faster message
         // transform to soaring frame
         _pos = _pos - _R_ned_to_enu * Vector3f{_origin_N, _origin_E, _origin_D};
 
@@ -345,6 +345,19 @@ FixedwingPositionINDIControl::vehicle_local_position_poll()
     }
     if(hrt_absolute_time()-_local_pos.timestamp > 50_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
         PX4_ERR("local position sample is too old");
+    }
+}
+
+void
+FixedwingPositionINDIControl::vehicle_acceleration_poll()
+{
+    //vehicle_local_position_s pos;
+    if (_vehicle_acceleration_sub.update(&_acceleration)){
+        Dcmf R_ib(_att);
+        _acc = R_ib*Vector3f(_acceleration.xyz) - Vector3f{0.f,0.f,9.81f};
+    }
+    if(hrt_absolute_time()-_acceleration.timestamp > 20_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
+        PX4_ERR("linear acceleration sample is too old");
     }
 }
 
@@ -628,6 +641,7 @@ FixedwingPositionINDIControl::Run()
         manual_control_setpoint_poll();
         vehicle_local_position_poll();
         vehicle_attitude_poll();
+        vehicle_acceleration_poll();
         vehicle_angular_velocity_poll();
         vehicle_angular_acceleration_poll();
         soaring_controller_status_poll();
