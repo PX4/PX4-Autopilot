@@ -188,8 +188,6 @@ static int load_sdcard_images(const char *name, uint64_t loadaddr)
 {
 	struct stat file_stat;
 
-	_alert("Loading %s\n", name);
-
 	int mmcsd_fd = open(name, O_RDONLY);
 
 	if (mmcsd_fd > 0) {
@@ -197,11 +195,13 @@ static int load_sdcard_images(const char *name, uint64_t loadaddr)
 		size_t got = read(mmcsd_fd, (void *)loadaddr, file_stat.st_size);
 
 		if (got > 0 && got == (size_t)file_stat.st_size) {
+			_alert("Loading %s OK\n", name);
 			close(mmcsd_fd);
 			return 0;
 		}
 	}
 
+	_alert("Loading %s failed\n", name);
 	close(mmcsd_fd);
 	return -1;
 }
