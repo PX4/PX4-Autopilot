@@ -20,6 +20,14 @@ if MODULES_SENSORS
         bool "Include vehicle air data"
         default y
 
+    config SENSORS_VEHICLE_ANGULAR_VELOCITY
+        bool "Include vehicle angular velocity"
+        default y
+
+    config SENSORS_VEHICLE_ACCELERATION
+        bool "Include vehicle acceleration"
+        default y
+
     config SENSORS_VEHICLE_GPS_POSITION
         bool "Include vehicle gps position"
         default y
