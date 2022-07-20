@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
 /**
  * L1 controller roll slew rate limit.
  *
- * The maxium change in roll angle setpoint per second.
+ * The maximum change in roll angle setpoint per second.
  *
  * @unit deg/s
  * @min 0

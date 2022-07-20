@@ -9,7 +9,7 @@ bool cs_yaw_align             #  1 - true if the filter yaw alignment is complet
 bool cs_gps                   #  2 - true if GPS measurement fusion is intended
 bool cs_opt_flow              #  3 - true if optical flow measurements fusion is intended
 bool cs_mag_hdg               #  4 - true if a simple magnetic yaw heading fusion is intended
-bool cs_mag_3d                #  5 - true if 3-axis magnetometer measurement fusion is inteded
+bool cs_mag_3d                #  5 - true if 3-axis magnetometer measurement fusion is intended
 bool cs_mag_dec               #  6 - true if synthetic magnetic declination measurements fusion is intended
 bool cs_in_air                #  7 - true when the vehicle is airborne
 bool cs_wind                  #  8 - true when wind velocity is being estimated

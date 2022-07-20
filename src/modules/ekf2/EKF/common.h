@@ -479,7 +479,7 @@ union filter_control_status_u {
 		uint32_t gps                     : 1; ///< 2 - true if GPS measurement fusion is intended
 		uint32_t opt_flow                : 1; ///< 3 - true if optical flow measurements fusion is intended
 		uint32_t mag_hdg                 : 1; ///< 4 - true if a simple magnetic yaw heading fusion is intended
-		uint32_t mag_3D                  : 1; ///< 5 - true if 3-axis magnetometer measurement fusion is inteded
+		uint32_t mag_3D                  : 1; ///< 5 - true if 3-axis magnetometer measurement fusion is intended
 		uint32_t mag_dec                 : 1; ///< 6 - true if synthetic magnetic declination measurements fusion is intended
 		uint32_t in_air                  : 1; ///< 7 - true when the vehicle is airborne
 		uint32_t wind                    : 1; ///< 8 - true when wind velocity is being estimated
