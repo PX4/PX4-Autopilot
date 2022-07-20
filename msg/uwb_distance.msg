@@ -8,8 +8,8 @@ uint32 	sessionid		# UWB SessionID
 uint32 	time_offset		# Time between Ranging Rounds in ms
 uint16 	status			# status feedback #
 
-uint16[12] anchor_distance	# distance in cm to each UWB Anchor (UWB Device wich takes part in Ranging)
+uint16[12] anchor_distance	# distance in cm to each UWB Anchor (UWB Device which takes part in Ranging)
 bool[12] nlos			# Visual line of sight yes/no
-float32[12] aoafirst		# Angle of arrival of first incomming RX msg
+float32[12] aoafirst		# Angle of arrival of first incoming RX msg
 
 float32[3] position		# Position of the Landing point in relation to the Drone (x,y,z in Meters NED)
