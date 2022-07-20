@@ -239,7 +239,7 @@ PARAM_DEFINE_FLOAT(NPFG_PERIOD_SF, 1.5f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW L1 Control
+ * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_THR_TRIM, 0.6f);
 
@@ -250,7 +250,7 @@ PARAM_DEFINE_FLOAT(FW_THR_TRIM, 0.6f);
  *
  * @min 0.0
  * @max 1.0
- * @group FW L1 Control
+ * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
 
@@ -264,7 +264,7 @@ PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
  * @max 0.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -30.0f);
 
@@ -278,7 +278,7 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -30.0f);
  * @max 60.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 30.0f);
 
@@ -308,7 +308,7 @@ PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW L1 Control
+ * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
 
@@ -329,7 +329,7 @@ PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW L1 Control
+ * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
 
@@ -349,7 +349,7 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
  * @max 0.4
  * @decimal 2
  * @increment 0.01
- * @group FW L1 Control
+ * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.0f);
 
