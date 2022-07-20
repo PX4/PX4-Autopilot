@@ -8,7 +8,6 @@
 . ${R}etc/init.d/rc.vtol_defaults
 
 param set-default FW_L1_PERIOD 12
-param set-default FW_MAN_P_MAX 30
 param set-default FW_PR_FF 0.2
 param set-default FW_PR_P 0.9
 param set-default FW_PSP_OFF 2

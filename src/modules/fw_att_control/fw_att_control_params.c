@@ -455,7 +455,7 @@ PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
  * @increment 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 45.0f);
+PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 30.0f);
 
 /**
  * Flaps setting during take-off
