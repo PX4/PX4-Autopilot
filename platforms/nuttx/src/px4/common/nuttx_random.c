@@ -41,6 +41,4 @@ size_t px4_get_secure_random(uint8_t *out,
 	arc4random_buf(out, outlen);
 	return outlen;
 }
-#else
-#error CONFIG_CRYPTO_RANDOM_POOL has to be defined
 #endif
