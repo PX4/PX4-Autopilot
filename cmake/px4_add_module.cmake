@@ -202,6 +202,9 @@ function(px4_add_module)
 	set_target_properties(${MODULE} PROPERTIES STACK_MAX ${STACK_MAX})
 
 	if(${PX4_PLATFORM} STREQUAL "nuttx")
+		# double the allocated stacks for 64 bit nuttx targets
+		set(STACK_MAIN "${STACK_MAIN} * (__SIZEOF_POINTER__ >> 2)")
+
 		target_compile_options(${MODULE} PRIVATE -Wframe-larger-than=${STACK_MAX})
 	endif()
 
