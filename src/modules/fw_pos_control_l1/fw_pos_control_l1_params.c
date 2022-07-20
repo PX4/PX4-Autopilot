@@ -266,7 +266,7 @@ PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
  * @increment 0.5
  * @group FW L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
+PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -30.0f);
 
 /**
  * Maximum pitch angle
@@ -280,7 +280,7 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
  * @increment 0.5
  * @group FW L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
+PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 30.0f);
 
 /**
  * Maximum roll angle
