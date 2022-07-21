@@ -52,11 +52,16 @@ args = parser.parse_args()
 ## GLOBAL VARIABLES
 verbose = args.verbose
 build_configs = []
+
 excluded_manufacturers = ['atlflight']
+
+excluded_labels = []
+'''
 excluded_labels = [
     'stackcheck', 'nolockstep', 'replay', 'test',
     'uavcanv1' # TODO: fix and enable
     ]
+'''
 
 DEFCONFIG_FILE_PATH = 'nuttx-config/nsh/defconfig'
 DEFCONFIG_PRODUCTID_KEY = 'CDCACM_PRODUCTID'
@@ -77,6 +82,7 @@ def process_target_firmware_prototype_file(manufacturer, board, file_path):
         if verbose: print("Can't process the firmware.prototype file because it isn't!! : {}".format(file_path))
         return None
     target_name = manufacturer + '_' + board
+
     with open(file_path, 'r') as f:
         data = json.load(f)
         board_info_dict = dict()
@@ -95,11 +101,12 @@ def process_target_defconfig_file(file_path):
         return None
     board_info_dict = dict()
     try:
-        kconf.load_config(file_path, replace=True) # Load the Kconfig symbols from the file
+        kconf.load_config(file_path, replace=True)
+        # Product ID and Vendor IDs are specified in HEX format, so convert it to integer
         if DEFCONFIG_PRODUCTID_KEY in kconf.syms:
-            board_info_dict['product_id'] = kconf.syms[DEFCONFIG_PRODUCTID_KEY].str_value
+            board_info_dict['product_id'] = int(kconf.syms[DEFCONFIG_PRODUCTID_KEY].str_value, 16)
         if DEFCONFIG_VENDORID_KEY in kconf.syms:
-            board_info_dict['vendor_id'] = kconf.syms[DEFCONFIG_VENDORID_KEY].str_value
+            board_info_dict['vendor_id'] = int(kconf.syms[DEFCONFIG_VENDORID_KEY].str_value, 16)
         if DEFCONFIG_PRODUCTSTR_KEY in kconf.syms:
             board_info_dict['product_name'] = kconf.syms[DEFCONFIG_PRODUCTSTR_KEY].str_value
         if DEFCONFIG_VENDORSTR_KEY in kconf.syms:
@@ -123,25 +130,27 @@ def print_board_information(board_list: list):
     for board in board_list:
         board_info = dict()
 
-        # Process the defconfig file to get USB Autoconnect info
-        if (os.path.isfile(os.path.join(board['path'], DEFCONFIG_FILE_PATH))):
-            defconfig_result = process_target_defconfig_file(os.path.join(board['path'], DEFCONFIG_FILE_PATH))
-            if defconfig_result is not None:
-                board_info = {**board_info, **defconfig_result}
-            else:
-                if verbose: print("Error, Couldn't parse defconfig for the board: {} - {}".format(board['manufacturer'], board['board']))
-        else:
-            if verbose: print("Error, didn't detect valid defconfig for the board! : {} - {}".format(board['manufacturer'], board['board']))
-
         # Process the firmware.prototype file to get general information
         if (os.path.isfile(os.path.join(board['path'], FIRMWRAE_PROTOTYPE_FILE_PATH))):
             firmware_prototype_result = process_target_firmware_prototype_file(board['manufacturer'], board['board'], os.path.join(board['path'], FIRMWRAE_PROTOTYPE_FILE_PATH))
             if firmware_prototype_result is not None:
                 board_info = {**board_info, **firmware_prototype_result}
             else:
-                if verbose: print("Firmware.prototype result was None for : {} - {}".format(board['manufacturer'], board['board']))
+                if verbose: print("Skipping since firmware.prototype isn't valid! : {} - {}".format(board['manufacturer'], board['board']))
+                continue # Skip this board as firmware.prototype file isn't valid
         else:
-            if verbose: print("Error, didn't detect valid firmware.prototype for the board! : {} - {}".format(board['manufacturer'], board['board']))
+            if verbose: print("Skipping since firmware.prototype doesn't exist! : {} - {}".format(board['manufacturer'], board['board']))
+            continue # Skip this board as firmware.prototype file doesn't exist
+
+        # Process the defconfig file to get USB Autoconnect info
+        if (os.path.isfile(os.path.join(board['path'], DEFCONFIG_FILE_PATH))):
+            defconfig_result = process_target_defconfig_file(os.path.join(board['path'], DEFCONFIG_FILE_PATH))
+            if defconfig_result is not None:
+                board_info = {**board_info, **defconfig_result}
+            else:
+                if verbose: print("Warning, Couldn't parse defconfig for the board: {} - {}".format(board['manufacturer'], board['board']))
+        else:
+            if verbose: print("Warning, didn't detect valid defconfig for the board : {} - {}".format(board['manufacturer'], board['board']))
 
         # Process the *.px4board files for getting build variants
         board_variants = []
@@ -152,6 +161,7 @@ def print_board_information(board_list: list):
                     board_variants.append({"name": label}) # For now we only have the 'name' attribute (e.g. default, rtps, etc.)
         board_info['build_variants'] = board_variants
 
+        # Add the board informatino to the list
         board_info_list.append(board_info)
 
     # Include binary URL information
