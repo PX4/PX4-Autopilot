@@ -111,13 +111,54 @@ public:
 	const Vector3f getFlowGyro() const { return _flow_sample_delayed.gyro_xyz * (1.f / _flow_sample_delayed.dt); }
 	const Vector3f &getFlowGyroIntegral() const { return _flow_sample_delayed.gyro_xyz; }
 
-	void getHeadingInnov(float &heading_innov) const { heading_innov = _heading_innov; }
-	void getHeadingInnovVar(float &heading_innov_var) const { heading_innov_var = _heading_innov_var; }
-	void getHeadingInnovRatio(float &heading_innov_ratio) const { heading_innov_ratio = _yaw_test_ratio; }
+	void getHeadingInnov(float &heading_innov) const {
+		if (_control_status.flags.mag_hdg) {
+			heading_innov = _aid_src_mag_heading.innovation;
 
-	void getMagInnov(float mag_innov[3]) const { _mag_innov.copyTo(mag_innov); }
-	void getMagInnovVar(float mag_innov_var[3]) const { _mag_innov_var.copyTo(mag_innov_var); }
-	void getMagInnovRatio(float &mag_innov_ratio) const { mag_innov_ratio = _mag_test_ratio.max(); }
+		} else if (_control_status.flags.mag_3D) {
+			heading_innov = Vector3f(_aid_src_mag.innovation).max();
+
+		} else if (_control_status.flags.gps_yaw) {
+			heading_innov = _aid_src_gnss_yaw.innovation;
+
+		} else if (_control_status.flags.ev_yaw) {
+			heading_innov = _aid_src_ev_yaw.innovation;
+		}
+	}
+
+	void getHeadingInnovVar(float &heading_innov_var) const {
+		if (_control_status.flags.mag_hdg) {
+			heading_innov_var = _aid_src_mag_heading.innovation_variance;
+
+		} else if (_control_status.flags.mag_3D) {
+			heading_innov_var = Vector3f(_aid_src_mag.innovation_variance).max();
+
+		} else if (_control_status.flags.gps_yaw) {
+			heading_innov_var = _aid_src_gnss_yaw.innovation_variance;
+
+		} else if (_control_status.flags.ev_yaw) {
+			heading_innov_var = _aid_src_ev_yaw.innovation_variance;
+		}
+	}
+
+	void getHeadingInnovRatio(float &heading_innov_ratio) const {
+		if (_control_status.flags.mag_hdg) {
+			heading_innov_ratio = _aid_src_mag_heading.test_ratio;
+
+		} else if (_control_status.flags.mag_3D) {
+			heading_innov_ratio = Vector3f(_aid_src_mag.test_ratio).max();
+
+		} else if (_control_status.flags.gps_yaw) {
+			heading_innov_ratio = _aid_src_gnss_yaw.test_ratio;
+
+		} else if (_control_status.flags.ev_yaw) {
+			heading_innov_ratio = _aid_src_ev_yaw.test_ratio;
+		}
+	}
+
+	void getMagInnov(float mag_innov[3]) const { memcpy(mag_innov, _aid_src_mag.innovation, sizeof(_aid_src_mag.innovation)); }
+	void getMagInnovVar(float mag_innov_var[3]) const { memcpy(mag_innov_var, _aid_src_mag.innovation_variance, sizeof(_aid_src_mag.innovation_variance)); }
+	void getMagInnovRatio(float &mag_innov_ratio) const { mag_innov_ratio = Vector3f(_aid_src_mag.test_ratio).max(); }
 
 	void getDragInnov(float drag_innov[2]) const { _drag_innov.copyTo(drag_innov); }
 	void getDragInnovVar(float drag_innov_var[2]) const { _drag_innov_var.copyTo(drag_innov_var); }
@@ -354,8 +395,14 @@ public:
 
 	const auto &aid_src_fake_pos() const { return _aid_src_fake_pos; }
 
+	const auto &aid_src_ev_yaw() const { return _aid_src_ev_yaw; }
+
+	const auto &aid_src_gnss_yaw() const { return _aid_src_gnss_yaw; }
 	const auto &aid_src_gnss_vel() const { return _aid_src_gnss_vel; }
 	const auto &aid_src_gnss_pos() const { return _aid_src_gnss_pos; }
+
+	const auto &aid_src_mag_heading() const { return _aid_src_mag_heading; }
+	const auto &aid_src_mag() const { return _aid_src_mag; }
 
 private:
 
@@ -391,6 +438,7 @@ private:
 	// variables used when position data is being fused using a relative position odometry model
 	bool _fuse_hpos_as_odom{false};		///< true when the NE position data is being fused using an odometry assumption
 	Vector2f _hpos_pred_prev{};		///< previous value of NE position state used by odometry fusion (m)
+	float _yaw_pred_prev{};                 ///< previous value of yaw state used by odometry fusion (m)
 	bool _hpos_prev_available{false};	///< true when previous values of the estimate and measurement are available for use
 	Dcmf _R_ev_to_ekf;			///< transformation matrix that rotates observations from the EV to the EKF navigation frame, initialized with Identity
 	bool _inhibit_ev_yaw_use{false};	///< true when the vision yaw data should not be used (e.g.: NE fusion requires true North)
@@ -418,10 +466,7 @@ private:
 	uint64_t _time_last_flow_terrain_fuse{0}; ///< time the last fusion of optical flow measurements for terrain estimation were performed (uSec)
 	uint64_t _time_last_beta_fuse{0};	///< time the last fusion of synthetic sideslip measurements were performed (uSec)
 	uint64_t _time_last_zero_velocity_fuse{0}; ///< last time of zero velocity update (uSec)
-	uint64_t _time_last_gps_yaw_fuse{0};	///< time the last fusion of GPS yaw measurements were performed (uSec)
 	uint64_t _time_last_gps_yaw_data{0};	///< time the last GPS yaw measurement was available (uSec)
-	uint64_t _time_last_mag_heading_fuse{0};
-	uint64_t _time_last_mag_3d_fuse{0};
 	uint64_t _time_last_healthy_rng_data{0};
 	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
 
@@ -470,12 +515,6 @@ private:
 	Vector3f _aux_vel_innov{};	///< horizontal auxiliary velocity innovations: (m/sec)
 	Vector3f _aux_vel_innov_var{};	///< horizontal auxiliary velocity innovation variances: ((m/sec)**2)
 
-	float _heading_innov{0.0f};	///< heading measurement innovation (rad)
-	float _heading_innov_var{0.0f};	///< heading measurement innovation variance (rad**2)
-
-	Vector3f _mag_innov{};		///< earth magnetic field innovations (Gauss)
-	Vector3f _mag_innov_var{};	///< earth magnetic field innovation variance (Gauss**2)
-
 	Vector2f _drag_innov{};		///< multirotor drag measurement innovation (m/sec**2)
 	Vector2f _drag_innov_var{};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
 
@@ -505,8 +544,14 @@ private:
 
 	estimator_aid_source_2d_s _aid_src_fake_pos{};
 
+	estimator_aid_source_1d_s _aid_src_ev_yaw{};
+
+	estimator_aid_source_1d_s _aid_src_gnss_yaw{};
 	estimator_aid_source_3d_s _aid_src_gnss_vel{};
 	estimator_aid_source_3d_s _aid_src_gnss_pos{};
+
+	estimator_aid_source_1d_s _aid_src_mag_heading{};
+	estimator_aid_source_3d_s _aid_src_mag{};
 
 	// output predictor states
 	Vector3f _delta_angle_corr{};	///< delta angle correction vector (rad)
@@ -606,12 +651,12 @@ private:
 	void predictCovariance();
 
 	// ekf sequential fusion of magnetometer measurements
-	bool fuseMag(const Vector3f &mag, bool update_all_states = true);
+	bool fuseMag(const Vector3f &mag, estimator_aid_source_3d_s &aid_src_mag, bool update_all_states = true);
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	// innovation : prediction - measurement
 	// variance : observaton variance
-	bool fuseYaw(const float innovation, const float variance);
+	bool fuseYaw(const float innovation, const float variance, estimator_aid_source_1d_s& aid_src_status);
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
 	void fuseGpsYaw();
@@ -686,10 +731,11 @@ private:
 	bool fuseVerticalPosition(float innov, float innov_gate, float obs_var,
 				  float &innov_var, float &test_ratio);
 
+	void updateGpsYaw(const gpsSample &gps_sample);
 	void updateGpsVel(const gpsSample &gps_sample);
-	void fuseGpsVel();
-
 	void updateGpsPos(const gpsSample &gps_sample);
+
+	void fuseGpsVel();
 	void fuseGpsPos();
 
 	// calculate optical flow body angular rate compensation

@@ -650,10 +650,19 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	// fake position
 	PublishAidSourceStatus(_ekf.aid_src_fake_pos(), _status_fake_pos_pub_last, _estimator_aid_src_fake_pos_pub);
 
-	// GNSS velocity & position
+	// EV yaw
+	PublishAidSourceStatus(_ekf.aid_src_ev_yaw(), _status_ev_yaw_pub_last, _estimator_aid_src_ev_yaw_pub);
+
+	// GNSS yaw/velocity/position
+	PublishAidSourceStatus(_ekf.aid_src_gnss_yaw(), _status_gnss_yaw_pub_last, _estimator_aid_src_gnss_yaw_pub);
 	PublishAidSourceStatus(_ekf.aid_src_gnss_vel(), _status_gnss_vel_pub_last, _estimator_aid_src_gnss_vel_pub);
 	PublishAidSourceStatus(_ekf.aid_src_gnss_pos(), _status_gnss_pos_pub_last, _estimator_aid_src_gnss_pos_pub);
 
+	// mag heading
+	PublishAidSourceStatus(_ekf.aid_src_mag_heading(), _status_mag_heading_pub_last, _estimator_aid_src_mag_heading_pub);
+
+	// mag 3d
+	PublishAidSourceStatus(_ekf.aid_src_mag(), _status_mag_pub_last, _estimator_aid_src_mag_pub);
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
@@ -1368,9 +1377,6 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.reject_ver_vel                  = _ekf.innov_check_fail_status_flags().reject_ver_vel;
 		status_flags.reject_hor_pos                  = _ekf.innov_check_fail_status_flags().reject_hor_pos;
 		status_flags.reject_ver_pos                  = _ekf.innov_check_fail_status_flags().reject_ver_pos;
-		status_flags.reject_mag_x                    = _ekf.innov_check_fail_status_flags().reject_mag_x;
-		status_flags.reject_mag_y                    = _ekf.innov_check_fail_status_flags().reject_mag_y;
-		status_flags.reject_mag_z                    = _ekf.innov_check_fail_status_flags().reject_mag_z;
 		status_flags.reject_yaw                      = _ekf.innov_check_fail_status_flags().reject_yaw;
 		status_flags.reject_airspeed                 = _ekf.innov_check_fail_status_flags().reject_airspeed;
 		status_flags.reject_sideslip                 = _ekf.innov_check_fail_status_flags().reject_sideslip;

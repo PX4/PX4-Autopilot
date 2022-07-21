@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,15 +39,42 @@
 /* #include <mathlib/mathlib.h> */
 #include "ekf.h"
 
+void Ekf::updateGpsYaw(const gpsSample &gps_sample)
+{
+	auto &gps_yaw = _aid_src_gnss_yaw;
+	resetEstimatorAidStatusFlags(gps_yaw);
+
+	if (PX4_ISFINITE(gps_sample.yaw)) {
+		// initially populate for estimator_aid_src_gnss_yaw logging
+
+		// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
+		const float measured_hdg = wrap_pi(_gps_sample_delayed.yaw + _gps_yaw_offset);
+
+		gps_yaw.observation = measured_hdg;
+		gps_yaw.observation_variance = sq(fmaxf(_params.gps_heading_noise, 1.0e-2f));
+
+		// define the predicted antenna array vector and rotate into earth frame
+		const Vector3f ant_vec_bf = {cosf(_gps_yaw_offset), sinf(_gps_yaw_offset), 0.0f};
+		const Vector3f ant_vec_ef = _R_to_earth * ant_vec_bf;
+		const float predicted_hdg = atan2f(ant_vec_ef(1), ant_vec_ef(0));
+		gps_yaw.innovation = wrap_pi(predicted_hdg - gps_yaw.observation);
+
+		gps_yaw.fusion_enabled = _control_status.flags.gps_yaw;
+
+		gps_yaw.timestamp_sample = gps_sample.time_us;
+	}
+}
+
 void Ekf::updateGpsVel(const gpsSample &gps_sample)
 {
+	auto &gps_vel = _aid_src_gnss_vel;
+	resetEstimatorAidStatus(gps_vel);
+
 	const float vel_var = sq(gps_sample.sacc);
 	const Vector3f obs_var{vel_var, vel_var, vel_var * sq(1.5f)};
 
 	// innovation gate size
 	const float innov_gate = fmaxf(_params.gps_vel_innov_gate, 1.f);
-
-	auto &gps_vel = _aid_src_gnss_vel;
 
 	for (int i = 0; i < 3; i++) {
 		gps_vel.observation[i] = gps_sample.vel(i);
@@ -72,6 +99,9 @@ void Ekf::updateGpsVel(const gpsSample &gps_sample)
 
 void Ekf::updateGpsPos(const gpsSample &gps_sample)
 {
+	auto &gps_pos = _aid_src_gnss_pos;
+	resetEstimatorAidStatus(gps_pos);
+
 	Vector3f position;
 	position(0) = gps_sample.pos(0);
 	position(1) = gps_sample.pos(1);
@@ -99,8 +129,6 @@ void Ekf::updateGpsPos(const gpsSample &gps_sample)
 
 	// innovation gate size
 	float innov_gate = fmaxf(_params.gps_pos_innov_gate, 1.f);
-
-	auto &gps_pos = _aid_src_gnss_pos;
 
 	for (int i = 0; i < 3; i++) {
 		gps_pos.observation[i] = position(i);
