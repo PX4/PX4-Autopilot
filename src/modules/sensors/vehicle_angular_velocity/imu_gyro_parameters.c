@@ -80,7 +80,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF_BW, 20.0f);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 60.0f);
+PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 50.0f);
 
 /**
 * Gyro control data maximum publication rate
@@ -121,7 +121,7 @@ PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 400);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 30.0f);
+PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 20.0f);
 
 /**
 * IMU gyro dynamic notch filtering

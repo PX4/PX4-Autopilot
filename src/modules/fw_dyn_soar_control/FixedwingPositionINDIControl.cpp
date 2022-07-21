@@ -205,7 +205,7 @@ FixedwingPositionINDIControl::airspeed_poll()
 			airspeed_valid = true;
 
 			_airspeed_last_valid = airspeed_validated.timestamp;
-			_airspeed = airspeed_validated.calibrated_airspeed_m_s;
+			_airspeed = airspeed_validated.true_airspeed_m_s;
 		}
 
 	} else {
@@ -739,6 +739,9 @@ FixedwingPositionINDIControl::Run()
                 _soaring_controller_position_setpoint.pos[i] = pos_ref(i);
                 _soaring_controller_position_setpoint.vel[i] = vel_ref(i);
                 _soaring_controller_position_setpoint.acc[i] = acc_ref(i);
+                _soaring_controller_position_setpoint.f_command[i] = _f_command(i);
+                _soaring_controller_position_setpoint.m_command[i] = _m_command(i);
+                _soaring_controller_position_setpoint.w_err[i] = _w_err(i);
             }
             _soaring_controller_position_setpoint_pub.publish(_soaring_controller_position_setpoint);
 
@@ -1189,7 +1192,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     f_command(0) = _lp_filter_ctrl0[0].apply(f_command(0));
     f_command(1) = _lp_filter_ctrl0[1].apply(f_command(1));
     f_command(2) = _lp_filter_ctrl0[2].apply(f_command(2));
-
+    _f_command = f_command;
     // limit maximum lift force by the maximum lift force, the aircraft can produce (assume max force at 12° aoa)
     //PX4_INFO("force current, command: \t%.2f\t%.2f", (double)sqrtf(f_current_filtered*f_current_filtered), (double)sqrtf(f_command*f_command));
 
@@ -1198,7 +1201,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // ====================================================================
     if (_switch_saturation){
         float speed = vel_body*vel_body;
-        // compute amximum achievable force
+        // compute maximum achievable force
         float f_max;
         if (speed>_stall_speed){
             f_max = -factor*sqrtf(vel_body*vel_body)*(_C_L0 + _C_L1*0.25f); // assume stall at 15° AoA
@@ -1292,6 +1295,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
                 w_err = (-2.f*M_PI_F-(float)fmod(q_err.angle(),2.f*M_PI_F))*q_err.axis();
             }
         }
+        _w_err = w_err;
 
         // compute rot acc command
         rot_acc_command = _K_q*w_err + _K_w*(Vector3f{0.f,0.f,0.f}-_omega);
@@ -1317,6 +1321,9 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
         omega_turn_ref = sqrtf(acc_perp*acc_perp) / (_stall_speed) * R_bi * omega_turn_ref_normalized.normalized();
         //PX4_ERR("No valid airspeed message detected or airspeed too low");
     }
+
+    // apply some smoothing since we don't want HF components in our rudder output
+    omega_turn_ref(2) = _lp_filter_rud.apply(omega_turn_ref(2));
     
     // transform rate vector to body frame
     float scaler = (_stall_speed*_stall_speed)/fmaxf(sqrtf(vel_body*vel_body)*vel_body(0), _stall_speed*_stall_speed);
@@ -1355,6 +1362,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
     omega_filtered(0) = _lp_filter_omega_2[0].apply(_omega(0));
     omega_filtered(1) = _lp_filter_omega_2[1].apply(_omega(1));
     omega_filtered(2) = _lp_filter_omega_2[2].apply(_omega(2));
+    //omega_filtered = _omega; //TODO: remove
     // compute moments
     Vector3f moment;
     moment(0) = _k_ail*q*_actuators.control[actuator_controls_s::INDEX_ROLL] - _k_d_roll*q*_omega(0);
@@ -1368,6 +1376,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
     // No filter for alpha, since it is already filtered...
     Vector3f alpha_filtered = _alpha;
     Vector3f moment_command = _inertia * (ctrl - alpha_filtered) + moment_filtered;
+    _m_command = R_ib.transpose()*moment_command;
     // perform dynamic inversion
     Vector3f deflection;
     deflection(0) = (moment_command(0) + _k_d_roll*q*_omega(0))/fmaxf((_k_ail*q),0.0001f);
