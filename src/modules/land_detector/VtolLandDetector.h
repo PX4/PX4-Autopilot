@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,15 +33,15 @@
 
 /**
  * @file VtolLandDetector.h
- * Land detection implementation for VTOL also called hybrids.
+ * Land detection implementation for VTOLs.
+ * It uses the MC land detector in hover, while land detection in FW
+ * is 1:1 linked to the (boolean) armed state.
  *
  * @author Roman Bapst <bapstr@gmail.com>
  * @author Julian Oes <julian@oes.ch>
  */
 
 #pragma once
-
-#include <uORB/topics/airspeed_validated.h>
 
 #include "MulticopterLandDetector.h"
 
@@ -59,17 +59,6 @@ protected:
 	bool _get_landed_state() override;
 	bool _get_maybe_landed_state() override;
 	bool _get_freefall_state() override;
-
-private:
-	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
-
-	bool _was_in_air{false}; /**< indicates whether the vehicle was in the air in the previous iteration */
-	float _airspeed_filtered{0.0f}; /**< low pass filtered airspeed */
-
-	DEFINE_PARAMETERS_CUSTOM_PARENT(
-		MulticopterLandDetector,
-		(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>) _param_lndfw_airspd_max
-	);
 };
 
 } // namespace land_detector
