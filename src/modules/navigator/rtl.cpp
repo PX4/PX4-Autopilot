@@ -241,8 +241,6 @@ void RTL::find_RTL_destination()
 
 void RTL::on_activation()
 {
-	setLoiterDone(false);
-
 	// if a mission landing is desired we should only execute mission navigation mode if we currently are in fw mode
 	// In multirotor mode no landing pattern is required so we can just navigate to the land point directly and don't need to run mission
 	_should_engange_mission_for_landing = (_destination.type == RTL_DESTINATION_MISSION_LANDING)
@@ -290,8 +288,6 @@ void RTL::on_activation()
 		// Otherwise go straight to return
 		_rtl_state = RTL_STATE_RETURN;
 	}
-
-	setLoiterDone(_rtl_state > RTL_STATE_LOITER);
 
 	// reset cruising speed and throttle to default for RTL
 	_navigator->set_cruising_speed();
@@ -640,8 +636,6 @@ void RTL::advance_rtl()
 		break;
 
 	case RTL_STATE_LOITER:
-
-		setLoiterDone(true);
 
 		if (vtol_in_fw_mode) {
 			_rtl_state = RTL_STATE_TRANSITION_TO_MC;

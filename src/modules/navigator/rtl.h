@@ -82,6 +82,19 @@ public:
 		RTL_CURRENT_HEADING,
 	};
 
+	enum RTLState {
+		RTL_STATE_NONE = 0,
+		RTL_STATE_CLIMB,
+		RTL_STATE_RETURN,
+		RTL_STATE_DESCEND,
+		RTL_STATE_LOITER,
+		RTL_STATE_TRANSITION_TO_MC,
+		RTL_MOVE_TO_LAND_HOVER_VTOL,
+		RTL_STATE_LAND,
+		RTL_STATE_LANDED,
+		RTL_STATE_HEAD_TO_CENTER,
+	};
+
 	void on_inactivation() override;
 	void on_inactive() override;
 	void on_activation() override;
@@ -93,12 +106,11 @@ public:
 
 	int get_rtl_type() const { return _param_rtl_type.get(); }
 
-	void setLoiterDone(bool done) { _loiter_done = done; }
-
-	bool getLoiterDone() { return _loiter_done; }
-
 	void get_rtl_xy_z_speed(float &xy, float &z);
+
 	matrix::Vector2f get_wind();
+
+	RTLState getRTLState() { return _rtl_state; }
 
 	bool getShouldEngageMissionForLanding() const { return _should_engange_mission_for_landing; }
 
@@ -121,18 +133,7 @@ private:
 
 	float getHoverLandSpeed();
 
-	enum RTLState {
-		RTL_STATE_NONE = 0,
-		RTL_STATE_CLIMB,
-		RTL_STATE_RETURN,
-		RTL_STATE_DESCEND,
-		RTL_STATE_LOITER,
-		RTL_STATE_TRANSITION_TO_MC,
-		RTL_MOVE_TO_LAND_HOVER_VTOL,
-		RTL_STATE_LAND,
-		RTL_STATE_LANDED,
-		RTL_STATE_HEAD_TO_CENTER,
-	} _rtl_state{RTL_STATE_NONE};
+	RTLState _rtl_state{RTL_STATE_NONE};
 
 	struct RTLPosition {
 		double lat;
@@ -160,7 +161,6 @@ private:
 	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
 	float _rtl_loiter_rad{50.0f};		// radius at which a fixed wing would loiter while descending
 
-	bool _loiter_done{false}; // this flag is set to true if RTL is active and we are past the loiter state
 	bool _rtl_alt_min{false};
 	bool _should_engange_mission_for_landing{false};
 
