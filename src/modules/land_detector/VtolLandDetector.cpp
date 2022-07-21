@@ -69,31 +69,7 @@ bool VtolLandDetector::_get_landed_state()
 		return !_armed;
 	}
 
-	// this is returned from the mutlicopter land detector
-	bool landed = MulticopterLandDetector::_get_landed_state();
-
-	// for vtol we additionally consider airspeed
-	airspeed_validated_s airspeed_validated{};
-	_airspeed_validated_sub.copy(&airspeed_validated);
-
-	if (hrt_elapsed_time(&airspeed_validated.timestamp) < 1_s && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)) {
-
-		_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * airspeed_validated.true_airspeed_m_s;
-
-	} else {
-		// if airspeed does not update, set it to zero and rely on multicopter land detector
-		_airspeed_filtered = 0.0f;
-	}
-
-	// only consider airspeed if we have been in air before to avoid false
-	// detections in the case of wind on the ground
-	if (_was_in_air && (_airspeed_filtered > _param_lndfw_airspd_max.get())) {
-		landed = false;
-	}
-
-	_was_in_air = !landed;
-
-	return landed;
+	return MulticopterLandDetector::_get_landed_state();
 }
 
 bool VtolLandDetector::_get_freefall_state()
