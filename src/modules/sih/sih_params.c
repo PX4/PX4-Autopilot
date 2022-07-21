@@ -405,7 +405,7 @@ PARAM_DEFINE_FLOAT(SIH_MAG_OFFSET_Z,  0.0f);
 PARAM_DEFINE_FLOAT(SIH_DISTSNSR_MIN, 0.0f);
 
 /**
- * distance sensor maximun range
+ * distance sensor maximum range
  *
  * @unit m
  * @min 0.0
@@ -417,7 +417,7 @@ PARAM_DEFINE_FLOAT(SIH_DISTSNSR_MIN, 0.0f);
 PARAM_DEFINE_FLOAT(SIH_DISTSNSR_MAX, 100.0f);
 
 /**
- * if >= 0 the distance sensor measures will be overriden by this value
+ * if >= 0 the distance sensor measures will be overridden by this value
  *
  * Absolute value superior to 10000 will disable distance sensor
  *

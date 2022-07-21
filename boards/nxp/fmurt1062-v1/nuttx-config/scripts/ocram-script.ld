@@ -43,7 +43,7 @@
  * 256Kib to OCRRAM, 128Kib ITCM and 128Kib DTCM.
  * This can be changed by using a dcd by minipulating
  * IOMUX GPR16 and GPR17.
- * The configuartion we will use is 384Kib to OCRRAM, 0Kib ITCM and
+ * The configuration we will use is 384Kib to OCRRAM, 0Kib ITCM and
  * 128Kib DTCM.
  *
  * This is the OCRAM inker script.

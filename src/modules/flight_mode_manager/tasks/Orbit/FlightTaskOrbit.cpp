@@ -52,7 +52,7 @@ FlightTaskOrbit::FlightTaskOrbit()
 bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 {
 	bool ret = true;
-	// save previous velocity and roatation direction
+	// save previous velocity and rotation direction
 	bool new_is_clockwise = _orbit_velocity > 0;
 	float new_radius = _orbit_radius;
 	float new_absolute_velocity = fabsf(_orbit_velocity);

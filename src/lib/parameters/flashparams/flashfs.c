@@ -1048,7 +1048,7 @@ int parameter_flashfs_init(sector_descriptor_t *fconfig, uint8_t *buffer, uint16
 
 	flash_entry_header_t *pf = find_entry(parameters_token);
 
-	/*  No paramaters */
+	/*  No parameters */
 
 	if (pf == NULL) {
 		size_t total_size = size + sizeof(flash_entry_header_t);
