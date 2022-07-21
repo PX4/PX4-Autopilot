@@ -305,16 +305,17 @@ private:
 	// controller frequency
 	const float _sample_frequency = 200.f;
 	// Low-Pass filters stage 1
-	const float _cutoff_frequency_1 = 30.f;
+	const float _cutoff_frequency_1 = 20.f;
 	math::LowPassFilter2p _lp_filter_accel[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// linear acceleration
 	math::LowPassFilter2p _lp_filter_force[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// force command
 	math::LowPassFilter2p _lp_filter_omega[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// body rates
 	// smoothing filter to reject HF noise in control output
-	const float _cutoff_frequency_smoothing = 30.f; // we want to attenuate noise at 30Hz with -10dB -> need cutoff frequency 5 times lower (6Hz)
+	const float _cutoff_frequency_smoothing = 20.f; // we want to attenuate noise at 30Hz with -10dB -> need cutoff frequency 5 times lower (6Hz)
 	math::LowPassFilter2p _lp_filter_ctrl0[3] {{_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}};	// force command stage 1
 	math::LowPassFilter2p _lp_filter_ctrl1[3] {{_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}};	// control output stage 1
+	math::LowPassFilter2p _lp_filter_rud {_sample_frequency, 10};	// rudder command 
 	// Low-Pass filters stage 2
-	const float _cutoff_frequency_2 = 30.f; // MUST MATCH PARAM "IMU_DGYRO_CUTOFF"
+	const float _cutoff_frequency_2 = 20.f; // MUST MATCH PARAM "IMU_DGYRO_CUTOFF"
 	math::LowPassFilter2p _lp_filter_delay[3] {{_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}};	// filter to match acceleration processing delay
 	math::LowPassFilter2p _lp_filter_omega_2[3] {{_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}};	// body rates
 	// Low-Pass filter for wind estimate
@@ -384,8 +385,9 @@ private:
 	Dcmf _R_enu_to_trajec; // rotation matrix from ENU frame to trajectory frame
 	Vector3f _vec_enu_to_trajec; // 3D vector from ENU origin to trajectory frame origin (expressed in ENU)
 	Vector3f _zero_crossing_local_pos;	// vector denoting the zero crossing of the trajectories in NED frame
-	Vector3f _f_command_filtered {};
-	Vector3f _m_command_filtered {};
+	Vector3f _f_command {};
+	Vector3f _m_command {};
+	Vector3f _w_err {};
 
 };
 
