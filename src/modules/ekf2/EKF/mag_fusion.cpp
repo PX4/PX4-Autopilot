@@ -45,7 +45,7 @@
 
 #include <mathlib/mathlib.h>
 
-bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
+bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source_3d_s &aid_src_mag, bool update_all_states)
 {
 	// assign intermediate variables
 	const float q0 = _state.quat_nominal(0);
@@ -87,9 +87,9 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 	const float HKX22 = HKX10*P(1,17) - HKX11*P(1,18) + HKX12*P(1,1) + HKX13*P(0,1) - HKX14*P(1,2) + HKX15*P(1,3) + HKX6*P(1,16) + P(1,19);
 	const float HKX23 = HKX10*P(17,19) - HKX11*P(18,19) + HKX12*P(1,19) + HKX13*P(0,19) - HKX14*P(2,19) + HKX15*P(3,19) + HKX6*P(16,19) + P(19,19);
 
-	_mag_innov_var(0) = HKX10*HKX20 - HKX11*HKX18 + HKX12*HKX22 + HKX13*HKX16 - HKX14*HKX19 + HKX15*HKX21 + HKX17*HKX6 + HKX23 + R_MAG;
+	aid_src_mag.innovation_variance[0] = HKX10*HKX20 - HKX11*HKX18 + HKX12*HKX22 + HKX13*HKX16 - HKX14*HKX19 + HKX15*HKX21 + HKX17*HKX6 + HKX23 + R_MAG;
 
-	if (_mag_innov_var(0) < R_MAG) {
+	if (aid_src_mag.innovation_variance[0] < R_MAG) {
 		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
 		_fault_status.flags.bad_mag_x = true;
 
@@ -101,7 +101,7 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 
 	_fault_status.flags.bad_mag_x = false;
 
-	const float HKX24 = 1.0F/_mag_innov_var(0);
+	const float HKX24 = 1.0F/aid_src_mag.innovation_variance[0];
 
 	// intermediate variables for calculation of innovations variances for Y and Z axes
 	// don't calculate all terms needed for observation jacobians and Kalman gains because
@@ -126,12 +126,11 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 	const float IV17 = 2*IV0 - 2*IV1;
 	const float IV18 = IV10 - IV8 + IV9;
 
-	_mag_innov_var(1) = IV11*P(17,20) + IV11*(IV11*P(17,17) + IV2*P(17,18) - IV3*P(16,17) + IV4*P(2,17) + IV5*P(0,17) + IV6*P(1,17) - IV7*P(3,17) + P(17,20)) + IV2*P(18,20) + IV2*(IV11*P(17,18) + IV2*P(18,18) - IV3*P(16,18) + IV4*P(2,18) + IV5*P(0,18) + IV6*P(1,18) - IV7*P(3,18) + P(18,20)) - IV3*P(16,20) - IV3*(IV11*P(16,17) + IV2*P(16,18) - IV3*P(16,16) + IV4*P(2,16) + IV5*P(0,16) + IV6*P(1,16) - IV7*P(3,16) + P(16,20)) + IV4*P(2,20) + IV4*(IV11*P(2,17) - IV12 + IV2*P(2,18) - IV3*P(2,16) + IV4*P(2,2) + IV5*P(0,2) + IV6*P(1,2) + P(2,20)) + IV5*P(0,20) + IV5*(IV11*P(0,17) + IV14 + IV2*P(0,18) - IV3*P(0,16) + IV4*P(0,2) + IV5*P(0,0) - IV7*P(0,3) + P(0,20)) + IV6*P(1,20) + IV6*(IV11*P(1,17) + IV13 + IV2*P(1,18) - IV3*P(1,16) + IV4*P(1,2) + IV6*P(1,1) - IV7*P(1,3) + P(1,20)) - IV7*P(3,20) - IV7*(IV11*P(3,17) + IV15 + IV2*P(3,18) - IV3*P(3,16) + IV5*P(0,3) + IV6*P(1,3) - IV7*P(3,3) + P(3,20)) + P(20,20) + R_MAG;
-	_mag_innov_var(2) = IV16*P(16,21) + IV16*(IV16*P(16,16) - IV17*P(16,17) + IV18*P(16,18) + IV4*P(3,16) - IV5*P(1,16) + IV6*P(0,16) + IV7*P(2,16) + P(16,21)) - IV17*P(17,21) - IV17*(IV16*P(16,17) - IV17*P(17,17) + IV18*P(17,18) + IV4*P(3,17) - IV5*P(1,17) + IV6*P(0,17) + IV7*P(2,17) + P(17,21)) + IV18*P(18,21) + IV18*(IV16*P(16,18) - IV17*P(17,18) + IV18*P(18,18) + IV4*P(3,18) - IV5*P(1,18) + IV6*P(0,18) + IV7*P(2,18) + P(18,21)) + IV4*P(3,21) + IV4*(IV12 + IV16*P(3,16) - IV17*P(3,17) + IV18*P(3,18) + IV4*P(3,3) - IV5*P(1,3) + IV6*P(0,3) + P(3,21)) - IV5*P(1,21) - IV5*(IV14 + IV16*P(1,16) - IV17*P(1,17) + IV18*P(1,18) + IV4*P(1,3) - IV5*P(1,1) + IV7*P(1,2) + P(1,21)) + IV6*P(0,21) + IV6*(-IV13 + IV16*P(0,16) - IV17*P(0,17) + IV18*P(0,18) + IV4*P(0,3) + IV6*P(0,0) + IV7*P(0,2) + P(0,21)) + IV7*P(2,21) + IV7*(IV15 + IV16*P(2,16) - IV17*P(2,17) + IV18*P(2,18) - IV5*P(1,2) + IV6*P(0,2) + IV7*P(2,2) + P(2,21)) + P(21,21) + R_MAG;
+	aid_src_mag.innovation_variance[1] = IV11*P(17,20) + IV11*(IV11*P(17,17) + IV2*P(17,18) - IV3*P(16,17) + IV4*P(2,17) + IV5*P(0,17) + IV6*P(1,17) - IV7*P(3,17) + P(17,20)) + IV2*P(18,20) + IV2*(IV11*P(17,18) + IV2*P(18,18) - IV3*P(16,18) + IV4*P(2,18) + IV5*P(0,18) + IV6*P(1,18) - IV7*P(3,18) + P(18,20)) - IV3*P(16,20) - IV3*(IV11*P(16,17) + IV2*P(16,18) - IV3*P(16,16) + IV4*P(2,16) + IV5*P(0,16) + IV6*P(1,16) - IV7*P(3,16) + P(16,20)) + IV4*P(2,20) + IV4*(IV11*P(2,17) - IV12 + IV2*P(2,18) - IV3*P(2,16) + IV4*P(2,2) + IV5*P(0,2) + IV6*P(1,2) + P(2,20)) + IV5*P(0,20) + IV5*(IV11*P(0,17) + IV14 + IV2*P(0,18) - IV3*P(0,16) + IV4*P(0,2) + IV5*P(0,0) - IV7*P(0,3) + P(0,20)) + IV6*P(1,20) + IV6*(IV11*P(1,17) + IV13 + IV2*P(1,18) - IV3*P(1,16) + IV4*P(1,2) + IV6*P(1,1) - IV7*P(1,3) + P(1,20)) - IV7*P(3,20) - IV7*(IV11*P(3,17) + IV15 + IV2*P(3,18) - IV3*P(3,16) + IV5*P(0,3) + IV6*P(1,3) - IV7*P(3,3) + P(3,20)) + P(20,20) + R_MAG;
+	aid_src_mag.innovation_variance[2] = IV16*P(16,21) + IV16*(IV16*P(16,16) - IV17*P(16,17) + IV18*P(16,18) + IV4*P(3,16) - IV5*P(1,16) + IV6*P(0,16) + IV7*P(2,16) + P(16,21)) - IV17*P(17,21) - IV17*(IV16*P(16,17) - IV17*P(17,17) + IV18*P(17,18) + IV4*P(3,17) - IV5*P(1,17) + IV6*P(0,17) + IV7*P(2,17) + P(17,21)) + IV18*P(18,21) + IV18*(IV16*P(16,18) - IV17*P(17,18) + IV18*P(18,18) + IV4*P(3,18) - IV5*P(1,18) + IV6*P(0,18) + IV7*P(2,18) + P(18,21)) + IV4*P(3,21) + IV4*(IV12 + IV16*P(3,16) - IV17*P(3,17) + IV18*P(3,18) + IV4*P(3,3) - IV5*P(1,3) + IV6*P(0,3) + P(3,21)) - IV5*P(1,21) - IV5*(IV14 + IV16*P(1,16) - IV17*P(1,17) + IV18*P(1,18) + IV4*P(1,3) - IV5*P(1,1) + IV7*P(1,2) + P(1,21)) + IV6*P(0,21) + IV6*(-IV13 + IV16*P(0,16) - IV17*P(0,17) + IV18*P(0,18) + IV4*P(0,3) + IV6*P(0,0) + IV7*P(0,2) + P(0,21)) + IV7*P(2,21) + IV7*(IV15 + IV16*P(2,16) - IV17*P(2,17) + IV18*P(2,18) - IV5*P(1,2) + IV6*P(0,2) + IV7*P(2,2) + P(2,21)) + P(21,21) + R_MAG;
 
-	// chedk innovation variances for being badly conditioned
-
-	if (_mag_innov_var(1) < R_MAG) {
+	// check innovation variances for being badly conditioned
+	if (aid_src_mag.innovation_variance[1] < R_MAG) {
 		// the innovation variance contribution from the state covariances is negtive which means the covariance matrix is badly conditioned
 		_fault_status.flags.bad_mag_y = true;
 
@@ -143,7 +142,7 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 
 	_fault_status.flags.bad_mag_y = false;
 
-	if (_mag_innov_var(2) < R_MAG) {
+	if (aid_src_mag.innovation_variance[2] < R_MAG) {
 		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
 		_fault_status.flags.bad_mag_z = true;
 
@@ -157,46 +156,40 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 
 	// rotate magnetometer earth field state into body frame
 	const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
-
 	const Vector3f mag_I_rot = R_to_body * _state.mag_I;
 
 	// compute magnetometer innovations
-	_mag_innov = mag_I_rot + _state.mag_B - mag;
+	const Vector3f mag_observation = mag - _state.mag_B;
+	Vector3f mag_innov = mag_I_rot - mag_observation;
 
 	// do not use the synthesized measurement for the magnetomter Z component for 3D fusion
 	if (_control_status.flags.synthetic_mag_z) {
-		_mag_innov(2) = 0.0f;
+		mag_innov(2) = 0.0f;
 	}
+
+	for (int i = 0; i < 3; i++) {
+		aid_src_mag.observation[i] = mag_observation(i);
+		aid_src_mag.observation_variance[i] = R_MAG;
+		aid_src_mag.innovation[i] = mag_innov(i);
+		aid_src_mag.fusion_enabled[i] = _control_status.flags.mag_3D && update_all_states;
+	}
+
+	// do not use the synthesized measurement for the magnetomter Z component for 3D fusion
+	if (_control_status.flags.synthetic_mag_z) {
+		aid_src_mag.innovation[2] = 0.0f;
+		aid_src_mag.innovation_rejected[2] = false;
+	}
+
+	const float innov_gate = math::max(_params.mag_innov_gate, 1.f);
+	setEstimatorAidStatusTestRatio(aid_src_mag, innov_gate);
 
 	// Perform an innovation consistency check and report the result
-	bool all_innovation_checks_passed = true;
-
-	for (uint8_t index = 0; index <= 2; index++) {
-		_mag_test_ratio(index) = sq(_mag_innov(index)) / (sq(math::max(_params.mag_innov_gate, 1.0f)) * _mag_innov_var(index));
-
-		bool rejected = (_mag_test_ratio(index) > 1.f);
-
-		switch (index) {
-		case 0:
-			_innov_check_fail_status.flags.reject_mag_x = rejected;
-			break;
-
-		case 1:
-			_innov_check_fail_status.flags.reject_mag_y = rejected;
-			break;
-
-		case 2:
-			_innov_check_fail_status.flags.reject_mag_z = rejected;
-			break;
-		}
-
-		if (rejected) {
-			all_innovation_checks_passed = false;
-		}
-	}
+	_innov_check_fail_status.flags.reject_mag_x = aid_src_mag.innovation_rejected[0];
+	_innov_check_fail_status.flags.reject_mag_y = aid_src_mag.innovation_rejected[1];
+	_innov_check_fail_status.flags.reject_mag_z = aid_src_mag.innovation_rejected[2];
 
 	// if any axis fails, abort the mag fusion
-	if (!all_innovation_checks_passed) {
+	if (aid_src_mag.innovation_rejected[0] || aid_src_mag.innovation_rejected[1] || aid_src_mag.innovation_rejected[2]) {
 		return false;
 	}
 
@@ -246,7 +239,7 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 
 		} else if (index == 1) {
 
-			// recalculate innovation variance becasue states and covariances have changed due to previous fusion
+			// recalculate innovation variance because states and covariances have changed due to previous fusion
 			const float HKY0 = magD*q1 + magE*q0 - magN*q3;
 			const float HKY1 = magD*q0 - magE*q1 + magN*q2;
 			const float HKY2 = magD*q3 + magE*q2 + magN*q1;
@@ -272,9 +265,9 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 			const float HKY22 = HKY10*P(2,18) - HKY11*P(2,16) + HKY12*P(2,2) + HKY13*P(0,2) + HKY14*P(1,2) - HKY15*P(2,3) + HKY8*P(2,17) + P(2,20);
 			const float HKY23 = HKY10*P(18,20) - HKY11*P(16,20) + HKY12*P(2,20) + HKY13*P(0,20) + HKY14*P(1,20) - HKY15*P(3,20) + HKY8*P(17,20) + P(20,20);
 
-			_mag_innov_var(1) = (HKY10*HKY20 - HKY11*HKY18 + HKY12*HKY22 + HKY13*HKY16 + HKY14*HKY21 - HKY15*HKY19 + HKY17*HKY8 + HKY23 + R_MAG);
+			aid_src_mag.innovation_variance[1] = (HKY10*HKY20 - HKY11*HKY18 + HKY12*HKY22 + HKY13*HKY16 + HKY14*HKY21 - HKY15*HKY19 + HKY17*HKY8 + HKY23 + R_MAG);
 
-			if (_mag_innov_var(1) < R_MAG) {
+			if (aid_src_mag.innovation_variance[1] < R_MAG) {
 				// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
 				_fault_status.flags.bad_mag_y = true;
 
@@ -283,7 +276,7 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 				ECL_ERR("magY %s", numerical_error_covariance_reset_string);
 				return false;
 			}
-			const float HKY24 = 1.0F/_mag_innov_var(1);
+			const float HKY24 = 1.0F/aid_src_mag.innovation_variance[1];
 
 			// Calculate Y axis observation jacobians
 			Hfusion.setZero();
@@ -352,9 +345,9 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 			const float HKZ22 = HKZ10*P(2,16) - HKZ11*P(2,17) + HKZ12*P(2,3) + HKZ13*P(0,2) - HKZ14*P(1,2) + HKZ15*P(2,2) + HKZ9*P(2,18) + P(2,21);
 			const float HKZ23 = HKZ10*P(16,21) - HKZ11*P(17,21) + HKZ12*P(3,21) + HKZ13*P(0,21) - HKZ14*P(1,21) + HKZ15*P(2,21) + HKZ9*P(18,21) + P(21,21);
 
-			_mag_innov_var(2) = (HKZ10*HKZ20 - HKZ11*HKZ18 + HKZ12*HKZ21 + HKZ13*HKZ16 - HKZ14*HKZ19 + HKZ15*HKZ22 + HKZ17*HKZ9 + HKZ23 + R_MAG);
+			aid_src_mag.innovation_variance[2] = (HKZ10*HKZ20 - HKZ11*HKZ18 + HKZ12*HKZ21 + HKZ13*HKZ16 - HKZ14*HKZ19 + HKZ15*HKZ22 + HKZ17*HKZ9 + HKZ23 + R_MAG);
 
-			if (_mag_innov_var(2) < R_MAG) {
+			if (aid_src_mag.innovation_variance[2] < R_MAG) {
 				// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
 				_fault_status.flags.bad_mag_z = true;
 
@@ -364,7 +357,7 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 				return false;
 			}
 
-			const float HKZ24 = 1.0F/_mag_innov_var(2);
+			const float HKZ24 = 1.0F/aid_src_mag.innovation_variance[2];
 
 			// calculate Z axis observation jacobians
 			Hfusion.setZero();
@@ -404,7 +397,16 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 			Kfusion(21) = HKZ23*HKZ24;
 		}
 
-		const bool is_fused = measurementUpdate(Kfusion, Hfusion, _mag_innov(index));
+		const bool is_fused = measurementUpdate(Kfusion, Hfusion, aid_src_mag.innovation[index]);
+
+		if (is_fused) {
+			aid_src_mag.fused[index] = true;
+			aid_src_mag.time_last_fuse[index] = _time_last_imu;
+
+		} else {
+			aid_src_mag.fused[index] = false;
+		}
+
 
 		switch (index) {
 		case 0:
@@ -425,17 +427,14 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 		}
 	}
 
-	if (!_fault_status.flags.bad_mag_x && !_fault_status.flags.bad_mag_y && !_fault_status.flags.bad_mag_z) {
-		_time_last_mag_3d_fuse = _time_last_imu;
-		return true;
-	}
-
-	return false;
+	return aid_src_mag.fused[0] && aid_src_mag.fused[1] && aid_src_mag.fused[2];
 }
 
 // update quaternion states and covariances using the yaw innovation and yaw observation variance
-bool Ekf::fuseYaw(const float innovation, const float variance)
+bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_source_1d_s& aid_src_status)
 {
+	aid_src_status.innovation = innovation;
+
 	// assign intermediate state variables
 	const float q0 = _state.quat_nominal(0);
 	const float q1 = _state.quat_nominal(1);
@@ -551,7 +550,7 @@ bool Ekf::fuseYaw(const float innovation, const float variance)
 
 	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 4 elements in H are non zero
 	// calculate the innovation variance
-	_heading_innov_var = variance;
+	aid_src_status.innovation_variance = variance;
 
 	for (unsigned row = 0; row <= 3; row++) {
 		float tmp = 0.0f;
@@ -560,16 +559,16 @@ bool Ekf::fuseYaw(const float innovation, const float variance)
 			tmp += P(row, col) * H_YAW(col);
 		}
 
-		_heading_innov_var += H_YAW(row) * tmp;
+		aid_src_status.innovation_variance += H_YAW(row) * tmp;
 	}
 
-	float heading_innov_var_inv;
+	float heading_innov_var_inv = 0.f;
 
 	// check if the innovation variance calculation is badly conditioned
-	if (_heading_innov_var >= variance) {
+	if (aid_src_status.innovation_variance >= variance) {
 		// the innovation variance contribution from the state covariances is not negative, no fault
 		_fault_status.flags.bad_hdg = false;
-		heading_innov_var_inv = 1.0f / _heading_innov_var;
+		heading_innov_var_inv = 1.f / aid_src_status.innovation_variance;
 
 	} else {
 		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
@@ -607,10 +606,10 @@ bool Ekf::fuseYaw(const float innovation, const float variance)
 	float gate_sigma = math::max(_params.heading_innov_gate, 1.f);
 
 	// innovation test ratio
-	_yaw_test_ratio = sq(innovation) / (sq(gate_sigma) * _heading_innov_var);
+	setEstimatorAidStatusTestRatio(aid_src_status, gate_sigma);
 
 	// set the magnetometer unhealthy if the test fails
-	if (_yaw_test_ratio > 1.0f) {
+	if (aid_src_status.innovation_rejected) {
 		_innov_check_fail_status.flags.reject_yaw = true;
 
 		// if we are in air we don't want to fuse the measurement
@@ -618,13 +617,13 @@ bool Ekf::fuseYaw(const float innovation, const float variance)
 		// by interference or a large initial gyro bias
 		if (!_control_status.flags.in_air
 		&& isTimedOut(_time_last_in_air, (uint64_t)5e6)
-		&& isTimedOut(_time_last_heading_fuse, (uint64_t)1e6)
+		&& isTimedOut(aid_src_status.time_last_fuse, (uint64_t)1e6)
 		) {
 			// constrain the innovation to the maximum set by the gate
 			// we need to delay this forced fusion to avoid starting it
 			// immediately after touchdown, when the drone is still armed
-			float gate_limit = sqrtf((sq(gate_sigma) * _heading_innov_var));
-			_heading_innov = math::constrain(innovation, -gate_limit, gate_limit);
+			float gate_limit = sqrtf((sq(gate_sigma) * aid_src_status.innovation_variance));
+			aid_src_status.innovation = math::constrain(aid_src_status.innovation, -gate_limit, gate_limit);
 
 			// also reset the yaw gyro variance to converge faster and avoid
 			// being stuck on a previous bad estimate
@@ -636,7 +635,6 @@ bool Ekf::fuseYaw(const float innovation, const float variance)
 
 	} else {
 		_innov_check_fail_status.flags.reject_yaw = false;
-		_heading_innov = innovation;
 	}
 
 	// apply covariance correction via P_new = (I -K*H)*P
@@ -672,9 +670,11 @@ bool Ekf::fuseYaw(const float innovation, const float variance)
 		fixCovarianceErrors(true);
 
 		// apply the state corrections
-		fuse(Kfusion, _heading_innov);
+		fuse(Kfusion, aid_src_status.innovation);
 
 		_time_last_heading_fuse = _time_last_imu;
+		aid_src_status.time_last_fuse = _time_last_imu;
+		aid_src_status.fused = true;
 
 		return true;
 	}
