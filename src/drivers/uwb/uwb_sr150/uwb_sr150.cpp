@@ -394,7 +394,7 @@ int UWB_SR150::distance()
 					break;
 
 				case UWB_LIN_DEP_FOR_THREE:
-					PX4_INFO("UWB localization: linear dependant with 3 Anchors");
+					PX4_INFO("UWB localization: linear dependent with 3 Anchors");
 					break;
 
 				case UWB_ANC_ON_ONE_LEVEL:
@@ -402,7 +402,7 @@ int UWB_SR150::distance()
 					break;
 
 				case UWB_LIN_DEP_FOR_FOUR:
-					PX4_INFO("UWB localization: linear dependant with four or more Anchors");
+					PX4_INFO("UWB localization: linear dependent with four or more Anchors");
 					break;
 
 				case UWB_RANK_ZERO:

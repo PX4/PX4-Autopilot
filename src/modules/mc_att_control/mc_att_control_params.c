@@ -86,7 +86,7 @@ PARAM_DEFINE_FLOAT(MC_YAW_P, 2.8f);
  * in yaw compared to the other axes and it makes sense because yaw is not critical for
  * stable hovering or 3D navigation.
  *
- * For yaw control tuning use MC_YAW_P. This ratio has no inpact on the yaw gain.
+ * For yaw control tuning use MC_YAW_P. This ratio has no impact on the yaw gain.
  *
  * @min 0.0
  * @max 1.0

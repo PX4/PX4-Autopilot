@@ -358,7 +358,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_EV_DELAY>)
 		_param_ekf2_ev_delay,	///< off-board vision measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
-		_param_ekf2_avel_delay,	///< auxillary velocity measurement delay relative to the IMU (mSec)
+		_param_ekf2_avel_delay,	///< auxiliary velocity measurement delay relative to the IMU (mSec)
 
 		(ParamExtFloat<px4::params::EKF2_GYR_NOISE>)
 		_param_ekf2_gyr_noise,	///< IMU angular rate noise used for covariance prediction (rad/sec)

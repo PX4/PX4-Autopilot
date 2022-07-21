@@ -826,7 +826,7 @@ PARAM_DEFINE_FLOAT(FW_T_TAS_TC, 5.0f);
 PARAM_DEFINE_FLOAT(FW_GND_SPD_MIN, 5.0f);
 
 /**
- * RC stick configuraton fixed-wing.
+ * RC stick configuration fixed-wing.
  *
  * Set RC/joystick configuration for fixed-wing manual position and altitude controlled flight.
  *

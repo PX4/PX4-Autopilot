@@ -99,7 +99,7 @@ PARAM_DEFINE_FLOAT(FLW_TGT_FA, 180.0f);
  * to prevent terrain collisions due to GPS inaccuracies of the target.
  *
  * @value 0 2D Tracking: Maintain constant altitude relative to home and track XY position only
- * @value 1 2D + Terrain: Mantain constant altitude relative to terrain below and track XY position
+ * @value 1 2D + Terrain: Maintain constant altitude relative to terrain below and track XY position
  * @value 2 3D Tracking: Track target's altitude (be aware that GPS altitude bias usually makes this useless)
  * @group Follow target
  */

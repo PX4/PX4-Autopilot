@@ -848,7 +848,7 @@ PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);
 PARAM_DEFINE_FLOAT(SYS_VEHICLE_RESP, -0.4f);
 
 /**
- * Overall Horizonal Velocity Limit
+ * Overall Horizontal Velocity Limit
  *
  * If set to a value greater than zero, other parameters are automatically set (such as
  * MPC_XY_VEL_MAX or MPC_VEL_MANUAL).

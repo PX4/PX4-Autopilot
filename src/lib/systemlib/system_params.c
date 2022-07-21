@@ -146,7 +146,7 @@ PARAM_DEFINE_INT32(SYS_CAL_BARO, 0);
  * Required temperature rise during thermal calibration
  *
  * A temperature increase greater than this value is required during calibration.
- * Calibration will complete for each sensor when the temperature increase above the starting temeprature exceeds the value set by SYS_CAL_TDEL.
+ * Calibration will complete for each sensor when the temperature increase above the starting temperature exceeds the value set by SYS_CAL_TDEL.
  * If the temperature rise is insufficient, the calibration will continue indefinitely and the board will need to be repowered to exit.
  *
  * @unit celcius

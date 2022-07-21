@@ -35,7 +35,7 @@
  * @file camera_trigger.cpp
  *
  * External camera-IMU synchronisation and triggering, and support for
- * camera manipulation using PWM signals over FMU auxillary pins.
+ * camera manipulation using PWM signals over FMU auxiliary pins.
  *
  * @author Mohammed Kabir <kabir@uasys.io>
  * @author Kelly Steich <kelly.steich@wingtra.com>

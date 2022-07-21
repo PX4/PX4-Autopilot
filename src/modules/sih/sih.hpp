@@ -288,7 +288,7 @@ private:
 	double _LAT0, _LON0, _COS_LAT0;
 	matrix::Vector3f _W_I;  // weight of the vehicle in inertial frame [N]
 	matrix::Matrix3f _I;    // vehicle inertia matrix
-	matrix::Matrix3f _Im1;  // inverse of the intertia matrix
+	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
 	matrix::Vector3f _mu_I; // NED magnetic field in inertial frame [G]
 
 	int _gps_used;

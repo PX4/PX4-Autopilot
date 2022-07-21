@@ -39,7 +39,7 @@
 #define FXAS21002C_MAX_RATE              800
 #define FXAS21002C_DEFAULT_RATE          FXAS21002C_MAX_RATE
 #define FXAS21002C_DEFAULT_RANGE_DPS     2000
-#define FXAS21002C_DEFAULT_ONCHIP_FILTER_FREQ 	64 // ODR dependant
+#define FXAS21002C_DEFAULT_ONCHIP_FILTER_FREQ 	64 // ODR dependent
 
 /*
   we set the timer interrupt to run a bit faster than the desired
