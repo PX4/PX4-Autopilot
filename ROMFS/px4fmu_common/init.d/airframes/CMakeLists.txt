@@ -124,6 +124,7 @@ px4_add_romfs_files(
 	13007_vtol_AAVVT_quad
 	13008_QuadRanger
 	13009_vtol_spt_ranger
+	13100_generic_vtol_tiltrotor
 	13012_convergence
 	13013_deltaquad
 	13014_vtol_babyshark
