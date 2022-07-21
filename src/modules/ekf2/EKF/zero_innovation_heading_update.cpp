@@ -47,7 +47,8 @@ void Ekf::controlZeroInnovationHeadingUpdate()
 		// fuse zero heading innovation during the leveling fine alignment step to keep the yaw variance low
 		float innovation = 0.f;
 		float obs_var = _control_status.flags.vehicle_at_rest ? 0.001f : 0.1f;
-		fuseYaw(innovation, obs_var);
+		estimator_aid_source_1d_s unused;
+		fuseYaw(innovation, obs_var, unused);
 
 		_last_static_yaw = NAN;
 
@@ -61,7 +62,8 @@ void Ekf::controlZeroInnovationHeadingUpdate()
 			if (!yaw_aiding && isTimedOut(_time_last_heading_fuse, (uint64_t)200'000)) {
 				float innovation = wrap_pi(euler_yaw - _last_static_yaw);
 				float obs_var = 0.01f;
-				fuseYaw(innovation, obs_var);
+				estimator_aid_source_1d_s unused;
+				fuseYaw(innovation, obs_var, unused);
 			}
 
 		} else {
@@ -76,7 +78,8 @@ void Ekf::controlZeroInnovationHeadingUpdate()
 		if (!yaw_aiding && isTimedOut(_time_last_heading_fuse, (uint64_t)200'000)) {
 			float innovation = 0.f;
 			float obs_var = 0.01f;
-			fuseYaw(innovation, obs_var);
+			estimator_aid_source_1d_s unused;
+			fuseYaw(innovation, obs_var, unused);
 		}
 
 		_last_static_yaw = NAN;

@@ -66,6 +66,28 @@ void Ekf::controlMagFusion()
 			}
 
 			_control_status.flags.mag_field_disturbed = magFieldStrengthDisturbed(mag_sample.mag);
+
+
+			// compute mag heading innovation (for estimator_aid_src_mag_heading logging)
+			const Vector3f mag_observation = mag_sample.mag - _state.mag_B;
+			const Dcmf R_to_earth = shouldUse321RotationSequence(_R_to_earth) ? updateEuler321YawInRotMat(0.f, _R_to_earth) : updateEuler312YawInRotMat(0.f, _R_to_earth);
+			const Vector3f mag_earth_pred = R_to_earth * mag_observation;
+
+			resetEstimatorAidStatus(_aid_src_mag_heading);
+			_aid_src_mag_heading.timestamp_sample = mag_sample.time_us;
+			_aid_src_mag_heading.observation = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();;
+			_aid_src_mag_heading.innovation = wrap_pi(getEulerYaw(_R_to_earth) - _aid_src_mag_heading.observation);
+
+			// compute magnetometer innovations (for estimator_aid_src_mag logging)
+			//  rotate magnetometer earth field state into body frame
+			const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
+			const Vector3f mag_I_rot = R_to_body * _state.mag_I;
+			const Vector3f mag_innov = mag_I_rot - mag_observation;
+
+			resetEstimatorAidStatus(_aid_src_mag);
+			_aid_src_mag.timestamp_sample = mag_sample.time_us;
+			mag_observation.copyTo(_aid_src_mag.observation);
+			mag_innov.copyTo(_aid_src_mag.innovation);
 		}
 	}
 
@@ -344,9 +366,9 @@ void Ekf::runMagAndMagDeclFusions(const Vector3f &mag)
 		float innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
 		float obs_var = fmaxf(sq(_params.mag_heading_noise), 1.e-4f);
 
-		if (fuseYaw(innovation, obs_var)) {
-			_time_last_mag_heading_fuse = _time_last_imu;
-		}
+		_aid_src_mag_heading.fusion_enabled = _control_status.flags.mag_hdg;
+
+		fuseYaw(innovation, obs_var, _aid_src_mag_heading);
 	}
 }
 
@@ -364,13 +386,13 @@ void Ekf::run3DMagAndDeclFusions(const Vector3f &mag)
 		// states for the first few observations.
 		fuseDeclination(0.02f);
 		_mag_decl_cov_reset = true;
-		fuseMag(mag, update_all_states);
+		fuseMag(mag, _aid_src_mag, update_all_states);
 
 	} else {
 		// The normal sequence is to fuse the magnetometer data first before fusing
 		// declination angle at a higher uncertainty to allow some learning of
 		// declination angle over time.
-		fuseMag(mag, update_all_states);
+		fuseMag(mag, _aid_src_mag, update_all_states);
 
 		if (_control_status.flags.mag_dec) {
 			fuseDeclination(0.5f);

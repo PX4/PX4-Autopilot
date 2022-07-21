@@ -49,10 +49,7 @@ void Ekf::controlGpsFusion()
 	// Check for new GPS data that has fallen behind the fusion time horizon
 	if (_gps_data_ready) {
 
-		// reset flags
-		resetEstimatorAidStatusFlags(_aid_src_gnss_vel);
-		resetEstimatorAidStatusFlags(_aid_src_gnss_pos);
-
+		updateGpsYaw(_gps_sample_delayed);
 		updateGpsVel(_gps_sample_delayed);
 		updateGpsPos(_gps_sample_delayed);
 
