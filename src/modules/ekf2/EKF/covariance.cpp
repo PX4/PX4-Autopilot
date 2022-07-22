@@ -1006,7 +1006,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		// record the pass/fail
 		if (!bad_acc_bias) {
 			_fault_status.flags.bad_acc_bias = false;
-			_time_acc_bias_check = _time_last_imu;
+			_time_acc_bias_check = _imu_sample_delayed.time_us;
 
 		} else {
 			_fault_status.flags.bad_acc_bias = true;
@@ -1018,7 +1018,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 
 			P.uncorrelateCovariance<3>(13);
 
-			_time_acc_bias_check = _time_last_imu;
+			_time_acc_bias_check = _imu_sample_delayed.time_us;
 			_fault_status.flags.bad_acc_bias = false;
 			_warning_events.flags.invalid_accel_bias_cov_reset = true;
 			ECL_WARN("invalid accel bias - covariance reset");

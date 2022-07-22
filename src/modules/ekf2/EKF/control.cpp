@@ -98,7 +98,7 @@ void Ekf::controlFusionModes()
 
 
 	if (_gps_buffer) {
-		_gps_intermittent = !isRecent(_time_last_gps, 2 * GPS_MAX_INTERVAL);
+		_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GPS_MAX_INTERVAL);
 
 		// check for arrival of new sensor data at the fusion time horizon
 		_time_prev_gps_us = _gps_sample_delayed.time_us;
@@ -142,7 +142,7 @@ void Ekf::controlFusionModes()
 			if (_control_status.flags.in_air && !_control_status.flags.fixed_wing
 			    && (sq(_state.vel(0)) + sq(_state.vel(1)) < fmaxf(P(4, 4) + P(5, 5), 0.1f))) {
 				_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
-				_rng_consistency_check.update(_range_sensor.getDistBottom(), getRngHeightVariance(), _state.vel(2), P(6, 6), _time_last_imu);
+				_rng_consistency_check.update(_range_sensor.getDistBottom(), getRngHeightVariance(), _state.vel(2), P(6, 6), _imu_sample_delayed.time_us);
 			}
 		}
 
@@ -223,7 +223,7 @@ void Ekf::controlExternalVisionFusion()
 		if (_control_status.flags.tilt_align && _control_status.flags.yaw_align) {
 
 			// check for a external vision measurement that has fallen behind the fusion time horizon
-			if (isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
+			if (isNewestSampleRecent(_time_last_ext_vision_buffer_push, 2 * EV_MAX_INTERVAL)) {
 				// turn on use of external vision measurements for position
 				if (_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_POS && !_control_status.flags.ev_pos) {
 					startEvPosFusion();
@@ -241,7 +241,7 @@ void Ekf::controlExternalVisionFusion()
 		    && _control_status.flags.tilt_align) {
 
 			// don't start using EV data unless data is arriving frequently
-			if (isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
+			if (isNewestSampleRecent(_time_last_ext_vision_buffer_push, 2 * EV_MAX_INTERVAL)) {
 				if (resetYawToEv()) {
 					_control_status.flags.yaw_align = true;
 					startEvYawFusion();
@@ -392,7 +392,7 @@ void Ekf::controlExternalVisionFusion()
 		_yaw_pred_prev = getEulerYaw(_state.quat_nominal);
 
 	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel ||  _control_status.flags.ev_yaw)
-		   && isTimedOut(_time_last_ext_vision, (uint64_t)_params.reset_timeout_max)) {
+		   && !isRecent(_ev_sample_delayed.time_us, (uint64_t)_params.reset_timeout_max)) {
 
 		// Turn off EV fusion mode if no data has been received
 		stopEvFusion();
@@ -502,7 +502,7 @@ void Ekf::controlOpticalFlowFusion()
 				// set the flag and reset the fusion timeout
 				ECL_INFO("starting optical flow fusion");
 				_control_status.flags.opt_flow = true;
-				_time_last_of_fuse = _time_last_imu;
+				_time_last_of_fuse = _imu_sample_delayed.time_us;
 
 				// if we are not using GPS or external vision aiding, then the velocity and position states and covariances need to be set
 				const bool flow_aid_only = !isOtherSourceOfHorizontalAidingThan(_control_status.flags.opt_flow);
@@ -536,8 +536,7 @@ void Ekf::controlOpticalFlowFusion()
 			}
 		}
 
-	} else if (_control_status.flags.opt_flow
-		   && (_imu_sample_delayed.time_us > _flow_sample_delayed.time_us + (uint64_t)10e6)) {
+	} else if (_control_status.flags.opt_flow && !isRecent(_flow_sample_delayed.time_us, (uint64_t)10e6)) {
 
 		stopFlowFusion();
 	}
@@ -582,15 +581,13 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 
 		const bool continuing_conditions_passing = !gps_checks_failing;
 
-		const bool is_gps_yaw_data_intermittent = !isRecent(_time_last_gps_yaw_data, 2 * GPS_MAX_INTERVAL);
+		const bool is_gps_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gps_yaw_buffer_push, 2 * GPS_MAX_INTERVAL);
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& _control_status.flags.tilt_align
 				&& gps_checks_passing
 				&& !is_gps_yaw_data_intermittent
 				&& !_gps_intermittent;
-
-		_time_last_gps_yaw_data = _time_last_imu;
 
 		if (_control_status.flags.gps_yaw) {
 
@@ -640,7 +637,7 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 			}
 		}
 
-	} else if (_control_status.flags.gps_yaw && isTimedOut(_time_last_gps_yaw_data, _params.reset_timeout_max)) {
+	} else if (_control_status.flags.gps_yaw && !isNewestSampleRecent(_time_last_gps_yaw_buffer_push, _params.reset_timeout_max)) {
 		// No yaw data in the message anymore. Stop until it comes back.
 		stopGpsYawFusion();
 	}
@@ -702,7 +699,7 @@ void Ekf::controlAirDataFusion()
 			startAirspeedFusion();
 		}
 
-	} else if (_control_status.flags.fuse_aspd && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us > (uint64_t) 1e6)) {
+	} else if (_control_status.flags.fuse_aspd && !isRecent(_airspeed_sample_delayed.time_us, (uint64_t)1e6)) {
 		ECL_WARN("Airspeed data stopped");
 		stopAirspeedFusion();
 	}
@@ -725,7 +722,7 @@ void Ekf::controlBetaFusion()
 			// activate the wind states
 			_control_status.flags.wind = true;
 			// reset the timeout timers to prevent repeated resets
-			_time_last_beta_fuse = _time_last_imu;
+			_time_last_beta_fuse = _imu_sample_delayed.time_us;
 			resetWind();
 		}
 

@@ -142,10 +142,10 @@ void Ekf::checkVerticalAccelerationHealth()
 				    || (inertial_nav_falling_likelihood == Likelihood::HIGH);
 
 	if (bad_vert_accel) {
-		_time_bad_vert_accel = _time_last_imu;
+		_time_bad_vert_accel = _imu_sample_delayed.time_us;
 
 	} else {
-		_time_good_vert_accel = _time_last_imu;
+		_time_good_vert_accel = _imu_sample_delayed.time_us;
 	}
 
 	// declare a bad vertical acceleration measurement and make the declaration persist

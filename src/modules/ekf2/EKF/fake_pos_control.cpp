@@ -99,8 +99,8 @@ void Ekf::resetFakePosFusion()
 	resetHorizontalPositionToLastKnown();
 	resetHorizontalVelocityToZero();
 
-	_aid_src_fake_pos.time_last_fuse[0] = _time_last_imu;
-	_aid_src_fake_pos.time_last_fuse[1] = _time_last_imu;
+	_aid_src_fake_pos.time_last_fuse[0] = _imu_sample_delayed.time_us;
+	_aid_src_fake_pos.time_last_fuse[1] = _imu_sample_delayed.time_us;
 }
 
 void Ekf::stopFakePosFusion()
@@ -151,10 +151,10 @@ void Ekf::fuseFakePosition()
 		if (fake_pos.fusion_enabled[i] && !fake_pos.innovation_rejected[i]) {
 			if (fuseVelPosHeight(fake_pos.innovation[i], fake_pos.innovation_variance[i], 3 + i)) {
 				fake_pos.fused[i] = true;
-				fake_pos.time_last_fuse[i] = _time_last_imu;
+				fake_pos.time_last_fuse[i] = _imu_sample_delayed.time_us;
 			}
 		}
 	}
 
-	fake_pos.timestamp_sample = _time_last_imu;
+	fake_pos.timestamp_sample = _imu_sample_delayed.time_us;
 }
