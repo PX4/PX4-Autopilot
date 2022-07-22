@@ -109,7 +109,6 @@ typedef enum {
 
 static image_loading_status_t loading_status = UNINITIALIZED;
 static bool u_boot_loaded = false;
-static bool sbi_loaded = false;
 static bool sel4_loaded = false;
 
 /* board definition */
@@ -628,9 +627,9 @@ void
 arch_do_jump(const uint32_t *app_base)
 {
 	/* seL4 on hart 1 */
-	if (sel4_loaded && sbi_loaded) {
-		_alert("Jump to SEL4 0x%lx\n", CONFIG_MPFS_HART1_ENTRYPOINT);
+	if (sel4_loaded) {
 #if CONFIG_MPFS_HART1_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
+		_alert("Jump to SEL4 0x%lx\n", CONFIG_MPFS_HART1_ENTRYPOINT);
 		*(volatile uint32_t *)MPFS_CLINT_MSIP1 = 0x01U;
 #endif
 	}
@@ -641,9 +640,9 @@ arch_do_jump(const uint32_t *app_base)
 #endif
 
 	/* Linux on harts 3,4 */
-	if (sbi_loaded && u_boot_loaded) {
-		_alert("Jump to U-boot 0x%lx\n", CONFIG_MPFS_HART4_ENTRYPOINT);
+	if (u_boot_loaded) {
 #if CONFIG_MPFS_HART3_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
+		_alert("Jump to U-boot 0x%lx\n", CONFIG_MPFS_HART3_ENTRYPOINT);
 		*(volatile uint32_t *)MPFS_CLINT_MSIP3 = 0x01U;
 #endif
 
@@ -750,16 +749,7 @@ static int loader_main(int argc, char *argv[])
 			u_boot_loaded = true;
 		}
 
-		ret = load_sdcard_images("/sdcard/boot/ssrc_icicle.sbi", 0x80000000);
-
-		if (ret) {
-			_err("failed\n");
-
-		} else {
-			sbi_loaded = true;
-		}
-
-		ret = load_sdcard_images("/sdcard/boot/sel4.bin", CONFIG_MPFS_HART1_ENTRYPOINT);
+		ret = load_sdcard_images("/sdcard/boot/seL4.bin", CONFIG_MPFS_HART1_ENTRYPOINT);
 
 		if (ret) {
 			_err("failed\n");
