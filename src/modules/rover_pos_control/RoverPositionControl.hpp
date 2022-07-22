@@ -57,10 +57,12 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/Publication.hpp>
+
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_status.h>
@@ -84,6 +86,9 @@ using matrix::Dcmf;
 
 using namespace time_literals;
 
+// Main app function that gets called by NuttX when module is called
+extern "C" __EXPORT int rover_pos_control_main(int argc, char *argv[]);
+
 class RoverPositionControl final : public ModuleBase<RoverPositionControl>, public ModuleParams, public px4::WorkItem
 {
 public:
@@ -104,17 +109,60 @@ public:
 	bool init();
 
 private:
+	// Main function to run the module
 	void Run() override;
 
+	void parameters_update(bool force = false);
+
+	// Poll functions
+	void	position_setpoint_triplet_poll();
+	void	attitude_setpoint_poll();
+	void	rates_setpoint_poll();
+	void	vehicle_control_mode_poll();
+	void 	vehicle_attitude_poll();
+	void	vehicle_angular_acceleration_poll();
+	void	manual_control_setpoint_poll();
+
+	/**
+	 * @brief Apply position control
+	 *
+	 * @param global_pos
+	 * @param ground_speed
+	 * @param _pos_sp_triplet
+	 * @return true
+	 * @return false
+	 */
+	bool	control_position(const matrix::Vector2d &global_pos, const matrix::Vector3f &ground_speed,
+				 const position_setpoint_triplet_s &_pos_sp_triplet);
+
+	/**
+	 * @brief Apply velocity control to reach the trajectory setpoint's velocity setpoint
+	 */
+	void	control_velocity(const matrix::Vector3f &current_velocity, const trajectory_setpoint_s &trajectory_setpoint);
+
+	/**
+	 * @brief Apply attitude control
+	 *
+	 * @param att
+	 * @param att_sp
+	 */
+	void	control_attitude(const vehicle_attitude_s &att, const vehicle_attitude_setpoint_s &att_sp);
+
+	/**
+	 * @brief Apply rate control
+	 *
+	 * @param rates
+	 * @param acc
+	 * @param local_pos
+	 * @param rates_sp
+	 */
+	void	control_rates(const vehicle_angular_velocity_s &rates, const  vehicle_angular_acceleration_s &acc,
+			      const vehicle_local_position_s &local_pos,
+			      const vehicle_rates_setpoint_s &rates_sp);
+
+	// Subscription
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
-
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-	uORB::Publication<vehicle_rates_setpoint_s>	_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
-	uORB::Publication<vehicle_attitude_setpoint_s>	_attitude_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
-	uORB::Publication<position_controller_status_s>	_pos_ctrl_status_pub{ORB_ID(position_controller_status)};  /**< navigation capabilities publication */
-	uORB::Publication<actuator_controls_s>		_actuator_controls_pub{ORB_ID(actuator_controls_0)};  /**< actuator controls publication */
-
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)}; /**< control mode subscription */
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
@@ -125,6 +173,28 @@ private:
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)};
+	uORB::SubscriptionData<vehicle_acceleration_s>		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+
+	// Publication
+	uORB::Publication<vehicle_rates_setpoint_s>	_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Publication<vehicle_attitude_setpoint_s>	_attitude_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Publication<position_controller_status_s>	_pos_ctrl_status_pub{ORB_ID(position_controller_status)};  /**< navigation capabilities publication */
+	uORB::Publication<actuator_controls_s>		_actuator_controls_pub{ORB_ID(actuator_controls_0)};  /**< actuator controls publication */
+	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
+
+	// Struct / enum definitions
+	enum POS_CTRLSTATES {
+		GOTO_WAYPOINT,
+		STOPPING
+	} _pos_ctrl_state {STOPPING}; /// Position control state machine
+
+	enum class VelocityFrame {
+		NED,
+		BODY,
+	} _velocity_frame{VelocityFrame::NED};
+
+	// Internal variables
 	manual_control_setpoint_s		_manual_control_setpoint{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
 	vehicle_attitude_setpoint_s		_att_sp{};			/**< attitude setpoint > */
@@ -140,8 +210,16 @@ private:
 	trajectory_setpoint_s _trajectory_setpoint{};
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
+	vehicle_angular_velocity_s 		_vehicle_rates{};
+	vehicle_angular_acceleration_s 		_vehicle_angular_acceleration{};
 
-	uORB::SubscriptionData<vehicle_acceleration_s>		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+	MapProjection _global_local_proj_ref{};
+	float _global_local_alt0{NAN};
+	float _steering_input{0.0};
+
+	matrix::Vector2d _prev_wp{0, 0}; // Previous waypoint
+	float _manual_yaw_sp{0.0};
+	bool _reset_yaw_sp{true};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -149,16 +227,15 @@ private:
 	hrt_abstime _control_rates_last_called{0};
 	hrt_abstime _manual_setpoint_last_called{0};
 
-	MapProjection _global_local_proj_ref{};
-	float                      _global_local_alt0{NAN};
+	// Position control
+	ECL_L1_Pos_Controller _gnd_control;
 
-	/* Pid controller for the speed. Here we assume we can control airspeed but the control variable is actually on
-	 the throttle. For now just assuming a proportional scaler between controlled airspeed and throttle output.*/
+	// Velocity control
+	// Pid controller for the speed (based on speed setpoint error) The output gets scaled and gets applied as throttle.
 	PID_t _speed_ctrl{};
 
 	// estimator reset counters
 	uint8_t _pos_reset_counter{0};		// captures the number of times the estimator has reset the horizontal position
-
 	ECL_L1_Pos_Controller				_gnd_control;
 	RateControl				_rate_control;
 	float _steering_input{0.0};
@@ -181,9 +258,8 @@ private:
 		NED,
 		BODY,
 	} _velocity_frame{VelocityFrame::NED};
-
-	float _manual_yaw_sp{0.0};
-	bool _reset_yaw_sp{true};
+	// Attitude control
+	// Rate control
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::GND_L1_PERIOD>) _param_l1_period,
@@ -216,31 +292,6 @@ private:
 		(ParamFloat<px4::params::GND_MAX_ANG>) _param_max_turn_angle,
 		(ParamFloat<px4::params::GND_ATT_P>) _param_att_p,
 		(ParamFloat<px4::params::GND_MAN_Y_MAX>) _param_gnd_man_y_max,
-		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad	/**< loiter radius for Rover */
+		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad // loiter radius for Rover
 	)
-
-	/**
-	 * Update our local parameter cache.
-	 */
-	void parameters_update(bool force = false);
-
-	void		position_setpoint_triplet_poll();
-	void		attitude_setpoint_poll();
-	void		rates_setpoint_poll();
-	void		vehicle_control_mode_poll();
-	void 		vehicle_attitude_poll();
-	void		vehicle_angular_acceleration_poll();
-	void		manual_control_setpoint_poll();
-
-	/**
-	 * Control position.
-	 */
-	bool		control_position(const matrix::Vector2d &global_pos, const matrix::Vector3f &ground_speed,
-					 const position_setpoint_triplet_s &_pos_sp_triplet);
-	void		control_velocity(const matrix::Vector3f &current_velocity);
-	void		control_attitude(const vehicle_attitude_s &att, const vehicle_attitude_setpoint_s &att_sp);
-	void		control_rates(const vehicle_angular_velocity_s &rates, const  vehicle_angular_acceleration_s &acc,
-				      const vehicle_local_position_s &local_pos,
-				      const vehicle_rates_setpoint_s &rates_sp);
-
 };

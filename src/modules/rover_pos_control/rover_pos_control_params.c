@@ -36,16 +36,7 @@
  *
  * Parameters defined by the position control task for ground rovers
  *
- * This is a modification of the fixed wing params and it is designed for ground rovers.
- * It has been developed starting from the fw  module, simplified and improved with dedicated items.
- *
- * All the ackowledgments and credits for the fw wing app are reported in those files.
- *
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
- */
-
-/*
- * Controller parameters, accessible via MAVLink
  */
 
 /**
@@ -128,7 +119,6 @@ PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.3f);
  * Throttle limit min
  *
  * This is the minimum throttle % that can be used by the controller.
- * Set to 0 for rover
  *
  * @unit norm
  * @min 0.0
@@ -142,11 +132,14 @@ PARAM_DEFINE_FLOAT(GND_THR_MIN, 0.0f);
 /**
  * Control mode for speed
  *
- * This allows the user to choose between closed loop gps speed or open loop cruise throttle speed
+ * This allows the user to choose between closed loop control or open loop cruise throttle speed.
+ * Open loop will set the throttle output to GND_THR_CRUISE value by default. But if there's a cruise_speed
+ * set in the posiiont setpoint triplet, it will override with that value instead.
+ *
  * @min 0
  * @max 1
  * @value 0 open loop control
- * @value 1 close the loop with gps speed
+ * @value 1 closed loop PID control
  * @group Rover Position Control
  */
 PARAM_DEFINE_INT32(GND_SP_CTRL_MODE, 1);
@@ -196,7 +189,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_D, 0.001f);
 /**
  * Speed integral maximum value
  *
- * This is the maxim value the integral can reach to prevent wind-up.
+ * This is the maximum value the integral can reach to prevent wind-up.
  *
  * @unit %m/s
  * @min 0.005
@@ -211,6 +204,8 @@ PARAM_DEFINE_FLOAT(GND_SPEED_IMAX, 1.0f);
  * Speed to throttle scaler
  *
  * This is a gain to map the speed control output to the throttle linearly.
+ * PID output of the speed control is in acceleration setpoint unit [m/s^2].
+ * So this scalar converts the acceleration to throttle setpoint in range [0, 1]
  *
  * @unit %m/s
  * @min 0.005
@@ -224,6 +219,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_THR_SC, 1.0f);
 /**
  * Trim ground speed
  *
+ * Rover will try to achieve this speed while in position control mode
  *
  * @unit m/s
  * @min 0.0
@@ -261,23 +257,21 @@ PARAM_DEFINE_FLOAT(GND_SPEED_MIN, 1.0f);
 PARAM_DEFINE_FLOAT(GND_SPEED_MAX, 10.0f);
 
 /**
- * Maximum turn angle for Ackerman steering.
+ * Maximum wheel turn angle for Ackerman steering.
  *
- * At a control output of 0, the steering wheels are at 0 radians.
- * At a control output of 1, the steering wheels are at GND_MAX_ANG radians.
+ * Magnitude of the angle wheel turns when maximum steering actuator output is applied.
  *
- * @unit rad
+ * @unit deg
  * @min 0.0
- * @max 3.14159
- * @decimal 3
- * @increment 0.01
+ * @max 90.0
+ * @decimal 1
+ * @increment 0.1
  * @group Rover Position Control
  */
-PARAM_DEFINE_FLOAT(GND_MAX_ANG, 0.7854f);
+PARAM_DEFINE_FLOAT(GND_MAX_ANG, 45.0f);
 
 /**
  * Attitude control P gain
- *
  *
  * @unit rad
  * @min 0.0
@@ -289,7 +283,10 @@ PARAM_DEFINE_FLOAT(GND_MAX_ANG, 0.7854f);
 PARAM_DEFINE_FLOAT(GND_ATT_P, 1.0f);
 
 /**
- * Max manual yaw rate
+ * Maximum manual yaw rate in stabilized mode
+ *
+ * Full roll stick deflection in either direction will achieve the yaw setpoint
+ * changing at the rate specified with this parameter
  *
  * @unit deg/s
  * @min 0.0
