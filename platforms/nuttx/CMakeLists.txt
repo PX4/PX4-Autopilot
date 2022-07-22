@@ -39,6 +39,13 @@ include(cygwin_cygpath)
 
 add_executable(px4 ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
+
+if ("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
+	set(RISCV_RELAXATIONS -Wl,--relax)
+else()
+	set(RISCV_RELAXATIONS)
+endif()
+
 set_target_properties(px4 PROPERTIES OUTPUT_NAME ${FW_NAME})
 add_dependencies(px4 git_nuttx)
 
@@ -265,6 +272,7 @@ else()
 
 		-fno-exceptions
 		-fno-rtti
+		${RISCV_RELAXATIONS}
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}script.ld
 		-L${NUTTX_CONFIG_DIR_CYG}/scripts
 		-Wl,-Map=${PX4_CONFIG}.map
