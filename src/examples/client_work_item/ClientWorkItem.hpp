@@ -70,24 +70,10 @@ public:
 private:
 	void Run() override;
 
-	// Publications
-	uORB::Publication<orb_test_s> _orb_test_pub{ORB_ID(orb_test)};
-
-	// Subscriptions
-	uORB::SubscriptionCallbackWorkItem _sensor_accel_sub{this, ORB_ID(sensor_accel)};        // subscription that schedules ClientWorkItem when updated
-	uORB::SubscriptionInterval         _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
-	uORB::Subscription                 _vehicle_status_sub{ORB_ID(vehicle_status)};          // regular subscription for additional data
+	// Client
+	uORB::Client<add_two_ints_request_s, add_two_ints_response_s> _add_two_request_service{ORB_ID(add_two_ints_request), ORB_ID(add_two_ints_response)};
 
 	// Performance (perf) counters
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
-
-	// Parameters
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
-	)
-
-
-	bool _armed{false};
 };

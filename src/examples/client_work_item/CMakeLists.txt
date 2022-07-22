@@ -33,7 +33,7 @@
 
 px4_add_module(
 	MODULE examples__client_work_item
-	MAIN client_work_item_main
+	MAIN client_work_item
 	COMPILE_FLAGS
 		#-DDEBUG_BUILD   # uncomment for PX4_DEBUG output
 		#-O0             # uncomment when debugging

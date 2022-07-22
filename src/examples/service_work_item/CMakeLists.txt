@@ -33,7 +33,7 @@
 
 px4_add_module(
 	MODULE examples__service_work_item
-	MAIN service_work_item_main
+	MAIN service_work_item
 	COMPILE_FLAGS
 		#-DDEBUG_BUILD   # uncomment for PX4_DEBUG output
 		#-O0             # uncomment when debugging

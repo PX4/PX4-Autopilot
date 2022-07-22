@@ -94,8 +94,8 @@ public:
 
 
 private:
-	uORB::Subscription _response_sub;
 	uORB::Publication<req> _request_pub;
+	uORB::Subscription _response_sub;
 };
 
 
