@@ -298,11 +298,9 @@ else()
 		target_link_libraries(px4 PRIVATE romfs)
 	endif()
 
-	# for opensbi bootloader, strip the opensbi and place it in separate binary
+	# for opensbi bootloader, strip the l2lim & ddr sections
 	if (CONFIG_OPENSBI AND "${PX4_BOARD_LABEL}" STREQUAL "bootloader")
-		set(SBI_BINARY_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.sbi)
-		add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT} ${SBI_BINARY_OUTPUT}
-			COMMAND ${CMAKE_OBJCOPY} -O binary -j .text.sbi -j .ddrstorage ${PX4_BINARY_DIR_REL}/${FW_NAME} ${SBI_BINARY_OUTPUT}
+		add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
 			COMMAND ${CMAKE_OBJCOPY} -R .text.sbi -R .l2_scratchpad -R .ddrstorage ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_DIR_REL}/${FW_NAME_FLASH}
 			COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME_FLASH} ${PX4_BINARY_OUTPUT}
 			DEPENDS px4
