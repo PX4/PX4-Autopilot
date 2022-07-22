@@ -94,7 +94,7 @@ void Ekf::startGpsHgtFusion()
 			_gps_hgt_b_est.setBias(_state.pos(2) + (_gps_sample_delayed.hgt - getEkfGlobalOriginAltitude()));
 
 			// Reset the timeout value here because the fusion isn't done at the same place and would immediately trigger a timeout
-			_aid_src_gnss_pos.time_last_fuse[2] = _time_last_imu;
+			_aid_src_gnss_pos.time_last_fuse[2] = _imu_sample_delayed.time_us;
 		}
 
 		_control_status.flags.gps_hgt = true;
@@ -117,7 +117,7 @@ void Ekf::resetHeightToGps()
 	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + _state_reset_status.posD_change);
 	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - _state_reset_status.posD_change);
 
-	_aid_src_gnss_pos.time_last_fuse[2] = _time_last_imu;
+	_aid_src_gnss_pos.time_last_fuse[2] = _imu_sample_delayed.time_us;
 }
 
 void Ekf::stopGpsHgtFusion()

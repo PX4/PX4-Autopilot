@@ -47,7 +47,7 @@ void Ekf::controlEvHeightFusion()
 
 	_ev_hgt_b_est.predict(_dt_ekf_avg);
 
-	const bool ev_intermittent = !isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL);
+	const bool ev_intermittent = !isNewestSampleRecent(_time_last_ext_vision_buffer_push, 2 * EV_MAX_INTERVAL);
 
 	if (_ev_data_ready) {
 		const bool continuing_conditions_passing = !ev_intermittent;

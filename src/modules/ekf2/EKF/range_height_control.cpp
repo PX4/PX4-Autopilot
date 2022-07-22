@@ -47,7 +47,7 @@ void Ekf::controlRangeHeightFusion()
 
 	_rng_hgt_b_est.predict(_dt_ekf_avg);
 
-	const bool rng_intermittent = !isRecent(_time_last_range, 2 * RNG_MAX_INTERVAL);
+	const bool rng_intermittent = !isNewestSampleRecent(_time_last_range_buffer_push, 2 * RNG_MAX_INTERVAL);
 
 	// If we are supposed to be using range finder data as the primary height sensor, have bad range measurements
 	// and are on the ground, then synthesise a measurement at the expected on ground value

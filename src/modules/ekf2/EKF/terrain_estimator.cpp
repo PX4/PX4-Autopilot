@@ -99,7 +99,7 @@ void Ekf::controlHaglRngFusion()
 		//const bool continuing_conditions_passing = _control_status.flags.in_air && !_control_status.flags.rng_hgt; // TODO: should not be fused when using range height
 		const bool starting_conditions_passing = continuing_conditions_passing && _range_sensor.isRegularlySendingData() && (_rng_consistency_check.getTestRatio() < 1.f);
 
-		_time_last_healthy_rng_data = _time_last_imu;
+		_time_last_healthy_rng_data = _imu_sample_delayed.time_us;
 
 		if (_hagl_sensor_status.flags.range_finder) {
 			if (continuing_conditions_passing) {
@@ -188,7 +188,7 @@ void Ekf::resetHaglRng()
 	_terrain_vpos = _state.pos(2) + _range_sensor.getDistBottom();
 	_terrain_var = getRngVar();
 	_terrain_vpos_reset_counter++;
-	_time_last_hagl_fuse = _time_last_imu;
+	_time_last_hagl_fuse = _imu_sample_delayed.time_us;
 }
 
 void Ekf::stopHaglRngFusion()
@@ -229,7 +229,7 @@ void Ekf::fuseHaglRng()
 		// correct the variance
 		_terrain_var = fmaxf(_terrain_var * (1.0f - gain), 0.0f);
 		// record last successful fusion event
-		_time_last_hagl_fuse = _time_last_imu;
+		_time_last_hagl_fuse = _imu_sample_delayed.time_us;
 		_innov_check_fail_status.flags.reject_hagl = false;
 
 	} else {
@@ -376,7 +376,7 @@ void Ekf::fuseFlowForTerrain()
 		_terrain_vpos += Kx * _flow_innov(0);
 		// guard against negative variance
 		_terrain_var = fmaxf(_terrain_var - KxHxP, 0.0f);
-		_time_last_flow_terrain_fuse = _time_last_imu;
+		_time_last_flow_terrain_fuse = _imu_sample_delayed.time_us;
 	}
 
 	// Calculate observation matrix for flow around the vehicle y axis
@@ -404,7 +404,7 @@ void Ekf::fuseFlowForTerrain()
 		_terrain_vpos += Ky * _flow_innov(1);
 		// guard against negative variance
 		_terrain_var = fmaxf(_terrain_var - KyHyP, 0.0f);
-		_time_last_flow_terrain_fuse = _time_last_imu;
+		_time_last_flow_terrain_fuse = _imu_sample_delayed.time_us;
 	}
 }
 
@@ -423,7 +423,7 @@ void Ekf::resetHaglFake()
 	_terrain_vpos = _state.pos(2) + _params.rng_gnd_clearance;
 	// use the ground clearance value as our uncertainty
 	_terrain_var = sq(_params.rng_gnd_clearance);
-	_time_last_hagl_fuse = _time_last_imu;
+	_time_last_hagl_fuse = _imu_sample_delayed.time_us;
 }
 
 void Ekf::updateTerrainValidity()

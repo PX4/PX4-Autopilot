@@ -65,11 +65,9 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 		_initialised = init(imu_sample.time_us);
 	}
 
-	const float dt = math::constrain((imu_sample.time_us - _time_last_imu) / 1e6f, 1.0e-4f, 0.02f);
+	const float dt = math::constrain((imu_sample.time_us - _newest_high_rate_imu_sample.time_us) / 1e6f, 0.0001f, 0.02f);
 
-	_time_last_imu = imu_sample.time_us;
-
-	if (_time_last_imu > 0) {
+	if (_newest_high_rate_imu_sample.time_us > 0) {
 		_dt_imu_avg = 0.8f * _dt_imu_avg + 0.2f * dt;
 	}
 
@@ -111,21 +109,21 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 		}
 	}
 
+	const uint64_t time_us = mag_sample.time_us
+					 - static_cast<uint64_t>(_params.mag_delay_ms * 1000)
+					 - static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
 	// limit data rate to prevent data being lost
-	if ((mag_sample.time_us - _time_last_mag) > _min_obs_interval_us) {
-		_time_last_mag = mag_sample.time_us;
+	if (time_us >= _mag_buffer->get_newest().time_us + _min_obs_interval_us) {
 
-		magSample mag_sample_new;
-
-		mag_sample_new.time_us = mag_sample.time_us;
-		mag_sample_new.time_us -= static_cast<uint64_t>(_params.mag_delay_ms * 1000);
-		mag_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
-
-		mag_sample_new.mag = mag_sample.mag;
+		magSample mag_sample_new{mag_sample};
+		mag_sample_new.time_us = time_us;
 
 		_mag_buffer->push(mag_sample_new);
+		_time_last_mag_buffer_push = _newest_high_rate_imu_sample.time_us;
+
 	} else {
-		ECL_ERR("mag data too fast %" PRIu64, mag_sample.time_us - _time_last_mag);
+		ECL_WARN("mag data too fast %" PRIu64 " < %" PRIu64 " + %d", time_us, _mag_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 
@@ -147,13 +145,15 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 		}
 	}
 
-	if ((gps.time_usec - _time_last_gps) > _min_obs_interval_us) {
-		_time_last_gps = gps.time_usec;
+	const uint64_t time_us = gps.time_usec
+				   - static_cast<uint64_t>(_params.gps_delay_ms * 1000)
+				   - static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
+	if (time_us >= _gps_buffer->get_newest().time_us + _min_obs_interval_us) {
 
 		gpsSample gps_sample_new;
 
-		gps_sample_new.time_us = gps.time_usec - static_cast<uint64_t>(_params.gps_delay_ms * 1000);
-		gps_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+		gps_sample_new.time_us = time_us;
 
 		gps_sample_new.vel = gps.vel_ned;
 
@@ -183,8 +183,14 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 		}
 
 		_gps_buffer->push(gps_sample_new);
+		_time_last_gps_buffer_push = _newest_high_rate_imu_sample.time_us;
+
+		if (PX4_ISFINITE(gps.yaw)) {
+			_time_last_gps_yaw_buffer_push = _newest_high_rate_imu_sample.time_us;
+		}
+
 	} else {
-		ECL_ERR("GPS data too fast %" PRIu64, gps.time_usec - _time_last_gps);
+		ECL_WARN("GPS data too fast %" PRIu64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 
@@ -206,20 +212,22 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 		}
 	}
 
+	const uint64_t time_us = baro_sample.time_us
+				 - static_cast<uint64_t>(_params.baro_delay_ms * 1000)
+				 - static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
 	// limit data rate to prevent data being lost
-	if ((baro_sample.time_us - _time_last_baro) > _min_obs_interval_us) {
-		_time_last_baro = baro_sample.time_us;
+	if (time_us >= _baro_buffer->get_newest().time_us + _min_obs_interval_us) {
 
 		baroSample baro_sample_new;
+		baro_sample_new.time_us = time_us;
 		baro_sample_new.hgt = compensateBaroForDynamicPressure(baro_sample.hgt);
 
-		baro_sample_new.time_us = baro_sample.time_us;
-		baro_sample_new.time_us -= static_cast<uint64_t>(_params.baro_delay_ms * 1000);
-		baro_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
-
 		_baro_buffer->push(baro_sample_new);
+		_time_last_baro_buffer_push = _newest_high_rate_imu_sample.time_us;
+
 	} else {
-		ECL_ERR("baro data too fast %" PRIu64, baro_sample.time_us - _time_last_baro);
+		ECL_WARN("baro data too fast %" PRIu64 " < %" PRIu64 " + %d", time_us, _baro_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 
@@ -241,16 +249,20 @@ void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 		}
 	}
 
+	const uint64_t time_us = airspeed_sample.time_us
+					- static_cast<uint64_t>(_params.airspeed_delay_ms * 1000)
+					- static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
 	// limit data rate to prevent data being lost
-	if ((airspeed_sample.time_us - _time_last_airspeed) > _min_obs_interval_us) {
-		_time_last_airspeed = airspeed_sample.time_us;
+	if (time_us >= _airspeed_buffer->get_newest().time_us + _min_obs_interval_us) {
 
-		airspeedSample airspeed_sample_new = airspeed_sample;
-
-		airspeed_sample_new.time_us -= static_cast<uint64_t>(_params.airspeed_delay_ms * 1000);
-		airspeed_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+		airspeedSample airspeed_sample_new{airspeed_sample};
+		airspeed_sample_new.time_us = time_us;
 
 		_airspeed_buffer->push(airspeed_sample_new);
+
+	} else {
+		ECL_WARN("airspeed data too fast %" PRIu64 " < %" PRIu64 " + %d", time_us, _airspeed_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 
@@ -272,15 +284,21 @@ void EstimatorInterface::setRangeData(const rangeSample &range_sample)
 		}
 	}
 
-	// limit data rate to prevent data being lost
-	if ((range_sample.time_us - _time_last_range) > _min_obs_interval_us) {
-		_time_last_range = range_sample.time_us;
+	const uint64_t time_us = range_sample.time_us
+					 - static_cast<uint64_t>(_params.range_delay_ms * 1000)
+					 - static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
-		rangeSample range_sample_new = range_sample;
-		range_sample_new.time_us -= static_cast<uint64_t>(_params.range_delay_ms * 1000);
-		range_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+	// limit data rate to prevent data being lost
+	if (time_us >= _range_buffer->get_newest().time_us + _min_obs_interval_us) {
+
+		rangeSample range_sample_new{range_sample};
+		range_sample_new.time_us = time_us;
 
 		_range_buffer->push(range_sample_new);
+		_time_last_range_buffer_push = _newest_high_rate_imu_sample.time_us;
+
+	} else {
+		ECL_WARN("range data too fast %" PRIu64 " < %" PRIu64 " + %d", time_us, _range_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 
@@ -302,16 +320,20 @@ void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
 		}
 	}
 
+	const uint64_t time_us = flow.time_us
+					 - static_cast<uint64_t>(_params.flow_delay_ms * 1000)
+					 - static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
 	// limit data rate to prevent data being lost
-	if ((flow.time_us - _time_last_optflow) > _min_obs_interval_us) {
-		_time_last_optflow = flow.time_us;
+	if (time_us >= _flow_buffer->get_newest().time_us + _min_obs_interval_us) {
 
-		flowSample optflow_sample_new = flow;
-
-		optflow_sample_new.time_us -= static_cast<uint64_t>(_params.flow_delay_ms * 1000);
-		optflow_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+		flowSample optflow_sample_new{flow};
+		optflow_sample_new.time_us = time_us;
 
 		_flow_buffer->push(optflow_sample_new);
+
+	} else {
+		ECL_WARN("optical flow data too fast %" PRIu64 " < %" PRIu64 " + %d", time_us, _flow_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 
@@ -334,16 +356,22 @@ void EstimatorInterface::setExtVisionData(const extVisionSample &evdata)
 		}
 	}
 
-	// limit data rate to prevent data being lost
-	if ((evdata.time_us - _time_last_ext_vision) > _min_obs_interval_us) {
-		_time_last_ext_vision = evdata.time_us;
+	// calculate the system time-stamp for the mid point of the integration period
+	const uint64_t time_us = evdata.time_us
+					 - static_cast<uint64_t>(_params.ev_delay_ms * 1000)
+					 - static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
-		extVisionSample ev_sample_new = evdata;
-		// calculate the system time-stamp for the mid point of the integration period
-		ev_sample_new.time_us -= static_cast<uint64_t>(_params.ev_delay_ms * 1000);
-		ev_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+	// limit data rate to prevent data being lost
+	if (time_us >= _ext_vision_buffer->get_newest().time_us + _min_obs_interval_us) {
+
+		extVisionSample ev_sample_new{evdata};
+		ev_sample_new.time_us = time_us;
 
 		_ext_vision_buffer->push(ev_sample_new);
+		_time_last_ext_vision_buffer_push = _newest_high_rate_imu_sample.time_us;
+
+	} else {
+		ECL_WARN("EV data too fast %" PRIu64 " < %" PRIu64 " + %d", time_us, _ext_vision_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 
@@ -365,16 +393,20 @@ void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)
 		}
 	}
 
+	const uint64_t time_us = auxvel_sample.time_us
+					 - static_cast<uint64_t>(_params.auxvel_delay_ms * 1000)
+					 - static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
 	// limit data rate to prevent data being lost
-	if ((auxvel_sample.time_us - _time_last_auxvel) > _min_obs_interval_us) {
-		_time_last_auxvel = auxvel_sample.time_us;
+	if (time_us >= _auxvel_buffer->get_newest().time_us + _min_obs_interval_us) {
 
-		auxVelSample auxvel_sample_new = auxvel_sample;
-
-		auxvel_sample_new.time_us -= static_cast<uint64_t>(_params.auxvel_delay_ms * 1000);
-		auxvel_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+		auxVelSample auxvel_sample_new{auxvel_sample};
+		auxvel_sample_new.time_us = time_us;
 
 		_auxvel_buffer->push(auxvel_sample_new);
+
+	} else {
+		ECL_WARN("aux velocity data too fast %" PRIu64 " < %" PRIu64 " + %d", time_us, _auxvel_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 
@@ -396,7 +428,7 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 			}
 		}
 
-		_drag_sample_count ++;
+		_drag_sample_count++;
 		// note acceleration is accumulated as a delta velocity
 		_drag_down_sampled.accelXY(0) += imu.delta_vel(0);
 		_drag_down_sampled.accelXY(1) += imu.delta_vel(1);
