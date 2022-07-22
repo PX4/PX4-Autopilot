@@ -328,7 +328,7 @@ void Ekf::fuseOptFlow()
 		}
 
 		if (is_fused) {
-			_time_last_of_fuse = _time_last_imu;
+			_time_last_of_fuse = _imu_sample_delayed.time_us;
 		}
 	}
 }

@@ -211,7 +211,7 @@ void Ekf::fuseSideslip()
 		_fault_status.flags.bad_sideslip = !is_fused;
 
 		if (is_fused) {
-			_time_last_beta_fuse = _time_last_imu;
+			_time_last_beta_fuse = _imu_sample_delayed.time_us;
 		}
 	}
 }

@@ -401,7 +401,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source_3d_s &aid_src_mag, b
 
 		if (is_fused) {
 			aid_src_mag.fused[index] = true;
-			aid_src_mag.time_last_fuse[index] = _time_last_imu;
+			aid_src_mag.time_last_fuse[index] = _imu_sample_delayed.time_us;
 
 		} else {
 			aid_src_mag.fused[index] = false;
@@ -672,8 +672,8 @@ bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_so
 		// apply the state corrections
 		fuse(Kfusion, aid_src_status.innovation);
 
-		_time_last_heading_fuse = _time_last_imu;
-		aid_src_status.time_last_fuse = _time_last_imu;
+		_time_last_heading_fuse = _imu_sample_delayed.time_us;
+		aid_src_status.time_last_fuse = _imu_sample_delayed.time_us;
 		aid_src_status.fused = true;
 
 		return true;

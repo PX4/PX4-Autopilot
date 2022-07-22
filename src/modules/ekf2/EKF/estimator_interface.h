@@ -108,10 +108,10 @@ public:
 	void set_in_air_status(bool in_air)
 	{
 		if (!in_air) {
-			_time_last_on_ground_us = _time_last_imu;
+			_time_last_on_ground_us = _imu_sample_delayed.time_us;
 
 		} else {
-			_time_last_in_air = _time_last_imu;
+			_time_last_in_air = _imu_sample_delayed.time_us;
 		}
 
 		_control_status.flags.in_air = in_air;
@@ -140,7 +140,7 @@ public:
 	void set_gnd_effect()
 	{
 		_control_status.flags.gnd_effect = true;
-		_time_last_gnd_effect_on = _time_last_imu;
+		_time_last_gnd_effect_on = _imu_sample_delayed.time_us;
 	}
 
 	// set air density used by the multi-rotor specific drag force fusion
@@ -373,17 +373,13 @@ protected:
 	RingBuffer<dragSample> *_drag_buffer{nullptr};
 	RingBuffer<auxVelSample> *_auxvel_buffer{nullptr};
 
-	// timestamps of latest in buffer saved measurement in microseconds
-	uint64_t _time_last_imu{0};
-	uint64_t _time_last_gps{0};
-	uint64_t _time_last_mag{0}; ///< measurement time of last magnetomter sample (uSec)
-	uint64_t _time_last_baro{0};
-	uint64_t _time_last_range{0};
-	uint64_t _time_last_airspeed{0};
-	uint64_t _time_last_ext_vision{0};
-	uint64_t _time_last_optflow{0};
-	uint64_t _time_last_auxvel{0};
-	//last time the baro ground effect compensation was turned on externally (uSec)
+	uint64_t _time_last_gps_buffer_push{0};
+	uint64_t _time_last_gps_yaw_buffer_push{0};
+	uint64_t _time_last_mag_buffer_push{0};
+	uint64_t _time_last_baro_buffer_push{0};
+	uint64_t _time_last_range_buffer_push{0};
+	uint64_t _time_last_ext_vision_buffer_push{0};
+
 	uint64_t _time_last_gnd_effect_on{0};
 
 	fault_status_u _fault_status{};

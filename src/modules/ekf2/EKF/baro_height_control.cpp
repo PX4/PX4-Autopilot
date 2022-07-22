@@ -48,7 +48,7 @@ void Ekf::controlBaroHeightFusion()
 	_baro_b_est.predict(_dt_ekf_avg);
 
 	// check for intermittent data
-	const bool baro_hgt_intermittent = !isRecent(_time_last_baro, 2 * BARO_MAX_INTERVAL);
+	const bool baro_hgt_intermittent = !isNewestSampleRecent(_time_last_baro_buffer_push, 2 * BARO_MAX_INTERVAL);
 
 	if (_baro_data_ready) {
 		_baro_lpf.update(_baro_sample_delayed.hgt);
