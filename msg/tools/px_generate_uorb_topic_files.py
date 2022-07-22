@@ -540,6 +540,7 @@ if __name__ == "__main__":
         print('Error: either --headers or --sources must be specified')
         exit(-1)
     if args.file is not None:
+        # Generate each individual topics header and source file (differentiated by generate_idx)
         for f in args.file:
             generate_output_from_file(
                 generate_idx, f, args.temporarydir, args.package, args.templatedir, INCL_DEFAULT)

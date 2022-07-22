@@ -1,0 +1,9 @@
+# Simple Service that adds two integers and return them
+# Copied from the ROS2 tutorial: http://docs.ros.org/en/jade/api/rospy_tutorials/html/srv/AddTwoInts.html
+
+# This is a Request
+int64 a
+int64 b
+---
+# This is a Response
+int64 sum

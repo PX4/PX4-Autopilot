@@ -47,6 +47,13 @@ set(msg_files
 	actuator_servos_trim.msg
 	actuator_test.msg
 	adc_report.msg
+
+	# This should be generated from the file 'add_two_ints.srv' automatically,
+	# But for now to keep the uORB header/source generation part simple, I am adding
+	# these messages manually so that the proof of concept Service class can be functional
+	add_two_ints_request.msg
+	add_two_ints_response.msg
+
 	airspeed.msg
 	airspeed_validated.msg
 	airspeed_wind.msg
@@ -212,6 +219,11 @@ set(msg_files
 	yaw_estimator_status.msg
 )
 
+# Service files
+set(srv_files
+	add_two_ints.srv
+)
+
 if(NOT px4_constrained_flash_build)
 	list(APPEND msg_files
 		debug_array.msg
@@ -241,6 +253,7 @@ foreach(msg IN LISTS deprecated_msgs)
 		list(APPEND invalid_msgs ${msg_we})
 	endif()
 endforeach()
+
 if(invalid_msgs)
 	list(LENGTH invalid_msgs invalid_msgs_size)
 	if(${invalid_msgs_size} GREATER 1)
@@ -276,6 +289,7 @@ set(msg_source_out_path	${CMAKE_CURRENT_BINARY_DIR}/topics_sources)
 set(uorb_headers ${msg_out_path}/uORBTopics.hpp)
 set(uorb_sources ${msg_source_out_path}/uORBTopics.cpp)
 set(uorb_ucdr_headers)
+
 foreach(msg_file ${msg_files})
 	get_filename_component(msg ${msg_file} NAME_WE)
 	list(APPEND uorb_headers ${msg_out_path}/${msg}.h)

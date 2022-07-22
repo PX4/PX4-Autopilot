@@ -44,15 +44,58 @@
 
 #include <uORB/uORB.h>
 #include "uORBManager.hpp"
+#include "uORB/Subscription.hpp"
+#include "uORB/Publication.hpp"
+
 #include <uORB/topics/uORBTopics.hpp>
 
 namespace uORB
 {
-
-template<typename T>
+/**
+ * @brief Service class that provides the service
+ *
+ * @tparam req Request data structure defined by the Service
+ * @tparam resp Response data structure defined by the Service
+ */
+template<typename req, typename resp>
 class Service
 {
+public:
+	/**
+	 * @brief Construct a new Service object with the given request & response uORB topics
+	 */
+	Service(const orb_metadata *req_, const orb_metadata *resp_)
+		: _request_sub(req_), _response_pub(resp_) {};
 
+
+
+private:
+	uORB::Subscription _request_sub;
+	uORB::Publication<resp> _response_pub;
+};
+
+
+/**
+ * @brief Client class that subscribes to the Service
+ *
+ * @tparam req Request data structure defined by the Service
+ * @tparam resp Response data structure defined by the Service
+ */
+template<typename req, typename resp>
+class Client
+{
+public:
+	/**
+	 * @brief Construct a new Client object with the given request & response uORB topics
+	 */
+	Client(const orb_metadata *req_, const orb_metadata *resp_)
+		: _request_pub(req_), _response_sub(resp_) {};
+
+
+
+private:
+	uORB::Subscription _response_sub;
+	uORB::Publication<req> _request_pub;
 };
 
 
