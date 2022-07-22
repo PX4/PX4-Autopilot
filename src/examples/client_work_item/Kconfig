@@ -1,0 +1,3 @@
+menuconfig EXAMPLES_CLIENT_WORK_ITEM
+	bool "client_work_item"
+	default n
