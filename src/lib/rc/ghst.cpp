@@ -345,9 +345,22 @@ static inline void write_uint8_t(uint8_t *buf, int &offset, uint8_t value)
  */
 static inline void write_uint16_t(uint8_t *buf, int &offset, uint16_t value)
 {
-	buf[offset] = value & 0xFFU;
-	buf[offset + 1] = value >> 8U;
-	offset += 2;
+    buf[offset] = value & 0xFFU;
+    buf[offset + 1] = value >> 8U;
+    offset += 2;
+}
+
+/**
+ * write an uint32_t value to a buffer at a given offset and increment the offset
+ */
+static inline void write_uint32_t(uint8_t *buf, int &offset, uint32_t value)
+{
+	// Little Endian
+    buf[offset] = value & 0xFFU;
+    buf[offset + 1] = (value & 0xFF00) >> 8U;
+    buf[offset + 2] = (value & 0xFF0000) >> 16U;
+    buf[offset + 3] = (value & 0xFF000000) >> 24U;
+    offset += 4;
 }
 
 /**
@@ -385,3 +398,34 @@ bool ghst_send_telemetry_battery_status(int uart_fd, uint16_t voltage_in_10mV,
 
 	return write(uart_fd, buf, offset) == offset;
 }
+
+bool ghst_send_telemetry_gps1_status(int uart_fd, uint32_t latitude, uint32_t longitude, uint16_t altitude)
+{
+	uint8_t buf[GHST_FRAME_PAYLOAD_SIZE_TELEMETRY + 4U]; // address, frame length, type, crc
+	int offset = 0;
+	write_frame_header(buf, offset, ghstTelemetryType::gpsPrimary, GHST_FRAME_PAYLOAD_SIZE_TELEMETRY);
+	write_uint32_t(buf, offset, latitude);
+	write_uint32_t(buf, offset, longitude);
+	write_uint16_t(buf, offset, altitude);
+	write_frame_crc(buf, offset, sizeof(buf));
+
+	return write(uart_fd, buf, offset) == offset;
+}
+
+bool ghst_send_telemetry_gps2_status(int uart_fd, uint16_t groundSpeed, uint16_t groundCourse, uint8_t numSats,
+				     uint16_t homeDist, uint16_t homeDir, uint8_t flags)
+{
+	uint8_t buf[GHST_FRAME_PAYLOAD_SIZE_TELEMETRY + 4U]; // address, frame length, type, crc
+	int offset = 0;
+	write_frame_header(buf, offset, ghstTelemetryType::gpsSecondary, GHST_FRAME_PAYLOAD_SIZE_TELEMETRY);
+	write_uint16_t(buf, offset, groundSpeed);
+	write_uint16_t(buf, offset, groundCourse);
+	write_uint8_t(buf, offset, numSats);
+	write_uint16_t(buf, offset, homeDist);
+	write_uint16_t(buf, offset, homeDir);
+	write_uint8_t(buf, offset, flags);
+	write_frame_crc(buf, offset, sizeof(buf));
+
+	return write(uart_fd, buf, offset) == offset;
+}
+
