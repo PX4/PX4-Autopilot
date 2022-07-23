@@ -141,7 +141,127 @@ public:
 
 };
 
+
+template<typename Type>
+class Euler312 : public Vector<Type, 3>
+{
+public:
+	/**
+	 * Standard constructor
+	 */
+	Euler312() = default;
+
+	/**
+	 * Copy constructor
+	 *
+	 * @param other vector to copy
+	 */
+	Euler312(const Vector<Type, 3> &other) :
+		Vector<Type, 3>(other)
+	{
+	}
+
+	/**
+	 * Constructor from Matrix31
+	 *
+	 * @param other Matrix31 to copy
+	 */
+	Euler312(const Matrix<Type, 3, 1> &other) :
+		Vector<Type, 3>(other)
+	{
+	}
+
+	/**
+	 * Constructor from euler angles
+	 *
+	 * Instance is initialized from an 3-1-2 intrinsic Tait-Bryan
+	 * rotation sequence representing transformation from frame 1
+	 * to frame 2.
+	 *
+	 * @param phi_ rotation angle about X axis
+	 * @param theta_ rotation angle about Y axis
+	 * @param psi_ rotation angle about Z axis
+	 */
+	Euler312(Type phi_, Type theta_, Type psi_) : Vector<Type, 3>()
+	{
+		phi() = phi_;
+		theta() = theta_;
+		psi() = psi_;
+	}
+
+	/**
+	 * Constructor from DCM matrix
+	 *
+	 * Instance is set from Dcm representing transformation from
+	 * frame 2 to frame 1.
+	 * This instance will hold the angles defining the 3-1-2 intrinsic
+	 * Tait-Bryan rotation sequence from frame 1 to frame 2.
+	 *
+	 * @param dcm Direction cosine matrix
+	*/
+
+	Euler312(const Dcm<Type> &dcm)
+	{
+		phi() = std::asin(dcm(2, 1));
+
+		if ((std::fabs(phi() - Type(M_PI / 2))) < Type(1.0e-3)) {
+			theta() = 0;
+			psi() = std::atan2(dcm(0, 2), -dcm(1, 2));
+
+		} else if ((std::fabs(phi() + Type(M_PI / 2))) < Type(1.0e-3)) {
+			theta() = 0;
+			psi() = std::atan2(-dcm(0, 2), dcm(1, 2));
+
+		} else {
+			theta() = std::atan2(-dcm(2, 0), dcm(2, 2));
+			psi() = std::atan2(-dcm(0, 1), dcm(1, 1));
+		}
+	}
+
+	/**
+	 * Constructor from quaternion instance.
+	 *
+	 * Instance is set from a quaternion representing transformation
+	 * from frame 2 to frame 1.
+	 * This instance will hold the angles defining the 3-1-2 intrinsic
+	 * Tait-Bryan rotation sequence from frame 1 to frame 2.
+	 *
+	 * @param q quaternion
+	*/
+	Euler312(const Quaternion<Type> &q) : Vector<Type, 3>(Euler312(Dcm<Type>(q)))
+	{
+	}
+
+	inline Type phi() const
+	{
+		return (*this)(0);
+	}
+	inline Type theta() const
+	{
+		return (*this)(1);
+	}
+	inline Type psi() const
+	{
+		return (*this)(2);
+	}
+
+	inline Type &phi()
+	{
+		return (*this)(0);
+	}
+	inline Type &theta()
+	{
+		return (*this)(1);
+	}
+	inline Type &psi()
+	{
+		return (*this)(2);
+	}
+
+};
+
 using Eulerf = Euler<float>;
+using Euler312f = Euler312<float>;
 using Eulerd = Euler<double>;
 
 } // namespace matrix
