@@ -97,6 +97,8 @@ private:
 		INDEX_TAS_SCALE
 	};	///< enum which can be used to access state.
 
+	static constexpr float INITIAL_WIND_VAR = 5.f; // initial variance for each wind state
+
 	matrix::Vector3f _state{0.f, 0.f, 1.f};
 	matrix::Matrix3f _P;		///< state covariance matrix
 

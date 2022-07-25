@@ -227,3 +227,17 @@ PARAM_DEFINE_INT32(ASPD_FS_T_STOP, 2);
  * @max 1000
  */
 PARAM_DEFINE_INT32(ASPD_FS_T_START, -1);
+
+/**
+ * Horizontal wind variance threshold for synthetic airspeed.
+ *
+ * The synthetic airspeed estimate (from groundspeed and heading) will be declared valid
+ * as soon as the wind variance drops below this value.
+ *
+ * @unit (m/s)^2
+ * @min 0.001
+ * @max 5
+ * @decimal 3
+ * @group Airspeed Validator
+ */
+PARAM_DEFINE_FLOAT(ASPD_WVAR_THR, 0.3f);

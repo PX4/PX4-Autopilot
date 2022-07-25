@@ -147,8 +147,8 @@ private:
 	bool _initialized{false}; /**< module initialized*/
 	bool _vehicle_local_position_valid{false}; /**< local position (from GPS) valid */
 	bool _in_takeoff_situation{true}; /**< in takeoff situation (defined as not yet stall speed reached) */
-	float _ground_minus_wind_TAS{0.0f}; /**< true airspeed from groundspeed minus windspeed */
-	float _ground_minus_wind_CAS{0.0f}; /**< calibrated airspeed from groundspeed minus windspeed */
+	float _ground_minus_wind_TAS{NAN}; /**< true airspeed from groundspeed minus windspeed */
+	float _ground_minus_wind_CAS{NAN}; /**< calibrated airspeed from groundspeed minus windspeed */
 	bool _armed_prev{false};
 
 	hrt_abstime _time_last_airspeed_update[MAX_NUM_AIRSPEED_SENSORS] {};
@@ -184,7 +184,8 @@ private:
 		(ParamInt<px4::params::ASPD_FS_T_STOP>) _checks_fail_delay, /**< delay to declare airspeed invalid */
 		(ParamInt<px4::params::ASPD_FS_T_START>) _checks_clear_delay, /**<  delay to declare airspeed valid again */
 
-		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall
+		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
+		(ParamFloat<px4::params::ASPD_WVAR_THR>) _param_wind_var_threshold
 	)
 
 	void 		init(); 	/**< initialization of the airspeed validator instances */
@@ -373,7 +374,7 @@ AirspeedModule::Run()
 				// takeoff situation is active from start till one of the sensors' IAS or groundspeed_CAS is above stall speed
 				if (_in_takeoff_situation &&
 				    (airspeed_raw.indicated_airspeed_m_s > _param_fw_airspd_stall.get() ||
-				     _ground_minus_wind_CAS > _param_fw_airspd_stall.get())) {
+				     (PX4_ISFINITE(_ground_minus_wind_CAS) && _ground_minus_wind_CAS > _param_fw_airspd_stall.get()))) {
 					_in_takeoff_situation = false;
 				}
 
@@ -540,13 +541,21 @@ void AirspeedModule::update_wind_estimator_sideslip()
 
 void AirspeedModule::update_ground_minus_wind_airspeed()
 {
-	// calculate airspeed estimate based on groundspeed-windspeed to use as fallback
-	const float TAS_north = _vehicle_local_position.vx - _wind_estimate_sideslip.windspeed_north;
-	const float TAS_east = _vehicle_local_position.vy - _wind_estimate_sideslip.windspeed_east;
-	const float TAS_down = _vehicle_local_position.vz; // no wind estimate in z
-	_ground_minus_wind_TAS = sqrtf(TAS_north * TAS_north + TAS_east * TAS_east + TAS_down * TAS_down);
-	_ground_minus_wind_CAS = calc_CAS_from_TAS(_ground_minus_wind_TAS, _vehicle_air_data.baro_pressure_pa,
-				 _vehicle_air_data.baro_temp_celcius);
+	const float wind_variance = sqrtf(_wind_estimate_sideslip.variance_north * _wind_estimate_sideslip.variance_north +
+					  _wind_estimate_sideslip.variance_east * _wind_estimate_sideslip.variance_east);
+
+	if (wind_variance < _param_wind_var_threshold.get()) {
+		// calculate airspeed estimate based on groundspeed-windspeed
+		const float TAS_north = _vehicle_local_position.vx - _wind_estimate_sideslip.windspeed_north;
+		const float TAS_east = _vehicle_local_position.vy - _wind_estimate_sideslip.windspeed_east;
+		const float TAS_down = _vehicle_local_position.vz; // no wind estimate in z
+		_ground_minus_wind_TAS = sqrtf(TAS_north * TAS_north + TAS_east * TAS_east + TAS_down * TAS_down);
+		_ground_minus_wind_CAS = calc_CAS_from_TAS(_ground_minus_wind_TAS, _vehicle_air_data.baro_pressure_pa,
+					 _vehicle_air_data.baro_temp_celcius);
+
+	} else {
+		_ground_minus_wind_TAS = _ground_minus_wind_CAS = NAN;
+	}
 }
 
 
