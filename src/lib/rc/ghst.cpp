@@ -345,9 +345,9 @@ static inline void write_uint8_t(uint8_t *buf, int &offset, uint8_t value)
  */
 static inline void write_uint16_t(uint8_t *buf, int &offset, uint16_t value)
 {
-    buf[offset] = value & 0xFFU;
-    buf[offset + 1] = value >> 8U;
-    offset += 2;
+	buf[offset] = value & 0xFFU;
+	buf[offset + 1] = value >> 8U;
+	offset += 2;
 }
 
 /**
@@ -356,11 +356,11 @@ static inline void write_uint16_t(uint8_t *buf, int &offset, uint16_t value)
 static inline void write_uint32_t(uint8_t *buf, int &offset, uint32_t value)
 {
 	// Little Endian
-    buf[offset] = value & 0xFFU;
-    buf[offset + 1] = (value & 0xFF00) >> 8U;
-    buf[offset + 2] = (value & 0xFF0000) >> 16U;
-    buf[offset + 3] = (value & 0xFF000000) >> 24U;
-    offset += 4;
+	buf[offset] = value & 0xFFU;
+	buf[offset + 1] = (value & 0xFF00) >> 8U;
+	buf[offset + 2] = (value & 0xFF0000) >> 16U;
+	buf[offset + 3] = (value & 0xFF000000) >> 24U;
+	offset += 4;
 }
 
 /**
