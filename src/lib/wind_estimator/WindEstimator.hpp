@@ -60,8 +60,9 @@ public:
 	void update(uint64_t time_now);
 
 	void fuse_airspeed(uint64_t time_now, float true_airspeed, const matrix::Vector3f &velI,
-			   const matrix::Vector2f &velIvar, const matrix::Quatf &q_att);
-	void fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const matrix::Quatf &q_att);
+			   const float hor_vel_variance, const matrix::Quatf &q_att);
+	void fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const float hor_vel_variance,
+		       const matrix::Quatf &q_att);
 
 	bool is_estimate_valid() { return _initialised; }
 
@@ -129,8 +130,11 @@ private:
 	bool _wind_estimator_reset = false; ///< wind estimator was reset in this cycle
 
 	// initialise state and state covariance matrix
-	bool initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas,
-			const matrix::Quatf &q_att);
+	bool initialise(const matrix::Vector3f &velI, const float hor_vel_variance, const float heading_rad,
+			const float tas_meas = NAN, const float tas_variance = NAN);
 
 	void run_sanity_checks();
+
+	// return the square of two floating point numbers
+	static constexpr float sq(float var) { return var * var; }
 };

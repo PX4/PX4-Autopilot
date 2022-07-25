@@ -521,7 +521,9 @@ void AirspeedModule::update_wind_estimator_sideslip()
 		Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
 		Quatf q(_vehicle_attitude.q);
 
-		_wind_estimator_sideslip.fuse_beta(_time_now_usec, vI, q);
+		const float hor_vel_variance =  _vehicle_local_position.evh * _vehicle_local_position.evh;
+
+		_wind_estimator_sideslip.fuse_beta(_time_now_usec, vI, hor_vel_variance, q);
 	}
 
 	_wind_estimate_sideslip.timestamp = _time_now_usec;
