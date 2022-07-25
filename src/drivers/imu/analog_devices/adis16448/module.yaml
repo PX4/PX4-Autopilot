@@ -1,0 +1,28 @@
+module_name: adis16448
+parameters:
+  - definitions:
+      SENS_EN_ADIS164X:
+        default: 0
+        description:
+          short: Analog Devices ADIS16448 IMU (external SPI)
+        max: 1
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Disabled
+          1: Enabled
+        volatile: false
+      SENS_OR_ADIS164X:
+        default: 0
+        description:
+          short: Analog Devices ADIS16448 IMU Orientation(external SPI)
+        max: 101
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: ROTATION_NONE
+          4: ROTATION_YAW_180
+        volatile: false
+    group: Sensors

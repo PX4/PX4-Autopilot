@@ -37,6 +37,8 @@ px4_add_module(
 	SRCS
 		batt_smbus.cpp
 
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		drivers__smbus
 	)

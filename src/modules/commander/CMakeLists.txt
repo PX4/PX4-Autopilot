@@ -55,6 +55,8 @@ px4_add_module(
 		Safety.cpp
 		state_machine_helper.cpp
 		worker_thread.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		circuit_breaker
 		failure_detector

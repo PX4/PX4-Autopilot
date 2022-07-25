@@ -40,4 +40,6 @@ px4_add_module(
 		send_event.cpp
 		set_leds.cpp
 		status_display.cpp
+	MODULE_CONFIG
+		module.yaml
 	)

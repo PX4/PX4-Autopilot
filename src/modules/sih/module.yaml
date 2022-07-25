@@ -1,0 +1,301 @@
+module_name: sih
+parameters:
+  - definitions:
+      SIH_BARO_OFFSET:
+        default: 0.0
+        description:
+          long: Absolute value superior to 10000 will disable barometer
+          short: Barometer offset in meters
+        type: float
+        unit: m
+        volatile: false
+      SIH_DISTSNSR_MAX:
+        decimal: 4
+        default: 100.0
+        description:
+          short: distance sensor maximun range
+        increment: 0.01
+        max: 1000.0
+        min: 0.0
+        type: float
+        unit: m
+        volatile: false
+      SIH_DISTSNSR_MIN:
+        decimal: 4
+        default: 0.0
+        description:
+          short: distance sensor minimun range
+        increment: 0.01
+        max: 10.0
+        min: 0.0
+        type: float
+        unit: m
+        volatile: false
+      SIH_DISTSNSR_OVR:
+        default: -1.0
+        description:
+          long: Absolute value superior to 10000 will disable distance sensor
+          short: if >= 0 the distance sensor measures will be overrided by this value
+        type: float
+        unit: m
+        volatile: false
+      SIH_GPS_USED:
+        default: 10
+        description:
+          short: Number of GPS satellites used
+        max: 50
+        min: 0
+        type: int32
+        volatile: false
+      SIH_IXX:
+        decimal: 3
+        default: 0.025
+        description:
+          long: The intertia is a 3 by 3 symmetric matrix. It represents the difficulty of the vehicle to modify its angular rate.
+          short: Vehicle inertia about X axis
+        increment: 0.005
+        min: 0.0
+        type: float
+        unit: kg m^2
+        volatile: false
+      SIH_IXY:
+        decimal: 3
+        default: 0.0
+        description:
+          long: The intertia is a 3 by 3 symmetric matrix. This value can be set to 0 for a quad symmetric about its center of mass.
+          short: Vehicle cross term inertia xy
+        increment: 0.005
+        type: float
+        unit: kg m^2
+        volatile: false
+      SIH_IXZ:
+        decimal: 3
+        default: 0.0
+        description:
+          long: The intertia is a 3 by 3 symmetric matrix. This value can be set to 0 for a quad symmetric about its center of mass.
+          short: Vehicle cross term inertia xz
+        increment: 0.005
+        type: float
+        unit: kg m^2
+        volatile: false
+      SIH_IYY:
+        decimal: 3
+        default: 0.025
+        description:
+          long: The intertia is a 3 by 3 symmetric matrix. It represents the difficulty of the vehicle to modify its angular rate.
+          short: Vehicle inertia about Y axis
+        increment: 0.005
+        min: 0.0
+        type: float
+        unit: kg m^2
+        volatile: false
+      SIH_IYZ:
+        decimal: 3
+        default: 0.0
+        description:
+          long: The intertia is a 3 by 3 symmetric matrix. This value can be set to 0 for a quad symmetric about its center of mass.
+          short: Vehicle cross term inertia yz
+        increment: 0.005
+        type: float
+        unit: kg m^2
+        volatile: false
+      SIH_IZZ:
+        decimal: 3
+        default: 0.03
+        description:
+          long: The intertia is a 3 by 3 symmetric matrix. It represents the difficulty of the vehicle to modify its angular rate.
+          short: Vehicle inertia about Z axis
+        increment: 0.005
+        min: 0.0
+        type: float
+        unit: kg m^2
+        volatile: false
+      SIH_KDV:
+        decimal: 2
+        default: 1.0
+        description:
+          long: 'Physical coefficient representing the friction with air particules. The greater this value, the slower the quad will move. Drag force function of velocity: D=-KDV*V. The maximum freefall velocity can be computed as V=10*MASS/KDV [m/s]'
+          short: First order drag coefficient
+        increment: 0.05
+        min: 0.0
+        type: float
+        unit: N/(m/s)
+        volatile: false
+      SIH_KDW:
+        decimal: 3
+        default: 0.025
+        description:
+          long: 'Physical coefficient representing the friction with air particules during rotations. The greater this value, the slower the quad will rotate. Aerodynamic moment function of body rate: Ma=-KDW*W_B. This value can be set to 0 if unknown.'
+          short: First order angular damper coefficient
+        increment: 0.005
+        min: 0.0
+        type: float
+        unit: Nm/(rad/s)
+        volatile: false
+      SIH_LOC_H0:
+        decimal: 2
+        default: 32.34
+        description:
+          long: This value represents the Above Mean Sea Level (AMSL) altitude where the simulation begins. If using FlightGear as a visual animation, this value can be tweaked such that the vehicle lies on the ground at takeoff. LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others to represent a physical ground location on Earth.
+          short: Initial AMSL ground altitude
+        increment: 0.01
+        max: 8848.0
+        min: -420.0
+        type: float
+        unit: m
+        volatile: false
+      SIH_LOC_LAT0:
+        default: 454671160
+        description:
+          long: This value represents the North-South location on Earth where the simulation begins. A value of 45 deg should be written 450000000. LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others to represent a physical ground location on Earth.
+          short: Initial geodetic latitude
+        max: 850000000
+        min: -850000000
+        type: int32
+        unit: deg*1e7
+        volatile: false
+      SIH_LOC_LON0:
+        default: -737578370
+        description:
+          long: This value represents the East-West location on Earth where the simulation begins. A value of 45 deg should be written 450000000. LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others to represent a physical ground location on Earth.
+          short: Initial geodetic longitude
+        max: 1800000000
+        min: -1800000000
+        type: int32
+        unit: deg*1e7
+        volatile: false
+      SIH_LOC_MU_X:
+        decimal: 2
+        default: 0.179
+        description:
+          long: This value represents the North magnetic field at the initial location. A magnetic field calculator can be found on the NOAA website Note, the values need to be converted from nano Tesla to Gauss LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others to represent a physical ground location on Earth.
+          short: North magnetic field at the initial location
+        increment: 0.001
+        max: 1.0
+        min: -1.0
+        type: float
+        unit: gauss
+        volatile: false
+      SIH_LOC_MU_Y:
+        decimal: 2
+        default: -0.045
+        description:
+          long: This value represents the East magnetic field at the initial location. A magnetic field calculator can be found on the NOAA website Note, the values need to be converted from nano Tesla to Gauss LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others to represent a physical ground location on Earth.
+          short: East magnetic field at the initial location
+        increment: 0.001
+        max: 1.0
+        min: -1.0
+        type: float
+        unit: gauss
+        volatile: false
+      SIH_LOC_MU_Z:
+        decimal: 2
+        default: 0.504
+        description:
+          long: This value represents the Down magnetic field at the initial location. A magnetic field calculator can be found on the NOAA website Note, the values need to be converted from nano Tesla to Gauss LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others to represent a physical ground location on Earth.
+          short: Down magnetic field at the initial location
+        increment: 0.001
+        max: 1.0
+        min: -1.0
+        type: float
+        unit: gauss
+        volatile: false
+      SIH_L_PITCH:
+        decimal: 2
+        default: 0.2
+        description:
+          long: This is the arm length generating the pitching moment This value can be measured with a ruler. This corresponds to half the distance between the front and rear motors.
+          short: Pitch arm length
+        increment: 0.05
+        min: 0.0
+        type: float
+        unit: m
+        volatile: false
+      SIH_L_ROLL:
+        decimal: 2
+        default: 0.2
+        description:
+          long: This is the arm length generating the rolling moment This value can be measured with a ruler. This corresponds to half the distance between the left and right motors.
+          short: Roll arm length
+        increment: 0.05
+        min: 0.0
+        type: float
+        unit: m
+        volatile: false
+      SIH_MAG_OFFSET_X:
+        default: 0.0
+        description:
+          long: Absolute value superior to 10000 will disable magnetometer
+          short: magnetometer X offset in Gauss
+        type: float
+        unit: gauss
+        volatile: false
+      SIH_MAG_OFFSET_Y:
+        default: 0.0
+        description:
+          long: Absolute value superior to 10000 will disable magnetometer
+          short: magnetometer Y offset in Gauss
+        type: float
+        unit: gauss
+        volatile: false
+      SIH_MAG_OFFSET_Z:
+        default: 0.0
+        description:
+          long: Absolute value superior to 10000 will disable magnetometer
+          short: magnetometer Z offset in Gauss
+        type: float
+        unit: gauss
+        volatile: false
+      SIH_MASS:
+        decimal: 2
+        default: 1.0
+        description:
+          long: This value can be measured by weighting the quad on a scale.
+          short: Vehicle mass
+        increment: 0.1
+        min: 0.0
+        type: float
+        unit: kg
+        volatile: false
+      SIH_Q_MAX:
+        decimal: 3
+        default: 0.1
+        description:
+          long: This is the maximum torque delivered by one propeller when the motor is running at full speed. This value is usually about few percent of the maximum thrust force.
+          short: Max propeller torque
+        increment: 0.05
+        min: 0.0
+        type: float
+        unit: Nm
+        volatile: false
+      SIH_T_MAX:
+        decimal: 2
+        default: 5.0
+        description:
+          long: This is the maximum force delivered by one propeller when the motor is running at full speed. This value is usually about 5 times the mass of the quadrotor.
+          short: Max propeller thrust force
+        increment: 0.5
+        min: 0.0
+        type: float
+        unit: N
+        volatile: false
+      SIH_T_TAU:
+        default: 0.05
+        description:
+          long: the time taken for the thruster to step from 0 to 100% should be about 4 times tau
+          short: thruster time constant tau
+        type: float
+        unit: s
+        volatile: false
+      SIH_VEHICLE_TYPE:
+        default: 0
+        description:
+          short: Vehicle type
+        reboot_required: true
+        type: enum
+        values:
+          0: Multicopter
+          1: Fixed-Wing
+          2: Tailsitter
+        volatile: false
+    group: Simulation In Hardware

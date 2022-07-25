@@ -1,0 +1,11 @@
+module_name: sdp3x
+parameters:
+  - definitions:
+      SENS_EN_SDP3X:
+        default: 0
+        description:
+          short: Sensirion SDP3X differential pressure sensor (external I2C)
+        reboot_required: true
+        type: boolean
+        volatile: false
+    group: Sensors

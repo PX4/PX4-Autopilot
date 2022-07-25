@@ -1,0 +1,917 @@
+module_name: fw_pos_control_l1
+parameters:
+  - definitions:
+      LAUN_ALL_ON:
+        default: 0
+        description:
+          short: Launch detection
+        type: boolean
+        volatile: false
+      LAUN_CAT_A:
+        decimal: 1
+        default: 30.0
+        description:
+          long: LAUN_CAT_A for LAUN_CAT_T serves as threshold to trigger launch detection.
+          short: Catapult accelerometer threshold
+        increment: 0.5
+        min: 0
+        type: float
+        unit: m/s^2
+        volatile: false
+      LAUN_CAT_MDEL:
+        decimal: 1
+        default: 0.0
+        description:
+          long: Delay between starting attitude control and powering up the throttle (giving throttle control to the controller) Before this timespan is up the throttle will be set to FW_THR_IDLE, set to 0 to deactivate
+          short: Motor delay
+        increment: 0.5
+        max: 10.0
+        min: 0.0
+        type: float
+        unit: s
+        volatile: false
+      LAUN_CAT_PMAX:
+        decimal: 1
+        default: 30.0
+        description:
+          long: This is an extra limit for the maximum pitch which is imposed in the phase before the throttle turns on. This allows to limit the maximum pitch angle during a bungee launch (make the launch less steep).
+          short: Maximum pitch before the throttle is powered up (during motor delay phase)
+        increment: 0.5
+        max: 45.0
+        min: 0.0
+        type: float
+        unit: deg
+        volatile: false
+      LAUN_CAT_T:
+        decimal: 2
+        default: 0.05
+        description:
+          long: LAUN_CAT_A for LAUN_CAT_T serves as threshold to trigger launch detection.
+          short: Catapult time threshold
+        increment: 0.05
+        max: 5.0
+        min: 0.0
+        type: float
+        unit: s
+        volatile: false
+    group: FW Launch detection
+  - definitions:
+      FW_WING_HEIGHT:
+        decimal: 1
+        default: 0.5
+        description:
+          long: This is used to constrain a minimum altitude below which we keep wings level to avoid wing tip strike. It's safer to give a slight margin here (> 0m)
+          short: Height (AGL) of the wings when the aircraft is on the ground
+        increment: 1
+        min: 0.0
+        type: float
+        unit: m
+        volatile: false
+      FW_WING_SPAN:
+        decimal: 1
+        default: 3.0
+        description:
+          long: This is used for limiting the roll setpoint near the ground. (if multiple wings, take the longest span)
+          short: The aircraft's wing span (length from tip to tip)
+        increment: 0.1
+        min: 0.1
+        type: float
+        unit: m
+        volatile: false
+    group: FW Geometry
+  - definitions:
+      FW_CLMBOUT_DIFF:
+        decimal: 1
+        default: 10.0
+        description:
+          long: If the altitude error exceeds this parameter, the system will climb out with maximum throttle and minimum airspeed until it is closer than this distance to the desired altitude. Mostly used for takeoff waypoints / modes. Set to 0 to disable climbout mode (not recommended).
+          short: Climbout Altitude difference
+        increment: 0.5
+        max: 150.0
+        min: 0.0
+        type: float
+        unit: m
+        volatile: false
+      FW_L1_DAMPING:
+        decimal: 2
+        default: 0.75
+        description:
+          long: Damping factor for L1 control.
+          short: L1 damping
+        increment: 0.05
+        max: 0.9
+        min: 0.6
+        type: float
+        volatile: false
+      FW_L1_PERIOD:
+        decimal: 1
+        default: 20.0
+        description:
+          long: Used to determine the L1 gain and controller time constant. This parameter is proportional to the L1 distance (which points ahead of the aircraft on the path it is following). A value of 18-25 seconds works for most aircraft. Shorten slowly during tuning until response is sharp without oscillation.
+          short: L1 period
+        increment: 0.5
+        max: 50.0
+        min: 7.0
+        type: float
+        unit: s
+        volatile: false
+      FW_L1_R_SLEW_MAX:
+        default: 90.0
+        description:
+          long: The maxium change in roll angle setpoint per second.
+          short: L1 controller roll slew rate limit
+        increment: 1
+        min: 0
+        type: float
+        unit: deg/s
+        volatile: false
+      FW_LND_ABORT:
+        bit:
+          0: Abort if terrain is not found
+          1: Abort if terrain times out (after a first successful measurement)
+        default: 3
+        description:
+          long: 'Terrain estimation: bit 0: Abort if terrain is not found bit 1: Abort if terrain times out (after a first successful measurement) The last estimate is always used as ground, whether the last valid measurement or the land waypoint, depending on the selected abort criteria, until an abort condition is entered. If FW_LND_USETER == 0, these bits are ignored. TODO: Extend automatic abort conditions e.g. glide slope tracking error (horizontal and vertical)'
+          short: Bit mask to set the automatic landing abort conditions
+        max: 3
+        min: 0
+        type: bitmask
+        volatile: false
+      FW_LND_AIRSPD_SC:
+        decimal: 2
+        default: 1.3
+        description:
+          long: Multiplying this factor with the minimum airspeed of the plane gives the target airspeed the landing approach. FW_AIRSPD_MIN * FW_LND_AIRSPD_SC
+          short: Min. airspeed scaling factor for landing
+        increment: 0.01
+        max: 1.5
+        min: 1.0
+        type: float
+        unit: norm
+        volatile: false
+      FW_LND_ANG:
+        decimal: 1
+        default: 5.0
+        description:
+          long: Typically the desired landing slope angle when landing configuration (flaps, airspeed) is enabled. Set this value within the vehicle's performance limits.
+          short: Maximum landing slope angle
+        increment: 0.5
+        max: 15.0
+        min: 1.0
+        type: float
+        unit: deg
+        volatile: false
+      FW_LND_EARLYCFG:
+        default: 0
+        description:
+          long: When disabled, the landing configuration (flaps, landing airspeed, etc.) is only activated on the final approach to landing. When enabled, it is already activated when entering the final loiter-down (loiter-to-alt) waypoint before the landing approach. This shifts the (often large) altitude and airspeed errors caused by the configuration change away from the ground such that these are not so critical. It also gives the controller enough time to adapt to the new configuration such that the landing approach starts with a cleaner initial state.
+          short: Early landing configuration deployment
+        type: boolean
+        volatile: false
+      FW_LND_FLALT:
+        decimal: 1
+        default: 0.5
+        description:
+          long: 'NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * |z-velocity|) is taken as the flare altitude'
+          short: Landing flare altitude (relative to landing altitude)
+        increment: 0.5
+        min: 0.0
+        type: float
+        unit: m
+        volatile: false
+      FW_LND_FL_PMAX:
+        decimal: 1
+        default: 15.0
+        description:
+          long: Maximum pitch during flare, a positive sign means nose up Applied once flaring is triggered
+          short: Flare, maximum pitch
+        increment: 0.5
+        max: 45.0
+        min: 0
+        type: float
+        unit: deg
+        volatile: false
+      FW_LND_FL_PMIN:
+        decimal: 1
+        default: 2.5
+        description:
+          long: Minimum pitch during flare, a positive sign means nose up Applied once flaring is triggered
+          short: Flare, minimum pitch
+        increment: 0.5
+        max: 15.0
+        min: 0
+        type: float
+        unit: deg
+        volatile: false
+      FW_LND_FL_SINK:
+        decimal: 1
+        default: 0.25
+        description:
+          long: TECS will attempt to control the aircraft to this sink rate via pitch angle (throttle killed during flare)
+          short: Landing flare sink rate
+        increment: 0.1
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: m/s
+        volatile: false
+      FW_LND_FL_TIME:
+        decimal: 1
+        default: 1.0
+        description:
+          long: 'Multiplied by the descent rate to calculate a dynamic altitude at which to trigger the flare. NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * descent rate) is taken as the flare altitude'
+          short: Landing flare time
+        increment: 0.1
+        max: 5.0
+        min: 0.0
+        type: float
+        unit: s
+        volatile: false
+      FW_LND_NUDGE:
+        default: 2
+        description:
+          long: 'Approach angle nudging: shifts the touchdown point laterally while keeping the approach entrance point constant Approach path nudging: shifts the touchdown point laterally along with the entire approach path This is useful for manually adjusting the landing point in real time when map or GNSS errors cause an offset from the desired landing vector. Nuding is done with yaw stick, constrained to FW_LND_TD_OFF (in meters) and the direction is relative to the vehicle heading (stick deflection to the right = land point moves to the right as seen by the vehicle).'
+          short: Landing touchdown nudging option
+        max: 2
+        min: 0
+        type: enum
+        values:
+          0: Disable nudging
+          1: Nudge approach angle
+          2: Nudge approach path
+        volatile: false
+      FW_LND_TD_OFF:
+        decimal: 1
+        default: 3.0
+        description:
+          short: Maximum lateral position offset for the touchdown point
+        increment: 1
+        max: 10.0
+        min: 0.0
+        type: float
+        unit: m
+        volatile: false
+      FW_LND_THRTC_SC:
+        default: 1.0
+        description:
+          long: Set this parameter to less than 1.0 to make TECS react faster to altitude errors during landing than during normal flight (i.e. giving efficiency and low motor wear at high altitudes but control accuracy during landing). During landing, the TECS altitude time constant (FW_T_ALT_TC) is multiplied by this value.
+          short: Altitude time constant factor for landing
+        increment: 0.1
+        max: 1.0
+        min: 0.2
+        type: float
+        volatile: false
+      FW_LND_USETER:
+        default: 1
+        description:
+          long: 'NOTE: terrain estimate is currently solely derived from a distance sensor. If enabled and no measurement is found within a given timeout, the landing waypoint altitude will be used OR the landing will be aborted, depending on the criteria set in FW_LND_ABORT. If disabled, FW_LND_ABORT terrain based criteria are ignored.'
+          short: Use terrain estimation during landing. This is critical for detecting when to flare, and should be enabled if possible
+        max: 2
+        min: 0
+        type: enum
+        values:
+          0: Disable the terrain estimate
+          1: Use the terrain estimate to trigger the flare (only)
+          2: Calculate landing glide slope relative to the terrain estimate
+        volatile: false
+      FW_POS_STK_CONF:
+        bit:
+          0: Alternative stick configuration (height rate on throttle stick, airspeed on pitch stick)
+          1: Enable airspeed setpoint via sticks in altitude and position flight mode
+        default: 2
+        description:
+          long: Set RC/joystick configuration for fixed-wing manual position and altitude controlled flight.
+          short: RC stick configuraton fixed-wing
+        max: 3
+        min: 0
+        type: bitmask
+        volatile: false
+      FW_P_LIM_MAX:
+        decimal: 1
+        default: 45.0
+        description:
+          long: The maximum pitch angle setpoint for autonomous modes including altitude and position control.
+          short: Maximum pitch angle
+        increment: 0.5
+        max: 60.0
+        min: 0.0
+        type: float
+        unit: deg
+        volatile: false
+      FW_P_LIM_MIN:
+        decimal: 1
+        default: -45.0
+        description:
+          long: The minimum pitch angle setpoint for autonomous modes including altitude and position control.
+          short: Minimum pitch angle
+        increment: 0.5
+        max: 0.0
+        min: -60.0
+        type: float
+        unit: deg
+        volatile: false
+      FW_R_LIM:
+        decimal: 1
+        default: 50.0
+        description:
+          long: The maximum roll angle setpoint for autonomous modes including altitude and position control.
+          short: Maximum roll angle
+        increment: 0.5
+        max: 65.0
+        min: 35.0
+        type: float
+        unit: deg
+        volatile: false
+      FW_THR_IDLE:
+        decimal: 2
+        default: 0.0
+        description:
+          long: This is the minimum throttle while on the ground For aircraft with internal combustion engines, this parameter should be set above the desired idle rpm. For electric motors, idle should typically be set to zero. Note that in automatic modes, "landed" conditions will engage idle throttle.
+          short: Idle throttle
+        increment: 0.01
+        max: 0.4
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      FW_THR_MAX:
+        decimal: 2
+        default: 1.0
+        description:
+          long: This is the maximum throttle % that can be used by the controller. For overpowered aircraft, this should be reduced to a value that provides sufficient thrust to climb at the maximum pitch angle PTCH_MAX.
+          short: Throttle limit max
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      FW_THR_MIN:
+        decimal: 2
+        default: 0.0
+        description:
+          long: This is the minimum throttle % that can be used by the controller. For electric aircraft this will normally be set to zero, but can be set to a small non-zero value if a folding prop is fitted to prevent the prop from folding and unfolding repeatedly in-flight or to provide some aerodynamic drag from a turning prop to improve the descent rate. For aircraft with internal combustion engine this parameter should be set for desired idle rpm.
+          short: Throttle limit min
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      FW_THR_SLEW_MAX:
+        default: 0.0
+        description:
+          long: Maximum slew rate for the commanded throttle
+          short: Throttle max slew rate
+        max: 1.0
+        min: 0.0
+        type: float
+        volatile: false
+      FW_THR_TRIM:
+        decimal: 2
+        default: 0.6
+        description:
+          long: This is the throttle setting required to achieve FW_AIRSPD_TRIM during level flight. Most airframes have a value of 0.5-0.7.
+          short: Trim throttle
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      FW_TKO_PITCH_MIN:
+        decimal: 1
+        default: 10.0
+        description:
+          short: Minimum pitch during takeoff
+        increment: 0.5
+        max: 30.0
+        min: -5.0
+        type: float
+        unit: deg
+        volatile: false
+    group: FW L1 Control
+  - definitions:
+      FW_USE_NPFG:
+        default: 0
+        description:
+          long: Replaces L1.
+          short: Use NPFG as lateral-directional guidance law for fixed-wing vehicles
+        type: boolean
+        volatile: false
+      NPFG_DAMPING:
+        decimal: 2
+        default: 0.7
+        description:
+          long: Damping ratio of the NPFG control law.
+          short: NPFG damping ratio
+        increment: 0.01
+        max: 1.0
+        min: 0.1
+        type: float
+        volatile: false
+      NPFG_EN_MIN_GSP:
+        default: 1
+        description:
+          short: Enable minimum forward ground speed maintaining excess wind handling logic
+        type: boolean
+        volatile: false
+      NPFG_GSP_MAX_TK:
+        decimal: 1
+        default: 5.0
+        description:
+          long: The maximum value of the minimum forward ground speed that may be commanded by the track keeping excess wind handling logic. Commanded in full at the normalized track error fraction of the track error boundary and reduced to zero on track.
+          short: Maximum, minimum forward ground speed for track keeping in excess wind
+        increment: 0.5
+        max: 10.0
+        min: 0.0
+        type: float
+        unit: m/s
+        volatile: false
+      NPFG_LB_PERIOD:
+        default: 1
+        description:
+          long: Avoids limit cycling from a too aggressively tuned period/damping combination. If set to false, also disables the upper bound NPFG_PERIOD_UB.
+          short: Enable automatic lower bound on the NPFG period
+        type: boolean
+        volatile: false
+      NPFG_PERIOD:
+        decimal: 1
+        default: 10.0
+        description:
+          long: Period of the NPFG control law.
+          short: NPFG period
+        increment: 0.1
+        max: 100.0
+        min: 1.0
+        type: float
+        unit: s
+        volatile: false
+      NPFG_PERIOD_SF:
+        decimal: 1
+        default: 1.5
+        description:
+          long: Multiplied by period for conservative minimum period bounding (when period lower bounding is enabled). 1.0 bounds at marginal stability.
+          short: Period safety factor
+        increment: 0.1
+        max: 10.0
+        min: 1.0
+        type: float
+        volatile: false
+      NPFG_ROLL_TC:
+        decimal: 2
+        default: 0.5
+        description:
+          long: Time constant of roll controller command / response, modeled as first order delay. Used to determine lower period bound. Setting zero disables automatic period bounding.
+          short: Roll time constant
+        increment: 0.05
+        max: 2.0
+        min: 0.0
+        type: float
+        unit: s
+        volatile: false
+      NPFG_SW_DST_MLT:
+        decimal: 2
+        default: 0.32
+        description:
+          long: Multiplied by the track error boundary to determine when the aircraft switches to the next waypoint and/or path segment. Should be less than 1. 1/pi (0.32) sets the switch distance equivalent to that of the L1 controller.
+          short: NPFG switch distance multiplier
+        increment: 0.01
+        max: 1.0
+        min: 0.1
+        type: float
+        volatile: false
+      NPFG_TRACK_KEEP:
+        default: 1
+        description:
+          short: Enable track keeping excess wind handling logic
+        type: boolean
+        volatile: false
+      NPFG_UB_PERIOD:
+        default: 1
+        description:
+          long: Adapts period to maintain track keeping in variable winds and path curvature.
+          short: Enable automatic upper bound on the NPFG period
+        type: boolean
+        volatile: false
+      NPFG_WIND_REG:
+        default: 1
+        description:
+          long: Disabling this parameter further disables all other airspeed incrementation options.
+          short: Enable wind excess regulation
+        type: boolean
+        volatile: false
+    group: FW NPFG Control
+  - definitions:
+      FW_AIRSPD_MAX:
+        decimal: 1
+        default: 20.0
+        description:
+          long: If the CAS (calibrated airspeed) is above this value, the TECS controller will try to decrease airspeed more aggressively.
+          short: Maximum Airspeed (CAS)
+        increment: 0.5
+        max: 40
+        min: 0.5
+        type: float
+        unit: m/s
+        volatile: false
+      FW_AIRSPD_MIN:
+        decimal: 1
+        default: 10.0
+        description:
+          long: The minimal airspeed (calibrated airspeed) the user is able to command. Further, if the airspeed falls below this value, the TECS controller will try to increase airspeed more aggressively.
+          short: Minimum Airspeed (CAS)
+        increment: 0.5
+        max: 40
+        min: 0.5
+        type: float
+        unit: m/s
+        volatile: false
+      FW_AIRSPD_STALL:
+        decimal: 1
+        default: 7.0
+        description:
+          long: The stall airspeed (calibrated airspeed) of the vehicle. It is used for airspeed sensor failure detection and for the control surface scaling airspeed limits.
+          short: Stall Airspeed (CAS)
+        increment: 0.5
+        max: 40
+        min: 0.5
+        type: float
+        unit: m/s
+        volatile: false
+      FW_AIRSPD_TRIM:
+        decimal: 1
+        default: 15.0
+        description:
+          long: The trim CAS (calibrated airspeed) of the vehicle. If an airspeed controller is active, this is the default airspeed setpoint that the controller will try to achieve if no other airspeed setpoint sources are present (e.g. through non-centered RC sticks).
+          short: Cruise Airspeed (CAS)
+        increment: 0.5
+        max: 40
+        min: 0.5
+        type: float
+        unit: m/s
+        volatile: false
+      FW_GND_SPD_MIN:
+        decimal: 1
+        default: 5.0
+        description:
+          long: The controller will increase the commanded airspeed to maintain this minimum groundspeed to the next waypoint.
+          short: Minimum groundspeed
+        increment: 0.5
+        max: 40
+        min: 0.0
+        type: float
+        unit: m/s
+        volatile: false
+      FW_T_ALT_TC:
+        decimal: 2
+        default: 5.0
+        description:
+          short: Altitude error time constant
+        increment: 0.5
+        min: 2.0
+        type: float
+        volatile: false
+      FW_T_CLMB_MAX:
+        decimal: 1
+        default: 5.0
+        description:
+          long: This is the best climb rate that the aircraft can achieve with the throttle set to THR_MAX and the airspeed set to the default value. For electric aircraft make sure this number can be achieved towards the end of flight when the battery voltage has reduced. The setting of this parameter can be checked by commanding a positive altitude change of 100m in loiter, RTL or guided mode. If the throttle required to climb is close to THR_MAX and the aircraft is maintaining airspeed, then this parameter is set correctly. If the airspeed starts to reduce, then the parameter is set to high, and if the throttle demand required to climb and maintain speed is noticeably less than FW_THR_MAX, then either FW_T_CLMB_MAX should be increased or FW_THR_MAX reduced.
+          short: Maximum climb rate
+        increment: 0.5
+        max: 15.0
+        min: 1.0
+        type: float
+        unit: m/s
+        volatile: false
+      FW_T_CLMB_R_SP:
+        decimal: 2
+        default: 3.0
+        description:
+          long: The default rate at which the vehicle will climb in autonomous modes to achieve altitude setpoints. In manual modes this defines the maximum rate at which the altitude setpoint can be increased.
+          short: Default target climbrate
+        increment: 0.01
+        max: 15
+        min: 0.5
+        type: float
+        unit: m/s
+        volatile: false
+      FW_T_HRATE_FF:
+        decimal: 2
+        default: 0.3
+        description:
+          short: Height rate feed forward
+        increment: 0.05
+        max: 1.0
+        min: 0.0
+        type: float
+        volatile: false
+      FW_T_I_GAIN_PIT:
+        decimal: 2
+        default: 0.1
+        description:
+          long: This is the integrator gain on the pitch part of the control loop. Increasing this gain increases the speed at which speed and height offsets are trimmed out, but reduces damping and increases overshoot. Set this value to zero to completely disable all integrator action.
+          short: Integrator gain pitch
+        increment: 0.05
+        max: 2.0
+        min: 0.0
+        type: float
+        volatile: false
+      FW_T_I_GAIN_THR:
+        decimal: 2
+        default: 0.3
+        description:
+          long: This is the integrator gain on the throttle part of the control loop. Increasing this gain increases the speed at which speed and height offsets are trimmed out, but reduces damping and increases overshoot. Set this value to zero to completely disable all integrator action.
+          short: Integrator gain throttle
+        increment: 0.05
+        max: 2.0
+        min: 0.0
+        type: float
+        volatile: false
+      FW_T_PTCH_DAMP:
+        decimal: 2
+        default: 0.1
+        description:
+          long: This is the damping gain for the pitch demand loop. Increase to add damping to correct for oscillations in height. The default value of 0.0 will work well provided the pitch to servo controller has been tuned properly.
+          short: Pitch damping factor
+        increment: 0.1
+        max: 2.0
+        min: 0.0
+        type: float
+        volatile: false
+      FW_T_RLL2THR:
+        decimal: 1
+        default: 15.0
+        description:
+          long: Increasing this gain turn increases the amount of throttle that will be used to compensate for the additional drag created by turning. Ideally this should be set to  approximately 10 x the extra sink rate in m/s created by a 45 degree bank turn. Increase this gain if the aircraft initially loses energy in turns and reduce if the aircraft initially gains energy in turns. Efficient high aspect-ratio aircraft (eg powered sailplanes) can use a lower value, whereas inefficient low aspect-ratio models (eg delta wings) can use a higher value.
+          short: Roll -> Throttle feedforward
+        increment: 0.5
+        max: 20.0
+        min: 0.0
+        type: float
+        volatile: false
+      FW_T_SEB_R_FF:
+        decimal: 2
+        default: 1.0
+        description:
+          short: Specific total energy balance rate feedforward gain
+        increment: 0.01
+        max: 3
+        min: 0.5
+        type: float
+        volatile: false
+      FW_T_SINK_MAX:
+        decimal: 1
+        default: 5.0
+        description:
+          long: This sets the maximum descent rate that the controller will use. If this value is too large, the aircraft can over-speed on descent. This should be set to a value that can be achieved without exceeding the lower pitch angle limit and without over-speeding the aircraft.
+          short: Maximum descent rate
+        increment: 0.5
+        max: 15.0
+        min: 1.0
+        type: float
+        unit: m/s
+        volatile: false
+      FW_T_SINK_MIN:
+        decimal: 1
+        default: 2.0
+        description:
+          long: This is the sink rate of the aircraft with the throttle set to THR_MIN and flown at the same airspeed as used to measure FW_T_CLMB_MAX.
+          short: Minimum descent rate
+        increment: 0.5
+        max: 5.0
+        min: 1.0
+        type: float
+        unit: m/s
+        volatile: false
+      FW_T_SINK_R_SP:
+        decimal: 2
+        default: 2.0
+        description:
+          long: The default rate at which the vehicle will sink in autonomous modes to achieve altitude setpoints. In manual modes this defines the maximum rate at which the altitude setpoint can be decreased.
+          short: Default target sinkrate
+        increment: 0.01
+        max: 15
+        min: 0.5
+        type: float
+        unit: m/s
+        volatile: false
+      FW_T_SPDWEIGHT:
+        decimal: 1
+        default: 1.0
+        description:
+          long: This parameter adjusts the amount of weighting that the pitch control applies to speed vs height errors. Setting it to 0.0 will cause the pitch control to control height and ignore speed errors. This will normally improve height accuracy but give larger airspeed errors. Setting it to 2.0 will cause the pitch control loop to control speed and ignore height errors. This will normally reduce airspeed errors, but give larger height errors. The default value of 1.0 allows the pitch control to simultaneously control height and speed. Note to Glider Pilots - set this parameter to 2.0 (The glider will adjust its pitch angle to maintain airspeed, ignoring changes in height).
+          short: Speed <--> Altitude priority
+        increment: 1.0
+        max: 2.0
+        min: 0.0
+        type: float
+        volatile: false
+      FW_T_SPD_OMEGA:
+        decimal: 1
+        default: 2.0
+        description:
+          long: This is the cross-over frequency (in radians/second) of the complementary filter used to fuse longitudinal acceleration and airspeed to obtain an improved airspeed estimate. Increasing this frequency weights the solution more towards use of the airspeed sensor, whilst reducing it weights the solution more towards use of the accelerometer data.
+          short: Complementary filter "omega" parameter for speed
+        increment: 0.5
+        max: 10.0
+        min: 1.0
+        type: float
+        unit: rad/s
+        volatile: false
+      FW_T_STE_R_TC:
+        decimal: 2
+        default: 0.4
+        description:
+          long: This filter is applied to the specific total energy rate used for throttle damping.
+          short: Specific total energy rate first order filter time constant
+        increment: 0.01
+        max: 2
+        min: 0.0
+        type: float
+        volatile: false
+      FW_T_TAS_R_TC:
+        decimal: 2
+        default: 0.2
+        description:
+          long: This filter is applied to the true airspeed rate.
+          short: True airspeed rate first order filter time constant
+        increment: 0.01
+        max: 2
+        min: 0.0
+        type: float
+        volatile: false
+      FW_T_TAS_TC:
+        decimal: 2
+        default: 5.0
+        description:
+          short: True airspeed error time constant
+        increment: 0.5
+        min: 2.0
+        type: float
+        volatile: false
+      FW_T_THR_DAMP:
+        decimal: 2
+        default: 0.1
+        description:
+          long: This is the damping gain for the throttle demand loop. Increase to add damping to correct for oscillations in speed and height.
+          short: Throttle damping factor
+        increment: 0.1
+        max: 2.0
+        min: 0.0
+        type: float
+        volatile: false
+      FW_T_VERT_ACC:
+        decimal: 1
+        default: 7.0
+        description:
+          long: This is the maximum vertical acceleration (in m/s/s) either up or down that the controller will use to correct speed or height errors. The default value of 7 m/s/s (equivalent to +- 0.7 g) allows for reasonably aggressive pitch changes if required to recover from under-speed conditions.
+          short: Maximum vertical acceleration
+        increment: 0.5
+        max: 10.0
+        min: 1.0
+        type: float
+        unit: m/s^2
+        volatile: false
+    group: FW TECS
+  - definitions:
+      FW_GPSF_LT:
+        default: 30
+        description:
+          long: The time in seconds the system should do open loop loiter and wait for GPS recovery before it starts descending. Set to 0 to disable. Roll angle is set to FW_GPSF_R. Does only apply for fixed-wing vehicles or VTOLs with NAV_FORCE_VT set to 0.
+          short: GPS failure loiter time
+        max: 3600
+        min: 0
+        type: int32
+        unit: s
+        volatile: false
+      FW_GPSF_R:
+        decimal: 1
+        default: 15.0
+        description:
+          long: Roll in degrees during the loiter after the vehicle has lost GPS in an auto mode (e.g. mission or loiter). Does only apply for fixed-wing vehicles or VTOLs with NAV_FORCE_VT set to 0.
+          short: GPS failure fixed roll angle
+        increment: 0.5
+        max: 30.0
+        min: 0.0
+        type: float
+        unit: deg
+        volatile: false
+      WEIGHT_BASE:
+        decimal: 1
+        default: -1.0
+        description:
+          long: This is the weight of the vehicle at which it's performance limits were derived. A zero or negative value disables trim throttle and minimum airspeed compensation based on weight.
+          short: Vehicle base weight
+        increment: 0.5
+        type: float
+        unit: kg
+        volatile: false
+      WEIGHT_GROSS:
+        decimal: 1
+        default: -1.0
+        description:
+          long: This is the actual weight of the vehicle at any time. This value will differ from WEIGHT_BASE in case weight was added or removed from the base weight. Examples are the addition of payloads or larger batteries. A zero or negative value disables trim throttle and minimum airspeed compensation based on weight.
+          short: Vehicle gross weight
+        increment: 0.1
+        type: float
+        unit: kg
+        volatile: false
+    group: Mission
+  - definitions:
+      RWTO_AIRSPD_SCL:
+        decimal: 2
+        default: 1.3
+        description:
+          long: 'Pitch up will be commanded when the following airspeed is reached: FW_AIRSPD_MIN * RWTO_AIRSPD_SCL'
+          short: Min airspeed scaling factor for takeoff
+        increment: 0.01
+        max: 2.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      RWTO_HDG:
+        default: 0
+        description:
+          long: '0: airframe heading when takeoff is initiated 1: position control along runway direction (bearing defined from vehicle position on takeoff initiation to MAV_CMD_TAKEOFF position defined by operator)'
+          short: Specifies which heading should be held during the runway takeoff ground roll
+        max: 1
+        min: 0
+        type: enum
+        values:
+          0: Airframe
+          1: Runway
+        volatile: false
+      RWTO_L1_PERIOD:
+        decimal: 1
+        default: 5.0
+        description:
+          short: L1 period while steering on runway
+        increment: 0.1
+        max: 100.0
+        min: 1.0
+        type: float
+        unit: s
+        volatile: false
+      RWTO_MAX_PITCH:
+        decimal: 1
+        default: 20.0
+        description:
+          long: Fixed-wing settings are used if set to 0. Note that there is also a minimum pitch of 10 degrees during takeoff, so this must be larger if set.
+          short: Max pitch during takeoff
+        increment: 0.5
+        max: 60.0
+        min: 0.0
+        type: float
+        unit: deg
+        volatile: false
+      RWTO_MAX_THR:
+        decimal: 2
+        default: 1.0
+        description:
+          long: Can be used to test taxi on runway
+          short: Max throttle during runway takeoff
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      RWTO_NUDGE:
+        default: 1
+        description:
+          long: This is useful when map, GNSS, or yaw errors on ground are misaligned with what the operator intends for takeoff course. Particularly useful for skinny runways or if the wheel servo is a bit off trim.
+          short: Enable use of yaw stick for nudging the wheel during runway ground roll
+        type: boolean
+        volatile: false
+      RWTO_PSP:
+        decimal: 1
+        default: 0.0
+        description:
+          long: A taildragger with steerable wheel might need to pitch up a little to keep its wheel on the ground before airspeed to takeoff is reached.
+          short: Pitch setpoint during taxi / before takeoff airspeed is reached
+        increment: 0.5
+        max: 20.0
+        min: -10.0
+        type: float
+        unit: deg
+        volatile: false
+      RWTO_RAMP_TIME:
+        decimal: 2
+        default: 2.0
+        description:
+          short: Throttle ramp up time for runway takeoff
+        increment: 0.1
+        max: 15.0
+        min: 1.0
+        type: float
+        unit: s
+        volatile: false
+      RWTO_TKOFF:
+        default: 0
+        description:
+          short: Runway takeoff with landing gear
+        type: boolean
+        volatile: false
+    group: Runway Takeoff

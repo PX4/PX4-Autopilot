@@ -37,6 +37,8 @@ px4_add_module(
 		airspeed_selector_main.cpp
 		AirspeedValidator.cpp
 		AirspeedValidator.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		wind_estimator
 )

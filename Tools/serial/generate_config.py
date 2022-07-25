@@ -269,7 +269,7 @@ for serial_command in serial_commands:
             else:
                 default_port_str = port_config['default']
 
-            if default_port_str != "":
+            if default_port_str != "" and default_port_str != 0:
                 if default_port_str not in serial_ports:
                     raise Exception("Default Port {:} not found for {:}".format(default_port_str, serial_command['label']))
 

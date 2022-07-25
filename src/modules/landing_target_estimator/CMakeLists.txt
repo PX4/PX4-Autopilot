@@ -39,6 +39,8 @@ px4_add_module(
 		landing_target_estimator_main.cpp
 		LandingTargetEstimator.cpp
 		KalmanFilter.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 	)
 

@@ -41,6 +41,8 @@ px4_add_module(
 		ManualControl.hpp
 		ManualControlSelector.hpp
 		ManualControlSelector.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_work_queue
 	)

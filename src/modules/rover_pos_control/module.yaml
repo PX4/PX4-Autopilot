@@ -1,0 +1,202 @@
+module_name: rover_pos_control
+parameters:
+  - definitions:
+      GND_L1_DAMPING:
+        decimal: 2
+        default: 0.75
+        description:
+          long: Damping factor for L1 control.
+          short: L1 damping
+        increment: 0.05
+        max: 0.9
+        min: 0.6
+        type: float
+        volatile: false
+      GND_L1_DIST:
+        decimal: 1
+        default: 1.0
+        description:
+          long: This is the distance at which the next waypoint is activated. This should be set to about 2-4x of GND_WHEEL_BASE and not smaller than one meter (due to GPS accuracy).
+          short: L1 distance
+        increment: 0.1
+        max: 50.0
+        min: 1.0
+        type: float
+        unit: m
+        volatile: false
+      GND_L1_PERIOD:
+        decimal: 1
+        default: 5.0
+        description:
+          long: 'This is the L1 distance and defines the tracking point ahead of the rover it''s following. Use values around 2-5m for a 0.3m wheel base. Tuning instructions: Shorten slowly during tuning until response is sharp without oscillation.'
+          short: L1 period
+        increment: 0.5
+        max: 50.0
+        min: 0.5
+        type: float
+        unit: m
+        volatile: false
+      GND_MAN_Y_MAX:
+        decimal: 1
+        default: 150.0
+        description:
+          short: Max manual yaw rate
+        max: 400
+        min: 0.0
+        type: float
+        unit: deg/s
+        volatile: false
+      GND_MAX_ANG:
+        decimal: 3
+        default: 0.7854
+        description:
+          long: At a control output of 0, the steering wheels are at 0 radians. At a control output of 1, the steering wheels are at GND_MAX_ANG radians.
+          short: Maximum turn angle for Ackerman steering
+        increment: 0.01
+        max: 3.14159
+        min: 0.0
+        type: float
+        unit: rad
+        volatile: false
+      GND_SPEED_D:
+        decimal: 3
+        default: 0.001
+        description:
+          long: This is the derivative gain for the speed closed loop controller
+          short: Speed proportional gain
+        increment: 0.005
+        max: 50.0
+        min: 0.0
+        type: float
+        unit: '%m/s'
+        volatile: false
+      GND_SPEED_I:
+        decimal: 3
+        default: 3.0
+        description:
+          long: This is the integral gain for the speed closed loop controller
+          short: Speed Integral gain
+        increment: 0.005
+        max: 50.0
+        min: 0.0
+        type: float
+        unit: '%m/s'
+        volatile: false
+      GND_SPEED_IMAX:
+        decimal: 3
+        default: 1.0
+        description:
+          long: This is the maxim value the integral can reach to prevent wind-up.
+          short: Speed integral maximum value
+        increment: 0.005
+        max: 50.0
+        min: 0.005
+        type: float
+        unit: '%m/s'
+        volatile: false
+      GND_SPEED_MAX:
+        decimal: 1
+        default: 10.0
+        description:
+          short: Maximum ground speed
+        increment: 0.5
+        max: 40
+        min: 0.0
+        type: float
+        unit: m/s
+        volatile: false
+      GND_SPEED_P:
+        decimal: 3
+        default: 2.0
+        description:
+          long: This is the proportional gain for the speed closed loop controller
+          short: Speed proportional gain
+        increment: 0.005
+        max: 50.0
+        min: 0.005
+        type: float
+        unit: '%m/s'
+        volatile: false
+      GND_SPEED_THR_SC:
+        decimal: 3
+        default: 1.0
+        description:
+          long: This is a gain to map the speed control output to the throttle linearly.
+          short: Speed to throttle scaler
+        increment: 0.005
+        max: 50.0
+        min: 0.005
+        type: float
+        unit: '%m/s'
+        volatile: false
+      GND_SPEED_TRIM:
+        decimal: 1
+        default: 3.0
+        description:
+          short: Trim ground speed
+        increment: 0.5
+        max: 40
+        min: 0.0
+        type: float
+        unit: m/s
+        volatile: false
+      GND_SP_CTRL_MODE:
+        default: 1
+        description:
+          long: This allows the user to choose between closed loop gps speed or open loop cruise throttle speed
+          short: Control mode for speed
+        max: 1
+        min: 0
+        type: enum
+        values:
+          0: open loop control
+          1: close the loop with gps speed
+        volatile: false
+      GND_THR_CRUISE:
+        decimal: 2
+        default: 0.1
+        description:
+          long: This is the throttle setting required to achieve the desired cruise speed. 10% is ok for a traxxas stampede vxl with ESC set to training mode
+          short: Cruise throttle
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      GND_THR_MAX:
+        decimal: 2
+        default: 0.3
+        description:
+          long: This is the maximum throttle % that can be used by the controller. For a Traxxas stampede vxl with the ESC set to training, 30 % is enough
+          short: Throttle limit max
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      GND_THR_MIN:
+        decimal: 2
+        default: 0.0
+        description:
+          long: This is the minimum throttle % that can be used by the controller. Set to 0 for rover
+          short: Throttle limit min
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: norm
+        volatile: false
+      GND_WHEEL_BASE:
+        decimal: 3
+        default: 0.31
+        description:
+          long: A value of 0.31 is typical for 1/10 RC cars.
+          short: Distance from front axle to rear axle
+        increment: 0.01
+        min: 0.0
+        type: float
+        unit: m
+        volatile: false
+    group: Rover Position Control

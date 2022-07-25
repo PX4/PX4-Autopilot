@@ -1,0 +1,11 @@
+module_name: ms5525dso
+parameters:
+  - definitions:
+      SENS_EN_MS5525DS:
+        default: 0
+        description:
+          short: TE MS5525DSO differential pressure sensor (external I2C)
+        reboot_required: true
+        type: boolean
+        volatile: false
+    group: Sensors

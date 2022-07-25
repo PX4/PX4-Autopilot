@@ -1,0 +1,11 @@
+module_name: irlock
+parameters:
+  - definitions:
+      SENS_EN_IRLOCK:
+        default: 0
+        description:
+          short: IR-LOCK Sensor (external I2C)
+        reboot_required: true
+        type: boolean
+        volatile: false
+    group: Sensors

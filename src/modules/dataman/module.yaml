@@ -1,0 +1,15 @@
+module_name: dataman
+parameters:
+- definitions:
+    SYS_DM_BACKEND:
+      default: 0
+      description:
+        short: Dataman storage backend
+      reboot_required: true
+      type: enum
+      values:
+        -1: Disabled
+        0: default (SD card)
+        1: RAM (not persistent)
+      volatile: false
+  group: System

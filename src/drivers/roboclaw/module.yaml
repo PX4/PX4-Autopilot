@@ -4,3 +4,71 @@ serial_config:
     port_config_param:
       name: RBCLW_SER_CFG
       group: Roboclaw
+parameters:
+  - definitions:
+      RBCLW_ADDRESS:
+        default: 128
+        description:
+          long: The Roboclaw can be configured to have an address from 0x80 to 0x87, inclusive. It must be configured to match this parameter.
+          short: Address of the Roboclaw
+        max: 135
+        min: 128
+        type: enum
+        values:
+          128: '0x80'
+          129: '0x81'
+          130: '0x82'
+          131: '0x83'
+          132: '0x84'
+          133: '0x85'
+          134: '0x86'
+          135: '0x87'
+        volatile: false
+      RBCLW_BAUD:
+        default: 2400
+        description:
+          long: Baud rate of the serial communication with the Roboclaw. The Roboclaw must be configured to match this rate.
+          short: Roboclaw serial baud rate
+        max: 460800
+        min: 2400
+        reboot_required: true
+        type: enum
+        values:
+          2400: 2400 baud
+          9600: 9600 baud
+          19200: 19200 baud
+          38400: 38400 baud
+          57600: 57600 baud
+          115200: 115200 baud
+          230400: 230400 baud
+          460800: 460800 baud
+        volatile: false
+      RBCLW_COUNTS_REV:
+        default: 1200
+        description:
+          long: Number of encoder counts for one revolution. The roboclaw treats analog encoders (potentiometers) as having 2047 counts per rev. The default value of 1200 corresponds to the default configuration of the Aion R1 rover.
+          short: Encoder counts per revolution
+        min: 1
+        type: int32
+        volatile: false
+      RBCLW_READ_PER:
+        default: 10
+        description:
+          long: How long to wait, in Milliseconds, between reading wheel encoder values over Uart from the Roboclaw
+          short: Encoder read period
+        max: 1000
+        min: 1
+        type: int32
+        unit: ms
+        volatile: false
+      RBCLW_WRITE_PER:
+        default: 10
+        description:
+          long: How long to wait, in Milliseconds, between writing actuator controls over Uart to the Roboclaw
+          short: Uart write period
+        max: 1000
+        min: 1
+        type: int32
+        unit: ms
+        volatile: false
+    group: Roboclaw driver

@@ -1,0 +1,25 @@
+module_name: sensor_mag_sim
+parameters:
+- definitions:
+    SIM_MAG_OFFSET_X:
+      default: 0.0
+      description:
+        short: simulated magnetometer X offset
+      type: float
+      unit: gauss
+      volatile: false
+    SIM_MAG_OFFSET_Y:
+      default: 0.0
+      description:
+        short: simulated magnetometer Y offset
+      type: float
+      unit: gauss
+      volatile: false
+    SIM_MAG_OFFSET_Z:
+      default: 0.0
+      description:
+        short: simulated magnetometer Z offset
+      type: float
+      unit: gauss
+      volatile: false
+  group: Simulator

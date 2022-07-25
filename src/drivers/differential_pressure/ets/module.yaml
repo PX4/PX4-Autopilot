@@ -1,0 +1,11 @@
+module_name: ets
+parameters:
+  - definitions:
+      SENS_EN_ETSASPD:
+        default: 0
+        description:
+          short: Eagle Tree airspeed sensor (external I2C)
+        reboot_required: true
+        type: boolean
+        volatile: false
+    group: Sensors

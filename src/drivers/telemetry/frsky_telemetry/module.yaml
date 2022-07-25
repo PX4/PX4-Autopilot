@@ -1,7 +1,6 @@
 module_name: FrSky Telemetry
 serial_config:
-    - command: frsky_telemetry start -d ${SERIAL_DEV}
-      port_config_param:
-        name: TEL_FRSKY_CONFIG
-        group: Telemetry
-
+  - command: frsky_telemetry start -d ${SERIAL_DEV}
+    port_config_param:
+      name: TEL_FRSKY_CONFIG
+      group: Telemetry

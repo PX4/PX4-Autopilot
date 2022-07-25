@@ -1,10 +1,145 @@
-module_name: UAVCANv1
+module_name: cyphal
 actuator_output:
   output_groups:
     - param_prefix: UCAN1_ESC
       channel_label: 'ESC'
       standard_params:
-        min: { min: 0, max: 8191, default: 1 }
-        max: { min: 0, max: 8191, default: 8191 }
-        failsafe: { min: 0, max: 8191 }
+        min: {min: 0, max: 8191, default: 1}
+        max: {min: 0, max: 8191, default: 8191}
+        failsafe: {min: 0, max: 8191}
       num_channels: 16
+parameters:
+  - definitions:
+      CYPHAL_BAUD:
+        default: 1000000
+        description:
+          short: UAVCAN/CAN v1 bus bitrate
+        max: 1000000
+        min: 20000
+        reboot_required: true
+        type: int32
+        unit: bit/s
+        volatile: false
+      CYPHAL_ENABLE:
+        default: 1
+        description:
+          long: 0 - Cyphal disabled. 1 - Enables Cyphal
+          short: Cyphal
+        reboot_required: true
+        type: boolean
+        volatile: false
+      CYPHAL_ID:
+        default: 1
+        description:
+          long: Read the specs at http://uavcan.org to learn more about Node ID.
+          short: Cyphal Node ID
+        max: 125
+        min: -1
+        reboot_required: true
+        type: int32
+        volatile: false
+      UCAN1_ACTR_PUB:
+        default: -1
+        description:
+          short: actuator_outputs uORB over Cyphal publication port ID
+        max: 6143
+        min: -1
+        type: int32
+        volatile: false
+      UCAN1_BMS_BP_SUB:
+        default: -1
+        description:
+          short: UDRAL battery parameters subscription  port ID
+        max: 6143
+        min: -1
+        type: int32
+        volatile: false
+      UCAN1_BMS_BS_SUB:
+        default: -1
+        description:
+          short: UDRAL battery status subscription port ID
+        max: 6143
+        min: -1
+        type: int32
+        volatile: false
+      UCAN1_BMS_ES_SUB:
+        default: -1
+        description:
+          short: UDRAL battery energy source subscription port ID
+        max: 6143
+        min: -1
+        type: int32
+        volatile: false
+      UCAN1_ESC0_SUB:
+        default: -1
+        description:
+          short: ESC 0 subscription port ID
+        max: 6143
+        min: -1
+        type: int32
+        volatile: false
+      UCAN1_ESC_PUB:
+        default: -1
+        description:
+          short: Cyphal ESC publication port ID
+        max: 6143
+        min: -1
+        type: int32
+        volatile: false
+      UCAN1_GPS0_SUB:
+        default: -1
+        description:
+          short: GPS 0 subscription port ID
+        max: 6143
+        min: -1
+        type: int32
+        volatile: false
+      UCAN1_GPS1_SUB:
+        default: -1
+        description:
+          short: GPS 1 subscription port ID
+        max: 6143
+        min: -1
+        type: int32
+        volatile: false
+      UCAN1_GPS_PUB:
+        default: -1
+        description:
+          short: Cyphal GPS publication port ID
+        max: 6143
+        min: -1
+        type: int32
+        volatile: false
+      UCAN1_LG_BMS_SUB:
+        default: -1
+        description:
+          short: Cyphal leagcy battery port ID
+        max: 6143
+        min: -1
+        type: int32
+        volatile: false
+      UCAN1_SERVO_PUB:
+        default: -1
+        description:
+          short: Cyphal Servo publication port ID
+        max: 6143
+        min: -1
+        type: int32
+        volatile: false
+      UCAN1_UORB_GPS:
+        default: -1
+        description:
+          short: sensor_gps uORB over Cyphal subscription port ID
+        max: 6143
+        min: -1
+        type: int32
+        volatile: false
+      UCAN1_UORB_GPS_P:
+        default: -1
+        description:
+          short: sensor_gps uORB over Cyphal publication port ID
+        max: 6143
+        min: -1
+        type: int32
+        volatile: false
+    group: Cyphal

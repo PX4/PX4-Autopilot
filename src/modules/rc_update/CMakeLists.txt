@@ -37,6 +37,8 @@ px4_add_module(
 	SRCS
 		rc_update.cpp
 		rc_update.h
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		hysteresis
 		mathlib

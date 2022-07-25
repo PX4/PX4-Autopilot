@@ -39,6 +39,8 @@ px4_add_module(
 	SRCS
 		GyroCalibration.cpp
 		GyroCalibration.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_work_queue
 		sensor_calibration

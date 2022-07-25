@@ -1,0 +1,244 @@
+module_name: mappydot
+parameters:
+  - definitions:
+      SENS_EN_MPDT:
+        default: 0
+        description:
+          short: Enable Mappydot rangefinder (i2c)
+        max: 1
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Disabled
+          1: Autodetect
+        volatile: false
+      SENS_MPDT0_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the Mappydot sensor relative to the platform.
+          short: MappyDot Sensor 0 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MPDT10_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the Mappydot sensor relative to the platform.
+          short: MappyDot Sensor 10 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MPDT11_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the Mappydot sensor relative to the platform.
+          short: MappyDot Sensor 12 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MPDT1_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the Mappydot sensor relative to the platform.
+          short: MappyDot Sensor 1 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MPDT2_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the Mappydot sensor relative to the platform.
+          short: MappyDot Sensor 2 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MPDT3_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the Mappydot sensor relative to the platform.
+          short: MappyDot Sensor 3 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MPDT4_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the Mappydot sensor relative to the platform.
+          short: MappyDot Sensor 4 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MPDT5_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the Mappydot sensor relative to the platform.
+          short: MappyDot Sensor 5 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MPDT6_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the Mappydot sensor relative to the platform.
+          short: MappyDot Sensor 6 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MPDT7_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the Mappydot sensor relative to the platform.
+          short: MappyDot Sensor 7 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MPDT8_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the Mappydot sensor relative to the platform.
+          short: MappyDot Sensor 8 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MPDT9_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the Mappydot sensor relative to the platform.
+          short: MappyDot Sensor 9 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+    group: Sensors

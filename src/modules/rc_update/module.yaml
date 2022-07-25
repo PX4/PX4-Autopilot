@@ -1,0 +1,1051 @@
+__max_number_rc_instances: &max_number_rc_instances 18
+module_name: rc_update
+parameters:
+  - definitions:
+      RC${i}_DZ:
+        default: 10.0
+        description:
+          long: The +- range of this value around the trim value will be considered as zero.
+          short: RC channel ${i} dead zone
+        max: 100.0
+        min: 0.0
+        type: float
+        unit: us
+        volatile: false
+        num_instances: *max_number_rc_instances
+        instance_start: 1
+      RC${i}_MAX:
+        default: 2000
+        description:
+          long: Maximum value for this channel.
+          short: RC channel ${i} maximum
+        max: 2200.0
+        min: 1500.0
+        type: float
+        unit: us
+        volatile: false
+        num_instances: *max_number_rc_instances
+        instance_start: 1
+      RC${i}_MIN:
+        default: 1000
+        description:
+          long: Minimum value for this channel.
+          short: RC channel ${i} minimum
+        max: 1500.0
+        min: 800.0
+        type: float
+        unit: us
+        volatile: false
+        num_instances: *max_number_rc_instances
+        instance_start: 1
+      RC${i}_REV:
+        default: 1.0
+        description:
+          long: Set to -1.0 to reverse channel, and 1.0 for normal direction.
+          short: RC channel ${i} reverse
+        max: 1.0
+        min: -1.0
+        type: float
+        volatile: false
+        num_instances: *max_number_rc_instances
+        instance_start: 1
+      RC${i}_TRIM:
+        default: 1500
+        description:
+          long: Mid point value (has to be set to the same as min for throttle channel).
+          short: RC channel ${i} trim
+        max: 2200.0
+        min: 800.0
+        type: float
+        unit: us
+        volatile: false
+        num_instances: *max_number_rc_instances
+        instance_start: 1
+      RC_CHAN_CNT:
+        default: 0
+        description:
+          long: This parameter is used by Ground Station software to save the number of channels which were used during RC calibration. It is only meant for ground station use.
+          short: RC channel count
+        max: 18
+        min: 0
+        type: int32
+        volatile: false
+      RC_FAILS_THR:
+        default: 0
+        description:
+          long: 'Use RC_MAP_FAILSAFE to specify which channel is used to indicate RC loss via this theshold. By default this is the throttle channel. Set to a PWM value slightly above the PWM value for the channel (e.g. throttle) in a failsafe event, but below the minimum PWM value for the channel during normal operation. Note: The default value of 0 disables the feature (it is below the expected range).'
+          short: Failsafe channel PWM threshold
+        max: 2200
+        min: 0
+        type: int32
+        unit: us
+        volatile: false
+      RC_MAP_AUX1:
+        default: 0
+        description:
+          long: 'Default function: Camera pitch'
+          short: AUX1 Passthrough RC channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_AUX2:
+        default: 0
+        description:
+          long: 'Default function: Camera roll'
+          short: AUX2 Passthrough RC channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_AUX3:
+        default: 0
+        description:
+          long: 'Default function: Camera azimuth / yaw'
+          short: AUX3 Passthrough RC channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_AUX4:
+        default: 0
+        description:
+          short: AUX4 Passthrough RC channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_AUX5:
+        default: 0
+        description:
+          short: AUX5 Passthrough RC channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_AUX6:
+        default: 0
+        description:
+          short: AUX6 Passthrough RC channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_FAILSAFE:
+        default: 0
+        description:
+          long: Configures which RC channel is used by the receiver to indicate the signal was lost (on receivers that use output a fixed signal value to report lost signal). If set to 0, the channel mapped to throttle is used. Use RC_FAILS_THR to set the threshold indicating lost signal. By default it's below the expected range and hence disabled.
+          short: Failsafe channel mapping
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_PARAM1:
+        default: 0
+        description:
+          long: Can be used for parameter tuning with the RC. This one is further referenced as the 1st parameter channel. Set to 0 to deactivate *
+          short: PARAM1 tuning channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_PARAM2:
+        default: 0
+        description:
+          long: Can be used for parameter tuning with the RC. This one is further referenced as the 2nd parameter channel. Set to 0 to deactivate *
+          short: PARAM2 tuning channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_PARAM3:
+        default: 0
+        description:
+          long: Can be used for parameter tuning with the RC. This one is further referenced as the 3th parameter channel. Set to 0 to deactivate *
+          short: PARAM3 tuning channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_PITCH:
+        default: 0
+        description:
+          long: The channel index (starting from 1 for channel 1) indicates which channel should be used for reading pitch inputs from. A value of zero indicates the switch is not assigned.
+          short: Pitch control channel mapping
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_ROLL:
+        default: 0
+        description:
+          long: The channel index (starting from 1 for channel 1) indicates which channel should be used for reading roll inputs from. A value of zero indicates the switch is not assigned.
+          short: Roll control channel mapping
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_THROTTLE:
+        default: 0
+        description:
+          long: The channel index (starting from 1 for channel 1) indicates which channel should be used for reading throttle inputs from. A value of zero indicates the switch is not assigned.
+          short: Throttle control channel mapping
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_YAW:
+        default: 0
+        description:
+          long: The channel index (starting from 1 for channel 1) indicates which channel should be used for reading yaw inputs from. A value of zero indicates the switch is not assigned.
+          short: Yaw control channel mapping
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_RSSI_PWM_CHAN:
+        default: 0
+        description:
+          long: '0: do not read RSSI from input channel 1-18: read RSSI from specified input channel Specify the range for RSSI input with RC_RSSI_PWM_MIN and RC_RSSI_PWM_MAX parameters.'
+          short: PWM input channel that provides RSSI
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_RSSI_PWM_MAX:
+        default: 2000
+        description:
+          long: Only used if RC_RSSI_PWM_CHAN > 0
+          short: Max input value for RSSI reading
+        max: 2000
+        min: 0
+        type: int32
+        volatile: false
+      RC_RSSI_PWM_MIN:
+        default: 1000
+        description:
+          long: Only used if RC_RSSI_PWM_CHAN > 0
+          short: Min input value for RSSI reading
+        max: 2000
+        min: 0
+        type: int32
+        volatile: false
+    group: Radio Calibration
+  - definitions:
+      RC_ARMSWITCH_TH:
+        default: 0.75
+        description:
+          long: '0-1 indicate where in the full channel range the threshold sits 0 : min 1 : max sign indicates polarity of comparison positive : true when channel>th negative : true when channel<th'
+          short: Threshold for the arm switch
+        max: 1
+        min: -1
+        type: float
+        volatile: false
+      RC_GEAR_TH:
+        default: 0.75
+        description:
+          long: '0-1 indicate where in the full channel range the threshold sits 0 : min 1 : max sign indicates polarity of comparison positive : true when channel>th negative : true when channel<th'
+          short: Threshold for the landing gear switch
+        max: 1
+        min: -1
+        type: float
+        volatile: false
+      RC_KILLSWITCH_TH:
+        default: 0.75
+        description:
+          long: '0-1 indicate where in the full channel range the threshold sits 0 : min 1 : max sign indicates polarity of comparison positive : true when channel>th negative : true when channel<th'
+          short: Threshold for the kill switch
+        max: 1
+        min: -1
+        type: float
+        volatile: false
+      RC_LOITER_TH:
+        default: 0.75
+        description:
+          long: '0-1 indicate where in the full channel range the threshold sits 0 : min 1 : max sign indicates polarity of comparison positive : true when channel>th negative : true when channel<th'
+          short: Threshold for selecting loiter mode
+        max: 1
+        min: -1
+        type: float
+        volatile: false
+      RC_MAP_ARM_SW:
+        default: 0
+        description:
+          long: Use it to arm/disarm via switch instead of default throttle stick. If this is assigned, arming and disarming via stick is disabled.
+          short: Arm switch channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_FLAPS:
+        default: 0
+        description:
+          short: Flaps channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_FLTMODE:
+        default: 0
+        description:
+          long: If this parameter is non-zero, flight modes are only selected by this channel and are assigned to six slots.
+          short: Single channel flight mode selection
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_FLTM_BTN:
+        bit:
+          0: Mask Channel 1 as a mode button
+          1: Mask Channel 2 as a mode button
+          2: Mask Channel 3 as a mode button
+          3: Mask Channel 4 as a mode button
+          4: Mask Channel 5 as a mode button
+          5: Mask Channel 6 as a mode button
+          6: Mask Channel 7 as a mode button
+          7: Mask Channel 8 as a mode button
+          8: Mask Channel 9 as a mode button
+          9: Mask Channel 10 as a mode button
+          10: Mask Channel 11 as a mode button
+          11: Mask Channel 12 as a mode button
+          12: Mask Channel 13 as a mode button
+          13: Mask Channel 14 as a mode button
+          14: Mask Channel 15 as a mode button
+          15: Mask Channel 16 as a mode button
+          16: Mask Channel 17 as a mode button
+          17: Mask Channel 18 as a mode button
+        default: 0
+        description:
+          long: This bitmask allows to specify multiple channels for changing flight modes using momentary buttons. Each channel is assigned to a mode slot ((lowest channel = slot 1). The resulting modes for each slot X is defined by the COM_FLTMODEX parameters. The functionality can be used only if RC_MAP_FLTMODE is disabled. The maximum number of available slots and hence bits set in the mask is 6.
+          short: Button flight mode selection
+        max: 258048
+        min: 0
+        type: bitmask
+        volatile: false
+      RC_MAP_GEAR_SW:
+        default: 0
+        description:
+          short: Landing gear switch channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_KILL_SW:
+        default: 0
+        description:
+          short: Emergency Kill switch channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_LOITER_SW:
+        default: 0
+        description:
+          short: Loiter switch channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_OFFB_SW:
+        default: 0
+        description:
+          short: Offboard switch channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_RETURN_SW:
+        default: 0
+        description:
+          short: Return switch channel
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_TRANS_SW:
+        default: 0
+        description:
+          short: VTOL transition switch channel mapping
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_OFFB_TH:
+        default: 0.75
+        description:
+          long: '0-1 indicate where in the full channel range the threshold sits 0 : min 1 : max sign indicates polarity of comparison positive : true when channel>th negative : true when channel<th'
+          short: Threshold for selecting offboard mode
+        max: 1
+        min: -1
+        type: float
+        volatile: false
+      RC_RETURN_TH:
+        default: 0.75
+        description:
+          long: '0-1 indicate where in the full channel range the threshold sits 0 : min 1 : max sign indicates polarity of comparison positive : true when channel>th negative : true when channel<th'
+          short: Threshold for selecting return to launch mode
+        max: 1
+        min: -1
+        type: float
+        volatile: false
+      RC_TRANS_TH:
+        default: 0.75
+        description:
+          long: '0-1 indicate where in the full channel range the threshold sits 0 : min 1 : max sign indicates polarity of comparison positive : true when channel>th negative : true when channel<th'
+          short: Threshold for the VTOL transition switch
+        max: 1
+        min: -1
+        type: float
+        volatile: false
+    group: Radio Switches
+  - definitions:
+      RC_MAP_ACRO_SW:
+        default: 0
+        description:
+          short: Acro switch channel (deprecated)
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_MAN_SW:
+        default: 0
+        description:
+          short: Manual switch channel mapping (deprecated)
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_MODE_SW:
+        default: 0
+        description:
+          long: This is the main flight mode selector. The channel index (starting from 1 for channel 1) indicates which channel should be used for deciding about the main mode. A value of zero indicates the switch is not assigned.
+          short: Mode switch channel mapping (deprecated)
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_POSCTL_SW:
+        default: 0
+        description:
+          short: Position Control switch channel (deprecated)
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_RATT_SW:
+        default: 0
+        description:
+          short: Rattitude switch channel (deprecated)
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+      RC_MAP_STAB_SW:
+        default: 0
+        description:
+          short: Stabilize switch channel mapping  (deprecated)
+        max: 18
+        min: 0
+        type: enum
+        values:
+          0: Unassigned
+          1: Channel 1
+          2: Channel 2
+          3: Channel 3
+          4: Channel 4
+          5: Channel 5
+          6: Channel 6
+          7: Channel 7
+          8: Channel 8
+          9: Channel 9
+          10: Channel 10
+          11: Channel 11
+          12: Channel 12
+          13: Channel 13
+          14: Channel 14
+          15: Channel 15
+          16: Channel 16
+          17: Channel 17
+          18: Channel 18
+        volatile: false
+    group: Radio Switches

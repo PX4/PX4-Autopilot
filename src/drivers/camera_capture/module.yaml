@@ -1,0 +1,47 @@
+module_name: camera_capture
+parameters:
+  - definitions:
+      CAM_CAP_DELAY:
+        decimal: 1
+        default: 0.0
+        description:
+          long: This parameter sets the delay between image integration start and strobe firing
+          short: Camera strobe delay
+        max: 100.0
+        min: 0.0
+        type: float
+        unit: ms
+        volatile: false
+    group: Camera Capture
+  - definitions:
+      CAM_CAP_EDGE:
+        default: 0
+        description:
+          short: Camera capture edge
+        reboot_required: true
+        type: enum
+        values:
+          0: Falling edge
+          1: Rising edge
+        volatile: false
+      CAM_CAP_FBACK:
+        default: 0
+        description:
+          long: Enables camera capture feedback
+          short: Camera capture feedback
+        reboot_required: true
+        type: boolean
+        volatile: false
+      CAM_CAP_MODE:
+        default: 0
+        description:
+          long: Change time measurement
+          short: Camera capture timestamping mode
+        reboot_required: true
+        type: enum
+        values:
+          0: Get absolute timestamp
+          1: Get timestamp of mid exposure (active high)
+          2: Get timestamp of mid exposure (active low)
+        volatile: false
+    group: Camera Control

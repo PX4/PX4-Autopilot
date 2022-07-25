@@ -1,0 +1,241 @@
+module_name: gimbal
+parameters:
+  - definitions:
+      MNT_DO_STAB:
+        default: 0
+        description:
+          long: Set to true for servo gimbal, false for passthrough. This is required for a gimbal which is not capable of stabilizing itself and relies on the IMU's attitude estimation.
+          short: Stabilize the mount
+        max: 2
+        min: 0
+        type: enum
+        values:
+          0: Disable
+          1: Stabilize all axis
+          2: Stabilize yaw for absolute/lock mode.
+        volatile: false
+      MNT_LND_P_MAX:
+        decimal: 1
+        default: 90.0
+        description:
+          short: Pitch maximum when landed
+        max: 90.0
+        min: -90.0
+        type: float
+        unit: deg
+        volatile: false
+      MNT_LND_P_MIN:
+        decimal: 1
+        default: -90.0
+        description:
+          short: Pitch minimum when landed
+        max: 90.0
+        min: -90.0
+        type: float
+        unit: deg
+        volatile: false
+      MNT_MAN_PITCH:
+        default: 0
+        description:
+          short: Auxiliary channel to control pitch (in AUX input or manual mode)
+        max: 6
+        min: 0
+        type: enum
+        values:
+          0: Disable
+          1: AUX1
+          2: AUX2
+          3: AUX3
+          4: AUX4
+          5: AUX5
+          6: AUX6
+        volatile: false
+      MNT_MAN_ROLL:
+        default: 0
+        description:
+          short: Auxiliary channel to control roll (in AUX input or manual mode)
+        max: 6
+        min: 0
+        type: enum
+        values:
+          0: Disable
+          1: AUX1
+          2: AUX2
+          3: AUX3
+          4: AUX4
+          5: AUX5
+          6: AUX6
+        volatile: false
+      MNT_MAN_YAW:
+        default: 0
+        description:
+          short: Auxiliary channel to control yaw (in AUX input or manual mode)
+        max: 6
+        min: 0
+        type: enum
+        values:
+          0: Disable
+          1: AUX1
+          2: AUX2
+          3: AUX3
+          4: AUX4
+          5: AUX5
+          6: AUX6
+        volatile: false
+      MNT_MAV_COMPID:
+        default: 154
+        description:
+          long: If MNT_MODE_OUT is MAVLink protocol v2, mount configure/control commands will be sent with this component ID.
+          short: Mavlink Component ID of the mount
+        type: int32
+        volatile: false
+      MNT_MAV_SYSID:
+        default: 1
+        description:
+          long: If MNT_MODE_OUT is MAVLink gimbal protocol v1, mount configure/control commands will be sent with this target ID.
+          short: Mavlink System ID of the mount
+        type: int32
+        volatile: false
+      MNT_MODE_IN:
+        default: -1
+        description:
+          long: This is the protocol used between the ground station and the autopilot. Recommended is Auto, RC only or MAVLink gimbal protocol v2. The rest will be deprecated.
+          short: Mount input mode
+        max: 4
+        min: -1
+        reboot_required: true
+        type: enum
+        values:
+          -1: DISABLED
+          0: Auto (RC and MAVLink gimbal protocol v2)
+          1: RC
+          2: MAVLINK_ROI (protocol v1, to be deprecated)
+          3: MAVLINK_DO_MOUNT (protocol v1, to be deprecated)
+          4: MAVlink gimbal protocol v2
+        volatile: false
+      MNT_MODE_OUT:
+        default: 0
+        description:
+          long: This is the protocol used between the autopilot and a connected gimbal. Recommended is the MAVLink gimbal protocol v2 if the gimbal supports it.
+          short: Mount output mode
+        max: 2
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: AUX
+          1: MAVLink gimbal protocol v1
+          2: MAVLink gimbal protocol v2
+        volatile: false
+      MNT_OB_LOCK_MODE:
+        decimal: 3
+        default: 0.0
+        description:
+          long: if required for the gimbal (only in AUX output mode)
+          short: Mixer value for selecting a locking mode
+        max: 1.0
+        min: -1.0
+        type: float
+        volatile: false
+      MNT_OB_NORM_MODE:
+        decimal: 3
+        default: -1.0
+        description:
+          long: if required by the gimbal (only in AUX output mode)
+          short: Mixer value for selecting normal mode
+        max: 1.0
+        min: -1.0
+        type: float
+        volatile: false
+      MNT_OFF_PITCH:
+        decimal: 1
+        default: 0.0
+        description:
+          short: Offset for pitch channel output in degrees
+        max: 360.0
+        min: -360.0
+        type: float
+        unit: deg
+        volatile: false
+      MNT_OFF_ROLL:
+        decimal: 1
+        default: 0.0
+        description:
+          short: Offset for roll channel output in degrees
+        max: 360.0
+        min: -360.0
+        type: float
+        unit: deg
+        volatile: false
+      MNT_OFF_YAW:
+        decimal: 1
+        default: 0.0
+        description:
+          short: Offset for yaw channel output in degrees
+        max: 360.0
+        min: -360.0
+        type: float
+        unit: deg
+        volatile: false
+      MNT_RANGE_PITCH:
+        decimal: 1
+        default: 90.0
+        description:
+          short: Range of pitch channel output in degrees (only in AUX output mode)
+        max: 720.0
+        min: 1.0
+        type: float
+        unit: deg
+        volatile: false
+      MNT_RANGE_ROLL:
+        decimal: 1
+        default: 90.0
+        description:
+          short: Range of roll channel output in degrees (only in AUX output mode)
+        max: 720.0
+        min: 1.0
+        type: float
+        unit: deg
+        volatile: false
+      MNT_RANGE_YAW:
+        decimal: 1
+        default: 360.0
+        description:
+          short: Range of yaw channel output in degrees (only in AUX output mode)
+        max: 720.0
+        min: 1.0
+        type: float
+        unit: deg
+        volatile: false
+      MNT_RATE_PITCH:
+        default: 30.0
+        description:
+          long: Full stick input [-1..1] translats to [-pitch rate..pitch rate].
+          short: Angular pitch rate for manual input in degrees/second
+        max: 90.0
+        min: 1.0
+        type: float
+        unit: deg/s
+        volatile: false
+      MNT_RATE_YAW:
+        default: 30.0
+        description:
+          long: Full stick input [-1..1] translats to [-yaw rate..yaw rate].
+          short: Angular yaw rate for manual input in degrees/second
+        max: 90.0
+        min: 1.0
+        type: float
+        unit: deg/s
+        volatile: false
+      MNT_RC_IN_MODE:
+        default: 1
+        description:
+          short: Input mode for RC gimbal input
+        max: 1
+        min: 0
+        type: enum
+        values:
+          0: Angle
+          1: Angular rate
+        volatile: false
+    group: Mount

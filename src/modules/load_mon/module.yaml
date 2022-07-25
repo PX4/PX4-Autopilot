@@ -1,0 +1,10 @@
+module_name: load_mon
+parameters:
+  - definitions:
+      SYS_STCK_EN:
+        default: 1
+        description:
+          short: Enable stack checking
+        type: boolean
+        volatile: false
+    group: System

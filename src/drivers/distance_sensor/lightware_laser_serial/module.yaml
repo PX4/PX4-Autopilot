@@ -1,7 +1,25 @@
 module_name: Lightware Laser Rangefinder (serial)
 serial_config:
-    - command: lightware_laser_serial start -d ${SERIAL_DEV}
-      port_config_param:
-        name: SENS_SF0X_CFG
-        group: Sensors
-
+  - command: lightware_laser_serial start -d ${SERIAL_DEV}
+    port_config_param:
+      name: SENS_SF0X_CFG
+      group: Sensors
+parameters:
+  - definitions:
+      SENS_EN_SF0X:
+        default: 1
+        description:
+          short: Lightware Laser Rangefinder hardware model (serial)
+        reboot_required: true
+        type: enum
+        values:
+          1: SF02
+          2: SF10/a
+          3: SF10/b
+          4: SF10/c
+          5: SF11/c
+          6: SF30/b
+          7: SF30/c
+          8: LW20/c
+        volatile: false
+    group: Sensors

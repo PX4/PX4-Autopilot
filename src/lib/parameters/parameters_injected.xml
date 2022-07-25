@@ -151,7 +151,7 @@
       </values>
     </parameter>
     <parameter name="gnss.warn_sats" default="0" type="INT32">
-      <short_desc></short_desc>
+      <short_desc>GNSS satellite count warning threshold</short_desc>
       <long_desc>Set the device health to Warning if the number of satellites
         used in the GNSS solution is below this threshold. Zero
         disables the feature

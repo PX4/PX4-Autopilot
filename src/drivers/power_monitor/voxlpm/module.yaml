@@ -1,0 +1,26 @@
+module_name: voxlpm
+parameters:
+  - definitions:
+      VOXLPM_SHUNT_BAT:
+        decimal: 10
+        default: 0.00063
+        description:
+          short: VOXL Power Monitor Shunt, Battery
+        increment: 1.0e-09
+        max: 0.1
+        min: 1.0e-09
+        reboot_required: true
+        type: float
+        volatile: false
+      VOXLPM_SHUNT_REG:
+        decimal: 10
+        default: 0.0056
+        description:
+          short: VOXL Power Monitor Shunt, Regulator
+        increment: 1.0e-09
+        max: 0.1
+        min: 1.0e-09
+        reboot_required: true
+        type: float
+        volatile: false
+    group: Sensors

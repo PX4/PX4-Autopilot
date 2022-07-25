@@ -1,0 +1,55 @@
+module_name: heater
+parameters:
+  - definitions:
+      SENS_IMU_TEMP:
+        category: System
+        decimal: 3
+        default: 55.0
+        description:
+          short: Target IMU temperature
+        max: 85.0
+        min: 0
+        type: float
+        unit: celcius
+        volatile: false
+      SENS_IMU_TEMP_FF:
+        category: System
+        decimal: 3
+        default: 0.05
+        description:
+          short: IMU heater controller feedforward value
+        max: 1.0
+        min: 0
+        type: float
+        unit: '%'
+        volatile: false
+      SENS_IMU_TEMP_I:
+        category: System
+        decimal: 3
+        default: 0.025
+        description:
+          short: IMU heater controller integrator gain value
+        max: 1.0
+        min: 0
+        type: float
+        unit: us/C
+        volatile: false
+      SENS_IMU_TEMP_P:
+        category: System
+        decimal: 3
+        default: 1.0
+        description:
+          short: IMU heater controller proportional gain value
+        max: 2.0
+        min: 0
+        type: float
+        unit: us/C
+        volatile: false
+      SENS_TEMP_ID:
+        category: System
+        default: 0
+        description:
+          short: Target IMU device ID to regulate temperature
+        type: int32
+        volatile: false
+    group: Sensors

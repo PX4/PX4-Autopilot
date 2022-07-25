@@ -1,0 +1,17 @@
+module_name: sensor_baro_sim
+parameters:
+- definitions:
+    SIM_BARO_OFF_P:
+      default: 0.0
+      description:
+        short: simulated barometer pressure offset
+      type: float
+      volatile: false
+    SIM_BARO_OFF_T:
+      default: 0.0
+      description:
+        short: simulated barometer temperature offset
+      type: float
+      unit: celcius
+      volatile: false
+  group: Simulator

@@ -55,6 +55,9 @@ jobs:
           ccache -s
           ccache -z
 
+    - name: install dependencies
+      run: pip3 install dataclasses
+
     - name: check environment
       run: |
           export

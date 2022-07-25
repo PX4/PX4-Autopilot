@@ -1,0 +1,1201 @@
+module_name: temperature_compensation
+parameters:
+  - definitions:
+      TC_A_ENABLE:
+        default: 0
+        description:
+          short: Thermal compensation for accelerometer sensors
+        reboot_required: true
+        type: boolean
+        volatile: false
+      TC_A0_ID:
+        category: System
+        default: 0
+        description:
+          short: ID of Accelerometer that the calibration is for
+        type: int32
+        volatile: false
+      TC_A0_TMAX:
+        category: System
+        default: 100.0
+        description:
+          short: Accelerometer calibration maximum temperature
+        type: float
+        volatile: false
+      TC_A0_TMIN:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer calibration minimum temperature
+        type: float
+        volatile: false
+      TC_A0_TREF:
+        category: System
+        default: 25.0
+        description:
+          short: Accelerometer calibration reference temperature
+        type: float
+        volatile: false
+      TC_A0_X0_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^0 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A0_X0_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^0 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A0_X0_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^0 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A0_X1_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^1 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A0_X1_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^1 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A0_X1_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^1 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A0_X2_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^2 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A0_X2_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^2 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A0_X2_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^2 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A0_X3_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^3 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A0_X3_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^3 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A0_X3_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^3 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A1_ID:
+        category: System
+        default: 0
+        description:
+          short: ID of Accelerometer that the calibration is for
+        type: int32
+        volatile: false
+      TC_A1_TMAX:
+        category: System
+        default: 100.0
+        description:
+          short: Accelerometer calibration maximum temperature
+        type: float
+        volatile: false
+      TC_A1_TMIN:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer calibration minimum temperature
+        type: float
+        volatile: false
+      TC_A1_TREF:
+        category: System
+        default: 25.0
+        description:
+          short: Accelerometer calibration reference temperature
+        type: float
+        volatile: false
+      TC_A1_X0_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^0 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A1_X0_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^0 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A1_X0_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^0 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A1_X1_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^1 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A1_X1_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^1 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A1_X1_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^1 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A1_X2_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^2 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A1_X2_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^2 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A1_X2_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^2 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A1_X3_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^3 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A1_X3_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^3 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A1_X3_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^3 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A2_ID:
+        category: System
+        default: 0
+        description:
+          short: ID of Accelerometer that the calibration is for
+        type: int32
+        volatile: false
+      TC_A2_TMAX:
+        category: System
+        default: 100.0
+        description:
+          short: Accelerometer calibration maximum temperature
+        type: float
+        volatile: false
+      TC_A2_TMIN:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer calibration minimum temperature
+        type: float
+        volatile: false
+      TC_A2_TREF:
+        category: System
+        default: 25.0
+        description:
+          short: Accelerometer calibration reference temperature
+        type: float
+        volatile: false
+      TC_A2_X0_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^0 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A2_X0_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^0 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A2_X0_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^0 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A2_X1_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^1 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A2_X1_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^1 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A2_X1_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^1 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A2_X2_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^2 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A2_X2_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^2 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A2_X2_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^2 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A2_X3_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^3 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A2_X3_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^3 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A2_X3_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^3 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A3_ID:
+        category: System
+        default: 0
+        description:
+          short: ID of Accelerometer that the calibration is for
+        type: int32
+        volatile: false
+      TC_A3_TMAX:
+        category: System
+        default: 100.0
+        description:
+          short: Accelerometer calibration maximum temperature
+        type: float
+        volatile: false
+      TC_A3_TMIN:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer calibration minimum temperature
+        type: float
+        volatile: false
+      TC_A3_TREF:
+        category: System
+        default: 25.0
+        description:
+          short: Accelerometer calibration reference temperature
+        type: float
+        volatile: false
+      TC_A3_X0_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^0 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A3_X0_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^0 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A3_X0_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^0 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A3_X1_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^1 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A3_X1_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^1 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A3_X1_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^1 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A3_X2_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^2 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A3_X2_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^2 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A3_X2_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^2 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_A3_X3_0:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^3 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_A3_X3_1:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^3 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_A3_X3_2:
+        category: System
+        default: 0.0
+        description:
+          short: Accelerometer offset temperature ^3 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_B_ENABLE:
+        default: 0
+        description:
+          short: Thermal compensation for barometric pressure sensors
+        reboot_required: true
+        type: boolean
+        volatile: false
+      TC_B0_ID:
+        category: System
+        default: 0
+        description:
+          short: ID of Barometer that the calibration is for
+        type: int32
+        volatile: false
+      TC_B0_TMAX:
+        category: System
+        default: 75.0
+        description:
+          short: Barometer calibration maximum temperature
+        type: float
+        volatile: false
+      TC_B0_TMIN:
+        category: System
+        default: 5.0
+        description:
+          short: Barometer calibration minimum temperature
+        type: float
+        volatile: false
+      TC_B0_TREF:
+        category: System
+        default: 40.0
+        description:
+          short: Barometer calibration reference temperature
+        type: float
+        volatile: false
+      TC_B0_X0:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^0 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B0_X1:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^1 polynomial coefficients
+        type: float
+        volatile: false
+      TC_B0_X2:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^2 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B0_X3:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^3 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B0_X4:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^4 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B0_X5:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^5 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B1_ID:
+        category: System
+        default: 0
+        description:
+          short: ID of Barometer that the calibration is for
+        type: int32
+        volatile: false
+      TC_B1_TMAX:
+        category: System
+        default: 75.0
+        description:
+          short: Barometer calibration maximum temperature
+        type: float
+        volatile: false
+      TC_B1_TMIN:
+        category: System
+        default: 5.0
+        description:
+          short: Barometer calibration minimum temperature
+        type: float
+        volatile: false
+      TC_B1_TREF:
+        category: System
+        default: 40.0
+        description:
+          short: Barometer calibration reference temperature
+        type: float
+        volatile: false
+      TC_B1_X0:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^0 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B1_X1:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^1 polynomial coefficients
+        type: float
+        volatile: false
+      TC_B1_X2:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^2 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B1_X3:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^3 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B1_X4:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^4 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B1_X5:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^5 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B2_ID:
+        category: System
+        default: 0
+        description:
+          short: ID of Barometer that the calibration is for
+        type: int32
+        volatile: false
+      TC_B2_TMAX:
+        category: System
+        default: 75.0
+        description:
+          short: Barometer calibration maximum temperature
+        type: float
+        volatile: false
+      TC_B2_TMIN:
+        category: System
+        default: 5.0
+        description:
+          short: Barometer calibration minimum temperature
+        type: float
+        volatile: false
+      TC_B2_TREF:
+        category: System
+        default: 40.0
+        description:
+          short: Barometer calibration reference temperature
+        type: float
+        volatile: false
+      TC_B2_X0:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^0 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B2_X1:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^1 polynomial coefficients
+        type: float
+        volatile: false
+      TC_B2_X2:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^2 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B2_X3:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^3 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B2_X4:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^4 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B2_X5:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^5 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B3_ID:
+        category: System
+        default: 0
+        description:
+          short: ID of Barometer that the calibration is for
+        type: int32
+        volatile: false
+      TC_B3_TMAX:
+        category: System
+        default: 75.0
+        description:
+          short: Barometer calibration maximum temperature
+        type: float
+        volatile: false
+      TC_B3_TMIN:
+        category: System
+        default: 5.0
+        description:
+          short: Barometer calibration minimum temperature
+        type: float
+        volatile: false
+      TC_B3_TREF:
+        category: System
+        default: 40.0
+        description:
+          short: Barometer calibration reference temperature
+        type: float
+        volatile: false
+      TC_B3_X0:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^0 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B3_X1:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^1 polynomial coefficients
+        type: float
+        volatile: false
+      TC_B3_X2:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^2 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B3_X3:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^3 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B3_X4:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^4 polynomial coefficient
+        type: float
+        volatile: false
+      TC_B3_X5:
+        category: System
+        default: 0.0
+        description:
+          short: Barometer offset temperature ^5 polynomial coefficient
+        type: float
+        volatile: false
+      TC_G_ENABLE:
+        default: 0
+        description:
+          short: Thermal compensation for rate gyro sensors
+        reboot_required: true
+        type: boolean
+        volatile: false
+      TC_G0_ID:
+        category: System
+        default: 0
+        description:
+          short: ID of Gyro that the calibration is for
+        type: int32
+        volatile: false
+      TC_G0_TMAX:
+        category: System
+        default: 100.0
+        description:
+          short: Gyro calibration maximum temperature
+        type: float
+        volatile: false
+      TC_G0_TMIN:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro calibration minimum temperature
+        type: float
+        volatile: false
+      TC_G0_TREF:
+        category: System
+        default: 25.0
+        description:
+          short: Gyro calibration reference temperature
+        type: float
+        volatile: false
+      TC_G0_X0_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^0 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G0_X0_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^0 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G0_X0_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^0 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G0_X1_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^1 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G0_X1_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^1 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G0_X1_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^1 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G0_X2_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^2 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G0_X2_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^2 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G0_X2_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^2 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G0_X3_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^3 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G0_X3_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^3 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G0_X3_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^3 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G1_ID:
+        category: System
+        default: 0
+        description:
+          short: ID of Gyro that the calibration is for
+        type: int32
+        volatile: false
+      TC_G1_TMAX:
+        category: System
+        default: 100.0
+        description:
+          short: Gyro calibration maximum temperature
+        type: float
+        volatile: false
+      TC_G1_TMIN:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro calibration minimum temperature
+        type: float
+        volatile: false
+      TC_G1_TREF:
+        category: System
+        default: 25.0
+        description:
+          short: Gyro calibration reference temperature
+        type: float
+        volatile: false
+      TC_G1_X0_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^0 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G1_X0_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^0 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G1_X0_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^0 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G1_X1_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^1 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G1_X1_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^1 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G1_X1_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^1 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G1_X2_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^2 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G1_X2_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^2 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G1_X2_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^2 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G1_X3_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^3 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G1_X3_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^3 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G1_X3_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^3 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G2_ID:
+        category: System
+        default: 0
+        description:
+          short: ID of Gyro that the calibration is for
+        type: int32
+        volatile: false
+      TC_G2_TMAX:
+        category: System
+        default: 100.0
+        description:
+          short: Gyro calibration maximum temperature
+        type: float
+        volatile: false
+      TC_G2_TMIN:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro calibration minimum temperature
+        type: float
+        volatile: false
+      TC_G2_TREF:
+        category: System
+        default: 25.0
+        description:
+          short: Gyro calibration reference temperature
+        type: float
+        volatile: false
+      TC_G2_X0_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^0 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G2_X0_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^0 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G2_X0_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^0 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G2_X1_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^1 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G2_X1_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^1 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G2_X1_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^1 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G2_X2_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^2 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G2_X2_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^2 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G2_X2_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^2 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G2_X3_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^3 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G2_X3_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^3 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G2_X3_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^3 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G3_ID:
+        category: System
+        default: 0
+        description:
+          short: ID of Gyro that the calibration is for
+        type: int32
+        volatile: false
+      TC_G3_TMAX:
+        category: System
+        default: 100.0
+        description:
+          short: Gyro calibration maximum temperature
+        type: float
+        volatile: false
+      TC_G3_TMIN:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro calibration minimum temperature
+        type: float
+        volatile: false
+      TC_G3_TREF:
+        category: System
+        default: 25.0
+        description:
+          short: Gyro calibration reference temperature
+        type: float
+        volatile: false
+      TC_G3_X0_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^0 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G3_X0_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^0 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G3_X0_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^0 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G3_X1_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^1 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G3_X1_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^1 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G3_X1_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^1 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G3_X2_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^2 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G3_X2_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^2 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G3_X2_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^2 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+      TC_G3_X3_0:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^3 polynomial coefficient - X axis
+        type: float
+        volatile: false
+      TC_G3_X3_1:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^3 polynomial coefficient - Y axis
+        type: float
+        volatile: false
+      TC_G3_X3_2:
+        category: System
+        default: 0.0
+        description:
+          short: Gyro rate offset temperature ^3 polynomial coefficient - Z axis
+        type: float
+        volatile: false
+    group: Thermal Compensation

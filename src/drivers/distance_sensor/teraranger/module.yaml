@@ -1,0 +1,20 @@
+module_name: teraranger
+parameters:
+  - definitions:
+      SENS_EN_TRANGER:
+        default: 0
+        description:
+          short: TeraRanger Rangefinder (i2c)
+        max: 3
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Disabled
+          1: Autodetect
+          2: TROne
+          3: TREvo60m
+          4: TREvo600Hz
+          5: TREvo3m
+        volatile: false
+    group: Sensors

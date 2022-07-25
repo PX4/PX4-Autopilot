@@ -1,0 +1,268 @@
+module_name: angular_velocity_controller
+parameters:
+  - definitions:
+      AVC_X_D:
+        decimal: 4
+        default: 0.36
+        description:
+          long: Body X axis angular velocity differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+          short: Body X axis angular velocity D gain
+        increment: 0.01
+        max: 2.0
+        min: 0.0
+        type: float
+        volatile: false
+      AVC_X_FF:
+        decimal: 4
+        default: 0.0
+        description:
+          long: Improves tracking performance.
+          short: Body X axis angular velocity feedforward gain
+        min: 0.0
+        type: float
+        unit: Nm/(rad/s)
+        volatile: false
+      AVC_X_I:
+        decimal: 3
+        default: 0.2
+        description:
+          long: Body X axis angular velocity integral gain. Can be set to compensate static thrust difference or gravity center offset.
+          short: Body X axis angular velocity I gain
+        increment: 0.01
+        min: 0.0
+        type: float
+        unit: Nm/rad
+        volatile: false
+      AVC_X_I_LIM:
+        decimal: 2
+        default: 0.3
+        description:
+          long: Body X axis angular velocity integrator limit. Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large roll moment trim changes.
+          short: Body X axis angular velocity integrator limit
+        increment: 0.01
+        min: 0.0
+        type: float
+        unit: Nm
+        volatile: false
+      AVC_X_K:
+        decimal: 4
+        default: 1.0
+        description:
+          long: 'Global gain of the controller. This gain scales the P, I and D terms of the controller: output = AVC_X_K * (AVC_X_P * error + AVC_X_I * error_integral + AVC_X_D * error_derivative) Set AVC_X_P=1 to implement a PID in the ideal form. Set AVC_X_K=1 to implement a PID in the parallel form.'
+          short: Body X axis angular velocity controller gain
+        increment: 0.0005
+        max: 5.0
+        min: 0.0
+        type: float
+        volatile: false
+      AVC_X_P:
+        decimal: 3
+        default: 18.0
+        description:
+          long: Body X axis angular velocity proportional gain, i.e. control output for angular speed error 1 rad/s.
+          short: Body X axis angular velocity P gain
+        increment: 0.01
+        max: 20.0
+        min: 0.0
+        type: float
+        unit: 1/s
+        volatile: false
+      AVC_Y_D:
+        decimal: 4
+        default: 0.36
+        description:
+          long: Body Y axis angular velocity differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+          short: Body Y axis angular velocity D gain
+        increment: 0.01
+        max: 2.0
+        min: 0.0
+        type: float
+        volatile: false
+      AVC_Y_FF:
+        decimal: 4
+        default: 0.0
+        description:
+          long: Improves tracking performance.
+          short: Body Y axis angular velocity feedforward
+        min: 0.0
+        type: float
+        unit: Nm/(rad/s)
+        volatile: false
+      AVC_Y_I:
+        decimal: 3
+        default: 0.2
+        description:
+          long: Body Y axis angular velocity integral gain. Can be set to compensate static thrust difference or gravity center offset.
+          short: Body Y axis angular velocity I gain
+        increment: 0.01
+        min: 0.0
+        type: float
+        unit: Nm/rad
+        volatile: false
+      AVC_Y_I_LIM:
+        decimal: 2
+        default: 0.3
+        description:
+          long: Body Y axis angular velocity integrator limit. Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large pitch moment trim changes.
+          short: Body Y axis angular velocity integrator limit
+        increment: 0.01
+        min: 0.0
+        type: float
+        unit: Nm
+        volatile: false
+      AVC_Y_K:
+        decimal: 4
+        default: 1.0
+        description:
+          long: 'Global gain of the controller. This gain scales the P, I and D terms of the controller: output = AVC_Y_K * (AVC_Y_P * error + AVC_Y_I * error_integral + AVC_Y_D * error_derivative) Set AVC_Y_P=1 to implement a PID in the ideal form. Set AVC_Y_K=1 to implement a PID in the parallel form.'
+          short: Body Y axis angular velocity controller gain
+        increment: 0.0005
+        max: 20.0
+        min: 0.0
+        type: float
+        volatile: false
+      AVC_Y_P:
+        decimal: 3
+        default: 18.0
+        description:
+          long: Body Y axis angular velocity proportional gain, i.e. control output for angular speed error 1 rad/s.
+          short: Body Y axis angular velocity P gain
+        increment: 0.01
+        max: 20.0
+        min: 0.0
+        type: float
+        unit: 1/s
+        volatile: false
+      AVC_Z_D:
+        decimal: 2
+        default: 0.0
+        description:
+          long: Body Z axis angular velocity differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+          short: Body Z axis angular velocity D gain
+        increment: 0.01
+        max: 2.0
+        min: 0.0
+        type: float
+        volatile: false
+      AVC_Z_FF:
+        decimal: 4
+        default: 0.0
+        description:
+          long: Improves tracking performance.
+          short: Body Z axis angular velocity feedforward
+        increment: 0.01
+        min: 0.0
+        type: float
+        unit: Nm/(rad/s)
+        volatile: false
+      AVC_Z_I:
+        decimal: 2
+        default: 0.1
+        description:
+          long: Body Z axis angular velocity integral gain. Can be set to compensate static thrust difference or gravity center offset.
+          short: Body Z axis angular velocity I gain
+        increment: 0.01
+        min: 0.0
+        type: float
+        unit: Nm/rad
+        volatile: false
+      AVC_Z_I_LIM:
+        decimal: 2
+        default: 0.3
+        description:
+          long: Body Z axis angular velocity integrator limit. Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large yaw moment trim changes.
+          short: Body Z axis angular velocity integrator limit
+        increment: 0.01
+        min: 0.0
+        type: float
+        unit: Nm
+        volatile: false
+      AVC_Z_K:
+        decimal: 4
+        default: 1.0
+        description:
+          long: 'Global gain of the controller. This gain scales the P, I and D terms of the controller: output = AVC_Z_K * (AVC_Z_P * error + AVC_Z_I * error_integral + AVC_Z_D * error_derivative) Set AVC_Z_P=1 to implement a PID in the ideal form. Set AVC_Z_K=1 to implement a PID in the parallel form.'
+          short: Body Z axis angular velocity controller gain
+        increment: 0.0005
+        max: 5.0
+        min: 0.0
+        type: float
+        volatile: false
+      AVC_Z_P:
+        decimal: 2
+        default: 7.0
+        description:
+          long: Body Z axis angular velocity proportional gain, i.e. control output for angular speed error 1 rad/s.
+          short: Body Z axis angular velocity P gain
+        increment: 0.01
+        max: 20.0
+        min: 0.0
+        type: float
+        unit: 1/s
+        volatile: false
+    group: Angular Velocity Control
+  - definitions:
+      VM_INERTIA_XX:
+        decimal: 5
+        default: 0.01
+        description:
+          short: Inertia matrix, XX component
+        increment: 1.0e-05
+        type: float
+        unit: kg m^2
+        volatile: false
+      VM_INERTIA_XY:
+        decimal: 5
+        default: 0.0
+        description:
+          short: Inertia matrix, XY component
+        increment: 1.0e-05
+        type: float
+        unit: kg m^2
+        volatile: false
+      VM_INERTIA_XZ:
+        decimal: 5
+        default: 0.0
+        description:
+          short: Inertia matrix, XZ component
+        increment: 1.0e-05
+        type: float
+        unit: kg m^2
+        volatile: false
+      VM_INERTIA_YY:
+        decimal: 5
+        default: 0.01
+        description:
+          short: Inertia matrix, YY component
+        increment: 1.0e-05
+        type: float
+        unit: kg m^2
+        volatile: false
+      VM_INERTIA_YZ:
+        decimal: 5
+        default: 0.0
+        description:
+          short: Inertia matrix, YZ component
+        increment: 1.0e-05
+        type: float
+        unit: kg m^2
+        volatile: false
+      VM_INERTIA_ZZ:
+        decimal: 5
+        default: 0.01
+        description:
+          short: Inertia matrix, ZZ component
+        increment: 1.0e-05
+        type: float
+        unit: kg m^2
+        volatile: false
+      VM_MASS:
+        decimal: 5
+        default: 1.0
+        description:
+          short: Mass
+        increment: 1.0e-05
+        type: float
+        unit: kg
+        volatile: false
+    group: Vehicle Model

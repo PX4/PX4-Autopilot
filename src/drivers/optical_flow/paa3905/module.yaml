@@ -1,0 +1,11 @@
+module_name: paa3905
+parameters:
+  - definitions:
+      SENS_EN_PAA3905:
+        default: 0
+        description:
+          short: PAA3905 Optical Flow
+        reboot_required: true
+        type: boolean
+        volatile: false
+    group: Sensors

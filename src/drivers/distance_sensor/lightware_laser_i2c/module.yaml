@@ -1,0 +1,21 @@
+module_name: lightware_laser_i2c
+parameters:
+  - definitions:
+      SENS_EN_SF1XX:
+        default: 0
+        description:
+          short: Lightware SF1xx/SF20/LW20 laser rangefinder (i2c)
+        max: 6
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Disabled
+          1: SF10/a
+          2: SF10/b
+          3: SF10/c
+          4: SF11/c
+          5: SF/LW20/b
+          6: SF/LW20/c
+        volatile: false
+    group: Sensors

@@ -1,0 +1,84 @@
+module_name: attitude_estimator_q
+parameters:
+  - definitions:
+      ATT_ACC_COMP:
+        default: 1
+        description:
+          short: Acceleration compensation based on GPS velocity
+        type: boolean
+        volatile: false
+      ATT_BIAS_MAX:
+        decimal: 3
+        default: 0.05
+        description:
+          short: Gyro bias limit
+        max: 2
+        min: 0
+        type: float
+        unit: rad/s
+        volatile: false
+      ATT_EXT_HDG_M:
+        default: 0
+        description:
+          long: Set to 1 to use heading estimate from vision. Set to 2 to use heading from motion capture.
+          short: External heading usage mode (from Motion capture/Vision)
+        max: 2
+        min: 0
+        type: enum
+        values:
+          0: None
+          1: Vision
+          2: Motion Capture
+        volatile: false
+      ATT_MAG_DECL:
+        decimal: 2
+        default: 0.0
+        description:
+          long: This parameter is not used in normal operation, as the declination is looked up based on the GPS coordinates of the vehicle.
+          short: Magnetic declination, in degrees
+        type: float
+        unit: deg
+        volatile: false
+      ATT_MAG_DECL_A:
+        default: 1
+        description:
+          short: Automatic GPS based declination compensation
+        type: boolean
+        volatile: false
+      ATT_W_ACC:
+        decimal: 2
+        default: 0.2
+        description:
+          short: Complimentary filter accelerometer weight
+        max: 1
+        min: 0
+        type: float
+        volatile: false
+      ATT_W_EXT_HDG:
+        default: 0.1
+        description:
+          short: Complimentary filter external heading weight
+        max: 1
+        min: 0
+        type: float
+        volatile: false
+      ATT_W_GYRO_BIAS:
+        decimal: 2
+        default: 0.1
+        description:
+          short: Complimentary filter gyroscope bias weight
+        max: 1
+        min: 0
+        type: float
+        volatile: false
+      ATT_W_MAG:
+        decimal: 2
+        default: 0.1
+        description:
+          long: Set to 0 to avoid using the magnetometer.
+          short: Complimentary filter magnetometer weight
+        max: 1
+        min: 0
+        type: float
+        volatile: false
+    group: Attitude Q estimator

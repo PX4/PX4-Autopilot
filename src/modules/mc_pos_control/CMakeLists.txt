@@ -41,6 +41,8 @@ px4_add_module(
 	SRCS
 		MulticopterPositionControl.cpp
 		MulticopterPositionControl.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		PositionControl
 		Takeoff

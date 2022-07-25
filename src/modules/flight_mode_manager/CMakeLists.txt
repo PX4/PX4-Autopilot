@@ -115,6 +115,8 @@ px4_add_module(
 
 		${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.hpp
 		${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_work_queue
 		WeatherVane

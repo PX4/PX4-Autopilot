@@ -121,6 +121,8 @@ add_custom_command(OUTPUT px4_uavcan_dsdlc_run.stamp
 			--outdir ${DSDLC_OUTPUT} ${DSDLC_INPUTS}
 			#--verbose
 	COMMAND ${CMAKE_COMMAND} -E touch px4_uavcan_dsdlc_run.stamp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS ${DSDLC_INPUT_FILES}
 	COMMENT "PX4 UAVCAN dsdl compiler"
 )

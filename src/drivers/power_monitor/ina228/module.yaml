@@ -1,0 +1,42 @@
+module_name: ina228
+parameters:
+  - definitions:
+      INA228_CONFIG:
+        decimal: 1
+        default: 63779
+        description:
+          short: INA228 Power Monitor Config
+        increment: 1
+        max: 65535
+        min: 0
+        type: int32
+        volatile: false
+      INA228_CURRENT:
+        decimal: 2
+        default: 327.68
+        description:
+          short: INA228 Power Monitor Max Current
+        increment: 0.1
+        max: 327.68
+        min: 0.1
+        type: float
+        volatile: false
+      INA228_SHUNT:
+        decimal: 10
+        default: 0.0005
+        description:
+          short: INA228 Power Monitor Shunt
+        increment: 1.0e-09
+        max: 0.1
+        min: 1.0e-09
+        type: float
+        volatile: false
+      SENS_EN_INA228:
+        default: 0
+        description:
+          long: For systems a INA228 Power Monitor, this should be set to true
+          short: Enable INA228 Power Monitor
+        reboot_required: true
+        type: boolean
+        volatile: false
+    group: Sensors

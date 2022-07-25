@@ -1,0 +1,11 @@
+module_name: vl53l1x
+parameters:
+  - definitions:
+      SENS_EN_VL53L1X:
+        default: 0
+        description:
+          short: VL53L1X Distance Sensor
+        reboot_required: true
+        type: boolean
+        volatile: false
+    group: Sensors

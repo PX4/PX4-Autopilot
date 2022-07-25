@@ -36,6 +36,8 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		bst.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 	)
 

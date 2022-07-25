@@ -1,0 +1,70 @@
+module_name: mc_hover_thrust_estimator
+parameters:
+  - definitions:
+      HTE_ACC_GATE:
+        decimal: 1
+        default: 3.0
+        description:
+          long: Sets the number of standard deviations used by the innovation consistency test.
+          short: Gate size for acceleration fusion
+        max: 10.0
+        min: 1.0
+        type: float
+        unit: SD
+        volatile: false
+      HTE_HT_ERR_INIT:
+        decimal: 3
+        default: 0.1
+        description:
+          long: Sets the number of standard deviations used by the innovation consistency test.
+          short: 1-sigma initial hover thrust uncertainty
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: normalized_thrust
+        volatile: false
+      HTE_HT_NOISE:
+        decimal: 4
+        default: 0.0036
+        description:
+          long: Reduce to make the hover thrust estimate more stable, increase if the real hover thrust is expected to change quickly over time.
+          short: Hover thrust process noise
+        max: 1.0
+        min: 0.0001
+        type: float
+        unit: normalized_thrust/s
+        volatile: false
+      HTE_THR_RANGE:
+        decimal: 2
+        default: 0.2
+        description:
+          long: Defines the range of the hover thrust estimate around MPC_THR_HOVER. A value of 0.2 with MPC_THR_HOVER at 0.5 results in a range of [0.3, 0.7]. Set to a large value if the vehicle operates in varying physical conditions that affect the required hover thrust strongly (e.g. differently sized payloads).
+          short: Max deviation from MPC_THR_HOVER
+        max: 0.4
+        min: 0.01
+        type: float
+        unit: normalized_thrust
+        volatile: false
+      HTE_VXY_THR:
+        decimal: 1
+        default: 10.0
+        description:
+          long: Above this speed, the measurement noise is linearly increased to reduce the sensitivity of the estimator from biased measurement. Set to a low value on vehicles with large lifting surfaces.
+          short: Horizontal velocity threshold for sensitivity reduction
+        max: 20.0
+        min: 1.0
+        type: float
+        unit: m/s
+        volatile: false
+      HTE_VZ_THR:
+        decimal: 1
+        default: 2.0
+        description:
+          long: Above this speed, the measurement noise is linearly increased to reduce the sensitivity of the estimator from biased measurement. Set to a low value on vehicles affected by air drag when climbing or descending.
+          short: Vertical velocity threshold for sensitivity reduction
+        max: 10.0
+        min: 1.0
+        type: float
+        unit: m/s
+        volatile: false
+    group: Hover Thrust Estimator

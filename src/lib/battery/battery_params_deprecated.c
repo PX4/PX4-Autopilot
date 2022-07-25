@@ -41,7 +41,7 @@
  * This parameter is deprecated. Please use BAT1_V_EMPTY instead.
  *
  * @group Battery Calibration
- * @category system
+ * @category System
  */
 PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.6f);
 
@@ -49,7 +49,7 @@ PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.6f);
  * This parameter is deprecated. Please use BAT1_V_CHARGED instead.
  *
  * @group Battery Calibration
- * @category system
+ * @category System
  */
 PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
 
@@ -57,7 +57,7 @@ PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
  * This parameter is deprecated. Please use BAT1_V_LOAD_DROP instead.
  *
  * @group Battery Calibration
- * @category system
+ * @category System
  */
 PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
 
@@ -65,6 +65,6 @@ PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
  * This parameter is deprecated. Please use BAT1_N_CELLS instead.
  *
  * @group Battery Calibration
- * @category system
+ * @category System
  */
 PARAM_DEFINE_INT32(BAT_N_CELLS, 3);

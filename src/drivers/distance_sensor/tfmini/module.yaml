@@ -1,7 +1,6 @@
 module_name: Benewake TFmini Rangefinder
 serial_config:
-    - command: tfmini start -d ${SERIAL_DEV}
-      port_config_param:
-        name: SENS_TFMINI_CFG
-        group: Sensors
-
+  - command: tfmini start -d ${SERIAL_DEV}
+    port_config_param:
+      name: SENS_TFMINI_CFG
+      group: Sensors

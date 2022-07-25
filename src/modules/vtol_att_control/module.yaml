@@ -1,0 +1,404 @@
+module_name: vtol_att_control
+parameters:
+  - definitions:
+      VT_B_REV_DEL:
+        decimal: 2
+        default: 0.0
+        description:
+          long: Set this to a value greater than 0 to give the motor time to spin down. unit s
+          short: Delay in seconds before applying back transition throttle
+        increment: 1
+        max: 10
+        min: 0
+        type: float
+        volatile: false
+      VT_B_REV_OUT:
+        decimal: 2
+        default: 0.0
+        description:
+          long: Used for airbrakes or with ESCs that have reverse thrust enabled on a seperate channel Airbrakes need to be enables for your selected model/mixer
+          short: Output on airbrakes channel during back transition
+        increment: 0.01
+        max: 1
+        min: 0
+        type: float
+        volatile: false
+      VT_B_TRANS_RAMP:
+        default: 3.0
+        description:
+          long: This sets the duration during which the MC motors ramp up to the commanded thrust during the back transition stage.
+          short: Back transition MC motor ramp up time
+        max: 20.0
+        min: 0.0
+        type: float
+        unit: s
+        volatile: false
+      VT_FWD_THRUST_EN:
+        default: 0
+        description:
+          long: This technique can be used to avoid the plane having to pitch down in order to move forward. This prevents large, negative lift values being created when facing strong winds. Fixed-wing forward actuators refers to puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL). Only active if demaded down pitch is below VT_PITCH_MIN, and uses VT_FWD_THRUST_SC to get from demanded down pitch to fixed-wing actuation.
+          short: Enable/disable usage of fixed-wing actuators in hover to generate forward force (instead of pitching down)
+        type: enum
+        values:
+          0: Disable FW forward actuation in hover.
+          1: Enable FW forward actuation in hover in altitude, position and auto modes (except LANDING).
+          2: Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT1.
+          3: Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT2.
+          4: Enable FW forward actuation in hover in altitude, position and auto modes.
+          5: Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT1 (except LANDING).
+          6: Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT2 (except LANDING).
+        volatile: false
+      VT_FWD_THRUST_SC:
+        default: 0.7
+        description:
+          long: Scale applied to the demanded down-pitch to get the fixed-wing forward actuation in hover mode. Only active if demaded down pitch is below VT_PITCH_MIN. Enabled via VT_FWD_THRUST_EN.
+          short: Fixed-wing actuator thrust scale for hover forward flight
+        max: 2.0
+        min: 0.0
+        type: float
+        volatile: false
+      VT_PSHER_RMP_DT:
+        decimal: 2
+        default: 3.0
+        description:
+          long: Defines the time window during which the pusher throttle will be ramped up linearly to VT_F_TRANS_THR during a transition to fixed wing mode. Zero or negative values will produce an instant throttle rise to VT_F_TRANS_THR.
+          short: Pusher throttle ramp up window
+        increment: 0.01
+        max: 20
+        type: float
+        volatile: false
+      VT_TILT_FW:
+        decimal: 3
+        default: 1.0
+        description:
+          short: Position of tilt servo in fw mode
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        volatile: false
+      VT_TILT_MC:
+        decimal: 3
+        default: 0.0
+        description:
+          short: Position of tilt servo in mc mode
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        volatile: false
+      VT_TILT_SPINUP:
+        decimal: 3
+        default: 0.0
+        description:
+          long: This specific tilt during spin-up is necessary for some systems whose motors otherwise don't spin-up freely.
+          short: Tilt actuator control value commanded when disarmed and during the first second after arming
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        volatile: false
+      VT_TILT_TRANS:
+        decimal: 3
+        default: 0.3
+        description:
+          short: Position of tilt servo in transition mode
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        volatile: false
+      VT_TRANS_P2_DUR:
+        decimal: 3
+        default: 0.5
+        description:
+          long: Time in seconds it should take for the rotors to rotate forward completely from the point when the plane has picked up enough airspeed and is ready to go into fixed wind mode.
+          short: Duration of front transition phase 2
+        increment: 0.01
+        max: 5.0
+        min: 0.1
+        type: float
+        unit: s
+        volatile: false
+      VT_ARSP_BLEND:
+        decimal: 2
+        default: 8.0
+        description:
+          long: Airspeed at which we can start blending both fw and mc controls. Set to 0 to disable.
+          short: Transition blending airspeed
+        increment: 1
+        max: 30.0
+        min: 0.0
+        type: float
+        unit: m/s
+        volatile: false
+      VT_ARSP_TRANS:
+        decimal: 2
+        default: 10.0
+        description:
+          long: Airspeed at which we can switch to fw mode
+          short: Transition airspeed
+        increment: 1
+        max: 30.0
+        min: 0.0
+        type: float
+        unit: m/s
+        volatile: false
+      VT_B_DEC_FF:
+        decimal: 1
+        default: 0.0
+        description:
+          short: Backtransition deceleration setpoint to pitch feedforward gain
+        increment: 0.01
+        max: 0.2
+        min: 0
+        type: float
+        unit: rad s^2/m
+        volatile: false
+      VT_B_DEC_I:
+        decimal: 1
+        default: 0.1
+        description:
+          short: Backtransition deceleration setpoint to pitch I gain
+        increment: 0.05
+        max: 0.3
+        min: 0
+        type: float
+        unit: rad s/m
+        volatile: false
+      VT_B_DEC_MSS:
+        decimal: 2
+        default: 2.0
+        description:
+          long: The approximate deceleration during a back transition in m/s/s Used to calculate back transition distance in mission mode. A lower value will make the VTOL transition further from the destination waypoint. For standard vtol and tiltrotors a controller is used to track this value during the transition.
+          short: Approximate deceleration during back transition
+        increment: 0.1
+        max: 10
+        min: 0.5
+        type: float
+        unit: m/s^2
+        volatile: false
+      VT_B_TRANS_DUR:
+        decimal: 2
+        default: 4.0
+        description:
+          long: Time in seconds used for a back transition
+          short: Duration of a back transition
+        increment: 1
+        max: 20.0
+        min: 0.1
+        type: float
+        unit: s
+        volatile: false
+      VT_B_TRANS_THR:
+        decimal: 2
+        default: 0.0
+        description:
+          long: 'standard vtol: pusher tailsitter, tiltrotor: main throttle Note for standard vtol: For ESCs and mixers that support reverse thrust on low PWM values set this to a negative value to apply active breaking For ESCs that support thrust reversal with a control channel please set VT_B_REV_OUT and set this to a positive value to apply active breaking'
+          short: Target throttle value for the transition to hover flight
+        increment: 0.01
+        max: 1
+        min: -1
+        type: float
+        volatile: false
+      VT_ELEV_MC_LOCK:
+        default: 1
+        description:
+          long: If set to 1 the control surfaces are locked at the disarmed value in multicopter mode.
+          short: Lock control surfaces in hover
+        type: boolean
+        volatile: false
+      VT_FW_ALT_ERR:
+        default: 0.0
+        description:
+          long: Maximum negative altitude error for fixed wing flight. If the altitude drops below this value below the altitude setpoint the vehicle will transition back to MC mode and enter failsafe RTL.
+          short: Adaptive QuadChute
+        max: 200.0
+        min: 0.0
+        type: float
+        volatile: false
+      VT_FW_DIFTHR_EN:
+        decimal: 0
+        default: 0
+        description:
+          long: Set to 1 to enable differential thrust in fixed-wing flight.
+          short: Differential thrust in forwards flight
+        max: 1
+        min: 0
+        type: int32
+        volatile: false
+      VT_FW_DIFTHR_SC:
+        decimal: 2
+        default: 0.1
+        description:
+          long: This factor specifies how the yaw input gets mapped to differential thrust in forwards flight.
+          short: Differential thrust scaling factor
+        increment: 0.1
+        max: 1.0
+        min: 0.0
+        type: float
+        volatile: false
+      VT_FW_MIN_ALT:
+        default: 0.0
+        description:
+          long: Minimum altitude for fixed wing flight, when in fixed wing the altitude drops below this altitude the vehicle will transition back to MC mode and enter failsafe RTL
+          short: QuadChute Altitude
+        max: 200.0
+        min: 0.0
+        type: float
+        volatile: false
+      VT_FW_MOT_OFFID:
+        decimal: 0
+        default: 0
+        description:
+          short: The channel number of motors that must be turned off in fixed wing mode
+        increment: 1
+        max: 12345678
+        min: 0
+        type: int32
+        volatile: false
+      VT_FW_QC_P:
+        default: 0
+        description:
+          long: Maximum pitch angle before QuadChute engages Above this the vehicle will transition back to MC mode and enter failsafe RTL
+          short: QuadChute Max Pitch
+        max: 180
+        min: 0
+        type: int32
+        volatile: false
+      VT_FW_QC_R:
+        default: 0
+        description:
+          long: Maximum roll angle before QuadChute engages Above this the vehicle will transition back to MC mode and enter failsafe RTL
+          short: QuadChute Max Roll
+        max: 180
+        min: 0
+        type: int32
+        volatile: false
+      VT_F_TRANS_DUR:
+        decimal: 2
+        default: 5.0
+        description:
+          long: Time in seconds used for a transition
+          short: Duration of a front transition
+        increment: 1
+        max: 20.0
+        min: 0.1
+        type: float
+        unit: s
+        volatile: false
+      VT_F_TRANS_THR:
+        decimal: 3
+        default: 1.0
+        description:
+          long: 'standard vtol: pusher tailsitter, tiltrotor: main throttle'
+          short: Target throttle value for the transition to fixed wing flight
+        increment: 0.01
+        max: 1.0
+        min: 0.0
+        type: float
+        volatile: false
+      VT_F_TR_OL_TM:
+        default: 6.0
+        description:
+          long: The duration of the front transition when there is no airspeed feedback available.
+          short: Airspeed less front transition time (open loop)
+        max: 30.0
+        min: 1.0
+        type: float
+        unit: s
+        volatile: false
+      VT_IDLE_PWM_MC:
+        decimal: 0
+        default: 900
+        description:
+          short: Idle speed of VTOL when in multicopter mode
+        increment: 1
+        max: 2000
+        min: 900
+        type: int32
+        unit: us
+        volatile: false
+      VT_LND_PITCH_MIN:
+        default: -5.0
+        description:
+          long: Overrides  VT_PITCH_MIN when the vehicle is in LAND mode (hovering). During landing it can be beneficial to allow lower minimum pitch angles as it can avoid the wings generating too much lift and preventing the vehicle from sinking at the desired rate.
+          short: Minimum pitch angle during hover landing
+        max: 45.0
+        min: -10.0
+        type: float
+        volatile: false
+      VT_MC_ON_FMU:
+        default: 0
+        description:
+          long: Set this parameter to true if the vehicle's hover motors are connected to the FMU (AUX) port. Not required for boards that only have a FMU, and no IO. Only applies for standard VTOL and tiltrotor.
+          short: Enable the usage of AUX outputs for hover motors
+        type: boolean
+        volatile: false
+      VT_MOT_ID:
+        decimal: 0
+        default: 0
+        description:
+          short: The channel number of motors which provide lift during hover
+        increment: 1
+        max: 12345678
+        min: 0
+        type: int32
+        volatile: false
+      VT_PITCH_MIN:
+        default: -5.0
+        description:
+          long: Minimum pitch angle during hover flight. If the desired pitch angle is is lower than this value then the fixed-wing forward actuation can be used to compensate for the missing thrust in forward direction (see VT_FW_TRHUST_EN)
+          short: Minimum pitch angle during hover
+        max: 45.0
+        min: -10.0
+        type: float
+        volatile: false
+      VT_SPOILER_MC_LD:
+        decimal: 1
+        default: 0.0
+        description:
+          short: Spoiler setting while landing (hover)
+        increment: 0.05
+        max: 1
+        min: -1
+        type: float
+        unit: norm
+        volatile: false
+      VT_TRANS_MIN_TM:
+        default: 2.0
+        description:
+          long: Minimum time in seconds for front transition.
+          short: Front transition minimum time
+        max: 20.0
+        min: 0.0
+        type: float
+        unit: s
+        volatile: false
+      VT_TRANS_TIMEOUT:
+        decimal: 2
+        default: 15.0
+        description:
+          long: Time in seconds after which transition will be cancelled. Disabled if set to 0.
+          short: Front transition timeout
+        increment: 1
+        max: 30.0
+        min: 0.1
+        type: float
+        unit: s
+        volatile: false
+      VT_TYPE:
+        decimal: 0
+        default: 0
+        description:
+          short: VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
+        max: 2
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Tailsitter
+          1: Tiltrotor
+          2: Standard
+        volatile: false
+    group: VTOL Attitude Control

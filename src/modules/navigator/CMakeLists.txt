@@ -49,6 +49,8 @@ px4_add_module(
 		mission_feasibility_checker.cpp
 		geofence.cpp
 		vtol_takeoff.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		geo
 		geofence_breach_avoidance

@@ -17,5 +17,8 @@ jobs:
       with:
         token: ${{secrets.ACCESS_TOKEN}}
 
+    - name: install dependencies
+      run: pip3 install dataclasses
+
     - name: make clang-tidy-quiet
       run: make clang-tidy-quiet

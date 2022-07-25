@@ -37,6 +37,8 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		mb12xx.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		drivers_rangefinder
 	)

@@ -1,0 +1,121 @@
+module_name: landing_target_estimator
+parameters:
+  - definitions:
+      LTEST_SENS_POS_X:
+        decimal: 3
+        default: 0.0
+        description:
+          short: X Position of IRLOCK in body frame (forward)
+        reboot_required: true
+        type: float
+        unit: m
+        volatile: false
+      LTEST_SENS_POS_Y:
+        decimal: 3
+        default: 0.0
+        description:
+          short: Y Position of IRLOCK in body frame (right)
+        reboot_required: true
+        type: float
+        unit: m
+        volatile: false
+      LTEST_SENS_POS_Z:
+        decimal: 3
+        default: 0.0
+        description:
+          short: Z Position of IRLOCK in body frame (downward)
+        reboot_required: true
+        type: float
+        unit: m
+        volatile: false
+      LTEST_SENS_ROT:
+        default: 2
+        description:
+          long: "Default orientation of Yaw 90°"
+          short: Rotation of IRLOCK sensor relative to airframe
+        max: 40
+        min: -1
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+    group: Landing Target Estimator
+  - definitions:
+      LTEST_ACC_UNC:
+        decimal: 2
+        default: 10.0
+        description:
+          long: Variance of acceleration measurement used for landing target position prediction. Higher values results in tighter following of the measurements and more lenient outlier rejection
+          short: Acceleration uncertainty
+        min: 0.01
+        type: float
+        unit: (m/s^2)^2
+        volatile: false
+      LTEST_MEAS_UNC:
+        decimal: 4
+        default: 0.005
+        description:
+          long: Variance of the landing target measurement from the driver. Higher values result in less aggressive following of the measurement and a smoother output as well as fewer rejected measurements.
+          short: Landing target measurement uncertainty
+        type: float
+        unit: tan(rad)^2
+        volatile: false
+      LTEST_MODE:
+        default: 0
+        description:
+          long: 'Configure the mode of the landing target. Depending on the mode, the landing target observations are used differently to aid position estimation. Mode Moving:     The landing target may be moving around while in the field of view of the vehicle. Landing target measurements are not used to aid positioning. Mode Stationary: The landing target is stationary. Measured velocity w.r.t. the landing target is used to aid velocity estimation.'
+          short: Landing target mode
+        max: 1
+        min: 0
+        type: enum
+        values:
+          0: Moving
+          1: Stationary
+        volatile: false
+      LTEST_POS_UNC_IN:
+        decimal: 3
+        default: 0.1
+        description:
+          long: Initial variance of the relative landing target position in x and y direction
+          short: Initial landing target position uncertainty
+        min: 0.001
+        type: float
+        unit: m^2
+        volatile: false
+      LTEST_SCALE_X:
+        decimal: 3
+        default: 1.0
+        description:
+          long: Landing target x measurements are scaled by this factor before being used
+          short: Scale factor for sensor measurements in sensor x axis
+        min: 0.01
+        type: float
+        volatile: false
+      LTEST_SCALE_Y:
+        decimal: 3
+        default: 1.0
+        description:
+          long: Landing target y measurements are scaled by this factor before being used
+          short: Scale factor for sensor measurements in sensor y axis
+        min: 0.01
+        type: float
+        volatile: false
+      LTEST_VEL_UNC_IN:
+        decimal: 3
+        default: 0.1
+        description:
+          long: Initial variance of the relative landing target velocity in x and y directions
+          short: Initial landing target velocity uncertainty
+        min: 0.001
+        type: float
+        unit: (m/s)^2
+        volatile: false
+    group: Landing target Estimator

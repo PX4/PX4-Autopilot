@@ -61,3 +61,20 @@ parameters:
             num_instances: *max_num_config_instances
             instance_start: 1
             default: [-1, -1]
+
+        BAT_ADC_CHANNEL:
+          description:
+            short: This parameter is deprecated. Please use BAT1_I_CHANNEL.
+
+          type: int32
+          default: -1
+
+        BAT_V_OFFS_CURR:
+          description:
+            short: Offset in volt as seen by the ADC input of the current sensor.
+            long: |
+                This offset will be subtracted before calculating the battery current based on the voltage.
+
+          type: float
+          decimal: 8
+          default: 0.0

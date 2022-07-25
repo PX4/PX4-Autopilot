@@ -1,547 +1,1018 @@
 __max_num_sensor_instances: &max_num_sensor_instances 4
-
 module_name: sensors
-
 parameters:
-    - group: Sensor Calibration
-      definitions:
-
-        # Accelerometer calibration
-        CAL_ACC${i}_ID:
-            description:
-                short: Accelerometer ${i} calibration device ID
-                long: Device ID of the accelerometer this calibration applies to.
-            category: System
-            type: int32
-            default: 0
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_ACC${i}_PRIO:
-            description:
-                short: Accelerometer ${i} priority
-            category: System
-            type: enum
-            values:
-                -1: Uninitialized
-                0: Disabled
-                1: Min
-                25: Low
-                50: Medium (Default)
-                75: High
-                100: Max
-            default: -1
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_ACC${i}_ROT:
-            description:
-                short: Accelerometer ${i} rotation relative to airframe
-                long: |
-                    An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
-            category: System
-            type: enum
-            values:
-                -1: Internal
-                0: No rotation
-                1: Yaw 45°
-                2: Yaw 90°
-                3: Yaw 135°
-                4: Yaw 180°
-                5: Yaw 225°
-                6: Yaw 270°
-                7: Yaw 315°
-                8: Roll 180°
-                9: Roll 180°, Yaw 45°
-                10: Roll 180°, Yaw 90°
-                11: Roll 180°, Yaw 135°
-                12: Pitch 180°
-                13: Roll 180°, Yaw 225°
-                14: Roll 180°, Yaw 270°
-                15: Roll 180°, Yaw 315°
-                16: Roll 90°
-                17: Roll 90°, Yaw 45°
-                18: Roll 90°, Yaw 90°
-                19: Roll 90°, Yaw 135°
-                20: Roll 270°
-                21: Roll 270°, Yaw 45°
-                22: Roll 270°, Yaw 90°
-                23: Roll 270°, Yaw 135°
-                24: Pitch 90°
-                25: Pitch 270°
-                26: Pitch 180°, Yaw 90°
-                27: Pitch 180°, Yaw 270°
-                28: Roll 90°, Pitch 90°
-                29: Roll 180°, Pitch 90°
-                30: Roll 270°, Pitch 90°
-                31: Roll 90°, Pitch 180°
-                32: Roll 270°, Pitch 180°
-                33: Roll 90°, Pitch 270°
-                34: Roll 180°, Pitch 270°
-                35: Roll 270°, Pitch 270°
-                36: Roll 90°, Pitch 180°, Yaw 90°
-                37: Roll 90°, Yaw 270°
-                38: Roll 90°, Pitch 68°, Yaw 293°
-                39: Pitch 315°
-                40: Roll 90°, Pitch 315°
-            min: -1
-            max: 40
-            default: -1
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_ACC${i}_XOFF:
-            description:
-                short: Accelerometer ${i} X-axis offset
-            category: System
-            type: float
-            default: 0.0
-            unit: m
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_ACC${i}_YOFF:
-            description:
-                short: Accelerometer ${i} Y-axis offset
-            category: System
-            type: float
-            default: 0.0
-            unit: m
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_ACC${i}_ZOFF:
-            description:
-                short: Accelerometer ${i} Z-axis offset
-            category: System
-            type: float
-            default: 0.0
-            unit: m
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_ACC${i}_XSCALE:
-            description:
-                short: Accelerometer ${i} X-axis scaling factor
-            category: System
-            type: float
-            default: 1.0
-            min: 0.1
-            max: 3.0
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_ACC${i}_YSCALE:
-            description:
-                short: Accelerometer ${i} Y-axis scaling factor
-            category: System
-            type: float
-            default: 1.0
-            min: 0.1
-            max: 3.0
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_ACC${i}_ZSCALE:
-            description:
-                short: Accelerometer ${i} Z-axis scaling factor
-            category: System
-            type: float
-            default: 1.0
-            min: 0.1
-            max: 3.0
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        # Barometer calibration
-        CAL_BARO${i}_ID:
-            description:
-                short: Barometer ${i} calibration device ID
-                long: Device ID of the barometer this calibration applies to.
-            category: System
-            type: int32
-            default: 0
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_BARO${i}_PRIO:
-            description:
-                short: Barometer ${i} priority
-            category: System
-            type: enum
-            values:
-                -1: Uninitialized
-                0: Disabled
-                1: Min
-                25: Low
-                50: Medium (Default)
-                75: High
-                100: Max
-            default: -1
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_BARO${i}_OFF:
-            description:
-                short: Barometer ${i} offset
-            category: System
-            type: float
-            default: 0.0
-            #unit: Pa
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        # Gyroscope calibration
-        CAL_GYRO${i}_ID:
-            description:
-                short: Gyroscope ${i} calibration device ID
-                long: Device ID of the gyroscope this calibration applies to.
-            category: System
-            type: int32
-            default: 0
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_GYRO${i}_PRIO:
-            description:
-                short: Gyroscope ${i} priority
-            category: System
-            type: enum
-            values:
-                -1: Uninitialized
-                0: Disabled
-                1: Min
-                25: Low
-                50: Medium (Default)
-                75: High
-                100: Max
-            default: -1
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_GYRO${i}_ROT:
-            description:
-                short: Gyroscope ${i} rotation relative to airframe
-                long: |
-                    An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
-            category: System
-            type: enum
-            values:
-                -1: Internal
-                0: No rotation
-                1: Yaw 45°
-                2: Yaw 90°
-                3: Yaw 135°
-                4: Yaw 180°
-                5: Yaw 225°
-                6: Yaw 270°
-                7: Yaw 315°
-                8: Roll 180°
-                9: Roll 180°, Yaw 45°
-                10: Roll 180°, Yaw 90°
-                11: Roll 180°, Yaw 135°
-                12: Pitch 180°
-                13: Roll 180°, Yaw 225°
-                14: Roll 180°, Yaw 270°
-                15: Roll 180°, Yaw 315°
-                16: Roll 90°
-                17: Roll 90°, Yaw 45°
-                18: Roll 90°, Yaw 90°
-                19: Roll 90°, Yaw 135°
-                20: Roll 270°
-                21: Roll 270°, Yaw 45°
-                22: Roll 270°, Yaw 90°
-                23: Roll 270°, Yaw 135°
-                24: Pitch 90°
-                25: Pitch 270°
-                26: Pitch 180°, Yaw 90°
-                27: Pitch 180°, Yaw 270°
-                28: Roll 90°, Pitch 90°
-                29: Roll 180°, Pitch 90°
-                30: Roll 270°, Pitch 90°
-                31: Roll 90°, Pitch 180°
-                32: Roll 270°, Pitch 180°
-                33: Roll 90°, Pitch 270°
-                34: Roll 180°, Pitch 270°
-                35: Roll 270°, Pitch 270°
-                36: Roll 90°, Pitch 180°, Yaw 90°
-                37: Roll 90°, Yaw 270°
-                38: Roll 90°, Pitch 68°, Yaw 293°
-                39: Pitch 315°
-                40: Roll 90°, Pitch 315°
-            min: -1
-            max: 40
-            default: -1
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_GYRO${i}_XOFF:
-            description:
-                short: Gyroscope ${i} X-axis offset
-            category: System
-            type: float
-            default: 0.0
-            unit: m
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_GYRO${i}_YOFF:
-            description:
-                short: Gyroscope ${i} Y-axis offset
-            category: System
-            type: float
-            default: 0.0
-            unit: m
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_GYRO${i}_ZOFF:
-            description:
-                short: Gyroscope ${i} Z-axis offset
-            category: System
-            type: float
-            default: 0.0
-            unit: m
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        # Magnetometer calibration
-        CAL_MAG${i}_ID:
-            description:
-                short: Magnetometer ${i} calibration device ID
-                long: Device ID of the magnetometer this calibration applies to.
-            category: System
-            type: int32
-            default: 0
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_PRIO:
-            description:
-                short: Magnetometer ${i} priority
-            category: System
-            type: enum
-            values:
-                -1: Uninitialized
-                0: Disabled
-                1: Min
-                25: Low
-                50: Medium (Default)
-                75: High
-                100: Max
-            default: -1
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_ROT:
-            description:
-                short: Magnetometer ${i} rotation relative to airframe
-                long: |
-                    An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
-            category: System
-            type: enum
-            values:
-                -1: Internal
-                0: No rotation
-                1: Yaw 45°
-                2: Yaw 90°
-                3: Yaw 135°
-                4: Yaw 180°
-                5: Yaw 225°
-                6: Yaw 270°
-                7: Yaw 315°
-                8: Roll 180°
-                9: Roll 180°, Yaw 45°
-                10: Roll 180°, Yaw 90°
-                11: Roll 180°, Yaw 135°
-                12: Pitch 180°
-                13: Roll 180°, Yaw 225°
-                14: Roll 180°, Yaw 270°
-                15: Roll 180°, Yaw 315°
-                16: Roll 90°
-                17: Roll 90°, Yaw 45°
-                18: Roll 90°, Yaw 90°
-                19: Roll 90°, Yaw 135°
-                20: Roll 270°
-                21: Roll 270°, Yaw 45°
-                22: Roll 270°, Yaw 90°
-                23: Roll 270°, Yaw 135°
-                24: Pitch 90°
-                25: Pitch 270°
-                26: Pitch 180°, Yaw 90°
-                27: Pitch 180°, Yaw 270°
-                28: Roll 90°, Pitch 90°
-                29: Roll 180°, Pitch 90°
-                30: Roll 270°, Pitch 90°
-                31: Roll 90°, Pitch 180°
-                32: Roll 270°, Pitch 180°
-                33: Roll 90°, Pitch 270°
-                34: Roll 180°, Pitch 270°
-                35: Roll 270°, Pitch 270°
-                36: Roll 90°, Pitch 180°, Yaw 90°
-                37: Roll 90°, Yaw 270°
-                38: Roll 90°, Pitch 68°, Yaw 293°
-                39: Pitch 315°
-                40: Roll 90°, Pitch 315°
-            min: -1
-            max: 40
-            default: -1
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_XOFF:
-            description:
-                short: Magnetometer ${i} X-axis offset
-            category: System
-            type: float
-            default: 0.0
-            unit: m
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_YOFF:
-            description:
-                short: Magnetometer ${i} Y-axis offset
-            category: System
-            type: float
-            default: 0.0
-            unit: m
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_ZOFF:
-            description:
-                short: Magnetometer ${i} Z-axis offset
-            category: System
-            type: float
-            default: 0.0
-            unit: m
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_XSCALE:
-            description:
-                short: Magnetometer ${i} X-axis scaling factor
-            category: System
-            type: float
-            default: 1.0
-            min: 0.1
-            max: 3.0
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_YSCALE:
-            description:
-                short: Magnetometer ${i} Y-axis scaling factor
-            category: System
-            type: float
-            default: 1.0
-            min: 0.1
-            max: 3.0
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_ZSCALE:
-            description:
-                short: Magnetometer ${i} Z-axis scaling factor
-            category: System
-            type: float
-            default: 1.0
-            min: 0.1
-            max: 3.0
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_XODIAG:
-            description:
-                short: Magnetometer ${i} X-axis off diagonal scale factor
-            category: System
-            type: float
-            default: 0.0
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_YODIAG:
-            description:
-                short: Magnetometer ${i} Y-axis off diagonal scale factor
-            category: System
-            type: float
-            default: 0.0
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_ZODIAG:
-            description:
-                short: Magnetometer ${i} Z-axis off diagonal scale factor
-            category: System
-            type: float
-            default: 0.0
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_XCOMP:
-            description:
-                short: Magnetometer ${i} X Axis throttle compensation
-                long: |
-                    Coefficient describing linear relationship between
-                    X component of magnetometer in body frame axis
-                    and either current or throttle depending on value of CAL_MAG_COMP_TYP.
-                    Unit for throttle-based compensation is [G] and
-                    for current-based compensation [G/kA]
-            category: System
-            type: float
-            default: 0.0
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_YCOMP:
-            description:
-                short: Magnetometer ${i} Y Axis throttle compensation
-                long: |
-                    Coefficient describing linear relationship between
-                    Y component of magnetometer in body frame axis
-                    and either current or throttle depending on value of CAL_MAG_COMP_TYP.
-                    Unit for throttle-based compensation is [G] and
-                    for current-based compensation [G/kA]
-            category: System
-            type: float
-            default: 0.0
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_ZCOMP:
-            description:
-                short: Magnetometer ${i} Z Axis throttle compensation
-                long: |
-                    Coefficient describing linear relationship between
-                    Z component of magnetometer in body frame axis
-                    and either current or throttle depending on value of CAL_MAG_COMP_TYP.
-                    Unit for throttle-based compensation is [G] and
-                    for current-based compensation [G/kA]
-            category: System
-            type: float
-            default: 0.0
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
+  - definitions:
+      SENS_BARO_QNH:
+        default: 1013.25
+        description:
+          short: QNH for barometer
+        max: 1500
+        min: 500
+        type: float
+        unit: hPa
+        volatile: false
+      SENS_BARO_RATE:
+        default: 20.0
+        description:
+          long: Barometric air data maximum publication rate. This is an upper bound, actual barometric data rate is still dependant on the sensor.
+          short: Baro max rate
+        max: 200
+        min: 1
+        type: float
+        unit: Hz
+        volatile: false
+    group: Sensors
+  - definitions:
+      SENS_GPS_MASK:
+        bit:
+          0: use speed accuracy
+          1: use hpos accuracy
+          2: use vpos accuracy
+        default: 7
+        description:
+          long: 'Set bits in the following positions to set which GPS accuracy metrics will be used to calculate the blending weight. Set to zero to disable and always used first GPS instance. 0 : Set to true to use speed accuracy 1 : Set to true to use horizontal position accuracy 2 : Set to true to use vertical position accuracy'
+          short: Multi GPS Blending Control Mask
+        max: 7
+        min: 0
+        type: bitmask
+        volatile: false
+      SENS_GPS_PRIME:
+        default: 0
+        description:
+          long: When no blending is active, this defines the preferred GPS receiver instance. The GPS selection logic waits until the primary receiver is available to send data to the EKF even if a secondary instance is already available. The secondary instance is then only used if the primary one times out. To have an equal priority of all the instances, set this parameter to -1 and the best receiver will be used. This parameter has no effect if blending is active.
+          short: Multi GPS primary instance
+        max: 1
+        min: -1
+        type: int32
+        volatile: false
+      SENS_GPS_TAU:
+        decimal: 1
+        default: 10.0
+        description:
+          long: Sets the longest time constant that will be applied to the calculation of GPS position and height offsets used to correct data from multiple GPS data for steady state position differences.
+          short: Multi GPS Blending Time Constant
+        max: 100.0
+        min: 1.0
+        type: float
+        unit: s
+        volatile: false
+    group: Sensors
+  - definitions:
+      IMU_ACCEL_CUTOFF:
+        default: 30.0
+        description:
+          long: The cutoff frequency for the 2nd order butterworth filter on the primary accelerometer. This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
+          short: Low pass filter cutoff frequency for accel
+        max: 1000
+        min: 0
+        reboot_required: true
+        type: float
+        unit: Hz
+        volatile: false
+    group: Sensors
+  - definitions:
+      IMU_DGYRO_CUTOFF:
+        default: 30.0
+        description:
+          long: The cutoff frequency for the 2nd order butterworth filter used on the time derivative of the measured angular velocity, also known as the D-term filter in the rate controller. The D-term uses the derivative of the rate and thus is the most susceptible to noise. Therefore, using a D-term filter allows to increase IMU_GYRO_CUTOFF, which leads to reduced control latency and permits to increase the P gains. A value of 0 disables the filter.
+          short: Cutoff frequency for angular acceleration (D-Term filter)
+        max: 1000
+        min: 0
+        reboot_required: true
+        type: float
+        unit: Hz
+        volatile: false
+      IMU_GYRO_CUTOFF:
+        default: 40.0
+        description:
+          long: The cutoff frequency for the 2nd order butterworth filter on the primary gyro. This only affects the angular velocity sent to the controllers, not the estimators. It applies also to the angular acceleration (D-Term filter), see IMU_DGYRO_CUTOFF. A value of 0 disables the filter.
+          short: Low pass filter cutoff frequency for gyro
+        max: 1000
+        min: 0
+        reboot_required: true
+        type: float
+        unit: Hz
+        volatile: false
+      IMU_GYRO_DNF_BW:
+        default: 15.0
+        description:
+          long: Bandwidth per notch filter when using dynamic notch filtering with ESC RPM.
+          short: IMU gyro ESC notch filter bandwidth
+        max: 30
+        min: 5
+        type: float
+        volatile: false
+      IMU_GYRO_DNF_EN:
+        bit:
+          0: ESC RPM
+          1: FFT
+        default: 0
+        description:
+          long: Enable bank of dynamically updating notch filters. Requires ESC RPM feedback or onboard FFT (IMU_GYRO_FFT_EN).
+          short: IMU gyro dynamic notch filtering
+        max: 3
+        min: 0
+        type: bitmask
+        volatile: false
+      IMU_GYRO_DNF_HMC:
+        default: 3
+        description:
+          long: ESC RPM number of harmonics (multiples of RPM) for ESC RPM dynamic notch filtering.
+          short: IMU gyro dynamic notch filter harmonics
+        max: 7
+        min: 1
+        type: int32
+        volatile: false
+      IMU_GYRO_NF0_BW:
+        default: 20.0
+        description:
+          long: The frequency width of the stop band for the 2nd order notch filter on the primary gyro. See "IMU_GYRO_NF0_FRQ" to activate the filter and to set the notch frequency. Applies to both angular velocity and angular acceleration sent to the controllers.
+          short: Notch filter bandwidth for gyro
+        max: 100
+        min: 0
+        reboot_required: true
+        type: float
+        unit: Hz
+        volatile: false
+      IMU_GYRO_NF0_FRQ:
+        default: 0.0
+        description:
+          long: The center frequency for the 2nd order notch filter on the primary gyro. This filter can be enabled to avoid feedback amplification of structural resonances at a specific frequency. This only affects the signal sent to the controllers, not the estimators. Applies to both angular velocity and angular acceleration sent to the controllers. See "IMU_GYRO_NF0_BW" to set the bandwidth of the filter. A value of 0 disables the filter.
+          short: Notch filter frequency for gyro
+        max: 1000
+        min: 0
+        reboot_required: true
+        type: float
+        unit: Hz
+        volatile: false
+      IMU_GYRO_NF1_BW:
+        default: 20.0
+        description:
+          long: The frequency width of the stop band for the 2nd order notch filter on the primary gyro. See "IMU_GYRO_NF1_FRQ" to activate the filter and to set the notch frequency. Applies to both angular velocity and angular acceleration sent to the controllers.
+          short: Notch filter 1 bandwidth for gyro
+        max: 100
+        min: 0
+        reboot_required: true
+        type: float
+        unit: Hz
+        volatile: false
+      IMU_GYRO_NF1_FRQ:
+        default: 0.0
+        description:
+          long: The center frequency for the 2nd order notch filter on the primary gyro. This filter can be enabled to avoid feedback amplification of structural resonances at a specific frequency. This only affects the signal sent to the controllers, not the estimators. Applies to both angular velocity and angular acceleration sent to the controllers. See "IMU_GYRO_NF1_BW" to set the bandwidth of the filter. A value of 0 disables the filter.
+          short: Notch filter 2 frequency for gyro
+        max: 1000
+        min: 0
+        reboot_required: true
+        type: float
+        unit: Hz
+        volatile: false
+      IMU_GYRO_RATEMAX:
+        default: 400
+        description:
+          long: 'The maximum rate the gyro control data (vehicle_angular_velocity) will be allowed to publish at. This is the loop rate for the rate controller and outputs. Note: sensor data is always read and filtered at the full raw rate (eg commonly 8 kHz) regardless of this setting.'
+          short: Gyro control data maximum publication rate (inner loop rate)
+        max: 2000
+        min: 100
+        reboot_required: true
+        type: enum
+        unit: Hz
+        values:
+          100: 100 Hz
+          250: 250 Hz
+          400: 400 Hz
+          800: 800 Hz
+          1000: 1000 Hz
+          2000: 2000 Hz
+        volatile: false
+    group: Sensors
+  - definitions:
+      IMU_INTEG_RATE:
+        default: 200
+        description:
+          long: The rate at which raw IMU data is integrated to produce delta angles and delta velocities. Recommended to set this to a multiple of the estimator update period (currently 10 ms for ekf2).
+          short: IMU integration rate
+        max: 1000
+        min: 100
+        reboot_required: true
+        type: enum
+        unit: Hz
+        values:
+          100: 100 Hz
+          200: 200 Hz
+          250: 250 Hz
+          400: 400 Hz
+        volatile: false
+      SENS_IMU_AUTOCAL:
+        category: System
+        default: 1
+        description:
+          long: Automatically initialize IMU (accel/gyro) calibration from bias estimates if available.
+          short: IMU auto calibration
+        type: boolean
+        volatile: false
+    group: Sensors
+  - definitions:
+      SENS_DPRES_ANSC:
+        default: 0
+        description:
+          long: 'Pick the appropriate scaling from the datasheet. this number defines the (linear) conversion from voltage to Pascal (pa). For the MPXV7002DP this is 1000. NOTE: If the sensor always registers zero, try switching the static and dynamic tubes.'
+          short: Differential pressure sensor analog scaling
+        type: float
+        volatile: false
+      SENS_DPRES_OFF:
+        category: System
+        default: 0.0
+        description:
+          long: The offset (zero-reading) in Pascal
+          short: Differential pressure sensor offset
+        type: float
+        volatile: true
+    group: Sensor Calibration
+  - definitions:
+      CAL_AIR_CMODEL:
+        default: 0
+        description:
+          long: 'Model with Pitot CAL_AIR_TUBED_MM: Not used, 1.5 mm tubes assumed. CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor. Model without Pitot (1.5 mm tubes) CAL_AIR_TUBED_MM: Not used, 1.5 mm tubes assumed. CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor. Tube Pressure Drop CAL_AIR_TUBED_MM: Diameter in mm of the pitot and tubes, must have the same diameter. CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor and the static + dynamic port length of the pitot.'
+          short: Airspeed sensor compensation model for the SDP3x
+        type: enum
+        values:
+          0: Model with Pitot
+          1: Model without Pitot (1.5 mm tubes)
+          2: Tube Pressure Drop
+        volatile: false
+      CAL_AIR_TUBED_MM:
+        default: 1.5
+        description:
+          short: Airspeed sensor tube diameter. Only used for the Tube Pressure Drop Compensation
+        max: 100
+        min: 1.5
+        type: float
+        unit: mm
+        volatile: false
+      CAL_AIR_TUBELEN:
+        default: 0.2
+        description:
+          long: See the CAL_AIR_CMODEL explanation on how this parameter should be set.
+          short: Airspeed sensor tube length
+        max: 2.0
+        min: 0.01
+        type: float
+        unit: m
+        volatile: false
+      SENS_BOARD_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the FMU board relative to the platform.
+          short: Board rotation
+        max: 40
+        min: -1
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+          8: "Roll 180°"
+          9: "Roll 180°, Yaw 45°"
+          10: "Roll 180°, Yaw 90°"
+          11: "Roll 180°, Yaw 135°"
+          12: "Pitch 180°"
+          13: "Roll 180°, Yaw 225°"
+          14: "Roll 180°, Yaw 270°"
+          15: "Roll 180°, Yaw 315°"
+          16: "Roll 90°"
+          17: "Roll 90°, Yaw 45°"
+          18: "Roll 90°, Yaw 90°"
+          19: "Roll 90°, Yaw 135°"
+          20: "Roll 270°"
+          21: "Roll 270°, Yaw 45°"
+          22: "Roll 270°, Yaw 90°"
+          23: "Roll 270°, Yaw 135°"
+          24: "Pitch 90°"
+          25: "Pitch 270°"
+          26: "Pitch 180°, Yaw 90°"
+          27: "Pitch 180°, Yaw 270°"
+          28: "Roll 90°, Pitch 90°"
+          29: "Roll 180°, Pitch 90°"
+          30: "Roll 270°, Pitch 90°"
+          31: "Roll 90°, Pitch 180°"
+          32: "Roll 270°, Pitch 180°"
+          33: "Roll 90°, Pitch 270°"
+          34: "Roll 180°, Pitch 270°"
+          35: "Roll 270°, Pitch 270°"
+          36: "Roll 90°, Pitch 180°, Yaw 90°"
+          37: "Roll 90°, Yaw 270°"
+          38: "Roll 90°, Pitch 68°, Yaw 293°"
+          39: "Pitch 315°"
+          40: "Roll 90°, Pitch 315°"
+        volatile: false
+      SENS_BOARD_X_OFF:
+        default: 0.0
+        description:
+          long: This parameter defines a rotational offset in degrees around the X (Roll) axis It allows the user to fine tune the board offset in the event of misalignment.
+          short: Board rotation X (Roll) offset
+        type: float
+        unit: deg
+        volatile: false
+      SENS_BOARD_Y_OFF:
+        default: 0.0
+        description:
+          long: This parameter defines a rotational offset in degrees around the Y (Pitch) axis. It allows the user to fine tune the board offset in the event of misalignment.
+          short: Board rotation Y (Pitch) offset
+        type: float
+        unit: deg
+        volatile: false
+      SENS_BOARD_Z_OFF:
+        default: 0.0
+        description:
+          long: This parameter defines a rotational offset in degrees around the Z (Yaw) axis. It allows the user to fine tune the board offset in the event of misalignment.
+          short: Board rotation Z (YAW) offset
+        type: float
+        unit: deg
+        volatile: false
+      SENS_EN_THERMAL:
+        category: System
+        default: -1
+        description:
+          short: Thermal control of sensor temperature
+        type: enum
+        values:
+          -1: Thermal control unavailable
+          0: Thermal control off
+          1: Thermal control enabled
+        volatile: false
+      SENS_EXT_I2C_PRB:
+        category: System
+        default: 1
+        description:
+          long: Probe for optional external I2C devices.
+          short: External I2C probe
+        type: boolean
+        volatile: false
+      SENS_IMU_MODE:
+        category: System
+        default: 1
+        description:
+          short: Sensors hub IMU mode
+        reboot_required: true
+        type: enum
+        values:
+          0: Disabled
+          1: Publish primary IMU selection
+        volatile: false
+      SENS_INT_BARO_EN:
+        category: System
+        default: 1
+        description:
+          long: For systems with an external barometer, this should be set to false to make sure that the external is used.
+          short: Enable internal barometers
+        reboot_required: true
+        type: boolean
+        volatile: false
+    group: Sensors
+  - definitions:
+      SENS_FLOW_MAXHGT:
+        decimal: 1
+        default: 100.0
+        description:
+          long: This parameter defines the maximum distance from ground at which the optical flow sensor operates reliably. The height setpoint will be limited to be no greater than this value when the navigation system is completely reliant on optical flow data and the height above ground estimate is valid. The sensor may be usable above this height, but accuracy will progressively degrade.
+          short: Maximum height above ground when reliant on optical flow
+        increment: 0.1
+        max: 100.0
+        min: 1.0
+        type: float
+        unit: m
+        volatile: false
+      SENS_FLOW_MAXR:
+        decimal: 2
+        default: 8.0
+        description:
+          long: Optical flow data will not fused by the estimators if the magnitude of the flow rate exceeds this value and control loops will be instructed to limit ground speed such that the flow rate produced by movement over ground is less than 50% of this value.
+          short: Magnitude of maximum angular flow rate reliably measurable by the optical flow sensor
+        min: 1.0
+        type: float
+        unit: rad/s
+        volatile: false
+      SENS_FLOW_MINHGT:
+        decimal: 1
+        default: 0.08
+        description:
+          long: This parameter defines the minimum distance from ground at which the optical flow sensor operates reliably. The sensor may be usable below this height, but accuracy will progressively reduce to loss of focus.
+          short: Minimum height above ground when reliant on optical flow
+        increment: 0.1
+        max: 1.0
+        min: 0.0
+        type: float
+        unit: m
+        volatile: false
+    group: Sensor Calibration
+  - definitions:
+      SENS_FLOW_RATE:
+        default: 70.0
+        description:
+          long: Optical flow data maximum publication rate. This is an upper bound, actual optical flow data rate is still dependant on the sensor.
+          short: Optical flow max rate
+        max: 200
+        min: 1
+        reboot_required: true
+        type: float
+        unit: Hz
+        volatile: false
+      SENS_FLOW_ROT:
+        default: 0
+        description:
+          long: This parameter defines the yaw rotation of the optical flow relative to the vehicle body frame. Zero rotation is defined as X on flow board pointing towards front of vehicle.
+          short: Optical flow rotation
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+    group: Sensors
+  - definitions:
+      CAL_MAG_COMP_TYP:
+        category: System
+        default: 0
+        description:
+          short: Type of magnetometer compensation
+        type: enum
+        values:
+          0: Disabled
+          1: Throttle-based compensation
+          2: Current-based compensation (battery_status instance 0)
+          3: Current-based compensation (battery_status instance 1)
+        volatile: false
+    group: Sensor Calibration
+  - definitions:
+      CAL_MAG_ROT_AUTO:
+        default: 1
+        description:
+          long: During calibration attempt to automatically determine the rotation of external magnetometers.
+          short: Automatically set external rotations
+        type: boolean
+        volatile: false
+      CAL_MAG_SIDES:
+        default: 63
+        description:
+          long: 'If set to two side calibration, only the offsets are estimated, the scale calibration is left unchanged. Thus an initial six side calibration is recommended. Bits: ORIENTATION_TAIL_DOWN = 1 ORIENTATION_NOSE_DOWN = 2 ORIENTATION_LEFT = 4 ORIENTATION_RIGHT = 8 ORIENTATION_UPSIDE_DOWN = 16 ORIENTATION_RIGHTSIDE_UP = 32'
+          short: Bitfield selecting mag sides for calibration
+        max: 63
+        min: 34
+        type: enum
+        values:
+          34: Two side calibration
+          38: Three side calibration
+          63: Six side calibration
+        volatile: false
+      SENS_MAG_AUTOCAL:
+        category: System
+        default: 1
+        description:
+          long: Automatically initialize magnetometer calibration from bias estimate if available.
+          short: Magnetometer auto calibration
+        type: boolean
+        volatile: false
+      SENS_MAG_MODE:
+        category: System
+        default: 1
+        description:
+          short: Sensors hub mag mode
+        reboot_required: true
+        type: enum
+        values:
+          0: Publish all magnetometers
+          1: Publish primary magnetometer
+        volatile: false
+      SENS_MAG_RATE:
+        default: 15.0
+        description:
+          long: Magnetometer data maximum publication rate. This is an upper bound, actual magnetometer data rate is still dependant on the sensor.
+          short: Magnetometer max rate
+        max: 200
+        min: 1
+        reboot_required: true
+        type: float
+        unit: Hz
+        volatile: false
+    group: Sensors
+  - group: Sensor Calibration
+    definitions:
+      # Accelerometer calibration
+      CAL_ACC${i}_ID:
+        description:
+          short: Accelerometer ${i} calibration device ID
+          long: Device ID of the accelerometer this calibration applies to.
+        category: System
+        type: int32
+        default: 0
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_ACC${i}_PRIO:
+        description:
+          short: Accelerometer ${i} priority
+        category: System
+        type: enum
+        values:
+          -1: Uninitialized
+          0: Disabled
+          1: Min
+          25: Low
+          50: Medium (Default)
+          75: High
+          100: Max
+        default: -1
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_ACC${i}_ROT:
+        description:
+          short: Accelerometer ${i} rotation relative to airframe
+          long: |
+            An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
+        category: System
+        type: enum
+        values:
+          -1: Internal
+          0: No rotation
+          1: Yaw 45°
+          2: Yaw 90°
+          3: Yaw 135°
+          4: Yaw 180°
+          5: Yaw 225°
+          6: Yaw 270°
+          7: Yaw 315°
+          8: Roll 180°
+          9: Roll 180°, Yaw 45°
+          10: Roll 180°, Yaw 90°
+          11: Roll 180°, Yaw 135°
+          12: Pitch 180°
+          13: Roll 180°, Yaw 225°
+          14: Roll 180°, Yaw 270°
+          15: Roll 180°, Yaw 315°
+          16: Roll 90°
+          17: Roll 90°, Yaw 45°
+          18: Roll 90°, Yaw 90°
+          19: Roll 90°, Yaw 135°
+          20: Roll 270°
+          21: Roll 270°, Yaw 45°
+          22: Roll 270°, Yaw 90°
+          23: Roll 270°, Yaw 135°
+          24: Pitch 90°
+          25: Pitch 270°
+          26: Pitch 180°, Yaw 90°
+          27: Pitch 180°, Yaw 270°
+          28: Roll 90°, Pitch 90°
+          29: Roll 180°, Pitch 90°
+          30: Roll 270°, Pitch 90°
+          31: Roll 90°, Pitch 180°
+          32: Roll 270°, Pitch 180°
+          33: Roll 90°, Pitch 270°
+          34: Roll 180°, Pitch 270°
+          35: Roll 270°, Pitch 270°
+          36: Roll 90°, Pitch 180°, Yaw 90°
+          37: Roll 90°, Yaw 270°
+          38: Roll 90°, Pitch 68°, Yaw 293°
+          39: Pitch 315°
+          40: Roll 90°, Pitch 315°
+        min: -1
+        max: 40
+        default: -1
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_ACC${i}_XOFF:
+        description:
+          short: Accelerometer ${i} X-axis offset
+        category: System
+        type: float
+        default: 0.0
+        unit: m
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_ACC${i}_YOFF:
+        description:
+          short: Accelerometer ${i} Y-axis offset
+        category: System
+        type: float
+        default: 0.0
+        unit: m
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_ACC${i}_ZOFF:
+        description:
+          short: Accelerometer ${i} Z-axis offset
+        category: System
+        type: float
+        default: 0.0
+        unit: m
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_ACC${i}_XSCALE:
+        description:
+          short: Accelerometer ${i} X-axis scaling factor
+        category: System
+        type: float
+        default: 1.0
+        min: 0.1
+        max: 3.0
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_ACC${i}_YSCALE:
+        description:
+          short: Accelerometer ${i} Y-axis scaling factor
+        category: System
+        type: float
+        default: 1.0
+        min: 0.1
+        max: 3.0
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_ACC${i}_ZSCALE:
+        description:
+          short: Accelerometer ${i} Z-axis scaling factor
+        category: System
+        type: float
+        default: 1.0
+        min: 0.1
+        max: 3.0
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      # Barometer calibration
+      CAL_BARO${i}_ID:
+        description:
+          short: Barometer ${i} calibration device ID
+          long: Device ID of the barometer this calibration applies to.
+        category: System
+        type: int32
+        default: 0
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_BARO${i}_PRIO:
+        description:
+          short: Barometer ${i} priority
+        category: System
+        type: enum
+        values:
+          -1: Uninitialized
+          0: Disabled
+          1: Min
+          25: Low
+          50: Medium (Default)
+          75: High
+          100: Max
+        default: -1
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_BARO${i}_OFF:
+        description:
+          short: Barometer ${i} offset
+        category: System
+        type: float
+        default: 0.0
+        #unit: Pa
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      # Gyroscope calibration
+      CAL_GYRO${i}_ID:
+        description:
+          short: Gyroscope ${i} calibration device ID
+          long: Device ID of the gyroscope this calibration applies to.
+        category: System
+        type: int32
+        default: 0
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_GYRO${i}_PRIO:
+        description:
+          short: Gyroscope ${i} priority
+        category: System
+        type: enum
+        values:
+          -1: Uninitialized
+          0: Disabled
+          1: Min
+          25: Low
+          50: Medium (Default)
+          75: High
+          100: Max
+        default: -1
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_GYRO${i}_ROT:
+        description:
+          short: Gyroscope ${i} rotation relative to airframe
+          long: |
+            An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
+        category: System
+        type: enum
+        values:
+          -1: Internal
+          0: No rotation
+          1: Yaw 45°
+          2: Yaw 90°
+          3: Yaw 135°
+          4: Yaw 180°
+          5: Yaw 225°
+          6: Yaw 270°
+          7: Yaw 315°
+          8: Roll 180°
+          9: Roll 180°, Yaw 45°
+          10: Roll 180°, Yaw 90°
+          11: Roll 180°, Yaw 135°
+          12: Pitch 180°
+          13: Roll 180°, Yaw 225°
+          14: Roll 180°, Yaw 270°
+          15: Roll 180°, Yaw 315°
+          16: Roll 90°
+          17: Roll 90°, Yaw 45°
+          18: Roll 90°, Yaw 90°
+          19: Roll 90°, Yaw 135°
+          20: Roll 270°
+          21: Roll 270°, Yaw 45°
+          22: Roll 270°, Yaw 90°
+          23: Roll 270°, Yaw 135°
+          24: Pitch 90°
+          25: Pitch 270°
+          26: Pitch 180°, Yaw 90°
+          27: Pitch 180°, Yaw 270°
+          28: Roll 90°, Pitch 90°
+          29: Roll 180°, Pitch 90°
+          30: Roll 270°, Pitch 90°
+          31: Roll 90°, Pitch 180°
+          32: Roll 270°, Pitch 180°
+          33: Roll 90°, Pitch 270°
+          34: Roll 180°, Pitch 270°
+          35: Roll 270°, Pitch 270°
+          36: Roll 90°, Pitch 180°, Yaw 90°
+          37: Roll 90°, Yaw 270°
+          38: Roll 90°, Pitch 68°, Yaw 293°
+          39: Pitch 315°
+          40: Roll 90°, Pitch 315°
+        min: -1
+        max: 40
+        default: -1
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_GYRO${i}_XOFF:
+        description:
+          short: Gyroscope ${i} X-axis offset
+        category: System
+        type: float
+        default: 0.0
+        unit: m
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_GYRO${i}_YOFF:
+        description:
+          short: Gyroscope ${i} Y-axis offset
+        category: System
+        type: float
+        default: 0.0
+        unit: m
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_GYRO${i}_ZOFF:
+        description:
+          short: Gyroscope ${i} Z-axis offset
+        category: System
+        type: float
+        default: 0.0
+        unit: m
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      # Magnetometer calibration
+      CAL_MAG${i}_ID:
+        description:
+          short: Magnetometer ${i} calibration device ID
+          long: Device ID of the magnetometer this calibration applies to.
+        category: System
+        type: int32
+        default: 0
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_MAG${i}_PRIO:
+        description:
+          short: Magnetometer ${i} priority
+        category: System
+        type: enum
+        values:
+          -1: Uninitialized
+          0: Disabled
+          1: Min
+          25: Low
+          50: Medium (Default)
+          75: High
+          100: Max
+        default: -1
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_MAG${i}_ROT:
+        description:
+          short: Magnetometer ${i} rotation relative to airframe
+          long: |
+            An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
+        category: System
+        type: enum
+        values:
+          -1: Internal
+          0: No rotation
+          1: Yaw 45°
+          2: Yaw 90°
+          3: Yaw 135°
+          4: Yaw 180°
+          5: Yaw 225°
+          6: Yaw 270°
+          7: Yaw 315°
+          8: Roll 180°
+          9: Roll 180°, Yaw 45°
+          10: Roll 180°, Yaw 90°
+          11: Roll 180°, Yaw 135°
+          12: Pitch 180°
+          13: Roll 180°, Yaw 225°
+          14: Roll 180°, Yaw 270°
+          15: Roll 180°, Yaw 315°
+          16: Roll 90°
+          17: Roll 90°, Yaw 45°
+          18: Roll 90°, Yaw 90°
+          19: Roll 90°, Yaw 135°
+          20: Roll 270°
+          21: Roll 270°, Yaw 45°
+          22: Roll 270°, Yaw 90°
+          23: Roll 270°, Yaw 135°
+          24: Pitch 90°
+          25: Pitch 270°
+          26: Pitch 180°, Yaw 90°
+          27: Pitch 180°, Yaw 270°
+          28: Roll 90°, Pitch 90°
+          29: Roll 180°, Pitch 90°
+          30: Roll 270°, Pitch 90°
+          31: Roll 90°, Pitch 180°
+          32: Roll 270°, Pitch 180°
+          33: Roll 90°, Pitch 270°
+          34: Roll 180°, Pitch 270°
+          35: Roll 270°, Pitch 270°
+          36: Roll 90°, Pitch 180°, Yaw 90°
+          37: Roll 90°, Yaw 270°
+          38: Roll 90°, Pitch 68°, Yaw 293°
+          39: Pitch 315°
+          40: Roll 90°, Pitch 315°
+        min: -1
+        max: 40
+        default: -1
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_MAG${i}_XOFF:
+        description:
+          short: Magnetometer ${i} X-axis offset
+        category: System
+        type: float
+        default: 0.0
+        unit: m
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_MAG${i}_YOFF:
+        description:
+          short: Magnetometer ${i} Y-axis offset
+        category: System
+        type: float
+        default: 0.0
+        unit: m
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_MAG${i}_ZOFF:
+        description:
+          short: Magnetometer ${i} Z-axis offset
+        category: System
+        type: float
+        default: 0.0
+        unit: m
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_MAG${i}_XSCALE:
+        description:
+          short: Magnetometer ${i} X-axis scaling factor
+        category: System
+        type: float
+        default: 1.0
+        min: 0.1
+        max: 3.0
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_MAG${i}_YSCALE:
+        description:
+          short: Magnetometer ${i} Y-axis scaling factor
+        category: System
+        type: float
+        default: 1.0
+        min: 0.1
+        max: 3.0
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_MAG${i}_ZSCALE:
+        description:
+          short: Magnetometer ${i} Z-axis scaling factor
+        category: System
+        type: float
+        default: 1.0
+        min: 0.1
+        max: 3.0
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_MAG${i}_XODIAG:
+        description:
+          short: Magnetometer ${i} X-axis off diagonal scale factor
+        category: System
+        type: float
+        default: 0.0
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_MAG${i}_YODIAG:
+        description:
+          short: Magnetometer ${i} Y-axis off diagonal scale factor
+        category: System
+        type: float
+        default: 0.0
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_MAG${i}_ZODIAG:
+        description:
+          short: Magnetometer ${i} Z-axis off diagonal scale factor
+        category: System
+        type: float
+        default: 0.0
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_MAG${i}_XCOMP:
+        description:
+          short: Magnetometer ${i} X Axis throttle compensation
+          long: |
+            Coefficient describing linear relationship between
+            X component of magnetometer in body frame axis
+            and either current or throttle depending on value of CAL_MAG_COMP_TYP.
+            Unit for throttle-based compensation is [G] and
+            for current-based compensation [G/kA]
+        category: System
+        type: float
+        default: 0.0
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_MAG${i}_YCOMP:
+        description:
+          short: Magnetometer ${i} Y Axis throttle compensation
+          long: |
+            Coefficient describing linear relationship between
+            Y component of magnetometer in body frame axis
+            and either current or throttle depending on value of CAL_MAG_COMP_TYP.
+            Unit for throttle-based compensation is [G] and
+            for current-based compensation [G/kA]
+        category: System
+        type: float
+        default: 0.0
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0
+      CAL_MAG${i}_ZCOMP:
+        description:
+          short: Magnetometer ${i} Z Axis throttle compensation
+          long: |
+            Coefficient describing linear relationship between
+            Z component of magnetometer in body frame axis
+            and either current or throttle depending on value of CAL_MAG_COMP_TYP.
+            Unit for throttle-based compensation is [G] and
+            for current-based compensation [G/kA]
+        category: System
+        type: float
+        default: 0.0
+        volatile: true
+        num_instances: *max_num_sensor_instances
+        instance_start: 0

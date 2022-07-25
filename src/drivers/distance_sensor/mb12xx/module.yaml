@@ -1,0 +1,239 @@
+module_name: mb12xx
+parameters:
+  - definitions:
+      SENS_EN_MB12XX:
+        default: 0
+        description:
+          short: Maxbotix Sonar (mb12xx)
+        reboot_required: true
+        type: boolean
+        volatile: false
+      SENS_MB12_0_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the sensor relative to the platform.
+          short: MaxBotix MB12XX Sensor 0 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MB12_10_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the sensor relative to the platform.
+          short: MaxBotix MB12XX Sensor 10 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MB12_11_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the sensor relative to the platform.
+          short: MaxBotix MB12XX Sensor 12 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MB12_1_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the sensor relative to the platform.
+          short: MaxBotix MB12XX Sensor 1 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MB12_2_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the sensor relative to the platform.
+          short: MaxBotix MB12XX Sensor 2 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MB12_3_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the sensor relative to the platform.
+          short: MaxBotix MB12XX Sensor 3 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MB12_4_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the sensor relative to the platform.
+          short: MaxBotix MB12XX Sensor 4 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MB12_5_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the sensor relative to the platform.
+          short: MaxBotix MB12XX Sensor 5 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MB12_6_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the sensor relative to the platform.
+          short: MaxBotix MB12XX Sensor 6 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MB12_7_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the sensor relative to the platform.
+          short: MaxBotix MB12XX Sensor 7 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MB12_8_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the sensor relative to the platform.
+          short: MaxBotix MB12XX Sensor 8 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+      SENS_MB12_9_ROT:
+        default: 0
+        description:
+          long: This parameter defines the rotation of the sensor relative to the platform.
+          short: MaxBotix MB12XX Sensor 9 Rotation
+        max: 7
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: No rotation
+          1: "Yaw 45°"
+          2: "Yaw 90°"
+          3: "Yaw 135°"
+          4: "Yaw 180°"
+          5: "Yaw 225°"
+          6: "Yaw 270°"
+          7: "Yaw 315°"
+        volatile: false
+    group: Sensors

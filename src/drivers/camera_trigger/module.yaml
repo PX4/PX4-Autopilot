@@ -1,0 +1,135 @@
+module_name: camera_trigger
+parameters:
+  - definitions:
+      TRIG_ACT_TIME:
+        decimal: 1
+        default: 40.0
+        description:
+          long: This parameter sets the time the trigger needs to pulled high or low.
+          short: Camera trigger activation time
+        max: 3000
+        min: 0.1
+        reboot_required: true
+        type: float
+        unit: ms
+        volatile: false
+      TRIG_DISTANCE:
+        decimal: 1
+        default: 25.0
+        description:
+          long: Sets the distance at which to trigger the camera.
+          short: Camera trigger distance
+        increment: 1
+        min: 0
+        reboot_required: true
+        type: float
+        unit: m
+        volatile: false
+      TRIG_INTERFACE:
+        default: 4
+        description:
+          long: Selects the trigger interface
+          short: Camera trigger Interface
+        reboot_required: true
+        type: enum
+        values:
+          1: GPIO
+          2: Seagull MAP2 (over PWM)
+          3: MAVLink (forward via MAV_CMD_IMAGE_START_CAPTURE)
+          4: Generic PWM (IR trigger, servo)
+        volatile: false
+      TRIG_INTERVAL:
+        decimal: 1
+        default: 40.0
+        description:
+          long: This parameter sets the time between two consecutive trigger events
+          short: Camera trigger interval
+        max: 10000.0
+        min: 4.0
+        reboot_required: true
+        type: float
+        unit: ms
+        volatile: false
+      TRIG_MIN_INTERVA:
+        decimal: 1
+        default: 1.0
+        description:
+          long: This parameter sets the minimum time between two consecutive trigger events the specific camera setup is supporting.
+          short: Minimum camera trigger interval
+        max: 10000.0
+        min: 1.0
+        reboot_required: true
+        type: float
+        unit: ms
+        volatile: false
+      TRIG_MODE:
+        default: 0
+        description:
+          short: Camera trigger mode
+        max: 4
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Disable
+          1: Time based, on command
+          2: Time based, always on
+          3: Distance based, always on
+          4: Distance based, on command (Survey mode)
+        volatile: false
+      TRIG_PINS:
+        decimal: 0
+        default: 56
+        description:
+          long: 'Selects which FMU pin is used (range: AUX1-AUX8 on Pixhawk controllers with an I/O board, MAIN1-MAIN8 on controllers without an I/O board). The PWM interface takes two pins per camera, while relay triggers on every pin individually. Example: Value 56 would trigger on pins 5 and 6. For GPIO mode Pin 6 will be triggered followed by 5. With a value of 65 pin 5 will be triggered followed by 6. Pins may be non contiguous. I.E. 16 or 61. In GPIO mode the delay pin to pin is < .2 uS.'
+          short: Camera trigger pin
+        max: 12345678
+        min: 1
+        reboot_required: true
+        type: int32
+        volatile: false
+      TRIG_PINS_EX:
+        decimal: 0
+        default: 0
+        description:
+          long: 'This Bit mask selects which FMU pin is used (range: AUX9-AUX32) If the value is not 0 it takes precedence over TRIG_PINS. If bits above 8 are set that value is used as the selector for trigger pins. greater then 8. 0x00000300 Would be Pins 9,10. If the value is'
+          short: Camera trigger pin extended
+        max: 2147483647
+        min: 0
+        reboot_required: true
+        type: int32
+        volatile: false
+      TRIG_POLARITY:
+        default: 0
+        description:
+          long: This parameter sets the polarity of the trigger (0 = active low, 1 = active high )
+          short: Camera trigger polarity
+        max: 1
+        min: 0
+        reboot_required: true
+        type: enum
+        values:
+          0: Active low
+          1: Active high
+        volatile: false
+      TRIG_PWM_NEUTRAL:
+        default: 1500
+        description:
+          short: PWM neutral output on trigger pin
+        max: 2000
+        min: 1000
+        reboot_required: true
+        type: int32
+        unit: us
+        volatile: false
+      TRIG_PWM_SHOOT:
+        default: 1900
+        description:
+          short: PWM output to trigger shot
+        max: 2000
+        min: 1000
+        reboot_required: true
+        type: int32
+        unit: us
+        volatile: false
+    group: Camera trigger
