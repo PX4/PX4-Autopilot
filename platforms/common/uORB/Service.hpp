@@ -41,6 +41,7 @@
 
 #include <px4_platform_common/defines.h>
 #include <systemlib/err.h>
+#include <future>
 
 #include <uORB/uORB.h>
 #include "uORBManager.hpp"
@@ -67,9 +68,21 @@ public:
 	Service(const orb_metadata *req_, const orb_metadata *resp_)
 		: _request_sub(req_), _response_pub(resp_) {};
 
-
+	/**
+	 * @brief Registers the callback function that will be called when a new request arrives
+	 *
+	 * @return true
+	 * @return false
+	 */
+	bool registerCallback(const void *cb_func(const req &, resp))
+	{
+		_request_sub.registerCallback(cb_func);
+		_cb_func = cb_func; // Internally save the function pointer
+	}
 
 private:
+	void *_cb_func(const req &, resp); // Function pointer to the callback
+
 	uORB::Subscription _request_sub;
 	uORB::Publication<resp> _response_pub;
 };
@@ -91,7 +104,15 @@ public:
 	Client(const orb_metadata *req_, const orb_metadata *resp_)
 		: _request_pub(req_), _response_sub(resp_) {};
 
-
+	/**
+	 * @brief Send the request asynchronously
+	 *
+	 * @return Future instance of the response that will asynchronously be updated
+	 */
+	std::future<resp *> async_send_request(const &req)
+	{
+		_request_pub.update(req); // Publish new request
+	}
 
 private:
 	uORB::Publication<req> _request_pub;

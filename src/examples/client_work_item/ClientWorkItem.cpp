@@ -48,7 +48,7 @@ ClientWorkItem::~ClientWorkItem()
 bool ClientWorkItem::init()
 {
 	// alternatively, Run on fixed interval
-	ScheduleOnInterval(5000_us); // 2000 us interval, 200 Hz rate
+	ScheduleOnInterval(5000_us);
 
 	return true;
 }
@@ -64,7 +64,15 @@ void ClientWorkItem::Run()
 	perf_begin(_loop_perf);
 	perf_count(_loop_interval_perf);
 
+	add_two_ints_request_s req_data;
 
+	// Send async request
+	auto result = _add_two_request_service.async_send_request(req_data);
+
+	// Have valid response from the service server
+	if (result.done()) {
+		// Do response processing
+	}
 
 	perf_end(_loop_perf);
 }
