@@ -78,8 +78,8 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const matrix::Vector2f &
 	// get an estimate of the state covariance matrix given the estimated variance of ground velocity
 	// and measured airspeed
 	_P.setZero();
-	_P(INDEX_W_N, INDEX_W_N) = velIvar(0);
-	_P(INDEX_W_E, INDEX_W_E) = velIvar(1);
+	_P(INDEX_W_N, INDEX_W_N) = INITIAL_WIND_VAR;
+	_P(INDEX_W_E, INDEX_W_E) = INITIAL_WIND_VAR;
 	_P(INDEX_TAS_SCALE, INDEX_TAS_SCALE) = 0.0001f;
 
 	_P = L * _P * L.transpose();
