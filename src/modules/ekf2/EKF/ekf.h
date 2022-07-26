@@ -96,7 +96,7 @@ public:
 
 	void getAuxVelInnov(float aux_vel_innov[2]) const;
 	void getAuxVelInnovVar(float aux_vel_innov[2]) const;
-	void getAuxVelInnovRatio(float &aux_vel_innov_ratio) const { aux_vel_innov_ratio = _aux_vel_test_ratio(0); }
+	void getAuxVelInnovRatio(float &aux_vel_innov_ratio) const { aux_vel_innov_ratio = Vector3f(_aid_src_aux_vel.test_ratio).max(); }
 
 	void getFlowInnov(float flow_innov[2]) const { _flow_innov.copyTo(flow_innov); }
 	void getFlowInnovVar(float flow_innov_var[2]) const { _flow_innov_var.copyTo(flow_innov_var); }
@@ -404,6 +404,8 @@ public:
 	const auto &aid_src_mag_heading() const { return _aid_src_mag_heading; }
 	const auto &aid_src_mag() const { return _aid_src_mag; }
 
+	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
+
 private:
 
 	// set the internal states and status to their default value
@@ -512,9 +514,6 @@ private:
 	Vector3f _ev_pos_innov{};	///< external vision position innovations (m)
 	Vector3f _ev_pos_innov_var{};	///< external vision position innovation variances (m**2)
 
-	Vector3f _aux_vel_innov{};	///< horizontal auxiliary velocity innovations: (m/sec)
-	Vector3f _aux_vel_innov_var{};	///< horizontal auxiliary velocity innovation variances: ((m/sec)**2)
-
 	Vector2f _drag_innov{};		///< multirotor drag measurement innovation (m/sec**2)
 	Vector2f _drag_innov_var{};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
 
@@ -552,6 +551,8 @@ private:
 
 	estimator_aid_source_1d_s _aid_src_mag_heading{};
 	estimator_aid_source_3d_s _aid_src_mag{};
+
+	estimator_aid_source_3d_s _aid_src_aux_vel{};
 
 	// output predictor states
 	Vector3f _delta_angle_corr{};	///< delta angle correction vector (rad)
@@ -718,6 +719,12 @@ private:
 
 	// fuse optical flow line of sight rate measurements
 	void fuseOptFlow();
+
+	void updateVelocityAidSrcStatus(const uint64_t& sample_time_us, const Vector3f& velocity, const Vector3f& obs_var, const float innov_gate, estimator_aid_source_3d_s& vel_aid_src) const;
+	void updatePositionAidSrcStatus(const uint64_t& sample_time_us, const Vector3f& position, const Vector3f& obs_var, const float innov_gate, estimator_aid_source_3d_s& pos_aid_src) const;
+
+	void fuseVelocity(estimator_aid_source_3d_s& vel_aid_src);
+	void fusePosition(estimator_aid_source_3d_s& pos_aid_src);
 
 	bool fuseHorizontalVelocity(const Vector3f &innov, float innov_gate, const Vector3f &obs_var,
 				    Vector3f &innov_var, Vector2f &test_ratio);
@@ -1157,16 +1164,28 @@ private:
 
 	void setEstimatorAidStatusTestRatio(estimator_aid_source_1d_s &status, float innovation_gate) const
 	{
-		status.test_ratio = sq(status.innovation) / (sq(innovation_gate) * status.innovation_variance);
-		status.innovation_rejected = (status.test_ratio > 1.f);
+		if (PX4_ISFINITE(status.innovation) && PX4_ISFINITE(status.innovation_variance)) {
+			status.test_ratio = sq(status.innovation) / (sq(innovation_gate) * status.innovation_variance);
+			status.innovation_rejected = (status.test_ratio > 1.f);
+
+		} else {
+			status.test_ratio = INFINITY;
+			status.innovation_rejected = true;
+		}
 	}
 
 	template <typename T>
 	void setEstimatorAidStatusTestRatio(T &status, float innovation_gate) const
 	{
 		for (size_t i = 0; i < (sizeof(status.test_ratio) / sizeof(status.test_ratio[0])); i++) {
-			status.test_ratio[i] = sq(status.innovation[i]) / (sq(innovation_gate) * status.innovation_variance[i]);
-			status.innovation_rejected[i] = (status.test_ratio[i] > 1.f);
+			if (PX4_ISFINITE(status.innovation[i]) && PX4_ISFINITE(status.innovation_variance[i])) {
+				status.test_ratio[i] = sq(status.innovation[i]) / (sq(innovation_gate) * status.innovation_variance[i]);
+				status.innovation_rejected[i] = (status.test_ratio[i] > 1.f);
+
+			} else {
+				status.test_ratio[i] = INFINITY;
+				status.innovation_rejected[i] = true;
+			}
 		}
 	}
 };
