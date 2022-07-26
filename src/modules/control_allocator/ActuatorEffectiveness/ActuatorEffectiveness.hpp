@@ -63,6 +63,7 @@ enum class EffectivenessUpdateReason {
 	NO_EXTERNAL_UPDATE = 0,
 	CONFIGURATION_UPDATE = 1,
 	MOTOR_ACTIVATION_UPDATE = 2,
+	AIRSPEED_CHANGED = 3
 };
 
 
@@ -134,6 +135,16 @@ public:
 	}
 
 	/**
+	 * Set the equivalent airspeed
+	 *
+	 * @param Equivalent airspeed
+	 */
+	virtual void setEquivalentAirspeed(const float airspeed)
+	{
+		_airspeed_equivalent = airspeed;
+	}
+
+	/**
 	 * Get the number of effectiveness matrices. Must be <= MAX_NUM_MATRICES.
 	 * This is expected to stay constant.
 	 */
@@ -198,4 +209,5 @@ public:
 
 protected:
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};		///< Current flight phase
+	float _airspeed_equivalent{NAN};
 };

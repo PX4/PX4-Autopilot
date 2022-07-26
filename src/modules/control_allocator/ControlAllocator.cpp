@@ -365,6 +365,13 @@ ControlAllocator::Run()
 	vehicle_torque_setpoint_s vehicle_torque_setpoint;
 	vehicle_thrust_setpoint_s vehicle_thrust_setpoint;
 
+	if (_airspeed_sub.updated()) {
+		airspeed_validated_s airspeed{};
+		_airspeed_sub.copy(&airspeed);
+		_actuator_effectiveness->setEquivalentAirspeed(airspeed.calibrated_airspeed_m_s);
+		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::AIRSPEED_CHANGED);
+	}
+
 	// Run allocator on torque changes
 	if (_vehicle_torque_setpoint_sub.update(&vehicle_torque_setpoint)) {
 		_torque_sp = matrix::Vector3f(vehicle_torque_setpoint.xyz);

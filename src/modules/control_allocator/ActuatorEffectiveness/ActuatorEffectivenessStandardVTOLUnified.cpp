@@ -50,34 +50,20 @@ bool ActuatorEffectivenessStandardVTOLUnified::getEffectivenessMatrix(Configurat
 		return false;
 	}
 
-	// TODO: combine _rotors and _control_surfaces into one matrix
-
-	// TODO: airspeed
-
-
-
-
-	//  _rotors.addActuators(configuration);
-	//
-	// int num_actuators = _rotors.computeEffectivenessMatrix(_rotors.geometry(), configuration.effectiveness_matrices[0],
-	// 		    configuration.num_actuators_matrix[0]);
-	// configuration.actuatorsAdded(ActuatorType::MOTORS, num_actuators);
-
-
+	if (external_update == EffectivenessUpdateReason::AIRSPEED_CHANGED) {
+		//printf("Updating due to airspeed %.2f\n", (double)_airspeed_equivalent);
+		_control_surfaces.setEquivalentAirspeed(_airspeed_equivalent);
+	}
 
 	// Motors
 	configuration.selected_matrix = 0;
-
 	_rotors.enablePropellerTorqueNonUpwards(false);
-
 	const bool mc_rotors_added_successfully = _rotors.addActuators(configuration);
-
 	_mc_motors_mask = _rotors.getUpwardsMotors();
 
 	// Control Surfaces
-	configuration.selected_matrix = 1;
+	configuration.selected_matrix = 0;
 	_first_control_surface_idx = configuration.num_actuators_matrix[configuration.selected_matrix];
-
 	const bool surfaces_added_successfully = _control_surfaces.addActuators(configuration);
 
 	return (mc_rotors_added_successfully && surfaces_added_successfully);
@@ -109,7 +95,7 @@ void ActuatorEffectivenessStandardVTOLUnified::setFlightPhase(const FlightPhase 
 	// update stopped motors
 	switch (flight_phase) {
 	case FlightPhase::FORWARD_FLIGHT:
-		_stopped_motors = _mc_motors_mask;
+		//_stopped_motors = _mc_motors_mask;
 		break;
 
 	case FlightPhase::HOVER_FLIGHT:

@@ -60,15 +60,15 @@ public:
 
 	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
 	{
-		static_assert(MAX_NUM_MATRICES >= 2, "expecting at least 2 matrices");
-		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
-		allocation_method_out[1] = AllocationMethod::PSEUDO_INVERSE;
+		//static_assert(MAX_NUM_MATRICES >= 2, "expecting at least 2 matrices");
+		allocation_method_out[0] = AllocationMethod::PSEUDO_INVERSE;
+		//allocation_method_out[1] = AllocationMethod::PSEUDO_INVERSE;
 	}
 
 	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
 	{
 		normalize[0] = true;
-		normalize[1] = false;
+		//normalize[1] = false;
 	}
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,

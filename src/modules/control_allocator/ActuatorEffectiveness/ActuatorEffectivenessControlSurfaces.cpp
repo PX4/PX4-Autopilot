@@ -34,6 +34,7 @@
 #include <px4_platform_common/log.h>
 
 #include "ActuatorEffectivenessControlSurfaces.hpp"
+#include <lib/mathlib/mathlib.h>
 
 using namespace matrix;
 
@@ -127,7 +128,12 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 bool ActuatorEffectivenessControlSurfaces::addActuators(Configuration &configuration)
 {
 	for (int i = 0; i < _count; i++) {
-		int actuator_idx = configuration.addActuator(ActuatorType::SERVOS, _params[i].torque, Vector3f{});
+		const float airspeed_trim = 15.0f;
+		_airspeed_equivalent = math::max(_airspeed_equivalent, 3.0f);
+		float airspeed_scaling = _airspeed_equivalent / airspeed_trim;
+		airspeed_scaling = math::constrain(airspeed_scaling, 0.001f, 1000.0f);
+		Vector3f actual_torque = _params[i].torque * airspeed_scaling * airspeed_scaling;
+		int actuator_idx = configuration.addActuator(ActuatorType::SERVOS, actual_torque, Vector3f{});
 
 		if (actuator_idx >= 0) {
 			configuration.trim[configuration.selected_matrix](actuator_idx) = _params[i].trim;

@@ -89,7 +89,7 @@ void ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight
 	// update stopped motors
 	switch (flight_phase) {
 	case FlightPhase::FORWARD_FLIGHT:
-		_stopped_motors = _mc_motors_mask;
+		//_stopped_motors = _mc_motors_mask;
 		break;
 
 	case FlightPhase::HOVER_FLIGHT:
