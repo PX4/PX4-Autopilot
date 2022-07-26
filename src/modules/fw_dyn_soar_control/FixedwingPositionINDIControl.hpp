@@ -276,8 +276,10 @@ private:
 	Vector3f _compute_INDI_stage_2(Vector3f ctrl);
 	Vector3f _compute_actuator_deflections(Vector3f ctrl);
 
-	// yaw controller
-	ECL_YawController		_yaw_ctrl;
+	// helper methods
+	float _getClosest(float val1, float val2, float taget);	// get float closest to target
+	float _findClosest(float arr[], int n, float target);	// return element in arr closest to n
+
 
 	// control variables
 	Vector<float, _num_basis_funs> _basis_coeffs_x = {};				// coefficients of the current path
@@ -345,8 +347,9 @@ private:
 	float _origin_E;
 	float _origin_D;
 	// wind shear parameters
-	float _shear_V_max;
+	float _shear_v_max;
 	float _shear_alpha;
+	float _shear_energy;
 	float _shear_h_ref;
 	float _shear_heading;
 	// loiter circle
@@ -372,10 +375,11 @@ private:
 	hrt_abstime _slip_last_valid{0};			///< last time Aoa was received. Used to detect timeouts.
 	float _slip{0.0f};
 
-	// vectors defining the initial velocities, wind speed and shear strength
-	Vector<float, 10> _initial_energy_arr = {};	
-	Vector<float, 10> _V_max_arr = {};	
-	Vector<float, 10> _alpha_arr = {};	
+	// vectors defining the gridding for trajectory selection: initial velocities, wind speed and shear strength
+	const static size_t _gridsize = 11;
+	float _energy_arr[_gridsize] = {14.f,16.f,18.f,20.f,22.f,24.f,26.f,28.f,30.f,32.f,34.f};	
+	float _v_max_arr[_gridsize] = {10.f,11.f,12.f,13.f,14.f,15.f,16.f,17.f,18.f,19.f,20.f};	
+	float _alpha_arr[_gridsize] = {0.1f,0.2f,0.3f,0.4f,0.5f,0.6f,0.7f,0.8f,0.9f,1.0f,1.1f};	
 
 
 	// helper variables

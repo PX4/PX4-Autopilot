@@ -95,7 +95,7 @@ FixedwingPositionINDIControl::init()
     _R_enu_to_ned = _R_ned_to_enu;
 
     // initialize wind shear params
-    _shear_V_max = 0.f;
+    _shear_v_max = 0.f;
     _shear_alpha = 0.f;
     _shear_h_ref = 0.f;
     _shear_heading = M_PI_2_F;
@@ -396,9 +396,92 @@ FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
     return;
 }
 
+float
+FixedwingPositionINDIControl::_getClosest(float val1, float val2, float target)
+{
+    if (target - val1 >= val2 - target)
+        return val2;
+    else
+        return val1;
+}
+
+float
+FixedwingPositionINDIControl::_findClosest(float arr[], int n, float target)
+{
+    // Corner cases
+    if (target <= arr[0])
+        return arr[0];
+    if (target >= arr[n - 1])
+        return arr[n - 1];
+ 
+    // Doing binary search
+    int i = 0, j = n, mid = 0;
+    while (i < j) {
+        mid = (i + j) / 2;
+ 
+        if (fabs(arr[mid]-target) < 0.000001f)
+            return arr[mid];
+ 
+        /* If target is less than array element,
+            then search in left */
+        if (target < arr[mid]) {
+ 
+            // If target is greater than previous
+            // to mid, return closest of two
+            if (mid > 0 && target > arr[mid - 1])
+                return _getClosest(arr[mid - 1],
+                                  arr[mid], target);
+ 
+            /* Repeat for left half */
+            j = mid;
+        }
+ 
+        // If target is greater than mid
+        else {
+            if (mid < n - 1 && target < arr[mid + 1])
+                return _getClosest(arr[mid],
+                                  arr[mid + 1], target);
+            // update i
+            i = mid + 1;
+        }
+    }
+ 
+    // Only single element left after search
+    return arr[mid];
+}
+
 void
 FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
 {
+    /* 
+    We read a trajectory based on initial energy available at the beginning of the trajectory.
+    So the trajectory is selected based on two criteria, first the correct wind shear params (alpha and V_max) and the initial energy (potential + kinetic).
+    
+    The filename structure of the trajectories is the following:
+    trajec_<type>_<V_max>_<alpha>_<energy>_
+    with
+    <type> in {nominal, robust}
+    <V_max> in [08,24]
+    <alpha> in [0.10, 1.00]
+    <energy> in [E_min, E_max]
+    */
+    float v = _findClosest(_v_max_arr, _gridsize, _shear_v_max);    // wind velocity
+    float a = _findClosest(_alpha_arr, _gridsize, _shear_alpha);    // shear strength
+    float e = _findClosest(_energy_arr, _gridsize, _shear_energy);  // initial energy
+    PX4_INFO("V, A, E: \t%.2f\t%.2f\t%.2f", double(v), double(a), double(e));
+    char file[30] = "nominal";
+    char v_str[10];
+    char a_str[10];
+    char e_str[10];
+    strcat(file,"_");
+    strcat(file,gcvt(v, 3, v_str));
+    strcat(file,"_");
+    strcat(file,gcvt(a, 3, a_str));
+    strcat(file,"_");
+    strcat(file,gcvt(e, 3, e_str));
+    strcat(file,".csv");
+    PX4_INFO("filename: \t%.30s", file);
+
     // select loiter trajectory for loiter test
     char filename[16];
     switch (_loiter)
@@ -432,25 +515,11 @@ FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
         strcpy(filename,"trajectory0.csv");
     }
 
-    /* 
-    We read a trajectory based on initial energy available at the beginning of the trajectory.
-    So the trajectory is selected based on two criteria, first the correct wind shear params (alpha and V_max) and the initial energy (potential + kinetic).
-    
-    The filename structure of the trajectories is the following:
-    trajec_<type>_<energy>_<V_max>_<alpha>
-    with
-    <type> in {nominal, robust}
-    <energy> in [E_min, E_max]
-    <V_max> in [8,24]
-    <alpha> in [0.1, 1.0]
-    */
-
     /*
     Also, we need to place the current trajectory, centered around zero height and assuming wind from the west, into the soaring frame.
     Since the necessary computations for position, velocity and acceleration require the basis coefficients, which are not easy to transform, 
     we choose to transform our position in soaring frame into the "trajectory frame", compute position vector and it's derivatives from the basis coeffs
     in the trajectory frame, and then transform these back to soaring frame for control purposes.
-
     Therefore we define a new transform between the soaring frame and the trajectory frame.
     */
     
@@ -659,8 +728,8 @@ FixedwingPositionINDIControl::Run()
         // approximate lift force, since implicit equation cannot be solved analytically:
         // since alpha<<1, we approximate the lift force L = sin(alpha)*Fx - cos(alpha)*Fz
         // as L = alpha*Fx - Fz
-        float Fx = body_force(0);
-        float Fz = -body_force(2);
+        float Fx = cosf(_aoa_offset)*body_force(0) - sinf(_aoa_offset)*body_force(2);
+        float Fz = -cosf(_aoa_offset)*body_force(2) - sinf(_aoa_offset)*body_force(0);
         float AoA_approx = (((2.f*Fz)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f) - _C_L0)/_C_L1) / 
                             (1 - ((2.f*Fx)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f)/_C_L1));
         AoA_approx = constrain(AoA_approx,-0.2f,0.2f);
@@ -1217,6 +1286,42 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
         }
     }
 
+    // =======================================================================================================================
+    // get an alternative way of computing the rot acc command:
+    // since te want the system to behave linearly (as implied by the PD controller) in it's position states, it would be nice
+    // to have a high-level controller which actually respects this property, e.g. the setpoints of the high-level controller
+    // should result in linear behaviour of the position states, if tracked perfectly.
+    // to achieve this, we use a control law, which tries to follow a linear force increment 
+    // from the current body force to the target body force.
+    // =======================================================================================================================
+    /*
+    // compute force increment
+    Vector3f f_delta = _mass*(acc_command - acc_filtered);
+    // take a fraction of the full length
+    Vector3f f_dot = 0.01f*f_delta;
+    // compute target pose which produces f_target = f_current_filtered + f_dot
+    Vector3f f_target = f_current_filtered + f_dot;
+    // compute a rotation vector (should always be <<1 to produce a linear force increment over time)
+    Dcmf R_ref_(_get_attitude(vel_ref,f_target));
+    // get attitude error
+    Dcmf R_ref_true_(R_ref_.transpose()*R_ib);
+    // get required rotation vector (in body frame)
+    AxisAnglef q_err_(R_ref_true_);
+    Vector3f w_err_;
+    // project rotation angle to [-pi,pi]
+    if (q_err_.angle()*q_err_.angle()<M_PI_F*M_PI_F){
+        w_err_ = -q_err_.angle()*q_err_.axis();
+    }
+    else{
+        if (q_err_.angle()>0.f){
+            w_err_ = (2.f*M_PI_F-(float)fmod(q_err_.angle(),2.f*M_PI_F))*q_err_.axis();
+        }
+        else{
+            w_err_ = (-2.f*M_PI_F-(float)fmod(q_err_.angle(),2.f*M_PI_F))*q_err_.axis();
+        }
+    }
+    */
+
 
     // ==========================================================================
     // get required attitude (assuming we can fly the target velocity), and error
@@ -1239,11 +1344,14 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
             w_err = (-2.f*M_PI_F-(float)fmod(q_err.angle(),2.f*M_PI_F))*q_err.axis();
         }
     }
+
+
     
     // =========================================
     // apply PD control law on the body attitude
     // =========================================
     Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-_omega) + alpha_ref;
+
 
     // ==========================================
     // input meant for tuning the INDI controller
