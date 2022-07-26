@@ -663,6 +663,9 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 
 	// mag 3d
 	PublishAidSourceStatus(_ekf.aid_src_mag(), _status_mag_pub_last, _estimator_aid_src_mag_pub);
+
+	// aux velocity
+	PublishAidSourceStatus(_ekf.aid_src_aux_vel(), _status_aux_vel_pub_last, _estimator_aid_src_aux_vel_pub);
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
@@ -1563,8 +1566,8 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 			// velocity of vehicle relative to target has opposite sign to target relative to vehicle
 			auxVelSample auxvel_sample{
 				.time_us = landing_target_pose.timestamp,
-				.vel = Vector3f{-landing_target_pose.vx_rel, -landing_target_pose.vy_rel, 0.0f},
-				.velVar = Vector3f{landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel, 0.0f},
+				.vel = Vector3f{-landing_target_pose.vx_rel, -landing_target_pose.vy_rel, NAN},
+				.velVar = Vector3f{landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel, NAN},
 			};
 			_ekf.setAuxVelData(auxvel_sample);
 		}

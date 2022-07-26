@@ -266,6 +266,8 @@ private:
 	hrt_abstime _status_mag_pub_last{0};
 	hrt_abstime _status_mag_heading_pub_last{0};
 
+	hrt_abstime _status_aux_vel_pub_last{0};
+
 	float _last_baro_bias_published{};
 
 	float _airspeed_scale_factor{1.0f}; ///< scale factor correction applied to airspeed measurements
@@ -339,6 +341,7 @@ private:
 
 	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_ev_yaw_pub{ORB_ID(estimator_aid_src_ev_yaw)};
 
+	uORB::PublicationMulti<estimator_aid_source_3d_s> _estimator_aid_src_aux_vel_pub{ORB_ID(estimator_aid_src_aux_vel)};
 
 	// publications with topic dependent on multi-mode
 	uORB::PublicationMulti<vehicle_attitude_s>           _attitude_pub;

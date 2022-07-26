@@ -331,7 +331,6 @@ protected:
 	AlphaFilter<float> _gnss_yaw_signed_test_ratio_lpf{0.1f}; // average signed test ratio used to detect a bias in the state
 	Vector2f _ev_vel_test_ratio{};		// EV velocity innovation consistency check ratios
 	Vector2f _ev_pos_test_ratio{};		// EV position innovation consistency check ratios
-	Vector2f _aux_vel_test_ratio{};		// Auxiliary horizontal velocity innovation consistency check ratio
 	float _optflow_test_ratio{};		// Optical flow innovation consistency check ratio
 	float _hagl_test_ratio{};		// height above terrain measurement innovation consistency check ratio
 	float _beta_test_ratio{};		// sideslip innovation consistency check ratio

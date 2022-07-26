@@ -1131,18 +1131,13 @@ void Ekf::controlAuxVelFusion()
 
 		if (_auxvel_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &auxvel_sample_delayed)) {
 
+			updateVelocityAidSrcStatus(auxvel_sample_delayed.time_us, auxvel_sample_delayed.vel, auxvel_sample_delayed.velVar, fmaxf(_params.auxvel_gate, 1.f), _aid_src_aux_vel);
+
 			if (isHorizontalAidingActive()) {
-
-				const float aux_vel_innov_gate = fmaxf(_params.auxvel_gate, 1.f);
-
-				_aux_vel_innov = _state.vel - auxvel_sample_delayed.vel;
-
-				fuseHorizontalVelocity(_aux_vel_innov, aux_vel_innov_gate, auxvel_sample_delayed.velVar,
-						       _aux_vel_innov_var, _aux_vel_test_ratio);
-
-				// Can be enabled after bit for this is added to EKF_AID_MASK
-				// fuseVerticalVelocity(_aux_vel_innov, aux_vel_innov_gate, auxvel_sample_delayed.velVar,
-				//		_aux_vel_innov_var, _aux_vel_test_ratio);
+				_aid_src_aux_vel.fusion_enabled[0] = PX4_ISFINITE(auxvel_sample_delayed.vel(0));
+				_aid_src_aux_vel.fusion_enabled[1] = PX4_ISFINITE(auxvel_sample_delayed.vel(1));
+				_aid_src_aux_vel.fusion_enabled[2] = PX4_ISFINITE(auxvel_sample_delayed.vel(2));
+				fuseVelocity(_aid_src_aux_vel);
 			}
 		}
 	}
