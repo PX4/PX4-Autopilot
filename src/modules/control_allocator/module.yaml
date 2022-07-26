@@ -396,6 +396,8 @@ parameters:
         CA_SP0_ANG${i}:
             description:
                 short: Angle for swash plate servo ${i}
+                long: |
+                  The angle is measured clockwise (as seen from top), with 0 pointing forwards (X axis).
             type: float
             decimal: 0
             increment: 10
