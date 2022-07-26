@@ -206,7 +206,13 @@ void Tailsitter::update_transition_state()
 
 			// the intial attitude setpoint for a backtransition is a combination of the current fw pitch setpoint,
 			// the yaw setpoint and zero roll since we want wings level transition
-			_q_trans_start = Eulerf(0.0f, _fw_virtual_att_sp->pitch_body, yaw_sp);
+
+			if (_v_control_mode->flag_control_altitude_enabled) {
+				_q_trans_start = Eulerf(0.0f, _fw_virtual_att_sp->pitch_body, yaw_sp);
+
+			} else {
+				_q_trans_start = Eulerf(0.0f, _mc_virtual_att_sp->pitch_body, yaw_sp);
+			}
 
 			// attitude during transitions are controlled by mc attitude control so rotate the desired attitude to the
 			// multirotor frame
@@ -285,7 +291,48 @@ void Tailsitter::waiting_on_tecs()
 
 void Tailsitter::update_fw_state()
 {
-	VtolType::update_fw_state();
+	if (_flag_idle_mc) {
+		_flag_idle_mc = !set_idle_fw();
+	}
+
+	// copy virtual attitude setpoint to real attitude setpoint
+	if (_v_control_mode->flag_control_altitude_enabled) {
+		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+
+	} else {
+		memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+	}
+
+	check_quadchute_condition();
+
+	// calculate rotation axis for transition.
+	_q_trans_start = Quatf(_v_att->q);
+	Vector3f z = -_q_trans_start.dcm_z();
+	_trans_rot_axis = z.cross(Vector3f(0, 0, -1));
+
+	_q_trans_sp = Quatf(AxisAnglef(_trans_rot_axis, M_PI_2_F));
+
+	// // as heading setpoint we choose the heading given by the direction the vehicle points
+	// float yaw_sp = atan2f(z(1), z(0));
+
+	// // the intial attitude setpoint for a backtransition is a combination of the current fw pitch setpoint,
+	// // the yaw setpoint and zero roll since we want wings level transition
+	// _q_trans_start = Eulerf(0.0f, _fw_virtual_att_sp->pitch_body, yaw_sp);
+
+
+	const Eulerf euler_sp(_q_trans_sp);
+	_v_att_sp->roll_body = euler_sp.phi();
+	_v_att_sp->pitch_body = euler_sp.theta();
+	_v_att_sp->yaw_body = euler_sp.psi();
+
+
+	// printf("""""""""""""\n");
+	// printf("phi: %f\n", (double)euler_sp.phi());
+	// printf("theta: %f\n", (double)euler_sp.theta());
+	// printf("psi: %f\n", (double)euler_sp.psi());
+	// printf("xxxxx: %\n", (double)xxxxx);
+
+	_q_trans_sp.copyTo(_v_att_sp->q_d);
 
 }
 
@@ -330,27 +377,27 @@ void Tailsitter::fill_actuator_outputs()
 	mc_out[actuator_controls_s::INDEX_YAW]   = mc_in[actuator_controls_s::INDEX_YAW];
 
 	if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
-		mc_out[actuator_controls_s::INDEX_THROTTLE] = fw_in[actuator_controls_s::INDEX_THROTTLE];
+		mc_out[actuator_controls_s::INDEX_THROTTLE] = mc_in[actuator_controls_s::INDEX_THROTTLE];
 
 		// FW thrust is allocated on mc_thrust_sp[0] for tailsitter with dynamic control allocation
-		_thrust_setpoint_0->xyz[2] = -fw_in[actuator_controls_s::INDEX_THROTTLE];
+		_thrust_setpoint_0->xyz[2] = -mc_in[actuator_controls_s::INDEX_THROTTLE];
 
 		// output differential thrust for roll if enabled (to achieve roll contorl in FW we need controller yaw output)
 		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::ROLL_BIT)) {
-			mc_out[actuator_controls_s::INDEX_YAW] = -fw_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_r.get() ;
-			_torque_setpoint_0->xyz[2] = -fw_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_r.get() ;
+			mc_out[actuator_controls_s::INDEX_YAW] = -mc_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_r.get() ;
+			_torque_setpoint_0->xyz[2] = -mc_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_r.get() ;
 		}
 
 		// output differential thrust for pitch if enabled
 		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::PITCH_BIT)) {
-			mc_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH] * _param_vt_fw_difthr_s_p.get() ;
-			_torque_setpoint_0->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH] * _param_vt_fw_difthr_s_p.get() ;
+			mc_out[actuator_controls_s::INDEX_PITCH] = mc_in[actuator_controls_s::INDEX_PITCH] * _param_vt_fw_difthr_s_p.get() ;
+			_torque_setpoint_0->xyz[1] = mc_in[actuator_controls_s::INDEX_PITCH] * _param_vt_fw_difthr_s_p.get() ;
 		}
 
 		// output differential thrust for yaw if enabled (to achieve yaw contorl in FW we need controller roll output)
 		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::YAW_BIT)) {
-			mc_out[actuator_controls_s::INDEX_ROLL] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_y.get() ;
-			_torque_setpoint_0->xyz[0] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_y.get() ;
+			mc_out[actuator_controls_s::INDEX_ROLL] = mc_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_y.get() ;
+			_torque_setpoint_0->xyz[0] = mc_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_y.get() ;
 		}
 
 	} else {

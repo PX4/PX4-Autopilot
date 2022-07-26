@@ -364,7 +364,7 @@ VtolAttitudeControl::Run()
 			// vehicle is in fw mode
 			_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 
-			if (fw_att_sp_updated) {
+			if (mc_att_sp_updated || fw_att_sp_updated) {
 				_vtol_type->update_fw_state();
 				_vehicle_attitude_sp_pub.publish(_vehicle_attitude_sp);
 			}

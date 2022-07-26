@@ -303,10 +303,7 @@ MulticopterAttitudeControl::Run()
 
 		const bool is_hovering = (_vehicle_type_rotary_wing && !_vtol_in_transition_mode);
 
-		// vehicle is a tailsitter in transition mode
-		const bool is_tailsitter_transition = (_vtol_tailsitter && _vtol_in_transition_mode);
-
-		bool run_att_ctrl = _vehicle_control_mode.flag_control_attitude_enabled && (is_hovering || is_tailsitter_transition);
+		bool run_att_ctrl = _vehicle_control_mode.flag_control_attitude_enabled && (is_hovering || _vtol_tailsitter);
 
 		if (run_att_ctrl) {
 
