@@ -39,6 +39,8 @@
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
  */
 
+
+/// L1 GUIDANCE parameters
 /**
  * L1 distance
  *
@@ -85,6 +87,8 @@ PARAM_DEFINE_FLOAT(GND_L1_PERIOD, 5.0f);
  */
 PARAM_DEFINE_FLOAT(GND_L1_DAMPING, 0.75f);
 
+
+/// THROTTLE settings
 /**
  * Cruise throttle
  *
@@ -101,21 +105,6 @@ PARAM_DEFINE_FLOAT(GND_L1_DAMPING, 0.75f);
 PARAM_DEFINE_FLOAT(GND_THR_CRUISE, 0.1f);
 
 /**
- * Throttle limit max
- *
- * This is the maximum throttle % that can be used by the controller.
- * For a Traxxas stampede vxl with the ESC set to training, 30 % is enough
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group Rover Position Control
- */
-PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.3f);
-
-/**
  * Throttle limit min
  *
  * This is the minimum throttle % that can be used by the controller.
@@ -129,6 +118,52 @@ PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.3f);
  */
 PARAM_DEFINE_FLOAT(GND_THR_MIN, 0.0f);
 
+/**
+ * Throttle limit max
+ *
+ * This is the maximum throttle % that can be used by the controller.
+ * For a Traxxas stampede vxl with the ESC set to training, 30 % is enough
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.5f);
+
+
+/// POSITION control parameters
+/**
+ * Trim ground speed
+ *
+ * Rover will try to achieve this speed while in position control mode
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_SPEED_TRIM, 3.0f);
+
+/**
+ * Maximum ground speed
+ *
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_SPEED_MAX, 10.0f);
+
+
+/// VELOCITY control parameters
 /**
  * Control mode for speed
  *
@@ -216,45 +251,119 @@ PARAM_DEFINE_FLOAT(GND_SPEED_IMAX, 1.0f);
  */
 PARAM_DEFINE_FLOAT(GND_SPEED_THR_SC, 1.0f);
 
+
+/// ATTITUDE control parameters
 /**
- * Trim ground speed
+ * Attitude control P gain
  *
- * Rover will try to achieve this speed while in position control mode
- *
- * @unit m/s
  * @min 0.0
- * @max 40
- * @decimal 1
- * @increment 0.5
+ * @max 5.0
+ * @decimal 3
+ * @increment 0.01
  * @group Rover Position Control
  */
-PARAM_DEFINE_FLOAT(GND_SPEED_TRIM, 3.0f);
+PARAM_DEFINE_FLOAT(GND_ATT_P, 1.0f);
+
+
+/// RATE control parameters
+/**
+ * Rover Rate Proportional Gain
+ *
+ * @min 0.0
+ * @max 10.0
+ * @decimal 3
+ * @increment 0.01
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_P, 0.0f);
 
 /**
- * Minimum ground speed
+ * Rover Rate Integral Gain
  *
- *
- * @unit m/s
  * @min 0.0
- * @max 40
- * @decimal 1
- * @increment 0.5
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
  * @group Rover Position Control
  */
-PARAM_DEFINE_FLOAT(GND_SPEED_MIN, 1.0f);
+PARAM_DEFINE_FLOAT(GND_RATE_I, 0.0f);
 
 /**
- * Maximum ground speed
+ * Rover Rate Derivative Gain
  *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_D, 0.0f);
+
+/**
+ * Rover Rate Feed forward Gain
+ *
+ * @min 0.0
+ * @max 1.5
+ * @decimal 3
+ * @increment 0.01
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_FF, 1.0f);
+
+/**
+ * Rover Rate Maximum Integral Gain
+ *
+ * @unit rad/s
+ * @min 0.0
+ * @max 50.0
+ * @decimal 3
+ * @increment 0.005
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_IMAX, 1.0f);
+
+/**
+ * Rover Maximum Rate Setpoint
+ *
+ * This is the angular rate setpoint that will be commanded with full
+ * yaw control command (e.g. roll stick to either right/left). This
+ * must be a physically achievable rate (e.g. speed boats may have much higher value)
+ *
+ * @unit rad/s
+ * @min 0.0
+ * @max 50.0
+ * @decimal 3
+ * @increment 0.005
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_MAX, 1.0f);
+
+/**
+ * Rover Rate Integral Minimum speed
  *
  * @unit m/s
  * @min 0.0
- * @max 40
- * @decimal 1
- * @increment 0.5
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
  * @group Rover Position Control
  */
-PARAM_DEFINE_FLOAT(GND_SPEED_MAX, 10.0f);
+PARAM_DEFINE_FLOAT(GND_RATE_IMINSPD, 0.3f);
+
+
+/// ROVER GEOMETRY parameters
+/**
+ * Distance from front axle to rear axle
+ *
+ * A value of 0.31 is typical for 1/10 RC cars.
+ *
+ * @unit m
+ * @min 0.0
+ * @decimal 3
+ * @increment 0.01
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_WHEEL_BASE, 0.31f);
 
 /**
  * Maximum wheel turn angle for Ackerman steering.
@@ -270,18 +379,8 @@ PARAM_DEFINE_FLOAT(GND_SPEED_MAX, 10.0f);
  */
 PARAM_DEFINE_FLOAT(GND_MAX_ANG, 45.0f);
 
-/**
- * Attitude control P gain
- *
- * @unit rad
- * @min 0.0
- * @max 5.0
- * @decimal 3
- * @increment 0.01
- * @group Rover Position Control
- */
-PARAM_DEFINE_FLOAT(GND_ATT_P, 1.0f);
 
+/// Other parameters
 /**
  * Maximum manual yaw rate in stabilized mode
  *
@@ -295,87 +394,3 @@ PARAM_DEFINE_FLOAT(GND_ATT_P, 1.0f);
  * @group Rover Position Control
  */
 PARAM_DEFINE_FLOAT(GND_MAN_Y_MAX, 150.0f);
-
-/**
- * Rover Rate Proportional Gain
- *
- * @unit rad/s
- * @min 0.0
- * @max 10.0
- * @decimal 3
- * @increment 0.01
- * @group Rover Position Control
- */
-PARAM_DEFINE_FLOAT(GND_RATE_P, 5.0f);
-
-/**
- * Rover Rate Integral Gain
- *
- * @unit rad/s
- * @min 0.0
- * @max 1.0
- * @decimal 3
- * @increment 0.005
- * @group Rover Position Control
- */
-PARAM_DEFINE_FLOAT(GND_RATE_I, 0.5f);
-
-/**
- * Rover Rate Integral Gain
- *
- * @unit rad/s
- * @min 0.0
- * @max 1.0
- * @decimal 3
- * @increment 0.005
- * @group Rover Position Control
- */
-PARAM_DEFINE_FLOAT(GND_RATE_D, 0.0f);
-
-/**
- * Rover Rate Proportional Gain
- *
- * @unit rad/s
- * @min 0.0
- * @max 10.0
- * @decimal 3
- * @increment 0.01
- * @group Rover Position Control
- */
-PARAM_DEFINE_FLOAT(GND_RATE_FF, 1.6f);
-
-/**
- * Rover Rate Maximum Integral Gain
- *
- * @unit rad/s
- * @min 0.0
- * @max 50.0
- * @decimal 3
- * @increment 0.005
- * @group Rover Position Control
- */
-PARAM_DEFINE_FLOAT(GND_RATE_IMAX, 1.0f);
-
-/**
- * Rover Rate Maximum Rate
- *
- * @unit rad/s
- * @min 0.0
- * @max 1.0
- * @decimal 3
- * @increment 0.005
- * @group Rover Position Control
- */
-PARAM_DEFINE_FLOAT(GND_RATE_MAX, 0.5f);
-
-/**
- * Rover Rate Integral Minimum speed
- *
- * @unit m/s
- * @min 0.0
- * @max 50.0
- * @decimal 3
- * @increment 0.005
- * @group Rover Position Control
- */
-PARAM_DEFINE_FLOAT(GND_RATE_IMINSPD, 1.0f);

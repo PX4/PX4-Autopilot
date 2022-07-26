@@ -160,6 +160,9 @@ private:
 			      const vehicle_local_position_s &local_pos,
 			      const vehicle_rates_setpoint_s &rates_sp);
 
+	// Print rate control status
+	void	rate_control_status();
+
 	// Subscription
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -215,7 +218,6 @@ private:
 
 	MapProjection _global_local_proj_ref{};
 	float _global_local_alt0{NAN};
-	float _steering_input{0.0};
 
 	matrix::Vector2d _prev_wp{0, 0}; // Previous waypoint
 	float _manual_yaw_sp{0.0};
@@ -262,14 +264,17 @@ private:
 	// Rate control
 
 	DEFINE_PARAMETERS(
+		// L1 guidance
 		(ParamFloat<px4::params::GND_L1_PERIOD>) _param_l1_period,
 		(ParamFloat<px4::params::GND_L1_DAMPING>) _param_l1_damping,
 		(ParamFloat<px4::params::GND_L1_DIST>) _param_l1_distance,
 
+		// Position control
 		(ParamFloat<px4::params::GND_SPEED_TRIM>) _param_gndspeed_trim,
 		(ParamFloat<px4::params::GND_SPEED_MAX>) _param_gndspeed_max,
 		(ParamFloat<px4::params::GND_SPEED_MIN>) _param_gndspeed_min,
 
+		// Velocity control
 		(ParamInt<px4::params::GND_SP_CTRL_MODE>) _param_speed_control_mode,
 		(ParamFloat<px4::params::GND_SPEED_P>) _param_speed_p,
 		(ParamFloat<px4::params::GND_SPEED_I>) _param_speed_i,
@@ -277,6 +282,10 @@ private:
 		(ParamFloat<px4::params::GND_SPEED_IMAX>) _param_speed_imax,
 		(ParamFloat<px4::params::GND_SPEED_THR_SC>) _param_throttle_speed_scaler,
 
+		// Attitude control
+		(ParamFloat<px4::params::GND_ATT_P>) _param_att_p,
+
+		// Rate control
 		(ParamFloat<px4::params::GND_RATE_P>) _param_rate_p,
 		(ParamFloat<px4::params::GND_RATE_I>) _param_rate_i,
 		(ParamFloat<px4::params::GND_RATE_D>) _param_rate_d,
@@ -285,13 +294,17 @@ private:
 		(ParamFloat<px4::params::GND_RATE_MAX>) _param_rate_max,
 		(ParamFloat<px4::params::GND_RATE_IMINSPD>) _param_rate_i_minspeed,
 
+		// Throttle settings
 		(ParamFloat<px4::params::GND_THR_MIN>) _param_throttle_min,
 		(ParamFloat<px4::params::GND_THR_MAX>) _param_throttle_max,
 		(ParamFloat<px4::params::GND_THR_CRUISE>) _param_throttle_cruise,
 
+		// Rover geometry
+		(ParamFloat<px4::params::GND_WHEEL_BASE>) _param_wheel_base,
 		(ParamFloat<px4::params::GND_MAX_ANG>) _param_max_turn_angle,
-		(ParamFloat<px4::params::GND_ATT_P>) _param_att_p,
+
+		// Other
 		(ParamFloat<px4::params::GND_MAN_Y_MAX>) _param_gnd_man_y_max,
-		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad // loiter radius for Rover
+		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad
 	)
 };

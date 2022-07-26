@@ -193,7 +193,8 @@ RoverPositionControl::manual_control_setpoint_poll()
 				_rates_sp.timestamp = hrt_absolute_time();
 				_rates_sp.roll = 0.0;
 				_rates_sp.pitch = 0.0;
-				_rates_sp.yaw = _manual_control_setpoint.y;
+				// Yawrate is scaled with the 'maximum rate' parameter
+				_rates_sp.yaw = _param_rate_max.get() * _manual_control_setpoint.y;
 				_rates_sp.thrust_body[0] = _manual_control_setpoint.z;
 				_rates_sp_pub.publish(_rates_sp);
 
@@ -374,7 +375,7 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity,
 		}
 
 		const float desired_theta = atan2f(desired_body_velocity(1), desired_body_velocity(0));
-		float control_effort = desired_theta / math::radians(_param_max_turn_angle).get();
+		float control_effort = desired_theta / math::radians(_param_max_turn_angle.get());
 		control_effort = math::constrain(control_effort, -1.0f, 1.0f);
 
 		_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
@@ -393,12 +394,16 @@ RoverPositionControl::control_attitude(const vehicle_attitude_s &att, const vehi
 	const Quatf qe = Quatf(att.q).inversed() * Quatf(att_sp.q_d);
 	const Eulerf euler_sp = qe;
 
+	_rates_sp.timestamp = hrt_absolute_time();
 	_rates_sp.roll = 0.0;
 	_rates_sp.pitch = 0.0;
-	_rates_sp.yaw = euler_sp(2) / math::radians(_param_max_turn_angle.get());
+
+	// Set yaw-rate setpoint proportional to yaw attitude error
+	_rates_sp.yaw = euler_sp.psi() * _param_att_p.get();
 	_rates_sp.thrust_body[0] = math::constrain(att_sp.thrust_body[0], 0.0f, 1.0f);
-	_rates_sp.timestamp = hrt_absolute_time();
 	_rates_sp_pub.publish(_rates_sp);
+
+	control_rates(_vehicle_rates, _vehicle_angular_acceleration, _local_pos, _rates_sp);
 }
 
 void
@@ -409,23 +414,23 @@ RoverPositionControl::control_rates(const vehicle_angular_velocity_s &rates, con
 	float dt = (_control_rates_last_called > 0) ? hrt_elapsed_time(&_control_rates_last_called) * 1e-6f : 0.01f;
 	_control_rates_last_called = hrt_absolute_time();
 
-	const matrix::Vector3f vehicle_rates(rates.xyz[0], rates.xyz[1], rates.xyz[2]);
-	const matrix::Vector3f rates_setpoint(rates_sp.roll, rates_sp.pitch, rates_sp.yaw);
-
 	const matrix::Vector3f current_velocity(local_pos.vx, local_pos.vy, local_pos.vz);
 	bool lock_integrator = bool(current_velocity.norm() < _param_rate_i_minspeed.get());
+
+	const matrix::Vector3f vehicle_rates(rates.xyz[0], rates.xyz[1], rates.xyz[2]);
+	const matrix::Vector3f rates_setpoint(rates_sp.roll, rates_sp.pitch, rates_sp.yaw);
+	const matrix::Vector3f angular_acceleration{acc.xyz};
 
 	const matrix::Vector3f angular_acceleration{acc.xyz};
 	const matrix::Vector3f torque = _rate_control.update(vehicle_rates, rates_setpoint, angular_acceleration, dt,
 					lock_integrator);
 
-	_steering_input = math::constrain(_steering_input + torque(2), -1.0f, 1.0f);
+	// Steering control is set directly as torque command. This will then be linearly be mapped
+	// into sterring output in control_allocator.
+	const float steering_input = math::constrain(torque(2), -1.0f, 1.0f);
 
-	_act_controls.control[actuator_controls_s::INDEX_YAW] = _steering_input;
-
-	const float control_throttle = rates_sp.thrust_body[0];
-
-	_act_controls.control[actuator_controls_s::INDEX_THROTTLE] =  math::constrain(control_throttle, 0.0f, 1.0f);
+	_act_controls.control[actuator_controls_s::INDEX_YAW] = steering_input;
+	_act_controls.control[actuator_controls_s::INDEX_THROTTLE] =  math::constrain(rates_sp.thrust_body[0], 0.0f, 1.0f);
 }
 
 
@@ -440,12 +445,13 @@ RoverPositionControl::Run()
 	parameters_update();
 	vehicle_angular_acceleration_poll();
 	vehicle_control_mode_poll();
-	attitude_setpoint_poll();
-	rates_setpoint_poll();
 	vehicle_attitude_poll();
 	_vehicle_acceleration_sub.update();
+	attitude_setpoint_poll();
+	rates_setpoint_poll();
 
 	// For stabilized / acro modes, update the attitude / rate setpoints from control setpoint
+	// This over-writes the setpoints received through uORB subscription if applicable
 	manual_control_setpoint_poll();
 
 	// Update position / velocity controller only if local position & velocity was updated and we are not in manual control mode
@@ -508,7 +514,7 @@ RoverPositionControl::Run()
 
 		} else if (_control_mode.flag_control_velocity_enabled) {
 			// Velocity control
-			control_velocity(ground_speed);
+			control_velocity(ground_speed, _trajectory_setpoint);
 		}
 	}
 
@@ -517,7 +523,6 @@ RoverPositionControl::Run()
 	    && !_control_mode.flag_control_position_enabled
 	    && !_control_mode.flag_control_velocity_enabled) {
 		control_attitude(_vehicle_att, _att_sp);
-
 	}
 
 	// Rate control
@@ -537,7 +542,7 @@ RoverPositionControl::Run()
 		_act_controls.timestamp = hrt_absolute_time();
 		_actuator_controls_pub.publish(_act_controls);
 
-		// Output thrust / torque setpoint which for control_allocator module
+		// Output thrust / torque setpoint for control_allocator module
 		vehicle_thrust_setpoint_s v_thrust_sp{};
 		v_thrust_sp.timestamp = hrt_absolute_time();
 		v_thrust_sp.xyz[0] = _act_controls.control[actuator_controls_s::INDEX_THROTTLE];
@@ -577,8 +582,33 @@ int RoverPositionControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
+void RoverPositionControl::rate_control_status()
+{
+	// Print out Yaw rate control related values
+	// Use 'double' datatype to print in PX4_INFO
+	const double p_gain = _rate_control.get_P_gains()(2);
+	const double i_gain = _rate_control.get_I_gains()(2);
+	const double d_gain = _rate_control.get_D_gains()(2);
+	const double ff_gain = _rate_control.get_FF_gains()(2);
+	const double i_term = _rate_control.get_I_terms()(2);
+	const double rate_sp = _rate_control.get_last_rate_setpoints()(2);
+	const double torque_output = _rate_control.get_lat_torque_setpoint_outputs()(2);
+
+	PX4_INFO("Yaw rate control status");
+	PX4_INFO("P: %f, I: %f, D: %f, FF: %f", p_gain, i_gain, d_gain, ff_gain);
+	PX4_INFO("I term: %f, Rate sp: %f, Torque op: %f", i_term, rate_sp, torque_output);
+}
+
 int RoverPositionControl::custom_command(int argc, char *argv[])
 {
+	if (argc > 0) {
+		// rover_pos_control rate_control_status
+		if (strcmp(argv[0], "rate_control_status") == 0) {
+			get_instance() -> rate_control_status();
+			return 0;
+		}
+	}
+
 	return print_usage("unknown command");
 }
 
