@@ -65,10 +65,10 @@ public:
 	};
 
 	BiasEstimator() = default;
-	~BiasEstimator() = default;
+	virtual ~BiasEstimator() = default;
 
-	void predict(float dt);
-	void fuseBias(float measurement, float measurement_var);
+	virtual void predict(float dt);
+	virtual void fuseBias(float measurement, float measurement_var);
 
 	void setBias(float bias) { _state = bias; }
 	void setProcessNoiseStdDev(float process_noise)
