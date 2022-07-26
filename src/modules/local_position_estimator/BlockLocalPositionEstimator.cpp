@@ -649,7 +649,7 @@ void BlockLocalPositionEstimator::publishOdom()
 	    && PX4_ISFINITE(_x(X_vz))) {
 
 		_pub_odom.get().timestamp_sample = _timeStamp;
-		_pub_odom.get().local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
+		_pub_odom.get().pose_frame = vehicle_odometry_s::POSE_FRAME_NED;
 
 		// position
 		_pub_odom.get().position[0] = xLP(X_x);	// north
@@ -667,7 +667,7 @@ void BlockLocalPositionEstimator::publishOdom()
 		q.copyTo(_pub_odom.get().q);
 
 		// linear velocity
-		_pub_odom.get().velocity_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
+		_pub_odom.get().velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_FRD;
 		_pub_odom.get().velocity[0] = xLP(X_vx);		// vel north
 		_pub_odom.get().velocity[1] = xLP(X_vy);		// vel east
 		_pub_odom.get().velocity[2] = xLP(X_vz);		// vel down
@@ -678,36 +678,34 @@ void BlockLocalPositionEstimator::publishOdom()
 		_pub_odom.get().angular_velocity[2] = NAN;
 
 		// get the covariance matrix size
-		const size_t POS_URT_SIZE = sizeof(_pub_odom.get().position_covariance) / sizeof(
-						    _pub_odom.get().position_covariance[0]);
-		const size_t VEL_URT_SIZE = sizeof(_pub_odom.get().velocity_covariance) / sizeof(
-						    _pub_odom.get().velocity_covariance[0]);
+		const size_t POS_URT_SIZE = sizeof(_pub_odom.get().position_variance) / sizeof(_pub_odom.get().position_variance[0]);
+		const size_t VEL_URT_SIZE = sizeof(_pub_odom.get().velocity_variance) / sizeof(_pub_odom.get().velocity_variance[0]);
 
 		// initially set pose covariances to 0
 		for (size_t i = 0; i < POS_URT_SIZE; i++) {
-			_pub_odom.get().position_covariance[i] = 0.0;
+			_pub_odom.get().position_variance[i] = NAN;
 		}
 
 		// set the position variances
-		_pub_odom.get().position_covariance[_pub_odom.get().POSITION_COVARIANCE_X_VAR] = m_P(X_vx, X_vx);
-		_pub_odom.get().position_covariance[_pub_odom.get().POSITION_COVARIANCE_Y_VAR] = m_P(X_vy, X_vy);
-		_pub_odom.get().position_covariance[_pub_odom.get().POSITION_COVARIANCE_Z_VAR] = m_P(X_vz, X_vz);
+		_pub_odom.get().position_variance[0] = m_P(X_vx, X_vx);
+		_pub_odom.get().position_variance[1] = m_P(X_vy, X_vy);
+		_pub_odom.get().position_variance[2] = m_P(X_vz, X_vz);
 
 		// unknown orientation covariances
 		// TODO: add orientation covariance to vehicle_attitude
-		_pub_odom.get().orientation_covariance[_pub_odom.get().ORIENTATION_COVARIANCE_R_VAR] = NAN;
-		_pub_odom.get().orientation_covariance[_pub_odom.get().ORIENTATION_COVARIANCE_P_VAR] = NAN;
-		_pub_odom.get().orientation_covariance[_pub_odom.get().ORIENTATION_COVARIANCE_Y_VAR] = NAN;
+		_pub_odom.get().orientation_variance[0] = NAN;
+		_pub_odom.get().orientation_variance[1] = NAN;
+		_pub_odom.get().orientation_variance[2] = NAN;
 
 		// initially set velocity covariances to 0
 		for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-			_pub_odom.get().velocity_covariance[i] = 0.0;
+			_pub_odom.get().velocity_variance[i] = NAN;
 		}
 
 		// set the linear velocity variances
-		_pub_odom.get().velocity_covariance[_pub_odom.get().VELOCITY_COVARIANCE_VX_VAR] = m_P(X_vx, X_vx);
-		_pub_odom.get().velocity_covariance[_pub_odom.get().VELOCITY_COVARIANCE_VY_VAR] = m_P(X_vy, X_vy);
-		_pub_odom.get().velocity_covariance[_pub_odom.get().VELOCITY_COVARIANCE_VZ_VAR] = m_P(X_vz, X_vz);
+		_pub_odom.get().velocity_variance[0] = m_P(X_vx, X_vx);
+		_pub_odom.get().velocity_variance[1] = m_P(X_vy, X_vy);
+		_pub_odom.get().velocity_variance[2] = m_P(X_vz, X_vz);
 
 		_pub_odom.get().timestamp = hrt_absolute_time();
 		_pub_odom.update();

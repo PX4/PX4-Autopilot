@@ -1508,7 +1508,7 @@ Vector3f Ekf::getVisionVelocityInEkfFrame() const
 
 Vector3f Ekf::getVisionVelocityVarianceInEkfFrame() const
 {
-	Matrix3f ev_vel_cov = _ev_sample_delayed.velCov;
+	Matrix3f ev_vel_cov = matrix::diag(_ev_sample_delayed.velVar);
 
 	// rotate measurement into correct earth frame if required
 	switch (_ev_sample_delayed.vel_frame) {

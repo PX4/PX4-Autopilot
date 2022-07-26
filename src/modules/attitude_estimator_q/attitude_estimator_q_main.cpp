@@ -252,10 +252,10 @@ void AttitudeEstimatorQ::update_motion_capture_odometry()
 		if (_vehicle_mocap_odometry_sub.update(&mocap)) {
 			// validation check for mocap attitude data
 			bool mocap_att_valid = PX4_ISFINITE(mocap.q[0])
-					       && (PX4_ISFINITE(mocap.orientation_covariance[mocap.ORIENTATION_COVARIANCE_R_VAR]) ? sqrtf(fmaxf(
-							       mocap.orientation_covariance[mocap.ORIENTATION_COVARIANCE_R_VAR],
-							       fmaxf(mocap.orientation_covariance[mocap.ORIENTATION_COVARIANCE_P_VAR],
-									       mocap.orientation_covariance[mocap.ORIENTATION_COVARIANCE_Y_VAR]))) <= _eo_max_std_dev : true);
+					       && (PX4_ISFINITE(mocap.orientation_variance[0]) ? sqrtf(fmaxf(
+							       mocap.orientation_variance[0],
+							       fmaxf(mocap.orientation_variance[1],
+									       mocap.orientation_variance[2]))) <= _eo_max_std_dev : true);
 
 			if (mocap_att_valid) {
 				Dcmf Rmoc = Quatf(mocap.q);
@@ -361,10 +361,10 @@ void AttitudeEstimatorQ::update_visual_odometry()
 		if (_vehicle_visual_odometry_sub.update(&vision)) {
 			// validation check for vision attitude data
 			bool vision_att_valid = PX4_ISFINITE(vision.q[0])
-						&& (PX4_ISFINITE(vision.orientation_covariance[vision.ORIENTATION_COVARIANCE_R_VAR]) ? sqrtf(fmaxf(
-								vision.orientation_covariance[vision.ORIENTATION_COVARIANCE_R_VAR],
-								fmaxf(vision.orientation_covariance[vision.ORIENTATION_COVARIANCE_P_VAR],
-										vision.orientation_covariance[vision.ORIENTATION_COVARIANCE_Y_VAR]))) <= _eo_max_std_dev : true);
+						&& (PX4_ISFINITE(vision.orientation_variance[0]) ? sqrtf(fmaxf(
+								vision.orientation_variance[0],
+								fmaxf(vision.orientation_variance[1],
+										vision.orientation_variance[2]))) <= _eo_max_std_dev : true);
 
 			if (vision_att_valid) {
 				Dcmf Rvis = Quatf(vision.q);

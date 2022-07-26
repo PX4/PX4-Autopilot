@@ -88,26 +88,26 @@ private:
 			msg.time_usec = odom.timestamp_sample;
 
 			// set the frame_id according to the local frame of the data
-			switch (odom.local_frame) {
-			case vehicle_odometry_s::LOCAL_FRAME_NED:
+			switch (odom.pose_frame) {
+			case vehicle_odometry_s::POSE_FRAME_NED:
 				msg.frame_id = MAV_FRAME_LOCAL_NED;
 				break;
 
-			case vehicle_odometry_s::LOCAL_FRAME_FRD:
+			case vehicle_odometry_s::POSE_FRAME_FRD:
 				msg.frame_id = MAV_FRAME_LOCAL_FRD;
 				break;
 			}
 
 			switch (odom.velocity_frame) {
-			case vehicle_odometry_s::LOCAL_FRAME_NED:
+			case vehicle_odometry_s::VELOCITY_FRAME_NED:
 				msg.child_frame_id = MAV_FRAME_LOCAL_NED;
 				break;
 
-			case vehicle_odometry_s::LOCAL_FRAME_FRD:
+			case vehicle_odometry_s::VELOCITY_FRAME_FRD:
 				msg.child_frame_id = MAV_FRAME_LOCAL_FRD;
 				break;
 
-			case vehicle_odometry_s::BODY_FRAME_FRD:
+			case vehicle_odometry_s::VELOCITY_FRAME_BODY_FRD:
 				msg.child_frame_id = MAV_FRAME_BODY_FRD;
 				break;
 			}
@@ -137,19 +137,13 @@ private:
 				pc = NAN;
 			}
 
-			msg.pose_covariance[0]  = odom.position_covariance[odom.POSITION_COVARIANCE_X_VAR];  // X  row 0, col 0
-			msg.pose_covariance[1]  = odom.position_covariance[odom.POSITION_COVARIANCE_XY_COV]; // XY row 0, col 1
-			msg.pose_covariance[2]  = odom.position_covariance[odom.POSITION_COVARIANCE_XZ_COV]; // XZ row 0, col 2
-			msg.pose_covariance[6]  = odom.position_covariance[odom.POSITION_COVARIANCE_Y_VAR];  // Y  row 1, col 1
-			msg.pose_covariance[7]  = odom.position_covariance[odom.POSITION_COVARIANCE_YZ_COV]; // YZ row 1, col 2
-			msg.pose_covariance[11] = odom.position_covariance[odom.POSITION_COVARIANCE_Z_VAR];  // Z  row 2, col 2
+			msg.pose_covariance[0]  = odom.position_variance[0];  // X  row 0, col 0
+			msg.pose_covariance[6]  = odom.position_variance[1];  // Y  row 1, col 1
+			msg.pose_covariance[11] = odom.position_variance[2];  // Z  row 2, col 2
 
-			msg.pose_covariance[15] = odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_R_VAR];  // R  row 3, col 3
-			msg.pose_covariance[16] = odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_RP_COV]; // RP row 3, col 4
-			msg.pose_covariance[17] = odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_RY_COV]; // RY row 3, col 5
-			msg.pose_covariance[18] = odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_P_VAR];  // P  row 4, col 4
-			msg.pose_covariance[19] = odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_PY_COV]; // PY row 4, col 5
-			msg.pose_covariance[20] = odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_Y_VAR];  // Y  row 5, col 5
+			msg.pose_covariance[15] = odom.orientation_variance[0];  // R  row 3, col 3
+			msg.pose_covariance[18] = odom.orientation_variance[1];  // P  row 4, col 4
+			msg.pose_covariance[20] = odom.orientation_variance[2];  // Y  row 5, col 5
 
 			// velocity_covariance
 			//  Row-major representation of a 6x6 velocity cross-covariance matrix upper right triangle
@@ -158,12 +152,9 @@ private:
 				vc = NAN;
 			}
 
-			msg.velocity_covariance[0]  = odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VX_VAR];   // X  row 0, col 0
-			msg.velocity_covariance[1]  = odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VXVY_COV]; // XY row 0, col 1
-			msg.velocity_covariance[2]  = odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VXVZ_COV]; // XZ row 0, col 2
-			msg.velocity_covariance[6]  = odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VY_VAR];   // Y  row 1, col 1
-			msg.velocity_covariance[7]  = odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VYVZ_COV]; // YZ row 1, col 2
-			msg.velocity_covariance[11] = odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VZ_VAR];   // Z  row 2, col 2
+			msg.velocity_covariance[0]  = odom.velocity_variance[0];   // X  row 0, col 0
+			msg.velocity_covariance[6]  = odom.velocity_variance[1];   // Y  row 1, col 1
+			msg.velocity_covariance[11] = odom.velocity_variance[2];   // Z  row 2, col 2
 
 			msg.reset_counter = odom.reset_counter;
 

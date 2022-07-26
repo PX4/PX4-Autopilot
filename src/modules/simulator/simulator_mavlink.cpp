@@ -82,19 +82,19 @@ const unsigned mode_flag_custom = 1;
 using namespace time_literals;
 
 static constexpr vehicle_odometry_s vehicle_odometry_empty {
-	.timestamp{0},
-	.timestamp_sample{0},
-	.position{NAN, NAN, NAN},
-	.q{NAN, NAN, NAN, NAN},
-	.position_covariance{NAN, NAN, NAN, NAN, NAN, NAN},
-	.orientation_covariance{NAN, NAN, NAN, NAN, NAN, NAN},
-	.velocity{NAN, NAN, NAN},
-	.angular_velocity{NAN, NAN, NAN},
-	.velocity_covariance{NAN, NAN, NAN, NAN, NAN, NAN},
-	.local_frame{vehicle_odometry_s::FRAME_UNKNOWN},
-	.velocity_frame{vehicle_odometry_s::FRAME_UNKNOWN},
-	.reset_counter{0},
-	.quality{0}
+	.timestamp = 0,
+	.timestamp_sample = 0,
+	.position = {NAN, NAN, NAN},
+	.q = {NAN, NAN, NAN, NAN},
+	.velocity = {NAN, NAN, NAN},
+	.angular_velocity = {NAN, NAN, NAN},
+	.position_variance = {NAN, NAN, NAN},
+	.orientation_variance = {NAN, NAN, NAN},
+	.velocity_variance = {NAN, NAN, NAN},
+	.pose_frame = vehicle_odometry_s::POSE_FRAME_UNKNOWN,
+	.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_UNKNOWN,
+	.reset_counter = 0,
+	.quality = 0
 };
 
 Simulator::Simulator()
@@ -699,7 +699,7 @@ void Simulator::handle_message_odometry(const mavlink_message_t *msg)
 		switch (odom_in.frame_id) {
 		case MAV_FRAME_LOCAL_NED:
 			// NED local tangent frame (x: North, y: East, z: Down) with origin fixed relative to earth.
-			odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
+			odom.pose_frame = vehicle_odometry_s::POSE_FRAME_NED;
 			odom.position[0] = odom_in.x;
 			odom.position[1] = odom_in.y;
 			odom.position[2] = odom_in.z;
@@ -707,7 +707,7 @@ void Simulator::handle_message_odometry(const mavlink_message_t *msg)
 
 		case MAV_FRAME_LOCAL_ENU:
 			// ENU local tangent frame (x: East, y: North, z: Up) with origin fixed relative to earth.
-			odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
+			odom.pose_frame = vehicle_odometry_s::POSE_FRAME_NED;
 			odom.position[0] =  odom_in.y; // y: North
 			odom.position[1] =  odom_in.x; // x: East
 			odom.position[2] = -odom_in.z; // z: Up
@@ -715,7 +715,7 @@ void Simulator::handle_message_odometry(const mavlink_message_t *msg)
 
 		case MAV_FRAME_LOCAL_FRD:
 			// FRD local tangent frame (x: Forward, y: Right, z: Down) with origin fixed relative to earth.
-			odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
+			odom.pose_frame = vehicle_odometry_s::POSE_FRAME_FRD;
 			odom.position[0] = odom_in.x;
 			odom.position[1] = odom_in.y;
 			odom.position[2] = odom_in.z;
@@ -723,7 +723,7 @@ void Simulator::handle_message_odometry(const mavlink_message_t *msg)
 
 		case MAV_FRAME_LOCAL_FLU:
 			// FLU local tangent frame (x: Forward, y: Left, z: Up) with origin fixed relative to earth.
-			odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
+			odom.pose_frame = vehicle_odometry_s::POSE_FRAME_FRD;
 			odom.position[0] =  odom_in.x; // x: Forward
 			odom.position[1] = -odom_in.y; // y: Left
 			odom.position[2] = -odom_in.z; // z: Up
@@ -741,23 +741,17 @@ void Simulator::handle_message_odometry(const mavlink_message_t *msg)
 			case MAV_FRAME_LOCAL_NED:
 			case MAV_FRAME_LOCAL_FRD:
 			case MAV_FRAME_LOCAL_FLU:
-				// position covariances copied directly
-				odom.position_covariance[odom.POSITION_COVARIANCE_X_VAR]  = odom_in.pose_covariance[0];  // X  row 0, col 0
-				odom.position_covariance[odom.POSITION_COVARIANCE_XY_COV] = odom_in.pose_covariance[1];  // XY row 0, col 1
-				odom.position_covariance[odom.POSITION_COVARIANCE_XZ_COV] = odom_in.pose_covariance[2];  // XZ row 0, col 2
-				odom.position_covariance[odom.POSITION_COVARIANCE_Y_VAR]  = odom_in.pose_covariance[6];  // Y  row 1, col 1
-				odom.position_covariance[odom.POSITION_COVARIANCE_YZ_COV] = odom_in.pose_covariance[7];  // YZ row 1, col 2
-				odom.position_covariance[odom.POSITION_COVARIANCE_Z_VAR]  = odom_in.pose_covariance[11]; // Z  row 2, col 2
+				// position variances copied directly
+				odom.position_variance[0] = odom_in.pose_covariance[0];  // X  row 0, col 0
+				odom.position_variance[1] = odom_in.pose_covariance[6];  // Y  row 1, col 1
+				odom.position_variance[2] = odom_in.pose_covariance[11]; // Z  row 2, col 2
 				break;
 
 			case MAV_FRAME_LOCAL_ENU:
 				// ENU local tangent frame (x: East, y: North, z: Up) with origin fixed relative to earth.
-				odom.position_covariance[odom.POSITION_COVARIANCE_X_VAR]  = odom_in.pose_covariance[6];  // Y  row 1, col 1
-				odom.position_covariance[odom.POSITION_COVARIANCE_XY_COV] = odom_in.pose_covariance[1];  // XY row 0, col 1
-				odom.position_covariance[odom.POSITION_COVARIANCE_XZ_COV] = odom_in.pose_covariance[7];  // YZ row 1, col 2
-				odom.position_covariance[odom.POSITION_COVARIANCE_Y_VAR]  = odom_in.pose_covariance[0];  // X  row 0, col 0
-				odom.position_covariance[odom.POSITION_COVARIANCE_YZ_COV] = odom_in.pose_covariance[2];  // XZ row 0, col 2
-				odom.position_covariance[odom.POSITION_COVARIANCE_Z_VAR]  = odom_in.pose_covariance[11]; // Z  row 2, col 2
+				odom.position_variance[0] = odom_in.pose_covariance[6];  // Y  row 1, col 1
+				odom.position_variance[1] = odom_in.pose_covariance[0];  // X  row 0, col 0
+				odom.position_variance[2] = odom_in.pose_covariance[11]; // Z  row 2, col 2
 				break;
 
 			default:
@@ -772,20 +766,18 @@ void Simulator::handle_message_odometry(const mavlink_message_t *msg)
 	    && PX4_ISFINITE(odom_in.q[2])
 	    && PX4_ISFINITE(odom_in.q[3])) {
 
-		matrix::Quatf q_body_to_local(odom_in.q);
-		q_body_to_local.normalize();
-		q_body_to_local.copyTo(odom.q);
+		odom.q[0] = odom_in.q[0];
+		odom.q[1] = odom_in.q[1];
+		odom.q[2] = odom_in.q[2];
+		odom.q[3] = odom_in.q[3];
 
 		// pose_covariance (roll, pitch, yaw)
 		//  states: x, y, z, roll, pitch, yaw; first six entries are the first ROW, next five entries are the second ROW, etc.
 		//  TODO: fix pose_covariance for MAV_FRAME_LOCAL_ENU, MAV_FRAME_LOCAL_FLU
 		if (odom_in.estimator_type != MAV_ESTIMATOR_TYPE_NAIVE) {
-			odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_R_VAR]  = odom_in.pose_covariance[15]; // R  row 3, col 3
-			odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_RP_COV] = odom_in.pose_covariance[16]; // RP row 3, col 4
-			odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_RY_COV] = odom_in.pose_covariance[17]; // RY row 3, col 5
-			odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_P_VAR]  = odom_in.pose_covariance[18]; // P  row 4, col 4
-			odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_PY_COV] = odom_in.pose_covariance[19]; // PY row 4, col 5
-			odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_Y_VAR]  = odom_in.pose_covariance[20]; // Y  row 5, col 5
+			odom.orientation_variance[0] = odom_in.pose_covariance[15]; // R  row 3, col 3
+			odom.orientation_variance[1] = odom_in.pose_covariance[18]; // P  row 4, col 4
+			odom.orientation_variance[2] = odom_in.pose_covariance[20]; // Y  row 5, col 5
 		}
 	}
 
@@ -795,7 +787,7 @@ void Simulator::handle_message_odometry(const mavlink_message_t *msg)
 		switch (odom_in.child_frame_id) {
 		case MAV_FRAME_LOCAL_NED:
 			// NED local tangent frame (x: North, y: East, z: Down) with origin fixed relative to earth.
-			odom.velocity_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
+			odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_NED;
 			odom.velocity[0] = odom_in.vx;
 			odom.velocity[1] = odom_in.vy;
 			odom.velocity[2] = odom_in.vz;
@@ -803,7 +795,7 @@ void Simulator::handle_message_odometry(const mavlink_message_t *msg)
 
 		case MAV_FRAME_LOCAL_ENU:
 			// ENU local tangent frame (x: East, y: North, z: Up) with origin fixed relative to earth.
-			odom.velocity_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
+			odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_NED;
 			odom.velocity[0] =  odom_in.vy; // y: North
 			odom.velocity[1] =  odom_in.vx; // x: East
 			odom.velocity[2] = -odom_in.vz; // z: Up
@@ -811,7 +803,7 @@ void Simulator::handle_message_odometry(const mavlink_message_t *msg)
 
 		case MAV_FRAME_LOCAL_FRD:
 			// FRD local tangent frame (x: Forward, y: Right, z: Down) with origin fixed relative to earth.
-			odom.velocity_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
+			odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_FRD;
 			odom.velocity[0] = odom_in.vx;
 			odom.velocity[1] = odom_in.vy;
 			odom.velocity[2] = odom_in.vz;
@@ -819,7 +811,7 @@ void Simulator::handle_message_odometry(const mavlink_message_t *msg)
 
 		case MAV_FRAME_LOCAL_FLU:
 			// FLU local tangent frame (x: Forward, y: Left, z: Up) with origin fixed relative to earth.
-			odom.velocity_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
+			odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_FRD;
 			odom.velocity[0] =  odom_in.vx; // x: Forward
 			odom.velocity[1] = -odom_in.vy; // y: Left
 			odom.velocity[2] = -odom_in.vz; // z: Up
@@ -829,7 +821,7 @@ void Simulator::handle_message_odometry(const mavlink_message_t *msg)
 		case MAV_FRAME_BODY_OFFSET_NED: // DEPRECATED: Replaced by MAV_FRAME_BODY_FRD (2019-08).
 		case MAV_FRAME_BODY_FRD:
 			// FRD local tangent frame (x: Forward, y: Right, z: Down) with origin that travels with vehicle.
-			odom.velocity_frame = vehicle_odometry_s::BODY_FRAME_FRD;
+			odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_BODY_FRD;
 			odom.velocity[0] = odom_in.vx;
 			odom.velocity[1] = odom_in.vy;
 			odom.velocity[2] = odom_in.vz;
@@ -852,22 +844,16 @@ void Simulator::handle_message_odometry(const mavlink_message_t *msg)
 			case MAV_FRAME_BODY_OFFSET_NED: // DEPRECATED: Replaced by MAV_FRAME_BODY_FRD (2019-08).
 			case MAV_FRAME_BODY_FRD:
 				// velocity covariances copied directly
-				odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VX_VAR]   = odom_in.velocity_covariance[0];  // X  row 0, col 0
-				odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VXVY_COV] = odom_in.velocity_covariance[1];  // XY row 0, col 1
-				odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VXVZ_COV] = odom_in.velocity_covariance[2];  // XZ row 0, col 2
-				odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VY_VAR]   = odom_in.velocity_covariance[6];  // Y  row 1, col 1
-				odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VYVZ_COV] = odom_in.velocity_covariance[7];  // YZ row 1, col 2
-				odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VZ_VAR]   = odom_in.velocity_covariance[11]; // Z  row 2, col 2
+				odom.velocity_variance[0] = odom_in.velocity_covariance[0];  // X  row 0, col 0
+				odom.velocity_variance[1] = odom_in.velocity_covariance[6];  // Y  row 1, col 1
+				odom.velocity_variance[2] = odom_in.velocity_covariance[11]; // Z  row 2, col 2
 				break;
 
 			case MAV_FRAME_LOCAL_ENU:
 				// ENU local tangent frame (x: East, y: North, z: Up) with origin fixed relative to earth.
-				odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VX_VAR]   = odom_in.velocity_covariance[6];  // Y  row 1, col 1
-				odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VXVY_COV] = odom_in.velocity_covariance[1];  // XY row 0, col 1
-				odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VXVZ_COV] = odom_in.velocity_covariance[7];  // YZ row 1, col 2
-				odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VY_VAR]   = odom_in.velocity_covariance[0];  // X  row 0, col 0
-				odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VYVZ_COV] = odom_in.velocity_covariance[2];  // XZ row 0, col 2
-				odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VZ_VAR]   = odom_in.velocity_covariance[11]; // Z  row 2, col 2
+				odom.velocity_variance[0] = odom_in.velocity_covariance[6];  // Y  row 1, col 1
+				odom.velocity_variance[1] = odom_in.velocity_covariance[0];  // X  row 0, col 0
+				odom.velocity_variance[2] = odom_in.velocity_covariance[11]; // Z  row 2, col 2
 				break;
 
 			default:
@@ -1001,9 +987,9 @@ void Simulator::handle_message_vision_position_estimate(const mavlink_message_t 
 	// fill vehicle_odometry from Mavlink VISION_POSITION_ESTIMATE
 	vehicle_odometry_s odom{vehicle_odometry_empty};
 
-	odom.timestamp_sample = hrt_absolute_time(); // vpe.usec
+	odom.timestamp_sample = hrt_absolute_time(); // _mavlink_timesync.sync_stamp(vpe.usec);
 
-	odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
+	odom.pose_frame = vehicle_odometry_s::POSE_FRAME_NED;
 	odom.position[0] = vpe.x;
 	odom.position[1] = vpe.y;
 	odom.position[2] = vpe.z;
@@ -1015,19 +1001,13 @@ void Simulator::handle_message_vision_position_estimate(const mavlink_message_t 
 	//  Row-major representation of pose 6x6 cross-covariance matrix upper right triangle
 	//  (states: x, y, z, roll, pitch, yaw; first six entries are the first ROW, next five entries are the second ROW, etc.).
 	//  If unknown, assign NaN value to first element in the array.
-	odom.position_covariance[odom.POSITION_COVARIANCE_X_VAR]  = vpe.covariance[0];  // X  row 0, col 0
-	odom.position_covariance[odom.POSITION_COVARIANCE_XY_COV] = vpe.covariance[1];  // XY row 0, col 1
-	odom.position_covariance[odom.POSITION_COVARIANCE_XZ_COV] = vpe.covariance[2];  // XZ row 0, col 2
-	odom.position_covariance[odom.POSITION_COVARIANCE_Y_VAR]  = vpe.covariance[6];  // Y  row 1, col 1
-	odom.position_covariance[odom.POSITION_COVARIANCE_YZ_COV] = vpe.covariance[7];  // YZ row 1, col 2
-	odom.position_covariance[odom.POSITION_COVARIANCE_Z_VAR]  = vpe.covariance[11]; // Z  row 2, col 2
+	odom.position_variance[0] = vpe.covariance[0];  // X  row 0, col 0
+	odom.position_variance[1] = vpe.covariance[6];  // Y  row 1, col 1
+	odom.position_variance[2] = vpe.covariance[11]; // Z  row 2, col 2
 
-	odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_R_VAR]  = vpe.covariance[15]; // R  row 3, col 3
-	odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_RP_COV] = vpe.covariance[16]; // RP row 3, col 4
-	odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_RY_COV] = vpe.covariance[17]; // RY row 3, col 5
-	odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_P_VAR]  = vpe.covariance[18]; // P  row 4, col 4
-	odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_PY_COV] = vpe.covariance[19]; // PY row 4, col 5
-	odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_Y_VAR]  = vpe.covariance[20]; // Y  row 5, col 5
+	odom.orientation_variance[0] = vpe.covariance[15]; // R  row 3, col 3
+	odom.orientation_variance[1] = vpe.covariance[18]; // P  row 4, col 4
+	odom.orientation_variance[2] = vpe.covariance[20]; // Y  row 5, col 5
 
 	odom.reset_counter = vpe.reset_counter;
 
