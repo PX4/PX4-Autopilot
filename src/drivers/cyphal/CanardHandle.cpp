@@ -48,6 +48,8 @@
 #  include "CanardSocketCAN.hpp"
 # elif defined(CONFIG_CAN)
 #  include "CanardNuttXCDev.hpp"
+# else
+#  error "No CAN driver enabled for Cyphal build"
 # endif // CONFIG_CAN
 #endif // NuttX
 
