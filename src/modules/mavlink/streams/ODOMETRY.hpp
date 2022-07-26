@@ -74,21 +74,11 @@ private:
 		if (_mavlink->odometry_loopback_enabled()) {
 			odom_updated = _vodom_sub.update(&odom);
 
-			// set the frame_id according to the local frame of the data
-			if (odom.local_frame == vehicle_odometry_s::LOCAL_FRAME_NED) {
-				msg.frame_id = MAV_FRAME_LOCAL_NED;
-
-			} else {
-				msg.frame_id = MAV_FRAME_LOCAL_FRD;
-			}
-
 			// source: external vision system
 			msg.estimator_type = MAV_ESTIMATOR_TYPE_VISION;
 
 		} else {
 			odom_updated = _odom_sub.update(&odom);
-
-			msg.frame_id = MAV_FRAME_LOCAL_NED;
 
 			// source: PX4 estimator
 			msg.estimator_type = MAV_ESTIMATOR_TYPE_AUTOPILOT;
@@ -96,70 +86,91 @@ private:
 
 		if (odom_updated) {
 			msg.time_usec = odom.timestamp_sample;
-			msg.child_frame_id = MAV_FRAME_BODY_FRD;
 
-			// Current position
-			msg.x = odom.x;
-			msg.y = odom.y;
-			msg.z = odom.z;
+			// set the frame_id according to the local frame of the data
+			switch (odom.local_frame) {
+			case vehicle_odometry_s::LOCAL_FRAME_NED:
+				msg.frame_id = MAV_FRAME_LOCAL_NED;
+				break;
 
-			// Current orientation
+			case vehicle_odometry_s::LOCAL_FRAME_FRD:
+				msg.frame_id = MAV_FRAME_LOCAL_FRD;
+				break;
+			}
+
+			switch (odom.velocity_frame) {
+			case vehicle_odometry_s::LOCAL_FRAME_NED:
+				msg.child_frame_id = MAV_FRAME_LOCAL_NED;
+				break;
+
+			case vehicle_odometry_s::LOCAL_FRAME_FRD:
+				msg.child_frame_id = MAV_FRAME_LOCAL_FRD;
+				break;
+
+			case vehicle_odometry_s::BODY_FRAME_FRD:
+				msg.child_frame_id = MAV_FRAME_BODY_FRD;
+				break;
+			}
+
+			msg.x = odom.position[0];
+			msg.y = odom.position[1];
+			msg.z = odom.position[2];
+
 			msg.q[0] = odom.q[0];
 			msg.q[1] = odom.q[1];
 			msg.q[2] = odom.q[2];
 			msg.q[3] = odom.q[3];
 
-			switch (odom.velocity_frame) {
-			case vehicle_odometry_s::BODY_FRAME_FRD:
-				msg.vx = odom.vx;
-				msg.vy = odom.vy;
-				msg.vz = odom.vz;
-				break;
-
-			case vehicle_odometry_s::LOCAL_FRAME_FRD:
-			case vehicle_odometry_s::LOCAL_FRAME_NED:
-				// Body frame to local frame
-				const matrix::Dcmf R_body_to_local(matrix::Quatf(odom.q));
-
-				// Rotate linear velocity from local to body frame
-				const matrix::Vector3f linvel_body(R_body_to_local.transpose() *
-								   matrix::Vector3f(odom.vx, odom.vy, odom.vz));
-
-				msg.vx = linvel_body(0);
-				msg.vy = linvel_body(1);
-				msg.vz = linvel_body(2);
-				break;
-			}
+			msg.vx = odom.velocity[0];
+			msg.vy = odom.velocity[1];
+			msg.vz = odom.velocity[2];
 
 			// Current body rates
-			msg.rollspeed = odom.rollspeed;
-			msg.pitchspeed = odom.pitchspeed;
-			msg.yawspeed = odom.yawspeed;
-
-			// get the covariance matrix size
+			msg.rollspeed  = odom.angular_velocity[0];
+			msg.pitchspeed = odom.angular_velocity[1];
+			msg.yawspeed   = odom.angular_velocity[2];
 
 			// pose_covariance
-			static constexpr size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
-			static_assert(POS_URT_SIZE == (sizeof(msg.pose_covariance) / sizeof(msg.pose_covariance[0])),
-				      "Odometry Pose Covariance matrix URT array size mismatch");
+			//  Row-major representation of a 6x6 pose cross-covariance matrix upper right triangle
+			//  (states: x, y, z, roll, pitch, yaw; first six entries are the first ROW, next five entries are the second ROW, etc.)
+			for (auto &pc : msg.pose_covariance) {
+				pc = NAN;
+			}
+
+			msg.pose_covariance[0]  = odom.position_covariance[odom.POSITION_COVARIANCE_X_VAR];  // X  row 0, col 0
+			msg.pose_covariance[1]  = odom.position_covariance[odom.POSITION_COVARIANCE_XY_COV]; // XY row 0, col 1
+			msg.pose_covariance[2]  = odom.position_covariance[odom.POSITION_COVARIANCE_XZ_COV]; // XZ row 0, col 2
+			msg.pose_covariance[6]  = odom.position_covariance[odom.POSITION_COVARIANCE_Y_VAR];  // Y  row 1, col 1
+			msg.pose_covariance[7]  = odom.position_covariance[odom.POSITION_COVARIANCE_YZ_COV]; // YZ row 1, col 2
+			msg.pose_covariance[11] = odom.position_covariance[odom.POSITION_COVARIANCE_Z_VAR];  // Z  row 2, col 2
+
+			msg.pose_covariance[15] = odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_R_VAR];  // R  row 3, col 3
+			msg.pose_covariance[16] = odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_RP_COV]; // RP row 3, col 4
+			msg.pose_covariance[17] = odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_RY_COV]; // RY row 3, col 5
+			msg.pose_covariance[18] = odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_P_VAR];  // P  row 4, col 4
+			msg.pose_covariance[19] = odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_PY_COV]; // PY row 4, col 5
+			msg.pose_covariance[20] = odom.orientation_covariance[odom.ORIENTATION_COVARIANCE_Y_VAR];  // Y  row 5, col 5
 
 			// velocity_covariance
-			static constexpr size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
-			static_assert(VEL_URT_SIZE == (sizeof(msg.velocity_covariance) / sizeof(msg.velocity_covariance[0])),
-				      "Odometry Velocity Covariance matrix URT array size mismatch");
-
-			// copy pose covariances
-			for (size_t i = 0; i < POS_URT_SIZE; i++) {
-				msg.pose_covariance[i] = odom.pose_covariance[i];
+			//  Row-major representation of a 6x6 velocity cross-covariance matrix upper right triangle
+			//  (states: vx, vy, vz, rollspeed, pitchspeed, yawspeed; first six entries are the first ROW, next five entries are the second ROW, etc.)
+			for (auto &vc : msg.velocity_covariance) {
+				vc = NAN;
 			}
 
-			// copy velocity covariances
-			//TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
-			for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-				msg.velocity_covariance[i] = odom.velocity_covariance[i];
-			}
+			msg.velocity_covariance[0]  = odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VX_VAR];   // X  row 0, col 0
+			msg.velocity_covariance[1]  = odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VXVY_COV]; // XY row 0, col 1
+			msg.velocity_covariance[2]  = odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VXVZ_COV]; // XZ row 0, col 2
+			msg.velocity_covariance[6]  = odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VY_VAR];   // Y  row 1, col 1
+			msg.velocity_covariance[7]  = odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VYVZ_COV]; // YZ row 1, col 2
+			msg.velocity_covariance[11] = odom.velocity_covariance[odom.VELOCITY_COVARIANCE_VZ_VAR];   // Z  row 2, col 2
 
 			msg.reset_counter = odom.reset_counter;
+
+			// source: PX4 estimator
+			msg.estimator_type = MAV_ESTIMATOR_TYPE_AUTOPILOT;
+
+			msg.quality = odom.quality;
 
 			mavlink_msg_odometry_send_struct(_mavlink->get_channel(), &msg);
 

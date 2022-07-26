@@ -62,15 +62,15 @@ void BlockLocalPositionEstimator::mocapInit()
 
 int BlockLocalPositionEstimator::mocapMeasure(Vector<float, n_y_mocap> &y)
 {
-	uint8_t x_variance = _sub_mocap_odom.get().COVARIANCE_MATRIX_X_VARIANCE;
-	uint8_t y_variance = _sub_mocap_odom.get().COVARIANCE_MATRIX_Y_VARIANCE;
-	uint8_t z_variance = _sub_mocap_odom.get().COVARIANCE_MATRIX_Z_VARIANCE;
+	uint8_t x_variance = _sub_mocap_odom.get().POSITION_COVARIANCE_X_VAR;
+	uint8_t y_variance = _sub_mocap_odom.get().POSITION_COVARIANCE_Y_VAR;
+	uint8_t z_variance = _sub_mocap_odom.get().POSITION_COVARIANCE_Z_VAR;
 
-	if (PX4_ISFINITE(_sub_mocap_odom.get().pose_covariance[x_variance])) {
+	if (PX4_ISFINITE(_sub_mocap_odom.get().position_covariance[x_variance])) {
 		// check if the mocap data is valid based on the covariances
-		_mocap_eph = sqrtf(fmaxf(_sub_mocap_odom.get().pose_covariance[x_variance],
-					 _sub_mocap_odom.get().pose_covariance[y_variance]));
-		_mocap_epv = sqrtf(_sub_mocap_odom.get().pose_covariance[z_variance]);
+		_mocap_eph = sqrtf(fmaxf(_sub_mocap_odom.get().position_covariance[x_variance],
+					 _sub_mocap_odom.get().position_covariance[y_variance]));
+		_mocap_epv = sqrtf(_sub_mocap_odom.get().position_covariance[z_variance]);
 		_mocap_xy_valid = _mocap_eph <= EP_MAX_STD_DEV;
 		_mocap_z_valid = _mocap_epv <= EP_MAX_STD_DEV;
 
@@ -87,11 +87,11 @@ int BlockLocalPositionEstimator::mocapMeasure(Vector<float, n_y_mocap> &y)
 	} else {
 		_time_last_mocap = _sub_mocap_odom.get().timestamp_sample;
 
-		if (PX4_ISFINITE(_sub_mocap_odom.get().x)) {
+		if (PX4_ISFINITE(_sub_mocap_odom.get().position[0])) {
 			y.setZero();
-			y(Y_mocap_x) = _sub_mocap_odom.get().x;
-			y(Y_mocap_y) = _sub_mocap_odom.get().y;
-			y(Y_mocap_z) = _sub_mocap_odom.get().z;
+			y(Y_mocap_x) = _sub_mocap_odom.get().position[0];
+			y(Y_mocap_y) = _sub_mocap_odom.get().position[1];
+			y(Y_mocap_z) = _sub_mocap_odom.get().position[2];
 			_mocapStats.update(y);
 
 			return OK;

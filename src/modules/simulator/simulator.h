@@ -159,7 +159,6 @@ private:
 
 	void check_failure_injections();
 
-	int publish_odometry_topic(const mavlink_message_t *odom_mavlink);
 	int publish_distance_topic(const mavlink_distance_sensor_t *dist);
 
 	static Simulator *_instance;
