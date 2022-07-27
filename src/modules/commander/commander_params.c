@@ -131,7 +131,10 @@ PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
 /**
  * RC loss time threshold
  *
- * After this amount of seconds without RC connection it's considered lost and not used anymore
+ * If the RC signal does not update for this number of seconds the RC connection is considered lost
+ * (during this interval data from the last RC update is still used).
+ * If the connection is lost, PX4 will enter Hold mode and wait for COM_RCL_ACT_T seconds
+ * to recover the connection before triggering the failsafe action (COM_RCL_ACT_T).
  *
  * @group Commander
  * @unit s
@@ -143,11 +146,13 @@ PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
 PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
 
 /**
- * Delay between RC loss and configured reaction
+ * Delay between RC loss and configured action
  *
- * RC signal not updated -> still use data for COM_RC_LOSS_T seconds
- * Consider RC signal lost -> wait COM_RCL_ACT_T seconds in Hold mode to regain signal
- * React with failsafe action NAV_RCL_ACT
+ * If the RC signal does not update for COM_RC_LOSS_T seconds the RC connection is considered lost
+ * (during this interval data from the last RC update is still used).
+ * If the connection is lost, PX4 will enter Hold mode and wait for COM_RCL_ACT_T seconds
+ * to recover the connection before triggering the failsafe action (NAV_RCL_ACT).
+ * If the signal is regained PX4 will return to the previous mode.
  *
  * A zero value disables the delay.
  *
@@ -818,11 +823,12 @@ PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
 PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
 
 /**
- * Set RC loss failsafe mode
+ * Set RC loss failsafe action (mode).
  *
- * The RC loss failsafe will only be entered after a timeout,
- * set by COM_RC_LOSS_T in seconds. If RC input checks have been disabled
- * by setting the COM_RC_IN_MODE param it will not be triggered.
+ * The RC loss failsafe will only be entered if the RC connection is not recovered before first the
+ * RC signal loss theshold timeout (COM_RC_LOSS_T) and then the RC connection lost timeout (NAV_RCL_ACT) have triggered.
+ * The action will not be triggered if RC input checks have been disabled (COM_RC_IN_MODE)
+ * or if RC loss exceptions are disabled for the current mode (COM_RCL_EXCEPT).
  *
  * @value 1 Hold mode
  * @value 2 Return mode
