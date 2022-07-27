@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,45 +33,50 @@
 
 #pragma once
 
-#include <mixer_module/output_functions.hpp>
+#include "FunctionProviderBase.hpp"
 
-#include <drivers/drv_pwm_output.h>
-#include <uORB/topics/actuator_test.h>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/actuator_servos_trim.h>
-#include <uORB/Subscription.hpp>
+#include <uORB/topics/vehicle_command.h>
 
-static_assert(actuator_test_s::FUNCTION_MOTOR1 == (int)OutputFunction::Motor1, "define mismatch");
-static_assert(actuator_test_s::MAX_NUM_MOTORS == (int)OutputFunction::MotorMax - (int)OutputFunction::Motor1 + 1,
-	      "count mismatch");
-static_assert(actuator_test_s::FUNCTION_SERVO1 == (int)OutputFunction::Servo1, "define mismatch");
-static_assert(actuator_test_s::MAX_NUM_SERVOS == (int)OutputFunction::ServoMax - (int)OutputFunction::Servo1 + 1,
-	      "count mismatch");
-
-class ActuatorTest
+/**
+ * Functions: Offboard_Actuator_Set1 ... Offboard_Actuator_Set6
+ */
+class FunctionActuatorSet : public FunctionProviderBase
 {
 public:
-	static constexpr int MAX_ACTUATORS = PWM_OUTPUT_MAX_CHANNELS;
+	FunctionActuatorSet()
+	{
+		for (int i = 0; i < max_num_actuators; ++i) {
+			_data[i] = NAN;
+		}
+	}
 
-	ActuatorTest(const OutputFunction function_assignments[MAX_ACTUATORS]);
+	static FunctionProviderBase *allocate(const Context &context) { return new FunctionActuatorSet(); }
 
-	void reset();
+	void update() override
+	{
+		vehicle_command_s vehicle_command;
 
-	void update(int num_outputs, float thrust_curve);
+		while (_topic.update(&vehicle_command)) {
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ACTUATOR) {
+				int index = (int)(vehicle_command.param7 + 0.5f);
 
-	void overrideValues(float outputs[MAX_ACTUATORS], int num_outputs);
+				if (index == 0) {
+					_data[0] = vehicle_command.param1;
+					_data[1] = vehicle_command.param2;
+					_data[2] = vehicle_command.param3;
+					_data[3] = vehicle_command.param4;
+					_data[4] = vehicle_command.param5;
+					_data[5] = vehicle_command.param6;
+				}
+			}
+		}
+	}
 
-	bool inTestMode() const { return _in_test_mode; }
+	float value(OutputFunction func) override { return _data[(int)func - (int)OutputFunction::Offboard_Actuator_Set1]; }
 
 private:
+	static constexpr int max_num_actuators = 6;
 
-	uORB::Subscription _actuator_test_sub{ORB_ID(actuator_test)};
-	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
-	uORB::Subscription _actuator_servos_trim_sub{ORB_ID(actuator_servos_trim)};
-	bool _in_test_mode{false};
-	hrt_abstime _next_timeout{0};
-
-	float _current_outputs[MAX_ACTUATORS];
-	bool _output_overridden[MAX_ACTUATORS];
-	const OutputFunction *_function_assignments;
+	uORB::Subscription _topic{ORB_ID(vehicle_command)};
+	float _data[max_num_actuators] {};
 };

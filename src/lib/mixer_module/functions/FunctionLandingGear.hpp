@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,45 +33,36 @@
 
 #pragma once
 
-#include <mixer_module/output_functions.hpp>
+#include "FunctionProviderBase.hpp"
 
-#include <drivers/drv_pwm_output.h>
-#include <uORB/topics/actuator_test.h>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/actuator_servos_trim.h>
-#include <uORB/Subscription.hpp>
+#include <uORB/topics/landing_gear.h>
 
-static_assert(actuator_test_s::FUNCTION_MOTOR1 == (int)OutputFunction::Motor1, "define mismatch");
-static_assert(actuator_test_s::MAX_NUM_MOTORS == (int)OutputFunction::MotorMax - (int)OutputFunction::Motor1 + 1,
-	      "count mismatch");
-static_assert(actuator_test_s::FUNCTION_SERVO1 == (int)OutputFunction::Servo1, "define mismatch");
-static_assert(actuator_test_s::MAX_NUM_SERVOS == (int)OutputFunction::ServoMax - (int)OutputFunction::Servo1 + 1,
-	      "count mismatch");
-
-class ActuatorTest
+/**
+ * Functions: Landing_Gear
+ */
+class FunctionLandingGear : public FunctionProviderBase
 {
 public:
-	static constexpr int MAX_ACTUATORS = PWM_OUTPUT_MAX_CHANNELS;
+	FunctionLandingGear() = default;
+	static FunctionProviderBase *allocate(const Context &context) { return new FunctionLandingGear(); }
 
-	ActuatorTest(const OutputFunction function_assignments[MAX_ACTUATORS]);
+	void update() override
+	{
+		landing_gear_s landing_gear;
 
-	void reset();
+		if (_topic.update(&landing_gear)) {
+			if (landing_gear.landing_gear == landing_gear_s::GEAR_DOWN) {
+				_data = -1.f;
 
-	void update(int num_outputs, float thrust_curve);
+			} else if (landing_gear.landing_gear == landing_gear_s::GEAR_UP) {
+				_data = 1.f;
+			}
+		}
+	}
 
-	void overrideValues(float outputs[MAX_ACTUATORS], int num_outputs);
-
-	bool inTestMode() const { return _in_test_mode; }
+	float value(OutputFunction func) override { return _data; }
 
 private:
-
-	uORB::Subscription _actuator_test_sub{ORB_ID(actuator_test)};
-	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
-	uORB::Subscription _actuator_servos_trim_sub{ORB_ID(actuator_servos_trim)};
-	bool _in_test_mode{false};
-	hrt_abstime _next_timeout{0};
-
-	float _current_outputs[MAX_ACTUATORS];
-	bool _output_overridden[MAX_ACTUATORS];
-	const OutputFunction *_function_assignments;
+	uORB::Subscription _topic{ORB_ID(landing_gear)};
+	float _data{-1.f};
 };
