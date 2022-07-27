@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,45 +33,18 @@
 
 #pragma once
 
-#include <mixer_module/output_functions.hpp>
+#include "FunctionProviderBase.hpp"
 
-#include <drivers/drv_pwm_output.h>
-#include <uORB/topics/actuator_test.h>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/actuator_servos_trim.h>
-#include <uORB/Subscription.hpp>
-
-static_assert(actuator_test_s::FUNCTION_MOTOR1 == (int)OutputFunction::Motor1, "define mismatch");
-static_assert(actuator_test_s::MAX_NUM_MOTORS == (int)OutputFunction::MotorMax - (int)OutputFunction::Motor1 + 1,
-	      "count mismatch");
-static_assert(actuator_test_s::FUNCTION_SERVO1 == (int)OutputFunction::Servo1, "define mismatch");
-static_assert(actuator_test_s::MAX_NUM_SERVOS == (int)OutputFunction::ServoMax - (int)OutputFunction::Servo1 + 1,
-	      "count mismatch");
-
-class ActuatorTest
+/**
+ * Functions: Constant_Min
+ */
+class FunctionConstantMin : public FunctionProviderBase
 {
 public:
-	static constexpr int MAX_ACTUATORS = PWM_OUTPUT_MAX_CHANNELS;
+	static FunctionProviderBase *allocate(const Context &context) { return new FunctionConstantMin(); }
 
-	ActuatorTest(const OutputFunction function_assignments[MAX_ACTUATORS]);
+	float value(OutputFunction func) override { return -1.f; }
+	void update() override { }
 
-	void reset();
-
-	void update(int num_outputs, float thrust_curve);
-
-	void overrideValues(float outputs[MAX_ACTUATORS], int num_outputs);
-
-	bool inTestMode() const { return _in_test_mode; }
-
-private:
-
-	uORB::Subscription _actuator_test_sub{ORB_ID(actuator_test)};
-	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
-	uORB::Subscription _actuator_servos_trim_sub{ORB_ID(actuator_servos_trim)};
-	bool _in_test_mode{false};
-	hrt_abstime _next_timeout{0};
-
-	float _current_outputs[MAX_ACTUATORS];
-	bool _output_overridden[MAX_ACTUATORS];
-	const OutputFunction *_function_assignments;
+	float defaultFailsafeValue(OutputFunction func) const override { return -1.f; }
 };

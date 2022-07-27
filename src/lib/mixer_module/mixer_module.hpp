@@ -34,7 +34,16 @@
 #pragma once
 
 #include "actuator_test.hpp"
-#include "functions.hpp"
+
+#include "functions/FunctionActuatorSet.hpp"
+#include "functions/FunctionConstantMax.hpp"
+#include "functions/FunctionConstantMin.hpp"
+#include "functions/FunctionGimbal.hpp"
+#include "functions/FunctionLandingGear.hpp"
+#include "functions/FunctionManualRC.hpp"
+#include "functions/FunctionMotors.hpp"
+#include "functions/FunctionParachute.hpp"
+#include "functions/FunctionServos.hpp"
 
 #include <board_config.h>
 #include <drivers/drv_pwm_output.h>

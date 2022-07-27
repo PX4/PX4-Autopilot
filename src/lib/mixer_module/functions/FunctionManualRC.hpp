@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,45 +33,52 @@
 
 #pragma once
 
-#include <mixer_module/output_functions.hpp>
+#include "FunctionProviderBase.hpp"
 
-#include <drivers/drv_pwm_output.h>
-#include <uORB/topics/actuator_test.h>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/actuator_servos_trim.h>
-#include <uORB/Subscription.hpp>
+#include <uORB/topics/manual_control_setpoint.h>
 
-static_assert(actuator_test_s::FUNCTION_MOTOR1 == (int)OutputFunction::Motor1, "define mismatch");
-static_assert(actuator_test_s::MAX_NUM_MOTORS == (int)OutputFunction::MotorMax - (int)OutputFunction::Motor1 + 1,
-	      "count mismatch");
-static_assert(actuator_test_s::FUNCTION_SERVO1 == (int)OutputFunction::Servo1, "define mismatch");
-static_assert(actuator_test_s::MAX_NUM_SERVOS == (int)OutputFunction::ServoMax - (int)OutputFunction::Servo1 + 1,
-	      "count mismatch");
-
-class ActuatorTest
+/**
+ * Functions: RC_Roll .. RCAUX_Max
+ */
+class FunctionManualRC : public FunctionProviderBase
 {
 public:
-	static constexpr int MAX_ACTUATORS = PWM_OUTPUT_MAX_CHANNELS;
+	FunctionManualRC()
+	{
+		for (int i = 0; i < num_data_points; ++i) {
+			_data[i] = NAN;
+		}
+	}
 
-	ActuatorTest(const OutputFunction function_assignments[MAX_ACTUATORS]);
+	static FunctionProviderBase *allocate(const Context &context) { return new FunctionManualRC(); }
 
-	void reset();
+	void update() override
+	{
+		manual_control_setpoint_s manual_control_setpoint;
 
-	void update(int num_outputs, float thrust_curve);
+		if (_topic.update(&manual_control_setpoint)) {
+			_data[0] = manual_control_setpoint.y; // roll
+			_data[1] = manual_control_setpoint.x; // pitch
+			_data[2] = manual_control_setpoint.z * 2.f - 1.f; // throttle
+			_data[3] = manual_control_setpoint.r; // yaw
+			_data[4] = manual_control_setpoint.flaps;
+			_data[5] = manual_control_setpoint.aux1;
+			_data[6] = manual_control_setpoint.aux2;
+			_data[7] = manual_control_setpoint.aux3;
+			_data[8] = manual_control_setpoint.aux4;
+			_data[9] = manual_control_setpoint.aux5;
+			_data[10] = manual_control_setpoint.aux6;
+		}
+	}
 
-	void overrideValues(float outputs[MAX_ACTUATORS], int num_outputs);
-
-	bool inTestMode() const { return _in_test_mode; }
+	float value(OutputFunction func) override { return _data[(int)func - (int)OutputFunction::RC_Roll]; }
 
 private:
+	static constexpr int num_data_points = 11;
 
-	uORB::Subscription _actuator_test_sub{ORB_ID(actuator_test)};
-	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
-	uORB::Subscription _actuator_servos_trim_sub{ORB_ID(actuator_servos_trim)};
-	bool _in_test_mode{false};
-	hrt_abstime _next_timeout{0};
+	static_assert(num_data_points == (int)OutputFunction::RC_AUXMax - (int)OutputFunction::RC_Roll + 1,
+		      "number of functions mismatch");
 
-	float _current_outputs[MAX_ACTUATORS];
-	bool _output_overridden[MAX_ACTUATORS];
-	const OutputFunction *_function_assignments;
+	uORB::Subscription _topic{ORB_ID(manual_control_setpoint)};
+	float _data[num_data_points] {};
 };
