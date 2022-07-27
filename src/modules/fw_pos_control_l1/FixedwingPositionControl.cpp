@@ -1774,6 +1774,11 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		// enable direct yaw control using rudder/wheel
 		_att_sp.fw_control_yaw = true;
 
+		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
+		if (_param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled) {
+			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.r;
+		}
+
 		// idle throttle may be >0 for internal combustion engines
 		// normally set to zero for electric motors
 		_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
@@ -2611,7 +2616,8 @@ Vector2f
 FixedwingPositionControl::calculateTouchdownPosition(const float control_interval, const Vector2f &local_land_position)
 {
 	if (fabsf(_manual_control_setpoint.r) > MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE
-	    && _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled) {
+	    && _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled
+	    && !_flaring) {
 		// laterally nudge touchdown location with yaw stick
 		// positive is defined in the direction of a right hand turn starting from the approach vector direction
 		const float signed_deadzone_threshold = MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE * math::signNoZero(
