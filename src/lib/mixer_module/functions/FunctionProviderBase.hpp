@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,45 +33,43 @@
 
 #pragma once
 
+#include <limits.h>
+
 #include <mixer_module/output_functions.hpp>
 
-#include <drivers/drv_pwm_output.h>
-#include <uORB/topics/actuator_test.h>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/actuator_servos_trim.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 
-static_assert(actuator_test_s::FUNCTION_MOTOR1 == (int)OutputFunction::Motor1, "define mismatch");
-static_assert(actuator_test_s::MAX_NUM_MOTORS == (int)OutputFunction::MotorMax - (int)OutputFunction::Motor1 + 1,
-	      "count mismatch");
-static_assert(actuator_test_s::FUNCTION_SERVO1 == (int)OutputFunction::Servo1, "define mismatch");
-static_assert(actuator_test_s::MAX_NUM_SERVOS == (int)OutputFunction::ServoMax - (int)OutputFunction::Servo1 + 1,
-	      "count mismatch");
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-class ActuatorTest
+class FunctionProviderBase
 {
 public:
-	static constexpr int MAX_ACTUATORS = PWM_OUTPUT_MAX_CHANNELS;
+	struct Context {
+		px4::WorkItem &work_item;
+		const float &thrust_factor;
+	};
 
-	ActuatorTest(const OutputFunction function_assignments[MAX_ACTUATORS]);
+	FunctionProviderBase() = default;
+	virtual ~FunctionProviderBase() = default;
 
-	void reset();
+	virtual void update() = 0;
 
-	void update(int num_outputs, float thrust_curve);
+	/**
+	 * Get the current output value for a given function
+	 * @return NAN (=disarmed) or value in range [-1, 1]
+	 */
+	virtual float value(OutputFunction func) = 0;
 
-	void overrideValues(float outputs[MAX_ACTUATORS], int num_outputs);
+	virtual float defaultFailsafeValue(OutputFunction func) const { return NAN; }
+	virtual bool allowPrearmControl() const { return true; }
 
-	bool inTestMode() const { return _in_test_mode; }
+	virtual uORB::SubscriptionCallbackWorkItem *subscriptionCallback() { return nullptr; }
 
-private:
+	virtual bool getLatestSampleTimestamp(hrt_abstime &t) const { return false; }
 
-	uORB::Subscription _actuator_test_sub{ORB_ID(actuator_test)};
-	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
-	uORB::Subscription _actuator_servos_trim_sub{ORB_ID(actuator_servos_trim)};
-	bool _in_test_mode{false};
-	hrt_abstime _next_timeout{0};
-
-	float _current_outputs[MAX_ACTUATORS];
-	bool _output_overridden[MAX_ACTUATORS];
-	const OutputFunction *_function_assignments;
+	/**
+	 * Check whether the output (motor) is configured to be reversible
+	 */
+	virtual bool reversible(OutputFunction func) const { return false; }
 };
