@@ -318,7 +318,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_HYGRO, 0);
 /**
  * subscription ICE
  *
- * Enable UAVCAN internal combusion engine (ICE) subscription.
+ * Enable UAVCAN internal combustion engine (ICE) subscription.
  *  uavcan::equipment::ice::reciprocating::Status
  *
  * @boolean

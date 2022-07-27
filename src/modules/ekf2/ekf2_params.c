@@ -139,7 +139,7 @@ PARAM_DEFINE_FLOAT(EKF2_ASP_DELAY, 100);
 PARAM_DEFINE_FLOAT(EKF2_EV_DELAY, 0);
 
 /**
- * Auxillary Velocity Estimate (e.g from a landing target) delay relative to IMU measurements
+ * Auxiliary Velocity Estimate (e.g from a landing target) delay relative to IMU measurements
  *
  * @group EKF2
  * @min 0
@@ -676,7 +676,7 @@ PARAM_DEFINE_INT32(EKF2_NOAID_TOUT, 5000000);
 PARAM_DEFINE_FLOAT(EKF2_RNG_NOISE, 0.1f);
 
 /**
- * Range finder range dependant noise scaler.
+ * Range finder range dependent noise scaler.
  *
  * Specifies the increase in range finder noise with range.
  *
@@ -702,7 +702,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_GATE, 5.0f);
 /**
  * Expected range finder reading when on ground.
  *
- * If the vehicle is on ground, is not moving as determined by the motion test and the range finder is returning invalid or no data, then an assumed range value of EKF2_MIN_RNG will be used by the terrain estimator so that a terrain height estimate is avilable at the start of flight in situations where the range finder may be inside its minimum measurements distance when on ground.
+ * If the vehicle is on ground, is not moving as determined by the motion test and the range finder is returning invalid or no data, then an assumed range value of EKF2_MIN_RNG will be used by the terrain estimator so that a terrain height estimate is available at the start of flight in situations where the range finder may be inside its minimum measurements distance when on ground.
  *
  * @group EKF2
  * @min 0.01
@@ -1374,7 +1374,7 @@ PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 1);
  * For magnetic heading fusion the magnetometer Z measurement will be replaced by a synthetic value calculated
  * using the knowledge of the 3D magnetic field vector at the location of the drone. Therefore, this parameter
  * will only have an effect if the global position of the drone is known.
- * For 3D mag fusion the magnetometer Z measurement will simply be ingored instead of fusing the synthetic value.
+ * For 3D mag fusion the magnetometer Z measurement will simply be ignored instead of fusing the synthetic value.
  *
  * @group EKF2
  * @boolean
@@ -1384,7 +1384,7 @@ PARAM_DEFINE_INT32(EKF2_SYNT_MAG_Z, 0);
 /**
  * Default value of true airspeed used in EKF-GSF AHRS calculation.
  *
- * If no airspeed measurements are avalable, the EKF-GSF AHRS calculation will assume this value of true airspeed when compensating for centripetal acceleration during turns. Set to zero to disable centripetal acceleration compensation during fixed wing flight modes.
+ * If no airspeed measurements are available, the EKF-GSF AHRS calculation will assume this value of true airspeed when compensating for centripetal acceleration during turns. Set to zero to disable centripetal acceleration compensation during fixed wing flight modes.
  *
  * @group EKF2
  * @min 0.0

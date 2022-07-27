@@ -854,7 +854,7 @@ __EXPORT void board_get_uuid32(uuid_uint32_t uuid_words); // DEPRICATED use boar
  *
  * Input Parameters:
  *   format_buffer - A pointer to a bufferer of at least PX4_CPU_UUID_WORD32_FORMAT_SIZE
- *                   that will contain a 0 terminated string formated as described
+ *                   that will contain a 0 terminated string formatted as described
  *                   the format string and optional separator.
  *   size          - The size of the buffer (should be atleaset PX4_CPU_UUID_WORD32_FORMAT_SIZE)
  *   format        - The fort mat specifier for the hex digit see CPU_UUID_FORMAT
@@ -870,7 +870,7 @@ __EXPORT void board_get_uuid32(uuid_uint32_t uuid_words); // DEPRICATED use boar
  *                               3238333641203833355110
  *
  * Returned Value:
- *   The format buffer is populated with a 0 terminated string formated as described.
+ *   The format buffer is populated with a 0 terminated string formatted as described.
  *   Zero (OK) is returned on success;
  *
  ************************************************************************************/
@@ -907,7 +907,7 @@ int board_get_mfguid(mfguid_t mfgid);
  *
  * Input Parameters:
  *   format_buffer - A pointer to a bufferer of at least PX4_CPU_MFGUID_FORMAT_SIZE
- *                   that will contain a 0 terminated string formated as 0 prefixed
+ *                   that will contain a 0 terminated string formatted as 0 prefixed
  *                   lowercase hex. 2 charaters per digit of the mfguid_t.
  *
  * Returned Value:
@@ -964,7 +964,7 @@ int board_get_px4_guid(px4_guid_t guid);
  *   manufactures Unique ID or define BOARD_OVERRIDE_PX4_GUID
  *
  * Input Parameters:
- * format_buffer - A buffer to receive the 0 terminated formated px4
+ * format_buffer - A buffer to receive the 0 terminated formatted px4
  *                 guid string.
  * size          - Size of the buffer provided. Normally this would
  *                 be PX4_GUID_FORMAT_SIZE.

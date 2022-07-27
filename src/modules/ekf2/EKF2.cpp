@@ -1539,7 +1539,7 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 
 void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 {
-	// EKF auxillary velocity sample
+	// EKF auxiliary velocity sample
 	//  - use the landing target pose estimate as another source of velocity data
 	const unsigned last_generation = _landing_target_pose_sub.get_last_generation();
 	landing_target_pose_s landing_target_pose;

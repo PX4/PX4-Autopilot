@@ -413,7 +413,7 @@ def convert_dir(format_idx, inputdir, outputdir, package, templatedir):
 def copy_changed(inputdir, outputdir, prefix='', quiet=False):
     """
     Copies files from inputdir to outputdir if they don't exist in
-    ouputdir or if their content changed
+    outputdir or if their content changed
     """
 
     # Make sure output directory exists:

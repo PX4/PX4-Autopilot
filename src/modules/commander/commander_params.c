@@ -1063,7 +1063,7 @@ PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);
  * the time since takeoff is above this value. It is not possible to resume the
  * mission or switch to any mode other than RTL or Land.
  *
- * Set a nagative value to disable.
+ * Set a negative value to disable.
  *
  *
  * @unit s

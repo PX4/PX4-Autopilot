@@ -92,7 +92,7 @@ public:
 	 * or the tune being already played is a repeated tune.
 	 * @param  tune_control struct containig the uORB message
 	 * @return              return ControlResult::InvalidTune if the default tune does not exist,
-	 * 			ControlResult::WouldInterrupt if tune was already playing and not interruptable,
+	 * 			ControlResult::WouldInterrupt if tune was already playing and not interruptible,
 	 * 			ControlResult::AlreadyPlaying if same tune was already playing,
 	 * 			ControlResult::Success if new tune was set.
 	 */

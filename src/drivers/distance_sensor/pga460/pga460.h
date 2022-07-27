@@ -286,7 +286,7 @@ public:
 	int read_eeprom();
 
 	/**
-	 * @brief Writes the user defined paramaters to device EEPROM.
+	 * @brief Writes the user defined parameters to device EEPROM.
 	 * @return Returns true if the EEPROM was successfully written to.
 	 */
 	int write_eeprom();
@@ -341,7 +341,7 @@ private:
 	int initialize_device_settings();
 
 	/**
-	 * @brief Writes the user defined paramaters to device register map.
+	 * @brief Writes the user defined parameters to device register map.
 	 * @return Returns true if the thresholds were successfully written.
 	 */
 	int initialize_thresholds();

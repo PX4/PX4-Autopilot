@@ -210,7 +210,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);
 
-	// artifically increase beta threshhold to prevent fault during landing
+	// artificially increase beta threshhold to prevent fault during landing
 	float beta_thresh = 1e2f;
 
 	if (beta / BETA_TABLE[n_y_gps] > beta_thresh) {
