@@ -161,7 +161,7 @@ static constexpr float kClearanceAltitudeBuffer = 10.0f;
 static constexpr float L1_VIRTUAL_TAKEOFF_WP_DIST = 1.0e6f;
 
 // [m/s] maximum rate at which the touchdown position can be nudged
-static constexpr float MAX_TOUCHDOWN_POSITION_NUDGE_RATE = 1.0f;
+static constexpr float MAX_TOUCHDOWN_POSITION_NUDGE_RATE = 4.0f;
 
 // [.] normalized deadzone threshold for manual nudging input
 static constexpr float MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE = 0.15f;
