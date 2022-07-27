@@ -1,0 +1,8 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+if ARCH_BOARD_MR_CANHUBK3
+
+endif # ARCH_BOARD_MR_CANHUBK3
