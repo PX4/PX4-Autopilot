@@ -414,23 +414,48 @@ RoverPositionControl::control_rates(const vehicle_angular_velocity_s &rates, con
 	float dt = (_control_rates_last_called > 0) ? hrt_elapsed_time(&_control_rates_last_called) * 1e-6f : 0.01f;
 	_control_rates_last_called = hrt_absolute_time();
 
-	const matrix::Vector3f current_velocity(local_pos.vx, local_pos.vy, local_pos.vz);
-	bool lock_integrator = bool(current_velocity.norm() < _param_rate_i_minspeed.get());
+	// Velocity in body frame
+	const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
+	const Vector3f vel_body = R_to_body * Vector3f(local_pos.vx, local_pos.vy, local_pos.vz);
+
+	// Use forward speed only as for rovers horizontal / vertical velocity is noisy / minimal
+	const float forward_speed = vel_body(0);
+	bool lock_integrator = bool(forward_speed < _param_rate_i_minspeed.get());
 
 	const matrix::Vector3f vehicle_rates(rates.xyz[0], rates.xyz[1], rates.xyz[2]);
 	const matrix::Vector3f rates_setpoint(rates_sp.roll, rates_sp.pitch, rates_sp.yaw);
 	const matrix::Vector3f angular_acceleration{acc.xyz};
 
-	const matrix::Vector3f angular_acceleration{acc.xyz};
+	// Calculate the required torque to achieve rate setpoint
 	const matrix::Vector3f torque = _rate_control.update(vehicle_rates, rates_setpoint, angular_acceleration, dt,
 					lock_integrator);
 
+	// Effectiveness of steering control depends on the speed of the boat. This should ideally be done in the ActuatorEffectivenessMatrix side
+	// but for now we manually scale it here to dynamically adjust the yaw actuator control input.
+
+	// With a given deflection 'a' in [-1, 1] range, an actual torque applied to the boat is approximately:
+	// 1/2 * Cl(Lift coefficient) * rho(Water density) * v^2 (forward speed) * a (deflection)
+	// Therefore, we need to scale down the actuator control by a factor of v^-2 (decreases as speed goes up).
+	// NOTE: We assume that the PID values are valid for a 'trim' speed. So a scalar will be based off of that speed reference!
+
+	// There needs to be a sane lower boundary for the forward speed. And if we are lower than this speed, the scalar shouldn't go exponential.
+	// We set this speed limit to 50% of the trim speed. Which would produce the scalar of '4' = ((1 / 0.5)^2).
+	// Without this lower limit, division of the forward speed will result in scalar explosion in the range of 100 ~ 200x, which doesn't make sense.
+	const float forward_speed_clipped = max(forward_speed, _param_gndspeed_trim.get() / 2);
+	const float yaw_control_scalar = sq(_param_gndspeed_trim.get()) / sq(forward_speed_clipped);
+
 	// Steering control is set directly as torque command. This will then be linearly be mapped
 	// into sterring output in control_allocator.
-	const float steering_input = math::constrain(torque(2), -1.0f, 1.0f);
+	const float steering_input = math::constrain(torque(2) * yaw_control_scalar, -1.0f, 1.0f);
 
 	_act_controls.control[actuator_controls_s::INDEX_YAW] = steering_input;
 	_act_controls.control[actuator_controls_s::INDEX_THROTTLE] =  math::constrain(rates_sp.thrust_body[0], 0.0f, 1.0f);
+
+	// Update debugging values
+	vel_body.copyTo(_rover_pos_control_pub.get().velocity_body);
+	_rover_pos_control_pub.get().raw_yaw_torque_setpoint = torque(2);
+	_rover_pos_control_pub.get().yaw_control_scalar = yaw_control_scalar;
+	_rover_pos_control_pub.get().raw_steering_input = torque(2) * yaw_control_scalar;
 }
 
 
@@ -556,6 +581,10 @@ RoverPositionControl::Run()
 		v_torque_sp.xyz[1] = _act_controls.control[actuator_controls_s::INDEX_PITCH];
 		v_torque_sp.xyz[2] = _act_controls.control[actuator_controls_s::INDEX_YAW];
 		_vehicle_torque_setpoint_pub.publish(v_torque_sp);
+
+		// Publish Rover Pos Control debugging uORB message
+		_rover_pos_control_pub.get().timestamp = hrt_absolute_time();
+		_rover_pos_control_pub.update();
 	}
 }
 

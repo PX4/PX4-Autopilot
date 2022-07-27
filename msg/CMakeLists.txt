@@ -140,6 +140,7 @@ set(msg_files
 	rate_ctrl_status.msg
 	rc_channels.msg
 	rc_parameter_map.msg
+	rover_pos_control.msg
 	rpm.msg
 	rtl_time_estimate.msg
 	satellite_info.msg

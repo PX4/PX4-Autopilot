@@ -81,9 +81,10 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/rover_pos_control.h>
 
 using matrix::Dcmf;
-
+using namespace math;
 using namespace time_literals;
 
 // Main app function that gets called by NuttX when module is called
@@ -185,6 +186,7 @@ private:
 	uORB::Publication<actuator_controls_s>		_actuator_controls_pub{ORB_ID(actuator_controls_0)};  /**< actuator controls publication */
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
+	uORB::PublicationData<rover_pos_control_s>	_rover_pos_control_pub{ORB_ID(rover_pos_control)};
 
 	// Struct / enum definitions
 	enum POS_CTRLSTATES {
