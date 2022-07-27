@@ -512,7 +512,8 @@ unsigned uORB::DeviceNode::get_initial_generation()
 	ATOMIC_ENTER;
 
 	// If there any previous publications allow the subscriber to read them
-	unsigned generation = _generation.load() - (_data_valid ? 1 : 0);
+	const unsigned gen = _generation.load();
+	unsigned generation = gen - (_queue_size < gen ? _queue_size : gen);
 
 	ATOMIC_LEAVE;
 
