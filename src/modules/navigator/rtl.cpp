@@ -228,6 +228,7 @@ void RTL::find_RTL_destination()
 		}
 	}
 
+	// RTL Cone logic is only supported for the multirotors
 	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		_rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
 
@@ -681,11 +682,9 @@ void RTL::advance_rtl()
 	}
 }
 
-float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
+float RTL::calculate_return_alt_from_cone_half_angle(const float cone_half_angle_deg)
 {
 	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
-
-	// horizontal distance to destination
 	const float destination_dist = get_distance_to_next_waypoint(_destination.lat, _destination.lon, gpos.lat, gpos.lon);
 
 	// minium rtl altitude to use when outside of horizontal acceptance radius of target position.
@@ -696,12 +695,13 @@ float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
 
 	float return_altitude_amsl = _destination.alt + _param_rtl_return_alt.get();
 
+	// If we are close enough, arbitrarily set altitude proportionally to distance to the destination
 	if (destination_dist <= _navigator->get_acceptance_radius()) {
 		return_altitude_amsl = _destination.alt + 2.0f * destination_dist;
 
 	} else {
-
-		if (cone_half_angle_deg > 0.0f && destination_dist <= _param_rtl_min_dist.get()) {
+		// Only apply cone logic if the half cone angle is set by the user
+		if (!matrix::isEqualF(cone_half_angle_deg, 0.0f) && destination_dist <= _param_rtl_min_dist.get()) {
 
 			// constrain cone half angle to meaningful values. All other cases are already handled above.
 			const float cone_half_angle_rad = radians(constrain(cone_half_angle_deg, 1.0f, 89.0f));
@@ -715,6 +715,7 @@ float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
 		return_altitude_amsl = max(return_altitude_amsl, return_altitude_min_outside_acceptance_rad_amsl);
 	}
 
+	// If we are higher than the return altitude, use current altitude for return
 	return max(return_altitude_amsl, gpos.alt);
 }
 
