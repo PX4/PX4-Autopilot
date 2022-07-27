@@ -24,7 +24,7 @@ uint8 MODE_BLINK_FAST = 5
 uint8 MODE_BREATHE = 6 # continuously increase & decrease brightness (solid color if driver does not support it)
 uint8 MODE_FLASH = 7 # two fast blinks (on/off) with timing as in MODE_BLINK_FAST and then off for a while
 
-uint8 MAX_PRIORITY = 2 # maxium priority (minimum is 0)
+uint8 MAX_PRIORITY = 2 # maximum priority (minimum is 0)
 
 
 uint8 led_mask # bitmask which LED(s) to control, set to 0xff for all

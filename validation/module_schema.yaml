@@ -194,7 +194,7 @@ parameters:
                         volatile:
                             # Optional volatile flag. Set to true if the
                             # parameter can be changed by the system
-                            # automatially
+                            # automatically
                             type: boolean
                         reboot_required:
                             # set to true, if changing of the parameter requires

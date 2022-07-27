@@ -82,7 +82,7 @@ PARAM_DEFINE_INT32(CAL_MAG_ROT_AUTO, 1);
  * Magnetometer max rate.
  *
  * Magnetometer data maximum publication rate. This is an upper bound,
- * actual magnetometer data rate is still dependant on the sensor.
+ * actual magnetometer data rate is still dependent on the sensor.
  *
  * @min 1
  * @max 200

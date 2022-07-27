@@ -13,7 +13,7 @@ parameters:
         UWB_INIT_OFF_X:
           description:
             short: UWB sensor X offset in body frame
-            long: UWB sensor positioning in relation to Drone in NED. X offset. A Positiv offset results in a Position o
+            long: UWB sensor positioning in relation to Drone in NED. X offset. A Positive offset results in a Position o
           type: float
           unit: m
           decimal: 2

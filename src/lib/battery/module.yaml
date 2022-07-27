@@ -43,7 +43,7 @@ parameters:
             description:
                 short: Voltage drop per cell on full throttle
                 long: |
-                    This implicitely defines the internal resistance
+                    This implicitly defines the internal resistance
                     to maximum current ratio for battery 1 and assumes linearity.
                     A good value to use is the difference between the
                     5C and 20-25C load. Not used if BAT${i}_R_INTERNAL is

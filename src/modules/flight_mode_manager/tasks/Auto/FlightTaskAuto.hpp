@@ -197,7 +197,7 @@ private:
 	_triplet_next_wp; /**< next triplet from navigator which may differ from the intenal one (_next_wp) depending on the vehicle state.*/
 	matrix::Vector3f _closest_pt; /**< closest point to the vehicle position on the line previous - target */
 
-	hrt_abstime _time_last_cruise_speed_override{0}; ///< timestamp the cruise speed was last time overriden using DO_CHANGE_SPEED
+	hrt_abstime _time_last_cruise_speed_override{0}; ///< timestamp the cruise speed was last time overridden using DO_CHANGE_SPEED
 
 	MapProjection _reference_position{}; /**< Class used to project lat/lon setpoint into local frame. */
 	float _reference_altitude{NAN}; /**< Altitude relative to ground. */

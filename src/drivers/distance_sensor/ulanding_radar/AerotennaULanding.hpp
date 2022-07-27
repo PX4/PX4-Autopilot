@@ -71,7 +71,7 @@ using namespace time_literals;
 
 /**
  * Assume standard deviation to be equal to sensor resolution.
- * Static bench tests have shown that the sensor ouput does
+ * Static bench tests have shown that the sensor output does
  * not vary if the unit is not moved.
  */
 #define SENS_VARIANCE           0.045f * 0.045f

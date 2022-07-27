@@ -104,7 +104,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 echo
 echo "Installing PX4 Python3 dependencies"
 if [ -n "$VIRTUAL_ENV" ]; then
-	# virtual envrionments don't allow --user option
+	# virtual environments don't allow --user option
 	python -m pip install -r ${DIR}/requirements.txt
 else
 	# older versions of Ubuntu require --user option

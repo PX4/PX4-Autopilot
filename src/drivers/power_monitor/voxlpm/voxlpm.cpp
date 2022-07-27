@@ -96,7 +96,7 @@ VOXLPM::init()
 		ret = init_ina231();
 
 	} else {
-		PX4_ERR("Unkown device address");
+		PX4_ERR("Unknown device address");
 		ret = PX4_ERROR;
 	}
 

@@ -1858,7 +1858,7 @@ PARAM_DEFINE_INT32(RC_MAP_PARAM3, 0);
 /**
  * Failsafe channel PWM threshold.
  *
- * Use RC_MAP_FAILSAFE to specify which channel is used to indicate RC loss via this theshold.
+ * Use RC_MAP_FAILSAFE to specify which channel is used to indicate RC loss via this threshold.
  * By default this is the throttle channel.
  *
  * Set to a PWM value slightly above the PWM value for the channel (e.g. throttle) in a failsafe event,

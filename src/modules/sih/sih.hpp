@@ -159,7 +159,7 @@ private:
 
 	// hard constants
 	static constexpr uint16_t NB_MOTORS = 6;
-	static constexpr float T1_C = 15.0f;                        // ground temperature in celcius
+	static constexpr float T1_C = 15.0f;                        // ground temperature in Celsius
 	static constexpr float T1_K = T1_C - CONSTANTS_ABSOLUTE_NULL_CELSIUS;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT  = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
 	// Aerodynamic coefficients
@@ -281,14 +281,14 @@ private:
 	double      _gps_lon, _gps_lon_noiseless;
 	float       _gps_alt, _gps_alt_noiseless;
 	float       _baro_p_mBar;   // reconstructed (simulated) pressure in mBar
-	float       _baro_temp_c;   // reconstructed (simulated) barometer temperature in celcius
+	float       _baro_temp_c;   // reconstructed (simulated) barometer temperature in degrees Celsius
 
 	// parameters
 	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _H0, _T_TAU;
 	double _LAT0, _LON0, _COS_LAT0;
 	matrix::Vector3f _W_I;  // weight of the vehicle in inertial frame [N]
 	matrix::Matrix3f _I;    // vehicle inertia matrix
-	matrix::Matrix3f _Im1;  // inverse of the intertia matrix
+	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
 	matrix::Vector3f _mu_I; // NED magnetic field in inertial frame [G]
 
 	int _gps_used;

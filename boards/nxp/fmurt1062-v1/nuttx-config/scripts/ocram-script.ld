@@ -35,7 +35,7 @@
  ****************************************************************************/
 
 /* The FMURT1062 has 8MiB of QSPI FLASH beginning at address,
- * 0x0060:0000, Upto 512Kb of DTCM RAM beginning at 0x2000:0000, and 1MiB OCRAM
+ * 0x0060:0000, Up to 512Kb of DTCM RAM beginning at 0x2000:0000, and 1MiB OCRAM
  * beginning at 0x2020:0000.  Neither DTCM or SDRAM are used in this
  * configuration.
  *
@@ -43,7 +43,7 @@
  * 256Kib to OCRRAM, 128Kib ITCM and 128Kib DTCM.
  * This can be changed by using a dcd by minipulating
  * IOMUX GPR16 and GPR17.
- * The configuartion we will use is 384Kib to OCRRAM, 0Kib ITCM and
+ * The configuration we will use is 384Kib to OCRRAM, 0Kib ITCM and
  * 128Kib DTCM.
  *
  * This is the OCRAM inker script.

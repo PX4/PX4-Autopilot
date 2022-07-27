@@ -123,7 +123,7 @@ PARAM_DEFINE_INT32(UCAN1_BMS_BS_SUB, -1);
 PARAM_DEFINE_INT32(UCAN1_BMS_BP_SUB, -1);
 
 /**
- * Cyphal leagcy battery port ID.
+ * Cyphal legacy battery port ID.
  *
  * @min -1
  * @max 6143

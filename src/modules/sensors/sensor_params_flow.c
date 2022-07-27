@@ -100,7 +100,7 @@ PARAM_DEFINE_FLOAT(SENS_FLOW_MAXR, 8.f);
  * Optical flow max rate.
  *
  * Optical flow data maximum publication rate. This is an upper bound,
- * actual optical flow data rate is still dependant on the sensor.
+ * actual optical flow data rate is still dependent on the sensor.
  *
  * @min 1
  * @max 200

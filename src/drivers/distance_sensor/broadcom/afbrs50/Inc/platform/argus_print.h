@@ -54,7 +54,7 @@
 #include "api/argus_def.h"
 
 /*!***************************************************************************
- * @brief	A printf-like function to print formated data to an debugging interface.
+ * @brief	A printf-like function to print formatted data to an debugging interface.
  *
  * @details Writes the C string pointed by fmt_t to an output. If format
  * 			includes format specifiers (subsequences beginning with %), the

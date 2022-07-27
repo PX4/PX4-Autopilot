@@ -76,7 +76,7 @@ public:
 	}
 
 	/**
-	 * get maxium time between two consecutive calls to update() in us.
+	 * get maximum time between two consecutive calls to update() in us.
 	 */
 	int maximum_update_interval() const
 	{

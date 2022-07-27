@@ -167,7 +167,7 @@ parameters:
                 short: Enable serial flow control for instance ${i}
                 long: |
                     This is used to force flow control on or off for the the mavlink
-                    instance. By default it is auto detected. Use when auto detction fails.
+                    instance. By default it is auto detected. Use when auto detection fails.
 
             type: enum
             values:

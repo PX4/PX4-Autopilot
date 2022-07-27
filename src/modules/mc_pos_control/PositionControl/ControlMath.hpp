@@ -98,7 +98,7 @@ bool cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r, c
 
 /**
  * Adds e.g. feed-forward to the setpoint making sure existing or added NANs have no influence on control.
- * This function is udeful to support all the different setpoint combinations of position, velocity, acceleration with NAN representing an uncommited value.
+ * This function is udeful to support all the different setpoint combinations of position, velocity, acceleration with NAN representing an uncommitted value.
  * @param setpoint existing possibly NAN setpoint to add to
  * @param addition value/NAN to add to the setpoint
  */

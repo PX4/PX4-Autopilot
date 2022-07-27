@@ -385,7 +385,7 @@ void FlightModeManager::handleCommand()
 		// check what command it is
 		FlightTaskIndex desired_task = switchVehicleCommand(command.command);
 
-		// ignore all unkown commands
+		// ignore all unknown commands
 		if (desired_task != FlightTaskIndex::None
 		    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			// switch to the commanded task

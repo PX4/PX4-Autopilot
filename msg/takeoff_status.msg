@@ -1,4 +1,4 @@
-# Status of the takeoff state machine currently just availble for multicopters
+# Status of the takeoff state machine currently just available for multicopters
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -11,4 +11,4 @@ uint8 TAKEOFF_STATE_FLIGHT            = 5
 
 uint8 takeoff_state
 
-float32 tilt_limit # limited tilt feasability during takeoff, contains maximum tilt otherwise
+float32 tilt_limit # limited tilt feasibility during takeoff, contains maximum tilt otherwise

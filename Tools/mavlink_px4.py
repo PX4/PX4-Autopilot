@@ -3019,7 +3019,7 @@ class MAVLink(object):
                 time_boot_ms              : Timestamp (milliseconds since system boot) (uint32_t)
                 press_abs                 : Absolute pressure (hectopascal) (float)
                 press_diff                : Differential pressure 1 (hectopascal) (float)
-                temperature               : Temperature measurement (0.01 degrees celsius) (int16_t)
+                temperature               : Temperature measurement (0.01 degrees Celsius) (int16_t)
 
                 '''
                 msg = MAVLink_scaled_pressure_message(time_boot_ms, press_abs, press_diff, temperature)
@@ -3035,7 +3035,7 @@ class MAVLink(object):
                 time_boot_ms              : Timestamp (milliseconds since system boot) (uint32_t)
                 press_abs                 : Absolute pressure (hectopascal) (float)
                 press_diff                : Differential pressure 1 (hectopascal) (float)
-                temperature               : Temperature measurement (0.01 degrees celsius) (int16_t)
+                temperature               : Temperature measurement (0.01 degrees Celsius) (int16_t)
 
                 '''
                 return self.send(self.scaled_pressure_encode(time_boot_ms, press_abs, press_diff, temperature))
@@ -4879,7 +4879,7 @@ class MAVLink(object):
                 abs_pressure              : Absolute pressure in millibar (float)
                 diff_pressure             : Differential pressure in millibar (float)
                 pressure_alt              : Altitude calculated from pressure (float)
-                temperature               : Temperature in degrees celsius (float)
+                temperature               : Temperature in degrees Celsius (float)
                 fields_updated            : Bitmask for fields that have updated since last message, bit 0 = xacc, bit 12: temperature (uint16_t)
 
                 '''
@@ -4904,7 +4904,7 @@ class MAVLink(object):
                 abs_pressure              : Absolute pressure in millibar (float)
                 diff_pressure             : Differential pressure in millibar (float)
                 pressure_alt              : Altitude calculated from pressure (float)
-                temperature               : Temperature in degrees celsius (float)
+                temperature               : Temperature in degrees Celsius (float)
                 fields_updated            : Bitmask for fields that have updated since last message, bit 0 = xacc, bit 12: temperature (uint16_t)
 
                 '''
