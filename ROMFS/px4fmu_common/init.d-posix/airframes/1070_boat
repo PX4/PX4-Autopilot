@@ -15,13 +15,14 @@ param set-default GND_SPEED_I 8
 param set-default GND_SPEED_IMAX 0.125
 param set-default GND_SPEED_P 2
 
-param set-default GND_RATE_P 0.0
+# Rate controller PID values
+param set-default GND_RATE_P 1.0
 param set-default GND_RATE_I 0.0
 param set-default GND_RATE_D 0.0
 param set-default GND_RATE_FF 1.0
 
-# SITL Boat can achieve yaw rate of around 0.5 rad/s with full differential
-param set-default GND_RATE_MAX 0.5
+# SITL Boat can achieve yaw rate of around 0.2 rad/s with full differential
+param set-default GND_RATE_MAX 0.2
 
 # SITL Boat has trim speed around 1 m/s
 param set-default GND_SPEED_TRIM 1
