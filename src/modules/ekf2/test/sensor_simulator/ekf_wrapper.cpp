@@ -70,22 +70,22 @@ bool EkfWrapper::isIntendingRangeHeightFusion() const
 	return _ekf->control_status_flags().rng_hgt;
 }
 
-void EkfWrapper::setVisionHeightRef()
+void EkfWrapper::setExternalVisionHeightRef()
 {
 	_ekf_params->height_sensor_ref |= HeightSensorRef::EV;
 }
 
-void EkfWrapper::enableVisionHeightFusion()
+void EkfWrapper::enableExternalVisionHeightFusion()
 {
 	_ekf_params->fusion_mode |= SensorFusionMask::USE_EXT_VIS_HGT;
 }
 
-void EkfWrapper::disableVisionHeightFusion()
+void EkfWrapper::disableExternalVisionHeightFusion()
 {
 	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_EXT_VIS_HGT;
 }
 
-bool EkfWrapper::isIntendingVisionHeightFusion() const
+bool EkfWrapper::isIntendingExternalVisionHeightFusion() const
 {
 	return _ekf->control_status_flags().ev_hgt;
 }
