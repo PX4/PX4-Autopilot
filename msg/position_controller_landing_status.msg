@@ -9,8 +9,8 @@ uint8 abort_status
 
 # abort reasons
 # after the manual operator abort, corresponds to individual bits of param FW_LND_ABORT
-uint8 kNotAborted = 0
-uint8 kAbortedByOperator = 1
-uint8 kTerrainNotFound = 2 # FW_LND_ABORT (1 << 0)
-uint8 kTerrainTimeout = 3 # FW_LND_ABORT (1 << 1)
-uint8 kUnknownAbortCriterion = 4
+uint8 NOT_ABORTED = 0
+uint8 ABORTED_BY_OPERATOR = 1
+uint8 TERRAIN_NOT_FOUND = 2 # FW_LND_ABORT (1 << 0)
+uint8 TERRAIN_TIMEOUT = 3 # FW_LND_ABORT (1 << 1)
+uint8 UNKNOWN_ABORT_CRITERION = 4
