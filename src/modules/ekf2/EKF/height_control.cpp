@@ -89,92 +89,65 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 	bool likelihood_high = false;
 	bool likelihood_medium = false;
 
-	bool failed_min[4] = {false, false, false, false};
-	bool failed_lim[4] = {false, false, false, false};
+	enum class ReferenceType { PRESSURE, GNSS, GROUND };
 
-	if (isVerticalPositionAidingActive()) {
-		if (_control_status.flags.baro_hgt) {
-			const float innov_ratio = _aid_src_baro_hgt.innovation / sqrtf(_aid_src_baro_hgt.innovation_variance);
-			failed_min[HeightSensorRef::BARO] = innov_ratio > _params.vert_innov_test_min;
-			failed_lim[HeightSensorRef::BARO] = innov_ratio > _params.vert_innov_test_lim;
-		}
+	struct {
+		ReferenceType ref_type;
+		float innov;
+		float innov_var;
+		bool failed_min;
+		bool failed_lim;
+	} checks[6] {};
 
-		if (_control_status.flags.gps_hgt) {
-			const float innov_ratio = _aid_src_gnss_pos.innovation[2] / sqrtf(_aid_src_gnss_pos.innovation_variance[2]);
-			failed_min[HeightSensorRef::GPS] = innov_ratio > _params.vert_innov_test_min;
-			failed_lim[HeightSensorRef::GPS] = innov_ratio > _params.vert_innov_test_lim;
-		}
-
-		if (_control_status.flags.rng_hgt) {
-			const float innov_ratio = _aid_src_rng_hgt.innovation / sqrtf(_aid_src_rng_hgt.innovation_variance);
-			failed_min[HeightSensorRef::RANGE] = innov_ratio > _params.vert_innov_test_min;
-			failed_lim[HeightSensorRef::RANGE] = innov_ratio > _params.vert_innov_test_lim;
-		}
-
-		if (_control_status.flags.ev_hgt) {
-			const float innov_ratio = _ev_pos_innov(2) / sqrtf(_ev_pos_innov_var(2));
-			failed_min[HeightSensorRef::EV] = innov_ratio > _params.vert_innov_test_min;
-			failed_lim[HeightSensorRef::EV] = innov_ratio > _params.vert_innov_test_lim;
-		}
-
-		for (unsigned i = 0; i < 4; i++) {
-
-			if (failed_lim[i]) {
-				// There is a chance that the interial nav is falling if one height source is failing the test
-				likelihood_medium = true;
-			}
-
-			for (unsigned j = 0; j < 4; j++) {
-
-				if ((i != j) && failed_lim[i] && failed_min[j]) {
-					// There is a high chance that the interial nav is falling if two height sources are failing the test
-					likelihood_high = true;
-				}
-			}
-		}
+	if (_control_status.flags.baro_hgt) {
+		checks[0] = {ReferenceType::PRESSURE, _aid_src_baro_hgt.innovation, _aid_src_baro_hgt.innovation_variance};
 	}
 
-	if (isVerticalVelocityAidingActive()) {
-		bool gps_vel_failed_min = false;
-		bool gps_vel_failed_lim = false;
+	if (_control_status.flags.gps_hgt) {
+		checks[1] = {ReferenceType::GNSS, _aid_src_gnss_pos.innovation[2], _aid_src_gnss_pos.innovation_variance[2]};
+	}
 
-		if (_control_status.flags.gps) {
-			const float innov_ratio = _aid_src_gnss_vel.innovation[2] / sqrtf(_aid_src_gnss_vel.innovation_variance[2]);
-			gps_vel_failed_min = innov_ratio > _params.vert_innov_test_min;
-			gps_vel_failed_lim = innov_ratio > _params.vert_innov_test_lim;
+	if (_control_status.flags.gps) {
+		checks[2] = {ReferenceType::GNSS, _aid_src_gnss_vel.innovation[2], _aid_src_gnss_vel.innovation_variance[2]};
+	}
+
+	if (_control_status.flags.rng_hgt) {
+		checks[3] = {ReferenceType::GROUND, _aid_src_rng_hgt.innovation, _aid_src_rng_hgt.innovation_variance};
+	}
+
+	if (_control_status.flags.ev_hgt) {
+		checks[4] = {ReferenceType::GROUND, _ev_pos_innov(2), _ev_pos_innov_var(2)};
+	}
+
+	if (_control_status.flags.ev_vel) {
+		checks[5] = {ReferenceType::GROUND, _ev_vel_innov(2), _ev_vel_innov_var(2)};
+	}
+
+	// Compute the check based on innovation ratio for all the sources
+	for (unsigned i = 0; i < 6; i++) {
+		if (checks[i].innov_var < FLT_EPSILON) {
+			continue;
 		}
 
-		bool ev_vel_failed_min = false;
-		bool ev_vel_failed_lim = false;
+		const float innov_ratio = checks[i].innov / sqrtf(checks[i].innov_var);
+		checks[i].failed_min = innov_ratio > _params.vert_innov_test_min;
+		checks[i].failed_lim = innov_ratio > _params.vert_innov_test_lim;
+	}
 
-		if (_control_status.flags.ev_vel) {
-			const float innov_ratio = _ev_vel_innov(2) / sqrtf(_ev_vel_innov_var(2));
-			ev_vel_failed_min = innov_ratio > _params.vert_innov_test_min;
-			ev_vel_failed_lim = innov_ratio > _params.vert_innov_test_lim;
+	// Check all the sources agains each other
+	for (unsigned i = 0; i < 6; i++) {
+		if (checks[i].failed_lim) {
+			// There is a chance that the interial nav is falling if one source is failing the test
+			likelihood_medium = true;
 		}
 
-		// If vertical position and velocity come from independent sensors then we can
-		// trust them more if they disagree with the IMU, but need to check that they agree
-		likelihood_high |= gps_vel_failed_lim && (failed_min[HeightSensorRef::BARO]
-							  || failed_min[HeightSensorRef::RANGE]
-							  || failed_min[HeightSensorRef::EV]
-							  || ev_vel_failed_min);
-		likelihood_high |= gps_vel_failed_min && (failed_lim[HeightSensorRef::BARO]
-							  || failed_lim[HeightSensorRef::RANGE]
-							  || failed_lim[HeightSensorRef::EV]
-							  || ev_vel_failed_lim);
+		for (unsigned j = 0; j < 6; j++) {
 
-		likelihood_high |= ev_vel_failed_lim && (failed_min[HeightSensorRef::BARO]
-							 || failed_min[HeightSensorRef::RANGE]
-							 || failed_min[HeightSensorRef::GPS]
-							 || gps_vel_failed_min);
-		likelihood_high |= ev_vel_failed_min && (failed_lim[HeightSensorRef::BARO]
-							 || failed_lim[HeightSensorRef::RANGE]
-							 || failed_lim[HeightSensorRef::GPS]
-							 || gps_vel_failed_lim);
-
-		likelihood_medium |= gps_vel_failed_lim;
-		likelihood_medium |= ev_vel_failed_lim;
+			if ((checks[i].ref_type != checks[j].ref_type) && checks[i].failed_lim && checks[j].failed_min) {
+				// There is a high chance that the interial nav is falling if two sources are failing the test
+				likelihood_high = true;
+			}
+		}
 	}
 
 	if (likelihood_high) {
