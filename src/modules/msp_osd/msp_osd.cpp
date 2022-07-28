@@ -59,33 +59,6 @@
 
 #include "MspV1.hpp"
 
-const char arduPlaneModeStr[24][15]  =  {
-	"MANUAL",
-	"CIRCLE",
-	"STABILIZE",
-	"TRAINING",
-	"ACRO",
-	"FLY BY WIRE A",
-	"FLY BY WIRE B",
-	"CRUISE",
-	"AUTOTUNE",
-	"",
-	"AUTO",
-	"RTL",
-	"LOITER",
-	"TAKEOFF",
-	"AVOID_ADSB",
-	"GUIDED",
-	"INITIALISING",
-	"QSTABILIZE",
-	"QHOVER",
-	"QLOITER",
-	"QLAND",
-	"QRTL",
-	"QAUTOTUNE",
-	"QACRO"
-};
-
 //OSD elements positions
 //in betaflight configurator set OSD elements to your desired positions and in CLI type "set osd" to retreieve the numbers.
 //234 -> not visible. Horizontally 2048-2074(spacing 1), vertically 2048-2528(spacing 32). 26 characters X 15 lines
@@ -254,16 +227,14 @@ void MspOsd::SendConfig()
 
 void MspOsd::Run()
 {
-	if (should_exit())
-	{
+	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
 		return;
 	}
 
 	// Check if parameters have changed
-	if (_parameter_update_sub.updated())
-	{
+	if (_parameter_update_sub.updated()) {
 		// clear update
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
@@ -277,7 +248,7 @@ void MspOsd::Run()
 		_msp_fd = open(_port, O_RDWR | O_NONBLOCK);
 
 		if (_msp_fd < 0) {
-			_initialization_failure = true;
+			_performance_data.initialization_problems = true;
 			return;
 		}
 
@@ -304,6 +275,7 @@ void MspOsd::Run()
 	msp_altitude_t altitude = {0};
 	msp_esc_sensor_data_dji_t esc_sensor_data = {0};
 	//msp_motor_telemetry_t motor_telemetry = {0};
+	msp_fc_variant_t variant = {0};
 
 	//power_monitor_sub.update(&power_monitor_struct);
 	_battery_status_sub.update(&_battery_status_struct);
@@ -316,78 +288,87 @@ void MspOsd::Run()
 	_vehicle_local_position_sub.update(&_vehicle_local_position_struct);
 	_vehicle_attitude_sub.update(&_vehicle_attitude_struct);
 	_estimator_status_sub.update(&_estimator_status_struct);
+	_input_rc_sub.update(&_input_rc_struct);
 
 	matrix::Eulerf euler_attitude(matrix::Quatf(_vehicle_attitude_struct.q));
+
+	memcpy(variant.flightControlIdentifier, "BTFL", sizeof(variant.flightControlIdentifier));
+	_msp.Send(MSP_FC_VARIANT, &variant) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
 
 	// MSP_NAME
 	snprintf(name.craft_name, sizeof(name.craft_name), "> %i", _x);
 	name.craft_name[14] = '\0';
-	_msp.Send(MSP_NAME, &name);
+	_msp.Send(MSP_NAME, &name) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
 
 	// MSP_STATUS
-	switch (_vehicle_status_struct.nav_state)
-	{
+	if (_vehicle_status_struct.arming_state == _vehicle_status_struct.ARMING_STATE_ARMED) {
+		status_BF.flight_mode_flags |= ARM_ACRO_BF;
+
+		switch (_vehicle_status_struct.nav_state) {
 		case _vehicle_status_struct.NAVIGATION_STATE_MANUAL:
-			status_BF.flightModeFlags = ARM_ACRO_BF;
+			status_BF.flight_mode_flags |= 0;
 			break;
 
 		case _vehicle_status_struct.NAVIGATION_STATE_ACRO:
-			status_BF.flightModeFlags = ARM_ACRO_BF;
+			status_BF.flight_mode_flags |= 0;
 			break;
 
 		case _vehicle_status_struct.NAVIGATION_STATE_STAB:
-			status_BF.flightModeFlags = STAB_BF;
+			status_BF.flight_mode_flags |= STAB_BF;
 			break;
 
 		case _vehicle_status_struct.NAVIGATION_STATE_AUTO_RTL:
-			status_BF.flightModeFlags = RESC_BF;
+			status_BF.flight_mode_flags |= RESC_BF;
+			break;
+
+		case _vehicle_status_struct.NAVIGATION_STATE_TERMINATION:
+			status_BF.flight_mode_flags |= FS_BF;
 			break;
 
 		default:
-			status_BF.flightModeFlags = 0;
+			status_BF.flight_mode_flags = 0;
 			break;
+		}
 	}
 
-	status_BF.flightModeFlags = STAB_BF;
-	_msp.Send(MSP_STATUS, &status_BF);
+	status_BF.arming_disable_flags_count = 1;
+	status_BF.arming_disable_flags  = !(_vehicle_status_struct.arming_state == _vehicle_status_struct.ARMING_STATE_ARMED);
+	_msp.Send(MSP_STATUS, &status_BF) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
 
 	// MSP_ANALOG
 	analog.vbat = _battery_status_struct.voltage_v * 10; // bottom right... v * 10
-	analog.rssi = 150;
+	analog.rssi = (uint16_t)((_input_rc_struct.rssi * 1023.0f) / 100.0f);
 	analog.amperage = _battery_status_struct.current_a * 100; // main amperage
 	analog.mAhDrawn = _battery_status_struct.discharged_mah; // unused
-	_msp.Send(MSP_ANALOG, &analog);
+	_msp.Send(MSP_ANALOG, &analog) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
 
 	// MSP_BATTERY_STATE
 	battery_state.amperage = _battery_status_struct.current_a; // not used?
-	battery_state.batteryVoltage =  (uint16_t)(_battery_status_struct.voltage_v * 400.0f); // OK
+	battery_state.batteryVoltage = (uint16_t)(_battery_status_struct.voltage_v * 400.0f);  // OK
 	battery_state.mAhDrawn = _battery_status_struct.discharged_mah ; // OK
 	battery_state.batteryCellCount = _battery_status_struct.cell_count;
 	battery_state.batteryCapacity = _battery_status_struct.capacity; // not used?
 
 	// Voltage color 0==white, 1==red
-	if (_battery_status_struct.voltage_v < 14.4f)
-	{
+	if (_battery_status_struct.voltage_v < 14.4f) {
 		battery_state.batteryState = 1;
-	}
-	else
-	{
+
+	} else {
 		battery_state.batteryState = 0;
 	}
+
 	battery_state.legacyBatteryVoltage = _battery_status_struct.voltage_v * 10;
-	_msp.Send(MSP_BATTERY_STATE, &battery_state);
+	_msp.Send(MSP_BATTERY_STATE, &battery_state) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
 
 	// MSP_RAW_GPS
-	if (_vehicle_gps_position_struct.fix_type >= 2)
-	{
+	if (_vehicle_gps_position_struct.fix_type >= 2) {
 		raw_gps.lat = _vehicle_gps_position_struct.lat;
 		raw_gps.lon = _vehicle_gps_position_struct.lon;
 		raw_gps.alt =  _vehicle_gps_position_struct.alt / 10;
 		//raw_gps.groundCourse = vehicle_gps_position_struct
 		altitude.estimatedActualPosition = _vehicle_gps_position_struct.alt / 10;
-	}
-	else
-	{
+
+	} else {
 		raw_gps.lat = 0;
 		raw_gps.lon = 0;
 		raw_gps.alt = 0;
@@ -395,20 +376,16 @@ void MspOsd::Run()
 	}
 
 	if (_vehicle_gps_position_struct.fix_type == 0
-		|| _vehicle_gps_position_struct.fix_type == 1)
-	{
+	    || _vehicle_gps_position_struct.fix_type == 1) {
 		raw_gps.fixType = MSP_GPS_NO_FIX;
-	}
-	else if (_vehicle_gps_position_struct.fix_type == 2)
-	{
+
+	} else if (_vehicle_gps_position_struct.fix_type == 2) {
 		raw_gps.fixType = MSP_GPS_FIX_2D;
-	}
-	else if (_vehicle_gps_position_struct.fix_type >= 3 && _vehicle_gps_position_struct.fix_type <= 5)
-	{
+
+	} else if (_vehicle_gps_position_struct.fix_type >= 3 && _vehicle_gps_position_struct.fix_type <= 5) {
 		raw_gps.fixType = MSP_GPS_FIX_3D;
-	}
-	else
-	{
+
+	} else {
 		raw_gps.fixType = MSP_GPS_NO_FIX;
 	}
 
@@ -416,34 +393,33 @@ void MspOsd::Run()
 	raw_gps.numSat = _vehicle_gps_position_struct.satellites_used;
 
 	if (_airspeed_validated_struct.airspeed_sensor_measurement_valid
-		&& _airspeed_validated_struct.indicated_airspeed_m_s != NAN
-		&& _airspeed_validated_struct.indicated_airspeed_m_s > 0)
-	{
+	    && _airspeed_validated_struct.indicated_airspeed_m_s != NAN
+	    && _airspeed_validated_struct.indicated_airspeed_m_s > 0) {
 		raw_gps.groundSpeed = _airspeed_validated_struct.indicated_airspeed_m_s * 100;
-	}
-	else
-	{
+
+	} else {
 		raw_gps.groundSpeed = 0;
 	}
+
 	//PX4_WARN("%f\r\n",  (double)_battery_status_struct.current_a);
-	_msp.Send(MSP_RAW_GPS, &raw_gps);
+	_msp.Send(MSP_RAW_GPS, &raw_gps) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
 
 	// Calculate distance and direction to home
 	if (_home_position_struct.valid_hpos
-		&& _home_position_struct.valid_lpos
-		&& _estimator_status_struct.solution_status_flags & (1 << 4))
-	{
-		float bearing_to_home = get_bearing_to_next_waypoint(_vehicle_global_position_struct.lat, _vehicle_global_position_struct.lon,
-			_home_position_struct.lat, _home_position_struct.lon);
+	    && _home_position_struct.valid_lpos
+	    && _estimator_status_struct.solution_status_flags & (1 << 4)) {
+		float bearing_to_home = get_bearing_to_next_waypoint(_vehicle_global_position_struct.lat,
+					_vehicle_global_position_struct.lon,
+					_home_position_struct.lat, _home_position_struct.lon);
 
-		float distance_to_home = get_distance_to_next_waypoint(_vehicle_global_position_struct.lat, _vehicle_global_position_struct.lon,
-			_home_position_struct.lat, _home_position_struct.lon);
+		float distance_to_home = get_distance_to_next_waypoint(_vehicle_global_position_struct.lat,
+					 _vehicle_global_position_struct.lon,
+					 _home_position_struct.lat, _home_position_struct.lon);
 
 		comp_gps.distanceToHome = (int16_t)distance_to_home; // meters
 		comp_gps.directionToHome = bearing_to_home; // degrees
-	}
-	else
-	{
+
+	} else {
 		comp_gps.distanceToHome = 0; // meters
 		comp_gps.directionToHome = 0; // degrees
 	}
@@ -451,38 +427,28 @@ void MspOsd::Run()
 	// MSP_COMP_GPS
 	comp_gps.heartbeat = _heartbeat;
 	_heartbeat = !_heartbeat;
-	_msp.Send(MSP_COMP_GPS, &comp_gps);
+	_msp.Send(MSP_COMP_GPS, &comp_gps) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
 
 	// MSP_ATTITUDE
 	attitude.pitch = math::degrees(euler_attitude.theta()) * 10;
 	attitude.roll = math::degrees(euler_attitude.phi()) * 10;
 	attitude.yaw = math::degrees(euler_attitude.psi()) * 10;
-	_msp.Send(MSP_ATTITUDE, &attitude);
+	_msp.Send(MSP_ATTITUDE, &attitude) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
 
 	// MSP_ALTITUDE
-	if (_estimator_status_struct.solution_status_flags & (1 << 5))
-	{
+	if (_estimator_status_struct.solution_status_flags & (1 << 5)) {
 		altitude.estimatedActualVelocity = -_vehicle_local_position_struct.vz * 10; //m/s to cm/s
-	}
-	else
-	{
+
+	} else {
 		altitude.estimatedActualVelocity = 0;
 	}
-	_msp.Send(MSP_ALTITUDE, &altitude);
+
+	_msp.Send(MSP_ALTITUDE, &altitude) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
 
 	// MSP_MOTOR_TELEMETRY
-	/*motor_telemetry.motor_count = 1;
-	motor_telemetry.rpm = 0;
-	motor_telemetry.invalid_percent = 0;
-	motor_telemetry.temperature = 20;
-	motor_telemetry.voltage = 0;
-	motor_telemetry.current = 0;
-	motor_telemetry.consumption = 0;
-	_msp.Send(MSP_MOTOR_TELEMETRY, &motor_telemetry);*/
-
 	esc_sensor_data.rpm = 0;
-	esc_sensor_data.temperature = 240;
-	_msp.Send(MSP_ESC_SENSOR_DATA, &esc_sensor_data);
+	esc_sensor_data.temperature = 50;
+	_msp.Send(MSP_ESC_SENSOR_DATA, &esc_sensor_data) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
 
 	SendConfig();
 }
@@ -491,19 +457,15 @@ int MspOsd::task_spawn(int argc, char *argv[])
 {
 	MspOsd *instance = new MspOsd();
 
-	if (instance)
-	{
+	if (instance) {
 		_object.store(instance);
 		_task_id = task_id_is_work_queue;
 
-		if (instance->init())
-		{
+		if (instance->init()) {
 			return PX4_OK;
 		}
 
-	}
-	else
-	{
+	} else {
 		PX4_ERR("alloc failed");
 	}
 
@@ -518,7 +480,9 @@ int MspOsd::print_status()
 {
 	PX4_INFO("Running on port %s", _port);
 	PX4_INFO("\tinitialized: %d", _is_initialized);
-	PX4_INFO("\tinitialization issues: %d", _initialization_failure);
+	PX4_INFO("\tinitialization issues: %d", _performance_data.initialization_problems);
+	PX4_INFO("\tsuccessful sends: %lu", _performance_data.successful_sends);
+	PX4_INFO("\tunsuccessful sends: %lu", _performance_data.unsuccessful_sends);
 
 	return 0;
 }

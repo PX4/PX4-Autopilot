@@ -61,6 +61,13 @@ using namespace time_literals;
 
 extern "C" __EXPORT int msp_osd_main(int argc, char *argv[]);
 
+struct PerformanceData
+{
+	bool initialization_problems{false};
+	uint32_t successful_sends{0};
+	uint32_t unsuccessful_sends{0};
+};
+
 class MspOsd : public ModuleBase<MspOsd>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
@@ -83,6 +90,7 @@ public:
 	int print_status() override;
 
 private:
+
 	void Run() override;
 
 	MspV1 _msp;
@@ -121,7 +129,7 @@ private:
 
 	// metadata
 	const char* _port{"/dev/ttyS3"};
-	bool _initialization_failure{false};
+	PerformanceData _performance_data{};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
