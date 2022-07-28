@@ -465,12 +465,12 @@ TEST_F(EkfFusionLogicTest, doRangeHeightFusion)
 TEST_F(EkfFusionLogicTest, doVisionHeightFusion)
 {
 	// WHEN: commanding vision height and sending vision data
-	_ekf_wrapper.enableVisionHeightFusion();
+	_ekf_wrapper.enableExternalVisionHeightFusion();
 	_sensor_simulator.startExternalVision();
 	_sensor_simulator.runSeconds(2);
 
 	// THEN: EKF should intend to fuse vision height
-	EXPECT_TRUE(_ekf_wrapper.isIntendingVisionHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
 
 	// WHEN: stop sending vision data
 	_sensor_simulator.stopExternalVision();
@@ -478,6 +478,6 @@ TEST_F(EkfFusionLogicTest, doVisionHeightFusion)
 
 	// THEN: EKF should stop to intend to use vision height
 
-	EXPECT_FALSE(_ekf_wrapper.isIntendingVisionHeightFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 }
