@@ -67,5 +67,3 @@ param set-default PWM_MAIN_FUNC9 206
 param set-default PWM_MAIN_REV 256
 
 
-set MIXER_FILE etc/mixers-sitl/plane_sitl.main.mix
-set MIXER custom

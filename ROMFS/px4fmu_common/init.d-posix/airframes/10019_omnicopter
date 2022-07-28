@@ -95,5 +95,3 @@ param set-default CA_METHOD 0
 param set-default FD_FAIL_P 0
 param set-default FD_FAIL_R 0
 
-set MIXER skip
-set MIXER_AUX none

@@ -1,8 +1,0 @@
-
-mavlink start -x -u 14558 -r 4000 -f -m onboard -o 14530 -p
-
-# shellcheck disable=SC2154
-mavlink stream -r 10 -s MOUNT_ORIENTATION -u $udp_gcs_port_local
-# shellcheck disable=SC2154
-mavlink stream -r 50 -s ATTITUDE_QUATERNION -u $udp_offboard_port_local
-mavlink stream -r 10 -s MOUNT_ORIENTATION -u $udp_offboard_port_local
