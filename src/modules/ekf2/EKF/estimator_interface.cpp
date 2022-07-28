@@ -528,6 +528,36 @@ bool EstimatorInterface::isHorizontalAidingActive() const
 	return getNumberOfActiveHorizontalAidingSources() > 0;
 }
 
+bool EstimatorInterface::isOtherSourceOfVerticalPositionAidingThan(const bool aiding_flag) const
+{
+	const int nb_sources = getNumberOfActiveVerticalPositionAidingSources();
+	return aiding_flag ? nb_sources > 1 : nb_sources > 0;
+}
+
+bool EstimatorInterface::isVerticalPositionAidingActive() const
+{
+	return getNumberOfActiveVerticalPositionAidingSources() > 0;
+}
+
+int EstimatorInterface::getNumberOfActiveVerticalPositionAidingSources() const
+{
+	return int(_control_status.flags.gps_hgt)
+	       + int(_control_status.flags.baro_hgt)
+	       + int(_control_status.flags.rng_hgt)
+	       + int(_control_status.flags.ev_hgt);
+}
+
+bool EstimatorInterface::isVerticalVelocityAidingActive() const
+{
+	return getNumberOfActiveVerticalVelocityAidingSources() > 0;
+}
+
+int EstimatorInterface::getNumberOfActiveVerticalVelocityAidingSources() const
+{
+	return int(_control_status.flags.gps)
+	       + int(_control_status.flags.ev_vel);
+}
+
 void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)
 {
 	if (buffer_name) {

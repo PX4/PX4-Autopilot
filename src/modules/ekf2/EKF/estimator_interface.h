@@ -181,6 +181,13 @@ public:
 
 	int getNumberOfActiveHorizontalAidingSources() const;
 
+	bool isOtherSourceOfVerticalPositionAidingThan(bool aiding_flag) const;
+	bool isVerticalPositionAidingActive() const;
+	int getNumberOfActiveVerticalPositionAidingSources() const;
+
+	bool isVerticalVelocityAidingActive() const;
+	int getNumberOfActiveVerticalVelocityAidingSources() const;
+
 	const matrix::Quatf &getQuaternion() const { return _output_new.quat_nominal; }
 
 	// get the velocity of the body frame origin in local NED earth frame
