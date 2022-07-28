@@ -119,6 +119,10 @@ private:
 	uint8_t _x{0};
 	bool _heartbeat{false};
 
+	// metadata
+	const char* _port{"/dev/ttyS3"};
+	bool _initialization_failure{false};
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 };
