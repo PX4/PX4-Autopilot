@@ -660,7 +660,6 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 void Ekf::controlHeightFusion()
 {
 	checkVerticalAccelerationHealth();
-	checkRangeAidSuitability();
 
 	updateGroundEffect();
 
@@ -732,33 +731,35 @@ void Ekf::checkHeightSensorRefFallback()
 	}
 }
 
-void Ekf::checkRangeAidSuitability()
+bool Ekf::isRangeAidSuitable()
 {
+	bool is_range_aid_suitable = false;
+
 	if (_control_status.flags.in_air
 	    && _range_sensor.isHealthy()
 	    && isTerrainEstimateValid()) {
 		// check if we can use range finder measurements to estimate height, use hysteresis to avoid rapid switching
 		// Note that the 0.7 coefficients and the innovation check are arbitrary values but work well in practice
 		const float range_hagl = _terrain_vpos - _state.pos(2);
-		const float range_hagl_max = _is_range_aid_suitable ? _params.max_hagl_for_range_aid : (_params.max_hagl_for_range_aid * 0.7f);
+		const float range_hagl_max = _control_status.flags.rng_hgt ? _params.max_hagl_for_range_aid : (_params.max_hagl_for_range_aid * 0.7f);
 		const bool is_in_range = range_hagl < range_hagl_max;
 
 		const float hagl_test_ratio = (_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var));
-		const bool is_hagl_stable = _is_range_aid_suitable ? (hagl_test_ratio < 1.f) : (hagl_test_ratio < 0.01f);
+		const bool is_hagl_stable = _control_status.flags.rng_hgt ? (hagl_test_ratio < 1.f) : (hagl_test_ratio < 0.01f);
 
 		if (isHorizontalAidingActive()) {
-			const float max_vel = _is_range_aid_suitable ? _params.max_vel_for_range_aid : (_params.max_vel_for_range_aid * 0.7f);
+			const float max_vel = _control_status.flags.rng_hgt ? _params.max_vel_for_range_aid : (_params.max_vel_for_range_aid * 0.7f);
 			const bool is_below_max_speed = !_state.vel.xy().longerThan(max_vel);
 
-			_is_range_aid_suitable = is_in_range && is_hagl_stable && is_below_max_speed;
+			is_range_aid_suitable = is_in_range && is_hagl_stable && is_below_max_speed;
 
 		} else {
-			_is_range_aid_suitable = is_in_range && is_hagl_stable;
+			is_range_aid_suitable = is_in_range && is_hagl_stable;
 		}
 
-	} else {
-		_is_range_aid_suitable = false;
 	}
+
+	return is_range_aid_suitable;
 }
 
 void Ekf::controlBaroHeightFusion()
@@ -854,7 +855,7 @@ void Ekf::controlGnssHeightFusion()
 
 void Ekf::controlRangeHeightFusion()
 {
-	if (!(_params.fusion_mode & SensorFusionMask::USE_RNG_HGT)) {
+	if (!(_params.fusion_mode & SensorFusionMask::USE_RNG_HGT) && (_params.range_aid == 0)) {
 		stopRngHgtFusion();
 		return;
 	}
@@ -873,16 +874,20 @@ void Ekf::controlRangeHeightFusion()
 	}
 
 	if (_rng_data_ready) {
-
-		// TODO: primary height source:
-		// run a bias estimator for all other sources
 		updateRngHgt(_aid_src_rng_hgt);
 
-		const bool continuing_conditions_passing = _range_sensor.isDataHealthy();
+		const bool do_range_aid = (_params.range_aid == 1) && isRangeAidSuitable();
+
+		const bool continuing_conditions_passing = _range_sensor.isDataHealthy() && ((_params.range_aid == 0) || do_range_aid);
 		const bool starting_conditions_passing = continuing_conditions_passing
 							 && _range_sensor.isRegularlySendingData();
 
 		if (_control_status.flags.rng_hgt) {
+			if (do_range_aid) {
+				// Force to be the height reference
+				_height_sensor_ref = HeightSensorRef::RANGE;
+			}
+
 			if (continuing_conditions_passing) {
 				fuseRngHgt(_aid_src_rng_hgt);
 
