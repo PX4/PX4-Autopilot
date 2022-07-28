@@ -24,7 +24,7 @@ fi
 
 # initialize script variables
 set IO_PRESENT                  no
-set MIXER                       none
+set MIXER                       skip
 set MIXER_AUX                   none
 set MIXER_FILE                  none
 set OUTPUT_MODE                 sim

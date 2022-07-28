@@ -76,5 +76,3 @@ param set-default VT_TYPE 0
 
 param set-default WV_EN 0
 
-set MIXER_FILE etc/mixers-sitl/quad_x_vtol.main.mix
-set MIXER custom
