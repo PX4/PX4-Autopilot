@@ -18,6 +18,9 @@
 # Common settings across Flight Core configurations
 #
 
+# Disable TELEM1 MAVLINK; used by OSD
+param set-default MAV_0_CONFIG 0
+param set-default SER_TEL1_BAUD 115200
 
 # TELEM2
 param set-default MAV_1_CONFIG 102
