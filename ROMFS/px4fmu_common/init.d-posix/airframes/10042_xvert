@@ -16,8 +16,6 @@ param set-default MPC_MAN_Y_MAX 60
 param set-default MC_PITCH_P 5
 
 param set-default MAV_TYPE 19
-set MAV_TYPE 19
-set MIXER vtol_tailsitter_duo_sat
 
 # disable some checks to allow to fly:
 # - with usb
@@ -30,16 +28,39 @@ param set-default CBRK_IO_SAFETY 22027
 
 param set-default BAT_N_CELLS 3
 
-param set SIH_T_MAX 2.0
-param set SIH_Q_MAX 0.0165
-param set SIH_MASS 0.2
+param set-default SIH_T_MAX 2.0
+param set-default SIH_Q_MAX 0.0165
+param set-default SIH_MASS 0.2
 # IXX and IZZ are inverted from the thesis as the body frame is pitched by 90 deg
-param set SIH_IXX 0.00354
-param set SIH_IYY 0.000625
-param set SIH_IZZ 0.00300
-param set SIH_IXZ 0.0
-param set SIH_KDV 0.2
-param set SIH_L_ROLL 0.145
+param set-default SIH_IXX 0.00354
+param set-default SIH_IYY 0.000625
+param set-default SIH_IZZ 0.00300
+param set-default SIH_IXZ 0.0
+param set-default SIH_KDV 0.2
+param set-default SIH_L_ROLL 0.145
 
 # sih as tailsitter
-param set SIH_VEHICLE_TYPE 2
+param set-default SIH_VEHICLE_TYPE 2
+
+param set-default CA_AIRFRAME 4
+
+param set-default CA_ROTOR_COUNT 2
+param set-default CA_ROTOR0_PX 0
+param set-default CA_ROTOR0_PY 2
+param set-default CA_ROTOR0_KM 0.05
+param set-default CA_ROTOR1_PX 0
+param set-default CA_ROTOR1_PY -1
+param set-default CA_ROTOR1_KM 0.05
+
+param set-default CA_SV_CS_COUNT 2
+param set-default CA_SV_CS0_TYPE 5
+param set-default CA_SV_CS0_TRQ_P 0.5
+param set-default CA_SV_CS0_TRQ_Y -0.5
+param set-default CA_SV_CS1_TYPE 6
+param set-default CA_SV_CS1_TRQ_P 0.5
+param set-default CA_SV_CS1_TRQ_Y 0.5
+
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC5 201
+param set-default PWM_MAIN_FUNC6 202
