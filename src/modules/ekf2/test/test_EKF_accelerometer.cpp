@@ -118,6 +118,13 @@ TEST_F(EkfAccelerometerTest, imuFallingDetectionBaroOnly)
 	// WHEN: there is only one source of vertical aiding
 	// THEN: the estimator cannot know which one is wrong
 	EXPECT_FALSE(_ekf->fault_status_flags().bad_acc_vertical);
+
+	// BUT WHEN: the accelerometer also reports clipping on the Z axis
+	_sensor_simulator._imu.setAccelClipping(false, false, true);
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: a single source is enough to detect a bad acceleration
+	EXPECT_TRUE(_ekf->fault_status_flags().bad_acc_vertical);
 }
 
 TEST_F(EkfAccelerometerTest, imuFallingDetectionBaroGnssVel)
@@ -136,6 +143,13 @@ TEST_F(EkfAccelerometerTest, imuFallingDetectionBaroGnssVel)
 	_sensor_simulator.runSeconds(2);
 
 	// THEN: the bad vertical acceleration is detected
+	EXPECT_TRUE(_ekf->fault_status_flags().bad_acc_vertical);
+
+	// AND WHEN: the accelerometer also reports clipping on the Z axis
+	_sensor_simulator._imu.setAccelClipping(false, false, true);
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: the bad vertical acceleration is still detected
 	EXPECT_TRUE(_ekf->fault_status_flags().bad_acc_vertical);
 }
 
@@ -159,6 +173,13 @@ TEST_F(EkfAccelerometerTest, imuFallingDetectionGnssOnly)
 
 	// THEN: the bad vertical acceleration is not detected because both sources are of the same type
 	EXPECT_FALSE(_ekf->fault_status_flags().bad_acc_vertical);
+
+	// BUT WHEN: the accelerometer also reports clipping on the Z axis
+	_sensor_simulator._imu.setAccelClipping(false, false, true);
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: a single source is enough to detect a bad acceleration
+	EXPECT_TRUE(_ekf->fault_status_flags().bad_acc_vertical);
 }
 
 TEST_F(EkfAccelerometerTest, imuFallingDetectionBaroRange)
@@ -223,4 +244,11 @@ TEST_F(EkfAccelerometerTest, imuFallingDetectionEvVelHgt)
 
 	// THEN: the bad vertical acceleration is not detected because both sources are of the same type
 	EXPECT_FALSE(_ekf->fault_status_flags().bad_acc_vertical);
+
+	// BUT WHEN: the accelerometer also reports clipping on the Z axis
+	_sensor_simulator._imu.setAccelClipping(false, false, true);
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: a single source is enough to detect a bad acceleration
+	EXPECT_TRUE(_ekf->fault_status_flags().bad_acc_vertical);
 }

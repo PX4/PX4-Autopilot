@@ -22,6 +22,9 @@ void Imu::send(uint64_t time)
 	imu_sample.delta_ang = _gyro_data * imu_sample.delta_ang_dt;
 	imu_sample.delta_vel_dt = dt;
 	imu_sample.delta_vel = _accel_data * imu_sample.delta_vel_dt;
+	imu_sample.delta_vel_clipping[0] = _is_accel_clipping[0];
+	imu_sample.delta_vel_clipping[1] = _is_accel_clipping[1];
+	imu_sample.delta_vel_clipping[2] = _is_accel_clipping[2];
 
 	_ekf->setIMUData(imu_sample);
 }
@@ -40,6 +43,13 @@ void Imu::setAccelData(const Vector3f &accel)
 void Imu::setGyroData(const Vector3f &gyro)
 {
 	_gyro_data = gyro;
+}
+
+void Imu::setAccelClipping(bool x, bool y, bool z)
+{
+	_is_accel_clipping[0] = x;
+	_is_accel_clipping[1] = y;
+	_is_accel_clipping[2] = z;
 }
 
 } // namespace sensor

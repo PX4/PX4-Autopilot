@@ -54,6 +54,7 @@ public:
 	void setData(const Vector3f &accel, const Vector3f &gyro);
 	void setAccelData(const Vector3f &accel);
 	void setGyroData(const Vector3f &gyro);
+	void setAccelClipping(bool x, bool y, bool z);
 
 	bool moving()
 	{
@@ -63,6 +64,7 @@ public:
 private:
 	Vector3f _accel_data;
 	Vector3f _gyro_data;
+	bool _is_accel_clipping[3] {};
 
 	void send(uint64_t time) override;
 
