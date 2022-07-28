@@ -255,6 +255,7 @@ parameters:
                 short: Control Surface ${i} type
             type: enum
             values:
+                0: (Not set)
                 1: Left Aileron
                 2: Right Aileron
                 3: Elevator
@@ -269,7 +270,7 @@ parameters:
                 12: Custom
             num_instances: *max_num_servos
             instance_start: 0
-            default: 1
+            default: 0
 
         CA_SV_CS${i}_TRQ_R:
             description:
@@ -492,6 +493,10 @@ mixer:
         # Convention: horizontal surfaces: up=positive, vertical: right=positive, mixed: up=positive.
         # By default the scale is set to 1/N, where N is the amount of actuators with an effect on
         # the corresponding axis. With that we are using all the available servo moving range.
+            0: # Not set
+              - { 'disabled': True, 'default': 0.0 } # roll
+              - { 'disabled': True, 'default': 0.0 } # pitch
+              - { 'disabled': True, 'default': 0.0 } # yaw
             1: # Left Aileron
               - { 'min': -1.0, 'max': 0.0, 'default': -0.5 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
