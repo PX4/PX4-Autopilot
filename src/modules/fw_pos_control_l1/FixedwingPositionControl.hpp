@@ -338,7 +338,7 @@ private:
 	// [m] relative height above land point
 	float _landing_approach_entrance_rel_alt{0.0f};
 
-	uint8_t _landing_abort_status{position_controller_landing_status_s::kNotAborted};
+	uint8_t _landing_abort_status{position_controller_landing_status_s::NOT_ABORTED};
 
 	bool _flaring{false};
 	hrt_abstime _time_started_flaring{0}; // [us]
@@ -436,7 +436,7 @@ private:
 	 *
 	 * @param new_abort_status Either 0 (not aborted) or the singular bit >0 which triggered the abort
 	 */
-	void updateLandingAbortStatus(const uint8_t new_abort_status = position_controller_landing_status_s::kNotAborted);
+	void updateLandingAbortStatus(const uint8_t new_abort_status = position_controller_landing_status_s::NOT_ABORTED);
 
 	/**
 	 * @brief Checks if the automatic abort bitmask (from FW_LND_ABORT) contains the given abort criterion.
