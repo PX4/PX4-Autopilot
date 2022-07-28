@@ -53,6 +53,8 @@
 #include <uORB/topics/estimator_aid_source_2d.h>
 #include <uORB/topics/estimator_aid_source_3d.h>
 
+enum class Likelihood { LOW, MEDIUM, HIGH };
+
 class Ekf final : public EstimatorInterface
 {
 public:
@@ -939,6 +941,7 @@ private:
 	void controlAuxVelFusion();
 
 	void checkVerticalAccelerationHealth();
+	Likelihood estimateInertialNavFallingLikelihood() const;
 
 	// control for combined height fusion mode (implemented for switching between baro and range height)
 	void controlHeightFusion();
