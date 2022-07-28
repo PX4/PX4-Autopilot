@@ -64,10 +64,10 @@ public:
 	void disableRangeHeightFusion();
 	bool isIntendingRangeHeightFusion() const;
 
-	void setVisionHeightRef();
-	void enableVisionHeightFusion();
-	void disableVisionHeightFusion();
-	bool isIntendingVisionHeightFusion() const;
+	void setExternalVisionHeightRef();
+	void enableExternalVisionHeightFusion();
+	void disableExternalVisionHeightFusion();
+	bool isIntendingExternalVisionHeightFusion() const;
 
 	void enableGpsFusion();
 	void disableGpsFusion();
