@@ -9,8 +9,6 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-param set-default SYS_CTRL_ALLOC 1
-
 
 param set-default CA_AIRFRAME 0
 

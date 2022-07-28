@@ -12,7 +12,6 @@
 param set-default FD_ACT_EN 0
 param set-default FD_ACT_MOT_TOUT 500
 
-# param set-default SYS_CTRL_ALLOC 1
 param set-default CA_AIRFRAME 2
 
 param set-default CA_ROTOR_COUNT 5
