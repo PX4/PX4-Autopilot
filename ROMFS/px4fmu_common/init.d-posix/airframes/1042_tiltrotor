@@ -9,7 +9,6 @@
 
 param set-default MAV_TYPE 21
 
-param set-default SYS_CTRL_ALLOC 1
 param set-default CA_AIRFRAME 3
 
 param set-default CA_ROTOR_COUNT 4

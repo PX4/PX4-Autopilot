@@ -289,10 +289,8 @@ PARAM_DEFINE_INT32(SYS_FAILURE_EN, 0);
  * If enabled, dynamic control allocation with runtime configuration of the
  * mixing and output functions is used.
  *
- * Note: this is work-in-progress and not all vehicle types are supported yet.
- *
  * @boolean
  * @reboot_required true
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_CTRL_ALLOC, 0);
+PARAM_DEFINE_INT32(SYS_CTRL_ALLOC, 1);

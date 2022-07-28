@@ -9,8 +9,6 @@
 
 param set-default MAV_TYPE 13
 
-param set-default SYS_CTRL_ALLOC 1
-
 param set-default MC_PITCHRATE_P 0.0800
 param set-default MC_PITCHRATE_I 0.0400
 param set-default MC_PITCHRATE_D 0.0010
