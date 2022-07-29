@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE modules__msp_osd
 	MAIN msp_osd
 	SRCS
+		message_display.cpp
 		msp_osd.cpp
 		MspV1.cpp
 	DEPENDS

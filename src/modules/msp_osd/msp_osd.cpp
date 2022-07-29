@@ -57,6 +57,7 @@
 #include <matrix/math.hpp>
 #include <lib/geo/geo.h>
 
+#include "message_display.hpp"
 #include "MspV1.hpp"
 
 //OSD elements positions
