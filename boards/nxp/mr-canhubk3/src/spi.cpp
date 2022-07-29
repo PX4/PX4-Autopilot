@@ -64,7 +64,7 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	initSPIBusExternal(SPI::Bus::SPI1, {
 		initSPIConfigExternal(SPI::CS{GPIO::PortB, GPIO::Pin5})
 	}),
-	initSPIBusExternal(SPI::Bus::SPI2, {
+	initSPIBusExternal(SPI::Bus::SPI2, { // SD Card
 		initSPIConfigExternal(SPI::CS{GPIO::PortB, GPIO::Pin5})
 	}),
 	initSPIBus(SPI::Bus::SPI3, { // SPI3 is ignored only used for FS26 by a NuttX driver

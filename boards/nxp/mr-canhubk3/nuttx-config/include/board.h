@@ -18,6 +18,8 @@
  *
  ****************************************************************************/
 
+/* Copyright 2022 NXP */
+
 #ifndef __BOARDS_ARM_S32K3XX_MR_CANHUBK3_INCLUDE_BOARD_H
 #define __BOARDS_ARM_S32K3XX_MR_CANHUBK3_INCLUDE_BOARD_H
 
@@ -39,8 +41,9 @@
 
 /* The S32K344 will run at 160 MHz */
 
+#define MR_CANHUBK3_SYSCLK_FREQUENCY  160000000
 
-/* MX25L QuadSPI FLASH */
+/* MX25L QuadSPI Flash ******************************************************/
 
 #ifdef CONFIG_S32K3XX_QSPI
 #  ifdef CONFIG_MTD_MX25RXX
@@ -57,8 +60,8 @@
 #  endif
 #endif
 
-#define MX25L_MTD_MINOR 0
-#define MX25L_SMART_MINOR 0
+#define MX25L_MTD_MINOR    0
+#define MX25L_SMART_MINOR  0
 
 /* LED definitions **********************************************************/
 
@@ -132,41 +135,41 @@
  *   DCD-LZ UART TX  PTA9  (LPUART2_TX)
  */
 
-#define PIN_LPUART2_RX    PIN_LPUART2_RX_1 | PIN_INPUT_PULLUP   /* PTA8 */
+#define PIN_LPUART2_RX    (PIN_LPUART2_RX_1 | PIN_INPUT_PULLUP)   /* PTA8 */
 #define PIN_LPUART2_TX    PIN_LPUART2_TX_1   /* PTA9 */
 
 /* LPUART0   P2 UART (with flow control) connector */
 
 #define PIN_LPUART0_CTS   PIN_LPUART0_CTS_1  /* PTA0 */
 #define PIN_LPUART0_RTS   PIN_LPUART0_RTS_1  /* PTA1 */
-#define PIN_LPUART0_RX    PIN_LPUART0_RX_1 | PIN_INPUT_PULLUP   /* PTA2 */
+#define PIN_LPUART0_RX    (PIN_LPUART0_RX_1 | PIN_INPUT_PULLUP)   /* PTA2 */
 #define PIN_LPUART0_TX    PIN_LPUART0_TX_1   /* PTA3 */
 
 /* LPUART1   P5 UART (with flow control) connector */
 
 #define PIN_LPUART1_CTS   PIN_LPUART1_CTS_2  /* PTE2 */
 #define PIN_LPUART1_RTS   PIN_LPUART1_RTS_2  /* PTE6 */
-#define PIN_LPUART1_RX    PIN_LPUART1_RX_3 | PIN_INPUT_PULLUP   /* PTC6 */
+#define PIN_LPUART1_RX    (PIN_LPUART1_RX_3 | PIN_INPUT_PULLUP)   /* PTC6 */
 #define PIN_LPUART1_TX    PIN_LPUART1_TX_3   /* PTC7 */
 
 /* LPUART9   P24 UART connector */
 
-#define PIN_LPUART9_RX    PIN_LPUART9_RX_1 | PIN_INPUT_PULLUP   /* PTB2 */
+#define PIN_LPUART9_RX    (PIN_LPUART9_RX_1 | PIN_INPUT_PULLUP)   /* PTB2 */
 #define PIN_LPUART9_TX    PIN_LPUART9_TX_1   /* PTB3 */
 
 /* LPUART10  P24 UART connector */
 
-#define PIN_LPUART10_RX   PIN_LPUART10_RX_1 | PIN_INPUT_PULLUP  /* PTC12 */
+#define PIN_LPUART10_RX   (PIN_LPUART10_RX_1 | PIN_INPUT_PULLUP)  /* PTC12 */
 #define PIN_LPUART10_TX   PIN_LPUART10_TX_1  /* PTC13 */
 
 /* LPUART13  P25 UART connector */
 
-#define PIN_LPUART13_RX   PIN_LPUART13_RX_1 | PIN_INPUT_PULLUP  /* PTB19 */
+#define PIN_LPUART13_RX   (PIN_LPUART13_RX_1 | PIN_INPUT_PULLUP)  /* PTB19 */
 #define PIN_LPUART13_TX   PIN_LPUART13_TX_1  /* PTB18 */
 
 /* LPUART14  P25 UART connector */
 
-#define PIN_LPUART14_RX   PIN_LPUART14_RX_1 | PIN_INPUT_PULLUP  /* PTB21 */
+#define PIN_LPUART14_RX   (PIN_LPUART14_RX_1 | PIN_INPUT_PULLUP)  /* PTB21 */
 #define PIN_LPUART14_TX   PIN_LPUART14_TX_1  /* PTB20 */
 
 /* SPI selections ***********************************************************/
@@ -179,8 +182,7 @@
 #define PIN_LPSPI1_PCS0   PIN_LPSPI1_PCS0_2  /* PTA21 */
 #define PIN_LPSPI1_PCS1   PIN_LPSPI1_PCS1_6  /* PTE4  */
 
-
-#define PIN_LPSPI1_PCS   PIN_PTA21 | GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  /* PTA21 */
+#define PIN_LPSPI1_PCS    (PIN_PTA21 | GPIO_LOWDRIVE | GPIO_OUTPUT_ONE)  /* PTA21 */
 
 /* LPSPI2  P1B external SPI connector */
 
@@ -190,14 +192,14 @@
 #define PIN_LPSPI2_PCS0   PIN_LPSPI2_PCS0_2  /* PTB25 */
 #define PIN_LPSPI2_PCS1   PIN_LPSPI2_PCS1_3  /* PTC19 */
 
-#define PIN_LPSPI2_PCS   PIN_PTB25 | GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  /* PTB25 */
+#define PIN_LPSPI2_PCS    (PIN_PTB25 | GPIO_LOWDRIVE | GPIO_OUTPUT_ONE)  /* PTB25 */
 
 /* LPSPI3  FS26 Safety SBC */
 
 #define PIN_LPSPI3_SCK    PIN_LPSPI3_SCK_2   /* PTD1  */
 #define PIN_LPSPI3_MISO   PIN_LPSPI3_SOUT_2  /* PTD0  */
 #define PIN_LPSPI3_MOSI   PIN_LPSPI3_SIN_3   /* PTE10 */
-#define PIN_LPSPI3_PCS    PIN_PTD17 | GPIO_LOWDRIVE | GPIO_OUTPUT_ONE /* PTD17 */
+#define PIN_LPSPI3_PCS    (PIN_PTD17 | GPIO_LOWDRIVE | GPIO_OUTPUT_ONE) /* PTD17 */
 
 /* LPSPI4  P8B I/O connector / P26 external IMU connector */
 
@@ -207,7 +209,7 @@
 #define PIN_LPSPI4_PCS0   PIN_LPSPI4_PCS0_1  /* PTB8  */
 #define PIN_LPSPI4_PCS3   PIN_LPSPI4_PCS3_1  /* PTA16 */
 
-#define PIN_LPSPI4_PCS   PIN_PTA16 | GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  /* PTA16 */
+#define PIN_LPSPI4_PCS    (PIN_PTA16 | GPIO_LOWDRIVE | GPIO_OUTPUT_ONE)  /* PTA16 */
 
 /* LPSPI5  P26 external IMU connector */
 
@@ -216,7 +218,7 @@
 #define PIN_LPSPI5_MOSI   PIN_LPSPI5_SIN_3   /* PTD28 */
 #define PIN_LPSPI5_PCS1   PIN_LPSPI5_PCS1_1  /* PTA14 */
 
-#define PIN_LPSPI5_PCS   PIN_PTA14 | GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  /* PTA14 */
+#define PIN_LPSPI5_PCS    (PIN_PTA14 | GPIO_LOWDRIVE | GPIO_OUTPUT_ONE)  /* PTA14 */
 
 /*      PIN_LPSPI5_PCS2                         PTD29 */
 
@@ -244,6 +246,7 @@
 #define CAN0_ENABLE_OUT   1
 #define PIN_CAN0_LED      (PIN_PTC18 | GPIO_OUTPUT)
 #define CAN0_LED_OUT      0
+#define PIN_CAN0_ERRN     (PIN_PTC20 | GPIO_INPUT)
 
 /* CAN1  TJA1443 CAN transceiver */
 
@@ -255,33 +258,57 @@
 #define CAN1_ENABLE_OUT   1
 #define PIN_CAN1_LED      (PIN_PTE5  | GPIO_OUTPUT)
 #define CAN1_LED_OUT      0
+#define PIN_CAN1_ERRN     (PIN_PTD3  | GPIO_INPUT)
 
 /* CAN2  TJA1463 CAN transceiver */
 
 #define PIN_CAN2_RX       PIN_CAN2_RX_5      /* PTE25 */
 #define PIN_CAN2_TX       PIN_CAN2_TX_5      /* PTE24 */
 #define PIN_CAN2_STB      (PIN_PTD22 | GPIO_OUTPUT)
+#define CAN2_STB_OUT      1
+#define PIN_CAN2_ENABLE   (PIN_PTD4  | GPIO_OUTPUT)
+#define CAN2_ENABLE_OUT   1
+#define PIN_CAN2_LED      (PIN_PTD20 | GPIO_OUTPUT)
+#define CAN2_LED_OUT      0
+#define PIN_CAN2_ERRN     (PIN_PTD21 | GPIO_INPUT)
 
 /* CAN3  TJA1463 CAN transceiver */
 
 #define PIN_CAN3_RX       PIN_CAN3_RX_2      /* PTC29 */
 #define PIN_CAN3_TX       PIN_CAN3_TX_2      /* PTC28 */
-#define PIN_CAN3_STB      (PIN_PTB1 | GPIO_OUTPUT)
+#define PIN_CAN3_STB      (PIN_PTB1  | GPIO_OUTPUT)
+#define CAN3_STB_OUT      1
+#define PIN_CAN3_ENABLE   (PIN_PTB0  | GPIO_OUTPUT)
+#define CAN3_ENABLE_OUT   1
+#define PIN_CAN3_LED      (PIN_PTB24 | GPIO_OUTPUT)
+#define CAN3_LED_OUT      0
+#define PIN_CAN3_ERRN     (PIN_PTC27 | GPIO_INPUT)
 
 /* CAN4  TJA1153 CAN transceiver */
 
 #define PIN_CAN4_RX       PIN_CAN4_RX_2      /* PTC31 */
 #define PIN_CAN4_TX       PIN_CAN4_TX_2      /* PTC30 */
 #define PIN_CAN4_STB      (PIN_PTC25 | GPIO_OUTPUT)
+#define CAN4_STB_OUT      0
+#define PIN_CAN4_ENABLE   (PIN_PTC26 | GPIO_OUTPUT)
+#define CAN4_ENABLE_OUT   1
+#define PIN_CAN4_LED      (PIN_PTB26 | GPIO_OUTPUT)
+#define CAN4_LED_OUT      0
+#define PIN_CAN4_ERRN     (PIN_PTC23 | GPIO_INPUT)
 
 /* CAN5  TJA1153 CAN transceiver */
 
 #define PIN_CAN5_RX       PIN_CAN5_RX_1      /* PTC11 */
 #define PIN_CAN5_TX       PIN_CAN5_TX_1      /* PTC10 */
 #define PIN_CAN5_STB      (PIN_PTE17 | GPIO_OUTPUT)
+#define CAN5_STB_OUT      0
+#define PIN_CAN5_ENABLE   (PIN_PTD30 | GPIO_OUTPUT)
+#define CAN5_ENABLE_OUT   1
+#define PIN_CAN5_LED      (PIN_PTD31 | GPIO_OUTPUT)
+#define CAN5_LED_OUT      0
+#define PIN_CAN5_ERRN     (PIN_PTD24 | GPIO_INPUT)
 
-
-/* ENET selections ***********************************************************/
+/* ENET selections **********************************************************/
 
 #define PIN_EMAC_MII_RMII_TXD0    PIN_EMAC_MII_RMII_TXD0_1     /* PTB5  */
 #define PIN_EMAC_MII_RMII_TXD1    PIN_EMAC_MII_RMII_TXD1_1     /* PTB4  */
@@ -293,6 +320,5 @@
 #define PIN_EMAC_MII_RMII_MDC     PIN_EMAC_MII_RMII_MDC_3      /* PTC8  */
 #define PIN_EMAC_MII_RMII_MDIO    PIN_EMAC_MII_RMII_MDIO_2     /* PTD16 */
 #define PIN_EMAC_MII_RMII_TX_CLK  PIN_EMAC_MII_RMII_TX_CLK_2   /* PTD6 */
-
 
 #endif  /* __BOARDS_ARM_S32K3XX_MR_CANHUBK3_INCLUDE_BOARD_H */

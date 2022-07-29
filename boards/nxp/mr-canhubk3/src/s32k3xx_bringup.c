@@ -128,20 +128,6 @@ int s32k3xx_bringup(void)
 
 #endif
 
-#ifdef CONFIG_FS_PROCFS
-	/* Mount the procfs file system */
-
-	ret = nx_mount(NULL, "/proc", "procfs", 0, NULL);
-
-	if (ret < 0) {
-		_err("Mounting procfs at /proc failed: %d\n", ret);
-
-	} else {
-		_info("Mounting procfs at /proc succesful\n");
-	}
-
-#endif
-
 #ifdef HAVE_MX25L
 	/* Create an instance of the S32K3XX QSPI device driver */
 

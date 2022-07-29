@@ -50,7 +50,7 @@ static const px4_mtd_entry_t fmum_qspi_flash = {
 	.partd = {
 		{
 			.type = MTD_PARAMETERS,
-			.path = "/fs/qspi/params",
+			.path = "/mnt/qspi/params",
 			.nblocks = 1
 		}
 	},
