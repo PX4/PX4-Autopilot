@@ -494,7 +494,56 @@ void PWMOut::Run()
 
 void PWMOut::update_params()
 {
+	uint32_t previously_set_functions = 0;
+
+	for (size_t i = 0; i < _num_outputs; i++) {
+		previously_set_functions |= (uint32_t)_mixing_output.isFunctionSet(i) << i;
+	}
+
 	updateParams();
+
+	// Automatically set the PWM rate and disarmed value when a channel is first set to a servo
+	if (_mixing_output.useDynamicMixing() && !_first_param_update) {
+		for (size_t i = 0; i < _num_outputs; i++) {
+			if ((previously_set_functions & (1u << i)) == 0 && _mixing_output.functionParamHandle(i) != PARAM_INVALID) {
+				int32_t output_function;
+
+				if (param_get(_mixing_output.functionParamHandle(i), &output_function) == 0
+				    && output_function >= (int)OutputFunction::Servo1
+				    && output_function <= (int)OutputFunction::ServoMax) { // Function got set to a servo
+					int32_t val = 1500;
+					PX4_INFO("Setting disarmed to %i for channel %i", (int) val, i);
+					param_set(_mixing_output.disarmedParamHandle(i), &val);
+
+					// If the whole timer group was not set previously, then set the pwm rate to 50 Hz
+					for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
+
+						uint32_t channels = io_timer_get_group(timer);
+
+						if ((channels & (1u << i)) == 0) {
+							continue;
+						}
+
+						if ((channels & previously_set_functions) == 0) { // None of the channels was set
+							char param_name[17];
+							snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
+
+							int32_t tim_config = 0;
+							param_t handle = param_find(param_name);
+
+							if (param_get(handle, &tim_config) == 0 && tim_config == 400) {
+								tim_config = 50;
+								PX4_INFO("setting timer %i to %i Hz", timer, (int) tim_config);
+								param_set(handle, &tim_config);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	_first_param_update = false;
 
 	if (_mixing_output.useDynamicMixing()) {
 		return;
