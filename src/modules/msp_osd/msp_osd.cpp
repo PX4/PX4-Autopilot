@@ -57,7 +57,6 @@
 #include <matrix/math.hpp>
 #include <lib/geo/geo.h>
 
-#include "message_display.hpp"
 #include "MspV1.hpp"
 
 //OSD elements positions
@@ -136,7 +135,8 @@ const uint16_t osd_rc_channels_pos = 234;
 MspOsd::MspOsd() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test1),
-	_msp(NULL)
+	_msp(NULL),
+	_display(/*display_chars=*/12, /*update_period_ms*/250)
 {
 }
 

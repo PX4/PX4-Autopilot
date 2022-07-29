@@ -54,8 +54,10 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/input_rc.h>
 
 #include "MspV1.hpp"
+#include "message_display.hpp"
 
 using namespace time_literals;
 
@@ -83,7 +85,7 @@ public:
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
-	
+
 	bool init();
 
 	/** @see ModuleBase::print_status() */
@@ -95,9 +97,11 @@ private:
 
 	MspV1 _msp;
 	int _msp_fd{-1};
-	
+
+	msp_osd::MessageDisplay _display;
+
 	bool _is_initialized{false};
-	
+
 	//uORB::Subscription power_monitor_sub(ORB_ID(power_monitor));
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -109,7 +113,8 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
-	
+	uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
+
 	struct battery_status_s _battery_status_struct = {0};
 	struct vehicle_status_s _vehicle_status_struct;
 	struct vehicle_gps_position_s _vehicle_gps_position_struct = {0};
@@ -120,10 +125,12 @@ private:
 	struct vehicle_attitude_s _vehicle_attitude_struct = {0};
 	struct estimator_status_s _estimator_status_struct = {0};
 	struct vehicle_local_position_s _vehicle_local_position_struct = {0};
+	struct input_rc_s _input_rc_struct = {0};
+
 
 	void SendConfig();
 	void SendTelemetry();
-	
+
 	uint8_t _x{0};
 	bool _heartbeat{false};
 
