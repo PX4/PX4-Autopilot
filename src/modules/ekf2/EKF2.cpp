@@ -106,7 +106,10 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_req_hdrift(_params->req_hdrift),
 	_param_ekf2_req_vdrift(_params->req_vdrift),
 	_param_ekf2_aid_mask(_params->fusion_mode),
-	_param_ekf2_hgt_mode(_params->height_sensor_ref),
+	_param_ekf2_hgt_ref(_params->height_sensor_ref),
+	_param_ekf2_baro_ctrl(_params->baro_ctrl),
+	_param_ekf2_gps_ctrl(_params->gnss_ctrl),
+	_param_ekf2_rng_ctrl(_params->rng_ctrl),
 	_param_ekf2_terr_mask(_params->terrain_fusion_mode),
 	_param_ekf2_noaid_tout(_params->valid_timeout_max),
 	_param_ekf2_rng_noise(_params->range_noise),
@@ -114,7 +117,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_rng_gate(_params->range_innov_gate),
 	_param_ekf2_min_rng(_params->rng_gnd_clearance),
 	_param_ekf2_rng_pitch(_params->rng_sens_pitch),
-	_param_ekf2_rng_aid(_params->range_aid),
 	_param_ekf2_rng_a_vmax(_params->max_vel_for_range_aid),
 	_param_ekf2_rng_a_hmax(_params->max_hagl_for_range_aid),
 	_param_ekf2_rng_a_igate(_params->range_aid_innov_gate),
@@ -292,7 +294,7 @@ void EKF2::Run()
 		}
 
 		// if using baro ensure sensor interval minimum is sufficient to accommodate system averaged baro output
-		if (_params->fusion_mode & SensorFusionMask::USE_BARO_HGT) {
+		if (_params->baro_ctrl == 1) {
 			float sens_baro_rate = 0.f;
 
 			if (param_get(param_find("SENS_BARO_RATE"), &sens_baro_rate) == PX4_OK) {

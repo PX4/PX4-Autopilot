@@ -456,7 +456,10 @@ private:
 		// measurement source control
 		(ParamExtInt<px4::params::EKF2_AID_MASK>)
 		_param_ekf2_aid_mask,		///< bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
-		(ParamExtInt<px4::params::EKF2_HGT_MODE>) _param_ekf2_hgt_mode,	///< selects the primary source for height data
+		(ParamExtInt<px4::params::EKF2_HGT_REF>) _param_ekf2_hgt_ref,    ///< selects the primary source for height data
+		(ParamExtInt<px4::params::EKF2_BARO_CTRL>) _param_ekf2_baro_ctrl,///< barometer control selection
+		(ParamExtInt<px4::params::EKF2_GPS_CTRL>) _param_ekf2_gps_ctrl,  ///< GPS control selection
+		(ParamExtInt<px4::params::EKF2_RNG_CTRL>) _param_ekf2_rng_ctrl,	 ///< range finder control selection
 		(ParamExtInt<px4::params::EKF2_TERR_MASK>)
 		_param_ekf2_terr_mask, ///< bitmasked integer that selects which of range finder and optical flow aiding sources will be used for terrain estimation
 		(ParamExtInt<px4::params::EKF2_NOAID_TOUT>)
@@ -470,8 +473,6 @@ private:
 		_param_ekf2_rng_gate,	///< range finder fusion innovation consistency gate size (STD)
 		(ParamExtFloat<px4::params::EKF2_MIN_RNG>) _param_ekf2_min_rng,	///< minimum valid value for range when on ground (m)
 		(ParamExtFloat<px4::params::EKF2_RNG_PITCH>) _param_ekf2_rng_pitch,	///< range sensor pitch offset (rad)
-		(ParamExtInt<px4::params::EKF2_RNG_AID>)
-		_param_ekf2_rng_aid,		///< enables use of a range finder even if primary height source is not range finder
 		(ParamExtFloat<px4::params::EKF2_RNG_A_VMAX>)
 		_param_ekf2_rng_a_vmax,	///< maximum allowed horizontal velocity for range aid (m/s)
 		(ParamExtFloat<px4::params::EKF2_RNG_A_HMAX>)

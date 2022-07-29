@@ -12,17 +12,17 @@ EkfWrapper::~EkfWrapper()
 
 void EkfWrapper::setBaroHeightRef()
 {
-	_ekf_params->height_sensor_ref |= HeightSensorRef::BARO;
+	_ekf_params->height_sensor_ref = HeightSensor::BARO;
 }
 
 void EkfWrapper::enableBaroHeightFusion()
 {
-	_ekf_params->fusion_mode |= SensorFusionMask::USE_BARO_HGT;
+	_ekf_params->baro_ctrl = 1;
 }
 
 void EkfWrapper::disableBaroHeightFusion()
 {
-	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_BARO_HGT;
+	_ekf_params->baro_ctrl = 0;
 }
 
 bool EkfWrapper::isIntendingBaroHeightFusion() const
@@ -32,17 +32,17 @@ bool EkfWrapper::isIntendingBaroHeightFusion() const
 
 void EkfWrapper::setGpsHeightRef()
 {
-	_ekf_params->height_sensor_ref |= HeightSensorRef::GPS;
+	_ekf_params->height_sensor_ref = HeightSensor::GNSS;
 }
 
 void EkfWrapper::enableGpsHeightFusion()
 {
-	_ekf_params->fusion_mode |= SensorFusionMask::USE_GPS_HGT;
+	_ekf_params->gnss_ctrl |= GnssCtrl::VPOS;
 }
 
 void EkfWrapper::disableGpsHeightFusion()
 {
-	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_GPS_HGT;
+	_ekf_params->gnss_ctrl &= ~GnssCtrl::VPOS;
 }
 
 bool EkfWrapper::isIntendingGpsHeightFusion() const
@@ -52,17 +52,17 @@ bool EkfWrapper::isIntendingGpsHeightFusion() const
 
 void EkfWrapper::setRangeHeightRef()
 {
-	_ekf_params->height_sensor_ref |= HeightSensorRef::RANGE;
+	_ekf_params->height_sensor_ref = HeightSensor::RANGE;
 }
 
 void EkfWrapper::enableRangeHeightFusion()
 {
-	_ekf_params->fusion_mode |= SensorFusionMask::USE_RNG_HGT;
+	_ekf_params->rng_ctrl = RngCtrl::ENABLED;
 }
 
 void EkfWrapper::disableRangeHeightFusion()
 {
-	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_RNG_HGT;
+	_ekf_params->rng_ctrl = RngCtrl::DISABLED;
 }
 
 bool EkfWrapper::isIntendingRangeHeightFusion() const
@@ -72,17 +72,12 @@ bool EkfWrapper::isIntendingRangeHeightFusion() const
 
 void EkfWrapper::setExternalVisionHeightRef()
 {
-	_ekf_params->height_sensor_ref |= HeightSensorRef::EV;
+	_ekf_params->height_sensor_ref = HeightSensor::EV;
 }
 
 void EkfWrapper::enableExternalVisionHeightFusion()
 {
-	_ekf_params->fusion_mode |= SensorFusionMask::USE_EXT_VIS_HGT;
-}
-
-void EkfWrapper::disableExternalVisionHeightFusion()
-{
-	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_EXT_VIS_HGT;
+	setExternalVisionHeightRef(); // TODO: replace by EV control parameter
 }
 
 bool EkfWrapper::isIntendingExternalVisionHeightFusion() const
@@ -92,12 +87,12 @@ bool EkfWrapper::isIntendingExternalVisionHeightFusion() const
 
 void EkfWrapper::enableGpsFusion()
 {
-	_ekf_params->fusion_mode |= SensorFusionMask::USE_GPS;
+	_ekf_params->gnss_ctrl |= GnssCtrl::HPOS | GnssCtrl::VEL;
 }
 
 void EkfWrapper::disableGpsFusion()
 {
-	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_GPS;
+	_ekf_params->gnss_ctrl &= ~(GnssCtrl::HPOS | GnssCtrl::VEL);
 }
 
 bool EkfWrapper::isIntendingGpsFusion() const
@@ -107,12 +102,12 @@ bool EkfWrapper::isIntendingGpsFusion() const
 
 void EkfWrapper::enableGpsHeadingFusion()
 {
-	_ekf_params->fusion_mode |= SensorFusionMask::USE_GPS_YAW;
+	_ekf_params->gnss_ctrl |= GnssCtrl::YAW;
 }
 
 void EkfWrapper::disableGpsHeadingFusion()
 {
-	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_GPS_YAW;
+	_ekf_params->gnss_ctrl &= ~GnssCtrl::YAW;
 }
 
 bool EkfWrapper::isIntendingGpsHeadingFusion() const

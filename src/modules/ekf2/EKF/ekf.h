@@ -948,8 +948,7 @@ private:
 	void controlRangeHeightFusion();
 	void controlEvHeightFusion();
 
-	// determine if flight condition is suitable to use range finder instead of the primary height sensor
-	bool isRangeAidSuitable();
+	bool isConditionalRangeAidSuitable();
 
 	void stopMagFusion();
 	void stopMag3DFusion();
