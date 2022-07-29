@@ -5,17 +5,6 @@
 # @type Hexarotor +
 # @class Copter
 #
-# @output MAIN1 motor1
-# @output MAIN2 motor2
-# @output MAIN3 motor3
-# @output MAIN4 motor4
-# @output MAIN5 motor5
-# @output MAIN6 motor6
-#
-# @output AUX1 feed-through of RC AUX1 channel
-# @output AUX2 feed-through of RC AUX2 channel
-# @output AUX3 feed-through of RC AUX3 channel
-#
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #
 # @board bitcraze_crazyflie exclude
@@ -43,7 +32,4 @@ param set-default CA_ROTOR5_PX -0.25
 param set-default CA_ROTOR5_PY 0.43
 param set-default CA_ROTOR5_KM -0.05
 
-set MIXER hexa_+
 
-# Need to set all 8 channels
-set PWM_OUT 12345678

@@ -11,7 +11,6 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
 
 param set SYS_HITL 1
 

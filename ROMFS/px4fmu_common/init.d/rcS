@@ -28,7 +28,7 @@ set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
 set LOGGER_ARGS ""
 set LOGGER_BUF 8
-set MIXER none
+set MIXER skip
 set MIXER_AUX none
 set MIXER_FILE none
 set MIXER_EXTRA none
