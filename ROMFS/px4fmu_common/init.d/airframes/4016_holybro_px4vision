@@ -5,20 +5,11 @@
 # @type Quadrotor x
 # @class Copter
 #
-# @output MAIN1 motor 1
-# @output MAIN2 motor 2
-# @output MAIN3 motor 3
-# @output MAIN4 motor 4
-#
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
 #
 
 . ${R}etc/init.d/rc.mc_defaults
-
-# System parameters
-# use FMU motor outputs for less delay in the rate control loop
-param set-default SYS_USE_IO 0
 
 # Commander Parameters
 param set-default COM_OBS_AVOID 1
@@ -116,3 +107,24 @@ param set-default BAT1_V_DIV 18.182
 param set-default CBRK_IO_SAFETY 22027
 
 param set-default THR_MDL_FAC 0.3
+
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.15
+param set-default CA_ROTOR0_PY 0.15
+param set-default CA_ROTOR0_KM 0.05
+param set-default CA_ROTOR1_PX -0.15
+param set-default CA_ROTOR1_PY -0.15
+param set-default CA_ROTOR1_KM 0.05
+param set-default CA_ROTOR2_PX 0.15
+param set-default CA_ROTOR2_PY -0.15
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.15
+param set-default CA_ROTOR3_PY 0.15
+param set-default CA_ROTOR3_KM -0.05
+
+# Outputs
+param set-default PWM_AUX_FUNC1 101
+param set-default PWM_AUX_FUNC2 102
+param set-default PWM_AUX_FUNC3 103
+param set-default PWM_AUX_FUNC4 104
+

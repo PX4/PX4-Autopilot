@@ -29,12 +29,7 @@ param set-default MC_YAWRATE_MAX 1000
 param set-default MPC_MANTHR_MIN 0
 param set-default MPC_MAN_TILT_MAX 60
 
-# use thrust curve factor (instead of TPA)
 param set-default THR_MDL_FAC 0.3
-
-param set-default PWM_MAIN_MIN 1075
-# enable one-shot
-param set-default PWM_MAIN_RATE 0
 
 # enable high-rate logging profile (helps with tuning)
 param set-default SDLOG_PROFILE 19
@@ -42,4 +37,16 @@ param set-default SDLOG_PROFILE 19
 param set-default IMU_DGYRO_CUTOFF 50
 param set-default IMU_GYRO_CUTOFF 90
 
-param set-default CBRK_IO_SAFETY 22027
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.15
+param set-default CA_ROTOR0_PY 0.15
+param set-default CA_ROTOR1_PX -0.15
+param set-default CA_ROTOR1_PY -0.15
+param set-default CA_ROTOR2_PX 0.15
+param set-default CA_ROTOR2_PY -0.15
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.15
+param set-default CA_ROTOR3_PY 0.15
+param set-default CA_ROTOR3_KM -0.05
+
+

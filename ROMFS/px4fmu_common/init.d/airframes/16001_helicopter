@@ -7,11 +7,11 @@
 #
 # @maintainer Bart Slinger <bartslinger@gmail.com>
 #
-# @output MAIN1 main motor
-# @output MAIN2 front swashplate servo
-# @output MAIN3 right swashplate servo
-# @output MAIN4 left swashplate servo
-# @output MAIN5 tail-rotor servo
+# @output Motor1 main motor
+# @output Servo1 front swashplate servo
+# @output Servo2 right swashplate servo
+# @output Servo3 left swashplate servo
+# @output Servo4 tail-rotor servo
 #
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
@@ -19,12 +19,10 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-# Configure as helicopter (number 4 defined in commander_helper.cpp)
+# Configure as helicopter
 param set-default MAV_TYPE 4
 
-set MIXER blade130
 
-set PWM_OUT none
 
 param set-default ATT_BIAS_MAX 0
 
@@ -52,3 +50,7 @@ param set-default MPC_THR_MIN 0.06
 param set-default MPC_MANTHR_MIN 0.06
 
 param set-default PWM_MAIN_MIN 1075
+
+param set-default CA_AIRFRAME 10
+
+

@@ -5,10 +5,10 @@
 # @type Simulation
 # @class VTOL
 #
-# @output MAIN1 motor right
-# @output MAIN2 motor left
-# @output MAIN5 elevon right
-# @output MAIN6 elevon left
+# @output Motor1 motor right
+# @output Motor2 motor left
+# @output Servo1 elevon right
+# @output Servo2 elevon left
 #
 # @maintainer Romain Chiappinelli <romain.chiap@gmail.com>
 #
@@ -48,9 +48,7 @@ param set-default HIL_ACT_REV 32
 
 param set-default MAV_TYPE 19
 
-set MIXER vtol_tailsitter_duo_sat
 
-set PWM_OUT 1234
 
 # set SYS_HITL to 2 to start the SIH and avoid sensors startup
 param set-default SYS_HITL 2
