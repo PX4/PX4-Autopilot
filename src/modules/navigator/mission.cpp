@@ -821,14 +821,10 @@ Mission::set_mission_items()
 					   && _work_item_type == WORK_ITEM_TYPE_DEFAULT
 					   && new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
-					if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-						/* haven't transitioned yet, trigger vtol takeoff logic below */
-						_work_item_type = WORK_ITEM_TYPE_TAKEOFF;
 
-					} else {
-						/* already in fixed-wing, go to waypoint */
-						_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-					}
+					/* haven't transitioned yet, trigger vtol takeoff logic below */
+					_work_item_type = WORK_ITEM_TYPE_TAKEOFF;
+
 
 					/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
 					_mission_item.yaw = NAN;
