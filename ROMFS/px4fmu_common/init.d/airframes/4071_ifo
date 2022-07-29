@@ -38,7 +38,7 @@ param set-default SENS_BOARD_ROT 10
 
 # EKF2
 param set-default EKF2_GND_EFF_DZ 6
-param set-default EKF2_HGT_MODE 1
+param set-default EKF2_HGT_REF 1
 
 # Position control
 param set-default MPC_Z_P 1
