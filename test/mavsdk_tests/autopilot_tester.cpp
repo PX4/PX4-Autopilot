@@ -144,11 +144,11 @@ void AutopilotTester::set_height_source(AutopilotTester::HeightSource height_sou
 {
 	switch (height_source) {
 	case HeightSource::Baro:
-		CHECK(_param->set_param_int("EKF2_HGT_MODE", 0) == Param::Result::Success);
+		CHECK(_param->set_param_int("EKF2_HGT_REF", 0) == Param::Result::Success);
 		break;
 
 	case HeightSource::Gps:
-		CHECK(_param->set_param_int("EKF2_HGT_MODE", 1) == Param::Result::Success);
+		CHECK(_param->set_param_int("EKF2_HGT_REF", 1) == Param::Result::Success);
 	}
 }
 

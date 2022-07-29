@@ -71,7 +71,7 @@ param set-default MIS_TAKEOFF_ALT 1.1
 # EKF
 #####################################
 # Height mode as GPS
-param set-default EKF2_HGT_MODE 1
+param set-default EKF2_HGT_REF 1
 # Enable optical flow and GPS
 param set-default EKF2_MAG_TYPE 1
 param set-default EKF2_OF_QMIN 80
