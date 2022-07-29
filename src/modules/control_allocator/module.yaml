@@ -580,9 +580,6 @@ mixer:
                   - actuator_type: 'motor'
                     group_label: 'Motors'
                     count: 'CA_ROTOR_COUNT'
-                    per_item_parameters:
-                        standard:
-                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
                   - actuator_type: 'servo'
                     group_label: 'Control Surfaces'
                     count: 'CA_SV_CS_COUNT'
