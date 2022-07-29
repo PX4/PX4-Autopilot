@@ -437,7 +437,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	float max_time_delay_ms = math::max((float)_params.sensor_interval_max_ms, _params.auxvel_delay_ms);
 
 	// using baro
-	if (_params.fusion_mode & SensorFusionMask::USE_BARO_HGT) {
+	if (_params.baro_ctrl > 0) {
 		max_time_delay_ms = math::max(_params.baro_delay_ms, max_time_delay_ms);
 	}
 
@@ -451,12 +451,12 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 		max_time_delay_ms = math::max(_params.mag_delay_ms, max_time_delay_ms);
 	}
 
-	// range aid or range height
-	if (_params.range_aid || (_params.fusion_mode & SensorFusionMask::USE_RNG_HGT)) {
+	// using range finder
+	if ((_params.rng_ctrl != RngCtrl::DISABLED)) {
 		max_time_delay_ms = math::max(_params.range_delay_ms, max_time_delay_ms);
 	}
 
-	if (_params.fusion_mode & SensorFusionMask::USE_GPS) {
+	if (_params.gnss_ctrl > 0) {
 		max_time_delay_ms = math::max(_params.gps_delay_ms, max_time_delay_ms);
 	}
 
@@ -537,6 +537,11 @@ bool EstimatorInterface::isOtherSourceOfVerticalPositionAidingThan(const bool ai
 bool EstimatorInterface::isVerticalPositionAidingActive() const
 {
 	return getNumberOfActiveVerticalPositionAidingSources() > 0;
+}
+
+bool EstimatorInterface::isOnlyActiveSourceOfVerticalPositionAiding(const bool aiding_flag) const
+{
+	return aiding_flag && !isOtherSourceOfVerticalPositionAidingThan(aiding_flag);
 }
 
 int EstimatorInterface::getNumberOfActiveVerticalPositionAidingSources() const

@@ -860,7 +860,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 	const float rangefinder_hagl_max = 0.75f * _range_sensor.getValidMaxVal();
 
 	// TODO : calculate visual odometry limits
-	const bool relying_on_rangefinder = _control_status.flags.rng_hgt && !_params.range_aid;
+	const bool relying_on_rangefinder = isOnlyActiveSourceOfVerticalPositionAiding(_control_status.flags.rng_hgt);
 	const bool relying_on_optical_flow = isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow);
 
 	// Keep within range sensor limit when using rangefinder as primary height source

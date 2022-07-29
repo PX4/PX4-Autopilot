@@ -268,7 +268,7 @@ void Ekf::controlExternalVisionFusion()
 			_ev_sample_delayed.pos -= pos_offset_earth;
 
 			// Use an incremental position fusion method for EV position data if GPS is also used
-			if (_params.fusion_mode & SensorFusionMask::USE_GPS) {
+			if (_params.gnss_ctrl & GnssCtrl::HPOS) {
 				_fuse_hpos_as_odom = true;
 
 			} else {
@@ -572,7 +572,7 @@ void Ekf::resetOnGroundMotionForOpticalFlowChecks()
 
 void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 {
-	if (!(_params.fusion_mode & SensorFusionMask::USE_GPS_YAW)
+	if (!(_params.gnss_ctrl & GnssCtrl::YAW)
 	    || _control_status.flags.gps_yaw_fault) {
 
 		stopGpsYawFusion();
@@ -731,7 +731,7 @@ void Ekf::checkHeightSensorRefFallback()
 	}
 }
 
-bool Ekf::isRangeAidSuitable()
+bool Ekf::isConditionalRangeAidSuitable()
 {
 	bool is_range_aid_suitable = false;
 
@@ -764,7 +764,7 @@ bool Ekf::isRangeAidSuitable()
 
 void Ekf::controlBaroHeightFusion()
 {
-	if (!(_params.fusion_mode & SensorFusionMask::USE_BARO_HGT)) {
+	if (!(_params.baro_ctrl == 1)) {
 		stopBaroHgtFusion();
 		return;
 	}
@@ -812,7 +812,7 @@ void Ekf::controlBaroHeightFusion()
 
 void Ekf::controlGnssHeightFusion()
 {
-	if (!(_params.fusion_mode & SensorFusionMask::USE_GPS_HGT)) {
+	if (!(_params.gnss_ctrl & GnssCtrl::VPOS)) {
 		stopGpsHgtFusion();
 		return;
 	}
@@ -855,7 +855,7 @@ void Ekf::controlGnssHeightFusion()
 
 void Ekf::controlRangeHeightFusion()
 {
-	if (!(_params.fusion_mode & SensorFusionMask::USE_RNG_HGT) && (_params.range_aid == 0)) {
+	if (!((_params.rng_ctrl == RngCtrl::CONDITIONAL) || (_params.rng_ctrl == RngCtrl::ENABLED))) {
 		stopRngHgtFusion();
 		return;
 	}
@@ -876,18 +876,13 @@ void Ekf::controlRangeHeightFusion()
 	if (_rng_data_ready) {
 		updateRngHgt(_aid_src_rng_hgt);
 
-		const bool do_range_aid = (_params.range_aid == 1) && isRangeAidSuitable();
+		const bool do_conditional_range_aid = (_params.rng_ctrl == RngCtrl::CONDITIONAL) && isConditionalRangeAidSuitable();
 
-		const bool continuing_conditions_passing = _range_sensor.isDataHealthy() && ((_params.range_aid == 0) || do_range_aid);
+		const bool continuing_conditions_passing = _range_sensor.isDataHealthy() && ((_params.rng_ctrl == RngCtrl::ENABLED) || do_conditional_range_aid);
 		const bool starting_conditions_passing = continuing_conditions_passing
 							 && _range_sensor.isRegularlySendingData();
 
 		if (_control_status.flags.rng_hgt) {
-			if (do_range_aid) {
-				// Force to be the height reference
-				_height_sensor_ref = HeightSensorRef::RANGE;
-			}
-
 			if (continuing_conditions_passing) {
 				fuseRngHgt(_aid_src_rng_hgt);
 
@@ -922,7 +917,7 @@ void Ekf::controlRangeHeightFusion()
 
 void Ekf::controlEvHeightFusion()
 {
-	if (!(_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_HGT)) {
+	if (!(_params.height_sensor_ref == HeightSensor::EV)) { // TODO: replace by EV control parameter
 		stopEvHgtFusion();
 		return;
 	}
