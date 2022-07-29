@@ -183,6 +183,7 @@ public:
 
 	bool isOtherSourceOfVerticalPositionAidingThan(bool aiding_flag) const;
 	bool isVerticalPositionAidingActive() const;
+	bool isOnlyActiveSourceOfVerticalPositionAiding(const bool aiding_flag) const;
 	int getNumberOfActiveVerticalPositionAidingSources() const;
 
 	bool isVerticalVelocityAidingActive() const;

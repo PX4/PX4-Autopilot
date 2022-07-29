@@ -113,21 +113,30 @@ enum HeightSensor : uint8_t {
 	UNKNOWN  = 4
 };
 
+enum GnssCtrl : uint8_t {
+	HPOS  = (1<<0),
+	VPOS  = (1<<1),
+	VEL  = (1<<2),
+	YAW  = (1<<3)
+};
+
+enum RngCtrl : uint8_t {
+	DISABLED    = 0,
+	CONDITIONAL = 1,
+	ENABLED     = 2
+};
+
 enum SensorFusionMask : uint16_t {
 	// Bit locations for fusion_mode
-	USE_GPS          = (1<<0),      ///< set to true to use GPS data
+	/* USE_GPS          = (1<<0),      ///< set to true to use GPS data */
 	USE_OPT_FLOW     = (1<<1),      ///< set to true to use optical flow data
 	INHIBIT_ACC_BIAS = (1<<2),      ///< set to true to inhibit estimation of accelerometer delta velocity bias
 	USE_EXT_VIS_POS  = (1<<3),      ///< set to true to use external vision position data
 	USE_EXT_VIS_YAW  = (1<<4),      ///< set to true to use external vision quaternion data for yaw
 	USE_DRAG         = (1<<5),      ///< set to true to use the multi-rotor drag model to estimate wind
 	ROTATE_EXT_VIS   = (1<<6),      ///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
-	USE_GPS_YAW      = (1<<7),      ///< set to true to use GPS yaw data if available
+	/* USE_GPS_YAW      = (1<<7),      ///< set to true to use GPS yaw data if available */
 	USE_EXT_VIS_VEL  = (1<<8),      ///< set to true to use external vision velocity data
-	USE_BARO_HGT     = (1<<9),      ///< set to true to use baro data
-	USE_GPS_HGT      = (1<<10),     ///< set to true to use GPS height data
-	USE_RNG_HGT      = (1<<11),     ///< set to true to use range height data
-	USE_EXT_VIS_HGT  = (1<<12)     ///< set to true to use external vision height data
 };
 
 struct gpsMessage {
@@ -251,9 +260,11 @@ struct parameters {
 	int32_t filter_update_interval_us{10000}; ///< filter update interval in microseconds
 
 	// measurement source control
-	int32_t fusion_mode{SensorFusionMask::USE_GPS |
-			    SensorFusionMask::USE_BARO_HGT};         ///< bitmasked integer that selects which aiding sources will be used
+	int32_t fusion_mode{};         ///< bitmasked integer that selects some aiding sources
 	int32_t height_sensor_ref{HeightSensor::BARO};
+	int32_t baro_ctrl{1};
+	int32_t gnss_ctrl{GnssCtrl::HPOS | GnssCtrl::VEL};
+	int32_t rng_ctrl{RngCtrl::CONDITIONAL};
 	int32_t terrain_fusion_mode{TerrainFusionMask::TerrainFuseRangeFinder |
 				    TerrainFusionMask::TerrainFuseOpticalFlow}; ///< aiding source(s) selection bitmask for the terrain estimator
 
@@ -335,9 +346,8 @@ struct parameters {
 	float rng_sens_pitch{0.0f};             ///< Pitch offset of the range sensor (rad). Sensor points out along Z axis when offset is zero. Positive rotation is RH about Y axis.
 	float range_noise_scaler{0.0f};         ///< scaling from range measurement to noise (m/m)
 	const float vehicle_variance_scaler{0.0f};      ///< gain applied to vehicle height variance used in calculation of height above ground observation variance
-	float max_hagl_for_range_aid{5.0f};     ///< maximum height above ground for which we allow to use the range finder as height source (if range_aid == 1)
-	float max_vel_for_range_aid{1.0f};      ///< maximum ground velocity for which we allow to use the range finder as height source (if range_aid == 1)
-	int32_t range_aid{0};                   ///< allow switching primary height source to range finder if certain conditions are met
+	float max_hagl_for_range_aid{5.0f};     ///< maximum height above ground for which we allow to use the range finder as height source (if rng_control == 1)
+	float max_vel_for_range_aid{1.0f};      ///< maximum ground velocity for which we allow to use the range finder as height source (if rng_control == 1)
 	float range_aid_innov_gate{1.0f};       ///< gate size used for innovation consistency checks for range aid fusion
 	float range_valid_quality_s{1.0f};      ///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
 	float range_cos_max_tilt{0.7071f};      ///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data

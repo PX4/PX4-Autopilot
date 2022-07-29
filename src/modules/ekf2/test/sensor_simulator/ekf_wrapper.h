@@ -66,7 +66,7 @@ public:
 
 	void setExternalVisionHeightRef();
 	void enableExternalVisionHeightFusion();
-	void disableExternalVisionHeightFusion();
+	/* void disableExternalVisionHeightFusion(); */
 	bool isIntendingExternalVisionHeightFusion() const;
 
 	void enableGpsFusion();

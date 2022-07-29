@@ -600,44 +600,39 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * Integer bitmask controlling data fusion and aiding methods.
  *
  * Set bits in the following positions to enable:
- * 0 : Set to true to use GPS data if available
+ * 0 : Deprecated, use EKF2_GPS_CTRL instead
  * 1 : Set to true to use optical flow data if available
  * 2 : Set to true to inhibit IMU delta velocity bias estimation
  * 3 : Set to true to enable vision position fusion
  * 4 : Set to true to enable vision yaw fusion. Cannot be used if bit position 7 is true.
  * 5 : Set to true to enable multi-rotor drag specific force fusion
  * 6 : set to true if the EV observations are in a non NED reference frame and need to be rotated before being used
- * 7 : Set to true to enable GPS yaw fusion. Cannot be used if bit position 4 is true.
+ * 7 : Deprecated, use EKF2_GPS_CTRL instead
  * 8 : Set to true to enable vision velocity fusion
- * 9 : Set to true to enable barometer height fusion.
- * 10 : Set to true to enable GPS height fusion.
- * 11 : Set to true to enable range finder height fusion.
- * 12 : Set to true to enable vision height fusion.
  *
  * @group EKF2
  * @min 0
- * @max 8091
- * @bit 0 position: GPS
- * @bit 1 velocity: optical flow
+ * @max 511
+ * @bit 0 unused
+ * @bit 1 use optical flow
  * @bit 2 inhibit IMU bias estimation
- * @bit 3 position: vision
- * @bit 4 yaw: vision
- * @bit 5 wind: multi-rotor drag fusion
+ * @bit 3 vision position fusion
+ * @bit 4 vision yaw fusion
+ * @bit 5 multi-rotor drag fusion
  * @bit 6 rotate external vision
- * @bit 7 yaw: GPS
- * @bit 8 velocity: vision
- * @bit 9 height: barometer
- * @bit 10 height: GPS
- * @bit 11 height: range finder
- * @bit 12 height: vision
+ * @bit 7 unused
+ * @bit 8 vision velocity fusion
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(EKF2_AID_MASK, 513);
+PARAM_DEFINE_INT32(EKF2_AID_MASK, 0);
 
 /**
- * Determines the primary source of height data used by the EKF.
+ * Determines the reference source of height data used by the EKF.
  *
- * The range sensor option should only be used when for operation over a flat surface as the local NED origin will move up and down with ground level.
+ * When multiple height sources are enabled at the same time, the height estimate will
+ * always converge towards the reference height source selected by this parameter.
+ *
+ * The range sensor and vision options should only be used when for operation over a flat surface as the local NED origin will move up and down with ground level.
  *
  * @group EKF2
  * @value 0 Barometric pressure
@@ -646,7 +641,61 @@ PARAM_DEFINE_INT32(EKF2_AID_MASK, 513);
  * @value 3 Vision
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(EKF2_HGT_MODE, 0);
+PARAM_DEFINE_INT32(EKF2_HGT_REF, 1);
+
+/**
+ * Barometric sensor height aiding
+ *
+ * If this parameter is enabled then the estimator will make use of the barometric height measurements to estimate it's height in addition to other
+ * height sources (if activated).
+ *
+ * @group EKF2
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_BARO_CTRL, 1);
+
+/**
+ * GNSS sensor aiding
+ *
+ * Set bits in the following positions to enable:
+ * 0 : Longitude and latitude fusion
+ * 1 : Altitude fusion
+ * 2 : 3D velocity fusion
+ * 3 : Dual antenna heading fusion
+ *
+ * @group EKF2
+ * @min 0
+ * @max 15
+ * @bit 0 Lon/lat
+ * @bit 1 Altitude
+ * @bit 2 3D velocity
+ * @bit 3 Dual antenna heading
+ */
+PARAM_DEFINE_INT32(EKF2_GPS_CTRL, 7);
+
+/**
+ * Range sensor height aiding
+ *
+ * WARNING: Range finder measurements are less reliable and can experience unexpected errors.
+ * For these reasons, if accurate control of height relative to ground is required, it is recommended to use the MPC_ALT_MODE parameter instead,
+ * unless baro errors are severe enough to cause problems with landing and takeoff.
+ *
+ * To en-/disable range finder for terrain height estimation, use EKF2_TERR_MASK instead.
+ *
+ * If this parameter is enabled then the estimator will make use of the range finder measurements to estimate it's height in addition to other
+ * height sources (if activated). Range sensor aiding can be enabled (i.e.: always use) or set in "conditional" mode.
+ *
+ * Conditional mode: This enables the range finder to be used during low speed (< EKF2_RNG_A_VMAX) and low altitude (< EKF2_RNG_A_HMAX)
+ * operation, eg takeoff and landing, where baro interference from rotor wash is excessive and can corrupt EKF state
+ * estimates. It is intended to be used where a vertical takeoff and landing is performed, and horizontal flight does
+ * not occur until above EKF2_RNG_A_HMAX.
+ *
+ * @group EKF2
+ * @value 0 Disable range fusion
+ * @value 1 Enabled (conditional mode)
+ * @value 2 Enabled
+ */
+PARAM_DEFINE_INT32(EKF2_RNG_CTRL, 1);
 
 /**
  * Integer bitmask controlling fusion sources of the terrain estimator
@@ -1056,30 +1105,10 @@ PARAM_DEFINE_FLOAT(EKF2_ANGERR_INIT, 0.1f);
 PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
 
 /**
- * Range sensor aid.
- *
- * If this parameter is enabled then the estimator will make use of the range finder measurements
- * to estimate it's height even if range sensor is not the primary height source. It will only do so if conditions
- * for range measurement fusion are met. This enables the range finder to be used during low speed and low altitude
- * operation, eg takeoff and landing, where baro interference from rotor wash is excessive and can corrupt EKF state
- * estimates. It is intended to be used where a vertical takeoff and landing is performed, and horizontal flight does
- * not occur until above EKF2_RNG_A_HMAX. If vehicle motion causes repeated switching between the primary height
- * sensor and range finder, an offset in the local position origin can accumulate. Also range finder measurements
- * are less reliable and can experience unexpected errors. For these reasons, if accurate control of height
- * relative to ground is required, it is recommended to use the MPC_ALT_MODE parameter instead, unless baro errors
- * are severe enough to cause problems with landing and takeoff.
- *
- * @group EKF2
- * @value 0 Range aid disabled
- * @value 1 Range aid enabled
- */
-PARAM_DEFINE_INT32(EKF2_RNG_AID, 1);
-
-/**
- * Maximum horizontal velocity allowed for range aid mode.
+ * Maximum horizontal velocity allowed for conditional range aid mode.
  *
  * If the vehicle horizontal speed exceeds this value then the estimator will not fuse range measurements
- * to estimate it's height. This only applies when range aid mode is activated (EKF2_RNG_AID = enabled).
+ * to estimate it's height. This only applies when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
  *
  * @group EKF2
  * @min 0.1
@@ -1089,10 +1118,10 @@ PARAM_DEFINE_INT32(EKF2_RNG_AID, 1);
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_VMAX, 1.0f);
 
 /**
- * Maximum absolute altitude (height above ground level) allowed for range aid mode.
+ * Maximum absolute altitude (height above ground level) allowed for conditional range aid mode.
  *
  * If the vehicle absolute altitude exceeds this value then the estimator will not fuse range measurements
- * to estimate it's height. This only applies when range aid mode is activated (EKF2_RNG_AID = enabled).
+ * to estimate it's height. This only applies when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
  *
  * @group EKF2
  * @min 1.0

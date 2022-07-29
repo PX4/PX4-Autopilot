@@ -41,7 +41,7 @@
 
 void Ekf::controlGpsFusion()
 {
-	if (!(_params.fusion_mode & SensorFusionMask::USE_GPS)) {
+	if (!((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VEL))) {
 		stopGpsFusion();
 		return;
 	}
@@ -72,8 +72,13 @@ void Ekf::controlGpsFusion()
 				if (continuing_conditions_passing
 				    || !isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 
-					fuseGpsVel();
-					fuseGpsPos();
+					if (_params.gnss_ctrl & GnssCtrl::VEL) {
+						fuseGpsVel();
+					}
+
+					if ((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VPOS)) {
+						fuseGpsPos();
+					}
 
 					if (shouldResetGpsFusion()) {
 						const bool was_gps_signal_lost = isTimedOut(_time_prev_gps_us, 1000000);
