@@ -1,6 +1,7 @@
 /* Implementation of MessageDisplay class.
  */
 
+#include <math.h>
 #include "message_display.hpp"
 
 namespace msp_osd {
@@ -48,24 +49,35 @@ void MessageDisplay::set(const MessageDisplayType mode, const char* string) {
 	}
 }
 
-// get the latest subsection of the message
 void MessageDisplay::get(char* string) {
 	// check if we should update the full message (and reset display)
 	if (updated_) {
-		// // full_message = "Flight Mode: " + flight_mode_msg + " - ARMED: " + arming_msg + " - STATUS: " + status_msg + " - WARNING: " + warning_msg + "            ";
+		// full_message = "Flight Mode: " + flight_mode_msg + " - ARMED: " + arming_msg + " - STATUS: " + status_msg + " - WARNING: " + warning_msg + "            ";
 
-		// // construct full message
-		// full_message = flight_mode_msg.substring(0,3) + "|" + arming_msg + "|" + heading_msg;
-		// if (warning_msg.length() != 0) {
-		// 	full_message += " | WARNING: " + warning_msg;
-		// 	// pad with whitespace
-		// 	for (unsigned i = 0; i != msg_length_; ++i)
-		// 		full_message += " ";
-		// }
+		// reset and construct full message
+		strcpy(full_message, "");
+		strncat(full_message, flight_mode_msg, 3);	// first three characters of Flight Mode
+		strcat(full_message, "|");
+		strncat(full_message, arming_msg, 3);		// first three characters of Arming Message
+		strcat(full_message, "|");
+		strncat(full_message, heading_msg, 2);		// first two characters of Heading
 
-		// last_update_ = 0;
-		// updated_ = true;
-		// index = 0;
+		// add a warning message, if it's not empty
+		if (strlen(warning_msg) != 0) {
+			// copy as much of warning message as we can fit
+			strcat(full_message, " | WARNING: ");
+			const size_t chars_used {22};	// characters used so far
+			strncat(full_message, warning_msg, MAX_MSG_LENGTH - chars_used);
+
+			// pad with terminal whitespace
+			for (unsigned i = strlen(full_message); i != msg_length_; ++i)
+				strcat(full_message, " ");
+		}
+
+		// reset display variables
+		last_update_ = 0;
+		index = 0;
+		updated_ = false;
 	}
 
 	// handle edge case where full message is short
@@ -78,8 +90,7 @@ void MessageDisplay::get(char* string) {
 	uint32_t current_time = hrt_absolute_time();
 	uint32_t dt = current_time - last_update_;
 	if ( (index == 0 && dt > (4 * period_)) || (index != 0 && dt > period_) ) {
-		// scroll through message
-		// update index
+		// scroll through message by updating index
 		if (++index > strlen(full_message) - msg_length_)
 			index = 0;
 
@@ -88,7 +99,6 @@ void MessageDisplay::get(char* string) {
 	}
 
 	// reset update flag and return latest message
-	updated_ = false;
 	strncpy(string, full_message + index, msg_length_);
 	return;
 }

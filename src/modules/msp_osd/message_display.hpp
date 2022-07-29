@@ -10,7 +10,7 @@
 namespace msp_osd {
 
 // character size limitations
-#define MAX_MSG_LENGTH 128
+#define MAX_MSG_LENGTH 250
 
 // supported message types
 enum MessageDisplayType
