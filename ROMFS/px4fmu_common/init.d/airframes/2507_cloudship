@@ -4,10 +4,10 @@
 # @type Airship
 # @class Airship
 #
-# @output MAIN1 starboard thruster
-# @output MAIN2 port thruster
-# @output MAIN3 thrust tilt
-# @output MAIN4 tail thruster
+# @output Motor1 starboard thruster
+# @output Motor2 port thruster
+# @output Motor3 tail thruster
+# @output Servo1 thrust tilt
 #
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
@@ -18,5 +18,24 @@
 param set-default COM_PREARM_MODE 2
 param set-default CBRK_IO_SAFETY 22027
 
-set MIXER cloudship
-set PWM_OUT 1234
+param set-default CA_AIRFRAME 9
+
+param set-default CA_ROTOR_COUNT 3
+param set-default CA_ROTOR0_AX 1.0000
+param set-default CA_ROTOR0_AZ 0.0000
+param set-default CA_ROTOR0_KM 0.0000
+param set-default CA_ROTOR0_PY 2.0000
+param set-default CA_ROTOR1_AX 1.0000
+param set-default CA_ROTOR1_AZ 0.0000
+param set-default CA_ROTOR1_KM 0.0000
+param set-default CA_ROTOR1_PY -2.0000
+param set-default CA_ROTOR2_AY -1.0000
+param set-default CA_ROTOR2_AZ 0.0000
+param set-default CA_ROTOR2_KM 0.0000
+param set-default CA_ROTOR2_PX -10.0000
+
+param set-default CA_SV_CS_COUNT 1
+param set-default CA_SV_CS0_TRQ_P 1.0000
+
+param set-default CA_R_REV 7
+

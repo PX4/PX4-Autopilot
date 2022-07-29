@@ -5,11 +5,6 @@
 # @type Quadrotor x
 # @class Copter
 #
-# @output MAIN1 motor 1
-# @output MAIN2 motor 2
-# @output MAIN3 motor 3
-# @output MAIN4 motor 4
-#
 # @maintainer Hyon Lim <lim@uvify.com>
 #
 # @board px4_fmu-v2 exclude
@@ -38,7 +33,6 @@ param set-default IMU_GYRO_CUTOFF 100
 
 # System
 param set-default PWM_MAIN_MIN 1100
-param set-default PWM_MAIN_RATE 0
 
 param set-default SENS_BOARD_ROT 10
 
@@ -88,3 +82,24 @@ param set-default MAV_1_CONFIG 102
 # normal
 param set-default MAV_1_MODE 0
 param set-default SER_TEL2_BAUD 57600
+
+
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.15
+param set-default CA_ROTOR0_PY 0.15
+param set-default CA_ROTOR1_PX -0.15
+param set-default CA_ROTOR1_PY -0.15
+param set-default CA_ROTOR2_PX 0.15
+param set-default CA_ROTOR2_PY -0.15
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.15
+param set-default CA_ROTOR3_PY 0.15
+param set-default CA_ROTOR3_KM -0.05
+
+param set-default PWM_MAIN_TIM0 0
+
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+

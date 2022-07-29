@@ -38,11 +38,8 @@ param set-default MC_YAWRATE_MAX 1000
 param set-default MC_YAWRATE_P 0.15
 param set-default MC_YAW_P 4
 
-param set-default MOT_ORDERING 1
 param set-default MPC_MANTHR_MIN 0
 param set-default MPC_MAN_TILT_MAX 60
-
-param set-default DSHOT_CONFIG 1200
 
 param set-default OSD_ATXXXX_CFG 1
 param set-default TEL_FRSKY_CONFIG 300
@@ -55,3 +52,25 @@ param set-default MPC_THR_HOVER 0.12
 param set-default MC_AIRMODE 1
 
 param set-default EV_TSK_RC_LOSS 1
+
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.15
+param set-default CA_ROTOR0_PY 0.15
+param set-default CA_ROTOR1_PX -0.15
+param set-default CA_ROTOR1_PY -0.15
+param set-default CA_ROTOR2_PX 0.15
+param set-default CA_ROTOR2_PY -0.15
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.15
+param set-default CA_ROTOR3_PY 0.15
+param set-default CA_ROTOR3_KM -0.05
+
+param set-default PWM_MAIN_FUNC1 104
+param set-default PWM_MAIN_FUNC2 101
+param set-default PWM_MAIN_FUNC3 102
+param set-default PWM_MAIN_FUNC4 103
+
+param set-default PWM_MAIN_TIM0 -2
+param set-default PWM_MAIN_TIM1 -2
+
+

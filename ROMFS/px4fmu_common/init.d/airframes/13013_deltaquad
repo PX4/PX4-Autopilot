@@ -7,14 +7,14 @@
 #
 # @maintainer Sander Smeets <sander@droneslab.com>
 #
-# @output MAIN1 motor 1
-# @output MAIN2 motor 2
-# @output MAIN3 motor 3
-# @output MAIN4 motor 4
-# @output MAIN5 Right elevon
-# @output MAIN6 Left elevon
-# @output MAIN7 Pusher motor
-# @output MAIN8 Pusher reverse channel
+# @output Motor1 motor 1
+# @output Motor2 motor 2
+# @output Motor3 motor 3
+# @output Motor4 motor 4
+# @output Servo1 Right elevon
+# @output Servo2 Left elevon
+# @output Servo3 Pusher motor
+# @output Servo4 Pusher reverse channel
 #
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
@@ -134,8 +134,32 @@ param set-default VT_F_TRANS_RAMP 4
 
 param set-default COM_RC_OVERRIDE 0
 
-set MIXER deltaquad
-set MIXER_AUX pass
 
-set PWM_OUT 1234
-set PWM_AUX_OUT 12345
+
+
+param set-default CA_AIRFRAME 2
+
+param set-default CA_ROTOR_COUNT 5
+param set-default CA_ROTOR0_PX 0.1515
+param set-default CA_ROTOR0_PY 0.245
+param set-default CA_ROTOR0_KM 0.05
+param set-default CA_ROTOR1_PX -0.1515
+param set-default CA_ROTOR1_PY -0.1875
+param set-default CA_ROTOR1_KM 0.05
+param set-default CA_ROTOR2_PX 0.1515
+param set-default CA_ROTOR2_PY -0.245
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.1515
+param set-default CA_ROTOR3_PY 0.1875
+param set-default CA_ROTOR3_KM -0.05
+param set-default CA_ROTOR4_AX 1.0
+param set-default CA_ROTOR4_AZ 0.0
+param set-default CA_ROTOR4_PX 0.2
+
+param set-default CA_SV_CS_COUNT 3
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS2_TYPE 3
+param set-default CA_SV_CS2_TRQ_P 1.0

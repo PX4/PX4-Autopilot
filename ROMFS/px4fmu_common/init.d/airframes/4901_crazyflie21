@@ -16,7 +16,6 @@
 #
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER quad_x_cw
 
 param set-default SYS_MC_EST_GROUP 2
 param set-default SYS_HAS_MAG 0
@@ -51,18 +50,41 @@ param set-default MPC_MAX_FLOW_HGT 3
 
 param set-default NAV_RCL_ACT 3
 
-param set-default PWM_MAIN_DISARM 0
-param set-default PWM_MAIN_MIN 20
-param set-default PWM_MAIN_MAX 255
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.03
+param set-default CA_ROTOR0_PY 0.03
+param set-default CA_ROTOR1_PX -0.03
+param set-default CA_ROTOR1_PY 0.03
+param set-default CA_ROTOR1_KM -0.05
+param set-default CA_ROTOR2_PX -0.03
+param set-default CA_ROTOR2_PY -0.03
+param set-default CA_ROTOR3_PX 0.03
+param set-default CA_ROTOR3_PY -0.03
+param set-default CA_ROTOR3_KM -0.05
 
 # Run the motors at 328.125 kHz (recommended)
-param set-default PWM_MAIN_RATE 3921
+param set-default PWM_MAIN_TIM0 3921
+param set-default PWM_MAIN_TIM1 3921
+
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+param set-default PWM_MAIN_DIS0 0
+param set-default PWM_MAIN_DIS1 0
+param set-default PWM_MAIN_DIS2 0
+param set-default PWM_MAIN_DIS3 0
+param set-default PWM_MAIN_MIN0 20
+param set-default PWM_MAIN_MIN1 20
+param set-default PWM_MAIN_MIN2 20
+param set-default PWM_MAIN_MIN3 20
+param set-default PWM_MAIN_MAX0 255
+param set-default PWM_MAIN_MAX1 255
+param set-default PWM_MAIN_MAX2 255
+param set-default PWM_MAIN_MAX3 255
 
 param set-default SENS_FLOW_MINRNG 0.05
 
-set PWM_MAIN_DISARM none
-set PWM_MAIN_MAX none
-set PWM_MAIN_MIN none
 
 syslink start
 mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000
