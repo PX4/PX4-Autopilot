@@ -354,7 +354,7 @@ def generate_agent(out_dir):
     # the '-typeros2' option in fastrtpsgen.
     # .. note:: This is only available in FastRTPSGen 1.0.4 and above
     gen_ros2_typename = ""
-    if ros2_distro and ros2_distro in ['dashing', 'eloquent', 'foxy', 'galactic', 'rolling'] and fastrtpsgen_version >= version.Version("1.0.4"):
+    if ros2_distro and ros2_distro in ['dashing', 'eloquent', 'foxy', 'galactic', 'humble', 'rolling'] and fastrtpsgen_version >= version.Version("1.0.4"):
         gen_ros2_typename = "-typeros2 "
 
     idl_files = []
