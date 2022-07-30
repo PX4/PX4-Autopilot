@@ -825,7 +825,8 @@ void VehicleAngularVelocity::Run()
 		sensor_gyro_fifo_s sensor_fifo_data;
 
 		while (_sensor_gyro_fifo_sub.update(&sensor_fifo_data)) {
-			const float inverse_dt_s = 1e6f / sensor_fifo_data.dt;
+			const float dt_s = sensor_fifo_data.dt * 1e-6f;
+			const float inverse_dt_s = 1.f / dt_s;
 			const int N = sensor_fifo_data.samples;
 			static constexpr int FIFO_SIZE_MAX = sizeof(sensor_fifo_data.x) / sizeof(sensor_fifo_data.x[0]);
 
@@ -845,17 +846,65 @@ void VehicleAngularVelocity::Run()
 
 					// save last filtered sample
 					angular_velocity_uncalibrated(axis) = FilterAngularVelocity(axis, data, N);
+
+					// calculate linear regression intermediate terms
+					for (int n = 0; n < N; n++) {
+						const float gyro_rad_s = data[n];
+
+						const float t = (n + 1) * dt_s;
+
+						_gyro_sum[axis] += gyro_rad_s;
+						_time_sum[axis] += t;
+						_gyro_time_sum[axis] += t * gyro_rad_s; // sum xy
+						_time_squared_sum[axis] += t * t;
+					}
+
 					angular_acceleration_uncalibrated(axis) = FilterAngularAcceleration(axis, inverse_dt_s, data, N);
 				}
 
+				_gyro_sum_count += N;
+
 				// Publish
 				if (!_sensor_gyro_fifo_sub.updated()) {
-					if (CalibrateAndPublish(sensor_fifo_data.timestamp_sample,
-								angular_velocity_uncalibrated,
-								angular_acceleration_uncalibrated)) {
 
-						perf_end(_cycle_perf);
-						return;
+					if (sensor_fifo_data.timestamp_sample >= _last_publish + _publish_interval_min_us) {
+
+						// use linear regression to determine slope of angular velocity
+						if (_gyro_sum_count >= 5 && _gyro_sum_count < 20) {
+							int n = _gyro_sum_count;
+
+							for (int axis = 0; axis < 3; axis++) {
+
+								float sum_x = _time_sum[axis];
+								float sum_y = _gyro_sum[axis];
+								float sum_xx = _time_squared_sum[axis];
+								float sum_xy = _gyro_time_sum[axis];
+
+								// slope (derivative of angular velocity)
+								float m = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x);
+								//float b = (sum_y - m * sum_x) / n;
+
+								angular_acceleration_uncalibrated(axis) = m;
+							}
+						}
+
+						// reset
+						_gyro_sum_count = 0;
+
+						for (int axis = 0; axis < 3; axis++) {
+							_gyro_sum[axis] = 0;
+							_time_sum[axis] = 0;
+							_gyro_time_sum[axis] = 0;
+							_time_squared_sum[axis] = 0;
+						}
+
+						if (CalibrateAndPublish(sensor_fifo_data.timestamp_sample,
+									angular_velocity_uncalibrated,
+									angular_acceleration_uncalibrated)) {
+
+							perf_end(_cycle_perf);
+							return;
+						}
 					}
 				}
 			}
@@ -916,27 +965,25 @@ bool VehicleAngularVelocity::CalibrateAndPublish(const hrt_abstime &timestamp_sa
 		const Vector3f &angular_velocity_uncalibrated,
 		const Vector3f &angular_acceleration_uncalibrated)
 {
+	// Angular acceleration: rotate sensor frame to board, scale raw data to SI, apply any additional configured rotation
+	_angular_acceleration = _calibration.rotation() * angular_acceleration_uncalibrated;
+
+	// Angular velocity: rotate sensor frame to board, scale raw data to SI, apply calibration, and remove in-run estimated bias
+	_angular_velocity = _calibration.Correct(angular_velocity_uncalibrated) - _bias;
+
 	if (timestamp_sample >= _last_publish + _publish_interval_min_us) {
 
-		// Publish vehicle_angular_acceleration
+		// publish vehicle_angular_acceleration
 		vehicle_angular_acceleration_s angular_acceleration;
 		angular_acceleration.timestamp_sample = timestamp_sample;
-
-		// Angular acceleration: rotate sensor frame to board, scale raw data to SI, apply any additional configured rotation
-		_angular_acceleration = _calibration.rotation() * angular_acceleration_uncalibrated;
 		_angular_acceleration.copyTo(angular_acceleration.xyz);
-
 		angular_acceleration.timestamp = hrt_absolute_time();
 		_vehicle_angular_acceleration_pub.publish(angular_acceleration);
 
-		// Publish vehicle_angular_velocity
+		// publish vehicle_angular_velocity
 		vehicle_angular_velocity_s angular_velocity;
 		angular_velocity.timestamp_sample = timestamp_sample;
-
-		// Angular velocity: rotate sensor frame to board, scale raw data to SI, apply calibration, and remove in-run estimated bias
-		_angular_velocity = _calibration.Correct(angular_velocity_uncalibrated) - _bias;
 		_angular_velocity.copyTo(angular_velocity.xyz);
-
 		angular_velocity.timestamp = hrt_absolute_time();
 		_vehicle_angular_velocity_pub.publish(angular_velocity);
 
