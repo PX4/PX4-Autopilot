@@ -653,14 +653,14 @@ private:
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	// innovation : prediction - measurement
 	// variance : observaton variance
-	bool fuseYaw(const float innovation, const float variance, estimator_aid_source_1d_s& aid_src_status);
+	bool fuseYaw(const float innovation, const float variance, estimator_aid_source_1d_s &aid_src_status);
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
-	void fuseGpsYaw();
+	void fuseGpsYaw(const gpsSample &gps_sample);
 
 	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
 	// return true if the reset was successful
-	bool resetYawToGps();
+	bool resetYawToGps(const float gnss_yaw);
 
 	// fuse magnetometer declination measurement
 	// argument passed in is the declination uncertainty in radians
@@ -692,12 +692,12 @@ private:
 	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel);
 	void resetVerticalVelocityTo(float new_vert_vel);
 
-	void resetVelocityToGps(const gpsSample &gps_sample_delayed);
+	void resetVelocityToGps(const gpsSample &gps_sample);
 	void resetHorizontalVelocityToOpticalFlow();
 	void resetVelocityToVision();
 	void resetHorizontalVelocityToZero();
 
-	void resetHorizontalPositionToGps(const gpsSample &gps_sample_delayed);
+	void resetHorizontalPositionToGps(const gpsSample &gps_sample);
 	void resetHorizontalPositionToVision();
 	void resetHorizontalPositionToOpticalFlow();
 	void resetHorizontalPositionToLastKnown();
@@ -708,21 +708,23 @@ private:
 	void resetVerticalPositionTo(float new_vert_pos);
 
 	void resetHeightToBaro();
-	void resetHeightToGps();
+	void resetHeightToGps(const gpsSample &gps_sample);
 	void resetHeightToRng();
 	void resetHeightToEv();
 
-	void resetVerticalVelocityToGps(const gpsSample &gps_sample_delayed);
+	void resetVerticalVelocityToGps(const gpsSample &gps_sample);
 	void resetVerticalVelocityToZero();
 
 	// fuse optical flow line of sight rate measurements
 	void fuseOptFlow();
 
-	void updateVelocityAidSrcStatus(const uint64_t& sample_time_us, const Vector3f& velocity, const Vector3f& obs_var, const float innov_gate, estimator_aid_source_3d_s& vel_aid_src) const;
-	void updatePositionAidSrcStatus(const uint64_t& sample_time_us, const Vector3f& position, const Vector3f& obs_var, const float innov_gate, estimator_aid_source_3d_s& pos_aid_src) const;
+	void updateVelocityAidSrcStatus(const uint64_t &sample_time_us, const Vector3f &velocity, const Vector3f &obs_var,
+					const float innov_gate, estimator_aid_source_3d_s &vel_aid_src) const;
+	void updatePositionAidSrcStatus(const uint64_t &sample_time_us, const Vector3f &position, const Vector3f &obs_var,
+					const float innov_gate, estimator_aid_source_3d_s &pos_aid_src) const;
 
-	void fuseVelocity(estimator_aid_source_3d_s& vel_aid_src);
-	void fusePosition(estimator_aid_source_3d_s& pos_aid_src);
+	void fuseVelocity(estimator_aid_source_3d_s &vel_aid_src);
+	void fusePosition(estimator_aid_source_3d_s &pos_aid_src);
 
 	bool fuseHorizontalVelocity(const Vector3f &innov, float innov_gate, const Vector3f &obs_var,
 				    Vector3f &innov_var, Vector2f &test_ratio);
@@ -893,7 +895,7 @@ private:
 	bool hasHorizontalAidingTimedOut() const;
 	bool isYawFailure() const;
 
-	void controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing);
+	void controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing);
 
 	// control fusion of magnetometer observations
 	void controlMagFusion();
@@ -945,7 +947,7 @@ private:
 	void controlHeightFusion();
 	void checkHeightSensorRefFallback();
 	void controlBaroHeightFusion();
-	void controlGnssHeightFusion();
+	void controlGnssHeightFusion(const gpsSample &gps_sample);
 	void controlRangeHeightFusion();
 	void controlEvHeightFusion();
 
@@ -960,7 +962,7 @@ private:
 	void startBaroHgtFusion();
 	void stopBaroHgtFusion();
 
-	void startGpsHgtFusion();
+	void startGpsHgtFusion(const gpsSample &gps_sample);
 	void stopGpsHgtFusion();
 
 	void startRngHgtFusion();
@@ -972,7 +974,7 @@ private:
 	void updateGroundEffect();
 
 	// return an estimation of the sensor altitude variance
-	float getGpsHeightVariance();
+	float getGpsHeightVariance(const gpsSample &gps_sample);
 	float getRngHeightVariance() const;
 
 	// calculate the measurement variance for the optical flow sensor
@@ -1040,12 +1042,12 @@ private:
 	void startAirspeedFusion();
 	void stopAirspeedFusion();
 
-	void startGpsFusion();
+	void startGpsFusion(const gpsSample &gps_sample);
 	void stopGpsFusion();
 	void stopGpsPosFusion();
 	void stopGpsVelFusion();
 
-	void startGpsYawFusion();
+	void startGpsYawFusion(const gpsSample &gps_sample);
 	void stopGpsYawFusion();
 
 	void startEvPosFusion();

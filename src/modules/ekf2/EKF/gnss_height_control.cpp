@@ -38,7 +38,7 @@
 
 #include "ekf.h"
 
-void Ekf::controlGnssHeightFusion()
+void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 {
 	if (!(_params.gnss_ctrl & GnssCtrl::VPOS)) {
 		stopGpsHgtFusion();
@@ -59,8 +59,8 @@ void Ekf::controlGnssHeightFusion()
 
 				if (isHeightResetRequired()) {
 					// All height sources are failing
-					resetHeightToGps();
-					resetVerticalVelocityToGps(_gps_sample_delayed);
+					resetHeightToGps(gps_sample);
+					resetVerticalVelocityToGps(gps_sample);
 
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
@@ -70,9 +70,10 @@ void Ekf::controlGnssHeightFusion()
 			} else {
 				stopGpsHgtFusion();
 			}
+
 		} else {
 			if (starting_conditions_passing) {
-				startGpsHgtFusion();
+				startGpsHgtFusion(gps_sample);
 			}
 		}
 
@@ -81,17 +82,17 @@ void Ekf::controlGnssHeightFusion()
 	}
 }
 
-void Ekf::startGpsHgtFusion()
+void Ekf::startGpsHgtFusion(const gpsSample &gps_sample)
 {
 	if (!_control_status.flags.gps_hgt) {
 
 		if (_params.height_sensor_ref == HeightSensor::GNSS) {
 			_gps_hgt_b_est.reset();
 			_height_sensor_ref = HeightSensor::GNSS;
-			resetHeightToGps();
+			resetHeightToGps(gps_sample);
 
 		} else {
-			_gps_hgt_b_est.setBias(_state.pos(2) + (_gps_sample_delayed.hgt - getEkfGlobalOriginAltitude()));
+			_gps_hgt_b_est.setBias(_state.pos(2) + (gps_sample.hgt - getEkfGlobalOriginAltitude()));
 
 			// Reset the timeout value here because the fusion isn't done at the same place and would immediately trigger a timeout
 			_aid_src_gnss_pos.time_last_fuse[2] = _imu_sample_delayed.time_us;
@@ -103,15 +104,15 @@ void Ekf::startGpsHgtFusion()
 	}
 }
 
-void Ekf::resetHeightToGps()
+void Ekf::resetHeightToGps(const gpsSample &gps_sample)
 {
 	ECL_INFO("reset height to GPS");
 	_information_events.flags.reset_hgt_to_gps = true;
 
-	resetVerticalPositionTo(-(_gps_sample_delayed.hgt - getEkfGlobalOriginAltitude() - _gps_hgt_b_est.getBias()));
+	resetVerticalPositionTo(-(gps_sample.hgt - getEkfGlobalOriginAltitude() - _gps_hgt_b_est.getBias()));
 
 	// the state variance is the same as the observation
-	P.uncorrelateCovarianceSetVariance<1>(9, getGpsHeightVariance());
+	P.uncorrelateCovarianceSetVariance<1>(9, getGpsHeightVariance(gps_sample));
 
 	_baro_b_est.setBias(_baro_b_est.getBias() + _state_reset_status.posD_change);
 	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + _state_reset_status.posD_change);
