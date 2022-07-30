@@ -48,7 +48,7 @@ void Ekf::updateGpsYaw(const gpsSample &gps_sample)
 		// initially populate for estimator_aid_src_gnss_yaw logging
 
 		// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
-		const float measured_hdg = wrap_pi(_gps_sample_delayed.yaw + _gps_yaw_offset);
+		const float measured_hdg = wrap_pi(gps_sample.yaw + _gps_yaw_offset);
 
 		gps_yaw.observation = measured_hdg;
 		gps_yaw.observation_variance = sq(fmaxf(_params.gps_heading_noise, 1.0e-2f));
@@ -103,7 +103,7 @@ void Ekf::updateGpsPos(const gpsSample &gps_sample)
 	resetEstimatorAidStatus(gps_pos);
 
 	const float height_measurement = gps_sample.hgt - getEkfGlobalOriginAltitude();
-	const float height_measurement_var = getGpsHeightVariance();
+	const float height_measurement_var = getGpsHeightVariance(gps_sample);
 
 	Vector3f position;
 	position(0) = gps_sample.pos(0);
