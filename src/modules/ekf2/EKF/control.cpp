@@ -566,7 +566,7 @@ void Ekf::resetOnGroundMotionForOpticalFlowChecks()
 	_time_good_motion_us = _imu_sample_delayed.time_us;
 }
 
-void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
+void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing)
 {
 	if (!(_params.gnss_ctrl & GnssCtrl::YAW)
 	    || _control_status.flags.gps_yaw_fault) {
@@ -575,7 +575,7 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 		return;
 	}
 
-	const bool is_new_data_available = PX4_ISFINITE(_gps_sample_delayed.yaw);
+	const bool is_new_data_available = PX4_ISFINITE(gps_sample.yaw);
 
 	if (is_new_data_available) {
 
@@ -593,14 +593,14 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 
 			if (continuing_conditions_passing) {
 
-				fuseGpsYaw();
+				fuseGpsYaw(gps_sample);
 
 				const bool is_fusion_failing = isTimedOut(_aid_src_gnss_yaw.time_last_fuse, _params.reset_timeout_max);
 
 				if (is_fusion_failing) {
 					if (_nb_gps_yaw_reset_available > 0) {
 						// Data seems good, attempt a reset
-						resetYawToGps();
+						resetYawToGps(gps_sample.yaw);
 
 						if (_control_status.flags.in_air) {
 							_nb_gps_yaw_reset_available--;
@@ -629,7 +629,7 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 		} else {
 			if (starting_conditions_passing) {
 				// Try to activate GPS yaw fusion
-				startGpsYawFusion();
+				startGpsYawFusion(gps_sample);
 
 				if (_control_status.flags.gps_yaw) {
 					_nb_gps_yaw_reset_available = 1;

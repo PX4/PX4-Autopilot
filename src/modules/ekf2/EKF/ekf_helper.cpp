@@ -44,12 +44,12 @@
 #include <mathlib/mathlib.h>
 #include <cstdlib>
 
-void Ekf::resetVelocityToGps(const gpsSample &gps_sample_delayed)
+void Ekf::resetVelocityToGps(const gpsSample &gps_sample)
 {
 	_information_events.flags.reset_vel_to_gps = true;
 	ECL_INFO("reset velocity to GPS");
-	resetVelocityTo(gps_sample_delayed.vel);
-	P.uncorrelateCovarianceSetVariance<3>(4, sq(gps_sample_delayed.sacc));
+	resetVelocityTo(gps_sample.vel);
+	P.uncorrelateCovarianceSetVariance<3>(4, sq(gps_sample.sacc));
 }
 
 void Ekf::resetHorizontalVelocityToOpticalFlow()
@@ -144,12 +144,12 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel)
 	_time_last_ver_vel_fuse = _imu_sample_delayed.time_us;
 }
 
-void Ekf::resetHorizontalPositionToGps(const gpsSample &gps_sample_delayed)
+void Ekf::resetHorizontalPositionToGps(const gpsSample &gps_sample)
 {
 	_information_events.flags.reset_pos_to_gps = true;
 	ECL_INFO("reset position to GPS");
-	resetHorizontalPositionTo(gps_sample_delayed.pos);
-	P.uncorrelateCovarianceSetVariance<2>(7, sq(gps_sample_delayed.hacc));
+	resetHorizontalPositionTo(gps_sample.pos);
+	P.uncorrelateCovarianceSetVariance<2>(7, sq(gps_sample.hacc));
 }
 
 void Ekf::resetHorizontalPositionToVision()
@@ -251,12 +251,12 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos)
 	_time_last_hgt_fuse = _imu_sample_delayed.time_us;
 }
 
-void Ekf::resetVerticalVelocityToGps(const gpsSample &gps_sample_delayed)
+void Ekf::resetVerticalVelocityToGps(const gpsSample &gps_sample)
 {
-	resetVerticalVelocityTo(gps_sample_delayed.vel(2));
+	resetVerticalVelocityTo(gps_sample.vel(2));
 
 	// the state variance is the same as the observation
-	P.uncorrelateCovarianceSetVariance<1>(6, sq(1.5f * gps_sample_delayed.sacc));
+	P.uncorrelateCovarianceSetVariance<1>(6, sq(1.5f * gps_sample.sacc));
 }
 
 void Ekf::resetVerticalVelocityToZero()
@@ -1230,13 +1230,13 @@ void Ekf::startMag3DFusion()
 	}
 }
 
-float Ekf::getGpsHeightVariance()
+float Ekf::getGpsHeightVariance(const gpsSample &gps_sample)
 {
 	// observation variance - receiver defined and parameter limited
 	// use 1.5 as a typical ratio of vacc/hacc
 	const float lower_limit = fmaxf(1.5f * _params.gps_pos_noise, 0.01f);
 	const float upper_limit = fmaxf(1.5f * _params.pos_noaid_noise, lower_limit);
-	const float gps_alt_var = sq(math::constrain(_gps_sample_delayed.vacc, lower_limit, upper_limit));
+	const float gps_alt_var = sq(math::constrain(gps_sample.vacc, lower_limit, upper_limit));
 	return gps_alt_var;
 }
 
@@ -1415,14 +1415,14 @@ void Ekf::stopAirspeedFusion()
 	_control_status.flags.fuse_aspd = false;
 }
 
-void Ekf::startGpsFusion()
+void Ekf::startGpsFusion(const gpsSample &gps_sample)
 {
 	if (!_control_status.flags.gps) {
-		resetHorizontalPositionToGps(_gps_sample_delayed);
+		resetHorizontalPositionToGps(gps_sample);
 
 		// when already using another velocity source velocity reset is not necessary
 		if (!_control_status.flags.opt_flow && !_control_status.flags.ev_vel) {
-			resetVelocityToGps(_gps_sample_delayed);
+			resetVelocityToGps(gps_sample);
 		}
 
 		_information_events.flags.starting_gps_fusion = true;
@@ -1467,9 +1467,9 @@ void Ekf::stopGpsVelFusion()
 	resetEstimatorAidStatus(_aid_src_gnss_vel);
 }
 
-void Ekf::startGpsYawFusion()
+void Ekf::startGpsYawFusion(const gpsSample &gps_sample)
 {
-	if (!_control_status.flags.gps_yaw && resetYawToGps()) {
+	if (!_control_status.flags.gps_yaw && resetYawToGps(gps_sample.yaw)) {
 		ECL_INFO("starting GPS yaw fusion");
 		_control_status.flags.yaw_align = true;
 		_control_status.flags.mag_dec = false;
@@ -1674,14 +1674,6 @@ void Ekf::runYawEKFGSF()
 
 	const Vector3f imu_gyro_bias = getGyroBias();
 	_yawEstimator.update(_imu_sample_delayed, _control_status.flags.in_air, TAS, imu_gyro_bias);
-
-	// basic sanity check on GPS velocity data
-	if (_gps_data_ready
-	&& (_gps_sample_delayed.sacc > FLT_EPSILON) && (_gps_sample_delayed.sacc < _params.req_sacc)
-	&& PX4_ISFINITE(_gps_sample_delayed.vel(0)) && PX4_ISFINITE(_gps_sample_delayed.vel(1))
-	) {
-		_yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), _gps_sample_delayed.sacc);
-	}
 }
 
 void Ekf::resetGpsDriftCheckFilters()
