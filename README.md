@@ -10,8 +10,8 @@ This repository holds the [PX4](http://px4.io) flight control solution for drone
 
 PX4 is highly portable, OS-independent and supports Linux, NuttX and MacOS out of the box.
 
-* Official Website: http://px4.io (License: BSD 3-clause, [LICENSE](https://github.com/PX4/PX4-Autopilot/blob/master/LICENSE))
-* [Supported airframes](https://docs.px4.io/main/en/airframes/airframe_reference.html) ([portfolio](http://px4.io/#airframes)):
+* Official Website: http://px4.io (License: BSD 3-clause, [LICENSE](https://github.com/PX4/PX4-Autopilot/blob/main/LICENSE))
+* [Supported airframes](https://docs.px4.io/main/en/airframes/airframe_reference.html) ([portfolio](https://px4.io/ecosystem/commercial-systems/)):
   * [Multicopters](https://docs.px4.io/main/en/frames_multicopter/)
   * [Fixed wing](https://docs.px4.io/main/en/frames_plane/)
   * [VTOL](https://docs.px4.io/main/en/frames_vtol/)
