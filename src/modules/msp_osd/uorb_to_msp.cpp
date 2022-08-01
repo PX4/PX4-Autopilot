@@ -55,13 +55,29 @@ msp_name_t construct_display_message(const vehicle_status_s& vehicle_status,
 	// initialize result
 	msp_name_t display_message {0};
 
-	// placeholder
-	snprintf(display_message.craft_name, sizeof(display_message.craft_name), "> %s", "HI");
-	display_message.craft_name[14] = '\0';
+	const auto now = hrt_absolute_time();
 
+	// update arming state, flight mode, and warnings, if current
+	if (vehicle_status.timestamp < (now - 500_ms)) {
+		display.set(MessageDisplayType::ARMING, "???");
+		display.set(MessageDisplayType::FLIGHT_MODE, "???");
+		display.set(MessageDisplayType::WARNING, "No vehicle status message received.");
+	} else {
+		// display armed / disarmed
+		if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+			display.set(MessageDisplayType::ARMING, "ARM");
+		else
+			display.set(MessageDisplayType::ARMING, "DSRM");
+
+		// display flight mode
+		// @TODO
+
+		// display any errors or warnings
+		// @TODO
+	}
 
 	// update heading, if relatively recent
-	if (vehicle_attitude.timestamp < (hrt_absolute_time() - 500_ms)) {
+	if (vehicle_attitude.timestamp < (now - 500_ms)) {
 		display.set(MessageDisplayType::HEADING, "N?");
 	} else {
 		// convert to YAW
@@ -89,6 +105,8 @@ msp_name_t construct_display_message(const vehicle_status_s& vehicle_status,
 			display.set(MessageDisplayType::HEADING, "N");
 	}
 
+	// update message and return
+	display.get(display_message.craft_name);
 	return display_message;
 }
 
