@@ -71,6 +71,19 @@ struct PerformanceData
 	uint32_t unsuccessful_sends{0};
 };
 
+enum SymbolIndex : uint8_t {
+	MSP_NAME_IDX 		= 0,
+	MSP_FC_VARIANT_IDX 	= 1,
+	MSP_STATUS_IDX 		= 2,
+	MSP_ANALOG_IDX 		= 3,
+	MSP_BATTERY_STATE_IDX 	= 4,
+	MSP_RAW_GPS_IDX 	= 5,
+	MSP_COMP_GPS_IDX 	= 6,
+	MSP_ATTITUDE_IDX 	= 7,
+	MSP_ALTITUDE_IDX 	= 8,
+	MSP_ESC_SENSOR_DATA_IDX	= 9
+};
+
 class MspOsd : public ModuleBase<MspOsd>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
@@ -142,7 +155,7 @@ private:
 
 	// parameters
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::OBJECTS>) _param_objects
+		(ParamInt<px4::params::SYMBOLS>) _param_symbols
 	)
 
 	// metadata

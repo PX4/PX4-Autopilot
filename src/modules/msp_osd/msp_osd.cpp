@@ -265,6 +265,10 @@ void MspOsd::Run()
 		_is_initialized = true;
 	}
 
+	// avoid premature pessimization; if skip processing if we're effectively disabled
+	if (_param_symbols.get() == 0 )
+		return;
+
 	// update UORB topics
 	//power_monitor_sub.update(&power_monitor_struct);
 	_battery_status_sub.update(&_battery_status_struct);
@@ -281,27 +285,29 @@ void MspOsd::Run()
 
 
 	// update display message
-	const auto display_message = msp_osd::construct_display_message(
-		_vehicle_status_struct,
-		_vehicle_attitude_struct,
-		_display);
-	this->Send(MSP_NAME, &display_message);
+	if (_param_symbols.get() & (1u << SymbolIndex::MSP_NAME_IDX)) {
+		const auto display_message = msp_osd::construct_display_message(
+			_vehicle_status_struct,
+			_vehicle_attitude_struct,
+			_display);
+		this->Send(MSP_NAME, &display_message);
+	}
 
 	// MSP_FC_VARIANT
-	if (true) {
+	if (_param_symbols.get() & (1u << SymbolIndex::MSP_FC_VARIANT_IDX)) {
 		const auto msg = msp_osd::construct_FC_VARIANT();
 		this->Send(MSP_FC_VARIANT, &msg);
 	}
 
 	// MSP_STATUS
-	if (true) {
+	if (_param_symbols.get() & (1u << SymbolIndex::MSP_STATUS_IDX)) {
 		const auto msg = msp_osd::construct_STATUS(
 			_vehicle_status_struct);
 		this->Send(MSP_STATUS, &msg);
 	}
 
 	// MSP_ANALOG
-	if (true) {
+	if (_param_symbols.get() & (1u << SymbolIndex::MSP_ANALOG_IDX)) {
 		const auto msg = msp_osd::construct_ANALOG(
 			_battery_status_struct,
 			_input_rc_struct);
@@ -309,14 +315,14 @@ void MspOsd::Run()
 	}
 
 	// MSP_BATTERY_STATE
-	if (true) {
+	if (_param_symbols.get() & (1u << SymbolIndex::MSP_BATTERY_STATE_IDX)) {
 		const auto msg = msp_osd::construct_BATTERY_STATE(
 			_battery_status_struct);
 		this->Send(MSP_BATTERY_STATE, &msg);
 	}
 
 	// MSP_RAW_GPS
-	if (true) {
+	if (_param_symbols.get() & (1u << SymbolIndex::MSP_RAW_GPS_IDX)) {
 		const auto msg = msp_osd::construct_RAW_GPS(
 			_vehicle_gps_position_struct,
 			_airspeed_validated_struct);
@@ -324,7 +330,7 @@ void MspOsd::Run()
 	}
 
 	// MSP_COMP_GPS
-	if (true) {
+	if (_param_symbols.get() & (1u << SymbolIndex::MSP_COMP_GPS_IDX)) {
 		// update heartbeat
 		_heartbeat = !_heartbeat;
 
@@ -338,14 +344,14 @@ void MspOsd::Run()
 	}
 
 	// MSP_ATTITUDE
-	if (true) {
+	if (_param_symbols.get() & (1u << SymbolIndex::MSP_ATTITUDE_IDX)) {
 		const auto msg = msp_osd::construct_ATTITUDE(
 			_vehicle_attitude_struct);
 		this->Send(MSP_ATTITUDE, &msg);
 	}
 
 	// MSP_ALTITUDE
-	if (true) {
+	if (_param_symbols.get() & (1u << SymbolIndex::MSP_ALTITUDE_IDX)) {
 		// construct and send message
 		const auto msg = msp_osd::construct_ALTITUDE(
 			_vehicle_gps_position_struct,
@@ -355,7 +361,7 @@ void MspOsd::Run()
 	}
 
 	// MSP_MOTOR_TELEMETRY
-	if (true) {
+	if (_param_symbols.get() & (1u << SymbolIndex::MSP_ESC_SENSOR_DATA_IDX)) {
 		const auto msg = msp_osd::construct_ESC_SENSOR_DATA();
 		this->Send(MSP_ESC_SENSOR_DATA, &msg);
 	}

@@ -5,9 +5,9 @@ parameters:
       definitions:
 
         # OSD Parameters
-        OBJECTS:
+        SYMBOLS:
             description:
-                short: OSD Object Selection
+                short: OSD Symbol Selection
                 long: |
                   Configure / toggle support display options.
             type: bitmask
@@ -22,4 +22,4 @@ parameters:
                 7: MSP_ATTITUDE
                 8: MSP_ALTITUDE
                 9: MSP_ESC_SENSOR_DATA
-            default: 0
+            default: 1023
