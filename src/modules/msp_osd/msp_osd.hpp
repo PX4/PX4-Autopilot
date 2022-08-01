@@ -140,6 +140,11 @@ private:
 	// local heartbeat
 	bool _heartbeat{false};
 
+	// parameters
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::OBJECTS>) _param_objects
+	)
+
 	// metadata
 	const char* _port{"/dev/ttyS6"};
 	PerformanceData _performance_data{};

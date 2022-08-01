@@ -38,6 +38,8 @@ px4_add_module(
 		msp_osd.cpp
 		MspV1.cpp
 		uorb_to_msp.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_work_queue
 	)

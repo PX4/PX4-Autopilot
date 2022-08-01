@@ -1,0 +1,25 @@
+module_name: MSP OSD
+
+parameters:
+    - group: OSD
+      definitions:
+
+        # OSD Parameters
+        OBJECTS:
+            description:
+                short: OSD Object Selection
+                long: |
+                  Configure / toggle support display options.
+            type: bitmask
+            bit:
+                0: MSP_NAME
+                1: MSP_FC_VARIANT
+                2: MSP_STATUS
+                3: MSP_ANALOG
+                4: MSP_BATTERY_STATE
+                5: MSP_RAW_GPS
+                6: MSP_COMP_GPS
+                7: MSP_ATTITUDE
+                8: MSP_ALTITUDE
+                9: MSP_ESC_SENSOR_DATA
+            default: 0
