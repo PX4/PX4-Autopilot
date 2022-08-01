@@ -69,7 +69,7 @@ The generated files will be written to the `modules` directory.
         result = ''
         for module in module_list:
             result += "## %s\n" % module.name()
-            result += "Source: [%s](https://github.com/PX4/PX4-Autopilot/tree/master/src/%s)\n\n" % (module.scope(), module.scope())
+            result += "Source: [%s](https://github.com/PX4/PX4-Autopilot/tree/main/src/%s)\n\n" % (module.scope(), module.scope())
             doc = module.documentation()
             if len(doc) > 0:
                 result += "%s\n" % doc

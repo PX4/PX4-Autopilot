@@ -331,7 +331,7 @@ class uploader(object):
 
         except NotImplementedError:
             raise RuntimeError("Programing not supported for this version of silicon!\n"
-                               "See https://docs.px4.io/master/en/flight_controller/silicon_errata.html")
+                               "See https://docs.px4.io/main/en/flight_controller/silicon_errata.html")
         except RuntimeError:
             # timeout, no response yet
             return False

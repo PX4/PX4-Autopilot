@@ -8,7 +8,7 @@ First [fork and clone](https://help.github.com/articles/fork-a-repo) the project
 
 ### Create a feature branch
 
-*Always* branch off master for new features.
+*Always* branch off main for new features.
 
 ```
 git checkout -b mydescriptivebranchname
@@ -16,7 +16,7 @@ git checkout -b mydescriptivebranchname
 
 ### Edit and build the code
 
-The [developer guide](http://dev.px4.io/) explains how to set up the development environment on Mac OS, Linux or Windows. Please take note of our [coding style](https://dev.px4.io/master/en/contribute/code.html) when editing files.
+The [developer guide](https://docs.px4.io/main/en/development/development.html) explains how to set up the development environment on Mac OS, Linux or Windows. Please take note of our [coding style](https://docs.px4.io/main/en/contribute/code.html) when editing files.
 
 ### Commit your changes
 
