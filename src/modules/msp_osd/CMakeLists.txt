@@ -37,6 +37,7 @@ px4_add_module(
 		message_display.cpp
 		msp_osd.cpp
 		MspV1.cpp
+		uorb_to_msp.cpp
 	DEPENDS
 		px4_work_queue
 	)

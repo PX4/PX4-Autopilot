@@ -268,7 +268,6 @@ void MspOsd::Run()
 
 	msp_battery_state_t battery_state = {0};
 	msp_name_t name = {0};
-	msp_status_BF_t status_BF = {0};
 	msp_analog_t analog = {0};
 	msp_raw_gps_t raw_gps = {0};
 	msp_comp_gps_t comp_gps = {0};
@@ -280,7 +279,7 @@ void MspOsd::Run()
 
 	//power_monitor_sub.update(&power_monitor_struct);
 	_battery_status_sub.update(&_battery_status_struct);
-	_vehicle_status_sub.update(&_vehicle_status_struct);
+
 	_vehicle_gps_position_sub.update(&_vehicle_gps_position_struct);
 	_airspeed_validated_sub.update(&_airspeed_validated_struct);
 	_vehicle_air_data_sub.update(&_vehicle_air_data_struct);
@@ -302,39 +301,12 @@ void MspOsd::Run()
 	_msp.Send(MSP_NAME, &name) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
 
 	// MSP_STATUS
-	if (_vehicle_status_struct.arming_state == _vehicle_status_struct.ARMING_STATE_ARMED) {
-		status_BF.flight_mode_flags |= ARM_ACRO_BF;
-
-		switch (_vehicle_status_struct.nav_state) {
-		case _vehicle_status_struct.NAVIGATION_STATE_MANUAL:
-			status_BF.flight_mode_flags |= 0;
-			break;
-
-		case _vehicle_status_struct.NAVIGATION_STATE_ACRO:
-			status_BF.flight_mode_flags |= 0;
-			break;
-
-		case _vehicle_status_struct.NAVIGATION_STATE_STAB:
-			status_BF.flight_mode_flags |= STAB_BF;
-			break;
-
-		case _vehicle_status_struct.NAVIGATION_STATE_AUTO_RTL:
-			status_BF.flight_mode_flags |= RESC_BF;
-			break;
-
-		case _vehicle_status_struct.NAVIGATION_STATE_TERMINATION:
-			status_BF.flight_mode_flags |= FS_BF;
-			break;
-
-		default:
-			status_BF.flight_mode_flags = 0;
-			break;
-		}
+	if (true) {
+		vehicle_status_s vehicle_status;
+		_vehicle_status_sub.update(&vehicle_status);
+		const auto msg = msp_osd::construct_STATUS(vehicle_status);
+		this->Send(MSP_STATUS, &msg);
 	}
-
-	status_BF.arming_disable_flags_count = 1;
-	status_BF.arming_disable_flags  = !(_vehicle_status_struct.arming_state == _vehicle_status_struct.ARMING_STATE_ARMED);
-	_msp.Send(MSP_STATUS, &status_BF) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
 
 	// MSP_ANALOG
 	analog.vbat = _battery_status_struct.voltage_v * 10; // bottom right... v * 10
@@ -452,6 +424,14 @@ void MspOsd::Run()
 	_msp.Send(MSP_ESC_SENSOR_DATA, &esc_sensor_data) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
 
 	SendConfig();
+}
+
+void MspOsd::Send(const unsigned int message_type, const void *payload)
+{
+	if (_msp.Send(message_type, payload))
+		_performance_data.successful_sends++;
+	else
+		_performance_data.unsuccessful_sends++;
 }
 
 int MspOsd::task_spawn(int argc, char *argv[])

@@ -58,6 +58,7 @@
 
 #include "MspV1.hpp"
 #include "message_display.hpp"
+#include "uorb_to_msp.hpp"
 
 using namespace time_literals;
 
@@ -116,7 +117,6 @@ private:
 	uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
 
 	struct battery_status_s _battery_status_struct = {0};
-	struct vehicle_status_s _vehicle_status_struct;
 	struct vehicle_gps_position_s _vehicle_gps_position_struct = {0};
 	struct airspeed_validated_s _airspeed_validated_struct = {0};
 	struct vehicle_air_data_s _vehicle_air_data_struct = {0};
@@ -127,7 +127,8 @@ private:
 	struct vehicle_local_position_s _vehicle_local_position_struct = {0};
 	struct input_rc_s _input_rc_struct = {0};
 
-
+	// update a single display element in the display
+	void Send(const unsigned int message_type, const void *payload);
 	void SendConfig();
 	void SendTelemetry();
 
