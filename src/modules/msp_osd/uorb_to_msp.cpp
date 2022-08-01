@@ -41,6 +41,10 @@
 #include <matrix/math.hpp>
 #include <lib/geo/geo.h>
 
+// clock access
+#include <px4_platform_common/defines.h>
+using namespace time_literals;
+
 #include "uorb_to_msp.hpp"
 
 namespace msp_osd {
@@ -54,6 +58,36 @@ msp_name_t construct_display_message(const vehicle_status_s& vehicle_status,
 	// placeholder
 	snprintf(display_message.craft_name, sizeof(display_message.craft_name), "> %s", "HI");
 	display_message.craft_name[14] = '\0';
+
+
+	// update heading, if relatively recent
+	if (vehicle_attitude.timestamp < (hrt_absolute_time() - 500_ms)) {
+		display.set(MessageDisplayType::HEADING, "N?");
+	} else {
+		// convert to YAW
+		matrix::Eulerf euler_attitude(matrix::Quatf(vehicle_attitude.q));
+		const auto yaw = math::degrees(euler_attitude.psi());
+
+		// display north direction
+		if (yaw <= 22.5f)
+			display.set(MessageDisplayType::HEADING, "N");
+		else if(yaw <= 67.5f)
+			display.set(MessageDisplayType::HEADING, "NE");
+		else if(yaw <= 112.5f)
+			display.set(MessageDisplayType::HEADING, "E");
+		else if(yaw <= 157.5f)
+			display.set(MessageDisplayType::HEADING, "SE");
+		else if(yaw <= 202.5f)
+			display.set(MessageDisplayType::HEADING, "S");
+		else if(yaw <= 247.5f)
+			display.set(MessageDisplayType::HEADING, "SW");
+		else if(yaw <= 292.5f)
+			display.set(MessageDisplayType::HEADING, "W");
+		else if(yaw <= 337.5f)
+			display.set(MessageDisplayType::HEADING, "NW");
+		else if(yaw <= 360.0f)
+			display.set(MessageDisplayType::HEADING, "N");
+	}
 
 	return display_message;
 }

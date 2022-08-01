@@ -33,14 +33,14 @@ class MessageDisplay
 	char heading_msg[MAX_MSG_LENGTH] {""};
 
 	// the full message and the part we're currently displaying
-	char full_message[MAX_MSG_LENGTH] {""};
+	char full_message[MAX_MSG_LENGTH] {"INITIALIZING"};
 
 	// current index we're displaying
 	uint16_t index {0};
 
 	// last update timestamp
 	uint32_t last_update_ {0};
-	bool updated_ {true};
+	bool updated_ {false};
 
 	// available message length for display and update period
 	const uint16_t msg_length_;
