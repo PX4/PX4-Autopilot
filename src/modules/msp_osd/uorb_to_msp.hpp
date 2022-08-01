@@ -38,6 +38,9 @@
 
 #pragma once
 
+// basic types
+#include <cmath>
+
 // UORB topic structs
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
@@ -60,7 +63,21 @@
 namespace msp_osd {
 
 // construct an MSP_STATUS struct
-msp_status_BF_t construct_STATUS(const vehicle_status_s& vehicle_status);
+msp_status_BF_t construct_STATUS(const struct vehicle_status_s& vehicle_status);
 
+// construct an MSP_ANALOG struct
+msp_analog_t construct_ANALOG(const struct battery_status_s& battery_status, const struct input_rc_s& input_rc);
+
+// construct an MSP_BATTERY_STATE struct
+msp_battery_state_t construct_BATTERY_STATE(const struct battery_status_s& battery_status);
+
+// construct an MSP_RAW_GPS struct
+msp_raw_gps_t construct_RAW_GPS(const struct vehicle_gps_position_s& vehicle_gps_position,
+				const struct airspeed_validated_s& airspeed_validated);
+
+// construct an MSP_RAW_GPS struct
+msp_altitude_t construct_ALTITUDE(const struct vehicle_gps_position_s& vehicle_gps_position,
+				  const struct estimator_status_s& estimator_status,
+				  const struct vehicle_local_position_s& vehicle_local_position);
 
 } // namespace msp_osd

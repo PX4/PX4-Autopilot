@@ -116,16 +116,11 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
 
-	struct battery_status_s _battery_status_struct = {0};
-	struct vehicle_gps_position_s _vehicle_gps_position_struct = {0};
-	struct airspeed_validated_s _airspeed_validated_struct = {0};
 	struct vehicle_air_data_s _vehicle_air_data_struct = {0};
 	struct home_position_s _home_position_struct = {0};
 	struct vehicle_global_position_s _vehicle_global_position_struct = {0};
 	struct vehicle_attitude_s _vehicle_attitude_struct = {0};
 	struct estimator_status_s _estimator_status_struct = {0};
-	struct vehicle_local_position_s _vehicle_local_position_struct = {0};
-	struct input_rc_s _input_rc_struct = {0};
 
 	// update a single display element in the display
 	void Send(const unsigned int message_type, const void *payload);
