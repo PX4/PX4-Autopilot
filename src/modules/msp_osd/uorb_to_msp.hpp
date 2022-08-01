@@ -75,9 +75,21 @@ msp_battery_state_t construct_BATTERY_STATE(const struct battery_status_s& batte
 msp_raw_gps_t construct_RAW_GPS(const struct vehicle_gps_position_s& vehicle_gps_position,
 				const struct airspeed_validated_s& airspeed_validated);
 
-// construct an MSP_RAW_GPS struct
+// construct an MSP_COMP_GPS struct
+msp_comp_gps_t construct_COMP_GPS(const struct home_position_s& home_position,
+				  const struct estimator_status_s& estimator_status,
+				  const struct vehicle_global_position_s& vehicle_global_position,
+				  const bool heartbeat);
+
+// construct an MSP_ATTITUDE struct
+msp_attitude_t construct_ATTITUDE(const struct vehicle_attitude_s& vehicle_attitude);
+
+// construct an MSP_ALTITUDE struct
 msp_altitude_t construct_ALTITUDE(const struct vehicle_gps_position_s& vehicle_gps_position,
 				  const struct estimator_status_s& estimator_status,
 				  const struct vehicle_local_position_s& vehicle_local_position);
+
+// construct an MSP_ESC_SENSOR_DATA struct
+msp_esc_sensor_data_dji_t construct_ESC_SENSOR_DATA();
 
 } // namespace msp_osd

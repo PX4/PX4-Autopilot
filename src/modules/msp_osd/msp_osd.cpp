@@ -54,7 +54,6 @@
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/vehicle_air_data.h>
 
-#include <matrix/math.hpp>
 #include <lib/geo/geo.h>
 
 #include "MspV1.hpp"
@@ -267,20 +266,22 @@ void MspOsd::Run()
 	}
 
 	msp_name_t name = {0};
-	msp_comp_gps_t comp_gps = {0};
-	msp_attitude_t attitude = {0};
-	msp_esc_sensor_data_dji_t esc_sensor_data = {0};
-	//msp_motor_telemetry_t motor_telemetry = {0};
 	msp_fc_variant_t variant = {0};
 
+	// update UORB topics
 	//power_monitor_sub.update(&power_monitor_struct);
-
+	_battery_status_sub.update(&_battery_status_struct);
+	_vehicle_status_sub.update(&_vehicle_status_struct);
+	_vehicle_gps_position_sub.update(&_vehicle_gps_position_struct);
+	_airspeed_validated_sub.update(&_airspeed_validated_struct);
 	_vehicle_air_data_sub.update(&_vehicle_air_data_struct);
 	_home_position_sub.update(&_home_position_struct);
 	_vehicle_global_position_sub.update(&_vehicle_global_position_struct);
+	_vehicle_local_position_sub.update(&_vehicle_local_position_struct);
 	_vehicle_attitude_sub.update(&_vehicle_attitude_struct);
+	_estimator_status_sub.update(&_estimator_status_struct);
+	_input_rc_sub.update(&_input_rc_struct);
 
-	matrix::Eulerf euler_attitude(matrix::Quatf(_vehicle_attitude_struct.q));
 
 	memcpy(variant.flightControlIdentifier, "BTFL", sizeof(variant.flightControlIdentifier));
 	_msp.Send(MSP_FC_VARIANT, &variant) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
@@ -292,91 +293,72 @@ void MspOsd::Run()
 
 	// MSP_STATUS
 	if (true) {
-		vehicle_status_s vehicle_status;
-		_vehicle_status_sub.update(&vehicle_status);
-		const auto msg = msp_osd::construct_STATUS(vehicle_status);
+		const auto msg = msp_osd::construct_STATUS(
+			_vehicle_status_struct);
 		this->Send(MSP_STATUS, &msg);
 	}
 
 	// MSP_ANALOG
 	if (true) {
-		struct input_rc_s input_rc {0};
-		_input_rc_sub.update(&input_rc);
-		struct battery_status_s battery_status {0};
-		_battery_status_sub.update(&battery_status);
-		const auto msg = msp_osd::construct_ANALOG(battery_status, input_rc);
+		const auto msg = msp_osd::construct_ANALOG(
+			_battery_status_struct,
+			_input_rc_struct);
 		this->Send(MSP_ANALOG, &msg);
 	}
 
 	// MSP_BATTERY_STATE
 	if (true) {
-		struct battery_status_s battery_status {0};
-		_battery_status_sub.update(&battery_status);
-		const auto msg = msp_osd::construct_BATTERY_STATE(battery_status);
+		const auto msg = msp_osd::construct_BATTERY_STATE(
+			_battery_status_struct);
 		this->Send(MSP_BATTERY_STATE, &msg);
 	}
 
 	// MSP_RAW_GPS
 	if (true) {
-		struct vehicle_gps_position_s vehicle_gps_position {0};
-		_vehicle_gps_position_sub.update(&vehicle_gps_position);
-		struct airspeed_validated_s airspeed_validated {0};
-		_airspeed_validated_sub.update(&airspeed_validated);
-		const auto msg = msp_osd::construct_RAW_GPS(vehicle_gps_position, airspeed_validated);
+		const auto msg = msp_osd::construct_RAW_GPS(
+			_vehicle_gps_position_struct,
+			_airspeed_validated_struct);
 		this->Send(MSP_RAW_GPS, &msg);
 	}
 
-	// Calculate distance and direction to home
-	if (_home_position_struct.valid_hpos
-	    && _home_position_struct.valid_lpos
-	    && _estimator_status_struct.solution_status_flags & (1 << 4)) {
-		float bearing_to_home = get_bearing_to_next_waypoint(_vehicle_global_position_struct.lat,
-					_vehicle_global_position_struct.lon,
-					_home_position_struct.lat, _home_position_struct.lon);
+	// MSP_COMP_GPS
+	if (true) {
+		// update heartbeat
+		_heartbeat = !_heartbeat;
 
-		float distance_to_home = get_distance_to_next_waypoint(_vehicle_global_position_struct.lat,
-					 _vehicle_global_position_struct.lon,
-					 _home_position_struct.lat, _home_position_struct.lon);
-
-		comp_gps.distanceToHome = (int16_t)distance_to_home; // meters
-		comp_gps.directionToHome = bearing_to_home; // degrees
-
-	} else {
-		comp_gps.distanceToHome = 0; // meters
-		comp_gps.directionToHome = 0; // degrees
+		// construct and send message
+		const auto msg = msp_osd::construct_COMP_GPS(
+			_home_position_struct,
+			_estimator_status_struct,
+			_vehicle_global_position_struct,
+			_heartbeat);
+		this->Send(MSP_COMP_GPS, &msg);
 	}
 
-	// MSP_COMP_GPS
-	comp_gps.heartbeat = _heartbeat;
-	_heartbeat = !_heartbeat;
-	_msp.Send(MSP_COMP_GPS, &comp_gps) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
-
 	// MSP_ATTITUDE
-	attitude.pitch = math::degrees(euler_attitude.theta()) * 10;
-	attitude.roll = math::degrees(euler_attitude.phi()) * 10;
-	attitude.yaw = math::degrees(euler_attitude.psi()) * 10;
-	_msp.Send(MSP_ATTITUDE, &attitude) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
+	if (true) {
+		const auto msg = msp_osd::construct_ATTITUDE(
+			_vehicle_attitude_struct);
+		this->Send(MSP_ATTITUDE, &msg);
+	}
 
 	// MSP_ALTITUDE
 	if (true) {
-		// update required UORB topics
-		struct vehicle_gps_position_s vehicle_gps_position {0};
-		_vehicle_gps_position_sub.update(&vehicle_gps_position);
-		struct estimator_status_s estimator_status {0};
-		_estimator_status_sub.update(&estimator_status);
-		struct vehicle_local_position_s vehicle_local_position {0};
-		_vehicle_local_position_sub.update(&vehicle_local_position);
-
-		// construct message
-		const auto msg = msp_osd::construct_ALTITUDE(vehicle_gps_position, estimator_status, vehicle_local_position);
+		// construct and send message
+		const auto msg = msp_osd::construct_ALTITUDE(
+			_vehicle_gps_position_struct,
+			_estimator_status_struct,
+			_vehicle_local_position_struct);
 		this->Send(MSP_ALTITUDE, &msg);
 	}
 
 	// MSP_MOTOR_TELEMETRY
-	esc_sensor_data.rpm = 0;
-	esc_sensor_data.temperature = 50;
-	_msp.Send(MSP_ESC_SENSOR_DATA, &esc_sensor_data) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
+	if (true) {
+		const auto msg = msp_osd::construct_ESC_SENSOR_DATA();
+		this->Send(MSP_ESC_SENSOR_DATA, &msg);
+	}
 
+	// send full configuration
 	SendConfig();
 }
 

@@ -36,6 +36,11 @@
  * Implementation file for UORB -> MSP conversion functions.
  */
 
+// includes for mathematical manipulation
+#include <math.h>
+#include <matrix/math.hpp>
+#include <lib/geo/geo.h>
+
 #include "uorb_to_msp.hpp"
 
 namespace msp_osd {
@@ -164,6 +169,52 @@ msp_raw_gps_t construct_RAW_GPS(const struct vehicle_gps_position_s& vehicle_gps
 	return raw_gps;
 }
 
+msp_comp_gps_t construct_COMP_GPS(const struct home_position_s& home_position,
+				  const struct estimator_status_s& estimator_status,
+				  const struct vehicle_global_position_s& vehicle_global_position,
+				  const bool heartbeat) {
+
+	// initialize result
+	msp_comp_gps_t comp_gps {0};
+
+	// Calculate distance and direction to home
+	if (home_position.valid_hpos
+	    && home_position.valid_lpos
+	    && estimator_status.solution_status_flags & (1 << 4)) {
+		float bearing_to_home = get_bearing_to_next_waypoint(vehicle_global_position.lat,
+					vehicle_global_position.lon,
+					home_position.lat, home_position.lon);
+
+		float distance_to_home = get_distance_to_next_waypoint(vehicle_global_position.lat,
+					 vehicle_global_position.lon,
+					 home_position.lat, home_position.lon);
+
+		comp_gps.distanceToHome = (int16_t)distance_to_home; // meters
+		comp_gps.directionToHome = bearing_to_home; // degrees
+
+	} else {
+		comp_gps.distanceToHome = 0; // meters
+		comp_gps.directionToHome = 0; // degrees
+	}
+
+	comp_gps.heartbeat = heartbeat;
+	return comp_gps;
+}
+
+msp_attitude_t construct_ATTITUDE(const struct vehicle_attitude_s& vehicle_attitude) {
+
+	// initialize results
+	msp_attitude_t attitude {0};
+
+	// convert from quaternion to RPY
+	matrix::Eulerf euler_attitude(matrix::Quatf(vehicle_attitude.q));
+	attitude.pitch = math::degrees(euler_attitude.theta()) * 10;
+	attitude.roll = math::degrees(euler_attitude.phi()) * 10;
+	attitude.yaw = math::degrees(euler_attitude.psi()) * 10;
+
+	return attitude;
+}
+
 msp_altitude_t construct_ALTITUDE(const struct vehicle_gps_position_s& vehicle_gps_position,
 				  const struct estimator_status_s& estimator_status,
 				  const struct vehicle_local_position_s& vehicle_local_position) {
@@ -186,6 +237,17 @@ msp_altitude_t construct_ALTITUDE(const struct vehicle_gps_position_s& vehicle_g
 	}
 
 	return altitude;
+}
+
+msp_esc_sensor_data_dji_t construct_ESC_SENSOR_DATA() {
+
+	// initialize result
+	msp_esc_sensor_data_dji_t esc_sensor_data {0};
+
+	esc_sensor_data.rpm = 0;
+	esc_sensor_data.temperature = 50;
+
+	return esc_sensor_data;
 }
 
 } // namespace msp_osd
