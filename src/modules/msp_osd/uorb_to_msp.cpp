@@ -45,6 +45,27 @@
 
 namespace msp_osd {
 
+msp_name_t construct_display_message(const vehicle_status_s& vehicle_status,
+				     const struct vehicle_attitude_s& vehicle_attitude,
+				     MessageDisplay& display) {
+	// initialize result
+	msp_name_t display_message {0};
+
+	// placeholder
+	snprintf(display_message.craft_name, sizeof(display_message.craft_name), "> %s", "HI");
+	display_message.craft_name[14] = '\0';
+
+	return display_message;
+}
+
+msp_fc_variant_t construct_FC_VARIANT() {
+	// initialize result
+	msp_fc_variant_t variant {0};
+
+	memcpy(variant.flightControlIdentifier, "BTFL", sizeof(variant.flightControlIdentifier));
+	return variant;
+}
+
 msp_status_BF_t construct_STATUS(const vehicle_status_s& vehicle_status) {
 
 	// initialize result

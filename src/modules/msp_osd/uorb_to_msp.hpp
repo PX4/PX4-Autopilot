@@ -60,7 +60,18 @@
 // MSP structs
 #include "msp_defines.h"
 
+#include "message_display.hpp"
+
 namespace msp_osd {
+
+// construct an MSP_NAME struct
+//  note: this is actually how we display _all_ string information
+msp_name_t construct_display_message(const vehicle_status_s& vehicle_status,
+				     const struct vehicle_attitude_s& vehicle_attitude,
+				     MessageDisplay& display);
+
+// construct an MSP_FC_VARIANT struct
+msp_fc_variant_t construct_FC_VARIANT();
 
 // construct an MSP_STATUS struct
 msp_status_BF_t construct_STATUS(const struct vehicle_status_s& vehicle_status);

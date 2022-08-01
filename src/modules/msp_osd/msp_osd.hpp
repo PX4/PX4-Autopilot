@@ -137,8 +137,6 @@ private:
 	void SendConfig();
 	void SendTelemetry();
 
-	uint8_t _x{0};
-
 	// local heartbeat
 	bool _heartbeat{false};
 

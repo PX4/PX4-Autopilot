@@ -265,9 +265,6 @@ void MspOsd::Run()
 		_is_initialized = true;
 	}
 
-	msp_name_t name = {0};
-	msp_fc_variant_t variant = {0};
-
 	// update UORB topics
 	//power_monitor_sub.update(&power_monitor_struct);
 	_battery_status_sub.update(&_battery_status_struct);
@@ -283,13 +280,18 @@ void MspOsd::Run()
 	_input_rc_sub.update(&_input_rc_struct);
 
 
-	memcpy(variant.flightControlIdentifier, "BTFL", sizeof(variant.flightControlIdentifier));
-	_msp.Send(MSP_FC_VARIANT, &variant) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
+	// update display message
+	const auto display_message = msp_osd::construct_display_message(
+		_vehicle_status_struct,
+		_vehicle_attitude_struct,
+		_display);
+	this->Send(MSP_NAME, &display_message);
 
-	// MSP_NAME
-	snprintf(name.craft_name, sizeof(name.craft_name), "> %i", _x);
-	name.craft_name[14] = '\0';
-	_msp.Send(MSP_NAME, &name) ? _performance_data.successful_sends++ : _performance_data.unsuccessful_sends++;
+	// MSP_FC_VARIANT
+	if (true) {
+		const auto msg = msp_osd::construct_FC_VARIANT();
+		this->Send(MSP_FC_VARIANT, &msg);
+	}
 
 	// MSP_STATUS
 	if (true) {
