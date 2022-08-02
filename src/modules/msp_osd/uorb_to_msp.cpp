@@ -58,7 +58,7 @@ msp_name_t construct_display_message(const vehicle_status_s& vehicle_status,
 	const auto now = hrt_absolute_time();
 
 	// update arming state, flight mode, and warnings, if current
-	if (vehicle_status.timestamp < (now - 500_ms)) {
+	if (vehicle_status.timestamp < (now - 1_s)) {
 		display.set(MessageDisplayType::ARMING, "???");
 		display.set(MessageDisplayType::FLIGHT_MODE, "???");
 		display.set(MessageDisplayType::WARNING, "No vehicle status message received.");
@@ -146,7 +146,7 @@ msp_name_t construct_display_message(const vehicle_status_s& vehicle_status,
 	}
 
 	// update heading, if relatively recent
-	if (vehicle_attitude.timestamp < (now - 500_ms)) {
+	if (vehicle_attitude.timestamp < (now - 1_s)) {
 		display.set(MessageDisplayType::HEADING, "N?");
 	} else {
 		// convert to YAW

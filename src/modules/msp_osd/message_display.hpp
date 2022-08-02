@@ -41,15 +41,15 @@ class MessageDisplay
 	uint16_t index {0};
 
 	// last update timestamp
-	uint32_t last_update_ {0};
+	uint64_t last_update_ {0};
 	bool updated_ {false};
 
-	// available message length for display and update period
-	const uint32_t period_;
+	// available message length for display and update period (us)
+	const uint64_t period_;
 
 	public:
 	MessageDisplay()=delete;
-	MessageDisplay(uint32_t period) : period_(period) {}
+	MessageDisplay(uint64_t period) : period_(period) {}
 
 	// set the given string
 	void set(const MessageDisplayType mode, const char* string);

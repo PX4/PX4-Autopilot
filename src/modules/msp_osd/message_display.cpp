@@ -75,7 +75,6 @@ void MessageDisplay::get(char* string) {
 		}
 
 		// reset display variables
-		last_update_ = 0;
 		index = 0;
 		updated_ = false;
 	}

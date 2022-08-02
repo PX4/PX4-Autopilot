@@ -67,8 +67,8 @@ extern "C" __EXPORT int msp_osd_main(int argc, char *argv[]);
 struct PerformanceData
 {
 	bool initialization_problems{false};
-	uint32_t successful_sends{0};
-	uint32_t unsuccessful_sends{0};
+	size_t successful_sends{0};
+	size_t unsuccessful_sends{0};
 };
 
 enum SymbolIndex : uint8_t {
