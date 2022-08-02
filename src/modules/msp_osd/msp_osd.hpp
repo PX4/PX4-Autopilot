@@ -159,7 +159,8 @@ private:
 
 	// parameters
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MSP_OSD_SYMBOLS>) _param_symbols
+		(ParamInt<px4::params::OSD_SYMBOLS>) _param_symbols,
+		(ParamInt<px4::params::OSD_SCROLL_RATE>) _param_scroll_rate
 	)
 
 	// metadata

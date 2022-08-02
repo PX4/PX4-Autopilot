@@ -135,7 +135,7 @@ MspOsd::MspOsd() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test1),
 	_msp(0),
-	_display(/*update_period_us*/250_ms)
+	_display(/*update_period_us*/_param_scroll_rate.get() * 1000)
 {
 }
 

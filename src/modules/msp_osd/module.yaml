@@ -5,7 +5,7 @@ parameters:
       definitions:
 
         # OSD Parameters
-        MSP_OSD_SYMBOLS:
+        OSD_SYMBOLS:
             description:
                 short: OSD Symbol Selection
                 long: |
@@ -23,3 +23,15 @@ parameters:
                 8: MSP_ALTITUDE
                 9: MSP_ESC_SENSOR_DATA
             default: 1023
+
+        # Scroll Speed
+        OSD_SCROLL_RATE:
+            description:
+                short: OSD Scroll Rate (ms)
+                long: |
+                    Scroll rate in milliseconds for OSD messages longer than available character width.
+            type: int32
+            min: 10
+            max: 1000
+            default: 125
+            reboot_required: true   # kinda silly; should really just implement runtime support here.
