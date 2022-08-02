@@ -134,8 +134,8 @@ const uint16_t osd_rc_channels_pos = 234;
 MspOsd::MspOsd() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test1),
-	_msp(NULL),
-	_display(/*display_chars=*/12, /*update_period_ms*/250)
+	_msp(0),
+	_display(/*update_period_ms*/250)
 {
 }
 
@@ -406,8 +406,8 @@ int MspOsd::print_status()
 	PX4_INFO("Running on port %s", _port);
 	PX4_INFO("\tinitialized: %d", _is_initialized);
 	PX4_INFO("\tinitialization issues: %d", _performance_data.initialization_problems);
-	PX4_INFO("\tsuccessful sends: %lu", _performance_data.successful_sends);
-	PX4_INFO("\tunsuccessful sends: %lu", _performance_data.unsuccessful_sends);
+	PX4_INFO("\tsuccessful sends: %u", _performance_data.successful_sends);
+	PX4_INFO("\tunsuccessful sends: %u", _performance_data.unsuccessful_sends);
 
 	return 0;
 }

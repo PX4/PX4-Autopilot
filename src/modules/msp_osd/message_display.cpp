@@ -66,11 +66,11 @@ void MessageDisplay::get(char* string) {
 		if (strlen(warning_msg) != 0) {
 			// copy as much of warning message as we can fit
 			strcat(full_message, " | WARNING: ");
-			const size_t chars_used {22};	// characters used so far
-			strncat(full_message, warning_msg, MAX_MSG_LENGTH - chars_used);
+			const size_t chars_used {22};
+			strncat(full_message, warning_msg, MAX_MSG_LENGTH - chars_used - FULL_MSG_LENGTH - 1);
 
-			// pad with terminal whitespace
-			for (unsigned i = strlen(full_message); i != msg_length_; ++i)
+			// pad with one full length of terminal whitespace
+			for (unsigned i = 0; i != FULL_MSG_LENGTH; ++i)
 				strcat(full_message, " ");
 		}
 
@@ -81,8 +81,8 @@ void MessageDisplay::get(char* string) {
 	}
 
 	// handle edge case where full message is short
-	if (strlen(full_message) < msg_length_) {
-		strncpy(string, full_message, msg_length_);
+	if (strlen(full_message) < FULL_MSG_LENGTH) {
+		strncpy(string, full_message, FULL_MSG_LENGTH);
 		return;
 	}
 
@@ -91,7 +91,7 @@ void MessageDisplay::get(char* string) {
 	uint32_t dt = current_time - last_update_;
 	if ( (index == 0 && dt > (4 * period_)) || (index != 0 && dt > period_) ) {
 		// scroll through message by updating index
-		if (++index > strlen(full_message) - msg_length_)
+		if (++index > strlen(full_message) - FULL_MSG_LENGTH)
 			index = 0;
 
 		// save timestamp
@@ -99,7 +99,7 @@ void MessageDisplay::get(char* string) {
 	}
 
 	// reset update flag and return latest message
-	strncpy(string, full_message + index, msg_length_);
+	strncpy(string, full_message + index, FULL_MSG_LENGTH);
 	return;
 }
 

@@ -11,6 +11,7 @@ namespace msp_osd {
 
 // character size limitations
 #define MAX_MSG_LENGTH 250
+#define FULL_MSG_LENGTH 12
 
 // supported message types
 enum MessageDisplayType
@@ -29,8 +30,9 @@ class MessageDisplay
 	char warning_msg[MAX_MSG_LENGTH] {""};
 	char flight_mode_msg[MAX_MSG_LENGTH] {"???"};
 	char arming_msg[MAX_MSG_LENGTH] {"???"};
+	char heading_msg[MAX_MSG_LENGTH] {"??"};
+	// currently unused:
 	char status_msg[MAX_MSG_LENGTH] {""};
-	char heading_msg[MAX_MSG_LENGTH] {""};
 
 	// the full message and the part we're currently displaying
 	char full_message[MAX_MSG_LENGTH] {"INITIALIZING"};
@@ -43,13 +45,11 @@ class MessageDisplay
 	bool updated_ {false};
 
 	// available message length for display and update period
-	const uint16_t msg_length_;
 	const uint32_t period_;
 
 	public:
 	MessageDisplay()=delete;
-	MessageDisplay(uint16_t msg_length, uint32_t period)
-		: msg_length_(msg_length), period_(period) {}
+	MessageDisplay(uint32_t period) : period_(period) {}
 
 	// set the given string
 	void set(const MessageDisplayType mode, const char* string);
