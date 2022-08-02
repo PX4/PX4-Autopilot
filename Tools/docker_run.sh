@@ -1,22 +1,14 @@
 #!/bin/bash
 
-# docker hygiene
-
-#Delete all stopped containers (including data-only containers)
-#docker rm $(docker ps -a -q)
-
-#Delete all 'untagged/dangling' (<none>) images
-#docker rmi $(docker images -q -f dangling=true)
-
 if [[ -z "${DOCKER_TAG}" ]]; then
-  TAG_NAME=":latest"
+  TAG_NAME="latest"
 else
-  TAG_NAME=":${DOCKER_TAG}"
+  TAG_NAME="${DOCKER_TAG}"
 fi
 
-PX4_DOCKER_REPO="px4io/px4-dev$TAG_NAME"
+PX4_DOCKER_REPO="px4io/px4-dev:$TAG_NAME"
 
-echo $PX4_DOCKER_REPO
+echo "docker_run.sh: Running [$PX4_DOCKER_REPO]"
 
 PWD=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 SRC_DIR=$PWD/../
