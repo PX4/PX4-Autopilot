@@ -412,17 +412,17 @@ bool ghst_send_telemetry_gps1_status(int uart_fd, uint32_t latitude, uint32_t lo
 	return write(uart_fd, buf, offset) == offset;
 }
 
-bool ghst_send_telemetry_gps2_status(int uart_fd, uint16_t groundSpeed, uint16_t groundCourse, uint8_t numSats,
-				     uint16_t homeDist, uint16_t homeDir, uint8_t flags)
+bool ghst_send_telemetry_gps2_status(int uart_fd, uint16_t ground_speed, uint16_t ground_course, uint8_t numSats,
+				     uint16_t home_dist, uint16_t home_dir, uint8_t flags)
 {
 	uint8_t buf[GHST_FRAME_PAYLOAD_SIZE_TELEMETRY + 4U]; // address, frame length, type, crc
 	int offset = 0;
 	write_frame_header(buf, offset, ghstTelemetryType::gpsSecondary, GHST_FRAME_PAYLOAD_SIZE_TELEMETRY);
-	write_uint16_t(buf, offset, groundSpeed);
-	write_uint16_t(buf, offset, groundCourse);
+	write_uint16_t(buf, offset, ground_speed);
+	write_uint16_t(buf, offset, ground_course);
 	write_uint8_t(buf, offset, numSats);
-	write_uint16_t(buf, offset, homeDist);
-	write_uint16_t(buf, offset, homeDir);
+	write_uint16_t(buf, offset, home_dist);
+	write_uint16_t(buf, offset, home_dir);
 	write_uint8_t(buf, offset, flags);
 	write_frame_crc(buf, offset, sizeof(buf));
 
