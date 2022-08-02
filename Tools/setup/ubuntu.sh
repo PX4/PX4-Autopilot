@@ -92,16 +92,17 @@ echo
 
 sudo apt-get update -y --quiet
 sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+	astyle \
 	build-essential \
+	cmake \
+	cppcheck \
 	g++ \
 	gcc \
 	gdb \
-	astyle \
-	cmake \
-	cppcheck \
-	file \
 	git \
+	file \
 	lcov \
+	libssl-dev \
 	libxml2-dev \
 	libxml2-utils \
 	make \
@@ -115,7 +116,6 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	shellcheck \
 	unzip \
 	zip \
-	libssl-dev \
 	;
 
 # Python 3 dependencies
