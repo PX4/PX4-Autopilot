@@ -406,8 +406,8 @@ int MspOsd::print_status()
 	PX4_INFO("Running on port %s", _port);
 	PX4_INFO("\tinitialized: %d", _is_initialized);
 	PX4_INFO("\tinitialization issues: %d", _performance_data.initialization_problems);
-	PX4_INFO("\tsuccessful sends: %u", _performance_data.successful_sends);
-	PX4_INFO("\tunsuccessful sends: %u", _performance_data.unsuccessful_sends);
+	PX4_INFO("\tsuccessful sends: %u", static_cast<uint>(_performance_data.successful_sends));
+	PX4_INFO("\tunsuccessful sends: %u", static_cast<uint>(_performance_data.unsuccessful_sends));
 
 	return 0;
 }
