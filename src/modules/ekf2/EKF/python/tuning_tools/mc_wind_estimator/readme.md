@@ -24,7 +24,7 @@ pip install -r requirements.txt
 
 and run the script and give it the log file as an argument:
 ```
-python drag_replay.py <logfilename.ulg>
+python mc_wind_estimator_tuning.py <logfilename.ulg>
 ```
 
 The estimated parameters are displayed in the console and the fit quality is shown in a plot:
