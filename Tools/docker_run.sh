@@ -8,7 +8,7 @@ fi
 
 PX4_DOCKER_REPO="px4io/px4-dev:$TAG_NAME"
 
-echo "docker_run.sh: Running [$PX4_DOCKER_REPO]"
+echo "[docker_run.sh]: Running '$PX4_DOCKER_REPO'"
 
 PWD=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 SRC_DIR=$PWD/../
