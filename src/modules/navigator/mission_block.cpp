@@ -129,6 +129,13 @@ MissionBlock::is_mission_item_reached()
 			return false;
 		}
 
+	case NAV_CMD_VTOL_TAKEOFF:
+		if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			return true;
+		}
+
+		break;
+
 	case NAV_CMD_DELAY:
 		// Set reached flags directly such that only the delay time is considered
 		_waypoint_position_reached = true;
