@@ -42,24 +42,19 @@ bool
 WindEstimator::initialise(const matrix::Vector3f &velI, const float hor_vel_variance, const float heading_rad,
 			  const float tas_meas, const float tas_variance)
 {
-	// do no initialise if ground velocity is low
-	// this should prevent the filter from initialising on the ground
-	if (sqrtf(velI(0) * velI(0) + velI(1) * velI(1)) < 3.0f) {
-		return false;
-	}
-
 	if (PX4_ISFINITE(tas_meas) && PX4_ISFINITE(tas_variance)) {
-		// initialise wind states assuming zero side slip and horizontal flight
-		_state(INDEX_W_N) = velI(INDEX_W_N) - tas_meas * cosf(heading_rad);
-		_state(INDEX_W_E) = velI(INDEX_W_E) - tas_meas * sinf(heading_rad);
-		_state(INDEX_TAS_SCALE) = _scale_init;
-
-		constexpr float initial_sideslip_uncertainty = math::radians(15.0f);
-		const float initial_wind_var_body_y = sq(tas_meas * sinf(initial_sideslip_uncertainty));
-		constexpr float heading_variance = sq(math::radians(10.0f));
 
 		const float cos_heading = cosf(heading_rad);
 		const float sin_heading = sinf(heading_rad);
+
+		// initialise wind states assuming zero side slip and horizontal flight
+		_state(INDEX_W_N) = velI(0) - tas_meas * cos_heading;
+		_state(INDEX_W_E) = velI(1) - tas_meas * sin_heading;
+		_state(INDEX_TAS_SCALE) = _scale_init;
+
+		constexpr float initial_sideslip_uncertainty = math::radians(INITIAL_BETA_ERROR_DEG);
+		const float initial_wind_var_body_y = sq(tas_meas * sinf(initial_sideslip_uncertainty));
+		constexpr float heading_variance = sq(math::radians(INITIAL_HEADING_ERROR_DEG));
 
 		// rotate wind velocity into earth frame aligned with vehicle yaw
 		const float Wx = _state(INDEX_W_N) * cos_heading + _state(INDEX_W_E) * sin_heading;
@@ -83,7 +78,7 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const float hor_vel_vari
 		_state.setZero();
 		_state(INDEX_TAS_SCALE) = 1.0f;
 		_P.setZero();
-		_P(INDEX_W_N, INDEX_W_N) = _P(INDEX_W_E, INDEX_W_E) = INITIAL_WIND_VAR;
+		_P(INDEX_W_N, INDEX_W_N) = _P(INDEX_W_E, INDEX_W_E) = sq(INITIAL_WIND_ERROR);
 	}
 
 	// reset the timestamp for measurement rejection
