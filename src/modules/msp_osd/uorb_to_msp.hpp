@@ -56,18 +56,22 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/event.h>
+
+// PX4 events interface
+#include <px4_platform_common/events.h>
 
 // MSP structs
 #include "msp_defines.h"
-
 #include "message_display.hpp"
 
 namespace msp_osd {
 
 // construct an MSP_NAME struct
 //  note: this is actually how we display _all_ string information
-msp_name_t construct_display_message(const vehicle_status_s& vehicle_status,
+msp_name_t construct_display_message(const struct vehicle_status_s& vehicle_status,
 				     const struct vehicle_attitude_s& vehicle_attitude,
+				     const struct event_s& event,
 				     MessageDisplay& display);
 
 // construct an MSP_FC_VARIANT struct

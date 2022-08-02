@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/event.h>
 
 #include "MspV1.hpp"
 #include "message_display.hpp"
@@ -129,6 +130,7 @@ private:
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
+	uORB::Subscription _event_subscription{ORB_ID(event)};
 
 	// latest information on each uorb topic
 	struct battery_status_s _battery_status_struct = {0};
@@ -142,6 +144,7 @@ private:
 	struct estimator_status_s _estimator_status_struct = {0};
 	struct vehicle_local_position_s _vehicle_local_position_struct = {0};
 	struct input_rc_s _input_rc_struct = {0};
+	struct event_s _event_struct = {0};
 
 	// update a single display element in the display
 	void Send(const unsigned int message_type, const void *payload);

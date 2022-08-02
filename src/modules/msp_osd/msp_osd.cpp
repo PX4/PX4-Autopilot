@@ -282,13 +282,14 @@ void MspOsd::Run()
 	_vehicle_attitude_sub.update(&_vehicle_attitude_struct);
 	_estimator_status_sub.update(&_estimator_status_struct);
 	_input_rc_sub.update(&_input_rc_struct);
-
+	_event_subscription.update(&_event_struct);
 
 	// update display message
 	if (_param_symbols.get() & (1u << SymbolIndex::MSP_NAME_IDX)) {
 		const auto display_message = msp_osd::construct_display_message(
 			_vehicle_status_struct,
 			_vehicle_attitude_struct,
+			_event_struct,
 			_display);
 		this->Send(MSP_NAME, &display_message);
 	}
@@ -406,8 +407,8 @@ int MspOsd::print_status()
 	PX4_INFO("Running on port %s", _port);
 	PX4_INFO("\tinitialized: %d", _is_initialized);
 	PX4_INFO("\tinitialization issues: %d", _performance_data.initialization_problems);
-	PX4_INFO("\tsuccessful sends: %u", static_cast<uint>(_performance_data.successful_sends));
-	PX4_INFO("\tunsuccessful sends: %u", static_cast<uint>(_performance_data.unsuccessful_sends));
+	PX4_INFO("\tsuccessful sends: %lu", static_cast<long unsigned int>(_performance_data.successful_sends));
+	PX4_INFO("\tunsuccessful sends: %lu", static_cast<long unsigned int>(_performance_data.unsuccessful_sends));
 
 	return 0;
 }

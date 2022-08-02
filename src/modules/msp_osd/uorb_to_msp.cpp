@@ -49,8 +49,9 @@ using namespace time_literals;
 
 namespace msp_osd {
 
-msp_name_t construct_display_message(const vehicle_status_s& vehicle_status,
+msp_name_t construct_display_message(const struct vehicle_status_s& vehicle_status,
 				     const struct vehicle_attitude_s& vehicle_attitude,
+				     const struct event_s& event,
 				     MessageDisplay& display) {
 	// initialize result
 	msp_name_t display_message {0};
@@ -61,7 +62,6 @@ msp_name_t construct_display_message(const vehicle_status_s& vehicle_status,
 	if (vehicle_status.timestamp < (now - 1_s)) {
 		display.set(MessageDisplayType::ARMING, "???");
 		display.set(MessageDisplayType::FLIGHT_MODE, "???");
-		display.set(MessageDisplayType::WARNING, "No vehicle status message received.");
 	} else {
 		// display armed / disarmed
 		if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)
@@ -143,6 +143,17 @@ msp_name_t construct_display_message(const vehicle_status_s& vehicle_status,
 
 		// display any errors or warnings
 		// @TODO
+	}
+
+	// update warning messages, if current
+	if (event.timestamp < (now - 30_s)) {
+		// clear warning
+		display.set(MessageDisplayType::WARNING, "");
+	} else if (events::externalLogLevel(event.log_levels) <= events::LogLevel::Warning) {
+		// display message, if high severity
+		char message[MAX_MSG_LENGTH];
+		sprintf(message, "Event ID: %lu", static_cast<long unsigned int>(event.id));
+		display.set(MessageDisplayType::WARNING, message);
 	}
 
 	// update heading, if relatively recent
