@@ -5,7 +5,7 @@ parameters:
       definitions:
 
         # OSD Parameters
-        SYMBOLS:
+        MSP_OSD_SYMBOLS:
             description:
                 short: OSD Symbol Selection
                 long: |

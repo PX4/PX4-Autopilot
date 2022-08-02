@@ -155,7 +155,7 @@ private:
 
 	// parameters
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYMBOLS>) _param_symbols
+		(ParamInt<px4::params::MSP_OSD_SYMBOLS>) _param_symbols
 	)
 
 	// metadata
