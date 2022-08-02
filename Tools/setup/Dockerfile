@@ -27,13 +27,17 @@ COPY Tools/setup/ubuntu.sh /tmp/ubuntu.sh
 # We support pre-downloading the gcc arm none eabi compiler
 # to speed up build times, if the file is not present when
 # building, the ubuntu.sh script will download it from source
-COPY *gcc-arm-none-eabi-9-2020-q2-update-linux.tar.bz2 /tmp/gcc-arm-none-eabi-9-2020-q2-update-linux.tar.bz2
+COPY gcc-arm-none-eabi-9-2020-q2-update-linux.tar.* /tmp/
 # The PATH env is set within ubuntu.sh, but given how we
 # are running the image using `gosu` to avoid read-only problems
 # with the filesystem the env variable does not persist
 ENV PATH="/opt/gcc-arm-none-eabi-9-2020-q2-update/bin:$PATH"
 ENV PATH="/opt/jdk-14.0.2+12/bin:$PATH"
-RUN bash /tmp/ubuntu.sh --from-docker --with-java --with-rtps --no-sim-tools
+
+# For a complete list of INSTALL_ARGS options run:
+# ./Tools/setup/ubuntu.sh --help
+ARG INSTALL_ARGS
+RUN bash /tmp/ubuntu.sh --from-docker $INSTALL_ARGS
 
 ENV DISPLAY :99
 
