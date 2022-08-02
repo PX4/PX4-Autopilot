@@ -185,7 +185,7 @@ private:
 		(ParamInt<px4::params::ASPD_FS_T_START>) _checks_clear_delay, /**<  delay to declare airspeed valid again */
 
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
-		(ParamFloat<px4::params::ASPD_WVAR_THR>) _param_wind_var_threshold
+		(ParamFloat<px4::params::ASPD_WERR_THR>) _param_wind_sigma_max_synth_tas
 	)
 
 	void 		init(); 	/**< initialization of the airspeed validator instances */
@@ -517,7 +517,8 @@ void AirspeedModule::update_wind_estimator_sideslip()
 	_wind_estimator_sideslip.update(_time_now_usec);
 
 	if (_vehicle_local_position_valid
-	    && _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+	    && _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW &&
+	    _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
 		Quatf q(_vehicle_attitude.q);
 
@@ -543,10 +544,9 @@ void AirspeedModule::update_wind_estimator_sideslip()
 
 void AirspeedModule::update_ground_minus_wind_airspeed()
 {
-	const float wind_variance = sqrtf(_wind_estimate_sideslip.variance_north * _wind_estimate_sideslip.variance_north +
-					  _wind_estimate_sideslip.variance_east * _wind_estimate_sideslip.variance_east);
+	const float wind_uncertainty = sqrtf(_wind_estimate_sideslip.variance_north + _wind_estimate_sideslip.variance_east);
 
-	if (wind_variance < _param_wind_var_threshold.get()) {
+	if (wind_uncertainty < _param_wind_sigma_max_synth_tas.get()) {
 		// calculate airspeed estimate based on groundspeed-windspeed
 		const float TAS_north = _vehicle_local_position.vx - _wind_estimate_sideslip.windspeed_north;
 		const float TAS_east = _vehicle_local_position.vy - _wind_estimate_sideslip.windspeed_east;

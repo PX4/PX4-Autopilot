@@ -98,7 +98,12 @@ private:
 		INDEX_TAS_SCALE
 	};	///< enum which can be used to access state.
 
-	static constexpr float INITIAL_WIND_VAR = 5.f; // initial variance for each wind state
+	static constexpr float INITIAL_WIND_ERROR =
+		2.5f; // initial uncertainty of each wind state when filter is initialised without airspeed [m/s]
+	static constexpr float INITIAL_BETA_ERROR_DEG =
+		15.0f;	// sidelip uncertainty used to initialise the filter with a true airspeed measurement [deg]
+	static constexpr float INITIAL_HEADING_ERROR_DEG =
+		10.0f; // heading uncertainty used to initialise the filter with a true airspeed measurement [deg]
 
 	matrix::Vector3f _state{0.f, 0.f, 1.f};
 	matrix::Matrix3f _P;		///< state covariance matrix
