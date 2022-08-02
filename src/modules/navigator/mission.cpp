@@ -820,9 +820,8 @@ Mission::set_mission_items()
 				} else if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
 					   && _work_item_type == WORK_ITEM_TYPE_DEFAULT
 					   && new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
-
-
-					/* haven't transitioned yet, trigger vtol takeoff logic below */
+					// if the vehicle is already in fixed wing mode then the current mission item
+					// will be accepted immediately and the work items will be skipped
 					_work_item_type = WORK_ITEM_TYPE_TAKEOFF;
 
 
