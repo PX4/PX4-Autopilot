@@ -42,6 +42,18 @@ do
 		INSIDE_DOCKER="true"
 	fi
 
+  if [[ $arg == "--help" ]]; then
+    echo "#⚡️ PX4 Dependency Installer for Ubuntu"
+    echo "# Options:
+#
+#  --with-java      boolean
+#  --with-rtps      boolean
+#  --no-nuttx       boolean
+#  --no-sim-tools   boolean"
+    echo "#"
+    exit
+  fi
+
 done
 
 # script directory
