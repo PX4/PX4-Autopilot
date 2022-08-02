@@ -282,14 +282,14 @@ void MspOsd::Run()
 	_vehicle_attitude_sub.update(&_vehicle_attitude_struct);
 	_estimator_status_sub.update(&_estimator_status_struct);
 	_input_rc_sub.update(&_input_rc_struct);
-	_event_subscription.update(&_event_struct);
+	_log_message_subscription.update(&_log_message_struct);
 
 	// update display message
 	if (_param_symbols.get() & (1u << SymbolIndex::MSP_NAME_IDX)) {
 		const auto display_message = msp_osd::construct_display_message(
 			_vehicle_status_struct,
 			_vehicle_attitude_struct,
-			_event_struct,
+			_log_message_struct,
 			_display);
 		this->Send(MSP_NAME, &display_message);
 	}
