@@ -604,6 +604,9 @@ void EKF2::Run()
 
 			// publish status/logging messages
 			PublishBaroBias(now);
+			PublishGnssHgtBias(now);
+			PublishRngHgtBias(now);
+			PublishEvHgtBias(now);
 			PublishEventFlags(now);
 			PublishGpsStatus(now);
 			PublishInnovations(now);
@@ -699,20 +702,61 @@ void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 		const BiasEstimator::status &status = _ekf.getBaroBiasEstimatorStatus();
 
 		if (fabsf(status.bias - _last_baro_bias_published) > 0.001f) {
-			estimator_baro_bias_s baro_bias{};
-			baro_bias.timestamp_sample = _ekf.get_baro_sample_delayed().time_us;
-			baro_bias.baro_device_id = _device_id_baro;
-			baro_bias.bias = status.bias;
-			baro_bias.bias_var = status.bias_var;
-			baro_bias.innov = status.innov;
-			baro_bias.innov_var = status.innov_var;
-			baro_bias.innov_test_ratio = status.innov_test_ratio;
-			baro_bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-			_estimator_baro_bias_pub.publish(baro_bias);
+			_estimator_baro_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_baro_sample_delayed().time_us, timestamp,
+							 _device_id_baro));
 
 			_last_baro_bias_published = status.bias;
 		}
 	}
+}
+
+void EKF2::PublishGnssHgtBias(const hrt_abstime &timestamp)
+{
+	const BiasEstimator::status &status = _ekf.getGpsHgtBiasEstimatorStatus();
+
+	if (fabsf(status.bias - _last_gnss_hgt_bias_published) > 0.001f) {
+		_estimator_gnss_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_gps_sample_delayed().time_us, timestamp));
+
+		_last_gnss_hgt_bias_published = status.bias;
+	}
+}
+
+void EKF2::PublishRngHgtBias(const hrt_abstime &timestamp)
+{
+	const BiasEstimator::status &status = _ekf.getRngHgtBiasEstimatorStatus();
+
+	if (fabsf(status.bias - _last_rng_hgt_bias_published) > 0.001f) {
+		_estimator_rng_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_rng_sample_delayed().time_us, timestamp));
+
+		_last_rng_hgt_bias_published = status.bias;
+	}
+}
+
+void EKF2::PublishEvHgtBias(const hrt_abstime &timestamp)
+{
+	const BiasEstimator::status &status = _ekf.getEvHgtBiasEstimatorStatus();
+
+	if (fabsf(status.bias - _last_ev_hgt_bias_published) > 0.001f) {
+		_estimator_ev_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_ev_sample_delayed().time_us, timestamp));
+
+		_last_ev_hgt_bias_published = status.bias;
+	}
+}
+
+estimator_bias_s EKF2::fillEstimatorBiasMsg(const BiasEstimator::status &status, uint64_t timestamp_sample_us,
+		uint64_t timestamp, uint32_t device_id)
+{
+	estimator_bias_s bias{};
+	bias.timestamp_sample = timestamp_sample_us;
+	bias.baro_device_id = device_id;
+	bias.bias = status.bias;
+	bias.bias_var = status.bias_var;
+	bias.innov = status.innov;
+	bias.innov_var = status.innov_var;
+	bias.innov_test_ratio = status.innov_test_ratio;
+	bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+
+	return bias;
 }
 
 void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
