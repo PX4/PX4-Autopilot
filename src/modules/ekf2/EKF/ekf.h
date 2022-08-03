@@ -391,6 +391,7 @@ public:
 	// Returns true if the output of the yaw emergency estimator can be used for a reset
 	bool isYawEmergencyEstimateAvailable() const;
 
+	uint8_t getHeightSensorRef() const { return _height_sensor_ref; }
 	const BiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 	const BiasEstimator::status &getRngHgtBiasEstimatorStatus() const { return _rng_hgt_b_est.getStatus(); }

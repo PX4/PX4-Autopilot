@@ -52,6 +52,7 @@ public:
 	~Baro();
 
 	void setData(float baro);
+	float getData() const { return _baro_data; }
 
 private:
 	float _baro_data{0.0f};
