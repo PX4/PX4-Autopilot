@@ -52,6 +52,12 @@ if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
 	)
 
 else()
+	add_library(board_bus_info
+		i2c.cpp
+		spi.cpp
+	)
+	add_dependencies(board_bus_info nuttx_context)
+
 	add_library(drivers_board
 		init.c
 		led.c
@@ -59,16 +65,28 @@ else()
 		mpfs_emmcsd.c
 		mpfs_spinor.c
 		mpfs_pwm.c
-		i2c.cpp
-		spi.cpp
 		manifest.c
 	)
+	add_dependencies(drivers_board nuttx_context)
 
 	target_link_libraries(drivers_board
 		PRIVATE
 			drivers__led # drv_led_start
 			nuttx_arch
 			nuttx_drivers
-			px4_layer
 	)
+
+	if (NOT DEFINED CONFIG_BUILD_FLAT)
+		target_link_libraries(drivers_board PRIVATE px4_kernel_layer)
+		target_compile_options(drivers_board PRIVATE -D__KERNEL__)
+	else()
+		target_link_libraries(drivers_board PRIVATE px4_layer board_bus_info)
+	endif()
+
+	add_library(drivers_userspace
+		init_entrypt.c
+		mpfs_userspace.c
+	)
+	add_dependencies(drivers_userspace nuttx_context)
+
 endif()
