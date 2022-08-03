@@ -58,6 +58,7 @@ public:
 
 	uint8_t get_device_address() const override { return device::I2C::get_device_address(); }
 
+	void set_device_type(uint8_t devtype);
 private:
 	struct calibration_s _cal;
 };
@@ -107,4 +108,9 @@ calibration_s *BMP388_I2C::get_calibration(uint8_t addr)
 	} else {
 		return nullptr;
 	}
+}
+
+void BMP388_I2C::set_device_type(uint8_t devtype)
+{
+	device::Device::set_device_type(devtype);
 }

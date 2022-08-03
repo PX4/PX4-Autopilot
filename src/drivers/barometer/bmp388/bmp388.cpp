@@ -68,10 +68,18 @@ BMP388::init()
 		return -EIO;
 	}
 
-	if (_interface->get_reg(BMP3_CHIP_ID_ADDR) != BMP3_CHIP_ID) {
-		PX4_WARN("id of your baro is not: 0x%02x", BMP3_CHIP_ID);
+	_chip_id = _interface->get_reg(BMP3_CHIP_ID_ADDR);
+
+	if (_chip_id != BMP388_CHIP_ID && _chip_id != BMP390_CHIP_ID) {
+		PX4_WARN("id of your baro is not: 0x%02x or 0x%02x", BMP388_CHIP_ID, BMP390_CHIP_ID);
 		return -EIO;
 	}
+
+	if (_chip_id == BMP390_CHIP_ID) {
+		_interface->set_device_type(DRV_BARO_DEVTYPE_BMP390);
+	}
+
+	_chip_rev_id = _interface->get_reg(BMP3_REV_ID_ADDR);
 
 	_cal = _interface->get_calibration(BMP3_CALIB_DATA_ADDR);
 
@@ -99,6 +107,7 @@ void
 BMP388::print_status()
 {
 	I2CSPIDriverBase::print_status();
+	printf("chip id:  0x%02x rev id:  0x%02x\n", _chip_id, _chip_rev_id);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_measure_perf);
 	perf_print_counter(_comms_errors);
