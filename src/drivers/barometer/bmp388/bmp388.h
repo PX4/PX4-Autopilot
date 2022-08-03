@@ -51,7 +51,8 @@
 
 // From https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3_defs.h
 
-#define BMP3_CHIP_ID                      (0x50)
+#define BMP388_CHIP_ID                    (0x50)
+#define BMP390_CHIP_ID                    (0x60)
 
 /* Over sampling macros */
 #define BMP3_NO_OVERSAMPLING              (0x00)
@@ -79,6 +80,7 @@
 
 /* Register Address */
 #define BMP3_CHIP_ID_ADDR                 (0x00)
+#define BMP3_REV_ID_ADDR                  (0x01)
 #define BMP3_ERR_REG_ADDR                 (0x02)
 #define BMP3_SENS_STATUS_REG_ADDR         (0x03)
 #define BMP3_DATA_ADDR                    (0x04)
@@ -304,6 +306,8 @@ public:
 	virtual uint32_t get_device_id() const = 0;
 
 	virtual uint8_t get_device_address() const = 0;
+
+	virtual void set_device_type(uint8_t devtype) = 0;
 };
 
 class BMP388 : public I2CSPIDriver<BMP388>
@@ -338,6 +342,9 @@ private:
 	calibration_s		*_cal {nullptr}; // stored calibration constants
 
 	bool			_collect_phase{false};
+
+	uint8_t                 _chip_id{0};
+	uint8_t                 _chip_rev_id{0};
 
 	void 			start();
 	int 			measure();
