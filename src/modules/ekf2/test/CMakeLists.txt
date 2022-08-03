@@ -44,6 +44,7 @@ px4_add_unit_gtest(SRC test_EKF_flow.cpp LINKLIBS ecl_EKF ecl_sensor_sim ecl_tes
 px4_add_unit_gtest(SRC test_EKF_fusionLogic.cpp LINKLIBS ecl_EKF ecl_sensor_sim ecl_test_helper)
 px4_add_unit_gtest(SRC test_EKF_gps.cpp LINKLIBS ecl_EKF ecl_sensor_sim ecl_test_helper)
 px4_add_unit_gtest(SRC test_EKF_gps_yaw.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_height_fusion.cpp LINKLIBS ecl_EKF ecl_sensor_sim ecl_test_helper)
 px4_add_unit_gtest(SRC test_EKF_imuSampling.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
 px4_add_unit_gtest(SRC test_EKF_initialization.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
 px4_add_unit_gtest(SRC test_EKF_measurementSampling.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
