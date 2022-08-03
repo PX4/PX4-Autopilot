@@ -72,7 +72,7 @@
 #define INTERFACE_USART_CONFIG         "/dev/ttyS1,2000000"
 #define BOOT_DELAY_ADDRESS             0x00000400
 #define BOARD_TYPE                     1500
-#define _FLASH_KBYTES                  3072
+#define _FLASH_KBYTES                  (5 * 1024)
 #define BOARD_FLASH_SIZE               (_FLASH_KBYTES * 1024)
 
 #define BOARD_PIN_LED_ACTIVITY         GPIO_nLED_BLUE // ICICLE LED4

@@ -20,9 +20,9 @@
 
 MEMORY
 {
-  kflash (rx)  : ORIGIN = 0xAFB00000, LENGTH = 3M /* w/ cache */
-  ksram (rx)   : ORIGIN = 0xB0000000, LENGTH = 2M /* w/ cache */
+  kflash  (rx) : ORIGIN = 0xAFB00000, LENGTH = 3M /* w/ cache */
+  ksram   (rx) : ORIGIN = 0xB0000000, LENGTH = 2M /* w/ cache */
 
   uflash (rwx) : ORIGIN = 0xAFE00000, LENGTH = 2M /* w/ cache */
-  usram (rwx)  : ORIGIN = 0xB0200000, LENGTH = 2M /* w/ cache */
+  usram  (rwx) : ORIGIN = 0xB0200000, LENGTH = 2M /* w/ cache */
 }

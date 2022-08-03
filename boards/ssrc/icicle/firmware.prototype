@@ -7,7 +7,7 @@
     "summary": "SSRC/Icicle",
     "version": "0.1",
     "image_size": 0,
-    "image_maxsize": 3145728,
+    "image_maxsize": 5242880,
     "git_identity": "",
     "board_revision": 0
 }

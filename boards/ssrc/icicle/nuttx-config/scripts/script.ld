@@ -20,8 +20,8 @@
 
 MEMORY
 {
-  progmem (rx) : ORIGIN = 0xAFB00000, LENGTH = 3072K  /* w/ cache */
-  sram   (rwx) : ORIGIN = 0xAFE00000, LENGTH = 2048K  /* w/ cache */
+  progmem (rx) : ORIGIN = 0xAFB00000, LENGTH = 5M  /* w/ cache */
+  sram   (rwx) : ORIGIN = 0xB0000000, LENGTH = 2M  /* w/ cache */
 }
 
 OUTPUT_ARCH("riscv")
