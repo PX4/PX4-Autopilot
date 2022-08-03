@@ -1,4 +1,4 @@
-FROM ghcr.io/tiiuae/tii-ubuntu-ros:galactic
+FROM ghcr.io/tiiuae/fog-ros-baseimage:sha-3dcb78d
 
 # Install PX4 SITL
 WORKDIR /packages
