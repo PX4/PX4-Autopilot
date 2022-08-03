@@ -202,12 +202,15 @@ bool EKF2::multi_init(int imu, int mag)
 	// advertise all topics to ensure consistent uORB instance numbering
 	_ekf2_timestamps_pub.advertise();
 	_estimator_baro_bias_pub.advertise();
+	_estimator_ev_hgt_bias_pub.advertise();
 	_estimator_event_flags_pub.advertise();
+	_estimator_gnss_hgt_bias_pub.advertise();
 	_estimator_gps_status_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();
 	_estimator_innovation_variances_pub.advertise();
 	_estimator_innovations_pub.advertise();
 	_estimator_optical_flow_vel_pub.advertise();
+	_estimator_rng_hgt_bias_pub.advertise();
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_states_pub.advertise();
 	_estimator_status_flags_pub.advertise();
