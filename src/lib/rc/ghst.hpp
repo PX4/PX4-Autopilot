@@ -162,6 +162,6 @@ __EXPORT bool ghst_send_telemetry_gps1_status(int uart_fd, uint32_t latitude, ui
  * @param flags GPS Flags
  * @return true on success
  */
-__EXPORT bool ghst_send_telemetry_gps2_status(int uart_fd, uint16_t ground_speed, uint16_t ground_course, uint8_t num_sats,
-		uint16_t home_dist, uint16_t home_dir, uint8_t flags);
+__EXPORT bool ghst_send_telemetry_gps2_status(int uart_fd, uint16_t ground_speed, uint16_t ground_course,
+		uint8_t num_sats, uint16_t home_dist, uint16_t home_dir, uint8_t flags);
 __END_DECLS
