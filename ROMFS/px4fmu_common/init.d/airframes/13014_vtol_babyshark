@@ -111,15 +111,15 @@ param set-default CA_ROTOR4_AX 1.0
 param set-default CA_ROTOR4_AZ 0.0
 
 param set-default CA_SV_CS_COUNT 3
-param set-default CA_SV_CS0_TYPE 1
-param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS0_TYPE 12 #custom type as combined aileron
+param set-default CA_SV_CS0_TRQ_R 1.0
 param set-default CA_SV_CS1_TRQ_P 0.5000
 param set-default CA_SV_CS1_TRQ_R 0.0000
 param set-default CA_SV_CS1_TRQ_Y -0.5000
-param set-default CA_SV_CS1_TYPE 8
+param set-default CA_SV_CS1_TYPE 13
 param set-default CA_SV_CS2_TRQ_P 0.5000
 param set-default CA_SV_CS2_TRQ_Y 0.5000
-param set-default CA_SV_CS2_TYPE 7
+param set-default CA_SV_CS2_TYPE 14
 
 param set-default PWM_MAIN_FUNC1 201
 param set-default PWM_MAIN_FUNC2 202
@@ -128,7 +128,7 @@ param set-default PWM_MAIN_FUNC4 203
 param set-default PWM_MAIN_FUNC5 101
 param set-default PWM_MAIN_FUNC6 102
 param set-default PWM_MAIN_FUNC7 103
-param set-default PWM_MAIN_FUNC8 105
+param set-default PWM_MAIN_FUNC8 104
 
 param set-default PWM_MAIN_TIM0 50
 param set-default PWM_MAIN_DIS1 1500
