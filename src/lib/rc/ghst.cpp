@@ -351,6 +351,19 @@ static inline void write_uint16_t(uint8_t *buf, int &offset, uint16_t value)
 }
 
 /**
+ * write an uint32_t value to a buffer at a given offset and increment the offset
+ */
+static inline void write_uint32_t(uint8_t *buf, int &offset, uint32_t value)
+{
+	// Little Endian
+	buf[offset] = value & 0xFFU;
+	buf[offset + 1] = (value & 0xFF00) >> 8U;
+	buf[offset + 2] = (value & 0xFF0000) >> 16U;
+	buf[offset + 3] = (value & 0xFF000000) >> 24U;
+	offset += 4;
+}
+
+/**
  * write frame header
  */
 static inline void write_frame_header(uint8_t *buf, int &offset, ghstTelemetryType type, uint8_t payload_size)
@@ -385,3 +398,34 @@ bool ghst_send_telemetry_battery_status(int uart_fd, uint16_t voltage_in_10mV,
 
 	return write(uart_fd, buf, offset) == offset;
 }
+
+bool ghst_send_telemetry_gps1_status(int uart_fd, uint32_t latitude, uint32_t longitude, uint16_t altitude)
+{
+	uint8_t buf[GHST_FRAME_PAYLOAD_SIZE_TELEMETRY + 4U]; // address, frame length, type, crc
+	int offset = 0;
+	write_frame_header(buf, offset, ghstTelemetryType::gpsPrimary, GHST_FRAME_PAYLOAD_SIZE_TELEMETRY);
+	write_uint32_t(buf, offset, latitude);
+	write_uint32_t(buf, offset, longitude);
+	write_uint16_t(buf, offset, altitude);
+	write_frame_crc(buf, offset, sizeof(buf));
+
+	return write(uart_fd, buf, offset) == offset;
+}
+
+bool ghst_send_telemetry_gps2_status(int uart_fd, uint16_t ground_speed, uint16_t ground_course, uint8_t numSats,
+				     uint16_t home_dist, uint16_t home_dir, uint8_t flags)
+{
+	uint8_t buf[GHST_FRAME_PAYLOAD_SIZE_TELEMETRY + 4U]; // address, frame length, type, crc
+	int offset = 0;
+	write_frame_header(buf, offset, ghstTelemetryType::gpsSecondary, GHST_FRAME_PAYLOAD_SIZE_TELEMETRY);
+	write_uint16_t(buf, offset, ground_speed);
+	write_uint16_t(buf, offset, ground_course);
+	write_uint8_t(buf, offset, numSats);
+	write_uint16_t(buf, offset, home_dist);
+	write_uint16_t(buf, offset, home_dir);
+	write_uint8_t(buf, offset, flags);
+	write_frame_crc(buf, offset, sizeof(buf));
+
+	return write(uart_fd, buf, offset) == offset;
+}
+
