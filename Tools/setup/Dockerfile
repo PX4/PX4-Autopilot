@@ -27,7 +27,8 @@ COPY Tools/setup/ubuntu.sh /tmp/ubuntu.sh
 # We support pre-downloading the gcc arm none eabi compiler
 # to speed up build times, if the file is not present when
 # building, the ubuntu.sh script will download it from source
-COPY gcc-arm-none-eabi-9-2020-q2-update-linux.tar.* /tmp/
+# To make this conditional, copy an extra 'dummy' file as well
+COPY Tools/setup/dummy.file gcc-arm-none-eabi-9-2020-q2-update-linux.tar.* /tmp/
 # The PATH env is set within ubuntu.sh, but given how we
 # are running the image using `gosu` to avoid read-only problems
 # with the filesystem the env variable does not persist
