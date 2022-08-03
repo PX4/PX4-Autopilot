@@ -144,6 +144,7 @@
 
 /* array of raw ADC values */
 #define PX4IO_PAGE_RAW_ADC_INPUT		6	/* 0..CONFIG_ADC_INPUT_COUNT-1 */
+#define PX4IO_P_RAW_ADC_BASE		0 	/* CONFIG_ADC_INPUT_COUNT channels from here */
 
 /* PWM servo information */
 #define PX4IO_PAGE_PWM_INFO			7
