@@ -65,6 +65,9 @@ using namespace time_literals;
 
 extern "C" __EXPORT int msp_osd_main(int argc, char *argv[]);
 
+// location to "hide" unused display elements
+#define LOCATION_HIDDEN 234;
+
 struct PerformanceData
 {
 	bool initialization_problems{false};
@@ -72,17 +75,31 @@ struct PerformanceData
 	size_t unsuccessful_sends{0};
 };
 
+// mapping from symbol name to bit in the parameter bitmask
+//  @TODO investigate params; it seems like this should be available directly?
 enum SymbolIndex : uint8_t {
-	MSP_NAME_IDX 		= 0,
-	MSP_FC_VARIANT_IDX 	= 1,
-	MSP_STATUS_IDX 		= 2,
-	MSP_ANALOG_IDX 		= 3,
-	MSP_BATTERY_STATE_IDX 	= 4,
-	MSP_RAW_GPS_IDX 	= 5,
-	MSP_COMP_GPS_IDX 	= 6,
-	MSP_ATTITUDE_IDX 	= 7,
-	MSP_ALTITUDE_IDX 	= 8,
-	MSP_ESC_SENSOR_DATA_IDX	= 9
+	CRAFT_NAME		= 0,
+	DISARMED		= 1,
+	GPS_LAT			= 2,
+	GPS_LON			= 3,
+	GPS_SATS		= 4,
+	GPS_SPEED		= 5,
+	HOME_DIST		= 6,
+	HOME_DIR		= 7,
+	MAIN_BATT_VOLTAGE	= 8,
+	CURRENT_DRAW		= 9,
+	MAH_DRAWN		= 10,
+	RSSI_VALUE		= 11,
+	ALTITUDE		= 12,
+	NUMERICAL_VARIO		= 13,
+	FLYMODE			= 14,
+	ESC_TMP			= 15,
+	PITCH_ANGLE		= 16,
+	ROLL_ANGLE		= 17,
+	CROSSHAIRS		= 18,
+	AVG_CELL_VOLTAGE	= 19,
+	HORIZON_SIDEBARS	= 20,
+	POWER			= 21
 };
 
 class MspOsd : public ModuleBase<MspOsd>, public ModuleParams, public px4::ScheduledWorkItem
@@ -153,6 +170,9 @@ private:
 	// send full configuration to MSP (triggers the actual update)
 	void SendConfig();
 	void SendTelemetry();
+
+	// convenience function to check if a given symbol is enabled
+	bool enabled(const SymbolIndex& symbol);
 
 	// local heartbeat
 	bool _heartbeat{false};

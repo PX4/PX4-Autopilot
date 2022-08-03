@@ -31,6 +31,13 @@
  *
  ****************************************************************************/
 
+/* Notes:
+ *  - Currently there's a lot of wasted processing here if certain displays are enabled.
+ *    A relatively low-hanging fruit would be figuring out which display elements require
+ *    information from what UORB topics and disable if the information isn't displayed.
+ * 	(this is complicated by the fact that it's not a one-to-one mapping...)
+ */
+
 #include "msp_osd.hpp"
 
 #include "msp_defines.h"
@@ -62,20 +69,17 @@
 //in betaflight configurator set OSD elements to your desired positions and in CLI type "set osd" to retreieve the numbers.
 //234 -> not visible. Horizontally 2048-2074(spacing 1), vertically 2048-2528(spacing 32). 26 characters X 15 lines
 
-// Currently working elements
+// Currently working elements positions (hardcoded)
 
 // Left
 const uint16_t osd_gps_lat_pos = 2048;
 const uint16_t osd_gps_lon_pos = 2080;
-uint16_t osd_gps_sats_pos = 2112;
+const uint16_t osd_gps_sats_pos = 2112;
 const uint16_t osd_rssi_value_pos = 2176;
-const uint16_t osd_flymode_pos = 234;
-const uint16_t osd_esc_tmp_pos = 234;
 
 // Center
 const uint16_t osd_home_dir_pos = 2093;
 const uint16_t osd_craft_name_pos = 2543;
-const uint16_t osd_horizon_sidebars_pos = 234;
 const uint16_t osd_disarmed_pos = 2125;
 
 // Right
@@ -86,50 +90,6 @@ const uint16_t osd_altitude_pos = 2233;
 const uint16_t osd_numerical_vario_pos = 2267;
 const uint16_t osd_gps_speed_pos = 2299;
 const uint16_t osd_home_dist_pos = 2331;
-const uint16_t osd_power_pos = 234;
-
-// Disabled
-const uint16_t osd_pitch_angle_pos = 234;
-const uint16_t osd_roll_angle_pos = 234;
-const uint16_t osd_crosshairs_pos = 234;
-const uint16_t osd_avg_cell_voltage_pos = 234;
-
-// Not implemented or not available
-const uint16_t osd_throttle_pos_pos = 234;
-const uint16_t osd_vtx_channel_pos = 234;
-const uint16_t osd_roll_pids_pos = 234;
-const uint16_t osd_pitch_pids_pos = 234;
-const uint16_t osd_yaw_pids_pos = 234;
-const uint16_t osd_pidrate_profile_pos = 234;
-const uint16_t osd_warnings_pos = 234;
-const uint16_t osd_debug_pos = 234;
-const uint16_t osd_artificial_horizon_pos = 234;
-const uint16_t osd_item_timer_1_pos = 234;
-const uint16_t osd_item_timer_2_pos = 234;
-const uint16_t osd_main_batt_usage_pos = 234;
-const uint16_t osd_numerical_heading_pos = 234;
-const uint16_t osd_compass_bar_pos = 234;
-const uint16_t osd_esc_rpm_pos = 234;
-const uint16_t osd_remaining_time_estimate_pos = 234;
-const uint16_t osd_rtc_datetime_pos = 234;
-const uint16_t osd_adjustment_range_pos = 234;
-const uint16_t osd_core_temperature_pos = 234;
-const uint16_t osd_anti_gravity_pos = 234;
-const uint16_t osd_g_force_pos = 234;
-const uint16_t osd_motor_diag_pos = 234;
-const uint16_t osd_log_status_pos = 234;
-const uint16_t osd_flip_arrow_pos = 234;
-const uint16_t osd_link_quality_pos = 234;
-const uint16_t osd_flight_dist_pos = 234;
-const uint16_t osd_stick_overlay_left_pos = 234;
-const uint16_t osd_stick_overlay_right_pos = 234;
-const uint16_t osd_display_name_pos = 234;
-const uint16_t osd_esc_rpm_freq_pos = 234;
-const uint16_t osd_rate_profile_name_pos = 234;
-const uint16_t osd_pid_profile_name_pos = 234;
-const uint16_t osd_profile_name_pos = 234;
-const uint16_t osd_rssi_dbm_value_pos = 234;
-const uint16_t osd_rc_channels_pos = 234;
 
 MspOsd::MspOsd() :
 	ModuleParams(nullptr),
@@ -155,7 +115,6 @@ void MspOsd::SendConfig()
 	msp_osd_config_t msp_osd_config;
 
 	msp_osd_config.units = 0;
-
 	msp_osd_config.osd_item_count = 56;
 	msp_osd_config.osd_stat_count = 24;
 	msp_osd_config.osd_timer_count = 2;
@@ -164,63 +123,68 @@ void MspOsd::SendConfig()
 	msp_osd_config.osdprofileindex = 1;                // 1
 	msp_osd_config.overlay_radio_mode = 0;             //  0
 
-	msp_osd_config.osd_rssi_value_pos = osd_rssi_value_pos;
-	msp_osd_config.osd_main_batt_voltage_pos = osd_main_batt_voltage_pos;
-	msp_osd_config.osd_crosshairs_pos = osd_crosshairs_pos;
-	msp_osd_config.osd_artificial_horizon_pos = osd_artificial_horizon_pos;
-	msp_osd_config.osd_horizon_sidebars_pos = osd_horizon_sidebars_pos;
-	msp_osd_config.osd_item_timer_1_pos = osd_item_timer_1_pos;
-	msp_osd_config.osd_item_timer_2_pos = osd_item_timer_2_pos;
-	msp_osd_config.osd_flymode_pos = osd_flymode_pos;
-	msp_osd_config.osd_craft_name_pos = osd_craft_name_pos;
-	msp_osd_config.osd_throttle_pos_pos = osd_throttle_pos_pos;
-	msp_osd_config.osd_vtx_channel_pos = osd_vtx_channel_pos;
-	msp_osd_config.osd_current_draw_pos = osd_current_draw_pos;
-	msp_osd_config.osd_mah_drawn_pos = osd_mah_drawn_pos;
-	msp_osd_config.osd_gps_speed_pos = osd_gps_speed_pos;
-	msp_osd_config.osd_gps_sats_pos = osd_gps_sats_pos;
-	msp_osd_config.osd_altitude_pos = osd_altitude_pos;
-	msp_osd_config.osd_roll_pids_pos = osd_roll_pids_pos;
-	msp_osd_config.osd_pitch_pids_pos = osd_pitch_pids_pos;
-	msp_osd_config.osd_yaw_pids_pos = osd_yaw_pids_pos;
-	msp_osd_config.osd_power_pos = osd_power_pos;
-	msp_osd_config.osd_pidrate_profile_pos = osd_pidrate_profile_pos;
-	msp_osd_config.osd_warnings_pos = osd_warnings_pos;
-	msp_osd_config.osd_avg_cell_voltage_pos = osd_avg_cell_voltage_pos;
-	msp_osd_config.osd_gps_lon_pos = osd_gps_lon_pos;
-	msp_osd_config.osd_gps_lat_pos = osd_gps_lat_pos;
-	msp_osd_config.osd_debug_pos = osd_debug_pos;
-	msp_osd_config.osd_pitch_angle_pos = osd_pitch_angle_pos;
-	msp_osd_config.osd_roll_angle_pos = osd_roll_angle_pos;
-	msp_osd_config.osd_main_batt_usage_pos = osd_main_batt_usage_pos;
-	msp_osd_config.osd_disarmed_pos = osd_disarmed_pos;
-	msp_osd_config.osd_home_dir_pos = osd_home_dir_pos;
-	msp_osd_config.osd_home_dist_pos = osd_home_dist_pos;
-	msp_osd_config.osd_numerical_heading_pos = osd_numerical_heading_pos;
-	msp_osd_config.osd_numerical_vario_pos = osd_numerical_vario_pos;
-	msp_osd_config.osd_compass_bar_pos = osd_compass_bar_pos;
-	msp_osd_config.osd_esc_tmp_pos = osd_esc_tmp_pos;
-	msp_osd_config.osd_esc_rpm_pos = osd_esc_rpm_pos;
-	msp_osd_config.osd_remaining_time_estimate_pos = osd_remaining_time_estimate_pos;
-	msp_osd_config.osd_rtc_datetime_pos = osd_rtc_datetime_pos;
-	msp_osd_config.osd_adjustment_range_pos = osd_adjustment_range_pos;
-	msp_osd_config.osd_core_temperature_pos = osd_core_temperature_pos;
-	msp_osd_config.osd_anti_gravity_pos = osd_anti_gravity_pos;
-	msp_osd_config.osd_g_force_pos = osd_g_force_pos;
-	msp_osd_config.osd_motor_diag_pos = osd_motor_diag_pos;
-	msp_osd_config.osd_log_status_pos = osd_log_status_pos;
-	msp_osd_config.osd_flip_arrow_pos = osd_flip_arrow_pos;
-	msp_osd_config.osd_link_quality_pos = osd_link_quality_pos;
-	msp_osd_config.osd_flight_dist_pos = osd_flight_dist_pos;
-	msp_osd_config.osd_stick_overlay_left_pos = osd_stick_overlay_left_pos;
-	msp_osd_config.osd_stick_overlay_right_pos = osd_stick_overlay_right_pos;
-	msp_osd_config.osd_display_name_pos = osd_display_name_pos;
-	msp_osd_config.osd_esc_rpm_freq_pos = osd_esc_rpm_freq_pos;
-	msp_osd_config.osd_rate_profile_name_pos = osd_rate_profile_name_pos;
-	msp_osd_config.osd_pid_profile_name_pos = osd_pid_profile_name_pos;
-	msp_osd_config.osd_profile_name_pos = osd_profile_name_pos;
-	msp_osd_config.osd_rssi_dbm_value_pos = osd_rssi_dbm_value_pos;
-	msp_osd_config.osd_rc_channels_pos = osd_rc_channels_pos;
+	// display conditional elements
+	msp_osd_config.osd_craft_name_pos = enabled(SymbolIndex::CRAFT_NAME) ? osd_craft_name_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_disarmed_pos = enabled(SymbolIndex::DISARMED) ? osd_disarmed_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_gps_lat_pos = enabled(SymbolIndex::GPS_LAT) ? osd_gps_lat_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_gps_lon_pos = enabled(SymbolIndex::GPS_LON) ? osd_gps_lon_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_gps_sats_pos = enabled(SymbolIndex::GPS_SATS) ? osd_gps_sats_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_gps_speed_pos = enabled(SymbolIndex::GPS_SPEED) ? osd_gps_speed_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_home_dist_pos = enabled(SymbolIndex::HOME_DIST) ? osd_home_dist_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_home_dir_pos = enabled(SymbolIndex::HOME_DIR) ? osd_home_dir_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_main_batt_voltage_pos = enabled(SymbolIndex::MAIN_BATT_VOLTAGE) ? osd_main_batt_voltage_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_current_draw_pos = enabled(SymbolIndex::CURRENT_DRAW) ? osd_current_draw_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_mah_drawn_pos = enabled(SymbolIndex::MAH_DRAWN) ? osd_mah_drawn_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_rssi_value_pos = enabled(SymbolIndex::RSSI_VALUE) ? osd_rssi_value_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_altitude_pos = enabled(SymbolIndex::ALTITUDE) ? osd_altitude_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_numerical_vario_pos = enabled(SymbolIndex::NUMERICAL_VARIO) ? osd_numerical_vario_pos : LOCATION_HIDDEN;
+
+	// possibly available, but not currently used
+	msp_osd_config.osd_flymode_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_esc_tmp_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_pitch_angle_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_roll_angle_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_crosshairs_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_avg_cell_voltage_pos = 		LOCATION_HIDDEN;
+	msp_osd_config.osd_horizon_sidebars_pos = 		LOCATION_HIDDEN;
+	msp_osd_config.osd_power_pos = 				LOCATION_HIDDEN;
+
+	// Not implemented or not available
+	msp_osd_config.osd_artificial_horizon_pos = 		LOCATION_HIDDEN;
+	msp_osd_config.osd_item_timer_1_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_item_timer_2_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_throttle_pos_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_vtx_channel_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_roll_pids_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_pitch_pids_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_yaw_pids_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_pidrate_profile_pos =		LOCATION_HIDDEN;
+	msp_osd_config.osd_warnings_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_debug_pos = 				LOCATION_HIDDEN;
+	msp_osd_config.osd_main_batt_usage_pos = 		LOCATION_HIDDEN;
+	msp_osd_config.osd_numerical_heading_pos = 		LOCATION_HIDDEN;
+	msp_osd_config.osd_compass_bar_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_esc_rpm_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_remaining_time_estimate_pos = 	LOCATION_HIDDEN;
+	msp_osd_config.osd_rtc_datetime_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_adjustment_range_pos = 		LOCATION_HIDDEN;
+	msp_osd_config.osd_core_temperature_pos = 		LOCATION_HIDDEN;
+	msp_osd_config.osd_anti_gravity_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_g_force_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_motor_diag_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_log_status_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_flip_arrow_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_link_quality_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_flight_dist_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_stick_overlay_left_pos = 		LOCATION_HIDDEN;
+	msp_osd_config.osd_stick_overlay_right_pos = 		LOCATION_HIDDEN;
+	msp_osd_config.osd_display_name_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_esc_rpm_freq_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_rate_profile_name_pos = 		LOCATION_HIDDEN;
+	msp_osd_config.osd_pid_profile_name_pos = 		LOCATION_HIDDEN;
+	msp_osd_config.osd_profile_name_pos = 			LOCATION_HIDDEN;
+	msp_osd_config.osd_rssi_dbm_value_pos = 		LOCATION_HIDDEN;
+	msp_osd_config.osd_rc_channels_pos = 			LOCATION_HIDDEN;
 
 	_msp.Send(MSP_OSD_CONFIG, &msp_osd_config);
 }
@@ -239,6 +203,7 @@ void MspOsd::Run()
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
 		updateParams(); // update module parameters (in DEFINE_PARAMETERS)
+		// @TODO check if requested unimplemented displays
 	}
 
 	if (!_is_initialized) {
@@ -285,7 +250,7 @@ void MspOsd::Run()
 	_log_message_subscription.update(&_log_message_struct);
 
 	// update display message
-	if (_param_symbols.get() & (1u << SymbolIndex::MSP_NAME_IDX)) {
+	if (true) {
 		const auto display_message = msp_osd::construct_display_message(
 			_vehicle_status_struct,
 			_vehicle_attitude_struct,
@@ -295,20 +260,20 @@ void MspOsd::Run()
 	}
 
 	// MSP_FC_VARIANT
-	if (_param_symbols.get() & (1u << SymbolIndex::MSP_FC_VARIANT_IDX)) {
+	if (true) {
 		const auto msg = msp_osd::construct_FC_VARIANT();
 		this->Send(MSP_FC_VARIANT, &msg);
 	}
 
 	// MSP_STATUS
-	if (_param_symbols.get() & (1u << SymbolIndex::MSP_STATUS_IDX)) {
+	if (true) {
 		const auto msg = msp_osd::construct_STATUS(
 			_vehicle_status_struct);
 		this->Send(MSP_STATUS, &msg);
 	}
 
 	// MSP_ANALOG
-	if (_param_symbols.get() & (1u << SymbolIndex::MSP_ANALOG_IDX)) {
+	if (true) {
 		const auto msg = msp_osd::construct_ANALOG(
 			_battery_status_struct,
 			_input_rc_struct);
@@ -316,14 +281,14 @@ void MspOsd::Run()
 	}
 
 	// MSP_BATTERY_STATE
-	if (_param_symbols.get() & (1u << SymbolIndex::MSP_BATTERY_STATE_IDX)) {
+	if (true) {
 		const auto msg = msp_osd::construct_BATTERY_STATE(
 			_battery_status_struct);
 		this->Send(MSP_BATTERY_STATE, &msg);
 	}
 
 	// MSP_RAW_GPS
-	if (_param_symbols.get() & (1u << SymbolIndex::MSP_RAW_GPS_IDX)) {
+	if (true) {
 		const auto msg = msp_osd::construct_RAW_GPS(
 			_vehicle_gps_position_struct,
 			_airspeed_validated_struct);
@@ -331,7 +296,7 @@ void MspOsd::Run()
 	}
 
 	// MSP_COMP_GPS
-	if (_param_symbols.get() & (1u << SymbolIndex::MSP_COMP_GPS_IDX)) {
+	if (true) {
 		// update heartbeat
 		_heartbeat = !_heartbeat;
 
@@ -345,14 +310,14 @@ void MspOsd::Run()
 	}
 
 	// MSP_ATTITUDE
-	if (_param_symbols.get() & (1u << SymbolIndex::MSP_ATTITUDE_IDX)) {
+	if (true) {
 		const auto msg = msp_osd::construct_ATTITUDE(
 			_vehicle_attitude_struct);
 		this->Send(MSP_ATTITUDE, &msg);
 	}
 
 	// MSP_ALTITUDE
-	if (_param_symbols.get() & (1u << SymbolIndex::MSP_ALTITUDE_IDX)) {
+	if (true) {
 		// construct and send message
 		const auto msg = msp_osd::construct_ALTITUDE(
 			_vehicle_gps_position_struct,
@@ -362,7 +327,7 @@ void MspOsd::Run()
 	}
 
 	// MSP_MOTOR_TELEMETRY
-	if (_param_symbols.get() & (1u << SymbolIndex::MSP_ESC_SENSOR_DATA_IDX)) {
+	if (true) {
 		const auto msg = msp_osd::construct_ESC_SENSOR_DATA();
 		this->Send(MSP_ESC_SENSOR_DATA, &msg);
 	}
@@ -377,6 +342,11 @@ void MspOsd::Send(const unsigned int message_type, const void *payload)
 		_performance_data.successful_sends++;
 	else
 		_performance_data.unsuccessful_sends++;
+}
+
+bool MspOsd::enabled(const SymbolIndex& symbol)
+{
+	return _param_symbols.get() & (1u << symbol);
 }
 
 int MspOsd::task_spawn(int argc, char *argv[])
