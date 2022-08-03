@@ -45,7 +45,7 @@ class MessageDisplay
 	bool updated_ {false};
 
 	// available message length for display and update period (us)
-	const uint64_t period_;
+	uint64_t period_;
 
 	public:
 	MessageDisplay()=delete;
@@ -56,6 +56,9 @@ class MessageDisplay
 
 	// get the latest subsection of the message
 	void get(char* string);
+
+	// update local parameters
+	void set_period(const uint64_t period) {period_ = period;};
 };
 
 

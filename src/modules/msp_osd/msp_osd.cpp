@@ -95,7 +95,7 @@ MspOsd::MspOsd() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test1),
 	_msp(0),
-	_display(/*update_period_us*/_param_scroll_rate.get() * 1000)
+	_display(/*update_period*/hrt_abstime(_param_scroll_rate.get() * 1000ULL))
 {
 }
 
@@ -203,7 +203,7 @@ void MspOsd::Run()
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
 		updateParams(); // update module parameters (in DEFINE_PARAMETERS)
-		// @TODO check if requested unimplemented displays
+		parameters_update();
 	}
 
 	if (!_is_initialized) {
@@ -342,6 +342,12 @@ void MspOsd::Send(const unsigned int message_type, const void *payload)
 		_performance_data.successful_sends++;
 	else
 		_performance_data.unsuccessful_sends++;
+}
+
+void MspOsd::parameters_update()
+{
+	// update our display rate
+	_display.set_period(hrt_abstime(_param_scroll_rate.get() * 1000ULL));
 }
 
 bool MspOsd::enabled(const SymbolIndex& symbol)

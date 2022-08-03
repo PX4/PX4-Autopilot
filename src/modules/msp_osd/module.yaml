@@ -43,8 +43,8 @@ parameters:
                 short: OSD Scroll Rate (ms)
                 long: |
                     Scroll rate in milliseconds for OSD messages longer than available character width.
+                    This is lower-bounded by the nominal loop rate of this module.
             type: int32
-            min: 10
+            min: 100
             max: 1000
             default: 125
-            reboot_required: true   # kinda silly; should really just implement runtime support here.

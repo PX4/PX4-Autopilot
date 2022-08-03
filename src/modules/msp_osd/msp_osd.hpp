@@ -171,6 +171,9 @@ private:
 	void SendConfig();
 	void SendTelemetry();
 
+	// perform actions required for local updates
+	void parameters_update();
+
 	// convenience function to check if a given symbol is enabled
 	bool enabled(const SymbolIndex& symbol);
 
