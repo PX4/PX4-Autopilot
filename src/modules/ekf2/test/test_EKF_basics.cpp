@@ -249,12 +249,15 @@ TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_initialized)
 	float vpos = 0.f;
 	float hvel = 0.f;
 	float vvel = 0.f;
+	float baro_vpos = 0.f;
 
 	// After the change of origin, the pos and vel innovations should stay small
 	_ekf->getGpsVelPosInnovRatio(hvel, vvel, hpos, vpos);
+	_ekf->getBaroHgtInnovRatio(baro_vpos);
 
 	EXPECT_NEAR(hpos, 0.f, 0.05f);
 	EXPECT_NEAR(vpos, 0.f, 0.05f);
+	EXPECT_NEAR(baro_vpos, 0.f, 0.05f);
 
 	EXPECT_NEAR(hvel, 0.f, 0.02f);
 	EXPECT_NEAR(vvel, 0.f, 0.02f);
