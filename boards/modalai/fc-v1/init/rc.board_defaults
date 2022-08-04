@@ -20,6 +20,9 @@
 
 # Disable TELEM1 MAVLINK; used by OSD
 param set-default MAV_0_CONFIG 0
+
+# enable OSD
+param set-default MSP_OSD_CONFIG 101
 param set-default SER_TEL1_BAUD 115200
 
 # TELEM2
