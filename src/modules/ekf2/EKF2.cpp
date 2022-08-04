@@ -594,7 +594,7 @@ void EKF2::Run()
 			perf_set_elapsed(_ecl_ekf_update_full_perf, hrt_elapsed_time(&ekf_update_start));
 
 			PublishLocalPosition(now);
-			PublishOdometry(now, imu_sample_new);
+			PublishOdometry(now);
 			PublishGlobalPosition(now);
 			PublishWindEstimate(now);
 
@@ -1059,7 +1059,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	_local_position_pub.publish(lpos);
 }
 
-void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu)
+void EKF2::PublishOdometry(const hrt_abstime &timestamp)
 {
 	// generate vehicle odometry data
 	vehicle_odometry_s odom;
@@ -1077,7 +1077,7 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu)
 	_ekf.getVelocity().copyTo(odom.velocity);
 
 	// angular_velocity
-	const Vector3f rates{imu.delta_ang / imu.delta_ang_dt};
+	const Vector3f rates{_ekf.get_imu_sample_newest().delta_ang / _ekf.get_imu_sample_newest().delta_ang_dt};
 	const Vector3f angular_velocity = rates - _ekf.getGyroBias();
 	angular_velocity.copyTo(odom.angular_velocity);
 
@@ -1129,7 +1129,7 @@ void EKF2::PublishOdometryAligned(const hrt_abstime &timestamp, const vehicle_od
 	aligned_ev_odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_NED;
 
 	// Compute orientation in EKF navigation frame
-	Quatf ev_quat_aligned = quat_ev2ekf * Quatf(ev_odom.q) ;
+	Quatf ev_quat_aligned = quat_ev2ekf * Quatf(ev_odom.q);
 	ev_quat_aligned.normalize();
 
 	ev_quat_aligned.copyTo(aligned_ev_odom.q);
@@ -1611,7 +1611,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 			bool velocity_valid = true;
 
 			switch (ev_odom.velocity_frame) {
-			// case vehicle_odometry_s::LOCAL_FRAME_NED:
+			// case vehicle_odometry_s::VELOCITY_FRAME_NED:
 			// 	ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_NED;
 			// 	break;
 
@@ -1698,10 +1698,10 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 		}
 
 		// check for valid orientation data
-		if ((PX4_ISFINITE(ev_odom.q[0]) && PX4_ISFINITE(ev_odom.q[1]) && PX4_ISFINITE(ev_odom.q[2])
-		     && PX4_ISFINITE(ev_odom.q[3]))
-		    && ((fabsf(ev_odom.q[0]) > 0.f) || (fabsf(ev_odom.q[1]) > 0.f) || (fabsf(ev_odom.q[2]) > 0.f)
-			|| (fabsf(ev_odom.q[3]) > 0.f))
+		if ((PX4_ISFINITE(ev_odom.q[0]) && PX4_ISFINITE(ev_odom.q[1])
+		     && PX4_ISFINITE(ev_odom.q[2]) && PX4_ISFINITE(ev_odom.q[3]))
+		    && ((fabsf(ev_odom.q[0]) > 0.f) || (fabsf(ev_odom.q[1]) > 0.f)
+			|| (fabsf(ev_odom.q[2]) > 0.f) || (fabsf(ev_odom.q[3]) > 0.f))
 		   ) {
 			ev_data.quat = Quatf(ev_odom.q);
 			ev_data.quat.normalize();
