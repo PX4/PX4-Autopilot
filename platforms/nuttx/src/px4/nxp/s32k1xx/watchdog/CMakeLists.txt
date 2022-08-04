@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016, 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,23 +31,6 @@
 #
 ############################################################################
 
-add_library(drivers_board
-	autoleds.c
-	automount.c
-	i2c.cpp
-	init.c
-	led.c
-	sdhc.c
-	spi.cpp
-	timer_config.cpp
-	usb.c
+px4_add_library(arch_watchdog_iwdg
+	iwdg.c
 )
-
-target_link_libraries(drivers_board
-	PRIVATE
-		arch_io_pins
-		nuttx_arch # sdio
-		nuttx_drivers # sdio
-		drivers__led # drv_led_start
-		px4_layer
-	)

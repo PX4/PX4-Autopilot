@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *       Author: David Sidrane <david.sidrane@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,28 +32,50 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
+#include <nuttx/config.h>
+#include "arm_internal.h"
+#include "arm_arch.h"
+#include "chip.h"
 
-#include <drivers/drv_hrt.h>
-#include <systemlib/mavlink_log.h>
-#include <uORB/Subscription.hpp>
+#include "nvic.h"
 
-using namespace time_literals;
 
-bool PreFlightCheck::airframeCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status)
+/****************************************************************************
+ * Name: watchdog_pet()
+ *
+ * Description:
+ *   This function resets the Independent watchdog (IWDG)
+ *
+ *
+ * Input Parameters:
+ *   none.
+ *
+ * Returned value:
+ *   none.
+ *
+ ****************************************************************************/
+
+void watchdog_pet(void)
 {
-	bool success = true;
+}
 
-#ifdef CONFIG_ARCH_BOARD_PX4_FMU_V2
+/****************************************************************************
+ * Name: watchdog_init()
+ *
+ * Description:
+ *   This function initialize the Independent watchdog (IWDG)
+ *
+ *
+ * Input Parameters:
+ *   none.
+ *
+ * Returned value:
+ *   none.
+ *
+ ****************************************************************************/
 
-	// We no longer support VTOL on fmu-v2, so we need to warn existing users.
-	if (status.is_vtol) {
-		mavlink_log_critical(mavlink_log_pub,
-				     "VTOL is not supported with fmu-v2, see docs.px4.io/main/en/config/firmware.html#bootloader");
-		success = false;
-	}
+void watchdog_init(void)
+{
 
-#endif
-
-	return success;
+	watchdog_pet();
 }

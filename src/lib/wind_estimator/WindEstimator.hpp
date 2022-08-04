@@ -60,8 +60,9 @@ public:
 	void update(uint64_t time_now);
 
 	void fuse_airspeed(uint64_t time_now, float true_airspeed, const matrix::Vector3f &velI,
-			   const matrix::Vector2f &velIvar, const matrix::Quatf &q_att);
-	void fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const matrix::Quatf &q_att);
+			   const float hor_vel_variance, const matrix::Quatf &q_att);
+	void fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const float hor_vel_variance,
+		       const matrix::Quatf &q_att);
 
 	bool is_estimate_valid() { return _initialised; }
 
@@ -97,6 +98,13 @@ private:
 		INDEX_TAS_SCALE
 	};	///< enum which can be used to access state.
 
+	static constexpr float INITIAL_WIND_ERROR =
+		2.5f; // initial uncertainty of each wind state when filter is initialised without airspeed [m/s]
+	static constexpr float INITIAL_BETA_ERROR_DEG =
+		15.0f;	// sidelip uncertainty used to initialise the filter with a true airspeed measurement [deg]
+	static constexpr float INITIAL_HEADING_ERROR_DEG =
+		10.0f; // heading uncertainty used to initialise the filter with a true airspeed measurement [deg]
+
 	matrix::Vector3f _state{0.f, 0.f, 1.f};
 	matrix::Matrix3f _P;		///< state covariance matrix
 
@@ -127,8 +135,11 @@ private:
 	bool _wind_estimator_reset = false; ///< wind estimator was reset in this cycle
 
 	// initialise state and state covariance matrix
-	bool initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas,
-			const matrix::Quatf &q_att);
+	bool initialise(const matrix::Vector3f &velI, const float hor_vel_variance, const float heading_rad,
+			const float tas_meas = NAN, const float tas_variance = NAN);
 
 	void run_sanity_checks();
+
+	// return the square of two floating point numbers
+	static constexpr float sq(float var) { return var * var; }
 };

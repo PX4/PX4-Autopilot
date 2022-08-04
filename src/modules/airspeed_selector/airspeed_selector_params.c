@@ -227,3 +227,17 @@ PARAM_DEFINE_INT32(ASPD_FS_T_STOP, 2);
  * @max 1000
  */
 PARAM_DEFINE_INT32(ASPD_FS_T_START, -1);
+
+/**
+ * Horizontal wind uncertainty threshold for synthetic airspeed.
+ *
+ * The synthetic airspeed estimate (from groundspeed and heading) will be declared valid
+ * as soon and as long the horizontal wind uncertainty drops below this value.
+ *
+ * @unit m/s
+ * @min 0.001
+ * @max 5
+ * @decimal 3
+ * @group Airspeed Validator
+ */
+PARAM_DEFINE_FLOAT(ASPD_WERR_THR, 0.55f);

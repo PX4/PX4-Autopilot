@@ -7,7 +7,8 @@ pipeline {
     stage('Analysis') {
       when {
         anyOf {
-          branch 'master'
+          branch 'main'
+          branch 'master' // should be removed, but in case there is something going on...
           branch 'pr-jenkins' // for testing
         }
       }
@@ -204,20 +205,21 @@ pipeline {
             unstash 'msg_documentation'
             unstash 'uorb_graph'
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
-              sh('git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_user_guide.git')
-              sh('cp airframes.md px4_user_guide/en/airframes/airframe_reference.md')
-              sh('cp parameters.md px4_user_guide/en/advanced_config/parameter_reference.md')
-              sh('cp -R modules/*.md px4_user_guide/en/modules/')
-              sh('cp -R graph_*.json px4_user_guide/.vuepress/public/en/middleware/')
-              sh('cp -R msg_docs/*.md px4_user_guide/en/msg_docs/')
-              sh('cd px4_user_guide; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
-              sh('cd px4_user_guide; git push origin master || true')
-              sh('rm -rf px4_user_guide')
+              sh('git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/PX4-user_guide.git')
+              sh('cp airframes.md PX4-user_guide/en/airframes/airframe_reference.md')
+              sh('cp parameters.md PX4-user_guide/en/advanced_config/parameter_reference.md')
+              sh('cp -R modules/*.md PX4-user_guide/en/modules/')
+              sh('cp -R graph_*.json PX4-user_guide/.vuepress/public/en/middleware/')
+              sh('cp -R msg_docs/*.md PX4-user_guide/en/msg_docs/')
+              sh('cd PX4-user_guide; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
+              sh('cd PX4-user_guide; git push origin main || true')
+              sh('rm -rf PX4-user_guide')
             }
           }
           when {
             anyOf {
-              branch 'master'
+              branch 'main'
+              branch 'master' // should be removed, but in case there is something going on...
               branch 'pr-jenkins' // for testing
             }
           }
@@ -245,7 +247,8 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'master'
+              branch 'main'
+              branch 'master' // should be removed, but in case there is something going on...
               branch 'pr-jenkins' // for testing
             }
           }
@@ -278,7 +281,8 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'master'
+              branch 'main'
+              branch 'master' // should be removed, but in case there is something going on...
               branch 'pr-jenkins' // for testing
             }
           }
@@ -307,7 +311,8 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'master'
+              branch 'main'
+              branch 'master' // should be removed, but in case there is something going on...
               branch 'pr-jenkins' // for testing
             }
           }
@@ -350,7 +355,8 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'master'
+              branch 'main'
+              branch 'master' // should be removed, but in case there is something going on...
               branch 'pr-jenkins' // for testing
             }
           }
@@ -373,7 +379,8 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'master'
+              branch 'main'
+              branch 'master' // should be removed, but in case there is something going on...
               branch 'pr-jenkins' // for testing
             }
           }
