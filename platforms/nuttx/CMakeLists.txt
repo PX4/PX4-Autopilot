@@ -144,12 +144,16 @@ file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_D
 # because even relative linker script paths are different for linux, mac and windows
 CYGPATH(NUTTX_CONFIG_DIR NUTTX_CONFIG_DIR_CYG)
 
-if((DEFINED ENV{SIGNING_TOOL}) AND (NOT NUTTX_DIR MATCHES "external"))
+if((DEFINED ENV{SIGNING_TOOL}) AND (NOT "${PX4_BOARD_LABEL}" STREQUAL "bootloader") AND (NOT NUTTX_DIR MATCHES "external"))
 	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR}/${PX4_CONFIG}_unsigned.bin)
 
+	add_subdirectory(toc)
+
 	add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_CONFIG}.bin
-		COMMAND $ENV{SIGNING_TOOL} $ENV{SIGNING_ARGS} ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
-		DEPENDS ${PX4_BINARY_OUTPUT}
+		COMMAND $ENV{SIGNING_TOOL} $ENV{SIGNING_ARGS} ${PX4_BINARY_DIR}/toc.bin ${PX4_BINARY_DIR}/toc_signed.bin
+		COMMAND $ENV{SIGNING_TOOL} $ENV{SIGNING_ARGS} ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR}/${PX4_CONFIG}_signed.bin
+		COMMAND cat ${PX4_BINARY_DIR}/toc_signed.bin ${PX4_BINARY_DIR}/${PX4_CONFIG}_signed.bin > ${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
+		DEPENDS toc_bin ${PX4_BINARY_OUTPUT}
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
 else()
@@ -312,6 +316,8 @@ else()
 	endif()
 
 endif()
+
+add_custom_target(px4_binary DEPENDS ${PX4_BINARY_OUTPUT})
 
 # create .px4 with parameter and airframe metadata
 if (TARGET parameters_xml AND TARGET airframes_xml)
