@@ -1477,8 +1477,8 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		case MAV_FRAME_LOCAL_ENU:
 			// ENU local tangent frame (x: East, y: North, z: Up) with origin fixed relative to earth.
 			odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_NED;
-			odom.velocity[0] =  odom_in.vy; // y: North
-			odom.velocity[1] =  odom_in.vx; // x: East
+			odom.velocity[0] =  odom_in.vy; // y: East
+			odom.velocity[1] =  odom_in.vx; // x: North
 			odom.velocity[2] = -odom_in.vz; // z: Up
 			break;
 
