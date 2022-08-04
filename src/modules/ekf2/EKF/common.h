@@ -207,7 +207,7 @@ struct extVisionSample {
 	Vector3f    vel{};         ///< FRD velocity in reference frame defined in vel_frame variable (m/sec) - Z must be aligned with down axis
 	Quatf       quat{};        ///< quaternion defining rotation from body to earth frame
 	Vector3f    posVar{};      ///< XYZ position variances (m**2)
-	Matrix3f    velCov{};      ///< XYZ velocity covariances ((m/sec)**2)
+	Vector3f    velVar{};      ///< XYZ velocity variances ((m/sec)**2)
 	float       angVar{};      ///< angular heading variance (rad**2)
 	VelocityFrame vel_frame = VelocityFrame::BODY_FRAME_FRD;
 	uint8_t     reset_counter{};
