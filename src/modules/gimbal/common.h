@@ -34,6 +34,7 @@
 
 #pragma once
 
+#include <math.h>
 #include <stdint.h>
 
 namespace gimbal
@@ -55,8 +56,8 @@ struct ControlData {
 
 	union TypeData {
 		struct TypeAngle {
-			float q[4];
-			float angular_velocity[3];
+			float q[4] {NAN, NAN, NAN, NAN};
+			float angular_velocity[3] {NAN, NAN, NAN};
 
 			enum class Frame : uint8_t {
 				AngleBodyFrame = 0, // Also called follow mode, angle relative to vehicle forward (usually default for yaw axis).

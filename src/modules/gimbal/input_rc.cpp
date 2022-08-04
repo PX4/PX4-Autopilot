@@ -100,7 +100,7 @@ InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData 
 	orb_copy(ORB_ID(manual_control_setpoint), _manual_control_setpoint_sub, &manual_control_setpoint);
 	control_data.type = ControlData::Type::Angle;
 
-	float new_aux_values[3];
+	float new_aux_values[3] {};
 
 	for (int i = 0; i < 3; ++i) {
 		new_aux_values[i] = _get_aux_value(manual_control_setpoint, i);
@@ -112,7 +112,7 @@ InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData 
 	// Detect a big stick movement
 	const bool major_movement = [&]() {
 		for (int i = 0; i < 3; ++i) {
-			if (fabsf(_last_set_aux_values[i] - new_aux_values[i]) > 0.25f) {
+			if (!PX4_ISFINITE(_last_set_aux_values[i]) || (fabsf(_last_set_aux_values[i] - new_aux_values[i]) > 0.25f)) {
 				return true;
 			}
 		}
