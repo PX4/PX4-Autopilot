@@ -715,12 +715,15 @@ arch_do_jump(const uint32_t *app_base)
 #if defined(CONFIG_MMCSD) || defined(CONFIG_MTD_M25P)
 static size_t get_image_size(void)
 {
+	const void *toc_start;
 	const image_toc_entry_t *toc_entries;
 	const void *end = (const void *)APP_LOAD_ADDRESS;
 	uint8_t len;
 
-	if (find_toc(&toc_entries, &len)) {
+	if (find_toc(&toc_start, &len)) {
 		_alert("Found TOC\n");
+
+		toc_entries = get_toc_entry0(toc_start);
 
 		// find the largest end address
 

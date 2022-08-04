@@ -50,11 +50,11 @@
 #endif
 #define FLASH_END_ADDRESS (FLASH_START_ADDRESS + BOARD_FLASH_SIZE)
 
-bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
+bool find_toc(const void **toc_start_addr, uint8_t *len)
 {
-	const uintptr_t toc_start_u32 = APP_LOAD_ADDRESS + BOOT_DELAY_ADDRESS + 8;
+	const uintptr_t toc_start_u32 = TOC_ADDRESS;
 	const image_toc_start_t *toc_start = (const image_toc_start_t *)toc_start_u32;
-	const image_toc_entry_t *entry = (const image_toc_entry_t *)(toc_start_u32 + sizeof(image_toc_start_t));
+	const image_toc_entry_t *entry = get_toc_entry0((const void *)toc_start_u32);
 
 	int i = 0;
 	uint8_t sig_idx;
@@ -86,24 +86,24 @@ bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
 		    (uintptr_t)entry[0].end > (uintptr_t)entry[0].start) {
 			sig_idx = entry[0].signature_idx;
 
-			/* The signature idx for the first app must be within the TOC, and
-			* the signature must be within the flash area, not overlapping the
-			* app. Also ensure that end > start.
-			*/
+			/* The signature idx for the ToC and the signature must be within
+			 * the flash area, not overlapping the ToC.
+			 * Also ensure that end > start.
+			 */
 
 			if (sig_idx > 0 &&
 			    sig_idx < MAX_TOC_ENTRIES &&
 			    (uintptr_t)entry[sig_idx].start >= (uintptr_t)entry[0].end &&
 			    (uintptr_t)entry[sig_idx].end <= FLASH_END_ADDRESS &&
 			    (uintptr_t)entry[sig_idx].end > (uintptr_t)entry[sig_idx].start) {
-				*toc_entries = entry;
+				*toc_start_addr = (const void *)toc_start;
 				*len = i;
 				return true;
 			}
 		}
 	}
 
-	*toc_entries = NULL;
+	*toc_start_addr = NULL;
 	*len = 0;
 	return false;
 }
