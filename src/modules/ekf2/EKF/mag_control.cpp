@@ -70,7 +70,7 @@ void Ekf::controlMagFusion()
 
 			// compute mag heading innovation (for estimator_aid_src_mag_heading logging)
 			const Vector3f mag_observation = mag_sample.mag - _state.mag_B;
-			const Dcmf R_to_earth = shouldUse321RotationSequence(_R_to_earth) ? updateEuler321YawInRotMat(0.f, _R_to_earth) : updateEuler312YawInRotMat(0.f, _R_to_earth);
+			const Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
 			const Vector3f mag_earth_pred = R_to_earth * mag_observation;
 
 			resetEstimatorAidStatus(_aid_src_mag_heading);
@@ -355,7 +355,7 @@ void Ekf::runMagAndMagDeclFusions(const Vector3f &mag)
 
 	} else if (_control_status.flags.mag_hdg && !_is_yaw_fusion_inhibited) {
 		// Rotate the measurements into earth frame using the zero yaw angle
-		Dcmf R_to_earth = shouldUse321RotationSequence(_R_to_earth) ? updateEuler321YawInRotMat(0.f, _R_to_earth) : updateEuler312YawInRotMat(0.f, _R_to_earth);
+		Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
 
 		Vector3f mag_earth_pred = R_to_earth * (mag - _state.mag_B);
 

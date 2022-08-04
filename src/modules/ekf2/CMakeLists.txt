@@ -70,7 +70,6 @@ px4_add_module(
 		EKF/sensor_range_finder.cpp
 		EKF/sideslip_fusion.cpp
 		EKF/terrain_estimator.cpp
-		EKF/utils.cpp
 		EKF/vel_pos_fusion.cpp
 		EKF/zero_innovation_heading_update.cpp
 		EKF/zero_velocity_update.cpp
