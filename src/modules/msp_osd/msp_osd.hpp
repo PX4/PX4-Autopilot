@@ -187,7 +187,7 @@ private:
 	)
 
 	// metadata
-	char _device[100];
+	char _device[64];
 	PerformanceData _performance_data{};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};

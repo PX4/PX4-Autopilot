@@ -97,28 +97,11 @@ MspOsd::MspOsd(const char *device) :
 	_msp(0),
 	_display(/*update_period*/hrt_abstime(_param_scroll_rate.get() * 1000ULL))
 {
-	// back up device name for debugging
-	strncpy(_device, device, 100);
+	// back up device name for connection later
+	strcpy(_device, device);
 
-	struct termios t;
-	_msp_fd = open(device, O_RDWR | O_NONBLOCK);
-
-	if (_msp_fd < 0) {
-		_performance_data.initialization_problems = true;
-		return;
-	}
-
-	tcgetattr(_msp_fd, &t);
-	cfsetspeed(&t, B115200);
-	t.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
-	t.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
-	t.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
-	t.c_oflag = 0;
-	tcsetattr(_msp_fd, TCSANOW, &t);
-
-	_msp = MspV1(_msp_fd);
-
-	_is_initialized = true;
+	// _is_initialized = true;
+	PX4_INFO("MSP OSD prepared to run on %s", _device);
 }
 
 MspOsd::~MspOsd()
@@ -226,6 +209,29 @@ void MspOsd::Run()
 		_parameter_update_sub.copy(&param_update);
 		updateParams(); // update module parameters (in DEFINE_PARAMETERS)
 		parameters_update();
+	}
+
+	// perform first time initialization, if needed
+	if (!_is_initialized) {
+		struct termios t;
+		_msp_fd = open(_device, O_RDWR | O_NONBLOCK);
+
+		if (_msp_fd < 0) {
+			_performance_data.initialization_problems = true;
+			return;
+		}
+
+		tcgetattr(_msp_fd, &t);
+		cfsetspeed(&t, B115200);
+		t.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
+		t.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+		t.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
+		t.c_oflag = 0;
+		tcsetattr(_msp_fd, TCSANOW, &t);
+
+		_msp = MspV1(_msp_fd);
+
+		_is_initialized = true;
 	}
 
 	// avoid premature pessimization; if skip processing if we're effectively disabled
