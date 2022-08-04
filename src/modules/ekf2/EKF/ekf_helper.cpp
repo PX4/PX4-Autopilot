@@ -733,9 +733,9 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 
 			resetVerticalPositionTo(_gps_alt_ref - current_alt);
 
-			_baro_hgt_offset -= _state_reset_status.posD_change;
+			_baro_hgt_offset += _state_reset_status.posD_change;
 
-			_rng_hgt_offset -= _state_reset_status.posD_change;
+			_rng_hgt_offset += _state_reset_status.posD_change;
 			_ev_hgt_offset -= _state_reset_status.posD_change;
 		}
 
