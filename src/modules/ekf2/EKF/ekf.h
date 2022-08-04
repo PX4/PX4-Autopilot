@@ -201,6 +201,8 @@ public:
 	// get the orientation (quaterion) covariances
 	matrix::SquareMatrix<float, 4> orientation_covariances() const { return P.slice<4, 4>(0, 0); }
 
+	matrix::SquareMatrix<float, 3> orientation_covariances_euler() const;
+
 	// get the linear velocity covariances
 	matrix::SquareMatrix<float, 3> velocity_covariances() const { return P.slice<3, 3>(4, 4); }
 

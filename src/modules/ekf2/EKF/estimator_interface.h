@@ -245,6 +245,8 @@ public:
 
 	// Getters for samples on the delayed time horizon
 	const imuSample &get_imu_sample_delayed() const { return _imu_sample_delayed; }
+	const imuSample &get_imu_sample_newest() const { return _newest_high_rate_imu_sample; }
+
 	const baroSample &get_baro_sample_delayed() const { return _baro_sample_delayed; }
 	const gpsSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
 
