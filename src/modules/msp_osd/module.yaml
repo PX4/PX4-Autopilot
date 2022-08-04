@@ -53,3 +53,14 @@ parameters:
             min: 100
             max: 1000
             default: 125
+
+        # Dwell TIme
+        OSD_DWELL_TIME:
+            description:
+                short: OSD Dwell Time (ms)
+                long: |
+                    Amount of time in milliseconds to dwell at the beginning of the display, when scrolling.
+            type: int32
+            min: 100
+            max: 10000
+            default: 500

@@ -93,7 +93,7 @@ void MessageDisplay::get(char* string) {
 	// check if we should update the sub-message (giving extra time to the beginning)
 	uint32_t current_time = hrt_absolute_time();
 	uint32_t dt = current_time - last_update_;
-	if ( (index == 0 && dt > (4 * period_)) || (index != 0 && dt > period_) ) {
+	if ( (index == 0 && dt > dwell_) || (index != 0 && dt > period_) ) {
 		// scroll through message by updating index
 		if (++index > strlen(full_message) - FULL_MSG_LENGTH)
 			index = 0;

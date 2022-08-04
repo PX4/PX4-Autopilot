@@ -183,7 +183,8 @@ private:
 	// parameters
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::OSD_SYMBOLS>) _param_symbols,
-		(ParamInt<px4::params::OSD_SCROLL_RATE>) _param_scroll_rate
+		(ParamInt<px4::params::OSD_SCROLL_RATE>) _param_scroll_rate,
+		(ParamInt<px4::params::OSD_DWELL_TIME>) _param_dwell_time
 	)
 
 	// metadata

@@ -44,12 +44,14 @@ class MessageDisplay
 	uint64_t last_update_ {0};
 	bool updated_ {false};
 
-	// available message length for display and update period (us)
+	// dwell duration update period (us)
 	uint64_t period_;
+	uint64_t dwell_;
 
 	public:
 	MessageDisplay()=delete;
-	MessageDisplay(uint64_t period) : period_(period) {}
+	MessageDisplay(const uint64_t period, const uint64_t dwell)
+		: period_(period), dwell_(dwell) {}
 
 	// set the given string
 	void set(const MessageDisplayType mode, const char* string);
@@ -59,6 +61,7 @@ class MessageDisplay
 
 	// update local parameters
 	void set_period(const uint64_t period) {period_ = period;};
+	void set_dwell(const uint64_t dwell) {dwell_ = dwell;};
 };
 
 
