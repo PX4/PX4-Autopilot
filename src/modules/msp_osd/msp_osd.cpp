@@ -93,11 +93,11 @@ const uint16_t osd_home_dist_pos = 2331;
 
 MspOsd::MspOsd(const char *device) :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test1),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
 	_msp(0),
 	_display(/*update_period*/hrt_abstime(_param_scroll_rate.get() * 1000ULL))
 {
-	// back up device for debugging
+	// back up device name for debugging
 	strncpy(_device, device, 100);
 
 	struct termios t;
