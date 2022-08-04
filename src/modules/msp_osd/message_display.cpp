@@ -11,35 +11,40 @@ void MessageDisplay::set(const MessageDisplayType mode, const char* string) {
 	case MessageDisplayType::WARNING:
 		if (strcmp(warning_msg, string) != 0)
 		{
-			strncpy(warning_msg, string, MAX_MSG_LENGTH);
+			warning_msg[MSG_BUFFER_SIZE - 1] = '\0';
+			strncpy(warning_msg, string, MSG_BUFFER_SIZE - 1);
 			updated_ = true;
 		}
 		break;
 	case MessageDisplayType::FLIGHT_MODE:
 		if (strcmp(flight_mode_msg, string) != 0)
 		{
-			strncpy(flight_mode_msg, string, MAX_MSG_LENGTH);
+			flight_mode_msg[MSG_BUFFER_SIZE - 1] = '\0';
+			strncpy(flight_mode_msg, string, MSG_BUFFER_SIZE - 1);
 			updated_ = true;
 		}
 		break;
 	case MessageDisplayType::ARMING:
 		if (strcmp(arming_msg, string) != 0)
 		{
-			strncpy(arming_msg, string, MAX_MSG_LENGTH);
+			arming_msg[MSG_BUFFER_SIZE - 1] = '\0';
+			strncpy(arming_msg, string, MSG_BUFFER_SIZE - 1);
 			updated_ = true;
 		}
 		break;
 	case MessageDisplayType::STATUS:
 		if (strcmp(status_msg, string) != 0)
 		{
-			strncpy(status_msg, string, MAX_MSG_LENGTH);
+			status_msg[MSG_BUFFER_SIZE - 1] = '\0';
+			strncpy(status_msg, string, MSG_BUFFER_SIZE - 1);
 			updated_ = true;
 		}
 		break;
 	case MessageDisplayType::HEADING:
 		if (strcmp(heading_msg, string) != 0)
 		{
-			strncpy(heading_msg, string, MAX_MSG_LENGTH);
+			heading_msg[MSG_BUFFER_SIZE - 1] = '\0';
+			strncpy(heading_msg, string, MSG_BUFFER_SIZE - 1);
 			updated_ = true;
 		}
 		break;
@@ -65,9 +70,9 @@ void MessageDisplay::get(char* string) {
 		// add a warning message, if it's not empty
 		if (strlen(warning_msg) != 0) {
 			// copy as much of warning message as we can fit
-			strcat(full_message, " | WARNING: ");
-			const size_t chars_used {22};
-			strncat(full_message, warning_msg, MAX_MSG_LENGTH - chars_used - FULL_MSG_LENGTH - 1);
+			strcat(full_message, "   WARN: ");
+			const size_t chars_used {19};
+			strncat(full_message, warning_msg, MSG_BUFFER_SIZE - chars_used - FULL_MSG_LENGTH - 1);
 
 			// pad with one full length of terminal whitespace
 			for (unsigned i = 0; i != FULL_MSG_LENGTH; ++i)

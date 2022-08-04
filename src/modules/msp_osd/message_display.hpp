@@ -10,7 +10,7 @@
 namespace msp_osd {
 
 // character size limitations
-#define MAX_MSG_LENGTH 250
+#define MSG_BUFFER_SIZE 250
 #define FULL_MSG_LENGTH 12
 
 // supported message types
@@ -27,15 +27,15 @@ enum MessageDisplayType
 class MessageDisplay
 {
 	// working information
-	char warning_msg[MAX_MSG_LENGTH] {""};
-	char flight_mode_msg[MAX_MSG_LENGTH] {"???"};
-	char arming_msg[MAX_MSG_LENGTH] {"???"};
-	char heading_msg[MAX_MSG_LENGTH] {"??"};
+	char warning_msg[MSG_BUFFER_SIZE] {""};
+	char flight_mode_msg[MSG_BUFFER_SIZE] {"???"};
+	char arming_msg[MSG_BUFFER_SIZE] {"???"};
+	char heading_msg[MSG_BUFFER_SIZE] {"??"};
 	// currently unused:
-	char status_msg[MAX_MSG_LENGTH] {""};
+	char status_msg[MSG_BUFFER_SIZE] {""};
 
 	// the full message and the part we're currently displaying
-	char full_message[MAX_MSG_LENGTH] {"INITIALIZING"};
+	char full_message[MSG_BUFFER_SIZE] {"INITIALIZING"};
 
 	// current index we're displaying
 	uint16_t index {0};
