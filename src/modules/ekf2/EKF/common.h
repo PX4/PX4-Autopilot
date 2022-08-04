@@ -45,6 +45,7 @@
 #include <cstdint>
 
 #include <matrix/math.hpp>
+#include <mathlib/math/Utilities.hpp>
 
 namespace estimator
 {
@@ -57,6 +58,12 @@ using matrix::Quatf;
 using matrix::Vector2f;
 using matrix::Vector3f;
 using matrix::wrap_pi;
+
+using math::Utilities::getEulerYaw;
+using math::Utilities::quatToInverseRotMat;
+using math::Utilities::shouldUse321RotationSequence;
+using math::Utilities::sq;
+using math::Utilities::updateYawInRotMat;
 
 // maximum sensor intervals in usec
 #define BARO_MAX_INTERVAL (uint64_t)2e5 ///< Maximum allowable time interval between pressure altitude measurements (uSec)

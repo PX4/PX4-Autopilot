@@ -31,9 +31,27 @@
  *
  ****************************************************************************/
 
-#include "utils.hpp"
+#ifndef MATH_UTILITIES_H
+#define MATH_UTILITIES_H
 
-matrix::Dcmf taitBryan312ToRotMat(const matrix::Vector3f &rot312)
+#include <matrix/math.hpp>
+
+namespace math
+{
+
+namespace Utilities
+{
+
+// return the square of two floating point numbers - used in auto coded sections
+static constexpr float sq(float var) { return var * var; }
+
+// converts Tait-Bryan 312 sequence of rotations from frame 1 to frame 2
+// to the corresponding rotation matrix that rotates from frame 2 to frame 1
+// rot312(0) - First rotation is a RH rotation about the Z axis (rad)
+// rot312(1) - Second rotation is a RH rotation about the X axis (rad)
+// rot312(2) - Third rotation is a RH rotation about the Y axis (rad)
+// See http://www.atacolorado.com/eulersequences.doc
+inline matrix::Dcmf taitBryan312ToRotMat(const matrix::Vector3f &rot312)
 {
 	// Calculate the frame2 to frame 1 rotation matrix from a 312 Tait-Bryan rotation sequence
 	const float c2 = cosf(rot312(2)); // third rotation is pitch
@@ -57,15 +75,7 @@ matrix::Dcmf taitBryan312ToRotMat(const matrix::Vector3f &rot312)
 	return R;
 }
 
-float kahanSummation(float sum_previous, float input, float &accumulator)
-{
-	const float y = input - accumulator;
-	const float t = sum_previous + y;
-	accumulator = (t - sum_previous) - y;
-	return t;
-}
-
-matrix::Dcmf quatToInverseRotMat(const matrix::Quatf &quat)
+inline matrix::Dcmf quatToInverseRotMat(const matrix::Quatf &quat)
 {
 	const float q00 = quat(0) * quat(0);
 	const float q11 = quat(1) * quat(1);
@@ -92,7 +102,25 @@ matrix::Dcmf quatToInverseRotMat(const matrix::Quatf &quat)
 	return dcm;
 }
 
-float getEuler321Yaw(const matrix::Quatf &q)
+// We should use a 3-2-1 Tait-Bryan (yaw-pitch-roll) rotation sequence
+// when there is more roll than pitch tilt and a 3-1-2 rotation sequence
+// when there is more pitch than roll tilt to avoid gimbal lock.
+inline bool shouldUse321RotationSequence(const matrix::Dcmf &R)
+{
+	return fabsf(R(2, 0)) < fabsf(R(2, 1));
+}
+
+inline float getEuler321Yaw(const matrix::Dcmf &R)
+{
+	return atan2f(R(1, 0), R(0, 0));
+}
+
+inline float getEuler312Yaw(const matrix::Dcmf &R)
+{
+	return atan2f(-R(0, 1), R(1, 1));
+}
+
+inline float getEuler321Yaw(const matrix::Quatf &q)
 {
 	// Values from yaw_input_321.c file produced by
 	// https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw321.m
@@ -101,7 +129,7 @@ float getEuler321Yaw(const matrix::Quatf &q)
 	return atan2f(a, b);
 }
 
-float getEuler312Yaw(const matrix::Quatf &q)
+inline float getEuler312Yaw(const matrix::Quatf &q)
 {
 	// Values from yaw_input_312.c file produced by
 	// https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
@@ -110,14 +138,24 @@ float getEuler312Yaw(const matrix::Quatf &q)
 	return atan2f(a, b);
 }
 
-matrix::Dcmf updateEuler321YawInRotMat(float yaw, const matrix::Dcmf &rot_in)
+inline float getEulerYaw(const matrix::Dcmf &R)
+{
+	if (shouldUse321RotationSequence(R)) {
+		return getEuler321Yaw(R);
+
+	} else {
+		return getEuler312Yaw(R);
+	}
+}
+
+inline matrix::Dcmf updateEuler321YawInRotMat(float yaw, const matrix::Dcmf &rot_in)
 {
 	matrix::Eulerf euler321(rot_in);
 	euler321(2) = yaw;
 	return matrix::Dcmf(euler321);
 }
 
-matrix::Dcmf updateEuler312YawInRotMat(float yaw, const matrix::Dcmf &rot_in)
+inline matrix::Dcmf updateEuler312YawInRotMat(float yaw, const matrix::Dcmf &rot_in)
 {
 	const matrix::Vector3f rotVec312(yaw,  // yaw
 					 asinf(rot_in(2, 1)),  // roll
@@ -125,9 +163,18 @@ matrix::Dcmf updateEuler312YawInRotMat(float yaw, const matrix::Dcmf &rot_in)
 	return taitBryan312ToRotMat(rotVec312);
 }
 
-matrix::Dcmf updateYawInRotMat(float yaw, const matrix::Dcmf &rot_in)
+// Checks which euler rotation sequence to use and update yaw in rotation matrix
+inline matrix::Dcmf updateYawInRotMat(float yaw, const matrix::Dcmf &rot_in)
 {
-	return shouldUse321RotationSequence(rot_in) ?
-	       updateEuler321YawInRotMat(yaw, rot_in) :
-	       updateEuler312YawInRotMat(yaw, rot_in);
+	if (shouldUse321RotationSequence(rot_in)) {
+		return updateEuler321YawInRotMat(yaw, rot_in);
+
+	} else {
+		return updateEuler312YawInRotMat(yaw, rot_in);
+	}
 }
+
+} // namespace Utilities
+} // namespace math
+
+#endif // MATH_UTILITIES_H

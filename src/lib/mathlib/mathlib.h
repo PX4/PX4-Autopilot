@@ -45,5 +45,6 @@
 #include "math/Functions.hpp"
 #include "math/SearchMin.hpp"
 #include "math/TrajMath.hpp"
+#include "math/Utilities.hpp"
 
 #endif
