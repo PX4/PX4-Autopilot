@@ -164,7 +164,8 @@ void SendProtocol::update(const hrt_abstime &now)
 		PX4_WARN("Dropped %i events (seq=%i)", num_drops, _latest_sequence);
 	}
 
-	if (now - _last_current_sequence_sent > current_sequence_interval) {
+	// Send immediately on startup. This is only needed for SITL to ensure we send the sequence reset flag
+	if (now - _last_current_sequence_sent > current_sequence_interval || _last_current_sequence_sent == 0) {
 		send_current_sequence(now);
 	}
 }
