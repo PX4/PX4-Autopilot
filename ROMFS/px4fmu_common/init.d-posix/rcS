@@ -148,6 +148,7 @@ param set-default EKF2_MULTI_MAG 2
 param set-default SENS_MAG_MODE 0
 
 param set-default IMU_GYRO_FFT_EN 1
+param set-default MAV_PROTO_VER 2 # Ensures QGC does not drop the first few packets after a SITL restart due to MAVLINK 1 packets
 
 param set-default -s MC_AT_EN 1
 
