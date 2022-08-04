@@ -91,12 +91,34 @@ const uint16_t osd_numerical_vario_pos = 2267;
 const uint16_t osd_gps_speed_pos = 2299;
 const uint16_t osd_home_dist_pos = 2331;
 
-MspOsd::MspOsd() :
+MspOsd::MspOsd(const char *device) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test1),
 	_msp(0),
 	_display(/*update_period*/hrt_abstime(_param_scroll_rate.get() * 1000ULL))
 {
+	// back up device for debugging
+	strncpy(_device, device, 100);
+
+	struct termios t;
+	_msp_fd = open(device, O_RDWR | O_NONBLOCK);
+
+	if (_msp_fd < 0) {
+		_performance_data.initialization_problems = true;
+		return;
+	}
+
+	tcgetattr(_msp_fd, &t);
+	cfsetspeed(&t, B115200);
+	t.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
+	t.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+	t.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
+	t.c_oflag = 0;
+	tcsetattr(_msp_fd, TCSANOW, &t);
+
+	_msp = MspV1(_msp_fd);
+
+	_is_initialized = true;
 }
 
 MspOsd::~MspOsd()
@@ -204,30 +226,6 @@ void MspOsd::Run()
 		_parameter_update_sub.copy(&param_update);
 		updateParams(); // update module parameters (in DEFINE_PARAMETERS)
 		parameters_update();
-	}
-
-	if (!_is_initialized) {
-
-		struct termios t;
-
-		_msp_fd = open(_port, O_RDWR | O_NONBLOCK);
-
-		if (_msp_fd < 0) {
-			_performance_data.initialization_problems = true;
-			return;
-		}
-
-		tcgetattr(_msp_fd, &t);
-		cfsetspeed(&t, B115200);
-		t.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
-		t.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
-		t.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
-		t.c_oflag = 0;
-		tcsetattr(_msp_fd, TCSANOW, &t);
-
-		_msp = MspV1(_msp_fd);
-
-		_is_initialized = true;
 	}
 
 	// avoid premature pessimization; if skip processing if we're effectively disabled
@@ -357,7 +355,36 @@ bool MspOsd::enabled(const SymbolIndex& symbol)
 
 int MspOsd::task_spawn(int argc, char *argv[])
 {
-	MspOsd *instance = new MspOsd();
+	// initialize device
+	const char *device = nullptr;
+	bool error_flag = false;
+
+	// loop through input arguments
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'd':
+			device = myoptarg;
+			break;
+		default:
+			PX4_WARN("unrecognized flag");
+			error_flag = true;
+			break;
+		}
+	}
+
+	if (error_flag) {
+		return PX4_ERROR;
+	}
+
+	if (!device) {
+		PX4_ERR("Missing device");
+		return PX4_ERROR;
+	}
+
+	MspOsd *instance = new MspOsd(device);
 
 	if (instance) {
 		_object.store(instance);
@@ -380,7 +407,7 @@ int MspOsd::task_spawn(int argc, char *argv[])
 
 int MspOsd::print_status()
 {
-	PX4_INFO("Running on port %s", _port);
+	PX4_INFO("Running on %s", _device);
 	PX4_INFO("\tinitialized: %d", _is_initialized);
 	PX4_INFO("\tinitialization issues: %d", _performance_data.initialization_problems);
 	PX4_INFO("\tsuccessful sends: %lu", static_cast<long unsigned int>(_performance_data.successful_sends));

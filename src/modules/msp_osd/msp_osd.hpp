@@ -105,7 +105,7 @@ enum SymbolIndex : uint8_t {
 class MspOsd : public ModuleBase<MspOsd>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	MspOsd();
+	MspOsd(const char* device);
 
 	~MspOsd() override;
 
@@ -187,7 +187,7 @@ private:
 	)
 
 	// metadata
-	const char* _port{"/dev/ttyS6"};
+	char _device[100];
 	PerformanceData _performance_data{};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
