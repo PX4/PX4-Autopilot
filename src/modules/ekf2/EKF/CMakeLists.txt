@@ -55,7 +55,6 @@ add_library(ecl_EKF
 	sensor_range_finder.cpp
 	sideslip_fusion.cpp
 	terrain_estimator.cpp
-	utils.cpp
 	vel_pos_fusion.cpp
 	zero_innovation_heading_update.cpp
 	zero_velocity_update.cpp

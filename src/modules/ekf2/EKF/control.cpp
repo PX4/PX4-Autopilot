@@ -362,7 +362,7 @@ void Ekf::controlExternalVisionFusion()
 
 		// determine if we should use the yaw observation
 		resetEstimatorAidStatus(_aid_src_ev_yaw);
-		const float measured_hdg = shouldUse321RotationSequence(_R_to_earth) ? getEuler321Yaw(_ev_sample_delayed.quat) : getEuler312Yaw(_ev_sample_delayed.quat);
+		const float measured_hdg = getEulerYaw(_ev_sample_delayed.quat);
 		const float ev_yaw_obs_var = fmaxf(_ev_sample_delayed.angVar, 1.e-4f);
 
 		if (PX4_ISFINITE(measured_hdg)) {
@@ -383,7 +383,7 @@ void Ekf::controlExternalVisionFusion()
 			} else {
 				// populate estimator_aid_src_ev_yaw with delta heading innovations for logging
 				// use the change in yaw since the last measurement
-				const float measured_hdg_prev = shouldUse321RotationSequence(_R_to_earth) ? getEuler321Yaw(_ev_sample_delayed_prev.quat) : getEuler312Yaw(_ev_sample_delayed_prev.quat);
+				const float measured_hdg_prev = getEulerYaw(_ev_sample_delayed_prev.quat);
 
 				// calculate the change in yaw since the last measurement
 				const float ev_delta_yaw = wrap_pi(measured_hdg - measured_hdg_prev);
