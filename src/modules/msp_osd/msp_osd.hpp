@@ -71,8 +71,8 @@ extern "C" __EXPORT int msp_osd_main(int argc, char *argv[]);
 struct PerformanceData
 {
 	bool initialization_problems{false};
-	size_t successful_sends{0};
-	size_t unsuccessful_sends{0};
+	long unsigned int successful_sends{0};
+	long unsigned int unsuccessful_sends{0};
 };
 
 // mapping from symbol name to bit in the parameter bitmask

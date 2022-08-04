@@ -410,8 +410,14 @@ int MspOsd::print_status()
 	PX4_INFO("Running on %s", _device);
 	PX4_INFO("\tinitialized: %d", _is_initialized);
 	PX4_INFO("\tinitialization issues: %d", _performance_data.initialization_problems);
-	PX4_INFO("\tsuccessful sends: %lu", static_cast<long unsigned int>(_performance_data.successful_sends));
-	PX4_INFO("\tunsuccessful sends: %lu", static_cast<long unsigned int>(_performance_data.unsuccessful_sends));
+	PX4_INFO("\tscroll rate: %ld", _param_scroll_rate.get());
+	PX4_INFO("\tsuccessful sends: %lu", _performance_data.successful_sends);
+	PX4_INFO("\tunsuccessful sends: %lu", _performance_data.unsuccessful_sends);
+
+	// print current display string
+	char msg[FULL_MSG_LENGTH];
+	_display.get(msg);
+	PX4_INFO("Current message: \n\t%s", msg);
 
 	return 0;
 }
