@@ -52,7 +52,6 @@
  *
  * @unit m
  * @min 0
- * @max 1000
  * @decimal 1
  * @increment 0.5
  * @group Return Mode
@@ -68,8 +67,7 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60.f);
  * VTOLs do transition to hover in this altitdue above the landing point.
  *
  * @unit m
- * @min 2
- * @max 100
+ * @min 0
  * @decimal 1
  * @increment 0.5
  * @group Return Mode
@@ -84,7 +82,6 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30.f);
  *
  * @unit s
  * @min -1
- * @max 300
  * @decimal 1
  * @increment 0.5
  * @group Return Mode
@@ -100,7 +97,6 @@ PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, 0.0f);
  *
  * @unit m
  * @min 0.5
- * @max 100
  * @decimal 1
  * @increment 0.5
  * @group Return Mode
@@ -158,7 +154,6 @@ PARAM_DEFINE_INT32(RTL_PLD_MD, 0);
  *
  * @unit m
  * @min 25
- * @max 1000
  * @decimal 1
  * @increment 0.5
  * @group Return Mode
