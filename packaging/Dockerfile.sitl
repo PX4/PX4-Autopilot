@@ -13,6 +13,7 @@ RUN tar -xzf px4_sitl_build.tar.gz \
 
 WORKDIR /px4_sitl
 
+COPY px4-firmware/ssrc_config /ssrc_config
 COPY px4-firmware/packaging/entrypoint.sh .
 
 ENV PACKAGE_NAME=px4_sitl
