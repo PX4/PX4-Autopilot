@@ -105,12 +105,6 @@ uint8 system_type  # system type, contains mavlink MAV_TYPE
 uint8 system_id	   # system id, contains MAVLink's system ID field
 uint8 component_id # subsystem / component id, contains MAVLink's component ID field
 
-# see SYS_STATUS mavlink message for the following
-# lower 32 bits are for the base flags, higher 32 bits are or the extended flags
-uint64 onboard_control_sensors_present
-uint64 onboard_control_sensors_enabled
-uint64 onboard_control_sensors_health
-
 bool safety_button_available # Set to true if a safety button is connected
 bool safety_off # Set to true if safety is off
 bool auto_mission_available

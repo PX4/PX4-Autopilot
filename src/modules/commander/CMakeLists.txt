@@ -65,7 +65,6 @@ px4_add_module(
 		hysteresis
 		ArmAuthorization
 		ArmStateMachine
-		HealthFlags
 		sensor_calibration
 		world_magnetic_model
 		mode_util

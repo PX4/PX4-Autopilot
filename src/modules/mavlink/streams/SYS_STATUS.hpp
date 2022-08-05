@@ -37,6 +37,8 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/health_report.h>
+#include <px4_platform_common/events.h>
 
 class MavlinkStreamSysStatus : public MavlinkStream
 {
@@ -59,7 +61,47 @@ private:
 
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _cpuload_sub{ORB_ID(cpuload)};
+	uORB::Subscription _health_report{ORB_ID(health_report)};
 	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
+
+	using health_component_t = events::px4::enums::health_component_t;
+
+	void fillOutComponent(const health_report_s &health_report, MAV_SYS_STATUS_SENSOR mav_sensor,
+			      health_component_t health_component, mavlink_sys_status_t &msg)
+	{
+		if (health_report.health_is_present_flags & (uint64_t)health_component) {
+			msg.onboard_control_sensors_present |= mav_sensor;
+		}
+
+		if (((health_report.arming_check_error_flags | health_report.arming_check_warning_flags |
+		      health_report.health_error_flags | health_report.health_warning_flags) & (uint64_t)health_component) == 0) {
+			msg.onboard_control_sensors_health |= mav_sensor;
+		}
+
+		// Set as enabled if present or unhealthy (required, but missing)
+		if ((msg.onboard_control_sensors_present & mav_sensor) || (msg.onboard_control_sensors_health & mav_sensor) == 0) {
+			msg.onboard_control_sensors_enabled |= mav_sensor;
+		}
+	}
+
+	void fillOutComponent(const health_report_s &health_report, MAV_SYS_STATUS_SENSOR_EXTENDED mav_sensor,
+			      health_component_t health_component, mavlink_sys_status_t &msg)
+	{
+		if (health_report.health_is_present_flags & (uint64_t)health_component) {
+			msg.onboard_control_sensors_present_extended |= mav_sensor;
+		}
+
+		if (((health_report.arming_check_error_flags | health_report.arming_check_warning_flags |
+		      health_report.health_error_flags | health_report.health_warning_flags) & (uint64_t)health_component) == 0) {
+			msg.onboard_control_sensors_health_extended |= mav_sensor;
+		}
+
+		// Set as enabled if present or unhealthy (required, but missing)
+		if ((msg.onboard_control_sensors_present_extended & mav_sensor)
+		    || (msg.onboard_control_sensors_health_extended & mav_sensor) == 0) {
+			msg.onboard_control_sensors_enabled_extended |= mav_sensor;
+		}
+	}
 
 	bool send() override
 	{
@@ -69,6 +111,9 @@ private:
 
 			cpuload_s cpuload{};
 			_cpuload_sub.copy(&cpuload);
+
+			health_report_s health_report{};
+			_health_report.copy(&health_report);
 
 			battery_status_s battery_status[battery_status_s::MAX_INSTANCES] {};
 
@@ -84,26 +129,31 @@ private:
 			// the current battery status is replaced with the cached value
 			for (int i = 0; i < _battery_status_subs.size(); i++) {
 				if (battery_status[i].connected && ((!battery_status[lowest_battery_index].connected)
-								    || (battery_status[i].remaining < battery_status[lowest_battery_index].remaining))) {
+								    || (battery_status[i].remaining <
+									battery_status[lowest_battery_index].remaining))) {
 					lowest_battery_index = i;
 				}
 			}
 
 			mavlink_sys_status_t msg{};
 
-			msg.onboard_control_sensors_present = static_cast<uint32_t>(status.onboard_control_sensors_present & 0xFFFFFFFF) |
-							      MAV_SYS_STATUS_EXTENSION_USED;
-			msg.onboard_control_sensors_enabled = static_cast<uint32_t>(status.onboard_control_sensors_enabled & 0xFFFFFFFF) |
-							      MAV_SYS_STATUS_EXTENSION_USED;
-			msg.onboard_control_sensors_health = static_cast<uint32_t>(status.onboard_control_sensors_health & 0xFFFFFFFF) |
-							     MAV_SYS_STATUS_EXTENSION_USED;
+			if (health_report.can_arm_mode_flags & (1u << status.nav_state)) {
+				msg.onboard_control_sensors_health |= MAV_SYS_STATUS_PREARM_CHECK;
+			}
 
-			msg.onboard_control_sensors_present_extended = static_cast<uint32_t>((status.onboard_control_sensors_present >> 32u) &
-					0xFFFFFFFF);
-			msg.onboard_control_sensors_enabled_extended = static_cast<uint32_t>((status.onboard_control_sensors_enabled >> 32u) &
-					0xFFFFFFFF);
-			msg.onboard_control_sensors_health_extended = static_cast<uint32_t>((status.onboard_control_sensors_health >> 32u) &
-					0xFFFFFFFF);
+			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_BATTERY, health_component_t::battery, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS, health_component_t::motors_escs, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_RECOVERY_SYSTEM, health_component_t::parachute, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_OBSTACLE_AVOIDANCE, health_component_t::avoidance, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_3D_ACCEL, health_component_t::accel, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_3D_GYRO, health_component_t::gyro, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_3D_MAG, health_component_t::magnetometer, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_GPS, health_component_t::gps, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_RC_RECEIVER, health_component_t::remote_control, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_AHRS, health_component_t::local_position_estimate, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE, health_component_t::absolute_pressure, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE, health_component_t::differential_pressure,
+					 msg);
 
 			msg.load = cpuload.load * 1000.0f;
 
