@@ -3,3 +3,23 @@
 
 #param set-default MAV_SYS_ID $((px4_instance+1))
 #param set-default IMU_INTEG_RATE 250
+
+if [ -f "/enclave/fog_env" ];
+then
+	# read and set SSRC_CONFIG env variable
+	. /enclave/fog_env
+fi
+
+if [ -d "/ssrc_config" ] && [ -z "$SSRCFILE" ];
+then
+	SSRCFILE="/ssrc_config/config_${SSRC_CONFIG}.txt"
+	# Use environment variable SSRC_CONFIG to choose config.txt file.
+	if [ -f "$SSRCFILE" ]; then
+		echo "SSRC_CONFIG: load $SSRCFILE"
+		. "$SSRCFILE"
+	else
+		echo "config file '$SSRCFILE' not found."
+	fi
+else
+		echo "No SSRC config given."
+fi
