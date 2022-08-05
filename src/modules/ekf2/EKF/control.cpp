@@ -759,57 +759,6 @@ bool Ekf::isConditionalRangeAidSuitable()
 	return is_range_aid_suitable;
 }
 
-void Ekf::controlBaroHeightFusion()
-{
-	if (!(_params.baro_ctrl == 1)) {
-		stopBaroHgtFusion();
-		return;
-	}
-
-	_baro_b_est.predict(_dt_ekf_avg);
-
-	// check for intermittent data
-	const bool baro_hgt_intermittent = !isRecent(_time_last_baro, 2 * BARO_MAX_INTERVAL);
-
-	if (_baro_data_ready) {
-		_baro_lpf.update(_baro_sample_delayed.hgt);
-		updateBaroHgt(_baro_sample_delayed, _aid_src_baro_hgt);
-
-		const bool continuing_conditions_passing = !_baro_hgt_faulty && !baro_hgt_intermittent;
-		const bool starting_conditions_passing = continuing_conditions_passing;
-
-		if (_control_status.flags.baro_hgt) {
-			if (continuing_conditions_passing) {
-				fuseBaroHgt(_aid_src_baro_hgt);
-
-				const bool is_fusion_failing = isTimedOut(_aid_src_baro_hgt.time_last_fuse, _params.hgt_fusion_timeout_max);
-
-				if (isHeightResetRequired()) {
-					// All height sources are failing
-					resetHeightToBaro();
-					resetVerticalVelocityToZero();
-
-				} else if (is_fusion_failing) {
-					// Some other height source is still working
-					stopBaroHgtFusion();
-					_baro_hgt_faulty = true;
-				}
-
-			} else {
-				stopBaroHgtFusion();
-			}
-		} else {
-			if (starting_conditions_passing) {
-				startBaroHgtFusion();
-			}
-		}
-
-	} else if (_control_status.flags.baro_hgt && baro_hgt_intermittent) {
-		// No baro data anymore. Stop until it comes back.
-		stopBaroHgtFusion();
-	}
-}
-
 void Ekf::controlGnssHeightFusion()
 {
 	if (!(_params.gnss_ctrl & GnssCtrl::VPOS)) {

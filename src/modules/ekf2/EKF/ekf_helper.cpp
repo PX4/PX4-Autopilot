@@ -251,21 +251,6 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos)
 	_time_last_hgt_fuse = _time_last_imu;
 }
 
-void Ekf::resetHeightToBaro()
-{
-	ECL_INFO("reset height to baro");
-	_information_events.flags.reset_hgt_to_baro = true;
-
-	resetVerticalPositionTo(-(_baro_sample_delayed.hgt - _baro_b_est.getBias()));
-
-	// the state variance is the same as the observation
-	P.uncorrelateCovarianceSetVariance<1>(9, sq(_params.baro_noise));
-
-	_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + _state_reset_status.posD_change);
-	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + _state_reset_status.posD_change);
-	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - _state_reset_status.posD_change);
-}
-
 void Ekf::resetHeightToGps()
 {
 	ECL_INFO("reset height to GPS");
@@ -1300,36 +1285,6 @@ void Ekf::startMag3DFusion()
 		zeroMagCov();
 		loadMagCovData();
 		_control_status.flags.mag_3D = true;
-	}
-}
-
-void Ekf::startBaroHgtFusion()
-{
-	if (!_control_status.flags.baro_hgt) {
-		if (_params.height_sensor_ref == HeightSensor::BARO) {
-			_height_sensor_ref = HeightSensor::BARO;
-			resetHeightToBaro();
-
-		} else {
-			_baro_b_est.setBias(_state.pos(2) + _baro_lpf.getState());
-		}
-
-		_control_status.flags.baro_hgt = true;
-		_baro_b_est.setFusionActive();
-		ECL_INFO("starting baro height fusion");
-	}
-}
-
-void Ekf::stopBaroHgtFusion()
-{
-	if (_control_status.flags.baro_hgt) {
-		if (_height_sensor_ref == HeightSensor::BARO) {
-			_height_sensor_ref = HeightSensor::UNKNOWN;
-		}
-
-		_control_status.flags.baro_hgt = false;
-		_baro_b_est.setFusionInactive();
-		ECL_INFO("stopping baro height fusion");
 	}
 }
 
