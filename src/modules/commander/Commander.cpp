@@ -46,7 +46,6 @@
 
 /* commander module headers */
 #include "Arming/ArmAuthorization/ArmAuthorization.h"
-#include "Arming/HealthFlags/HealthFlags.h"
 #include "commander_helper.h"
 #include "esc_calibration.h"
 #include "px4_custom_mode.h"
@@ -304,8 +303,6 @@ int Commander::custom_command(int argc, char *argv[])
 
 		uORB::SubscriptionData<vehicle_status_flags_s> vehicle_status_flags_sub{ORB_ID(vehicle_status_flags)};
 		PX4_INFO("Preflight check: %s", vehicle_status_flags_sub.get().pre_flight_checks_pass ? "OK" : "FAILED");
-
-		print_health_flags(vehicle_status_sub.get());
 
 		return 0;
 	}
@@ -2274,9 +2271,6 @@ Commander::run()
 		_vehicle_status.safety_off = _safety.isSafetyOff();
 
 		if (safety_changed) {
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, _safety.isButtonAvailable(), _safety.isSafetyOff(),
-					 _safety.isButtonAvailable(), _vehicle_status);
-
 			// Notify the user if the status of the safety button changes
 			if (!_safety.isSafetyDisabled()) {
 				if (_safety.isSafetyOff()) {
@@ -2644,8 +2638,6 @@ Commander::run()
 		// data link checks which update the status
 		data_link_check();
 
-		avoidance_check();
-
 		/* check if we are disarmed and there is a better mode to wait in */
 		if (!_arm_state_machine.isArmed()) {
 			/* if there is no radio control but GPS lock the user might want to fly using
@@ -2764,13 +2756,11 @@ Commander::run()
 					mavlink_log_critical(&_mavlink_log_pub, "Motor failure detected\t");
 					events::send(events::ID("commander_motor_failure"), events::Log::Emergency,
 						     "Motor failure! Land immediately");
-					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, true, true, false, _vehicle_status);
 
 				} else {
 					mavlink_log_critical(&_mavlink_log_pub, "Motor recovered\t");
 					events::send(events::ID("commander_motor_recovered"), events::Log::Warning,
 						     "Motor recovered, landing still advised");
-					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, true, true, true, _vehicle_status);
 				}
 			}
 
@@ -2977,9 +2967,6 @@ Commander::run()
 				_vehicle_status_flags.pre_flight_checks_pass = _health_and_arming_checks.canArm(
 							_vehicle_status.nav_state);
 				perf_end(_preflight_check_perf);
-
-				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true,
-						 _vehicle_status_flags.pre_flight_checks_pass, _vehicle_status);
 			}
 
 			// publish actuator_armed first (used by output modules)
@@ -3574,12 +3561,6 @@ void Commander::data_link_check()
 								_status_changed = true;
 							}
 						}
-
-						const bool present = true;
-						const bool enabled = true;
-						const bool ok = (iridium_status.last_heartbeat > 0); // maybe at some point here an additional check should be made
-
-						set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_SATCOM, present, enabled, ok, _vehicle_status);
 					}
 
 					break;
@@ -3630,7 +3611,6 @@ void Commander::data_link_check()
 				_datalink_last_heartbeat_parachute_system = telemetry.timestamp;
 				_vehicle_status.parachute_system_present = true;
 				_vehicle_status.parachute_system_healthy = healthy;
-				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PARACHUTE, true, true, healthy, _vehicle_status);
 			}
 
 			if (telemetry.heartbeat_component_obstacle_avoidance) {
@@ -3681,7 +3661,6 @@ void Commander::data_link_check()
 		_vehicle_status.parachute_system_healthy = false;
 		_parachute_system_lost = true;
 		_status_changed = true;
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PARACHUTE, false, true, false, _vehicle_status);
 	}
 
 	// AVOIDANCE SYSTEM state check (only if it is enabled)
@@ -3707,39 +3686,6 @@ void Commander::data_link_check()
 			_status_changed = true;
 		}
 	}
-}
-
-void Commander::avoidance_check()
-{
-	for (auto &dist_sens_sub : _distance_sensor_subs) {
-		distance_sensor_s distance_sensor;
-
-		if (dist_sens_sub.update(&distance_sensor)) {
-			if ((distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
-			    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
-
-				_valid_distance_sensor_time_us = distance_sensor.timestamp;
-			}
-		}
-	}
-
-	const bool distance_sensor_valid = hrt_elapsed_time(&_valid_distance_sensor_time_us) < 500_ms;
-	const bool cp_healthy = _vehicle_status.avoidance_system_valid || distance_sensor_valid;
-
-	const bool sensor_oa_present = cp_healthy || _vehicle_status.avoidance_system_required
-				       || _collision_prevention_enabled;
-
-	const bool auto_mode = _vehicle_control_mode.flag_control_auto_enabled;
-	const bool pos_ctl_mode = (_vehicle_control_mode.flag_control_manual_enabled
-				   && _vehicle_control_mode.flag_control_position_enabled);
-
-	const bool sensor_oa_enabled = ((auto_mode && _vehicle_status.avoidance_system_required) || (pos_ctl_mode
-					&& _collision_prevention_enabled));
-	const bool sensor_oa_healthy = ((auto_mode && _vehicle_status.avoidance_system_valid) || (pos_ctl_mode
-					&& cp_healthy));
-
-	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_OBSTACLE_AVOIDANCE, sensor_oa_present, sensor_oa_enabled,
-			 sensor_oa_healthy, _vehicle_status);
 }
 
 void Commander::battery_status_check()
@@ -4012,14 +3958,12 @@ void Commander::estimator_check()
 			mavlink_log_critical(&_mavlink_log_pub, "Compass needs calibration - Land now!\t");
 			events::send(events::ID("commander_stopping_mag_use"), events::Log::Critical,
 				     "Stopping compass use! Land now and calibrate the compass");
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, true, true, false, _vehicle_status);
 		}
 
 		if (!gnss_heading_fault_prev && estimator_status_flags.cs_gps_yaw_fault) {
 			mavlink_log_critical(&_mavlink_log_pub, "GNSS heading not reliable - Land now!\t");
 			events::send(events::ID("commander_stopping_gnss_heading_use"), events::Log::Critical,
 				     "GNSS heading not reliable. Land now!");
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true, false, _vehicle_status);
 		}
 	}
 
@@ -4264,17 +4208,6 @@ void Commander::manual_control_check()
 		_is_throttle_above_center = (manual_control_setpoint.z > 0.6f);
 		_is_throttle_low = (manual_control_setpoint.z < 0.1f);
 
-		const bool is_mavlink = (manual_control_setpoint.data_source > manual_control_setpoint_s::SOURCE_RC);
-
-		if (is_mavlink) {
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true, _vehicle_status);
-
-		} else {
-			// if not mavlink also report valid RC calibration for health
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true,
-					 _vehicle_status);
-		}
-
 		if (_arm_state_machine.isArmed()) {
 			// Abort autonomous mode and switch to position mode if sticks are moved significantly
 			// but only if actually in air.
@@ -4327,6 +4260,8 @@ void Commander::manual_control_check()
 			}
 
 		} else {
+			const bool is_mavlink = (manual_control_setpoint.data_source > manual_control_setpoint_s::SOURCE_RC);
+
 			// disarmed
 			// if there's never been a mode change force position control as initial state
 			if (_commander_state.main_state_changes == 0) {
@@ -4348,8 +4283,6 @@ void Commander::manual_control_check()
 			mavlink_log_critical(&_mavlink_log_pub, "Manual control lost\t");
 			events::send(events::ID("commander_rc_lost"), {events::Log::Critical, events::LogInternal::Info},
 				     "Manual control lost");
-
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, _vehicle_status);
 		}
 	}
 }

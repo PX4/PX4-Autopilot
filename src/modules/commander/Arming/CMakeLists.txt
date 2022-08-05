@@ -33,4 +33,3 @@
 
 add_subdirectory(ArmAuthorization)
 add_subdirectory(ArmStateMachine)
-add_subdirectory(HealthFlags)
