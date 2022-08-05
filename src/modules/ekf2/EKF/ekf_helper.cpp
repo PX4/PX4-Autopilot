@@ -294,21 +294,6 @@ void Ekf::resetHeightToRng()
 	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - _state_reset_status.posD_change);
 }
 
-void Ekf::resetHeightToEv()
-{
-	ECL_INFO("reset height to EV");
-	_information_events.flags.reset_hgt_to_ev = true;
-
-	resetVerticalPositionTo(_ev_sample_delayed.pos(2) - _ev_hgt_b_est.getBias());
-
-	// the state variance is the same as the observation
-	P.uncorrelateCovarianceSetVariance<1>(9, fmaxf(_ev_sample_delayed.posVar(2), sq(0.01f)));
-
-	_baro_b_est.setBias(_baro_b_est.getBias() + _state_reset_status.posD_change);
-	_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + _state_reset_status.posD_change);
-	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + _state_reset_status.posD_change);
-}
-
 void Ekf::resetVerticalVelocityToGps(const gpsSample &gps_sample_delayed)
 {
 	resetVerticalVelocityTo(gps_sample_delayed.vel(2));
@@ -1354,37 +1339,6 @@ void Ekf::stopRngHgtFusion()
 		_control_status.flags.rng_hgt = false;
 		_rng_hgt_b_est.setFusionInactive();
 		ECL_INFO("stopping range height fusion");
-	}
-}
-
-void Ekf::startEvHgtFusion()
-{
-	if (!_control_status.flags.ev_hgt) {
-		if (_params.height_sensor_ref == HeightSensor::EV) {
-			_rng_hgt_b_est.reset();
-			_height_sensor_ref = HeightSensor::EV;
-			resetHeightToEv();
-
-		} else {
-			_ev_hgt_b_est.setBias(-_state.pos(2) + _ev_sample_delayed.pos(2));
-		}
-
-		_control_status.flags.ev_hgt = true;
-		_ev_hgt_b_est.setFusionActive();
-		ECL_INFO("starting EV height fusion");
-	}
-}
-
-void Ekf::stopEvHgtFusion()
-{
-	if (_control_status.flags.ev_hgt) {
-		if (_height_sensor_ref == HeightSensor::EV) {
-			_height_sensor_ref = HeightSensor::UNKNOWN;
-		}
-
-		_control_status.flags.ev_hgt = false;
-		_ev_hgt_b_est.setFusionInactive();
-		ECL_INFO("stopping EV height fusion");
 	}
 }
 
