@@ -793,46 +793,6 @@ void Ekf::controlRangeHeightFusion()
 	}
 }
 
-void Ekf::controlEvHeightFusion()
-{
-	if (!(_params.height_sensor_ref == HeightSensor::EV)) { // TODO: replace by EV control parameter
-		stopEvHgtFusion();
-		return;
-	}
-
-	_ev_hgt_b_est.predict(_dt_ekf_avg);
-
-	const bool ev_intermittent = !isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL);
-
-	if (_ev_data_ready) {
-		const bool continuing_conditions_passing = !ev_intermittent;
-		const bool starting_conditions_passing = continuing_conditions_passing;
-
-		if (_control_status.flags.ev_hgt) {
-			if (continuing_conditions_passing) {
-				fuseEvHgt();
-
-				if (isHeightResetRequired()) {
-					// All height sources are failing
-					resetHeightToRng();
-					resetVerticalVelocityToZero();
-				}
-
-			} else {
-				stopEvHgtFusion();
-			}
-
-		} else {
-			if (starting_conditions_passing) {
-				startEvHgtFusion();
-			}
-		}
-
-	} else if (_control_status.flags.ev_hgt && ev_intermittent) {
-		stopEvHgtFusion();
-	}
-}
-
 void Ekf::controlAirDataFusion()
 {
 	// control activation and initialisation/reset of wind states required for airspeed fusion
