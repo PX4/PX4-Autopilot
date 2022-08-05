@@ -91,7 +91,7 @@ void Ekf::updateBaroHgt(const baroSample &baro_sample, estimator_aid_source_1d_s
 	// update the bias estimator before updating the main filter but after
 	// using its current state to compute the vertical position innovation
 	_baro_b_est.setMaxStateNoise(_params.baro_noise);
-	_baro_b_est.setProcessNoiseStdDev(_params.baro_drift_rate);
+	_baro_b_est.setProcessNoiseSpectralDensity(_params.baro_bias_nsd);
 	_baro_b_est.fuseBias(measurement - (-_state.pos(2)) , measurement_var + P(9, 9));
 }
 
@@ -143,7 +143,7 @@ void Ekf::updateRngHgt(estimator_aid_source_1d_s &rng_hgt)
 	// using its current state to compute the vertical position innovation
 	const float rng_noise = sqrtf(measurement_var);
 	_rng_hgt_b_est.setMaxStateNoise(rng_noise);
-	_rng_hgt_b_est.setProcessNoiseStdDev(rng_noise); // TODO: fix
+	_rng_hgt_b_est.setProcessNoiseSpectralDensity(_params.rng_hgt_bias_nsd);
 
 	_rng_hgt_b_est.fuseBias(measurement - (-_state.pos(2)) , measurement_var + P(9, 9));
 }
@@ -167,9 +167,8 @@ void Ekf::fuseEvHgt()
 	const float bias = _ev_hgt_b_est.getBias();
 	const float bias_var = _ev_hgt_b_est.getBiasVar();
 
-	const float ev_noise = sqrtf(measurement_var);
-	_ev_hgt_b_est.setMaxStateNoise(ev_noise);
-	_ev_hgt_b_est.setProcessNoiseStdDev(ev_noise); // TODO: fix
+	_ev_hgt_b_est.setMaxStateNoise(sqrtf(measurement_var));
+	_ev_hgt_b_est.setProcessNoiseSpectralDensity(_params.ev_hgt_bias_nsd);
 	_ev_hgt_b_est.fuseBias(measurement - _state.pos(2), measurement_var + P(9, 9));
 
 	// calculate the innovation assuming the external vision observation is in local NED frame

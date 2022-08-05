@@ -305,9 +305,10 @@ struct parameters {
 	// position and velocity fusion
 	float gps_vel_noise{5.0e-1f};           ///< minimum allowed observation noise for gps velocity fusion (m/sec)
 	float gps_pos_noise{0.5f};              ///< minimum allowed observation noise for gps position fusion (m)
+	float gps_hgt_bias_nsd{0.13f};          ///< process noise for gnss height bias estimation (m/s/sqrt(Hz))
 	float pos_noaid_noise{10.0f};           ///< observation noise for non-aiding position fusion (m)
 	float baro_noise{2.0f};                 ///< observation noise for barometric height fusion (m)
-	float baro_drift_rate{0.005f};          ///< process noise for barometric height bias estimation (m/s)
+	float baro_bias_nsd{0.13f};             ///< process noise for barometric height bias estimation (m/s/sqrt(Hz))
 	float baro_innov_gate{5.0f};            ///< barometric and GPS height innovation consistency gate size (STD)
 	float gps_pos_innov_gate{5.0f};         ///< GPS horizontal position innovation consistency gate size (STD)
 	float gps_vel_innov_gate{5.0f};         ///< GPS velocity innovation consistency gate size (STD)
@@ -342,6 +343,7 @@ struct parameters {
 	// range finder fusion
 	float range_noise{0.1f};                ///< observation noise for range finder measurements (m)
 	float range_innov_gate{5.0f};           ///< range finder fusion innovation consistency gate size (STD)
+	float rng_hgt_bias_nsd{0.13f};          ///< process noise for range height bias estimation (m/s/sqrt(Hz))
 	float rng_gnd_clearance{0.1f};          ///< minimum valid value for range when on ground (m)
 	float rng_sens_pitch{0.0f};             ///< Pitch offset of the range sensor (rad). Sensor points out along Z axis when offset is zero. Positive rotation is RH about Y axis.
 	float range_noise_scaler{0.0f};         ///< scaling from range measurement to noise (m/m)
@@ -356,6 +358,7 @@ struct parameters {
 	// vision position fusion
 	float ev_vel_innov_gate{3.0f};          ///< vision velocity fusion innovation consistency gate size (STD)
 	float ev_pos_innov_gate{5.0f};          ///< vision position fusion innovation consistency gate size (STD)
+	float ev_hgt_bias_nsd{0.13f};           ///< process noise for vision height bias estimation (m/s/sqrt(Hz))
 
 	// optical flow fusion
 	float flow_noise{0.15f};                ///< observation noise for optical flow LOS rate measurements (rad/sec)
