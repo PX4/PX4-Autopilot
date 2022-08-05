@@ -36,7 +36,7 @@
 px4_add_module(
 	MODULE modules__fw_dyn_soar_control
 	MAIN fw_dyn_soar_control
-	STACK_MAIN 2048
+	STACK_MAIN 4096
 	SRCS
 		FixedwingPositionINDIControl.cpp
 		FixedwingPositionINDIControl.hpp

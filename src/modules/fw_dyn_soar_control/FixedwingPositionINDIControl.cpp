@@ -419,7 +419,7 @@ FixedwingPositionINDIControl::_findClosest(float arr[], int n, float target)
     while (i < j) {
         mid = (i + j) / 2;
  
-        if (fabs(arr[mid]-target) < 0.000001f)
+        if ((float)fabs(arr[mid]-target) < (float)0.0001f)
             return arr[mid];
  
         /* If target is less than array element,
@@ -465,24 +465,24 @@ FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
     <alpha> in [0.10, 1.00]
     <energy> in [E_min, E_max]
     */
-   /*
+
     float v = _findClosest(_v_max_arr, _gridsize, _shear_v_max);    // wind velocity
     float a = _findClosest(_alpha_arr, _gridsize, _shear_alpha);    // shear strength
     float e = _findClosest(_energy_arr, _gridsize, _shear_energy);  // initial energy
     PX4_INFO("V, A, E: \t%.2f\t%.2f\t%.2f", double(v), double(a), double(e));
     char file[30] = "nominal";
-    char v_str[10];
-    char a_str[10];
-    char e_str[10];
+    char v_str[6];
+    char a_str[6];
+    char e_str[6];
     strcat(file,"_");
-    strcat(file,gcvt(v, 3, v_str));
+    strcat(file,gcvt(v, 2, v_str));
     strcat(file,"_");
     strcat(file,gcvt(a, 3, a_str));
     strcat(file,"_");
-    strcat(file,gcvt(e, 3, e_str));
+    strcat(file,gcvt(e, 2, e_str));
     strcat(file,".csv");
     PX4_INFO("filename: \t%.30s", file);
-    */
+    
 
     // select loiter trajectory for loiter test
     char filename[16];
@@ -525,7 +525,6 @@ FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
     Therefore we define a new transform between the soaring frame and the trajectory frame.
     */
     
-
     _read_trajectory_coeffs_csv(filename);
 }
 
@@ -536,8 +535,8 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // =======================================================================
     bool error = false;
 
-    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    //char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     //PX4_ERR(home_dir);
     strcat(home_dir,filename);
     FILE* fp = fopen(home_dir, "r");
