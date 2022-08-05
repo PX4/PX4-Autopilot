@@ -34,7 +34,7 @@
 /**
  * @file led.c
  *
- * omnibusf4sd LED backend.
+ * gnf405s LED backend.
  */
 
 #include <px4_platform_common/px4_config.h>

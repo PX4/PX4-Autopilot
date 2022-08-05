@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/omnibus-f4sd/scripts/ld.script
+ * configs/flywoo-gn_f405/scripts/ld.script
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

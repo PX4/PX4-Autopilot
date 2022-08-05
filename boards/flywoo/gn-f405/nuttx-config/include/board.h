@@ -1,5 +1,5 @@
 /************************************************************************************
- * nuttx-configs/omnibus-f4sd/include/board.h
+ * nuttx-configs/flywoo_gn-f405/include/board.h
  * include/arch/board/board.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
@@ -37,8 +37,8 @@
  *
  ************************************************************************************/
 
-#ifndef __CONFIG_OMNIBUSF4SD_INCLUDE_BOARD_H
-#define __CONFIG_OMNIBUSF4SD_INCLUDE_BOARD_H
+#ifndef __CONFIG_GNF405S_INCLUDE_BOARD_H
+#define __CONFIG_GNF405S_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -60,7 +60,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The omnibusf4sd board features a single 8MHz crystal.  Space is provided
+/* The gnf405s board features a single 8MHz crystal.  Space is provided
  * for a 32kHz RTC backup crystal, but it is not stuffed.
  *
  * This is the canonical configuration:
@@ -223,7 +223,7 @@
 #define BOARD_LED2_BIT    (1 << BOARD_LED2)
 
 /* If CONFIG_ARCH_LEDs is defined, then NuttX will control the 2 LEDs on board the
- * omnibusf4sd.  The following definitions describe how NuttX controls the LEDs:
+ * gnf405s.  The following definitions describe how NuttX controls the LEDs:
  */
 
 #define LED_STARTED       0  /* LED1 */
@@ -324,4 +324,4 @@
 #define GPIO_I2C1_SCL		GPIO_I2C1_SCL_2
 #define GPIO_I2C1_SDA		GPIO_I2C1_SDA_2
 
-#endif  /* __CONFIG_OMNIBUSF4SD_INCLUDE_BOARD_H */
+#endif  /* __CONFIG_GNF405S_INCLUDE_BOARD_H */

@@ -71,7 +71,7 @@
  * Name: stm32_usbinitialize
  *
  * Description:
- *   Called to setup USB-related GPIO pins for the omnibusf4sd board.
+ *   Called to setup USB-related GPIO pins for the gnf405s board.
  *
  ************************************************************************************/
 
