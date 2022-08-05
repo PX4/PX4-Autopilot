@@ -37,6 +37,80 @@
 
 #include "ekf.h"
 
+void Ekf::controlHeightFusion()
+{
+	checkVerticalAccelerationHealth();
+
+	updateGroundEffect();
+
+	controlBaroHeightFusion();
+	controlGnssHeightFusion();
+	controlRangeHeightFusion();
+	controlEvHeightFusion();
+
+	checkHeightSensorRefFallback();
+}
+
+void Ekf::checkHeightSensorRefFallback()
+{
+	if (_height_sensor_ref != HeightSensor::UNKNOWN) {
+		// The reference sensor is running, all good
+		return;
+	}
+
+	HeightSensor fallback_list[4];
+
+	switch (_params.height_sensor_ref) {
+	default:
+	/* FALLTHROUGH */
+	case HeightSensor::UNKNOWN:
+		fallback_list[0] = HeightSensor::GNSS;
+		fallback_list[1] = HeightSensor::BARO;
+		fallback_list[2] = HeightSensor::EV;
+		fallback_list[3] = HeightSensor::RANGE;
+		break;
+
+	case HeightSensor::BARO:
+		fallback_list[0] = HeightSensor::BARO;
+		fallback_list[1] = HeightSensor::GNSS;
+		fallback_list[2] = HeightSensor::EV;
+		fallback_list[3] = HeightSensor::RANGE;
+		break;
+
+	case HeightSensor::GNSS:
+		fallback_list[0] = HeightSensor::GNSS;
+		fallback_list[1] = HeightSensor::BARO;
+		fallback_list[2] = HeightSensor::EV;
+		fallback_list[3] = HeightSensor::RANGE;
+		break;
+
+	case HeightSensor::RANGE:
+		fallback_list[0] = HeightSensor::RANGE;
+		fallback_list[1] = HeightSensor::EV;
+		fallback_list[2] = HeightSensor::BARO;
+		fallback_list[3] = HeightSensor::GNSS;
+		break;
+
+	case HeightSensor::EV:
+		fallback_list[0] = HeightSensor::EV;
+		fallback_list[1] = HeightSensor::RANGE;
+		fallback_list[2] = HeightSensor::BARO;
+		fallback_list[3] = HeightSensor::GNSS;
+		break;
+	}
+
+	for (unsigned i = 0; i < 4; i++) {
+		if (((fallback_list[i] == HeightSensor::BARO) && _control_status.flags.baro_hgt)
+		    || ((fallback_list[i] == HeightSensor::GNSS) && _control_status.flags.gps_hgt)
+		    || ((fallback_list[i] == HeightSensor::RANGE) && _control_status.flags.rng_hgt)
+		    || ((fallback_list[i] == HeightSensor::EV) && _control_status.flags.ev_hgt)) {
+			ECL_INFO("fallback to secondary height reference");
+			_height_sensor_ref = fallback_list[i];
+			break;
+		}
+	}
+}
+
 void Ekf::checkVerticalAccelerationHealth()
 {
 	// Check for IMU accelerometer vibration induced clipping as evidenced by the vertical
