@@ -80,9 +80,9 @@ public:
 	virtual void fuseBias(float measurement, float measurement_var);
 
 	void setBias(float bias) { _state = bias; }
-	void setProcessNoiseStdDev(float process_noise)
+	void setProcessNoiseSpectralDensity(float nsd)
 	{
-		_process_var = process_noise * process_noise;
+		_process_psd = nsd * nsd;
 	}
 	void setBiasStdDev(float state_noise) { _state_var = state_noise * state_noise; }
 	void setInnovGate(float gate_size) { _gate_size = gate_size; }
@@ -99,7 +99,7 @@ private:
 
 	float _gate_size{3.f}; ///< Used for innovation filtering (innovation test ratio)
 	float _state_var{0.1f}; ///< Initial state uncertainty variance (m^2)
-	float _process_var{25.0e-6f}; ///< State process noise variance (m^2/s^2)
+	float _process_psd{1.25e-6f}; ///< State process power spectral density (m^2/s^2/Hz)
 	float _state_var_max{2.f}; ///< Used to constrain the state variance (m^2)
 
 	// Innovation sequence monitoring; used to detect a bias in the state

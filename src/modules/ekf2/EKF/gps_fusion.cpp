@@ -105,20 +105,12 @@ void Ekf::updateGpsPos(const gpsSample &gps_sample)
 	const float height_measurement = gps_sample.hgt - getEkfGlobalOriginAltitude();
 	const float height_measurement_var = getGpsHeightVariance();
 
-	// save current bias and update bias estimator
-	const float bias = _gps_hgt_b_est.getBias();
-	const float bias_var = _gps_hgt_b_est.getBiasVar();
-
-	_gps_hgt_b_est.setMaxStateNoise(height_measurement_var);
-	_gps_hgt_b_est.setProcessNoiseStdDev(height_measurement_var); //TODO: update this
-	_gps_hgt_b_est.fuseBias(height_measurement - (-_state.pos(2)), height_measurement_var + P(9, 9));
-
 	Vector3f position;
 	position(0) = gps_sample.pos(0);
 	position(1) = gps_sample.pos(1);
 
 	// vertical position - gps measurement has opposite sign to earth z axis
-	position(2) = -(height_measurement - bias);
+	position(2) = -(height_measurement - _gps_hgt_b_est.getBias());
 
 	const float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
 
@@ -136,7 +128,7 @@ void Ekf::updateGpsPos(const gpsSample &gps_sample)
 		obs_var(0) = obs_var(1) = sq(math::constrain(gps_sample.hacc, lower_limit, upper_limit));
 	}
 
-	obs_var(2) = height_measurement_var + bias_var;
+	obs_var(2) = height_measurement_var + _gps_hgt_b_est.getBiasVar();
 
 	// innovation gate size
 	float innov_gate = fmaxf(_params.gps_pos_innov_gate, 1.f);
@@ -160,6 +152,12 @@ void Ekf::updateGpsPos(const gpsSample &gps_sample)
 	}
 
 	gps_pos.timestamp_sample = gps_sample.time_us;
+
+	// update the bias estimator before updating the main filter but after
+	// using its current state to compute the vertical position innovation
+	_gps_hgt_b_est.setMaxStateNoise(height_measurement_var);
+	_gps_hgt_b_est.setProcessNoiseSpectralDensity(_params.gps_hgt_bias_nsd);
+	_gps_hgt_b_est.fuseBias(height_measurement - (-_state.pos(2)), height_measurement_var + P(9, 9));
 }
 
 void Ekf::fuseGpsVel()
