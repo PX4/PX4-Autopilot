@@ -251,32 +251,6 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos)
 	_time_last_hgt_fuse = _time_last_imu;
 }
 
-void Ekf::resetHeightToRng()
-{
-	ECL_INFO("reset height to RNG");
-	_information_events.flags.reset_hgt_to_rng = true;
-
-	float dist_bottom;
-
-	if (_control_status.flags.in_air) {
-		dist_bottom = _range_sensor.getDistBottom();
-
-	} else {
-		// use the parameter rng_gnd_clearance if on ground to avoid a noisy offset initialization (e.g. sonar)
-		dist_bottom = _params.rng_gnd_clearance;
-	}
-
-	// update the state and associated variance
-	resetVerticalPositionTo(-(dist_bottom - _rng_hgt_b_est.getBias()));
-
-	// the state variance is the same as the observation
-	P.uncorrelateCovarianceSetVariance<1>(9, sq(_params.range_noise));
-
-	_baro_b_est.setBias(_baro_b_est.getBias() + _state_reset_status.posD_change);
-	_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + _state_reset_status.posD_change);
-	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - _state_reset_status.posD_change);
-}
-
 void Ekf::resetVerticalVelocityToGps(const gpsSample &gps_sample_delayed)
 {
 	resetVerticalVelocityTo(gps_sample_delayed.vel(2));
@@ -1253,39 +1227,6 @@ void Ekf::startMag3DFusion()
 		zeroMagCov();
 		loadMagCovData();
 		_control_status.flags.mag_3D = true;
-	}
-}
-
-void Ekf::startRngHgtFusion()
-{
-	if (!_control_status.flags.rng_hgt) {
-		if (_params.height_sensor_ref == HeightSensor::RANGE) {
-			// Range finder is the primary height source, the ground is now the datum used
-			// to compute the local vertical position
-			_rng_hgt_b_est.reset();
-			_height_sensor_ref = HeightSensor::RANGE;
-			resetHeightToRng();
-
-		} else {
-			_rng_hgt_b_est.setBias(_state.pos(2) + _range_sensor.getDistBottom());
-		}
-
-		_control_status.flags.rng_hgt = true;
-		_rng_hgt_b_est.setFusionActive();
-		ECL_INFO("starting RNG height fusion");
-	}
-}
-
-void Ekf::stopRngHgtFusion()
-{
-	if (_control_status.flags.rng_hgt) {
-		if (_height_sensor_ref == HeightSensor::RANGE) {
-			_height_sensor_ref = HeightSensor::UNKNOWN;
-		}
-
-		_control_status.flags.rng_hgt = false;
-		_rng_hgt_b_est.setFusionInactive();
-		ECL_INFO("stopping range height fusion");
 	}
 }
 

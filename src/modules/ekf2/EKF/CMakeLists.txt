@@ -56,6 +56,7 @@ add_library(ecl_EKF
 	mag_fusion.cpp
 	optflow_fusion.cpp
 	range_finder_consistency_check.cpp
+	range_height_control.cpp
 	sensor_range_finder.cpp
 	sideslip_fusion.cpp
 	terrain_estimator.cpp
