@@ -251,23 +251,6 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos)
 	_time_last_hgt_fuse = _time_last_imu;
 }
 
-void Ekf::resetHeightToGps()
-{
-	ECL_INFO("reset height to GPS");
-	_information_events.flags.reset_hgt_to_gps = true;
-
-	resetVerticalPositionTo(-(_gps_sample_delayed.hgt - getEkfGlobalOriginAltitude() - _gps_hgt_b_est.getBias()));
-
-	// the state variance is the same as the observation
-	P.uncorrelateCovarianceSetVariance<1>(9, getGpsHeightVariance());
-
-	_baro_b_est.setBias(_baro_b_est.getBias() + _state_reset_status.posD_change);
-	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + _state_reset_status.posD_change);
-	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - _state_reset_status.posD_change);
-
-	_aid_src_gnss_pos.time_last_fuse[2] = _time_last_imu;
-}
-
 void Ekf::resetHeightToRng()
 {
 	ECL_INFO("reset height to RNG");
@@ -1270,42 +1253,6 @@ void Ekf::startMag3DFusion()
 		zeroMagCov();
 		loadMagCovData();
 		_control_status.flags.mag_3D = true;
-	}
-}
-
-void Ekf::startGpsHgtFusion()
-{
-	if (!_control_status.flags.gps_hgt) {
-
-		if (_params.height_sensor_ref == HeightSensor::GNSS) {
-			_gps_hgt_b_est.reset();
-			_height_sensor_ref = HeightSensor::GNSS;
-			resetHeightToGps();
-
-		} else {
-			_gps_hgt_b_est.setBias(_state.pos(2) + (_gps_sample_delayed.hgt - getEkfGlobalOriginAltitude()));
-
-			// Reset the timeout value here because the fusion isn't done at the same place and would immediately trigger a timeout
-			_aid_src_gnss_pos.time_last_fuse[2] = _time_last_imu;
-		}
-
-		_control_status.flags.gps_hgt = true;
-		_gps_hgt_b_est.setFusionActive();
-		ECL_INFO("starting GPS height fusion");
-	}
-}
-
-void Ekf::stopGpsHgtFusion()
-{
-	if (_control_status.flags.gps_hgt) {
-
-		if (_height_sensor_ref == HeightSensor::GNSS) {
-			_height_sensor_ref = HeightSensor::UNKNOWN;
-		}
-
-		_control_status.flags.gps_hgt = false;
-		_gps_hgt_b_est.setFusionInactive();
-		ECL_INFO("stopping GPS height fusion");
 	}
 }
 

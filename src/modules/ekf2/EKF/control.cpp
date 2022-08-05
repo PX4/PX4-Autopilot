@@ -685,49 +685,6 @@ bool Ekf::isConditionalRangeAidSuitable()
 	return is_range_aid_suitable;
 }
 
-void Ekf::controlGnssHeightFusion()
-{
-	if (!(_params.gnss_ctrl & GnssCtrl::VPOS)) {
-		stopGpsHgtFusion();
-		return;
-	}
-
-	_gps_hgt_b_est.predict(_dt_ekf_avg);
-
-	if (_gps_data_ready) {
-		const bool continuing_conditions_passing = !_gps_intermittent && _gps_checks_passed && _NED_origin_initialised;
-		const bool starting_conditions_passing = continuing_conditions_passing;
-
-		if (_control_status.flags.gps_hgt) {
-			if (continuing_conditions_passing) {
-				/* fuseGpsHgt(); */ // Done in fuseGpsPos
-
-				const bool is_fusion_failing = isTimedOut(_aid_src_gnss_pos.time_last_fuse[2], _params.hgt_fusion_timeout_max);
-
-				if (isHeightResetRequired()) {
-					// All height sources are failing
-					resetHeightToGps();
-					resetVerticalVelocityToGps(_gps_sample_delayed);
-
-				} else if (is_fusion_failing) {
-					// Some other height source is still working
-					stopGpsHgtFusion();
-				}
-
-			} else {
-				stopGpsHgtFusion();
-			}
-		} else {
-			if (starting_conditions_passing) {
-				startGpsHgtFusion();
-			}
-		}
-
-	} else if (_control_status.flags.gps_hgt && _gps_intermittent) {
-		stopGpsHgtFusion();
-	}
-}
-
 void Ekf::controlRangeHeightFusion()
 {
 	if (!((_params.rng_ctrl == RngCtrl::CONDITIONAL) || (_params.rng_ctrl == RngCtrl::ENABLED))) {
