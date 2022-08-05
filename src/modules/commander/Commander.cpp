@@ -192,6 +192,24 @@ static bool send_vehicle_command(const uint32_t cmd, const float param1 = NAN, c
 	return vcmd_pub.publish(vcmd);
 }
 
+static bool wait_for_vehicle_command_reply(const uint32_t cmd,
+		uORB::SubscriptionData<vehicle_command_ack_s> &vehicle_command_ack_sub)
+{
+	hrt_abstime start = hrt_absolute_time();
+
+	while (hrt_absolute_time() - start < 100_ms) {
+		if (vehicle_command_ack_sub.update()) {
+			if (vehicle_command_ack_sub.get().command == cmd) {
+				return vehicle_command_ack_sub.get().result == vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			}
+		}
+
+		px4_usleep(10000);
+	}
+
+	return false;
+}
+
 static bool broadcast_vehicle_command(const uint32_t cmd, const float param1 = NAN, const float param2 = NAN,
 				      const float param3 = NAN,  const float param4 = NAN, const double param5 = static_cast<double>(NAN),
 				      const double param6 = static_cast<double>(NAN), const float param7 = NAN)
@@ -338,10 +356,14 @@ int Commander::custom_command(int argc, char *argv[])
 
 	if (!strcmp(argv[0], "takeoff")) {
 		// switch to takeoff mode and arm
+		uORB::SubscriptionData<vehicle_command_ack_s> vehicle_command_ack_sub{ORB_ID(vehicle_command_ack)};
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF);
-		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
-				     static_cast<float>(vehicle_command_s::ARMING_ACTION_ARM),
-				     0.f);
+
+		if (wait_for_vehicle_command_reply(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF, vehicle_command_ack_sub)) {
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
+					     static_cast<float>(vehicle_command_s::ARMING_ACTION_ARM),
+					     0.f);
+		}
 
 		return 0;
 	}
@@ -1190,12 +1212,12 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				mavlink_log_critical(&_mavlink_log_pub, "Takeoff denied! Please disarm and retry\t");
+				mavlink_log_critical(&_mavlink_log_pub, "Takeoff denied!\t");
 				/* EVENT
 				 * @description Check for a valid position estimate
 				 */
 				events::send(events::ID("commander_takeoff_denied"), {events::Log::Critical, events::LogInternal::Info},
-					     "Takeoff denied! Please disarm and retry");
+					     "Takeoff denied!");
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
