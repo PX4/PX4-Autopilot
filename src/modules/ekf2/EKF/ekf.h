@@ -622,7 +622,6 @@ private:
 
 	// height sensor status
 	bool _baro_hgt_faulty{false};		///< true if baro data have been declared faulty TODO: move to fault flags
-	bool _baro_hgt_intermittent{true};	///< true if data into the buffer is intermittent
 	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
 	// imu fault status

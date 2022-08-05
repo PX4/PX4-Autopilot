@@ -86,9 +86,6 @@ void Ekf::controlFusionModes()
 	}
 
 	if (_baro_buffer) {
-		// check for intermittent data
-		_baro_hgt_intermittent = !isRecent(_time_last_baro, 2 * BARO_MAX_INTERVAL);
-
 		const uint64_t baro_time_prev = _baro_sample_delayed.time_us;
 		_baro_data_ready = _baro_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed);
 
@@ -771,18 +768,21 @@ void Ekf::controlBaroHeightFusion()
 
 	_baro_b_est.predict(_dt_ekf_avg);
 
+	// check for intermittent data
+	const bool baro_hgt_intermittent = !isRecent(_time_last_baro, 2 * BARO_MAX_INTERVAL);
+
 	if (_baro_data_ready) {
 		_baro_lpf.update(_baro_sample_delayed.hgt);
 		updateBaroHgt(_baro_sample_delayed, _aid_src_baro_hgt);
 
-		const bool continuing_conditions_passing = !_baro_hgt_faulty && !_baro_hgt_intermittent;
+		const bool continuing_conditions_passing = !_baro_hgt_faulty && !baro_hgt_intermittent;
 		const bool starting_conditions_passing = continuing_conditions_passing;
 
 		if (_control_status.flags.baro_hgt) {
 			if (continuing_conditions_passing) {
 				fuseBaroHgt(_aid_src_baro_hgt);
 
-				const bool is_fusion_failing = isTimedOut(_aid_src_baro_hgt.time_last_fuse, (uint64_t)5e6);
+				const bool is_fusion_failing = isTimedOut(_aid_src_baro_hgt.time_last_fuse, _params.hgt_fusion_timeout_max);
 
 				if (isHeightResetRequired()) {
 					// All height sources are failing
@@ -804,7 +804,7 @@ void Ekf::controlBaroHeightFusion()
 			}
 		}
 
-	} else if (_control_status.flags.baro_hgt && _baro_hgt_intermittent) {
+	} else if (_control_status.flags.baro_hgt && baro_hgt_intermittent) {
 		// No baro data anymore. Stop until it comes back.
 		stopBaroHgtFusion();
 	}
@@ -827,7 +827,7 @@ void Ekf::controlGnssHeightFusion()
 			if (continuing_conditions_passing) {
 				/* fuseGpsHgt(); */ // Done in fuseGpsPos
 
-				const bool is_fusion_failing = isTimedOut(_aid_src_gnss_pos.time_last_fuse[2], _params.reset_timeout_max);
+				const bool is_fusion_failing = isTimedOut(_aid_src_gnss_pos.time_last_fuse[2], _params.hgt_fusion_timeout_max);
 
 				if (isHeightResetRequired()) {
 					// All height sources are failing
@@ -862,6 +862,8 @@ void Ekf::controlRangeHeightFusion()
 
 	_rng_hgt_b_est.predict(_dt_ekf_avg);
 
+	const bool rng_intermittent = !isRecent(_time_last_range, 2 * RNG_MAX_INTERVAL);
+
 	// If we are supposed to be using range finder data as the primary height sensor, have bad range measurements
 	// and are on the ground, then synthesise a measurement at the expected on ground value
 	if (!_control_status.flags.in_air
@@ -878,7 +880,8 @@ void Ekf::controlRangeHeightFusion()
 
 		const bool do_conditional_range_aid = (_params.rng_ctrl == RngCtrl::CONDITIONAL) && isConditionalRangeAidSuitable();
 
-		const bool continuing_conditions_passing = _range_sensor.isDataHealthy() && ((_params.rng_ctrl == RngCtrl::ENABLED) || do_conditional_range_aid);
+		const bool continuing_conditions_passing = _range_sensor.isDataHealthy() && !rng_intermittent
+							   && ((_params.rng_ctrl == RngCtrl::ENABLED) || do_conditional_range_aid);
 		const bool starting_conditions_passing = continuing_conditions_passing
 							 && _range_sensor.isRegularlySendingData();
 
@@ -886,7 +889,7 @@ void Ekf::controlRangeHeightFusion()
 			if (continuing_conditions_passing) {
 				fuseRngHgt(_aid_src_rng_hgt);
 
-				const bool is_fusion_failing = isTimedOut(_aid_src_rng_hgt.time_last_fuse, (uint64_t)5e6);
+				const bool is_fusion_failing = isTimedOut(_aid_src_rng_hgt.time_last_fuse, _params.hgt_fusion_timeout_max);
 
 				if (isHeightResetRequired()) {
 					// All height sources are failing
@@ -910,7 +913,7 @@ void Ekf::controlRangeHeightFusion()
 			}
 		}
 
-	} else if (_control_status.flags.rng_hgt && isTimedOut(_time_last_range, (uint64_t)5e6)) {
+	} else if (_control_status.flags.rng_hgt && rng_intermittent) {
 		stopRngHgtFusion();
 	}
 }
@@ -924,10 +927,11 @@ void Ekf::controlEvHeightFusion()
 
 	_ev_hgt_b_est.predict(_dt_ekf_avg);
 
+	const bool ev_intermittent = !isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL);
+
 	if (_ev_data_ready) {
-		const bool continuing_conditions_passing = true;
-		const bool starting_conditions_passing = continuing_conditions_passing
-							 && isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL);
+		const bool continuing_conditions_passing = !ev_intermittent;
+		const bool starting_conditions_passing = continuing_conditions_passing;
 
 		if (_control_status.flags.ev_hgt) {
 			if (continuing_conditions_passing) {
@@ -949,7 +953,7 @@ void Ekf::controlEvHeightFusion()
 			}
 		}
 
-	} else if (_control_status.flags.ev_hgt && isTimedOut(_time_last_ext_vision, (uint64_t)5e6)) {
+	} else if (_control_status.flags.ev_hgt && ev_intermittent) {
 		stopEvHgtFusion();
 	}
 }
