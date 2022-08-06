@@ -76,7 +76,7 @@ public:
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 * @param instance The instance for multi sub.
 	 */
-	Subscription(const orb_metadata *meta, uint8_t instance = 0) :
+	Subscription(const orb_metadata *meta = nullptr, uint8_t instance = 0) :
 		_orb_id((meta == nullptr) ? ORB_ID::INVALID : static_cast<ORB_ID>(meta->o_id)),
 		_instance(instance)
 	{
