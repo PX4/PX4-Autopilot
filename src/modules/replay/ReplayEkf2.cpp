@@ -35,6 +35,8 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
 
+#include <lib/parameters/param.h>
+
 // for ekf2 replay
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
@@ -183,6 +185,9 @@ void
 ReplayEkf2::onEnterMainLoop()
 {
 	_speed_factor = 0.f; // iterate as fast as possible
+
+	// disable parameter auto save
+	param_control_autosave(false);
 }
 
 void
