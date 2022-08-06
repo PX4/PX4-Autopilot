@@ -2147,7 +2147,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 		}
 	}
 
-	if (multi_mode) {
+	if (multi_mode && !replay_mode) {
 		// Start EKF2Selector if it's not already running
 		if (_ekf2_selector.load() == nullptr) {
 			EKF2Selector *inst = new EKF2Selector();
