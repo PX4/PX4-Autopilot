@@ -68,6 +68,7 @@ px4_add_board(
 		flight_mode_manager
 		fw_att_control
 		fw_dyn_soar_control
+		fw_dyn_soar_estimator
 		fw_pos_control_l1
 		gyro_calibration
 		gyro_fft

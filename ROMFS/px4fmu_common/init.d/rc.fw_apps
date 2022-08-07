@@ -16,6 +16,7 @@ ekf2 start &
 fw_att_control start
 fw_pos_control_l1 start
 fw_dyn_soar_control start
+fw_dyn_soar_estimator start
 airspeed_selector start
 #
 # Start Land Detector.

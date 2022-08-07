@@ -37,6 +37,7 @@ px4_add_board(
 		fw_att_control
 		fw_pos_control_l1
 		fw_dyn_soar_control
+		fw_dyn_soar_estimator
 		gyro_calibration
 		gyro_fft
 		land_detector
