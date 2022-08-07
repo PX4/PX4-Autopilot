@@ -817,7 +817,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 
 	sensor_optical_flow_s sensor_optical_flow{};
 
-	sensor_optical_flow.timestamp_sample = hrt_absolute_time();
+	sensor_optical_flow.timestamp_sample = _mavlink_timesync.sync_stamp(hrt_absolute_time());
 	sensor_optical_flow.device_id = device_id.devid;
 
 	sensor_optical_flow.pixel_flow[0] = flow.integrated_x;
@@ -863,7 +863,7 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 
 	sensor_optical_flow_s sensor_optical_flow{};
 
-	sensor_optical_flow.timestamp_sample = hrt_absolute_time();
+	sensor_optical_flow.timestamp_sample = _mavlink_timesync.sync_stamp(hrt_absolute_time());
 	sensor_optical_flow.device_id = device_id.devid;
 
 	sensor_optical_flow.pixel_flow[0] = flow.integrated_x;
@@ -2181,7 +2181,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	manual.r = man.r / 1000.0f;
 	manual.z = man.z / 1000.0f;
 	manual.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
-	manual.timestamp = manual.timestamp_sample = hrt_absolute_time();
+	manual.timestamp = manual.timestamp_sample = _mavlink_timesync.sync_stamp(hrt_absolute_time());
 	_manual_control_input_pub.publish(manual);
 }
 
@@ -2751,7 +2751,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	mavlink_hil_state_quaternion_t hil_state;
 	mavlink_msg_hil_state_quaternion_decode(msg, &hil_state);
 
-	const uint64_t timestamp_sample = hrt_absolute_time();
+	const uint64_t timestamp_sample = _mavlink_timesync.sync_stamp(hil_state.time_usec);
 
 	/* airspeed */
 	{
