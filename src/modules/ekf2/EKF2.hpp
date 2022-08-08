@@ -183,6 +183,8 @@ private:
 		}
 	}
 
+	bool _is_tailsitter_in_fw{false};
+
 	/*
 	 * Calculate filtered WGS84 height from estimated AMSL height
 	 */

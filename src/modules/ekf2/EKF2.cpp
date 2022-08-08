@@ -532,6 +532,7 @@ void EKF2::Run()
 
 				_preflt_checker.setVehicleCanObserveHeadingInFlight(vehicle_status.vehicle_type !=
 						vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+				_is_tailsitter_in_fw = is_fixed_wing && vehicle_status.is_vtol_tailsitter;
 			}
 		}
 
@@ -667,6 +668,40 @@ void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 
 		_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
 		att.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+
+		/* get current rotation matrix and euler angles from control state quaternions */
+		matrix::Dcmf R = matrix::Quatf(att.q);
+
+		if (_is_tailsitter_in_fw) {
+			/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
+			 * */
+			matrix::Dcmf R_adapted = R;		//modified rotation matrix
+
+			/* move z to x */
+			R_adapted(0, 0) = R(0, 2);
+			R_adapted(1, 0) = R(1, 2);
+			R_adapted(2, 0) = R(2, 2);
+
+			/* move x to z */
+			R_adapted(0, 2) = R(0, 0);
+			R_adapted(1, 2) = R(1, 0);
+			R_adapted(2, 2) = R(2, 0);
+
+			/* change direction of pitch (convert to right handed system) */
+			R_adapted(0, 0) = -R_adapted(0, 0);
+			R_adapted(1, 0) = -R_adapted(1, 0);
+			R_adapted(2, 0) = -R_adapted(2, 0);
+
+			/* fill in new attitude data */
+			R = R_adapted;
+
+			const matrix::Eulerf euler_angles(R);
+
+			const matrix::Quatf quat_new(matrix::Eulerf(euler_angles.phi(), euler_angles.theta(), euler_angles.psi()));
+
+			quat_new.copyTo(att.q);
+		}
+
 		_attitude_pub.publish(att);
 
 	}  else if (_replay_mode) {

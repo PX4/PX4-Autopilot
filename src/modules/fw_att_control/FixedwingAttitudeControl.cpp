@@ -319,20 +319,20 @@ void FixedwingAttitudeControl::Run()
 			 * */
 			matrix::Dcmf R_adapted = R;		//modified rotation matrix
 
-			/* move z to x */
-			R_adapted(0, 0) = R(0, 2);
-			R_adapted(1, 0) = R(1, 2);
-			R_adapted(2, 0) = R(2, 2);
+			// /* move z to x */
+			// R_adapted(0, 0) = R(0, 2);
+			// R_adapted(1, 0) = R(1, 2);
+			// R_adapted(2, 0) = R(2, 2);
 
-			/* move x to z */
-			R_adapted(0, 2) = R(0, 0);
-			R_adapted(1, 2) = R(1, 0);
-			R_adapted(2, 2) = R(2, 0);
+			// /* move x to z */
+			// R_adapted(0, 2) = R(0, 0);
+			// R_adapted(1, 2) = R(1, 0);
+			// R_adapted(2, 2) = R(2, 0);
 
-			/* change direction of pitch (convert to right handed system) */
-			R_adapted(0, 0) = -R_adapted(0, 0);
-			R_adapted(1, 0) = -R_adapted(1, 0);
-			R_adapted(2, 0) = -R_adapted(2, 0);
+			// /* change direction of pitch (convert to right handed system) */
+			// R_adapted(0, 0) = -R_adapted(0, 0);
+			// R_adapted(1, 0) = -R_adapted(1, 0);
+			// R_adapted(2, 0) = -R_adapted(2, 0);
 
 			/* fill in new attitude data */
 			R = R_adapted;
