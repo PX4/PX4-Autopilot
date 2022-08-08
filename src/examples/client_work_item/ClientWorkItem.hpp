@@ -71,7 +71,7 @@ private:
 	void Run() override;
 
 	// Client
-	uORB::Client<add_two_ints_request_s, add_two_ints_response_s> _add_two_request_service{ORB_ID(add_two_ints_request), ORB_ID(add_two_ints_response)};
+	uORB::Client<add_two_ints_request_s, add_two_ints_response_s> _add_two_request_service{"ClientWorkItem", ORB_ID(add_two_ints_request), ORB_ID(add_two_ints_response)};
 
 	// Performance (perf) counters
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};

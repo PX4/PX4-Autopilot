@@ -71,6 +71,11 @@ public:
 private:
 	void Run() override;
 
+	// Request handler for the Service
+	// TODO: Must it be a 'static' function??
+	// TODO: Service should provide a simple typedef interface to declare this callback function type!!
+	static void handle_service_request(const add_two_ints_request_s &request, const add_two_ints_response_s &response);
+
 	// Service
 	uORB::Service<add_two_ints_request_s, add_two_ints_response_s> _add_two_request_service{ORB_ID(add_two_ints_request), ORB_ID(add_two_ints_response)};
 

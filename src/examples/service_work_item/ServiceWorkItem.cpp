@@ -50,10 +50,14 @@ bool ServiceWorkItem::init()
 	// alternatively, Run on fixed interval
 	ScheduleOnInterval(5000_us);
 
+	// Register a callback that handles the Service request
+	_add_two_request_service.registerCallback(handle_service_request);
+
 	return true;
 }
 
-void ServiceWorkItem::handle_service_request(const add_two_ints_request_s request, add_two_ints_response_s &response)
+void ServiceWorkItem::handle_service_request(const add_two_ints_request_s &request,
+		const add_two_ints_response_s &response)
 {
 	// Handle the request and update the response object by reference
 }
@@ -69,8 +73,7 @@ void ServiceWorkItem::Run()
 	perf_begin(_loop_perf);
 	perf_count(_loop_interval_perf);
 
-	// Register a callback that handles the Service request
-	_add_two_request_service.registerCallback(handle_service_request);
+	// Do Service Server stuff
 
 	perf_end(_loop_perf);
 }

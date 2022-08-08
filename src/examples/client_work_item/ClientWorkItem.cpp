@@ -47,9 +47,8 @@ ClientWorkItem::~ClientWorkItem()
 
 bool ClientWorkItem::init()
 {
-	// alternatively, Run on fixed interval
+	// Run on fixed interval
 	ScheduleOnInterval(5000_us);
-
 	return true;
 }
 
@@ -64,14 +63,24 @@ void ClientWorkItem::Run()
 	perf_begin(_loop_perf);
 	perf_count(_loop_interval_perf);
 
-	add_two_ints_request_s req_data;
+	// Send Requests
+	static hrt_abstime last_request_sent{0};
+	static const hrt_abstime REQUEST_SEND_INTERVAL = 500_ms;
 
-	// Send async request
-	auto result = _add_two_request_service.async_send_request(req_data);
+	if (hrt_elapsed_time(&last_request_sent) > REQUEST_SEND_INTERVAL) {
+		last_request_sent = hrt_absolute_time();
 
-	// Have valid response from the service server
-	if (result.done()) {
-		// Do response processing
+		add_two_ints_request_s req_data;
+		req_data.a = 69;
+		req_data.b = 420;
+		_add_two_request_service.send_request(req_data);
+	}
+
+	// Check for Responses
+	add_two_ints_response_s resposne_data;
+
+	if (_add_two_request_service.get_response(&resposne_data)) {
+		PX4_INFO("We have a response!!");
 	}
 
 	perf_end(_loop_perf);

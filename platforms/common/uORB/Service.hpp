@@ -42,6 +42,8 @@
 #include <px4_platform_common/defines.h>
 #include <systemlib/err.h>
 #include <future>
+#include <px4_platform_common/events.h>
+#include <string.h>
 
 #include <uORB/uORB.h>
 #include "uORBManager.hpp"
@@ -68,20 +70,22 @@ public:
 	Service(const orb_metadata *req_, const orb_metadata *resp_)
 		: _request_sub(req_), _response_pub(resp_) {};
 
+	// ASYNCHRONOUS CALLBACK IMPLEMENTATION (NOT COMPLETE YET)
 	/**
 	 * @brief Registers the callback function that will be called when a new request arrives
 	 *
 	 * @return true
 	 * @return false
 	 */
-	bool registerCallback(const void *cb_func(const req &, resp))
+	bool registerCallback(void cb_func(const req &request, const resp &response))
 	{
-		_request_sub.registerCallback(cb_func);
+		//_request_sub.registerCallback(cb_func);
 		_cb_func = cb_func; // Internally save the function pointer
+		return false;
 	}
 
 private:
-	void *_cb_func(const req &, resp); // Function pointer to the callback
+	void (*_cb_func)(const req &request, const resp &response); // Function pointer to the callback
 
 	uORB::Subscription _request_sub;
 	uORB::Publication<resp> _response_pub;
@@ -100,23 +104,88 @@ class Client
 public:
 	/**
 	 * @brief Construct a new Client object with the given request & response uORB topics
+	 *
+	 * @param identifier Unique Identifier string (e.g. module's name) to calculate unique HASH id
 	 */
-	Client(const orb_metadata *req_, const orb_metadata *resp_)
-		: _request_pub(req_), _response_sub(resp_) {};
+	Client(const char *identifier, const orb_metadata *req_, const orb_metadata *resp_)
+		: _request_pub(req_), _response_sub(resp_)
+	{
+		_client_id = (int32_t)events::util::hash_32_fnv1a_const(identifier);
+	}
 
+	// SIMPLE FUNCTIONAL IMPLEMENTATION (STEP 1)
+	/**
+	 * @brief Sends request, and returns true if the request uORB message was successfully published
+	 */
+	bool send_request(const req &request)
+	{
+		req *req_data = &_request_pub.get();
+
+		// TODO: For the user, the 'client id', 'sequence id' etc should be invisible (decoupled).
+		// So we need a user facing 'data structure' that can be translated from the uORB data
+		// This would need to be generated during compile time like this:
+
+		// void translate(Request *request_user_facing, const req *request_uorb_side)
+		memcpy(req_data, &request, sizeof(req));
+
+		req_data->timestamp = hrt_absolute_time();
+		req_data->client_id = _client_id;
+		req_data->sequence_id = _sequence_id;
+
+		if (_request_pub.update()) {
+			++_sequence_id;
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * @brief Checks if we have the response for the last request sent
+	 */
+	bool get_response(resp *response_ptr)
+	{
+		resp response_data;
+
+		// Loop through available responses in the queue
+		while (_response_sub.update(&response_data)) {
+			// TODO: Need to ensure that our uORB topic for response (as well as request?) has a
+			// ORB_QUEUE_LENGTH of 8 or so (arbitruary length to ensure no service requests will get lost)
+
+			// TODO: Handle the case of identifying which 'request' corresponds to which 'response'
+			// by utilizing sequence_id. E.g. when we send "Arm" and "Disarm", we need to distinguish
+			// to which request the response was meant for.
+
+			if (response_data.client_id == _client_id) {
+				memcpy(response_ptr, &response_data, sizeof(resp));
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	// ASYNCHRONOUS STD::FUTURE IMPLMENTATION (NOT DONE YET)
 	/**
 	 * @brief Send the request asynchronously
 	 *
 	 * @return Future instance of the response that will asynchronously be updated
 	 */
-	std::future<resp *> async_send_request(const &req)
+	std::future<resp *> async_send_request(const req &request)
 	{
-		_request_pub.update(req); // Publish new request
+		_request_pub.update(request); // Publish new request
+		return nullptr;
 	}
 
 private:
-	uORB::Publication<req> _request_pub;
+	uORB::PublicationData<req> _request_pub;
 	uORB::Subscription _response_sub;
+
+	// ROS2 does something similar (sequence id) to distinguish different requests from the same client, but here we don't copy the
+	// exact same behavior since it is so complicated and I would like to add that support later on when I have a better understanding on ROS2 side.
+
+	int32_t _client_id; // Unique identifier for the client (since multiple clients share the same Service)
+	int32_t _sequence_id{0}; // Sequence ID that uniquely identifies the request message sent by this client in the past
 };
 
 
