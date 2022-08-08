@@ -2607,7 +2607,7 @@ Commander::run()
 
 		/* Check for mission flight termination */
 		if (_arm_state_machine.isArmed() && _mission_result_sub.get().flight_termination &&
-		    !_vehicle_status.circuit_breaker_flight_termination_disabled) {
+		    !_circuit_breaker_flight_termination_disabled) {
 
 
 			if (!_flight_termination_triggered && !_lockdown_triggered) {
@@ -2717,7 +2717,7 @@ Commander::run()
 						events::send(events::ID("commander_fd_lockdown"), {events::Log::Emergency, events::LogInternal::Warning},
 							     "Critical failure detected: lockdown");
 
-					} else if (!_vehicle_status.circuit_breaker_flight_termination_disabled &&
+					} else if (!_circuit_breaker_flight_termination_disabled &&
 						   !_flight_termination_triggered && !_lockdown_triggered) {
 
 						_actuator_armed.force_failsafe = true;
@@ -3086,19 +3086,9 @@ Commander::run()
 void
 Commander::get_circuit_breaker_params()
 {
-	_vehicle_status.circuit_breaker_engaged_power_check = circuit_breaker_enabled_by_val(_param_cbrk_supply_chk.get(),
-			CBRK_SUPPLY_CHK_KEY);
-	_vehicle_status.circuit_breaker_engaged_usb_check = circuit_breaker_enabled_by_val(_param_cbrk_usb_chk.get(),
-			CBRK_USB_CHK_KEY);
-	_vehicle_status.circuit_breaker_engaged_airspd_check = circuit_breaker_enabled_by_val(
-				_param_cbrk_airspd_chk.get(),
-				CBRK_AIRSPD_CHK_KEY);
-	_vehicle_status.circuit_breaker_flight_termination_disabled = circuit_breaker_enabled_by_val(
+	_circuit_breaker_flight_termination_disabled = circuit_breaker_enabled_by_val(
 				_param_cbrk_flightterm.get(),
 				CBRK_FLIGHTTERM_KEY);
-	_vehicle_status.circuit_breaker_vtol_fw_arming_check = circuit_breaker_enabled_by_val(
-				_param_cbrk_vtolarming.get(),
-				CBRK_VTOLARMING_KEY);
 }
 
 void Commander::check_and_inform_ready_for_takeoff()

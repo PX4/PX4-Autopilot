@@ -50,6 +50,7 @@ private:
 	uORB::Subscription _system_power_sub{ORB_ID(system_power)};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
 					(ParamInt<px4::params::COM_POWER_COUNT>) _param_com_power_count
 				       )
 };
