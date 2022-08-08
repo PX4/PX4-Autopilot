@@ -73,6 +73,20 @@ void Report::armingCheckFailure(NavModes required_modes, HealthComponentIndex co
 	addEvent(event_id, log_levels, message, (uint32_t)reportedModes(required_modes), component.index);
 }
 
+Report::EventBufferHeader *Report::addEventToBuffer(uint32_t event_id, const events::LogLevels &log_levels,
+		unsigned args_size)
+{
+	unsigned total_size = sizeof(EventBufferHeader) + args_size;
+	EventBufferHeader *header = (EventBufferHeader *)(_event_buffer + _next_buffer_idx);
+	memcpy(&header->id, &event_id, sizeof(event_id)); // header might be unaligned
+	header->log_levels = ((uint8_t)log_levels.internal << 4) | (uint8_t)log_levels.external;
+	header->size = args_size;
+	_next_buffer_idx += total_size;
+	++_results[_current_result].num_events;
+	_results[_current_result].event_id_hash ^= event_id; // very simple hash
+	return header;
+}
+
 NavModes Report::reportedModes(NavModes required_modes)
 {
 	// Make sure optional checks are still shown in the UI
@@ -216,8 +230,12 @@ bool Report::report(bool is_armed, bool force)
 	_last_report = now;
 	_already_reported = true;
 	_had_unreported_difference = false;
-	PX4_DEBUG("Sending Arming/Health report (num events: %i, can_arm: 0x%x)", _results[_current_result].num_events + 2,
-		  (int)current_results.arming_checks.can_arm);
+
+#ifdef CONSOLE_PRINT_ARMING_CHECK_EVENT
+	PX4_INFO_RAW("Sending Arming/Health Report (num events: %i, can_arm: 0x%x, can_run: 0x%x)\n",
+		     _results[_current_result].num_events + 2,
+		     (int)current_results.arming_checks.can_arm, (int)current_results.arming_checks.can_run);
+#endif
 
 	// send arming summary
 	navigation_mode_group_t can_arm_and_run;
@@ -254,6 +272,11 @@ bool Report::report(bool is_armed, bool force)
 		memset(event.arguments + header->size, 0, sizeof(event.arguments) - header->size);
 		events::send(event);
 		offset += sizeof(EventBufferHeader) + header->size;
+#ifdef CONSOLE_PRINT_ARMING_CHECK_EVENT
+		const char *message;
+		memcpy(&message, &header->message, sizeof(header->message));
+		PX4_INFO_RAW("   Event 0x%08" PRIx32 ": %s\n", event.id, message);
+#endif
 	}
 
 	// send health summary

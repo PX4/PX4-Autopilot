@@ -44,12 +44,7 @@
 #include <stdint.h>
 #include <limits.h>
 
-#if 0 // for debugging, prints event messages to console each time arming & health checks run (not necessarily change)
-#include <px4_platform_common/log.h>
-#define CONSOLE_PRINT_ARMING_CHECK_EVENT(log_level, id, str) PX4_INFO_RAW("Health/Arming Event 0x%08x: %s\n", id, str)
-#else
-#define CONSOLE_PRINT_ARMING_CHECK_EVENT(log_level, id, str)
-#endif
+//#define CONSOLE_PRINT_ARMING_CHECK_EVENT // for debugging, print updated events whenever they change
 
 #ifndef FRIEND_TEST // for gtest
 #define FRIEND_TEST(a, b)
@@ -285,6 +280,9 @@ private:
 		uint8_t size; ///< arguments size
 		uint32_t id;
 		uint8_t log_levels;
+#ifdef CONSOLE_PRINT_ARMING_CHECK_EVENT
+		const char *message;
+#endif
 	};
 
 	void healthFailure(NavModes required_modes, HealthComponentIndex component, events::Log log_level);
@@ -292,6 +290,7 @@ private:
 
 	template<typename... Args>
 	bool addEvent(uint32_t event_id, const events::LogLevels &log_levels, const char *message, Args... args);
+	Report::EventBufferHeader *addEventToBuffer(uint32_t event_id, const events::LogLevels &log_levels, unsigned args_size);
 
 	NavModes reportedModes(NavModes required_modes);
 
@@ -360,8 +359,6 @@ void Report::armingCheckFailure(NavModes required_modes, HealthComponentIndex co
 template<typename... Args>
 bool Report::addEvent(uint32_t event_id, const events::LogLevels &log_levels, const char *message, Args... args)
 {
-	CONSOLE_PRINT_ARMING_CHECK_EVENT(log_level, event_id, message);
-
 	constexpr unsigned args_size = events::util::sizeofArguments(args...);
 	static_assert(args_size <= sizeof(events::EventType::arguments), "Too many arguments");
 	unsigned total_size = sizeof(EventBufferHeader) + args_size;
@@ -371,14 +368,14 @@ bool Report::addEvent(uint32_t event_id, const events::LogLevels &log_levels, co
 		return false;
 	}
 
-	EventBufferHeader *header = (EventBufferHeader *)(_event_buffer + _next_buffer_idx);
-	memcpy(&header->id, &event_id, sizeof(event_id)); // header might be unaligned
-	header->log_levels = ((uint8_t)log_levels.internal << 4) | (uint8_t)log_levels.external;
-	header->size = args_size;
 	events::util::fillEventArguments(_event_buffer + _next_buffer_idx + sizeof(EventBufferHeader), args...);
-	_next_buffer_idx += total_size;
-	++_results[_current_result].num_events;
-	_results[_current_result].event_id_hash ^= event_id; // very simple hash
+	// We split out the part of the code not requiring templating to reduce flash usage a bit
+	EventBufferHeader *header = addEventToBuffer(event_id, log_levels, args_size);
+#ifdef CONSOLE_PRINT_ARMING_CHECK_EVENT
+	memcpy(&header->message, &message, sizeof(message));
+#else
+	(void)header;
+#endif
 	return true;
 }
 
