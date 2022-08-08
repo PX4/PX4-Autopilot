@@ -53,7 +53,6 @@ FixedwingShearEstimator::FixedwingShearEstimator() :
 	// limit to 10 Hz
 	_soaring_controller_wind_sub.set_interval_ms(100.f);
 
-
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -101,6 +100,11 @@ FixedwingShearEstimator::init()
     // init reset counter
     _reset_counter = 0;
 
+    //
+    _X_prior_horizontal(4) = 110.f;
+    _X_posterior_horizontal(4) = 110.f;
+
+    return true;
 }
 
 int
@@ -154,7 +158,7 @@ void
 FixedwingShearEstimator::perform_prior_update()
 {
     // get time since last run
-    float dt = (hrt_absolute_time() - _last_run)/1000000.f;
+    float dt = (hrt_absolute_time() - _last_run)/1000000;
     _last_run = hrt_absolute_time();
 
     // perform prior update assuming trivial dynamics of the wind field (mean field stays the same)
@@ -203,7 +207,7 @@ FixedwingShearEstimator::perform_posterior_update(float height, Vector3f wind)
         _K_horizontal = tmp1_horizontal*inv_horizontal;
     }
     else{
-        PX4_ERR("singular horizontal matrix, resetting filter");
+        PX4_WARN("singular horizontal matrix, resetting filter");
         error = true;
     }
 
@@ -222,7 +226,7 @@ FixedwingShearEstimator::perform_posterior_update(float height, Vector3f wind)
         _K_vertical = tmp1_vertical*inv_vertical;
     }
     else{
-        PX4_ERR("singular vertical matrix, resetting filter");
+        PX4_WARN("singular vertical matrix, resetting filter");
         error = true;
     }
 

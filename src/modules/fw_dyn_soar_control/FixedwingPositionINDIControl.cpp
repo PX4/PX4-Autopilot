@@ -872,6 +872,9 @@ FixedwingPositionINDIControl::Run()
             _soaring_controller_wind.wind_estimate_filtered[0] = _wind_estimate(0);
             _soaring_controller_wind.wind_estimate_filtered[1] = _wind_estimate(1);
             _soaring_controller_wind.wind_estimate_filtered[2] = _wind_estimate(2);
+            _soaring_controller_wind.position[0] = _pos(0);
+            _soaring_controller_wind.position[1] = _pos(1);
+            _soaring_controller_wind.position[2] = _pos(2);
             _soaring_controller_wind_pub.publish(_soaring_controller_wind);
 
 

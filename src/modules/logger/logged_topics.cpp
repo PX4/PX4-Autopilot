@@ -125,6 +125,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("soaring_controller_position", 10);
 	add_topic("soaring_controller_position_setpoint", 10);
 	add_topic("soaring_controller_wind", 50);
+	add_topic("soaring_estimator_shear", 50);
 	add_topic("debug_value", 50);
 
 	// multi topics

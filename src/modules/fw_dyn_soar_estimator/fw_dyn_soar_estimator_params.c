@@ -22,7 +22,7 @@
  * @increment 0.000001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_SIGMA_Q_V, 0.0001f);
+PARAM_DEFINE_FLOAT(DS_SIGMA_Q_V, 0.001f);
 
 /**
  * Standard deviation of vertical shear position
@@ -36,7 +36,7 @@ PARAM_DEFINE_FLOAT(DS_SIGMA_Q_V, 0.0001f);
  * @increment 0.000001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_SIGMA_Q_H, 0.001f);
+PARAM_DEFINE_FLOAT(DS_SIGMA_Q_H, 0.01f);
 
 /**
  * Standard deviation of velicity state in shear model
@@ -50,7 +50,7 @@ PARAM_DEFINE_FLOAT(DS_SIGMA_Q_H, 0.001f);
  * @increment 0.000001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_SIGMA_Q_A, 0.00003f);
+PARAM_DEFINE_FLOAT(DS_SIGMA_Q_A, 0.0003f);
 
 /**
  * Standard deviation of velicity measurement (wind)
