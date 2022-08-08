@@ -186,6 +186,8 @@ private:
 
 	void updateParameters();
 
+	void check_and_inform_ready_for_takeoff();
+
 	DEFINE_PARAMETERS(
 
 		(ParamInt<px4::params::NAV_DLL_ACT>) _param_nav_dll_act,
