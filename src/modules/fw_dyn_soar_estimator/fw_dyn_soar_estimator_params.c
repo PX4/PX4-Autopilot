@@ -16,13 +16,13 @@
  * This is the std dev of the wind velocity in each direction
  * 
  * @unit kg
- * @min 0.01
+ * @min 0.0
  * @max 10
- * @decimal 2
- * @increment 0.01
+ * @decimal 6
+ * @increment 0.000001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_SIGMA_Q_V, 1.f);
+PARAM_DEFINE_FLOAT(DS_SIGMA_Q_V, 0.0001f);
 
 /**
  * Standard deviation of vertical shear position
@@ -30,13 +30,13 @@ PARAM_DEFINE_FLOAT(DS_SIGMA_Q_V, 1.f);
  * This is the std dev of the shear vertical position
  * 
  * @unit kg
- * @min 0.01
+ * @min 0.0
  * @max 10
- * @decimal 2
- * @increment 0.01
+ * @decimal 6
+ * @increment 0.000001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_SIGMA_Q_H, 1.f);
+PARAM_DEFINE_FLOAT(DS_SIGMA_Q_H, 0.001f);
 
 /**
  * Standard deviation of velicity state in shear model
@@ -44,13 +44,13 @@ PARAM_DEFINE_FLOAT(DS_SIGMA_Q_H, 1.f);
  * This is the std dev of the shear strenght param
  * 
  * @unit kg
- * @min 0.01
+ * @min 0.0
  * @max 10
- * @decimal 2
- * @increment 0.01
+ * @decimal 6
+ * @increment 0.000001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_SIGMA_Q_A, 1.f);
+PARAM_DEFINE_FLOAT(DS_SIGMA_Q_A, 0.00003f);
 
 /**
  * Standard deviation of velicity measurement (wind)
@@ -58,10 +58,10 @@ PARAM_DEFINE_FLOAT(DS_SIGMA_Q_A, 1.f);
  * This is the std dev of the wind pseudomeasurement passed to the EKF
  * 
  * @unit kg
- * @min 0.01
+ * @min 0.0
  * @max 10
- * @decimal 2
- * @increment 0.01
+ * @decimal 6
+ * @increment 0.000001
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_FLOAT(DS_SIGMA_R_V, 1.f);

@@ -96,17 +96,23 @@ private:
     void    perform_posterior_update(float height, Vector3f wind);
     bool    check_plausibility();
     void    publish_estimate();
+    void	status_publish();
 
     // control variables
+    hrt_abstime _last_run{0};
+    uint _reset_counter = {};
     const static size_t _dim_vertical = 2;  // order of vertical approximation function for vertical wind
 
 	Vector<float, 6> _X_prior_horizontal= {};
     Matrix<float, 6, 6> _P_prior_horizontal = {};
     Vector<float, 6> _X_posterior_horizontal= {};	
-    Matrix<float, 6, 6> _P_prosterior_horizontal = {};
+    Matrix<float, 6, 6> _P_posterior_horizontal = {};
     Matrix<float, 6, 6> _Q_horizontal = {};
     Matrix<float, 2, 2> _R_horizontal = {};
     Matrix<float, 2, 6> _H_horizontal = {};
+    Matrix<float, 6, 6> _A_horizontal = {};
+    Matrix<float, 6, 2> _K_horizontal = {};
+
 
     Vector<float, _dim_vertical> _X_prior_vertical= {};
     Matrix<float, _dim_vertical, _dim_vertical> _P_prior_vertical = {};
@@ -114,8 +120,10 @@ private:
     Matrix<float, _dim_vertical, _dim_vertical> _P_posterior_vertical = {};
     Vector<float, _dim_vertical> _X_vertical = {};			// params of vertical wind
     Matrix<float, _dim_vertical, _dim_vertical> _Q_vertical = {};
-    float _R_vertical = {};
+    Matrix<float, 1, 1>  _R_vertical = {};
     Matrix<float, 1, _dim_vertical> _H_vertical = {};
+    Matrix<float, _dim_vertical, _dim_vertical> _A_vertical = {};
+    Matrix<float, _dim_vertical, 1> _K_vertical = {};
 
     // measurement variables
     Vector3f _current_wind = {};
