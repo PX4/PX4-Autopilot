@@ -5,3 +5,22 @@ serial_config:
         name: SENS_TFMINI_CFG
         group: Sensors
 
+parameters:
+    - group: Sensors
+      definitions:
+        SENS_TFMINI_ROT:
+            description:
+                short: Distance Sensor Rotation
+                long: |
+                    Distance Sensor Rotation as MAV_SENSOR_ORIENTATION enum
+
+            type: enum
+            values:
+                25: ROTATION_DOWNWARD_FACING
+                24: ROTATION_UPWARD_FACING
+                4: ROTATION_BACKWARD_FACING
+                0: ROTATION_FORWARD_FACING
+                6: ROTATION_LEFT_FACING
+                2: ROTATION_RIGHT_FACING
+            reboot_required: true
+            default: 25

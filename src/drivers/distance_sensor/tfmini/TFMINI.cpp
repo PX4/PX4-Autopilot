@@ -73,6 +73,11 @@ int
 TFMINI::init()
 {
 	int32_t hw_model = 1; // only one model so far...
+	param_t _param_tf_rot = param_find("SENS_TFMINI_ROT");
+	int32_t tf_rotation;
+	if (_param_tf_rot != PARAM_INVALID) {
+		param_get(_param_tf_rot, &tf_rotation);
+	}
 
 	switch (hw_model) {
 	case 1: // TFMINI (12m, 100 Hz)
@@ -84,6 +89,7 @@ TFMINI::init()
 		_px4_rangefinder.set_min_distance(0.4f);
 		_px4_rangefinder.set_max_distance(12.0f);
 		_px4_rangefinder.set_fov(math::radians(1.15f));
+		_px4_rangefinder.set_orientation(tf_rotation);
 
 		break;
 
