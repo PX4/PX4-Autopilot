@@ -137,7 +137,12 @@ bool Ekf::isConditionalRangeAidSuitable()
 void Ekf::startRngHgtFusion()
 {
 	if (!_control_status.flags.rng_hgt) {
-		if (_params.height_sensor_ref == HeightSensor::RANGE) {
+		if ((_params.height_sensor_ref == HeightSensor::RANGE) && (_params.rng_ctrl == RngCtrl::CONDITIONAL)) {
+			// Range finder is used while hovering to stabilize the height estimate. Don't reset but use it as height reference.
+			_rng_hgt_b_est.setBias(_state.pos(2) + _range_sensor.getDistBottom());
+			_height_sensor_ref = HeightSensor::RANGE;
+
+		} else if ((_params.height_sensor_ref == HeightSensor::RANGE) && (_params.rng_ctrl != RngCtrl::CONDITIONAL)) {
 			// Range finder is the primary height source, the ground is now the datum used
 			// to compute the local vertical position
 			_rng_hgt_b_est.reset();
