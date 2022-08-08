@@ -53,6 +53,7 @@ private:
 	const param_t _param_fw_airspd_trim_handle;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamInt<px4::params::CBRK_AIRSPD_CHK>) _param_cbrk_airspd_chk,
 					(ParamBool<px4::params::COM_ARM_ARSP_EN>) _param_com_arm_arsp_en
 				       )
 };

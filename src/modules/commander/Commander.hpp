@@ -314,6 +314,7 @@ private:
 	bool		_geofence_warning_action_on{false};
 	bool		_geofence_violated_prev{false};
 
+	bool         _circuit_breaker_flight_termination_disabled{false};
 
 	bool		_rtl_time_actions_done{false};
 

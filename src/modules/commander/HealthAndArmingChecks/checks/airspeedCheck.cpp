@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "airspeedCheck.hpp"
+#include <lib/circuit_breaker/circuit_breaker.h>
 
 using namespace time_literals;
 
@@ -42,7 +43,7 @@ AirspeedChecks::AirspeedChecks()
 
 void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	if (context.status().circuit_breaker_engaged_airspd_check ||
+	if (circuit_breaker_enabled_by_val(_param_cbrk_airspd_chk.get(), CBRK_AIRSPD_CHK_KEY) ||
 	    (context.status().vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING && !context.status().is_vtol)) {
 		return;
 	}
