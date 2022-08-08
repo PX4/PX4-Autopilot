@@ -48,6 +48,10 @@ param set-default MAV_1_CONFIG 101
 param set-default MAV_1_MODE 7
 param set-default MAV_1_RATE 1000
 
+# Disable MAV_0 and MAV_2
+param set-default MAV_0_CONFIG 0
+param set-default MAV_2_CONFIG 0
+
 # Enable safety switch
 param set-default CBRK_IO_SAFETY 0
 
