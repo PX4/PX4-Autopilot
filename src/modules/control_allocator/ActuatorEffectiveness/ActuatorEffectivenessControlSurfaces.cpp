@@ -120,6 +120,15 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 
 		case Type::Custom:
 			break;
+
+		case Type::LeftATail:
+			break;
+
+		case Type::RightATail:
+			break;
+
+		case Type::SingleChannelAileron:
+			break;
 		}
 	}
 }

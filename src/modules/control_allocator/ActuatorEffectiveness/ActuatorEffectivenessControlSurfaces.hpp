@@ -57,6 +57,9 @@ public:
 		RightFlaps = 10,
 		Airbrakes = 11,
 		Custom = 12,
+		LeftATail = 13,
+		RightATail = 14,
+		SingleChannelAileron = 15,
 	};
 
 	struct Params {
