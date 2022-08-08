@@ -94,7 +94,7 @@ void Ekf::startFakePosFusion()
 void Ekf::resetFakePosFusion()
 {
 	ECL_INFO("reset fake position fusion");
-	_last_known_posNE = _state.pos.xy();
+	_last_known_pos.xy() = _state.pos.xy();
 
 	resetHorizontalPositionToLastKnown();
 	resetHorizontalVelocityToZero();
@@ -134,10 +134,10 @@ void Ekf::fuseFakePosition()
 	auto &fake_pos = _aid_src_fake_pos;
 
 	for (int i = 0; i < 2; i++) {
-		fake_pos.observation[i] = _last_known_posNE(i);
+		fake_pos.observation[i] = _last_known_pos(i);
 		fake_pos.observation_variance[i] = obs_var(i);
 
-		fake_pos.innovation[i] = _state.pos(i) - _last_known_posNE(i);
+		fake_pos.innovation[i] = _state.pos(i) - _last_known_pos(i);
 		fake_pos.innovation_variance[i] = P(7 + i, 7 + i) + obs_var(i);
 	}
 

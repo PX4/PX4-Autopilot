@@ -190,6 +190,7 @@ void Ekf::controlFusionModes()
 
 	// Fake position measurement for constraining drift when no other velocity or position measurements
 	controlFakePosFusion();
+	controlFakeHgtFusion();
 
 	// check if we are no longer fusing measurements that directly constrain velocity drift
 	update_deadreckoning_status();
@@ -521,7 +522,7 @@ void Ekf::controlOpticalFlowFusion()
 				// but use a relaxed time criteria to enable it to coast through bad range finder data
 				if (isRecent(_time_last_hagl_fuse, (uint64_t)10e6)) {
 					fuseOptFlow();
-					_last_known_posNE = _state.pos.xy();
+					_last_known_pos.xy() = _state.pos.xy();
 				}
 
 				_flow_data_ready = false;

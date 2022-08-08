@@ -178,6 +178,7 @@ public:
 	// Return true if at least one source of horizontal aiding is active
 	// the flags considered are opt_flow, gps, ev_vel and ev_pos
 	bool isHorizontalAidingActive() const;
+	bool isVerticalAidingActive() const;
 
 	int getNumberOfActiveHorizontalAidingSources() const;
 
