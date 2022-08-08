@@ -4,7 +4,6 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ master ]
 
 jobs:
   tii-px4-sitl:
@@ -46,6 +45,7 @@ jobs:
           images: ghcr.io/tiiuae/tii-px4-sitl
           tags: |
             type=ref,event=branch
+            type=ref,event=pr
             type=semver,pattern={{version}}
             type=sha
             type=raw,value=latest
@@ -63,7 +63,7 @@ jobs:
           context: .
           file: ./px4-firmware/packaging/Dockerfile.sitl
           pull: true
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
