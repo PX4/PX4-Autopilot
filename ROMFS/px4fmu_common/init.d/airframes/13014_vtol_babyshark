@@ -111,7 +111,7 @@ param set-default CA_ROTOR4_AX 1.0
 param set-default CA_ROTOR4_AZ 0.0
 
 param set-default CA_SV_CS_COUNT 3
-param set-default CA_SV_CS0_TYPE 12 #custom type as combined aileron
+param set-default CA_SV_CS0_TYPE 15
 param set-default CA_SV_CS0_TRQ_R 1.0
 param set-default CA_SV_CS1_TRQ_P 0.5000
 param set-default CA_SV_CS1_TRQ_R 0.0000
