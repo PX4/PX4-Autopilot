@@ -2963,6 +2963,8 @@ Commander::run()
 				_vehicle_status_flags.pre_flight_checks_pass = _health_and_arming_checks.canArm(
 							_vehicle_status.nav_state);
 				perf_end(_preflight_check_perf);
+
+				check_and_inform_ready_for_takeoff();
 			}
 
 			// publish actuator_armed first (used by output modules)
@@ -3097,6 +3099,23 @@ Commander::get_circuit_breaker_params()
 	_vehicle_status.circuit_breaker_vtol_fw_arming_check = circuit_breaker_enabled_by_val(
 				_param_cbrk_vtolarming.get(),
 				CBRK_VTOLARMING_KEY);
+}
+
+void Commander::check_and_inform_ready_for_takeoff()
+{
+#ifdef CONFIG_ARCH_BOARD_PX4_SITL
+	static bool ready_for_takeoff_printed = false;
+
+	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING ||
+	    _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		if (!ready_for_takeoff_printed &&
+		    _health_and_arming_checks.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF)) {
+			PX4_INFO("%sReady for takeoff!%s", PX4_ANSI_COLOR_GREEN, PX4_ANSI_COLOR_RESET);
+			ready_for_takeoff_printed = true;
+		}
+	}
+
+#endif // CONFIG_ARCH_BOARD_PX4_SITL
 }
 
 void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
