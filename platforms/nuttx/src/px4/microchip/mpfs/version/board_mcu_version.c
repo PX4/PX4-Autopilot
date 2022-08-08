@@ -124,7 +124,11 @@ int board_get_px4_guid(px4_guid_t px4_guid)
 	*pb++ = (soc_arch_id >> 8) & 0xff;
 	*pb++ = (soc_arch_id & 0xff);
 
-	memcpy(pb, device_serial_number, PX4_CPU_UUID_BYTE_LENGTH);
+	/* NOTE: Copy only first 6 bytes from DSN.
+	 * There is a bug in MPFS and only first 6 bytes
+	 * are not changing over cold boots.
+	 */
+	memcpy(pb, device_serial_number, 6);
 
 	return PX4_GUID_BYTE_LENGTH;
 }
