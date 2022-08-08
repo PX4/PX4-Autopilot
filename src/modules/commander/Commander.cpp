@@ -52,12 +52,10 @@
 #include "state_machine_helper.h"
 
 /* PX4 headers */
-#include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <lib/geo/geo.h>
 #include <mathlib/mathlib.h>
-#include <navigator/navigation.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -2223,8 +2221,6 @@ Commander::run()
 				} else {
 					_vehicle_status.power_input_valid = true;
 				}
-
-				_system_power_usb_connected = system_power.usb_connected;
 			}
 		}
 
@@ -3063,11 +3059,6 @@ Commander::run()
 		control_status_leds(_status_changed, _battery_warning);
 
 		_status_changed = false;
-
-		/* store last position lock state */
-		_last_local_altitude_valid = _vehicle_status_flags.local_altitude_valid;
-		_last_local_position_valid = _vehicle_status_flags.local_position_valid;
-		_last_global_position_valid = _vehicle_status_flags.global_position_valid;
 
 		_was_armed = _arm_state_machine.isArmed();
 
