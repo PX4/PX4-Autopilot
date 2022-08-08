@@ -101,7 +101,9 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 		if (_actuator_controls_1_sub.copy(&actuator_controls_1)) {
 			const float flaps_control = actuator_controls_1.control[actuator_controls_s::INDEX_FLAPS];
 			const float airbrakes_control = actuator_controls_1.control[actuator_controls_s::INDEX_AIRBRAKES];
-			_control_surfaces.applyFlapsAndAirbrakes(flaps_control, airbrakes_control, _first_control_surface_idx, actuator_sp);
+			const float steering_wheel_control = actuator_controls_1.control[actuator_controls_s::INDEX_YAW];
+			_control_surfaces.applyFlapsAirbrakesWheel(flaps_control, airbrakes_control, steering_wheel_control,
+					_first_control_surface_idx, actuator_sp);
 		}
 	}
 

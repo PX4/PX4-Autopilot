@@ -271,6 +271,7 @@ parameters:
                 13: Left A-tail
                 14: Right A-tail
                 15: Single Channel Aileron
+                16: Steering Wheel
             num_instances: *max_num_servos
             instance_start: 0
             default: 0
@@ -542,6 +543,10 @@ mixer:
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # yaw
             15: # Single Channel Aileron
               - { 'min': 0.0, 'max': 1.0, 'default': 1.0 } # roll
+              - { 'hidden': True, 'default': 0.0 } # pitch
+              - { 'hidden': True, 'default': 0.0 } # yaw
+            16: # Steering Wheel
+              - { 'hidden': True, 'default': 0.0 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
 

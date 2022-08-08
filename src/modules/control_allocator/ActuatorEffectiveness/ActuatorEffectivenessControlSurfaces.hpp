@@ -60,6 +60,7 @@ public:
 		LeftATail = 13,
 		RightATail = 14,
 		SingleChannelAileron = 15,
+		SteeringWheel = 16,
 	};
 
 	struct Params {
@@ -80,8 +81,8 @@ public:
 
 	const Params &config(int idx) const { return _params[idx]; }
 
-	void applyFlapsAndAirbrakes(float flaps_control, float airbrakes_control, int first_actuator_idx,
-				    ActuatorVector &actuator_sp) const;
+	void applyFlapsAirbrakesWheel(float flaps_control, float airbrakes_control, float wheel_control, int first_actuator_idx,
+				      ActuatorVector &actuator_sp) const;
 
 private:
 	void updateParams() override;
