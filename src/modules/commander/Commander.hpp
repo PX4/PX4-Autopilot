@@ -351,10 +351,6 @@ private:
 	hrt_abstime	_last_print_mode_reject_time{0};	///< To remember when last notification was sent
 	bool            _mode_switch_mapped{false};
 
-	bool		_last_local_altitude_valid{false};
-	bool		_last_local_position_valid{false};
-	bool		_last_global_position_valid{false};
-
 	bool		_last_overload{false};
 
 	hrt_abstime	_last_valid_manual_control_setpoint{0};
@@ -378,7 +374,6 @@ private:
 	bool		_was_armed{false};
 	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
-	bool		_system_power_usb_connected{false};
 
 	geofence_result_s	_geofence_result{};
 	vehicle_land_detected_s	_vehicle_land_detected{};
