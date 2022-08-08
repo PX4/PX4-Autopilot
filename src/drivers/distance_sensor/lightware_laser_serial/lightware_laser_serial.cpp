@@ -106,7 +106,7 @@ LightwareLaserSerial::init()
 
 	case 5:
 		/* SF11/c (120m 20Hz) */
-		_px4_rangefinder.set_min_distance(0.01f);
+		_px4_rangefinder.set_min_distance(0.2f);
 		_px4_rangefinder.set_max_distance(120.0f);
 		_interval = 50000;
 		break;
