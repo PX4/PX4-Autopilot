@@ -43,6 +43,7 @@ add_library(ecl_EKF
 	EKFGSF_yaw.cpp
 	estimator_interface.cpp
 	ev_height_control.cpp
+	fake_height_control.cpp
 	fake_pos_control.cpp
 	gnss_height_control.cpp
 	gps_checks.cpp

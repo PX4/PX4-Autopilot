@@ -179,7 +179,7 @@ void Ekf::resetHorizontalPositionToOpticalFlow()
 		resetHorizontalPositionTo(Vector2f(0.f, 0.f));
 
 	} else {
-		resetHorizontalPositionTo(_last_known_posNE);
+		resetHorizontalPositionTo(_last_known_pos.xy());
 	}
 
 	// estimate is relative to initial position in this mode, so we start with zero error.
@@ -191,7 +191,7 @@ void Ekf::resetHorizontalPositionToLastKnown()
 	_information_events.flags.reset_pos_to_last_known = true;
 	ECL_INFO("reset position to last known position");
 	// Used when falling back to non-aiding mode of operation
-	resetHorizontalPositionTo(_last_known_posNE);
+	resetHorizontalPositionTo(_last_known_pos.xy());
 	P.uncorrelateCovarianceSetVariance<2>(7, sq(_params.pos_noaid_noise));
 }
 
