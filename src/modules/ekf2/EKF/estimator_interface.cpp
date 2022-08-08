@@ -584,6 +584,11 @@ int EstimatorInterface::getNumberOfActiveVerticalPositionAidingSources() const
 	       + int(_control_status.flags.ev_hgt);
 }
 
+bool EstimatorInterface::isVerticalAidingActive() const
+{
+	return isVerticalPositionAidingActive() || isVerticalVelocityAidingActive();
+}
+
 bool EstimatorInterface::isVerticalVelocityAidingActive() const
 {
 	return getNumberOfActiveVerticalVelocityAidingSources() > 0;
