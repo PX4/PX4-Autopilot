@@ -270,6 +270,7 @@ parameters:
                 12: Custom
                 13: Left A-tail
                 14: Right A-tail
+                15: Single Channel Aileron
             num_instances: *max_num_servos
             instance_start: 0
             default: 0
@@ -539,6 +540,10 @@ mixer:
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # yaw
+            15: # Single Channel Aileron
+              - { 'min': 0.0, 'max': 1.0, 'default': 1.0 } # roll
+              - { 'hidden': True, 'default': 0.0 } # pitch
+              - { 'hidden': True, 'default': 0.0 } # yaw
 
       - select_identifier: 'servo-type-tailsitter' # restrict torque based on servo type for tailsitters
         apply_identifiers: ['servo-torque-roll-tailsitter', 'servo-torque-pitch-tailsitter', 'servo-torque-yaw-tailsitter']
