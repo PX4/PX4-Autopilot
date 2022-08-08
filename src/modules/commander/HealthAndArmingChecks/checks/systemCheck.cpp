@@ -34,6 +34,7 @@
 #include "systemCheck.hpp"
 
 #include "../../Arming/ArmAuthorization/ArmAuthorization.h"
+#include <lib/circuit_breaker/circuit_breaker.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
 void SystemChecks::checkAndReport(const Context &context, Report &reporter)
@@ -54,7 +55,7 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	// USB not connected
-	if (!context.status().circuit_breaker_engaged_usb_check && context.status().usb_connected) {
+	if (!circuit_breaker_enabled_by_val(_param_cbrk_usb_chk.get(), CBRK_USB_CHK_KEY) && context.status().usb_connected) {
 		/* EVENT
 		 * @description
 		 * Flying with USB is not safe. Disconnect it and reboot the FMU.
@@ -206,7 +207,7 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 			}
 		}
 
-		if (!context.status().circuit_breaker_vtol_fw_arming_check
+		if (!circuit_breaker_enabled_by_val(_param_cbrk_vtolarming.get(), CBRK_VTOLARMING_KEY)
 		    && context.status().vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			/* EVENT
 			 * @description

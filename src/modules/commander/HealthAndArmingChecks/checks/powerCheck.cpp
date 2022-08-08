@@ -32,12 +32,13 @@
  ****************************************************************************/
 
 #include "powerCheck.hpp"
+#include <lib/circuit_breaker/circuit_breaker.h>
 
 using namespace time_literals;
 
 void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	if (context.status().circuit_breaker_engaged_power_check) {
+	if (circuit_breaker_enabled_by_val(_param_cbrk_supply_chk.get(), CBRK_SUPPLY_CHK_KEY)) {
 		return;
 	}
 

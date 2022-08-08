@@ -50,6 +50,8 @@ private:
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming,
+					(ParamInt<px4::params::CBRK_USB_CHK>) _param_cbrk_usb_chk,
 					(ParamBool<px4::params::COM_ARM_MIS_REQ>) _param_com_arm_mis_req,
 					(ParamBool<px4::params::COM_ARM_WO_GPS>) _param_com_arm_wo_gps,
 					(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_com_arm_chk_escs,
