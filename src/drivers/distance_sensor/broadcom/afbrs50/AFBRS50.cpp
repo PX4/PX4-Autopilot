@@ -234,7 +234,6 @@ void AFBRS50::Run()
 		break;
 
 	case STATE::CONFIGURE: {
-			//status_t status = Argus_SetConfigurationFrameTime(_hnd, _measure_interval);
 			status_t status = set_rate(SHORT_RANGE_MODE_HZ);
 
 			if (status != STATUS_OK) {
@@ -259,8 +258,6 @@ void AFBRS50::Run()
 			_mode = ARGUS_MODE_B;
 			set_mode(_mode);
 
-			status = Argus_StartMeasurementTimer(_hnd, measurement_ready_callback);
-
 			if (status != STATUS_OK) {
 				PX4_ERR("CONFIGURE status not okay: %i", (int)status);
 				ScheduleNow();
@@ -273,7 +270,14 @@ void AFBRS50::Run()
 		break;
 
 	case STATE::COLLECT: {
-			// currently handeled by measurement_ready_callback
+			// Only start a new measurement if one is not ongoing
+			if (Argus_GetStatus(_hnd) == STATUS_IDLE) {
+				status_t status = Argus_TriggerMeasurement(_hnd, measurement_ready_callback);
+
+				if (status != STATUS_OK) {
+					PX4_ERR("Argus_TriggerMeasurement status not okay: %i", (int)status);
+				}
+			}
 
 			UpdateMode();
 		}
@@ -290,8 +294,7 @@ void AFBRS50::Run()
 		break;
 	}
 
-	// backup schedule
-	ScheduleDelayed(100_ms);
+	ScheduleDelayed(_measure_interval);
 }
 
 void AFBRS50::UpdateMode()
