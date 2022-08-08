@@ -255,24 +255,11 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	// 2022-08-04: migrate EKF2_AID_MASK (GPS) -> EKF2_GPS_CTRL, EKF2_RNG_AID->EKF2_RNG_CTRL and EKF2_HGT_MODE->EKF2_HGT_REF
+	// 2022-08-04: migrate EKF2_RNG_AID->EKF2_RNG_CTRL and EKF2_HGT_MODE->EKF2_HGT_REF
 	{
-		if (strcmp("EKF2_AID_MASK", node->name) == 0) {
-			int32_t aid_mask = node->i32;
-			bool lat_lon_en = aid_mask & (1 << 0);
-			bool yaw_en = aid_mask & (1 << 7);
-			// automatically set alt and vel aiding if the GPS bit was set in the aid mask
-			bool alt_en = lat_lon_en;
-			bool vel_en = lat_lon_en;
-			strcpy(node->name, "EKF2_GPS_CTRL");
-			node->i32 = lat_lon_en | (alt_en << 1) | (vel_en << 2) | (yaw_en << 3);
-			PX4_INFO("param migrating EKF2_AID_MASK (GPS) -> EKF2_GPS_CTRL: value=%d", node->i32);
-			return true;
-		}
-
 		if (strcmp("EKF2_RNG_AID", node->name) == 0) {
 			strcpy(node->name, "EKF2_RNG_CTRL");
-			PX4_INFO("param migrating EKF2_RNG_AID (removed) -> EKF2_RNG_CTRL: value=%d", node->i32);
+			PX4_INFO("param migrating EKF2_RNG_AID (removed) -> EKF2_RNG_CTRL: value=%" PRId32, node->i32);
 			return true;
 		}
 
@@ -285,7 +272,7 @@ bool param_modify_on_import(bson_node_t node)
 				param_set_no_notification(param_find("EKF2_RNG_CTRL"), &rng_mode);
 			}
 
-			PX4_INFO("param migrating EKF2_HGT_MODE (removed) -> EKF2_HGT_REF: value=%d", node->i32);
+			PX4_INFO("param migrating EKF2_HGT_MODE (removed) -> EKF2_HGT_REF: value=%" PRId32, node->i32);
 			return true;
 		}
 	}
