@@ -41,7 +41,6 @@
 #include "worker_thread.hpp"
 #include "HealthAndArmingChecks/HealthAndArmingChecks.hpp"
 
-#include <containers/Bitset.hpp>
 #include <lib/controllib/blocks.hpp>
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
@@ -341,12 +340,6 @@ private:
 
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	hrt_abstime	_battery_failsafe_timestamp{0};
-	px4::Bitset<battery_status_s::MAX_INSTANCES> _last_connected_batteries;
-	uint32_t	_last_battery_custom_fault[battery_status_s::MAX_INSTANCES] {};
-	uint16_t	_last_battery_fault[battery_status_s::MAX_INSTANCES] {};
-	uint8_t		_last_battery_mode[battery_status_s::MAX_INSTANCES] {};
-
-
 	Hysteresis	_auto_disarm_landed{false};
 	Hysteresis	_auto_disarm_killed{false};
 	Hysteresis	_offboard_available{false};
@@ -405,7 +398,6 @@ private:
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription					_rtl_time_estimate_sub{ORB_ID(rtl_time_estimate)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription					_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -416,7 +408,6 @@ private:
 
 	uORB::SubscriptionInterval				_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 	uORB::SubscriptionMultiArray<telemetry_status_s>        _telemetry_status_subs{ORB_ID::telemetry_status};
 
 #if defined(BOARD_HAS_POWER_CONTROL)
