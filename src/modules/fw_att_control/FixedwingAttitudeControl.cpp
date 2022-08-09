@@ -583,8 +583,16 @@ void FixedwingAttitudeControl::Run()
 						}
 					}
 
+					/* add yaw rate setpoint from sticks in Stabilized mode */
+					if (_vcontrol_mode.flag_control_manual_enabled) {
+						_actuator_controls.control[actuator_controls_s::INDEX_YAW] += _manual_control_setpoint.r;
+						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.r * radians(_param_fw_acro_z_max.get()),
+									  -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
+					}
+
 					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
 					const Vector3f att_control = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt, _landed);
+
 					float roll_feedforward = _param_fw_rr_ff.get() * _airspeed_scaling * body_rates_setpoint(0);
 					float roll_u = att_control(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
 					_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
@@ -609,11 +617,6 @@ void FixedwingAttitudeControl::Run()
 
 					_actuator_controls.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + trim_yaw : trim_yaw;
 
-					/* add in manual rudder control in manual modes */
-					if (_vcontrol_mode.flag_control_manual_enabled) {
-						_actuator_controls.control[actuator_controls_s::INDEX_YAW] += _manual_control_setpoint.r;
-					}
-
 					if (!PX4_ISFINITE(roll_u) || !PX4_ISFINITE(pitch_u) || !PX4_ISFINITE(yaw_u)) {
 						_rate_control.resetIntegral();
 					}
@@ -636,19 +639,18 @@ void FixedwingAttitudeControl::Run()
 
 						_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_scale;
 					}
+
+					/*
+					* Publish the rate setpoint for analysis once available
+					*/
+					_rates_sp.roll = body_rates_setpoint(0);
+					_rates_sp.pitch = body_rates_setpoint(1);
+					_rates_sp.yaw = (wheel_control) ? _wheel_ctrl.get_body_rate_setpoint() : body_rates_setpoint(2);
+
+					_rates_sp.timestamp = hrt_absolute_time();
+
+					_rate_sp_pub.publish(_rates_sp);
 				}
-
-				/*
-				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
-				 * only once available
-				 */
-				_rates_sp.roll = _roll_ctrl.get_body_rate_setpoint();
-				_rates_sp.pitch = _pitch_ctrl.get_body_rate_setpoint();
-				_rates_sp.yaw = (wheel_control) ? _wheel_ctrl.get_body_rate_setpoint() : _yaw_ctrl.get_body_rate_setpoint();
-
-				_rates_sp.timestamp = hrt_absolute_time();
-
-				_rate_sp_pub.publish(_rates_sp);
 
 			} else {
 				// Acro or full manual
