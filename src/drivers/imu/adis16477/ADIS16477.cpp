@@ -62,6 +62,8 @@ ADIS16477::ADIS16477(const I2CSPIDriverConfig &config) :
 	_bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME": bad transfers")),
 	_drdy_gpio(config.drdy_gpio)
 {
+	_debug_enabled = true;
+
 #ifdef GPIO_SPI1_RESET_ADIS16477
 	// Configure hardware reset line
 	px4_arch_configgpio(GPIO_SPI1_RESET_ADIS16477);

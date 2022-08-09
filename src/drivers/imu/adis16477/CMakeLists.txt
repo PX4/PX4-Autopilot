@@ -35,6 +35,7 @@ px4_add_module(
 	MAIN adis16477
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
+		-DDEBUG_BUILD
 	SRCS
 		ADIS16477.cpp
 		adis16477_main.cpp
