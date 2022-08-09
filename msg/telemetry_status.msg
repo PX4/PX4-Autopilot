@@ -45,6 +45,7 @@ bool heartbeat_type_gimbal                  # MAV_TYPE_GIMBAL
 bool heartbeat_type_adsb                    # MAV_TYPE_ADSB
 bool heartbeat_type_camera                  # MAV_TYPE_CAMERA
 bool heartbeat_type_parachute               # MAV_TYPE_PARACHUTE
+bool heartbeat_type_open_drone_id           # MAV_TYPE_ODID
 
 # Heartbeats per component
 bool heartbeat_component_telemetry_radio    # MAV_COMP_ID_TELEMETRY_RADIO
@@ -58,4 +59,5 @@ bool heartbeat_component_uart_bridge        # MAV_COMP_ID_UART_BRIDGE
 
 # Misc component health
 bool avoidance_system_healthy
+bool open_drone_id_system_healthy
 bool parachute_system_healthy
