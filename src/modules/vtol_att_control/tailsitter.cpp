@@ -411,13 +411,21 @@ void Tailsitter::fill_actuator_outputs()
 		// output differential thrust for yaw (FW frame) if enabled (to achieve yaw contorl in FW we need controller roll output)
 		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::YAW_BIT)) {
 			mc_out[actuator_controls_s::INDEX_ROLL] = mc_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_y.get() ;
-			_torque_setpoint_0->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_y.get() ;
+			_torque_setpoint_0->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_y.get();
 		}
+
+		_torque_setpoint_1->xyz[2] = mc_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_r.get();
+		_torque_setpoint_1->xyz[1] = mc_in[actuator_controls_s::INDEX_PITCH] * _param_vt_fw_difthr_s_p.get();
+		_torque_setpoint_1->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_y.get();
 
 	} else {
 		_torque_setpoint_0->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL];
 		_torque_setpoint_0->xyz[1] = mc_in[actuator_controls_s::INDEX_PITCH];
 		_torque_setpoint_0->xyz[2] = mc_in[actuator_controls_s::INDEX_YAW];
+
+		_torque_setpoint_1->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL];
+		_torque_setpoint_1->xyz[1] = mc_in[actuator_controls_s::INDEX_PITCH];
+		_torque_setpoint_1->xyz[2] = mc_in[actuator_controls_s::INDEX_YAW];
 
 		mc_out[actuator_controls_s::INDEX_THROTTLE] = mc_in[actuator_controls_s::INDEX_THROTTLE];
 		_thrust_setpoint_0->xyz[2] = -mc_in[actuator_controls_s::INDEX_THROTTLE];
@@ -438,8 +446,8 @@ void Tailsitter::fill_actuator_outputs()
 	} else {
 		fw_out[actuator_controls_s::INDEX_ROLL]  = fw_in[actuator_controls_s::INDEX_ROLL];
 		fw_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
-		_torque_setpoint_1->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH];
-		_torque_setpoint_1->xyz[2] = -fw_in[actuator_controls_s::INDEX_ROLL];
+		// _torque_setpoint_1->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH];
+		// _torque_setpoint_1->xyz[2] = -fw_in[actuator_controls_s::INDEX_ROLL];
 	}
 
 	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
