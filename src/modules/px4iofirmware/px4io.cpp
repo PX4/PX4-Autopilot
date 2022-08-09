@@ -51,8 +51,9 @@
 #include <crc32.h>
 #include <syslog.h>
 
-#include <drivers/drv_pwm_output.h>
+#include <drivers/drv_adc.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
 #include <drivers/drv_watchdog.h>
 
 #if defined(PX4IO_PERF)
@@ -182,7 +183,7 @@ update_adc(void)
 #ifdef ADC_VSERVO
 		/* PX4IO_P_STATUS_VSERVO */
 		{
-			unsigned counts = adc_measure(ADC_VSERVO);
+			unsigned counts = px4_arch_adc_sample(SYSTEM_ADC_BASE, ADC_VSERVO);
 
 			if (counts != 0xffff)
 			{
@@ -192,7 +193,7 @@ update_adc(void)
 			}
 		}
 
-		r_page_raw_adc_input[0] = adc_measure(ADC_VSERVO);
+		r_page_raw_adc_input[0] = px4_arch_adc_sample(SYSTEM_ADC_BASE, ADC_VSERVO);
 #else
 		r_page_status[PX4IO_P_STATUS_VSERVO] = mV;
 		r_page_raw_adc_input[0] = 0;
@@ -200,7 +201,7 @@ update_adc(void)
 #ifdef ADC_RSSI
 		/* PX4IO_P_STATUS_VRSSI */
 		{
-			unsigned counts = adc_measure(ADC_RSSI);
+			unsigned counts = px4_arch_adc_sample(SYSTEM_ADC_BASE, ADC_RSSI);
 
 			if (counts != 0xffff) {
 				// use 1:1 scaling on 3.3V ADC input
@@ -209,7 +210,7 @@ update_adc(void)
 			}
 		}
 
-		r_page_raw_adc_input[1] = adc_measure(ADC_RSSI);
+		r_page_raw_adc_input[1] = px4_arch_adc_sample(SYSTEM_ADC_BASE, ADC_RSSI);
 #else
 		r_page_status[PX4IO_P_STATUS_VRSSI] = 0;
 		r_page_raw_adc_input[1] = 0;
@@ -370,7 +371,7 @@ extern "C" __EXPORT int user_start(int argc, char *argv[])
 	controls_init();
 
 	/* set up the ADC */
-	adc_init();
+	px4_arch_adc_init(SYSTEM_ADC_BASE);
 
 	/* start the FMU interface */
 	interface_init();
