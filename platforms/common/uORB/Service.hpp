@@ -70,6 +70,38 @@ public:
 	Service(const orb_metadata *req_, const orb_metadata *resp_)
 		: _request_sub(req_), _response_pub(resp_) {};
 
+	// SYNCHRONOUS request handling implementation (Simple)
+	/**
+	 * @brief Get request if there's any
+	 */
+	bool get_request(req *request)
+	{
+		return _request_sub.update(request);
+	}
+
+	// SYNCHRONOUS response implementation
+	/**
+	 * @brief Send response to the last request
+	 *
+	 * @param request Request we are responding to
+	 * @param response Response already filled in from the user
+	 *
+	 * Note: This 'assumes' that the client_id and sequence_id of the request
+	 * will not be modified arbitrarily by the module. Otherwise, ther response
+	 * won't be valid. The request & response part will eventually get handled in a
+	 * single function and user won't be able to modify the internal ids in the end.
+	 */
+	bool send_response(const req &request, resp &response)
+	{
+		response.timestamp = hrt_absolute_time();
+
+		// Response data is already filled in
+
+		response.client_id = request.client_id;
+		response.sequence_id = request.sequence_id;
+		return _response_pub.publish(response);
+	}
+
 	// ASYNCHRONOUS CALLBACK IMPLEMENTATION (NOT COMPLETE YET)
 	/**
 	 * @brief Registers the callback function that will be called when a new request arrives
@@ -139,6 +171,9 @@ public:
 
 		return false;
 	}
+
+	// TODO: Doesn't the user need to know from which 'request' this response is coming from?
+	// How do we deal with this?
 
 	/**
 	 * @brief Checks if we have the response for the last request sent

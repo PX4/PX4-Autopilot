@@ -255,6 +255,11 @@ then
 	gyro_calibration start
 fi
 
+# Start the Service tester modules
+service_work_item start
+
+client_work_item start
+
 #user defined mavlink streams for instances can be in PATH
 . px4-rc.mavlink
 

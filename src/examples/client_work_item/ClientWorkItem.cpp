@@ -64,6 +64,7 @@ void ClientWorkItem::Run()
 	perf_count(_loop_interval_perf);
 
 	// Send Requests
+	static int16_t reequest_idx{0}; //
 	static hrt_abstime last_request_sent{0};
 	static const hrt_abstime REQUEST_SEND_INTERVAL = 500_ms;
 

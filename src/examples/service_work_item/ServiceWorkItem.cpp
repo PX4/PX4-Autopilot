@@ -73,7 +73,14 @@ void ServiceWorkItem::Run()
 	perf_begin(_loop_perf);
 	perf_count(_loop_interval_perf);
 
-	// Do Service Server stuff
+	add_two_ints_request_s request;
+
+	// We have a request
+	if (_add_two_request_service.get_request(&request)) {
+		add_two_ints_response_s response;
+		response.sum = request.a + request.b;
+		_add_two_request_service.send_response(request, response);
+	}
 
 	perf_end(_loop_perf);
 }
