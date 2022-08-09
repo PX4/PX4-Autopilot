@@ -112,10 +112,11 @@ bool auto_mission_available
 bool power_input_valid                            # set if input power is valid
 bool usb_connected                                # set to true (never cleared) once telemetry received from usb link
 
+bool open_drone_id_system_present
+bool open_drone_id_system_healthy
+
 bool parachute_system_present
 bool parachute_system_healthy
 
 bool avoidance_system_required                    # Set to true if avoidance system is enabled via COM_OBS_AVOID parameter
 bool avoidance_system_valid                       # Status of the obstacle avoidance system
-
-
