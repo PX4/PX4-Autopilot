@@ -40,6 +40,7 @@
 #include "state_machine_helper.h"
 #include "worker_thread.hpp"
 #include "HealthAndArmingChecks/HealthAndArmingChecks.hpp"
+#include "HomePosition.hpp"
 
 #include <lib/controllib/blocks.hpp>
 #include <lib/hysteresis/hysteresis.h>
@@ -53,7 +54,6 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_test.h>
 #include <uORB/topics/failure_detector_status.h>
-#include <uORB/topics/home_position.h>
 #include <uORB/topics/test_motor.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -138,8 +138,6 @@ private:
 
 	void esc_status_check();
 
-	void estimator_check();
-
 	void manual_control_check();
 
 	bool handle_command(const vehicle_command_s &cmd);
@@ -152,17 +150,6 @@ private:
 	void offboard_control_update();
 
 	void print_reject_mode(uint8_t main_state);
-
-	bool hasMovedFromCurrentHomeLocation();
-	bool set_home_position();
-	bool set_home_position_alt_only();
-	void set_in_air_home_position();
-	void fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos) const;
-	void fillLocalHomePos(home_position_s &home, float x, float y, float z, float heading) const;
-	void fillGlobalHomePos(home_position_s &home, const vehicle_global_position_s &gpos) const;
-	void fillGlobalHomePos(home_position_s &home, double lat, double lon, float alt) const;
-	void setHomePosValid();
-	void updateHomePositionYaw(float yaw);
 
 	void update_control_mode();
 
@@ -335,8 +322,6 @@ private:
 
 	hrt_abstime _last_termination_message_sent{0};
 
-	uint8_t		_heading_reset_counter{0};
-
 	bool		_status_changed{true};
 	bool		_arm_tune_played{false};
 	bool		_was_armed{false};
@@ -370,7 +355,6 @@ private:
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_command_sub{ORB_ID(vehicle_command)};
-	uORB::Subscription					_vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 	uORB::Subscription					_wind_sub{ORB_ID(wind)};
 
@@ -384,8 +368,6 @@ private:
 
 	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
-	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
-	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	// Publications
 	uORB::Publication<actuator_armed_s>			_actuator_armed_pub{ORB_ID(actuator_armed)};
@@ -397,8 +379,6 @@ private:
 	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
 	uORB::Publication<vehicle_status_s>			_vehicle_status_pub{ORB_ID(vehicle_status)};
 
-	uORB::PublicationData<home_position_s>			_home_position_pub{ORB_ID(home_position)};
-
 	uORB::Publication<vehicle_command_ack_s>		_vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
@@ -406,4 +386,5 @@ private:
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t _preflight_check_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": preflight check")};
 	HealthAndArmingChecks _health_and_arming_checks;
+	HomePosition _home_position{_vehicle_status_flags};
 };

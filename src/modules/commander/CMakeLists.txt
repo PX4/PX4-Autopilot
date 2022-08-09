@@ -50,6 +50,7 @@ px4_add_module(
 		esc_calibration.cpp
 		factory_calibration_storage.cpp
 		gyro_calibration.cpp
+		HomePosition.cpp
 		level_calibration.cpp
 		lm_fit.cpp
 		mag_calibration.cpp
