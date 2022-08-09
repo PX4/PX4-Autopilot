@@ -563,10 +563,10 @@ void FixedwingAttitudeControl::Run()
 
 					_actuator_controls.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + trim_yaw : trim_yaw;
 
-					/* add in manual rudder control in manual modes */
-					if (_vcontrol_mode.flag_control_manual_enabled) {
-						_actuator_controls.control[actuator_controls_s::INDEX_YAW] += _manual_control_setpoint.r;
-					}
+					// /* add in manual rudder control in manual modes */
+					// if (_vcontrol_mode.flag_control_manual_enabled) {
+					// 	_actuator_controls.control[actuator_controls_s::INDEX_YAW] += _manual_control_setpoint.r;
+					// }
 
 					if (!PX4_ISFINITE(yaw_u)) {
 						_yaw_ctrl.reset_integrator();
@@ -599,11 +599,15 @@ void FixedwingAttitudeControl::Run()
 				 */
 				_rates_sp.roll = _roll_ctrl.get_desired_bodyrate();
 				_rates_sp.pitch = _pitch_ctrl.get_desired_bodyrate();
-				_rates_sp.yaw = _yaw_ctrl.get_desired_bodyrate();
+
+				/* add yaw rate setpoint from sticks in Stabilized mode */
+				if (_vcontrol_mode.flag_control_manual_enabled && _vcontrol_mode.flag_control_attitude_enabled) {
+					_rates_sp.yaw = _yaw_ctrl.get_desired_bodyrate() + _manual_control_setpoint.r * radians(_param_fw_acro_z_max.get());
+				}
 
 				_rates_sp.timestamp = hrt_absolute_time();
 
-				// rotate output of FW attitude controller to body frame
+				// rotate output of FW attitude controller to body frame for a tailsitter
 				if (_vehicle_status.is_vtol_tailsitter) {
 					const float tmp = _rates_sp.roll;
 					_rates_sp.roll = _rates_sp.yaw;
