@@ -151,6 +151,7 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 
 					_att_sp.yaw_body = yaw_body; // yaw is not controlled, so set setpoint to current yaw
 					_att_sp.thrust_body[0] = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
+					// TODO rotate thrust prior to publication for tailsitter?
 
 					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 					q.copyTo(_att_sp.q_d);
@@ -601,6 +602,15 @@ void FixedwingAttitudeControl::Run()
 				_rates_sp.yaw = _yaw_ctrl.get_desired_bodyrate();
 
 				_rates_sp.timestamp = hrt_absolute_time();
+
+				// rotate output of FW attitude controller to body frame
+				if (_vehicle_status.is_vtol_tailsitter) {
+					const float tmp = _rates_sp.roll;
+					_rates_sp.roll = _rates_sp.yaw;
+					_rates_sp.yaw = -tmp;
+					_rates_sp.thrust_body[2] = -_rates_sp.thrust_body[0];
+					_rates_sp.thrust_body[0] = 0.f;
+				}
 
 				_rate_sp_pub.publish(_rates_sp);
 
