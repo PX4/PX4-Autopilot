@@ -356,10 +356,8 @@ void Tailsitter::update_fw_state()
 void Tailsitter::fill_actuator_outputs()
 {
 	auto &mc_in = _actuators_mc_in->control;
-	auto &fw_in = _actuators_fw_in->control;
 
 	auto &mc_out = _actuators_out_0->control;
-	auto &fw_out = _actuators_out_1->control;
 
 	_torque_setpoint_0->timestamp = hrt_absolute_time();
 	_torque_setpoint_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
@@ -367,69 +365,24 @@ void Tailsitter::fill_actuator_outputs()
 	_torque_setpoint_0->xyz[1] = 0.f;
 	_torque_setpoint_0->xyz[2] = 0.f;
 
-	_torque_setpoint_1->timestamp = hrt_absolute_time();
-	_torque_setpoint_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
-	_torque_setpoint_1->xyz[0] = 0.f;
-	_torque_setpoint_1->xyz[1] = 0.f;
-	_torque_setpoint_1->xyz[2] = 0.f;
-
 	_thrust_setpoint_0->timestamp = hrt_absolute_time();
 	_thrust_setpoint_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
 	_thrust_setpoint_0->xyz[0] = 0.f;
 	_thrust_setpoint_0->xyz[1] = 0.f;
 	_thrust_setpoint_0->xyz[2] = 0.f;
 
-	_thrust_setpoint_1->timestamp = hrt_absolute_time();
-	_thrust_setpoint_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
-	_thrust_setpoint_1->xyz[0] = 0.f;
-	_thrust_setpoint_1->xyz[1] = 0.f;
-	_thrust_setpoint_1->xyz[2] = 0.f;
-
-
-	mc_out[actuator_controls_s::INDEX_ROLL]  = mc_in[actuator_controls_s::INDEX_ROLL];
-	mc_out[actuator_controls_s::INDEX_PITCH] = mc_in[actuator_controls_s::INDEX_PITCH];
-	mc_out[actuator_controls_s::INDEX_YAW]   = mc_in[actuator_controls_s::INDEX_YAW];
-
 	if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
-		mc_out[actuator_controls_s::INDEX_THROTTLE] = mc_in[actuator_controls_s::INDEX_THROTTLE];
-
-		// FW thrust is allocated on mc_thrust_sp[0] for tailsitter with dynamic control allocation
-		_thrust_setpoint_0->xyz[2] = -mc_in[actuator_controls_s::INDEX_THROTTLE];
-
-		// output differential thrust for roll (FW frame) if enabled (to achieve roll contorl in FW we need controller yaw output)
-		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::ROLL_BIT)) {
-			mc_out[actuator_controls_s::INDEX_YAW] = mc_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_r.get() ;
-			_torque_setpoint_0->xyz[2] = mc_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_r.get() ;
-		}
-
-		// output differential thrust for pitch if enabled
-		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::PITCH_BIT)) {
-			mc_out[actuator_controls_s::INDEX_PITCH] = mc_in[actuator_controls_s::INDEX_PITCH] * _param_vt_fw_difthr_s_p.get() ;
-			_torque_setpoint_0->xyz[1] = mc_in[actuator_controls_s::INDEX_PITCH] * _param_vt_fw_difthr_s_p.get() ;
-		}
-
-		// output differential thrust for yaw (FW frame) if enabled (to achieve yaw contorl in FW we need controller roll output)
-		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::YAW_BIT)) {
-			mc_out[actuator_controls_s::INDEX_ROLL] = mc_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_y.get() ;
-			_torque_setpoint_0->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_y.get();
-		}
-
-		_torque_setpoint_1->xyz[2] = mc_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_r.get();
-		_torque_setpoint_1->xyz[1] = mc_in[actuator_controls_s::INDEX_PITCH] * _param_vt_fw_difthr_s_p.get();
-		_torque_setpoint_1->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_y.get();
+		_torque_setpoint_0->xyz[2] = mc_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_r.get();
+		_torque_setpoint_0->xyz[1] = mc_in[actuator_controls_s::INDEX_PITCH] * _param_vt_fw_difthr_s_p.get() ;
+		_torque_setpoint_0->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_y.get();
 
 	} else {
 		_torque_setpoint_0->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL];
 		_torque_setpoint_0->xyz[1] = mc_in[actuator_controls_s::INDEX_PITCH];
 		_torque_setpoint_0->xyz[2] = mc_in[actuator_controls_s::INDEX_YAW];
-
-		_torque_setpoint_1->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL];
-		_torque_setpoint_1->xyz[1] = mc_in[actuator_controls_s::INDEX_PITCH];
-		_torque_setpoint_1->xyz[2] = mc_in[actuator_controls_s::INDEX_YAW];
-
-		mc_out[actuator_controls_s::INDEX_THROTTLE] = mc_in[actuator_controls_s::INDEX_THROTTLE];
-		_thrust_setpoint_0->xyz[2] = -mc_in[actuator_controls_s::INDEX_THROTTLE];
 	}
+
+	_thrust_setpoint_0->xyz[2] = -mc_in[actuator_controls_s::INDEX_THROTTLE];
 
 	// Landing Gear
 	if (_vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
@@ -439,19 +392,6 @@ void Tailsitter::fill_actuator_outputs()
 		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_UP;
 	}
 
-	if (_param_vt_mc_cs_lock.get() && _vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
-		fw_out[actuator_controls_s::INDEX_ROLL]  = 0;
-		fw_out[actuator_controls_s::INDEX_PITCH] = 0;
-
-	} else {
-		fw_out[actuator_controls_s::INDEX_ROLL]  = fw_in[actuator_controls_s::INDEX_ROLL];
-		fw_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
-		// _torque_setpoint_1->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH];
-		// _torque_setpoint_1->xyz[2] = -fw_in[actuator_controls_s::INDEX_ROLL];
-	}
-
 	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
-	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
-
 	_actuators_out_0->timestamp = _actuators_out_1->timestamp = hrt_absolute_time();
 }

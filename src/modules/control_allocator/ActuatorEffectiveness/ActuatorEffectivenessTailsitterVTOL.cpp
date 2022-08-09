@@ -61,7 +61,7 @@ ActuatorEffectivenessTailsitterVTOL::getEffectivenessMatrix(Configuration &confi
 	const bool mc_rotors_added_successfully = _mc_rotors.addActuators(configuration);
 
 	// Control Surfaces
-	configuration.selected_matrix = 1;
+	configuration.selected_matrix = 0; // for tailsitter we only use one matrix, as opposed to the other VTOL types
 	_first_control_surface_idx = configuration.num_actuators_matrix[configuration.selected_matrix];
 	const bool surfaces_added_successfully = _control_surfaces.addActuators(configuration);
 
