@@ -58,6 +58,7 @@ ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *p
 	}
 
 	_param_handles.yaw_collective_pitch_scale = param_find("CA_HELI_YAW_CP_S");
+	_param_handles.yaw_throttle_scale = param_find("CA_HELI_YAW_TH_S");
 
 	updateParams();
 }
@@ -88,6 +89,7 @@ void ActuatorEffectivenessHelicopter::updateParams()
 	}
 
 	param_get(_param_handles.yaw_collective_pitch_scale, &_geometry.yaw_collective_pitch_scale);
+	param_get(_param_handles.yaw_throttle_scale, &_geometry.yaw_throttle_scale);
 }
 
 bool
@@ -138,7 +140,8 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 
 	actuator_sp(0) = throttle;
 	actuator_sp(1) = control_sp(ControlAxis::YAW)
-			 + fabsf(collective_pitch) * _geometry.yaw_collective_pitch_scale;
+			 + fabsf(collective_pitch) * _geometry.yaw_collective_pitch_scale
+			 + throttle * _geometry.yaw_throttle_scale;
 
 	for (int i = 0; i < _geometry.num_swash_plate_servos; i++) {
 		actuator_sp(_first_swash_plate_servo_index + i) = collective_pitch

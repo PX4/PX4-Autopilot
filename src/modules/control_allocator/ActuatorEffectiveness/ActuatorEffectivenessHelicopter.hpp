@@ -55,6 +55,7 @@ public:
 		float throttle_curve[NUM_CURVE_POINTS];
 		float pitch_curve[NUM_CURVE_POINTS];
 		float yaw_collective_pitch_scale;
+		float yaw_throttle_scale;
 	};
 
 	ActuatorEffectivenessHelicopter(ModuleParams *parent);
@@ -82,6 +83,7 @@ private:
 		param_t throttle_curve[NUM_CURVE_POINTS];
 		param_t pitch_curve[NUM_CURVE_POINTS];
 		param_t yaw_collective_pitch_scale;
+		param_t yaw_throttle_scale;
 	};
 	ParamHandles _param_handles{};
 
