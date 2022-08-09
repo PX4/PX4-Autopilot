@@ -532,54 +532,6 @@ static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_r
 	return "";
 };
 
-using battery_fault_reason_t = events::px4::enums::battery_fault_reason_t;
-static_assert(battery_status_s::BATTERY_FAULT_COUNT == (static_cast<uint8_t>(battery_fault_reason_t::_max) + 1)
-	      , "Battery fault flags mismatch!");
-
-static constexpr const char *battery_fault_reason_str(battery_fault_reason_t battery_fault_reason)
-{
-	switch (battery_fault_reason) {
-	case battery_fault_reason_t::deep_discharge: return "under voltage";
-
-	case battery_fault_reason_t::voltage_spikes: return "over voltage";
-
-	case battery_fault_reason_t::cell_fail: return "cell fault";
-
-	case battery_fault_reason_t::over_current: return "over current";
-
-	case battery_fault_reason_t::fault_temperature: return "critical temperature";
-
-	case battery_fault_reason_t::under_temperature: return "under temperature";
-
-	case battery_fault_reason_t::incompatible_voltage: return "voltage mismatch";
-
-	case battery_fault_reason_t::incompatible_firmware: return "incompatible firmware";
-
-	case battery_fault_reason_t::incompatible_model: return "incompatible model";
-
-	case battery_fault_reason_t::hardware_fault: return "hardware fault";
-
-	case battery_fault_reason_t::over_temperature: return "near temperature limit";
-
-	}
-
-	return "";
-};
-
-using battery_mode_t = events::px4::enums::battery_mode_t;
-static_assert(battery_status_s::BATTERY_MODE_COUNT == (static_cast<uint8_t>(battery_mode_t::_max) + 1)
-	      , "Battery mode flags mismatch!");
-static constexpr const char *battery_mode_str(battery_mode_t battery_mode)
-{
-	switch (battery_mode) {
-	case battery_mode_t::autodischarging: return "auto discharging";
-
-	case battery_mode_t::hotswap: return "hot-swap";
-
-	default: return "unknown";
-	}
-}
-
 using esc_fault_reason_t = events::px4::enums::esc_fault_reason_t;
 static_assert(esc_report_s::ESC_FAILURE_COUNT == (static_cast<uint8_t>(esc_fault_reason_t::_max) + 1)
 	      , "ESC fault flags mismatch!");
@@ -2421,9 +2373,7 @@ Commander::run()
 			_geofence_warning_action_on = false;
 		}
 
-		if (_battery_status_subs.updated()) {
-			battery_status_check();
-		}
+		battery_status_check();
 
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!_vehicle_status_flags.calibration_enabled && _arm_state_machine.isInit()) {
@@ -3691,112 +3641,11 @@ void Commander::data_link_check()
 
 void Commander::battery_status_check()
 {
-	size_t battery_required_count = 0;
-	bool battery_has_fault = false;
-	// There are possibly multiple batteries, and we can't know which ones serve which purpose. So the safest
-	// option is to check if ANY of them have a warning, and specifically find which one has the most
-	// urgent warning.
-	uint8_t worst_warning = battery_status_s::BATTERY_WARNING_NONE;
-	// To make sure that all connected batteries are being regularly reported, we check which one has the
-	// oldest timestamp.
-	hrt_abstime oldest_update = hrt_absolute_time();
-	float worst_battery_time_s{NAN};
-
-	for (auto &battery_sub : _battery_status_subs) {
-		int index = battery_sub.get_instance();
-		battery_status_s battery;
-
-		if (!battery_sub.copy(&battery)) {
-			continue;
-		}
-
-		if (battery.is_required) {
-			battery_required_count++;
-		}
-
-		if (_arm_state_machine.isArmed()) {
-
-			if (_last_connected_batteries[index] && !battery.connected) {
-				mavlink_log_critical(&_mavlink_log_pub, "Battery %d disconnected. Land now! \t", index + 1);
-				events::send<uint8_t>(events::ID("commander_battery_disconnected"), {events::Log::Emergency, events::LogInternal::Warning},
-						      "Battery {1} disconnected. Land now!", index + 1);
-				// trigger a battery failsafe action if a battery disconnects in flight
-				worst_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
-			}
-
-			if ((battery.mode > 0) && (battery.mode != _last_battery_mode[index])) {
-
-				mavlink_log_critical(&_mavlink_log_pub, "Battery %d is in %s mode! \t", index + 1,
-						     battery_mode_str(static_cast<battery_mode_t>(battery.mode)));
-				events::send<uint8_t, events::px4::enums::battery_mode_t>(events::ID("commander_battery_mode"), {events::Log::Critical, events::LogInternal::Warning},
-						"Battery {1} mode: {2}. Land now!", index + 1, static_cast<battery_mode_t>(battery.mode));
-			}
-		}
-
-		_last_connected_batteries.set(index, battery.connected);
-		_last_battery_mode[index] = battery.mode;
-
-		if (battery.connected) {
-			if (battery.warning > worst_warning) {
-				worst_warning = battery.warning;
-			}
-
-			if (battery.timestamp < oldest_update) {
-				oldest_update = battery.timestamp;
-			}
-
-			if (battery.faults > 0) {
-				// MAVLink supported faults, can be checked on the ground station
-				battery_has_fault = true;
-
-				if (battery.faults != _last_battery_fault[index] || battery.custom_faults != _last_battery_custom_fault[index]) {
-					for (uint8_t fault_index = 0; fault_index <= static_cast<uint8_t>(battery_fault_reason_t::_max);
-					     fault_index++) {
-						if (battery.faults & (1 << fault_index)) {
-							mavlink_log_emergency(&_mavlink_log_pub, "Battery %d: %s. %s \t", index + 1,
-									      battery_fault_reason_str(static_cast<battery_fault_reason_t>(fault_index)),
-									      _arm_state_machine.isArmed() ? "Land now!" : "");
-
-							events::px4::enums::suggested_action_t action = _arm_state_machine.isArmed() ?
-									events::px4::enums::suggested_action_t::land :
-									events::px4::enums::suggested_action_t::none;
-
-							/* EVENT
-							 * @description
-							 * The battery reported a failure which might be dangerous to fly.
-							 * Manufacturer error code: {4}
-							 */
-							events::send<uint8_t, battery_fault_reason_t, events::px4::enums::suggested_action_t, uint32_t>
-							(events::ID("commander_battery_fault"), {events::Log::Emergency, events::LogInternal::Warning},
-							 "Battery {1}: {2}. {3}", index + 1, static_cast<battery_fault_reason_t>(fault_index), action, battery.custom_faults);
-						}
-					}
-				}
-			}
-
-			_last_battery_fault[index] = battery.faults;
-			_last_battery_custom_fault[index] = battery.custom_faults;
-
-			if (PX4_ISFINITE(battery.time_remaining_s)
-			    && (!PX4_ISFINITE(worst_battery_time_s)
-				|| (PX4_ISFINITE(worst_battery_time_s) && (battery.time_remaining_s < worst_battery_time_s)))) {
-				worst_battery_time_s = battery.time_remaining_s;
-			}
-
-		}
-	}
-
-	rtl_time_estimate_s rtl_time_estimate{};
-
 	// Compare estimate of RTL time to estimate of remaining flight time
-	if (_rtl_time_estimate_sub.copy(&rtl_time_estimate)
-	    && (hrt_absolute_time() - rtl_time_estimate.timestamp) < 2_s
-	    && rtl_time_estimate.valid
+	if (_vehicle_status_flags.battery_low_remaining_time
 	    && _arm_state_machine.isArmed()
 	    && !_vehicle_land_detected.ground_contact // not in any landing stage
 	    && !_rtl_time_actions_done
-	    && PX4_ISFINITE(worst_battery_time_s)
-	    && rtl_time_estimate.safe_time_estimate >= worst_battery_time_s
 	    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
 	    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
 		// Try to trigger RTL
@@ -3819,30 +3668,20 @@ void Commander::battery_status_check()
 	bool update_internal_battery_state = false;
 
 	if (_arm_state_machine.isArmed()) {
-		if (worst_warning > _battery_warning) {
+		if (_vehicle_status_flags.battery_warning > _battery_warning) {
 			battery_warning_level_increased_while_armed = true;
 			update_internal_battery_state = true;
 		}
 
 	} else {
-		if (_battery_warning != worst_warning) {
+		if (_battery_warning != _vehicle_status_flags.battery_warning) {
 			update_internal_battery_state = true;
 		}
 	}
 
 	if (update_internal_battery_state) {
-		_battery_warning = worst_warning;
+		_battery_warning = _vehicle_status_flags.battery_warning;
 	}
-
-	_vehicle_status.battery_healthy =
-		// All connected batteries are regularly being published
-		(hrt_elapsed_time(&oldest_update) < 5_s)
-		// There is at least one connected battery (in any slot)
-		&& (_last_connected_batteries.count() >= battery_required_count)
-		// No currently-connected batteries have any warning
-		&& (_battery_warning == battery_status_s::BATTERY_WARNING_NONE)
-		// No currently-connected batteries have any fault
-		&& (!battery_has_fault);
 
 	// execute battery failsafe if the state has gotten worse while we are armed
 	if (battery_warning_level_increased_while_armed) {

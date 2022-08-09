@@ -42,3 +42,8 @@ bool rc_signal_found_once
 bool rc_calibration_in_progress
 bool vtol_transition_failure                        # Set to true if vtol transition failed
 
+bool battery_low_remaining_time
+bool battery_unhealthy
+
+uint8 battery_warning
+
