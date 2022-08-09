@@ -36,6 +36,9 @@
 #include "../Common.hpp"
 
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/rtl_time_estimate.h>
 
 class BatteryChecks : public HealthAndArmingCheckBase
 {
@@ -46,4 +49,9 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
+	void rtlEstimateCheck(const Context &context, Report &reporter, float worst_battery_time_s);
+
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
+	uORB::Subscription					_rtl_time_estimate_sub{ORB_ID(rtl_time_estimate)};
+
 };

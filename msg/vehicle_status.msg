@@ -118,5 +118,4 @@ bool parachute_system_healthy
 bool avoidance_system_required                    # Set to true if avoidance system is enabled via COM_OBS_AVOID parameter
 bool avoidance_system_valid                       # Status of the obstacle avoidance system
 
-bool battery_healthy                	# set if battery is available and not low
 
