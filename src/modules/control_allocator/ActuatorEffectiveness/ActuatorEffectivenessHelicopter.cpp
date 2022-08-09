@@ -137,8 +137,8 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 	float pitch_cmd = control_sp(ControlAxis::PITCH);
 
 	actuator_sp(0) = throttle;
-
-	actuator_sp(1) = control_sp(ControlAxis::YAW) + collective_pitch * _geometry.yaw_collective_pitch_scale;
+	actuator_sp(1) = control_sp(ControlAxis::YAW)
+			 + fabsf(collective_pitch) * _geometry.yaw_collective_pitch_scale;
 
 	for (int i = 0; i < _geometry.num_swash_plate_servos; i++) {
 		actuator_sp(_first_swash_plate_servo_index + i) = collective_pitch
