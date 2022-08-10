@@ -166,12 +166,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #endif // FLASH_BASED_PARAMS
 
-#if defined(SERIAL_HAVE_RXDMA)
-	// set up the serial DMA polling at 1ms intervals for received bytes that have not triggered a DMA event.
-	static struct hrt_call serial_dma_call;
-	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
-#endif
-
 	rgb_led(0, 255, 0, 0);
 	return OK;
 }
