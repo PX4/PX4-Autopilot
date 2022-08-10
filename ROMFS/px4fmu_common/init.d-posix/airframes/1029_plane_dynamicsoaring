@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# @name Plane Dynamic Soaring SITL
+#
+
+. ${R}etc/init.d/rc.fw_defaults

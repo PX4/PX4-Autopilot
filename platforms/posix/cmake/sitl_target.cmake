@@ -139,6 +139,7 @@ set(models
 	plane
 	plane_cam
 	plane_catapult
+	plane_dynamicsoaring
 	plane_lidar
 	r1_rover
 	rover
