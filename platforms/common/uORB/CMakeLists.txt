@@ -72,8 +72,8 @@ if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
 		${SRCS_COMMON}
 		${SRCS_KERNEL}
 		)
-	target_link_libraries(uORB_kernel PRIVATE cdev uorb_msgs)
-	target_compile_options(uORB_kernel PRIVATE ${MAX_CUSTOM_OPT_LEVEL} -D__KERNEL__ nuttx_mm)
+	target_link_libraries(uORB_kernel PRIVATE cdev uorb_msgs nuttx_mm)
+	target_compile_options(uORB_kernel PRIVATE ${MAX_CUSTOM_OPT_LEVEL} -D__KERNEL__)
 
 	# User side library in nuttx kernel/protected build
 	px4_add_library(uORB
