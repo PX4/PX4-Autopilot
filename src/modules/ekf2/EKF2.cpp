@@ -558,6 +558,8 @@ void EKF2::Run()
 					_gyro_cal = {};
 					_mag_cal = {};
 
+					_preflt_checker.reset();
+
 				} else if (was_in_air && !in_air) {
 					// landed
 					_ekf.set_in_air_status(false);
@@ -900,10 +902,6 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 		_preflt_checker.setUsingEvHgtAiding(_ekf.control_status_flags().ev_hgt);
 
 		_preflt_checker.update(_ekf.get_imu_sample_delayed().delta_ang_dt, innovations);
-
-	} else if (_ekf.control_status_flags().in_air != _ekf.control_status_prev_flags().in_air) {
-		// reset preflight checks if transitioning back to landed
-		_preflt_checker.reset();
 	}
 }
 
