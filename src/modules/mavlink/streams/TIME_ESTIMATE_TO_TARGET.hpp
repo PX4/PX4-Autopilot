@@ -64,7 +64,13 @@ private:
 			_rtl_estimate_sub.copy(&rtl_estimate);
 
 			mavlink_time_estimate_to_target_t msg{};
-			msg.safe_return = rtl_estimate.safe_time_estimate;
+			msg.safe_return = static_cast<int32_t>(rtl_estimate.safe_time_estimate);
+
+			// Set to -1 explicitly because not supported (yet)
+			msg.land = -1;
+			msg.mission_next_item = -1;
+			msg.mission_end = -1;
+			msg.commanded_action = -1;
 
 			mavlink_msg_time_estimate_to_target_send_struct(_mavlink->get_channel(), &msg);
 
