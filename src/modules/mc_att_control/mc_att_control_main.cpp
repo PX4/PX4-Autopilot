@@ -96,17 +96,15 @@ MulticopterAttitudeControl::parameters_updated()
 float
 MulticopterAttitudeControl::throttle_curve(float throttle_stick_input)
 {
-	const float throttle_min = _landed ? 0.0f : _param_mpc_manthr_min.get();
-
 	// throttle_stick_input is in range [0, 1]
 	switch (_param_mpc_thr_curve.get()) {
 	case 1: // no rescaling to hover throttle
-		return math::gradual(throttle_stick_input, 0.f, 1.f, throttle_min, _param_mpc_thr_max.get());
+		return math::gradual(throttle_stick_input, 0.f, 1.f, _param_mpc_manthr_min.get(), _param_mpc_thr_max.get());
 
 	default: // 0 or other: rescale to hover throttle at 0.5 stick
 		return math::gradual3(throttle_stick_input,
 				      0.f, .5f, 1.f,
-				      throttle_min, _param_mpc_thr_hover.get(), _param_mpc_thr_max.get());
+				      _param_mpc_manthr_min.get(), _param_mpc_thr_hover.get(), _param_mpc_thr_max.get());
 	}
 }
 
