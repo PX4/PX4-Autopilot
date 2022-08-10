@@ -1895,66 +1895,75 @@ Commander::run()
 		    && (_geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE)
 		    && !in_low_battery_failsafe_delay) {
 
-			// check for geofence violation transition
-			if (_geofence_result.geofence_violated && !_geofence_violated_prev) {
+			if (_geofence_result.geofence_violated) {
+				// check for geofence violation transition
+				if (!_geofence_violated_prev) {
 
-				switch (_geofence_result.geofence_action) {
-				case (geofence_result_s::GF_ACTION_NONE) : {
-						// do nothing
-						break;
-					}
-
-				case (geofence_result_s::GF_ACTION_WARN) : {
-						// do nothing, mavlink critical messages are sent by navigator
-						break;
-					}
-
-				case (geofence_result_s::GF_ACTION_LOITER) : {
-						if (TRANSITION_CHANGED == main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_LOITER,
-								_vehicle_status_flags,
-								_commander_state)) {
-							_geofence_loiter_on = true;
+					switch (_geofence_result.geofence_action) {
+					case (geofence_result_s::GF_ACTION_NONE) : {
+							// do nothing
+							break;
 						}
 
-						break;
-					}
-
-				case (geofence_result_s::GF_ACTION_RTL) : {
-						if (TRANSITION_CHANGED == main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_RTL,
-								_vehicle_status_flags,
-								_commander_state)) {
-							_geofence_rtl_on = true;
+					case (geofence_result_s::GF_ACTION_WARN) : {
+							// do nothing, mavlink critical messages are sent by navigator
+							break;
 						}
 
-						break;
-					}
+					case (geofence_result_s::GF_ACTION_LOITER) : {
+							if (TRANSITION_CHANGED == main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_LOITER,
+									_vehicle_status_flags,
+									_commander_state)) {
+								_geofence_loiter_on = true;
+							}
 
-				case (geofence_result_s::GF_ACTION_LAND) : {
-						if (TRANSITION_CHANGED == main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_LAND,
-								_vehicle_status_flags,
-								_commander_state)) {
-							_geofence_land_on = true;
+							break;
 						}
 
-						break;
-					}
+					case (geofence_result_s::GF_ACTION_RTL) : {
+							if (TRANSITION_CHANGED == main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_RTL,
+									_vehicle_status_flags,
+									_commander_state)) {
+								_geofence_rtl_on = true;
+							}
 
-				case (geofence_result_s::GF_ACTION_TERMINATE) : {
-						PX4_WARN("Flight termination because of geofence");
-
-						if (!_flight_termination_triggered && !_lockdown_triggered) {
-							_flight_termination_triggered = true;
-							mavlink_log_critical(&_mavlink_log_pub, "Geofence violation! Flight terminated\t");
-							events::send(events::ID("commander_geofence_termination"), {events::Log::Alert, events::LogInternal::Warning},
-								     "Geofence violation! Flight terminated");
-							_actuator_armed.force_failsafe = true;
-							_status_changed = true;
-							send_parachute_command();
+							break;
 						}
 
-						break;
+					case (geofence_result_s::GF_ACTION_LAND) : {
+							if (TRANSITION_CHANGED == main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_LAND,
+									_vehicle_status_flags,
+									_commander_state)) {
+								_geofence_land_on = true;
+							}
+
+							break;
+						}
+
+					case (geofence_result_s::GF_ACTION_TERMINATE) : {
+							PX4_WARN("Flight termination because of geofence");
+
+							if (!_flight_termination_triggered && !_lockdown_triggered) {
+								_flight_termination_triggered = true;
+								mavlink_log_critical(&_mavlink_log_pub, "Geofence violation! Flight terminated\t");
+								events::send(events::ID("commander_geofence_termination"), {events::Log::Alert, events::LogInternal::Warning},
+									     "Geofence violation! Flight terminated");
+								_actuator_armed.force_failsafe = true;
+								_status_changed = true;
+								send_parachute_command();
+							}
+
+							break;
+						}
 					}
+
 				}
+
+				// Prevent switching out of geofence action
+				_vehicle_status.geofence_enforced = _geofence_result.enforce;
+
+			} else {
+				_vehicle_status.geofence_enforced = false;
 			}
 
 			_geofence_violated_prev = _geofence_result.geofence_violated;

@@ -860,6 +860,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		_geofence_result.timestamp = hrt_absolute_time();
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();
 		_geofence_result.home_required = _geofence.isHomeRequired();
+		_geofence_result.enforce = _geofence.getGeofenceEnforce();
 
 		if (gf_violation_type.value) {
 			/* inform other apps via the mission result */

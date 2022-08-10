@@ -120,6 +120,10 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 	transition_result_t ret = TRANSITION_DENIED;
 
+	if (status.geofence_enforced) {
+		return ret;
+	}
+
 	/* transition may be denied even if the same state is requested because conditions may have changed */
 	switch (new_main_state) {
 	case commander_state_s::MAIN_STATE_MANUAL:

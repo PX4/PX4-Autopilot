@@ -138,3 +138,13 @@ PARAM_DEFINE_FLOAT(GF_MAX_VER_DIST, 0);
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_PREDICT, 1);
+
+/**
+ * Prevent pilot takeover outside of geofence, and enforce GF_ACTION
+ *
+ * true if geofence_action is enforced until geofence_violated is false
+ *
+ * @boolean
+ * @group Geofence
+ */
+PARAM_DEFINE_INT32(GF_ENFORCE, 0);
