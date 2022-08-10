@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,37 +55,13 @@ void IgnitionSimulator::ImuCallback(const ignition::msgs::IMU &imu)
 
 void IgnitionSimulator::PoseInfoCallback(const ignition::msgs::Pose_V &pose)
 {
-	// TODO: find by name or id?
-	//
-
-	//pose.position
-	//pose.orientation
-
-
-	// TODO:
-	//  - gps
-	//  - magnetometer
-	//  - barometer
-
-	//  - groundtruth
-
 	for (int p = 0; p < pose.pose_size(); p++) {
-		//std::cout << p << pose.pose(p).name() << std::endl;
-
-		std::string vehicle_name = "x3";
+		std::string vehicle_name = "X4";
 
 		if (pose.pose(p).name() == vehicle_name) {
 
-			//std::cout << pose.pose(p) << std::endl;
-
-			// ignition.msgs.Header header
-			// .ignition.msgs.Vector3d position = 4;
-			// .ignition.msgs.Quaternion orientation = 5;
-
-			ignition::msgs::Vector3d position = pose.pose(p).position();
-			ignition::msgs::Quaternion orientation = pose.pose(p).orientation();
-			// position.x(), position.y(), position.z()
-			// orientation. wxyz
+			ignition::msgs::Vector3d pose_position = pose.pose(p).position();
+			ignition::msgs::Quaternion pose_orientation = pose.pose(p).orientation();
 
 			static const auto q_FLU_to_FRD = ignition::math::Quaterniond(0, 1, 0, 0);
 
@@ -98,66 +74,74 @@ void IgnitionSimulator::PoseInfoCallback(const ignition::msgs::Pose_V &pose)
 			 */
 			static const auto q_ENU_to_NED = ignition::math::Quaterniond(0, 0.70711, 0.70711, 0);
 
-
 			// ground truth
 			ignition::math::Quaterniond q_gr = ignition::math::Quaterniond(
-					last_imu_message_.orientation().w(),
-					last_imu_message_.orientation().x(),
-					last_imu_message_.orientation().y(),
-					last_imu_message_.orientation().z());
+					pose_orientation.w(),
+					pose_orientation.x(),
+					pose_orientation.y(),
+					pose_orientation.z());
 
 			ignition::math::Quaterniond q_gb = q_gr * q_FLU_to_FRD.Inverse();
 			ignition::math::Quaterniond q_nb = q_ENU_to_NED * q_gb;
 
-			hil_state_quat.attitude_quaternion[0] = q_nb.W();
-			hil_state_quat.attitude_quaternion[1] = q_nb.X();
-			hil_state_quat.attitude_quaternion[2] = q_nb.Y();
-			hil_state_quat.attitude_quaternion[3] = q_nb.Z();
+			// publish attitude groundtruth
+			vehicle_attitude_s vehicle_attitude_groundtruth{};
+			vehicle_attitude_groundtruth.timestamp_sample = hrt_absolute_time();
+			vehicle_attitude_groundtruth.q[0] = q_nb.W();
+			vehicle_attitude_groundtruth.q[1] = q_nb.X();
+			vehicle_attitude_groundtruth.q[2] = q_nb.Y();
+			vehicle_attitude_groundtruth.q[3] = q_nb.Z();
+			vehicle_attitude_groundtruth.timestamp = hrt_absolute_time();
+			_attitude_ground_truth_pub.publish(vehicle_attitude_groundtruth);
 
-			//PX4_INFO("matched, position [%.6f, %.6f, %.6f]", (double)position.x(), (double)position.y(), (double)position.z());
+
+			if (!_pos_ref.isInitialized()) {
+				_pos_ref.initReference(_param_sim_home_lat.get(), _param_sim_home_lon.get(), hrt_absolute_time());
+			}
 
 			vehicle_local_position_s local_position_groundtruth{};
-			local_position_groundtruth.x = position.x();
-			local_position_groundtruth.y = position.y();
-			local_position_groundtruth.z = position.z();
-			local_position_groundtruth.timestamp = hrt_absolute_time();
+			local_position_groundtruth.timestamp_sample = hrt_absolute_time();
 
+			const double dt = hrt_elapsed_time(&_timestamp_prev) * 1e-6f;
+			const matrix::Vector3d position{pose_position.x(), pose_position.y(), pose_position.z()};
+			const matrix::Vector3d velocity{(position - _position_prev) / dt};
+			const matrix::Vector3d acceleration{(velocity - _velocity_prev) / dt};
+
+			_position_prev = position;
+			_velocity_prev = velocity;
+
+			local_position_groundtruth.ax = acceleration(0);
+			local_position_groundtruth.ay = acceleration(1);
+			local_position_groundtruth.az = acceleration(2);
+			local_position_groundtruth.vx = velocity(0);
+			local_position_groundtruth.vy = velocity(1);
+			local_position_groundtruth.vz = velocity(2);
+			local_position_groundtruth.x = position(0);
+			local_position_groundtruth.y = position(1);
+			local_position_groundtruth.z = position(2);
+
+			local_position_groundtruth.ref_lat = _pos_ref.getProjectionReferenceLat(); // Reference point latitude in degrees
+			local_position_groundtruth.ref_lon = _pos_ref.getProjectionReferenceLon(); // Reference point longitude in degrees
+			local_position_groundtruth.ref_alt = _param_sim_home_alt.get();
+			local_position_groundtruth.ref_timestamp = _pos_ref.getProjectionReferenceTimestamp();
+
+			local_position_groundtruth.timestamp = hrt_absolute_time();
 			_lpos_ground_truth_pub.publish(local_position_groundtruth);
 
+			if (_pos_ref.isInitialized()) {
+				// publish position groundtruth
+				vehicle_global_position_s global_position_groundtruth{};
+				global_position_groundtruth.timestamp_sample = hrt_absolute_time();
 
-			// _param_sim_home_lat.get()
-			//  reproject
+				_pos_ref.reproject(local_position_groundtruth.x, local_position_groundtruth.y,
+						   global_position_groundtruth.lat, global_position_groundtruth.lon);
 
+				global_position_groundtruth.alt = _param_sim_home_alt.get() - static_cast<float>(pose_position.z());
+				global_position_groundtruth.timestamp = hrt_absolute_time();
+				_gpos_ground_truth_pub.publish(global_position_groundtruth);
+			}
 		}
 	}
-
-
-
-
-// header {
-//   stamp {
-//     sec: 93
-//     nsec: 200000000
-//   }
-// }
-// pose {
-//   name: "x3"
-//   id: 8
-//   position {
-//     x: 9.41649363105415e-19
-//     y: -1.038857584459745e-19
-//     z: 0.054999053759016557
-//   }
-//   orientation {
-//     x: -3.5059616538432739e-20
-//     y: -7.2796873500671957e-18
-//     z: 1.3844952801031163e-18
-//     w: 1
-//   }
-// }
-
-
-
 }
 
 IgnitionSimulator::IgnitionSimulator() :
@@ -174,15 +158,15 @@ void IgnitionSimulator::run()
 	ignition::transport::Node node;
 
 	// Subscribe to messages of other plugins.
-	node.Subscribe("/imu", &IgnitionSimulator::ImuCallback, this);
+	node.Subscribe("/world/quadcopter/model/X4/link/base_link/sensor/imu_sensor/imu", &IgnitionSimulator::ImuCallback,
+		       this);
 	node.Subscribe("/world/quadcopter/pose/info", &IgnitionSimulator::PoseInfoCallback, this);
 
-
-	std::string topic = "/X3/gazebo/command/motor_speed";
+	std::string topic = "/X4/command/motor_speed";
 	auto pub = node.Advertise<ignition::msgs::Actuators>(topic);
 
 	ignition::msgs::Actuators rotor_velocity_message;
-	rotor_velocity_message.mutable_velocity()->Resize(4, 0);
+	rotor_velocity_message.mutable_velocity()->Resize(6, 0);
 
 
 	uORB::Subscription actuator_outputs_sub{ORB_ID(actuator_outputs)};
@@ -195,12 +179,13 @@ void IgnitionSimulator::run()
 			rotor_velocity_message.set_velocity(1, math::constrain(actuator_outputs.output[1] - 1000, 0.f, 1000.f));
 			rotor_velocity_message.set_velocity(2, math::constrain(actuator_outputs.output[2] - 1000, 0.f, 1000.f));
 			rotor_velocity_message.set_velocity(3, math::constrain(actuator_outputs.output[3] - 1000, 0.f, 1000.f));
+			rotor_velocity_message.set_velocity(4, math::constrain(actuator_outputs.output[4] - 1000, 0.f, 1000.f));
+			rotor_velocity_message.set_velocity(5, math::constrain(actuator_outputs.output[5] - 1000, 0.f, 1000.f));
 
 			if (!pub.Publish(rotor_velocity_message)) {
 				PX4_ERR("publish failed");
 			}
 		}
-
 
 		px4_usleep(1000);
 	}

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -197,8 +197,7 @@ int main(int argc, char **argv)
 		/* Server/daemon apps need to parse the command line arguments. */
 
 		std::string data_path{};
-		std::string commands_file = "etc/init.d/rcS";
-		std::string test_data_path{};
+		std::string commands_file = "etc/init.d-posix/rcS";
 		std::string working_directory{};
 		int instance = 0;
 
@@ -206,7 +205,7 @@ int main(int argc, char **argv)
 		int ch;
 		const char *myoptarg = nullptr;
 
-		while ((ch = px4_getopt(argc, argv, "hdt:s:i:w:", &myoptind, &myoptarg)) != EOF) {
+		while ((ch = px4_getopt(argc, argv, "hds:i:w:", &myoptind, &myoptarg)) != EOF) {
 			switch (ch) {
 			case 'h':
 				print_usage();
@@ -214,10 +213,6 @@ int main(int argc, char **argv)
 
 			case 'd':
 				pxh_off = true;
-				break;
-
-			case 't':
-				test_data_path = myoptarg;
 				break;
 
 			case 's':
@@ -268,18 +263,6 @@ int main(int argc, char **argv)
 
 		if (ret != PX4_OK) {
 			return ret;
-		}
-
-		if (test_data_path != "") {
-			const std::string required_test_data_path = "./test_data";
-
-			if (!dir_exists(required_test_data_path)) {
-				ret = symlink(test_data_path.c_str(), required_test_data_path.c_str());
-
-				if (ret != PX4_OK) {
-					return ret;
-				}
-			}
 		}
 
 		if (!file_exists(commands_file)) {
@@ -550,7 +533,7 @@ void print_usage()
 {
 	printf("Usage for Server/daemon process: \n");
 	printf("\n");
-	printf("    px4 [-h|-d] [-s <startup_file>] [-t <test_data_directory>] [<rootfs_directory>] [-i <instance>] [-w <working_directory>]\n");
+	printf("    px4 [-h|-d] [-s <startup_file>] [<rootfs_directory>] [-i <instance>] [-w <working_directory>]\n");
 	printf("\n");
 	printf("    -s <startup_file>      shell script to be used as startup (default=etc/init.d/rcS)\n");
 	printf("    <rootfs_directory>     directory where startup files and mixers are located,\n");

@@ -44,6 +44,7 @@ px4_add_module(
 	MAIN ignition_simulator
 	COMPILE_FLAGS
 		#${MAX_CUSTOM_OPT_LEVEL}
+		-O0
 	SRCS
 		IgnitionSimulator.cpp
 		IgnitionSimulator.hpp

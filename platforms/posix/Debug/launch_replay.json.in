@@ -8,10 +8,7 @@
             "program": "${command:cmake.launchTargetPath}",
             "args": [
                 "${workspaceFolder}/ROMFS/px4fmu_common",
-                "-s",
-                "etc/init.d-posix/rcS",
-                "-t",
-                "${workspaceFolder}/test_data"
+                "-s", "etc/init.d-posix/rcS"
             ],
             "stopAtEntry": false,
             "cwd": "${command:cmake.buildDirectory}/tmp",

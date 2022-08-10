@@ -194,8 +194,12 @@ elif [ "$program" == "ignition" ] && [ -z "$no_sim" ]; then
 	else
 		ignition_headless=""
 	fi
-	source "$src_path/Tools/setup_ignition.bash" "${src_path}" "${build_path}"
-	ign gazebo --force-version 5 ${verbose} ${ignition_headless} -r "${src_path}/Tools/simulation-ignition/worlds/${model}.world"&
+
+	export IGN_GAZEBO_RESOURCE_PATH=$IGN_GAZEBO_RESOURCE_PATH:${src_path}/Tools/simulation/gazebo/models
+	#ign gazebo --force-version 5 ${verbose} ${ignition_headless} -r "${src_path}/Tools/simulation/gazebo/worlds/${model}.world"&
+
+	ign gazebo -r "${src_path}/Tools/simulation/gazebo/worlds/${model}.sdf" &
+
 elif [ "$program" == "flightgear" ] && [ -z "$no_sim" ]; then
 	echo "FG setup"
 	cd "${src_path}/Tools/flightgear_bridge/"
@@ -231,9 +235,9 @@ pushd "$rootfs" >/dev/null
 set +e
 
 if [[ ${model} == test_* ]] || [[ ${model} == *_generated ]]; then
-	sitl_command="\"$sitl_bin\" $no_pxh \"$src_path\"/ROMFS/px4fmu_test -s \"${src_path}\"/posix-configs/SITL/init/test/${model} -t \"$src_path\"/test_data"
+	sitl_command="\"$sitl_bin\" $no_pxh \"$src_path\"/ROMFS/px4fmu_test -s \"${src_path}\"/posix-configs/SITL/init/test/${model}"
 else
-	sitl_command="\"$sitl_bin\" $no_pxh \"$build_path\"/etc -s etc/init.d-posix/rcS -t \"$src_path\"/test_data"
+	sitl_command="\"$sitl_bin\" $no_pxh \"$build_path\"/etc -s etc/init.d-posix/rcS"
 fi
 
 echo SITL COMMAND: $sitl_command

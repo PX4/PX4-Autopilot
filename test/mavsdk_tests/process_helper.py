@@ -151,14 +151,10 @@ class Px4Runner(Runner):
         super().__init__(log_dir, model, case, verbose)
         self.name = "px4"
         self.cmd = os.path.join(workspace_dir, build_dir, "bin/px4")
-        self.cwd = os.path.join(workspace_dir, build_dir,
-                                "tmp_mavsdk_tests/rootfs")
+        self.cwd = os.path.join(workspace_dir, build_dir, "tmp_mavsdk_tests/rootfs")
         self.args = [
                 os.path.join(workspace_dir, build_dir, "etc"),
-                "-s",
-                "etc/init.d-posix/rcS",
-                "-t",
-                os.path.join(workspace_dir, "test_data"),
+                "-s", "etc/init.d-posix/rcS",
                 "-d"
             ]
         self.env["PX4_SIM_MODEL"] = self.model
