@@ -83,7 +83,8 @@ private:
 		(ParamFloat<px4::params::DS_SIGMA_Q_V>) _param_sigma_q_vel,
         (ParamFloat<px4::params::DS_SIGMA_Q_H>) _param_sigma_q_h,
         (ParamFloat<px4::params::DS_SIGMA_Q_A>) _param_sigma_q_a,
-        (ParamFloat<px4::params::DS_SIGMA_R_V>) _param_sigma_r_vel
+        (ParamFloat<px4::params::DS_SIGMA_R_V>) _param_sigma_r_vel,
+        (ParamFloat<px4::params::DS_INIT_H>) _param_init_h
 	)
 
 
@@ -128,6 +129,9 @@ private:
     // measurement variables
     Vector3f _current_wind = {};
     float _current_height = {};
+
+    // helper variables
+    float _init_height = {};
 
 };
 

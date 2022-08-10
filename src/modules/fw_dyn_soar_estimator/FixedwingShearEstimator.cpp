@@ -70,7 +70,8 @@ FixedwingShearEstimator::init()
 		return false;
 	}
     PX4_INFO("Starting FW_DYN_SOAR_ESTIMATOR");
-	return true;
+
+    parameters_update();
 
     // init horizontal wind field
     for (uint i=0; i<6; i++){
@@ -94,15 +95,15 @@ FixedwingShearEstimator::init()
     _P_prior_vertical = _Q_vertical;
     _P_posterior_vertical = _Q_vertical;
 
+    //
+    _X_prior_horizontal(4) = _init_height;
+    _X_posterior_horizontal(4) = _init_height;
+
     // init time
     _last_run = hrt_absolute_time();
 
     // init reset counter
     _reset_counter = 0;
-
-    //
-    _X_prior_horizontal(4) = 110.f;
-    _X_posterior_horizontal(4) = 110.f;
 
     return true;
 }
@@ -129,6 +130,8 @@ FixedwingShearEstimator::parameters_update()
 
     _R_vertical(0,0) = powf(_param_sigma_r_vel.get(),2);
 
+    _init_height = _param_init_h.get();
+
 	return PX4_OK;
 }
 
@@ -152,14 +155,24 @@ FixedwingShearEstimator::reset_filter()
         _P_prior_vertical(i,i) = 1.0f;
         _P_posterior_vertical(i,i) = 1.0f;
     }
+
+    // set height to enable convergence
+    _X_prior_horizontal(4) = _init_height;
+    _X_posterior_horizontal(4) = _init_height;
+
+    // increment counter
+    _reset_counter += 1;
 }
 
 void
 FixedwingShearEstimator::perform_prior_update()
 {
     // get time since last run
-    float dt = (hrt_absolute_time() - _last_run)/1000000;
+    float dt = (float)(hrt_absolute_time() - _last_run)/1000000.f;
     _last_run = hrt_absolute_time();
+    if (dt>10.f) {
+        dt = 10.f;
+    }
 
     // perform prior update assuming trivial dynamics of the wind field (mean field stays the same)
     _X_prior_horizontal = _X_posterior_horizontal;
@@ -232,7 +245,6 @@ FixedwingShearEstimator::perform_posterior_update(float height, Vector3f wind)
 
     if (error) {
         reset_filter();
-        _reset_counter += 1;
     }
     else {
         // perform horizontal update
@@ -256,12 +268,13 @@ FixedwingShearEstimator::perform_posterior_update(float height, Vector3f wind)
     }
 
     // find the correct sign of params (parametrization is not unique)
+    /*
     if (_X_posterior_horizontal(5)<0.f) {
         _X_posterior_horizontal(0) *= -1.f;
         _X_posterior_horizontal(1) *= -1.f;
         _X_posterior_horizontal(5) *= -1.f;
     }
-
+    */
 
 }
 
@@ -292,7 +305,6 @@ FixedwingShearEstimator::Run()
 			updateParams();
 			parameters_update();
 		}
-
         // get current measurement
         _current_wind = Vector3f(_soaring_controller_wind.wind_estimate_filtered);
         _current_height = Vector3f(_soaring_controller_wind.position)(2);
@@ -305,6 +317,7 @@ FixedwingShearEstimator::Run()
 
         // check if filter diverges 
         // maybe reset filters...
+        //reset_filter();
 
         // publish shear params
         // ========================================
