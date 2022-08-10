@@ -87,7 +87,7 @@ else()
 		${SRCS_COMMON}
 		${SRCS_KERNEL}
 		)
-	target_link_libraries(uORB PRIVATE cdev)
+	target_link_libraries(uORB PRIVATE cdev nuttx_mm)
 endif()
 
 target_link_libraries(uORB PRIVATE uorb_msgs)
