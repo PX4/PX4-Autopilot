@@ -4371,9 +4371,9 @@ void Commander::esc_status_check()
 					events::px4::enums::suggested_action_t action = _arm_state_machine.isArmed() ?
 							events::px4::enums::suggested_action_t::land :
 							events::px4::enums::suggested_action_t::none;
-					// TODO: use esc_status.esc[index].actuator_function as index after SYS_CTRL_ALLOC becomes default
+					uint8_t motor_index = esc_status.esc[index].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + 1;
 					events::send<uint8_t, events::px4::enums::suggested_action_t>(events::ID("commander_esc_offline"),
-							events::Log::Critical, "ESC{1} offline. {2}", index + 1, action);
+							events::Log::Critical, "ESC{1} offline. {2}", motor_index, action);
 				}
 			}
 
