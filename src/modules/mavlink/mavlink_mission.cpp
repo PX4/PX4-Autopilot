@@ -148,7 +148,7 @@ MavlinkMissionManager::load_safepoint_stats()
  * Publish mission topic to notify navigator about changes.
  */
 int
-MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq)
+MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq, bool mission_changed)
 {
 	// We want to make sure the whole struct is initialized including padding before getting written by dataman.
 	mission_s mission{};
@@ -156,6 +156,9 @@ MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t coun
 	mission.dataman_id = dataman_id;
 	mission.count = count;
 	mission.current_seq = seq;
+	mission.origin_sysid = _transfer_partner_sysid;
+	mission.origin_compid = _transfer_partner_compid;
+	mission.mission_changed = (uint8_t)mission_changed;
 
 	/* update mission state in dataman */
 
@@ -679,7 +682,7 @@ MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 			_time_last_recv = hrt_absolute_time();
 
 			if (wpc.seq < _count[MAV_MISSION_TYPE_MISSION]) {
-				if (update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], wpc.seq) == PX4_OK) {
+				if (update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], wpc.seq, false) == PX4_OK) {
 					PX4_DEBUG("WPM: MISSION_SET_CURRENT seq=%d OK", wpc.seq);
 
 				} else {
@@ -919,10 +922,10 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 					/* alternate dataman ID anyway to let navigator know about changes */
 
 					if (_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0) {
-						update_active_mission(DM_KEY_WAYPOINTS_OFFBOARD_1, 0, 0);
+						update_active_mission(DM_KEY_WAYPOINTS_OFFBOARD_1, 0, 0, true);
 
 					} else {
-						update_active_mission(DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
+						update_active_mission(DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0, true);
 					}
 
 					break;
@@ -1226,7 +1229,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 
 			switch (_mission_type) {
 			case MAV_MISSION_TYPE_MISSION:
-				ret = update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq);
+				ret = update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq, true);
 				break;
 
 			case MAV_MISSION_TYPE_FENCE:
@@ -1281,7 +1284,7 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 			switch (wpca.mission_type) {
 			case MAV_MISSION_TYPE_MISSION:
 				ret = update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
-							    DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
+							    DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0, true);
 				break;
 
 			case MAV_MISSION_TYPE_FENCE:
@@ -1294,7 +1297,7 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 
 			case MAV_MISSION_TYPE_ALL:
 				ret = update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
-							    DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
+							    DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0, true);
 				ret = update_geofence_count(0) || ret;
 				ret = update_safepoint_count(0) || ret;
 				break;

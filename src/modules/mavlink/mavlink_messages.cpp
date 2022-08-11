@@ -92,6 +92,7 @@
 #include "streams/LOCAL_POSITION_NED.hpp"
 #include "streams/MAG_CAL_REPORT.hpp"
 #include "streams/MANUAL_CONTROL.hpp"
+#include "streams/MISSION_CHANGED.hpp"
 #include "streams/MOUNT_ORIENTATION.hpp"
 #include "streams/NAV_CONTROLLER_OUTPUT.hpp"
 #include "streams/OBSTACLE_DISTANCE.hpp"
@@ -395,6 +396,9 @@ static const StreamListItem streams_list[] = {
 #if defined(MAG_CAL_REPORT_HPP)
 	create_stream_list_item<MavlinkStreamMagCalReport>(),
 #endif // MAG_CAL_REPORT_HPP
+#if defined(MISSION_CHANGED_HPP)
+	create_stream_list_item<MavlinkStreamMissionChanged>(),
+#endif // MISSION_CHANGED_HPP
 #if defined(ODOMETRY_HPP)
 	create_stream_list_item<MavlinkStreamOdometry>(),
 #endif // ODOMETRY_HPP
