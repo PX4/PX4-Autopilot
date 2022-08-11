@@ -119,24 +119,10 @@ ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &configura
 void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
 		int matrix_index, ActuatorVector &actuator_sp)
 {
-	// Find index to use for curves
-	float thrust_cmd = -control_sp(ControlAxis::THRUST_Z);
-	float num_intervals = NUM_CURVE_POINTS - 1;
-	// We access idx + 1 below, so max legal index is (size - 2)
-	int idx = math::constrain((int)(thrust_cmd * num_intervals), 0, NUM_CURVE_POINTS - 2);
-
-	// Local throttle curve gradient and offset
-	float tg = (_geometry.throttle_curve[idx + 1] - _geometry.throttle_curve[idx]) * num_intervals;
-	float to = (_geometry.throttle_curve[idx]) - (tg * idx / num_intervals);
-	float throttle = math::constrain(tg * thrust_cmd + to, 0.0f, 1.0f);
-
-	// Local pitch curve gradient and offset
-	float pg = (_geometry.pitch_curve[idx + 1] - _geometry.pitch_curve[idx]) * num_intervals;
-	float po = (_geometry.pitch_curve[idx]) - (pg * idx / num_intervals);
-	float collective_pitch = math::constrain((pg * thrust_cmd + po), -0.5f, 0.5f);
-
-	float roll_cmd = control_sp(ControlAxis::ROLL);
-	float pitch_cmd = control_sp(ControlAxis::PITCH);
+	// throttle/collective pitch curve
+	const float throttle = math::interpolateN(-control_sp(ControlAxis::THRUST_Z),
+			       _geometry.throttle_curve) * throttleSpoolupProgress();
+	const float collective_pitch = math::interpolateN(-control_sp(ControlAxis::THRUST_Z), _geometry.pitch_curve);
 
 	actuator_sp(0) = throttle;
 	actuator_sp(1) = control_sp(ControlAxis::YAW)
@@ -145,8 +131,9 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 
 	for (int i = 0; i < _geometry.num_swash_plate_servos; i++) {
 		actuator_sp(_first_swash_plate_servo_index + i) = collective_pitch
-				+ cosf(_geometry.swash_plate_servos[i].angle) * pitch_cmd * _geometry.swash_plate_servos[i].arm_length
-				- sinf(_geometry.swash_plate_servos[i].angle) * roll_cmd * _geometry.swash_plate_servos[i].arm_length;
+				+ control_sp(ControlAxis::PITCH) * cosf(_geometry.swash_plate_servos[i].angle) *
+				_geometry.swash_plate_servos[i].arm_length
+				- control_sp(ControlAxis::ROLL) * sinf(_geometry.swash_plate_servos[i].angle) *
+				_geometry.swash_plate_servos[i].arm_length;
 	}
-
 }
