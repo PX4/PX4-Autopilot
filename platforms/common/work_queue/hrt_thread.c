@@ -286,11 +286,16 @@ void hrt_work_queue_init(void)
 					    work_hrtthread,
 					    (char *const *)NULL);
 
+	struct sigaction act;
+	memset(&act, 0, sizeof(struct sigaction));
+	sigemptyset(&act.sa_mask);
+	act.sa_handler = _sighandler;
 
 #ifdef __PX4_QURT
-	signal(SIGALRM, _sighandler);
+	sigaddset(&act.sa_mask, SIGALRM);
+	sigaction(SIGALRM, &act, NULL);
 #else
-	signal(SIGCONT, _sighandler);
+	sigaddset(&act.sa_mask, SIGCONT);
+	sigaction(SIGCONT, &act, NULL);
 #endif
 }
-
