@@ -331,6 +331,9 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 		memcpy(_last_reply, ftp_req, sizeof(_last_reply));
 	}
 
+	// clear any not used payload data to correctly trim mavlink ftp message reply
+	memset(&payload->data[payload->size], 0, kMaxDataLength - payload->size);
+
 	PX4_DEBUG("FTP: %s seq_number: %" PRIu16, payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
 
 #ifdef MAVLINK_FTP_UNIT_TEST
