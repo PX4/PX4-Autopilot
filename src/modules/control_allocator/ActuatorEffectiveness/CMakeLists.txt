@@ -69,4 +69,5 @@ target_link_libraries(ActuatorEffectiveness
 		mathlib
 )
 
+px4_add_functional_gtest(SRC ActuatorEffectivenessHelicopterTest.cpp LINKLIBS ActuatorEffectiveness)
 px4_add_functional_gtest(SRC ActuatorEffectivenessRotorsTest.cpp LINKLIBS ActuatorEffectiveness)
