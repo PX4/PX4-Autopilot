@@ -622,9 +622,9 @@ void FixedwingAttitudeControl::Run()
 				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
 				 * only once available
 				 */
-				_rates_sp.roll = _roll_ctrl.get_desired_bodyrate();
-				_rates_sp.pitch = _pitch_ctrl.get_desired_bodyrate();
-				_rates_sp.yaw = (wheel_control) ? _wheel_ctrl.get_desired_rate() : _yaw_ctrl.get_desired_bodyrate();
+				_rates_sp.roll = _roll_ctrl.get_desired_rate();
+				_rates_sp.pitch = _pitch_ctrl.get_desired_rate();
+				_rates_sp.yaw = (wheel_control) ? _wheel_ctrl.get_desired_rate() : _yaw_ctrl.get_desired_rate();
 
 				_rates_sp.timestamp = hrt_absolute_time();
 
