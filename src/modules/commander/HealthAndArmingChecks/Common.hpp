@@ -91,7 +91,7 @@ static inline NavModes operator~(NavModes a)
 class HealthComponentIndex
 {
 public:
-	constexpr uint8_t log2(uint64_t x)
+	__attribute__((always_inline)) constexpr uint8_t log2(uint64_t x)
 	{
 		uint8_t i = 0;
 
@@ -102,7 +102,10 @@ public:
 
 		return i;
 	}
-	constexpr HealthComponentIndex(health_component_t component)
+
+	// The compiler is expected to evaluate this at compile-time, which generally works, but not
+	// with GCC 9.3.1 for ARM, so we ensure it's inlined and optimized away.
+	__attribute__((always_inline)) constexpr HealthComponentIndex(health_component_t component)
 		: index(log2((uint64_t)component))
 	{
 	}
