@@ -10,7 +10,7 @@ def fuse_airspeed(
         airspeed: T.Scalar,
         R: T.Scalar,
         epsilon: T.Scalar
-) -> geo.V3:
+) -> (geo.V3, geo.V3, T.Scalar, T.Scalar):
 
     vel_rel = geo.V3(v_local[0] - state[0], v_local[1] - state[1], v_local[2])
     airspeed_pred = vel_rel.norm(epsilon=epsilon) * state[2]
@@ -47,3 +47,13 @@ with fileinput.FileInput(os.path.abspath(metadata.generated_files[0]), inplace=T
         line = line.replace("Eigen", "matrix")
         line = line.replace("matrix/Dense", "matrix/math.hpp")
         print(line, end='')
+
+# Generate python code
+codegen = Codegen.function(
+        fuse_airspeed,
+        output_names=["H", "K", "innov_var", "innov"],
+        config=PythonConfig())
+
+metadata = codegen.generate_function(
+        output_dir="generated",
+        skip_directory_nesting=True)
