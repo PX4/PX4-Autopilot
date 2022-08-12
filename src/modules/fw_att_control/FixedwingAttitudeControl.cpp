@@ -384,12 +384,6 @@ void FixedwingAttitudeControl::Run()
 			wheel_control = true;
 		}
 
-		// lock integrator if no rate control enabled, or in RW mode (but not transitioning VTOL or tailsitter), or for long intervals (> 20 ms)
-		bool lock_integrator = !_vcontrol_mode.flag_control_rates_enabled
-				       || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
-					   !_vehicle_status.in_transition_mode && !_vehicle_status.is_vtol_tailsitter)
-				       || (dt > 0.02f);
-
 		/* if we are in rotary wing mode, do nothing */
 		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.is_vtol) {
 			_spoiler_setpoint_with_slewrate.setForcedValue(0.f);
@@ -401,23 +395,13 @@ void FixedwingAttitudeControl::Run()
 		controlFlaps(dt);
 		controlSpoilers(dt);
 
-		/* decide if in stabilized or full manual control */
 		if (_vcontrol_mode.flag_control_rates_enabled) {
 
 			const float airspeed = get_airspeed_and_update_scaling();
 
 			/* reset integrals where needed */
-			if (_att_sp.roll_reset_integral) {
-				_roll_ctrl.reset_integrator();
-			}
-
-			if (_att_sp.pitch_reset_integral) {
-				_pitch_ctrl.reset_integrator();
-			}
-
-			if (_att_sp.yaw_reset_integral) {
-				_yaw_ctrl.reset_integrator();
-				_wheel_ctrl.reset_integrator();
+			if (_att_sp.reset_rate_integrals) {
+				_rate_control.resetIntegral();
 			}
 
 			/* Reset integrators if the aircraft is on ground
@@ -427,9 +411,7 @@ void FixedwingAttitudeControl::Run()
 			    || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 				&& !_vehicle_status.in_transition_mode && !_vehicle_status.is_vtol_tailsitter)) {
 
-				_roll_ctrl.reset_integrator();
-				_pitch_ctrl.reset_integrator();
-				_yaw_ctrl.reset_integrator();
+				_rate_control.resetIntegral();
 				_wheel_ctrl.reset_integrator();
 			}
 
@@ -450,7 +432,6 @@ void FixedwingAttitudeControl::Run()
 			control_input.airspeed_min = _param_fw_airspd_stall.get();
 			control_input.airspeed_max = _param_fw_airspd_max.get();
 			control_input.airspeed = airspeed;
-			control_input.lock_integrator = lock_integrator;
 
 			if (wheel_control) {
 				_local_pos_sub.update(&_local_pos);
@@ -530,7 +511,6 @@ void FixedwingAttitudeControl::Run()
 
 					if (wheel_control) {
 						_wheel_ctrl.control_attitude(dt, control_input);
-						_yaw_ctrl.reset_integrator();
 
 					} else {
 						// runs last, because is depending on output of roll and pitch attitude
@@ -565,18 +545,10 @@ void FixedwingAttitudeControl::Run()
 					_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
 						(PX4_ISFINITE(roll_u)) ? roll_u + trim_roll : trim_roll;
 
-					if (!PX4_ISFINITE(roll_u)) {
-						_roll_ctrl.reset_integrator();
-					}
-
 					float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * body_rates_setpoint(0);
 					float pitch_u = att_control(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
 					_actuator_controls.control[actuator_controls_s::INDEX_PITCH] =
 						(PX4_ISFINITE(pitch_u)) ? pitch_u + trim_pitch : trim_pitch;
-
-					if (!PX4_ISFINITE(pitch_u)) {
-						_pitch_ctrl.reset_integrator();
-					}
 
 					float yaw_u = 0.0f;
 
@@ -597,9 +569,8 @@ void FixedwingAttitudeControl::Run()
 						_actuator_controls.control[actuator_controls_s::INDEX_YAW] += _manual_control_setpoint.r;
 					}
 
-					if (!PX4_ISFINITE(yaw_u)) {
-						// _yaw_ctrl.reset_integrator();
-						_wheel_ctrl.reset_integrator();
+					if (!PX4_ISFINITE(roll_u) || !PX4_ISFINITE(pitch_u) || !PX4_ISFINITE(yaw_u)) {
+						_rate_control.resetIntegral();
 					}
 
 					/* throttle passed through if it is finite */
@@ -665,6 +636,11 @@ void FixedwingAttitudeControl::Run()
 			}
 
 			_rate_ctrl_status_pub.publish(rate_ctrl_status);
+
+		} else {
+			// full manual
+			_rate_control.resetIntegral();
+			_wheel_ctrl.reset_integrator();
 		}
 
 		// Add feed-forward from roll control output to yaw control output
