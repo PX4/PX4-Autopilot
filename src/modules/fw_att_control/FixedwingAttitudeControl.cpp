@@ -104,7 +104,8 @@ FixedwingAttitudeControl::parameters_update()
 		Vector3f(_param_fw_rr_imax.get(), _param_fw_pr_imax.get(), _param_fw_yr_imax.get()));
 
 	_rate_control.setFeedForwardGain(
-		Vector3f(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get()));
+		// set FF gains to 0 as we add the FF control outside of the rate controller
+		Vector3f(0.f, 0.f, 0.f));
 
 
 	return PX4_OK;
