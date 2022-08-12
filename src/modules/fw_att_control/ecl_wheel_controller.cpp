@@ -62,7 +62,7 @@ float ECL_WheelController::control_bodyrate(const float dt, const ECL_ControlDat
 	/* Calculate body angular rate error */
 	const float rate_error = _body_rate_setpoint - ctl_data.body_z_rate; //body angular rate error
 
-	if (!ctl_data.lock_integrator && _k_i > 0.0f && ctl_data.groundspeed > min_speed) {
+	if (_k_i > 0.0f && ctl_data.groundspeed > min_speed) {
 
 		float id = rate_error * dt * ctl_data.groundspeed_scaler;
 

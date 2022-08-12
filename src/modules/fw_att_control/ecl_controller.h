@@ -69,7 +69,6 @@ struct ECL_ControlData {
 	float airspeed;
 	float groundspeed;
 	float groundspeed_scaler;
-	bool lock_integrator;
 };
 
 class ECL_Controller
