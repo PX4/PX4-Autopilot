@@ -60,9 +60,6 @@ public:
 
 	float control_attitude(const float dt, const ECL_ControlData &ctl_data) override;
 
-protected:
-	float _max_rate{0.0f};
-
 };
 
 #endif // ECL_YAW_CONTROLLER_H

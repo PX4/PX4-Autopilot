@@ -579,14 +579,14 @@ void FixedwingAttitudeControl::Run()
 						    && ((now - pid_autotune.timestamp) < 1_s)) {
 
 							bodyrate_autotune_ff = matrix::Vector3f(pid_autotune.rate_sp);
-							body_rates_setpoint = body_rates_setpoint + bodyrate_autotune_ff;
+							body_rates_setpoint += bodyrate_autotune_ff;
 						}
 					}
 
 					/* add yaw rate setpoint from sticks in Stabilized mode */
 					if (_vcontrol_mode.flag_control_manual_enabled) {
 						_actuator_controls.control[actuator_controls_s::INDEX_YAW] += _manual_control_setpoint.r;
-						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.r * radians(_param_fw_acro_z_max.get()),
+						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.r * radians(_param_fw_y_rmax.get()),
 									  -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
 					}
 
@@ -640,9 +640,7 @@ void FixedwingAttitudeControl::Run()
 						_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_scale;
 					}
 
-					/*
-					* Publish the rate setpoint for analysis once available
-					*/
+					/* Publish the rate setpoint for analysis once available */
 					_rates_sp.roll = body_rates_setpoint(0);
 					_rates_sp.pitch = body_rates_setpoint(1);
 					_rates_sp.yaw = (wheel_control) ? _wheel_ctrl.get_body_rate_setpoint() : body_rates_setpoint(2);
