@@ -54,14 +54,20 @@ def getData(log, topic_name, variable_name, instance=0):
 def us2s(time_ms):
     return time_ms * 1e-6
 
-def run(logfile):
+def run(logfile, use_gnss):
     log = ULog(logfile)
 
-    v_local = np.array([getData(log, 'vehicle_gps_position', 'vel_n_m_s'),
-              getData(log, 'vehicle_gps_position', 'vel_e_m_s'),
-              getData(log, 'vehicle_gps_position', 'vel_d_m_s')])
+    if use_gnss:
+        v_local = np.array([getData(log, 'vehicle_gps_position', 'vel_n_m_s'),
+                  getData(log, 'vehicle_gps_position', 'vel_e_m_s'),
+                  getData(log, 'vehicle_gps_position', 'vel_d_m_s')])
+        t_v_local = us2s(getData(log, 'vehicle_gps_position', 'timestamp'))
 
-    t_v_local = us2s(getData(log, 'vehicle_gps_position', 'timestamp'))
+    else:
+        v_local = np.array([getData(log, 'vehicle_local_position', 'vx'),
+                  getData(log, 'vehicle_local_position', 'vy'),
+                  getData(log, 'vehicle_local_position', 'vz')])
+        t_v_local = us2s(getData(log, 'vehicle_local_position', 'timestamp'))
 
     true_airspeed = getData(log, 'airspeed', 'true_airspeed_m_s')
     t_true_airspeed = us2s(getData(log, 'airspeed', 'timestamp'))
@@ -88,15 +94,17 @@ def run(logfile):
     for i in range(n):
         dt = t_v_local[i] - t_now
         t_now = t_v_local[i] # run on local position updates
-        while t_dist_bottom[i_dist_bottom] <= t_now:
+
+        while i_dist_bottom < len(t_dist_bottom) and t_dist_bottom[i_dist_bottom] <= t_now:
             i_dist_bottom += 1
         i_dist_bottom -= 1
+
         if dist_bottom[i_dist_bottom] > 20.0: # Don't start too low
 
             P += Q * dt
 
             if t_true_airspeed[i_airspeed] < t_now:
-                while t_true_airspeed[i_airspeed] < t_now:
+                while i_airspeed < len(t_true_airspeed) and t_true_airspeed[i_airspeed] < t_now:
                     i_airspeed += 1
                 i_airspeed -= 1
 
@@ -135,8 +143,10 @@ if __name__ == '__main__':
 
     # Provide parameter file path and name
     parser.add_argument('logfile', help='Full ulog file path, name and extension', type=str)
+    parser.add_argument('--gnss', help='Use GNSS velocity instead of local velocity estimate',
+                        action='store_true')
     args = parser.parse_args()
 
     logfile = os.path.abspath(args.logfile) # Convert to absolute path
 
-    run(logfile)
+    run(logfile, args.gnss)
