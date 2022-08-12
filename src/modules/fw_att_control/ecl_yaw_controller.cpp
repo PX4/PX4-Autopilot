@@ -85,8 +85,9 @@ float ECL_YawController::control_attitude(const float dt, const ECL_ControlData 
 				       ctl_data.airspeed_min ? ctl_data.airspeed_min : ctl_data.airspeed);
 
 		/* Transform setpoint to body angular rates (jacobian) */
-		_body_rate_setpoint = -sinf(ctl_data.roll) * ctl_data.euler_pitch_rate_setpoint +
-				      cosf(ctl_data.roll) * cosf(ctl_data.pitch) * _euler_rate_setpoint;
+		const float yaw_body_rate_setpoint_raw = -sinf(ctl_data.roll) * ctl_data.euler_pitch_rate_setpoint +
+				cosf(ctl_data.roll) * cosf(ctl_data.pitch) * _euler_rate_setpoint;
+		_body_rate_setpoint = math::constrain(yaw_body_rate_setpoint_raw, -_max_rate, _max_rate);
 	}
 
 	if (!PX4_ISFINITE(_body_rate_setpoint)) {

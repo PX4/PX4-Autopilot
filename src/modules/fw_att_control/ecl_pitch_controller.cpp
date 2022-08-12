@@ -62,8 +62,9 @@ float ECL_PitchController::control_attitude(const float dt, const ECL_ControlDat
 	_euler_rate_setpoint =  pitch_error / _tc;
 
 	/* Transform setpoint to body angular rates (jacobian) */
-	_body_rate_setpoint = cosf(ctl_data.roll) * _euler_rate_setpoint +
-			      cosf(ctl_data.pitch) * sinf(ctl_data.roll) * ctl_data.euler_yaw_rate_setpoint;
+	const float pitch_body_rate_setpoint_raw = cosf(ctl_data.roll) * _euler_rate_setpoint +
+			cosf(ctl_data.pitch) * sinf(ctl_data.roll) * ctl_data.euler_yaw_rate_setpoint;
+	_body_rate_setpoint = math::constrain(pitch_body_rate_setpoint_raw, -_max_rate_neg, _max_rate);
 
 	return _body_rate_setpoint;
 }
