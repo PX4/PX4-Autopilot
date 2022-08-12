@@ -54,7 +54,9 @@ ControlAllocator::ControlAllocator() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
-	_control_allocator_status_pub.advertise();
+	_control_allocator_status_pub[0].advertise();
+	_control_allocator_status_pub[1].advertise();
+
 	_actuator_motors_pub.advertise();
 	_actuator_servos_pub.advertise();
 	_actuator_servos_trim_pub.advertise();
@@ -430,7 +432,12 @@ ControlAllocator::Run()
 	// Publish status at limited rate, as it's somewhat expensive and we use it for slower dynamics
 	// (i.e. anti-integrator windup)
 	if (now - _last_status_pub >= 5_ms) {
-		publish_control_allocator_status();
+		publish_control_allocator_status(0);
+
+		if (_num_control_allocation > 1) {
+			publish_control_allocator_status(1);
+		}
+
 		_last_status_pub = now;
 	}
 
@@ -571,15 +578,15 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 }
 
 void
-ControlAllocator::publish_control_allocator_status()
+ControlAllocator::publish_control_allocator_status(int matrix_index)
 {
 	control_allocator_status_s control_allocator_status{};
 	control_allocator_status.timestamp = hrt_absolute_time();
 
-	// TODO: handle multiple matrices & disabled motors (?)
+	// TODO: disabled motors (?)
 
 	// Allocated control
-	const matrix::Vector<float, NUM_AXES> &allocated_control = _control_allocation[0]->getAllocatedControl();
+	const matrix::Vector<float, NUM_AXES> &allocated_control = _control_allocation[matrix_index]->getAllocatedControl();
 	control_allocator_status.allocated_torque[0] = allocated_control(0);
 	control_allocator_status.allocated_torque[1] = allocated_control(1);
 	control_allocator_status.allocated_torque[2] = allocated_control(2);
@@ -588,7 +595,7 @@ ControlAllocator::publish_control_allocator_status()
 	control_allocator_status.allocated_thrust[2] = allocated_control(5);
 
 	// Unallocated control
-	const matrix::Vector<float, NUM_AXES> unallocated_control = _control_allocation[0]->getControlSetpoint() -
+	const matrix::Vector<float, NUM_AXES> unallocated_control = _control_allocation[matrix_index]->getControlSetpoint() -
 			allocated_control;
 	control_allocator_status.unallocated_torque[0] = unallocated_control(0);
 	control_allocator_status.unallocated_torque[1] = unallocated_control(1);
@@ -604,9 +611,9 @@ ControlAllocator::publish_control_allocator_status()
 			unallocated_control(5)).norm_squared() < 1e-6f);
 
 	// Actuator saturation
-	const matrix::Vector<float, NUM_ACTUATORS> &actuator_sp = _control_allocation[0]->getActuatorSetpoint();
-	const matrix::Vector<float, NUM_ACTUATORS> &actuator_min = _control_allocation[0]->getActuatorMin();
-	const matrix::Vector<float, NUM_ACTUATORS> &actuator_max = _control_allocation[0]->getActuatorMax();
+	const matrix::Vector<float, NUM_ACTUATORS> &actuator_sp = _control_allocation[matrix_index]->getActuatorSetpoint();
+	const matrix::Vector<float, NUM_ACTUATORS> &actuator_min = _control_allocation[matrix_index]->getActuatorMin();
+	const matrix::Vector<float, NUM_ACTUATORS> &actuator_max = _control_allocation[matrix_index]->getActuatorMax();
 
 	for (int i = 0; i < NUM_ACTUATORS; i++) {
 		if (actuator_sp(i) > (actuator_max(i) - FLT_EPSILON)) {
@@ -620,7 +627,7 @@ ControlAllocator::publish_control_allocator_status()
 	// Handled motor failures
 	control_allocator_status.handled_motor_failure_mask = _handled_motor_failure_bitmask;
 
-	_control_allocator_status_pub.publish(control_allocator_status);
+	_control_allocator_status_pub[matrix_index].publish(control_allocator_status);
 }
 
 void
