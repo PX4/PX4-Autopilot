@@ -61,7 +61,9 @@ float ECL_RollController::control_attitude(const float dt, const ECL_ControlData
 	_euler_rate_setpoint = roll_error / _tc;
 
 	/* Transform setpoint to body angular rates (jacobian) */
-	_body_rate_setpoint = _euler_rate_setpoint - sinf(ctl_data.pitch) * ctl_data.euler_yaw_rate_setpoint;
+	const float roll_body_rate_setpoint_raw = _euler_rate_setpoint - sinf(ctl_data.pitch) *
+			ctl_data.euler_yaw_rate_setpoint;
+	_body_rate_setpoint = math::constrain(roll_body_rate_setpoint_raw, -_max_rate, _max_rate);
 
 	return _body_rate_setpoint;
 }
