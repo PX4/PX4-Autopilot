@@ -75,7 +75,7 @@ public:
 
 	void set_bodyrate_setpoint(float rate)
 	{
-		_bodyrate_setpoint = math::constrain(rate, -_max_rate_neg, _max_rate);
+		_body_rate_setpoint = math::constrain(rate, -_max_rate_neg, _max_rate);
 	}
 
 protected:
