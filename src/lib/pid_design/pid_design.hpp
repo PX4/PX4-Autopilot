@@ -82,7 +82,7 @@ inline matrix::Vector3f computePidGmvc(const matrix::Vector3f &num, const matrix
 	const float rho = dt / sigma;
 	const float mu = 0.25f * (1.f - delta) + 0.51f * delta; // mu is in the interval [0.25 0.51]
 	const float p1 = -2.f * expf(-rho / (2.f * mu)) * cosf(sqrtf(4.f * mu - 1.f) * rho / (2.f * mu));
-	const float p2 = exp(-rho / mu);
+	const float p2 = expf(-rho / mu);
 	const float e1 = -a1 + p1 + 1.f;
 	const float f0 = -a1 * e1 + a1 - a2 + e1 + p2;
 	const float f1 = a1 * e1 - a2 * e1 + a2;
