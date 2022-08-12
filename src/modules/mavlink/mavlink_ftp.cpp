@@ -559,7 +559,7 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 		return kErrInvalidSession;
 	}
 
-	PX4_DEBUG("FTP: read offset:%" PRIu32, payload->offset);
+	PX4_DEBUG("FTP: read offset:%ld" PRIu32, payload->offset);
 
 	// We have to test seek past EOF ourselves, lseek will allow seek past EOF
 	if (payload->offset >= _session_info.file_size) {
@@ -567,7 +567,7 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 		return kErrEOF;
 	}
 
-	PX4_DEBUG("lseek with offset: %d", payload->offset);
+	PX4_DEBUG("lseek with offset: %ld", payload->offset);
 
 	if (lseek(_session_info.fd, payload->offset, SEEK_SET) < 0) {
 		_our_errno = errno;

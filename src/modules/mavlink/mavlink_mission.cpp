@@ -486,7 +486,7 @@ MavlinkMissionManager::send()
 
 			_current_seq = mission_result.seq_current;
 
-			PX4_DEBUG("WPM: got mission result, new current_seq: %u", _current_seq);
+			PX4_DEBUG("WPM: got mission result, new current_seq: %ld", _current_seq);
 
 			if (mission_result.seq_total > 0) {
 				if (mission_result.seq_current < mission_result.seq_total) {
@@ -505,7 +505,7 @@ MavlinkMissionManager::send()
 			_last_reached = mission_result.seq_reached;
 			_reached_sent_count = 0;
 
-			PX4_DEBUG("WPM: got mission result, new seq_reached: %d", _last_reached);
+			PX4_DEBUG("WPM: got mission result, new seq_reached: %ld", _last_reached);
 
 			if ((mission_result.seq_total > 0) && (_last_reached >= 0)) {
 				send_mission_item_reached((uint16_t)_last_reached);
@@ -551,7 +551,7 @@ MavlinkMissionManager::send()
 		events::send(events::ID("mavlink_mission_op_timeout"), events::Log::Error,
 			     "Operation timeout, aborting transfer");
 
-		PX4_DEBUG("WPM: Last operation (state=%u) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _state);
+		PX4_DEBUG("WPM: Last operation (state=%d) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _state);
 
 		switch_to_idle_state();
 
@@ -1054,7 +1054,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 	if (CHECK_SYSID_COMPID_MISSION(wp)) {
 
 		if (wp.mission_type != _mission_type) {
-			PX4_WARN("WPM: Unexpected mission type (%u %u)", (int)wp.mission_type, (int)_mission_type);
+			PX4_WARN("WPM: Unexpected mission type (%d %d)", (int)wp.mission_type, (int)_mission_type);
 			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 			return;
 		}
@@ -1219,7 +1219,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 
 		if (_transfer_seq == _transfer_count) {
 			/* got all new mission items successfully */
-			PX4_DEBUG("WPM: MISSION_ITEM got all %u items, current_seq=%u, changing state to MAVLINK_WPM_STATE_IDLE",
+			PX4_DEBUG("WPM: MISSION_ITEM got all %u items, current_seq=%ld, changing state to MAVLINK_WPM_STATE_IDLE",
 				  _transfer_count, _transfer_current_seq);
 
 			ret = 0;
