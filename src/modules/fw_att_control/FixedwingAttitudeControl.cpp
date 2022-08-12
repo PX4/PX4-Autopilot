@@ -444,6 +444,9 @@ void FixedwingAttitudeControl::Run()
 			control_input.roll_setpoint = _att_sp.roll_body;
 			control_input.pitch_setpoint = _att_sp.pitch_body;
 			control_input.yaw_setpoint = _att_sp.yaw_body;
+			control_input.euler_roll_rate_setpoint = _roll_ctrl.get_euler_rate_setpoint();
+			control_input.euler_pitch_rate_setpoint = _pitch_ctrl.get_euler_rate_setpoint();
+			control_input.euler_yaw_rate_setpoint = _yaw_ctrl.get_euler_rate_setpoint();
 			control_input.airspeed_min = _param_fw_airspd_stall.get();
 			control_input.airspeed_max = _param_fw_airspd_max.get();
 			control_input.airspeed = airspeed;
@@ -536,12 +539,12 @@ void FixedwingAttitudeControl::Run()
 					}
 
 					/* Update input data for rate controllers */
-					Vector3f rates_setpoint = Vector3f(_roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate(),
-									   _yaw_ctrl.get_desired_rate());
+					Vector3f body_rates_setpoint = Vector3f(_roll_ctrl.get_body_rate_setpoint(), _pitch_ctrl.get_body_rate_setpoint(),
+										_yaw_ctrl.get_body_rate_setpoint());
 
 					const hrt_abstime now = hrt_absolute_time();
 					autotune_attitude_control_status_s pid_autotune;
-					matrix::Vector3f bodyrate_ff;
+					matrix::Vector3f bodyrate_autotune_ff;
 
 					if (_autotune_attitude_control_status_sub.copy(&pid_autotune)) {
 						if ((pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL
@@ -550,14 +553,14 @@ void FixedwingAttitudeControl::Run()
 						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST)
 						    && ((now - pid_autotune.timestamp) < 1_s)) {
 
-							bodyrate_ff = matrix::Vector3f(pid_autotune.rate_sp);
-							rates_setpoint = rates_setpoint + bodyrate_ff;
+							bodyrate_autotune_ff = matrix::Vector3f(pid_autotune.rate_sp);
+							body_rates_setpoint = body_rates_setpoint + bodyrate_autotune_ff;
 						}
 					}
 
 					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
-					const Vector3f att_control = _rate_control.update(rates, rates_setpoint, angular_accel, dt, _landed);
-					float roll_feedforward = _param_fw_rr_ff.get() * _airspeed_scaling * rates_setpoint(0);
+					const Vector3f att_control = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt, _landed);
+					float roll_feedforward = _param_fw_rr_ff.get() * _airspeed_scaling * body_rates_setpoint(0);
 					float roll_u = att_control(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
 					_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
 						(PX4_ISFINITE(roll_u)) ? roll_u + trim_roll : trim_roll;
@@ -566,7 +569,7 @@ void FixedwingAttitudeControl::Run()
 						_roll_ctrl.reset_integrator();
 					}
 
-					float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * rates_setpoint(0);
+					float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * body_rates_setpoint(0);
 					float pitch_u = att_control(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
 					_actuator_controls.control[actuator_controls_s::INDEX_PITCH] =
 						(PX4_ISFINITE(pitch_u)) ? pitch_u + trim_pitch : trim_pitch;
@@ -623,19 +626,20 @@ void FixedwingAttitudeControl::Run()
 				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
 				 * only once available
 				 */
-				_rates_sp.roll = _roll_ctrl.get_desired_rate();
-				_rates_sp.pitch = _pitch_ctrl.get_desired_rate();
-				_rates_sp.yaw = (wheel_control) ? _wheel_ctrl.get_desired_rate() : _yaw_ctrl.get_desired_rate();
+				_rates_sp.roll = _roll_ctrl.get_body_rate_setpoint();
+				_rates_sp.pitch = _pitch_ctrl.get_body_rate_setpoint();
+				_rates_sp.yaw = (wheel_control) ? _wheel_ctrl.get_body_rate_setpoint() : _yaw_ctrl.get_body_rate_setpoint();
 
 				_rates_sp.timestamp = hrt_absolute_time();
 
 				_rate_sp_pub.publish(_rates_sp);
 
 			} else {
+				// Acro or full manual
 				vehicle_rates_setpoint_poll();
 
-				const Vector3f rates_setpoint = Vector3f(_rates_sp.roll, _rates_sp.pitch, _rates_sp.yaw);
-				const Vector3f att_control = _rate_control.update(rates, rates_setpoint, angular_accel, dt, _landed);
+				const Vector3f body_rates_setpoint = Vector3f(_rates_sp.roll, _rates_sp.pitch, _rates_sp.yaw);
+				const Vector3f att_control = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt, _landed);
 
 				_actuator_controls.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(att_control(0))) ? att_control(
 							0) + trim_roll : trim_roll;
