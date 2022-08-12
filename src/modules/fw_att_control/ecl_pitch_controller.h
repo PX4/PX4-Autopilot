@@ -73,11 +73,6 @@ public:
 		_max_rate_neg = max_rate_neg;
 	}
 
-	void set_bodyrate_setpoint(float rate)
-	{
-		_body_rate_setpoint = math::constrain(rate, -_max_rate_neg, _max_rate);
-	}
-
 protected:
 	float _max_rate_neg{0.0f};
 };

@@ -103,11 +103,6 @@ void ECL_Controller::set_max_rate(float max_rate)
 	_max_rate = max_rate;
 }
 
-void ECL_Controller::set_bodyrate_setpoint(float rate)
-{
-	_body_rate_setpoint = math::constrain(rate, -_max_rate, _max_rate);
-}
-
 float ECL_Controller::get_euler_rate_setpoint()
 {
 	return _euler_rate_setpoint;
