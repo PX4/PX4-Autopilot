@@ -52,6 +52,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
+#include <lib/systemlib/mavlink_log.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -133,6 +134,8 @@ private:
 	static constexpr uint8_t MAX_NUM_MAGS = 4;
 
 	void Run() override;
+
+	void VerifyParams();
 
 	void PublishAidSourceStatus(const hrt_abstime &timestamp);
 	void PublishAttitude(const hrt_abstime &timestamp);
@@ -280,6 +283,8 @@ private:
 
 	float _airspeed_scale_factor{1.0f}; ///< scale factor correction applied to airspeed measurements
 	hrt_abstime _airspeed_validated_timestamp_last{0};
+
+	orb_advert_t _mavlink_log_pub{nullptr};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
