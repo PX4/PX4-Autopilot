@@ -1,3 +1,4 @@
+# @board px4_fmu-v2 exclude
 Coaxial helicopter mixer
 - Two servomotors act on the swashplate (90 degree angle on the swashplate, decoupled effect on roll and pitch).
 - No collective pitch.
