@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include <px4_platform_common/events.h>
 #include "EKF2.hpp"
 
 using namespace time_literals;
@@ -283,6 +284,8 @@ void EKF2::Run()
 
 		// update parameters from storage
 		updateParams();
+
+		VerifyParams();
 
 		_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
 
@@ -641,6 +644,66 @@ void EKF2::Run()
 
 	// re-schedule as backup timeout
 	ScheduleDelayed(100_ms);
+}
+
+void EKF2::VerifyParams()
+{
+	if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_GPS)
+	    || (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_GPS_YAW)) {
+		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_GPS |
+					 SensorFusionMask::DEPRECATED_USE_GPS_YAW));
+		_param_ekf2_aid_mask.commit();
+		mavlink_log_critical(&_mavlink_log_pub, "Use EKF2_GPS_CTRL instead\n");
+		/* EVENT
+		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_aid_mask_gps"), events::Log::Warning,
+				    "Use EKF2_GPS_CTRL instead", _param_ekf2_aid_mask.get());
+	}
+
+	if ((_param_ekf2_gps_ctrl.get() & GnssCtrl::VPOS) && !(_param_ekf2_gps_ctrl.get() & GnssCtrl::HPOS)) {
+		_param_ekf2_gps_ctrl.set(_param_ekf2_gps_ctrl.get() & ~GnssCtrl::VPOS);
+		_param_ekf2_gps_ctrl.commit();
+		mavlink_log_critical(&_mavlink_log_pub, "GPS lon/lat is required for altitude fusion\n");
+		/* EVENT
+		 * @description <param>EKF2_GPS_CTRL</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_gps_ctrl_alt"), events::Log::Warning,
+				    "GPS lon/lat is required for altitude fusion", _param_ekf2_gps_ctrl.get());
+	}
+
+	if ((_param_ekf2_hgt_ref.get() == HeightSensor::BARO) && (_param_ekf2_baro_ctrl.get() == 0)) {
+		_param_ekf2_baro_ctrl.set(1);
+		_param_ekf2_baro_ctrl.commit();
+		mavlink_log_critical(&_mavlink_log_pub, "Baro enabled by EKF2_HGT_REF\n");
+		/* EVENT
+		 * @description <param>EKF2_BARO_CTRL</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_hgt_ref_baro"), events::Log::Warning,
+				    "Baro enabled by EKF2_HGT_REF", _param_ekf2_baro_ctrl.get());
+	}
+
+	if ((_param_ekf2_hgt_ref.get() == HeightSensor::RANGE) && (_param_ekf2_rng_ctrl.get() == RngCtrl::DISABLED)) {
+		_param_ekf2_rng_ctrl.set(1);
+		_param_ekf2_rng_ctrl.commit();
+		mavlink_log_critical(&_mavlink_log_pub, "Range enabled by EKF2_HGT_REF\n");
+		/* EVENT
+		 * @description <param>EKF2_RNG_CTRL</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_hgt_ref_rng"), events::Log::Warning,
+				    "Range enabled by EKF2_HGT_REF", _param_ekf2_rng_ctrl.get());
+	}
+
+	if ((_param_ekf2_hgt_ref.get() == HeightSensor::GNSS) && !(_param_ekf2_gps_ctrl.get() & GnssCtrl::VPOS)) {
+		_param_ekf2_gps_ctrl.set(_param_ekf2_gps_ctrl.get() | (GnssCtrl::VPOS | GnssCtrl::HPOS | GnssCtrl::VEL));
+		_param_ekf2_gps_ctrl.commit();
+		mavlink_log_critical(&_mavlink_log_pub, "GPS enabled by EKF2_HGT_REF\n");
+		/* EVENT
+		 * @description <param>EKF2_GPS_CTRL</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_hgt_ref_gps"), events::Log::Warning,
+				    "GPS enabled by EKF2_HGT_REF", _param_ekf2_gps_ctrl.get());
+	}
 }
 
 void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
