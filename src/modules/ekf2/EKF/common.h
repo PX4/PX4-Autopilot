@@ -128,14 +128,14 @@ enum RngCtrl : uint8_t {
 
 enum SensorFusionMask : uint16_t {
 	// Bit locations for fusion_mode
-	/* USE_GPS          = (1<<0),      ///< set to true to use GPS data */
+	DEPRECATED_USE_GPS = (1<<0),    ///< set to true to use GPS data (DEPRECATED, use gnss_ctrl)
 	USE_OPT_FLOW     = (1<<1),      ///< set to true to use optical flow data
 	INHIBIT_ACC_BIAS = (1<<2),      ///< set to true to inhibit estimation of accelerometer delta velocity bias
 	USE_EXT_VIS_POS  = (1<<3),      ///< set to true to use external vision position data
 	USE_EXT_VIS_YAW  = (1<<4),      ///< set to true to use external vision quaternion data for yaw
 	USE_DRAG         = (1<<5),      ///< set to true to use the multi-rotor drag model to estimate wind
 	ROTATE_EXT_VIS   = (1<<6),      ///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
-	/* USE_GPS_YAW      = (1<<7),      ///< set to true to use GPS yaw data if available */
+	DEPRECATED_USE_GPS_YAW = (1<<7),///< set to true to use GPS yaw data if available (DEPRECATED, use gnss_ctrl)
 	USE_EXT_VIS_VEL  = (1<<8),      ///< set to true to use external vision velocity data
 };
 
