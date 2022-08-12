@@ -161,39 +161,6 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	// ESC checks
-	if (_param_com_arm_chk_escs.get() && reporter.failsafeFlags().escs_error) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
-		 * </profile>
-		 */
-		reporter.healthFailure(NavModes::All, health_component_t::motors_escs, events::ID("check_system_escs_offline"),
-				       events::Log::Error, "One or more ESCs are offline");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: One or more ESCs are offline");
-		}
-	}
-
-	if (_param_com_arm_chk_escs.get() && reporter.failsafeFlags().escs_failure) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
-		 * </profile>
-		 */
-		reporter.healthFailure(NavModes::All, health_component_t::motors_escs, events::ID("check_system_escs_failure"),
-				       events::Log::Error, "One or more ESCs have a failure");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: One or more ESCs have a failure");
-		}
-	}
-
-	reporter.setIsPresent(health_component_t::motors_escs); // TODO: based on telemetry
-
 	// VTOL in transition
 	if (context.status().is_vtol && !context.isArmed()) {
 		if (context.status().in_transition_mode) {

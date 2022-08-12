@@ -36,25 +36,24 @@
 #include "../Common.hpp"
 
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/esc_status.h>
 
-class SystemChecks : public HealthAndArmingCheckBase
+class EscChecks : public HealthAndArmingCheckBase
 {
 public:
-	SystemChecks() = default;
-	~SystemChecks() = default;
+	EscChecks() = default;
+	~EscChecks() = default;
 
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
+	void checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
+
+	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
+
+	const hrt_abstime _start_time{hrt_absolute_time()};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming,
-					(ParamInt<px4::params::CBRK_USB_CHK>) _param_cbrk_usb_chk,
-					(ParamBool<px4::params::COM_ARM_MIS_REQ>) _param_com_arm_mis_req,
-					(ParamBool<px4::params::COM_ARM_WO_GPS>) _param_com_arm_wo_gps,
-					(ParamInt<px4::params::COM_ARM_AUTH_REQ>) _param_com_arm_auth_req,
-					(ParamInt<px4::params::GF_ACTION>) _param_gf_action
+					(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_escs_checks_required
 				       )
 };
