@@ -59,8 +59,8 @@ px4_add_board(
 		#sih
 		simulator
 		temperature_compensation
-		uuv_att_control
-		uuv_pos_control
+		#uuv_att_control
+		#uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS

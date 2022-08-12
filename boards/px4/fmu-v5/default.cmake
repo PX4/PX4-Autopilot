@@ -89,8 +89,8 @@ px4_add_board(
 		sensors
 		sih
 		temperature_compensation
-		uuv_att_control
-		uuv_pos_control
+		#uuv_att_control
+		#uuv_pos_control
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
