@@ -42,6 +42,7 @@ px4_add_library(health_and_arming_checks
 	checks/imuConsistencyCheck.cpp
 	checks/airspeedCheck.cpp
 	checks/distanceSensorChecks.cpp
+	checks/escCheck.cpp
 	checks/rcCalibrationCheck.cpp
 	checks/powerCheck.cpp
 	checks/estimatorCheck.cpp

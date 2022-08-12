@@ -532,38 +532,6 @@ static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_r
 	return "";
 };
 
-using esc_fault_reason_t = events::px4::enums::esc_fault_reason_t;
-static_assert(esc_report_s::ESC_FAILURE_COUNT == (static_cast<uint8_t>(esc_fault_reason_t::_max) + 1)
-	      , "ESC fault flags mismatch!");
-static constexpr const char *esc_fault_reason_str(esc_fault_reason_t esc_fault_reason)
-{
-	switch (esc_fault_reason) {
-	case esc_fault_reason_t::over_current: return "over current";
-
-	case esc_fault_reason_t::over_voltage: return "over voltage";
-
-	case esc_fault_reason_t::motor_over_temp: return "motor critical temperature";
-
-	case esc_fault_reason_t::over_rpm: return "over RPM";
-
-	case esc_fault_reason_t::inconsistent_cmd: return "control failure";
-
-	case esc_fault_reason_t::motor_stuck: return "motor stall";
-
-	case esc_fault_reason_t::failure_generic: return "hardware failure";
-
-	case esc_fault_reason_t::motor_warn_temp: return "motor over temperature";
-
-	case esc_fault_reason_t::esc_warn_temp: return "over temperature";
-
-	case esc_fault_reason_t::esc_over_temp: return "critical temperature";
-
-	}
-
-	return "";
-};
-
-
 
 using navigation_mode_t = events::px4::enums::navigation_mode_t;
 
@@ -2010,34 +1978,6 @@ Commander::run()
 				if (_actuator_armed.soft_stop != should_soft_stop) {
 					_actuator_armed.soft_stop = should_soft_stop;
 					_status_changed = true;
-				}
-			}
-		}
-
-		if (_esc_status_sub.updated()) {
-			/* ESCs status changed */
-			esc_status_check();
-
-		} else if (_param_escs_checks_required.get() != 0) {
-
-			if (!_vehicle_status_flags.escs_error) {
-
-				if ((_last_esc_status_updated != 0) && (hrt_elapsed_time(&_last_esc_status_updated) > 700_ms)) {
-					/* Detect timeout after first telemetry packet received
-					 * Some DShot ESCs are unresponsive for ~550ms during their initialization, so we use a timeout higher than that
-					 */
-
-					mavlink_log_critical(&_mavlink_log_pub, "ESCs telemetry timeout\t");
-					events::send(events::ID("commander_esc_telemetry_timeout"), events::Log::Critical,
-						     "ESCs telemetry timeout");
-					_vehicle_status_flags.escs_error = true;
-
-				} else if (_last_esc_status_updated == 0 && hrt_elapsed_time(&_boot_timestamp) > 5000_ms) {
-					/* Detect if esc telemetry is not connected after reboot */
-					mavlink_log_critical(&_mavlink_log_pub, "ESCs telemetry not connected\t");
-					events::send(events::ID("commander_esc_telemetry_not_con"), events::Log::Critical,
-						     "ESCs telemetry not connected");
-					_vehicle_status_flags.escs_error = true;
 				}
 			}
 		}
@@ -3576,100 +3516,6 @@ Commander::offboard_control_update()
 		_vehicle_status_flags.offboard_control_signal_lost = offboard_lost;
 		_status_changed = true;
 	}
-}
-
-void Commander::esc_status_check()
-{
-	esc_status_s esc_status{};
-
-	_esc_status_sub.copy(&esc_status);
-
-	if (esc_status.esc_count > 0) {
-
-		char esc_fail_msg[50];
-		esc_fail_msg[0] = '\0';
-
-		int online_bitmask = (1 << esc_status.esc_count) - 1;
-
-		// Check if ALL the ESCs are online
-		if (online_bitmask == esc_status.esc_online_flags) {
-
-			_vehicle_status_flags.escs_error = false;
-			_last_esc_online_flags = esc_status.esc_online_flags;
-
-		} else if (_last_esc_online_flags == esc_status.esc_online_flags)  {
-
-			// Avoid checking the status if the flags are the same or if the mixer has not yet been loaded in the ESC driver
-
-			_vehicle_status_flags.escs_error = true;
-
-		} else if (esc_status.esc_online_flags < _last_esc_online_flags) {
-
-			// Only warn the user when an ESC goes from ONLINE to OFFLINE. This is done to prevent showing Offline ESCs warnings at boot
-
-			for (int index = 0; index < esc_status.esc_count; index++) {
-				if ((esc_status.esc_online_flags & (1 << index)) == 0) {
-					snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", index + 1);
-					esc_fail_msg[sizeof(esc_fail_msg) - 1] = '\0';
-					events::px4::enums::suggested_action_t action = _arm_state_machine.isArmed() ?
-							events::px4::enums::suggested_action_t::land :
-							events::px4::enums::suggested_action_t::none;
-					uint8_t motor_index = esc_status.esc[index].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + 1;
-					events::send<uint8_t, events::px4::enums::suggested_action_t>(events::ID("commander_esc_offline"),
-							events::Log::Critical, "ESC{1} offline. {2}", motor_index, action);
-				}
-			}
-
-			mavlink_log_critical(&_mavlink_log_pub, "%soffline. %s\t", esc_fail_msg,
-					     _arm_state_machine.isArmed() ? "Land now!" : "");
-
-			_last_esc_online_flags = esc_status.esc_online_flags;
-			_vehicle_status_flags.escs_error = true;
-		}
-
-		_vehicle_status_flags.escs_failure = false;
-
-		for (int index = 0; index < esc_status.esc_count; index++) {
-
-			_vehicle_status_flags.escs_failure |= esc_status.esc[index].failures > 0;
-
-			if (esc_status.esc[index].failures != _last_esc_failure[index]) {
-
-				for (uint8_t fault_index = 0; fault_index <= static_cast<uint8_t>(esc_fault_reason_t::_max);
-				     fault_index++) {
-					if (esc_status.esc[index].failures & (1 << fault_index)) {
-
-						esc_fault_reason_t fault_reason_index = static_cast<esc_fault_reason_t>(fault_index);
-
-						const char *user_action = nullptr;
-						events::px4::enums::suggested_action_t action = events::px4::enums::suggested_action_t::none;
-
-						if (fault_reason_index == esc_fault_reason_t::motor_warn_temp
-						    || fault_reason_index == esc_fault_reason_t::esc_warn_temp) {
-							user_action = "Reduce throttle";
-							action = events::px4::enums::suggested_action_t::reduce_throttle;
-
-						} else {
-							user_action = "Land now!";
-							action = events::px4::enums::suggested_action_t::land;
-						}
-
-						mavlink_log_emergency(&_mavlink_log_pub, "ESC%d: %s. %s \t", index + 1,
-								      esc_fault_reason_str(fault_reason_index), _arm_state_machine.isArmed() ? user_action : "");
-
-						events::send<uint8_t, events::px4::enums::esc_fault_reason_t, events::px4::enums::suggested_action_t>
-						(events::ID("commander_esc_fault"), {events::Log::Emergency, events::LogInternal::Warning},
-						 "ESC {1}: {2}. {3}", index + 1, fault_reason_index, action);
-					}
-				}
-			}
-
-			_last_esc_failure[index] = esc_status.esc[index].failures;
-		}
-
-	}
-
-	_last_esc_status_updated = esc_status.timestamp;
 }
 
 void Commander::send_parachute_command()

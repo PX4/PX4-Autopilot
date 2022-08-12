@@ -29,8 +29,6 @@ bool local_velocity_valid		# set to true by the commander app if the quality of 
 bool global_position_valid		# set to true by the commander app if the quality of the global position estimate is good enough to use for navigation
 bool gps_position_valid
 bool home_position_valid		# indicates a valid home position (a valid home position is not always a valid launch)
-bool escs_error		      		# set to true if one or more ESCs reporting esc_status are offline
-bool escs_failure		      	# set to true if one or more ESCs reporting esc_status has a failure
 
 bool offboard_control_signal_lost
 
