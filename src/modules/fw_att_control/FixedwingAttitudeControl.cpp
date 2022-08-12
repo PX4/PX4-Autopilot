@@ -415,6 +415,50 @@ void FixedwingAttitudeControl::Run()
 				_wheel_ctrl.reset_integrator();
 			}
 
+			// update saturation status from control allocation feedback
+			control_allocator_status_s control_allocator_status;
+
+			if (_vehicle_status.is_vtol) {
+				if (_control_allocator_status_subs[1].update(&control_allocator_status)) {
+					Vector<bool, 3> saturation_positive;
+					Vector<bool, 3> saturation_negative;
+
+					if (!control_allocator_status.torque_setpoint_achieved) {
+						for (size_t i = 0; i < 3; i++) {
+							if (control_allocator_status.unallocated_torque[i] > FLT_EPSILON) {
+								saturation_positive(i) = true;
+
+							} else if (control_allocator_status.unallocated_torque[i] < -FLT_EPSILON) {
+								saturation_negative(i) = true;
+							}
+						}
+					}
+
+					// TODO: send the unallocated value directly for better anti-windup
+					_rate_control.setSaturationStatus(saturation_positive, saturation_negative);
+				}
+
+			} else {
+				if (_control_allocator_status_subs[0].update(&control_allocator_status)) {
+					Vector<bool, 3> saturation_positive;
+					Vector<bool, 3> saturation_negative;
+
+					if (!control_allocator_status.torque_setpoint_achieved) {
+						for (size_t i = 0; i < 3; i++) {
+							if (control_allocator_status.unallocated_torque[i] > FLT_EPSILON) {
+								saturation_positive(i) = true;
+
+							} else if (control_allocator_status.unallocated_torque[i] < -FLT_EPSILON) {
+								saturation_negative(i) = true;
+							}
+						}
+					}
+
+					// TODO: send the unallocated value directly for better anti-windup
+					_rate_control.setSaturationStatus(saturation_positive, saturation_negative);
+				}
+			}
+
 			/* Prepare data for attitude controllers */
 			ECL_ControlData control_input{};
 			control_input.roll = euler_angles.phi();
