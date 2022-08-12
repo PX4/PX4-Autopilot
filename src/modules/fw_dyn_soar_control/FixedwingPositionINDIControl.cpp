@@ -1469,11 +1469,6 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
     //Vector3f vel_body_2 = Dcmf(Quatf(_attitude.q)).transpose()*Vector3f{_local_pos.vx,_local_pos.vy,_local_pos.vz};
     //PX4_INFO("ENU body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body_2(0), (double)vel_body_2(1), (double)vel_body_2(2));
     //PX4_INFO("FRD body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body(0), (double)vel_body(1), (double)vel_body(2));
-    // filter omega at the same rate as the moments
-    Vector3f omega_filtered;
-    omega_filtered(0) = _lp_filter_omega_2[0].apply(_omega(0));
-    omega_filtered(1) = _lp_filter_omega_2[1].apply(_omega(1));
-    omega_filtered(2) = _lp_filter_omega_2[2].apply(_omega(2));
     //omega_filtered = _omega; //TODO: remove
     // compute moments
     Vector3f moment;
