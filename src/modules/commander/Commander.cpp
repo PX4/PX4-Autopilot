@@ -2390,12 +2390,19 @@ Commander::run()
 								 && !_mission_result_sub.get().finished;
 
 				if (_param_com_disarm_land.get() > 0 && _have_taken_off_since_arming && !landed_amid_mission) {
+					// Enable auto disarm hysteresis since we have taken off in the past and have landed now
 					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
 					_auto_disarm_landed.set_state_and_update(_vehicle_land_detected.landed, hrt_absolute_time());
 
 				} else if (_param_com_disarm_preflight.get() > 0 && !_have_taken_off_since_arming) {
+					// Enable preflight disarm hysteresis as we are armed and isn't taking off
 					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
 					_auto_disarm_landed.set_state_and_update(true, hrt_absolute_time());
+
+				} else if (_have_taken_off_since_arming) {
+					// Always reset the state to False in air, so that residue of the state requested from preflight
+					// doesn't affect the landed disarm hysteresis once we land again
+					_auto_disarm_landed.set_state_and_update(false, hrt_absolute_time());
 				}
 
 				if (_auto_disarm_landed.get_state()) {
