@@ -447,7 +447,6 @@ void FixedwingAttitudeControl::Run()
 			control_input.airspeed_min = _param_fw_airspd_stall.get();
 			control_input.airspeed_max = _param_fw_airspd_max.get();
 			control_input.airspeed = airspeed;
-			control_input.scaler = _airspeed_scaling;
 			control_input.lock_integrator = lock_integrator;
 
 			if (wheel_control) {
