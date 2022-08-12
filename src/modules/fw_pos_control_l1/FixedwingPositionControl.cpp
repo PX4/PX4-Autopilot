@@ -908,8 +908,6 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 		publishOrbitStatus(current_sp);
 	}
 
-	const bool was_circle_mode = (_param_fw_use_npfg.get()) ? _npfg.circleMode() : _l1_control.circle_mode();
-
 	switch (position_sp_type) {
 	case position_setpoint_s::SETPOINT_TYPE_IDLE:
 		_att_sp.thrust_body[0] = 0.0f;
@@ -931,11 +929,6 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
 		control_auto_loiter(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
 		break;
-	}
-
-	if (was_circle_mode && !_l1_control.circle_mode()) {
-		/* just kicked out of loiter, reset roll integrals */
-		_att_sp.roll_reset_integral = true;
 	}
 
 	/* Copy thrust output for publication, handle special cases */
@@ -1482,8 +1475,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		if (_runway_takeoff.resetIntegrators()) {
 			// reset integrals except yaw (which also counts for the wheel controller)
-			_att_sp.roll_reset_integral = true;
-			_att_sp.pitch_reset_integral = true;
+			_att_sp.reset_rate_integrals = true;
 
 			// throttle is open loop anyway during ground roll, no need to wind up the integrator
 			_tecs.resetIntegrals();
@@ -1621,11 +1613,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_att_sp.pitch_body = get_tecs_pitch();
 
 		} else {
-			/* Tell the attitude controller to stop integrating while we are waiting
-			 * for the launch */
-			_att_sp.roll_reset_integral = true;
-			_att_sp.pitch_reset_integral = true;
-			_att_sp.yaw_reset_integral = true;
+			/* Tell the attitude controller to stop integrating while we are waiting for the launch */
+			_att_sp.reset_rate_integrals = true;
 
 			/* Set default roll and pitch setpoints during detection phase */
 			_att_sp.roll_body = 0.0f;
@@ -2234,9 +2223,7 @@ FixedwingPositionControl::Run()
 		_npfg.setPeriod(_param_npfg_period.get());
 		_l1_control.set_l1_period(_param_fw_l1_period.get());
 
-		_att_sp.roll_reset_integral = false;
-		_att_sp.pitch_reset_integral = false;
-		_att_sp.yaw_reset_integral = false;
+		_att_sp.reset_rate_integrals = false;
 
 		// by default we don't want yaw to be contoller directly with rudder
 		_att_sp.fw_control_yaw = false;
