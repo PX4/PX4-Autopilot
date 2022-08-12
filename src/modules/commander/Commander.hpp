@@ -69,7 +69,6 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/esc_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -135,8 +134,6 @@ private:
 	 * Checks the status of all available data links and handles switching between different system telemetry states.
 	 */
 	void data_link_check();
-
-	void esc_status_check();
 
 	void manual_control_check();
 
@@ -217,8 +214,6 @@ private:
 		// Engine failure
 		(ParamInt<px4::params::COM_ACT_FAIL_ACT>) _param_com_actuator_failure_act,
 
-		(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_escs_checks_required,
-
 		(ParamInt<px4::params::COM_FLIGHT_UUID>) _param_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>) _param_takeoff_finished_action,
 
@@ -293,10 +288,6 @@ private:
 	hrt_abstime	_high_latency_datalink_heartbeat{0};
 	hrt_abstime	_high_latency_datalink_lost{0};
 
-	int		_last_esc_online_flags{-1};
-	int		_last_esc_failure[esc_status_s::CONNECTED_ESC_MAX] {};
-	hrt_abstime	_last_esc_status_updated{0};
-
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	hrt_abstime	_battery_failsafe_timestamp{0};
 	Hysteresis	_auto_disarm_landed{false};
@@ -348,7 +339,6 @@ private:
 	// Subscriptions
 	uORB::Subscription					_action_request_sub {ORB_ID(action_request)};
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
-	uORB::Subscription					_esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription					_geofence_result_sub{ORB_ID(geofence_result)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
