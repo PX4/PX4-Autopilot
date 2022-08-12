@@ -596,12 +596,12 @@ void FixedwingAttitudeControl::Run()
 					float roll_feedforward = _param_fw_rr_ff.get() * _airspeed_scaling * body_rates_setpoint(0);
 					float roll_u = att_control(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
 					_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
-						(PX4_ISFINITE(roll_u)) ? roll_u + trim_roll : trim_roll;
+						(PX4_ISFINITE(roll_u)) ? math::constrain(roll_u + trim_roll, -1.f, 1.f) : trim_roll;
 
-					float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * body_rates_setpoint(0);
+					float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * body_rates_setpoint(1);
 					float pitch_u = att_control(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
 					_actuator_controls.control[actuator_controls_s::INDEX_PITCH] =
-						(PX4_ISFINITE(pitch_u)) ? pitch_u + trim_pitch : trim_pitch;
+						(PX4_ISFINITE(pitch_u)) ? math::constrain(pitch_u + trim_pitch, -1.f, 1.f) : trim_pitch;
 
 					float yaw_u = 0.0f;
 
@@ -612,10 +612,12 @@ void FixedwingAttitudeControl::Run()
 						yaw_u += _att_sp.yaw_sp_move_rate * _param_fw_man_y_sc.get();
 
 					} else {
-						yaw_u = att_control(2) * _airspeed_scaling * _airspeed_scaling;
+						const float yaw_feedforward = _param_fw_yr_ff.get() * _airspeed_scaling * body_rates_setpoint(2);
+						yaw_u = att_control(2) * _airspeed_scaling * _airspeed_scaling + yaw_feedforward;
 					}
 
-					_actuator_controls.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + trim_yaw : trim_yaw;
+					_actuator_controls.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? math::constrain(yaw_u + trim_yaw,
+							-1.f, 1.f) : trim_yaw;
 
 					if (!PX4_ISFINITE(roll_u) || !PX4_ISFINITE(pitch_u) || !PX4_ISFINITE(yaw_u)) {
 						_rate_control.resetIntegral();
