@@ -193,7 +193,7 @@ void TargetEstimator::update_filter_gains(filter_gains_s &filter_gains) const
 	// The "G" gain is equivalent to "(1-responsiveness)", but beta is required for H and K gains
 	// From alpha-beta-gamma filter equations: G = 1-beta^3
 	// Therefore: beta = (1-Gp)^(1/3) = (1-(1-responsiveness))^(1/3) = (r)^(1/3)
-	const float beta_p = pow((filter_gains.responsiveness), 1.0f / 3.0f);
+	const float beta_p = powf((filter_gains.responsiveness), 1.0f / 3.0f);
 	const float beta_v = 0.9f * beta_p; // velocity fusion gain is slightly lower. TODO: individual parameter?
 
 	// Estimator gains for horizontal position update

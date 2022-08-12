@@ -587,18 +587,18 @@ UWB_POS_ERROR_CODES UWB_SR150::localization()
 	/* Writing values resulting from least square error method (A_trans*A*x = A_trans*r; row 0 was used to remove x^2,y^2,z^2 entries => index starts at 1) */
 	for (int i = 1; i < no_valid_distances; i++) {
 		/* Matrix (needed to be multiplied with 2, afterwards) */
-		M_11 += (int64_t)pow((int64_t)(anchor_pos[i].x - anchor_pos[0].x), 2);
+		M_11 += sq((int64_t)(anchor_pos[i].x - anchor_pos[0].x));
 		M_12 += (int64_t)((int64_t)(anchor_pos[i].x - anchor_pos[0].x) * (int64_t)(anchor_pos[i].y - anchor_pos[0].y));
 		M_13 += (int64_t)((int64_t)(anchor_pos[i].x - anchor_pos[0].x) * (int64_t)(anchor_pos[i].z - anchor_pos[0].z));
-		M_22 += (int64_t)pow((int64_t)(anchor_pos[i].y - anchor_pos[0].y), 2);
+		M_22 += sq((int64_t)(anchor_pos[i].y - anchor_pos[0].y));
 		M_23 += (int64_t)((int64_t)(anchor_pos[i].y - anchor_pos[0].y) * (int64_t)(anchor_pos[i].z - anchor_pos[0].z));
-		M_33 += (int64_t)pow((int64_t)(anchor_pos[i].z - anchor_pos[0].z), 2);
+		M_33 += sq((int64_t)(anchor_pos[i].z - anchor_pos[0].z));
 
 		/* Vector */
-		temp = (int64_t)((int64_t)pow(distances_cm[0], 2) - (int64_t)pow(distances_cm[i], 2)
-				 + (int64_t)pow(anchor_pos[i].x, 2) + (int64_t)pow(anchor_pos[i].y, 2)
-				 + (int64_t)pow(anchor_pos[i].z, 2) - (int64_t)pow(anchor_pos[0].x, 2)
-				 - (int64_t)pow(anchor_pos[0].y, 2) - (int64_t)pow(anchor_pos[0].z, 2));
+		temp = sq(distances_cm[0]) - sq(distances_cm[i])
+		       + sq(anchor_pos[i].x) + sq(anchor_pos[i].y)
+		       + sq(anchor_pos[i].z) - sq(anchor_pos[0].x)
+		       - sq(anchor_pos[0].y) - sq(anchor_pos[0].z);
 
 		b[0] += (int64_t)((int64_t)(anchor_pos[i].x - anchor_pos[0].x) * temp);
 		b[1] += (int64_t)((int64_t)(anchor_pos[i].y - anchor_pos[0].y) * temp);

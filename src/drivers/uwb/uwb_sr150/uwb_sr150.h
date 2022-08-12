@@ -163,6 +163,8 @@ public:
 	void run() override;
 
 private:
+	static constexpr int64_t sq(int64_t x) { return x * x; }
+
 	void parameters_update();
 
 	void grid_info_read(position_t *grid);
