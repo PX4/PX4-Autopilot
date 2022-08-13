@@ -58,7 +58,7 @@
 #include <uORB/topics/log_message.h>
 
 #include "MspV1.hpp"
-#include "message_display.hpp"
+#include "MessageDisplay/MessageDisplay.hpp"
 #include "uorb_to_msp.hpp"
 
 using namespace time_literals;

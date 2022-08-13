@@ -63,7 +63,7 @@
 
 // MSP structs
 #include "msp_defines.h"
-#include "message_display.hpp"
+#include "MessageDisplay/MessageDisplay.hpp"
 
 namespace msp_osd {
 

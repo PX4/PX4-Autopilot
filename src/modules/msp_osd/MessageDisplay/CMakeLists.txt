@@ -31,18 +31,10 @@
 #
 ############################################################################
 
-add_subdirectory(MessageDisplay)
+px4_add_library(message_display
+  MessageDisplay.cpp
+  MessageDisplay.hpp
+)
 
-px4_add_module(
-	MODULE modules__msp_osd
-	MAIN msp_osd
-	SRCS
-		msp_osd.cpp
-		MspV1.cpp
-		uorb_to_msp.cpp
-	MODULE_CONFIG
-		module.yaml
-	DEPENDS
-    message_display
-		px4_work_queue
-	)
+# unit testing
+# px4_add_functional_gtest(SRC MessageDisplayTest.cpp LINKLIBS message_display)

@@ -2,7 +2,7 @@
  */
 
 #include <math.h>
-#include "message_display.hpp"
+#include "MessageDisplay.hpp"
 
 namespace msp_osd {
 
