@@ -164,6 +164,22 @@ FailureDetector::FailureDetector(ModuleParams *parent) :
 {
 }
 
+const failure_detector_status_s FailureDetector::getFailureDetectorStatus() const
+{
+	failure_detector_status_s failure_detector_status{};
+	failure_detector_status.fd_roll = getStatusFlags().roll;
+	failure_detector_status.fd_pitch = getStatusFlags().pitch;
+	failure_detector_status.fd_alt = getStatusFlags().alt;
+	failure_detector_status.fd_ext = getStatusFlags().ext;
+	failure_detector_status.fd_arm_escs = getStatusFlags().arm_escs;
+	failure_detector_status.fd_battery = getStatusFlags().battery;
+	failure_detector_status.fd_imbalanced_prop = getStatusFlags().imbalanced_prop;
+	failure_detector_status.fd_motor = getStatusFlags().motor;
+	failure_detector_status.imbalanced_prop_metric = getImbalancedPropMetric();
+	failure_detector_status.motor_failure_mask = getMotorFailures();
+	return failure_detector_status;
+}
+
 bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode)
 {
 	_failure_injector.update();

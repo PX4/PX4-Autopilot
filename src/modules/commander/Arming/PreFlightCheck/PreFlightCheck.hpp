@@ -41,6 +41,7 @@
 #pragma once
 
 #include <uORB/uORB.h>
+#include <uORB/topics/failure_detector_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vehicle_status.h>
@@ -64,6 +65,7 @@ public:
 	**/
 	static bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 				   vehicle_status_flags_s &status_flags, const vehicle_control_mode_s &control_mode,
+				   const failure_detector_status_s failure_detector_status,
 				   bool reportFailures,
 				   const bool safety_button_available, const bool safety_off,
 				   const bool is_arm_attempt = false);
@@ -95,7 +97,8 @@ private:
 	static bool powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail);
 	static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool report_fail);
 	static bool ekf2CheckSensorBias(orb_advert_t *mavlink_log_pub, const bool report_fail);
-	static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail);
+	static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const failure_detector_status_s failure_detector_status,
+					 const bool report_fail);
 	static bool manualControlCheck(orb_advert_t *mavlink_log_pub, const bool report_fail);
 	static bool modeCheck(orb_advert_t *mavlink_log_pub, const bool report_fail, const vehicle_status_s &status);
 	static bool airframeCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status);

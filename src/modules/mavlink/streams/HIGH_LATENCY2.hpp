@@ -44,6 +44,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/failure_detector_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/position_controller_status.h>
@@ -126,6 +127,7 @@ private:
 			updated |= write_attitude_sp(&msg);
 			updated |= write_battery_status(&msg);
 			updated |= write_estimator_status(&msg);
+			updated |= write_failure_detector_status(&msg);
 			updated |= write_fw_ctrl_status(&msg);
 			updated |= write_geofence_result(&msg);
 			updated |= write_global_position(&msg);
@@ -437,10 +439,6 @@ private:
 				msg->failure_flags |= HL_FAILURE_FLAG_RC_RECEIVER;
 			}
 
-			if (status.failure_detector_status & vehicle_status_s::FAILURE_MOTOR) {
-				msg->failure_flags |= HL_FAILURE_FLAG_ENGINE;
-			}
-
 			if (status.mission_failure) {
 				msg->failure_flags |= HL_FAILURE_FLAG_MISSION;
 			}
@@ -466,6 +464,21 @@ private:
 
 			if (status_flags.offboard_control_signal_lost) {
 				msg->failure_flags |= HL_FAILURE_FLAG_OFFBOARD_LINK;
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	bool write_failure_detector_status(mavlink_high_latency2_t *msg)
+	{
+		failure_detector_status_s failure_detector_status;
+
+		if (_failure_detector_status_sub.update(&failure_detector_status)) {
+			if (failure_detector_status.fd_motor) {
+				msg->failure_flags |= HL_FAILURE_FLAG_ENGINE;
 			}
 
 			return true;
@@ -630,6 +643,7 @@ private:
 	uORB::Subscription _attitude_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
+	uORB::Subscription _failure_detector_status_sub{ORB_ID(failure_detector_status)};
 	uORB::Subscription _pos_ctrl_status_sub{ORB_ID(position_controller_status)};
 	uORB::Subscription _geofence_sub{ORB_ID(geofence_result)};
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
