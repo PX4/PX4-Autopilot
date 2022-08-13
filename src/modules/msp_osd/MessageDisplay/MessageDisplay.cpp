@@ -49,12 +49,12 @@ void MessageDisplay::set(const MessageDisplayType mode, const char* string) {
 		}
 		break;
 	default:
-		PX4_ERR("Received unsupported message display mode.");
+    // PX4_ERR("Received unsupported message display mode.");
 		break;
 	}
 }
 
-void MessageDisplay::get(char* string) {
+void MessageDisplay::get(char* string, const uint32_t current_time) {
 	// check if we should update the full message (and reset display)
 	if (updated_) {
 		// full_message = "Flight Mode: " + flight_mode_msg + " - ARMED: " + arming_msg + " - STATUS: " + status_msg + " - WARNING: " + warning_msg + "            ";
@@ -91,7 +91,6 @@ void MessageDisplay::get(char* string) {
 	}
 
 	// check if we should update the sub-message (giving extra time to the beginning)
-	uint32_t current_time = hrt_absolute_time();
 	uint32_t dt = current_time - last_update_;
 	if ( (index == 0 && dt > dwell_) || (index != 0 && dt > period_) ) {
 		// scroll through message by updating index

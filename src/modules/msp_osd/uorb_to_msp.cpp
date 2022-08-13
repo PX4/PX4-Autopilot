@@ -186,7 +186,7 @@ msp_name_t construct_display_message(const struct vehicle_status_s& vehicle_stat
 	}
 
 	// update message and return
-	display.get(display_message.craft_name);
+	display.get(display_message.craft_name, hrt_absolute_time());
 	return display_message;
 }
 

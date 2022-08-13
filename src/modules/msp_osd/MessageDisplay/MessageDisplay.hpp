@@ -4,8 +4,7 @@
 #pragma once
 
 #include <string.h>
-
-#include <px4_platform_common/defines.h>
+#include <stdint.h>
 
 namespace msp_osd {
 
@@ -57,7 +56,7 @@ class MessageDisplay
 	void set(const MessageDisplayType mode, const char* string);
 
 	// get the latest subsection of the message
-	void get(char* string);
+	void get(char* string, const uint32_t current_time);
 
 	// update local parameters
 	void set_period(const uint64_t period) {period_ = period;};

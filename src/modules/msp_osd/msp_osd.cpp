@@ -424,7 +424,7 @@ int MspOsd::print_status()
 
 	// print current display string
 	char msg[FULL_MSG_LENGTH];
-	_display.get(msg);
+	_display.get(msg, hrt_absolute_time());
 	PX4_INFO("Current message: \n\t%s", msg);
 
 	return 0;

@@ -31,11 +31,6 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/module_params.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/obstacle_distance.h>
-#include <uORB/uORBManager.hpp>
-
 #include <gtest/gtest.h>
 
 class MessageDisplayTest : public ::testing::Test
