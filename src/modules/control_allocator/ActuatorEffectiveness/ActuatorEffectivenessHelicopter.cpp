@@ -35,6 +35,7 @@
 #include <lib/mathlib/mathlib.h>
 
 using namespace matrix;
+using namespace time_literals;
 
 ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *parent)
 	: ModuleParams(parent)
@@ -59,6 +60,7 @@ ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *p
 
 	_param_handles.yaw_collective_pitch_scale = param_find("CA_HELI_YAW_CP_S");
 	_param_handles.yaw_throttle_scale = param_find("CA_HELI_YAW_TH_S");
+	_param_handles.spoolup_time = param_find("COM_SPOOLUP_TIME");
 
 	updateParams();
 }
@@ -90,6 +92,7 @@ void ActuatorEffectivenessHelicopter::updateParams()
 
 	param_get(_param_handles.yaw_collective_pitch_scale, &_geometry.yaw_collective_pitch_scale);
 	param_get(_param_handles.yaw_throttle_scale, &_geometry.yaw_throttle_scale);
+	param_get(_param_handles.spoolup_time, &_geometry.spoolup_time);
 }
 
 bool
@@ -124,6 +127,22 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 			       _geometry.throttle_curve) * throttleSpoolupProgress();
 	const float collective_pitch = math::interpolateN(-control_sp(ControlAxis::THRUST_Z), _geometry.pitch_curve);
 
+	// throttle spoolup
+	vehicle_status_s vehicle_status;
+
+	if (_vehicle_status_sub.update(&vehicle_status)) {
+		_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+		_armed_time = vehicle_status.armed_time;
+	}
+
+	const float time_since_arming = (hrt_absolute_time() - _armed_time) / 1e6f;
+	const float spoolup_progress = time_since_arming / _geometry.spoolup_time;
+
+	if (_armed && spoolup_progress < 1.f) {
+		throttle *= spoolup_progress;
+	}
+
+	// actuator mapping
 	actuator_sp(0) = throttle;
 	actuator_sp(1) = control_sp(ControlAxis::YAW)
 			 + fabsf(collective_pitch) * _geometry.yaw_collective_pitch_scale
