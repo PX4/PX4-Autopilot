@@ -36,6 +36,8 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/Subscription.hpp>
 
+#include <lib/mathlib/mathlib.h>
+
 #include <iostream>
 #include <string>
 
@@ -59,6 +61,10 @@ void IgnitionSimulator::PoseInfoCallback(const ignition::msgs::Pose_V &pose)
 		std::string vehicle_name = "X4";
 
 		if (pose.pose(p).name() == vehicle_name) {
+			const hrt_abstime time_now_us = hrt_absolute_time();
+
+			const double dt = math::constrain((time_now_us - _timestamp_prev) * 1e-6, 0.001, 0.1);
+			_timestamp_prev = time_now_us;
 
 			ignition::msgs::Vector3d pose_position = pose.pose(p).position();
 			ignition::msgs::Quaternion pose_orientation = pose.pose(p).orientation();
@@ -94,6 +100,16 @@ void IgnitionSimulator::PoseInfoCallback(const ignition::msgs::Pose_V &pose)
 			vehicle_attitude_groundtruth.timestamp = hrt_absolute_time();
 			_attitude_ground_truth_pub.publish(vehicle_attitude_groundtruth);
 
+			// publish angular velocity groundtruth
+			const matrix::Eulerf euler{matrix::Quatf(vehicle_attitude_groundtruth.q)};
+			vehicle_angular_velocity_s vehicle_angular_velocity_groundtruth{};
+
+			const matrix::Vector3f angular_velocity = (euler - _euler_prev) / dt;
+			_euler_prev = euler;
+			angular_velocity.copyTo(vehicle_angular_velocity_groundtruth.xyz);
+
+			vehicle_angular_velocity_groundtruth.timestamp = hrt_absolute_time();
+			_vehicle_angular_velocity_ground_truth_pub.publish(vehicle_angular_velocity_groundtruth);
 
 			if (!_pos_ref.isInitialized()) {
 				_pos_ref.initReference(_param_sim_home_lat.get(), _param_sim_home_lon.get(), hrt_absolute_time());
@@ -102,7 +118,7 @@ void IgnitionSimulator::PoseInfoCallback(const ignition::msgs::Pose_V &pose)
 			vehicle_local_position_s local_position_groundtruth{};
 			local_position_groundtruth.timestamp_sample = hrt_absolute_time();
 
-			const double dt = hrt_elapsed_time(&_timestamp_prev) * 1e-6f;
+
 			const matrix::Vector3d position{pose_position.x(), pose_position.y(), pose_position.z()};
 			const matrix::Vector3d velocity{(position - _position_prev) / dt};
 			const matrix::Vector3d acceleration{(velocity - _velocity_prev) / dt};
@@ -150,7 +166,8 @@ IgnitionSimulator::IgnitionSimulator() :
 	_px4_gyro(1310988)   // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 {
 	_px4_accel.set_range(2000.f); // don't care
-	_px4_gyro.set_scale(math::radians(2000.f) / static_cast<float>(INT16_MAX - 1)); // 2000 degrees/second max
+
+	//_px4_gyro.set_scale(math::radians(2000.f) / static_cast<float>(INT16_MAX - 1)); // 2000 degrees/second max
 }
 
 void IgnitionSimulator::run()

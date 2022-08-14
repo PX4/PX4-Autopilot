@@ -114,5 +114,6 @@ private:
 
 	matrix::Vector3d _position_prev{};
 	matrix::Vector3d _velocity_prev{};
+	matrix::Vector3f _euler_prev{};
 	hrt_abstime _timestamp_prev{};
 };
