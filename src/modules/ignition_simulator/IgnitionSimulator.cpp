@@ -157,7 +157,7 @@ void IgnitionSimulator::PoseInfoCallback(const ignition::msgs::Pose_V &pose)
 				_pos_ref.reproject(local_position_groundtruth.x, local_position_groundtruth.y,
 						   global_position_groundtruth.lat, global_position_groundtruth.lon);
 
-				global_position_groundtruth.alt = _param_sim_home_alt.get() - static_cast<float>(pose_position.z());
+				global_position_groundtruth.alt = _param_sim_home_alt.get() - static_cast<float>(position(2));
 				global_position_groundtruth.timestamp = hrt_absolute_time();
 				_gpos_ground_truth_pub.publish(global_position_groundtruth);
 			}
