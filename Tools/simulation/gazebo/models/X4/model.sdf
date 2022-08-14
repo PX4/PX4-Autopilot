@@ -712,18 +712,18 @@
          <robotNamespace>X4</robotNamespace>
          <jointName>rotor_0_joint</jointName>
          <linkName>rotor_0</linkName>
-         <turningDirection>ccw</turningDirection>
+         <turningDirection>cw</turningDirection>
          <timeConstantUp>0.0182</timeConstantUp>
          <timeConstantDown>0.0182</timeConstantDown>
          <maxRotVelocity>1000.0</maxRotVelocity>
          <motorConstant>1.269e-05</motorConstant>
          <momentConstant>0.016754</momentConstant>
          <commandSubTopic>command/motor_speed</commandSubTopic>
-         <motorNumber>0</motorNumber>
+         <motorNumber>2</motorNumber>
          <rotorDragCoefficient>2.0673e-04</rotorDragCoefficient>
          <rotorDragCoefficient>0</rotorDragCoefficient>
          <rollingMomentCoefficient>0</rollingMomentCoefficient>
-         <motorSpeedPubTopic>motor_speed/0</motorSpeedPubTopic>
+         <motorSpeedPubTopic>motor_speed/2</motorSpeedPubTopic>
          <rotorVelocitySlowdownSim>2</rotorVelocitySlowdownSim>
          <motorType>velocity</motorType>
       </plugin>
@@ -731,7 +731,7 @@
          <robotNamespace>X4</robotNamespace>
          <jointName>rotor_1_joint</jointName>
          <linkName>rotor_1</linkName>
-         <turningDirection>cw</turningDirection>
+         <turningDirection>ccw</turningDirection>
          <timeConstantUp>0.0182</timeConstantUp>
          <timeConstantDown>0.0182</timeConstantDown>
          <maxRotVelocity>1000.0</maxRotVelocity>
@@ -750,18 +750,18 @@
          <robotNamespace>X4</robotNamespace>
          <jointName>rotor_2_joint</jointName>
          <linkName>rotor_2</linkName>
-         <turningDirection>ccw</turningDirection>
+         <turningDirection>cw</turningDirection>
          <timeConstantUp>0.0182</timeConstantUp>
          <timeConstantDown>0.0182</timeConstantDown>
          <maxRotVelocity>1000.0</maxRotVelocity>
          <motorConstant>1.269e-05</motorConstant>
          <momentConstant>0.016754</momentConstant>
          <commandSubTopic>command/motor_speed</commandSubTopic>
-         <motorNumber>2</motorNumber>
+         <motorNumber>5</motorNumber>
          <rotorDragCoefficient>2.0673e-04</rotorDragCoefficient>
          <rotorDragCoefficient>0</rotorDragCoefficient>
          <rollingMomentCoefficient>0</rollingMomentCoefficient>
-         <motorSpeedPubTopic>motor_speed/2</motorSpeedPubTopic>
+         <motorSpeedPubTopic>motor_speed/5</motorSpeedPubTopic>
          <rotorVelocitySlowdownSim>2</rotorVelocitySlowdownSim>
          <motorType>velocity</motorType>
       </plugin>
@@ -769,7 +769,7 @@
          <robotNamespace>X4</robotNamespace>
          <jointName>rotor_3_joint</jointName>
          <linkName>rotor_3</linkName>
-         <turningDirection>cw</turningDirection>
+         <turningDirection>ccw</turningDirection>
          <timeConstantUp>0.0182</timeConstantUp>
          <timeConstantDown>0.0182</timeConstantDown>
          <maxRotVelocity>1000.0</maxRotVelocity>
@@ -788,6 +788,25 @@
          <robotNamespace>X4</robotNamespace>
          <jointName>rotor_4_joint</jointName>
          <linkName>rotor_4</linkName>
+         <turningDirection>cw</turningDirection>
+         <timeConstantUp>0.0182</timeConstantUp>
+         <timeConstantDown>0.0182</timeConstantDown>
+         <maxRotVelocity>1000.0</maxRotVelocity>
+         <motorConstant>1.269e-05</motorConstant>
+         <momentConstant>0.016754</momentConstant>
+         <commandSubTopic>command/motor_speed</commandSubTopic>
+         <motorNumber>0</motorNumber>
+         <rotorDragCoefficient>2.0673e-04</rotorDragCoefficient>
+         <rotorDragCoefficient>0</rotorDragCoefficient>
+         <rollingMomentCoefficient>0</rollingMomentCoefficient>
+         <motorSpeedPubTopic>motor_speed/0</motorSpeedPubTopic>
+         <rotorVelocitySlowdownSim>2</rotorVelocitySlowdownSim>
+         <motorType>velocity</motorType>
+      </plugin>
+      <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="ignition::gazebo::systems::MulticopterMotorModel">
+         <robotNamespace>X4</robotNamespace>
+         <jointName>rotor_5_joint</jointName>
+         <linkName>rotor_5</linkName>
          <turningDirection>ccw</turningDirection>
          <timeConstantUp>0.0182</timeConstantUp>
          <timeConstantDown>0.0182</timeConstantDown>
@@ -800,25 +819,6 @@
          <rotorDragCoefficient>0</rotorDragCoefficient>
          <rollingMomentCoefficient>0</rollingMomentCoefficient>
          <motorSpeedPubTopic>motor_speed/4</motorSpeedPubTopic>
-         <rotorVelocitySlowdownSim>2</rotorVelocitySlowdownSim>
-         <motorType>velocity</motorType>
-      </plugin>
-      <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="ignition::gazebo::systems::MulticopterMotorModel">
-         <robotNamespace>X4</robotNamespace>
-         <jointName>rotor_5_joint</jointName>
-         <linkName>rotor_5</linkName>
-         <turningDirection>cw</turningDirection>
-         <timeConstantUp>0.0182</timeConstantUp>
-         <timeConstantDown>0.0182</timeConstantDown>
-         <maxRotVelocity>1000.0</maxRotVelocity>
-         <motorConstant>1.269e-05</motorConstant>
-         <momentConstant>0.016754</momentConstant>
-         <commandSubTopic>command/motor_speed</commandSubTopic>
-         <motorNumber>5</motorNumber>
-         <rotorDragCoefficient>2.0673e-04</rotorDragCoefficient>
-         <rotorDragCoefficient>0</rotorDragCoefficient>
-         <rollingMomentCoefficient>0</rollingMomentCoefficient>
-         <motorSpeedPubTopic>motor_speed/5</motorSpeedPubTopic>
          <rotorVelocitySlowdownSim>2</rotorVelocitySlowdownSim>
          <motorType>velocity</motorType>
       </plugin>
