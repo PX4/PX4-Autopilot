@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# @name Ignition Gazebo X3
+#
+# @type Quadrotor
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+set MIXER quad_w

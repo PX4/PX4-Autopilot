@@ -44,21 +44,26 @@
 void IgnitionSimulator::ImuCallback(const ignition::msgs::IMU &imu)
 {
 	// FLU -> FRD
-	_px4_accel.update(hrt_absolute_time(),
-			  imu.linear_acceleration().x(),
-			  -imu.linear_acceleration().y(),
-			  -imu.linear_acceleration().z());
+	static const auto q_FLU_to_FRD = ignition::math::Quaterniond(0, 1, 0, 0);
 
-	_px4_gyro.update(hrt_absolute_time(),
-			 imu.angular_velocity().x(),
-			 -imu.angular_velocity().y(),
-			 -imu.angular_velocity().z());
+	ignition::math::Vector3d accel_b = q_FLU_to_FRD.RotateVector(ignition::math::Vector3d(
+			imu.linear_acceleration().x(),
+			imu.linear_acceleration().y(),
+			imu.linear_acceleration().z()));
+
+	ignition::math::Vector3d gyro_b = q_FLU_to_FRD.RotateVector(ignition::math::Vector3d(
+			imu.angular_velocity().x(),
+			imu.angular_velocity().y(),
+			imu.angular_velocity().z()));
+
+	_px4_accel.update(hrt_absolute_time(), accel_b.X(), accel_b.Y(), accel_b.Z());
+	_px4_gyro.update(hrt_absolute_time(), gyro_b.X(), gyro_b.Y(), gyro_b.Z());
 }
 
 void IgnitionSimulator::PoseInfoCallback(const ignition::msgs::Pose_V &pose)
 {
 	for (int p = 0; p < pose.pose_size(); p++) {
-		std::string vehicle_name = "X4";
+		std::string vehicle_name = "X3";
 
 		if (pose.pose(p).name() == vehicle_name) {
 			const hrt_abstime time_now_us = hrt_absolute_time();
@@ -118,8 +123,8 @@ void IgnitionSimulator::PoseInfoCallback(const ignition::msgs::Pose_V &pose)
 			vehicle_local_position_s local_position_groundtruth{};
 			local_position_groundtruth.timestamp_sample = hrt_absolute_time();
 
-
-			const matrix::Vector3d position{pose_position.x(), pose_position.y(), pose_position.z()};
+			// position ENU -> NED
+			const matrix::Vector3d position{pose_position.y(), pose_position.x(), -pose_position.z()};
 			const matrix::Vector3d velocity{(position - _position_prev) / dt};
 			const matrix::Vector3d acceleration{(velocity - _velocity_prev) / dt};
 
@@ -175,11 +180,11 @@ void IgnitionSimulator::run()
 	ignition::transport::Node node;
 
 	// Subscribe to messages of other plugins.
-	node.Subscribe("/world/quadcopter/model/X4/link/base_link/sensor/imu_sensor/imu", &IgnitionSimulator::ImuCallback,
+	node.Subscribe("/world/quadcopter/model/X3/link/base_link/sensor/imu_sensor/imu", &IgnitionSimulator::ImuCallback,
 		       this);
 	node.Subscribe("/world/quadcopter/pose/info", &IgnitionSimulator::PoseInfoCallback, this);
 
-	std::string topic = "/X4/command/motor_speed";
+	std::string topic = "/X3/command/motor_speed";
 	auto pub = node.Advertise<ignition::msgs::Actuators>(topic);
 
 	ignition::msgs::Actuators rotor_velocity_message;

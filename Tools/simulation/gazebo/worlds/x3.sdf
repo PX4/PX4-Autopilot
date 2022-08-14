@@ -108,7 +108,7 @@
          </link>
       </model>
       <include>
-         <uri>model://X4</uri>
+         <uri>model://X3</uri>
       </include>
    </world>
 </sdf>

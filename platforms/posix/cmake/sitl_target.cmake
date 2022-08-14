@@ -398,6 +398,14 @@ endif()
 
 
 # Ignition Gazebo
+
+add_custom_target(ignition_x3
+	COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh $<TARGET_FILE:px4> none ignition x3 none ${PX4_SOURCE_DIR} ${PX4_BINARY_DIR}
+	WORKING_DIRECTORY ${SITL_WORKING_DIR}
+	USES_TERMINAL
+	DEPENDS logs_symlink
+)
+
 add_custom_target(ignition_x4
 	COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh $<TARGET_FILE:px4> none ignition x4 none ${PX4_SOURCE_DIR} ${PX4_BINARY_DIR}
 	WORKING_DIRECTORY ${SITL_WORKING_DIR}

@@ -4,7 +4,6 @@
       <pose>0 0 0.121078 0 0 0</pose>
       <link name="base_link">
          <pose frame="">0 0 0 0 -0 0</pose>
-
          <inertial>
             <pose frame="">0 0 0 0 -0 0</pose>
             <mass>3.42</mass>
@@ -17,7 +16,6 @@
                <izz>0.148916</izz>
             </inertia>
          </inertial>
-
          <collision name="base_link_inertia_collision">
             <pose frame="">0 0 0 0 -0 0</pose>
             <geometry>
@@ -143,12 +141,10 @@
             <direction>0 0 -1</direction>
             <cast_shadows>1</cast_shadows>
          </light>
-
          <sensor name="imu_sensor" type="imu">
             <always_on>1</always_on>
-            <update_rate>400</update_rate>
+            <update_rate>250</update_rate>
             <imu>
-               <enable_orientation>0</enable_orientation>
                <angular_velocity>
                   <x>
                      <noise type="gaussian">
@@ -707,7 +703,6 @@
             <use_parent_model_frame>1</use_parent_model_frame>
          </axis>
       </joint>
-      <!-- now some plugins -->
       <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="ignition::gazebo::systems::MulticopterMotorModel">
          <robotNamespace>X4</robotNamespace>
          <jointName>rotor_0_joint</jointName>
