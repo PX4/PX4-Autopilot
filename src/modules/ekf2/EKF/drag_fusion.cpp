@@ -85,15 +85,44 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 	const Vector3f rel_wind_earth(vn - vwn, ve - vwe, vd);
 	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
 	const Vector3f rel_wind_body = earth_to_body * rel_wind_earth;
+	const float AoS = atan2f(rel_wind_body(1), rel_wind_body(0)); // angle of sideslip
+	Vector2f drag_unit_vec = Vector2f( -rel_wind_body(0) , -rel_wind_body(1));
+	drag_unit_vec.normalize();
+
+	Vector2f predicted_bb_sf; // predicted bluff-body specific force
+	float bcoef; // ballistic coefficient in the direction of the body relative wind vector
+	float bcoef_inv; // ballistic coefficient inverse in the direction of the body relative wind vector
+	if (using_bcoef_x && using_bcoef_y) {
+		// calculate effective ballistic coefficient assuming drag variation with
+		// angle of sideslip can be represented as an ellipse.
+		const float bcoef_x_inv = 1.0f / _params.bcoef_x;
+		const float bcoef_y_inv = 1.0f / _params.bcoef_y;
+		bcoef_inv = (bcoef_x_inv * bcoef_y_inv) / sqrtf(sq(bcoef_x_inv * sinf(AoS)) + sq(bcoef_y_inv * cosf(AoS)));
+		bcoef = 1.0f / bcoef_inv;
+		predicted_bb_sf = drag_unit_vec * 0.5f * rho * (sq(rel_wind_body(0)) + sq(rel_wind_body(1))) * bcoef_inv;
+	} else if (using_bcoef_x) {
+		// drag along Y is undefind so only use velocity component in X direction when calculating drag
+		bcoef = _params.bcoef_x;
+		bcoef_inv = 1.0f / bcoef;
+		predicted_bb_sf(0) = drag_unit_vec(0) * 0.5f * rho * sq(rel_wind_body(0)) * bcoef_inv;
+		predicted_bb_sf(1) = 0.0f;
+	} else if (using_bcoef_y) {
+		// drag along X is undefind so only use velocity component in Y direction when calculating drag
+		bcoef = _params.bcoef_y;
+		bcoef_inv = 1.0f / bcoef;
+		predicted_bb_sf(0) = 0.0f;
+		predicted_bb_sf(1) = drag_unit_vec(1) * 0.5f * rho * sq(rel_wind_body(1)) * bcoef_inv;
+	} else {
+		bcoef_inv = 0.0f;
+		bcoef = 0.0f;
+		predicted_bb_sf.zero();
+	}
+
+	// measured drag acceleration corrected for sensor bias
+	const Vector2f mea_acc = (drag_sample.accelXY - _state.delta_vel_bias.xy()) * (1.0f / _dt_ekf_avg);
 
 	// perform sequential fusion of XY specific forces
 	for (uint8_t axis_index = 0; axis_index < 2; axis_index++) {
-		// measured drag acceleration corrected for sensor bias
-		const float mea_acc = drag_sample.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
-
-		// predicted drag force sign is opposite to predicted wind relative velocity
-		const float drag_sign = (rel_wind_body(axis_index) >= 0.f) ? -1.f : 1.f;
-
 		// Drag is modelled as an arbitrary combination of bluff body drag that proportional to
 		// equivalent airspeed squared, and rotor momentum drag that is proportional to true airspeed
 		// parallel to the rotor disc and mass flow through the rotor disc.
@@ -104,12 +133,11 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 			if (using_mcoef && using_bcoef_x) {
 				// Use a combination of bluff body and propeller momentum drag
-				const float bcoef_inv = 1.0f / _params.bcoef_x;
 				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
 				// mea_acc = 0.5 * rho * bcoef_inv * airspeed**2 + mcoef_corrrected * airspeed
-				const float airspeed = (_params.bcoef_x  / rho) * (- mcoef_corrrected  + sqrtf(sq(mcoef_corrrected) + 2.0f * rho * bcoef_inv * fabsf(mea_acc)));
+				const float airspeed = (bcoef  / rho) * (- mcoef_corrrected  + sqrtf(sq(mcoef_corrrected) + 2.0f * rho * bcoef_inv * mea_acc.length()));
 				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed + mcoef_corrrected);
-				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(0)) * drag_sign - rel_wind_body(0) * mcoef_corrrected;
+				pred_acc = predicted_bb_sf(0) - rel_wind_body(0) * mcoef_corrrected;
 
 			} else if (using_mcoef) {
 				// Use propeller momentum drag only
@@ -120,10 +148,9 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				// Use bluff body drag only
 				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
 				// mea_acc = (0.5 * rho / _params.bcoef_x) * airspeed**2
-				const float airspeed = sqrtf((2.0f * _params.bcoef_x  * fabsf(mea_acc)) / rho);
-				const float bcoef_inv = 1.0f / _params.bcoef_x;
+				const float airspeed = sqrtf((2.0f * bcoef * mea_acc.length()) / rho);
 				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed);
-				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(0)) * drag_sign;
+				pred_acc = predicted_bb_sf(0);
 
 			} else {
 				// skip this axis
@@ -217,12 +244,11 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 			if (using_mcoef && using_bcoef_y) {
 				// Use a combination of bluff body and propeller momentum drag
-				const float bcoef_inv = 1.0f / _params.bcoef_y;
 				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
 				// mea_acc = 0.5 * rho * bcoef_inv * airspeed**2 + mcoef_corrrected * airspeed
-				const float airspeed = (_params.bcoef_y  / rho) * (- mcoef_corrrected  + sqrtf(sq(mcoef_corrrected) + 2.0f * rho * bcoef_inv * fabsf(mea_acc)));
+				const float airspeed = (bcoef  / rho) * (- mcoef_corrrected  + sqrtf(sq(mcoef_corrrected) + 2.0f * rho * bcoef_inv * mea_acc.length()));
 				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed + mcoef_corrrected);
-				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(1)) * drag_sign - rel_wind_body(1) * mcoef_corrrected;
+				pred_acc = predicted_bb_sf(0) - rel_wind_body(0) * mcoef_corrrected;
 
 			} else if (using_mcoef) {
 				// Use propeller momentum drag only
@@ -232,15 +258,14 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 			} else if (using_bcoef_y) {
 				// Use bluff body drag only
 				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
-				// mea_acc = (0.5 * rho / _params.bcoef_y) * airspeed**2
-				const float airspeed = sqrtf((2.0f * _params.bcoef_y * fabsf(mea_acc)) / rho);
-				const float bcoef_inv = 1.0f / _params.bcoef_y;
+				// mea_acc = (0.5 * rho / _params.bcoef_x) * airspeed**2
+				const float airspeed = sqrtf((2.0f * bcoef * mea_acc.length()) / rho);
 				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed);
-				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(1)) * drag_sign;
+				pred_acc = predicted_bb_sf(1);
 
 			} else {
-				// nothing more to do
-				return;
+				// skip this axis
+				continue;
 			}
 
 			// intermediate variables
@@ -327,7 +352,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		}
 
 		// Apply an innovation consistency check with a 5 Sigma threshold
-		_drag_innov(axis_index) = pred_acc - mea_acc;
+		_drag_innov(axis_index) = pred_acc - mea_acc(axis_index);
 		_drag_test_ratio(axis_index) = sq(_drag_innov(axis_index)) / (sq(5.0f) * _drag_innov_var(axis_index));
 
 		// if the innovation consistency check fails then don't fuse the sample
