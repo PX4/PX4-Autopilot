@@ -37,6 +37,9 @@
 
 #include <px4_platform_common/module_params.h>
 
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/vehicle_status.h>
+
 class ActuatorEffectivenessHelicopter : public ModuleParams, public ActuatorEffectiveness
 {
 public:
@@ -56,6 +59,7 @@ public:
 		float pitch_curve[NUM_CURVE_POINTS];
 		float yaw_collective_pitch_scale;
 		float yaw_throttle_scale;
+		float spoolup_time;
 	};
 
 	ActuatorEffectivenessHelicopter(ModuleParams *parent);
@@ -84,10 +88,16 @@ private:
 		param_t pitch_curve[NUM_CURVE_POINTS];
 		param_t yaw_collective_pitch_scale;
 		param_t yaw_throttle_scale;
+		param_t spoolup_time;
 	};
 	ParamHandles _param_handles{};
 
 	Geometry _geometry{};
 
 	int _first_swash_plate_servo_index{};
+
+	// Throttle spoolup state
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	bool _armed{false};
+	uint64_t _armed_time{0};
 };
