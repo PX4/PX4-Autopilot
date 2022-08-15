@@ -53,9 +53,6 @@
 [submodule "src/lib/events/libevents"]
 	path = src/lib/events/libevents
 	url = https://github.com/mavlink/libevents.git
-[submodule "Tools/simulation-ignition"]
-	path = Tools/simulation-ignition
-	url = https://github.com/PX4/px4-simulation-ignition.git
 [submodule "src/lib/crypto/libtomcrypt"]
 	path = src/lib/crypto/libtomcrypt
 	url = https://github.com/PX4/libtomcrypt.git

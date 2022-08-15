@@ -156,7 +156,7 @@ void SensorBaroSim::Run()
 			const float absolute_pressure_noisy = absolute_pressure + abs_pressure_noise + _baro_drift_pa;
 
 			// convert to hPa
-			float pressure = absolute_pressure_noisy * 0.01f + _sim_baro_off_p.get();
+			float pressure = absolute_pressure_noisy + _sim_baro_off_p.get();
 
 			// calculate temperature in Celsius
 			float temperature = temperature_local - 273.0f + _sim_baro_off_t.get();

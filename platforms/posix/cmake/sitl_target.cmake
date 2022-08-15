@@ -53,7 +53,7 @@ if(parallel_jobs LESS 1)
 endif()
 
 message(DEBUG  "${NUMBER_OF_LOGICAL_CORES} logical cores detected and ${AVAILABLE_PHYSICAL_MEMORY} megabytes of memory available.
-		Limiting sitl_gazebo and simulation-ignition concurrent jobs to ${parallel_jobs}")
+		Limiting sitl_gazebo concurrent jobs to ${parallel_jobs}")
 
 # project to build sitl_gazebo if necessary
 px4_add_git_submodule(TARGET git_gazebo PATH "${PX4_SOURCE_DIR}/Tools/sitl_gazebo")
@@ -66,20 +66,6 @@ ExternalProject_Add(sitl_gazebo
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
 	DEPENDS git_gazebo
-	USES_TERMINAL_CONFIGURE true
-	USES_TERMINAL_BUILD true
-	EXCLUDE_FROM_ALL true
-	BUILD_ALWAYS 1
-	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> -- -j ${parallel_jobs}
-)
-
-px4_add_git_submodule(TARGET git_ign_gazebo PATH "${PX4_SOURCE_DIR}/Tools/simulation-ignition")
-ExternalProject_Add(simulation-ignition
-	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation-ignition
-	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-	BINARY_DIR ${PX4_BINARY_DIR}/build_ign_gazebo
-	INSTALL_COMMAND ""
-	DEPENDS git_ign_gazebo
 	USES_TERMINAL_CONFIGURE true
 	USES_TERMINAL_BUILD true
 	EXCLUDE_FROM_ALL true
@@ -129,7 +115,6 @@ set(viewers
 	none
 	jmavsim
 	gazebo
-	ignition
 )
 
 set(debuggers
@@ -218,8 +203,6 @@ foreach(viewer ${viewers})
 						add_dependencies(${_targ_name} px4 sitl_gazebo)
 					elseif(viewer STREQUAL "jmavsim")
 						add_dependencies(${_targ_name} px4 git_jmavsim)
-					elseif(viewer STREQUAL "ignition")
-						add_dependencies(${_targ_name} px4 simulation-ignition)
 					endif()
 				else()
 					if(viewer STREQUAL "gazebo")
@@ -408,6 +391,23 @@ if(ENABLE_LOCKSTEP_SCHEDULER STREQUAL "no")
 		list(APPEND all_posix_vmd_make_targets ${_targ_name})
 	endforeach()
 endif()
+
+
+# Ignition Gazebo
+add_custom_target(ignition_x3
+	COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh $<TARGET_FILE:px4> none ignition x3 empty ${PX4_SOURCE_DIR} ${PX4_BINARY_DIR}
+	WORKING_DIRECTORY ${SITL_WORKING_DIR}
+	USES_TERMINAL
+	DEPENDS logs_symlink
+)
+
+add_custom_target(ignition_x4
+	COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh $<TARGET_FILE:px4> none ignition x4 empty ${PX4_SOURCE_DIR} ${PX4_BINARY_DIR}
+	WORKING_DIRECTORY ${SITL_WORKING_DIR}
+	USES_TERMINAL
+	DEPENDS logs_symlink
+)
+
 
 string(REPLACE ";" "," posix_vmd_make_target_list "${all_posix_vmd_make_targets}")
 

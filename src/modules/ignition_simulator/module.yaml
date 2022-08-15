@@ -1,0 +1,10 @@
+module_name: SIM_GZ
+actuator_output:
+  output_groups:
+    - param_prefix: SIM_GZ
+      channel_label: Channel
+      num_channels: 8
+      standard_params:
+        disarmed: { min: 0, max: 1000, default: 0 }
+        min: { min: 0, max: 1000, default: 10 }
+        max: { min: 100, max: 1000, default: 1000 }
