@@ -273,14 +273,14 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 
 void FlightTaskManualAltitude::_respectGroundSlowdown()
 {
-	// limit speed gradually within the altitudes MPC_LAND_ALT1 and MPC_LAND_ALT2
+	// Interpolate descent rate between the altitudes MPC_LAND_ALT1 and MPC_LAND_ALT2
 	if (PX4_ISFINITE(_dist_to_ground)) {
-		const float limit_down = math::gradual(_dist_to_ground,
-						       _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
-						       _param_mpc_land_speed.get(), _constraints.speed_down);
-		const float limit_up = math::gradual(_dist_to_ground,
-						     _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
-						     _param_mpc_tko_speed.get(), _constraints.speed_up);
+		const float limit_down = math::interpolate(_dist_to_ground,
+					 _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+					 _param_mpc_land_speed.get(), _constraints.speed_down);
+		const float limit_up = math::interpolate(_dist_to_ground,
+				       _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+				       _param_mpc_tko_speed.get(), _constraints.speed_up);
 		_velocity_setpoint(2) = math::constrain(_velocity_setpoint(2), -limit_up, limit_down);
 	}
 }

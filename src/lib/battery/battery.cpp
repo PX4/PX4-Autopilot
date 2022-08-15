@@ -215,7 +215,7 @@ void Battery::estimateStateOfCharge(const float voltage_v, const float current_a
 		cell_voltage += throttle * _params.v_load_drop;
 	}
 
-	_state_of_charge_volt_based = math::gradual(cell_voltage, _params.v_empty, _params.v_charged, 0.f, 1.f);
+	_state_of_charge_volt_based = math::interpolate(cell_voltage, _params.v_empty, _params.v_charged, 0.f, 1.f);
 
 	// choose which quantity we're using for final reporting
 	if (_params.capacity > 0.f && _battery_initialized) {
