@@ -35,7 +35,7 @@
 
 using namespace time_literals;
 using math::constrain;
-using math::gradual;
+using math::interpolate;
 using math::radians;
 
 FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
@@ -488,20 +488,23 @@ void FixedwingAttitudeControl::Run()
 			float trim_yaw = _param_trim_yaw.get();
 
 			if (airspeed < _param_fw_airspd_trim.get()) {
-				trim_roll += gradual(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_trim.get(), _param_fw_dtrim_r_vmin.get(),
-						     0.0f);
-				trim_pitch += gradual(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_trim.get(), _param_fw_dtrim_p_vmin.get(),
-						      0.0f);
-				trim_yaw += gradual(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_trim.get(), _param_fw_dtrim_y_vmin.get(),
-						    0.0f);
+				trim_roll += interpolate(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_trim.get(),
+							 _param_fw_dtrim_r_vmin.get(),
+							 0.0f);
+				trim_pitch += interpolate(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_trim.get(),
+							  _param_fw_dtrim_p_vmin.get(),
+							  0.0f);
+				trim_yaw += interpolate(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_trim.get(),
+							_param_fw_dtrim_y_vmin.get(),
+							0.0f);
 
 			} else {
-				trim_roll += gradual(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
-						     _param_fw_dtrim_r_vmax.get());
-				trim_pitch += gradual(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
-						      _param_fw_dtrim_p_vmax.get());
-				trim_yaw += gradual(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
-						    _param_fw_dtrim_y_vmax.get());
+				trim_roll += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
+							 _param_fw_dtrim_r_vmax.get());
+				trim_pitch += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
+							  _param_fw_dtrim_p_vmax.get());
+				trim_yaw += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
+							_param_fw_dtrim_y_vmax.get());
 			}
 
 			/* add trim increment if flaps are deployed  */
