@@ -32,5 +32,6 @@
 ############################################################################
 
 px4_add_library(mode_util
+	control_mode.cpp
 	mode_requirements.cpp
 )

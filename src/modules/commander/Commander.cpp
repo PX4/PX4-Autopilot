@@ -50,6 +50,7 @@
 #include "esc_calibration.h"
 #include "px4_custom_mode.h"
 #include "state_machine_helper.h"
+#include "ModeUtil/control_mode.hpp"
 
 /* PX4 headers */
 #include <drivers/drv_hrt.h>
@@ -2869,144 +2870,10 @@ void
 Commander::update_control_mode()
 {
 	_vehicle_control_mode = {};
-
-	/* set vehicle_control_mode according to set_navigation_state */
-	_vehicle_control_mode.flag_armed = _arm_state_machine.isArmed();
-
-	switch (_vehicle_status.nav_state) {
-	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-		_vehicle_control_mode.flag_control_manual_enabled = true;
-		_vehicle_control_mode.flag_control_rates_enabled = stabilization_required();
-		_vehicle_control_mode.flag_control_attitude_enabled = stabilization_required();
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_STAB:
-		_vehicle_control_mode.flag_control_manual_enabled = true;
-		_vehicle_control_mode.flag_control_rates_enabled = true;
-		_vehicle_control_mode.flag_control_attitude_enabled = true;
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-		_vehicle_control_mode.flag_control_manual_enabled = true;
-		_vehicle_control_mode.flag_control_rates_enabled = true;
-		_vehicle_control_mode.flag_control_attitude_enabled = true;
-		_vehicle_control_mode.flag_control_altitude_enabled = true;
-		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-		_vehicle_control_mode.flag_control_manual_enabled = true;
-		_vehicle_control_mode.flag_control_rates_enabled = true;
-		_vehicle_control_mode.flag_control_attitude_enabled = true;
-		_vehicle_control_mode.flag_control_altitude_enabled = true;
-		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-		_vehicle_control_mode.flag_control_position_enabled = true;
-		_vehicle_control_mode.flag_control_velocity_enabled = true;
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
-		_vehicle_control_mode.flag_control_auto_enabled = true;
-		_vehicle_control_mode.flag_control_rates_enabled = true;
-		_vehicle_control_mode.flag_control_attitude_enabled = true;
-		_vehicle_control_mode.flag_control_altitude_enabled = true;
-		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-		_vehicle_control_mode.flag_control_position_enabled = true;
-		_vehicle_control_mode.flag_control_velocity_enabled = true;
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_ACRO:
-		_vehicle_control_mode.flag_control_manual_enabled = true;
-		_vehicle_control_mode.flag_control_rates_enabled = true;
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-		_vehicle_control_mode.flag_control_auto_enabled = true;
-		_vehicle_control_mode.flag_control_rates_enabled = true;
-		_vehicle_control_mode.flag_control_attitude_enabled = true;
-		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
-		/* disable all controllers on termination */
-		_vehicle_control_mode.flag_control_termination_enabled = true;
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-		_vehicle_control_mode.flag_control_offboard_enabled = true;
-
-		if (_offboard_control_mode_sub.get().position) {
-			_vehicle_control_mode.flag_control_position_enabled = true;
-			_vehicle_control_mode.flag_control_velocity_enabled = true;
-			_vehicle_control_mode.flag_control_altitude_enabled = true;
-			_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-			_vehicle_control_mode.flag_control_acceleration_enabled = true;
-			_vehicle_control_mode.flag_control_rates_enabled = true;
-			_vehicle_control_mode.flag_control_attitude_enabled = true;
-
-		} else if (_offboard_control_mode_sub.get().velocity) {
-			_vehicle_control_mode.flag_control_velocity_enabled = true;
-			_vehicle_control_mode.flag_control_altitude_enabled = true;
-			_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-			_vehicle_control_mode.flag_control_acceleration_enabled = true;
-			_vehicle_control_mode.flag_control_rates_enabled = true;
-			_vehicle_control_mode.flag_control_attitude_enabled = true;
-
-		} else if (_offboard_control_mode_sub.get().acceleration) {
-			_vehicle_control_mode.flag_control_acceleration_enabled = true;
-			_vehicle_control_mode.flag_control_rates_enabled = true;
-			_vehicle_control_mode.flag_control_attitude_enabled = true;
-
-		} else if (_offboard_control_mode_sub.get().attitude) {
-			_vehicle_control_mode.flag_control_rates_enabled = true;
-			_vehicle_control_mode.flag_control_attitude_enabled = true;
-
-		} else if (_offboard_control_mode_sub.get().body_rate) {
-			_vehicle_control_mode.flag_control_rates_enabled = true;
-		}
-
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-
-	// Follow Target supports RC adjustment, so disable auto control mode to disable
-	// the Flight Task from exiting itself when RC stick movement is detected.
-	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
-		_vehicle_control_mode.flag_control_manual_enabled = false;
-		_vehicle_control_mode.flag_control_auto_enabled = false;
-		_vehicle_control_mode.flag_control_rates_enabled = true;
-		_vehicle_control_mode.flag_control_attitude_enabled = true;
-		_vehicle_control_mode.flag_control_altitude_enabled = true;
-		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-		_vehicle_control_mode.flag_control_position_enabled = true;
-		_vehicle_control_mode.flag_control_velocity_enabled = true;
-		break;
-
-	default:
-		break;
-	}
-
-	_vehicle_control_mode.flag_multicopter_position_control_enabled =
-		(_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
-		&& (_vehicle_control_mode.flag_control_altitude_enabled
-		    || _vehicle_control_mode.flag_control_climb_rate_enabled
-		    || _vehicle_control_mode.flag_control_position_enabled
-		    || _vehicle_control_mode.flag_control_velocity_enabled
-		    || _vehicle_control_mode.flag_control_acceleration_enabled);
-
+	mode_util::getVehicleControlMode(_arm_state_machine.isArmed(), _vehicle_status.nav_state,
+					 _vehicle_status.vehicle_type, _offboard_control_mode_sub.get(), _vehicle_control_mode);
 	_vehicle_control_mode.timestamp = hrt_absolute_time();
 	_vehicle_control_mode_pub.publish(_vehicle_control_mode);
-}
-
-bool
-Commander::stabilization_required()
-{
-	return _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 }
 
 void
