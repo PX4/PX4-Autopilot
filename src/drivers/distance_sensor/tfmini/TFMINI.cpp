@@ -73,10 +73,26 @@ int
 TFMINI::init()
 {
 	int32_t hw_model = 1; // only one model so far...
-	param_t _param_tf_rot = param_find("SENS_TFMINI_ROT");
-	int32_t tf_rotation;
-	if (_param_tf_rot != PARAM_INVALID) {
-		param_get(_param_tf_rot, &tf_rotation);
+
+	param_t _param_tfmini_rot = param_find("SENS_TFMINI_ROT");
+	param_t _param_tfmini_mind = param_find("SENS_TFMINI_MIND");
+	param_t _param_tfmini_maxd = param_find("SENS_TFMINI_MAXD");
+	int32_t rotation,max_dist,min_dist;
+	if (param_get(_param_tfmini_rot, &rotation) == PX4_OK)
+	{
+		_px4_rangefinder.set_orientation(rotation);
+	}
+	if (param_get(_param_tfmini_mind, &min_dist) == PX4_OK)
+	{
+		_px4_rangefinder.set_min_distance(min_dist / 100.0f);
+	} else {
+		_px4_rangefinder.set_min_distance(0.4f);
+	}
+	if (param_get(_param_tfmini_maxd, &max_dist) == PX4_OK)
+	{
+		_px4_rangefinder.set_max_distance(max_dist / 100.0f);
+	} else {
+		_px4_rangefinder.set_max_distance(12.0f);
 	}
 
 	switch (hw_model) {
@@ -86,10 +102,10 @@ TFMINI::init()
 		// 0.3 is too close to minimum so chattering of invalid sensor decision
 		// is happening sometimes. this cause EKF to believe inconsistent range readings.
 		// So we set 0.4 as valid minimum.
-		_px4_rangefinder.set_min_distance(0.4f);
-		_px4_rangefinder.set_max_distance(12.0f);
+		// _px4_rangefinder.set_min_distance(0.4f);	// use parameter settings
+		// _px4_rangefinder.set_max_distance(12.0f);
 		_px4_rangefinder.set_fov(math::radians(1.15f));
-		_px4_rangefinder.set_orientation(tf_rotation);
+		// _px4_rangefinder.set_orientation(tf_rotation);
 
 		break;
 

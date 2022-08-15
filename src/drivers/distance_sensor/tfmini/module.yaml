@@ -24,3 +24,23 @@ parameters:
                 2: ROTATION_RIGHT_FACING
             reboot_required: true
             default: 25
+
+        SENS_TFMINI_MAXD:
+            description:
+                short: Benewake TF Sensor Max Distance
+                long: |
+                    This parameter defines maximum measuring distance in cm.
+            type: int32
+            min: 5
+            max: 20000
+            default: 1200
+
+        SENS_TFMINI_MIND:
+            description:
+                short: Benewake TF Sensor Min Distance
+                long: |
+                    This parameter defines min measuring distance in cm.
+            type: int32
+            min: 5
+            max: 20000
+            default: 10

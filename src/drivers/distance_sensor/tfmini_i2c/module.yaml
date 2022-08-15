@@ -52,7 +52,7 @@ parameters:
             description:
                 short: Benewake TF Sensor ${i} Max Distance
                 long: |
-                    This parameter defines maximum measuring distance.
+                    This parameter defines maximum measuring distance in cm.
             type: int32
             min: 5
             max: 20000
@@ -64,7 +64,7 @@ parameters:
             description:
                 short: Benewake TF Sensor ${i} Min Distance
                 long: |
-                    This parameter defines min measuring distance.
+                    This parameter defines min measuring distance in cm.
             type: int32
             min: 5
             max: 20000
