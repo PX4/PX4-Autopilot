@@ -198,7 +198,7 @@ elif [ "$program" == "ignition" ] && [ -z "$no_sim" ]; then
 	export IGN_GAZEBO_RESOURCE_PATH=$IGN_GAZEBO_RESOURCE_PATH:${src_path}/Tools/simulation/gazebo/models
 	#ign gazebo --force-version 5 ${verbose} ${ignition_headless} -r "${src_path}/Tools/simulation/gazebo/worlds/${model}.world"&
 
-	ign gazebo -r "${src_path}/Tools/simulation/gazebo/worlds/${model}.sdf" &
+	ign gazebo --distributed --network-role=primary --network-secondaries=1 -r "${src_path}/Tools/simulation/gazebo/worlds/${model}.sdf" &
 
 elif [ "$program" == "flightgear" ] && [ -z "$no_sim" ]; then
 	echo "FG setup"
