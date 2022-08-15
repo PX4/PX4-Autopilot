@@ -177,7 +177,7 @@ void Report::reset()
 void Report::prepare(uint8_t vehicle_type)
 {
 	// Get mode requirements before running any checks (in particular the mode checks require them)
-	getModeRequirements(vehicle_type, _status_flags);
+	mode_util::getModeRequirements(vehicle_type, _status_flags);
 }
 
 NavModes Report::getModeGroup(uint8_t nav_state) const

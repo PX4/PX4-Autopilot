@@ -152,8 +152,6 @@ private:
 
 	bool shutdown_if_allowed();
 
-	bool stabilization_required();
-
 	void send_parachute_command();
 
 	void checkWindSpeedThresholds();

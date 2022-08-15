@@ -33,17 +33,16 @@
 
 #pragma once
 
-#include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/vehicle_control_mode.h>
+
+#include <stdint.h>
 
 namespace mode_util
 {
 
-/**
- * Get per-mode requirements
- * @param vehicle_type one of vehicle_status_s::VEHICLE_TYPE_*
- * @param flags output flags, all mode_req_* entries are set
- */
-void getModeRequirements(uint8_t vehicle_type, vehicle_status_flags_s &flags);
-
+void getVehicleControlMode(bool armed, uint8_t nav_state, uint8_t vehicle_type,
+			   const offboard_control_mode_s &offboard_control_mode,
+			   vehicle_control_mode_s &vehicle_control_mode);
 
 } // namespace mode_util
