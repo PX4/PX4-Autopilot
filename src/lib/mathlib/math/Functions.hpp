@@ -149,7 +149,7 @@ const T expo_deadzone(const T &value, const T &e, const T &dz)
  *         x_low   x_high
  */
 template<typename T>
-const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low, const T &y_high)
+const T interpolate(const T &value, const T &x_low, const T &x_high, const T &y_low, const T &y_high)
 {
 	if (value <= x_low) {
 		return y_low;
@@ -178,15 +178,15 @@ const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low,
  *         x_low x_middle x_high
  */
 template<typename T>
-const T gradual3(const T &value,
-		 const T &x_low, const T &x_middle, const T &x_high,
-		 const T &y_low, const T &y_middle, const T &y_high)
+const T interpolate3(const T &value,
+		     const T &x_low, const T &x_middle, const T &x_high,
+		     const T &y_low, const T &y_middle, const T &y_high)
 {
 	if (value < x_middle) {
-		return gradual(value, x_low, x_middle, y_low, y_middle);
+		return interpolate(value, x_low, x_middle, y_low, y_middle);
 
 	} else {
-		return gradual(value, x_middle, x_high, y_middle, y_high);
+		return interpolate(value, x_middle, x_high, y_middle, y_high);
 	}
 }
 
