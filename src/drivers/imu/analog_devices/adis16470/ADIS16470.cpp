@@ -379,7 +379,7 @@ bool ADIS16470::Configure()
 	_px4_accel.set_range(40.f * CONSTANTS_ONE_G);
 	_px4_accel.set_scale(CONSTANTS_ONE_G / 800.f); // scaling 800 LSB/g -> m/s^2 per LSB
 
-	// gyro: ±2000, 10 LSB/°/sec (16-bit format)
+	// gyro: ±2000 °/sec, 10 LSB/°/sec (16-bit format)
 	_px4_gyro.set_range(math::radians(2000.f));
 	_px4_gyro.set_scale(math::radians(1.f / 10.f)); // scaling 10 LSB/°/sec -> rad/s per LSB
 
