@@ -34,6 +34,9 @@
 #include "mode_requirements.hpp"
 #include <uORB/topics/vehicle_status.h>
 
+namespace mode_util
+{
+
 static inline void setRequirement(uint8_t nav_state, uint32_t &mode_requirement)
 {
 	mode_requirement |= 1u << nav_state;
@@ -159,3 +162,5 @@ void getModeRequirements(uint8_t vehicle_type, vehicle_status_flags_s &flags)
 
 	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX == 23, "update mode requirements");
 }
+
+} // namespace mode_util
