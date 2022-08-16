@@ -60,6 +60,7 @@ ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *p
 
 	_param_handles.yaw_collective_pitch_scale = param_find("CA_HELI_YAW_CP_S");
 	_param_handles.yaw_throttle_scale = param_find("CA_HELI_YAW_TH_S");
+	_param_handles.yaw_ccw = param_find("CA_HELI_YAW_CCW");
 	_param_handles.spoolup_time = param_find("COM_SPOOLUP_TIME");
 
 	updateParams();
@@ -93,6 +94,9 @@ void ActuatorEffectivenessHelicopter::updateParams()
 	param_get(_param_handles.yaw_collective_pitch_scale, &_geometry.yaw_collective_pitch_scale);
 	param_get(_param_handles.yaw_throttle_scale, &_geometry.yaw_throttle_scale);
 	param_get(_param_handles.spoolup_time, &_geometry.spoolup_time);
+	int32_t yaw_ccw = 0;
+	param_get(_param_handles.yaw_ccw, &yaw_ccw);
+	_geometry.yaw_sign = (yaw_ccw == 1) ? -1.f : 1.f;
 }
 
 bool
@@ -127,7 +131,24 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 			       _geometry.throttle_curve) * throttleSpoolupProgress();
 	const float collective_pitch = math::interpolateN(-control_sp(ControlAxis::THRUST_Z), _geometry.pitch_curve);
 
-	// throttle spoolup
+	// actuator mapping
+	actuator_sp(0) = throttle;
+	actuator_sp(1) = control_sp(ControlAxis::YAW)
+			 + fabsf(collective_pitch) * _geometry.yaw_collective_pitch_scale
+			 + throttle * _geometry.yaw_throttle_scale;
+	actuator_sp(1) *= _geometry.yaw_sign;
+
+	for (int i = 0; i < _geometry.num_swash_plate_servos; i++) {
+		actuator_sp(_first_swash_plate_servo_index + i) = collective_pitch
+				+ control_sp(ControlAxis::PITCH) * cosf(_geometry.swash_plate_servos[i].angle) *
+				_geometry.swash_plate_servos[i].arm_length
+				- control_sp(ControlAxis::ROLL) * sinf(_geometry.swash_plate_servos[i].angle) *
+				_geometry.swash_plate_servos[i].arm_length;
+	}
+}
+
+float ActuatorEffectivenessHelicopter::throttleSpoolupProgress()
+{
 	vehicle_status_s vehicle_status;
 
 	if (_vehicle_status_sub.update(&vehicle_status)) {
@@ -139,20 +160,27 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 	const float spoolup_progress = time_since_arming / _geometry.spoolup_time;
 
 	if (_armed && spoolup_progress < 1.f) {
-		throttle *= spoolup_progress;
+		return spoolup_progress;
 	}
 
-	// actuator mapping
-	actuator_sp(0) = throttle;
-	actuator_sp(1) = control_sp(ControlAxis::YAW)
-			 + fabsf(collective_pitch) * _geometry.yaw_collective_pitch_scale
-			 + throttle * _geometry.yaw_throttle_scale;
+	return 1.f;
+}
 
-	for (int i = 0; i < _geometry.num_swash_plate_servos; i++) {
-		actuator_sp(_first_swash_plate_servo_index + i) = collective_pitch
-				+ control_sp(ControlAxis::PITCH) * cosf(_geometry.swash_plate_servos[i].angle) *
-				_geometry.swash_plate_servos[i].arm_length
-				- control_sp(ControlAxis::ROLL) * sinf(_geometry.swash_plate_servos[i].angle) *
-				_geometry.swash_plate_servos[i].arm_length;
+float ActuatorEffectivenessHelicopter::throttleSpoolupProgress()
+{
+	vehicle_status_s vehicle_status;
+
+	if (_vehicle_status_sub.update(&vehicle_status)) {
+		_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+		_armed_time = vehicle_status.armed_time;
 	}
+
+	const float time_since_arming = (hrt_absolute_time() - _armed_time) / 1e6f;
+	const float spoolup_progress = time_since_arming / _geometry.spoolup_time;
+
+	if (_armed && spoolup_progress < 1.f) {
+		return spoolup_progress;
+	}
+
+	return 1.f;
 }

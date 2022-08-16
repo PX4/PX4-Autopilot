@@ -59,6 +59,7 @@ public:
 		float pitch_curve[NUM_CURVE_POINTS];
 		float yaw_collective_pitch_scale;
 		float yaw_throttle_scale;
+		float yaw_sign;
 		float spoolup_time;
 	};
 
@@ -75,6 +76,8 @@ public:
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp) override;
 private:
+	float throttleSpoolupProgress();
+
 	void updateParams() override;
 
 	struct ParamHandlesSwashPlate {
@@ -88,6 +91,7 @@ private:
 		param_t pitch_curve[NUM_CURVE_POINTS];
 		param_t yaw_collective_pitch_scale;
 		param_t yaw_throttle_scale;
+		param_t yaw_ccw;
 		param_t spoolup_time;
 	};
 	ParamHandles _param_handles{};
