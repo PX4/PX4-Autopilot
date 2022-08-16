@@ -37,4 +37,4 @@ px4_add_library(message_display
 )
 
 # unit testing
-# px4_add_functional_gtest(SRC MessageDisplayTest.cpp LINKLIBS message_display)
+px4_add_unit_gtest(SRC MessageDisplayTest.cpp LINKLIBS message_display)
