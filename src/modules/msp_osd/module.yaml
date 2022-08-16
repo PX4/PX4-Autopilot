@@ -42,6 +42,25 @@ parameters:
                 21: (unused) POWER
             default: 16383
 
+        # OSD Log Level
+        OSD_LOG_LEVEL:
+            description:
+                short: OSD Warning Level
+                long: |
+                  Minimum security of log level to display on the OSD.
+            type: int32
+            bit:
+                0: EMERGENCY
+                1: ALERT
+                2: CRITICAL
+                3: ERROR
+                4: WARNING
+                5: NOTICE
+                6: INFO
+                7: DEBUG
+                8: NONE
+            default: 3
+
         # Scroll Speed
         OSD_SCROLL_RATE:
             description:

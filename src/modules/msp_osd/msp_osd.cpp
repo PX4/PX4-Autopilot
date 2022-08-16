@@ -260,6 +260,7 @@ void MspOsd::Run()
 			_vehicle_status_struct,
 			_vehicle_attitude_struct,
 			_log_message_struct,
+			_param_log_level.get(),
 			_display);
 		this->Send(MSP_NAME, &display_message);
 	}

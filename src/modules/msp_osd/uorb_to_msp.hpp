@@ -72,6 +72,7 @@ namespace msp_osd {
 msp_name_t construct_display_message(const struct vehicle_status_s& vehicle_status,
 				     const struct vehicle_attitude_s& vehicle_attitude,
 				     const struct log_message_s& log_message,
+				     const int log_level,
 				     MessageDisplay& display);
 
 // construct an MSP_FC_VARIANT struct

@@ -52,6 +52,7 @@ namespace msp_osd {
 msp_name_t construct_display_message(const struct vehicle_status_s& vehicle_status,
 				     const struct vehicle_attitude_s& vehicle_attitude,
 				     const struct log_message_s& log_message,
+				     const int log_level,
 				     MessageDisplay& display) {
 	// initialize result
 	msp_name_t display_message {0};
@@ -141,13 +142,10 @@ msp_name_t construct_display_message(const struct vehicle_status_s& vehicle_stat
 		default:
 			display.set(MessageDisplayType::FLIGHT_MODE, "???");
 		}
-
-		// display any errors or warnings
-		// @TODO
 	}
 
 	// display, if updated
-	if (log_message.severity <= 4/*WARNING, or worse*/) {
+	if (log_message.severity <= log_level) {
 		display.set(MessageDisplayType::WARNING, log_message.text);
 		last_warning_stamp = now;
 	} else if (now - last_warning_stamp > 30_s) {
