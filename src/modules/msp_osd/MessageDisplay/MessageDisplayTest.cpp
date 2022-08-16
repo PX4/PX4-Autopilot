@@ -82,17 +82,17 @@ TEST_F(MessageDisplayTest, testMessageDisplayStatic)
   // set a random flight mode that's too short
   md_->set(MessageDisplayType::FLIGHT_MODE, "S");
   md_->get(message, 0);
-  EXPECT_STREQ(message, "S|???|??");
+  EXPECT_STREQ(message, "S|????|??");
 
   // set a random flight mode that's too long
   md_->set(MessageDisplayType::FLIGHT_MODE, "SOSSOS");
   md_->get(message, 0);
-  EXPECT_STREQ(message, "SOS|???|??");
+  EXPECT_STREQ(message, "SOS|????|??");
 
   // set a random flight mode that's just right
   md_->set(MessageDisplayType::FLIGHT_MODE, "SOS");
   md_->get(message, 0);
-  EXPECT_STREQ(message, "SOS|???|??");
+  EXPECT_STREQ(message, "SOS|????|??");
 
   // set a random arming status that's too short
   md_->set(MessageDisplayType::ARMING, "DS");
@@ -102,27 +102,27 @@ TEST_F(MessageDisplayTest, testMessageDisplayStatic)
   // set a random arming status that's too long
   md_->set(MessageDisplayType::ARMING, "DISARM");
   md_->get(message, 0);
-  EXPECT_STREQ(message, "SOS|DIS|??");
+  EXPECT_STREQ(message, "SOS|DISA|??");
 
   // set a random arming status that's just right
   md_->set(MessageDisplayType::ARMING, "DSRM");
   md_->get(message, 0);
-  EXPECT_STREQ(message, "SOS|DSR|??");
+  EXPECT_STREQ(message, "SOS|DSRM|??");
 
   // set a random heading that's too short
   md_->set(MessageDisplayType::HEADING, "N");
   md_->get(message, 0);
-  EXPECT_STREQ(message, "SOS|DSR|N");
+  EXPECT_STREQ(message, "SOS|DSRM|N");
 
   // set a random heading that's too short
   md_->set(MessageDisplayType::HEADING, "NBNW");
   md_->get(message, 0);
-  EXPECT_STREQ(message, "SOS|DSR|NB");
+  EXPECT_STREQ(message, "SOS|DSRM|NB");
 
   // set a random heading that's too short
   md_->set(MessageDisplayType::HEADING, "NW");
   md_->get(message, 0);
-  EXPECT_STREQ(message, "SOS|DSR|NW");
+  EXPECT_STREQ(message, "SOS|DSRM|NW");
 }
 
 // check setting and getting for a warning message
@@ -135,7 +135,7 @@ TEST_F(MessageDisplayTest, testMessageDisplayWarning)
   md_->set(MessageDisplayType::WARNING, "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.");
 
   // the ground truth message is the following:
-  const char ground_truth[MSG_BUFFER_SIZE] = "???|???|??   WARN: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commo            ";
+  const char ground_truth[MSG_BUFFER_SIZE] = "???|????|??   WARN: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea comm            ";
 
   // walk through the message as it scrolls
   char message[FULL_MSG_BUFFER];  // output message
