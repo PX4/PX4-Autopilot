@@ -1856,6 +1856,34 @@ PARAM_DEFINE_INT32(RC_MAP_PARAM2, 0);
 PARAM_DEFINE_INT32(RC_MAP_PARAM3, 0);
 
 /**
+ * RC channel to engage the main motor (for helicopters)
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Calibration
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ */
+PARAM_DEFINE_INT32(RC_MAP_ENG_MOT, 0);
+
+/**
  * Failsafe channel PWM threshold.
  *
  * Use RC_MAP_FAILSAFE to specify which channel is used to indicate RC loss via this threshold.
@@ -1984,6 +2012,22 @@ PARAM_DEFINE_FLOAT(RC_TRANS_TH, 0.75f);
  * @group Radio Switches
  */
 PARAM_DEFINE_FLOAT(RC_GEAR_TH, 0.75f);
+
+/**
+ * Threshold for selecting main motor engage
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+ */
+PARAM_DEFINE_FLOAT(RC_ENG_MOT_TH, 0.75f);
 
 /**
  * PWM input channel that provides RSSI.

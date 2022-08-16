@@ -39,6 +39,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/manual_control_switches.h>
 
 class ActuatorEffectivenessHelicopter : public ModuleParams, public ActuatorEffectiveness
 {
@@ -77,6 +78,7 @@ public:
 			    ActuatorVector &actuator_sp) override;
 private:
 	float throttleSpoolupProgress();
+	bool mainMotorEnaged();
 
 	void updateParams() override;
 
@@ -104,4 +106,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	bool _armed{false};
 	uint64_t _armed_time{0};
+
+	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};
+	bool _main_motor_engaged{true};
 };

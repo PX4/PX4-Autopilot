@@ -132,7 +132,8 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 	const float collective_pitch = math::interpolateN(-control_sp(ControlAxis::THRUST_Z), _geometry.pitch_curve);
 
 	// actuator mapping
-	actuator_sp(0) = throttle;
+	actuator_sp(0) = mainMotorEnaged() ? throttle : NAN;
+
 	actuator_sp(1) = control_sp(ControlAxis::YAW)
 			 + fabsf(collective_pitch) * _geometry.yaw_collective_pitch_scale
 			 + throttle * _geometry.yaw_throttle_scale;
@@ -147,23 +148,16 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 	}
 }
 
-float ActuatorEffectivenessHelicopter::throttleSpoolupProgress()
+bool ActuatorEffectivenessHelicopter::mainMotorEnaged()
 {
-	vehicle_status_s vehicle_status;
+	manual_control_switches_s manual_control_switches;
 
-	if (_vehicle_status_sub.update(&vehicle_status)) {
-		_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
-		_armed_time = vehicle_status.armed_time;
+	if (_manual_control_switches_sub.update(&manual_control_switches)) {
+		_main_motor_engaged = manual_control_switches.engage_main_motor_switch == manual_control_switches_s::SWITCH_POS_NONE
+				      || manual_control_switches.engage_main_motor_switch == manual_control_switches_s::SWITCH_POS_ON;
 	}
 
-	const float time_since_arming = (hrt_absolute_time() - _armed_time) / 1e6f;
-	const float spoolup_progress = time_since_arming / _geometry.spoolup_time;
-
-	if (_armed && spoolup_progress < 1.f) {
-		return spoolup_progress;
-	}
-
-	return 1.f;
+	return _main_motor_engaged;
 }
 
 float ActuatorEffectivenessHelicopter::throttleSpoolupProgress()
