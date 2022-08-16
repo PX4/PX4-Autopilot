@@ -136,7 +136,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
 				// mea_acc = 0.5 * rho * bcoef_inv * airspeed**2 + mcoef_corrrected * airspeed
 				const float airspeed = (bcoef  / rho) * (- mcoef_corrrected  + sqrtf(sq(mcoef_corrrected) + 2.0f * rho * bcoef_inv * mea_acc.length()));
-				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed + mcoef_corrrected);
+				Kacc = fmaxf(1e-1f, cosf(AoS) * (rho * bcoef_inv * airspeed + mcoef_corrrected));
 				pred_acc = predicted_bb_sf(0) - rel_wind_body(0) * mcoef_corrrected;
 
 			} else if (using_mcoef) {
@@ -149,7 +149,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
 				// mea_acc = (0.5 * rho / _params.bcoef_x) * airspeed**2
 				const float airspeed = sqrtf((2.0f * bcoef * mea_acc.length()) / rho);
-				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed);
+				Kacc = fmaxf(1e-1f, cosf(AoS) * rho * bcoef_inv * airspeed);
 				pred_acc = predicted_bb_sf(0);
 
 			} else {
@@ -247,7 +247,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
 				// mea_acc = 0.5 * rho * bcoef_inv * airspeed**2 + mcoef_corrrected * airspeed
 				const float airspeed = (bcoef  / rho) * (- mcoef_corrrected  + sqrtf(sq(mcoef_corrrected) + 2.0f * rho * bcoef_inv * mea_acc.length()));
-				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed + mcoef_corrrected);
+				Kacc = fmaxf(1e-1f, sinf(AoS) * (rho * bcoef_inv * airspeed + mcoef_corrrected));
 				pred_acc = predicted_bb_sf(0) - rel_wind_body(0) * mcoef_corrrected;
 
 			} else if (using_mcoef) {
@@ -260,7 +260,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
 				// mea_acc = (0.5 * rho / _params.bcoef_x) * airspeed**2
 				const float airspeed = sqrtf((2.0f * bcoef * mea_acc.length()) / rho);
-				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed);
+				Kacc = fmaxf(1e-1f, sinf(AoS) * rho * bcoef_inv * airspeed);
 				pred_acc = predicted_bb_sf(1);
 
 			} else {
