@@ -6,17 +6,13 @@ set -e
 ## Can also be used in docker.
 ##
 ## Installs:
-## - Common dependencies and tools for NuttX, jMAVSim, Gazebo
+## - Common dependencies and tools for NuttX, and Gazebo
 ## - NuttX toolchain (omit with arg: --no-nuttx)
-## - jMAVSim and Gazebo simulator (omit with arg: --no-sim-tools)
-## Optional:
-## - FastRTPS and FastCDR (with args: --with-rtps)
+## - Gazebo simulator (omit with arg: --no-sim-tools)
 
 INSTALL_NUTTX="true"
 INSTALL_SIM="true"
 INSTALL_ARCH=`uname -m`
-INSTALL_RTPS="false"
-INSTALL_JAVA="false"
 INSIDE_DOCKER="false"
 
 # Parse arguments
@@ -30,13 +26,6 @@ do
 		INSTALL_SIM="false"
 	fi
 
-	if [[ $arg == "--with-rtps" ]]; then
-		INSTALL_RTPS="true"
-	fi
-
-	if [[ $arg == "--with-java" ]]; then
-		INSTALL_JAVA="true"
-	fi
 
 	if [[ $arg == "--from-docker" ]]; then
 		INSIDE_DOCKER="true"
@@ -46,8 +35,6 @@ do
     echo "#⚡️ PX4 Dependency Installer for Ubuntu"
     echo "# Options:
 #
-#  --with-java      boolean
-#  --with-rtps      boolean
 #  --no-nuttx       boolean
 #  --no-sim-tools   boolean"
     echo "#"
@@ -90,9 +77,7 @@ echo "#⚡️ Starting PX4 Dependency Installer for Ubuntu ${UBUNTU_RELEASE} (${
 echo "# Options:
 #
 #  - Install NuttX = ${INSTALL_NUTTX}
-#  - Install Java = ${INSTALL_JAVA}
-#  - Install Simulation = ${INSTALL_SIM}
-#  - Install RTPS = ${INSTALL_RTPS}"
+#  - Install Simulation = ${INSTALL_SIM}"
 echo $VERBOSE_BAR
 echo
 
@@ -252,66 +237,6 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		echo $VERBOSE_BAR
 		echo
 	fi
-fi
-
-# Install JAVA
-# NOTE: The version of java below has been double checked to work
-# against all the tools and dependencies you need including FastRTPS
-# and Gazebo. If really need to update JDK, make sure you test the
-# compatibility with Gradle and the eProsima tools in the next step
-if [[ $INSTALL_JAVA == "true" ]]; then
-	JDK_VERSION="14.0.2_12"
-	echo
-	echo $VERBOSE_BAR
-	echo "🍻 Installing Java JDK
-
-	* Version: $JDK_VERSION
-	* Path: /opt/jdk-14.0.2+12"
-	echo $VERBOSE_BAR
-	echo
-
-	JDK_DOWNLOAD="/tmp/OpenJDK14U-jdk_x64_linux_hotspot_$JDK_VERSION.tar.gz"
-	wget -O $JDK_DOWNLOAD https://github.com/AdoptOpenJDK/openjdk14-binaries/releases/download/jdk-14.0.2%2B12/OpenJDK14U-jdk_x64_linux_hotspot_14.0.2_12.tar.gz
-	sudo tar -xzf $JDK_DOWNLOAD -C /opt/
-	export PATH="/opt/jdk-14.0.2+12/bin:$PATH"
-fi
-
-# Fast-RTPS
-# The version of eProsima tools we are using has a hard dependency on
-# JDK 14 because of Gradle, any new version of Gradle won't work unless
-# the eProsima tools are updated
-if [[ $INSTALL_RTPS == "true" ]]; then
-	echo
-	echo $VERBOSE_BAR
-	echo "🍻 Installing Fast-RTPS"
-	echo $VERBOSE_BAR
-	echo
-
-	GRADLE_VERSION="6.4.1"
-	wget -O "/tmp/gradle-$GRADLE_VERSION-bin.zip" "https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip" \
-		&& unzip -d /opt/gradle "/tmp/gradle-$GRADLE_VERSION-bin.zip"
-	export PATH="$PATH:/opt/gradle/gradle-$GRADLE_VERSION/bin"
-
-	# Intall foonathan_memory from source as it is required to Fast-RTPS >= 1.9
-	git clone https://github.com/eProsima/foonathan_memory_vendor.git /tmp/foonathan_memory \
-		&& cd /tmp/foonathan_memory \
-		&& mkdir build && cd build \
-		&& cmake .. \
-		&& cmake --build . --target install -- -j $(nproc)
-
-	# Fast-DDS (Fast-RTPS 2.1.1)
-	git clone --recursive https://github.com/eProsima/Fast-DDS.git -b v2.1.1 /tmp/FastRTPS-2.1.1 \
-		&& cd /tmp/FastRTPS-2.1.1 \
-		&& mkdir build && cd build \
-		&& cmake -DTHIRDPARTY=ON -DSECURITY=ON .. \
-		&& cmake --build . --target install -- -j $(nproc)
-
-	# Fast-RTPS-Gen 1.0.4
-	git clone --recursive https://github.com/eProsima/Fast-DDS-Gen.git -b v1.0.4 /tmp/Fast-RTPS-Gen-1.0.4 \
-		&& cd /tmp/Fast-RTPS-Gen-1.0.4 \
-		&& gradle assemble \
-		&& gradle install
-
 fi
 
 # Simulation tools
