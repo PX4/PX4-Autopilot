@@ -24,21 +24,12 @@ RUN apt-get update && apt-get -y --quiet --no-install-recommends install \
 # Install PX4 Requirements
 COPY Tools/setup/requirements.txt /tmp/requirements.txt
 COPY Tools/setup/ubuntu.sh /tmp/ubuntu.sh
-# We support pre-downloading the gcc arm none eabi compiler
-# to speed up build times, if the file is not present when
-# building, the ubuntu.sh script will download it from source
-# To make this conditional, copy an extra 'dummy' file as well
-COPY Tools/setup/dummy.file gcc-arm-none-eabi-9-2020-q2-update-linux.tar.* /tmp/
 # The PATH env is set within ubuntu.sh, but given how we
 # are running the image using `gosu` to avoid read-only problems
 # with the filesystem the env variable does not persist
 ENV PATH="/opt/gcc-arm-none-eabi-9-2020-q2-update/bin:$PATH"
-ENV PATH="/opt/jdk-14.0.2+12/bin:$PATH"
 
-# For a complete list of INSTALL_ARGS options run:
-# ./Tools/setup/ubuntu.sh --help
-ARG INSTALL_ARGS
-RUN bash /tmp/ubuntu.sh --from-docker $INSTALL_ARGS
+RUN bash /tmp/ubuntu.sh --from-docker
 
 ENV DISPLAY :99
 

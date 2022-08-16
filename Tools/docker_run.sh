@@ -1,12 +1,14 @@
 #!/bin/bash
 
 if [[ -z "${DOCKER_TAG}" ]]; then
-  TAG_NAME="latest"
+  # The default tag name should be hardcoded
+  # to whatever we are currently using in CI on this branch
+  TAG_NAME="2022-08-16"
 else
   TAG_NAME="${DOCKER_TAG}"
 fi
 
-PX4_DOCKER_REPO="px4io/px4-dev:$TAG_NAME"
+PX4_DOCKER_REPO="ghcr.io/px4/px4-dev:$TAG_NAME"
 
 echo "[docker_run.sh]: Running '$PX4_DOCKER_REPO'"
 

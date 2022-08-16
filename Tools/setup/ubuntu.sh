@@ -209,16 +209,9 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	else
 		echo "📌 The arm cross compiler was not found";
 		echo " * Installing arm-none-eabi-gcc-${NUTTX_GCC_VERSION}";
-		# The arm cross compiler hosting provider is known to throttle download speeds
-		# for users who reach a certain limit of downloads in a given time frame
-		# for this reason we allow for using a previously downloaded file
-		# this is specially helpful when debugging this installer script
-		# from within a container COMPILER_PATH="/tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2"
 		COMPILER_NAME="gcc-arm-none-eabi-${NUTTX_GCC_VERSION}"
 		COMPILER_PATH="/tmp/$COMPILER_NAME-linux.tar.bz2"
-		if [ ! -f "$COMPILER_PATH" ]; then
-			wget -O $COMPILER_PATH https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION_SHORT}/${COMPILER_NAME}-${INSTALL_ARCH}-linux.tar.bz2
-		fi
+    wget -O $COMPILER_PATH https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION_SHORT}/${COMPILER_NAME}-${INSTALL_ARCH}-linux.tar.bz2
 		sudo tar -jxf $COMPILER_PATH -C /opt/;
 
 		# add arm-none-eabi-gcc to user's PATH

@@ -1,20 +1,21 @@
 #!/bin/bash
 
 if [[ -z "${DOCKER_TAG}" ]]; then
-  TAG_NAME="latest"
+  # the default tag for docker images
+  # follows the pattern below, and we recommend
+  # that any images pushed to the registry continue
+  # to use the pattern for consistency
+  TAG_NAME="`date +"%Y-%m-%d"`"
 else
   TAG_NAME="${DOCKER_TAG}"
 fi
 
-PX4_DOCKER_REPO="px4io/px4-dev:$TAG_NAME"
-BUILD_ARGS="${@}"
+PX4_DOCKER_REPO="ghcr.io/px4/px4-dev:$TAG_NAME"
 PWD=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 SRC_DIR=$PWD/../
 
 echo "[docker_build.sh]: Building [$PX4_DOCKER_REPO]"
-echo "[docker_build.sh]:  - with args: [$BUILD_ARGS]"
 
 docker build \
   -t ${PX4_DOCKER_REPO} \
-  -f Tools/setup/Dockerfile "${SRC_DIR}" \
-  --build-arg INSTALL_ARGS="${BUILD_ARGS}"
+  -f Tools/setup/Dockerfile "${SRC_DIR}"
