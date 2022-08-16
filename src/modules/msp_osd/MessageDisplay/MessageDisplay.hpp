@@ -33,7 +33,7 @@ class MessageDisplay
 	// working information
 	char warning_msg[MSG_BUFFER_SIZE] {""};
 	char flight_mode_msg[MSG_BUFFER_SIZE] {"???"};
-	char arming_msg[MSG_BUFFER_SIZE] {"???"};
+	char arming_msg[MSG_BUFFER_SIZE] {"????"};
 	char heading_msg[MSG_BUFFER_SIZE] {"??"};
 	// currently unused:
 	char status_msg[MSG_BUFFER_SIZE] {""};

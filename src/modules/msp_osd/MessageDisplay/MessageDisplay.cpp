@@ -66,7 +66,7 @@ void MessageDisplay::get(char* string, const uint32_t current_time) {
 		strcpy(full_message, "");
 		strncat(full_message, flight_mode_msg, 3);	// first three characters of Flight Mode
 		strcat(full_message, "|");
-		strncat(full_message, arming_msg, 3);		// first three characters of Arming Message
+		strncat(full_message, arming_msg, 4);		// first four characters of Arming Message
 		strcat(full_message, "|");
 		strncat(full_message, heading_msg, 2);		// first two characters of Heading
 
@@ -74,7 +74,7 @@ void MessageDisplay::get(char* string, const uint32_t current_time) {
 		if (strlen(warning_msg) != 0) {
 			// copy as much of warning message as we can fit
 			strcat(full_message, "   WARN: ");
-			const size_t chars_used {19};
+			const size_t chars_used {20};
 			strncat(full_message, warning_msg, MSG_BUFFER_SIZE - chars_used - FULL_MSG_LENGTH - 1);
 
 			// pad with one full length of terminal whitespace
