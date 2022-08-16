@@ -80,19 +80,28 @@ TEST_F(MessageDisplayTest, testMessageDisplayWarning)
   md_->set(MessageDisplayType::WARNING, "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.");
 
   // the ground truth message is the following:
-  const char ground_truth[MSG_BUFFER_SIZE] = "???|???|??   WARN: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat";
+  const char ground_truth[MSG_BUFFER_SIZE] = "???|???|??   WARN: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commo            ";
 
   // walk through the message as it scrolls
-  char message[FULL_MSG_LENGTH]; // output message
-  char correct[FULL_MSG_LENGTH]; // correct value of output message
-  for (size_t i = 0; i != 10; ++i)
+  char message[FULL_MSG_BUFFER];  // output message
+  char correct[FULL_MSG_BUFFER];  // correct value of output message
+  uint32_t stamp = DWELL - 1;     // start at the end of the DWELL time
+  for (size_t i = 0; i != MSG_BUFFER_SIZE - FULL_MSG_LENGTH; ++i)
   {
-    // update message while incrementing time
-    md_->get(message, DWELL + PERIOD * i);
+    // get updated message for this time
+    md_->get(message, stamp);
 
     // get substring that we should be seeing
     strncpy(correct, &ground_truth[i], FULL_MSG_LENGTH);
     EXPECT_STREQ(message, correct);
+
+    // update time
+    stamp += PERIOD;
   }
+
+  // verify that we wrap around as expected at the end
+  md_->get(message, stamp);
+  strncpy(correct, ground_truth, FULL_MSG_LENGTH);
+  EXPECT_STREQ(message, correct);
 }
 
