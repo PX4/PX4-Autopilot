@@ -93,11 +93,11 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	build-essential \
 	cmake \
 	cppcheck \
+	file \
 	g++ \
 	gcc \
 	gdb \
 	git \
-	file \
 	lcov \
 	libssl-dev \
 	libxml2-dev \
