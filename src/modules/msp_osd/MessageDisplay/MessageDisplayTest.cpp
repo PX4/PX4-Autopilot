@@ -70,6 +70,61 @@ TEST_F(MessageDisplayTest, testMessageDisplayConstruction)
   EXPECT_STREQ(message, "INITIALIZING");
 }
 
+// check setting and getting various status messages
+TEST_F(MessageDisplayTest, testMessageDisplayStatic)
+{
+  // make sure we have an object!
+  ASSERT_TRUE(static_cast<bool>(md_));
+
+  // initialize output string
+  char message[FULL_MSG_BUFFER];
+
+  // set a random flight mode that's too short
+  md_->set(MessageDisplayType::FLIGHT_MODE, "S");
+  md_->get(message, 0);
+  EXPECT_STREQ(message, "S|???|??");
+
+  // set a random flight mode that's too long
+  md_->set(MessageDisplayType::FLIGHT_MODE, "SOSSOS");
+  md_->get(message, 0);
+  EXPECT_STREQ(message, "SOS|???|??");
+
+  // set a random flight mode that's just right
+  md_->set(MessageDisplayType::FLIGHT_MODE, "SOS");
+  md_->get(message, 0);
+  EXPECT_STREQ(message, "SOS|???|??");
+
+  // set a random arming status that's too short
+  md_->set(MessageDisplayType::ARMING, "DS");
+  md_->get(message, 0);
+  EXPECT_STREQ(message, "SOS|DS|??");
+
+  // set a random arming status that's too long
+  md_->set(MessageDisplayType::ARMING, "DISARM");
+  md_->get(message, 0);
+  EXPECT_STREQ(message, "SOS|DIS|??");
+
+  // set a random arming status that's just right
+  md_->set(MessageDisplayType::ARMING, "DSRM");
+  md_->get(message, 0);
+  EXPECT_STREQ(message, "SOS|DSR|??");
+
+  // set a random heading that's too short
+  md_->set(MessageDisplayType::HEADING, "N");
+  md_->get(message, 0);
+  EXPECT_STREQ(message, "SOS|DSR|N");
+
+  // set a random heading that's too short
+  md_->set(MessageDisplayType::HEADING, "NBNW");
+  md_->get(message, 0);
+  EXPECT_STREQ(message, "SOS|DSR|NB");
+
+  // set a random heading that's too short
+  md_->set(MessageDisplayType::HEADING, "NW");
+  md_->get(message, 0);
+  EXPECT_STREQ(message, "SOS|DSR|NW");
+}
+
 // check setting and getting for a warning message
 TEST_F(MessageDisplayTest, testMessageDisplayWarning)
 {
