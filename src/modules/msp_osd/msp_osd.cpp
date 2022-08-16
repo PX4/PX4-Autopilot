@@ -423,7 +423,7 @@ int MspOsd::print_status()
 	PX4_INFO("\tunsuccessful sends: %lu", _performance_data.unsuccessful_sends);
 
 	// print current display string
-	char msg[FULL_MSG_LENGTH];
+	char msg[FULL_MSG_BUFFER];
 	_display.get(msg, hrt_absolute_time());
 	PX4_INFO("Current message: \n\t%s", msg);
 

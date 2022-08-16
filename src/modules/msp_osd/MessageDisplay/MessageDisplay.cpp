@@ -55,6 +55,9 @@ void MessageDisplay::set(const MessageDisplayType mode, const char* string) {
 }
 
 void MessageDisplay::get(char* string, const uint32_t current_time) {
+	// clear input sting
+	string[0] = '\0';
+
 	// check if we should update the full message (and reset display)
 	if (updated_) {
 		// full_message = "Flight Mode: " + flight_mode_msg + " - ARMED: " + arming_msg + " - STATUS: " + status_msg + " - WARNING: " + warning_msg + "            ";
@@ -87,12 +90,13 @@ void MessageDisplay::get(char* string, const uint32_t current_time) {
 	// handle edge case where full message is short
 	if (strlen(full_message) < FULL_MSG_LENGTH) {
 		strncpy(string, full_message, FULL_MSG_LENGTH);
+		string[FULL_MSG_LENGTH] = '\0';
 		return;
 	}
 
 	// check if we should update the sub-message (giving extra time to the beginning)
 	uint32_t dt = current_time - last_update_;
-	if ( (index == 0 && dt > dwell_) || (index != 0 && dt > period_) ) {
+	if ( (index == 0 && dt >= dwell_) || (index != 0 && dt >= period_) ) {
 		// scroll through message by updating index
 		if (++index > strlen(full_message) - FULL_MSG_LENGTH)
 			index = 0;
@@ -103,6 +107,7 @@ void MessageDisplay::get(char* string, const uint32_t current_time) {
 
 	// reset update flag and return latest message
 	strncpy(string, full_message + index, FULL_MSG_LENGTH);
+	string[FULL_MSG_LENGTH] = '\0';
 	return;
 }
 
