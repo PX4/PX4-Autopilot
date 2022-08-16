@@ -17,6 +17,11 @@ SRC_DIR=$PWD/../
 
 docker run -it --rm -w "${SRC_DIR}" \
   --env=LOCAL_USER_ID="$(id -u)" \
+  --env=AWS_ACCESS_KEY_ID \
+  --env=AWS_SECRET_ACCESS_KEY \
+  --env=BRANCH_NAME \
+  --env=CCACHE_DIR="${CCACHE_DIR}" \
+  --env=CI \
   --publish 14556:14556/udp \
   --volume=/tmp/.X11-unix:/tmp/.X11-unix \
   --volume=/tmp:/tmp:rw \
