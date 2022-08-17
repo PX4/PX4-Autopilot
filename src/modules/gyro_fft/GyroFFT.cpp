@@ -135,6 +135,11 @@ bool GyroFFT::init()
 		buffers_allocated = AllocateBuffers<256>();
 		_param_imu_gyro_fft_len.set(256);
 		_param_imu_gyro_fft_len.commit();
+		_rfft_q15.fftLenReal = 256;
+		_rfft_q15.twidCoefRModifier = 32U;
+		_rfft_q15.pCfft = &arm_cfft_sR_q15_len128;
+		PX4_INFO("Setting IMU_GYRO_FFT_LEN=%" PRId32 ", as default", _param_imu_gyro_fft_len.get());
+
 		break;
 	}
 
