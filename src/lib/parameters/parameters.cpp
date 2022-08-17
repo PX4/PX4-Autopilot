@@ -1116,7 +1116,7 @@ int param_save_default()
 
 		for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
 			// write parameters to file
-			int fd = ::open(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
+			int fd = ::open(filename, O_WRONLY | O_CREAT | O_TRUNC, PX4_O_MODE_666);
 
 			if (fd > -1) {
 				perf_begin(param_export_perf);
@@ -1155,7 +1155,7 @@ int param_save_default()
 
 		// backup file
 		if (param_backup_file) {
-			int fd_backup_file = ::open(param_backup_file, O_WRONLY | O_CREAT, PX4_O_MODE_666);
+			int fd_backup_file = ::open(param_backup_file, O_WRONLY | O_CREAT | O_TRUNC, PX4_O_MODE_666);
 
 			if (fd_backup_file > -1) {
 				int backup_export_ret = param_export_internal(fd_backup_file, nullptr);
@@ -1373,6 +1373,11 @@ static int param_export_internal(int fd, param_filter_func filter)
 	param_wbuf_s *s = nullptr;
 	bson_encoder_s encoder{};
 	uint8_t bson_buffer[256];
+
+	if (lseek(fd, 0, SEEK_SET) != 0) {
+		PX4_ERR("export seek failed %d", errno);
+		return -1;
+	}
 
 	if (bson_encoder_init_buf_file(&encoder, fd, &bson_buffer, sizeof(bson_buffer)) != 0) {
 		goto out;
