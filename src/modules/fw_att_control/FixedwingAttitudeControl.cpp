@@ -434,7 +434,7 @@ void FixedwingAttitudeControl::Run()
 					}
 				}
 
-					// TODO: send the unallocated value directly for better anti-windup
+				// TODO: send the unallocated value directly for better anti-windup
 				_rate_control.setSaturationStatus(saturation_positive, saturation_negative);
 			}
 
