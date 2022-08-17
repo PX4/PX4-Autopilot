@@ -28,6 +28,7 @@ set IOFW "/etc/extras/px4_io-v2_default.bin"
 set LOGGER_ARGS ""
 set LOGGER_BUF 8
 set PARAM_FILE ""
+set PARAM_BACKUP_FILE ""
 set RC_INPUT_ARGS ""
 set SDCARD_AVAILABLE no
 set SDCARD_EXT_PATH /fs/microsd/ext_autostart
@@ -93,6 +94,7 @@ then
 	fi
 
 	set PARAM_FILE /fs/microsd/params
+	set PARAM_BACKUP_FILE "/fs/microsd/parameters_backup.bson"
 fi
 
 #
@@ -132,27 +134,32 @@ else
 
 		if [ -d "/fs/microsd" ]
 		then
-			dmesg >> /fs/microsd/param_import_fail.txt &
-
 			# try to make a backup copy
-			cp $PARAM_FILE /fs/microsd/param_import_fail.bson &
-		fi
+			cp $PARAM_FILE /fs/microsd/param_import_fail.bson
 
-		# try importing from backup file
-		if [ -f "/fs/microsd/parameters_backup.bson" ]
-		then
-			echo "[init] importing from parameter backup"
+			# try importing from backup file
+			if [ -f $PARAM_BACKUP_FILE ]
+			then
+				echo "[init] importing from parameter backup"
 
-			# dump current backup file contents for comparison
-			param dump /fs/microsd/parameters_backup.bson
+				# dump current backup file contents for comparison
+				param dump $PARAM_BACKUP_FILE
 
-			param import /fs/microsd/parameters_backup.bson
+				param import $PARAM_BACKUP_FILE
+
+				# overwrite invalid $PARAM_FILE with backup
+				cp $PARAM_BACKUP_FILE $PARAM_FILE
+			fi
+
+			param status
+
+			dmesg >> /fs/microsd/param_import_fail.txt &
 		fi
 	fi
 
 	if [ $SDCARD_AVAILABLE = yes ]
 	then
-		param select-backup /fs/microsd/parameters_backup.bson
+		param select-backup $PARAM_BACKUP_FILE
 	fi
 
 	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X
@@ -534,6 +541,7 @@ unset IOFW
 unset LOGGER_ARGS
 unset LOGGER_BUF
 unset PARAM_FILE
+unset PARAM_BACKUP_FILE
 unset RC_INPUT_ARGS
 unset SDCARD_AVAILABLE
 unset SDCARD_EXT_PATH
