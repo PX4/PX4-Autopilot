@@ -147,7 +147,7 @@ bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_
 
 	if (bufsize == 0) {
 		decoder->bufsize = *(uint32_t *)buf;
-		debug("auto-detected %u byte object", decoder->bufsize);
+		debug("auto-detected %zu byte object", decoder->bufsize);
 
 	} else {
 		decoder->bufsize = bufsize;
@@ -403,7 +403,7 @@ write_x(bson_encoder_t encoder, const void *p, size_t s)
 
 	memcpy(encoder->buf + encoder->bufpos, p, s);
 	encoder->bufpos += s;
-	debug("appended %d bytes", s);
+	debug("appended %zu bytes", s);
 
 	return 0;
 }

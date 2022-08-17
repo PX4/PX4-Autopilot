@@ -52,7 +52,7 @@ then
 	# shellcheck disable=SC2012
 	REQUESTED_AUTOSTART=$(ls "${R}etc/init.d-posix/airframes" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
 	if [ -z "$REQUESTED_AUTOSTART" ]; then
-		echo "ERROR  [init] Unknown model $PX4_SIM_MODEL (not found by name on ${R}etc/init.d-posix/airframes)"
+		echo "ERROR [init] Unknown model $PX4_SIM_MODEL (not found by name on ${R}etc/init.d-posix/airframes)"
 		exit 1
 	else
 		SYS_AUTOSTART=$REQUESTED_AUTOSTART
@@ -62,17 +62,45 @@ fi
 
 # Load parameters
 set PARAM_FILE parameters.bson
-param select $PARAM_FILE
+set PARAM_BACKUP_FILE parameters_backup.bson
 
-if [ -f $PARAM_FILE ]
-then
-	if param load
+param select $PARAM_FILE
+if [ -f $PARAM_FILE ]; then
+	set +e # disable exit on error control for param import
+	if ! param import
 	then
-		echo "[param] Loaded: $PARAM_FILE"
-	else
-		echo "[param] FAILED loading $PARAM_FILE"
+		echo "ERROR [init] param import failed"
+
+		param dump $PARAM_FILE
+
+		# try to make a backup copy
+		cp $PARAM_FILE param_import_fail.bson
+
+		# try importing from backup file
+		if [ -f $PARAM_BACKUP_FILE ]
+		then
+			echo "[init] importing from parameter backup"
+
+			# dump current backup file contents for comparison
+			param dump $PARAM_BACKUP_FILE
+
+			param import $PARAM_BACKUP_FILE
+
+			# overwrite invalid $PARAM_FILE with backup
+			cp $PARAM_BACKUP_FILE $PARAM_FILE
+		fi
+
+		param status
 	fi
+	set -e # restore exit on error control
+
+elif [ -f $PARAM_BACKUP_FILE ]; then
+	echo "ERROR [init] primary param file $PARAM_FILE unavailable, using backup $PARAM_BACKUP_FILE"
+	param import $PARAM_BACKUP_FILE
 fi
+
+param select-backup $PARAM_BACKUP_FILE
+
 
 # exit early when the minimal shell is requested
 [ $RUN_MINIMAL_SHELL = yes ] && exit 0

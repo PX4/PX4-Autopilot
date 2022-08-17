@@ -7,7 +7,7 @@ param set-default IMU_INTEG_RATE 250
 if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0" ]; then
 
 	if ! simulator_sih start; then
-		echo "ERROR  [init] simulator_sih failed to start"
+		echo "ERROR [init] simulator_sih failed to start"
 		exit 1
 	fi
 
@@ -46,7 +46,7 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 			sensor_gps_sim start
 			sensor_mag_sim start
 		else
-			echo "ERROR  [init] ign gazebo failed to start"
+			echo "ERROR [init] ign gazebo failed to start"
 			exit 1
 		fi
 	else
@@ -61,7 +61,7 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 			sensor_gps_sim start
 			sensor_mag_sim start
 		else
-			echo "ERROR  [init] ign gazebo failed to start"
+			echo "ERROR [init] ign gazebo failed to start"
 			exit 1
 		fi
 
