@@ -301,7 +301,7 @@ else()
 	# for opensbi bootloader, strip the l2lim & ddr sections
 	if (CONFIG_OPENSBI AND "${PX4_BOARD_LABEL}" STREQUAL "bootloader")
 		add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
-			COMMAND ${CMAKE_OBJCOPY} -R .text.sbi -R .l2_scratchpad -R .ddrstorage ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_DIR_REL}/${FW_NAME_FLASH}
+			COMMAND ${CMAKE_OBJCOPY} -R .l2_scratchpad ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_DIR_REL}/${FW_NAME_FLASH}
 			COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME_FLASH} ${PX4_BINARY_OUTPUT}
 			DEPENDS px4
 		)

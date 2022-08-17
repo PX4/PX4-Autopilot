@@ -74,7 +74,6 @@
 
 MEMORY
 {
-    ddr  (rx)     : ORIGIN = 0x80000000, LENGTH = 4M          /* w/ cache */
     envm (rx)     : ORIGIN = 0x20220100, LENGTH = 128K - 256  /* 256 reserved for hss headers */
     l2lim  (rwx)  : ORIGIN = 0x08000000, LENGTH = 1024k
     l2zerodevice (rwx) : ORIGIN = 0x0A000000, LENGTH = 512k
@@ -88,10 +87,6 @@ EXTERN(__start)
 
 SECTIONS
 {
-    .ddrstorage : {
-      *(.ddrstorage)
-    } > ddr
-
     .l2_scratchpad : ALIGN(0x10)
     {
         __l2_scratchpad_load = LOADADDR(.l2_scratchpad);
