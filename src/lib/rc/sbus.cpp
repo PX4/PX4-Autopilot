@@ -299,7 +299,7 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	 * provides a degree of protection. Of course, it would be better
 	 * if we didn't drop bytes...
 	 */
-	if (now - last_rx_time > 3_ms) {
+	if (now - last_rx_time > 4_ms) {
 		if (partial_frame_count > 0) {
 			partial_frame_count = 0;
 			sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
@@ -307,13 +307,6 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 			printf("SBUS: RESET (TIME LIM)\n");
 #endif
 		}
-	}
-
-	if (partial_frame_count == 0 && buf[0] != SBUS_START_SYMBOL) {
-		/* don't bother going through the buffer if we don't get the
-		 * expected start symbol as a first byte */
-		sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
-		return false;
 	}
 
 #endif /* __PX4_NUTTX */
@@ -372,17 +365,18 @@ sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 		switch (sbus_decode_state) {
 		case SBUS2_DECODE_STATE_DESYNC:
 
+		/* fall through */
+		case SBUS2_DECODE_STATE_SBUS_START:
+
 			/* we are de-synced and only interested in the frame marker */
 			if (frame[d] == SBUS_START_SYMBOL) {
-				sbus_decode_state = SBUS2_DECODE_STATE_SBUS_START;
+				sbus_decode_state = SBUS2_DECODE_STATE_SBUS2_SYNC;
 				partial_frame_count = 0;
 				sbus_frame[partial_frame_count++] = frame[d];
 			}
 
 			break;
 
-		/* fall through */
-		case SBUS2_DECODE_STATE_SBUS_START:
 		case SBUS2_DECODE_STATE_SBUS1_SYNC:
 
 		/* fall through */
@@ -436,6 +430,10 @@ sbus_parse(uint64_t now, uint8_t *frame, unsigned len, uint16_t *values,
 				 */
 				if (start_index == 0) {
 					partial_frame_count = 0;
+				}
+
+				if (decode_ret) {
+					sbus_decode_state = SBUS2_DECODE_STATE_SBUS_START;
 				}
 
 			}
