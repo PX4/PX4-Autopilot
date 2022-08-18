@@ -58,6 +58,13 @@ public:
 	ECL_YawController() = default;
 	~ECL_YawController() = default;
 
+	/**
+	 * @brief Calculates both euler and body yaw rate setpoints.
+	 *
+	 * @param dt Time step [s]
+	 * @param ctrl_data Various control inputs (attitude, body rates, attitdue stepoints, euler rate setpoints, current speeed)
+	 * @return Yaw body rate setpoint [rad/s]
+	 */
 	float control_attitude(const float dt, const ECL_ControlData &ctl_data) override;
 
 };

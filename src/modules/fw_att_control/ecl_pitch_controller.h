@@ -60,6 +60,13 @@ public:
 	ECL_PitchController() = default;
 	~ECL_PitchController() = default;
 
+	/**
+	 * @brief Calculates both euler and body pitch rate setpoints.
+	 *
+	 * @param dt Time step [s]
+	 * @param ctrl_data Various control inputs (attitude, body rates, attitdue stepoints, euler rate setpoints, current speeed)
+	 * @return Pitch body rate setpoint [rad/s]
+	 */
 	float control_attitude(const float dt, const ECL_ControlData &ctl_data) override;
 
 	/* Additional Setters */
