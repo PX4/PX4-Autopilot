@@ -130,6 +130,10 @@ private:
     Vector3f _current_wind = {};
     float _current_height = {};
 
+    float _unit_v;
+    float _unit_h;
+    float _unit_a;
+
     // helper variables
     float _init_height = {};
 

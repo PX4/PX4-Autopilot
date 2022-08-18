@@ -511,8 +511,8 @@ PARAM_DEFINE_INT32(DS_LOITER, 0);
  * @unit 
  * @min 0
  * @max 1
- * @decimal 1
- * @increment 0.1
+ * @decimal 2
+ * @increment 0.01
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_FLOAT(DS_THRUST, 0);

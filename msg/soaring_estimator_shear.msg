@@ -9,5 +9,12 @@ float32 by                  # wind offset in y-direction
 float32 h                   # vertical position of shear layer in soaring frame
 float32 a                   # shear strength
 
+float32 sigma_vx            # covariance of vx
+float32 sigma_vy            # covariance of vy
+float32 sigma_bx            # covariance of bx
+float32 sigma_by            # covariance of by
+float32 sigma_h             # covariance of h
+float32 sigma_a             # covariance of a
+
 bool params_healthy         # plausibility check
 uint64 reset_counter        # filter reset counter

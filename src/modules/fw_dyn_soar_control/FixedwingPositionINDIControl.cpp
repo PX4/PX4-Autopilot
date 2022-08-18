@@ -729,7 +729,7 @@ FixedwingPositionINDIControl::Run()
         // approximate lift force, since implicit equation cannot be solved analytically:
         // since alpha<<1, we approximate the lift force L = sin(alpha)*Fx - cos(alpha)*Fz
         // as L = alpha*Fx - Fz
-        float Fx = cosf(_aoa_offset)*body_force(0) - sinf(_aoa_offset)*body_force(2);
+        float Fx = 0.f;//cosf(_aoa_offset)*body_force(0) - sinf(_aoa_offset)*body_force(2);
         float Fz = -cosf(_aoa_offset)*body_force(2) - sinf(_aoa_offset)*body_force(0);
         float AoA_approx = (((2.f*Fz)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f) - _C_L0)/_C_L1) / 
                             (1 - ((2.f*Fx)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f)/_C_L1));
@@ -875,6 +875,14 @@ FixedwingPositionINDIControl::Run()
             _soaring_controller_wind.position[0] = _pos(0);
             _soaring_controller_wind.position[1] = _pos(1);
             _soaring_controller_wind.position[2] = _pos(2);
+            Eulerf e(Quatf(_attitude.q));
+            float bank = e(0);
+            if (fabs(bank)<0.5f) {
+                _soaring_controller_wind.valid = true;
+            }
+            else {
+                _soaring_controller_wind.valid = false;
+            }
             _soaring_controller_wind_pub.publish(_soaring_controller_wind);
 
 
