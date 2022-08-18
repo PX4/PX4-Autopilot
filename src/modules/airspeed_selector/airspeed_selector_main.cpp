@@ -162,7 +162,8 @@ private:
 		CHECK_TYPE_ONLY_DATA_MISSING_BIT = (1 << 0),
 		CHECK_TYPE_DATA_STUCK_BIT = (1 << 1),
 		CHECK_TYPE_INNOVATION_BIT = (1 << 2),
-		CHECK_TYPE_LOAD_FACTOR_BIT = (1 << 3)
+		CHECK_TYPE_LOAD_FACTOR_BIT = (1 << 3),
+		CHECK_TYPE_DATA_VARIATION_BIT = (1 << 4)
 	};
 
 	DEFINE_PARAMETERS(
@@ -479,6 +480,8 @@ void AirspeedModule::update_params()
 				CheckTypeBits::CHECK_TYPE_INNOVATION_BIT);
 		_airspeed_validator[i].set_enable_load_factor_check(_param_airspeed_checks_on.get() &
 				CheckTypeBits::CHECK_TYPE_LOAD_FACTOR_BIT);
+		_airspeed_validator[i].set_enable_data_variation_check(_param_airspeed_checks_on.get() &
+				CheckTypeBits::CHECK_TYPE_DATA_VARIATION_BIT);
 	}
 }
 
