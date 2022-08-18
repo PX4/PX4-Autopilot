@@ -60,7 +60,8 @@ px4_add_board(
 		tone_alarm
 		#uavcan
 	MODULES
-		airspeed_selector
+		cempod_module
+		#airspeed_selector
 		#attitude_estimator_q
 		battery_status
 		#camera_feedback
