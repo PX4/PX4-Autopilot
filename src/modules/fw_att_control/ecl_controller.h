@@ -77,6 +77,13 @@ public:
 	ECL_Controller();
 	virtual ~ECL_Controller() = default;
 
+	/**
+	 * @brief Calculates both euler and body rate setpoints. Has different implementations for all body axes.
+	 *
+	 * @param dt Time step [s]
+	 * @param ctrl_data Various control inputs (attitude, body rates, attitdue stepoints, euler rate setpoints, current speeed)
+	 * @return Body rate setpoint [rad/s]
+	 */
 	virtual float control_attitude(const float dt, const ECL_ControlData &ctl_data) = 0;
 
 	/* Setters */

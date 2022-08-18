@@ -58,6 +58,13 @@ public:
 	ECL_WheelController() = default;
 	~ECL_WheelController() = default;
 
+	/**
+	 * @brief Calculates wheel body rate setpoint.
+	 *
+	 * @param dt Time step [s]
+	 * @param ctrl_data Various control inputs (attitude, body rates, attitdue stepoints, euler rate setpoints, current speeed)
+	 * @return Wheel body rate setpoint [rad/s]
+	 */
 	float control_attitude(const float dt, const ECL_ControlData &ctl_data) override;
 
 	float control_bodyrate(const float dt, const ECL_ControlData &ctl_data);
