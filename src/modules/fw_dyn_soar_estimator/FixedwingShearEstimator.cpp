@@ -201,8 +201,6 @@ FixedwingShearEstimator::perform_posterior_update(float height, Vector3f wind)
     // first fill the horizontal observation matrix:
     float vx = _X_prior_horizontal(0);
     float vy = _X_prior_horizontal(1);
-    //float bx = _X_prior_horizontal(1);
-    //float by = _X_prior_horizontal(3);
     float h = _X_prior_horizontal(4);
     float a = _X_prior_horizontal(5);
 
@@ -262,7 +260,6 @@ FixedwingShearEstimator::perform_posterior_update(float height, Vector3f wind)
         Matrix<float, 6, 6> identity_1;
         z_expected_horizontal(0) = _X_prior_horizontal(0)/(1.f+expf(-_X_prior_horizontal(5)*(_current_height-_X_prior_horizontal(4)))) + _X_prior_horizontal(2);
         z_expected_horizontal(1) = _X_prior_horizontal(1)/(1.f+expf(-_X_prior_horizontal(5)*(_current_height-_X_prior_horizontal(4)))) + _X_prior_horizontal(3);
-        z_expected_horizontal.print();
         wind_horizontal(0) = _current_wind(0);
         wind_horizontal(1) = _current_wind(1);
         identity_1.setIdentity();
@@ -335,11 +332,9 @@ FixedwingShearEstimator::Run()
             // posterior update
             perform_posterior_update(_current_height, _current_wind);
 
-
-            
             // check if filter diverges 
             // maybe reset filters...
-            if (sqrtf(_P_posterior_horizontal(4,4))>=10.f) {
+            if (sqrtf(_P_posterior_horizontal(4,4))>=6.f||sqrtf(_P_posterior_horizontal(5,5))>=0.2f) {
                 PX4_WARN("large height uncertainty, resetting filter");
                 reset_filter();
             }
