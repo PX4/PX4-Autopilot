@@ -1216,7 +1216,7 @@ int PX4IO::io_get_status()
 
 		uint16_t raw_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
 
-		for (unsigned i = 0; i < raw_inputs; i++) {
+		for (unsigned i = 0; (i < raw_inputs) && (i < _max_rc_input); i++) {
 			status.raw_inputs[i] = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + i);
 		}
 
