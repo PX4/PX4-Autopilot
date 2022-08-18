@@ -119,7 +119,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 	}
 
 	// measured drag acceleration corrected for sensor bias
-	const Vector2f mea_acc = (drag_sample.accelXY - _state.delta_vel_bias.xy()) * (1.0f / _dt_ekf_avg);
+	const Vector2f mea_acc = drag_sample.accelXY - _state.delta_vel_bias.xy() * (1.0f / _dt_ekf_avg);
 
 	// perform sequential fusion of XY specific forces
 	for (uint8_t axis_index = 0; axis_index < 2; axis_index++) {
