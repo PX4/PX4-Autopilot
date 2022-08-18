@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -91,12 +91,14 @@ private:
 	 */
 	void parameters_updated();
 
+	void publishActuatorControls(const hrt_abstime &timestamp_sample, const matrix::Vector3f &torque_sp, float dt);
+	void publishRateControllerStatus(const hrt_abstime &timestamp_sample);
+	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
+	void publishTorqueSetpoint(const hrt_abstime &timestamp_sample, const matrix::Vector3f &torque_sp);
+
 	void updateActuatorControlsStatus(const actuator_controls_s &actuators, float dt);
 
-	void publishTorqueSetpoint(const matrix::Vector3f &torque_sp, const hrt_abstime &timestamp_sample);
-	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
-
-	RateControl _rate_control; ///< class for rate control calculations
+	RateControl _rate_control{}; ///< class for rate control calculations
 
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _control_allocator_status_sub{ORB_ID(control_allocator_status)};
@@ -121,27 +123,30 @@ private:
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
-	vehicle_control_mode_s	_vehicle_control_mode{};
-	vehicle_status_s	_vehicle_status{};
-
+	bool _armed{false};
 	bool _landed{true};
-	bool _maybe_landed{true};
+
+	bool _rotary_wing{true};
+	bool _vtol{false};
+
+	bool _rate_control_enabled{false};
+	bool _attitude_control_enabled{false};
+	bool _manual_enabled{false};
 
 	hrt_abstime _last_run{0};
 
-	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
-
 	// keep setpoint values between updates
-	matrix::Vector3f _acro_rate_max;		/**< max attitude rates in acro mode */
 	matrix::Vector3f _rates_setpoint{};
-
-	float _battery_status_scale{0.0f};
 	matrix::Vector3f _thrust_setpoint{};
+
+	float _battery_status_scale{1.f};
 
 	float _energy_integration_time{0.0f};
 	float _control_energy[4] {};
 
 	int8_t _landing_gear{landing_gear_s::GEAR_DOWN};
+
+	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")}; /**< loop duration performance counter */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLLRATE_P>) _param_mc_rollrate_p,

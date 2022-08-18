@@ -68,6 +68,11 @@ Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, cons
 		updateIntegral(rate_error, dt);
 	}
 
+	if (!math::isFinite(torque)) {
+		_rate_int.zero();
+		return {};
+	}
+
 	return torque;
 }
 
@@ -96,16 +101,6 @@ void RateControl::updateIntegral(Vector3f &rate_error, const float dt)
 		// Perform the integration using a first order method
 		float rate_i = _rate_int(i) + i_factor * _gain_i(i) * rate_error(i) * dt;
 
-		// do not propagate the result if out of range or invalid
-		if (PX4_ISFINITE(rate_i)) {
-			_rate_int(i) = math::constrain(rate_i, -_lim_int(i), _lim_int(i));
-		}
+		_rate_int(i) = math::constrain(rate_i, -_lim_int(i), _lim_int(i));
 	}
-}
-
-void RateControl::getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status)
-{
-	rate_ctrl_status.rollspeed_integ = _rate_int(0);
-	rate_ctrl_status.pitchspeed_integ = _rate_int(1);
-	rate_ctrl_status.yawspeed_integ = _rate_int(2);
 }

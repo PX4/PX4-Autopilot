@@ -1,4 +1,5 @@
 uint64 timestamp	# time since system start (microseconds)
+uint64 timestamp_sample                 # the timestamp of the raw data (microseconds)
 
 # body angular rates in NED frame
 float32 roll		# [rad/s] roll rate setpoint
