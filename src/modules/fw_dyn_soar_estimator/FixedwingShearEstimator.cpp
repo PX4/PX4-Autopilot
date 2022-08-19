@@ -216,7 +216,7 @@ FixedwingShearEstimator::perform_posterior_update(float height, Vector3f wind)
 
     // then fill the vertical observation matrix
     for (uint i=0;i<_dim_vertical;i++){
-        _H_vertical(0,i) = powf(height,i);
+        _H_vertical(0,i) = powf(height-h,i);
     }
 
     // compute Kalman gain matrix for horizontal wind states
@@ -358,6 +358,7 @@ FixedwingShearEstimator::Run()
         _soaring_estimator_shear.sigma_by = sqrtf(_P_posterior_horizontal(3,3))*_unit_v;
         _soaring_estimator_shear.sigma_h = sqrtf(_P_posterior_horizontal(4,4))*_unit_h;
         _soaring_estimator_shear.sigma_a = sqrtf(_P_posterior_horizontal(5,5))*_unit_a;
+        _soaring_estimator_shear.coeff_0 = _X_posterior_vertical(0);
         _soaring_estimator_shear.soaring_feasible = check_feasibility();
         _soaring_estimator_shear.reset_counter = _reset_counter;
         _soaring_estimator_shear_pub.publish(_soaring_estimator_shear);

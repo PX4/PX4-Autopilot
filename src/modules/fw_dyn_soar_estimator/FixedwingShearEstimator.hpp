@@ -102,7 +102,7 @@ private:
     // control variables
     hrt_abstime _last_run{0};
     uint _reset_counter = {};
-    const static size_t _dim_vertical = 2;  // order of vertical approximation function for vertical wind
+    const static size_t _dim_vertical = 1;  // order of vertical approximation function for vertical wind
 
 	Vector<float, 6> _X_prior_horizontal= {};
     Matrix<float, 6, 6> _P_prior_horizontal = {};

@@ -16,5 +16,9 @@ float32 sigma_by            # covariance of by
 float32 sigma_h             # covariance of h
 float32 sigma_a             # covariance of a
 
+float32 coeff_0             # offset vertical wind
+float32 coeff_1             # linear coeff vertical wind
+float32 coeff_2             # quadratic coeff vertical wind
+
 bool soaring_feasible       # plausibility check
 uint64 reset_counter        # filter reset counter
