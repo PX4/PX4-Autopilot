@@ -568,59 +568,6 @@ void FixedwingAttitudeControl::Run()
 									  -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
 					}
 
-					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
-					const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt,
-							_landed);
-
-					float roll_feedforward = _param_fw_rr_ff.get() * _airspeed_scaling * body_rates_setpoint(0);
-					float roll_u = angular_acceleration_setpoint(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
-					_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
-						(PX4_ISFINITE(roll_u)) ? math::constrain(roll_u + trim_roll, -1.f, 1.f) : trim_roll;
-
-					float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * body_rates_setpoint(1);
-					float pitch_u = angular_acceleration_setpoint(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
-					_actuator_controls.control[actuator_controls_s::INDEX_PITCH] =
-						(PX4_ISFINITE(pitch_u)) ? math::constrain(pitch_u + trim_pitch, -1.f, 1.f) : trim_pitch;
-
-					float yaw_u = 0.0f;
-
-					if (wheel_control) {
-						yaw_u = _wheel_ctrl.control_bodyrate(dt, control_input);
-
-						// XXX: this is an abuse -- used to ferry manual yaw inputs from position controller during auto modes
-						yaw_u += _att_sp.yaw_sp_move_rate * _param_fw_man_y_sc.get();
-
-					} else {
-						const float yaw_feedforward = _param_fw_yr_ff.get() * _airspeed_scaling * body_rates_setpoint(2);
-						yaw_u = angular_acceleration_setpoint(2) * _airspeed_scaling * _airspeed_scaling + yaw_feedforward;
-					}
-
-					_actuator_controls.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? math::constrain(yaw_u + trim_yaw,
-							-1.f, 1.f) : trim_yaw;
-
-					if (!PX4_ISFINITE(roll_u) || !PX4_ISFINITE(pitch_u) || !PX4_ISFINITE(yaw_u)) {
-						_rate_control.resetIntegral();
-					}
-
-					/* throttle passed through if it is finite */
-					_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] =
-						(PX4_ISFINITE(_att_sp.thrust_body[0])) ? _att_sp.thrust_body[0] : 0.0f;
-
-					/* scale effort by battery status */
-					if (_param_fw_bat_scale_en.get() &&
-					    _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] > 0.1f) {
-
-						if (_battery_status_sub.updated()) {
-							battery_status_s battery_status{};
-
-							if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
-								_battery_scale = battery_status.scale;
-							}
-						}
-
-						_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_scale;
-					}
-
 					/* Publish the rate setpoint for analysis once available */
 					_rates_sp.roll = body_rates_setpoint(0);
 					_rates_sp.pitch = body_rates_setpoint(1);
@@ -630,27 +577,65 @@ void FixedwingAttitudeControl::Run()
 
 					_rate_sp_pub.publish(_rates_sp);
 				}
+			}
 
-			} else {
-				// Acro or full manual
+			if (_vcontrol_mode.flag_control_rates_enabled) {
 				vehicle_rates_setpoint_poll();
 
 				const Vector3f body_rates_setpoint = Vector3f(_rates_sp.roll, _rates_sp.pitch, _rates_sp.yaw);
+
+				/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
 				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt,
 						_landed);
 
-				_actuator_controls.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(angular_acceleration_setpoint(
-							0))) ? angular_acceleration_setpoint(
-							0) + trim_roll : trim_roll;
-				_actuator_controls.control[actuator_controls_s::INDEX_PITCH] = (PX4_ISFINITE(angular_acceleration_setpoint(
-							1))) ? angular_acceleration_setpoint(
-							1) + trim_pitch : trim_pitch;
-				_actuator_controls.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(angular_acceleration_setpoint(
-							2))) ? angular_acceleration_setpoint(
-							2) + trim_yaw : trim_yaw;
+				float roll_feedforward = _param_fw_rr_ff.get() * _airspeed_scaling * body_rates_setpoint(0);
+				float roll_u = angular_acceleration_setpoint(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
+				_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
+					(PX4_ISFINITE(roll_u)) ? math::constrain(roll_u + trim_roll, -1.f, 1.f) : trim_roll;
 
-				_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ?
-						_rates_sp.thrust_body[0] : 0.0f;
+				float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * body_rates_setpoint(1);
+				float pitch_u = angular_acceleration_setpoint(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
+				_actuator_controls.control[actuator_controls_s::INDEX_PITCH] =
+					(PX4_ISFINITE(pitch_u)) ? math::constrain(pitch_u + trim_pitch, -1.f, 1.f) : trim_pitch;
+
+				float yaw_u = 0.0f;
+
+				if (wheel_control) {
+					yaw_u = _wheel_ctrl.control_bodyrate(dt, control_input);
+
+					// XXX: this is an abuse -- used to ferry manual yaw inputs from position controller during auto modes
+					yaw_u += _att_sp.yaw_sp_move_rate * _param_fw_man_y_sc.get();
+
+				} else {
+					const float yaw_feedforward = _param_fw_yr_ff.get() * _airspeed_scaling * body_rates_setpoint(2);
+					yaw_u = angular_acceleration_setpoint(2) * _airspeed_scaling * _airspeed_scaling + yaw_feedforward;
+				}
+
+				_actuator_controls.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? math::constrain(yaw_u + trim_yaw,
+						-1.f, 1.f) : trim_yaw;
+
+				if (!PX4_ISFINITE(roll_u) || !PX4_ISFINITE(pitch_u) || !PX4_ISFINITE(yaw_u)) {
+					_rate_control.resetIntegral();
+				}
+
+				/* throttle passed through if it is finite */
+				_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] =
+					(PX4_ISFINITE(_att_sp.thrust_body[0])) ? _att_sp.thrust_body[0] : 0.0f;
+
+				/* scale effort by battery status */
+				if (_param_fw_bat_scale_en.get() &&
+				    _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] > 0.1f) {
+
+					if (_battery_status_sub.updated()) {
+						battery_status_s battery_status{};
+
+						if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
+							_battery_scale = battery_status.scale;
+						}
+					}
+
+					_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_scale;
+				}
 			}
 
 			// publish rate controller status
