@@ -102,6 +102,10 @@ void RoverPositionControl::parameters_update(bool force)
 				   _param_speed_d.get(),
 				   _param_speed_imax.get(),
 				   _param_gndspeed_max.get());
+		_rate_control.setGains(matrix::Vector3f(0.0, 0.0, _param_rate_p.get()), matrix::Vector3f(0.0, 0.0, _param_rate_i.get()),
+				       matrix::Vector3f(0.0, 0.0, _param_rate_d.get()));
+		_rate_control.setFeedForwardGain(matrix::Vector3f(0.0, 0.0, _param_rate_ff.get()));
+		_rate_control.setIntegratorLimit(matrix::Vector3f(0.0, 0.0, _param_rate_imax.get()));
 	}
 }
 
@@ -151,6 +155,17 @@ RoverPositionControl::manual_control_setpoint_poll()
 
 					_attitude_sp_pub.publish(_att_sp);
 
+				} else if (_control_mode.flag_control_rates_enabled) {
+					// STABILIZED mode generate the attitude setpoint from manual user inputs
+					_rates_sp.roll = 0.0;
+					_rates_sp.pitch = 0.0;
+					_rates_sp.yaw = _manual_control_setpoint.y;
+					_rates_sp.thrust_body[0] = _manual_control_setpoint.z;
+
+					_rates_sp.timestamp = hrt_absolute_time();
+
+					_rates_sp_pub.publish(_rates_sp);
+
 				} else {
 					_act_controls.control[actuator_controls_s::INDEX_ROLL] = 0.0f; // Nominally roll: _manual_control_setpoint.y;
 					_act_controls.control[actuator_controls_s::INDEX_PITCH] = 0.0f; // Nominally pitch: -_manual_control_setpoint.x;
@@ -188,10 +203,26 @@ RoverPositionControl::attitude_setpoint_poll()
 }
 
 void
+RoverPositionControl::rates_setpoint_poll()
+{
+	if (_rates_sp_sub.updated()) {
+		_rates_sp_sub.copy(&_rates_sp);
+	}
+}
+
+void
 RoverPositionControl::vehicle_attitude_poll()
 {
 	if (_att_sub.updated()) {
 		_att_sub.copy(&_vehicle_att);
+	}
+}
+
+void
+RoverPositionControl::vehicle_angular_acceleration_poll()
+{
+	if (_vehicle_angular_acceleration_sub.updated()) {
+		_vehicle_angular_acceleration_sub.copy(&_vehicle_angular_acceleration);
 	}
 }
 
@@ -380,17 +411,45 @@ RoverPositionControl::control_attitude(const vehicle_attitude_s &att, const vehi
 	// quaternion attitude control law, qe is rotation from q to qd
 	const Quatf qe = Quatf(att.q).inversed() * Quatf(att_sp.q_d);
 	const Eulerf euler_sp = qe;
+	// PX4_INFO("Yaw error: %f", double(euler_sp(2)));
 
-	float control_effort = euler_sp(2) / _param_max_turn_angle.get();
-	control_effort = math::constrain(control_effort, -1.0f, 1.0f);
+	_rates_sp.roll = 0.0;
+	_rates_sp.pitch = 0.0;
+	_rates_sp.yaw = euler_sp(2) / _param_max_turn_angle.get();
+	_rates_sp.thrust_body[0] = math::constrain(att_sp.thrust_body[0], 0.0f, 1.0f);
+	_rates_sp.timestamp = hrt_absolute_time();
+	_rates_sp_pub.publish(_rates_sp);
+	control_rates(_vehicle_rates, _vehicle_angular_acceleration, _local_pos, _rates_sp);
+}
 
-	_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
+void
+RoverPositionControl::control_rates(const vehicle_angular_velocity_s &rates, const  vehicle_angular_acceleration_s &acc,
+				    const vehicle_local_position_s &local_pos,
+				    const vehicle_rates_setpoint_s &rates_sp)
+{
+	float dt = 0.01; // Using non zero value to a avoid division by zero
 
-	const float control_throttle = att_sp.thrust_body[0];
+	if (_control_rates_last_called > 0) {
+		dt = hrt_elapsed_time(&_control_rates_last_called) * 1e-6f;
+	}
+
+	const matrix::Vector3f current_velocity(local_pos.vx, local_pos.vy, local_pos.vz);
+	const matrix::Vector3f vehicle_rates(rates.xyz[0], rates.xyz[1], rates.xyz[2]);
+	const matrix::Vector3f rates_setpoint(rates_sp.roll, rates_sp.pitch, rates_sp.yaw);
+	const matrix::Vector3f angular_acceleration{acc.xyz};
+	bool lock_integrator = bool(current_velocity.norm() < _param_rate_i_minspeed.get());
+	const matrix::Vector3f torque = _rate_control.update(vehicle_rates, rates_setpoint, angular_acceleration, dt,
+					lock_integrator);
+
+	_steering_input = math::constrain(_steering_input + torque(2), -1.0f, 1.0f);
+
+	_act_controls.control[actuator_controls_s::INDEX_YAW] = _steering_input;
+
+	const float control_throttle = rates_sp.thrust_body[0];
 
 	_act_controls.control[actuator_controls_s::INDEX_THROTTLE] =  math::constrain(control_throttle, 0.0f, 1.0f);
-
 }
+
 
 void
 RoverPositionControl::Run()
@@ -398,13 +457,13 @@ RoverPositionControl::Run()
 	parameters_update(true);
 
 	/* run controller on gyro changes */
-	vehicle_angular_velocity_s angular_velocity;
-
-	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
-
+	if (_vehicle_angular_velocity_sub.update(&_vehicle_rates)) {
+		// grab corresponding vehicle_angular_acceleration immediately after vehicle_angular_velocity copy
+		vehicle_angular_acceleration_poll();
 		/* check vehicle control mode for changes to publication state */
 		vehicle_control_mode_poll();
 		attitude_setpoint_poll();
+		rates_setpoint_poll();
 		vehicle_attitude_poll();
 		manual_control_setpoint_poll();
 
@@ -412,6 +471,10 @@ RoverPositionControl::Run()
 
 		/* update parameters from storage */
 		parameters_update();
+
+		if (!is_finite(_steering_input)) {
+			_steering_input = 0.0;
+		}
 
 		/* only run controller if position changed */
 		if (_local_pos_sub.update(&_local_pos)) {
@@ -490,6 +553,14 @@ RoverPositionControl::Run()
 		    && !_control_mode.flag_control_velocity_enabled) {
 			control_attitude(_vehicle_att, _att_sp);
 
+		}
+
+		if (_control_mode.flag_control_rates_enabled
+		    && !_control_mode.flag_control_attitude_enabled
+		    && !_control_mode.flag_control_position_enabled
+		    && !_control_mode.flag_control_velocity_enabled) {
+			//Body Rate control
+			control_rates(_vehicle_rates, _vehicle_angular_acceleration, _local_pos, _rates_sp);
 		}
 
 		/* Only publish if any of the proper modes are enabled */

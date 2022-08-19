@@ -276,6 +276,19 @@ PARAM_DEFINE_FLOAT(GND_SPEED_MAX, 10.0f);
 PARAM_DEFINE_FLOAT(GND_MAX_ANG, 0.7854f);
 
 /**
+ * Attitude control P gain
+ *
+ *
+ * @unit rad
+ * @min 0.0
+ * @max 5.0
+ * @decimal 3
+ * @increment 0.01
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_ATT_P, 1.0f);
+
+/**
  * Max manual yaw rate
  *
  * @unit deg/s
@@ -285,3 +298,87 @@ PARAM_DEFINE_FLOAT(GND_MAX_ANG, 0.7854f);
  * @group Rover Position Control
  */
 PARAM_DEFINE_FLOAT(GND_MAN_Y_MAX, 150.0f);
+
+/**
+ * Rover Rate Proportional Gain
+ *
+ * @unit rad/s
+ * @min 0.0
+ * @max 10.0
+ * @decimal 3
+ * @increment 0.01
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_P, 5.0f);
+
+/**
+ * Rover Rate Integral Gain
+ *
+ * @unit rad/s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_I, 0.5f);
+
+/**
+ * Rover Rate Integral Gain
+ *
+ * @unit rad/s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_D, 0.0f);
+
+/**
+ * Rover Rate Proportional Gain
+ *
+ * @unit rad/s
+ * @min 0.0
+ * @max 10.0
+ * @decimal 3
+ * @increment 0.01
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_FF, 1.6f);
+
+/**
+ * Rover Rate Maximum Integral Gain
+ *
+ * @unit rad/s
+ * @min 0.0
+ * @max 50.0
+ * @decimal 3
+ * @increment 0.005
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_IMAX, 1.0f);
+
+/**
+ * Rover Rate Maximum Rate
+ *
+ * @unit rad/s
+ * @min 0.0
+ * @max 50.0
+ * @decimal 3
+ * @increment 0.005
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_MAX, 5.0f);
+
+/**
+ * Rover Rate Integral Minimum speed
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 50.0
+ * @decimal 3
+ * @increment 0.005
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_RATE_IMINSPD, 0.3f);
