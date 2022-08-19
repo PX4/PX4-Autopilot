@@ -102,7 +102,7 @@ class ModuleDocumentation(object):
     def _handle_usage_param_int(self, args):
         assert(len(args) == 6) # option_char, default_val, min_val, max_val, description, is_optional
         option_char = self._get_option_char(args[0])
-        default_val = int(args[1], 0)
+        default_val = self._get_int(args[1])
         description = self._get_string(args[4])
         if self._is_bool_true(args[5]):
             self._usage_string += "     [-%s <val>]  %s\n" % (option_char, description)
@@ -214,6 +214,9 @@ class ModuleDocumentation(object):
             f = f[:-1]
         return float(f)
 
+    def _get_int(self, argument):
+        return int(eval(argument))
+
     def _is_string(self, argument):
         return len(argument) > 0 and argument[0] == '"'
 
@@ -307,6 +310,8 @@ class SourceParser(object):
             r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
             re.DOTALL | re.MULTILINE)
 
+        self._define_pattern = re.compile(r'#define\s+(\w+?)[^\S\r\n]+(.+?)\s*?\n')
+
     def Parse(self, scope, contents):
         """
         Incrementally parse program contents and append all found documentations
@@ -315,6 +320,9 @@ class SourceParser(object):
 
         # remove comments from source
         contents = self._comment_remover(contents)
+
+        # replace preprocessor defines defined in file directly
+        contents = self._define_replacer(contents)
 
         extracted_function_calls = [] # list of tuples: (FUNC_NAME, list(ARGS))
 
@@ -378,6 +386,15 @@ class SourceParser(object):
             else:
                 return s
         return re.sub(self._comment_remove_pattern, replacer, text)
+
+    def _define_replacer(self, text):
+        """ check for C preprocesor #define in text and replace with argument"""
+        text = re.sub(r"\\\s*?\n"," ",text)
+        define_iter = self._define_pattern.finditer(text)
+        for define_pattern in define_iter:
+            text = re.sub(r"\b" +re.escape(str(define_pattern.groups()[0])) + r"\b", re.escape(str(define_pattern.groups()[1])), text)
+        return text
+
 
     def _do_consistency_check(self, contents, scope, module_doc):
         """
