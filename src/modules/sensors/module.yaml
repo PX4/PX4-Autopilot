@@ -17,6 +17,18 @@ parameters:
             num_instances: *max_num_sensor_instances
             instance_start: 0
 
+        CAL_ACC${i}_LOC:
+            description:
+                short: Accelerometer ${i} location
+            category: System
+            type: enum
+            values:
+                0: Vehicle
+                1: Payload
+            default: 0
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
         CAL_ACC${i}_PRIO:
             description:
                 short: Accelerometer ${i} priority

@@ -47,9 +47,12 @@ using math::constrain;
 namespace sensors
 {
 
-VehicleIMU::VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, const px4::wq_config_t &config) :
+VehicleIMU::VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, const px4::wq_config_t &config,
+		       uint8_t location) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, config),
+	_imu_pub((location == 0) ? ORB_ID(vehicle_imu) : ORB_ID(payload_imu)),
+	_imu_status_pub((location == 0) ? ORB_ID(vehicle_imu_status) : ORB_ID(payload_imu_status)),
 	_sensor_accel_sub(ORB_ID(sensor_accel), accel_index),
 	_sensor_gyro_sub(this, ORB_ID(sensor_gyro), gyro_index),
 	_instance(instance)
@@ -71,8 +74,8 @@ VehicleIMU::VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, co
 #endif
 
 	// advertise immediately to ensure consistent ordering
-	_vehicle_imu_pub.advertise();
-	_vehicle_imu_status_pub.advertise();
+	_imu_pub.advertise();
+	_imu_status_pub.advertise();
 }
 
 VehicleIMU::~VehicleIMU()
@@ -82,8 +85,8 @@ VehicleIMU::~VehicleIMU()
 	perf_free(_accel_generation_gap_perf);
 	perf_free(_gyro_generation_gap_perf);
 
-	_vehicle_imu_pub.unadvertise();
-	_vehicle_imu_status_pub.unadvertise();
+	_imu_pub.unadvertise();
+	_imu_status_pub.unadvertise();
 }
 
 bool VehicleIMU::Start()
@@ -655,7 +658,7 @@ bool VehicleIMU::Publish()
 
 
 				_status.timestamp = hrt_absolute_time();
-				_vehicle_imu_status_pub.publish(_status);
+				_imu_status_pub.publish(_status);
 
 				_publish_status = false;
 			}
@@ -670,7 +673,7 @@ bool VehicleIMU::Publish()
 			imu.accel_calibration_count = _accel_calibration.calibration_count();
 			imu.gyro_calibration_count = _gyro_calibration.calibration_count();
 			imu.timestamp = hrt_absolute_time();
-			_vehicle_imu_pub.publish(imu);
+			_imu_pub.publish(imu);
 
 			// reset clip counts
 			_delta_velocity_clipping = 0;

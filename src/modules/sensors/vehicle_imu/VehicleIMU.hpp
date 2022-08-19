@@ -66,7 +66,7 @@ class VehicleIMU : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	VehicleIMU() = delete;
-	VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, const px4::wq_config_t &config);
+	VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, const px4::wq_config_t &config, uint8_t location);
 
 	~VehicleIMU() override;
 
@@ -92,8 +92,8 @@ private:
 	void SensorCalibrationSaveAccel();
 	void SensorCalibrationSaveGyro();
 
-	uORB::PublicationMulti<vehicle_imu_s> _vehicle_imu_pub{ORB_ID(vehicle_imu)};
-	uORB::PublicationMulti<vehicle_imu_status_s> _vehicle_imu_status_pub{ORB_ID(vehicle_imu_status)};
+	uORB::PublicationMulti<vehicle_imu_s> _imu_pub;
+	uORB::PublicationMulti<vehicle_imu_status_s> _imu_status_pub;
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

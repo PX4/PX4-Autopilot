@@ -21,3 +21,5 @@ uint8 delta_velocity_clipping   # bitfield indicating if there was any accelerom
 
 uint8 accel_calibration_count  	# Calibration changed counter. Monotonically increases whenever accelermeter calibration changes.
 uint8 gyro_calibration_count   	# Calibration changed counter. Monotonically increases whenever rate gyro calibration changes.
+
+# TOPICS vehicle_imu payload_imu

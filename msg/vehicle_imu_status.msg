@@ -26,3 +26,5 @@ float32[3] var_gyro             # gyroscope variance since last publication
 
 float32 temperature_accel
 float32 temperature_gyro
+
+# TOPICS vehicle_imu_status payload_imu_status
