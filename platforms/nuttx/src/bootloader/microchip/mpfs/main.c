@@ -375,23 +375,25 @@ flash_func_sector_size(unsigned sector)
 #ifdef CONFIG_MMCSD
 static void create_px4_file(void)
 {
-	px4_fd = open("/sdcard/boot/" IMAGE_FN, O_RDWR | O_CREAT);
+	if (sdcard_mounted) {
+		px4_fd = open("/sdcard/boot/" IMAGE_FN, O_RDWR | O_CREAT);
 
-	/* Couldn't open the file, make sure that the directory exists and try to re-open */
+		/* Couldn't open the file, make sure that the directory exists and try to re-open */
 
-	if (px4_fd < 0) {
-		int ret = mkdir("/sdcard/boot", S_IRWXU | S_IRWXG | S_IRWXO);
+		if (px4_fd < 0) {
+			int ret = mkdir("/sdcard/boot", S_IRWXU | S_IRWXG | S_IRWXO);
 
-		if (ret < 0) {
-			_alert("boot directory creation failed %d\n", ret);
+			if (ret < 0) {
+				_alert("boot directory creation failed %d\n", ret);
+			}
+
+			px4_fd = open("/sdcard/boot/" IMAGE_FN, O_CREAT | O_TRUNC, 0644);
 		}
 
-		px4_fd = open("/sdcard/boot/" IMAGE_FN, O_CREAT | O_TRUNC, 0644);
-	}
+		if (px4_fd < 0) {
+			_alert("FATAL: Not able to create px4 fw image!\n");
 
-	if (px4_fd < 0) {
-		_alert("FATAL: Not able to create px4 fw image!\n");
-
+		}
 	}
 }
 #endif
@@ -464,16 +466,18 @@ static void flash_write_pages(off_t start, unsigned n_pages, uint8_t *src)
 	}
 
 #elif defined(CONFIG_MMCSD)
-	ssize_t ret = -2;
+	if (sdcard_mounted) {
+		ssize_t ret = -2;
 
-	/* Write to file, from the app_load_address */
-	if (lseek(px4_fd, start * flash_func_block_size(), SEEK_SET) >= 0) {
-		ret = write(px4_fd, (void *)src, n_pages * flash_func_block_size());
-	}
+		/* Write to file, from the app_load_address */
+		if (lseek(px4_fd, start * flash_func_block_size(), SEEK_SET) >= 0) {
+			ret = write(px4_fd, (void *)src, n_pages * flash_func_block_size());
+		}
 
-	if (ret != n_pages * flash_func_block_size()) {
-		_alert("eMMC write error at 0x%x-0x%x ret %d\n", start * flash_func_block_size(),
-		       (start + n_pages) * flash_func_block_size(), ret);
+		if (ret != n_pages * flash_func_block_size()) {
+			_alert("eMMC write error at 0x%x-0x%x ret %d\n", start * flash_func_block_size(),
+					(start + n_pages) * flash_func_block_size(), ret);
+		}
 	}
 
 #endif
@@ -685,18 +689,20 @@ static size_t get_image_size(void)
 static int loader_main(int argc, char *argv[])
 {
 	ssize_t image_sz = 0;
-
+	int ret;
 	loading_status = IN_PROGRESS;
 
 #if defined(CONFIG_MMCSD)
 
-	int ret = load_sdcard_images("/sdcard/boot/" IMAGE_FN, APP_LOAD_ADDRESS);
+	if (sdcard_mounted) {
+		ret = load_sdcard_images("/sdcard/boot/" IMAGE_FN, APP_LOAD_ADDRESS);
 
-	if (ret == 0) {
-		image_sz = get_image_size();
+		if (ret == 0) {
+			image_sz = get_image_size();
 
-		if (image_sz > 0) {
-			_alert("PX4 load success\n");
+			if (image_sz > 0) {
+				_alert("PX4 load success\n");
+			}
 		}
 	}
 
