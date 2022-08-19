@@ -95,7 +95,7 @@ private:
     void    reset_filter();
     void    perform_prior_update();
     void    perform_posterior_update(float height, Vector3f wind);
-    bool    check_plausibility();
+    bool    check_feasibility();
     void    publish_estimate();
     void	status_publish();
 

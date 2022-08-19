@@ -50,7 +50,7 @@ PARAM_DEFINE_FLOAT(DS_SIGMA_Q_H, 0.3f);
  * @increment 0.000001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_SIGMA_Q_A, 0.03f);
+PARAM_DEFINE_FLOAT(DS_SIGMA_Q_A, 0.02f);
 
 /**
  * Standard deviation of velicity measurement (wind)
@@ -78,4 +78,4 @@ PARAM_DEFINE_FLOAT(DS_SIGMA_R_V, 3.f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_INIT_H, 110.f);
+PARAM_DEFINE_FLOAT(DS_INIT_H, 90.f);

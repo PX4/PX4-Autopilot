@@ -87,8 +87,8 @@ FixedwingShearEstimator::init()
             _A_horizontal(i,j) = 0.f;
         }
     }
-    _P_prior_horizontal = _Q_horizontal;
-    _P_posterior_horizontal = _Q_horizontal;
+    _P_prior_horizontal = 3.f*_Q_horizontal;
+    _P_posterior_horizontal = 3.f*_Q_horizontal;
 
     // init vertical wind field
     for (uint i=0; i<_dim_vertical; i++){
@@ -98,8 +98,8 @@ FixedwingShearEstimator::init()
             _A_vertical(i,j) = 0.f;
         }
     }
-    _P_prior_vertical = _Q_vertical;
-    _P_posterior_vertical = _Q_vertical;
+    _P_prior_vertical = 3.f*_Q_vertical;
+    _P_posterior_vertical = 3.f*_Q_vertical;
 
 
     //
@@ -156,16 +156,16 @@ FixedwingShearEstimator::reset_filter()
         _X_prior_horizontal(i) = 0.0f;
         _X_posterior_horizontal(i) = 0.0f;
     }
-    _P_prior_horizontal = _Q_horizontal;
-    _P_posterior_horizontal = _Q_horizontal;
+    _P_prior_horizontal = 3.f*_Q_horizontal;
+    _P_posterior_horizontal = 3.f*_Q_horizontal;
 
     // reset vertical wind state
     for (uint i=0;i<_dim_vertical;i++){
         _X_prior_vertical(i) = 0.0f;
         _X_posterior_vertical(i) = 0.0f;
     }
-    _P_prior_vertical = _Q_vertical;
-    _P_posterior_vertical = _Q_vertical;
+    _P_prior_vertical = 3.f*_Q_vertical;
+    _P_posterior_vertical = 3.f*_Q_vertical;
 
     // set height to enable convergence
     _X_prior_horizontal(4) = _init_height;
@@ -181,8 +181,8 @@ FixedwingShearEstimator::perform_prior_update()
     // get time since last run
     float dt = (float)(hrt_absolute_time() - _last_run)/1000000.f;
     _last_run = hrt_absolute_time();
-    if (dt>10.f) {
-        dt = 10.f;
+    if (dt>1.f) {
+        dt = 1.f;
     }
 
     // perform prior update assuming trivial dynamics of the wind field (mean field stays the same)
@@ -334,10 +334,11 @@ FixedwingShearEstimator::Run()
 
             // check if filter diverges 
             // maybe reset filters...
-            if (sqrtf(_P_posterior_horizontal(4,4))>=6.f||sqrtf(_P_posterior_horizontal(5,5))>=0.2f) {
+            if (sqrtf(_P_posterior_horizontal(4,4))>=5.f||sqrtf(_P_posterior_horizontal(5,5))>=0.3f) {
                 PX4_WARN("large height uncertainty, resetting filter");
                 reset_filter();
             }
+
         }
 
         // publish shear params
@@ -357,11 +358,47 @@ FixedwingShearEstimator::Run()
         _soaring_estimator_shear.sigma_by = sqrtf(_P_posterior_horizontal(3,3))*_unit_v;
         _soaring_estimator_shear.sigma_h = sqrtf(_P_posterior_horizontal(4,4))*_unit_h;
         _soaring_estimator_shear.sigma_a = sqrtf(_P_posterior_horizontal(5,5))*_unit_a;
+        _soaring_estimator_shear.soaring_feasible = check_feasibility();
         _soaring_estimator_shear.reset_counter = _reset_counter;
         _soaring_estimator_shear_pub.publish(_soaring_estimator_shear);
     }
 
 
+}
+
+bool FixedwingShearEstimator::check_feasibility()
+{
+    // ================================================================
+    // simple check, if dynamic soaring is feasible in these conditions
+    // ================================================================
+
+    float shear_x = _X_posterior_horizontal(0) - _X_posterior_horizontal(2);
+    float shear_y = _X_posterior_horizontal(1) - _X_posterior_horizontal(3);
+    float shear_strength = _X_posterior_horizontal(5);
+    //float heading = atan2f(shear_x, shear_y);
+    //float heading_stdev = 0.f;
+
+    // require shear strength above 10 m/s
+    float shear = sqrtf(powf(shear_x,2) + powf(shear_y,2));
+    if (shear<10.f) {
+        return false;
+    }
+
+    // require shear strength above 0.3 1/s
+    if (shear_strength<0.3f) {
+        return false;
+    }
+
+    // require covariance certainty below 2 m/s (use propagation of variance)
+    float shear_stdev = sqrtf(powf(shear_x/shear,2)*_P_posterior_horizontal(0,0) + 
+                                powf(shear_x/shear,2)*_P_posterior_horizontal(2,2) +
+                                powf(shear_y/shear,2)*_P_posterior_horizontal(1,1) +
+                                powf(shear_y/shear,2)*_P_posterior_horizontal(3,3));
+    if (shear_stdev>3.f) {
+        return false;
+    }
+
+    return true;
 }
 
 

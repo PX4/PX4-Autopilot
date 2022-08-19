@@ -16,5 +16,5 @@ float32 sigma_by            # covariance of by
 float32 sigma_h             # covariance of h
 float32 sigma_a             # covariance of a
 
-bool params_healthy         # plausibility check
+bool soaring_feasible       # plausibility check
 uint64 reset_counter        # filter reset counter
