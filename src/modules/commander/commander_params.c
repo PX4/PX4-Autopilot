@@ -925,6 +925,23 @@ PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 0);
 PARAM_DEFINE_INT32(COM_PREARM_MODE, 0);
 
 /**
+ * Enable pre-arm check on OpenDroneID.
+ *
+ * If this parameter is set, the pre-arm mechanism will check for the OpenDroneID system and prevent arming if it is not present.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_PREARM_ODID, 0);
+
+/*
+ * Allow arming without onboard logger being enabled and in ready state
+ *
+ * The default allows the vehicle to arm without the onboard logger reporting as ready via it's heartbeat
+ */
+PARAM_DEFINE_INT32(COM_ARM_WO_OBLOG, 0);
+
+/**
  * Enable force safety
  *
  * Force safety when the vehicle disarms

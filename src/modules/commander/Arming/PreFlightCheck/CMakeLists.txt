@@ -52,6 +52,7 @@ px4_add_library(PreFlightCheck
 	checks/cpuResourceCheck.cpp
 	checks/sdcardCheck.cpp
 	checks/parachuteCheck.cpp
+	checks/openDroneIDCheck.cpp
 )
 target_include_directories(PreFlightCheck PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(PreFlightCheck PUBLIC ArmAuthorization HealthFlags sensor_calibration)

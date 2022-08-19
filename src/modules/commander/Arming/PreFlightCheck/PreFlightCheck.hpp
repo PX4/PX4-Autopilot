@@ -103,6 +103,8 @@ private:
 	static bool sdcardCheck(orb_advert_t *mavlink_log_pub, bool &sd_card_detected_once, const bool report_fail);
 	static bool parachuteCheck(orb_advert_t *mavlink_log_pub, const bool report_fail,
 				   const vehicle_status_flags_s &status_flags);
+	static bool openDroneIDCheck(orb_advert_t *mavlink_log_pub, const bool report_fail,
+				     const vehicle_status_flags_s &status_flags);
 	static bool preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
 				const vehicle_control_mode_s &control_mode, const bool safety_button_available, const bool safety_off,
 				vehicle_status_s &status, const bool report_fail, const bool is_arm_attempt);
