@@ -54,6 +54,9 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
+// Maximal course error to exit loiter if exit course is enforced (fixed-wing only)
+static constexpr float kLoiterExitCourseReachedThreshold = 0.087f; // 5 degrees
+
 class Navigator;
 
 class MissionBlock : public NavigatorMode
