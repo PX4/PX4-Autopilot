@@ -314,7 +314,9 @@ uorb_graphs:
 	@$(MAKE) --no-print-directory px4_fmu-v5_default uorb_graph
 	@$(MAKE) --no-print-directory px4_sitl_default uorb_graph
 
-px4io_update: px4_io-v2_default cubepilot_io-v2_default
+px4io_update:
+	@$(MAKE) --no-print-directory px4_io-v2_default
+	@$(MAKE) --no-print-directory cubepilot_io-v2_default
 	# px4_io-v2_default
 	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/holybro/durandal-v1/extras/px4_io-v2_default.bin
 	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/holybro/pix32v5/extras/px4_io-v2_default.bin
