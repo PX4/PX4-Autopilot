@@ -37,9 +37,9 @@
 
 #include "ekf.h"
 
-void Ekf::controlHeightFusion()
+void Ekf::controlHeightFusion(const imuSample &imu_delayed)
 {
-	checkVerticalAccelerationHealth();
+	checkVerticalAccelerationHealth(imu_delayed);
 
 	updateGroundEffect();
 
@@ -111,7 +111,7 @@ void Ekf::checkHeightSensorRefFallback()
 	}
 }
 
-void Ekf::checkVerticalAccelerationHealth()
+void Ekf::checkVerticalAccelerationHealth(const imuSample &imu_delayed)
 {
 	// Check for IMU accelerometer vibration induced clipping as evidenced by the vertical
 	// innovations being positive and not stale.
@@ -122,9 +122,9 @@ void Ekf::checkVerticalAccelerationHealth()
 
 	// Check for more than 50% clipping affected IMU samples within the past 1 second
 	const uint16_t clip_count_limit = 1.f / _dt_ekf_avg;
-	const bool is_clipping = _imu_sample_delayed.delta_vel_clipping[0] ||
-				 _imu_sample_delayed.delta_vel_clipping[1] ||
-				 _imu_sample_delayed.delta_vel_clipping[2];
+	const bool is_clipping = imu_delayed.delta_vel_clipping[0] ||
+				 imu_delayed.delta_vel_clipping[1] ||
+				 imu_delayed.delta_vel_clipping[2];
 
 	if (is_clipping && _clip_counter < clip_count_limit) {
 		_clip_counter++;
@@ -142,10 +142,10 @@ void Ekf::checkVerticalAccelerationHealth()
 				    || (inertial_nav_falling_likelihood == Likelihood::HIGH);
 
 	if (bad_vert_accel) {
-		_time_bad_vert_accel = _imu_sample_delayed.time_us;
+		_time_bad_vert_accel = _time_delayed_us;
 
 	} else {
-		_time_good_vert_accel = _imu_sample_delayed.time_us;
+		_time_good_vert_accel = _time_delayed_us;
 	}
 
 	// declare a bad vertical acceleration measurement and make the declaration persist

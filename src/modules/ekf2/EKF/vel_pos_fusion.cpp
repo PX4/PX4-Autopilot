@@ -137,7 +137,7 @@ void Ekf::fuseVelocity(estimator_aid_source2d_s &aid_src)
 		    && fuseVelPosHeight(aid_src.innovation[1], aid_src.innovation_variance[1], 1)
 		   ) {
 			aid_src.fused = true;
-			aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+			aid_src.time_last_fuse = _time_delayed_us;
 
 		} else {
 			aid_src.fused = false;
@@ -154,7 +154,7 @@ void Ekf::fuseVelocity(estimator_aid_source3d_s &aid_src)
 		    && fuseVelPosHeight(aid_src.innovation[2], aid_src.innovation_variance[2], 2)
 		   ) {
 			aid_src.fused = true;
-			aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+			aid_src.time_last_fuse = _time_delayed_us;
 
 		} else {
 			aid_src.fused = false;
@@ -170,7 +170,7 @@ void Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
 		    && fuseVelPosHeight(aid_src.innovation[1], aid_src.innovation_variance[1], 4)
 		   ) {
 			aid_src.fused = true;
-			aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+			aid_src.time_last_fuse = _time_delayed_us;
 
 		} else {
 			aid_src.fused = false;
@@ -184,7 +184,7 @@ void Ekf::fuseVerticalPosition(estimator_aid_source1d_s &aid_src)
 	if (aid_src.fusion_enabled && !aid_src.innovation_rejected) {
 		if (fuseVelPosHeight(aid_src.innovation, aid_src.innovation_variance, 5)) {
 			aid_src.fused = true;
-			aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+			aid_src.time_last_fuse = _time_delayed_us;
 		}
 	}
 }
@@ -239,7 +239,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 	case 0:
 		if (healthy) {
 			_fault_status.flags.bad_vel_N = false;
-			_time_last_hor_vel_fuse = _imu_sample_delayed.time_us;
+			_time_last_hor_vel_fuse = _time_delayed_us;
 
 		} else {
 			_fault_status.flags.bad_vel_N = true;
@@ -250,7 +250,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 	case 1:
 		if (healthy) {
 			_fault_status.flags.bad_vel_E = false;
-			_time_last_hor_vel_fuse = _imu_sample_delayed.time_us;
+			_time_last_hor_vel_fuse = _time_delayed_us;
 
 		} else {
 			_fault_status.flags.bad_vel_E = true;
@@ -261,7 +261,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 	case 2:
 		if (healthy) {
 			_fault_status.flags.bad_vel_D = false;
-			_time_last_ver_vel_fuse = _imu_sample_delayed.time_us;
+			_time_last_ver_vel_fuse = _time_delayed_us;
 
 		} else {
 			_fault_status.flags.bad_vel_D = true;
@@ -272,7 +272,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 	case 3:
 		if (healthy) {
 			_fault_status.flags.bad_pos_N = false;
-			_time_last_hor_pos_fuse = _imu_sample_delayed.time_us;
+			_time_last_hor_pos_fuse = _time_delayed_us;
 
 		} else {
 			_fault_status.flags.bad_pos_N = true;
@@ -283,7 +283,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 	case 4:
 		if (healthy) {
 			_fault_status.flags.bad_pos_E = false;
-			_time_last_hor_pos_fuse = _imu_sample_delayed.time_us;
+			_time_last_hor_pos_fuse = _time_delayed_us;
 
 		} else {
 			_fault_status.flags.bad_pos_E = true;
@@ -294,7 +294,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 	case 5:
 		if (healthy) {
 			_fault_status.flags.bad_pos_D = false;
-			_time_last_hgt_fuse = _imu_sample_delayed.time_us;
+			_time_last_hgt_fuse = _time_delayed_us;
 
 		} else {
 			_fault_status.flags.bad_pos_D = true;

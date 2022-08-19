@@ -46,7 +46,7 @@ void Ekf::controlMagFusion()
 	magSample mag_sample;
 
 	if (_mag_buffer) {
-		mag_data_ready = _mag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &mag_sample);
+		mag_data_ready = _mag_buffer->pop_first_older_than(_time_delayed_us, &mag_sample);
 
 		if (mag_data_ready) {
 			_mag_lpf.update(mag_sample.mag);
@@ -244,7 +244,7 @@ void Ekf::runInAirYawReset()
 			_control_status.flags.mag_aligned_in_flight = true;
 
 			// record the time for the magnetic field alignment event
-			_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+			_flt_mag_align_start_time = _time_delayed_us;
 
 			// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
 			// to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
@@ -270,7 +270,7 @@ void Ekf::check3DMagFusionSuitability()
 	checkMagBiasObservability();
 
 	if (_mag_bias_observable || _yaw_angle_observable) {
-		_time_last_mov_3d_mag_suitable = _imu_sample_delayed.time_us;
+		_time_last_mov_3d_mag_suitable = _time_delayed_us;
 	}
 }
 
@@ -295,13 +295,13 @@ void Ekf::checkMagBiasObservability()
 
 	} else if (_mag_bias_observable) {
 		// require sustained yaw motion of 50% the initial yaw rate threshold
-		const float yaw_dt = 1e-6f * (float)(_imu_sample_delayed.time_us - _time_yaw_started);
+		const float yaw_dt = 1e-6f * (float)(_time_delayed_us - _time_yaw_started);
 		const float min_yaw_change_req =  0.5f * _params.mag_yaw_rate_gate * yaw_dt;
 		_mag_bias_observable = fabsf(_yaw_delta_ef) > min_yaw_change_req;
 	}
 
 	_yaw_delta_ef = 0.0f;
-	_time_yaw_started = _imu_sample_delayed.time_us;
+	_time_yaw_started = _time_delayed_us;
 }
 
 bool Ekf::canUse3DMagFusion() const
@@ -309,7 +309,7 @@ bool Ekf::canUse3DMagFusion() const
 	// Use of 3D fusion requires an in-air heading alignment but it should not
 	// be used when the heading and mag biases are not observable for more than 2 seconds
 	return _control_status.flags.mag_aligned_in_flight
-	       && ((_imu_sample_delayed.time_us - _time_last_mov_3d_mag_suitable) < (uint64_t)2e6);
+	       && ((_time_delayed_us - _time_last_mov_3d_mag_suitable) < (uint64_t)2e6);
 }
 
 void Ekf::checkMagDeclRequired()
@@ -328,11 +328,11 @@ void Ekf::checkMagInhibition()
 	_is_yaw_fusion_inhibited = shouldInhibitMag();
 
 	if (!_is_yaw_fusion_inhibited) {
-		_mag_use_not_inhibit_us = _imu_sample_delayed.time_us;
+		_mag_use_not_inhibit_us = _time_delayed_us;
 	}
 
 	// If magnetometer use has been inhibited continuously then a yaw reset is required for a valid heading
-	if (uint32_t(_imu_sample_delayed.time_us - _mag_use_not_inhibit_us) > (uint32_t)5e6) {
+	if (uint32_t(_time_delayed_us - _mag_use_not_inhibit_us) > (uint32_t)5e6) {
 		_mag_inhibit_yaw_reset_req = true;
 	}
 }
@@ -406,7 +406,7 @@ void Ekf::run3DMagAndDeclFusions(const Vector3f &mag)
 {
 	// For the first few seconds after in-flight alignment we allow the magnetic field state estimates to stabilise
 	// before they are used to constrain heading drift
-	const bool update_all_states = ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) > (uint64_t)5e6)
+	const bool update_all_states = ((_time_delayed_us - _flt_mag_align_start_time) > (uint64_t)5e6)
 			&& !_control_status.flags.mag_fault && !_control_status.flags.mag_field_disturbed;
 
 	if (!_mag_decl_cov_reset) {

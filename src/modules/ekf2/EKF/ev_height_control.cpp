@@ -121,7 +121,7 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample)
 						resetVerticalVelocityToZero();
 					}
 
-					aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+					aid_src.time_last_fuse = _time_delayed_us;
 
 				} else if ((_ev_sample_delayed.reset_counter != _ev_sample_delayed_prev.reset_counter) && !aid_src.fused) {
 					// fusion failed and EV sample indicates reset
@@ -136,7 +136,7 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample)
 						bias_est.setBias(-_state.pos(2) + measurement);
 					}
 
-					aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+					aid_src.time_last_fuse = _time_delayed_us;
 
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
@@ -164,7 +164,7 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample)
 					bias_est.setBias(-_state.pos(2) + measurement);
 				}
 
-				aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+				aid_src.time_last_fuse = _time_delayed_us;
 				bias_est.setFusionActive();
 				_control_status.flags.ev_hgt = true;
 			}

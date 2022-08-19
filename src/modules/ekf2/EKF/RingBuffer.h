@@ -37,6 +37,9 @@
  * Template RingBuffer.
  */
 
+#ifndef EKF_RINGBUFFER_H
+#define EKF_RINGBUFFER_H
+
 #include <inttypes.h>
 #include <cstdio>
 #include <cstring>
@@ -177,3 +180,5 @@ private:
 
 	bool _first_write{true};
 };
+
+#endif // !EKF_RINGBUFFER_H
