@@ -319,7 +319,7 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 					_gnd_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed_2d);
 
 					///WIP: Convert Lateral acceleration demand to rate control reference
-					float min_speed{1.0};
+					float min_speed = _param_gndspeed_min.get();
 					matrix::Vector2f saturated_speed_2d = (ground_speed_2d.norm() < min_speed) ? ground_speed_2d :
 									      ground_speed_2d.normalized() * min_speed;
 
@@ -433,19 +433,16 @@ RoverPositionControl::control_rates(const vehicle_angular_velocity_s &rates, con
 				    const vehicle_local_position_s &local_pos,
 				    const vehicle_rates_setpoint_s &rates_sp)
 {
-	float dt = 0.01; // Using non zero value to a avoid division by zero
-
-	if (_control_rates_last_called > 0) {
-		dt = hrt_elapsed_time(&_control_rates_last_called) * 1e-6f;
-	}
-
+	float dt = (_control_rates_last_called > 0) ? hrt_elapsed_time(&_control_rates_last_called) * 1e-6f : 0.01;
 	_control_rates_last_called = hrt_absolute_time();
 
-	const matrix::Vector3f current_velocity(local_pos.vx, local_pos.vy, local_pos.vz);
 	const matrix::Vector3f vehicle_rates(rates.xyz[0], rates.xyz[1], rates.xyz[2]);
 	const matrix::Vector3f rates_setpoint(rates_sp.roll, rates_sp.pitch, rates_sp.yaw);
-	const matrix::Vector3f angular_acceleration{acc.xyz};
+
+	const matrix::Vector3f current_velocity(local_pos.vx, local_pos.vy, local_pos.vz);
 	bool lock_integrator = bool(current_velocity.norm() < _param_rate_i_minspeed.get());
+
+	const matrix::Vector3f angular_acceleration{acc.xyz};
 	const matrix::Vector3f torque = _rate_control.update(vehicle_rates, rates_setpoint, angular_acceleration, dt,
 					lock_integrator);
 

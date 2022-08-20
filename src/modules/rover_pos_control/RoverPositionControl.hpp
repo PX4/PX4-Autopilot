@@ -192,6 +192,7 @@ private:
 
 		(ParamFloat<px4::params::GND_SPEED_TRIM>) _param_gndspeed_trim,
 		(ParamFloat<px4::params::GND_SPEED_MAX>) _param_gndspeed_max,
+		(ParamFloat<px4::params::GND_SPEED_MIN>) _param_gndspeed_min,
 
 		(ParamInt<px4::params::GND_SP_CTRL_MODE>) _param_speed_control_mode,
 		(ParamFloat<px4::params::GND_SPEED_P>) _param_speed_p,

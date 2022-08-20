@@ -235,6 +235,19 @@ PARAM_DEFINE_FLOAT(GND_SPEED_THR_SC, 1.0f);
 PARAM_DEFINE_FLOAT(GND_SPEED_TRIM, 3.0f);
 
 /**
+ * Minimum ground speed
+ *
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_SPEED_MIN, 1.0f);
+
+/**
  * Maximum ground speed
  *
  *
@@ -368,4 +381,4 @@ PARAM_DEFINE_FLOAT(GND_RATE_MAX, 5.0f);
  * @increment 0.005
  * @group Rover Position Control
  */
-PARAM_DEFINE_FLOAT(GND_RATE_IMINSPD, 0.3f);
+PARAM_DEFINE_FLOAT(GND_RATE_IMINSPD, 1.0f);
