@@ -14,6 +14,7 @@
 #include <float.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <drivers/drv_hrt.h>
@@ -379,10 +380,11 @@ private:
 
 	// vectors defining the gridding for trajectory selection: initial velocities, wind speed and shear strength
 	const static size_t _gridsize = 11;
+	/*
 	float _energy_arr[_gridsize] = {14.f,16.f,18.f,20.f,22.f,24.f,26.f,28.f,30.f,32.f,34.f};	
 	float _v_max_arr[_gridsize] = {10.f,11.f,12.f,13.f,14.f,15.f,16.f,17.f,18.f,19.f,20.f};	
 	float _alpha_arr[_gridsize] = {0.1f,0.2f,0.3f,0.4f,0.5f,0.6f,0.7f,0.8f,0.9f,1.0f,1.1f};	
-
+	*/
 
 	// helper variables
 	Dcmf _R_ned_to_enu;	// rotation matrix from NED to ENU frame

@@ -468,10 +468,12 @@ FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
     <energy> in [E_min, E_max]
     */
 
+    /*
     float v = _findClosest(_v_max_arr, _gridsize, _shear_v_max);    // wind velocity
     float a = _findClosest(_alpha_arr, _gridsize, _shear_alpha);    // shear strength
     float e = _findClosest(_energy_arr, _gridsize, _shear_energy);  // initial energy
     PX4_INFO("V, A, E: \t%.2f\t%.2f\t%.2f", double(v), double(a), double(e));
+    
     char file[30] = "nominal";
     char v_str[6];
     char a_str[6];
@@ -483,7 +485,8 @@ FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
     strcat(file,"_");
     strcat(file,gcvt(e, 2, e_str));
     strcat(file,".csv");
-    PX4_INFO("filename: \t%.30s", file);
+    */
+    //PX4_INFO("filename: \t%.30s", file);
     
 
     // select loiter trajectory for loiter test
@@ -879,7 +882,7 @@ FixedwingPositionINDIControl::Run()
             _soaring_controller_wind.position[2] = _pos(2);
             Eulerf e(Quatf(_attitude.q));
             float bank = e(0);
-            if (fabs(bank)<0.5f) {
+            if ((float)fabs(bank)<0.5f) {
                 _soaring_controller_wind.valid = true;
             }
             else {

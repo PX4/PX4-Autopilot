@@ -170,6 +170,8 @@ FixedwingShearEstimator::reset_filter()
     // set height to enable convergence
     _X_prior_horizontal(4) = _init_height;
     _X_posterior_horizontal(4) = _init_height;
+    _X_prior_horizontal(5) = 0.5f/_unit_a;
+    _X_posterior_horizontal(5) = 0.5f/_unit_a;
 
     // increment counter
     _reset_counter += 1;
@@ -223,11 +225,11 @@ FixedwingShearEstimator::perform_posterior_update(float height, Vector3f wind)
     Matrix<float, 6, 2> tmp1_horizontal = _P_prior_horizontal*_H_horizontal.T();
     Matrix<float, 2, 2> tmp2_horizontal = _H_horizontal*(_P_prior_horizontal*_H_horizontal.T()) + _R_horizontal;
     float determinant_horizontal = tmp2_horizontal(0,0)*tmp2_horizontal(1,1) - tmp2_horizontal(1,0)*tmp2_horizontal(0,1);
-    if (fabs(determinant_horizontal)>0.000001f){
+    if ((float)fabs(determinant_horizontal)>=0.000001f){
         _K_horizontal = tmp1_horizontal*geninv(tmp2_horizontal);
     }
     else{
-        PX4_WARN("singular horizontal matrix, resetting filter");
+        //PX4_WARN("singular horizontal matrix, resetting filter");
         error = true;
     }
 
@@ -241,12 +243,12 @@ FixedwingShearEstimator::perform_posterior_update(float height, Vector3f wind)
     Matrix<float, 1, 1> tmp2_vertical = _H_vertical*_P_prior_vertical*_H_vertical.T() + _R_vertical;
     Matrix<float, 1, 1> inv_vertical;
     float determinant_vertical = tmp2_vertical(0,0);
-    if (fabs(determinant_vertical)>0.000001f){
+    if ((float)fabs(determinant_vertical)>0.000001f){
         inv_vertical(0,0) = 1.f / determinant_vertical;
         _K_vertical = tmp1_vertical*inv_vertical;
     }
     else{
-        PX4_WARN("singular vertical matrix, resetting filter");
+        //PX4_WARN("singular vertical matrix, resetting filter");
         error = true;
     }
 
