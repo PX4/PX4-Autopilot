@@ -41,7 +41,6 @@
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
  */
 
-#include <RoverRateControl.hpp>
 
 #include <float.h>
 #include <drivers/drv_hrt.h>
@@ -50,6 +49,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/pid/pid.h>
+#include <lib/rate_control/rate_control.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
@@ -134,6 +134,9 @@ private:
 	vehicle_local_position_s		_local_pos{};			/**< global vehicle position */
 	actuator_controls_s				_act_controls{};		/**< direct control of actuators */
 	vehicle_attitude_s				_vehicle_att{};
+	vehicle_angular_acceleration_s		_vehicle_angular_acceleration{};
+	vehicle_angular_velocity_s _vehicle_rates{};
+
 	trajectory_setpoint_s _trajectory_setpoint{};
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
@@ -157,7 +160,7 @@ private:
 	uint8_t _pos_reset_counter{0};		// captures the number of times the estimator has reset the horizontal position
 
 	ECL_L1_Pos_Controller				_gnd_control;
-	RoverRateControl				_rate_control;
+	RateControl				_rate_control;
 	float _steering_input{0.0};
 
 	enum UGV_POSCTRL_MODE {

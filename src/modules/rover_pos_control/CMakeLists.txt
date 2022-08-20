@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-add_subdirectory(RoverRateControl)
-
 px4_add_module(
 	MODULE modules__rover_pos_control
 	MAIN rover_pos_control
@@ -40,7 +38,7 @@ px4_add_module(
 		RoverPositionControl.cpp
 		RoverPositionControl.hpp
 	DEPENDS
-		RoverRateControl
+		RateControl
 		l1
 		pid
 	)

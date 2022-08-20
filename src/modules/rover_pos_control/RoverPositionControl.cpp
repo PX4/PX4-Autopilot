@@ -318,14 +318,20 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 								 prev_wp(1));
 					_gnd_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed_2d);
 
-					_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = mission_throttle;
+					///WIP: Convert Lateral acceleration demand to rate control reference
+					float min_speed{1.0};
+					matrix::Vector2f saturated_speed_2d = (ground_speed_2d.norm() < min_speed) ? ground_speed_2d :
+									      ground_speed_2d.normalized() * min_speed;
 
-					float desired_r = ground_speed_2d.norm_squared() / math::abs_t(_gnd_control.nav_lateral_acceleration_demand());
-					float desired_theta = (0.5f * M_PI_F) - atan2f(desired_r, _param_wheel_base.get());
-					float control_effort = (desired_theta / _param_max_turn_angle.get()) * sign(
-								       _gnd_control.nav_lateral_acceleration_demand());
-					control_effort = math::constrain(control_effort, -1.0f, 1.0f);
-					_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
+					float desired_yaw_rate = _gnd_control.nav_lateral_acceleration_demand() / saturated_speed_2d.norm();
+
+					_rates_sp.roll = 0.0;
+					_rates_sp.pitch = 0.0;
+					_rates_sp.yaw = desired_yaw_rate;
+					_rates_sp.thrust_body[0] = math::constrain(mission_throttle, 0.0f, 1.0f);
+					_rates_sp.timestamp = hrt_absolute_time();
+					_rates_sp_pub.publish(_rates_sp);
+					control_rates(_vehicle_rates, _vehicle_angular_acceleration, _local_pos, _rates_sp);
 				}
 			}
 			break;
@@ -433,6 +439,8 @@ RoverPositionControl::control_rates(const vehicle_angular_velocity_s &rates, con
 		dt = hrt_elapsed_time(&_control_rates_last_called) * 1e-6f;
 	}
 
+	_control_rates_last_called = hrt_absolute_time();
+
 	const matrix::Vector3f current_velocity(local_pos.vx, local_pos.vy, local_pos.vz);
 	const matrix::Vector3f vehicle_rates(rates.xyz[0], rates.xyz[1], rates.xyz[2]);
 	const matrix::Vector3f rates_setpoint(rates_sp.roll, rates_sp.pitch, rates_sp.yaw);
@@ -472,7 +480,7 @@ RoverPositionControl::Run()
 		/* update parameters from storage */
 		parameters_update();
 
-		if (!is_finite(_steering_input)) {
+		if (!PX4_ISFINITE(_steering_input)) {
 			_steering_input = 0.0;
 		}
 
