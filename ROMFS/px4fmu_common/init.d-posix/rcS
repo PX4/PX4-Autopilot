@@ -228,6 +228,12 @@ commander start
 
 navigator start
 
+# Try to start the microdds_client with UDP transport if module exists
+if px4-microdds_client status > /dev/null 2>&1
+then
+	microdds_client start -t udp -p 15555
+fi
+
 # Try to start the micrortps_client with UDP transport if module exists
 if px4-micrortps_client status > /dev/null 2>&1
 then
