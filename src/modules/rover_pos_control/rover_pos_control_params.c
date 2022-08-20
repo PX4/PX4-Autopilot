@@ -49,19 +49,6 @@
  */
 
 /**
- * Distance from front axle to rear axle
- *
- * A value of 0.31 is typical for 1/10 RC cars.
- *
- * @unit m
- * @min 0.0
- * @decimal 3
- * @increment 0.01
- * @group Rover Position Control
- */
-PARAM_DEFINE_FLOAT(GND_WHEEL_BASE, 0.31f);
-
-/**
  * L1 distance
  *
  * This is the distance at which the next waypoint is activated. This should be set

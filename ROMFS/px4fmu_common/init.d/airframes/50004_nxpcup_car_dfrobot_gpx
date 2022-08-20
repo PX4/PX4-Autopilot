@@ -34,7 +34,6 @@ param set-default GND_THR_MAX 0.5
 
 # Differential drive acts like ackermann steering with a maximum turn angle of 60 degrees, or pi/3 radians
 param set-default GND_MAX_ANG 1.042
-param set-default GND_WHEEL_BASE 0.17
 
 # TODO: Set to -1.0, to allow reversing. This will require many changes in the codebase
 # to support negative throttle.

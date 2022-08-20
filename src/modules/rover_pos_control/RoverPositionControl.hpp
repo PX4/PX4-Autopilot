@@ -212,7 +212,6 @@ private:
 		(ParamFloat<px4::params::GND_THR_MAX>) _param_throttle_max,
 		(ParamFloat<px4::params::GND_THR_CRUISE>) _param_throttle_cruise,
 
-		(ParamFloat<px4::params::GND_WHEEL_BASE>) _param_wheel_base,
 		(ParamFloat<px4::params::GND_MAX_ANG>) _param_max_turn_angle,
 		(ParamFloat<px4::params::GND_ATT_P>) _param_att_p,
 		(ParamFloat<px4::params::GND_MAN_Y_MAX>) _param_gnd_man_y_max,
