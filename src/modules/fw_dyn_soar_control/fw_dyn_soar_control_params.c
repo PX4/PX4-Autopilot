@@ -502,6 +502,38 @@ PARAM_DEFINE_FLOAT(DS_ORIGIN_ALT, 537.0f);
  */
 PARAM_DEFINE_INT32(DS_LOITER, 0);
 
+// ======================================================
+// ============ wind shear heading ======================
+// ======================================================
+
+/**
+ * integer defining wind heading
+ * 
+ * @unit deg
+ * @min -180
+ * @max 180
+ * @decimal 1
+ * @increment 1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_INT32(DS_W_HEADING, 0);
+
+// ======================================================
+// ======= wind shear height in soaring frame ===========
+// ======================================================
+
+/**
+ * float defining wind shear vertical postition in soaring frame
+ * 
+ * @unit 
+ * @min 0
+ * @max 100
+ * @decimal 1
+ * @increment 0.1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(DS_W_HEIGHT, 100.f);
+
 // ==============================================
 // ============== engine thrust =================
 // ==============================================

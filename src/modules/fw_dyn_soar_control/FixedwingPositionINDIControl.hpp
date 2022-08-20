@@ -208,6 +208,8 @@ private:
 		(ParamFloat<px4::params::DS_ORIGIN_ALT>) _param_origin_alt,
 		// loiter params
 		(ParamInt<px4::params::DS_LOITER>) _param_loiter,
+		(ParamInt<px4::params::DS_W_HEADING>) _param_shear_heading,
+		(ParamFloat<px4::params::DS_W_HEIGHT>) _param_shear_height,
 		// thrust params
 		(ParamFloat<px4::params::DS_THRUST>) _param_thrust,
 		// RC feedthrough params

@@ -173,6 +173,8 @@ FixedwingPositionINDIControl::parameters_update()
 
 
     _loiter = _param_loiter.get();
+    _shear_heading = _param_shear_heading.get()/180.f * M_PI_F + M_PI_2_F;
+    _shear_h_ref = _param_shear_height.get();
     _select_trajectory(0.0f);
 
     _thrust = _param_thrust.get();
@@ -535,8 +537,8 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // =======================================================================
     bool error = false;
 
-    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-    //char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     //PX4_ERR(home_dir);
     strcat(home_dir,filename);
     FILE* fp = fopen(home_dir, "r");
