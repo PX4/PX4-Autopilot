@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +45,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/power_monitor.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/vehicle_air_data.h>
@@ -59,8 +59,6 @@
 #include "MspV1.hpp"
 
 using namespace time_literals;
-
-extern "C" __EXPORT int msp_osd_main(int argc, char *argv[]);
 
 class MspOsd : public ModuleBase<MspOsd>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -106,7 +104,7 @@ private:
 
 	struct battery_status_s _battery_status_struct = {0};
 	struct vehicle_status_s _vehicle_status_struct;
-	struct vehicle_gps_position_s _vehicle_gps_position_struct = {0};
+	struct sensor_gps_s _vehicle_gps_position_struct = {0};
 	struct airspeed_validated_s _airspeed_validated_struct = {0};
 	struct vehicle_air_data_s _vehicle_air_data_struct = {0};
 	struct home_position_s _home_position_struct = {0};

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,7 +49,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/power_monitor.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/vehicle_air_data.h>
@@ -514,7 +514,7 @@ $ msp_osd
 	return 0;
 }
 
-int msp_osd_main(int argc, char *argv[])
+extern "C" __EXPORT int msp_osd_main(int argc, char *argv[])
 {
 	return MspOsd::main(argc, argv);
 }
