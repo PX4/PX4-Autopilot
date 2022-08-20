@@ -157,7 +157,7 @@ TEST_F(EkfFusionLogicTest, rejectGpsSignalJump)
 	EXPECT_TRUE(matrix::isEqual(accel_bias_new, accel_bias_old, 0.01f));
 
 	// BUT THEN: GPS fusion should reset after a while
-	// (it takes some time beacuse vel fusion is still good)
+	// (it takes some time because vel fusion is still good)
 	_sensor_simulator.runSeconds(14);
 	pos_new = _ekf->getPosition();
 	vel_new = _ekf->getVelocity();

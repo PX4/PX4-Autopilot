@@ -205,12 +205,21 @@ void VehicleMagnetometer::UpdateMagBiasEstimate()
 					if (_param_sens_mag_autocal.get() && !_armed && mag_bias_est.stable[mag_index]
 					    && (_calibration[mag_index].device_id() != 0) && !_calibration[mag_index].calibrated()) {
 
+						const Vector3f old_offset = _calibration[mag_index].offset();
+
 						// set initial mag calibration
 						const Vector3f offset = _calibration[mag_index].BiasCorrectedSensorOffset(_calibration_estimator_bias[mag_index]);
 
 						if (_calibration[mag_index].set_offset(offset)) {
 							// save parameters with preferred calibration slot to current sensor index
 							_calibration[mag_index].ParametersSave(mag_index);
+
+							PX4_INFO("mag %d (%" PRIu32 ") setting offsets [%.3f, %.3f, %.3f]->[%.3f, %.3f, %.3f]",
+								 mag_index, _calibration[mag_index].device_id(),
+								 (double)old_offset(0), (double)old_offset(1), (double)old_offset(2),
+								 (double)_calibration[mag_index].offset()(0),
+								 (double)_calibration[mag_index].offset()(1),
+								 (double)_calibration[mag_index].offset()(2));
 
 							_calibration_estimator_bias[mag_index].zero();
 
@@ -428,13 +437,6 @@ void VehicleMagnetometer::Run()
 							}
 						}
 
-						// advertise outputs in order if publishing all
-						if (!_param_sens_mag_mode.get()) {
-							for (int instance = 0; instance < uorb_index; instance++) {
-								_vehicle_magnetometer_pub[instance].advertise();
-							}
-						}
-
 						if (_selected_sensor_sub_index < 0) {
 							_sensor_sub[uorb_index].registerCallback();
 						}
@@ -486,7 +488,7 @@ void VehicleMagnetometer::Run()
 	// Publish
 	if (_param_sens_mag_rate.get() > 0) {
 		int interval_us = 1e6f / _param_sens_mag_rate.get();
-		const bool multi_mode = (_param_sens_mag_mode.get() == 1);
+		const bool multi_mode = (_param_sens_mag_mode.get() == 0);
 
 		for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
 			if (updated[instance] && (_data_sum_count[instance] > 0)) {
@@ -515,6 +517,16 @@ void VehicleMagnetometer::Run()
 						out.timestamp = hrt_absolute_time();
 
 						if (multi_mode) {
+
+							if (!_vehicle_magnetometer_pub[instance].advertised()) {
+								// prefer to maintain vehicle_magneometer instance numbering in sensor order
+								for (int mag_instance = 0; mag_instance < instance; mag_instance++) {
+									if (_calibration[instance].enabled()) {
+										_vehicle_magnetometer_pub[mag_instance].advertise();
+									}
+								}
+							}
+
 							_vehicle_magnetometer_pub[instance].publish(out);
 
 						} else {

@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/sensor_optical_flow.h>
 
 // Data Format for ThoneFlow 3901U
 // ===============================
@@ -62,4 +62,4 @@ enum THONEFLOW_PARSE_STATE {
 };
 
 bool thoneflow_parse(char c, char *parserbuf, unsigned *parserbuf_index, enum THONEFLOW_PARSE_STATE *state,
-		     optical_flow_s *report);
+		     sensor_optical_flow_s *report);

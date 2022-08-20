@@ -21,7 +21,6 @@ set +e
 # it wastes flash
 #
 set R /
-set AUTOCNF no
 set FCONFIG /fs/microsd/etc/config.txt
 set FEXTRAS /fs/microsd/etc/extras.txt
 set FRC /fs/microsd/etc/rc.txt
@@ -29,7 +28,7 @@ set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
 set LOGGER_ARGS ""
 set LOGGER_BUF 8
-set MIXER none
+set MIXER skip
 set MIXER_AUX none
 set MIXER_FILE none
 set MIXER_EXTRA none
@@ -177,13 +176,12 @@ else
 	fi
 
 	#
-	# Set AUTOCNF flag to use it in AUTOSTART scripts.
+	# If the airframe has been previously reset SYS_AUTCONFIG will have been set to 1 and other params will be reset on the next boot.
 	#
 	if param greater SYS_AUTOCONFIG 0
 	then
-		# Wipe out params except RC*, flight modes, total flight time, calibration parameters, next flight UUID
-		param reset_all SYS_AUTO* RC* COM_FLTMODE* LND_FLIGHT* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT*
-		set AUTOCNF yes
+		# Reset params except Airframe, RC calibration, sensor calibration, flight modes, total flight time, and next flight UUID.
+		param reset_all SYS_AUTOSTART RC* CAL_* COM_FLTMODE* LND_FLIGHT* TC_* COM_FLIGHT*
 	fi
 
 	#
@@ -207,6 +205,26 @@ else
 		. $BOARD_RC_DEFAULTS
 	fi
 	unset BOARD_RC_DEFAULTS
+
+	#
+	# Set parameters and env variables for selected SYS_AUTOSTART.
+	#
+	set AUTOSTART_PATH etc/init.d/rc.autostart
+	if ! param compare SYS_AUTOSTART 0
+	then
+		if param greater SYS_AUTOSTART 1000000
+		then
+			# Use external startup file
+			if [ $SDCARD_AVAILABLE = yes ]
+			then
+				set AUTOSTART_PATH etc/init.d/rc.autostart_ext
+			else
+				echo "ERROR [init] SD card not mounted - trying to load airframe from ROMFS"
+			fi
+		fi
+		. ${R}$AUTOSTART_PATH
+	fi
+	unset AUTOSTART_PATH
 
 	#
 	# Start the tone_alarm driver.
@@ -246,40 +264,12 @@ else
 	rgbled_ncp5623c start -X -q
 
 	#
-	# Set parameters and env variables for selected AUTOSTART.
-	#
-	set AUTOSTART_PATH etc/init.d/rc.autostart
-	if ! param compare SYS_AUTOSTART 0
-	then
-		if param greater SYS_AUTOSTART 1000000
-		then
-			# Use external startup file
-			if [ $SDCARD_AVAILABLE = yes ]
-			then
-				set AUTOSTART_PATH etc/init.d/rc.autostart_ext
-			else
-				echo "ERROR [init] SD card not mounted - trying to load airframe from ROMFS"
-			fi
-		fi
-		. ${R}$AUTOSTART_PATH
-	fi
-	unset AUTOSTART_PATH
-
-	#
 	# Override parameters from user configuration file.
 	#
 	if [ -f $FCONFIG ]
 	then
 		echo "Custom: ${FCONFIG}"
 		. $FCONFIG
-	fi
-
-	#
-	# If autoconfig parameter was set, reset it and save parameters.
-	#
-	if [ $AUTOCNF = yes ]
-	then
-		param set SYS_AUTOCONFIG 0
 	fi
 
 	#
@@ -298,9 +288,9 @@ else
 			tune_control play error
 		fi
 	else
-		if param greater -s UAVCAN_V1_ENABLE 0
+		if param greater -s CYPHAL_ENABLE 0
 		then
-			uavcan_v1 start
+			cyphal start
 		fi
 	fi
 
@@ -313,7 +303,7 @@ else
 	then
 		# Check for the mini using build with px4io fw file
 		# but not a px4IO
-		if ver hwtypecmp V540 V560
+		if ver hwtypecmp V5004000 V5006000
 		then
 			param set SYS_USE_IO 0
 		else
@@ -405,6 +395,7 @@ else
 			battery_status start
 		fi
 
+		sensors start
 		commander start
 	fi
 
@@ -508,6 +499,12 @@ else
 		gyro_calibration start
 	fi
 
+	# Check for px4flow sensor
+	if param compare -s SENS_EN_PX4FLOW 1
+	then
+		px4flow start -X &
+	fi
+
 	#
 	# Optional board supplied extras: rc.board_extras
 	#
@@ -558,7 +555,6 @@ fi
 # Unset all script parameters to free RAM.
 #
 unset R
-unset AUTOCNF
 unset FCONFIG
 unset FEXTRAS
 unset FRC

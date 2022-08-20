@@ -61,7 +61,7 @@ void FakeMagnetometer::Run()
 	}
 
 	if (_vehicle_gps_position_sub.updated()) {
-		vehicle_gps_position_s gps;
+		sensor_gps_s gps;
 
 		if (_vehicle_gps_position_sub.copy(&gps)) {
 			if (gps.eph < 1000) {

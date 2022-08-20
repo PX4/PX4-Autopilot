@@ -129,7 +129,14 @@ void VehicleGPSPosition::Run()
 		_gps_blending.update(hrt_absolute_time());
 
 		if (_gps_blending.isNewOutputDataAvailable()) {
-			Publish(_gps_blending.getOutputGpsData(), _gps_blending.getSelectedGps());
+			sensor_gps_s gps_output{_gps_blending.getOutputGpsData()};
+
+			// clear device_id if blending
+			if (_gps_blending.getSelectedGps() == GpsBlending::GPS_MAX_RECEIVERS_BLEND) {
+				gps_output.device_id = 0;
+			}
+
+			_vehicle_gps_position_pub.publish(gps_output);
 		}
 	}
 
@@ -138,45 +145,9 @@ void VehicleGPSPosition::Run()
 	perf_end(_cycle_perf);
 }
 
-void VehicleGPSPosition::Publish(const sensor_gps_s &gps, uint8_t selected)
-{
-	vehicle_gps_position_s gps_output{};
-
-	gps_output.timestamp = gps.timestamp;
-	gps_output.time_utc_usec = gps.time_utc_usec;
-	gps_output.lat = gps.lat;
-	gps_output.lon = gps.lon;
-	gps_output.alt = gps.alt;
-	gps_output.alt_ellipsoid = gps.alt_ellipsoid;
-	gps_output.s_variance_m_s = gps.s_variance_m_s;
-	gps_output.c_variance_rad = gps.c_variance_rad;
-	gps_output.eph = gps.eph;
-	gps_output.epv = gps.epv;
-	gps_output.hdop = gps.hdop;
-	gps_output.vdop = gps.vdop;
-	gps_output.noise_per_ms = gps.noise_per_ms;
-	gps_output.jamming_indicator = gps.jamming_indicator;
-	gps_output.jamming_state = gps.jamming_state;
-	gps_output.vel_m_s = gps.vel_m_s;
-	gps_output.vel_n_m_s = gps.vel_n_m_s;
-	gps_output.vel_e_m_s = gps.vel_e_m_s;
-	gps_output.vel_d_m_s = gps.vel_d_m_s;
-	gps_output.cog_rad = gps.cog_rad;
-	gps_output.timestamp_time_relative = gps.timestamp_time_relative;
-	gps_output.heading = gps.heading;
-	gps_output.heading_offset = gps.heading_offset;
-	gps_output.fix_type = gps.fix_type;
-	gps_output.vel_ned_valid = gps.vel_ned_valid;
-	gps_output.satellites_used = gps.satellites_used;
-
-	gps_output.selected = selected;
-
-	_vehicle_gps_position_pub.publish(gps_output);
-}
-
 void VehicleGPSPosition::PrintStatus()
 {
-	//PX4_INFO_RAW("[vehicle_gps_position] selected GPS: %d\n", _gps_select_index);
+	PX4_INFO_RAW("[vehicle_gps_position] selected GPS: %d\n", _gps_blending.getSelectedGps());
 }
 
 }; // namespace sensors

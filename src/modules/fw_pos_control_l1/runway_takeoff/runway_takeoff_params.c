@@ -48,33 +48,19 @@
 PARAM_DEFINE_INT32(RWTO_TKOFF, 0);
 
 /**
- * Specifies which heading should be held during runnway takeoff.
+ * Specifies which heading should be held during the runway takeoff ground roll.
  *
- * 0: airframe heading, 1: heading towards takeoff waypoint
+ * 0: airframe heading when takeoff is initiated
+ * 1: position control along runway direction (bearing defined from vehicle position on takeoff initiation to MAV_CMD_TAKEOFF
+ *    position defined by operator)
  *
  * @value 0 Airframe
- * @value 1 Waypoint
+ * @value 1 Runway
  * @min 0
  * @max 1
  * @group Runway Takeoff
  */
 PARAM_DEFINE_INT32(RWTO_HDG, 0);
-
-/**
- * Altitude AGL at which we have enough ground clearance to allow some roll.
- *
- * Until RWTO_NAV_ALT is reached the plane is held level and only
- * rudder is used to keep the heading (see RWTO_HDG). This should be below
- * FW_CLMBOUT_DIFF if FW_CLMBOUT_DIFF > 0.
- *
- * @unit m
- * @min 0.0
- * @max 100.0
- * @decimal 1
- * @increment 1
- * @group Runway Takeoff
- */
-PARAM_DEFINE_FLOAT(RWTO_NAV_ALT, 5.0);
 
 /**
  * Max throttle during runway takeoff.
@@ -122,21 +108,6 @@ PARAM_DEFINE_FLOAT(RWTO_PSP, 0.0);
 PARAM_DEFINE_FLOAT(RWTO_MAX_PITCH, 20.0);
 
 /**
- * Max roll during climbout.
- *
- * Roll is limited during climbout to ensure enough lift and prevents aggressive
- * navigation before we're on a safe height.
- *
- * @unit deg
- * @min 0.0
- * @max 60.0
- * @decimal 1
- * @increment 0.5
- * @group Runway Takeoff
- */
-PARAM_DEFINE_FLOAT(RWTO_MAX_ROLL, 25.0);
-
-/**
  * Min airspeed scaling factor for takeoff.
  *
  * Pitch up will be commanded when the following airspeed is reached:
@@ -162,3 +133,26 @@ PARAM_DEFINE_FLOAT(RWTO_AIRSPD_SCL, 1.3);
  * @group Runway Takeoff
  */
 PARAM_DEFINE_FLOAT(RWTO_RAMP_TIME, 2.0f);
+
+/**
+ * L1 period while steering on runway
+ *
+ * @unit s
+ * @min 1.0
+ * @max 100.0
+ * @decimal 1
+ * @increment 0.1
+ * @group Runway Takeoff
+ */
+PARAM_DEFINE_FLOAT(RWTO_L1_PERIOD, 5.0f);
+
+/**
+ * Enable use of yaw stick for nudging the wheel during runway ground roll
+ *
+ * This is useful when map, GNSS, or yaw errors on ground are misaligned with what the operator intends for takeoff course.
+ * Particularly useful for skinny runways or if the wheel servo is a bit off trim.
+ *
+ * @boolean
+ * @group Runway Takeoff
+ */
+PARAM_DEFINE_INT32(RWTO_NUDGE, 1);

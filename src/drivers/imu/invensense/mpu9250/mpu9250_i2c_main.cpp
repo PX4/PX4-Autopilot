@@ -42,7 +42,7 @@ void MPU9250_I2C::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x39);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x68);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -53,7 +53,7 @@ extern "C" int mpu9250_i2c_main(int argc, char *argv[])
 	using ThisDriver = MPU9250_I2C;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = I2C_SPEED;
-	cli.i2c_address = I2C_ADDRESS_DEFAULT;
+	cli.i2c_address = 0;
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
@@ -73,7 +73,21 @@ extern "C" int mpu9250_i2c_main(int argc, char *argv[])
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_IMU_DEVTYPE_MPU9250);
 
 	if (!strcmp(verb, "start")) {
-		return ThisDriver::module_start(cli, iterator);
+		if (cli.i2c_address != 0) {
+			return ThisDriver::module_start(cli, iterator);
+
+		} else {
+			// otherwise try all I2C addresses
+			for (auto &i2c_address : I2C_ADDRESSES) {
+				cli.i2c_address = i2c_address;
+
+				if (ThisDriver::module_start(cli, iterator) == PX4_OK) {
+					return PX4_OK;
+				}
+			}
+
+			return PX4_ERROR;
+		}
 	}
 
 	if (!strcmp(verb, "stop")) {

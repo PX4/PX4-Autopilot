@@ -134,13 +134,11 @@ mixer_tick()
 	 * FMU or from the mixer.
 	 *
 	 */
-	should_arm = (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)				/* IO initialised without error */
-		     && (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)			/* and IO is armed */
+	should_arm = (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)		/* IO initialised without error */
 		     && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)		/* and FMU is armed */
 		     ;
 
-	should_arm_nothrottle = ((r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)              /* IO initialised without error */
-				 && (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)        /* and IO is armed */
+	should_arm_nothrottle = ((r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)  /* IO initialised without error */
 				 && ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_PREARMED)     /* and FMU is prearmed */
 				     || (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)       /* or direct PWM is set */
 				    ));

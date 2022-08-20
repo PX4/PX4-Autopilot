@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DIFFERENTIAL_PRESSURE_MS4515
+	bool "ms4515"
+	default n
+	---help---
+		Enable support for ms4515

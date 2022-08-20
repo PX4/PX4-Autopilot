@@ -44,11 +44,12 @@
 
 #include <dataman/dataman.h>
 #include <uORB/topics/mission.h>
+#include <px4_platform_common/module_params.h>
 
 class Geofence;
 class Navigator;
 
-class MissionFeasibilityChecker
+class MissionFeasibilityChecker: public ModuleParams
 {
 private:
 	Navigator *_navigator{nullptr};
@@ -77,7 +78,7 @@ private:
 	bool checkVTOLLanding(const mission_s &mission, bool land_start_req);
 
 public:
-	MissionFeasibilityChecker(Navigator *navigator) : _navigator(navigator) {}
+	MissionFeasibilityChecker(Navigator *navigator) : ModuleParams(nullptr), _navigator(navigator) {}
 	~MissionFeasibilityChecker() = default;
 
 	MissionFeasibilityChecker(const MissionFeasibilityChecker &) = delete;
@@ -89,5 +90,4 @@ public:
 	bool checkMissionFeasible(const mission_s &mission,
 				  float max_distance_to_1st_waypoint, float max_distance_between_waypoints,
 				  bool land_start_req);
-
 };

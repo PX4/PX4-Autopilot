@@ -1,3 +1,36 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
 #include "EKFGSF_yaw.h"
 #include <cstdlib>
 
@@ -23,7 +56,6 @@ void EKFGSF_yaw::update(const imuSample &imu_sample,
 	_delta_vel = imu_sample.delta_vel;
 	_delta_ang_dt = imu_sample.delta_ang_dt;
 	_delta_vel_dt = imu_sample.delta_vel_dt;
-	_run_ekf_gsf = run_EKF;
 	_true_airspeed = airspeed;
 
 	// to reduce effect of vibration, filter using an LPF whose time constant is 1/10 of the AHRS tilt correction time constant
@@ -60,7 +92,7 @@ void EKFGSF_yaw::update(const imuSample &imu_sample,
 	}
 
 	// The 3-state EKF models only run when flying to avoid corrupted estimates due to operator handling and GPS interference
-	if (_run_ekf_gsf && _vel_data_updated) {
+	if (run_EKF && _vel_data_updated) {
 		if (!_ekf_gsf_vel_fuse_started) {
 			initialiseEKFGSF();
 			ahrsAlignYaw();
@@ -111,7 +143,7 @@ void EKFGSF_yaw::update(const imuSample &imu_sample,
 			}
 		}
 
-	} else if (_ekf_gsf_vel_fuse_started && !_run_ekf_gsf) {
+	} else if (_ekf_gsf_vel_fuse_started && !run_EKF) {
 		// wait to fly again
 		_ekf_gsf_vel_fuse_started = false;
 	}
@@ -261,13 +293,13 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index)
 	// predict covariance - equations generated using EKF/python/gsf_ekf_yaw_estimator/main.py
 
 	// Local short variable name copies required for readability
-	const float &P00 = _ekf_gsf[model_index].P(0,0);
-	const float &P01 = _ekf_gsf[model_index].P(0,1);
-	const float &P02 = _ekf_gsf[model_index].P(0,2);
-	const float &P11 = _ekf_gsf[model_index].P(1,1);
-	const float &P12 = _ekf_gsf[model_index].P(1,2);
-	const float &P22 = _ekf_gsf[model_index].P(2,2);
-	const float &psi = _ekf_gsf[model_index].X(2);
+	const float P00 = _ekf_gsf[model_index].P(0,0);
+	const float P01 = _ekf_gsf[model_index].P(0,1);
+	const float P02 = _ekf_gsf[model_index].P(0,2);
+	const float P11 = _ekf_gsf[model_index].P(1,1);
+	const float P12 = _ekf_gsf[model_index].P(1,2);
+	const float P22 = _ekf_gsf[model_index].P(2,2);
+	const float psi = _ekf_gsf[model_index].X(2);
 
 	// Use fixed values for delta velocity and delta angle process noise variances
 	const float dvxVar = sq(_accel_noise * _delta_vel_dt); // variance of forward delta velocity - (m/s)^2
@@ -317,12 +349,12 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index)
 	_ekf_gsf[model_index].innov(1) = _ekf_gsf[model_index].X(1) - _vel_NE(1);
 
 	// Use temporary variables for covariance elements to reduce verbosity of auto-code expressions
-	const float &P00 = _ekf_gsf[model_index].P(0,0);
-	const float &P01 = _ekf_gsf[model_index].P(0,1);
-	const float &P02 = _ekf_gsf[model_index].P(0,2);
-	const float &P11 = _ekf_gsf[model_index].P(1,1);
-	const float &P12 = _ekf_gsf[model_index].P(1,2);
-	const float &P22 = _ekf_gsf[model_index].P(2,2);
+	const float P00 = _ekf_gsf[model_index].P(0,0);
+	const float P01 = _ekf_gsf[model_index].P(0,1);
+	const float P02 = _ekf_gsf[model_index].P(0,2);
+	const float P11 = _ekf_gsf[model_index].P(1,1);
+	const float P12 = _ekf_gsf[model_index].P(1,2);
+	const float P22 = _ekf_gsf[model_index].P(2,2);
 
 	// optimized auto generated code from SymPy script src/lib/ecl/EKF/python/ekf_derivation/main.py
 	const float t0 = ecl::powf(P01, 2);

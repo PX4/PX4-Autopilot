@@ -63,7 +63,7 @@
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/mag_worker_data.h>
 
 using namespace matrix;
@@ -230,10 +230,10 @@ static calibrate_return check_calibration_result(float offset_x, float offset_y,
 static float get_sphere_radius()
 {
 	// if GPS is available use real field intensity from world magnetic model
-	uORB::SubscriptionMultiArray<vehicle_gps_position_s, 3> gps_subs{ORB_ID::vehicle_gps_position};
+	uORB::SubscriptionMultiArray<sensor_gps_s, 3> gps_subs{ORB_ID::vehicle_gps_position};
 
 	for (auto &gps_sub : gps_subs) {
-		vehicle_gps_position_s gps;
+		sensor_gps_s gps;
 
 		if (gps_sub.copy(&gps)) {
 			if (hrt_elapsed_time(&gps.timestamp) < 100_s && (gps.fix_type >= 2) && (gps.eph < 1000)) {
@@ -604,8 +604,20 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 									       worker_data.calibration_counter_total[cur_mag], sphere_data, true);
 
 						if (ellipsoid_ret == PX4_OK) {
-							ellipsoid_fit_success  = true;
+							ellipsoid_fit_success = true;
 						}
+					}
+				}
+
+				if (!sphere_fit_success && !ellipsoid_fit_success) {
+					if (worker_data.calibration[cur_mag].enabled()) {
+						calibration_log_emergency(mavlink_log_pub, "Retry calibration (unable to fit mag %" PRIu8 ")", cur_mag);
+						result = calibrate_return_error;
+						break;
+
+					} else {
+						calibration_log_info(mavlink_log_pub, "Retry calibration (unable to fit mag %" PRIu8 ")", cur_mag);
+						continue;
 					}
 				}
 
@@ -617,12 +629,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					offdiag[cur_mag](i) = sphere_data.offdiag(i);
 				}
 
-				if (!sphere_fit_success && !ellipsoid_fit_success) {
-					calibration_log_emergency(mavlink_log_pub, "Retry calibration (unable to fit mag %" PRIu8 ")", cur_mag);
-					result = calibrate_return_error;
-					break;
-				}
-
 				result = check_calibration_result(sphere[cur_mag](0), sphere[cur_mag](1), sphere[cur_mag](2),
 								  sphere_radius[cur_mag],
 								  diag[cur_mag](0), diag[cur_mag](1), diag[cur_mag](2),
@@ -630,7 +636,16 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 								  mavlink_log_pub, cur_mag);
 
 				if (result == calibrate_return_error) {
-					break;
+					// tolerate mag cal failures if this sensor is disabled
+					if (worker_data.calibration[cur_mag].enabled()) {
+						break;
+
+					} else {
+						// reset
+						sphere[cur_mag].zero();
+						diag[cur_mag] = Vector3f{1.f, 1.f, 1.f};
+						offdiag[cur_mag].zero();
+					}
 				}
 			}
 		}
@@ -941,7 +956,7 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 
 	} else {
 		uORB::Subscription vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
-		vehicle_gps_position_s gps;
+		sensor_gps_s gps;
 
 		if (vehicle_gps_position_sub.copy(&gps)) {
 			if ((gps.timestamp != 0) && (gps.eph < 1000)) {

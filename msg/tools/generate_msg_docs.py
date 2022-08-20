@@ -38,7 +38,7 @@ if __name__ == "__main__":
         print("{:} -> {:}".format(msg_filename, output_file))
 
         #Format msg url
-        msg_url="[source file](https://github.com/PX4/PX4-Autopilot/blob/master/msg/%s)" % msg_file
+        msg_url="[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/%s)" % msg_file
 
         msg_description = ""
         summary_description = ""
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     readme_text="""# uORB Message Reference
 
 :::note
-This list is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/master/msg/tools/generate_msg_docs.py) from the source code.
+This list is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/msg/tools/generate_msg_docs.py) from the source code.
 :::
 
 This topic lists the UORB messages available in PX4 (some of which may be may be shared by the [PX4-ROS 2 Bridge](../ros/ros2_comm.md)).

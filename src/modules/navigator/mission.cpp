@@ -307,8 +307,10 @@ Mission::on_active()
 bool
 Mission::set_current_mission_index(uint16_t index)
 {
-	if (_navigator->get_mission_result()->valid &&
-	    (index != _current_mission_index) && (index < _mission.count)) {
+	if (index == _current_mission_index) {
+		return true; // nothing to do, so return true
+
+	} else if (_navigator->get_mission_result()->valid && (index < _mission.count)) {
 
 		_current_mission_index = index;
 
@@ -818,15 +820,10 @@ Mission::set_mission_items()
 				} else if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
 					   && _work_item_type == WORK_ITEM_TYPE_DEFAULT
 					   && new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
+					// if the vehicle is already in fixed wing mode then the current mission item
+					// will be accepted immediately and the work items will be skipped
+					_work_item_type = WORK_ITEM_TYPE_TAKEOFF;
 
-					if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-						/* haven't transitioned yet, trigger vtol takeoff logic below */
-						_work_item_type = WORK_ITEM_TYPE_TAKEOFF;
-
-					} else {
-						/* already in fixed-wing, go to waypoint */
-						_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-					}
 
 					/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
 					_mission_item.yaw = NAN;

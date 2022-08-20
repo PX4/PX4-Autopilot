@@ -60,9 +60,9 @@ PARAM_DEFINE_INT32(PCF8583_POOL, 1000000);
 /**
  * PCF8583 rotorfreq (i2c) pulse reset value
  *
- * Internal device counter is reset to 0 when overun this value,
- * counter is able to store upto 6 digits
- * reset of counter takes some time - measurement with reset has worse accurancy.
+ * Internal device counter is reset to 0 when overrun this value,
+ * counter is able to store up to 6 digits
+ * reset of counter takes some time - measurement with reset has worse accuracy.
  * 0 means reset counter after every measurement.
  *
  * @reboot_required true

@@ -330,7 +330,7 @@ def get_mixers(yaml_config, output_functions, verbose):
         option = select_param + '==' + str(type_index)
         mixer_config = {
                 'option': option,
-                'help-url': 'https://docs.px4.io/master/en/config/actuators.html',
+                'help-url': 'https://docs.px4.io/main/en/config/actuators.html',
             }
         for optional in ['type', 'title']:
             if optional in current_type:

@@ -13,11 +13,11 @@ exec find boards msg src platforms test \
     -path platforms/qurt/dspal -prune -o \
     -path src/drivers/uavcan/libuavcan -prune -o \
     -path src/drivers/uavcan/uavcan_drivers/kinetis/driver/include/uavcan_kinetis -prune -o \
-    -path src/drivers/uavcan_v1/libcanard -prune -o \
-    -path src/drivers/uavcannode_gps_demo/libcanard -prune -o \
+    -path src/drivers/cyphal/libcanard -prune -o \
     -path src/lib/crypto/monocypher -prune -o \
     -path src/lib/events/libevents -prune -o \
     -path src/lib/parameters/uthash -prune -o \
+    -path src/lib/wind_estimator/python/generated -prune -o \
     -path src/modules/ekf2/EKF -prune -o \
     -path src/modules/gyro_fft/CMSIS_5 -prune -o \
     -path src/modules/mavlink/mavlink -prune -o \

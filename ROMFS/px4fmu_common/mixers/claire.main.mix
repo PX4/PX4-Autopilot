@@ -1,8 +1,0 @@
-# CruiseAder Claire Main Multirotor mixer for PX4FMU
-# @board px4_fmu-v2 exclude
-
-#
-
-#===========================
-
-R: 4x

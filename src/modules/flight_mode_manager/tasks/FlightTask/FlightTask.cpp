@@ -4,12 +4,12 @@
 
 constexpr uint64_t FlightTask::_timeout;
 // First index of empty_setpoint corresponds to time-stamp and requires a finite number.
-const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {}};
+const trajectory_setpoint_s FlightTask::empty_setpoint = {0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN};
 
 const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, false, {}};
 const landing_gear_s FlightTask::empty_landing_gear_default_keep = {0, landing_gear_s::GEAR_KEEP, {}};
 
-bool FlightTask::activate(const vehicle_local_position_setpoint_s &last_setpoint)
+bool FlightTask::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	_resetSetpoints();
 	_setDefaultConstraints();
@@ -21,8 +21,8 @@ bool FlightTask::activate(const vehicle_local_position_setpoint_s &last_setpoint
 void FlightTask::reActivate()
 {
 	// Preserve vertical velocity while on the ground to allow descending by stick for reliable land detection
-	vehicle_local_position_setpoint_s setpoint_preserve_vertical{empty_setpoint};
-	setpoint_preserve_vertical.vz = _velocity_setpoint(2);
+	trajectory_setpoint_s setpoint_preserve_vertical{empty_setpoint};
+	setpoint_preserve_vertical.velocity[2] = _velocity_setpoint(2);
 	activate(setpoint_preserve_vertical);
 }
 
@@ -76,30 +76,20 @@ void FlightTask::_checkEkfResetCounters()
 	}
 }
 
-const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
+const trajectory_setpoint_s FlightTask::getTrajectorySetpoint()
 {
-	/* fill position setpoint message */
-	vehicle_local_position_setpoint_s vehicle_local_position_setpoint{};
-	vehicle_local_position_setpoint.timestamp = hrt_absolute_time();
+	trajectory_setpoint_s trajectory_setpoint{};
+	trajectory_setpoint.timestamp = hrt_absolute_time();
 
-	vehicle_local_position_setpoint.x = _position_setpoint(0);
-	vehicle_local_position_setpoint.y = _position_setpoint(1);
-	vehicle_local_position_setpoint.z = _position_setpoint(2);
+	_position_setpoint.copyTo(trajectory_setpoint.position);
+	_velocity_setpoint.copyTo(trajectory_setpoint.velocity);
+	_acceleration_setpoint.copyTo(trajectory_setpoint.acceleration);
+	_jerk_setpoint.copyTo(trajectory_setpoint.jerk);
 
-	vehicle_local_position_setpoint.vx = _velocity_setpoint(0);
-	vehicle_local_position_setpoint.vy = _velocity_setpoint(1);
-	vehicle_local_position_setpoint.vz = _velocity_setpoint(2);
+	trajectory_setpoint.yaw = _yaw_setpoint;
+	trajectory_setpoint.yawspeed = _yawspeed_setpoint;
 
-	vehicle_local_position_setpoint.yaw = _yaw_setpoint;
-	vehicle_local_position_setpoint.yawspeed = _yawspeed_setpoint;
-
-	_acceleration_setpoint.copyTo(vehicle_local_position_setpoint.acceleration);
-	_jerk_setpoint.copyTo(vehicle_local_position_setpoint.jerk);
-
-	// deprecated, only kept for output logging
-	matrix::Vector3f(NAN, NAN, NAN).copyTo(vehicle_local_position_setpoint.thrust);
-
-	return vehicle_local_position_setpoint;
+	return trajectory_setpoint;
 }
 
 void FlightTask::_resetSetpoints()

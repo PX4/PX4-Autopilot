@@ -46,6 +46,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <version/version.h>
+#include <version/version.h>
 
 /* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
@@ -141,11 +142,11 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 				int  r = px4_board_hw_revision();
 
 				if (v >= 0) {
-					snprintf(vb, sizeof(vb), "0x%08X", v);
+					snprintf(vb, sizeof(vb), "0x%0" STRINGIFY(HW_INFO_VER_DIGITS) "X", v);
 				}
 
 				if (r >= 0) {
-					snprintf(rb, sizeof(rb), "0x%08X", r);
+					snprintf(rb, sizeof(rb), "0x%0" STRINGIFY(HW_INFO_REV_DIGITS) "X", r);
 				}
 
 				printf("HW type: %s\n", strlen(px4_board_sub_type()) ? px4_board_sub_type() : "NA");
@@ -251,7 +252,7 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 						printf("\nWARNING   WARNING   WARNING!\n"
 						       "Revision %c has a silicon errata:\n"
 						       "%s"
-						       "\nhttps://docs.px4.io/master/en/flight_controller/silicon_errata.html\n\n", rev, errata);
+						       "\nhttps://docs.px4.io/main/en/flight_controller/silicon_errata.html\n\n", rev, errata);
 					}
 				}
 

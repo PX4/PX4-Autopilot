@@ -13,9 +13,7 @@ float32[4] q_d			# Desired quaternion for quaternion control
 # For fixed wings thrust_x is the throttle demand and thrust_y, thrust_z will usually be zero.
 float32[3] thrust_body		# Normalized thrust command in body NED frame [-1,1]
 
-bool roll_reset_integral	# Reset roll integral part (navigation logic change)
-bool pitch_reset_integral	# Reset pitch integral part (navigation logic change)
-bool yaw_reset_integral	# Reset yaw integral part (navigation logic change)
+bool reset_rate_integrals	# Reset roll/pitch/yaw integrals (navigation logic change)
 
 bool fw_control_yaw		# control heading with rudder (used for auto takeoff on runway)
 
@@ -23,5 +21,10 @@ uint8 apply_flaps       	# flap config specifier
 uint8 FLAPS_OFF = 0     	# no flaps
 uint8 FLAPS_LAND = 1    	# landing config flaps
 uint8 FLAPS_TAKEOFF = 2 	# take-off config flaps
+
+uint8 apply_spoilers		# spoiler config specifier
+uint8 SPOILERS_OFF = 0     	# no spoilers
+uint8 SPOILERS_LAND = 1    	# landing config spoiler
+uint8 SPOILERS_DESCEND = 2 	# descend config spoiler
 
 # TOPICS vehicle_attitude_setpoint mc_virtual_attitude_setpoint fw_virtual_attitude_setpoint

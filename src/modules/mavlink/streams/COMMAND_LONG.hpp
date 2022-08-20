@@ -84,13 +84,13 @@ private:
 								    && (cmd.source_component == cmd.target_component);
 
 				if (!cmd.from_external && !px4_internal_cmd && !target_system_internal) {
-					PX4_DEBUG("sending command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+					PX4_DEBUG("sending command %ld to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
 
 					MavlinkCommandSender::instance().handle_vehicle_command(cmd, _mavlink->get_channel());
 					sent = true;
 
 				} else {
-					PX4_DEBUG("not forwarding command %d to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+					PX4_DEBUG("not forwarding command %ld to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
 				}
 			}
 		}

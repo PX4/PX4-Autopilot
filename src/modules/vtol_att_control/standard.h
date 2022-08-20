@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,8 +46,6 @@
 #ifndef STANDARD_H
 #define STANDARD_H
 #include "vtol_type.h"
-#include <parameters/param.h>
-#include <drivers/drv_hrt.h>
 
 class Standard : public VtolType
 {
@@ -67,22 +65,6 @@ public:
 
 private:
 
-	struct {
-		float pusher_ramp_dt;
-		float back_trans_ramp;
-		float pitch_setpoint_offset;
-		float reverse_output;
-		float reverse_delay;
-	} _params_standard;
-
-	struct {
-		param_t pusher_ramp_dt;
-		param_t back_trans_ramp;
-		param_t pitch_setpoint_offset;
-		param_t reverse_output;
-		param_t reverse_delay;
-	} _params_handles_standard;
-
 	enum class vtol_mode {
 		MC_MODE = 0,
 		TRANSITION_TO_FW,
@@ -100,5 +82,13 @@ private:
 	float _airspeed_trans_blend_margin{0.0f};
 
 	void parameters_update() override;
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
+					(ParamFloat<px4::params::VT_PSHER_RMP_DT>) _param_vt_psher_rmp_dt,
+					(ParamFloat<px4::params::VT_B_TRANS_RAMP>) _param_vt_b_trans_ramp,
+					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
+					(ParamFloat<px4::params::VT_B_REV_OUT>) _param_vt_b_rev_out,
+					(ParamFloat<px4::params::VT_B_REV_DEL>) _param_vt_b_rev_del
+				       )
 };
 #endif

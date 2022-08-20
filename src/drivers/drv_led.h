@@ -44,7 +44,7 @@
 
 #include <board_config.h>
 
-// allow the board to override the number (or maxiumum number) of LED's it has
+// allow the board to override the number (or maximum number) of LED's it has
 #ifndef BOARD_MAX_LEDS
 #define BOARD_MAX_LEDS 4
 #endif

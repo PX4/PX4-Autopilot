@@ -61,6 +61,14 @@ bool GHSTTelemetry::update(const hrt_abstime &now)
 			success = send_battery_status();
 			break;
 
+		case 1U:
+			success = send_gps1_status();
+			break;
+
+		case 2U:
+			success = send_gps2_status();
+			break;
+
 		default:
 			success = false;
 			break;
@@ -93,3 +101,39 @@ bool GHSTTelemetry::send_battery_status()
 
 	return success;
 }
+
+bool GHSTTelemetry::send_gps1_status()
+{
+	sensor_gps_s vehicle_gps_position;
+
+	if (!_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
+		return false;
+	}
+
+	int32_t latitude = vehicle_gps_position.lat;				// 1e-7 degrees
+	int32_t longitude = vehicle_gps_position.lon;				// 1e-7 degrees
+	uint16_t altitude = vehicle_gps_position.alt / 1000;			// mm -> m
+
+	return ghst_send_telemetry_gps1_status(_uart_fd, latitude, longitude, altitude);
+}
+
+bool GHSTTelemetry::send_gps2_status()
+{
+	sensor_gps_s vehicle_gps_position;
+
+	if (!_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
+		return false;
+	}
+
+	uint16_t ground_speed = (uint16_t)(vehicle_gps_position.vel_d_m_s / 3.6f * 10.f);
+	uint16_t ground_course = (uint16_t)(math::degrees(vehicle_gps_position.cog_rad) * 100.f);
+	uint8_t num_sats = vehicle_gps_position.satellites_used;
+
+	// TBD: Can these be computed in a RC telemetry driver?
+	uint16_t home_dist = 0;
+	uint16_t home_dir = 0;
+	uint8_t flags = 0;
+
+	return ghst_send_telemetry_gps2_status(_uart_fd, ground_speed, ground_course, num_sats, home_dist, home_dir, flags);
+}
+

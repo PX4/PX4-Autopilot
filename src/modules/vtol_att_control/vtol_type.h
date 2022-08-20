@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,45 +43,16 @@
 #ifndef VTOL_TYPE_H
 #define VTOL_TYPE_H
 
-#include <lib/mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/slew_rate/SlewRate.hpp>
+#include <px4_platform_common/module_params.h>
 
-struct Params {
-	int32_t ctrl_alloc;
-	int32_t idle_pwm_mc;			// pwm value for idle in mc mode
-	int32_t vtol_motor_id;
-	int32_t vtol_type;
-	bool elevons_mc_lock;		// lock elevons in multicopter mode
-	float fw_min_alt;			// minimum relative altitude for FW mode (QuadChute)
-	float fw_alt_err;			// maximum negative altitude error for FW mode (Adaptive QuadChute)
-	float fw_qc_max_pitch;		// maximum pitch angle FW mode (QuadChute)
-	float fw_qc_max_roll;		// maximum roll angle FW mode (QuadChute)
-	float front_trans_time_openloop;
-	float front_trans_time_min;
-	float front_trans_duration;
-	float back_trans_duration;
-	float transition_airspeed;
-	float front_trans_throttle;
-	float back_trans_throttle;
-	float airspeed_blend;
-	bool airspeed_disabled;
-	float front_trans_timeout;
-	float mpc_xy_cruise;
-	int32_t fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
-	int32_t diff_thrust;
-	float diff_thrust_scale;
-	float pitch_min_rad;
-	float land_pitch_min_rad;
-	float forward_thrust_scale;
-	float dec_to_pitch_ff;
-	float dec_to_pitch_i;
-	float back_trans_dec_sp;
-	bool vt_mc_on_fmu;
-	int32_t vt_forward_thrust_enable_mode;
-	float mpc_land_alt1;
-	float mpc_land_alt2;
-};
+
+static constexpr float kFlapSlewRateVtol = 1.f; // minimum time from none to full flap deflection [s]
+static constexpr float kSpoilerSlewRateVtol = 1.f; // minimum time from none to full spoiler deflection [s]
+
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
 enum class mode {
@@ -128,7 +99,7 @@ enum class pwm_limit_type {
 
 class VtolAttitudeControl;
 
-class VtolType
+class VtolType:  public ModuleParams
 {
 public:
 
@@ -207,6 +178,14 @@ public:
 
 	virtual void parameters_update() = 0;
 
+	/**
+	 * @brief Set current time delta
+	 *
+	 * @param dt Current time delta [s]
+	 */
+	void setDt(float dt) {_dt = dt; }
+
+protected:
 	VtolAttitudeControl *_attc;
 	mode _vtol_mode;
 
@@ -233,11 +212,8 @@ public:
 	struct vehicle_thrust_setpoint_s 		*_thrust_setpoint_0;
 	struct vehicle_thrust_setpoint_s 		*_thrust_setpoint_1;
 
-	struct Params 					*_params;
-
 	bool _flag_idle_mc = false;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
 
-	bool _pusher_active = false;
 	float _mc_roll_weight = 1.0f;	// weight for multicopter attitude controller roll output
 	float _mc_pitch_weight = 1.0f;	// weight for multicopter attitude controller pitch output
 	float _mc_yaw_weight = 1.0f;	// weight for multicopter attitude controller yaw output
@@ -291,6 +267,51 @@ public:
 	void set_alternate_motor_state(motor_state target_state, int value = 0);
 
 	float update_and_get_backtransition_pitch_sp();
+
+	SlewRate<float> _spoiler_setpoint_with_slewrate;
+	SlewRate<float> _flaps_setpoint_with_slewrate;
+
+	float _dt{0.0025f}; // time step [s]
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
+					(ParamBool<px4::params::VT_ELEV_MC_LOCK>) _param_vt_elev_mc_lock,
+					(ParamFloat<px4::params::VT_FW_MIN_ALT>) _param_vt_fw_min_alt,
+					(ParamFloat<px4::params::VT_FW_ALT_ERR>) _param_vt_fw_alt_err,
+					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
+					(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
+					(ParamFloat<px4::params::VT_F_TR_OL_TM>) _param_vt_f_tr_ol_tm,
+					(ParamFloat<px4::params::VT_TRANS_MIN_TM>) _param_vt_trans_min_tm,
+
+					(ParamFloat<px4::params::VT_F_TRANS_DUR>) _param_vt_f_trans_dur,
+					(ParamFloat<px4::params::VT_B_TRANS_DUR>) _param_vt_b_trans_dur,
+					(ParamFloat<px4::params::VT_ARSP_TRANS>) _param_vt_arsp_trans,
+					(ParamFloat<px4::params::VT_F_TRANS_THR>) _param_vt_f_trans_thr,
+					(ParamFloat<px4::params::VT_B_TRANS_THR>) _param_vt_b_trans_thr,
+					(ParamFloat<px4::params::VT_ARSP_BLEND>) _param_vt_arsp_blend,
+					(ParamBool<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
+					(ParamFloat<px4::params::VT_TRANS_TIMEOUT>) _param_vt_trans_timeout,
+					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
+					(ParamBool<px4::params::VT_FW_DIFTHR_EN>) _param_vt_fw_difthr_en,
+					(ParamFloat<px4::params::VT_FW_DIFTHR_SC>) _param_vt_fw_difthr_sc,
+					(ParamFloat<px4::params::VT_B_DEC_FF>) _param_vt_b_dec_ff,
+					(ParamFloat<px4::params::VT_B_DEC_I>) _param_vt_b_dec_i,
+					(ParamFloat<px4::params::VT_B_DEC_MSS>) _param_vt_b_dec_mss,
+
+					(ParamFloat<px4::params::VT_PITCH_MIN>) _param_vt_pitch_min,
+					(ParamFloat<px4::params::VT_FWD_THRUST_SC>) _param_vt_fwd_thrust_sc,
+					(ParamInt<px4::params::VT_FWD_THRUST_EN>) _param_vt_fwd_thrust_en,
+					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1,
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,
+					(ParamFloat<px4::params::VT_LND_PITCH_MIN>) _param_vt_lnd_pitch_min,
+
+					(ParamBool<px4::params::SYS_CTRL_ALLOC>) _param_sys_ctrl_alloc,
+					(ParamInt<px4::params::VT_IDLE_PWM_MC>) _param_vt_idle_pwm_mc,
+					(ParamInt<px4::params::VT_MOT_ID>) _param_vt_mot_id,
+					(ParamBool<px4::params::VT_MC_ON_FMU>) _param_vt_mc_on_fmu,
+					(ParamInt<px4::params::VT_FW_MOT_OFFID>) _param_vt_fw_mot_offid,
+					(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld
+
+				       )
 
 private:
 

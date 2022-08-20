@@ -523,7 +523,7 @@ $ batt_smbus -X write_flash 19069 2 27 0
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("man_info", "Prints manufacturer info.");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("unseal", "Unseals the devices flash memory to enable write_flash commands.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("seal", "Seals the devices flash memory to disbale write_flash commands.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("seal", "Seals the devices flash memory to disable write_flash commands.");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("suspend", "Suspends the driver from rescheduling the cycle.");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("resume", "Resumes the driver from suspension.");
 

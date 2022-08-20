@@ -64,7 +64,9 @@ enum class ghstFrameType {
 };
 
 enum class ghstTelemetryType {
-	batteryPack = 0x23	// battery pack status frame type
+	batteryPack = 0x23,	// battery pack status frame type
+	gpsPrimary = 0x25,	// GPS primary data (lat/long/alt)
+	gpsSecondary = 0x26	// GPS secondary data (course, dist, flags)
 };
 
 struct ghst_frame_header_t {
@@ -139,4 +141,27 @@ __EXPORT bool ghst_parse(const uint64_t now, const uint8_t *frame, unsigned len,
 __EXPORT bool ghst_send_telemetry_battery_status(int uart_fd, uint16_t voltage_in_10mV,
 		uint16_t current_in_10mA, uint16_t fuel_in_10mAh);
 
+/**
+ * Send primary GPS information
+ * @param uart_fd UART file descriptor
+ * @param latitude GPS latitude [1e-7 degrees]
+ * @param longitude GPS longitude [1e-7 degrees]
+ * @param altitude GPS altitude [1m]
+ * @return true on success
+ */
+__EXPORT bool ghst_send_telemetry_gps1_status(int uart_fd, uint32_t latitude, uint32_t longitude, uint16_t altitude);
+
+/**
+ * Send secondary GPS information
+ * @param uart_fd UART file descriptor
+ * @param ground_speed Ground Speed [1 km/h]
+ * @param ground_course Ground Course [1e-7 degrees]
+ * @param num_sats GPS Satellite count
+ * @param home_dist Distance to Home [10 m]
+ * @param home_dir Direction to Home [1e-7 degrees]
+ * @param flags GPS Flags
+ * @return true on success
+ */
+__EXPORT bool ghst_send_telemetry_gps2_status(int uart_fd, uint16_t ground_speed, uint16_t ground_course,
+		uint8_t num_sats, uint16_t home_dist, uint16_t home_dir, uint8_t flags);
 __END_DECLS

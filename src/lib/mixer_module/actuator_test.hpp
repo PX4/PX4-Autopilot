@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "functions.hpp"
+#include <mixer_module/output_functions.hpp>
 
 #include <drivers/drv_pwm_output.h>
 #include <uORB/topics/actuator_test.h>

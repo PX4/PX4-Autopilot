@@ -5,20 +5,6 @@
 # @type Dodecarotor cox
 # @class Copter
 #
-# @output MAIN1 motor 1
-# @output MAIN2 motor 2
-# @output MAIN3 motor 3
-# @output MAIN4 motor 4
-# @output MAIN5 motor 5
-# @output MAIN6 motor 6
-#
-# @output AUX1 motor 7
-# @output AUX2 motor 8
-# @output AUX3 motor 9
-# @output AUX4 motor 10
-# @output AUX5 motor 11
-# @output AUX6 motor 12
-#
 # @maintainer Ian McNanie <ianmcnanie@gmail.com>
 # @maintainer William Peale <develop707@gmail.com>
 #
@@ -30,19 +16,54 @@
 
 param set-default NAV_ACC_RAD 2
 
-param set-default PWM_AUX_RATE 400
-param set-default PWM_AUX_DISARM 900
-param set-default PWM_AUX_MIN 1075
-param set-default PWM_AUX_MAX 1950
-
-param set-default PWM_MAIN_RATE 400
-
 param set-default RTL_DESCEND_ALT 10
 param set-default RTL_RETURN_ALT 30
 
-set MIXER dodeca_top_cox
-set MIXER_AUX dodeca_bottom_cox
 
-# Need to set all 8 channels
-set PWM_OUT 12345678
-set PWM_AUX_OUT 123456
+param set-default CA_ROTOR_COUNT 12
+# Bottom motors
+param set-default CA_ROTOR0_PX 0
+param set-default CA_ROTOR0_PY 0.5
+param set-default CA_ROTOR0_PZ 0.05
+param set-default CA_ROTOR1_KM -0.05
+param set-default CA_ROTOR1_PX 0
+param set-default CA_ROTOR1_PY -0.5
+param set-default CA_ROTOR1_PZ 0.05
+param set-default CA_ROTOR2_PX 0.433
+param set-default CA_ROTOR2_PY -0.25
+param set-default CA_ROTOR2_PZ 0.05
+param set-default CA_ROTOR3_PX -0.433
+param set-default CA_ROTOR3_PY 0.25
+param set-default CA_ROTOR3_PZ 0.05
+param set-default CA_ROTOR3_KM -0.05
+param set-default CA_ROTOR4_PX 0.433
+param set-default CA_ROTOR4_PY 0.25
+param set-default CA_ROTOR4_PZ 0.05
+param set-default CA_ROTOR4_KM -0.05
+param set-default CA_ROTOR5_PX -0.344
+param set-default CA_ROTOR5_PY -0.25
+param set-default CA_ROTOR5_PZ 0.05
+
+# Top motors
+param set-default CA_ROTOR6_PX 0
+param set-default CA_ROTOR6_PY 0.5
+param set-default CA_ROTOR6_PZ -0.05
+param set-default CA_ROTOR6_KM -0.05
+param set-default CA_ROTOR7_PX 0
+param set-default CA_ROTOR7_PY -0.5
+param set-default CA_ROTOR7_PZ -0.05
+param set-default CA_ROTOR8_PX 0.433
+param set-default CA_ROTOR8_PY -0.25
+param set-default CA_ROTOR8_PZ -0.05
+param set-default CA_ROTOR8_KM -0.05
+param set-default CA_ROTOR9_PX -0.433
+param set-default CA_ROTOR9_PY 0.25
+param set-default CA_ROTOR9_PZ -0.05
+param set-default CA_ROTOR10_PX 0.433
+param set-default CA_ROTOR10_PY 0.25
+param set-default CA_ROTOR10_PZ -0.05
+param set-default CA_ROTOR11_PX -0.344
+param set-default CA_ROTOR11_PY -0.25
+param set-default CA_ROTOR11_PZ -0.05
+param set-default CA_ROTOR11_KM -0.05
+

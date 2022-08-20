@@ -58,7 +58,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -69,7 +69,7 @@ struct s_port_subscription_data_s {
 	uORB::SubscriptionData<vehicle_acceleration_s> vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::SubscriptionData<vehicle_air_data_s> vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::SubscriptionData<vehicle_global_position_s> vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
-	uORB::SubscriptionData<vehicle_gps_position_s> vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::SubscriptionData<sensor_gps_s> vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::SubscriptionData<vehicle_local_position_s> vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 };
@@ -336,6 +336,6 @@ void sPort_send_flight_mode(int uart)
 
 void sPort_send_GPS_info(int uart)
 {
-	const vehicle_gps_position_s &gps = s_port_subscription_data->vehicle_gps_position_sub.get();
+	const sensor_gps_s &gps = s_port_subscription_data->vehicle_gps_position_sub.get();
 	sPort_send_data(uart, FRSKY_ID_TEMP2, gps.satellites_used * 10 + gps.fix_type);
 }

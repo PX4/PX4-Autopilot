@@ -649,17 +649,17 @@ void BlockLocalPositionEstimator::publishOdom()
 	    && PX4_ISFINITE(_x(X_vz))) {
 
 		_pub_odom.get().timestamp_sample = _timeStamp;
-		_pub_odom.get().local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
+		_pub_odom.get().pose_frame = vehicle_odometry_s::POSE_FRAME_NED;
 
 		// position
-		_pub_odom.get().x = xLP(X_x);	// north
-		_pub_odom.get().y = xLP(X_y);	// east
+		_pub_odom.get().position[0] = xLP(X_x);	// north
+		_pub_odom.get().position[1] = xLP(X_y);	// east
 
 		if (_param_lpe_fusion.get() & FUSE_PUB_AGL_Z) {
-			_pub_odom.get().z = -_aglLowPass.getState();	// agl
+			_pub_odom.get().position[2] = -_aglLowPass.getState();	// agl
 
 		} else {
-			_pub_odom.get().z = xLP(X_z);	// down
+			_pub_odom.get().position[2] = xLP(X_z);	// down
 		}
 
 		// orientation
@@ -667,51 +667,45 @@ void BlockLocalPositionEstimator::publishOdom()
 		q.copyTo(_pub_odom.get().q);
 
 		// linear velocity
-		_pub_odom.get().velocity_frame = vehicle_odometry_s::LOCAL_FRAME_FRD;
-		_pub_odom.get().vx = xLP(X_vx);		// vel north
-		_pub_odom.get().vy = xLP(X_vy);		// vel east
-		_pub_odom.get().vz = xLP(X_vz);		// vel down
+		_pub_odom.get().velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_FRD;
+		_pub_odom.get().velocity[0] = xLP(X_vx);		// vel north
+		_pub_odom.get().velocity[1] = xLP(X_vy);		// vel east
+		_pub_odom.get().velocity[2] = xLP(X_vz);		// vel down
 
 		// angular velocity
-		_pub_odom.get().rollspeed = _sub_angular_velocity.get().xyz[0]; // roll rate
-		_pub_odom.get().pitchspeed = _sub_angular_velocity.get().xyz[1]; // pitch rate
-		_pub_odom.get().yawspeed = _sub_angular_velocity.get().xyz[2]; // yaw rate
+		_pub_odom.get().angular_velocity[0] = NAN;
+		_pub_odom.get().angular_velocity[1] = NAN;
+		_pub_odom.get().angular_velocity[2] = NAN;
 
 		// get the covariance matrix size
-		const size_t POS_URT_SIZE = sizeof(_pub_odom.get().pose_covariance) / sizeof(_pub_odom.get().pose_covariance[0]);
-		const size_t VEL_URT_SIZE = sizeof(_pub_odom.get().velocity_covariance) / sizeof(
-						    _pub_odom.get().velocity_covariance[0]);
+		const size_t POS_URT_SIZE = sizeof(_pub_odom.get().position_variance) / sizeof(_pub_odom.get().position_variance[0]);
+		const size_t VEL_URT_SIZE = sizeof(_pub_odom.get().velocity_variance) / sizeof(_pub_odom.get().velocity_variance[0]);
 
 		// initially set pose covariances to 0
 		for (size_t i = 0; i < POS_URT_SIZE; i++) {
-			_pub_odom.get().pose_covariance[i] = 0.0;
+			_pub_odom.get().position_variance[i] = NAN;
 		}
 
 		// set the position variances
-		_pub_odom.get().pose_covariance[_pub_odom.get().COVARIANCE_MATRIX_X_VARIANCE] = m_P(X_vx, X_vx);
-		_pub_odom.get().pose_covariance[_pub_odom.get().COVARIANCE_MATRIX_Y_VARIANCE] = m_P(X_vy, X_vy);
-		_pub_odom.get().pose_covariance[_pub_odom.get().COVARIANCE_MATRIX_Z_VARIANCE] = m_P(X_vz, X_vz);
+		_pub_odom.get().position_variance[0] = m_P(X_vx, X_vx);
+		_pub_odom.get().position_variance[1] = m_P(X_vy, X_vy);
+		_pub_odom.get().position_variance[2] = m_P(X_vz, X_vz);
 
 		// unknown orientation covariances
 		// TODO: add orientation covariance to vehicle_attitude
-		_pub_odom.get().pose_covariance[_pub_odom.get().COVARIANCE_MATRIX_ROLL_VARIANCE] = NAN;
-		_pub_odom.get().pose_covariance[_pub_odom.get().COVARIANCE_MATRIX_PITCH_VARIANCE] = NAN;
-		_pub_odom.get().pose_covariance[_pub_odom.get().COVARIANCE_MATRIX_YAW_VARIANCE] = NAN;
+		_pub_odom.get().orientation_variance[0] = NAN;
+		_pub_odom.get().orientation_variance[1] = NAN;
+		_pub_odom.get().orientation_variance[2] = NAN;
 
 		// initially set velocity covariances to 0
 		for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-			_pub_odom.get().velocity_covariance[i] = 0.0;
+			_pub_odom.get().velocity_variance[i] = NAN;
 		}
 
 		// set the linear velocity variances
-		_pub_odom.get().velocity_covariance[_pub_odom.get().COVARIANCE_MATRIX_VX_VARIANCE] = m_P(X_vx, X_vx);
-		_pub_odom.get().velocity_covariance[_pub_odom.get().COVARIANCE_MATRIX_VY_VARIANCE] = m_P(X_vy, X_vy);
-		_pub_odom.get().velocity_covariance[_pub_odom.get().COVARIANCE_MATRIX_VZ_VARIANCE] = m_P(X_vz, X_vz);
-
-		// unknown angular velocity covariances
-		_pub_odom.get().velocity_covariance[_pub_odom.get().COVARIANCE_MATRIX_ROLLRATE_VARIANCE] = NAN;
-		_pub_odom.get().velocity_covariance[_pub_odom.get().COVARIANCE_MATRIX_PITCHRATE_VARIANCE] = NAN;
-		_pub_odom.get().velocity_covariance[_pub_odom.get().COVARIANCE_MATRIX_YAWRATE_VARIANCE] = NAN;
+		_pub_odom.get().velocity_variance[0] = m_P(X_vx, X_vx);
+		_pub_odom.get().velocity_variance[1] = m_P(X_vy, X_vy);
+		_pub_odom.get().velocity_variance[2] = m_P(X_vz, X_vz);
 
 		_pub_odom.get().timestamp = hrt_absolute_time();
 		_pub_odom.update();

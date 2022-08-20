@@ -376,8 +376,6 @@ bool PCA9685Wrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsigned
 
 void PCA9685Wrapper::Run()
 {
-	SmartLock lock_guard(_lock);
-
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
@@ -390,6 +388,8 @@ void PCA9685Wrapper::Run()
 		exit_and_cleanup();
 		return;
 	}
+
+	SmartLock lock_guard(_lock);
 
 	perf_begin(_cycle_perf);
 
@@ -492,9 +492,7 @@ int PCA9685Wrapper::ioctl(cdev::file_t *filep, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET_ARM_OK:
-	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 	case PWM_SERVO_CLEAR_ARM_OK:
-	case PWM_SERVO_SET_FORCE_SAFETY_ON:
 	case PWM_SERVO_ARM:
 	case PWM_SERVO_DISARM:
 		break;

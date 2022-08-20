@@ -17,7 +17,7 @@ uint8 CELLULAR_STATUS_FLAG_CONNECTED=12  # One or more packet data bearers is ac
 uint8 CELLULAR_NETWORK_FAILED_REASON_NONE=0 # No error
 uint8 CELLULAR_NETWORK_FAILED_REASON_UNKNOWN=1 # Error state is unknown
 uint8 CELLULAR_NETWORK_FAILED_REASON_SIM_MISSING=2 # SIM is required for the modem but missing
-uint8 CELLULAR_NETWORK_FAILED_REASON_SIM_ERROR=3 # SIM is available, but not usuable for connection
+uint8 CELLULAR_NETWORK_FAILED_REASON_SIM_ERROR=3 # SIM is available, but not usable for connection
 
 uint16 status 	# Status bitmap 1: Roaming is active
 uint8 failure_reason #Failure reason when status in in CELLUAR_STATUS_FAILED

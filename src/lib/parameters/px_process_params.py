@@ -33,7 +33,7 @@
 ############################################################################
 
 #
-# PX4 paramaters processor (main executable file)
+# PX4 parameters processor (main executable file)
 #
 # This tool scans the PX4 source code for declarations of tunable parameters
 # and outputs the list in various formats.

@@ -112,6 +112,7 @@
 #include "streams/STORAGE_INFORMATION.hpp"
 #include "streams/SYS_STATUS.hpp"
 #include "streams/SYSTEM_TIME.hpp"
+#include "streams/TIME_ESTIMATE_TO_TARGET.hpp"
 #include "streams/TIMESYNC.hpp"
 #include "streams/TRAJECTORY_REPRESENTATION_WAYPOINTS.hpp"
 #include "streams/VFR_HUD.hpp"
@@ -120,7 +121,6 @@
 
 #if !defined(CONSTRAINED_FLASH)
 # include "streams/ADSB_VEHICLE.hpp"
-# include "streams/ATT_POS_MOCAP.hpp"
 # include "streams/AUTOPILOT_STATE_FOR_GIMBAL_DEVICE.hpp"
 # include "streams/DEBUG.hpp"
 # include "streams/DEBUG_FLOAT_ARRAY.hpp"
@@ -260,11 +260,6 @@ union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
 		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
 		break;
 
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
-		break;
-
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
 		break;
@@ -349,13 +344,13 @@ static const StreamListItem streams_list[] = {
 #if defined(SCALED_IMU3_HPP)
 	create_stream_list_item<MavlinkStreamScaledIMU3>(),
 #endif // SCALED_IMU3_HPP
-#if defined(SCALED_PRESSURE)
+#if defined(SCALED_PRESSURE_HPP)
 	create_stream_list_item<MavlinkStreamScaledPressure>(),
 #endif // SCALED_PRESSURE
-#if defined(SCALED_PRESSURE2)
+#if defined(SCALED_PRESSURE2_HPP)
 	create_stream_list_item<MavlinkStreamScaledPressure2>(),
 #endif // SCALED_PRESSURE2
-#if defined(SCALED_PRESSURE3)
+#if defined(SCALED_PRESSURE3_HPP)
 	create_stream_list_item<MavlinkStreamScaledPressure3>(),
 #endif // SCALED_PRESSURE3
 #if defined(ACTUATOR_OUTPUT_STATUS_HPP)
@@ -382,6 +377,9 @@ static const StreamListItem streams_list[] = {
 #if defined(SYSTEM_TIME_HPP)
 	create_stream_list_item<MavlinkStreamSystemTime>(),
 #endif // SYSTEM_TIME_HPP
+#if defined(TIME_ESTIMATE_TO_TARGET_HPP)
+	create_stream_list_item<MavlinkStreamTimeEstimateToTarget>(),
+#endif // TIME_ESTIMATE_TO_TARGET_HPP
 #if defined(TIMESYNC_HPP)
 	create_stream_list_item<MavlinkStreamTimesync>(),
 #endif // TIMESYNC_HPP
@@ -406,9 +404,6 @@ static const StreamListItem streams_list[] = {
 #if defined(VIBRATION_HPP)
 	create_stream_list_item<MavlinkStreamVibration>(),
 #endif // VIBRATION_HPP
-#if defined(ATT_POS_MOCAP_HPP)
-	create_stream_list_item<MavlinkStreamAttPosMocap>(),
-#endif // ATT_POS_MOCAP_HPP
 #if defined(AUTOPILOT_STATE_FOR_GIMBAL_DEVICE_HPP)
 	create_stream_list_item<MavlinkStreamAutopilotStateForGimbalDevice>(),
 #endif // AUTOPILOT_STATE_FOR_GIMBAL_DEVICE_HPP

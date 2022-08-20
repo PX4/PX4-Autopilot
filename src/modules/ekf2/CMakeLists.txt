@@ -48,7 +48,7 @@ px4_add_module(
 		3600
 	SRCS
 		EKF/airspeed_fusion.cpp
-		EKF/baro_bias_estimator.cpp
+		EKF/bias_estimator.cpp
 		EKF/control.cpp
 		EKF/covariance.cpp
 		EKF/drag_fusion.cpp
@@ -70,8 +70,8 @@ px4_add_module(
 		EKF/sensor_range_finder.cpp
 		EKF/sideslip_fusion.cpp
 		EKF/terrain_estimator.cpp
-		EKF/utils.cpp
 		EKF/vel_pos_fusion.cpp
+		EKF/zero_innovation_heading_update.cpp
 		EKF/zero_velocity_update.cpp
 
 		EKF2.cpp

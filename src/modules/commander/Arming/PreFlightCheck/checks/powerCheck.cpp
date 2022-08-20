@@ -42,15 +42,9 @@
 
 using namespace time_literals;
 
-bool PreFlightCheck::powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,
-				const bool prearm)
+bool PreFlightCheck::powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail)
 {
 	bool success = true;
-
-	if (!prearm) {
-		// Ignore power check after arming.
-		return true;
-	}
 
 	if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 		// Ignore power check in HITL.

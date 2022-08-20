@@ -90,7 +90,7 @@ bool CRSFTelemetry::send_battery()
 
 bool CRSFTelemetry::send_gps()
 {
-	vehicle_gps_position_s vehicle_gps_position;
+	sensor_gps_s vehicle_gps_position;
 
 	if (!_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
 		return false;
@@ -160,10 +160,6 @@ bool CRSFTelemetry::send_flight_mode()
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
 		flight_mode = "Auto";
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
-		flight_mode = "Failure";
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:

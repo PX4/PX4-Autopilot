@@ -1,6 +1,7 @@
 # GPS position in WGS84 coordinates.
 # the field 'timestamp' is for the position & velocity (microseconds)
 uint64 timestamp		# time since system start (microseconds)
+uint64 timestamp_sample
 
 uint32 device_id                # unique device ID for the sensor that does not change between power cycles
 
@@ -21,8 +22,13 @@ float32 vdop			# Vertical dilution of precision
 
 int32 noise_per_ms		# GPS noise per millisecond
 uint16 automatic_gain_control   # Automatic gain control monitor
-int32 jamming_indicator		# indicates jamming is occurring
+
+uint8 JAMMING_STATE_UNKNOWN  = 0
+uint8 JAMMING_STATE_OK       = 1
+uint8 JAMMING_STATE_WARNING  = 2
+uint8 JAMMING_STATE_CRITICAL = 3
 uint8 jamming_state		# indicates whether jamming has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Warning, 3: Critical
+int32 jamming_indicator		# indicates jamming is occurring
 
 float32 vel_m_s			# GPS ground speed, (metres/sec)
 float32 vel_n_m_s		# GPS North velocity, (metres/sec)
@@ -39,3 +45,8 @@ uint8 satellites_used		# Number of satellites used
 float32 heading			# heading angle of XYZ body frame rel to NED. Set to NaN if not available and updated (used for dual antenna GPS), (rad, [-PI, PI])
 float32 heading_offset		# heading offset of dual antenna array in body frame. Set to NaN if not applicable. (rad, [-PI, PI])
 float32 heading_accuracy	# heading accuracy (rad, [0, 2PI])
+
+float32 rtcm_injection_rate	# RTCM message injection rate Hz
+uint8 selected_rtcm_instance	# uorb instance that is being used for RTCM corrections
+
+# TOPICS sensor_gps vehicle_gps_position

@@ -2,7 +2,7 @@
 #
 # @name HolyBro QAV250
 #
-# @url https://docs.px4.io/master/en/frames_multicopter/holybro_qav250_pixhawk4_mini.html
+# @url https://docs.px4.io/main/en/frames_multicopter/holybro_qav250_pixhawk4_mini.html
 #
 # @type Quadrotor x
 # @class Copter
@@ -46,5 +46,24 @@ param set-default MPC_Z_VEL_I_ACC 1.7
 
 param set-default PWM_MAIN_MIN 1050
 
-param set-default PWM_MAIN_RATE 0
 param set-default THR_MDL_FAC 0.3
+
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.15
+param set-default CA_ROTOR0_PY 0.15
+param set-default CA_ROTOR1_PX -0.15
+param set-default CA_ROTOR1_PY -0.15
+param set-default CA_ROTOR2_PX 0.15
+param set-default CA_ROTOR2_PY -0.15
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.15
+param set-default CA_ROTOR3_PY 0.15
+param set-default CA_ROTOR3_KM -0.05
+
+param set-default PWM_MAIN_TIM0 0
+
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+

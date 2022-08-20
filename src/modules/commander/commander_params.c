@@ -129,49 +129,6 @@ PARAM_DEFINE_INT32(COM_HLDL_LOSS_T, 120);
 PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
 
 /**
- * Engine Failure Throttle Threshold
- *
- * Engine failure triggers only above this throttle value
- *
- * @group Commander
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- */
-PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
-
-/**
- * Engine Failure Current/Throttle Threshold
- *
- * Engine failure triggers only below this current value
- *
- * @group Commander
- * @min 0.0
- * @max 50.0
- * @unit A/%
- * @decimal 2
- * @increment 1
- */
-PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
-
-/**
- * Engine Failure Time Threshold
- *
- * Engine failure triggers only if the throttle threshold and the
- * current to throttle threshold are violated for this time
- *
- * @group Commander
- * @unit s
- * @min 0.0
- * @max 60.0
- * @decimal 1
- * @increment 1
- */
-PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
-
-/**
  * RC loss time threshold
  *
  * After this amount of seconds without RC connection it's considered lost and not used anymore
@@ -228,10 +185,11 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
 /**
  * RC control input mode
  *
- * The default value of 0 requires a valid RC transmitter setup.
- * Setting this to 1 allows joystick control and disables RC input handling and the associated checks. A value of
- * 2 will generate RC control data from manual input received via MAVLink instead
- * of directly forwarding the manual input data.
+ * A value of 0 enables RC transmitter control (only). A valid RC transmitter calibration is required.
+ * A value of 1 allows joystick control only. RC input handling and the associated checks are disabled.
+ * A value of 2 allows either RC Transmitter or Joystick input. The first valid input is used, will fallback to other sources if the input stream becomes invalid.
+ * A value of 3 allows either input from RC or joystick. The first available source is selected and used until reboot.
+ * A value of 4 ignores any stick input.
  *
  * @group Commander
  * @min 0
@@ -339,7 +297,7 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  * @max 25.0
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(COM_BAT_ACT_T, 10.0f);
+PARAM_DEFINE_FLOAT(COM_BAT_ACT_T, 5.f);
 
 /**
  * Imbalanced propeller failsafe mode
@@ -715,7 +673,6 @@ PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
  * Position control navigation loss response.
  *
  * This sets the flight mode that will be used if navigation accuracy is no longer adequate for position control.
- * Navigation accuracy checks can be disabled using the CBRK_VELPOSERR parameter, but doing so will remove protection for all flight modes.
  *
  * @value 0 Altitude/Manual. Assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
  * @value 1 Land/Terminate. Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
@@ -894,6 +851,23 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
 
 /**
+ * Set the actuator failure failsafe mode
+ *
+ * Note: actuator failure needs to be enabled and configured via FD_ACT_*
+ * parameters.
+ *
+ * @min 0
+ * @max 3
+ * @value 0 Disabled
+ * @value 1 Hold mode
+ * @value 2 Land mode
+ * @value 3 Return mode
+ * @value 4 Terminate
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_ACT_FAIL_ACT, 0);
+
+/**
  * Flag to enable obstacle avoidance.
  *
  * @boolean
@@ -953,7 +927,7 @@ PARAM_DEFINE_INT32(COM_PREARM_MODE, 0);
 /**
  * Enable force safety
  *
- * Force safety when the vehicle disarms. Not supported when safety button used over PX4IO board.
+ * Force safety when the vehicle disarms
  *
  * @boolean
  * @group Commander
@@ -1050,6 +1024,22 @@ PARAM_DEFINE_INT32(COM_ARM_ARSP_EN, 1);
 PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
 
 /**
+ * Enforced delay between arming and further navigation
+ *
+ * The minimal time from arming the motors until moving the vehicle is possible is COM_SPOOLUP_TIME seconds.
+ * Goal:
+ * - Motors and propellers spool up to idle speed before getting commanded to spin faster
+ * - Timeout for ESCs and smart batteries to successfulyy do failure checks
+ *   e.g. for stuck rotors before the vehicle is off the ground
+ *
+ * @group Commander
+ * @min 0
+ * @max 5
+ * @unit s
+ */
+PARAM_DEFINE_FLOAT(COM_SPOOLUP_TIME, 1.0f);
+
+/**
  * Wind speed warning threshold
  *
  * A warning is triggered if the currently estimated wind speed is above this value.
@@ -1065,3 +1055,38 @@ PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
  * @unit m/s
  */
 PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);
+
+/**
+ * Maximum allowed flight time
+ *
+ * The vehicle aborts the current operation and returns to launch when
+ * the time since takeoff is above this value. It is not possible to resume the
+ * mission or switch to any mode other than RTL or Land.
+ *
+ * Set a negative value to disable.
+ *
+ *
+ * @unit s
+ * @min -1
+ * @max 10000
+ * @value 0 Disable
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, -1);
+
+/**
+ * Wind speed RLT threshold
+ *
+ * Wind speed threshold above which an automatic return to launch is triggered
+ * and enforced as long as the threshold is exceeded.
+ *
+ * A negative value disables the feature.
+ *
+ * @min -1
+ * @max 30
+ * @decimal 1
+ * @increment 0.1
+ * @group Commander
+ * @unit m/s
+ */
+PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);

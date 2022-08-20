@@ -150,8 +150,12 @@ Server::_server_main()
 		int n_ready = poll(poll_fds.data(), poll_fds.size(), -1);
 
 		if (n_ready < 0) {
-			PX4_ERR("poll() failed: %s", strerror(errno));
-			return;
+			// Reboot command causes System Interrupt to stop poll(). This is not an error
+			if (errno != EINTR) {
+				PX4_ERR("poll() failed: %s", strerror(errno));
+			}
+
+			break;
 		}
 
 		_lock();

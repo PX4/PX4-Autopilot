@@ -75,6 +75,19 @@ static const px4_hw_mft_item_t device_unsupported = {0, 0, 0};
 // declared in board_common.h
 static const px4_hw_mft_item_t hw_mft_list_v0600[] = {
 	{
+		//  PX4_MFT_PX4IO
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		// PX4_MFT_USB
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		// PX4_MFT_CAN2
 		.present     = 1,
 		.mandatory   = 1,
 		.connection  = px4_hw_con_onboard,
@@ -83,14 +96,43 @@ static const px4_hw_mft_item_t hw_mft_list_v0600[] = {
 
 static const px4_hw_mft_item_t hw_mft_list_v0610[] = {
 	{
+		//  PX4_MFT_PX4IO
 		.present     = 0,
 		.mandatory   = 0,
 		.connection  = px4_hw_con_unknown,
 	},
 	{
+		// PX4_MFT_USB
 		.present     = 1,
 		.mandatory   = 1,
 		.connection  = px4_hw_con_onboard,
+	},
+	{
+		// PX4_MFT_CAN2
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+};
+
+static const px4_hw_mft_item_t hw_mft_list_v0650[] = {
+	{
+		//  PX4_MFT_PX4IO
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_unknown,
+	},
+	{
+		// PX4_MFT_USB
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		// PX4_MFT_CAN2
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
 	},
 };
 
@@ -98,10 +140,16 @@ static const px4_hw_mft_item_t hw_mft_list_v0610[] = {
 static px4_hw_mft_list_entry_t mft_lists[] = {
 //  ver_rev
 	{V6X00, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)},
-	{V6X10, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO
 	{V6X01, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2
 	{V6X03, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 3
+	{V6X50, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, //                       HB Mini
+	{V6X51, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2  HB Mini
+	{V6X53, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2, HB Mini Sensor Set 3
+	{V6X54, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2, HB Mini Sensor Set 4
+	{V6X10, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO
 	{V6X13, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO BMP388 moved to I2C2, Sensor Set 3
+	{V6X04, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 4
+	{V6X14, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO BMP388 moved to I2C2, Sensor Set 4
 };
 
 /************************************************************************************
@@ -124,7 +172,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 	static px4_hw_mft_list_entry boards_manifest = px4_hw_mft_list_uninitialized;
 
 	if (boards_manifest == px4_hw_mft_list_uninitialized) {
-		uint32_t ver_rev = board_get_hw_version() << 8;
+		uint32_t ver_rev = board_get_hw_version() << 16;
 		ver_rev |= board_get_hw_revision();
 
 		for (unsigned i = 0; i < arraySize(mft_lists); i++) {
@@ -135,7 +183,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 		}
 
 		if (boards_manifest == px4_hw_mft_list_uninitialized) {
-			syslog(LOG_ERR, "[boot] Board %4" PRIx32 " is not supported!\n", ver_rev);
+			syslog(LOG_ERR, "[boot] Board %08" PRIx32 " is not supported!\n", ver_rev);
 		}
 	}
 

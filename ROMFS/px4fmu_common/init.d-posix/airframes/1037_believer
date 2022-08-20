@@ -10,16 +10,12 @@ param set-default EKF2_MAG_YAWLIM 0
 
 param set-default FW_LND_AIRSPD_SC 1
 param set-default FW_LND_ANG 8
-param set-default FW_THR_LND_MAX 0
 
 param set-default FW_L1_PERIOD 12
-
-param set-default FW_MAN_P_MAX 30
 
 param set-default FW_PR_P 0.9
 param set-default FW_PR_FF 0.2
 param set-default FW_PSP_OFF 2
-param set-default FW_P_LIM_MAX 32
 param set-default FW_P_LIM_MIN -15
 
 param set-default FW_RR_FF 0.1
@@ -27,7 +23,7 @@ param set-default FW_RR_P 0.3
 
 param set-default FW_THR_MAX 0.6
 param set-default FW_THR_MIN 0.05
-param set-default FW_THR_CRUISE 0.25
+param set-default FW_THR_TRIM 0.25
 
 param set-default FW_T_ALT_TC 2
 param set-default FW_T_CLMB_MAX 8
@@ -48,5 +44,28 @@ param set-default FW_USE_NPFG 1
 
 param set-default RWTO_TKOFF 1
 
-set MIXER_FILE etc/mixers-sitl/plane_sitl.main.mix
-set MIXER custom
+param set-default CA_AIRFRAME 1
+
+param set-default CA_ROTOR_COUNT 1
+param set-default CA_ROTOR0_PX 0.3
+
+param set-default CA_SV_CS_COUNT 6
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS2_TRQ_P 1.0
+param set-default CA_SV_CS2_TYPE 3
+param set-default CA_SV_CS3_TRQ_Y 1.0
+param set-default CA_SV_CS3_TYPE 4
+param set-default CA_SV_CS4_TYPE 9
+param set-default CA_SV_CS5_TYPE 10
+param set-default PWM_MAIN_FUNC3 204
+param set-default PWM_MAIN_FUNC4 205
+param set-default PWM_MAIN_FUNC5 101
+param set-default PWM_MAIN_FUNC6 201
+param set-default PWM_MAIN_FUNC7 202
+param set-default PWM_MAIN_FUNC8 203
+param set-default PWM_MAIN_FUNC9 206
+param set-default PWM_MAIN_REV 256
+

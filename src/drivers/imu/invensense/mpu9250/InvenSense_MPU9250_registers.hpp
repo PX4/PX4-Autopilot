@@ -54,7 +54,7 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-static constexpr uint32_t I2C_ADDRESS_DEFAULT = 0x69; // 0b110100X
+static constexpr uint8_t I2C_ADDRESSES[] {0b110'1000, 0b110'1001}; // 0b110'100x (0x68 or 0x69)
 static constexpr uint32_t I2C_SPEED = 400 * 1000;
 
 static constexpr uint32_t SPI_SPEED = 1 * 1000 * 1000;

@@ -41,24 +41,39 @@
 #include <mathlib/mathlib.h>
 
 
-WeatherVane::WeatherVane() :
-	ModuleParams(nullptr)
+WeatherVane::WeatherVane(ModuleParams *parent) :
+	ModuleParams(parent)
 { }
 
-void WeatherVane::update(const matrix::Vector3f &dcm_z_sp_prev, float yaw)
+void WeatherVane::update()
 {
-	_dcm_z_sp_prev = dcm_z_sp_prev;
-	_yaw = yaw;
+	vehicle_control_mode_s vehicle_control_mode;
+
+	if (_vehicle_control_mode_sub.update(&vehicle_control_mode)) {
+		_flag_control_manual_enabled = vehicle_control_mode.flag_control_manual_enabled;
+		_flag_control_position_enabled = vehicle_control_mode.flag_control_position_enabled;
+	}
+
+	// Weathervane needs to be enabled by parameter
+	// in manual we use weathervane just if position is controlled as well
+	// in mission we use weathervane except for when navigator disables it
+	_is_active = _param_wv_en.get()
+		     && ((_flag_control_manual_enabled && _flag_control_position_enabled)
+			 || (!_flag_control_manual_enabled && !_navigator_force_disabled));
 }
 
-float WeatherVane::get_weathervane_yawrate()
+float WeatherVane::getWeathervaneYawrate()
 {
 	// direction of desired body z axis represented in earth frame
-	matrix::Vector3f body_z_sp(_dcm_z_sp_prev);
+	vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
+	_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint);
+	matrix::Vector3f body_z_sp(matrix::Quatf(vehicle_attitude_setpoint.q_d).dcm_z()); // attitude setpoint body z axis
 
 	// rotate desired body z axis into new frame which is rotated in z by the current
 	// heading of the vehicle. we refer to this as the heading frame.
-	matrix::Dcmf R_yaw = matrix::Eulerf(0.0f, 0.0f, -_yaw);
+	vehicle_local_position_s vehicle_local_position{};
+	_vehicle_local_position_sub.copy(&vehicle_local_position);
+	matrix::Dcmf R_yaw = matrix::Eulerf(0.0f, 0.0f, -vehicle_local_position.heading);
 	body_z_sp = R_yaw * body_z_sp;
 	body_z_sp.normalize();
 

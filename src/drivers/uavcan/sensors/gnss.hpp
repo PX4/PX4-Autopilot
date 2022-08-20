@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,6 +54,7 @@
 #include <uavcan/equipment/gnss/Fix.hpp>
 #include <uavcan/equipment/gnss/Fix2.hpp>
 #include <ardupilot/gnss/MovingBaselineData.hpp>
+#include <uavcan/equipment/gnss/RTCMStream.hpp>
 
 #include <lib/perf/perf_counter.h>
 
@@ -61,8 +62,6 @@
 
 class UavcanGnssBridge : public UavcanSensorBridgeBase
 {
-	static constexpr unsigned ORB_TO_UAVCAN_FREQUENCY_HZ = 10;
-
 public:
 	static const char *const NAME;
 
@@ -92,7 +91,8 @@ private:
 			  const float heading_accuracy);
 
 	void handleInjectDataTopic();
-	bool injectData(const uint8_t *data, size_t data_len);
+	bool PublishRTCMStream(const uint8_t *data, size_t data_len);
+	bool PublishMovingBaselineData(const uint8_t *data, size_t data_len);
 
 	typedef uavcan::MethodBinder < UavcanGnssBridge *,
 		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &) >
@@ -115,17 +115,23 @@ private:
 	uavcan::Subscriber<uavcan::equipment::gnss::Auxiliary, AuxiliaryCbBinder> _sub_auxiliary;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix2, Fix2CbBinder> _sub_fix2;
-	uavcan::Publisher<ardupilot::gnss::MovingBaselineData> _pub_rtcm;
+
+	uavcan::Publisher<ardupilot::gnss::MovingBaselineData> _pub_moving_baseline_data;
+	uavcan::Publisher<uavcan::equipment::gnss::RTCMStream> _pub_rtcm_stream;
 
 	uint64_t	_last_gnss_auxiliary_timestamp{0};
 	float		_last_gnss_auxiliary_hdop{0.0f};
 	float		_last_gnss_auxiliary_vdop{0.0f};
 
-	uORB::Subscription			_orb_inject_data_sub{ORB_ID(gps_inject_data)};
+	uORB::Subscription _gps_inject_data_sub{ORB_ID(gps_inject_data)};
 
 	bool _system_clock_set{false};  ///< Have we set the system clock at least once from GNSS data?
 
 	bool *_channel_using_fix2; ///< Flag for whether each channel is using Fix2 or Fix msg
 
-	perf_counter_t _rtcm_perf;
+	bool _publish_rtcm_stream{false};
+	bool _publish_moving_baseline_data{false};
+
+	perf_counter_t _rtcm_stream_pub_perf{nullptr};
+	perf_counter_t _moving_baseline_data_pub_perf{nullptr};
 };

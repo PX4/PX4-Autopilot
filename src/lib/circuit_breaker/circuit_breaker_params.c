@@ -57,21 +57,6 @@
 PARAM_DEFINE_INT32(CBRK_SUPPLY_CHK, 0);
 
 /**
- * Circuit breaker for rate controller output
- *
- * Setting this parameter to 140253 will disable the rate
- * controller uORB publication.
- * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
- *
- * @reboot_required true
- * @min 0
- * @max 140253
- * @category Developer
- * @group Circuit Breaker
- */
-PARAM_DEFINE_INT32(CBRK_RATE_CTRL, 0);
-
-/**
  * Circuit breaker for IO safety
  *
  * Setting this parameter to 22027 will disable IO safety.
@@ -116,22 +101,6 @@ PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK, 0);
 PARAM_DEFINE_INT32(CBRK_FLIGHTTERM, 121212);
 
 /**
- * Circuit breaker for engine failure detection
- *
- * Setting this parameter to 284953 will disable the engine failure detection.
- * If the aircraft is in engine failure mode the engine failure flag will be
- * set to healthy
- * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
- *
- * @reboot_required true
- * @min 0
- * @max 284953
- * @category Developer
- * @group Circuit Breaker
- */
-PARAM_DEFINE_INT32(CBRK_ENGINEFAIL, 284953);
-
-/**
  * Circuit breaker for disabling buzzer
  *
  * Setting this parameter to 782097 will disable the buzzer audio notification.
@@ -164,20 +133,6 @@ PARAM_DEFINE_INT32(CBRK_BUZZER, 0);
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_USB_CHK, 197848);
-
-/**
- * Circuit breaker for position error check
- *
- * Setting this parameter to 201607 will disable the position and velocity
- * accuracy checks in the commander.
- * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
- *
- * @min 0
- * @max 201607
- * @category Developer
- * @group Circuit Breaker
- */
-PARAM_DEFINE_INT32(CBRK_VELPOSERR, 0);
 
 /**
  * Circuit breaker for arming in fixed-wing mode check

@@ -274,20 +274,22 @@ void ICM42688P::RunImpl()
 				}
 			}
 
-			// check configuration registers periodically or immediately following any failure
-			if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0])
-			    && RegisterCheck(_register_bank1_cfg[_checked_register_bank1])
-			    && RegisterCheck(_register_bank2_cfg[_checked_register_bank2])
-			   ) {
-				_last_config_check_timestamp = now;
-				_checked_register_bank0 = (_checked_register_bank0 + 1) % size_register_bank0_cfg;
-				_checked_register_bank1 = (_checked_register_bank1 + 1) % size_register_bank1_cfg;
-				_checked_register_bank2 = (_checked_register_bank2 + 1) % size_register_bank2_cfg;
+			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
+				// check configuration registers periodically or immediately following any failure
+				if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0])
+				    && RegisterCheck(_register_bank1_cfg[_checked_register_bank1])
+				    && RegisterCheck(_register_bank2_cfg[_checked_register_bank2])
+				   ) {
+					_last_config_check_timestamp = now;
+					_checked_register_bank0 = (_checked_register_bank0 + 1) % size_register_bank0_cfg;
+					_checked_register_bank1 = (_checked_register_bank1 + 1) % size_register_bank1_cfg;
+					_checked_register_bank2 = (_checked_register_bank2 + 1) % size_register_bank2_cfg;
 
-			} else {
-				// register check failed, force reset
-				perf_count(_bad_register_perf);
-				Reset();
+				} else {
+					// register check failed, force reset
+					perf_count(_bad_register_perf);
+					Reset();
+				}
 			}
 		}
 

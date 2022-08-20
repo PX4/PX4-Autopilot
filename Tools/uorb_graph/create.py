@@ -694,7 +694,7 @@ class OutputJSON(object):
             node['type'] = 'topic'
             node['color'] = topic_colors[topic]
             # url is opened when double-clicking on the node
-            node['url'] = 'https://github.com/PX4/PX4-Autopilot/blob/master/msg/'+topic_filename(topic)+'.msg'
+            node['url'] = 'https://github.com/PX4/PX4-Autopilot/blob/main/msg/'+topic_filename(topic)+'.msg'
             nodes.append(node)
 
         data['nodes'] = nodes

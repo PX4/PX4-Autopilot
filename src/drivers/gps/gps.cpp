@@ -78,9 +78,11 @@
 #include <linux/spi/spidev.h>
 #endif /* __PX4_LINUX */
 
+using namespace time_literals;
+
 #define TIMEOUT_1HZ		1300	//!< Timeout time in mS, 1000 mS (1Hz) + 300 mS delta for error
 #define TIMEOUT_5HZ		500		//!< Timeout time in mS,  200 mS (5Hz) + 300 mS delta for error
-#define RATE_MEASUREMENT_PERIOD 5000000
+#define RATE_MEASUREMENT_PERIOD 5_s
 
 enum class gps_driver_mode_t {
 	None = 0,
@@ -191,6 +193,8 @@ private:
 	unsigned			_last_rate_rtcm_injection_count{0};		///< counter for number of RTCM messages
 	unsigned			_num_bytes_read{0}; 				///< counter for number of read bytes from the UART (within update interval)
 	unsigned			_rate_reading{0}; 				///< reading rate in B/s
+	hrt_abstime			_last_rtcm_injection_time{0};			///< time of last rtcm injection
+	uint8_t				_selected_rtcm_instance{0};			///< uorb instance that is being used for RTCM corrections
 
 	const Instance 			_instance;
 
@@ -325,7 +329,7 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 
 	if (_mode == gps_driver_mode_t::None) {
 		// use parameter to select mode if not provided via CLI
-		char protocol_param_name[16];
+		char protocol_param_name[17];
 		snprintf(protocol_param_name, sizeof(protocol_param_name), "GPS_%i_PROTOCOL", (int)_instance + 1);
 		int32_t protocol = 0;
 		param_get(param_find(protocol_param_name), &protocol);
@@ -511,6 +515,24 @@ void GPS::handleInjectDataTopic()
 		return;
 	}
 
+	gps_inject_data_s msg;
+
+	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
+	if ((hrt_absolute_time() - _last_rtcm_injection_time) > 5_s) {
+		_last_rtcm_injection_time = hrt_absolute_time();
+
+		for (uint8_t i = 0; i < gps_inject_data_s::MAX_INSTANCES; i++) {
+			if (_orb_inject_data_sub.ChangeInstance(i)) {
+				if (_orb_inject_data_sub.copy(&msg)) {
+					if ((hrt_absolute_time() - msg.timestamp) < 5_s) {
+						_selected_rtcm_instance = i;
+						break;
+					}
+				}
+			}
+		}
+	}
+
 	bool updated = false;
 
 	// Limit maximum number of GPS injections to 6 since usually
@@ -525,7 +547,6 @@ void GPS::handleInjectDataTopic()
 		updated = _orb_inject_data_sub.updated();
 
 		if (updated) {
-			gps_inject_data_s msg;
 
 			if (_orb_inject_data_sub.copy(&msg)) {
 
@@ -538,6 +559,7 @@ void GPS::handleInjectDataTopic()
 					injectData(msg.data, msg.len);
 
 					++_last_rate_rtcm_injection_count;
+					_last_rtcm_injection_time = hrt_absolute_time();
 				}
 			}
 		}
@@ -1142,6 +1164,9 @@ GPS::publish()
 {
 	if (_instance == Instance::Main || _is_gps_main_advertised.load()) {
 		_report_gps_pos.device_id = get_device_id();
+
+		_report_gps_pos.selected_rtcm_instance = _selected_rtcm_instance;
+		_report_gps_pos.rtcm_injection_rate = _rate_rtcm_injection;
 
 		_report_gps_pos_pub.publish(_report_gps_pos);
 		// Heading/yaw data can be updated at a lower rate than the other navigation data.

@@ -57,7 +57,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_odometry.h>
@@ -92,67 +92,82 @@ private:
 
 	void Run() override;
 
-	void update_parameters(bool force = false);
+	bool init_attitude_q();
 
-	bool init_attq();
+	void update_gps_position();
+
+	void update_magnetometer();
+
+	void update_motion_capture_odometry();
+
+	void update_sensors();
+
+	void update_visual_odometry();
+
+	void update_vehicle_attitude();
+
+	void update_vehicle_local_position();
+
+	void update_parameters(bool force = false);
 
 	bool update(float dt);
 
 	// Update magnetic declination (in rads) immediately changing yaw rotation
 	void update_mag_declination(float new_declination);
 
-
-	const float _eo_max_std_dev = 100.0f;		/**< Maximum permissible standard deviation for estimated orientation */
+	const float _eo_max_std_dev = 100.0f;           /**< Maximum permissible standard deviation for estimated orientation */
 	const float _dt_min = 0.00001f;
 	const float _dt_max = 0.02f;
 
 	uORB::SubscriptionCallbackWorkItem _sensors_sub{this, ORB_ID(sensor_combined)};
 
-	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uORB::Subscription		_gps_sub{ORB_ID(vehicle_gps_position)};
-	uORB::Subscription		_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription		_vision_odom_sub{ORB_ID(vehicle_visual_odometry)};
-	uORB::Subscription		_mocap_odom_sub{ORB_ID(vehicle_mocap_odometry)};
-	uORB::Subscription		_magnetometer_sub{ORB_ID(vehicle_magnetometer)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Publication<vehicle_attitude_s>	_att_pub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_magnetometer_sub{ORB_ID(vehicle_magnetometer)};
+	uORB::Subscription _vehicle_mocap_odometry_sub{ORB_ID(vehicle_mocap_odometry)};
+	uORB::Subscription _vehicle_visual_odometry_sub{ORB_ID(vehicle_visual_odometry)};
 
-	float		_mag_decl{0.0f};
-	float		_bias_max{0.0f};
+	uORB::Publication<vehicle_attitude_s> _vehicle_attitude_pub{ORB_ID(vehicle_attitude)};
 
-	Vector3f	_gyro;
-	Vector3f	_accel;
-	Vector3f	_mag;
+	Vector3f    _accel{};
+	Vector3f    _gyro{};
+	Vector3f    _gyro_bias{};
+	Vector3f    _rates{};
 
-	Vector3f	_vision_hdg;
-	Vector3f	_mocap_hdg;
+	Vector3f    _mag{};
+	Vector3f    _mocap_hdg{};
+	Vector3f    _vision_hdg{};
 
-	Quatf		_q;
-	Vector3f	_rates;
-	Vector3f	_gyro_bias;
+	Vector3f    _pos_acc{};
+	Vector3f    _vel_prev{};
 
-	Vector3f	_vel_prev;
-	hrt_abstime	_vel_prev_t{0};
+	Quatf       _q{};
 
-	Vector3f	_pos_acc;
+	hrt_abstime _imu_timestamp{};
+	hrt_abstime _imu_prev_timestamp{};
+	hrt_abstime _vel_prev_timestamp{};
 
-	hrt_abstime	_last_time{0};
+	float       _bias_max{};
+	float       _mag_decl{};
 
-	bool		_inited{false};
-	bool		_data_good{false};
-	bool		_ext_hdg_good{false};
+	bool        _data_good{false};
+	bool        _ext_hdg_good{false};
+	bool        _initialized{false};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::ATT_W_ACC>) _param_att_w_acc,
-		(ParamFloat<px4::params::ATT_W_MAG>) _param_att_w_mag,
-		(ParamFloat<px4::params::ATT_W_EXT_HDG>) _param_att_w_ext_hdg,
+		(ParamFloat<px4::params::ATT_W_ACC>)       _param_att_w_acc,
+		(ParamFloat<px4::params::ATT_W_MAG>)       _param_att_w_mag,
+		(ParamFloat<px4::params::ATT_W_EXT_HDG>)   _param_att_w_ext_hdg,
 		(ParamFloat<px4::params::ATT_W_GYRO_BIAS>) _param_att_w_gyro_bias,
-		(ParamFloat<px4::params::ATT_MAG_DECL>) _param_att_mag_decl,
-		(ParamInt<px4::params::ATT_MAG_DECL_A>) _param_att_mag_decl_a,
-		(ParamInt<px4::params::ATT_EXT_HDG_M>) _param_att_ext_hdg_m,
-		(ParamInt<px4::params::ATT_ACC_COMP>) _param_att_acc_comp,
-		(ParamFloat<px4::params::ATT_BIAS_MAX>) _param_att_bias_mas,
-		(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag
+		(ParamFloat<px4::params::ATT_MAG_DECL>)    _param_att_mag_decl,
+		(ParamInt<px4::params::ATT_MAG_DECL_A>)    _param_att_mag_decl_a,
+		(ParamInt<px4::params::ATT_EXT_HDG_M>)     _param_att_ext_hdg_m,
+		(ParamInt<px4::params::ATT_ACC_COMP>)      _param_att_acc_comp,
+		(ParamFloat<px4::params::ATT_BIAS_MAX>)    _param_att_bias_mas,
+		(ParamInt<px4::params::SYS_HAS_MAG>)       _param_sys_has_mag
 	)
 };
 
@@ -160,25 +175,10 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
-	_vel_prev.zero();
-	_pos_acc.zero();
-
-	_gyro.zero();
-	_accel.zero();
-	_mag.zero();
-
-	_vision_hdg.zero();
-	_mocap_hdg.zero();
-
-	_q.zero();
-	_rates.zero();
-	_gyro_bias.zero();
-
 	update_parameters(true);
 }
 
-bool
-AttitudeEstimatorQ::init()
+bool AttitudeEstimatorQ::init()
 {
 	if (!_sensors_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
@@ -188,8 +188,7 @@ AttitudeEstimatorQ::init()
 	return true;
 }
 
-void
-AttitudeEstimatorQ::Run()
+void AttitudeEstimatorQ::Run()
 {
 	if (should_exit()) {
 		_sensors_sub.unregisterCallback();
@@ -197,14 +196,94 @@ AttitudeEstimatorQ::Run()
 		return;
 	}
 
+	if (_sensors_sub.updated()) {
+		_data_good = true;
+		_ext_hdg_good = false;
+
+		update_parameters();
+		update_sensors();
+		update_magnetometer();
+		update_visual_odometry();
+		update_motion_capture_odometry();
+		update_gps_position();
+		update_vehicle_local_position();
+		update_vehicle_attitude();
+	}
+}
+
+void AttitudeEstimatorQ::update_gps_position()
+{
+	if (_vehicle_gps_position_sub.updated()) {
+		sensor_gps_s gps;
+
+		if (_vehicle_gps_position_sub.update(&gps)) {
+			if (_param_att_mag_decl_a.get() && (gps.eph < 20.0f)) {
+				// set magnetic declination automatically
+				update_mag_declination(get_mag_declination_radians(gps.lat, gps.lon));
+			}
+		}
+	}
+}
+
+void AttitudeEstimatorQ::update_magnetometer()
+{
+	// Update magnetometer
+	if (_vehicle_magnetometer_sub.updated()) {
+		vehicle_magnetometer_s magnetometer;
+
+		if (_vehicle_magnetometer_sub.update(&magnetometer)) {
+			_mag(0) = magnetometer.magnetometer_ga[0];
+			_mag(1) = magnetometer.magnetometer_ga[1];
+			_mag(2) = magnetometer.magnetometer_ga[2];
+
+			if (_mag.length() < 0.01f) {
+				PX4_ERR("degenerate mag!");
+				return;
+			}
+		}
+	}
+}
+
+void AttitudeEstimatorQ::update_motion_capture_odometry()
+{
+	if (_vehicle_mocap_odometry_sub.updated()) {
+		vehicle_odometry_s mocap;
+
+		if (_vehicle_mocap_odometry_sub.update(&mocap)) {
+			// validation check for mocap attitude data
+			bool mocap_att_valid = PX4_ISFINITE(mocap.q[0])
+					       && (PX4_ISFINITE(mocap.orientation_variance[0]) ? sqrtf(fmaxf(
+							       mocap.orientation_variance[0],
+							       fmaxf(mocap.orientation_variance[1],
+									       mocap.orientation_variance[2]))) <= _eo_max_std_dev : true);
+
+			if (mocap_att_valid) {
+				Dcmf Rmoc = Quatf(mocap.q);
+				Vector3f v(1.0f, 0.0f, 0.4f);
+
+				// Rmoc is Rwr (robot respect to world) while v is respect to world.
+				// Hence Rmoc must be transposed having (Rwr)' * Vw
+				// Rrw * Vw = vn. This way we have consistency
+				_mocap_hdg = Rmoc.transpose() * v;
+
+				// Motion Capture external heading usage (ATT_EXT_HDG_M 2)
+				if (_param_att_ext_hdg_m.get() == 2) {
+					// Check for timeouts on data
+					_ext_hdg_good = mocap.timestamp_sample > 0 && (hrt_elapsed_time(&mocap.timestamp_sample) < 500000);
+				}
+			}
+		}
+	}
+}
+
+void AttitudeEstimatorQ::update_sensors()
+{
 	sensor_combined_s sensors;
 
 	if (_sensors_sub.update(&sensors)) {
-
-		update_parameters();
-
-		// Feed validator with recent sensor data
+		// update validator with recent sensor data
 		if (sensors.timestamp > 0) {
+			_imu_timestamp = sensors.timestamp;
 			_gyro(0) = sensors.gyro_rad[0];
 			_gyro(1) = sensors.gyro_rad[1];
 			_gyro(2) = sensors.gyro_rad[2];
@@ -220,148 +299,93 @@ AttitudeEstimatorQ::Run()
 				return;
 			}
 		}
+	}
+}
 
-		// Update magnetometer
-		if (_magnetometer_sub.updated()) {
-			vehicle_magnetometer_s magnetometer;
+void AttitudeEstimatorQ::update_vehicle_attitude()
+{
+	// time from previous iteration
+	hrt_abstime now = hrt_absolute_time();
+	const float dt = math::constrain((now - _imu_prev_timestamp) / 1e6f, _dt_min, _dt_max);
+	_imu_prev_timestamp = now;
 
-			if (_magnetometer_sub.copy(&magnetometer)) {
-				_mag(0) = magnetometer.magnetometer_ga[0];
-				_mag(1) = magnetometer.magnetometer_ga[1];
-				_mag(2) = magnetometer.magnetometer_ga[2];
+	if (update(dt)) {
+		vehicle_attitude_s vehicle_attitude{};
+		vehicle_attitude.timestamp_sample = _imu_timestamp;
+		_q.copyTo(vehicle_attitude.q);
 
-				if (_mag.length() < 0.01f) {
-					PX4_ERR("degenerate mag!");
-					return;
+		/* the instance count is not used here */
+		vehicle_attitude.timestamp = hrt_absolute_time();
+		_vehicle_attitude_pub.publish(vehicle_attitude);
+	}
+}
+
+void AttitudeEstimatorQ::update_vehicle_local_position()
+{
+	if (_vehicle_local_position_sub.updated()) {
+		vehicle_local_position_s lpos;
+
+		if (_vehicle_local_position_sub.update(&lpos)) {
+
+			if (_param_att_acc_comp.get() && (hrt_elapsed_time(&lpos.timestamp) < 20_ms)
+			    && lpos.v_xy_valid && lpos.v_z_valid && (lpos.eph < 5.0f) && _initialized) {
+
+				/* position data is actual */
+				const Vector3f vel(lpos.vx, lpos.vy, lpos.vz);
+
+				/* velocity updated */
+				if (_vel_prev_timestamp != 0 && lpos.timestamp != _vel_prev_timestamp) {
+					float vel_dt = (lpos.timestamp - _vel_prev_timestamp) / 1e6f;
+					/* calculate acceleration in body frame */
+					_pos_acc = _q.rotateVectorInverse((vel - _vel_prev) / vel_dt);
 				}
+
+				_vel_prev_timestamp = lpos.timestamp;
+				_vel_prev = vel;
+
+			} else {
+				/* position data is outdated, reset acceleration */
+				_pos_acc.zero();
+				_vel_prev.zero();
+				_vel_prev_timestamp = 0;
 			}
-
-		}
-
-		_data_good = true;
-
-		// Update vision and motion capture heading
-		_ext_hdg_good = false;
-
-		if (_vision_odom_sub.updated()) {
-			vehicle_odometry_s vision;
-
-			if (_vision_odom_sub.copy(&vision)) {
-				// validation check for vision attitude data
-				bool vision_att_valid = PX4_ISFINITE(vision.q[0])
-							&& (PX4_ISFINITE(vision.pose_covariance[vision.COVARIANCE_MATRIX_ROLL_VARIANCE]) ? sqrtf(fmaxf(
-									vision.pose_covariance[vision.COVARIANCE_MATRIX_ROLL_VARIANCE],
-									fmaxf(vision.pose_covariance[vision.COVARIANCE_MATRIX_PITCH_VARIANCE],
-											vision.pose_covariance[vision.COVARIANCE_MATRIX_YAW_VARIANCE]))) <= _eo_max_std_dev : true);
-
-				if (vision_att_valid) {
-					Dcmf Rvis = Quatf(vision.q);
-					Vector3f v(1.0f, 0.0f, 0.4f);
-
-					// Rvis is Rwr (robot respect to world) while v is respect to world.
-					// Hence Rvis must be transposed having (Rwr)' * Vw
-					// Rrw * Vw = vn. This way we have consistency
-					_vision_hdg = Rvis.transpose() * v;
-
-					// vision external heading usage (ATT_EXT_HDG_M 1)
-					if (_param_att_ext_hdg_m.get() == 1) {
-						// Check for timeouts on data
-						_ext_hdg_good = vision.timestamp_sample > 0 && (hrt_elapsed_time(&vision.timestamp_sample) < 500000);
-					}
-				}
-			}
-		}
-
-		if (_mocap_odom_sub.updated()) {
-			vehicle_odometry_s mocap;
-
-			if (_mocap_odom_sub.copy(&mocap)) {
-				// validation check for mocap attitude data
-				bool mocap_att_valid = PX4_ISFINITE(mocap.q[0])
-						       && (PX4_ISFINITE(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_ROLL_VARIANCE]) ? sqrtf(fmaxf(
-								       mocap.pose_covariance[mocap.COVARIANCE_MATRIX_ROLL_VARIANCE],
-								       fmaxf(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_PITCH_VARIANCE],
-										       mocap.pose_covariance[mocap.COVARIANCE_MATRIX_YAW_VARIANCE]))) <= _eo_max_std_dev : true);
-
-				if (mocap_att_valid) {
-					Dcmf Rmoc = Quatf(mocap.q);
-					Vector3f v(1.0f, 0.0f, 0.4f);
-
-					// Rmoc is Rwr (robot respect to world) while v is respect to world.
-					// Hence Rmoc must be transposed having (Rwr)' * Vw
-					// Rrw * Vw = vn. This way we have consistency
-					_mocap_hdg = Rmoc.transpose() * v;
-
-					// Motion Capture external heading usage (ATT_EXT_HDG_M 2)
-					if (_param_att_ext_hdg_m.get() == 2) {
-						// Check for timeouts on data
-						_ext_hdg_good = mocap.timestamp_sample > 0 && (hrt_elapsed_time(&mocap.timestamp_sample) < 500000);
-					}
-				}
-			}
-		}
-
-		if (_gps_sub.updated()) {
-			vehicle_gps_position_s gps;
-
-			if (_gps_sub.copy(&gps)) {
-				if (_param_att_mag_decl_a.get() && (gps.eph < 20.0f)) {
-					/* set magnetic declination automatically */
-					update_mag_declination(get_mag_declination_radians(gps.lat, gps.lon));
-				}
-			}
-		}
-
-		if (_local_position_sub.updated()) {
-			vehicle_local_position_s lpos;
-
-			if (_local_position_sub.copy(&lpos)) {
-
-				if (_param_att_acc_comp.get() && (hrt_elapsed_time(&lpos.timestamp) < 20_ms)
-				    && lpos.v_xy_valid && lpos.v_z_valid && (lpos.eph < 5.0f) && _inited) {
-
-					/* position data is actual */
-					const Vector3f vel(lpos.vx, lpos.vy, lpos.vz);
-
-					/* velocity updated */
-					if (_vel_prev_t != 0 && lpos.timestamp != _vel_prev_t) {
-						float vel_dt = (lpos.timestamp - _vel_prev_t) / 1e6f;
-						/* calculate acceleration in body frame */
-						_pos_acc = _q.rotateVectorInverse((vel - _vel_prev) / vel_dt);
-					}
-
-					_vel_prev_t = lpos.timestamp;
-					_vel_prev = vel;
-
-				} else {
-					/* position data is outdated, reset acceleration */
-					_pos_acc.zero();
-					_vel_prev.zero();
-					_vel_prev_t = 0;
-				}
-			}
-		}
-
-		/* time from previous iteration */
-		hrt_abstime now = hrt_absolute_time();
-		const float dt = math::constrain((now - _last_time) / 1e6f, _dt_min, _dt_max);
-		_last_time = now;
-
-		if (update(dt)) {
-			vehicle_attitude_s att = {};
-			att.timestamp_sample = sensors.timestamp;
-			_q.copyTo(att.q);
-
-			/* the instance count is not used here */
-			att.timestamp = hrt_absolute_time();
-			_att_pub.publish(att);
-
 		}
 	}
 }
 
-void
-AttitudeEstimatorQ::update_parameters(bool force)
+void AttitudeEstimatorQ::update_visual_odometry()
+{
+	if (_vehicle_visual_odometry_sub.updated()) {
+		vehicle_odometry_s vision;
+
+		if (_vehicle_visual_odometry_sub.update(&vision)) {
+			// validation check for vision attitude data
+			bool vision_att_valid = PX4_ISFINITE(vision.q[0])
+						&& (PX4_ISFINITE(vision.orientation_variance[0]) ? sqrtf(fmaxf(
+								vision.orientation_variance[0],
+								fmaxf(vision.orientation_variance[1],
+										vision.orientation_variance[2]))) <= _eo_max_std_dev : true);
+
+			if (vision_att_valid) {
+				Dcmf Rvis = Quatf(vision.q);
+				Vector3f v(1.0f, 0.0f, 0.4f);
+
+				// Rvis is Rwr (robot respect to world) while v is respect to world.
+				// Hence Rvis must be transposed having (Rwr)' * Vw
+				// Rrw * Vw = vn. This way we have consistency
+				_vision_hdg = Rvis.transpose() * v;
+
+				// vision external heading usage (ATT_EXT_HDG_M 1)
+				if (_param_att_ext_hdg_m.get() == 1) {
+					// Check for timeouts on data
+					_ext_hdg_good = vision.timestamp_sample > 0 && (hrt_elapsed_time(&vision.timestamp_sample) < 500000);
+				}
+			}
+		}
+	}
+}
+
+void AttitudeEstimatorQ::update_parameters(bool force)
 {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || force) {
@@ -388,8 +412,7 @@ AttitudeEstimatorQ::update_parameters(bool force)
 	}
 }
 
-bool
-AttitudeEstimatorQ::init_attq()
+bool AttitudeEstimatorQ::init_attitude_q()
 {
 	// Rotation matrix can be easily constructed from acceleration and mag field vectors
 	// 'k' is Earth Z axis (Down) unit vector in body frame
@@ -421,25 +444,24 @@ AttitudeEstimatorQ::init_attq()
 	if (PX4_ISFINITE(_q(0)) && PX4_ISFINITE(_q(1)) &&
 	    PX4_ISFINITE(_q(2)) && PX4_ISFINITE(_q(3)) &&
 	    _q.length() > 0.95f && _q.length() < 1.05f) {
-		_inited = true;
+		_initialized = true;
 
 	} else {
-		_inited = false;
+		_initialized = false;
 	}
 
-	return _inited;
+	return _initialized;
 }
 
-bool
-AttitudeEstimatorQ::update(float dt)
+bool AttitudeEstimatorQ::update(float dt)
 {
-	if (!_inited) {
+	if (!_initialized) {
 
 		if (!_data_good) {
 			return false;
 		}
 
-		return init_attq();
+		return init_attitude_q();
 	}
 
 	Quatf q_last = _q;
@@ -543,11 +565,10 @@ AttitudeEstimatorQ::update(float dt)
 	return true;
 }
 
-void
-AttitudeEstimatorQ::update_mag_declination(float new_declination)
+void AttitudeEstimatorQ::update_mag_declination(float new_declination)
 {
 	// Apply initial declination or trivial rotations without changing estimation
-	if (!_inited || fabsf(new_declination - _mag_decl) < 0.0001f) {
+	if (!_initialized || fabsf(new_declination - _mag_decl) < 0.0001f) {
 		_mag_decl = new_declination;
 
 	} else {
@@ -558,14 +579,12 @@ AttitudeEstimatorQ::update_mag_declination(float new_declination)
 	}
 }
 
-int
-AttitudeEstimatorQ::custom_command(int argc, char *argv[])
+int AttitudeEstimatorQ::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int
-AttitudeEstimatorQ::task_spawn(int argc, char *argv[])
+int AttitudeEstimatorQ::task_spawn(int argc, char *argv[])
 {
 	AttitudeEstimatorQ *instance = new AttitudeEstimatorQ();
 
@@ -588,8 +607,7 @@ AttitudeEstimatorQ::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int
-AttitudeEstimatorQ::print_usage(const char *reason)
+int AttitudeEstimatorQ::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);

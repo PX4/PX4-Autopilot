@@ -44,6 +44,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/sensor_gps.h>
 #include <drivers/drv_hrt.h>
 
 /**
@@ -69,14 +70,17 @@ public:
 
 private:
 	bool send_battery_status();
+	bool send_gps1_status();
+	bool send_gps2_status();
 
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 
 	int _uart_fd;
 	hrt_abstime _last_update {0U};
 	uint32_t _next_type {0U};
 
-	static constexpr uint32_t NUM_DATA_TYPES {1U};	// number of different telemetry data types
+	static constexpr uint32_t NUM_DATA_TYPES {3U};	// number of different telemetry data types
 	static constexpr uint32_t UPDATE_RATE_HZ {10U};	// update rate [Hz]
 
 	// Factors that should be applied to get correct values

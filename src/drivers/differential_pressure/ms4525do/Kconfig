@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DIFFERENTIAL_PRESSURE_MS4525DO
+	bool "ms4525do"
+	default n
+	---help---
+		Enable support for ms4525do

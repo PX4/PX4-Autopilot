@@ -175,21 +175,21 @@ int LightwareLaser::init()
 
 	case 4:
 		/* SF11/c (120m 20Hz) */
-		_px4_rangefinder.set_min_distance(0.01f);
+		_px4_rangefinder.set_min_distance(0.2f);
 		_px4_rangefinder.set_max_distance(120.0f);
 		_conversion_interval = 50000;
 		break;
 
 	case 5:
 		/* SF/LW20/b (50m 48-388Hz) */
-		_px4_rangefinder.set_min_distance(0.001f);
+		_px4_rangefinder.set_min_distance(0.2f);
 		_px4_rangefinder.set_max_distance(50.0f);
 		_conversion_interval = 20834;
 		break;
 
 	case 6:
 		/* SF/LW20/c (100m 48-388Hz) */
-		_px4_rangefinder.set_min_distance(0.001f);
+		_px4_rangefinder.set_min_distance(0.2f);
 		_px4_rangefinder.set_max_distance(100.0f);
 		_conversion_interval = 20834;
 		_type = Type::LW20c;
@@ -417,7 +417,7 @@ void LightwareLaser::print_usage()
 
 I2C bus driver for Lightware SFxx series LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20.
 
-Setup/usage information: https://docs.px4.io/master/en/sensor/sfxx_lidar.html
+Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("lightware_laser_i2c", "driver");

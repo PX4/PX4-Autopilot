@@ -62,7 +62,9 @@ uint8 DIST_BOTTOM_SENSOR_FLOW = 2	# (1 << 1) a flow sensor is used to estimate d
 float32 eph				# Standard deviation of horizontal position error, (metres)
 float32 epv				# Standard deviation of vertical position error, (metres)
 float32 evh				# Standard deviation of horizontal velocity error, (metres/sec)
-float32 evv				# Standard deviation of horizontal velocity error, (metres/sec)
+float32 evv				# Standard deviation of vertical velocity error, (metres/sec)
+
+bool dead_reckoning                     # True if this position is estimated through dead-reckoning
 
 # estimator specified vehicle limits
 float32 vxy_max				# maximum horizontal speed - set to 0 when limiting not required (meters/sec)

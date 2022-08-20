@@ -39,5 +39,7 @@ px4_add_module(
 		vtol_type.cpp
 		tailsitter.cpp
 		standard.cpp
+	DEPENDS
+		SlewRate
 	)
 

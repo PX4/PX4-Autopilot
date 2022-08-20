@@ -38,6 +38,7 @@ px4_add_library(vehicle_magnetometer
 
 target_link_libraries(vehicle_magnetometer
 	PRIVATE
+		data_validator
 		px4_work_queue
 		sensor_calibration
 )

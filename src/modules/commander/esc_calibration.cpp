@@ -52,7 +52,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/actuator_test.h>
-#include <uORB/topics/safety.h>
 #include <parameters/param.h>
 
 using namespace time_literals;
@@ -94,15 +93,6 @@ static void set_motor_actuators(uORB::Publication<actuator_test_s> &publisher, f
 
 int do_esc_calibration_ctrl_alloc(orb_advert_t *mavlink_log_pub)
 {
-	// check safety
-	uORB::SubscriptionData<safety_s> safety_sub{ORB_ID(safety)};
-	safety_sub.update();
-
-	if (safety_sub.get().safety_switch_available && !safety_sub.get().safety_off) {
-		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Disable safety first");
-		return PX4_ERROR;
-	}
-
 	int	return_code = PX4_OK;
 	uORB::Publication<actuator_test_s> actuator_test_pub{ORB_ID(actuator_test)};
 	// since we publish multiple at once, make sure the output driver subscribes before we publish
@@ -197,13 +187,6 @@ static int do_esc_calibration_ioctl(orb_advert_t *mavlink_log_pub)
 		goto Out;
 	}
 
-	/* tell IO to switch off safety without using the safety switch */
-	if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0) != PX4_OK) {
-		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Unable to force safety off");
-		return_code = PX4_ERROR;
-		goto Out;
-	}
-
 	calibration_log_info(mavlink_log_pub, "[cal] Connect battery now");
 
 	timeout_start = hrt_absolute_time();
@@ -243,9 +226,6 @@ static int do_esc_calibration_ioctl(orb_advert_t *mavlink_log_pub)
 Out:
 
 	if (fd != -1) {
-		if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_ON, 0) != PX4_OK) {
-			calibration_log_info(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Safety switch still off");
-		}
 
 		if (px4_ioctl(fd, PWM_SERVO_DISARM, 0) != PX4_OK) {
 			calibration_log_info(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Servos still armed");

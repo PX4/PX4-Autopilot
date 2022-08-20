@@ -81,21 +81,21 @@ TEST(MatrixHelperTest, Helper)
 
 	// wrap pi
 	EXPECT_FLOAT_EQ(wrap_pi(0.), 0.);
-	EXPECT_FLOAT_EQ(wrap_pi(4.), (4. - M_TWOPI));
-	EXPECT_FLOAT_EQ(wrap_pi(-4.), (-4. + M_TWOPI));
+	EXPECT_FLOAT_EQ(wrap_pi(4.), (4. - (2 * M_PI)));
+	EXPECT_FLOAT_EQ(wrap_pi(-4.), (-4. + (2 * M_PI)));
 	EXPECT_FLOAT_EQ(wrap_pi(3.), 3.);
 	EXPECT_FLOAT_EQ(wrap_pi(100.), (100. - 32. * M_PI));
 	EXPECT_FLOAT_EQ(wrap_pi(-100.), (-100. + 32. * M_PI));
 	EXPECT_FLOAT_EQ(wrap_pi(-101.), (-101. + 32. * M_PI));
-	EXPECT_FALSE(is_finite(wrap_pi(NAN)));
+	EXPECT_FALSE(std::isfinite(wrap_pi(NAN)));
 
 	// wrap 2pi
 	EXPECT_FLOAT_EQ(wrap_2pi(0.), 0.);
 	EXPECT_FLOAT_EQ(wrap_2pi(-4.), (-4. + 2. * M_PI));
 	EXPECT_FLOAT_EQ(wrap_2pi(3.), (3.));
-	EXPECT_FLOAT_EQ(wrap_2pi(200.), (200. - 31. * M_TWOPI));
-	EXPECT_FLOAT_EQ(wrap_2pi(-201.), (-201. + 32. * M_TWOPI));
-	EXPECT_FALSE(is_finite(wrap_2pi(NAN)));
+	EXPECT_FLOAT_EQ(wrap_2pi(200.), (200. - 31. * (2 * M_PI)));
+	EXPECT_FLOAT_EQ(wrap_2pi(-201.), (-201. + 32. * (2 * M_PI)));
+	EXPECT_FALSE(std::isfinite(wrap_2pi(NAN)));
 
 	// Equality checks
 	EXPECT_TRUE(isEqualF(1., 1.));

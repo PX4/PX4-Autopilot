@@ -5,11 +5,6 @@
 # @type Quadrotor x
 # @class Copter
 #
-# @output MAIN1 motor 1
-# @output MAIN2 motor 2
-# @output MAIN3 motor 3
-# @output MAIN4 motor 4
-#
 # @board px4_fmu-v2 exclude
 # @board px4_fmu-v3 exclude
 # @board px4_fmu-v4pro exclude
@@ -95,9 +90,6 @@ param set-default MAV_1_CONFIG 102
 param set-default MAV_1_MODE 0
 param set-default SER_TEL2_BAUD 57600
 
-# DSHOT
-param set-default DSHOT_CONFIG 600
-
 # EKF OF POSITION
 param set-default EKF2_OF_POS_X 0.06
 param set-default EKF2_OF_POS_Y 0.03
@@ -105,3 +97,23 @@ param set-default EKF2_OF_POS_Z -0.07
 
 # Failsafe
 param set-default COM_LOW_BAT_ACT 3
+
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.15
+param set-default CA_ROTOR0_PY 0.15
+param set-default CA_ROTOR1_PX -0.15
+param set-default CA_ROTOR1_PY -0.15
+param set-default CA_ROTOR2_PX 0.15
+param set-default CA_ROTOR2_PY -0.15
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.15
+param set-default CA_ROTOR3_PY 0.15
+param set-default CA_ROTOR3_KM -0.05
+
+param set-default PWM_MAIN_TIM0 -3
+
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+

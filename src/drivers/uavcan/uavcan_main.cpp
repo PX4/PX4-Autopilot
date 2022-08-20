@@ -866,7 +866,7 @@ UavcanNode::Run()
 		vehicle_command_s cmd{};
 		_vcmd_sub.copy(&cmd);
 
-		uint8_t cmd_ack_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+		uint8_t cmd_ack_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_STORAGE) {
 			acknowledge = true;
@@ -951,8 +951,6 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 	case PWM_SERVO_SET_ARM_OK:
 	case PWM_SERVO_CLEAR_ARM_OK:
-	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
-		// these are no-ops, as no safety switch
 		break;
 
 	case MIXERIOCRESET:
@@ -1003,6 +1001,10 @@ void UavcanMixingInterfaceESC::mixerChanged()
 	if (_mixing_output.useDynamicMixing()) {
 		for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
 			rotor_count += _mixing_output.isFunctionSet(i);
+
+			if (i < esc_status_s::CONNECTED_ESC_MAX) {
+				_esc_controller.esc_status().esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
+			}
 		}
 
 	} else {
@@ -1198,7 +1200,8 @@ UavcanNode::param_count(uavcan::NodeID node_id)
 	req.index = 0;
 	int call_res = _param_getset_client.call(node_id, req);
 
-	if (call_res < 0) {
+	// -ErrInvalidParam is returned when no UAVCAN device is connected to the CAN bus
+	if ((call_res < 0) && (-uavcan::ErrInvalidParam != call_res)) {
 		PX4_ERR("couldn't start parameter count: %d", call_res);
 
 	} else {

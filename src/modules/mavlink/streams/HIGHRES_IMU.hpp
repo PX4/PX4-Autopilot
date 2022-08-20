@@ -191,7 +191,7 @@ private:
 			msg.ymag = mag(1);
 			msg.zmag = mag(2);
 			msg.abs_pressure = air_data.baro_pressure_pa;
-			msg.diff_pressure = differential_pressure.differential_pressure_raw_pa;
+			msg.diff_pressure = differential_pressure.differential_pressure_pa;
 			msg.pressure_alt = air_data.baro_alt_meter;
 			msg.temperature = air_data.baro_temp_celcius;
 			msg.fields_updated = fields_updated;

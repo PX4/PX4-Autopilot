@@ -43,7 +43,8 @@
 using namespace time_literals;
 
 bool PreFlightCheck::airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool optional,
-				   const bool report_fail, const bool prearm, const bool max_airspeed_check_en, const float arming_max_airspeed_allowed)
+				   const bool report_fail, const bool is_arm_attempt, const bool max_airspeed_check_en,
+				   const float arming_max_airspeed_allowed)
 {
 	bool present = true;
 	bool success = true;
@@ -84,7 +85,7 @@ bool PreFlightCheck::airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status
 	 * might have been removed.
 	 */
 	if (max_airspeed_check_en && fabsf(airspeed_validated.calibrated_airspeed_m_s) > arming_max_airspeed_allowed
-	    && prearm) {
+	    && !is_arm_attempt) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: check Airspeed Cal or pitot");
 		}

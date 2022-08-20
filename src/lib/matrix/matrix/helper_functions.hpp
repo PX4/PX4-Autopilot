@@ -1,25 +1,9 @@
 #pragma once
 
-#include "math.hpp"
-
-#if defined (__PX4_NUTTX) || defined (__PX4_QURT)
-#include <px4_defines.h>
-#endif
+#include <cmath>
 
 namespace matrix
 {
-
-template<typename Type>
-bool is_finite(Type x)
-{
-#if defined (__PX4_NUTTX)
-	return PX4_ISFINITE(x);
-#elif defined (__PX4_QURT)
-	return __builtin_isfinite(x);
-#else
-	return std::isfinite(x);
-#endif
-}
 
 /**
  * Compare if two floating point numbers are equal
@@ -35,9 +19,9 @@ bool is_finite(Type x)
 template<typename Type>
 bool isEqualF(const Type x, const Type y, const Type eps = Type(1e-4f))
 {
-	return (matrix::fabs(x - y) <= eps)
-	       || (isnan(x) && isnan(y))
-	       || (isinf(x) && isinf(y) && isnan(x - y));
+	return (std::fabs(x - y) <= eps)
+	       || (std::isnan(x) && std::isnan(y))
+	       || (std::isinf(x) && std::isinf(y) && std::isnan(x - y));
 }
 
 namespace detail
@@ -53,7 +37,7 @@ Floating wrap_floating(Floating x, Floating low, Floating high)
 
 	const auto range = high - low;
 	const auto inv_range = Floating(1) / range; // should evaluate at compile time, multiplies below at runtime
-	const auto num_wraps = floor((x - low) * inv_range);
+	const auto num_wraps = std::floor((x - low) * inv_range);
 	return x - range * num_wraps;
 }
 
@@ -120,7 +104,7 @@ Type wrap_pi(Type x)
 template<typename Type>
 Type wrap_2pi(Type x)
 {
-	return wrap(x, Type(0), Type(M_TWOPI));
+	return wrap(x, Type(0), Type((2 * M_PI)));
 }
 
 /**

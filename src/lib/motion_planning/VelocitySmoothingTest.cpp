@@ -193,13 +193,11 @@ TEST_F(VelocitySmoothingTest, testZeroSetpoint)
 
 	// AND: Zero setpoints
 	Vector3f velocity_setpoints(0.f, 0.f, 0.f);
-	float t = 0.f;
 	const float dt = 0.01f;
 
 	// WHEN: We run a few times the algorithm
 	for (int i = 0; i < 60; i++) {
 		updateTrajectories(dt, velocity_setpoints);
-		t += dt;
 	}
 
 	// THEN: All the trajectories should still be zero

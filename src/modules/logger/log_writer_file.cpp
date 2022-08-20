@@ -287,7 +287,9 @@ int LogWriterFile::hardfault_store_filename(const char *log_file)
 
 void LogWriterFile::stop_log(LogType type)
 {
+	lock();
 	_buffers[(int)type]._should_run = false;
+	unlock();
 	notify();
 }
 
@@ -312,8 +314,10 @@ int LogWriterFile::thread_start()
 void LogWriterFile::thread_stop()
 {
 	// this will terminate the main loop of the writer thread
-	_exit_thread = true;
+	lock();
+	_exit_thread.store(true);
 	_buffers[0]._should_run = _buffers[1]._should_run = false;
+	unlock();
 
 	notify();
 
@@ -335,10 +339,10 @@ void *LogWriterFile::run_helper(void *context)
 
 void LogWriterFile::run()
 {
-	while (!_exit_thread) {
+	while (!_exit_thread.load()) {
 		// Outer endless loop
 		// Wait for _should_run flag
-		while (!_exit_thread) {
+		while (!_exit_thread.load()) {
 			bool start = false;
 			pthread_mutex_lock(&_mtx);
 			pthread_cond_wait(&_cv, &_mtx);
@@ -350,7 +354,7 @@ void LogWriterFile::run()
 			}
 		}
 
-		if (_exit_thread) {
+		if (_exit_thread.load()) {
 			break;
 		}
 
@@ -480,7 +484,7 @@ void LogWriterFile::run()
 			 * not an issue because notify() is called regularly.
 			 * If the logger was switched off in the meantime, do not wait for data, instead run this loop
 			 * once more to write remaining data and close the file. */
-			if (_buffers[0]._should_run) {
+			if (_buffers[0]._should_run || _buffers[1]._should_run) {
 				pthread_cond_wait(&_cv, &_mtx);
 			}
 		}

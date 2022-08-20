@@ -101,7 +101,7 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
 #else
 		.clkgate = false,
 #endif
-		.clksrc  = CLK_SRC_SIRC_DIV2,
+		.clksrc  = CLK_SRC_SPLL_DIV2,
 	},
 	{
 		.clkname = LPSPI0_CLK,
@@ -110,7 +110,7 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
 #else
 		.clkgate = false,
 #endif
-		.clksrc  = CLK_SRC_SIRC_DIV2,
+		.clksrc  = CLK_SRC_SPLL_DIV2,
 	},
 	{
 		.clkname = LPUART0_CLK,
@@ -119,7 +119,7 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
 #else
 		.clkgate = false,
 #endif
-		.clksrc  = CLK_SRC_SIRC_DIV2,
+		.clksrc  = CLK_SRC_SPLL_DIV2,
 	},
 	{
 		.clkname = LPUART1_CLK,
@@ -128,7 +128,7 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
 #else
 		.clkgate = false,
 #endif
-		.clksrc  = CLK_SRC_SIRC_DIV2,
+		.clksrc  = CLK_SRC_SPLL_DIV2,
 	},
 	{
 		.clkname    = RTC0_CLK,

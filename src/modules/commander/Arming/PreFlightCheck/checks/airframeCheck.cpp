@@ -48,7 +48,7 @@ bool PreFlightCheck::airframeCheck(orb_advert_t *mavlink_log_pub, const vehicle_
 	// We no longer support VTOL on fmu-v2, so we need to warn existing users.
 	if (status.is_vtol) {
 		mavlink_log_critical(mavlink_log_pub,
-				     "VTOL is not supported with fmu-v2, see docs.px4.io/master/en/config/firmware.html#bootloader");
+				     "VTOL is not supported with fmu-v2, see docs.px4.io/main/en/config/firmware.html#bootloader");
 		success = false;
 	}
 

@@ -85,8 +85,8 @@ static void usage()
 This driver communicates over UART with the [Roboclaw motor driver](http://downloads.basicmicro.com/docs/roboclaw_user_manual.pdf).
 It performs two tasks:
 
- - Control the motors based on the `actuator_controls_0` UOrb topic.
- - Read the wheel encoders and publish the raw data in the `wheel_encoders` UOrb topic
+- Control the motors based on the `actuator_controls_0` UOrb topic.
+- Read the wheel encoders and publish the raw data in the `wheel_encoders` UOrb topic
 
 In order to use this driver, the Roboclaw should be put into Packet Serial mode (see the linked documentation), and
 your flight controller's UART port should be connected to the Roboclaw as shown in the documentation. For Pixhawk 4,
@@ -109,16 +109,18 @@ the driver terminates immediately.
 
 The command to start this driver is:
 
- $ roboclaw start <device> <baud>
+```
+$ roboclaw start <device> <baud>
+```
 
-`<device>` is the name of the UART port. On the Pixhawk 4, this is `/dev/ttyS3`.
-`<baud>` is te baud rate.
+- `<device>` is the name of the UART port. On the Pixhawk 4, this is `/dev/ttyS3`.
+- `<baud>` is the baud rate.
 
 All available commands are:
 
- - `$ roboclaw start <device> <baud>`
- - `$ roboclaw status`
- - `$ roboclaw stop`
+- `$ roboclaw start <device> <baud>`
+- `$ roboclaw status`
+- `$ roboclaw stop`
 	)DESCR_STR");
 }
 

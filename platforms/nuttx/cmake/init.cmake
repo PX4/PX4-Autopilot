@@ -33,7 +33,7 @@
 
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
 	if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 7)
-		message(FATAL_ERROR "GCC 7 or older no longer supported. https://docs.px4.io/master/en/dev_setup/dev_env.html")
+		message(FATAL_ERROR "GCC 7 or older no longer supported. https://docs.px4.io/main/en/dev_setup/dev_env.html")
 	endif()
 endif()
 

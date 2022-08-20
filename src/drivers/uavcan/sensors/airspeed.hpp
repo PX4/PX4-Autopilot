@@ -38,7 +38,6 @@
 #pragma once
 
 #include "sensor_bridge.hpp"
-#include <drivers/drv_airspeed.h>
 #include <uORB/topics/airspeed.h>
 
 #include <uavcan/equipment/air_data/IndicatedAirspeed.hpp>

@@ -58,8 +58,6 @@ PWMSim::PWMSim(bool hil_mode_enabled) :
 void
 PWMSim::Run()
 {
-	SmartLock lock_guard(_lock);
-
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
@@ -67,6 +65,8 @@ PWMSim::Run()
 		exit_and_cleanup();
 		return;
 	}
+
+	SmartLock lock_guard(_lock);
 
 	_mixing_output.update();
 

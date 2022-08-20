@@ -48,9 +48,10 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_air_data.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -114,6 +115,7 @@ publish_gam_message(const uint8_t *buffer)
 	esc.esc_count = 1;
 	esc.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_PPM;
 
+	esc.esc[0].actuator_function = actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
 	esc.esc[0].esc_rpm = (uint16_t)((msg.rpm_H << 8) | (msg.rpm_L & 0xff)) * 10;
 	esc.esc[0].esc_temperature = static_cast<float>(msg.temperature1 - 20);
 	esc.esc[0].esc_voltage = static_cast<float>((msg.main_voltage_H << 8) | (msg.main_voltage_L & 0xff)) * 0.1F;
@@ -211,7 +213,7 @@ void
 build_gps_response(uint8_t *buffer, size_t *size)
 {
 	/* get a local copy of the battery data */
-	struct vehicle_gps_position_s gps;
+	struct sensor_gps_s gps;
 	memset(&gps, 0, sizeof(gps));
 	orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &gps);
 

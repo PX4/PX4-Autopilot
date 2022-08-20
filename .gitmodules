@@ -36,14 +36,14 @@
 [submodule "Tools/jsbsim_bridge"]
 	path = Tools/jsbsim_bridge
 	url = https://github.com/PX4/px4-jsbsim-bridge.git
-[submodule "src/drivers/uavcan_v1/libcanard"]
-	path = src/drivers/uavcan_v1/libcanard
-	url = https://github.com/UAVCAN/libcanard.git
-[submodule "src/drivers/uavcan_v1/public_regulated_data_types"]
-	path = src/drivers/uavcan_v1/public_regulated_data_types
-	url = https://github.com/UAVCAN/public_regulated_data_types.git
-[submodule "src/drivers/uavcan_v1/legacy_data_types"]
-	path = src/drivers/uavcan_v1/legacy_data_types
+[submodule "src/drivers/cyphal/libcanard"]
+	path = src/drivers/cyphal/libcanard
+	url = https://github.com/opencyphal/libcanard.git
+[submodule "src/drivers/cyphal/public_regulated_data_types"]
+	path = src/drivers/cyphal/public_regulated_data_types
+	url = https://github.com/opencyphal/public_regulated_data_types.git
+[submodule "src/drivers/cyphal/legacy_data_types"]
+	path = src/drivers/cyphal/legacy_data_types
 	url = https://github.com/PX4/public_regulated_data_types.git
 	branch = legacy
 [submodule "src/lib/crypto/monocypher"]

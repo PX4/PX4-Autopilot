@@ -541,7 +541,7 @@ int run_startup_script(const std::string &commands_file, const std::string &abso
 void wait_to_exit()
 {
 	while (!_exit_requested) {
-		// needs to be a regular sleep not dependant on lockstep (not px4_usleep)
+		// needs to be a regular sleep not dependent on lockstep (not px4_usleep)
 		usleep(100000);
 	}
 }

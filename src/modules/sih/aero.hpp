@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -139,12 +139,6 @@ private:
 	matrix::Vector3f _v_S;	// velocity in segment frame
 
 public:
-
-	AeroSeg()
-	{
-		AeroSeg(1.0f, 0.2f, 0.0f, matrix::Vector3f());
-	}
-
 	/** public constructor
 	 * AeroSeg(float span, float mac, float alpha_0_deg, matrix::Vector3f p_B, float dihedral_deg = 0.0f,
 	 * float AR = -1.0f, float cf = 0.0f, float prop_radius=-1.0f, float cl_alpha=2.0f*M_PI_F, float alpha_max_deg=0.0f, float alpha_min_deg=0.0f)
@@ -162,7 +156,7 @@ public:
 	 * alpha_max_deg: maximum angle of attack before stall. Setting to 0 (default) will compute it from a table for flat plate.
 	 * alpha_min_deg: maximum negative angle of attack before stall. Setting to 0 (default) will compute it from a table for flat plate.
 	 */
-	AeroSeg(float span, float mac, float alpha_0_deg, matrix::Vector3f p_B, float dihedral_deg = 0.0f,
+	AeroSeg(float span, float mac, float alpha_0_deg, const matrix::Vector3f &p_B, float dihedral_deg = 0.0f,
 		float AR = -1.0f, float cf = 0.0f, float prop_radius = -1.0f, float cl_alpha = 2.0f * M_PI_F,
 		float alpha_max_deg = 0.0f, float alpha_min_deg = 0.0f)
 	{
@@ -176,7 +170,7 @@ public:
 		_span = span;
 		_mac = mac;
 		_alpha_0 = math::radians(alpha_0_deg);
-		_p_B = matrix::Vector3f(p_B);
+		_p_B = p_B;
 		_ar = (AR <= 0.0f) ? _span / _mac : AR; // setting AR<=0 will compute it from _span and _mac
 		_alpha_eff = 0.0f;
 		_alpha_eff_old = 0.0f;
@@ -207,6 +201,10 @@ public:
 		_prop_radius = prop_radius;
 		_kD = 1.0f / (M_PI_F * K0 * _ar);
 	}
+
+
+	AeroSeg() : AeroSeg(1.0f, 0.2f, 0.0f, matrix::Vector3f())
+	{}
 
 	/** aerodynamic force and moments of a generic flate plate segment
 	 * void update_aero(matrix::Vector3f v_B, matrix::Vector3f w_B, float alt = 0.0f,

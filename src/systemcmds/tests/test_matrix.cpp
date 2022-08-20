@@ -98,8 +98,6 @@ bool MatrixTest::run_tests()
 
 ut_declare_test_c(test_matrix, MatrixTest)
 
-using std::fabs;
-
 bool MatrixTest::attitudeTests()
 {
 	float eps = 1e-6;
@@ -135,10 +133,10 @@ bool MatrixTest::attitudeTests()
 	// quaternion ctor
 	Quatf q0(1, 2, 3, 4);
 	Quatf q(q0);
-	ut_test(fabs(q(0) - 1) < eps);
-	ut_test(fabs(q(1) - 2) < eps);
-	ut_test(fabs(q(2) - 3) < eps);
-	ut_test(fabs(q(3) - 4) < eps);
+	ut_test(std::fabs(q(0) - 1) < eps);
+	ut_test(std::fabs(q(1) - 2) < eps);
+	ut_test(std::fabs(q(2) - 3) < eps);
+	ut_test(std::fabs(q(3) - 4) < eps);
 
 	// quat normalization
 	q.normalize();
@@ -268,17 +266,17 @@ bool MatrixTest::attitudeTests()
 
 	// quaternion inverse
 	q = q_check.inversed();
-	ut_test(fabs(q_check(0) - q(0)) < eps);
-	ut_test(fabs(q_check(1) + q(1)) < eps);
-	ut_test(fabs(q_check(2) + q(2)) < eps);
-	ut_test(fabs(q_check(3) + q(3)) < eps);
+	ut_test(std::fabs(q_check(0) - q(0)) < eps);
+	ut_test(std::fabs(q_check(1) + q(1)) < eps);
+	ut_test(std::fabs(q_check(2) + q(2)) < eps);
+	ut_test(std::fabs(q_check(3) + q(3)) < eps);
 
 	q = q_check;
 	q.invert();
-	ut_test(fabs(q_check(0) - q(0)) < eps);
-	ut_test(fabs(q_check(1) + q(1)) < eps);
-	ut_test(fabs(q_check(2) + q(2)) < eps);
-	ut_test(fabs(q_check(3) + q(3)) < eps);
+	ut_test(std::fabs(q_check(0) - q(0)) < eps);
+	ut_test(std::fabs(q_check(1) + q(1)) < eps);
+	ut_test(std::fabs(q_check(2) + q(2)) < eps);
+	ut_test(std::fabs(q_check(3) + q(3)) < eps);
 
 	// rotate quaternion (nonzero rotation)
 	Quatf qI(1.0f, 0.0f, 0.0f, 0.0f);
@@ -287,10 +285,10 @@ bool MatrixTest::attitudeTests()
 	rot(1) = rot(2) = 0.0f;
 	qI.rotate(rot);
 	Quatf q_true(cosf(1.0f / 2), sinf(1.0f / 2), 0.0f, 0.0f);
-	ut_test(fabs(qI(0) - q_true(0)) < eps);
-	ut_test(fabs(qI(1) - q_true(1)) < eps);
-	ut_test(fabs(qI(2) - q_true(2)) < eps);
-	ut_test(fabs(qI(3) - q_true(3)) < eps);
+	ut_test(std::fabs(qI(0) - q_true(0)) < eps);
+	ut_test(std::fabs(qI(1) - q_true(1)) < eps);
+	ut_test(std::fabs(qI(2) - q_true(2)) < eps);
+	ut_test(std::fabs(qI(3) - q_true(3)) < eps);
 
 	// rotate quaternion (zero rotation)
 	qI = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
@@ -298,33 +296,33 @@ bool MatrixTest::attitudeTests()
 	rot(1) = rot(2) = 0.0f;
 	qI.rotate(rot);
 	q_true = Quatf(cosf(0.0f), sinf(0.0f), 0.0f, 0.0f);
-	ut_test(fabs(qI(0) - q_true(0)) < eps);
-	ut_test(fabs(qI(1) - q_true(1)) < eps);
-	ut_test(fabs(qI(2) - q_true(2)) < eps);
-	ut_test(fabs(qI(3) - q_true(3)) < eps);
+	ut_test(std::fabs(qI(0) - q_true(0)) < eps);
+	ut_test(std::fabs(qI(1) - q_true(1)) < eps);
+	ut_test(std::fabs(qI(2) - q_true(2)) < eps);
+	ut_test(std::fabs(qI(3) - q_true(3)) < eps);
 
 	// get rotation axis from quaternion (nonzero rotation)
 	q = Quatf(cosf(1.0f / 2), 0.0f, sinf(1.0f / 2), 0.0f);
 	rot = matrix::AxisAngle<float>(q);
-	ut_test(fabs(rot(0)) < eps);
-	ut_test(fabs(rot(1) - 1.0f) < eps);
-	ut_test(fabs(rot(2)) < eps);
+	ut_test(std::fabs(rot(0)) < eps);
+	ut_test(std::fabs(rot(1) - 1.0f) < eps);
+	ut_test(std::fabs(rot(2)) < eps);
 
 	// get rotation axis from quaternion (zero rotation)
 	q = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
 	rot = matrix::AxisAngle<float>(q);
-	ut_test(fabs(rot(0)) < eps);
-	ut_test(fabs(rot(1)) < eps);
-	ut_test(fabs(rot(2)) < eps);
+	ut_test(std::fabs(rot(0)) < eps);
+	ut_test(std::fabs(rot(1)) < eps);
+	ut_test(std::fabs(rot(2)) < eps);
 
 	// from axis angle (zero rotation)
 	rot(0) = rot(1) = rot(2) = 0.0f;
 	q = Quaternion<float>(matrix::AxisAngle<float>(rot));
 	q_true = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
-	ut_test(fabs(q(0) - q_true(0)) < eps);
-	ut_test(fabs(q(1) - q_true(1)) < eps);
-	ut_test(fabs(q(2) - q_true(2)) < eps);
-	ut_test(fabs(q(3) - q_true(3)) < eps);
+	ut_test(std::fabs(q(0) - q_true(0)) < eps);
+	ut_test(std::fabs(q(1) - q_true(1)) < eps);
+	ut_test(std::fabs(q(2) - q_true(2)) < eps);
+	ut_test(std::fabs(q(3) - q_true(3)) < eps);
 
 	return true;
 }
@@ -435,7 +433,7 @@ bool MatrixTest::matrixAssignmentTests()
 
 	for (size_t i = 0; i < 3; i++) {
 		for (size_t j = 0; j < 3; j++) {
-			ut_test(fabs(data[i * 3 + j] - m2(i, j)) < eps);
+			ut_test(std::fabs(data[i * 3 + j] - m2(i, j)) < eps);
 		}
 	}
 
@@ -481,13 +479,13 @@ bool MatrixTest::matrixAssignmentTests()
 	m4.swapCols(0, 2);
 	m4.swapRows(0, 2);
 	ut_test(isEqual(m4, Matrix3f(data_row_02_swap)));
-	ut_test(fabs(m4.min() - 1) < 1e-5);
+	ut_test(std::fabs(m4.min() - 1) < 1e-5);
 
 	Scalar<float> s = 1;
-	ut_test(fabs(s - 1) < 1e-5);
+	ut_test(std::fabs(s - 1) < 1e-5);
 
 	Matrix<float, 1, 1> m5 = s;
-	ut_test(fabs(m5(0, 0) - s) < 1e-5);
+	ut_test(std::fabs(m5(0, 0) - s) < 1e-5);
 
 	Matrix<float, 2, 2> m6;
 	m6.row(0) = Vector2f(1, 1);
@@ -543,10 +541,10 @@ bool MatrixTest::setIdentityTests()
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
 			if (i == j) {
-				ut_test(fabs(A(i, j) -  1) < 1e-7);
+				ut_test(std::fabs(A(i, j) -  1) < 1e-7);
 
 			} else {
-				ut_test(fabs(A(i, j) -  0) < 1e-7);
+				ut_test(std::fabs(A(i, j) -  0) < 1e-7);
 			}
 		}
 	}
@@ -633,9 +631,9 @@ bool MatrixTest::vectorTests()
 	float data1[] = {1, 2, 3, 4, 5};
 	float data2[] = {6, 7, 8, 9, 10};
 	Vector<float, 5> v1(data1);
-	ut_test(fabs(v1.norm() - 7.416198487095663f) < 1e-5);
+	ut_test(std::fabs(v1.norm() - 7.416198487095663f) < 1e-5);
 	Vector<float, 5> v2(data2);
-	ut_test(fabs(v1.dot(v2) - 130.0f) < 1e-5);
+	ut_test(std::fabs(v1.dot(v2) - 130.0f) < 1e-5);
 	v2.normalize();
 	Vector<float, 5> v3(v2);
 	ut_test(isEqual(v2, v3));
@@ -650,26 +648,26 @@ bool MatrixTest::vector2Tests()
 {
 	Vector2f a(1, 0);
 	Vector2f b(0, 1);
-	ut_test(fabs(a % b - 1.0f) < 1e-5);
+	ut_test(std::fabs(a % b - 1.0f) < 1e-5);
 
 	Vector2f c;
-	ut_test(fabs(c(0) - 0) < 1e-5);
-	ut_test(fabs(c(1) - 0) < 1e-5);
+	ut_test(std::fabs(c(0) - 0) < 1e-5);
+	ut_test(std::fabs(c(1) - 0) < 1e-5);
 
 	static Matrix<float, 2, 1> d(a);
 	// the static keywork is a workaround for an internal bug of GCC
 	// "internal compiler error: in trunc_int_for_mode, at explow.c:55"
-	ut_test(fabs(d(0, 0) - 1) < 1e-5);
-	ut_test(fabs(d(1, 0) - 0) < 1e-5);
+	ut_test(std::fabs(d(0, 0) - 1) < 1e-5);
+	ut_test(std::fabs(d(1, 0) - 0) < 1e-5);
 
 	Vector2f e(d);
-	ut_test(fabs(e(0) - 1) < 1e-5);
-	ut_test(fabs(e(1) - 0) < 1e-5);
+	ut_test(std::fabs(e(0) - 1) < 1e-5);
+	ut_test(std::fabs(e(1) - 0) < 1e-5);
 
 	float data[] = {4, 5};
 	Vector2f f(data);
-	ut_test(fabs(f(0) - 4) < 1e-5);
-	ut_test(fabs(f(1) - 5) < 1e-5);
+	ut_test(std::fabs(f(0) - 4) < 1e-5);
+	ut_test(std::fabs(f(1) - 5) < 1e-5);
 	return true;
 }
 
@@ -699,20 +697,20 @@ bool MatrixTest::vectorAssignmentTests()
 
 	static const float eps = 1e-7f;
 
-	ut_test(fabsf(v(0) - 1) < eps);
-	ut_test(fabsf(v(1) - 2) < eps);
-	ut_test(fabsf(v(2) - 3) < eps);
+	ut_test(std::fabs(v(0) - 1) < eps);
+	ut_test(std::fabs(v(1) - 2) < eps);
+	ut_test(std::fabs(v(2) - 3) < eps);
 
 	Vector3f v2(4, 5, 6);
 
-	ut_test(fabsf(v2(0) - 4) < eps);
-	ut_test(fabsf(v2(1) - 5) < eps);
-	ut_test(fabsf(v2(2) - 6) < eps);
+	ut_test(std::fabs(v2(0) - 4) < eps);
+	ut_test(std::fabs(v2(1) - 5) < eps);
+	ut_test(std::fabs(v2(2) - 6) < eps);
 
 	SquareMatrix<float, 3> m = diag(Vector3f(1, 2, 3));
-	ut_test(fabsf(m(0, 0) - 1) < eps);
-	ut_test(fabsf(m(1, 1) - 2) < eps);
-	ut_test(fabsf(m(2, 2) - 3) < eps);
+	ut_test(std::fabs(m(0, 0) - 1) < eps);
+	ut_test(std::fabs(m(1, 1) - 2) < eps);
+	ut_test(std::fabs(m(2, 2) - 3) < eps);
 
 	return true;
 }

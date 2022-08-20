@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -72,8 +72,8 @@ private:
 
 			if (_sensor_baro_sub.copy(&sensor_baro)) {
 				msg.time_boot_ms = sensor_baro.timestamp / 1000;
-				msg.press_abs = sensor_baro.pressure; // millibar to hPa
-				msg.temperature = roundf(sensor_baro.temperature * 100.f); // centidegrees
+				msg.press_abs = sensor_baro.pressure * 0.01f; // Pa to hPa
+				msg.temperature = roundf(sensor_baro.temperature * 100.f); // cdegC (centidegrees)
 			}
 
 			differential_pressure_s differential_pressure;
@@ -83,8 +83,8 @@ private:
 					msg.time_boot_ms = differential_pressure.timestamp / 1000;
 				}
 
-				msg.press_diff = differential_pressure.differential_pressure_raw_pa * 100.f; // Pa to hPa
-				msg.temperature_press_diff = roundf(differential_pressure.temperature * 100.f); // centidegrees
+				msg.press_diff = differential_pressure.differential_pressure_pa * 0.01f; // Pa to hPa
+				msg.temperature_press_diff = roundf(differential_pressure.temperature * 100.f); // cdegC (centidegrees)
 			}
 
 			mavlink_msg_scaled_pressure_send_struct(_mavlink->get_channel(), &msg);

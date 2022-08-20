@@ -41,6 +41,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include <matrix/matrix/math.hpp>
 
 enum class AllocationMethod {
@@ -72,6 +74,15 @@ public:
 
 	static constexpr int NUM_ACTUATORS = 16;
 	static constexpr int NUM_AXES = 6;
+
+	enum ControlAxis {
+		ROLL = 0,
+		PITCH,
+		YAW,
+		THRUST_X,
+		THRUST_Y,
+		THRUST_Z
+	};
 
 	static constexpr int MAX_NUM_MATRICES = 2;
 

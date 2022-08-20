@@ -4,7 +4,7 @@ project(googletest-download NONE)
 
 include(ExternalProject)
 ExternalProject_Add(googletest
-	URL https://github.com/google/googletest/archive/8b6d3f9c4a774bef3081195d422993323b6bb2e0.zip
+	URL https://github.com/google/googletest/archive/58d77fa8070e8cec2dc1ed015d66b454c8d78850.zip # 1.12.1
 	SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/googletest-src"
 	BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/googletest-build"
 	CONFIGURE_COMMAND ""

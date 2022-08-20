@@ -120,6 +120,20 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 
 		case Type::Custom:
 			break;
+
+		case Type::LeftATail:
+			break;
+
+		case Type::RightATail:
+			break;
+
+		case Type::SingleChannelAileron:
+			break;
+
+		case Type::SteeringWheel:
+			torque.setZero();
+			break;
+
 		}
 	}
 }
@@ -137,8 +151,8 @@ bool ActuatorEffectivenessControlSurfaces::addActuators(Configuration &configura
 	return true;
 }
 
-void ActuatorEffectivenessControlSurfaces::applyFlapsAndAirbrakes(float flaps_control, float airbrakes_control,
-		int first_actuator_idx,
+void ActuatorEffectivenessControlSurfaces::applyFlapsAirbrakesWheel(float flaps_control, float airbrakes_control,
+		float wheel_control, int first_actuator_idx,
 		ActuatorVector &actuator_sp) const
 {
 	for (int i = 0; i < _count; ++i) {
@@ -154,6 +168,10 @@ void ActuatorEffectivenessControlSurfaces::applyFlapsAndAirbrakes(float flaps_co
 
 		case ActuatorEffectivenessControlSurfaces::Type::Airbrakes:
 			actuator_sp(i + first_actuator_idx) += airbrakes_control;
+			break;
+
+		case ActuatorEffectivenessControlSurfaces::Type::SteeringWheel:
+			actuator_sp(i + first_actuator_idx) += wheel_control;
 			break;
 
 		default:

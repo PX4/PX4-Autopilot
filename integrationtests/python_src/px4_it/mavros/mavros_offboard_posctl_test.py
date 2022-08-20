@@ -73,7 +73,7 @@ class MavrosOffboardPosctlTest(MavrosTestCommon):
         self.pos_setpoint_pub = rospy.Publisher(
             'mavros/setpoint_position/local', PoseStamped, queue_size=1)
 
-        # send setpoints in seperate thread to better prevent failsafe
+        # send setpoints in separate thread to better prevent failsafe
         self.pos_thread = Thread(target=self.send_pos, args=())
         self.pos_thread.daemon = True
         self.pos_thread.start()

@@ -38,7 +38,7 @@
 #include <uavcan/equipment/ahrs/MagneticFieldStrength2.hpp>
 
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/sensor_mag.h>
+#include <uORB/topics/vehicle_magnetometer.h>
 
 namespace uavcannode
 {
@@ -51,7 +51,7 @@ class MagneticFieldStrength2 :
 public:
 	MagneticFieldStrength2(px4::WorkItem *work_item, uavcan::INode &node) :
 		UavcanPublisherBase(uavcan::equipment::ahrs::MagneticFieldStrength2::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_mag)),
+		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(vehicle_magnetometer)),
 		uavcan::Publisher<uavcan::equipment::ahrs::MagneticFieldStrength2>(node)
 	{
 		this->setPriority(uavcan::TransferPriority::Default);
@@ -69,15 +69,15 @@ public:
 
 	void BroadcastAnyUpdates() override
 	{
-		// sensor_mag -> uavcan::equipment::ahrs::MagneticFieldStrength2
-		sensor_mag_s mag;
+		// vehicle_magnetometer -> uavcan::equipment::ahrs::MagneticFieldStrength2
+		vehicle_magnetometer_s vehicle_magnetometer;
 
-		if (uORB::SubscriptionCallbackWorkItem::update(&mag)) {
+		if (uORB::SubscriptionCallbackWorkItem::update(&vehicle_magnetometer)) {
 			uavcan::equipment::ahrs::MagneticFieldStrength2 magnetic_field{};
-			magnetic_field.sensor_id = mag.device_id;
-			magnetic_field.magnetic_field_ga[0] = mag.x;
-			magnetic_field.magnetic_field_ga[1] = mag.y;
-			magnetic_field.magnetic_field_ga[2] = mag.z;
+			magnetic_field.sensor_id = uORB::SubscriptionCallbackWorkItem::get_instance();
+			magnetic_field.magnetic_field_ga[0] = vehicle_magnetometer.magnetometer_ga[0];
+			magnetic_field.magnetic_field_ga[1] = vehicle_magnetometer.magnetometer_ga[1];
+			magnetic_field.magnetic_field_ga[2] = vehicle_magnetometer.magnetometer_ga[2];
 			uavcan::Publisher<uavcan::equipment::ahrs::MagneticFieldStrength2>::broadcast(magnetic_field);
 
 			// ensure callback is registered

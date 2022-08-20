@@ -46,6 +46,7 @@
 #include <matrix/matrix/math.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/landing_gear.h>
+#include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -54,7 +55,6 @@
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/home_position.h>
 #include <lib/geo/geo.h>
-#include <lib/weather_vane/WeatherVane.hpp>
 
 struct ekf_reset_counters_s {
 	uint8_t xy;
@@ -81,7 +81,7 @@ public:
 	 * @param last_setpoint last output of the previous task
 	 * @return true on success, false on error
 	 */
-	virtual bool activate(const vehicle_local_position_setpoint_s &last_setpoint);
+	virtual bool activate(const trajectory_setpoint_s &last_setpoint);
 
 	/**
 	 * Call this to reset an active Flight Task
@@ -112,7 +112,7 @@ public:
 	 * Get the output data
 	 * @return task output setpoints that get executed by the positon controller
 	 */
-	const vehicle_local_position_setpoint_s getPositionSetpoint();
+	const trajectory_setpoint_s getTrajectorySetpoint();
 
 	const ekf_reset_counters_s getResetCounters() const { return _reset_counters; }
 	void setResetCounters(const ekf_reset_counters_s &counters) { _reset_counters = counters; }
@@ -141,7 +141,7 @@ public:
 	 * Empty setpoint.
 	 * All setpoints are set to NAN.
 	 */
-	static const vehicle_local_position_setpoint_s empty_setpoint;
+	static const trajectory_setpoint_s empty_setpoint;
 
 	/**
 	 * Empty constraints.
@@ -162,11 +162,6 @@ public:
 		updateParams();
 	}
 
-	/**
-	 * Sets an external yaw handler which can be used by any flight task to implement a different yaw control strategy.
-	 * This method does nothing, each flighttask which wants to use the yaw handler needs to override this method.
-	 */
-	virtual void setYawHandler(WeatherVane *ext_yaw_handler) {}
 	virtual void overrideCruiseSpeed(const float cruise_speed_m_s) {}
 
 	void updateVelocityControllerFeedback(const matrix::Vector3f &vel_sp,
@@ -225,8 +220,8 @@ protected:
 
 	float _yaw{}; /**< current vehicle yaw heading */
 	bool _is_yaw_good_for_control{}; /**< true if the yaw estimate can be used for yaw control */
-	float _dist_to_bottom{}; /**< current height above ground level */
-	float _dist_to_ground{}; /**< equals _dist_to_bottom if valid, height above home otherwise */
+	float _dist_to_bottom{}; /**< current height above ground level if dist_bottom is valid */
+	float _dist_to_ground{}; /**< equals _dist_to_bottom if available, height above home otherwise */
 
 	/**
 	 * Setpoints which the position controller has to execute.

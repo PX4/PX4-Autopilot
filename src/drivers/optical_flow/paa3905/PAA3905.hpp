@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file paa3905.hpp
+ * @file PAA3905.hpp
  *
- * Driver for the Pixart paa3905 optical flow sensors connected via SPI.
+ * Driver for the PAA3905E1-Q: Optical Motion Tracking Chip
  */
 
 #pragma once
@@ -48,16 +48,15 @@
 #include <drivers/device/spi.h>
 #include <conversion/rotation.h>
 #include <lib/perf/perf_counter.h>
-#include <lib/parameters/param.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/sensor_optical_flow.h>
 
 using namespace time_literals;
 using namespace PixArt_PAA3905;
 
-#define DIR_WRITE(a) ((a) | (1 << 7))
-#define DIR_READ(a) ((a) & 0x7f)
+#define DIR_WRITE(a) ((a) | Bit7)
+#define DIR_READ(a) ((a) & 0x7F)
 
 class PAA3905 : public device::SPI, public I2CSPIDriver<PAA3905>
 {
@@ -78,59 +77,61 @@ private:
 
 	int probe() override;
 
+	void Reset();
+
 	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
 	void DataReady();
 	bool DataReadyInterruptConfigure();
 	bool DataReadyInterruptDisable();
 
-	uint8_t	RegisterRead(uint8_t reg, int retries = 2);
+	uint8_t RegisterRead(uint8_t reg);
 	void RegisterWrite(uint8_t reg, uint8_t data);
-	bool RegisterWriteVerified(uint8_t reg, uint8_t data, int retries = 1);
-
-	void EnableLed();
-
-	void StandardDetectionSetting();
-	void EnhancedDetectionMode();
-	void ModeAuto012();
-
-	void CheckMode();
 
 	void Configure();
 
-	void ResetAccumulatedData();
+	void ConfigureAutomaticModeSwitching();
 
-	uORB::PublicationMulti<optical_flow_s> _optical_flow_pub{ORB_ID(optical_flow)};
+	void ConfigureModeBright();
+	void ConfigureModeLowLight();
+	void ConfigureModeSuperLowLight();
 
-	perf_counter_t	_sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
-	perf_counter_t	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
-	perf_counter_t	_comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com err")};
-	perf_counter_t	_false_motion_perf{perf_alloc(PC_COUNT, MODULE_NAME": false motion report")};
-	perf_counter_t	_register_write_fail_perf{perf_alloc(PC_COUNT, MODULE_NAME": verified register write failed")};
+	void ConfigureStandardDetectionSetting();
+	void ConfigureEnhancedDetectionMode();
 
-	static constexpr uint64_t COLLECT_TIME{15000}; // 15 milliseconds, optical flow data publish rate
+	void EnableLed();
+
+	bool UpdateMode(const uint8_t observation);
+
+	uORB::PublicationMulti<sensor_optical_flow_s> _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
+
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
+	perf_counter_t _false_motion_perf{perf_alloc(PC_COUNT, MODULE_NAME": false motion report")};
+	perf_counter_t _mode_change_bright_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change bright (0)")};
+	perf_counter_t _mode_change_low_light_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change low light (1)")};
+	perf_counter_t _mode_change_super_low_light_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change super low light (2)")};
+	perf_counter_t _no_motion_interrupt_perf{nullptr};
 
 	const spi_drdy_gpio_t _drdy_gpio;
 
-	uint64_t _previous_collect_timestamp{0};
-	uint64_t _flow_dt_sum_usec{0};
-	uint8_t _flow_sample_counter{0};
-	uint16_t _flow_quality_sum{0};
+	matrix::Dcmf _rotation;
 
-	matrix::Dcmf	_rotation;
+	int _discard_reading{3};
 
-	int             _discard_reading{3};
+	Mode _mode{Mode::LowLight};
 
-	int		_flow_sum_x{0};
-	int		_flow_sum_y{0};
+	uint32_t _scheduled_interval_us{SAMPLE_INTERVAL_MODE_0};
 
-	Mode		_mode{Mode::LowLight};
-
-	uint32_t _scheduled_interval_us{SAMPLE_INTERVAL_MODE_1};
-
-	int _valid_count{0};
-
+	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
 
-	hrt_abstime _last_good_publish{0};
+	hrt_abstime _last_write_time{0};
+	hrt_abstime _last_read_time{0};
+
+	// force reset if there hasn't been valid data for an extended period (sensor could be in a bad state)
+	static constexpr hrt_abstime RESET_TIMEOUT_US = 3_s;
+
+	hrt_abstime _last_good_data{0};
 	hrt_abstime _last_reset{0};
 };

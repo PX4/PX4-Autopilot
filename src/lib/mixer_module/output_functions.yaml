@@ -9,7 +9,7 @@ functions:
 
     Motor:
       start: 101
-      count: 8
+      count: 12
     Servo:
       start: 201
       count: 8

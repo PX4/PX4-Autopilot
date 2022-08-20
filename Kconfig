@@ -51,6 +51,13 @@ menu "Toolchain"
         string "Architecture"
         default ""
 
+    config BOARD_LTO
+        bool "(EXPERIMENTAL) Link Time Optimization (LTO)"
+        default n
+        help
+            Enables LTO flag in linker
+            Note: Highly EXPERIMENTAL, furthermore make sure you're using a modern compiler GCC 9 or later
+
     config BOARD_FULL_OPTIMIZATION
         bool "Full optmization (O3)"
         default n

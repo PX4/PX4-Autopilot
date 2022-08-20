@@ -76,9 +76,6 @@ void RTL::on_inactivation()
 
 void RTL::on_inactive()
 {
-	// Reset RTL state.
-	_rtl_state = RTL_STATE_NONE;
-
 	// Limit inactive calculation to 1Hz
 	if ((hrt_absolute_time() - _destination_check_time) > 1_s) {
 		_destination_check_time = hrt_absolute_time();
@@ -87,7 +84,7 @@ void RTL::on_inactive()
 			find_RTL_destination();
 		}
 
-		calc_and_pub_rtl_time_estimate();
+		calc_and_pub_rtl_time_estimate(RTLState::RTL_STATE_NONE);
 	}
 }
 
@@ -235,14 +232,13 @@ void RTL::find_RTL_destination()
 		_rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
 
 	} else {
-		_rtl_alt = max(global_position.alt, max(_destination.alt,
-							_navigator->get_home_position()->alt + _param_rtl_return_alt.get()));
+		_rtl_alt = max(global_position.alt, _destination.alt + _param_rtl_return_alt.get());
 	}
 }
 
 void RTL::on_activation()
 {
-	setClimbAndReturnDone(false);
+	_rtl_state = RTL_STATE_NONE;
 
 	// if a mission landing is desired we should only execute mission navigation mode if we currently are in fw mode
 	// In multirotor mode no landing pattern is required so we can just navigate to the land point directly and don't need to run mission
@@ -276,9 +272,9 @@ void RTL::on_activation()
 		_rtl_state = RTL_STATE_LANDED;
 
 	} else if ((_destination.type == RTL_DESTINATION_MISSION_LANDING) && _navigator->getMissionLandingInProgress()) {
-		// we were just on a mission landing, set _rtl_state past RTL_STATE_RETURN such that navigator will engage mission mode,
+		// we were just on a mission landing, set _rtl_state past RTL_STATE_LOITER such that navigator will engage mission mode,
 		// which will continue executing the landing
-		_rtl_state = RTL_STATE_DESCEND;
+		_rtl_state = RTL_STATE_LAND;
 
 
 	} else if ((global_position.alt < _destination.alt + _param_rtl_return_alt.get()) || _rtl_alt_min) {
@@ -291,8 +287,6 @@ void RTL::on_activation()
 		// Otherwise go straight to return
 		_rtl_state = RTL_STATE_RETURN;
 	}
-
-	setClimbAndReturnDone(_rtl_state > RTL_STATE_RETURN);
 
 	// reset cruising speed and throttle to default for RTL
 	_navigator->set_cruising_speed();
@@ -319,7 +313,7 @@ void RTL::on_active()
 	// Limit rtl time calculation to 1Hz
 	if ((hrt_absolute_time() - _destination_check_time) > 1_s) {
 		_destination_check_time = hrt_absolute_time();
-		calc_and_pub_rtl_time_estimate();
+		calc_and_pub_rtl_time_estimate(_rtl_state);
 	}
 }
 
@@ -332,8 +326,7 @@ void RTL::set_rtl_item()
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	const float destination_dist = get_distance_to_next_waypoint(_destination.lat, _destination.lon, gpos.lat, gpos.lon);
-	const float descend_altitude_target = min(_destination.alt + _param_rtl_descend_alt.get(), gpos.alt);
-	const float loiter_altitude = min(descend_altitude_target, _rtl_alt);
+	const float loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), _rtl_alt);
 
 	const RTLHeadingMode rtl_heading_mode = static_cast<RTLHeadingMode>(_param_rtl_hdg_md.get());
 
@@ -430,7 +423,8 @@ void RTL::set_rtl_item()
 				_mission_item.yaw = _destination.yaw;
 			}
 
-			if (_navigator->get_vstatus()->is_vtol) {
+			if (_navigator->get_vstatus()->is_vtol
+			    || _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 				_mission_item.loiter_radius = _rtl_loiter_rad;
 			}
 
@@ -451,13 +445,13 @@ void RTL::set_rtl_item()
 		}
 
 	case RTL_STATE_LOITER: {
-			const bool autoland = (_param_rtl_land_delay.get() > FLT_EPSILON);
+			const bool autocontinue = (_param_rtl_land_delay.get() > FLT_EPSILON);
 
-			if (autoland) {
+			if (autocontinue) {
 				_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs\t",
-						 (double)get_time_inside(_mission_item));
-				events::send<float>(events::ID("rtl_loiter"), events::Log::Info, "RTL: loiter {1:.1}s", get_time_inside(_mission_item));
+						 (double)_param_rtl_land_delay.get());
+				events::send<float>(events::ID("rtl_loiter"), events::Log::Info, "RTL: loiter {1:.1}s", _param_rtl_land_delay.get());
 
 			} else {
 				_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
@@ -480,7 +474,7 @@ void RTL::set_rtl_item()
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = max(_param_rtl_land_delay.get(), 0.0f);
-			_mission_item.autocontinue = autoland;
+			_mission_item.autocontinue = autocontinue;
 			_mission_item.origin = ORIGIN_ONBOARD;
 
 			_navigator->set_can_loiter_at_sp(true);
@@ -617,8 +611,6 @@ void RTL::advance_rtl()
 		break;
 
 	case RTL_STATE_RETURN:
-		setClimbAndReturnDone(true);
-
 		if (vtol_in_fw_mode || descend_and_loiter) {
 			_rtl_state = RTL_STATE_DESCEND;
 
@@ -643,6 +635,7 @@ void RTL::advance_rtl()
 		break;
 
 	case RTL_STATE_LOITER:
+
 		if (vtol_in_fw_mode) {
 			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
 
@@ -717,7 +710,7 @@ float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
 	return max(return_altitude_amsl, gpos.alt);
 }
 
-void RTL::calc_and_pub_rtl_time_estimate()
+void RTL::calc_and_pub_rtl_time_estimate(const RTLState rtl_state)
 {
 	rtl_time_estimate_s rtl_time_estimate{};
 
@@ -732,7 +725,7 @@ void RTL::calc_and_pub_rtl_time_estimate()
 		const vehicle_global_position_s &gpos = *_navigator->get_global_position();
 
 		// Sum up time estimate for various segments of the landing procedure
-		switch (_rtl_state) {
+		switch (rtl_state) {
 		case RTL_STATE_NONE:
 		case RTL_STATE_CLIMB: {
 				// Climb segment is only relevant if the drone is below return altitude
@@ -758,7 +751,7 @@ void RTL::calc_and_pub_rtl_time_estimate()
 				float initial_altitude = 0;
 				float loiter_altitude = 0;
 
-				if (_rtl_state == RTL_STATE_DESCEND) {
+				if (rtl_state == RTL_STATE_DESCEND) {
 					// Take current vehicle altitude as the starting point for calculation
 					initial_altitude = gpos.alt;  // TODO: Check if this is in the right frame
 					loiter_altitude = _mission_item.altitude;  // Next waypoint = loiter
@@ -786,7 +779,7 @@ void RTL::calc_and_pub_rtl_time_estimate()
 				float initial_altitude;
 
 				// Add land segment (second landing phase) which comes after LOITER
-				if (_rtl_state == RTL_STATE_LAND) {
+				if (rtl_state == RTL_STATE_LAND) {
 					// If we are in this phase, use the current vehicle altitude  instead
 					// of the altitude paramteter to get a continous time estimate
 					initial_altitude = gpos.alt;

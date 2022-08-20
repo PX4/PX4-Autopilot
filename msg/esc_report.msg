@@ -8,6 +8,8 @@ uint8 esc_address					# Address of current ESC (in most cases 1-8 / must be set 
 
 uint8 esc_state					# State of ESC - depend on Vendor
 
+uint8 actuator_function				# actuator output function (one of Motor1...MotorN)
+
 uint16 failures					# Bitmask to indicate the internal ESC faults
 
 uint8 FAILURE_OVER_CURRENT = 0 			# (1 << 0)

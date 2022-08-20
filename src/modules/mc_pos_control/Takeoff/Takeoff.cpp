@@ -39,14 +39,14 @@
 #include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 
-void Takeoff::generateInitialRampValue(float velocity_p_gain)
+void TakeoffHandling::generateInitialRampValue(float velocity_p_gain)
 {
 	velocity_p_gain = math::max(velocity_p_gain, 0.01f);
 	_takeoff_ramp_vz_init = -CONSTANTS_ONE_G / velocity_p_gain;
 }
 
-void Takeoff::updateTakeoffState(const bool armed, const bool landed, const bool want_takeoff,
-				 const float takeoff_desired_vz, const bool skip_takeoff, const hrt_abstime &now_us)
+void TakeoffHandling::updateTakeoffState(const bool armed, const bool landed, const bool want_takeoff,
+		const float takeoff_desired_vz, const bool skip_takeoff, const hrt_abstime &now_us)
 {
 	_spoolup_time_hysteresis.set_state_and_update(armed, now_us);
 
@@ -109,7 +109,7 @@ void Takeoff::updateTakeoffState(const bool armed, const bool landed, const bool
 	}
 }
 
-float Takeoff::updateRamp(const float dt, const float takeoff_desired_vz)
+float TakeoffHandling::updateRamp(const float dt, const float takeoff_desired_vz)
 {
 	float upwards_velocity_limit = takeoff_desired_vz;
 

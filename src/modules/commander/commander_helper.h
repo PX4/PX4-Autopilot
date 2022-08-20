@@ -60,8 +60,24 @@ bool is_ground_rover(const vehicle_status_s &current_status);
 int buzzer_init(void);
 void buzzer_deinit(void);
 
-void set_tune_override(int tune);
-void set_tune(int tune);
+/**
+ * @brief Override tune control and play the given tune
+ */
+void set_tune_override(const int tune_id);
+
+/**
+ * @brief Set the new tune to play under predefined conditions
+ *
+ * Setting a new tune will only be possible for the following 3 cases:
+ *
+ * 1. Current playing tune is non-repeating and has ended
+ * 2. Current playing tune is non-repeating, but the requested tune is also non-repeating, and they are different tunes
+ * 3. Current playing tune is repeating, and the requested tune is different from the current tune
+ *
+ * This is to prevent repeating tunes from overriding single-play tunes.
+ */
+void set_tune(const int tune_id);
+
 void tune_home_set(bool use_buzzer);
 void tune_mission_ok(bool use_buzzer);
 void tune_mission_warn(bool use_buzzer);

@@ -348,8 +348,21 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 
 sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS_BLEND]) const
 {
+	// Use the GPS with the highest weighting as the reference position
+	float best_weight = 0.0f;
+
+	// index of the physical receiver with the lowest reported error
+	uint8_t gps_best_index = 0;
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
+		if (blend_weights[i] > best_weight) {
+			best_weight = blend_weights[i];
+			gps_best_index = i;
+		}
+	}
+
 	// initialise the blended states so we can accumulate the results using the weightings for each GPS receiver.
-	sensor_gps_s gps_blended_state{};
+	sensor_gps_s gps_blended_state{_gps_state[0]}; // start with best GPS for all other misc fields
 	gps_blended_state.eph = FLT_MAX;
 	gps_blended_state.epv = FLT_MAX;
 	gps_blended_state.s_variance_m_s = FLT_MAX;
@@ -361,6 +374,7 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
 		// blend the timing data
 		gps_blended_state.timestamp += (uint64_t)((double)_gps_state[i].timestamp * (double)blend_weights[i]);
+		gps_blended_state.timestamp_sample += (uint64_t)((double)_gps_state[i].timestamp_sample * (double)blend_weights[i]);
 
 		// use the highest status
 		if (_gps_state[i].fix_type > gps_blended_state.fix_type) {
@@ -422,22 +436,6 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 	 * Calculate the instantaneous weighted average location using  available GPS instances and store in  _gps_state.
 	 * This is statistically the most likely location, but may not be stable enough for direct use by the EKF.
 	*/
-
-	// Use the GPS with the highest weighting as the reference position
-	float best_weight = 0.0f;
-
-	// index of the physical receiver with the lowest reported error
-	uint8_t gps_best_index = 0;
-
-	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
-		if (blend_weights[i] > best_weight) {
-			best_weight = blend_weights[i];
-			gps_best_index = i;
-			gps_blended_state.lat = _gps_state[i].lat;
-			gps_blended_state.lon = _gps_state[i].lon;
-			gps_blended_state.alt = _gps_state[i].alt;
-		}
-	}
 
 	// Convert each GPS position to a local NEU offset relative to the reference position
 	Vector2f blended_NE_offset_m{0, 0};

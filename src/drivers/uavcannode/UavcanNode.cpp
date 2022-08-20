@@ -61,6 +61,8 @@ using namespace time_literals;
 namespace uavcannode
 {
 
+
+
 /**
  * @file uavcan_main.cpp
  *
@@ -92,7 +94,8 @@ boot_app_shared_section app_descriptor_t AppDescriptor = {
 
 UavcanNode *UavcanNode::_instance;
 
-UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
+UavcanNode::UavcanNode(CanInitHelper *can_init, uint32_t bitrate, uavcan::ICanDriver &can_driver,
+		       uavcan::ISystemClock &system_clock) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	_node(can_driver, system_clock, _pool_allocator),
 	_time_sync_slave(_node),
@@ -101,6 +104,9 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_reset_timer(_node)
 {
 	int res = pthread_mutex_init(&_node_mutex, nullptr);
+
+	_can = can_init;
+	_bitrate = bitrate;
 
 	if (res < 0) {
 		std::abort();
@@ -158,39 +164,27 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 		return -1;
 	}
 
-	/*
-	 * CAN driver init
-	 * Note that we instantiate and initialize CanInitHelper only once, because the STM32's bxCAN driver
-	 * shipped with libuavcan does not support deinitialization.
-	 */
-	static CanInitHelper *can = nullptr;
+	static CanInitHelper *_can = nullptr;
 
-	if (can == nullptr) {
+	if (_can == nullptr) {
 
-		can = new CanInitHelper();
+		_can = new CanInitHelper();
 
-		if (can == nullptr) {                    // We don't have exceptions so bad_alloc cannot be thrown
+		if (_can == nullptr) {                    // We don't have exceptions so bad_alloc cannot be thrown
 			PX4_ERR("Out of memory");
 			return -1;
-		}
-
-		const int can_init_res = can->init(bitrate);
-
-		if (can_init_res < 0) {
-			PX4_ERR("CAN driver init failed %i", can_init_res);
-			return can_init_res;
 		}
 	}
 
 	// Node init
-	_instance = new UavcanNode(can->driver, UAVCAN_DRIVER::SystemClock::instance());
+	_instance = new UavcanNode(_can, bitrate, _can->driver, UAVCAN_DRIVER::SystemClock::instance());
 
 	if (_instance == nullptr) {
 		PX4_ERR("Out of memory");
 		return -1;
 	}
 
-	const int node_init_res = _instance->init(node_id, can->driver.updateEvent());
+	const int node_init_res = _instance->init(node_id, _can->driver.updateEvent());
 
 	if (node_init_res < 0) {
 		delete _instance;
@@ -330,47 +324,11 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 		subscriber->init();
 	}
 
+	_log_message_sub.registerCallback();
+
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
 
-	int rv = _node.start();
-
-	if (rv < 0) {
-		return rv;
-	}
-
-	// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
-
-	if (node_id == 0) {
-
-		uavcan::DynamicNodeIDClient client(_node);
-
-		int client_start_res = client.start(_node.getHardwareVersion().unique_id,    // USING THE SAME UNIQUE ID AS ABOVE
-						    node_id);
-
-		if (client_start_res < 0) {
-			PX4_ERR("Failed to start the dynamic node ID client");
-			return client_start_res;
-		}
-
-		watchdog_pet(); // If allocation takes too long reboot
-
-		/*
-		 * Waiting for the client to obtain a node ID.
-		 * This may take a few seconds.
-		 */
-
-		while (!client.isAllocationComplete()) {
-			const int res = _node.spin(uavcan::MonotonicDuration::fromMSec(200));    // Spin duration doesn't matter
-
-			if (res < 0) {
-				PX4_ERR("Transient failure: %d", res);
-			}
-		}
-
-		_node.setNodeID(client.getAllocatedNodeID());
-	}
-
-	return rv;
+	return 1;
 }
 
 // Restart handler
@@ -395,6 +353,51 @@ void UavcanNode::Run()
 	watchdog_pet();
 
 	if (!_initialized) {
+
+
+		const int can_init_res = _can->init(_bitrate);
+
+		if (can_init_res < 0) {
+			PX4_ERR("CAN driver init failed %i", can_init_res);
+		}
+
+		int rv = _node.start();
+
+		if (rv < 0) {
+			PX4_ERR("Failed to start the node");
+		}
+
+		// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
+
+		if (_node.getNodeID() == 0) {
+
+			uavcan::DynamicNodeIDClient client(_node);
+
+			int client_start_res = client.start(_node.getHardwareVersion().unique_id,    // USING THE SAME UNIQUE ID AS ABOVE
+							    _node.getNodeID());
+
+			if (client_start_res < 0) {
+				PX4_ERR("Failed to start the dynamic node ID client");
+			}
+
+			watchdog_pet(); // If allocation takes too long reboot
+
+			/*
+			 * Waiting for the client to obtain a node ID.
+			 * This may take a few seconds.
+			 */
+
+			while (!client.isAllocationComplete()) {
+				const int res = _node.spin(uavcan::MonotonicDuration::fromMSec(200));    // Spin duration doesn't matter
+
+				if (res < 0) {
+					PX4_ERR("Transient failure: %d", res);
+				}
+			}
+
+			_node.setNodeID(client.getAllocatedNodeID());
+		}
+
 		up_time = hrt_absolute_time();
 		get_node().setRestartRequestHandler(&restart_request_handler);
 		_param_server.start(&_param_manager);

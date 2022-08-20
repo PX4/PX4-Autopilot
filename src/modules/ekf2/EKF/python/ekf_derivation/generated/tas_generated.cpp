@@ -1,11 +1,11 @@
 // Sub Expressions
 const float HK0 = vn - vwn;
 const float HK1 = ve - vwe;
-const float HK2 = powf(HK0, 2) + powf(HK1, 2) + powf(vd, 2);
-const float HK3 = powf(HK2, -1.0F/2.0F);
+const float HK2 = (HK0)*(HK0) + (HK1)*(HK1) + (vd)*(vd);
+const float HK3 = 1.0F/sqrtf(HK2);
 const float HK4 = HK0*HK3;
 const float HK5 = HK1*HK3;
-const float HK6 = 1.0F/HK2;
+const float HK6 = 1.0F/(HK2);
 const float HK7 = HK0*P(4,6) - HK0*P(6,22) + HK1*P(5,6) - HK1*P(6,23) + P(6,6)*vd;
 const float HK8 = HK1*P(5,23);
 const float HK9 = HK0*P(4,5) - HK0*P(5,22) + HK1*P(5,5) - HK8 + P(5,6)*vd;
@@ -19,28 +19,9 @@ const float HK16 = HK3/(-HK10*HK14 + HK10*HK9 + HK12*HK13 - HK13*HK15 + HK6*HK7*
 
 
 // Observation Jacobians
-Hfusion.at<0>() = 0;
-Hfusion.at<1>() = 0;
-Hfusion.at<2>() = 0;
-Hfusion.at<3>() = 0;
 Hfusion.at<4>() = HK4;
 Hfusion.at<5>() = HK5;
 Hfusion.at<6>() = HK3*vd;
-Hfusion.at<7>() = 0;
-Hfusion.at<8>() = 0;
-Hfusion.at<9>() = 0;
-Hfusion.at<10>() = 0;
-Hfusion.at<11>() = 0;
-Hfusion.at<12>() = 0;
-Hfusion.at<13>() = 0;
-Hfusion.at<14>() = 0;
-Hfusion.at<15>() = 0;
-Hfusion.at<16>() = 0;
-Hfusion.at<17>() = 0;
-Hfusion.at<18>() = 0;
-Hfusion.at<19>() = 0;
-Hfusion.at<20>() = 0;
-Hfusion.at<21>() = 0;
 Hfusion.at<22>() = -HK4;
 Hfusion.at<23>() = -HK5;
 
@@ -70,3 +51,11 @@ Kfusion(20) = HK16*(-HK0*P(20,22) + HK0*P(4,20) - HK1*P(20,23) + HK1*P(5,20) + P
 Kfusion(21) = HK16*(-HK0*P(21,22) + HK0*P(4,21) - HK1*P(21,23) + HK1*P(5,21) + P(6,21)*vd);
 Kfusion(22) = HK15*HK16;
 Kfusion(23) = HK14*HK16;
+
+
+// Predicted observation
+
+
+// Innovation variance
+
+

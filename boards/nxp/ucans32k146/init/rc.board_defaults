@@ -6,4 +6,9 @@
 pwm_out mode_pwm1 start
 
 ifup can0
-uavcan_v1 start
+
+# Start Cyphal when enabled
+if param compare -s CYPHAL_ENABLE 1
+then
+    cyphal start
+fi

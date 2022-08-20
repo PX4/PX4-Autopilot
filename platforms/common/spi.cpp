@@ -47,7 +47,7 @@ void px4_set_spi_buses_from_hw_version()
 #if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
 	int hw_version_revision = board_get_hw_version();
 #else
-	int hw_version_revision = (board_get_hw_version() << 8) | board_get_hw_revision();
+	int hw_version_revision = (board_get_hw_version() << 16) | board_get_hw_revision();
 #endif
 
 
@@ -66,12 +66,12 @@ void px4_set_spi_buses_from_hw_version()
 	}
 }
 
-const px4_spi_bus_t *px4_spi_buses{};
+const px4_spi_bus_t *px4_spi_buses{nullptr};
 #endif
 
 int px4_find_spi_bus(uint32_t devid)
 {
-	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
+	for (int i = 0; px4_spi_buses != nullptr && i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
 		const px4_spi_bus_t &bus_data = px4_spi_buses[i];
 
 		if (bus_data.bus == -1) {

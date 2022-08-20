@@ -126,8 +126,6 @@
         },
         "search.showLineNumbers": true,
         "telemetry.enableTelemetry": false,
-        "terminal.integrated.copyOnSelection": true,
-        "terminal.integrated.rightClickBehavior": "paste",
         "terminal.integrated.scrollback": 5000,
         "window.title": "${dirty} ${activeEditorMedium}${separator}${rootName}",
         "workbench.editor.highlightModifiedTabs": true,

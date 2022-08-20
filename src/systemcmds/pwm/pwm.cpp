@@ -100,12 +100,12 @@ The parameters `-p` and `-r` can be set to a parameter instead of specifying an 
 Note that in OneShot mode, the PWM range [1000, 2000] is automatically mapped to [125, 250].
 
 ### Examples
+
 Set the PWM rate for all channels to 400 Hz:
 $ pwm rate -a -r 400
 
-Test the outputs of eg. channels 1 and 3, and set the PWM value to 1200 us:
-$ pwm arm
-$ pwm test -c 13 -p 1200
+Arm and set the outputs of channels 1 and 3 to a PWM value to 1200 us:
+$ pwm min -c 13 -p 1200
 
 )DESCR_STR");
 

@@ -40,7 +40,7 @@
 #include <unistd.h>
 
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
@@ -80,7 +80,7 @@ bool get_log_time(struct tm *tt, int utc_offset_sec, bool boot_time)
 	bool use_clock_time = true;
 
 	/* Get the latest GPS publication */
-	vehicle_gps_position_s gps_pos;
+	sensor_gps_s gps_pos;
 
 	if (vehicle_gps_position_sub.copy(&gps_pos)) {
 		utc_time_sec = gps_pos.time_utc_usec / 1e6;

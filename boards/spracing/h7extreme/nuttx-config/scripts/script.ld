@@ -239,7 +239,12 @@ SECTIONS
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-	} > sram AT > qspi
+
+		/* Pad out last section as the STM32H7 Flash write size is 256 bits. 32 bytes */
+		. = ALIGN(16);
+		FILL(0xffff)
+		. += 16;
+	} > sram AT > qspi = 0xffff
 
 	.bss : {
 		_sbss = ABSOLUTE(.);

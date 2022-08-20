@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -320,7 +320,7 @@ RCUpdate::map_flight_modes_buttons()
 	}
 
 	// If the functionality is disabled we don't need to map channels
-	const int flightmode_buttons = _param_rc_map_flightmode_buttons.get();
+	const int flightmode_buttons = _param_rc_map_fltm_btn.get();
 
 	if (flightmode_buttons == 0) {
 		return;
@@ -605,7 +605,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 			switches.mode_slot = num_slots;
 		}
 
-	} else if (_param_rc_map_flightmode_buttons.get() > 0) {
+	} else if (_param_rc_map_fltm_btn.get() > 0) {
 		switches.mode_slot = manual_control_switches_s::MODE_SLOT_NONE;
 		bool is_consistent_button_press = false;
 
@@ -629,7 +629,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 			}
 		}
 
-		_button_pressed_hysteresis.set_state_and_update(is_consistent_button_press, hrt_absolute_time());
+		_button_pressed_hysteresis.set_state_and_update(is_consistent_button_press, timestamp_sample);
 
 		if (_button_pressed_hysteresis.get_state()) {
 			switches.mode_slot = _potential_button_press_slot;

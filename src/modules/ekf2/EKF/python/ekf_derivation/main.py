@@ -6,15 +6,11 @@ from code_gen import *
 # q: quaternion describing rotation from frame 1 to frame 2
 # returns a rotation matrix derived form q which describes the same
 # rotation
-def quat2Rot(q):
+def quat2RotSimplified(q):
     q0 = q[0]
     q1 = q[1]
     q2 = q[2]
     q3 = q[3]
-
-    # Rot = Matrix([[q0**2 + q1**2 - q2**2 - q3**2, 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)],
-    #               [2*(q1*q2 + q0*q3), q0**2 - q1**2 + q2**2 - q3**2, 2*(q2*q3 - q0*q1)],
-    #                [2*(q1*q3-q0*q2), 2*(q2*q3 + q0*q1), q0**2 - q1**2 - q2**2 + q3**2]])
 
     # Use the simplified formula for unit quaternion to rotation matrix
     # as it produces a simpler and more stable EKF derivation given
@@ -22,6 +18,18 @@ def quat2Rot(q):
     Rot = Matrix([[1 - 2*q2**2 - 2*q3**2, 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)],
                   [2*(q1*q2 + q0*q3), 1 - 2*q1**2 - 2*q3**2, 2*(q2*q3 - q0*q1)],
                    [2*(q1*q3-q0*q2), 2*(q2*q3 + q0*q1), 1 - 2*q1**2 - 2*q2**2]])
+
+    return Rot
+
+def quat2RotUnSimplified(q):
+    q0 = q[0]
+    q1 = q[1]
+    q2 = q[2]
+    q3 = q[3]
+
+    Rot = Matrix([[q0**2 + q1**2 - q2**2 - q3**2, 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)],
+                  [2*(q1*q2 + q0*q3), q0**2 - q1**2 + q2**2 - q3**2, 2*(q2*q3 - q0*q1)],
+                   [2*(q1*q3-q0*q2), 2*(q2*q3 + q0*q1), q0**2 - q1**2 - q2**2 + q3**2]])
 
     return Rot
 
@@ -93,6 +101,27 @@ def generate_observation_equations(P,state,observation,variance,varname="HK"):
 
     return HK_simple
 
+def generate_observation_equations_innov_var_only(P,state,observation,variance,varname="IV"):
+    H = Matrix([observation]).jacobian(state)
+    innov_var = H * P * H.T + Matrix([variance])
+    assert(innov_var.shape[0] == 1)
+    assert(innov_var.shape[1] == 1)
+    extension="0:1000"
+    var_string = varname+extension
+    IV_simple = cse(Matrix([zeros(24,1), zeros(24,1), observation, innov_var]), symbols(var_string), optimizations='basic')
+
+    return IV_simple
+
+def generate_observation_equations_hk_only(P,state,observation,varname="HK"):
+    H = Matrix([observation]).jacobian(state)
+    K = P * H.T / Symbol("innov_var")
+    extension="0:1000"
+    var_string = varname+extension
+    # optimizations=None produces a set of equations that fits nicely in a for-loop
+    HK_simple = cse(Matrix([H.transpose(), K, observation]), symbols(var_string), optimizations=None)
+
+    return HK_simple
+
 # generate equations for observation vector Jacobian and Kalman gain
 # n_obs is the vector dimension and must be >= 2
 def generate_observation_vector_equations(P,state,observation,variance,n_obs):
@@ -122,7 +151,11 @@ def write_equations_to_file(equations,code_generator_id,n_obs):
         code_generator_id.print_string("Observation Jacobians")
         code_generator_id.write_matrix(Matrix(equations[1][0][0:24]), "Hfusion", False, ".at<", ">()")
         code_generator_id.print_string("Kalman gains")
-        code_generator_id.write_matrix(Matrix(equations[1][0][24:]), "Kfusion", False, "(", ")")
+        code_generator_id.write_matrix(Matrix(equations[1][0][24:48]), "Kfusion", False, "(", ")")
+        code_generator_id.print_string("Predicted observation")
+        code_generator_id.write_matrix(Matrix(equations[1][0][48:49]), "meas_pred")
+        code_generator_id.print_string("Innovation variance")
+        code_generator_id.write_matrix(Matrix(equations[1][0][49:50]), "innov_var", False, "(", ")")
     else:
         code_generator_id.print_string("Sub Expressions")
         code_generator_id.write_subexpressions(equations[0])
@@ -396,6 +429,18 @@ def tas_observation(P,state,vx,vy,vz,wx,wy):
     write_equations_to_file(equations,tas_code_generator,1)
     tas_code_generator.close()
 
+    equations = generate_observation_equations_innov_var_only(P,state,observation,obs_var)
+
+    tas_code_generator = CodeGenerator("./generated/tas_var_generated.cpp")
+    write_equations_to_file(equations,tas_code_generator,1)
+    tas_code_generator.close()
+
+    equations = generate_observation_equations_hk_only(P,state,observation)
+
+    tas_code_generator = CodeGenerator("./generated/tas_hk_generated.cpp")
+    write_equations_to_file(equations,tas_code_generator,1)
+    tas_code_generator.close()
+
     return
 
 # sideslip fusion
@@ -535,7 +580,7 @@ def generate_code():
     # attitude quaternion
     qw, qx, qy, qz = symbols("q0 q1 q2 q3", real=True)
     q = Matrix([qw,qx,qy,qz])
-    R_to_earth = quat2Rot(q)
+    R_to_earth = quat2RotSimplified(q)
     R_to_body = R_to_earth.T
 
     # velocity in NED local frame (north, east, down)
@@ -610,6 +655,11 @@ def generate_code():
     cov_code_generator.write_matrix(Matrix(P_new_simple[1]), "nextP", True, "(", ")")
 
     cov_code_generator.close()
+
+    # Use legacy quaternion to rotation matrix conversion for observaton equation as it gives
+    # simpler equations
+    R_to_earth = quat2RotUnSimplified(q)
+    R_to_body = R_to_earth.T
 
     # derive autocode for observation methods
     print('Generating heading observation code ...')

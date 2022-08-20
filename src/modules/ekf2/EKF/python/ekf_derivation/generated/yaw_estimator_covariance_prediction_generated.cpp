@@ -1,8 +1,8 @@
 // Equations for covariance matrix prediction
 const float S0 = cosf(psi);
-const float S1 = powf(S0, 2);
+const float S1 = (S0)*(S0);
 const float S2 = sinf(psi);
-const float S3 = powf(S2, 2);
+const float S3 = (S2)*(S2);
 const float S4 = S0*dvy + S2*dvx;
 const float S5 = P(0,2) - P(2,2)*S4;
 const float S6 = S0*dvx - S2*dvy;
@@ -17,3 +17,5 @@ _ekf_gsf[model_index].P(1,1) = P(1,1) + P(1,2)*S6 + S1*dvyVar + S3*dvxVar + S6*S
 _ekf_gsf[model_index].P(0,2) = S5;
 _ekf_gsf[model_index].P(1,2) = S9;
 _ekf_gsf[model_index].P(2,2) = P(2,2) + dazVar;
+
+

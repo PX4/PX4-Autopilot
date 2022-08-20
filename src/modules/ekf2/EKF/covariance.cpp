@@ -100,26 +100,26 @@ void Ekf::initialiseCovariance()
 void Ekf::predictCovariance()
 {
 	// assign intermediate state variables
-	const float &q0 = _state.quat_nominal(0);
-	const float &q1 = _state.quat_nominal(1);
-	const float &q2 = _state.quat_nominal(2);
-	const float &q3 = _state.quat_nominal(3);
+	const float q0 = _state.quat_nominal(0);
+	const float q1 = _state.quat_nominal(1);
+	const float q2 = _state.quat_nominal(2);
+	const float q3 = _state.quat_nominal(3);
 
-	const float &dax = _imu_sample_delayed.delta_ang(0);
-	const float &day = _imu_sample_delayed.delta_ang(1);
-	const float &daz = _imu_sample_delayed.delta_ang(2);
+	const float dax = _imu_sample_delayed.delta_ang(0);
+	const float day = _imu_sample_delayed.delta_ang(1);
+	const float daz = _imu_sample_delayed.delta_ang(2);
 
-	const float &dvx = _imu_sample_delayed.delta_vel(0);
-	const float &dvy = _imu_sample_delayed.delta_vel(1);
-	const float &dvz = _imu_sample_delayed.delta_vel(2);
+	const float dvx = _imu_sample_delayed.delta_vel(0);
+	const float dvy = _imu_sample_delayed.delta_vel(1);
+	const float dvz = _imu_sample_delayed.delta_vel(2);
 
-	const float &dax_b = _state.delta_ang_bias(0);
-	const float &day_b = _state.delta_ang_bias(1);
-	const float &daz_b = _state.delta_ang_bias(2);
+	const float dax_b = _state.delta_ang_bias(0);
+	const float day_b = _state.delta_ang_bias(1);
+	const float daz_b = _state.delta_ang_bias(2);
 
-	const float &dvx_b = _state.delta_vel_bias(0);
-	const float &dvy_b = _state.delta_vel_bias(1);
-	const float &dvz_b = _state.delta_vel_bias(2);
+	const float dvx_b = _state.delta_vel_bias(0);
+	const float dvy_b = _state.delta_vel_bias(1);
+	const float dvz_b = _state.delta_vel_bias(2);
 
 	// Use average update interval to reduce accumulated covariance prediction errors due to small single frame dt values
 	const float dt = _dt_ekf_avg;
@@ -142,7 +142,7 @@ void Ekf::predictCovariance()
 	const bool is_manoeuvre_level_high = _ang_rate_magnitude_filt > _params.acc_bias_learn_gyr_lim
 					     || _accel_magnitude_filt > _params.acc_bias_learn_acc_lim;
 
-	const bool do_inhibit_all_axes = (_params.fusion_mode & MASK_INHIBIT_ACC_BIAS)
+	const bool do_inhibit_all_axes = (_params.fusion_mode & SensorFusionMask::INHIBIT_ACC_BIAS)
 					 || is_manoeuvre_level_high
 					 || _fault_status.flags.bad_acc_vertical;
 
@@ -187,7 +187,7 @@ void Ekf::predictCovariance()
 		mag_B_sig = 0.0f;
 	}
 
-	float wind_vel_sig;
+	float wind_vel_nsd_scaled;
 
 	// Calculate low pass filtered height rate
 	float alpha_height_rate_lpf = 0.1f * dt; // 10 seconds time constant
@@ -195,10 +195,10 @@ void Ekf::predictCovariance()
 
 	// Don't continue to grow wind velocity state variances if they are becoming too large or we are not using wind velocity states as this can make the covariance matrix badly conditioned
 	if (_control_status.flags.wind && (P(22,22) + P(23,23)) < sq(_params.initial_wind_uncertainty)) {
-		wind_vel_sig = dt * math::constrain(_params.wind_vel_p_noise, 0.0f, 1.0f) * (1.0f + _params.wind_vel_p_noise_scaler * fabsf(_height_rate_lpf));
+		wind_vel_nsd_scaled = math::constrain(_params.wind_vel_nsd, 0.0f, 1.0f) * (1.0f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
 
 	} else {
-		wind_vel_sig = 0.0f;
+		wind_vel_nsd_scaled = 0.0f;
 	}
 
 	// compute noise variance for stationary processes
@@ -216,7 +216,7 @@ void Ekf::predictCovariance()
 	// body frame magnetic field states
 	process_noise.slice<3, 1>(19, 0) = sq(mag_B_sig);
 	// wind velocity states
-	process_noise.slice<2, 1>(22, 0) = sq(wind_vel_sig);
+	process_noise.slice<2, 1>(22, 0) = sq(wind_vel_nsd_scaled) * dt;
 
 	// assign IMU noise variances
 	// inputs to the system are 3 delta angles and 3 delta velocities
@@ -984,13 +984,24 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		const float down_dvel_bias = _state.delta_vel_bias.dot(Vector3f(_R_to_earth.row(2)));
 
 		// check that the vertical component of accel bias is consistent with both the vertical position and velocity innovation
-		bool bad_acc_bias = (fabsf(down_dvel_bias) > dVel_bias_lim
-				     && ((down_dvel_bias * _gps_vel_innov(2) < 0.0f && _control_status.flags.gps)
-					 || (down_dvel_bias * _ev_vel_innov(2) < 0.0f && _control_status.flags.ev_vel))
-				     && ((down_dvel_bias * _gps_pos_innov(2) < 0.0f && _control_status.flags.gps_hgt)
-					 || (down_dvel_bias * _baro_hgt_innov < 0.0f && _control_status.flags.baro_hgt)
-					 || (down_dvel_bias * _rng_hgt_innov < 0.0f && _control_status.flags.rng_hgt)
-					 || (down_dvel_bias * _ev_pos_innov(2) < 0.0f && _control_status.flags.ev_hgt)));
+		bool bad_acc_bias = false;
+		if (fabsf(down_dvel_bias) > dVel_bias_lim) {
+
+			bool bad_vz_gps = _control_status.flags.gps    && (down_dvel_bias * _aid_src_gnss_vel.innovation[2] < 0.0f);
+			bool bad_vz_ev  = _control_status.flags.ev_vel && (down_dvel_bias * _ev_vel_innov(2) < 0.0f);
+
+			if (bad_vz_gps || bad_vz_ev) {
+				bool bad_z_baro = _control_status.flags.baro_hgt && (down_dvel_bias * _aid_src_baro_hgt.innovation    < 0.0f);
+				bool bad_z_gps  = _control_status.flags.gps_hgt  && (down_dvel_bias * _aid_src_gnss_pos.innovation[2] < 0.0f);
+				bool bad_z_rng  = _control_status.flags.rng_hgt  && (down_dvel_bias * _aid_src_rng_hgt.innovation     < 0.0f);
+				bool bad_z_ev   = _control_status.flags.ev_hgt   && (down_dvel_bias * _ev_pos_innov(2) < 0.0f);
+
+
+				if (bad_z_baro || bad_z_gps || bad_z_rng || bad_z_ev) {
+					bad_acc_bias = true;
+				}
+			}
+		}
 
 		// record the pass/fail
 		if (!bad_acc_bias) {

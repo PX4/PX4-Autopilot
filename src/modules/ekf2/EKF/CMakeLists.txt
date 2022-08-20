@@ -33,7 +33,7 @@
 
 add_library(ecl_EKF
 	airspeed_fusion.cpp
-	baro_bias_estimator.cpp
+	bias_estimator.cpp
 	control.cpp
 	covariance.cpp
 	drag_fusion.cpp
@@ -55,8 +55,8 @@ add_library(ecl_EKF
 	sensor_range_finder.cpp
 	sideslip_fusion.cpp
 	terrain_estimator.cpp
-	utils.cpp
 	vel_pos_fusion.cpp
+	zero_innovation_heading_update.cpp
 	zero_velocity_update.cpp
 )
 

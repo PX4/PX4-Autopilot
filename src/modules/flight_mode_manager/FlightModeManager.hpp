@@ -47,6 +47,7 @@
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/takeoff_status.h>
+#include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -92,7 +93,7 @@ private:
 	void send_vehicle_cmd_do(uint8_t nav_state);
 	void handleCommand();
 	void generateTrajectorySetpoint(const float dt, const vehicle_local_position_s &vehicle_local_position);
-	void limitAltitude(vehicle_local_position_setpoint_s &setpoint, const vehicle_local_position_s &vehicle_local_position);
+	void limitAltitude(trajectory_setpoint_s &setpoint, const vehicle_local_position_s &vehicle_local_position);
 
 	/**
 	 * Switch to a specific task (for normal usage)
@@ -130,7 +131,6 @@ private:
 		FlightTaskIndex index{FlightTaskIndex::None};
 	} _current_task{};
 
-	WeatherVane *_wv_controller{nullptr};
 	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
 	uint8_t _takeoff_state{takeoff_status_s::TAKEOFF_STATE_UNINITIALIZED};
 	int _task_failure_count{0};
@@ -152,7 +152,7 @@ private:
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
-	uORB::Publication<vehicle_local_position_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
+	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
 	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::Publication<vehicle_constraints_s> _vehicle_constraints_pub{ORB_ID(vehicle_constraints)};

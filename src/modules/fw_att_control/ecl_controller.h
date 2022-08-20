@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -61,16 +61,14 @@ struct ECL_ControlData {
 	float roll_setpoint;
 	float pitch_setpoint;
 	float yaw_setpoint;
-	float roll_rate_setpoint;
-	float pitch_rate_setpoint;
-	float yaw_rate_setpoint;
+	float euler_roll_rate_setpoint;
+	float euler_pitch_rate_setpoint;
+	float euler_yaw_rate_setpoint;
 	float airspeed_min;
 	float airspeed_max;
 	float airspeed;
-	float scaler;
 	float groundspeed;
 	float groundspeed_scaler;
-	bool lock_integrator;
 };
 
 class ECL_Controller
@@ -79,9 +77,14 @@ public:
 	ECL_Controller();
 	virtual ~ECL_Controller() = default;
 
+	/**
+	 * @brief Calculates both euler and body rate setpoints. Has different implementations for all body axes.
+	 *
+	 * @param dt Time step [s]
+	 * @param ctrl_data Various control inputs (attitude, body rates, attitdue stepoints, euler rate setpoints, current speeed)
+	 * @return Body rate setpoint [rad/s]
+	 */
 	virtual float control_attitude(const float dt, const ECL_ControlData &ctl_data) = 0;
-	virtual float control_euler_rate(const float dt, const ECL_ControlData &ctl_data, float bodyrate_ff) = 0;
-	virtual float control_bodyrate(const float dt, const ECL_ControlData &ctl_data) = 0;
 
 	/* Setters */
 	void set_time_constant(float time_constant);
@@ -90,12 +93,10 @@ public:
 	void set_k_ff(float k_ff);
 	void set_integrator_max(float max);
 	void set_max_rate(float max_rate);
-	void set_bodyrate_setpoint(float rate);
 
 	/* Getters */
-	float get_rate_error();
-	float get_desired_rate();
-	float get_desired_bodyrate();
+	float get_euler_rate_setpoint();
+	float get_body_rate_setpoint();
 	float get_integrator();
 
 	void reset_integrator();
@@ -110,8 +111,7 @@ protected:
 	float _max_rate;
 	float _last_output;
 	float _integrator;
-	float _rate_error;
-	float _rate_setpoint;
-	float _bodyrate_setpoint;
+	float _euler_rate_setpoint;
+	float _body_rate_setpoint;
 	float constrain_airspeed(float airspeed, float minspeed, float maxspeed);
 };

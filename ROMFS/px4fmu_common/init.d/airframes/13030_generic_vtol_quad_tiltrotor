@@ -7,19 +7,6 @@
 #
 # @maintainer
 #
-# @output MAIN1 motor 1
-# @output MAIN2 motor 2
-# @output MAIN3 motor 3
-# @output MAIN4 motor 4
-# @output AUX1 Motor tilt front left
-# @output AUX2 Motor tilt front right
-# @output AUX3 Motor tilt rear left
-# @output AUX4 Motor tilt rear right
-# @output AUX5 Aileron left
-# @output AUX6 Aileron right
-# @output AUX7 Elevator
-# @output AUX8 Rudder
-#
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
 # @board holybro_kakutef7 exclude
@@ -51,6 +38,8 @@ param set-default CA_ROTOR3_PY 0.15
 param set-default CA_ROTOR3_KM -0.05
 param set-default CA_ROTOR3_TILT 4
 param set-default CA_SV_CS_COUNT 4
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS0_TRQ_R -0.5
 param set-default CA_SV_CS1_TRQ_R 0.5
 param set-default CA_SV_CS1_TYPE 2
 param set-default CA_SV_CS2_TRQ_P 1.0
@@ -59,7 +48,4 @@ param set-default CA_SV_CS3_TRQ_Y 1.0
 param set-default CA_SV_CS3_TYPE 4
 param set-default CA_SV_TL_COUNT 4
 
-set MIXER quad_x
-set MIXER_AUX vtol_TTTTAAER
 
-set PWM_OUT 1234

@@ -28,8 +28,8 @@ table {
 }
 </style>
 
-"""               
-                  )    
+"""
+                  )
 
         for group in groups:
             result += '## %s\n\n' % group.GetName()
@@ -37,7 +37,7 @@ table {
 """<table>
  <colgroup><col style="width: 23%"><col style="width: 46%"><col style="width: 11%"><col style="width: 11%"><col style="width: 9%"></colgroup>
  <thead>
-   <tr><th>Name</th><th>Description</th><th>Min > Max (Incr.)</th><th>Default</th><th>Units</th></tr>
+   <tr><th>Name</th><th>Description</th><th>[Min, Max] (Incr.)</th><th>Default</th><th>Units</th></tr>
  </thead>
 <tbody>
 """
@@ -68,7 +68,7 @@ table {
                         min_val='?'
                     if not max_val:
                         max_val='?'
-                    max_min_combined+='%s > %s ' % (min_val, max_val)
+                    max_min_combined+='[%s, %s] ' % (min_val, max_val)
                 if increment:
                     max_min_combined+='(%s)' % increment
 

@@ -52,7 +52,6 @@ TEST(PositionControlTest, EmptySetpoint)
 	EXPECT_FLOAT_EQ(output_setpoint.vy, 0.f);
 	EXPECT_FLOAT_EQ(output_setpoint.vz, 0.f);
 	EXPECT_EQ(Vector3f(output_setpoint.acceleration), Vector3f(0.f, 0.f, 0.f));
-	EXPECT_EQ(Vector3f(output_setpoint.jerk), Vector3f(0.f, 0.f, 0.f));
 	EXPECT_EQ(Vector3f(output_setpoint.thrust), Vector3f(0, 0, 0));
 
 	vehicle_attitude_setpoint_s attitude{};
@@ -63,9 +62,7 @@ TEST(PositionControlTest, EmptySetpoint)
 	EXPECT_FLOAT_EQ(attitude.yaw_sp_move_rate, 0.f);
 	EXPECT_EQ(Quatf(attitude.q_d), Quatf(1.f, 0.f, 0.f, 0.f));
 	EXPECT_EQ(Vector3f(attitude.thrust_body), Vector3f(0.f, 0.f, 0.f));
-	EXPECT_EQ(attitude.roll_reset_integral, false);
-	EXPECT_EQ(attitude.pitch_reset_integral, false);
-	EXPECT_EQ(attitude.yaw_reset_integral, false);
+	EXPECT_EQ(attitude.reset_rate_integrals, false);
 	EXPECT_EQ(attitude.fw_control_yaw, false);
 	EXPECT_FLOAT_EQ(attitude.apply_flaps, 0.f);//vehicle_attitude_setpoint_s::FLAPS_OFF); // TODO why no reference?
 }

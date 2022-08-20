@@ -38,7 +38,7 @@
 const char *const UavcanFlowBridge::NAME = "flow";
 
 UavcanFlowBridge::UavcanFlowBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_flow", ORB_ID(optical_flow)),
+	UavcanSensorBridgeBase("uavcan_flow", ORB_ID(sensor_optical_flow)),
 	_sub_flow(node)
 {
 }
@@ -58,23 +58,41 @@ UavcanFlowBridge::init()
 
 void UavcanFlowBridge::flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex::equipment::flow::Measurement> &msg)
 {
-	optical_flow_s flow{};
+	sensor_optical_flow_s flow{};
+	flow.timestamp_sample = hrt_absolute_time(); // TODO
 
-	// We're only given an 8 bit field for sensor ID; just use the UAVCAN node ID
-	flow.sensor_id = msg.getSrcNodeID().get();
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_UAVCAN;
+	device_id.devid_s.bus = 0;
+	device_id.devid_s.devtype = DRV_FLOW_DEVTYPE_UAVCAN;
+	device_id.devid_s.address = msg.getSrcNodeID().get() & 0xFF;
 
-	flow.timestamp = hrt_absolute_time();
-	flow.integration_timespan = 1.e6f * msg.integration_interval; // s -> micros
-	flow.pixel_flow_x_integral = msg.flow_integral[0];
-	flow.pixel_flow_y_integral = msg.flow_integral[1];
+	flow.device_id = device_id.devid;
 
-	flow.gyro_x_rate_integral = msg.rate_gyro_integral[0];
-	flow.gyro_y_rate_integral = msg.rate_gyro_integral[1];
+	flow.pixel_flow[0] = msg.flow_integral[0];
+	flow.pixel_flow[1] = msg.flow_integral[1];
+
+	flow.integration_timespan_us = 1.e6f * msg.integration_interval; // s -> us
 
 	flow.quality = msg.quality;
-	flow.max_flow_rate = 5.0f;       // Datasheet: 7.4 rad/s
-	flow.min_ground_distance = 0.1f; // Datasheet: 80mm
-	flow.max_ground_distance = 30.0f; // Datasheet: infinity
+
+	if (PX4_ISFINITE(msg.rate_gyro_integral[0]) && PX4_ISFINITE(msg.rate_gyro_integral[1])) {
+		flow.delta_angle[0] = msg.rate_gyro_integral[0];
+		flow.delta_angle[1] = msg.rate_gyro_integral[1];
+		flow.delta_angle[2] = 0.f;
+		flow.delta_angle_available = true;
+
+	} else {
+		flow.delta_angle[0] = NAN;
+		flow.delta_angle[1] = NAN;
+		flow.delta_angle[2] = NAN;
+	}
+
+	flow.max_flow_rate = NAN;
+	flow.min_ground_distance = NAN;
+	flow.max_ground_distance = NAN;
+
+	flow.timestamp = hrt_absolute_time();
 
 	publish(msg.getSrcNodeID().get(), &flow);
 }

@@ -1,4 +1,4 @@
-__max_num_mc_motors: &max_num_mc_motors 8
+__max_num_mc_motors: &max_num_mc_motors 12
 __max_num_servos: &max_num_servos 8
 __max_num_tilts: &max_num_tilts 4
 
@@ -27,6 +27,7 @@ parameters:
                 7: Motors (6DOF)
                 8: Multirotor with Tilt
                 9: Custom
+                10: Helicopter
             default: 0
 
         CA_METHOD:
@@ -58,6 +59,10 @@ parameters:
                 5: Motor 6
                 6: Motor 7
                 7: Motor 8
+                8: Motor 9
+                9: Motor 10
+                10: Motor 11
+                11: Motor 12
             default: 0
         CA_R${i}_SLEW:
             description:
@@ -111,6 +116,10 @@ parameters:
                 6: '6'
                 7: '7'
                 8: '8'
+                9: '9'
+                10: '10'
+                11: '11'
+                12: '12'
             default: 0
         CA_ROTOR${i}_PX:
             description:
@@ -246,6 +255,7 @@ parameters:
                 short: Control Surface ${i} type
             type: enum
             values:
+                0: (Not set)
                 1: Left Aileron
                 2: Right Aileron
                 3: Elevator
@@ -258,9 +268,13 @@ parameters:
                 10: Right Flap
                 11: Airbrakes
                 12: Custom
+                13: Left A-tail
+                14: Right A-tail
+                15: Single Channel Aileron
+                16: Steering Wheel
             num_instances: *max_num_servos
             instance_start: 0
-            default: 1
+            default: 0
 
         CA_SV_CS${i}_TRQ_R:
             description:
@@ -370,6 +384,75 @@ parameters:
             instance_start: 0
             default: 0
 
+        # helicopter
+        CA_SP0_COUNT:
+            description:
+                short: Number of swash plates servos
+            type: enum
+            values:
+                3: '3'
+                4: '4'
+            default: 3
+        CA_SP0_ANG${i}:
+            description:
+                short: Angle for swash plate servo ${i}
+            type: float
+            decimal: 0
+            increment: 10
+            unit: deg
+            num_instances: 4
+            min: 0
+            max: 360
+            default: [0, 140, 220, 0]
+        CA_SP0_ARM_L${i}:
+            description:
+                short: Arm length for swash plate servo ${i}
+                long: |
+                  This is relative to the other arm lengths.
+            type: float
+            decimal: 3
+            increment: 0.1
+            num_instances: 4
+            min: 0
+            max: 10
+            default: 1.0
+        CA_HELI_THR_C${i}:
+            description:
+                short: Throttle curve at position ${i}
+                long: |
+                  Defines the output throttle at the interval position ${i}.
+            type: float
+            decimal: 3
+            increment: 0.1
+            num_instances: 5
+            min: 0
+            max: 1
+            default: [0, 0.3, 0.6, 0.8, 1]
+        CA_HELI_PITCH_C${i}:
+            description:
+                short: Collective pitch curve at position ${i}
+                long: |
+                  Defines the collective pitch at the interval position ${i} for a given thrust setpoint.
+            type: float
+            decimal: 3
+            increment: 0.1
+            num_instances: 5
+            min: 0
+            max: 1
+            default: [0.05, 0.15, 0.25, 0.35, 0.45]
+
+        # Others
+        CA_FAILURE_MODE:
+            description:
+                short: Motor failure handling mode
+                long: |
+                    This is used to specify how to handle motor failures
+                    reported by failure detector.
+            type: enum
+            values:
+                0: Ignore
+                1: Remove first failed motor from effectiveness
+            default: 0
 
 # Mixer
 mixer:
@@ -414,6 +497,10 @@ mixer:
         # Convention: horizontal surfaces: up=positive, vertical: right=positive, mixed: up=positive.
         # By default the scale is set to 1/N, where N is the amount of actuators with an effect on
         # the corresponding axis. With that we are using all the available servo moving range.
+            0: # Not set
+              - { 'disabled': True, 'default': 0.0 } # roll
+              - { 'disabled': True, 'default': 0.0 } # pitch
+              - { 'disabled': True, 'default': 0.0 } # yaw
             1: # Left Aileron
               - { 'min': -1.0, 'max': 0.0, 'default': -0.5 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
@@ -446,6 +533,22 @@ mixer:
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
               - { 'min': -1.0, 'max': 0.0, 'default': -0.5 } # yaw
+            13: # Left A Tail
+              - { 'hidden': True, 'default': 0.0 } # roll
+              - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
+              - { 'min': -1.0, 'max': 0.0, 'default': -0.5 } # yaw
+            14: # Right A Tail
+              - { 'hidden': True, 'default': 0.0 } # roll
+              - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
+              - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # yaw
+            15: # Single Channel Aileron
+              - { 'min': 0.0, 'max': 1.0, 'default': 1.0 } # roll
+              - { 'hidden': True, 'default': 0.0 } # pitch
+              - { 'hidden': True, 'default': 0.0 } # yaw
+            16: # Steering Wheel
+              - { 'hidden': True, 'default': 0.0 } # roll
+              - { 'hidden': True, 'default': 0.0 } # pitch
+              - { 'hidden': True, 'default': 0.0 } # yaw
 
       - select_identifier: 'servo-type-tailsitter' # restrict torque based on servo type for tailsitters
         apply_identifiers: ['servo-torque-roll-tailsitter', 'servo-torque-pitch-tailsitter', 'servo-torque-yaw-tailsitter']
@@ -478,6 +581,18 @@ mixer:
                             label: 'Direction CCW'
                             function: 'spin-dir'
                             show_as: 'true-if-positive'
+                          - name: 'CA_ROTOR${i}_AX'
+                            label: 'Axis X'
+                            function: 'axisx'
+                            advanced: true
+                          - name: 'CA_ROTOR${i}_AY'
+                            label: 'Axis Y'
+                            function: 'axisy'
+                            advanced: true
+                          - name: 'CA_ROTOR${i}_AZ'
+                            label: 'Axis Z'
+                            function: 'axisz'
+                            advanced: true
 
             1: # Fixed Wing
                 title: 'Fixed Wing'
@@ -485,9 +600,6 @@ mixer:
                   - actuator_type: 'motor'
                     group_label: 'Motors'
                     count: 'CA_ROTOR_COUNT'
-                    per_item_parameters:
-                        standard:
-                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
                   - actuator_type: 'servo'
                     group_label: 'Control Surfaces'
                     count: 'CA_SV_CS_COUNT'
@@ -759,3 +871,20 @@ mixer:
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
 
+            10: # Helicopter
+                actuators:
+                  - actuator_type: 'motor'
+                    count: 1
+                    item_label_prefix: ['Rotor']
+                  - actuator_type: 'servo'
+                    item_label_prefix: ['Yaw tail servo']
+                    count: 1
+                  - actuator_type: 'servo'
+                    group_label: 'Swash plate servos'
+                    count: 'CA_SP0_COUNT'
+                    per_item_parameters:
+                        extra:
+                          - name: 'CA_SP0_ANG${i}'
+                            label: 'Angle'
+                          - name: 'CA_SP0_ARM_L${i}'
+                            label: 'Arm Length (relative)'

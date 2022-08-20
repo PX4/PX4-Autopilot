@@ -11,7 +11,6 @@
 
 . ${R}etc/init.d/rc.airship_defaults
 
-param set-default SYS_CTRL_ALLOC 1
 param set-default CA_AIRFRAME 9
 
 param set-default CA_ROTOR_COUNT 3
@@ -38,4 +37,3 @@ param set-default PWM_MAIN_FUNC2 102
 param set-default PWM_MAIN_FUNC3 201
 param set-default PWM_MAIN_FUNC4 103
 
-set MIXER skip

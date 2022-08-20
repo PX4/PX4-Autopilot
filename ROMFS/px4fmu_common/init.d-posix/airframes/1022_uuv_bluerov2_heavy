@@ -8,7 +8,6 @@
 # disable circuit breaker for airspeed sensor
 param set-default CBRK_AIRSPD_CHK 162128
 
-param set-default SYS_CTRL_ALLOC 1
 param set-default CA_AIRFRAME 7
 
 param set-default CA_ROTOR_COUNT 8
@@ -66,4 +65,3 @@ param set-default PWM_MAIN_FUNC6 106
 param set-default PWM_MAIN_FUNC7 107
 param set-default PWM_MAIN_FUNC8 108
 
-set MIXER skip

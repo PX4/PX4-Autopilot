@@ -36,24 +36,10 @@
 # Prepare flight tasks
 ###########################################
 
-# add upstream flight tasks (they are being handled differently from the core inside the python script)
-list(APPEND flight_tasks_to_add
-	Orbit
-)
-# remove possible duplicates
-list(REMOVE_DUPLICATES flight_tasks_to_add)
-
-# remove flight tasks depending on target
-if(flight_tasks_to_remove)
-	list(REMOVE_ITEM flight_tasks_to_add
-		${flight_tasks_to_remove}
-	)
-endif()
-
 # add core flight tasks to list
+set(flight_tasks_all)
 list(APPEND flight_tasks_all
 	Auto
-	AutoFollowMe
 	Descend
 	Failsafe
 	ManualAcceleration
@@ -62,8 +48,14 @@ list(APPEND flight_tasks_all
 	ManualPosition
 	ManualPositionSmoothVel
 	Transition
-	${flight_tasks_to_add}
 )
+
+if(NOT px4_constrained_flash_build)
+	list(APPEND flight_tasks_all
+		AutoFollowTarget
+		Orbit
+	)
+endif()
 
 # set the files to be generated
 set(files_to_generate

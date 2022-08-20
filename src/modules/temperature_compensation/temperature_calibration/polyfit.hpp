@@ -39,8 +39,8 @@ equation of the following form:
 yi = a0 + a1.xi + a2.xi^2 + a3.xi^3 + .... + an.xi^n + ei , where:
 
 i = [0,m]
-xi is the x coordinate (independant variable) of the i'th measurement
-yi is the y coordinate (dependant variable) of the i'th measurement
+xi is the x coordinate (independent variable) of the i'th measurement
+yi is the y coordinate (dependent variable) of the i'th measurement
 ei is a random fit error being the difference between the i'th y coordinate
    and the value predicted by the polynomial.
 

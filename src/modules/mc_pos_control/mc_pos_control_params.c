@@ -242,7 +242,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_V_AUTO_DN, 1.f);
+PARAM_DEFINE_FLOAT(MPC_Z_V_AUTO_DN, 1.5f);
 
 /**
  * Maximum descent velocity
@@ -257,7 +257,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_V_AUTO_DN, 1.f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.f);
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.5f);
 
 /**
  * Proportional gain for horizontal position error
@@ -349,10 +349,13 @@ PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.5f);
 PARAM_DEFINE_FLOAT(MPC_XY_ERR_MAX, 2.0f);
 
 /**
- * Maximum horizontal velocity setpoint for manual controlled mode
+ * Maximum horizontal velocity setpoint in Position mode
  *
  * If velocity setpoint larger than MPC_XY_VEL_MAX is set, then
  * the setpoint will be capped to MPC_XY_VEL_MAX
+ *
+ * The maximum sideways and backward speed can be set differently
+ * using MPC_VEL_MAN_SIDE and MPC_VEL_MAN_BACK, respectively.
  *
  * @unit m/s
  * @min 3.0
@@ -362,6 +365,36 @@ PARAM_DEFINE_FLOAT(MPC_XY_ERR_MAX, 2.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_VEL_MANUAL, 10.0f);
+
+/**
+ * Maximum sideways velocity in Position mode
+ *
+ * If set to a negative value or larger than
+ * MPC_VEL_MANUAL then MPC_VEL_MANUAL is used.
+ *
+ * @unit m/s
+ * @min -1.0
+ * @max 20.0
+ * @increment 0.1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEL_MAN_SIDE, -1.0f);
+
+/**
+ * Maximum backward velocity in Position mode
+ *
+ * If set to a negative value or larger than
+ * MPC_VEL_MANUAL then MPC_VEL_MANUAL is used.
+ *
+ * @unit m/s
+ * @min -1.0
+ * @max 20.0
+ * @increment 0.1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEL_MAN_BACK, -1.0f);
 
 /**
  * Maximum horizontal velocity
@@ -781,22 +814,6 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
 PARAM_DEFINE_INT32(MPC_POS_MODE, 4);
 
 /**
- * Enforced delay between arming and takeoff
- *
- * For altitude controlled modes the time from arming the motors until
- * a takeoff is possible gets forced to be at least MPC_SPOOLUP_TIME seconds
- * to ensure the motors and propellers can sppol up and reach idle speed before
- * getting commanded to spin faster. This delay is particularly useful for vehicles
- * with slow motor spin-up e.g. because of large propellers.
- *
- * @min 0
- * @max 10
- * @unit s
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 1.0f);
-
-/**
  * Yaw mode.
  *
  * Specifies the heading in Auto.
@@ -831,7 +848,7 @@ PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);
 PARAM_DEFINE_FLOAT(SYS_VEHICLE_RESP, -0.4f);
 
 /**
- * Overall Horizonal Velocity Limit
+ * Overall Horizontal Velocity Limit
  *
  * If set to a value greater than zero, other parameters are automatically set (such as
  * MPC_XY_VEL_MAX or MPC_VEL_MANUAL).

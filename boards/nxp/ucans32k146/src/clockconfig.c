@@ -110,7 +110,7 @@ const struct clock_configuration_s g_initial_clkconfig = {
 		{
 			.mode        = SCG_SPLL_MONITOR_DISABLE,         /* SPLLCM */
 			.div1        = SCG_ASYNC_CLOCK_DIV_BY_1,         /* SPLLDIV1 */
-			.div2        = SCG_ASYNC_CLOCK_DIV_BY_1,         /* SPLLDIV2 */
+			.div2        = SCG_ASYNC_CLOCK_DIV_BY_2,         /* SPLLDIV2 */
 			.prediv      = 1,                                /* PREDIV */
 			.mult        = 40,                               /* MULT */
 			.src         = 0,                                /* SOURCE */

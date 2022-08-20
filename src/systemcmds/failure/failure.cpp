@@ -118,9 +118,9 @@ failure gps off
 	}
 }
 
-int inject_failure(uint8_t unit, uint8_t type, uint8_t instance)
+int inject_failure(const FailureUnit& unit, const FailureType& type, uint8_t instance)
 {
-	PX4_WARN("inject failure unit: %s (%d), type: %s (%d), instance: %d", failure_units[unit].key, unit, failure_types[type].key, type, instance);
+	PX4_WARN("inject failure unit: %s (%d), type: %s (%d), instance: %d", unit.key, unit.value, type.key, type.value, instance);
 
 	uORB::Subscription command_ack_sub{ORB_ID(vehicle_command_ack)};
 
@@ -128,8 +128,8 @@ int inject_failure(uint8_t unit, uint8_t type, uint8_t instance)
 	vehicle_command_s command{};
 
 	command.command = vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE;
-	command.param1 = static_cast<float>(unit);
-	command.param2 = static_cast<float>(type);
+	command.param1 = static_cast<float>(unit.value);
+	command.param2 = static_cast<float>(type.value);
 	command.param3 = static_cast<float>(instance);
 	command.timestamp = hrt_absolute_time();
 	command_pub.publish(command);
@@ -139,7 +139,7 @@ int inject_failure(uint8_t unit, uint8_t type, uint8_t instance)
 	while (hrt_elapsed_time(&command.timestamp) < 1_s) {
 		if (command_ack_sub.update(&ack)) {
 			if (ack.command == command.command) {
-				if (ack.result != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
+				if (ack.result != vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
 					PX4_ERR("Result: %d", ack.result);
 					return 1;
 
@@ -214,7 +214,7 @@ extern "C" __EXPORT int failure_main(int argc, char *argv[])
 				continue;
 			}
 
-			return inject_failure(failure_unit.value, failure_type.value, instance);
+			return inject_failure(failure_unit, failure_type, instance);
 		}
 
 		PX4_ERR("Failure type '%s' not found", requested_failure_type);

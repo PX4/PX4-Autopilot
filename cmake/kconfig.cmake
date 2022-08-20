@@ -310,7 +310,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	endif()
 
     if (NO_HELP)
-		add_definitions(-DCONSTRAINED_FLASH_NO_HELP="https://docs.px4.io/master/en/modules/modules_main.html")
+		add_definitions(-DCONSTRAINED_FLASH_NO_HELP="https://docs.px4.io/main/en/modules/modules_main.html")
 	endif()
 
 	if(CONSTRAINED_MEMORY)

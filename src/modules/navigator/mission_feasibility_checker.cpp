@@ -48,10 +48,8 @@
 #include <drivers/drv_pwm_output.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
-#include <lib/landing_slope/Landingslope.hpp>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/position_controller_landing_status.h>
 #include <px4_platform_common/events.h>
 
 bool
@@ -489,6 +487,19 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 		if (missionitem.nav_cmd == NAV_CMD_LAND) {
 			mission_item_s missionitem_previous {};
 
+			float param_fw_lnd_ang = 0.0f;
+			const param_t param_handle_fw_lnd_ang = param_find("FW_LND_ANG");
+
+			if (param_handle_fw_lnd_ang == PARAM_INVALID) {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: FW_LND_ANG parameter is missing.\t");
+				events::send(events::ID("navigator_mis_land_angle_param_missing"), {events::Log::Error, events::LogInternal::Info},
+					     "Mission rejected: FW_LND_ANG parameter is missing");
+				return false;
+
+			} else {
+				param_get(param_handle_fw_lnd_ang, &param_fw_lnd_ang);
+			}
+
 			if (i > 0) {
 				landing_approach_index = i - 1;
 
@@ -499,59 +510,87 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 
 				if (MissionBlock::item_contains_position(missionitem_previous)) {
 
-					uORB::SubscriptionData<position_controller_landing_status_s> landing_status{ORB_ID(position_controller_landing_status)};
+					const float land_alt_amsl = missionitem.altitude_is_relative ? missionitem.altitude +
+								    _navigator->get_home_position()->alt : missionitem.altitude;
+					const float entrance_alt_amsl = missionitem_previous.altitude_is_relative ? missionitem_previous.altitude +
+									_navigator->get_home_position()->alt : missionitem_previous.altitude;
+					const float relative_approach_altitude = entrance_alt_amsl - land_alt_amsl;
 
-					const bool landing_status_valid = (landing_status.get().timestamp > 0);
-					const float wp_distance = get_distance_to_next_waypoint(missionitem_previous.lat, missionitem_previous.lon,
-								  missionitem.lat, missionitem.lon);
+					if (relative_approach_altitude < FLT_EPSILON) {
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+								     "Mission rejected: the approach waypoint must be above the landing point.\t");
+						events::send(events::ID("navigator_mis_approach_wp_below_land"), {events::Log::Error, events::LogInternal::Info},
+							     "Mission rejected: the approach waypoint must be above the landing point");
+						return false;
+					}
 
-					if (landing_status_valid && (wp_distance > landing_status.get().flare_length)) {
-						/* Last wp is before flare region */
+					float landing_approach_distance;
 
-						const float delta_altitude = missionitem.altitude - missionitem_previous.altitude;
+					if (missionitem_previous.nav_cmd == NAV_CMD_LOITER_TO_ALT) {
+						// assume this is a fixed-wing landing pattern with orbit to alt followed
+						// by tangent exit to landing approach and touchdown at landing waypoint
 
-						if (delta_altitude < 0) {
+						const float distance_orbit_center_to_land = get_distance_to_next_waypoint(missionitem_previous.lat,
+								missionitem_previous.lon, missionitem.lat, missionitem.lon);
+						const float orbit_radius = fabsf(missionitem_previous.loiter_radius);
 
-							const float horizontal_slope_displacement = landing_status.get().horizontal_slope_displacement;
-							const float slope_angle_rad = landing_status.get().slope_angle_rad;
-							const float slope_alt_req = Landingslope::getLandingSlopeAbsoluteAltitude(wp_distance, missionitem.altitude,
-										    horizontal_slope_displacement, slope_angle_rad);
-
-							if (missionitem_previous.altitude > slope_alt_req + 1.0f) {
-								/* Landing waypoint is above altitude of slope at the given waypoint distance (with small tolerance for floating point discrepancies) */
-								const float wp_distance_req = Landingslope::getLandingSlopeWPDistance(missionitem_previous.altitude,
-											      missionitem.altitude, horizontal_slope_displacement, slope_angle_rad);
-
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: adjust landing approach.\t");
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Move down %d m or move further away by %d m.\t",
-										     (int)ceilf(slope_alt_req - missionitem_previous.altitude),
-										     (int)ceilf(wp_distance_req - wp_distance));
-								/* EVENT
-								 * @description
-								 * The landing waypoint must be above the altitude of slope at the given waypoint distance.
-								 * Move it down {1m_v} or move it further away by {2m}.
-								 */
-								events::send<int32_t, int32_t>(events::ID("navigator_mis_land_approach"), {events::Log::Error, events::LogInternal::Info},
-											       "Mission rejected: adjust landing approach",
-											       (int)ceilf(slope_alt_req - missionitem_previous.altitude),
-											       (int)ceilf(wp_distance_req - wp_distance));
-
-								return false;
-							}
-
-						} else {
-							/* Landing waypoint is above last waypoint */
-							mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: landing above last waypoint.\t");
-							events::send(events::ID("navigator_mis_land_too_high"), {events::Log::Error, events::LogInternal::Info},
-								     "Mission rejected: landing waypoint is above the last waypoint");
+						if (distance_orbit_center_to_land <= orbit_radius) {
+							mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+									     "Mission rejected: the landing point must be outside the orbit radius.\t");
+							events::send(events::ID("navigator_mis_land_wp_inside_orbit_radius"), {events::Log::Error, events::LogInternal::Info},
+								     "Mission rejected: the landing point must be outside the orbit radius");
 							return false;
 						}
 
+						landing_approach_distance = sqrtf(distance_orbit_center_to_land * distance_orbit_center_to_land - orbit_radius *
+										  orbit_radius);
+
+					} else if (missionitem_previous.nav_cmd == NAV_CMD_WAYPOINT) {
+						// approaching directly from waypoint position
+
+						const float waypoint_distance = get_distance_to_next_waypoint(missionitem_previous.lat, missionitem_previous.lon,
+										missionitem.lat, missionitem.lon);
+						landing_approach_distance = waypoint_distance;
+
 					} else {
-						/* Last wp is in flare region */
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: waypoint within landing flare.\t");
-						events::send(events::ID("navigator_mis_land_within_flare"), {events::Log::Error, events::LogInternal::Info},
-							     "Mission rejected: waypoint is within landing flare");
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+								     "Mission rejected: unsupported landing approach entrance waypoint type. Only ORBIT_TO_ALT or WAYPOINT allowed.\t");
+						events::send(events::ID("navigator_mis_unsupported_landing_approach_wp"), {events::Log::Error, events::LogInternal::Info},
+							     "Mission rejected: unsupported landing approach entrance waypoint type. Only ORBIT_TO_ALT or WAYPOINT allowed");
+						return false;
+					}
+
+					const float glide_slope = relative_approach_altitude / landing_approach_distance;
+
+					// respect user setting as max glide slope, but account for floating point
+					// rounding on next check with small (arbitrary) 0.1 deg buffer, as the
+					// landing angle parameter is what is typically used for steepest glide
+					// in landing config
+					const float max_glide_slope = tanf(math::radians(param_fw_lnd_ang + 0.1f));
+
+					if (glide_slope > max_glide_slope) {
+
+						const uint8_t land_angle_left_of_decimal = (uint8_t)param_fw_lnd_ang;
+						const uint8_t land_angle_first_after_decimal = (uint8_t)((param_fw_lnd_ang - floorf(
+									param_fw_lnd_ang)) * 10.0f);
+
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+								     "Mission rejected: the landing glide slope is steeper than the vehicle setting of %d.%d degrees.\t",
+								     (int)land_angle_left_of_decimal, (int)land_angle_first_after_decimal);
+						events::send<uint8_t, uint8_t>(events::ID("navigator_mis_glide_slope_too_steep"), {events::Log::Error, events::LogInternal::Info},
+									       "Mission rejected: the landing glide slope is steeper than the vehicle setting of {1}.{2} degrees",
+									       land_angle_left_of_decimal, land_angle_first_after_decimal);
+
+						const uint32_t acceptable_entrance_alt = (uint32_t)(max_glide_slope * landing_approach_distance);
+						const uint32_t acceptable_landing_dist = (uint32_t)ceilf(relative_approach_altitude / max_glide_slope);
+
+						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+								     "Reduce the glide slope, lower the entrance altitude %d meters, or increase the landing approach distance %d meters.\t",
+								     (int)acceptable_entrance_alt, (int)acceptable_landing_dist);
+						events::send<uint32_t, uint32_t>(events::ID("navigator_mis_correct_glide_slope"), {events::Log::Error, events::LogInternal::Info},
+										 "Reduce the glide slope, lower the entrance altitude {1} meters, or increase the landing approach distance {2} meters",
+										 acceptable_entrance_alt, acceptable_landing_dist);
+
 						return false;
 					}
 

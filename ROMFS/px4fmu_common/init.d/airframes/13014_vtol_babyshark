@@ -7,14 +7,14 @@
 #
 # @maintainer Silvan Fuhrer <silvan@auterion.com>
 #
-# @output MAIN1 Ailerons
-# @output MAIN2 A-tail left
-# @output MAIN3 Pusher motor
-# @output MAIN4 A-tail right
-# @output MAIN5 motor 1
-# @output MAIN6 motor 2
-# @output MAIN7 motor 3
-# @output MAIN8 motor 4
+# @output Motor1 motor 1
+# @output Motor2 motor 2
+# @output Motor3 motor 3
+# @output Motor4 motor 4
+# @output Motor5 Pusher motor
+# @output Servo1 Ailerons
+# @output Servo2 A-tail left
+# @output Servo3 A-tail right
 #
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
@@ -31,7 +31,6 @@ param set-default FW_AIRSPD_MAX 30
 param set-default FW_AIRSPD_MIN 19
 param set-default FW_AIRSPD_TRIM 23
 param set-default FW_L1_R_SLEW_MAX 40
-param set-default FW_MAN_P_MAX 30
 param set-default FW_PSP_OFF 3
 param set-default FW_P_LIM_MAX 18
 param set-default FW_P_LIM_MIN -25
@@ -39,7 +38,7 @@ param set-default FW_RLL_TO_YAW_FF 0.1
 param set-default FW_RR_P 0.08
 param set-default FW_R_LIM 45
 param set-default FW_R_RMAX 50
-param set-default FW_THR_CRUISE 0.65
+param set-default FW_THR_TRIM 0.65
 param set-default FW_THR_MIN 0.3
 param set-default FW_THR_SLEW_MAX 0.6
 param set-default FW_T_HRATE_FF 0
@@ -62,7 +61,7 @@ param set-default MPC_JERK_AUTO 4
 param set-default MPC_LAND_SPEED 1
 param set-default MPC_MAN_TILT_MAX 25
 param set-default MPC_MAN_Y_MAX 40
-param set-default MPC_SPOOLUP_TIME 1.5
+param set-default COM_SPOOLUP_TIME 1.5
 param set-default MPC_THR_HOVER 0.45
 param set-default MPC_TILTMAX_AIR 25
 param set-default MPC_TKO_RAMP_T 1.8
@@ -71,7 +70,6 @@ param set-default MPC_VEL_MANUAL 3
 param set-default MPC_XY_CRUISE 3
 param set-default MPC_XY_VEL_MAX 3.5
 param set-default MPC_YAWRAUTO_MAX 40
-param set-default MPC_Z_VEL_MAX_DN 1.5
 param set-default MPC_Z_VEL_MAX_UP 2
 
 param set-default NAV_ACC_RAD 3
@@ -96,9 +94,45 @@ param set-default VT_PSHER_RMP_DT 2
 param set-default VT_TRANS_MIN_TM 4
 param set-default VT_TYPE 2
 
-set MIXER babyshark
-set MIXER_AUX pass
 
-# Mark outputs for the alternate rate
-# or D-Shot
-set PWM_OUT 5678
+param set-default CA_AIRFRAME 2
+param set-default CA_ROTOR_COUNT 5
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 1
+param set-default CA_ROTOR1_PX -1
+param set-default CA_ROTOR1_PY -1
+param set-default CA_ROTOR2_PX 1
+param set-default CA_ROTOR2_PY -1
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -1
+param set-default CA_ROTOR3_PY 1
+param set-default CA_ROTOR3_KM -0.05
+param set-default CA_ROTOR4_AX 1.0
+param set-default CA_ROTOR4_AZ 0.0
+
+param set-default CA_SV_CS_COUNT 3
+param set-default CA_SV_CS0_TYPE 15
+param set-default CA_SV_CS0_TRQ_R 1.0
+param set-default CA_SV_CS1_TRQ_P 0.5000
+param set-default CA_SV_CS1_TRQ_R 0.0000
+param set-default CA_SV_CS1_TRQ_Y -0.5000
+param set-default CA_SV_CS1_TYPE 13
+param set-default CA_SV_CS2_TRQ_P 0.5000
+param set-default CA_SV_CS2_TRQ_Y 0.5000
+param set-default CA_SV_CS2_TYPE 14
+
+param set-default PWM_MAIN_FUNC1 201
+param set-default PWM_MAIN_FUNC2 202
+param set-default PWM_MAIN_FUNC3 105
+param set-default PWM_MAIN_FUNC4 203
+param set-default PWM_MAIN_FUNC5 101
+param set-default PWM_MAIN_FUNC6 102
+param set-default PWM_MAIN_FUNC7 103
+param set-default PWM_MAIN_FUNC8 104
+
+param set-default PWM_MAIN_TIM0 50
+param set-default PWM_MAIN_DIS1 1500
+param set-default PWM_MAIN_DIS2 1500
+param set-default PWM_MAIN_DIS4 1500
+
+

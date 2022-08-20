@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,6 +46,7 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/err.h>
 #include <mathlib/mathlib.h>
+#include <lib/parameters/param.h>
 
 using namespace time_literals;
 
@@ -57,9 +58,9 @@ UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 	_sub_auxiliary(node),
 	_sub_fix(node),
 	_sub_fix2(node),
-	_pub_rtcm(node),
-	_channel_using_fix2(new bool[_max_channels]),
-	_rtcm_perf(perf_alloc(PC_INTERVAL, "uavcan: gnss: rtcm pub"))
+	_pub_moving_baseline_data(node),
+	_pub_rtcm_stream(node),
+	_channel_using_fix2(new bool[_max_channels])
 {
 	for (uint8_t i = 0; i < _max_channels; i++) {
 		_channel_using_fix2[i] = false;
@@ -71,7 +72,8 @@ UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 UavcanGnssBridge::~UavcanGnssBridge()
 {
 	delete [] _channel_using_fix2;
-	perf_free(_rtcm_perf);
+	perf_free(_rtcm_stream_pub_perf);
+	perf_free(_moving_baseline_data_pub_perf);
 }
 
 int
@@ -98,7 +100,26 @@ UavcanGnssBridge::init()
 		return res;
 	}
 
-	_pub_rtcm.setPriority(uavcan::TransferPriority::NumericallyMax);
+
+	// UAVCAN_PUB_RTCM
+	int32_t uavcan_pub_rtcm = 0;
+	param_get(param_find("UAVCAN_PUB_RTCM"), &uavcan_pub_rtcm);
+
+	if (uavcan_pub_rtcm == 1) {
+		_publish_rtcm_stream = true;
+		_pub_rtcm_stream.setPriority(uavcan::TransferPriority::NumericallyMax);
+		_rtcm_stream_pub_perf = perf_alloc(PC_INTERVAL, "uavcan: gnss: rtcm stream pub");
+	}
+
+	// UAVCAN_PUB_MBD
+	int32_t uavcan_pub_mbd = 0;
+	param_get(param_find("UAVCAN_PUB_MBD"), &uavcan_pub_mbd);
+
+	if (uavcan_pub_mbd == 1) {
+		_publish_moving_baseline_data = true;
+		_pub_moving_baseline_data.setPriority(uavcan::TransferPriority::NumericallyMax);
+		_moving_baseline_data_pub_perf = perf_alloc(PC_INTERVAL, "uavcan: gnss: moving baseline data rtcm stream pub");
+	}
 
 	return res;
 }
@@ -282,11 +303,11 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 	if (!msg.ecef_position_velocity.empty()) {
 		heading = msg.ecef_position_velocity[0].velocity_xyz[0];
 
-		if (!isnan(msg.ecef_position_velocity[0].velocity_xyz[1])) {
+		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[1])) {
 			heading_offset = msg.ecef_position_velocity[0].velocity_xyz[1];
 		}
 
-		if (!isnan(msg.ecef_position_velocity[0].velocity_xyz[2])) {
+		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[2])) {
 			heading_accuracy = msg.ecef_position_velocity[0].velocity_xyz[2];
 		}
 	}
@@ -446,41 +467,37 @@ void UavcanGnssBridge::update()
 // to work.
 void UavcanGnssBridge::handleInjectDataTopic()
 {
-	bool updated = false;
-
 	// Limit maximum number of GPS injections to 6 since usually
 	// GPS injections should consist of 1-4 packets (GPS, Glonass, BeiDou, Galileo).
 	// Looking at 6 packets thus guarantees, that at least a full injection
 	// data set is evaluated.
-	const size_t max_num_injections = 6;
+	static constexpr size_t MAX_NUM_INJECTIONS = 6;
+
 	size_t num_injections = 0;
+	gps_inject_data_s gps_inject_data;
 
-	do {
-		num_injections++;
-		updated = _orb_inject_data_sub.updated();
-
-		if (updated) {
-			gps_inject_data_s msg;
-
-			if (_orb_inject_data_sub.copy(&msg)) {
-
-				/* Write the message to the gps device. Note that the message could be fragmented.
-				 * But as we don't write anywhere else to the device during operation, we don't
-				 * need to assemble the message first.
-				 */
-				injectData(msg.data, msg.len);
-			}
+	while ((num_injections <= MAX_NUM_INJECTIONS) && _gps_inject_data_sub.update(&gps_inject_data)) {
+		// Write the message to the gps device. Note that the message could be fragmented.
+		// But as we don't write anywhere else to the device during operation, we don't
+		// need to assemble the message first.
+		if (_publish_rtcm_stream) {
+			PublishRTCMStream(gps_inject_data.data, gps_inject_data.len);
 		}
-	} while (updated && num_injections < max_num_injections);
+
+		if (_publish_moving_baseline_data) {
+			PublishMovingBaselineData(gps_inject_data.data, gps_inject_data.len);
+		}
+
+		num_injections++;
+	}
 }
 
-bool UavcanGnssBridge::injectData(const uint8_t *const data, const size_t data_len)
+bool UavcanGnssBridge::PublishRTCMStream(const uint8_t *const data, const size_t data_len)
 {
-	using ardupilot::gnss::MovingBaselineData;
+	using uavcan::equipment::gnss::RTCMStream;
 
-	perf_count(_rtcm_perf);
-
-	MovingBaselineData msg;
+	RTCMStream msg;
+	msg.protocol_id = RTCMStream::PROTOCOL_ID_RTCM3;
 
 	const size_t capacity = msg.data.capacity();
 	size_t written = 0;
@@ -498,7 +515,36 @@ bool UavcanGnssBridge::injectData(const uint8_t *const data, const size_t data_l
 			written += 1;
 		}
 
-		result = _pub_rtcm.broadcast(msg) >= 0;
+		result = _pub_rtcm_stream.broadcast(msg) >= 0;
+		perf_count(_rtcm_stream_pub_perf);
+		msg.data = {};
+	}
+
+	return result;
+}
+
+bool UavcanGnssBridge::PublishMovingBaselineData(const uint8_t *data, size_t data_len)
+{
+	ardupilot::gnss::MovingBaselineData msg;
+
+	const size_t capacity = msg.data.capacity();
+	size_t written = 0;
+	bool result = true;
+
+	while (result && written < data_len) {
+		size_t chunk_size = data_len - written;
+
+		if (chunk_size > capacity) {
+			chunk_size = capacity;
+		}
+
+		for (size_t i = 0; i < chunk_size; ++i) {
+			msg.data.push_back(data[written]);
+			written += 1;
+		}
+
+		result = _pub_moving_baseline_data.broadcast(msg) >= 0;
+		perf_count(_moving_baseline_data_pub_perf);
 		msg.data.clear();
 	}
 
@@ -508,5 +554,6 @@ bool UavcanGnssBridge::injectData(const uint8_t *const data, const size_t data_l
 void UavcanGnssBridge::print_status() const
 {
 	UavcanSensorBridgeBase::print_status();
-	perf_print_counter(_rtcm_perf);
+	perf_print_counter(_rtcm_stream_pub_perf);
+	perf_print_counter(_moving_baseline_data_pub_perf);
 }

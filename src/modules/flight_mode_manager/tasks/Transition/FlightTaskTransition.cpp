@@ -70,14 +70,14 @@ void FlightTaskTransition::updateParameters()
 	}
 }
 
-bool FlightTaskTransition::activate(const vehicle_local_position_setpoint_s &last_setpoint)
+bool FlightTaskTransition::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
 
 	_vel_z_filter.setParameters(math::constrain(_deltatime, 0.01f, 0.1f), _vel_z_filter_time_const);
 
-	if (PX4_ISFINITE(last_setpoint.vz)) {
-		_vel_z_filter.reset(last_setpoint.vz);
+	if (PX4_ISFINITE(last_setpoint.velocity[2])) {
+		_vel_z_filter.reset(last_setpoint.velocity[2]);
 
 	} else {
 		_vel_z_filter.reset(_velocity(2));

@@ -32,6 +32,9 @@
  ****************************************************************************/
 
 #include "ManualControl.hpp"
+
+#include <px4_platform_common/events.h>
+#include <lib/systemlib/mavlink_log.h>
 #include <uORB/topics/commander_state.h>
 #include <uORB/topics/vehicle_command.h>
 
@@ -64,6 +67,16 @@ void ManualControl::Run()
 	perf_begin(_loop_perf);
 	perf_count(_loop_interval_perf);
 
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
+
+		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			_system_id = vehicle_status.system_id;
+			_rotary_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+			_vtol = vehicle_status.is_vtol;
+		}
+	}
+
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated()) {
 		// clear update
@@ -78,6 +91,53 @@ void ManualControl::Run()
 
 		_selector.setRcInMode(_param_com_rc_in_mode.get());
 		_selector.setTimeout(_param_com_rc_loss_t.get() * 1_s);
+
+		// MAN_ARM_GESTURE
+		if (_param_man_arm_gesture.get() == 1) {
+			// RC_MAP_ARM_SW & MAN_ARM_GESTURE: disable arm gesture if an arm switch is configured
+			param_t param_rc_map_arm_sw = param_find("RC_MAP_ARM_SW");
+
+			if (param_rc_map_arm_sw != PARAM_INVALID) {
+				int32_t rc_map_arm_sw = 0;
+				param_get(param_rc_map_arm_sw, &rc_map_arm_sw);
+
+				if (rc_map_arm_sw > 0) {
+					_param_man_arm_gesture.set(0); // disable arm gesture
+					_param_man_arm_gesture.commit();
+
+					orb_advert_t mavlink_log_pub = nullptr;
+					mavlink_log_critical(&mavlink_log_pub, "Arm stick gesture disabled if arm switch in use\t")
+					/* EVENT
+					* @description <param>MAN_ARM_GESTURE</param> is now set to disable arm/disarm stick gesture.
+					*/
+					events::send(events::ID("rc_update_arm_stick_gesture_disabled_with_switch"), {events::Log::Info, events::LogInternal::Disabled},
+						     "Arm stick gesture disabled if arm switch in use");
+				}
+			}
+
+			// MC_AIRMODE & MAN_ARM_GESTURE: check for unsafe Airmode settings: yaw airmode requires disabling the stick arm gesture
+			if ((_param_man_arm_gesture.get() == 1) && (_rotary_wing || _vtol)) {
+				param_t param_mc_airmode = param_find("MC_AIRMODE");
+
+				if (param_mc_airmode != PARAM_INVALID) {
+					int32_t airmode = 0;
+					param_get(param_mc_airmode, &airmode);
+
+					if (airmode == 2) {
+						airmode = 1; // change to roll/pitch airmode
+						param_set(param_mc_airmode, &airmode);
+
+						orb_advert_t mavlink_log_pub = nullptr;
+						mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires disabling the stick arm gesture\t")
+						/* EVENT
+						* @description <param>MC_AIRMODE</param> is now set to roll/pitch airmode.
+						*/
+						events::send(events::ID("commander_airmode_requires_no_arm_gesture"), {events::Log::Error, events::LogInternal::Disabled},
+							     "Yaw Airmode requires disabling the stick arm gesture");
+					}
+				}
+			}
+		}
 	}
 
 	const hrt_abstime now = hrt_absolute_time();
@@ -361,7 +421,7 @@ void ManualControl::send_camera_mode_command(CameraMode camera_mode)
 	vehicle_command_s command{};
 	command.command = vehicle_command_s::VEHICLE_CMD_SET_CAMERA_MODE;
 	command.param2 = static_cast<float>(camera_mode);
-	command.target_system = _param_mav_sys_id.get();
+	command.target_system = _system_id;
 	command.target_component = 100; // any camera
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
@@ -375,7 +435,7 @@ void ManualControl::send_photo_command()
 	command.command = vehicle_command_s::VEHICLE_CMD_IMAGE_START_CAPTURE;
 	command.param3 = 1; // one picture
 	command.param4 = _image_sequence++;
-	command.target_system = _param_mav_sys_id.get();
+	command.target_system = _system_id;
 	command.target_component = 100; // any camera
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
@@ -395,7 +455,7 @@ void ManualControl::send_video_command()
 		command.command = vehicle_command_s::VEHICLE_CMD_VIDEO_START_CAPTURE;
 	}
 
-	command.target_system = _param_mav_sys_id.get();
+	command.target_system = _system_id;
 	command.target_component = 100; // any camera
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};

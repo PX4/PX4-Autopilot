@@ -172,6 +172,7 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 			_last_sensor_data[uorb_index].gyro_rad[1] = gyro_rate(1);
 			_last_sensor_data[uorb_index].gyro_rad[2] = gyro_rate(2);
 			_last_sensor_data[uorb_index].gyro_integral_dt = imu_report.delta_angle_dt;
+			_last_sensor_data[uorb_index].gyro_clipping = imu_report.delta_angle_clipping;
 			_last_sensor_data[uorb_index].accel_calibration_count = imu_report.accel_calibration_count;
 			_last_sensor_data[uorb_index].gyro_calibration_count = imu_report.gyro_calibration_count;
 
@@ -229,11 +230,14 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 		memcpy(&raw.accelerometer_m_s2, &_last_sensor_data[accel_best_index].accelerometer_m_s2,
 		       sizeof(raw.accelerometer_m_s2));
 		memcpy(&raw.gyro_rad, &_last_sensor_data[gyro_best_index].gyro_rad, sizeof(raw.gyro_rad));
+
 		raw.accelerometer_integral_dt = _last_sensor_data[accel_best_index].accelerometer_integral_dt;
-		raw.gyro_integral_dt = _last_sensor_data[gyro_best_index].gyro_integral_dt;
-		raw.accelerometer_clipping = _last_sensor_data[accel_best_index].accelerometer_clipping;
-		raw.accel_calibration_count = _last_sensor_data[accel_best_index].accel_calibration_count;
-		raw.gyro_calibration_count = _last_sensor_data[gyro_best_index].gyro_calibration_count;
+		raw.accelerometer_clipping    = _last_sensor_data[accel_best_index].accelerometer_clipping;
+		raw.accel_calibration_count   = _last_sensor_data[accel_best_index].accel_calibration_count;
+
+		raw.gyro_integral_dt          = _last_sensor_data[gyro_best_index].gyro_integral_dt;
+		raw.gyro_clipping             = _last_sensor_data[gyro_best_index].gyro_clipping;
+		raw.gyro_calibration_count    = _last_sensor_data[gyro_best_index].gyro_calibration_count;
 
 		if ((accel_best_index != _accel.last_best_vote) || (_selection.accel_device_id != _accel_device_id[accel_best_index])) {
 			_accel.last_best_vote = (uint8_t)accel_best_index;

@@ -11,7 +11,7 @@ from pyulog import ULog
 from analysis.detectors import InAirDetector, PreconditionError
 from analysis.metrics import calculate_ecl_ekf_metrics
 from analysis.checks import perform_ecl_ekf_checks
-from analysis.post_processing import get_estimator_check_flags
+from analysis.post_processing import get_gps_check_fail_flags
 
 def analyse_ekf(
         ulog: ULog, check_levels: Dict[str, float], multi_instance: int = 0,
@@ -41,6 +41,11 @@ def analyse_ekf(
         raise PreconditionError('could not find estimator_status instance', multi_instance)
 
     try:
+        estimator_status_flags = ulog.get_dataset('estimator_status_flags', multi_instance).data
+    except:
+        raise PreconditionError('could not find estimator_status_flags instance', multi_instance)
+
+    try:
         _ = ulog.get_dataset('estimator_innovations', multi_instance).data
     except:
         raise PreconditionError('could not find estimator_innovations instance', multi_instance)
@@ -61,14 +66,14 @@ def analyse_ekf(
         'in_air_transition_time': round(in_air.take_off + in_air.log_start, 2),
         'on_ground_transition_time': round(in_air.landing + in_air.log_start, 2)}
 
-    control_mode, innov_flags, gps_fail_flags = get_estimator_check_flags(estimator_status)
+    gps_fail_flags = get_gps_check_fail_flags(estimator_status)
 
     sensor_checks, innov_fail_checks = find_checks_that_apply(
-        control_mode, estimator_status,
+        estimator_status_flags, estimator_status,
         pos_checks_when_sensors_not_fused=pos_checks_when_sensors_not_fused)
 
     metrics = calculate_ecl_ekf_metrics(
-        ulog, innov_flags, innov_fail_checks, sensor_checks, in_air, in_air_no_ground_effects,
+        ulog, estimator_status_flags, innov_fail_checks, sensor_checks, in_air, in_air_no_ground_effects,
         multi_instance, red_thresh=red_thresh, amb_thresh=amb_thresh)
 
     check_status, master_status = perform_ecl_ekf_checks(
@@ -78,12 +83,12 @@ def analyse_ekf(
 
 
 def find_checks_that_apply(
-    control_mode: dict, estimator_status: dict, pos_checks_when_sensors_not_fused: bool = False) ->\
+    estimator_status_flags: dict, estimator_status: dict, pos_checks_when_sensors_not_fused: bool = False) ->\
         Tuple[List[str], List[str]]:
     """
     finds the checks that apply and stores them in lists for the std checks and the innovation
     fail checks.
-    :param control_mode:
+    :param estimator_status_flags:
     :param estimator_status:
     :param b_pos_only_when_sensors_fused:
     :return: a tuple of two lists that contain strings for the std checks and for the innovation
@@ -97,7 +102,7 @@ def find_checks_that_apply(
     innov_fail_checks.append('posv')
 
     # Magnetometer Sensor Checks
-    if (np.amax(control_mode['yaw_aligned']) > 0.5):
+    if (np.amax(estimator_status_flags['cs_yaw_align']) > 0.5):
         sensor_checks.append('mag')
 
         innov_fail_checks.append('magx')
@@ -106,13 +111,14 @@ def find_checks_that_apply(
         innov_fail_checks.append('yaw')
 
     # Velocity Sensor Checks
-    if (np.amax(control_mode['using_gps']) > 0.5):
+    if (np.amax(estimator_status_flags['cs_gps']) > 0.5):
         sensor_checks.append('vel')
-        innov_fail_checks.append('vel')
+        innov_fail_checks.append('velh')
+        innov_fail_checks.append('velv')
 
     # Position Sensor Checks
-    if (pos_checks_when_sensors_not_fused or (np.amax(control_mode['using_gps']) > 0.5)
-        or (np.amax(control_mode['using_evpos']) > 0.5)):
+    if (pos_checks_when_sensors_not_fused or (np.amax(estimator_status_flags['cs_gps']) > 0.5)
+        or (np.amax(estimator_status_flags['cs_ev_pos']) > 0.5)):
         sensor_checks.append('pos')
         innov_fail_checks.append('posh')
 
@@ -128,7 +134,7 @@ def find_checks_that_apply(
         innov_fail_checks.append('hagl')
 
     # optical flow sensor checks
-    if (np.amax(control_mode['using_optflow']) > 0.5):
+    if (np.amax(estimator_status_flags['cs_opt_flow']) > 0.5):
         innov_fail_checks.append('ofx')
         innov_fail_checks.append('ofy')
 

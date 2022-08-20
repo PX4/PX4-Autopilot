@@ -5,19 +5,6 @@
 # @type Octorotor +
 # @class Copter
 #
-# @output MAIN1 motor 1
-# @output MAIN2 motor 2
-# @output MAIN3 motor 3
-# @output MAIN4 motor 4
-# @output MAIN5 motor 5
-# @output MAIN6 motor 6
-# @output MAIN7 motor 7
-# @output MAIN8 motor 8
-#
-# @output AUX1 feed-through of RC AUX1 channel
-# @output AUX2 feed-through of RC AUX2 channel
-# @output AUX3 feed-through of RC AUX3 channel
-#
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #
 # @board bitcraze_crazyflie exclude
@@ -28,6 +15,25 @@
 # MAV_TYPE_OCTOROTOR 14
 param set-default MAV_TYPE 14
 
-set MIXER octo_+
+param set-default CA_ROTOR_COUNT 8
+param set-default CA_ROTOR0_KM -0.05
+param set-default CA_ROTOR0_PX 0.5
+param set-default CA_ROTOR0_PY 0
+param set-default CA_ROTOR1_KM -0.05
+param set-default CA_ROTOR1_PX -0.5
+param set-default CA_ROTOR1_PY 0
+param set-default CA_ROTOR2_PX 0.35
+param set-default CA_ROTOR2_PY 0.35
+param set-default CA_ROTOR3_PX -0.35
+param set-default CA_ROTOR3_PY 0.35
+param set-default CA_ROTOR4_PX 0.35
+param set-default CA_ROTOR4_PY -0.35
+param set-default CA_ROTOR5_PX -0.35
+param set-default CA_ROTOR5_PY -0.35
+param set-default CA_ROTOR6_KM -0.05
+param set-default CA_ROTOR6_PX 0
+param set-default CA_ROTOR6_PY -0.5
+param set-default CA_ROTOR7_KM -0.05
+param set-default CA_ROTOR7_PX 0
+param set-default CA_ROTOR7_PY 0.5
 
-set PWM_OUT 12345678

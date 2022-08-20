@@ -66,7 +66,7 @@ class MavrosOffboardYawrateTest(MavrosTestCommon):
         self.att_setpoint_pub = rospy.Publisher(
             'mavros/setpoint_raw/attitude', AttitudeTarget, queue_size=1)
 
-        # send setpoints in seperate thread to better prevent failsafe
+        # send setpoints in separate thread to better prevent failsafe
         self.att_thread = Thread(target=self.send_att, args=())
         self.att_thread.daemon = True
         self.att_thread.start()

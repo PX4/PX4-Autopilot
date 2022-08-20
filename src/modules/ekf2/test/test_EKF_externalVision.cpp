@@ -276,13 +276,10 @@ TEST_F(EkfExternalVisionTest, velocityFrameBody)
 	// WHEN: measurement is given in BODY-FRAME and
 	//       x variance is bigger than y variance
 	_sensor_simulator._vio.setVelocityFrameToBody();
-	float vel_cov_data [9] = {2.0f, 0.0f, 0.0f,
-				  0.0f, 0.01f, 0.0f,
-				  0.0f, 0.0f, 0.01f
-				 };
-	const Matrix3f vel_cov_body(vel_cov_data);
+
+	const Vector3f vel_cov_body(2.0f, 0.01f, 0.01f);
 	const Vector3f vel_body(1.0f, 0.0f, 0.0f);
-	_sensor_simulator._vio.setVelocityCovariance(vel_cov_body);
+	_sensor_simulator._vio.setVelocityVariance(vel_cov_body);
 	_sensor_simulator._vio.setVelocity(vel_body);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator.startExternalVision();
@@ -312,13 +309,10 @@ TEST_F(EkfExternalVisionTest, velocityFrameLocal)
 	// WHEN: measurement is given in LOCAL-FRAME and
 	//       x variance is bigger than y variance
 	_sensor_simulator._vio.setVelocityFrameToLocal();
-	float vel_cov_data [9] = {2.0f, 0.0f, 0.0f,
-				  0.0f, 0.01f, 0.0f,
-				  0.0f, 0.0f, 0.01f
-				 };
-	const Matrix3f vel_cov_earth(vel_cov_data);
+
+	const Vector3f vel_cov_earth{2.f, 0.01f, 0.01f};
 	const Vector3f vel_earth(1.0f, 0.0f, 0.0f);
-	_sensor_simulator._vio.setVelocityCovariance(vel_cov_earth);
+	_sensor_simulator._vio.setVelocityVariance(vel_cov_earth);
 	_sensor_simulator._vio.setVelocity(vel_earth);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator.startExternalVision();

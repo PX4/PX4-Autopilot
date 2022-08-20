@@ -100,10 +100,8 @@ dt = Symbol("dt", real=True)
 # process model. We only need to provide formula for covariance prediction
 
 # create process noise matrix for covariance prediction
-state_new = state + Matrix([q_w, q_w, q_k_tas]) * dt
-Q = diag(q_w, q_k_tas)
-L = state_new.jacobian([q_w, q_k_tas])
-Q = L * Q * Transpose(L)
+state_new = state
+Q = diag(q_w, q_w, q_k_tas) * dt**2
 
 # define symbolic covariance matrix
 p00 = Symbol('_P(0,0)', real=True)

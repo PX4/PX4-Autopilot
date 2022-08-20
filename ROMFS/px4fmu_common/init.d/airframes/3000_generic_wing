@@ -5,19 +5,19 @@
 # @type Flying Wing
 # @class Plane
 #
-# @output MAIN1 left aileron
-# @output MAIN2 right aileron
-# @output MAIN4 throttle
-#
-# @output AUX1 feed-through of RC AUX1 channel
-# @output AUX2 feed-through of RC AUX2 channel
-# @output AUX3 feed-through of RC AUX3 channel
-#
-# @maintainer
-#
 # @board bitcraze_crazyflie exclude
 #
 
 . ${R}etc/init.d/rc.fw_defaults
 
-set MIXER fw_generic_wing
+param set-default CA_AIRFRAME 1
+
+param set-default CA_ROTOR_COUNT 1
+param set-default CA_ROTOR0_PX 0.15
+param set-default CA_SV_CS_COUNT 2
+param set-default CA_SV_CS0_TYPE 5
+param set-default CA_SV_CS0_TRQ_P 0.5
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS1_TYPE 6
+param set-default CA_SV_CS1_TRQ_P 0.5
+param set-default CA_SV_CS1_TRQ_R 0.5

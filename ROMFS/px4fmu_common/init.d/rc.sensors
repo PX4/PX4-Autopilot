@@ -101,12 +101,6 @@ then
 	pmw3901 -S start
 fi
 
-# Check for px4flow sensor
-if param compare -s SENS_EN_PX4FLOW 1
-then
-	px4flow start -X
-fi
-
 # vl53l1x i2c distance sensor
 if param compare -s SENS_EN_VL53L1X 1
 then
@@ -135,11 +129,29 @@ fi
 # Sensirion SDP3X differential pressure sensor external I2C
 if param compare -s SENS_EN_SDP3X 1
 then
-	if ! sdp3x_airspeed start -X
+	if ! sdp3x start -X
 	then
 		# try another common address
-		sdp3x_airspeed start -X -a 0x22
+		sdp3x start -X -a 0x22
 	fi
+fi
+
+# TE MS4515 differential pressure sensor external I2C
+if param compare -s SENS_EN_MS4515 1
+then
+	ms4515 start -X
+fi
+
+# TE MS4525DO differential pressure sensor external I2C
+if param compare -s SENS_EN_MS4525DO 1
+then
+	ms4525do start -X
+fi
+
+# TE MS5525DSO differential pressure sensor external I2C
+if param compare -s SENS_EN_MS5525DS 1
+then
+	ms5525dso start -X
 fi
 
 # SHT3x temperature and hygrometer sensor, external I2C
@@ -147,18 +159,6 @@ if param compare -s SENS_EN_SHT3X 1
 then
 	sht3x start -X
 	sht3x start -X -a 0x45
-fi
-
-# TE MS4525 differential pressure sensor external I2C
-if param compare -s SENS_EN_MS4525 1
-then
-	ms4525_airspeed start -X
-fi
-
-# TE MS5525 differential pressure sensor external I2C
-if param compare -s SENS_EN_MS5525 1
-then
-	ms5525_airspeed start -X
 fi
 
 # IR-LOCK sensor external I2C
@@ -198,9 +198,3 @@ then
 	# start last (wait for possible icm20948 passthrough mode)
 	ak09916 -X -q start
 fi
-
-###############################################################################
-#                            End Optional drivers                             #
-###############################################################################
-
-sensors start

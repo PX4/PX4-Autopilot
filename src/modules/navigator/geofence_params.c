@@ -48,9 +48,6 @@
  *
  * Note: Setting this value to 4 enables flight termination,
  * which will kill the vehicle on violation of the fence.
- * Due to the inherent danger of this, this function is
- * disabled using a software circuit breaker, which needs
- * to be reset to 0 to really shut down the system.
  *
  * @min 0
  * @max 5

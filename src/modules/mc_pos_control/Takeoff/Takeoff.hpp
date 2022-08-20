@@ -53,11 +53,11 @@ enum class TakeoffState {
 	flight = takeoff_status_s::TAKEOFF_STATE_FLIGHT
 };
 
-class Takeoff
+class TakeoffHandling
 {
 public:
-	Takeoff() = default;
-	~Takeoff() = default;
+	TakeoffHandling() = default;
+	~TakeoffHandling() = default;
 
 	// initialize parameters
 	void setSpoolupTime(const float seconds) { _spoolup_time_hysteresis.set_hysteresis_time_from(false, seconds * 1_s); }
@@ -94,7 +94,7 @@ public:
 private:
 	TakeoffState _takeoff_state = TakeoffState::disarmed;
 
-	systemlib::Hysteresis _spoolup_time_hysteresis{false}; ///< becomes true MPC_SPOOLUP_TIME seconds after the vehicle was armed
+	systemlib::Hysteresis _spoolup_time_hysteresis{false}; ///< becomes true COM_SPOOLUP_TIME seconds after the vehicle was armed
 
 	float _takeoff_ramp_time{0.f};
 	float _takeoff_ramp_vz_init{0.f}; ///< verticval velocity resulting in zero thrust

@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+#include <cmath>
+
 #include <gtest/gtest.h>
 #include <ControlMath.hpp>
 #include <px4_platform_common/defines.h>
@@ -249,7 +251,7 @@ TEST(ControlMathTest, addIfNotNan)
 	v = NAN;
 	// both summands are NAN
 	ControlMath::addIfNotNan(v, NAN);
-	EXPECT_TRUE(isnan(v));
+	EXPECT_TRUE(std::isnan(v));
 	// regular value gets added to NAN and overwrites it
 	ControlMath::addIfNotNan(v, 3.f);
 	EXPECT_EQ(v, 3.f);

@@ -81,7 +81,7 @@ private:
 
 						if (_mavlink_log_sub.get_last_generation() != (last_generation + 1)) {
 							perf_count(_missed_msg_count_perf);
-							PX4_DEBUG("channel %d has missed %d mavlink log messages", _mavlink->get_channel(),
+							PX4_DEBUG("channel %d has missed %lld mavlink log messages", _mavlink->get_channel(),
 								  perf_event_count(_missed_msg_count_perf));
 						}
 

@@ -38,7 +38,6 @@
  * arms and to the lower left disarms the vehicle.
  *
  * @boolean
- * @reboot_required true
  * @group Manual Control
  */
 PARAM_DEFINE_INT32(MAN_ARM_GESTURE, 1);

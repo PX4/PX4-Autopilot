@@ -37,7 +37,7 @@
 
 #include <stdint.h>
 
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/sensor_optical_flow.h>
 
 #include <com/hex/equipment/flow/Measurement.hpp>
 

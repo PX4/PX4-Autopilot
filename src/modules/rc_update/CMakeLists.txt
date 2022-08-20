@@ -38,6 +38,9 @@ px4_add_module(
 		rc_update.cpp
 		rc_update.h
 	DEPENDS
+		hysteresis
 		mathlib
 		px4_work_queue
 	)
+
+px4_add_functional_gtest(SRC RCUpdateTest.cpp LINKLIBS modules__rc_update)

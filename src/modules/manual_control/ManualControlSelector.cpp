@@ -53,6 +53,7 @@ void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_
 	if (isInputValid(input, now) && (update_existing_input || start_using_new_input)) {
 		_setpoint = input;
 		_setpoint.valid = true;
+		_setpoint.timestamp = now; // timestamp_sample is preserved
 		_instance = instance;
 
 		if (_first_valid_source == manual_control_setpoint_s::SOURCE_UNKNOWN) {

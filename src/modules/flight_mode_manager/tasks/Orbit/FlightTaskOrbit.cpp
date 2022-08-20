@@ -52,7 +52,7 @@ FlightTaskOrbit::FlightTaskOrbit()
 bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 {
 	bool ret = true;
-	// save previous velocity and roatation direction
+	// save previous velocity and rotation direction
 	bool new_is_clockwise = _orbit_velocity > 0;
 	float new_radius = _orbit_radius;
 	float new_absolute_velocity = fabsf(_orbit_velocity);
@@ -72,7 +72,7 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 
 	float new_velocity = signFromBool(new_is_clockwise) * new_absolute_velocity;
 
-	if (math::isInRange(new_radius, _radius_min, _radius_max)) {
+	if (math::isInRange(new_radius, _radius_min, _param_mc_orbit_rad_max.get())) {
 		_started_clockwise = new_is_clockwise;
 		_sanitizeParams(new_radius, new_velocity);
 		_orbit_radius = new_radius;
@@ -146,7 +146,7 @@ bool FlightTaskOrbit::sendTelemetry()
 void FlightTaskOrbit::_sanitizeParams(float &radius, float &velocity) const
 {
 	// clip the radius to be within range
-	radius = math::constrain(radius, _radius_min, _radius_max);
+	radius = math::constrain(radius, _radius_min, _param_mc_orbit_rad_max.get());
 	velocity = math::constrain(velocity, -fabsf(_velocity_max), fabsf(_velocity_max));
 
 	bool exceeds_maximum_acceleration = (velocity * velocity) >= _acceleration_max * radius;
@@ -158,7 +158,7 @@ void FlightTaskOrbit::_sanitizeParams(float &radius, float &velocity) const
 	}
 }
 
-bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_setpoint)
+bool FlightTaskOrbit::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
 	_orbit_radius = _radius_min;
@@ -176,8 +176,8 @@ bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_set
 	      && PX4_ISFINITE(_velocity(1))
 	      && PX4_ISFINITE(_velocity(2));
 
-	Vector3f vel_prev{last_setpoint.vx, last_setpoint.vy, last_setpoint.vz};
-	Vector3f pos_prev{last_setpoint.x, last_setpoint.y, last_setpoint.z};
+	Vector3f pos_prev{last_setpoint.position};
+	Vector3f vel_prev{last_setpoint.velocity};
 	Vector3f accel_prev{last_setpoint.acceleration};
 
 	for (int i = 0; i < 3; i++) {

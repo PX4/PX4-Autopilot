@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2020 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -58,9 +58,14 @@ public:
 	ECL_RollController() = default;
 	~ECL_RollController() = default;
 
+	/**
+	 * @brief Calculates both euler and body roll rate setpoints.
+	 *
+	 * @param dt Time step [s]
+	 * @param ctrl_data Various control inputs (attitude, body rates, attitdue stepoints, euler rate setpoints, current speeed)
+	 * @return Roll body rate setpoint [rad/s]
+	 */
 	float control_attitude(const float dt, const ECL_ControlData &ctl_data) override;
-	float control_euler_rate(const float dt, const ECL_ControlData &ctl_data, float bodyrate_ff) override;
-	float control_bodyrate(const float dt, const ECL_ControlData &ctl_data) override;
 };
 
 #endif // ECL_ROLL_CONTROLLER_H

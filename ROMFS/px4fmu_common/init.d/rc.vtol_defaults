@@ -21,16 +21,20 @@ param set-default HTE_VXY_THR 2.0
 param set-default MIS_DIST_WPS 5000
 
 param set-default MPC_ACC_HOR_MAX 2
-param set-default MPC_TKO_SPEED 1
-param set-default MPC_VEL_MANUAL 3
-param set-default MPC_XY_CRUISE 3
+param set-default MPC_VEL_MANUAL 5
+param set-default MPC_XY_CRUISE 5
 param set-default MPC_XY_ERR_MAX 5
-param set-default MPC_XY_VEL_MAX 4
-param set-default MPC_Z_VEL_MAX_DN 1.5
+param set-default MPC_XY_VEL_MAX 8
 param set-default MPC_JERK_MAX 4.5
 param set-default MPC_YAW_MODE 4
 
-param set-default NAV_ACC_RAD 3
+# reduce aggressiveness around roll and yaw axis,
+# as VTOLs usually have high intertia and lot af drag due to wings
+param set-default MC_ROLL_P 5
+param set-default MC_ROLLRATE_MAX 120
+param set-default MC_YAW_P 2
+param set-default MC_YAWRATE_MAX 120
+param set-default MPC_MAN_Y_MAX 90
 
 param set-default PWM_AUX_RATE 50
 param set-default PWM_MAIN_RATE 400

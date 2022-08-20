@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -245,7 +245,7 @@ void GyroCalibration::Run()
 
 				const Vector3f old_offset{_gyro_calibration[gyro].offset()};
 
-				if (_gyro_calibration[gyro].set_offset(_gyro_mean[gyro].mean())) {
+				if (_gyro_calibration[gyro].set_offset(_gyro_mean[gyro].mean()) || !_gyro_calibration[gyro].calibrated()) {
 
 					calibration_updated = true;
 

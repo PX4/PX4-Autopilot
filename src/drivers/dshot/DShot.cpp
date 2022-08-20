@@ -47,7 +47,11 @@ DShot::DShot() :
 	_mixing_output.setAllDisarmedValues(DSHOT_DISARM_VALUE);
 	_mixing_output.setAllMinValues(DSHOT_MIN_THROTTLE);
 	_mixing_output.setAllMaxValues(DSHOT_MAX_THROTTLE);
-	_mixing_output.setAllFailsafeValues(UINT16_MAX);
+
+	if (_mixing_output.useDynamicMixing()) {
+		// Avoid using the PWM failsafe params
+		_mixing_output.setAllFailsafeValues(UINT16_MAX);
+	}
 }
 
 DShot::~DShot()
@@ -243,7 +247,10 @@ void DShot::update_telemetry_num_motors()
 
 	if (_mixing_output.useDynamicMixing()) {
 		for (unsigned i = 0; i < _num_outputs; ++i) {
-			motor_count += _mixing_output.isFunctionSet(i);
+			if (_mixing_output.isFunctionSet(i)) {
+				_telemetry->actuator_functions[motor_count] = (uint8_t)_mixing_output.outputFunction(i);
+				++motor_count;
+			}
 		}
 
 	} else {
@@ -277,24 +284,26 @@ void DShot::init_telemetry(const char *device)
 	update_telemetry_num_motors();
 }
 
-void DShot::handle_new_telemetry_data(const int motor_index, const DShotTelemetry::EscData &data)
+void DShot::handle_new_telemetry_data(const int telemetry_index, const DShotTelemetry::EscData &data)
 {
 	// fill in new motor data
 	esc_status_s &esc_status = _telemetry->esc_status_pub.get();
 
-	if (motor_index < esc_status_s::CONNECTED_ESC_MAX) {
-		esc_status.esc_online_flags |= 1 << motor_index;
+	if (telemetry_index < esc_status_s::CONNECTED_ESC_MAX) {
+		esc_status.esc_online_flags |= 1 << telemetry_index;
 
-		esc_status.esc[motor_index].timestamp       = data.time;
-		esc_status.esc[motor_index].esc_rpm         = (static_cast<int>(data.erpm) * 100) / (_param_mot_pole_count.get() / 2);
-		esc_status.esc[motor_index].esc_voltage     = static_cast<float>(data.voltage) * 0.01f;
-		esc_status.esc[motor_index].esc_current     = static_cast<float>(data.current) * 0.01f;
-		esc_status.esc[motor_index].esc_temperature = static_cast<float>(data.temperature);
+		esc_status.esc[telemetry_index].actuator_function = _telemetry->actuator_functions[telemetry_index];
+		esc_status.esc[telemetry_index].timestamp       = data.time;
+		esc_status.esc[telemetry_index].esc_rpm         = (static_cast<int>(data.erpm) * 100) /
+				(_param_mot_pole_count.get() / 2);
+		esc_status.esc[telemetry_index].esc_voltage     = static_cast<float>(data.voltage) * 0.01f;
+		esc_status.esc[telemetry_index].esc_current     = static_cast<float>(data.current) * 0.01f;
+		esc_status.esc[telemetry_index].esc_temperature = static_cast<float>(data.temperature);
 		// TODO: accumulate consumption and use for battery estimation
 	}
 
 	// publish when motor index wraps (which is robust against motor timeouts)
-	if (motor_index <= _telemetry->last_motor_index) {
+	if (telemetry_index <= _telemetry->last_telemetry_index) {
 		esc_status.timestamp = hrt_absolute_time();
 		esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
 		esc_status.esc_count = _telemetry->handler.numMotors();
@@ -310,7 +319,7 @@ void DShot::handle_new_telemetry_data(const int motor_index, const DShotTelemetr
 		esc_status.esc_online_flags = 0;
 	}
 
-	_telemetry->last_motor_index = motor_index;
+	_telemetry->last_telemetry_index = telemetry_index;
 }
 
 int DShot::send_command_thread_safe(const dshot_command_t command, const int num_repetitions, const int motor_index)
@@ -446,29 +455,44 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	} else {
 		int telemetry_index = 0;
 
-		const uint32_t reversible_outputs = _mixing_output.reversibleOutputs();
-
 		for (int i = 0; i < (int)num_outputs; i++) {
 
 			uint16_t output = outputs[i];
-
-			// DShot 3D splits the throttle ranges in two.
-			// This is in terms of DShot values, code below is in terms of actuator_output
-			// Direction 1) 48 is the slowest, 1047 is the fastest.
-			// Direction 2) 1049 is the slowest, 2047 is the fastest.
-			if (_param_dshot_3d_enable.get() || (reversible_outputs & (1u << i))) {
-				if (output >= _param_dshot_3d_dead_l.get() && output <= _param_dshot_3d_dead_h.get()) {
-					output = DSHOT_DISARM_VALUE;
-
-				} else if (output < 1000 && output > 0) { //Todo: allow actuator 0 or dshot 48 to be used
-					output = 999 - output;
-				}
-			}
 
 			if (output == DSHOT_DISARM_VALUE) {
 				up_dshot_motor_command(i, DShot_cmd_motor_stop, telemetry_index == requested_telemetry_index);
 
 			} else {
+
+				// DShot 3D splits the throttle ranges in two.
+				// This is in terms of DShot values, code below is in terms of actuator_output
+				// Direction 1) 48 is the slowest, 1047 is the fastest.
+				// Direction 2) 1049 is the slowest, 2047 is the fastest.
+				if (_param_dshot_3d_enable.get() || (_reversible_outputs & (1u << i))) {
+					if (output >= _param_dshot_3d_dead_l.get() && output < _param_dshot_3d_dead_h.get()) {
+						output = DSHOT_DISARM_VALUE;
+
+					} else {
+						bool upper_range = output >= 1000;
+
+						if (upper_range) {
+							output -= 1000;
+
+						} else {
+							output = 999 - output; // lower range is inverted
+						}
+
+						float max_output = 999.f;
+						float min_output = max_output * _param_dshot_min.get();
+						output = math::min(max_output, (min_output + output * (max_output - min_output) / max_output));
+
+						if (upper_range) {
+							output += 1000;
+						}
+
+					}
+				}
+
 				up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
 							telemetry_index == requested_telemetry_index);
 			}
@@ -489,8 +513,6 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 void DShot::Run()
 {
-	SmartLock lock_guard(_lock);
-
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
@@ -498,6 +520,8 @@ void DShot::Run()
 		exit_and_cleanup();
 		return;
 	}
+
+	SmartLock lock_guard(_lock);
 
 	perf_begin(_cycle_perf);
 
@@ -547,6 +571,13 @@ void DShot::Run()
 
 	handle_vehicle_commands();
 
+	if (!_mixing_output.armed().armed) {
+		if (_reversible_outputs != _mixing_output.reversibleOutputs()) {
+			_reversible_outputs = _mixing_output.reversibleOutputs();
+			update_params();
+		}
+	}
+
 	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
 	_mixing_output.updateSubscriptions(true);
 
@@ -593,7 +624,7 @@ void DShot::handle_vehicle_commands()
 			command_ack.command = vehicle_command.command;
 			command_ack.target_system = vehicle_command.source_system;
 			command_ack.target_component = vehicle_command.source_component;
-			command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+			command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
 			if (index != -1) {
 				PX4_DEBUG("setting command: index: %i type: %i", index, type);
@@ -615,7 +646,7 @@ void DShot::handle_vehicle_commands()
 					PX4_WARN("unknown command: %i", type);
 
 				} else {
-					command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 					_current_command.motor_mask = 1 << index;
 					_current_command.num_repetitions = 10;
 					_current_command.save = true;
@@ -640,6 +671,13 @@ void DShot::update_params()
 	_mixing_output.setAllMinValues(math::constrain(static_cast<int>((_param_dshot_min.get() *
 				       static_cast<float>(DSHOT_MAX_THROTTLE))),
 				       DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE));
+
+	// Do not use the minimum parameter for reversible outputs
+	for (unsigned i = 0; i < _num_outputs; ++i) {
+		if ((1 << i) & _reversible_outputs) {
+			_mixing_output.minValue(i) = DSHOT_MIN_THROTTLE;
+		}
+	}
 }
 
 int DShot::ioctl(file *filp, int cmd, unsigned long arg)
@@ -714,8 +752,8 @@ int DShot::custom_command(int argc, char *argv[])
 	};
 
 	constexpr VerbCommand commands[] = {
-		{"reverse", DShot_cmd_spin_direction_reversed, 10},
-		{"normal", DShot_cmd_spin_direction_normal, 10},
+		{"reverse", DShot_cmd_spin_direction_2, 10},
+		{"normal", DShot_cmd_spin_direction_1, 10},
 		{"save", DShot_cmd_save_settings, 10},
 		{"3d_on", DShot_cmd_3d_mode_on, 10},
 		{"3d_off", DShot_cmd_3d_mode_off, 10},

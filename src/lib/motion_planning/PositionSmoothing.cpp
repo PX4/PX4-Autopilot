@@ -84,26 +84,6 @@ bool PositionSmoothing::_isTurning(const Vector3f &target) const
 		&& pos_to_target.longerThan(_target_acceptance_radius));
 }
 
-
-
-/* Constrain some value vith a constrain depending on the sign of the constraint
- * Example: 	- if the constrain is -5, the value will be constrained between -5 and 0
- * 		- if the constrain is 5, the value will be constrained between 0 and 5
- */
-inline float _constrainOneSide(float val, float constraint)
-{
-	const float min = (constraint < FLT_EPSILON) ? constraint : 0.f;
-	const float max = (constraint > FLT_EPSILON) ? constraint : 0.f;
-
-	return math::constrain(val, min, max);
-}
-
-inline float _constrainAbs(float val, float max)
-{
-	return matrix::sign(val) * math::min(fabsf(val), fabsf(max));
-}
-
-
 float PositionSmoothing::_getMaxXYSpeed(const Vector3f(&waypoints)[3]) const
 {
 	Vector3f pos_traj(_trajectory[0].getCurrentPosition(),

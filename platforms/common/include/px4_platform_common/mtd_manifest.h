@@ -100,6 +100,6 @@ __EXPORT int px4_mtd_config(const px4_mtd_manifest_t *mft_mtd);
  *   0 (get !=null) item by type's value is returned at get;
  *
  ************************************************************************************/
-__EXPORT int px4_mtd_query(const char *type, const char *val, const char **get = nullptr);
+__EXPORT int px4_mtd_query(const char *type, const char *val, const char **get);
 
 __END_DECLS

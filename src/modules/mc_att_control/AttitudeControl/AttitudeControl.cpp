@@ -97,7 +97,7 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	// and multiply it by the yaw setpoint rate (yawspeed_setpoint).
 	// This yields a vector representing the commanded rotatation around the world z-axis expressed in the body frame
 	// such that it can be added to the rates setpoint.
-	if (is_finite(_yawspeed_setpoint)) {
+	if (std::isfinite(_yawspeed_setpoint)) {
 		rate_setpoint += q.inversed().dcm_z() * _yawspeed_setpoint;
 	}
 

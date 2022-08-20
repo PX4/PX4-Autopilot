@@ -3,8 +3,7 @@
 uint64 timestamp				# time since system start (microseconds)
 
 bool calibration_enabled
-bool system_sensors_initialized
-bool system_hotplug_timeout		# true if the hotplug sensor search is over
+bool pre_flight_checks_pass		# true if all checks necessary to arm pass
 bool auto_mission_available
 bool angular_velocity_valid
 bool attitude_valid
@@ -24,13 +23,12 @@ bool position_reliant_on_optical_flow
 bool position_reliant_on_vision_position
 
 bool dead_reckoning
+bool flight_terminated
 
 bool circuit_breaker_engaged_power_check
 bool circuit_breaker_engaged_airspd_check
-bool circuit_breaker_engaged_enginefailure_check
 bool circuit_breaker_flight_termination_disabled
 bool circuit_breaker_engaged_usb_check
-bool circuit_breaker_engaged_posfailure_check	# set to true when the position valid checks have been disabled
 bool circuit_breaker_vtol_fw_arming_check 	# set to true if for VTOLs arming in fixed-wing mode should be allowed
 
 bool offboard_control_signal_lost

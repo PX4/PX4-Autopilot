@@ -1,0 +1,7 @@
+module_name: Sagetech MXS
+serial_config:
+    - command: sagetech_mxs start -d ${SERIAL_DEV}
+      port_config_param:
+        name: MXS_SER_CFG
+        group: Transponder
+      label: Sagetech MXS Serial Port

@@ -1,4 +1,28 @@
 module_name: RC Input Driver
+parameters:
+    - group: RC Input
+      definitions:
+        RC_INPUT_PROTO:
+            description:
+                short: RC input protocol
+                long: |
+                    Select your RC input protocol or auto to scan.
+            category: System
+            type: enum
+            values:
+                -1: Auto
+                0: None
+                1: PPM
+                2: SBUS
+                3: DSM
+                4: ST24
+                5: SUMD
+                6: CRSF
+                7: GHST
+            min: -1
+            max: 7
+            default: -1
+
 serial_config:
     - command: set RC_INPUT_ARGS "-d ${SERIAL_DEV}"
       port_config_param:

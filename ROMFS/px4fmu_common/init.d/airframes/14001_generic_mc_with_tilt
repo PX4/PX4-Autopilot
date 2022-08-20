@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# @name Generic Multirotor with tilt
+#
+# @class Copter
+# @type Tricopter Y+
+#
+# @output Motor1 motor 1
+# @output Motor2 motor 2
+# @output Motor3 motor 3
+# @output Servo1 yaw servo
+#
+# @board bitcraze_crazyflie exclude
+# @board px4_fmu-v2 exclude
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+param set-default MAV_TYPE 15
+
+param set-default CA_AIRFRAME 8
+# Tricopter
+param set-default CA_ROTOR0_PX 0.2500
+param set-default CA_ROTOR0_PY 0.4330
+param set-default CA_ROTOR1_PX 0.2500
+param set-default CA_ROTOR1_PY -0.4300
+param set-default CA_ROTOR2_PX -0.5000
+param set-default CA_ROTOR2_PY 0.0000
+param set-default CA_ROTOR2_TILT 1
+param set-default CA_ROTOR_COUNT 3
+param set-default CA_SV_TL0_MAXA 45.0000
+param set-default CA_SV_TL0_MINA -45.0000
+param set-default CA_SV_TL0_TD 90
+param set-default CA_SV_TL_COUNT 1
+

@@ -84,11 +84,10 @@ PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
 /**
  * Pitch rate proportional gain.
  *
- * This defines how much the elevator input will be commanded depending on the
- * current body angular rate error.
+ * Pitch rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
  * @unit %/rad/s
- * @min 0.005
+ * @min 0.0
  * @max 1.0
  * @decimal 3
  * @increment 0.005
@@ -97,13 +96,27 @@ PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
 PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
 
 /**
+ * Pitch rate derivative gain.
+ *
+ * Pitch rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ *
+ * @unit %/rad/s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_PR_D, 0.f);
+
+/**
  * Pitch rate integrator gain.
  *
  * This gain defines how much control response will result out of a steady
  * state error. It trims any constant error.
  *
  * @unit %/rad
- * @min 0.005
+ * @min 0.0
  * @max 0.5
  * @decimal 3
  * @increment 0.005
@@ -158,11 +171,10 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
 /**
  * Roll rate proportional Gain
  *
- * This defines how much the aileron input will be commanded depending on the
- * current body angular rate error.
+ * Roll rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
  * @unit %/rad/s
- * @min 0.005
+ * @min 0.0
  * @max 1.0
  * @decimal 3
  * @increment 0.005
@@ -171,13 +183,27 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
 PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
 
 /**
+ * Roll rate derivative Gain
+ *
+ * Roll rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ *
+ * @unit %/rad/s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_RR_D, 0.00f);
+
+/**
  * Roll rate integrator Gain
  *
  * This gain defines how much control response will result out of a steady
  * state error. It trims any constant error.
  *
  * @unit %/rad
- * @min 0.005
+ * @min 0.0
  * @max 0.2
  * @decimal 3
  * @increment 0.005
@@ -216,17 +242,30 @@ PARAM_DEFINE_FLOAT(FW_R_RMAX, 70.0f);
 /**
  * Yaw rate proportional gain
  *
- * This defines how much the rudder input will be commanded depending on the
- * current body angular rate error.
+ * Yaw rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
  * @unit %/rad/s
- * @min 0.005
+ * @min 0.0
  * @max 1.0
  * @decimal 3
  * @increment 0.005
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f);
+
+/**
+ * Yaw rate derivative gain
+ *
+ * Yaw rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ *
+ * @unit %/rad/s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_YR_D, 0.0f);
 
 /**
  * Yaw rate integrator gain
@@ -303,7 +342,7 @@ PARAM_DEFINE_INT32(FW_W_EN, 0);
  * current body angular rate error.
  *
  * @unit %/rad/s
- * @min 0.005
+ * @min 0.0
  * @max 1.0
  * @decimal 3
  * @increment 0.005
@@ -318,7 +357,7 @@ PARAM_DEFINE_FLOAT(FW_WR_P, 0.5f);
  * state error. It trims any constant error.
  *
  * @unit %/rad
- * @min 0.005
+ * @min 0.0
  * @max 0.5
  * @decimal 3
  * @increment 0.005
@@ -455,24 +494,13 @@ PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
  * @increment 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 45.0f);
-
-/**
- * Scale factor for flaps
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group FW Attitude Control
- */
-PARAM_DEFINE_FLOAT(FW_FLAPS_SCL, 1.0f);
+PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 30.0f);
 
 /**
  * Flaps setting during take-off
  *
- * Sets a fraction of full flaps (FW_FLAPS_SCL) during take-off
+ * Sets a fraction of full flaps during take-off.
+ * Also applies to flaperons if enabled in the mixer/allocation.
  *
  * @unit norm
  * @min 0.0
@@ -486,7 +514,8 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_TO_SCL, 0.0f);
 /**
  * Flaps setting during landing
  *
- * Sets a fraction of full flaps (FW_FLAPS_SCL) during landing
+ * Sets a fraction of full flaps during landing.
+ * Also applies to flaperons if enabled in the mixer/allocation.
  *
  * @unit norm
  * @min 0.0
@@ -496,18 +525,6 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_TO_SCL, 0.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_FLAPS_LND_SCL, 1.0f);
-
-/**
- * Scale factor for flaperons
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group FW Attitude Control
- */
-PARAM_DEFINE_FLOAT(FW_FLAPERON_SCL, 0.0f);
 
 /**
  * Airspeed mode
@@ -735,3 +752,52 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_R_FLPS, 0.0f);
  * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(FW_DTRIM_P_FLPS, 0.0f);
+
+/**
+ * Pitch trim increment for spoiler configuration
+ *
+ * This increment is added to the pitch trim whenever spoilers are fully deployed.
+ *
+ * @group FW Attitude Control
+ * @min -0.25
+ * @max 0.25
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(FW_DTRIM_P_SPOIL, 0.f);
+
+/**
+ * Spoiler landing setting
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_SPOILERS_LND, 0.f);
+
+/**
+ * Spoiler descend setting
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_SPOILERS_DESC, 0.f);
+
+/**
+ * Spoiler input in manual flight
+ *
+ * Chose source for manual setting of spoilers in manual flight modes.
+ *
+ * @value 0 Disabled
+ * @value 1 Flaps channel
+ * @value 2 Aux1
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_INT32(FW_SPOILERS_MAN, 0);

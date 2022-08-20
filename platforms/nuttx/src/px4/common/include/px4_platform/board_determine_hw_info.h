@@ -32,9 +32,10 @@
  ****************************************************************************/
 #pragma once
 
-
+#include "micro_hal.h"
 __BEGIN_DECLS
 
+#define HW_INFO_SUFFIX        "%0" STRINGIFY(HW_INFO_VER_DIGITS) "x%0" STRINGIFY(HW_INFO_REV_DIGITS) "x"
 /************************************************************************************
   * Name: board_determine_hw_info
  *

@@ -11,9 +11,10 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
 
 param set SYS_HITL 1
+
+param set UAVCAN_ENABLE 0
 
 param set-default CA_ROTOR_COUNT 4
 param set-default CA_ROTOR0_PX 0.15

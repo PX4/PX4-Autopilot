@@ -5,10 +5,10 @@
 # @type Autogyro
 # @class Autogyro
 #
-# @output MAIN2 rotor_head_L
-# @output MAIN3 rotor_head_R
-# @output MAIN4 rudder
-# @output MAIN5 throttle
+# @output Motor1 throttle
+# @output Servo1 rotor_head_L
+# @output Servo2 rotor_head_R
+# @output Servo3 rudder
 #
 #
 # @url https://github.com/ThunderFly-aerospace/TF-G2/
@@ -32,7 +32,7 @@ param set-default SENS_BOARD_ROT 4
 param set-default FW_AIRSPD_MAX 20
 param set-default FW_AIRSPD_MIN 7
 param set-default FW_AIRSPD_TRIM 13
-param set-default FW_THR_CRUISE 0.8
+param set-default FW_THR_TRIM 0.8
 
 param set-default FW_MAN_P_MAX 25
 param set-default FW_MAN_R_MAX 25
@@ -42,5 +42,21 @@ param set-default FW_P_LIM_MAX 25
 param set-default FW_P_LIM_MIN -5
 param set-default FW_P_RMAX_NEG 20
 
-set MIXER TF-G2
-set MIXER_AUX pass
+param set-default CA_AIRFRAME 1
+
+param set-default CA_ROTOR_COUNT 1
+param set-default CA_ROTOR0_PX 0.3
+
+param set-default CA_SV_CS_COUNT 3
+param set-default CA_SV_CS0_TRQ_R 0
+param set-default CA_SV_CS0_TRQ_Y 1
+param set-default CA_SV_CS0_TYPE 4
+param set-default CA_SV_CS1_TRQ_P 0
+param set-default CA_SV_CS1_TRQ_R -0.5
+param set-default CA_SV_CS1_TYPE 1
+param set-default CA_SV_CS2_TRQ_P 1
+param set-default CA_SV_CS2_TYPE 3
+
+param set-default PWM_MAIN_TIM0 50
+param set-default PWM_MAIN_TIM1 50
+param set-default PWM_MAIN_TIM2 50

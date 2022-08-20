@@ -102,7 +102,7 @@ public:
 		Type t = R.trace();
 
 		if (t > Type(0)) {
-			t = sqrt(Type(1) + t);
+			t = std::sqrt(Type(1) + t);
 			q(0) = Type(0.5) * t;
 			t = Type(0.5) / t;
 			q(1) = (R(2, 1) - R(1, 2)) * t;
@@ -110,7 +110,7 @@ public:
 			q(3) = (R(1, 0) - R(0, 1)) * t;
 
 		} else if (R(0, 0) > R(1, 1) && R(0, 0) > R(2, 2)) {
-			t = sqrt(Type(1) + R(0, 0) - R(1, 1) - R(2, 2));
+			t = std::sqrt(Type(1) + R(0, 0) - R(1, 1) - R(2, 2));
 			q(1) = Type(0.5) * t;
 			t = Type(0.5) / t;
 			q(0) = (R(2, 1) - R(1, 2)) * t;
@@ -118,7 +118,7 @@ public:
 			q(3) = (R(0, 2) + R(2, 0)) * t;
 
 		} else if (R(1, 1) > R(2, 2)) {
-			t = sqrt(Type(1) - R(0, 0) + R(1, 1) - R(2, 2));
+			t = std::sqrt(Type(1) - R(0, 0) + R(1, 1) - R(2, 2));
 			q(2) = Type(0.5) * t;
 			t = Type(0.5) / t;
 			q(0) = (R(0, 2) - R(2, 0)) * t;
@@ -126,7 +126,7 @@ public:
 			q(3) = (R(2, 1) + R(1, 2)) * t;
 
 		} else {
-			t = sqrt(Type(1) - R(0, 0) - R(1, 1) + R(2, 2));
+			t = std::sqrt(Type(1) - R(0, 0) - R(1, 1) + R(2, 2));
 			q(3) = Type(0.5) * t;
 			t = Type(0.5) / t;
 			q(0) = (R(1, 0) - R(0, 1)) * t;
@@ -147,12 +147,12 @@ public:
 	Quaternion(const Euler<Type> &euler)
 	{
 		Quaternion &q = *this;
-		Type cosPhi_2 = Type(cos(euler.phi() / Type(2)));
-		Type cosTheta_2 = Type(cos(euler.theta() / Type(2)));
-		Type cosPsi_2 = Type(cos(euler.psi() / Type(2)));
-		Type sinPhi_2 = Type(sin(euler.phi() / Type(2)));
-		Type sinTheta_2 = Type(sin(euler.theta() / Type(2)));
-		Type sinPsi_2 = Type(sin(euler.psi() / Type(2)));
+		Type cosPhi_2 = Type(std::cos(euler.phi() / Type(2)));
+		Type cosTheta_2 = Type(std::cos(euler.theta() / Type(2)));
+		Type cosPsi_2 = Type(std::cos(euler.psi() / Type(2)));
+		Type sinPhi_2 = Type(std::sin(euler.phi() / Type(2)));
+		Type sinTheta_2 = Type(std::sin(euler.theta() / Type(2)));
+		Type sinPsi_2 = Type(std::sin(euler.psi() / Type(2)));
 		q(0) = cosPhi_2 * cosTheta_2 * cosPsi_2 +
 		       sinPhi_2 * sinTheta_2 * sinPsi_2;
 		q(1) = sinPhi_2 * cosTheta_2 * cosPsi_2 -
@@ -179,8 +179,8 @@ public:
 			q(1) = q(2) = q(3) = 0;
 
 		} else {
-			Type magnitude = sin(angle / Type(2));
-			q(0) = cos(angle / Type(2));
+			Type magnitude = std::sin(angle / Type(2));
+			q(0) = std::cos(angle / Type(2));
 			q(1) = axis(0) * magnitude;
 			q(2) = axis(1) * magnitude;
 			q(3) = axis(2) * magnitude;
@@ -229,7 +229,7 @@ public:
 
 		} else {
 			// normal case, do half-way quaternion solution
-			q(0) = dt + sqrt(src.norm_squared() * dst.norm_squared());
+			q(0) = dt + std::sqrt(src.norm_squared() * dst.norm_squared());
 		}
 
 		q(1) = cr(0);
@@ -382,8 +382,8 @@ public:
 			cos_u = Type(1.0) - u2 * c2 + u4 * c4 - u6 * c6;
 
 		} else {
-			sinc_u = Type(sin(u_norm) / u_norm);
-			cos_u = Type(cos(u_norm));
+			sinc_u = Type(std::sin(u_norm) / u_norm);
+			cos_u = Type(std::cos(u_norm));
 		}
 
 		Vector<Type, 3> v = sinc_u * u;
@@ -410,7 +410,7 @@ public:
 			return Type(0.5) * (Dcm<Type>() + u_hat + (Type(1.0 / 3.0) + u_norm * u_norm / Type(45.0)) * u_hat * u_hat);
 
 		} else {
-			return Type(0.5) * (Dcm<Type>() + u_hat + (Type(1.0) - u_norm * Type(cos(u_norm) / sin(u_norm))) /
+			return Type(0.5) * (Dcm<Type>() + u_hat + (Type(1.0) - u_norm * Type(std::cos(u_norm) / std::sin(u_norm))) /
 					    (u_norm * u_norm) * u_hat * u_hat);
 		}
 	}
@@ -457,7 +457,7 @@ public:
 		const Quaternion &q = *this;
 
 		for (size_t i = 0; i < 4; i++) {
-			if (fabs(q(i)) > FLT_EPSILON) {
+			if (std::fabs(q(i)) > FLT_EPSILON) {
 				return q * Type(matrix::sign(q(i)));
 			}
 		}

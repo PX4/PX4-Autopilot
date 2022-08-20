@@ -89,8 +89,8 @@ PARAM_DEFINE_FLOAT(VT_B_TRANS_RAMP, 3.0f);
 /**
  * Output on airbrakes channel during back transition
  *
- * Used for airbrakes or with ESCs that have reverse thrust enabled on a seperate channel
- * Airbrakes need to be enables for your selected model/mixer
+ * Used for airbrakes or with ESCs that have reverse thrust enabled on a separate channel.
+ * Airbrakes need to be enabled for your selected model/mixer.
  *
  * @min 0
  * @max 1

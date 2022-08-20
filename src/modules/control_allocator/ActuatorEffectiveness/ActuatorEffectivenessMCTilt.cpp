@@ -51,7 +51,7 @@ ActuatorEffectivenessMCTilt::getEffectivenessMatrix(Configuration &configuration
 	}
 
 	// MC motors
-	_mc_rotors.enablePropellerTorque(!_tilts.hasYawControl());
+	_mc_rotors.enableYawByDifferentialThrust(!_tilts.hasYawControl());
 	const bool rotors_added_successfully = _mc_rotors.addActuators(configuration);
 
 	// Tilts

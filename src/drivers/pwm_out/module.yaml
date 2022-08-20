@@ -25,9 +25,9 @@ actuator_output:
             -3: DShot600
             -2: DShot1200
             -1: OneShot
-            50: PWM50
-            100: PWM100
-            200: PWM200
-            400: PWM400
+            50: PWM 50 Hz
+            100: PWM 100 Hz
+            200: PWM 200 Hz
+            400: PWM 400 Hz
         reboot_required: true
 

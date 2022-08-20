@@ -47,7 +47,7 @@ def quat_prod(q, r):
 def dcm_to_euler(dcm):
     return array([
         arctan(dcm[2,1]/ dcm[2,2]),
-        arctan(-dcm[2,0]/ sqrt(1 - dcm[2,0]**2)),
+        arctan(-dcm[2,0]/ std::sqrt(1 - dcm[2,0]**2)),
         arctan(dcm[1,0]/ dcm[0,0]),
     ])
 

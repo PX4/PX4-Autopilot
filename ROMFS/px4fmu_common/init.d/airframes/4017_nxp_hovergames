@@ -5,11 +5,6 @@
 # @type Quadrotor x
 # @class Copter
 #
-# @output MAIN1 motor 1
-# @output MAIN2 motor 2
-# @output MAIN3 motor 3
-# @output MAIN4 motor 4
-#
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
 #
@@ -25,3 +20,15 @@ param set-default MC_ROLLRATE_I 0.15
 
 param set-default MC_PITCHRATE_P 0.18
 param set-default MC_PITCHRATE_I 0.15
+
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.15
+param set-default CA_ROTOR0_PY 0.15
+param set-default CA_ROTOR1_PX -0.15
+param set-default CA_ROTOR1_PY -0.15
+param set-default CA_ROTOR2_PX 0.15
+param set-default CA_ROTOR2_PY -0.15
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.15
+param set-default CA_ROTOR3_PY 0.15
+param set-default CA_ROTOR3_KM -0.05

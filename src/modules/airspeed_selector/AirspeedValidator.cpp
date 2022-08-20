@@ -81,11 +81,11 @@ AirspeedValidator::update_wind_estimator(const uint64_t time_now_usec, float air
 		Quatf q(att_q);
 
 		// airspeed fusion (with raw TAS)
-		const Vector3f vel_var{Dcmf(q) *Vector3f{lpos_evh, lpos_evh, lpos_evv}};
-		_wind_estimator.fuse_airspeed(time_now_usec, airspeed_true_raw, vI, Vector2f{vel_var(0), vel_var(1)}, q);
+		const float hor_vel_variance =  lpos_evh * lpos_evh;
+		_wind_estimator.fuse_airspeed(time_now_usec, airspeed_true_raw, vI, hor_vel_variance, q);
 
 		// sideslip fusion
-		_wind_estimator.fuse_beta(time_now_usec, vI, q);
+		_wind_estimator.fuse_beta(time_now_usec, vI, hor_vel_variance, q);
 	}
 }
 
@@ -145,9 +145,9 @@ AirspeedValidator::update_CAS_scale_validated(bool lpos_valid, const matrix::Vec
 		// check passes if the average airspeed with the scale applied is closer to groundspeed than without
 		if (fabsf(TAS_to_grounspeed_error_new) < fabsf(TAS_to_grounspeed_error_current)) {
 
-			// constrain the scale update to max 0.01 at a time
-			const float new_scale_constrained = math::constrain(_wind_estimator.get_tas_scale(), _CAS_scale_validated - 0.01f,
-							    _CAS_scale_validated + 0.01f);
+			// constrain the scale update to max 0.05 at a time
+			const float new_scale_constrained = math::constrain(_wind_estimator.get_tas_scale(), _CAS_scale_validated - 0.05f,
+							    _CAS_scale_validated + 0.05f);
 
 			_CAS_scale_validated = new_scale_constrained;
 		}

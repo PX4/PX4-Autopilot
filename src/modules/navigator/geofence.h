@@ -50,7 +50,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_air_data.h>
 
 #define GEOFENCE_FILENAME PX4_STORAGEDIR"/etc/geofence.txt"
@@ -88,7 +88,7 @@ public:
 	 *
 	 * @return true: system is obeying fence, false: system is violating fence
 	 */
-	bool check(const vehicle_global_position_s &global_position, const vehicle_gps_position_s &gps_position);
+	bool check(const vehicle_global_position_s &global_position, const sensor_gps_s &gps_position);
 
 	/**
 	 * Return whether a mission item obeys the geofence.

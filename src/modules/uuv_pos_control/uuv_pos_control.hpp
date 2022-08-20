@@ -60,11 +60,10 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
@@ -103,20 +102,17 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};	/**< current vehicle attitude */
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	/**< notification of manual control updates */
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
-	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle status subscription */
+	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 
-	//actuator_controls_s _actuators {}; /**< actuator control inputs */
-	manual_control_setpoint_s _manual_control_setpoint {}; /**< r/c channel data */
-	vehicle_attitude_s _vehicle_attitude {}; /**< vehicle attitude */
-	vehicle_local_position_setpoint_s _trajectory_setpoint{}; /**< vehicle position setpoint */
-	vehicle_control_mode_s _vcontrol_mode {}; /**< vehicle control mode */
+	vehicle_attitude_s _vehicle_attitude{};
+	trajectory_setpoint_s _trajectory_setpoint{};
+	vehicle_control_mode_s _vcontrol_mode{};
 
-	perf_counter_t	_loop_perf; /**< loop performance counter */
+	perf_counter_t	_loop_perf;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::UUV_GAIN_X_P>) _param_pose_gain_x,
@@ -142,10 +138,10 @@ private:
 	 */
 	void publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
 				       const float roll_des, const float pitch_des, const float yaw_des);
-	void pose_controller_6dof(const float x_pos_des, const float y_pos_des, const float z_pos_des,
+	void pose_controller_6dof(const Vector3f &pos_des,
 				  const float roll_des, const float pitch_des, const float yaw_des,
 				  vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
-	void stabilization_controller_6dof(const float x_pos_des, const float y_pos_des, const float z_pos_des,
+	void stabilization_controller_6dof(const Vector3f &pos_des,
 					   const float roll_des, const float pitch_des, const float yaw_des,
 					   vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
 };

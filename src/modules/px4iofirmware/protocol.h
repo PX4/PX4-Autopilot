@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -114,6 +114,7 @@
 #define PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED	(1 << 11) /* FMU was initialized and OK once */
 #define PX4IO_P_STATUS_FLAGS_RC_ST24		(1 << 12) /* ST24 input is valid */
 #define PX4IO_P_STATUS_FLAGS_RC_SUMD		(1 << 13) /* SUMD input is valid */
+#define PX4IO_P_STATUS_FLAGS_SAFETY_BUTTON_EVENT	(1 << 14) /* px4io safety button was pressed for longer than 1 second */
 
 #define PX4IO_P_STATUS_ALARMS			3	 /* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_RC_LOST           (1 << 0) /* timed out waiting for RC input */
@@ -184,12 +185,8 @@ enum {							/* DSM bind states */
 
 #define PX4IO_P_SETUP_CRC			11	/* get CRC of IO firmware */
 /* storage space of 12 occupied by CRC */
-#define PX4IO_P_SETUP_FORCE_SAFETY_OFF		12	/* force safety switch into
-                                                           'armed' (PWM enabled) state - this is a non-data write and
-                                                           hence index 12 can safely be used. */
-
-#define PX4IO_P_SETUP_FORCE_SAFETY_ON		14	/* force safety switch into 'disarmed' (PWM disabled state) */
-#define PX4IO_FORCE_SAFETY_MAGIC		22027	/* required argument for force safety (random) */
+#define PX4IO_P_SETUP_SAFETY_BUTTON_ACK	14	/**< ACK from FMU when it gets safety button pressed status */
+#define PX4IO_P_SETUP_SAFETY_OFF		15	/**< FMU inform PX4IO about safety_off for LED indication*/
 #define PX4IO_P_SETUP_SBUS_RATE			16	/**< frame rate of SBUS1 output in Hz */
 #define PX4IO_P_SETUP_THERMAL			17	/**< thermal management */
 #define PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION	18	/**< flight termination; false if the circuit breaker (CBRK_FLIGHTTERM) is set */
@@ -212,7 +209,7 @@ enum {							/* DSM bind states */
 #define PX4IO_PAGE_TEST				127
 #define PX4IO_P_TEST_LED			0		/**< set the amber LED on/off */
 
-/* PWM disarmed values that are active, even when SAFETY_SAFE */
+/* PWM disarmed values that are active */
 #define PX4IO_PAGE_DISARMED_PWM			109		/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /**

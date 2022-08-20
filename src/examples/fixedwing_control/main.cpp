@@ -278,25 +278,14 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	 * These structs contain the system state and things
 	 * like attitude, position, the current waypoint, etc.
 	 */
-	struct vehicle_attitude_s att;
-	memset(&att, 0, sizeof(att));
-	struct vehicle_attitude_setpoint_s att_sp;
-	memset(&att_sp, 0, sizeof(att_sp));
-	struct vehicle_rates_setpoint_s rates_sp;
-	memset(&rates_sp, 0, sizeof(rates_sp));
-	struct vehicle_global_position_s global_pos;
-	memset(&global_pos, 0, sizeof(global_pos));
-	struct manual_control_setpoint_s manual_control_setpoint;
-	memset(&manual_control_setpoint, 0, sizeof(manual_control_setpoint));
-	struct vehicle_status_s vstatus;
-	memset(&vstatus, 0, sizeof(vstatus));
-	struct position_setpoint_s global_sp;
-	memset(&global_sp, 0, sizeof(global_sp));
+	vehicle_attitude_s att{};
+	vehicle_rates_setpoint_s rates_sp{};
+	manual_control_setpoint_s manual_control_setpoint{};
+	vehicle_status_s vstatus{};
+	position_setpoint_s global_sp{};
 
 	/* output structs - this is what is sent to the mixer */
-	struct actuator_controls_s actuators;
-	memset(&actuators, 0, sizeof(actuators));
-
+	actuator_controls_s actuators{};
 
 	/* publish actuator controls with zero values */
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROLS; i++) {

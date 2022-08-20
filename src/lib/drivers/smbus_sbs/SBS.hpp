@@ -69,7 +69,7 @@ public:
 
 	int populate_smbus_data(battery_status_s &msg);
 
-	virtual void RunImpl(); // Can be overriden by derived implimentation
+	virtual void RunImpl(); // Can be overridden by derived implimentation
 
 	virtual void custom_method(const BusCLIArguments &cli) = 0; //Has be overriden by derived implimentation
 
@@ -81,7 +81,7 @@ public:
 
 	/**
 	* @brief Read info from battery on startup.
-	* @return Returns PX4_OK on success, PX4_ERROR on failure. Can be overriden by derived implimentation
+	* @return Returns PX4_OK on success, PX4_ERROR on failure. Can be overridden by derived implimentation
 	*/
 	virtual int get_startup_info();
 

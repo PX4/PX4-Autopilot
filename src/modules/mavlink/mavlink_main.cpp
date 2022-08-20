@@ -199,50 +199,50 @@ Mavlink::mavlink_update_parameters()
 	}
 }
 
-void
-Mavlink::set_channel()
+bool Mavlink::set_channel()
 {
 	/* set channel according to instance id */
 	switch (_instance_id) {
 	case 0:
 		_channel = MAVLINK_COMM_0;
-		break;
+		return true;
 
 	case 1:
 		_channel = MAVLINK_COMM_1;
-		break;
+		return true;
 
 	case 2:
 		_channel = MAVLINK_COMM_2;
-		break;
+		return true;
 
 	case 3:
 		_channel = MAVLINK_COMM_3;
-		break;
+		return true;
 #ifdef MAVLINK_COMM_4
 
 	case 4:
 		_channel = MAVLINK_COMM_4;
-		break;
+		return true;
 #endif
 #ifdef MAVLINK_COMM_5
 
 	case 5:
 		_channel = MAVLINK_COMM_5;
-		break;
+		return true;
 #endif
 #ifdef MAVLINK_COMM_6
 
 	case 6:
 		_channel = MAVLINK_COMM_6;
-		break;
+		return true;
 #endif
 
 	default:
-		PX4_WARN("instance ID %d is out of range", _instance_id);
-		px4_task_exit(1);
+		PX4_ERR("instance ID %d is out of range", _instance_id);
 		break;
 	}
+
+	return false;
 }
 
 bool
@@ -1334,18 +1334,20 @@ MavlinkShell *
 Mavlink::get_shell()
 {
 	if (!_mavlink_shell) {
-		_mavlink_shell = new MavlinkShell();
+		MavlinkShell *shell = new MavlinkShell();
 
-		if (!_mavlink_shell) {
+		if (!shell) {
 			PX4_ERR("Failed to allocate a shell");
 
 		} else {
-			int ret = _mavlink_shell->start();
+			int ret = shell->start();
 
-			if (ret != 0) {
+			if (ret == 0) {
+				_mavlink_shell = shell;
+
+			} else {
 				PX4_ERR("Failed to start shell (%i)", ret);
-				delete _mavlink_shell;
-				_mavlink_shell = nullptr;
+				delete shell;
 			}
 		}
 	}
@@ -1508,6 +1510,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GPS_STATUS", 1.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
 		configure_stream_local("HYGROMETER_SENSOR", 0.1f);
+		configure_stream_local("SCALED_PRESSURE", 1.0f);
 		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.0f);
 		configure_stream_local("OBSTACLE_DISTANCE", 1.0f);
@@ -1519,6 +1522,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("RC_CHANNELS", 5.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream_local("SYS_STATUS", 1.0f);
+		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 1.0f);
 		configure_stream_local("UTM_GLOBAL_POSITION", 0.5f);
 		configure_stream_local("VFR_HUD", 4.0f);
 		configure_stream_local("VIBRATION", 0.1f);
@@ -1569,6 +1573,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GPS_STATUS", 1.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
 		configure_stream_local("HYGROMETER_SENSOR", 1.0f);
+		configure_stream_local("SCALED_PRESSURE", 1.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
@@ -1580,6 +1585,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 10.0f);
 		configure_stream_local("SYS_STATUS", 5.0f);
 		configure_stream_local("SYSTEM_TIME", 1.0f);
+		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 1.0f);
 		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 5.0f);
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 10.0f);
@@ -1631,6 +1637,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GPS_RAW_INT", 1.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
 		configure_stream_local("HYGROMETER_SENSOR", 1.0f);
+		configure_stream_local("SCALED_PRESSURE", 1.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
@@ -1667,6 +1674,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GPS_RAW_INT", 1.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
 		configure_stream_local("HYGROMETER_SENSOR", 0.1f);
+		configure_stream_local("SCALED_PRESSURE", 1.0f);
 		configure_stream_local("RC_CHANNELS", 5.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream_local("SYS_STATUS", 5.0f);
@@ -1714,6 +1722,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("HIGHRES_IMU", 50.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
 		configure_stream_local("HYGROMETER_SENSOR", 1.0f);
+		configure_stream_local("SCALED_PRESSURE", 1.0f);
 		configure_stream_local("MAG_CAL_REPORT", 1.0f);
 		configure_stream_local("MANUAL_CONTROL", 5.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
@@ -1730,6 +1739,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("SERVO_OUTPUT_RAW_1", 20.0f);
 		configure_stream_local("SYS_STATUS", 1.0f);
 		configure_stream_local("SYSTEM_TIME", 1.0f);
+		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 1.0f);
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 20.0f);
 		configure_stream_local("VIBRATION", 2.5f);
@@ -1803,6 +1813,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("RC_CHANNELS", 5.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream_local("SYS_STATUS", 5.0f);
+		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 1.0f);
 		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 5.0f);
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 4.0f);
@@ -2133,18 +2144,21 @@ Mavlink::task_main(int argc, char *argv[])
 
 #endif // MAVLINK_UDP
 
-	if (!set_instance_id()) {
-		PX4_ERR("no instances available");
-		return PX4_ERROR;
+	if (set_instance_id()) {
+		if (!set_channel()) {
+			PX4_ERR("set channel failed");
+			return PX4_ERROR;
+		}
 
-	} else {
 		// set thread name
 		char thread_name[13];
 		snprintf(thread_name, sizeof(thread_name), "mavlink_if%d", get_instance_id());
 		px4_prctl(PR_SET_NAME, thread_name, px4_getpid());
-	}
 
-	set_channel();
+	} else {
+		PX4_ERR("no instances available");
+		return PX4_ERROR;
+	}
 
 	/* initialize send mutex */
 	pthread_mutex_init(&_send_mutex, nullptr);
@@ -2158,7 +2172,7 @@ Mavlink::task_main(int argc, char *argv[])
 		 */
 		if (OK != message_buffer_init(2 * sizeof(mavlink_message_t) + 1)) {
 			PX4_ERR("msg buf alloc fail");
-			return 1;
+			return PX4_ERROR;
 		}
 
 		/* initialize message buffer mutex */
@@ -2235,6 +2249,8 @@ Mavlink::task_main(int argc, char *argv[])
 	uint16_t event_sequence_offset = 0; // offset to account for skipped events, not sent via MAVLink
 
 	_mavlink_start_time = hrt_absolute_time();
+
+	_task_running.store(true);
 
 	while (!should_exit()) {
 		/* main loop */
@@ -2332,7 +2348,7 @@ Mavlink::task_main(int argc, char *argv[])
 						// send positive command ack
 						vehicle_command_ack_s command_ack{};
 						command_ack.command = vehicle_cmd.command;
-						command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+						command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 						command_ack.from_external = !vehicle_cmd.from_external;
 						command_ack.target_system = vehicle_cmd.source_system;
 						command_ack.target_component = vehicle_cmd.source_component;
@@ -2379,7 +2395,7 @@ Mavlink::task_main(int argc, char *argv[])
 							cmd_logging_start_acknowledgement = true;
 
 						} else if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP
-							   && command_ack.result == vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
+							   && command_ack.result == vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
 							cmd_logging_stop_acknowledgement = true;
 						}
 					}
@@ -2420,6 +2436,8 @@ Mavlink::task_main(int argc, char *argv[])
 				msg.timeout = 0;
 				msg.device = SERIAL_CONTROL_DEV_SHELL;
 				msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
+				msg.target_system = _mavlink_shell->targetSysid();
+				msg.target_component = _mavlink_shell->targetCompid();
 				mavlink_msg_serial_control_send_struct(get_channel(), &msg);
 			}
 		}
@@ -2604,6 +2622,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 	PX4_INFO("exiting channel %i", (int)_channel);
 
+	_task_running.store(false);
+
 	return OK;
 }
 
@@ -2763,10 +2783,12 @@ int Mavlink::start_helper(int argc, char *argv[])
 		PX4_ERR("OUT OF MEM");
 
 	} else {
-		/* this will actually only return once MAVLink exits */
-		instance->_task_running.store(true);
+		/* this will actually only return once MAVLink exits, unless there's a startup error */
 		res = instance->task_main(argc, argv);
-		instance->_task_running.store(false);
+
+		if (res != PX4_OK) {
+			delete instance;
+		}
 	}
 
 	return res;
