@@ -331,14 +331,17 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 					_rates_sp.thrust_body[0] = math::constrain(mission_throttle, 0.0f, 1.0f);
 					_rates_sp.timestamp = hrt_absolute_time();
 					_rates_sp_pub.publish(_rates_sp);
-					control_rates(_vehicle_rates, _vehicle_angular_acceleration, _local_pos, _rates_sp);
 				}
 			}
 			break;
 
 		case STOPPING: {
-				_act_controls.control[actuator_controls_s::INDEX_YAW] = 0.0f;
-				_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
+				_rates_sp.roll = 0.0;
+				_rates_sp.pitch = 0.0;
+				_rates_sp.yaw = 0.0;
+				_rates_sp.thrust_body[0] = 0.0;
+				_rates_sp.timestamp = hrt_absolute_time();
+				_rates_sp_pub.publish(_rates_sp);
 				// Note _prev_wp is different to the local prev_wp which is related to a mission waypoint.
 				float dist_between_waypoints = get_distance_to_next_waypoint((double)_prev_wp(0), (double)_prev_wp(1),
 							       (double)curr_wp(0), (double)curr_wp(1));
@@ -425,7 +428,6 @@ RoverPositionControl::control_attitude(const vehicle_attitude_s &att, const vehi
 	_rates_sp.thrust_body[0] = math::constrain(att_sp.thrust_body[0], 0.0f, 1.0f);
 	_rates_sp.timestamp = hrt_absolute_time();
 	_rates_sp_pub.publish(_rates_sp);
-	control_rates(_vehicle_rates, _vehicle_angular_acceleration, _local_pos, _rates_sp);
 }
 
 void
@@ -433,7 +435,7 @@ RoverPositionControl::control_rates(const vehicle_angular_velocity_s &rates, con
 				    const vehicle_local_position_s &local_pos,
 				    const vehicle_rates_setpoint_s &rates_sp)
 {
-	float dt = (_control_rates_last_called > 0) ? hrt_elapsed_time(&_control_rates_last_called) * 1e-6f : 0.01;
+	float dt = (_control_rates_last_called > 0) ? hrt_elapsed_time(&_control_rates_last_called) * 1e-6f : 0.01f;
 	_control_rates_last_called = hrt_absolute_time();
 
 	const matrix::Vector3f vehicle_rates(rates.xyz[0], rates.xyz[1], rates.xyz[2]);
@@ -560,11 +562,8 @@ RoverPositionControl::Run()
 
 		}
 
-		if (_control_mode.flag_control_rates_enabled
-		    && !_control_mode.flag_control_attitude_enabled
-		    && !_control_mode.flag_control_position_enabled
-		    && !_control_mode.flag_control_velocity_enabled) {
-			//Body Rate control
+		//Body Rate control
+		if (_control_mode.flag_control_rates_enabled) {
 			control_rates(_vehicle_rates, _vehicle_angular_acceleration, _local_pos, _rates_sp);
 		}
 
