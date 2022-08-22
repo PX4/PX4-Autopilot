@@ -185,7 +185,7 @@
 #define GPIO_HW_REV_SENSE      /* PF5 */  ADC3_GPIO(15)
 #define GPIO_HW_VER_SENSE      /* PF4 */  ADC3_GPIO(14)
 #define HW_INFO_INIT_PREFIX           "V5X"
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 6
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 8
 // Base                   FMUM
 #define V5X00   HW_VER_REV(0x0,0x0) // FMUV5X,                         Rev 0
 #define V5X10   HW_VER_REV(0x1,0x0) // NO PX4IO,                       Rev 0
