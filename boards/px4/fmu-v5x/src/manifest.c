@@ -94,6 +94,27 @@ static const px4_hw_mft_item_t hw_mft_list_v0500[] = {
 	},
 };
 
+static const px4_hw_mft_item_t hw_mft_list_v0540[] = {
+	{
+		//  PX4_MFT_PX4IO
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		// PX4_MFT_USB
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		// PX4_MFT_CAN2
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+};
+
 static const px4_hw_mft_item_t hw_mft_list_v0550[] = {
 	{
 		//  PX4_MFT_PX4IO
