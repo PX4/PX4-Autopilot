@@ -212,6 +212,7 @@ elif ! replay tryapplyparams
 then
   . px4-rc.simulator
 fi
+
 load_mon start
 battery_simulator start
 tone_alarm start
