@@ -369,7 +369,7 @@ flash_func_sector_size(unsigned sector)
 static void create_px4_file(void)
 {
 	if (sdcard_mounted) {
-		px4_fd = open("/sdcard/boot/" IMAGE_FN, O_RDWR | O_CREAT);
+		px4_fd = open("/sdcard/boot/" IMAGE_FN, O_RDWR | O_CREAT | O_TRUNC);
 
 		/* Couldn't open the file, make sure that the directory exists and try to re-open */
 
@@ -380,7 +380,7 @@ static void create_px4_file(void)
 				_alert("boot directory creation failed %d\n", ret);
 			}
 
-			px4_fd = open("/sdcard/boot/" IMAGE_FN, O_CREAT | O_TRUNC, 0644);
+			px4_fd = open("/sdcard/boot/" IMAGE_FN,  O_RDWR | O_CREAT | O_TRUNC, 0644);
 		}
 
 		if (px4_fd < 0) {
@@ -543,7 +543,7 @@ flash_func_write_word(uintptr_t address, uint32_t word)
 		}
 
 		// re-write the first page
-		if (ret == 0) {
+		if (ret >= 0) {
 			block_start = (uint8_t *)APP_LOAD_ADDRESS;
 			bytes = flash_func_block_size();
 			ret = flash_write_pages(0, 1, block_start);
