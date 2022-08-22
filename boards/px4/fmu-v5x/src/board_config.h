@@ -185,7 +185,7 @@
 #define HW_INFO_INIT           {'V','5','X','x', 'x',0}
 #define HW_INFO_INIT_VER       3 /* Offset in above string of the VER */
 #define HW_INFO_INIT_REV       4 /* Offset in above string of the REV */
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 6
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 8
 // Base                   FMUM
 #define V5X00   HW_VER_REV(0x0,0x0) // FMUV5X,                         Rev 0
 #define V5X10   HW_VER_REV(0x1,0x0) // NO PX4IO,                       Rev 0

@@ -215,7 +215,7 @@
 #define HW_INFO_INIT_VER       3 /* Offset in above string of the VER */
 #define HW_INFO_INIT_REV       4 /* Offset in above string of the REV */
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 6 // Rev 0 and Rev 3,4 Sensor sets
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 8 // Rev 0 and Rev 3,4 Sensor sets
 //                 Base/FMUM
 #define V6X00   HW_VER_REV(0x0,0x0) // FMUV6X,                 Rev 0
 #define V6X01   HW_VER_REV(0x0,0x1) // FMUV6X,     BMI388 I2C2 Rev 1
