@@ -1,20 +1,43 @@
 #!/bin/sh
 # shellcheck disable=SC2154
 
-simulator_tcp_port=$((4560+px4_instance))
+PX4_SIM_WORLD="${PX4_SIM_WORLD:="empty"}" # default to empty world?
 
-# Check if PX4_SIM_HOSTNAME environment variable is empty
-# If empty check if PX4_SIM_HOST_ADDR environment variable is empty
-# If both are empty use localhost for simulator
-if [ -z "${PX4_SIM_HOSTNAME}" ]; then
-  if [ -z "${PX4_SIM_HOST_ADDR}" ]; then
-    echo "PX4 SIM HOST: localhost"
-    simulator start -c $simulator_tcp_port
-  else
-    echo "PX4 SIM HOST: $PX4_SIM_HOST_ADDR"
-    simulator start -t $PX4_SIM_HOST_ADDR $simulator_tcp_port
-  fi
+echo "PX4_SIM_MODEL: ${PX4_SIM_MODEL}"
+echo "PX4_SIM_WORLD: ${PX4_SIM_WORLD}"
+
+# TODO: verify if world exists
+ign service --info --service /world/${PX4_SIM_WORLD}/create
+echo $?
+
+ign service -s /world/${PX4_SIM_WORLD}/create --reqtype ignition.msgs.EntityFactory --reptype ignition.msgs.Boolean --timeout 1000 --req "sdf_filename: \"${PX4_SIM_MODEL}/model.sdf\""
+
+if ignition_simulator start -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}"
+then
+
+	sensor_baro_sim start
+	sensor_gps_sim start
+	sensor_mag_sim start
+
 else
-  echo "PX4 SIM HOST: $PX4_SIM_HOSTNAME"
-  simulator start -h $PX4_SIM_HOSTNAME $simulator_tcp_port
+	simulator_tcp_port=$((4560+px4_instance))
+
+	# Check if PX4_SIM_HOSTNAME environment variable is empty
+	# If empty check if PX4_SIM_HOST_ADDR environment variable is empty
+	# If both are empty use localhost for simulator
+	if [ -z "${PX4_SIM_HOSTNAME}" ]; then
+
+		if [ -z "${PX4_SIM_HOST_ADDR}" ]; then
+			echo "PX4 SIM HOST: localhost"
+			simulator start -c $simulator_tcp_port
+		else
+			echo "PX4 SIM HOST: $PX4_SIM_HOST_ADDR"
+			simulator start -t $PX4_SIM_HOST_ADDR $simulator_tcp_port
+		fi
+
+	else
+		echo "PX4 SIM HOST: $PX4_SIM_HOSTNAME"
+		simulator start -h $PX4_SIM_HOSTNAME $simulator_tcp_port
+	fi
+
 fi

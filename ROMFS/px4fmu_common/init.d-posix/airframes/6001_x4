@@ -1,0 +1,76 @@
+#!/bin/sh
+#
+# @name Ignition Gazebo X4
+#
+# @type Quadrotor
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+param set-default SYS_CTRL_ALLOC 1
+
+param set-default CA_AIRFRAME 0
+param set-default CA_ROTOR_COUNT 6
+
+param set-default CA_ROTOR0_PX  0.25
+param set-default CA_ROTOR0_PY -0.15
+param set-default CA_ROTOR0_KM  0.05
+
+param set-default CA_ROTOR1_PX  0.00
+param set-default CA_ROTOR1_PY -0.29
+param set-default CA_ROTOR1_KM -0.05
+
+param set-default CA_ROTOR2_PX -0.25
+param set-default CA_ROTOR2_PY -0.15
+param set-default CA_ROTOR2_KM  0.05
+
+param set-default CA_ROTOR3_PX -0.25
+param set-default CA_ROTOR3_PY  0.15
+param set-default CA_ROTOR3_KM -0.05
+
+param set-default CA_ROTOR4_PX  0.00
+param set-default CA_ROTOR4_PY  0.29
+param set-default CA_ROTOR4_KM  0.05
+
+param set-default CA_ROTOR5_PX  0.25
+param set-default CA_ROTOR5_PY  0.15
+param set-default CA_ROTOR5_KM -0.05
+
+param set-default SIM_GZ_FUNC1 101
+param set-default SIM_GZ_FUNC2 102
+param set-default SIM_GZ_FUNC3 103
+param set-default SIM_GZ_FUNC4 104
+param set-default SIM_GZ_FUNC5 105
+param set-default SIM_GZ_FUNC6 106
+
+param set-default SIM_GZ_MIN1 150
+param set-default SIM_GZ_MIN2 150
+param set-default SIM_GZ_MIN3 150
+param set-default SIM_GZ_MIN4 150
+param set-default SIM_GZ_MIN5 150
+param set-default SIM_GZ_MIN6 150
+
+param set-default SIM_GZ_MAX1 1000
+param set-default SIM_GZ_MAX2 1000
+param set-default SIM_GZ_MAX3 1000
+param set-default SIM_GZ_MAX4 1000
+param set-default SIM_GZ_MAX5 1000
+param set-default SIM_GZ_MAX6 1000
+
+
+param set-default MC_PITCHRATE_D 0.0016
+param set-default MC_PITCHRATE_I 0.2500
+param set-default MC_PITCHRATE_P 0.1831
+param set-default MC_PITCH_P 5.216
+
+param set-default MC_ROLLRATE_D 0.0022
+param set-default MC_ROLLRATE_I 0.2095
+param set-default MC_ROLLRATE_P 0.1570
+param set-default MC_ROLL_P 6.081
+
+param set-default MC_YAWRATE_D 0.0009
+param set-default MC_YAWRATE_I 0.1800
+param set-default MC_YAWRATE_P 0.1773
+param set-default MC_YAW_P 5.386490
+
+param set-default MPC_THR_HOVER 0.61

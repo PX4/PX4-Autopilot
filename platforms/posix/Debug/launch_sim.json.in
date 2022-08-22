@@ -145,18 +145,10 @@
             "id": "PX4_SIM_MODEL",
             "description": "PX4_SIM_MODEL",
             "options": [
-              "iris",
-              "typhoon_h480",
-              "plane",
-              "plane_catapult",
-              "plane_lidar",
-              "standard_vtol",
-              "tailsitter",
-              "tiltrotor",
-              "r1_rover",
-              "boat"
+              "x3",
+              "x4"
             ],
-            "default": "iris"
+            "default": "x3"
           }
     ]
 }

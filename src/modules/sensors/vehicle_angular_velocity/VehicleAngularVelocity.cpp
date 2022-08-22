@@ -112,7 +112,9 @@ bool VehicleAngularVelocity::UpdateSampleRate()
 	}
 
 	// calculate sensor update rate
-	if ((sample_rate_hz > 0) && PX4_ISFINITE(sample_rate_hz) && (publish_rate_hz > 0) && PX4_ISFINITE(publish_rate_hz)) {
+	if (PX4_ISFINITE(sample_rate_hz) && (sample_rate_hz > 10) && (sample_rate_hz < 10'000)
+	    && PX4_ISFINITE(publish_rate_hz) && (publish_rate_hz > 0)
+	   ) {
 		// check if sample rate error is greater than 1%
 		const bool sample_rate_changed = (fabsf(sample_rate_hz - _filter_sample_rate_hz) / sample_rate_hz) > 0.01f;
 

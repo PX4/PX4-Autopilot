@@ -102,6 +102,7 @@ for file in "$@"; do
 done
 
 export PX4_SIM_MODEL=${model}
+export PX4_SIM_WORLD=${world}
 
 SIM_PID=0
 
@@ -194,8 +195,15 @@ elif [ "$program" == "ignition" ] && [ -z "$no_sim" ]; then
 	else
 		ignition_headless=""
 	fi
-	source "$src_path/Tools/setup_ignition.bash" "${src_path}" "${build_path}"
-	ign gazebo --force-version 5 ${verbose} ${ignition_headless} -r "${src_path}/Tools/simulation-ignition/worlds/${model}.world"&
+
+	export IGN_GAZEBO_RESOURCE_PATH=$IGN_GAZEBO_RESOURCE_PATH:${src_path}/Tools/simulation/gazebo/models
+
+	# TODO: verify if world already exists?
+	ign service --info --service /world/empty/create
+	echo $?
+
+	ign gazebo ${ignition_headless} -r "${src_path}/Tools/simulation/gazebo/worlds/${world}.sdf" &
+
 elif [ "$program" == "flightgear" ] && [ -z "$no_sim" ]; then
 	echo "FG setup"
 	cd "${src_path}/Tools/flightgear_bridge/"
