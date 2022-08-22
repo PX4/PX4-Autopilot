@@ -1,4 +1,4 @@
-# Default parameter set for indoor flying with lighthouse tracker / libsurvive fake GPS
+# Default parameter set for indoor flying with mocap fake GPS
 # [ type: indoor ]
 
 # Disable internal compass
@@ -36,13 +36,13 @@ param set COM_OBL_RC_ACT 4
 param set NAV_RCL_ACT 3
 
 # Cruise speed
-param set MPC_XY_CRUISE 0.5
+param set MPC_XY_CRUISE 2.0
 
 # Track trajectory more aggressively (default 0.5)
 param set MPC_XY_TRAJ_P 0.7
 
 # Increase velocity controller P gain
-param set MPC_XY_VEL_P_ACC 2.4
+param set MPC_XY_VEL_P_ACC 1.9
 
 # Make it accelerate faster upwards at takeoff
 param set MPC_TKO_RAMP_T 1.0
@@ -61,5 +61,5 @@ param set COM_FLTMODE6 11
 param set RC_MAP_FLTMODE 5
 param set RC_MAP_KILL_SW 7
 
-# Disable log encryption for indoor flights
-param set SDLOG_ALGORITHM 0
+# Power supply enablement for cloud for Saluki
+param set CBRK_SUPPLY_CHK 894281
