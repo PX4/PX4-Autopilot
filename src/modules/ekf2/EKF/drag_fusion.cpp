@@ -85,7 +85,6 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 	const Vector3f rel_wind_earth(vn - vwn, ve - vwe, vd);
 	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
 	const Vector3f rel_wind_body = earth_to_body * rel_wind_earth;
-	const float AoS = atan2f(rel_wind_body(1), rel_wind_body(0)); // angle of sideslip
 	const float rel_wind_body_xy_norm = fmaxf(rel_wind_body.xy().norm(), FLT_EPSILON);
 	const float sin_AoS = rel_wind_body(1) / rel_wind_body_xy_norm;
 	const float cos_AoS = rel_wind_body(0) / rel_wind_body_xy_norm;
