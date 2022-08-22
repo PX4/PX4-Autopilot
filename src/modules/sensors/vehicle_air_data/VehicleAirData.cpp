@@ -297,27 +297,66 @@ void VehicleAirData::Run()
 
 float VehicleAirData::PressureToAltitude(float pressure_pa, float temperature) const
 {
-	// calculate altitude using the hypsometric equation
-	static constexpr float T1 = 15.f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
-	static constexpr float a = -6.5f / 1000.f; // temperature gradient in degrees per metre
+    float altitude = 0.0f;
 
-	// current pressure at MSL in kPa (QNH in hPa)
-	const float p1 = _param_sens_baro_qnh.get() * 0.1f;
+    if (_param_baro_medium.get() == 0)
+    {
+        // air pressure to altitude
 
-	// measured pressure in kPa
-	const float p = pressure_pa * 0.001f;
+        // calculate altitude using the hypsometric equation
+        static constexpr float T1 = 15.f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
+        static constexpr float a = -6.5f / 1000.f; // temperature gradient in degrees per metre
 
-	/*
-	 * Solve:
-	 *
-	 *     /        -(aR / g)     \
-	 *    | (p / p1)          . T1 | - T1
-	 *     \                      /
-	 * h = -------------------------------  + h1
-	 *                   a
-	 */
-	float altitude = (((powf((p / p1), (-(a * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * T1) - T1) / a;
+        // current pressure at MSL in kPa (QNH in hPa)
+        const float p1 = _param_sens_baro_qnh.get() * 0.1f;
 
+        // measured pressure in kPa
+        const float p = pressure_pa * 0.001f;
+
+        /*
+         * Solve:
+         *
+         *     /        -(aR / g)     \
+         *    | (p / p1)          . T1 | - T1
+         *     \                      /
+         * h = -------------------------------  + h1
+         *                   a
+         */
+        altitude = (((powf((p / p1), (-(a * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * T1) - T1) / a;
+    }
+    else
+    {
+        // liquid pressure to altitude
+
+        // pressure at sea level (depends on the weather: extreme min = 870 hPa, average: 1013.25, extreme max = 1084.8 hPa)
+        // can be set by changing SENS_BARO_QNH px4 param in hPa
+
+        // * 100 to go from hPa to Pa
+        const float p1 = _param_sens_baro_qnh.get() * 100;
+
+        // pressure_measured in Pa
+        const float p0 = pressure_pa;
+
+        // rho https://bluerobotics.com/learn/pressure-depth-calculator/#hydrostatic-water-pressure-formula
+        // we don't adjust rho for temperature, salinity or air content
+        // except for two different constant values for fresh/salt water
+        float rho;
+        if (_param_baro_medium.get() == 1){
+            // rho in fresh water in kg/m3
+            rho = 997.0474;
+        } else {
+            // rho in salt water in kg/m3
+            rho = 1023.6;
+        }
+
+        // altitude = (pressure_measured - pressure_sea_level) / (liquid_density * gravity);
+        // but we want depth so we switch the pressures (NED, FRD)
+
+        // for gravity we use CONSTANTS_ONE_G = 9.80665 m/s2
+        // we don't adjust for altitude or latitude
+
+        altitude = (p0 - p1) / (rho * CONSTANTS_ONE_G);
+    }
 	return altitude;
 }
 
