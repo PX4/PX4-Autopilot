@@ -54,6 +54,15 @@ bool PreFlightCheck::openDroneIDCheck(orb_advert_t *mavlink_log_pub, const bool 
 				mavlink_log_critical(mavlink_log_pub, "Fail: OpenDroneID system missing");
 				events::send(events::ID("commander_open_drone_id_missing"), events::Log::Critical, "OpenDroneID system missing");
 			}
+
+		} else if (!status_flags.open_drone_id_system_healthy) {
+			success = false;
+
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "Fail: OpenDroneID system not ready");
+				events::send(events::ID("commander_open_drone_id_system_not_ready"), events::Log::Critical,
+					     "OpenDroneID system not ready");
+			}
 		}
 	}
 

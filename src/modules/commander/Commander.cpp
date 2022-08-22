@@ -3668,8 +3668,12 @@ void Commander::data_link_check()
 					}
 				}
 
+				bool healthy = telemetry.open_drone_id_system_healthy;
+
 				_datalink_last_heartbeat_open_drone_id_system = telemetry.timestamp;
 				_vehicle_status_flags.open_drone_id_system_present = true;
+				_vehicle_status_flags.open_drone_id_system_healthy = healthy;
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_OPEN_DRONE_ID, true, true, healthy, _vehicle_status);
 			}
 
 			if (telemetry.heartbeat_component_obstacle_avoidance) {
@@ -3729,8 +3733,10 @@ void Commander::data_link_check()
 		mavlink_log_critical(&_mavlink_log_pub, "OpenDroneID system lost");
 		events::send(events::ID("commander_open_drone_id_lost"), events::Log::Critical, "OpenDroneID system lost");
 		_vehicle_status_flags.open_drone_id_system_present = false;
+		_vehicle_status_flags.open_drone_id_system_healthy = false;
 		_open_drone_id_system_lost = true;
 		_status_changed = true;
+		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_OPEN_DRONE_ID, false, true, false, _vehicle_status);
 	}
 
 	// AVOIDANCE SYSTEM state check (only if it is enabled)

@@ -2239,6 +2239,8 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 			case MAV_TYPE_ODID:
 				_heartbeat_type_open_drone_id = now;
+				_mavlink->telemetry_status().open_drone_id_system_healthy =
+					(hb.system_status == MAV_STATE_STANDBY) || (hb.system_status == MAV_STATE_ACTIVE);
 				break;
 
 			default:
