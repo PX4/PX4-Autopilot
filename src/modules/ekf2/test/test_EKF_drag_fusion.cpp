@@ -93,7 +93,6 @@ TEST_F(EkfDragFusionTest, testForwardMomentumDrag)
 
 	// simulate a vehicle that is hovering and tilting into wind
 
-	_ekf->set_is_fixed_wing(false);
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
 
@@ -134,7 +133,6 @@ TEST_F(EkfDragFusionTest, testLateralMomentumDrag)
 
 	// simulate a vehicle that is hovering and tilting into wind
 
-	_ekf->set_is_fixed_wing(false);
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
 
@@ -175,7 +173,6 @@ TEST_F(EkfDragFusionTest, testForwardBluffBodyDrag)
 
 	// simulate a vehicle that is hovering and tilting into wind
 
-	_ekf->set_is_fixed_wing(false);
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
 
@@ -215,7 +212,6 @@ TEST_F(EkfDragFusionTest, testLateralBluffBodyDrag)
 
 	// simulate a vehicle that is hovering and tilting into wind
 
-	_ekf->set_is_fixed_wing(false);
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
 
