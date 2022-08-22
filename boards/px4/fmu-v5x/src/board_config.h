@@ -191,6 +191,9 @@
 #define V5X10   HW_VER_REV(0x1,0x0) // NO PX4IO,                       Rev 0
 #define V5X01   HW_VER_REV(0x0,0x1) // FMUV5X I2C2 BMP388,             Rev 1
 #define V5X02   HW_VER_REV(0x0,0x2) // FMUV5X,                         Rev 2
+#define V5X50   HW_VER_REV(0x4,0x0) // FMUV5X, HB CM4 base             Rev 0
+#define V5X51   HW_VER_REV(0x4,0x1) // FMUV5X I2C2 BMP388, HB CM4 base Rev 1
+#define V5X52   HW_VER_REV(0x4,0x2) // FMUV5X, HB CM4 base             Rev 2
 #define V5X50   HW_VER_REV(0x5,0x0) // FMUV5X, HB Mini                 Rev 0
 #define V5X51   HW_VER_REV(0x5,0x1) // FMUV5X I2C2 BMP388, HB Mini     Rev 1
 #define V5X52   HW_VER_REV(0x5,0x2) // FMUV5X, HB Mini                 Rev 2
