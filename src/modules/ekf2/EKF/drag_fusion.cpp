@@ -86,6 +86,9 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
 	const Vector3f rel_wind_body = earth_to_body * rel_wind_earth;
 	const float AoS = atan2f(rel_wind_body(1), rel_wind_body(0)); // angle of sideslip
+	const float rel_wind_body_xy_norm = fmaxf(rel_wind_body.xy().norm(), FLT_EPSILON);
+	const float sin_AoS = rel_wind_body(1) / rel_wind_body_xy_norm;
+	const float cos_AoS = rel_wind_body(0) / rel_wind_body_xy_norm;
 	Vector2f drag_unit_vec = Vector2f( -rel_wind_body(0) , -rel_wind_body(1));
 	drag_unit_vec.normalize();
 
@@ -97,7 +100,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		// angle of sideslip can be represented as an ellipse.
 		const float bcoef_x_inv = 1.0f / _params.bcoef_x;
 		const float bcoef_y_inv = 1.0f / _params.bcoef_y;
-		bcoef_inv = (bcoef_x_inv * bcoef_y_inv) / sqrtf(sq(bcoef_x_inv * sinf(AoS)) + sq(bcoef_y_inv * cosf(AoS)));
+		bcoef_inv = (bcoef_x_inv * bcoef_y_inv) / sqrtf(sq(bcoef_x_inv * sin_AoS) + sq(bcoef_y_inv * cos_AoS));
 		bcoef = 1.0f / bcoef_inv;
 		predicted_bb_sf = drag_unit_vec * 0.5f * rho * (sq(rel_wind_body(0)) + sq(rel_wind_body(1))) * bcoef_inv;
 	} else if (using_bcoef_x) {
@@ -136,9 +139,8 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
 				// mea_acc = 0.5 * rho * bcoef_inv * airspeed**2 + mcoef_corrrected * airspeed
 				const float airspeed = (bcoef  / rho) * (- mcoef_corrrected  + sqrtf(sq(mcoef_corrrected) + 2.0f * rho * bcoef_inv * mea_acc.length()));
-				Kacc = fmaxf(1e-1f, cosf(AoS) * (rho * bcoef_inv * airspeed + mcoef_corrrected));
+				Kacc = fmaxf(1e-1f, cos_AoS * (rho * bcoef_inv * airspeed + mcoef_corrrected));
 				pred_acc = predicted_bb_sf(0) - rel_wind_body(0) * mcoef_corrrected;
-
 			} else if (using_mcoef) {
 				// Use propeller momentum drag only
 				Kacc = fmaxf(1e-1f, mcoef_corrrected);
@@ -149,7 +151,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
 				// mea_acc = (0.5 * rho / _params.bcoef_x) * airspeed**2
 				const float airspeed = sqrtf((2.0f * bcoef * mea_acc.length()) / rho);
-				Kacc = fmaxf(1e-1f, cosf(AoS) * rho * bcoef_inv * airspeed);
+				Kacc = fmaxf(1e-1f, cos_AoS * rho * bcoef_inv * airspeed);
 				pred_acc = predicted_bb_sf(0);
 
 			} else {
@@ -247,7 +249,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
 				// mea_acc = 0.5 * rho * bcoef_inv * airspeed**2 + mcoef_corrrected * airspeed
 				const float airspeed = (bcoef  / rho) * (- mcoef_corrrected  + sqrtf(sq(mcoef_corrrected) + 2.0f * rho * bcoef_inv * mea_acc.length()));
-				Kacc = fmaxf(1e-1f, sinf(AoS) * (rho * bcoef_inv * airspeed + mcoef_corrrected));
+				Kacc = fmaxf(1e-1f, sin_AoS * (rho * bcoef_inv * airspeed + mcoef_corrrected));
 				pred_acc = predicted_bb_sf(0) - rel_wind_body(0) * mcoef_corrrected;
 
 			} else if (using_mcoef) {
@@ -260,7 +262,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
 				// mea_acc = (0.5 * rho / _params.bcoef_x) * airspeed**2
 				const float airspeed = sqrtf((2.0f * bcoef * mea_acc.length()) / rho);
-				Kacc = fmaxf(1e-1f, sinf(AoS) * rho * bcoef_inv * airspeed);
+				Kacc = fmaxf(1e-1f, sin_AoS * rho * bcoef_inv * airspeed);
 				pred_acc = predicted_bb_sf(1);
 
 			} else {
