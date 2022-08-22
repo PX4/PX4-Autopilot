@@ -59,6 +59,9 @@ PARAM_DEFINE_FLOAT(SENS_BARO_RATE, 20.0f);
  *
  * @min 0
  * @max 2
+ * @value 0 Air
+ * @value 1 Fresh water
+ * @value 2 Salt water
  * @group Sensors
  */
-PARAM_DEFINE_INT32(BARO_MEDIUM, 0);
+PARAM_DEFINE_INT32(SENS_BARO_MEDIUM, 0);

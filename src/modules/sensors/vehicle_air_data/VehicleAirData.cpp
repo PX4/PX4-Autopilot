@@ -299,7 +299,7 @@ float VehicleAirData::PressureToAltitude(float pressure_pa, float temperature) c
 {
     float altitude = 0.0f;
 
-    if (_param_baro_medium.get() == 0)
+    if (_param_sens_baro_medium.get() == Medium::Air)
     {
         // air pressure to altitude
 
@@ -341,7 +341,7 @@ float VehicleAirData::PressureToAltitude(float pressure_pa, float temperature) c
         // we don't adjust rho for temperature, salinity or air content
         // except for two different constant values for fresh/salt water
         float rho;
-        if (_param_baro_medium.get() == 1){
+        if (_param_sens_baro_medium.get() == Medium::FreshWater){
             // rho in fresh water in kg/m3
             rho = 997.0474;
         } else {
