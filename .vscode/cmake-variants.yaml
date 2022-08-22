@@ -2,7 +2,7 @@ CONFIG:
   default: px4_sitl_default
   choices:
     px4_sitl_default:
-      short: px4_sitl
+      short: px4_sitl_default
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default

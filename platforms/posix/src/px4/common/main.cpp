@@ -195,12 +195,15 @@ int main(int argc, char **argv)
 #endif // (_POSIX_MEMLOCK > 0) && !ENABLE_LOCKSTEP_SCHEDULER
 
 		/* Server/daemon apps need to parse the command line arguments. */
-
 		std::string data_path{};
-		std::string commands_file = "etc/init.d/rcS";
-		std::string test_data_path{};
 		std::string working_directory{};
+		std::string test_data_path{};
+		std::string commands_file{};
+
+		bool working_directory_default = false;
+
 		int instance = 0;
+		bool instance_provided = false;
 
 		int myoptind = 1;
 		int ch;
@@ -226,6 +229,7 @@ int main(int argc, char **argv)
 
 			case 'i':
 				instance = strtoul(myoptarg, nullptr, 10);
+				instance_provided = true;
 				break;
 
 			case 'w':
@@ -239,23 +243,60 @@ int main(int argc, char **argv)
 			}
 		}
 
-		PX4_DEBUG("instance: %i", instance);
-
-		// change the CWD befre setting up links and other directories
-		if (!working_directory.empty()) {
-			int ret = change_directory(working_directory);
-
-			if (ret != PX4_OK) {
-				return ret;
-			}
-		}
-
 		if (myoptind < argc) {
 			std::string optional_arg = argv[myoptind];
 
 			if (optional_arg.compare(0, 2, "__") != 0 || optional_arg.find(":=") == std::string::npos) {
 				data_path = optional_arg;
 			} // else: ROS argument (in the form __<name>:=<value>)
+		}
+
+		if (instance_provided) {
+			PX4_INFO("instance: %i", instance);
+		}
+
+#if defined(PX4_BINARY_DIR)
+
+		// data_path & working_directory: if no commands specified or in current working directory),
+		//  rootfs, or working directory specified then default to build directory (if it still exists)
+		if (commands_file.empty() && data_path.empty() && working_directory.empty()
+		    && dir_exists(PX4_BINARY_DIR"/etc")
+		   ) {
+			data_path = PX4_BINARY_DIR"/etc";
+			working_directory = PX4_BINARY_DIR"/rootfs";
+
+			working_directory_default = true;
+		}
+
+#endif // PX4_BINARY_DIR
+
+#if defined(PX4_SOURCE_DIR)
+
+		// test_data_path: default to build source test_data directory (if it exists)
+		if (test_data_path.empty() && dir_exists(PX4_SOURCE_DIR"/test_data")) {
+			test_data_path = PX4_SOURCE_DIR"/test_data";
+		}
+
+#endif // PX4_SOURCE_DIR
+
+		if (commands_file.empty()) {
+			commands_file = "etc/init.d-posix/rcS";
+		}
+
+		// change the CWD befre setting up links and other directories
+		if (!working_directory.empty()) {
+
+			// if instance specified, but
+			if (instance_provided && working_directory_default) {
+				working_directory += "/" + std::to_string(instance);
+				PX4_INFO("working directory %s", working_directory.c_str());
+			}
+
+			int ret = change_directory(working_directory);
+
+			if (ret != PX4_OK) {
+				return ret;
+			}
 		}
 
 		if (is_server_running(instance, true)) {
@@ -362,7 +403,7 @@ int create_symlinks_if_needed(std::string &data_path)
 
 	}
 
-	PX4_INFO_RAW("Creating symlink %s -> %s\n", src_path.c_str(), dest_path.c_str());
+	PX4_DEBUG("Creating symlink %s -> %s\n", src_path.c_str(), dest_path.c_str());
 
 	// create sym-link
 	int ret = symlink(src_path.c_str(), dest_path.c_str());
@@ -517,7 +558,7 @@ int run_startup_script(const std::string &commands_file, const std::string &abso
 	}
 
 
-	PX4_INFO("Calling startup script: %s", shell_command.c_str());
+	PX4_INFO("startup script: %s", shell_command.c_str());
 
 	int ret = 0;
 
@@ -552,7 +593,7 @@ void print_usage()
 	printf("\n");
 	printf("    px4 [-h|-d] [-s <startup_file>] [-t <test_data_directory>] [<rootfs_directory>] [-i <instance>] [-w <working_directory>]\n");
 	printf("\n");
-	printf("    -s <startup_file>      shell script to be used as startup (default=etc/init.d/rcS)\n");
+	printf("    -s <startup_file>      shell script to be used as startup (default=etc/init.d-posix/rcS)\n");
 	printf("    <rootfs_directory>     directory where startup files and mixers are located,\n");
 	printf("                           (if not given, CWD is used)\n");
 	printf("    -i <instance>          px4 instance id to run multiple instances [0...N], default=0\n");

@@ -38,10 +38,24 @@ set LOGGER_BUF                  1000
 
 set RUN_MINIMAL_SHELL           no
 
-# Use the variable set by sitl_run.sh to choose the model settings.
-if [ "$PX4_SIM_MODEL" = "shell" ]; then
+set SYS_AUTOSTART=0
+
+if [ "$PX4_SIM_MODEL" = "shell" ]
+then
 	set RUN_MINIMAL_SHELL yes
-else
+
+elif [ -n "$PX4_SYS_AUTOSTART" ]
+then
+	echo "env SYS_AUTOSTART: ${PX4_SYS_AUTOSTART}"
+	SYS_AUTOSTART=${PX4_SYS_AUTOSTART}
+
+elif [ "$PX4_SIM_MODEL" = "none" ] || [ -z $PX4_SIM_MODEL ]
+then
+	# no airframe selected
+	SYS_AUTOSTART=0
+
+elif [ -n "$PX4_SIM_MODEL" ]
+then
 	# Find the matching Autostart ID (file name has the form: [0-9]+_${PX4_SIM_MODEL})
 	# TODO: unify with rc.autostart generation
 	# shellcheck disable=SC2012
@@ -50,12 +64,13 @@ else
 		echo "ERROR  [init] Unknown model $PX4_SIM_MODEL (not found by name on ${R}etc/init.d-posix/airframes)"
 		exit 1
 	else
+		SYS_AUTOSTART=$REQUESTED_AUTOSTART
 		echo "INFO  [init] found model autostart file as SYS_AUTOSTART=$REQUESTED_AUTOSTART"
 	fi
 fi
 
 # Load parameters
-set PARAM_FILE eeprom/parameters_"$REQUESTED_AUTOSTART"
+set PARAM_FILE parameters.bson
 param select $PARAM_FILE
 
 if [ -f $PARAM_FILE ]
@@ -66,26 +81,16 @@ then
 	else
 		echo "[param] FAILED loading $PARAM_FILE"
 	fi
-else
-	echo "[param] parameter file not found, creating $PARAM_FILE"
 fi
 
 # exit early when the minimal shell is requested
 [ $RUN_MINIMAL_SHELL = yes ] && exit 0
 
+if param compare SYS_AUTOSTART $SYS_AUTOSTART
+then
+	set AUTOCNF no
 
-# Use environment variable PX4_ESTIMATOR to choose estimator.
-if [ "$PX4_ESTIMATOR" = "q" ]; then
-	param set SYS_MC_EST_GROUP 3
-elif [ "$PX4_ESTIMATOR" = "ekf2" ]; then
-	param set SYS_MC_EST_GROUP 2
-elif [ "$PX4_ESTIMATOR" = "lpe" ]; then
-	param set SYS_MC_EST_GROUP 1
-elif [ "$PX4_ESTIMATOR" = "inav" ]; then
-	param set SYS_MC_EST_GROUP 0
-fi
-
-if param compare SYS_AUTOSTART $REQUESTED_AUTOSTART
+elif [ "$SYS_AUTOSTART" -eq 0 ]
 then
 	set AUTOCNF no
 else
@@ -106,7 +111,7 @@ param set MAV_SYS_ID $((px4_instance+1))
 
 if [ $AUTOCNF = yes ]
 then
-	param set SYS_AUTOSTART $REQUESTED_AUTOSTART
+	param set SYS_AUTOSTART $SYS_AUTOSTART
 
 	param set CAL_ACC0_ID  1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	param set CAL_GYRO0_ID 1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
@@ -190,27 +195,26 @@ do
 			;;
 	esac
 done
-if [ ! -e "$autostart_file" ]; then
+
+if [ -e "$autostart_file" ]
+then
+	. "$autostart_file"
+
+elif [ ! -e "$autostart_file" ] && [ "$SYS_AUTOSTART" -ne "0" ]
+then
 	echo "Error: no autostart file found ($autostart_file)"
 	exit 1
 fi
-
-. "$autostart_file"
-
-# Simulator IMU data provided at 250 Hz
-param set IMU_INTEG_RATE 250
 
 #user defined params for instances can be in PATH
 . px4-rc.params
 
 dataman start
-# start sih in sih_sim mode, otherwise simulator module
-if [ "$SIM_MODE" = "sihsim" ]; then
-	sih start
+
 # only start the simulator if not in replay mode, as both control the lockstep time
-elif ! replay tryapplyparams
+if ! replay tryapplyparams
 then
-  . px4-rc.simulator
+	. px4-rc.simulator
 fi
 
 load_mon start

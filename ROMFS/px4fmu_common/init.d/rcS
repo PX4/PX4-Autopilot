@@ -368,7 +368,7 @@ else
 		# start the simulator in hardware if needed
 		if param compare SYS_HITL 2
 		then
-			sih start
+			simulator_sih start
 		fi
 
 	else

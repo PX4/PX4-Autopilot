@@ -1,25 +1,50 @@
 #!/bin/sh
 # shellcheck disable=SC2154
 
-PX4_SIM_WORLD="${PX4_SIM_WORLD:="empty"}" # default to empty world?
+# Simulator IMU data provided at 250 Hz
+param set-default IMU_INTEG_RATE 250
 
-echo "PX4_SIM_MODEL: ${PX4_SIM_MODEL}"
-echo "PX4_SIM_WORLD: ${PX4_SIM_WORLD}"
+if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0" ]; then
 
-# TODO: verify if world exists
-ign service --info --service /world/${PX4_SIM_WORLD}/create
-echo $?
+	if ! simulator_sih start; then
+		echo "ERROR  [init] simulator_sih failed to start"
+		exit 1
+	fi
 
-ign service -s /world/${PX4_SIM_WORLD}/create --reqtype ignition.msgs.EntityFactory --reptype ignition.msgs.Boolean --timeout 1000 --req "sdf_filename: \"${PX4_SIM_MODEL}/model.sdf\""
+elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 
-if ignition_simulator start -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}"
-then
+	# source generated gazebo_env.sh for IGN_GAZEBO_RESOURCE_PATH
+	if [ -f gazebo_env.sh ]; then
+		. ./gazebo_env.sh
+	elif [ -f ../gazebo_env.sh ]; then
+		. ../gazebo_env.sh
+	fi
 
-	sensor_baro_sim start
-	sensor_gps_sim start
-	sensor_mag_sim start
+	if ! ign service --info --service /world/${PX4_SIM_WORLD}/create | grep "ignition.msgs.EntityFactory"; then
+		# starting ign gazebo with ${PX4_SIM_WORLD} world
+		echo "INFO  [init] starting ign gazebo"
+
+		if [ -z $HEADLESS ]; then
+			ign gazebo --verbose=1 -r "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
+		else
+			# starting ign gazebo headless
+			ign gazebo --verbose=1 -r -s "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
+		fi
+	else
+		echo "INFO  [init] ign gazebo already running"
+	fi
+
+	if simulator_ignition_bridge start -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}"; then
+		sensor_baro_sim start
+		sensor_gps_sim start
+		sensor_mag_sim start
+	else
+		echo "ERROR  [init] ign gazebo failed to start"
+		exit 1
+	fi
 
 else
+	# otherwise start simulator (mavlink) module
 	simulator_tcp_port=$((4560+px4_instance))
 
 	# Check if PX4_SIM_HOSTNAME environment variable is empty
@@ -29,15 +54,15 @@ else
 
 		if [ -z "${PX4_SIM_HOST_ADDR}" ]; then
 			echo "PX4 SIM HOST: localhost"
-			simulator start -c $simulator_tcp_port
+			simulator_mavlink start -c $simulator_tcp_port
 		else
 			echo "PX4 SIM HOST: $PX4_SIM_HOST_ADDR"
-			simulator start -t $PX4_SIM_HOST_ADDR $simulator_tcp_port
+			simulator_mavlink start -t $PX4_SIM_HOST_ADDR $simulator_tcp_port
 		fi
 
 	else
 		echo "PX4 SIM HOST: $PX4_SIM_HOSTNAME"
-		simulator start -h $PX4_SIM_HOSTNAME $simulator_tcp_port
+		simulator_mavlink start -h $PX4_SIM_HOSTNAME $simulator_tcp_port
 	fi
 
 fi
