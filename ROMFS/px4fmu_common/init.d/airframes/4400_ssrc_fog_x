@@ -57,3 +57,6 @@ param set-default CBRK_IO_SAFETY 0
 
 # Set default for disarm after land to 4s
 param set-default COM_DISARM_LAND 4.0
+
+# Enable satellite info by default
+param set-default GPS_SAT_INFO 1
