@@ -14,7 +14,7 @@
                 "${workspaceFolder}/test_data"
             ],
             "stopAtEntry": false,
-            "cwd": "${command:cmake.buildDirectory}/tmp",
+            "cwd": "${command:cmake.buildDirectory}/rootfs",
             "environment": [
                 {
                     "name": "replay",

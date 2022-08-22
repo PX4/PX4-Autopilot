@@ -1,0 +1,5 @@
+menuconfig MODULES_SIMULATION_SENSOR_BARO_SIM
+	bool "sensor_baro_sim"
+	default n
+	---help---
+		Enable support for sensor_baro_sim

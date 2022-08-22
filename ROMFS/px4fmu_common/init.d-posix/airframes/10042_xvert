@@ -8,6 +8,9 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
+PX4_SIMULATOR=${PX4_SIMULATOR:=sihsim}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=xvert}
+
 param set-default VT_ELEV_MC_LOCK 0
 param set-default VT_TYPE 0
 param set-default VT_FW_DIFTHR_EN 1

@@ -1,0 +1,5 @@
+menuconfig MODULES_SIMULATION_SIMULATOR_MAVLINK
+	bool "simulator_mavlink"
+	default n
+	---help---
+		Enable support for mavlink simulator

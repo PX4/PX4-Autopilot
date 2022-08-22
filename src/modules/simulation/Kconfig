@@ -1,0 +1,15 @@
+menu "Simulation"
+    menuconfig COMMON_SIMULATION
+        bool "Common simulation modules"
+        default n
+        select MODULES_SIMULATION_BATTERY_SIMULATOR
+        select MODULES_SIMULATION_PWM_OUT_SIM
+        select MODULES_SIMULATION_SENSOR_BARO_SIM
+        select MODULES_SIMULATION_SENSOR_GPS_SIM
+        select MODULES_SIMULATION_SENSOR_MAG_SIM
+        select MODULES_SIMULATION_SIMULATOR_MAVLINK
+        select MODULES_SIMULATION_SIMULATOR_SIH
+        ---help---
+            Enable default set of simulation modules
+    rsource "*/Kconfig"
+endmenu

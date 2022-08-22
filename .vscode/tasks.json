@@ -54,7 +54,7 @@
             "type": "shell",
             "command": "ant create_run_jar copy_res",
             "options": {
-                "cwd": "${workspaceFolder}/Tools/jMAVSim"
+                "cwd": "${workspaceFolder}/Tools/simulation/jmavsim/jMAVSim"
             },
             "problemMatcher": [],
             "presentation":{
@@ -72,11 +72,67 @@
             "dependsOn": "jmavsim build",
             "command": "java -Djava.ext.dirs= -jar jmavsim_run.jar -r 250 -lockstep -tcp localhost:4560 -qgc",
             "options": {
-                "cwd": "${workspaceFolder}/Tools/jMAVSim/out/production",
+                "cwd": "${workspaceFolder}/Tools/simulation/jmavsim/jMAVSim/out/production",
                 "env": {
                     "PX4_SIM_SPEED_FACTOR": "1"
                 }
             },
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "jmavsim kill",
+            "type": "shell",
+            "command": "kill $(ps aux | grep jmavsim | grep -v 'grep' | awk '{print $2}')",
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "dependsOn":["px4_sitl_cleanup"]
+        },
+        {
+            "label": "gazebo build",
+            "type": "shell",
+            "command": "make px4_sitl_default sitl_gazebo",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation":{
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false,
+            }
+        },
+        {
+            "label": "gazebo start",
+            "type": "shell",
+            "dependsOn": "gazebo build",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "GAZEBO_PLUGIN_PATH": "${workspaceFolder}/build/px4_sitl_default/build_gazebo",
+                    "GAZEBO_MODEL_PATH": "${workspaceFolder}/Tools/simulation/gazebo/sitl_gazebo/models",
+                    "PX4_SIM_SPEED_FACTOR": "1"
+                }
+            },
+            "command": "gzserver --verbose ${workspaceFolder}/Tools/simulation/gazebo/sitl_gazebo/worlds/${input:gazeboWorld}.world",
             "isBackground": true,
             "presentation": {
                 "echo": true,
@@ -105,31 +161,56 @@
             ]
         },
         {
-            "label": "jmavsim kill",
+            "label": "gazebo",
             "type": "shell",
-            "command": "kill $(ps aux | grep jmavsim | grep -v 'grep' | awk '{print $2}')",
+            "dependsOn": "gazebo start",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "GAZEBO_PLUGIN_PATH": "${workspaceFolder}/build/px4_sitl_default/build_gazebo",
+                    "GAZEBO_MODEL_PATH": "${workspaceFolder}/Tools/simulation/gazebo/sitl_gazebo/models",
+                    "PX4_SIM_SPEED_FACTOR": "1"
+                }
+            },
+            "command": "gz model --verbose --spawn-file=${workspaceFolder}/Tools/simulation/gazebo/sitl_gazebo/models/${input:gazeboModel}/${input:gazeboModel}.sdf --model-name=${input:gazeboModel} -x 1.01 -y 0.98 -z 0.83",
+            "isBackground": false,
             "presentation": {
-                "echo": false,
+                "echo": true,
                 "reveal": "never",
                 "focus": false,
                 "panel": "shared",
                 "showReuseMessage": false,
                 "clear": false
             },
-            "problemMatcher": []
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": ".",
+                    }
+                }
+            ]
         },
-
         {
-            "label": "gazebo",
+            "label": "ign gazebo",
             "type": "shell",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "IGN_GAZEBO_RESOURCE_PATH": "${workspaceFolder}/Tools/simulation/gazebo/models",
+                    "IGN_GAZEBO_RESOURCE_PATH": "${workspaceFolder}/Tools/simulation/ignition/models",
                     "PX4_SIM_SPEED_FACTOR": "1"
                 }
             },
-            "command": "ign gazebo -v 4 -r ${workspaceFolder}/Tools/simulation/gazebo/worlds/${input:gazeboWorld}.sdf",
+            "command": "ign gazebo -v 4 -r ${workspaceFolder}/Tools/simulation/ignition/worlds/${input:ignWorld}.sdf",
             "isBackground": true,
             "presentation": {
                 "echo": true,
@@ -159,9 +240,25 @@
                 }
             ]
         },
-
         {
             "label": "gazebo kill",
+            "type": "shell",
+            "command": "pkill -9 -f gzserver || true",
+            "presentation": {
+                "echo": true,
+                "reveal": "never",
+                "revealProblems": "onProblem",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": false,
+                "clear": false,
+                "close": true
+            },
+            "problemMatcher": [],
+            "dependsOn":["px4_sitl_cleanup"]
+        },
+        {
+            "label": "ign gazebo kill",
             "type": "shell",
             "command": "pkill -9 -f ign || true",
             "presentation": {
@@ -249,10 +346,44 @@
     "inputs": [
         {
             "type": "pickString",
+            "id": "ignWorld",
+            "description": "Ignition world",
+            "options": [
+                "default"
+            ],
+            "default": "default"
+        },
+        {
+            "type": "pickString",
+            "id": "gazeboModel",
+            "description": "gazebo model",
+            "options": [
+              "iris",
+              "typhoon_h480",
+              "plane",
+              "plane_catapult",
+              "plane_lidar",
+              "standard_vtol",
+              "tailsitter",
+              "tiltrotor",
+              "r1_rover",
+              "boat"
+            ],
+            "default": "iris"
+        },
+        {
+            "type": "pickString",
             "id": "gazeboWorld",
             "description": "gazebo world",
             "options": [
-                "empty"
+                "baylands",
+                "empty",
+                "ksql_airport",
+                "mcmillan_airfield",
+                "sonoma_raceway",
+                "warehouse",
+                "windy",
+                "yosemite"
             ],
             "default": "empty"
         }

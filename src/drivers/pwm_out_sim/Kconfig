@@ -1,5 +1,0 @@
-menuconfig DRIVERS_PWM_OUT_SIM
-	bool "pwm_out_sim"
-	default n
-	---help---
-		Enable support for pwm_out_sim
