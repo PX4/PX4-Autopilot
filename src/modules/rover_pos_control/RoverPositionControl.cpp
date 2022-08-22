@@ -442,13 +442,19 @@ RoverPositionControl::control_rates(const vehicle_angular_velocity_s &rates, con
 	const matrix::Vector3f rates_setpoint(rates_sp.roll, rates_sp.pitch, rates_sp.yaw);
 
 	const matrix::Vector3f current_velocity(local_pos.vx, local_pos.vy, local_pos.vz);
-	bool lock_integrator = bool(current_velocity.norm() < _param_rate_i_minspeed.get());
+
+	bool lock_integrator = false;
+
+	if (current_velocity.norm() < _param_rate_i_minspeed.get()) {
+		_rate_control.resetIntegral();
+	}
 
 	const matrix::Vector3f angular_acceleration{acc.xyz};
-	const matrix::Vector3f torque = _rate_control.update(vehicle_rates, rates_setpoint, angular_acceleration, dt,
-					lock_integrator);
+	const matrix::Vector3f desired_angular_acceleration = _rate_control.update(vehicle_rates, rates_setpoint,
+			angular_acceleration, dt,
+			lock_integrator);
 
-	_steering_input = math::constrain(_steering_input + torque(2), -1.0f, 1.0f);
+	_steering_input = math::constrain(desired_angular_acceleration(2), -1.0f, 1.0f);
 
 	_act_controls.control[actuator_controls_s::INDEX_YAW] = _steering_input;
 
