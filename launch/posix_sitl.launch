@@ -15,7 +15,6 @@
     <arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
     <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/$(arg vehicle)/$(arg vehicle).sdf"/>
     <env name="PX4_SIM_MODEL" value="$(arg vehicle)" />
-    <env name="PX4_ESTIMATOR" value="$(arg est)" />
 
     <!-- gazebo configs -->
     <arg name="gui" default="true"/>

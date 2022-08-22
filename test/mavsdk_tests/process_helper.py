@@ -10,6 +10,9 @@ import threading
 import errno
 from typing import Any, Dict, List, TextIO, Optional
 
+PX4_GAZEBO_MODELS = "Tools/simulation/gazebo/sitl_gazebo/models"
+PX4_GAZEBO_WORLDS = "Tools/simulation/gazebo/sitl_gazebo/worlds"
+
 
 class Runner:
     def __init__(self,
@@ -223,12 +226,12 @@ class GzserverRunner(Runner):
         self.env["GAZEBO_PLUGIN_PATH"] = \
             os.path.join(workspace_dir, build_dir, "build_gazebo")
         self.env["GAZEBO_MODEL_PATH"] = \
-            os.path.join(workspace_dir, "Tools/sitl_gazebo/models")
+            os.path.join(workspace_dir, PX4_GAZEBO_MODELS)
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
         self.cmd = "stdbuf"
         self.args = ["-o0", "-e0", "gzserver", "--verbose",
                      os.path.join(workspace_dir,
-                                  "Tools/sitl_gazebo/worlds",
+                                  PX4_GAZEBO_WORLDS,
                                   "empty.world")]
 
     def has_started_ok(self) -> bool:
@@ -261,20 +264,23 @@ class GzmodelspawnRunner(Runner):
         self.env["GAZEBO_PLUGIN_PATH"] = \
             os.path.join(workspace_dir, build_dir, "build_gazebo")
         self.env["GAZEBO_MODEL_PATH"] = \
-            os.path.join(workspace_dir, "Tools/sitl_gazebo/models")
+            os.path.join(workspace_dir, PX4_GAZEBO_MODELS)
         self.cmd = "gz"
 
         if os.path.isfile(os.path.join(workspace_dir,
-                                       "Tools/sitl_gazebo/models",
+                                       PX4_GAZEBO_MODELS,
                                        self.model, self.model + ".sdf")):
+
             model_path = os.path.join(workspace_dir,
-                                      "Tools/sitl_gazebo/models",
+                                      PX4_GAZEBO_MODELS,
                                       self.model, self.model + ".sdf")
+
         elif os.path.isfile(os.path.join(workspace_dir,
-                                         "Tools/sitl_gazebo/models",
+                                         PX4_GAZEBO_MODELS,
                                          self.model, self.model + "-gen.sdf")):
+
             model_path = os.path.join(workspace_dir,
-                                      "Tools/sitl_gazebo/models",
+                                      PX4_GAZEBO_MODELS,
                                       self.model, self.model + "-gen.sdf")
         else:
             raise Exception("Model not found")
@@ -325,8 +331,8 @@ class GzclientRunner(Runner):
         self.name = "gzclient"
         self.cwd = workspace_dir
         self.env = dict(os.environ, **{
-            "GAZEBO_MODEL_PATH": os.path.join(workspace_dir,
-                                              "Tools/sitl_gazebo/models")})
+            "GAZEBO_MODEL_PATH":
+                os.path.join(workspace_dir, PX4_GAZEBO_MODELS)})
         self.cmd = "gzclient"
         self.args = ["--verbose"]
 

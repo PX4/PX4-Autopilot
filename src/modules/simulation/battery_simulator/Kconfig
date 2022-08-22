@@ -1,0 +1,5 @@
+menuconfig MODULES_SIMULATION_BATTERY_SIMULATOR
+	bool "battery_simulator"
+	default n
+	---help---
+		Enable support for battery_simulator

@@ -26,15 +26,15 @@ pipeline {
         //       echo $0;
         //       mkdir -p catkin_ws/src;
         //       cd catkin_ws;
-        //       git -C ${WORKSPACE}/catkin_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
-        //       git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+        //       git -C ${WORKSPACE}/catkin_ws/src/Firmware submodule update --init --recursive --force Tools/simulation/gazebo/sitl_gazebo
+        //       git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/simulation/gazebo/sitl_gazebo src/mavlink_sitl_gazebo;
         //       git -C ${WORKSPACE}/catkin_ws/src/Firmware fetch --tags;
         //       source /opt/ros/melodic/setup.bash;
         //       export PYTHONPATH=/opt/ros/$ROS_DISTRO/lib/python2.7/dist-packages:/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/dist-packages;
         //       catkin init;
         //       catkin build -j$(nproc) -l$(nproc);
         //     '''
-        //     // test if the binary was correctly installed and runs using 'mavros_posix_silt.launch'
+        //     // test if the binary was correctly installed and runs using 'mavros_posix_sitl.launch'
         //     sh '''#!/bin/bash -l
         //       echo $0;
         //       source catkin_ws/devel/setup.bash;
@@ -68,7 +68,7 @@ pipeline {
               unset ROS_DISTRO;
               mkdir -p colcon_ws/src;
               cd colcon_ws;
-              git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo;
+              git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/simulation/gazebo/sitl_gazebo;
               git -C ${WORKSPACE}/colcon_ws/src/Firmware fetch --tags;
               source /opt/ros/foxy/setup.sh;
               colcon build --event-handlers console_direct+ --symlink-install;
