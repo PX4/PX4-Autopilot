@@ -91,13 +91,6 @@ static struct mtd_geometry_s geo;
 static struct spi_dev_s *spinor = 0;
 #endif
 
-#if defined(CONFIG_MTD_M25P) || defined(CONFIG_MMCSD)
-static uintptr_t end_address = 0;
-static uintptr_t first_unwritten = 0;
-#endif
-
-static bool device_flashed = false;
-
 static int loader_task = -1;
 typedef enum {
 	UNINITIALIZED = -1,
@@ -424,9 +417,6 @@ flash_func_erase_sector(unsigned sector)
 		usleep(1000);
 	}
 
-	/* In case there has been an interrupted flashing previously */
-	device_flashed = false;
-
 #ifdef CONFIG_MTD_M25P
 	/* Flash into NOR flash */
 
@@ -456,32 +446,45 @@ flash_func_erase_sector(unsigned sector)
 }
 
 #if defined(CONFIG_MTD_M25P) || defined(CONFIG_MMCSD)
-static void flash_write_pages(off_t start, unsigned n_pages, uint8_t *src)
+static ssize_t flash_write_pages(off_t start, unsigned n_pages, uint8_t *src)
 {
+	ssize_t ret = 0;
 #ifdef CONFIG_MTD_M25P
-	size_t ret = MTD_BWRITE(mtd, start, n_pages, src);
+
+	ret = MTD_BWRITE(mtd, start, n_pages, src);
 
 	if (ret != n_pages) {
-		_alert("SPI NOR write error in pages %d-%d ret %d\n", start, start + n_pages, ret);
+		_alert("SPI NOR write error in pages %d-%d\n", start, start + n_pages);
+		ret = -errno;
 	}
 
 #elif defined(CONFIG_MMCSD)
-	if (sdcard_mounted) {
-		ssize_t ret = -2;
 
-		/* Write to file, from the app_load_address */
-		if (lseek(px4_fd, start * flash_func_block_size(), SEEK_SET) >= 0) {
-			ret = write(px4_fd, (void *)src, n_pages * flash_func_block_size());
+	if (!sdcard_mounted) {
+		return -EBADF;
+	}
+
+	/* Write to file, from the app_load_address */
+	ret = (ssize_t)lseek(px4_fd, start * flash_func_block_size(), SEEK_SET);
+
+	if (ret >= 0) {
+		ssize_t bytes = n_pages * flash_func_block_size();
+
+		ret = write(px4_fd, (void *)src, bytes);
+
+		if (ret != bytes) {
+			ret = -errno;
+			_alert("eMMC write error at 0x%x-0x%x\n", start * flash_func_block_size(),
+			       (start + n_pages) * flash_func_block_size());
 		}
 
-		if (ret != n_pages * flash_func_block_size()) {
-			_alert("eMMC write error at 0x%x-0x%x ret %d\n", start * flash_func_block_size(),
-					(start + n_pages) * flash_func_block_size(), ret);
-		}
+	} else {
+		_alert("File lseek fail\n");
+		ret = -errno;
 	}
 
 #endif
-
+	return ret;
 }
 #endif
 
@@ -495,32 +498,72 @@ flash_func_write_word(uintptr_t address, uint32_t word)
 
 #if defined(CONFIG_MTD_M25P) || defined(CONFIG_MMCSD)
 
-	// Write a single page every time we got a full one
+	static uintptr_t end_address = 0;
+	static uintptr_t first_unwritten = 0;
 
-	unsigned pgs_per_block = (FLASH_RW_BLOCK / flash_func_block_size());
+	// start of this block in memory
+	uint8_t *block_start;
+
+	// total bytes to be written
+	unsigned bytes;
+
+	int ret = 0;
 
 	if (address > 0 &&
 	    ((address + sizeof(uint32_t)) % FLASH_RW_BLOCK) == 0) {
+		// Every time a full FLASH_RW_BLOCK is received, store it to disk
 
-		// start of this block in memory
-		uintptr_t block_start = ((uintptr_t)app_load_addr + sizeof(uint32_t)) - FLASH_RW_BLOCK;
+		block_start = ((uint8_t *)app_load_addr + sizeof(uint32_t)) - FLASH_RW_BLOCK;
+		bytes = FLASH_RW_BLOCK;
 
 		// first page to be written
-		off_t write_page = (address / FLASH_RW_BLOCK) * pgs_per_block;
-
+		off_t write_page = address / flash_func_block_size();
+		// total pages to be written
+		unsigned n_pages = (FLASH_RW_BLOCK / flash_func_block_size());
 		// write pages
-		flash_write_pages(write_page, pgs_per_block, (uint8_t *)block_start);
+		ret = flash_write_pages(write_page, n_pages, (uint8_t *)block_start);
+		// store the first unwritten address for the end of image handling
 		first_unwritten = address + sizeof(uint32_t);
 	}
 
-	// update the end of the image
-	if (address + sizeof(uint32_t) > end_address) {
-		end_address = address + sizeof(uint32_t);
+	// the address 0 is written last, in the end of flashing
+	if (address == 0 && word != 0xffffffffu) {
+		// Write the last incomplete block
+		bytes = end_address - first_unwritten;
+		unsigned n_pages = bytes / flash_func_block_size();
+
+		if (bytes % flash_func_block_size()) {
+			n_pages += 1;
+		}
+
+		if (n_pages) {
+			block_start = (uint8_t *)(APP_LOAD_ADDRESS + first_unwritten);
+			ret = flash_write_pages(first_unwritten / flash_func_block_size(), n_pages,
+						block_start);
+		}
+
+		// re-write the first page
+		if (ret == 0) {
+			block_start = (uint8_t *)APP_LOAD_ADDRESS;
+			bytes = flash_func_block_size();
+			ret = flash_write_pages(0, 1, block_start);
+		}
 	}
 
+	// if the writing failed, erase the written data in DRAM, and also
+	// the first word, in case this was the last write
+	if (ret < 0) {
+		memset((uint8_t *)block_start, 0xff, bytes);
+		*(uint32_t *)APP_LOAD_ADDRESS = 0xffffffffu;
+	}
+
+	end_address = address + sizeof(uint32_t);
 #endif
 
-	device_flashed = true;
+	/* After the last word has been written, update the loading_status */
+	if (address == 0 && word != 0xffffffffu) {
+		loading_status = DONE;
+	}
 }
 
 uint32_t flash_func_read_word(uintptr_t address)
@@ -689,10 +732,10 @@ static size_t get_image_size(void)
 static int loader_main(int argc, char *argv[])
 {
 	ssize_t image_sz = 0;
-	int ret;
 	loading_status = IN_PROGRESS;
 
 #if defined(CONFIG_MMCSD)
+	int ret = 0;
 
 	if (sdcard_mounted) {
 		ret = load_sdcard_images("/sdcard/boot/" IMAGE_FN, APP_LOAD_ADDRESS);
@@ -809,8 +852,10 @@ bootloader_main(void)
 	/* configure the clock for bootloader activity */
 	clock_init();
 
-	/* try booting before entering bootloader, unless force pin is strapped */
+	/* check the bootloader force pin status */
 	try_boot = !board_test_force_pin();
+
+	start_image_loading();
 
 	/*
 	 * Check the boot reason. In case we came here with SW system reset,
@@ -827,7 +872,7 @@ bootloader_main(void)
 		/*
 		 * Don't even try to boot before dropping to the bootloader.
 		 */
-		try_boot = false;
+		loading_status = INTERRUPTED;
 
 		/*
 		 * Don't drop out of the bootloader until something has been uploaded.
@@ -838,8 +883,6 @@ bootloader_main(void)
 
 	/* Clear the reset reason */
 	board_set_reset_reason(0);
-
-	start_image_loading();
 
 	/* start the interface */
 #if INTERFACE_USART
@@ -854,39 +897,10 @@ bootloader_main(void)
 		/* run the bootloader, come back after an app is uploaded or we time out */
 		bootloader(timeout);
 
-		/* If device was just flashed, finalize flashing */
-
-		if (device_flashed) {
-#if defined(CONFIG_MTD_M25P) || defined(CONFIG_MMCSD)
-			/* Write the residue */
-			unsigned bytes = end_address - first_unwritten;
-			unsigned n_pages = bytes / flash_func_block_size();
-
-			if (bytes % flash_func_block_size()) {
-				n_pages += 1;
-			}
-
-			if (n_pages) {
-				flash_write_pages(first_unwritten / flash_func_block_size(), n_pages,
-						  (uint8_t *)(APP_LOAD_ADDRESS + first_unwritten));
-			}
-
-			/* Write first page again to update first word */
-			flash_write_pages(0, 1, (uint8_t *)(APP_LOAD_ADDRESS));
-#endif
-
-			/* Now the image is already in memory, allow booting
-			 * if force pin is not strapped
-			 */
-			loading_status = DONE;
-			try_boot = !board_test_force_pin();
-		}
-
 		/* look to see if we can boot the app */
+
 		if (try_boot && loading_status == DONE) {
 			jump_to_app();
 		}
-
-
 	}
 }
