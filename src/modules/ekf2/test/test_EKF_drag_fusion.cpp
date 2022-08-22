@@ -85,12 +85,11 @@ TEST_F(EkfDragFusionTest, testForwardMomentumDrag)
 	_ekf_wrapper.enableGpsFusion();
 	_sensor_simulator.startGps();
 
-	// Apply parameter changes required to do drag fusion wind estimation
-	parameters *_params = _ekf->getParamHandle();
-	_params->bcoef_x = 0.0f;
-	_params->bcoef_y = 0.0f;
-	_params->mcoef = 0.15f;
-	_params->fusion_mode = 33;
+	const float bcoef_x = 0.0f;
+	const float bcoef_y = 0.0f;
+	const float mcoef = 0.15f;
+	_ekf_wrapper.setDragFusionParameters(bcoef_x, bcoef_y, mcoef);
+	_ekf_wrapper.enableDragFusion();
 
 	// simulate a vehicle that is hovering and tilting into wind
 
@@ -109,7 +108,7 @@ TEST_F(EkfDragFusionTest, testForwardMomentumDrag)
 	Vector2f predicted_accel;
 	predicted_accel(0) =   CONSTANTS_ONE_G * asinf(pitch);
 	predicted_accel(1) = - CONSTANTS_ONE_G * asinf(roll);
-	Vector2f wind_speed = predicted_accel / _params->mcoef;
+	Vector2f wind_speed = predicted_accel / mcoef;
 	EXPECT_NEAR(vel_wind_earth(0), wind_speed(0), fmaxf(1.0f, 0.1f * fabsf(wind_speed(0))));
 	EXPECT_NEAR(vel_wind_earth(1), wind_speed(1), fmaxf(1.0f, 0.1f * fabsf(wind_speed(1))));
 };
@@ -127,11 +126,11 @@ TEST_F(EkfDragFusionTest, testLateralMomentumDrag)
 	_sensor_simulator.startGps();
 
 	// Apply parameter changes required to do drag fusion wind estimation
-	parameters *_params = _ekf->getParamHandle();
-	_params->bcoef_x = 0.0f;
-	_params->bcoef_y = 0.0f;
-	_params->mcoef = 0.15f;
-	_params->fusion_mode = 33;
+	const float bcoef_x = 0.0f;
+	const float bcoef_y = 0.0f;
+	const float mcoef = 0.15f;
+	_ekf_wrapper.setDragFusionParameters(bcoef_x, bcoef_y, mcoef);
+	_ekf_wrapper.enableDragFusion();
 
 	// simulate a vehicle that is hovering and tilting into wind
 
@@ -150,7 +149,7 @@ TEST_F(EkfDragFusionTest, testLateralMomentumDrag)
 	Vector2f predicted_accel;
 	predicted_accel(0) =   CONSTANTS_ONE_G * asinf(pitch);
 	predicted_accel(1) = - CONSTANTS_ONE_G * asinf(roll);
-	Vector2f wind_speed = predicted_accel / _params->mcoef;
+	Vector2f wind_speed = predicted_accel / mcoef;
 	EXPECT_NEAR(vel_wind_earth(0), wind_speed(0), fmaxf(1.0f, 0.1f * fabsf(wind_speed(0))));
 	EXPECT_NEAR(vel_wind_earth(1), wind_speed(1), fmaxf(1.0f, 0.1f * fabsf(wind_speed(1))));
 };
@@ -168,11 +167,11 @@ TEST_F(EkfDragFusionTest, testForwardBluffBodyDrag)
 	_sensor_simulator.startGps();
 
 	// Apply parameter changes required to do drag fusion wind estimation
-	parameters *_params = _ekf->getParamHandle();
-	_params->bcoef_x = 70.0f;
-	_params->bcoef_y = 0.0f;
-	_params->mcoef = 0.0f;
-	_params->fusion_mode = 33;
+	const float bcoef_x = 70.0f;
+	const float bcoef_y = 50.0f;
+	const float mcoef = 0.0f;
+	_ekf_wrapper.setDragFusionParameters(bcoef_x, bcoef_y, mcoef);
+	_ekf_wrapper.enableDragFusion();
 
 	// simulate a vehicle that is hovering and tilting into wind
 
@@ -188,7 +187,7 @@ TEST_F(EkfDragFusionTest, testForwardBluffBodyDrag)
 	const Vector2f vel_wind_earth = _ekf->getWindVelocity();
 
 	Vector2f predicted_accel(CONSTANTS_ONE_G * asinf(pitch), 0.0f);
-	const float airspeed = sqrtf((2.0f * _params->bcoef_x * predicted_accel.length()) /
+	const float airspeed = sqrtf((2.0f * bcoef_x * predicted_accel.length()) /
 				     CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 	Vector2f wind_speed(-airspeed, 0.0f);
 	EXPECT_NEAR(vel_wind_earth(0), wind_speed(0), fmaxf(1.0f, 0.1f * fabsf(wind_speed(0))));
@@ -208,11 +207,11 @@ TEST_F(EkfDragFusionTest, testLateralBluffBodyDrag)
 	_sensor_simulator.startGps();
 
 	// Apply parameter changes required to do drag fusion wind estimation
-	parameters *_params = _ekf->getParamHandle();
-	_params->bcoef_x = 70.0f;
-	_params->bcoef_y = 50.0f;
-	_params->mcoef = 0.0f;
-	_params->fusion_mode = 33;
+	const float bcoef_x = 70.0f;
+	const float bcoef_y = 50.0f;
+	const float mcoef = 0.0f;
+	_ekf_wrapper.setDragFusionParameters(bcoef_x, bcoef_y, mcoef);
+	_ekf_wrapper.enableDragFusion();
 
 	// simulate a vehicle that is hovering and tilting into wind
 
@@ -228,7 +227,7 @@ TEST_F(EkfDragFusionTest, testLateralBluffBodyDrag)
 	const Vector2f vel_wind_earth = _ekf->getWindVelocity();
 
 	Vector2f predicted_accel(0.0f, - CONSTANTS_ONE_G * asinf(roll));
-	const float airspeed = sqrtf((2.0f * _params->bcoef_y * predicted_accel.length()) /
+	const float airspeed = sqrtf((2.0f * bcoef_y * predicted_accel.length()) /
 				     CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 	Vector2f wind_speed(0.0f, -airspeed);
 	// printf("expected wind speed = %.1f , %.1f\n", (double)wind_speed(0), (double)wind_speed(1));
