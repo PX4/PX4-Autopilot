@@ -344,6 +344,7 @@ else
 		if param compare SYS_HITL 2
 		then
 			simulator_sih start
+			sensor_baro_sim start
 			sensor_mag_sim start
 		fi
 
