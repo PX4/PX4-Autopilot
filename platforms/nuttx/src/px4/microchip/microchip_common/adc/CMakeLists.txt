@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2021 Technology Innovation Institute. All rights reserved.
+#   Copyright (c) 2022 Technology Innovation Institute. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,10 +31,6 @@
 #
 ############################################################################
 
-
-add_subdirectory(board_critmon)
-add_subdirectory(board_reset board_reset)
-add_subdirectory(hrt hrt)
-add_subdirectory(version version)
-add_subdirectory(tone_alarm tone_alarm)
-add_subdirectory(../microchip_common/adc adc)
+px4_add_library(arch_adc
+	adc.cpp
+)
