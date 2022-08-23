@@ -463,8 +463,8 @@ FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
     trajec_<type>_<V_max>_<alpha>_<energy>_
     with
     <type> in {nominal, robust}
-    <V_max> in [08,24]
-    <alpha> in [0.10, 1.00]
+    <V_max> in [08,12]
+    <alpha> in [0.20, 1.00]
     <energy> in [E_min, E_max]
     */
 

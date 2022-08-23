@@ -323,9 +323,6 @@ FixedwingShearEstimator::Run()
         // get current measurement
         _current_wind = Vector3f(soaring_controller_wind.wind_estimate_filtered)/_unit_v;
         _current_height = Vector3f(soaring_controller_wind.position)(2)/_unit_h;
-        //_current_wind(0) = 0.f;
-        //_current_wind(1) = -(10.f/_unit_v)/(1+expf(-1.f/_unit_a*(_current_height- 110.f/_unit_h)));
-        //_current_wind(2) = 0.f;
 
         if (true) {
             // prior update
@@ -342,6 +339,12 @@ FixedwingShearEstimator::Run()
             }
 
         }
+
+        // get the correct shear params for trajectory selection
+        float v = _findClosest(_v_max_arr, 5, _shear_v_max);    // wind velocity
+        float a = _findClosest(_alpha_arr, 9, _shear_alpha);    // shear strength
+        float heading = -atan2f(_X_posterior_horizontal(1)-_X_posterior_horizontal(3),
+                                _X_posterior_horizontal(0)-_X_posterior_horizontal(2));
 
         // publish shear params
         // ========================================
@@ -402,6 +405,60 @@ bool FixedwingShearEstimator::check_feasibility()
     }
 
     return true;
+}
+
+float
+FixedwingPositionINDIControl::_getClosest(float val1, float val2, float target)
+{
+    if (target - val1 >= val2 - target)
+        return val2;
+    else
+        return val1;
+}
+
+float
+FixedwingPositionINDIControl::_findClosest(float arr[], int n, float target)
+{
+    // Corner cases
+    if (target <= arr[0])
+        return arr[0];
+    if (target >= arr[n - 1])
+        return arr[n - 1];
+ 
+    // Doing binary search
+    int i = 0, j = n, mid = 0;
+    while (i < j) {
+        mid = (i + j) / 2;
+ 
+        if ((float)fabs(arr[mid]-target) < (float)0.0001f)
+            return arr[mid];
+ 
+        /* If target is less than array element,
+            then search in left */
+        if (target < arr[mid]) {
+ 
+            // If target is greater than previous
+            // to mid, return closest of two
+            if (mid > 0 && target > arr[mid - 1])
+                return _getClosest(arr[mid - 1],
+                                  arr[mid], target);
+ 
+            /* Repeat for left half */
+            j = mid;
+        }
+ 
+        // If target is greater than mid
+        else {
+            if (mid < n - 1 && target < arr[mid + 1])
+                return _getClosest(arr[mid],
+                                  arr[mid + 1], target);
+            // update i
+            i = mid + 1;
+        }
+    }
+ 
+    // Only single element left after search
+    return arr[mid];
 }
 
 

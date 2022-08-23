@@ -99,6 +99,10 @@ private:
     void    publish_estimate();
     void	status_publish();
 
+    // helper methods
+	float _getClosest(float val1, float val2, float taget);	// get float closest to target
+	float _findClosest(float arr[], int n, float target);	// return element in arr closest to n
+
     // control variables
     hrt_abstime _last_run{0};
     uint _reset_counter = {};
@@ -136,6 +140,11 @@ private:
 
     // helper variables
     float _init_height = {};
+
+    // trajectory selection variables
+    // vectors defining the gridding for trajectory selection: initial velocities, wind speed and shear strength	
+	float _v_max_arr[5] = {8.f,9.f,10.f,11.f,12.f};	
+	float _alpha_arr[9] = {0.2f,0.3f,0.4f,0.5f,0.6f,0.7f,0.8f,0.9f,1.0f};	
 
 };
 
