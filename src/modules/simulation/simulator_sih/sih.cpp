@@ -217,22 +217,6 @@ void Sih::sensor_step()
 
 	reconstruct_sensors_signals(now);
 
-	// baro published at 20 Hz
-	if (now - _baro_time >= 50_ms
-	    && fabs(_baro_offset_m) < 10000) {
-		_baro_time = now;
-
-		// publish baro
-		sensor_baro_s sensor_baro{};
-		sensor_baro.timestamp_sample = now;
-		sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
-		sensor_baro.pressure = _baro_p_mBar * 100.f;
-		sensor_baro.temperature = _baro_temp_c;
-		sensor_baro.error_count = 0;
-		sensor_baro.timestamp = hrt_absolute_time();
-		_sensor_baro_pub.publish(sensor_baro);
-	}
-
 	// gps published at 10Hz
 	if (now - _gps_time >= 100_ms) {
 		_gps_time = now;
@@ -283,7 +267,6 @@ void Sih::parameters_updated()
 	_Im1 = 100.0f * inv(static_cast<typeof _I>(100.0f * _I));
 
 	_gps_used = _sih_gps_used.get();
-	_baro_offset_m = _sih_baro_offset.get();
 
 	_distance_snsr_min = _sih_distance_snsr_min.get();
 	_distance_snsr_max = _sih_distance_snsr_max.get();
@@ -470,12 +453,6 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	_px4_accel.update(time_now_us, acc(0), acc(1), acc(2));
 	_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
 
-	// barometer
-	float altitude = (_H0 - _p_I(2)) + _baro_offset_m + generate_wgn() * 0.14f; // altitude with noise
-	_baro_p_mBar = CONSTANTS_STD_PRESSURE_MBAR *        // reconstructed pressure in mBar
-		       powf((1.0f + altitude * TEMP_GRADIENT / T1_K), -CONSTANTS_ONE_G / (TEMP_GRADIENT * CONSTANTS_AIR_GAS_CONST));
-	_baro_temp_c = T1_K + CONSTANTS_ABSOLUTE_NULL_CELSIUS + TEMP_GRADIENT * altitude; // reconstructed temperture in Celsius
-
 	// GPS
 	_gps_lat_noiseless = _LAT0 + degrees((double)_p_I(0) / CONSTANTS_RADIUS_OF_EARTH);
 	_gps_lon_noiseless = _LON0 + degrees((double)_p_I(1) / CONSTANTS_RADIUS_OF_EARTH) / _COS_LAT0;
@@ -547,7 +524,7 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	airspeed.timestamp_sample = time_now_us;
 	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_B(0) + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
-	airspeed.air_temperature_celsius = _baro_temp_c;
+	airspeed.air_temperature_celsius = NAN;
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
 	_airspeed_pub.publish(airspeed);

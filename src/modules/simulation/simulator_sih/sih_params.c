@@ -294,16 +294,6 @@ PARAM_DEFINE_FLOAT(SIH_LOC_H0, 32.34f);
 PARAM_DEFINE_INT32(SIH_GPS_USED, 10);
 
 /**
- * Barometer offset in meters
- *
- * Absolute value superior to 10000 will disable barometer
- *
- * @unit m
- * @group Simulation In Hardware
- */
-PARAM_DEFINE_FLOAT(SIH_BARO_OFFSET,  0.0f);
-
-/**
  * distance sensor minimum range
  *
  * @unit m
