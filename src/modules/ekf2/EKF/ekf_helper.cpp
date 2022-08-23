@@ -370,7 +370,7 @@ bool Ekf::realignYawGPS(const Vector3f &mag)
 		const float yaw_variance_new = sq(asinf(sineYawError));
 
 		// Apply updated yaw and yaw variance to states and covariances
-		resetQuatStateYaw(yaw_new, yaw_variance_new, true);
+		resetQuatStateYaw(yaw_new, yaw_variance_new);
 
 		// Use the last magnetometer measurements to reset the field states
 		_state.mag_B.zero();
@@ -458,7 +458,7 @@ bool Ekf::resetYawToEv()
 	const float yaw_new = getEulerYaw(_ev_sample_delayed.quat);
 	const float yaw_new_variance = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
 
-	resetQuatStateYaw(yaw_new, yaw_new_variance, true);
+	resetQuatStateYaw(yaw_new, yaw_new_variance);
 	_R_ev_to_ekf.setIdentity();
 
 	return true;
@@ -1567,7 +1567,7 @@ void Ekf::stopFlowFusion()
 	}
 }
 
-void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
+void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 {
 	// save a copy of the quaternion state for later use in calculating the amount of reset change
 	const Quatf quat_before_reset = _state.quat_nominal;
@@ -1593,15 +1593,13 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 	}
 
 	// add the reset amount to the output observer buffered data
-	if (update_buffer) {
-		for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-			_output_buffer[i].quat_nominal = _state_reset_status.quat_change * _output_buffer[i].quat_nominal;
-		}
-
-		// apply the change in attitude quaternion to our newest quaternion estimate
-		// which was already taken out from the output buffer
-		_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
+	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
+		_output_buffer[i].quat_nominal = _state_reset_status.quat_change * _output_buffer[i].quat_nominal;
 	}
+
+	// apply the change in attitude quaternion to our newest quaternion estimate
+	// which was already taken out from the output buffer
+	_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
 
 	_last_static_yaw = NAN;
 
@@ -1618,7 +1616,7 @@ bool Ekf::resetYawToEKFGSF()
 		return false;
 	}
 
-	resetQuatStateYaw(_yawEstimator.getYaw(), _yawEstimator.getYawVar(), true);
+	resetQuatStateYaw(_yawEstimator.getYaw(), _yawEstimator.getYawVar());
 
 	// record a magnetic field alignment event to prevent possibility of the EKF trying to reset the yaw to the mag later in flight
 	_flt_mag_align_start_time = _imu_sample_delayed.time_us;
