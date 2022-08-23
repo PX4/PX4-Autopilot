@@ -216,7 +216,7 @@ bool Ekf::resetYawToGps()
 	const float measured_yaw = _gps_sample_delayed.yaw;
 
 	const float yaw_variance = sq(fmaxf(_params.gps_heading_noise, 1.e-2f));
-	resetQuatStateYaw(measured_yaw, yaw_variance, true);
+	resetQuatStateYaw(measured_yaw, yaw_variance);
 
 	_aid_src_gnss_yaw.time_last_fuse = _imu_sample_delayed.time_us;
 	_gnss_yaw_signed_test_ratio_lpf.reset(0.f);
