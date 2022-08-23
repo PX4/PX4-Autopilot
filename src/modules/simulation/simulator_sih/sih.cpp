@@ -67,7 +67,6 @@ void Sih::run()
 {
 	_px4_accel.set_temperature(T1_C);
 	_px4_gyro.set_temperature(T1_C);
-	_px4_mag.set_temperature(T1_C);
 
 	parameters_updated();
 	init_variables();
@@ -218,15 +217,6 @@ void Sih::sensor_step()
 
 	reconstruct_sensors_signals(now);
 
-	// magnetometer published at 50 Hz
-	if (now - _mag_time >= 20_ms
-	    && fabs(_mag_offset_x) < 10000
-	    && fabs(_mag_offset_y) < 10000
-	    && fabs(_mag_offset_z) < 10000) {
-		_mag_time = now;
-		_px4_mag.update(now, _mag(0), _mag(1), _mag(2));
-	}
-
 	// baro published at 20 Hz
 	if (now - _baro_time >= 50_ms
 	    && fabs(_baro_offset_m) < 10000) {
@@ -292,13 +282,8 @@ void Sih::parameters_updated()
 	// guards against too small determinants
 	_Im1 = 100.0f * inv(static_cast<typeof _I>(100.0f * _I));
 
-	_mu_I = Vector3f(_sih_mu_x.get(), _sih_mu_y.get(), _sih_mu_z.get());
-
 	_gps_used = _sih_gps_used.get();
 	_baro_offset_m = _sih_baro_offset.get();
-	_mag_offset_x = _sih_mag_offset_x.get();
-	_mag_offset_y = _sih_mag_offset_y.get();
-	_mag_offset_z = _sih_mag_offset_z.get();
 
 	_distance_snsr_min = _sih_distance_snsr_min.get();
 	_distance_snsr_max = _sih_distance_snsr_max.get();
@@ -484,11 +469,6 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	// update IMU every iteration
 	_px4_accel.update(time_now_us, acc(0), acc(1), acc(2));
 	_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
-
-	_mag = _C_IB.transpose() * _mu_I + noiseGauss3f(0.02f, 0.02f, 0.03f);
-	_mag(0) += _mag_offset_x;
-	_mag(1) += _mag_offset_y;
-	_mag(2) += _mag_offset_z;
 
 	// barometer
 	float altitude = (_H0 - _p_I(2)) + _baro_offset_m + generate_wgn() * 0.14f; // altitude with noise
