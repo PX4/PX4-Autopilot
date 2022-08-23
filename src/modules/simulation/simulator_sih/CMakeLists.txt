@@ -44,7 +44,6 @@ px4_add_module(
 		mathlib
 		drivers_accelerometer
 		drivers_gyroscope
-		drivers_magnetometer
 	)
 
 if(PX4_PLATFORM MATCHES "posix")
