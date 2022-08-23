@@ -187,8 +187,10 @@ TEST_F(EkfDragFusionTest, testForwardBluffBodyDrag)
 	const float airspeed = sqrtf((2.0f * bcoef_x * predicted_accel.length()) /
 				     CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 	Vector2f wind_speed(-airspeed, 0.0f);
-	EXPECT_NEAR(vel_wind_earth(0), wind_speed(0), fmaxf(1.0f, 0.1f * fabsf(wind_speed(0))));
-	EXPECT_NEAR(vel_wind_earth(1), wind_speed(1), fmaxf(1.0f, 0.1f * fabsf(wind_speed(1))));
+	// The magnitude of error perpendicular to wind is equivalent to the error in the direction of wind
+	// which is why we use the same threshold for each axis.
+	EXPECT_NEAR(vel_wind_earth(0), wind_speed(0), 1.0f);
+	EXPECT_NEAR(vel_wind_earth(1), wind_speed(1), 1.0f);
 };
 
 TEST_F(EkfDragFusionTest, testLateralBluffBodyDrag)
@@ -228,6 +230,8 @@ TEST_F(EkfDragFusionTest, testLateralBluffBodyDrag)
 	Vector2f wind_speed(0.0f, -airspeed);
 	// printf("expected wind speed = %.1f , %.1f\n", (double)wind_speed(0), (double)wind_speed(1));
 	// printf("estimated wind speed NE = %.1f , %.1f\n", (double)vel_wind_earth(0), (double)vel_wind_earth(1));
-	EXPECT_NEAR(vel_wind_earth(0), wind_speed(0), fmaxf(1.0f, 0.1f * fabsf(wind_speed(0))));
-	EXPECT_NEAR(vel_wind_earth(1), wind_speed(1), fmaxf(1.0f, 0.1f * fabsf(wind_speed(1))));
+	// The magnitude of error perpendicular to wind is equivalent to the error in the of wind
+	// which is why we use the same threshold for each axis.
+	EXPECT_NEAR(vel_wind_earth(0), wind_speed(0), 1.0f);
+	EXPECT_NEAR(vel_wind_earth(1), wind_speed(1), 1.0f);
 };
