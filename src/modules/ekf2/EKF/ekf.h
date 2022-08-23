@@ -1071,8 +1071,7 @@ private:
 	// reset the quaternion states and covariances to the new yaw value, preserving the roll and pitch
 	// yaw : Euler yaw angle (rad)
 	// yaw_variance : yaw error variance (rad^2)
-	// update_buffer : true if the state change should be also applied to the output observer buffer
-	void resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer = true);
+	void resetQuatStateYaw(float yaw, float yaw_variance);
 
 	// Declarations used to control use of the EKF-GSF yaw estimator
 
