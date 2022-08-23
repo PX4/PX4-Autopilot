@@ -65,7 +65,6 @@
 #include <drivers/drv_hrt.h>        // to get the real time
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -122,7 +121,6 @@ private:
 	// simulated sensors
 	PX4Accelerometer _px4_accel{1310988}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	PX4Gyroscope     _px4_gyro{1310988};  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Magnetometer  _px4_mag{197388};    //  197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 	uORB::Publication<sensor_gps_s>       _sensor_gps_pub{ORB_ID(sensor_gps)};
 	uORB::Publication<distance_sensor_s>  _distance_snsr_pub{ORB_ID(distance_sensor)};
@@ -189,7 +187,6 @@ private:
 	hrt_abstime _baro_time{0};
 	hrt_abstime _gps_time{0};
 	hrt_abstime _airspeed_time{0};
-	hrt_abstime _mag_time{0};
 	hrt_abstime _dist_snsr_time{0};
 
 	bool        _grounded{true};// whether the vehicle is on the ground
@@ -258,7 +255,6 @@ private:
 	// 	};
 
 	// sensors reconstruction
-	matrix::Vector3f    _mag{};
 	matrix::Vector3f    _gps_vel{};
 	double      _gps_lat, _gps_lat_noiseless;
 	double      _gps_lon, _gps_lon_noiseless;
@@ -272,10 +268,9 @@ private:
 	matrix::Vector3f _W_I;  // weight of the vehicle in inertial frame [N]
 	matrix::Matrix3f _I;    // vehicle inertia matrix
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
-	matrix::Vector3f _mu_I; // NED magnetic field in inertial frame [G]
 
 	int _gps_used;
-	float _baro_offset_m, _mag_offset_x, _mag_offset_y, _mag_offset_z;
+	float _baro_offset_m;
 	float _distance_snsr_min, _distance_snsr_max, _distance_snsr_override;
 
 	// parameters defined in sih_params.c
@@ -298,14 +293,8 @@ private:
 		(ParamInt<px4::params::SIH_LOC_LAT0>) _sih_lat0,
 		(ParamInt<px4::params::SIH_LOC_LON0>) _sih_lon0,
 		(ParamFloat<px4::params::SIH_LOC_H0>) _sih_h0,
-		(ParamFloat<px4::params::SIH_LOC_MU_X>) _sih_mu_x,
-		(ParamFloat<px4::params::SIH_LOC_MU_Y>) _sih_mu_y,
-		(ParamFloat<px4::params::SIH_LOC_MU_Z>) _sih_mu_z,
 		(ParamInt<px4::params::SIH_GPS_USED>) _sih_gps_used,
 		(ParamFloat<px4::params::SIH_BARO_OFFSET>) _sih_baro_offset,
-		(ParamFloat<px4::params::SIH_MAG_OFFSET_X>) _sih_mag_offset_x,
-		(ParamFloat<px4::params::SIH_MAG_OFFSET_Y>) _sih_mag_offset_y,
-		(ParamFloat<px4::params::SIH_MAG_OFFSET_Z>) _sih_mag_offset_z,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _sih_distance_snsr_min,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
