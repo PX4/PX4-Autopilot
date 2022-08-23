@@ -189,105 +189,112 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 	// temperature only updated with baro
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
 		if (PX4_ISFINITE(sensors.temperature)) {
-			_px4_mag_0.set_temperature(sensors.temperature);
-			_px4_mag_1.set_temperature(sensors.temperature);
-
 			_sensors_temperature = sensors.temperature;
 		}
 	}
 
 	// accel
 	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL) {
-		for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
-			if (i == 0) {
-				// accel 0 is simulated FIFO
-				static constexpr float ACCEL_FIFO_SCALE = CONSTANTS_ONE_G / 2048.f;
-				static constexpr float ACCEL_FIFO_RANGE = 16.f * CONSTANTS_ONE_G;
+		if (sensors.id >= ACCEL_COUNT_MAX) {
+			PX4_ERR("Number of simulated accelerometer %d out of range. Max: %d", sensors.id, ACCEL_COUNT_MAX);
+			return;
+		}
 
-				_px4_accel[i].set_scale(ACCEL_FIFO_SCALE);
-				_px4_accel[i].set_range(ACCEL_FIFO_RANGE);
+		if (sensors.id == 0) {
+			// accel 0 is simulated FIFO
+			static constexpr float ACCEL_FIFO_SCALE = CONSTANTS_ONE_G / 2048.f;
+			static constexpr float ACCEL_FIFO_RANGE = 16.f * CONSTANTS_ONE_G;
 
-				if (_accel_stuck[i]) {
-					_px4_accel[i].updateFIFO(_last_accel_fifo);
+			_px4_accel[sensors.id].set_scale(ACCEL_FIFO_SCALE);
+			_px4_accel[sensors.id].set_range(ACCEL_FIFO_RANGE);
 
-				} else if (!_accel_blocked[i]) {
-					_px4_accel[i].set_temperature(_sensors_temperature);
+			if (_accel_stuck[sensors.id]) {
+				_px4_accel[sensors.id].updateFIFO(_last_accel_fifo);
 
-					_last_accel_fifo.samples = 1;
-					_last_accel_fifo.dt = time - _last_accel_fifo.timestamp_sample;
-					_last_accel_fifo.timestamp_sample = time;
-					_last_accel_fifo.x[0] = sensors.xacc / ACCEL_FIFO_SCALE;
-					_last_accel_fifo.y[0] = sensors.yacc / ACCEL_FIFO_SCALE;
-					_last_accel_fifo.z[0] = sensors.zacc / ACCEL_FIFO_SCALE;
+			} else if (!_accel_blocked[sensors.id]) {
+				_px4_accel[sensors.id].set_temperature(_sensors_temperature);
 
-					_px4_accel[i].updateFIFO(_last_accel_fifo);
-				}
+				_last_accel_fifo.samples = 1;
+				_last_accel_fifo.dt = time - _last_accel_fifo.timestamp_sample;
+				_last_accel_fifo.timestamp_sample = time;
+				_last_accel_fifo.x[0] = sensors.xacc / ACCEL_FIFO_SCALE;
+				_last_accel_fifo.y[0] = sensors.yacc / ACCEL_FIFO_SCALE;
+				_last_accel_fifo.z[0] = sensors.zacc / ACCEL_FIFO_SCALE;
 
-			} else {
-				if (_accel_stuck[i]) {
-					_px4_accel[i].update(time, _last_accel[i](0), _last_accel[i](1), _last_accel[i](2));
+				_px4_accel[sensors.id].updateFIFO(_last_accel_fifo);
+			}
 
-				} else if (!_accel_blocked[i]) {
-					_px4_accel[i].set_temperature(_sensors_temperature);
-					_px4_accel[i].update(time, sensors.xacc, sensors.yacc, sensors.zacc);
-					_last_accel[i] = matrix::Vector3f{sensors.xacc, sensors.yacc, sensors.zacc};
-				}
+		} else {
+			if (_accel_stuck[sensors.id]) {
+				_px4_accel[sensors.id].update(time, _last_accel[sensors.id](0), _last_accel[sensors.id](1), _last_accel[sensors.id](2));
+
+			} else if (!_accel_blocked[sensors.id]) {
+				_px4_accel[sensors.id].set_temperature(_sensors_temperature);
+				_px4_accel[sensors.id].update(time, sensors.xacc, sensors.yacc, sensors.zacc);
+				_last_accel[sensors.id] = matrix::Vector3f{sensors.xacc, sensors.yacc, sensors.zacc};
 			}
 		}
 	}
 
 	// gyro
 	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO) {
-		for (int i = 0; i < GYRO_COUNT_MAX; i++) {
-			if (i == 0) {
-				// gyro 0 is simulated FIFO
-				static constexpr float GYRO_FIFO_SCALE = math::radians(2000.f / 32768.f);
-				static constexpr float GYRO_FIFO_RANGE = math::radians(2000.f);
+		if (sensors.id >= GYRO_COUNT_MAX) {
+			PX4_ERR("Number of simulated gyroscope %d out of range. Max: %d", sensors.id, GYRO_COUNT_MAX);
+			return;
+		}
 
-				_px4_gyro[i].set_scale(GYRO_FIFO_SCALE);
-				_px4_gyro[i].set_range(GYRO_FIFO_RANGE);
+		if (sensors.id == 0) {
+			// gyro 0 is simulated FIFO
+			static constexpr float GYRO_FIFO_SCALE = math::radians(2000.f / 32768.f);
+			static constexpr float GYRO_FIFO_RANGE = math::radians(2000.f);
 
-				if (_gyro_stuck[i]) {
-					_px4_gyro[i].updateFIFO(_last_gyro_fifo);
+			_px4_gyro[sensors.id].set_scale(GYRO_FIFO_SCALE);
+			_px4_gyro[sensors.id].set_range(GYRO_FIFO_RANGE);
 
-				} else if (!_gyro_blocked[i]) {
-					_px4_gyro[i].set_temperature(_sensors_temperature);
+			if (_gyro_stuck[sensors.id]) {
+				_px4_gyro[sensors.id].updateFIFO(_last_gyro_fifo);
 
-					_last_gyro_fifo.samples = 1;
-					_last_gyro_fifo.dt = time - _last_gyro_fifo.timestamp_sample;
-					_last_gyro_fifo.timestamp_sample = time;
-					_last_gyro_fifo.x[0] = sensors.xgyro / GYRO_FIFO_SCALE;
-					_last_gyro_fifo.y[0] = sensors.ygyro / GYRO_FIFO_SCALE;
-					_last_gyro_fifo.z[0] = sensors.zgyro / GYRO_FIFO_SCALE;
+			} else if (!_gyro_blocked[sensors.id]) {
+				_px4_gyro[sensors.id].set_temperature(_sensors_temperature);
 
-					_px4_gyro[i].updateFIFO(_last_gyro_fifo);
-				}
+				_last_gyro_fifo.samples = 1;
+				_last_gyro_fifo.dt = time - _last_gyro_fifo.timestamp_sample;
+				_last_gyro_fifo.timestamp_sample = time;
+				_last_gyro_fifo.x[0] = sensors.xgyro / GYRO_FIFO_SCALE;
+				_last_gyro_fifo.y[0] = sensors.ygyro / GYRO_FIFO_SCALE;
+				_last_gyro_fifo.z[0] = sensors.zgyro / GYRO_FIFO_SCALE;
 
-			} else {
-				if (_gyro_stuck[i]) {
-					_px4_gyro[i].update(time, _last_gyro[i](0), _last_gyro[i](1), _last_gyro[i](2));
+				_px4_gyro[sensors.id].updateFIFO(_last_gyro_fifo);
+			}
 
-				} else if (!_gyro_blocked[i]) {
-					_px4_gyro[i].set_temperature(_sensors_temperature);
-					_px4_gyro[i].update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
-					_last_gyro[i] = matrix::Vector3f{sensors.xgyro, sensors.ygyro, sensors.zgyro};
-				}
+		} else {
+			if (_gyro_stuck[sensors.id]) {
+				_px4_gyro[sensors.id].update(time, _last_gyro[sensors.id](0), _last_gyro[sensors.id](1), _last_gyro[sensors.id](2));
+
+			} else if (!_gyro_blocked[sensors.id]) {
+				_px4_gyro[sensors.id].set_temperature(_sensors_temperature);
+				_px4_gyro[sensors.id].update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
+				_last_gyro[sensors.id] = matrix::Vector3f{sensors.xgyro, sensors.ygyro, sensors.zgyro};
 			}
 		}
 	}
 
 	// magnetometer
-	if ((sensors.fields_updated & SensorSource::MAG) == SensorSource::MAG && !_mag_blocked) {
-		if (_mag_stuck) {
-			_px4_mag_0.update(time, _last_magx, _last_magy, _last_magz);
-			_px4_mag_1.update(time, _last_magx, _last_magy, _last_magz);
+	if ((sensors.fields_updated & SensorSource::MAG) == SensorSource::MAG) {
+		if (sensors.id >= MAG_COUNT_MAX) {
+			PX4_ERR("Number of simulated magnetometer %d out of range. Max: %d", sensors.id, MAG_COUNT_MAX);
+			return;
+		}
 
-		} else {
-			_px4_mag_0.update(time, sensors.xmag, sensors.ymag, sensors.zmag);
-			_px4_mag_1.update(time, sensors.xmag, sensors.ymag, sensors.zmag);
-			_last_magx = sensors.xmag;
-			_last_magy = sensors.ymag;
-			_last_magz = sensors.zmag;
+		if (_mag_stuck[sensors.id]) {
+			_px4_mag[sensors.id].update(time, _last_magx[sensors.id], _last_magy[sensors.id], _last_magz[sensors.id]);
+
+		} else if (!_mag_blocked[sensors.id]) {
+			_px4_mag[sensors.id].set_temperature(_sensors_temperature);
+			_px4_mag[sensors.id].update(time, sensors.xmag, sensors.ymag, sensors.zmag);
+			_last_magx[sensors.id] = sensors.xmag;
+			_last_magy[sensors.id] = sensors.ymag;
+			_last_magz[sensors.id] = sensors.zmag;
 		}
 	}
 
@@ -459,16 +466,21 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 
 void SimulatorMavlink::handle_message_hil_sensor(const mavlink_message_t *msg)
 {
-	if (_lockstep_component == -1) {
-		_lockstep_component = px4_lockstep_register_component();
-	}
-
 	mavlink_hil_sensor_t imu;
 	mavlink_msg_hil_sensor_decode(msg, &imu);
 
-	struct timespec ts;
-	abstime_to_ts(&ts, imu.time_usec);
-	px4_clock_settime(CLOCK_MONOTONIC, &ts);
+	// Assume imu with id 0 is the primary imu an base lockstep based on this.
+	if (imu.id == 0) {
+		if (_lockstep_component == -1) {
+			_lockstep_component = px4_lockstep_register_component();
+		}
+
+		struct timespec ts;
+
+		abstime_to_ts(&ts, imu.time_usec);
+
+		px4_clock_settime(CLOCK_MONOTONIC, &ts);
+	}
 
 	hrt_abstime now_us = hrt_absolute_time();
 
@@ -487,15 +499,17 @@ void SimulatorMavlink::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 	update_sensors(now_us, imu);
 
+	if (imu.id == 0) {
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 
-	if (!_has_initialized.load()) {
-		_has_initialized.store(true);
-	}
+		if (!_has_initialized.load()) {
+			_has_initialized.store(true);
+		}
 
 #endif
 
-	px4_lockstep_progress(_lockstep_component);
+		px4_lockstep_progress(_lockstep_component);
+	}
 }
 
 void SimulatorMavlink::handle_message_hil_state_quaternion(const mavlink_message_t *msg)
@@ -1341,20 +1355,55 @@ void SimulatorMavlink::check_failure_injections()
 			handled = true;
 
 			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				PX4_WARN("CMD_INJECT_FAILURE, mag off");
 				supported = true;
-				_mag_blocked = true;
+
+				// 0 to signal all
+				if (instance == 0) {
+					for (int i = 0; i < MAG_COUNT_MAX; i++) {
+						PX4_WARN("CMD_INJECT_FAILURE, mag %d off", i);
+						_mag_blocked[i] = true;
+						_mag_stuck[i] = false;
+					}
+
+				} else if (instance >= 1 && instance <= MAG_COUNT_MAX) {
+					PX4_WARN("CMD_INJECT_FAILURE, mag %d off", instance - 1);
+					_mag_blocked[instance - 1] = true;
+					_mag_stuck[instance - 1] = false;
+				}
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
-				PX4_WARN("CMD_INJECT_FAILURE, mag stuck");
 				supported = true;
-				_mag_stuck = true;
-				_mag_blocked = false;
+
+				// 0 to signal all
+				if (instance == 0) {
+					for (int i = 0; i < MAG_COUNT_MAX; i++) {
+						PX4_WARN("CMD_INJECT_FAILURE, mag %d stuck", i);
+						_mag_blocked[i] = false;
+						_mag_stuck[i] = true;
+					}
+
+				} else if (instance >= 1 && instance <= MAG_COUNT_MAX) {
+					PX4_WARN("CMD_INJECT_FAILURE, mag %d stuck", instance - 1);
+					_mag_blocked[instance - 1] = false;
+					_mag_stuck[instance - 1] = true;
+				}
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				PX4_INFO("CMD_INJECT_FAILURE, mag ok");
 				supported = true;
-				_mag_blocked = false;
+
+				// 0 to signal all
+				if (instance == 0) {
+					for (int i = 0; i < MAG_COUNT_MAX; i++) {
+						PX4_WARN("CMD_INJECT_FAILURE, mag %d ok", i);
+						_mag_blocked[i] = false;
+						_mag_stuck[i] = false;
+					}
+
+				} else if (instance >= 1 && instance <= MAG_COUNT_MAX) {
+					PX4_WARN("CMD_INJECT_FAILURE, mag %d ok", instance - 1);
+					_mag_blocked[instance - 1] = false;
+					_mag_stuck[instance - 1] = false;
+				}
 			}
 
 		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_BARO) {

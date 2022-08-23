@@ -178,8 +178,11 @@ private:
 		{1311004, ROTATION_NONE}, // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 	};
 
-	PX4Magnetometer		_px4_mag_0{197388, ROTATION_NONE}; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Magnetometer		_px4_mag_1{197644, ROTATION_NONE}; // 197644: DRV_MAG_DEVTYPE_MAGSIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+	static constexpr uint8_t MAG_COUNT_MAX = 2;
+	PX4Magnetometer _px4_mag[MAG_COUNT_MAX] {
+		{197388, ROTATION_NONE},
+		{197644, ROTATION_NONE},
+	};
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pubs[2] {{ORB_ID(sensor_baro)}, {ORB_ID(sensor_baro)}};
 
@@ -287,15 +290,15 @@ private:
 	bool _baro_blocked{false};
 	bool _baro_stuck{false};
 
-	bool _mag_blocked{false};
-	bool _mag_stuck{false};
+	bool _mag_blocked[MAG_COUNT_MAX] {};
+	bool _mag_stuck[MAG_COUNT_MAX] {};
 
 	bool _gps_blocked{false};
 	bool _airspeed_blocked{false};
 
-	float _last_magx{0.0f};
-	float _last_magy{0.0f};
-	float _last_magz{0.0f};
+	float _last_magx[MAG_COUNT_MAX] {};
+	float _last_magy[MAG_COUNT_MAX] {};
+	float _last_magz[MAG_COUNT_MAX] {};
 
 	float _last_baro_pressure{0.0f};
 	float _last_baro_temperature{0.0f};
