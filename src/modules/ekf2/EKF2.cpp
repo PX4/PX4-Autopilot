@@ -2233,11 +2233,11 @@ int EKF2::task_spawn(int argc, char *argv[])
 			}
 		}
 
-	}
+	} else
 
 #endif // !CONSTRAINED_FLASH
 
-	else {
+	{
 		// otherwise launch regular
 		EKF2 *ekf2_inst = new EKF2(false, px4::wq_configurations::INS0, replay_mode);
 
