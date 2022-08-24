@@ -35,28 +35,14 @@
 
 #include <px4_platform_common/sem.hpp>
 
-pthread_mutex_t pwm_out_module_mutex = PTHREAD_MUTEX_INITIALIZER;
-static px4::atomic<PWMOut *> _objects[PWM_OUT_MAX_INSTANCES] {};
-static px4::atomic_bool _require_arming[PWM_OUT_MAX_INSTANCES] {};
-
-static bool is_running()
+PWMOut::PWMOut() :
+	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
-	for (auto &obj : _objects) {
-		if (obj.load() != nullptr) {
-			return true;
-		}
-	}
+	_pwm_mask = ((1u << DIRECT_PWM_OUTPUT_CHANNELS) - 1);
+	_mixing_output.setMaxNumOutputs(DIRECT_PWM_OUTPUT_CHANNELS);
 
-	return false;
-}
-
-PWMOut::PWMOut(int instance, uint8_t output_base) :
-	OutputModuleInterface((instance == 0) ? MODULE_NAME"0" : MODULE_NAME"1", px4::wq_configurations::hp_default),
-	_instance(instance),
-	_output_base(output_base),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
-	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": interval"))
-{
+	// Getting initial parameter values
+	update_params();
 }
 
 PWMOut::~PWMOut()
@@ -66,60 +52,6 @@ PWMOut::~PWMOut()
 
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
-}
-
-int PWMOut::init()
-{
-	_num_outputs = FMU_MAX_ACTUATORS;
-
-	_pwm_mask = ((1u << _num_outputs) - 1) << _output_base;
-	_mixing_output.setMaxNumOutputs(_num_outputs);
-
-	// Getting initial parameter values
-	update_params();
-
-	ScheduleNow();
-
-	return 0;
-}
-
-int PWMOut::task_spawn(int argc, char *argv[])
-{
-	for (unsigned instance = 0; instance < (sizeof(_objects) / sizeof(_objects[0])); instance++) {
-
-		if (instance < PWM_OUT_MAX_INSTANCES) {
-			uint8_t base = instance * MAX_PER_INSTANCE;  // TODO: configurable
-			PWMOut *dev = new PWMOut(instance, base);
-
-			if (dev) {
-				_objects[instance].store(dev);
-
-				if (dev->init() != PX4_OK) {
-					PX4_ERR("%d - init failed", instance);
-					delete dev;
-					_objects[instance].store(nullptr);
-					return PX4_ERROR;
-				}
-
-				// only start one instance with dynamic mixing
-				//if (dev->_mixing_output.useDynamicMixing()) {
-				if (true) {
-					break;
-				}
-
-			} else {
-				PX4_ERR("alloc failed");
-			}
-
-		} else {
-			// This hardware platform does not support
-			// this many devices, set the storage to
-			// a sane default
-			_objects[instance].store(nullptr);
-		}
-	}
-
-	return PX4_OK;
 }
 
 bool PWMOut::update_pwm_out_state(bool on)
@@ -189,7 +121,6 @@ bool PWMOut::update_pwm_out_state(bool on)
 		}
 	}
 
-	_require_arming[_instance].store(false);
 	up_pwm_servo_arm(on, _pwm_mask);
 	return true;
 }
@@ -205,8 +136,8 @@ bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 				outputs[i] = 0;
 			}
 
-			if (_pwm_mask & (1 << (i + _output_base))) {
-				up_pwm_servo_set(_output_base + i, outputs[i]);
+			if (_pwm_mask & (1 << i)) {
+				up_pwm_servo_set(i, outputs[i]);
 			}
 		}
 	}
@@ -227,7 +158,7 @@ void PWMOut::Run()
 		ScheduleClear();
 		_mixing_output.unregister();
 
-		//exit_and_cleanup();
+		exit_and_cleanup();
 		return;
 	}
 
@@ -239,8 +170,7 @@ void PWMOut::Run()
 	/* update PWM status if armed or if disarmed PWM values are set */
 	bool pwm_on = true;
 
-	if (_pwm_on != pwm_on || _require_arming[_instance].load()) {
-
+	if (_pwm_on != pwm_on) {
 		if (update_pwm_out_state(pwm_on)) {
 			_pwm_on = pwm_on;
 		}
@@ -260,6 +190,21 @@ void PWMOut::Run()
 	_mixing_output.updateSubscriptions(true, true);
 
 	perf_end(_cycle_perf);
+}
+
+int PWMOut::task_spawn(int argc, char *argv[])
+{
+	PWMOut *instance = new PWMOut();
+
+	if (!instance) {
+		PX4_ERR("alloc failed");
+		return -1;
+	}
+
+	_object.store(instance);
+	_task_id = task_id_is_work_queue;
+	instance->ScheduleNow();
+	return 0;
 }
 
 void PWMOut::update_params()
@@ -323,8 +268,6 @@ int PWMOut::custom_command(int argc, char *argv[])
 
 int PWMOut::print_status()
 {
-	PX4_INFO("%d - Max update rate: %i Hz", _instance, _current_update_rate);
-
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);
 	_mixing_output.printStatus();
@@ -366,13 +309,6 @@ This module is responsible for driving the output pins. For boards without a sep
 (eg. Pixracer), it uses the main channels. On boards with an IO chip (eg. Pixhawk), it uses the AUX channels, and the
 px4io driver is used for main ones.
 
-It listens on the actuator_controls topics, does the mixing and writes the PWM outputs.
-
-On startup, the module tries to occupy all available pins for PWM/Oneshot output.
-It skips all pins already in use (e.g. by a camera trigger module).
-
-### Implementation
-By default the module runs on a work queue with a callback on the uORB actuator_controls topic.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("pwm_out", "driver");
@@ -384,104 +320,5 @@ By default the module runs on a work queue with a callback on the uORB actuator_
 
 extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 {
-	if (argc <= 1 || strcmp(argv[1], "-h") == 0) {
-		return PWMOut::print_usage();
-	}
-
-	if (strcmp(argv[1], "start") == 0) {
-
-		if (is_running()) {
-			return 0;
-		}
-
-		int ret = 0;
-
-		PWMOut::lock_module();
-
-		ret = PWMOut::task_spawn(argc - 1, argv + 1);
-
-		if (ret < 0) {
-			PX4_ERR("start failed (%i)", ret);
-		}
-
-		PWMOut::unlock_module();
-		return ret;
-
-	} else if (strcmp(argv[1], "status") == 0) {
-		if (PWMOut::trylock_module()) {
-
-			unsigned count = 0;
-
-			for (int i = 0; i < PWM_OUT_MAX_INSTANCES; i++) {
-				if (_objects[i].load()) {
-					PX4_INFO_RAW("\n");
-					_objects[i].load()->print_status();
-					count++;
-				}
-			}
-
-			PWMOut::unlock_module();
-
-			if (count == 0) {
-				PX4_INFO("not running");
-				return 1;
-			}
-
-		} else {
-			PX4_WARN("module locked, try again later");
-		}
-
-		return 0;
-
-	} else if (strcmp(argv[1], "stop") == 0) {
-		PWMOut::lock_module();
-
-		if (argc > 2) {
-			int instance = atoi(argv[2]);
-
-			if (instance >= 0 && instance < PWM_OUT_MAX_INSTANCES) {
-				PX4_INFO("stopping instance %d", instance);
-				PWMOut *inst = _objects[instance].load();
-
-				if (inst) {
-					inst->request_stop();
-					px4_usleep(20000); // 20 ms
-					delete inst;
-					_objects[instance].store(nullptr);
-				}
-			} else {
-				PX4_ERR("invalid instance %d", instance);
-			}
-
-		} else {
-			// otherwise stop everything
-			bool was_running = false;
-
-			for (int i = 0; i < PWM_OUT_MAX_INSTANCES; i++) {
-				PWMOut *inst = _objects[i].load();
-
-				if (inst) {
-					PX4_INFO("stopping pwm_out instance %d", i);
-					was_running = true;
-					inst->request_stop();
-					px4_usleep(20000); // 20 ms
-					delete inst;
-					_objects[i].store(nullptr);
-				}
-			}
-
-			if (!was_running) {
-				PX4_WARN("not running");
-			}
-		}
-
-		PWMOut::unlock_module();
-		return PX4_OK;
-	}
-
-	PWMOut::lock_module(); // Lock here, as the method could access _object.
-	int ret = PWMOut::custom_command(argc - 1, argv + 1);
-	PWMOut::unlock_module();
-
-	return ret;
+	return PWMOut::main(argc, argv);
 }

@@ -38,7 +38,6 @@
 
 #include <board_config.h>
 
-#include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/mathlib/mathlib.h>
@@ -49,26 +48,16 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
 
-static constexpr int PWM_OUT_MAX_INSTANCES{(DIRECT_PWM_OUTPUT_CHANNELS > 8) ? 2 : 1};
-extern pthread_mutex_t pwm_out_module_mutex;
-
-class PWMOut : public OutputModuleInterface
+class PWMOut final : public ModuleBase<PWMOut>, public OutputModuleInterface
 {
 public:
-	PWMOut() = delete;
-	explicit PWMOut(int instance = 0, uint8_t output_base = 0);
-
-	virtual ~PWMOut();
+	PWMOut();
+	~PWMOut() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -79,71 +68,31 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	void Run() override;
-
 	/** @see ModuleBase::print_status() */
-	int print_status();
-
-	bool should_exit() const { return _task_should_exit.load(); }
-	void request_stop() { _task_should_exit.store(true); }
-
-	static void lock_module() { pthread_mutex_lock(&pwm_out_module_mutex); }
-	static bool trylock_module() { return (pthread_mutex_trylock(&pwm_out_module_mutex) == 0); }
-	static void unlock_module() { pthread_mutex_unlock(&pwm_out_module_mutex); }
-
-	static int test(const char *dev);
-
-	int init();
-
-	uint32_t	get_pwm_mask() const { return _pwm_mask; }
-	void		set_pwm_mask(uint32_t mask) { _pwm_mask = mask; }
-	uint32_t	get_alt_rate_channels() const { return _pwm_alt_rate_channels; }
-	unsigned	get_alt_rate() const { return _pwm_alt_rate; }
-	unsigned	get_default_rate() const { return _pwm_default_rate; }
+	int print_status() override;
 
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
-	static constexpr int FMU_MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
-	static_assert(FMU_MAX_ACTUATORS <= MAX_ACTUATORS, "Increase MAX_ACTUATORS if this fails");
+	void Run() override;
 
-	px4::atomic_bool _task_should_exit{false};
+	void update_params();
+	bool update_pwm_out_state(bool on);
 
-	const int _instance;
-	const uint32_t _output_base;
-
-	static const int MAX_PER_INSTANCE{8};
-
-	MixingOutput _mixing_output {PARAM_PREFIX, FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
-
-	unsigned	_pwm_default_rate{50};
-	unsigned	_pwm_alt_rate{50};
-	uint32_t	_pwm_alt_rate_channels{0};
+	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
 	int _timer_rates[MAX_IO_TIMERS] {};
 
-	int		_current_update_rate{0};
-
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	unsigned	_num_outputs{0};
+	unsigned	_num_outputs{DIRECT_PWM_OUTPUT_CHANNELS};
 
 	bool		_pwm_on{false};
 	uint32_t	_pwm_mask{0};
 	bool		_pwm_initialized{false};
 	bool		_first_param_update{true};
 
-	unsigned	_num_disarmed_set{0};
-
-	perf_counter_t	_cycle_perf;
-	perf_counter_t	_interval_perf;
-
-	bool		update_pwm_out_state(bool on);
-
-	void		update_params();
-
-	PWMOut(const PWMOut &) = delete;
-	PWMOut operator=(const PWMOut &) = delete;
-
+	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 };
