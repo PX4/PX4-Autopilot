@@ -91,10 +91,6 @@ static constexpr vehicle_odometry_s vehicle_odometry_empty {
 SimulatorMavlink::SimulatorMavlink() :
 	ModuleParams(nullptr)
 {
-	int32_t sys_ctrl_alloc = 0;
-	param_get(param_find("SYS_CTRL_ALLOC"), &sys_ctrl_alloc);
-	_use_dynamic_mixing = sys_ctrl_alloc >= 1;
-
 	for (int i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; ++i) {
 		char param_name[17];
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "FUNC", i + 1);
@@ -123,91 +119,9 @@ void SimulatorMavlink::actuator_controls_from_outputs(mavlink_hil_actuator_contr
 
 	bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
-	int _system_type = _param_mav_type.get();
-
-	if (_use_dynamic_mixing) {
-		if (armed) {
-			for (unsigned i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
-				msg->controls[i] = _actuator_outputs.output[i];
-			}
-		}
-
-	} else {
-		/* 'pos_thrust_motors_count' indicates number of motor channels which are configured with 0..1 range (positive thrust)
-		all other motors are configured for -1..1 range */
-		unsigned pos_thrust_motors_count;
-		bool is_fixed_wing;
-
-		switch (_system_type) {
-		case MAV_TYPE_AIRSHIP:
-		case MAV_TYPE_VTOL_TAILSITTER_DUOROTOR:
-		case MAV_TYPE_COAXIAL:
-			pos_thrust_motors_count = 2;
-			is_fixed_wing = false;
-			break;
-
-		case MAV_TYPE_TRICOPTER:
-			pos_thrust_motors_count = 3;
-			is_fixed_wing = false;
-			break;
-
-		case MAV_TYPE_QUADROTOR:
-		case MAV_TYPE_VTOL_TAILSITTER_QUADROTOR:
-		case MAV_TYPE_VTOL_TILTROTOR:
-			pos_thrust_motors_count = 4;
-			is_fixed_wing = false;
-			break;
-
-		case MAV_TYPE_VTOL_FIXEDROTOR:
-			pos_thrust_motors_count = 5;
-			is_fixed_wing = false;
-			break;
-
-		case MAV_TYPE_HEXAROTOR:
-			pos_thrust_motors_count = 6;
-			is_fixed_wing = false;
-			break;
-
-		case MAV_TYPE_OCTOROTOR:
-			pos_thrust_motors_count = 8;
-			is_fixed_wing = false;
-			break;
-
-		case MAV_TYPE_SUBMARINE:
-			pos_thrust_motors_count = 0;
-			is_fixed_wing = false;
-			break;
-
-		case MAV_TYPE_FIXED_WING:
-			pos_thrust_motors_count = 0;
-			is_fixed_wing = true;
-			break;
-
-		default:
-			pos_thrust_motors_count = 0;
-			is_fixed_wing = false;
-			break;
-		}
-
+	if (armed) {
 		for (unsigned i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
-			if (!armed) {
-				/* send 0 when disarmed and for disabled channels */
-				msg->controls[i] = 0.0f;
-
-			} else if ((is_fixed_wing && i == 4) ||
-				   (!is_fixed_wing && i < pos_thrust_motors_count)) {	//multirotor, rotor channel
-				/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
-				msg->controls[i] = (_actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
-				msg->controls[i] = math::constrain(msg->controls[i], 0.f, 1.f);
-
-			} else {
-				const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
-				const float pwm_delta = (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2;
-
-				/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for other channels */
-				msg->controls[i] = (_actuator_outputs.output[i] - pwm_center) / pwm_delta;
-				msg->controls[i] = math::constrain(msg->controls[i], -1.f, 1.f);
-			}
+			msg->controls[i] = _actuator_outputs.output[i];
 		}
 	}
 
@@ -1065,12 +979,7 @@ void SimulatorMavlink::send()
 
 	// Subscribe to topics.
 	// Only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS.
-	if (_use_dynamic_mixing) {
-		_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs_sim), 0);
-
-	} else {
-		_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
-	}
+	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs_sim), 0);
 
 	// Before starting, we ought to send a heartbeat to initiate the SITL
 	// simulator to start sending sensor data which will set the time and

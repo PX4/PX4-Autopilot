@@ -296,7 +296,6 @@ private:
 	float _last_magx{0.0f};
 	float _last_magy{0.0f};
 	float _last_magz{0.0f};
-	bool _use_dynamic_mixing{false};
 
 	float _last_baro_pressure{0.0f};
 	float _last_baro_temperature{0.0f};
