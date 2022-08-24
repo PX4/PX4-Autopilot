@@ -99,8 +99,6 @@ param set-default MPC_YAWRAUTO_MAX 20
 
 param set-default NAV_LOITER_RAD 100
 
-param set-default PWM_AUX_DISARM 950
-
 param set-default PWM_MAIN_DIS5 1500
 param set-default PWM_MAIN_DIS6 1500
 param set-default PWM_MAIN_DIS7 900
