@@ -178,8 +178,6 @@ public:
 
 	virtual		~UavcanNode();
 
-	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
-
 	static int	start(uavcan::NodeID node_id, uint32_t bitrate);
 
 	uavcan::Node<>	&get_node() { return _node; }

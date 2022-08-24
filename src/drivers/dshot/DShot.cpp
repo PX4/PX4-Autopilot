@@ -41,7 +41,6 @@ char DShot::_telemetry_device[] {};
 px4::atomic_bool DShot::_request_telemetry_init{false};
 
 DShot::DShot() :
-	CDev("/dev/dshot"),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	_mixing_output.setAllDisarmedValues(DSHOT_DISARM_VALUE);
@@ -59,32 +58,13 @@ DShot::~DShot()
 	// make sure outputs are off
 	up_dshot_arm(false);
 
-	// clean up the alternate device node
-	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
-
 	perf_free(_cycle_perf);
 	delete _telemetry;
 }
 
 int DShot::init()
 {
-	// do regular cdev init
-	int ret = CDev::init();
-
-	if (ret != OK) {
-		return ret;
-	}
-
-	// try to claim the generic PWM output device node as well - it's OK if we fail at this
-	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
-
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		// lets not be too verbose
-	} else if (_class_instance < 0) {
-		PX4_ERR("FAILED registering class device");
-	}
-
-	_mixing_output.setDriverInstance(_class_instance);
+	_mixing_output.setDriverInstance(0);
 
 	_output_mask = (1u << _num_outputs) - 1;
 
@@ -486,8 +466,6 @@ void DShot::Run()
 		return;
 	}
 
-	SmartLock lock_guard(_lock);
-
 	perf_begin(_cycle_perf);
 
 	_mixing_output.update();
@@ -643,40 +621,6 @@ void DShot::update_params()
 			_mixing_output.minValue(i) = DSHOT_MIN_THROTTLE;
 		}
 	}
-}
-
-int DShot::ioctl(file *filp, int cmd, unsigned long arg)
-{
-	SmartLock lock_guard(_lock);
-
-	int ret = OK;
-
-	PX4_DEBUG("dshot ioctl cmd: %d, arg: %ld", cmd, arg);
-
-	switch (cmd) {
-	case MIXERIOCRESET:
-		_mixing_output.resetMixer();
-		break;
-
-	case MIXERIOCLOADBUF: {
-			const char *buf = (const char *)arg;
-			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixer(buf, buflen);
-
-			break;
-		}
-
-	default:
-		ret = -ENOTTY;
-		break;
-	}
-
-	// if nobody wants it, let CDev have it
-	if (ret == -ENOTTY) {
-		ret = CDev::ioctl(filp, cmd, arg);
-	}
-
-	return ret;
 }
 
 int DShot::custom_command(int argc, char *argv[])

@@ -58,7 +58,6 @@
 #include <uORB/topics/esc_status.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
 
 #include "uavcan_module.hpp"
@@ -941,44 +940,6 @@ UavcanNode::enable_idle_throttle_when_armed(bool value)
 	}
 }
 
-int
-UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
-{
-	int ret = OK;
-
-	pthread_mutex_lock(&_node_mutex);
-
-	switch (cmd) {
-	case PWM_SERVO_SET_ARM_OK:
-	case PWM_SERVO_CLEAR_ARM_OK:
-		break;
-
-	case MIXERIOCRESET:
-		_mixing_interface_esc.mixingOutput().resetMixer();
-
-		break;
-
-	case MIXERIOCLOADBUF: {
-			const char *buf = (const char *)arg;
-			unsigned buflen = strlen(buf);
-			ret = _mixing_interface_esc.mixingOutput().loadMixer(buf, buflen);
-		}
-		break;
-
-	default:
-		ret = -ENOTTY;
-		break;
-	}
-
-	pthread_mutex_unlock(&_node_mutex);
-
-	if (ret == -ENOTTY) {
-		ret = CDev::ioctl(filp, cmd, arg);
-	}
-
-	return ret;
-}
-
 bool UavcanMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
@@ -998,18 +959,11 @@ void UavcanMixingInterfaceESC::mixerChanged()
 {
 	int rotor_count = 0;
 
-	if (_mixing_output.useDynamicMixing()) {
-		for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
-			rotor_count += _mixing_output.isFunctionSet(i);
+	for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
+		rotor_count += _mixing_output.isFunctionSet(i);
 
-			if (i < esc_status_s::CONNECTED_ESC_MAX) {
-				_esc_controller.esc_status().esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
-			}
-		}
-
-	} else {
-		if (_mixing_output.mixers()) {
-			rotor_count = _mixing_output.mixers()->get_multirotor_count();
+		if (i < esc_status_s::CONNECTED_ESC_MAX) {
+			_esc_controller.esc_status().esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
 		}
 	}
 

@@ -63,9 +63,5 @@
 #define UAVCAN_DEVICE_PATH     "/dev/uavcan/esc"
 #define UAVCAN_ESC_DEVICE_PATH "/dev/uavcan/esc"
 
-// ioctl interface
-#define _UAVCAN_IOC(_n)               (_IOC(_UAVCAN_IOCBASE, _n))
-#define _UAVCAN_IOCBASE               (0x4000)                        // IOCTL base for module UAVCAN
-
 // public prototypes
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);

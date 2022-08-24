@@ -234,17 +234,6 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		*(unsigned *)arg = OutputModuleInterface::MAX_ACTUATORS;
 		break;
 
-	case MIXERIOCRESET:
-		_mixing_output.resetMixer();
-		break;
-
-	case MIXERIOCLOADBUF: {
-			const char *buf = (const char *)arg;
-			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixer(buf, buflen);
-			break;
-		}
-
 	default:
 		ret = -ENOTTY;
 		break;
