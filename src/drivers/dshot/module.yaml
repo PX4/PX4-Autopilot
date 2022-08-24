@@ -8,24 +8,6 @@ serial_config:
 parameters:
     - group: DShot
       definitions:
-        DSHOT_CONFIG:
-            description:
-                short: Configure DShot
-                long: |
-                    This enables/disables DShot. The different modes define different
-                    speeds, for example DShot150 = 150kb/s. Not all ESCs support all modes.
-
-                    Note: this enables DShot on the FMU outputs. For boards with an IO it is the
-                    AUX outputs.
-            type: enum
-            values:
-                0: Disable (use PWM/Oneshot)
-                150: DShot150
-                300: DShot300
-                600: DShot600
-                1200: DShot1200
-            reboot_required: true
-            default: 0
         DSHOT_MIN:
             description:
                 short: Minimum DShot Motor Output

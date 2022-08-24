@@ -191,41 +191,6 @@ void DShot::enable_dshot_outputs(const bool enabled)
 				request_stop();
 				return;
 			}
-
-		} else {
-			DShotConfig config = (DShotConfig)_param_dshot_config.get();
-
-			unsigned int dshot_frequency = DSHOT600;
-
-			switch (config) {
-			case DShotConfig::DShot150:
-				dshot_frequency = DSHOT150;
-				break;
-
-			case DShotConfig::DShot300:
-				dshot_frequency = DSHOT300;
-				break;
-
-			case DShotConfig::DShot600:
-				dshot_frequency = DSHOT600;
-				break;
-
-			case DShotConfig::DShot1200:
-				dshot_frequency = DSHOT1200;
-				break;
-
-			default:
-				break;
-			}
-
-			int ret = up_dshot_init(_output_mask, dshot_frequency);
-
-			if (ret < 0) {
-				PX4_ERR("up_dshot_init failed (%i)", ret);
-				return;
-			}
-
-			_output_mask = ret;
 		}
 
 		_outputs_initialized = true;

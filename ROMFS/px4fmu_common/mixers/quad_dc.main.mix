@@ -1,7 +1,0 @@
-# @board px4_fmu-v2 exclude
-Multirotor mixer
-===========================
-
-This file defines a single mixer for a quadrotor in DC wide arms configuration.  All controls are mixed 100%.
-
-R: 4dc
