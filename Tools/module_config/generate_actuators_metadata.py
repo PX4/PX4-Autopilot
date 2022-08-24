@@ -195,7 +195,7 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
             else:
                 raise Exception('unknown generator {:}'.format(group['generator']))
             continue
-        
+
         subgroup = {}
 
         # supported actions
@@ -442,7 +442,7 @@ def get_mixers(yaml_config, output_functions, verbose):
 
     if verbose:
         print('Mixer rules: {}'.format(rules))
-    
+
     mixers = {
             'actuator-types': actuator_types,
             'config': config,
@@ -482,7 +482,6 @@ if mixers is None:
 
 actuators = {
     'version': 1,
-    'show-ui-if': 'SYS_CTRL_ALLOC==1',
     'outputs_v1': outputs,
     'functions_v1': functions,
     'mixer_v1': mixers,
