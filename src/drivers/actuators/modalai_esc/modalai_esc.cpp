@@ -795,57 +795,6 @@ int ModalaiEsc::update_params()
 	return ret;
 }
 
-
-int ModalaiEsc::ioctl(file *filp, int cmd, unsigned long arg)
-{
-	SmartLock lock_guard(_lock);
-
-	int ret = OK;
-
-	PX4_DEBUG("modalai_esc ioctl cmd: %d, arg: %ld", cmd, arg);
-
-	switch (cmd) {
-	case PWM_SERVO_ARM:
-		PX4_INFO("PWM_SERVO_ARM");
-		break;
-
-	case PWM_SERVO_DISARM:
-		PX4_INFO("PWM_SERVO_DISARM");
-		break;
-
-	case MIXERIOCRESET:
-		_mixing_output.resetMixer();
-		break;
-
-	case MIXERIOCLOADBUF: {
-			const char *buf = (const char *)arg;
-			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixer(buf, buflen);
-		}
-		break;
-
-	default:
-		ret = -ENOTTY;
-		break;
-	}
-
-	/* if nobody wants it, let CDev have it */
-	if (ret == -ENOTTY) {
-		ret = CDev::ioctl(filp, cmd, arg);
-	}
-
-	return ret;
-}
-
-/* OutputModuleInterface */
-void ModalaiEsc::mixerChanged()
-{
-	/*
-	 * This driver is only supporting 4 channel ESC
-	 */
-}
-
-
 void ModalaiEsc::updateLeds(vehicle_control_mode_s mode, led_control_s control)
 {
 	int i = 0;

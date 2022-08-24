@@ -40,7 +40,6 @@
 
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/cdev/CDev.hpp>
 #include <lib/mathlib/mathlib.h>

@@ -35,7 +35,6 @@
 
 
 #include <drivers/device/device.h>
-#include <drivers/drv_mixer.h>
 #include <lib/cdev/CDev.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/mixer_module/mixer_module.hpp>

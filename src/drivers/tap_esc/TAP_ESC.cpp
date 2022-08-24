@@ -413,33 +413,6 @@ void TAP_ESC::Run()
 	perf_end(_cycle_perf);
 }
 
-int TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	SmartLock lock_guard(_lock);
-
-	int ret = OK;
-
-	switch (cmd) {
-	case MIXERIOCRESET:
-		_mixing_output.resetMixer();
-		break;
-
-	case MIXERIOCLOADBUF: {
-			const char *buf = (const char *)arg;
-			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixer(buf, buflen);
-			break;
-		}
-
-
-	default:
-		ret = -ENOTTY;
-		break;
-	}
-
-	return ret;
-}
-
 int TAP_ESC::task_spawn(int argc, char *argv[])
 {
 	/* Parse arguments */
