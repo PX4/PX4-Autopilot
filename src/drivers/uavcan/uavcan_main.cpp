@@ -58,7 +58,6 @@
 #include <uORB/topics/esc_status.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_pwm_output.h>
 
 #include "uavcan_module.hpp"
 #include "uavcan_main.hpp"
@@ -76,7 +75,6 @@
 UavcanNode *UavcanNode::_instance;
 
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
-	CDev(UAVCAN_DEVICE_PATH),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	ModuleParams(nullptr),
 	_node(can_driver, system_clock, _pool_allocator),
@@ -492,13 +490,6 @@ UavcanNode::busevent_signal_trampoline()
 int
 UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 {
-	// Do regular cdev init
-	int ret = CDev::init();
-
-	if (ret != OK) {
-		return ret;
-	}
-
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
 
 	_node.setName("org.pixhawk.pixhawk");
@@ -507,7 +498,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	fill_node_info();
 
-	ret = _beep_controller.init();
+	int ret = _beep_controller.init();
 
 	if (ret < 0) {
 		return ret;
@@ -687,10 +678,6 @@ UavcanNode::Run()
 	}
 
 	_node.spinOnce(); // expected to be non-blocking
-
-	// Check arming state
-	const actuator_armed_s &armed = _mixing_interface_esc.mixingOutput().armed();
-	enable_idle_throttle_when_armed(!armed.soft_stop);
 
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
@@ -916,12 +903,6 @@ UavcanNode::Run()
 		ScheduleClear();
 		_instance = nullptr;
 	}
-}
-
-void
-UavcanNode::enable_idle_throttle_when_armed(bool value)
-{
-	value &= _idle_throttle_when_armed_param > 0;
 }
 
 bool UavcanMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,

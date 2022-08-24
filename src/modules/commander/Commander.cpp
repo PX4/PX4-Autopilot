@@ -97,8 +97,7 @@ static constexpr bool operator ==(const actuator_armed_s &a, const actuator_arme
 		a.lockdown == b.lockdown &&
 		a.manual_lockdown == b.manual_lockdown &&
 		a.force_failsafe == b.force_failsafe &&
-		a.in_esc_calibration_mode == b.in_esc_calibration_mode &&
-		a.soft_stop == b.soft_stop);
+		a.in_esc_calibration_mode == b.in_esc_calibration_mode);
 }
 static_assert(sizeof(actuator_armed_s) == 16, "actuator_armed equality operator review");
 
@@ -2543,13 +2542,6 @@ void Commander::vtolStatusUpdate()
 
 		if (_vehicle_status_flags.vtol_transition_failure != _vtol_vehicle_status.vtol_transition_failsafe) {
 			_vehicle_status_flags.vtol_transition_failure = _vtol_vehicle_status.vtol_transition_failsafe;
-			_status_changed = true;
-		}
-
-		const bool should_soft_stop = (_vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-
-		if (_actuator_armed.soft_stop != should_soft_stop) {
-			_actuator_armed.soft_stop = should_soft_stop;
 			_status_changed = true;
 		}
 	}
