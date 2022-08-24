@@ -272,7 +272,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		break;
 	}
 
-	bool rc_switch_enabled = aux_enable_channel != NAN &&  aux_enable_channel > .5f;
+	const bool rc_switch_enabled = (aux_enable_channel != NAN) && (aux_enable_channel > .5f);
 
 	switch (_state) {
 	case state::idle:
