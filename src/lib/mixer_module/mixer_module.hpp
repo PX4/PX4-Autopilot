@@ -58,7 +58,6 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/test_motor.h>
 
 using namespace time_literals;
 
@@ -213,8 +212,6 @@ private:
 		return (_armed.prearmed && !_armed.armed) || _armed.in_esc_calibration_mode;
 	}
 
-	unsigned motorTest();
-
 	void setAndPublishActuatorOutputs(unsigned num_outputs, actuator_outputs_s &actuator_outputs);
 	void publishMixerStatus(const actuator_outputs_s &actuator_outputs);
 	void updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs);
@@ -275,13 +272,6 @@ private:
 
 	bool _wq_switched{false};
 	uint8_t _max_num_outputs;
-
-	struct MotorTest {
-		uORB::Subscription test_motor_sub{ORB_ID(test_motor)};
-		bool in_test_mode{false};
-		hrt_abstime timeout{0};
-	};
-	MotorTest _motor_test;
 
 	OutputModuleInterface &_interface;
 

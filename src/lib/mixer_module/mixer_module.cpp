@@ -401,68 +401,6 @@ void MixingOutput::unregister()
 	}
 }
 
-unsigned MixingOutput::motorTest()
-{
-	test_motor_s test_motor;
-	bool had_update = false;
-
-	while (_motor_test.test_motor_sub.update(&test_motor)) {
-		if (test_motor.driver_instance != 0 ||
-		    test_motor.timestamp == 0 ||
-		    hrt_elapsed_time(&test_motor.timestamp) > 100_ms) {
-			continue;
-		}
-
-		bool in_test_mode = test_motor.action == test_motor_s::ACTION_RUN;
-
-		if (in_test_mode != _motor_test.in_test_mode) {
-			// reset all outputs to disarmed on state change
-			for (int i = 0; i < MAX_ACTUATORS; ++i) {
-				_current_output_value[i] = _disarmed_value[i];
-			}
-		}
-
-		if (in_test_mode) {
-			int idx = test_motor.motor_number;
-
-			if (idx < MAX_ACTUATORS) {
-				if (test_motor.value < 0.f) {
-					_current_output_value[idx] = _disarmed_value[idx];
-
-				} else {
-					_current_output_value[idx] =
-						math::constrain<uint16_t>(_min_value[idx] + (uint16_t)((_max_value[idx] - _min_value[idx]) * test_motor.value),
-									  _min_value[idx], _max_value[idx]);
-				}
-			}
-
-			if (test_motor.timeout_ms > 0) {
-				_motor_test.timeout = test_motor.timestamp + test_motor.timeout_ms * 1000;
-
-			} else {
-				_motor_test.timeout = 0;
-			}
-		}
-
-		_motor_test.in_test_mode = in_test_mode;
-		had_update = true;
-	}
-
-	// check for timeouts
-	if (_motor_test.timeout != 0 && hrt_absolute_time() > _motor_test.timeout) {
-		_motor_test.in_test_mode = false;
-		_motor_test.timeout = 0;
-
-		for (int i = 0; i < MAX_ACTUATORS; ++i) {
-			_current_output_value[i] = _disarmed_value[i];
-		}
-
-		had_update = true;
-	}
-
-	return (_motor_test.in_test_mode || had_update) ? _max_num_outputs : 0;
-}
-
 bool MixingOutput::update()
 {
 	// check arming state
