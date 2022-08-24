@@ -243,7 +243,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	
 	float aux_enable_channel = NAN;
 	
-	switch (_param_fw_at_rc_aux_en.get())
+	switch (_param_fw_at_man_aux.get())
 	{
 		case 0:
 			break;

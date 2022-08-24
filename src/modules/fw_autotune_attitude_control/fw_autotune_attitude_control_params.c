@@ -105,7 +105,7 @@ PARAM_DEFINE_INT32(FW_AT_APPLY, 2);
 PARAM_DEFINE_INT32(FW_AT_AXES, 3);
 
 /**
- * Enable auto tuning on aux input
+ * Enable auto tuning enable on aux input
  *
  * Defines which aux input to enable auto tuning
  *
@@ -120,4 +120,4 @@ PARAM_DEFINE_INT32(FW_AT_AXES, 3);
  * @max 6
  * @group Autotune
  */
-PARAM_DEFINE_INT32(FW_AT_RC_AUX_EN, 0);
+PARAM_DEFINE_INT32(FW_AT_MAN_AUX, 0);

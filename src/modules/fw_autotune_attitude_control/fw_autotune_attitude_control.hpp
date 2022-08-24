@@ -179,7 +179,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::FW_AT_AXES>) _param_fw_at_axes,
 		(ParamBool<px4::params::FW_AT_START>) _param_fw_at_start,
-		(ParamInt<px4::params::FW_AT_RC_AUX_EN>) _param_fw_at_rc_aux_en,
+		(ParamInt<px4::params::FW_AT_MAN_AUX>) _param_fw_at_man_aux,
 		(ParamFloat<px4::params::FW_AT_SYSID_AMP>) _param_fw_at_sysid_amp,
 		(ParamInt<px4::params::FW_AT_APPLY>) _param_fw_at_apply,
 
