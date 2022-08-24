@@ -243,7 +243,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	
 	float aux_enable_channel = NAN;
 	
-	switch (_param_fw_rc_aux_en.get())
+	switch (_param_fw_at_rc_aux_en.get())
 	{
 		case 0:
 			break;
@@ -447,14 +447,12 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		break;
 	}
 
-	// In case of convergence timeout or pilot intervention,
+	// In case of convergence timeout
 	// the identification sequence is aborted immediately
-
 	if (_state != state::wait_for_disarm
 	    && _state != state::idle
-	    && (((now - _state_start_time) > 20_s)
-		|| (fabsf(manual_control_setpoint.x) > 0.2f)
-		|| (fabsf(manual_control_setpoint.y) > 0.2f))) {
+      && !rc_switch_enabled
+	    && ((now - _state_start_time) > 20_s)) {
 		_state = state::fail;
 		_state_start_time = now;
 	}
