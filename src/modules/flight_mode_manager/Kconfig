@@ -1,6 +1,9 @@
 menuconfig MODULES_FLIGHT_MODE_MANAGER
 	bool "flight_mode_manager"
 	default n
+	select MODULES_COMMANDER 
+	select MODULES_MC_ATT_CONTROL 
+	select MODULES_MC_POS_CONTROL
 	---help---
 		Enable support for flight_mode_manager
 

@@ -1,6 +1,7 @@
 menuconfig MODULES_MC_ATT_CONTROL
 	bool "mc_att_control"
 	default n
+	select MODULES_MC_POS_CONTROL
 	---help---
 		Enable support for mc_att_control
 

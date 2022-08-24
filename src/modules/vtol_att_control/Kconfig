@@ -1,6 +1,7 @@
 menuconfig MODULES_VTOL_ATT_CONTROL
 	bool "vtol_att_control"
 	default n
+	select MODULES_COMMANDER
 	---help---
 		Enable support for vtol_att_control
 

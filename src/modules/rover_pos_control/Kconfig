@@ -1,5 +1,6 @@
 menuconfig MODULES_ROVER_POS_CONTROL
 	bool "rover_pos_control"
+	select MODULES_NAVIGATOR
 	default n
 	---help---
 		Enable support for rover_pos_control

@@ -1,6 +1,7 @@
 menuconfig MODULES_MAVLINK
 	bool "mavlink"
 	default n
+	depends on MODULES_DATAMAN
 	---help---
 		Enable support for mavlink
 

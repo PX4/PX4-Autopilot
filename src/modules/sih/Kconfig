@@ -1,8 +1,9 @@
 menuconfig MODULES_SIH
-	bool "sih"
+	bool "Simulator in Hardware (SIH)"
+	select MODULES_SENSORS
 	default n
 	---help---
-		Enable support for sih
+		Enable support for Simulator in Hardware (SIH)
 
 menuconfig USER_SIH
 	bool "sih running as userspace module"
