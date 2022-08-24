@@ -75,72 +75,14 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_airspeed_validated = _attc->get_airspeed();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
-
-	for (auto &pwm_max : _max_mc_pwm_values.values) {
-		pwm_max = PWM_DEFAULT_MAX;
-	}
-
-	for (auto &pwm_disarmed : _disarmed_pwm_values.values) {
-		pwm_disarmed = PWM_MOTOR_OFF;
-	}
 }
 
 bool VtolType::init()
 {
-	if (!_param_sys_ctrl_alloc.get()) {
-		const char *dev = _param_vt_mc_on_fmu.get() ? PWM_OUTPUT1_DEVICE_PATH : PWM_OUTPUT0_DEVICE_PATH;
-
-		int fd = px4_open(dev, 0);
-
-		if (fd < 0) {
-			PX4_ERR("can't open %s", dev);
-			return false;
-		}
-
-		int ret = px4_ioctl(fd, PWM_SERVO_GET_MAX_PWM, (long unsigned int)&_max_mc_pwm_values);
-		_current_max_pwm_values = _max_mc_pwm_values;
-
-		if (ret != PX4_OK) {
-			PX4_ERR("failed getting max values");
-			px4_close(fd);
-			return false;
-		}
-
-		ret = px4_ioctl(fd, PWM_SERVO_GET_MIN_PWM, (long unsigned int)&_min_mc_pwm_values);
-
-		if (ret != PX4_OK) {
-			PX4_ERR("failed getting min values");
-			px4_close(fd);
-			return false;
-		}
-
-		ret = px4_ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (long unsigned int)&_disarmed_pwm_values);
-
-		if (ret != PX4_OK) {
-			PX4_ERR("failed getting disarmed values");
-			px4_close(fd);
-			return false;
-		}
-
-		px4_close(fd);
-
-		_main_motor_channel_bitmap = generate_bitmap_from_channel_numbers(_param_vt_mot_id.get());
-		_alternate_motor_channel_bitmap = generate_bitmap_from_channel_numbers(_param_vt_fw_mot_offid.get());
-
-
-		// in order to get the main motors we take all motors and clear the alternate motor bits
-		for (int i = 0; i < 8; i++) {
-			if (_alternate_motor_channel_bitmap & (1 << i)) {
-				_main_motor_channel_bitmap &= ~(1 << i);
-			}
-		}
-	}
-
 	_flaps_setpoint_with_slewrate.setSlewRate(kFlapSlewRateVtol);
 	_spoiler_setpoint_with_slewrate.setSlewRate(kSpoilerSlewRateVtol);
 
 	return true;
-
 }
 
 void VtolType::parameters_update()
@@ -156,12 +98,10 @@ void VtolType::parameters_update()
 void VtolType::update_mc_state()
 {
 	if (!_flag_idle_mc) {
-		_flag_idle_mc = set_idle_mc();
+		_flag_idle_mc = true;
 	}
 
 	resetAccelToPitchPitchIntegrator();
-
-	VtolType::set_all_motor_state(motor_state::ENABLED);
 
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
@@ -185,13 +125,11 @@ void VtolType::update_mc_state()
 void VtolType::update_fw_state()
 {
 	if (_flag_idle_mc) {
-		_flag_idle_mc = !set_idle_fw();
+		_flag_idle_mc = false;
 	}
 
 	resetAccelToPitchPitchIntegrator();
 	_last_thr_in_fw_mode =  _actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
-
-	VtolType::set_alternate_motor_state(motor_state::DISABLED);
 
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
@@ -353,193 +291,6 @@ void VtolType::check_quadchute_condition()
 		}
 	}
 }
-
-bool VtolType::set_idle_mc()
-{
-	if (_param_sys_ctrl_alloc.get()) {
-		return true;
-	}
-
-	unsigned pwm_value = _param_vt_idle_pwm_mc.get();
-	struct pwm_output_values pwm_values {};
-
-	for (int i = 0; i < num_outputs_max; i++) {
-		if (is_channel_set(i, generate_bitmap_from_channel_numbers(_param_vt_mot_id.get()))) {
-			pwm_values.values[i] = pwm_value;
-
-		} else {
-			pwm_values.values[i] = _min_mc_pwm_values.values[i];
-		}
-
-		pwm_values.channel_count++;
-	}
-
-	return apply_pwm_limits(pwm_values, pwm_limit_type::TYPE_MINIMUM);
-}
-
-bool VtolType::set_idle_fw()
-{
-	if (_param_sys_ctrl_alloc.get()) {
-		return true;
-	}
-
-	struct pwm_output_values pwm_values {};
-
-	for (int i = 0; i < num_outputs_max; i++) {
-		if (is_channel_set(i, generate_bitmap_from_channel_numbers(_param_vt_mot_id.get()))) {
-			pwm_values.values[i] = PWM_DEFAULT_MIN;
-
-		} else {
-			pwm_values.values[i] = _min_mc_pwm_values.values[i];
-		}
-
-		pwm_values.channel_count++;
-	}
-
-	return apply_pwm_limits(pwm_values, pwm_limit_type::TYPE_MINIMUM);
-}
-
-bool VtolType::apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_type type)
-{
-	const char *dev = _param_vt_mc_on_fmu.get() ? PWM_OUTPUT1_DEVICE_PATH : PWM_OUTPUT0_DEVICE_PATH;
-
-	int fd = px4_open(dev, 0);
-
-	if (fd < 0) {
-		PX4_WARN("can't open %s", dev);
-		return false;
-	}
-
-	int ret;
-
-	if (type == pwm_limit_type::TYPE_MINIMUM) {
-		ret = px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
-
-	} else {
-		ret = px4_ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
-	}
-
-	px4_close(fd);
-
-
-	if (ret != OK) {
-		PX4_DEBUG("failed setting max values");
-		return false;
-	}
-
-	return true;
-}
-
-void VtolType::set_all_motor_state(const motor_state target_state, const int value)
-{
-	if (_param_sys_ctrl_alloc.get()) {
-		return;
-	}
-
-	set_main_motor_state(target_state, value);
-	set_alternate_motor_state(target_state, value);
-}
-
-void VtolType::set_main_motor_state(const motor_state target_state, const int value)
-{
-	if (_param_sys_ctrl_alloc.get()) {
-		return;
-	}
-
-	if (_main_motor_state != target_state || target_state == motor_state::VALUE) {
-
-		if (set_motor_state(target_state, _main_motor_channel_bitmap, value)) {
-			_main_motor_state = target_state;
-		}
-	}
-}
-
-void VtolType::set_alternate_motor_state(const motor_state target_state, const int value)
-{
-	if (_param_sys_ctrl_alloc.get()) {
-		return;
-	}
-
-	if (_alternate_motor_state != target_state || target_state == motor_state::VALUE) {
-
-		if (set_motor_state(target_state, _alternate_motor_channel_bitmap, value)) {
-			_alternate_motor_state = target_state;
-		}
-	}
-}
-
-bool VtolType::set_motor_state(const motor_state target_state, const int32_t channel_bitmap,  const int value)
-{
-	switch (target_state) {
-	case motor_state::ENABLED:
-		for (int i = 0; i < num_outputs_max; i++) {
-			if (is_channel_set(i, channel_bitmap)) {
-				_current_max_pwm_values.values[i] = _max_mc_pwm_values.values[i];
-			}
-		}
-
-		break;
-
-	case motor_state::DISABLED:
-		for (int i = 0; i < num_outputs_max; i++) {
-			if (is_channel_set(i, channel_bitmap)) {
-				_current_max_pwm_values.values[i] = _disarmed_pwm_values.values[i];
-			}
-		}
-
-		break;
-
-	case motor_state::IDLE:
-
-		for (int i = 0; i < num_outputs_max; i++) {
-			if (is_channel_set(i, channel_bitmap)) {
-				_current_max_pwm_values.values[i] = _param_vt_idle_pwm_mc.get();
-			}
-		}
-
-		break;
-
-	case motor_state::VALUE:
-		for (int i = 0; i < num_outputs_max; i++) {
-			if (is_channel_set(i, channel_bitmap)) {
-				_current_max_pwm_values.values[i] = value;
-			}
-		}
-
-		break;
-	}
-
-	_current_max_pwm_values.channel_count = num_outputs_max;
-
-	return apply_pwm_limits(_current_max_pwm_values, pwm_limit_type::TYPE_MAXIMUM);
-}
-
-int VtolType::generate_bitmap_from_channel_numbers(const int channels)
-{
-	int channel_bitmap = 0;
-	int channel_numbers = channels;
-
-	int tmp;
-
-	for (int i = 0; i < num_outputs_max; ++i) {
-		tmp = channel_numbers % 10;
-
-		if (tmp == 0) {
-			break;
-		}
-
-		channel_bitmap |= 1 << (tmp - 1);
-		channel_numbers = channel_numbers / 10;
-	}
-
-	return channel_bitmap;
-}
-
-bool VtolType::is_channel_set(const int channel, const int bitmap)
-{
-	return bitmap & (1 << channel);
-}
-
 
 float VtolType::pusher_assist()
 {

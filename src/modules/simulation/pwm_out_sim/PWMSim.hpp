@@ -52,10 +52,9 @@
 #define PARAM_PREFIX "HIL_ACT"
 #endif
 
-
 using namespace time_literals;
 
-class PWMSim : public cdev::CDev, public ModuleBase<PWMSim>, public OutputModuleInterface
+class PWMSim : public ModuleBase<PWMSim>, public OutputModuleInterface
 {
 public:
 	PWMSim(bool hil_mode_enabled);
@@ -71,8 +70,6 @@ public:
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
-
-	int ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;

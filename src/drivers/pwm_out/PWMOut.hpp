@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,10 +41,8 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
-#include <lib/cdev/CDev.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/mixer_module/mixer_module.hpp>
-#include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_arch/io_timer.h>
 #include <px4_platform_common/px4_config.h>
@@ -56,22 +54,15 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
 
-#if !defined(DIRECT_PWM_OUTPUT_CHANNELS)
-#  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
-#endif
-
-#define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
-
 static constexpr int PWM_OUT_MAX_INSTANCES{(DIRECT_PWM_OUTPUT_CHANNELS > 8) ? 2 : 1};
 extern pthread_mutex_t pwm_out_module_mutex;
 
-class PWMOut : public cdev::CDev, public OutputModuleInterface
+class PWMOut : public OutputModuleInterface
 {
 public:
 	PWMOut() = delete;
@@ -102,9 +93,7 @@ public:
 
 	static int test(const char *dev);
 
-	int ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
-
-	int init() override;
+	int init();
 
 	uint32_t	get_pwm_mask() const { return _pwm_mask; }
 	void		set_pwm_mask(uint32_t mask) { _pwm_mask = mask; }
@@ -139,7 +128,6 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	unsigned	_num_outputs{0};
-	int		_class_instance{-1};
 
 	bool		_pwm_on{false};
 	uint32_t	_pwm_mask{0};
@@ -150,10 +138,6 @@ private:
 
 	perf_counter_t	_cycle_perf;
 	perf_counter_t	_interval_perf;
-
-	void		update_current_rate();
-	int			set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
-	int			pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	bool		update_pwm_out_state(bool on);
 
