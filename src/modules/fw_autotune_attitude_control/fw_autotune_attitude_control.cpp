@@ -237,36 +237,41 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	const float temp[5] = {0.f, 0.f, 0.f, 0.f, 0.f};
 	const Vector<float, 5> sys_id_init(temp);
-	
+
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
-	
+
 	float aux_enable_channel = NAN;
-	
-	switch (_param_fw_at_man_aux.get())
-	{
-		case 0:
-			break;
-		case 1:
-			aux_enable_channel = manual_control_setpoint.aux1;
-			break;
-		case 2:
-			aux_enable_channel = manual_control_setpoint.aux2;
-			break;
-		case 3:
-			aux_enable_channel = manual_control_setpoint.aux3;
-			break;
-		case 4:
-			aux_enable_channel = manual_control_setpoint.aux4;
-			break;
-		case 5:
-			aux_enable_channel = manual_control_setpoint.aux5;
-			break;
-		case 6:
-			aux_enable_channel = manual_control_setpoint.aux6;
-			break;
+
+	switch (_param_fw_at_man_aux.get()) {
+	case 0:
+		break;
+
+	case 1:
+		aux_enable_channel = manual_control_setpoint.aux1;
+		break;
+
+	case 2:
+		aux_enable_channel = manual_control_setpoint.aux2;
+		break;
+
+	case 3:
+		aux_enable_channel = manual_control_setpoint.aux3;
+		break;
+
+	case 4:
+		aux_enable_channel = manual_control_setpoint.aux4;
+		break;
+
+	case 5:
+		aux_enable_channel = manual_control_setpoint.aux5;
+		break;
+
+	case 6:
+		aux_enable_channel = manual_control_setpoint.aux6;
+		break;
 	}
-	
+
 	bool rc_switch_enabled = aux_enable_channel != NAN &&  aux_enable_channel > .5f;
 
 	switch (_state) {
@@ -451,7 +456,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	// the identification sequence is aborted immediately
 	if (_state != state::wait_for_disarm
 	    && _state != state::idle
-      && !rc_switch_enabled
+	    && !rc_switch_enabled
 	    && ((now - _state_start_time) > 20_s)) {
 		_state = state::fail;
 		_state_start_time = now;
