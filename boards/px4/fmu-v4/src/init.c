@@ -77,7 +77,6 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform/board_dma_alloc.h>
 
-#include <drivers/drv_pwm_output.h>
 #include <px4_arch/io_timer.h>
 
 /****************************************************************************
