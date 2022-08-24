@@ -25,29 +25,14 @@ set FCONFIG /fs/microsd/etc/config.txt
 set FEXTRAS /fs/microsd/etc/extras.txt
 set FRC /fs/microsd/etc/rc.txt
 set IOFW "/etc/extras/px4_io-v2_default.bin"
-set IO_PRESENT no
 set LOGGER_ARGS ""
 set LOGGER_BUF 8
-set MIXER skip
-set MIXER_AUX none
-set MIXER_FILE none
-set MIXER_EXTRA none
-set OUTPUT_MODE none
 set PARAM_FILE ""
-set PWM_OUT none
-set PWM_MAIN_RATE p:PWM_MAIN_RATE
-set PWM_AUX_OUT none
-set PWM_AUX_RATE p:PWM_AUX_RATE
-set PWM_EXTRA_OUT none
-set PWM_EXTRA_RATE p:PWM_EXTRA_RATE
-set EXTRA_MIXER_MODE none
 set RC_INPUT_ARGS ""
 set SDCARD_AVAILABLE no
 set SDCARD_EXT_PATH /fs/microsd/ext_autostart
 set SDCARD_FORMAT no
-set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 set STARTUP_TUNE 1
-set USE_IO no
 set VEHICLE_TYPE none
 
 #
@@ -236,7 +221,7 @@ else
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
 	#
-	if param compare SYS_DM_BACKEND 1
+	if param compare -s SYS_DM_BACKEND 1
 	then
 		dataman start -r
 	else
@@ -278,13 +263,8 @@ else
 	if param greater -s UAVCAN_ENABLE 0
 	then
 		# Start core UAVCAN module.
-		if uavcan start
+		if ! uavcan start
 		then
-			if param greater UAVCAN_ENABLE 2
-			then
-				set OUTPUT_MODE uavcan_esc
-			fi
-		else
 			tune_control play error
 		fi
 	else
@@ -295,22 +275,15 @@ else
 	fi
 
 	#
-	# Check if PX4IO present and update firmware if needed.
-	# Assumption IOFW set to firmware file and IO_PRESENT = no
+	# Start IO for PWM output or RC input if enabled
 	#
-
-	if [ -f $IOFW ]
+	if param compare -s SYS_USE_IO 1
 	then
-		# Check for the mini using build with px4io fw file
-		# but not a px4IO
-		if ver hwtypecmp V5004000 V5006000
+		# Check if PX4IO present and update firmware if needed.
+		if [ -f $IOFW ]
 		then
-			param set SYS_USE_IO 0
-		else
-			if px4io checkcrc ${IOFW}
+			if ! px4io checkcrc ${IOFW}
 			then
-				set IO_PRESENT yes
-			else
 				# tune Program PX4IO
 				tune_control play -t 16 # tune 16 = PROG_PX4IO
 
@@ -321,7 +294,6 @@ else
 					if px4io checkcrc ${IOFW}
 					then
 						tune_control play -t 17 # tune 17 = PROG_PX4IO_OK
-						set IO_PRESENT yes
 					else
 						tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
 					fi
@@ -330,20 +302,12 @@ else
 				fi
 			fi
 		fi
-	fi
 
-	#
-	# Set USE_IO flag.
-	#
-	if param compare -s SYS_USE_IO 1
-	then
-		set USE_IO yes
-	fi
-
-	if [ $USE_IO = yes -a $IO_PRESENT = no ]
-	then
-		echo "PX4IO not found"
-		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
+		if ! px4io start
+		then
+			echo "PX4IO start failed"
+			set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
+		fi
 	fi
 
 	#
@@ -359,7 +323,11 @@ else
 	#
 	if param greater SYS_HITL 0
 	then
-		set OUTPUT_MODE hil
+		if ! pwm_out_sim start -m hil
+		then
+			tune_control play error
+		fi
+
 		sensors start -h
 		commander start -h
 		# disable GPS
@@ -397,13 +365,14 @@ else
 
 		sensors start
 		commander start
+
+		dshot start
+		pwm_out start
 	fi
 
 	#
 	# Configure vehicle type specific parameters.
-	# Note: rc.vehicle_setup is the entry point for rc.interface,
-	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
-	#
+	# Note: rc.vehicle_setup is the entry point for all vehicle type specific setup.
 	. ${R}etc/init.d/rc.vehicle_setup
 
 	# Pre-takeoff continuous magnetometer calibration
@@ -435,11 +404,8 @@ else
 	#
 	. ${R}etc/init.d/rc.serial
 
-	if [ $IO_PRESENT = no ]
-	then
-		# Must be started after the serial config is read
-		rc_input start $RC_INPUT_ARGS
-	fi
+	# Must be started after the serial config is read
+	rc_input start $RC_INPUT_ARGS
 
 	# PPS capture driver (before pwm_out)
 	if param greater -s PPS_CAP_ENABLE 0
@@ -564,28 +530,15 @@ unset R
 unset FCONFIG
 unset FEXTRAS
 unset FRC
-unset IO_PRESENT
 unset IOFW
 unset LOGGER_ARGS
 unset LOGGER_BUF
-unset MIXER
-unset MIXER_AUX
-unset MIXER_FILE
-unset OUTPUT_MODE
 unset PARAM_FILE
-unset PWM_AUX_OUT
-unset PWM_AUX_RATE
-unset PWM_MAIN_RATE
-unset PWM_OUT
-unset PWM_EXTRA_OUT
-unset PWM_EXTRA_RATE
 unset RC_INPUT_ARGS
 unset SDCARD_AVAILABLE
 unset SDCARD_EXT_PATH
 unset SDCARD_FORMAT
-unset SDCARD_MIXERS_PATH
 unset STARTUP_TUNE
-unset USE_IO
 unset VEHICLE_TYPE
 
 #

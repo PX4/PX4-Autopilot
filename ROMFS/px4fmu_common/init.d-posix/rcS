@@ -23,16 +23,6 @@ then
 fi
 
 # initialize script variables
-set IO_PRESENT                  no
-set MIXER                       skip
-set MIXER_AUX                   none
-set MIXER_FILE                  none
-set OUTPUT_MODE                 sim
-set EXTRA_MIXER_MODE            none
-set PWM_OUT                     none
-set PWM_AUX_OUT                 none
-set SDCARD_MIXERS_PATH          etc/mixers
-set USE_IO                      no
 set VEHICLE_TYPE                none
 set LOGGER_ARGS                 ""
 set LOGGER_BUF                  1000
@@ -227,10 +217,14 @@ manual_control start
 sensors start
 commander start
 
-# Configure vehicle type specific parameters.
-# Note: rc.vehicle_setup is the entry point for rc.interface,
-#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
+if ! pwm_out_sim start -m sim
+then
+	tune_control play error
+fi
+
 #
+# Configure vehicle type specific parameters.
+# Note: rc.vehicle_setup is the entry point for all vehicle type specific setup.
 . ${R}etc/init.d/rc.vehicle_setup
 
 navigator start

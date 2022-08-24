@@ -14,4 +14,6 @@ param set-default SENS_EN_THERMAL 0
 
 param set-default -s SENS_TEMP_ID 2621474
 
+param set-default SYS_USE_IO 1
+
 set IOFW "/etc/extras/cubepilot_io-v2_default.bin"

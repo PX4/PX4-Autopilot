@@ -13,4 +13,6 @@ param set-default BAT2_A_PER_V 26.4
 param set-default EKF2_MULTI_IMU 2
 param set-default SENS_IMU_MODE 0
 
+param set-default SYS_USE_IO 1
+
 set LOGGER_BUF 64
