@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,8 +42,6 @@
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/actuator_outputs.h>
-#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 
 #if defined(CONFIG_ARCH_BOARD_PX4_SITL)
@@ -58,6 +56,7 @@ class PWMSim : public ModuleBase<PWMSim>, public OutputModuleInterface
 {
 public:
 	PWMSim(bool hil_mode_enabled);
+	~PWMSim() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -75,7 +74,6 @@ public:
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
-
 	void Run() override;
 
 	static constexpr uint16_t PWM_SIM_DISARMED_MAGIC = 900;
@@ -87,4 +85,7 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Publication<actuator_outputs_s> _actuator_outputs_sim_pub{ORB_ID(actuator_outputs_sim)};
+
+	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 };
