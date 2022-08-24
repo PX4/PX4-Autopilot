@@ -315,7 +315,7 @@ void LoggedTopics::add_debug_topics()
 	add_topic_multi("satellite_info", 1000, 2);
 	add_topic("mag_worker_data");
 	add_topic("sensor_preflight_mag", 500);
-	add_topic("test_motor", 500);
+	add_topic("actuator_test", 500);
 }
 
 void LoggedTopics::add_estimator_replay_topics()
