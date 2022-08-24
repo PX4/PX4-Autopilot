@@ -186,13 +186,6 @@ public:
 	 */
 	uint16_t actualFailsafeValue(int index) const;
 
-	/**
-	 * Get the motor index that maps from PX4 convention to the configured one
-	 * @param index motor index in [0, num_motors-1]
-	 * @return reordered motor index. When out of range, the input index is returned
-	 */
-	int reorderedMotorIndex(int index) const;
-
 	void setIgnoreLockdown(bool ignore_lockdown) { _ignore_lockdown = ignore_lockdown; }
 
 	/**
@@ -242,11 +235,6 @@ private:
 		param_t min{PARAM_INVALID};
 		param_t max{PARAM_INVALID};
 		param_t failsafe{PARAM_INVALID};
-	};
-
-	enum class MotorOrdering : int32_t {
-		PX4 = 0,
-		Betaflight = 1
 	};
 
 	void lock() { do {} while (px4_sem_wait(&_lock) != 0); }
@@ -319,7 +307,6 @@ private:
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,   ///< multicopter air-mode
 		(ParamFloat<px4::params::MOT_SLEW_MAX>) _param_mot_slew_max,
 		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac, ///< thrust to motor control signal modelling factor
-		(ParamInt<px4::params::MOT_ORDERING>) _param_mot_ordering,
 		(ParamBool<px4::params::SYS_CTRL_ALLOC>) _param_sys_ctrl_alloc
 
 	)

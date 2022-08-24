@@ -150,8 +150,6 @@ void MixingOutput::updateParams()
 {
 	ModuleParams::updateParams();
 
-	_param_mot_ordering.set(0); // not used with dynamic mixing
-
 	bool function_changed = false;
 
 	for (unsigned i = 0; i < _max_num_outputs; i++) {
@@ -429,10 +427,10 @@ unsigned MixingOutput::motorTest()
 
 			if (idx < MAX_ACTUATORS) {
 				if (test_motor.value < 0.f) {
-					_current_output_value[reorderedMotorIndex(idx)] = _disarmed_value[idx];
+					_current_output_value[idx] = _disarmed_value[idx];
 
 				} else {
-					_current_output_value[reorderedMotorIndex(idx)] =
+					_current_output_value[idx] =
 						math::constrain<uint16_t>(_min_value[idx] + (uint16_t)((_max_value[idx] - _min_value[idx]) * test_motor.value),
 									  _min_value[idx], _max_value[idx]);
 				}
@@ -766,21 +764,4 @@ MixingOutput::actualFailsafeValue(int index) const
 	}
 
 	return value;
-}
-
-int MixingOutput::reorderedMotorIndex(int index) const
-{
-	if ((MotorOrdering)_param_mot_ordering.get() == MotorOrdering::Betaflight) {
-		switch (index) {
-		case 0: return 1;
-
-		case 1: return 2;
-
-		case 2: return 3;
-
-		case 3: return 0;
-		}
-	}
-
-	return index;
 }
