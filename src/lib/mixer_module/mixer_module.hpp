@@ -165,17 +165,6 @@ public:
 
 	void setMaxTopicUpdateRate(unsigned max_topic_update_interval_us);
 
-	/**
-	 * Reset (unload) the complete mixer.
-	 */
-	void resetMixer();
-
-	/**
-	 * Load (append) a new mixer from a buffer.
-	 * @return 0 on success, <0 error otherwise
-	 */
-	int loadMixer(const char *buf, unsigned len);
-
 	const actuator_armed_s &armed() const { return _armed; }
 
 	bool initialized() const { return _use_dynamic_mixing || _mixers != nullptr; }

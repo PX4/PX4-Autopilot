@@ -43,7 +43,6 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/module.h>
 #include <lib/perf/perf_counter.h>
-#include <drivers/drv_mixer.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/getopt.h>
 
@@ -57,16 +56,14 @@
 using namespace drv_pca9685_pwm;
 using namespace time_literals;
 
-class PCA9685Wrapper : public cdev::CDev, public ModuleBase<PCA9685Wrapper>, public OutputModuleInterface
+class PCA9685Wrapper : public ModuleBase<PCA9685Wrapper>, public OutputModuleInterface
 {
 public:
 
 	PCA9685Wrapper(int schd_rate_limit = 400);
 	~PCA9685Wrapper() override ;
 
-	int init() override;
-
-	int ioctl(cdev::file_t *filep, int cmd, unsigned long arg) override;
+	int init();
 
 	void mixerChanged() override;
 
@@ -121,7 +118,6 @@ protected:
 };
 
 PCA9685Wrapper::PCA9685Wrapper(int schd_rate_limit) :
-	CDev(nullptr),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_schd_rate_limit(schd_rate_limit)
@@ -146,19 +142,11 @@ PCA9685Wrapper::~PCA9685Wrapper()
 
 int PCA9685Wrapper::init()
 {
-	int ret = CDev::init();
+	int ret = pca9685->init();
 
 	if (ret != PX4_OK) {
 		return ret;
 	}
-
-	ret = pca9685->init();
-
-	if (ret != PX4_OK) {
-		return ret;
-	}
-
-	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
 
 	this->ChangeWorkQueue(px4::device_bus_to_wq(pca9685->get_device_id()));
 
@@ -379,7 +367,6 @@ void PCA9685Wrapper::Run()
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
-		unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
 
 		pca9685->Stop();
 		delete pca9685;
@@ -388,8 +375,6 @@ void PCA9685Wrapper::Run()
 		exit_and_cleanup();
 		return;
 	}
-
-	SmartLock lock_guard(_lock);
 
 	perf_begin(_cycle_perf);
 
@@ -466,49 +451,6 @@ void PCA9685Wrapper::Run()
 	perf_end(_cycle_perf);
 }
 
-int PCA9685Wrapper::ioctl(cdev::file_t *filep, int cmd, unsigned long arg)
-{
-	SmartLock lock_guard(_lock);
-
-	int ret = OK;
-
-	switch (cmd) {
-	case MIXERIOCRESET:
-		_mixing_output.resetMixer();
-
-		break;
-
-	case MIXERIOCLOADBUF: {
-			const char *buf = (const char *)arg;
-			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixer(buf, buflen);
-
-			break;
-		}
-
-	case PWM_SERVO_GET_COUNT:
-		*(unsigned *)arg = PCA9685_PWM_CHANNEL_COUNT;
-
-		break;
-
-	case PWM_SERVO_SET_ARM_OK:
-	case PWM_SERVO_CLEAR_ARM_OK:
-	case PWM_SERVO_ARM:
-	case PWM_SERVO_DISARM:
-		break;
-
-	default:
-		ret = -ENOTTY;
-		break;
-	}
-
-	if (ret == -ENOTTY) {
-		ret = CDev::ioctl(filep, cmd, arg);
-	}
-
-	return ret;
-}
-
 int PCA9685Wrapper::print_usage(const char *reason)
 {
 	if (reason) {
@@ -550,7 +492,6 @@ int PCA9685Wrapper::print_status() {
             pca9685->get_device_bus(),
             pca9685->get_device_address(),
              (double)(pca9685->getFrequency()));
-    PX4_INFO("CDev path: %s%d", PWM_OUTPUT_BASE_DEVICE_PATH, this->_class_instance);
 
     return ret;
 }
@@ -623,16 +564,17 @@ int PCA9685Wrapper::task_spawn(int argc, char **argv) {
     return PX4_ERROR;
 }
 
-void PCA9685Wrapper::mixerChanged() {
+void PCA9685Wrapper::mixerChanged()
+{
     OutputModuleInterface::mixerChanged();
+
     if (_mixing_output.mixers()) { // only update trims if mixer loaded
         updatePWMParamTrim();
     }
+
     _mixing_output.updateSubscriptions(false);
 }
 
-extern "C" __EXPORT int pca9685_pwm_out_main(int argc, char *argv[]);
-
-int pca9685_pwm_out_main(int argc, char *argv[]){
+extern "C" __EXPORT int pca9685_pwm_out_main(int argc, char *argv[]){
 	return PCA9685Wrapper::main(argc, argv);
 }

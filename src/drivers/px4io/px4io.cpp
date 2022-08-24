@@ -50,7 +50,6 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_io_heater.h>
-#include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_sbus.h>
 
@@ -1714,21 +1713,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			if (*(uint32_t *)arg == _io_reg_get_error) {
 				ret = -EIO;
 			}
-
-			break;
-		}
-
-	case MIXERIOCRESET:
-		PX4_DEBUG("MIXERIOCRESET");
-		_mixing_output.resetMixer();
-		break;
-
-	case MIXERIOCLOADBUF: {
-			PX4_DEBUG("MIXERIOCLOADBUF");
-
-			const char *buf = (const char *)arg;
-			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixer(buf, buflen);
 
 			break;
 		}

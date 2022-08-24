@@ -62,7 +62,6 @@
 #include <uORB/topics/led_control.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_mixer.h>
 
 #include "tap_esc_common.h"
 
@@ -100,7 +99,6 @@ public:
 	int print_status() override;
 
 	int init() override;
-	int ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;

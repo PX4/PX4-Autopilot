@@ -34,7 +34,6 @@
 #pragma once
 
 #include <drivers/device/device.h>
-#include <drivers/drv_mixer.h>
 #include <lib/cdev/CDev.hpp>
 #include <lib/led/led.h>
 #include <lib/mixer_module/mixer_module.hpp>
@@ -79,8 +78,6 @@ public:
 
 	/** @see OutputModuleInterface */
 	void mixerChanged() override;
-
-	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 
 	virtual int	init();
 

@@ -318,39 +318,6 @@ void LinuxPWMOut::update_params()
 	}
 }
 
-int LinuxPWMOut::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	SmartLock lock_guard(_lock);
-
-	int ret = OK;
-
-	PX4_DEBUG("ioctl cmd: %d, arg: %ld", cmd, arg);
-
-	switch (cmd) {
-	case MIXERIOCRESET:
-		_mixing_output.resetMixer();
-		break;
-
-	case MIXERIOCLOADBUF: {
-			const char *buf = (const char *)arg;
-			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixer(buf, buflen);
-			update_params();
-			break;
-		}
-
-	default:
-		ret = -ENOTTY;
-		break;
-	}
-
-	if (ret == -ENOTTY) {
-		ret = CDev::ioctl(filp, cmd, arg);
-	}
-
-	return ret;
-}
-
 int LinuxPWMOut::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
