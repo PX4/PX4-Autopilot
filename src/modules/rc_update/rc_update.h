@@ -163,12 +163,10 @@ public:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _rc_parameter_map_sub{ORB_ID(rc_parameter_map)};
-	uORB::Subscription _actuator_controls_3_sub{ORB_ID(actuator_controls_3)};
 
 	uORB::Publication<rc_channels_s> _rc_channels_pub{ORB_ID(rc_channels)};
 	uORB::PublicationMulti<manual_control_setpoint_s> _manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::Publication<manual_control_switches_s> _manual_control_switches_pub{ORB_ID(manual_control_switches)};
-	uORB::Publication<actuator_controls_s> _actuator_group_3_pub{ORB_ID(actuator_controls_3)};
 
 	manual_control_switches_s _manual_switches_previous{};
 	manual_control_switches_s _manual_switches_last_publish{};
