@@ -52,33 +52,14 @@ PWMSim::PWMSim(bool hil_mode_enabled) :
 	_mixing_output.setIgnoreLockdown(hil_mode_enabled);
 }
 
-void
-PWMSim::Run()
+PWMSim::~PWMSim()
 {
-	if (should_exit()) {
-		ScheduleClear();
-		_mixing_output.unregister();
-
-		exit_and_cleanup();
-		return;
-	}
-
-	_mixing_output.update();
-
-	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-		updateParams();
-	}
-
-	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
-	_mixing_output.updateSubscriptions(true);
+	perf_free(_cycle_perf);
+	perf_free(_interval_perf);
 }
 
-bool
-PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-		      unsigned num_control_groups_updated)
+bool PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+			   unsigned num_control_groups_updated)
 {
 	// Only publish once we receive actuator_controls (important for lock-step to work correctly)
 	if (num_control_groups_updated > 0) {
@@ -116,8 +97,30 @@ PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigne
 	return false;
 }
 
-int
-PWMSim::task_spawn(int argc, char *argv[])
+void PWMSim::Run()
+{
+	if (should_exit()) {
+		ScheduleClear();
+		_mixing_output.unregister();
+
+		exit_and_cleanup();
+		return;
+	}
+
+	_mixing_output.update();
+
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+		updateParams();
+	}
+
+	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
+	_mixing_output.updateSubscriptions(true);
+}
+
+int PWMSim::task_spawn(int argc, char *argv[])
 {
 	bool hil_mode = false;
 
@@ -156,7 +159,10 @@ int PWMSim::custom_command(int argc, char *argv[])
 
 int PWMSim::print_status()
 {
+	perf_print_counter(_cycle_perf);
+	perf_print_counter(_interval_perf);
 	_mixing_output.printStatus();
+
 	return 0;
 }
 
