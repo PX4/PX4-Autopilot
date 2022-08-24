@@ -38,7 +38,6 @@
 #include "modalai_esc.hpp"
 #include "modalai_esc_serial.hpp"
 
-#define MODALAI_ESC_DEVICE_PATH 	"/dev/uart_esc"
 #define MODALAI_ESC_DEFAULT_PORT 	"/dev/ttyS1"
 #define MODALAI_ESC_VOXL_PORT     "/dev/ttyS4"
 
@@ -48,7 +47,6 @@
 const char *_device;
 
 ModalaiEsc::ModalaiEsc() :
-	CDev(MODALAI_ESC_DEVICE_PATH),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval"))
@@ -96,35 +94,15 @@ ModalaiEsc::~ModalaiEsc()
 		_uart_port_bridge = nullptr;
 	}
 
-	/* clean up the alternate device node */
-	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
-
 	perf_free(_cycle_perf);
 	perf_free(_output_update_perf);
 }
 
 int ModalaiEsc::init()
 {
-	/* do regular cdev init */
-	int ret = CDev::init();
-
-	if (ret != OK) {
-		return ret;
-	}
-
-	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	_class_instance = register_class_devname(MODALAI_ESC_DEVICE_PATH);
-
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		/* lets not be too verbose */
-	} else if (_class_instance < 0) {
-		PX4_ERR("FAILED registering class device");
-	}
-
-	_mixing_output.setDriverInstance(_class_instance);
 
 	/* Getting initial parameter values */
-	ret = update_params();
+	int ret = update_params();
 
 	if (ret != OK) {
 		return ret;
@@ -1134,8 +1112,6 @@ void ModalaiEsc::Run()
 		exit_and_cleanup();
 		return;
 	}
-
-	SmartLock lock_guard(_lock);
 
 	perf_begin(_cycle_perf);
 

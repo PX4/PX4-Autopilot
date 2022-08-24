@@ -128,8 +128,6 @@ private:
 
 	MixingOutput _mixing_output {PARAM_PREFIX, FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
-	uint32_t	_backup_schedule_interval_us{1_s};
-
 	unsigned	_pwm_default_rate{50};
 	unsigned	_pwm_alt_rate{50};
 	uint32_t	_pwm_alt_rate_channels{0};

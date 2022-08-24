@@ -45,6 +45,5 @@ px4_add_module(
 	MODULE_CONFIG
 		${module_config}
 	DEPENDS
-		mixer
 		mixer_module
 	)

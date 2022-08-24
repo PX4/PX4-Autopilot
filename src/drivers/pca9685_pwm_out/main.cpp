@@ -59,13 +59,10 @@ using namespace time_literals;
 class PCA9685Wrapper : public ModuleBase<PCA9685Wrapper>, public OutputModuleInterface
 {
 public:
-
 	PCA9685Wrapper(int schd_rate_limit = 400);
 	~PCA9685Wrapper() override ;
 
 	int init();
-
-	void mixerChanged() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -85,8 +82,6 @@ public:
 private:
 	perf_counter_t	_cycle_perf;
 
-	int		_class_instance{-1};
-
 	enum class STATE : uint8_t {
 		INIT,
 		WAIT_FOR_OSC,
@@ -102,12 +97,6 @@ private:
 	void Run() override;
 
 protected:
-	void updateParams() override;
-
-	void updatePWMParams();
-
-	void updatePWMParamTrim();
-
 	int _schd_rate_limit = 400;
 
 	PCA9685 *pca9685 = nullptr; // driver handle.
@@ -122,10 +111,6 @@ PCA9685Wrapper::PCA9685Wrapper(int schd_rate_limit) :
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_schd_rate_limit(schd_rate_limit)
 {
-	if (!_mixing_output.useDynamicMixing()) {
-		_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
-		_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
-	}
 }
 
 PCA9685Wrapper::~PCA9685Wrapper()
@@ -157,205 +142,6 @@ int PCA9685Wrapper::init()
 	return PX4_OK;
 }
 
-void PCA9685Wrapper::updateParams()
-{
-	updatePWMParams();
-	ModuleParams::updateParams();
-}
-
-void PCA9685Wrapper::updatePWMParams()
-{
-	if (_mixing_output.useDynamicMixing()) {
-		return;
-	}
-
-	// update pwm params
-	const char *pname_format_pwm_ch_max[2] = {"PWM_MAIN_MAX%d", "PWM_AUX_MAX%d"};
-	const char *pname_format_pwm_ch_min[2] = {"PWM_MAIN_MIN%d", "PWM_AUX_MIN%d"};
-	const char *pname_format_pwm_ch_fail[2] = {"PWM_MAIN_FAIL%d", "PWM_AUX_FAIL%d"};
-	const char *pname_format_pwm_ch_dis[2] = {"PWM_MAIN_DIS%d", "PWM_AUX_DIS%d"};
-	const char *pname_format_pwm_ch_rev[2] = {"PWM_MAIN_REV%d", "PWM_AUX_REV%d"};
-
-	int32_t default_pwm_max = PWM_DEFAULT_MAX,
-		default_pwm_min = PWM_DEFAULT_MIN,
-		default_pwm_fail = PWM_DEFAULT_MIN,
-		default_pwm_dis = PWM_MOTOR_OFF;
-
-	param_t param_h = param_find("PWM_MAIN_MAX");
-
-	if (param_h != PARAM_INVALID) {
-		param_get(param_h, &default_pwm_max);
-
-	} else {
-		PX4_DEBUG("PARAM_INVALID: %s", "PWM_MAIN_MAX");
-	}
-
-	param_h = param_find("PWM_MAIN_MIN");
-
-	if (param_h != PARAM_INVALID) {
-		param_get(param_h, &default_pwm_min);
-
-	} else {
-		PX4_DEBUG("PARAM_INVALID: %s", "PWM_MAIN_MIN");
-	}
-
-	param_h = param_find("PWM_MAIN_RATE");
-
-	if (param_h != PARAM_INVALID) {
-		int32_t pval = 0;
-		param_get(param_h, &pval);
-
-		if (_last_fetched_Freq != pval) {
-			_last_fetched_Freq = pval;
-			_targetFreq = (float)pval;  // update only if changed
-		}
-
-	} else {
-		PX4_DEBUG("PARAM_INVALID: %s", "PWM_MAIN_RATE");
-	}
-
-	for (int i = 0; i < PCA9685_PWM_CHANNEL_COUNT; i++) {
-		char pname[16];
-		uint8_t param_group, param_index;
-
-		if (i <= 7) {	// Main channel
-			param_group = 0;
-			param_index = i + 1;
-
-		} else {	// AUX
-			param_group = 1;
-			param_index = i - 8 + 1;
-		}
-
-		sprintf(pname, pname_format_pwm_ch_max[param_group], param_index);
-		param_h = param_find(pname);
-
-		if (param_h != PARAM_INVALID) {
-			int32_t pval = 0;
-			param_get(param_h, &pval);
-
-			if (pval != -1) {
-				_mixing_output.maxValue(i) = pval;
-
-			} else {
-				_mixing_output.maxValue(i) = default_pwm_max;
-			}
-
-		} else {
-			PX4_DEBUG("PARAM_INVALID: %s", pname);
-		}
-
-		sprintf(pname, pname_format_pwm_ch_min[param_group], param_index);
-		param_h = param_find(pname);
-
-		if (param_h != PARAM_INVALID) {
-			int32_t pval = 0;
-			param_get(param_h, &pval);
-
-			if (pval != -1) {
-				_mixing_output.minValue(i) = pval;
-
-			} else {
-				_mixing_output.minValue(i) = default_pwm_min;
-			}
-
-		} else {
-			PX4_DEBUG("PARAM_INVALID: %s", pname);
-		}
-
-		sprintf(pname, pname_format_pwm_ch_fail[param_group], param_index);
-		param_h = param_find(pname);
-
-		if (param_h != PARAM_INVALID) {
-			int32_t pval = 0;
-			param_get(param_h, &pval);
-
-			if (pval != -1) {
-				_mixing_output.failsafeValue(i) = pval;
-
-			} else {
-				_mixing_output.failsafeValue(i) = default_pwm_fail;
-			}
-
-		} else {
-			PX4_DEBUG("PARAM_INVALID: %s", pname);
-		}
-
-		sprintf(pname, pname_format_pwm_ch_dis[param_group], param_index);
-		param_h = param_find(pname);
-
-		if (param_h != PARAM_INVALID) {
-			int32_t pval = 0;
-			param_get(param_h, &pval);
-
-			if (pval != -1) {
-				_mixing_output.disarmedValue(i) = pval;
-
-			} else {
-				_mixing_output.disarmedValue(i) = default_pwm_dis;
-			}
-
-		} else {
-			PX4_DEBUG("PARAM_INVALID: %s", pname);
-		}
-
-		sprintf(pname, pname_format_pwm_ch_rev[param_group], param_index);
-		param_h = param_find(pname);
-
-		if (param_h != PARAM_INVALID) {
-			uint16_t &reverse_pwm_mask = _mixing_output.reverseOutputMask();
-			int32_t pval = 0;
-			param_get(param_h, &pval);
-			reverse_pwm_mask &= (0xfffe << i);  // clear this bit
-			reverse_pwm_mask |= (((uint16_t)(pval != 0)) << i); // set to new val
-
-		} else {
-			PX4_DEBUG("PARAM_INVALID: %s", pname);
-		}
-	}
-
-	if (_mixing_output.mixers()) { // only update trims if mixer loaded
-		updatePWMParamTrim();
-	}
-}
-
-void PCA9685Wrapper::updatePWMParamTrim()
-{
-	const char *pname_format_pwm_ch_trim[2] = {"PWM_MAIN_TRIM%d", "PWM_AUX_TRIM%d"};
-
-	int16_t trim_values[PCA9685_PWM_CHANNEL_COUNT] = {};
-
-	for (int i = 0; i < PCA9685_PWM_CHANNEL_COUNT; i++) {
-		char pname[16];
-
-		uint8_t param_group, param_index;
-
-		if (i <= 7) {	// Main channel
-			param_group = 0;
-			param_index = i + 1;
-
-		} else {	// AUX
-			param_group = 1;
-			param_index = i - 8 + 1;
-		}
-
-		sprintf(pname, pname_format_pwm_ch_trim[param_group], param_index);
-		param_t param_h = param_find(pname);
-		int32_t val;
-
-		if (param_h != PARAM_INVALID) {
-			param_get(param_h, &val);
-			trim_values[i] = (int16_t)val;
-
-		} else {
-			PX4_DEBUG("PARAM_INVALID: %s", pname);
-		}
-	}
-
-	unsigned n_out = _mixing_output.mixers()->set_trims(trim_values, PCA9685_PWM_CHANNEL_COUNT);
-	PX4_DEBUG("set %d trims", n_out);
-}
-
 bool PCA9685Wrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsigned num_outputs,
 				   unsigned num_control_groups_updated)
 {
@@ -381,7 +167,6 @@ void PCA9685Wrapper::Run()
 	switch (_state) {
 	case STATE::INIT:
 		pca9685->initReg();
-		updatePWMParams();  // target frequency fetched, immediately apply it
 
 		if (_targetFreq > 0.0f) {
 			if (pca9685->setFreq(_targetFreq) != PX4_OK) {
@@ -562,17 +347,6 @@ int PCA9685Wrapper::task_spawn(int argc, char **argv) {
     _task_id = -1;
 
     return PX4_ERROR;
-}
-
-void PCA9685Wrapper::mixerChanged()
-{
-    OutputModuleInterface::mixerChanged();
-
-    if (_mixing_output.mixers()) { // only update trims if mixer loaded
-        updatePWMParamTrim();
-    }
-
-    _mixing_output.updateSubscriptions(false);
 }
 
 extern "C" __EXPORT int pca9685_pwm_out_main(int argc, char *argv[]){

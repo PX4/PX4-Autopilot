@@ -36,7 +36,6 @@
 #include <px4_platform_common/sem.hpp>
 
 TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count):
-	CDev(TAP_ESC_DEVICE_PATH),
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(device)),
 	_mixing_output{"TAP_ESC", channels_count, *this, MixingOutput::SchedulingPolicy::Auto, true},
 	_channels_count(channels_count)
@@ -154,8 +153,7 @@ int TAP_ESC::init()
 		usleep(2000);
 	}
 
-	/* do regular cdev init */
-	return CDev::init();
+	return 0;
 }
 
 void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
@@ -336,8 +334,6 @@ void TAP_ESC::Run()
 		exit_and_cleanup();
 		return;
 	}
-
-	SmartLock lock_guard(_lock);
 
 	// push backup schedule
 	ScheduleDelayed(20_ms);

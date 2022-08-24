@@ -575,15 +575,6 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	_mixing_interface_esc.mixingOutput().setAllDisarmedValues(UavcanEscController::DISARMED_OUTPUT_VALUE);
 
-	if (!_mixing_interface_esc.mixingOutput().useDynamicMixing()) {
-		// these are configurable with dynamic mixing
-		_mixing_interface_esc.mixingOutput().setAllMinValues(0); // Can be changed to 1 later, according to UAVCAN_ESC_IDLT
-		_mixing_interface_esc.mixingOutput().setAllMaxValues(UavcanEscController::max_output_value());
-
-		param_get(param_find("UAVCAN_ESC_IDLT"), &_idle_throttle_when_armed_param);
-		enable_idle_throttle_when_armed(true);
-	}
-
 	/* Set up shared service clients */
 	_param_getset_client.setCallback(GetSetCallback(this, &UavcanNode::cb_getset));
 	_param_opcode_client.setCallback(ExecuteOpcodeCallback(this, &UavcanNode::cb_opcode));
@@ -931,13 +922,6 @@ void
 UavcanNode::enable_idle_throttle_when_armed(bool value)
 {
 	value &= _idle_throttle_when_armed_param > 0;
-
-	if (!_mixing_interface_esc.mixingOutput().useDynamicMixing()) {
-		if (value != _idle_throttle_when_armed) {
-			_mixing_interface_esc.mixingOutput().setAllMinValues(value ? 1 : 0);
-			_idle_throttle_when_armed = value;
-		}
-	}
 }
 
 bool UavcanMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
