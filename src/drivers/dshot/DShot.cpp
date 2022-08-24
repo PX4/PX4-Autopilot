@@ -262,7 +262,7 @@ int DShot::send_command_thread_safe(const dshot_command_t command, const int num
 		cmd.motor_mask = 0xff;
 
 	} else {
-		cmd.motor_mask = 1 << _mixing_output.reorderedMotorIndex(motor_index);
+		cmd.motor_mask = 1 << motor_index;
 	}
 
 	cmd.num_repetitions = num_repetitions;
@@ -320,7 +320,7 @@ int DShot::request_esc_info()
 	_telemetry->handler.redirectOutput(*_request_esc_info.load());
 	_waiting_for_esc_info = true;
 
-	int motor_index = _mixing_output.reorderedMotorIndex(_request_esc_info.load()->motor_index);
+	int motor_index = _request_esc_info.load()->motor_index;
 
 	_current_command.motor_mask = 1 << motor_index;
 	_current_command.num_repetitions = 1;
@@ -352,7 +352,7 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			requested_telemetry_index = request_esc_info();
 
 		} else {
-			requested_telemetry_index = _mixing_output.reorderedMotorIndex(_telemetry->handler.getRequestMotorIndex());
+			requested_telemetry_index = _telemetry->handler.getRequestMotorIndex();
 		}
 	}
 
