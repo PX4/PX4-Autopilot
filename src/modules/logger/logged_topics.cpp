@@ -208,19 +208,12 @@ void LoggedTopics::add_default_topics()
 	//add_optional_topic("vehicle_optical_flow_vel", 100);
 	add_optional_topic("pps_capture");
 
-	// SYS_CTRL_ALLOC: additional dynamic control allocation logging when enabled
-	int32_t sys_ctrl_alloc = 0;
-	param_get(param_find("SYS_CTRL_ALLOC"), &sys_ctrl_alloc);
-
-	_dynamic_control_allocation = sys_ctrl_alloc >= 1;
-
-	if (_dynamic_control_allocation) {
-		add_topic("actuator_motors", 100);
-		add_topic("actuator_servos", 100);
-		add_topic("vehicle_angular_acceleration", 20);
-		add_topic_multi("vehicle_thrust_setpoint", 20, 1);
-		add_topic_multi("vehicle_torque_setpoint", 20, 2);
-	}
+	// additional control allocation logging
+	add_topic("actuator_motors", 100);
+	add_topic("actuator_servos", 100);
+	add_topic("vehicle_angular_acceleration", 20);
+	add_topic_multi("vehicle_thrust_setpoint", 20, 1);
+	add_topic_multi("vehicle_torque_setpoint", 20, 2);
 
 	// SYS_HITL: default ground truth logging for simulation
 	int32_t sys_hitl = 0;
@@ -294,15 +287,9 @@ void LoggedTopics::add_high_rate_topics()
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
 
-	if (_dynamic_control_allocation) {
-		add_topic("actuator_motors");
-		add_topic("vehicle_thrust_setpoint");
-		add_topic("vehicle_torque_setpoint");
-
-	} else {
-		add_topic("actuator_controls_0");
-		add_topic("actuator_outputs");
-	}
+	add_topic("actuator_motors");
+	add_topic("vehicle_thrust_setpoint");
+	add_topic("vehicle_torque_setpoint");
 }
 
 void LoggedTopics::add_debug_topics()
