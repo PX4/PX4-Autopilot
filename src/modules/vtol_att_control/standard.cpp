@@ -290,11 +290,9 @@ void Standard::update_transition_state()
 			mc_weight = time_since_trans_start / _param_vt_b_trans_ramp.get();
 		}
 
-		set_all_motor_state(motor_state::ENABLED);
-
 		// set idle speed for MC actuators
 		if (!_flag_idle_mc) {
-			_flag_idle_mc = set_idle_mc();
+			_flag_idle_mc = true;
 		}
 	}
 

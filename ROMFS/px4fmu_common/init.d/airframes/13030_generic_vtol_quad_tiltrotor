@@ -16,10 +16,7 @@
 
 param set-default MAV_TYPE 21
 
-param set-default VT_IDLE_PWM_MC 1100
 param set-default VT_TYPE 1
-param set-default VT_MOT_ID 1234
-param set-default VT_FW_MOT_OFFID 24
 
 param set-default CA_AIRFRAME 3
 param set-default CA_ROTOR_COUNT 4

@@ -51,7 +51,6 @@ static bool is_running()
 }
 
 PWMOut::PWMOut(int instance, uint8_t output_base) :
-	CDev((instance == 0) ? PX4FMU_DEVICE_PATH : PX4FMU_DEVICE_PATH"1"),
 	OutputModuleInterface((instance == 0) ? MODULE_NAME"0" : MODULE_NAME"1", px4::wq_configurations::hp_default),
 	_instance(instance),
 	_output_base(output_base),
@@ -65,31 +64,12 @@ PWMOut::~PWMOut()
 	/* make sure servos are off */
 	up_pwm_servo_deinit(_pwm_mask);
 
-	/* clean up the alternate device node */
-	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
-
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
 }
 
 int PWMOut::init()
 {
-	/* do regular cdev init */
-	int ret = CDev::init();
-
-	if (ret != OK) {
-		return ret;
-	}
-
-	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
-
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		/* lets not be too verbose */
-	} else if (_class_instance < 0) {
-		PX4_ERR("FAILED registering class device");
-	}
-
 	_num_outputs = FMU_MAX_ACTUATORS;
 
 	_pwm_mask = ((1u << _num_outputs) - 1) << _output_base;
@@ -101,37 +81,6 @@ int PWMOut::init()
 	ScheduleNow();
 
 	return 0;
-}
-
-void PWMOut::update_current_rate()
-{
-	/*
-	* Adjust actuator topic update rate to keep up with
-	* the highest servo update rate configured.
-	*
-	* We always mix at max rate; some channels may update slower.
-	*/
-	int max_rate = (_pwm_default_rate > _pwm_alt_rate) ? _pwm_default_rate : _pwm_alt_rate;
-
-	// oneshot
-	if ((_pwm_default_rate == 0) || (_pwm_alt_rate == 0)) {
-		max_rate = 2000;
-
-	} else {
-		// run up to twice PWM rate to reduce end-to-end latency
-		//  actual pulse width only updated for next period regardless of output module
-		max_rate *= 2;
-	}
-
-	// max interval 0.5 - 100 ms (10 - 2000Hz)
-	const int update_interval_in_us = math::constrain(1000000 / max_rate, 500, 100000);
-
-	if (_current_update_rate != max_rate) {
-		PX4_INFO("instance: %d, max rate: %d, default: %d, alt: %d", _instance, max_rate, _pwm_default_rate, _pwm_alt_rate);
-	}
-
-	_current_update_rate = max_rate;
-	_mixing_output.setMaxTopicUpdateRate(update_interval_in_us);
 }
 
 int PWMOut::task_spawn(int argc, char *argv[])
@@ -282,8 +231,6 @@ void PWMOut::Run()
 		return;
 	}
 
-	SmartLock lock_guard(_lock);
-
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
@@ -369,186 +316,6 @@ void PWMOut::update_params()
 	_first_param_update = false;
 }
 
-int PWMOut::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	SmartLock lock_guard(_lock);
-
-	int ret = pwm_ioctl(filp, cmd, arg);
-
-	/* if nobody wants it, let CDev have it */
-	if (ret == -ENOTTY) {
-		ret = CDev::ioctl(filp, cmd, arg);
-	}
-
-	return ret;
-}
-
-int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	int ret = OK;
-
-	PX4_DEBUG("pwm_out%u: ioctl cmd: %d, arg: %ld", _instance, cmd, arg);
-
-	switch (cmd) {
-	case PWM_SERVO_ARM:
-		update_pwm_out_state(true);
-		break;
-
-	case PWM_SERVO_SET_ARM_OK:
-	case PWM_SERVO_CLEAR_ARM_OK:
-		break;
-
-	case PWM_SERVO_DISARM:
-
-		/* Ignore disarm if disarmed PWM is set already. */
-		if (_num_disarmed_set == 0) {
-			update_pwm_out_state(false);
-		}
-
-		break;
-
-	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
-		*(uint32_t *)arg = _pwm_default_rate;
-		break;
-
-	case PWM_SERVO_SET_UPDATE_RATE:
-		ret = -EINVAL;
-		break;
-
-	case PWM_SERVO_GET_UPDATE_RATE:
-		*(uint32_t *)arg = _pwm_alt_rate;
-		break;
-
-	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
-		ret = -EINVAL;
-		break;
-
-	case PWM_SERVO_GET_SELECT_UPDATE_RATE:
-		*(uint32_t *)arg = _pwm_alt_rate_channels;
-		break;
-
-	case PWM_SERVO_GET_FAILSAFE_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
-				pwm->values[i] = _mixing_output.failsafeValue(i);
-			}
-
-			pwm->channel_count = FMU_MAX_ACTUATORS;
-			break;
-		}
-
-	case PWM_SERVO_GET_DISARMED_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
-				pwm->values[i] = _mixing_output.disarmedValue(i);
-			}
-
-			pwm->channel_count = FMU_MAX_ACTUATORS;
-			break;
-		}
-
-	case PWM_SERVO_SET_MIN_PWM:
-		ret = -EINVAL;
-		break;
-
-	case PWM_SERVO_GET_MIN_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
-				pwm->values[i] = _mixing_output.minValue(i);
-			}
-
-			pwm->channel_count = FMU_MAX_ACTUATORS;
-			arg = (unsigned long)&pwm;
-			break;
-		}
-
-	case PWM_SERVO_SET_MAX_PWM:
-		ret = -EINVAL;
-		break;
-
-	case PWM_SERVO_GET_MAX_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
-				pwm->values[i] = _mixing_output.maxValue(i);
-			}
-
-			pwm->channel_count = FMU_MAX_ACTUATORS;
-			arg = (unsigned long)&pwm;
-		}
-		break;
-
-#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 14
-
-	case PWM_SERVO_GET(13):
-	case PWM_SERVO_GET(12):
-	case PWM_SERVO_GET(11):
-	case PWM_SERVO_GET(10):
-	case PWM_SERVO_GET(9):
-	case PWM_SERVO_GET(8):
-#endif
-#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 8
-	case PWM_SERVO_GET(7):
-	case PWM_SERVO_GET(6):
-#endif
-#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 6
-	case PWM_SERVO_GET(5):
-#endif
-#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 5
-	case PWM_SERVO_GET(4):
-#endif
-	case PWM_SERVO_GET(3):
-	case PWM_SERVO_GET(2):
-	case PWM_SERVO_GET(1):
-	case PWM_SERVO_GET(0):
-		if (cmd - PWM_SERVO_GET(0) >= (int)_num_outputs) {
-			ret = -EINVAL;
-			break;
-		}
-
-		*(servo_position_t *)arg = up_pwm_servo_get(cmd - PWM_SERVO_GET(0) +  _output_base);
-		break;
-
-	case PWM_SERVO_GET_RATEGROUP(0):
-	case PWM_SERVO_GET_RATEGROUP(1):
-	case PWM_SERVO_GET_RATEGROUP(2):
-	case PWM_SERVO_GET_RATEGROUP(3):
-#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 5
-	case PWM_SERVO_GET_RATEGROUP(4):
-#endif
-#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 6
-	case PWM_SERVO_GET_RATEGROUP(5):
-#endif
-#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 8
-	case PWM_SERVO_GET_RATEGROUP(6):
-	case PWM_SERVO_GET_RATEGROUP(7):
-#endif
-#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 14
-	case PWM_SERVO_GET_RATEGROUP(8):
-	case PWM_SERVO_GET_RATEGROUP(9):
-	case PWM_SERVO_GET_RATEGROUP(10):
-	case PWM_SERVO_GET_RATEGROUP(11):
-	case PWM_SERVO_GET_RATEGROUP(12):
-	case PWM_SERVO_GET_RATEGROUP(13):
-#endif
-		*(uint32_t *)arg = _pwm_mask & up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0));
-		break;
-
-	case PWM_SERVO_GET_COUNT:
-		*(unsigned *)arg = _num_outputs;
-		break;
-
-	default:
-		ret = -ENOTTY;
-		break;
-	}
-
-	return ret;
-}
-
 int PWMOut::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
@@ -556,16 +323,6 @@ int PWMOut::custom_command(int argc, char *argv[])
 
 int PWMOut::print_status()
 {
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		PX4_INFO("%d - PWM_MAIN 0x%04" PRIx32, _instance, _pwm_mask);
-
-	} else if (_class_instance == CLASS_DEVICE_SECONDARY) {
-		PX4_INFO("%d - PWM_AUX 0x%04" PRIx32, _instance, _pwm_mask);
-
-	} else if (_class_instance == CLASS_DEVICE_TERTIARY) {
-		PX4_INFO("%d - PWM_EXTRA 0x%04" PRIx32, _instance, _pwm_mask);
-	}
-
 	PX4_INFO("%d - Max update rate: %i Hz", _instance, _current_update_rate);
 
 	perf_print_counter(_cycle_perf);

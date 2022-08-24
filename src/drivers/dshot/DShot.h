@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,8 +32,7 @@
  ****************************************************************************/
 #pragma once
 
-#include <drivers/device/device.h>
-#include <drivers/drv_input_capture.h>
+#include <drivers/drv_dshot.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
@@ -59,16 +58,16 @@ static constexpr int DSHOT_DISARM_VALUE = 0;
 static constexpr int DSHOT_MIN_THROTTLE = 1;
 static constexpr int DSHOT_MAX_THROTTLE = 1999;
 
-class DShot : public ModuleBase<DShot>, public OutputModuleInterface
+class DShot final : public ModuleBase<DShot>, public OutputModuleInterface
 {
 public:
 	DShot();
-	virtual ~DShot();
+	~DShot() override;
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
-	virtual int init();
+	int init();
 
 	void mixerChanged() override;
 

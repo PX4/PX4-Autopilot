@@ -58,12 +58,12 @@
 
 #include <px4_arch/io_timer.h>
 
-int up_pwm_servo_set(unsigned channel, servo_position_t value)
+int up_pwm_servo_set(unsigned channel, uint16_t value)
 {
 	return io_timer_set_ccr(channel, value);
 }
 
-servo_position_t up_pwm_servo_get(unsigned channel)
+uint16_t up_pwm_servo_get(unsigned channel)
 {
 	return io_channel_get_ccr(channel);
 }
