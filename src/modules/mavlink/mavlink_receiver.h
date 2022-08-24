@@ -290,7 +290,7 @@ private:
 	uint16_t _mavlink_status_last_packet_rx_drop_count{0};
 
 	// ORB publications
-	uORB::Publication<actuator_controls_s>			_actuator_controls_pubs[4] {ORB_ID(actuator_controls_0), ORB_ID(actuator_controls_1), ORB_ID(actuator_controls_2), ORB_ID(actuator_controls_3)};
+	uORB::Publication<actuator_controls_s>			_actuator_controls_pubs[3] {ORB_ID(actuator_controls_0), ORB_ID(actuator_controls_1), ORB_ID(actuator_controls_2)};
 	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<battery_status_s>			_battery_pub{ORB_ID(battery_status)};
 	uORB::Publication<camera_status_s>			_camera_status_pub{ORB_ID(camera_status)};
@@ -353,7 +353,6 @@ private:
 	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription	_vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription 	_actuator_controls_3_sub{ORB_ID(actuator_controls_3)};
 	uORB::Subscription	_autotune_attitude_control_status_sub{ORB_ID(autotune_attitude_control_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
