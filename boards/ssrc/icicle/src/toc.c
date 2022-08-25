@@ -60,7 +60,7 @@ extern const int *_boot_signature;
 /* RD certificate signature follows the certificate */
 
 #define RDCTSIG_ADDR RDCT_END
-#define RDCTSIG_END ((const void *)((const uint8_t*)RDCT_ADDR+SIGNATURE_SIZE))
+#define RDCTSIG_END ((const void *)((const uint8_t*)RDCTSIG_ADDR+SIGNATURE_SIZE))
 
 /* The table of contents */
 
