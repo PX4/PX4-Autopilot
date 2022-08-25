@@ -276,6 +276,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: nxp_mr-canhubk3_fmu
+    nxp_imxrt1170-evk_default:
+      short: nxp_imxrt1170-evk
+      buildType: MinSizeRel
+      settings:
+        CONFIG: nxp_imxrt1170-evk_default
     raspberrypi_pico_default:
       short: raspberrypi_pico
       buildType: MinSizeRel
