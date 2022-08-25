@@ -56,6 +56,7 @@ px4_add_romfs_files(
 	4015_holybro_s500
 	4016_holybro_px4vision
 	4017_nxp_hovergames
+	4019_x500_v2
 	4040_reaper
 	4041_beta75x
 	4050_generic_250
