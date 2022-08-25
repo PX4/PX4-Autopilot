@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# PX4 FMUv5 specific board sensors init
+#------------------------------------------------------------------------------
+#
+# UART mapping on NXP FMURT1062:
+#
+# LPUART7       /dev/ttyS0      CONSOLE
+# LPUART2       /dev/ttyS1      GPS
+# LPUART3       /dev/ttyS2      TELEM2 (GPIO flow control)
+# LPUART4       /dev/ttyS3      TELEM1 (UART flow control)
+# LPUART5       /dev/ttyS4      TELEM4 GPS2
+# LPUART6       /dev/ttyS5      TELEM3 (RC_INPUT)
+# LPUART8       /dev/ttyS6      PX4IO
+#
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# Internal SPI bus ICM-20602
+icm20602 -R 2 -s start
+
+# Internal SPI bus ICM-20689
+icm20689 -R 2 -s start
+
+# Internal SPI bus BMI055 accel/gyro
+bmi055 -A -R 2 -s start
+bmi055 -G -R 2 -s start
+
+# internal compass
+ist8310 -I -R 10 start
+
+# Baro on internal SPI
+ms5611 -s start

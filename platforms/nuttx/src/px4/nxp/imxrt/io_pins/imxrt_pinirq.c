@@ -47,16 +47,14 @@ typedef struct {
 	int hi;
 } lh_t;
 
-const lh_t port_to_irq[9] = {
+const lh_t port_to_irq[8] = {
 	{_IMXRT_GPIO1_0_15_BASE, _IMXRT_GPIO1_16_31_BASE},
 	{_IMXRT_GPIO2_0_15_BASE, _IMXRT_GPIO2_16_31_BASE},
 	{_IMXRT_GPIO3_0_15_BASE, _IMXRT_GPIO3_16_31_BASE},
 	{_IMXRT_GPIO4_0_15_BASE, _IMXRT_GPIO4_16_31_BASE},
 	{_IMXRT_GPIO5_0_15_BASE, _IMXRT_GPIO5_16_31_BASE},
 	{_IMXRT_GPIO6_0_15_BASE, _IMXRT_GPIO6_16_31_BASE},
-	{_IMXRT_GPIO7_0_15_BASE, _IMXRT_GPIO7_16_31_BASE},
-	{_IMXRT_GPIO8_0_15_BASE, _IMXRT_GPIO8_16_31_BASE},
-	{_IMXRT_GPIO9_0_15_BASE, _IMXRT_GPIO9_16_31_BASE},
+	{_IMXRT_GPIO13_BASE, _IMXRT_GPIO13_BASE}, //FIXME
 };
 
 /****************************************************************************
