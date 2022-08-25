@@ -872,11 +872,6 @@ bootloader_main(void)
 	    (reset_reason & BOARD_RESET_REASON_DEBUGGER_MASK) == 0) {
 
 		/*
-		 * Don't even try to boot before dropping to the bootloader.
-		 */
-		loading_status = INTERRUPTED;
-
-		/*
 		 * Don't drop out of the bootloader until something has been uploaded.
 		 */
 		timeout = 0;
