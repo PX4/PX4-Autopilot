@@ -95,7 +95,7 @@ PARAM_DEFINE_FLOAT(FLW_TGT_FA, 180.0f);
  *
  * Maintain altitude or track target's altitude. When maintaining the altitude,
  * the drone can crash into terrain when the target moves uphill. When tracking
- * the target's altitude, the follow altitude NAV_MIN_FT_HT should be high enough
+ * the target's altitude, the follow altitude FLW_TGT_HT should be high enough
  * to prevent terrain collisions due to GPS inaccuracies of the target.
  *
  * @value 0 2D Tracking: Maintain constant altitude relative to home and track XY position only
