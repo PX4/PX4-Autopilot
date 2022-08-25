@@ -41,7 +41,7 @@
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
-#include <lib/sensor_calibration/Gyroscope.hpp>
+#include <lib/sensor/calibration/Gyroscope.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -102,7 +102,7 @@ private:
 
 	hrt_abstime _gyro_timestamp_sample_last{0};
 
-	calibration::Gyroscope _gyro_calibration{};
+	sensor::calibration::Gyroscope _gyro_calibration{};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 

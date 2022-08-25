@@ -36,7 +36,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/events.h>
 #include <lib/geo/geo.h>
-#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/sensor/calibration/Utilities.hpp>
 
 namespace sensors
 {
@@ -63,7 +63,7 @@ VehicleMagnetometer::VehicleMagnetometer() :
 	// if publishing multiple mags advertise instances immediately for existing calibrations
 	if (!_param_sens_mag_mode.get()) {
 		for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-			uint32_t device_id_mag = calibration::GetCalibrationParamInt32("MAG", "ID", i);
+			uint32_t device_id_mag = sensor::calibration::GetCalibrationParamInt32("MAG", "ID", i);
 
 			if (device_id_mag != 0) {
 				_vehicle_magnetometer_pub[i].advertise();

@@ -50,8 +50,8 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <matrix/math.hpp>
-#include <lib/sensor_calibration/Magnetometer.hpp>
-#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/sensor/calibration/Magnetometer.hpp>
+#include <lib/sensor/Utilities.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/world_magnetic_model/geo_mag_declination.h>
 #include <lib/systemlib/mavlink_log.h>
@@ -94,7 +94,7 @@ struct mag_worker_data_t {
 	float		*y[MAX_MAGS];
 	float		*z[MAX_MAGS];
 
-	calibration::Magnetometer calibration[MAX_MAGS] {};
+	sensor::calibration::Magnetometer calibration[MAX_MAGS] {};
 };
 
 int do_mag_calibration(orb_advert_t *mavlink_log_pub)
@@ -714,7 +714,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 			// only proceed if there's a valid internal
 			if (internal_index >= 0) {
 
-				const Dcmf board_rotation = calibration::GetBoardRotationMatrix();
+				const Dcmf board_rotation = sensor::utilities::GetBoardRotationMatrix();
 
 				// apply new calibrations to all raw sensor data before comparison
 				for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
@@ -1015,7 +1015,7 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 
 			if (mag_sub.advertised() && (mag.timestamp != 0) && (mag.device_id != 0)) {
 
-				calibration::Magnetometer cal{mag.device_id};
+				sensor::calibration::Magnetometer cal{mag.device_id};
 
 				// use any existing scale and store the offset to the expected earth field
 				const Vector3f offset = Vector3f{mag.x, mag.y, mag.z} - (cal.scale().I() * cal.rotation().transpose() * expected_field);

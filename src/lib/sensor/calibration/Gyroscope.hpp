@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "Utilities.hpp"
+
 #include <lib/conversion/rotation.h>
 #include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
@@ -40,8 +42,11 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_correction.h>
 
+namespace sensor
+{
 namespace calibration
 {
+
 class Gyroscope
 {
 public:
@@ -119,4 +124,6 @@ private:
 
 	uint8_t _calibration_count{0};
 };
+
 } // namespace calibration
+} // namespace sensor

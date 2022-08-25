@@ -63,7 +63,7 @@ public:
 	~GpsBlending() = default;
 
 	// define max number of GPS receivers supported for blending
-	static constexpr int GPS_MAX_RECEIVERS_BLEND = 2;
+	static constexpr int GPS_MAX_RECEIVERS_BLEND = 3;
 
 	void setGpsData(const sensor_gps_s &gps_data, int instance)
 	{
@@ -72,6 +72,16 @@ public:
 			_gps_updated[instance] = true;
 		}
 	}
+
+	void setAntennaOffset(const matrix::Vector3f &antenna_offset, int instance)
+	{
+		if (instance < GPS_MAX_RECEIVERS_BLEND) {
+			_antenna_offset[instance] = antenna_offset;
+		}
+	}
+
+	void setAttitude(const matrix::Quatf &q) { _R = q; }
+
 	void setBlendingUseSpeedAccuracy(bool enabled) { _blend_use_spd_acc = enabled; }
 	void setBlendingUseHPosAccuracy(bool enabled) { _blend_use_hpos_acc = enabled; }
 	void setBlendingUseVPosAccuracy(bool enabled) { _blend_use_vpos_acc = enabled; }
@@ -82,6 +92,7 @@ public:
 
 	bool isNewOutputDataAvailable() const { return _is_new_output_data_available; }
 	int getNumberOfGpsSuitableForBlending() const { return _np_gps_suitable_for_blending; }
+
 	const sensor_gps_s &getOutputGpsData() const
 	{
 		if (_selected_gps < GPS_MAX_RECEIVERS_BLEND) {
@@ -91,7 +102,10 @@ public:
 			return _gps_blended_state;
 		}
 	}
+
 	int getSelectedGps() const { return _selected_gps; }
+
+	const matrix::Vector3f &blended_antenna_offset() const { return _blended_antenna_offset; }
 
 private:
 	/*
@@ -118,14 +132,19 @@ private:
 	/*
 	 Calculate GPS output that is a blend of the offset corrected physical receiver data
 	*/
-	void calc_gps_blend_output(sensor_gps_s &gps_blended_state, float blend_weights[GPS_MAX_RECEIVERS_BLEND]) const;
+	void calc_gps_blend_output(sensor_gps_s &gps_blended_state, matrix::Vector3f &antenna_offset,
+				   float blend_weights[GPS_MAX_RECEIVERS_BLEND]) const;
 
 	sensor_gps_s _gps_state[GPS_MAX_RECEIVERS_BLEND] {}; ///< internal state data for the physical GPS
+	matrix::Vector3f _antenna_offset[GPS_MAX_RECEIVERS_BLEND] {};
+
 	sensor_gps_s _gps_blended_state {};
+	matrix::Vector3f _blended_antenna_offset{};
+
 	bool _gps_updated[GPS_MAX_RECEIVERS_BLEND] {};
 	int _selected_gps{0};
 	int _np_gps_suitable_for_blending{0};
-	int _primary_instance{0}; ///< if -1, there is no primary isntance and the best receiver is used // TODO: use device_id
+	int _primary_instance{-1}; ///< if -1, there is no primary instance and the best receiver is used
 	bool _fallback_allowed{false};
 
 	bool _is_new_output_data_available{false};
@@ -144,4 +163,6 @@ private:
 	bool _blend_use_vpos_acc{false};
 
 	float _blending_time_constant{0.f};
+
+	matrix::Dcmf _R{matrix::eye<float, 3>()};        ///< rotation from the FRD body frame to the NED earth frame
 };

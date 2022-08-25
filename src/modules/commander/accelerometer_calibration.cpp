@@ -131,8 +131,8 @@
 #include <px4_platform_common/time.h>
 
 #include <drivers/drv_hrt.h>
-#include <lib/sensor_calibration/Accelerometer.hpp>
-#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/sensor/calibration/Accelerometer.hpp>
+#include <lib/sensor/Utilities.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 #include <matrix/math.hpp>
@@ -229,7 +229,7 @@ static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS
 	}
 
 	// rotate sensor measurements from sensor to body frame using board rotation matrix
-	const Dcmf board_rotation = calibration::GetBoardRotationMatrix();
+	const Dcmf board_rotation = sensor::utilities::GetBoardRotationMatrix();
 
 	for (unsigned s = 0; s < MAX_ACCEL_SENS; s++) {
 		accel_sum[s] = board_rotation * accel_sum[s];
@@ -325,7 +325,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 {
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
 
-	calibration::Accelerometer calibrations[MAX_ACCEL_SENS] {};
+	sensor::calibration::Accelerometer calibrations[MAX_ACCEL_SENS] {};
 	unsigned active_sensors = 0;
 
 	for (uint8_t cur_accel = 0; cur_accel < MAX_ACCEL_SENS; cur_accel++) {
@@ -360,7 +360,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	if (calibrate_from_orientation(mavlink_log_pub, data_collected, accel_calibration_worker, &worker_data,
 				       false) == calibrate_return_ok) {
 
-		const Dcmf board_rotation = calibration::GetBoardRotationMatrix();
+		const Dcmf board_rotation = sensor::utilities::GetBoardRotationMatrix();
 		const Dcmf board_rotation_t = board_rotation.transpose();
 
 		bool param_save = false;
@@ -556,7 +556,7 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 				calibrated = true;
 			}
 
-			calibration::Accelerometer calibration{arp.device_id};
+			sensor::calibration::Accelerometer calibration{arp.device_id};
 
 			if (!calibrated || (offset.norm() > CONSTANTS_ONE_G)
 			    || !PX4_ISFINITE(offset(0))

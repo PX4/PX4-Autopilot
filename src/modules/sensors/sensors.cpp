@@ -45,8 +45,8 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
-
-#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/sensor/calibration/Utilities.hpp>
+#include <lib/sensor/configuration/Utilities.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -95,7 +95,7 @@
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 # include "vehicle_magnetometer/VehicleMagnetometer.hpp"
-# include <lib/sensor_calibration/Magnetometer.hpp>
+# include <lib/sensor/calibration/Magnetometer.hpp>
 # include <uORB/topics/sensor_mag.h>
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
 
@@ -419,16 +419,16 @@ int Sensors::parameters_update()
 	for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
 		// sensor_accel
 		{
-			const uint32_t device_id_accel = calibration::GetCalibrationParamInt32("ACC",  "ID", i);
+			const uint32_t device_id_accel = sensor::calibration::GetCalibrationParamInt32("ACC", "ID", i);
 
 			if (device_id_accel != 0) {
-				calibration::Accelerometer accel_cal(device_id_accel);
+				sensor::calibration::Accelerometer accel_cal(device_id_accel);
 			}
 
 			uORB::SubscriptionData<sensor_accel_s> sensor_accel_sub{ORB_ID(sensor_accel), i};
 
 			if (sensor_accel_sub.advertised() && (sensor_accel_sub.get().device_id != 0)) {
-				calibration::Accelerometer cal;
+				sensor::calibration::Accelerometer cal;
 				cal.set_calibration_index(i);
 				cal.ParametersLoad();
 			}
@@ -437,16 +437,16 @@ int Sensors::parameters_update()
 
 		// sensor_gyro
 		{
-			const uint32_t device_id_gyro = calibration::GetCalibrationParamInt32("GYRO", "ID", i);
+			const uint32_t device_id_gyro = sensor::calibration::GetCalibrationParamInt32("GYRO", "ID", i);
 
 			if (device_id_gyro != 0) {
-				calibration::Gyroscope gyro_cal(device_id_gyro);
+				sensor::calibration::Gyroscope gyro_cal(device_id_gyro);
 			}
 
 			uORB::SubscriptionData<sensor_gyro_s> sensor_gyro_sub{ORB_ID(sensor_gyro), i};
 
 			if (sensor_gyro_sub.advertised() && (sensor_gyro_sub.get().device_id != 0)) {
-				calibration::Gyroscope cal;
+				sensor::calibration::Gyroscope cal;
 				cal.set_calibration_index(i);
 				cal.ParametersLoad();
 			}
@@ -456,21 +456,41 @@ int Sensors::parameters_update()
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 		// sensor_mag
 		{
-			uint32_t device_id_mag = calibration::GetCalibrationParamInt32("MAG",  "ID", i);
+			uint32_t device_id_mag = sensor::calibration::GetCalibrationParamInt32("MAG", "ID", i);
 
 			if (device_id_mag != 0) {
-				calibration::Magnetometer mag_cal(device_id_mag);
+				sensor::calibration::Magnetometer mag_cal(device_id_mag);
 			}
 
 			uORB::SubscriptionData<sensor_mag_s> sensor_mag_sub{ORB_ID(sensor_mag), i};
 
 			if (sensor_mag_sub.advertised() && (sensor_mag_sub.get().device_id != 0)) {
-				calibration::Magnetometer cal;
+				sensor::calibration::Magnetometer cal;
 				cal.set_calibration_index(i);
 				cal.ParametersLoad();
 			}
 		}
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
+
+
+#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
+		// sensor_gps
+		{
+			uint32_t device_id_gnss = sensor::configuration::GetConfigurationParamInt32("GNSS", "ID", i);
+
+			if (device_id_gnss != 0) {
+				sensor::configuration::GNSS gnss_cal(device_id_gnss);
+			}
+
+			uORB::SubscriptionData<sensor_gps_s> sensor_gps_sub{ORB_ID(sensor_gps), i};
+
+			if (sensor_gps_sub.advertised() && (sensor_gps_sub.get().device_id != 0)) {
+				sensor::configuration::GNSS conf;
+				conf.set_configuration_index(i);
+				conf.ParametersLoad();
+			}
+		}
+#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 	}
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
@@ -948,6 +968,15 @@ int Sensors::print_status()
 	_airspeed_validator.print();
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
+#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
+
+	if (_vehicle_gps_position) {
+		PX4_INFO_RAW("\n");
+		_vehicle_gps_position->PrintStatus();
+	}
+
+#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 
 	if (_vehicle_optical_flow) {
@@ -966,15 +995,6 @@ int Sensors::print_status()
 	PX4_INFO_RAW("\n");
 	_vehicle_angular_velocity.PrintStatus();
 #endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
-
-#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-
-	if (_vehicle_gps_position) {
-		PX4_INFO_RAW("\n");
-		_vehicle_gps_position->PrintStatus();
-	}
-
-#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 
 	PX4_INFO_RAW("\n");
 

@@ -182,6 +182,8 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 			gps_sample_new.pos(1) = 0.0f;
 		}
 
+		gps_sample_new.position_body = gps.position_body;
+
 		_gps_buffer->push(gps_sample_new);
 	} else {
 		ECL_ERR("GPS data too fast %" PRIu64, gps.time_usec - _time_last_gps);

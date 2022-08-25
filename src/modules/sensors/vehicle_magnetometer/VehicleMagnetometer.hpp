@@ -35,7 +35,7 @@
 
 #include "data_validator/DataValidatorGroup.hpp"
 
-#include <lib/sensor_calibration/Magnetometer.hpp>
+#include <lib/sensor/calibration/Magnetometer.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
@@ -137,7 +137,7 @@ private:
 
 	matrix::Vector3f _calibration_estimator_bias[MAX_SENSOR_COUNT] {};
 
-	calibration::Magnetometer _calibration[MAX_SENSOR_COUNT];
+	sensor::calibration::Magnetometer _calibration[MAX_SENSOR_COUNT];
 
 	// Magnetometer interference compensation
 	enum class MagCompensationType {

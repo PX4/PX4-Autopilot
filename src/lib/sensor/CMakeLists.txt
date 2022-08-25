@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,17 +31,12 @@
 #
 ############################################################################
 
-px4_add_library(sensor_calibration
-	Accelerometer.cpp
-	Accelerometer.hpp
-	Barometer.cpp
-	Barometer.hpp
-	Gyroscope.cpp
-	Gyroscope.hpp
-	Magnetometer.cpp
-	Magnetometer.hpp
+px4_add_library(sensor_utilities
 	Utilities.cpp
 	Utilities.hpp
 )
 
-target_link_libraries(sensor_calibration PRIVATE conversion)
+target_link_libraries(sensor_utilities PRIVATE conversion)
+
+add_subdirectory(calibration)
+add_subdirectory(configuration)

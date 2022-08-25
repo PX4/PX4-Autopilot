@@ -52,8 +52,8 @@
 #include <lib/mathlib/math/filter/MedianFilter.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
-#include <lib/sensor_calibration/Gyroscope.hpp>
-#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/sensor/calibration/Gyroscope.hpp>
+#include <lib/sensor/Utilities.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionBlocking.hpp>
@@ -68,7 +68,7 @@ using matrix::Vector3f;
 struct gyro_worker_data_t {
 	orb_advert_t *mavlink_log_pub{nullptr};
 
-	calibration::Gyroscope calibrations[MAX_GYROS] {};
+	sensor::calibration::Gyroscope calibrations[MAX_GYROS] {};
 
 	Vector3f offset[MAX_GYROS] {};
 

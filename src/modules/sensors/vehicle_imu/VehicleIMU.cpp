@@ -35,7 +35,7 @@
 
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/events.h>
-#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/sensor/Utilities.hpp>
 #include <lib/systemlib/mavlink_log.h>
 
 #include <float.h>

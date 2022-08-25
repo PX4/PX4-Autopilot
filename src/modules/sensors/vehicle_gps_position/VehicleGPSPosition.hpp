@@ -36,6 +36,7 @@
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
+#include <lib/sensor/configuration/GNSS.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -45,6 +46,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 #include "gps_blending.hpp"
 
@@ -66,7 +68,6 @@ public:
 
 private:
 	void Run() override;
-
 	void ParametersUpdate(bool force = false);
 
 	// defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
@@ -75,27 +76,30 @@ private:
 	static constexpr uint8_t BLEND_MASK_USE_VPOS_ACC = 4;
 
 	// define max number of GPS receivers supported
-	static constexpr int GPS_MAX_RECEIVERS = 2;
+	static constexpr int GPS_MAX_RECEIVERS = 3;
 	static_assert(GPS_MAX_RECEIVERS == GpsBlending::GPS_MAX_RECEIVERS_BLEND,
 		      "GPS_MAX_RECEIVERS must match to GPS_MAX_RECEIVERS_BLEND");
 
 	uORB::Publication<sensor_gps_s> _vehicle_gps_position_pub{ORB_ID(vehicle_gps_position)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_gps_sub[GPS_MAX_RECEIVERS] {	/**< sensor data subscription */
 		{this, ORB_ID(sensor_gps), 0},
 		{this, ORB_ID(sensor_gps), 1},
+		{this, ORB_ID(sensor_gps), 2},
 	};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	GpsBlending _gps_blending;
 
+	sensor::configuration::GNSS _configuration[GPS_MAX_RECEIVERS] {};
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_GPS_MASK>) _param_sens_gps_mask,
-		(ParamFloat<px4::params::SENS_GPS_TAU>) _param_sens_gps_tau,
-		(ParamInt<px4::params::SENS_GPS_PRIME>) _param_sens_gps_prime
+		(ParamFloat<px4::params::SENS_GPS_TAU>) _param_sens_gps_tau
 	)
 };
 }; // namespace sensors

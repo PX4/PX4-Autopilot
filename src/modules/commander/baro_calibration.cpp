@@ -49,8 +49,8 @@
 #include <drivers/drv_hrt.h>
 #include <matrix/math.hpp>
 #include <lib/geo/geo.h>
-#include <lib/sensor_calibration/Barometer.hpp>
-#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/sensor/calibration/Barometer.hpp>
+#include <lib/sensor/Utilities.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/systemlib/err.h>
 #include <uORB/Subscription.hpp>
@@ -102,7 +102,7 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 
 
 	uORB::SubscriptionMultiArray<sensor_baro_s, MAX_SENSOR_COUNT> sensor_baro_subs{ORB_ID::sensor_baro};
-	calibration::Barometer calibration[MAX_SENSOR_COUNT] {};
+	sensor::calibration::Barometer calibration[MAX_SENSOR_COUNT] {};
 
 	uint64_t timestamp_sample_sum[MAX_SENSOR_COUNT] {0};
 	float data_sum[MAX_SENSOR_COUNT] {};
