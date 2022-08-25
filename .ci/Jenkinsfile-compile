@@ -88,6 +88,7 @@ pipeline {
                      "nxp_fmurt1062-v2_default",
                      "nxp_ucans32k146_canbootloader",
                      "nxp_ucans32k146_default",
+                     "nxp_imxrt1170-evk_default",
                      "omnibus_f4sd_default",
                      "px4_fmu-v2_default",
                      "px4_fmu-v2_fixedwing",
