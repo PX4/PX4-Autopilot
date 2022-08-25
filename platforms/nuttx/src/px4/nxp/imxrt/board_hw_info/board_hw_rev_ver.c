@@ -145,6 +145,7 @@ static int dn_to_ordinal(uint16_t dn)
 static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc_channel)
 {
 	int rv = -EIO;
+#if 0 //RT7 Has LPADC needs new driver
 	const unsigned int samples  = 16;
 	/*
 	 * Step one is there resistors?
@@ -167,6 +168,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 	imxrt_config_gpio(PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio_sense));
 
 
+
 	up_udelay(100); /* About 10 TC assuming 485 K */
 
 	/*  Read Drive lines while sense are driven low */
@@ -179,7 +181,6 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 	imxrt_gpio_write(PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio_sense), 1);
 
 	up_udelay(100); /* About 10 TC assuming 485 K */
-
 	/*  Read Drive lines while sense are driven high */
 
 	int high = imxrt_gpio_read(PX4_MAKE_GPIO_INPUT(gpio_drive));
@@ -201,7 +202,6 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 	if ((high ^ low) && low == 0) {
 		/* Yes - Fire up the ADC (it has once control) */
-
 		if (px4_arch_adc_init(HW_REV_VER_ADC_BASE) == OK) {
 
 			/* Read the value */
@@ -230,6 +230,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 	/*  Turn the drive lines to digital outputs High */
 
 	imxrt_config_gpio(gpio_drive);
+#endif
 	return rv;
 }
 
