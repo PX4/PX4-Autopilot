@@ -339,7 +339,7 @@ static inline int entry_size_adjust(flash_entry_header_t *fi)
 static inline flash_entry_header_t *next_entry(flash_entry_header_t *fi)
 {
 	uint8_t *pb = (uint8_t *)fi;
-	return (flash_entry_header_t *) &pb[fi->size];
+	return (flash_entry_header_t *)(pb + fi->size);
 }
 
 /****************************************************************************
@@ -449,22 +449,29 @@ static flash_entry_header_t *find_entry(flash_file_token_t token)
 		/* Hunt for Magic Signature */
 cont:
 
-		while (pmagic != pe && !valid_magic(pmagic)) {
+		while (pmagic < pe && !valid_magic(pmagic)) {
 			pmagic++;
 		}
 
 		/* Did we reach the end
 		 * if so try the next sector */
 
-		if (pmagic == pe) { continue; }
+		if (pmagic >= pe) { continue; }
 
 		/* Found a magic So assume it is a file header */
 
 		flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
 
-		/* Test the CRC */
+		/* Ensure that the header is fully inside the current sector */
 
-		if (pf->crc == crc32(entry_crc_start(pf), entry_crc_length(pf))) {
+		if (pf + 1 > (flash_entry_header_t *)pe) { continue; }
+
+		const uint8_t *crc_start = entry_crc_start(pf);
+		data_size_t crc_length = entry_crc_length(pf);
+
+		if (crc_start + crc_length > (uint8_t *)pe) { continue; }
+
+		if (pf->crc == crc32(crc_start, crc_length)) {
 
 			/* Good CRC is it the one we are looking for ?*/
 
@@ -481,16 +488,15 @@ cont:
 
 				/* If the next one is erased */
 
-				if (blank_entry(pf)) {
+				if (pmagic >= pe || blank_entry(pf)) {
 					continue;
 				}
 			}
 
 			goto cont;
-
 		} else {
 
-			/* in valid CRC so keep looking */
+			/* invalid CRC so keep looking */
 
 			pmagic++;
 		}
@@ -529,6 +535,10 @@ static flash_entry_header_t *find_free(data_size_t required)
 
 				flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
 
+				/* Ensure that the header is fully inside the current sector */
+
+				if (pf + 1 > (flash_entry_header_t *)pe) { break; }
+
 				/* Test the CRC */
 
 				if (pf->crc == crc32(entry_crc_start(pf), entry_crc_length(pf))) {
@@ -543,7 +553,7 @@ static flash_entry_header_t *find_free(data_size_t required)
 				}
 			}
 
-			if (blank_magic(pmagic)) {
+			if (pmagic + (required / sizeof(h_magic_t)) <= pe && blank_magic(pmagic)) {
 
 				flash_entry_header_t *pf = (flash_entry_header_t *) pmagic;
 
@@ -552,7 +562,7 @@ static flash_entry_header_t *find_free(data_size_t required)
 				}
 
 			}
-		}  while (++pmagic != pe);
+		}  while (++pmagic < pe);
 	}
 
 	return NULL;
@@ -595,7 +605,7 @@ static sector_descriptor_t *get_next_sector_descriptor(sector_descriptor_t *
 }
 
 /****************************************************************************
- * Name: get_next_sector
+ * Name: get_sector_info
  *
  * Description:
  *   Given a pointer to a flash entry header returns the sector descriptor
