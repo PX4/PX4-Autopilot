@@ -1038,7 +1038,7 @@ PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
  *
  * @group Commander
  * @min 0
- * @max 5
+ * @max 30
  * @unit s
  */
 PARAM_DEFINE_FLOAT(COM_SPOOLUP_TIME, 1.0f);
