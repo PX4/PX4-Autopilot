@@ -502,14 +502,14 @@ cont:
 				}
 			}
 
-			goto cont;
-
 		} else {
 
 			/* invalid CRC so keep looking */
 
 			pmagic++;
 		}
+
+		goto cont;
 	}
 
 	return NULL;
