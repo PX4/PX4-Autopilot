@@ -3,6 +3,16 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
+# transision from params file to flash-based params (2022-08)
+if [ -f $PARAM_FILE ]
+then
+	param load $PARAM_FILE
+	param save
+	# create a backup
+	mv $PARAM_FILE ${PARAM_FILE}.bak
+	reboot
+fi
+
 param set-default BAT1_V_DIV 11.2
 param set-default BAT1_A_PER_V 59.5
 
