@@ -105,6 +105,7 @@ private:
 	void saveGainsToParams();
 	void backupAndSaveGainsToParams();
 	void revertParamGains();
+	bool isAuxEnableSwitchEnabled();
 
 	const matrix::Vector3f getIdentificationSignal();
 

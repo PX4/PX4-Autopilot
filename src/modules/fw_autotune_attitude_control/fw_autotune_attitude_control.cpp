@@ -230,14 +230,8 @@ void FwAutotuneAttitudeControl::checkFilters()
 	}
 }
 
-void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
+bool FwAutotuneAttitudeControl::isAuxEnableSwitchEnabled()
 {
-	// when identifying an axis, check if the estimate has converged
-	const float converged_thr = 1.f;
-
-	const float temp[5] = {0.f, 0.f, 0.f, 0.f, 0.f};
-	const Vector<float, 5> sys_id_init(temp);
-
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 
@@ -272,7 +266,18 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		break;
 	}
 
-	const bool rc_switch_enabled = (aux_enable_channel != NAN) && (aux_enable_channel > .5f);
+	return (aux_enable_channel != NAN) && (aux_enable_channel > .5f);
+}
+
+void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
+{
+	// when identifying an axis, check if the estimate has converged
+	const float converged_thr = 1.f;
+
+	const float temp[5] = {0.f, 0.f, 0.f, 0.f, 0.f};
+	const Vector<float, 5> sys_id_init(temp);
+
+	const bool rc_switch_enabled = isAuxEnableSwitchEnabled();
 
 	switch (_state) {
 	case state::idle:
