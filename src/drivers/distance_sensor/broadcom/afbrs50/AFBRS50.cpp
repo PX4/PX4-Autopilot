@@ -148,6 +148,7 @@ int AFBRS50::init()
 		PX4_INFO_RAW("AFBR-S50 Chip ID: %u, API Version: %u v%d.%d.%d\n", (uint)id, (uint)value, a, b, c);
 
 		argus_module_version_t mv = Argus_GetModuleVersion(_hnd);
+		argus_laser_type_t lt = Argus_GetLaserType(_hnd);
 
 		switch (mv) {
 		case AFBR_S50MV85G_V1:
@@ -167,11 +168,19 @@ int AFBRS50::init()
 
 		case AFBR_S50LV85D_V1:
 			_min_distance = 0.08f;
-			_max_distance = 30.f;
+
+			if (lt == LASER_H_V2X) {
+				_max_distance = 50.f;
+				PX4_INFO_RAW("AFBR-S50LX85D (v2)\n");
+
+			} else {
+				_max_distance = 30.f;
+				PX4_INFO_RAW("AFBR-S50LV85D (v1)\n");
+			}
+
 			_px4_rangefinder.set_min_distance(_min_distance);
 			_px4_rangefinder.set_max_distance(_max_distance);
 			_px4_rangefinder.set_fov(math::radians(6.f));
-			PX4_INFO_RAW("AFBR-S50LV85D (v1)\n");
 			break;
 
 		case AFBR_S50MV68B_V1:
