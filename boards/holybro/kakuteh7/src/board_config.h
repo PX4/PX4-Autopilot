@@ -182,8 +182,7 @@
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
-// not working on h7 yet, due to ECC
-//#define FLASH_BASED_PARAMS
+#define FLASH_BASED_PARAMS
 
 __BEGIN_DECLS
 
