@@ -98,11 +98,17 @@
 
 extern pthread_mutex_t ekf2_module_mutex;
 
+enum class Ekf2Modes : uint8_t {
+	Single,
+	Multi,
+	Payload
+};
+
 class EKF2 final : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	EKF2() = delete;
-	EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode);
+	EKF2(Ekf2Modes mode, const px4::wq_config_t &config, bool replay_mode);
 	~EKF2() override;
 
 	/** @see ModuleBase */
@@ -132,6 +138,11 @@ private:
 
 	static constexpr uint8_t MAX_NUM_IMUS = 4;
 	static constexpr uint8_t MAX_NUM_MAGS = 4;
+
+	static bool addSingleEkfInstance(bool replay_mode = false);
+	static bool addMultiEkfInstance(uint8_t imu, uint8_t mag, uint8_t ins_instance);
+	static bool addPayloadEkfInstance(uint8_t imu, uint8_t mag, uint8_t ins_instance);
+	static bool initInstance(EKF2 *ekf2_inst, uint8_t imu, uint8_t mag);
 
 	void Run() override;
 
@@ -209,7 +220,7 @@ private:
 	static constexpr float sq(float x) { return x * x; };
 
 	const bool _replay_mode{false};			///< true when we use replay data from a log
-	const bool _multi_mode;
+	const Ekf2Modes _mode;
 	int _instance{0};
 
 	px4::atomic_bool _task_should_exit{false};
@@ -306,7 +317,7 @@ private:
 	uORB::Subscription _vehicle_optical_flow_sub{ORB_ID(vehicle_optical_flow)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
-	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub;
 
 	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
 	hrt_abstime _last_range_sensor_update{0};
@@ -455,7 +466,7 @@ private:
 		_param_ekf2_mag_gate,	///< magnetometer fusion innovation consistency gate size (STD)
 		(ParamExtInt<px4::params::EKF2_DECL_TYPE>)
 		_param_ekf2_decl_type,	///< bitmask used to control the handling of declination data
-		(ParamExtInt<px4::params::EKF2_MAG_TYPE>)
+		(ParamInt<px4::params::EKF2_MAG_TYPE>)
 		_param_ekf2_mag_type,	///< integer used to specify the type of magnetometer fusion used
 		(ParamExtFloat<px4::params::EKF2_MAG_ACCLIM>)
 		_param_ekf2_mag_acclim,	///< integer used to specify the type of magnetometer fusion used
@@ -475,7 +486,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_REQ_VDRIFT>) _param_ekf2_req_vdrift,	///< maximum acceptable vertical drift speed (m/s)
 
 		// measurement source control
-		(ParamExtInt<px4::params::EKF2_AID_MASK>)
+		(ParamInt<px4::params::EKF2_AID_MASK>)
 		_param_ekf2_aid_mask,		///< bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
 		(ParamExtInt<px4::params::EKF2_HGT_REF>) _param_ekf2_hgt_ref,    ///< selects the primary source for height data
 		(ParamExtInt<px4::params::EKF2_BARO_CTRL>) _param_ekf2_baro_ctrl,///< barometer control selection

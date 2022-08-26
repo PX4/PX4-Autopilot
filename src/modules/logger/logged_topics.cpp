@@ -141,6 +141,14 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("estimator_global_position", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_local_position", 500, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_wind", 1000, MAX_ESTIMATOR_INSTANCES);
+
+	add_optional_topic_multi("payload_attitude", 500, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic_multi("payload_global_position", 1000, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic_multi("payload_local_position", 500, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic_multi("payload_wind", 1000, MAX_ESTIMATOR_INSTANCES);
+
+	add_optional_topic_multi("payload_imu", 500, 4);
+	add_optional_topic_multi("payload_imu_status", 1000, 4);
 #endif
 
 	// always add the first instance
