@@ -61,13 +61,20 @@ PARAM_DEFINE_INT32(CANNODE_BITRATE, 1000000);
 PARAM_DEFINE_INT32(CANNODE_TERM, 0);
 
 /**
- * Enable RTCM/MovingBaselineData subscription
+ * Enable MovingBaselineData subscription
  *
- * @min 0
- * @max 2
- * @value 0 Disabled
- * @value 1 Subscribe to MovineBaselineData
- * @value 2 Subscribe to RTCMStream
+ * @boolean
+ * @max 1
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(CANNODE_SUB_MBD, 0);
+
+/**
+ * Enable RTCM subscription
+ *
+ * @boolean
+ * @max 1
  * @reboot_required true
  * @group UAVCAN
  */

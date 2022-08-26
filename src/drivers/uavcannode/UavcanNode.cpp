@@ -316,13 +316,17 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_subscriber_list.add(new BeepCommand(_node));
 	_subscriber_list.add(new LightsCommand(_node));
 
+	int32_t cannode_sub_mdb = 0;
+	param_get(param_find("CANNODE_SUB_MDB"), &cannode_sub_mdb);
+
+	if (cannode_sub_mdb == 1) {
+		_subscriber_list.add(new MovingBaselineData(_node));
+	}
+
 	int32_t cannode_sub_rtcm = 0;
 	param_get(param_find("CANNODE_SUB_RTCM"), &cannode_sub_rtcm);
 
 	if (cannode_sub_rtcm == 1) {
-		_subscriber_list.add(new MovingBaselineData(_node));
-
-	} else if (cannode_sub_rtcm == 2) {
 		_subscriber_list.add(new RTCMStream(_node));
 	}
 
