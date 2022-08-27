@@ -64,13 +64,24 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_attitude);
 	}
 
+	NavModes local_position_modes = NavModes::None;
+
 	if (!reporter.failsafeFlags().local_position_valid && reporter.failsafeFlags().mode_req_local_position != 0) {
+		local_position_modes = (NavModes)reporter.failsafeFlags().mode_req_local_position;
+	}
+
+	if (!reporter.failsafeFlags().local_position_valid_relaxed
+	    && reporter.failsafeFlags().mode_req_local_position_relaxed != 0) {
+		local_position_modes = local_position_modes | (NavModes)reporter.failsafeFlags().mode_req_local_position_relaxed;
+	}
+
+	if (local_position_modes != NavModes::None) {
 		/* EVENT
 		 */
-		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_local_position, health_component_t::system,
+		reporter.armingCheckFailure(local_position_modes, health_component_t::system,
 					    events::ID("check_modes_local_pos"),
 					    events::Log::Error, "No valid local position estimate");
-		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_local_position);
+		reporter.clearCanRunBits(local_position_modes);
 	}
 
 	if (!reporter.failsafeFlags().global_position_valid && reporter.failsafeFlags().mode_req_global_position != 0) {

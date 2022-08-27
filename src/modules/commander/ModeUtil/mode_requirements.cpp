@@ -45,6 +45,7 @@ void getModeRequirements(uint8_t vehicle_type, vehicle_status_flags_s &flags)
 	flags.mode_req_angular_velocity = 0;
 	flags.mode_req_attitude = 0;
 	flags.mode_req_local_position = 0;
+	flags.mode_req_local_position_relaxed = 0;
 	flags.mode_req_global_position = 0;
 	flags.mode_req_local_alt = 0;
 	flags.mode_req_mission = 0;
@@ -63,7 +64,7 @@ void getModeRequirements(uint8_t vehicle_type, vehicle_status_flags_s &flags)
 	// NAVIGATION_STATE_POSCTL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_attitude);
-	setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_local_position);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_local_position_relaxed);
 
 	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_global_position);

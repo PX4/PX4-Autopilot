@@ -7,6 +7,7 @@ uint64 timestamp				# time since system start (microseconds)
 uint32 mode_req_angular_velocity
 uint32 mode_req_attitude
 uint32 mode_req_local_position
+uint32 mode_req_local_position_relaxed
 uint32 mode_req_global_position
 uint32 mode_req_local_alt
 uint32 mode_req_mission
@@ -23,18 +24,13 @@ bool angular_velocity_valid
 bool attitude_valid
 bool local_altitude_valid
 bool local_position_valid		# set to true by the commander app if the quality of the local position estimate is good enough to use for navigation
+bool local_position_valid_relaxed	# Local position with reduced accuracy requirements (e.g. flying with optical flow)
 bool local_velocity_valid		# set to true by the commander app if the quality of the local horizontal velocity data is good enough to use for navigation
 bool global_position_valid		# set to true by the commander app if the quality of the global position estimate is good enough to use for navigation
 bool gps_position_valid
 bool home_position_valid		# indicates a valid home position (a valid home position is not always a valid launch)
 bool escs_error		      		# set to true if one or more ESCs reporting esc_status are offline
 bool escs_failure		      	# set to true if one or more ESCs reporting esc_status has a failure
-
-bool position_reliant_on_gps
-bool position_reliant_on_optical_flow
-bool position_reliant_on_vision_position
-
-bool dead_reckoning
 
 bool offboard_control_signal_lost
 
