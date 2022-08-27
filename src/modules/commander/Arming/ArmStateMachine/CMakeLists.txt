@@ -39,6 +39,6 @@ target_include_directories(ArmStateMachine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ArmStateMachine PUBLIC health_and_arming_checks)
 
 px4_add_functional_gtest(SRC ArmStateMachineTest.cpp
-	LINKLIBS ArmStateMachine health_and_arming_checks sensor_calibration ArmAuthorization mode_util
+	LINKLIBS ArmStateMachine health_and_arming_checks hysteresis sensor_calibration ArmAuthorization mode_util
 	)
 
