@@ -1,4 +1,12 @@
 # Default parameter set for indoor flying with lighthouse tracker / libsurvive fake GPS
 # [ type: outdoor ]
 
-# Nothing done here
+# This file should contain only testing/safety related parameters
+# and nothing that affects autonomous flight
+
+# Default Flight Modes and Kill Switch
+param set COM_FLTMODE1 0
+param set COM_FLTMODE4 2
+param set COM_FLTMODE6 11
+param set RC_MAP_FLTMODE 5
+param set RC_MAP_KILL_SW 7
