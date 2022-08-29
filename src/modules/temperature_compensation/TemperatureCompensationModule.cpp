@@ -65,6 +65,24 @@ void TemperatureCompensationModule::parameters_update()
 {
 	_temperature_compensation.parameters_update();
 
+	// Accel
+	for (uint8_t uorb_index = 0; uorb_index < ACCEL_COUNT_MAX; uorb_index++) {
+		sensor_accel_s report;
+
+		if (_accel_subs[uorb_index].copy(&report)) {
+			int temp = _temperature_compensation.set_sensor_id_accel(report.device_id, uorb_index);
+
+			if (temp < 0) {
+				PX4_INFO("No temperature calibration available for accel %" PRIu8 " (device id %" PRIu32 ")", uorb_index,
+					 report.device_id);
+				_corrections.accel_device_ids[uorb_index] = 0;
+
+			} else {
+				_corrections.accel_device_ids[uorb_index] = report.device_id;
+			}
+		}
+	}
+
 	// Gyro
 	for (uint8_t uorb_index = 0; uorb_index < GYRO_COUNT_MAX; uorb_index++) {
 		sensor_gyro_s report;
@@ -83,20 +101,20 @@ void TemperatureCompensationModule::parameters_update()
 		}
 	}
 
-	// Accel
-	for (uint8_t uorb_index = 0; uorb_index < ACCEL_COUNT_MAX; uorb_index++) {
-		sensor_accel_s report;
+	// Mag
+	for (uint8_t uorb_index = 0; uorb_index < MAG_COUNT_MAX; uorb_index++) {
+		sensor_mag_s report;
 
-		if (_accel_subs[uorb_index].copy(&report)) {
+		if (_mag_subs[uorb_index].copy(&report)) {
 			int temp = _temperature_compensation.set_sensor_id_accel(report.device_id, uorb_index);
 
 			if (temp < 0) {
-				PX4_INFO("No temperature calibration available for accel %" PRIu8 " (device id %" PRIu32 ")", uorb_index,
+				PX4_INFO("No temperature calibration available for mag %" PRIu8 " (device id %" PRIu32 ")", uorb_index,
 					 report.device_id);
-				_corrections.accel_device_ids[uorb_index] = 0;
+				_corrections.mag_device_ids[uorb_index] = 0;
 
 			} else {
-				_corrections.accel_device_ids[uorb_index] = report.device_id;
+				_corrections.mag_device_ids[uorb_index] = report.device_id;
 			}
 		}
 	}
@@ -166,6 +184,29 @@ void TemperatureCompensationModule::gyroPoll()
 	}
 }
 
+void TemperatureCompensationModule::magPoll()
+{
+	float *offsets[] = {_corrections.mag_offset_0, _corrections.mag_offset_1, _corrections.mag_offset_2, _corrections.mag_offset_3 };
+
+	// For each mag instance
+	for (uint8_t uorb_index = 0; uorb_index < MAG_COUNT_MAX; uorb_index++) {
+		sensor_mag_s report;
+
+		// Grab temperature from report
+		if (_mag_subs[uorb_index].update(&report)) {
+			if (PX4_ISFINITE(report.temperature)) {
+				// Update the offsets and mark for publication if they've changed
+				if (_temperature_compensation.update_offsets_mag(uorb_index, report.temperature, offsets[uorb_index]) == 2) {
+
+					_corrections.mag_device_ids[uorb_index] = report.device_id;
+					_corrections.mag_temperature[uorb_index] = report.temperature;
+					_corrections_changed = true;
+				}
+			}
+		}
+	}
+}
+
 void TemperatureCompensationModule::baroPoll()
 {
 	float *offsets[] = {&_corrections.baro_offset_0, &_corrections.baro_offset_1, &_corrections.baro_offset_2, &_corrections.baro_offset_3 };
@@ -204,16 +245,22 @@ void TemperatureCompensationModule::Run()
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION) {
 				bool got_temperature_calibration_command = false;
 				bool accel = false;
-				bool baro = false;
 				bool gyro = false;
+				bool mag = false;
+				bool baro = false;
+
+				if ((int)(cmd.param5) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
+					accel = true;
+					got_temperature_calibration_command = true;
+				}
 
 				if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
 					gyro = true;
 					got_temperature_calibration_command = true;
 				}
 
-				if ((int)(cmd.param5) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
-					accel = true;
+				if ((int)(cmd.param2) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
+					mag = true;
 					got_temperature_calibration_command = true;
 				}
 
@@ -223,7 +270,7 @@ void TemperatureCompensationModule::Run()
 				}
 
 				if (got_temperature_calibration_command) {
-					int ret = run_temperature_calibration(accel, baro, gyro);
+					int ret = run_temperature_calibration(accel, baro, gyro, mag);
 
 					// publish ACK
 					vehicle_command_ack_s command_ack{};
@@ -258,6 +305,7 @@ void TemperatureCompensationModule::Run()
 
 	accelPoll();
 	gyroPoll();
+	magPoll();
 	baroPoll();
 
 	// publish sensor corrections if necessary
@@ -306,27 +354,34 @@ int TemperatureCompensationModule::custom_command(int argc, char *argv[])
 	if (!strcmp(argv[0], "calibrate")) {
 
 		bool accel_calib = false;
-		bool baro_calib = false;
 		bool gyro_calib = false;
+		bool mag_calib = false;
+		bool baro_calib = false;
 		bool calib_all = true;
 		int myoptind = 1;
 		int ch;
+
 		const char *myoptarg = nullptr;
 
-		while ((ch = px4_getopt(argc, argv, "abg", &myoptind, &myoptarg)) != EOF) {
+		while ((ch = px4_getopt(argc, argv, "agmb", &myoptind, &myoptarg)) != EOF) {
 			switch (ch) {
 			case 'a':
 				accel_calib = true;
 				calib_all = false;
 				break;
 
-			case 'b':
-				baro_calib = true;
+			case 'g':
+				gyro_calib = true;
 				calib_all = false;
 				break;
 
-			case 'g':
-				gyro_calib = true;
+			case 'm':
+				mag_calib = true;
+				calib_all = false;
+				break;
+
+			case 'b':
+				baro_calib = true;
 				calib_all = false;
 				break;
 
@@ -349,7 +404,8 @@ int TemperatureCompensationModule::custom_command(int argc, char *argv[])
 		vcmd.timestamp = hrt_absolute_time();
 		vcmd.param1 = (float)((gyro_calib
 				       || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
-		vcmd.param2 = NAN;
+		vcmd.param2 = (float)((mag_calib
+				       || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
 		vcmd.param3 = NAN;
 		vcmd.param4 = NAN;
 		vcmd.param5 = ((accel_calib
@@ -398,8 +454,9 @@ a temperature cycle.
 	PRINT_MODULE_USAGE_NAME("temperature_compensation", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the module, which monitors the sensors and updates the sensor_correction topic");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate", "Run temperature calibration process");
-	PRINT_MODULE_USAGE_PARAM_FLAG('g', "calibrate the gyro", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "calibrate the accel", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('g', "calibrate the gyro", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('m', "calibrate the mag", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('b', "calibrate the baro (if none of these is given, all will be calibrated)", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 

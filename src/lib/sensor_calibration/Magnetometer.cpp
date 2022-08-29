@@ -65,6 +65,46 @@ void Magnetometer::set_device_id(uint32_t device_id)
 		Reset();
 
 		ParametersUpdate();
+		SensorCorrectionsUpdate(true);
+	}
+}
+
+void Magnetometer::SensorCorrectionsUpdate(bool force)
+{
+	// check if the selected sensor has updated
+	if (_sensor_correction_sub.updated() || force) {
+
+		// valid device id required
+		if (_device_id == 0) {
+			return;
+		}
+
+		sensor_correction_s corrections;
+
+		if (_sensor_correction_sub.copy(&corrections)) {
+			// find sensor_corrections index
+			for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+				if (corrections.mag_device_ids[i] == _device_id) {
+					switch (i) {
+					case 0:
+						_thermal_offset = Vector3f{corrections.mag_offset_0};
+						return;
+					case 1:
+						_thermal_offset = Vector3f{corrections.mag_offset_1};
+						return;
+					case 2:
+						_thermal_offset = Vector3f{corrections.mag_offset_2};
+						return;
+					case 3:
+						_thermal_offset = Vector3f{corrections.mag_offset_3};
+						return;
+					}
+				}
+			}
+		}
+
+		// zero thermal offset if not found
+		_thermal_offset.zero();
 	}
 }
 

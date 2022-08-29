@@ -46,7 +46,10 @@
 #include <lib/drivers/device/i2c.h>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/perf/perf_counter.h>
+#include <lib/sensor_calibration/Barometer.hpp>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/sensor_baro.h>
 
 using namespace iSentek_IST8308;
 
@@ -61,9 +64,17 @@ public:
 	void RunImpl();
 
 	int init() override;
+
 	void print_status() override;
 
 private:
+	enum class STATE : uint8_t {
+		RESET,
+		WAIT_FOR_RESET,
+		CONFIGURE,
+		READ,
+	} _state{STATE::RESET};
+
 	// Sensor Configuration
 	struct register_config_t {
 		Register reg;
@@ -80,8 +91,14 @@ private:
 	bool RegisterCheck(const register_config_t &reg_cfg);
 
 	uint8_t RegisterRead(Register reg);
+
 	void RegisterWrite(Register reg, uint8_t value);
+
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
+
+	void UpdateTemperature();
+
+	uORB::SubscriptionMultiArray<sensor_baro_s, calibration::Barometer::MAX_SENSOR_COUNT> _sensor_baro_sub{ORB_ID::sensor_baro};
 
 	PX4Magnetometer _px4_mag;
 
@@ -91,17 +108,14 @@ private:
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
+	hrt_abstime _temperature_update_timestamp{0};
+
 	int _failure_count{0};
 
-	enum class STATE : uint8_t {
-		RESET,
-		WAIT_FOR_RESET,
-		CONFIGURE,
-		READ,
-	} _state{STATE::RESET};
-
 	uint8_t _checked_register{0};
+
 	static constexpr uint8_t size_register_cfg{6};
+
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register               | Set bits, Clear bits
 		{ Register::ACTR,         0, ACTR_BIT::SUSPEND_EN },
