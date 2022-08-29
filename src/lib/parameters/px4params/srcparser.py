@@ -173,8 +173,8 @@ class SourceParser(object):
     Parses provided data and stores all found parameters internally.
     """
 
-    re_split_lines = re.compile(r'[\r\n]+')
-    re_comment_start = re.compile(r'^\/\*\*')
+    re_split_lines = re.compile(r'[\r\n]+')     # \n and/or \r
+    re_comment_start = re.compile(r'^\/\*\*')   # /**
     re_comment_content = re.compile(r'^\*\s*(.*)')
     re_comment_tag = re.compile(r'@([a-zA-Z][a-zA-Z0-9_]*)\s*(.*)')
     re_comment_end = re.compile(r'(.*?)\s*\*\/')
@@ -206,11 +206,15 @@ class SourceParser(object):
         # represents parser state. It contains human-readable state
         # names.
         state = None
+
+        # Go through the whole file line by line (includes comments, functions, etc)
         for line in self.re_split_lines.split(contents):
             line = line.strip()
             # Ignore empty lines
             if line == "":
                 continue
+
+            # Find comment start
             if self.re_comment_start.match(line):
                 state = "wait-short"
                 short_desc = None
@@ -218,21 +222,25 @@ class SourceParser(object):
                 tags = {}
                 def_values = {}
                 def_bitmask = {}
-            elif state is not None and state != "comment-processed":
+                continue
+
+            # Process comment content
+            if state is not None and state != "comment-processed":
+                # Handle last line of the comment
                 m = self.re_comment_end.search(line)
                 if m:
                     line = m.group(1)
                     last_comment_line = True
                 else:
                     last_comment_line = False
+
                 m = self.re_comment_content.match(line)
                 if m:
                     comment_content = m.group(1)
-                    if comment_content == "":
+                    if comment_content == "" and state == "wait-short-end":
                         # When short comment ends with empty comment line,
                         # start waiting for the next part - long comment.
-                        if state == "wait-short-end":
-                            state = "wait-long"
+                        state = "wait-long"
                     else:
                         m = self.re_comment_tag.match(comment_content)
                         if m:
@@ -255,14 +263,14 @@ class SourceParser(object):
                             state = "wait-short-end"
                         elif state == "wait-short-end":
                             # Append comment line to the short description
-                            short_desc += "\n" + comment_content
+                            short_desc += " " + comment_content
                         elif state == "wait-long":
                             # Store first line of the long description
                             long_desc = comment_content
                             state = "wait-long-end"
                         elif state == "wait-long-end":
                             # Append comment line to the long description
-                            long_desc += "\n" + comment_content
+                            long_desc += " " + comment_content
                         elif state == "wait-tag-end":
                             # Append comment line to the tag text
                             tags[current_tag] += "\n" + comment_content
@@ -311,7 +319,7 @@ class SourceParser(object):
                                 raise Exception('short description too long (150 max, is {:}, parameter: {:})'.format(len(short_desc), name))
                             param.SetField("short_desc", self.re_remove_dots.sub('', short_desc))
                         if long_desc is not None:
-                            long_desc = self.re_remove_carriage_return.sub(' ', long_desc)
+                            #long_desc = self.re_remove_carriage_return.sub(' ', long_desc)
                             param.SetField("long_desc", long_desc)
                         for tag in tags:
                             if tag == "group":
