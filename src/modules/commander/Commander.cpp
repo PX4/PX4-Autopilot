@@ -1845,199 +1845,22 @@ Commander::run()
 		/* Update OA parameter */
 		_vehicle_status.avoidance_system_required = _param_com_obs_avoid.get();
 
-#if defined(BOARD_HAS_POWER_CONTROL)
-
-		/* handle power button state */
-		if (_power_button_state_sub.updated()) {
-			power_button_state_s button_state;
-
-			if (_power_button_state_sub.copy(&button_state)) {
-				if (button_state.event == power_button_state_s::PWR_BUTTON_STATE_REQUEST_SHUTDOWN) {
-					if (shutdown_if_allowed() && (px4_shutdown_request() == 0)) {
-						while (1) { px4_usleep(1); }
-					}
-				}
-			}
-		}
-
-#endif // BOARD_HAS_POWER_CONTROL
+		handlePowerButtonState();
 
 		offboard_control_update();
 
-		if (_system_power_sub.updated()) {
-			system_power_s system_power{};
-			_system_power_sub.copy(&system_power);
+		systemPowerUpdate();
 
-			if (hrt_elapsed_time(&system_power.timestamp) < 1_s) {
-				if (system_power.servo_valid &&
-				    !system_power.brick_valid &&
-				    !system_power.usb_connected) {
-					/* flying only on servo rail, this is unsafe */
-					_vehicle_status.power_input_valid = false;
+		landDetectorUpdate();
 
-				} else {
-					_vehicle_status.power_input_valid = true;
-				}
-			}
-		}
+		safetyButtonUpdate();
 
-		/* Update land detector */
-		if (_vehicle_land_detected_sub.updated()) {
-			const bool was_landed = _vehicle_land_detected.landed;
-			_vehicle_land_detected_sub.copy(&_vehicle_land_detected);
-
-			// Only take actions if armed
-			if (_arm_state_machine.isArmed()) {
-				if (!was_landed && _vehicle_land_detected.landed) {
-					mavlink_log_info(&_mavlink_log_pub, "Landing detected\t");
-					events::send(events::ID("commander_landing_detected"), events::Log::Info, "Landing detected");
-					_vehicle_status.takeoff_time = 0;
-
-				} else if (was_landed && !_vehicle_land_detected.landed) {
-					mavlink_log_info(&_mavlink_log_pub, "Takeoff detected\t");
-					events::send(events::ID("commander_takeoff_detected"), events::Log::Info, "Takeoff detected");
-					_vehicle_status.takeoff_time = hrt_absolute_time();
-					_have_taken_off_since_arming = true;
-				}
-
-				// automatically set or update home position
-				if (_param_com_home_en.get()) {
-					// set the home position when taking off, but only if we were previously disarmed
-					// and at least 500 ms from commander start spent to avoid setting home on in-air restart
-					if (!_vehicle_land_detected.landed && (hrt_elapsed_time(&_boot_timestamp) > INAIR_RESTART_HOLDOFF_INTERVAL)) {
-						if (was_landed) {
-							_home_position.setHomePosition();
-
-						} else if (_param_com_home_in_air.get()) {
-							_home_position.setInAirHomePosition();
-						}
-					}
-				}
-			}
-		}
-
-		/* safety button */
-		const bool safety_changed = _safety.safetyButtonHandler();
-		_vehicle_status.safety_button_available = _safety.isButtonAvailable();
-		_vehicle_status.safety_off = _safety.isSafetyOff();
-
-		if (safety_changed) {
-			// Notify the user if the status of the safety button changes
-			if (!_safety.isSafetyDisabled()) {
-				if (_safety.isSafetyOff()) {
-					set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
-
-				} else {
-					tune_neutral(true);
-				}
-			}
-
-			_status_changed = true;
-		}
-
-		/* update vtol vehicle status*/
-		if (_vtol_vehicle_status_sub.updated()) {
-			/* vtol status changed */
-			_vtol_vehicle_status_sub.copy(&_vtol_vehicle_status);
-
-			/* Make sure that this is only adjusted if vehicle really is of type vtol */
-			if (is_vtol(_vehicle_status)) {
-
-				// Check if there has been any change while updating the flags (transition = rotary wing status)
-				const auto new_vehicle_type = _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW ?
-							      vehicle_status_s::VEHICLE_TYPE_FIXED_WING :
-							      vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
-
-				if (new_vehicle_type != _vehicle_status.vehicle_type) {
-					_vehicle_status.vehicle_type = new_vehicle_type;
-					_status_changed = true;
-				}
-
-				const bool new_in_transition = _vtol_vehicle_status.vehicle_vtol_state ==
-							       vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW
-							       || _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC;
-
-				if (_vehicle_status.in_transition_mode != new_in_transition) {
-					_vehicle_status.in_transition_mode = new_in_transition;
-					_status_changed = true;
-				}
-
-				if (_vehicle_status.in_transition_to_fw != (_vtol_vehicle_status.vehicle_vtol_state ==
-						vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW)) {
-					_vehicle_status.in_transition_to_fw = (_vtol_vehicle_status.vehicle_vtol_state ==
-									       vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW);
-					_status_changed = true;
-				}
-
-				if (_vehicle_status_flags.vtol_transition_failure != _vtol_vehicle_status.vtol_transition_failsafe) {
-					_vehicle_status_flags.vtol_transition_failure = _vtol_vehicle_status.vtol_transition_failsafe;
-					_status_changed = true;
-				}
-
-				const bool should_soft_stop = (_vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-
-				if (_actuator_armed.soft_stop != should_soft_stop) {
-					_actuator_armed.soft_stop = should_soft_stop;
-					_status_changed = true;
-				}
-			}
-		}
+		vtolStatusUpdate();
 
 		_home_position.update(_param_com_home_en.get(), !_arm_state_machine.isArmed() && _vehicle_land_detected.landed);
 		_vehicle_status_flags.home_position_valid = _home_position.valid();
 
-		// Auto disarm when landed or kill switch engaged
-		if (_arm_state_machine.isArmed()) {
-
-			// Check for auto-disarm on landing or pre-flight
-			if (_param_com_disarm_land.get() > 0 || _param_com_disarm_preflight.get() > 0) {
-
-				const bool landed_amid_mission = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
-								 && !_mission_result_sub.get().finished;
-
-				if (_param_com_disarm_land.get() > 0 && _have_taken_off_since_arming && !landed_amid_mission) {
-					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
-					_auto_disarm_landed.set_state_and_update(_vehicle_land_detected.landed, hrt_absolute_time());
-
-				} else if (_param_com_disarm_preflight.get() > 0 && !_have_taken_off_since_arming) {
-					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
-					_auto_disarm_landed.set_state_and_update(true, hrt_absolute_time());
-				}
-
-				if (_auto_disarm_landed.get_state()) {
-					if (_have_taken_off_since_arming) {
-						disarm(arm_disarm_reason_t::auto_disarm_land);
-
-					} else {
-						disarm(arm_disarm_reason_t::auto_disarm_preflight);
-					}
-				}
-			}
-
-			// Auto disarm after 5 seconds if kill switch is engaged
-			bool auto_disarm = _actuator_armed.manual_lockdown;
-
-			// auto disarm if locked down to avoid user confusion
-			//  skipped in HITL where lockdown is enabled for safety
-			if (_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) {
-				auto_disarm |= _actuator_armed.lockdown;
-			}
-
-			_auto_disarm_killed.set_state_and_update(auto_disarm, hrt_absolute_time());
-
-			if (_auto_disarm_killed.get_state()) {
-				if (_actuator_armed.manual_lockdown) {
-					disarm(arm_disarm_reason_t::kill_switch, true);
-
-				} else {
-					disarm(arm_disarm_reason_t::lockdown, true);
-				}
-			}
-
-		} else {
-			_auto_disarm_landed.set_state_and_update(false, hrt_absolute_time());
-			_auto_disarm_killed.set_state_and_update(false, hrt_absolute_time());
-		}
+		handleAutoDisarm();
 
 		if (_geofence_warning_action_on
 		    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
@@ -2058,68 +1881,7 @@ Commander::run()
 					true /* fRunPreArmChecks */, &_mavlink_log_pub, arm_disarm_reason_t::transition_to_standby);
 		}
 
-		/* start mission result check */
-		if (_mission_result_sub.updated()) {
-			const mission_result_s &mission_result = _mission_result_sub.get();
-
-			const auto prev_mission_instance_count = mission_result.instance_count;
-			_mission_result_sub.update();
-
-			// if mission_result is valid for the current mission
-			const bool mission_result_ok = (mission_result.timestamp > _boot_timestamp)
-						       && (mission_result.instance_count > 0);
-
-			_vehicle_status.auto_mission_available = mission_result_ok && mission_result.valid;
-
-			if (mission_result_ok) {
-				if (_vehicle_status.mission_failure != mission_result.failure) {
-					_vehicle_status.mission_failure = mission_result.failure;
-					_status_changed = true;
-
-					if (_vehicle_status.mission_failure) {
-						// navigator sends out the exact reason
-						mavlink_log_critical(&_mavlink_log_pub, "Mission cannot be completed\t");
-						events::send(events::ID("commander_mission_cannot_be_completed"), {events::Log::Critical, events::LogInternal::Info},
-							     "Mission cannot be completed");
-					}
-				}
-
-				/* Only evaluate mission state if home is set */
-				if (_vehicle_status_flags.home_position_valid &&
-				    (prev_mission_instance_count != mission_result.instance_count)) {
-
-					if (!_vehicle_status.auto_mission_available) {
-						/* the mission is invalid */
-						tune_mission_fail(true);
-
-					} else if (mission_result.warning) {
-						/* the mission has a warning */
-						tune_mission_warn(true);
-
-					} else {
-						/* the mission is valid */
-						tune_mission_ok(true);
-					}
-				}
-			}
-
-			// Transition main state to loiter or auto-mission after takeoff is completed.
-			if (_arm_state_machine.isArmed() && !_vehicle_land_detected.landed
-			    && (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
-				_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
-			    && (mission_result.timestamp >= _vehicle_status.nav_state_timestamp)
-			    && mission_result.finished) {
-
-				if ((_param_takeoff_finished_action.get() == 1) && _vehicle_status.auto_mission_available) {
-					main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_MISSION, _vehicle_status_flags,
-							      _commander_state);
-
-				} else {
-					main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _vehicle_status_flags,
-							      _commander_state);
-				}
-			}
-		}
+		checkForMissionUpdate();
 
 		/* start geofence result check */
 		if (_geofence_result_sub.update(&_geofence_result)) {
@@ -2229,30 +1991,6 @@ Commander::run()
 			_geofence_land_on = false;
 			_geofence_warning_action_on = false;
 			_geofence_violated_prev = false;
-		}
-
-		/* Check for mission flight termination */
-		if (_arm_state_machine.isArmed() && _mission_result_sub.get().flight_termination &&
-		    !_circuit_breaker_flight_termination_disabled) {
-
-
-			if (!_flight_termination_triggered && !_lockdown_triggered) {
-				// navigator only requests flight termination on GPS failure
-				mavlink_log_critical(&_mavlink_log_pub, "GPS failure: Flight terminated\t");
-				events::send(events::ID("commander_mission_termination"), {events::Log::Alert, events::LogInternal::Warning},
-					     "GPS failure: Flight terminated");
-				_flight_termination_triggered = true;
-				_actuator_armed.force_failsafe = true;
-				_status_changed = true;
-				send_parachute_command();
-			}
-
-			if (hrt_elapsed_time(&_last_termination_message_sent) > 4_s) {
-				_last_termination_message_sent = hrt_absolute_time();
-				mavlink_log_critical(&_mavlink_log_pub, "Flight termination active\t");
-				events::send(events::ID("commander_mission_termination_active"), {events::Log::Alert, events::LogInternal::Warning},
-					     "Flight termination active");
-			}
 		}
 
 		manual_control_check();
@@ -2526,39 +2264,7 @@ Commander::run()
 			_failsafe_old = _vehicle_status.failsafe;
 		}
 
-
-		// prearm mode
-		switch ((PrearmedMode)_param_com_prearm_mode.get()) {
-		case PrearmedMode::DISABLED:
-			/* skip prearmed state  */
-			_actuator_armed.prearmed = false;
-			break;
-
-		case PrearmedMode::ALWAYS:
-			/* safety is not present, go into prearmed
-			* (all output drivers should be started / unlocked last in the boot process
-			* when the rest of the system is fully initialized)
-			*/
-			_actuator_armed.prearmed = (hrt_elapsed_time(&_boot_timestamp) > 5_s);
-			break;
-
-		case PrearmedMode::SAFETY_BUTTON:
-			if (_safety.isButtonAvailable()) {
-				/* safety button is present, go into prearmed if safety is off */
-				_actuator_armed.prearmed = _safety.isSafetyOff();
-
-			} else {
-				/* safety button is not present, do not go into prearmed */
-				_actuator_armed.prearmed = false;
-			}
-
-			break;
-
-		default:
-			_actuator_armed.prearmed = false;
-			break;
-		}
-
+		_actuator_armed.prearmed = getPrearmState();
 
 		// publish states (armed, control_mode, vehicle_status, commander_state, vehicle_status_flags, failure_detector_status) at 2 Hz or immediately when changed
 		if (hrt_elapsed_time(&_vehicle_status.timestamp) >= 500_ms || _status_changed || nav_state_changed
@@ -2613,59 +2319,9 @@ Commander::run()
 			_failure_detector_status_pub.publish(fd_status);
 		}
 
-		/* play arming and battery warning tunes */
-		if (!_arm_tune_played && _arm_state_machine.isArmed()) {
+		checkWorkerThread();
 
-			/* play tune when armed */
-			set_tune(tune_control_s::TUNE_ID_ARMING_WARNING);
-			_arm_tune_played = true;
-
-		} else if (!_vehicle_status.usb_connected &&
-			   (_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
-			   (_battery_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
-			/* play tune on battery critical */
-			set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_FAST);
-
-		} else if ((_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
-			   (_battery_warning == battery_status_s::BATTERY_WARNING_LOW)) {
-			/* play tune on battery warning */
-			set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW);
-
-		} else if (_vehicle_status.failsafe && _arm_state_machine.isArmed()) {
-			tune_failsafe(true);
-
-		} else {
-			set_tune(tune_control_s::TUNE_ID_STOP);
-		}
-
-		/* reset arm_tune_played when disarmed */
-		if (!_arm_state_machine.isArmed()) {
-
-			// Notify the user that it is safe to approach the vehicle
-			if (_arm_tune_played) {
-				tune_neutral(true);
-			}
-
-			_arm_tune_played = false;
-		}
-
-		// check if the worker has finished
-		if (_worker_thread.hasResult()) {
-			int ret = _worker_thread.getResultAndReset();
-			_actuator_armed.in_esc_calibration_mode = false;
-
-			if (_vehicle_status_flags.calibration_enabled) { // did we do a calibration?
-				_vehicle_status_flags.calibration_enabled = false;
-
-				if (ret == 0) {
-					tune_positive(true);
-
-				} else {
-					tune_negative(true);
-				}
-			}
-		}
-
+		updateTunes();
 		control_status_leds(_status_changed, _battery_warning);
 
 		_status_changed = false;
@@ -2689,6 +2345,379 @@ Commander::run()
 	/* close fds */
 	led_deinit();
 	buzzer_deinit();
+}
+
+void Commander::checkForMissionUpdate()
+{
+	if (_mission_result_sub.updated()) {
+		const mission_result_s &mission_result = _mission_result_sub.get();
+
+		const auto prev_mission_instance_count = mission_result.instance_count;
+		_mission_result_sub.update();
+
+		// if mission_result is valid for the current mission
+		const bool mission_result_ok = (mission_result.timestamp > _boot_timestamp)
+					       && (mission_result.instance_count > 0);
+
+		_vehicle_status.auto_mission_available = mission_result_ok && mission_result.valid;
+
+		if (mission_result_ok) {
+			if (_vehicle_status.mission_failure != mission_result.failure) {
+				_vehicle_status.mission_failure = mission_result.failure;
+				_status_changed = true;
+
+				if (_vehicle_status.mission_failure) {
+					// navigator sends out the exact reason
+					mavlink_log_critical(&_mavlink_log_pub, "Mission cannot be completed\t");
+					events::send(events::ID("commander_mission_cannot_be_completed"), {events::Log::Critical, events::LogInternal::Info},
+						     "Mission cannot be completed");
+				}
+			}
+
+			/* Only evaluate mission state if home is set */
+			if (_vehicle_status_flags.home_position_valid &&
+			    (prev_mission_instance_count != mission_result.instance_count)) {
+
+				if (!_vehicle_status.auto_mission_available) {
+					/* the mission is invalid */
+					tune_mission_fail(true);
+
+				} else if (mission_result.warning) {
+					/* the mission has a warning */
+					tune_mission_warn(true);
+
+				} else {
+					/* the mission is valid */
+					tune_mission_ok(true);
+				}
+			}
+		}
+
+		// Transition main state to loiter or auto-mission after takeoff is completed.
+		if (_arm_state_machine.isArmed() && !_vehicle_land_detected.landed
+		    && (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
+			_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
+		    && (mission_result.timestamp >= _vehicle_status.nav_state_timestamp)
+		    && mission_result.finished) {
+
+			if ((_param_takeoff_finished_action.get() == 1) && _vehicle_status.auto_mission_available) {
+				main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_MISSION, _vehicle_status_flags,
+						      _commander_state);
+
+			} else {
+				main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _vehicle_status_flags,
+						      _commander_state);
+			}
+		}
+
+		// Check for mission flight termination
+		if (_arm_state_machine.isArmed() && mission_result.flight_termination &&
+		    !_circuit_breaker_flight_termination_disabled) {
+
+			if (!_flight_termination_triggered && !_lockdown_triggered) {
+				// navigator only requests flight termination on GPS failure
+				mavlink_log_critical(&_mavlink_log_pub, "GPS failure: Flight terminated\t");
+				events::send(events::ID("commander_mission_termination"), {events::Log::Alert, events::LogInternal::Warning},
+					     "GPS failure: Flight terminated");
+				_flight_termination_triggered = true;
+				_actuator_armed.force_failsafe = true;
+				_status_changed = true;
+				send_parachute_command();
+			}
+
+			if (hrt_elapsed_time(&_last_termination_message_sent) > 4_s) {
+				_last_termination_message_sent = hrt_absolute_time();
+				mavlink_log_critical(&_mavlink_log_pub, "Flight termination active\t");
+				events::send(events::ID("commander_mission_termination_active"), {events::Log::Alert, events::LogInternal::Warning},
+					     "Flight termination active");
+			}
+		}
+	}
+}
+
+bool Commander::getPrearmState() const
+{
+	switch ((PrearmedMode)_param_com_prearm_mode.get()) {
+	case PrearmedMode::DISABLED:
+		/* skip prearmed state  */
+		return false;
+
+	case PrearmedMode::ALWAYS:
+		/* safety is not present, go into prearmed
+		* (all output drivers should be started / unlocked last in the boot process
+		* when the rest of the system is fully initialized)
+		*/
+		return hrt_elapsed_time(&_boot_timestamp) > 5_s;
+
+	case PrearmedMode::SAFETY_BUTTON:
+		if (_safety.isButtonAvailable()) {
+			/* safety button is present, go into prearmed if safety is off */
+			return _safety.isSafetyOff();
+		}
+
+		/* safety button is not present, do not go into prearmed */
+		return false;
+	}
+
+	return false;
+}
+
+void Commander::handlePowerButtonState()
+{
+#if defined(BOARD_HAS_POWER_CONTROL)
+
+	/* handle power button state */
+	if (_power_button_state_sub.updated()) {
+		power_button_state_s button_state;
+
+		if (_power_button_state_sub.copy(&button_state)) {
+			if (button_state.event == power_button_state_s::PWR_BUTTON_STATE_REQUEST_SHUTDOWN) {
+				if (shutdown_if_allowed() && (px4_shutdown_request() == 0)) {
+					while (1) { px4_usleep(1); }
+				}
+			}
+		}
+	}
+
+#endif // BOARD_HAS_POWER_CONTROL
+}
+
+void Commander::systemPowerUpdate()
+{
+	system_power_s system_power;
+
+	if (_system_power_sub.update(&system_power)) {
+
+		if (hrt_elapsed_time(&system_power.timestamp) < 1_s) {
+			if (system_power.servo_valid &&
+			    !system_power.brick_valid &&
+			    !system_power.usb_connected) {
+				/* flying only on servo rail, this is unsafe */
+				_vehicle_status.power_input_valid = false;
+
+			} else {
+				_vehicle_status.power_input_valid = true;
+			}
+		}
+	}
+}
+
+void Commander::landDetectorUpdate()
+{
+	if (_vehicle_land_detected_sub.updated()) {
+		const bool was_landed = _vehicle_land_detected.landed;
+		_vehicle_land_detected_sub.copy(&_vehicle_land_detected);
+
+		// Only take actions if armed
+		if (_arm_state_machine.isArmed()) {
+			if (!was_landed && _vehicle_land_detected.landed) {
+				mavlink_log_info(&_mavlink_log_pub, "Landing detected\t");
+				events::send(events::ID("commander_landing_detected"), events::Log::Info, "Landing detected");
+				_vehicle_status.takeoff_time = 0;
+
+			} else if (was_landed && !_vehicle_land_detected.landed) {
+				mavlink_log_info(&_mavlink_log_pub, "Takeoff detected\t");
+				events::send(events::ID("commander_takeoff_detected"), events::Log::Info, "Takeoff detected");
+				_vehicle_status.takeoff_time = hrt_absolute_time();
+				_have_taken_off_since_arming = true;
+			}
+
+			// automatically set or update home position
+			if (_param_com_home_en.get()) {
+				// set the home position when taking off, but only if we were previously disarmed
+				// and at least 500 ms from commander start spent to avoid setting home on in-air restart
+				if (!_vehicle_land_detected.landed && (hrt_elapsed_time(&_boot_timestamp) > INAIR_RESTART_HOLDOFF_INTERVAL)) {
+					if (was_landed) {
+						_home_position.setHomePosition();
+
+					} else if (_param_com_home_in_air.get()) {
+						_home_position.setInAirHomePosition();
+					}
+				}
+			}
+		}
+	}
+}
+
+void Commander::safetyButtonUpdate()
+{
+	const bool safety_changed = _safety.safetyButtonHandler();
+	_vehicle_status.safety_button_available = _safety.isButtonAvailable();
+	_vehicle_status.safety_off = _safety.isSafetyOff();
+
+	if (safety_changed) {
+		// Notify the user if the status of the safety button changes
+		if (!_safety.isSafetyDisabled()) {
+			if (_safety.isSafetyOff()) {
+				set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
+
+			} else {
+				tune_neutral(true);
+			}
+		}
+
+		_status_changed = true;
+	}
+}
+
+void Commander::vtolStatusUpdate()
+{
+	// Make sure that this is only adjusted if vehicle really is of type vtol
+	if (_vtol_vehicle_status_sub.update(&_vtol_vehicle_status) && is_vtol(_vehicle_status)) {
+
+		// Check if there has been any change while updating the flags (transition = rotary wing status)
+		const auto new_vehicle_type = _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW ?
+					      vehicle_status_s::VEHICLE_TYPE_FIXED_WING :
+					      vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+		if (new_vehicle_type != _vehicle_status.vehicle_type) {
+			_vehicle_status.vehicle_type = new_vehicle_type;
+			_status_changed = true;
+		}
+
+		const bool new_in_transition = _vtol_vehicle_status.vehicle_vtol_state ==
+					       vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW
+					       || _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC;
+
+		if (_vehicle_status.in_transition_mode != new_in_transition) {
+			_vehicle_status.in_transition_mode = new_in_transition;
+			_status_changed = true;
+		}
+
+		if (_vehicle_status.in_transition_to_fw != (_vtol_vehicle_status.vehicle_vtol_state ==
+				vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW)) {
+			_vehicle_status.in_transition_to_fw = (_vtol_vehicle_status.vehicle_vtol_state ==
+							       vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW);
+			_status_changed = true;
+		}
+
+		if (_vehicle_status_flags.vtol_transition_failure != _vtol_vehicle_status.vtol_transition_failsafe) {
+			_vehicle_status_flags.vtol_transition_failure = _vtol_vehicle_status.vtol_transition_failsafe;
+			_status_changed = true;
+		}
+
+		const bool should_soft_stop = (_vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+
+		if (_actuator_armed.soft_stop != should_soft_stop) {
+			_actuator_armed.soft_stop = should_soft_stop;
+			_status_changed = true;
+		}
+	}
+}
+
+void Commander::updateTunes()
+{
+	// play arming and battery warning tunes
+	if (!_arm_tune_played && _arm_state_machine.isArmed()) {
+
+		/* play tune when armed */
+		set_tune(tune_control_s::TUNE_ID_ARMING_WARNING);
+		_arm_tune_played = true;
+
+	} else if (!_vehicle_status.usb_connected &&
+		   (_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
+		   (_battery_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
+		/* play tune on battery critical */
+		set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_FAST);
+
+	} else if ((_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
+		   (_battery_warning == battery_status_s::BATTERY_WARNING_LOW)) {
+		/* play tune on battery warning */
+		set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW);
+
+	} else if (_vehicle_status.failsafe && _arm_state_machine.isArmed()) {
+		tune_failsafe(true);
+
+	} else {
+		set_tune(tune_control_s::TUNE_ID_STOP);
+	}
+
+	/* reset arm_tune_played when disarmed */
+	if (!_arm_state_machine.isArmed()) {
+
+		// Notify the user that it is safe to approach the vehicle
+		if (_arm_tune_played) {
+			tune_neutral(true);
+		}
+
+		_arm_tune_played = false;
+	}
+}
+
+void Commander::checkWorkerThread()
+{
+	// check if the worker has finished
+	if (_worker_thread.hasResult()) {
+		int ret = _worker_thread.getResultAndReset();
+		_actuator_armed.in_esc_calibration_mode = false;
+
+		if (_vehicle_status_flags.calibration_enabled) { // did we do a calibration?
+			_vehicle_status_flags.calibration_enabled = false;
+
+			if (ret == 0) {
+				tune_positive(true);
+
+			} else {
+				tune_negative(true);
+			}
+		}
+	}
+}
+
+void Commander::handleAutoDisarm()
+{
+	// Auto disarm when landed or kill switch engaged
+	if (_arm_state_machine.isArmed()) {
+
+		// Check for auto-disarm on landing or pre-flight
+		if (_param_com_disarm_land.get() > 0 || _param_com_disarm_preflight.get() > 0) {
+
+			const bool landed_amid_mission = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
+							 && !_mission_result_sub.get().finished;
+
+			if (_param_com_disarm_land.get() > 0 && _have_taken_off_since_arming && !landed_amid_mission) {
+				_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
+				_auto_disarm_landed.set_state_and_update(_vehicle_land_detected.landed, hrt_absolute_time());
+
+			} else if (_param_com_disarm_preflight.get() > 0 && !_have_taken_off_since_arming) {
+				_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
+				_auto_disarm_landed.set_state_and_update(true, hrt_absolute_time());
+			}
+
+			if (_auto_disarm_landed.get_state()) {
+				if (_have_taken_off_since_arming) {
+					disarm(arm_disarm_reason_t::auto_disarm_land);
+
+				} else {
+					disarm(arm_disarm_reason_t::auto_disarm_preflight);
+				}
+			}
+		}
+
+		// Auto disarm after 5 seconds if kill switch is engaged
+		bool auto_disarm = _actuator_armed.manual_lockdown;
+
+		// auto disarm if locked down to avoid user confusion
+		//  skipped in HITL where lockdown is enabled for safety
+		if (_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) {
+			auto_disarm |= _actuator_armed.lockdown;
+		}
+
+		_auto_disarm_killed.set_state_and_update(auto_disarm, hrt_absolute_time());
+
+		if (_auto_disarm_killed.get_state()) {
+			if (_actuator_armed.manual_lockdown) {
+				disarm(arm_disarm_reason_t::kill_switch, true);
+
+			} else {
+				disarm(arm_disarm_reason_t::lockdown, true);
+			}
+		}
+
+	} else {
+		_auto_disarm_landed.set_state_and_update(false, hrt_absolute_time());
+		_auto_disarm_killed.set_state_and_update(false, hrt_absolute_time());
+	}
 }
 
 void

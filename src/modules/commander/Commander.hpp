@@ -155,6 +155,17 @@ private:
 	void send_parachute_command();
 
 	void checkWindSpeedThresholds();
+	void checkForMissionUpdate();
+	void handlePowerButtonState();
+	void systemPowerUpdate();
+	void landDetectorUpdate();
+	void safetyButtonUpdate();
+	void vtolStatusUpdate();
+	void updateTunes();
+	void checkWorkerThread();
+	bool getPrearmState() const;
+
+	void handleAutoDisarm();
 
 	void updateParameters();
 

@@ -49,9 +49,9 @@ public:
 
 	bool safetyButtonHandler();
 	void activateSafety();
-	bool isButtonAvailable() { return _button_available; }
-	bool isSafetyOff() { return _safety_off; }
-	bool isSafetyDisabled() { return _safety_disabled; }
+	bool isButtonAvailable() const { return _button_available; }
+	bool isSafetyOff() const { return _safety_off; }
+	bool isSafetyDisabled() const { return _safety_disabled; }
 
 private:
 	uORB::Subscription _safety_button_sub{ORB_ID::safety_button};
