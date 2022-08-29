@@ -33,7 +33,23 @@
 
 #pragma once
 
+#include "common.h"
+#include "polyfit.hpp"
 
-/** start temperature calibration in a new task for one or multiple sensors
- * @return 0 on success, <0 error otherwise  */
-int run_temperature_calibration(bool accel, bool gyro, bool mag, bool baro);
+class TemperatureCalibrationMag : public TemperatureCalibrationCommon<3, 3>
+{
+public:
+	TemperatureCalibrationMag(float min_temperature_rise, float min_start_temperature, float max_start_temperature);
+	virtual ~TemperatureCalibrationMag();
+
+	/**
+	 * @see TemperatureCalibrationBase::finish()
+	 */
+	int finish();
+
+private:
+
+	virtual inline int update_sensor_instance(PerSensorData &data, int sensor_sub);
+
+	inline int finish_sensor_instance(PerSensorData &data, int sensor_index);
+};

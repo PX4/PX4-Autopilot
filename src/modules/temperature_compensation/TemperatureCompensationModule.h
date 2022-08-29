@@ -54,6 +54,7 @@
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_correction.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
@@ -97,6 +98,7 @@ private:
 
 	void accelPoll();
 	void gyroPoll();
+	void magPoll();
 	void baroPoll();
 
 	/**
@@ -117,6 +119,13 @@ private:
 		{ORB_ID(sensor_gyro), 1},
 		{ORB_ID(sensor_gyro), 2},
 		{ORB_ID(sensor_gyro), 3},
+	};
+
+	uORB::Subscription _mag_subs[MAG_COUNT_MAX] {
+		{ORB_ID(sensor_mag), 0},
+		{ORB_ID(sensor_mag), 1},
+		{ORB_ID(sensor_mag), 2},
+		{ORB_ID(sensor_mag), 3},
 	};
 
 	uORB::Subscription _baro_subs[BARO_COUNT_MAX] {
