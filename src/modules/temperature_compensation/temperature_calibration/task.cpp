@@ -56,6 +56,7 @@
 #include "accel.h"
 #include "baro.h"
 #include "gyro.h"
+#include "mag.h"
 
 class TemperatureCalibration;
 
@@ -68,7 +69,12 @@ class TemperatureCalibration
 {
 public:
 
-	TemperatureCalibration(bool accel, bool baro, bool gyro) : _accel(accel), _baro(baro), _gyro(gyro) {}
+	TemperatureCalibration(bool accel, bool gyro, bool mag, bool baro)
+		: _accel(accel)
+		, _gyro(gyro)
+		, _mag(mag)
+		, _baro(baro) {};
+
 	~TemperatureCalibration() = default;
 
 	/**
@@ -93,8 +99,9 @@ private:
 	int	_control_task = -1;		// task handle for task
 
 	const bool _accel; ///< enable accel calibration?
-	const bool _baro; ///< enable baro calibration?
-	const bool _gyro; ///< enable gyro calibration?
+	const bool _gyro;  ///< enable gyro calibration?
+	const bool _mag;   ///< enable mag calibration?
+	const bool _baro;  ///< enable baro calibration?
 };
 
 void TemperatureCalibration::task_main()
@@ -154,6 +161,17 @@ void TemperatureCalibration::task_main()
 	if (_gyro) {
 		calibrators[num_calibrators] = new TemperatureCalibrationGyro(min_temp_rise, min_start_temp, max_start_temp, gyro_sub,
 				num_gyro);
+
+		if (calibrators[num_calibrators]) {
+			++num_calibrators;
+
+		} else {
+			PX4_ERR("alloc failed");
+		}
+	}
+
+	if (_mag) {
+		calibrators[num_calibrators] = new TemperatureCalibrationMag(min_temp_rise, min_start_temp, max_start_temp);
 
 		if (calibrators[num_calibrators]) {
 			++num_calibrators;
@@ -331,11 +349,12 @@ void TemperatureCalibration::publish_led_control(led_control_s &led_control)
 	_led_control_pub.publish(led_control);
 }
 
-int run_temperature_calibration(bool accel, bool baro, bool gyro)
+int run_temperature_calibration(bool accel, bool gyro, bool mag, bool baro)
 {
 	if (temperature_calibration::instance.load() == nullptr) {
-		PX4_INFO("Starting temperature calibration task (accel=%i, baro=%i, gyro=%i)", (int)accel, (int)baro, (int)gyro);
-		temperature_calibration::instance.store(new TemperatureCalibration(accel, baro, gyro));
+		PX4_INFO("Starting temperature calibration task (accel=%i, gyro=%i, mag=%i, baro=%i)", (int)accel, (int)gyro, (int)mag,
+			 (int)baro);
+		temperature_calibration::instance.store(new TemperatureCalibration(accel, gyro, mag, baro));
 
 		if (temperature_calibration::instance.load() == nullptr) {
 			PX4_ERR("alloc failed");
