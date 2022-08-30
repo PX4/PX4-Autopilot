@@ -341,10 +341,16 @@ FixedwingShearEstimator::Run()
         }
 
         // get the correct shear params for trajectory selection
-        float v = _findClosest(_v_max_arr, 5, _shear_v_max);    // wind velocity
-        float a = _findClosest(_alpha_arr, 9, _shear_alpha);    // shear strength
+        float shear = sqrtf(powf(_X_posterior_horizontal(0)*_unit_v - _X_posterior_horizontal(2)*_unit_v, 2) + 
+                            powf(_X_posterior_horizontal(1)*_unit_v - _X_posterior_horizontal(3)*_unit_v, 2));
+        float v = _findClosest(_v_max_arr, 5, shear);    // wind velocity
+        float a = _findClosest(_alpha_arr, 9, _X_posterior_horizontal(5)*_unit_a);    // shear strength
         float heading = -atan2f(_X_posterior_horizontal(1)-_X_posterior_horizontal(3),
                                 _X_posterior_horizontal(0)-_X_posterior_horizontal(2));
+        _soaring_estimator_shear.v_max = v;
+        _soaring_estimator_shear.alpha = a;
+        _soaring_estimator_shear.h_ref = _X_posterior_horizontal(4)*_unit_h;
+        _soaring_estimator_shear.psi = heading;
 
         // publish shear params
         // ========================================
@@ -408,7 +414,7 @@ bool FixedwingShearEstimator::check_feasibility()
 }
 
 float
-FixedwingPositionINDIControl::_getClosest(float val1, float val2, float target)
+FixedwingShearEstimator::_getClosest(float val1, float val2, float target)
 {
     if (target - val1 >= val2 - target)
         return val2;
@@ -417,7 +423,7 @@ FixedwingPositionINDIControl::_getClosest(float val1, float val2, float target)
 }
 
 float
-FixedwingPositionINDIControl::_findClosest(float arr[], int n, float target)
+FixedwingShearEstimator::_findClosest(float arr[], int n, float target)
 {
     // Corner cases
     if (target <= arr[0])

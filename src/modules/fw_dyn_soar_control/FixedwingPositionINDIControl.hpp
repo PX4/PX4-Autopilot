@@ -44,6 +44,7 @@
 #include <uORB/topics/airflow_aoa.h>
 #include <uORB/topics/airflow_slip.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/rc_channels.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -126,6 +127,7 @@ private:
 	uORB::Subscription _soaring_controller_status_sub{ORB_ID(soaring_controller_status)};			// vehicle status flags
 	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _rc_channels_sub{ORB_ID(rc_channels)};
 	
     // Publishers
 	uORB::Publication<actuator_controls_s>							_actuators_0_pub;
@@ -144,6 +146,7 @@ private:
 	vehicle_angular_acceleration_setpoint_s _angular_accel_sp {};
 	actuator_controls_s			_actuators {};			// actuator commands
 	manual_control_setpoint_s	_manual_control_setpoint {};			///< r/c channel data
+	rc_channels_s				_rc_channels {};		///< rc channels
 	vehicle_local_position_s	_local_pos {};			///< vehicle local position
 	vehicle_acceleration_s		_acceleration {};		///< vehicle acceleration
 	vehicle_attitude_s			_attitude {};			///< vehicle attitude
@@ -213,8 +216,6 @@ private:
 		(ParamFloat<px4::params::DS_W_HEIGHT>) _param_shear_height,
 		// thrust params
 		(ParamFloat<px4::params::DS_THRUST>) _param_thrust,
-		// RC feedthrough params
-		(ParamInt<px4::params::DS_SWITCH_MANUAL>) _param_switch_manual,
 		// force saturation
 		(ParamInt<px4::params::DS_SWITCH_SAT>) _param_switch_saturation,
 		// command filtering
@@ -248,6 +249,7 @@ private:
 	
 	void		control_update();
 	void 		manual_control_setpoint_poll();
+	void		rc_channels_poll();
 	void		vehicle_command_poll();
 	void		vehicle_control_mode_poll();
 	void		vehicle_status_poll();
@@ -360,7 +362,7 @@ private:
 	// thrust
 	float _thrust;
 	// controller mode
-	bool _switch_manual;
+	bool _switch_manual = 1;
 	// force limit
 	bool _switch_saturation;
 	//

@@ -179,8 +179,6 @@ FixedwingPositionINDIControl::parameters_update()
 
     _thrust = _param_thrust.get();
 
-    _switch_manual = _param_switch_manual.get();
-
     _switch_saturation = _param_switch_saturation.get();
 
     _switch_filter = _param_switch_filter.get();
@@ -285,6 +283,19 @@ FixedwingPositionINDIControl::manual_control_setpoint_poll()
     if(_switch_manual){
         _manual_control_setpoint_sub.update(&_manual_control_setpoint);
         _thrust = _manual_control_setpoint.z;
+    }
+}
+
+void
+FixedwingPositionINDIControl::rc_channels_poll()
+{
+    _rc_channels_sub.update(&_rc_channels);
+    // use flaps channel to select manual feedthrough
+    if (_rc_channels.channels[5]>=0.f){
+        _switch_manual = 1;
+    }
+    else{
+        _switch_manual = 0;
     }
 }
 
@@ -713,6 +724,7 @@ FixedwingPositionINDIControl::Run()
         airspeed_poll();
         airflow_aoa_poll();
         airflow_slip_poll();
+        rc_channels_poll();
         manual_control_setpoint_poll();
         vehicle_local_position_poll();
         vehicle_attitude_poll();
@@ -1395,7 +1407,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // ====================================
     if (_switch_manual){
         // get an attitude setpoint from the current manual inputs
-        float roll_ref = 1.f * _manual_control_setpoint.y * M_PI_4_F;
+        float roll_ref = 1.f * _manual_control_setpoint.y * 1.0f;
         float pitch_ref = -1.f* _manual_control_setpoint.x * M_PI_4_F;
         Eulerf E_current(Quatf(_attitude.q));
         float yaw_ref = E_current.psi();

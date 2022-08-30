@@ -550,22 +550,6 @@ PARAM_DEFINE_FLOAT(DS_W_HEIGHT, 100.f);
 PARAM_DEFINE_FLOAT(DS_THRUST, 0);
 
 // ======================================================
-// ================ Stick feedthorugh ===================
-// ======================================================
-
-/**
- * integer in {0,1} defining if manual attitude setpoints are commanded by the pilot, 0=DS-controller, 1=manual feedthrough
- * 
- * @unit 
- * @min 0
- * @max 1
- * @decimal 1
- * @increment 1
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_INT32(DS_SWITCH_MANUAL, 0);
-
-// ======================================================
 // ============= controller force saturation ============
 // ======================================================
 
