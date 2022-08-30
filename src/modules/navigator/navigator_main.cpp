@@ -800,7 +800,6 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		float test_point_bearing;
 		float test_point_distance;
 		float vertical_test_point_distance;
-		char geofence_violation_warning[50];
 
 		if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			test_point_bearing = atan2f(_local_pos.vy, _local_pos.vx);
@@ -835,12 +834,10 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 		if (_geofence.getPredict()) {
 			fence_violation_test_point = _gf_breach_avoidance.getFenceViolationTestPoint();
-			snprintf(geofence_violation_warning, sizeof(geofence_violation_warning), "Approaching on geofence");
 
 		} else {
 			fence_violation_test_point = matrix::Vector2d(_global_pos.lat, _global_pos.lon);
 			vertical_test_point_distance = 0;
-			snprintf(geofence_violation_warning, sizeof(geofence_violation_warning), "Geofence exceeded");
 		}
 
 		gf_violation_type.flags.dist_to_home_exceeded = !_geofence.isCloserThanMaxDistToHome(fence_violation_test_point(0),
@@ -867,9 +864,6 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 			/* Issue a warning about the geofence violation once and only if we are armed */
 			if (!_geofence_violation_warning_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				mavlink_log_critical(&_mavlink_log_pub, "%s", geofence_violation_warning);
-				events::send(events::ID("navigator_geofence_violation"), {events::Log::Warning, events::LogInternal::Info},
-					     geofence_violation_warning);
 
 				// we have predicted a geofence violation and if the action is to loiter then
 				// demand a reposition to a location which is inside the geofence

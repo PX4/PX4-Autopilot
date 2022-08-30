@@ -51,20 +51,46 @@ protected:
 				       uint8_t user_intended_mode) const override;
 
 private:
+	void updateArmingState(const hrt_abstime &time_us, bool armed, const vehicle_status_flags_s &status_flags);
+
 	enum class RCLossExceptionBits : int32_t {
 		Mission = (1 << 0),
 		Hold = (1 << 1),
 		Offboard = (1 << 2)
 	};
 
-	ActionOptions fromNavDllOrRclActParam(int param_value) const;
+	// COM_LOW_BAT_ACT parameter values
+	enum class LowBatteryAction : int32_t {
+		Warning = 0,        // Warning
+		Return = 1,         // Return mode
+		Land = 2,           // Land mode
+		ReturnOrLand = 3    // Return mode at critically low level, Land mode at current position if reaching dangerously low levels
+	};
 
-	ActionOptions fromGfActParam(int param_value) const;
+	static ActionOptions fromNavDllOrRclActParam(int param_value);
+
+	static ActionOptions fromGfActParam(int param_value);
+	static ActionOptions fromImbalancedPropActParam(int param_value);
+	static ActionOptions fromActuatorFailureActParam(int param_value);
+	static ActionOptions fromBatteryWarningActParam(int param_value, uint8_t battery_warning);
+	static ActionOptions fromQuadchuteActParam(int param_value);
+	static Action fromOffboardLossActParam(int param_value, uint8_t &user_intended_mode);
 
 	const int _caller_id_mode_fallback{genCallerId()};
 	bool _last_state_mode_fallback{false};
 	const int _caller_id_mission_control_lost{genCallerId()};
 	bool _last_state_mission_control_lost{false};
+
+	const int _caller_id_battery_warning_low{genCallerId()}; ///< battery warning caller ID's: use different ID's as they have different actions
+	bool _last_state_battery_warning_low{false};
+	const int _caller_id_battery_warning_critical{genCallerId()};
+	bool _last_state_battery_warning_critical{false};
+	const int _caller_id_battery_warning_emergency{genCallerId()};
+	bool _last_state_battery_warning_emergency{false};
+
+	hrt_abstime _armed_time{0};
+	bool _was_armed{false};
+	bool _rc_lost_at_arming{false}; ///< true if RC was lost at arming time
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FailsafeBase,
 					(ParamInt<px4::params::NAV_DLL_ACT>) 	_param_nav_dll_act,
@@ -72,7 +98,15 @@ private:
 					(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 					(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,
-					(ParamInt<px4::params::GF_ACTION>)  	_param_gf_action
+					(ParamInt<px4::params::GF_ACTION>)  	_param_gf_action,
+					(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
+					(ParamInt<px4::params::COM_IMB_PROP_ACT>) _param_com_imb_prop_act,
+					(ParamFloat<px4::params::COM_LKDOWN_TKO>) _param_com_lkdown_tko,
+					(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
+					(ParamInt<px4::params::COM_ACT_FAIL_ACT>) _param_com_actuator_failure_act,
+					(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,
+					(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
+					(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act
 				       );
 
 };

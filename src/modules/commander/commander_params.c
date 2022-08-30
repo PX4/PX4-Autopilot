@@ -283,13 +283,14 @@ PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
 PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
 
 /**
- * Delay between battery state change and failsafe reaction
+ * Delay between failsafe condition triggered and failsafe reaction
  *
- * Battery state requires action -> wait COM_BAT_ACT_T seconds in Hold mode
- * for the user to realize and take a custom action
- * -> React with failsafe action COM_LOW_BAT_ACT
+ * Before entering failsafe (RTL, Land, Hold), wait COM_BAT_ACT_T seconds in Hold mode
+ * for the user to realize.
+ * During that time the user cannot take over control.
+ * Afterwards the configured failsafe action is triggered and the user may take over.
  *
- * A zero value disables the delay.
+ * A zero value disables the delay and the user cannot take over via stick movements (switching modes is still allowed).
  *
  * @group Commander
  * @unit s
@@ -297,7 +298,7 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  * @max 25.0
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(COM_BAT_ACT_T, 5.f);
+PARAM_DEFINE_FLOAT(COM_FAIL_ACT_T, 5.f);
 
 /**
  * Imbalanced propeller failsafe mode
@@ -319,7 +320,7 @@ PARAM_DEFINE_INT32(COM_IMB_PROP_ACT, 0);
 /**
  * Time-out to wait when offboard connection is lost before triggering offboard lost action.
  *
- * See COM_OBL_ACT and COM_OBL_RC_ACT to configure action.
+ * See COM_OBL_RC_ACT to configure action.
  *
  * @group Commander
  * @unit s
@@ -328,23 +329,6 @@ PARAM_DEFINE_INT32(COM_IMB_PROP_ACT, 0);
  * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 1.0f);
-
-/**
- * Set offboard loss failsafe mode
- *
- * The offboard loss failsafe will only be entered after a timeout,
- * set by COM_OF_LOSS_T in seconds.
- *
- * @value -1 Disabled
- * @value  0 Land mode
- * @value  1 Hold mode
- * @value  2 Return mode
- * @value  3 Terminate
- * @value  4 Lockdown
- *
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
 
 /**
  * Set command after a quadchute
@@ -358,12 +342,11 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
 PARAM_DEFINE_INT32(COM_QC_ACT, 0);
 
 /**
- * Set offboard loss failsafe mode when RC is available
+ * Set offboard loss failsafe mode
  *
  * The offboard loss failsafe will only be entered after a timeout,
  * set by COM_OF_LOSS_T in seconds.
  *
- * @value -1 Disabled
  * @value  0 Position mode
  * @value  1 Altitude mode
  * @value  2 Manual

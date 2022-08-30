@@ -36,11 +36,12 @@
 /*   Helper classes  */
 #include "Arming/ArmStateMachine/ArmStateMachine.hpp"
 #include "failure_detector/FailureDetector.hpp"
+#include "failsafe/failsafe.h"
 #include "Safety.hpp"
-#include "state_machine_helper.h"
 #include "worker_thread.hpp"
 #include "HealthAndArmingChecks/HealthAndArmingChecks.hpp"
 #include "HomePosition.hpp"
+#include "UserModeIntention.hpp"
 
 #include <lib/controllib/blocks.hpp>
 #include <lib/hysteresis/hysteresis.h>
@@ -69,7 +70,6 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/geofence_result.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mission_result.h>
@@ -85,7 +85,6 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
-#include <uORB/topics/wind.h>
 
 using math::constrain;
 using systemlib::Hysteresis;
@@ -118,8 +117,6 @@ public:
 
 	void enable_hil();
 
-	void get_circuit_breaker_params();
-
 private:
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 
@@ -146,7 +143,7 @@ private:
 
 	void offboard_control_update();
 
-	void print_reject_mode(uint8_t main_state);
+	void print_reject_mode(uint8_t nav_state);
 
 	void update_control_mode();
 
@@ -154,7 +151,6 @@ private:
 
 	void send_parachute_command();
 
-	void checkWindSpeedThresholds();
 	void checkForMissionUpdate();
 	void handlePowerButtonState();
 	void systemPowerUpdate();
@@ -166,6 +162,7 @@ private:
 	bool getPrearmState() const;
 
 	void handleAutoDisarm();
+	bool handleModeIntentionAndFailsafe();
 
 	void updateParameters();
 
@@ -173,7 +170,6 @@ private:
 
 	DEFINE_PARAMETERS(
 
-		(ParamInt<px4::params::NAV_DLL_ACT>) _param_nav_dll_act,
 		(ParamInt<px4::params::COM_DL_LOSS_T>) _param_com_dl_loss_t,
 
 		(ParamInt<px4::params::COM_RC_OVERRIDE>) _param_com_rc_override,
@@ -181,19 +177,9 @@ private:
 		(ParamInt<px4::params::COM_HLDL_LOSS_T>) _param_com_hldl_loss_t,
 		(ParamInt<px4::params::COM_HLDL_REG_T>) _param_com_hldl_reg_t,
 
-		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
-		(ParamInt<px4::params::NAV_RCL_ACT>) _param_nav_rcl_act,
-		(ParamFloat<px4::params::COM_RCL_ACT_T>) _param_com_rcl_act_t,
-		(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
-
 		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en,
 		(ParamBool<px4::params::COM_HOME_IN_AIR>) _param_com_home_in_air,
 
-		(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,	/* failsafe response to loss of navigation accuracy */
-
-		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,
-		(ParamFloat<px4::params::COM_BAT_ACT_T>) _param_com_bat_act_t,
-		(ParamInt<px4::params::COM_IMB_PROP_ACT>) _param_com_imb_prop_act,
 		(ParamFloat<px4::params::COM_DISARM_LAND>) _param_com_disarm_land,
 		(ParamFloat<px4::params::COM_DISARM_PRFLT>) _param_com_disarm_preflight,
 
@@ -203,40 +189,17 @@ private:
 
 		(ParamFloat<px4::params::COM_OBC_LOSS_T>) _param_com_obc_loss_t,
 
-		(ParamFloat<px4::params::COM_WIND_WARN>) _param_com_wind_warn,
-
-		// Quadchute
-		(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
-
 		// Offboard
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
-		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
-		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 
 		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode,
 		(ParamBool<px4::params::COM_FORCE_SAFETY>) _param_com_force_safety,
 		(ParamBool<px4::params::COM_MOT_TEST_EN>) _param_com_mot_test_en,
 
 		(ParamFloat<px4::params::COM_KILL_DISARM>) _param_com_kill_disarm,
-		(ParamFloat<px4::params::COM_LKDOWN_TKO>) _param_com_lkdown_tko,
-
-		// Engine failure
-		(ParamInt<px4::params::COM_ACT_FAIL_ACT>) _param_com_actuator_failure_act,
 
 		(ParamInt<px4::params::COM_FLIGHT_UUID>) _param_flight_uuid,
-		(ParamInt<px4::params::COM_TAKEOFF_ACT>) _param_takeoff_finished_action,
-
-		// Circuit breakers
-		(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
-		(ParamInt<px4::params::CBRK_USB_CHK>) _param_cbrk_usb_chk,
-		(ParamInt<px4::params::CBRK_AIRSPD_CHK>) _param_cbrk_airspd_chk,
-		(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
-		(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming,
-
-		(ParamInt<px4::params::COM_FLT_TIME_MAX>) _param_com_flt_time_max,
-		(ParamFloat<px4::params::COM_WIND_MAX>) _param_com_wind_max,
-
-		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time
+		(ParamInt<px4::params::COM_TAKEOFF_ACT>) _param_takeoff_finished_action
 	)
 
 	// optional parameters
@@ -256,34 +219,15 @@ private:
 		OFFBOARD_MODE_BIT = (1 << 1),
 	};
 
-	enum class ActuatorFailureActions {
-		DISABLED = 0,
-		AUTO_LOITER = 1,
-		AUTO_LAND = 2,
-		AUTO_RTL = 3,
-		TERMINATE = 4,
-	};
-
 	/* Decouple update interval and hysteresis counters, all depends on intervals */
 	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
 	ArmStateMachine _arm_state_machine{};
 
-	bool		_geofence_loiter_on{false};
-	bool		_geofence_rtl_on{false};
-	bool		_geofence_land_on{false};
-	bool		_geofence_warning_action_on{false};
-	bool		_geofence_violated_prev{false};
-
-	bool         _circuit_breaker_flight_termination_disabled{false};
-
-	bool		_rtl_time_actions_done{false};
-
-	FailureDetector	_failure_detector;
+	FailureDetector	_failure_detector{this};
 	bool		_flight_termination_triggered{false};
 	bool		_lockdown_triggered{false};
-	bool            _imbalanced_propeller_check_triggered{false};
 
 
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};
@@ -298,7 +242,6 @@ private:
 	hrt_abstime	_high_latency_datalink_lost{0};
 
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
-	hrt_abstime	_battery_failsafe_timestamp{0};
 	Hysteresis	_auto_disarm_landed{false};
 	Hysteresis	_auto_disarm_killed{false};
 	Hysteresis	_offboard_available{false};
@@ -307,8 +250,6 @@ private:
 	bool            _mode_switch_mapped{false};
 
 	bool		_last_overload{false};
-
-	hrt_abstime	_last_valid_manual_control_setpoint{0};
 
 	bool		_is_throttle_above_center{false};
 	bool		_is_throttle_low{false};
@@ -325,18 +266,13 @@ private:
 	bool		_status_changed{true};
 	bool		_arm_tune_played{false};
 	bool		_was_armed{false};
-	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
 
-	geofence_result_s	_geofence_result{};
 	vehicle_land_detected_s	_vehicle_land_detected{};
 	vtol_vehicle_status_s	_vtol_vehicle_status{};
 
-	hrt_abstime _last_wind_warning{0};
-
 	// commander publications
 	actuator_armed_s        _actuator_armed{};
-	commander_state_s       _commander_state{};
 	vehicle_control_mode_s  _vehicle_control_mode{};
 	vehicle_status_s        _vehicle_status{};
 	vehicle_status_flags_s  _vehicle_status_flags{};
@@ -348,14 +284,12 @@ private:
 	// Subscriptions
 	uORB::Subscription					_action_request_sub {ORB_ID(action_request)};
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
-	uORB::Subscription					_geofence_result_sub{ORB_ID(geofence_result)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
-	uORB::Subscription					_wind_sub{ORB_ID(wind)};
 
 	uORB::SubscriptionInterval				_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -370,7 +304,6 @@ private:
 
 	// Publications
 	uORB::Publication<actuator_armed_s>			_actuator_armed_pub{ORB_ID(actuator_armed)};
-	uORB::Publication<commander_state_s>			_commander_state_pub{ORB_ID(commander_state)};
 	uORB::Publication<failure_detector_status_s>		_failure_detector_status_pub{ORB_ID(failure_detector_status)};
 	uORB::Publication<test_motor_s>				_test_motor_pub{ORB_ID(test_motor)};
 	uORB::Publication<actuator_test_s>			_actuator_test_pub{ORB_ID(actuator_test)};
@@ -384,6 +317,11 @@ private:
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t _preflight_check_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": preflight check")};
-	HealthAndArmingChecks _health_and_arming_checks;
+
+	HealthAndArmingChecks _health_and_arming_checks{this, _vehicle_status_flags, _vehicle_status};
 	HomePosition _home_position{_vehicle_status_flags};
+	Failsafe _failsafe_instance{this};
+	FailsafeBase &_failsafe{_failsafe_instance};
+	bool _failsafe_user_override_request{false}; ///< override request due to stick movements
+	UserModeIntention _user_mode_intention{this, _vehicle_status, _health_and_arming_checks};
 };

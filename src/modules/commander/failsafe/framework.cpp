@@ -455,6 +455,9 @@ void FailsafeBase::getSelectedAction(const State &state, const vehicle_status_fl
 
 		if (!_user_takeover_active) {
 			PX4_DEBUG("Activating user takeover");
+#ifndef EMSCRIPTEN_BUILD
+			events::send(events::ID("failsafe_rc_override"), events::Log::Info, "Pilot took over using sticks");
+#endif // EMSCRIPTEN_BUILD
 		}
 
 		// We must check for mode fallback again here
