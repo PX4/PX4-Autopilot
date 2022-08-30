@@ -36,7 +36,6 @@ bool home_position_valid		# Home position valid
 bool offboard_control_signal_lost # Offboard signal lost
 bool geofence_violated 				# Geofence violated
 
-bool rc_signal_found_once
 bool rc_signal_lost # RC signal lost
 bool data_link_lost # Data link lost
 bool mission_failure # Mission failure
@@ -46,5 +45,14 @@ bool vtol_transition_failure                        # VTOL transition failed
 bool battery_low_remaining_time
 bool battery_unhealthy
 
-uint8 battery_warning
+bool wind_limit_exceeded
+bool flight_time_limit_exceeded
+
+# failure detector
+bool fd_esc_arming_failure
+bool fd_critical_failure # Critical failure (attitude/altitude limit exceeded, or external ATS)
+bool fd_imbalanced_prop # Imbalanced propeller detected
+bool fd_motor_failure
+
+uint8 battery_warning # Battery warning level
 

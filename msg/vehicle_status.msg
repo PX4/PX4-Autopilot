@@ -33,8 +33,9 @@ uint8 ARM_DISARM_REASON_UNIT_TEST = 13
 
 uint64 nav_state_timestamp # time when current nav_state activated
 
-# Navigation state "what should vehicle do"
-uint8 nav_state
+uint8 nav_state_user_intention                  # Mode that the user selected (might be different from nav_state in a failsafe situation)
+
+uint8 nav_state                                 # Currently active mode
 uint8 NAVIGATION_STATE_MANUAL = 0               # Manual mode
 uint8 NAVIGATION_STATE_ALTCTL = 1               # Altitude control mode
 uint8 NAVIGATION_STATE_POSCTL = 2               # Position control mode
@@ -83,6 +84,7 @@ uint8 VEHICLE_TYPE_ROVER = 3
 uint8 VEHICLE_TYPE_AIRSHIP = 4
 
 bool failsafe # true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
+bool failsafe_and_user_took_over # true if system is in failsafe state but the user took over control
 uint64 failsafe_timestamp # time when failsafe was activated
 
 # Link loss
@@ -97,8 +99,6 @@ bool is_vtol_tailsitter  # True if the system performs a 90° pitch down rotatio
 bool in_transition_mode  # True if VTOL is doing a transition
 bool in_transition_to_fw # True if VTOL is doing a transition from MC to FW
 
-bool mission_failure # Set to true if mission could not continue/finish
-bool geofence_violated
 
 # MAVLink identification
 uint8 system_type  # system type, contains mavlink MAV_TYPE

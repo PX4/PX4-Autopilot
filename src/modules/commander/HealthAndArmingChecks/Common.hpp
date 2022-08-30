@@ -254,6 +254,8 @@ public:
 
 	const HealthResults &healthResults() const { return _results[_current_result].health; }
 	const ArmingCheckResults &armingCheckResults() const { return _results[_current_result].arming_checks; }
+
+	bool modePreventsArming(uint8_t nav_state) const { return _status_flags.mode_req_prevent_arming & (1u << nav_state); }
 private:
 
 	/**
