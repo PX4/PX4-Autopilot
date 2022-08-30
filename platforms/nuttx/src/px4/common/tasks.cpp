@@ -88,7 +88,18 @@ int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_
 
 int px4_task_delete(int pid)
 {
-	return task_delete(pid);
+	int ret = OK;
+
+	if (pid == getpid()) {
+		// Commit suicide
+		exit(EXIT_SUCCESS);
+
+	} else {
+		// Politely ask someone else to kill themselves
+		ret = kill(pid, SIGKILL);
+	}
+
+	return ret;
 }
 
 const char *px4_get_taskname(void)
