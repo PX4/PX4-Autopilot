@@ -66,7 +66,7 @@ public:
 		return (_InstancePtr != nullptr);
 	}
 
-    bool Initialize(bool enable_debug);
+	bool Initialize(bool enable_debug);
 
 private: // data members
 	static uORB::AppsProtobufChannel           *_InstancePtr;
@@ -75,12 +75,12 @@ private://class members.
 	/// constructor.
 	AppsProtobufChannel() {};
 
-    static void ReceiveCallback(const char *topic,
-                                const uint8_t *data,
-                                uint32_t length_in_bytes);
-    static void AdvertiseCallback(const char *topic);
-    static void SubscribeCallback(const char *topic);
-    static void UnsubscribeCallback(const char *topic);
+	static void ReceiveCallback(const char *topic,
+				    const uint8_t *data,
+				    uint32_t length_in_bytes);
+	static void AdvertiseCallback(const char *topic);
+	static void SubscribeCallback(const char *topic);
+	static void UnsubscribeCallback(const char *topic);
 
 };
 

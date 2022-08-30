@@ -58,7 +58,7 @@ int px4muorb_remove_subscriber(const char *topic_name)
 }
 
 int px4muorb_send_topic_data(const char *topic_name, const uint8_t *data,
-			                 int data_len_in_bytes)
+			     int data_len_in_bytes)
 {
 	return 0;
 }
