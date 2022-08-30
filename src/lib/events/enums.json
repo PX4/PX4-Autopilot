@@ -106,8 +106,8 @@
                             "description": "Distance sensor"
                         },
                         "128": {
-                            "name": "manual_control_input",
-                            "description": "RC or virtual joystick input"
+                            "name": "remote_control",
+                            "description": "Remote Control (RC or Joystick)"
                         },
                         "256": {
                             "name": "motors_escs",
@@ -198,10 +198,6 @@
                         "536870912": {
                             "name": "gyro",
                             "description": "Gyroscope"
-                        },
-                        "1073741824": {
-                            "name": "remote_control",
-                            "description": "Remote Control"
                         }
                     }
                 },
