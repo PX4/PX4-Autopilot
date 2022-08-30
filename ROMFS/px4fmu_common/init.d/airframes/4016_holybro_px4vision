@@ -60,7 +60,6 @@ param set-default CP_DIST 6
 param set-default MPC_ACC_DOWN_MAX 5
 param set-default MPC_ACC_HOR_MAX 10
 param set-default MPC_ACC_UP_MAX 4
-param set-default MPC_MANTHR_MIN 0
 param set-default MPC_MAN_Y_MAX 120
 param set-default MPC_TILTMAX_AIR 45
 param set-default MPC_THR_HOVER 0.3
