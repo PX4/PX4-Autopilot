@@ -25,59 +25,77 @@ px4_posix_generate_alias(
 	PREFIX ${PX4_SHELL_COMMAND_PREFIX}
 )
 
-if (CMAKE_BUILD_TYPE STREQUAL FuzzTesting)
-	add_executable(px4
-		src/px4/common/main_fuzztesting.cpp
-		apps.cpp
+if ("${PX4_BOARD}" MATCHES "modalai_voxl2")
+	include("${PX4_BOARD_DIR}/cmake/voxl2_posix.cmake")
+
+	LINUX_APP(
+		APP_NAME px4
+		APPS_DEST "/data/px4"
+		SOURCES
+			src/px4/common/main.cpp
+			apps.cpp
+		LINK_LIBS
+			-Wl,--start-group
+				px4_layer
+				parameters
+				${module_libraries}
+				pthread m rt
+			-Wl,--end-group
 		)
+
+	target_link_libraries(px4 fc_sensor)
+
 else()
-	add_definitions(-DPX4_SOURCE_DIR="${PX4_SOURCE_DIR}" -DPX4_BINARY_DIR="${PX4_BINARY_DIR}")
+        if (CMAKE_BUILD_TYPE STREQUAL FuzzTesting)
+                add_executable(px4
+                        src/px4/common/main_fuzztesting.cpp
+                        apps.cpp
+                        )
+        else()
+                add_executable(px4
+                        src/px4/common/main.cpp
+                        apps.cpp
+                        )
+        endif()
 
-	add_executable(px4
-		src/px4/common/main.cpp
-		apps.cpp
+        if((NOT APPLE) AND (NOT ANDROID))
+                target_link_libraries(px4 PRIVATE rt)
+        endif()
+
+        if(NOT ANDROID)
+                target_link_libraries(px4 PRIVATE pthread)
+        endif()
+        if (CMAKE_BUILD_TYPE STREQUAL FuzzTesting)
+                target_include_directories(px4 PRIVATE SYSTEM "${CMAKE_BINARY_DIR}/mavlink}")
+                target_compile_options(px4 PRIVATE "-Wno-cast-align")
+        endif()
+	target_link_libraries(px4
+       		PRIVATE
+        	${module_libraries}
+        	m
+        	parameters
+	)
+	target_link_libraries(px4 PRIVATE uORB)
+
+	#=============================================================================
+	# install
+	#
+
+	# TODO: extend to snapdragon
+
+	# px4 dirs
+	install(
+		DIRECTORY
+			${PROJECT_SOURCE_DIR}/posix-configs
+			${PROJECT_SOURCE_DIR}/test
+			${CMAKE_BINARY_DIR}/etc
+			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+		DESTINATION
+			${PROJECT_NAME}
+		USE_SOURCE_PERMISSIONS
 		)
+
 endif()
-
-target_link_libraries(px4
-	PRIVATE
-		${module_libraries}
-		m
-		parameters
-)
-
-if((NOT APPLE) AND (NOT ANDROID))
-	target_link_libraries(px4 PRIVATE rt)
-endif()
-
-if(NOT ANDROID)
-	target_link_libraries(px4 PRIVATE pthread)
-endif()
-
-target_link_libraries(px4 PRIVATE uORB)
-
-if (CMAKE_BUILD_TYPE STREQUAL FuzzTesting)
-	target_include_directories(px4 PRIVATE SYSTEM "${CMAKE_BINARY_DIR}/mavlink}")
-	target_compile_options(px4 PRIVATE "-Wno-cast-align")
-endif()
-
-#=============================================================================
-# install
-#
-
-# TODO: extend to snapdragon
-
-# px4 dirs
-install(
-	DIRECTORY
-		${PROJECT_SOURCE_DIR}/posix-configs
-		${PROJECT_SOURCE_DIR}/test
-		${CMAKE_BINARY_DIR}/etc
-		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-	DESTINATION
-		${PROJECT_NAME}
-	USE_SOURCE_PERMISSIONS
-)
 
 # Module Symlinks
 px4_posix_generate_symlinks(
