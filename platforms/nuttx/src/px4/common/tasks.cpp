@@ -93,11 +93,5 @@ int px4_task_delete(int pid)
 
 const char *px4_get_taskname(void)
 {
-#if CONFIG_TASK_NAME_SIZE > 0 && (defined(__KERNEL__) || defined(CONFIG_BUILD_FLAT))
-	FAR struct tcb_s	*thisproc = nxsched_self();
-
-	return thisproc->name;
-#else
-	return "app";
-#endif
+	return getprogname();
 }
