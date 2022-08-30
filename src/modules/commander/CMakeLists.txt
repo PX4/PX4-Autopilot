@@ -52,12 +52,12 @@ px4_add_module(
 		factory_calibration_storage.cpp
 		gyro_calibration.cpp
 		HomePosition.cpp
+		UserModeIntention.cpp
 		level_calibration.cpp
 		lm_fit.cpp
 		mag_calibration.cpp
 		rc_calibration.cpp
 		Safety.cpp
-		state_machine_helper.cpp
 		worker_thread.cpp
 	DEPENDS
 		circuit_breaker

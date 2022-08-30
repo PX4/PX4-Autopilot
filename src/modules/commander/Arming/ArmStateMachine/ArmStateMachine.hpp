@@ -41,7 +41,11 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 
-#include "../../state_machine_helper.h" // TODO: get independent of transition_result_t
+typedef enum {
+	TRANSITION_DENIED = -1,
+	TRANSITION_NOT_CHANGED = 0,
+	TRANSITION_CHANGED
+} transition_result_t;
 
 using arm_disarm_reason_t = events::px4::enums::arm_disarm_reason_t;
 

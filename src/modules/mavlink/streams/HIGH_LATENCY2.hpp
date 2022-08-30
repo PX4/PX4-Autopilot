@@ -437,10 +437,6 @@ private:
 				msg->failure_flags |= HL_FAILURE_FLAG_ENGINE;
 			}
 
-			if (status.mission_failure) {
-				msg->failure_flags |= HL_FAILURE_FLAG_MISSION;
-			}
-
 			// flight mode
 			union px4_custom_mode custom_mode {get_px4_custom_mode(status.nav_state)};
 			msg->custom_mode = custom_mode.custom_mode_hl;
@@ -462,6 +458,10 @@ private:
 
 			if (status_flags.offboard_control_signal_lost) {
 				msg->failure_flags |= HL_FAILURE_FLAG_OFFBOARD_LINK;
+			}
+
+			if (status_flags.mission_failure) {
+				msg->failure_flags |= HL_FAILURE_FLAG_MISSION;
 			}
 
 			return true;

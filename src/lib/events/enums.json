@@ -276,41 +276,83 @@
                         }
                     }
                 },
-                "failsafe_reason_t": {
+                "failsafe_cause_t": {
                     "type": "uint8_t",
-                    "description": "Reason for entering failsafe",
+                    "description": "Cause for entering failsafe",
                     "entries": {
                         "0": {
-                            "name": "no_rc",
-                            "description": "No manual control stick input"
+                            "name": "generic",
+                            "description": ""
                         },
                         "1": {
-                            "name": "no_offboard",
-                            "description": "No offboard control inputs"
+                            "name": "rc_loss",
+                            "description": "manual control loss"
                         },
                         "2": {
-                            "name": "no_rc_and_no_offboard",
-                            "description": "No manual control stick and no offboard control inputs"
+                            "name": "datalink_loss",
+                            "description": "data link loss"
                         },
                         "3": {
-                            "name": "no_local_position",
-                            "description": "No local position estimate"
+                            "name": "low_battery_level",
+                            "description": "low battery level"
                         },
                         "4": {
-                            "name": "no_global_position",
-                            "description": "No global position estimate"
+                            "name": "critical_battery_level",
+                            "description": "critical battery level"
                         },
                         "5": {
-                            "name": "no_datalink",
-                            "description": "No datalink"
+                            "name": "emergency_battery_level",
+                            "description": "emergency battery level"
+                        }
+                    }
+                },
+                "failsafe_action_t": {
+                    "type": "uint8_t",
+                    "description": "failsafe action",
+                    "entries": {
+                        "0": {
+                            "name": "none",
+                            "description": ""
+                        },
+                        "1": {
+                            "name": "warn",
+                            "description": "warning"
+                        },
+                        "2": {
+                            "name": "fallback_posctrl",
+                            "description": "fallback to position control"
+                        },
+                        "3": {
+                            "name": "fallback_altctrl",
+                            "description": "fallback to altitude control"
+                        },
+                        "4": {
+                            "name": "fallback_stabilized",
+                            "description": "fallback to stabilized"
+                        },
+                        "5": {
+                            "name": "hold",
+                            "description": "hold"
                         },
                         "6": {
-                            "name": "no_rc_and_no_datalink",
-                            "description": "No RC and no datalink"
+                            "name": "rtl",
+                            "description": "RTL"
                         },
                         "7": {
-                            "name": "no_gps",
-                            "description": "No valid GPS"
+                            "name": "land",
+                            "description": "land"
+                        },
+                        "8": {
+                            "name": "descend",
+                            "description": "descend"
+                        },
+                        "9": {
+                            "name": "disarm",
+                            "description": "disarm"
+                        },
+                        "10": {
+                            "name": "terminate",
+                            "description": "terminate"
                         }
                     }
                 },
@@ -373,6 +415,10 @@
                         "13": {
                             "name": "rc_button",
                             "description": "RC (button)"
+                        },
+                        "14": {
+                            "name": "failsafe",
+                            "description": "failsafe"
                         }
                     }
                 },
