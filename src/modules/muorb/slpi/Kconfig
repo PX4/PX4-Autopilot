@@ -1,0 +1,5 @@
+menuconfig MODULES_MUORB_SLPI
+        bool "muorb_slpi"
+        default n
+        ---help---
+                Enable support for muorb slpi
