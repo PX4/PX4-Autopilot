@@ -9,6 +9,3 @@ mpu6000 -R 6 -s start
 
 # Start Baro
 bmp280 -X start
-
-# Try to start GPS and compass
-qmc5883l -X start
