@@ -103,6 +103,7 @@ void FwAutotuneAttitudeControl::Run()
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
 			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			_nav_state = vehicle_status.nav_state;
 		}
 	}
 
@@ -284,6 +285,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		if (_param_fw_at_start.get() || rc_switch_enabled) {
 			if (registerActuatorControlsCallback()) {
 				_state = state::init;
+				PX4_INFO("Autotune started");
 
 			} else {
 				_state = state::fail;
@@ -298,6 +300,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		if (_are_filters_initialized) {
 			_state = state::roll;
 			_state_start_time = now;
+			_start_flight_mode = _nav_state;
 			_sys_id.reset(sys_id_init);
 			// first step needs to be shorter to keep the drone centered
 			_steps_counter = 5;
@@ -403,6 +406,8 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		break;
 
 	case state::apply:
+		PX4_INFO("Autotune finished successfully");
+
 		if ((_param_fw_at_apply.get() == 1)) {
 			_state = state::wait_for_disarm;
 
@@ -461,8 +466,9 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	// the identification sequence is aborted immediately
 	if (_state != state::wait_for_disarm && _state != state::idle) {
 		if (now - _state_start_time > 20_s
-		    || (_param_fw_at_man_aux.get() != 0 && !rc_switch_enabled)) {
-
+		    || (_param_fw_at_man_aux.get() != 0 && !rc_switch_enabled)
+		    || _start_flight_mode != _nav_state) {
+			PX4_INFO("Autotune exited before finishing");
 			_state = state::fail;
 			_state_start_time = now;
 		}
