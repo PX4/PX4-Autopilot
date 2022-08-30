@@ -547,7 +547,7 @@ void AirspeedModule::update_ground_minus_wind_airspeed()
 {
 	const float wind_uncertainty = sqrtf(_wind_estimate_sideslip.variance_north + _wind_estimate_sideslip.variance_east);
 
-	if (wind_uncertainty < _param_wind_sigma_max_synth_tas.get()) {
+	if (_wind_estimator_sideslip.is_estimate_valid() && wind_uncertainty < _param_wind_sigma_max_synth_tas.get()) {
 		// calculate airspeed estimate based on groundspeed-windspeed
 		const float TAS_north = _vehicle_local_position.vx - _wind_estimate_sideslip.windspeed_north;
 		const float TAS_east = _vehicle_local_position.vy - _wind_estimate_sideslip.windspeed_east;
