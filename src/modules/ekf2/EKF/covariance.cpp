@@ -144,7 +144,8 @@ void Ekf::predictCovariance()
 
 	const bool do_inhibit_all_axes = (_params.fusion_mode & SensorFusionMask::INHIBIT_ACC_BIAS)
 					 || is_manoeuvre_level_high
-					 || _fault_status.flags.bad_acc_vertical;
+					 || _fault_status.flags.bad_acc_vertical
+					 || (_using_synthetic_position && !_control_status.flags.vehicle_at_rest);
 
 	for (unsigned stateIndex = 13; stateIndex <= 15; stateIndex++) {
 		const unsigned index = stateIndex - 13;
