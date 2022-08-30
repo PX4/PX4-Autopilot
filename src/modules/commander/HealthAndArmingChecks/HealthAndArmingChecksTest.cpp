@@ -86,7 +86,7 @@ TEST_F(ReporterTest, basic_fail_all_modes)
 	// ensure arming is always denied with a NavModes::All failure
 	for (uint8_t nav_state = 0; nav_state < vehicle_status_s::NAVIGATION_STATE_MAX; ++nav_state) {
 		reporter.reset();
-		reporter.armingCheckFailure(NavModes::All, health_component_t::manual_control_input,
+		reporter.armingCheckFailure(NavModes::All, health_component_t::remote_control,
 					    events::ID("arming_test_basic_fail_all_modes_fail1"), events::Log::Info, "");
 		reporter.finalize();
 		reporter.report(false, false);
@@ -103,7 +103,7 @@ TEST_F(ReporterTest, arming_checks_mode_category)
 
 	// arming must still be possible for non-relevant failures
 	reporter.reset();
-	reporter.armingCheckFailure(NavModes::PositionControl | NavModes::Stabilized, health_component_t::manual_control_input,
+	reporter.armingCheckFailure(NavModes::PositionControl | NavModes::Stabilized, health_component_t::remote_control,
 				    events::ID("arming_test_arming_checks_mode_category_fail1"), events::Log::Warning, "");
 	reporter.clearCanRunBits(NavModes::PositionControl | NavModes::Stabilized);
 	reporter.healthFailure(NavModes::PositionControl, health_component_t::local_position_estimate,
@@ -118,7 +118,7 @@ TEST_F(ReporterTest, arming_checks_mode_category)
 
 	ASSERT_EQ((uint8_t)reporter.armingCheckResults().can_arm, (uint8_t)~(NavModes::PositionControl | NavModes::Stabilized));
 	ASSERT_EQ((uint64_t)reporter.armingCheckResults().error, 0);
-	ASSERT_EQ(reporter.armingCheckResults().warning, events::px4::enums::health_component_t::manual_control_input);
+	ASSERT_EQ(reporter.armingCheckResults().warning, events::px4::enums::health_component_t::remote_control);
 
 	ASSERT_EQ(reporter.healthResults().is_present, events::px4::enums::health_component_t::battery);
 	ASSERT_EQ((uint64_t)reporter.healthResults().error, 0);
@@ -132,7 +132,7 @@ TEST_F(ReporterTest, arming_checks_mode_category2)
 
 	// A matching mode category must deny arming
 	reporter.reset();
-	reporter.healthFailure(NavModes::Mission, health_component_t::manual_control_input,
+	reporter.healthFailure(NavModes::Mission, health_component_t::remote_control,
 			       events::ID("arming_test_arming_checks_mode_category2_fail1"), events::Log::Warning, "");
 	reporter.finalize();
 	reporter.report(false, false);
@@ -145,7 +145,7 @@ TEST_F(ReporterTest, arming_checks_mode_category2)
 
 	ASSERT_EQ((uint64_t)reporter.healthResults().is_present, 0);
 	ASSERT_EQ((uint64_t)reporter.healthResults().error, 0);
-	ASSERT_EQ(reporter.healthResults().warning, events::px4::enums::health_component_t::manual_control_input);
+	ASSERT_EQ(reporter.healthResults().warning, events::px4::enums::health_component_t::remote_control);
 }
 
 TEST_F(ReporterTest, reporting)
@@ -166,11 +166,11 @@ TEST_F(ReporterTest, reporting)
 			reporter.reset();
 
 			if (with_arg) {
-				reporter.armingCheckFailure<uint16_t>(NavModes::All, health_component_t::manual_control_input,
+				reporter.armingCheckFailure<uint16_t>(NavModes::All, health_component_t::remote_control,
 								      events::ID("arming_test_reporting_fail1"), events::Log::Warning, "", 4938);
 
 			} else {
-				reporter.armingCheckFailure(NavModes::PositionControl, health_component_t::manual_control_input,
+				reporter.armingCheckFailure(NavModes::PositionControl, health_component_t::remote_control,
 							    events::ID("arming_test_reporting_fail2"), events::Log::Warning, "");
 			}
 
@@ -207,11 +207,11 @@ TEST_F(ReporterTest, reporting)
 			reporter.reset();
 
 			if (with_arg) {
-				reporter.healthFailure<uint16_t>(NavModes::All, health_component_t::manual_control_input,
+				reporter.healthFailure<uint16_t>(NavModes::All, health_component_t::remote_control,
 								 events::ID("arming_test_reporting_fail3"), events::Log::Warning, "", 4938);
 
 			} else {
-				reporter.healthFailure(NavModes::PositionControl, health_component_t::manual_control_input,
+				reporter.healthFailure(NavModes::PositionControl, health_component_t::remote_control,
 						       events::ID("arming_test_reporting_fail4"), events::Log::Warning, "");
 			}
 
@@ -255,11 +255,11 @@ TEST_F(ReporterTest, reporting_multiple)
 
 	for (int i = 0; i < 3; ++i) {
 		reporter.reset();
-		reporter.armingCheckFailure<uint16_t>(NavModes::All, health_component_t::manual_control_input,
+		reporter.armingCheckFailure<uint16_t>(NavModes::All, health_component_t::remote_control,
 						      events::ID("arming_test_reporting_multiple_fail1"), events::Log::Warning, "", 4938);
-		reporter.armingCheckFailure<float>(NavModes::All, health_component_t::manual_control_input,
+		reporter.armingCheckFailure<float>(NavModes::All, health_component_t::remote_control,
 						   events::ID("arming_test_reporting_multiple_fail2"), events::Log::Warning, "", 123.f);
-		reporter.armingCheckFailure<uint8_t>(NavModes::All, health_component_t::manual_control_input,
+		reporter.armingCheckFailure<uint8_t>(NavModes::All, health_component_t::remote_control,
 						     events::ID("arming_test_reporting_multiple_fail3"), events::Log::Warning, "", 55);
 		reporter.finalize();
 		reporter.report(false, false);
