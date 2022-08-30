@@ -53,6 +53,13 @@ px4_add_library(health_and_arming_checks
 	checks/sdcardCheck.cpp
 	checks/parachuteCheck.cpp
 	checks/batteryCheck.cpp
+	checks/windCheck.cpp
+	checks/geofenceCheck.cpp
+	checks/homePositionCheck.cpp
+	checks/flightTimeCheck.cpp
+	checks/missionCheck.cpp
+	checks/rcAndDataLinkCheck.cpp
+	checks/vtolCheck.cpp
 )
 add_dependencies(health_and_arming_checks mode_util)
 

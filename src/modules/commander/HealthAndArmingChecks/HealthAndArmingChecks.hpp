@@ -51,6 +51,7 @@
 #include "checks/imuConsistencyCheck.hpp"
 #include "checks/magnetometerCheck.hpp"
 #include "checks/manualControlCheck.hpp"
+#include "checks/homePositionCheck.hpp"
 #include "checks/modeCheck.hpp"
 #include "checks/parachuteCheck.hpp"
 #include "checks/powerCheck.hpp"
@@ -58,6 +59,12 @@
 #include "checks/sdcardCheck.hpp"
 #include "checks/systemCheck.hpp"
 #include "checks/batteryCheck.hpp"
+#include "checks/windCheck.hpp"
+#include "checks/geofenceCheck.hpp"
+#include "checks/flightTimeCheck.hpp"
+#include "checks/missionCheck.hpp"
+#include "checks/rcAndDataLinkCheck.hpp"
+#include "checks/vtolCheck.hpp"
 
 
 class HealthAndArmingChecks : public ModuleParams
@@ -84,6 +91,11 @@ public:
 	 */
 	bool canRun(uint8_t nav_state) const { return _reporter.canRun(nav_state); }
 
+	/**
+	 * Query the mode requirements: check if a mode prevents arming
+	 */
+	bool modePreventsArming(uint8_t nav_state) const { return _reporter.modePreventsArming(nav_state); }
+
 protected:
 	void updateParams() override;
 private:
@@ -106,6 +118,7 @@ private:
 	ImuConsistencyChecks _imu_consistency_checks;
 	MagnetometerChecks _magnetometer_checks;
 	ManualControlChecks _manual_control_checks;
+	HomePositionChecks _home_position_checks;
 	ModeChecks _mode_checks;
 	ParachuteChecks _parachute_checks;
 	PowerChecks _power_checks;
@@ -113,6 +126,12 @@ private:
 	SdCardChecks _sd_card_checks;
 	SystemChecks _system_checks;
 	BatteryChecks _battery_checks;
+	WindChecks _wind_checks;
+	GeofenceChecks _geofence_checks;
+	FlightTimeChecks _flight_time_checks;
+	MissionChecks _mission_checks;
+	RcAndDataLinkChecks _rc_and_data_link_checks;
+	VtolChecks _vtol_checks;
 
 	HealthAndArmingCheckBase *_checks[30] = {
 		&_accelerometer_checks,
@@ -127,13 +146,20 @@ private:
 		&_imu_consistency_checks,
 		&_magnetometer_checks,
 		&_manual_control_checks,
-		&_mode_checks, // must be after _estimator_checks
+		&_home_position_checks,
+		&_mode_checks, // must be after _estimator_checks & _home_position_checks
 		&_parachute_checks,
 		&_power_checks,
 		&_rc_calibration_checks,
 		&_sd_card_checks,
-		&_system_checks,
+		&_system_checks, // must be after _estimator_checks & _home_position_checks
 		&_battery_checks,
+		&_wind_checks,
+		&_geofence_checks, // must be after _home_position_checks
+		&_flight_time_checks,
+		&_mission_checks,
+		&_rc_and_data_link_checks,
+		&_vtol_checks,
 	};
 };
 

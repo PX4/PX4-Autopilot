@@ -109,7 +109,7 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		 */
 		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_mission, health_component_t::system,
 					    events::ID("check_modes_mission"),
-					    events::Log::Info, "No mission available");
+					    events::Log::Info, "No valid mission available");
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_mission);
 	}
 

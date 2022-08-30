@@ -199,7 +199,8 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.failsafeFlags().battery_warning = worst_warning;
 	}
 
-	if (reporter.failsafeFlags().battery_warning > battery_status_s::BATTERY_WARNING_NONE) {
+	if (reporter.failsafeFlags().battery_warning > battery_status_s::BATTERY_WARNING_NONE
+	    && reporter.failsafeFlags().battery_warning < battery_status_s::BATTERY_WARNING_FAILED) {
 		bool critical_or_higher = reporter.failsafeFlags().battery_warning >= battery_status_s::BATTERY_WARNING_CRITICAL;
 		NavModes affected_modes = critical_or_higher ? NavModes::All : NavModes::None;
 		events::LogLevel log_level = critical_or_higher ? events::Log::Critical : events::Log::Warning;
@@ -222,12 +223,13 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		// There is at least one connected battery (in any slot)
 		|| num_connected_batteries < battery_required_count
 		// No currently-connected batteries have any fault
-		|| battery_has_fault;
+		|| battery_has_fault
+		|| reporter.failsafeFlags().battery_warning == battery_status_s::BATTERY_WARNING_FAILED;
 
 	if (reporter.failsafeFlags().battery_unhealthy && !battery_has_fault) { // faults are reported above already
 		/* EVENT
 		 * @description
-		 * Make sure all batteries are connected.
+		 * Make sure all batteries are connected and operational.
 		 */
 		reporter.healthFailure(NavModes::All, health_component_t::battery, events::ID("check_battery_unhealthy"),
 				       events::Log::Error, "Battery unhealthy");
