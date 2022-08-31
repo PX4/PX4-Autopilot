@@ -224,21 +224,29 @@ void SimulatorMavlink::send_esc_telemetry(mavlink_hil_actuator_controls_t hil_ac
 {
 	esc_status_s esc_status{};
 	esc_status.timestamp = hrt_absolute_time();
-	esc_status.esc_count = math::min(actuator_outputs_s::NUM_ACTUATOR_OUTPUTS, esc_status_s::CONNECTED_ESC_MAX);
+	const int max_esc_count = math::min(actuator_outputs_s::NUM_ACTUATOR_OUTPUTS, esc_status_s::CONNECTED_ESC_MAX);
 
 	const bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-	esc_status.esc_armed_flags = armed ? 255 : 0;  // ugly
+	int max_esc_index = 0;
 
-	for (int i = 0; i < esc_status.esc_count; i++) {
+	for (int i = 0; i < max_esc_count; i++) {
+		if (_output_functions[i] != 0) {
+			max_esc_index = i;
+		}
+
 		esc_status.esc[i].actuator_function = _output_functions[i]; // TODO: this should be in pwm_sim...
 		esc_status.esc[i].timestamp = esc_status.timestamp;
 		esc_status.esc[i].esc_errorcount = 0; // TODO
 		esc_status.esc[i].esc_voltage = _battery_status.voltage_v;
-		esc_status.esc[i].esc_current = armed ? 1.0 + math::abs_t(hil_act_control.controls[i]) * 15.0 :
+		esc_status.esc[i].esc_current = armed ? 1.0f + math::abs_t(hil_act_control.controls[i]) * 15.0f :
 						0.0f; // TODO: magic number
 		esc_status.esc[i].esc_rpm = hil_act_control.controls[i] * 6000;  // TODO: magic number
 		esc_status.esc[i].esc_temperature = 20.0 + math::abs_t(hil_act_control.controls[i]) * 40.0;
 	}
+
+	esc_status.esc_count = max_esc_index + 1;
+	esc_status.esc_armed_flags = (1u << esc_status.esc_count) - 1;
+	esc_status.esc_online_flags = (1u << esc_status.esc_count) - 1;
 
 	_esc_status_pub.publish(esc_status);
 }
