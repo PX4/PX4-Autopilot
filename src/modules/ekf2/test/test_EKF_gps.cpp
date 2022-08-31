@@ -172,3 +172,27 @@ TEST_F(EkfGpsTest, gpsHgtToBaroFallback)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 }
+
+TEST_F(EkfGpsTest, altitudeDrift)
+{
+	// GIVEN: a drifting GNSS altitude
+	const float dt = 0.2f;
+	const float height_rate = 0.15f;
+	const float duration = 80.f;
+
+	// WHEN: running on ground
+	for (int i = 0; i < (duration / dt); i++) {
+		_sensor_simulator._gps.stepHeightByMeters(height_rate * dt);
+		_sensor_simulator.runSeconds(dt);
+	}
+
+	float baro_innov;
+	_ekf->getBaroHgtInnov(baro_innov);
+	BiasEstimator::status status = _ekf->getBaroBiasEstimatorStatus();
+
+	printf("baro innov = %f\n", (double)baro_innov);
+	printf("bias: %f, innov bias = %f\n", (double)status.bias, (double)status.innov);
+
+	// THEN: the baro and local position should follow it
+	EXPECT_LT(fabsf(baro_innov), 0.1f);
+}

@@ -101,7 +101,7 @@ TEST_F(EkfAccelerometerTest, biasEstimatePositive)
 
 TEST_F(EkfAccelerometerTest, biasEstimateNegative)
 {
-	const float biases[4] = {-0.14f, -0.24f, -0.31, -0.4f};
+	const float biases[4] = {-0.12f, -0.22f, -0.31, -0.4f};
 
 	for (int i = 0; i < 4; i ++) {
 		testBias(biases[i], 10, 0.03f);
