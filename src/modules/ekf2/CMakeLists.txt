@@ -40,6 +40,7 @@ px4_add_module(
 		${MAX_CUSTOM_OPT_LEVEL}
 		-fno-associative-math
 		#-DDEBUG_BUILD
+		#-O0
 	INCLUDES
 		EKF
 	PRIORITY
