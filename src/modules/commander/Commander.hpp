@@ -35,11 +35,11 @@
 
 /*   Helper classes  */
 #include "Arming/ArmStateMachine/ArmStateMachine.hpp"
-#include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "failure_detector/FailureDetector.hpp"
 #include "Safety.hpp"
 #include "state_machine_helper.h"
 #include "worker_thread.hpp"
+#include "HealthAndArmingChecks/HealthAndArmingChecks.hpp"
 
 #include <containers/Bitset.hpp>
 #include <lib/controllib/blocks.hpp>
@@ -63,6 +63,7 @@
 
 // subscriptions
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/action_request.h>
 #include <uORB/topics/airspeed.h>
@@ -145,8 +146,6 @@ private:
 	 */
 	void data_link_check();
 
-	void avoidance_check();
-
 	void esc_status_check();
 
 	void estimator_check();
@@ -186,6 +185,8 @@ private:
 	void checkWindSpeedThresholds();
 
 	void updateParameters();
+
+	void check_and_inform_ready_for_takeoff();
 
 	DEFINE_PARAMETERS(
 
@@ -263,7 +264,6 @@ private:
 	)
 
 	// optional parameters
-	param_t _param_cp_dist{PARAM_INVALID};
 	param_t _param_mav_comp_id{PARAM_INVALID};
 	param_t _param_mav_sys_id{PARAM_INVALID};
 	param_t _param_mav_type{PARAM_INVALID};
@@ -294,8 +294,6 @@ private:
 
 	ArmStateMachine _arm_state_machine{};
 
-	hrt_abstime	_valid_distance_sensor_time_us{0}; /**< Last time that distance sensor data arrived (usec) */
-
 	hrt_abstime	_last_gpos_fail_time_us{0};	/**< Last time that the global position validity recovery check failed (usec) */
 	hrt_abstime	_last_lpos_fail_time_us{0};	/**< Last time that the local position validity recovery check failed (usec) */
 	hrt_abstime	_last_lvel_fail_time_us{0};	/**< Last time that the local velocity validity recovery check failed (usec) */
@@ -316,7 +314,7 @@ private:
 	bool		_geofence_warning_action_on{false};
 	bool		_geofence_violated_prev{false};
 
-	bool            _collision_prevention_enabled{false};
+	bool         _circuit_breaker_flight_termination_disabled{false};
 
 	bool		_rtl_time_actions_done{false};
 
@@ -356,10 +354,6 @@ private:
 	hrt_abstime	_last_print_mode_reject_time{0};	///< To remember when last notification was sent
 	bool            _mode_switch_mapped{false};
 
-	bool		_last_local_altitude_valid{false};
-	bool		_last_local_position_valid{false};
-	bool		_last_global_position_valid{false};
-
 	bool		_last_overload{false};
 
 	hrt_abstime	_last_valid_manual_control_setpoint{0};
@@ -383,7 +377,6 @@ private:
 	bool		_was_armed{false};
 	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
-	bool		_system_power_usb_connected{false};
 
 	geofence_result_s	_geofence_result{};
 	vehicle_land_detected_s	_vehicle_land_detected{};
@@ -424,7 +417,6 @@ private:
 	uORB::SubscriptionInterval				_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
-	uORB::SubscriptionMultiArray<distance_sensor_s>         _distance_sensor_subs{ORB_ID::distance_sensor};
 	uORB::SubscriptionMultiArray<telemetry_status_s>        _telemetry_status_subs{ORB_ID::telemetry_status};
 
 #if defined(BOARD_HAS_POWER_CONTROL)
@@ -455,4 +447,5 @@ private:
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t _preflight_check_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": preflight check")};
+	HealthAndArmingChecks _health_and_arming_checks;
 };

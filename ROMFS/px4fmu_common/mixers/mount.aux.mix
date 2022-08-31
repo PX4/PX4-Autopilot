@@ -1,3 +1,4 @@
+# @board px4_fmu-v2 exclude
 # Mount Mixer (e.g. Gimbal, servo-controlled gimbal, etc...)
 
 

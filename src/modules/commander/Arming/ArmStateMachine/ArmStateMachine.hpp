@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../PreFlightCheck/PreFlightCheck.hpp"
+#include "../../HealthAndArmingChecks/HealthAndArmingChecks.hpp"
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
 #include <uORB/topics/actuator_armed.h>
@@ -54,11 +54,9 @@ public:
 	void forceArmState(uint8_t new_arm_state) { _arm_state = new_arm_state; }
 
 	transition_result_t
-	arming_state_transition(vehicle_status_s &status, const vehicle_control_mode_s &control_mode,
-				const bool safety_button_available, const bool safety_off, const arming_state_t new_arming_state,
-				actuator_armed_s &armed, const bool fRunPreArmChecks, orb_advert_t *mavlink_log_pub,
-				vehicle_status_flags_s &status_flags,
-				arm_disarm_reason_t calling_reason);
+	arming_state_transition(vehicle_status_s &status, const arming_state_t new_arming_state,
+				actuator_armed_s &armed, HealthAndArmingChecks &checks, const bool fRunPreArmChecks,
+				orb_advert_t *mavlink_log_pub, arm_disarm_reason_t calling_reason);
 
 	// Getters
 	uint8_t getArmState() const { return _arm_state; }

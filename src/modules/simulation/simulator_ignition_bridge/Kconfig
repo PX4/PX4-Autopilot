@@ -1,0 +1,5 @@
+menuconfig MODULES_SIMULATION_SIMULATOR_IGNITION_BRIDGE
+	bool "simulator_ignition_bridge"
+	default n
+	---help---
+		Enable support for simulator_ignition_bridge

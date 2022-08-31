@@ -51,7 +51,6 @@
 extern "C" __EXPORT int rpm_simulator_main(int argc, char *argv[]);
 int rpm_simulator_main(int argc, char *argv[])
 {
-
 	// check input
 	if (argc != 2) {
 		PX4_INFO("Usage: rpm_simulator <published RPM>");

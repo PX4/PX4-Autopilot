@@ -1,0 +1,5 @@
+menuconfig MODULES_SIMULATION_SENSOR_GPS_SIM
+	bool "sensor_gps_sim"
+	default n
+	---help---
+		Enable support for sensor_gps_sim

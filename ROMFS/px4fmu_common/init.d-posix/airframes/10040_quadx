@@ -9,6 +9,8 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
+PX4_SIMULATOR=${PX4_SIMULATOR:=sihsim}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=quadx}
 
 # disable some checks to allow to fly:
 # - with usb

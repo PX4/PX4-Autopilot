@@ -23,8 +23,8 @@
             "timeout_min": 10
         },
         {
-            "model": "typhoon_h480_ctrlalloc",
-            "vehicle": "typhoon_h480_ctrlalloc",
+            "model": "typhoon_h480",
+            "vehicle": "typhoon_h480",
             "test_filter": "[controlallocation]",
             "timeout_min": 10
         }

@@ -95,6 +95,7 @@ set(msg_files
 	gimbal_manager_status.msg
 	gps_dump.msg
 	gps_inject_data.msg
+	health_report.msg
 	heater_status.msg
 	home_position.msg
 	hover_thrust_estimate.msg

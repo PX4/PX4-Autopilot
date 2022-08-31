@@ -115,12 +115,12 @@ bool GyroFFT::init()
 	// 	_rfft_q15.pCfft = &arm_cfft_sR_q15_len1024;
 	// 	break;
 
-	case 4096:
-		buffers_allocated = AllocateBuffers<4096>();
-		_rfft_q15.fftLenReal = 4096;
-		_rfft_q15.twidCoefRModifier = 2U;
-		_rfft_q15.pCfft = &arm_cfft_sR_q15_len2048;
-		break;
+//	case 4096:
+//		buffers_allocated = AllocateBuffers<4096>();
+//		_rfft_q15.fftLenReal = 4096;
+//		_rfft_q15.twidCoefRModifier = 2U;
+//		_rfft_q15.pCfft = &arm_cfft_sR_q15_len2048;
+//		break;
 
 	// case 8192:
 	// 	buffers_allocated = AllocateBuffers<8192>();

@@ -424,3 +424,13 @@ __END_DECLS
 #define PX4_LOG_NAMED(name, FMT, ...) 	__px4_log_named_cond(name, true, FMT, ##__VA_ARGS__)
 #define PX4_LOG_NAMED_COND(name, cond, FMT, ...) __px4_log_named_cond(name, cond, FMT, ##__VA_ARGS__)
 #endif
+
+#define PX4_ANSI_COLOR_RED     "\x1b[31m"
+#define PX4_ANSI_COLOR_GREEN   "\x1b[32m"
+#define PX4_ANSI_COLOR_YELLOW  "\x1b[33m"
+#define PX4_ANSI_COLOR_BLUE    "\x1b[34m"
+#define PX4_ANSI_COLOR_MAGENTA "\x1b[35m"
+#define PX4_ANSI_COLOR_CYAN    "\x1b[36m"
+#define PX4_ANSI_COLOR_GRAY    "\x1B[37m"
+#define PX4_ANSI_COLOR_RESET   "\x1b[0m"
+

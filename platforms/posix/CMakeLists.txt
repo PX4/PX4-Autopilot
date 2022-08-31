@@ -31,6 +31,8 @@ if (CMAKE_BUILD_TYPE STREQUAL FuzzTesting)
 		apps.cpp
 		)
 else()
+	add_definitions(-DPX4_SOURCE_DIR="${PX4_SOURCE_DIR}" -DPX4_BINARY_DIR="${PX4_BINARY_DIR}")
+
 	add_executable(px4
 		src/px4/common/main.cpp
 		apps.cpp
@@ -84,7 +86,7 @@ px4_posix_generate_symlinks(
 	TARGET px4
 )
 
-if (config_romfs_root)
+if(config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
 	add_dependencies(px4 romfs_gen_files_target)
 endif()
@@ -110,11 +112,19 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 	# vscode launch.json
 	if(${PX4_BOARD_LABEL} MATCHES "replay")
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch_replay.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json COPYONLY)
+
+	elseif(${PX4_CONFIG} MATCHES "px4_sitl_ign")
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch_sitl_ignition.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json COPYONLY)
+
 	else()
-		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch_sim.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json COPYONLY)
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch_sitl_default.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json COPYONLY)
 	endif()
 
-	include(sitl_target)
+	set(SITL_WORKING_DIR ${PX4_BINARY_DIR}/rootfs)
+	file(MAKE_DIRECTORY ${SITL_WORKING_DIR})
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/posix.lldbinit ${SITL_WORKING_DIR}/.lldbinit COPYONLY)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/posix.gdbinit ${SITL_WORKING_DIR}/.gdbinit COPYONLY)
+
 	if(BUILD_TESTING)
 		include(sitl_tests)
 	endif()
@@ -153,7 +163,7 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 	# px4 Tools files
 	install(
 		PROGRAMS
-			${PROJECT_SOURCE_DIR}/Tools/setup_gazebo.bash
+			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo/setup_gazebo.bash
 			${PROJECT_SOURCE_DIR}/Tools/upload_log.py
 		DESTINATION
 			${PROJECT_NAME}/Tools
@@ -181,19 +191,19 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 	# sitl_gazebo dirs
 	install(
 		DIRECTORY
-			${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/models
-			${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/worlds
+			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo/sitl_gazebo/models
+			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo/sitl_gazebo/worlds
 		DESTINATION
-			${PROJECT_NAME}/Tools/sitl_gazebo
+			${PROJECT_NAME}/Tools/simulation/gazebo/sitl_gazebo
 		)
 
 	# sitl_gazebo files
 	install(
 		FILES
-			${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/CMakeLists.txt
-			${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/package.xml
+			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo/sitl_gazebo/CMakeLists.txt
+			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo/sitl_gazebo/package.xml
 		DESTINATION
-			${PROJECT_NAME}/Tools/sitl_gazebo
+			${PROJECT_NAME}/Tools/simulation/gazebo/sitl_gazebo
 		)
 
 endif()
