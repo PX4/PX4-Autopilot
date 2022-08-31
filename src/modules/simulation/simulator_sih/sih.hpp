@@ -73,7 +73,6 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -120,7 +119,6 @@ private:
 	// simulated sensors
 	PX4Accelerometer _px4_accel{1310988}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	PX4Gyroscope     _px4_gyro{1310988};  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	uORB::Publication<sensor_gps_s>       _sensor_gps_pub{ORB_ID(sensor_gps)};
 	uORB::Publication<distance_sensor_s>  _distance_snsr_pub{ORB_ID(distance_sensor)};
 	uORB::Publication<airspeed_s>         _airspeed_pub{ORB_ID(airspeed)};
 
@@ -158,7 +156,6 @@ private:
 
 	// reconstruct the noisy sensor signals
 	void reconstruct_sensors_signals(const hrt_abstime &time_now_us);
-	void send_gps(const hrt_abstime &time_now_us);
 	void send_airspeed(const hrt_abstime &time_now_us);
 	void send_dist_snsr(const hrt_abstime &time_now_us);
 	void publish_ground_truth(const hrt_abstime &time_now_us);
@@ -182,7 +179,6 @@ private:
 
 	hrt_abstime _last_run{0};
 	hrt_abstime _last_actuator_output_time{0};
-	hrt_abstime _gps_time{0};
 	hrt_abstime _airspeed_time{0};
 	hrt_abstime _dist_snsr_time{0};
 
@@ -251,12 +247,6 @@ private:
 	// 	AeroSeg(0.0225f, 0.110f, -90.0f, matrix::Vector3f(0.0f,  0.239f, TS_CM-0.083f), 0.0f, TS_AR)
 	// 	};
 
-	// sensors reconstruction
-	matrix::Vector3f    _gps_vel{};
-	double      _gps_lat, _gps_lat_noiseless;
-	double      _gps_lon, _gps_lon_noiseless;
-	float       _gps_alt, _gps_alt_noiseless;
-
 	// parameters
 	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _H0, _T_TAU;
 	double _LAT0, _LON0, _COS_LAT0;
@@ -264,7 +254,6 @@ private:
 	matrix::Matrix3f _I;    // vehicle inertia matrix
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
 
-	int _gps_used;
 	float _distance_snsr_min, _distance_snsr_max, _distance_snsr_override;
 
 	// parameters defined in sih_params.c
@@ -287,7 +276,6 @@ private:
 		(ParamInt<px4::params::SIH_LOC_LAT0>) _sih_lat0,
 		(ParamInt<px4::params::SIH_LOC_LON0>) _sih_lon0,
 		(ParamFloat<px4::params::SIH_LOC_H0>) _sih_h0,
-		(ParamInt<px4::params::SIH_GPS_USED>) _sih_gps_used,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _sih_distance_snsr_min,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
