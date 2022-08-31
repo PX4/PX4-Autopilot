@@ -74,7 +74,7 @@ void Report::armingCheckFailure(NavModes required_modes, HealthComponentIndex co
 }
 
 Report::EventBufferHeader *Report::addEventToBuffer(uint32_t event_id, const events::LogLevels &log_levels,
-		unsigned args_size)
+		uint32_t modes, unsigned args_size)
 {
 	unsigned total_size = sizeof(EventBufferHeader) + args_size;
 	EventBufferHeader *header = (EventBufferHeader *)(_event_buffer + _next_buffer_idx);
@@ -83,7 +83,7 @@ Report::EventBufferHeader *Report::addEventToBuffer(uint32_t event_id, const eve
 	header->size = args_size;
 	_next_buffer_idx += total_size;
 	++_results[_current_result].num_events;
-	_results[_current_result].event_id_hash ^= event_id; // very simple hash
+	_results[_current_result].event_id_hash ^= event_id ^ modes; // very simple hash
 	return header;
 }
 
@@ -238,27 +238,22 @@ bool Report::report(bool is_armed, bool force)
 #endif
 
 	// send arming summary
-	navigation_mode_group_t can_arm_and_run;
-
-	if (is_armed) {
-		can_arm_and_run = (navigation_mode_group_t)current_results.arming_checks.can_run;
-
-	} else {
-		can_arm_and_run = (navigation_mode_group_t)current_results.arming_checks.can_arm;
-	}
 
 	/* EVENT
 	 * @arg1 chunk_idx
 	 * @arg2 error
 	 * @arg3 warning
-	 * @arg4 can_arm_and_run
+	 * @arg4 can_arm
+	 * @arg5 can_run
 	 * @type summary
 	 * @group arming_check
 	 */
 	events::send<uint8_t, events::px4::enums::health_component_t, events::px4::enums::health_component_t,
-	       events::px4::enums::navigation_mode_group_t>(events::ID("commander_arming_check_summary"), events::Log::Protocol,
-			       "Arming check summary event", 0, current_results.arming_checks.error, current_results.arming_checks.warning,
-			       can_arm_and_run);
+	       events::px4::enums::navigation_mode_group_t, events::px4::enums::navigation_mode_group_t>(
+		       events::ID("commander_arming_check_summary"), events::Log::Protocol,
+		       "Arming check summary event", 0, current_results.arming_checks.error, current_results.arming_checks.warning,
+		       (navigation_mode_group_t)current_results.arming_checks.can_arm,
+		       (navigation_mode_group_t)current_results.arming_checks.can_run);
 
 	// send all events
 	int offset = 0;
