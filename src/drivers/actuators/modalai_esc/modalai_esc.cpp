@@ -223,6 +223,7 @@ int ModalaiEsc::task_spawn(int argc, char *argv[])
 		case 'd':
 			_device = argv[myoptind];
 			break;
+
 		default:
 			break;
 		}
