@@ -73,7 +73,6 @@ void Sih::run()
 
 	const hrt_abstime task_start = hrt_absolute_time();
 	_last_run = task_start;
-	_gps_time = task_start;
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
 	_vehicle = (VehicleType)constrain(_sih_vtype.get(), static_cast<typeof _sih_vtype.get()>(0),
@@ -217,12 +216,6 @@ void Sih::sensor_step()
 
 	reconstruct_sensors_signals(now);
 
-	// gps published at 10Hz
-	if (now - _gps_time >= 100_ms) {
-		_gps_time = now;
-		send_gps(now);
-	}
-
 	if ((_vehicle == VehicleType::FW || _vehicle == VehicleType::TS) && now - _airspeed_time >= 50_ms) {
 		_airspeed_time = now;
 		send_airspeed(now);
@@ -265,8 +258,6 @@ void Sih::parameters_updated()
 
 	// guards against too small determinants
 	_Im1 = 100.0f * inv(static_cast<typeof _I>(100.0f * _I));
-
-	_gps_used = _sih_gps_used.get();
 
 	_distance_snsr_min = _sih_distance_snsr_min.get();
 	_distance_snsr_max = _sih_distance_snsr_max.get();
@@ -452,69 +443,6 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	// update IMU every iteration
 	_px4_accel.update(time_now_us, acc(0), acc(1), acc(2));
 	_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
-
-	// GPS
-	_gps_lat_noiseless = _LAT0 + degrees((double)_p_I(0) / CONSTANTS_RADIUS_OF_EARTH);
-	_gps_lon_noiseless = _LON0 + degrees((double)_p_I(1) / CONSTANTS_RADIUS_OF_EARTH) / _COS_LAT0;
-	_gps_alt_noiseless = _H0 - _p_I(2);
-
-	_gps_lat = _gps_lat_noiseless + degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-	_gps_lon = _gps_lon_noiseless + degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH) / _COS_LAT0;
-	_gps_alt = _gps_alt_noiseless + generate_wgn() * 0.5f;
-	_gps_vel = _v_I + noiseGauss3f(0.06f, 0.077f, 0.158f);
-}
-
-void Sih::send_gps(const hrt_abstime &time_now_us)
-{
-	device::Device::DeviceId device_id;
-	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-	device_id.devid_s.bus = 0;
-	device_id.devid_s.address = 0;
-	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
-
-	sensor_gps_s sensor_gps{};
-	sensor_gps.timestamp_sample = time_now_us;
-	sensor_gps.device_id = device_id.devid;
-	sensor_gps.lat = (int32_t)(_gps_lat * 1e7);       // Latitude in 1E-7 degrees
-	sensor_gps.lon = (int32_t)(_gps_lon * 1e7); // Longitude in 1E-7 degrees
-	sensor_gps.alt = (int32_t)(_gps_alt * 1000.0f); // Altitude in 1E-3 meters above MSL, (millimetres)
-	sensor_gps.alt_ellipsoid = (int32_t)(_gps_alt * 1000); // Altitude in 1E-3 meters bove Ellipsoid, (millimetres)
-	sensor_gps.vel_ned_valid = true; // True if NED velocity is valid
-	sensor_gps.vel_m_s = sqrtf(_gps_vel(0) * _gps_vel(0) + _gps_vel(1) * _gps_vel(1)); // GPS ground speed, (metres/sec)
-	sensor_gps.vel_n_m_s = _gps_vel(0); // GPS North velocity, (metres/sec)
-	sensor_gps.vel_e_m_s = _gps_vel(1); // GPS East velocity, (metres/sec)
-	sensor_gps.vel_d_m_s = _gps_vel(2); // GPS Down velocity, (metres/sec)
-
-	// Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
-	sensor_gps.cog_rad = atan2(_gps_vel(1), _gps_vel(0));
-
-	if (_gps_used >= 4) {
-		sensor_gps.fix_type = 3;  // 3D fix
-		sensor_gps.satellites_used = _gps_used;
-		sensor_gps.heading = NAN;
-		sensor_gps.heading_offset = NAN;
-		sensor_gps.s_variance_m_s = 0.5f;
-		sensor_gps.c_variance_rad = 0.1f;
-		sensor_gps.eph = 0.9f;
-		sensor_gps.epv = 1.78f;
-		sensor_gps.hdop = 0.7f;
-		sensor_gps.vdop = 1.1f;
-
-	} else {
-		sensor_gps.fix_type = 0;  // 3D fix
-		sensor_gps.satellites_used = _gps_used;
-		sensor_gps.heading = NAN;
-		sensor_gps.heading_offset = NAN;
-		sensor_gps.s_variance_m_s = 100.f;
-		sensor_gps.c_variance_rad = 100.f;
-		sensor_gps.eph = 100.f;
-		sensor_gps.epv = 100.f;
-		sensor_gps.hdop = 100.f;
-		sensor_gps.vdop = 100.f;
-	}
-
-	sensor_gps.timestamp = hrt_absolute_time();
-	_sensor_gps_pub.publish(sensor_gps);
 }
 
 void Sih::send_airspeed(const hrt_abstime &time_now_us)
@@ -627,10 +555,10 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		// publish global position groundtruth
 		vehicle_global_position_s global_position{};
 		global_position.timestamp_sample = time_now_us;
-		global_position.lat = _gps_lat_noiseless;
-		global_position.lon = _gps_lon_noiseless;
-		global_position.alt = _gps_alt_noiseless;
-		global_position.alt_ellipsoid = _gps_alt_noiseless;
+		global_position.lat = _LAT0 + degrees((double)_p_I(0) / CONSTANTS_RADIUS_OF_EARTH);;
+		global_position.lon = _LON0 + degrees((double)_p_I(1) / CONSTANTS_RADIUS_OF_EARTH) / _COS_LAT0;;
+		global_position.alt = _H0 - _p_I(2);;
+		global_position.alt_ellipsoid = global_position.alt;
 		global_position.terrain_alt = -_p_I(2);
 		global_position.timestamp = hrt_absolute_time();
 		_global_position_ground_truth_pub.publish(global_position);

@@ -9,6 +9,7 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 	if simulator_sih start; then
 
 		sensor_baro_sim start
+		sensor_gps_sim start
 		sensor_mag_sim start
 
 	else

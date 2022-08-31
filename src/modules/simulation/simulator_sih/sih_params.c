@@ -285,15 +285,6 @@ PARAM_DEFINE_INT32(SIH_LOC_LON0, -737578370);
 PARAM_DEFINE_FLOAT(SIH_LOC_H0, 32.34f);
 
 /**
- * Number of GPS satellites used
- *
- * @min 0
- * @max  50
- * @group Simulation In Hardware
- */
-PARAM_DEFINE_INT32(SIH_GPS_USED, 10);
-
-/**
  * distance sensor minimum range
  *
  * @unit m
