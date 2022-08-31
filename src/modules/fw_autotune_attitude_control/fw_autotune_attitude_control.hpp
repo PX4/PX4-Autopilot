@@ -98,7 +98,6 @@ private:
 	void checkFilters();
 
 	void updateStateMachine(hrt_abstime now);
-	bool registerActuatorControlsCallback();
 	void stopAutotune();
 	void copyGains(int index);
 	bool areGainsGood() const;
@@ -147,6 +146,7 @@ private:
 	bool _armed{false};
 	uint8_t _nav_state{0};
 	uint8_t _start_flight_mode{0};
+	bool _aux_switch_en{false};
 
 	matrix::Vector3f _kiff{};
 	matrix::Vector3f _rate_k{};

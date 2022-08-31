@@ -65,6 +65,11 @@ bool FwAutotuneAttitudeControl::init()
 
 	_signal_filter.setParameters(_publishing_dt_s, .2f); // runs in the slow publishing loop
 
+	if (!_actuator_controls_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
+	}
+
 	return true;
 }
 
@@ -92,8 +97,11 @@ void FwAutotuneAttitudeControl::Run()
 		updateStateMachine(hrt_absolute_time());
 	}
 
+	_aux_switch_en = isAuxEnableSwitchEnabled();
+
 	// new control data needed every iteration
-	if (_state == state::idle
+	if ((_state == state::idle
+		&& !_aux_switch_en)
 	    || !_actuator_controls_sub.updated()) {
 		return;
 	}
@@ -265,6 +273,10 @@ bool FwAutotuneAttitudeControl::isAuxEnableSwitchEnabled()
 	case 6:
 		aux_enable_channel = manual_control_setpoint.aux6;
 		break;
+
+	default:
+		aux_enable_channel = NAN;
+		break;
 	}
 
 	return (aux_enable_channel != NAN) && (aux_enable_channel > .5f);
@@ -278,20 +290,13 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	const float temp[5] = {0.f, 0.f, 0.f, 0.f, 0.f};
 	const Vector<float, 5> sys_id_init(temp);
 
-	const bool rc_switch_enabled = isAuxEnableSwitchEnabled();
-
 	switch (_state) {
 	case state::idle:
-		if (_param_fw_at_start.get() || rc_switch_enabled) {
-			if (registerActuatorControlsCallback()) {
-				_state = state::init;
-				PX4_INFO("Autotune started");
-
-			} else {
-				_state = state::fail;
-			}
-
+		if (_param_fw_at_start.get() || _aux_switch_en) {
+			PX4_INFO("Autotune started");
+			_state = state::init;
 			_state_start_time = now;
+			_start_flight_mode = _nav_state;
 		}
 
 		break;
@@ -300,7 +305,6 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		if (_are_filters_initialized) {
 			_state = state::roll;
 			_state_start_time = now;
-			_start_flight_mode = _nav_state;
 			_sys_id.reset(sys_id_init);
 			// first step needs to be shorter to keep the drone centered
 			_steps_counter = 5;
@@ -455,6 +459,12 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		// Wait a bit in that state to make sure
 		// the other components are aware of the final result
 		if ((now - _state_start_time) > 2_s) {
+
+			// Don't reset until aux switch is back to disabled
+			if (_param_fw_at_man_aux.get() && _aux_switch_en) {
+				break;
+			}
+			PX4_INFO("Autotune returned to idle");
 			_state = state::idle;
 			stopAutotune();
 		}
@@ -464,25 +474,15 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	// In case of convergence timeout
 	// the identification sequence is aborted immediately
-	if (_state != state::wait_for_disarm && _state != state::idle) {
+	if (_state != state::wait_for_disarm && _state != state::idle &&  _state != state::fail) {
 		if (now - _state_start_time > 20_s
-		    || (_param_fw_at_man_aux.get() != 0 && !rc_switch_enabled)
+		    || (_param_fw_at_man_aux.get() && !_aux_switch_en)
 		    || _start_flight_mode != _nav_state) {
 			PX4_INFO("Autotune exited before finishing");
 			_state = state::fail;
 			_state_start_time = now;
 		}
 	}
-}
-
-bool FwAutotuneAttitudeControl::registerActuatorControlsCallback()
-{
-	if (!_actuator_controls_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
-		return false;
-	}
-
-	return true;
 }
 
 void FwAutotuneAttitudeControl::copyGains(int index)
@@ -612,7 +612,6 @@ void FwAutotuneAttitudeControl::stopAutotune()
 {
 	_param_fw_at_start.set(false);
 	_param_fw_at_start.commit();
-	_actuator_controls_sub.unregisterCallback();
 }
 
 const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
