@@ -46,6 +46,8 @@ ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *p
 		_param_handles.swash_plate_servos[i].angle = param_find(buffer);
 		snprintf(buffer, sizeof(buffer), "CA_SP0_ARM_L%u", i);
 		_param_handles.swash_plate_servos[i].arm_length = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_SV_CS%u_TRIM", i);
+		_param_handles.swash_plate_servos[i].trim = param_find(buffer);
 	}
 
 	_param_handles.num_swash_plate_servos = param_find("CA_SP0_COUNT");
@@ -84,6 +86,7 @@ void ActuatorEffectivenessHelicopter::updateParams()
 		param_get(_param_handles.swash_plate_servos[i].angle, &angle_deg);
 		_geometry.swash_plate_servos[i].angle = math::radians(angle_deg);
 		param_get(_param_handles.swash_plate_servos[i].arm_length, &_geometry.swash_plate_servos[i].arm_length);
+		param_get(_param_handles.swash_plate_servos[i].trim, &_geometry.swash_plate_servos[i].trim);
 	}
 
 	for (int i = 0; i < NUM_CURVE_POINTS; ++i) {
@@ -118,6 +121,7 @@ ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &configura
 
 	for (int i = 0; i < _geometry.num_swash_plate_servos; ++i) {
 		configuration.addActuator(ActuatorType::SERVOS, Vector3f{}, Vector3f{});
+		configuration.trim[configuration.selected_matrix](i) = _geometry.swash_plate_servos[i].trim;
 	}
 
 	return true;
@@ -143,7 +147,8 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 				+ control_sp(ControlAxis::PITCH) * cosf(_geometry.swash_plate_servos[i].angle) *
 				_geometry.swash_plate_servos[i].arm_length
 				- control_sp(ControlAxis::ROLL) * sinf(_geometry.swash_plate_servos[i].angle) *
-				_geometry.swash_plate_servos[i].arm_length;
+				_geometry.swash_plate_servos[i].arm_length
+				+ _geometry.swash_plate_servos[i].trim;
 	}
 }
 

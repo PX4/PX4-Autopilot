@@ -930,6 +930,8 @@ mixer:
                             label: 'Angle'
                           - name: 'CA_SP0_ARM_L${i}'
                             label: 'Arm Length (relative)'
+                          - name: 'CA_SV_CS${i}_TRIM'
+                            label: 'Trim'
                     parameters:
                       - label: 'Yaw compensation scale based on collective pitch'
                         name: CA_HELI_YAW_CP_S
