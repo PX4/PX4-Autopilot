@@ -579,3 +579,18 @@ PARAM_DEFINE_INT32(DS_SWITCH_SAT, 1);
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_INT32(DS_SWITCH_FILTER, 0);
+
+// ======================================================
+// ============= hardcoded trajectory center ============
+// ======================================================
+
+/**
+ * integer in {0,1} defining if the trajectory origin is taken from hardcoded params or shear estimate, 1=params, 0=estimate
+ * @unit 
+ * @min 0
+ * @max 1
+ * @decimal 1
+ * @increment 1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_INT32(DS_SWITCH_ORI_HC, 1);

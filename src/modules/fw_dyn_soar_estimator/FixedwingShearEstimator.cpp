@@ -341,12 +341,12 @@ FixedwingShearEstimator::Run()
         }
 
         // get the correct shear params for trajectory selection
-        float shear = sqrtf(powf(_X_posterior_horizontal(0)*_unit_v - _X_posterior_horizontal(2)*_unit_v, 2) + 
-                            powf(_X_posterior_horizontal(1)*_unit_v - _X_posterior_horizontal(3)*_unit_v, 2));
+        float shear = sqrtf(powf(_X_posterior_horizontal(0)*_unit_v, 2) + 
+                            powf(_X_posterior_horizontal(1)*_unit_v, 2));
         float v = _findClosest(_v_max_arr, 5, shear);    // wind velocity
         float a = _findClosest(_alpha_arr, 9, _X_posterior_horizontal(5)*_unit_a);    // shear strength
-        float heading = -atan2f(_X_posterior_horizontal(1)-_X_posterior_horizontal(3),
-                                _X_posterior_horizontal(0)-_X_posterior_horizontal(2));
+        float heading = atan2f(_X_posterior_horizontal(0),
+                                _X_posterior_horizontal(1));
         _soaring_estimator_shear.v_max = v;
         _soaring_estimator_shear.alpha = a;
         _soaring_estimator_shear.h_ref = _X_posterior_horizontal(4)*_unit_h;

@@ -78,11 +78,6 @@ FixedwingPositionINDIControl::init()
 		return false;
 	}
     PX4_INFO("Starting FW_DYN_SOAR_CONTROLLER");
-    //_read_trajectory_coeffs_csv("trajectory5.csv");
-    //_read_trajectory_coeffs_csv("trajectory4.csv");
-    //_read_trajectory_coeffs_csv("trajectory3.csv");
-    //_read_trajectory_coeffs_csv("trajectory2.csv");
-    //_read_trajectory_coeffs_csv("trajectory1.csv");
     char filename[] = "trajectory0.csv";
     _read_trajectory_coeffs_csv(filename);
 
@@ -173,19 +168,20 @@ FixedwingPositionINDIControl::parameters_update()
 
 
     _loiter = _param_loiter.get();
-    _shear_heading = _param_shear_heading.get()/180.f * M_PI_F + M_PI_2_F;
-    _shear_h_ref = _param_shear_height.get();
     _select_trajectory(0.0f);
 
-    _thrust = _param_thrust.get();
-
+    _thrust_pos = _param_thrust.get();
+    _thrust = _thrust_pos;
     _switch_saturation = _param_switch_saturation.get();
-
     _switch_filter = _param_switch_filter.get();
+    _switch_origin_hardcoded = _param_switch_origin_hardcoded.get();
 
+    // only update shear heading and height with params, if desired
+    if (_switch_origin_hardcoded) {
+        _shear_heading = _param_shear_heading.get()/180.f * M_PI_F + M_PI_2_F;
+        _shear_h_ref = _param_shear_height.get();
+    }
 
-	// sanity check parameters
-    // TODO: include sanity check
 
 	return PX4_OK;
 }
@@ -289,13 +285,15 @@ FixedwingPositionINDIControl::manual_control_setpoint_poll()
 void
 FixedwingPositionINDIControl::rc_channels_poll()
 {
-    _rc_channels_sub.update(&_rc_channels);
-    // use flaps channel to select manual feedthrough
-    if (_rc_channels.channels[5]>=0.f){
-        _switch_manual = 1;
-    }
-    else{
-        _switch_manual = 0;
+    if (_rc_channels_sub.update(&_rc_channels)) {
+        // use flaps channel to select manual feedthrough
+        if (_rc_channels.channels[5]>=0.f){
+            _switch_manual = 1;
+        }
+        else{
+            _switch_manual = 0;
+            _thrust = _thrust_pos;
+        }
     }
 }
 
@@ -409,6 +407,21 @@ FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
     return;
 }
 
+void
+FixedwingPositionINDIControl::soaring_estimator_shear_poll()
+{
+    if (_soaring_estimator_shear_sub.update(&_soaring_estimator_shear)){
+        if (!_switch_origin_hardcoded) {
+            _shear_v_max = _soaring_estimator_shear.v_max;
+            _shear_alpha = _soaring_estimator_shear.alpha;
+            _shear_h_ref = _soaring_estimator_shear.h_ref;
+            _shear_heading = _soaring_estimator_shear.psi;
+        }
+        
+        // TODO: include some safety guards for large drifts, e.g. limit the maximum heading shift
+    }
+}
+
 float
 FixedwingPositionINDIControl::_getClosest(float val1, float val2, float target)
 {
@@ -478,27 +491,22 @@ FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
     <alpha> in [0.20, 1.00]
     <energy> in [E_min, E_max]
     */
-
-    /*
-    float v = _findClosest(_v_max_arr, _gridsize, _shear_v_max);    // wind velocity
-    float a = _findClosest(_alpha_arr, _gridsize, _shear_alpha);    // shear strength
-    float e = _findClosest(_energy_arr, _gridsize, _shear_energy);  // initial energy
-    PX4_INFO("V, A, E: \t%.2f\t%.2f\t%.2f", double(v), double(a), double(e));
+   /*
+    float e = 20.f;//_findClosest(_energy_arr, _gridsize, _airspeed);  // initial energy
     
-    char file[30] = "nominal";
+    char file[30] = "trajec_robust";
     char v_str[6];
     char a_str[6];
     char e_str[6];
     strcat(file,"_");
-    strcat(file,gcvt(v, 2, v_str));
+    strcat(file,gcvt(_shear_v_max, 2, v_str));
     strcat(file,"_");
-    strcat(file,gcvt(a, 3, a_str));
+    strcat(file,gcvt(_shear_alpha, 3, a_str));
     strcat(file,"_");
     strcat(file,gcvt(e, 2, e_str));
     strcat(file,".csv");
+    PX4_INFO("filename: \t%.30s", file);
     */
-    //PX4_INFO("filename: \t%.30s", file);
-    
 
     // select loiter trajectory for loiter test
     char filename[16];
@@ -551,8 +559,8 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // =======================================================================
     bool error = false;
 
-    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    //char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     //PX4_ERR(home_dir);
     strcat(home_dir,filename);
     FILE* fp = fopen(home_dir, "r");
@@ -732,6 +740,11 @@ FixedwingPositionINDIControl::Run()
         vehicle_angular_velocity_poll();
         vehicle_angular_acceleration_poll();
         soaring_controller_status_poll();
+
+        // update the shear estimate, only if we are flying in manual feedthrough for safety reasons
+        if (_switch_manual) {
+            soaring_estimator_shear_poll();
+        }
 
         // update transform from trajectory frame to ENU frame (soaring frame)
         _compute_trajectory_transform();

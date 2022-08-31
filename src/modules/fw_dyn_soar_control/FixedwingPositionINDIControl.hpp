@@ -69,6 +69,7 @@
 #include <uORB/topics/soaring_controller_position.h>
 #include <uORB/topics/soaring_controller_status.h>
 #include <uORB/topics/soaring_controller_wind.h>
+#include <uORB/topics/soaring_estimator_shear.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/debug_value.h>
 #include <uORB/topics/wind.h>
@@ -125,6 +126,7 @@ private:
     uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};                 // vehicle attitude
     uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)}; // vehicle body accel
 	uORB::Subscription _soaring_controller_status_sub{ORB_ID(soaring_controller_status)};			// vehicle status flags
+	uORB::Subscription _soaring_estimator_shear_sub{ORB_ID(soaring_estimator_shear)};	// shear params for trajectory selection
 	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _rc_channels_sub{ORB_ID(rc_channels)};
@@ -164,6 +166,7 @@ private:
 	soaring_controller_position_setpoint_s	_soaring_controller_position_setpoint{};	///< soaring controller pos setpoint
 	soaring_controller_position_s	_soaring_controller_position{};	///< soaring controller pos 
 	soaring_controller_wind_s	_soaring_controller_wind{};	///< soaring controller wind
+	soaring_estimator_shear_s	_soaring_estimator_shear{}; ///< soaring estimator shear
 	debug_value_s				_debug_value{};			// slip angle
 
 	// parameter struct
@@ -219,7 +222,9 @@ private:
 		// force saturation
 		(ParamInt<px4::params::DS_SWITCH_SAT>) _param_switch_saturation,
 		// command filtering
-		(ParamInt<px4::params::DS_SWITCH_FILTER>) _param_switch_filter
+		(ParamInt<px4::params::DS_SWITCH_FILTER>) _param_switch_filter,
+		// hardcoded trajectory center
+		(ParamInt<px4::params::DS_SWITCH_ORI_HC>) _param_switch_origin_hardcoded
 
 	)
 
@@ -254,6 +259,7 @@ private:
 	void		vehicle_control_mode_poll();
 	void		vehicle_status_poll();
 	void		soaring_controller_status_poll();
+	void		soaring_estimator_shear_poll();
 
 	//
 	void		status_publish();
@@ -361,12 +367,15 @@ private:
 	int _loiter;
 	// thrust
 	float _thrust;
+	float _thrust_pos;
 	// controller mode
 	bool _switch_manual = 1;
 	// force limit
 	bool _switch_saturation;
 	//
 	bool _switch_filter;
+	//
+	bool _switch_origin_hardcoded;
 
 	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
 	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.
@@ -382,11 +391,7 @@ private:
 
 	// vectors defining the gridding for trajectory selection: initial velocities, wind speed and shear strength
 	const static size_t _gridsize = 11;
-	/*
-	float _energy_arr[_gridsize] = {14.f,16.f,18.f,20.f,22.f,24.f,26.f,28.f,30.f,32.f,34.f};	
-	float _v_max_arr[_gridsize] = {10.f,11.f,12.f,13.f,14.f,15.f,16.f,17.f,18.f,19.f,20.f};	
-	float _alpha_arr[_gridsize] = {0.1f,0.2f,0.3f,0.4f,0.5f,0.6f,0.7f,0.8f,0.9f,1.0f,1.1f};	
-	*/
+
 
 	// helper variables
 	Dcmf _R_ned_to_enu;	// rotation matrix from NED to ENU frame
