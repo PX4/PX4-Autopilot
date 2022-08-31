@@ -292,8 +292,10 @@ private:
 	void armingCheckFailure(NavModes required_modes, HealthComponentIndex component, events::Log log_level);
 
 	template<typename... Args>
-	bool addEvent(uint32_t event_id, const events::LogLevels &log_levels, const char *message, Args... args);
-	Report::EventBufferHeader *addEventToBuffer(uint32_t event_id, const events::LogLevels &log_levels, unsigned args_size);
+	bool addEvent(uint32_t event_id, const events::LogLevels &log_levels, const char *message, uint32_t modes,
+		      Args... args);
+	Report::EventBufferHeader *addEventToBuffer(uint32_t event_id, const events::LogLevels &log_levels, uint32_t modes,
+			unsigned args_size);
 
 	NavModes reportedModes(NavModes required_modes);
 
@@ -360,9 +362,10 @@ void Report::armingCheckFailure(NavModes required_modes, HealthComponentIndex co
 }
 
 template<typename... Args>
-bool Report::addEvent(uint32_t event_id, const events::LogLevels &log_levels, const char *message, Args... args)
+bool Report::addEvent(uint32_t event_id, const events::LogLevels &log_levels, const char *message, uint32_t modes,
+		      Args... args)
 {
-	constexpr unsigned args_size = events::util::sizeofArguments(args...);
+	constexpr unsigned args_size = events::util::sizeofArguments(modes, args...);
 	static_assert(args_size <= sizeof(events::EventType::arguments), "Too many arguments");
 	unsigned total_size = sizeof(EventBufferHeader) + args_size;
 
@@ -371,9 +374,9 @@ bool Report::addEvent(uint32_t event_id, const events::LogLevels &log_levels, co
 		return false;
 	}
 
-	events::util::fillEventArguments(_event_buffer + _next_buffer_idx + sizeof(EventBufferHeader), args...);
+	events::util::fillEventArguments(_event_buffer + _next_buffer_idx + sizeof(EventBufferHeader), modes, args...);
 	// We split out the part of the code not requiring templating to reduce flash usage a bit
-	EventBufferHeader *header = addEventToBuffer(event_id, log_levels, args_size);
+	EventBufferHeader *header = addEventToBuffer(event_id, log_levels, modes, args_size);
 #ifdef CONSOLE_PRINT_ARMING_CHECK_EVENT
 	memcpy(&header->message, &message, sizeof(message));
 #else
