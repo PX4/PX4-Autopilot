@@ -36,8 +36,22 @@
 
 using namespace matrix;
 
-TEST(FunctionsTest, ThrottleCurve)
+TEST(ActuatorEffectivenessHelicopterTest, ThrottleCurve)
 {
+	// Disable autosaving parameters to avoid busy loop in param_set()
+	param_control_autosave(false);
+
+	// Set parameters for a predefined throttle curve
+	float values[5] = {0.f, .3f, .6f, .8f, 1.f};
+	param_t param;
+
+	for (int i = 0; i < 5; i++) {
+		char buffer[17];
+		snprintf(buffer, sizeof(buffer), "CA_HELI_THR_C%u", i);
+		param = param_find(buffer);
+		param_set(param, &values[i]);
+	}
+
 	ActuatorEffectivenessHelicopter helicopter(nullptr);
 	// run getEffectivenessMatrix with empty configuration to correctly initialize _first_swash_plate_servo_index
 	ActuatorEffectiveness::Configuration configuration{};
