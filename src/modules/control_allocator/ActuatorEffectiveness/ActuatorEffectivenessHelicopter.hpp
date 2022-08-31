@@ -51,6 +51,7 @@ public:
 	struct SwashPlateGeometry {
 		float angle;
 		float arm_length;
+		float trim;
 	};
 
 	struct Geometry {
@@ -85,6 +86,7 @@ private:
 	struct ParamHandlesSwashPlate {
 		param_t angle;
 		param_t arm_length;
+		param_t trim;
 	};
 	struct ParamHandles {
 		ParamHandlesSwashPlate swash_plate_servos[NUM_SWASH_PLATE_SERVOS_MAX];
