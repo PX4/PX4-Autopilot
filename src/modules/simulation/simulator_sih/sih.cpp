@@ -71,13 +71,11 @@ void Sih::run()
 
 	parameters_updated();
 	init_variables();
-	gps_no_fix();
 
 	const hrt_abstime task_start = hrt_absolute_time();
 	_last_run = task_start;
 	_gps_time = task_start;
 	_airspeed_time = task_start;
-	_gt_time = task_start;
 	_dist_snsr_time = task_start;
 	_vehicle = (VehicleType)constrain(_sih_vtype.get(), static_cast<typeof _sih_vtype.get()>(0),
 					  static_cast<typeof _sih_vtype.get()>(2));
@@ -94,7 +92,7 @@ void Sih::run()
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 // Get current timestamp in microseconds
-uint64_t micros()
+static uint64_t micros()
 {
 	struct timeval t;
 	gettimeofday(&t, nullptr);
@@ -162,6 +160,11 @@ void Sih::lockstep_loop()
 }
 #endif
 
+static void timer_callback(void *sem)
+{
+	px4_sem_post((px4_sem_t *)sem);
+}
+
 void Sih::realtime_loop()
 {
 	int rate = _imu_gyro_ratemax.get();
@@ -188,12 +191,6 @@ void Sih::realtime_loop()
 	px4_sem_destroy(&_data_semaphore);
 }
 
-
-void Sih::timer_callback(void *sem)
-{
-	px4_sem_post((px4_sem_t *)sem);
-}
-
 void Sih::sensor_step()
 {
 	// check for parameter updates
@@ -209,39 +206,35 @@ void Sih::sensor_step()
 
 	perf_begin(_loop_perf);
 
-	_now = hrt_absolute_time();
-	_dt = (_now - _last_run) * 1e-6f;
-	_last_run = _now;
+	const hrt_abstime now = hrt_absolute_time();
+	const float dt = (now - _last_run) * 1e-6f;
+	_last_run = now;
 
-	read_motors();
+	read_motors(dt);
 
 	generate_force_and_torques();
 
-	equations_of_motion();
+	equations_of_motion(dt);
 
-	reconstruct_sensors_signals();
-
-	// update IMU every iteration
-	_px4_accel.update(_now, _acc(0), _acc(1), _acc(2));
-	_px4_gyro.update(_now, _gyro(0), _gyro(1), _gyro(2));
+	reconstruct_sensors_signals(now);
 
 	// magnetometer published at 50 Hz
-	if (_now - _mag_time >= 20_ms
+	if (now - _mag_time >= 20_ms
 	    && fabs(_mag_offset_x) < 10000
 	    && fabs(_mag_offset_y) < 10000
 	    && fabs(_mag_offset_z) < 10000) {
-		_mag_time = _now;
-		_px4_mag.update(_now, _mag(0), _mag(1), _mag(2));
+		_mag_time = now;
+		_px4_mag.update(now, _mag(0), _mag(1), _mag(2));
 	}
 
 	// baro published at 20 Hz
-	if (_now - _baro_time >= 50_ms
+	if (now - _baro_time >= 50_ms
 	    && fabs(_baro_offset_m) < 10000) {
-		_baro_time = _now;
+		_baro_time = now;
 
-		// publish
+		// publish baro
 		sensor_baro_s sensor_baro{};
-		sensor_baro.timestamp_sample = _now;
+		sensor_baro.timestamp_sample = now;
 		sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 		sensor_baro.pressure = _baro_p_mBar * 100.f;
 		sensor_baro.temperature = _baro_temp_c;
@@ -250,35 +243,29 @@ void Sih::sensor_step()
 		_sensor_baro_pub.publish(sensor_baro);
 	}
 
-	// gps published at 20Hz
-	if (_now - _gps_time >= 50_ms) {
-		_gps_time = _now;
-		send_gps();
+	// gps published at 10Hz
+	if (now - _gps_time >= 100_ms) {
+		_gps_time = now;
+		send_gps(now);
 	}
 
-	if ((_vehicle == VehicleType::FW || _vehicle == VehicleType::TS) && _now - _airspeed_time >= 50_ms) {
-		_airspeed_time = _now;
-		send_airspeed();
+	if ((_vehicle == VehicleType::FW || _vehicle == VehicleType::TS) && now - _airspeed_time >= 50_ms) {
+		_airspeed_time = now;
+		send_airspeed(now);
 	}
 
 	// distance sensor published at 50 Hz
-	if (_now - _dist_snsr_time >= 20_ms
+	if (now - _dist_snsr_time >= 20_ms
 	    && fabs(_distance_snsr_override) < 10000) {
-		_dist_snsr_time = _now;
-		send_dist_snsr();
+		_dist_snsr_time = now;
+		send_dist_snsr(now);
 	}
 
-	// send groundtruth message every 40 ms
-	if (_now - _gt_time >= 40_ms) {
-		_gt_time = _now;
-
-		publish_sih();  // publish _sih message for debug purpose
-	}
+	publish_ground_truth(now);
 
 	perf_end(_loop_perf);
 }
 
-// store the parameters in a more convenient form
 void Sih::parameters_updated()
 {
 	_T_MAX = _sih_t_max.get();
@@ -320,7 +307,6 @@ void Sih::parameters_updated()
 	_T_TAU = _sih_thrust_tau.get();
 }
 
-// initialization of the variables for the simulator
 void Sih::init_variables()
 {
 	srand(1234);    // initialize the random seed once before calling generate_wgn()
@@ -333,37 +319,7 @@ void Sih::init_variables()
 	_u[0] = _u[1] = _u[2] = _u[3] = 0.0f;
 }
 
-void Sih::gps_fix()
-{
-	_sensor_gps.fix_type = 3;  // 3D fix
-	_sensor_gps.satellites_used = _gps_used;
-	_sensor_gps.heading = NAN;
-	_sensor_gps.heading_offset = NAN;
-	_sensor_gps.s_variance_m_s = 0.5f;
-	_sensor_gps.c_variance_rad = 0.1f;
-	_sensor_gps.eph = 0.9f;
-	_sensor_gps.epv = 1.78f;
-	_sensor_gps.hdop = 0.7f;
-	_sensor_gps.vdop = 1.1f;
-}
-
-void Sih::gps_no_fix()
-{
-	_sensor_gps.fix_type = 0;  // 3D fix
-	_sensor_gps.satellites_used = _gps_used;
-	_sensor_gps.heading = NAN;
-	_sensor_gps.heading_offset = NAN;
-	_sensor_gps.s_variance_m_s = 100.f;
-	_sensor_gps.c_variance_rad = 100.f;
-	_sensor_gps.eph = 100.f;
-	_sensor_gps.epv = 100.f;
-	_sensor_gps.hdop = 100.f;
-	_sensor_gps.vdop = 100.f;
-}
-
-
-// read the motor signals outputted from the mixer
-void Sih::read_motors()
+void Sih::read_motors(const float dt)
 {
 	actuator_outputs_s actuators_out;
 
@@ -376,13 +332,12 @@ void Sih::read_motors()
 
 			} else {
 				float u_sp = actuators_out.output[i];
-				_u[i] = _u[i] + _dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
+				_u[i] = _u[i] + dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
 			}
 		}
 	}
 }
 
-// generate the motors thrust and torque in the body frame
 void Sih::generate_force_and_torques()
 {
 	if (_vehicle == VehicleType::MC) {
@@ -418,21 +373,27 @@ void Sih::generate_fw_aerodynamics()
 	_tailplane.update_aero(_v_B, _w_B, altitude, _u[1]*FLAP_MAX, _T_MAX * _u[3]);
 	_fin.update_aero(_v_B, _w_B, altitude, _u[2]*FLAP_MAX, _T_MAX * _u[3]);
 	_fuselage.update_aero(_v_B, _w_B, altitude);
-	_Fa_I = _C_IB * (_wing_l.get_Fa() + _wing_r.get_Fa() + _tailplane.get_Fa() + _fin.get_Fa() + _fuselage.get_Fa())
-		- _KDV * _v_I; 	// sum of aerodynamic forces
-	_Ma_B = _wing_l.get_Ma() + _wing_r.get_Ma() + _tailplane.get_Ma() + _fin.get_Ma() + _fuselage.get_Ma() - _KDW *
-		_w_B; 	// aerodynamic moments
+
+	// sum of aerodynamic forces
+	_Fa_I = _C_IB * (_wing_l.get_Fa() + _wing_r.get_Fa() + _tailplane.get_Fa() + _fin.get_Fa() + _fuselage.get_Fa()) - _KDV
+		* _v_I;
+
+	// aerodynamic moments
+	_Ma_B = _wing_l.get_Ma() + _wing_r.get_Ma() + _tailplane.get_Ma() + _fin.get_Ma() + _fuselage.get_Ma() - _KDW * _w_B;
 }
 
 void Sih::generate_ts_aerodynamics()
 {
-	_v_B = _C_IB.transpose() * _v_I; // velocity in body frame [m/s]
-	Vector3f Fa_ts = Vector3f();
-	Vector3f Ma_ts = Vector3f();
-	Vector3f v_ts = _C_BS.transpose() *
-			_v_B; // the aerodynamic is resolved in a frame like a standard aircraft (nose-right-belly)
+	// velocity in body frame [m/s]
+	_v_B = _C_IB.transpose() * _v_I;
+
+	// the aerodynamic is resolved in a frame like a standard aircraft (nose-right-belly)
+	Vector3f v_ts = _C_BS.transpose() * _v_B;
 	Vector3f w_ts = _C_BS.transpose() * _w_B;
 	float altitude = _H0 - _p_I(2);
+
+	Vector3f Fa_ts{};
+	Vector3f Ma_ts{};
 
 	for (int i = 0; i < NB_TS_SEG; i++) {
 		if (i <= NB_TS_SEG / 2) {
@@ -450,8 +411,7 @@ void Sih::generate_ts_aerodynamics()
 	_Ma_B = _C_BS * Ma_ts - _KDW * _w_B; 	// aerodynamic moments
 }
 
-// apply the equations of motion of a rigid body and integrate one step
-void Sih::equations_of_motion()
+void Sih::equations_of_motion(const float dt)
 {
 	_C_IB = matrix::Dcm<float>(_q); // body to inertial transformation
 
@@ -459,7 +419,7 @@ void Sih::equations_of_motion()
 	_p_I_dot = _v_I;                        // position differential
 	_v_I_dot = (_W_I + _Fa_I + _C_IB * _T_B) / _MASS;   // conservation of linear momentum
 	// _q_dot = _q.derivative1(_w_B);              // attitude differential
-	_dq = Quatf::expq(0.5f * _dt * _w_B);
+	_dq = Quatf::expq(0.5f * dt * _w_B);
 	_w_B_dot = _Im1 * (_Mt_B + _Ma_B - _w_B.cross(_I * _w_B)); // conservation of angular momentum
 
 	// fake ground, avoid free fall
@@ -467,7 +427,7 @@ void Sih::equations_of_motion()
 		if (_vehicle == VehicleType::MC || _vehicle == VehicleType::TS) {
 			if (!_grounded) {    // if we just hit the floor
 				// for the accelerometer, compute the acceleration that will stop the vehicle in one time step
-				_v_I_dot = -_v_I / _dt;
+				_v_I_dot = -_v_I / dt;
 
 			} else {
 				_v_I_dot.setZero();
@@ -480,7 +440,7 @@ void Sih::equations_of_motion()
 		} else if (_vehicle == VehicleType::FW) {
 			if (!_grounded) {    // if we just hit the floor
 				// for the accelerometer, compute the acceleration that will stop the vehicle in one time step
-				_v_I_dot(2) = -_v_I(2) / _dt;
+				_v_I_dot(2) = -_v_I(2) / dt;
 
 			} else {
 				// we only allow negative acceleration in order to takeoff
@@ -488,8 +448,8 @@ void Sih::equations_of_motion()
 			}
 
 			// integration: Euler forward
-			_p_I = _p_I + _p_I_dot * _dt;
-			_v_I = _v_I + _v_I_dot * _dt;
+			_p_I = _p_I + _p_I_dot * dt;
+			_v_I = _v_I + _v_I_dot * dt;
 			Eulerf RPY = Eulerf(_q);
 			RPY(0) = 0.0f;	// no roll
 			RPY(1) = radians(0.0f); // pitch slightly up if needed to get some lift
@@ -500,41 +460,31 @@ void Sih::equations_of_motion()
 
 	} else {
 		// integration: Euler forward
-		_p_I = _p_I + _p_I_dot * _dt;
-		_v_I = _v_I + _v_I_dot * _dt;
+		_p_I = _p_I + _p_I_dot * dt;
+		_v_I = _v_I + _v_I_dot * dt;
 		_q = _q * _dq;
 		_q.normalize();
 		// integration Runge-Kutta 4
 		// rk4_update(_p_I, _v_I, _q, _w_B);
-		_w_B = constrain(_w_B + _w_B_dot * _dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
+		_w_B = constrain(_w_B + _w_B_dot * dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
 		_grounded = false;
 	}
 }
 
-// Sih::States Sih::eom_f(States x) 	// equations of motion f: x'=f(x)
-// {
-// 	States x_dot{}; 	// dx/dt
-
-// 	Dcmf C_IB = matrix::Dcm<float>(x.q); // body to inertial transformation
-// 	// Equations of motion of a rigid body
-// 	x_dot.p_I = x.v_I;                        // position differential
-// 	x_dot.v_I = (_W_I + _Fa_I + C_IB * _T_B) / _MASS;   // conservation of linear momentum
-// 	x_dot.q = x.q.derivative1(x.w_B);              // attitude differential
-// 	x_dot.w_B = _Im1 * (_Mt_B + _Ma_B - x.w_B.cross(_I * x.w_B)); // conservation of angular momentum
-
-// 	return x_dot;
-// }
-
-// reconstruct the noisy sensor signals
-void Sih::reconstruct_sensors_signals()
+void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 {
 	// The sensor signals reconstruction and noise levels are from [1]
 	// [1] Bulka, Eitan, and Meyer Nahon. "Autonomous fixed-wing aerobatics: from theory to flight."
 	//     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
 
 	// IMU
-	_acc = _C_IB.transpose() * (_v_I_dot - Vector3f(0.0f, 0.0f, CONSTANTS_ONE_G)) + noiseGauss3f(0.5f, 1.7f, 1.4f);
-	_gyro = _w_B + noiseGauss3f(0.14f, 0.07f, 0.03f);
+	Vector3f acc = _C_IB.transpose() * (_v_I_dot - Vector3f(0.0f, 0.0f, CONSTANTS_ONE_G)) + noiseGauss3f(0.5f, 1.7f, 1.4f);
+	Vector3f gyro = _w_B + noiseGauss3f(0.14f, 0.07f, 0.03f);
+
+	// update IMU every iteration
+	_px4_accel.update(time_now_us, acc(0), acc(1), acc(2));
+	_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
+
 	_mag = _C_IB.transpose() * _mu_I + noiseGauss3f(0.02f, 0.02f, 0.03f);
 	_mag(0) += _mag_offset_x;
 	_mag(1) += _mag_offset_y;
@@ -557,45 +507,65 @@ void Sih::reconstruct_sensors_signals()
 	_gps_vel = _v_I + noiseGauss3f(0.06f, 0.077f, 0.158f);
 }
 
-void Sih::send_gps()
+void Sih::send_gps(const hrt_abstime &time_now_us)
 {
-	_sensor_gps.timestamp = _now;
-	_sensor_gps.lat = (int32_t)(_gps_lat * 1e7);       // Latitude in 1E-7 degrees
-	_sensor_gps.lon = (int32_t)(_gps_lon * 1e7); // Longitude in 1E-7 degrees
-	_sensor_gps.alt = (int32_t)(_gps_alt * 1000.0f); // Altitude in 1E-3 meters above MSL, (millimetres)
-	_sensor_gps.alt_ellipsoid = (int32_t)(_gps_alt * 1000); // Altitude in 1E-3 meters bove Ellipsoid, (millimetres)
-	_sensor_gps.vel_ned_valid = true;              // True if NED velocity is valid
-	_sensor_gps.vel_m_s = sqrtf(_gps_vel(0) * _gps_vel(0) + _gps_vel(1) * _gps_vel(
-					    1)); // GPS ground speed, (metres/sec)
-	_sensor_gps.vel_n_m_s = _gps_vel(0);           // GPS North velocity, (metres/sec)
-	_sensor_gps.vel_e_m_s = _gps_vel(1);           // GPS East velocity, (metres/sec)
-	_sensor_gps.vel_d_m_s = _gps_vel(2);           // GPS Down velocity, (metres/sec)
-	_sensor_gps.cog_rad = atan2(_gps_vel(1),
-				    _gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
-
-	if (_gps_used >= 4) {
-		gps_fix();
-
-	} else {
-		gps_no_fix();
-	}
-
-	// device id
 	device::Device::DeviceId device_id;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
 	device_id.devid_s.bus = 0;
 	device_id.devid_s.address = 0;
 	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
-	_sensor_gps.device_id = device_id.devid;
 
-	_sensor_gps_pub.publish(_sensor_gps);
+	sensor_gps_s sensor_gps{};
+	sensor_gps.timestamp_sample = time_now_us;
+	sensor_gps.device_id = device_id.devid;
+	sensor_gps.lat = (int32_t)(_gps_lat * 1e7);       // Latitude in 1E-7 degrees
+	sensor_gps.lon = (int32_t)(_gps_lon * 1e7); // Longitude in 1E-7 degrees
+	sensor_gps.alt = (int32_t)(_gps_alt * 1000.0f); // Altitude in 1E-3 meters above MSL, (millimetres)
+	sensor_gps.alt_ellipsoid = (int32_t)(_gps_alt * 1000); // Altitude in 1E-3 meters bove Ellipsoid, (millimetres)
+	sensor_gps.vel_ned_valid = true; // True if NED velocity is valid
+	sensor_gps.vel_m_s = sqrtf(_gps_vel(0) * _gps_vel(0) + _gps_vel(1) * _gps_vel(1)); // GPS ground speed, (metres/sec)
+	sensor_gps.vel_n_m_s = _gps_vel(0); // GPS North velocity, (metres/sec)
+	sensor_gps.vel_e_m_s = _gps_vel(1); // GPS East velocity, (metres/sec)
+	sensor_gps.vel_d_m_s = _gps_vel(2); // GPS Down velocity, (metres/sec)
+
+	// Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
+	sensor_gps.cog_rad = atan2(_gps_vel(1), _gps_vel(0));
+
+	if (_gps_used >= 4) {
+		sensor_gps.fix_type = 3;  // 3D fix
+		sensor_gps.satellites_used = _gps_used;
+		sensor_gps.heading = NAN;
+		sensor_gps.heading_offset = NAN;
+		sensor_gps.s_variance_m_s = 0.5f;
+		sensor_gps.c_variance_rad = 0.1f;
+		sensor_gps.eph = 0.9f;
+		sensor_gps.epv = 1.78f;
+		sensor_gps.hdop = 0.7f;
+		sensor_gps.vdop = 1.1f;
+
+	} else {
+		sensor_gps.fix_type = 0;  // 3D fix
+		sensor_gps.satellites_used = _gps_used;
+		sensor_gps.heading = NAN;
+		sensor_gps.heading_offset = NAN;
+		sensor_gps.s_variance_m_s = 100.f;
+		sensor_gps.c_variance_rad = 100.f;
+		sensor_gps.eph = 100.f;
+		sensor_gps.epv = 100.f;
+		sensor_gps.hdop = 100.f;
+		sensor_gps.vdop = 100.f;
+	}
+
+	sensor_gps.timestamp = hrt_absolute_time();
+	_sensor_gps_pub.publish(sensor_gps);
 }
 
-void Sih::send_airspeed()
+void Sih::send_airspeed(const hrt_abstime &time_now_us)
 {
+	// TODO: send differential pressure instead?
 	airspeed_s airspeed{};
-	airspeed.timestamp_sample = _now;
-	airspeed.true_airspeed_m_s	= fmaxf(0.1f, _v_B(0) + generate_wgn() * 0.2f);
+	airspeed.timestamp_sample = time_now_us;
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_B(0) + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.air_temperature_celsius = _baro_temp_c;
 	airspeed.confidence = 0.7f;
@@ -603,58 +573,111 @@ void Sih::send_airspeed()
 	_airspeed_pub.publish(airspeed);
 }
 
-void Sih::send_dist_snsr()
+void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 {
-	_distance_snsr.timestamp = _now;
-	_distance_snsr.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-	_distance_snsr.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	_distance_snsr.min_distance = _distance_snsr_min;
-	_distance_snsr.max_distance = _distance_snsr_max;
-	_distance_snsr.signal_quality = -1;
-	_distance_snsr.device_id = 0;
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	device_id.devid_s.bus = 0;
+	device_id.devid_s.address = 0;
+	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
+
+	distance_sensor_s distance_sensor{};
+	//distance_sensor.timestamp_sample = time_now_us;
+	distance_sensor.device_id = device_id.devid;
+	distance_sensor.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	distance_sensor.min_distance = _distance_snsr_min;
+	distance_sensor.max_distance = _distance_snsr_max;
+	distance_sensor.signal_quality = -1;
 
 	if (_distance_snsr_override >= 0.f) {
-		_distance_snsr.current_distance = _distance_snsr_override;
+		distance_sensor.current_distance = _distance_snsr_override;
 
 	} else {
-		_distance_snsr.current_distance = -_p_I(2) / _C_IB(2, 2);
+		distance_sensor.current_distance = -_p_I(2) / _C_IB(2, 2);
 
-		if (_distance_snsr.current_distance > _distance_snsr_max) {
+		if (distance_sensor.current_distance > _distance_snsr_max) {
 			// this is based on lightware lw20 behaviour
-			_distance_snsr.current_distance = UINT16_MAX / 100.f;
+			distance_sensor.current_distance = UINT16_MAX / 100.f;
 
 		}
 	}
 
-	_distance_snsr_pub.publish(_distance_snsr);
+	distance_sensor.timestamp = hrt_absolute_time();
+	_distance_snsr_pub.publish(distance_sensor);
 }
 
-void Sih::publish_sih()
+void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 {
-	// publish angular velocity groundtruth
-	_vehicle_angular_velocity_gt.timestamp = hrt_absolute_time();
-	_vehicle_angular_velocity_gt.xyz[0] = _w_B(0); // rollspeed;
-	_vehicle_angular_velocity_gt.xyz[1] = _w_B(1); // pitchspeed;
-	_vehicle_angular_velocity_gt.xyz[2] = _w_B(2); // yawspeed;
+	{
+		// publish angular velocity groundtruth
+		vehicle_angular_velocity_s angular_velocity{};
+		angular_velocity.timestamp_sample = time_now_us;
+		angular_velocity.xyz[0] = _w_B(0); // rollspeed;
+		angular_velocity.xyz[1] = _w_B(1); // pitchspeed;
+		angular_velocity.xyz[2] = _w_B(2); // yawspeed;
+		angular_velocity.timestamp = hrt_absolute_time();
+		_angular_velocity_ground_truth_pub.publish(angular_velocity);
+	}
 
-	_vehicle_angular_velocity_gt_pub.publish(_vehicle_angular_velocity_gt);
+	{
+		// publish attitude groundtruth
+		vehicle_attitude_s attitude{};
+		attitude.timestamp_sample = time_now_us;
+		_q.copyTo(attitude.q);
+		attitude.timestamp = hrt_absolute_time();
+		_attitude_ground_truth_pub.publish(attitude);
+	}
 
-	// publish attitude groundtruth
-	_att_gt.timestamp = hrt_absolute_time();
-	_att_gt.q[0] = _q(0);
-	_att_gt.q[1] = _q(1);
-	_att_gt.q[2] = _q(2);
-	_att_gt.q[3] = _q(3);
+	{
+		// publish local position groundtruth
+		vehicle_local_position_s local_position{};
+		local_position.timestamp_sample = time_now_us;
 
-	_att_gt_pub.publish(_att_gt);
+		local_position.xy_valid = true;
+		local_position.z_valid = true;
+		local_position.v_xy_valid = true;
+		local_position.v_z_valid = true;
 
-	// publish position groundtruth
-	_gpos_gt.timestamp = hrt_absolute_time();
-	_gpos_gt.lat = _gps_lat_noiseless;
-	_gpos_gt.lon = _gps_lon_noiseless;
-	_gpos_gt.alt = _gps_alt_noiseless;
+		local_position.x = _p_I(0);
+		local_position.y = _p_I(1);
+		local_position.z = _p_I(2);
 
-	_gpos_gt_pub.publish(_gpos_gt);
+		local_position.vx = _v_I(0);
+		local_position.vy = _v_I(1);
+		local_position.vz = _v_I(2);
+		local_position.z_deriv = _v_I(2);
+
+		local_position.ax = _v_I_dot(0);
+		local_position.ay = _v_I_dot(1);
+		local_position.az = _v_I_dot(2);
+
+		local_position.xy_global = true;
+		local_position.z_global = true;
+		local_position.ref_timestamp = _last_run;
+		local_position.ref_lat = _LAT0;
+		local_position.ref_lon = _LON0;
+		local_position.ref_alt = _H0;
+
+		local_position.heading = Eulerf(_q).psi();
+		local_position.heading_good_for_control = true;
+
+		local_position.timestamp = hrt_absolute_time();
+		_local_position_ground_truth_pub.publish(local_position);
+	}
+
+	{
+		// publish global position groundtruth
+		vehicle_global_position_s global_position{};
+		global_position.timestamp_sample = time_now_us;
+		global_position.lat = _gps_lat_noiseless;
+		global_position.lon = _gps_lon_noiseless;
+		global_position.alt = _gps_alt_noiseless;
+		global_position.alt_ellipsoid = _gps_alt_noiseless;
+		global_position.terrain_alt = -_p_I(2);
+		global_position.timestamp = hrt_absolute_time();
+		_global_position_ground_truth_pub.publish(global_position);
+	}
 }
 
 float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
@@ -686,7 +709,6 @@ float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
 	return X;
 }
 
-// generate white Gaussian noise sample vector with specified std
 Vector3f Sih::noiseGauss3f(float stdx, float stdy, float stdz)
 {
 	return Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz);
@@ -713,7 +735,6 @@ int Sih::print_status()
 	}
 
 	PX4_INFO("vehicle landed: %d", _grounded);
-	PX4_INFO("dt [us]: %d", (int)(_dt * 1e6f));
 	PX4_INFO("inertial position NED (m)");
 	_p_I.print();
 	PX4_INFO("inertial velocity NED (m/s)");
@@ -733,7 +754,6 @@ int Sih::print_status()
 	_Mt_B.print();
 	return 0;
 }
-
 
 int Sih::task_spawn(int argc, char *argv[])
 {
