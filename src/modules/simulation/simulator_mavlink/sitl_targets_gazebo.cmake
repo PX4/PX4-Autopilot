@@ -63,6 +63,7 @@ set(debuggers
 
 set(models
 	none
+	advanced_plane
 	believer
 	boat
 	cloudship
