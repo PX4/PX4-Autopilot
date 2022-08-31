@@ -296,7 +296,10 @@ if(${PX4_PLATFORM} STREQUAL "posix")
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 	set(CMAKE_ENABLE_EXPORTS ON)
 
-	include(coverage)
+	if(CMAKE_BUILD_TYPE MATCHES "Coverage")
+		include(coverage)
+	endif()
+
 	include(sanitizers)
 
 	# Define GNU standard installation directories

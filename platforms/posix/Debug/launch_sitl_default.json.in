@@ -14,7 +14,7 @@
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
-                    "value": "quadx"
+                    "value": "sih_quadx"
                 }
             ],
             "externalConsole": false,
@@ -58,7 +58,7 @@
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
-                    "value": "${input:PX4_SIM_MODEL}"
+                    "value": "gazebo_${input:PX4_SIM_MODEL}"
                 }
             ],
             "externalConsole": false,
@@ -103,10 +103,9 @@
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
-                    "value": "iris"
+                    "value": "jmavsim_iris"
                 }
             ],
-            "preLaunchTask": "jmavsim",
             "postDebugTask": "jmavsim kill",
             "linux": {
                 "MIMode": "gdb",

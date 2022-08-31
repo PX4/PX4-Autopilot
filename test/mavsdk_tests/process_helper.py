@@ -275,13 +275,6 @@ class GzmodelspawnRunner(Runner):
                                       PX4_GAZEBO_MODELS,
                                       self.model, self.model + ".sdf")
 
-        elif os.path.isfile(os.path.join(workspace_dir,
-                                         PX4_GAZEBO_MODELS,
-                                         self.model, self.model + "-gen.sdf")):
-
-            model_path = os.path.join(workspace_dir,
-                                      PX4_GAZEBO_MODELS,
-                                      self.model, self.model + "-gen.sdf")
         else:
             raise Exception("Model not found")
 

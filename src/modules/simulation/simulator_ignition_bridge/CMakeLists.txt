@@ -72,21 +72,74 @@ file(GLOB ign_worlds
 	${PX4_SOURCE_DIR}/Tools/simulation/ignition/worlds/*.sdf
 )
 
+# find corresponding airframes
+file(GLOB ign_airframes
+     RELATIVE ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes
+     ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_ign_*
+)
+
+# remove any .post files
+foreach(ign_airframe IN LISTS ign_airframes)
+	if(ign_airframe MATCHES ".post")
+		list(REMOVE_ITEM ign_airframes ${ign_airframe})
+	endif()
+endforeach()
+list(REMOVE_DUPLICATES ign_airframes)
+
+foreach(ign_airframe IN LISTS ign_airframes)
+	set(model_only)
+	string(REGEX REPLACE ".*_ign_" "" model_only ${ign_airframe})
+
+	if(EXISTS "${PX4_SOURCE_DIR}/Tools/simulation/ignition/models/${model_only}")
+
+		if((EXISTS "${PX4_SOURCE_DIR}/Tools/simulation/ignition/models/${model_only}/model.sdf"))
+			#message(STATUS "Ignition SDF file found for ${model_only}")
+		else()
+			message(WARNING "Ignition no SDF file found for ${model_only}")
+		endif()
+
+	else()
+		message(WARNING "model directory ${PX4_SOURCE_DIR}/Tools/simulation/ignition/models/${model_only} not found")
+	endif()
+endforeach()
+
 foreach(model ${ign_models})
+
+	# match model to airframe
+	set(airframe_model_only)
+	set(airframe_sys_autostart)
+	set(ign_airframe_found)
+	foreach(ign_airframe IN LISTS ign_airframes)
+
+		string(REGEX REPLACE ".*_ign_" "" airframe_model_only ${ign_airframe})
+		string(REGEX REPLACE "_ign_.*" "" airframe_sys_autostart ${ign_airframe})
+
+		if(model STREQUAL ${airframe_model_only})
+			set(ign_airframe_found ${ign_airframe})
+			break()
+		endif()
+	endforeach()
+
+	if(ign_airframe_found)
+		#message(STATUS "ign model: ${model} (${airframe_model_only}), airframe: ${ign_airframe_found}, SYS_AUTOSTART: ${airframe_sys_autostart}")
+	else()
+		message(WARNING "ign missing model: ${model} (${airframe_model_only}), airframe: ${ign_airframe_found}, SYS_AUTOSTART: ${airframe_sys_autostart}")
+	endif()
+
 	foreach(world ${ign_worlds})
 
 		get_filename_component("world_name" ${world} NAME_WE)
 
 		if(world_name MATCHES "default")
 			add_custom_target(ign_${model}
-				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=${model} $<TARGET_FILE:px4>
+				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=ign_${model} $<TARGET_FILE:px4>
 				WORKING_DIRECTORY ${SITL_WORKING_DIR}
 				USES_TERMINAL
 				DEPENDS px4
 			)
 		else()
 			add_custom_target(ign_${model}_${world_name}
-				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=${model} PX4_SIM_WORLD=${world_name} $<TARGET_FILE:px4>
+				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=ign_${model} PX4_SIM_WORLD=${world_name} $<TARGET_FILE:px4>
 				WORKING_DIRECTORY ${SITL_WORKING_DIR}
 				USES_TERMINAL
 				DEPENDS px4
@@ -95,7 +148,5 @@ foreach(model ${ign_models})
 	endforeach()
 endforeach()
 
-
-# TODO: PX4_IGN_MODELS_PATH
-# PX4_IGN_WORLDS_PATH
+# PX4_IGN_GAZEBO_MODELS, PX4_IGN_GAZEBO_WORLDS, IGN_GAZEBO_RESOURCE_PATH
 configure_file(gazebo_env.sh.in ${PX4_BINARY_DIR}/rootfs/gazebo_env.sh)

@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# @name 3DR Iris Quadrotor SITL (Vision)
+#
+# @type Quadrotor Wide
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+
+param set-default CA_AIRFRAME 0
+
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.1515
+param set-default CA_ROTOR0_PY 0.245
+param set-default CA_ROTOR0_KM 0.05
+param set-default CA_ROTOR1_PX -0.1515
+param set-default CA_ROTOR1_PY -0.1875
+param set-default CA_ROTOR1_KM 0.05
+param set-default CA_ROTOR2_PX 0.1515
+param set-default CA_ROTOR2_PY -0.245
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.1515
+param set-default CA_ROTOR3_PY 0.1875
+param set-default CA_ROTOR3_KM -0.05
+
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+
+# EKF2: Vision position and heading
+param set-default EKF2_AID_MASK 24
+param set-default EKF2_EV_DELAY 5
+param set-default EKF2_GPS_CTRL 0
+
+# LPE: Vision + baro
+param set-default LPE_FUSION 132
+
+# AEQ: External heading set to use vision input
+param set-default ATT_EXT_HDG_M 1
+

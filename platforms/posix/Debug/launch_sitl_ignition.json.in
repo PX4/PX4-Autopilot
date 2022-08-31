@@ -15,7 +15,7 @@
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
-                    "value": "${input:PX4_SIM_MODEL}"
+                    "value": "ign_${input:PX4_SIM_MODEL}"
                 }
             ],
             "externalConsole": false,
