@@ -21,7 +21,7 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 	fi
 
 	ign_world=$( ign topic -l | grep -m 1 -e "/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
-	
+
 	if [ -z $ign_world ]; then
 
 		# starting ign gazebo with ${PX4_SIM_WORLD} world
@@ -38,7 +38,12 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 		PX4_SIM_WORLD=$ign_world
 	fi
 
-	if simulator_ignition_bridge start -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}"; then
+	if [ -z $SPAWN_MODEL_POSE ]; then
+
+		SPAWN_MODEL_POSE="0 0 0 0 0 0"
+	fi
+
+	if simulator_ignition_bridge start -m "${PX4_SIM_MODEL}" -p "${SPAWN_MODEL_POSE}" -w "${PX4_SIM_WORLD}"; then
 		sensor_baro_sim start
 		sensor_gps_sim start
 		sensor_mag_sim start
