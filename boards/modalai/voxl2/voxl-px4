@@ -13,14 +13,13 @@ else
         /share/modalai/qrb5165-slpi-test-sig/generate-test-sig.sh
     else
         /bin/echo "Could not find the DSP signature file generation script"
+        exit 0
     fi
-    exit 0
 fi
 
 # Make sure to setup all of the needed px4 aliases.
 cd /usr/bin
 /bin/ln -f -s px4 px4-muorb
-/bin/ln -f -s px4 px4-uorb
 cd -
 
 DAEMON=" "
