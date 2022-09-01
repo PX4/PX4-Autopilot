@@ -60,48 +60,52 @@ TEST(ActuatorEffectivenessHelicopterTest, ThrottleCurve)
 
 	Vector<float, 6> control_sp{};
 	ActuatorEffectiveness::ActuatorVector actuator_sp{};
+	ActuatorEffectiveness::ActuatorVector actuator_min{};
+	actuator_min.setAll(0.f);
+	ActuatorEffectiveness::ActuatorVector actuator_max{};
+	actuator_max.setAll(1.f);
 
 	control_sp(ActuatorEffectiveness::ControlAxis::THRUST_Z) = 0.1f;
-	helicopter.updateSetpoint(control_sp, 0, actuator_sp);
+	helicopter.updateSetpoint(control_sp, 0, actuator_sp, actuator_min, actuator_max);
 	EXPECT_FLOAT_EQ(actuator_sp(0), 0.f);
 
 	control_sp(ActuatorEffectiveness::ControlAxis::THRUST_Z) = 0.f;
-	helicopter.updateSetpoint(control_sp, 0, actuator_sp);
+	helicopter.updateSetpoint(control_sp, 0, actuator_sp, actuator_min, actuator_max);
 	EXPECT_FLOAT_EQ(actuator_sp(0), 0.f);
 
 	control_sp(ActuatorEffectiveness::ControlAxis::THRUST_Z) = -.125f;
-	helicopter.updateSetpoint(control_sp, 0, actuator_sp);
+	helicopter.updateSetpoint(control_sp, 0, actuator_sp, actuator_min, actuator_max);
 	EXPECT_FLOAT_EQ(actuator_sp(0), .15f);
 
 	control_sp(ActuatorEffectiveness::ControlAxis::THRUST_Z) = -.25f;
-	helicopter.updateSetpoint(control_sp, 0, actuator_sp);
+	helicopter.updateSetpoint(control_sp, 0, actuator_sp, actuator_min, actuator_max);
 	EXPECT_FLOAT_EQ(actuator_sp(0), .3f);
 
 	control_sp(ActuatorEffectiveness::ControlAxis::THRUST_Z) = -.375f;
-	helicopter.updateSetpoint(control_sp, 0, actuator_sp);
+	helicopter.updateSetpoint(control_sp, 0, actuator_sp, actuator_min, actuator_max);
 	EXPECT_FLOAT_EQ(actuator_sp(0), .45f);
 
 	control_sp(ActuatorEffectiveness::ControlAxis::THRUST_Z) = -.5f;
-	helicopter.updateSetpoint(control_sp, 0, actuator_sp);
+	helicopter.updateSetpoint(control_sp, 0, actuator_sp, actuator_min, actuator_max);
 	EXPECT_FLOAT_EQ(actuator_sp(0), .6f);
 
 	control_sp(ActuatorEffectiveness::ControlAxis::THRUST_Z) = -.625f;
-	helicopter.updateSetpoint(control_sp, 0, actuator_sp);
+	helicopter.updateSetpoint(control_sp, 0, actuator_sp, actuator_min, actuator_max);
 	EXPECT_FLOAT_EQ(actuator_sp(0), .7f);
 
 	control_sp(ActuatorEffectiveness::ControlAxis::THRUST_Z) = -.75f;
-	helicopter.updateSetpoint(control_sp, 0, actuator_sp);
+	helicopter.updateSetpoint(control_sp, 0, actuator_sp, actuator_min, actuator_max);
 	EXPECT_FLOAT_EQ(actuator_sp(0), .8f);
 
 	control_sp(ActuatorEffectiveness::ControlAxis::THRUST_Z) = -.875f;
-	helicopter.updateSetpoint(control_sp, 0, actuator_sp);
+	helicopter.updateSetpoint(control_sp, 0, actuator_sp, actuator_min, actuator_max);
 	EXPECT_FLOAT_EQ(actuator_sp(0), .9f);
 
 	control_sp(ActuatorEffectiveness::ControlAxis::THRUST_Z) = -1.f;
-	helicopter.updateSetpoint(control_sp, 0, actuator_sp);
+	helicopter.updateSetpoint(control_sp, 0, actuator_sp, actuator_min, actuator_max);
 	EXPECT_FLOAT_EQ(actuator_sp(0), 1.f);
 
 	control_sp(ActuatorEffectiveness::ControlAxis::THRUST_Z) = -1.1f;
-	helicopter.updateSetpoint(control_sp, 0, actuator_sp);
+	helicopter.updateSetpoint(control_sp, 0, actuator_sp, actuator_min, actuator_max);
 	EXPECT_FLOAT_EQ(actuator_sp(0), 1.f);
 }
