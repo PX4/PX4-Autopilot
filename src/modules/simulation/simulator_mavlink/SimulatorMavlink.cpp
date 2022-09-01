@@ -119,7 +119,7 @@ void SimulatorMavlink::actuator_controls_from_outputs(mavlink_hil_actuator_contr
 {
 	memset(msg, 0, sizeof(mavlink_hil_actuator_controls_t));
 
-	msg->time_usec = hrt_absolute_time() + hrt_absolute_time_offset();
+	msg->time_usec = hrt_absolute_time();
 
 	bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
