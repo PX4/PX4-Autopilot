@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sdf version='1.9'>
+  <model name='x500-Depth'>
+    <include merge='true'>
+      <uri>model://x500</uri>
+    </include>
+    <include merge='true'>
+      <uri>model://OakD-Lite</uri>
+      <pose>.12 .03 .242 0 0 0</pose>
+    </include>
+  </model>
+</sdf>
