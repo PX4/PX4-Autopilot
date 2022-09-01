@@ -416,7 +416,8 @@ ControlAllocator::Run()
 
 			// Do allocation
 			_control_allocation[i]->allocate();
-			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp);
+			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
+								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
 
 			if (_has_slew_rate) {
 				_control_allocation[i]->applySlewRateLimit(dt);
@@ -585,30 +586,33 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 
 	// TODO: disabled motors (?)
 
-	// Allocated control
-	const matrix::Vector<float, NUM_AXES> &allocated_control = _control_allocation[matrix_index]->getAllocatedControl();
-	control_allocator_status.allocated_torque[0] = allocated_control(0);
-	control_allocator_status.allocated_torque[1] = allocated_control(1);
-	control_allocator_status.allocated_torque[2] = allocated_control(2);
-	control_allocator_status.allocated_thrust[0] = allocated_control(3);
-	control_allocator_status.allocated_thrust[1] = allocated_control(4);
-	control_allocator_status.allocated_thrust[2] = allocated_control(5);
+	if (!_actuator_effectiveness->getAllocatedAndUnallocatedControl(control_allocator_status)) {
+		// Allocated control
+		const matrix::Vector<float, NUM_AXES> &allocated_control = _control_allocation[matrix_index]->getAllocatedControl();
+		control_allocator_status.allocated_torque[0] = allocated_control(0);
+		control_allocator_status.allocated_torque[1] = allocated_control(1);
+		control_allocator_status.allocated_torque[2] = allocated_control(2);
+		control_allocator_status.allocated_thrust[0] = allocated_control(3);
+		control_allocator_status.allocated_thrust[1] = allocated_control(4);
+		control_allocator_status.allocated_thrust[2] = allocated_control(5);
 
-	// Unallocated control
-	const matrix::Vector<float, NUM_AXES> unallocated_control = _control_allocation[matrix_index]->getControlSetpoint() -
-			allocated_control;
-	control_allocator_status.unallocated_torque[0] = unallocated_control(0);
-	control_allocator_status.unallocated_torque[1] = unallocated_control(1);
-	control_allocator_status.unallocated_torque[2] = unallocated_control(2);
-	control_allocator_status.unallocated_thrust[0] = unallocated_control(3);
-	control_allocator_status.unallocated_thrust[1] = unallocated_control(4);
-	control_allocator_status.unallocated_thrust[2] = unallocated_control(5);
+		// Unallocated control
+		const matrix::Vector<float, NUM_AXES> unallocated_control = _control_allocation[matrix_index]->getControlSetpoint() -
+				allocated_control;
+		control_allocator_status.unallocated_torque[0] = unallocated_control(0);
+		control_allocator_status.unallocated_torque[1] = unallocated_control(1);
+		control_allocator_status.unallocated_torque[2] = unallocated_control(2);
+		control_allocator_status.unallocated_thrust[0] = unallocated_control(3);
+		control_allocator_status.unallocated_thrust[1] = unallocated_control(4);
+		control_allocator_status.unallocated_thrust[2] = unallocated_control(5);
 
-	// Allocation success flags
-	control_allocator_status.torque_setpoint_achieved = (Vector3f(unallocated_control(0), unallocated_control(1),
-			unallocated_control(2)).norm_squared() < 1e-6f);
-	control_allocator_status.thrust_setpoint_achieved = (Vector3f(unallocated_control(3), unallocated_control(4),
-			unallocated_control(5)).norm_squared() < 1e-6f);
+		// Allocation success flags
+		control_allocator_status.torque_setpoint_achieved = (Vector3f(unallocated_control(0), unallocated_control(1),
+				unallocated_control(2)).norm_squared() < 1e-6f);
+		control_allocator_status.thrust_setpoint_achieved = (Vector3f(unallocated_control(3), unallocated_control(4),
+				unallocated_control(5)).norm_squared() < 1e-6f);
+	}
+
 
 	// Actuator saturation
 	const matrix::Vector<float, NUM_ACTUATORS> &actuator_sp = _control_allocation[matrix_index]->getActuatorSetpoint();

@@ -76,12 +76,27 @@ public:
 	const Geometry &geometry() const { return _geometry; }
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
-			    ActuatorVector &actuator_sp) override;
+			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
+
+	bool getAllocatedAndUnallocatedControl(control_allocator_status_s &status) const override;
 private:
 	float throttleSpoolupProgress();
 	bool mainMotorEnaged();
 
 	void updateParams() override;
+
+	struct SaturationFlags {
+		bool roll_pos;
+		bool roll_neg;
+		bool pitch_pos;
+		bool pitch_neg;
+		bool yaw_pos;
+		bool yaw_neg;
+		bool thrust_pos;
+		bool thrust_neg;
+	};
+	static void setSaturationFlag(float coeff, bool &positive_flag, bool &negative_flag);
 
 	struct ParamHandlesSwashPlate {
 		param_t angle;
@@ -103,6 +118,7 @@ private:
 	Geometry _geometry{};
 
 	int _first_swash_plate_servo_index{};
+	SaturationFlags _saturation_flags;
 
 	// Throttle spoolup state
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};

@@ -44,6 +44,7 @@
 #include <cstdint>
 
 #include <matrix/matrix/math.hpp>
+#include <uORB/topics/control_allocator_status.h>
 
 enum class AllocationMethod {
 	NONE = -1,
@@ -189,12 +190,19 @@ public:
 	 * @param actuator_sp input & output setpoint
 	 */
 	virtual void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-				    int matrix_index, ActuatorVector &actuator_sp) {}
+				    int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+				    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) {}
 
 	/**
 	 * Get a bitmask of motors to be stopped
 	 */
 	virtual uint32_t getStoppedMotors() const { return 0; }
+
+	/**
+	 * Fill in the allocated and unallocated torque and thrust.
+	 * Should return false if not filled in and the effectivenes matrix should be used instead
+	 */
+	virtual bool getAllocatedAndUnallocatedControl(control_allocator_status_s &status) const { return false; }
 
 protected:
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};		///< Current flight phase
