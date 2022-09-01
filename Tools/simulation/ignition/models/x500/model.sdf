@@ -512,7 +512,7 @@
         <use_parent_model_frame>1</use_parent_model_frame>
       </axis>
     </joint>
-    <plugin filename="libignition-gazebo-imu-system.so" name="ignition::gazebo::systems::Imu" />
+    <!-- <plugin filename="libignition-gazebo-imu-system.so" name="ignition::gazebo::systems::Imu" /> -->
     <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="ignition::gazebo::systems::MulticopterMotorModel">
       <robotNamespace>x500</robotNamespace>
       <jointName>rotor_0_joint</jointName>
