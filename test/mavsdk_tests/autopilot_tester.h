@@ -114,6 +114,14 @@ public:
 	void wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout);
 	void wait_until_speed_lower_than(float speed, std::chrono::seconds timeout);
 	void prepare_square_mission(MissionOptions mission_options);
+
+	/**
+	 * @brief Prepares a Wp 1, Wp 2, Land, DO_GRIPPER, Wp 3 mission to test package delivery via Gripper
+	 *
+	 * The drone should land below Waypoint 2, open the gripper, then take-off again for Waypoint 3
+	 */
+	void prepare_triangular_mission_with_gripper_item(MissionOptions mission_options);
+
 	void prepare_straight_mission(MissionOptions mission_options);
 	void execute_mission();
 	void execute_mission_and_lose_gps();

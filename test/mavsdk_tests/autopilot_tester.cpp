@@ -239,6 +239,21 @@ void AutopilotTester::prepare_square_mission(MissionOptions mission_options)
 	REQUIRE(_mission->upload_mission(mission_plan) == Mission::Result::Success);
 }
 
+void AutopilotTester::prepare_triangular_mission_with_gripper_item(MissionOptions mission_options)
+{
+	const auto ct = get_coordinate_transformation();
+
+	Mission::MissionPlan mission_plan {};
+	mission_plan.mission_items.push_back(create_mission_item({mission_options.leg_length_m, 0.}, mission_options, ct));
+	mission_plan.mission_items.push_back(create_mission_item({mission_options.leg_length_m, mission_options.leg_length_m},
+					     mission_options, ct));
+	mission_plan.mission_items.push_back(create_mission_item({0., mission_options.leg_length_m}, mission_options, ct));
+
+	_mission->set_return_to_launch_after_mission(mission_options.rtl_at_end);
+
+	REQUIRE(_mission->upload_mission(mission_plan) == Mission::Result::Success);
+}
+
 void AutopilotTester::prepare_straight_mission(MissionOptions mission_options)
 {
 	const auto ct = get_coordinate_transformation();

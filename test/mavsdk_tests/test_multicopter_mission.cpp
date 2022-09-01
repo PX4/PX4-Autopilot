@@ -100,3 +100,23 @@ TEST_CASE("Fly straight Multicopter Mission", "[multicopter]")
 	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
+
+TEST_CASE("Package delivery during Mission using gripper", "[multicopter]")
+{
+	AutopilotTester tester;
+	tester.connect(connection_url);
+	tester.wait_until_ready();
+
+	AutopilotTester::MissionOptions mission_options;
+	mission_options.rtl_at_end = false;
+	mission_options.fly_through = true;
+	tester.prepare_square_mission(mission_options);
+	tester.check_mission_item_speed_above(2, 4.0);
+	tester.check_tracks_mission(5.f);
+	tester.arm();
+	tester.execute_mission();
+	tester.wait_until_hovering();
+	tester.execute_rtl();
+	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
+	tester.wait_until_disarmed(until_disarmed_timeout);
+}
