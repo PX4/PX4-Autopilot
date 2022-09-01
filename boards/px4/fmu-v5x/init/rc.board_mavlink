@@ -16,8 +16,8 @@ then
     # Start MC flight control mavlink to ethernet interface
     mavlink start -c 192.168.200.100 -u 14541 -o 14540 -r 2000000 -x
 
-    # Start micrortps_client on UDP
-    micrortps_client start -t UDP -i 192.168.200.100 -r 2019 -s 2020
+    # Start uXRCE-DDS client on UDP
+    microdds_client start -t udp -h 192.168.200.100 -r 2019 -p 2020
 fi
 
 # Start MC maintenance mavlink to ethernet interface
