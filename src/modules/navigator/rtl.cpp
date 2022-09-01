@@ -264,21 +264,28 @@ void RTL::on_activation()
 	}
 
 	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
+	const float destination_dist_m = get_distance_to_next_waypoint(_destination.lat, _destination.lon, global_position.lat,
+					 global_position.lon);
 
 	_rtl_loiter_rad = _param_rtl_loiter_rad.get();
 
 	if (_navigator->get_land_detected()->landed) {
-		// For safety reasons don't go into RTL if landed.
-		_rtl_state = RTL_STATE_LANDED;
+		if (destination_dist_m < _navigator->get_acceptance_radius()) {
+			// If we are landed already at the RTL destination, consider RTL already finished (landed)
+			_rtl_state = RTL_STATE_LANDED;
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: RTL won't trigger, already at the destination\t");
+
+		} else {
+			// Otherwise, RTL directly, starting with the climb stage
+			_rtl_state = RTL_STATE_CLIMB;
+		}
 
 	} else if ((_destination.type == RTL_DESTINATION_MISSION_LANDING) && _navigator->getMissionLandingInProgress()) {
 		// we were just on a mission landing, set _rtl_state past RTL_STATE_LOITER such that navigator will engage mission mode,
 		// which will continue executing the landing
 		_rtl_state = RTL_STATE_LAND;
 
-
 	} else if ((global_position.alt < _destination.alt + _param_rtl_return_alt.get()) || _rtl_alt_min) {
-
 		// If lower than return altitude, climb up first.
 		// If rtl_alt_min is true then forcing altitude change even if above.
 		_rtl_state = RTL_STATE_CLIMB;
