@@ -80,8 +80,8 @@ int SimulatorIgnitionBridge::init()
 	std::string create_service = "/world/" + _world_name + "/create";
 
 	if (_node.Request(create_service, req, 1000, rep, result)) {
-		if (!result) {
-			PX4_ERR("Service call failed");
+		if (!rep.data() || !result) {
+			PX4_ERR("EntityFactory service call failed");
 			return PX4_ERROR;
 		}
 
@@ -95,6 +95,7 @@ int SimulatorIgnitionBridge::init()
 	std::string clock_topic = "/world/" + _world_name + "/clock";
 
 	if (!_node.Subscribe(clock_topic, &SimulatorIgnitionBridge::clockCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", clock_topic.c_str());
 		return PX4_ERROR;
 	}
 
@@ -102,6 +103,7 @@ int SimulatorIgnitionBridge::init()
 	std::string world_pose_topic = "/world/" + _world_name + "/pose/info";
 
 	if (!_node.Subscribe(world_pose_topic, &SimulatorIgnitionBridge::poseInfoCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", world_pose_topic.c_str());
 		return PX4_ERROR;
 	}
 
@@ -109,6 +111,7 @@ int SimulatorIgnitionBridge::init()
 	std::string imu_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/base_link/sensor/imu_sensor/imu";
 
 	if (!_node.Subscribe(imu_topic, &SimulatorIgnitionBridge::imuCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", imu_topic.c_str());
 		return PX4_ERROR;
 	}
 
