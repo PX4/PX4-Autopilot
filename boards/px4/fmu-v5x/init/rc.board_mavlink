@@ -21,4 +21,4 @@ then
 fi
 
 # Start MC maintenance mavlink to ethernet interface
-mavlink start -c 192.168.200.100 -u 14543 -o 14542 -r 2000000 -m magic -x
+#mavlink start -c 192.168.200.100 -u 14543 -o 14542 -r 2000000 -m magic -x
