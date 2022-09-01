@@ -74,6 +74,24 @@ int SimulatorIgnitionBridge::init()
 	// req.set_name("model_instance_name"); // New name for the entity, overrides the name on the SDF.
 	req.set_allow_renaming(false); // allowed to rename the entity in case of overlap with existing entities
 
+
+	ignition::msgs::Vector3d position{};
+	position.set_x(1.0);
+	position.set_y(1.0);
+	position.set_z(0.0);
+	ignition::msgs::Quaternion orientation{};
+	orientation.set_x(0.0);
+	orientation.set_y(0.0);
+	orientation.set_z(0.0);
+	orientation.set_w(1.0);
+
+	ignition::msgs::Pose pose{};
+	pose.set_allocated_position(&position);
+
+	pose.set_allocated_orientation(&orientation);
+
+	req.set_allocated_pose(&pose);
+
 	// /world/$WORLD/create service.
 	ignition::msgs::Boolean rep;
 	bool result;
