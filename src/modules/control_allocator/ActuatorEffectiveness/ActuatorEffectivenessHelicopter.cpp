@@ -128,8 +128,11 @@ ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &configura
 }
 
 void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp)
+		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
+	_saturation_flags = {};
+
 	// throttle/collective pitch curve
 	const float throttle = math::interpolateN(-control_sp(ControlAxis::THRUST_Z),
 			       _geometry.throttle_curve) * throttleSpoolupProgress();
@@ -142,13 +145,31 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 			 + fabsf(collective_pitch) * _geometry.yaw_collective_pitch_scale
 			 + throttle * _geometry.yaw_throttle_scale;
 
+	// Saturation check for yaw
+	if (actuator_sp(1) < actuator_min(1)) {
+		setSaturationFlag(_geometry.yaw_sign, _saturation_flags.yaw_neg, _saturation_flags.yaw_pos);
+
+	} else if (actuator_sp(1) > actuator_max(1)) {
+		setSaturationFlag(_geometry.yaw_sign, _saturation_flags.yaw_pos, _saturation_flags.yaw_neg);
+	}
+
 	for (int i = 0; i < _geometry.num_swash_plate_servos; i++) {
+		float roll_coeff = sinf(_geometry.swash_plate_servos[i].angle) * _geometry.swash_plate_servos[i].arm_length;
+		float pitch_coeff = cosf(_geometry.swash_plate_servos[i].angle) * _geometry.swash_plate_servos[i].arm_length;
 		actuator_sp(_first_swash_plate_servo_index + i) = collective_pitch
-				+ control_sp(ControlAxis::PITCH) * cosf(_geometry.swash_plate_servos[i].angle) *
-				_geometry.swash_plate_servos[i].arm_length
-				- control_sp(ControlAxis::ROLL) * sinf(_geometry.swash_plate_servos[i].angle) *
-				_geometry.swash_plate_servos[i].arm_length
+				+ control_sp(ControlAxis::PITCH) * pitch_coeff
+				- control_sp(ControlAxis::ROLL) * roll_coeff
 				+ _geometry.swash_plate_servos[i].trim;
+
+		// Saturation check for roll & pitch
+		if (actuator_sp(_first_swash_plate_servo_index + i) < actuator_min(_first_swash_plate_servo_index + i)) {
+			setSaturationFlag(roll_coeff, _saturation_flags.roll_pos, _saturation_flags.roll_neg);
+			setSaturationFlag(pitch_coeff, _saturation_flags.pitch_neg, _saturation_flags.pitch_pos);
+
+		} else if (actuator_sp(_first_swash_plate_servo_index + i) > actuator_max(_first_swash_plate_servo_index + i)) {
+			setSaturationFlag(roll_coeff, _saturation_flags.roll_neg, _saturation_flags.roll_pos);
+			setSaturationFlag(pitch_coeff, _saturation_flags.pitch_pos, _saturation_flags.pitch_neg);
+		}
 	}
 }
 
@@ -181,4 +202,63 @@ float ActuatorEffectivenessHelicopter::throttleSpoolupProgress()
 	}
 
 	return 1.f;
+}
+
+
+void ActuatorEffectivenessHelicopter::setSaturationFlag(float coeff, bool &positive_flag, bool &negative_flag)
+{
+	if (coeff > 0.f) {
+		// A positive change in given axis will increase saturation
+		positive_flag = true;
+
+	} else if (coeff < 0.f) {
+		// A negative change in given axis will increase saturation
+		negative_flag = true;
+	}
+}
+
+bool ActuatorEffectivenessHelicopter::getAllocatedAndUnallocatedControl(control_allocator_status_s &status) const
+{
+	status.torque_setpoint_achieved = true;
+	status.thrust_setpoint_achieved = true;
+
+	// Note: the values '-1', '1' and '0' are just to indicate a negative,
+	// positive or no saturation to the rate controller. The actual magnitude is not used.
+	if (_saturation_flags.roll_pos) {
+		status.unallocated_torque[0] = 1.f;
+		status.torque_setpoint_achieved = false;
+
+	} else if (_saturation_flags.roll_neg) {
+		status.unallocated_torque[0] = -1.f;
+		status.torque_setpoint_achieved = false;
+	}
+
+	if (_saturation_flags.pitch_pos) {
+		status.unallocated_torque[1] = 1.f;
+		status.torque_setpoint_achieved = false;
+
+	} else if (_saturation_flags.pitch_neg) {
+		status.unallocated_torque[1] = -1.f;
+		status.torque_setpoint_achieved = false;
+	}
+
+	if (_saturation_flags.yaw_pos) {
+		status.unallocated_torque[2] = 1.f;
+		status.torque_setpoint_achieved = false;
+
+	} else if (_saturation_flags.yaw_neg) {
+		status.unallocated_torque[2] = -1.f;
+		status.torque_setpoint_achieved = false;
+	}
+
+	if (_saturation_flags.thrust_pos) {
+		status.unallocated_thrust[2] = 1.f;
+		status.thrust_setpoint_achieved = false;
+
+	} else if (_saturation_flags.thrust_neg) {
+		status.unallocated_thrust[2] = -1.f;
+		status.thrust_setpoint_achieved = false;
+	}
+
+	return true;
 }
