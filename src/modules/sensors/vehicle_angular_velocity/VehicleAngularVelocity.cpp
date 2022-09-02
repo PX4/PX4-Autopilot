@@ -183,7 +183,7 @@ void VehicleAngularVelocity::ResetFilters(const hrt_abstime &time_now_us)
 
 			// angular acceleration low pass
 			if ((_param_imu_dgyro_cutoff.get() > 0.f)
-			    && (_lp_filter_acceleration[axis].setCutoffFreq(_filter_sample_rate_hz, _param_imu_dgyro_cutoff.get()))) {
+			    && (_lp_filter_acceleration[axis].setSampleAndCutoffFrequency(_filter_sample_rate_hz, _param_imu_dgyro_cutoff.get()))) {
 				_lp_filter_acceleration[axis].reset(angular_acceleration_uncalibrated(axis));
 
 			} else {

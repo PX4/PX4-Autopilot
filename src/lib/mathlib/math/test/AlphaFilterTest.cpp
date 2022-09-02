@@ -246,15 +246,19 @@ TEST(AlphaFilterTest, SetFrequencyTest)
 	AlphaFilter<float> _alpha_filter;
 	const float fs = .1f;
 
-	EXPECT_FALSE(_alpha_filter.setCutoffFreq(fs, 0.f));
-	EXPECT_FALSE(_alpha_filter.setCutoffFreq(fs, fs)); // Cutoff above Nyquist freq
-	EXPECT_FALSE(_alpha_filter.setCutoffFreq(0.f, fs / 4.f));
-	EXPECT_FALSE(_alpha_filter.setCutoffFreq(0.f, 0.f));
-	EXPECT_FALSE(_alpha_filter.setCutoffFreq(-fs, fs / 4.f));
-	EXPECT_FALSE(_alpha_filter.setCutoffFreq(-fs, -fs / 4.f));
-	EXPECT_FALSE(_alpha_filter.setCutoffFreq(fs, -fs / 4.f));
+	EXPECT_FALSE(_alpha_filter.setSampleAndCutoffFrequency(fs, 0.f));
 
-	EXPECT_TRUE(_alpha_filter.setCutoffFreq(fs, fs / 4.f));
+	// Cutoff above Nyquist freq
+	EXPECT_TRUE(_alpha_filter.setSampleAndCutoffFrequency(fs, fs));
+	EXPECT_FLOAT_EQ(_alpha_filter.getCutoffFreq(), fs / 2.f);
+
+	EXPECT_FALSE(_alpha_filter.setSampleAndCutoffFrequency(0.f, fs / 4.f));
+	EXPECT_FALSE(_alpha_filter.setSampleAndCutoffFrequency(0.f, 0.f));
+	EXPECT_FALSE(_alpha_filter.setSampleAndCutoffFrequency(-fs, fs / 4.f));
+	EXPECT_FALSE(_alpha_filter.setSampleAndCutoffFrequency(-fs, -fs / 4.f));
+	EXPECT_FALSE(_alpha_filter.setSampleAndCutoffFrequency(fs, -fs / 4.f));
+
+	EXPECT_TRUE(_alpha_filter.setSampleAndCutoffFrequency(fs, fs / 4.f));
 }
 
 TEST(AlphaFilterTest, ConvergenceTest)
