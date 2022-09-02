@@ -48,7 +48,7 @@ then
 	fi
 fi
 
-if ver hwtypecmp V5X00 V5X01 V5X02 V5X10 V5X41
+if ver hwtypecmp V5X00 V5X01 V5X02 V5X10 V5X41 V5X42
 then
 	#FMUv5Xbase board orientation
 
