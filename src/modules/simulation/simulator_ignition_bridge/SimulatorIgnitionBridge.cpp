@@ -7,14 +7,14 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *	notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
+ *	notice, this list of conditions and the following disclaimer in
+ *	the documentation and/or other materials provided with the
+ *	distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *	used to endorse or promote products derived from this software
+ *	without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -75,24 +75,24 @@ int SimulatorIgnitionBridge::init()
 	// req.set_name("model_instance_name"); // New name for the entity, overrides the name on the SDF.
 	req.set_allow_renaming(false); // allowed to rename the entity in case of overlap with existing entities
 
-	PX4_INFO("Requested Position: %s", _model_pose.c_str());
+	PX4_INFO("Requested Model Position: %s", _model_pose.c_str());
 
 	std::vector<float> model_pose_v;
 
-    	std::stringstream ss(_model_pose);
+	std::stringstream ss(_model_pose);
 
-    	while (ss.good()) {
-        	std::string substr;
-        	std::getline(ss, substr, ',');
-        	model_pose_v.push_back(std::stof(substr));
-    	}
+	while (ss.good()) {
+		std::string substr;
+		std::getline(ss, substr, ',');
+		model_pose_v.push_back(std::stof(substr));
+	}
 
 	while (model_pose_v.size() < 6) {
 		model_pose_v.push_back(0.0);
 	}
 
-	ignition::msgs::Pose* p = req.mutable_pose();
-	ignition::msgs::Vector3d* position = p->mutable_position();
+	ignition::msgs::Pose *p = req.mutable_pose();
+	ignition::msgs::Vector3d *position = p->mutable_position();
 	position->set_x(model_pose_v[0]);
 	position->set_y(model_pose_v[1]);
 	position->set_z(model_pose_v[2]);
@@ -100,7 +100,7 @@ int SimulatorIgnitionBridge::init()
 	ignition::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
 
 	q.Normalize();
-	ignition::msgs::Quaternion* orientation = p->mutable_orientation();
+	ignition::msgs::Quaternion *orientation = p->mutable_orientation();
 	orientation->set_x(q.X());
 	orientation->set_y(q.Y());
 	orientation->set_z(q.Z());
@@ -188,7 +188,6 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 		case 'p':
 			// pose
 			model_pose = myoptarg;
-			PX4_INFO("Model Pose from args: %s", model_pose);
 			break;
 
 		case '?':
@@ -206,7 +205,7 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	PX4_INFO("world: %s, model: %s, pose: %s", world_name, model_name, model_pose);
+	PX4_INFO("world: %s, model: %s", world_name, model_name);
 
 	SimulatorIgnitionBridge *instance = new SimulatorIgnitionBridge(world_name, model_name, model_pose);
 
