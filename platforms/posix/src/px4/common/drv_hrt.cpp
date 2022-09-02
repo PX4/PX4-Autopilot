@@ -95,31 +95,6 @@ static void hrt_unlock()
 	px4_sem_post(&_hrt_lock);
 }
 
-#if defined(__PX4_APPLE_LEGACY)
-#include <sys/time.h>
-
-int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
-{
-	struct timeval now;
-	int rv = gettimeofday(&now, nullptr);
-
-	if (rv) {
-		return rv;
-	}
-
-	tp->tv_sec = now.tv_sec;
-	tp->tv_nsec = now.tv_usec * 1000;
-
-	return 0;
-}
-
-int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
-{
-	/* do nothing right now */
-	return 0;
-}
-#endif
-
 /*
  * Get absolute time.
  */
@@ -465,23 +440,15 @@ hrt_call_invoke()
 
 int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
-	if (clk_id == CLOCK_MONOTONIC) {
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+	if (clk_id == CLOCK_MONOTONIC) {
 		abstime_to_ts(tp, lockstep_scheduler.get_absolute_time());
 		return 0;
-#else // defined(ENABLE_LOCKSTEP_SCHEDULER)
-#if defined(__PX4_DARWIN)
-		// We don't have CLOCK_MONOTONIC on macOS, so we just have to
-		// resort back to CLOCK_REALTIME here.
-		return system_clock_gettime(CLOCK_REALTIME, tp);
-#else // defined(__PX4_DARWIN)
-		return system_clock_gettime(clk_id, tp);
-#endif // defined(__PX4_DARWIN)
-#endif // defined(ENABLE_LOCKSTEP_SCHEDULER)
-
-	} else {
-		return system_clock_gettime(clk_id, tp);
 	}
+
+#endif // defined(ENABLE_LOCKSTEP_SCHEDULER)
+	return system_clock_gettime(clk_id, tp);
 }
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)

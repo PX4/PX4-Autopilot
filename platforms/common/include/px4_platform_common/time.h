@@ -5,10 +5,6 @@
 #include <time.h>
 #include <pthread.h>
 
-#if defined(__PX4_APPLE_LEGACY)
-#define clockid_t int
-#endif
-
 #if defined(__PX4_POSIX) || defined(__PX4_QURT)
 __BEGIN_DECLS
 __EXPORT int px4_clock_gettime(clockid_t clk_id, struct timespec *tp);
