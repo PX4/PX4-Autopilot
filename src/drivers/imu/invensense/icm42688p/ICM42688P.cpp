@@ -149,6 +149,9 @@ void ICM42688P::RunImpl()
 		    && (RegisterRead(Register::BANK_0::DEVICE_CONFIG) == 0x00)
 		    && (RegisterRead(Register::BANK_0::INT_STATUS) & INT_STATUS_BIT::RESET_DONE_INT)) {
 
+			// Disable I2C interface
+			RegisterSetAndClearBits(Register::BANK_0::INTF_CONFIG0, 0x3, 0);
+
 			// Wakeup accel and gyro and schedule remaining configuration
 			RegisterWrite(Register::BANK_0::PWR_MGMT0, PWR_MGMT0_BIT::GYRO_MODE_LOW_NOISE | PWR_MGMT0_BIT::ACCEL_MODE_LOW_NOISE);
 			_state = STATE::CONFIGURE;
