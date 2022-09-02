@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name PX4 Vision Dev Kit v1
+# @name PX4 Vision Dev Kit v1.5
 #
 # @type Quadrotor x
 # @class Copter
@@ -60,6 +60,7 @@ param set-default CP_DIST 6
 param set-default MPC_ACC_DOWN_MAX 5
 param set-default MPC_ACC_HOR_MAX 10
 param set-default MPC_ACC_UP_MAX 4
+param set-default MPC_MANTHR_MIN 0
 param set-default MPC_MAN_Y_MAX 120
 param set-default MPC_TILTMAX_AIR 45
 param set-default MPC_THR_HOVER 0.3
@@ -88,11 +89,11 @@ param set-default RTL_RETURN_ALT 5
 param set-default SDLOG_PROFILE 131
 
 # Sensors Parameters
-param set-default SENS_CM8JL65_CFG 104
+param set-default SENS_CM8JL65_CFG 202
 param set-default SENS_FLOW_MAXHGT 25
 param set-default SENS_FLOW_MINHGT 0.5
 param set-default IMU_GYRO_CUTOFF 100
-param set-default SENS_EN_PMW3901 1
+param set-default SENS_TFLOW_CFG 103
 
 # Power Parameters
 param set-default BAT1_N_CELLS 4
