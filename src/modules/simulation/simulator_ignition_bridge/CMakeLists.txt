@@ -53,8 +53,6 @@ px4_add_module(
 		SimulatorIgnitionBridge.cpp
 		SimulatorIgnitionBridge.hpp
 	DEPENDS
-		drivers_accelerometer
-		drivers_gyroscope
 		mixer_module
 		px4_work_queue
 		ignition-transport${IGN_TRANSPORT_VER}::core

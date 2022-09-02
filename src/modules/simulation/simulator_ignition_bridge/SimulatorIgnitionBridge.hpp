@@ -33,19 +33,20 @@
 
 #pragma once
 
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/geo/geo.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -87,6 +88,8 @@ private:
 
 	void Run() override;
 
+	bool updateClock(const uint64_t tv_sec, const uint64_t tv_nsec);
+
 	void clockCallback(const ignition::msgs::Clock &clock);
 	void imuCallback(const ignition::msgs::IMU &imu);
 	void poseInfoCallback(const ignition::msgs::Pose_V &pose);
@@ -99,8 +102,12 @@ private:
 	uORB::Publication<vehicle_global_position_s>  _gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Publication<vehicle_local_position_s>   _lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
 
-	PX4Accelerometer _px4_accel;
-	PX4Gyroscope _px4_gyro;
+	uORB::PublicationMulti<sensor_accel_s> _sensor_accel_pub{ORB_ID(sensor_accel)};
+	uORB::PublicationMulti<sensor_gyro_s>  _sensor_gyro_pub{ORB_ID(sensor_gyro)};
+
+	px4::atomic<uint64_t> _world_time_us{0};
+
+	pthread_mutex_t _mutex;
 
 	MapProjection _pos_ref{};
 

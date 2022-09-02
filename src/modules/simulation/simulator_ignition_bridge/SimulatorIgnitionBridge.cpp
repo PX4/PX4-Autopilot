@@ -44,12 +44,10 @@
 
 SimulatorIgnitionBridge::SimulatorIgnitionBridge(const char *world, const char *model) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
-	_px4_accel(1310988),  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	_px4_gyro(1310988),   // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	_world_name(world),
 	_model_name(model)
 {
-	_px4_accel.set_range(2000.f); // don't care
+	pthread_mutex_init(&_mutex, nullptr);
 
 	updateParams();
 }
@@ -192,19 +190,47 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
+bool SimulatorIgnitionBridge::updateClock(const uint64_t tv_sec, const uint64_t tv_nsec)
+{
+	struct timespec ts;
+	ts.tv_sec = tv_sec;
+	ts.tv_nsec = tv_nsec;
+
+	if (px4_clock_settime(CLOCK_MONOTONIC, &ts) == 0) {
+		_world_time_us.store(ts_to_abstime(&ts));
+		return true;
+	}
+
+	return false;
+}
+
 void SimulatorIgnitionBridge::clockCallback(const ignition::msgs::Clock &clock)
 {
-	// uint64_t time_us = clock.sim().sec() * 1e6 + clock.sim().nsec() / 1000;
-	// PX4_INFO("clock %lu ", time_us);
+	pthread_mutex_lock(&_mutex);
 
-	struct timespec ts;
-	ts.tv_sec = clock.sim().sec();
-	ts.tv_nsec = clock.sim().nsec();
-	px4_clock_settime(CLOCK_MONOTONIC, &ts);
+	const uint64_t time_us = (clock.sim().sec() * 1000000) + (clock.sim().nsec() / 1000);
+
+	if (time_us > _world_time_us.load()) {
+		updateClock(clock.sim().sec(), clock.sim().nsec());
+	}
+
+	pthread_mutex_unlock(&_mutex);
 }
 
 void SimulatorIgnitionBridge::imuCallback(const ignition::msgs::IMU &imu)
 {
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_mutex);
+
+	const uint64_t time_us = (imu.header().stamp().sec() * 1000000) + (imu.header().stamp().nsec() / 1000);
+
+	if (time_us > _world_time_us.load()) {
+		updateClock(imu.header().stamp().sec(), imu.header().stamp().nsec());
+	}
+
 	// FLU -> FRD
 	static const auto q_FLU_to_FRD = ignition::math::Quaterniond(0, 1, 0, 0);
 
@@ -213,31 +239,55 @@ void SimulatorIgnitionBridge::imuCallback(const ignition::msgs::IMU &imu)
 			imu.linear_acceleration().y(),
 			imu.linear_acceleration().z()));
 
+	// publish accel
+	sensor_accel_s sensor_accel{};
+	sensor_accel.timestamp_sample = time_us;
+	sensor_accel.device_id = 1310988; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	sensor_accel.x = accel_b.X();
+	sensor_accel.y = accel_b.Y();
+	sensor_accel.z = accel_b.Z();
+	sensor_accel.temperature = NAN;
+	sensor_accel.samples = 1;
+	sensor_accel.timestamp = time_us; // hrt_absolute_time();
+	_sensor_accel_pub.publish(sensor_accel);
+
+
 	ignition::math::Vector3d gyro_b = q_FLU_to_FRD.RotateVector(ignition::math::Vector3d(
 			imu.angular_velocity().x(),
 			imu.angular_velocity().y(),
 			imu.angular_velocity().z()));
 
-	//const uint64_t time_us = imu.header().stamp().sec() * 1e6 + imu.header().stamp().nsec() / 1000;
-	const uint64_t time_us = hrt_absolute_time();
+	// publish gyro
+	sensor_gyro_s sensor_gyro{};
+	sensor_gyro.timestamp_sample = time_us;
+	sensor_gyro.device_id = 1310988; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	sensor_gyro.x = gyro_b.X();
+	sensor_gyro.y = gyro_b.Y();
+	sensor_gyro.z = gyro_b.Z();
+	sensor_gyro.temperature = NAN;
+	sensor_gyro.samples = 1;
+	sensor_gyro.timestamp = time_us; // hrt_absolute_time();
+	_sensor_gyro_pub.publish(sensor_gyro);
 
-	if (time_us != 0) {
-		_px4_accel.update(time_us, accel_b.X(), accel_b.Y(), accel_b.Z());
-		_px4_gyro.update(time_us, gyro_b.X(), gyro_b.Y(), gyro_b.Z());
-	}
+	pthread_mutex_unlock(&_mutex);
 }
 
 void SimulatorIgnitionBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
 {
-	//const uint64_t time_us = pose.header().stamp().sec() * 1e6 + pose.header().stamp().nsec() / 1000;
-	const uint64_t time_us = hrt_absolute_time();
-
-	if (time_us == 0) {
+	if (hrt_absolute_time() == 0) {
 		return;
 	}
 
+	pthread_mutex_lock(&_mutex);
+
 	for (int p = 0; p < pose.pose_size(); p++) {
 		if (pose.pose(p).name() == _model_name) {
+
+			const uint64_t time_us = (pose.header().stamp().sec() * 1000000) + (pose.header().stamp().nsec() / 1000);
+
+			if (time_us > _world_time_us.load()) {
+				updateClock(pose.header().stamp().sec(), pose.header().stamp().nsec());
+			}
 
 			const double dt = math::constrain((time_us - _timestamp_prev) * 1e-6, 0.001, 0.1);
 			_timestamp_prev = time_us;
@@ -334,9 +384,12 @@ void SimulatorIgnitionBridge::poseInfoCallback(const ignition::msgs::Pose_V &pos
 				_gpos_ground_truth_pub.publish(global_position_groundtruth);
 			}
 
+			pthread_mutex_unlock(&_mutex);
 			return;
 		}
 	}
+
+	pthread_mutex_unlock(&_mutex);
 }
 
 bool SimulatorIgnitionBridge::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
@@ -366,6 +419,8 @@ void SimulatorIgnitionBridge::Run()
 		return;
 	}
 
+	pthread_mutex_lock(&_mutex);
+
 	if (_parameter_update_sub.updated()) {
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
@@ -379,6 +434,8 @@ void SimulatorIgnitionBridge::Run()
 
 	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
 	_mixing_output.updateSubscriptions(true);
+
+	pthread_mutex_unlock(&_mutex);
 }
 
 int SimulatorIgnitionBridge::print_status()

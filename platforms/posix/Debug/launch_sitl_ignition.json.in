@@ -54,10 +54,10 @@
             "id": "PX4_SIM_MODEL",
             "description": "PX4_SIM_MODEL",
             "options": [
-              "x3",
+              "x500",
               "x4"
             ],
-            "default": "x3"
+            "default": "x500"
           }
     ]
 }
