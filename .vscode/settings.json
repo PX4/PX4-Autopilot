@@ -134,5 +134,23 @@
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
         },
-        "cortex-debug.openocdPath": "${env:PICO_SDK_PATH}/../openocd/src/openocd"       // Added for rp2040
+        "cortex-debug.openocdPath": "${env:PICO_SDK_PATH}/../openocd/src/openocd",
+        "python.autoComplete.extraPaths": [
+                "/home/ben/git/r2c3/install/irobot_create_msgs/local/lib/python3.10/dist-packages",
+                "/home/ben/git/ros2ws/build/nxp_light_control",
+                "/home/ben/git/ros2ws/install/nxp_light_control/lib/python3.10/site-packages",
+                "/home/ben/git/ros2ws/build/nxp_demo_control",
+                "/home/ben/git/ros2ws/install/nxp_demo_control/lib/python3.10/site-packages",
+                "/home/ben/git/ros2ws/build/debug_image_tf_lite",
+                "/home/ben/git/ros2ws/install/debug_image_tf_lite/lib/python3.10/site-packages",
+                "/home/ben/git/ros2ws/install/tflite_msgs/local/lib/python3.10/dist-packages",
+                "/home/ben/git/ros2ws/install/ros2_numpy/local/lib/python3.10/dist-packages",
+                "/home/ben/git/ros2ws/build/nxp_demo_control_gui",
+                "/home/ben/git/ros2ws/install/nxp_demo_control_gui/lib/python3.10/site-packages",
+                "/home/ben/git/ros2ws/build/nxp_cup_vision",
+                "/home/ben/git/ros2ws/install/nxp_cup_vision/lib/python3.10/site-packages",
+                "/home/ben/git/ros2ws/install/canfd_msgs/local/lib/python3.10/dist-packages",
+                "/opt/ros/humble/lib/python3.10/site-packages",
+                "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        ] // Added for rp2040
 }
