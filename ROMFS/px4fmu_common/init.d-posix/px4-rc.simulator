@@ -28,23 +28,28 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 		echo "INFO  [init] starting ign gazebo"
 
 		if [ -z $HEADLESS ]; then
-			ign gazebo --verbose=4 -r "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
+			ign gazebo --verbose=1 -r "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
 		else
 			# starting ign gazebo headless
-			ign gazebo --verbose=4 -r -s "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
+			ign gazebo --verbose=1 -r -s "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
 		fi
 	else
 		echo "INFO  [init] ign gazebo already running world: $ign_world"
 		PX4_SIM_WORLD=$ign_world
 	fi
 
-	if [ -z $SPAWN_MODEL_POSE ]; then
+	if [ -z $PX4_IGN_MODEL_POSE ]; then
 
-		SPAWN_MODEL_POSE="pose:{position: {x: 1, y: 5, z: 3}}"
+		model_pose="0.0,0.0,0.0,0.0,0.0,0.0"
+	else
+
+		model_pose="$( echo ${PX4_IGN_MODEL_POSE} | sed -e 's/^[ \t]*//; s/[ \t]*$//; s/,/ /g; s/  / /g; s/ /,/g' )"
+
 	fi
 
-	sleep 2
-	if simulator_ignition_bridge start -m "${PX4_SIM_MODEL}" -p "${SPAWN_MODEL_POSE}" -w "${PX4_SIM_WORLD}"; then
+	echo "IGNITION MODEL POSE: ${model_pose}"
+
+	if simulator_ignition_bridge start -p "${model_pose}"  -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}"; then
 		sensor_baro_sim start
 		sensor_gps_sim start
 		sensor_mag_sim start
