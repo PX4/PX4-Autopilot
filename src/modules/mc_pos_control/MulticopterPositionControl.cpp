@@ -35,6 +35,7 @@
 
 #include <float.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/mathlib/math/Functions.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/events.h>
 #include "PositionControl/ControlMath.hpp"
@@ -42,13 +43,9 @@
 using namespace matrix;
 
 MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
-	SuperBlock(nullptr, "MPC"),
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
-	_vel_x_deriv(this, "VELD"),
-	_vel_y_deriv(this, "VELD"),
-	_vel_z_deriv(this, "VELD")
+	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint))
 {
 	parameters_update(true);
 	_tilt_limit_slew_rate.setSlewRate(.2f);
@@ -83,7 +80,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 
 		// update parameters from storage
 		ModuleParams::updateParams();
-		SuperBlock::updateParams();
 
 		int num_changed = 0;
 
@@ -257,65 +253,14 @@ void MulticopterPositionControl::parameters_update(bool force)
 		_param_mpc_tko_speed.set(math::min(_param_mpc_tko_speed.get(), _param_mpc_z_vel_max_up.get()));
 		_param_mpc_land_speed.set(math::min(_param_mpc_land_speed.get(), _param_mpc_z_vel_max_dn.get()));
 
+		// velocity and velocity derivative filters
+		_vel_filter.setCutoffFrequency(_param_mpc_vel_lp.get());
+		_vel_derivative_filter.setCutoffFrequency(_param_mpc_veld_lp.get());
+
 		_takeoff.setSpoolupTime(_param_com_spoolup_time.get());
 		_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
 		_takeoff.generateInitialRampValue(_param_mpc_z_vel_p_acc.get());
 	}
-}
-
-PositionControlStates MulticopterPositionControl::set_vehicle_states(const vehicle_local_position_s
-		&vehicle_local_position)
-{
-	PositionControlStates states;
-
-	const Vector2f position_xy(vehicle_local_position.x, vehicle_local_position.y);
-
-	// only set position states if valid and finite
-	if (vehicle_local_position.xy_valid && position_xy.isAllFinite()) {
-		states.position.xy() = position_xy;
-
-	} else {
-		states.position(0) = states.position(1) = NAN;
-	}
-
-	if (PX4_ISFINITE(vehicle_local_position.z) && vehicle_local_position.z_valid) {
-		states.position(2) = vehicle_local_position.z;
-
-	} else {
-		states.position(2) = NAN;
-	}
-
-	const Vector2f velocity_xy(vehicle_local_position.vx, vehicle_local_position.vy);
-
-	if (vehicle_local_position.v_xy_valid && velocity_xy.isAllFinite()) {
-		states.velocity.xy() = velocity_xy;
-		states.acceleration(0) = _vel_x_deriv.update(velocity_xy(0));
-		states.acceleration(1) = _vel_y_deriv.update(velocity_xy(1));
-
-	} else {
-		states.velocity(0) = states.velocity(1) = NAN;
-		states.acceleration(0) = states.acceleration(1) = NAN;
-
-		// reset derivatives to prevent acceleration spikes when regaining velocity
-		_vel_x_deriv.reset();
-		_vel_y_deriv.reset();
-	}
-
-	if (PX4_ISFINITE(vehicle_local_position.vz) && vehicle_local_position.v_z_valid) {
-		states.velocity(2) = vehicle_local_position.vz;
-		states.acceleration(2) = _vel_z_deriv.update(states.velocity(2));
-
-	} else {
-		states.velocity(2) = NAN;
-		states.acceleration(2) = NAN;
-
-		// reset derivative to prevent acceleration spikes when regaining velocity
-		_vel_z_deriv.reset();
-	}
-
-	states.yaw = vehicle_local_position.heading;
-
-	return states;
 }
 
 void MulticopterPositionControl::Run()
@@ -337,10 +282,13 @@ void MulticopterPositionControl::Run()
 	if (_local_pos_sub.update(&vehicle_local_position)) {
 		const float dt =
 			math::constrain(((vehicle_local_position.timestamp_sample - _time_stamp_last_loop) * 1e-6f), 0.002f, 0.04f);
-		_time_stamp_last_loop = vehicle_local_position.timestamp_sample;
 
-		// set _dt in controllib Block for BlockDerivative
-		setDt(dt);
+		if (hrt_elapsed_time(&_time_stamp_last_loop) > 1_s) {
+			_vel_filter.reset();
+			_vel_derivative_filter.reset();
+		}
+
+		_time_stamp_last_loop = vehicle_local_position.timestamp_sample;
 
 		if (_vehicle_control_mode_sub.updated()) {
 			const bool previous_position_control_enabled = _vehicle_control_mode.flag_multicopter_position_control_enabled;
@@ -375,10 +323,20 @@ void MulticopterPositionControl::Run()
 			if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
 				_setpoint.velocity[0] += vehicle_local_position.delta_vxy[0];
 				_setpoint.velocity[1] += vehicle_local_position.delta_vxy[1];
+
+				// adjust velocity filter state
+				_vel_filter.reset(Vector3f(_vel_filter.getState()(0) + vehicle_local_position.delta_vxy[0],
+							   _vel_filter.getState()(1) + vehicle_local_position.delta_vxy[1],
+							   _vel_filter.getState()(2)));
 			}
 
 			if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
 				_setpoint.velocity[2] += vehicle_local_position.delta_vz;
+
+				// adjust velocity filter state
+				_vel_filter.reset(Vector3f(_vel_filter.getState()(0),
+							   _vel_filter.getState()(1),
+							   _vel_filter.getState()(2) + vehicle_local_position.delta_vz));
 			}
 
 			if (vehicle_local_position.xy_reset_counter != _xy_reset_counter) {
@@ -395,15 +353,6 @@ void MulticopterPositionControl::Run()
 			}
 		}
 
-		if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
-			_vel_x_deriv.reset();
-			_vel_y_deriv.reset();
-		}
-
-		if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
-			_vel_z_deriv.reset();
-		}
-
 		// save latest reset counters
 		_vxy_reset_counter = vehicle_local_position.vxy_reset_counter;
 		_vz_reset_counter = vehicle_local_position.vz_reset_counter;
@@ -412,7 +361,34 @@ void MulticopterPositionControl::Run()
 		_heading_reset_counter = vehicle_local_position.heading_reset_counter;
 
 
-		PositionControlStates states{set_vehicle_states(vehicle_local_position)};
+		PositionControlStates states{};
+
+		// position
+		if (vehicle_local_position.xy_valid && vehicle_local_position.z_valid) {
+			states.position = Vector3f(vehicle_local_position.x, vehicle_local_position.y, vehicle_local_position.z);
+
+		} else if (vehicle_local_position.z_valid) {
+			// only z valid
+			states.position(2) = vehicle_local_position.z;
+		}
+
+		// velocity & velocity derivative
+		const Vector3f vel_filtered_prev = _vel_filter.getState();
+		_vel_filter.update(Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz), dt);
+		_vel_derivative_filter.update((_vel_filter.getState() - vel_filtered_prev) / dt, dt);
+
+		if (vehicle_local_position.v_xy_valid && vehicle_local_position.v_z_valid) {
+			states.velocity = _vel_filter.getState();
+			states.acceleration = _vel_derivative_filter.getState();
+
+		} else if (vehicle_local_position.z_valid) {
+			// only vz valid
+			states.velocity(2) = _vel_filter.getState()(2);
+			states.acceleration(2) = _vel_derivative_filter.getState()(2);
+		}
+
+		// yaw
+		states.yaw = vehicle_local_position.heading;
 
 
 		if (_vehicle_control_mode.flag_multicopter_position_control_enabled) {

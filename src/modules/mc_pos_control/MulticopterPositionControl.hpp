@@ -41,7 +41,7 @@
 #include "Takeoff/Takeoff.hpp"
 
 #include <drivers/drv_hrt.h>
-#include <lib/controllib/blocks.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/perf/perf_counter.h>
 #include <lib/slew_rate/SlewRateYaw.hpp>
 #include <lib/systemlib/mavlink_log.h>
@@ -67,8 +67,8 @@
 
 using namespace time_literals;
 
-class MulticopterPositionControl : public ModuleBase<MulticopterPositionControl>, public control::SuperBlock,
-	public ModuleParams, public px4::ScheduledWorkItem
+class MulticopterPositionControl : public ModuleBase<MulticopterPositionControl>, public ModuleParams,
+	public px4::ScheduledWorkItem
 {
 public:
 	MulticopterPositionControl(bool vtol = false);
@@ -145,6 +145,8 @@ private:
 		(ParamFloat<px4::params::MPC_TILTMAX_AIR>)  _param_mpc_tiltmax_air,
 		(ParamFloat<px4::params::MPC_THR_HOVER>)    _param_mpc_thr_hover,
 		(ParamBool<px4::params::MPC_USE_HTE>)       _param_mpc_use_hte,
+		(ParamFloat<px4::params::MPC_VEL_LP>)       _param_mpc_vel_lp,
+		(ParamFloat<px4::params::MPC_VELD_LP>)      _param_mpc_veld_lp,
 
 		// Takeoff / Land
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time, /**< time to let motors spool up after arming */
@@ -178,9 +180,8 @@ private:
 		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all
 	);
 
-	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
-	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
-	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
+	AlphaFilter<matrix::Vector3f> _vel_filter{};
+	AlphaFilter<matrix::Vector3f> _vel_derivative_filter{};
 
 	PositionControl _control;  /**< class for core PID position control */
 
@@ -212,11 +213,6 @@ private:
 	 * @param force forces parameter update.
 	 */
 	void parameters_update(bool force);
-
-	/**
-	 * Check for validity of positon/velocity states.
-	 */
-	PositionControlStates set_vehicle_states(const vehicle_local_position_s &local_pos);
 
 	/**
 	 * Generate setpoint to bridge no executable setpoint being available.
