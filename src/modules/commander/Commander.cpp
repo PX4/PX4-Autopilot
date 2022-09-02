@@ -2409,29 +2409,6 @@ void Commander::checkForMissionUpdate()
 						      _commander_state);
 			}
 		}
-
-		// Check for mission flight termination
-		if (_arm_state_machine.isArmed() && mission_result.flight_termination &&
-		    !_circuit_breaker_flight_termination_disabled) {
-
-			if (!_flight_termination_triggered && !_lockdown_triggered) {
-				// navigator only requests flight termination on GPS failure
-				mavlink_log_critical(&_mavlink_log_pub, "GPS failure: Flight terminated\t");
-				events::send(events::ID("commander_mission_termination"), {events::Log::Alert, events::LogInternal::Warning},
-					     "GPS failure: Flight terminated");
-				_flight_termination_triggered = true;
-				_actuator_armed.force_failsafe = true;
-				_status_changed = true;
-				send_parachute_command();
-			}
-
-			if (hrt_elapsed_time(&_last_termination_message_sent) > 4_s) {
-				_last_termination_message_sent = hrt_absolute_time();
-				mavlink_log_critical(&_mavlink_log_pub, "Flight termination active\t");
-				events::send(events::ID("commander_mission_termination_active"), {events::Log::Alert, events::LogInternal::Warning},
-					     "Flight termination active");
-			}
-		}
 	}
 }
 
