@@ -65,6 +65,7 @@ then
     ${iname_env} \
     ./packaging/build_saluki.sh
   cp ${script_dir}/build/ssrc_saluki-v1_default/ssrc_saluki-v1_default.px4        ${dest_dir}/ssrc_saluki-v1_default-${version}.px4
+  cp ${script_dir}/build/ssrc_saluki-v1_amp/ssrc_saluki-v1_amp.bin        	     ${dest_dir}/ssrc_saluki-v1_amp-${version}.bin
   cp ${script_dir}/build/ssrc_saluki-v1_bootloader/ssrc_saluki-v1_bootloader.elf  ${dest_dir}/ssrc_saluki-v1_bootloader-${version}.elf
 fi
 

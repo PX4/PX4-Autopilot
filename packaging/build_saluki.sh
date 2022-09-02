@@ -9,4 +9,5 @@ rm -Rf build/ssrc_saluki-v1_default build/ssrc_saluki-v1_bootloader
 
 # Build
 make ssrc_saluki-v1_default
+make ssrc_saluki-v1_amp
 make ssrc_saluki-v1_bootloader

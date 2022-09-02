@@ -136,10 +136,12 @@ jobs:
           pkg=$(find bin -name 'px4_fmu-v5_ssrc*.px4')
           px5_pkg=$(find bin -name 'px4_fmu-v5x_ssrc*.px4')
           saluki_pkg=$(find bin -name 'ssrc_saluki-*.px4')
+          saluki_amp_pkg=$(find bin -name 'ssrc_saluki-*.bin')
           saluki_bl_pkg=$(find bin -name 'ssrc_saluki-*.elf')
           pkg_name=$(basename $pkg)
           px5_pkg_name=$(basename $px5_pkg)
           saluki_pkg_name=$(basename $saluki_pkg)
+          saluki_amp_pkg_name=$(basename $saluki_amp_pkg)
           saluki_bl_pkg_name=$(basename $saluki_bl_pkg)
           jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
                      --build-name "$BUILD_NAME_PX4" \
@@ -159,6 +161,11 @@ jobs:
           jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
                      --build-name "$BUILD_NAME_PX4" \
                      --build-number "$GITHUB_SHA" \
+                     "$saluki_amp_pkg" \
+                     "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_amp_pkg_name"
+          jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
+                     --build-name "$BUILD_NAME_PX4" \
+                     --build-number "$GITHUB_SHA" \
                      "$saluki_bl_pkg" \
                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_bl_pkg_name"
           jfrog rt build-publish "$BUILD_NAME_PX4" "$GITHUB_SHA"
@@ -174,6 +181,9 @@ jobs:
           jfrog rt cp --flat \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_pkg_name" \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v1_default.px4"
+          jfrog rt cp --flat \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_amp_pkg_name" \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v1_amp.bin"
           jfrog rt cp --flat \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_bl_pkg_name" \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v1_bootloader.elf"
