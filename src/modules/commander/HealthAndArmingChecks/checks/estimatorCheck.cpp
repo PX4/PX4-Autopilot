@@ -102,7 +102,7 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (missing_data) {
+	if (missing_data && _param_sys_mc_est_group.get() == 2) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -740,7 +740,8 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 							&& (fabsf(q(3)) <= 1.f + eps);
 		const bool norm_in_tolerance = fabsf(1.f - q.norm()) <= eps;
 
-		failsafe_flags.attitude_valid = now - attitude.timestamp < 1_s && norm_in_tolerance && no_element_larger_than_one;
+		failsafe_flags.attitude_valid = hrt_absolute_time() - attitude.timestamp < 1_s && norm_in_tolerance
+						&& no_element_larger_than_one;
 
 	} else {
 		failsafe_flags.attitude_valid = false;
@@ -750,7 +751,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	vehicle_angular_velocity_s angular_velocity{};
 	_vehicle_angular_velocity_sub.copy(&angular_velocity);
 	const bool condition_angular_velocity_time_valid = angular_velocity.timestamp != 0
-			&& now - angular_velocity.timestamp < 1_s;
+			&& hrt_absolute_time() - angular_velocity.timestamp < 1_s;
 	const bool condition_angular_velocity_finite = PX4_ISFINITE(angular_velocity.xyz[0])
 			&& PX4_ISFINITE(angular_velocity.xyz[1]) && PX4_ISFINITE(angular_velocity.xyz[2]);
 	const bool angular_velocity_valid = condition_angular_velocity_time_valid
