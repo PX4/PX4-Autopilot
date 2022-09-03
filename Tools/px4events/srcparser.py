@@ -207,6 +207,11 @@ class SourceParser(object):
 
                     ignore_event = False
 
+                    def parse_message(s):
+                        assert s[0] == '"', "Argument must be a string literal: {:}".format(s)
+                        # unescape \x, to treat the string the same as the C++ compiler
+                        return s[1:-1].encode("utf-8").decode('unicode_escape')
+
                     # extract function arguments
                     args_split = self._parse_arguments(args)
                     if call == "events::send" or call == "send":
@@ -224,8 +229,7 @@ class SourceParser(object):
                             else:
                                 raise Exception("Could not extract event ID from {:}".format(args_split[0]))
                             event.name = event_name
-                            # unescape \x, to treat the string the same as the C++ compiler
-                            event.message = args_split[2][1:-1].encode("utf-8").decode('unicode_escape')
+                            event.message = parse_message(args_split[2])
                     elif call in ['reporter.healthFailure', 'reporter.armingCheckFailure']:
                         assert len(args_split) == num_args + 5, \
                             "Unexpected Number of arguments for: {:}, {:}".format(args_split, num_args)
@@ -235,7 +239,7 @@ class SourceParser(object):
                         else:
                             raise Exception("Could not extract event ID from {:}".format(args_split[2]))
                         event.name = event_name
-                        event.message = args_split[4][1:-1]
+                        event.message = parse_message(args_split[4])
                         if 'health' in call:
                             event.group = "health"
                         else:
