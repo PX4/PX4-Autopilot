@@ -48,7 +48,6 @@ endforeach()
 
 # standalone tests
 set(cmd_tests
-	commander_tests
 	controllib_test
 	lightware_laser_test
 	rc_tests
