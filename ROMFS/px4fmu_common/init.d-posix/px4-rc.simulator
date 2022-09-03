@@ -39,24 +39,32 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 	fi
 
 	if [ -z $PX4_IGN_MODEL_POSE ]; then
-
-		model_pose="0.0,0.0,0.0,0.0,0.0,0.0"
+		# start ignition bridge without pose arg.
+		echo "WARN  [init] PX4_IGN_MODEL_POSE not set, spawning at origin."
+		if simulator_ignition_bridge start -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}"; then
+			sensor_baro_sim start
+			sensor_gps_sim start
+			sensor_mag_sim start
+		else
+			echo "ERROR  [init] ign gazebo failed to start"
+			exit 1
+		fi
 	else
 
-		# Strip out erroneous lines formatting.
+		# Clean potential input line formatting.
 		model_pose="$( echo ${PX4_IGN_MODEL_POSE} | sed -e 's/^[ \t]*//; s/[ \t]*$//; s/,/ /g; s/  / /g; s/ /,/g' )"
+		echo "INFO  [init] PX4_IGN_MODEL_POSE set, spawning at: ${model_pose}"
 
-	fi
+		# start ignition bridge with pose arg.
+		if simulator_ignition_bridge start -p "${model_pose}"  -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}"; then
+			sensor_baro_sim start
+			sensor_gps_sim start
+			sensor_mag_sim start
+		else
+			echo "ERROR  [init] ign gazebo failed to start"
+			exit 1
+		fi
 
-	echo "IGNITION MODEL POSE: ${model_pose}"
-
-	if simulator_ignition_bridge start -p "${model_pose}"  -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}"; then
-		sensor_baro_sim start
-		sensor_gps_sim start
-		sensor_mag_sim start
-	else
-		echo "ERROR  [init] ign gazebo failed to start"
-		exit 1
 	fi
 
 else

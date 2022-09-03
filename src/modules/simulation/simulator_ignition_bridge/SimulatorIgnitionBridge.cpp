@@ -78,34 +78,35 @@ int SimulatorIgnitionBridge::init()
 	if (!_model_pose.empty()) {
 		PX4_INFO("Requested Model Position: %s", _model_pose.c_str());
 
-	std::vector<float> model_pose_v;
+		std::vector<float> model_pose_v;
 
-	std::stringstream ss(_model_pose);
+		std::stringstream ss(_model_pose);
 
-	while (ss.good()) {
-		std::string substr;
-		std::getline(ss, substr, ',');
-		model_pose_v.push_back(std::stof(substr));
-	}
+		while (ss.good()) {
+			std::string substr;
+			std::getline(ss, substr, ',');
+			model_pose_v.push_back(std::stof(substr));
+		}
 
-	while (model_pose_v.size() < 6) {
-		model_pose_v.push_back(0.0);
-	}
+		while (model_pose_v.size() < 6) {
+			model_pose_v.push_back(0.0);
+		}
 
-	ignition::msgs::Pose *p = req.mutable_pose();
-	ignition::msgs::Vector3d *position = p->mutable_position();
-	position->set_x(model_pose_v[0]);
-	position->set_y(model_pose_v[1]);
-	position->set_z(model_pose_v[2]);
+		ignition::msgs::Pose *p = req.mutable_pose();
+		ignition::msgs::Vector3d *position = p->mutable_position();
+		position->set_x(model_pose_v[0]);
+		position->set_y(model_pose_v[1]);
+		position->set_z(model_pose_v[2]);
 
-	ignition::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
+		ignition::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
 
-	q.Normalize();
-	ignition::msgs::Quaternion *orientation = p->mutable_orientation();
-	orientation->set_x(q.X());
-	orientation->set_y(q.Y());
-	orientation->set_z(q.Z());
-	orientation->set_w(q.W());
+		q.Normalize();
+		ignition::msgs::Quaternion *orientation = p->mutable_orientation();
+		orientation->set_x(q.X());
+		orientation->set_y(q.Y());
+		orientation->set_z(q.Z());
+		orientation->set_w(q.W());
+		}
 
 	//world/$WORLD/create service.
 	ignition::msgs::Boolean rep;
@@ -207,6 +208,10 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 	}
 
 	PX4_INFO("world: %s, model: %s", world_name, model_name);
+
+	if (!model_pose){
+		model_pose = "";
+	}
 
 	SimulatorIgnitionBridge *instance = new SimulatorIgnitionBridge(world_name, model_name, model_pose);
 
