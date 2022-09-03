@@ -43,6 +43,7 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 		model_pose="0.0,0.0,0.0,0.0,0.0,0.0"
 	else
 
+		# Strip out erroneous lines formatting.
 		model_pose="$( echo ${PX4_IGN_MODEL_POSE} | sed -e 's/^[ \t]*//; s/[ \t]*$//; s/,/ /g; s/  / /g; s/ /,/g' )"
 
 	fi
