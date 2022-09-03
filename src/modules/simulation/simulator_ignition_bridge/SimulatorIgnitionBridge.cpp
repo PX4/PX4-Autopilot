@@ -75,7 +75,8 @@ int SimulatorIgnitionBridge::init()
 	// req.set_name("model_instance_name"); // New name for the entity, overrides the name on the SDF.
 	req.set_allow_renaming(false); // allowed to rename the entity in case of overlap with existing entities
 
-	PX4_INFO("Requested Model Position: %s", _model_pose.c_str());
+	if (!_model_pose.empty()) {
+		PX4_INFO("Requested Model Position: %s", _model_pose.c_str());
 
 	std::vector<float> model_pose_v;
 
