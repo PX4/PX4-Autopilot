@@ -106,7 +106,7 @@ int SimulatorIgnitionBridge::init()
 		orientation->set_y(q.Y());
 		orientation->set_z(q.Z());
 		orientation->set_w(q.W());
-		}
+	}
 
 	//world/$WORLD/create service.
 	ignition::msgs::Boolean rep;
@@ -209,7 +209,7 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 
 	PX4_INFO("world: %s, model: %s", world_name, model_name);
 
-	if (!model_pose){
+	if (!model_pose) {
 		model_pose = "";
 	}
 
