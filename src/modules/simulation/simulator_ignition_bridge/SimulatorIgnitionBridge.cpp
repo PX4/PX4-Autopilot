@@ -165,7 +165,7 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 {
 	const char *world_name = "default";
 	const char *model_name = nullptr;
-	const char *model_pose = "0.0,0.0,0.0,0.0,0.0,0.0";
+	const char *model_pose = nullptr;
 
 
 	bool error_flag = false;
