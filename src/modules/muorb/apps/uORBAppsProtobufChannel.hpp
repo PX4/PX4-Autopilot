@@ -68,6 +68,8 @@ public:
 
 	bool Initialize(bool enable_debug);
 
+	bool Test();
+
 private: // data members
 	static uORB::AppsProtobufChannel           *_InstancePtr;
 
