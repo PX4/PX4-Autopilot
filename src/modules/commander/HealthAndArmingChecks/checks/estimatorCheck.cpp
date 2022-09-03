@@ -102,7 +102,7 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (missing_data) {
+	if (missing_data && _param_sys_mc_est_group.get() == 2) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -740,7 +740,8 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 							&& (fabsf(q(3)) <= 1.f + eps);
 		const bool norm_in_tolerance = fabsf(1.f - q.norm()) <= eps;
 
-		failsafe_flags.attitude_valid = now - attitude.timestamp < 1_s && norm_in_tolerance && no_element_larger_than_one;
+		failsafe_flags.attitude_valid = now < attitude.timestamp  + 1_s && norm_in_tolerance
+						&& no_element_larger_than_one;
 
 	} else {
 		failsafe_flags.attitude_valid = false;
