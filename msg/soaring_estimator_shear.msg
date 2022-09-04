@@ -20,10 +20,11 @@ float32 coeff_0             # offset vertical wind
 float32 coeff_1             # linear coeff vertical wind
 float32 coeff_2             # quadratic coeff vertical wind
 
-float32 v_max               # discrete value of v_max (shear velocity)
-float32 alpha               # discrete value of alpha (shear strength)
+float32 v_max               # discrete value of v_max (shear velocity), identifier for appropriate trajectrory
+float32 alpha               # discrete value of alpha (shear strength), identifier for appropriate trajectrory
 float32 h_ref               # discrete value of h_ref (shear location)
 float32 psi                 # discrete value of shear heading
+float32 aspd                # airspeed identifier for appropriate trajectrory
 
 bool soaring_feasible       # plausibility check
 uint64 reset_counter        # filter reset counter

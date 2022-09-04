@@ -114,6 +114,103 @@ FixedwingShearEstimator::init()
     // init reset counter
     _reset_counter = 0;
 
+    // ==============================================================================
+    // fill the min airspeed matrix with the correct entries for trajectory selection
+    // ==============================================================================
+    bool error = false;
+    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    //char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    strcat(home_dir, "robust/min_aspd_matrix.csv");
+    FILE* fp = fopen(home_dir, "r");
+
+    if (fp == nullptr) {
+        PX4_ERR("Can't open MIN_ASPD_MATRIX");
+        error = true;
+    }
+    else {
+        // Here we have taken size of
+        // array 200 you can modify it
+        const uint buffersize = 200;
+        char buffer[buffersize];
+
+        int row = 0;
+        int column = 0;
+
+        // loop over rows
+        while (fgets(buffer,
+                     buffersize, fp)) {
+            column = 0;
+ 
+            // Splitting the data
+            char* value = strtok(buffer, ",");
+            
+            // loop over columns
+            while (value) {
+                if (*value=='\0'||*value==' ') {
+                    // simply skip extra characters
+                    continue;
+                }
+                if (row<(int)_num_v_max && column<(int)_num_alpha) {
+                    _MIN_ASPD_MATRIX(row,column) = (float)atof(value);
+                    _MAX_ASPD_MATRIX(row,column) = (float)atof(value) + 4.f;
+                }
+                else {
+                    PX4_ERR("Encountered invalid MIN_ASPD_MATRIX");
+                }
+                //PX4_INFO("row: %d, col: %d, read value: %.3f", row, column, (double)atof(value));
+                value = strtok(NULL, ",");
+                column++;
+                
+            }
+            row++;
+        }
+        int failure = fclose(fp);
+        if (failure==-1) {
+            PX4_ERR("Can't close MIN_ASPD_MATRIX");
+        }
+    }
+    // =======================================================================
+
+
+    if (error) {
+        /*
+        // column 0: wind speed = 8
+        _MIN_ASPD_MATRIX(0,0) = 28;
+        _MIN_ASPD_MATRIX(1,0) = 24;
+        _MIN_ASPD_MATRIX(2,0) = 22;
+        _MIN_ASPD_MATRIX(3,0) = 20;
+        _MIN_ASPD_MATRIX(4,0) = 20;
+        _MIN_ASPD_MATRIX(5,0) = 20;
+        _MIN_ASPD_MATRIX(6,0) = 20;
+        _MIN_ASPD_MATRIX(7,0) = 20;
+        _MIN_ASPD_MATRIX(8,0) = 20;
+
+        // column 0: wind speed = 9
+        _MIN_ASPD_MATRIX(0,0) = 26;
+        _MIN_ASPD_MATRIX(1,0) = 22;
+        _MIN_ASPD_MATRIX(2,0) = 20;
+        _MIN_ASPD_MATRIX(3,0) = 20;
+        _MIN_ASPD_MATRIX(4,0) = 20;
+        _MIN_ASPD_MATRIX(5,0) = 20;
+        _MIN_ASPD_MATRIX(6,0) = 20;
+        _MIN_ASPD_MATRIX(7,0) = 18;
+        _MIN_ASPD_MATRIX(8,0) = 18;
+
+        // column 0: wind speed = 10
+        _MIN_ASPD_MATRIX(0,0) = 24;
+        _MIN_ASPD_MATRIX(1,0) = 22;
+        _MIN_ASPD_MATRIX(2,0) = 20;
+        _MIN_ASPD_MATRIX(3,0) = 20;
+        _MIN_ASPD_MATRIX(4,0) = 20;
+        _MIN_ASPD_MATRIX(5,0) = 20;
+        _MIN_ASPD_MATRIX(6,0) = 18;
+        _MIN_ASPD_MATRIX(7,0) = 18;
+        _MIN_ASPD_MATRIX(8,0) = 18;
+        */
+
+    }
+
+
     return true;
 }
 
@@ -323,6 +420,9 @@ FixedwingShearEstimator::Run()
         // get current measurement
         _current_wind = Vector3f(soaring_controller_wind.wind_estimate_filtered)/_unit_v;
         _current_height = Vector3f(soaring_controller_wind.position)(2)/_unit_h;
+        _current_airspeed = soaring_controller_wind.airspeed;
+        _lock_params = soaring_controller_wind.lock_params;
+        //PX4_INFO("estimating shear, shear lock is: \t%d", _lock_params);
 
         if (true) {
             // prior update
@@ -340,17 +440,53 @@ FixedwingShearEstimator::Run()
 
         }
 
+        // =====================================================
         // get the correct shear params for trajectory selection
+        // =====================================================
         float shear = sqrtf(powf(_X_posterior_horizontal(0)*_unit_v, 2) + 
                             powf(_X_posterior_horizontal(1)*_unit_v, 2));
         float v = _findClosest(_v_max_arr, 5, shear);    // wind velocity
         float a = _findClosest(_alpha_arr, 9, _X_posterior_horizontal(5)*_unit_a);    // shear strength
         float heading = atan2f(_X_posterior_horizontal(0),
                                 _X_posterior_horizontal(1));
-        _soaring_estimator_shear.v_max = v;
-        _soaring_estimator_shear.alpha = a;
-        _soaring_estimator_shear.h_ref = _X_posterior_horizontal(4)*_unit_h;
-        _soaring_estimator_shear.psi = heading;
+
+
+        // only update all params for trajectory selection if required to do so
+        if (!_lock_params) {
+            // get the appropriate airspeed for trajectory selection
+            float min_aspd = _MIN_ASPD_MATRIX(round(v-8.f),round(10.f*(a-0.2f)));
+            float max_aspd = _MAX_ASPD_MATRIX(round(v-8.f),round(10.f*(a-0.2f)));
+            uint num = (uint)round((max_aspd-min_aspd)/2.f + 1.f);
+            float aspd_arr[num] = {};
+            for (uint i=0; i<num; i++) {
+                aspd_arr[i] = min_aspd + 2.f;
+            }
+            float aspd = _findClosest(aspd_arr, num, _current_airspeed); 
+            // update all shear params for trajectory selection
+            _soaring_estimator_shear.v_max = v;
+            _soaring_estimator_shear.alpha = a;
+            _soaring_estimator_shear.psi = heading;
+            _soaring_estimator_shear.h_ref = _X_posterior_horizontal(4)*_unit_h;
+            _soaring_estimator_shear.aspd = aspd;
+            //PX4_INFO("Unlocked shear estimator, estimating shear \t%.1f", (double)_lock_params);
+        }
+        // if not, we still need to find an appropriate airspeed
+        else {
+            v = _soaring_estimator_shear.v_max;
+            a = _soaring_estimator_shear.alpha;
+            float min_aspd = _MIN_ASPD_MATRIX(round(v-8.f),round(10.f*(a-0.2f)));
+            float max_aspd = _MAX_ASPD_MATRIX(round(v-8.f),round(10.f*(a-0.2f)));
+            uint num = (uint)round((max_aspd-min_aspd)/2.f + 1.f);
+            float aspd_arr[num] = {};
+            for (uint i=0; i<num; i++) {
+                aspd_arr[i] = min_aspd + 2.f;
+            }
+            float aspd = _findClosest(aspd_arr, num, _current_airspeed); 
+            // only update airspeed for trajectory selection
+            _soaring_estimator_shear.aspd = aspd;
+        }
+        
+
 
         // publish shear params
         // ========================================
@@ -390,14 +526,14 @@ bool FixedwingShearEstimator::check_feasibility()
     //float heading = atan2f(shear_x, shear_y);
     //float heading_stdev = 0.f;
 
-    // require shear strength above 10 m/s
+    // require shear strength above 8 m/s
     float shear = sqrtf(powf(shear_x,2) + powf(shear_y,2));
-    if (shear<10.f) {
+    if (shear<8.f) {
         return false;
     }
 
-    // require shear strength above 0.3 1/s
-    if (shear_strength<0.3f) {
+    // require shear strength above 0.2 1/s
+    if (shear_strength<0.2f) {
         return false;
     }
 

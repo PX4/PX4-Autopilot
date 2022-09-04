@@ -90,10 +90,14 @@ FixedwingPositionINDIControl::init()
     _R_enu_to_ned = _R_ned_to_enu;
 
     // initialize wind shear params
-    _shear_v_max = 0.f;
-    _shear_alpha = 0.f;
+    _shear_v_max = 8.f;
+    _shear_alpha = 0.5f;
     _shear_h_ref = 0.f;
     _shear_heading = M_PI_2_F;
+    _shear_aspd = 20.f;
+
+    // initialize in manual feedthrough
+    _switch_manual = true;
 
     // initialize transform to trajec frame
     _compute_trajectory_transform();
@@ -166,20 +170,21 @@ FixedwingPositionINDIControl::parameters_update()
     PX4_INFO("local reference frame updated");
     
 
-
-    _loiter = _param_loiter.get();
-    _select_trajectory(0.0f);
-
     _thrust_pos = _param_thrust.get();
     _thrust = _thrust_pos;
     _switch_saturation = _param_switch_saturation.get();
     _switch_filter = _param_switch_filter.get();
     _switch_origin_hardcoded = _param_switch_origin_hardcoded.get();
+    _switch_manual = _param_switch_manual.get();
+    _switch_cl_soaring = _param_switch_cloop.get();
+
+    _loiter = _param_loiter.get();
 
     // only update shear heading and height with params, if desired
     if (_switch_origin_hardcoded) {
         _shear_heading = _param_shear_heading.get()/180.f * M_PI_F + M_PI_2_F;
         _shear_h_ref = _param_shear_height.get();
+        _select_loiter_trajectory();
     }
 
 
@@ -287,6 +292,7 @@ FixedwingPositionINDIControl::rc_channels_poll()
 {
     if (_rc_channels_sub.update(&_rc_channels)) {
         // use flaps channel to select manual feedthrough
+        /*
         if (_rc_channels.channels[5]>=0.f){
             _switch_manual = 1;
         }
@@ -294,6 +300,8 @@ FixedwingPositionINDIControl::rc_channels_poll()
             _switch_manual = 0;
             _thrust = _thrust_pos;
         }
+        */
+       _thrust = _thrust_pos; //TODO:remove!!!
     }
 }
 
@@ -392,6 +400,25 @@ FixedwingPositionINDIControl::soaring_controller_status_poll()
 }
 
 void
+FixedwingPositionINDIControl::soaring_estimator_shear_poll()
+{
+    if (!_switch_origin_hardcoded) {
+        if (_soaring_estimator_shear_sub.update(&_soaring_estimator_shear)){
+            // update the shear estimate, only if we are flying in manual feedthrough for safety reasons
+            _shear_v_max = _soaring_estimator_shear.v_max;
+            _shear_alpha = _soaring_estimator_shear.alpha;
+            _shear_h_ref = _soaring_estimator_shear.h_ref;
+            _shear_heading = _soaring_estimator_shear.psi - M_PI_2_F;
+            _soaring_feasible =  _soaring_estimator_shear.soaring_feasible;
+            // the initial speed of the target trajectory can safely be updated during soaring :)
+            _shear_aspd = _soaring_estimator_shear.aspd;
+        }
+        
+        // TODO: include some safety guards for large drifts, e.g. limit the maximum heading shift
+    }
+}
+
+void
 FixedwingPositionINDIControl::_compute_trajectory_transform()
 {
     Eulerf e(0.f, 0.f, _shear_heading);
@@ -407,106 +434,70 @@ FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
     return;
 }
 
-void
-FixedwingPositionINDIControl::soaring_estimator_shear_poll()
-{
-    if (_soaring_estimator_shear_sub.update(&_soaring_estimator_shear)){
-        if (!_switch_origin_hardcoded) {
-            _shear_v_max = _soaring_estimator_shear.v_max;
-            _shear_alpha = _soaring_estimator_shear.alpha;
-            _shear_h_ref = _soaring_estimator_shear.h_ref;
-            _shear_heading = _soaring_estimator_shear.psi;
-        }
-        
-        // TODO: include some safety guards for large drifts, e.g. limit the maximum heading shift
-    }
-}
 
-float
-FixedwingPositionINDIControl::_getClosest(float val1, float val2, float target)
+void 
+FixedwingPositionINDIControl::_reverse(char* str, int len)
 {
-    if (target - val1 >= val2 - target)
-        return val2;
-    else
-        return val1;
-}
-
-float
-FixedwingPositionINDIControl::_findClosest(float arr[], int n, float target)
-{
-    // Corner cases
-    if (target <= arr[0])
-        return arr[0];
-    if (target >= arr[n - 1])
-        return arr[n - 1];
- 
-    // Doing binary search
-    int i = 0, j = n, mid = 0;
+    // copied from: https://www.geeksforgeeks.org/convert-floating-point-number-string/
+    int i = 0, j = len - 1, temp;
     while (i < j) {
-        mid = (i + j) / 2;
- 
-        if ((float)fabs(arr[mid]-target) < (float)0.0001f)
-            return arr[mid];
- 
-        /* If target is less than array element,
-            then search in left */
-        if (target < arr[mid]) {
- 
-            // If target is greater than previous
-            // to mid, return closest of two
-            if (mid > 0 && target > arr[mid - 1])
-                return _getClosest(arr[mid - 1],
-                                  arr[mid], target);
- 
-            /* Repeat for left half */
-            j = mid;
-        }
- 
-        // If target is greater than mid
-        else {
-            if (mid < n - 1 && target < arr[mid + 1])
-                return _getClosest(arr[mid],
-                                  arr[mid + 1], target);
-            // update i
-            i = mid + 1;
-        }
+        temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+        i++;
+        j--;
+    }
+}
+
+int 
+FixedwingPositionINDIControl::_int_to_str(int x, char str[], int d)
+{
+    // copied from: https://www.geeksforgeeks.org/convert-floating-point-number-string/
+    int i = 0;
+    while (x) {
+        str[i++] = (x % 10) + '0';
+        x = x / 10;
     }
  
-    // Only single element left after search
-    return arr[mid];
+    // If number of digits required is more, then
+    // add 0s at the beginning
+    while (i < d)
+        str[i++] = '0';
+ 
+    _reverse(str, i);
+    str[i] = '\0';
+    return i;
 }
 
 void
-FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
+FixedwingPositionINDIControl::_float_to_str(float n, char* res, int afterpoint)
 {
-    /* 
-    We read a trajectory based on initial energy available at the beginning of the trajectory.
-    So the trajectory is selected based on two criteria, first the correct wind shear params (alpha and V_max) and the initial energy (potential + kinetic).
-    
-    The filename structure of the trajectories is the following:
-    trajec_<type>_<V_max>_<alpha>_<energy>_
-    with
-    <type> in {nominal, robust}
-    <V_max> in [08,12]
-    <alpha> in [0.20, 1.00]
-    <energy> in [E_min, E_max]
-    */
-   /*
-    float e = 20.f;//_findClosest(_energy_arr, _gridsize, _airspeed);  // initial energy
-    
-    char file[30] = "trajec_robust";
-    char v_str[6];
-    char a_str[6];
-    char e_str[6];
-    strcat(file,"_");
-    strcat(file,gcvt(_shear_v_max, 2, v_str));
-    strcat(file,"_");
-    strcat(file,gcvt(_shear_alpha, 3, a_str));
-    strcat(file,"_");
-    strcat(file,gcvt(e, 2, e_str));
-    strcat(file,".csv");
-    PX4_INFO("filename: \t%.30s", file);
-    */
+    // copied from: https://www.geeksforgeeks.org/convert-floating-point-number-string/
+    // Extract integer part
+    int ipart = (int)n;
+ 
+    // Extract floating part
+    float fpart = n - (float)ipart;
+ 
+    // convert integer part to string
+    int i = _int_to_str(ipart, res, 0);
+ 
+    // check for display option after point
+    if (afterpoint != 0) {
+        res[i] = '.'; // add dot
+ 
+        // Get the value of fraction part upto given no.
+        // of points after dot. The third parameter
+        // is needed to handle cases like 233.007
+        fpart = fpart * (float)pow(10, afterpoint);
+ 
+        _int_to_str((int)fpart, res + i + 1, afterpoint);
+    }
+}
+
+void
+FixedwingPositionINDIControl::_select_loiter_trajectory()
+{
 
     // select loiter trajectory for loiter test
     char filename[16];
@@ -550,6 +541,43 @@ FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
     */
     
     _read_trajectory_coeffs_csv(filename);
+}
+
+void
+FixedwingPositionINDIControl::_select_soaring_trajectory()
+{
+    /* 
+    We read a trajectory based on initial energy available at the beginning of the trajectory.
+    So the trajectory is selected based on two criteria, first the correct wind shear params (alpha and V_max) and the initial energy (potential + kinetic).
+    
+    The filename structure of the trajectories is the following:
+    trajec_<type>_<V_max>_<alpha>_<energy>_
+    with
+    <type> in {nominal, robust}
+    <V_max> in [08,12]
+    <alpha> in [020, 100]
+    <energy> in [E_min, E_max]
+    */
+
+    char file[40] = "robust/coeffs_robust";
+    char v_str[3];
+    char a_str[3];
+    char e_str[3];
+    // get the correct filename
+    _float_to_str(_shear_v_max, v_str, 0);
+    _float_to_str(_shear_alpha*100.f, a_str, 0);
+    _float_to_str(_shear_aspd, e_str, 0);
+
+    strcat(file,"_");
+    strcat(file,v_str);
+    strcat(file,"_");
+    strcat(file,a_str);
+    strcat(file,"_");
+    strcat(file,e_str);
+    strcat(file,".csv");
+    PX4_INFO("filename: \t%.40s", file);
+    // get the basis coeffs from file
+    _read_trajectory_coeffs_csv(file);
 }
 
 void
@@ -624,41 +652,41 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // go back to safety mode loiter circle
     if(error){
         // 100m radius circle trajec
-        _basis_coeffs_x(0) = -0.000064f;
-        _basis_coeffs_x(1) = -3020.233571f;
-        _basis_coeffs_x(2) = 10609.960177f;
-        _basis_coeffs_x(3) = -17956.458964f;
-        _basis_coeffs_x(4) = 15735.479961f;
-        _basis_coeffs_x(5) = -2399.573434f;
-        _basis_coeffs_x(6) = -11421.854705f;
-        _basis_coeffs_x(7) = 12388.936542f;
-        _basis_coeffs_x(8) = 120.944433f;
-        _basis_coeffs_x(9) = -12530.869640f;
-        _basis_coeffs_x(10) = 11346.431128f;
-        _basis_coeffs_x(11) = 2643.369342f;
-        _basis_coeffs_x(12) = -15999.009519f;
-        _basis_coeffs_x(13) = 18127.094775f;
-        _basis_coeffs_x(14) = -10676.696033f;
-        _basis_coeffs_x(15) = 3032.667571f;
+        _basis_coeffs_x(0) = 0.000038f;
+        _basis_coeffs_x(1) = 1812.140143f;
+        _basis_coeffs_x(2) = -6365.976106f;
+        _basis_coeffs_x(3) = 10773.875378f;
+        _basis_coeffs_x(4) = -9441.287977f;
+        _basis_coeffs_x(5) = 1439.744061f;
+        _basis_coeffs_x(6) = 6853.112823f;
+        _basis_coeffs_x(7) = -7433.361925f;
+        _basis_coeffs_x(8) = -72.566660f;
+        _basis_coeffs_x(9) = 7518.521784f;
+        _basis_coeffs_x(10) = -6807.858677f;
+        _basis_coeffs_x(11) = -1586.021605f;
+        _basis_coeffs_x(12) = 9599.405711f;
+        _basis_coeffs_x(13) = -10876.256865f;
+        _basis_coeffs_x(14) = 6406.017620f;
+        _basis_coeffs_x(15) = -1819.600542f;
 
-        _basis_coeffs_y(0) = -100.005984f;
-        _basis_coeffs_y(1) = -4686.100637f;
-        _basis_coeffs_y(2) = 21963.998713f;
-        _basis_coeffs_y(3) = -50566.542718f;
-        _basis_coeffs_y(4) = 71908.811359f;
-        _basis_coeffs_y(5) = -61683.065460f;
-        _basis_coeffs_y(6) = 15730.546677f;
-        _basis_coeffs_y(7) = 39386.062413f;
-        _basis_coeffs_y(8) = -63952.599923f;
-        _basis_coeffs_y(9) = 39525.510553f;
-        _basis_coeffs_y(10) = 15526.730604f;
-        _basis_coeffs_y(11) = -61505.752706f;
-        _basis_coeffs_y(12) = 71804.582542f;
-        _basis_coeffs_y(13) = -50525.803330f;
-        _basis_coeffs_y(14) = 21954.858741f;
-        _basis_coeffs_y(15) = -4685.311429f;
+        _basis_coeffs_y(0) = -59.999852f;
+        _basis_coeffs_y(1) = -2811.660383f;
+        _basis_coeffs_y(2) = 13178.399227f;
+        _basis_coeffs_y(3) = -30339.925641f;
+        _basis_coeffs_y(4) = 43145.286828f;
+        _basis_coeffs_y(5) = -37009.839292f;
+        _basis_coeffs_y(6) = 9438.328009f;
+        _basis_coeffs_y(7) = 23631.637452f;
+        _basis_coeffs_y(8) = -38371.559953f;
+        _basis_coeffs_y(9) = 23715.306334f;
+        _basis_coeffs_y(10) = 9316.038368f;
+        _basis_coeffs_y(11) = -36903.451639f;
+        _basis_coeffs_y(12) = 43082.749551f;
+        _basis_coeffs_y(13) = -30315.482005f;
+        _basis_coeffs_y(14) = 13172.915247f;
+        _basis_coeffs_y(15) = -2811.186858f;
 
-        _basis_coeffs_z(0) = 100.0f;
+        _basis_coeffs_z(0) = 30.0f;
         _basis_coeffs_z(1) = 0.0f;
         _basis_coeffs_z(2) = 0.0f;
         _basis_coeffs_z(3) = 0.0f;
@@ -741,10 +769,8 @@ FixedwingPositionINDIControl::Run()
         vehicle_angular_acceleration_poll();
         soaring_controller_status_poll();
 
-        // update the shear estimate, only if we are flying in manual feedthrough for safety reasons
-        if (_switch_manual) {
-            soaring_estimator_shear_poll();
-        }
+        // update the shear estimate, only target airspeed is updated in soaring mode
+        soaring_estimator_shear_poll();
 
         // update transform from trajectory frame to ENU frame (soaring frame)
         _compute_trajectory_transform();
@@ -778,11 +804,21 @@ FixedwingPositionINDIControl::Run()
             actuator_controls_poll();
         }
 
+        // =================================
+        // get reference point on trajectory
+        // =================================
+        float t_ref = _get_closest_t(_pos);
+
+        // =================================================================
+        // possibly select a new trajectory, if we are finishing the old one
+        // =================================================================
+        if (!_switch_origin_hardcoded && t_ref>=0.97f && (hrt_absolute_time()-_last_time_trajec)>1000000) {
+            _select_soaring_trajectory();
+            _last_time_trajec = hrt_absolute_time();
+        }
         // ============================
         // compute reference kinematics
         // ============================
-        // get reference values
-        float t_ref = _get_closest_t(_pos);
         // downscale velocity to match current one, 
         // terminal time is determined such that current velocity is met
         Vector3f v_ref_ = _get_velocity_ref(t_ref, 1.0f);
@@ -905,6 +941,15 @@ FixedwingPositionINDIControl::Run()
             _soaring_controller_wind.position[0] = _pos(0);
             _soaring_controller_wind.position[1] = _pos(1);
             _soaring_controller_wind.position[2] = _pos(2);
+            _soaring_controller_wind.airspeed = _airspeed;
+            if (_switch_cl_soaring) {
+                // always update shear params in closed loop soaring mode
+                _soaring_controller_wind.lock_params = true;
+            }
+            else {
+                // only update in manual feedthrough iin open loop soaring
+                _soaring_controller_wind.lock_params = !_switch_manual;
+            }
             Eulerf e(Quatf(_attitude.q));
             float bank = e(0);
             if ((float)fabs(bank)<0.5f) {

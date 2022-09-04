@@ -133,6 +133,8 @@ private:
     // measurement variables
     Vector3f _current_wind = {};
     float _current_height = {};
+    float _current_airspeed = {};
+    bool  _lock_params = {};
 
     float _unit_v;
     float _unit_h;
@@ -145,6 +147,10 @@ private:
     // vectors defining the gridding for trajectory selection: initial velocities, wind speed and shear strength	
 	float _v_max_arr[5] = {8.f,9.f,10.f,11.f,12.f};	
 	float _alpha_arr[9] = {0.2f,0.3f,0.4f,0.5f,0.6f,0.7f,0.8f,0.9f,1.0f};	
+    const static size_t _num_v_max = 5;
+    const static size_t _num_alpha = 9;
+    Matrix<int, _num_v_max, _num_alpha> _MIN_ASPD_MATRIX = {};
+    Matrix<int, _num_v_max, _num_alpha> _MAX_ASPD_MATRIX = {};
 
 };
 

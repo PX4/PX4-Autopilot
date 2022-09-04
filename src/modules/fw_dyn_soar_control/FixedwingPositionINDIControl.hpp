@@ -224,7 +224,11 @@ private:
 		// command filtering
 		(ParamInt<px4::params::DS_SWITCH_FILTER>) _param_switch_filter,
 		// hardcoded trajectory center
-		(ParamInt<px4::params::DS_SWITCH_ORI_HC>) _param_switch_origin_hardcoded
+		(ParamInt<px4::params::DS_SWITCH_ORI_HC>) _param_switch_origin_hardcoded,
+		// manual switch if manual feedthrough is used, REMOVE!!!
+		(ParamInt<px4::params::DS_SWITCH_MANUAL>) _param_switch_manual,
+		// manual switch if manual feedthrough is used, REMOVE!!!
+		(ParamInt<px4::params::DS_SWITCH_CLOOP>) _param_switch_cloop
 
 	)
 
@@ -268,7 +272,8 @@ private:
 
 	// controller methods
 	void _compute_trajectory_transform();						// compute the transform between trajectory frame and ENU frame (soaring frame) based on shear params
-	void _select_trajectory(float initial_energy);				// select the correct trajectory based on available energy
+	void _select_loiter_trajectory();			// select the correct loiter trajectory based on available energy
+	void _select_soaring_trajectory();			// select the correct loiter trajectory based on available energy
 	void _read_trajectory_coeffs_csv(char *filename);				// read in the correct coefficients of the appropriate trajectory
 	void _set_wind_estimate(Vector3f wind);
 	float _get_closest_t(Vector3f pos);				// get the normalized time, at which the reference path is closest to the current position
@@ -288,8 +293,9 @@ private:
 	Vector3f _compute_actuator_deflections(Vector3f ctrl);
 
 	// helper methods
-	float _getClosest(float val1, float val2, float taget);	// get float closest to target
-	float _findClosest(float arr[], int n, float target);	// return element in arr closest to n
+	void _reverse(char* str, int len);						// reverse a string of length 'len'
+	int _int_to_str(int x, char str[], int d);				// convert an integer x into a string of length d
+	void _float_to_str(float n, char* res, int afterpoint);	// convert float to string
 
 
 	// control variables
@@ -349,11 +355,11 @@ private:
 	float _C_D2;
 	float _aoa_offset;
 	float _stall_speed;
-	// trajecotry origin in WGS84
+	// trajectory origin in WGS84
 	float _origin_lat;
 	float _origin_lon;
 	float _origin_alt;
-	// trajecotry origin in current NED local frame
+	// trajectory origin in current NED local frame
 	float _origin_N;
 	float _origin_E;
 	float _origin_D;
@@ -363,19 +369,25 @@ private:
 	float _shear_energy;
 	float _shear_h_ref;
 	float _shear_heading;
+	float _shear_aspd;
 	// loiter circle
 	int _loiter;
 	// thrust
 	float _thrust;
 	float _thrust_pos;
 	// controller mode
-	bool _switch_manual = 1;
+	bool _switch_manual;
+	// soaring mode
+	bool _switch_cl_soaring;
 	// force limit
 	bool _switch_saturation;
 	//
 	bool _switch_filter;
 	//
 	bool _switch_origin_hardcoded;
+	//
+	bool _soaring_feasible;
+
 
 	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
 	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.
@@ -403,6 +415,7 @@ private:
 	Vector3f _f_command {};
 	Vector3f _m_command {};
 	Vector3f _w_err {};
+	hrt_abstime _last_time_trajec{0};
 
 };
 
