@@ -73,7 +73,7 @@
       <motorType>velocity</motorType>
     </plugin>
     <include merge='true'>
-      <uri>model://OakD-Lite</uri>
+      <uri>https://fuel.gazebosim.org/1.0/RudisLaboratories/models/OakD-Lite</uri>
       <pose>.12 .03 .242 0 0 0</pose>
     </include>
     <joint name="CameraJoint" type="fixed">

@@ -28,10 +28,10 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 		echo "INFO  [init] starting ign gazebo"
 
 		if [ -z $HEADLESS ]; then
-			ign gazebo --verbose=4 -r "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
+			ign gazebo --verbose=1 -r "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
 		else
 			# starting ign gazebo headless
-			ign gazebo --verbose=4 -r -s "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
+			ign gazebo --verbose=1 -r -s "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
 		fi
 	else
 		echo "INFO  [init] ign gazebo already running world: $ign_world"
