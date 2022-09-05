@@ -47,7 +47,10 @@ fc_func_ptrs muorb_func_ptrs;
 
 static void test_runner(void *test)
 {
-	uint8_t data[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+	uint8_t data[MUORB_TEST_DATA_LEN];
+ 	for (uint8_t i = 0; i < MUORB_TEST_DATA_LEN; i++) {
+		data[i] = i;
+	};
 
 	HAP_debug("test_runner called", 1, muorb_test_topic_name, 0);
 
@@ -65,7 +68,7 @@ static void test_runner(void *test)
 		break;
 
 	case TOPIC_TEST_TYPE:
-		(void) muorb_func_ptrs.topic_data_func_ptr(muorb_test_topic_name, data, 8);
+		(void) muorb_func_ptrs.topic_data_func_ptr(muorb_test_topic_name, data, MUORB_TEST_DATA_LEN);
 
 	default:
 		break;

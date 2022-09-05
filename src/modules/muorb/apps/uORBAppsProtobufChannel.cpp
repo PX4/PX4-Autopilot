@@ -92,10 +92,13 @@ void uORB::AppsProtobufChannel::UnsubscribeCallback(const char *topic)
 
 bool uORB::AppsProtobufChannel::Test(MUORBTestType test_type)
 {
-	const int TEST_DATA_ARRAY_SIZE = 8;
 	int rc = -1;
 	int timeout = 10;
-	uint8_t test_data[TEST_DATA_ARRAY_SIZE] = {0, 1, 2, 3, 4, 5, 6, 7};
+
+	uint8_t test_data[MUORB_TEST_DATA_LEN];
+ 	for (uint8_t i = 0; i < MUORB_TEST_DATA_LEN; i++) {
+		test_data[i] = i;
+	};
 
 	test_flag = false;
 
@@ -109,7 +112,7 @@ bool uORB::AppsProtobufChannel::Test(MUORBTestType test_type)
 		break;
 
 	case TOPIC_TEST_TYPE:
-		rc = fc_sensor_send_data(muorb_test_topic_name, test_data, TEST_DATA_ARRAY_SIZE);
+		rc = fc_sensor_send_data(muorb_test_topic_name, test_data, MUORB_TEST_DATA_LEN);
 		break;
 
 	case UNSUBSCRIBE_TEST_TYPE:
