@@ -814,6 +814,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					main_ret = TRANSITION_CHANGED;
 
 				} else {
+					if (cmd.from_external && cmd.source_component == 190) { // MAV_COMP_ID_MISSIONPLANNER
+						print_reject_mode(desired_nav_state);
+					}
+
 					main_ret = TRANSITION_DENIED;
 				}
 			}
@@ -2476,11 +2480,13 @@ Commander::print_reject_mode(uint8_t nav_state)
 
 		mavlink_log_critical(&_mavlink_log_pub, "Switching to %s is currently not available\t",
 				     mode_util::nav_state_names[nav_state]);
+		px4_custom_mode custom_mode = get_px4_custom_mode(nav_state);
+		uint32_t mavlink_mode = custom_mode.data;
 		/* EVENT
-		 * @description Check for a valid position estimate
+		 * @type append_health_and_arming_messages
 		 */
-		events::send<events::px4::enums::navigation_mode_t>(events::ID("commander_modeswitch_not_avail"), {events::Log::Critical, events::LogInternal::Info},
-				"Switching to mode '{1}' is currently not possible", mode_util::navigation_mode(nav_state));
+		events::send<uint32_t, events::px4::enums::navigation_mode_t>(events::ID("commander_modeswitch_not_avail"), {events::Log::Critical, events::LogInternal::Info},
+				"Switching to mode '{2}' is currently not possible", mavlink_mode, mode_util::navigation_mode(nav_state));
 
 		/* only buzz if armed, because else we're driving people nuts indoors
 		they really need to look at the leds as well. */
