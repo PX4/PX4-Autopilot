@@ -54,7 +54,7 @@
 
 #include <ignition/msgs.hh>
 #include <ignition/transport.hh>
-
+#include <ignition/math.hh>
 #include <ignition/msgs/imu.pb.h>
 
 using namespace time_literals;
@@ -62,7 +62,7 @@ using namespace time_literals;
 class SimulatorIgnitionBridge : public ModuleBase<SimulatorIgnitionBridge>, public OutputModuleInterface
 {
 public:
-	SimulatorIgnitionBridge(const char *world, const char *model);
+	SimulatorIgnitionBridge(const char *world, const char *model, const char *pose_str);
 	~SimulatorIgnitionBridge() override;
 
 	/** @see ModuleBase */
@@ -118,6 +118,7 @@ private:
 
 	const std::string _world_name;
 	const std::string _model_name;
+	const std::string _model_pose;
 
 	MixingOutput _mixing_output{"SIM_IGN", 8, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
