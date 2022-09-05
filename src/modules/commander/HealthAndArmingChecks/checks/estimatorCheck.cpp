@@ -119,11 +119,11 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	// set mode requirements
-	const bool condition_gps_position_was_valid = reporter.failsafeFlags().gps_position_valid;
+	const bool condition_gps_position_was_valid = !reporter.failsafeFlags().gps_position_invalid;
 	setModeRequirementFlags(context, pre_flt_fail_innov_heading, pre_flt_fail_innov_vel_horiz, lpos, vehicle_gps_position,
 				reporter.failsafeFlags());
 
-	if (condition_gps_position_was_valid && !reporter.failsafeFlags().gps_position_valid) {
+	if (condition_gps_position_was_valid && reporter.failsafeFlags().gps_position_invalid) {
 		gpsNoLongerValid(context, reporter);
 	}
 }
@@ -658,7 +658,7 @@ void EstimatorChecks::gpsNoLongerValid(const Context &context, Report &reporter)
 	PX4_DEBUG("GPS no longer valid");
 
 	// report GPS failure if armed and the global position estimate is still valid
-	if (context.isArmed() && reporter.failsafeFlags().global_position_valid) {
+	if (context.isArmed() && !reporter.failsafeFlags().global_position_invalid) {
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_warning(reporter.mavlink_log_pub(), "GPS no longer valid\t");
 		}
@@ -706,26 +706,26 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		}
 	}
 
-	failsafe_flags.global_position_valid =
-		checkPosVelValidity(now, xy_valid, gpos.eph, _param_com_pos_fs_eph.get(), gpos.timestamp,
-				    _last_gpos_fail_time_us, failsafe_flags.global_position_valid);
+	failsafe_flags.global_position_invalid =
+		!checkPosVelValidity(now, xy_valid, gpos.eph, _param_com_pos_fs_eph.get(), gpos.timestamp,
+				     _last_gpos_fail_time_us, !failsafe_flags.global_position_invalid);
 
-	failsafe_flags.local_position_valid =
-		checkPosVelValidity(now, xy_valid, lpos.eph, _param_com_pos_fs_eph.get(), lpos.timestamp,
-				    _last_lpos_fail_time_us, failsafe_flags.local_position_valid);
+	failsafe_flags.local_position_invalid =
+		!checkPosVelValidity(now, xy_valid, lpos.eph, _param_com_pos_fs_eph.get(), lpos.timestamp,
+				     _last_lpos_fail_time_us, !failsafe_flags.local_position_invalid);
 
-	failsafe_flags.local_position_valid_relaxed =
-		checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold_relaxed, lpos.timestamp,
-				    _last_lpos_relaxed_fail_time_us, failsafe_flags.local_position_valid);
+	failsafe_flags.local_position_invalid_relaxed =
+		!checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold_relaxed, lpos.timestamp,
+				     _last_lpos_relaxed_fail_time_us, !failsafe_flags.local_position_invalid_relaxed);
 
-	failsafe_flags.local_velocity_valid =
-		checkPosVelValidity(now, v_xy_valid, lpos.evh, _param_com_vel_fs_evh.get(), lpos.timestamp,
-				    _last_lvel_fail_time_us, failsafe_flags.local_velocity_valid);
+	failsafe_flags.local_velocity_invalid =
+		!checkPosVelValidity(now, v_xy_valid, lpos.evh, _param_com_vel_fs_evh.get(), lpos.timestamp,
+				     _last_lvel_fail_time_us, !failsafe_flags.local_velocity_invalid);
 
 
 	// altitude
-	failsafe_flags.local_altitude_valid = lpos.z_valid
-					      && (now - lpos.timestamp < (_param_com_pos_fs_delay.get() * 1_s));
+	failsafe_flags.local_altitude_invalid = !lpos.z_valid
+						|| (now - lpos.timestamp > (_param_com_pos_fs_delay.get() * 1_s));
 
 
 	// attitude
@@ -740,11 +740,11 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 							&& (fabsf(q(3)) <= 1.f + eps);
 		const bool norm_in_tolerance = fabsf(1.f - q.norm()) <= eps;
 
-		failsafe_flags.attitude_valid = hrt_absolute_time() - attitude.timestamp < 1_s && norm_in_tolerance
-						&& no_element_larger_than_one;
+		failsafe_flags.attitude_invalid = hrt_absolute_time() - attitude.timestamp > 1_s || !norm_in_tolerance
+						  || !no_element_larger_than_one;
 
 	} else {
-		failsafe_flags.attitude_valid = false;
+		failsafe_flags.attitude_invalid = true;
 	}
 
 	// angular velocity
@@ -754,13 +754,13 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 			&& hrt_absolute_time() - angular_velocity.timestamp < 1_s;
 	const bool condition_angular_velocity_finite = PX4_ISFINITE(angular_velocity.xyz[0])
 			&& PX4_ISFINITE(angular_velocity.xyz[1]) && PX4_ISFINITE(angular_velocity.xyz[2]);
-	const bool angular_velocity_valid = condition_angular_velocity_time_valid
-					    && condition_angular_velocity_finite;
+	const bool angular_velocity_invalid = !condition_angular_velocity_time_valid
+					      || !condition_angular_velocity_finite;
 
-	if (failsafe_flags.angular_velocity_valid && !angular_velocity_valid) {
+	if (!failsafe_flags.angular_velocity_invalid && angular_velocity_invalid) {
 		const char err_str[] {"angular velocity no longer valid"};
 
-		if (!condition_angular_velocity_time_valid) {
+		if (!condition_angular_velocity_time_valid && angular_velocity.timestamp != 0) {
 			PX4_ERR("%s (timeout)", err_str);
 
 		} else if (!condition_angular_velocity_finite) {
@@ -768,7 +768,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		}
 	}
 
-	failsafe_flags.angular_velocity_valid = angular_velocity_valid;
+	failsafe_flags.angular_velocity_invalid = angular_velocity_invalid;
 
 
 	// gps
@@ -782,10 +782,10 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		bool no_jamming = (vehicle_gps_position.jamming_state != sensor_gps_s::JAMMING_STATE_CRITICAL);
 
 		_vehicle_gps_position_valid.set_state_and_update(time && fix && eph && epv && evh && no_jamming, now);
-		failsafe_flags.gps_position_valid = _vehicle_gps_position_valid.get_state();
+		failsafe_flags.gps_position_invalid = !_vehicle_gps_position_valid.get_state();
 
 	} else {
-		failsafe_flags.gps_position_valid = false;
+		failsafe_flags.gps_position_invalid = true;
 	}
 }
 

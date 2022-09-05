@@ -45,7 +45,7 @@
 #include <matrix/matrix/math.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_status_flags.h>
 
 class Sticks : public ModuleParams
 {
@@ -92,7 +92,7 @@ private:
 	matrix::Vector<float, 4> _positions_expo; ///< modified manual sticks using expo function
 
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_status_flags_sub{ORB_ID(vehicle_status_flags)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_HOLD_DZ>) _param_mpc_hold_dz,

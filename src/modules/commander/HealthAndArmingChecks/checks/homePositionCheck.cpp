@@ -38,10 +38,10 @@ void HomePositionChecks::checkAndReport(const Context &context, Report &reporter
 	home_position_s home_position;
 
 	if (_home_position_sub.copy(&home_position)) {
-		reporter.failsafeFlags().home_position_valid = home_position.valid_alt && home_position.valid_hpos;
+		reporter.failsafeFlags().home_position_invalid = !home_position.valid_alt || !home_position.valid_hpos;
 
 	} else {
-		reporter.failsafeFlags().home_position_valid = false;
+		reporter.failsafeFlags().home_position_invalid = true;
 	}
 
 	// No need to report, as it's a mode requirement

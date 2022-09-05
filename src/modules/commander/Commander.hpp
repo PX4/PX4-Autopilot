@@ -141,8 +141,6 @@ private:
 
 	void executeActionRequest(const action_request_s &action_request);
 
-	void offboard_control_update();
-
 	void print_reject_mode(uint8_t nav_state);
 
 	void update_control_mode();
@@ -188,9 +186,6 @@ private:
 		(ParamInt<px4::params::COM_FLT_PROFILE>) _param_com_flt_profile,
 
 		(ParamFloat<px4::params::COM_OBC_LOSS_T>) _param_com_obc_loss_t,
-
-		// Offboard
-		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
 
 		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode,
 		(ParamBool<px4::params::COM_FORCE_SAFETY>) _param_com_force_safety,
@@ -244,7 +239,6 @@ private:
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	Hysteresis	_auto_disarm_landed{false};
 	Hysteresis	_auto_disarm_killed{false};
-	Hysteresis	_offboard_available{false};
 
 	hrt_abstime	_last_print_mode_reject_time{0};	///< To remember when last notification was sent
 	bool            _mode_switch_mapped{false};

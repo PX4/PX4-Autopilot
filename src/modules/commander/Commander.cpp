@@ -292,11 +292,10 @@ int Commander::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[0], "check")) {
-		uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_RUN_PREARM_CHECKS);
 
-		uORB::SubscriptionData<vehicle_status_flags_s> vehicle_status_flags_sub{ORB_ID(vehicle_status_flags)};
-		PX4_INFO("Preflight check: %s", vehicle_status_flags_sub.get().pre_flight_checks_pass ? "OK" : "FAILED");
+		uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
+		PX4_INFO("Preflight check: %s", vehicle_status_sub.get().pre_flight_checks_pass ? "OK" : "FAILED");
 
 		return 0;
 	}
@@ -656,8 +655,6 @@ Commander::Commander() :
 
 	/* mark all signals lost as long as they haven't been found */
 	_vehicle_status.data_link_lost = true;
-
-	_vehicle_status_flags.offboard_control_signal_lost = true;
 
 	_vehicle_status.power_input_valid = true;
 
@@ -1051,7 +1048,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 
 			// check if current mission and first item are valid
-			if (_vehicle_status.auto_mission_available) {
+			if (!_vehicle_status_flags.auto_mission_missing) {
 
 				// requested first mission item valid
 				if (PX4_ISFINITE(cmd.param1) && (cmd.param1 >= -1) && (cmd.param1 < _mission_result_sub.get().seq_total)) {
@@ -1205,7 +1202,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				if ((int)(cmd.param1) == 1) {
 					/* gyro calibration */
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_vehicle_status_flags.calibration_enabled = true;
+					_vehicle_status.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::GyroCalibration);
 
 				} else if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||
@@ -1217,20 +1214,20 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				} else if ((int)(cmd.param2) == 1) {
 					/* magnetometer calibration */
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_vehicle_status_flags.calibration_enabled = true;
+					_vehicle_status.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::MagCalibration);
 
 				} else if ((int)(cmd.param3) == 1) {
 					/* baro calibration */
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_vehicle_status_flags.calibration_enabled = true;
+					_vehicle_status.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::BaroCalibration);
 
 				} else if ((int)(cmd.param4) == 1) {
 					/* RC calibration */
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					/* disable RC control input completely */
-					_vehicle_status_flags.rc_calibration_in_progress = true;
+					_vehicle_status.rc_calibration_in_progress = true;
 					mavlink_log_info(&_mavlink_log_pub, "Calibration: Disabling RC input\t");
 					events::send(events::ID("commander_calib_rc_off"), events::Log::Info,
 						     "Calibration: Disabling RC input");
@@ -1238,32 +1235,32 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				} else if ((int)(cmd.param4) == 2) {
 					/* RC trim calibration */
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_vehicle_status_flags.calibration_enabled = true;
+					_vehicle_status.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::RCTrimCalibration);
 
 				} else if ((int)(cmd.param5) == 1) {
 					/* accelerometer calibration */
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_vehicle_status_flags.calibration_enabled = true;
+					_vehicle_status.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::AccelCalibration);
 
 				} else if ((int)(cmd.param5) == 2) {
 					// board offset calibration
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_vehicle_status_flags.calibration_enabled = true;
+					_vehicle_status.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::LevelCalibration);
 
 				} else if ((int)(cmd.param5) == 4) {
 					// accelerometer quick calibration
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_vehicle_status_flags.calibration_enabled = true;
+					_vehicle_status.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::AccelCalibrationQuick);
 
 				} else if ((int)(cmd.param6) == 1 || (int)(cmd.param6) == 2) {
 					// TODO: param6 == 1 is deprecated, but we still accept it for a while (feb 2017)
 					/* airspeed calibration */
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_vehicle_status_flags.calibration_enabled = true;
+					_vehicle_status.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::AirspeedCalibration);
 
 				} else if ((int)(cmd.param7) == 1) {
@@ -1277,7 +1274,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 								     "ESCs calibration denied");
 
 						} else {
-							_vehicle_status_flags.calibration_enabled = true;
+							_vehicle_status.calibration_enabled = true;
 							_actuator_armed.in_esc_calibration_mode = true;
 							_worker_thread.startTask(WorkerThread::Request::ESCCalibration);
 						}
@@ -1288,9 +1285,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if ((int)(cmd.param4) == 0) {
 					/* RC calibration ended - have we been in one worth confirming? */
-					if (_vehicle_status_flags.rc_calibration_in_progress) {
+					if (_vehicle_status.rc_calibration_in_progress) {
 						/* enable RC control input */
-						_vehicle_status_flags.rc_calibration_in_progress = false;
+						_vehicle_status.rc_calibration_in_progress = false;
 						mavlink_log_info(&_mavlink_log_pub, "Calibration: Restoring RC input\t");
 						events::send(events::ID("commander_calib_rc_on"), events::Log::Info,
 							     "Calibration: Restoring RC input");
@@ -1333,7 +1330,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					}
 				}
 
-				_vehicle_status_flags.calibration_enabled = true;
+				_vehicle_status.calibration_enabled = true;
 				_worker_thread.setMagQuickData(heading_radians, latitude, longitude);
 				_worker_thread.startTask(WorkerThread::Request::MagCalibrationQuick);
 			}
@@ -1545,7 +1542,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 	arm_disarm_reason_t arm_disarm_reason{};
 
 	// Silently ignore RC actions during RC calibration
-	if (_vehicle_status_flags.rc_calibration_in_progress
+	if (_vehicle_status.rc_calibration_in_progress
 	    && (action_request.source == action_request_s::SOURCE_RC_STICK_GESTURE
 		|| action_request.source == action_request_s::SOURCE_RC_SWITCH
 		|| action_request.source == action_request_s::SOURCE_RC_BUTTON
@@ -1645,7 +1642,6 @@ void Commander::updateParameters()
 	_vehicle_status.avoidance_system_required = _param_com_obs_avoid.get();
 
 	_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
-	_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1_s);
 
 	const bool is_rotary = is_rotary_wing(_vehicle_status) || (is_vtol(_vehicle_status)
 			       && _vtol_vehicle_status.vehicle_vtol_state != vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
@@ -1734,8 +1730,6 @@ Commander::run()
 
 		handlePowerButtonState();
 
-		offboard_control_update();
-
 		systemPowerUpdate();
 
 		landDetectorUpdate();
@@ -1751,7 +1745,7 @@ Commander::run()
 		battery_status_check();
 
 		/* If in INIT state, try to proceed to STANDBY state */
-		if (!_vehicle_status_flags.calibration_enabled && _arm_state_machine.isInit()) {
+		if (!_vehicle_status.calibration_enabled && _arm_state_machine.isInit()) {
 
 			_arm_state_machine.arming_state_transition(_vehicle_status,
 					vehicle_status_s::ARMING_STATE_STANDBY, _actuator_armed, _health_and_arming_checks,
@@ -1834,11 +1828,10 @@ Commander::run()
 		    || !(_actuator_armed == actuator_armed_prev)) {
 
 			// Evaluate current prearm status (skip during arm <-> disarm transitions as checks are run there already)
-			if (_actuator_armed.armed == actuator_armed_prev.armed && !_vehicle_status_flags.calibration_enabled) {
+			if (_actuator_armed.armed == actuator_armed_prev.armed && !_vehicle_status.calibration_enabled) {
 				perf_begin(_preflight_check_perf);
 				_health_and_arming_checks.update();
-				_vehicle_status_flags.pre_flight_checks_pass = _health_and_arming_checks.canArm(
-							_vehicle_status.nav_state);
+				_vehicle_status.pre_flight_checks_pass = _health_and_arming_checks.canArm(_vehicle_status.nav_state);
 				perf_end(_preflight_check_perf);
 
 				check_and_inform_ready_for_takeoff();
@@ -1918,14 +1911,14 @@ void Commander::checkForMissionUpdate()
 		const bool mission_result_ok = (mission_result.timestamp > _boot_timestamp)
 					       && (mission_result.instance_count > 0);
 
-		_vehicle_status.auto_mission_available = mission_result_ok && mission_result.valid;
+		bool auto_mission_available = mission_result_ok && mission_result.valid;
 
 		if (mission_result_ok) {
 			/* Only evaluate mission state if home is set */
-			if (_vehicle_status_flags.home_position_valid &&
+			if (!_vehicle_status_flags.home_position_invalid &&
 			    (prev_mission_instance_count != mission_result.instance_count)) {
 
-				if (!_vehicle_status.auto_mission_available) {
+				if (!auto_mission_available) {
 					/* the mission is invalid */
 					tune_mission_fail(true);
 
@@ -1947,7 +1940,7 @@ void Commander::checkForMissionUpdate()
 		    && (mission_result.timestamp >= _vehicle_status.nav_state_timestamp)
 		    && mission_result.finished) {
 
-			if ((_param_takeoff_finished_action.get() == 1) && _vehicle_status.auto_mission_available) {
+			if ((_param_takeoff_finished_action.get() == 1) && auto_mission_available) {
 				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 
 			} else {
@@ -2168,8 +2161,8 @@ void Commander::checkWorkerThread()
 		int ret = _worker_thread.getResultAndReset();
 		_actuator_armed.in_esc_calibration_mode = false;
 
-		if (_vehicle_status_flags.calibration_enabled) { // did we do a calibration?
-			_vehicle_status_flags.calibration_enabled = false;
+		if (_vehicle_status.calibration_enabled) { // did we do a calibration?
+			_vehicle_status.calibration_enabled = false;
 
 			if (ret == 0) {
 				tune_positive(true);
@@ -2368,7 +2361,7 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			led_mode = led_control_s::MODE_ON;
 			set_normal_color = true;
 
-		} else if (!_vehicle_status_flags.pre_flight_checks_pass) {
+		} else if (!_vehicle_status.pre_flight_checks_pass) {
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_RED;
 
@@ -2398,7 +2391,7 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 				led_color = led_control_s::COLOR_RED;
 
 			} else {
-				if (_vehicle_status_flags.home_position_valid && _vehicle_status_flags.global_position_valid) {
+				if (!_vehicle_status_flags.home_position_invalid && !_vehicle_status_flags.global_position_invalid) {
 					led_color = led_control_s::COLOR_GREEN;
 
 				} else {
@@ -2469,6 +2462,7 @@ void
 Commander::update_control_mode()
 {
 	_vehicle_control_mode = {};
+	_offboard_control_mode_sub.update();
 	mode_util::getVehicleControlMode(_arm_state_machine.isArmed(), _vehicle_status.nav_state,
 					 _vehicle_status.vehicle_type, _offboard_control_mode_sub.get(), _vehicle_control_mode);
 	_vehicle_control_mode.timestamp = hrt_absolute_time();
@@ -2811,54 +2805,6 @@ void Commander::manual_control_check()
 				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_POSCTL, false, true);
 			}
 		}
-	}
-}
-
-void
-Commander::offboard_control_update()
-{
-	bool offboard_available = false;
-
-	if (_offboard_control_mode_sub.updated()) {
-		const offboard_control_mode_s old = _offboard_control_mode_sub.get();
-
-		if (_offboard_control_mode_sub.update()) {
-			const offboard_control_mode_s &ocm = _offboard_control_mode_sub.get();
-
-			if (old.position != ocm.position ||
-			    old.velocity != ocm.velocity ||
-			    old.acceleration != ocm.acceleration ||
-			    old.attitude != ocm.attitude ||
-			    old.body_rate != ocm.body_rate ||
-			    old.actuator != ocm.actuator) {
-
-				_status_changed = true;
-			}
-
-			if (ocm.position || ocm.velocity || ocm.acceleration || ocm.attitude || ocm.body_rate || ocm.actuator) {
-				offboard_available = true;
-			}
-		}
-	}
-
-	if (_offboard_control_mode_sub.get().position && !_vehicle_status_flags.local_position_valid) {
-		offboard_available = false;
-
-	} else if (_offboard_control_mode_sub.get().velocity && !_vehicle_status_flags.local_velocity_valid) {
-		offboard_available = false;
-
-	} else if (_offboard_control_mode_sub.get().acceleration && !_vehicle_status_flags.local_velocity_valid) {
-		// OFFBOARD acceleration handled by position controller
-		offboard_available = false;
-	}
-
-	_offboard_available.set_state_and_update(offboard_available, hrt_absolute_time());
-
-	const bool offboard_lost = !_offboard_available.get_state();
-
-	if (_vehicle_status_flags.offboard_control_signal_lost != offboard_lost) {
-		_vehicle_status_flags.offboard_control_signal_lost = offboard_lost;
-		_status_changed = true;
 	}
 }
 

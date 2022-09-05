@@ -612,14 +612,14 @@ bool FailsafeBase::modeCanRun(const vehicle_status_flags_s &status_flags, uint8_
 {
 	uint32_t mode_mask = 1u << mode;
 	return
-		(status_flags.angular_velocity_valid || ((status_flags.mode_req_angular_velocity & mode_mask) == 0)) &&
-		(status_flags.attitude_valid || ((status_flags.mode_req_attitude & mode_mask) == 0)) &&
-		(status_flags.local_position_valid || ((status_flags.mode_req_local_position & mode_mask) == 0)) &&
-		(status_flags.local_position_valid_relaxed || ((status_flags.mode_req_local_position_relaxed & mode_mask) == 0)) &&
-		(status_flags.global_position_valid || ((status_flags.mode_req_global_position & mode_mask) == 0)) &&
-		(status_flags.local_altitude_valid || ((status_flags.mode_req_local_alt & mode_mask) == 0)) &&
-		(status_flags.auto_mission_available || ((status_flags.mode_req_mission & mode_mask) == 0)) &&
+		(!status_flags.angular_velocity_invalid || ((status_flags.mode_req_angular_velocity & mode_mask) == 0)) &&
+		(!status_flags.attitude_invalid || ((status_flags.mode_req_attitude & mode_mask) == 0)) &&
+		(!status_flags.local_position_invalid || ((status_flags.mode_req_local_position & mode_mask) == 0)) &&
+		(!status_flags.local_position_invalid_relaxed || ((status_flags.mode_req_local_position_relaxed & mode_mask) == 0)) &&
+		(!status_flags.global_position_invalid || ((status_flags.mode_req_global_position & mode_mask) == 0)) &&
+		(!status_flags.local_altitude_invalid || ((status_flags.mode_req_local_alt & mode_mask) == 0)) &&
+		(!status_flags.auto_mission_missing || ((status_flags.mode_req_mission & mode_mask) == 0)) &&
 		(!status_flags.offboard_control_signal_lost || ((status_flags.mode_req_offboard_signal & mode_mask) == 0)) &&
-		(status_flags.home_position_valid || ((status_flags.mode_req_home_position & mode_mask) == 0)) &&
+		(!status_flags.home_position_invalid || ((status_flags.mode_req_home_position & mode_mask) == 0)) &&
 		((status_flags.mode_req_other & mode_mask) == 0);
 }

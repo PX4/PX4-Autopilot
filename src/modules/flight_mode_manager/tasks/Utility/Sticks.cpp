@@ -72,10 +72,10 @@ bool Sticks::checkAndUpdateStickInputs()
 		_input_available = valid_sticks;
 
 	} else {
-		vehicle_status_s vehicle_status;
+		vehicle_status_flags_s vehicle_status_flags;
 
-		if (_vehicle_status_sub.update(&vehicle_status)) {
-			if (vehicle_status.rc_signal_lost) {
+		if (_vehicle_status_flags_sub.update(&vehicle_status_flags)) {
+			if (vehicle_status_flags.rc_signal_lost) {
 				_input_available = false;
 			}
 		}
