@@ -36,6 +36,7 @@
 
 #include <stdint.h>
 #include <string>
+#include "MUORBTest.hpp"
 #include <px4_platform_common/log.h>
 
 namespace uORB
@@ -76,6 +77,10 @@ private: // data members
 private://class members.
 	/// constructor.
 	AppsProtobufChannel() {};
+
+	bool Test(MUORBTestType test_type);
+
+	static bool test_flag;
 
 	static void ReceiveCallback(const char *topic,
 				    const uint8_t *data,

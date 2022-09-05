@@ -36,7 +36,10 @@ px4_add_module(
 	MAIN muorb
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
+	INCLUDES
+		../test
 	SRCS
 		uORBAppsProtobufChannel.cpp
 		muorb_main.cpp
+		../test/MUORBTest.cpp
 	)
