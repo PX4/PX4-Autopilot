@@ -182,6 +182,21 @@ PARAM_DEFINE_FLOAT(DS_C_D1, 0.3783f);
 PARAM_DEFINE_FLOAT(DS_C_D2, 1.984f);
 
 /**
+ * estimated sideslip sensitivity coefficients used for wind estimation
+ * 
+ * Used as F_y = 0.5 * DS_RHO * ASPD^2 * DS_C_B1,
+ * where alpha is the angle of attack.
+ * 
+ * @unit 
+ * @min -100
+ * @max -0.01
+ * @decimal 4
+ * @increment 0.0001
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(DS_C_B1, -3.32f);
+
+/**
  * offset angle between body frame (Pixhawk) and the wing chord
  * 
  * Used to compute the AoA
@@ -329,7 +344,7 @@ PARAM_DEFINE_FLOAT(DS_LIN_FF_Z, 0.5f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ROT_K_ROLL, 10.0f);
+PARAM_DEFINE_FLOAT(DS_ROT_K_ROLL, 30.0f);
 
 /**
  * control gain of attitude PD-controller (body pitch-direction)
@@ -341,7 +356,7 @@ PARAM_DEFINE_FLOAT(DS_ROT_K_ROLL, 10.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ROT_K_PITCH, 10.0f);
+PARAM_DEFINE_FLOAT(DS_ROT_K_PITCH, 30.0f);
 
 /**
  * rudder turn coordination FF-gain

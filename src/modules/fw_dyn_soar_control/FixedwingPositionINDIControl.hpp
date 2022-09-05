@@ -185,6 +185,7 @@ private:
 		(ParamFloat<px4::params::DS_C_D0>) _param_fw_c_d0,
 		(ParamFloat<px4::params::DS_C_D1>) _param_fw_c_d1,
 		(ParamFloat<px4::params::DS_C_D2>) _param_fw_c_d2,
+		(ParamFloat<px4::params::DS_C_B1>) _param_fw_c_b1,
 		(ParamFloat<px4::params::DS_AOA_OFFSET>) _param_aoa_offset,
 		(ParamFloat<px4::params::DS_STALL_SPEED>) _param_stall_speed,
 		// position PD control params
@@ -277,6 +278,7 @@ private:
 	void _read_trajectory_coeffs_csv(char *filename);				// read in the correct coefficients of the appropriate trajectory
 	void _set_wind_estimate(Vector3f wind);
 	float _get_closest_t(Vector3f pos);				// get the normalized time, at which the reference path is closest to the current position
+	Vector3f _compute_wind_estimate();
 	Vector<float, _num_basis_funs> _get_basis_funs(float t=0);			// compute the vector of basis functions at normalized time t in [0,1]
 	Vector<float, _num_basis_funs> _get_d_dt_basis_funs(float t=0);	// compute the vector of basis function gradients at normalized time t in [0,1]
 	Vector<float, _num_basis_funs> _get_d2_dt2_basis_funs(float t=0);	// compute the vector of basis function curvatures at normalized time t in [0,1]
@@ -353,6 +355,7 @@ private:
 	float _C_D0;
 	float _C_D1;
 	float _C_D2;
+	float _C_B1;
 	float _aoa_offset;
 	float _stall_speed;
 	// trajectory origin in WGS84
@@ -375,6 +378,9 @@ private:
 	// thrust
 	float _thrust;
 	float _thrust_pos;
+	// ==================
+	// controler switches
+	// ==================
 	// controller mode
 	bool _switch_manual;
 	// soaring mode
@@ -383,7 +389,7 @@ private:
 	bool _switch_saturation;
 	//
 	bool _switch_filter;
-	//
+	// use shear height from estimator
 	bool _switch_origin_hardcoded;
 	//
 	bool _soaring_feasible;

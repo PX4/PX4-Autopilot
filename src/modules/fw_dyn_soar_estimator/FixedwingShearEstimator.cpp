@@ -362,9 +362,6 @@ FixedwingShearEstimator::perform_posterior_update(float height, Vector3f wind)
         wind_horizontal(0) = _current_wind(0);
         wind_horizontal(1) = _current_wind(1);
         identity_1.setIdentity();
-        //z_expected_horizontal.print();
-        //wind_horizontal.print();
-        //(_K_horizontal*(wind_horizontal - z_expected_horizontal)).print();
         _X_posterior_horizontal = _X_prior_horizontal + _K_horizontal*(wind_horizontal - z_expected_horizontal);
         _P_posterior_horizontal = (identity_1 - _K_horizontal*_H_horizontal)*_P_prior_horizontal;
 
@@ -485,8 +482,6 @@ FixedwingShearEstimator::Run()
             // only update airspeed for trajectory selection
             _soaring_estimator_shear.aspd = aspd;
         }
-        
-
 
         // publish shear params
         // ========================================
@@ -523,8 +518,6 @@ bool FixedwingShearEstimator::check_feasibility()
     float shear_x = _X_posterior_horizontal(0) - _X_posterior_horizontal(2);
     float shear_y = _X_posterior_horizontal(1) - _X_posterior_horizontal(3);
     float shear_strength = _X_posterior_horizontal(5);
-    //float heading = atan2f(shear_x, shear_y);
-    //float heading_stdev = 0.f;
 
     // require shear strength above 8 m/s
     float shear = sqrtf(powf(shear_x,2) + powf(shear_y,2));

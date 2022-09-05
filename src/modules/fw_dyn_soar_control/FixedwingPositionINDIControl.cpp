@@ -146,6 +146,7 @@ FixedwingPositionINDIControl::parameters_update()
     _C_D0 = _param_fw_c_d0.get();
     _C_D1 = _param_fw_c_d1.get();
     _C_D2 = _param_fw_c_d2.get();
+    _C_B1 = _param_fw_c_b1.get();
     _aoa_offset = _param_aoa_offset.get();
     _stall_speed = _param_stall_speed.get();
 
@@ -314,9 +315,6 @@ FixedwingPositionINDIControl::vehicle_attitude_poll()
         // get rotation from FRD to ENU frame (change of basis)
         Dcmf R_enu_frd(_R_ned_to_enu*R_ned_frd);
 		_att = Quatf(R_enu_frd);
-        //Eulerf e(R_ned_frd);
-        //PX4_INFO("attitude euler angles:\t%.4f\t%.4f\t%.4f", (double)e(0),(double)e(1),(double)e(2));
-        //PX4_INFO("attitude quaternion:\t%.4f\t%.4f\t%.4f\t%.4f", (double)_att(0),(double)_att(1),(double)_att(2),(double)_att(3));
     }
     if(hrt_absolute_time()-_attitude.timestamp > 20_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
         PX4_ERR("attitude sample is too old");
@@ -328,7 +326,6 @@ FixedwingPositionINDIControl::vehicle_angular_velocity_poll()
 {   //
     // no need to check if it was updated as the main loop is fired based on an update...
     //
-    //PX4_INFO("angular velocity:\t%.4f\t%.4f\t%.4f", (double)_omega(0),(double)_omega(1),(double)_omega(2));
     _omega = Vector3f(_angular_vel.xyz);
     if(hrt_absolute_time()-_angular_vel.timestamp > 20_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
         PX4_ERR("angular velocity sample is too old");
@@ -340,7 +337,6 @@ FixedwingPositionINDIControl::vehicle_angular_acceleration_poll()
 {
 	if (_vehicle_angular_acceleration_sub.update(&_angular_accel)) {
 		_alpha = Vector3f(_angular_accel.xyz);
-        //PX4_INFO("angular accel:\t%.4f\t%.4f\t%.4f", (double)_alpha(0),(double)_alpha(1),(double)_alpha(2));
     }
     if(hrt_absolute_time()-_angular_accel.timestamp > 20_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
         PX4_ERR("angular acceleration sample is too old");
@@ -354,13 +350,9 @@ FixedwingPositionINDIControl::vehicle_local_position_poll()
     if (_vehicle_local_position_sub.update(&_local_pos)){
 		_pos = _R_ned_to_enu*Vector3f{_local_pos.x,_local_pos.y,_local_pos.z};
         _vel = _R_ned_to_enu*Vector3f{_local_pos.vx,_local_pos.vy,_local_pos.vz};
-        //_acc = _R_ned_to_enu*Vector3f{_local_pos.ax,_local_pos.ay,_local_pos.az}; // take accel from faster message
+        // take accel from faster message, since 50Hz is too slow...
         // transform to soaring frame
         _pos = _pos - _R_ned_to_enu * Vector3f{_origin_N, _origin_E, _origin_D};
-
-        //PX4_INFO("local position:\t%.4f\t%.4f\t%.4f", (double)_pos(0),(double)_pos(1),(double)_pos(2));
-        //PX4_INFO("local velocity:\t%.4f\t%.4f\t%.4f", (double)_vel(0),(double)_vel(1),(double)_vel(2));
-        //PX4_INFO("local acceleration:\t%.4f\t%.4f\t%.4f", (double)_acc(0),(double)_acc(1),(double)_acc(2));
     }
     if(hrt_absolute_time()-_local_pos.timestamp > 50_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
         PX4_ERR("local position sample is too old");
@@ -427,9 +419,47 @@ FixedwingPositionINDIControl::_compute_trajectory_transform()
     _vec_enu_to_trajec = Vector3f{0.f,0.f,_shear_h_ref};
 }
 
+Vector3f
+FixedwingPositionINDIControl::_compute_wind_estimate()
+{
+    Dcmf R_ib(_att);
+    Dcmf R_bi(R_ib.transpose());
+    // compute expected AoA from g-forces:
+    Vector3f body_force = _mass*R_bi*(_acc + Vector3f{0.f,0.f,9.81f});
+
+    // ****************** OLD COMPUTATION, NOT USED ANYMORE ****************************
+    // approximate lift force, since implicit equation cannot be solved analytically:
+    // since alpha<<1, we approximate the lift force L = sin(alpha)*Fx - cos(alpha)*Fz
+    // as L = alpha*Fx - Fz
+    /*
+    float Fx = cosf(_aoa_offset)*body_force(0) - sinf(_aoa_offset)*body_force(2);
+    float Fz = -cosf(_aoa_offset)*body_force(2) - sinf(_aoa_offset)*body_force(0);
+    float AoA_approx = (((2.f*Fz)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f) - _C_L0)/_C_L1) / 
+                        (1 - ((2.f*Fx)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f)/_C_L1));
+    AoA_approx = constrain(AoA_approx,-0.2f,0.3f);
+    Vector3f vel_air = R_ib*(Vector3f{_airspeed,0.f,tanf(AoA_approx-_aoa_offset)*_airspeed});
+    */
+
+    // ***************** NEW COMPUTATION FROM MATLAB CALIBRATION **********************
+    float speed = fmaxf(_airspeed, _stall_speed);
+    float u_approx = _airspeed;
+    float v_approx = body_force(1) / (0.5f*_rho*speed*_area*_C_B1);
+    float w_approx = (-body_force(2)/(0.5f*_rho*(speed)*_area)-_C_L0*speed)/_C_L1;
+    Vector3f vel_air = R_ib*(Vector3f{u_approx, v_approx, w_approx});
+
+    // compute wind from wind triangle
+    Vector3f wind = _vel - vel_air;
+    //PX4_INFO("wind estimate: \t%.1f, \t%.1f, \t%.1f", (double)wind(0), (double)wind(1), (double)wind(2));
+    return wind;
+}
+
 void
 FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
-{
+{   
+    // apply some filtering
+    wind(0) = _lp_filter_wind[0].apply(wind(0));
+    wind(1) = _lp_filter_wind[1].apply(wind(1));
+    wind(2) = _lp_filter_wind[2].apply(wind(2));
     _wind_estimate = wind;
     return;
 }
@@ -778,26 +808,8 @@ FixedwingPositionINDIControl::Run()
         // ===============================
         // compute wind pseudo-measurement
         // ===============================
-        Dcmf R_ib(_att);
-        Dcmf R_bi(R_ib.transpose());
-        // compute expected AoA from g-forces:
-        Vector3f body_force = _mass*R_bi*(_acc + Vector3f{0.f,0.f,9.81f});
-        // approximate lift force, since implicit equation cannot be solved analytically:
-        // since alpha<<1, we approximate the lift force L = sin(alpha)*Fx - cos(alpha)*Fz
-        // as L = alpha*Fx - Fz
-        float Fx = cosf(_aoa_offset)*body_force(0) - sinf(_aoa_offset)*body_force(2);
-        float Fz = -cosf(_aoa_offset)*body_force(2) - sinf(_aoa_offset)*body_force(0);
-        float AoA_approx = (((2.f*Fz)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f) - _C_L0)/_C_L1) / 
-                            (1 - ((2.f*Fx)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f)/_C_L1));
-        AoA_approx = constrain(AoA_approx,-0.2f,0.2f);
-        Vector3f vel_air = R_ib*(Vector3f{_airspeed,0.f,tanf(AoA_approx-_aoa_offset)*_airspeed});
-        Vector3f wind = _vel - vel_air;
-        wind(0) = _lp_filter_wind[0].apply(wind(0));
-        wind(1) = _lp_filter_wind[1].apply(wind(1));
-        wind(2) = _lp_filter_wind[2].apply(wind(2));
+        Vector3f wind = _compute_wind_estimate();
         _set_wind_estimate(wind);
-        //PX4_INFO("wind estimate:\t%.4f\t%.4f\t%.4f", (double)_wind_estimate(0),(double)_wind_estimate(1),(double)_wind_estimate(2));
-
 
         // only run actuators poll, when our module is not publishing:
         if (_vehicle_status.nav_state != vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
@@ -829,10 +841,6 @@ FixedwingPositionINDIControl::Run()
         Quatf q = _get_attitude_ref(t_ref,T);
         Vector3f omega_ref = _get_angular_velocity_ref(t_ref,T);        // body angular velocity
         Vector3f alpha_ref = _get_angular_acceleration_ref(t_ref,T);    // body angular acceleration
-        //PX4_INFO("local position ref:\t%.4f\t%.4f\t%.4f", (double)pos_ref(0),(double)pos_ref(1),(double)pos_ref(2));
-        //PX4_INFO("alpha ref:\t%.4f\t%.4f\t%.4f", (double)alpha_ref(0),(double)alpha_ref(1),(double)alpha_ref(2));
-        //PX4_INFO("vel ref:\t%.4f\t%.4f\t%.4f", (double)vel_ref(0),(double)vel_ref(1),(double)vel_ref(2));
-        //PX4_INFO("vel:\t%.4f\t%.4f\t%.4f", (double)_vel(0),(double)_vel(1),(double)_vel(2));
 
         // =====================
         // compute control input
@@ -993,6 +1001,8 @@ FixedwingPositionINDIControl::Run()
         // ====================
         // publish debug values
         // ====================
+        Dcmf R_ib(_att);
+        Dcmf R_bi(R_ib.transpose());
         Vector3f vel_body = R_bi*(_vel - _wind_estimate);
         _slip = atan2f(vel_body(1), vel_body(0))*180.f/M_PI_2_F;
         _debug_value.timestamp = hrt_absolute_time();
@@ -1167,33 +1177,7 @@ FixedwingPositionINDIControl::_get_angular_acceleration_ref(float t, float T)
 float
 FixedwingPositionINDIControl::_get_closest_t(Vector3f pos)
 {
-    /*
-    const uint n = 100;
-    Vector<float, n> distances;
-    float t_ref;
-    // compute all distances
-    for(uint i=0; i<n; i++){
-        t_ref = float(i)/float(n);
-        Vector3f pos_ref = _get_position_ref(t_ref);
-        //PX4_INFO("trajectory time + point: \t%.2f\t%.2f\t%.2f\t%.2f", (double)t_ref, (double)pos_ref(0), (double)pos_ref(1), (double)pos_ref(2));
-        distances(i) = (pos_ref - pos)*(pos_ref - pos);
-    }
-
-    // get index of smallest distance
-    float t = 0.f;
-    float min_dist = distances(0);
-    for(uint i=1; i<n; i++){
-        if(distances(i)<min_dist){
-            min_dist = distances(i);
-            t = float(i);
-        }
-    }
-    t = t/float(n);
-    */
-
-    //PX4_INFO("closest point: \t%.2f\t%.2f\t%.2f", (double)_get_position_ref(t)(0), (double)_get_position_ref(t)(1), (double)_get_position_ref(t)(2));
-    //PX4_INFO("closest t: %.2f", (double)t);
-    //PX4_INFO("closest distance:%.2f", (double)sqrtf(min_dist));
+    // multi-stage computation of the closest point on the reference path
 
     const uint n_1 = 20;
     Vector<float, n_1> distances;
@@ -1409,7 +1393,6 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     }
     */
 
-
     // ==========================================================================
     // get required attitude (assuming we can fly the target velocity), and error
     // ==========================================================================
@@ -1432,30 +1415,12 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
         }
     }
 
-
-    
     // =========================================
     // apply PD control law on the body attitude
     // =========================================
     Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-_omega) + alpha_ref;
 
 
-    // ==========================================
-    // input meant for tuning the INDI controller
-    // ==========================================
-    /*
-    if(hrt_absolute_time()%2000000>1000000){
-        rot_acc_command = Vector3f{2.0f,1.f,0.f};
-        //rot_acc_command = Vector3f{0.f,0.f,0.5f};
-    }
-    else{
-        rot_acc_command = Vector3f{-2.0f,-1.f,0.f};
-        //rot_acc_command = Vector3f{0.f,0.f,-0.5f};
-    }
-    */
-    //PX4_INFO("force command: \t%.2f", (double)(f_command*f_command));
-    //PX4_INFO("force command: \t%.2f\t%.2f\t%.2f", (double)f_command(0), (double)f_command(1), (double)f_command(2));
-    //PX4_INFO("FRD body frame rotation vec: \t%.2f\t%.2f\t%.2f", (double)w_err(0), (double)w_err(1), (double)w_err(2));
     if (sqrtf(w_err*w_err)>M_PI_F){
         PX4_ERR("rotation angle larger than pi: \t%.2f, \t%.2f, \t%.2f", (double)sqrtf(w_err*w_err), (double)q_err.angle(), (double)(q_err.axis()*q_err.axis()));
     }
@@ -1525,9 +1490,6 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // not really an accel command, rather a FF-P command
     rot_acc_command(2) = _K_q(2,2)*omega_turn_ref(2)*scaler + _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2))* scaler*scaler;
 
-    //PX4_INFO("omega turn ref: \t%.2f\t%.2f\t%.2f", (double)omega_turn_ref(0), (double)omega_turn_ref(1), (double)omega_turn_ref(2));
-    //PX4_INFO("omega turn    : \t%.2f\t%.2f\t%.2f", (double)_omega(0), (double)_omega(1), (double)_omega(2));
-
     // =======================================================================================
     // filter the stage 1 controller outputs to filter out high-frequency components.
     // This is desirable as the provided commands might be very noisy otherwise (not feasible)
@@ -1549,10 +1511,6 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
     Dcmf R_ib(_att);
     Vector3f vel_body = R_ib.transpose()*(_vel-_wind_estimate);
     float q = fmaxf(0.5f*sqrtf(vel_body*vel_body)*vel_body(0), 0.5f*_stall_speed*_stall_speed);    // dynamic pressure, saturates at stall speed
-    //Vector3f vel_body_2 = Dcmf(Quatf(_attitude.q)).transpose()*Vector3f{_local_pos.vx,_local_pos.vy,_local_pos.vz};
-    //PX4_INFO("ENU body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body_2(0), (double)vel_body_2(1), (double)vel_body_2(2));
-    //PX4_INFO("FRD body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body(0), (double)vel_body(1), (double)vel_body(2));
-    //omega_filtered = _omega; //TODO: remove
     // compute moments
     Vector3f moment;
     moment(0) = _k_ail*q*_actuators.control[actuator_controls_s::INDEX_ROLL] - _k_d_roll*q*_omega(0);
