@@ -333,7 +333,6 @@ private:
 	// smoothing filter to reject HF noise in control output
 	const float _cutoff_frequency_smoothing = 20.f; // we want to attenuate noise at 30Hz with -10dB -> need cutoff frequency 5 times lower (6Hz)
 	math::LowPassFilter2p _lp_filter_ctrl0[3] {{_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}};	// force command stage 1
-	math::LowPassFilter2p _lp_filter_ctrl1[3] {{_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}};	// control output stage 1
 	math::LowPassFilter2p _lp_filter_rud {_sample_frequency, 10};	// rudder command 
 	// Low-Pass filters stage 2
 	const float _cutoff_frequency_2 = 20.f; // MUST MATCH PARAM "IMU_DGYRO_CUTOFF"
