@@ -117,7 +117,9 @@ FixedwingShearEstimator::init()
     // ==============================================================================
     // fill the min airspeed matrix with the correct entries for trajectory selection
     // ==============================================================================
+    
     bool error = false;
+    
     //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
     char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     strcat(home_dir, "robust/min_aspd_matrix.csv");
@@ -130,12 +132,11 @@ FixedwingShearEstimator::init()
     else {
         // Here we have taken size of
         // array 200 you can modify it
-        const uint buffersize = 200;
+        const uint buffersize = 600;
         char buffer[buffersize];
 
         int row = 0;
         int column = 0;
-
         // loop over rows
         while (fgets(buffer,
                      buffersize, fp)) {
@@ -170,7 +171,6 @@ FixedwingShearEstimator::init()
         }
     }
     // =======================================================================
-
 
     if (error) {
         /*
