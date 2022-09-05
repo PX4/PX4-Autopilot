@@ -108,11 +108,12 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
  * @value 1 local_position_estimator, attitude_estimator_q (unsupported)
  * @value 2 ekf2 (recommended)
  * @value 3 Q attitude estimator (no position)
+ * @value 4 External state estimation
  *
  * @reboot_required true
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 2);
+PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 4);
 
 /**
  * Parameter version

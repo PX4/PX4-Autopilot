@@ -51,6 +51,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		ext_state_ests
 		events
 		fw_att_control
 		fw_pos_control_l1

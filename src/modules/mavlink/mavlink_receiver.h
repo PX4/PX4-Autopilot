@@ -102,6 +102,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_bezier.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/ext_core_state.h>
+#include <uORB/topics/ext_core_state_lite.h>
 
 class Mavlink;
 
@@ -179,6 +181,8 @@ private:
 	void handle_message_utm_global_position(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
 	void handle_message_onboard_computer_status(mavlink_message_t *msg);
+        void handle_message_ext_core_state(mavlink_message_t *msg);
+        void handle_message_ext_core_state_lite(mavlink_message_t *msg);
 
 
 	void Run();
@@ -260,6 +264,8 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<vehicle_trajectory_bezier_s>	_trajectory_bezier_pub{ORB_ID(vehicle_trajectory_bezier)};
 	uORB::Publication<vehicle_trajectory_waypoint_s>	_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
+        uORB::Publication<ext_core_state_s>	                 _ext_core_state_pub{ORB_ID(ext_core_state)};
+        uORB::Publication<ext_core_state_lite_s>	         _ext_core_state_lite_pub{ORB_ID(ext_core_state_lite)};
 
 	// ORB publications (multi)
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor), ORB_PRIO_LOW};

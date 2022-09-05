@@ -4,7 +4,7 @@
     <!-- Launches Only PX4 SITL. This can be used by external projects -->
 
     <!-- PX4 config arguments -->
-    <arg name="est" default="ekf2"/>
+    <arg name="est" default="ext"/>
     <arg name="vehicle" default="iris"/>
     <arg name="ID" default="0"/>
     <arg name="interactive" default="true"/>

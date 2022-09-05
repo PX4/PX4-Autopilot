@@ -2448,6 +2448,7 @@ int Ekf2::custom_command(int argc, char *argv[])
 
 int Ekf2::task_spawn(int argc, char *argv[])
 {
+  PX4_INFO("Task spawn");
 	bool replay_mode = false;
 
 	if (argc > 1 && !strcmp(argv[1], "-r")) {
