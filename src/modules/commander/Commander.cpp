@@ -48,6 +48,7 @@
 #include "Arming/ArmAuthorization/ArmAuthorization.h"
 #include "commander_helper.h"
 #include "esc_calibration.h"
+#define DEFINE_GET_PX4_CUSTOM_MODE
 #include "px4_custom_mode.h"
 #include "state_machine_helper.h"
 #include "ModeUtil/control_mode.hpp"
