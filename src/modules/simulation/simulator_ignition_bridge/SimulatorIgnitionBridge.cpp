@@ -7,14 +7,14 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *	notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
+ *	notice, this list of conditions and the following disclaimer in
+ *	the documentation and/or other materials provided with the
+ *	distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *	used to endorse or promote products derived from this software
+ *	without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -42,10 +42,11 @@
 #include <iostream>
 #include <string>
 
-SimulatorIgnitionBridge::SimulatorIgnitionBridge(const char *world, const char *model) :
+SimulatorIgnitionBridge::SimulatorIgnitionBridge(const char *world, const char *model, const char *pose_str) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_world_name(world),
-	_model_name(model)
+	_model_name(model),
+	_model_pose(pose_str)
 {
 	pthread_mutex_init(&_mutex, nullptr);
 
@@ -72,7 +73,40 @@ int SimulatorIgnitionBridge::init()
 	// req.set_name("model_instance_name"); // New name for the entity, overrides the name on the SDF.
 	req.set_allow_renaming(false); // allowed to rename the entity in case of overlap with existing entities
 
-	// /world/$WORLD/create service.
+	if (!_model_pose.empty()) {
+		PX4_INFO("Requested Model Position: %s", _model_pose.c_str());
+
+		std::vector<float> model_pose_v;
+
+		std::stringstream ss(_model_pose);
+
+		while (ss.good()) {
+			std::string substr;
+			std::getline(ss, substr, ',');
+			model_pose_v.push_back(std::stof(substr));
+		}
+
+		while (model_pose_v.size() < 6) {
+			model_pose_v.push_back(0.0);
+		}
+
+		ignition::msgs::Pose *p = req.mutable_pose();
+		ignition::msgs::Vector3d *position = p->mutable_position();
+		position->set_x(model_pose_v[0]);
+		position->set_y(model_pose_v[1]);
+		position->set_z(model_pose_v[2]);
+
+		ignition::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
+
+		q.Normalize();
+		ignition::msgs::Quaternion *orientation = p->mutable_orientation();
+		orientation->set_x(q.X());
+		orientation->set_y(q.Y());
+		orientation->set_z(q.Z());
+		orientation->set_w(q.W());
+	}
+
+	//world/$WORLD/create service.
 	ignition::msgs::Boolean rep;
 	bool result;
 	std::string create_service = "/world/" + _world_name + "/create";
@@ -118,7 +152,7 @@ int SimulatorIgnitionBridge::init()
 	}
 
 	// output eg /X3/command/motor_speed
-	std::string actuator_topic = _model_name + "/command/motor_speed";
+	std::string actuator_topic = "model/" + _model_name + "/command/motor_speed";
 	_actuators_pub = _node.Advertise<ignition::msgs::Actuators>(actuator_topic);
 
 	if (!_actuators_pub.Valid()) {
@@ -134,13 +168,15 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 {
 	const char *world_name = "default";
 	const char *model_name = nullptr;
+	const char *model_pose = nullptr;
+
 
 	bool error_flag = false;
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "w:m:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "w:m:p:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'w':
 			// world
@@ -150,6 +186,11 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 		case 'm':
 			// model
 			model_name = myoptarg;
+			break;
+
+		case 'p':
+			// pose
+			model_pose = myoptarg;
 			break;
 
 		case '?':
@@ -169,7 +210,11 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 
 	PX4_INFO("world: %s, model: %s", world_name, model_name);
 
-	SimulatorIgnitionBridge *instance = new SimulatorIgnitionBridge(world_name, model_name);
+	if (!model_pose) {
+		model_pose = "";
+	}
+
+	SimulatorIgnitionBridge *instance = new SimulatorIgnitionBridge(world_name, model_name, model_pose);
 
 	if (instance) {
 		_object.store(instance);
@@ -466,6 +511,7 @@ int SimulatorIgnitionBridge::print_usage(const char *reason)
 	PRINT_MODULE_USAGE_NAME("simulator_ignition_bridge", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('m', nullptr, nullptr, "Model name", false);
+	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, nullptr, "Model Pose", false);
 	PRINT_MODULE_USAGE_PARAM_STRING('w', nullptr, nullptr, "World name", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
