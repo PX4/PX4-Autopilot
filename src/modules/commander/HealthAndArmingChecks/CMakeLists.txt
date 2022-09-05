@@ -60,6 +60,7 @@ px4_add_library(health_and_arming_checks
 	checks/missionCheck.cpp
 	checks/rcAndDataLinkCheck.cpp
 	checks/vtolCheck.cpp
+	checks/offboardCheck.cpp
 )
 add_dependencies(health_and_arming_checks mode_util)
 

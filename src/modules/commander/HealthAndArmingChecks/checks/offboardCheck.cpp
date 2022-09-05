@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,76 +31,40 @@
  *
  ****************************************************************************/
 
-/**
- * @file rc_loss_alarm.cpp
- *
- */
+#include "offboardCheck.hpp"
 
-#include "rc_loss_alarm.h"
+using namespace time_literals;
 
-#include <px4_platform_common/defines.h>
-
-#include <drivers/drv_hrt.h>
-#include <stdint.h>
-
-#include <tunes/tune_definition.h>
-
-namespace events
+OffboardChecks::OffboardChecks()
 {
-namespace rc_loss
-{
-
-void RC_Loss_Alarm::process()
-{
-	vehicle_status_s status{};
-
-	if (!_vehicle_status_sub.update(&status)) {
-		return;
-	}
-
-	vehicle_status_flags_s status_flags{};
-
-	_vehicle_status_flags_sub.copy(&status_flags);
-
-	if (!_was_armed &&
-	    status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-
-		_was_armed = true;	// Once true, impossible to go back to false
-	}
-
-	if (!_had_rc && !status_flags.rc_signal_lost) {
-
-		_had_rc = true;
-	}
-
-	if (_was_armed && _had_rc && status_flags.rc_signal_lost &&
-	    status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
-		play_tune();
-		_alarm_playing = true;
-
-	} else if (_alarm_playing) {
-		stop_tune();
-		_alarm_playing = false;
-	}
+	_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1_s);
 }
 
-void RC_Loss_Alarm::play_tune()
+void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	tune_control_s tune_control{};
-	tune_control.tune_id = tune_control_s::TUNE_ID_ERROR;
-	tune_control.tune_override = true;
-	tune_control.volume = tune_control_s::VOLUME_LEVEL_MAX;
-	tune_control.timestamp = hrt_absolute_time();
-	_tune_control_pub.publish(tune_control);
-}
+	reporter.failsafeFlags().offboard_control_signal_lost = true;
 
-void RC_Loss_Alarm::stop_tune()
-{
-	tune_control_s tune_control{};
-	tune_control.tune_override = true;
-	tune_control.timestamp = hrt_absolute_time();
-	_tune_control_pub.publish(tune_control);
-}
+	offboard_control_mode_s offboard_control_mode;
 
-} /* namespace rc_loss */
-} /* namespace events */
+	if (_offboard_control_mode_sub.copy(&offboard_control_mode)) {
+		bool offboard_available = offboard_control_mode.position || offboard_control_mode.velocity
+					  || offboard_control_mode.acceleration || offboard_control_mode.attitude || offboard_control_mode.body_rate
+					  || offboard_control_mode.actuator;
+
+		if (offboard_control_mode.position && reporter.failsafeFlags().local_position_invalid) {
+			offboard_available = false;
+
+		} else if (offboard_control_mode.velocity && reporter.failsafeFlags().local_velocity_invalid) {
+			offboard_available = false;
+
+		} else if (offboard_control_mode.acceleration && reporter.failsafeFlags().local_velocity_invalid) {
+			// OFFBOARD acceleration handled by position controller
+			offboard_available = false;
+		}
+
+		_offboard_available.set_state_and_update(offboard_available, hrt_absolute_time());
+
+		// This is a mode requirement, no need to report
+		reporter.failsafeFlags().offboard_control_signal_lost = !_offboard_available.get_state();
+	}
+}

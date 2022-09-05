@@ -42,6 +42,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/tune_control.h>
 
 namespace events
@@ -67,6 +68,7 @@ private:
 
 	uORB::Publication<tune_control_s> _tune_control_pub{ORB_ID(tune_control)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_status_flags_sub{ORB_ID(vehicle_status_flags)};
 
 	bool 		_was_armed = false;
 	bool 		_had_rc = false;  // Don't trigger alarm for systems without RC
