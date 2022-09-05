@@ -48,11 +48,11 @@ then
 	fi
 fi
 
-if ver hwtypecmp V5X00 V5X01 V5X02 V5X10 V5X41 V5X42
+if ver hwtypecmp V5X00 V5X01 V5X02 V5X10 V5X40 V5X41 V5X42
 then
 	#FMUv5Xbase board orientation
 
-	if ver hwtypecmp V5X00 V5X01 V5X41
+	if ver hwtypecmp V5X00 V5X01 V5X40 V5X41
 	then
 		# Internal SPI BMI088
 		bmi088 -A -R 4 -s start
