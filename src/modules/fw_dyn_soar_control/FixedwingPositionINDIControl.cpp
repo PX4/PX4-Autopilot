@@ -302,10 +302,10 @@ FixedwingPositionINDIControl::rc_channels_poll()
         // use flaps channel to select manual feedthrough
         if (!_switch_sitl) {
             if (_rc_channels.channels[5]>=0.f){
-                _switch_manual = 1;
+                _switch_manual = true;
             }
             else{
-                _switch_manual = 0;
+                _switch_manual = false;
             }
         }
     }
@@ -977,6 +977,7 @@ FixedwingPositionINDIControl::Run()
 
             if (_counter==100) {
                 _counter = 0;
+                //PX4_INFO("Feedthrough switch: \t%.2f", (double)(_rc_channels.channels[5]));
                 //PX4_INFO("frequency: \t%.3f", (double)(1000000*100)/(hrt_absolute_time()-_last_time));
                 _last_time = hrt_absolute_time();
             }
