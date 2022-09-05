@@ -101,6 +101,16 @@ void MagBiasEstimator::Run()
 					ScheduleOnInterval(20_ms);
 				}
 			}
+
+			bool system_calibrating = vehicle_status.calibration_enabled;
+
+			if (system_calibrating != _system_calibrating) {
+				_system_calibrating = system_calibrating;
+
+				for (auto &reset : _reset_field_estimator) {
+					reset = true;
+				}
+			}
 		}
 	}
 
@@ -127,22 +137,6 @@ void MagBiasEstimator::Run()
 			}
 
 			_bias_estimator[mag_index].setLearningGain(_param_mbe_learn_gain.get());
-		}
-	}
-
-	if (_vehicle_status_flags_sub.updated()) {
-		vehicle_status_flags_s vehicle_status_flags;
-
-		if (_vehicle_status_flags_sub.copy(&vehicle_status_flags)) {
-			bool system_calibrating = vehicle_status_flags.calibration_enabled;
-
-			if (system_calibrating != _system_calibrating) {
-				_system_calibrating = system_calibrating;
-
-				for (auto &reset : _reset_field_estimator) {
-					reset = true;
-				}
-			}
 		}
 	}
 

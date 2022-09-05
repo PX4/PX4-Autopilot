@@ -429,10 +429,6 @@ private:
 				}
 			}
 
-			if (status.rc_signal_lost) {
-				msg->failure_flags |= HL_FAILURE_FLAG_RC_RECEIVER;
-			}
-
 			if (status.failure_detector_status & vehicle_status_s::FAILURE_MOTOR) {
 				msg->failure_flags |= HL_FAILURE_FLAG_ENGINE;
 			}
@@ -452,7 +448,7 @@ private:
 		vehicle_status_flags_s status_flags;
 
 		if (_status_flags_sub.update(&status_flags)) {
-			if (!status_flags.global_position_valid) { //TODO check if there is a better way to get only GPS failure
+			if (status_flags.gps_position_invalid) {
 				msg->failure_flags |= HL_FAILURE_FLAG_GPS;
 			}
 
@@ -463,6 +459,11 @@ private:
 			if (status_flags.mission_failure) {
 				msg->failure_flags |= HL_FAILURE_FLAG_MISSION;
 			}
+
+			if (status_flags.rc_signal_lost) {
+				msg->failure_flags |= HL_FAILURE_FLAG_RC_RECEIVER;
+			}
+
 
 			return true;
 		}
