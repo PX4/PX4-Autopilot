@@ -36,6 +36,7 @@
 void MissionChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	reporter.failsafeFlags().mission_failure = false;
+	reporter.failsafeFlags().auto_mission_missing = true;
 	mission_result_s mission_result;
 
 	if (_mission_result_sub.copy(&mission_result) && mission_result.valid) {
@@ -53,5 +54,8 @@ void MissionChecks::checkAndReport(const Context &context, Report &reporter)
 				mavlink_log_critical(reporter.mavlink_log_pub(), "Mission cannot be completed\t");
 			}
 		}
+
+		// This is a mode requirement, no need to report
+		reporter.failsafeFlags().auto_mission_missing = mission_result.instance_count <= 0;
 	}
 }
