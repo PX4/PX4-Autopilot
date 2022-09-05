@@ -118,8 +118,8 @@ FixedwingShearEstimator::init()
     // fill the min airspeed matrix with the correct entries for trajectory selection
     // ==============================================================================
     bool error = false;
-    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-    //char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     strcat(home_dir, "robust/min_aspd_matrix.csv");
     FILE* fp = fopen(home_dir, "r");
 
