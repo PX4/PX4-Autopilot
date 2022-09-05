@@ -482,7 +482,7 @@ FixedwingShearEstimator::Run()
             // only update airspeed for trajectory selection
             _soaring_estimator_shear.aspd = aspd;
         }
-        PX4_INFO("Unlocked shear estimator, current airspeed \t%.1f", (double)_current_airspeed);
+        //PX4_INFO("Unlocked shear estimator, current airspeed \t%.1f", (double)_current_airspeed);
 
         // publish shear params
         // ========================================

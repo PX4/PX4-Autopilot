@@ -957,7 +957,7 @@ FixedwingPositionINDIControl::Run()
             _soaring_controller_wind.airspeed = _airspeed;
             if (_switch_cl_soaring) {
                 // always update shear params in closed loop soaring mode
-                _soaring_controller_wind.lock_params = true;
+                _soaring_controller_wind.lock_params = false;
             }
             else {
                 // only update in manual feedthrough in open loop soaring
