@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,76 +31,27 @@
  *
  ****************************************************************************/
 
-/**
- * @file rc_loss_alarm.cpp
- *
- */
+#pragma once
 
-#include "rc_loss_alarm.h"
+#include "../Common.hpp"
 
-#include <px4_platform_common/defines.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/offboard_control_mode.h>
+#include <lib/hysteresis/hysteresis.h>
 
-#include <drivers/drv_hrt.h>
-#include <stdint.h>
-
-#include <tunes/tune_definition.h>
-
-namespace events
+class OffboardChecks : public HealthAndArmingCheckBase
 {
-namespace rc_loss
-{
+public:
+	OffboardChecks();
+	~OffboardChecks() = default;
 
-void RC_Loss_Alarm::process()
-{
-	vehicle_status_s status{};
+	void checkAndReport(const Context &context, Report &reporter) override;
 
-	if (!_vehicle_status_sub.update(&status)) {
-		return;
-	}
+private:
+	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
+	systemlib::Hysteresis _offboard_available{false};
 
-	vehicle_status_flags_s status_flags{};
-
-	_vehicle_status_flags_sub.copy(&status_flags);
-
-	if (!_was_armed &&
-	    status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-
-		_was_armed = true;	// Once true, impossible to go back to false
-	}
-
-	if (!_had_rc && !status_flags.rc_signal_lost) {
-
-		_had_rc = true;
-	}
-
-	if (_was_armed && _had_rc && status_flags.rc_signal_lost &&
-	    status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
-		play_tune();
-		_alarm_playing = true;
-
-	} else if (_alarm_playing) {
-		stop_tune();
-		_alarm_playing = false;
-	}
-}
-
-void RC_Loss_Alarm::play_tune()
-{
-	tune_control_s tune_control{};
-	tune_control.tune_id = tune_control_s::TUNE_ID_ERROR;
-	tune_control.tune_override = true;
-	tune_control.volume = tune_control_s::VOLUME_LEVEL_MAX;
-	tune_control.timestamp = hrt_absolute_time();
-	_tune_control_pub.publish(tune_control);
-}
-
-void RC_Loss_Alarm::stop_tune()
-{
-	tune_control_s tune_control{};
-	tune_control.tune_override = true;
-	tune_control.timestamp = hrt_absolute_time();
-	_tune_control_pub.publish(tune_control);
-}
-
-} /* namespace rc_loss */
-} /* namespace events */
+	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t
+				       );
+};
