@@ -99,6 +99,9 @@ FixedwingPositionINDIControl::init()
     // initialize in manual feedthrough
     _switch_manual = true;
 
+    // fix sitl mode on startup (no switch at runtime)
+    _switch_sitl = _param_switch_sitl.get();
+
     // initialize transform to trajec frame
     _compute_trajectory_transform();
 
@@ -170,14 +173,15 @@ FixedwingPositionINDIControl::parameters_update()
     _origin_D =  _local_pos.ref_alt - _origin_alt;
     PX4_INFO("local reference frame updated");
     
-
     _thrust_pos = _param_thrust.get();
     _thrust = _thrust_pos;
     _switch_saturation = _param_switch_saturation.get();
-    _switch_filter = _param_switch_filter.get();
     _switch_origin_hardcoded = _param_switch_origin_hardcoded.get();
-    _switch_manual = _param_switch_manual.get();
     _switch_cl_soaring = _param_switch_cloop.get();
+    if (_switch_sitl) {
+        // only use switch manual param in sitl mode
+        _switch_manual = _param_switch_manual.get();
+    }
 
     _loiter = _param_loiter.get();
 
@@ -286,6 +290,9 @@ FixedwingPositionINDIControl::manual_control_setpoint_poll()
         _manual_control_setpoint_sub.update(&_manual_control_setpoint);
         _thrust = _manual_control_setpoint.z;
     }
+    else {
+        _thrust = _thrust_pos;
+    }
 }
 
 void
@@ -293,16 +300,14 @@ FixedwingPositionINDIControl::rc_channels_poll()
 {
     if (_rc_channels_sub.update(&_rc_channels)) {
         // use flaps channel to select manual feedthrough
-        /*
-        if (_rc_channels.channels[5]>=0.f){
-            _switch_manual = 1;
+        if (!_switch_sitl) {
+            if (_rc_channels.channels[5]>=0.f){
+                _switch_manual = 1;
+            }
+            else{
+                _switch_manual = 0;
+            }
         }
-        else{
-            _switch_manual = 0;
-            _thrust = _thrust_pos;
-        }
-        */
-       _thrust = _thrust_pos; //TODO:remove!!!
     }
 }
 
@@ -955,7 +960,7 @@ FixedwingPositionINDIControl::Run()
                 _soaring_controller_wind.lock_params = true;
             }
             else {
-                // only update in manual feedthrough iin open loop soaring
+                // only update in manual feedthrough in open loop soaring
                 _soaring_controller_wind.lock_params = !_switch_manual;
             }
             Eulerf e(Quatf(_attitude.q));
@@ -1490,15 +1495,6 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // not really an accel command, rather a FF-P command
     rot_acc_command(2) = _K_q(2,2)*omega_turn_ref(2)*scaler + _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2))* scaler*scaler;
 
-    // =======================================================================================
-    // filter the stage 1 controller outputs to filter out high-frequency components.
-    // This is desirable as the provided commands might be very noisy otherwise (not feasible)
-    // =======================================================================================
-    if (_switch_filter) {
-        rot_acc_command(0) = _lp_filter_ctrl1[0].apply(rot_acc_command(0));
-        rot_acc_command(1) = _lp_filter_ctrl1[1].apply(rot_acc_command(1));
-        rot_acc_command(2) = _lp_filter_ctrl1[2].apply(rot_acc_command(2));
-    }
     
 
     return rot_acc_command;

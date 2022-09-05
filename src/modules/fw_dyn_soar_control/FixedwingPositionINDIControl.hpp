@@ -222,14 +222,14 @@ private:
 		(ParamFloat<px4::params::DS_THRUST>) _param_thrust,
 		// force saturation
 		(ParamInt<px4::params::DS_SWITCH_SAT>) _param_switch_saturation,
-		// command filtering
-		(ParamInt<px4::params::DS_SWITCH_FILTER>) _param_switch_filter,
 		// hardcoded trajectory center
 		(ParamInt<px4::params::DS_SWITCH_ORI_HC>) _param_switch_origin_hardcoded,
-		// manual switch if manual feedthrough is used, REMOVE!!!
+		// manual switch if manual feedthrough is used, only active in STIL mode
 		(ParamInt<px4::params::DS_SWITCH_MANUAL>) _param_switch_manual,
 		// manual switch if manual feedthrough is used, REMOVE!!!
-		(ParamInt<px4::params::DS_SWITCH_CLOOP>) _param_switch_cloop
+		(ParamInt<px4::params::DS_SWITCH_CLOOP>) _param_switch_cloop,
+		// manual switch if we are in SITL mode
+		(ParamInt<px4::params::DS_SWITCH_SITL>) _param_switch_sitl
 
 	)
 
@@ -387,10 +387,10 @@ private:
 	bool _switch_cl_soaring;
 	// force limit
 	bool _switch_saturation;
-	//
-	bool _switch_filter;
 	// use shear height from estimator
 	bool _switch_origin_hardcoded;
+	//
+	bool _switch_sitl;
 	//
 	bool _soaring_feasible;
 

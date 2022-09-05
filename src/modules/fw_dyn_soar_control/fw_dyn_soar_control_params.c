@@ -580,20 +580,6 @@ PARAM_DEFINE_FLOAT(DS_THRUST, 0);
  */
 PARAM_DEFINE_INT32(DS_SWITCH_SAT, 1);
 
-// ======================================================
-// ============= controller output filtering ============
-// ======================================================
-
-/**
- * integer in {0,1} defining if the rotation acceleration command will get filtered before performing INDI
- * @unit 
- * @min 0
- * @max 1
- * @decimal 1
- * @increment 1
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_INT32(DS_SWITCH_FILTER, 0);
 
 // ======================================================
 // ============= hardcoded trajectory center ============
@@ -625,12 +611,12 @@ PARAM_DEFINE_INT32(DS_SWITCH_ORI_HC, 1);
  */
 PARAM_DEFINE_INT32(DS_SWITCH_LOITER, 1);
 
-// =================================================
-// ============= loiter trajectory test ============
-// =================================================
+// ====================================================
+// ============= manual feedthrough switch ============
+// ====================================================
 
 /**
- * integer in {0,1} defining if the loiter circle defined by param DS_LOITER shall be used, 0=soaring, 1=loiter
+ * integer in {0,1} defining if we are using manual feedthrough, only used in SITL mode
  * @unit 
  * @min 0
  * @max 1
@@ -654,3 +640,18 @@ PARAM_DEFINE_INT32(DS_SWITCH_MANUAL, 1);
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_INT32(DS_SWITCH_CLOOP, 0);
+
+// =====================================================
+// ============= open loop / closed loop DS ============
+// =====================================================
+
+/**
+ * integer in {0,1} defining if we are running the controller in SITL. 0=hardware, 1=sitl
+ * @unit 
+ * @min 0
+ * @max 1
+ * @decimal 1
+ * @increment 1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_INT32(DS_SWITCH_SITL, 0);
