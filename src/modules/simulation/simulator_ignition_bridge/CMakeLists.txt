@@ -79,14 +79,14 @@ foreach(model ${ign_models})
 
 		if(world_name MATCHES "default")
 			add_custom_target(ign_${model}
-				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=${model} $<TARGET_FILE:px4>
+				COMMAND ${CMAKE_COMMAND} -E env PX4_GZ_MODEL=${model} $<TARGET_FILE:px4>
 				WORKING_DIRECTORY ${SITL_WORKING_DIR}
 				USES_TERMINAL
 				DEPENDS px4
 			)
 		else()
 			add_custom_target(ign_${model}_${world_name}
-				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=${model} PX4_SIM_WORLD=${world_name} $<TARGET_FILE:px4>
+				COMMAND ${CMAKE_COMMAND} -E env PX4_GZ_MODEL=${model} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
 				WORKING_DIRECTORY ${SITL_WORKING_DIR}
 				USES_TERMINAL
 				DEPENDS px4

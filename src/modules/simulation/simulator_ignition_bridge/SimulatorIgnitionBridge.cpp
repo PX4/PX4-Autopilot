@@ -42,10 +42,12 @@
 #include <iostream>
 #include <string>
 
-SimulatorIgnitionBridge::SimulatorIgnitionBridge(const char *world, const char *model, const char *pose_str) :
+SimulatorIgnitionBridge::SimulatorIgnitionBridge(const char *world, const char *name, const char *model,
+		const char *pose_str) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_world_name(world),
-	_model_name(model),
+	_model_name(name),
+	_model_sim(model),
 	_model_pose(pose_str)
 {
 	pthread_mutex_init(&_mutex, nullptr);
@@ -64,64 +66,66 @@ SimulatorIgnitionBridge::~SimulatorIgnitionBridge()
 
 int SimulatorIgnitionBridge::init()
 {
-	// service call to create model
-	// ign service -s /world/${PX4_SIM_WORLD}/create --reqtype ignition.msgs.EntityFactory --reptype ignition.msgs.Boolean --timeout 1000 --req "sdf_filename: \"${PX4_SIM_MODEL}/model.sdf\""
-	ignition::msgs::EntityFactory req{};
-	req.set_sdf_filename(_model_name + "/model.sdf");
+	if (!_model_sim.empty()) {
 
-	// TODO: support model instances?
-	// req.set_name("model_instance_name"); // New name for the entity, overrides the name on the SDF.
-	req.set_allow_renaming(false); // allowed to rename the entity in case of overlap with existing entities
+		// service call to create model
+		// ign service -s /world/${PX4_GZ_WORLD}/create --reqtype ignition.msgs.EntityFactory --reptype ignition.msgs.Boolean --timeout 1000 --req "sdf_filename: \"${PX4_GZ_MODEL}/model.sdf\""
+		ignition::msgs::EntityFactory req{};
+		req.set_sdf_filename(_model_sim + "/model.sdf");
 
-	if (!_model_pose.empty()) {
-		PX4_INFO("Requested Model Position: %s", _model_pose.c_str());
+		req.set_name(_model_name); // New name for the entity, overrides the name on the SDF.
 
-		std::vector<float> model_pose_v;
+		req.set_allow_renaming(false); // allowed to rename the entity in case of overlap with existing entities
 
-		std::stringstream ss(_model_pose);
+		if (!_model_pose.empty()) {
+			PX4_INFO("Requested Model Position: %s", _model_pose.c_str());
 
-		while (ss.good()) {
-			std::string substr;
-			std::getline(ss, substr, ',');
-			model_pose_v.push_back(std::stof(substr));
+			std::vector<float> model_pose_v;
+
+			std::stringstream ss(_model_pose);
+
+			while (ss.good()) {
+				std::string substr;
+				std::getline(ss, substr, ',');
+				model_pose_v.push_back(std::stof(substr));
+			}
+
+			while (model_pose_v.size() < 6) {
+				model_pose_v.push_back(0.0);
+			}
+
+			ignition::msgs::Pose *p = req.mutable_pose();
+			ignition::msgs::Vector3d *position = p->mutable_position();
+			position->set_x(model_pose_v[0]);
+			position->set_y(model_pose_v[1]);
+			position->set_z(model_pose_v[2]);
+
+			ignition::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
+
+			q.Normalize();
+			ignition::msgs::Quaternion *orientation = p->mutable_orientation();
+			orientation->set_x(q.X());
+			orientation->set_y(q.Y());
+			orientation->set_z(q.Z());
+			orientation->set_w(q.W());
 		}
 
-		while (model_pose_v.size() < 6) {
-			model_pose_v.push_back(0.0);
-		}
+		//world/$WORLD/create service.
+		ignition::msgs::Boolean rep;
+		bool result;
+		std::string create_service = "/world/" + _world_name + "/create";
 
-		ignition::msgs::Pose *p = req.mutable_pose();
-		ignition::msgs::Vector3d *position = p->mutable_position();
-		position->set_x(model_pose_v[0]);
-		position->set_y(model_pose_v[1]);
-		position->set_z(model_pose_v[2]);
+		if (_node.Request(create_service, req, 1000, rep, result)) {
+			if (!rep.data() || !result) {
+				PX4_ERR("EntityFactory service call failed");
+				return PX4_ERROR;
+			}
 
-		ignition::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
-
-		q.Normalize();
-		ignition::msgs::Quaternion *orientation = p->mutable_orientation();
-		orientation->set_x(q.X());
-		orientation->set_y(q.Y());
-		orientation->set_z(q.Z());
-		orientation->set_w(q.W());
-	}
-
-	//world/$WORLD/create service.
-	ignition::msgs::Boolean rep;
-	bool result;
-	std::string create_service = "/world/" + _world_name + "/create";
-
-	if (_node.Request(create_service, req, 1000, rep, result)) {
-		if (!rep.data() || !result) {
-			PX4_ERR("EntityFactory service call failed");
+		} else {
+			PX4_ERR("Service call timed out");
 			return PX4_ERROR;
 		}
-
-	} else {
-		PX4_ERR("Service call timed out");
-		return PX4_ERROR;
 	}
-
 
 	// clock
 	std::string clock_topic = "/world/" + _world_name + "/clock";
@@ -169,6 +173,8 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 	const char *world_name = "default";
 	const char *model_name = nullptr;
 	const char *model_pose = nullptr;
+	const char *model_sim = nullptr;
+	const char *px4_instance = nullptr;
 
 
 	bool error_flag = false;
@@ -176,14 +182,14 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "w:m:p:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "w:m:p:i:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'w':
 			// world
 			world_name = myoptarg;
 			break;
 
-		case 'm':
+		case 'n':
 			// model
 			model_name = myoptarg;
 			break;
@@ -191,6 +197,16 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 		case 'p':
 			// pose
 			model_pose = myoptarg;
+			break;
+
+		case 'm':
+			// pose
+			model_sim = myoptarg;
+			break;
+
+		case 'i':
+			// pose
+			px4_instance = myoptarg;
 			break;
 
 		case '?':
@@ -208,13 +224,27 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	PX4_INFO("world: %s, model: %s", world_name, model_name);
-
 	if (!model_pose) {
 		model_pose = "";
 	}
 
-	SimulatorIgnitionBridge *instance = new SimulatorIgnitionBridge(world_name, model_name, model_pose);
+	if (!model_sim) {
+		model_sim = "";
+	}
+
+	if (!px4_instance) {
+		if (!model_name) {
+			model_name = model_sim;
+		}
+
+	} else if (!model_name) {
+		std::string model_name_std = std::string(model_sim) + "_" + std::string(px4_instance);
+		model_name = model_name_std.c_str();
+	}
+
+	PX4_INFO("world: %s, model name: %s, simulation model: %s", world_name, model_name, model_sim);
+
+	SimulatorIgnitionBridge *instance = new SimulatorIgnitionBridge(world_name, model_name, model_sim, model_pose);
 
 	if (instance) {
 		_object.store(instance);
@@ -510,8 +540,10 @@ int SimulatorIgnitionBridge::print_usage(const char *reason)
 
 	PRINT_MODULE_USAGE_NAME("simulator_ignition_bridge", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_STRING('m', nullptr, nullptr, "Model name", false);
+	PRINT_MODULE_USAGE_PARAM_STRING('m', nullptr, nullptr, "Fuel model name", false);
 	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, nullptr, "Model Pose", false);
+	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Model name", false);
+	PRINT_MODULE_USAGE_PARAM_STRING('i', nullptr, nullptr, "PX4 instance", false);
 	PRINT_MODULE_USAGE_PARAM_STRING('w', nullptr, nullptr, "World name", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
