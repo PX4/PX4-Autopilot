@@ -41,9 +41,9 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 		geofence_result = {};
 	}
 
-	reporter.failsafeFlags().geofence_violated = geofence_result.geofence_violated;
+	reporter.failsafeFlags().primary_geofence_breached = geofence_result.primary_geofence_breached;
 
-	if (geofence_result.geofence_action != 0 && reporter.failsafeFlags().geofence_violated) {
+	if (geofence_result.primary_geofence_action != 0 && reporter.failsafeFlags().primary_geofence_breached) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -58,7 +58,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (geofence_result.geofence_action == geofence_result_s::GF_ACTION_RTL
+	if (geofence_result.primary_geofence_action == geofence_result_s::GF_ACTION_RTL
 	    && reporter.failsafeFlags().home_position_invalid) {
 		/* EVENT
 		 * @description
