@@ -62,13 +62,11 @@ RcCalibrationChecks::RcCalibrationChecks()
 		sprintf(nbuf, "RC%d_MAX", i + 1);
 		_param_handles[i].max = param_find(nbuf);
 
-		sprintf(nbuf, "RC%d_REV", i + 1);
-		_param_handles[i].rev = param_find(nbuf);
-
 		sprintf(nbuf, "RC%d_DZ", i + 1);
 		_param_handles[i].dz = param_find(nbuf);
 	}
 
+	updateParams();
 }
 
 void RcCalibrationChecks::checkAndReport(const Context &context, Report &reporter)
@@ -82,18 +80,10 @@ void RcCalibrationChecks::checkAndReport(const Context &context, Report &reporte
 	}
 
 	for (unsigned i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; i++) {
-		/* initialize values to values failing the check */
-		float param_min = 0.0f;
-		float param_max = 0.0f;
-		float param_trim = 0.0f;
-		float param_rev = 0.0f;
-		float param_dz = RC_INPUT_MAX_DEADZONE_US * 2.0f;
-
-		param_get(_param_handles[i].min, &param_min);
-		param_get(_param_handles[i].trim, &param_trim);
-		param_get(_param_handles[i].max, &param_max);
-		param_get(_param_handles[i].rev, &param_rev);
-		param_get(_param_handles[i].dz, &param_dz);
+		float param_min = _param_values[i].min;
+		float param_max = _param_values[i].max;
+		float param_trim = _param_values[i].trim;
+		float param_dz = _param_values[i].dz;
 
 		/* assert min..center..max ordering */
 		if (param_min < RC_INPUT_LOWEST_MIN_US) {
@@ -173,5 +163,23 @@ void RcCalibrationChecks::checkAndReport(const Context &context, Report &reporte
 						     RC_INPUT_MAX_DEADZONE_US);
 			}
 		}
+	}
+}
+
+void RcCalibrationChecks::updateParams()
+{
+	HealthAndArmingCheckBase::updateParams();
+
+	for (unsigned i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; i++) {
+		/* initialize values to values failing the check */
+		_param_values[i].min = 0.0f;
+		_param_values[i].max = 0.0f;
+		_param_values[i].trim = 0.0f;
+		_param_values[i].dz = RC_INPUT_MAX_DEADZONE_US * 2.0f;
+
+		param_get(_param_handles[i].min, &_param_values[i].min);
+		param_get(_param_handles[i].trim, &_param_values[i].trim);
+		param_get(_param_handles[i].max, &_param_values[i].max);
+		param_get(_param_handles[i].dz, &_param_values[i].dz);
 	}
 }
