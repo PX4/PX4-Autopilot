@@ -38,6 +38,7 @@
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/health_report.h>
+#include <uORB/topics/vehicle_status_flags.h>
 
 #include "checks/accelerometerCheck.hpp"
 #include "checks/airspeedCheck.hpp"
@@ -71,7 +72,7 @@
 class HealthAndArmingChecks : public ModuleParams
 {
 public:
-	HealthAndArmingChecks(ModuleParams *parent, vehicle_status_flags_s &status_flags, vehicle_status_s &status);
+	HealthAndArmingChecks(ModuleParams *parent, vehicle_status_s &status);
 	~HealthAndArmingChecks() = default;
 
 	/**
@@ -97,6 +98,8 @@ public:
 	 */
 	bool modePreventsArming(uint8_t nav_state) const { return _reporter.modePreventsArming(nav_state); }
 
+	const vehicle_status_flags_s &failsafeFlags() const { return _failsafe_flags; }
+
 protected:
 	void updateParams() override;
 private:
@@ -104,7 +107,10 @@ private:
 	Report _reporter;
 	orb_advert_t _mavlink_log_pub{nullptr};
 
+	vehicle_status_flags_s _failsafe_flags{};
+
 	uORB::Publication<health_report_s> _health_report_pub{ORB_ID(health_report)};
+	uORB::Publication<vehicle_status_flags_s> _failsafe_flags_pub{ORB_ID(vehicle_status_flags)};
 
 	// all checks
 	AccelerometerChecks _accelerometer_checks;

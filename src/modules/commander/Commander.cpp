@@ -1855,10 +1855,6 @@ Commander::run()
 			_vehicle_status.timestamp = hrt_absolute_time();
 			_vehicle_status_pub.publish(_vehicle_status);
 
-			// publish vehicle_status_flags (after prearm/preflight updates above)
-			_vehicle_status_flags.timestamp = hrt_absolute_time();
-			_vehicle_status_flags_pub.publish(_vehicle_status_flags);
-
 			// failure_detector_status publish
 			failure_detector_status_s fd_status{};
 			fd_status.fd_roll = _failure_detector.getStatusFlags().roll;
