@@ -335,7 +335,7 @@ private:
 		geofence_result_s geofence;
 
 		if (_geofence_sub.update(&geofence)) {
-			if (geofence.geofence_violated) {
+			if (geofence.primary_geofence_breached) {
 				msg->failure_flags |= HL_FAILURE_FLAG_GEOFENCE;
 			}
 

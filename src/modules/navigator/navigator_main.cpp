@@ -863,12 +863,12 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		have_geofence_position_data = false;
 
 		_geofence_result.timestamp = hrt_absolute_time();
-		_geofence_result.geofence_action = _geofence.getGeofenceAction();
+		_geofence_result.primary_geofence_action = _geofence.getGeofenceAction();
 		_geofence_result.home_required = _geofence.isHomeRequired();
 
 		if (gf_violation_type.value) {
 			/* inform other apps via the mission result */
-			_geofence_result.geofence_violated = true;
+			_geofence_result.primary_geofence_breached = true;
 
 			/* Issue a warning about the geofence violation once and only if we are armed */
 			if (!_geofence_violation_warning_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
@@ -918,7 +918,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 		} else {
 			/* inform other apps via the mission result */
-			_geofence_result.geofence_violated = false;
+			_geofence_result.primary_geofence_breached = false;
 
 			/* Reset the _geofence_violation_warning_sent field */
 			_geofence_violation_warning_sent = false;

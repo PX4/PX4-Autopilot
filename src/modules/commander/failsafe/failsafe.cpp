@@ -395,7 +395,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	CHECK_FAILSAFE(status_flags, flight_time_limit_exceeded,
 		       ActionOptions(Action::RTL).allowUserTakeover(UserTakeoverAllowed::Never));
 
-	CHECK_FAILSAFE(status_flags, geofence_violated, fromGfActParam(_param_gf_action.get()));
+	CHECK_FAILSAFE(status_flags, primary_geofence_breached, fromGfActParam(_param_gf_action.get()));
 
 	// Battery
 	CHECK_FAILSAFE(status_flags, battery_low_remaining_time, ActionOptions(Action::RTL).causedBy(Cause::BatteryLow));

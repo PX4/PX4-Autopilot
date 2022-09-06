@@ -73,15 +73,15 @@
 #include <uORB/topics/tune_control.h>
 
 typedef enum VEHICLE_MODE_FLAG {
-	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED = 1, /* 0b00000001 Reserved for future use. | */
-	VEHICLE_MODE_FLAG_TEST_ENABLED = 2, /* 0b00000010 system has a test mode enabled. This flag is intended for temporary system tests and should not be used for stable implementations. | */
-	VEHICLE_MODE_FLAG_AUTO_ENABLED = 4, /* 0b00000100 autonomous mode enabled, system finds its own goal positions. Guided flag can be set or not, depends on the actual implementation. | */
-	VEHICLE_MODE_FLAG_GUIDED_ENABLED = 8, /* 0b00001000 guided mode enabled, system flies MISSIONs / mission items. | */
-	VEHICLE_MODE_FLAG_STABILIZE_ENABLED = 16, /* 0b00010000 system stabilizes electronically its attitude (and optionally position). It needs however further control inputs to move around. | */
-	VEHICLE_MODE_FLAG_HIL_ENABLED = 32, /* 0b00100000 hardware in the loop simulation. All motors / actuators are blocked, but internal software is full operational. | */
-	VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED = 64, /* 0b01000000 remote control input is enabled. | */
-	VEHICLE_MODE_FLAG_SAFETY_ARMED = 128, /* 0b10000000 MAV safety set to armed. Motors are enabled / running / can start. Ready to fly. Additional note: this flag is to be ignore when sent in the command MAV_CMD_DO_SET_MODE and MAV_CMD_COMPONENT_ARM_DISARM shall be used instead. The flag can still be used to report the armed state. | */
-	VEHICLE_MODE_FLAG_ENUM_END = 129, /*  | */
+	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED  = 1,   /* 0b00000001 Reserved for future use. | */
+	VEHICLE_MODE_FLAG_TEST_ENABLED         = 2,   /* 0b00000010 system has a test mode enabled. This flag is intended for temporary system tests and should not be used for stable implementations. | */
+	VEHICLE_MODE_FLAG_AUTO_ENABLED         = 4,   /* 0b00000100 autonomous mode enabled, system finds its own goal positions. Guided flag can be set or not, depends on the actual implementation. | */
+	VEHICLE_MODE_FLAG_GUIDED_ENABLED       = 8,   /* 0b00001000 guided mode enabled, system flies MISSIONs / mission items. | */
+	VEHICLE_MODE_FLAG_STABILIZE_ENABLED    = 16,  /* 0b00010000 system stabilizes electronically its attitude (and optionally position). It needs however further control inputs to move around. | */
+	VEHICLE_MODE_FLAG_HIL_ENABLED          = 32,  /* 0b00100000 hardware in the loop simulation. All motors / actuators are blocked, but internal software is full operational. | */
+	VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED = 64,  /* 0b01000000 remote control input is enabled. | */
+	VEHICLE_MODE_FLAG_SAFETY_ARMED         = 128, /* 0b10000000 MAV safety set to armed. Motors are enabled / running / can start. Ready to fly. Additional note: this flag is to be ignore when sent in the command MAV_CMD_DO_SET_MODE and MAV_CMD_COMPONENT_ARM_DISARM shall be used instead. The flag can still be used to report the armed state. | */
+	VEHICLE_MODE_FLAG_ENUM_END             = 129, /*  | */
 } VEHICLE_MODE_FLAG;
 
 // TODO: generate
@@ -487,7 +487,7 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 	return Commander::main(argc, argv);
 }
 
-bool Commander::shutdown_if_allowed()
+bool Commander::shutdownIfAllowed()
 {
 	return TRANSITION_DENIED != _arm_state_machine.arming_state_transition(_vehicle_status,
 			vehicle_status_s::ARMING_STATE_SHUTDOWN, _actuator_armed, _health_and_arming_checks,
@@ -815,7 +815,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else {
 					if (cmd.from_external && cmd.source_component == 190) { // MAV_COMP_ID_MISSIONPLANNER
-						print_reject_mode(desired_nav_state);
+						printRejectMode(desired_nav_state);
 					}
 
 					main_ret = TRANSITION_DENIED;
@@ -1130,7 +1130,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_ACTUATOR_TEST:
-		cmd_result = handle_command_actuator_test(cmd);
+		cmd_result = handleCommandActuatorTest(cmd);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN: {
@@ -1143,7 +1143,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 #if defined(CONFIG_BOARDCTL_RESET)
 
-			} else if ((param1 == 1) && shutdown_if_allowed() && (px4_reboot_request(false, 400_ms) == 0)) {
+			} else if ((param1 == 1) && shutdownIfAllowed() && (px4_reboot_request(false, 400_ms) == 0)) {
 				// 1: Reboot autopilot
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
@@ -1153,7 +1153,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 #if defined(BOARD_HAS_POWER_CONTROL)
 
-			} else if ((param1 == 2) && shutdown_if_allowed() && (px4_shutdown_request(400_ms) == 0)) {
+			} else if ((param1 == 2) && shutdownIfAllowed() && (px4_shutdown_request(400_ms) == 0)) {
 				// 2: Shutdown autopilot
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
@@ -1163,7 +1163,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 #if defined(CONFIG_BOARDCTL_RESET)
 
-			} else if ((param1 == 3) && shutdown_if_allowed() && (px4_reboot_request(true, 400_ms) == 0)) {
+			} else if ((param1 == 3) && shutdownIfAllowed() && (px4_reboot_request(true, 400_ms) == 0)) {
 				// 3: Reboot autopilot and keep it in the bootloader until upgraded.
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
@@ -1435,8 +1435,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	return true;
 }
 
-unsigned
-Commander::handle_command_actuator_test(const vehicle_command_s &cmd)
+unsigned Commander::handleCommandActuatorTest(const vehicle_command_s &cmd)
 {
 	if (_arm_state_machine.isArmed() || (_safety.isButtonAvailable() && !_safety.isSafetyOff())) {
 		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
@@ -1562,7 +1561,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 	case action_request_s::ACTION_SWITCH_MODE:
 
 		if (!_user_mode_intention.change(action_request.mode, true)) {
-			print_reject_mode(action_request.mode);
+			printRejectMode(action_request.mode);
 		}
 
 		break;
@@ -1624,8 +1623,7 @@ void Commander::updateParameters()
 
 }
 
-void
-Commander::run()
+void Commander::run()
 {
 	/* initialize */
 	led_init();
@@ -1708,10 +1706,10 @@ Commander::run()
 
 		checkForMissionUpdate();
 
-		manual_control_check();
+		manualControlCheck();
 
 		// data link checks which update the status
-		data_link_check();
+		dataLinkCheck();
 
 		/* handle commands last, as the system needs to be updated to handle them */
 		if (_vehicle_command_sub.updated()) {
@@ -1788,7 +1786,7 @@ Commander::run()
 			_vehicle_status.pre_flight_checks_pass = _health_and_arming_checks.canArm(_vehicle_status.nav_state);
 			perf_end(_preflight_check_perf);
 
-			check_and_inform_ready_for_takeoff();
+			checkAndInformReadyForTakeoff();
 		}
 
 		// publish states (armed, control_mode, vehicle_status, vehicle_status_flags, failure_detector_status) at 2 Hz or immediately when changed
@@ -1802,7 +1800,7 @@ Commander::run()
 			_actuator_armed_pub.publish(_actuator_armed);
 
 			// update and publish vehicle_control_mode
-			update_control_mode();
+			updateControlMode();
 
 			// vehicle_status publish (after prearm/preflight updates above)
 			_vehicle_status.arming_state = _arm_state_machine.getArmState();
@@ -1941,7 +1939,7 @@ void Commander::handlePowerButtonState()
 
 		if (_power_button_state_sub.copy(&button_state)) {
 			if (button_state.event == power_button_state_s::PWR_BUTTON_STATE_REQUEST_SHUTDOWN) {
-				if (shutdown_if_allowed() && (px4_shutdown_request() == 0)) {
+				if (shutdownIfAllowed() && (px4_shutdown_request() == 0)) {
 					while (1) { px4_usleep(1); }
 				}
 			}
@@ -2239,7 +2237,7 @@ bool Commander::handleModeIntentionAndFailsafe()
 	return prev_nav_state != _vehicle_status.nav_state || prev_failsafe_action != _failsafe.selectedAction();
 }
 
-void Commander::check_and_inform_ready_for_takeoff()
+void Commander::checkAndInformReadyForTakeoff()
 {
 #ifdef CONFIG_ARCH_BOARD_PX4_SITL
 	static bool ready_for_takeoff_printed = false;
@@ -2406,8 +2404,7 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 	}
 }
 
-void
-Commander::update_control_mode()
+void Commander::updateControlMode()
 {
 	_vehicle_control_mode = {};
 	_offboard_control_mode_sub.update();
@@ -2417,8 +2414,7 @@ Commander::update_control_mode()
 	_vehicle_control_mode_pub.publish(_vehicle_control_mode);
 }
 
-void
-Commander::print_reject_mode(uint8_t nav_state)
+void Commander::printRejectMode(uint8_t nav_state)
 {
 	if (hrt_elapsed_time(&_last_print_mode_reject_time) > 1_s) {
 
@@ -2517,7 +2513,7 @@ void Commander::enable_hil()
 	_vehicle_status.hil_state = vehicle_status_s::HIL_STATE_ON;
 }
 
-void Commander::data_link_check()
+void Commander::dataLinkCheck()
 {
 	for (auto &telemetry_status :  _telemetry_status_subs) {
 		telemetry_status_s telemetry;
@@ -2706,7 +2702,7 @@ void Commander::battery_status_check()
 		if (_vehicle_status_flags.battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
 #if defined(BOARD_HAS_POWER_CONTROL)
 
-			if (shutdown_if_allowed() && (px4_shutdown_request(60_s) == 0)) {
+			if (shutdownIfAllowed() && (px4_shutdown_request(60_s) == 0)) {
 				mavlink_log_critical(&_mavlink_log_pub, "Dangerously low battery! Shutting system down in 60 seconds\t");
 				events::send(events::ID("commander_low_bat_shutdown"), {events::Log::Emergency, events::LogInternal::Warning},
 					     "Dangerously low battery! Shutting system down");
@@ -2729,7 +2725,7 @@ void Commander::battery_status_check()
 	_battery_warning = _vehicle_status_flags.battery_warning;
 }
 
-void Commander::manual_control_check()
+void Commander::manualControlCheck()
 {
 	manual_control_setpoint_s manual_control_setpoint;
 	const bool manual_control_updated = _manual_control_setpoint_sub.update(&manual_control_setpoint);
