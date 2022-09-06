@@ -98,7 +98,7 @@ bool in_transition_mode  # True if VTOL is doing a transition
 bool in_transition_to_fw # True if VTOL is doing a transition from MC to FW
 
 bool mission_failure # Set to true if mission could not continue/finish
-bool geofence_violated
+bool primary_geofence_breached
 
 # MAVLink identification
 uint8 system_type  # system type, contains mavlink MAV_TYPE

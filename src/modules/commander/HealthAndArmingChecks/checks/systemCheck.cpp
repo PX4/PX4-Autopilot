@@ -191,7 +191,7 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (_param_gf_action.get() != 0 && context.status().geofence_violated) {
+	if (_param_gf_action.get() != 0 && context.status().primary_geofence_breached) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">

@@ -491,7 +491,7 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 	return Commander::main(argc, argv);
 }
 
-bool Commander::shutdown_if_allowed()
+bool Commander::shutdownIfAllowed()
 {
 	return TRANSITION_DENIED != _arm_state_machine.arming_state_transition(_vehicle_status,
 			vehicle_status_s::ARMING_STATE_SHUTDOWN, _actuator_armed, _health_and_arming_checks,
@@ -653,7 +653,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 			return TRANSITION_DENIED;
 		}
 
-		if ((_geofence_result.geofence_action == geofence_result_s::GF_ACTION_RTL)
+		if ((_geofence_result.primary_geofence_action == geofence_result_s::GF_ACTION_RTL)
 		    && !_vehicle_status_flags.home_position_valid) {
 			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: Geofence RTL requires valid home\t");
 			events::send(events::ID("commander_arm_denied_geofence_rtl"),
@@ -1229,11 +1229,11 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_DO_MOTOR_TEST:
-		cmd_result = handle_command_motor_test(cmd);
+		cmd_result = handleCommandMotorTest(cmd);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_ACTUATOR_TEST:
-		cmd_result = handle_command_actuator_test(cmd);
+		cmd_result = handleCommandActuatorTest(cmd);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN: {
@@ -1246,7 +1246,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 #if defined(CONFIG_BOARDCTL_RESET)
 
-			} else if ((param1 == 1) && shutdown_if_allowed() && (px4_reboot_request(false, 400_ms) == 0)) {
+			} else if ((param1 == 1) && shutdownIfAllowed() && (px4_reboot_request(false, 400_ms) == 0)) {
 				// 1: Reboot autopilot
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
@@ -1256,7 +1256,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 #if defined(BOARD_HAS_POWER_CONTROL)
 
-			} else if ((param1 == 2) && shutdown_if_allowed() && (px4_shutdown_request(400_ms) == 0)) {
+			} else if ((param1 == 2) && shutdownIfAllowed() && (px4_shutdown_request(400_ms) == 0)) {
 				// 2: Shutdown autopilot
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
@@ -1266,7 +1266,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 #if defined(CONFIG_BOARDCTL_RESET)
 
-			} else if ((param1 == 3) && shutdown_if_allowed() && (px4_reboot_request(true, 400_ms) == 0)) {
+			} else if ((param1 == 3) && shutdownIfAllowed() && (px4_reboot_request(true, 400_ms) == 0)) {
 				// 3: Reboot autopilot and keep it in the bootloader until upgraded.
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
@@ -1536,8 +1536,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	return true;
 }
 
-unsigned
-Commander::handle_command_motor_test(const vehicle_command_s &cmd)
+unsigned Commander::handleCommandMotorTest(const vehicle_command_s &cmd)
 {
 	if (_arm_state_machine.isArmed() || (_safety.isButtonAvailable() && !_safety.isSafetyOff())) {
 		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
@@ -1584,8 +1583,7 @@ Commander::handle_command_motor_test(const vehicle_command_s &cmd)
 	return vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 }
 
-unsigned
-Commander::handle_command_actuator_test(const vehicle_command_s &cmd)
+unsigned Commander::handleCommandActuatorTest(const vehicle_command_s &cmd)
 {
 	if (_arm_state_machine.isArmed() || (_safety.isButtonAvailable() && !_safety.isSafetyOff())) {
 		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
@@ -1787,8 +1785,7 @@ void Commander::updateParameters()
 
 }
 
-void
-Commander::run()
+void Commander::run()
 {
 	/* initialize */
 	led_init();
@@ -1847,7 +1844,7 @@ Commander::run()
 
 		handlePowerButtonState();
 
-		offboard_control_update();
+		offboardControlUpdate();
 
 		systemPowerUpdate();
 
@@ -1862,13 +1859,13 @@ Commander::run()
 
 		handleAutoDisarm();
 
-		if (_geofence_warning_action_on
+		if (_primary_geofence_warning_action_on
 		    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
 		    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_LOITER
 		    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
 
 			// reset flag again when we switched out of it
-			_geofence_warning_action_on = false;
+			_primary_geofence_warning_action_on = false;
 		}
 
 		battery_status_check();
@@ -1883,120 +1880,12 @@ Commander::run()
 
 		checkForMissionUpdate();
 
-		/* start geofence result check */
-		if (_geofence_result_sub.update(&_geofence_result)) {
-			_vehicle_status.geofence_violated = _geofence_result.geofence_violated;
-		}
+		checkGeofenceStatus();
 
-		const bool in_low_battery_failsafe_delay = _battery_failsafe_timestamp != 0;
-
-		// Geofence actions
-		if (_arm_state_machine.isArmed()
-		    && (_geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE)
-		    && !in_low_battery_failsafe_delay) {
-
-			// check for geofence violation transition
-			if (_geofence_result.geofence_violated && !_geofence_violated_prev) {
-
-				switch (_geofence_result.geofence_action) {
-				case (geofence_result_s::GF_ACTION_NONE) : {
-						// do nothing
-						break;
-					}
-
-				case (geofence_result_s::GF_ACTION_WARN) : {
-						// do nothing, mavlink critical messages are sent by navigator
-						break;
-					}
-
-				case (geofence_result_s::GF_ACTION_LOITER) : {
-						if (TRANSITION_CHANGED == main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_LOITER,
-								_vehicle_status_flags,
-								_commander_state)) {
-							_geofence_loiter_on = true;
-						}
-
-						break;
-					}
-
-				case (geofence_result_s::GF_ACTION_RTL) : {
-						if (TRANSITION_CHANGED == main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_RTL,
-								_vehicle_status_flags,
-								_commander_state)) {
-							_geofence_rtl_on = true;
-						}
-
-						break;
-					}
-
-				case (geofence_result_s::GF_ACTION_LAND) : {
-						if (TRANSITION_CHANGED == main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_LAND,
-								_vehicle_status_flags,
-								_commander_state)) {
-							_geofence_land_on = true;
-						}
-
-						break;
-					}
-
-				case (geofence_result_s::GF_ACTION_TERMINATE) : {
-						PX4_WARN("Flight termination because of geofence");
-
-						if (!_flight_termination_triggered && !_lockdown_triggered) {
-							_flight_termination_triggered = true;
-							mavlink_log_critical(&_mavlink_log_pub, "Geofence violation! Flight terminated\t");
-							events::send(events::ID("commander_geofence_termination"), {events::Log::Alert, events::LogInternal::Warning},
-								     "Geofence violation! Flight terminated");
-							_actuator_armed.force_failsafe = true;
-							_status_changed = true;
-							send_parachute_command();
-						}
-
-						break;
-					}
-				}
-			}
-
-			_geofence_violated_prev = _geofence_result.geofence_violated;
-
-			// reset if no longer in LOITER or if manually switched to LOITER
-			const bool in_loiter_mode = _commander_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
-
-			if (!in_loiter_mode) {
-				_geofence_loiter_on = false;
-			}
-
-
-			// reset if no longer in RTL or if manually switched to RTL
-			const bool in_rtl_mode = _commander_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL;
-
-			if (!in_rtl_mode) {
-				_geofence_rtl_on = false;
-			}
-
-			// reset if no longer in LAND or if manually switched to LAND
-			const bool in_land_mode = _commander_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND;
-
-			if (!in_land_mode) {
-				_geofence_land_on = false;
-			}
-
-			_geofence_warning_action_on = _geofence_warning_action_on || (_geofence_loiter_on || _geofence_rtl_on
-						      || _geofence_land_on);
-
-		} else {
-			// No geofence checks, reset flags
-			_geofence_loiter_on = false;
-			_geofence_rtl_on = false;
-			_geofence_land_on = false;
-			_geofence_warning_action_on = false;
-			_geofence_violated_prev = false;
-		}
-
-		manual_control_check();
+		manualControlCheck();
 
 		// data link checks which update the status
-		data_link_check();
+		dataLinkCheck();
 
 		/* check if we are disarmed and there is a better mode to wait in */
 		if (!_arm_state_machine.isArmed()) {
@@ -2278,7 +2167,7 @@ Commander::run()
 							_vehicle_status.nav_state);
 				perf_end(_preflight_check_perf);
 
-				check_and_inform_ready_for_takeoff();
+				checkAndInformReadyForTakeoff();
 			}
 
 			// publish actuator_armed first (used by output modules)
@@ -2288,7 +2177,7 @@ Commander::run()
 			_actuator_armed_pub.publish(_actuator_armed);
 
 			// update and publish vehicle_control_mode
-			update_control_mode();
+			updateControlMode();
 
 			// vehicle_status publish (after prearm/preflight updates above)
 			_vehicle_status.arming_state = _arm_state_machine.getArmState();
@@ -2435,6 +2324,99 @@ void Commander::checkForMissionUpdate()
 	}
 }
 
+void Commander::checkGeofenceStatus()
+{
+	/* start geofence result check */
+	if (_geofence_result_sub.update(&_geofence_result)) {
+		_vehicle_status.primary_geofence_breached = _geofence_result.primary_geofence_breached;;
+	}
+
+	const bool in_low_battery_failsafe_delay = _battery_failsafe_timestamp != 0;
+
+	// Geofence actions.  Mavlink critical messages are sent by the Navigator
+	if (_arm_state_machine.isArmed()
+	    && _geofence_result.primary_geofence_action != geofence_result_s::GF_ACTION_NONE
+	    && _geofence_result.primary_geofence_action != geofence_result_s::GF_ACTION_WARN
+	    && !in_low_battery_failsafe_delay) {
+
+		// check for geofence violation transition
+		if ((_geofence_result.primary_geofence_breached && !_primary_geofence_breached_prev)) {
+
+			if (_geofence_result.primary_geofence_action == geofence_result_s::GF_ACTION_LOITER) {
+
+				if (TRANSITION_CHANGED == main_state_transition(_vehicle_status,
+						commander_state_s::MAIN_STATE_AUTO_LOITER,
+						_vehicle_status_flags,
+						_commander_state)) {
+					_geofence_loiter_on = true;
+				}
+			}
+
+			if (_geofence_result.primary_geofence_action == geofence_result_s::GF_ACTION_RTL) {
+
+				if (TRANSITION_CHANGED == main_state_transition(_vehicle_status,
+						commander_state_s::MAIN_STATE_AUTO_RTL,
+						_vehicle_status_flags,
+						_commander_state)) {
+					_geofence_rtl_on = true;
+				}
+			}
+
+			if (_geofence_result.primary_geofence_action == geofence_result_s::GF_ACTION_LAND) {
+
+				if (TRANSITION_CHANGED == main_state_transition(_vehicle_status,
+						commander_state_s::MAIN_STATE_AUTO_LAND,
+						_vehicle_status_flags,
+						_commander_state)) {
+					_geofence_land_on = true;
+				}
+			}
+
+			if (_geofence_result.primary_geofence_action == geofence_result_s::GF_ACTION_TERMINATE) {
+
+				if (!_flight_termination_triggered && !_lockdown_triggered) {
+					_flight_termination_triggered = true;
+					mavlink_log_critical(&_mavlink_log_pub, "Geofence violation! Flight terminated\t");
+					events::send(events::ID("commander_geofence_termination"), {events::Log::Alert, events::LogInternal::Warning},
+						     "Geofence violation! Flight terminated");
+					_actuator_armed.force_failsafe = true;
+					_status_changed = true;
+					send_parachute_command();
+				}
+			}
+		}
+
+		// reset if no longer in LOITER or if manually switched to LOITER
+
+		if (_commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_LOITER) {
+			_geofence_loiter_on = false;
+		}
+
+		// reset if no longer in RTL or if manually switched to RTL
+		if (_commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL) {
+			_geofence_rtl_on = false;
+		}
+
+		// reset if no longer in LAND or if manually switched to LAND
+		if (_commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
+			_geofence_land_on = false;
+		}
+
+		_primary_geofence_warning_action_on = _primary_geofence_warning_action_on || _geofence_loiter_on ||
+						      _geofence_rtl_on || _geofence_land_on;
+
+		_primary_geofence_breached_prev   = _geofence_result.primary_geofence_breached;
+
+	} else {
+		// Reset flags
+		_geofence_loiter_on = false;
+		_geofence_rtl_on = false;
+		_geofence_land_on = false;
+		_primary_geofence_warning_action_on = false;
+		_primary_geofence_breached_prev = false;
+	}
+}
+
 bool Commander::getPrearmState() const
 {
 	switch ((PrearmedMode)_param_com_prearm_mode.get()) {
@@ -2472,7 +2454,7 @@ void Commander::handlePowerButtonState()
 
 		if (_power_button_state_sub.copy(&button_state)) {
 			if (button_state.event == power_button_state_s::PWR_BUTTON_STATE_REQUEST_SHUTDOWN) {
-				if (shutdown_if_allowed() && (px4_shutdown_request() == 0)) {
+				if (shutdownIfAllowed() && (px4_shutdown_request() == 0)) {
 					while (1) { px4_usleep(1); }
 				}
 			}
@@ -2720,15 +2702,14 @@ void Commander::handleAutoDisarm()
 	}
 }
 
-void
-Commander::get_circuit_breaker_params()
+void Commander::get_circuit_breaker_params()
 {
 	_circuit_breaker_flight_termination_disabled = circuit_breaker_enabled_by_val(
 				_param_cbrk_flightterm.get(),
 				CBRK_FLIGHTTERM_KEY);
 }
 
-void Commander::check_and_inform_ready_for_takeoff()
+void Commander::checkAndInformReadyForTakeoff()
 {
 #ifdef CONFIG_ARCH_BOARD_PX4_SITL
 	static bool ready_for_takeoff_printed = false;
@@ -2895,8 +2876,7 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 	}
 }
 
-void
-Commander::update_control_mode()
+void Commander::updateControlMode()
 {
 	_vehicle_control_mode = {};
 	mode_util::getVehicleControlMode(_arm_state_machine.isArmed(), _vehicle_status.nav_state,
@@ -2905,8 +2885,7 @@ Commander::update_control_mode()
 	_vehicle_control_mode_pub.publish(_vehicle_control_mode);
 }
 
-void
-Commander::print_reject_mode(uint8_t main_state)
+void Commander::print_reject_mode(uint8_t main_state)
 {
 	if (hrt_elapsed_time(&_last_print_mode_reject_time) > 1_s) {
 
@@ -3002,7 +2981,7 @@ void Commander::enable_hil()
 	_vehicle_status.hil_state = vehicle_status_s::HIL_STATE_ON;
 }
 
-void Commander::data_link_check()
+void Commander::dataLinkCheck()
 {
 	for (auto &telemetry_status :  _telemetry_status_subs) {
 		telemetry_status_s telemetry;
@@ -3238,7 +3217,7 @@ void Commander::battery_status_check()
 		if (_battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
 #if defined(BOARD_HAS_POWER_CONTROL)
 
-			if (shutdown_if_allowed() && (px4_shutdown_request(60_s) == 0)) {
+			if (shutdownIfAllowed() && (px4_shutdown_request(60_s) == 0)) {
 				mavlink_log_critical(&_mavlink_log_pub, "Dangerously low battery! Shutting system down in 60 seconds\t");
 				events::send(events::ID("commander_low_bat_shutdown"), {events::Log::Emergency, events::LogInternal::Warning},
 					     "Dangerously low battery! Shutting system down");
@@ -3259,7 +3238,7 @@ void Commander::battery_status_check()
 	}
 }
 
-void Commander::manual_control_check()
+void Commander::manualControlCheck()
 {
 	manual_control_setpoint_s manual_control_setpoint;
 	const bool manual_control_updated = _manual_control_setpoint_sub.update(&manual_control_setpoint);
@@ -3310,7 +3289,9 @@ void Commander::manual_control_check()
 
 				const bool in_low_battery_failsafe_delay = (_battery_failsafe_timestamp != 0);
 
-				if (override_enabled && !in_low_battery_failsafe_delay && !_geofence_warning_action_on) {
+				if (override_enabled
+				    && !in_low_battery_failsafe_delay
+				    && !_primary_geofence_warning_action_on) {
 
 					const transition_result_t posctl_result =
 						main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_POSCTL, _vehicle_status_flags, _commander_state);
@@ -3366,8 +3347,7 @@ void Commander::manual_control_check()
 	}
 }
 
-void
-Commander::offboard_control_update()
+void Commander::offboardControlUpdate()
 {
 	bool offboard_available = false;
 
