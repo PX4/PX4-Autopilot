@@ -113,9 +113,13 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			battery_required_count++;
 		}
 
+		if (!_last_armed && context.isArmed()) {
+			_battery_connected_at_arming[index] = battery.connected;
+		}
+
 		if (context.isArmed()) {
 
-			if (!battery.connected) {
+			if (!battery.connected && _battery_connected_at_arming[index]) { // If disconnected after arming
 				/* EVENT
 				 */
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::battery, events::ID("check_battery_disconnected"),
@@ -243,6 +247,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.setIsPresent(health_component_t::battery);
 	}
 
+	_last_armed = context.isArmed();
 }
 
 void BatteryChecks::rtlEstimateCheck(const Context &context, Report &reporter, float worst_battery_time_s)
