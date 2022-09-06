@@ -172,6 +172,7 @@ void Report::reset()
 	_results[_current_result].reset();
 	_next_buffer_idx = 0;
 	_buffer_overflowed = false;
+	_results_changed = false;
 }
 
 void Report::prepare(uint8_t vehicle_type)
@@ -186,16 +187,18 @@ NavModes Report::getModeGroup(uint8_t nav_state) const
 	return (NavModes)(1u << nav_state);
 }
 
-void Report::finalize()
+bool Report::finalize()
 {
 	_results[_current_result].arming_checks.valid = true;
 	_already_reported = false;
+	_results_changed = _results[0] != _results[1];
+	return _results_changed;
 }
 
 bool Report::report(bool is_armed, bool force)
 {
 	const hrt_abstime now = hrt_absolute_time();
-	const bool has_difference = _had_unreported_difference || _results[0] != _results[1];
+	const bool has_difference = _had_unreported_difference || _results_changed;
 
 	if (now - _last_report < _min_reporting_interval && !force) {
 		if (has_difference) {
