@@ -64,7 +64,11 @@ static bool operator !=(const manual_control_switches_s &a, const manual_control
 
 RCUpdate::RCUpdate() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
+	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	_trigger_slots_hysteresis{
+	systemlib::Hysteresis{false},
+	systemlib::Hysteresis{false}
+}
 {
 	// initialize parameter handles
 	for (unsigned i = 0; i < RC_MAX_CHAN_COUNT; i++) {
@@ -99,10 +103,30 @@ RCUpdate::RCUpdate() :
 		_parameter_handles.rc_map_param[i] = param_find(name);
 	}
 
-	rc_parameter_map_poll(true /* forced */);
-	parameters_updated();
+	// Find param handles for Generic Trigger Channel & Actions for slot 1 ~ 6
+	// And setup Hysteresis objects
+	for (uint8_t trig_slot = 1; trig_slot <= RC_TRIG_SLOT_COUNT; trig_slot++) {
+		char param_name_buf[17] = {};
+		snprintf(param_name_buf, sizeof(param_name_buf), "RC_TRIG%d_CHAN", trig_slot);
+		_parameter_handles.generic_trigger_chan[trig_slot - 1] = param_find(param_name_buf);
+		snprintf(param_name_buf, sizeof(param_name_buf), "RC_TRIG%d_ACTION", trig_slot);
+		_parameter_handles.generic_trigger_action[trig_slot - 1] = param_find(param_name_buf);
 
-	_button_pressed_hysteresis.set_hysteresis_time_from(false, 50_ms);
+		// Set Hysteresis time from false state (false -> true)
+		_trigger_slots_hysteresis[trig_slot - 1].set_hysteresis_time_from(false, RC_TRIGGER_HYSTERESIS_TIME);
+		// Set Hysteresis time from true state (true -> false)
+		_trigger_slots_hysteresis[trig_slot - 1].set_hysteresis_time_from(true, RC_TRIGGER_HYSTERESIS_TIME);
+	}
+
+	// Reset each Action mapping & states
+	for (uint8_t action_idx = 0; action_idx < RC_TRIGGER_ACTION_COUNT; action_idx++) {
+		_trigger_action_to_channel_mapping[action_idx] = RC_TRIG_CHAN_UNASSIGNED;
+		_trigger_action_states[action_idx] = false;
+	}
+
+	rc_parameter_map_poll(true /* forced */);
+
+	parameters_updated(); // Update parameters and configure generic trigger action setup
 }
 
 RCUpdate::~RCUpdate()
@@ -152,6 +176,45 @@ void RCUpdate::parameters_updated()
 		param_get(_parameter_handles.rc_map_param[i], &(_parameters.rc_map_param[i]));
 	}
 
+	// Update and check the generic trigger parameters
+	for (uint8_t trig_slot = 1; trig_slot <= RC_TRIG_SLOT_COUNT; trig_slot++) {
+		const int8_t old_channel = _parameters.generic_trigger_chan[trig_slot - 1];
+		const int8_t old_action = _parameters.generic_trigger_action[trig_slot - 1];
+		int32_t new_channel{RC_TRIG_CHAN_UNASSIGNED};
+		int32_t new_action{RC_TRIGGER_ACTION_UNASSIGNED};
+		param_get(_parameter_handles.generic_trigger_chan[trig_slot - 1], &new_channel);
+		param_get(_parameter_handles.generic_trigger_action[trig_slot - 1], &new_action);
+
+		// Channel Sanity check. If infeasible, don't handle this channel setting
+		if (new_channel <= RC_TRIG_CHAN_UNASSIGNED || new_channel >= RC_MAX_CHAN_COUNT) {
+			continue;
+		}
+
+		// If the trigger channel / action configuration has changed, reset Hysteresis state
+		if ((old_channel != new_channel) || (old_action != new_action)) {
+			_trigger_slots_hysteresis[trig_slot - 1].set_state_and_update(false, hrt_absolute_time());
+
+			if (old_action == new_action) {
+				// If only the channel configuration changed, update the mapping
+				set_trigger_action_to_channel_mapping((RC_TRIGGER_ACTIONS)new_action, new_channel);
+
+			} else if (old_channel == new_channel) {
+				// If only the action changed, clear the previous action to channel mapping
+				set_trigger_action_to_channel_mapping((RC_TRIGGER_ACTIONS)old_action, RC_TRIG_CHAN_UNASSIGNED);
+
+			} else {
+				// If both channel and action mapping changed
+				set_trigger_action_to_channel_mapping((RC_TRIGGER_ACTIONS)old_action, RC_TRIG_CHAN_UNASSIGNED);
+				set_trigger_action_to_channel_mapping((RC_TRIGGER_ACTIONS)new_action, new_channel);
+			}
+		}
+
+		// Update the parameter values
+		_parameters.generic_trigger_chan[trig_slot - 1] = new_channel;
+		_parameters.generic_trigger_action[trig_slot - 1] = new_action;
+	}
+
+	// Update RC Function Mapping (Throttle, Roll, AUX1, etc.)
 	update_rc_functions();
 
 	// deprecated parameters, will be removed post v1.12 once QGC is updated
@@ -202,6 +265,28 @@ void RCUpdate::parameters_updated()
 	}
 }
 
+bool RCUpdate::set_trigger_action_to_channel_mapping(const RC_TRIGGER_ACTIONS action, const int8_t channel)
+{
+	// Reject invalid action values as it will access illegal index of the mapping array
+	if (action < 0 || action >= RC_TRIGGER_ACTION_COUNT) {
+		return false;
+	}
+
+	// Reject unassigned trigger action
+	if (action == RC_TRIGGER_ACTION_UNASSIGNED) {
+		return false;
+	}
+
+	// Don't set the mapping if the channel is unassigned
+	if (channel == RC_TRIG_CHAN_UNASSIGNED) {
+		return false;
+	}
+
+	// Map the Action : Channel
+	_trigger_action_to_channel_mapping[action] = channel;
+	return true;
+}
+
 void RCUpdate::update_rc_functions()
 {
 	/* update RC function mappings */
@@ -209,17 +294,7 @@ void RCUpdate::update_rc_functions()
 	_rc.function[rc_channels_s::FUNCTION_ROLL] = _param_rc_map_roll.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_PITCH] = _param_rc_map_pitch.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_YAW] = _param_rc_map_yaw.get() - 1;
-
-	_rc.function[rc_channels_s::FUNCTION_RETURN] = _param_rc_map_return_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_LOITER] = _param_rc_map_loiter_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_OFFBOARD] = _param_rc_map_offb_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_KILLSWITCH] = _param_rc_map_kill_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_ARMSWITCH] = _param_rc_map_arm_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_TRANSITION] = _param_rc_map_trans_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_GEAR] = _param_rc_map_gear_sw.get() - 1;
-
 	_rc.function[rc_channels_s::FUNCTION_FLAPS] = _param_rc_map_flaps.get() - 1;
-
 	_rc.function[rc_channels_s::FUNCTION_AUX_1] = _param_rc_map_aux1.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_AUX_2] = _param_rc_map_aux2.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_AUX_3] = _param_rc_map_aux3.get() - 1;
@@ -230,8 +305,6 @@ void RCUpdate::update_rc_functions()
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		_rc.function[rc_channels_s::FUNCTION_PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
 	}
-
-	map_flight_modes_buttons();
 }
 
 void RCUpdate::rc_parameter_map_poll(bool forced)
@@ -306,42 +379,6 @@ void RCUpdate::set_params_from_rc()
 	}
 }
 
-void
-RCUpdate::map_flight_modes_buttons()
-{
-	static_assert(rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + manual_control_switches_s::MODE_SLOT_NUM <= sizeof(
-			      _rc.function) / sizeof(_rc.function[0]), "Unexpected number of RC functions");
-	static_assert(rc_channels_s::FUNCTION_FLTBTN_SLOT_COUNT == manual_control_switches_s::MODE_SLOT_NUM,
-		      "Unexpected number of Flight Modes slots");
-
-	// Reset all the slots to -1
-	for (uint8_t slot = 0; slot < manual_control_switches_s::MODE_SLOT_NUM; slot++) {
-		_rc.function[rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + slot] = -1;
-	}
-
-	// If the functionality is disabled we don't need to map channels
-	const int flightmode_buttons = _param_rc_map_fltm_btn.get();
-
-	if (flightmode_buttons == 0) {
-		return;
-	}
-
-	uint8_t slot = 0;
-
-	for (uint8_t channel = 0; channel < RC_MAX_CHAN_COUNT; channel++) {
-		if (flightmode_buttons & (1 << channel)) {
-			PX4_DEBUG("Slot %d assigned to channel %d", slot + 1, channel);
-			_rc.function[rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + slot] = channel;
-			slot++;
-		}
-
-		if (slot >= manual_control_switches_s::MODE_SLOT_NUM) {
-			// we have filled all the available slots
-			break;
-		}
-	}
-}
-
 void RCUpdate::Run()
 {
 	if (should_exit()) {
@@ -362,6 +399,16 @@ void RCUpdate::Run()
 		// update parameters from storage
 		updateParams();
 		parameters_updated();
+	}
+
+	// Use the Generic RC Switch / Button only when the RC is in use
+	if (_manual_control_setpoint_sub.update()) {
+		if (_manual_control_setpoint_sub.get().data_source == manual_control_setpoint_s::SOURCE_RC) {
+			_manual_control_setpoint_source_is_rc = true;
+
+		} else {
+			_manual_control_setpoint_source_is_rc = false;
+		}
 	}
 
 	rc_parameter_map_poll();
@@ -429,9 +476,10 @@ void RCUpdate::Run()
 			signal_lost = false;
 
 			/* check failsafe */
-			int8_t fs_ch = _rc.function[_param_rc_map_failsafe.get()]; // get channel mapped to throttle
+			int8_t fs_ch = _rc.function[rc_channels_s::FUNCTION_THROTTLE]; // Use Throttle channel as default
 
-			if (_param_rc_map_failsafe.get() > 0) { // if not 0, use channel number instead of rc.function mapping
+			// If the failsafe channel is set, use that instead of the throttle channel
+			if (_param_rc_map_failsafe.get() > 0) {
 				fs_ch = _param_rc_map_failsafe.get() - 1;
 			}
 
@@ -557,24 +605,6 @@ void RCUpdate::Run()
 	perf_end(_loop_perf);
 }
 
-switch_pos_t RCUpdate::get_rc_sw2pos_position(uint8_t func, float on_th) const
-{
-	if (_rc.function[func] >= 0) {
-		const bool on_inv = (on_th < 0.f);
-
-		const float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
-
-		if (on_inv ? value < on_th : value > on_th) {
-			return manual_control_switches_s::SWITCH_POS_ON;
-
-		} else {
-			return manual_control_switches_s::SWITCH_POS_OFF;
-		}
-	}
-
-	return manual_control_switches_s::SWITCH_POS_NONE;
-}
-
 void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 {
 	manual_control_switches_s switches{};
@@ -604,45 +634,94 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		if (switches.mode_slot > num_slots) {
 			switches.mode_slot = num_slots;
 		}
-
-	} else if (_param_rc_map_fltm_btn.get() > 0) {
-		switches.mode_slot = manual_control_switches_s::MODE_SLOT_NONE;
-		bool is_consistent_button_press = false;
-
-		for (uint8_t slot = 0; slot < manual_control_switches_s::MODE_SLOT_NUM; slot++) {
-
-			// If the slot is not in use (-1), get_rc_value() will return 0
-			float value = get_rc_value(rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + slot, -1.0, 1.0);
-
-			// The range goes from -1 to 1, checking that value is greater than 0.5f
-			// corresponds to check that the signal is above 75% of the overall range.
-			if (value > 0.5f) {
-				const uint8_t current_button_press_slot = slot + 1;
-
-				// The same button stays pressed consistently
-				if (current_button_press_slot == _potential_button_press_slot) {
-					is_consistent_button_press = true;
-				}
-
-				_potential_button_press_slot = current_button_press_slot;
-				break;
-			}
-		}
-
-		_button_pressed_hysteresis.set_state_and_update(is_consistent_button_press, timestamp_sample);
-
-		if (_button_pressed_hysteresis.get_state()) {
-			switches.mode_slot = _potential_button_press_slot;
-		}
 	}
 
-	switches.return_switch     = get_rc_sw2pos_position(rc_channels_s::FUNCTION_RETURN,     _param_rc_return_th.get());
-	switches.loiter_switch     = get_rc_sw2pos_position(rc_channels_s::FUNCTION_LOITER,     _param_rc_loiter_th.get());
-	switches.offboard_switch   = get_rc_sw2pos_position(rc_channels_s::FUNCTION_OFFBOARD,   _param_rc_offb_th.get());
-	switches.kill_switch       = get_rc_sw2pos_position(rc_channels_s::FUNCTION_KILLSWITCH, _param_rc_killswitch_th.get());
-	switches.arm_switch        = get_rc_sw2pos_position(rc_channels_s::FUNCTION_ARMSWITCH,  _param_rc_armswitch_th.get());
-	switches.transition_switch = get_rc_sw2pos_position(rc_channels_s::FUNCTION_TRANSITION, _param_rc_trans_th.get());
-	switches.gear_switch       = get_rc_sw2pos_position(rc_channels_s::FUNCTION_GEAR,       _param_rc_gear_th.get());
+	// Go through the trigger slots and update the states
+	const uint32_t rc_trigger_button_mask = _param_rc_trig_btn_mask.get();
+
+	for (uint8_t trig_slot = 1; trig_slot <= RC_TRIG_SLOT_COUNT; trig_slot++) {
+		// Channel Idx for _rc.channels[] starts from 0, whereas the Channel Parameter starts from 1
+		const int8_t channel_idx = _parameters.generic_trigger_chan[trig_slot - 1] - 1;
+		const float channel_value = _rc.channels[channel_idx];
+		const bool channel_state = (channel_value > RC_TRIG_CHAN_THRESHOLD);
+		const bool channel_is_btn = rc_trigger_button_mask & 1 << channel_idx;
+		const int8_t action = _parameters.generic_trigger_action[trig_slot - 1];
+
+		// DEBUG Logging
+		switches.trig_channels[trig_slot - 1] = channel_idx;
+		switches.trig_channel_values[trig_slot - 1] = channel_value;
+		switches.trig_actions[trig_slot - 1] = action;
+		switches.trig_states[trig_slot - 1] = _trigger_action_states[action];
+		switches.hysteresis_internal_time[trig_slot - 1] = _trigger_slots_hysteresis[trig_slot -
+				1].get_last_state_change_time();
+		switches.channel_states[trig_slot - 1] =
+			channel_state; // Log RAW channel state, to check if it is the right boolean value
+
+		// Compare Action:Channel mapping (channel_idx starts from 0, so we need to add offset of 1)
+		if (_trigger_action_to_channel_mapping[action] != (channel_idx + 1)) {
+			// Trigger Action is not mapped to this current channel, this can happen
+			// if multiple channels are mapped to the same action, and if this channel
+			// is not selected, don't take it into account
+			continue;
+		}
+
+		if (channel_is_btn) {
+			// Handle Button Hysterisis
+			const bool pre_update_state = _trigger_slots_hysteresis[trig_slot - 1].get_state();
+			_trigger_slots_hysteresis[trig_slot - 1].set_state_and_update(channel_state, timestamp_sample);
+			const bool post_update_state = _trigger_slots_hysteresis[trig_slot - 1].get_state();
+
+			// Button was pressed (Low -> High transition)
+			if (pre_update_state == false && post_update_state == true) {
+				// Flip the state of the trigger
+				_trigger_action_states[action] = !_trigger_action_states[action];
+			}
+
+		} else {
+			// Handle Switch Hysterisis
+			_trigger_slots_hysteresis[trig_slot - 1].set_state_and_update(channel_state, timestamp_sample);
+			_trigger_action_states[action] = _trigger_slots_hysteresis[trig_slot - 1].get_state();
+		}
+
+	}
+
+	// Temporarily make use of the manual_control_switches to set the appropriate switch states
+	// Ultimately, this part should handle sending ActionRequests, as the manual_control_switches
+	// uORB message will get removed
+	for (uint8_t trig_slot = 1; trig_slot <= RC_TRIG_SLOT_COUNT; trig_slot++) {
+		const int8_t action = _parameters.generic_trigger_action[trig_slot - 1];
+		const bool action_state = _trigger_action_states[action];
+
+		switch (action) {
+		case RC_TRIGGER_ACTION_KILLSWITCH:
+			switches.kill_switch = action_state;
+			break;
+
+		case RC_TRIGGER_ACTION_ARM:
+			switches.arm_switch = action_state;
+			break;
+
+		case RC_TRIGGER_ACTION_GEAR:
+			switches.gear_switch = action_state;
+			break;
+
+		case RC_TRIGGER_ACTION_RETURN_FLIGHTMODE:
+			switches.return_switch = action_state;
+			break;
+
+		case RC_TRIGGER_ACTION_HOLD_FLIGHTMODE:
+			switches.loiter_switch = action_state;
+			break;
+
+		case RC_TRIGGER_ACTION_OFFBOARD_FLIGHTMODE:
+			switches.offboard_switch = action_state;
+			break;
+
+		default:
+			// For other actions, do nothing (for now)
+			break;
+		}
+	}
 
 #if defined(ATL_MANTIS_RC_INPUT_HACKS)
 	switches.photo_switch = get_rc_sw2pos_position(rc_channels_s::FUNCTION_AUX_3, 0.5f);
@@ -743,6 +822,24 @@ void RCUpdate::UpdateManualControlInput(const hrt_abstime &timestamp_sample)
 
 	actuator_group_3.timestamp = hrt_absolute_time();
 	_actuator_group_3_pub.publish(actuator_group_3);
+}
+
+switch_pos_t RCUpdate::get_rc_sw2pos_position(uint8_t func, float on_th) const
+{
+	if (_rc.function[func] >= 0) {
+		const bool on_inv = (on_th < 0.f);
+
+		const float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
+
+		if (on_inv ? value < on_th : value > on_th) {
+			return manual_control_switches_s::SWITCH_POS_ON;
+
+		} else {
+			return manual_control_switches_s::SWITCH_POS_OFF;
+		}
+	}
+
+	return manual_control_switches_s::SWITCH_POS_NONE;
 }
 
 int RCUpdate::task_spawn(int argc, char *argv[])

@@ -49,6 +49,7 @@
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
+
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -65,6 +66,49 @@ using namespace time_literals;
 
 namespace rc_update
 {
+// maximum number of r/c channels we handle
+static constexpr uint8_t RC_MAX_CHAN_COUNT{input_rc_s::RC_INPUT_MAX_CHANNELS};
+
+// Number of Generic Trigger slots that can be configured
+static constexpr uint8_t RC_TRIG_SLOT_COUNT = 2;
+
+// Value of the RC_TRIG#_CHAN when the channel is unassigned
+static constexpr uint8_t RC_TRIG_CHAN_UNASSIGNED = 0;
+
+// [us] Hysteresis time for the Switch / Button Trigger Slots
+static constexpr hrt_abstime RC_TRIGGER_HYSTERESIS_TIME = 50_ms;
+
+// If the RC Channel [-1, 1] value is above this , consider a switch / button to be 'active'
+static constexpr float RC_TRIG_CHAN_THRESHOLD = 0.75f;
+
+// Enum class translation of the RC_TRIG#_ACTION values
+enum RC_TRIGGER_ACTIONS {
+	RC_TRIGGER_ACTION_UNASSIGNED = -1,
+	// Commander States (defined in commander_state.msg)
+	RC_TRIGGER_ACTION_MANUAL_FLIGHTMODE = 0,
+	RC_TRIGGER_ACTION_ALTITUDE_FLIGHTMODE = 1,
+	RC_TRIGGER_ACTION_POSITION_FLIGHTMODE = 2,
+	RC_TRIGGER_ACTION_MISSION_FLIHGTMODE = 3,
+	RC_TRIGGER_ACTION_HOLD_FLIGHTMODE = 4,
+	RC_TRIGGER_ACTION_RETURN_FLIGHTMODE = 5,
+	RC_TRIGGER_ACTION_ACRO_FLIGHTMODE = 6,
+	RC_TRIGGER_ACTION_OFFBOARD_FLIGHTMODE = 7,
+	RC_TRIGGER_ACTION_STABILIZED_FLIGHTMODE = 8,
+	RC_TRIGGER_ACTION_TAKEOFF = 10,
+	RC_TRIGGER_ACTION_LAND = 11,
+	RC_TRIGGER_ACTION_FOLLOW_ME_FLIGHTMODE = 12,
+	RC_TRIGGER_ACTION_PRECISION_LAND_FLIGHTMODE = 13,
+	RC_TRIGGER_ACTION_ORBIT_FLIGHTMODE = 14,
+	RC_TRIGGER_ACTION_AUTO_VTOL_TAKEOFF = 15,
+	// Non- Commander State Actions
+	RC_TRIGGER_ACTION_KILLSWITCH = 16,
+	RC_TRIGGER_ACTION_ARM = 17,
+	RC_TRIGGER_ACTION_VTOL_TRANSITION = 18,
+	RC_TRIGGER_ACTION_GEAR = 19,
+	RC_TRIGGER_ACTION_PHOTO = 20,
+	RC_TRIGGER_ACTION_VIDEO = 21,
+	RC_TRIGGER_ACTION_COUNT // Leave this as last!!
+};
 
 /**
  ** class RCUpdate
@@ -130,9 +174,13 @@ public:
 	 */
 	void		set_params_from_rc();
 
-	void		map_flight_modes_buttons();
-
-	static constexpr uint8_t RC_MAX_CHAN_COUNT{input_rc_s::RC_INPUT_MAX_CHANNELS}; /**< maximum number of r/c channels we handle */
+	/**
+	 * @brief Set the generic trigger action to RC channel mapping
+	 *
+	 * Handles unassigned action / channel cases and prevents wrong index access of the
+	 * mapping array. Returns true if the mapping has been successful
+	 */
+	bool set_trigger_action_to_channel_mapping(const RC_TRIGGER_ACTIONS action, const int8_t channel);
 
 	struct Parameters {
 		uint16_t min[RC_MAX_CHAN_COUNT];
@@ -142,6 +190,9 @@ public:
 		bool rev[RC_MAX_CHAN_COUNT];
 
 		int32_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
+
+		int8_t generic_trigger_chan[RC_TRIG_SLOT_COUNT]; // Trigger channel (1, 2, ...)
+		int8_t generic_trigger_action[RC_TRIG_SLOT_COUNT];
 	} _parameters{};
 
 	struct ParameterHandles {
@@ -152,16 +203,17 @@ public:
 		param_t dz[RC_MAX_CHAN_COUNT];
 
 		param_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
-		param_t rc_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< param handles for the parameters which are bound
-								to a RC channel, equivalent float values in the
-								_parameters struct are not existing
-								because these parameters are never read. */
+		param_t rc_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
+		/**< param handles for the parameters which are bound to a RC channel, equivalent float values
+		 * in the_parameters struct are not existing because these parameters are never read. */
+
+		param_t generic_trigger_chan[RC_TRIG_SLOT_COUNT];
+		param_t generic_trigger_action[RC_TRIG_SLOT_COUNT];
 	} _parameter_handles{};
 
 	uORB::SubscriptionCallbackWorkItem _input_rc_sub{this, ORB_ID(input_rc)};
-
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
+	uORB::SubscriptionData<manual_control_setpoint_s> _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _rc_parameter_map_sub{ORB_ID(rc_parameter_map)};
 	uORB::Subscription _actuator_controls_3_sub{ORB_ID(actuator_controls_3)};
 
@@ -188,8 +240,13 @@ public:
 	uint8_t _channel_count_previous{0};
 	uint8_t _input_source_previous{input_rc_s::RC_INPUT_SOURCE_UNKNOWN};
 
-	uint8_t _potential_button_press_slot{0};
-	systemlib::Hysteresis _button_pressed_hysteresis{false};
+	// Flag to indicate that RC input is being used for manual control (whether we can use generic action)
+	bool _manual_control_setpoint_source_is_rc{false};
+	systemlib::Hysteresis _trigger_slots_hysteresis[RC_TRIG_SLOT_COUNT];
+	// State to keep track of which trigger action is controlled by which channel and the state of each actions
+	uint8_t _trigger_action_to_channel_mapping[RC_TRIGGER_ACTION_COUNT] {RC_TRIG_CHAN_UNASSIGNED};
+	bool _trigger_action_states[RC_TRIGGER_ACTION_COUNT] {false};
+
 	systemlib::Hysteresis _rc_signal_lost_hysteresis{true};
 
 	uint8_t _channel_count_max{0};
@@ -199,43 +256,23 @@ public:
 	perf_counter_t _valid_data_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": valid data interval")};
 
 	DEFINE_PARAMETERS(
-
 		(ParamInt<px4::params::RC_MAP_ROLL>) _param_rc_map_roll,
 		(ParamInt<px4::params::RC_MAP_PITCH>) _param_rc_map_pitch,
 		(ParamInt<px4::params::RC_MAP_YAW>) _param_rc_map_yaw,
 		(ParamInt<px4::params::RC_MAP_THROTTLE>) _param_rc_map_throttle,
-		(ParamInt<px4::params::RC_MAP_FAILSAFE>) _param_rc_map_failsafe,
-
-		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
-
 		(ParamInt<px4::params::RC_MAP_FLAPS>) _param_rc_map_flaps,
-
-		(ParamInt<px4::params::RC_MAP_RETURN_SW>) _param_rc_map_return_sw,
-		(ParamInt<px4::params::RC_MAP_LOITER_SW>) _param_rc_map_loiter_sw,
-		(ParamInt<px4::params::RC_MAP_OFFB_SW>) _param_rc_map_offb_sw,
-		(ParamInt<px4::params::RC_MAP_KILL_SW>) _param_rc_map_kill_sw,
-		(ParamInt<px4::params::RC_MAP_ARM_SW>) _param_rc_map_arm_sw,
-		(ParamInt<px4::params::RC_MAP_TRANS_SW>) _param_rc_map_trans_sw,
-		(ParamInt<px4::params::RC_MAP_GEAR_SW>) _param_rc_map_gear_sw,
-		(ParamInt<px4::params::RC_MAP_FLTM_BTN>) _param_rc_map_fltm_btn,
-
 		(ParamInt<px4::params::RC_MAP_AUX1>) _param_rc_map_aux1,
 		(ParamInt<px4::params::RC_MAP_AUX2>) _param_rc_map_aux2,
 		(ParamInt<px4::params::RC_MAP_AUX3>) _param_rc_map_aux3,
 		(ParamInt<px4::params::RC_MAP_AUX4>) _param_rc_map_aux4,
 		(ParamInt<px4::params::RC_MAP_AUX5>) _param_rc_map_aux5,
 		(ParamInt<px4::params::RC_MAP_AUX6>) _param_rc_map_aux6,
+		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
 
+		(ParamInt<px4::params::RC_MAP_FAILSAFE>) _param_rc_map_failsafe,
 		(ParamInt<px4::params::RC_FAILS_THR>) _param_rc_fails_thr,
 
-		(ParamFloat<px4::params::RC_LOITER_TH>) _param_rc_loiter_th,
-		(ParamFloat<px4::params::RC_OFFB_TH>) _param_rc_offb_th,
-		(ParamFloat<px4::params::RC_KILLSWITCH_TH>) _param_rc_killswitch_th,
-		(ParamFloat<px4::params::RC_ARMSWITCH_TH>) _param_rc_armswitch_th,
-		(ParamFloat<px4::params::RC_TRANS_TH>) _param_rc_trans_th,
-		(ParamFloat<px4::params::RC_GEAR_TH>) _param_rc_gear_th,
-		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
-
+		(ParamInt<px4::params::RC_TRIG_BTN_MASK>) _param_rc_trig_btn_mask,
 		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt
 	)
 };
