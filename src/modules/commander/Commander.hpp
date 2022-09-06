@@ -310,6 +310,7 @@ private:
 	perf_counter_t _preflight_check_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": preflight check")};
 
 	HealthAndArmingChecks _health_and_arming_checks{this, _vehicle_status};
+	hrt_abstime _last_health_and_arming_check{0};
 	const vehicle_status_flags_s &_vehicle_status_flags{_health_and_arming_checks.failsafeFlags()};
 
 	HomePosition _home_position{_vehicle_status_flags};

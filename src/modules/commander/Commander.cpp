@@ -1827,19 +1827,23 @@ Commander::run()
 
 		_actuator_armed.prearmed = getPrearmState();
 
+		const hrt_abstime now = hrt_absolute_time();
+
+		// Run arming checks @ 10Hz
+		if (now - _last_health_and_arming_check >= 100_ms || _status_changed || nav_state_or_failsafe_changed) {
+			_last_health_and_arming_check = now;
+
+			perf_begin(_preflight_check_perf);
+			_health_and_arming_checks.update();
+			_vehicle_status.pre_flight_checks_pass = _health_and_arming_checks.canArm(_vehicle_status.nav_state);
+			perf_end(_preflight_check_perf);
+
+			check_and_inform_ready_for_takeoff();
+		}
+
 		// publish states (armed, control_mode, vehicle_status, vehicle_status_flags, failure_detector_status) at 2 Hz or immediately when changed
-		if (hrt_elapsed_time(&_vehicle_status.timestamp) >= 500_ms || _status_changed || nav_state_or_failsafe_changed
+		if (now - _vehicle_status.timestamp >= 500_ms || _status_changed || nav_state_or_failsafe_changed
 		    || !(_actuator_armed == actuator_armed_prev)) {
-
-			// Evaluate current prearm status (skip during arm <-> disarm transitions as checks are run there already)
-			if (_actuator_armed.armed == actuator_armed_prev.armed && !_vehicle_status.calibration_enabled) {
-				perf_begin(_preflight_check_perf);
-				_health_and_arming_checks.update();
-				_vehicle_status.pre_flight_checks_pass = _health_and_arming_checks.canArm(_vehicle_status.nav_state);
-				perf_end(_preflight_check_perf);
-
-				check_and_inform_ready_for_takeoff();
-			}
 
 			// publish actuator_armed first (used by output modules)
 			_actuator_armed.armed = _arm_state_machine.isArmed();
