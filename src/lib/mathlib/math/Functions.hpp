@@ -167,7 +167,7 @@ const T interpolate(const T &value, const T &x_low, const T &x_high, const T &y_
 
 /*
  * Constant, piecewise linear, constant function with 1/N size intervalls and N corner points as parameters
- * y[N]                 -------
+ * y[N-1]               -------
  *                     /
  *                   /
  * y[1]            /
@@ -186,7 +186,7 @@ const T interpolateN(const T &value, const T(&y)[N])
 
 /*
  * Constant, piecewise linear, constant function with N corner points as parameters
- * y[N]                 -------
+ * y[N-1]               -------
  *                     /
  *                   /
  * y[1]            /
@@ -194,7 +194,7 @@ const T interpolateN(const T &value, const T(&y)[N])
  *              /
  *             /
  * y[0] -------
- *          x[0] x[1] ... x[N]
+ *          x[0] x[1] ... x[N-1]
  * Note: x[N] corner coordinates have to be sorted in ascending order
  */
 template<typename T, size_t N>
@@ -202,7 +202,7 @@ const T interpolateNXY(const T &value, const T(&x)[N], const T(&y)[N])
 {
 	size_t index = 0;
 
-	while (value > x[index + 1] && index < N) {
+	while ((value > x[index + 1]) && (index < (N - 2))) {
 		index++;
 	}
 
