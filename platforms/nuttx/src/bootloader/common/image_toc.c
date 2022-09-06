@@ -57,6 +57,7 @@ bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
 	int i = 0;
 	uint8_t sig_idx;
 	const uint32_t toc_end_magic = TOC_END_MAGIC;
+	uintptr_t toc_end_u32;
 
 	if (toc_start->magic == TOC_START_MAGIC &&
 	    toc_start->version <= TOC_VERSION) {
@@ -68,12 +69,16 @@ bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
 			i++;
 		}
 
-		/* The number of toc entries found must be within bounds, and the
-		 * application has to lie within the flashable area. Also ensure that
+		toc_end_u32 = (uintptr_t)&entry[i] + sizeof(toc_end_magic);
+
+		/* The number of ToC entries found must be within bounds, and the
+		 * ToC has to lie within the flashable area. Also ensure that
 		 * end > start.
 		 */
 
 		if (i <= MAX_TOC_ENTRIES && i > 0 &&
+		    toc_start_u32 >= (uintptr_t)entry[0].start &&
+		    toc_end_u32 < (uintptr_t)entry[0].end &&
 		    (uintptr_t)entry[0].start == APP_LOAD_ADDRESS &&
 		    (uintptr_t)entry[0].end <= (FLASH_END_ADDRESS - sizeof(uintptr_t)) &&
 		    (uintptr_t)entry[0].end > (uintptr_t)entry[0].start) {
