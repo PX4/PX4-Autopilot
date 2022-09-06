@@ -456,7 +456,20 @@ extern "C" __EXPORT int lightware_laser_i2c_main(int argc, char *argv[])
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIST_DEVTYPE_LIGHTWARE_LASER);
 
 	if (!strcmp(verb, "start")) {
-		return ThisDriver::module_start(cli, iterator);
+
+		for (int i = 0; i < 20; i++) {
+			int ret = ThisDriver::module_start(cli, iterator);
+			if (ret != 0) {
+				PX4_ERR("%llu: start failed", hrt_absolute_time());
+				usleep(50000);
+
+			} else {
+				PX4_INFO("%llu: start succeeded", hrt_absolute_time());
+				return 0;
+			}
+		}
+
+		return -1;
 	}
 
 	if (!strcmp(verb, "stop")) {
