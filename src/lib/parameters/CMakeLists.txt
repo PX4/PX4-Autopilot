@@ -83,13 +83,6 @@ if(CONFIG_BOARD_IO)
 	set(board_with_io_arg --board-with-io)
 endif()
 
-# TODO: Why do these only need to be filtered out on posix?
-if (${PX4_PLATFORM} STREQUAL "posix")
-	list(FILTER module_config_files EXCLUDE REGEX ".*/pwm_out/")
-	list(FILTER module_config_files EXCLUDE REGEX ".*/pwm_out_sim/")
-	list(FILTER module_config_files EXCLUDE REGEX ".*/linux_pwm_out/")
-endif()
-
 add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_params_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
