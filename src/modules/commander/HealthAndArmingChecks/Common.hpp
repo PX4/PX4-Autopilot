@@ -323,7 +323,10 @@ private:
 	 */
 	void reset();
 	void prepare(uint8_t vehicle_type);
-	void finalize();
+	/**
+	 * Called after all checks are run. Returns true if the results changed
+	 */
+	bool finalize();
 
 	bool report(bool is_armed, bool force);
 
@@ -337,6 +340,7 @@ private:
 
 	bool _already_reported{false};
 	bool _had_unreported_difference{false}; ///< true if there was a difference not reported yet (due to rate limitation)
+	bool _results_changed{false};
 	hrt_abstime _last_report{0};
 
 	Results _results[2]; ///< Previous and current results to check for changes

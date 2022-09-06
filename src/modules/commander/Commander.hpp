@@ -58,7 +58,6 @@
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_status_flags.h>
 
 // subscriptions
 #include <uORB/Subscription.hpp>
@@ -277,7 +276,6 @@ private:
 	actuator_armed_s        _actuator_armed{};
 	vehicle_control_mode_s  _vehicle_control_mode{};
 	vehicle_status_s        _vehicle_status{};
-	vehicle_status_flags_s  _vehicle_status_flags{};
 
 	Safety _safety;
 
@@ -309,7 +307,6 @@ private:
 	uORB::Publication<failure_detector_status_s>		_failure_detector_status_pub{ORB_ID(failure_detector_status)};
 	uORB::Publication<actuator_test_s>			_actuator_test_pub{ORB_ID(actuator_test)};
 	uORB::Publication<vehicle_control_mode_s>		_vehicle_control_mode_pub{ORB_ID(vehicle_control_mode)};
-	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
 	uORB::Publication<vehicle_status_s>			_vehicle_status_pub{ORB_ID(vehicle_status)};
 
 	uORB::Publication<vehicle_command_ack_s>		_vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
@@ -319,7 +316,9 @@ private:
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t _preflight_check_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": preflight check")};
 
-	HealthAndArmingChecks _health_and_arming_checks{this, _vehicle_status_flags, _vehicle_status};
+	HealthAndArmingChecks _health_and_arming_checks{this, _vehicle_status};
+	const vehicle_status_flags_s &_vehicle_status_flags{_health_and_arming_checks.failsafeFlags()};
+
 	HomePosition _home_position{_vehicle_status_flags};
 	Failsafe _failsafe_instance{this};
 	FailsafeBase &_failsafe{_failsafe_instance};
