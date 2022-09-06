@@ -47,14 +47,23 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
+	void updateParams() override;
+
 	struct ParamHandles {
 		param_t min;
 		param_t trim;
 		param_t max;
-		param_t rev;
 		param_t dz;
 	};
+	struct ParamValues {
+		float min;
+		float trim;
+		float max;
+		float dz;
+	};
+
 	ParamHandles _param_handles[input_rc_s::RC_INPUT_MAX_CHANNELS];
+	ParamValues _param_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode
