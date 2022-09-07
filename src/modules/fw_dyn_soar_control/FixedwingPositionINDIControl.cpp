@@ -96,6 +96,12 @@ FixedwingPositionINDIControl::init()
     _shear_heading = M_PI_2_F;
     _shear_aspd = 20.f;
 
+    // init wind estimates
+    for (int i=0; i<3; i++) {
+        _wind_estimate(i) = 0.0f;
+        _wind_estimate_EKF(i) = 0.0f;
+    }
+
     // initialize in manual feedthrough
     _switch_manual = true;
 
@@ -443,7 +449,7 @@ FixedwingPositionINDIControl::_compute_wind_estimate()
     AoA_approx = constrain(AoA_approx,-0.2f,0.3f);
     //float speed = fmaxf(_cal_airspeed, _stall_speed);
     float u_approx = _true_airspeed;
-    float v_approx = body_force(1)*_true_airspeed / (0.5f*_rho*powf(speed,2)*_area*_C_B1);
+    float v_approx = 0.f; //body_force(1)*_true_airspeed / (0.5f*_rho*powf(speed,2)*_area*_C_B1);
     float w_approx = tanf(AoA_approx-_aoa_offset)*_true_airspeed;
     Vector3f vel_air = R_ib*(Vector3f{u_approx, v_approx, w_approx});
 
@@ -863,6 +869,7 @@ FixedwingPositionINDIControl::Run()
             _select_soaring_trajectory();
             _last_time_trajec = hrt_absolute_time();
         }
+
         // ============================
         // compute reference kinematics
         // ============================
@@ -898,7 +905,7 @@ FixedwingPositionINDIControl::Run()
 
         // Publish actuator controls only once in OFFBOARD
 		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
-
+            
             // ========================================
             // publish controller position in ENU frame
             // ========================================
@@ -1533,7 +1540,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // constuct acc perpendicular to flight path
     Vector3f acc_perp = acc_filtered - (acc_filtered*vel_normalized)*vel_normalized;
     if (_airspeed_valid&&_cal_airspeed>_stall_speed) {
-        omega_turn_ref = sqrtf(acc_perp*acc_perp) / (_cal_airspeed) * R_bi * omega_turn_ref_normalized.normalized();
+        omega_turn_ref = sqrtf(acc_perp*acc_perp) / (_true_airspeed) * R_bi * omega_turn_ref_normalized.normalized();
         //PX4_INFO("yaw rate ref, yaw rate: \t%.2f\t%.2f", (double)(omega_turn_ref(2)), (double)(omega_filtered(2)));
     }
     else {

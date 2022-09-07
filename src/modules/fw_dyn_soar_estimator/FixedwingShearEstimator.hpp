@@ -135,6 +135,8 @@ private:
     float _current_height = {};
     float _current_airspeed = {};
     bool  _lock_params = {};
+    float _v_max_lock = {};
+    float _alpha_lock = {};
 
     float _unit_v;
     float _unit_h;

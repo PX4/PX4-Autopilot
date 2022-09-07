@@ -114,6 +114,10 @@ FixedwingShearEstimator::init()
     // init reset counter
     _reset_counter = 0;
 
+    //
+    _v_max_lock = 8.f;
+    _alpha_lock = 0.5f;
+
     // ==============================================================================
     // fill the min airspeed matrix with the correct entries for trajectory selection
     // ==============================================================================
@@ -465,14 +469,14 @@ FixedwingShearEstimator::Run()
             _soaring_estimator_shear.psi = heading;
             _soaring_estimator_shear.h_ref = _X_posterior_horizontal(4)*_unit_h;
             _soaring_estimator_shear.aspd = aspd;
-            //PX4_INFO("Unlocked shear estimator, estimating shear \t%.1f", (double)_lock_params);
+            // update the locked params for the future
+            _v_max_lock = v;
+            _alpha_lock = a;
         }
         // if not, we still need to find an appropriate airspeed
         else {
-            v = _soaring_estimator_shear.v_max;
-            a = _soaring_estimator_shear.alpha;
-            float min_aspd = _MIN_ASPD_MATRIX(round(v-8.f),round(10.f*(a-0.2f)));
-            float max_aspd = _MAX_ASPD_MATRIX(round(v-8.f),round(10.f*(a-0.2f)));
+            float min_aspd = _MIN_ASPD_MATRIX(round(_v_max_lock-8.f),round(10.f*(_alpha_lock-0.2f)));
+            float max_aspd = _MAX_ASPD_MATRIX(round(_v_max_lock-8.f),round(10.f*(_alpha_lock-0.2f)));
             uint num = (uint)round((max_aspd-min_aspd)/2.f + 1.f);
             float aspd_arr[num] = {};
             for (uint i=0; i<num; i++) {
