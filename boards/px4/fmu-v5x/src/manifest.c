@@ -184,10 +184,10 @@ static px4_hw_mft_list_entry_t mft_lists[] = {
 	{V5X01, hw_mft_list_v0500, arraySize(hw_mft_list_v0500)}, // FMUV5X,                 Rev 1
 	{V5X02, hw_mft_list_v0500, arraySize(hw_mft_list_v0500)}, // FMUV5X,                 Rev 2
 	{V5X10, hw_mft_list_v0510, arraySize(hw_mft_list_v0510)}, // NO PX4IO,               Rev 0
-	{V5X40, hw_mft_list_v0540, arraySize(hw_mft_list_v0540)}, // FMUV5X,  HB CM4 base    Rev 0
+	//{V5X40, hw_mft_list_v0540, arraySize(hw_mft_list_v0540)}, // FMUV5X,  HB CM4 base    Rev 0, never shipped
 	{V5X41, hw_mft_list_v0540, arraySize(hw_mft_list_v0540)}, // FMUV5X,  HB CM4 base    Rev 1
 	{V5X42, hw_mft_list_v0540, arraySize(hw_mft_list_v0540)}, // FMUV5X,  HB CM4 base    Rev 2
-	{V5X50, hw_mft_list_v0550, arraySize(hw_mft_list_v0550)}, // FMUV5X,   HB Mini       Rev 0
+	//{V5X50, hw_mft_list_v0550, arraySize(hw_mft_list_v0550)}, // FMUV5X,   HB Mini       Rev 0, never shipped
 	{V5X51, hw_mft_list_v0550, arraySize(hw_mft_list_v0550)}, // FMUV5X,   HB Mini       Rev 1
 	{V5X52, hw_mft_list_v0550, arraySize(hw_mft_list_v0550)}, // FMUV5X,   HB Mini       Rev 2
 	{V5X90, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB,                 Rev 0
