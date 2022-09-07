@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -64,8 +64,8 @@ struct px4_spi_bus_devices_t {
 
 struct px4_spi_bus_t {
 	px4_spi_bus_device_t devices[SPI_BUS_MAX_DEVICES];
-	int bus{-1}; ///< physical bus number (1, ...) (-1 means this is unused)
 	uint32_t power_enable_gpio{0}; ///< GPIO (if non-zero) to control the power of the attached devices on this bus (0 means power is off)
+	int8_t bus{-1}; ///< physical bus number (1, ...) (-1 means this is unused)
 	bool is_external; ///< static external configuration. Use px4_spi_bus_external() to check if a bus is really external
 	bool requires_locking; ///< whether the bus should be locked during transfers (true if NuttX drivers access the bus)
 };
