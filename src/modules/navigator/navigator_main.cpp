@@ -870,6 +870,19 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 			/* inform other apps via the mission result */
 			_geofence_result.primary_geofence_breached = true;
 
+			using geofence_violation_reason_t = events::px4::enums::geofence_violation_reason_t;
+
+			if (gf_violation_type.flags.fence_violation) {
+				_geofence_result.geofence_violation_reason = (uint8_t)geofence_violation_reason_t::fence_violation;
+
+			} else if (gf_violation_type.flags.max_altitude_exceeded) {
+				_geofence_result.geofence_violation_reason = (uint8_t)geofence_violation_reason_t::max_altitude_exceeded;
+
+			} else if (gf_violation_type.flags.dist_to_home_exceeded) {
+				_geofence_result.geofence_violation_reason = (uint8_t)geofence_violation_reason_t::dist_to_home_exceeded;
+
+			}
+
 			/* Issue a warning about the geofence violation once and only if we are armed */
 			if (!_geofence_violation_warning_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 
