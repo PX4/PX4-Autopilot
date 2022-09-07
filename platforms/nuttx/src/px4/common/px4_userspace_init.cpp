@@ -40,6 +40,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
+#include <px4_platform_common/spi.h>
 #include <uORB/uORB.h>
 #include <sys/boardctl.h>
 
@@ -48,6 +49,8 @@ extern void cdcacm_init(void);
 extern "C" void px4_userspace_init(void)
 {
 	hrt_init();
+
+	px4_set_spi_buses_from_hw_version();
 
 	px4::WorkQueueManagerStart();
 
