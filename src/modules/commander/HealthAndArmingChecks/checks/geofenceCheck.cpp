@@ -50,11 +50,13 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 		 * This check can be configured via <param>GF_ACTION</param> parameter.
 		 * </profile>
 		 */
-		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_gf_violation"),
-					    events::Log::Error, "Vehicle outside geofence");
+		reporter.armingCheckFailure<events::px4::enums::geofence_violation_reason_t>(NavModes::All, health_component_t::system,
+				events::ID("check_gf_violation"),
+				events::Log::Error, "Geofence violation: {1}",
+				(events::px4::enums::geofence_violation_reason_t)geofence_result.geofence_violation_reason);
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Vehicle outside geofence");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Geofence violation");
 		}
 	}
 
