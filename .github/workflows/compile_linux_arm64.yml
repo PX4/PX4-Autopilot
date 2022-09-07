@@ -3,7 +3,7 @@ name: Linux ARM64 Targets
 on:
   push:
     branches:
-    - 'master'
+    - 'main'
   pull_request:
     branches:
     - '*'
