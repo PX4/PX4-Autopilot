@@ -1,0 +1,12 @@
+menuconfig EXAMPLES_TILT_CONTROLLER
+	bool "tilt_controller"
+	default n
+	---help---
+		Enable support for tilt_controller
+
+menuconfig USER_TILT_CONTROLLER
+	bool "tilt_controller running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && EXAMPLES_TILT_CONTROLLER
+	---help---
+		Put tilt_controller in userspace memory
