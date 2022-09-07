@@ -1,12 +1,11 @@
-name: Python CI Checks
+name: Python Checks
 
 on:
   push:
     branches:
     - 'master'
   pull_request:
-    branches:
-    - '*'
+    # Trigger for PRs to any branch
 
 jobs:
   build:

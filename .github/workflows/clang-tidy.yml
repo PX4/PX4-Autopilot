@@ -5,8 +5,7 @@ on:
     branches:
     - 'master'
   pull_request:
-    branches:
-    - '*'
+    # Trigger for PRs to any branch
 
 jobs:
   build:

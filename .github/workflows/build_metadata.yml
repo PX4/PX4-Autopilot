@@ -1,4 +1,4 @@
-name: Metadata
+name: Build Metadata
 
 on:
   push:
