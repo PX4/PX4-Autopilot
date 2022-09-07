@@ -11,7 +11,7 @@ matrix:
       dist: xenial
       # In order to stay under the coverity rate limit, we only run this weekly
       # and not on push which is configured in travis-ci settings.
-      if: branch = master
+      if: branch = main
 
 before_install:
     - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
