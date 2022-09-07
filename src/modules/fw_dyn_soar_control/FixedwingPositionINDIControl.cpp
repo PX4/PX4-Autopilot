@@ -433,18 +433,33 @@ FixedwingPositionINDIControl::_compute_wind_estimate()
     // compute expected AoA from g-forces:
     Vector3f body_force = _mass*R_bi*(_acc + Vector3f{0.f,0.f,9.81f});
 
-    // ****************** OLD COMPUTATION, NOT USED ANYMORE ****************************
     // approximate lift force, since implicit equation cannot be solved analytically:
     // since alpha<<1, we approximate the lift force L = sin(alpha)*Fx - cos(alpha)*Fz
     // as L = alpha*Fx - Fz
-    /*
     float Fx = cosf(_aoa_offset)*body_force(0) - sinf(_aoa_offset)*body_force(2);
     float Fz = -cosf(_aoa_offset)*body_force(2) - sinf(_aoa_offset)*body_force(0);
-    float AoA_approx = (((2.f*Fz)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f) - _C_L0)/_C_L1) / 
-                        (1 - ((2.f*Fx)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f)/_C_L1));
+    float AoA_approx = (((2.f*Fz)/(_rho*_area*(fmaxf(_cal_airspeed*_cal_airspeed,_stall_speed*_stall_speed))+0.001f) - _C_L0)/_C_L1) / 
+                        (1 - ((2.f*Fx)/(_rho*_area*(fmaxf(_cal_airspeed*_cal_airspeed,_stall_speed*_stall_speed))+0.001f)/_C_L1));
     AoA_approx = constrain(AoA_approx,-0.2f,0.3f);
-    Vector3f vel_air = R_ib*(Vector3f{_airspeed,0.f,tanf(AoA_approx-_aoa_offset)*_airspeed});
-    */
+    //float speed = fmaxf(_cal_airspeed, _stall_speed);
+    float u_approx = _true_airspeed;
+    float v_approx = body_force(1)*_true_airspeed / (0.5f*_rho*powf(speed,2)*_area*_C_B1);
+    float w_approx = tanf(AoA_approx-_aoa_offset)*_true_airspeed;
+    Vector3f vel_air = R_ib*(Vector3f{u_approx, v_approx, w_approx});
+
+    // compute wind from wind triangle
+    Vector3f wind = _vel - vel_air;
+    //PX4_INFO("wind estimate: \t%.1f, \t%.1f, \t%.1f", (double)wind(0), (double)wind(1), (double)wind(2));
+    return wind;
+}
+
+Vector3f
+FixedwingPositionINDIControl::_compute_wind_estimate_EKF()
+{
+    Dcmf R_ib(_att);
+    Dcmf R_bi(R_ib.transpose());
+    // compute expected AoA from g-forces:
+    Vector3f body_force = _mass*R_bi*(_acc + Vector3f{0.f,0.f,9.81f});
 
     // ***************** NEW COMPUTATION FROM MATLAB CALIBRATION **********************
     float speed = fmaxf(_cal_airspeed, _stall_speed);
@@ -467,6 +482,17 @@ FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
     wind(1) = _lp_filter_wind[1].apply(wind(1));
     wind(2) = _lp_filter_wind[2].apply(wind(2));
     _wind_estimate = wind;
+    return;
+}
+
+void
+FixedwingPositionINDIControl::_set_wind_estimate_EKF(Vector3f wind)
+{   
+    // apply some filtering
+    wind(0) = _lp_filter_wind_EKF[0].apply(wind(0));
+    wind(1) = _lp_filter_wind_EKF[1].apply(wind(1));
+    wind(2) = _lp_filter_wind_EKF[2].apply(wind(2));
+    _wind_estimate_EKF = wind;
     return;
 }
 
@@ -816,6 +842,9 @@ FixedwingPositionINDIControl::Run()
         // ===============================
         Vector3f wind = _compute_wind_estimate();
         _set_wind_estimate(wind);
+        Vector3f wind_EKF = _compute_wind_estimate_EKF();
+        _set_wind_estimate_EKF(wind_EKF);
+
 
         // only run actuators poll, when our module is not publishing:
         if (_vehicle_status.nav_state != vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
@@ -949,9 +978,9 @@ FixedwingPositionINDIControl::Run()
             _soaring_controller_wind.wind_estimate[0] = wind(0);
             _soaring_controller_wind.wind_estimate[1] = wind(1);
             _soaring_controller_wind.wind_estimate[2] = wind(2);
-            _soaring_controller_wind.wind_estimate_filtered[0] = _wind_estimate(0);
-            _soaring_controller_wind.wind_estimate_filtered[1] = _wind_estimate(1);
-            _soaring_controller_wind.wind_estimate_filtered[2] = _wind_estimate(2);
+            _soaring_controller_wind.wind_estimate_filtered[0] = _wind_estimate_EKF(0);
+            _soaring_controller_wind.wind_estimate_filtered[1] = _wind_estimate_EKF(1);
+            _soaring_controller_wind.wind_estimate_filtered[2] = _wind_estimate_EKF(2);
             _soaring_controller_wind.position[0] = _pos(0);
             _soaring_controller_wind.position[1] = _pos(1);
             _soaring_controller_wind.position[2] = _pos(2);
@@ -1123,11 +1152,12 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     R_bi(2,2) = lift_normalized(2);
     R_bi.renormalize();
     // compute actual air density to be used with true airspeed
+    float rho_corrected;
     if (_cal_airspeed>=_stall_speed) {
-        float rho_corrected = _rho*powf(_cal_airspeed/_true_airspeed, 2);
+        rho_corrected = _rho*powf(_cal_airspeed/_true_airspeed, 2);
     }
     else {
-        float rho_corrected = _rho;
+        rho_corrected = _rho;
     }
     // compute required AoA
     Vector3f f_phi = R_bi*f_lift;
@@ -1274,11 +1304,12 @@ FixedwingPositionINDIControl::_get_attitude(Vector3f vel, Vector3f f)
     R_bi(2,1) = lift_normalized(1);
     R_bi(2,2) = lift_normalized(2);
     R_bi.renormalize();
+    float rho_corrected;
     if (_cal_airspeed>=_stall_speed) {
-        float rho_corrected = _rho*powf(_cal_airspeed/_true_airspeed, 2);
+        rho_corrected = _rho*powf(_cal_airspeed/_true_airspeed, 2);
     }
     else {
-        float rho_corrected = _rho;
+        rho_corrected = _rho;
     }
     // compute required AoA
     Vector3f f_phi = R_bi*f_lift;
@@ -1330,12 +1361,13 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     float AoA = atan2f(vel_body(2), vel_body(0)) + _aoa_offset;
     float C_l = _C_L0 + _C_L1*AoA;
     float C_d = _C_D0 + _C_D1*AoA + _C_D2*powf(AoA,2);
-    # compute actual air density
+    // compute actual air density
+    float rho_corrected;
     if (_cal_airspeed>=_stall_speed) {
-        float rho_corrected = _rho*powf(_cal_airspeed/_true_airspeed, 2);
+        rho_corrected = _rho*powf(_cal_airspeed/_true_airspeed, 2);
     }
     else {
-        float rho_corrected = _rho;
+        rho_corrected = _rho;
     }
     float factor = -0.5f*rho_corrected*_area*sqrtf(vel_body*vel_body);
     Vector3f w_x = vel_body;
@@ -1501,7 +1533,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // constuct acc perpendicular to flight path
     Vector3f acc_perp = acc_filtered - (acc_filtered*vel_normalized)*vel_normalized;
     if (_airspeed_valid&&_cal_airspeed>_stall_speed) {
-        omega_turn_ref = sqrtf(acc_perp*acc_perp) / (_airspeed) * R_bi * omega_turn_ref_normalized.normalized();
+        omega_turn_ref = sqrtf(acc_perp*acc_perp) / (_cal_airspeed) * R_bi * omega_turn_ref_normalized.normalized();
         //PX4_INFO("yaw rate ref, yaw rate: \t%.2f\t%.2f", (double)(omega_turn_ref(2)), (double)(omega_filtered(2)));
     }
     else {

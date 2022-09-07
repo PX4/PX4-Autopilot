@@ -276,9 +276,11 @@ private:
 	void _select_loiter_trajectory();			// select the correct loiter trajectory based on available energy
 	void _select_soaring_trajectory();			// select the correct loiter trajectory based on available energy
 	void _read_trajectory_coeffs_csv(char *filename);				// read in the correct coefficients of the appropriate trajectory
-	void _set_wind_estimate(Vector3f wind);
 	float _get_closest_t(Vector3f pos);				// get the normalized time, at which the reference path is closest to the current position
-	Vector3f _compute_wind_estimate();
+	Vector3f _compute_wind_estimate();				// compute a wind estimate to be used only inside the controller
+	Vector3f _compute_wind_estimate_EKF();			// compute a wind estimate to be used only as a measurement for the shear estimator
+	void _set_wind_estimate(Vector3f wind);
+	void _set_wind_estimate_EKF(Vector3f wind);
 	Vector<float, _num_basis_funs> _get_basis_funs(float t=0);			// compute the vector of basis functions at normalized time t in [0,1]
 	Vector<float, _num_basis_funs> _get_d_dt_basis_funs(float t=0);	// compute the vector of basis function gradients at normalized time t in [0,1]
 	Vector<float, _num_basis_funs> _get_d2_dt2_basis_funs(float t=0);	// compute the vector of basis function curvatures at normalized time t in [0,1]
@@ -305,7 +307,8 @@ private:
 	Vector<float, _num_basis_funs> _basis_coeffs_y = {};				// coefficients of the current path
 	Vector<float, _num_basis_funs> _basis_coeffs_z = {};				// coefficients of the current path
 	Vector3f _alpha_sp;
-	Vector3f _wind_estimate;
+	Vector3f _wind_estimate;											// wind estimate used internally in the controller
+	Vector3f _wind_estimate_EKF;										// wind estimate only used in the wind estimator
 	Matrix3f _K_x;
 	Matrix3f _K_v;
 	Matrix3f _K_a;
@@ -340,7 +343,8 @@ private:
 	math::LowPassFilter2p _lp_filter_omega_2[3] {{_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}};	// body rates
 	// Low-Pass filter for wind estimate
 	const float _cutoff_frequency_wind = 1.f;
-	math::LowPassFilter2p _lp_filter_wind[3] {{_sample_frequency, _cutoff_frequency_wind}, {_sample_frequency, _cutoff_frequency_wind}, {_sample_frequency, _cutoff_frequency_wind}};	// wind_estimate
+	math::LowPassFilter2p _lp_filter_wind[3] {{_sample_frequency, _cutoff_frequency_wind}, {_sample_frequency, _cutoff_frequency_wind}, {_sample_frequency, _cutoff_frequency_wind}};	// wind_estimate inside controller
+	math::LowPassFilter2p _lp_filter_wind_EKF[3] {{_sample_frequency, _cutoff_frequency_wind}, {_sample_frequency, _cutoff_frequency_wind}, {_sample_frequency, _cutoff_frequency_wind}};	// wind_estimate for EKF
 	uint _counter = 0;
 	hrt_abstime _last_time{0};
 
