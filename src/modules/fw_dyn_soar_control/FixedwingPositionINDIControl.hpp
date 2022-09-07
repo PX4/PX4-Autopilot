@@ -396,7 +396,8 @@ private:
 
 	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
 	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.
-	float _airspeed{0.0f};
+	float _true_airspeed{0.0f};
+	float _cal_airspeed{0.0f};
 
 	bool _aoa_valid{false};				///< flag if a valid AoA estimate exists
 	hrt_abstime _aoa_last_valid{0};			///< last time Aoa was received. Used to detect timeouts.

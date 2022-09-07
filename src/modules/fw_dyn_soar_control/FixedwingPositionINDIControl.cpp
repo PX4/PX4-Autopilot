@@ -211,7 +211,8 @@ FixedwingPositionINDIControl::airspeed_poll()
 			airspeed_valid = true;
 
 			_airspeed_last_valid = airspeed_validated.timestamp;
-			_airspeed = airspeed_validated.true_airspeed_m_s;
+			_true_airspeed = airspeed_validated.true_airspeed_m_s;
+            _cal_airspeed = airspeed_validated.calibrated_airspeed_m_s;
 		}
 
 	} else {
@@ -446,10 +447,10 @@ FixedwingPositionINDIControl::_compute_wind_estimate()
     */
 
     // ***************** NEW COMPUTATION FROM MATLAB CALIBRATION **********************
-    float speed = fmaxf(_airspeed, _stall_speed);
-    float u_approx = _airspeed;
-    float v_approx = body_force(1) / (0.5f*_rho*speed*_area*_C_B1);
-    float w_approx = (-body_force(2)/(0.5f*_rho*(speed)*_area)-_C_L0*speed)/_C_L1;
+    float speed = fmaxf(_cal_airspeed, _stall_speed);
+    float u_approx = _true_airspeed;
+    float v_approx = body_force(1)*_true_airspeed / (0.5f*_rho*powf(speed,2)*_area*_C_B1);
+    float w_approx = (-body_force(2)*_true_airspeed / (0.5f*_rho*powf(speed,2)*_area)-_C_L0)/_C_L1;
     Vector3f vel_air = R_ib*(Vector3f{u_approx, v_approx, w_approx});
 
     // compute wind from wind triangle
@@ -622,8 +623,8 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // =======================================================================
     bool error = false;
 
-    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    //char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     //PX4_ERR(home_dir);
     strcat(home_dir,filename);
     FILE* fp = fopen(home_dir, "r");
@@ -954,7 +955,7 @@ FixedwingPositionINDIControl::Run()
             _soaring_controller_wind.position[0] = _pos(0);
             _soaring_controller_wind.position[1] = _pos(1);
             _soaring_controller_wind.position[2] = _pos(2);
-            _soaring_controller_wind.airspeed = _airspeed;
+            _soaring_controller_wind.airspeed = _true_airspeed;
             if (_switch_cl_soaring) {
                 // always update shear params in closed loop soaring mode
                 _soaring_controller_wind.lock_params = false;
@@ -1121,9 +1122,16 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     R_bi(2,1) = lift_normalized(1);
     R_bi(2,2) = lift_normalized(2);
     R_bi.renormalize();
+    // compute actual air density to be used with true airspeed
+    if (_cal_airspeed>=_stall_speed) {
+        float rho_corrected = _rho*powf(_cal_airspeed/_true_airspeed, 2);
+    }
+    else {
+        float rho_corrected = _rho;
+    }
     // compute required AoA
     Vector3f f_phi = R_bi*f_lift;
-    float AoA = ((2.f*f_phi(2))/(_rho*_area*(vel_air*vel_air)+0.001f) - _C_L0)/_C_L1 - _aoa_offset;
+    float AoA = ((2.f*f_phi(2))/(rho_corrected*_area*(vel_air*vel_air)+0.001f) - _C_L0)/_C_L1 - _aoa_offset;
     // compute final rotation matrix
     Eulerf e(0.f, AoA, 0.f);
     Dcmf R_pitch(e);
@@ -1266,9 +1274,15 @@ FixedwingPositionINDIControl::_get_attitude(Vector3f vel, Vector3f f)
     R_bi(2,1) = lift_normalized(1);
     R_bi(2,2) = lift_normalized(2);
     R_bi.renormalize();
+    if (_cal_airspeed>=_stall_speed) {
+        float rho_corrected = _rho*powf(_cal_airspeed/_true_airspeed, 2);
+    }
+    else {
+        float rho_corrected = _rho;
+    }
     // compute required AoA
     Vector3f f_phi = R_bi*f_lift;
-    float AoA = ((2.f*f_phi(2))/(_rho*_area*(vel_air*vel_air)+0.001f) - _C_L0)/_C_L1 - _aoa_offset;
+    float AoA = ((2.f*f_phi(2))/(rho_corrected*_area*(vel_air*vel_air)+0.001f) - _C_L0)/_C_L1 - _aoa_offset;
     // compute final rotation matrix
     Eulerf e(0.f, AoA, 0.f);
     Dcmf R_pitch(e);
@@ -1316,7 +1330,14 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     float AoA = atan2f(vel_body(2), vel_body(0)) + _aoa_offset;
     float C_l = _C_L0 + _C_L1*AoA;
     float C_d = _C_D0 + _C_D1*AoA + _C_D2*powf(AoA,2);
-    float factor = -0.5f*_rho*_area*sqrtf(vel_body*vel_body);
+    # compute actual air density
+    if (_cal_airspeed>=_stall_speed) {
+        float rho_corrected = _rho*powf(_cal_airspeed/_true_airspeed, 2);
+    }
+    else {
+        float rho_corrected = _rho;
+    }
+    float factor = -0.5f*rho_corrected*_area*sqrtf(vel_body*vel_body);
     Vector3f w_x = vel_body;
     Vector3f w_z = w_x.cross(Vector3f{0.f,1.f,0.f});
     f_current = R_ib*(factor*(C_l*w_z + C_d*w_x));
@@ -1479,7 +1500,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     Vector3f omega_turn_ref;
     // constuct acc perpendicular to flight path
     Vector3f acc_perp = acc_filtered - (acc_filtered*vel_normalized)*vel_normalized;
-    if (_airspeed_valid&&_airspeed>_stall_speed) {
+    if (_airspeed_valid&&_cal_airspeed>_stall_speed) {
         omega_turn_ref = sqrtf(acc_perp*acc_perp) / (_airspeed) * R_bi * omega_turn_ref_normalized.normalized();
         //PX4_INFO("yaw rate ref, yaw rate: \t%.2f\t%.2f", (double)(omega_turn_ref(2)), (double)(omega_filtered(2)));
     }
