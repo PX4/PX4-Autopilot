@@ -3,7 +3,7 @@ name: Metadata
 on:
   push:
     branches:
-    - 'master'
+    - 'main'
     - 'release/*'
     - 'pr-metadata-test'
 
