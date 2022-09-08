@@ -457,7 +457,6 @@ private:
 
 	// booleans true when fresh sensor data is available at the fusion time horizon
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
-	bool _baro_data_ready{false};	///< true when new baro height data has fallen behind the fusion time horizon and is available to be fused
 	bool _rng_data_ready{false};
 	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
 	bool _ev_data_ready{false};	///< true when new external vision system data has fallen behind the fusion time horizon and is available to be fused
@@ -483,7 +482,6 @@ private:
 	Vector3f _last_known_pos{};		///< last known local position vector (m)
 
 	uint64_t _time_acc_bias_check{0};	///< last time the  accel bias check passed (uSec)
-	uint64_t _delta_time_baro_us{0};	///< delta time between two consecutive delayed baro samples from the buffer (uSec)
 
 	Vector3f _earth_rate_NED{};	///< earth rotation vector (NED) in rad/s
 
@@ -708,7 +706,7 @@ private:
 
 	void resetVerticalPositionTo(float new_vert_pos);
 
-	void resetHeightToBaro();
+	void resetHeightToBaro(const baroSample &baro_sample);
 	void resetHeightToGps(const gpsSample &gps_sample);
 	void resetHeightToRng();
 	void resetHeightToEv();
@@ -967,7 +965,7 @@ private:
 	void startMagHdgFusion();
 	void startMag3DFusion();
 
-	void startBaroHgtFusion();
+	void startBaroHgtFusion(const baroSample &baro_sample);
 	void stopBaroHgtFusion();
 
 	void startGpsHgtFusion(const gpsSample &gps_sample);
