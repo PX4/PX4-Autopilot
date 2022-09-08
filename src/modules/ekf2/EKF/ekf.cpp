@@ -160,33 +160,6 @@ bool Ekf::initialiseFilter()
 		}
 	}
 
-	// accumulate enough height measurements to be confident in the quality of the data
-	if (_baro_buffer) {
-		baroSample baro_sample;
-
-		if (_baro_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &baro_sample)) {
-			if (baro_sample.time_us != 0) {
-				if (_baro_counter == 0) {
-					_baro_lpf.reset(baro_sample.hgt);
-
-				} else {
-					_baro_lpf.update(baro_sample.hgt);
-
-					_baro_b_est.setBias(_baro_lpf.getState());
-				}
-
-				_baro_counter++;
-			}
-		}
-	}
-
-	if (_params.baro_ctrl != 0) {
-		if (_baro_counter < _obs_buffer_length) {
-			// not enough baro samples accumulated
-			return false;
-		}
-	}
-
 	if (!initialiseTilt()) {
 		return false;
 	}

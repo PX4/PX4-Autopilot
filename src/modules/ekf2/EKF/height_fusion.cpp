@@ -48,7 +48,7 @@ void Ekf::updateBaroHgt(const baroSample &baro_sample, estimator_aid_source_1d_s
 
 	// measurement variance - user parameter defined
 	const float measurement_var = sq(fmaxf(_params.baro_noise, 0.01f));
-	const float measurement = _baro_sample_delayed.hgt;
+	const float measurement = baro_sample.hgt;
 
 	// vertical position innovation - baro measurement has opposite sign to earth z axis
 	baro_hgt.observation = -(measurement - _baro_b_est.getBias());
