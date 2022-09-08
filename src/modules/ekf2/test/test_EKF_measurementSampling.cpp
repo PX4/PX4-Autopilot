@@ -51,29 +51,5 @@ public:
 
 TEST_F(EkfMeasurementSamplingTest, baroDownSampling)
 {
-	// Need to send imu samples to initialise
-	imuSample imu_sample;
-
-	// WHEN: baro data = {1, -1 , 1, -1, ...} being set at high rate
-	int baro_rate_Hz = 10000;
-	uint64_t time = 0;
-	float baro_data = 1.0f;
-
-	for (int i = 0; i < 2 * baro_rate_Hz; i++) {
-		if (i % 100 == 0) {
-			// send imu data at a 100 times lower rate
-			imu_sample.time_us = time;
-			_ekf->setIMUData(imu_sample);
-		}
-
-		_ekf->setBaroData(baroSample{time, baro_data});
-		baro_data *= -1.0f;
-		time += 1000000 / baro_rate_Hz;
-	}
-
-	_ekf->update();
-
-	// THEN: average and buffered baro dato should be close to zero
-	baroSample baro_sample_from_buffer = _ekf->get_baro_sample_delayed();
-	EXPECT_NEAR(baro_sample_from_buffer.hgt, 0.0f, 0.01f);
+	//TODO: implement
 }
