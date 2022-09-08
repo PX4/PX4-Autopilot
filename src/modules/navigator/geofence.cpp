@@ -452,9 +452,9 @@ bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, 
 	return dx * dx + dy * dy < circle_point.circle_radius * circle_point.circle_radius;
 }
 
-bool Geofence::isInsideBufferZone(double lat, double lon, float altitude)
+bool Geofence::hasExceededEmergencyFence(double lat, double lon, float altitude)
 {
-	if (getGeofenceBufferAction() == 0) {
+	if (getGeofenceEmergencyAction() == 0) {
 		return true;
 	}
 
@@ -478,38 +478,47 @@ bool Geofence::isInsideBufferZone(double lat, double lon, float altitude)
 		return false;
 	}
 
-	float buffer_distance_m = _param_gf_emergency_dist.get();
+	float emergency_distance_m = _param_gf_emergency_dist.get();
 
 	// Vertical check
 	if (_altitude_max > _altitude_min) { // only enable vertical check if configured properly
-		if ((altitude > _altitude_max + buffer_distance_m) ||
-		    (altitude < _altitude_min - buffer_distance_m)) {
+		if ((altitude > _altitude_max + emergency_distance_m) ||
+		    (altitude < _altitude_min - emergency_distance_m)) {
 			dm_unlock(DM_KEY_FENCE_POINTS);
 			return false;
 		}
 	}
 
 	// Horizontal check: iterate all polygons & circles
-	bool inside_circle_buffer_zone  = false;
-	bool inside_polygon_buffer_zone = false;
+	bool inside_circle_emergency_fence  = false;
+	bool inside_polygon_emergency_fence = false;
+
+
+	// NOTE:
+	//	The only way to exceed the emergency zone is if we first exceed the primary.
+	//	This eliminates the need to track inside vs outside emergency zones. The resulting
+	//	behavior is:
+	//		- If we have exceeded a primary fence...
+	//			Compute the distance to the primary geofence
+	//			If distance is greater than the emergency distance
 
 	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
 
 		if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION ||
 		    _polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
-			inside_circle_buffer_zone = insideCircleBufferZone(_polygons[polygon_index], lat, lon, altitude);
+			inside_circle_emergency_fence = insideCircleEmergencyZone(_polygons[polygon_index], lat, lon, altitude);
 
 		} else {
-			inside_polygon_buffer_zone = insidePolygonBufferZone(_polygons[polygon_index], lat, lon, altitude);
+			inside_polygon_emergency_fence = insidePolygonEmergencyZone(_polygons[polygon_index], lat, lon, altitude);
 		}
 	}
 
 	dm_unlock(DM_KEY_FENCE_POINTS);
 
-	return (inside_circle_buffer_zone || inside_polygon_buffer_zone);
+	return (inside_circle_emergency_fence || inside_polygon_emergency_fence);
 }
 
-bool Geofence::insidePolygonBufferZone(const PolygonInfo &polygon, double lat, double lon, float altitude)
+bool Geofence::insidePolygonEmergencyZone(const PolygonInfo &polygon, double lat, double lon, float altitude)
 {
 	mission_fence_point_s temp_vertex_i{};
 	mission_fence_point_s temp_vertex_j{};
@@ -534,12 +543,7 @@ bool Geofence::insidePolygonBufferZone(const PolygonInfo &polygon, double lat, d
 			break;
 		}
 
-		// get_distance_to_line(&crosstrack_error, lat, lon,
-		// 			temp_vertex_i.lat, temp_vertex_i.lon,
-		// 			temp_vertex_j.lat, temp_vertex_j.lon);
-
-
-		get_distance_to_segment(&crosstrack_error, lat, lon,
+		get_distance_to_line(&crosstrack_error, lat, lon,
 					temp_vertex_i.lat, temp_vertex_i.lon,
 					temp_vertex_j.lat, temp_vertex_j.lon);
 
@@ -551,10 +555,10 @@ bool Geofence::insidePolygonBufferZone(const PolygonInfo &polygon, double lat, d
 	return false;
 }
 
-bool Geofence::insideCircleBufferZone(const PolygonInfo &polygon, double lat, double lon, float altitude)
+bool Geofence::insideCircleEmergencyZone(const PolygonInfo &polygon, double lat, double lon, float altitude)
 {
 	mission_fence_point_s circle_point{};
-	crosstrack_error_s crosstrack_error{};
+	// crosstrack_error_s crosstrack_error{};
 
 	if (dm_read(DM_KEY_FENCE_POINTS, polygon.dataman_index, &circle_point,
 		    sizeof(mission_fence_point_s)) != sizeof(mission_fence_point_s)) {
@@ -574,17 +578,12 @@ bool Geofence::insideCircleBufferZone(const PolygonInfo &polygon, double lat, do
 		_projection_reference.initReference(lat, lon);
 	}
 
-	get_distance_to_arc(&crosstrack_error, lat, lon,
-			    circle_point.lat,
-			    circle_point.lon,
-			    circle_point.circle_radius, 0.f, 360.f);
+	float cur_dist_to_circle_center = get_distance_to_next_waypoint(lat, lon, circle_point.lat, circle_point.lon);
+	float distance_to_circle = fabs(cur_dist_to_circle_center - circle_point.circle_radius);
+	float emergency_dist_param =  _param_gf_emergency_dist.get();
 
-	if (static_cast<float>(fabs(crosstrack_error.distance)) <= _param_gf_emergency_dist.get()) {
-		PX4_INFO("Inside buffer zone! Crosstrack distance to fence: %f", (double)crosstrack_error.distance);
-		return true;
-	}
+	return  distance_to_circle < emergency_dist_param;
 
-	return false;
 }
 
 int

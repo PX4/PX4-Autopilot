@@ -114,7 +114,7 @@ public:
 
 	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
 
-	virtual bool isInsideBufferZone(double lat, double lon, float altitude);
+	virtual bool hasExceededEmergencyFence(double lat, double lon, float altitude);
 
 	int clearDm();
 
@@ -145,7 +145,7 @@ public:
 
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
-	int getGeofenceBufferAction() { return _param_gf_emergency_action.get(); }
+	int getGeofenceEmergencyAction() { return _param_gf_emergency_action.get(); }
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
 	bool getPredict() { return _param_gf_predict.get(); }
@@ -214,7 +214,7 @@ private:
 	 */
 	bool insidePolygon(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
-	bool insidePolygonBufferZone(const PolygonInfo &polygon, double lat, double lon, float altitude);
+	bool insidePolygonEmergencyZone(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
 	/**
 	 * Check if a single point is within a circle
@@ -223,7 +223,7 @@ private:
 	 */
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
-	bool insideCircleBufferZone(const PolygonInfo &polygon, double lat, double lon, float altitude);
+	bool insideCircleEmergencyZone(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,

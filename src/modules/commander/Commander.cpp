@@ -1906,7 +1906,7 @@ Commander::run()
 				any_geofence_active = true;
 
 				if (_geofence_result.emergency_geofence_violated && !_emergency_geofence_violated_prev) {
-					PX4_WARN("Secondary geofence violated");
+					PX4_WARN("Emergency geofence violated");
 					handle_geofence_breach(_geofence_result.emergency_geofence_action);
 				}
 

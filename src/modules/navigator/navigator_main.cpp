@@ -862,7 +862,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 						    _global_pos.alt);
 
 		if (gf_violation_type.fence_violation) {
-			gf_violation_type.buffer_violation = !_geofence.isInsideBufferZone(fence_violation_test_point(0),
+			gf_violation_type.buffer_violation = !_geofence.hasExceededEmergencyFence(fence_violation_test_point(0),
 							     fence_violation_test_point(1),
 							     _global_pos.alt);
 		}
@@ -872,7 +872,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 		_geofence_result.timestamp = hrt_absolute_time();
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();
-		_geofence_result.emergency_geofence_action = _geofence.getGeofenceBufferAction();
+		_geofence_result.emergency_geofence_action = _geofence.getGeofenceEmergencyAction();
 		_geofence_result.home_required = _geofence.isHomeRequired();
 
 		if (gf_violation_type.dist_to_home_exceeded ||
@@ -899,7 +899,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 				// we have predicted a geofence violation and if the action is to loiter then
 				// demand a reposition to a location which is inside the geofence
 				if (_geofence.getGeofenceAction() == geofence_result_s::GF_ACTION_LOITER ||
-				    _geofence.getGeofenceBufferAction() == geofence_result_s::GF_ACTION_LOITER) {
+				    _geofence.getGeofenceEmergencyAction() == geofence_result_s::GF_ACTION_LOITER) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 
 					matrix::Vector2<double> loiter_center_lat_lon;
@@ -1570,8 +1570,8 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 {
 	if ((_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE &&
 	     _geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN) ||
-	    (_geofence.getGeofenceBufferAction() != geofence_result_s::GF_ACTION_NONE &&
-	     _geofence.getGeofenceBufferAction() != geofence_result_s::GF_ACTION_WARN)) {
+	    (_geofence.getGeofenceEmergencyAction() != geofence_result_s::GF_ACTION_NONE &&
+	     _geofence.getGeofenceEmergencyAction() != geofence_result_s::GF_ACTION_WARN)) {
 
 		if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon)) {
 			return _geofence.check(pos, _gps_pos);
