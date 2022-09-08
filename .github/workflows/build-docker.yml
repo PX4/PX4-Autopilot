@@ -18,5 +18,5 @@ jobs:
         if ! git diff --exit-code origin/main Tools/setup/ubuntu.sh Tools/docker/Dockerfile-jammy; then
           (cd Tools/docker && docker build . -t px4-dev -f Dockerfile-jammy --build-arg git_ref=${{ github.sha }})
           export SRC_DIR="/PX4-Autopilot"
-          docker run --rm px4-dev -w "${SRC_DIR}" --volume=$(pwd):${SRC_DIR}:rw  make px4_fmu-v2
+          sudo docker run --rm px4-dev -w "${SRC_DIR}" --volume=$(pwd):${SRC_DIR}:rw  make px4_fmu-v2
         fi
