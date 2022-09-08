@@ -13,8 +13,6 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
-      with:
-        token: ${{ secrets.ACCESS_TOKEN }}
     - name: Build if changed
       run: |
         if ! git diff --exit-code origin/main Tools/setup/ubuntu.sh; then
