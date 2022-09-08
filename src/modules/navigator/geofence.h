@@ -145,7 +145,7 @@ public:
 
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
-	int getGeofenceBufferAction() { return _param_gf_buffer_action.get(); }
+	int getGeofenceBufferAction() { return _param_gf_emergency_action.get(); }
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
 	bool getPredict() { return _param_gf_predict.get(); }
@@ -233,7 +233,7 @@ private:
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
 		(ParamBool<px4::params::GF_PREDICT>)       _param_gf_predict,
-		(ParamInt<px4::params::GF_BUFFER_ACTION>)  _param_gf_buffer_action,
-		(ParamFloat<px4::params::GF_BUFFER_DIST>)  _param_gf_buffer_dist
+		(ParamInt<px4::params::GF_EMERGENCY_ACT>)  _param_gf_emergency_action,
+		(ParamFloat<px4::params::GF_EMERGENCY_DST>)  _param_gf_emergency_dist
 	)
 };

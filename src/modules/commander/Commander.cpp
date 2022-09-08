@@ -654,7 +654,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 		}
 
 		if ((_geofence_result.geofence_action == geofence_result_s::GF_ACTION_RTL
-		     || _geofence_result.geofence_buffer_action == geofence_result_s::GF_ACTION_RTL)
+		     || _geofence_result.emergency_geofence_action == geofence_result_s::GF_ACTION_RTL)
 		    && !_vehicle_status_flags.home_position_valid) {
 			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: Geofence RTL requires valid home\t");
 			events::send(events::ID("commander_arm_denied_geofence_rtl"),
@@ -1865,14 +1865,14 @@ Commander::run()
 
 		handleAutoDisarm();
 
-		if ((_geofence_warning_action_on || _geofence_buffer_warning_action_on)
+		if ((_geofence_warning_action_on || _emergency_geofence_warning_action_on)
 		    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
 		    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_LOITER
 		    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
 
 			// reset flag again when we switched out of it
 			_geofence_warning_action_on = false;
-			_geofence_buffer_warning_action_on = false;
+			_emergency_geofence_warning_action_on = false;
 		}
 
 		battery_status_check();
@@ -1890,7 +1890,7 @@ Commander::run()
 
 		/* start geofence result check */
 		if (_geofence_result_sub.update(&_geofence_result)) {
-			_vehicle_status.geofence_violated = (_geofence_result.geofence_violated || _geofence_result.geofence_buffer_violated);
+			_vehicle_status.geofence_violated = (_geofence_result.geofence_violated || _geofence_result.emergency_geofence_violated);
 		}
 
 		const bool in_low_battery_failsafe_delay = _battery_failsafe_timestamp != 0;
@@ -1900,17 +1900,17 @@ Commander::run()
 		// Geofence actions
 		if (_arm_state_machine.isArmed() && !in_low_battery_failsafe_delay) {
 
-			if (_geofence_result.geofence_buffer_action != geofence_result_s::GF_ACTION_NONE) {
+			if (_geofence_result.emergency_geofence_action != geofence_result_s::GF_ACTION_NONE) {
 
 				// PX4_WARN("Secondary geofence action not NONE");
 				any_geofence_active = true;
 
-				if (_geofence_result.geofence_buffer_violated && !_geofence_buffer_violated_prev) {
+				if (_geofence_result.emergency_geofence_violated && !_emergency_geofence_violated_prev) {
 					PX4_WARN("Secondary geofence violated");
-					handle_geofence_breach(_geofence_result.geofence_buffer_action);
+					handle_geofence_breach(_geofence_result.emergency_geofence_action);
 				}
 
-				_geofence_buffer_violated_prev = _geofence_result.geofence_buffer_violated;
+				_emergency_geofence_violated_prev = _geofence_result.emergency_geofence_violated;
 
 			}
 
@@ -1961,7 +1961,7 @@ Commander::run()
 			_geofence_land_on = false;
 			_geofence_warning_action_on = false;
 			_geofence_violated_prev = false;
-			_geofence_buffer_violated_prev = false;
+			_emergency_geofence_violated_prev = false;
 		}
 
 		manual_control_check();
@@ -3285,7 +3285,7 @@ void Commander::manual_control_check()
 				if (override_enabled
 				    && !in_low_battery_failsafe_delay
 				    && !_geofence_warning_action_on
-				    && !_geofence_buffer_warning_action_on) {
+				    && !_emergency_geofence_warning_action_on) {
 
 					const transition_result_t posctl_result =
 						main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_POSCTL, _vehicle_status_flags, _commander_state);

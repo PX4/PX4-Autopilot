@@ -478,7 +478,7 @@ bool Geofence::isInsideBufferZone(double lat, double lon, float altitude)
 		return false;
 	}
 
-	float buffer_distance_m = _param_gf_buffer_dist.get();
+	float buffer_distance_m = _param_gf_emergency_dist.get();
 
 	// Vertical check
 	if (_altitude_max > _altitude_min) { // only enable vertical check if configured properly
@@ -543,7 +543,7 @@ bool Geofence::insidePolygonBufferZone(const PolygonInfo &polygon, double lat, d
 					temp_vertex_i.lat, temp_vertex_i.lon,
 					temp_vertex_j.lat, temp_vertex_j.lon);
 
-		if (static_cast<float>(fabs(crosstrack_error.distance)) < _param_gf_buffer_dist.get()) {
+		if (static_cast<float>(fabs(crosstrack_error.distance)) < _param_gf_emergency_dist.get()) {
 			return true;
 		}
 	}
@@ -579,7 +579,7 @@ bool Geofence::insideCircleBufferZone(const PolygonInfo &polygon, double lat, do
 			    circle_point.lon,
 			    circle_point.circle_radius, 0.f, 360.f);
 
-	if (static_cast<float>(fabs(crosstrack_error.distance)) <= _param_gf_buffer_dist.get()) {
+	if (static_cast<float>(fabs(crosstrack_error.distance)) <= _param_gf_emergency_dist.get()) {
 		PX4_INFO("Inside buffer zone! Crosstrack distance to fence: %f", (double)crosstrack_error.distance);
 		return true;
 	}

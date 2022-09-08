@@ -284,8 +284,8 @@ private:
 	bool		_geofence_land_on{false};
 	bool		_geofence_warning_action_on{false};
 	bool		_geofence_violated_prev{false};
-	bool		_geofence_buffer_warning_action_on{false};
-	bool		_geofence_buffer_violated_prev{false};
+	bool		_emergency_geofence_warning_action_on{false};
+	bool		_emergency_geofence_violated_prev{false};
 
 	bool         _circuit_breaker_flight_termination_disabled{false};
 

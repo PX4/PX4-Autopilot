@@ -140,18 +140,18 @@ PARAM_DEFINE_FLOAT(GF_MAX_VER_DIST, 0);
 PARAM_DEFINE_INT32(GF_PREDICT, 1);
 
 /**
- * Geofence buffer distance.
+ * Emergency geofence distance in meters.
  *
- * Distance inside the Geofence to apply the GF_BUFFER_ACTION.
+ * Distance in meters outside the Geofence to apply the GF_EMERGENCY_ACT.
  *
  * @min 0.0
  * @max 100.0
  * @group Geofence
  */
-PARAM_DEFINE_FLOAT(GF_BUFFER_DIST, 10.0f);
+PARAM_DEFINE_FLOAT(GF_EMERGENCY_DST, 10.0f);
 
 /**
- * Geofence buffer zone violation action.
+ * Emergency geofence violation action.
  *
  * Note: Setting this value to 4 enables flight termination,
  * which will kill the vehicle on violation of the fence.
@@ -169,4 +169,4 @@ PARAM_DEFINE_FLOAT(GF_BUFFER_DIST, 10.0f);
  * @value 5 Land mode
  * @group Geofence
  */
-PARAM_DEFINE_INT32(GF_BUFFER_ACTION, 0);
+PARAM_DEFINE_INT32(GF_EMERGENCY_ACT, 0);
