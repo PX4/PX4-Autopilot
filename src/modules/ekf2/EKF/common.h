@@ -500,40 +500,41 @@ union gps_check_fail_status_u {
 // bitmask containing filter control status
 union filter_control_status_u {
 	struct {
-		uint32_t tilt_align              : 1; ///< 0 - true if the filter tilt alignment is complete
-		uint32_t yaw_align               : 1; ///< 1 - true if the filter yaw alignment is complete
-		uint32_t gps                     : 1; ///< 2 - true if GPS measurement fusion is intended
-		uint32_t opt_flow                : 1; ///< 3 - true if optical flow measurements fusion is intended
-		uint32_t mag_hdg                 : 1; ///< 4 - true if a simple magnetic yaw heading fusion is intended
-		uint32_t mag_3D                  : 1; ///< 5 - true if 3-axis magnetometer measurement fusion is intended
-		uint32_t mag_dec                 : 1; ///< 6 - true if synthetic magnetic declination measurements fusion is intended
-		uint32_t in_air                  : 1; ///< 7 - true when the vehicle is airborne
-		uint32_t wind                    : 1; ///< 8 - true when wind velocity is being estimated
-		uint32_t baro_hgt                : 1; ///< 9 - true when baro height is being fused as a primary height reference
-		uint32_t rng_hgt                 : 1; ///< 10 - true when range finder height is being fused as a primary height reference
-		uint32_t gps_hgt                 : 1; ///< 11 - true when GPS height is being fused as a primary height reference
-		uint32_t ev_pos                  : 1; ///< 12 - true when local position data fusion from external vision is intended
-		uint32_t ev_yaw                  : 1; ///< 13 - true when yaw data from external vision measurements fusion is intended
-		uint32_t ev_hgt                  : 1; ///< 14 - true when height data from external vision measurements is being fused
-		uint32_t fuse_beta               : 1; ///< 15 - true when synthetic sideslip measurements are being fused
-		uint32_t mag_field_disturbed     : 1; ///< 16 - true when the mag field does not match the expected strength
-		uint32_t fixed_wing              : 1; ///< 17 - true when the vehicle is operating as a fixed wing vehicle
-		uint32_t mag_fault               : 1; ///< 18 - true when the magnetometer has been declared faulty and is no longer being used
-		uint32_t fuse_aspd               : 1; ///< 19 - true when airspeed measurements are being fused
-		uint32_t gnd_effect              : 1; ///< 20 - true when protection from ground effect induced static pressure rise is active
-		uint32_t rng_stuck               : 1; ///< 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
-		uint32_t gps_yaw                 : 1; ///< 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
-		uint32_t mag_aligned_in_flight   : 1; ///< 23 - true when the in-flight mag field alignment has been completed
-		uint32_t ev_vel                  : 1; ///< 24 - true when local frame velocity data fusion from external vision measurements is intended
-		uint32_t synthetic_mag_z         : 1; ///< 25 - true when we are using a synthesized measurement for the magnetometer Z component
-		uint32_t vehicle_at_rest         : 1; ///< 26 - true when the vehicle is at rest
-		uint32_t gps_yaw_fault           : 1; ///< 27 - true when the GNSS heading has been declared faulty and is no longer being used
-		uint32_t rng_fault               : 1; ///< 28 - true when the range finder has been declared faulty and is no longer being used
-		uint32_t inertial_dead_reckoning : 1; ///< 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
-		uint32_t wind_dead_reckoning     : 1; ///< 30 - true if we are navigationg reliant on wind relative measurements
-		uint32_t rng_kin_consistent      : 1; ///< 31 - true when the range finder kinematic consistency check is passing
+		uint64_t tilt_align              : 1; ///< 0 - true if the filter tilt alignment is complete
+		uint64_t yaw_align               : 1; ///< 1 - true if the filter yaw alignment is complete
+		uint64_t gps                     : 1; ///< 2 - true if GPS measurement fusion is intended
+		uint64_t opt_flow                : 1; ///< 3 - true if optical flow measurements fusion is intended
+		uint64_t mag_hdg                 : 1; ///< 4 - true if a simple magnetic yaw heading fusion is intended
+		uint64_t mag_3D                  : 1; ///< 5 - true if 3-axis magnetometer measurement fusion is intended
+		uint64_t mag_dec                 : 1; ///< 6 - true if synthetic magnetic declination measurements fusion is intended
+		uint64_t in_air                  : 1; ///< 7 - true when the vehicle is airborne
+		uint64_t wind                    : 1; ///< 8 - true when wind velocity is being estimated
+		uint64_t baro_hgt                : 1; ///< 9 - true when baro height is being fused as a primary height reference
+		uint64_t rng_hgt                 : 1; ///< 10 - true when range finder height is being fused as a primary height reference
+		uint64_t gps_hgt                 : 1; ///< 11 - true when GPS height is being fused as a primary height reference
+		uint64_t ev_pos                  : 1; ///< 12 - true when local position data fusion from external vision is intended
+		uint64_t ev_yaw                  : 1; ///< 13 - true when yaw data from external vision measurements fusion is intended
+		uint64_t ev_hgt                  : 1; ///< 14 - true when height data from external vision measurements is being fused
+		uint64_t fuse_beta               : 1; ///< 15 - true when synthetic sideslip measurements are being fused
+		uint64_t mag_field_disturbed     : 1; ///< 16 - true when the mag field does not match the expected strength
+		uint64_t fixed_wing              : 1; ///< 17 - true when the vehicle is operating as a fixed wing vehicle
+		uint64_t mag_fault               : 1; ///< 18 - true when the magnetometer has been declared faulty and is no longer being used
+		uint64_t fuse_aspd               : 1; ///< 19 - true when airspeed measurements are being fused
+		uint64_t gnd_effect              : 1; ///< 20 - true when protection from ground effect induced static pressure rise is active
+		uint64_t rng_stuck               : 1; ///< 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
+		uint64_t gps_yaw                 : 1; ///< 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
+		uint64_t mag_aligned_in_flight   : 1; ///< 23 - true when the in-flight mag field alignment has been completed
+		uint64_t ev_vel                  : 1; ///< 24 - true when local frame velocity data fusion from external vision measurements is intended
+		uint64_t synthetic_mag_z         : 1; ///< 25 - true when we are using a synthesized measurement for the magnetometer Z component
+		uint64_t vehicle_at_rest         : 1; ///< 26 - true when the vehicle is at rest
+		uint64_t gps_yaw_fault           : 1; ///< 27 - true when the GNSS heading has been declared faulty and is no longer being used
+		uint64_t rng_fault               : 1; ///< 28 - true when the range finder has been declared faulty and is no longer being used
+		uint64_t inertial_dead_reckoning : 1; ///< 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
+		uint64_t wind_dead_reckoning     : 1; ///< 30 - true if we are navigationg reliant on wind relative measurements
+		uint64_t rng_kin_consistent      : 1; ///< 31 - true when the range finder kinematic consistency check is passing
+		uint64_t fake_pos                : 1; ///< 32 - true when fake position measurements are being fused
 	} flags;
-	uint32_t value;
+	uint64_t value;
 };
 
 // Mavlink bitmask containing state of estimator solution

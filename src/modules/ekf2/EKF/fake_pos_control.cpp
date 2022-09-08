@@ -53,7 +53,7 @@ void Ekf::controlFakePosFusion()
 		const bool continuing_conditions_passing = !isHorizontalAidingActive();
 		const bool starting_conditions_passing = continuing_conditions_passing;
 
-		if (_using_synthetic_position) {
+		if (_control_status.flags.fake_pos) {
 			if (continuing_conditions_passing) {
 				fuseFakePosition();
 
@@ -83,9 +83,9 @@ void Ekf::controlFakePosFusion()
 
 void Ekf::startFakePosFusion()
 {
-	if (!_using_synthetic_position) {
+	if (!_control_status.flags.fake_pos) {
 		ECL_INFO("start fake position fusion");
-		_using_synthetic_position = true;
+		_control_status.flags.fake_pos = true;
 		_fuse_hpos_as_odom = false; // TODO: needed?
 		resetFakePosFusion();
 	}
@@ -105,9 +105,9 @@ void Ekf::resetFakePosFusion()
 
 void Ekf::stopFakePosFusion()
 {
-	if (_using_synthetic_position) {
+	if (_control_status.flags.fake_pos) {
 		ECL_INFO("stop fake position fusion");
-		_using_synthetic_position = false;
+		_control_status.flags.fake_pos = false;
 
 		resetEstimatorAidStatus(_aid_src_fake_pos);
 	}

@@ -36,6 +36,7 @@ bool cs_rng_fault             # 28 - true when the range finder has been declare
 bool cs_inertial_dead_reckoning # 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
 bool cs_wind_dead_reckoning     # 30 - true if we are navigationg reliant on wind relative measurements
 bool cs_rng_kin_consistent      # 31 - true when the range finder kinematic consistency check is passing
+bool cs_fake_pos                # 32 - true when fake position measurements are being fused
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes
