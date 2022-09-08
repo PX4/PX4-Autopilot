@@ -15,6 +15,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: Build if changed
       run: |
-        if ! git diff --exit-code origin/main Tools/setup/ubuntu.sh; then
+        if ! git diff --exit-code origin/main Tools/setup/ubuntu.sh Tools/docker/Dockerfile-jammy; then
           (cd Tools/docker && docker build . -t px4-dev -f Dockerfile-jammy)
+          PX4_DOCKER_REPO=px4-dev Tools/docker_run.sh make px4_fmu-v2
         fi
