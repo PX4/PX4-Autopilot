@@ -256,7 +256,6 @@ public:
 	const imuSample &get_imu_sample_delayed() const { return _imu_sample_delayed; }
 	const imuSample &get_imu_sample_newest() const { return _newest_high_rate_imu_sample; }
 
-	const baroSample &get_baro_sample_delayed() const { return _baro_sample_delayed; }
 	const gpsSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
 	const rangeSample &get_rng_sample_delayed() { return *(_range_sensor.getSampleAddress()); }
 	const extVisionSample &get_ev_sample_delayed() const { return _ev_sample_delayed; }
@@ -302,7 +301,6 @@ protected:
 	imuSample _imu_sample_delayed{};	// captures the imu sample on the delayed time horizon
 
 	// measurement samples capturing measurements on the delayed time horizon
-	baroSample _baro_sample_delayed{};
 	gpsSample _gps_sample_delayed{};
 	sensor::SensorRangeFinder _range_sensor{};
 	airspeedSample _airspeed_sample_delayed{};
