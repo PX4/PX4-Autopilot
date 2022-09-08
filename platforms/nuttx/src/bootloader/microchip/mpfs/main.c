@@ -321,6 +321,10 @@ board_deinit(void)
 	px4_arch_configgpio(MK_GPIO_INPUT(BOARD_PIN_CS_SPINOR));
 #endif
 
+#if defined(CONFIG_USBDEV)
+	up_disable_irq(MPFS_IRQ_USB_MC);
+#endif
+
 }
 
 static inline void
@@ -483,6 +487,7 @@ static ssize_t flash_write_pages(off_t start, unsigned n_pages, uint8_t *src)
 		_alert("File lseek fail\n");
 		ret = -errno;
 	}
+
 #endif
 	return ret;
 }
