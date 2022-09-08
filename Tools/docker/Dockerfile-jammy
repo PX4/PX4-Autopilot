@@ -13,8 +13,8 @@ RUN apt-get update && apt-get -y --quiet --no-install-recommends install \
     ca-certificates \
     wget
 
-RUN wget https://raw.githubusercontent.com/PX4/PX4-Autopilot/master/Tools/setup/ubuntu.sh
-RUN wget https://github.com/PX4/PX4-Autopilot/blob/master/Tools/setup/requirements.txt
+RUN wget https://raw.githubusercontent.com/PX4/PX4-Autopilot/main/Tools/setup/ubuntu.sh
+RUN wget https://raw.githubusercontent.com/PX4/PX4-Autopilot/main/Tools/setup/requirements.txt
 RUN bash ubuntu.sh
 
 # create user with id 1001 (jenkins docker workflow default)
