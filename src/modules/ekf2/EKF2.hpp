@@ -314,7 +314,7 @@ private:
 	hrt_abstime _last_event_flags_publish{0};
 	hrt_abstime _last_status_flags_publish{0};
 
-	uint32_t _filter_control_status{0};
+	uint64_t _filter_control_status{0};
 	uint32_t _filter_fault_status{0};
 	uint32_t _innov_check_fail_status{0};
 
