@@ -272,7 +272,7 @@ public:
 	// return true if the local position estimate is valid
 	bool local_position_is_valid() const
 	{
-		return (!_deadreckon_time_exceeded && !_using_synthetic_position);
+		return (!_deadreckon_time_exceeded && !_control_status.flags.fake_pos);
 	}
 
 	bool isTerrainEstimateValid() const { return _hagl_valid; };
@@ -465,7 +465,6 @@ private:
 
 	uint64_t _time_prev_gps_us{0};	///< time stamp of previous GPS data retrieved from the buffer (uSec)
 	uint64_t _time_last_aiding{0};	///< amount of time we have been doing inertial only deadreckoning (uSec)
-	bool _using_synthetic_position{false};	///< true if we are using a synthetic position to constrain drift
 
 	uint64_t _time_last_hor_pos_fuse{0};	///< time the last fusion of horizontal position measurements was performed (uSec)
 	uint64_t _time_last_hgt_fuse{0};	///< time the last fusion of vertical position measurements was performed (uSec)

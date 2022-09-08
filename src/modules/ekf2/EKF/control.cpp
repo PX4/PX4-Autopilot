@@ -659,7 +659,7 @@ void Ekf::controlAirDataFusion()
 	const bool airspeed_timed_out = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
 	const bool sideslip_timed_out = isTimedOut(_time_last_beta_fuse, (uint64_t)10e6);
 
-	if (_using_synthetic_position || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & SensorFusionMask::USE_DRAG))) {
+	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & SensorFusionMask::USE_DRAG))) {
 		_control_status.flags.wind = false;
 	}
 
@@ -673,7 +673,7 @@ void Ekf::controlAirDataFusion()
 
 		_innov_check_fail_status.flags.reject_airspeed = _aid_src_airspeed.innovation_rejected; // TODO: remove this redundant flag
 
-		const bool continuing_conditions_passing = _control_status.flags.in_air && _control_status.flags.fixed_wing && !_using_synthetic_position;
+		const bool continuing_conditions_passing = _control_status.flags.in_air && _control_status.flags.fixed_wing && !_control_status.flags.fake_pos;
 		const bool is_airspeed_significant = _airspeed_sample_delayed.true_airspeed > _params.arsp_thr;
 		const bool is_airspeed_consistent = (_aid_src_airspeed.test_ratio > 0.f && _aid_src_airspeed.test_ratio < 1.f);
 		const bool starting_conditions_passing = continuing_conditions_passing && is_airspeed_significant
@@ -707,7 +707,7 @@ void Ekf::controlAirDataFusion()
 
 void Ekf::controlBetaFusion()
 {
-	if (_using_synthetic_position) {
+	if (_control_status.flags.fake_pos) {
 		return;
 	}
 
@@ -733,7 +733,7 @@ void Ekf::controlBetaFusion()
 void Ekf::controlDragFusion()
 {
 	if ((_params.fusion_mode & SensorFusionMask::USE_DRAG) && _drag_buffer &&
-	    !_using_synthetic_position && _control_status.flags.in_air && !_mag_inhibit_yaw_reset_req) {
+	    !_control_status.flags.fake_pos && _control_status.flags.in_air && !_mag_inhibit_yaw_reset_req) {
 
 		if (!_control_status.flags.wind) {
 			// reset the wind states and covariances when starting drag accel fusion
