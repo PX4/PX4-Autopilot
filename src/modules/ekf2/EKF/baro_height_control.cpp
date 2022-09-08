@@ -40,6 +40,28 @@
 
 void Ekf::controlBaroHeightFusion()
 {
+	if (!_baro_buffer) {
+		return;
+	}
+
+	baroSample baro_sample;
+	const bool baro_data_ready = _baro_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &baro_sample);
+
+	if (baro_data_ready) {
+		if (_baro_counter == 0) {
+			_baro_lpf.reset(baro_sample.hgt);
+
+		} else {
+			_baro_lpf.update(baro_sample.hgt);
+		}
+
+		if (_baro_counter < _obs_buffer_length) {
+			// Initialize the pressure offset (included in the baro bias)
+			_baro_b_est.setBias(_state.pos(2) + _baro_lpf.getState());
+			_baro_counter++;
+		}
+	}
+
 	if (!(_params.baro_ctrl == 1)) {
 		stopBaroHgtFusion();
 		return;
@@ -50,12 +72,11 @@ void Ekf::controlBaroHeightFusion()
 	// check for intermittent data
 	const bool baro_hgt_intermittent = !isNewestSampleRecent(_time_last_baro_buffer_push, 2 * BARO_MAX_INTERVAL);
 
-	if (_baro_data_ready) {
-		_baro_lpf.update(_baro_sample_delayed.hgt);
-		updateBaroHgt(_baro_sample_delayed, _aid_src_baro_hgt);
+	if (baro_data_ready) {
+		updateBaroHgt(baro_sample, _aid_src_baro_hgt);
 
 		const bool continuing_conditions_passing = !_baro_hgt_faulty && !baro_hgt_intermittent;
-		const bool starting_conditions_passing = continuing_conditions_passing;
+		const bool starting_conditions_passing = continuing_conditions_passing && (_baro_counter >= _obs_buffer_length);
 
 		if (_control_status.flags.baro_hgt) {
 			if (continuing_conditions_passing) {
@@ -65,7 +86,7 @@ void Ekf::controlBaroHeightFusion()
 
 				if (isHeightResetRequired()) {
 					// All height sources are failing
-					resetHeightToBaro();
+					resetHeightToBaro(baro_sample);
 					resetVerticalVelocityToZero();
 
 				} else if (is_fusion_failing) {
@@ -79,7 +100,7 @@ void Ekf::controlBaroHeightFusion()
 			}
 		} else {
 			if (starting_conditions_passing) {
-				startBaroHgtFusion();
+				startBaroHgtFusion(baro_sample);
 			}
 		}
 
@@ -89,12 +110,12 @@ void Ekf::controlBaroHeightFusion()
 	}
 }
 
-void Ekf::startBaroHgtFusion()
+void Ekf::startBaroHgtFusion(const baroSample &baro_sample)
 {
 	if (!_control_status.flags.baro_hgt) {
 		if (_params.height_sensor_ref == HeightSensor::BARO) {
 			_height_sensor_ref = HeightSensor::BARO;
-			resetHeightToBaro();
+			resetHeightToBaro(baro_sample);
 
 		} else {
 			_baro_b_est.setBias(_state.pos(2) + _baro_lpf.getState());
@@ -106,12 +127,12 @@ void Ekf::startBaroHgtFusion()
 	}
 }
 
-void Ekf::resetHeightToBaro()
+void Ekf::resetHeightToBaro(const baroSample &baro_sample)
 {
 	ECL_INFO("reset height to baro");
 	_information_events.flags.reset_hgt_to_baro = true;
 
-	resetVerticalPositionTo(-(_baro_sample_delayed.hgt - _baro_b_est.getBias()));
+	resetVerticalPositionTo(-(baro_sample.hgt - _baro_b_est.getBias()));
 
 	// the state variance is the same as the observation
 	P.uncorrelateCovarianceSetVariance<1>(9, sq(_params.baro_noise));

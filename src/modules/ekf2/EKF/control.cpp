@@ -85,18 +85,6 @@ void Ekf::controlFusionModes()
 		}
 	}
 
-	if (_baro_buffer) {
-		const uint64_t baro_time_prev = _baro_sample_delayed.time_us;
-		_baro_data_ready = _baro_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed);
-
-		// if we have a new baro sample save the delta time between this sample and the last sample which is
-		// used below for baro offset calculations
-		if (_baro_data_ready && baro_time_prev != 0) {
-			_delta_time_baro_us = _baro_sample_delayed.time_us - baro_time_prev;
-		}
-	}
-
-
 	if (_gps_buffer) {
 		_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GPS_MAX_INTERVAL);
 
