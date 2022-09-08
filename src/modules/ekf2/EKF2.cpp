@@ -769,7 +769,7 @@ void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 		const BiasEstimator::status &status = _ekf.getBaroBiasEstimatorStatus();
 
 		if (fabsf(status.bias - _last_baro_bias_published) > 0.001f) {
-			_estimator_baro_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_baro_sample_delayed().time_us, timestamp,
+			_estimator_baro_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.aid_src_baro_hgt().timestamp_sample, timestamp,
 							 _device_id_baro));
 
 			_last_baro_bias_published = status.bias;
