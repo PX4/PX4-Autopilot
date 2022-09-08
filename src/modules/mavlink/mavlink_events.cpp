@@ -136,6 +136,17 @@ void SendProtocol::update(const hrt_abstime &now)
 	uint16_t buffer_sequence = _buffer.get_latest_sequence();
 	int num_drops = 0;
 
+	if (_first_event && buffer_sequence != _latest_sequence) {
+		// If events are published before the first mavlink instance starts, they would be flagged as dropped
+		// events as the buffer initializes the sequence to the global events::initial_event_sequence,
+		// therefore reset the sequence.
+		_latest_sequence = buffer_sequence - 1;
+		_first_event = false;
+		PX4_DEBUG("Setting initial sequence to %i", _latest_sequence);
+		// Send sequence - only needed for SITL to ensure we send the sequence reset flag initially
+		send_current_sequence(now, true);
+	}
+
 	while (_latest_sequence != buffer_sequence) {
 		// only send if enough tx buffer space available
 		if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_EVENT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
@@ -164,8 +175,7 @@ void SendProtocol::update(const hrt_abstime &now)
 		PX4_WARN("Dropped %i events (seq=%i)", num_drops, _latest_sequence);
 	}
 
-	// Send immediately on startup. This is only needed for SITL to ensure we send the sequence reset flag
-	if (now - _last_current_sequence_sent > current_sequence_interval || _last_current_sequence_sent == 0) {
+	if (now - _last_current_sequence_sent > current_sequence_interval) {
 		send_current_sequence(now);
 	}
 }
@@ -216,7 +226,7 @@ void SendProtocol::on_gcs_connected()
 	send_current_sequence(hrt_absolute_time());
 }
 
-void SendProtocol::send_current_sequence(const hrt_abstime &now)
+void SendProtocol::send_current_sequence(const hrt_abstime &now, bool force_reset)
 {
 	// only send if enough tx buffer space available
 	if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_CURRENT_EVENT_SEQUENCE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
@@ -226,7 +236,7 @@ void SendProtocol::send_current_sequence(const hrt_abstime &now)
 	_last_current_sequence_sent = now;
 	mavlink_current_event_sequence_t current_event_seq;
 	current_event_seq.sequence = _buffer.get_latest_sequence();
-	current_event_seq.flags = _buffer.size() == 0 ? MAV_EVENT_CURRENT_SEQUENCE_FLAGS_RESET : 0;
+	current_event_seq.flags = (_buffer.size() == 0 || force_reset) ? MAV_EVENT_CURRENT_SEQUENCE_FLAGS_RESET : 0;
 	mavlink_msg_current_event_sequence_send_struct(_mavlink.get_channel(), &current_event_seq);
 }
 
