@@ -12,7 +12,7 @@ jobs:
   docker-jammy:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Build if changed
       run: |
         if ! git diff --exit-code origin/main Tools/setup/ubuntu.sh; then
