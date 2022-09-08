@@ -447,9 +447,9 @@ FixedwingPositionINDIControl::_compute_wind_estimate()
     float AoA_approx = (((2.f*Fz)/(_rho*_area*(fmaxf(_cal_airspeed*_cal_airspeed,_stall_speed*_stall_speed))+0.001f) - _C_L0)/_C_L1) / 
                         (1 - ((2.f*Fx)/(_rho*_area*(fmaxf(_cal_airspeed*_cal_airspeed,_stall_speed*_stall_speed))+0.001f)/_C_L1));
     AoA_approx = constrain(AoA_approx,-0.2f,0.3f);
-    //float speed = fmaxf(_cal_airspeed, _stall_speed);
+    float speed = fmaxf(_cal_airspeed, _stall_speed);
     float u_approx = _true_airspeed;
-    float v_approx = 0.f; //body_force(1)*_true_airspeed / (0.5f*_rho*powf(speed,2)*_area*_C_B1);
+    float v_approx = body_force(1)*_true_airspeed / (0.5f*_rho*powf(speed,2)*_area*_C_B1);
     float w_approx = tanf(AoA_approx-_aoa_offset)*_true_airspeed;
     Vector3f vel_air = R_ib*(Vector3f{u_approx, v_approx, w_approx});
 
@@ -655,8 +655,8 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // =======================================================================
     bool error = false;
 
-    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-    //char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     //PX4_ERR(home_dir);
     strcat(home_dir,filename);
     FILE* fp = fopen(home_dir, "r");
