@@ -231,7 +231,6 @@ private:
 
 	ArmStateMachine _arm_state_machine{};
 
-	bool         _circuit_breaker_flight_termination_disabled{false};
 	FailureDetector	_failure_detector{this};
 	bool		_flight_termination_triggered{false};
 	bool		_lockdown_triggered{false};
