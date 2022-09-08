@@ -1,0 +1,21 @@
+name: Build & Publish Docker images
+
+on:
+  push:
+    branches:
+      - main
+    pull_request:
+    - '*'
+
+jobs:
+  docker-jammy:
+    runs-on: ubuntu-22
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.ACCESS_TOKEN }}
+    - name: Build if changed
+      run: |
+        if ! git diff --exit-code origin/main Tools/setup/ubuntu.sh; then
+          (cd Tools/docker && docker build . -t px4-dev -f Dockerfile-jammy)
+        fi

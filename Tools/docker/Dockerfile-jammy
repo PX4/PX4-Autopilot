@@ -1,0 +1,42 @@
+#
+# PX4 development environment
+#
+
+FROM ubuntu:22.04
+LABEL maintainer="Daniel Agar <daniel@agar.ca>"
+
+ENV DEBIAN_FRONTEND noninteractive
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
+
+RUN apt-get update && apt-get -y --quiet --no-install-recommends install \
+    ca-certificates \
+    wget
+
+RUN wget https://raw.githubusercontent.com/PX4/PX4-Autopilot/master/Tools/setup/ubuntu.sh
+RUN wget https://github.com/PX4/PX4-Autopilot/blob/master/Tools/setup/requirements.txt
+RUN bash ubuntu.sh
+
+# create user with id 1001 (jenkins docker workflow default)
+RUN useradd --shell /bin/bash -u 1001 -c "" -m user && usermod -a -G dialout user
+
+# setup virtual X server
+RUN mkdir /tmp/.X11-unix && \
+    chmod 1777 /tmp/.X11-unix && \
+    chown -R root:root /tmp/.X11-unix
+ENV DISPLAY :99
+
+ENV CCACHE_UMASK=000
+ENV PATH="/usr/lib/ccache:$PATH"
+ENV TERM=xterm
+ENV TZ=UTC
+
+# SITL UDP PORTS
+EXPOSE 14556/udp
+EXPOSE 14557/udp
+
+# create and start as LOCAL_USER_ID
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+CMD ["/bin/bash"]
