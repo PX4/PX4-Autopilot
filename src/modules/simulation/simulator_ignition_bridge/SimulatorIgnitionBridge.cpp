@@ -155,8 +155,8 @@ int SimulatorIgnitionBridge::init()
 		PX4_INFO("subscribed: %s", sub_topic.c_str());
 	}
 
-	// output eg /X3/command/motor_speed
-	std::string actuator_topic = "model/" + _model_name + "/command/motor_speed";
+	// output eg /X500/command/motor_speed
+	std::string actuator_topic = _model_name + "/command/motor_speed";
 	_actuators_pub = _node.Advertise<ignition::msgs::Actuators>(actuator_topic);
 
 	if (!_actuators_pub.Valid()) {
