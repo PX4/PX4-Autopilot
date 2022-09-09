@@ -1708,6 +1708,8 @@ void Commander::run()
 
 		manualControlCheck();
 
+		offboardControlCheck();
+
 		// data link checks which update the status
 		dataLinkCheck();
 
@@ -2407,7 +2409,6 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 void Commander::updateControlMode()
 {
 	_vehicle_control_mode = {};
-	_offboard_control_mode_sub.update();
 	mode_util::getVehicleControlMode(_arm_state_machine.isArmed(), _vehicle_status.nav_state,
 					 _vehicle_status.vehicle_type, _offboard_control_mode_sub.get(), _vehicle_control_mode);
 	_vehicle_control_mode.timestamp = hrt_absolute_time();
@@ -2778,6 +2779,16 @@ void Commander::manualControlCheck()
 			if (!_user_mode_intention.everHadModeChange() && (is_mavlink || !_mode_switch_mapped)) {
 				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_POSCTL, false, true);
 			}
+		}
+	}
+}
+
+void Commander::offboardControlCheck()
+{
+	if (_offboard_control_mode_sub.update()) {
+		if (_vehicle_status_flags.offboard_control_signal_lost) {
+			// Run arming checks immediately to allow for offboard mode activation
+			_status_changed = true;
 		}
 	}
 }
