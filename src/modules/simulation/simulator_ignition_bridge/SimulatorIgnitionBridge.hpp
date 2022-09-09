@@ -62,7 +62,7 @@ using namespace time_literals;
 class SimulatorIgnitionBridge : public ModuleBase<SimulatorIgnitionBridge>, public OutputModuleInterface
 {
 public:
-	SimulatorIgnitionBridge(const char *world, const char *model, const char *pose_str);
+	SimulatorIgnitionBridge(const char *world, const char *model, const char *pose_str, const char *px4_instance);
 	~SimulatorIgnitionBridge() override;
 
 	/** @see ModuleBase */
@@ -119,6 +119,7 @@ private:
 	const std::string _world_name;
 	const std::string _model_name;
 	const std::string _model_pose;
+    const std::string _model_instance_name;
 
 	MixingOutput _mixing_output{"SIM_IGN", 8, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 

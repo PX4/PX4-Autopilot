@@ -42,11 +42,13 @@
 #include <iostream>
 #include <string>
 
-SimulatorIgnitionBridge::SimulatorIgnitionBridge(const char *world, const char *model, const char *pose_str) :
+SimulatorIgnitionBridge::SimulatorIgnitionBridge(const char *world, const char *model, const char *pose_str,
+                                                 const char *px4_instance) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_world_name(world),
 	_model_name(model),
-	_model_pose(pose_str)
+	_model_pose(pose_str),
+    _model_instance_name(std::string(model) + "_" + std::string(px4_instance))
 {
 	pthread_mutex_init(&_mutex, nullptr);
 
@@ -55,8 +57,6 @@ SimulatorIgnitionBridge::SimulatorIgnitionBridge(const char *world, const char *
 
 SimulatorIgnitionBridge::~SimulatorIgnitionBridge()
 {
-	// TODO: unsubscribe
-
 	for (auto &sub_topic : _node.SubscribedTopics()) {
 		_node.Unsubscribe(sub_topic);
 	}
@@ -68,9 +68,7 @@ int SimulatorIgnitionBridge::init()
 	// ign service -s /world/${PX4_SIM_WORLD}/create --reqtype ignition.msgs.EntityFactory --reptype ignition.msgs.Boolean --timeout 1000 --req "sdf_filename: \"${PX4_SIM_MODEL}/model.sdf\""
 	ignition::msgs::EntityFactory req{};
 	req.set_sdf_filename(_model_name + "/model.sdf");
-
-	// TODO: support model instances?
-	// req.set_name("model_instance_name"); // New name for the entity, overrides the name on the SDF.
+	req.set_name(_model_instance_name); // New name for the entity, overrides the name on the SDF.
 	req.set_allow_renaming(false); // allowed to rename the entity in case of overlap with existing entities
 
 	if (!_model_pose.empty()) {
@@ -140,7 +138,7 @@ int SimulatorIgnitionBridge::init()
 	}
 
 	// IMU: /world/$WORLD/model/$MODEL//link/base_link/sensor/imu_sensor/imu
-	std::string imu_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/base_link/sensor/imu_sensor/imu";
+	std::string imu_topic = "/world/" + _world_name + "/model/" + _model_instance_name + "/link/base_link/sensor/imu_sensor/imu";
 
 	if (!_node.Subscribe(imu_topic, &SimulatorIgnitionBridge::imuCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", imu_topic.c_str());
@@ -152,7 +150,7 @@ int SimulatorIgnitionBridge::init()
 	}
 
 	// output eg /X3/command/motor_speed
-	std::string actuator_topic = "model/" + _model_name + "/command/motor_speed";
+	std::string actuator_topic = "model/" + _model_instance_name + "/command/motor_speed";
 	_actuators_pub = _node.Advertise<ignition::msgs::Actuators>(actuator_topic);
 
 	if (!_actuators_pub.Valid()) {
@@ -169,6 +167,7 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 	const char *world_name = "default";
 	const char *model_name = nullptr;
 	const char *model_pose = nullptr;
+    const char *px4_instance = nullptr;
 
 
 	bool error_flag = false;
@@ -176,7 +175,7 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "w:m:p:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "w:m:p:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'w':
 			// world
@@ -192,6 +191,11 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 			// pose
 			model_pose = myoptarg;
 			break;
+
+        case 'n':
+            // px4_instance
+            px4_instance = myoptarg;
+            break;
 
 		case '?':
 			error_flag = true;
@@ -214,7 +218,7 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 		model_pose = "";
 	}
 
-	SimulatorIgnitionBridge *instance = new SimulatorIgnitionBridge(world_name, model_name, model_pose);
+	SimulatorIgnitionBridge *instance = new SimulatorIgnitionBridge(world_name, model_name, model_pose, px4_instance);
 
 	if (instance) {
 		_object.store(instance);
@@ -326,7 +330,7 @@ void SimulatorIgnitionBridge::poseInfoCallback(const ignition::msgs::Pose_V &pos
 	pthread_mutex_lock(&_mutex);
 
 	for (int p = 0; p < pose.pose_size(); p++) {
-		if (pose.pose(p).name() == _model_name) {
+		if (pose.pose(p).name() == _model_instance_name) {
 
 			const uint64_t time_us = (pose.header().stamp().sec() * 1000000) + (pose.header().stamp().nsec() / 1000);
 
@@ -513,6 +517,7 @@ int SimulatorIgnitionBridge::print_usage(const char *reason)
 	PRINT_MODULE_USAGE_PARAM_STRING('m', nullptr, nullptr, "Model name", false);
 	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, nullptr, "Model Pose", false);
 	PRINT_MODULE_USAGE_PARAM_STRING('w', nullptr, nullptr, "World name", true);
+    PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "PX4 instance number", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

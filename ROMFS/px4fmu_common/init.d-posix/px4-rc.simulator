@@ -41,7 +41,7 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 	if [ -z $PX4_IGN_MODEL_POSE ]; then
 		# start ignition bridge without pose arg.
 		echo "WARN  [init] PX4_IGN_MODEL_POSE not set, spawning at origin."
-		if simulator_ignition_bridge start -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}"; then
+		if simulator_ignition_bridge start -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}" -n "${px4_instance}"; then
 			sensor_baro_sim start
 			sensor_gps_sim start
 			sensor_mag_sim start
@@ -56,7 +56,7 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 		echo "INFO  [init] PX4_IGN_MODEL_POSE set, spawning at: ${model_pose}"
 
 		# start ignition bridge with pose arg.
-		if simulator_ignition_bridge start -p "${model_pose}"  -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}"; then
+		if simulator_ignition_bridge start -p "${model_pose}" -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}" -n "${px4_instance}"; then
 			sensor_baro_sim start
 			sensor_gps_sim start
 			sensor_mag_sim start
