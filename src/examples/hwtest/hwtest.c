@@ -66,7 +66,6 @@ int ex_hwtest_main(int argc, char *argv[])
 	memset(&arm, 0, sizeof(arm));
 
 	arm.timestamp = hrt_absolute_time();
-	arm.ready_to_arm = true;
 	arm.armed = true;
 	orb_advert_t arm_pub_ptr = orb_advertise(ORB_ID(actuator_armed), &arm);
 	orb_publish(ORB_ID(actuator_armed), arm_pub_ptr, &arm);
@@ -74,13 +73,6 @@ int ex_hwtest_main(int argc, char *argv[])
 	/* read back values to validate */
 	int arm_sub_fd = orb_subscribe(ORB_ID(actuator_armed));
 	orb_copy(ORB_ID(actuator_armed), arm_sub_fd, &arm);
-
-	if (arm.ready_to_arm && arm.armed) {
-		warnx("Actuator armed");
-
-	} else {
-		errx(1, "Arming actuators failed");
-	}
 
 	hrt_abstime stime;
 

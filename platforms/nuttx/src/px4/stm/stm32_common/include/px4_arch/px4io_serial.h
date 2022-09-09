@@ -117,7 +117,6 @@ public:
 	virtual ~ArchPX4IOSerial();
 
 	virtual int	init();
-	virtual int	ioctl(unsigned operation, unsigned &arg);
 
 protected:
 	/**

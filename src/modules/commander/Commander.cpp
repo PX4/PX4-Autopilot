@@ -93,7 +93,6 @@ static constexpr bool operator ==(const actuator_armed_s &a, const actuator_arme
 {
 	return (a.armed == b.armed &&
 		a.prearmed == b.prearmed &&
-		a.ready_to_arm == b.ready_to_arm &&
 		a.lockdown == b.lockdown &&
 		a.manual_lockdown == b.manual_lockdown &&
 		a.force_failsafe == b.force_failsafe &&
@@ -2232,7 +2231,6 @@ Commander::run()
 
 			// publish actuator_armed first (used by output modules)
 			_actuator_armed.armed = _arm_state_machine.isArmed();
-			_actuator_armed.ready_to_arm = _arm_state_machine.isArmed() || _arm_state_machine.isStandby();
 			_actuator_armed.timestamp = hrt_absolute_time();
 			_actuator_armed_pub.publish(_actuator_armed);
 

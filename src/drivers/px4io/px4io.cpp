@@ -49,11 +49,8 @@
 
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_io_heater.h>
 #include <drivers/drv_pwm_output.h>
-#include <drivers/drv_sbus.h>
 
-#include <lib/circuit_breaker/circuit_breaker.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/parameters/param.h>
@@ -68,8 +65,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/heater_status.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -82,8 +78,6 @@
 #include <modules/px4iofirmware/protocol.h>
 
 #include "uploader.h"
-
-#include "modules/dataman/dataman.h"
 
 #include "px4io_driver.h"
 
@@ -152,16 +146,12 @@ public:
 	 */
 	void			test_fmu_fail(bool is_fail) { _test_fmu_fail = is_fail; };
 
-	uint16_t		system_status() const { return _status; }
-
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 			   unsigned num_control_groups_updated) override;
 
 private:
 	void Run() override;
 
-	void updateDisarmed();
-	void updateFailsafe();
 	void updateTimerRateGroups();
 
 	static int checkcrc(int argc, char *argv[]);
@@ -173,7 +163,6 @@ private:
 
 	unsigned		_hardware{0};		///< Hardware revision
 	unsigned		_max_actuators{0};		///< Maximum # of actuators supported by PX4IO
-	unsigned		_max_controls{0};		///< Maximum # of controls supported by PX4IO
 	unsigned		_max_rc_input{0};		///< Maximum receiver channels supported by PX4IO
 	unsigned		_max_transfer{16};		///< Maximum number of I2C transfers supported by PX4IO
 
@@ -199,6 +188,7 @@ private:
 	uORB::Subscription	_t_actuator_armed{ORB_ID(actuator_armed)};		///< system armed control topic
 	uORB::Subscription	_t_vehicle_command{ORB_ID(vehicle_command)};	///< vehicle command topic
 	uORB::Subscription	_t_vehicle_status{ORB_ID(vehicle_status)};		///< vehicle status topic
+	uORB::Subscription	_heater_status_sub{ORB_ID(heater_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -216,22 +206,13 @@ private:
 	ButtonPublisher	_button_publisher;
 	bool _previous_safety_off{false};
 
-	bool			_lockdown_override{false};	///< override the safety lockdown
-
 	int32_t		_thermal_control{-1}; ///< thermal control state
 	bool			_analog_rc_rssi_stable{false}; ///< true when analog RSSI input is stable
 	float			_analog_rc_rssi_volt{-1.f}; ///< analog RSSI voltage
 
 	bool			_test_fmu_fail{false}; ///< To test what happens if IO loses FMU
-	bool			_in_test_mode{false}; ///< true if PWM_SERVO_ENTER_TEST_MODE is active
 
 	MixingOutput _mixing_output{"PWM_MAIN", PX4IO_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
-
-	bool _pwm_min_configured{false};
-	bool _pwm_max_configured{false};
-	bool _pwm_fail_configured{false};
-	bool _pwm_dis_configured{false};
-	bool _pwm_rev_configured{false};
 
 	/**
 	 * Update IO's arming-related state
@@ -306,15 +287,6 @@ private:
 	int			io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t setbits);
 
 	/**
-	 * Handle a status update from IO.
-	 *
-	 * Publish IO status information if necessary.
-	 *
-	 * @param status	The status register
-	 */
-	int			io_handle_status(uint16_t status);
-
-	/**
 	 * Handle issuing dsm bind ioctl to px4io.
 	 *
 	 * @param dsmMode	DSM2_BIND_PULSES, DSMX_BIND_PULSES, DSMX8_BIND_PULSES
@@ -332,7 +304,6 @@ private:
 	void update_params();
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::PWM_SBUS_MODE>) _param_pwm_sbus_mode,
 		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
 		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max,
 		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
@@ -412,7 +383,6 @@ int PX4IO::init()
 
 	_hardware      = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_HARDWARE_VERSION);
 	_max_actuators = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ACTUATOR_COUNT);
-	_max_controls  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_CONTROL_COUNT);
 	_max_transfer  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER) - 2;
 	_max_rc_input  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT);
 
@@ -452,8 +422,7 @@ int PX4IO::init()
 	}
 
 	/* dis-arm IO before touching anything */
-	io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_FMU_ARMED | PX4IO_P_SETUP_ARMING_LOCKDOWN,
-		      0);
+	io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_FMU_ARMED, 0);
 
 	if (ret != OK) {
 		mavlink_log_critical(&_mavlink_log_pub, "IO RC config upload fail\t");
@@ -482,28 +451,6 @@ int PX4IO::init()
 	return OK;
 }
 
-void PX4IO::updateDisarmed()
-{
-	uint16_t values[PX4IO_MAX_ACTUATORS] {};
-
-	for (unsigned i = 0; i < _max_actuators; i++) {
-		values[i] = _mixing_output.disarmedValue(i);
-	}
-
-	io_reg_set(PX4IO_PAGE_DISARMED_PWM, 0, values, _max_actuators);
-}
-
-void PX4IO::updateFailsafe()
-{
-	uint16_t values[PX4IO_MAX_ACTUATORS] {};
-
-	for (unsigned i = 0; i < _max_actuators; i++) {
-		values[i] = _mixing_output.actualFailsafeValue(i);
-	}
-
-	io_reg_set(PX4IO_PAGE_FAILSAFE_PWM, 0, values, _max_actuators);
-}
-
 void PX4IO::Run()
 {
 	if (should_exit()) {
@@ -518,6 +465,23 @@ void PX4IO::Run()
 
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
+
+	if (_thermal_control) {
+		if (_heater_status_sub.updated()) {
+			heater_status_s heater_status;
+
+			if (_heater_status_sub.copy(&heater_status)) {
+
+				if (heater_status.heater_on) {
+					io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, PX4IO_THERMAL_FULL);
+
+				} else {
+					io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, PX4IO_THERMAL_OFF);
+				}
+			}
+		}
+	}
+
 
 	/* if we have new control data from the ORB, handle it */
 	if (_param_sys_hitl.get() <= 0) {
@@ -595,11 +559,6 @@ void PX4IO::Run()
 
 			update_params();
 
-			/* Check if the flight termination circuit breaker has been updated */
-			bool disable_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
-			/* Tell IO that it can terminate the flight if FMU is not responding or if a failure has been reported by the FailureDetector logic */
-			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION, !disable_flighttermination);
-
 			if (_param_sens_en_themal.get() != _thermal_control || _param_update_force) {
 
 				_thermal_control = _param_sens_en_themal.get();
@@ -614,21 +573,6 @@ void PX4IO::Run()
 				}
 
 				io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, tctrl);
-			}
-
-			/* S.BUS output */
-			if (_param_pwm_sbus_mode.get() == 1) {
-				/* enable S.BUS 1 */
-				io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
-
-			} else if (_param_pwm_sbus_mode.get() == 2) {
-				/* enable S.BUS 2 */
-				io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
-
-			} else {
-				/* disable S.BUS */
-				io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES,
-					      (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
 			}
 		}
 	}
@@ -738,8 +682,6 @@ void PX4IO::update_params()
 
 		// sync params to IO
 		updateTimerRateGroups();
-		updateFailsafe();
-		updateDisarmed();
 		_first_param_update = false;
 		return;
 	}
@@ -776,38 +718,7 @@ PX4IO::io_set_arming_state()
 			clear |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
 		}
 
-		if (armed.prearmed) {
-			set |= PX4IO_P_SETUP_ARMING_FMU_PREARMED;
-
-		} else {
-			clear |= PX4IO_P_SETUP_ARMING_FMU_PREARMED;
-		}
-
-		if ((armed.lockdown || armed.manual_lockdown) && !_lockdown_override) {
-			set |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
-			_lockdown_override = true;
-
-		} else if (!(armed.lockdown || armed.manual_lockdown) && _lockdown_override) {
-			clear |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
-			_lockdown_override = false;
-		}
-
-		if (armed.force_failsafe) {
-			set |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
-
-		} else {
-			clear |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
-		}
-
-		// XXX this is for future support in the commander
-		// but can be removed if unneeded
-		// if (armed.termination_failsafe) {
-		// 	set |= PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
-		// } else {
-		// 	clear |= PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
-		// }
-
-		if (armed.ready_to_arm) {
+		if (true) {
 			set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
 
 		} else {
@@ -822,60 +733,6 @@ PX4IO::io_set_arming_state()
 	}
 
 	return 0;
-}
-
-int PX4IO::io_handle_status(uint16_t status)
-{
-	int ret = 1;
-	/**
-	 * WARNING: This section handles in-air resets.
-	 */
-
-	/* check for IO reset - force it back to armed if necessary */
-	if (!(status & PX4IO_P_STATUS_FLAGS_ARM_SYNC)) {
-		/* set the arming flag */
-		ret = io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0, PX4IO_P_STATUS_FLAGS_ARM_SYNC);
-
-		/* set new status */
-		_status = status;
-
-	} else if (!(_status & PX4IO_P_STATUS_FLAGS_ARM_SYNC)) {
-
-		/* set the sync flag */
-		ret = io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0, PX4IO_P_STATUS_FLAGS_ARM_SYNC);
-		/* set new status */
-		_status = status;
-
-	} else {
-		ret = 0;
-
-		/* set new status */
-		_status = status;
-	}
-
-	/**
-	 * Get and handle the safety button status
-	 */
-	const bool safety_button_pressed = status & PX4IO_P_STATUS_FLAGS_SAFETY_BUTTON_EVENT;
-
-	if (safety_button_pressed) {
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SAFETY_BUTTON_ACK, 0);
-		_button_publisher.safetyButtonTriggerEvent();
-	}
-
-	/**
-	 * Inform PX4IO board about safety_off state for LED control
-	 */
-	vehicle_status_s vehicle_status;
-
-	if (_t_vehicle_status.update(&vehicle_status)) {
-		if (_previous_safety_off != vehicle_status.safety_off) {
-			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SAFETY_OFF, vehicle_status.safety_off);
-			_previous_safety_off = vehicle_status.safety_off;
-		}
-	}
-
-	return ret;
 }
 
 int PX4IO::dsm_bind_ioctl(int dsmMode)
@@ -933,7 +790,30 @@ int PX4IO::io_get_status()
 	const uint16_t STATUS_VSERVO = regs[4];
 	const uint16_t STATUS_VRSSI  = regs[5];
 
-	io_handle_status(STATUS_FLAGS);
+	/* set new status */
+	_status = STATUS_FLAGS;
+
+	/**
+	 * Get and handle the safety button status
+	 */
+	const bool safety_button_pressed = _status & PX4IO_P_STATUS_FLAGS_SAFETY_BUTTON_EVENT;
+
+	if (safety_button_pressed) {
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SAFETY_BUTTON_ACK, 0);
+		_button_publisher.safetyButtonTriggerEvent();
+	}
+
+	/**
+	 * Inform PX4IO board about safety_off state for LED control
+	 */
+	vehicle_status_s vehicle_status;
+
+	if (_t_vehicle_status.update(&vehicle_status)) {
+		if (_previous_safety_off != vehicle_status.safety_off) {
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SAFETY_OFF, vehicle_status.safety_off);
+			_previous_safety_off = vehicle_status.safety_off;
+		}
+	}
 
 	const float rssi_v = STATUS_VRSSI * 0.001f; // voltage is scaled to mV
 
@@ -963,48 +843,32 @@ int PX4IO::io_get_status()
 		status.free_memory_bytes = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FREEMEM);
 
 		// PX4IO_P_STATUS_FLAGS
-		status.status_outputs_armed   = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED;
 		status.status_rc_ok           = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_OK;
 		status.status_rc_ppm          = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_PPM;
 		status.status_rc_dsm          = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_DSM;
 		status.status_rc_sbus         = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_SBUS;
 		status.status_rc_st24         = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_ST24;
 		status.status_rc_sumd         = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_SUMD;
-		status.status_fmu_initialized = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED;
 		status.status_fmu_ok          = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_FMU_OK;
 		status.status_raw_pwm         = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RAW_PWM;
-		status.status_arm_sync        = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_ARM_SYNC;
-		status.status_init_ok         = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_INIT_OK;
-		status.status_failsafe        = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_FAILSAFE;
 		status.status_safety_button_event = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_SAFETY_BUTTON_EVENT;
 
 		// PX4IO_P_STATUS_ALARMS
-		status.alarm_rc_lost       = STATUS_ALARMS & PX4IO_P_STATUS_ALARMS_RC_LOST;
-		status.alarm_pwm_error     = STATUS_ALARMS & PX4IO_P_STATUS_ALARMS_PWM_ERROR;
+		status.alarm_rc_lost   = STATUS_ALARMS & PX4IO_P_STATUS_ALARMS_RC_LOST;
+		status.alarm_pwm_error = STATUS_ALARMS & PX4IO_P_STATUS_ALARMS_PWM_ERROR;
 
 		// PX4IO_P_SETUP_ARMING
-		status.arming_io_arm_ok            = SETUP_ARMING & PX4IO_P_SETUP_ARMING_IO_ARM_OK;
-		status.arming_fmu_armed            = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FMU_ARMED;
-		status.arming_fmu_prearmed         = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FMU_PREARMED;
-		status.arming_failsafe_custom      = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM;
-		status.arming_lockdown             = SETUP_ARMING & PX4IO_P_SETUP_ARMING_LOCKDOWN;
-		status.arming_force_failsafe       = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
-		status.arming_termination_failsafe = SETUP_ARMING & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
+		status.arming_io_arm_ok = SETUP_ARMING & PX4IO_P_SETUP_ARMING_IO_ARM_OK;
+		status.arming_fmu_armed = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FMU_ARMED;
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
-			status.pwm[i] = io_reg_get(PX4IO_PAGE_SERVOS, i);
-			status.pwm_disarmed[i] = io_reg_get(PX4IO_PAGE_DISARMED_PWM, i);
-			status.pwm_failsafe[i] = io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i);
+			status.pwm[i] = io_reg_get(PX4IO_PAGE_DIRECT_PWM, i);
 		}
 
-		{
-			int i = 0;
-
-			for (uint8_t offset = PX4IO_P_SETUP_PWM_RATE_GROUP0; offset <= PX4IO_P_SETUP_PWM_RATE_GROUP3; ++offset) {
-				// This is a bit different than below, setting the groups, not the channels
-				status.pwm_rate_hz[i++] = io_reg_get(PX4IO_PAGE_SETUP, offset);
-			}
-		}
+		status.pwm_group_rate_hz[0] = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATE_GROUP0);
+		status.pwm_group_rate_hz[1] = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATE_GROUP1);
+		status.pwm_group_rate_hz[2] = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATE_GROUP2);
+		status.pwm_group_rate_hz[3] = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATE_GROUP3);
 
 		uint16_t raw_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
 
@@ -1233,8 +1097,7 @@ int PX4IO::print_status()
 	       io_reg_get(PX4IO_PAGE_SETUP,  PX4IO_P_SETUP_CRC),
 	       io_reg_get(PX4IO_PAGE_SETUP,  PX4IO_P_SETUP_CRC + 1));
 
-	printf("%" PRIu32 " controls %" PRIu32 " actuators %" PRIu32 " R/C inputs %" PRIu32 " analog inputs\n",
-	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_CONTROL_COUNT),
+	printf("%" PRIu32 " actuators %" PRIu32 " R/C inputs %" PRIu32 " analog inputs\n",
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ACTUATOR_COUNT),
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT),
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ADC_INPUT_COUNT));
@@ -1269,13 +1132,9 @@ int PX4IO::print_status()
 
 	/* setup and state */
 	uint16_t features = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES);
-	printf("features 0x%04" PRIx16 "%s%s%s\n", features,
-	       ((features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) ? " S.BUS1_OUT" : ""),
-	       ((features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) ? " S.BUS2_OUT" : ""),
+	printf("features 0x%04" PRIx16 "%s\n", features,
 	       ((features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) ? " RSSI_ADC" : "")
 	      );
-
-	printf("sbus rate %" PRIu32 "\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SBUS_RATE));
 
 	printf("debuglevel %" PRIu32 "\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
 
@@ -1304,11 +1163,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 	/* regular ioctl? */
 	switch (cmd) {
-	case DSM_BIND_START:
-		/* bind a DSM receiver */
-		ret = dsm_bind_ioctl(arg);
-		break;
-
 	case PX4IO_SET_DEBUG:
 		PX4_DEBUG("PX4IO_SET_DEBUG");
 
@@ -1317,7 +1171,7 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		break;
 
 	case PX4IO_REBOOT_BOOTLOADER:
-		if (system_status() & PX4IO_P_SETUP_ARMING_FMU_ARMED) {
+		if (_status & PX4IO_P_SETUP_ARMING_FMU_ARMED) {
 			PX4_ERR("not upgrading IO firmware, system is armed");
 			return -EINVAL;
 
@@ -1356,36 +1210,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 			break;
 		}
-
-	case SBUS_SET_PROTO_VERSION:
-		PX4_DEBUG("SBUS_SET_PROTO_VERSION");
-
-		if (arg == 1) {
-			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
-
-		} else if (arg == 2) {
-			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, 0, PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
-
-		} else {
-			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES,
-					    (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT), 0);
-		}
-
-		break;
-
-	case PX4IO_HEATER_CONTROL:
-		if (arg == (unsigned long)HEATER_MODE_DISABLED) {
-			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, PX4IO_THERMAL_IGNORE);
-
-		} else if (arg == 1) {
-			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, PX4IO_THERMAL_FULL);
-
-		} else {
-			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, PX4IO_THERMAL_OFF);
-
-		}
-
-		break;
 
 	default:
 		/* see if the parent class can make any use of it */
@@ -1507,7 +1331,7 @@ int PX4IO::bind(int argc, char *argv[])
 		pulses = atoi(argv[1]);
 	}
 
-	get_instance()->ioctl(nullptr, DSM_BIND_START, pulses);
+	get_instance()->dsm_bind_ioctl(pulses);
 	return 0;
 }
 
@@ -1678,28 +1502,6 @@ int PX4IO::custom_command(int argc, char *argv[])
 		return bind(argc - 1, argv + 1);
 	}
 
-	if (!strcmp(verb, "sbus1_out")) {
-		int ret = get_instance()->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 1);
-
-		if (ret != 0) {
-			PX4_ERR("S.BUS v1 failed (%i)", ret);
-			return 1;
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(verb, "sbus2_out")) {
-		int ret = get_instance()->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 2);
-
-		if (ret != 0) {
-			PX4_ERR("S.BUS v2 failed (%i)", ret);
-			return 1;
-		}
-
-		return 0;
-	}
-
 	if (!strcmp(verb, "test_fmu_fail")) {
 		get_instance()->test_fmu_fail(true);
 		return 0;
@@ -1736,8 +1538,6 @@ Output driver communicating with the IO co-processor.
 	PRINT_MODULE_USAGE_ARG("<debug_level>", "0=disabled, 9=max verbosity", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bind", "DSM bind");
 	PRINT_MODULE_USAGE_ARG("dsm2|dsmx|dsmx8", "protocol", false);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("sbus1_out", "enable sbus1 out");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("sbus2_out", "enable sbus2 out");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test_fmu_fail", "test: turn off IO updates");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test_fmu_ok", "re-enable IO updates");
 

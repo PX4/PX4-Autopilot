@@ -159,12 +159,6 @@
 #define BOARD_HAS_ON_RESET 1
 
 
-/* Internal IMU Heater
- *
- * Connected to the IO MCU; tell compiler to enable support
- */
-#define PX4IO_HEATER_ENABLED
-
 __BEGIN_DECLS
 
 /****************************************************************************************************

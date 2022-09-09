@@ -14,7 +14,3 @@ uint32 controller_time_on_usec
 float32 proportional_value
 float32 integrator_value
 float32 feed_forward_value
-
-uint8 MODE_GPIO  = 1
-uint8 MODE_PX4IO = 2
-uint8 mode

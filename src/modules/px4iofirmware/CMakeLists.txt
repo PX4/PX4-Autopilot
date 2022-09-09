@@ -31,12 +31,9 @@
 #
 ############################################################################
 
-option(PX4IO_PERF "Enable px4io perf counters" OFF)
-
 add_library(px4iofirmware
 	adc.cpp
 	controls.cpp
-	mixer.cpp
 	px4io.cpp
 	registers.c
 	safety_button.cpp
@@ -54,8 +51,3 @@ target_link_libraries(px4iofirmware
 		nuttx_mm
 		rc
 )
-
-if(PX4IO_PERF)
-	target_compile_definitions(px4iofirmware PRIVATE PX4IO_PERF)
-	target_link_libraries(px4iofirmware PRIVATE perf)
-endif()

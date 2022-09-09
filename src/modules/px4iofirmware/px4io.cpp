@@ -55,10 +55,6 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_watchdog.h>
 
-#if defined(PX4IO_PERF)
-# include <lib/perf/perf_counter.h>
-#endif
-
 #include <stm32_uart.h>
 
 #define DEBUG
@@ -76,6 +72,20 @@ static volatile uint32_t msg_counter;
 static volatile uint32_t last_msg_counter;
 static volatile uint8_t msg_next_out;
 static volatile uint8_t msg_next_in;
+
+#include <drivers/drv_pwm_output.h>
+#include <drivers/drv_hrt.h>
+
+/*
+ * Maximum interval in us before FMU signal is considered lost
+ */
+#define FMU_INPUT_DROP_LIMIT_US		500000
+
+/* current servo arm/disarm state */
+static volatile bool mixer_servos_armed = false;
+
+static bool new_fmu_data = false;
+static uint64_t last_fmu_update = 0;
 
 /*
  * WARNING: too large buffers here consume the memory required
@@ -272,6 +282,64 @@ calculate_fw_crc(void)
 	r_page_setup[PX4IO_P_SETUP_CRC + 1] = sum >> 16;
 }
 
+static void mixer_tick()
+{
+	/* check that we are receiving fresh data from the FMU */
+	irqstate_t irq_flags = enter_critical_section();
+	const hrt_abstime fmu_data_received_time = system_state.fmu_data_received_time;
+	leave_critical_section(irq_flags);
+
+	if ((fmu_data_received_time == 0) ||
+	    hrt_elapsed_time(&fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
+
+		/* too long without FMU input, time to go to failsafe */
+		if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
+			isr_debug(1, "AP RX timeout");
+		}
+
+		atomic_modify_clear(&r_status_flags, PX4IO_P_STATUS_FLAGS_FMU_OK);
+
+	} else {
+		atomic_modify_or(&r_status_flags, PX4IO_P_STATUS_FLAGS_FMU_OK);
+
+		if (fmu_data_received_time > last_fmu_update) {
+			new_fmu_data = true;
+			last_fmu_update = fmu_data_received_time;
+		}
+	}
+
+	/*
+	 * Decide whether the servos should be armed right now.
+	 *
+	 * We must be armed, and we must have a PWM source; either raw from
+	 * FMU or from the mixer.
+	 *
+	 */
+	const bool should_arm = (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)
+				&& (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)
+				&& (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM);
+
+	if (should_arm && !mixer_servos_armed) {
+		/* need to arm, but not armed */
+		up_pwm_servo_arm(true, 0);
+		mixer_servos_armed = true;
+		isr_debug(5, "> PWM enabled");
+
+	} else if (!should_arm && mixer_servos_armed) {
+		/* armed but need to disarm */
+		up_pwm_servo_arm(false, 0);
+		mixer_servos_armed = false;
+		isr_debug(5, "> PWM disabled");
+	}
+
+	if (mixer_servos_armed && should_arm) {
+		/* update the servo outputs. */
+		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
+			up_pwm_servo_set(i, r_page_direct_pwm[i]);
+		}
+	}
+}
+
 extern "C" __EXPORT int user_start(int argc, char *argv[])
 {
 	/* configure the first 8 PWM outputs (i.e. all of them) */
@@ -307,11 +375,6 @@ extern "C" __EXPORT int user_start(int argc, char *argv[])
 	LED_GREEN(false);
 #endif /* LED_GREEN */
 
-	/* turn off S.Bus out (if supported) */
-#ifdef ENABLE_SBUS_OUT
-	ENABLE_SBUS_OUT(false);
-#endif
-
 	/* start the safety button handler */
 	safety_button_init();
 
@@ -323,17 +386,6 @@ extern "C" __EXPORT int user_start(int argc, char *argv[])
 
 	/* start the FMU interface */
 	interface_init();
-
-#if defined(PX4IO_PERF)
-	/* add a performance counter for mixing */
-	perf_counter_t mixer_perf = perf_alloc(PC_ELAPSED, "mix");
-
-	/* add a performance counter for controls */
-	perf_counter_t controls_perf = perf_alloc(PC_ELAPSED, "controls");
-
-	/* and one for measuring the loop rate */
-	perf_counter_t loop_perf = perf_alloc(PC_INTERVAL, "loop");
-#endif
 
 	struct mallinfo minfo = mallinfo();
 	r_page_status[PX4IO_P_STATUS_FREEMEM] = minfo.mxordblk;
@@ -354,29 +406,8 @@ extern "C" __EXPORT int user_start(int argc, char *argv[])
 	for (;;) {
 		watchdog_pet();
 
-#if defined(PX4IO_PERF)
-		/* track the rate at which the loop is running */
-		perf_count(loop_perf);
-
-		/* kick the mixer */
-		perf_begin(mixer_perf);
-#endif
-
 		mixer_tick();
-
-#if defined(PX4IO_PERF)
-		perf_end(mixer_perf);
-
-		/* kick the control inputs */
-		perf_begin(controls_perf);
-#endif
-
 		controls_tick();
-
-#if defined(PX4IO_PERF)
-		perf_end(controls_perf);
-#endif
-
 
 		/*
 		blink blue LED at 4Hz in normal operation. When in

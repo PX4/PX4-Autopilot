@@ -79,7 +79,6 @@ MixingOutput::MixingOutput(const char *param_prefix, uint8_t max_num_outputs, Ou
 	/* Safely initialize armed flags */
 	_armed.armed = false;
 	_armed.prearmed = false;
-	_armed.ready_to_arm = false;
 	_armed.lockdown = false;
 	_armed.force_failsafe = false;
 	_armed.in_esc_calibration_mode = false;

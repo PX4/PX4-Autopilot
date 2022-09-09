@@ -130,14 +130,6 @@ private:
 	 */
 	void update_params(const bool force = false);
 
-	/** Work queue struct for the scheduler. */
-	static struct work_s _work;
-
-	/** File descriptor for PX4IO for heater ioctl's */
-#if defined(PX4IO_HEATER_ENABLED)
-	int _io_fd {-1};
-#endif
-
 	bool _heater_initialized     = false;
 	bool _heater_on              = false;
 	bool _temperature_target_met = false;

@@ -55,7 +55,6 @@
 #include "protocol.h"
 
 static int	registers_set_one(uint8_t page, uint8_t offset, uint16_t value);
-static void	pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate);
 
 /**
  * PAGE 0
@@ -67,7 +66,6 @@ static const uint16_t	r_page_config[] = {
 	[PX4IO_P_CONFIG_HARDWARE_VERSION]	= 2,
 	[PX4IO_P_CONFIG_BOOTLOADER_VERSION]	= PX4IO_BL_VERSION,
 	[PX4IO_P_CONFIG_MAX_TRANSFER]		= PX4IO_MAX_TRANSFER_LEN,
-	[PX4IO_P_CONFIG_CONTROL_COUNT]		= PX4IO_CONTROL_CHANNELS,
 	[PX4IO_P_CONFIG_ACTUATOR_COUNT]		= PX4IO_SERVO_COUNT,
 	[PX4IO_P_CONFIG_RC_INPUT_COUNT]		= PX4IO_RC_INPUT_CHANNELS,
 	[PX4IO_P_CONFIG_ADC_INPUT_COUNT]	= PX4IO_ADC_CHANNEL_COUNT,
@@ -80,19 +78,11 @@ static const uint16_t	r_page_config[] = {
  */
 volatile uint16_t	r_page_status[] = {
 	[PX4IO_P_STATUS_FREEMEM]		= 0,
-	[PX4IO_P_STATUS_CPULOAD]		= 0,
 	[PX4IO_P_STATUS_FLAGS]			= 0,
 	[PX4IO_P_STATUS_ALARMS]			= 0,
 	[PX4IO_P_STATUS_VSERVO]			= 0,
 	[PX4IO_P_STATUS_VRSSI]			= 0,
 };
-
-/**
- * PAGE 3
- *
- * Servo PWM values
- */
-uint16_t		r_page_servos[PX4IO_SERVO_COUNT];
 
 /**
  * PAGE 4
@@ -133,50 +123,18 @@ volatile uint16_t	r_page_setup[] = {
 	/* default to RSSI ADC functionality */
 	[PX4IO_P_SETUP_FEATURES]		= PX4IO_P_SETUP_FEATURES_ADC_RSSI,
 	[PX4IO_P_SETUP_ARMING]			= 0,
-	[PX4IO_P_SETUP_PWM_RATES]		= 0,
-	[PX4IO_P_SETUP_PWM_DEFAULTRATE]		= 50,
-	[PX4IO_P_SETUP_PWM_ALTRATE]		= 200,
-	[PX4IO_P_SETUP_SBUS_RATE]		= 72,
 	[PX4IO_P_SETUP_VSERVO_SCALE]		= 10000,
 	[PX4IO_P_SETUP_SET_DEBUG]		= 0,
 	[PX4IO_P_SETUP_REBOOT_BL]		= 0,
 	[PX4IO_P_SETUP_CRC ...(PX4IO_P_SETUP_CRC + 1)] = 0,
 	[PX4IO_P_SETUP_THERMAL] = PX4IO_THERMAL_IGNORE,
-	[PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION] = 0,
 	[PX4IO_P_SETUP_PWM_RATE_GROUP0 ... PX4IO_P_SETUP_PWM_RATE_GROUP3] = 0
 };
 
-#define PX4IO_P_SETUP_FEATURES_VALID	(PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT | PX4IO_P_SETUP_FEATURES_ADC_RSSI)
+#define PX4IO_P_SETUP_FEATURES_VALID	(PX4IO_P_SETUP_FEATURES_ADC_RSSI)
 
-#define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_FMU_ARMED | \
-		PX4IO_P_SETUP_ARMING_FMU_PREARMED | \
-		PX4IO_P_SETUP_ARMING_IO_ARM_OK | \
-		PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM | \
-		PX4IO_P_SETUP_ARMING_LOCKDOWN | \
-		PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE | \
-		PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE)
+#define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_FMU_ARMED | PX4IO_P_SETUP_ARMING_IO_ARM_OK)
 #define PX4IO_P_SETUP_RATES_VALID	((1 << PX4IO_SERVO_COUNT) - 1)
-
-/*
- * PAGE 104 uses r_page_servos.
- */
-
-/**
- * PAGE 105
- *
- * Failsafe servo PWM values
- *
- * Disable pulses as default.
- */
-uint16_t		r_page_servo_failsafe[PX4IO_SERVO_COUNT] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-
-/**
- * PAGE 109
- *
- * disarmed PWM values for difficult ESCs
- *
- */
-uint16_t		r_page_servo_disarmed[PX4IO_SERVO_COUNT] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 int
 registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
@@ -206,60 +164,6 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		 */
 		up_pwm_update(0xff);
 
-		break;
-
-	/* handle setup for servo failsafe values */
-	case PX4IO_PAGE_FAILSAFE_PWM:
-
-		/* copy channel data */
-		while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
-
-			if (*values == 0) {
-				/* ignore 0 */
-			} else if (*values < PWM_LOWEST_MIN) {
-				r_page_servo_failsafe[offset] = PWM_LOWEST_MIN;
-
-			} else if (*values > PWM_HIGHEST_MAX) {
-				r_page_servo_failsafe[offset] = PWM_HIGHEST_MAX;
-
-			} else {
-				r_page_servo_failsafe[offset] = *values;
-			}
-
-			/* flag the failsafe values as custom */
-			r_setup_arming |= PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM;
-
-			offset++;
-			num_values--;
-			values++;
-		}
-
-		break;
-
-	case PX4IO_PAGE_DISARMED_PWM: {
-			/* copy channel data */
-			while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
-				if (*values == 0) {
-					/* 0 means disabling always PWM */
-					r_page_servo_disarmed[offset] = 0;
-
-				} else if (*values < PWM_LOWEST_MIN) {
-					r_page_servo_disarmed[offset] = PWM_LOWEST_MIN;
-
-				} else if (*values > PWM_HIGHEST_MAX) {
-					r_page_servo_disarmed[offset] = PWM_HIGHEST_MAX;
-
-				} else {
-					r_page_servo_disarmed[offset] = *values;
-				}
-
-				offset++;
-				num_values--;
-				values++;
-			}
-
-			r_status_flags |= PX4IO_P_STATUS_FLAGS_INIT_OK;
-		}
 		break;
 
 	default:
@@ -297,19 +201,6 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			r_status_alarms &= ~value;
 			break;
 
-		case PX4IO_P_STATUS_FLAGS:
-
-			/*
-			 * Allow FMU override of arming state (to allow in-air restores),
-			 * but only if the arming state is not in sync on the IO side.
-			 */
-			if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_ARM_SYNC)) {
-				r_status_flags = value;
-
-			}
-
-			break;
-
 		default:
 			/* just ignore writes to other registers in this page */
 			break;
@@ -323,29 +214,6 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 			value &= PX4IO_P_SETUP_FEATURES_VALID;
 
-			/* some of the options conflict - give S.BUS out precedence, then ADC RSSI, then PWM RSSI */
-
-			/* switch S.Bus output pin as needed */
-#ifdef ENABLE_SBUS_OUT
-			ENABLE_SBUS_OUT(value & (PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT));
-
-			/* disable the conflicting options with SBUS 1 */
-			if (value & (PX4IO_P_SETUP_FEATURES_SBUS1_OUT)) {
-				value &= ~(PX4IO_P_SETUP_FEATURES_ADC_RSSI | PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
-			}
-
-			/* disable the conflicting options with SBUS 2 */
-			if (value & (PX4IO_P_SETUP_FEATURES_SBUS2_OUT)) {
-				value &= ~(PX4IO_P_SETUP_FEATURES_ADC_RSSI | PX4IO_P_SETUP_FEATURES_SBUS1_OUT);
-			}
-
-#endif
-
-			/* disable the conflicting options with ADC RSSI */
-			if (value & (PX4IO_P_SETUP_FEATURES_ADC_RSSI)) {
-				value &= ~(PX4IO_P_SETUP_FEATURES_SBUS1_OUT | PX4IO_P_SETUP_FEATURES_SBUS2_OUT);
-			}
-
 			/* apply changes */
 			r_setup_features = value;
 
@@ -355,56 +223,8 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 			value &= PX4IO_P_SETUP_ARMING_VALID;
 
-			/*
-			 * If the failsafe termination flag is set, do not allow the autopilot to unset it
-			 */
-			value |= (r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE);
-
-			/*
-			 * If failsafe termination is enabled and force failsafe bit is set, do not allow
-			 * the autopilot to clear it.
-			 */
-			if (r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) {
-				value |= (r_setup_arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE);
-			}
-
 			r_setup_arming = value;
 
-			break;
-
-		case PX4IO_P_SETUP_PWM_RATES:
-			value &= PX4IO_P_SETUP_RATES_VALID;
-			pwm_configure_rates(value, r_setup_pwm_defaultrate, r_setup_pwm_altrate);
-			break;
-
-		case PX4IO_P_SETUP_PWM_DEFAULTRATE:
-			if (value < 25) {
-				value = 25;
-			}
-
-			if (value > 400) {
-				value = 400;
-			}
-
-			pwm_configure_rates(r_setup_pwm_rates, value, r_setup_pwm_altrate);
-			break;
-
-		case PX4IO_P_SETUP_PWM_ALTRATE:
-
-			/* For PWM constrain to [25,400]Hz
-			 * For Oneshot there is no rate, 0 is therefore used to select Oneshot mode
-			 */
-			if (value != 0) {
-				if (value < 25) {
-					value = 25;
-				}
-
-				if (value > 400) {
-					value = 400;
-				}
-			}
-
-			pwm_configure_rates(r_setup_pwm_rates, r_setup_pwm_defaultrate, value);
 			break;
 
 		case PX4IO_P_SETUP_SET_DEBUG:
@@ -446,13 +266,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 			break;
 
-		case PX4IO_P_SETUP_SBUS_RATE:
-			r_page_setup[offset] = value;
-			sbus1_set_output_rate_hz(value);
-			break;
-
 		case PX4IO_P_SETUP_THERMAL:
-		case PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION:
 			r_page_setup[offset] = value;
 			break;
 
@@ -489,15 +303,6 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 		break;
 
-	case PX4IO_PAGE_TEST:
-		switch (offset) {
-		case PX4IO_P_TEST_LED:
-			LED_AMBER(value & 1);
-			break;
-		}
-
-		break;
-
 	default:
 		return -1;
 	}
@@ -524,8 +329,6 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 	 */
 	case PX4IO_PAGE_STATUS:
 		/* PX4IO_P_STATUS_FREEMEM */
-
-		/* XXX PX4IO_P_STATUS_CPULOAD */
 
 		/* PX4IO_P_STATUS_FLAGS maintained externally */
 
@@ -592,10 +395,6 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 		SELECT_PAGE(r_page_config);
 		break;
 
-	case PX4IO_PAGE_SERVOS:
-		SELECT_PAGE(r_page_servos);
-		break;
-
 	case PX4IO_PAGE_RAW_RC_INPUT:
 		SELECT_PAGE(r_page_raw_rc_input);
 		break;
@@ -607,14 +406,6 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 
 	case PX4IO_PAGE_DIRECT_PWM:
 		SELECT_PAGE(r_page_direct_pwm);
-		break;
-
-	case PX4IO_PAGE_FAILSAFE_PWM:
-		SELECT_PAGE(r_page_servo_failsafe);
-		break;
-
-	case PX4IO_PAGE_DISARMED_PWM:
-		SELECT_PAGE(r_page_servo_disarmed);
 		break;
 
 	default:
@@ -637,52 +428,4 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 	*num_values -= offset;
 
 	return 0;
-}
-
-/*
- * Helper function to handle changes to the PWM rate control registers.
- */
-static void
-pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate)
-{
-	for (unsigned pass = 0; pass < 2; pass++) {
-		for (unsigned group = 0; group < PX4IO_SERVO_COUNT; group++) {
-
-			/* get the channel mask for this rate group */
-			uint32_t mask = up_pwm_servo_get_rate_group(group);
-
-			if (mask == 0) {
-				continue;
-			}
-
-			/* all channels in the group must be either default or alt-rate */
-			uint32_t alt = map & mask;
-
-			if (pass == 0) {
-				/* preflight */
-				if ((alt != 0) && (alt != mask)) {
-					/* not a legal map, bail with an alarm */
-					r_status_alarms |= PX4IO_P_STATUS_ALARMS_PWM_ERROR;
-					return;
-				}
-
-			} else {
-				/* set it - errors here are unexpected */
-				if (alt != 0) {
-					if (up_pwm_servo_set_rate_group_update(group, r_setup_pwm_altrate) != OK) {
-						r_status_alarms |= PX4IO_P_STATUS_ALARMS_PWM_ERROR;
-					}
-
-				} else {
-					if (up_pwm_servo_set_rate_group_update(group, r_setup_pwm_defaultrate) != OK) {
-						r_status_alarms |= PX4IO_P_STATUS_ALARMS_PWM_ERROR;
-					}
-				}
-			}
-		}
-	}
-
-	r_setup_pwm_rates = map;
-	r_setup_pwm_defaultrate = defaultrate;
-	r_setup_pwm_altrate = altrate;
 }

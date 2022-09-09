@@ -111,9 +111,6 @@ __BEGIN_DECLS
  */
 #define _PWM_SERVO_BASE		0x2a00
 
-/** start DSM bind */
-#define DSM_BIND_START	_PX4_IOC(_PWM_SERVO_BASE, 10)
-
 /** specific rates for configuring the timer for OneShot or PWM */
 #define	PWM_RATE_ONESHOT			0u
 #define	PWM_RATE_LOWER_LIMIT		1u

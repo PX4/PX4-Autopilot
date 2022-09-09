@@ -77,13 +77,10 @@ __BEGIN_DECLS
  * Registers.
  */
 extern volatile uint16_t	r_page_status[];	/* PX4IO_PAGE_STATUS */
-extern uint16_t			r_page_servos[];	/* PX4IO_PAGE_SERVOS */
 extern uint16_t			r_page_direct_pwm[];	/* PX4IO_PAGE_DIRECT_PWM */
 extern uint16_t			r_page_raw_rc_input[];	/* PX4IO_PAGE_RAW_RC_INPUT */
 
 extern volatile uint16_t	r_page_setup[];		/* PX4IO_PAGE_SETUP */
-extern uint16_t			r_page_servo_failsafe[]; /* PX4IO_PAGE_FAILSAFE_PWM */
-extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 
 /*
  * Register aliases.
@@ -99,13 +96,6 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 
 #define r_setup_features	r_page_setup[PX4IO_P_SETUP_FEATURES]
 #define r_setup_arming		r_page_setup[PX4IO_P_SETUP_ARMING]
-#define r_setup_pwm_rates	r_page_setup[PX4IO_P_SETUP_PWM_RATES]
-#define r_setup_pwm_defaultrate	r_page_setup[PX4IO_P_SETUP_PWM_DEFAULTRATE]
-#define r_setup_pwm_altrate	r_page_setup[PX4IO_P_SETUP_PWM_ALTRATE]
-
-#define r_setup_sbus_rate	r_page_setup[PX4IO_P_SETUP_SBUS_RATE]
-
-#define r_setup_flighttermination	r_page_setup[PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION]
 
 /*
  * System state structure.
@@ -123,8 +113,6 @@ struct sys_state_s {
 
 extern struct sys_state_s system_state;
 
-# define ENABLE_SBUS_OUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
-
 # define VDD_SERVO_FAULT		(!px4_arch_gpioread(GPIO_SERVO_FAULT_DETECT))
 
 # define PX4IO_ADC_CHANNEL_COUNT	2
@@ -136,11 +124,6 @@ extern struct sys_state_s system_state;
 void atomic_modify_or(volatile uint16_t *target, uint16_t modification);
 void atomic_modify_clear(volatile uint16_t *target, uint16_t modification);
 void atomic_modify_and(volatile uint16_t *target, uint16_t modification);
-
-/*
- * Mixer
- */
-extern void	mixer_tick(void);
 
 /**
  * Safety button/LED.

@@ -46,34 +46,11 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_io_heater.h>
-
-#if defined(BOARD_USES_PX4IO_VERSION) and defined(PX4IO_HEATER_ENABLED)
-// Heater on some boards is on IO MCU
-// Use ioctl calls to IO driver to turn heater on/off
-#  define HEATER_PX4IO
-#else
-// Use direct calls to turn GPIO pin on/off
-#  ifndef GPIO_HEATER_OUTPUT
-#  error "To use the heater driver, the board_config.h must define and initialize GPIO_HEATER_OUTPUT"
-#  endif
-#  define HEATER_GPIO
-#endif
 
 Heater::Heater() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
-#ifdef HEATER_PX4IO
-	_io_fd = px4_open(IO_HEATER_DEVICE_PATH, O_RDWR);
-
-	if (_io_fd < 0) {
-		PX4_ERR("Unable to open heater device path");
-		return;
-	}
-
-#endif
-
 	_heater_status_pub.advertise();
 }
 
@@ -96,65 +73,23 @@ int Heater::custom_command(int argc, char *argv[])
 void Heater::disable_heater()
 {
 	// Reset heater to off state.
-#ifdef HEATER_PX4IO
-	if (_io_fd >= 0) {
-		px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_DISABLED);
-	}
-
-#endif
-
-#ifdef HEATER_GPIO
 	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
-#endif
 }
 
 void Heater::initialize_heater_io()
 {
 	// Initialize heater to off state.
-#ifdef HEATER_PX4IO
-	if (_io_fd < 0) {
-		_io_fd = px4_open(IO_HEATER_DEVICE_PATH, O_RDWR);
-	}
-
-	if (_io_fd >= 0) {
-		px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_OFF);
-	}
-
-#endif
-
-#ifdef HEATER_GPIO
 	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
-#endif
 }
 
 void Heater::heater_off()
 {
-#ifdef HEATER_PX4IO
-
-	if (_io_fd >= 0) {
-		px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_OFF);
-	}
-
-#endif
-
-#ifdef HEATER_GPIO
 	HEATER_OUTPUT_EN(false);
-#endif
 }
 
 void Heater::heater_on()
 {
-#ifdef HEATER_PX4IO
-
-	if (_io_fd >= 0) {
-		px4_ioctl(_io_fd, PX4IO_HEATER_CONTROL, HEATER_MODE_ON);
-	}
-
-#endif
-
-#ifdef HEATER_GPIO
 	HEATER_OUTPUT_EN(true);
-#endif
 }
 
 bool Heater::initialize_topics()
@@ -182,14 +117,6 @@ bool Heater::initialize_topics()
 void Heater::Run()
 {
 	if (should_exit()) {
-#if defined(HEATER_PX4IO)
-
-		// must be closed from wq thread
-		if (_io_fd >= 0) {
-			px4_close(_io_fd);
-		}
-
-#endif
 		exit_and_cleanup();
 		return;
 	}
@@ -260,14 +187,6 @@ void Heater::publish_status()
 	status.proportional_value      = _proportional_value;
 	status.integrator_value        = _integrator_value;
 	status.feed_forward_value      = _param_sens_imu_temp_ff.get();
-
-#ifdef HEATER_PX4IO
-	status.mode = heater_status_s::MODE_PX4IO;
-#endif
-#ifdef HEATER_GPIO
-	status.mode = heater_status_s::MODE_GPIO;
-#endif
-
 	status.timestamp = hrt_absolute_time();
 	_heater_status_pub.publish(status);
 }
