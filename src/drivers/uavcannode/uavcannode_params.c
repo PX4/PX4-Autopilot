@@ -74,7 +74,6 @@ PARAM_DEFINE_INT32(CANNODE_SUB_MBD, 0);
  * Enable RTCM subscription
  *
  * @boolean
- * @max 1
  * @reboot_required true
  * @group UAVCAN
  */
