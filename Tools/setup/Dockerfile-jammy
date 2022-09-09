@@ -9,8 +9,8 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 
-COPY ../setup/ubuntu.sh .
-COPY ../setup/requirements.txt .
+COPY ubuntu.sh .
+COPY requirements.txt .
 RUN bash ubuntu.sh
 
 # create user with id 1001 (jenkins docker workflow default)
