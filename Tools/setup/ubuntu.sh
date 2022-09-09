@@ -144,6 +144,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	unzip \
 	zip \
 	libssl-dev \
+	wget \
+	gnupg2 \
 	;
 
 # Python 3 dependencies
