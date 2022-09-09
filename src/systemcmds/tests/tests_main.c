@@ -93,7 +93,6 @@ const struct {
 	{"List",		test_List,		0},
 	{"mathlib",		test_mathlib,		0},
 	{"matrix",		test_matrix,		0},
-	{"mixer",		test_mixer,		OPT_NOJIGTEST},
 	{"param",		test_param,		0},
 	{"parameters",		test_parameters,	0},
 	{"perf",		test_perf,		OPT_NOJIGTEST},

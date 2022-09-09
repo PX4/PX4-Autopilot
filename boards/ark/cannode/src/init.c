@@ -69,7 +69,6 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
 
-#include <drivers/drv_pwm_output.h>
 #include <px4_arch/io_timer.h>
 
 # if defined(FLASH_BASED_PARAMS)

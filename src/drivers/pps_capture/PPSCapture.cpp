@@ -63,25 +63,15 @@ bool PPSCapture::init()
 {
 	bool success = false;
 
-	param_t p_ctrl_alloc = param_find("SYS_CTRL_ALLOC");
-	int32_t ctrl_alloc = 0;
+	for (unsigned i = 0; i < 16; ++i) {
+		char param_name[17];
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "FUNC", i + 1);
+		param_t function_handle = param_find(param_name);
+		int32_t function;
 
-	if (p_ctrl_alloc != PARAM_INVALID) {
-		param_get(p_ctrl_alloc, &ctrl_alloc);
-	}
-
-	if (ctrl_alloc == 1) {
-
-		for (unsigned i = 0; i < 16; ++i) {
-			char param_name[17];
-			snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "FUNC", i + 1);
-			param_t function_handle = param_find(param_name);
-			int32_t function;
-
-			if (function_handle != PARAM_INVALID && param_get(function_handle, &function) == 0) {
-				if (function == 2064) { // PPS_Input
-					_channel = i;
-				}
+		if (function_handle != PARAM_INVALID && param_get(function_handle, &function) == 0) {
+			if (function == 2064) { // PPS_Input
+				_channel = i;
 			}
 		}
 	}

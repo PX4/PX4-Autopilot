@@ -19,5 +19,3 @@ param set-default ATT_W_ACC 0.4000
 param set-default ATT_W_GYRO_BIAS 0.0000
 
 param set-default SYS_HAS_MAG 0
-
-param set-default DSHOT_CONFIG 600

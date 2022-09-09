@@ -52,7 +52,7 @@
  * @reboot_required true
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_USE_IO, 1);
+PARAM_DEFINE_INT32(SYS_USE_IO, 0);
 
 /**
  * S.BUS out

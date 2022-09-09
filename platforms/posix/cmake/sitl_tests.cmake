@@ -18,7 +18,6 @@ set(tests
 	List
 	mathlib
 	matrix
-	mixer
 	param
 	parameters
 	perf

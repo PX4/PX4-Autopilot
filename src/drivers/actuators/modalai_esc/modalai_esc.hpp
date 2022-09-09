@@ -34,8 +34,6 @@
 #pragma once
 
 #include <drivers/device/device.h>
-#include <drivers/drv_mixer.h>
-#include <lib/cdev/CDev.hpp>
 #include <lib/led/led.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/perf/perf_counter.h>
@@ -52,7 +50,7 @@
 #include "qc_esc_packet.h"
 #include "qc_esc_packet_types.h"
 
-class ModalaiEsc : public cdev::CDev, public ModuleBase<ModalaiEsc>, public OutputModuleInterface
+class ModalaiEsc : public ModuleBase<ModalaiEsc>, public OutputModuleInterface
 {
 public:
 	ModalaiEsc();
@@ -76,11 +74,6 @@ public:
 	/** @see OutputModuleInterface */
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
-
-	/** @see OutputModuleInterface */
-	void mixerChanged() override;
-
-	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 
 	virtual int	init();
 
@@ -185,8 +178,6 @@ private:
 
 	ch_assign_t		_output_map[MODALAI_ESC_OUTPUT_CHANNELS] {{1, 1}, {2, 1}, {3, 1}, {4, 1}};
 	MixingOutput 		_mixing_output{"MODALAI_ESC", MODALAI_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
-
-	int			_class_instance{-1};
 
 	perf_counter_t		_cycle_perf;
 	perf_counter_t		_output_update_perf;

@@ -44,7 +44,6 @@
 #define VTOL_TYPE_H
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_pwm_output.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/slew_rate/SlewRate.hpp>
 #include <px4_platform_common/module_params.h>
@@ -78,17 +77,6 @@ enum VtolForwardActuationMode {
 	ENABLE_ABOVE_MPC_LAND_ALT2_WITHOUT_LAND
 };
 
-// these are states that can be applied to a selection of multirotor motors.
-// e.g. if we need to shut off some motors after transitioning to fixed wing mode
-// we can individually disable them while others might still need to be enabled to produce thrust.
-// we can select the target motors via VT_FW_MOT_OFFID
-enum class motor_state {
-	ENABLED = 0,		// motor max pwm will be set to the standard max pwm value
-	DISABLED,			// motor max pwm will be set to a value that shuts the motor off
-	IDLE,				// motor max pwm will be set to VT_IDLE_PWM_MC
-	VALUE 				// motor max pwm will be set to a specific value provided, see set_motor_state()
-};
-
 /**
  * @brief      Used to specify if min or max pwm values should be altered
  */
@@ -99,7 +87,7 @@ enum class pwm_limit_type {
 
 class VtolAttitudeControl;
 
-class VtolType:  public ModuleParams
+class VtolType : public ModuleParams
 {
 public:
 
@@ -233,38 +221,12 @@ protected:
 	bool _tecs_running = false;
 	hrt_abstime _tecs_running_ts = 0;
 
-	motor_state _main_motor_state = motor_state::DISABLED;
-	motor_state _alternate_motor_state = motor_state::DISABLED;
-
 	hrt_abstime _last_loop_ts = 0;
 	float _transition_dt = 0;
 
 	float _accel_to_pitch_integ = 0;
 
 	bool _quadchute_command_treated{false};
-
-
-	/**
-	 * @brief      Sets mc motor minimum pwm to VT_IDLE_PWM_MC which ensures
-	 *             that they are spinning in mc mode.
-	 *
-	 * @return     true on success
-	 */
-	bool set_idle_mc();
-
-	/**
-	 * @brief      Sets mc motor minimum pwm to PWM_MIN which ensures that the
-	 *             motors stop spinning on zero throttle in fw mode.
-	 *
-	 * @return     true on success
-	 */
-	bool set_idle_fw();
-
-	void set_all_motor_state(motor_state target_state, int value = 0);
-
-	void set_main_motor_state(motor_state target_state, int value = 0);
-
-	void set_alternate_motor_state(motor_state target_state, int value = 0);
 
 	float update_and_get_backtransition_pitch_sp();
 
@@ -304,56 +266,12 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,
 					(ParamFloat<px4::params::VT_LND_PITCH_MIN>) _param_vt_lnd_pitch_min,
 
-					(ParamBool<px4::params::SYS_CTRL_ALLOC>) _param_sys_ctrl_alloc,
-					(ParamInt<px4::params::VT_IDLE_PWM_MC>) _param_vt_idle_pwm_mc,
-					(ParamInt<px4::params::VT_MOT_ID>) _param_vt_mot_id,
-					(ParamBool<px4::params::VT_MC_ON_FMU>) _param_vt_mc_on_fmu,
-					(ParamInt<px4::params::VT_FW_MOT_OFFID>) _param_vt_fw_mot_offid,
 					(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld
 
 				       )
 
 private:
-
-
 	hrt_abstime _throttle_blend_start_ts{0};	// time at which we start blending between transition throttle and fixed wing throttle
-
-	/**
-	 * @brief      Stores the max pwm values given by the system.
-	 */
-	struct pwm_output_values _min_mc_pwm_values {};
-	struct pwm_output_values _max_mc_pwm_values {};
-	struct pwm_output_values _disarmed_pwm_values {};
-
-	struct pwm_output_values _current_max_pwm_values {};
-
-	int32_t _main_motor_channel_bitmap = 0;
-	int32_t _alternate_motor_channel_bitmap = 0;
-
-	/**
-	 * @brief      Adjust minimum/maximum pwm values for the output channels.
-	 *
-	 * @param      pwm_output_values  Struct containing the limit values for each channel
-	 * @param[in]  type               Specifies if min or max limits are adjusted.
-	 *
-	 * @return     True on success.
-	 */
-	bool apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_type type);
-
-	/**
-	 * @brief      Determines if channel is set in a bitmap.
-	 *
-	 * @param[in]  channel  The channel
-	 * @param[in]  bitmap  	The bitmap to check on.
-	 *
-	 * @return     True if set, false otherwise.
-	 */
-	bool is_channel_set(const int channel, const int bitmap);
-
-	// generates a bitmap from a number format, e.g. 1235 -> first, second, third and fifth bits should be set.
-	int generate_bitmap_from_channel_numbers(const int channels);
-
-	bool set_motor_state(const motor_state target_state, const int32_t channel_bitmap,  const int value);
 
 	void resetAccelToPitchPitchIntegrator() { _accel_to_pitch_integ = 0.f; }
 	bool shouldBlendThrottleAfterFrontTransition() { return _throttle_blend_start_ts != 0; };

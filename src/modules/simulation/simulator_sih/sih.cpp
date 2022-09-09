@@ -82,9 +82,7 @@ void Sih::run()
 	_vehicle = (VehicleType)constrain(_sih_vtype.get(), static_cast<typeof _sih_vtype.get()>(0),
 					  static_cast<typeof _sih_vtype.get()>(2));
 
-	if (_sys_ctrl_alloc.get()) {
-		_actuator_out_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
-	}
+	_actuator_out_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	lockstep_loop();
@@ -369,32 +367,16 @@ void Sih::read_motors()
 {
 	actuator_outputs_s actuators_out;
 
-	float pwm_middle = 0.5f * (PWM_DEFAULT_MIN + PWM_DEFAULT_MAX);
-
 	if (_actuator_out_sub.update(&actuators_out)) {
 		_last_actuator_output_time = actuators_out.timestamp;
 
-		if (_sys_ctrl_alloc.get()) {
-			for (int i = 0; i < NB_MOTORS; i++) { // saturate the motor signals
-				if ((_vehicle == VehicleType::FW && i < 3) || (_vehicle == VehicleType::TS && i > 3)) {
-					_u[i] = actuators_out.output[i];
+		for (int i = 0; i < NB_MOTORS; i++) { // saturate the motor signals
+			if ((_vehicle == VehicleType::FW && i < 3) || (_vehicle == VehicleType::TS && i > 3)) {
+				_u[i] = actuators_out.output[i];
 
-				} else {
-					float u_sp = actuators_out.output[i];
-					_u[i] = _u[i] + _dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
-				}
-			}
-
-		} else {
-			for (int i = 0; i < NB_MOTORS; i++) { // saturate the motor signals
-				if ((_vehicle == VehicleType::FW && i < 3) || (_vehicle == VehicleType::TS
-						&& i > 3)) { // control surfaces in range [-1,1]
-					_u[i] = constrain(2.0f * (actuators_out.output[i] - pwm_middle) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), -1.0f, 1.0f);
-
-				} else { // throttle signals in range [0,1]
-					float u_sp = constrain((actuators_out.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), 0.0f, 1.0f);
-					_u[i] = _u[i] + _dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
-				}
+			} else {
+				float u_sp = actuators_out.output[i];
+				_u[i] = _u[i] + _dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
 			}
 		}
 	}

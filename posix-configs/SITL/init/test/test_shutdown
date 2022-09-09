@@ -33,7 +33,7 @@ fw_pos_control_l1 start vtol
 fw_att_control start vtol
 airspeed_selector start
 
-#mixer load /dev/pwm_output0 ROMFS/sitl/mixers/standard_vtol_sitl.main.mix
+control_allocator start
 
 ver all
 

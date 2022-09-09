@@ -61,7 +61,6 @@ param set-default IMU_GYRO_CUTOFF 100
 param set-default THR_MDL_FAC 0.25
 
 # System
-param set-default PWM_MAIN_MIN 1100
 param set-default PWM_MAIN_DIS5 980
 param set-default PWM_MAIN_DIS6 980
 

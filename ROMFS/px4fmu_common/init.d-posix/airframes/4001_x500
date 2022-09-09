@@ -11,8 +11,6 @@ PX4_SIMULATOR=${PX4_SIMULATOR:=ignition}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=x500}
 PX4_SIM_WORLD=${PX4_SIM_WORLD:=default}
 
-param set-default SYS_CTRL_ALLOC 1
-
 param set-default CA_AIRFRAME 0
 param set-default CA_ROTOR_COUNT 4
 

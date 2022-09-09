@@ -40,18 +40,6 @@
  */
 
 /**
- * Idle speed of VTOL when in multicopter mode
- *
- * @unit us
- * @min 900
- * @max 2000
- * @increment 1
- * @decimal 0
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_IDLE_PWM_MC, 900);
-
-/**
  * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
  *
  * @value 0 Tailsitter
@@ -264,28 +252,6 @@ PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
 PARAM_DEFINE_FLOAT(VT_F_TR_OL_TM, 6.0f);
 
 /**
- * The channel number of motors that must be turned off in fixed wing mode.
- *
- * @min 0
- * @max 12345678
- * @increment 1
- * @decimal 0
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_FW_MOT_OFFID, 0);
-
-/**
- * The channel number of motors which provide lift during hover.
- *
- * @min 0
- * @max 12345678
- * @increment 1
- * @decimal 0
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_MOT_ID, 0);
-
-/**
  * Differential thrust in forwards flight.
  *
  * Set to 1 to enable differential thrust in fixed-wing flight.
@@ -335,18 +301,6 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_FF, 0.f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
-
-/**
- * Enable the usage of AUX outputs for hover motors.
- *
- * Set this parameter to true if the vehicle's hover motors are connected to the FMU (AUX) port.
- * Not required for boards that only have a FMU, and no IO.
- * Only applies for standard VTOL and tiltrotor.
- *
- * @boolean
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_MC_ON_FMU, 0);
 
 /**
  * Minimum pitch angle during hover.

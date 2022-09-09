@@ -97,8 +97,7 @@ static constexpr bool operator ==(const actuator_armed_s &a, const actuator_arme
 		a.lockdown == b.lockdown &&
 		a.manual_lockdown == b.manual_lockdown &&
 		a.force_failsafe == b.force_failsafe &&
-		a.in_esc_calibration_mode == b.in_esc_calibration_mode &&
-		a.soft_stop == b.soft_stop);
+		a.in_esc_calibration_mode == b.in_esc_calibration_mode);
 }
 static_assert(sizeof(actuator_armed_s) == 16, "actuator_armed equality operator review");
 
@@ -1228,10 +1227,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 		break;
 
-	case vehicle_command_s::VEHICLE_CMD_DO_MOTOR_TEST:
-		cmd_result = handle_command_motor_test(cmd);
-		break;
-
 	case vehicle_command_s::VEHICLE_CMD_ACTUATOR_TEST:
 		cmd_result = handle_command_actuator_test(cmd);
 		break;
@@ -1536,54 +1531,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	}
 
 	return true;
-}
-
-unsigned
-Commander::handle_command_motor_test(const vehicle_command_s &cmd)
-{
-	if (_arm_state_machine.isArmed() || (_safety.isButtonAvailable() && !_safety.isSafetyOff())) {
-		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
-	}
-
-	if (_param_com_mot_test_en.get() != 1) {
-		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
-	}
-
-	test_motor_s test_motor{};
-	test_motor.timestamp = hrt_absolute_time();
-	test_motor.motor_number = (int)(cmd.param1 + 0.5f) - 1;
-
-	int throttle_type = (int)(cmd.param2 + 0.5f);
-
-	if (throttle_type != 0) { // 0: MOTOR_TEST_THROTTLE_PERCENT
-		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
-	}
-
-	int motor_count = (int)(cmd.param5 + 0.5);
-
-	if (motor_count > 1) {
-		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
-	}
-
-	test_motor.action = test_motor_s::ACTION_RUN;
-	test_motor.value = math::constrain(cmd.param3 / 100.f, 0.f, 1.f);
-
-	if (test_motor.value < FLT_EPSILON) {
-		// the message spec is not clear on whether 0 means stop, but it should be closer to what a user expects
-		test_motor.value = -1.f;
-	}
-
-	test_motor.timeout_ms = (int)(cmd.param4 * 1000.f + 0.5f);
-
-	// enforce a timeout and a maximum limit
-	if (test_motor.timeout_ms == 0 || test_motor.timeout_ms > 3000) {
-		test_motor.timeout_ms = 3000;
-	}
-
-	test_motor.driver_instance = 0; // the mavlink command does not allow to specify the instance, so set to 0 for now
-	_test_motor_pub.publish(test_motor);
-
-	return vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 }
 
 unsigned
@@ -2595,13 +2542,6 @@ void Commander::vtolStatusUpdate()
 
 		if (_vehicle_status_flags.vtol_transition_failure != _vtol_vehicle_status.vtol_transition_failsafe) {
 			_vehicle_status_flags.vtol_transition_failure = _vtol_vehicle_status.vtol_transition_failsafe;
-			_status_changed = true;
-		}
-
-		const bool should_soft_stop = (_vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-
-		if (_actuator_armed.soft_stop != should_soft_stop) {
-			_actuator_armed.soft_stop = should_soft_stop;
 			_status_changed = true;
 		}
 	}

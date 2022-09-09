@@ -10,14 +10,6 @@
 #
 if [ $VEHICLE_TYPE = fw ]
 then
-	if [ $MIXER = none ]
-	then
-		echo "FW mixer undefined"
-	fi
-
-	# Load mixer and configure outputs.
-	. ${R}etc/init.d/rc.interface
-
 	# Start standard fixedwing apps.
 	. ${R}etc/init.d/rc.fw_apps
 fi
@@ -27,14 +19,6 @@ fi
 #
 if [ $VEHICLE_TYPE = mc ]
 then
-	if [ $MIXER = none ]
-	then
-		echo "MC mixer undefined"
-	fi
-
-	# Load mixer and configure outputs.
-	. ${R}etc/init.d/rc.interface
-
 	# Start standard multicopter apps.
 	. ${R}etc/init.d/rc.mc_apps
 fi
@@ -44,14 +28,6 @@ fi
 #
 if [ $VEHICLE_TYPE = rover ]
 then
-	if [ $MIXER = none ]
-	then
-		echo "rover mixer undefined"
-	fi
-
-	# Load mixer and configure outputs.
-	. ${R}etc/init.d/rc.interface
-
 	# Start standard UGV apps.
 	. ${R}etc/init.d/rc.rover_apps
 fi
@@ -61,14 +37,6 @@ fi
 #
 if [ $VEHICLE_TYPE = vtol ]
 then
-	if [ $MIXER = none ]
-	then
-		echo "VTOL mixer undefined"
-	fi
-
-	# Load mixer and configure outputs.
-	. ${R}etc/init.d/rc.interface
-
 	# Start standard vtol apps.
 	. ${R}etc/init.d/rc.vtol_apps
 fi
@@ -78,14 +46,6 @@ fi
 #
 if [ $VEHICLE_TYPE = airship ]
 then
-	if [ $MIXER = none ]
-	then
-		echo "Airship mixer undefined"
-	fi
-
-	# Load mixer and configure outputs.
-	. ${R}etc/init.d/rc.interface
-
 	# Start airship apps.
 	. ${R}etc/init.d/rc.airship_apps
 fi
@@ -95,14 +55,6 @@ fi
 #
 if [ $VEHICLE_TYPE = uuv ]
 then
-	if [ $MIXER = none ]
-	then
-		echo "UUV mixer undefined"
-	fi
-
-	# Load mixer and configure outputs.
-	. ${R}etc/init.d/rc.interface
-
 	# Start standard vtol apps.
 	. ${R}etc/init.d/rc.uuv_apps
 fi
