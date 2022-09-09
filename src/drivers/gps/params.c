@@ -115,7 +115,7 @@ PARAM_DEFINE_INT32(GPS_UBX_MODE, 0);
  *
  * Select a baudrate for the F9P's UART2 port.
  * In GPS_UBX_MODE 1, 2, and 3, the F9P's UART2 port is configured to send/receive RTCM corrections.
- * Default is set to 57600 for easy use with a Telem Radio on this port to send/receive corrections.
+ * Set this to 57600 if you want to attach a telemetry radio on UART2.
  *
  * @min 0
  * @unit B/s
