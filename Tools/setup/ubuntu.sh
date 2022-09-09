@@ -2,21 +2,28 @@
 
 set -e
 
-## Bash script to setup PX4 development environment on Ubuntu LTS (20.04, 18.04).
-## Can also be used in docker.
-##
-## Installs:
-## - Common dependencies and tools for NuttX, jMAVSim, Gazebo
-## - NuttX toolchain (omit with arg: --no-nuttx)
-## - jMAVSim and Gazebo simulator (omit with arg: --no-sim-tools)
-## Optional:
-## - FastRTPS and FastCDR (with args: --with-rtps)
+usage() {
+	echo "
+Bash script to set up the PX4 development environment on Ubuntu LTS versions
+- 22.04
+- 20.04
+- 18.04 (without simulation support)
+
+The script can be used directly or inside docker
+(use --from-docker when running inside docker).
+
+Installs:
+- Build dependencies
+- NuttX toolchain (omit with arg: --no-nuttx)
+- Gazebo Classic (omit with arg: --no-gazebo-classic)
+- Gazebo Ignition (omit with arg: --no-gazebo-ignition)
+"
+}
 
 INSTALL_NUTTX="true"
-INSTALL_SIM="true"
-INSTALL_ARCH=`uname -m`
-INSTALL_RTPS="false"
-INSTALL_JAVA="false"
+INSTALL_GAZEBO_CLASSIC="true"
+INSTALL_GAZEBO_IGNITION="true"
+INSTALL_ARCH=$(uname -m)
 INSIDE_DOCKER="false"
 
 # Parse arguments
@@ -26,38 +33,38 @@ do
 		INSTALL_NUTTX="false"
 	fi
 
-	if [[ $arg == "--no-sim-tools" ]]; then
-		INSTALL_SIM="false"
+	if [[ $arg == "--no-gazebo-classic" ]]; then
+		INSTALL_GAZEBO_CLASSIC="false"
 	fi
 
-	if [[ $arg == "--with-rtps" ]]; then
-		INSTALL_RTPS="true"
-	fi
-
-	if [[ $arg == "--with-java" ]]; then
-		INSTALL_JAVA="true"
+	if [[ $arg == "--no-gazebo-ignition" ]]; then
+		INSTALL_GAZEBO_IGNITION="false"
 	fi
 
 	if [[ $arg == "--from-docker" ]]; then
 		INSIDE_DOCKER="true"
 	fi
 
+	if [[ $arg == "--help" ]]; then
+		usage
+		exit 0
+	fi
+
 done
 
-# script directory
+# Script directory
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-# check requirements.txt exists (script not run in source tree)
+# Check requirements.txt exists (script not run in source tree)
 REQUIREMENTS_FILE="requirements.txt"
 if [[ ! -f "${DIR}/${REQUIREMENTS_FILE}" ]]; then
-	echo "FAILED: ${REQUIREMENTS_FILE} needed in same directory as ubuntu.sh (${DIR})."
-	return 1
+	echo "Failed: ${REQUIREMENTS_FILE} needed in same directory as ubuntu.sh (${DIR})."
+	exit 1
 fi
 
 
-# check ubuntu version
-# otherwise warn and point to docker?
-UBUNTU_RELEASE="`lsb_release -rs`"
+# Check ubuntu version
+UBUNTU_RELEASE=$(lsb_release -rs)
 
 if [[ "${UBUNTU_RELEASE}" == "14.04" ]]; then
 	echo "Ubuntu 14.04 is no longer supported"
@@ -67,20 +74,24 @@ elif [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
 	exit 1
 elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
 	echo "Ubuntu 18.04"
+	echo "Gazebo Classic and Gazebo Ignition omitted"
+	INSTALL_GAZEBO_IGNITION="false"
+	INSTALL_GAZEBO_CLASSIC="false"
 elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
 	echo "Ubuntu 20.04"
+elif [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
+	echo "Ubuntu 22.04"
 fi
 
-VERBOSE_BAR="####################"
+VERBOSE_BAR="================================================================================"
 echo
 echo $VERBOSE_BAR
-echo "#⚡️ Starting PX4 Dependency Installer for Ubuntu ${UBUNTU_RELEASE} (${INSTALL_ARCH})"
-echo "# Options:
-#
-#  - Install NuttX = ${INSTALL_NUTTX}
-#  - Install Java = ${INSTALL_JAVA}
-#  - Install Simulation = ${INSTALL_SIM}
-#  - Install RTPS = ${INSTALL_RTPS}"
+echo "⚡️ Starting PX4 Dependency Installer for Ubuntu ${UBUNTU_RELEASE} (${INSTALL_ARCH})"
+echo ""
+echo "Options:
+- Install NuttX toolchain: ${INSTALL_NUTTX}
+- Install Gazebo Classic:  ${INSTALL_GAZEBO_CLASSIC}
+- Install Gazebo Ignition: ${INSTALL_GAZEBO_IGNITION}"
 echo $VERBOSE_BAR
 echo
 
@@ -125,20 +136,7 @@ echo "🍻 Installing Python dependencies"
 echo $VERBOSE_BAR
 echo
 
-if [ -n "$VIRTUAL_ENV" ]; then
-	# virtual environments don't allow --user option
-	python -m pip install -r ${DIR}/requirements.txt
-else
-	# older versions of Ubuntu require --user option
-	if [[ $INSIDE_DOCKER == "true" ]]; then
-		# when running inside a docker container we don't need to install
-		# under --user since the installer user is root
-		# its best to install packages globaly for any user to find
-		python3 -m pip install -r /tmp/requirements.txt
-	else
-		python3 -m pip install --user -r ${DIR}/requirements.txt
-	fi
-fi
+python3 -m pip install -r "$DIR"/requirements.txt
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
@@ -172,39 +170,35 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		texinfo \
 		u-boot-tools \
 		util-linux \
-		vim-common \
 		g++-arm-linux-gnueabihf \
 		gcc-arm-linux-gnueabihf \
 		g++-aarch64-linux-gnu \
 		gcc-aarch64-linux-gnu \
 		;
 
-	if [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
+	if [[ "${UBUNTU_RELEASE}" == "20.04" ]] || [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
 		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		kconfig-frontends \
 		;
 	fi
 
-
 	if [ -n "$USER" ]; then
-		# add user to dialout group (serial port access)
-		sudo usermod -a -G dialout $USER
+		# Add user to dialout group (serial port access)
+		sudo usermod -a -G dialout "$USER"
 	fi
 
-	NUTTX_GCC_VERSION="9-2020-q2-update"
-	NUTTX_GCC_VERSION_SHORT="9-2020q2"
+	NUTTX_GCC_VERSION="10.3-2021.10"
 	echo
 	echo $VERBOSE_BAR
-	echo "🍻 Verifying proper gcc version (${NUTTX_GCC_VERSION}), and installing if not found"
+	echo "🍻 Verifying arm-none-eabi-gcc version (${NUTTX_GCC_VERSION}), and installing if not found"
 	echo
 
-	source $HOME/.profile # load changed path for the case the script is reran before relogin
-	if [ $(which arm-none-eabi-gcc) ]; then
+	source "$HOME/.profile" # load changed path for the case the script is reran before relogin
+	if [ "$(which arm-none-eabi-gcc)" ]; then
 		GCC_VER_STR=$(arm-none-eabi-gcc --version)
-		GCC_VER_FOUND=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
 	fi
 
-	if [[ $(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}") == "1" ]]; then
+	if [[ $(echo "$GCC_VER_STR" | grep -c "${NUTTX_GCC_VERSION}") == "1" ]]; then
 		echo "📌 Skipping installation, the arm cross compiler was found"
 		echo $VERBOSE_BAR
 		echo
@@ -220,7 +214,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		COMPILER_NAME="gcc-arm-none-eabi-${NUTTX_GCC_VERSION}"
 		COMPILER_PATH="/tmp/$COMPILER_NAME-linux.tar.bz2"
 		if [ ! -f "$COMPILER_PATH" ]; then
-			wget -O $COMPILER_PATH https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION_SHORT}/${COMPILER_NAME}-${INSTALL_ARCH}-linux.tar.bz2
+		wget -O "/tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://developer.arm.com/-/media/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION}/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-${INSTALL_ARCH}-linux.tar.bz2"
 		fi
 		sudo tar -jxf $COMPILER_PATH -C /opt/;
 
@@ -230,105 +224,44 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 			# when running on a docker container its best to set the environment globally
 			# since we don't know which user is going to be running commands on the container
 			touch /etc/profile.d/px4env.sh
-			echo $exportline >> /etc/profile.d/px4env.sh
-		elif grep -Fxq "$exportline" $HOME/.profile; then
+			echo "$exportline" >> /etc/profile.d/px4env.sh
+		elif grep -Fxq "$exportline" "$HOME"/.profile; then
 			echo "${NUTTX_GCC_VERSION} path already set.";
 		else
-			echo $exportline >> $HOME/.profile;
+			echo "$exportline" >> "$HOME"/.profile;
 		fi
-		echo " * arm-none-eabi-gcc (${NUTTX_GCC_VERSION}) Installed Succesful to /opt/${COMPILER_NAME}/bin"
+		echo " * arm-none-eabi-gcc (${NUTTX_GCC_VERSION}) Installed successfully to /opt/${COMPILER_NAME}/bin"
 		echo $VERBOSE_BAR
 		echo
 	fi
 fi
 
-# Install JAVA
-# NOTE: The version of java below has been double checked to work
-# against all the tools and dependencies you need including FastRTPS
-# and Gazebo. If really need to update JDK, make sure you test the
-# compatibility with Gradle and the eProsima tools in the next step
-if [[ $INSTALL_JAVA == "true" ]]; then
-	JDK_VERSION="14.0.2_12"
-	echo
-	echo $VERBOSE_BAR
-	echo "🍻 Installing Java JDK
-
-	* Version: $JDK_VERSION
-	* Path: /opt/jdk-14.0.2+12"
-	echo $VERBOSE_BAR
-	echo
-
-	JDK_DOWNLOAD="/tmp/OpenJDK14U-jdk_x64_linux_hotspot_$JDK_VERSION.tar.gz"
-	wget -O $JDK_DOWNLOAD https://github.com/AdoptOpenJDK/openjdk14-binaries/releases/download/jdk-14.0.2%2B12/OpenJDK14U-jdk_x64_linux_hotspot_14.0.2_12.tar.gz
-	sudo tar -xzf $JDK_DOWNLOAD -C /opt/
-	export PATH="/opt/jdk-14.0.2+12/bin:$PATH"
-fi
-
-# Fast-RTPS
-# The version of eProsima tools we are using has a hard dependency on
-# JDK 14 because of Gradle, any new version of Gradle won't work unless
-# the eProsima tools are updated
-if [[ $INSTALL_RTPS == "true" ]]; then
-	echo
-	echo $VERBOSE_BAR
-	echo "🍻 Installing Fast-RTPS"
-	echo $VERBOSE_BAR
-	echo
-
-	GRADLE_VERSION="6.4.1"
-	wget -O "/tmp/gradle-$GRADLE_VERSION-bin.zip" "https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip" \
-		&& unzip -d /opt/gradle "/tmp/gradle-$GRADLE_VERSION-bin.zip"
-	export PATH="$PATH:/opt/gradle/gradle-$GRADLE_VERSION/bin"
-
-	# Intall foonathan_memory from source as it is required to Fast-RTPS >= 1.9
-	git clone https://github.com/eProsima/foonathan_memory_vendor.git /tmp/foonathan_memory \
-		&& cd /tmp/foonathan_memory \
-		&& mkdir build && cd build \
-		&& cmake .. \
-		&& cmake --build . --target install -- -j $(nproc)
-
-	# Fast-DDS (Fast-RTPS 2.1.1)
-	git clone --recursive https://github.com/eProsima/Fast-DDS.git -b v2.1.1 /tmp/FastRTPS-2.1.1 \
-		&& cd /tmp/FastRTPS-2.1.1 \
-		&& mkdir build && cd build \
-		&& cmake -DTHIRDPARTY=ON -DSECURITY=ON .. \
-		&& cmake --build . --target install -- -j $(nproc)
-
-	# Fast-RTPS-Gen 1.0.4
-	git clone --recursive https://github.com/eProsima/Fast-DDS-Gen.git -b v1.0.4 /tmp/Fast-RTPS-Gen-1.0.4 \
-		&& cd /tmp/Fast-RTPS-Gen-1.0.4 \
-		&& gradle assemble \
-		&& gradle install
-
-fi
-
-# Simulation tools
-if [[ $INSTALL_SIM == "true" ]]; then
-
-	echo
-	echo $VERBOSE_BAR
-	echo "🍻 Installing PX4 Simulation Tools"
-	echo
-
-	# default and Ubuntu 20.04
-	gazebo_version=11
-	gazebo_packages="gazebo$gazebo_version libgazebo$gazebo_version-dev"
-	if [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
-		gazebo_version=9
-	elif [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
-		gazebo_version=11
-		gazebo_packages="gazebo libgazebo-dev"
-	fi
-
-	echo "  * Gazebo Version $gazebo_version"
-	echo $VERBOSE_BAR
-
+install_gazebo_common() {
 	# General simulation dependencies
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		bc \
-		ant \
-		libvecmath-java \
 		;
+
+	# Installing Gazebo and dependencies
+	# Setup OSRF Gazebo repository
+	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
+	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
+	# Update list, since new gazebo-stable.list has been added
+	sudo apt-get update -y --quiet
+}
+
+# Gazebo Classic
+if [[ $INSTALL_GAZEBO_CLASSIC == "true" ]]; then
+
+	echo
+	echo $VERBOSE_BAR
+	echo "🍻 Installing Gazebo Classic"
+	echo
+
+	echo "  * Gazebo Classic (Version 11)"
+	echo $VERBOSE_BAR
+
+	install_gazebo_common
 
 	# Installing Gazebo and dependencies
 	# Setup OSRF Gazebo repository
@@ -338,7 +271,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	sudo apt-get update -y --quiet
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		dmidecode \
-		$gazebo_packages \
+		gazebo libgazebo-dev \
 		gstreamer1.0-plugins-bad \
 		gstreamer1.0-plugins-base \
 		gstreamer1.0-plugins-good \
@@ -359,15 +292,39 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	fi
 fi
 
+# Gazebo Ignition
+if [[ $INSTALL_GAZEBO_IGNITION == "true" ]]; then
+
+	echo
+	echo $VERBOSE_BAR
+	echo "🍻 Installing Gazebo IGNITION"
+	echo
+
+	echo "  * Gazebo Ignition (Version 6 / Fortress)"
+	echo $VERBOSE_BAR
+
+	# We have likely done the common pieces already earlier.
+	if [[ $INSTALL_GAZEBO_CLASSIC != "true" ]]; then
+		install_gazebo_common
+	fi
+
+	#
+	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+		ignition-fortress \
+		;
+fi
+
+
 if [[ $INSIDE_DOCKER == "true" ]]; then
 	# cleanup installation
-	rm -rf /tmp/
+	rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
 fi
 
 if [[ $INSIDE_DOCKER == "false" ]] && [[ $INSTALL_NUTTX == "true" ]]; then
 	echo
 	echo $VERBOSE_BAR
-	echo "💡 We recommend you relogin/reboot before attempting to build NuttX targets"
+	echo "💡 We recommend you relogin/reboot before attempting to upload NuttX targets"
+	echo "   to be part of the dialout group to have access to serial ports."
 	echo $VERBOSE_BAR
 	echo
 fi
@@ -375,10 +332,11 @@ fi
 echo
 echo
 echo $VERBOSE_BAR
-echo "#⚡️ PX4 Dependency Installer Ended Succesfully
-#
-#  For more information on PX4 Autopilot check out our docs
-#  at docs.px4.io, if you find a bug please file an issue
-#  on GitHub https://github.com/px4/px4-autopilot"
+echo "⚡️ PX4 Dependency Installer ended successfully
+
+For more information on PX4 Autopilot check out our docs
+at https://docs.px4.io.
+If you find a bug please file an issue
+on https://github.com/PX4/PX4-Autopilot"
 echo $VERBOSE_BAR
 echo
