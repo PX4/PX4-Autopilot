@@ -231,7 +231,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		COMPILER_NAME="gcc-arm-none-eabi-${NUTTX_GCC_VERSION}"
 		COMPILER_PATH="/tmp/$COMPILER_NAME-linux.tar.bz2"
 		if [ ! -f "$COMPILER_PATH" ]; then
-		wget -O "/tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://developer.arm.com/-/media/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION}/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-${INSTALL_ARCH}-linux.tar.bz2"
+		wget -O "/tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2" "https://developer.arm.com/-/media/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION}/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-${INSTALL_ARCH}-linux.tar.bz2"
 		fi
 		sudo tar -jxf $COMPILER_PATH -C /opt/;
 
