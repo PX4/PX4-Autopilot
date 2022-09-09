@@ -750,7 +750,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	vehicle_angular_velocity_s angular_velocity{};
 	_vehicle_angular_velocity_sub.copy(&angular_velocity);
 	const bool condition_angular_velocity_time_valid = angular_velocity.timestamp != 0
-			&& now - angular_velocity.timestamp < 1_s;
+			&& now < angular_velocity.timestamp + 1_s;
 	const bool condition_angular_velocity_finite = PX4_ISFINITE(angular_velocity.xyz[0])
 			&& PX4_ISFINITE(angular_velocity.xyz[1]) && PX4_ISFINITE(angular_velocity.xyz[2]);
 	const bool angular_velocity_valid = condition_angular_velocity_time_valid
