@@ -13,7 +13,11 @@ then
 fi
 
 # Internal SPI bus MPU-6000
-mpu6000 -R 12 -s start
+if ! mpu6000 -R 12 -s start
+then
+	# Internal SPI bus ICM-42688P
+	icm42688p -R 12 -s start
+fi
 
 # Internal baro
 dps310 -I start -a 118
