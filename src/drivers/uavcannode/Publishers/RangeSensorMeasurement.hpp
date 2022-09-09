@@ -48,6 +48,7 @@ class RangeSensorMeasurement :
 	public uORB::SubscriptionCallbackWorkItem,
 	private uavcan::Publisher<uavcan::equipment::range_sensor::Measurement>
 {
+
 public:
 	RangeSensorMeasurement(px4::WorkItem *work_item, uavcan::INode &node, uint8_t instance = 0) :
 		UavcanPublisherBase(uavcan::equipment::range_sensor::Measurement::DefaultDataTypeID),
@@ -55,6 +56,10 @@ public:
 		uavcan::Publisher<uavcan::equipment::range_sensor::Measurement>(node)
 	{
 		this->setPriority(uavcan::TransferPriority::Default);
+
+		if (param_get(param_find("CANNODE_RNG_ORIENT"), &_rng_orientation)) {
+			_is_orient_defined = true;
+		}
 	}
 
 	void PrintInfo() override
@@ -78,8 +83,9 @@ public:
 			range_sensor.sensor_id = get_instance();
 			range_sensor.range = dist.current_distance;
 			range_sensor.field_of_view = dist.h_fov;
+			range_sensor.beam_orientation_in_body_frame.orientation_defined = _is_orient_defined;
 
-			// sensor type
+			// sensor typeA
 			switch (dist.type) {
 			case distance_sensor_s::MAV_DISTANCE_SENSOR_LASER:
 				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_LIDAR;
@@ -113,11 +119,46 @@ public:
 				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_UNDEFINED;
 			}
 
+			// Param Orientation
+			switch (_rng_orientation) {
+			case distance_sensor_s::ROTATION_FORWARD_FACING:
+				range_sensor.beam_orientation_in_body_frame.fixed_axis_roll_pitch_yaw[2] = 0;
+				break;
+
+			case distance_sensor_s::ROTATION_RIGHT_FACING:
+				range_sensor.beam_orientation_in_body_frame.fixed_axis_roll_pitch_yaw[2] = 2;
+				break;
+
+			case distance_sensor_s::ROTATION_BACKWARD_FACING:
+				range_sensor.beam_orientation_in_body_frame.fixed_axis_roll_pitch_yaw[2] = 4;
+				break;
+
+			case distance_sensor_s::ROTATION_LEFT_FACING:
+				range_sensor.beam_orientation_in_body_frame.fixed_axis_roll_pitch_yaw[2] = 6;
+				break;
+
+			case distance_sensor_s::ROTATION_UPWARD_FACING:
+				range_sensor.beam_orientation_in_body_frame.fixed_axis_roll_pitch_yaw[1] = 14;
+				break;
+
+			case distance_sensor_s::ROTATION_DOWNWARD_FACING:
+				range_sensor.beam_orientation_in_body_frame.fixed_axis_roll_pitch_yaw[1] = 15;
+				break;
+
+			default:
+				range_sensor.beam_orientation_in_body_frame.fixed_axis_roll_pitch_yaw[1] = 15;
+				break;
+			}
+
 			uavcan::Publisher<uavcan::equipment::range_sensor::Measurement>::broadcast(range_sensor);
 
 			// ensure callback is registered
 			uORB::SubscriptionCallbackWorkItem::registerCallback();
 		}
+
 	}
+private:
+	int32_t _rng_orientation;
+	bool _is_orient_defined = false;
 };
 } // namespace uavcannode
