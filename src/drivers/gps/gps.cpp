@@ -792,6 +792,7 @@ GPS::run()
 
 	handle = param_find("GPS_UBX_BAUD2");
 	int32_t f9p_uart2_baudrate = 57600;
+
 	if (handle != PARAM_INVALID) {
 		param_get(handle, &f9p_uart2_baudrate);
 	}
