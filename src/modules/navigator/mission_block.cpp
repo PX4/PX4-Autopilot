@@ -472,23 +472,27 @@ MissionBlock::is_mission_item_reached_or_completed()
 			/* enforce exit course if in FW, the next wp is valid, the vehicle is currently loitering and either having force_heading set,
 			   or if loitering to achieve altitdue at a NAV_CMD_WAYPOINT */
 			const bool enforce_exit_course = _navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-							  &&
-							  next_sp.valid &&
-							  curr_sp_new->type == position_setpoint_s::SETPOINT_TYPE_LOITER &&
-							  (_mission_item.force_heading || _mission_item.nav_cmd == NAV_CMD_WAYPOINT);
+							 && next_sp.valid
+							 && curr_sp_new->type == position_setpoint_s::SETPOINT_TYPE_LOITER
+							 && (_mission_item.force_heading || _mission_item.nav_cmd == NAV_CMD_WAYPOINT);
 
 			// can only enforce exit course if next waypoint is not within loiter radius of current waypoint
 			const bool exit_course_is_reachable = dist_current_next > 1.2f * curr_sp_new->loiter_radius;
 
 			if (enforce_exit_course && exit_course_is_reachable) {
 
-				// set required yaw from bearing to the next mission item
-				const float desired_exit_bearing = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
-								   _navigator->get_global_position()->lon,
-								   next_sp.lat, next_sp.lon);
-				const float cog = atan2f(_navigator->get_local_position()->vy, _navigator->get_local_position()->vx);
+				float vehicle_position_to_next_waypoint_north;
+				float vehicle_position_to_next_waypoint_east;
+				get_vector_to_next_waypoint(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon, next_sp.lat,
+							    next_sp.lon, &vehicle_position_to_next_waypoint_north,  &vehicle_position_to_next_waypoint_east);
 
-				exit_course_reached = fabsf(wrap_pi(desired_exit_bearing - cog)) < kLoiterExitCourseReachedThreshold;
+				// this vector defines the exit bearing
+				const matrix::Vector2f vector_vehicle_position_to_next_waypoint = {vehicle_position_to_next_waypoint_north, vehicle_position_to_next_waypoint_east};
+
+				const matrix::Vector2f vehicle_ground_velocity = {_navigator->get_local_position()->vx, _navigator->get_local_position()->vy};
+
+				exit_course_reached = vector_vehicle_position_to_next_waypoint.dot(vehicle_ground_velocity) >
+						      vector_vehicle_position_to_next_waypoint.norm() * vehicle_ground_velocity.norm() * kCosineExitCourseThreshold;
 
 			} else {
 				exit_course_reached = true;
