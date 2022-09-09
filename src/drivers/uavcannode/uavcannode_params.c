@@ -83,7 +83,6 @@ PARAM_DEFINE_INT32(CANNODE_SUB_RTCM, 0);
  * Enable MovingBaselineData publication
  *
  * @boolean
- * @max 1
  * @reboot_required true
  * @group UAVCAN
  */
