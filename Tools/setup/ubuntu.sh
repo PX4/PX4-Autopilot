@@ -62,6 +62,14 @@ if [[ ! -f "${DIR}/${REQUIREMENTS_FILE}" ]]; then
 	exit 1
 fi
 
+if ! command -v lsb_release &> /dev/null
+then
+    echo "lsb_release not available, installing from apt"
+    sudo apt-get update -y --quiet
+    sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+        lsb-release \
+        ;
+fi
 
 # Check ubuntu version
 UBUNTU_RELEASE=$(lsb_release -rs)
