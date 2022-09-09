@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# This is to pick up the PATH for the arm-none-eabi toolchain
+source $HOME/.profile
+
 # Start virtual X server in the background
 # - DISPLAY default is :99, set in dockerfile
 # - Users can override with `-e DISPLAY=` in `docker run` command to avoid
