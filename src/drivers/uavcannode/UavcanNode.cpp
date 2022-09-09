@@ -55,6 +55,7 @@
 #include "Subscribers/BeepCommand.hpp"
 #include "Subscribers/LightsCommand.hpp"
 #include "Subscribers/MovingBaselineData.hpp"
+#include "Subscribers/RTCMStream.hpp"
 
 using namespace time_literals;
 
@@ -301,12 +302,11 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_publisher_list.add(new RawAirData(this, _node));
 	_publisher_list.add(new RelPosHeadingPub(this, _node));
 
-	int32_t enable_movingbaselinedata = 0;
-	param_get(param_find("CANNODE_GPS_RTCM"), &enable_movingbaselinedata);
+	int32_t cannode_pub_mbd = 0;
+	param_get(param_find("CANNODE_PUB_MBD"), &cannode_pub_mbd);
 
-	if (enable_movingbaselinedata != 0) {
+	if (cannode_pub_mbd == 1) {
 		_publisher_list.add(new MovingBaselineDataPub(this, _node));
-
 	}
 
 	_publisher_list.add(new SafetyButton(this, _node));
@@ -316,8 +316,18 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_subscriber_list.add(new BeepCommand(_node));
 	_subscriber_list.add(new LightsCommand(_node));
 
-	if (enable_movingbaselinedata != 0) {
+	int32_t cannode_sub_mdb = 0;
+	param_get(param_find("CANNODE_SUB_MDB"), &cannode_sub_mdb);
+
+	if (cannode_sub_mdb == 1) {
 		_subscriber_list.add(new MovingBaselineData(_node));
+	}
+
+	int32_t cannode_sub_rtcm = 0;
+	param_get(param_find("CANNODE_SUB_RTCM"), &cannode_sub_rtcm);
+
+	if (cannode_sub_rtcm == 1) {
+		_subscriber_list.add(new RTCMStream(_node));
 	}
 
 	for (auto &subscriber : _subscriber_list) {
