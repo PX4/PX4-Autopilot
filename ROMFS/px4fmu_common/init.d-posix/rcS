@@ -1,6 +1,9 @@
 #!/bin/sh
 
-set -e
+# Un comment and use set +e to ignore and set -e to enable 'exit on error control'
+set +e
+# Un comment the line below to help debug scripts by printing a trace of the script commands
+#set -x
 
 # PX4 commands need the 'px4-' prefix in bash.
 # (px4-alias.sh is expected to be in the PATH)
@@ -66,7 +69,7 @@ set PARAM_BACKUP_FILE parameters_backup.bson
 
 param select $PARAM_FILE
 if [ -f $PARAM_FILE ]; then
-	set +e # disable exit on error control for param import
+
 	if ! param import
 	then
 		echo "ERROR [init] param import failed"
@@ -92,7 +95,6 @@ if [ -f $PARAM_FILE ]; then
 
 		param status
 	fi
-	set -e # restore exit on error control
 
 elif [ -f $PARAM_BACKUP_FILE ]; then
 	echo "ERROR [init] primary param file $PARAM_FILE unavailable, using backup $PARAM_BACKUP_FILE"
