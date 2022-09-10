@@ -21,7 +21,7 @@ jobs:
           git fetch --depth="$(( commits + 1 ))"
         fi
         if ! git diff --exit-code origin/main -- Tools/setup/ubuntu.sh Tools/setup/Dockerfile-jammy; then
-          (cd Tools/setup && docker build . -t px4-dev -f Dockerfile-jammy
+          (cd Tools/setup && docker build . -t px4-dev -f Dockerfile-jammy)
           export SRC_DIR="/PX4-Autopilot"
           git config --global --add safe.directory ${SRC_DIR}
           export LOCAL_USER_ID=${UID}
