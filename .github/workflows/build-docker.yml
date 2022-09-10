@@ -24,6 +24,5 @@ jobs:
           (cd Tools/setup && docker build . -t px4-dev -f Dockerfile-jammy)
           export SRC_DIR="/PX4-Autopilot"
           git config --global --add safe.directory ${SRC_DIR}
-          export LOCAL_USER_ID=${UID}
-          docker run --rm -w "${SRC_DIR}" --user="$(id --user):$(id --group)" --volume=$(pwd):${SRC_DIR}:rw px4-dev make px4_fmu-v2
+          docker run --rm -w "${SRC_DIR}" --volume=$(pwd):${SRC_DIR}:rw px4-dev make px4_fmu-v2
         fi
