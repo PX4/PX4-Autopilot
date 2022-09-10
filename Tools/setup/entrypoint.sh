@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
 # This is to pick up the PATH for the arm-none-eabi toolchain
+echo "Sourcing: $HOME/.profile"
+echo "Contents: "
+cat $HOME/.profile
+echo "Contents done"
 source $HOME/.profile
 
 # Start virtual X server in the background
