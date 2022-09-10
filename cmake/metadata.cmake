@@ -33,6 +33,8 @@
 
 # Metadata - helpers for generating documentation
 
+get_property(all_px4_src_files GLOBAL PROPERTY PX4_SRC_FILES)
+
 add_custom_target(metadata_airframes
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/docs
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
@@ -100,7 +102,7 @@ set(events_src_path "${PX4_SOURCE_DIR}/src/lib/events")
 add_custom_target(metadata_extract_events
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/events
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_events.py
-		--src-path ${PX4_SOURCE_DIR}/src
+		--src-path ${all_px4_src_files}
 		--json ${PX4_BINARY_DIR}/events/px4_full.json #--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${events_src_path}/libevents/scripts/combine.py
 		${PX4_BINARY_DIR}/events/px4_full.json
@@ -112,6 +114,7 @@ add_custom_target(metadata_extract_events
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/compress.py
 		${PX4_BINARY_DIR}/events/all_events_full.json
 	COMMENT "Extracting events from full source"
+	DEPENDS px4 # ensure all generated source files exist
 	USES_TERMINAL
 )
 
