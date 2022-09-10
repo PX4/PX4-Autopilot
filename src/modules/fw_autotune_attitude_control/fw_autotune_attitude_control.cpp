@@ -101,7 +101,7 @@ void FwAutotuneAttitudeControl::Run()
 
 	// new control data needed every iteration
 	if ((_state == state::idle
-		&& !_aux_switch_en)
+	     && !_aux_switch_en)
 	    || !_actuator_controls_sub.updated()) {
 		return;
 	}
@@ -293,7 +293,8 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	switch (_state) {
 	case state::idle:
 		if (_param_fw_at_start.get() || _aux_switch_en) {
-			PX4_INFO("Autotune started");
+			orb_advert_t mavlink_log_pub = nullptr;
+			mavlink_log_info(&mavlink_log_pub, "Autotune started");
 			_state = state::init;
 			_state_start_time = now;
 			_start_flight_mode = _nav_state;
@@ -409,22 +410,23 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		_state_start_time = now;
 		break;
 
-	case state::apply:
-		PX4_INFO("Autotune finished successfully");
+	case state::apply: {
+			orb_advert_t mavlink_log_pub = nullptr;
+			mavlink_log_info(&mavlink_log_pub, "Autotune finished successfully");
 
-		if ((_param_fw_at_apply.get() == 1)) {
-			_state = state::wait_for_disarm;
+			if ((_param_fw_at_apply.get() == 1)) {
+				_state = state::wait_for_disarm;
 
-		} else if (_param_fw_at_apply.get() == 2) {
-			backupAndSaveGainsToParams();
-			_state = state::test;
+			} else if (_param_fw_at_apply.get() == 2) {
+				backupAndSaveGainsToParams();
+				_state = state::test;
 
-		} else {
-			_state = state::complete;
+			} else {
+				_state = state::complete;
+			}
+
+			_state_start_time = now;
 		}
-
-		_state_start_time = now;
-
 		break;
 
 	case state::wait_for_disarm:
@@ -464,9 +466,12 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			if (_param_fw_at_man_aux.get() && _aux_switch_en) {
 				break;
 			}
-			PX4_INFO("Autotune returned to idle");
+
+			orb_advert_t mavlink_log_pub = nullptr;
+			mavlink_log_info(&mavlink_log_pub, "Autotune returned to idle");
 			_state = state::idle;
-			stopAutotune();
+			_param_fw_at_start.set(false);
+			_param_fw_at_start.commit();
 		}
 
 		break;
@@ -474,11 +479,12 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	// In case of convergence timeout
 	// the identification sequence is aborted immediately
-	if (_state != state::wait_for_disarm && _state != state::idle &&  _state != state::fail) {
+	if (_state != state::wait_for_disarm && _state != state::idle &&  _state != state::fail && _state != state::complete) {
 		if (now - _state_start_time > 20_s
 		    || (_param_fw_at_man_aux.get() && !_aux_switch_en)
 		    || _start_flight_mode != _nav_state) {
-			PX4_INFO("Autotune exited before finishing");
+			orb_advert_t mavlink_log_pub = nullptr;
+			mavlink_log_critical(&mavlink_log_pub, "Autotune aborted before finishing");
 			_state = state::fail;
 			_state_start_time = now;
 		}
@@ -606,12 +612,6 @@ void FwAutotuneAttitudeControl::saveGainsToParams()
 		_param_fw_yr_i.commit_no_notification();
 		_param_fw_yr_ff.commit();
 	}
-}
-
-void FwAutotuneAttitudeControl::stopAutotune()
-{
-	_param_fw_at_start.set(false);
-	_param_fw_at_start.commit();
 }
 
 const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()

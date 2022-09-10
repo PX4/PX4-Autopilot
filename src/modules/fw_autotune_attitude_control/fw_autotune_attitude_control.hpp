@@ -60,6 +60,7 @@
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_status.h>
 #include <mathlib/mathlib.h>
+#include <lib/systemlib/mavlink_log.h>
 
 using namespace time_literals;
 
@@ -98,7 +99,6 @@ private:
 	void checkFilters();
 
 	void updateStateMachine(hrt_abstime now);
-	void stopAutotune();
 	void copyGains(int index);
 	bool areGainsGood() const;
 	void saveGainsToParams();
