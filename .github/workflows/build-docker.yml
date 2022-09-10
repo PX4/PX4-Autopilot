@@ -23,6 +23,6 @@ jobs:
         if ! git diff --exit-code origin/main -- Tools/setup/ubuntu.sh Tools/setup/Dockerfile-jammy; then
           (cd Tools/setup && docker build . -t px4-dev -f Dockerfile-jammy)
           export SRC_DIR="/PX4-Autopilot"
-          git config --global --add safe.directory ${SRC_DIR}
+          git config --global --add safe.directory $(pwd)
           docker run --rm -w "${SRC_DIR}" --volume=$(pwd):${SRC_DIR}:rw px4-dev make px4_fmu-v2
         fi
