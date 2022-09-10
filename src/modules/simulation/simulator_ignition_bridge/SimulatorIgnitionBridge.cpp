@@ -237,6 +237,7 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 
 bool SimulatorIgnitionBridge::updateClock(const uint64_t tv_sec, const uint64_t tv_nsec)
 {
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	struct timespec ts;
 	ts.tv_sec = tv_sec;
 	ts.tv_nsec = tv_nsec;
@@ -245,6 +246,8 @@ bool SimulatorIgnitionBridge::updateClock(const uint64_t tv_sec, const uint64_t 
 		_world_time_us.store(ts_to_abstime(&ts));
 		return true;
 	}
+
+#endif // ENABLE_LOCKSTEP_SCHEDULER
 
 	return false;
 }

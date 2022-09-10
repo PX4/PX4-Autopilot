@@ -31,71 +31,76 @@
 #
 ############################################################################
 
-add_compile_options(-frtti -fexceptions)
-
 # Find the Ignition_Transport library
 find_package(ignition-transport
-	REQUIRED COMPONENTS core
+	#REQUIRED COMPONENTS core
 	NAMES
 		ignition-transport8
 		ignition-transport10
 		ignition-transport11
 	#QUIET
 )
-set(IGN_TRANSPORT_VER ${ignition-transport_VERSION_MAJOR})
 
-px4_add_module(
-	MODULE modules__simulation__ignition_bridge
-	MAIN simulator_ignition_bridge
-	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
-	SRCS
-		SimulatorIgnitionBridge.cpp
-		SimulatorIgnitionBridge.hpp
-	DEPENDS
-		mixer_module
-		px4_work_queue
-		ignition-transport${IGN_TRANSPORT_VER}::core
-	MODULE_CONFIG
-		module.yaml
-)
+if(ignition-transport_FOUND)
 
-file(GLOB ign_models
-	LIST_DIRECTORIES true
-	RELATIVE ${PX4_SOURCE_DIR}/Tools/simulation/ignition/models
-	CONFIGURE_DEPENDS
-	${PX4_SOURCE_DIR}/Tools/simulation/ignition/models/*
-)
+	add_compile_options(-frtti -fexceptions)
 
-file(GLOB ign_worlds
-	CONFIGURE_DEPENDS
-	${PX4_SOURCE_DIR}/Tools/simulation/ignition/worlds/*.sdf
-)
+	set(IGN_TRANSPORT_VER ${ignition-transport_VERSION_MAJOR})
 
-foreach(model ${ign_models})
-	foreach(world ${ign_worlds})
+	px4_add_module(
+		MODULE modules__simulation__ignition_bridge
+		MAIN simulator_ignition_bridge
+		COMPILE_FLAGS
+			${MAX_CUSTOM_OPT_LEVEL}
+		SRCS
+			SimulatorIgnitionBridge.cpp
+			SimulatorIgnitionBridge.hpp
+		DEPENDS
+			mixer_module
+			px4_work_queue
+			ignition-transport${IGN_TRANSPORT_VER}::core
+		MODULE_CONFIG
+			module.yaml
+	)
 
-		get_filename_component("world_name" ${world} NAME_WE)
+	file(GLOB ign_models
+		LIST_DIRECTORIES true
+		RELATIVE ${PX4_SOURCE_DIR}/Tools/simulation/ignition/models
+		CONFIGURE_DEPENDS
+		${PX4_SOURCE_DIR}/Tools/simulation/ignition/models/*
+	)
 
-		if(world_name MATCHES "default")
-			add_custom_target(ign_${model}
-				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=${model} $<TARGET_FILE:px4>
-				WORKING_DIRECTORY ${SITL_WORKING_DIR}
-				USES_TERMINAL
-				DEPENDS px4
-			)
-		else()
-			add_custom_target(ign_${model}_${world_name}
-				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=${model} PX4_SIM_WORLD=${world_name} $<TARGET_FILE:px4>
-				WORKING_DIRECTORY ${SITL_WORKING_DIR}
-				USES_TERMINAL
-				DEPENDS px4
-			)
-		endif()
+	file(GLOB ign_worlds
+		CONFIGURE_DEPENDS
+		${PX4_SOURCE_DIR}/Tools/simulation/ignition/worlds/*.sdf
+	)
+
+	foreach(model ${ign_models})
+		foreach(world ${ign_worlds})
+
+			get_filename_component("world_name" ${world} NAME_WE)
+
+			if(world_name MATCHES "default")
+				add_custom_target(ign_${model}
+					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=${model} $<TARGET_FILE:px4>
+					WORKING_DIRECTORY ${SITL_WORKING_DIR}
+					USES_TERMINAL
+					DEPENDS px4
+				)
+			else()
+				add_custom_target(ign_${model}_${world_name}
+					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=${model} PX4_SIM_WORLD=${world_name} $<TARGET_FILE:px4>
+					WORKING_DIRECTORY ${SITL_WORKING_DIR}
+					USES_TERMINAL
+					DEPENDS px4
+				)
+			endif()
+		endforeach()
 	endforeach()
-endforeach()
 
 
-# TODO: PX4_IGN_MODELS_PATH
-# PX4_IGN_WORLDS_PATH
-configure_file(gazebo_env.sh.in ${PX4_BINARY_DIR}/rootfs/gazebo_env.sh)
+	# TODO: PX4_IGN_MODELS_PATH
+	# PX4_IGN_WORLDS_PATH
+	configure_file(gazebo_env.sh.in ${PX4_BINARY_DIR}/rootfs/gazebo_env.sh)
+
+endif()

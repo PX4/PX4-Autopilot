@@ -113,11 +113,8 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 	if(${PX4_BOARD_LABEL} MATCHES "replay")
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch_replay.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json COPYONLY)
 
-	elseif(${PX4_CONFIG} MATCHES "px4_sitl_ign")
-		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch_sitl_ignition.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json COPYONLY)
-
 	else()
-		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch_sitl_default.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json COPYONLY)
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch_sitl.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json COPYONLY)
 	endif()
 
 	set(SITL_WORKING_DIR ${PX4_BINARY_DIR}/rootfs)
