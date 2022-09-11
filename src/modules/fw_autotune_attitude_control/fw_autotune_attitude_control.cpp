@@ -244,11 +244,11 @@ bool FwAutotuneAttitudeControl::isAuxEnableSwitchEnabled()
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 
-	float aux_enable_channel = NAN;
+	float aux_enable_channel = 0;
 
 	switch (_param_fw_at_man_aux.get()) {
 	case 0:
-		break;
+		return false;
 
 	case 1:
 		aux_enable_channel = manual_control_setpoint.aux1;
@@ -275,11 +275,10 @@ bool FwAutotuneAttitudeControl::isAuxEnableSwitchEnabled()
 		break;
 
 	default:
-		aux_enable_channel = NAN;
-		break;
+		return false;
 	}
 
-	return (aux_enable_channel != NAN) && (aux_enable_channel > .5f);
+	return aux_enable_channel > .5f;
 }
 
 void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
