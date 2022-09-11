@@ -26,5 +26,7 @@ jobs:
           (cd Tools/setup && docker build . -t px4-dev -f Dockerfile-jammy)
           export SRC_DIR="/PX4-Autopilot"
           git config --global --add safe.directory $(pwd)
+          git fetch --tags
+          git submodule update --init --recursive
           docker run --privileged --rm -w "${SRC_DIR}" --volume=$(pwd):${SRC_DIR}:rw px4-dev bash -c "pwd; git config --global --add safe.directory ${SRC_DIR}; make px4_fmu-v2"
         fi
