@@ -61,6 +61,8 @@ __BEGIN_DECLS
  */
 typedef uint64_t	hrt_abstime;
 
+#define HRT_ABSTIME_INVALID UINT64_MAX
+
 /**
  * Callout function type.
  *

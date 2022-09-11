@@ -177,6 +177,17 @@ PARAM_DEFINE_INT32(SDLOG_DIRS_MAX, 0);
 PARAM_DEFINE_INT32(SDLOG_UUID, 1);
 
 /**
+ * Start delay
+ *
+ * Start delay in seconds, only enabled if > 0.
+ *
+ * @unit s
+ * @min 0
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_DELAY_S, 0);
+
+/**
  * Logfile Encryption algorithm
  *
  * Selects the algorithm used for logfile encryption

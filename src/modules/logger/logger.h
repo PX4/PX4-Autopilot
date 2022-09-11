@@ -332,6 +332,8 @@ private:
 	bool						_manually_logging_override{false};
 	bool						_start_immediately{false};
 
+	hrt_abstime                                     _start_requested_time{HRT_ABSTIME_INVALID};
+
 	Statistics					_statistics[(int)LogType::Count];
 	hrt_abstime					_last_sync_time{0}; ///< last time a sync msg was sent
 
@@ -381,7 +383,8 @@ private:
 		(ParamInt<px4::params::SDLOG_PROFILE>) _param_sdlog_profile,
 		(ParamInt<px4::params::SDLOG_MISSION>) _param_sdlog_mission,
 		(ParamBool<px4::params::SDLOG_BOOT_BAT>) _param_sdlog_boot_bat,
-		(ParamBool<px4::params::SDLOG_UUID>) _param_sdlog_uuid
+		(ParamBool<px4::params::SDLOG_UUID>) _param_sdlog_uuid,
+		(ParamInt<px4::params::SDLOG_DELAY_S>) _param_sdlog_delay_s
 #if defined(PX4_CRYPTO)
 		, (ParamInt<px4::params::SDLOG_ALGORITHM>) _param_sdlog_crypto_algorithm,
 		(ParamInt<px4::params::SDLOG_KEY>) _param_sdlog_crypto_key,
