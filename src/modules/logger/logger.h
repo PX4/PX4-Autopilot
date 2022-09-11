@@ -292,7 +292,7 @@ private:
 	 * configured params.
 	 * @return true if log started
 	 */
-	bool start_stop_logging();
+	bool should_start_logging();
 
 	void handle_vehicle_command_update();
 	void ack_vehicle_command(vehicle_command_s *cmd, uint32_t result);
@@ -330,6 +330,7 @@ private:
 
 	bool						_prev_state{false}; ///< previous state depending on logging mode (arming or aux1 state)
 	bool						_manually_logging_override{false};
+	bool						_start_immediately{false};
 
 	Statistics					_statistics[(int)LogType::Count];
 	hrt_abstime					_last_sync_time{0}; ///< last time a sync msg was sent
