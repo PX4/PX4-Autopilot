@@ -732,6 +732,14 @@ Commander::Commander() :
 	_failure_detector(this),
 	_health_and_arming_checks(this, _vehicle_status_flags, _vehicle_status)
 {
+	_actuator_armed_pub.advertise();
+	_commander_state_pub.advertise();
+	_failure_detector_status_pub.advertise();
+	_vehicle_control_mode_pub.advertise();
+	_vehicle_status_flags_pub.advertise();
+	_vehicle_status_pub.advertise();
+	_vehicle_command_ack_pub.advertise();
+
 	_vehicle_land_detected.landed = true;
 
 	_vehicle_status.system_id = 1;

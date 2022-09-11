@@ -57,6 +57,7 @@ RTL::RTL(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
 {
+	_rtl_time_estimate_pub.advertise();
 	_param_mpc_z_v_auto_up = param_find("MPC_Z_V_AUTO_UP");
 	_param_mpc_z_v_auto_dn = param_find("MPC_Z_V_AUTO_DN");
 	_param_mpc_land_speed = param_find("MPC_LAND_SPEED");

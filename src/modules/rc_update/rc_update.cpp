@@ -67,6 +67,12 @@ RCUpdate::RCUpdate() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
+	if (_param_rc_chan_cnt.get() > 0) {
+		_rc_channels_pub.advertise();
+		_manual_control_input_pub.advertise();
+		_manual_control_switches_pub.advertise();
+	}
+
 	// initialize parameter handles
 	for (unsigned i = 0; i < RC_MAX_CHAN_COUNT; i++) {
 		char nbuf[16];

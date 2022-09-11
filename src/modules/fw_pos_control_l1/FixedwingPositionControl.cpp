@@ -65,6 +65,7 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 
 	_pos_ctrl_status_pub.advertise();
 	_pos_ctrl_landing_status_pub.advertise();
+	_npfg_status_pub.advertise();
 	_tecs_status_pub.advertise();
 
 	_airspeed_slew_rate_controller.setSlewRate(ASPD_SP_SLEW_RATE);

@@ -168,18 +168,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_synthetic_mag_z(_params->synthesize_mag_z),
 	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default)
 {
-	// advertise expected minimal topic set immediately to ensure logging
-	_attitude_pub.advertise();
-	_local_position_pub.advertise();
-
-	_estimator_event_flags_pub.advertise();
-	_estimator_innovation_test_ratios_pub.advertise();
-	_estimator_innovation_variances_pub.advertise();
-	_estimator_innovations_pub.advertise();
-	_estimator_sensor_bias_pub.advertise();
-	_estimator_states_pub.advertise();
-	_estimator_status_flags_pub.advertise();
-	_estimator_status_pub.advertise();
+	advertiseTopics();
 }
 
 EKF2::~EKF2()
@@ -197,41 +186,121 @@ EKF2::~EKF2()
 	perf_free(_msg_missed_optical_flow_perf);
 }
 
-bool EKF2::multi_init(int imu, int mag)
+void EKF2::advertiseTopics()
 {
-	// advertise all topics to ensure consistent uORB instance numbering
-	_ekf2_timestamps_pub.advertise();
-	_estimator_baro_bias_pub.advertise();
-	_estimator_ev_hgt_bias_pub.advertise();
+	// advertise expected minimal topic set immediately to ensure logging
+	_attitude_pub.advertise();
+	_local_position_pub.advertise();
+
 	_estimator_event_flags_pub.advertise();
-	_estimator_gnss_hgt_bias_pub.advertise();
-	_estimator_gps_status_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();
 	_estimator_innovation_variances_pub.advertise();
 	_estimator_innovations_pub.advertise();
-	_estimator_optical_flow_vel_pub.advertise();
-	_estimator_rng_hgt_bias_pub.advertise();
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_states_pub.advertise();
-	_estimator_status_flags_pub.advertise();
 	_estimator_status_pub.advertise();
-	_estimator_visual_odometry_aligned_pub.advertise();
-	_yaw_est_pub.advertise();
+	_estimator_status_flags_pub.advertise();
 
-	_attitude_pub.advertise();
-	_local_position_pub.advertise();
-	_global_position_pub.advertise();
-	_odometry_pub.advertise();
-	_wind_pub.advertise();
+	if (_multi_mode) {
+		_global_position_pub.advertise();
+		_odometry_pub.advertise();
+		_wind_pub.advertise();
+		_ekf2_timestamps_pub.advertise();
+	}
+
+	// baro
+	if (_params->baro_ctrl != 0) {
+		_estimator_baro_bias_pub.advertise();
+		_estimator_aid_src_baro_hgt_pub.advertise();
+	}
+
+	// GNSS
+	if (_params->gnss_ctrl != 0) {
+
+		_estimator_gps_status_pub.advertise();
+
+		if (_params->gnss_ctrl & GnssCtrl::VEL) {
+			_yaw_est_pub.advertise();
+			_estimator_aid_src_gnss_vel_pub.advertise();
+		}
+
+		if (_params->gnss_ctrl & GnssCtrl::VPOS) {
+			_estimator_gnss_hgt_bias_pub.advertise();
+		}
+
+		if (_params->gnss_ctrl & GnssCtrl::HPOS) {
+			_global_position_pub.advertise();
+			_estimator_aid_src_gnss_pos_pub.advertise();
+		}
+
+		if (_params->gnss_ctrl & GnssCtrl::YAW) {
+			_estimator_aid_src_gnss_yaw_pub.advertise();
+		}
+	}
+
+	// range finder
+	if (_params->rng_ctrl != 0) {
+		_estimator_rng_hgt_bias_pub.advertise();
+		_estimator_aid_src_rng_hgt_pub.advertise();
+	}
+
+	// external vision (TODO: add and use EKF2_EV_CTRL parameter)
+	if ((_params->fusion_mode & SensorFusionMask::USE_EXT_VIS_POS)
+	    || (_params->fusion_mode & SensorFusionMask::USE_EXT_VIS_YAW)
+	    || (_params->fusion_mode & SensorFusionMask::USE_EXT_VIS_VEL)
+	    || (_params->height_sensor_ref == HeightSensor::EV)) {
+
+		_estimator_ev_hgt_bias_pub.advertise();
+		_estimator_visual_odometry_aligned_pub.advertise();
+
+		if (_params->fusion_mode & SensorFusionMask::USE_EXT_VIS_POS) {
+			//_estimator_aid_src_ev_pos_pub.advertise();
+		}
+
+		if (_params->fusion_mode & SensorFusionMask::USE_EXT_VIS_YAW) {
+			_estimator_aid_src_ev_yaw_pub.advertise();
+		}
+
+		if (_params->fusion_mode & SensorFusionMask::USE_EXT_VIS_VEL) {
+			//_estimator_aid_src_ev_vel_pub.advertise();
+		}
+	}
+
+	// optical flow
+	if (_params->fusion_mode & SensorFusionMask::USE_OPT_FLOW) {
+		_estimator_optical_flow_vel_pub.advertise();
+	}
+
+	// airspeed
+	if (_params->arsp_thr > 0.f) {
+		_estimator_aid_src_airspeed_pub.advertise();
+	}
+
+	// magnetometer
+	if (_params->mag_fusion_type != MagFuseType::NONE) {
+		_estimator_aid_src_mag_heading_pub.advertise();
+		_estimator_aid_src_mag_pub.advertise();
+	}
+}
+
+bool EKF2::multi_init(int imu, int mag)
+{
+	advertiseTopics();
 
 	bool changed_instance = _vehicle_imu_sub.ChangeInstance(imu) && _magnetometer_sub.ChangeInstance(mag);
 
 	const int status_instance = _estimator_states_pub.get_instance();
 
-	if ((status_instance >= 0) && changed_instance
+	if (changed_instance && (status_instance >= 0)
+	    && (_estimator_event_flags_pub.get_instance() == status_instance)
+	    && (_estimator_status_flags_pub.get_instance() == status_instance)
+	    && (_estimator_sensor_bias_pub.get_instance() == status_instance)
 	    && (_attitude_pub.get_instance() == status_instance)
 	    && (_local_position_pub.get_instance() == status_instance)
-	    && (_global_position_pub.get_instance() == status_instance)) {
+	    && (_global_position_pub.get_instance() == status_instance)
+	    && (_odometry_pub.get_instance() == status_instance)
+	    && (_wind_pub.get_instance() == status_instance)
+	   ) {
 
 		_instance = status_instance;
 

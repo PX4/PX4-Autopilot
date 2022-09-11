@@ -42,6 +42,10 @@ FlightModeManager::FlightModeManager() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
+	_landing_gear_pub.advertise();
+	_trajectory_setpoint_pub.advertise();
+	_vehicle_constraints_pub.advertise();
+
 	updateParams();
 
 	// initialize all flight-tasks
