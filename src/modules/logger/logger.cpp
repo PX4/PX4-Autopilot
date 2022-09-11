@@ -1127,20 +1127,41 @@ bool Logger::should_start_logging()
 		}
 	}
 
+	const bool delayed_start = (_param_sdlog_delay_s.get() > 0);
+
+	if (delayed_start && (_start_requested_time != HRT_ABSTIME_INVALID)) {
+		desired_state = true;
+		updated = true;
+	}
+
 	desired_state = desired_state || _manually_logging_override;
 
 	// only start/stop if this is a state transition
 	if (updated && _prev_state != desired_state) {
-		_prev_state = desired_state;
 
 		if (desired_state) {
-
 			if (_should_stop_file_log) { // happens on quick stop/start toggling
 				_should_stop_file_log = false;
 				stop_log_file(LogType::Full);
 			}
 
-			return true;
+			if (delayed_start) {
+				if (_start_requested_time == HRT_ABSTIME_INVALID) {
+					_start_requested_time = hrt_absolute_time();
+
+					PX4_INFO("Delayed start in %" PRIi32 " seconds", _param_sdlog_delay_s.get());
+					return false;
+
+				} else if (hrt_elapsed_time(&_start_requested_time) > _param_sdlog_delay_s.get() * 1_s) {
+					_start_requested_time = HRT_ABSTIME_INVALID; // reset
+					_prev_state = true;
+					return true;
+				}
+
+			} else {
+				_prev_state = true;
+				return true;
+			}
 
 		} else {
 			// delayed stop: we measure the process loads and then stop
@@ -1150,6 +1171,8 @@ bool Logger::should_start_logging()
 			if ((MissionLogType)_param_sdlog_mission.get() != MissionLogType::Disabled) {
 				stop_log_file(LogType::Mission);
 			}
+
+			_prev_state = false;
 		}
 	}
 
