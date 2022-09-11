@@ -1,10 +1,10 @@
 #!/bin/sh
 #
-# PX4 FMUv6X specific board sensors init
+# ARK FMUARKV6X specific board sensors init
 #------------------------------------------------------------------------------
 set HAVE_PM2 yes
 
-if ver hwtypecmp V6X005000 V6X005001 V6X005003 V6X005004
+if ver hwtypecmp ARKV6X005000 ARKV6X005001 ARKV6X005003 ARKV6X005004
 then
 	set HAVE_PM2 no
 fi
@@ -47,27 +47,14 @@ then
 	fi
 fi
 
-if ver hwtypecmp V6X000004 V6X001004 V6X004004 V6X005004
-then
-	# Internal SPI bus ICM20649
-	icm20649 -s -R 6 start
-else
-# Internal SPI BMI088
-	bmi088 -A -R 4 -s start
-	bmi088 -G -R 4 -s start
-fi
+# Internal SPI bus IIM42652
+iim42652 -R 6 -s -b 1 start
 
 # Internal SPI bus ICM42688p
-icm42688p -R 6 -s start
+icm42688p -R 6 -s -b 2 start
 
-if ver hwtypecmp V6X000003 V6X001003 V6X003003 V6X000004 V6X001004 V6X004003 V6X004004 V6X005003 V6X005004
-then
-	# Internal SPI bus ICM-42670-P (hard-mounted)
-	icm42670p -R 10 -s start
-else
-	# Internal SPI bus ICM-20649 (hard-mounted)
-	icm20649 -R 14 -s start
-fi
+# Internal SPI bus ICM42688p
+icm42688p -R 6 -s -b 3 start
 
 # Internal magnetometer on I2c
 bmm150 -I start
@@ -76,14 +63,7 @@ bmm150 -I start
 ist8310 -X -b 1 -R 10 start
 
 # Possible internal Baro
-bmp388 -I -a 0x77 start
-
-if ver hwtypecmp V6X000000 V6X001000
-then
-	bmp388 -I start
-else
-	bmp388 -X start
-fi
+bmp388 -I start
 
 # Baro on I2C3
 ms5611 -X start
