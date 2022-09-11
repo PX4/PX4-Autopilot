@@ -135,8 +135,6 @@
  */
 #define PX4_I2C_OBDEV_SE050         0x48
 
-#define GPIO_I2C2_DRDY1_BMP388      /* PG5  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTG|GPIO_PIN5)
-
 /*
  * ADC channels
  *
@@ -211,9 +209,9 @@
 #define GPIO_HW_VER_REV_DRIVE  /* PG0 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_REV_SENSE      /* PH4 */  GPIO_ADC3_INP15
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
-#define HW_INFO_INIT_PREFIX    "V6X"
+#define HW_INFO_INIT_PREFIX    "ARKV6X"
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 7 // Rev 0 and Rev 3,4 Sensor sets
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 2 // Rev 0 and Rev 3,4 Sensor sets
 //                 Base/FMUM
 #define V6X00   HW_VER_REV(0x0,0x0) // FMUV6X,                 Rev 0
 #define V6X01   HW_VER_REV(0x0,0x1) // FMUV6X,     BMI388 I2C2 Rev 1
