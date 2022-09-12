@@ -224,7 +224,7 @@
 //#define ARKV6X41   HW_VER_REV(0x4,0x1) // ARKV6X,     BMI388 I2C2    HB CM4 base Rev 1 // never shipped
 #define ARKV6X43   HW_VER_REV(0x4,0x3) // ARKV6X,     Sensor Set     HB CM4 base Rev 3
 #define ARKV6X44   HW_VER_REV(0x4,0x4) // ARKV6X,     Sensor Set     HB CM4 base Rev 4
-//#define ARKV6X50   HW_VER_REV(0x5,0x0) // ARKV6X,                    HB Mini Rev 0 // never shipped
+#define ARKV6X50   HW_VER_REV(0x5,0x0) // ARKV6X, ARKV6X Rev 0 with HB Mini Rev 5
 //#define ARKV6X51   HW_VER_REV(0x5,0x1) // ARKV6X,     BMI388 I2C2    HB Mini Rev 1 // never shipped
 #define ARKV6X53   HW_VER_REV(0x5,0x3) // ARKV6X,     Sensor Set     HB Mini Rev 3
 #define ARKV6X54   HW_VER_REV(0x5,0x4) // ARKV6X,     Sensor Set     HB Mini Rev 4
