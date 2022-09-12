@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,11 +43,13 @@
  * Tube Pressure Drop
  * 		CAL_AIR_TUBED_MM: Diameter in mm of the pitot and tubes, must have the same diameter.
  * 		CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor and the static + dynamic port length of the pitot.
+ * Venturi effect sensor
+ *    Airspeed sensor based on Venturi effect with NACA profile. Supports TFSLOT airspeed sensor.
  *
  * @value 0 Model with Pitot
  * @value 1 Model without Pitot (1.5 mm tubes)
  * @value 2 Tube Pressure Drop
- * @value 3 TFSLOT - NACAxxxx (Venturi based airspeed sensor)
+ * @value 3 Venturi effect airspeed sensor
  *
  * @group Sensors
  */
