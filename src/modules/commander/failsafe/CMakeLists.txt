@@ -77,3 +77,6 @@ px4_add_library(failsafe
 	framework.cpp
 )
 
+px4_add_functional_gtest(SRC failsafe_test.cpp
+	LINKLIBS failsafe mode_util
+)
