@@ -15,6 +15,12 @@ jobs:
     - uses: actions/checkout@v3
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
+    - name: Log in to the Container registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build if changed
       run: |
         COMMITS=${{ github.event.pull_request.commits }}
@@ -32,5 +38,3 @@ jobs:
           #git submodule update --init --recursive
           #docker run --privileged --rm -w "${SRC_DIR}" --volume=$(pwd):${SRC_DIR}:rw px4-dev bash -c "pwd; git config --global --add safe.directory ${SRC_DIR}; make px4_fmu-v2"
         fi
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
