@@ -62,7 +62,7 @@ using namespace time_literals;
 class SimulatorIgnitionBridge : public ModuleBase<SimulatorIgnitionBridge>, public OutputModuleInterface
 {
 public:
-	SimulatorIgnitionBridge(const char *world, const char *model, const char *pose_str, const char *px4_instance);
+	SimulatorIgnitionBridge(const char *world, const char *model, const char *pose_str, const char *postfix);
 	~SimulatorIgnitionBridge() override;
 
 	/** @see ModuleBase */

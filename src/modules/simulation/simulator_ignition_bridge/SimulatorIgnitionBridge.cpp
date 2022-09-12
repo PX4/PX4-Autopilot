@@ -43,12 +43,12 @@
 #include <string>
 
 SimulatorIgnitionBridge::SimulatorIgnitionBridge(const char *world, const char *model, const char *pose_str,
-                                                 const char *px4_instance) :
+                                                 const char *postfix) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_world_name(world),
 	_model_name(model),
 	_model_pose(pose_str),
-    _model_instance_name(std::string(model) + "_" + std::string(px4_instance))
+    _model_instance_name(std::string(model) + "_" + std::string(postfix))
 {
 	pthread_mutex_init(&_mutex, nullptr);
 
@@ -167,7 +167,7 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 	const char *world_name = "default";
 	const char *model_name = nullptr;
 	const char *model_pose = nullptr;
-    const char *px4_instance = nullptr;
+    const char *postfix = nullptr;
 
 
 	bool error_flag = false;
@@ -193,8 +193,8 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 			break;
 
         case 'n':
-            // px4_instance
-            px4_instance = myoptarg;
+            // model name postfix (allows multiple drone spawn)
+            postfix = myoptarg;
             break;
 
 		case '?':
@@ -218,7 +218,7 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 		model_pose = "";
 	}
 
-	SimulatorIgnitionBridge *instance = new SimulatorIgnitionBridge(world_name, model_name, model_pose, px4_instance);
+	SimulatorIgnitionBridge *instance = new SimulatorIgnitionBridge(world_name, model_name, model_pose, postfix);
 
 	if (instance) {
 		_object.store(instance);
@@ -520,7 +520,7 @@ int SimulatorIgnitionBridge::print_usage(const char *reason)
 	PRINT_MODULE_USAGE_PARAM_STRING('m', nullptr, nullptr, "Model name", false);
 	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, nullptr, "Model Pose", false);
 	PRINT_MODULE_USAGE_PARAM_STRING('w', nullptr, nullptr, "World name", true);
-    PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "PX4 instance number", false);
+    PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Postfix for the model name in Gazebo", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
