@@ -6,7 +6,13 @@ param set-default IMU_INTEG_RATE 250
 
 if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0" ]; then
 
-	if ! simulator_sih start; then
+	if simulator_sih start; then
+
+		sensor_baro_sim start
+		sensor_gps_sim start
+		sensor_mag_sim start
+
+	else
 		echo "ERROR  [init] simulator_sih failed to start"
 		exit 1
 	fi
@@ -27,11 +33,11 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 		# starting ign gazebo with ${PX4_SIM_WORLD} world
 		echo "INFO  [init] starting ign gazebo"
 
+		ign gazebo --verbose=1 -r -s "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
+
 		if [ -z $HEADLESS ]; then
-			ign gazebo --verbose=1 -r "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
-		else
-			# starting ign gazebo headless
-			ign gazebo --verbose=1 -r -s "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
+			# HEADLESS not set, starting ign gazebo gui
+			ign gazebo -g &
 		fi
 	else
 		echo "INFO  [init] ign gazebo already running world: $ign_world"

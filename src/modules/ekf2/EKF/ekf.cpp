@@ -160,30 +160,6 @@ bool Ekf::initialiseFilter()
 		}
 	}
 
-	// accumulate enough height measurements to be confident in the quality of the data
-	if (_baro_buffer && _baro_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
-		if (_baro_sample_delayed.time_us != 0) {
-			if (_baro_counter == 0) {
-				_baro_lpf.reset(_baro_sample_delayed.hgt);
-
-			} else {
-				_baro_lpf.update(_baro_sample_delayed.hgt);
-
-				_baro_b_est.setBias(_baro_lpf.getState());
-			}
-
-			_baro_counter++;
-		}
-	}
-
-	if (_baro_counter < _obs_buffer_length) {
-		// not enough baro samples accumulated
-		return false;
-	}
-
-	// we use baro height initially and switch to GPS/range/EV finder later when it passes checks.
-	_control_status.flags.baro_hgt = false;
-
 	if (!initialiseTilt()) {
 		return false;
 	}

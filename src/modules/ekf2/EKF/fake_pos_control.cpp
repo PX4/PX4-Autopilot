@@ -53,7 +53,7 @@ void Ekf::controlFakePosFusion()
 		const bool continuing_conditions_passing = !isHorizontalAidingActive();
 		const bool starting_conditions_passing = continuing_conditions_passing;
 
-		if (_using_synthetic_position) {
+		if (_control_status.flags.fake_pos) {
 			if (continuing_conditions_passing) {
 				fuseFakePosition();
 
@@ -83,9 +83,9 @@ void Ekf::controlFakePosFusion()
 
 void Ekf::startFakePosFusion()
 {
-	if (!_using_synthetic_position) {
+	if (!_control_status.flags.fake_pos) {
 		ECL_INFO("start fake position fusion");
-		_using_synthetic_position = true;
+		_control_status.flags.fake_pos = true;
 		_fuse_hpos_as_odom = false; // TODO: needed?
 		resetFakePosFusion();
 	}
@@ -94,7 +94,7 @@ void Ekf::startFakePosFusion()
 void Ekf::resetFakePosFusion()
 {
 	ECL_INFO("reset fake position fusion");
-	_last_known_posNE = _state.pos.xy();
+	_last_known_pos.xy() = _state.pos.xy();
 
 	resetHorizontalPositionToLastKnown();
 	resetHorizontalVelocityToZero();
@@ -105,9 +105,9 @@ void Ekf::resetFakePosFusion()
 
 void Ekf::stopFakePosFusion()
 {
-	if (_using_synthetic_position) {
+	if (_control_status.flags.fake_pos) {
 		ECL_INFO("stop fake position fusion");
-		_using_synthetic_position = false;
+		_control_status.flags.fake_pos = false;
 
 		resetEstimatorAidStatus(_aid_src_fake_pos);
 	}
@@ -134,10 +134,10 @@ void Ekf::fuseFakePosition()
 	auto &fake_pos = _aid_src_fake_pos;
 
 	for (int i = 0; i < 2; i++) {
-		fake_pos.observation[i] = _last_known_posNE(i);
+		fake_pos.observation[i] = _last_known_pos(i);
 		fake_pos.observation_variance[i] = obs_var(i);
 
-		fake_pos.innovation[i] = _state.pos(i) - _last_known_posNE(i);
+		fake_pos.innovation[i] = _state.pos(i) - _last_known_pos(i);
 		fake_pos.innovation_variance[i] = P(7 + i, 7 + i) + obs_var(i);
 	}
 

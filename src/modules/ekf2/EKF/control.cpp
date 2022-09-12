@@ -85,18 +85,6 @@ void Ekf::controlFusionModes()
 		}
 	}
 
-	if (_baro_buffer) {
-		const uint64_t baro_time_prev = _baro_sample_delayed.time_us;
-		_baro_data_ready = _baro_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed);
-
-		// if we have a new baro sample save the delta time between this sample and the last sample which is
-		// used below for baro offset calculations
-		if (_baro_data_ready && baro_time_prev != 0) {
-			_delta_time_baro_us = _baro_sample_delayed.time_us - baro_time_prev;
-		}
-	}
-
-
 	if (_gps_buffer) {
 		_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GPS_MAX_INTERVAL);
 
@@ -190,6 +178,7 @@ void Ekf::controlFusionModes()
 
 	// Fake position measurement for constraining drift when no other velocity or position measurements
 	controlFakePosFusion();
+	controlFakeHgtFusion();
 
 	// check if we are no longer fusing measurements that directly constrain velocity drift
 	update_deadreckoning_status();
@@ -521,7 +510,7 @@ void Ekf::controlOpticalFlowFusion()
 				// but use a relaxed time criteria to enable it to coast through bad range finder data
 				if (isRecent(_time_last_hagl_fuse, (uint64_t)10e6)) {
 					fuseOptFlow();
-					_last_known_posNE = _state.pos.xy();
+					_last_known_pos.xy() = _state.pos.xy();
 				}
 
 				_flow_data_ready = false;
@@ -659,7 +648,7 @@ void Ekf::controlAirDataFusion()
 	const bool airspeed_timed_out = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
 	const bool sideslip_timed_out = isTimedOut(_time_last_beta_fuse, (uint64_t)10e6);
 
-	if (_using_synthetic_position || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & SensorFusionMask::USE_DRAG))) {
+	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & SensorFusionMask::USE_DRAG))) {
 		_control_status.flags.wind = false;
 	}
 
@@ -673,7 +662,7 @@ void Ekf::controlAirDataFusion()
 
 		_innov_check_fail_status.flags.reject_airspeed = _aid_src_airspeed.innovation_rejected; // TODO: remove this redundant flag
 
-		const bool continuing_conditions_passing = _control_status.flags.in_air && _control_status.flags.fixed_wing && !_using_synthetic_position;
+		const bool continuing_conditions_passing = _control_status.flags.in_air && _control_status.flags.fixed_wing && !_control_status.flags.fake_pos;
 		const bool is_airspeed_significant = _airspeed_sample_delayed.true_airspeed > _params.arsp_thr;
 		const bool is_airspeed_consistent = (_aid_src_airspeed.test_ratio > 0.f && _aid_src_airspeed.test_ratio < 1.f);
 		const bool starting_conditions_passing = continuing_conditions_passing && is_airspeed_significant
@@ -707,7 +696,7 @@ void Ekf::controlAirDataFusion()
 
 void Ekf::controlBetaFusion()
 {
-	if (_using_synthetic_position) {
+	if (_control_status.flags.fake_pos) {
 		return;
 	}
 
@@ -733,7 +722,7 @@ void Ekf::controlBetaFusion()
 void Ekf::controlDragFusion()
 {
 	if ((_params.fusion_mode & SensorFusionMask::USE_DRAG) && _drag_buffer &&
-	    !_using_synthetic_position && _control_status.flags.in_air && !_mag_inhibit_yaw_reset_req) {
+	    !_control_status.flags.fake_pos && _control_status.flags.in_air && !_mag_inhibit_yaw_reset_req) {
 
 		if (!_control_status.flags.wind) {
 			// reset the wind states and covariances when starting drag accel fusion
