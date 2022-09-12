@@ -783,7 +783,18 @@ GPS::run()
 
 		} else if (gps_ubx_mode == 4) {
 			ubx_mode = GPSDriverUBX::UBXMode::MovingBaseUART1;
+
+		} else if (gps_ubx_mode == 5) { // rover with static base on Uart2
+			ubx_mode = GPSDriverUBX::UBXMode::RoverWithStaticBaseUart2;
+
 		}
+	}
+
+	handle = param_find("GPS_UBX_BAUD2");
+	int32_t f9p_uart2_baudrate = 57600;
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &f9p_uart2_baudrate);
 	}
 
 	int32_t gnssSystemsParam = static_cast<int32_t>(GPSHelper::GNSSSystemsMask::RECEIVER_DEFAULTS);
@@ -846,7 +857,7 @@ GPS::run()
 		/* FALLTHROUGH */
 		case gps_driver_mode_t::UBX:
 			_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
-						   gps_ubx_dynmodel, heading_offset, ubx_mode);
+						   gps_ubx_dynmodel, heading_offset, f9p_uart2_baudrate, ubx_mode);
 			set_device_type(DRV_GPS_DEVTYPE_UBX);
 			break;
 #ifndef CONSTRAINED_FLASH
