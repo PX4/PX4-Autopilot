@@ -42,7 +42,6 @@
 #define EKF2_HPP
 
 #include "EKF/ekf.h"
-#include "Utility/PreFlightChecker.hpp"
 
 #include "EKF2Selector.hpp"
 
@@ -221,6 +220,20 @@ private:
 	uint64_t _start_time_us = 0;		///< system time at EKF start (uSec)
 	int64_t _last_time_slip_us = 0;		///< Last time slip (uSec)
 
+	// Maximum permissible velocity innovation to pass pre-flight checks (m/sec)
+	static constexpr float kVelocityInnovationTestLimit = 0.5f;
+	// Maximum permissible position innovation to pass pre-flight checks (m)
+	static constexpr float kPositionInnovationTestLimit = 1.5f;
+	// Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
+	static constexpr float kHeadingInnovationTestLimit = 0.5f;
+
+	// preflight failure checks
+	bool _pre_flt_fail_innov_heading{false};
+	bool _pre_flt_fail_innov_vel_horiz{false};
+	bool _pre_flt_fail_innov_vel_vert{false};
+	bool _pre_flt_fail_innov_pos_horiz{false};
+	bool _pre_flt_fail_innov_height{false};
+
 	perf_counter_t _ecl_ekf_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL update")};
 	perf_counter_t _ecl_ekf_update_full_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL full update")};
 	perf_counter_t _msg_missed_imu_perf{perf_alloc(PC_COUNT, MODULE_NAME": IMU message missed")};
@@ -385,9 +398,6 @@ private:
 	uORB::PublicationMulti<vehicle_global_position_s>    _global_position_pub;
 	uORB::PublicationMulti<vehicle_odometry_s>           _odometry_pub;
 	uORB::PublicationMulti<wind_s>              _wind_pub;
-
-
-	PreFlightChecker _preflt_checker;
 
 	Ekf _ekf;
 

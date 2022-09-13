@@ -67,6 +67,11 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 					     - wrap_pi(getEulerYaw(ev_sample.quat) - getEulerYaw(_ev_sample_prev.quat)));
 	}
 
+	// filtered innovation for preflight checks
+	if (!aid_src.innovation_rejected) {
+		_ev_yaw_innov_lpf.update(aid_src.innovation);
+	}
+
 	const bool starting_conditions_passing = common_starting_conditions_passing
 			&& continuing_conditions_passing
 			&& isTimedOut(aid_src.time_last_fuse, (uint32_t)1e6);

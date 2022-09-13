@@ -117,6 +117,25 @@ public:
 			_time_last_in_air = _imu_sample_delayed.time_us;
 		}
 
+		// reset all preflight innovation filters on takeoff or landing
+		if (_control_status.flags.in_air != in_air) {
+			_baro_hgt_innov_lpf.reset();
+			_gnss_hgt_innov_lpf.reset();
+			_rng_hgt_innov_lpf.reset();
+			_ev_hgt_innov_lpf.reset();
+
+			_mag_heading_innov_lpf.reset();
+			_gnss_yaw_innov_lpf.reset();
+			_ev_yaw_innov_lpf.reset();
+
+			_ev_pos_innov_lpf.reset();
+			_gnss_pos_innov_lpf.reset();
+
+			_gnss_vel_innov_lpf.reset();
+			_ev_vel_innov_lpf.reset();
+			_optical_flow_vel_innov_lpf.reset();
+		}
+
 		_control_status.flags.in_air = in_air;
 	}
 
@@ -268,6 +287,97 @@ public:
 	float gps_vertical_position_drift_rate_m_s() const { return _gps_vertical_position_drift_rate_m_s; }
 	float gps_filtered_horizontal_velocity_m_s() const { return _gps_filtered_horizontal_velocity_m_s; }
 
+	float filteredHorizontalVelocityInnovation() const
+	{
+		float innov = 0.f;
+
+		if (_control_status.flags.gps) {
+			innov = math::max(innov, _gnss_vel_innov_lpf.getState().xy().norm());
+		}
+
+		if (_control_status.flags.ev_vel) {
+			innov = math::max(innov, _ev_vel_innov_lpf.getState().xy().norm());
+		}
+
+		if (_control_status.flags.opt_flow) {
+			innov = math::max(innov, _optical_flow_vel_innov_lpf.getState().norm());
+		}
+
+		return innov;
+	}
+
+	float filteredVerticalVelocityInnovation() const
+	{
+		float innov = 0.f;
+
+		if (_control_status.flags.gps) {
+			innov = math::max(innov, _gnss_vel_innov_lpf.getState()(2));
+		}
+
+		if (_control_status.flags.ev_pos) {
+			innov = math::max(innov, _ev_vel_innov_lpf.getState()(2));
+		}
+
+		return innov;
+	}
+
+	float filteredHorizontalPositionInnovation() const
+	{
+		float innov = 0.f;
+
+		if (_control_status.flags.gps) {
+			innov = math::max(innov, _gnss_pos_innov_lpf.getState().norm());
+		}
+
+		if (_control_status.flags.ev_pos) {
+			innov = math::max(innov, _ev_pos_innov_lpf.getState().norm());
+		}
+
+		return innov;
+	}
+
+	float filteredVerticalPositionInnovation() const
+	{
+		float innov = 0.f;
+
+		if (_control_status.flags.baro_hgt) {
+			innov = math::max(innov, _baro_hgt_innov_lpf.getState());
+		}
+
+		if (_control_status.flags.gps_hgt) {
+			innov = math::max(innov, _gnss_hgt_innov_lpf.getState());
+		}
+
+		if (_control_status.flags.ev_hgt) {
+			innov = math::max(innov, _ev_hgt_innov_lpf.getState());
+		}
+
+		if (_control_status.flags.rng_hgt) {
+			innov = math::max(innov, _rng_hgt_innov_lpf.getState());
+		}
+
+		return innov;
+	}
+
+	float filteredHeadingInnovation() const
+	{
+		float innov = 0.f;
+
+		if (_control_status.flags.mag_hdg) {
+			innov = math::max(innov, _mag_heading_innov_lpf.getState());
+		}
+
+		if (_control_status.flags.ev_yaw) {
+			innov = math::max(innov, _ev_yaw_innov_lpf.getState());
+		}
+
+		if (_control_status.flags.gps_yaw) {
+			innov = math::max(innov, _gnss_yaw_innov_lpf.getState());
+		}
+
+		return innov;
+	}
+
 protected:
 
 	EstimatorInterface() = default;
@@ -398,6 +508,25 @@ protected:
 	// state logic becasue they will be cleared externally after being read.
 	warning_event_status_u _warning_events{};
 	information_event_status_u _information_events{};
+
+	// Preflight low pass filter time constant inverse (1/sec)
+	static constexpr float INNOV_LPF_TAU_INV = 0.2f;
+
+	AlphaFilter<float>    _baro_hgt_innov_lpf{INNOV_LPF_TAU_INV};       ///< filtered height innovations (m)
+	AlphaFilter<float>    _gnss_hgt_innov_lpf{INNOV_LPF_TAU_INV};       ///< filtered height innovations (m)
+	AlphaFilter<float>    _rng_hgt_innov_lpf{INNOV_LPF_TAU_INV};        ///< filtered height innovations (m)
+	AlphaFilter<float>    _ev_hgt_innov_lpf{INNOV_LPF_TAU_INV};         ///< filtered height innovations (m)
+
+	AlphaFilter<float>    _mag_heading_innov_lpf{INNOV_LPF_TAU_INV};    ///< filtered heading innovations (rad)
+	AlphaFilter<float>    _gnss_yaw_innov_lpf{INNOV_LPF_TAU_INV};       ///< filtered yaw innovations (rad)
+	AlphaFilter<float>    _ev_yaw_innov_lpf{INNOV_LPF_TAU_INV};         ///< filtered yaw innovations (rad)
+
+	AlphaFilter<Vector2f> _ev_pos_innov_lpf{INNOV_LPF_TAU_INV};           ///< filtered position innovations (m)
+	AlphaFilter<Vector2f> _gnss_pos_innov_lpf{INNOV_LPF_TAU_INV};         ///< filtered position innovations (m)
+
+	AlphaFilter<Vector3f> _ev_vel_innov_lpf{INNOV_LPF_TAU_INV};           ///< filtered velocity innovations (m/s)
+	AlphaFilter<Vector3f> _gnss_vel_innov_lpf{INNOV_LPF_TAU_INV};         ///< filtered velocity innovations (m/s)
+	AlphaFilter<Vector2f> _optical_flow_vel_innov_lpf{INNOV_LPF_TAU_INV}; ///< filtered velocity innovations (m/s)
 
 private:
 

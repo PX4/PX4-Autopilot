@@ -90,6 +90,11 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 					   math::max(_params.ev_pos_innov_gate, 1.f),
 					   aid_src);
 
+	// filtered innovation for preflight checks
+	if (!aid_src.innovation_rejected) {
+		_ev_hgt_innov_lpf.update(aid_src.innovation);
+	}
+
 	// update the bias estimator before updating the main filter but after
 	// using its current state to compute the vertical position innovation
 	if (measurement_valid && quality_sufficient) {

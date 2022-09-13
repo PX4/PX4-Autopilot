@@ -52,7 +52,7 @@ class AlphaFilter
 {
 public:
 	AlphaFilter() = default;
-	explicit AlphaFilter(float alpha) : _alpha(alpha) {}
+	AlphaFilter(float alpha) : _alpha(alpha) {}
 
 	~AlphaFilter() = default;
 
@@ -99,7 +99,7 @@ public:
 	 *
 	 * @param sample new initial value
 	 */
-	void reset(const T &sample) { _filter_state = sample; }
+	void reset(const T &sample = {}) { _filter_state = sample; }
 
 	/**
 	 * Add a new raw value to the filter

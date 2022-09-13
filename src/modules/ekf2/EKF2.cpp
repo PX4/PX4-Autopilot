@@ -1067,29 +1067,6 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 
 	innovations.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_innovations_pub.publish(innovations);
-
-	// calculate noise filtered velocity innovations which are used for pre-flight checking
-	if (_ekf.control_status_prev_flags().in_air != _ekf.control_status_flags().in_air) {
-		// fully reset on takeoff or landing
-		_preflt_checker.reset();
-	}
-
-	if (!_ekf.control_status_flags().in_air) {
-		// TODO: move to run before publications
-		_preflt_checker.setUsingGpsAiding(_ekf.control_status_flags().gps);
-		_preflt_checker.setUsingFlowAiding(_ekf.control_status_flags().opt_flow);
-		_preflt_checker.setUsingEvPosAiding(_ekf.control_status_flags().ev_pos);
-		_preflt_checker.setUsingEvVelAiding(_ekf.control_status_flags().ev_vel);
-
-		_preflt_checker.setUsingBaroHgtAiding(_ekf.control_status_flags().baro_hgt);
-		_preflt_checker.setUsingGpsHgtAiding(_ekf.control_status_flags().gps_hgt);
-		_preflt_checker.setUsingRngHgtAiding(_ekf.control_status_flags().rng_hgt);
-		_preflt_checker.setUsingEvHgtAiding(_ekf.control_status_flags().ev_hgt);
-
-		_preflt_checker.setVehicleCanObserveHeadingInFlight(_ekf.control_status_flags().fixed_wing);
-
-		_preflt_checker.update(_ekf.get_imu_sample_delayed().delta_ang_dt, innovations);
-	}
 }
 
 void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
@@ -1389,12 +1366,6 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 	status.time_slip = _last_time_slip_us * 1e-6f;
 
-	status.pre_flt_fail_innov_heading = _preflt_checker.hasHeadingFailed();
-	status.pre_flt_fail_innov_vel_horiz = _preflt_checker.hasHorizVelFailed();
-	status.pre_flt_fail_innov_vel_vert = _preflt_checker.hasVertVelFailed();
-	status.pre_flt_fail_innov_height = _preflt_checker.hasHeightFailed();
-	status.pre_flt_fail_mag_field_disturbed = _ekf.control_status_flags().mag_field_disturbed;
-
 	status.accel_device_id = _device_id_accel;
 	status.baro_device_id = _device_id_baro;
 	status.gyro_device_id = _device_id_gyro;
@@ -1428,6 +1399,30 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		update = true;
 		_innov_check_fail_status = _ekf.innov_check_fail_status().value;
 		_innov_check_fail_status_changes++;
+	}
+
+	if (!_ekf.control_status_flags().in_air) {
+
+		bool fail_vel_horiz = (_ekf.filteredHorizontalVelocityInnovation() > kVelocityInnovationTestLimit);
+		bool fail_vel_vert  = (_ekf.filteredVerticalVelocityInnovation() > kVelocityInnovationTestLimit);
+		bool fail_pos_horiz = (_ekf.filteredHorizontalPositionInnovation() > kPositionInnovationTestLimit);
+		bool fail_height    = (_ekf.filteredVerticalPositionInnovation() > kPositionInnovationTestLimit);
+		bool fail_heading   = (_ekf.filteredHeadingInnovation() > kHeadingInnovationTestLimit);
+
+		if (fail_vel_horiz    != _pre_flt_fail_innov_vel_horiz
+		    || fail_vel_vert  != _pre_flt_fail_innov_vel_vert
+		    || fail_pos_horiz != _pre_flt_fail_innov_pos_horiz
+		    || fail_height    != _pre_flt_fail_innov_height
+		    || fail_heading   != _pre_flt_fail_innov_heading
+		   ) {
+			_pre_flt_fail_innov_vel_horiz = fail_vel_horiz;
+			_pre_flt_fail_innov_vel_vert  = fail_vel_vert;
+			_pre_flt_fail_innov_pos_horiz = fail_pos_horiz;
+			_pre_flt_fail_innov_height    = fail_height;
+			_pre_flt_fail_innov_heading   = fail_heading;
+
+			update = true;
+		}
 	}
 
 	if (update) {
@@ -1501,6 +1496,12 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.reject_hagl                     = _ekf.innov_check_fail_status_flags().reject_hagl;
 		status_flags.reject_optflow_x                = _ekf.innov_check_fail_status_flags().reject_optflow_X;
 		status_flags.reject_optflow_y                = _ekf.innov_check_fail_status_flags().reject_optflow_Y;
+
+		status_flags.pre_flt_fail_innov_vel_horiz = _pre_flt_fail_innov_vel_horiz;
+		status_flags.pre_flt_fail_innov_vel_vert  = _pre_flt_fail_innov_vel_vert;
+		status_flags.pre_flt_fail_innov_pos_horiz = _pre_flt_fail_innov_pos_horiz;
+		status_flags.pre_flt_fail_innov_height    = _pre_flt_fail_innov_height;
+		status_flags.pre_flt_fail_innov_heading   = _pre_flt_fail_innov_heading;
 
 		status_flags.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_estimator_status_flags_pub.publish(status_flags);

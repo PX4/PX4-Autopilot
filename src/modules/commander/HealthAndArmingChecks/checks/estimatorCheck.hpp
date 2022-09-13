@@ -59,11 +59,11 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	void checkEstimatorStatus(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
+	void checkEstimatorStatus(const Context &context, Report &reporter, const vehicle_local_position_s &lpos,
 				  NavModes required_groups);
 	void checkSensorBias(const Context &context, Report &reporter, NavModes required_groups);
-	void checkEstimatorStatusFlags(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
-				       const vehicle_local_position_s &lpos);
+	void checkEstimatorStatusFlags(const Context &context, Report &reporter,
+				       const estimator_status_flags_s &estimator_status_flags, NavModes required_groups);
 
 	void checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position) const;
 	void gpsNoLongerValid(const Context &context, Report &reporter) const;
@@ -92,12 +92,6 @@ private:
 	hrt_abstime	_last_lpos_fail_time_us{0};	///< Last time that the local position validity recovery check failed (usec)
 	hrt_abstime	_last_lpos_relaxed_fail_time_us{0};	///< Last time that the relaxed local position validity recovery check failed (usec)
 	hrt_abstime	_last_lvel_fail_time_us{0};	///< Last time that the local velocity validity recovery check failed (usec)
-
-	// variables used to check for navigation failure after takeoff
-	hrt_abstime	_time_last_innov_pass{0};	///< last time velocity and position innovations passed
-	hrt_abstime	_time_last_innov_fail{0};	///< last time velocity and position innovations failed
-	bool		_nav_test_passed{false};	///< true if the post takeoff navigation test has passed
-	bool		_nav_test_failed{false};	///< true if the post takeoff navigation test has failed
 
 	static constexpr hrt_abstime GPS_VALID_TIME{3_s};
 	systemlib::Hysteresis _vehicle_gps_position_valid{false};

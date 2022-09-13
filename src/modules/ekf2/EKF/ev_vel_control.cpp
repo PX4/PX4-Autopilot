@@ -130,6 +130,11 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 				   math::max(_params.ev_vel_innov_gate, 1.f), // innovation gate
 				   aid_src);
 
+	// filtered innovation for preflight checks
+	if (!aid_src.innovation_rejected) {
+		_ev_vel_innov_lpf.update(Vector3f(aid_src.innovation));
+	}
+
 	if (!measurement_valid) {
 		continuing_conditions_passing = false;
 	}

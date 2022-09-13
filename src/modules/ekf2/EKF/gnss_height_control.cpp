@@ -74,6 +74,11 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 						   innov_gate,
 						   aid_src);
 
+		// filtered innovation for preflight checks
+		if (!aid_src.innovation_rejected) {
+			_gnss_hgt_innov_lpf.update(aid_src.innovation);
+		}
+
 		const bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
 		const bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
 

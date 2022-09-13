@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,8 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #############################################################################
-
-add_subdirectory(Utility)
 
 # Symforce code generation TODO:fixme
 # execute_process(
@@ -126,7 +124,6 @@ px4_add_module(
 		geo
 		hysteresis
 		perf
-		EKF2Utility
 		px4_work_queue
 		world_magnetic_model
 	UNITY_BUILD
