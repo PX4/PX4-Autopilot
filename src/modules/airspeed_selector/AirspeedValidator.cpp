@@ -197,7 +197,9 @@ AirspeedValidator::update_CAS_TAS(float air_pressure_pa, float air_temperature_c
 void
 AirspeedValidator::check_airspeed_data_stuck(uint64_t time_now)
 {
-	// data stuck test: trigger when IAS is not changing for DATA_STUCK_TIMEOUT (2s)
+	// Data stuck test: trigger when IAS is not changing for DATA_STUCK_TIMEOUT (2s) when in fixed-wing flight.
+	// Only consider fixed-wing flight as some airspeed sensors have a very low resolution around 0m/s and
+	// can output the exact same value for several seconds then.
 
 	if (!_data_stuck_check_enabled) {
 		_data_stuck_test_failed = false;
@@ -209,7 +211,7 @@ AirspeedValidator::check_airspeed_data_stuck(uint64_t time_now)
 		_IAS_prev = _IAS;
 	}
 
-	_data_stuck_test_failed = hrt_elapsed_time(&_time_last_unequal_data) > DATA_STUCK_TIMEOUT;
+	_data_stuck_test_failed = hrt_elapsed_time(&_time_last_unequal_data) > DATA_STUCK_TIMEOUT && _in_fixed_wing_flight;
 }
 
 void
@@ -226,15 +228,15 @@ AirspeedValidator::check_airspeed_data_variation(uint64_t time_now)
 	if (_time_first_data == 0) {
 		// init
 		_time_first_data = time_now;
-		_IAS_prev = _IAS;
+		_data_variation_check_ias_prev = _IAS;
 	}
 
 	if (!_variation_detected && (time_now - _time_first_data < VARIATION_CHECK_TIMEOUT)) {
-		if (fabsf(_IAS - _IAS_prev) > FLT_EPSILON) {
+		if (fabsf(_IAS - _data_variation_check_ias_prev) > FLT_EPSILON) {
 			_variation_detected = true;
 		}
 
-		_IAS_prev = _IAS;
+		_data_variation_check_ias_prev = _IAS;
 
 	} else {
 		// only update the test_failed flag once the timeout since first data is over
