@@ -215,9 +215,13 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	failed = failed || !modeCheck(mavlink_log_pub, report_failures, status);
 	failed = failed || !cpuResourceCheck(mavlink_log_pub, report_failures);
 	failed = failed || !parachuteCheck(mavlink_log_pub, report_failures, status_flags);
-	failed = failed || !openDroneIDCheck(mavlink_log_pub, report_failures, status_flags);
 	failed = failed || !preArmCheck(mavlink_log_pub, status_flags, control_mode,
 					safety_button_available, safety_off, status, report_failures, is_arm_attempt);
+
+	if (prearm) {
+		failed = failed || !openDroneIDCheck(mavlink_log_pub, report_failures, status_flags);
+	}
+
 	/* Report status */
 	return !failed;
 }
