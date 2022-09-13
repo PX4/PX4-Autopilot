@@ -357,7 +357,7 @@
 #define SPEKTRUM_POWER(_on_true)           VDD_3V3_SPEKTRUM_POWER_EN(_on_true)
 
 /*
- * FMUv6X has a separate RC_IN
+ * ARKV6X has a separate RC_IN
  *
  * GPIO PPM_IN on PI5 T8CH1
  * SPEKTRUM_RX (it's TX or RX in Bind) on UART6 PC7
@@ -391,7 +391,7 @@
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 #define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
 
-/* FMUv6X never powers off the Servo rail */
+/* ARKV6X never powers off the Servo rail */
 
 #define BOARD_ADC_SERVO_VALID     (1)
 
