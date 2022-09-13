@@ -45,7 +45,7 @@
 #include <drivers/device/spi.h>
 #include <lib/conversion/rotation.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/atomic_from_isr.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_optical_flow.h>
@@ -117,7 +117,7 @@ private:
 	int _failure_count{0};
 	int _discard_reading{0};
 
-	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
+	px4::atomic_from_isr<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
 
 	uint32_t _scheduled_interval_us{SAMPLE_INTERVAL_MODE_0 / 2};
