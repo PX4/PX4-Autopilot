@@ -44,6 +44,7 @@ if(NOT PX4_BOARD MATCHES "io-v2")
 		gpio.c
 		print_load.cpp
 		tasks.cpp
+		px4_atomic.cpp
 		px4_nuttx_impl.cpp
 		px4_init.cpp
 		px4_manifest.cpp

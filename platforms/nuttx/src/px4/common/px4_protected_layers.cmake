@@ -12,6 +12,7 @@ add_library(px4_layer
 	px4_userspace_init.cpp
 	px4_usr_crypto.cpp
 	px4_mtd.cpp
+	usr_atomic.cpp
 	usr_board_ctrl.c
 	usr_hrt.cpp
 	usr_mcu_version.cpp
