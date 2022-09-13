@@ -61,9 +61,11 @@ public:
 
 	void set_hysteresis_time_from(const bool from_state, const hrt_abstime new_hysteresis_time_us);
 
-	void set_state_and_update(const bool new_state, const hrt_abstime &now_us);
+	// returns true if state changed
+	bool set_state_and_update(const bool new_state, const hrt_abstime &now_us);
 
-	void update(const hrt_abstime &now_us);
+	// returns true if state changed
+	bool update(const hrt_abstime &now_us);
 
 private:
 

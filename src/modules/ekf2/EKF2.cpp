@@ -180,6 +180,18 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_estimator_states_pub.advertise();
 	_estimator_status_flags_pub.advertise();
 	_estimator_status_pub.advertise();
+
+	_pre_flt_fail_innov_heading.set_hysteresis_time_from(false, 100_ms);
+	_pre_flt_fail_innov_vel_horiz.set_hysteresis_time_from(false, 100_ms);
+	_pre_flt_fail_innov_vel_vert.set_hysteresis_time_from(false, 100_ms);
+	_pre_flt_fail_innov_pos_horiz.set_hysteresis_time_from(false, 100_ms);
+	_pre_flt_fail_innov_height.set_hysteresis_time_from(false, 100_ms);
+
+	_pre_flt_fail_innov_heading.set_hysteresis_time_from(true, 100_ms);
+	_pre_flt_fail_innov_vel_horiz.set_hysteresis_time_from(true, 100_ms);
+	_pre_flt_fail_innov_vel_vert.set_hysteresis_time_from(true, 100_ms);
+	_pre_flt_fail_innov_pos_horiz.set_hysteresis_time_from(true, 100_ms);
+	_pre_flt_fail_innov_height.set_hysteresis_time_from(true, 100_ms);
 }
 
 EKF2::~EKF2()
@@ -537,9 +549,6 @@ void EKF2::Run()
 
 				// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
 				_ekf.set_is_fixed_wing(is_fixed_wing);
-
-				_preflt_checker.setVehicleCanObserveHeadingInFlight(vehicle_status.vehicle_type !=
-						vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 			}
 		}
 
@@ -565,8 +574,6 @@ void EKF2::Run()
 					_accel_cal = {};
 					_gyro_cal = {};
 					_mag_cal = {};
-
-					_preflt_checker.reset();
 
 				} else if (was_in_air && !in_air) {
 					// landed
@@ -603,6 +610,34 @@ void EKF2::Run()
 		if (_ekf.update()) {
 			perf_set_elapsed(_ecl_ekf_update_full_perf, hrt_elapsed_time(&ekf_update_start));
 
+			bool pre_flt_fail_updated = false;
+
+			if (!_ekf.control_status_flags().in_air) {
+				bool pre_flt_fail_innov_heading = _ekf.filteredHeadingInnovation() > kHeadingInnovationTestLimit;
+
+				bool pre_flt_fail_innov_vel_horiz = (_ekf.filteredVelocityInnovation(0) > kVelocityInnovationTestLimit)
+								    || (_ekf.filteredVelocityInnovation(1) > kVelocityInnovationTestLimit);
+				bool pre_flt_fail_innov_vel_vert = (_ekf.filteredVelocityInnovation(2) > kVelocityInnovationTestLimit);
+
+				bool pre_flt_fail_innov_pos_horiz = (_ekf.filteredPositionInnovation(0) > kPositionInnovationTestLimit)
+								    || (_ekf.filteredPositionInnovation(1) > kPositionInnovationTestLimit);
+				bool pre_flt_fail_innov_height = (_ekf.filteredPositionInnovation(2) > kPositionInnovationTestLimit);
+
+				pre_flt_fail_updated |= _pre_flt_fail_innov_heading.set_state_and_update(pre_flt_fail_innov_heading, now);
+				pre_flt_fail_updated |= _pre_flt_fail_innov_vel_horiz.set_state_and_update(pre_flt_fail_innov_vel_horiz, now);
+				pre_flt_fail_updated |= _pre_flt_fail_innov_vel_vert.set_state_and_update(pre_flt_fail_innov_vel_vert, now);
+				pre_flt_fail_updated |= _pre_flt_fail_innov_pos_horiz.set_state_and_update(pre_flt_fail_innov_pos_horiz, now);
+				pre_flt_fail_updated |= _pre_flt_fail_innov_height.set_state_and_update(pre_flt_fail_innov_height, now);
+
+			} else if (_ekf.control_status_prev_flags().in_air != _ekf.control_status_flags().in_air) {
+				// reset
+				_pre_flt_fail_innov_heading.set_state_and_update(false, now);
+				_pre_flt_fail_innov_vel_horiz.set_state_and_update(false, now);
+				_pre_flt_fail_innov_vel_vert.set_state_and_update(false, now);
+				_pre_flt_fail_innov_pos_horiz.set_state_and_update(false, now);
+				_pre_flt_fail_innov_height.set_state_and_update(false, now);
+			}
+
 			PublishLocalPosition(now);
 			PublishOdometry(now);
 			PublishGlobalPosition(now);
@@ -621,7 +656,7 @@ void EKF2::Run()
 			PublishOpticalFlowVel(now);
 			PublishStates(now);
 			PublishStatus(now);
-			PublishStatusFlags(now);
+			PublishStatusFlags(now, pre_flt_fail_updated);
 			PublishYawEstimatorStatus(now);
 
 			UpdateAccelCalibration(now);
@@ -1000,22 +1035,6 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 
 	innovations.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_innovations_pub.publish(innovations);
-
-	// calculate noise filtered velocity innovations which are used for pre-flight checking
-	if (!_ekf.control_status_flags().in_air) {
-		// TODO: move to run before publications
-		_preflt_checker.setUsingGpsAiding(_ekf.control_status_flags().gps);
-		_preflt_checker.setUsingFlowAiding(_ekf.control_status_flags().opt_flow);
-		_preflt_checker.setUsingEvPosAiding(_ekf.control_status_flags().ev_pos);
-		_preflt_checker.setUsingEvVelAiding(_ekf.control_status_flags().ev_vel);
-
-		_preflt_checker.setUsingBaroHgtAiding(_ekf.control_status_flags().baro_hgt);
-		_preflt_checker.setUsingGpsHgtAiding(_ekf.control_status_flags().gps_hgt);
-		_preflt_checker.setUsingRngHgtAiding(_ekf.control_status_flags().rng_hgt);
-		_preflt_checker.setUsingEvHgtAiding(_ekf.control_status_flags().ev_hgt);
-
-		_preflt_checker.update(_ekf.get_imu_sample_delayed().delta_ang_dt, innovations);
-	}
 }
 
 void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
@@ -1096,11 +1115,18 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.ay = vel_deriv(1);
 	lpos.az = vel_deriv(2);
 
-	// TODO: better status reporting
-	lpos.xy_valid = _ekf.local_position_is_valid();
-	lpos.z_valid = !_preflt_checker.hasVertFailed();
-	lpos.v_xy_valid = _ekf.local_position_is_valid();
-	lpos.v_z_valid = !_preflt_checker.hasVertFailed();
+	if (!_ekf.control_status_flags().in_air) {
+		lpos.xy_valid   = _ekf.horizontalPositionValid() && _pre_flt_fail_innov_pos_horiz.get_state();
+		lpos.z_valid    = _ekf.verticalPositionValid()   && _pre_flt_fail_innov_height.get_state();
+		lpos.v_xy_valid = _ekf.horizontalVelocityValid() && _pre_flt_fail_innov_vel_horiz.get_state();
+		lpos.v_z_valid  = _ekf.verticalVelocityValid()   && _pre_flt_fail_innov_vel_vert.get_state();
+
+	} else {
+		lpos.xy_valid   = _ekf.horizontalPositionValid();
+		lpos.z_valid    = _ekf.verticalPositionValid();
+		lpos.v_xy_valid = _ekf.horizontalVelocityValid();
+		lpos.v_z_valid  = _ekf.verticalVelocityValid();
+	}
 
 	// Position of local NED origin in GPS / WGS84 frame
 	if (_ekf.global_origin_valid()) {
@@ -1351,10 +1377,11 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 	status.time_slip = _last_time_slip_us * 1e-6f;
 
-	status.pre_flt_fail_innov_heading = _preflt_checker.hasHeadingFailed();
-	status.pre_flt_fail_innov_vel_horiz = _preflt_checker.hasHorizVelFailed();
-	status.pre_flt_fail_innov_vel_vert = _preflt_checker.hasVertVelFailed();
-	status.pre_flt_fail_innov_height = _preflt_checker.hasHeightFailed();
+	status.pre_flt_fail_innov_heading = _pre_flt_fail_innov_heading.get_state();
+	status.pre_flt_fail_innov_vel_horiz = _pre_flt_fail_innov_vel_horiz.get_state();
+	status.pre_flt_fail_innov_vel_vert = _pre_flt_fail_innov_vel_vert.get_state();
+	status.pre_flt_fail_innov_pos_horiz = _pre_flt_fail_innov_pos_horiz.get_state();
+	status.pre_flt_fail_innov_height = _pre_flt_fail_innov_height.get_state();
 	status.pre_flt_fail_mag_field_disturbed = _ekf.control_status_flags().mag_field_disturbed;
 
 	status.accel_device_id = _device_id_accel;
@@ -1366,7 +1393,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	_estimator_status_pub.publish(status);
 }
 
-void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
+void EKF2::PublishStatusFlags(const hrt_abstime &timestamp, bool force)
 {
 	// publish at ~ 1 Hz (or immediately if filter control status or fault status changes)
 	bool update = (timestamp >= _last_status_flags_publish + 1_s);
@@ -1404,7 +1431,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_mag_hdg               = _ekf.control_status_flags().mag_hdg;
 		status_flags.cs_mag_3d                = _ekf.control_status_flags().mag_3D;
 		status_flags.cs_mag_dec               = _ekf.control_status_flags().mag_dec;
-		status_flags.cs_in_air                = _ekf.control_status_flags().in_air;
+		status_flags.cs_in_air               = _ekf.control_status_flags().in_air;
 		status_flags.cs_wind                  = _ekf.control_status_flags().wind;
 		status_flags.cs_baro_hgt              = _ekf.control_status_flags().baro_hgt;
 		status_flags.cs_rng_hgt               = _ekf.control_status_flags().rng_hgt;
@@ -1463,6 +1490,12 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.reject_hagl                     = _ekf.innov_check_fail_status_flags().reject_hagl;
 		status_flags.reject_optflow_x                = _ekf.innov_check_fail_status_flags().reject_optflow_X;
 		status_flags.reject_optflow_y                = _ekf.innov_check_fail_status_flags().reject_optflow_Y;
+
+		status_flags.pre_flt_fail_innov_heading   = _pre_flt_fail_innov_heading.get_state();
+		status_flags.pre_flt_fail_innov_vel_horiz = _pre_flt_fail_innov_vel_horiz.get_state();
+		status_flags.pre_flt_fail_innov_vel_vert  = _pre_flt_fail_innov_vel_vert.get_state();
+		status_flags.pre_flt_fail_innov_pos_horiz = _pre_flt_fail_innov_pos_horiz.get_state();
+		status_flags.pre_flt_fail_innov_height    = _pre_flt_fail_innov_height.get_state();
 
 		status_flags.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_estimator_status_flags_pub.publish(status_flags);
@@ -2085,7 +2118,6 @@ void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 	// the EKF is operating in the correct mode and there are no filter faults
 	if ((_ekf.fault_status().value == 0)
 	    && !_ekf.accel_bias_inhibited()
-	    && !_preflt_checker.hasHorizFailed() && !_preflt_checker.hasVertFailed()
 	    && (_ekf.control_status_flags().baro_hgt || _ekf.control_status_flags().rng_hgt
 		|| _ekf.control_status_flags().gps_hgt || _ekf.control_status_flags().ev_hgt)
 	    && !_ekf.warning_event_flags().height_sensor_timeout && !_ekf.warning_event_flags().invalid_accel_bias_cov_reset

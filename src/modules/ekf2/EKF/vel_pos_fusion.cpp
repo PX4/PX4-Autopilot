@@ -287,7 +287,7 @@ bool Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 		}
 	}
 
-	setVelPosStatus(obs_index, healthy);
+	setVelPosStatus(obs_index, innov, healthy);
 
 	if (healthy) {
 		// apply the covariance corrections
@@ -304,13 +304,14 @@ bool Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 	return false;
 }
 
-void Ekf::setVelPosStatus(const int index, const bool healthy)
+void Ekf::setVelPosStatus(const int index, const float innov, const bool healthy)
 {
 	switch (index) {
 	case 0:
 		if (healthy) {
 			_fault_status.flags.bad_vel_N = false;
 			_time_last_hor_vel_fuse = _imu_sample_delayed.time_us;
+			_vel_innov_lpf[0].update(innov);
 
 		} else {
 			_fault_status.flags.bad_vel_N = true;
@@ -322,6 +323,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 		if (healthy) {
 			_fault_status.flags.bad_vel_E = false;
 			_time_last_hor_vel_fuse = _imu_sample_delayed.time_us;
+			_vel_innov_lpf[1].update(innov);
 
 		} else {
 			_fault_status.flags.bad_vel_E = true;
@@ -333,6 +335,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 		if (healthy) {
 			_fault_status.flags.bad_vel_D = false;
 			_time_last_ver_vel_fuse = _imu_sample_delayed.time_us;
+			_vel_innov_lpf[2].update(innov);
 
 		} else {
 			_fault_status.flags.bad_vel_D = true;
@@ -344,6 +347,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 		if (healthy) {
 			_fault_status.flags.bad_pos_N = false;
 			_time_last_hor_pos_fuse = _imu_sample_delayed.time_us;
+			_pos_innov_lpf[0].update(innov);
 
 		} else {
 			_fault_status.flags.bad_pos_N = true;
@@ -355,6 +359,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 		if (healthy) {
 			_fault_status.flags.bad_pos_E = false;
 			_time_last_hor_pos_fuse = _imu_sample_delayed.time_us;
+			_pos_innov_lpf[1].update(innov);
 
 		} else {
 			_fault_status.flags.bad_pos_E = true;
@@ -366,6 +371,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 		if (healthy) {
 			_fault_status.flags.bad_pos_D = false;
 			_time_last_hgt_fuse = _imu_sample_delayed.time_us;
+			_pos_innov_lpf[2].update(innov);
 
 		} else {
 			_fault_status.flags.bad_pos_D = true;

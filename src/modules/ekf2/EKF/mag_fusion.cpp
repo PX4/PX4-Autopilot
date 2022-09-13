@@ -676,6 +676,8 @@ bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_so
 		aid_src_status.time_last_fuse = _imu_sample_delayed.time_us;
 		aid_src_status.fused = true;
 
+		_heading_innov_lpf.update(aid_src_status.innovation);
+
 		return true;
 	}
 

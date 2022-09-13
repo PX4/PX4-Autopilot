@@ -198,6 +198,7 @@ void Ekf::fuseGpsYaw(const gpsSample& gps_sample)
 	if (is_fused) {
 		_time_last_heading_fuse = _imu_sample_delayed.time_us;
 		_aid_src_gnss_yaw.time_last_fuse = _imu_sample_delayed.time_us;
+		_heading_innov_lpf.update(heading_innov);
 	}
 }
 

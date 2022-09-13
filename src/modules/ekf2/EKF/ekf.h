@@ -114,6 +114,10 @@ public:
 	const Vector3f getFlowGyro() const { return _flow_sample_delayed.gyro_xyz * (1.f / _flow_sample_delayed.dt); }
 	const Vector3f &getFlowGyroIntegral() const { return _flow_sample_delayed.gyro_xyz; }
 
+	const auto& filteredVelocityInnovation(int index) const { return _vel_innov_lpf[index].getState(); }
+	const auto& filteredPositionInnovation(int index) const { return _pos_innov_lpf[index].getState(); }
+	const auto& filteredHeadingInnovation() const { return _heading_innov_lpf.getState(); }
+
 	void getHeadingInnov(float &heading_innov) const {
 		if (_control_status.flags.mag_hdg) {
 			heading_innov = _aid_src_mag_heading.innovation;
@@ -273,6 +277,32 @@ public:
 	bool local_position_is_valid() const
 	{
 		return (!_deadreckon_time_exceeded && !_control_status.flags.fake_pos);
+	}
+
+	bool horizontalPositionValid(const float innov_limit = 5.f) const
+	{
+		return (!_deadreckon_time_exceeded && !_control_status.flags.fake_pos)
+			&& isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max);
+	}
+
+	bool verticalPositionValid(const float innov_limit = 5.f) const
+	{
+		return isRecent(_time_last_hgt_fuse, _params.no_aid_timeout_max);
+	}
+
+	bool horizontalVelocityValid(const float innov_limit = 1.f) const
+	{
+		return isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max);
+	}
+
+	bool verticalVelocityValid(const float innov_limit = 1.f) const
+	{
+		return isRecent(_time_last_ver_vel_fuse, _params.no_aid_timeout_max);
+	}
+
+	bool headingValid(const float innov_limit = math::radians(30.f)) const
+	{
+		return isRecent(_time_last_heading_fuse, _params.no_aid_timeout_max);
 	}
 
 	bool isTerrainEstimateValid() const { return _hagl_valid; };
@@ -478,6 +508,13 @@ private:
 	uint64_t _time_last_zero_velocity_fuse{0}; ///< last time of zero velocity update (uSec)
 	uint64_t _time_last_healthy_rng_data{0};
 	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
+
+	// Preflight low pass filter time constant inverse (1/sec)
+	static constexpr float INNOV_LPF_TAU_INV = 0.2f;
+
+	AlphaFilter<float> _vel_innov_lpf[3]{{INNOV_LPF_TAU_INV}, {INNOV_LPF_TAU_INV}, {INNOV_LPF_TAU_INV}}; ///< filtered velocity innovations (m/s)
+	AlphaFilter<float> _pos_innov_lpf[3]{{INNOV_LPF_TAU_INV}, {INNOV_LPF_TAU_INV}, {INNOV_LPF_TAU_INV}}; ///< filtered position innovations (m)
+	AlphaFilter<float> _heading_innov_lpf{{INNOV_LPF_TAU_INV}}; ///< filtered heading innovations (rad)
 
 	Vector3f _last_known_pos{};		///< last known local position vector (m)
 
@@ -1045,6 +1082,9 @@ private:
 		return sensor_timestamp + acceptance_interval > _newest_high_rate_imu_sample.time_us;
 	}
 
+	bool horizontalVelocityFusedRecently() const { return isTimedOut(_time_last_hor_vel_fuse, _params.valid_timeout_max); }
+
+
 	void startAirspeedFusion();
 	void stopAirspeedFusion();
 
@@ -1074,7 +1114,7 @@ private:
 	void stopFakePosFusion();
 	void fuseFakePosition();
 
-	void setVelPosStatus(const int index, const bool healthy);
+	void setVelPosStatus(const int index, const float innov, const bool healthy);
 
 	// reset the quaternion states and covariances to the new yaw value, preserving the roll and pitch
 	// yaw : Euler yaw angle (rad)

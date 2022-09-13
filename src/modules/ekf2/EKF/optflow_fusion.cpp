@@ -329,6 +329,9 @@ void Ekf::fuseOptFlow()
 
 		if (is_fused) {
 			_time_last_of_fuse = _imu_sample_delayed.time_us;
+
+			const float vel_innov = _flow_innov(obs_index) * range;
+			_vel_innov_lpf[obs_index].update(vel_innov);
 		}
 	}
 }

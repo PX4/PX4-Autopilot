@@ -73,3 +73,10 @@ bool reject_sideslip                      #  9 - true if the synthetic sideslip 
 bool reject_hagl                          # 10 - true if the height above ground observation has been rejected
 bool reject_optflow_x                     # 11 - true if the X optical flow observation has been rejected
 bool reject_optflow_y                     # 12 - true if the Y optical flow observation has been rejected
+
+# preflight failure checks
+bool pre_flt_fail_innov_heading
+bool pre_flt_fail_innov_vel_horiz
+bool pre_flt_fail_innov_vel_vert
+bool pre_flt_fail_innov_pos_horiz
+bool pre_flt_fail_innov_height

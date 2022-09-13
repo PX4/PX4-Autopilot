@@ -52,7 +52,7 @@ class AlphaFilter
 {
 public:
 	AlphaFilter() = default;
-	explicit AlphaFilter(float alpha) : _alpha(alpha) {}
+	AlphaFilter(float alpha) : _alpha(alpha) {}
 
 	~AlphaFilter() = default;
 

@@ -224,7 +224,6 @@ bool Ekf::isHeightResetRequired() const
 	return (continuous_bad_accel_hgt || hgt_fusion_timeout);
 }
 
-
 void Ekf::resetVerticalPositionTo(const float new_vert_pos)
 {
 	const float old_vert_pos = _state.pos(2);

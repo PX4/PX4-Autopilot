@@ -116,6 +116,7 @@ float32 time_slip # cumulative amount of time in seconds that the EKF inertial c
 bool pre_flt_fail_innov_heading
 bool pre_flt_fail_innov_vel_horiz
 bool pre_flt_fail_innov_vel_vert
+bool pre_flt_fail_innov_pos_horiz
 bool pre_flt_fail_innov_height
 bool pre_flt_fail_mag_field_disturbed
 
