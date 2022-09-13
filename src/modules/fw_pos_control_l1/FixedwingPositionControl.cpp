@@ -871,9 +871,13 @@ FixedwingPositionControl::move_position_setpoint_for_vtol_transition(position_se
 
 		if (!PX4_ISFINITE(_transition_waypoint(0))) {
 			double lat_transition, lon_transition;
-			// create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the L1 controller can track
-			// during the transition
-			waypoint_from_heading_and_distance(_current_latitude, _current_longitude, _yaw, HDG_HOLD_DIST_NEXT, &lat_transition,
+
+			// Create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the L1 controller can track
+			// during the transition. Use the current yaw setpoint to determine the transition heading, as that one in turn
+			// is set to the transition heading by Navigator, or current yaw if setpoint is not valid.
+			const float transition_heading = PX4_ISFINITE(current_sp.yaw) ? current_sp.yaw : _yaw;
+			waypoint_from_heading_and_distance(_current_latitude, _current_longitude, transition_heading, HDG_HOLD_DIST_NEXT,
+							   &lat_transition,
 							   &lon_transition);
 
 			_transition_waypoint(0) = lat_transition;
