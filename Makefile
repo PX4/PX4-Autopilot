@@ -320,6 +320,7 @@ px4io_update:
 	@$(MAKE) --no-print-directory px4_io-v2_default
 	@$(MAKE) --no-print-directory cubepilot_io-v2_default
 	# px4_io-v2_default
+	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/ark/fmu-v6x/extras/px4_io-v2_default.bin
 	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/holybro/durandal-v1/extras/px4_io-v2_default.bin
 	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/holybro/pix32v5/extras/px4_io-v2_default.bin
 	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/mro/x21/extras/px4_io-v2_default.bin
@@ -336,7 +337,7 @@ px4io_update:
 	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeyellow/extras/cubepilot_io-v2_default.bin
 	git status
 
-bootloaders_update: cuav_nora_bootloader cuav_x7pro_bootloader cubepilot_cubeorange_bootloader holybro_durandal-v1_bootloader holybro_kakuteh7_bootloader matek_h743_bootloader matek_h743-mini_bootloader matek_h743-slim_bootloader modalai_fc-v2_bootloader mro_ctrl-zero-classic_bootloader mro_ctrl-zero-h7_bootloader mro_ctrl-zero-h7-oem_bootloader mro_pixracerpro_bootloader px4_fmu-v6c_bootloader px4_fmu-v6u_bootloader px4_fmu-v6x_bootloader
+bootloaders_update: ark_fmu-v6x_bootloader cuav_nora_bootloader cuav_x7pro_bootloader cubepilot_cubeorange_bootloader holybro_durandal-v1_bootloader holybro_kakuteh7_bootloader matek_h743_bootloader matek_h743-mini_bootloader matek_h743-slim_bootloader modalai_fc-v2_bootloader mro_ctrl-zero-classic_bootloader mro_ctrl-zero-h7_bootloader mro_ctrl-zero-h7-oem_bootloader mro_pixracerpro_bootloader px4_fmu-v6c_bootloader px4_fmu-v6u_bootloader px4_fmu-v6x_bootloader
 	git status
 
 .PHONY: coverity_scan
