@@ -151,6 +151,7 @@ private:
 	bool _data_variation_test_failed{false};
 	static constexpr uint64_t VARIATION_CHECK_TIMEOUT{10_s}; ///< timeout to check for data variation after first data is received
 	hrt_abstime _time_first_data{0};
+	float _data_variation_check_ias_prev{0.f};
 	bool _variation_detected{false};
 
 	// states of innovation check
