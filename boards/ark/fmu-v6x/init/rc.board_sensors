@@ -48,13 +48,13 @@ then
 fi
 
 # Internal SPI bus IIM42652
-iim42652 -R 6 -s -b 1 start
+iim42652 -R 5 -s -b 1 start
 
 # Internal SPI bus ICM42688p
-icm42688p -R 6 -s -b 2 start
+icm42688p -R 9 -s -b 2 start
 
 # Internal SPI bus ICM42688p
-icm42688p -R 6 -s -b 3 start
+icm42688p -R 2 -s -b 3 start
 
 # Internal magnetometer on I2c
 bmm150 -I start
