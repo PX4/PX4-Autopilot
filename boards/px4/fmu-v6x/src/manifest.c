@@ -115,27 +115,6 @@ static const px4_hw_mft_item_t hw_mft_list_v0610[] = {
 	},
 };
 
-static const px4_hw_mft_item_t hw_mft_list_v0640[] = {
-	{
-		//  PX4_MFT_PX4IO
-		.present     = 1,
-		.mandatory   = 1,
-		.connection  = px4_hw_con_onboard,
-	},
-	{
-		// PX4_MFT_USB
-		.present     = 1,
-		.mandatory   = 1,
-		.connection  = px4_hw_con_onboard,
-	},
-	{
-		// PX4_MFT_CAN2
-		.present     = 1,
-		.mandatory   = 1,
-		.connection  = px4_hw_con_onboard,
-	},
-};
-
 static const px4_hw_mft_item_t hw_mft_list_v0650[] = {
 	{
 		//  PX4_MFT_PX4IO
@@ -163,12 +142,12 @@ static px4_hw_mft_list_entry_t mft_lists[] = {
 	{V6X00, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)},
 	{V6X01, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2
 	{V6X03, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 3
-	//{V6X40, hw_mft_list_v0640, arraySize(hw_mft_list_v0640)}, //                       HB CM4 base           // never shipped
-	//{V6X41, hw_mft_list_v0640, arraySize(hw_mft_list_v0640)}, // BMP388 moved to I2C2  HB CM4 base           // never shipped
-	{V6X43, hw_mft_list_v0640, arraySize(hw_mft_list_v0640)}, // BMP388 moved to I2C2, HB CM4 base Sensor Set 3
-	{V6X44, hw_mft_list_v0640, arraySize(hw_mft_list_v0640)}, // BMP388 moved to I2C2, HB CM4 base Sensor Set 4
-	//{V6X50, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, //                       HB Mini               // never shipped
-	//{V6X51, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2  HB Mini               // never shipped
+	{V6X40, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, //                       HB CM4 base
+	{V6X41, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2  HB CM4 base
+	{V6X43, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, HB CM4 base Sensor Set 3
+	{V6X44, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, HB CM4 base Sensor Set 4
+	{V6X50, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, //                       HB Mini
+	{V6X51, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2  HB Mini
 	{V6X53, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2, HB Mini Sensor Set 3
 	{V6X54, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2, HB Mini Sensor Set 4
 	{V6X10, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO
