@@ -946,7 +946,7 @@ int board_get_mfguid_formated(char *format_buffer, int size); // DEPRICATED use 
 int board_get_px4_guid(px4_guid_t guid);
 
 /************************************************************************************
- * Name: board_get_mfguid_formated
+ * Name: board_get_px4_guid_formated
  *
  * Description:
  *   All boards either provide a way to retrieve a formatted string of the
