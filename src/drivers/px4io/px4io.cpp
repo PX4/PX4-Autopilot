@@ -45,7 +45,11 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/sem.hpp>
 
+#if defined(__PX4_NUTTX)
+#include <nuttx/crc32.h>
+#else
 #include <crc32.h>
+#endif
 
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>

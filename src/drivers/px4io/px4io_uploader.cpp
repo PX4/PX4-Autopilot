@@ -55,7 +55,11 @@
 #include <sys/stat.h>
 #include <nuttx/arch.h>
 
+#if defined(__PX4_NUTTX)
+#include <nuttx/crc32.h>
+#else
 #include <crc32.h>
+#endif
 
 #include "uploader.h"
 
