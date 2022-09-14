@@ -2734,7 +2734,7 @@ void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_
 	orbit_status_s orbit_status{};
 	orbit_status.timestamp = hrt_absolute_time();
 	float loiter_radius = pos_sp.loiter_radius;
-	uint8_t loiter_direction = pos_sp.loiter_direction;
+	int8_t loiter_direction = pos_sp.loiter_direction;
 
 	if (fabsf(loiter_radius) < FLT_EPSILON) {
 		loiter_radius = _param_nav_loiter_rad.get();
