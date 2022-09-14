@@ -44,7 +44,11 @@
 
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
+#if defined(__PX4_NUTTX)
+#include <nuttx/crc32.h>
+#else
 #include <crc32.h>
+#endif
 #include <stddef.h>
 #include <string.h>
 #include <stdbool.h>

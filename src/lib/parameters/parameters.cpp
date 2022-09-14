@@ -47,7 +47,11 @@
 #include <parameters/px4_parameters.hpp>
 #include "tinybson/tinybson.h"
 
+#if defined(__PX4_NUTTX)
+#include <nuttx/crc32.h>
+#else
 #include <crc32.h>
+#endif
 #include <float.h>
 #include <math.h>
 
