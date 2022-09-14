@@ -371,11 +371,20 @@ void RTL::set_rtl_item()
 		}
 
 	case RTL_STATE_RETURN: {
-			// Don't change altitude.
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+
+			// For FW flight:set to LOITER_TIME (with 0s loiter time), such that the loiter (orbit) status
+			// can be displayed on groundstation and the WP is accepted once within loiter radius
+			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+				_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
+				_mission_item.loiter_radius = landing_loiter_radius;
+
+			} else {
+				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			}
+
 			_mission_item.lat = _destination.lat;
 			_mission_item.lon = _destination.lon;
-			_mission_item.altitude = _rtl_alt;
+			_mission_item.altitude = _rtl_alt; // Don't change altitude
 			_mission_item.altitude_is_relative = false;
 
 			if (rtl_heading_mode == RTLHeadingMode::RTL_NAVIGATION_HEADING &&
