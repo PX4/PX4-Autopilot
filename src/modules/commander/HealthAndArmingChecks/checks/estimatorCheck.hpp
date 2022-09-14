@@ -59,11 +59,11 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	void checkEstimatorStatus(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
+	void checkEstimatorStatus(const Context &context, Report &reporter, const vehicle_local_position_s &lpos,
 				  NavModes required_groups);
 	void checkSensorBias(const Context &context, Report &reporter, NavModes required_groups);
-	void checkEstimatorStatusFlags(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
-				       const vehicle_local_position_s &lpos);
+	void checkEstimatorStatusFlags(const Context &context, Report &reporter,
+				       const estimator_status_flags_s &estimator_status_flags, NavModes required_groups);
 
 	void checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position) const;
 	void gpsNoLongerValid(const Context &context, Report &reporter) const;
