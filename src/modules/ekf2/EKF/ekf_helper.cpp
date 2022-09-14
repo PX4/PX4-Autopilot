@@ -914,18 +914,29 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 		vel = math::max(of_vel, FLT_MIN);
 	}
 
-	// return the vertical position innovation test ratio
+	// return the combined vertical position innovation test ratio
+	float hgt_sum = 0.f;
+
 	if (_control_status.flags.baro_hgt) {
-		hgt = math::max(sqrtf(_aid_src_baro_hgt.test_ratio), FLT_MIN);
+		hgt_sum += sqrtf(_aid_src_baro_hgt.test_ratio);
+	}
 
-	} else if (_control_status.flags.gps_hgt) {
-		hgt = math::max(sqrtf(_aid_src_gnss_pos.test_ratio[2]), FLT_MIN);
+	if (_control_status.flags.gps_hgt) {
+		hgt_sum += sqrtf(_aid_src_gnss_pos.test_ratio[2]);
+	}
 
-	} else if (_control_status.flags.rng_hgt) {
-		hgt = math::max(sqrtf(_aid_src_rng_hgt.test_ratio), FLT_MIN);
+	if (_control_status.flags.rng_hgt) {
+		hgt_sum += sqrtf(_aid_src_rng_hgt.test_ratio);
+	}
 
-	} else if (_control_status.flags.ev_hgt) {
-		hgt = math::max(sqrtf(_ev_pos_test_ratio(1)), FLT_MIN);
+	if (_control_status.flags.ev_hgt) {
+		hgt_sum += sqrtf(_ev_pos_test_ratio(1));
+	}
+
+	const int n_hgt_sources = getNumberOfActiveVerticalPositionAidingSources();
+
+	if (n_hgt_sources > 0) {
+		hgt = math::max(hgt_sum / static_cast<float>(n_hgt_sources), FLT_MIN);
 
 	} else {
 		hgt = NAN;
