@@ -212,8 +212,14 @@ else:
             "dpkg -s ros-" + ros2_distro + "-fastrtps 2>/dev/null | grep -i version", shell=True).decode("utf-8").strip()).group(1)
     except subprocess.CalledProcessError:
         # if ROS2 was installed from sources the command above fails, get the system-wide version instead
-        fastrtps_version = subprocess.check_output(
-            "ldconfig -v 2>/dev/null | grep libfastrtps", shell=True).decode("utf-8").strip().split('so.')[-1]
+        try:
+            fastrtps_version = subprocess.check_output(
+                "ldconfig -v 2>/dev/null | grep libfastrtps", shell=True).decode("utf-8").strip().split('so.')[-1]
+        except subprocess.CalledProcessError:
+            # if no system-wide version is found, look for the one provided by the source-installed ROS2
+            fastrtps_path = re.search(r'(?!\:)[^\:]*fastrtps\/lib(?=\:)', os.environ.get('LD_LIBRARY_PATH')).group(0)
+            fastrtps_version = subprocess.check_output(
+                "ls " + fastrtps_path, shell=True).decode("utf-8").strip().split('so.')[-1]
 
 
 # If nothing specified it's generated both
