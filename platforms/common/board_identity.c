@@ -40,6 +40,12 @@
 #include <px4_platform_common/px4_config.h>
 #include <stdio.h>
 #include <string.h>
+
+/**
+ * For special cases, specific boards may need to override the UUID, instead of using the generic
+ * PX4 GUID (gettable via 'board_get_px4_guid_formated' function). In that case we define the cascaded
+ * UUID function getters to incorporate the overridden UUID into the GUID.
+ */
 #if defined(BOARD_OVERRIDE_UUID) || defined(BOARD_OVERRIDE_MFGUID) || defined(BOARD_OVERRIDE_PX4_GUID)
 static const uint16_t soc_arch_id = PX4_SOC_ARCH_ID;
 static const char board_uuid[17] = BOARD_OVERRIDE_UUID;
@@ -72,11 +78,11 @@ int board_get_uuid32_formated(char *format_buffer, int size,
 	int offset = 0;
 	int sep_size = seperator ? strlen(seperator) : 0;
 
-	for (unsigned i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
+	for (unsigned i = 0; (offset < size - 1) && (i < PX4_CPU_UUID_WORD32_LENGTH); i++) {
 		offset += snprintf(&format_buffer[offset], size - offset, format, uuid[i]);
 
-		if (sep_size && i < PX4_CPU_UUID_WORD32_LENGTH - 1) {
-			strcat(&format_buffer[offset], seperator);
+		if (sep_size && (offset < size - sep_size - 1) && (i < PX4_CPU_UUID_WORD32_LENGTH - 1)) {
+			strncat(&format_buffer[offset], seperator, size - offset);
 			offset += sep_size;
 		}
 	}
