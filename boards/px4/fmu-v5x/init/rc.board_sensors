@@ -70,7 +70,7 @@ then
 	icm20602 -R 10 -s start
 
 	# Internal magnetometer on I2c
-	bmm150 -I start
+	#bmm150 -I start
 
 else
 	#SKYNODE base fmu board orientation
@@ -92,7 +92,7 @@ else
 	icm20602 -R 8 -s start
 
 	# Internal magnetometer on I2c
-	bmm150 -I -R 6 start
+	#bmm150 -I -R 6 start
 
 fi
 
