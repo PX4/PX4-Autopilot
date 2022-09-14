@@ -265,8 +265,6 @@ void RTL::on_activation()
 
 	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
 
-	_rtl_loiter_rad = _param_rtl_loiter_rad.get();
-
 	if (_navigator->get_land_detected()->landed) {
 		// For safety reasons don't go into RTL if landed.
 		_rtl_state = RTL_STATE_LANDED;
@@ -327,6 +325,10 @@ void RTL::set_rtl_item()
 
 	const float destination_dist = get_distance_to_next_waypoint(_destination.lat, _destination.lon, gpos.lat, gpos.lon);
 	const float loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), _rtl_alt);
+
+	// if we will switch to mission for landing, already set the loiter radius (incl. direction) from mission
+	const float landing_loiter_radius = _destination.type == RTL_DESTINATION_MISSION_LANDING ?
+					    _navigator->get_mission_landing_loiter_radius() : _param_rtl_loiter_rad.get();
 
 	const RTLHeadingMode rtl_heading_mode = static_cast<RTLHeadingMode>(_param_rtl_hdg_md.get());
 
@@ -423,9 +425,8 @@ void RTL::set_rtl_item()
 				_mission_item.yaw = _destination.yaw;
 			}
 
-			if (_navigator->get_vstatus()->is_vtol
-			    || _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-				_mission_item.loiter_radius = _rtl_loiter_rad;
+			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+				_mission_item.loiter_radius = landing_loiter_radius;
 			}
 
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
@@ -471,7 +472,10 @@ void RTL::set_rtl_item()
 				_mission_item.yaw = _destination.yaw;
 			}
 
-			_mission_item.loiter_radius = _navigator->get_loiter_radius();
+			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+				_mission_item.loiter_radius = landing_loiter_radius;
+			}
+
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = max(_param_rtl_land_delay.get(), 0.0f);
 			_mission_item.autocontinue = autocontinue;
