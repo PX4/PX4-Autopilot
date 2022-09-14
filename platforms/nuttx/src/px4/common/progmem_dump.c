@@ -51,7 +51,7 @@
 #include <time.h>
 #include <nuttx/fs/fs.h>
 
-#include <crc32.h>
+#include <nuttx/crc32.h>
 
 #ifdef CONFIG_BOARD_CRASHDUMP
 
