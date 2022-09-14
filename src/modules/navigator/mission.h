@@ -96,6 +96,7 @@ public:
 	double get_landing_lat() { return _landing_lat; }
 	double get_landing_lon() { return _landing_lon; }
 	float get_landing_alt() { return _landing_alt; }
+	float get_landing_loiter_rad() { return _landing_loiter_radius; }
 
 	void set_closest_item_as_current();
 
@@ -262,6 +263,8 @@ private:
 	double _landing_lat{0.0};
 	double _landing_lon{0.0};
 	float _landing_alt{0.0f};
+
+	float _landing_loiter_radius{0.f};
 
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 

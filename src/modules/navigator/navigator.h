@@ -301,6 +301,8 @@ public:
 	double get_mission_landing_lon() { return _mission.get_landing_lon(); }
 	float  get_mission_landing_alt() { return _mission.get_landing_alt(); }
 
+	float get_mission_landing_loiter_radius() { return _mission.get_landing_loiter_rad(); }
+
 	// RTL
 	bool mission_landing_required() { return _rtl.get_rtl_type() == RTL::RTL_TYPE_MISSION_LANDING; }
 
