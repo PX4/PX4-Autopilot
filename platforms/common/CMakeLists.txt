@@ -61,3 +61,5 @@ endif()
 
 add_subdirectory(px4_work_queue)
 add_subdirectory(work_queue)
+
+px4_add_unit_gtest(SRC board_identity_test.cpp LINKLIBS px4_platform)
