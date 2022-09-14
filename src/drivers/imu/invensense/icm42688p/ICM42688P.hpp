@@ -192,10 +192,11 @@ private:
 	};
 
 	uint8_t _checked_register_bank1{0};
-	static constexpr uint8_t size_register_bank1_cfg{1};
+	static constexpr uint8_t size_register_bank1_cfg{2};
 	register_bank1_config_t _register_bank1_cfg[size_register_bank1_cfg] {
 		// Register                              | Set bits, Clear bits
 		{ Register::BANK_1::GYRO_CONFIG_STATIC2,  GYRO_CONFIG_STATIC2_BIT::GYRO_AAF_DIS | GYRO_CONFIG_STATIC2_BIT::GYRO_NF_DIS, 0 },
+		{ Register::BANK_1::INTF_CONFIG5,         PIN9_FUNCTION_BIT::FSYNC_EN, 0 },
 	};
 
 	uint8_t _checked_register_bank2{0};

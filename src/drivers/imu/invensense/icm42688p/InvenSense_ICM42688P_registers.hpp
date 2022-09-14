@@ -269,6 +269,11 @@ enum GYRO_CONFIG_STATIC2_BIT : uint8_t {
 	GYRO_NF_DIS  = Bit0,
 };
 
+enum PIN9_FUNCTION_BIT : uint8_t {
+	INT2 = 0,
+	FSYNC_EN = Bit1,
+	CLKIN = Bit2,
+};
 
 //---------------- BANK2 Register bits
 
