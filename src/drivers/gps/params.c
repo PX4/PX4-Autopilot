@@ -87,6 +87,7 @@ PARAM_DEFINE_INT32(GPS_SAT_INFO, 0);
  * Select the u-blox configuration setup. Most setups will use the default, including RTK and
  * dual GPS without heading.
  *
+ * If rover has RTCM corrections from a static base (or other static correction source) coming in on UART2, then select Mode 5.
  * The Heading mode requires 2 F9P devices to be attached. The main GPS will act as rover and output
  * heading information, whereas the secondary will act as moving base.
  * Modes 1 and 2 require each F9P UART1 to be connected to the Autopilot. In addition, UART2 on the
@@ -101,11 +102,28 @@ PARAM_DEFINE_INT32(GPS_SAT_INFO, 0);
  * @value 2 Moving Base (UART1 Connected To Autopilot, UART2 Connected To Rover)
  * @value 3 Heading (Rover With Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
  * @value 4 Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
+ * @value 5 Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
  *
  * @reboot_required true
  * @group GPS
  */
 PARAM_DEFINE_INT32(GPS_UBX_MODE, 0);
+
+
+/**
+ * u-blox F9P UART2 Baudrate
+ *
+ * Select a baudrate for the F9P's UART2 port.
+ * In GPS_UBX_MODE 1, 2, and 3, the F9P's UART2 port is configured to send/receive RTCM corrections.
+ * Set this to 57600 if you want to attach a telemetry radio on UART2.
+ *
+ * @min 0
+ * @unit B/s
+ *
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_BAUD2, 230400);
 
 
 /**

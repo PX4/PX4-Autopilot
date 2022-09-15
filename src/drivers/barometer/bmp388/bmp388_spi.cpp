@@ -74,6 +74,8 @@ public:
 	uint32_t get_device_id() const override { return device::SPI::get_device_id(); }
 
 	uint8_t get_device_address() const override { return device::SPI::get_device_address(); }
+
+	void set_device_type(uint8_t devtype);
 private:
 	spi_calibration_s _cal;
 };
@@ -123,4 +125,9 @@ calibration_s *BMP388_SPI::get_calibration(uint8_t addr)
 	} else {
 		return nullptr;
 	}
+}
+
+void BMP388_SPI::set_device_type(uint8_t devtype)
+{
+	device::Device::set_device_type(devtype);
 }

@@ -94,7 +94,7 @@ static constexpr uint8_t LL40LS_UNIT_ID_3_V4	      = 0x19;
 static constexpr uint8_t LL40LS_DISTHIGH_REG_V4       = 0x10; /* High byte of distance register, auto increment */
 
 // Normal conversion wait time.
-static constexpr uint32_t LL40LS_CONVERSION_INTERVAL{50_ms};
+static constexpr uint32_t LL40LS_CONVERSION_INTERVAL{10_ms};
 
 // Maximum time to wait for a conversion to complete.
 static constexpr uint32_t LL40LS_CONVERSION_TIMEOUT{100_ms};

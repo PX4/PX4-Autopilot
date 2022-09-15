@@ -458,8 +458,8 @@ MissionBlock::is_mission_item_reached_or_completed()
 			time_inside_reached = true;
 		}
 
-		// check if heading for exit is reached (only applies for fixed-wing flight)
-		bool exit_heading_reached = false;
+		// check if course for exit is reached (only applies for fixed-wing flight)
+		bool exit_course_reached = false;
 
 		if (time_inside_reached) {
 
@@ -469,37 +469,38 @@ MissionBlock::is_mission_item_reached_or_completed()
 			const float dist_current_next = get_distance_to_next_waypoint(curr_sp_new->lat, curr_sp_new->lon, next_sp.lat,
 							next_sp.lon);
 
-			/* enforce exit heading if in FW, the next wp is valid, the vehicle is currently loitering and either having force_heading set,
+			/* enforce exit course if in FW, the next wp is valid, the vehicle is currently loitering and either having force_heading set,
 			   or if loitering to achieve altitdue at a NAV_CMD_WAYPOINT */
-			const bool enforce_exit_heading = _navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-							  &&
-							  next_sp.valid &&
-							  curr_sp_new->type == position_setpoint_s::SETPOINT_TYPE_LOITER &&
-							  (_mission_item.force_heading || _mission_item.nav_cmd == NAV_CMD_WAYPOINT);
+			const bool enforce_exit_course = _navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+							 && next_sp.valid
+							 && curr_sp_new->type == position_setpoint_s::SETPOINT_TYPE_LOITER
+							 && (_mission_item.force_heading || _mission_item.nav_cmd == NAV_CMD_WAYPOINT);
 
-			// can only enforce exit heading if next waypoint is not within loiter radius of current waypoint
-			const bool exit_heading_is_reachable = dist_current_next > 1.2f * curr_sp_new->loiter_radius;
+			// can only enforce exit course if next waypoint is not within loiter radius of current waypoint
+			const bool exit_course_is_reachable = dist_current_next > 1.2f * curr_sp_new->loiter_radius;
 
-			if (enforce_exit_heading && exit_heading_is_reachable) {
+			if (enforce_exit_course && exit_course_is_reachable) {
 
-				float yaw_err = 0.0f;
+				float vehicle_position_to_next_waypoint_north;
+				float vehicle_position_to_next_waypoint_east;
+				get_vector_to_next_waypoint(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon, next_sp.lat,
+							    next_sp.lon, &vehicle_position_to_next_waypoint_north,  &vehicle_position_to_next_waypoint_east);
 
-				// set required yaw from bearing to the next mission item
-				_mission_item.yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
-						    _navigator->get_global_position()->lon,
-						    next_sp.lat, next_sp.lon);
-				const float cog = atan2f(_navigator->get_local_position()->vy, _navigator->get_local_position()->vx);
-				yaw_err = wrap_pi(_mission_item.yaw - cog);
+				// this vector defines the exit bearing
+				const matrix::Vector2f vector_vehicle_position_to_next_waypoint = {vehicle_position_to_next_waypoint_north, vehicle_position_to_next_waypoint_east};
 
-				exit_heading_reached = fabsf(yaw_err) < _navigator->get_yaw_threshold();
+				const matrix::Vector2f vehicle_ground_velocity = {_navigator->get_local_position()->vx, _navigator->get_local_position()->vy};
+
+				exit_course_reached = vector_vehicle_position_to_next_waypoint.dot(vehicle_ground_velocity) >
+						      vector_vehicle_position_to_next_waypoint.norm() * vehicle_ground_velocity.norm() * kCosineExitCourseThreshold;
 
 			} else {
-				exit_heading_reached = true;
+				exit_course_reached = true;
 			}
 		}
 
 		// set exit flight course to next waypoint
-		if (exit_heading_reached) {
+		if (exit_course_reached) {
 			position_setpoint_s &curr_sp = _navigator->get_position_setpoint_triplet()->current;
 			const position_setpoint_s &next_sp = _navigator->get_position_setpoint_triplet()->next;
 
@@ -887,7 +888,13 @@ MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_
 	item->nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
 	item->params[0] = (float) new_mode;
 	item->params[1] = 0.0f;
-	item->yaw = _navigator->get_local_position()->heading; // ideally that would be course and not heading
+
+	// Keep yaw from previous mission item if valid, as that is containing the transition heading.
+	// If not valid use current yaw as yaw setpoint
+	if (!PX4_ISFINITE(item->yaw)) {
+		item->yaw = _navigator->get_local_position()->heading; // ideally that would be course and not heading
+	}
+
 	item->autocontinue = true;
 }
 
