@@ -50,7 +50,9 @@ void Ekf::controlFakeHgtFusion()
 
 	if (fake_hgt_data_ready) {
 		const bool continuing_conditions_passing = !isVerticalAidingActive();
-		const bool starting_conditions_passing = continuing_conditions_passing;
+		const bool starting_conditions_passing = continuing_conditions_passing
+							 && _vertical_velocity_deadreckon_time_exceeded
+							 && _vertical_position_deadreckon_time_exceeded;
 
 		if (_control_status.flags.fake_hgt) {
 			if (continuing_conditions_passing) {
