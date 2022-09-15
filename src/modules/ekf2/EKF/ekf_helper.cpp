@@ -731,7 +731,7 @@ void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv) const
 	// If we are dead-reckoning for too long, use the innovations as a conservative alternate measure of the horizontal position error
 	// The reason is that complete rejection of measurements is often caused by heading misalignment or inertial sensing errors
 	// and using state variances for accuracy reporting is overly optimistic in these situations
-	if (_deadreckon_time_exceeded && _control_status.flags.gps) {
+	if (_horizontal_deadreckon_time_exceeded && _control_status.flags.gps) {
 		hpos_err = math::max(hpos_err, Vector2f(_aid_src_gnss_pos.innovation).norm());
 	}
 
@@ -747,7 +747,7 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 	// If we are dead-reckoning for too long, use the innovations as a conservative alternate measure of the horizontal velocity error
 	// The reason is that complete rejection of measurements is often caused by heading misalignment or inertial sensing errors
 	// and using state variances for accuracy reporting is overly optimistic in these situations
-	if (_deadreckon_time_exceeded) {
+	if (_horizontal_deadreckon_time_exceeded) {
 		float vel_err_conservative = 0.0f;
 
 		if (_control_status.flags.opt_flow) {
@@ -1016,8 +1016,13 @@ void Ekf::uncorrelateQuatFromOtherStates()
 	P.slice<4, _k_num_states - 4>(0, 4) = 0.f;
 }
 
-// return true if we are totally reliant on inertial dead-reckoning for position
-void Ekf::update_deadreckoning_status()
+void Ekf::updateDeadReckoningStatus()
+{
+	updateHorizontalDeadReckoningstatus();
+	updateVerticalDeadReckoningStatus();
+}
+
+void Ekf::updateHorizontalDeadReckoningstatus()
 {
 	const bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel)
 				  && (isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
@@ -1034,20 +1039,40 @@ void Ekf::update_deadreckoning_status()
 
 	if (!_control_status.flags.inertial_dead_reckoning) {
 		if (_imu_sample_delayed.time_us > _params.no_aid_timeout_max) {
-			_time_last_aiding = _imu_sample_delayed.time_us - _params.no_aid_timeout_max;
+			_time_last_horizontal_aiding = _imu_sample_delayed.time_us - _params.no_aid_timeout_max;
 		}
 	}
 
 	// report if we have been deadreckoning for too long, initial state is deadreckoning until aiding is present
-	bool deadreckon_time_exceeded = (_time_last_aiding == 0)
-				    || isTimedOut(_time_last_aiding, (uint64_t)_params.valid_timeout_max);
+	bool deadreckon_time_exceeded = (_time_last_horizontal_aiding == 0)
+				    || isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.valid_timeout_max);
 
-	if (!_deadreckon_time_exceeded && deadreckon_time_exceeded) {
+	if (!_horizontal_deadreckon_time_exceeded && deadreckon_time_exceeded) {
 		// deadreckon time now exceeded
 		ECL_WARN("dead reckon time exceeded");
 	}
 
-	_deadreckon_time_exceeded = deadreckon_time_exceeded;
+	_horizontal_deadreckon_time_exceeded = deadreckon_time_exceeded;
+}
+
+void Ekf::updateVerticalDeadReckoningStatus()
+{
+	if (isVerticalPositionAidingActive()) {
+		_time_last_v_pos_aiding = _time_last_hgt_fuse;
+		_vertical_position_deadreckon_time_exceeded = false;
+
+	} else if ((_time_last_v_pos_aiding == 0) || isTimedOut(_time_last_v_pos_aiding, (uint64_t)_params.valid_timeout_max)) {
+		_vertical_position_deadreckon_time_exceeded = true;
+	}
+
+	if (isVerticalVelocityAidingActive()) {
+		_time_last_v_vel_aiding = _time_last_ver_vel_fuse;
+		_vertical_velocity_deadreckon_time_exceeded = false;
+
+	} else if (((_time_last_v_vel_aiding == 0) || isTimedOut(_time_last_v_vel_aiding, (uint64_t)_params.valid_timeout_max))
+		   && _vertical_position_deadreckon_time_exceeded) {
+		_vertical_velocity_deadreckon_time_exceeded = true;
+	}
 }
 
 // calculate the variances for the rotation vector equivalent

@@ -181,7 +181,7 @@ void Ekf::controlFusionModes()
 	controlFakeHgtFusion();
 
 	// check if we are no longer fusing measurements that directly constrain velocity drift
-	update_deadreckoning_status();
+	updateDeadReckoningStatus();
 }
 
 void Ekf::controlExternalVisionFusion()
