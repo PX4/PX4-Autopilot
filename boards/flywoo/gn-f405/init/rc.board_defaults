@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# Flywoo GNF405 board specific defaults
+#------------------------------------------------------------------------------
+
+# default airframe quadrotor
+param set-default SYS_AUTOSTART 4001
+
+# system_power unavailable
+param set-default CBRK_SUPPLY_CHK 894281
+
+# Disable safety switch by default
+param set-default CBRK_IO_SAFETY 22027
+
+# EKF2 can be enabled when baro is avaialble and EKF2_MAG_TYPE is set to 5
+param set-default SYS_MC_EST_GROUP 2
+param set-default EKF2_MAG_TYPE 5
+param set-default SENS_BOARD_ROT 6
+
+param set-default ATT_ACC_COMP 0
+param set-default ATT_W_ACC 0.4000
+param set-default ATT_W_GYRO_BIAS 0.0000
+
+param set-default SYS_HAS_MAG 0
+
+# GPS is on Uart6
+param set-default GPS_1_CONFIG 6
+
+# Telemetry (onboard) is on Uart4
+param set-default MAV_0_CONFIG 102
+param set-default MAV_0_MODE 2
+
+# Set serial rates
+param set-default SER_TEL2_BAUD 500000
+param set-default SER_URT6_BAUD 9600
