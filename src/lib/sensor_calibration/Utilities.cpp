@@ -250,7 +250,7 @@ bool DeviceExternal(uint32_t device_id)
 	switch (bus_type) {
 	case device::Device::DeviceBusType_I2C:
 #if defined(CONFIG_I2C)
-		external = px4_i2c_bus_external(id.devid_s.bus);
+		external = px4_i2c_device_external(device_id);
 #endif // CONFIG_I2C
 		break;
 
