@@ -376,7 +376,7 @@ void RTL::set_rtl_item()
 			// can be displayed on groundstation and the WP is accepted once within loiter radius
 			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 				_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
-				_mission_item.loiter_radius = landing_loiter_radius;
+
 
 			} else {
 				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -404,6 +404,7 @@ void RTL::set_rtl_item()
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
+			_mission_item.loiter_radius = landing_loiter_radius;
 
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: return at %d m (%d m above destination)\t",
 					 (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _destination.alt));
@@ -434,14 +435,11 @@ void RTL::set_rtl_item()
 				_mission_item.yaw = _destination.yaw;
 			}
 
-			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-				_mission_item.loiter_radius = landing_loiter_radius;
-			}
-
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
+			_mission_item.loiter_radius = landing_loiter_radius;
 
 			// Disable previous setpoint to prevent drift.
 			pos_sp_triplet->previous.valid = false;
@@ -481,14 +479,11 @@ void RTL::set_rtl_item()
 				_mission_item.yaw = _destination.yaw;
 			}
 
-			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-				_mission_item.loiter_radius = landing_loiter_radius;
-			}
-
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = max(_param_rtl_land_delay.get(), 0.0f);
 			_mission_item.autocontinue = autocontinue;
 			_mission_item.origin = ORIGIN_ONBOARD;
+			_mission_item.loiter_radius = landing_loiter_radius;
 
 			_navigator->set_can_loiter_at_sp(true);
 
