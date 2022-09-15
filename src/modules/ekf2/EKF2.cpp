@@ -1096,11 +1096,12 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.ay = vel_deriv(1);
 	lpos.az = vel_deriv(2);
 
-	// TODO: better status reporting
 	lpos.xy_valid = _ekf.local_position_is_valid();
-	lpos.z_valid = _ekf.isLocalVerticalPositionValid();
 	lpos.v_xy_valid = _ekf.local_position_is_valid();
-	lpos.v_z_valid = _ekf.isLocalVerticalVelocityValid();
+
+	// TODO: some modules (e.g.: mc_pos_control) don't handle v_z_valid != z_valid properly
+	lpos.z_valid = _ekf.isLocalVerticalPositionValid() || _ekf.isLocalVerticalVelocityValid();
+	lpos.v_z_valid = _ekf.isLocalVerticalVelocityValid() || _ekf.isLocalVerticalPositionValid();
 
 	// Position of local NED origin in GPS / WGS84 frame
 	if (_ekf.global_origin_valid()) {
