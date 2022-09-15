@@ -42,6 +42,8 @@ pipeline {
                      "ark_can-gps_default",
                      "ark_can-rtk-gps_canbootloader",
                      "ark_can-rtk-gps_default",
+                     "ark_fmu-v6x_bootloader",
+                     "ark_fmu-v6x_default",
                      "atl_mantis-edu_default",
                      "av_x-v1_default",
                      "bitcraze_crazyflie_default",
