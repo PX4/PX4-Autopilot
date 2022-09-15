@@ -117,7 +117,7 @@ private:
 	const std::string _world_name;
 	const std::string _model_name;
 	const std::string _model_pose;
-    const std::string _model_instance_name;
+	const std::string _model_instance_name;
 
 	MixingOutput _mixing_output{"SIM_IGN", 8, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 

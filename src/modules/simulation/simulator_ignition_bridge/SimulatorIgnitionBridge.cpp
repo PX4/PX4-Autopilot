@@ -43,12 +43,12 @@
 #include <string>
 
 SimulatorIgnitionBridge::SimulatorIgnitionBridge(const char *world, const char *model, const char *pose_str,
-                                                 const char *postfix) :
+		const char *postfix) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_world_name(world),
 	_model_name(model),
 	_model_pose(pose_str),
-    _model_instance_name(std::string(model) + "_" + std::string(postfix))
+	_model_instance_name(std::string(model) + "_" + std::string(postfix))
 {
 	pthread_mutex_init(&_mutex, nullptr);
 
@@ -138,7 +138,8 @@ int SimulatorIgnitionBridge::init()
 	}
 
 	// IMU: /world/$WORLD/model/$MODEL//link/base_link/sensor/imu_sensor/imu
-	std::string imu_topic = "/world/" + _world_name + "/model/" + _model_instance_name + "/link/base_link/sensor/imu_sensor/imu";
+	std::string imu_topic = "/world/" + _world_name + "/model/" + _model_instance_name +
+				"/link/base_link/sensor/imu_sensor/imu";
 
 	if (!_node.Subscribe(imu_topic, &SimulatorIgnitionBridge::imuCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", imu_topic.c_str());
@@ -167,7 +168,7 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 	const char *world_name = "default";
 	const char *model_name = nullptr;
 	const char *model_pose = nullptr;
-    const char *postfix = nullptr;
+	const char *postfix = nullptr;
 
 
 	bool error_flag = false;
@@ -192,10 +193,10 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 			model_pose = myoptarg;
 			break;
 
-        case 'n':
-            // model name postfix (allows multiple drone spawn)
-            postfix = myoptarg;
-            break;
+		case 'n':
+			// model name postfix (allows multiple drone spawn)
+			postfix = myoptarg;
+			break;
 
 		case '?':
 			error_flag = true;
