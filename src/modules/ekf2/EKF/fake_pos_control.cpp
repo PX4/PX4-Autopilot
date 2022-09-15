@@ -51,7 +51,8 @@ void Ekf::controlFakePosFusion()
 
 	if (fake_pos_data_ready) {
 		const bool continuing_conditions_passing = !isHorizontalAidingActive();
-		const bool starting_conditions_passing = continuing_conditions_passing;
+		const bool starting_conditions_passing = continuing_conditions_passing
+							 && _horizontal_deadreckon_time_exceeded;
 
 		if (_control_status.flags.fake_pos) {
 			if (continuing_conditions_passing) {
