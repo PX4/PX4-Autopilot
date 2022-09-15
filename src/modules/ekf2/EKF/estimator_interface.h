@@ -349,7 +349,9 @@ protected:
 	Vector2f _drag_test_ratio{};		// drag innovation consistency check ratio
 	innovation_fault_status_u _innov_check_fail_status{};
 
-	bool _deadreckon_time_exceeded{true};	// true if the horizontal nav solution has been deadreckoning for too long and is invalid
+	bool _horizontal_deadreckon_time_exceeded{true};
+	bool _vertical_position_deadreckon_time_exceeded{true};
+	bool _vertical_velocity_deadreckon_time_exceeded{true};
 
 	float _gps_horizontal_position_drift_rate_m_s{NAN}; // Horizontal position drift rate (m/s)
 	float _gps_vertical_position_drift_rate_m_s{NAN};   // Vertical position drift rate (m/s)

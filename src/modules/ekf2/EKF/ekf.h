@@ -272,7 +272,17 @@ public:
 	// return true if the local position estimate is valid
 	bool local_position_is_valid() const
 	{
-		return (!_deadreckon_time_exceeded && !_control_status.flags.fake_pos);
+		return (!_horizontal_deadreckon_time_exceeded && !_control_status.flags.fake_pos);
+	}
+
+	bool isLocalVerticalPositionValid() const
+	{
+		return !_vertical_position_deadreckon_time_exceeded && !_control_status.flags.fake_hgt;
+	}
+
+	bool isLocalVerticalVelocityValid() const
+	{
+		return !_vertical_velocity_deadreckon_time_exceeded && !_control_status.flags.fake_hgt;
 	}
 
 	bool isTerrainEstimateValid() const { return _hagl_valid; };
@@ -430,7 +440,9 @@ private:
 	bool initialiseTilt();
 
 	// check if the EKF is dead reckoning horizontal velocity using inertial data only
-	void update_deadreckoning_status();
+	void updateDeadReckoningStatus();
+	void updateHorizontalDeadReckoningstatus();
+	void updateVerticalDeadReckoningStatus();
 
 	void updateTerrainValidity();
 
@@ -470,7 +482,9 @@ private:
 	bool _flow_for_terrain_data_ready{false}; /// same flag as "_flow_data_ready" but used for separate terrain estimator
 
 	uint64_t _time_prev_gps_us{0};	///< time stamp of previous GPS data retrieved from the buffer (uSec)
-	uint64_t _time_last_aiding{0};	///< amount of time we have been doing inertial only deadreckoning (uSec)
+	uint64_t _time_last_horizontal_aiding{0}; ///< amount of time we have been doing inertial only deadreckoning (uSec)
+	uint64_t _time_last_v_pos_aiding{0};
+	uint64_t _time_last_v_vel_aiding{0};
 
 	uint64_t _time_last_hor_pos_fuse{0};	///< time the last fusion of horizontal position measurements was performed (uSec)
 	uint64_t _time_last_hgt_fuse{0};	///< time the last fusion of vertical position measurements was performed (uSec)
