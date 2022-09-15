@@ -2,9 +2,7 @@
 #
 # board specific defaults
 #------------------------------------------------------------------------------
-param set-default SYS_CTRL_ALLOC 1
 
 pwm_out start
 
-# Load mixer and configure outputs.
-. ${R}etc/init.d/rc.interface
+dshot start
