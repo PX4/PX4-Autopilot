@@ -79,6 +79,8 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
+	uint64_t world_time_us() const { return _world_time_us.load(); }
+
 private:
 
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
