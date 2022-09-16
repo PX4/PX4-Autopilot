@@ -221,7 +221,32 @@ int SimulatorIgnitionBridge::task_spawn(int argc, char *argv[])
 		_task_id = task_id_is_work_queue;
 
 		if (instance->init() == PX4_OK) {
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+			// lockstep scheduler wait for initial clock set before returning
+			int sleep_count_limit = 1000;
+
+			while ((instance->world_time_us() == 0) && sleep_count_limit > 0) {
+				// wait for first clock message
+				system_usleep(1000);
+				sleep_count_limit--;
+			}
+
+			if (instance->world_time_us() == 0) {
+				PX4_ERR("timed out waiting for clock message");
+				instance->request_stop();
+				instance->ScheduleNow();
+
+			} else {
+				return PX4_OK;
+			}
+
+#else
 			return PX4_OK;
+
+#endif // ENABLE_LOCKSTEP_SCHEDULER
+
+			//return PX4_OK;
 		}
 
 	} else {
