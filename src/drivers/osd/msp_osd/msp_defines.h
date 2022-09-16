@@ -33,8 +33,6 @@
 
 #pragma once
 
-#define FLIGHT_CONTROLLER_IDENTIFIER_LENGTH 4
-
 // requests & replies
 #define MSP_API_VERSION            1
 #define MSP_FC_VARIANT             2

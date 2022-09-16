@@ -62,7 +62,7 @@ struct msp_message_descriptor_t {
 	uint8_t message_size;
 };
 
-#define MSP_DESCRIPTOR_COUNT 12
+#define MSP_DESCRIPTOR_COUNT 11
 const msp_message_descriptor_t msp_message_descriptors[MSP_DESCRIPTOR_COUNT] = {
 	{MSP_OSD_CONFIG, true, sizeof(msp_osd_config_t)},
 	{MSP_NAME, true, sizeof(msp_name_t)},
@@ -75,7 +75,6 @@ const msp_message_descriptor_t msp_message_descriptors[MSP_DESCRIPTOR_COUNT] = {
 	{MSP_COMP_GPS, true, sizeof(msp_comp_gps_t)},
 	{MSP_ESC_SENSOR_DATA, true, sizeof(msp_esc_sensor_data_dji_t)},
 	{MSP_MOTOR_TELEMETRY, true, sizeof(msp_motor_telemetry_t)},
-	{MSP_FC_VARIANT, true, sizeof(msp_fc_variant_t)},
 };
 
 #define MSP_FRAME_START_SIZE 5
@@ -84,7 +83,7 @@ bool MspV1::Send(const uint8_t message_id, const void *payload)
 {
 	uint32_t payload_size = 0;
 
-	msp_message_descriptor_t *desc = NULL;
+	msp_message_descriptor_t *desc = nullptr;
 
 	for (int i = 0; i < MSP_DESCRIPTOR_COUNT; i++) {
 		if (message_id == msp_message_descriptors[i].message_id) {

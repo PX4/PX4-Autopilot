@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,4 +31,12 @@
 #
 ############################################################################
 
-add_subdirectory(atxxxx)
+add_compile_options(-Wno-stringop-truncation) # full message intentional string truncation
+
+px4_add_library(message_display
+	MessageDisplay.cpp
+	MessageDisplay.hpp
+)
+
+# unit testing
+px4_add_unit_gtest(SRC MessageDisplayTest.cpp LINKLIBS message_display)

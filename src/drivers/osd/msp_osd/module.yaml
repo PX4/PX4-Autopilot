@@ -1,0 +1,85 @@
+module_name: MSP OSD
+serial_config:
+    - command: msp_osd start -d ${SERIAL_DEV}
+      port_config_param:
+        name: MSP_OSD_CONFIG
+        group: OSD
+
+parameters:
+    - group: OSD
+      definitions:
+
+        # OSD Parameters
+        OSD_SYMBOLS:
+            description:
+                short: OSD Symbol Selection
+                long: |
+                  Configure / toggle support display options.
+            type: bitmask
+            bit:
+                0: CRAFT_NAME
+                1: DISARMED
+                2: GPS_LAT
+                3: GPS_LON
+                4: GPS_SATS
+                5: GPS_SPEED
+                6: HOME_DIST
+                7: HOME_DIR
+                8: MAIN_BATT_VOLTAGE
+                9: CURRENT_DRAW
+                10: MAH_DRAWN
+                11: RSSI_VALUE
+                12: ALTITUDE
+                13: NUMERICAL_VARIO
+                # the following are reserved but not currently functional
+                14: (unused) FLYMODE
+                15: (unused) ESC_TMP
+                16: (unused) PITCH_ANGLE
+                17: (unused) ROLL_ANGLE
+                18: (unused) CROSSHAIRS
+                19: (unused) AVG_CELL_VOLTAGE
+                20: (unused) HORIZON_SIDEBARS
+                21: (unused) POWER
+            default: 16383
+
+        # OSD Log Level
+        OSD_LOG_LEVEL:
+            description:
+                short: OSD Warning Level
+                long: |
+                  Minimum security of log level to display on the OSD.
+            type: int32
+            bit:
+                0: EMERGENCY
+                1: ALERT
+                2: CRITICAL
+                3: ERROR
+                4: WARNING
+                5: NOTICE
+                6: INFO
+                7: DEBUG
+                8: NONE
+            default: 3
+
+        # Scroll Speed
+        OSD_SCROLL_RATE:
+            description:
+                short: OSD Scroll Rate (ms)
+                long: |
+                    Scroll rate in milliseconds for OSD messages longer than available character width.
+                    This is lower-bounded by the nominal loop rate of this module.
+            type: int32
+            min: 100
+            max: 1000
+            default: 125
+
+        # Dwell TIme
+        OSD_DWELL_TIME:
+            description:
+                short: OSD Dwell Time (ms)
+                long: |
+                    Amount of time in milliseconds to dwell at the beginning of the display, when scrolling.
+            type: int32
+            min: 100
+            max: 10000
+            default: 500
