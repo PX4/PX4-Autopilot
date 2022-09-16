@@ -338,6 +338,9 @@
 
 #define BOARD_NUM_IO_TIMERS 5
 
+// J1 / TELEM1 / USART7
+#define MODALAI_ESC_DEFAULT_PORT                  "/dev/ttyS6"
+
 __BEGIN_DECLS
 
 /****************************************************************************************************

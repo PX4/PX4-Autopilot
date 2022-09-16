@@ -33,16 +33,16 @@
 
 #include <px4_platform_common/getopt.h>
 
-#include <px4_platform_common/sem.hpp>
-
 #include "modalai_esc.hpp"
 #include "modalai_esc_serial.hpp"
 
-#define MODALAI_ESC_DEFAULT_PORT 	"/dev/ttyS1"
-#define MODALAI_ESC_VOXL_PORT     "/dev/ttyS4"
+#define MODALAI_ESC_DEVICE_PATH		"/dev/uart_esc"
 
-//TODO: make this a param!!!
-#define MODALAI_PUBLISH_ESC_STATUS 1
+// utility for running on VOXL and using driver as a bridge
+#define MODALAI_ESC_VOXL_BRIDGE_PORT	"/dev/ttyS4"
+
+// future use:
+#define MODALAI_PUBLISH_ESC_STATUS	0
 
 const char *_device;
 
@@ -110,6 +110,7 @@ int ModalaiEsc::init()
 
 	_uart_port = new ModalaiEscSerial();
 	_uart_port_bridge = new ModalaiEscSerial();
+	memset(&_esc_chans, 0x00, sizeof(_esc_chans));
 
 	//get_instance()->ScheduleOnInterval(10000); //100hz
 
@@ -124,8 +125,11 @@ int ModalaiEsc::load_params(uart_esc_params_t *params, ch_assign_t *map)
 
 	param_get(param_find("UART_ESC_CONFIG"),  &params->config);
 	param_get(param_find("UART_ESC_MODE"),    &params->mode);
-	param_get(param_find("UART_ESC_DEAD1"),   &params->dead_zone_1);
-	param_get(param_find("UART_ESC_DEAD2"),   &params->dead_zone_2);
+	param_get(param_find("UART_ESC_T_PERC"),  &params->turtle_motor_percent);
+	param_get(param_find("UART_ESC_T_DEAD"),  &params->turtle_motor_deadband);
+	param_get(param_find("UART_ESC_T_EXPO"),  &params->turtle_motor_expo);
+	param_get(param_find("UART_ESC_T_MINF"),  &params->turtle_stick_minf);
+	param_get(param_find("UART_ESC_T_COSP"),  &params->turtle_cosphi);
 	param_get(param_find("UART_ESC_BAUD"),    &params->baud_rate);
 	param_get(param_find("UART_ESC_MOTOR1"),  &params->motor_map[0]);
 	param_get(param_find("UART_ESC_MOTOR2"),  &params->motor_map[1]);
@@ -140,32 +144,33 @@ int ModalaiEsc::load_params(uart_esc_params_t *params, ch_assign_t *map)
 		ret = PX4_ERROR;
 	}
 
-	//                      Example, PX4 Motor 1
-	//                      X = don't activate
-	//        [setpoint.x]
-	//                 [1.0]
-	//             '   |
-	//             '   |
-	//             '   |
-	//             '   |          (ACTIVATE)
-	//             '   |
-	// DEADZONE_1  + - + -  -  - +
-	//              X X|X X X X X'
-	// DEADZONE_2 - X X+X X X X X+
-	//              X X|X X X X X'
-	//       [0.0]-+---+---+-----+---------------- [1.0] [setpoint.y]
-	//            / X X|X X X X X'  (ACTIVATE)
-	//           /  X X|X X X X X'
-	//          /    [0.0] +  -   -    -     -   -
-	//  -(DEADZONE_2)       \ DEADZONE_2
-	//
+	if (params->turtle_motor_percent < 0 || params->turtle_motor_percent > 100) {
+		PX4_ERR("Invalid parameter UART_ESC_T_PERC.  Please verify parameters.");
+		params->turtle_motor_percent = 0;
+		ret = PX4_ERROR;
+	}
 
-	if ((params->dead_zone_1 < MODALAI_ESC_MODE_DEAD_ZONE_MIN) || (params->dead_zone_2 < MODALAI_ESC_MODE_DEAD_ZONE_MIN) ||
-	    (params->dead_zone_1 >= MODALAI_ESC_MODE_DEAD_ZONE_MAX) || (params->dead_zone_2 >= MODALAI_ESC_MODE_DEAD_ZONE_MAX) ||
-	    (params->dead_zone_2 >= params->dead_zone_1)) {
-		PX4_ERR("Invalid parameter UART_ESC_DEAD1 or UART_ESC_DEAD2.  Please verify parameters.");
-		params->dead_zone_1 = MODALAI_ESC_MODE_DEAD_ZONE_1;
-		params->dead_zone_2 = MODALAI_ESC_MODE_DEAD_ZONE_2;
+	if (params->turtle_motor_deadband < 0 || params->turtle_motor_deadband > 100) {
+		PX4_ERR("Invalid parameter UART_ESC_T_DEAD.  Please verify parameters.");
+		params->turtle_motor_deadband = 0;
+		ret = PX4_ERROR;
+	}
+
+	if (params->turtle_motor_expo < 0 || params->turtle_motor_expo > 100) {
+		PX4_ERR("Invalid parameter UART_ESC_T_EXPO.  Please verify parameters.");
+		params->turtle_motor_expo = 0;
+		ret = PX4_ERROR;
+	}
+
+	if (params->turtle_stick_minf < 0.0f || params->turtle_stick_minf > 100.0f) {
+		PX4_ERR("Invalid parameter UART_ESC_T_MINF.  Please verify parameters.");
+		params->turtle_stick_minf = 0.0f;
+		ret = PX4_ERROR;
+	}
+
+	if (params->turtle_cosphi < 0.0f || params->turtle_cosphi > 100.0f) {
+		PX4_ERR("Invalid parameter UART_ESC_T_COSP.  Please verify parameters.");
+		params->turtle_cosphi = 0.0f;
 		ret = PX4_ERROR;
 	}
 
@@ -192,7 +197,7 @@ int ModalaiEsc::task_spawn(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "dv", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			_device = argv[myoptind];
@@ -224,14 +229,14 @@ int ModalaiEsc::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int ModalaiEsc::flushUartRx()
+int ModalaiEsc::flush_uart_rx()
 {
 	while (_uart_port->uart_read(_read_buf, sizeof(_read_buf)) > 0) {}
 
 	return 0;
 }
 
-int ModalaiEsc::readResponse(Command *out_cmd)
+int ModalaiEsc::read_response(Command *out_cmd)
 {
 	px4_usleep(_current_cmd.resp_delay_us);
 
@@ -239,7 +244,7 @@ int ModalaiEsc::readResponse(Command *out_cmd)
 
 	if (res > 0) {
 		//PX4_INFO("read %i bytes",res);
-		if (parseResponse(_read_buf, res, out_cmd->print_feedback) < 0) {
+		if (parse_response(_read_buf, res, out_cmd->print_feedback) < 0) {
 			//PX4_ERR("Error parsing response");
 			return -1;
 		}
@@ -254,7 +259,7 @@ int ModalaiEsc::readResponse(Command *out_cmd)
 	return 0;
 }
 
-int ModalaiEsc::parseResponse(uint8_t *buf, uint8_t len, bool print_feedback)
+int ModalaiEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 {
 	hrt_abstime tnow = hrt_absolute_time();
 
@@ -263,6 +268,7 @@ int ModalaiEsc::parseResponse(uint8_t *buf, uint8_t len, bool print_feedback)
 
 		if (ret > 0) {
 			//PX4_INFO("got packet of length %i",ret);
+			_rx_packet_count++;
 			uint8_t packet_type = qc_esc_packet_get_type(&_fb_packet);
 			uint8_t packet_size = qc_esc_packet_get_size(&_fb_packet);
 
@@ -283,9 +289,8 @@ int ModalaiEsc::parseResponse(uint8_t *buf, uint8_t len, bool print_feedback)
 						uint32_t voltage     = fb.voltage;
 						int32_t  current     = fb.current * 8;
 						int32_t  temperature = fb.temperature / 100;
-						PX4_INFO("[%lld] ID_RAW=%" PRIu32 " ID=%d, RPM=%5" PRIu32 ", PWR=%3" PRIu32 "%%, V=%5" PRIu32 "mV, I=%+5" PRIi32
-							 "mA, T=%+3" PRIi32 "C",
-							 tnow, id, motor_idx + 1, rpm, power, voltage, current, temperature);
+						PX4_INFO("[%lld] ID_RAW=%d ID=%d, RPM=%5d, PWR=%3d%%, V=%5dmV, I=%+5dmA, T=%+3dC", tnow, (int)id, motor_idx + 1,
+							 (int)rpm, (int)power, (int)voltage, (int)current, (int)temperature);
 					}
 
 					_esc_chans[id].rate_meas     = fb.rpm;
@@ -308,16 +313,11 @@ int ModalaiEsc::parseResponse(uint8_t *buf, uint8_t len, bool print_feedback)
 					_esc_status.esc[id].esc_current  = _esc_chans[id].current;
 					_esc_status.esc[id].failures     = 0; //not implemented
 
-					// use PX4 motor index here (already brough down to 0-3 above), so reporting of ESC online maps to PX4 motors
-					_esc_status.esc_online_flags |= (1 << motor_idx);
+					// this is hacky, but we need to set all 4 to online/armed otherwise commander times out on arming
+					_esc_status.esc_online_flags = (1 << _esc_status.esc_count) - 1;
+					// this is hacky, but we need to set all 4 to armed otherwise commander times out on arming
+					_esc_status.esc_armed_flags = (1 << _esc_status.esc_count) - 1;
 
-					// state == 0 is stopped, but in turtle mode idle is OK so consider armed
-					if (_esc_chans[id].state > 0 || _turtle_mode_en) {
-						_esc_status.esc_armed_flags |= (1 << motor_idx);
-
-					} else {
-						_esc_status.esc_armed_flags &= ~(1 << motor_idx);
-					}
 
 					int32_t t = fb.temperature / 100;  //divide by 100 to get deg C and cap for int8
 
@@ -347,7 +347,7 @@ int ModalaiEsc::parseResponse(uint8_t *buf, uint8_t len, bool print_feedback)
 				PX4_INFO("ESC ID: %i", ver.id);
 				PX4_INFO("HW Version: %i", ver.hw_version);
 				PX4_INFO("SW Version: %i", ver.sw_version);
-				PX4_INFO("Unique ID: %" PRIu32, ver.unique_id);
+				PX4_INFO("Unique ID: %i", (int)ver.unique_id);
 
 			} else if (packet_type == ESC_PACKET_TYPE_VERSION_EXT_RESPONSE && packet_size == sizeof(QC_ESC_EXTENDED_VERSION_INFO)) {
 				QC_ESC_EXTENDED_VERSION_INFO ver;
@@ -365,13 +365,16 @@ int ModalaiEsc::parseResponse(uint8_t *buf, uint8_t len, bool print_feedback)
 			}
 
 		} else { //parser error
-			/*
-			switch (ret)
-			{
-				case ESC_ERROR_BAD_CHECKSUM: PX4_INFO("BAD ESC packet checksum"); break;
-				case ESC_ERROR_BAD_LENGTH:   PX4_INFO("BAD ESC packet length");   break;
+			switch (ret) {
+			case ESC_ERROR_BAD_CHECKSUM:
+				_rx_crc_error_count++;
+				//PX4_INFO("BAD ESC packet checksum");
+				break;
+
+			case ESC_ERROR_BAD_LENGTH:
+				//PX4_INFO("BAD ESC packet length");
+				break;
 			}
-			*/
 		}
 	}
 
@@ -423,7 +426,7 @@ int ModalaiEsc::parseResponse(uint8_t *buf, uint8_t len, bool print_feedback)
 	return 0;
 }
 
-int ModalaiEsc::checkForEscTimeout()
+int ModalaiEsc::check_for_esc_timeout()
 {
 	hrt_abstime tnow = hrt_absolute_time();
 
@@ -448,7 +451,7 @@ int ModalaiEsc::checkForEscTimeout()
 
 }
 
-int ModalaiEsc::sendCommandThreadSafe(Command *cmd)
+int ModalaiEsc::send_cmd_thread_safe(Command *cmd)
 {
 	cmd->id = _cmd_id++;
 	_pending_cmd.store(cmd);
@@ -556,7 +559,7 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 			PX4_INFO("Reset ESC: %i", esc_id);
 			cmd.len = qc_esc_create_reset_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = false;
-			return get_instance()->sendCommandThreadSafe(&cmd);
+			return get_instance()->send_cmd_thread_safe(&cmd);
 
 		} else {
 			print_usage("Invalid ESC ID, use 0-3");
@@ -569,7 +572,7 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 			cmd.len = qc_esc_create_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = true;
 			cmd.resp_delay_us = 2000;
-			return get_instance()->sendCommandThreadSafe(&cmd);
+			return get_instance()->send_cmd_thread_safe(&cmd);
 
 		} else {
 			print_usage("Invalid ESC ID, use 0-3");
@@ -578,11 +581,11 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "version-ext")) {
 		if (esc_id < 4) {
-			PX4_INFO("Request version for ESC: %i", esc_id);
+			PX4_INFO("Request extended version for ESC: %i", esc_id);
 			cmd.len = qc_esc_create_extended_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = true;
 			cmd.resp_delay_us = 5000;
-			return get_instance()->sendCommandThreadSafe(&cmd);
+			return get_instance()->send_cmd_thread_safe(&cmd);
 
 		} else {
 			print_usage("Invalid ESC ID, use 0-3");
@@ -594,7 +597,7 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 			PX4_INFO("Request tone for ESC mask: %i", esc_id);
 			cmd.len = qc_esc_create_sound_packet(period, duration, power, esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = false;
-			return get_instance()->sendCommandThreadSafe(&cmd);
+			return get_instance()->send_cmd_thread_safe(&cmd);
 
 		} else {
 			print_usage("Invalid ESC mask, use 1-15");
@@ -648,7 +651,7 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 			for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
 				int motor_idx = map[i].number - 1; // user defined mapping is 1-4, array is 0-3
 
-				if (motor_idx > 0 && motor_idx <= MODALAI_ESC_OUTPUT_CHANNELS) {
+				if (motor_idx >= 0 && motor_idx < MODALAI_ESC_OUTPUT_CHANNELS) {
 					rate_req[i] = outputs[motor_idx] * map[i].direction;
 				}
 
@@ -679,7 +682,7 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 			PX4_INFO("feedback id debug: %i, %i", id_fb_raw, id_fb);
 			PX4_INFO("Sending UART ESC RPM command %i", rate);
 
-			return get_instance()->sendCommandThreadSafe(&cmd);
+			return get_instance()->send_cmd_thread_safe(&cmd);
 
 		} else {
 			print_usage("Invalid ESC mask, use 1-15");
@@ -714,8 +717,9 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 			for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
 				int motor_idx = map[i].number - 1; // user defined mapping is 1-4, array is 0-3
 
-				if (motor_idx > 0 && motor_idx <= MODALAI_ESC_OUTPUT_CHANNELS) {
+				if (motor_idx >= 0 && motor_idx < MODALAI_ESC_OUTPUT_CHANNELS) {
 					rate_req[i] = outputs[motor_idx] * map[i].direction;
+					PX4_INFO("rate_req[%d]=%d", i, rate_req[i]);
 				}
 
 				if (motor_idx == id_fb_raw) {
@@ -746,7 +750,7 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 			PX4_INFO("Sending UART ESC power command %i", rate);
 
 
-			return get_instance()->sendCommandThreadSafe(&cmd);
+			return get_instance()->send_cmd_thread_safe(&cmd);
 
 		} else {
 			print_usage("Invalid ESC mask, use 1-15");
@@ -773,7 +777,7 @@ int ModalaiEsc::update_params()
 	return ret;
 }
 
-void ModalaiEsc::updateLeds(vehicle_control_mode_s mode, led_control_s control)
+void ModalaiEsc::update_leds(vehicle_control_mode_s mode, led_control_s control)
 {
 	int i = 0;
 	uint8_t led_mask = _led_rsc.led_mask;
@@ -878,6 +882,180 @@ void ModalaiEsc::updateLeds(vehicle_control_mode_s mode, led_control_s control)
 	}
 }
 
+void ModalaiEsc::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
+{
+	bool use_pitch = true;
+	bool use_roll  = true;
+	bool use_yaw   = true;
+	bool isolate   = false;
+
+	const float flip_pwr_mult = 1.0f - ((float)_parameters.turtle_motor_expo / 100.0f);
+
+	// Sitck deflection
+	const float stick_def_p_abs = fabsf(_manual_control_setpoint.x);
+	const float stick_def_r_abs  = fabsf(_manual_control_setpoint.y);
+	const float stick_def_y_abs   = fabsf(_manual_control_setpoint.r);
+
+	const float stick_def_p_expo = flip_pwr_mult * stick_def_p_abs + powf(stick_def_p_abs,
+				       3.0) * (1 - flip_pwr_mult);
+	const float stick_def_r_expo  = flip_pwr_mult * stick_def_r_abs + powf(stick_def_r_abs,
+					3.0) * (1 - flip_pwr_mult);
+	const float stick_def_y_expo  = flip_pwr_mult * stick_def_y_abs + powf(stick_def_y_abs,
+					3.0) * (1 - flip_pwr_mult);
+
+	float sign_p = _manual_control_setpoint.x < 0 ? 1 : -1;
+	float sign_r = _manual_control_setpoint.y < 0 ? 1 : -1;
+	float sign_y = _manual_control_setpoint.r < 0 ? 1 : -1;
+
+	float stick_def_len      = sqrtf(powf(stick_def_p_abs, 2.0) + powf(stick_def_r_abs, 2.0));
+	float stick_def_expo_len = sqrtf(powf(stick_def_p_expo, 2.0) + powf(stick_def_r_expo, 2.0));
+
+	// If yaw is the dominant, disable pitch and roll
+	if (stick_def_y_abs > math::max(stick_def_p_abs, stick_def_r_abs)) {
+		stick_def_len = stick_def_y_abs;
+		stick_def_expo_len = stick_def_y_expo;
+		sign_r = 0;
+		sign_p = 0;
+		use_pitch = false;
+		use_roll = false;
+	}
+
+	// If pitch/roll dominant, disable yaw
+	else {
+		sign_y = 0;
+		use_yaw = false;
+	}
+
+	const float cos_phi = (stick_def_len > 0) ? (stick_def_p_abs + stick_def_r_abs) / (sqrtf(
+				      2.0f) * stick_def_len) : 0;
+
+	// TODO: this is hardcoded in betaflight...
+	const float cos_thresh = sqrtf(3.0f) / 2.0f; // cos(PI/6.0f)
+
+	// This cos_phi values is 1.0 when sticks are in the far corners, which means we are trying to select a single motor
+	if (cos_phi > _parameters.turtle_cosphi) {
+		isolate = true;
+		use_pitch = false;
+		use_roll = false;
+	}
+
+	// When cos_phi is less than cos_thresh, the user is in a narrow slot on the pitch or roll axis
+	else if (cos_phi < cos_thresh) {
+		// Enforce either roll or pitch exclusively, if not on diagonal
+		if (stick_def_r_abs > stick_def_p_abs) {
+			sign_p = 0;
+			use_pitch = false;
+
+		} else if (stick_def_r_abs < stick_def_p_abs) {
+			sign_r = 0;
+			use_roll = false;
+		}
+	}
+
+	const float crash_flip_stick_min_expo = flip_pwr_mult *  _parameters.turtle_stick_minf + powf(
+			_parameters.turtle_stick_minf, 3.0) * (1 - flip_pwr_mult);
+	const float flip_stick_range = 1.0f - crash_flip_stick_min_expo;
+	const float flip_power = math::max(0.0f, stick_def_expo_len - crash_flip_stick_min_expo) / flip_stick_range;
+
+	/* At this point, we are switching on what PX4 motor we want to talk to */
+	for (unsigned i = 0; i < 4; i++) {
+		outputs[i] = 0;
+
+		float motor_output_normalised = math::min(1.0f, flip_power);
+		float motor_output = _rpm_turtle_min + motor_output_normalised * _parameters.rpm_max * ((
+					     float)_parameters.turtle_motor_percent / 100.f);
+
+		// Add a little bit to the motorOutputMin so props aren't spinning when sticks are centered
+		float dead_band_rpm = ((float)_parameters.turtle_motor_deadband / 100.0f) * _rpm_fullscale;
+		motor_output = (motor_output < _rpm_turtle_min + dead_band_rpm) ? 0.0f : (motor_output -  dead_band_rpm);
+
+		// using the output map here for clarity as PX4 motors are 1-4
+		switch (_output_map[i].number) {
+		/* PX4 motor 1 - front right */
+		case 1:
+			if (isolate && sign_p < 0 && sign_r < 0) {
+				outputs[i] = motor_output;
+
+			} else if (!use_roll && use_pitch && sign_p < 0) {
+				outputs[i] = motor_output;
+
+			} else if (!use_pitch && use_roll && sign_r < 0) {
+				outputs[i] = motor_output;
+
+			} else if (use_yaw && sign_y > 0) {
+				outputs[i] = motor_output;
+			}
+
+			break;
+
+		/* PX4 motor 2 - rear left */
+		case 2:
+			if (isolate && sign_p > 0 && sign_r > 0) {
+				outputs[i] = motor_output;
+
+			} else if (!use_roll && use_pitch && sign_p > 0) {
+				outputs[i] = motor_output;
+
+			} else if (!use_pitch && use_roll && sign_r > 0) {
+				outputs[i] = motor_output;
+
+			} else if (use_yaw && sign_y > 0) {
+				outputs[i] = motor_output;
+			}
+
+			break;
+
+		/* PX4 motor 3 - front left */
+		case 3:
+			if (isolate && sign_p < 0 && sign_r > 0) {
+				outputs[i] = motor_output;
+
+			} else if (!use_roll && use_pitch && sign_p < 0) {
+				outputs[i] = motor_output;
+
+			} else if (!use_pitch && use_roll && sign_r > 0) {
+				outputs[i] = motor_output;
+
+			} else if (use_yaw && sign_y < 0) {
+				outputs[i] = motor_output;
+			}
+
+			break;
+
+		/* PX4 motor 4 - rear right */
+		case 4:
+			if (isolate && sign_p > 0 && sign_r < 0) {
+				outputs[i] = motor_output;
+
+			} else if (!use_roll && use_pitch && sign_p > 0) {
+				outputs[i] = motor_output;
+
+			} else if (!use_pitch && use_roll && sign_r < 0) {
+				outputs[i] = motor_output;
+
+			} else if (use_yaw && sign_y < 0) {
+				outputs[i] = motor_output;
+			}
+
+			break;
+		}
+	}
+
+	/*
+		static int filter = 0;
+		if(filter++ > 32){
+			printf("map: %.2f %.2f %.2f %.2f - exp: %.2f %.2f %.2f - deflect: %.2f %.2f - sign: %.2f %.2f %.2f - outputs: %.2f %.2f %.2f %.2f\n",
+				(double)_output_map[0].number,(double)_output_map[1].number,(double)_output_map[2].number,(double)_output_map[3].number,
+				(double)stick_def_p_expo, (double)stick_def_r_expo,(double)stick_def_y_expo,
+				(double)stick_def_len, (double)stick_def_expo_len,
+				(double)sign_p, (double)sign_r, (double)sign_y,
+				(double)outputs[0], (double)outputs[1],(double)outputs[2],(double)outputs[3]);
+			filter = 0;
+		}
+	*/
+
+}
+
 /* OutputModuleInterface */
 bool ModalaiEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			       unsigned num_outputs, unsigned num_control_groups_updated)
@@ -888,157 +1066,29 @@ bool ModalaiEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS]
 
 	uint8_t motor_idx;
 
+	// don't use mixed values... recompute now.
+	if (_turtle_mode_en) {
+		mix_turtle_mode(outputs);
+	}
+
 	for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
 		if (!_outputs_on || stop_motors) {
 			_esc_chans[i].rate_req = 0;
 
 		} else {
-			motor_idx = _output_map[i].number;
+			if (!_turtle_mode_en) {
 
-			if (motor_idx > 0 && motor_idx <= MODALAI_ESC_OUTPUT_CHANNELS) {
-				/* user defined mapping is 1-4, array is 0-3 */
-				motor_idx--;
+				motor_idx = _output_map[i].number;
 
-				if (!_turtle_mode_en) {
+				if (motor_idx > 0 && motor_idx <= MODALAI_ESC_OUTPUT_CHANNELS) {
+					/* user defined mapping is 1-4, array is 0-3 */
+					motor_idx--;
 					_esc_chans[i].rate_req = outputs[motor_idx] * _output_map[i].direction;
-
-				} else {
-					/* we may have rolled back into a dead zone by now, clear out */
-					_esc_chans[i].rate_req = 0;
-
-					float setpoint = 0.0f;
-					bool use_setpoint = false;
-
-					/* At this point, we are switching on what PX4 motor we want to talk to */
-					switch (_output_map[i].number) {
-					/*
-					 * An ASCII graphic of this dead zone logic is above in load_params
-					 */
-
-					/* PX4 motor 1 - front right */
-					case 1:
-
-						/* Pitch and roll */
-						if (_manual_control_setpoint.x > _parameters.dead_zone_1) {
-							if (_manual_control_setpoint.y > -(_parameters.dead_zone_2)) {
-								setpoint = _manual_control_setpoint.x;
-								use_setpoint = true;
-								//PX4_ERR("motor1");
-							}
-
-						} else if (_manual_control_setpoint.y > _parameters.dead_zone_1) {
-							if (_manual_control_setpoint.x > -(_parameters.dead_zone_2)) {
-								setpoint = _manual_control_setpoint.y;
-								use_setpoint = true;
-								//PX4_ERR("motor1");
-							}
-						}
-
-						/* Yaw */
-						if (_manual_control_setpoint.r < -(_parameters.dead_zone_1)) {
-							setpoint = fabs(_manual_control_setpoint.r);
-							use_setpoint = true;
-							//PX4_ERR("motor1");
-						}
-
-						break;
-
-					/* PX4 motor 3 - front left */
-					case 3:
-
-						/* Pitch and roll */
-						if (_manual_control_setpoint.x > _parameters.dead_zone_1) {
-							if (_manual_control_setpoint.y < _parameters.dead_zone_2) {
-								setpoint = _manual_control_setpoint.x;
-								use_setpoint = true;
-								//PX4_ERR("motor3");
-							}
-
-						} else if (_manual_control_setpoint.y < -(_parameters.dead_zone_1)) {
-							if (_manual_control_setpoint.x > -(_parameters.dead_zone_2)) {
-								setpoint = fabs(_manual_control_setpoint.y);
-								use_setpoint = true;
-								//PX4_ERR("motor3");
-							}
-						}
-
-						/* Yaw */
-						if (_manual_control_setpoint.r > _parameters.dead_zone_1) {
-							setpoint = _manual_control_setpoint.r;
-							use_setpoint = true;
-							//PX4_ERR("motor3");
-						}
-
-						break;
-
-					/* PX4 motor 2 - rear left */
-					case 2:
-
-						/* Pitch and roll */
-						if (_manual_control_setpoint.x < -(_parameters.dead_zone_1)) {
-							if (_manual_control_setpoint.y < _parameters.dead_zone_2) {
-								setpoint = fabs(_manual_control_setpoint.x);
-								use_setpoint = true;
-								//PX4_ERR("motor2");
-							}
-
-						} else if (_manual_control_setpoint.y < -(_parameters.dead_zone_1)) {
-							if (_manual_control_setpoint.x < _parameters.dead_zone_2) {
-								setpoint = fabs(_manual_control_setpoint.y);
-								use_setpoint = true;
-								//PX4_ERR("motor2");
-							}
-						}
-
-						/* Yaw */
-						if (_manual_control_setpoint.r < -(_parameters.dead_zone_1)) {
-							setpoint = fabs(_manual_control_setpoint.r);
-							use_setpoint = true;
-							//PX4_ERR("motor2");
-						}
-
-						break;
-
-					/* PX4 motor 4- rear right */
-					case 4:
-
-						/* Pitch and roll */
-						if (_manual_control_setpoint.x < -_parameters.dead_zone_1) {
-							if (_manual_control_setpoint.y > -_parameters.dead_zone_2) {
-								setpoint = fabs(_manual_control_setpoint.x);
-								use_setpoint = true;
-								//PX4_ERR("motor4");
-							}
-						}
-
-						if (_manual_control_setpoint.y > _parameters.dead_zone_1) {
-							if (_manual_control_setpoint.x < _parameters.dead_zone_2) {
-								setpoint = _manual_control_setpoint.y;
-								use_setpoint = true;
-								//PX4_ERR("motor4");
-							}
-						}
-
-						/* Yaw */
-						if (_manual_control_setpoint.r > _parameters.dead_zone_1) {
-							setpoint = _manual_control_setpoint.r;
-							use_setpoint = true;
-							//PX4_ERR("motor4");
-						}
-
-						break;
-					}
-
-					// set rate
-					float rate = 0.0f;
-
-					if (use_setpoint) {
-						rate = (float)_parameters.rpm_min + ((float)_rpm_fullscale * setpoint);
-						rate = (-1.0f) * rate * (float)_output_map[i].direction;
-					}
-
-					_esc_chans[i].rate_req = (int16_t)rate;
 				}
+
+			} else {
+				// mapping updated in mixTurtleMode, no remap needed here, but reverse direction
+				_esc_chans[i].rate_req = outputs[i] * _output_map[i].direction * (-1);
 			}
 		}
 	}
@@ -1075,27 +1125,29 @@ bool ModalaiEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS]
 	int res = _uart_port->uart_read(_read_buf, sizeof(_read_buf));
 
 	if (res > 0) {
-		parseResponse(_read_buf, res, false);
+		parse_response(_read_buf, res, false);
 	}
 
 	/* handle loss of comms / disconnect */
-	checkForEscTimeout();
+	// TODO - enable after CRC issues in feedback are addressed
+	//check_for_esc_timeout();
 
 	// publish the actual command that we sent and the feedback received
+	/*
 	if (MODALAI_PUBLISH_ESC_STATUS) {
-		// actuator_outputs_s actuator_outputs{};
-		// actuator_outputs.noutputs = num_outputs;
+		actuator_outputs_s actuator_outputs{};
+		actuator_outputs.noutputs = num_outputs;
 
-		// for (size_t i = 0; i < num_outputs; ++i) {
-		// 	actuator_outputs.output[i] = _esc_chans[i].rate_req;
-		// }
+		for (size_t i = 0; i < num_outputs; ++i) {
+			actuator_outputs.output[i] = _esc_chans[i].rate_req;
+		}
 
-		// actuator_outputs.timestamp = hrt_absolute_time();
+		actuator_outputs.timestamp = hrt_absolute_time();
 
-		// _outputs_debug_pub.publish(actuator_outputs);
-
+		_outputs_debug_pub.publish(actuator_outputs);
 		_esc_status_pub.publish(_esc_status);
 	}
+	*/
 
 	perf_count(_output_update_perf);
 
@@ -1161,19 +1213,19 @@ void ModalaiEsc::Run()
 
 	if (_vehicle_control_mode_sub.updated()) {
 		_vehicle_control_mode_sub.copy(&vehicle_control_mode);
-		updateLeds(vehicle_control_mode, _led_rsc.control);
+		update_leds(vehicle_control_mode, _led_rsc.control);
 	}
 
 	led_control_s led_control{};
 
 	if (_led_update_sub.updated()) {
 		_led_update_sub.copy(&led_control);
-		updateLeds(_led_rsc.mode, led_control);
+		update_leds(_led_rsc.mode, led_control);
 	}
 
 	/* breathing requires continuous updates */
 	if (_led_rsc.breath_en) {
-		updateLeds(_led_rsc.mode, _led_rsc.control);
+		update_leds(_led_rsc.mode, _led_rsc.control);
 	}
 
 	if (_parameters.mode > 0) {
@@ -1195,18 +1247,16 @@ void ModalaiEsc::Run()
 
 				if (setpoint > MODALAI_ESC_MODE_THRESHOLD) {
 					_turtle_mode_en = true;
-					//PX4_ERR("turtle mode enabled\n");
 
 				} else {
 					_turtle_mode_en = false;
-					//PX4_ERR("turtle mode disabled\n");
 				}
 			}
 		}
 
 		if (_parameters.mode == MODALAI_ESC_MODE_UART_BRIDGE) {
 			if (!_uart_port_bridge->is_open()) {
-				if (_uart_port_bridge->uart_open(MODALAI_ESC_VOXL_PORT, 230400) == PX4_OK) {
+				if (_uart_port_bridge->uart_open(MODALAI_ESC_VOXL_BRIDGE_PORT, 230400) == PX4_OK) {
 					PX4_INFO("Opened UART ESC Bridge device");
 
 				} else {
@@ -1272,7 +1322,7 @@ void ModalaiEsc::Run()
 	if (!_outputs_on) {
 		if (_current_cmd.valid()) {
 			//PX4_INFO("sending %d commands with delay %dus",_current_cmd.repeats,_current_cmd.repeat_delay_us);
-			flushUartRx();
+			flush_uart_rx();
 
 			do {
 				//PX4_INFO("CMDs left %d",_current_cmd.repeats);
@@ -1282,7 +1332,7 @@ void ModalaiEsc::Run()
 					}
 
 					if (_current_cmd.response) {
-						readResponse(&_current_cmd);
+						read_response(&_current_cmd);
 					}
 
 				} else {
@@ -1299,6 +1349,9 @@ void ModalaiEsc::Run()
 				px4_usleep(_current_cmd.repeat_delay_us);
 			} while (_current_cmd.repeats-- > 0);
 
+			PX4_INFO("RX packet count: %d", (int)_rx_packet_count);
+			PX4_INFO("CRC error count: %d", (int)_rx_crc_error_count);
+
 		} else {
 			Command *new_cmd = _pending_cmd.load();
 
@@ -1314,6 +1367,7 @@ void ModalaiEsc::Run()
 
 	perf_end(_cycle_perf);
 }
+
 
 int ModalaiEsc::print_usage(const char *reason)
 {
@@ -1382,14 +1436,14 @@ int ModalaiEsc::print_status()
 
 	PX4_INFO("");
 
-	PX4_INFO("Params: UART_ESC_CONFIG: % " PRIi32, _parameters.config);
-	PX4_INFO("Params: UART_ESC_BAUD: % " PRIi32, _parameters.baud_rate);
-	PX4_INFO("Params: UART_ESC_MOTOR1: % " PRIi32, _parameters.motor_map[0]);
-	PX4_INFO("Params: UART_ESC_MOTOR2: % " PRIi32, _parameters.motor_map[1]);
-	PX4_INFO("Params: UART_ESC_MOTOR3: % " PRIi32, _parameters.motor_map[2]);
-	PX4_INFO("Params: UART_ESC_MOTOR4: % " PRIi32, _parameters.motor_map[3]);
-	PX4_INFO("Params: UART_ESC_RPM_MIN: % " PRIi32, _parameters.rpm_min);
-	PX4_INFO("Params: UART_ESC_RPM_MAX: % " PRIi32, _parameters.rpm_max);
+	PX4_INFO("Params: UART_ESC_CONFIG: %li", _parameters.config);
+	PX4_INFO("Params: UART_ESC_BAUD: %li", _parameters.baud_rate);
+	PX4_INFO("Params: UART_ESC_MOTOR1: %li", _parameters.motor_map[0]);
+	PX4_INFO("Params: UART_ESC_MOTOR2: %li", _parameters.motor_map[1]);
+	PX4_INFO("Params: UART_ESC_MOTOR3: %li", _parameters.motor_map[2]);
+	PX4_INFO("Params: UART_ESC_MOTOR4: %li", _parameters.motor_map[3]);
+	PX4_INFO("Params: UART_ESC_RPM_MIN: %li", _parameters.rpm_min);
+	PX4_INFO("Params: UART_ESC_RPM_MAX: %li", _parameters.rpm_max);
 
 	PX4_INFO("");
 
@@ -1411,7 +1465,9 @@ int ModalaiEsc::print_status()
 	return 0;
 }
 
-extern "C" __EXPORT int modalai_esc_main(int argc, char *argv[])
+extern "C" __EXPORT int modalai_esc_main(int argc, char *argv[]);
+
+int modalai_esc_main(int argc, char *argv[])
 {
 	return ModalaiEsc::main(argc, argv);
 }
