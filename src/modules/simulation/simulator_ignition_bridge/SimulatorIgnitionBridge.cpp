@@ -139,7 +139,7 @@ int SimulatorIgnitionBridge::init()
 		return PX4_ERROR;
 	}
 
-	// IMU: /world/$WORLD/model/$MODEL//link/base_link/sensor/imu_sensor/imu
+	// IMU: /world/$WORLD/model/$MODEL/link/base_link/sensor/imu_sensor/imu
 	std::string imu_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/base_link/sensor/imu_sensor/imu";
 
 	if (!_node.Subscribe(imu_topic, &SimulatorIgnitionBridge::imuCallback, this)) {
@@ -147,12 +147,22 @@ int SimulatorIgnitionBridge::init()
 		return PX4_ERROR;
 	}
 
+	// ESC feedback: /model/X3/command/motor_speed
+	std::string motor_speed_topic = "/model/" + _model_name + "/command/motor_speed";
+
+	if (!_node.Subscribe(motor_speed_topic, &SimulatorIgnitionBridge::motorSpeedCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", motor_speed_topic.c_str());
+		return PX4_ERROR;
+	}
+
+	// list all subscriptions
 	for (auto &sub_topic : _node.SubscribedTopics()) {
 		PX4_INFO("subscribed: %s", sub_topic.c_str());
 	}
 
-	// output eg /X3/command/motor_speed
-	std::string actuator_topic = "model/" + _model_name + "/command/motor_speed";
+
+	// output eg /model/X3/command/motor_speed
+	std::string actuator_topic = "/model/" + _model_name + "/command/motor_speed";
 	_actuators_pub = _node.Advertise<ignition::msgs::Actuators>(actuator_topic);
 
 	if (!_actuators_pub.Valid()) {
@@ -465,18 +475,60 @@ void SimulatorIgnitionBridge::poseInfoCallback(const ignition::msgs::Pose_V &pos
 	pthread_mutex_unlock(&_mutex);
 }
 
+void SimulatorIgnitionBridge::motorSpeedCallback(const ignition::msgs::Actuators &actuators)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_mutex);
+
+	esc_status_s esc_status{};
+	esc_status.esc_count = actuators.velocity_size();
+
+	for (int i = 0; i < actuators.velocity_size(); i++) {
+		esc_status.esc[i].timestamp = hrt_absolute_time();
+		esc_status.esc[i].esc_rpm = actuators.velocity(i);
+		esc_status.esc_online_flags |= 1 << i;
+
+		if (actuators.velocity(i) > 0) {
+			esc_status.esc_armed_flags |= 1 << i;
+		}
+	}
+
+	if (esc_status.esc_count > 0) {
+		esc_status.timestamp = hrt_absolute_time();
+		_esc_status_pub.publish(esc_status);
+	}
+
+	pthread_mutex_unlock(&_mutex);
+}
+
 bool SimulatorIgnitionBridge::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
-	ignition::msgs::Actuators rotor_velocity_message;
-	rotor_velocity_message.mutable_velocity()->Resize(num_outputs, 0);
+	unsigned active_output_count = 0;
 
 	for (unsigned i = 0; i < num_outputs; i++) {
-		rotor_velocity_message.set_velocity(i, outputs[i]);
+		if (_mixing_output.isFunctionSet(i)) {
+			active_output_count++;
+
+		} else {
+			break;
+		}
 	}
 
-	if (_actuators_pub.Valid()) {
-		return _actuators_pub.Publish(rotor_velocity_message);
+	if (active_output_count > 0) {
+		ignition::msgs::Actuators rotor_velocity_message;
+		rotor_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
+
+		for (unsigned i = 0; i < active_output_count; i++) {
+			rotor_velocity_message.set_velocity(i, outputs[i]);
+		}
+
+		if (_actuators_pub.Valid()) {
+			return _actuators_pub.Publish(rotor_velocity_message);
+		}
 	}
 
 	return false;
