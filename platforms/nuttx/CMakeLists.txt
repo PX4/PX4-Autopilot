@@ -136,6 +136,12 @@ endif()
 if(CONFIG_NET)
 	list(APPEND nuttx_libs nuttx_net)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_net)
+	target_link_libraries(nuttx_drivers INTERFACE nuttx_net)
+endif()
+
+if(CONFIG_OPENAMP)
+	list(APPEND nuttx_libs nuttx_openamp)
+	target_link_libraries(nuttx_drivers INTERFACE nuttx_openamp)
 endif()
 
 file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_DIR})
@@ -263,10 +269,10 @@ else()
 
 	target_link_libraries(nuttx_c INTERFACE nuttx_sched)
 	target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
-	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs nuttx_mm)
+	target_link_libraries(nuttx_drivers INTERFACE nuttx_c)
+
 	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_c)
-
 	target_link_libraries(px4 PRIVATE
 
 		-nostartfiles
