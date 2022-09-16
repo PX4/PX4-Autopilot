@@ -353,30 +353,30 @@ private:
 	uORB::PublicationMulti<vehicle_optical_flow_vel_s> _estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
 	uORB::PublicationMulti<yaw_estimator_status_s>       _yaw_est_pub{ORB_ID(yaw_estimator_status)};
 
-	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_airspeed_pub{ORB_ID(estimator_aid_src_airspeed)};
-	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_baro_hgt_pub{ORB_ID(estimator_aid_src_baro_hgt)};
-	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_rng_hgt_pub{ORB_ID(estimator_aid_src_rng_hgt)};
-	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_sideslip_pub{ORB_ID(estimator_aid_src_sideslip)};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_airspeed_pub{ORB_ID(estimator_aid_src_airspeed)};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_baro_hgt_pub{ORB_ID(estimator_aid_src_baro_hgt)};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_rng_hgt_pub{ORB_ID(estimator_aid_src_rng_hgt)};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_sideslip_pub{ORB_ID(estimator_aid_src_sideslip)};
 
-	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_fake_hgt_pub{ORB_ID(estimator_aid_src_fake_hgt)};
-	uORB::PublicationMulti<estimator_aid_source_2d_s> _estimator_aid_src_fake_pos_pub{ORB_ID(estimator_aid_src_fake_pos)};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_fake_hgt_pub{ORB_ID(estimator_aid_src_fake_hgt)};
+	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_fake_pos_pub{ORB_ID(estimator_aid_src_fake_pos)};
 
-	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_ev_hgt_pub{ORB_ID(estimator_aid_src_ev_hgt)};
-	uORB::PublicationMulti<estimator_aid_source_2d_s> _estimator_aid_src_ev_pos_pub{ORB_ID(estimator_aid_src_ev_pos)};
-	uORB::PublicationMulti<estimator_aid_source_3d_s> _estimator_aid_src_ev_vel_pub{ORB_ID(estimator_aid_src_ev_vel)};
-	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_ev_yaw_pub{ORB_ID(estimator_aid_src_ev_yaw)};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_ev_hgt_pub{ORB_ID(estimator_aid_src_ev_hgt)};
+	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_ev_pos_pub{ORB_ID(estimator_aid_src_ev_pos)};
+	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_ev_vel_pub{ORB_ID(estimator_aid_src_ev_vel)};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_ev_yaw_pub{ORB_ID(estimator_aid_src_ev_yaw)};
 
-	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_gnss_hgt_pub{ORB_ID(estimator_aid_src_gnss_hgt)};
-	uORB::PublicationMulti<estimator_aid_source_2d_s> _estimator_aid_src_gnss_pos_pub{ORB_ID(estimator_aid_src_gnss_pos)};
-	uORB::PublicationMulti<estimator_aid_source_3d_s> _estimator_aid_src_gnss_vel_pub{ORB_ID(estimator_aid_src_gnss_vel)};
-	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_gnss_yaw_pub{ORB_ID(estimator_aid_src_gnss_yaw)};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_hgt_pub{ORB_ID(estimator_aid_src_gnss_hgt)};
+	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_gnss_pos_pub{ORB_ID(estimator_aid_src_gnss_pos)};
+	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_gnss_vel_pub{ORB_ID(estimator_aid_src_gnss_vel)};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_pub{ORB_ID(estimator_aid_src_gnss_yaw)};
 
-	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_mag_heading_pub{ORB_ID(estimator_aid_src_mag_heading)};
-	uORB::PublicationMulti<estimator_aid_source_3d_s> _estimator_aid_src_mag_pub{ORB_ID(estimator_aid_src_mag)};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_mag_heading_pub{ORB_ID(estimator_aid_src_mag_heading)};
+	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_mag_pub{ORB_ID(estimator_aid_src_mag)};
 
-	uORB::PublicationMulti<estimator_aid_source_2d_s> _estimator_aid_src_aux_vel_pub{ORB_ID(estimator_aid_src_aux_vel)};
+	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_aux_vel_pub{ORB_ID(estimator_aid_src_aux_vel)};
 
-	uORB::PublicationMulti<estimator_aid_source_2d_s> _estimator_aid_src_optical_flow_pub{ORB_ID(estimator_aid_src_optical_flow)};
+	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_optical_flow_pub{ORB_ID(estimator_aid_src_optical_flow)};
 
 	// publications with topic dependent on multi-mode
 	uORB::PublicationMulti<vehicle_attitude_s>           _attitude_pub;

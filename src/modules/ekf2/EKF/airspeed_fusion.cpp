@@ -49,7 +49,7 @@
 
 #include <mathlib/mathlib.h>
 
-void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source_1d_s &airspeed) const
+void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &airspeed) const
 {
 	// reset flags
 	resetEstimatorAidStatus(airspeed);
@@ -75,7 +75,7 @@ void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_so
 	setEstimatorAidStatusTestRatio(airspeed, innov_gate);
 }
 
-void Ekf::fuseAirspeed(estimator_aid_source_1d_s &airspeed)
+void Ekf::fuseAirspeed(estimator_aid_source1d_s &airspeed)
 {
 	if (airspeed.innovation_rejected) {
 		return;

@@ -139,7 +139,7 @@ static inline hrt_abstime ts_to_abstime(const struct timespec *ts)
 	hrt_abstime	result;
 
 	result = (hrt_abstime)(ts->tv_sec) * 1000000;
-	result += ts->tv_nsec / 1000;
+	result += (hrt_abstime)(ts->tv_nsec / 1000);
 
 	return result;
 }
@@ -149,9 +149,9 @@ static inline hrt_abstime ts_to_abstime(const struct timespec *ts)
  */
 static inline void abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
 {
-	ts->tv_sec = abstime / 1000000;
-	abstime -= ts->tv_sec * 1000000;
-	ts->tv_nsec = abstime * 1000;
+	ts->tv_sec = (time_t)abstime / 1000000;
+	abstime -= (hrt_abstime)(ts->tv_sec * 1000000);
+	ts->tv_nsec = (typeof(ts->tv_nsec))(abstime * 1000);
 }
 
 /**
@@ -249,8 +249,8 @@ __EXPORT extern void px4_lockstep_wait_for_components(void);
 
 #else
 static inline int px4_lockstep_register_component(void) { return 0; }
-static inline void px4_lockstep_unregister_component(int component) { }
-static inline void px4_lockstep_progress(int component) { }
+static inline void px4_lockstep_unregister_component(int component) { (void)component; }
+static inline void px4_lockstep_progress(int component) {(void)component; }
 static inline void px4_lockstep_wait_for_components(void) { }
 #endif /* defined(ENABLE_LOCKSTEP_SCHEDULER) */
 

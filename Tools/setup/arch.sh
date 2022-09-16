@@ -9,8 +9,6 @@
 ## - jMAVSim simulator (omit with arg: --no-sim-tools)
 ## - Gazebo simulator (not by default, use --gazebo)
 ##
-## Not Installs:
-## - FastRTPS and FastCDR
 
 INSTALL_NUTTX="true"
 INSTALL_SIM="true"
@@ -122,7 +120,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	echo
 	echo "Installing PX4 simulation dependencies"
 
-	# java (jmavsim or fastrtps)
+	# java (jmavsim)
 	sudo pacman -S --noconfirm --needed \
 		ant \
 		jdk-openjdk \

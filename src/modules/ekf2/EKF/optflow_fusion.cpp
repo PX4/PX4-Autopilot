@@ -47,7 +47,7 @@
 #include <float.h>
 #include "utils.hpp"
 
-void Ekf::updateOptFlow(estimator_aid_source_2d_s &aid_src)
+void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src)
 {
 	resetEstimatorAidStatus(aid_src);
 	aid_src.timestamp_sample = _flow_sample_delayed.time_us;

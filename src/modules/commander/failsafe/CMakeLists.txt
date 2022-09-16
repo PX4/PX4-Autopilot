@@ -32,7 +32,7 @@
 ############################################################################
 
 # Extract information from failsafe msg file
-set(failsafe_flags_msg_file ${PX4_SOURCE_DIR}/msg/failsafe_flags.msg)
+set(failsafe_flags_msg_file ${PX4_SOURCE_DIR}/msg/FailsafeFlags.msg)
 set(generated_uorb_struct_field_mapping_header ${PX4_BINARY_DIR}/generated_uorb_struct_field_mapping.h)
 set(html_template_file ${CMAKE_CURRENT_SOURCE_DIR}/emscripten_template.html)
 set(html_output_file ${PX4_BINARY_DIR}/failsafe_html_template.html)

@@ -100,6 +100,7 @@ px4_add_module(
 		sensor_calibration
 		geo
 		mavlink_c
+		timesync
 		tunes
 		version
 	UNITY_BUILD
