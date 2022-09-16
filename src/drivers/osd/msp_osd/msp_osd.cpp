@@ -508,7 +508,7 @@ $ msp_osd
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("module", "msp_osd");
+	PRINT_MODULE_USAGE_NAME("msp_osd", "driver");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
