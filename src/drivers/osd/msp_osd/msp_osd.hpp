@@ -41,29 +41,67 @@
 #include <uORB/SubscriptionInterval.hpp>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/estimator_status.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/input_rc.h>
+#include <uORB/topics/log_message.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/power_monitor.h>
-#include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/vehicle_air_data.h>
-#include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/estimator_status.h>
-#include <uORB/topics/input_rc.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include "MspV1.hpp"
+#include "MessageDisplay/MessageDisplay.hpp"
+#include "uorb_to_msp.hpp"
 
 using namespace time_literals;
+
+// location to "hide" unused display elements
+#define LOCATION_HIDDEN 234;
+
+struct PerformanceData {
+	bool initialization_problems{false};
+	long unsigned int successful_sends{0};
+	long unsigned int unsuccessful_sends{0};
+};
+
+// mapping from symbol name to bit in the parameter bitmask
+//  @TODO investigate params; it seems like this should be available directly?
+enum SymbolIndex : uint8_t {
+	CRAFT_NAME		= 0,
+	DISARMED		= 1,
+	GPS_LAT			= 2,
+	GPS_LON			= 3,
+	GPS_SATS		= 4,
+	GPS_SPEED		= 5,
+	HOME_DIST		= 6,
+	HOME_DIR		= 7,
+	MAIN_BATT_VOLTAGE	= 8,
+	CURRENT_DRAW		= 9,
+	MAH_DRAWN		= 10,
+	RSSI_VALUE		= 11,
+	ALTITUDE		= 12,
+	NUMERICAL_VARIO		= 13,
+	FLYMODE			= 14,
+	ESC_TMP			= 15,
+	PITCH_ANGLE		= 16,
+	ROLL_ANGLE		= 17,
+	CROSSHAIRS		= 18,
+	AVG_CELL_VOLTAGE	= 19,
+	HORIZON_SIDEBARS	= 20,
+	POWER			= 21
+};
 
 class MspOsd : public ModuleBase<MspOsd>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	MspOsd();
+	MspOsd(const char *device);
 
 	~MspOsd() override;
 
@@ -84,44 +122,55 @@ public:
 private:
 	void Run() override;
 
-	MspV1 _msp;
-	int _msp_fd{-1};
+	// update a single display element in the display
+	void Send(const unsigned int message_type, const void *payload);
 
-	bool _is_initialized{false};
-
-	//uORB::Subscription power_monitor_sub(ORB_ID(power_monitor));
-	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
-	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
-	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
-	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
-	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
-	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
-
-	struct battery_status_s _battery_status_struct = {0};
-	struct vehicle_status_s _vehicle_status_struct;
-	struct sensor_gps_s _vehicle_gps_position_struct = {0};
-	struct airspeed_validated_s _airspeed_validated_struct = {0};
-	struct vehicle_air_data_s _vehicle_air_data_struct = {0};
-	struct home_position_s _home_position_struct = {0};
-	struct vehicle_global_position_s _vehicle_global_position_struct = {0};
-	struct vehicle_attitude_s _vehicle_attitude_struct = {0};
-	struct estimator_status_s _estimator_status_struct = {0};
-	struct vehicle_local_position_s _vehicle_local_position_struct = {0};
-	struct input_rc_s _input_rc_struct = {0};
-
-
+	// send full configuration to MSP (triggers the actual update)
 	void SendConfig();
 	void SendTelemetry();
 
-	uint8_t _x{0};
-	bool _heartbeat{false};
+	// perform actions required for local updates
+	void parameters_update();
+
+	// convenience function to check if a given symbol is enabled
+	bool enabled(const SymbolIndex &symbol);
+
+	MspV1 _msp{0};
+	int _msp_fd{-1};
+
+	msp_osd::MessageDisplay _display{};
+
+	bool _is_initialized{false};
+
+	// subscriptions to desired vehicle display information
+	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
+	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
+	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
+	uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
+	uORB::Subscription _log_message_sub{ORB_ID(log_message)};
+	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
+	// local heartbeat
+	bool _heartbeat{false};
+
+	// parameters
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::OSD_SYMBOLS>) _param_osd_symbols,
+		(ParamInt<px4::params::OSD_SCROLL_RATE>) _param_osd_scroll_rate,
+		(ParamInt<px4::params::OSD_DWELL_TIME>) _param_osd_dwell_time,
+		(ParamInt<px4::params::OSD_LOG_LEVEL>) _param_osd_log_level
+	)
+
+	// metadata
+	char _device[64] {};
+	PerformanceData _performance_data{};
 };
 
