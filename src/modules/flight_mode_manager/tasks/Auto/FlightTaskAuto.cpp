@@ -480,12 +480,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 			_yawspeed_setpoint = _weathervane.getWeathervaneYawrate();
 		}
 
-
-
-	} else if (_type == WaypointType::follow_target && _sub_triplet_setpoint.get().current.yawspeed_valid) {
-		_yawspeed_setpoint = _sub_triplet_setpoint.get().current.yawspeed;
-		_yaw_setpoint = NAN;
-
 	} else {
 		if (!_is_yaw_good_for_control) {
 			_yaw_lock = false;
