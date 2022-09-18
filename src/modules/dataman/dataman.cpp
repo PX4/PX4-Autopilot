@@ -1216,8 +1216,7 @@ dataman_main(int argc, char *argv[])
 				}
 
 				backend = BACKEND_FILE;
-				k_data_manager_device_path = strdup(dmoptarg);
-				PX4_INFO("dataman file set to: %s", k_data_manager_device_path);
+				PX4_INFO("dataman file set to: %s", dmoptarg);
 				break;
 
 			case 'r':
