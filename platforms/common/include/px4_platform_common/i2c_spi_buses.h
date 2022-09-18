@@ -57,7 +57,7 @@
 #endif // CONFIG_SPI
 
 enum class I2CSPIBusOption : uint8_t {
-	All = 0, ///< select all runnning instances
+	All = 0, ///< select all running instances
 #if defined(CONFIG_I2C)
 	I2CInternal,
 	I2CExternal,

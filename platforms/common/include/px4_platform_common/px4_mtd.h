@@ -56,7 +56,7 @@ typedef struct {
 /*
  * Get device an pinter to the array of mtd_instance_s of the system
  *  count - receives the number of instances pointed to by the pointer
- *  retunred.
+ *  returned.
  *
  *  returns: - A pointer to the mtd_instance_s of the system
  *            This can be  Null if there are no mtd instances.

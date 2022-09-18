@@ -265,7 +265,7 @@ bool MavlinkFtpTest::_list_test()
 			// The return order of directories from the List command is not repeatable. So we can't do a direct comparison
 			// to a hardcoded return result string.
 
-			// Convert null terminators to seperator char so we can use strok to parse returned data
+			// Convert null terminators to separator char so we can use strok to parse returned data
 			char list_entry[256];
 
 			for (uint8_t j = 0; j < reply->size - 1; j++) {

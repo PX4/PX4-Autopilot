@@ -44,7 +44,7 @@ __BEGIN_DECLS
 /**
  * Get the stdout of the current thread.
  *
- * @param isatty_: if not NULL, *isatty_ will be set to wether the stream points to a terminal (true) or not (false).
+ * @param isatty_: if not NULL, *isatty_ will be set to whether the stream points to a terminal (true) or not (false).
  * @return The FILE* which represents the standard output of the current thread.
  */
 __EXPORT FILE *get_stdout(bool *isatty_);

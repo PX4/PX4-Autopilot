@@ -56,7 +56,7 @@ typedef bool (*shutdown_hook_t)(void);
  * Register a method that should be called when powering off (and also on reboot).
  * @param hook callback method. It must not block, but return immediately.
  *        When the system is requested to shutdown, the registered hooks will be
- *        called regularily until either all of them return true, or a timeout
+ *        called regularly until either all of them return true, or a timeout
  *        is reached.
  * @return 0 on success, <0 on error
  */

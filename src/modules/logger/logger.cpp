@@ -2100,7 +2100,7 @@ void Logger::write_version(LogType type)
 	/* write the UUID if enabled */
 	if (_param_sdlog_uuid.get() == 1) {
 		char px4_uuid_string[PX4_GUID_FORMAT_SIZE];
-		board_get_px4_guid_formated(px4_uuid_string, sizeof(px4_uuid_string));
+		board_get_px4_guid_formatted(px4_uuid_string, sizeof(px4_uuid_string));
 		write_info(type, "sys_uuid", px4_uuid_string);
 	}
 

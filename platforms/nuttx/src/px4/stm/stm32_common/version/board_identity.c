@@ -80,20 +80,20 @@ __EXPORT void board_get_uuid32(uuid_uint32_t uuid_words)
 	}
 }
 
-int board_get_uuid32_formated(char *format_buffer, int size,
+int board_get_uuid32_formatted(char *format_buffer, int size,
 			      const char *format,
-			      const char *seperator)
+			      const char *separator)
 {
 	uuid_uint32_t uuid;
 	board_get_uuid32(uuid);
 	int offset = 0;
-	int sep_size = seperator ? strlen(seperator) : 0;
+	int sep_size = separator ? strlen(separator) : 0;
 
 	for (unsigned i = 0; (offset < size - 1) && (i < PX4_CPU_UUID_WORD32_LENGTH); i++) {
 		offset += snprintf(&format_buffer[offset], size - offset, format, uuid[i]);
 
 		if (sep_size && (offset < size - sep_size - 1) && (i < PX4_CPU_UUID_WORD32_LENGTH - 1)) {
-			strncat(&format_buffer[offset], seperator, size - offset);
+			strncat(&format_buffer[offset], separator, size - offset);
 			offset += sep_size;
 		}
 	}
@@ -115,7 +115,7 @@ int board_get_mfguid(mfguid_t mfgid)
 	return PX4_CPU_MFGUID_BYTE_LENGTH;
 }
 
-int board_get_mfguid_formated(char *format_buffer, int size)
+int board_get_mfguid_formatted(char *format_buffer, int size)
 {
 	mfguid_t mfguid;
 
@@ -150,7 +150,7 @@ int board_get_px4_guid(px4_guid_t px4_guid)
 	return PX4_GUID_BYTE_LENGTH;
 }
 
-int board_get_px4_guid_formated(char *format_buffer, int size)
+int board_get_px4_guid_formatted(char *format_buffer, int size)
 {
 	px4_guid_t px4_guid;
 	board_get_px4_guid(px4_guid);

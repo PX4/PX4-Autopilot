@@ -94,7 +94,7 @@
  * We want to normalize the V5 Sensing to V = (adc_dn) * ADC_V5_V_FULL_SCALE/(2 ^ ADC_BITS) * ADC_V5_SCALE)
  */
 
-/* Provide overrideable defaults ADC Full scale ranges and Divider ratios
+/* Provide overridable defaults ADC Full scale ranges and Divider ratios
  * If the board has a different ratio or full scale range for any voltage sensing
  * the board_congig.h file should define the constants that differ from these
  * defaults
@@ -170,7 +170,7 @@
 #  define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL, ADC_BATTERY3_CURRENT_CHANNEL, ADC_BATTERY4_CURRENT_CHANNEL}
 #  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID, BOARD_ADC_BRICK3_VALID, BOARD_ADC_BRICK4_VALID}
 #else
-#  error Unsuported BOARD_NUMBER_BRICKS number.
+#  error Unsupported BOARD_NUMBER_BRICKS number.
 #endif
 
 /* Choose the source for ADC_SCALED_V5_SENSE */
@@ -200,7 +200,7 @@
 #  define ADC_SCALED_V3V3_SENSORS_COUNT 2
 #endif
 
-/* Define an overridable default of 0.0f V for batery v div
+/* Define an overridable default of 0.0f V for battery v div
  * This is done to ensure the missing default trips a low
  * voltage lockdown
  */
@@ -416,10 +416,10 @@ typedef enum PX4_SOC_ARCH_ID_t {
 #define PX4_GUID_BYTE_LENGTH              18
 #define PX4_GUID_FORMAT_SIZE              ((2*PX4_GUID_BYTE_LENGTH)+1)
 
-/* DEPRICATED as of 1.7.0 A type suitable for defining the 8 bit format of the CPU UUID */
+/* DEPRECATED as of 1.7.0 A type suitable for defining the 8 bit format of the CPU UUID */
 typedef uint8_t uuid_byte_t[PX4_CPU_UUID_BYTE_LENGTH];
 
-/* DEPRICATED as of 1.7.0  A type suitable for defining the 32bit format of the CPU UUID */
+/* DEPRECATED as of 1.7.0  A type suitable for defining the 32bit format of the CPU UUID */
 typedef uint32_t uuid_uint32_t[PX4_CPU_UUID_WORD32_LENGTH];
 
 /* A type suitable for defining the 8 bit format of the MFG UID
@@ -874,7 +874,7 @@ __EXPORT int board_get_hw_revision(void);
 #endif
 
 /************************************************************************************
- * Name: board_get_uuid DEPRICATED use board_get_px4_guid
+ * Name: board_get_uuid DEPRECATED use board_get_px4_guid
  *
  * Description:
  *   All boards either provide a way to read a uuid of PX4_CPU_UUID_BYTE_LENGTH
@@ -890,10 +890,10 @@ __EXPORT int board_get_hw_revision(void);
  *
  ************************************************************************************/
 
-__EXPORT void board_get_uuid(uuid_byte_t uuid_bytes); // DEPRICATED use board_get_px4_guid
+__EXPORT void board_get_uuid(uuid_byte_t uuid_bytes); // DEPRECATED use board_get_px4_guid
 
 /************************************************************************************
- * Name: board_get_uuid32 DEPRICATED use board_get_px4_guid
+ * Name: board_get_uuid32 DEPRECATED use board_get_px4_guid
  *
  * Description:
  *   All boards either provide a way to read a uuid of PX4_CPU_UUID_WORD32_LENGTH
@@ -912,10 +912,10 @@ __EXPORT void board_get_uuid(uuid_byte_t uuid_bytes); // DEPRICATED use board_ge
  *   The uuid_words array is populated with the CPU uuid.
  *
  ************************************************************************************/
-__EXPORT void board_get_uuid32(uuid_uint32_t uuid_words); // DEPRICATED use board_get_px4_guid
+__EXPORT void board_get_uuid32(uuid_uint32_t uuid_words); // DEPRECATED use board_get_px4_guid
 
 /************************************************************************************
- * Name: board_get_uuid32_formated DEPRICATED use board_get_px4_guid_formated
+ * Name: board_get_uuid32_formatted DEPRECATED use board_get_px4_guid_formatted
  *
  * Description:
  *   All boards either provide a way to retrieve a uuid and format it
@@ -945,9 +945,9 @@ __EXPORT void board_get_uuid32(uuid_uint32_t uuid_words); // DEPRICATED use boar
  *   Zero (OK) is returned on success;
  *
  ************************************************************************************/
-__EXPORT int board_get_uuid32_formated(char *format_buffer, int size,
+__EXPORT int board_get_uuid32_formatted(char *format_buffer, int size,
 				       const char *format,
-				       const char *seperator); // DEPRICATED use board_get_px4_guid_formated
+				       const char *separator); // DEPRECATED use board_get_px4_guid_formatted
 
 /************************************************************************************
  * Name: board_get_mfguid
@@ -970,7 +970,7 @@ __EXPORT int board_get_uuid32_formated(char *format_buffer, int size,
 int board_get_mfguid(mfguid_t mfgid);
 
 /************************************************************************************
- * Name: board_get_mfguid_formated DEPRICATED use board_get_px4_guid_formated
+ * Name: board_get_mfguid_formatted DEPRECATED use board_get_px4_guid_formatted
  *
  * Description:
  *   All boards either provide a way to retrieve a formatted string of the
@@ -979,7 +979,7 @@ int board_get_mfguid(mfguid_t mfgid);
  * Input Parameters:
  *   format_buffer - A pointer to a bufferer of at least PX4_CPU_MFGUID_FORMAT_SIZE
  *                   that will contain a 0 terminated string formatted as 0 prefixed
- *                   lowercase hex. 2 charaters per digit of the mfguid_t.
+ *                   lowercase hex. 2 characters per digit of the mfguid_t.
  *
  * Returned Value:
  *   format_buffer is populated with a 0 terminated string of hex digits. The
@@ -988,7 +988,7 @@ int board_get_mfguid(mfguid_t mfgid);
  *
  ************************************************************************************/
 
-int board_get_mfguid_formated(char *format_buffer, int size); // DEPRICATED use board_get_px4_guid_formated
+int board_get_mfguid_formatted(char *format_buffer, int size); // DEPRECATED use board_get_px4_guid_formatted
 
 /************************************************************************************
  * Name: board_get_px4_guid
@@ -1028,7 +1028,7 @@ int board_get_mfguid_formated(char *format_buffer, int size); // DEPRICATED use 
 int board_get_px4_guid(px4_guid_t guid);
 
 /************************************************************************************
- * Name: board_get_px4_guid_formated
+ * Name: board_get_px4_guid_formatted
  *
  * Description:
  *   All boards either provide a way to retrieve a formatted string of the
@@ -1049,7 +1049,7 @@ int board_get_px4_guid(px4_guid_t guid);
  *
  ************************************************************************************/
 
-int board_get_px4_guid_formated(char *format_buffer, int size);
+int board_get_px4_guid_formatted(char *format_buffer, int size);
 
 /************************************************************************************
  * Name: board_mcu_version
