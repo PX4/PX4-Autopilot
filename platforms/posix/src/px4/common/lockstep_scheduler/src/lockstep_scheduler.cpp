@@ -50,7 +50,7 @@ LockstepScheduler::~LockstepScheduler()
 void LockstepScheduler::set_absolute_time(uint64_t time_us)
 {
 	if (_time_us == 0 && time_us > 0) {
-		PX4_INFO("setting initial absolute time to %lu us", time_us);
+		PX4_INFO("setting initial absolute time to %" PRIu64 " us", time_us);
 	}
 
 	_time_us = time_us;
