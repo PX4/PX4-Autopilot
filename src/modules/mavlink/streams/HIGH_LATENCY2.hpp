@@ -460,7 +460,7 @@ private:
 				msg->failure_flags |= HL_FAILURE_FLAG_MISSION;
 			}
 
-			if (status_flags.rc_signal_lost) {
+			if (status_flags.manual_control_signal_lost) {
 				msg->failure_flags |= HL_FAILURE_FLAG_RC_RECEIVER;
 			}
 

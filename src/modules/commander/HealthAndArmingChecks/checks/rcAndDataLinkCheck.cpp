@@ -41,7 +41,7 @@ void RcAndDataLinkChecks::checkAndReport(const Context &context, Report &reporte
 	bool rc_is_optional = true;
 
 	if (_param_com_rc_in_mode.get() == 4) { // RC disabled
-		reporter.failsafeFlags().rc_signal_lost = false;
+		reporter.failsafeFlags().manual_control_signal_lost = false;
 
 	} else {
 
@@ -49,36 +49,36 @@ void RcAndDataLinkChecks::checkAndReport(const Context &context, Report &reporte
 
 		if (!_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
 			manual_control_setpoint = {};
-			reporter.failsafeFlags().rc_signal_lost = true;
+			reporter.failsafeFlags().manual_control_signal_lost = true;
 		}
 
 		// Check if RC is valid
 		if (!manual_control_setpoint.valid
 		    || hrt_elapsed_time(&manual_control_setpoint.timestamp) > _param_com_rc_loss_t.get() * 1_s) {
 
-			if (!reporter.failsafeFlags().rc_signal_lost && _last_valid_manual_control_setpoint > 0) {
+			if (!reporter.failsafeFlags().manual_control_signal_lost && _last_valid_manual_control_setpoint > 0) {
 
 				events::send(events::ID("commander_rc_lost"), {events::Log::Critical, events::LogInternal::Info},
 					     "Manual control lost");
 			}
 
-			reporter.failsafeFlags().rc_signal_lost = true;
+			reporter.failsafeFlags().manual_control_signal_lost = true;
 
 		} else {
 			reporter.setIsPresent(health_component_t::remote_control);
 
-			if (reporter.failsafeFlags().rc_signal_lost && _last_valid_manual_control_setpoint > 0) {
+			if (reporter.failsafeFlags().manual_control_signal_lost && _last_valid_manual_control_setpoint > 0) {
 				float elapsed = hrt_elapsed_time(&_last_valid_manual_control_setpoint) * 1e-6f;
 				events::send<float>(events::ID("commander_rc_regained"), events::Log::Info,
 						    "Manual control regained after {1:.1} s", elapsed);
 			}
 
-			reporter.failsafeFlags().rc_signal_lost = false;
+			reporter.failsafeFlags().manual_control_signal_lost = false;
 			_last_valid_manual_control_setpoint = manual_control_setpoint.timestamp;
 		}
 
 
-		if (reporter.failsafeFlags().rc_signal_lost) {
+		if (reporter.failsafeFlags().manual_control_signal_lost) {
 
 			NavModes affected_modes = rc_is_optional ? NavModes::None : NavModes::All;
 			events::LogLevel log_level = rc_is_optional ? events::Log::Info : events::Log::Error;
@@ -97,16 +97,16 @@ void RcAndDataLinkChecks::checkAndReport(const Context &context, Report &reporte
 		}
 	}
 
-	// Data Link
-	reporter.failsafeFlags().data_link_lost = context.status().data_link_lost;
+	// GCS connection
+	reporter.failsafeFlags().gcs_connection_lost = context.status().gcs_connection_lost;
 
-	if (reporter.failsafeFlags().data_link_lost) {
+	if (reporter.failsafeFlags().gcs_connection_lost) {
 
-		// Prevent arming if we neither have RC nor a Data Link. TODO: disabled for now due to MAVROS tests
-		bool data_link_required =  _param_nav_dll_act.get() > 0
-					   /*|| (rc_is_optional && reporter.failsafeFlags().rc_signal_lost) */;
-		NavModes affected_modes = data_link_required ? NavModes::All : NavModes::None;
-		events::LogLevel log_level = data_link_required ? events::Log::Error : events::Log::Info;
+		// Prevent arming if we neither have RC nor a GCS connection. TODO: disabled for now due to MAVROS tests
+		bool gcs_connection_required =  _param_nav_dll_act.get() > 0
+						/*|| (rc_is_optional && reporter.failsafeFlags().manual_control_signal_lost) */;
+		NavModes affected_modes = gcs_connection_required ? NavModes::All : NavModes::None;
+		events::LogLevel log_level = gcs_connection_required ? events::Log::Error : events::Log::Info;
 		/* EVENT
 		 * @description
 		 * To arm, at least a data link or manual control (RC) must be present.

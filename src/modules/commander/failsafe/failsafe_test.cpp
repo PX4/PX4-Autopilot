@@ -50,8 +50,9 @@ protected:
 	void checkStateAndMode(const hrt_abstime &time_us, const State &state,
 			       const vehicle_status_flags_s &status_flags) override
 	{
-		CHECK_FAILSAFE(status_flags, rc_signal_lost, ActionOptions(Action::RTL).clearOn(ClearCondition::OnModeChangeOrDisarm));
-		CHECK_FAILSAFE(status_flags, data_link_lost, Action::Descend);
+		CHECK_FAILSAFE(status_flags, manual_control_signal_lost,
+			       ActionOptions(Action::RTL).clearOn(ClearCondition::OnModeChangeOrDisarm));
+		CHECK_FAILSAFE(status_flags, gcs_connection_lost, Action::Descend);
 
 		if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 			CHECK_FAILSAFE(status_flags, mission_failure, Action::Descend);
@@ -110,7 +111,7 @@ TEST_F(FailsafeTest, general)
 
 	// RC lost -> Hold, then RTL
 	time += 10_ms;
-	failsafe_flags.rc_signal_lost = true;
+	failsafe_flags.manual_control_signal_lost = true;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
@@ -121,21 +122,21 @@ TEST_F(FailsafeTest, general)
 
 	// DL link lost -> Descend
 	time += 10_ms;
-	failsafe_flags.data_link_lost = true;
+	failsafe_flags.gcs_connection_lost = true;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Descend);
 
 	// DL link regained -> RTL (RC still lost)
 	time += 10_ms;
-	failsafe_flags.data_link_lost = false;
+	failsafe_flags.gcs_connection_lost = false;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
 
 	// RC lost cleared -> keep RTL
 	time += 10_ms;
-	failsafe_flags.rc_signal_lost = false;
+	failsafe_flags.manual_control_signal_lost = false;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
