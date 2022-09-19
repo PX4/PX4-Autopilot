@@ -104,20 +104,20 @@ SECTIONS
 	PROVIDE(_boot_signature = 0);
 
 	/* Make a hole for the ToC and signature */
-	toc (NOLOAD) : {
+	.toc (NOLOAD) : {
 		*(.main_toc)
 		*(.main_toc_sig)
 		FILL(0xff);
-		. = ALIGN(8);
+		. = ALIGN(0x1000);
 	} > FLASH_AXIM
 
 	.vectors : {
 		_stext = ABSOLUTE(.);
 		*(.vectors)
+		. = ALIGN(32);
 	} > FLASH_AXIM
 
 	.text : {
-		. = ALIGN(32);
 		/*
 		This signature provides the bootloader with a way to delay booting
 		*/

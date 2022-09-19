@@ -35,7 +35,7 @@ SECTIONS
         KEEP(*(.main_toc));
         /* Padd the rest */
         FILL(0xff);
-        . = ALIGN(8);
+        . = 0x1000 - 64;
         _toc_end = ABSOLUTE(.);
     } > progmem
 
@@ -51,6 +51,7 @@ SECTIONS
         /* The application firmware payload */
         _app_start = ABSOLUTE(.);
         *(.firmware)
+        . = ALIGN(4);
         _app_end = ABSOLUTE(.);
     } > progmem
 
