@@ -71,7 +71,7 @@ private:
 	uORB::Subscription _vehicle_status_flags_sub{ORB_ID(vehicle_status_flags)};
 
 	bool 		_was_armed = false;
-	bool 		_had_rc = false;  // Don't trigger alarm for systems without RC
+	bool 		_had_manual_control = false;  // Don't trigger alarm for systems without RC
 	bool		_alarm_playing = false;
 };
 

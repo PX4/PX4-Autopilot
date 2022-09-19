@@ -336,36 +336,36 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	const bool ignore_link_failsafe = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF
 					  && in_forward_flight && !state.mission_finished;
 
-	// RC loss
-	if (!status_flags.rc_signal_lost) {
-		// If RC was lost and arming was allowed, consider it optional until we regain RC
-		_rc_lost_at_arming = false;
+	// Manual control (RC) loss
+	if (!status_flags.manual_control_signal_lost) {
+		// If manual control was lost and arming was allowed, consider it optional until we regain manual control
+		_manual_control_lost_at_arming = false;
 	}
 
 	const bool rc_loss_ignored_mission = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
-					     && (_param_com_rcl_except.get() & (int)RCLossExceptionBits::Mission);
+					     && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Mission);
 	const bool rc_loss_ignored_loiter = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER
-					    && (_param_com_rcl_except.get() & (int)RCLossExceptionBits::Hold);
+					    && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Hold);
 	const bool rc_loss_ignored_offboard = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_OFFBOARD
-					      && (_param_com_rcl_except.get() & (int)RCLossExceptionBits::Offboard);
+					      && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Offboard);
 	const bool rc_loss_ignored_takeoff = (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
 					      state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
-					     && (_param_com_rcl_except.get() & (int)RCLossExceptionBits::Hold);
+					     && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Hold);
 	const bool rc_loss_ignored = rc_loss_ignored_mission || rc_loss_ignored_loiter || rc_loss_ignored_offboard ||
-				     rc_loss_ignored_takeoff || ignore_link_failsafe || _rc_lost_at_arming;
+				     rc_loss_ignored_takeoff || ignore_link_failsafe || _manual_control_lost_at_arming;
 
 	if (_param_com_rc_in_mode.get() != 4 && !rc_loss_ignored) {
-		CHECK_FAILSAFE(status_flags, rc_signal_lost,
-			       fromNavDllOrRclActParam(_param_nav_rcl_act.get()).causedBy(Cause::RCLoss));
+		CHECK_FAILSAFE(status_flags, manual_control_signal_lost,
+			       fromNavDllOrRclActParam(_param_nav_rcl_act.get()).causedBy(Cause::ManualControlLoss));
 	}
 
-	// Datalink loss
-	const bool data_link_loss_ignored = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND ||
-					    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND || ignore_link_failsafe;
+	// GCS connection loss
+	const bool gcs_connection_loss_ignored = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND ||
+			state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND || ignore_link_failsafe;
 
-	if (_param_nav_dll_act.get() != 0 && !data_link_loss_ignored) {
-		CHECK_FAILSAFE(status_flags, data_link_lost,
-			       fromNavDllOrRclActParam(_param_nav_dll_act.get()).causedBy(Cause::DatalinkLoss));
+	if (_param_nav_dll_act.get() != 0 && !gcs_connection_loss_ignored) {
+		CHECK_FAILSAFE(status_flags, gcs_connection_lost,
+			       fromNavDllOrRclActParam(_param_nav_dll_act.get()).causedBy(Cause::GCSConnectionLoss));
 	}
 
 	// VTOL transition failure (quadchute)
@@ -380,12 +380,12 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 		CHECK_FAILSAFE(status_flags, mission_failure, Action::RTL);
 
-		// If RC loss and datalink loss are disabled and we lose both command links and the mission finished,
+		// If manual control loss and GCS connection loss are disabled and we lose both command links and the mission finished,
 		// trigger RTL to avoid losing the vehicle
 		if ((_param_com_rc_in_mode.get() == 4 || rc_loss_ignored_mission) && _param_nav_dll_act.get() == 0
 		    && state.mission_finished) {
 			_last_state_mission_control_lost = checkFailsafe(_caller_id_mission_control_lost, _last_state_mission_control_lost,
-							   status_flags.data_link_lost, Action::RTL);
+							   status_flags.gcs_connection_lost, Action::RTL);
 		}
 	}
 
@@ -449,10 +449,10 @@ void Failsafe::updateArmingState(const hrt_abstime &time_us, bool armed, const v
 {
 	if (!_was_armed && armed) {
 		_armed_time = time_us;
-		_rc_lost_at_arming = status_flags.rc_signal_lost;
+		_manual_control_lost_at_arming = status_flags.manual_control_signal_lost;
 
 	} else if (!armed) {
-		_rc_lost_at_arming = status_flags.rc_signal_lost; // ensure action isn't added while disarmed
+		_manual_control_lost_at_arming = status_flags.manual_control_signal_lost; // ensure action isn't added while disarmed
 		_armed_time = 0;
 	}
 

@@ -53,7 +53,7 @@ protected:
 private:
 	void updateArmingState(const hrt_abstime &time_us, bool armed, const vehicle_status_flags_s &status_flags);
 
-	enum class RCLossExceptionBits : int32_t {
+	enum class ManualControlLossExceptionBits : int32_t {
 		Mission = (1 << 0),
 		Hold = (1 << 1),
 		Offboard = (1 << 2)
@@ -90,7 +90,7 @@ private:
 
 	hrt_abstime _armed_time{0};
 	bool _was_armed{false};
-	bool _rc_lost_at_arming{false}; ///< true if RC was lost at arming time
+	bool _manual_control_lost_at_arming{false}; ///< true if manual control was lost at arming time
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FailsafeBase,
 					(ParamInt<px4::params::NAV_DLL_ACT>) 	_param_nav_dll_act,

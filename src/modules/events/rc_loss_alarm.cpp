@@ -68,12 +68,12 @@ void RC_Loss_Alarm::process()
 		_was_armed = true;	// Once true, impossible to go back to false
 	}
 
-	if (!_had_rc && !status_flags.rc_signal_lost) {
+	if (!_had_manual_control && !status_flags.manual_control_signal_lost) {
 
-		_had_rc = true;
+		_had_manual_control = true;
 	}
 
-	if (_was_armed && _had_rc && status_flags.rc_signal_lost &&
+	if (_was_armed && _had_manual_control && status_flags.manual_control_signal_lost &&
 	    status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
 		play_tune();
 		_alarm_playing = true;

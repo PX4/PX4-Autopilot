@@ -285,12 +285,12 @@
                             "description": ""
                         },
                         "1": {
-                            "name": "rc_loss",
+                            "name": "manual_control_loss",
                             "description": "manual control loss"
                         },
                         "2": {
-                            "name": "datalink_loss",
-                            "description": "data link loss"
+                            "name": "gcs_connection_loss",
+                            "description": "GCS connection loss"
                         },
                         "3": {
                             "name": "low_battery_level",

@@ -74,8 +74,8 @@ public:
 
 	enum class Cause : uint8_t {
 		Generic,
-		RCLoss,
-		DatalinkLoss,
+		ManualControlLoss,
+		GCSConnectionLoss,
 		BatteryLow,
 		BatteryCritical,
 		BatteryEmergency,

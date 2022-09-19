@@ -542,7 +542,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	if (run_preflight_checks && !_arm_state_machine.isArmed()) {
 		if (_vehicle_control_mode.flag_control_manual_enabled) {
 			if (_vehicle_control_mode.flag_control_climb_rate_enabled &&
-			    !_vehicle_status_flags.rc_signal_lost && _is_throttle_above_center) {
+			    !_vehicle_status_flags.manual_control_signal_lost && _is_throttle_above_center) {
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: throttle above center\t");
 				events::send(events::ID("commander_arm_denied_throttle_center"),
 				{events::Log::Critical, events::LogInternal::Info},
@@ -552,7 +552,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 			}
 
 			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
-			    !_vehicle_status_flags.rc_signal_lost && !_is_throttle_low
+			    !_vehicle_status_flags.manual_control_signal_lost && !_is_throttle_low
 			    && _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROVER) {
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: high throttle\t");
 				events::send(events::ID("commander_arm_denied_throttle_high"),
@@ -654,7 +654,7 @@ Commander::Commander() :
 	_vehicle_status.nav_state_timestamp = hrt_absolute_time();
 
 	/* mark all signals lost as long as they haven't been found */
-	_vehicle_status.data_link_lost = true;
+	_vehicle_status.gcs_connection_lost = true;
 
 	_vehicle_status.power_input_valid = true;
 
@@ -2548,13 +2548,13 @@ void Commander::dataLinkCheck()
 
 			if (telemetry.heartbeat_type_gcs) {
 				// Initial connection or recovery from data link lost
-				if (_vehicle_status.data_link_lost) {
-					_vehicle_status.data_link_lost = false;
+				if (_vehicle_status.gcs_connection_lost) {
+					_vehicle_status.gcs_connection_lost = false;
 					_status_changed = true;
 
 					if (_datalink_last_heartbeat_gcs != 0) {
-						mavlink_log_info(&_mavlink_log_pub, "Data link regained\t");
-						events::send(events::ID("commander_dl_regained"), events::Log::Info, "Data link regained");
+						mavlink_log_info(&_mavlink_log_pub, "GCS connection regained\t");
+						events::send(events::ID("commander_dl_regained"), events::Log::Info, "GCS connection regained");
 					}
 				}
 
@@ -2623,16 +2623,16 @@ void Commander::dataLinkCheck()
 
 
 	// GCS data link loss failsafe
-	if (!_vehicle_status.data_link_lost) {
+	if (!_vehicle_status.gcs_connection_lost) {
 		if ((_datalink_last_heartbeat_gcs != 0)
 		    && hrt_elapsed_time(&_datalink_last_heartbeat_gcs) > (_param_com_dl_loss_t.get() * 1_s)) {
 
-			_vehicle_status.data_link_lost = true;
-			_vehicle_status.data_link_lost_counter++;
+			_vehicle_status.gcs_connection_lost = true;
+			_vehicle_status.gcs_connection_lost_counter++;
 
 			mavlink_log_info(&_mavlink_log_pub, "Connection to ground station lost\t");
 			events::send(events::ID("commander_gcs_lost"), {events::Log::Warning, events::LogInternal::Info},
-				     "Connection to ground station lost");
+				     "Connection to ground control station lost");
 
 			_status_changed = true;
 		}

@@ -90,9 +90,9 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 
 /**
- * Datalink loss time threshold
+ * GCS connection loss time threshold
  *
- * After this amount of seconds without datalink the data link lost mode triggers
+ * After this amount of seconds without datalink, the GCS connection lost mode triggers
  *
  * @group Commander
  * @unit s
@@ -785,9 +785,9 @@ PARAM_DEFINE_INT32(COM_FLIGHT_UUID, 0);
 PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
 
 /**
- * Set data link loss failsafe mode
+ * Set GCS connection loss failsafe mode
  *
- * The data link loss failsafe will only be entered after a timeout,
+ * The GCS connection loss failsafe will only be entered after a timeout,
  * set by COM_DL_LOSS_T in seconds. Once the timeout occurs the selected
  * action will be executed.
  *
