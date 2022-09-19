@@ -87,8 +87,8 @@ bool failsafe # true if system is in failsafe state (e.g.:RTL, Hover, Terminate,
 bool failsafe_and_user_took_over # true if system is in failsafe state but the user took over control
 
 # Link loss
-bool data_link_lost              # datalink to GCS lost
-uint8 data_link_lost_counter     # counts unique data link lost events
+bool gcs_connection_lost              # datalink to GCS lost
+uint8 gcs_connection_lost_counter     # counts unique GCS connection lost events
 bool high_latency_data_link_lost # Set to true if the high latency data link (eg. RockBlock Iridium 9603 telemetry module) is lost
 
 # VTOL flags
