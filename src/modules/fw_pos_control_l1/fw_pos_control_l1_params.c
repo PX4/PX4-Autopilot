@@ -1076,3 +1076,20 @@ PARAM_DEFINE_INT32(FW_LND_NUDGE, 2);
  * @group FW Auto Landing
  */
 PARAM_DEFINE_INT32(FW_LND_ABORT, 3);
+
+/**
+ * Wind-based airspeed scaling factor
+ *
+ * Multiplying this factor with the current absolute wind estimate gives the airspeed offset
+ * added to the minimum airspeed setpoint limit. This helps to make the
+ * system more robust against disturbances (turbulence) in high wind.
+ * Only applies to AUTO flight mode.
+ *
+ * airspeed_min_adjusted = FW_AIRSPD_MIN + FW_WIND_ARSP_SC * wind.length()
+ *
+ * @min 0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_WIND_ARSP_SC, 0.f);
