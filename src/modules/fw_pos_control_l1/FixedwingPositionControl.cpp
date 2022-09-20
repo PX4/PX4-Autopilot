@@ -438,6 +438,12 @@ FixedwingPositionControl::get_auto_airspeed_setpoint(const float control_interva
 					       MAX_WEIGHT_RATIO);
 	}
 
+	// Adapt min airspeed setpoint based on wind estimate for more stability in higher winds.
+	if (_airspeed_valid && _wind_valid && _param_fw_wind_arsp_sc.get() > FLT_EPSILON) {
+		calibrated_min_airspeed = math::min(calibrated_min_airspeed + _param_fw_wind_arsp_sc.get() * _wind_vel.length(),
+						    _param_fw_airspd_max.get());
+	}
+
 	// Stall speed increases with the square root of the load factor times the weight ratio
 	// Vs ~ sqrt(load_factor * weight_ratio)
 	calibrated_min_airspeed = constrain(_param_fw_airspd_stall.get() * sqrtf(load_factor * weight_ratio),
