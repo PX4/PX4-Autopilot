@@ -1,5 +1,3 @@
-FROM ghcr.io/tiiuae/px4-post-update-init:main as init_tool
-
 FROM python:alpine3.14
 
 # run this with something like:
@@ -33,5 +31,3 @@ ADD px4-firmware/Tools/px_uploader.entrypoint /entrypoint.sh
 ADD bin/ /firmware/
 
 ADD px4-firmware/ssrc_config /flight_modes
-
-COPY --from=init_tool /px4-post-update-init /bin/px4-post-update-init
