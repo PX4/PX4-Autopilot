@@ -133,7 +133,6 @@
  *
  * Note that these are unshifted addresses.
  */
-#define PX4_I2C_OBDEV_SE050         0x48
 
 /*
  * ADC channels
