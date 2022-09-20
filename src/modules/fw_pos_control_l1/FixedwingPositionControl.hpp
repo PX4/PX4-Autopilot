@@ -860,7 +860,9 @@ private:
 		(ParamFloat<px4::params::FW_LND_FL_SINK>) _param_fw_lnd_fl_sink,
 		(ParamFloat<px4::params::FW_LND_TD_OFF>) _param_fw_lnd_td_off,
 		(ParamInt<px4::params::FW_LND_NUDGE>) _param_fw_lnd_nudge,
-		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort
+		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort,
+
+		(ParamFloat<px4::params::FW_WIND_ARSP_SC>) _param_fw_wind_arsp_sc
 	)
 
 };
