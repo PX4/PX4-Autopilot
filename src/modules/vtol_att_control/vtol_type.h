@@ -152,8 +152,6 @@ public:
 
 	mode get_mode() {return _vtol_mode;}
 
-	bool was_in_trans_mode() {return _flag_was_in_trans_mode;}
-
 	/**
 	 * @return Minimum front transition time scaled for air density (if available) [s]
 	*/
