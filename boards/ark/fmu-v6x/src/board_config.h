@@ -133,8 +133,6 @@
  *
  * Note that these are unshifted addresses.
  */
-#define PX4_I2C_OBDEV_SE050         0x48
-
 #define GPIO_I2C2_DRDY1_BMP388      /* PG5  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTG|GPIO_PIN5)
 
 /*
