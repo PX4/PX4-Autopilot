@@ -43,6 +43,9 @@ using namespace time_literals;
 
 // to run: make tests TESTFILTER=HealthAndArmingChecks
 
+/* EVENT
+ * @skip-file
+ */
 
 class ReporterTest : public ::testing::Test
 

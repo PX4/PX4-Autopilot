@@ -46,7 +46,7 @@ class SourceScanner(object):
                 print('Failed reading file: %s, skipping content.' % path)
                 pass
         try:
-            return parser.Parse(contents)
+            return parser.Parse(contents, path)
         except Exception as e:
             print("Exception while parsing file {}".format(path))
             raise
