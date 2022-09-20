@@ -322,6 +322,11 @@ VtolAttitudeControl::Run()
 		const bool mc_att_sp_updated = _mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
 		const bool fw_att_sp_updated = _fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
 
+		// for transition code to publish an attitude setpoint require both mc and fw virtual attitude setpoint to not contain data older than one second.
+		// this prevents either topic from being used with old data at the time when we switch into transition mode
+		const bool mc_and_fw_att_sp_are_recent = _mc_virtual_att_sp.timestamp > (now - 1_s)
+				&& _fw_virtual_att_sp.timestamp > (now - 1_s);
+
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
 
@@ -331,7 +336,7 @@ VtolAttitudeControl::Run()
 			// vehicle is doing a transition to FW
 			_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW;
 
-			if (!_vtol_type->was_in_trans_mode() || mc_att_sp_updated || fw_att_sp_updated) {
+			if (mc_and_fw_att_sp_are_recent && (mc_att_sp_updated || fw_att_sp_updated)) {
 				_vtol_type->update_transition_state();
 				_vehicle_attitude_sp_pub.publish(_vehicle_attitude_sp);
 			}
@@ -342,7 +347,7 @@ VtolAttitudeControl::Run()
 			// vehicle is doing a transition to MC
 			_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC;
 
-			if (!_vtol_type->was_in_trans_mode() || mc_att_sp_updated || fw_att_sp_updated) {
+			if (mc_and_fw_att_sp_are_recent && (mc_att_sp_updated || fw_att_sp_updated)) {
 				_vtol_type->update_transition_state();
 				_vehicle_attitude_sp_pub.publish(_vehicle_attitude_sp);
 			}
