@@ -87,8 +87,13 @@ public:
 	// Update gripper state
 	void update();
 
+	// Return griper's state in string format
+	const char *get_state_str() const;
+
 	// Returns true if in grabbed position either sensed or timeout based
 	bool grabbed() { return _state == GripperState::GRABBED; }
+
+	// Returns true if in grabbing position either sensed or timeout based
 	bool grabbing() { return _state == GripperState::GRABBING; }
 
 	// Returns true if in released position either sensed or timeout based

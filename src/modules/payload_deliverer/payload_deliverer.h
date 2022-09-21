@@ -77,6 +77,9 @@ public:
 	static int custom_command(int argc, char *argv[]);
 	static int print_usage(const char *reason = nullptr);
 
+	/** @see ModuleBase. Override "status" output when invoked via Commandline, to give detailed status **/
+	int print_status() override;
+
 	// Initializes the module
 	bool init();
 
