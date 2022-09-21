@@ -24,36 +24,40 @@ def fuse_airspeed(
 
     return (geo.V3(H), K, innov_var, innov)
 
-from symforce.codegen import Codegen, CppConfig
+def generatePx4Function(function_name, output_names):
+    from symforce.codegen import Codegen, CppConfig
+    codegen = Codegen.function(
+            function_name,
+            output_names=output_names,
+            config=CppConfig())
+    metadata = codegen.generate_function(
+            output_dir="generated",
+            skip_directory_nesting=True)
 
-codegen = Codegen.function(
-        fuse_airspeed,
-        output_names=["H", "K", "innov_var", "innov"],
-        config=CppConfig())
-metadata = codegen.generate_function(
-        output_dir="generated",
-        skip_directory_nesting=True)
+    print("Files generated in {}:\n".format(metadata.output_dir))
+    for f in metadata.generated_files:
+        print("  |- {}".format(os.path.relpath(f, metadata.output_dir)))
 
-print("Files generated in {}:\n".format(metadata.output_dir))
-for f in metadata.generated_files:
-    print("  |- {}".format(os.path.relpath(f, metadata.output_dir)))
+    # Replace cstdlib and Eigen functions by PX4 equivalents
+    import fileinput
 
-# Replace cstdlib and Eigen functions by PX4 equivalents
-import fileinput
+    with fileinput.FileInput(os.path.abspath(metadata.generated_files[0]), inplace=True, backup='.bak') as file:
+        for line in file:
+            line = line.replace("std::max", "math::max")
+            line = line.replace("Eigen", "matrix")
+            line = line.replace("matrix/Dense", "matrix/math.hpp")
+            print(line, end='')
 
-with fileinput.FileInput(os.path.abspath(metadata.generated_files[0]), inplace=True, backup='.bak') as file:
-    for line in file:
-        line = line.replace("std::max", "math::max")
-        line = line.replace("Eigen", "matrix")
-        line = line.replace("matrix/Dense", "matrix/math.hpp")
-        print(line, end='')
+def generatePythonFunction(function_name, output_names):
+    from symforce.codegen import Codegen, PythonConfig
+    codegen = Codegen.function(
+            function_name,
+            output_names=output_names,
+            config=PythonConfig())
 
-# Generate python code
-codegen = Codegen.function(
-        fuse_airspeed,
-        output_names=["H", "K", "innov_var", "innov"],
-        config=PythonConfig())
+    metadata = codegen.generate_function(
+            output_dir="generated",
+            skip_directory_nesting=True)
 
-metadata = codegen.generate_function(
-        output_dir="generated",
-        skip_directory_nesting=True)
+generatePx4Function(fuse_airspeed, output_names=["H", "K", "innov_var", "innov"])
+generatePythonFunction(fuse_airspeed, output_names=["H", "K", "innov_var", "innov"])
