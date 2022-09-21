@@ -901,7 +901,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 	float P_lim[8] = {};
 	P_lim[0] = 1.0f;		// quaternion max var
 	P_lim[1] = 1e6f;		// velocity max var
-	P_lim[2] = 1e6f;		// positiion max var
+	P_lim[2] = 1e6f;		// position max var
 	P_lim[3] = 1.0f;		// gyro bias max var
 	P_lim[4] = 1.0f;		// delta velocity z bias max var
 	P_lim[5] = 1.0f;		// earth mag field max var
