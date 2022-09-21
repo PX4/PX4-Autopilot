@@ -363,11 +363,6 @@ void Tiltrotor::update_transition_state()
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_BACK) {
 
-		// set idle speed for rotary wing mode
-		if (!_flag_idle_mc) {
-			_flag_idle_mc = true;
-		}
-
 		// tilt rotors back once motors are idle
 		if (time_since_trans_start > BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) {
 
@@ -528,19 +523,6 @@ void Tiltrotor::fill_actuator_outputs()
 	_actuators_out_0->timestamp = _actuators_out_1->timestamp = hrt_absolute_time();
 }
 
-/*
- * Increase combined thrust of MC propellers if motors are tilted. Assumes that all MC motors are tilted equally.
- */
-
-float Tiltrotor::thrust_compensation_for_tilt()
-{
-	// only compensate for tilt angle up to 0.5 * max tilt
-	float compensated_tilt = math::constrain(_tilt_control, 0.0f, 0.5f);
-
-	// increase vertical thrust by 1/cos(tilt), limit to [-1,0]
-	return math::constrain(_v_att_sp->thrust_body[2] / cosf(compensated_tilt * M_PI_2_F), -1.0f, 0.0f);
-}
-
 void Tiltrotor::blendThrottleAfterFrontTransition(float scale)
 {
 	const float tecs_throttle = _v_att_sp->thrust_body[0];
@@ -552,7 +534,6 @@ void Tiltrotor::blendThrottleDuringBacktransition(float scale, float target_thro
 {
 	_thrust_transition = scale * target_throttle + (1.0f - scale) * _last_thr_in_fw_mode;
 }
-
 
 float Tiltrotor::timeUntilMotorsAreUp()
 {

@@ -77,14 +77,6 @@ enum VtolForwardActuationMode {
 	ENABLE_ABOVE_MPC_LAND_ALT2_WITHOUT_LAND
 };
 
-/**
- * @brief      Used to specify if min or max pwm values should be altered
- */
-enum class pwm_limit_type {
-	TYPE_MINIMUM = 0,
-	TYPE_MAXIMUM
-};
-
 class VtolAttitudeControl;
 
 class VtolType : public ModuleParams
@@ -197,8 +189,6 @@ protected:
 	struct vehicle_torque_setpoint_s 		*_torque_setpoint_1;
 	struct vehicle_thrust_setpoint_s 		*_thrust_setpoint_0;
 	struct vehicle_thrust_setpoint_s 		*_thrust_setpoint_1;
-
-	bool _flag_idle_mc = false;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
 
 	float _mc_roll_weight = 1.0f;	// weight for multicopter attitude controller roll output
 	float _mc_pitch_weight = 1.0f;	// weight for multicopter attitude controller pitch output

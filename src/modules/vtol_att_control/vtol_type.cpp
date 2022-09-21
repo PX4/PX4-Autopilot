@@ -97,10 +97,6 @@ void VtolType::parameters_update()
 
 void VtolType::update_mc_state()
 {
-	if (!_flag_idle_mc) {
-		_flag_idle_mc = true;
-	}
-
 	resetAccelToPitchPitchIntegrator();
 
 	// copy virtual attitude setpoint to real attitude setpoint
@@ -124,10 +120,6 @@ void VtolType::update_mc_state()
 
 void VtolType::update_fw_state()
 {
-	if (_flag_idle_mc) {
-		_flag_idle_mc = false;
-	}
-
 	resetAccelToPitchPitchIntegrator();
 	_last_thr_in_fw_mode =  _actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
 
