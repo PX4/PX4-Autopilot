@@ -201,13 +201,6 @@ public:
 	float get_acceptance_radius();
 
 	/**
-	 * Get the default altitude acceptance radius (i.e. from parameters)
-	 *
-	 * @return the distance from the target altitude before considering the waypoint reached
-	 */
-	float get_default_altitude_acceptance_radius();
-
-	/**
 	 * Get the altitude acceptance radius
 	 *
 	 * @return the distance from the target altitude before considering the waypoint reached
