@@ -187,56 +187,12 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 
 	_time_last_beta_fuse = time_now;
 
-	const float v_n = velI(0);
-	const float v_e = velI(1);
-	const float v_d = velI(2);
-
-	// compute sideslip observation vector
-	float HB0 = 2.0f * q_att(0);
-	float HB1 = HB0 * q_att(3);
-	float HB2 = 2.0f * q_att(1);
-	float HB3 = HB2 * q_att(2);
-	float HB4 = v_e - _state(INDEX_W_E);
-	float HB5 = HB1 + HB3;
-	float HB6 = v_n - _state(INDEX_W_N);
-	float HB7 = q_att(0) * q_att(0);
-	float HB8 = q_att(3) * q_att(3);
-	float HB9 = HB7 - HB8;
-	float HB10 = q_att(1) * q_att(1);
-	float HB11 = q_att(2) * q_att(2);
-	float HB12 = HB10 - HB11;
-	float HB13 = HB12 + HB9;
-	float HB14 = HB13 * HB6 + HB4 * HB5 + v_d * (-HB0 * q_att(2) + HB2 * q_att(3));
-	float HB15 = 1.0f / HB14;
-	float HB16 = (HB4 * (-HB10 + HB11 + HB9) + HB6 * (-HB1 + HB3) + v_d * (HB0 * q_att(1) + 2.0f * q_att(2) * q_att(3))) /
-		     (HB14 * HB14);
 
 	matrix::Matrix<float, 1, 3> H_beta;
-	H_beta(0, 0) = HB13 * HB16 + HB15 * (HB1 - HB3);
-	H_beta(0, 1) = HB15 * (HB12 - HB7 + HB8) + HB16 * HB5;
-	H_beta(0, 2) = 0;
+	matrix::Matrix<float, 3, 1> K;
 
-	// compute innovation covariance S
-	const matrix::Matrix<float, 1, 1> S = H_beta * _P * H_beta.transpose() + _beta_var;
-
-	// compute Kalman gain
-	matrix::Matrix<float, 3, 1> K = _P * H_beta.transpose();
-	K /= S(0, 0);
-
-	// compute predicted side slip angle
-	matrix::Vector3f rel_wind(velI(0) - _state(INDEX_W_N), velI(1) - _state(INDEX_W_E), velI(2));
-	matrix::Dcmf R_body_to_earth(q_att);
-	rel_wind = R_body_to_earth.transpose() * rel_wind;
-
-	if (fabsf(rel_wind(0)) < 0.1f) {
-		return;
-	}
-
-	// use small angle approximation, sin(x) = x for small x
-	const float beta_pred = rel_wind(1) / rel_wind(0);
-
-	_beta_innov = 0.0f - beta_pred;
-	_beta_innov_var = S(0, 0);
+	sym::FuseBeta(velI, _state, _P, q_att, _beta_var, FLT_EPSILON,
+		      &H_beta, &K, &_beta_innov_var, &_beta_innov);
 
 	bool reinit_filter = false;
 	bool meas_is_rejected = false;
