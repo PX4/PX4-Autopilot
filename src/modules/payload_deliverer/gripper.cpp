@@ -127,3 +127,26 @@ void Gripper::publish_gripper_command(const int8_t gripper_command)
 	gripper.command = gripper_command;
 	_gripper_pub.publish(gripper);
 }
+
+const char *Gripper::get_state_str() const
+{
+	switch (_state) {
+	case GripperState::GRABBING:
+		return "GRABBING";
+
+	case GripperState::GRABBED:
+		return "GRABBED";
+
+	case GripperState::RELEASING:
+		return "RELEASING";
+
+	case GripperState::RELEASED:
+		return "RELEASED";
+
+	case GripperState::IDLE:
+		return "IDLE";
+
+	default:
+		return "UNKNOWN";
+	}
+}

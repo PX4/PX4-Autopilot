@@ -216,6 +216,18 @@ void PayloadDeliverer::gripper_close()
 	send_gripper_vehicle_command(vehicle_command_s::GRIPPER_ACTION_GRAB);
 }
 
+int PayloadDeliverer::print_status()
+{
+	// Gripper status
+	PX4_INFO("Gripper valid: %s", _gripper.is_valid() ? "True" : "False");
+
+	if (_gripper.is_valid()) {
+		PX4_INFO("Gripper state: %s", _gripper.get_state_str());
+	}
+
+	return 0;
+}
+
 int PayloadDeliverer::custom_command(int argc, char *argv[])
 {
 	if (argc >= 1) {
