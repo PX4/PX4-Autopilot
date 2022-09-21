@@ -37,7 +37,6 @@ include(qurt_reqs)
 include_directories(${HEXAGON_SDK_INCLUDES})
 
 add_definitions(-DORB_COMMUNICATOR)
-add_definitions(-DRELEASE_BUILD)
 
 set(CONFIG_PARAM_CLIENT "1")
 
