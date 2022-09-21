@@ -41,9 +41,9 @@ endif()
 
 target_link_libraries(px4
 	PRIVATE
-	${module_libraries}
-	m
-	parameters
+		${module_libraries}
+		m
+		parameters
 )
 
 if((NOT APPLE) AND (NOT ANDROID))
@@ -77,7 +77,7 @@ install(
 	DESTINATION
 		${PROJECT_NAME}
 	USE_SOURCE_PERMISSIONS
-	)
+)
 
 # Module Symlinks
 px4_posix_generate_symlinks(
