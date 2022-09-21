@@ -51,33 +51,4 @@ set(CONFIG_PARAM_SERVER "1")
 
 add_definitions( -D__PX4_LINUX )
 
-link_directories(/home ${PX4_SOURCE_DIR}/boards/modalai/voxl2/lib)
-
 include(CMakeParseArguments)
-
-# Process Apps proc app source and libs
-function (LINUX_APP)
-	set(oneValueArgs APP_NAME APP_DEST)
-	set(multiValueArgs SOURCES LINK_LIBS INCS)
-	cmake_parse_arguments(LINUX_APP "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
-
-	if ("${LINUX_APP_SOURCES}" STREQUAL "")
-		message(FATAL_ERROR "LINUX_APP called without SOURCES")
-	endif()
-
-	include_directories(
-		${CMAKE_CURRENT_BINARY_DIR}
-		)
-
-	add_executable(${LINUX_APP_APP_NAME}
-		${LINUX_APP_SOURCES}
-		)
-
-	if (NOT "${LINUX_APP_INCS}" STREQUAL "")
-		target_include_directories(${LINUX_APP_APP_NAME} PUBLIC ${LINUX_APP_INCS})
-	endif()
-
-	target_link_libraries(${LINUX_APP_APP_NAME}
-		${LINUX_APP_LINK_LIBS}
-		)
-endfunction()
