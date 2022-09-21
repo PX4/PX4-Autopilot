@@ -49,8 +49,6 @@
 #include "hw_config.h"
 #include "image_toc.h"
 
-bool verify_toc(const void *toc_start);
-
 bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries);
 
 bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries);
@@ -58,10 +56,6 @@ bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries);
 #else
 
 # if defined(BOOTLOADER_USE_TOC)
-
-/* No security, toc verification passes always */
-
-static inline bool verify_toc(const void *toc_start) {return true;}
 
 /* No security, application verification passes always */
 

@@ -50,11 +50,11 @@
 #endif
 #define FLASH_END_ADDRESS (FLASH_START_ADDRESS + BOARD_FLASH_SIZE)
 
-bool find_toc(const void **toc_start_addr, uint8_t *len)
+extern bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
 {
 	const uintptr_t toc_start_u32 = TOC_ADDRESS;
 	const image_toc_start_t *toc_start = (const image_toc_start_t *)toc_start_u32;
-	const image_toc_entry_t *entry = get_toc_entry0((const void *)toc_start_u32);
+	const image_toc_entry_t *entry = (const image_toc_entry_t *)(toc_start_u32 + sizeof(image_toc_start_t));
 
 	int i = 0;
 	uint8_t sig_idx;
@@ -96,14 +96,14 @@ bool find_toc(const void **toc_start_addr, uint8_t *len)
 			    (uintptr_t)entry[sig_idx].start >= (uintptr_t)entry[0].end &&
 			    (uintptr_t)entry[sig_idx].end <= FLASH_END_ADDRESS &&
 			    (uintptr_t)entry[sig_idx].end > (uintptr_t)entry[sig_idx].start) {
-				*toc_start_addr = (const void *)toc_start;
+				*toc_entries = entry;
 				*len = i;
 				return true;
 			}
 		}
 	}
 
-	*toc_start_addr = NULL;
+	*toc_entries = NULL;
 	*len = 0;
 	return false;
 }

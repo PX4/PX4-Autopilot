@@ -309,7 +309,6 @@ jump_to_app()
 #ifdef BOOTLOADER_USE_SECURITY
 	crypto_init();
 #endif
-	const void *toc_start;
 	const image_toc_entry_t *toc_entries;
 	uint8_t len;
 	uint8_t i = 0;
@@ -319,18 +318,15 @@ jump_to_app()
 	vec_base = (const uint32_t *)0;
 
 	/* TOC not found or empty, stay in btl */
-	if (!find_toc(&toc_start, &len)) {
+	if (!find_toc(&toc_entries, &len)) {
 		return;
 	}
 
 	/* Verify the first entry, containing the TOC itself */
-	if (!verify_toc(toc_start)) {
+	if (!verify_app(0, toc_entries)) {
 		/* Image verification failed, stay in btl */
 		return;
 	}
-
-	/* Get the first entry from ToC */
-	toc_entries = get_toc_entry0(toc_start);
 
 	/* TOC is verified, loop through all the apps and perform crypto ops */
 	for (i = 0; i < len; i++) {

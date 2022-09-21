@@ -107,13 +107,7 @@ typedef struct __attribute__((__packed__))
 	uint8_t signature[];
 } image_cert_t;
 
-extern bool find_toc(const void **toc_start, uint8_t *len);
-
-/* Get pointer to the first entry */
-inline static void *get_toc_entry0(const void *toc_start)
-{
-	return (void *)((uintptr_t)toc_start + sizeof(image_toc_start_t));
-}
+extern bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len);
 
 /* If decrypt or copy flags are defined, this returns the target address.
  * Otherwise, return the start address.
