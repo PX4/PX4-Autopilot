@@ -74,6 +74,8 @@ private:
 		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
 	} _vtol_schedule;
 
+	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
+
 	matrix::Quatf _q_trans_start;
 	matrix::Quatf _q_trans_sp;
 	matrix::Vector3f _trans_rot_axis;

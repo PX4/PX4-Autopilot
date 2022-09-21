@@ -202,8 +202,6 @@ protected:
 	float _ra_hrate = 0.0f;			// rolling average on height rate for quadchute condition
 	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
 
-	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
-
 	hrt_abstime _trans_finished_ts = 0;
 
 	bool _tecs_running = false;
