@@ -102,6 +102,16 @@ private:
 	bool initialize_gripper();
 
 	/**
+	 * @brief Update gipper instance's state and send vehicle command ack
+	 *
+	 * This updates the gripper instance to check if the gripper has reached the desired state.
+	 * And if so, it sends a vehicle command ack to the navigator.
+	 *
+	 * If the gripper instance isn't valid (i.e. not initialized), it doesn't do anything
+	 */
+	void gripper_update(const hrt_abstime &now);
+
+	/**
 	 * @brief Commands the payload delivery mechanism based on the received vehicle command
 	 *
 	 * Also handle vehicle command acknowledgement once the delivery is confirmed from the mechanism
