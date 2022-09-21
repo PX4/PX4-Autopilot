@@ -988,10 +988,18 @@ float Navigator::get_default_acceptance_radius()
 	return _param_nav_acc_rad.get();
 }
 
-float Navigator::get_default_altitude_acceptance_radius()
+float Navigator::get_altitude_acceptance_radius()
 {
 	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-		return _param_nav_fw_alt_rad.get();
+		const position_setpoint_s &next_sp = get_position_setpoint_triplet()->next;
+
+		if (!force_vtol() && next_sp.type == position_setpoint_s::SETPOINT_TYPE_LAND && next_sp.valid) {
+			// Use separate (tighter) altitude acceptance for clean altitude starting point before FW landing
+			return _param_nav_fw_altl_rad.get();
+
+		} else {
+			return _param_nav_fw_alt_rad.get();
+		}
 
 	} else if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
 		return INFINITY;
@@ -1008,20 +1016,6 @@ float Navigator::get_default_altitude_acceptance_radius()
 
 		return alt_acceptance_radius;
 	}
-}
-
-float Navigator::get_altitude_acceptance_radius()
-{
-	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-		const position_setpoint_s &next_sp = get_position_setpoint_triplet()->next;
-
-		if (next_sp.type == position_setpoint_s::SETPOINT_TYPE_LAND && next_sp.valid) {
-			// Use separate (tighter) altitude acceptance for clean altitude starting point before landing
-			return _param_nav_fw_altl_rad.get();
-		}
-	}
-
-	return get_default_altitude_acceptance_radius();
 }
 
 float Navigator::get_cruising_speed()
