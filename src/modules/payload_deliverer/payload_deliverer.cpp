@@ -83,7 +83,6 @@ bool PayloadDeliverer::initialize_gripper()
 		return true;
 	}
 
-
 }
 
 void PayloadDeliverer::parameter_update()
@@ -110,6 +109,9 @@ void PayloadDeliverer::Run()
 		parameter_update();
 	}
 
+	// Update delivery mechanism's state
+	gripper_update(now);
+
 	if (_vehicle_command_sub.update(&vcmd)) {
 		handle_vehicle_command(now, &vcmd);
 
@@ -119,16 +121,17 @@ void PayloadDeliverer::Run()
 	}
 }
 
-void PayloadDeliverer::handle_vehicle_command(const hrt_abstime &now,  const vehicle_command_s *vehicle_command)
+void PayloadDeliverer::gripper_update(const hrt_abstime &now)
 {
 	if (!_gripper.is_valid()) {
-		PX4_WARN("Gripper instance not valid but vehicle command was received. Gripper won't work!");
+		// Try initializing gripper
+		initialize_gripper();
 		return;
 	}
 
 	_gripper.update();
 
-	// Process successful gripper release acknowledgement
+	// Publish a successful gripper release acknowledgement
 	if (_gripper.released_read_once()) {
 		vehicle_command_ack_s vcmd_ack{};
 		vcmd_ack.timestamp = now;
@@ -137,7 +140,10 @@ void PayloadDeliverer::handle_vehicle_command(const hrt_abstime &now,  const veh
 		_vehicle_command_ack_pub.publish(vcmd_ack);
 		PX4_DEBUG("Payload Drop Successful Ack Sent!");
 	}
+}
 
+void PayloadDeliverer::handle_vehicle_command(const hrt_abstime &now,  const vehicle_command_s *vehicle_command)
+{
 	// If there's no vehicle command to process, just return
 	if (vehicle_command == nullptr) {
 		return;
@@ -145,6 +151,12 @@ void PayloadDeliverer::handle_vehicle_command(const hrt_abstime &now,  const veh
 
 	// Process DO_GRIPPER vehicle command
 	if (vehicle_command->command == vehicle_command_s::VEHICLE_CMD_DO_GRIPPER) {
+		// If we received Gripper command and gripper isn't valid, warn the user
+		if (!_gripper.is_valid()) {
+			PX4_WARN("Gripper instance not valid but DO_GRIPPER vehicle command was received. Gripper won't work!");
+			return;
+		}
+
 		const int32_t gripper_action = *(int32_t *)&vehicle_command->param2; // Convert the action to integer
 
 		switch (gripper_action) {
@@ -171,7 +183,7 @@ bool PayloadDeliverer::send_gripper_vehicle_command(const int32_t gripper_action
 void PayloadDeliverer::gripper_test()
 {
 	if (!_gripper.is_valid()) {
-		PX4_DEBUG("Gripper is not initialized correctly!");
+		PX4_INFO("Gripper is not initialized correctly!");
 		return;
 	}
 
@@ -187,7 +199,7 @@ void PayloadDeliverer::gripper_test()
 void PayloadDeliverer::gripper_open()
 {
 	if (!_gripper.is_valid()) {
-		PX4_DEBUG("Gripper is not initialized correctly!");
+		PX4_INFO("Gripper is not initialized correctly!");
 		return;
 	}
 
@@ -197,7 +209,7 @@ void PayloadDeliverer::gripper_open()
 void PayloadDeliverer::gripper_close()
 {
 	if (!_gripper.is_valid()) {
-		PX4_DEBUG("Gripper is not initialized correctly!");
+		PX4_INFO("Gripper is not initialized correctly!");
 		return;
 	}
 
