@@ -38,9 +38,15 @@
 #if defined(CONFIG_I2C)
 
 #ifndef BOARD_OVERRIDE_I2C_BUS_EXTERNAL
-bool px4_i2c_bus_external(const px4_i2c_bus_t &bus)
+bool px4_i2c_bus_external(int bus)
 {
-	return bus.is_external;
+	for (int i = 0; i < I2C_BUS_MAX_BUS_ITEMS; ++i) {
+		if (px4_i2c_buses[i].bus == bus) {
+			return px4_i2c_buses[i].is_external;
+		}
+	}
+
+	return true;
 }
 #endif // BOARD_OVERRIDE_I2C_BUS_EXTERNAL
 
@@ -72,7 +78,7 @@ bool I2CBusIterator::next()
 			break;
 
 		case FilterType::InternalBus:
-			if (!px4_i2c_bus_external(bus_data)) {
+			if (!px4_i2c_bus_external(bus_data.bus)) {
 				if (_bus == bus_data.bus || _bus == -1) {
 					return true;
 				}
@@ -81,7 +87,7 @@ bool I2CBusIterator::next()
 			break;
 
 		case FilterType::ExternalBus:
-			if (px4_i2c_bus_external(bus_data)) {
+			if (px4_i2c_bus_external(bus_data.bus)) {
 				++_external_bus_counter;
 
 				if (_bus == bus_data.bus || _bus == -1) {
