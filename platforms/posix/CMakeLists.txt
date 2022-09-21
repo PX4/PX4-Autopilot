@@ -26,37 +26,39 @@ px4_posix_generate_alias(
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL FuzzTesting)
-        add_executable(px4
-                src/px4/common/main_fuzztesting.cpp
-                apps.cpp
-                )
+	add_executable(px4
+		src/px4/common/main_fuzztesting.cpp
+		apps.cpp
+		)
 else()
-        add_executable(px4
-                src/px4/common/main.cpp
-                apps.cpp
-                )
+	add_definitions(-DPX4_SOURCE_DIR="${PX4_SOURCE_DIR}" -DPX4_BINARY_DIR="${PX4_BINARY_DIR}")
+
+	add_executable(px4
+		src/px4/common/main.cpp
+		apps.cpp
+		)
 endif()
 
 target_link_libraries(px4
-   		PRIVATE
-    	${module_libraries}
-    	m
-    	parameters
+	PRIVATE
+	${module_libraries}
+	m
+	parameters
 )
 
 if((NOT APPLE) AND (NOT ANDROID))
-        target_link_libraries(px4 PRIVATE rt)
+	target_link_libraries(px4 PRIVATE rt)
 endif()
 
 if(NOT ANDROID)
-        target_link_libraries(px4 PRIVATE pthread)
+	target_link_libraries(px4 PRIVATE pthread)
 endif()
 
 target_link_libraries(px4 PRIVATE uORB)
 
 if (CMAKE_BUILD_TYPE STREQUAL FuzzTesting)
-        target_include_directories(px4 PRIVATE SYSTEM "${CMAKE_BINARY_DIR}/mavlink}")
-        target_compile_options(px4 PRIVATE "-Wno-cast-align")
+	target_include_directories(px4 PRIVATE SYSTEM "${CMAKE_BINARY_DIR}/mavlink}")
+	target_compile_options(px4 PRIVATE "-Wno-cast-align")
 endif()
 
 #=============================================================================
