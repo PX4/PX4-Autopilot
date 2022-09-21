@@ -100,6 +100,8 @@ class ParameterGroup(object):
             return "Balloon"
         elif (self.name == "Vectored 6 DOF UUV"):
             return "Vectored6DofUUV"
+	elif (self.name == "PNU_Cargo cox"):
+            return "PNUCargocox"
         return "AirframeUnknown"
 
     def GetParams(self):
