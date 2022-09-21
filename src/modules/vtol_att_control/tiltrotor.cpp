@@ -61,8 +61,6 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	_mc_roll_weight = 1.0f;
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
-
-	_flag_was_in_trans_mode = false;
 }
 
 void
@@ -295,11 +293,6 @@ void Tiltrotor::update_transition_state()
 	}
 
 	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
-
-	if (!_flag_was_in_trans_mode) {
-		// save desired heading for transition and last thrust value
-		_flag_was_in_trans_mode = true;
-	}
 
 	if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_FRONT_P1) {
 		// for the first part of the transition all rotors are enabled

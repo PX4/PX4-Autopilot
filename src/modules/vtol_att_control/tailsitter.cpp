@@ -54,8 +54,6 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 {
 	_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 	_vtol_schedule.transition_start = 0;
-
-	_flag_was_in_trans_mode = false;
 }
 
 void
