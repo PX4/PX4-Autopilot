@@ -400,14 +400,17 @@ ControlAllocator::Run()
 		c[0](5) = _thrust_sp(2);
 
 		if (_num_control_allocation > 1) {
-			_vehicle_torque_setpoint1_sub.copy(&vehicle_torque_setpoint);
-			_vehicle_thrust_setpoint1_sub.copy(&vehicle_thrust_setpoint);
-			c[1](0) = vehicle_torque_setpoint.xyz[0];
-			c[1](1) = vehicle_torque_setpoint.xyz[1];
-			c[1](2) = vehicle_torque_setpoint.xyz[2];
-			c[1](3) = vehicle_thrust_setpoint.xyz[0];
-			c[1](4) = vehicle_thrust_setpoint.xyz[1];
-			c[1](5) = vehicle_thrust_setpoint.xyz[2];
+			if (_vehicle_torque_setpoint1_sub.copy(&vehicle_torque_setpoint)) {
+				c[1](0) = vehicle_torque_setpoint.xyz[0];
+				c[1](1) = vehicle_torque_setpoint.xyz[1];
+				c[1](2) = vehicle_torque_setpoint.xyz[2];
+			}
+
+			if (_vehicle_thrust_setpoint1_sub.copy(&vehicle_thrust_setpoint)) {
+				c[1](3) = vehicle_thrust_setpoint.xyz[0];
+				c[1](4) = vehicle_thrust_setpoint.xyz[1];
+				c[1](5) = vehicle_thrust_setpoint.xyz[2];
+			}
 		}
 
 		for (int i = 0; i < _num_control_allocation; ++i) {
