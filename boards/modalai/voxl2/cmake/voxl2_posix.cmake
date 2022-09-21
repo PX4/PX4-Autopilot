@@ -52,8 +52,6 @@ set(CONFIG_PARAM_SERVER "1")
 add_compile_options($<$<COMPILE_LANGUAGE:C>:-std=gnu99>)
 add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14>)
 
-add_compile_options( -Wno-array-bounds )
-
 add_definitions( -D__PX4_LINUX )
 
 link_directories(/home ${PX4_SOURCE_DIR}/boards/modalai/voxl2/lib)
