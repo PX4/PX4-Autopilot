@@ -289,11 +289,6 @@ void Standard::update_transition_state()
 		if (_param_vt_b_trans_ramp.get() > FLT_EPSILON) {
 			mc_weight = time_since_trans_start / _param_vt_b_trans_ramp.get();
 		}
-
-		// set idle speed for MC actuators
-		if (!_flag_idle_mc) {
-			_flag_idle_mc = true;
-		}
 	}
 
 	mc_weight = math::constrain(mc_weight, 0.0f, 1.0f);
