@@ -283,7 +283,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 				// check if within loiter radius around wp, if yes then set altitude sp to mission item
 				if (dist >= 0.0f && dist_xy <= (_navigator->get_acceptance_radius() + fabsf(_mission_item.loiter_radius))
-				    && dist_z <= _navigator->get_default_altitude_acceptance_radius()) {
+				    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 					curr_sp->alt = mission_item_altitude_amsl;
 					curr_sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
