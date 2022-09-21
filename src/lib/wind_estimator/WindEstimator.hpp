@@ -42,6 +42,7 @@
 #include <matrix/math.hpp>
 
 #include "python/generated/fuse_airspeed.h"
+#include "python/generated/fuse_beta.h"
 
 using namespace time_literals;
 
