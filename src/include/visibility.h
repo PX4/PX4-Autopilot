@@ -123,7 +123,20 @@
 /* We should include cstdlib or stdlib.h but this doesn't
  * compile because many C++ files include stdlib.h and would
  * need to get changed. */
+#ifndef CONFIG_LIB_SYSCALL
+/* The syscall interface puts these into the syscall LUT. When PX4 and NuttX
+ * are compiled as one, it is impossible to reliably limit visibility to these
+ * symbols only for the kernel.
+ *
+ * This produces false alarms via:
+ * /sys/syscall_lookup.h:344:18: error: attempt to use poisoned "getenv"
+ * 344 |   SYSCALL_LOOKUP(getenv,                   1)
+ *
+ * This alarm is false, as the symbol is not really _used_ from anywhere, the
+ * kernel simply populates it (and the empty handler) into the syscall table.
+ */
 #pragma GCC poison getenv setenv putenv
+#endif
 #endif // defined(__PX4_NUTTX)
 
 #endif // PX4_DISABLE_GCC_POISON
