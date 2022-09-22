@@ -34,11 +34,11 @@
 add_executable(toc
 	fw_image.c
 )
-add_dependencies(toc px4_binary)
 
 set(TOC_NAME ${PX4_BINARY_DIR}/toc.elf)
 set_target_properties(toc PROPERTIES OUTPUT_NAME ${TOC_NAME})
 target_compile_options(toc PRIVATE -DPX4_UNSIGNED_FIRMWARE=${PX4_BINARY_OUTPUT})
+set_source_files_properties(fw_image.c PROPERTIES OBJECT_DEPENDS px4_binary)
 
 add_library(board_toc
 	${PX4_BOARD_DIR}/src/toc.c # The board specific ToC file
