@@ -2,6 +2,7 @@
 
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_VERSION 1)
+set(PLATFORM_NAME "nuttx")
 
 set(triple riscv64-unknown-elf)
 set(CMAKE_LIBRARY_ARCHITECTURE ${triple})
