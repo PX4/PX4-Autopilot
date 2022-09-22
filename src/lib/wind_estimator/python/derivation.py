@@ -73,6 +73,31 @@ def fuse_beta(
 
     return (geo.V3(H), K, innov_var, innov)
 
+def init_wind_using_airspeed(
+        v_local: geo.V3,
+        heading: T.Scalar,
+        airspeed: T.Scalar,
+        v_var: T.Scalar,
+        heading_var: T.Scalar,
+        sideslip_var: T.Scalar,
+        airspeed_var: T.Scalar,
+) -> (geo.V2, geo.M22):
+
+    # Initialise wind states assuming zero side slip and horizontal flight
+    wind = geo.V2(v_local[0] - airspeed * sm.cos(heading), v_local[1] - airspeed * sm.sin(heading))
+    # Zero sideslip, propagate the sideslip variance using partial derivatives w.r.t heading
+    J = wind.jacobian([v_local[0], v_local[1], heading, heading, airspeed])
+
+    R = geo.M55()
+    R[0,0] = v_var
+    R[1,1] = v_var
+    R[2,2] = heading_var
+    R[3,3] = sideslip_var
+    R[4,4] = airspeed_var
+
+    P = J * R * J.T
+
+    return (wind, P)
 
 def generatePx4Function(function_name, output_names):
     from symforce.codegen import Codegen, CppConfig
@@ -111,5 +136,7 @@ def generatePythonFunction(function_name, output_names):
             skip_directory_nesting=True)
 
 generatePx4Function(fuse_airspeed, output_names=["H", "K", "innov_var", "innov"])
-generatePythonFunction(fuse_airspeed, output_names=["H", "K", "innov_var", "innov"])
 generatePx4Function(fuse_beta, output_names=["H", "K", "innov_var", "innov"])
+generatePx4Function(init_wind_using_airspeed, output_names=["wind", "P"])
+
+generatePythonFunction(fuse_airspeed, output_names=["H", "K", "innov_var", "innov"])
