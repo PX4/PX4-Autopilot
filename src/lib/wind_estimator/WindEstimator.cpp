@@ -37,6 +37,7 @@
  */
 
 #include "WindEstimator.hpp"
+#include "python/generated/init_wind_using_airspeed.h"
 
 bool
 WindEstimator::initialise(const matrix::Vector3f &velI, const float hor_vel_variance, const float heading_rad,
@@ -44,34 +45,19 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const float hor_vel_vari
 {
 	if (PX4_ISFINITE(tas_meas) && PX4_ISFINITE(tas_variance)) {
 
-		const float cos_heading = cosf(heading_rad);
-		const float sin_heading = sinf(heading_rad);
+		constexpr float initial_heading_var = sq(math::radians(INITIAL_HEADING_ERROR_DEG));
+		constexpr float initial_sideslip_var = sq(math::radians(INITIAL_BETA_ERROR_DEG));
 
-		// initialise wind states assuming zero side slip and horizontal flight
-		_state(INDEX_W_N) = velI(0) - tas_meas * cos_heading;
-		_state(INDEX_W_E) = velI(1) - tas_meas * sin_heading;
+		matrix::SquareMatrix<float, 2> P_wind_init;
+		matrix::Vector2f wind_init;
+
+		sym::InitWindUsingAirspeed(velI, heading_rad, tas_meas, hor_vel_variance, initial_heading_var, initial_sideslip_var,
+					   tas_variance,
+					   &wind_init, &P_wind_init);
+
+		_state.xy() = wind_init;
 		_state(INDEX_TAS_SCALE) = _scale_init;
-
-		constexpr float initial_sideslip_uncertainty = math::radians(INITIAL_BETA_ERROR_DEG);
-		const float initial_wind_var_body_y = sq(tas_meas * sinf(initial_sideslip_uncertainty));
-		constexpr float heading_variance = sq(math::radians(INITIAL_HEADING_ERROR_DEG));
-
-		// rotate wind velocity into earth frame aligned with vehicle yaw
-		const float Wx = _state(INDEX_W_N) * cos_heading + _state(INDEX_W_E) * sin_heading;
-		const float Wy = -_state(INDEX_W_N) * sin_heading + _state(INDEX_W_E) * cos_heading;
-
-		_P(INDEX_W_N, INDEX_W_N) = tas_variance * sq(cos_heading) + heading_variance * sq(-Wx * sin_heading - Wy * cos_heading)
-					   + initial_wind_var_body_y * sq(sin_heading);
-		_P(INDEX_W_N, INDEX_W_E) = tas_variance * sin_heading * cos_heading + heading_variance *
-					   (-Wx * sin_heading - Wy * cos_heading) * (Wx * cos_heading - Wy * sin_heading) -
-					   initial_wind_var_body_y * sin_heading * cos_heading;
-		_P(INDEX_W_E, INDEX_W_N) = _P(INDEX_W_N, INDEX_W_E);
-		_P(INDEX_W_E, INDEX_W_E) = tas_variance * sq(sin_heading) + heading_variance * sq(Wx * cos_heading - Wy * sin_heading) +
-					   initial_wind_var_body_y * sq(cos_heading);
-
-		// Now add the variance due to uncertainty in vehicle velocity that was used to calculate the initial wind speed
-		_P(INDEX_W_N, INDEX_W_N) += hor_vel_variance;
-		_P(INDEX_W_E, INDEX_W_E) += hor_vel_variance;
+		_P.slice<2, 2>(0, 0) = P_wind_init;
 
 	} else {
 		// no airspeed available
