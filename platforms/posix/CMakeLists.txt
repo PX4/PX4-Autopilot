@@ -134,6 +134,14 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 		include(sitl_tests)
 	endif()
 
+	# "none" legacy SITL helper target
+	add_custom_target(none
+		COMMAND $<TARGET_FILE:px4>
+		WORKING_DIRECTORY ${SITL_WORKING_DIR}
+		USES_TERMINAL
+		DEPENDS px4
+	)
+
 	# install
 
 	# px4 dirs
