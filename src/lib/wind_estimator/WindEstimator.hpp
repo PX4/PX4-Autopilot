@@ -45,6 +45,7 @@
 
 #include "python/generated/fuse_airspeed.h"
 #include "python/generated/fuse_beta.h"
+#include "python/generated/init_wind_using_airspeed.h"
 
 using namespace time_literals;
 
