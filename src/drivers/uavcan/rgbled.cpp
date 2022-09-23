@@ -89,27 +89,27 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 
 		// FALLTHROUGH
 		case led_control_s::COLOR_YELLOW:
-			cmd.color.red = brightness >> 3;
-			cmd.color.green = brightness >> 2;
+			cmd.color.red = (brightness / 2) >> 3;
+			cmd.color.green = (brightness / 2) >> 2;
 			cmd.color.blue = 0;
 			break;
 
 		case led_control_s::COLOR_PURPLE:
-			cmd.color.red = brightness >> 3;
+			cmd.color.red = (brightness / 2) >> 3;
 			cmd.color.green = 0;
-			cmd.color.blue = brightness >> 3;
+			cmd.color.blue = (brightness / 2) >> 3;
 			break;
 
 		case led_control_s::COLOR_CYAN:
 			cmd.color.red = 0;
-			cmd.color.green = brightness >> 2;
-			cmd.color.blue = brightness >> 3;
+			cmd.color.green = (brightness / 2) >> 2;
+			cmd.color.blue = (brightness / 2) >> 3;
 			break;
 
 		case led_control_s::COLOR_WHITE:
-			cmd.color.red = brightness >> 3;
-			cmd.color.green = brightness >> 2;
-			cmd.color.blue = brightness >> 3;
+			cmd.color.red = (brightness / 3) >> 3;
+			cmd.color.green = (brightness / 3) >> 2;
+			cmd.color.blue = (brightness / 3) >> 3;
 			break;
 
 		default: // led_control_s::COLOR_OFF
