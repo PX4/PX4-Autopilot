@@ -149,7 +149,20 @@ void Ekf::predictCovariance()
 	for (unsigned stateIndex = 13; stateIndex <= 15; stateIndex++) {
 		const unsigned index = stateIndex - 13;
 
-		const bool do_inhibit_axis = do_inhibit_all_axes || _imu_sample_delayed.delta_vel_clipping[index];
+		bool is_bias_observable = true;
+
+		if (_control_status.flags.vehicle_at_rest) {
+			is_bias_observable = true;
+
+		} else if (_control_status.flags.fake_hgt) {
+			is_bias_observable = false;
+
+		} else if (_control_status.flags.fake_pos) {
+			// when using fake position (but not fake height) only consider an accel bias observable if aligned with the gravity vector
+			is_bias_observable = (fabsf(_R_to_earth(2, index)) > 0.966f); // cos 15 degrees ~= 0.966
+		}
+
+		const bool do_inhibit_axis = do_inhibit_all_axes || _imu_sample_delayed.delta_vel_clipping[index] || !is_bias_observable;
 
 		if (do_inhibit_axis) {
 			// store the bias state variances to be reinstated later
