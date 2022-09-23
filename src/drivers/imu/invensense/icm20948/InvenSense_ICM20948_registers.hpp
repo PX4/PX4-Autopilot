@@ -65,6 +65,8 @@ static constexpr uint8_t WHOAMI = 0xEA;
 
 static constexpr float TEMPERATURE_SENSITIVITY = 333.87f; // LSB/C
 static constexpr float TEMPERATURE_OFFSET = 21.f; // C
+static constexpr float TEMPERATURE_SENSOR_MIN = -40.f; // °C
+static constexpr float TEMPERATURE_SENSOR_MAX = 85.f; // °C
 
 namespace Register
 {
@@ -145,6 +147,7 @@ enum PWR_MGMT_1_BIT : uint8_t {
 	DEVICE_RESET = Bit7,
 	SLEEP        = Bit6,
 
+	TEMP_DIS     = Bit3,
 	CLKSEL_2     = Bit2,
 	CLKSEL_1     = Bit1,
 	CLKSEL_0     = Bit0,
