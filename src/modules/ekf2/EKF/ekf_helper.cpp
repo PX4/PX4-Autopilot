@@ -259,6 +259,14 @@ void Ekf::resetVerticalVelocityToGps(const gpsSample &gps_sample)
 	P.uncorrelateCovarianceSetVariance<1>(6, sq(1.5f * gps_sample.sacc));
 }
 
+void Ekf::resetVerticalVelocityToEv(const extVisionSample &ev_sample)
+{
+	resetVerticalVelocityTo(ev_sample.vel(2));
+
+	// the state variance is the same as the observation
+	P.uncorrelateCovarianceSetVariance<1>(6, ev_sample.velVar(2));
+}
+
 void Ekf::resetVerticalVelocityToZero()
 {
 	// we don't know what the vertical velocity is, so set it to zero
