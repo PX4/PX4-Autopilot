@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -100,9 +100,9 @@ void FwAutotuneAttitudeControl::Run()
 	_aux_switch_en = isAuxEnableSwitchEnabled();
 
 	// new control data needed every iteration
-	if ((_state == state::idle
-	     && !_aux_switch_en)
+	if ((_state == state::idle && !_aux_switch_en)
 	    || !_actuator_controls_sub.updated()) {
+
 		return;
 	}
 
@@ -292,8 +292,8 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	switch (_state) {
 	case state::idle:
 		if (_param_fw_at_start.get() || _aux_switch_en) {
-			orb_advert_t mavlink_log_pub = nullptr;
-			mavlink_log_info(&mavlink_log_pub, "Autotune started");
+
+			mavlink_log_info(&_mavlink_log_pub, "Autotune started");
 			_state = state::init;
 			_state_start_time = now;
 			_start_flight_mode = _nav_state;
@@ -410,8 +410,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		break;
 
 	case state::apply: {
-			orb_advert_t mavlink_log_pub = nullptr;
-			mavlink_log_info(&mavlink_log_pub, "Autotune finished successfully");
+			mavlink_log_info(&_mavlink_log_pub, "Autotune finished successfully");
 
 			if ((_param_fw_at_apply.get() == 1)) {
 				_state = state::wait_for_disarm;
@@ -426,6 +425,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 			_state_start_time = now;
 		}
+
 		break;
 
 	case state::wait_for_disarm:
@@ -478,7 +478,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	// In case of convergence timeout
 	// the identification sequence is aborted immediately
-	if (_state != state::wait_for_disarm && _state != state::idle &&  _state != state::fail && _state != state::complete) {
+	if (_state != state::wait_for_disarm && _state != state::idle && _state != state::fail && _state != state::complete) {
 		if (now - _state_start_time > 20_s
 		    || (_param_fw_at_man_aux.get() && !_aux_switch_en)
 		    || _start_flight_mode != _nav_state) {
