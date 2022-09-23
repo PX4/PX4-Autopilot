@@ -1576,6 +1576,7 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 			if (PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
 			    && PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
 			    && (airspeed_validated.calibrated_airspeed_m_s > 0.f)
+			    && (airspeed_validated.selected_airspeed_index > 0)
 			   ) {
 				airspeedSample airspeed_sample {
 					.time_us = airspeed_validated.timestamp,
