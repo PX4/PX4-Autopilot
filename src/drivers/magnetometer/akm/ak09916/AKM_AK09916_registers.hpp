@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -93,10 +93,8 @@ enum ST2_BIT : uint8_t {
 // CNTL2
 enum CNTL2_BIT : uint8_t {
 	// MODE[4:0] bits
-	MODE1 = Bit1,        // “00010”: Continuous measurement mode 1 (10Hz)
-	MODE2 = Bit2,        // “00100”: Continuous measurement mode 2 (20Hz)
-	MODE3 = Bit2 | Bit1, // “00110”: Continuous measurement mode 3 (50Hz)
-	MODE4 = Bit3,        // “01000”: Continuous measurement mode 4 (100Hz)
+	MODE3_SET   = Bit2 | Bit1, // “00110”: Continuous measurement mode 3 (50Hz)
+	MODE3_CLEAR = Bit4 | Bit3 | Bit0,
 };
 
 // CNTL3
