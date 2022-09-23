@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include <px4_platform_common/events.h>
 #include "EKF2.hpp"
 
 using namespace time_literals;
@@ -106,7 +107,10 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_req_hdrift(_params->req_hdrift),
 	_param_ekf2_req_vdrift(_params->req_vdrift),
 	_param_ekf2_aid_mask(_params->fusion_mode),
-	_param_ekf2_hgt_mode(_params->vdist_sensor_type),
+	_param_ekf2_hgt_ref(_params->height_sensor_ref),
+	_param_ekf2_baro_ctrl(_params->baro_ctrl),
+	_param_ekf2_gps_ctrl(_params->gnss_ctrl),
+	_param_ekf2_rng_ctrl(_params->rng_ctrl),
 	_param_ekf2_terr_mask(_params->terrain_fusion_mode),
 	_param_ekf2_noaid_tout(_params->valid_timeout_max),
 	_param_ekf2_rng_noise(_params->range_noise),
@@ -114,7 +118,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_rng_gate(_params->range_innov_gate),
 	_param_ekf2_min_rng(_params->rng_gnd_clearance),
 	_param_ekf2_rng_pitch(_params->rng_sens_pitch),
-	_param_ekf2_rng_aid(_params->range_aid),
 	_param_ekf2_rng_a_vmax(_params->max_vel_for_range_aid),
 	_param_ekf2_rng_a_hmax(_params->max_hagl_for_range_aid),
 	_param_ekf2_rng_a_igate(_params->range_aid_innov_gate),
@@ -199,12 +202,15 @@ bool EKF2::multi_init(int imu, int mag)
 	// advertise all topics to ensure consistent uORB instance numbering
 	_ekf2_timestamps_pub.advertise();
 	_estimator_baro_bias_pub.advertise();
+	_estimator_ev_hgt_bias_pub.advertise();
 	_estimator_event_flags_pub.advertise();
+	_estimator_gnss_hgt_bias_pub.advertise();
 	_estimator_gps_status_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();
 	_estimator_innovation_variances_pub.advertise();
 	_estimator_innovations_pub.advertise();
 	_estimator_optical_flow_vel_pub.advertise();
+	_estimator_rng_hgt_bias_pub.advertise();
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_states_pub.advertise();
 	_estimator_status_flags_pub.advertise();
@@ -282,6 +288,8 @@ void EKF2::Run()
 		// update parameters from storage
 		updateParams();
 
+		VerifyParams();
+
 		_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
 
 		// The airspeed scale factor correcton is only available via parameter as used by the airspeed module
@@ -292,7 +300,7 @@ void EKF2::Run()
 		}
 
 		// if using baro ensure sensor interval minimum is sufficient to accommodate system averaged baro output
-		if (_params->vdist_sensor_type == 0) {
+		if (_params->baro_ctrl == 1) {
 			float sens_baro_rate = 0.f;
 
 			if (param_get(param_find("SENS_BARO_RATE"), &sens_baro_rate) == PX4_OK) {
@@ -602,6 +610,9 @@ void EKF2::Run()
 
 			// publish status/logging messages
 			PublishBaroBias(now);
+			PublishGnssHgtBias(now);
+			PublishRngHgtBias(now);
+			PublishEvHgtBias(now);
 			PublishEventFlags(now);
 			PublishGpsStatus(now);
 			PublishInnovations(now);
@@ -638,6 +649,66 @@ void EKF2::Run()
 	ScheduleDelayed(100_ms);
 }
 
+void EKF2::VerifyParams()
+{
+	if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_GPS)
+	    || (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_GPS_YAW)) {
+		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_GPS |
+					 SensorFusionMask::DEPRECATED_USE_GPS_YAW));
+		_param_ekf2_aid_mask.commit();
+		mavlink_log_critical(&_mavlink_log_pub, "Use EKF2_GPS_CTRL instead\n");
+		/* EVENT
+		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_aid_mask_gps"), events::Log::Warning,
+				    "Use EKF2_GPS_CTRL instead", _param_ekf2_aid_mask.get());
+	}
+
+	if ((_param_ekf2_gps_ctrl.get() & GnssCtrl::VPOS) && !(_param_ekf2_gps_ctrl.get() & GnssCtrl::HPOS)) {
+		_param_ekf2_gps_ctrl.set(_param_ekf2_gps_ctrl.get() & ~GnssCtrl::VPOS);
+		_param_ekf2_gps_ctrl.commit();
+		mavlink_log_critical(&_mavlink_log_pub, "GPS lon/lat is required for altitude fusion\n");
+		/* EVENT
+		 * @description <param>EKF2_GPS_CTRL</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_gps_ctrl_alt"), events::Log::Warning,
+				    "GPS lon/lat is required for altitude fusion", _param_ekf2_gps_ctrl.get());
+	}
+
+	if ((_param_ekf2_hgt_ref.get() == HeightSensor::BARO) && (_param_ekf2_baro_ctrl.get() == 0)) {
+		_param_ekf2_baro_ctrl.set(1);
+		_param_ekf2_baro_ctrl.commit();
+		mavlink_log_critical(&_mavlink_log_pub, "Baro enabled by EKF2_HGT_REF\n");
+		/* EVENT
+		 * @description <param>EKF2_BARO_CTRL</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_hgt_ref_baro"), events::Log::Warning,
+				    "Baro enabled by EKF2_HGT_REF", _param_ekf2_baro_ctrl.get());
+	}
+
+	if ((_param_ekf2_hgt_ref.get() == HeightSensor::RANGE) && (_param_ekf2_rng_ctrl.get() == RngCtrl::DISABLED)) {
+		_param_ekf2_rng_ctrl.set(1);
+		_param_ekf2_rng_ctrl.commit();
+		mavlink_log_critical(&_mavlink_log_pub, "Range enabled by EKF2_HGT_REF\n");
+		/* EVENT
+		 * @description <param>EKF2_RNG_CTRL</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_hgt_ref_rng"), events::Log::Warning,
+				    "Range enabled by EKF2_HGT_REF", _param_ekf2_rng_ctrl.get());
+	}
+
+	if ((_param_ekf2_hgt_ref.get() == HeightSensor::GNSS) && !(_param_ekf2_gps_ctrl.get() & GnssCtrl::VPOS)) {
+		_param_ekf2_gps_ctrl.set(_param_ekf2_gps_ctrl.get() | (GnssCtrl::VPOS | GnssCtrl::HPOS | GnssCtrl::VEL));
+		_param_ekf2_gps_ctrl.commit();
+		mavlink_log_critical(&_mavlink_log_pub, "GPS enabled by EKF2_HGT_REF\n");
+		/* EVENT
+		 * @description <param>EKF2_GPS_CTRL</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_hgt_ref_gps"), events::Log::Warning,
+				    "GPS enabled by EKF2_HGT_REF", _param_ekf2_gps_ctrl.get());
+	}
+}
+
 void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 {
 	// airspeed
@@ -651,6 +722,7 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 
 	// fake position
 	PublishAidSourceStatus(_ekf.aid_src_fake_pos(), _status_fake_pos_pub_last, _estimator_aid_src_fake_pos_pub);
+	PublishAidSourceStatus(_ekf.aid_src_fake_hgt(), _status_fake_hgt_pub_last, _estimator_aid_src_fake_hgt_pub);
 
 	// EV yaw
 	PublishAidSourceStatus(_ekf.aid_src_ev_yaw(), _status_ev_yaw_pub_last, _estimator_aid_src_ev_yaw_pub);
@@ -697,20 +769,61 @@ void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 		const BiasEstimator::status &status = _ekf.getBaroBiasEstimatorStatus();
 
 		if (fabsf(status.bias - _last_baro_bias_published) > 0.001f) {
-			estimator_baro_bias_s baro_bias{};
-			baro_bias.timestamp_sample = _ekf.get_baro_sample_delayed().time_us;
-			baro_bias.baro_device_id = _device_id_baro;
-			baro_bias.bias = status.bias;
-			baro_bias.bias_var = status.bias_var;
-			baro_bias.innov = status.innov;
-			baro_bias.innov_var = status.innov_var;
-			baro_bias.innov_test_ratio = status.innov_test_ratio;
-			baro_bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-			_estimator_baro_bias_pub.publish(baro_bias);
+			_estimator_baro_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.aid_src_baro_hgt().timestamp_sample, timestamp,
+							 _device_id_baro));
 
 			_last_baro_bias_published = status.bias;
 		}
 	}
+}
+
+void EKF2::PublishGnssHgtBias(const hrt_abstime &timestamp)
+{
+	const BiasEstimator::status &status = _ekf.getGpsHgtBiasEstimatorStatus();
+
+	if (fabsf(status.bias - _last_gnss_hgt_bias_published) > 0.001f) {
+		_estimator_gnss_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_gps_sample_delayed().time_us, timestamp));
+
+		_last_gnss_hgt_bias_published = status.bias;
+	}
+}
+
+void EKF2::PublishRngHgtBias(const hrt_abstime &timestamp)
+{
+	const BiasEstimator::status &status = _ekf.getRngHgtBiasEstimatorStatus();
+
+	if (fabsf(status.bias - _last_rng_hgt_bias_published) > 0.001f) {
+		_estimator_rng_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_rng_sample_delayed().time_us, timestamp));
+
+		_last_rng_hgt_bias_published = status.bias;
+	}
+}
+
+void EKF2::PublishEvHgtBias(const hrt_abstime &timestamp)
+{
+	const BiasEstimator::status &status = _ekf.getEvHgtBiasEstimatorStatus();
+
+	if (fabsf(status.bias - _last_ev_hgt_bias_published) > 0.001f) {
+		_estimator_ev_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_ev_sample_delayed().time_us, timestamp));
+
+		_last_ev_hgt_bias_published = status.bias;
+	}
+}
+
+estimator_bias_s EKF2::fillEstimatorBiasMsg(const BiasEstimator::status &status, uint64_t timestamp_sample_us,
+		uint64_t timestamp, uint32_t device_id)
+{
+	estimator_bias_s bias{};
+	bias.timestamp_sample = timestamp_sample_us;
+	bias.baro_device_id = device_id;
+	bias.bias = status.bias;
+	bias.bias_var = status.bias_var;
+	bias.innov = status.innov;
+	bias.innov_var = status.innov_var;
+	bias.innov_test_ratio = status.innov_test_ratio;
+	bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+
+	return bias;
 }
 
 void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
@@ -1316,6 +1429,8 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_inertial_dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning;
 		status_flags.cs_wind_dead_reckoning     = _ekf.control_status_flags().wind_dead_reckoning;
 		status_flags.cs_rng_kin_consistent      = _ekf.control_status_flags().rng_kin_consistent;
+		status_flags.cs_fake_pos                = _ekf.control_status_flags().fake_pos;
+		status_flags.cs_fake_hgt                = _ekf.control_status_flags().fake_hgt;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -1461,6 +1576,7 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 			if (PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
 			    && PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
 			    && (airspeed_validated.calibrated_airspeed_m_s > 0.f)
+			    && (airspeed_validated.selected_airspeed_index > 0)
 			   ) {
 				airspeedSample airspeed_sample {
 					.time_us = airspeed_validated.timestamp,
@@ -2233,11 +2349,11 @@ int EKF2::task_spawn(int argc, char *argv[])
 			}
 		}
 
-	}
+	} else
 
 #endif // !CONSTRAINED_FLASH
 
-	else {
+	{
 		// otherwise launch regular
 		EKF2 *ekf2_inst = new EKF2(false, px4::wq_configurations::INS0, replay_mode);
 

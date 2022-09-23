@@ -51,7 +51,9 @@ void Ekf::controlZeroVelocityUpdate()
 			Vector3f vel_obs{0, 0, 0};
 			Vector3f innovation = _state.vel - vel_obs;
 
-			const float obs_var = sq(0.001f);
+			// Set a low variance initially for faster accel bias learning and higher
+			// later to let the states follow the measurements
+			const float obs_var = _NED_origin_initialised ? sq(0.2f) : sq(0.001f);
 			Vector3f innov_var{
 				P(4, 4) + obs_var,
 				P(5, 5) + obs_var,
@@ -61,7 +63,7 @@ void Ekf::controlZeroVelocityUpdate()
 			fuseVelPosHeight(innovation(1), innov_var(1), 1);
 			fuseVelPosHeight(innovation(2), innov_var(2), 2);
 
-			_time_last_zero_velocity_fuse = _time_last_imu;
+			_time_last_zero_velocity_fuse = _imu_sample_delayed.time_us;
 		}
 	}
 }

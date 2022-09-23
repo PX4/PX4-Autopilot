@@ -26,7 +26,6 @@ param set-default MC_ROLLRATE_MAX 1600
 param set-default MC_PITCHRATE_MAX 1600
 param set-default MC_YAWRATE_MAX 1000
 
-param set-default MPC_MANTHR_MIN 0
 param set-default MPC_MAN_TILT_MAX 60
 
 param set-default THR_MDL_FAC 0.3

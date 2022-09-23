@@ -49,17 +49,25 @@ public:
 	~EkfWrapper();
 
 
-	void setBaroHeight();
+	void setBaroHeightRef();
+	void enableBaroHeightFusion();
+	void disableBaroHeightFusion();
 	bool isIntendingBaroHeightFusion() const;
 
-	void setGpsHeight();
+	void setGpsHeightRef();
+	void enableGpsHeightFusion();
+	void disableGpsHeightFusion();
 	bool isIntendingGpsHeightFusion() const;
 
-	void setRangeHeight();
+	void setRangeHeightRef();
+	void enableRangeHeightFusion();
+	void disableRangeHeightFusion();
 	bool isIntendingRangeHeightFusion() const;
 
-	void setVisionHeight();
-	bool isIntendingVisionHeightFusion() const;
+	void setExternalVisionHeightRef();
+	void enableExternalVisionHeightFusion();
+	/* void disableExternalVisionHeightFusion(); */
+	bool isIntendingExternalVisionHeightFusion() const;
 
 	void enableGpsFusion();
 	void disableGpsFusion();

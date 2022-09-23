@@ -70,7 +70,7 @@ set(msg_files
 	estimator_aid_source_1d.msg
 	estimator_aid_source_2d.msg
 	estimator_aid_source_3d.msg
-	estimator_baro_bias.msg
+	estimator_bias.msg
 	estimator_event_flags.msg
 	estimator_gps_status.msg
 	estimator_innovations.msg
@@ -95,6 +95,8 @@ set(msg_files
 	gimbal_manager_status.msg
 	gps_dump.msg
 	gps_inject_data.msg
+	health_report.msg
+	gripper.msg
 	heater_status.msg
 	home_position.msg
 	hover_thrust_estimate.msg
@@ -163,7 +165,6 @@ set(msg_files
 	task_stack_info.msg
 	tecs_status.msg
 	telemetry_status.msg
-	test_motor.msg
 	timesync.msg
 	timesync_status.msg
 	trajectory_bezier.msg

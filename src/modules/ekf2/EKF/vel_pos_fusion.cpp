@@ -74,7 +74,7 @@ bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const float innov_gate, co
 	innov_var(2) = P(6, 6) + obs_var(2);
 	test_ratio(1) = sq(innov(2)) / (sq(innov_gate) * innov_var(2));
 	_vert_vel_innov_ratio = innov(2) / sqrtf(innov_var(2));
-	_vert_vel_fuse_time_us = _time_last_imu;
+	_vert_vel_fuse_time_us = _imu_sample_delayed.time_us;
 	bool innov_check_pass = (test_ratio(1) <= 1.0f);
 
 	// if there is bad vertical acceleration data, then don't reject measurement,
@@ -132,7 +132,7 @@ bool Ekf::fuseVerticalPosition(const float innov, const float innov_gate, const 
 	innov_var = P(9, 9) + obs_var;
 	test_ratio = sq(innov) / (sq(innov_gate) * innov_var);
 	_vert_pos_innov_ratio = innov / sqrtf(innov_var);
-	_vert_pos_fuse_attempt_time_us = _time_last_imu;
+	_vert_pos_fuse_attempt_time_us = _imu_sample_delayed.time_us;
 	bool innov_check_pass = test_ratio <= 1.0f;
 
 	// if there is bad vertical acceleration data, then don't reject measurement,
@@ -218,7 +218,7 @@ void Ekf::fuseVelocity(estimator_aid_source_3d_s& vel_aid_src)
 		for (int i = 0; i < 2; i++) {
 			if (fuseVelPosHeight(vel_aid_src.innovation[i], vel_aid_src.innovation_variance[i], i)) {
 				vel_aid_src.fused[i] = true;
-				vel_aid_src.time_last_fuse[i] = _time_last_imu;
+				vel_aid_src.time_last_fuse[i] = _imu_sample_delayed.time_us;
 			}
 		}
 	}
@@ -227,7 +227,7 @@ void Ekf::fuseVelocity(estimator_aid_source_3d_s& vel_aid_src)
 	if (vel_aid_src.fusion_enabled[2] && !vel_aid_src.innovation_rejected[2]) {
 		if (fuseVelPosHeight(vel_aid_src.innovation[2], vel_aid_src.innovation_variance[2], 2)) {
 			vel_aid_src.fused[2] = true;
-			vel_aid_src.time_last_fuse[2] = _time_last_imu;
+			vel_aid_src.time_last_fuse[2] = _imu_sample_delayed.time_us;
 		}
 	}
 }
@@ -241,7 +241,7 @@ void Ekf::fusePosition(estimator_aid_source_3d_s& pos_aid_src)
 		for (int i = 0; i < 2; i++) {
 			if (fuseVelPosHeight(pos_aid_src.innovation[i], pos_aid_src.innovation_variance[i], 3 + i)) {
 				pos_aid_src.fused[i] = true;
-				pos_aid_src.time_last_fuse[i] = _time_last_imu;
+				pos_aid_src.time_last_fuse[i] = _imu_sample_delayed.time_us;
 			}
 		}
 	}
@@ -250,7 +250,7 @@ void Ekf::fusePosition(estimator_aid_source_3d_s& pos_aid_src)
 	if (pos_aid_src.fusion_enabled[2] && !pos_aid_src.innovation_rejected[2]) {
 		if (fuseVelPosHeight(pos_aid_src.innovation[2], pos_aid_src.innovation_variance[2], 5)) {
 			pos_aid_src.fused[2] = true;
-			pos_aid_src.time_last_fuse[2] = _time_last_imu;
+			pos_aid_src.time_last_fuse[2] = _imu_sample_delayed.time_us;
 		}
 	}
 }
@@ -310,7 +310,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 	case 0:
 		if (healthy) {
 			_fault_status.flags.bad_vel_N = false;
-			_time_last_hor_vel_fuse = _time_last_imu;
+			_time_last_hor_vel_fuse = _imu_sample_delayed.time_us;
 
 		} else {
 			_fault_status.flags.bad_vel_N = true;
@@ -321,7 +321,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 	case 1:
 		if (healthy) {
 			_fault_status.flags.bad_vel_E = false;
-			_time_last_hor_vel_fuse = _time_last_imu;
+			_time_last_hor_vel_fuse = _imu_sample_delayed.time_us;
 
 		} else {
 			_fault_status.flags.bad_vel_E = true;
@@ -332,7 +332,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 	case 2:
 		if (healthy) {
 			_fault_status.flags.bad_vel_D = false;
-			_time_last_ver_vel_fuse = _time_last_imu;
+			_time_last_ver_vel_fuse = _imu_sample_delayed.time_us;
 
 		} else {
 			_fault_status.flags.bad_vel_D = true;
@@ -343,7 +343,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 	case 3:
 		if (healthy) {
 			_fault_status.flags.bad_pos_N = false;
-			_time_last_hor_pos_fuse = _time_last_imu;
+			_time_last_hor_pos_fuse = _imu_sample_delayed.time_us;
 
 		} else {
 			_fault_status.flags.bad_pos_N = true;
@@ -354,7 +354,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 	case 4:
 		if (healthy) {
 			_fault_status.flags.bad_pos_E = false;
-			_time_last_hor_pos_fuse = _time_last_imu;
+			_time_last_hor_pos_fuse = _imu_sample_delayed.time_us;
 
 		} else {
 			_fault_status.flags.bad_pos_E = true;
@@ -365,7 +365,7 @@ void Ekf::setVelPosStatus(const int index, const bool healthy)
 	case 5:
 		if (healthy) {
 			_fault_status.flags.bad_pos_D = false;
-			_time_last_hgt_fuse = _time_last_imu;
+			_time_last_hgt_fuse = _imu_sample_delayed.time_us;
 
 		} else {
 			_fault_status.flags.bad_pos_D = true;

@@ -50,22 +50,13 @@ __EXPORT extern const px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS]; ///< b
  * runtime-check if a board has a specific bus as external.
  * This can be overridden by a board to add run-time checks.
  */
-__EXPORT bool px4_i2c_bus_external(const px4_i2c_bus_t &bus);
+__EXPORT bool px4_i2c_bus_external(int bus);
 
 /**
- * runtime-check if a board has a specific bus as external.
+ * runtime-check if a board has a specific device as external.
+ * This can be overridden by a board to add run-time checks.
  */
-static inline bool px4_i2c_bus_external(int bus)
-{
-	for (int i = 0; i < I2C_BUS_MAX_BUS_ITEMS; ++i) {
-		if (px4_i2c_buses[i].bus == bus) {
-			return px4_i2c_bus_external(px4_i2c_buses[i]);
-		}
-	}
-
-	return true;
-}
-
+__EXPORT bool px4_i2c_device_external(const uint32_t device_id);
 
 /**
  * @class I2CBusIterator
@@ -93,7 +84,7 @@ public:
 
 	int externalBusIndex() const { return _external_bus_counter; }
 
-	bool external() const { return px4_i2c_bus_external(bus()); }
+	bool external() const { return px4_i2c_bus_external(_bus); }
 
 private:
 	const FilterType _filter;

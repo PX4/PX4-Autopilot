@@ -73,7 +73,7 @@ void Ekf::initialiseCovariance()
 		P(9,9) = sq(fmaxf(_params.range_noise, 0.01f));
 
 	} else if (_control_status.flags.gps_hgt) {
-		P(9,9) = getGpsHeightVariance();
+		P(9,9) = sq(fmaxf(1.5f * _params.gps_pos_noise, 0.01f));
 
 	} else {
 		P(9,9) = sq(fmaxf(_params.baro_noise, 0.01f));
@@ -149,7 +149,20 @@ void Ekf::predictCovariance()
 	for (unsigned stateIndex = 13; stateIndex <= 15; stateIndex++) {
 		const unsigned index = stateIndex - 13;
 
-		const bool do_inhibit_axis = do_inhibit_all_axes || _imu_sample_delayed.delta_vel_clipping[index];
+		bool is_bias_observable = true;
+
+		if (_control_status.flags.vehicle_at_rest) {
+			is_bias_observable = true;
+
+		} else if (_control_status.flags.fake_hgt) {
+			is_bias_observable = false;
+
+		} else if (_control_status.flags.fake_pos) {
+			// when using fake position (but not fake height) only consider an accel bias observable if aligned with the gravity vector
+			is_bias_observable = (fabsf(_R_to_earth(2, index)) > 0.966f); // cos 15 degrees ~= 0.966
+		}
+
+		const bool do_inhibit_axis = do_inhibit_all_axes || _imu_sample_delayed.delta_vel_clipping[index] || !is_bias_observable;
 
 		if (do_inhibit_axis) {
 			// store the bias state variances to be reinstated later
@@ -901,7 +914,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 	float P_lim[8] = {};
 	P_lim[0] = 1.0f;		// quaternion max var
 	P_lim[1] = 1e6f;		// velocity max var
-	P_lim[2] = 1e6f;		// positiion max var
+	P_lim[2] = 1e6f;		// position max var
 	P_lim[3] = 1.0f;		// gyro bias max var
 	P_lim[4] = 1.0f;		// delta velocity z bias max var
 	P_lim[5] = 1.0f;		// earth mag field max var
@@ -1006,7 +1019,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		// record the pass/fail
 		if (!bad_acc_bias) {
 			_fault_status.flags.bad_acc_bias = false;
-			_time_acc_bias_check = _time_last_imu;
+			_time_acc_bias_check = _imu_sample_delayed.time_us;
 
 		} else {
 			_fault_status.flags.bad_acc_bias = true;
@@ -1018,7 +1031,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 
 			P.uncorrelateCovariance<3>(13);
 
-			_time_acc_bias_check = _time_last_imu;
+			_time_acc_bias_check = _imu_sample_delayed.time_us;
 			_fault_status.flags.bad_acc_bias = false;
 			_warning_events.flags.invalid_accel_bias_cov_reset = true;
 			ECL_WARN("invalid accel bias - covariance reset");

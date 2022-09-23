@@ -19,9 +19,8 @@
 *.jar    binary
 *.xml    text eol=lf
 
-# PX4 mixers, msgs, etc
+# PX4 msgs, etc
 *.bin    binary
-*.mix    text eol=lf
 *.msg    text eol=lf
 *.config text eol=lf
 *.sdf    text eol=lf

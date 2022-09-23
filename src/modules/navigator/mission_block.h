@@ -33,7 +33,8 @@
 /**
  * @file mission_block.h
  *
- * Helper class to use mission items
+ * Base class for Mission class and special flight modes like
+ * RTL, Land, Loiter, Takeoff, Geofence, etc.
  *
  * @author Julian Oes <julian@oes.ch>
  */
@@ -52,6 +53,9 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+
+// cosine of maximal course error to exit loiter if exit course is enforced (fixed-wing only)
+static constexpr float kCosineExitCourseThreshold = 0.99619f; // cos(5°)
 
 class Navigator;
 
@@ -75,6 +79,11 @@ public:
 	static bool item_contains_position(const mission_item_s &item);
 
 	/**
+	 * Returns true if the mission item is not an instant action, but has a delay / timeout
+	 */
+	bool item_has_timeout(const mission_item_s &item);
+
+	/**
 	 * Check if the mission item contains a gate condition
 	 *
 	 * @return true if mission item is a gate
@@ -88,12 +97,42 @@ public:
 	 */
 	static bool item_contains_marker(const mission_item_s &item);
 
+	/**
+	 * @brief Set the payload deployment successful flag object
+	 *
+	 * Function is accessed in Navigator (navigator_main.cpp) to flag when a successful
+	 * payload deployment ack command has been received. Which in turn allows the mission item
+	 * to continue to the next in the 'is_mission_item_reached_or_completed' function below
+	 */
+	void set_payload_depolyment_successful_flag(bool payload_deploy_result)
+	{
+		_payload_deploy_ack_successful = payload_deploy_result;
+	}
+
+	/**
+	 * @brief Set the payload deployment timeout
+	 *
+	 * Accessed in Navigator to set the appropriate timeout to wait for while waiting for a successful
+	 * payload delivery acknowledgement. If the payload deployment takes longer than timeout, mission will
+	 * continue into the next item automatically.
+	 *
+	 * @param timeout_s Timeout in seconds
+	 */
+	void set_payload_deployment_timeout(const float timeout_s)
+	{
+		_payload_deploy_timeout_s = timeout_s;
+	}
+
 protected:
 	/**
-	 * Check if mission item has been reached
-	 * @return true if successfully reached
+	 * Check if mission item has been reached (for Waypoint based mission items) or Completed (Action based mission items)
+	 *
+	 * Mission Item's 'nav_cmd' can be either Waypoint or Action based. In order to check whether current mission item's
+	 * execution was successful, we need to check either the waypoint was 'reached' or the action was 'completed'.
+	 *
+	 * @return true if successfully reached or completed
 	 */
-	bool is_mission_item_reached();
+	bool is_mission_item_reached_or_completed();
 
 	/**
 	 * Reset all reached flags
@@ -140,18 +179,39 @@ protected:
 	 */
 	void mission_apply_limitation(mission_item_s &item);
 
+	/**
+	 * @brief Issue a command for mission items with a nav_cmd that specifies an action
+	 *
+	 * Execute the specified command inside the mission item. The action depends on the nav_cmd
+	 * value (which correlates to the MAVLink's MAV_CMD enum values) and the params defined in the
+	 * mission item.
+	 *
+	 * This is used for commands like MAV_CMD_DO* in MAVLink, where immediate actions are defined.
+	 * For more information, refer to: https://mavlink.io/en/services/mission.html#mavlink_commands
+	 *
+	 * @param item Mission item to execute
+	 */
 	void issue_command(const mission_item_s &item);
 
-	float get_time_inside(const mission_item_s &item) const ;
+	/**
+	 * [s] Get the time to stay that's specified in the mission item
+	 */
+	float get_time_inside(const mission_item_s &item) const;
 
 	float get_absolute_altitude_for_item(const mission_item_s &mission_item) const;
 
-	mission_item_s _mission_item{};
+	mission_item_s _mission_item{}; // Current mission item that is being executed
 
 	bool _waypoint_position_reached{false};
 	bool _waypoint_yaw_reached{false};
 
 	hrt_abstime _time_wp_reached{0};
 
+	/* Payload Deploy internal states are used by two NAV_CMDs: DO_WINCH and DO_GRIPPER */
+	bool _payload_deploy_ack_successful{false};	// Flag to keep track of whether we received an acknowledgement for a successful payload deployment
+	hrt_abstime _payload_deployed_time{0};		// Last payload deployment start time to handle timeouts
+	float _payload_deploy_timeout_s{0.0f};		// Timeout for payload deployment in Mission class, to prevent endless loop if successful deployment ack is never received
+
+	// Used for MAV_CMD_DO_SET_SERVO command of a Mission item
 	uORB::Publication<actuator_controls_s>	_actuator_pub{ORB_ID(actuator_controls_2)};
 };

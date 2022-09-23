@@ -280,17 +280,3 @@ PARAM_DEFINE_INT32(SYS_BL_UPDATE, 0);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_FAILURE_EN, 0);
-
-
-/**
- * Enable Dynamic Control Allocation
- *
- * If disabled, the existing mixing implementation is used.
- * If enabled, dynamic control allocation with runtime configuration of the
- * mixing and output functions is used.
- *
- * @boolean
- * @reboot_required true
- * @group System
- */
-PARAM_DEFINE_INT32(SYS_CTRL_ALLOC, 1);

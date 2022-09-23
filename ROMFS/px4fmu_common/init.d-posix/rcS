@@ -1,6 +1,9 @@
 #!/bin/sh
 
-set -e
+# Un comment and use set +e to ignore and set -e to enable 'exit on error control'
+set +e
+# Un comment the line below to help debug scripts by printing a trace of the script commands
+#set -x
 
 # PX4 commands need the 'px4-' prefix in bash.
 # (px4-alias.sh is expected to be in the PATH)
@@ -23,69 +26,92 @@ then
 fi
 
 # initialize script variables
-set IO_PRESENT                  no
-set MIXER                       skip
-set MIXER_AUX                   none
-set MIXER_FILE                  none
-set OUTPUT_MODE                 sim
-set EXTRA_MIXER_MODE            none
-set PWM_OUT                     none
-set SDCARD_MIXERS_PATH          etc/mixers
-set USE_IO                      no
 set VEHICLE_TYPE                none
 set LOGGER_ARGS                 ""
 set LOGGER_BUF                  1000
 
 set RUN_MINIMAL_SHELL           no
 
-# Use the variable set by sitl_run.sh to choose the model settings.
-if [ "$PX4_SIM_MODEL" = "shell" ]; then
+set SYS_AUTOSTART=0
+
+if [ "$PX4_SIM_MODEL" = "shell" ]
+then
 	set RUN_MINIMAL_SHELL yes
-else
+
+elif [ -n "$PX4_SYS_AUTOSTART" ]
+then
+	echo "env SYS_AUTOSTART: ${PX4_SYS_AUTOSTART}"
+	SYS_AUTOSTART=${PX4_SYS_AUTOSTART}
+
+elif [ "$PX4_SIM_MODEL" = "none" ] || [ -z $PX4_SIM_MODEL ]
+then
+	# no airframe selected
+	SYS_AUTOSTART=0
+
+elif [ -n "$PX4_SIM_MODEL" ]
+then
 	# Find the matching Autostart ID (file name has the form: [0-9]+_${PX4_SIM_MODEL})
 	# TODO: unify with rc.autostart generation
 	# shellcheck disable=SC2012
 	REQUESTED_AUTOSTART=$(ls "${R}etc/init.d-posix/airframes" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
 	if [ -z "$REQUESTED_AUTOSTART" ]; then
-		echo "ERROR  [init] Unknown model $PX4_SIM_MODEL (not found by name on ${R}etc/init.d-posix/airframes)"
+		echo "ERROR [init] Unknown model $PX4_SIM_MODEL (not found by name on ${R}etc/init.d-posix/airframes)"
 		exit 1
 	else
+		SYS_AUTOSTART=$REQUESTED_AUTOSTART
 		echo "INFO  [init] found model autostart file as SYS_AUTOSTART=$REQUESTED_AUTOSTART"
 	fi
 fi
 
 # Load parameters
-set PARAM_FILE eeprom/parameters_"$REQUESTED_AUTOSTART"
-param select $PARAM_FILE
+set PARAM_FILE parameters.bson
+set PARAM_BACKUP_FILE parameters_backup.bson
 
-if [ -f $PARAM_FILE ]
-then
-	if param load
+param select $PARAM_FILE
+if [ -f $PARAM_FILE ]; then
+
+	if ! param import
 	then
-		echo "[param] Loaded: $PARAM_FILE"
-	else
-		echo "[param] FAILED loading $PARAM_FILE"
+		echo "ERROR [init] param import failed"
+
+		param dump $PARAM_FILE
+
+		# try to make a backup copy
+		cp $PARAM_FILE param_import_fail.bson
+
+		# try importing from backup file
+		if [ -f $PARAM_BACKUP_FILE ]
+		then
+			echo "[init] importing from parameter backup"
+
+			# dump current backup file contents for comparison
+			param dump $PARAM_BACKUP_FILE
+
+			param import $PARAM_BACKUP_FILE
+
+			# overwrite invalid $PARAM_FILE with backup
+			cp $PARAM_BACKUP_FILE $PARAM_FILE
+		fi
+
+		param status
 	fi
-else
-	echo "[param] parameter file not found, creating $PARAM_FILE"
+
+elif [ -f $PARAM_BACKUP_FILE ]; then
+	echo "ERROR [init] primary param file $PARAM_FILE unavailable, using backup $PARAM_BACKUP_FILE"
+	param import $PARAM_BACKUP_FILE
 fi
+
+param select-backup $PARAM_BACKUP_FILE
+
 
 # exit early when the minimal shell is requested
 [ $RUN_MINIMAL_SHELL = yes ] && exit 0
 
+if param compare SYS_AUTOSTART $SYS_AUTOSTART
+then
+	set AUTOCNF no
 
-# Use environment variable PX4_ESTIMATOR to choose estimator.
-if [ "$PX4_ESTIMATOR" = "q" ]; then
-	param set SYS_MC_EST_GROUP 3
-elif [ "$PX4_ESTIMATOR" = "ekf2" ]; then
-	param set SYS_MC_EST_GROUP 2
-elif [ "$PX4_ESTIMATOR" = "lpe" ]; then
-	param set SYS_MC_EST_GROUP 1
-elif [ "$PX4_ESTIMATOR" = "inav" ]; then
-	param set SYS_MC_EST_GROUP 0
-fi
-
-if param compare SYS_AUTOSTART $REQUESTED_AUTOSTART
+elif [ "$SYS_AUTOSTART" -eq 0 ]
 then
 	set AUTOCNF no
 else
@@ -106,7 +132,7 @@ param set MAV_SYS_ID $((px4_instance+1))
 
 if [ $AUTOCNF = yes ]
 then
-	param set SYS_AUTOSTART $REQUESTED_AUTOSTART
+	param set SYS_AUTOSTART $SYS_AUTOSTART
 
 	param set CAL_ACC0_ID  1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	param set CAL_GYRO0_ID 1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
@@ -143,6 +169,7 @@ param set-default EKF2_MULTI_MAG 2
 param set-default SENS_MAG_MODE 0
 
 param set-default IMU_GYRO_FFT_EN 1
+param set-default MAV_PROTO_VER 2 # Ensures QGC does not drop the first few packets after a SITL restart due to MAVLINK 1 packets
 
 param set-default -s MC_AT_EN 1
 
@@ -190,28 +217,28 @@ do
 			;;
 	esac
 done
-if [ ! -e "$autostart_file" ]; then
+
+if [ -e "$autostart_file" ]
+then
+	. "$autostart_file"
+
+elif [ ! -e "$autostart_file" ] && [ "$SYS_AUTOSTART" -ne "0" ]
+then
 	echo "Error: no autostart file found ($autostart_file)"
 	exit 1
 fi
-
-. "$autostart_file"
-
-# Simulator IMU data provided at 250 Hz
-param set IMU_INTEG_RATE 250
 
 #user defined params for instances can be in PATH
 . px4-rc.params
 
 dataman start
-# start sih in sih_sim mode, otherwise simulator module
-if [ "$SIM_MODE" = "sihsim" ]; then
-	sih start
+
 # only start the simulator if not in replay mode, as both control the lockstep time
-elif ! replay tryapplyparams
+if ! replay tryapplyparams
 then
-  . px4-rc.simulator
+	. px4-rc.simulator
 fi
+
 load_mon start
 battery_simulator start
 tone_alarm start
@@ -220,10 +247,14 @@ manual_control start
 sensors start
 commander start
 
-# Configure vehicle type specific parameters.
-# Note: rc.vehicle_setup is the entry point for rc.interface,
-#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
+if ! pwm_out_sim start -m sim
+then
+	tune_control play error
+fi
+
 #
+# Configure vehicle type specific parameters.
+# Note: rc.vehicle_setup is the entry point for all vehicle type specific setup.
 . ${R}etc/init.d/rc.vehicle_setup
 
 navigator start
@@ -253,6 +284,12 @@ fi
 if param compare -s IMU_GYRO_CAL_EN 1
 then
 	gyro_calibration start
+fi
+
+# Payload deliverer module if gripper is enabled
+if param compare -s PD_GRIPPER_EN 1
+then
+	payload_deliverer start
 fi
 
 #user defined mavlink streams for instances can be in PATH

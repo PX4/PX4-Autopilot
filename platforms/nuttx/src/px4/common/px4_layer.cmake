@@ -20,3 +20,5 @@ if (DEFINED PX4_CRYPTO)
 			crypto_backend
 	)
 endif()
+
+target_link_libraries(px4_layer PRIVATE px4_platform)

@@ -32,6 +32,8 @@
  ****************************************************************************/
 
 #include "PAA3905.hpp"
+
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
 void PAA3905::print_usage()

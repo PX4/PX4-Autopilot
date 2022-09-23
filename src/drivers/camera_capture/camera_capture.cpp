@@ -71,28 +71,18 @@ CameraCapture::CameraCapture() :
 	_p_camera_capture_edge = param_find("CAM_CAP_EDGE");
 	param_get(_p_camera_capture_edge, &_camera_capture_edge);
 
-
 	// get the capture channel from function configuration params
-	param_t p_ctrl_alloc = param_find("SYS_CTRL_ALLOC");
-	int32_t ctrl_alloc = 0;
+	_capture_channel = -1;
 
-	if (p_ctrl_alloc != PARAM_INVALID) {
-		param_get(p_ctrl_alloc, &ctrl_alloc);
-	}
+	for (unsigned i = 0; i < 16 && _capture_channel == -1; ++i) {
+		char param_name[17];
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "FUNC", i + 1);
+		param_t function_handle = param_find(param_name);
+		int32_t function;
 
-	if (ctrl_alloc == 1) {
-		_capture_channel = -1;
-
-		for (unsigned i = 0; i < 16 && _capture_channel == -1; ++i) {
-			char param_name[17];
-			snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "FUNC", i + 1);
-			param_t function_handle = param_find(param_name);
-			int32_t function;
-
-			if (function_handle != PARAM_INVALID && param_get(function_handle, &function) == 0) {
-				if (function == 2032) { // Camera_Capture
-					_capture_channel = i;
-				}
+		if (function_handle != PARAM_INVALID && param_get(function_handle, &function) == 0) {
+			if (function == 2032) { // Camera_Capture
+				_capture_channel = i;
 			}
 		}
 	}

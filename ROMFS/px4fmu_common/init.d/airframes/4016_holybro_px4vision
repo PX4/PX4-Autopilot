@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name PX4 Vision DevKit Platform
+# @name PX4 Vision Dev Kit v1
 #
 # @type Quadrotor x
 # @class Copter
@@ -60,7 +60,6 @@ param set-default CP_DIST 6
 param set-default MPC_ACC_DOWN_MAX 5
 param set-default MPC_ACC_HOR_MAX 10
 param set-default MPC_ACC_UP_MAX 4
-param set-default MPC_MANTHR_MIN 0
 param set-default MPC_MAN_Y_MAX 120
 param set-default MPC_TILTMAX_AIR 45
 param set-default MPC_THR_HOVER 0.3
@@ -80,9 +79,6 @@ param set-default CP_GO_NO_DATA 1
 
 # Navigator Parameters
 param set-default NAV_ACC_RAD 2
-
-# use oneshot motor output protocol
-param set-default PWM_MAIN_RATE 0
 
 # RTL Parameters
 param set-default RTL_DESCEND_ALT 5

@@ -63,9 +63,6 @@ public:
 	void SetUp() override
 	{
 		param_control_autosave(false);
-
-		int32_t v = 1;
-		param_set(param_find("SYS_CTRL_ALLOC"), &v);
 	}
 
 	int update(MixingOutput &mixing_output)

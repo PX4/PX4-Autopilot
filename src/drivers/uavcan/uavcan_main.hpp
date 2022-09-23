@@ -146,7 +146,7 @@ private:
 /**
  * A UAVCAN node.
  */
-class UavcanNode : public cdev::CDev, public px4::ScheduledWorkItem, public ModuleParams
+class UavcanNode : public px4::ScheduledWorkItem, public ModuleParams
 {
 	static constexpr unsigned MaxBitRatePerSec	= 1000000;
 	static constexpr unsigned bitPerFrame		= 148;
@@ -177,8 +177,6 @@ public:
 	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
 
 	virtual		~UavcanNode();
-
-	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 
 	static int	start(uavcan::NodeID node_id, uint32_t bitrate);
 
@@ -214,8 +212,6 @@ private:
 	void		set_setget_response(uavcan::protocol::param::GetSet::Response *resp) { _setget_response = resp; }
 	void		free_setget_response(void) { _setget_response = nullptr; }
 
-	void enable_idle_throttle_when_armed(bool value);
-
 	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 
 	unsigned		_output_count{0};		///< number of actuators currently available
@@ -244,9 +240,6 @@ private:
 	uavcan::NodeInfoRetriever   _node_info_retriever;
 
 	List<IUavcanSensorBridge *>	_sensor_bridges;		///< List of active sensor bridges
-
-	bool 				_idle_throttle_when_armed{false};
-	int32_t 			_idle_throttle_when_armed_param{0};
 
 	perf_counter_t			_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 	perf_counter_t			_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};

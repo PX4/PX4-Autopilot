@@ -263,6 +263,8 @@
 
 #define BOARD_NUM_IO_TIMERS 5
 
+// J4 / TELEM3 / UART2
+#define MODALAI_ESC_DEFAULT_PORT                  "/dev/ttyS1"
 
 __BEGIN_DECLS
 

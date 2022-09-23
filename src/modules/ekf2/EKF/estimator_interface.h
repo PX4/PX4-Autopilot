@@ -108,10 +108,10 @@ public:
 	void set_in_air_status(bool in_air)
 	{
 		if (!in_air) {
-			_time_last_on_ground_us = _time_last_imu;
+			_time_last_on_ground_us = _imu_sample_delayed.time_us;
 
 		} else {
-			_time_last_in_air = _time_last_imu;
+			_time_last_in_air = _imu_sample_delayed.time_us;
 		}
 
 		_control_status.flags.in_air = in_air;
@@ -140,7 +140,7 @@ public:
 	void set_gnd_effect()
 	{
 		_control_status.flags.gnd_effect = true;
-		_time_last_gnd_effect_on = _time_last_imu;
+		_time_last_gnd_effect_on = _imu_sample_delayed.time_us;
 	}
 
 	// set air density used by the multi-rotor specific drag force fusion
@@ -178,8 +178,17 @@ public:
 	// Return true if at least one source of horizontal aiding is active
 	// the flags considered are opt_flow, gps, ev_vel and ev_pos
 	bool isHorizontalAidingActive() const;
+	bool isVerticalAidingActive() const;
 
 	int getNumberOfActiveHorizontalAidingSources() const;
+
+	bool isOtherSourceOfVerticalPositionAidingThan(bool aiding_flag) const;
+	bool isVerticalPositionAidingActive() const;
+	bool isOnlyActiveSourceOfVerticalPositionAiding(const bool aiding_flag) const;
+	int getNumberOfActiveVerticalPositionAidingSources() const;
+
+	bool isVerticalVelocityAidingActive() const;
+	int getNumberOfActiveVerticalVelocityAidingSources() const;
 
 	const matrix::Quatf &getQuaternion() const { return _output_new.quat_nominal; }
 
@@ -247,8 +256,9 @@ public:
 	const imuSample &get_imu_sample_delayed() const { return _imu_sample_delayed; }
 	const imuSample &get_imu_sample_newest() const { return _newest_high_rate_imu_sample; }
 
-	const baroSample &get_baro_sample_delayed() const { return _baro_sample_delayed; }
 	const gpsSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
+	const rangeSample &get_rng_sample_delayed() { return *(_range_sensor.getSampleAddress()); }
+	const extVisionSample &get_ev_sample_delayed() const { return _ev_sample_delayed; }
 
 	const bool &global_origin_valid() const { return _NED_origin_initialised; }
 	const MapProjection &global_origin() const { return _pos_ref; }
@@ -291,7 +301,6 @@ protected:
 	imuSample _imu_sample_delayed{};	// captures the imu sample on the delayed time horizon
 
 	// measurement samples capturing measurements on the delayed time horizon
-	baroSample _baro_sample_delayed{};
 	gpsSample _gps_sample_delayed{};
 	sensor::SensorRangeFinder _range_sensor{};
 	airspeedSample _airspeed_sample_delayed{};
@@ -363,17 +372,13 @@ protected:
 	RingBuffer<dragSample> *_drag_buffer{nullptr};
 	RingBuffer<auxVelSample> *_auxvel_buffer{nullptr};
 
-	// timestamps of latest in buffer saved measurement in microseconds
-	uint64_t _time_last_imu{0};
-	uint64_t _time_last_gps{0};
-	uint64_t _time_last_mag{0}; ///< measurement time of last magnetomter sample (uSec)
-	uint64_t _time_last_baro{0};
-	uint64_t _time_last_range{0};
-	uint64_t _time_last_airspeed{0};
-	uint64_t _time_last_ext_vision{0};
-	uint64_t _time_last_optflow{0};
-	uint64_t _time_last_auxvel{0};
-	//last time the baro ground effect compensation was turned on externally (uSec)
+	uint64_t _time_last_gps_buffer_push{0};
+	uint64_t _time_last_gps_yaw_buffer_push{0};
+	uint64_t _time_last_mag_buffer_push{0};
+	uint64_t _time_last_baro_buffer_push{0};
+	uint64_t _time_last_range_buffer_push{0};
+	uint64_t _time_last_ext_vision_buffer_push{0};
+
 	uint64_t _time_last_gnd_effect_on{0};
 
 	fault_status_u _fault_status{};

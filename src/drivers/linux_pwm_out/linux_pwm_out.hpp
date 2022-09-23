@@ -33,10 +33,7 @@
 
 #pragma once
 
-
 #include <drivers/device/device.h>
-#include <drivers/drv_mixer.h>
-#include <lib/cdev/CDev.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/parameters/param.h>
@@ -52,8 +49,7 @@
 
 using namespace time_literals;
 
-
-class LinuxPWMOut : public cdev::CDev, public ModuleBase<LinuxPWMOut>, public OutputModuleInterface
+class LinuxPWMOut : public ModuleBase<LinuxPWMOut>, public OutputModuleInterface
 {
 public:
 	LinuxPWMOut();
@@ -73,9 +69,7 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-	int	ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
-
-	int	init() override;
+	int init();
 
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
@@ -83,13 +77,9 @@ public:
 private:
 	static constexpr int MAX_ACTUATORS = 8;
 
-	void		update_params();
-
 	MixingOutput _mixing_output{"PWM_MAIN", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-	int		_class_instance{-1};
 
 	pwm_out::PWMOutBase *_pwm_out{nullptr};
 

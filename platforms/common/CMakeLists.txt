@@ -36,10 +36,12 @@ set(SRCS)
 if(NOT "${PX4_BOARD}" MATCHES "io-v2" AND NOT "${PX4_BOARD_LABEL}" MATCHES "bootloader")
 	list(APPEND SRCS
 		px4_log.cpp
+		px4_log_history.cpp
 	)
 endif()
 
 add_library(px4_platform
+	board_common.c
 	board_identity.c
 	events.cpp
 	external_reset_lockout.cpp
@@ -60,3 +62,5 @@ endif()
 
 add_subdirectory(px4_work_queue)
 add_subdirectory(work_queue)
+
+px4_add_unit_gtest(SRC board_identity_test.cpp LINKLIBS px4_platform)

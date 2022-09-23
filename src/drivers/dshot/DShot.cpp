@@ -41,17 +41,14 @@ char DShot::_telemetry_device[] {};
 px4::atomic_bool DShot::_request_telemetry_init{false};
 
 DShot::DShot() :
-	CDev("/dev/dshot"),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	_mixing_output.setAllDisarmedValues(DSHOT_DISARM_VALUE);
 	_mixing_output.setAllMinValues(DSHOT_MIN_THROTTLE);
 	_mixing_output.setAllMaxValues(DSHOT_MAX_THROTTLE);
 
-	if (_mixing_output.useDynamicMixing()) {
-		// Avoid using the PWM failsafe params
-		_mixing_output.setAllFailsafeValues(UINT16_MAX);
-	}
+	// Avoid using the PWM failsafe params
+	_mixing_output.setAllFailsafeValues(UINT16_MAX);
 }
 
 DShot::~DShot()
@@ -59,33 +56,12 @@ DShot::~DShot()
 	// make sure outputs are off
 	up_dshot_arm(false);
 
-	// clean up the alternate device node
-	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
-
 	perf_free(_cycle_perf);
 	delete _telemetry;
 }
 
 int DShot::init()
 {
-	// do regular cdev init
-	int ret = CDev::init();
-
-	if (ret != OK) {
-		return ret;
-	}
-
-	// try to claim the generic PWM output device node as well - it's OK if we fail at this
-	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
-
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		// lets not be too verbose
-	} else if (_class_instance < 0) {
-		PX4_ERR("FAILED registering class device");
-	}
-
-	_mixing_output.setDriverInstance(_class_instance);
-
 	_output_mask = (1u << _num_outputs) - 1;
 
 	// Getting initial parameter values
@@ -122,110 +98,72 @@ int DShot::task_spawn(int argc, char *argv[])
 void DShot::enable_dshot_outputs(const bool enabled)
 {
 	if (enabled && !_outputs_initialized) {
-		if (_mixing_output.useDynamicMixing()) {
+		unsigned int dshot_frequency = 0;
+		uint32_t dshot_frequency_param = 0;
 
-			unsigned int dshot_frequency = 0;
-			uint32_t dshot_frequency_param = 0;
+		for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
+			uint32_t channels = io_timer_get_group(timer);
 
-			for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
-				uint32_t channels = io_timer_get_group(timer);
+			if (channels == 0) {
+				continue;
+			}
 
-				if (channels == 0) {
-					continue;
-				}
+			char param_name[17];
+			snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
 
-				char param_name[17];
-				snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
+			int32_t tim_config = 0;
+			param_t handle = param_find(param_name);
+			param_get(handle, &tim_config);
+			unsigned int dshot_frequency_request = 0;
 
-				int32_t tim_config = 0;
-				param_t handle = param_find(param_name);
-				param_get(handle, &tim_config);
-				unsigned int dshot_frequency_request = 0;
+			if (tim_config == -5) {
+				dshot_frequency_request = DSHOT150;
 
-				if (tim_config == -5) {
-					dshot_frequency_request = DSHOT150;
+			} else if (tim_config == -4) {
+				dshot_frequency_request = DSHOT300;
 
-				} else if (tim_config == -4) {
-					dshot_frequency_request = DSHOT300;
+			} else if (tim_config == -3) {
+				dshot_frequency_request = DSHOT600;
 
-				} else if (tim_config == -3) {
-					dshot_frequency_request = DSHOT600;
+			} else if (tim_config == -2) {
+				dshot_frequency_request = DSHOT1200;
 
-				} else if (tim_config == -2) {
-					dshot_frequency_request = DSHOT1200;
+			} else {
+				_output_mask &= ~channels; // don't use for dshot
+			}
+
+			if (dshot_frequency_request != 0) {
+				if (dshot_frequency != 0 && dshot_frequency != dshot_frequency_request) {
+					PX4_WARN("Only supporting a single frequency, adjusting param %s", param_name);
+					param_set_no_notification(handle, &dshot_frequency_param);
 
 				} else {
-					_output_mask &= ~channels; // don't use for dshot
-				}
-
-				if (dshot_frequency_request != 0) {
-					if (dshot_frequency != 0 && dshot_frequency != dshot_frequency_request) {
-						PX4_WARN("Only supporting a single frequency, adjusting param %s", param_name);
-						param_set_no_notification(handle, &dshot_frequency_param);
-
-					} else {
-						dshot_frequency = dshot_frequency_request;
-						dshot_frequency_param = tim_config;
-					}
+					dshot_frequency = dshot_frequency_request;
+					dshot_frequency_param = tim_config;
 				}
 			}
+		}
 
-			int ret = up_dshot_init(_output_mask, dshot_frequency);
+		int ret = up_dshot_init(_output_mask, dshot_frequency);
 
-			if (ret < 0) {
-				PX4_ERR("up_dshot_init failed (%i)", ret);
-				return;
+		if (ret < 0) {
+			PX4_ERR("up_dshot_init failed (%i)", ret);
+			return;
+		}
+
+		_output_mask = ret;
+
+		// disable unused functions
+		for (unsigned i = 0; i < _num_outputs; ++i) {
+			if (((1 << i) & _output_mask) == 0) {
+				_mixing_output.disableFunction(i);
 			}
+		}
 
-			_output_mask = ret;
-
-			// disable unused functions
-			for (unsigned i = 0; i < _num_outputs; ++i) {
-				if (((1 << i) & _output_mask) == 0) {
-					_mixing_output.disableFunction(i);
-				}
-			}
-
-			if (_output_mask == 0) {
-				// exit the module if no outputs used
-				request_stop();
-				return;
-			}
-
-		} else {
-			DShotConfig config = (DShotConfig)_param_dshot_config.get();
-
-			unsigned int dshot_frequency = DSHOT600;
-
-			switch (config) {
-			case DShotConfig::DShot150:
-				dshot_frequency = DSHOT150;
-				break;
-
-			case DShotConfig::DShot300:
-				dshot_frequency = DSHOT300;
-				break;
-
-			case DShotConfig::DShot600:
-				dshot_frequency = DSHOT600;
-				break;
-
-			case DShotConfig::DShot1200:
-				dshot_frequency = DSHOT1200;
-				break;
-
-			default:
-				break;
-			}
-
-			int ret = up_dshot_init(_output_mask, dshot_frequency);
-
-			if (ret < 0) {
-				PX4_ERR("up_dshot_init failed (%i)", ret);
-				return;
-			}
-
-			_output_mask = ret;
+		if (_output_mask == 0) {
+			// exit the module if no outputs used
+			request_stop();
+			return;
 		}
 
 		_outputs_initialized = true;
@@ -245,17 +183,10 @@ void DShot::update_telemetry_num_motors()
 
 	int motor_count = 0;
 
-	if (_mixing_output.useDynamicMixing()) {
-		for (unsigned i = 0; i < _num_outputs; ++i) {
-			if (_mixing_output.isFunctionSet(i)) {
-				_telemetry->actuator_functions[motor_count] = (uint8_t)_mixing_output.outputFunction(i);
-				++motor_count;
-			}
-		}
-
-	} else {
-		if (_mixing_output.mixers()) {
-			motor_count = _mixing_output.mixers()->get_multirotor_count();
+	for (unsigned i = 0; i < _num_outputs; ++i) {
+		if (_mixing_output.isFunctionSet(i)) {
+			_telemetry->actuator_functions[motor_count] = (uint8_t)_mixing_output.outputFunction(i);
+			++motor_count;
 		}
 	}
 
@@ -331,7 +262,7 @@ int DShot::send_command_thread_safe(const dshot_command_t command, const int num
 		cmd.motor_mask = 0xff;
 
 	} else {
-		cmd.motor_mask = 1 << _mixing_output.reorderedMotorIndex(motor_index);
+		cmd.motor_mask = 1 << motor_index;
 	}
 
 	cmd.num_repetitions = num_repetitions;
@@ -389,7 +320,7 @@ int DShot::request_esc_info()
 	_telemetry->handler.redirectOutput(*_request_esc_info.load());
 	_waiting_for_esc_info = true;
 
-	int motor_index = _mixing_output.reorderedMotorIndex(_request_esc_info.load()->motor_index);
+	int motor_index = _request_esc_info.load()->motor_index;
 
 	_current_command.motor_mask = 1 << motor_index;
 	_current_command.num_repetitions = 1;
@@ -421,7 +352,7 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			requested_telemetry_index = request_esc_info();
 
 		} else {
-			requested_telemetry_index = _mixing_output.reorderedMotorIndex(_telemetry->handler.getRequestMotorIndex());
+			requested_telemetry_index = _telemetry->handler.getRequestMotorIndex();
 		}
 	}
 
@@ -504,9 +435,7 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		_current_command.clear();
 	}
 
-	if (stop_motors || num_control_groups_updated > 0 || _mixing_output.useDynamicMixing()) {
-		up_dshot_trigger();
-	}
+	up_dshot_trigger();
 
 	return true;
 }
@@ -521,14 +450,12 @@ void DShot::Run()
 		return;
 	}
 
-	SmartLock lock_guard(_lock);
-
 	perf_begin(_cycle_perf);
 
 	_mixing_output.update();
 
 	// update output status if armed or if mixer is loaded
-	bool outputs_on = _mixing_output.armed().armed || _mixing_output.initialized();
+	bool outputs_on = true;
 
 	if (_outputs_on != outputs_on) {
 		enable_dshot_outputs(outputs_on);
@@ -678,40 +605,6 @@ void DShot::update_params()
 			_mixing_output.minValue(i) = DSHOT_MIN_THROTTLE;
 		}
 	}
-}
-
-int DShot::ioctl(file *filp, int cmd, unsigned long arg)
-{
-	SmartLock lock_guard(_lock);
-
-	int ret = OK;
-
-	PX4_DEBUG("dshot ioctl cmd: %d, arg: %ld", cmd, arg);
-
-	switch (cmd) {
-	case MIXERIOCRESET:
-		_mixing_output.resetMixer();
-		break;
-
-	case MIXERIOCLOADBUF: {
-			const char *buf = (const char *)arg;
-			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixer(buf, buflen);
-
-			break;
-		}
-
-	default:
-		ret = -ENOTTY;
-		break;
-	}
-
-	// if nobody wants it, let CDev have it
-	if (ret == -ENOTTY) {
-		ret = CDev::ioctl(filp, cmd, arg);
-	}
-
-	return ret;
 }
 
 int DShot::custom_command(int argc, char *argv[])

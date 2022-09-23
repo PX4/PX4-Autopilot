@@ -33,7 +33,9 @@
 /**
  * @file mission.h
  *
- * Navigator mode to access missions
+ * Mission mode class that handles everything related to executing a mission.
+ * This class gets included as one of the 'modes' in the Navigator, along with other
+ * modes like RTL, Loiter, etc.
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
@@ -94,6 +96,7 @@ public:
 	double get_landing_lat() { return _landing_lat; }
 	double get_landing_lon() { return _landing_lon; }
 	float get_landing_alt() { return _landing_alt; }
+	float get_landing_loiter_rad() { return _landing_loiter_radius; }
 
 	void set_closest_item_as_current();
 
@@ -118,7 +121,10 @@ private:
 	void advance_mission();
 
 	/**
-	 * Set new mission items
+	 * @brief Configures mission items in current setting
+	 *
+	 * Configure the mission items depending on current mission item index and settings such
+	 * as terrain following, etc.
 	 */
 	void set_mission_items();
 
@@ -258,6 +264,8 @@ private:
 	double _landing_lon{0.0};
 	float _landing_alt{0.0f};
 
+	float _landing_loiter_radius{0.f};
+
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 
 	hrt_abstime _time_mission_deactivated{0};
@@ -273,6 +281,7 @@ private:
 	bool _mission_waypoints_changed{false};
 	bool _mission_changed{false}; /** < true if the mission changed since the mission mode was active */
 
+	// Work Item corresponds to the sub-mode set on the "MAV_CMD_DO_SET_MODE" MAVLink message
 	enum work_item_type {
 		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
 		WORK_ITEM_TYPE_TAKEOFF,		/**< takeoff before moving to waypoint */

@@ -85,23 +85,8 @@ void Ekf::controlFusionModes()
 		}
 	}
 
-	if (_baro_buffer) {
-		// check for intermittent data
-		_baro_hgt_intermittent = !isRecent(_time_last_baro, 2 * BARO_MAX_INTERVAL);
-
-		const uint64_t baro_time_prev = _baro_sample_delayed.time_us;
-		_baro_data_ready = _baro_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed);
-
-		// if we have a new baro sample save the delta time between this sample and the last sample which is
-		// used below for baro offset calculations
-		if (_baro_data_ready && baro_time_prev != 0) {
-			_delta_time_baro_us = _baro_sample_delayed.time_us - baro_time_prev;
-		}
-	}
-
-
 	if (_gps_buffer) {
-		_gps_intermittent = !isRecent(_time_last_gps, 2 * GPS_MAX_INTERVAL);
+		_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GPS_MAX_INTERVAL);
 
 		// check for arrival of new sensor data at the fusion time horizon
 		_time_prev_gps_us = _gps_sample_delayed.time_us;
@@ -145,7 +130,7 @@ void Ekf::controlFusionModes()
 			if (_control_status.flags.in_air && !_control_status.flags.fixed_wing
 			    && (sq(_state.vel(0)) + sq(_state.vel(1)) < fmaxf(P(4, 4) + P(5, 5), 0.1f))) {
 				_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
-				_rng_consistency_check.update(_range_sensor.getDistBottom(), getRngHeightVariance(), _state.vel(2), P(6, 6), _time_last_imu);
+				_rng_consistency_check.update(_range_sensor.getDistBottom(), getRngHeightVariance(), _state.vel(2), P(6, 6), _imu_sample_delayed.time_us);
 			}
 		}
 
@@ -172,9 +157,6 @@ void Ekf::controlFusionModes()
 	// run EKF-GSF yaw estimator once per _imu_sample_delayed update after all main EKF data samples available
 	runYawEKFGSF();
 
-	// check for height sensor timeouts and reset and change sensor if necessary
-	controlHeightSensorTimeouts();
-
 	// control use of observations for aiding
 	controlMagFusion();
 	controlOpticalFlowFusion();
@@ -196,6 +178,7 @@ void Ekf::controlFusionModes()
 
 	// Fake position measurement for constraining drift when no other velocity or position measurements
 	controlFakePosFusion();
+	controlFakeHgtFusion();
 
 	// check if we are no longer fusing measurements that directly constrain velocity drift
 	update_deadreckoning_status();
@@ -229,7 +212,7 @@ void Ekf::controlExternalVisionFusion()
 		if (_control_status.flags.tilt_align && _control_status.flags.yaw_align) {
 
 			// check for a external vision measurement that has fallen behind the fusion time horizon
-			if (isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
+			if (isNewestSampleRecent(_time_last_ext_vision_buffer_push, 2 * EV_MAX_INTERVAL)) {
 				// turn on use of external vision measurements for position
 				if (_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_POS && !_control_status.flags.ev_pos) {
 					startEvPosFusion();
@@ -247,7 +230,7 @@ void Ekf::controlExternalVisionFusion()
 		    && _control_status.flags.tilt_align) {
 
 			// don't start using EV data unless data is arriving frequently
-			if (isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
+			if (isNewestSampleRecent(_time_last_ext_vision_buffer_push, 2 * EV_MAX_INTERVAL)) {
 				if (resetYawToEv()) {
 					_control_status.flags.yaw_align = true;
 					startEvYawFusion();
@@ -271,7 +254,7 @@ void Ekf::controlExternalVisionFusion()
 			_ev_sample_delayed.pos -= pos_offset_earth;
 
 			// Use an incremental position fusion method for EV position data if GPS is also used
-			if (_params.fusion_mode & SensorFusionMask::USE_GPS) {
+			if (_params.gnss_ctrl & GnssCtrl::HPOS) {
 				_fuse_hpos_as_odom = true;
 
 			} else {
@@ -398,7 +381,7 @@ void Ekf::controlExternalVisionFusion()
 		_yaw_pred_prev = getEulerYaw(_state.quat_nominal);
 
 	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel ||  _control_status.flags.ev_yaw)
-		   && isTimedOut(_time_last_ext_vision, (uint64_t)_params.reset_timeout_max)) {
+		   && !isRecent(_ev_sample_delayed.time_us, (uint64_t)_params.reset_timeout_max)) {
 
 		// Turn off EV fusion mode if no data has been received
 		stopEvFusion();
@@ -508,7 +491,7 @@ void Ekf::controlOpticalFlowFusion()
 				// set the flag and reset the fusion timeout
 				ECL_INFO("starting optical flow fusion");
 				_control_status.flags.opt_flow = true;
-				_time_last_of_fuse = _time_last_imu;
+				_time_last_of_fuse = _imu_sample_delayed.time_us;
 
 				// if we are not using GPS or external vision aiding, then the velocity and position states and covariances need to be set
 				const bool flow_aid_only = !isOtherSourceOfHorizontalAidingThan(_control_status.flags.opt_flow);
@@ -527,7 +510,7 @@ void Ekf::controlOpticalFlowFusion()
 				// but use a relaxed time criteria to enable it to coast through bad range finder data
 				if (isRecent(_time_last_hagl_fuse, (uint64_t)10e6)) {
 					fuseOptFlow();
-					_last_known_posNE = _state.pos.xy();
+					_last_known_pos.xy() = _state.pos.xy();
 				}
 
 				_flow_data_ready = false;
@@ -542,8 +525,7 @@ void Ekf::controlOpticalFlowFusion()
 			}
 		}
 
-	} else if (_control_status.flags.opt_flow
-		   && (_imu_sample_delayed.time_us > _flow_sample_delayed.time_us + (uint64_t)10e6)) {
+	} else if (_control_status.flags.opt_flow && !isRecent(_flow_sample_delayed.time_us, (uint64_t)10e6)) {
 
 		stopFlowFusion();
 	}
@@ -573,22 +555,22 @@ void Ekf::resetOnGroundMotionForOpticalFlowChecks()
 	_time_good_motion_us = _imu_sample_delayed.time_us;
 }
 
-void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
+void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing)
 {
-	if (!(_params.fusion_mode & SensorFusionMask::USE_GPS_YAW)
+	if (!(_params.gnss_ctrl & GnssCtrl::YAW)
 	    || _control_status.flags.gps_yaw_fault) {
 
 		stopGpsYawFusion();
 		return;
 	}
 
-	const bool is_new_data_available = PX4_ISFINITE(_gps_sample_delayed.yaw);
+	const bool is_new_data_available = PX4_ISFINITE(gps_sample.yaw);
 
 	if (is_new_data_available) {
 
 		const bool continuing_conditions_passing = !gps_checks_failing;
 
-		const bool is_gps_yaw_data_intermittent = !isRecent(_time_last_gps_yaw_data, 2 * GPS_MAX_INTERVAL);
+		const bool is_gps_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gps_yaw_buffer_push, 2 * GPS_MAX_INTERVAL);
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& _control_status.flags.tilt_align
@@ -596,20 +578,18 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 				&& !is_gps_yaw_data_intermittent
 				&& !_gps_intermittent;
 
-		_time_last_gps_yaw_data = _time_last_imu;
-
 		if (_control_status.flags.gps_yaw) {
 
 			if (continuing_conditions_passing) {
 
-				fuseGpsYaw();
+				fuseGpsYaw(gps_sample);
 
 				const bool is_fusion_failing = isTimedOut(_aid_src_gnss_yaw.time_last_fuse, _params.reset_timeout_max);
 
 				if (is_fusion_failing) {
 					if (_nb_gps_yaw_reset_available > 0) {
 						// Data seems good, attempt a reset
-						resetYawToGps();
+						resetYawToGps(gps_sample.yaw);
 
 						if (_control_status.flags.in_air) {
 							_nb_gps_yaw_reset_available--;
@@ -638,7 +618,7 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 		} else {
 			if (starting_conditions_passing) {
 				// Try to activate GPS yaw fusion
-				startGpsYawFusion();
+				startGpsYawFusion(gps_sample);
 
 				if (_control_status.flags.gps_yaw) {
 					_nb_gps_yaw_reset_available = 1;
@@ -646,7 +626,7 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 			}
 		}
 
-	} else if (_control_status.flags.gps_yaw && isTimedOut(_time_last_gps_yaw_data, _params.reset_timeout_max)) {
+	} else if (_control_status.flags.gps_yaw && !isNewestSampleRecent(_time_last_gps_yaw_buffer_push, _params.reset_timeout_max)) {
 		// No yaw data in the message anymore. Stop until it comes back.
 		stopGpsYawFusion();
 	}
@@ -660,370 +640,6 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 	}
 }
 
-void Ekf::controlHeightSensorTimeouts()
-{
-	/*
-	 * Handle the case where we have not fused height measurements recently and
-	 * uncertainty exceeds the max allowable. Reset using the best available height
-	 * measurement source, continue using it after the reset and declare the current
-	 * source failed if we have switched.
-	*/
-
-	checkVerticalAccelerationHealth();
-
-	// check if height is continuously failing because of accel errors
-	const bool continuous_bad_accel_hgt = isTimedOut(_time_good_vert_accel, (uint64_t)_params.bad_acc_reset_delay_us);
-
-	// check if height has been inertial deadreckoning for too long
-	// in vision hgt mode check for vision data
-	const bool hgt_fusion_timeout = isTimedOut(_time_last_hgt_fuse, (uint64_t)5e6);
-
-	if (hgt_fusion_timeout || continuous_bad_accel_hgt) {
-
-		const char *failing_height_source = nullptr;
-		const char *new_height_source = nullptr;
-
-		if (_control_status.flags.baro_hgt) {
-			bool reset_to_gps = false;
-
-			// reset to GPS if adequate GPS data is available and the timeout cannot be blamed on IMU data
-			if (!_gps_intermittent) {
-				reset_to_gps = (_gps_checks_passed && !_fault_status.flags.bad_acc_vertical) || _baro_hgt_faulty || _baro_hgt_intermittent;
-			}
-
-			if (reset_to_gps) {
-				// set height sensor health
-				_baro_hgt_faulty = true;
-
-				startGpsHgtFusion();
-
-				failing_height_source = "baro";
-				new_height_source = "gps";
-
-			} else if (!_baro_hgt_faulty && !_baro_hgt_intermittent) {
-				resetHeightToBaro();
-
-				failing_height_source = "baro";
-				new_height_source = "baro";
-			}
-
-		} else if (_control_status.flags.gps_hgt) {
-			bool reset_to_baro = false;
-
-			// if baro data is available and GPS data is inaccurate and the timeout cannot be blamed on IMU data, reset height to baro
-			if (!_baro_hgt_faulty && !_baro_hgt_intermittent) {
-				reset_to_baro = (!_fault_status.flags.bad_acc_vertical && !_gps_checks_passed) || _gps_intermittent;
-			}
-
-			if (reset_to_baro) {
-				startBaroHgtFusion();
-
-				failing_height_source = "gps";
-				new_height_source = "baro";
-
-			} else if (!_gps_intermittent) {
-				resetHeightToGps();
-
-				failing_height_source = "gps";
-				new_height_source = "gps";
-			}
-
-		} else if (_control_status.flags.rng_hgt) {
-
-			if (_range_sensor.isHealthy()) {
-				resetHeightToRng();
-
-				failing_height_source = "rng";
-				new_height_source = "rng";
-
-			} else if (!_baro_hgt_faulty && !_baro_hgt_intermittent) {
-				startBaroHgtFusion();
-
-				failing_height_source = "rng";
-				new_height_source = "baro";
-			}
-
-		} else if (_control_status.flags.ev_hgt) {
-			// check if vision data is available
-			bool ev_data_available = false;
-
-			if (_ext_vision_buffer) {
-				const extVisionSample &ev_init = _ext_vision_buffer->get_newest();
-				ev_data_available = isRecent(ev_init.time_us, 2 * EV_MAX_INTERVAL);
-			}
-
-			if (ev_data_available) {
-				resetHeightToEv();
-
-				failing_height_source = "ev";
-				new_height_source = "ev";
-
-			} else if (_range_sensor.isHealthy()) {
-				// Fallback to rangefinder data if available
-				startRngHgtFusion();
-
-				failing_height_source = "ev";
-				new_height_source = "rng";
-
-			} else if (!_baro_hgt_faulty && !_baro_hgt_intermittent) {
-				startBaroHgtFusion();
-
-				failing_height_source = "ev";
-				new_height_source = "baro";
-			}
-		}
-
-		if (failing_height_source && new_height_source) {
-			_warning_events.flags.height_sensor_timeout = true;
-			ECL_WARN("%s hgt timeout - reset to %s", failing_height_source, new_height_source);
-		}
-
-		// Also reset the vertical velocity
-		if (_control_status.flags.gps && !_gps_intermittent && _gps_checks_passed) {
-			resetVerticalVelocityToGps(_gps_sample_delayed);
-
-		} else {
-			resetVerticalVelocityToZero();
-		}
-	}
-}
-
-void Ekf::checkVerticalAccelerationHealth()
-{
-	// Check for IMU accelerometer vibration induced clipping as evidenced by the vertical
-	// innovations being positive and not stale.
-	// Clipping usually causes the average accel reading to move towards zero which makes the INS
-	// think it is falling and produces positive vertical innovations.
-	// Don't use stale innovation data.
-	bool is_inertial_nav_falling = false;
-	bool are_vertical_pos_and_vel_independant = false;
-
-	if (_control_status.flags.gps) {
-		// GNSS velocity
-		const auto &gps_vel = _aid_src_gnss_vel;
-
-		if (gps_vel.time_last_fuse[2] > _vert_vel_fuse_time_us) {
-			_vert_vel_fuse_time_us = gps_vel.time_last_fuse[2];
-			_vert_vel_innov_ratio = gps_vel.innovation[2] / sqrtf(gps_vel.innovation_variance[2]);
-		}
-
-		// GNSS position
-		const auto &gps_pos = _aid_src_gnss_pos;
-
-		if (gps_pos.time_last_fuse[2] > _vert_pos_fuse_attempt_time_us) {
-			_vert_pos_fuse_attempt_time_us = gps_pos.time_last_fuse[2];
-			_vert_pos_innov_ratio = gps_pos.innovation[2] / sqrtf(gps_pos.innovation_variance[2]);
-		}
-	}
-
-	if (_control_status.flags.baro_hgt) {
-		// baro height
-		const auto &baro_hgt = _aid_src_baro_hgt;
-
-		if (baro_hgt.time_last_fuse > _vert_pos_fuse_attempt_time_us) {
-			_vert_pos_fuse_attempt_time_us = baro_hgt.time_last_fuse;
-			_vert_pos_innov_ratio = baro_hgt.innovation / sqrtf(baro_hgt.innovation_variance);
-		}
-	}
-
-	if (isRecent(_vert_pos_fuse_attempt_time_us, 1000000)) {
-		if (isRecent(_vert_vel_fuse_time_us, 1000000)) {
-			// If vertical position and velocity come from independent sensors then we can
-			// trust them more if they disagree with the IMU, but need to check that they agree
-			const bool using_gps_for_both = _control_status.flags.gps_hgt && _control_status.flags.gps;
-			const bool using_ev_for_both = _control_status.flags.ev_hgt && _control_status.flags.ev_vel;
-			are_vertical_pos_and_vel_independant = !(using_gps_for_both || using_ev_for_both);
-			is_inertial_nav_falling |= _vert_vel_innov_ratio > _params.vert_innov_test_lim && _vert_pos_innov_ratio > _params.vert_innov_test_min;
-			is_inertial_nav_falling |= _vert_pos_innov_ratio > _params.vert_innov_test_lim && _vert_vel_innov_ratio > _params.vert_innov_test_min;
-
-		} else {
-			// only height sensing available
-			is_inertial_nav_falling = _vert_pos_innov_ratio > _params.vert_innov_test_lim;
-		}
-	}
-
-	// Check for more than 50% clipping affected IMU samples within the past 1 second
-	const uint16_t clip_count_limit = 1.f / _dt_ekf_avg;
-	const bool is_clipping = _imu_sample_delayed.delta_vel_clipping[0] ||
-				 _imu_sample_delayed.delta_vel_clipping[1] ||
-				 _imu_sample_delayed.delta_vel_clipping[2];
-
-	if (is_clipping && _clip_counter < clip_count_limit) {
-		_clip_counter++;
-
-	} else if (_clip_counter > 0) {
-		_clip_counter--;
-	}
-
-	_fault_status.flags.bad_acc_clipping = _clip_counter > clip_count_limit / 2;
-
-	const bool is_clipping_frequently = _clip_counter > 0;
-
-	// if vertical velocity and position are independent and agree, then do not require evidence of clipping if
-	// innovations are large
-	const bool bad_vert_accel = (are_vertical_pos_and_vel_independant || is_clipping_frequently) && is_inertial_nav_falling;
-
-	if (bad_vert_accel) {
-		_time_bad_vert_accel = _time_last_imu;
-
-	} else {
-		_time_good_vert_accel = _time_last_imu;
-	}
-
-	// declare a bad vertical acceleration measurement and make the declaration persist
-	// for a minimum of BADACC_PROBATION seconds
-	if (_fault_status.flags.bad_acc_vertical) {
-		_fault_status.flags.bad_acc_vertical = isRecent(_time_bad_vert_accel, BADACC_PROBATION);
-
-	} else {
-		_fault_status.flags.bad_acc_vertical = bad_vert_accel;
-	}
-}
-
-void Ekf::controlHeightFusion()
-{
-	checkRangeAidSuitability();
-	const bool do_range_aid = (_params.range_aid == 1) && _is_range_aid_suitable;
-
-	switch (_params.vdist_sensor_type) {
-	default:
-		ECL_ERR("Invalid hgt mode: %" PRIi32, _params.vdist_sensor_type);
-
-	// FALLTHROUGH
-	case VerticalHeightSensor::BARO:
-		if (do_range_aid) {
-			if (!_control_status.flags.rng_hgt && _range_sensor.isDataHealthy()) {
-				startRngAidHgtFusion();
-			}
-
-		} else {
-			if (!_control_status.flags.baro_hgt) {
-				if (!_baro_hgt_faulty && !_baro_hgt_intermittent) {
-					startBaroHgtFusion();
-
-				} else if (!_control_status.flags.gps_hgt && !_gps_intermittent && _gps_checks_passed) {
-					// Use GPS as a fallback
-					startGpsHgtFusion();
-				}
-			}
-		}
-
-		break;
-
-	case VerticalHeightSensor::RANGE:
-
-		// If we are supposed to be using range finder data as the primary height sensor, have bad range measurements
-		// and are on the ground, then synthesise a measurement at the expected on ground value
-		if (!_control_status.flags.in_air
-		    && !_range_sensor.isDataHealthy()
-		    && _range_sensor.isRegularlySendingData()
-		    && _range_sensor.isDataReady()) {
-
-			_range_sensor.setRange(_params.rng_gnd_clearance);
-			_range_sensor.setValidity(true); // bypass the checks
-		}
-
-		if (!_control_status.flags.rng_hgt) {
-			if (_range_sensor.isDataHealthy()) {
-				startRngHgtFusion();
-			}
-		}
-
-		break;
-
-	case VerticalHeightSensor::GPS:
-
-		// NOTE: emergency fallback due to extended loss of currently selected sensor data or failure
-		// to pass innovation cinsistency checks is handled elsewhere in Ekf::controlHeightSensorTimeouts.
-		// Do switching between GPS and rangefinder if using range finder as a height source when close
-		// to ground and moving slowly. Also handle switch back from emergency Baro sensor when GPS recovers.
-		if (do_range_aid) {
-			if (!_control_status_prev.flags.rng_hgt && _range_sensor.isDataHealthy()) {
-				startRngAidHgtFusion();
-			}
-
-		} else {
-			if (!_control_status.flags.gps_hgt) {
-				if (!_gps_intermittent && _gps_checks_passed) {
-					// In fallback mode and GPS has recovered so start using it
-					startGpsHgtFusion();
-
-				} else if (!_control_status.flags.baro_hgt && !_baro_hgt_faulty && !_baro_hgt_intermittent) {
-					// Use baro as a fallback
-					startBaroHgtFusion();
-				}
-			}
-		}
-
-		break;
-
-	case VerticalHeightSensor::EV:
-
-		// don't start using EV data unless data is arriving frequently
-		if (!_control_status.flags.ev_hgt && isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
-			startEvHgtFusion();
-		}
-
-		break;
-	}
-
-	updateBaroHgtBias();
-	updateBaroHgtOffset();
-	updateGroundEffect();
-
-	if (_baro_data_ready) {
-		updateBaroHgt(_baro_sample_delayed, _aid_src_baro_hgt);
-
-		if (_control_status.flags.baro_hgt && !_baro_hgt_faulty) {
-			fuseBaroHgt(_aid_src_baro_hgt);
-		}
-	}
-
-	if (_rng_data_ready) {
-		updateRngHgt(_aid_src_rng_hgt);
-
-		if (_control_status.flags.rng_hgt && _range_sensor.isDataHealthy()) {
-			fuseRngHgt(_aid_src_rng_hgt);
-		}
-	}
-
-	if (_control_status.flags.ev_hgt) {
-
-		if (_control_status.flags.ev_hgt && _ev_data_ready) {
-			fuseEvHgt();
-		}
-	}
-}
-
-void Ekf::checkRangeAidSuitability()
-{
-	if (_control_status.flags.in_air
-	    && _range_sensor.isHealthy()
-	    && isTerrainEstimateValid()) {
-		// check if we can use range finder measurements to estimate height, use hysteresis to avoid rapid switching
-		// Note that the 0.7 coefficients and the innovation check are arbitrary values but work well in practice
-		const float range_hagl = _terrain_vpos - _state.pos(2);
-		const float range_hagl_max = _is_range_aid_suitable ? _params.max_hagl_for_range_aid : (_params.max_hagl_for_range_aid * 0.7f);
-		const bool is_in_range = range_hagl < range_hagl_max;
-
-		const float hagl_test_ratio = (_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var));
-		const bool is_hagl_stable = _is_range_aid_suitable ? (hagl_test_ratio < 1.f) : (hagl_test_ratio < 0.01f);
-
-		if (isHorizontalAidingActive()) {
-			const float max_vel = _is_range_aid_suitable ? _params.max_vel_for_range_aid : (_params.max_vel_for_range_aid * 0.7f);
-			const bool is_below_max_speed = !_state.vel.xy().longerThan(max_vel);
-
-			_is_range_aid_suitable = is_in_range && is_hagl_stable && is_below_max_speed;
-
-		} else {
-			_is_range_aid_suitable = is_in_range && is_hagl_stable;
-		}
-
-	} else {
-		_is_range_aid_suitable = false;
-	}
-}
-
 void Ekf::controlAirDataFusion()
 {
 	// control activation and initialisation/reset of wind states required for airspeed fusion
@@ -1032,7 +648,7 @@ void Ekf::controlAirDataFusion()
 	const bool airspeed_timed_out = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
 	const bool sideslip_timed_out = isTimedOut(_time_last_beta_fuse, (uint64_t)10e6);
 
-	if (_using_synthetic_position || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & SensorFusionMask::USE_DRAG))) {
+	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & SensorFusionMask::USE_DRAG))) {
 		_control_status.flags.wind = false;
 	}
 
@@ -1046,7 +662,7 @@ void Ekf::controlAirDataFusion()
 
 		_innov_check_fail_status.flags.reject_airspeed = _aid_src_airspeed.innovation_rejected; // TODO: remove this redundant flag
 
-		const bool continuing_conditions_passing = _control_status.flags.in_air && _control_status.flags.fixed_wing && !_using_synthetic_position;
+		const bool continuing_conditions_passing = _control_status.flags.in_air && _control_status.flags.fixed_wing && !_control_status.flags.fake_pos;
 		const bool is_airspeed_significant = _airspeed_sample_delayed.true_airspeed > _params.arsp_thr;
 		const bool is_airspeed_consistent = (_aid_src_airspeed.test_ratio > 0.f && _aid_src_airspeed.test_ratio < 1.f);
 		const bool starting_conditions_passing = continuing_conditions_passing && is_airspeed_significant
@@ -1072,7 +688,7 @@ void Ekf::controlAirDataFusion()
 			startAirspeedFusion();
 		}
 
-	} else if (_control_status.flags.fuse_aspd && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us > (uint64_t) 1e6)) {
+	} else if (_control_status.flags.fuse_aspd && !isRecent(_airspeed_sample_delayed.time_us, (uint64_t)1e6)) {
 		ECL_WARN("Airspeed data stopped");
 		stopAirspeedFusion();
 	}
@@ -1080,7 +696,7 @@ void Ekf::controlAirDataFusion()
 
 void Ekf::controlBetaFusion()
 {
-	if (_using_synthetic_position) {
+	if (_control_status.flags.fake_pos) {
 		return;
 	}
 
@@ -1095,7 +711,7 @@ void Ekf::controlBetaFusion()
 			// activate the wind states
 			_control_status.flags.wind = true;
 			// reset the timeout timers to prevent repeated resets
-			_time_last_beta_fuse = _time_last_imu;
+			_time_last_beta_fuse = _imu_sample_delayed.time_us;
 			resetWind();
 		}
 
@@ -1106,7 +722,7 @@ void Ekf::controlBetaFusion()
 void Ekf::controlDragFusion()
 {
 	if ((_params.fusion_mode & SensorFusionMask::USE_DRAG) && _drag_buffer &&
-	    !_using_synthetic_position && _control_status.flags.in_air && !_mag_inhibit_yaw_reset_req) {
+	    !_control_status.flags.fake_pos && _control_status.flags.in_air && !_mag_inhibit_yaw_reset_req) {
 
 		if (!_control_status.flags.wind) {
 			// reset the wind states and covariances when starting drag accel fusion

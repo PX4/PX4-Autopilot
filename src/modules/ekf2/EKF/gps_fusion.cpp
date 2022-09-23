@@ -48,7 +48,7 @@ void Ekf::updateGpsYaw(const gpsSample &gps_sample)
 		// initially populate for estimator_aid_src_gnss_yaw logging
 
 		// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
-		const float measured_hdg = wrap_pi(_gps_sample_delayed.yaw + _gps_yaw_offset);
+		const float measured_hdg = wrap_pi(gps_sample.yaw + _gps_yaw_offset);
 
 		gps_yaw.observation = measured_hdg;
 		gps_yaw.observation_variance = sq(fmaxf(_params.gps_heading_noise, 1.0e-2f));
@@ -102,12 +102,15 @@ void Ekf::updateGpsPos(const gpsSample &gps_sample)
 	auto &gps_pos = _aid_src_gnss_pos;
 	resetEstimatorAidStatus(gps_pos);
 
+	const float height_measurement = gps_sample.hgt - getEkfGlobalOriginAltitude();
+	const float height_measurement_var = getGpsHeightVariance(gps_sample);
+
 	Vector3f position;
 	position(0) = gps_sample.pos(0);
 	position(1) = gps_sample.pos(1);
 
 	// vertical position - gps measurement has opposite sign to earth z axis
-	position(2) = -(gps_sample.hgt - getEkfGlobalOriginAltitude() - _gps_hgt_offset);
+	position(2) = -(height_measurement - _gps_hgt_b_est.getBias());
 
 	const float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
 
@@ -125,7 +128,7 @@ void Ekf::updateGpsPos(const gpsSample &gps_sample)
 		obs_var(0) = obs_var(1) = sq(math::constrain(gps_sample.hacc, lower_limit, upper_limit));
 	}
 
-	obs_var(2) = getGpsHeightVariance();
+	obs_var(2) = height_measurement_var + _gps_hgt_b_est.getBiasVar();
 
 	// innovation gate size
 	float innov_gate = fmaxf(_params.gps_pos_innov_gate, 1.f);
@@ -149,6 +152,12 @@ void Ekf::updateGpsPos(const gpsSample &gps_sample)
 	}
 
 	gps_pos.timestamp_sample = gps_sample.time_us;
+
+	// update the bias estimator before updating the main filter but after
+	// using its current state to compute the vertical position innovation
+	_gps_hgt_b_est.setMaxStateNoise(height_measurement_var);
+	_gps_hgt_b_est.setProcessNoiseSpectralDensity(_params.gps_hgt_bias_nsd);
+	_gps_hgt_b_est.fuseBias(height_measurement - (-_state.pos(2)), height_measurement_var + P(9, 9));
 }
 
 void Ekf::fuseGpsVel()
@@ -164,7 +173,7 @@ void Ekf::fuseGpsVel()
 		for (int i = 0; i < 2; i++) {
 			if (fuseVelPosHeight(gps_vel.innovation[i], gps_vel.innovation_variance[i], i)) {
 				gps_vel.fused[i] = true;
-				gps_vel.time_last_fuse[i] = _time_last_imu;
+				gps_vel.time_last_fuse[i] = _imu_sample_delayed.time_us;
 			}
 		}
 	}
@@ -175,7 +184,7 @@ void Ekf::fuseGpsVel()
 	if (gps_vel.fusion_enabled[2] && !gps_vel.innovation_rejected[2]) {
 		if (fuseVelPosHeight(gps_vel.innovation[2], gps_vel.innovation_variance[2], 2)) {
 			gps_vel.fused[2] = true;
-			gps_vel.time_last_fuse[2] = _time_last_imu;
+			gps_vel.time_last_fuse[2] = _imu_sample_delayed.time_us;
 		}
 	}
 }
@@ -192,7 +201,7 @@ void Ekf::fuseGpsPos()
 		for (int i = 0; i < 2; i++) {
 			if (fuseVelPosHeight(gps_pos.innovation[i], gps_pos.innovation_variance[i], 3 + i)) {
 				gps_pos.fused[i] = true;
-				gps_pos.time_last_fuse[i] = _time_last_imu;
+				gps_pos.time_last_fuse[i] = _imu_sample_delayed.time_us;
 			}
 		}
 	}
@@ -203,7 +212,7 @@ void Ekf::fuseGpsPos()
 	if (gps_pos.fusion_enabled[2] && !gps_pos.innovation_rejected[2]) {
 		if (fuseVelPosHeight(gps_pos.innovation[2], gps_pos.innovation_variance[2], 5)) {
 			gps_pos.fused[2] = true;
-			gps_pos.time_last_fuse[2] = _time_last_imu;
+			gps_pos.time_last_fuse[2] = _imu_sample_delayed.time_us;
 		}
 	}
 }

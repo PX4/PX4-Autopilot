@@ -98,6 +98,9 @@ Navigator::Navigator() :
 	_mission_sub = orb_subscribe(ORB_ID(mission));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
+	// Update the timeout used in mission_block (which can't hold it's own parameters)
+	_mission.set_payload_deployment_timeout(_param_mis_payload_delivery_timeout.get());
+
 	reset_triplets();
 }
 
@@ -128,6 +131,8 @@ void Navigator::params_update()
 	if (_handle_mpc_acc_hor != PARAM_INVALID) {
 		param_get(_handle_mpc_acc_hor, &_param_mpc_acc_hor);
 	}
+
+	_mission.set_payload_deployment_timeout(_param_mis_payload_delivery_timeout.get());
 }
 
 void Navigator::run()
@@ -203,7 +208,7 @@ void Navigator::run()
 			}
 		}
 
-		// check for parameter updates
+		/* check for parameter updates */
 		if (_parameter_update_sub.updated()) {
 			// clear update
 			parameter_update_s pupdate;
@@ -217,8 +222,10 @@ void Navigator::run()
 		_position_controller_status_sub.update();
 		_home_pos_sub.update(&_home_pos);
 
+		// Handle Vehicle commands
 		while (_vehicle_command_sub.updated()) {
 			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
+
 			vehicle_command_s cmd{};
 			_vehicle_command_sub.copy(&cmd);
 
@@ -296,12 +303,18 @@ void Navigator::run()
 							rep->current.alt = get_global_position()->alt;
 						}
 
-					} else if (PX4_ISFINITE(cmd.param7)) {
-						// Received only a request to change altitude, thus we keep the setpoint
+					} else if (PX4_ISFINITE(cmd.param7) || PX4_ISFINITE(cmd.param4)) {
+						// Position is not changing, thus we keep the setpoint
 						rep->current.lat = PX4_ISFINITE(curr->current.lat) ? curr->current.lat : get_global_position()->lat;
 						rep->current.lon = PX4_ISFINITE(curr->current.lon) ? curr->current.lon : get_global_position()->lon;
-						rep->current.alt = cmd.param7;
-						only_alt_change_requested = true;
+
+						if (PX4_ISFINITE(cmd.param7)) {
+							rep->current.alt = cmd.param7;
+							only_alt_change_requested = true;
+
+						} else {
+							rep->current.alt = get_global_position()->alt;
+						}
 
 					} else {
 						// All three set to NaN - pause vehicle
@@ -975,10 +988,18 @@ float Navigator::get_default_acceptance_radius()
 	return _param_nav_acc_rad.get();
 }
 
-float Navigator::get_default_altitude_acceptance_radius()
+float Navigator::get_altitude_acceptance_radius()
 {
 	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-		return _param_nav_fw_alt_rad.get();
+		const position_setpoint_s &next_sp = get_position_setpoint_triplet()->next;
+
+		if (!force_vtol() && next_sp.type == position_setpoint_s::SETPOINT_TYPE_LAND && next_sp.valid) {
+			// Use separate (tighter) altitude acceptance for clean altitude starting point before FW landing
+			return _param_nav_fw_altl_rad.get();
+
+		} else {
+			return _param_nav_fw_alt_rad.get();
+		}
 
 	} else if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
 		return INFINITY;
@@ -995,20 +1016,6 @@ float Navigator::get_default_altitude_acceptance_radius()
 
 		return alt_acceptance_radius;
 	}
-}
-
-float Navigator::get_altitude_acceptance_radius()
-{
-	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-		const position_setpoint_s &next_sp = get_position_setpoint_triplet()->next;
-
-		if (next_sp.type == position_setpoint_s::SETPOINT_TYPE_LAND && next_sp.valid) {
-			// Use separate (tighter) altitude acceptance for clean altitude starting point before landing
-			return _param_nav_fw_altl_rad.get();
-		}
-	}
-
-	return get_default_altitude_acceptance_radius();
 }
 
 float Navigator::get_cruising_speed()
@@ -1486,7 +1493,32 @@ void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 	// sent to the mavlink links to other components.
 	switch (vcmd->command) {
 	case NAV_CMD_IMAGE_START_CAPTURE:
+
+		if (static_cast<int>(vcmd->param3) == 1) {
+			// When sending a single capture we need to include the sequence number, thus camera_trigger needs to handle this cmd
+			vcmd->param1 = 0.0f;
+			vcmd->param2 = 0.0f;
+			vcmd->param3 = 0.0f;
+			vcmd->param4 = 0.0f;
+			vcmd->param5 = 1.0;
+			vcmd->param6 = 0.0;
+			vcmd->param7 = 0.0f;
+			vcmd->command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
+
+		} else {
+			// We are only capturing multiple if param3 is 0 or > 1.
+			// For multiple pictures the sequence number does not need to be included, thus there is no need to go through camera_trigger
+			_is_capturing_images = true;
+		}
+
+		vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		break;
+
 	case NAV_CMD_IMAGE_STOP_CAPTURE:
+		_is_capturing_images = false;
+		vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		break;
+
 	case NAV_CMD_VIDEO_START_CAPTURE:
 	case NAV_CMD_VIDEO_STOP_CAPTURE:
 		vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
@@ -1537,6 +1569,20 @@ void Navigator::release_gimbal_control()
 	vcmd.param3 = -1.0f; // Leave unchanged.
 	vcmd.param4 = -1.0f; // Leave unchanged.
 	publish_vehicle_cmd(&vcmd);
+}
+
+
+void
+Navigator::stop_capturing_images()
+{
+	if (_is_capturing_images) {
+		vehicle_command_s vcmd = {};
+		vcmd.command = NAV_CMD_IMAGE_STOP_CAPTURE;
+		vcmd.param1 = 0.0f;
+		publish_vehicle_cmd(&vcmd);
+
+		// _is_capturing_images is reset inside publish_vehicle_cmd.
+	}
 }
 
 bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)

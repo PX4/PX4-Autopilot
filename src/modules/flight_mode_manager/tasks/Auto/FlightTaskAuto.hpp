@@ -71,8 +71,7 @@ enum class WaypointType : int {
 	loiter = position_setpoint_s::SETPOINT_TYPE_LOITER,
 	takeoff = position_setpoint_s::SETPOINT_TYPE_TAKEOFF,
 	land = position_setpoint_s::SETPOINT_TYPE_LAND,
-	idle = position_setpoint_s::SETPOINT_TYPE_IDLE,
-	follow_target = position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET,
+	idle = position_setpoint_s::SETPOINT_TYPE_IDLE
 };
 
 enum class State {
@@ -133,7 +132,6 @@ protected:
 
 	State _current_state{State::none};
 	float _target_acceptance_radius{0.0f}; /**< Acceptances radius of the target */
-	int _mission_gear{landing_gear_s::GEAR_KEEP};
 
 	float _yaw_sp_prev{NAN};
 	AlphaFilter<float> _yawspeed_filter;

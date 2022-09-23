@@ -840,8 +840,6 @@ private:
 		(ParamInt<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
 
 		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
-		(ParamFloat<px4::params::FW_MAN_P_MAX>) _param_fw_man_p_max,
-		(ParamFloat<px4::params::FW_MAN_R_MAX>) _param_fw_man_r_max,
 
 		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,
 
@@ -862,7 +860,9 @@ private:
 		(ParamFloat<px4::params::FW_LND_FL_SINK>) _param_fw_lnd_fl_sink,
 		(ParamFloat<px4::params::FW_LND_TD_OFF>) _param_fw_lnd_td_off,
 		(ParamInt<px4::params::FW_LND_NUDGE>) _param_fw_lnd_nudge,
-		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort
+		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort,
+
+		(ParamFloat<px4::params::FW_WIND_ARSP_SC>) _param_fw_wind_arsp_sc
 	)
 
 };

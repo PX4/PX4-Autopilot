@@ -46,6 +46,7 @@
 #include <lib/systemlib/mavlink_log.h>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/airspeed_validated.h>
@@ -161,7 +162,8 @@ private:
 		CHECK_TYPE_ONLY_DATA_MISSING_BIT = (1 << 0),
 		CHECK_TYPE_DATA_STUCK_BIT = (1 << 1),
 		CHECK_TYPE_INNOVATION_BIT = (1 << 2),
-		CHECK_TYPE_LOAD_FACTOR_BIT = (1 << 3)
+		CHECK_TYPE_LOAD_FACTOR_BIT = (1 << 3),
+		CHECK_TYPE_DATA_VARIATION_BIT = (1 << 4)
 	};
 
 	DEFINE_PARAMETERS(
@@ -478,6 +480,8 @@ void AirspeedModule::update_params()
 				CheckTypeBits::CHECK_TYPE_INNOVATION_BIT);
 		_airspeed_validator[i].set_enable_load_factor_check(_param_airspeed_checks_on.get() &
 				CheckTypeBits::CHECK_TYPE_LOAD_FACTOR_BIT);
+		_airspeed_validator[i].set_enable_data_variation_check(_param_airspeed_checks_on.get() &
+				CheckTypeBits::CHECK_TYPE_DATA_VARIATION_BIT);
 	}
 }
 
@@ -546,7 +550,7 @@ void AirspeedModule::update_ground_minus_wind_airspeed()
 {
 	const float wind_uncertainty = sqrtf(_wind_estimate_sideslip.variance_north + _wind_estimate_sideslip.variance_east);
 
-	if (wind_uncertainty < _param_wind_sigma_max_synth_tas.get()) {
+	if (_wind_estimator_sideslip.is_estimate_valid() && wind_uncertainty < _param_wind_sigma_max_synth_tas.get()) {
 		// calculate airspeed estimate based on groundspeed-windspeed
 		const float TAS_north = _vehicle_local_position.vx - _wind_estimate_sideslip.windspeed_north;
 		const float TAS_east = _vehicle_local_position.vy - _wind_estimate_sideslip.windspeed_east;

@@ -31,6 +31,10 @@
  *
  ****************************************************************************/
 
+#pragma once
+
+#include <lib/rate_control/rate_control.hpp>
+
 #include <drivers/drv_hrt.h>
 #include "ecl_pitch_controller.h"
 #include "ecl_roll_controller.h"
@@ -52,15 +56,18 @@
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_status.h>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/autotune_attitude_control_status.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
+#include <uORB/topics/vehicle_angular_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -120,6 +127,9 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};		/**< vehicle land detected subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};				/**< vehicle status subscription */
 	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)};
+
+	uORB::SubscriptionMultiArray<control_allocator_status_s, 2> _control_allocator_status_subs{ORB_ID::control_allocator_status};
 
 	uORB::SubscriptionData<airspeed_validated_s> _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 
@@ -203,6 +213,7 @@ private:
 		(ParamFloat<px4::params::FW_PR_I>) _param_fw_pr_i,
 		(ParamFloat<px4::params::FW_PR_IMAX>) _param_fw_pr_imax,
 		(ParamFloat<px4::params::FW_PR_P>) _param_fw_pr_p,
+		(ParamFloat<px4::params::FW_PR_D>) _param_fw_pr_d,
 		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
 
 		(ParamFloat<px4::params::FW_R_RMAX>) _param_fw_r_rmax,
@@ -212,6 +223,7 @@ private:
 		(ParamFloat<px4::params::FW_RR_I>) _param_fw_rr_i,
 		(ParamFloat<px4::params::FW_RR_IMAX>) _param_fw_rr_imax,
 		(ParamFloat<px4::params::FW_RR_P>) _param_fw_rr_p,
+		(ParamFloat<px4::params::FW_RR_D>) _param_fw_rr_d,
 
 		(ParamBool<px4::params::FW_W_EN>) _param_fw_w_en,
 		(ParamFloat<px4::params::FW_W_RMAX>) _param_fw_w_rmax,
@@ -225,6 +237,7 @@ private:
 		(ParamFloat<px4::params::FW_YR_I>) _param_fw_yr_i,
 		(ParamFloat<px4::params::FW_YR_IMAX>) _param_fw_yr_imax,
 		(ParamFloat<px4::params::FW_YR_P>) _param_fw_yr_p,
+		(ParamFloat<px4::params::FW_YR_D>) _param_fw_yr_d,
 
 		(ParamFloat<px4::params::TRIM_PITCH>) _param_trim_pitch,
 		(ParamFloat<px4::params::TRIM_ROLL>) _param_trim_roll,
@@ -235,6 +248,7 @@ private:
 	ECL_PitchController		_pitch_ctrl;
 	ECL_YawController		_yaw_ctrl;
 	ECL_WheelController		_wheel_ctrl;
+	RateControl _rate_control; ///< class for rate control calculations
 
 	/**
 	 * @brief Update flap control setting
@@ -260,7 +274,6 @@ private:
 	void		vehicle_control_mode_poll();
 	void		vehicle_manual_poll(const float yaw_body);
 	void		vehicle_attitude_setpoint_poll();
-	void		vehicle_rates_setpoint_poll();
 	void		vehicle_land_detected_poll();
 
 	float 		get_airspeed_and_update_scaling();

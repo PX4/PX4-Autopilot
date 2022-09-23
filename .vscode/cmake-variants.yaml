@@ -2,7 +2,7 @@ CONFIG:
   default: px4_sitl_default
   choices:
     px4_sitl_default:
-      short: px4_sitl
+      short: px4_sitl_default
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default
@@ -131,6 +131,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_cannode_canbootloader
+    ark_fmu-v6x_bootloader:
+      short: ark_fmu-v6x_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_fmu-v6x_bootloader
+    ark_fmu-v6x_default:
+      short: ark_fmu-v6x_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_fmu-v6x_default
     atl_mantis-edu_default:
       short: atl_mantis-edu
       buildType: MinSizeRel
@@ -226,6 +236,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: modalai_fc-v2_default
+    modalai_voxl2-io_default:
+      short: modalai_voxl2-io
+      buildType: MinSizeRel
+      settings:
+        CONFIG: modalai_voxl2-io_default
     mro_ctrl-zero-f7_default:
       short: mro_ctrl-zero-f7
       buildType: MinSizeRel

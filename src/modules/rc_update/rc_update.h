@@ -163,12 +163,10 @@ public:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _rc_parameter_map_sub{ORB_ID(rc_parameter_map)};
-	uORB::Subscription _actuator_controls_3_sub{ORB_ID(actuator_controls_3)};
 
 	uORB::Publication<rc_channels_s> _rc_channels_pub{ORB_ID(rc_channels)};
 	uORB::PublicationMulti<manual_control_setpoint_s> _manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::Publication<manual_control_switches_s> _manual_control_switches_pub{ORB_ID(manual_control_switches)};
-	uORB::Publication<actuator_controls_s> _actuator_group_3_pub{ORB_ID(actuator_controls_3)};
 
 	manual_control_switches_s _manual_switches_previous{};
 	manual_control_switches_s _manual_switches_last_publish{};
@@ -226,6 +224,8 @@ public:
 		(ParamInt<px4::params::RC_MAP_AUX5>) _param_rc_map_aux5,
 		(ParamInt<px4::params::RC_MAP_AUX6>) _param_rc_map_aux6,
 
+		(ParamInt<px4::params::RC_MAP_ENG_MOT>) _param_rc_map_eng_mot,
+
 		(ParamInt<px4::params::RC_FAILS_THR>) _param_rc_fails_thr,
 
 		(ParamFloat<px4::params::RC_LOITER_TH>) _param_rc_loiter_th,
@@ -235,6 +235,7 @@ public:
 		(ParamFloat<px4::params::RC_TRANS_TH>) _param_rc_trans_th,
 		(ParamFloat<px4::params::RC_GEAR_TH>) _param_rc_gear_th,
 		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
+		(ParamFloat<px4::params::RC_ENG_MOT_TH>) _param_rc_eng_mot_th,
 
 		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt
 	)

@@ -128,7 +128,8 @@ public:
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
 			irqstate_t flags = enter_critical_section();
-			T ret = _value++;
+			T ret = _value;
+			_value += num;
 			leave_critical_section(flags);
 			return ret;
 
@@ -149,7 +150,8 @@ public:
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
 			irqstate_t flags = enter_critical_section();
-			T ret = _value--;
+			T ret = _value;
+			_value -= num;
 			leave_critical_section(flags);
 			return ret;
 

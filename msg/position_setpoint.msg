@@ -8,7 +8,6 @@ uint8 SETPOINT_TYPE_LOITER=2	# loiter setpoint
 uint8 SETPOINT_TYPE_TAKEOFF=3	# takeoff setpoint
 uint8 SETPOINT_TYPE_LAND=4	# land setpoint, altitude must be ignored, descend until landing
 uint8 SETPOINT_TYPE_IDLE=5	# do nothing, switch off motors or keep at idle speed (MC)
-uint8 SETPOINT_TYPE_FOLLOW_TARGET=6  # setpoint in NED frame (x, y, z, vx, vy, vz) set by follow target
 
 uint8 VELOCITY_FRAME_LOCAL_NED = 1 # MAV_FRAME_LOCAL_NED
 uint8 VELOCITY_FRAME_BODY_NED = 8 # MAV_FRAME_BODY_NED
@@ -31,8 +30,6 @@ bool yaw_valid			# true if yaw setpoint valid
 
 float32 yawspeed		# yawspeed (only for multirotors, in rad/s)
 bool yawspeed_valid		# true if yawspeed setpoint valid
-
-int8 landing_gear		# landing gear: see definition of the states in landing_gear.msg
 
 float32 loiter_radius		# loiter radius (only for fixed wing), in m
 int8 loiter_direction		# loiter direction: 1 = CW, -1 = CCW

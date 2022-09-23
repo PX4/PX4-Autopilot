@@ -414,7 +414,6 @@ if(BUILD_TESTING)
 			DEPENDS
 				px4
 				examples__dyn_hello
-				test_mixer_multirotor
 			USES_TERMINAL
 			COMMENT "Running tests"
 			WORKING_DIRECTORY ${PX4_BINARY_DIR})

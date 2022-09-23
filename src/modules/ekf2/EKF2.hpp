@@ -52,6 +52,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
+#include <lib/systemlib/mavlink_log.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -67,7 +68,7 @@
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_timestamps.h>
-#include <uORB/topics/estimator_baro_bias.h>
+#include <uORB/topics/estimator_bias.h>
 #include <uORB/topics/estimator_event_flags.h>
 #include <uORB/topics/estimator_gps_status.h>
 #include <uORB/topics/estimator_innovations.h>
@@ -134,9 +135,16 @@ private:
 
 	void Run() override;
 
+	void VerifyParams();
+
 	void PublishAidSourceStatus(const hrt_abstime &timestamp);
 	void PublishAttitude(const hrt_abstime &timestamp);
 	void PublishBaroBias(const hrt_abstime &timestamp);
+	void PublishGnssHgtBias(const hrt_abstime &timestamp);
+	void PublishRngHgtBias(const hrt_abstime &timestamp);
+	void PublishEvHgtBias(const hrt_abstime &timestamp);
+	estimator_bias_s fillEstimatorBiasMsg(const BiasEstimator::status &status, uint64_t timestamp_sample_us,
+					      uint64_t timestamp, uint32_t device_id = 0);
 	void PublishEventFlags(const hrt_abstime &timestamp);
 	void PublishGlobalPosition(const hrt_abstime &timestamp);
 	void PublishGpsStatus(const hrt_abstime &timestamp);
@@ -255,6 +263,7 @@ private:
 	hrt_abstime _status_baro_hgt_pub_last{0};
 	hrt_abstime _status_rng_hgt_pub_last{0};
 
+	hrt_abstime _status_fake_hgt_pub_last{0};
 	hrt_abstime _status_fake_pos_pub_last{0};
 
 	hrt_abstime _status_ev_yaw_pub_last{0};
@@ -269,9 +278,14 @@ private:
 	hrt_abstime _status_aux_vel_pub_last{0};
 
 	float _last_baro_bias_published{};
+	float _last_gnss_hgt_bias_published{};
+	float _last_rng_hgt_bias_published{};
+	float _last_ev_hgt_bias_published{};
 
 	float _airspeed_scale_factor{1.0f}; ///< scale factor correction applied to airspeed measurements
 	hrt_abstime _airspeed_validated_timestamp_last{0};
+
+	orb_advert_t _mavlink_log_pub{nullptr};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -301,7 +315,7 @@ private:
 	hrt_abstime _last_event_flags_publish{0};
 	hrt_abstime _last_status_flags_publish{0};
 
-	uint32_t _filter_control_status{0};
+	uint64_t _filter_control_status{0};
 	uint32_t _filter_fault_status{0};
 	uint32_t _innov_check_fail_status{0};
 
@@ -312,7 +326,10 @@ private:
 	uint32_t _filter_information_event_changes{0};
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
-	uORB::PublicationMulti<estimator_baro_bias_s>        _estimator_baro_bias_pub{ORB_ID(estimator_baro_bias)};
+	uORB::PublicationMulti<estimator_bias_s>             _estimator_baro_bias_pub{ORB_ID(estimator_baro_bias)};
+	uORB::PublicationMulti<estimator_bias_s>             _estimator_gnss_hgt_bias_pub{ORB_ID(estimator_gnss_hgt_bias)};
+	uORB::PublicationMulti<estimator_bias_s>             _estimator_rng_hgt_bias_pub{ORB_ID(estimator_rng_hgt_bias)};
+	uORB::PublicationMulti<estimator_bias_s>             _estimator_ev_hgt_bias_pub{ORB_ID(estimator_ev_hgt_bias)};
 	uORB::PublicationMultiData<estimator_event_flags_s>  _estimator_event_flags_pub{ORB_ID(estimator_event_flags)};
 	uORB::PublicationMulti<estimator_gps_status_s>       _estimator_gps_status_pub{ORB_ID(estimator_gps_status)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
@@ -330,6 +347,7 @@ private:
 	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_baro_hgt_pub{ORB_ID(estimator_aid_src_baro_hgt)};
 	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_rng_hgt_pub{ORB_ID(estimator_aid_src_rng_hgt)};
 
+	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_fake_hgt_pub{ORB_ID(estimator_aid_src_fake_hgt)};
 	uORB::PublicationMulti<estimator_aid_source_2d_s> _estimator_aid_src_fake_pos_pub{ORB_ID(estimator_aid_src_fake_pos)};
 
 	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_gnss_yaw_pub{ORB_ID(estimator_aid_src_gnss_yaw)};
@@ -456,7 +474,10 @@ private:
 		// measurement source control
 		(ParamExtInt<px4::params::EKF2_AID_MASK>)
 		_param_ekf2_aid_mask,		///< bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
-		(ParamExtInt<px4::params::EKF2_HGT_MODE>) _param_ekf2_hgt_mode,	///< selects the primary source for height data
+		(ParamExtInt<px4::params::EKF2_HGT_REF>) _param_ekf2_hgt_ref,    ///< selects the primary source for height data
+		(ParamExtInt<px4::params::EKF2_BARO_CTRL>) _param_ekf2_baro_ctrl,///< barometer control selection
+		(ParamExtInt<px4::params::EKF2_GPS_CTRL>) _param_ekf2_gps_ctrl,  ///< GPS control selection
+		(ParamExtInt<px4::params::EKF2_RNG_CTRL>) _param_ekf2_rng_ctrl,	 ///< range finder control selection
 		(ParamExtInt<px4::params::EKF2_TERR_MASK>)
 		_param_ekf2_terr_mask, ///< bitmasked integer that selects which of range finder and optical flow aiding sources will be used for terrain estimation
 		(ParamExtInt<px4::params::EKF2_NOAID_TOUT>)
@@ -470,8 +491,6 @@ private:
 		_param_ekf2_rng_gate,	///< range finder fusion innovation consistency gate size (STD)
 		(ParamExtFloat<px4::params::EKF2_MIN_RNG>) _param_ekf2_min_rng,	///< minimum valid value for range when on ground (m)
 		(ParamExtFloat<px4::params::EKF2_RNG_PITCH>) _param_ekf2_rng_pitch,	///< range sensor pitch offset (rad)
-		(ParamExtInt<px4::params::EKF2_RNG_AID>)
-		_param_ekf2_rng_aid,		///< enables use of a range finder even if primary height source is not range finder
 		(ParamExtFloat<px4::params::EKF2_RNG_A_VMAX>)
 		_param_ekf2_rng_a_vmax,	///< maximum allowed horizontal velocity for range aid (m/s)
 		(ParamExtFloat<px4::params::EKF2_RNG_A_HMAX>)

@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# Helicopter default parameters.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+# Inherit from mc
+. ${R}etc/init.d/rc.mc_defaults
+
+param set-default MAV_TYPE 4
+
+param set-default COM_PREARM_MODE 2
+param set-default COM_SPOOLUP_TIME 10
+
+# No need for minimum collective pitch (or airmode) to keep torque authority
+param set-default MPC_MANTHR_MIN 0

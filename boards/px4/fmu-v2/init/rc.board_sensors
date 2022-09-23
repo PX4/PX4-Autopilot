@@ -12,7 +12,7 @@ board_adc start
 hmc5883 -T -I -R 4 start
 
 # Internal SPI (auto detect ms5611 or ms5607)
-if ! ms5611 -T 5607 -s -b 1 start
+if ! ms5611 -T 5607 -q -s -b 1 start
 then
 	ms5611 -s -b 1 start
 fi

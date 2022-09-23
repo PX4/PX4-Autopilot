@@ -33,8 +33,6 @@
 
 #include "mixer_module.hpp"
 
-#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
-
 #include <uORB/Publication.hpp>
 #include <px4_platform_common/log.h>
 
@@ -62,26 +60,21 @@ static const FunctionProvider all_function_providers[] = {
 	{OutputFunction::Offboard_Actuator_Set1, OutputFunction::Offboard_Actuator_Set6, &FunctionActuatorSet::allocate},
 	{OutputFunction::Landing_Gear, &FunctionLandingGear::allocate},
 	{OutputFunction::Parachute, &FunctionParachute::allocate},
+	{OutputFunction::Gripper, &FunctionGripper::allocate},
 	{OutputFunction::RC_Roll, OutputFunction::RC_AUXMax, &FunctionManualRC::allocate},
 	{OutputFunction::Gimbal_Roll, OutputFunction::Gimbal_Yaw, &FunctionGimbal::allocate},
 };
 
 MixingOutput::MixingOutput(const char *param_prefix, uint8_t max_num_outputs, OutputModuleInterface &interface,
-			   SchedulingPolicy scheduling_policy, bool support_esc_calibration, bool ramp_up)
-	: ModuleParams(&interface),
-	  _output_ramp_up(ramp_up),
-	  _control_subs{
-	{&interface, ORB_ID(actuator_controls_0)},
-	{&interface, ORB_ID(actuator_controls_1)},
-	{&interface, ORB_ID(actuator_controls_2)},
-	{&interface, ORB_ID(actuator_controls_3)},
-},
-_scheduling_policy(scheduling_policy),
-_support_esc_calibration(support_esc_calibration),
-_max_num_outputs(max_num_outputs < MAX_ACTUATORS ? max_num_outputs : MAX_ACTUATORS),
-_interface(interface),
-_control_latency_perf(perf_alloc(PC_ELAPSED, "control latency")),
-_param_prefix(param_prefix)
+			   SchedulingPolicy scheduling_policy, bool support_esc_calibration, bool ramp_up) :
+	ModuleParams(&interface),
+	_output_ramp_up(ramp_up),
+	_scheduling_policy(scheduling_policy),
+	_support_esc_calibration(support_esc_calibration),
+	_max_num_outputs(max_num_outputs < MAX_ACTUATORS ? max_num_outputs : MAX_ACTUATORS),
+	_interface(interface),
+	_control_latency_perf(perf_alloc(PC_ELAPSED, "control latency")),
+	_param_prefix(param_prefix)
 {
 	/* Safely initialize armed flags */
 	_armed.armed = false;
@@ -93,20 +86,13 @@ _param_prefix(param_prefix)
 
 	px4_sem_init(&_lock, 0, 1);
 
-	_use_dynamic_mixing = _param_sys_ctrl_alloc.get();
+	initParamHandles();
 
-	if (_use_dynamic_mixing) {
-		initParamHandles();
-
-		for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
-			_failsafe_value[i] = UINT16_MAX;
-		}
-
-		updateParams();
-
-	} else {
-		_control_allocator_status_pub.advertise();
+	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		_failsafe_value[i] = UINT16_MAX;
 	}
+
+	updateParams();
 
 	_outputs_pub.advertise();
 }
@@ -114,7 +100,6 @@ _param_prefix(param_prefix)
 MixingOutput::~MixingOutput()
 {
 	perf_free(_control_latency_perf);
-	delete _mixers;
 	px4_sem_destroy(&_lock);
 
 	cleanupFunctions();
@@ -152,28 +137,12 @@ void MixingOutput::printStatus() const
 		PX4_INFO("Switched to rate_ctrl work queue");
 	}
 
-
-	if (!_use_dynamic_mixing) {
-		PX4_INFO("Mixer loaded: %s", _mixers ? "yes" : "no");
-		PX4_INFO("Driver instance: %i", _driver_instance);
-	}
-
 	PX4_INFO_RAW("Channel Configuration:\n");
 
-	if (_use_dynamic_mixing) {
-		for (unsigned i = 0; i < _max_num_outputs; i++) {
-			PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", i,
-				     (int)_function_assignment[i], _current_output_value[i],
-				     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _max_value[i]);
-		}
-
-	} else {
-		for (unsigned i = 0; i < _max_num_outputs; i++) {
-			int reordered_i = reorderedMotorIndex(i);
-			PX4_INFO_RAW("Channel %i: value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", reordered_i,
-				     _current_output_value[i],
-				     _failsafe_value[reordered_i], _disarmed_value[reordered_i], _min_value[reordered_i], _max_value[reordered_i]);
-		}
+	for (unsigned i = 0; i < _max_num_outputs; i++) {
+		PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", i,
+			     (int)_function_assignment[i], _current_output_value[i],
+			     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _max_value[i]);
 	}
 }
 
@@ -181,154 +150,52 @@ void MixingOutput::updateParams()
 {
 	ModuleParams::updateParams();
 
-	// update mixer if we have one
-	if (_mixers) {
-		if (_param_mot_slew_max.get() <= FLT_EPSILON) {
-			_mixers->set_max_delta_out_once(0.f);
+	bool function_changed = false;
+
+	for (unsigned i = 0; i < _max_num_outputs; i++) {
+		int32_t val;
+
+		if (_param_handles[i].function != PARAM_INVALID && param_get(_param_handles[i].function, &val) == 0) {
+			if (val != (int32_t)_function_assignment[i]) {
+				function_changed = true;
+			}
+
+			// we set _function_assignment[i] later to ensure _functions[i] is updated at the same time
 		}
 
-		_mixers->set_thrust_factor(_param_thr_mdl_fac.get());
-		_mixers->set_airmode((Mixer::Airmode)_param_mc_airmode.get());
-	}
-
-	if (_use_dynamic_mixing) {
-		_param_mot_ordering.set(0); // not used with dynamic mixing
-
-		bool function_changed = false;
-
-		for (unsigned i = 0; i < _max_num_outputs; i++) {
-			int32_t val;
-
-			if (_param_handles[i].function != PARAM_INVALID && param_get(_param_handles[i].function, &val) == 0) {
-				if (val != (int32_t)_function_assignment[i]) {
-					function_changed = true;
-				}
-
-				// we set _function_assignment[i] later to ensure _functions[i] is updated at the same time
-			}
-
-			if (_param_handles[i].disarmed != PARAM_INVALID && param_get(_param_handles[i].disarmed, &val) == 0) {
-				_disarmed_value[i] = val;
-			}
-
-			if (_param_handles[i].min != PARAM_INVALID && param_get(_param_handles[i].min, &val) == 0) {
-				_min_value[i] = val;
-			}
-
-			if (_param_handles[i].max != PARAM_INVALID && param_get(_param_handles[i].max, &val) == 0) {
-				_max_value[i] = val;
-			}
-
-			if (_min_value[i] > _max_value[i]) {
-				uint16_t tmp = _min_value[i];
-				_min_value[i] = _max_value[i];
-				_max_value[i] = tmp;
-			}
-
-			if (_param_handles[i].failsafe != PARAM_INVALID && param_get(_param_handles[i].failsafe, &val) == 0) {
-				_failsafe_value[i] = val;
-			}
+		if (_param_handles[i].disarmed != PARAM_INVALID && param_get(_param_handles[i].disarmed, &val) == 0) {
+			_disarmed_value[i] = val;
 		}
 
-		_reverse_output_mask = 0;
-		int32_t rev_range_param;
-
-		if (_param_handle_rev_range != PARAM_INVALID && param_get(_param_handle_rev_range, &rev_range_param) == 0) {
-			_reverse_output_mask = rev_range_param;
+		if (_param_handles[i].min != PARAM_INVALID && param_get(_param_handles[i].min, &val) == 0) {
+			_min_value[i] = val;
 		}
 
-		if (function_changed) {
-			_need_function_update = true;
-		}
-	}
-}
-
-bool MixingOutput::updateSubscriptions(bool allow_wq_switch, bool limit_callbacks_to_primary)
-{
-	if (_use_dynamic_mixing) {
-		return updateSubscriptionsDynamicMixer(allow_wq_switch, limit_callbacks_to_primary);
-
-	} else {
-		return updateSubscriptionsStaticMixer(allow_wq_switch, limit_callbacks_to_primary);
-	}
-}
-
-bool MixingOutput::updateSubscriptionsStaticMixer(bool allow_wq_switch, bool limit_callbacks_to_primary)
-{
-	if (_groups_subscribed == _groups_required) {
-		return false;
-	}
-
-	// must be locked to potentially change WorkQueue
-	lock();
-
-	if (_scheduling_policy == SchedulingPolicy::Auto) {
-		// first clear everything
-		unregister();
-		_interface.ScheduleClear();
-
-		// if subscribed to control group 0 or 1 then move to the rate_ctrl WQ
-		const bool sub_group_0 = (_groups_required & (1 << 0));
-		const bool sub_group_1 = (_groups_required & (1 << 1));
-
-		if (allow_wq_switch && !_wq_switched && (sub_group_0 || sub_group_1)) {
-			if (_interface.ChangeWorkQueue(px4::wq_configurations::rate_ctrl)) {
-				// let the new WQ handle the subscribe update
-				_wq_switched = true;
-				_interface.ScheduleNow();
-				unlock();
-				return false;
-			}
+		if (_param_handles[i].max != PARAM_INVALID && param_get(_param_handles[i].max, &val) == 0) {
+			_max_value[i] = val;
 		}
 
-		bool sub_group_0_callback_registered = false;
-		bool sub_group_1_callback_registered = false;
-
-		// register callback to all required actuator control groups
-		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-
-			if (limit_callbacks_to_primary) {
-				// don't register additional callbacks if actuator_controls_0 or actuator_controls_1 are already registered
-				if ((i > 1) && (sub_group_0_callback_registered || sub_group_1_callback_registered)) {
-					break;
-				}
-			}
-
-			if (_groups_required & (1 << i)) {
-				if (_control_subs[i].registerCallback()) {
-					PX4_DEBUG("subscribed to actuator_controls_%d", i);
-
-					if (limit_callbacks_to_primary) {
-						if (i == 0) {
-							sub_group_0_callback_registered = true;
-
-						} else if (i == 1) {
-							sub_group_1_callback_registered = true;
-						}
-					}
-
-				} else {
-					PX4_ERR("actuator_controls_%d register callback failed!", i);
-				}
-			}
+		if (_min_value[i] > _max_value[i]) {
+			uint16_t tmp = _min_value[i];
+			_min_value[i] = _max_value[i];
+			_max_value[i] = tmp;
 		}
 
-		// if nothing required keep periodic schedule (so the module can update other things)
-		if (_groups_required == 0) {
-			// TODO: this might need to be configurable depending on the module
-			_interface.ScheduleOnInterval(100_ms);
+		if (_param_handles[i].failsafe != PARAM_INVALID && param_get(_param_handles[i].failsafe, &val) == 0) {
+			_failsafe_value[i] = val;
 		}
 	}
 
-	_groups_subscribed = _groups_required;
-	setMaxTopicUpdateRate(_max_topic_update_interval_us);
+	_reverse_output_mask = 0;
+	int32_t rev_range_param;
 
-	PX4_DEBUG("_groups_required 0x%08" PRIx32, _groups_required);
-	PX4_DEBUG("_groups_subscribed 0x%08" PRIx32, _groups_subscribed);
+	if (_param_handle_rev_range != PARAM_INVALID && param_get(_param_handle_rev_range, &rev_range_param) == 0) {
+		_reverse_output_mask = rev_range_param;
+	}
 
-	unlock();
-
-	return true;
+	if (function_changed) {
+		_need_function_update = true;
+	}
 }
 
 void MixingOutput::cleanupFunctions()
@@ -345,7 +212,7 @@ void MixingOutput::cleanupFunctions()
 	}
 }
 
-bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool limit_callbacks_to_primary)
+bool MixingOutput::updateSubscriptions(bool allow_wq_switch, bool limit_callbacks_to_primary)
 {
 	if (!_need_function_update || _armed.armed) {
 		return false;
@@ -490,17 +357,8 @@ void MixingOutput::setMaxTopicUpdateRate(unsigned max_topic_update_interval_us)
 {
 	_max_topic_update_interval_us = max_topic_update_interval_us;
 
-	if (_use_dynamic_mixing) {
-		if (_subscription_callback) {
-			_subscription_callback->set_interval_us(_max_topic_update_interval_us);
-		}
-
-	} else {
-		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			if (_groups_subscribed & (1 << i)) {
-				_control_subs[i].set_interval_us(_max_topic_update_interval_us);
-			}
-		}
+	if (_subscription_callback) {
+		_subscription_callback->set_interval_us(_max_topic_update_interval_us);
 	}
 }
 
@@ -538,218 +396,12 @@ void MixingOutput::setAllDisarmedValues(uint16_t value)
 
 void MixingOutput::unregister()
 {
-	for (auto &control_sub : _control_subs) {
-		control_sub.unregisterCallback();
-	}
-
 	if (_subscription_callback) {
 		_subscription_callback->unregisterCallback();
 	}
 }
 
-void MixingOutput::updateOutputSlewrateMultirotorMixer()
-{
-	const hrt_abstime now = hrt_absolute_time();
-	const float dt = math::constrain((now - _time_last_dt_update_multicopter) / 1e6f, 0.0001f, 0.02f);
-	_time_last_dt_update_multicopter = now;
-
-	// maximum value the outputs of the multirotor mixer are allowed to change in this cycle
-	// factor 2 is needed because actuator outputs are in the range [-1,1]
-	const float delta_out_max = 2.0f * 1000.0f * dt / (_max_value[0] - _min_value[0]) / _param_mot_slew_max.get();
-	_mixers->set_max_delta_out_once(delta_out_max);
-}
-
-void MixingOutput::updateOutputSlewrateSimplemixer()
-{
-	const hrt_abstime now = hrt_absolute_time();
-	const float dt = math::constrain((now - _time_last_dt_update_simple_mixer) / 1e6f, 0.0001f, 0.02f);
-	_time_last_dt_update_simple_mixer = now;
-
-	// set dt for slew rate limiter in SimpleMixer (is reset internally after usig it, so needs to be set on every update)
-	_mixers->set_dt_once(dt);
-}
-
-
-unsigned MixingOutput::motorTest()
-{
-	test_motor_s test_motor;
-	bool had_update = false;
-
-	while (_motor_test.test_motor_sub.update(&test_motor)) {
-		if (test_motor.driver_instance != _driver_instance ||
-		    test_motor.timestamp == 0 ||
-		    hrt_elapsed_time(&test_motor.timestamp) > 100_ms) {
-			continue;
-		}
-
-		bool in_test_mode = test_motor.action == test_motor_s::ACTION_RUN;
-
-		if (in_test_mode != _motor_test.in_test_mode) {
-			// reset all outputs to disarmed on state change
-			for (int i = 0; i < MAX_ACTUATORS; ++i) {
-				_current_output_value[i] = _disarmed_value[i];
-			}
-		}
-
-		if (in_test_mode) {
-			int idx = test_motor.motor_number;
-
-			if (idx < MAX_ACTUATORS) {
-				if (test_motor.value < 0.f) {
-					_current_output_value[reorderedMotorIndex(idx)] = _disarmed_value[idx];
-
-				} else {
-					_current_output_value[reorderedMotorIndex(idx)] =
-						math::constrain<uint16_t>(_min_value[idx] + (uint16_t)((_max_value[idx] - _min_value[idx]) * test_motor.value),
-									  _min_value[idx], _max_value[idx]);
-				}
-			}
-
-			if (test_motor.timeout_ms > 0) {
-				_motor_test.timeout = test_motor.timestamp + test_motor.timeout_ms * 1000;
-
-			} else {
-				_motor_test.timeout = 0;
-			}
-		}
-
-		_motor_test.in_test_mode = in_test_mode;
-		had_update = true;
-	}
-
-	// check for timeouts
-	if (_motor_test.timeout != 0 && hrt_absolute_time() > _motor_test.timeout) {
-		_motor_test.in_test_mode = false;
-		_motor_test.timeout = 0;
-
-		for (int i = 0; i < MAX_ACTUATORS; ++i) {
-			_current_output_value[i] = _disarmed_value[i];
-		}
-
-		had_update = true;
-	}
-
-	return (_motor_test.in_test_mode || had_update) ? _max_num_outputs : 0;
-}
-
 bool MixingOutput::update()
-{
-	if (_use_dynamic_mixing) {
-		return updateDynamicMixer();
-
-	} else {
-		return updateStaticMixer();
-	}
-}
-bool MixingOutput::updateStaticMixer()
-{
-	if (!_mixers) {
-		// do nothing until we have a valid mixer
-		return false;
-	}
-
-	// check arming state
-	if (_armed_sub.update(&_armed)) {
-		_armed.in_esc_calibration_mode &= _support_esc_calibration;
-
-		if (_ignore_lockdown) {
-			_armed.lockdown = false;
-		}
-
-		/* Update the armed status and check that we're not locked down.
-		 * We also need to arm throttle for the ESC calibration. */
-		_throttle_armed = (_armed.armed && !_armed.lockdown) || _armed.in_esc_calibration_mode;
-
-		if (_armed.armed) {
-			_motor_test.in_test_mode = false;
-		}
-	}
-
-	if (_param_mot_slew_max.get() > FLT_EPSILON) {
-		updateOutputSlewrateMultirotorMixer();
-	}
-
-	updateOutputSlewrateSimplemixer(); // update dt for output slew rate in simple mixer
-
-	unsigned n_updates = 0;
-
-	/* get controls for required topics */
-	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_groups_subscribed & (1 << i)) {
-			if (_control_subs[i].copy(&_controls[i])) {
-				n_updates++;
-			}
-
-			/* During ESC calibration, we overwrite the throttle value. */
-			if (i == 0 && _armed.in_esc_calibration_mode) {
-
-				/* Set all controls to 0 */
-				memset(&_controls[i], 0, sizeof(_controls[i]));
-
-				/* except thrust to maximum. */
-				_controls[i].control[actuator_controls_s::INDEX_THROTTLE] = 1.0f;
-
-				/* Switch off the output limit ramp for the calibration. */
-				_output_state = OutputLimitState::ON;
-			}
-		}
-	}
-
-	// check for motor test (after topic updates)
-	if (!_armed.armed && !_armed.manual_lockdown) {
-		unsigned num_motor_test = motorTest();
-
-		if (num_motor_test > 0) {
-			if (_interface.updateOutputs(false, _current_output_value, num_motor_test, 1)) {
-				actuator_outputs_s actuator_outputs{};
-				setAndPublishActuatorOutputs(num_motor_test, actuator_outputs);
-			}
-
-			return true;
-		}
-	}
-
-	/* do mixing */
-	float outputs[MAX_ACTUATORS] {};
-	const unsigned mixed_num_outputs = _mixers->mix(outputs, _max_num_outputs);
-
-	/* the output limit call takes care of out of band errors, NaN and constrains */
-	output_limit_calc(_throttle_armed, mixed_num_outputs, outputs);
-
-	/* overwrite outputs in case of force_failsafe with _failsafe_value values */
-	if (_armed.force_failsafe) {
-		for (size_t i = 0; i < mixed_num_outputs; i++) {
-			_current_output_value[i] = _failsafe_value[i];
-		}
-	}
-
-	bool stop_motors = mixed_num_outputs == 0 || !_throttle_armed;
-
-	/* overwrite outputs in case of lockdown with disarmed values */
-	if (_armed.lockdown || _armed.manual_lockdown) {
-		for (size_t i = 0; i < mixed_num_outputs; i++) {
-			_current_output_value[i] = _disarmed_value[i];
-		}
-
-		stop_motors = true;
-	}
-
-	/* apply _param_mot_ordering */
-	reorderOutputs(_current_output_value);
-
-	/* now return the outputs to the driver */
-	if (_interface.updateOutputs(stop_motors, _current_output_value, mixed_num_outputs, n_updates)) {
-		actuator_outputs_s actuator_outputs{};
-		setAndPublishActuatorOutputs(mixed_num_outputs, actuator_outputs);
-
-		publishMixerStatus(actuator_outputs);
-		updateLatencyPerfCounter(actuator_outputs);
-	}
-
-	return true;
-}
-
-bool MixingOutput::updateDynamicMixer()
 {
 	// check arming state
 	if (_armed_sub.update(&_armed)) {
@@ -1019,83 +671,14 @@ MixingOutput::setAndPublishActuatorOutputs(unsigned num_outputs, actuator_output
 }
 
 void
-MixingOutput::publishMixerStatus(const actuator_outputs_s &actuator_outputs)
-{
-	MultirotorMixer::saturation_status saturation_status;
-	saturation_status.value = _mixers->get_saturation_status();
-
-	if (saturation_status.flags.valid) {
-		control_allocator_status_s sat{};
-		sat.timestamp = hrt_absolute_time();
-		sat.torque_setpoint_achieved = true;
-		sat.thrust_setpoint_achieved = true;
-
-		// Note: the values '-1', '1' and '0' are just to indicate a negative,
-		// positive or no saturation to the rate controller. The actual magnitude
-		// is not used.
-		if (saturation_status.flags.roll_pos) {
-			sat.unallocated_torque[0] = 1.f;
-			sat.torque_setpoint_achieved = false;
-
-		} else if (saturation_status.flags.roll_neg) {
-			sat.unallocated_torque[0] = -1.f;
-			sat.torque_setpoint_achieved = false;
-		}
-
-		if (saturation_status.flags.pitch_pos) {
-			sat.unallocated_torque[1] = 1.f;
-			sat.torque_setpoint_achieved = false;
-
-		} else if (saturation_status.flags.pitch_neg) {
-			sat.unallocated_torque[1] = -1.f;
-			sat.torque_setpoint_achieved = false;
-		}
-
-		if (saturation_status.flags.yaw_pos) {
-			sat.unallocated_torque[2] = 1.f;
-			sat.torque_setpoint_achieved = false;
-
-		} else if (saturation_status.flags.yaw_neg) {
-			sat.unallocated_torque[2] = -1.f;
-			sat.torque_setpoint_achieved = false;
-		}
-
-		if (saturation_status.flags.thrust_pos) {
-			sat.unallocated_thrust[2] = 1.f;
-			sat.thrust_setpoint_achieved = false;
-
-		} else if (saturation_status.flags.thrust_neg) {
-			sat.unallocated_thrust[2] = -1.f;
-			sat.thrust_setpoint_achieved = false;
-		}
-
-		_control_allocator_status_pub.publish(sat);
-	}
-}
-
-void
 MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs)
 {
-	if (_use_dynamic_mixing) {
-		// Just check the first function. It means we only get the latency if motors are assigned first, which is the default
-		if (_function_allocated[0]) {
-			hrt_abstime timestamp_sample;
+	// Just check the first function. It means we only get the latency if motors are assigned first, which is the default
+	if (_function_allocated[0]) {
+		hrt_abstime timestamp_sample;
 
-			if (_function_allocated[0]->getLatestSampleTimestamp(timestamp_sample)) {
-				perf_set_elapsed(_control_latency_perf, actuator_outputs.timestamp - timestamp_sample);
-			}
-		}
-
-	} else {
-		// use first valid timestamp_sample for latency tracking
-		for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			const bool required = _groups_required & (1 << i);
-			const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
-
-			if (required && (timestamp_sample > 0)) {
-				perf_set_elapsed(_control_latency_perf, actuator_outputs.timestamp - timestamp_sample);
-				break;
-			}
+		if (_function_allocated[0]->getLatestSampleTimestamp(timestamp_sample)) {
+			perf_set_elapsed(_control_latency_perf, actuator_outputs.timestamp - timestamp_sample);
 		}
 	}
 }
@@ -1103,10 +686,6 @@ MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_output
 uint16_t
 MixingOutput::actualFailsafeValue(int index) const
 {
-	if (!_use_dynamic_mixing) {
-		return _failsafe_value[index];
-	}
-
 	uint16_t value = 0;
 
 	if (_failsafe_value[index] == UINT16_MAX) { // if set to default, use the one provided by the function
@@ -1123,123 +702,4 @@ MixingOutput::actualFailsafeValue(int index) const
 	}
 
 	return value;
-}
-
-void
-MixingOutput::reorderOutputs(uint16_t values[MAX_ACTUATORS])
-{
-	if (MAX_ACTUATORS < 4) {
-		return;
-	}
-
-	if ((MotorOrdering)_param_mot_ordering.get() == MotorOrdering::Betaflight) {
-		/*
-		 * Betaflight default motor ordering:
-		 * 4     2
-		 *    ^
-		 * 3     1
-		 */
-		const uint16_t value_tmp[4] = {values[0], values[1], values[2], values[3] };
-		values[0] = value_tmp[3];
-		values[1] = value_tmp[0];
-		values[2] = value_tmp[1];
-		values[3] = value_tmp[2];
-	}
-
-	/* else: PX4, no need to reorder
-	 * 3     1
-	 *    ^
-	 * 2     4
-	 */
-}
-
-int MixingOutput::reorderedMotorIndex(int index) const
-{
-	if ((MotorOrdering)_param_mot_ordering.get() == MotorOrdering::Betaflight) {
-		switch (index) {
-		case 0: return 1;
-
-		case 1: return 2;
-
-		case 2: return 3;
-
-		case 3: return 0;
-		}
-	}
-
-	return index;
-}
-
-int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input)
-{
-	const MixingOutput *output = (const MixingOutput *)handle;
-
-	input = output->_controls[control_group].control[control_index];
-
-	/* limit control input */
-	input = math::constrain(input, -1.f, 1.f);
-
-	/* motor spinup phase - lock throttle to zero */
-	if (output->_output_state == OutputLimitState::RAMP) {
-		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
-		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
-		    control_index == actuator_controls_s::INDEX_THROTTLE) {
-			/* limit the throttle output to zero during motor spinup,
-			 * as the motors cannot follow any demand yet
-			 */
-			input = 0.0f;
-		}
-	}
-
-	/* throttle not arming - mark throttle input as invalid */
-	if (output->armNoThrottle() && !output->_armed.in_esc_calibration_mode) {
-		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
-		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
-		    control_index == actuator_controls_s::INDEX_THROTTLE) {
-			/* set the throttle to an invalid value */
-			input = NAN;
-		}
-	}
-
-	return 0;
-}
-
-void MixingOutput::resetMixer()
-{
-	if (_mixers != nullptr) {
-		delete _mixers;
-		_mixers = nullptr;
-		_groups_required = 0;
-	}
-
-	_interface.mixerChanged();
-}
-
-int MixingOutput::loadMixer(const char *buf, unsigned len)
-{
-	if (_mixers == nullptr) {
-		_mixers = new MixerGroup();
-	}
-
-	if (_mixers == nullptr) {
-		_groups_required = 0;
-		return -ENOMEM;
-	}
-
-	int ret = _mixers->load_from_buf(controlCallback, (uintptr_t)this, buf, len);
-
-	if (ret != 0) {
-		PX4_ERR("mixer load failed with %d", ret);
-		delete _mixers;
-		_mixers = nullptr;
-		_groups_required = 0;
-		return ret;
-	}
-
-	_mixers->groups_required(_groups_required);
-	PX4_DEBUG("loaded mixers \n%s\n", buf);
-
-	updateParams();
-	_interface.mixerChanged();
-	return ret;
 }

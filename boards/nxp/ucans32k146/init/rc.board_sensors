@@ -1,0 +1,43 @@
+#!/bin/sh
+#
+# board sensors init
+#------------------------------------------------------------------------------
+
+# Lidar-Lite on I2C
+if param compare -s SENS_EN_LL40LS 2
+then
+	ll40ls start -X
+fi
+
+# mappydot lidar sensor
+if param compare -s SENS_EN_MPDT 1
+then
+	mappydot start -X
+fi
+
+# mb12xx sonar sensor
+if param greater -s SENS_EN_MB12XX 0
+then
+	mb12xx start -X
+fi
+
+# Lightware i2c lidar sensor
+if param greater -s SENS_EN_SF1XX 0
+then
+	lightware_laser_i2c start -X
+fi
+
+# vl53l1x i2c distance sensor
+if param compare -s SENS_EN_VL53L1X 1
+then
+	vl53l1x start -X
+fi
+
+# compasses
+hmc5883 -T -X -q start
+ist8308 -X -q start
+ist8310 -X -q start
+lis2mdl -X -q start
+lis3mdl -X -q start
+qmc5883l -X -q start
+rm3100 -X -q start

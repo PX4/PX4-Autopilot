@@ -81,7 +81,7 @@
 /* We should include cstdlib or stdlib.h but this doesn't
  * compile because many C++ files include stdlib.h and would
  * need to get changed. */
-#pragma GCC poison exit
+//#pragma GCC poison exit
 #endif // !defined(__PX4_NUTTX)
 
 
@@ -91,11 +91,13 @@
 /* We can't poison clock_settime/clock_gettime because they are
  * used in DriverFramework. */
 
-#if !defined(__PX4_NUTTX)
+#if !defined(__PX4_NUTTX) && !defined(__PX4_QURT)
 #include <pthread.h>
 // We can't include this for NuttX otherwise we get conflicts for read/write
 // symbols in cannode.
-#endif // !defined(__PX4_NUTTX)
+// We can't include this for Qurt because it uses it's own thread primitives
+#endif // !defined(__PX4_NUTTX) && !defined(__PX4_QURT)
+#define system_pthread_cond_timedwait pthread_cond_timedwait
 /* We can't poison pthread_cond_timedwait because it seems to be used in the
  * <string> include. */
 

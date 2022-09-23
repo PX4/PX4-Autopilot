@@ -84,8 +84,7 @@ PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
 /**
  * Pitch rate proportional gain.
  *
- * This defines how much the elevator input will be commanded depending on the
- * current body angular rate error.
+ * Pitch rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
  * @unit %/rad/s
  * @min 0.0
@@ -95,6 +94,20 @@ PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
+
+/**
+ * Pitch rate derivative gain.
+ *
+ * Pitch rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ *
+ * @unit %/rad/s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_PR_D, 0.f);
 
 /**
  * Pitch rate integrator gain.
@@ -158,8 +171,7 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
 /**
  * Roll rate proportional Gain
  *
- * This defines how much the aileron input will be commanded depending on the
- * current body angular rate error.
+ * Roll rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
  * @unit %/rad/s
  * @min 0.0
@@ -169,6 +181,20 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
+
+/**
+ * Roll rate derivative Gain
+ *
+ * Roll rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ *
+ * @unit %/rad/s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_RR_D, 0.00f);
 
 /**
  * Roll rate integrator Gain
@@ -216,8 +242,7 @@ PARAM_DEFINE_FLOAT(FW_R_RMAX, 70.0f);
 /**
  * Yaw rate proportional gain
  *
- * This defines how much the rudder input will be commanded depending on the
- * current body angular rate error.
+ * Yaw rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
  * @unit %/rad/s
  * @min 0.0
@@ -227,6 +252,20 @@ PARAM_DEFINE_FLOAT(FW_R_RMAX, 70.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f);
+
+/**
+ * Yaw rate derivative gain
+ *
+ * Yaw rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ *
+ * @unit %/rad/s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_YR_D, 0.0f);
 
 /**
  * Yaw rate integrator gain

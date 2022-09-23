@@ -185,12 +185,15 @@
 #define GPIO_HW_REV_SENSE      /* PF5 */  ADC3_GPIO(15)
 #define GPIO_HW_VER_SENSE      /* PF4 */  ADC3_GPIO(14)
 #define HW_INFO_INIT_PREFIX           "V5X"
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 6
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 7
 // Base                   FMUM
 #define V5X00   HW_VER_REV(0x0,0x0) // FMUV5X,                         Rev 0
 #define V5X10   HW_VER_REV(0x1,0x0) // NO PX4IO,                       Rev 0
 #define V5X01   HW_VER_REV(0x0,0x1) // FMUV5X I2C2 BMP388,             Rev 1
 #define V5X02   HW_VER_REV(0x0,0x2) // FMUV5X,                         Rev 2
+#define V5X40   HW_VER_REV(0x4,0x0) // FMUV5X, HB CM4 base             Rev 0
+#define V5X41   HW_VER_REV(0x4,0x1) // FMUV5X I2C2 BMP388, HB CM4 base Rev 1
+#define V5X42   HW_VER_REV(0x4,0x2) // FMUV5X, HB CM4 base             Rev 2
 #define V5X50   HW_VER_REV(0x5,0x0) // FMUV5X, HB Mini                 Rev 0
 #define V5X51   HW_VER_REV(0x5,0x1) // FMUV5X I2C2 BMP388, HB Mini     Rev 1
 #define V5X52   HW_VER_REV(0x5,0x2) // FMUV5X, HB Mini                 Rev 2

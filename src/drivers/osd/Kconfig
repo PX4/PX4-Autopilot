@@ -1,5 +1,10 @@
-menuconfig DRIVERS_OSD
-	bool "osd"
-	default n
-	---help---
-		Enable support for osd
+menu "OSD"
+    menuconfig COMMON_OSD
+        bool "Common OSD drivers"
+        default n
+        select DRIVERS_OSD_ATXXXX
+        select DRIVERS_OSD_MSP_OSD
+        ---help---
+            Enable default set of OSD drivers
+    rsource "*/Kconfig"
+endmenu

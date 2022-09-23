@@ -34,7 +34,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
     # Depend on BOARD_DEFCONFIG so that we reconfigure on config change
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BOARD_DEFCONFIG})
 
-    if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "recovery" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
+    if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "qurt" OR ${LABEL} MATCHES "recovery" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
         # Generate boardconfig from saved defconfig
         execute_process(COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
                         ${DEFCONFIG_PATH} ${BOARD_DEFCONFIG}
@@ -161,7 +161,28 @@ if(EXISTS ${BOARD_DEFCONFIG})
             string(REPLACE "CONFIG_MODULES_" "" module ${Name})
             string(TOLOWER ${module} module)
 
-            list(APPEND config_module_list modules/${module})
+            string(REPLACE "_" "/" module_path ${module})
+
+            # Pattern 1 XXX / XXX_XXX
+            string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+_[a-z0-9]+).*$" "\\1" module_p1_folder ${module})
+            string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+_[a-z0-9]+).*$" "\\2" module_p1_subfolder ${module})
+
+            # Pattern 2 XXX / XXX_XXX_XXX
+            string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+_[a-z0-9]+_[a-z0-9]+).*$" "\\1" module_p2_folder ${module})
+            string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+_[a-z0-9]+_[a-z0-9]+).*$" "\\2" module_p2_subfolder ${module})
+
+            # Trick circumvent PX4 src naming problem with underscores and slashes
+            if(EXISTS ${PX4_SOURCE_DIR}/src/modules/${module})
+                list(APPEND config_module_list modules/${module})
+            elseif(EXISTS ${PX4_SOURCE_DIR}/src/modules/${module_path})
+                list(APPEND config_module_list modules/${module_path})
+            elseif(EXISTS ${PX4_SOURCE_DIR}/src/modules/${module_p1_folder}/${module_p1_subfolder})
+                list(APPEND config_module_list modules/${module_p1_folder}/${module_p1_subfolder})
+            elseif(EXISTS ${PX4_SOURCE_DIR}/src/modules/${module_p2_folder}/${module_p2_subfolder})
+                list(APPEND config_module_list modules/${module_p2_folder}/${module_p2_subfolder})
+            else()
+                message(FATAL_ERROR "Couldn't find path for ${module}")
+            endif()
         endif()
 
         # Find variable name
@@ -207,6 +228,10 @@ if(EXISTS ${BOARD_DEFCONFIG})
 
         # platform-specific include path
         include_directories(${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/common/include)
+
+        if(PLATFORM STREQUAL "qurt")
+            include(${PX4_SOURCE_DIR}/boards/modalai/voxl2/cmake/voxl2_qurt.cmake)
+        endif()
     endif()
 
 	if(ARCHITECTURE)

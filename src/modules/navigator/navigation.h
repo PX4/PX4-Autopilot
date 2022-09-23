@@ -33,7 +33,9 @@
 
 /**
  * @file navigation.h
+ *
  * Definition of a mission consisting of mission items.
+ *
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  * @author Julian Oes <joes@student.ethz.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>
@@ -82,6 +84,7 @@ enum NAV_CMD {
 	NAV_CMD_DO_DIGICAM_CONTROL = 203,
 	NAV_CMD_DO_MOUNT_CONFIGURE = 204,
 	NAV_CMD_DO_MOUNT_CONTROL = 205,
+	NAV_CMD_DO_GRIPPER = 211,
 	NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL = 214,
 	NAV_CMD_DO_SET_CAM_TRIGG_DIST = 206,
 	NAV_CMD_OBLIQUE_SURVEY = 260,
@@ -102,6 +105,7 @@ enum NAV_CMD {
 	NAV_CMD_FENCE_CIRCLE_INCLUSION = 5003,
 	NAV_CMD_FENCE_CIRCLE_EXCLUSION = 5004,
 	NAV_CMD_CONDITION_GATE = 4501,
+	NAV_CMD_DO_WINCH = 42600,
 	NAV_CMD_INVALID = UINT16_MAX /* ensure that casting a large number results in a specific error */
 };
 
@@ -126,34 +130,31 @@ enum NAV_FRAME {
 	NAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11
 };
 
-/**
- * @addtogroup topics
- * @{
- */
-
-/**
- * Global position setpoint in WGS84 coordinates.
- *
- * This is the position the MAV is heading towards. If it is of type loiter,
- * the MAV is circling around it with the given loiter radius in meters.
- *
- * Corresponds to one of the DM_KEY_WAYPOINTS_OFFBOARD_* dataman items
- */
-
-// Mission Item structure
-//  We explicitly handle struct padding to ensure consistency between in memory and on disk formats across different platforms, toolchains, etc
-//  The use of #pragma pack is avoided to prevent the possibility of unaligned memory accesses.
-
 #if (__GNUC__ >= 5) || __clang__
 //  Disabled in GCC 4.X as the warning doesn't seem to "pop" correctly
 #pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wpadded"
 #endif // GCC >= 5 || Clang
 
+/**
+ * Mission Item structure
+ *
+ * We explicitly handle struct padding to ensure consistency between in memory and on disk formats
+ * across different platforms, toolchains, etc. The use of #pragma pack is avoided to prevent the
+ * possibility of unaligned memory accesses.
+ */
 struct mission_item_s {
 	double lat;					/**< latitude in degrees				*/
 	double lon;					/**< longitude in degrees				*/
+
+	// Union to support both Mission Item categories in MAVLink such as:
+	// 1. With Global coordinate (param5 ~ 7 corresponds to lat, lon and altitude)
+	// 2. Without global coordinate (when frame = MAV_FRAME_MISSION)
+
+	// Note: the structure and definition of params depends on the nav_cmd, which is
+	// compatible with MAVLink's MAV_CMD enum definitions.
 	union {
+		// Navigation command parameters
 		struct {
 			union {
 				float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
@@ -166,7 +167,9 @@ struct mission_item_s {
 			float ___lon_float;			/**< padding */
 			float altitude;				/**< altitude in meters	(AMSL)			*/
 		};
-		float params[7];				/**< array to store mission command values for MAV_FRAME_MISSION ***/
+
+		// Non-Navigation command parameters (implicit)
+		float params[7];				/**< array to store mission command values with no global coordinates (frame = MAV_FRAME_MISSION) */
 	};
 
 	uint16_t nav_cmd;				/**< navigation command					*/

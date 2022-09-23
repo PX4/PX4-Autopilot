@@ -9,7 +9,7 @@ param set CBRK_SUPPLY_CHK 894281
 dataman start
 
 battery_simulator start
-simulator start
+simulator_mavlink start
 tone_alarm start
 pwm_out_sim start
 

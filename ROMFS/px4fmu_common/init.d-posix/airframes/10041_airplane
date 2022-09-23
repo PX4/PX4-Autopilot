@@ -8,6 +8,8 @@
 
 . ${R}etc/init.d/rc.fw_defaults
 
+PX4_SIMULATOR=${PX4_SIMULATOR:=sihsim}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=airplane}
 
 # disable some checks to allow to fly:
 # - with usb

@@ -40,6 +40,7 @@ px4_add_module(
 		${MAX_CUSTOM_OPT_LEVEL}
 		-fno-associative-math
 		#-DDEBUG_BUILD
+		#-O0
 	INCLUDES
 		EKF
 	PRIORITY
@@ -48,6 +49,7 @@ px4_add_module(
 		3600
 	SRCS
 		EKF/airspeed_fusion.cpp
+		EKF/baro_height_control.cpp
 		EKF/bias_estimator.cpp
 		EKF/control.cpp
 		EKF/covariance.cpp
@@ -56,17 +58,22 @@ px4_add_module(
 		EKF/ekf_helper.cpp
 		EKF/EKFGSF_yaw.cpp
 		EKF/estimator_interface.cpp
+		EKF/ev_height_control.cpp
+		EKF/fake_height_control.cpp
 		EKF/fake_pos_control.cpp
+		EKF/gnss_height_control.cpp
 		EKF/gps_checks.cpp
 		EKF/gps_control.cpp
 		EKF/gps_fusion.cpp
 		EKF/gps_yaw_fusion.cpp
+		EKF/height_control.cpp
 		EKF/height_fusion.cpp
 		EKF/imu_down_sampler.cpp
 		EKF/mag_control.cpp
 		EKF/mag_fusion.cpp
 		EKF/optflow_fusion.cpp
 		EKF/range_finder_consistency_check.cpp
+		EKF/range_height_control.cpp
 		EKF/sensor_range_finder.cpp
 		EKF/sideslip_fusion.cpp
 		EKF/terrain_estimator.cpp

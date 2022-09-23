@@ -34,8 +34,6 @@
 #pragma once
 
 #include <drivers/device/device.h>
-#include <drivers/drv_mixer.h>
-#include <lib/cdev/CDev.hpp>
 #include <lib/led/led.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/perf/perf_counter.h>
@@ -45,6 +43,8 @@
 
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/led_control.h>
 #include <uORB/topics/esc_status.h>
 
 #include "modalai_esc_serial.hpp"
@@ -52,7 +52,7 @@
 #include "qc_esc_packet.h"
 #include "qc_esc_packet_types.h"
 
-class ModalaiEsc : public cdev::CDev, public ModuleBase<ModalaiEsc>, public OutputModuleInterface
+class ModalaiEsc : public ModuleBase<ModalaiEsc>, public OutputModuleInterface
 {
 public:
 	ModalaiEsc();
@@ -77,11 +77,6 @@ public:
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
-	/** @see OutputModuleInterface */
-	void mixerChanged() override;
-
-	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
-
 	virtual int	init();
 
 	typedef enum {
@@ -97,9 +92,9 @@ public:
 		uint16_t	repeats            = 0;
 		uint16_t	repeat_delay_us    = 2000;
 		uint8_t		retries            = 0;
-		bool		  response           = false;
+		bool		response           = false;
 		uint16_t	resp_delay_us      = 1000;
-		bool      print_feedback     = false;
+		bool		print_feedback     = false;
 
 		static const uint8_t BUF_SIZE = 128;
 		uint8_t 	buf[BUF_SIZE];
@@ -108,7 +103,7 @@ public:
 		void clear() { len = 0; }
 	};
 
-	int sendCommandThreadSafe(Command *cmd);
+	int send_cmd_thread_safe(Command *cmd);
 
 private:
 	static constexpr uint32_t MODALAI_ESC_UART_CONFIG = 1;
@@ -129,11 +124,6 @@ private:
 	static constexpr float    MODALAI_ESC_MODE_DISABLED_SETPOINT = -0.1f;
 	static constexpr float    MODALAI_ESC_MODE_THRESHOLD = 0.0f;
 
-	static constexpr float    MODALAI_ESC_MODE_DEAD_ZONE_MIN = 0.0f;
-	static constexpr float    MODALAI_ESC_MODE_DEAD_ZONE_MAX = 1.0f;
-	static constexpr float    MODALAI_ESC_MODE_DEAD_ZONE_1 = 0.30f;
-	static constexpr float    MODALAI_ESC_MODE_DEAD_ZONE_2 = 0.02f;
-
 	static constexpr uint32_t MODALAI_ESC_MODE = 0;
 	static constexpr uint32_t MODALAI_ESC_MODE_TURTLE_AUX1 = 1;
 	static constexpr uint32_t MODALAI_ESC_MODE_TURTLE_AUX2 = 2;
@@ -148,8 +138,11 @@ private:
 	typedef struct {
 		int32_t		config{MODALAI_ESC_UART_CONFIG};
 		int32_t		mode{MODALAI_ESC_MODE};
-		float		dead_zone_1{MODALAI_ESC_MODE_DEAD_ZONE_1};
-		float		dead_zone_2{MODALAI_ESC_MODE_DEAD_ZONE_2};
+		int32_t		turtle_motor_expo{35};
+		int32_t		turtle_motor_deadband{20};
+		int32_t		turtle_motor_percent{90};
+		float		turtle_stick_minf{0.15f};
+		float		turtle_cosphi{0.99f};
 		int32_t		baud_rate{MODALAI_ESC_DEFAULT_BAUD};
 		int32_t		rpm_min{MODALAI_ESC_DEFAULT_RPM_MIN};
 		int32_t		rpm_max{MODALAI_ESC_DEFAULT_RPM_MAX};
@@ -157,16 +150,16 @@ private:
 	} uart_esc_params_t;
 
 	struct EscChan {
-		int16_t	  rate_req;
+		int16_t		rate_req;
 		uint8_t		state;
 		uint16_t	rate_meas;
-		uint8_t   power_applied;
+		uint8_t		power_applied;
 		uint8_t		led;
 		uint8_t		cmd_counter;
 		float 		voltage;  //Volts
-		float     current;  //Amps
-		float     temperature; //deg C
-		hrt_abstime feedback_time;
+		float		current;  //Amps
+		float		temperature; //deg C
+		hrt_abstime 	feedback_time;
 	};
 
 	typedef struct {
@@ -175,18 +168,16 @@ private:
 	} ch_assign_t;
 
 	typedef struct {
-		led_control_s           control{};
-		vehicle_control_mode_s  mode{};
-		uint8_t                 led_mask;// TODO led_mask[MODALAI_ESC_OUTPUT_CHANNELS];
-		bool                    breath_en;
-		uint8_t	                breath_counter;
-		bool                    test;
+		led_control_s		control{};
+		vehicle_control_mode_s	mode{};
+		uint8_t			led_mask;// TODO led_mask[MODALAI_ESC_OUTPUT_CHANNELS];
+		bool			breath_en;
+		uint8_t			breath_counter;
+		bool			test;
 	} led_rsc_t;
 
 	ch_assign_t		_output_map[MODALAI_ESC_OUTPUT_CHANNELS] {{1, 1}, {2, 1}, {3, 1}, {4, 1}};
 	MixingOutput 		_mixing_output{"MODALAI_ESC", MODALAI_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
-
-	int			_class_instance{-1};
 
 	perf_counter_t		_cycle_perf;
 	perf_counter_t		_output_update_perf;
@@ -196,7 +187,7 @@ private:
 	unsigned		_current_update_rate{0};
 
 	uORB::Subscription	_vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription  _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription	_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription	_led_update_sub{ORB_ID(led_control)};
 
@@ -208,6 +199,7 @@ private:
 	int			load_params(uart_esc_params_t *params, ch_assign_t *map);
 
 	bool			_turtle_mode_en{false};
+	int32_t			_rpm_turtle_min{0};
 	int32_t			_rpm_fullscale{0};
 	manual_control_setpoint_s _manual_control_setpoint{};
 
@@ -215,23 +207,25 @@ private:
 	Command 		_current_cmd;
 	px4::atomic<Command *>	_pending_cmd{nullptr};
 
-	EscChan			_esc_chans[MODALAI_ESC_OUTPUT_CHANNELS] {};
+	EscChan			_esc_chans[MODALAI_ESC_OUTPUT_CHANNELS];
 	Command			_esc_cmd;
-	esc_status_s _esc_status;
-	EscPacket   _fb_packet;
-	EscPacket   _uart_bridge_packet;
+	esc_status_s		_esc_status;
+	EscPacket		_fb_packet;
+	EscPacket		_uart_bridge_packet;
 
 	led_rsc_t	 	_led_rsc;
-	int         _fb_idx;
+	int			_fb_idx;
+	uint32_t		_rx_crc_error_count{0};
+	uint32_t		_rx_packet_count{0};
 
-	static const uint8_t READ_BUF_SIZE = 128;
-	uint8_t     _read_buf[READ_BUF_SIZE];
+	static const uint8_t 	READ_BUF_SIZE = 128;
+	uint8_t			_read_buf[READ_BUF_SIZE];
 
-	void 			updateLeds(vehicle_control_mode_s mode, led_control_s control);
+	void 			update_leds(vehicle_control_mode_s mode, led_control_s control);
 
-	int			populateCommand(uart_esc_cmd_t cmd_type, uint8_t cmd_mask, Command *out_cmd);
-	int 			readResponse(Command *out_cmd);
-	int 			parseResponse(uint8_t *buf, uint8_t len, bool print_feedback);
-	int			flushUartRx();
-	int			checkForEscTimeout();
+	int 			read_response(Command *out_cmd);
+	int 			parse_response(uint8_t *buf, uint8_t len, bool print_feedback);
+	int			flush_uart_rx();
+	int			check_for_esc_timeout();
+	void			mix_turtle_mode(uint16_t outputs[]);
 };

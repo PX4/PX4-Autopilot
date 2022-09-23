@@ -6,14 +6,18 @@
 board_adc start
 
 # Internal SPI bus ICM-42605
-if ! icm42605 -R 14 -s start
+if ! mpu6000 -R 12 -b 1 -s start
 then
-	# internal SPI bus ICM-20602
-	icm20602 -R 12 -s start
+	# Internal SPI bus ICM-42688P
+	icm42688p -R 12 -b 1 -s start
 fi
 
-# Internal SPI bus MPU-6000
-mpu6000 -R 12 -s start
+# internal SPI bus ICM-20602
+if ! icm20602 -R 12 -b 4 -s start
+then
+	# Internal SPI bus ICM-42605
+	icm42605 -R 14 -b 4 -s start
+fi
 
 # Internal baro
 dps310 -I start -a 118

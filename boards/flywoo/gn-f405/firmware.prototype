@@ -1,0 +1,13 @@
+{
+    "board_id": 42,
+    "magic": "FLYWOOGNF405",
+    "description": "Firmware for the FLYWOO GNF405 board",
+    "image": "",
+    "build_time": 0,
+    "summary": "flywoo/GNF405",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1032192,
+    "git_identity": "",
+    "board_revision": 0
+}

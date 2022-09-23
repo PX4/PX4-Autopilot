@@ -37,6 +37,7 @@
  * High-resolution timer with callouts and timekeeping.
  */
 
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/defines.h>
@@ -52,6 +53,7 @@
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 #include <lockstep_scheduler/lockstep_scheduler.h>
+static LockstepScheduler lockstep_scheduler {};
 #endif
 
 // Intervals in usec
@@ -77,21 +79,10 @@ __EXPORT uint32_t latency_counters[LATENCY_BUCKET_COUNT + 1];
 static px4_sem_t 	_hrt_lock;
 static struct work_s	_hrt_work;
 
-static hrt_abstime px4_timestart_monotonic = 0;
-
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-static LockstepScheduler *lockstep_scheduler = new LockstepScheduler();
-#endif
-
 static void hrt_latency_update();
 
 static void hrt_call_reschedule();
 static void hrt_call_invoke();
-
-hrt_abstime hrt_absolute_time_offset()
-{
-	return px4_timestart_monotonic;
-}
 
 static void hrt_lock()
 {
@@ -104,31 +95,6 @@ static void hrt_unlock()
 	px4_sem_post(&_hrt_lock);
 }
 
-#if defined(__PX4_APPLE_LEGACY)
-#include <sys/time.h>
-
-int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
-{
-	struct timeval now;
-	int rv = gettimeofday(&now, nullptr);
-
-	if (rv) {
-		return rv;
-	}
-
-	tp->tv_sec = now.tv_sec;
-	tp->tv_nsec = now.tv_usec * 1000;
-
-	return 0;
-}
-
-int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
-{
-	/* do nothing right now */
-	return 0;
-}
-#endif
-
 /*
  * Get absolute time.
  */
@@ -136,8 +102,8 @@ hrt_abstime hrt_absolute_time()
 {
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	// optimized case (avoid ts_to_abstime) if lockstep scheduler is used
-	const uint64_t abstime = lockstep_scheduler->get_absolute_time();
-	return abstime - px4_timestart_monotonic;
+	return lockstep_scheduler.get_absolute_time();
+
 #else // defined(ENABLE_LOCKSTEP_SCHEDULER)
 	struct timespec ts;
 	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -474,24 +440,15 @@ hrt_call_invoke()
 
 int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
-	if (clk_id == CLOCK_MONOTONIC) {
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
-		const uint64_t abstime = lockstep_scheduler->get_absolute_time();
-		abstime_to_ts(tp, abstime - px4_timestart_monotonic);
-		return 0;
-#else // defined(ENABLE_LOCKSTEP_SCHEDULER)
-#if defined(__PX4_DARWIN)
-		// We don't have CLOCK_MONOTONIC on macOS, so we just have to
-		// resort back to CLOCK_REALTIME here.
-		return system_clock_gettime(CLOCK_REALTIME, tp);
-#else // defined(__PX4_DARWIN)
-		return system_clock_gettime(clk_id, tp);
-#endif // defined(__PX4_DARWIN)
-#endif // defined(ENABLE_LOCKSTEP_SCHEDULER)
 
-	} else {
-		return system_clock_gettime(clk_id, tp);
+	if (clk_id == CLOCK_MONOTONIC) {
+		abstime_to_ts(tp, lockstep_scheduler.get_absolute_time());
+		return 0;
 	}
+
+#endif // defined(ENABLE_LOCKSTEP_SCHEDULER)
+	return system_clock_gettime(clk_id, tp);
 }
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -501,71 +458,60 @@ int px4_clock_settime(clockid_t clk_id, const struct timespec *ts)
 		return system_clock_settime(clk_id, ts);
 
 	} else {
-		const uint64_t time_us = ts_to_abstime(ts);
-
-		if (px4_timestart_monotonic == 0) {
-			px4_timestart_monotonic = time_us;
-		}
-
-		lockstep_scheduler->set_absolute_time(time_us);
+		lockstep_scheduler.set_absolute_time(ts_to_abstime(ts));
 		return 0;
 	}
 }
 
-
 int px4_usleep(useconds_t usec)
 {
-	if (px4_timestart_monotonic == 0) {
-		// Until the time is set by the simulator, we fallback to the normal
-		// usleep;
+	if (lockstep_scheduler.get_absolute_time() == 0) {
+		// Until the time is set by the simulator, we fallback to the normal usleep
 		return system_usleep(usec);
 	}
 
-	const uint64_t time_finished = lockstep_scheduler->get_absolute_time() + usec;
+	const uint64_t time_finished = lockstep_scheduler.get_absolute_time() + usec;
 
-	return lockstep_scheduler->usleep_until(time_finished);
+	return lockstep_scheduler.usleep_until(time_finished);
 }
 
 unsigned int px4_sleep(unsigned int seconds)
 {
-	if (px4_timestart_monotonic == 0) {
-		// Until the time is set by the simulator, we fallback to the normal
-		// sleep;
+	if (lockstep_scheduler.get_absolute_time() == 0) {
+		// Until the time is set by the simulator, we fallback to the normal sleep
 		return system_sleep(seconds);
 	}
 
-	const uint64_t time_finished = lockstep_scheduler->get_absolute_time() +
-				       ((uint64_t)seconds * 1000000);
+	const uint64_t time_finished = lockstep_scheduler.get_absolute_time() + ((uint64_t)seconds * 1000000);
 
-	return lockstep_scheduler->usleep_until(time_finished);
+	return lockstep_scheduler.usleep_until(time_finished);
 }
 
 int px4_pthread_cond_timedwait(pthread_cond_t *cond,
 			       pthread_mutex_t *mutex,
 			       const struct timespec *ts)
 {
-	const uint64_t time_us = ts_to_abstime(ts);
-	const uint64_t scheduled = time_us + px4_timestart_monotonic;
-	return lockstep_scheduler->cond_timedwait(cond, mutex, scheduled);
+	const uint64_t scheduled = ts_to_abstime(ts);
+	return lockstep_scheduler.cond_timedwait(cond, mutex, scheduled);
 }
 
 int px4_lockstep_register_component()
 {
-	return lockstep_scheduler->components().register_component();
+	return lockstep_scheduler.components().register_component();
 }
 
 void px4_lockstep_unregister_component(int component)
 {
-	lockstep_scheduler->components().unregister_component(component);
+	lockstep_scheduler.components().unregister_component(component);
 }
 
 void px4_lockstep_progress(int component)
 {
-	lockstep_scheduler->components().lockstep_progress(component);
+	lockstep_scheduler.components().lockstep_progress(component);
 }
 
 void px4_lockstep_wait_for_components()
 {
-	lockstep_scheduler->components().wait_for_components();
+	lockstep_scheduler.components().wait_for_components();
 }
 #endif

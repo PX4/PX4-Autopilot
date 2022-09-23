@@ -62,7 +62,7 @@ VtolTakeoff::on_activation()
 void
 VtolTakeoff::on_active()
 {
-	if (is_mission_item_reached()) {
+	if (is_mission_item_reached_or_completed()) {
 		reset_mission_item_reached();
 
 		switch	(_takeoff_state) {

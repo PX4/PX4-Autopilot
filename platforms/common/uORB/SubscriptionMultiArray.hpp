@@ -43,7 +43,7 @@
 #include <px4_platform_common/defines.h>
 #include <lib/mathlib/mathlib.h>
 
-#include "SubscriptionInterval.hpp"
+#include "Subscription.hpp"
 
 namespace uORB
 {
@@ -67,21 +67,21 @@ public:
 	explicit SubscriptionMultiArray(ORB_ID id)
 	{
 		for (uint8_t i = 0; i < SIZE; i++) {
-			_subscriptions[i] = SubscriptionInterval{id, 0, i};
+			_subscriptions[i] = Subscription{id, i};
 			_subscriptions[i].subscribe();
 		}
 	}
 
 	~SubscriptionMultiArray() = default;
 
-	SubscriptionInterval &operator [](int i) { return _subscriptions[i]; }
-	const SubscriptionInterval &operator [](int i) const { return _subscriptions[i]; }
+	Subscription &operator [](int i) { return _subscriptions[i]; }
+	const Subscription &operator [](int i) const { return _subscriptions[i]; }
 
-	SubscriptionInterval *begin() { return _subscriptions; }
-	SubscriptionInterval *end() { return _subscriptions + SIZE; }
+	Subscription *begin() { return _subscriptions; }
+	Subscription *end() { return _subscriptions + SIZE; }
 
-	const SubscriptionInterval *begin() const { return _subscriptions; }
-	const SubscriptionInterval *end() const { return _subscriptions + SIZE; }
+	const Subscription *begin() const { return _subscriptions; }
+	const Subscription *end() const { return _subscriptions + SIZE; }
 
 	// true if any instance is advertised
 	bool advertised()
@@ -122,7 +122,7 @@ public:
 	}
 
 private:
-	SubscriptionInterval _subscriptions[SIZE];
+	Subscription _subscriptions[SIZE];
 };
 
 } // namespace uORB

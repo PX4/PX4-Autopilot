@@ -89,11 +89,11 @@ int board_get_uuid32_formated(char *format_buffer, int size,
 	int offset = 0;
 	int sep_size = seperator ? strlen(seperator) : 0;
 
-	for (unsigned i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
+	for (unsigned i = 0; (offset < size - 1) && (i < PX4_CPU_UUID_WORD32_LENGTH); i++) {
 		offset += snprintf(&format_buffer[offset], size - offset, format, uuid[i]);
 
-		if (sep_size && i < PX4_CPU_UUID_WORD32_LENGTH - 1) {
-			strcat(&format_buffer[offset], seperator);
+		if (sep_size && (offset < size - sep_size - 1) && (i < PX4_CPU_UUID_WORD32_LENGTH - 1)) {
+			strncat(&format_buffer[offset], seperator, size - offset);
 			offset += sep_size;
 		}
 	}

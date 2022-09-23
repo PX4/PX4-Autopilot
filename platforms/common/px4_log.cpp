@@ -41,6 +41,7 @@
 #endif
 
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/log_history.h>
 #if defined(__PX4_POSIX)
 #include <px4_daemon/server_io.h>
 #endif
@@ -50,18 +51,13 @@
 #include <uORB/topics/log_message.h>
 #include <drivers/drv_hrt.h>
 
+#if defined(BOARD_ENABLE_LOG_HISTORY)
+static LogHistory g_log_history;
+#endif
+
 static orb_advert_t orb_log_message_pub = nullptr;
 
 __EXPORT const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1] = { "DEBUG", "INFO", "WARN", "ERROR", "PANIC" };
-
-#define PX4_ANSI_COLOR_RED     "\x1b[31m"
-#define PX4_ANSI_COLOR_GREEN   "\x1b[32m"
-#define PX4_ANSI_COLOR_YELLOW  "\x1b[33m"
-#define PX4_ANSI_COLOR_BLUE    "\x1b[34m"
-#define PX4_ANSI_COLOR_MAGENTA "\x1b[35m"
-#define PX4_ANSI_COLOR_CYAN    "\x1b[36m"
-#define PX4_ANSI_COLOR_GRAY    "\x1B[37m"
-#define PX4_ANSI_COLOR_RESET   "\x1b[0m"
 
 static constexpr const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1] {
 	PX4_ANSI_COLOR_GREEN,  // DEBUG
@@ -155,6 +151,25 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 
 		fputs(buf, out);
 
+#if defined(BOARD_ENABLE_LOG_HISTORY)
+
+#if defined(PX4_LOG_COLORIZED_OUTPUT)
+
+		// No color formatting for log history
+		if (use_color) {
+			pos = snprintf(buf, max_length, __px4__log_level_fmt, __px4_log_level_str[level]);
+			pos += snprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), __px4__log_modulename_pfmt, module_name);
+			va_start(argptr, fmt);
+			pos += vsnprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), fmt, argptr);
+			va_end(argptr);
+			pos += sprintf(buf + math::min(pos, max_length - (ssize_t)1), "\n");
+			buf[max_length] = 0; // ensure NULL termination
+		}
+
+#endif
+		g_log_history.write(buf);
+#endif // BOARD_ENABLE_LOG_HISTORY
+
 #if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 		// Without flushing it's tricky to see stdout output when PX4 is started by
 		// a script like for the MAVSDK tests.
@@ -236,5 +251,38 @@ __EXPORT void px4_log_raw(int level, const char *fmt, ...)
 		buf[max_length] = 0;
 
 		fputs(buf, out);
+
+#if defined(BOARD_ENABLE_LOG_HISTORY)
+
+#if defined(PX4_LOG_COLORIZED_OUTPUT)
+
+		// No color formatting for log history
+		if (use_color) {
+			va_start(argptr, fmt);
+			pos = vsnprintf(buf, max_length, fmt, argptr);
+			va_end(argptr);
+
+			if (pos > max_length) {
+				// preserve newline if necessary
+				if (fmt[strlen(fmt) - 1] == '\n') {
+					buf[max_length - 1] = '\n';
+				}
+			}
+
+			buf[max_length] = 0; // ensure NULL termination
+		}
+
+#endif
+		g_log_history.write(buf);
+#endif // BOARD_ENABLE_LOG_HISTORY
 	}
+}
+
+__EXPORT void px4_log_history(FILE *out)
+{
+
+#if defined(BOARD_ENABLE_LOG_HISTORY)
+
+	g_log_history.print(out);
+#endif // BOARD_ENABLE_LOG_HISTORY
 }

@@ -73,8 +73,6 @@ static void usage(const char *reason)
 		R"DESCR_STR(
 Utility to test actuators.
 
-Note: this is only used in combination with SYS_CTRL_ALLOC=1.
-
 WARNING: remove all props before using this command.
 )DESCR_STR");
 

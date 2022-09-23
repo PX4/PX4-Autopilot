@@ -60,11 +60,11 @@ float ECL_WheelController::control_bodyrate(const float dt, const ECL_ControlDat
 	float min_speed = 1.0f;
 
 	/* Calculate body angular rate error */
-	_rate_error = _rate_setpoint - ctl_data.body_z_rate; //body angular rate error
+	const float rate_error = _body_rate_setpoint - ctl_data.body_z_rate; //body angular rate error
 
-	if (!ctl_data.lock_integrator && _k_i > 0.0f && ctl_data.groundspeed > min_speed) {
+	if (_k_i > 0.0f && ctl_data.groundspeed > min_speed) {
 
-		float id = _rate_error * dt * ctl_data.groundspeed_scaler;
+		float id = rate_error * dt * ctl_data.groundspeed_scaler;
 
 		/*
 		 * anti-windup: do not allow integrator to increase if actuator is at limit
@@ -83,8 +83,8 @@ float ECL_WheelController::control_bodyrate(const float dt, const ECL_ControlDat
 	}
 
 	/* Apply PI rate controller and store non-limited output */
-	_last_output = _rate_setpoint * _k_ff * ctl_data.groundspeed_scaler +
-		       ctl_data.groundspeed_scaler * ctl_data.groundspeed_scaler * (_rate_error * _k_p + _integrator);
+	_last_output = _body_rate_setpoint * _k_ff * ctl_data.groundspeed_scaler +
+		       ctl_data.groundspeed_scaler * ctl_data.groundspeed_scaler * (rate_error * _k_p + _integrator);
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }
@@ -95,25 +95,26 @@ float ECL_WheelController::control_attitude(const float dt, const ECL_ControlDat
 	if (!(PX4_ISFINITE(ctl_data.yaw_setpoint) &&
 	      PX4_ISFINITE(ctl_data.yaw))) {
 
-		return _rate_setpoint;
+		return _body_rate_setpoint;
 	}
 
 	/* Calculate the error */
 	float yaw_error = wrap_pi(ctl_data.yaw_setpoint - ctl_data.yaw);
 
 	/*  Apply P controller: rate setpoint from current error and time constant */
-	_rate_setpoint =  yaw_error / _tc;
+	_euler_rate_setpoint =  yaw_error / _tc;
+	_body_rate_setpoint = _euler_rate_setpoint; // assume 0 pitch and roll angle, thus jacobian is simply identity matrix
 
 	/* limit the rate */
 	if (_max_rate > 0.01f) {
-		if (_rate_setpoint > 0.0f) {
-			_rate_setpoint = (_rate_setpoint > _max_rate) ? _max_rate : _rate_setpoint;
+		if (_body_rate_setpoint > 0.0f) {
+			_body_rate_setpoint = (_body_rate_setpoint > _max_rate) ? _max_rate : _body_rate_setpoint;
 
 		} else {
-			_rate_setpoint = (_rate_setpoint < -_max_rate) ? -_max_rate : _rate_setpoint;
+			_body_rate_setpoint = (_body_rate_setpoint < -_max_rate) ? -_max_rate : _body_rate_setpoint;
 		}
 
 	}
 
-	return _rate_setpoint;
+	return _body_rate_setpoint;
 }

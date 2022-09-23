@@ -176,36 +176,21 @@ TEST(FunctionsTest, interpolate)
 	EXPECT_FLOAT_EQ(interpolate(0.f, 0.f, 0.f, 0.f, 0.f), 0.f);
 }
 
-TEST(FunctionsTest, interpolate3)
+TEST(FunctionsTest, interpolateNXY)
 {
+	float x[3] = {0.f, .5f, 1.5f};
+	float y[3] = {1.f, 2.f, 3.f};
+
 	// factor of *2, offset +1
-	EXPECT_FLOAT_EQ(interpolate3(-12.f,
-				     0.f, .5f, 1.5f,
-				     1.f, 2.f, 3.f), 1.f);
-	EXPECT_FLOAT_EQ(interpolate3(0.f,
-				     0.f, .5f, 1.5f,
-				     1.f, 2.f, 3.f), 1.f);
-	EXPECT_FLOAT_EQ(interpolate3(.25f,
-				     0.f, .5f, 1.5f,
-				     1.f, 2.f, 3.f), 1.5f);
-	EXPECT_FLOAT_EQ(interpolate3(.5f,
-				     0.f, .5f, 1.5f,
-				     1.f, 2.f, 3.f), 2.f);
-	EXPECT_FLOAT_EQ(interpolate3(.75f,
-				     0.f, .5f, 1.5f,
-				     1.f, 2.f, 3.f), 2.25f);
-	EXPECT_FLOAT_EQ(interpolate3(1.f,
-				     0.f, .5f, 1.5f,
-				     1.f, 2.f, 3.f), 2.5f);
-	EXPECT_FLOAT_EQ(interpolate3(1.25f,
-				     0.f, .5f, 1.5f,
-				     1.f, 2.f, 3.f), 2.75f);
-	EXPECT_FLOAT_EQ(interpolate3(1.5f,
-				     0.f, .5f, 1.5f,
-				     1.f, 2.f, 3.f), 3.f);
-	EXPECT_FLOAT_EQ(interpolate3(12.f,
-				     0.f, .5f, 1.5f,
-				     1.f, 2.f, 3.f), 3.f);
+	EXPECT_FLOAT_EQ(interpolateNXY(-12.f, x, y), 1.f);
+	EXPECT_FLOAT_EQ(interpolateNXY(0.f, x, y), 1.f);
+	EXPECT_FLOAT_EQ(interpolateNXY(.25f, x, y), 1.5f);
+	EXPECT_FLOAT_EQ(interpolateNXY(.5f, x, y), 2.f);
+	EXPECT_FLOAT_EQ(interpolateNXY(.75f, x, y), 2.25f);
+	EXPECT_FLOAT_EQ(interpolateNXY(1.f, x, y), 2.5f);
+	EXPECT_FLOAT_EQ(interpolateNXY(1.25f, x, y), 2.75f);
+	EXPECT_FLOAT_EQ(interpolateNXY(1.5f, x, y), 3.f);
+	EXPECT_FLOAT_EQ(interpolateNXY(12.f, x, y), 3.f);
 }
 
 TEST(FunctionsTest, sqrt_linear)

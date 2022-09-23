@@ -105,18 +105,10 @@ def main():
                     # find excluded boards
                     if re.search(r'\b{0} exclude\b'.format(args.board), line):
                         board_excluded = True
-                    # handle mixer files differently than startup files
-                    if file_path.endswith(".mix"):
-                        if line.startswith(("Z:", "M:", "R: ", "O:", "S:",
-                                            "H:", "T:", "P:", "A:")):
-                            # reduce multiple consecutive spaces into a
-                            # single space
-                            line_reduced = re.sub(' +', ' ', line)
-                            pruned_content += line_reduced
-                    else:
-                        if not line.isspace() \
-                                and not line.strip().startswith("#"):
-                            pruned_content += line.strip() + "\n"
+
+                    if not line.isspace() \
+                            and not line.strip().startswith("#"):
+                        pruned_content += line.strip() + "\n"
             # delete the file if it doesn't contain the architecture
             # write out the pruned content else
             if not board_excluded:

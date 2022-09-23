@@ -41,14 +41,12 @@
 
 #include "PixArt_PAA3905_Registers.hpp"
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/i2c_spi_buses.h>
-#include <drivers/device/spi.h>
-#include <conversion/rotation.h>
-#include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/device/spi.h>
+#include <lib/conversion/rotation.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_optical_flow.h>
 
@@ -66,18 +64,18 @@ public:
 
 	static void print_usage();
 
-	int init() override;
-
-	void print_status() override;
-
 	void RunImpl();
+
+	int init() override;
+	void print_status() override;
 
 private:
 	void exit_and_cleanup() override;
 
 	int probe() override;
 
-	void Reset();
+	bool Reset();
+	bool Configure();
 
 	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
 	void DataReady();
@@ -87,25 +85,26 @@ private:
 	uint8_t RegisterRead(uint8_t reg);
 	void RegisterWrite(uint8_t reg, uint8_t data);
 
-	void Configure();
-
 	void ConfigureAutomaticModeSwitching();
-
-	void ConfigureModeBright();
-	void ConfigureModeLowLight();
-	void ConfigureModeSuperLowLight();
-
 	void ConfigureStandardDetectionSetting();
 	void ConfigureEnhancedDetectionMode();
-
 	void EnableLed();
 
-	bool UpdateMode(const uint8_t observation);
+	enum class STATE : uint8_t {
+		RESET,
+		WAIT_FOR_RESET,
+		CONFIGURE,
+		READ,
+	} _state{STATE::RESET};
 
 	uORB::PublicationMulti<sensor_optical_flow_s> _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
+	const spi_drdy_gpio_t _drdy_gpio;
+
+	matrix::Dcmf _rotation;
+
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
 	perf_counter_t _false_motion_perf{perf_alloc(PC_COUNT, MODULE_NAME": false motion report")};
 	perf_counter_t _mode_change_bright_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change bright (0)")};
@@ -113,25 +112,18 @@ private:
 	perf_counter_t _mode_change_super_low_light_perf{perf_alloc(PC_COUNT, MODULE_NAME": mode change super low light (2)")};
 	perf_counter_t _no_motion_interrupt_perf{nullptr};
 
-	const spi_drdy_gpio_t _drdy_gpio;
-
-	matrix::Dcmf _rotation;
-
-	int _discard_reading{3};
-
-	Mode _mode{Mode::LowLight};
-
-	uint32_t _scheduled_interval_us{SAMPLE_INTERVAL_MODE_0};
+	hrt_abstime _reset_timestamp{0};
+	hrt_abstime _last_publish{0};
+	int _failure_count{0};
+	int _discard_reading{0};
 
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
 
+	uint32_t _scheduled_interval_us{SAMPLE_INTERVAL_MODE_0 / 2};
+
+	Mode _mode{Mode::LowLight};
+
 	hrt_abstime _last_write_time{0};
 	hrt_abstime _last_read_time{0};
-
-	// force reset if there hasn't been valid data for an extended period (sensor could be in a bad state)
-	static constexpr hrt_abstime RESET_TIMEOUT_US = 3_s;
-
-	hrt_abstime _last_good_data{0};
-	hrt_abstime _last_reset{0};
 };

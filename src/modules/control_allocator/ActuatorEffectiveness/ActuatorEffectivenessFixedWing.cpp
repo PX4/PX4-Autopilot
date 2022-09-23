@@ -62,7 +62,8 @@ ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configurat
 }
 
 void ActuatorEffectivenessFixedWing::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp)
+		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
 	// apply flaps
 	actuator_controls_s actuator_controls_0;

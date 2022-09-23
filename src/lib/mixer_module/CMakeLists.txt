@@ -64,5 +64,4 @@ add_dependencies(mixer_module output_functions_header)
 target_compile_options(mixer_module PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 target_include_directories(mixer_module PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
-px4_add_functional_gtest(SRC mixer_module_tests.cpp LINKLIBS mixer_module mixer)
-
+px4_add_functional_gtest(SRC mixer_module_tests.cpp LINKLIBS mixer_module)

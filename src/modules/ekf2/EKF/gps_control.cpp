@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,7 +41,7 @@
 
 void Ekf::controlGpsFusion()
 {
-	if (!(_params.fusion_mode & SensorFusionMask::USE_GPS)) {
+	if (!((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VEL))) {
 		stopGpsFusion();
 		return;
 	}
@@ -49,14 +49,21 @@ void Ekf::controlGpsFusion()
 	// Check for new GPS data that has fallen behind the fusion time horizon
 	if (_gps_data_ready) {
 
-		updateGpsYaw(_gps_sample_delayed);
-		updateGpsVel(_gps_sample_delayed);
-		updateGpsPos(_gps_sample_delayed);
+		const gpsSample &gps_sample{_gps_sample_delayed};
+
+		updateGpsYaw(gps_sample);
+		updateGpsVel(gps_sample);
+		updateGpsPos(gps_sample);
 
 		const bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
 		const bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
 
-		controlGpsYawFusion(gps_checks_passing, gps_checks_failing);
+		controlGpsYawFusion(gps_sample, gps_checks_passing, gps_checks_failing);
+
+		// update GSF yaw estimator velocity (basic sanity check on GNSS velocity data)
+		if (gps_checks_passing && !gps_checks_failing) {
+			_yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), _gps_sample_delayed.sacc);
+		}
 
 		// Determine if we should use GPS aiding for velocity and horizontal position
 		// To start using GPS we need angular alignment completed, the local NED origin set and GPS data that has not failed checks recently
@@ -72,8 +79,13 @@ void Ekf::controlGpsFusion()
 				if (continuing_conditions_passing
 				    || !isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 
-					fuseGpsVel();
-					fuseGpsPos();
+					if (_params.gnss_ctrl & GnssCtrl::VEL) {
+						fuseGpsVel();
+					}
+
+					if ((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VPOS)) {
+						fuseGpsPos();
+					}
 
 					if (shouldResetGpsFusion()) {
 						const bool was_gps_signal_lost = isTimedOut(_time_prev_gps_us, 1000000);
@@ -139,7 +151,7 @@ void Ekf::controlGpsFusion()
 					_inhibit_ev_yaw_use = true;
 
 				} else {
-					startGpsFusion();
+					startGpsFusion(gps_sample);
 				}
 
 			} else if (gps_checks_passing && !_control_status.flags.yaw_align && (_params.mag_fusion_type == MagFuseType::NONE)) {
@@ -147,19 +159,20 @@ void Ekf::controlGpsFusion()
 				if (resetYawToEKFGSF()) {
 					_information_events.flags.yaw_aligned_to_imu_gps = true;
 					ECL_INFO("Yaw aligned using IMU and GPS");
-					resetVelocityToGps(_gps_sample_delayed);
-					resetHorizontalPositionToGps(_gps_sample_delayed);
+					resetVelocityToGps(gps_sample);
+					resetHorizontalPositionToGps(gps_sample);
 				}
 			}
 		}
 
-	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
+	} else if (_control_status.flags.gps && !isNewestSampleRecent(_time_last_gps_buffer_push, (uint64_t)10e6)) {
 		stopGpsFusion();
 		_warning_events.flags.gps_data_stopped = true;
 		ECL_WARN("GPS data stopped");
 
-	}  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)1e6)
+	}  else if (_control_status.flags.gps && !isNewestSampleRecent(_time_last_gps_buffer_push, (uint64_t)1e6)
 		    && isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
+
 		// Handle the case where we are fusing another position source along GPS,
 		// stop waiting for GPS after 1 s of lost signal
 		stopGpsFusion();

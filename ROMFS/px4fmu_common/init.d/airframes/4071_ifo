@@ -32,13 +32,12 @@ param set-default IMU_DGYRO_CUTOFF 90
 param set-default IMU_GYRO_CUTOFF 100
 
 # System
-param set-default PWM_MAIN_MIN 1100
 
 param set-default SENS_BOARD_ROT 10
 
 # EKF2
 param set-default EKF2_GND_EFF_DZ 6
-param set-default EKF2_HGT_MODE 1
+param set-default EKF2_HGT_REF 1
 
 # Position control
 param set-default MPC_Z_P 1

@@ -61,10 +61,29 @@ PARAM_DEFINE_INT32(CANNODE_BITRATE, 1000000);
 PARAM_DEFINE_INT32(CANNODE_TERM, 0);
 
 /**
- * Enable RTCM pub/sub
+ * Enable MovingBaselineData subscription
  *
  * @boolean
  * @max 1
+ * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(CANNODE_GPS_RTCM, 0);
+PARAM_DEFINE_INT32(CANNODE_SUB_MBD, 0);
+
+/**
+ * Enable RTCM subscription
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(CANNODE_SUB_RTCM, 0);
+
+/**
+ * Enable MovingBaselineData publication
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(CANNODE_PUB_MBD, 0);

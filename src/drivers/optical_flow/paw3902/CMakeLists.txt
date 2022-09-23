@@ -34,6 +34,8 @@
 px4_add_module(
 	MODULE drivers__optical_flow__paw3902
 	MAIN paw3902
+	COMPILE_FLAGS
+		#-DDEBUG_BUILD
 	SRCS
 		paw3902_main.cpp
 		PAW3902.cpp

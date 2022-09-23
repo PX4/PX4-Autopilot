@@ -109,33 +109,6 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	// 2021-01-31 (v1.12 alpha): translate PWM_MIN/PWM_MAX/PWM_DISARMED to PWM_MAIN
-	{
-		if (strcmp("PWM_MIN", node->name) == 0) {
-			strcpy(node->name, "PWM_MAIN_MIN");
-			PX4_INFO("copying %s -> %s", "PWM_MIN", "PWM_MAIN_MIN");
-			return true;
-		}
-
-		if (strcmp("PWM_MAX", node->name) == 0) {
-			strcpy(node->name, "PWM_MAIN_MAX");
-			PX4_INFO("copying %s -> %s", "PWM_MAX", "PWM_MAIN_MAX");
-			return true;
-		}
-
-		if (strcmp("PWM_RATE", node->name) == 0) {
-			strcpy(node->name, "PWM_MAIN_RATE");
-			PX4_INFO("copying %s -> %s", "PWM_RATE", "PWM_MAIN_RATE");
-			return true;
-		}
-
-		if (strcmp("PWM_DISARMED", node->name) == 0) {
-			strcpy(node->name, "PWM_MAIN_DISARM");
-			PX4_INFO("copying %s -> %s", "PWM_DISARMED", "PWM_MAIN_DISARM");
-			return true;
-		}
-	}
-
 	// 2021-04-30: translate ASPD_STALL to FW_AIRSPD_STALL
 	{
 		if (strcmp("ASPD_STALL", node->name) == 0) {
@@ -251,6 +224,28 @@ bool param_modify_on_import(bson_node_t node)
 		if (strcmp("FW_THR_CRUISE", node->name) == 0) {
 			strcpy(node->name, "FW_THR_TRIM");
 			PX4_INFO("copying %s -> %s", "FW_THR_CRUISE", "FW_THR_TRIM");
+			return true;
+		}
+	}
+
+	// 2022-08-04: migrate EKF2_RNG_AID->EKF2_RNG_CTRL and EKF2_HGT_MODE->EKF2_HGT_REF
+	{
+		if (strcmp("EKF2_RNG_AID", node->name) == 0) {
+			strcpy(node->name, "EKF2_RNG_CTRL");
+			PX4_INFO("param migrating EKF2_RNG_AID (removed) -> EKF2_RNG_CTRL: value=%" PRId32, node->i32);
+			return true;
+		}
+
+		if (strcmp("EKF2_HGT_MODE", node->name) == 0) {
+			strcpy(node->name, "EKF2_HGT_REF");
+
+			// If was in range height mode, set range aiding to "always"
+			if (node->i32 == 2) {
+				int32_t rng_mode = 2;
+				param_set_no_notification(param_find("EKF2_RNG_CTRL"), &rng_mode);
+			}
+
+			PX4_INFO("param migrating EKF2_HGT_MODE (removed) -> EKF2_HGT_REF: value=%" PRId32, node->i32);
 			return true;
 		}
 	}

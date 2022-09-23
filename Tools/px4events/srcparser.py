@@ -23,6 +23,7 @@ class Event(object):
         self.message = None
         self.description = None
         self.group = "default"
+        self.type = None
         self._arguments = []
 
     @staticmethod
@@ -91,7 +92,7 @@ class SourceParser(object):
     re_comment_start = re.compile(r'^\/\*\s*EVENT$')
     re_events_send = re.compile(r'^events::send[<\(]')
     re_comment_content = re.compile(r'^\*\s*(.*)')
-    re_comment_tag = re.compile(r'^@([a-zA-Z][a-zA-Z0-9_]*):?\s*(.*)')
+    re_comment_tag = re.compile(r'^@([a-zA-Z][a-zA-Z0-9_-]*):?\s*(.*)')
     re_comment_end = re.compile(r'(.*?)\s*\*\/$')
     re_code_end = re.compile(r'(.*?)\s*;$')
     re_template_args = re.compile(r'([a-zA-Z0-9_:\.]+)\s*<([a-zA-Z0-9_,\s:]+)\s*>\s*\((.*)\);$')
@@ -106,7 +107,7 @@ class SourceParser(object):
         """ dict of 'group': [Event] list """
         return self._events
 
-    def Parse(self, contents):
+    def Parse(self, contents, path):
         """
         Incrementally parse program contents and append all found events
         to the list.
@@ -116,7 +117,7 @@ class SourceParser(object):
         # names.
         state = None
         def finalize_current_tag(event, tag, value):
-            if tag is None: return
+            if tag is None: return True
             if tag == "description":
                 descr = value.strip()
                 # merge continued lines (but not e.g. enumerations)
@@ -125,11 +126,16 @@ class SourceParser(object):
                         descr = descr[:i] + ' ' + descr[i+1:]
                 event.description = descr
             elif tag == "group":
-                known_groups = ["calibration", "health", "arming_check", "normal"]
+                known_groups = ["calibration", "health", "arming_check", "default"]
                 event.group = value.strip()
                 if not event.group in known_groups:
                     raise Exception("Unknown event group: '{}'\nKnown groups: {}\n" \
                         "If this is not a typo, add the new group to the script".format(event.group, known_groups))
+            elif tag == "type":
+                event.type = value.strip()
+            elif tag == "skip-file":
+                print("Skipping file: {:}".format(path))
+                return False
             elif tag.startswith("arg"):
                 arg_index = int(tag[3:])-1
                 arg_name = value.strip()
@@ -137,6 +143,7 @@ class SourceParser(object):
                 event.add_argument(None, arg_name)
             else:
                 raise Exception("Invalid tag: {}\nvalue: {}".format(tag, value))
+            return True
 
         for line in self.re_split_lines.split(contents):
             line = line.strip()
@@ -237,7 +244,7 @@ class SourceParser(object):
                             event.group = "health"
                         else:
                             event.group = "arming_check"
-                        event.prepend_arguments([('common::navigation_mode_category_t', 'modes'),
+                        event.prepend_arguments([('navigation_mode_group_t', 'modes'),
                                 ('uint8_t', 'health_component_index')])
                     else:
                         raise Exception("unknown event method call: {}, args: {}".format(call, args))
@@ -264,7 +271,8 @@ class SourceParser(object):
                     comment_content = m.group(1)
                     m = self.re_comment_tag.match(comment_content)
                     if m:
-                        finalize_current_tag(event, current_tag, current_value)
+                        if not finalize_current_tag(event, current_tag, current_value):
+                            return True # skip file
                         current_tag, current_value = m.group(1, 2)
                     elif current_tag is not None:
                         current_value += "\n"+comment_content
@@ -274,7 +282,8 @@ class SourceParser(object):
                     # "*" or "*/".
                     raise Exception("Excpected a comment, got '{}'".format(line))
                 if last_comment_line:
-                    finalize_current_tag(event, current_tag, current_value)
+                    if not finalize_current_tag(event, current_tag, current_value):
+                        return True # skip file
                     state = "parse-command"
         return True
 

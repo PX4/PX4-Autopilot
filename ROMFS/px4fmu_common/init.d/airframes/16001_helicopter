@@ -1,55 +1,27 @@
 #!/bin/sh
 #
-# @name Blade 130X
+# @name Generic Helicopter (Tail ESC)
 #
 # @type Helicopter
 # @class Copter
-#
-# @maintainer Bart Slinger <bartslinger@gmail.com>
-#
-# @output Motor1 main motor
-# @output Servo1 front swashplate servo
-# @output Servo2 right swashplate servo
-# @output Servo3 left swashplate servo
-# @output Servo4 tail-rotor servo
 #
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.mc_defaults
-
-# Configure as helicopter
-param set-default MAV_TYPE 4
+. ${R}etc/init.d/rc.heli_defaults
 
 
-
-param set-default ATT_BIAS_MAX 0
-
-param set-default CBRK_IO_SAFETY 22027
-
-param set-default MC_ROLL_P 5
+# Disable PID gains for initial setup. These should be enabled after setting the FF gain.
+# P is expected to be lower than FF.
 param set-default MC_ROLLRATE_P 0
 param set-default MC_ROLLRATE_I 0
 param set-default MC_ROLLRATE_D 0
-param set-default MC_ROLLRATE_FF 0.15
+param set-default MC_ROLLRATE_FF 0.1
 param set-default MC_PITCHRATE_P 0
 param set-default MC_PITCHRATE_I 0
 param set-default MC_PITCHRATE_D 0
-param set-default MC_PITCHRATE_FF 0.15
-param set-default MC_YAW_P 3
-param set-default MC_YAWRATE_P 0.1
-param set-default MC_YAWRATE_I 0
-param set-default MC_ROLLRATE_MAX 720
-param set-default MC_PITCHRATE_MAX 720
-param set-default MC_YAWRATE_MAX 400
-param set-default MC_ACRO_R_MAX 360
-param set-default MC_ACRO_P_MAX 360
-
-param set-default MPC_THR_MIN 0.06
-param set-default MPC_MANTHR_MIN 0.06
-
-param set-default PWM_MAIN_MIN 1075
+param set-default MC_PITCHRATE_FF 0.1
 
 param set-default CA_AIRFRAME 10
 

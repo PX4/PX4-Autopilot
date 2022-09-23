@@ -43,7 +43,7 @@ void BiasEstimator::predict(const float dt)
 {
 	// State is constant
 	// Predict state covariance only
-	float delta_state_var = _process_var * dt * dt;
+	float delta_state_var = _process_psd * dt;
 
 	if (isOffsetDetected()) {
 		// A bias in the state has been detected by the innovation sequence check
@@ -97,7 +97,7 @@ inline bool BiasEstimator::isTestRatioPassing(const float innov_test_ratio) cons
 
 inline void BiasEstimator::updateState(const float K, const float innov)
 {
-	_state = math::constrain(_state + K * innov, -_state_max, _state_max);
+	_state = _state + K * innov;
 }
 
 inline void BiasEstimator::updateStateCovariance(const float K)

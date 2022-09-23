@@ -438,6 +438,12 @@ FixedwingPositionControl::get_auto_airspeed_setpoint(const float control_interva
 					       MAX_WEIGHT_RATIO);
 	}
 
+	// Adapt min airspeed setpoint based on wind estimate for more stability in higher winds.
+	if (_airspeed_valid && _wind_valid && _param_fw_wind_arsp_sc.get() > FLT_EPSILON) {
+		calibrated_min_airspeed = math::min(calibrated_min_airspeed + _param_fw_wind_arsp_sc.get() * _wind_vel.length(),
+						    _param_fw_airspd_max.get());
+	}
+
 	// Stall speed increases with the square root of the load factor times the weight ratio
 	// Vs ~ sqrt(load_factor * weight_ratio)
 	calibrated_min_airspeed = constrain(_param_fw_airspd_stall.get() * sqrtf(load_factor * weight_ratio),
@@ -871,9 +877,13 @@ FixedwingPositionControl::move_position_setpoint_for_vtol_transition(position_se
 
 		if (!PX4_ISFINITE(_transition_waypoint(0))) {
 			double lat_transition, lon_transition;
-			// create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the L1 controller can track
-			// during the transition
-			waypoint_from_heading_and_distance(_current_latitude, _current_longitude, _yaw, HDG_HOLD_DIST_NEXT, &lat_transition,
+
+			// Create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the L1 controller can track
+			// during the transition. Use the current yaw setpoint to determine the transition heading, as that one in turn
+			// is set to the transition heading by Navigator, or current yaw if setpoint is not valid.
+			const float transition_heading = PX4_ISFINITE(current_sp.yaw) ? current_sp.yaw : _yaw;
+			waypoint_from_heading_and_distance(_current_latitude, _current_longitude, transition_heading, HDG_HOLD_DIST_NEXT,
+							   &lat_transition,
 							   &lon_transition);
 
 			_transition_waypoint(0) = lat_transition;
@@ -908,8 +918,6 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 		publishOrbitStatus(current_sp);
 	}
 
-	const bool was_circle_mode = (_param_fw_use_npfg.get()) ? _npfg.circleMode() : _l1_control.circle_mode();
-
 	switch (position_sp_type) {
 	case position_setpoint_s::SETPOINT_TYPE_IDLE:
 		_att_sp.thrust_body[0] = 0.0f;
@@ -931,11 +939,6 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
 		control_auto_loiter(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
 		break;
-	}
-
-	if (was_circle_mode && !_l1_control.circle_mode()) {
-		/* just kicked out of loiter, reset roll integrals */
-		_att_sp.roll_reset_integral = true;
 	}
 
 	/* Copy thrust output for publication, handle special cases */
@@ -1482,8 +1485,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		if (_runway_takeoff.resetIntegrators()) {
 			// reset integrals except yaw (which also counts for the wheel controller)
-			_att_sp.roll_reset_integral = true;
-			_att_sp.pitch_reset_integral = true;
+			_att_sp.reset_rate_integrals = true;
 
 			// throttle is open loop anyway during ground roll, no need to wind up the integrator
 			_tecs.resetIntegrals();
@@ -1621,11 +1623,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_att_sp.pitch_body = get_tecs_pitch();
 
 		} else {
-			/* Tell the attitude controller to stop integrating while we are waiting
-			 * for the launch */
-			_att_sp.roll_reset_integral = true;
-			_att_sp.pitch_reset_integral = true;
-			_att_sp.yaw_reset_integral = true;
+			/* Tell the attitude controller to stop integrating while we are waiting for the launch */
+			_att_sp.reset_rate_integrals = true;
 
 			/* Set default roll and pitch setpoints during detection phase */
 			_att_sp.roll_body = 0.0f;
@@ -2234,9 +2233,7 @@ FixedwingPositionControl::Run()
 		_npfg.setPeriod(_param_npfg_period.get());
 		_l1_control.set_l1_period(_param_fw_l1_period.get());
 
-		_att_sp.roll_reset_integral = false;
-		_att_sp.pitch_reset_integral = false;
-		_att_sp.yaw_reset_integral = false;
+		_att_sp.reset_rate_integrals = false;
 
 		// by default we don't want yaw to be contoller directly with rudder
 		_att_sp.fw_control_yaw = false;
@@ -2743,7 +2740,7 @@ void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_
 	orbit_status_s orbit_status{};
 	orbit_status.timestamp = hrt_absolute_time();
 	float loiter_radius = pos_sp.loiter_radius;
-	uint8_t loiter_direction = pos_sp.loiter_direction;
+	int8_t loiter_direction = pos_sp.loiter_direction;
 
 	if (fabsf(loiter_radius) < FLT_EPSILON) {
 		loiter_radius = _param_nav_loiter_rad.get();

@@ -43,7 +43,6 @@
 #include "../state_machine_helper.h"
 #include <unit_test.h>
 #include "../Arming/ArmStateMachine/ArmStateMachine.hpp"
-#include "../Arming/PreFlightCheck/PreFlightCheck.hpp"
 
 class StateMachineHelperTest : public UnitTest
 {

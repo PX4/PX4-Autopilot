@@ -54,8 +54,6 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 {
 	_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 	_vtol_schedule.transition_start = 0;
-
-	_flag_was_in_trans_mode = false;
 }
 
 void
@@ -254,10 +252,6 @@ void Tailsitter::update_transition_state()
 
 		// calculate pitching rate - and constrain to at least 0.1s transition time
 		const float trans_pitch_rate = M_PI_2_F / math::max(_param_vt_b_trans_dur.get(), 0.1f);
-
-		if (!_flag_idle_mc) {
-			_flag_idle_mc = set_idle_mc();
-		}
 
 		if (tilt > 0.01f) {
 			_q_trans_sp = Quatf(AxisAnglef(_trans_rot_axis,

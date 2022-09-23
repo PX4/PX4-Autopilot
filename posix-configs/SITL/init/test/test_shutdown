@@ -13,7 +13,7 @@ param set VT_TYPE 2
 dataman start
 
 battery_simulator start
-simulator start
+simulator_mavlink start
 tone_alarm start
 pwm_out_sim start
 
@@ -33,7 +33,7 @@ fw_pos_control_l1 start vtol
 fw_att_control start vtol
 airspeed_selector start
 
-#mixer load /dev/pwm_output0 ROMFS/sitl/mixers/standard_vtol_sitl.main.mix
+control_allocator start
 
 ver all
 
@@ -82,7 +82,7 @@ ekf2 stop
 airspeed_selector stop
 sensors stop
 
-simulator stop
+simulator_mavlink stop
 tone_alarm stop
 
 dataman stop

@@ -148,6 +148,7 @@ int AFBRS50::init()
 		PX4_INFO_RAW("AFBR-S50 Chip ID: %u, API Version: %u v%d.%d.%d\n", (uint)id, (uint)value, a, b, c);
 
 		argus_module_version_t mv = Argus_GetModuleVersion(_hnd);
+		argus_laser_type_t lt = Argus_GetLaserType(_hnd);
 
 		switch (mv) {
 		case AFBR_S50MV85G_V1:
@@ -167,11 +168,19 @@ int AFBRS50::init()
 
 		case AFBR_S50LV85D_V1:
 			_min_distance = 0.08f;
-			_max_distance = 30.f;
+
+			if (lt == LASER_H_V2X) {
+				_max_distance = 50.f;
+				PX4_INFO_RAW("AFBR-S50LX85D (v2)\n");
+
+			} else {
+				_max_distance = 30.f;
+				PX4_INFO_RAW("AFBR-S50LV85D (v1)\n");
+			}
+
 			_px4_rangefinder.set_min_distance(_min_distance);
 			_px4_rangefinder.set_max_distance(_max_distance);
 			_px4_rangefinder.set_fov(math::radians(6.f));
-			PX4_INFO_RAW("AFBR-S50LV85D (v1)\n");
 			break;
 
 		case AFBR_S50MV68B_V1:
@@ -234,7 +243,6 @@ void AFBRS50::Run()
 		break;
 
 	case STATE::CONFIGURE: {
-			//status_t status = Argus_SetConfigurationFrameTime(_hnd, _measure_interval);
 			status_t status = set_rate(SHORT_RANGE_MODE_HZ);
 
 			if (status != STATUS_OK) {
@@ -259,8 +267,6 @@ void AFBRS50::Run()
 			_mode = ARGUS_MODE_B;
 			set_mode(_mode);
 
-			status = Argus_StartMeasurementTimer(_hnd, measurement_ready_callback);
-
 			if (status != STATUS_OK) {
 				PX4_ERR("CONFIGURE status not okay: %i", (int)status);
 				ScheduleNow();
@@ -273,7 +279,14 @@ void AFBRS50::Run()
 		break;
 
 	case STATE::COLLECT: {
-			// currently handeled by measurement_ready_callback
+			// Only start a new measurement if one is not ongoing
+			if (Argus_GetStatus(_hnd) == STATUS_IDLE) {
+				status_t status = Argus_TriggerMeasurement(_hnd, measurement_ready_callback);
+
+				if (status != STATUS_OK) {
+					PX4_ERR("Argus_TriggerMeasurement status not okay: %i", (int)status);
+				}
+			}
 
 			UpdateMode();
 		}
@@ -290,8 +303,7 @@ void AFBRS50::Run()
 		break;
 	}
 
-	// backup schedule
-	ScheduleDelayed(100_ms);
+	ScheduleDelayed(_measure_interval);
 }
 
 void AFBRS50::UpdateMode()

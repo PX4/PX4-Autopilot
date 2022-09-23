@@ -105,25 +105,38 @@ enum TerrainFusionMask : uint8_t {
 	TerrainFuseOpticalFlow = (1 << 1)
 };
 
-enum VerticalHeightSensor : uint8_t {
-	// Integer definitions for vdist_sensor_type
-	BARO  = 0,   	///< Use baro height
-	GPS   = 1,   	///< Use GPS height
-	RANGE = 2,   	///< Use range finder height
-	EV    = 3    	///< Use external vision
+enum HeightSensor : uint8_t {
+	BARO  = 0,
+	GNSS  = 1,
+	RANGE = 2,
+	EV    = 3,
+	UNKNOWN  = 4
+};
+
+enum GnssCtrl : uint8_t {
+	HPOS  = (1<<0),
+	VPOS  = (1<<1),
+	VEL  = (1<<2),
+	YAW  = (1<<3)
+};
+
+enum RngCtrl : uint8_t {
+	DISABLED    = 0,
+	CONDITIONAL = 1,
+	ENABLED     = 2
 };
 
 enum SensorFusionMask : uint16_t {
 	// Bit locations for fusion_mode
-	USE_GPS          = (1<<0),      ///< set to true to use GPS data
+	DEPRECATED_USE_GPS = (1<<0),    ///< set to true to use GPS data (DEPRECATED, use gnss_ctrl)
 	USE_OPT_FLOW     = (1<<1),      ///< set to true to use optical flow data
 	INHIBIT_ACC_BIAS = (1<<2),      ///< set to true to inhibit estimation of accelerometer delta velocity bias
 	USE_EXT_VIS_POS  = (1<<3),      ///< set to true to use external vision position data
 	USE_EXT_VIS_YAW  = (1<<4),      ///< set to true to use external vision quaternion data for yaw
 	USE_DRAG         = (1<<5),      ///< set to true to use the multi-rotor drag model to estimate wind
 	ROTATE_EXT_VIS   = (1<<6),      ///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
-	USE_GPS_YAW      = (1<<7),      ///< set to true to use GPS yaw data if available
-	USE_EXT_VIS_VEL  = (1<<8)       ///< set to true to use external vision velocity data
+	DEPRECATED_USE_GPS_YAW = (1<<7),///< set to true to use GPS yaw data if available (DEPRECATED, use gnss_ctrl)
+	USE_EXT_VIS_VEL  = (1<<8),      ///< set to true to use external vision velocity data
 };
 
 struct gpsMessage {
@@ -247,8 +260,11 @@ struct parameters {
 	int32_t filter_update_interval_us{10000}; ///< filter update interval in microseconds
 
 	// measurement source control
-	int32_t fusion_mode{SensorFusionMask::USE_GPS};         ///< bitmasked integer that selects which aiding sources will be used
-	int32_t vdist_sensor_type{VerticalHeightSensor::BARO};  ///< selects the primary source for height data
+	int32_t fusion_mode{};         ///< bitmasked integer that selects some aiding sources
+	int32_t height_sensor_ref{HeightSensor::BARO};
+	int32_t baro_ctrl{1};
+	int32_t gnss_ctrl{GnssCtrl::HPOS | GnssCtrl::VEL};
+	int32_t rng_ctrl{RngCtrl::CONDITIONAL};
 	int32_t terrain_fusion_mode{TerrainFusionMask::TerrainFuseRangeFinder |
 				    TerrainFusionMask::TerrainFuseOpticalFlow}; ///< aiding source(s) selection bitmask for the terrain estimator
 
@@ -289,9 +305,10 @@ struct parameters {
 	// position and velocity fusion
 	float gps_vel_noise{5.0e-1f};           ///< minimum allowed observation noise for gps velocity fusion (m/sec)
 	float gps_pos_noise{0.5f};              ///< minimum allowed observation noise for gps position fusion (m)
+	float gps_hgt_bias_nsd{0.13f};          ///< process noise for gnss height bias estimation (m/s/sqrt(Hz))
 	float pos_noaid_noise{10.0f};           ///< observation noise for non-aiding position fusion (m)
 	float baro_noise{2.0f};                 ///< observation noise for barometric height fusion (m)
-	float baro_drift_rate{0.005f};          ///< process noise for barometric height bias estimation (m/s)
+	float baro_bias_nsd{0.13f};             ///< process noise for barometric height bias estimation (m/s/sqrt(Hz))
 	float baro_innov_gate{5.0f};            ///< barometric and GPS height innovation consistency gate size (STD)
 	float gps_pos_innov_gate{5.0f};         ///< GPS horizontal position innovation consistency gate size (STD)
 	float gps_vel_innov_gate{5.0f};         ///< GPS velocity innovation consistency gate size (STD)
@@ -326,13 +343,13 @@ struct parameters {
 	// range finder fusion
 	float range_noise{0.1f};                ///< observation noise for range finder measurements (m)
 	float range_innov_gate{5.0f};           ///< range finder fusion innovation consistency gate size (STD)
+	float rng_hgt_bias_nsd{0.13f};          ///< process noise for range height bias estimation (m/s/sqrt(Hz))
 	float rng_gnd_clearance{0.1f};          ///< minimum valid value for range when on ground (m)
 	float rng_sens_pitch{0.0f};             ///< Pitch offset of the range sensor (rad). Sensor points out along Z axis when offset is zero. Positive rotation is RH about Y axis.
 	float range_noise_scaler{0.0f};         ///< scaling from range measurement to noise (m/m)
 	const float vehicle_variance_scaler{0.0f};      ///< gain applied to vehicle height variance used in calculation of height above ground observation variance
-	float max_hagl_for_range_aid{5.0f};     ///< maximum height above ground for which we allow to use the range finder as height source (if range_aid == 1)
-	float max_vel_for_range_aid{1.0f};      ///< maximum ground velocity for which we allow to use the range finder as height source (if range_aid == 1)
-	int32_t range_aid{0};                   ///< allow switching primary height source to range finder if certain conditions are met
+	float max_hagl_for_range_aid{5.0f};     ///< maximum height above ground for which we allow to use the range finder as height source (if rng_control == 1)
+	float max_vel_for_range_aid{1.0f};      ///< maximum ground velocity for which we allow to use the range finder as height source (if rng_control == 1)
 	float range_aid_innov_gate{1.0f};       ///< gate size used for innovation consistency checks for range aid fusion
 	float range_valid_quality_s{1.0f};      ///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
 	float range_cos_max_tilt{0.7071f};      ///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
@@ -341,6 +358,7 @@ struct parameters {
 	// vision position fusion
 	float ev_vel_innov_gate{3.0f};          ///< vision velocity fusion innovation consistency gate size (STD)
 	float ev_pos_innov_gate{5.0f};          ///< vision position fusion innovation consistency gate size (STD)
+	float ev_hgt_bias_nsd{0.13f};           ///< process noise for vision height bias estimation (m/s/sqrt(Hz))
 
 	// optical flow fusion
 	float flow_noise{0.15f};                ///< observation noise for optical flow LOS rate measurements (rad/sec)
@@ -378,6 +396,7 @@ struct parameters {
 
 	const unsigned reset_timeout_max{7000000};      ///< maximum time we allow horizontal inertial dead reckoning before attempting to reset the states to the measurement or change _control_status if the data is unavailable (uSec)
 	const unsigned no_aid_timeout_max{1000000};     ///< maximum lapsed time from last fusion of a measurement that constrains horizontal velocity drift before the EKF will determine that the sensor is no longer contributing to aiding (uSec)
+	const unsigned hgt_fusion_timeout_max{5'000'000}; ///< maximum time we allow height fusion to fail before attempting a reset or stopping the fusion aiding (uSec)
 
 	int32_t valid_timeout_max{5000000};     ///< amount of time spent inertial dead reckoning before the estimator reports the state estimates as invalid (uSec)
 
@@ -481,40 +500,42 @@ union gps_check_fail_status_u {
 // bitmask containing filter control status
 union filter_control_status_u {
 	struct {
-		uint32_t tilt_align              : 1; ///< 0 - true if the filter tilt alignment is complete
-		uint32_t yaw_align               : 1; ///< 1 - true if the filter yaw alignment is complete
-		uint32_t gps                     : 1; ///< 2 - true if GPS measurement fusion is intended
-		uint32_t opt_flow                : 1; ///< 3 - true if optical flow measurements fusion is intended
-		uint32_t mag_hdg                 : 1; ///< 4 - true if a simple magnetic yaw heading fusion is intended
-		uint32_t mag_3D                  : 1; ///< 5 - true if 3-axis magnetometer measurement fusion is intended
-		uint32_t mag_dec                 : 1; ///< 6 - true if synthetic magnetic declination measurements fusion is intended
-		uint32_t in_air                  : 1; ///< 7 - true when the vehicle is airborne
-		uint32_t wind                    : 1; ///< 8 - true when wind velocity is being estimated
-		uint32_t baro_hgt                : 1; ///< 9 - true when baro height is being fused as a primary height reference
-		uint32_t rng_hgt                 : 1; ///< 10 - true when range finder height is being fused as a primary height reference
-		uint32_t gps_hgt                 : 1; ///< 11 - true when GPS height is being fused as a primary height reference
-		uint32_t ev_pos                  : 1; ///< 12 - true when local position data fusion from external vision is intended
-		uint32_t ev_yaw                  : 1; ///< 13 - true when yaw data from external vision measurements fusion is intended
-		uint32_t ev_hgt                  : 1; ///< 14 - true when height data from external vision measurements is being fused
-		uint32_t fuse_beta               : 1; ///< 15 - true when synthetic sideslip measurements are being fused
-		uint32_t mag_field_disturbed     : 1; ///< 16 - true when the mag field does not match the expected strength
-		uint32_t fixed_wing              : 1; ///< 17 - true when the vehicle is operating as a fixed wing vehicle
-		uint32_t mag_fault               : 1; ///< 18 - true when the magnetometer has been declared faulty and is no longer being used
-		uint32_t fuse_aspd               : 1; ///< 19 - true when airspeed measurements are being fused
-		uint32_t gnd_effect              : 1; ///< 20 - true when protection from ground effect induced static pressure rise is active
-		uint32_t rng_stuck               : 1; ///< 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
-		uint32_t gps_yaw                 : 1; ///< 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
-		uint32_t mag_aligned_in_flight   : 1; ///< 23 - true when the in-flight mag field alignment has been completed
-		uint32_t ev_vel                  : 1; ///< 24 - true when local frame velocity data fusion from external vision measurements is intended
-		uint32_t synthetic_mag_z         : 1; ///< 25 - true when we are using a synthesized measurement for the magnetometer Z component
-		uint32_t vehicle_at_rest         : 1; ///< 26 - true when the vehicle is at rest
-		uint32_t gps_yaw_fault           : 1; ///< 27 - true when the GNSS heading has been declared faulty and is no longer being used
-		uint32_t rng_fault               : 1; ///< 28 - true when the range finder has been declared faulty and is no longer being used
-		uint32_t inertial_dead_reckoning : 1; ///< 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
-		uint32_t wind_dead_reckoning     : 1; ///< 30 - true if we are navigationg reliant on wind relative measurements
-		uint32_t rng_kin_consistent      : 1; ///< 31 - true when the range finder kinematic consistency check is passing
+		uint64_t tilt_align              : 1; ///< 0 - true if the filter tilt alignment is complete
+		uint64_t yaw_align               : 1; ///< 1 - true if the filter yaw alignment is complete
+		uint64_t gps                     : 1; ///< 2 - true if GPS measurement fusion is intended
+		uint64_t opt_flow                : 1; ///< 3 - true if optical flow measurements fusion is intended
+		uint64_t mag_hdg                 : 1; ///< 4 - true if a simple magnetic yaw heading fusion is intended
+		uint64_t mag_3D                  : 1; ///< 5 - true if 3-axis magnetometer measurement fusion is intended
+		uint64_t mag_dec                 : 1; ///< 6 - true if synthetic magnetic declination measurements fusion is intended
+		uint64_t in_air                  : 1; ///< 7 - true when the vehicle is airborne
+		uint64_t wind                    : 1; ///< 8 - true when wind velocity is being estimated
+		uint64_t baro_hgt                : 1; ///< 9 - true when baro height is being fused as a primary height reference
+		uint64_t rng_hgt                 : 1; ///< 10 - true when range finder height is being fused as a primary height reference
+		uint64_t gps_hgt                 : 1; ///< 11 - true when GPS height is being fused as a primary height reference
+		uint64_t ev_pos                  : 1; ///< 12 - true when local position data fusion from external vision is intended
+		uint64_t ev_yaw                  : 1; ///< 13 - true when yaw data from external vision measurements fusion is intended
+		uint64_t ev_hgt                  : 1; ///< 14 - true when height data from external vision measurements is being fused
+		uint64_t fuse_beta               : 1; ///< 15 - true when synthetic sideslip measurements are being fused
+		uint64_t mag_field_disturbed     : 1; ///< 16 - true when the mag field does not match the expected strength
+		uint64_t fixed_wing              : 1; ///< 17 - true when the vehicle is operating as a fixed wing vehicle
+		uint64_t mag_fault               : 1; ///< 18 - true when the magnetometer has been declared faulty and is no longer being used
+		uint64_t fuse_aspd               : 1; ///< 19 - true when airspeed measurements are being fused
+		uint64_t gnd_effect              : 1; ///< 20 - true when protection from ground effect induced static pressure rise is active
+		uint64_t rng_stuck               : 1; ///< 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
+		uint64_t gps_yaw                 : 1; ///< 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
+		uint64_t mag_aligned_in_flight   : 1; ///< 23 - true when the in-flight mag field alignment has been completed
+		uint64_t ev_vel                  : 1; ///< 24 - true when local frame velocity data fusion from external vision measurements is intended
+		uint64_t synthetic_mag_z         : 1; ///< 25 - true when we are using a synthesized measurement for the magnetometer Z component
+		uint64_t vehicle_at_rest         : 1; ///< 26 - true when the vehicle is at rest
+		uint64_t gps_yaw_fault           : 1; ///< 27 - true when the GNSS heading has been declared faulty and is no longer being used
+		uint64_t rng_fault               : 1; ///< 28 - true when the range finder has been declared faulty and is no longer being used
+		uint64_t inertial_dead_reckoning : 1; ///< 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
+		uint64_t wind_dead_reckoning     : 1; ///< 30 - true if we are navigationg reliant on wind relative measurements
+		uint64_t rng_kin_consistent      : 1; ///< 31 - true when the range finder kinematic consistency check is passing
+		uint64_t fake_pos                : 1; ///< 32 - true when fake position measurements are being fused
+		uint64_t fake_hgt                : 1; ///< 33 - true when fake height measurements are being fused
 	} flags;
-	uint32_t value;
+	uint64_t value;
 };
 
 // Mavlink bitmask containing state of estimator solution

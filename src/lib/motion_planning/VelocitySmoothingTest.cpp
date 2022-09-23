@@ -168,7 +168,7 @@ TEST_F(VelocitySmoothingTest, testConstantSetpoint)
 	const float dt = 0.01;
 	updateTrajectories(0.f, velocity_setpoints);
 	float t123 = _trajectories[0].getTotalTime();
-	int nb_steps = ceil(t123 / dt);
+	int nb_steps = ceilf(t123 / dt);
 
 	for (int i = 0; i < nb_steps; i++) {
 		updateTrajectories(dt, velocity_setpoints);

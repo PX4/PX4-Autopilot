@@ -77,7 +77,8 @@ ActuatorEffectivenessMCTilt::getEffectivenessMatrix(Configuration &configuration
 }
 
 void ActuatorEffectivenessMCTilt::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp)
+		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
 	actuator_sp += _tilt_offsets;
 	// TODO: dynamic matrix update

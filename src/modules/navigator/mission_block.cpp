@@ -70,24 +70,15 @@ MissionBlock::MissionBlock(Navigator *navigator) :
 }
 
 bool
-MissionBlock::is_mission_item_reached()
+MissionBlock::is_mission_item_reached_or_completed()
 {
-	/* handle non-navigation or indefinite waypoints */
+	const hrt_abstime now = hrt_absolute_time();
 
-	hrt_abstime now = hrt_absolute_time();
-
+	// Handle indefinite waypoints and action commands
 	switch (_mission_item.nav_cmd) {
+
+	// Action Commands that doesn't have timeout completes instantaneously
 	case NAV_CMD_DO_SET_SERVO:
-		return true;
-
-	case NAV_CMD_LAND: /* fall through */
-	case NAV_CMD_VTOL_LAND:
-		return _navigator->get_land_detected()->landed;
-
-	case NAV_CMD_IDLE: /* fall through */
-	case NAV_CMD_LOITER_UNLIMITED:
-		return false;
-
 	case NAV_CMD_DO_LAND_START:
 	case NAV_CMD_DO_TRIGGER_CONTROL:
 	case NAV_CMD_DO_DIGICAM_CONTROL:
@@ -113,6 +104,15 @@ MissionBlock::is_mission_item_reached()
 	case NAV_CMD_DO_CHANGE_SPEED:
 	case NAV_CMD_DO_SET_HOME:
 		return true;
+
+	// Indefinite Waypoints
+	case NAV_CMD_LAND: /* fall through */
+	case NAV_CMD_VTOL_LAND:
+		return _navigator->get_land_detected()->landed;
+
+	case NAV_CMD_IDLE: /* fall through */
+	case NAV_CMD_LOITER_UNLIMITED:
+		return false;
 
 	case NAV_CMD_DO_VTOL_TRANSITION:
 
@@ -146,11 +146,49 @@ MissionBlock::is_mission_item_reached()
 			_time_wp_reached = now;
 		}
 
+		break;
+
+	case NAV_CMD_DO_WINCH: {
+			const float payload_deploy_elasped_time_s = (now - _payload_deployed_time) *
+					1E-6f; // TODO: Add proper microseconds_to_seconds function
+
+			if (_payload_deploy_ack_successful) {
+				PX4_DEBUG("Winch Deploy Ack received! Resuming mission");
+				return true;
+
+			} else if (payload_deploy_elasped_time_s > _payload_deploy_timeout_s) {
+				PX4_DEBUG("Winch Deploy Timed out, resuming mission!");
+				return true;
+
+			}
+
+			// We are still waiting for the acknowledgement / execution of deploy
+			return false;
+		}
+
+	case NAV_CMD_DO_GRIPPER: {
+			const float payload_deploy_elasped_time_s = (now - _payload_deployed_time) * 1E-6f;
+
+			if (_payload_deploy_ack_successful) {
+				PX4_DEBUG("Gripper Deploy Ack received! Resuming mission");
+				return true;
+
+			} else if (payload_deploy_elasped_time_s > _payload_deploy_timeout_s) {
+				PX4_DEBUG("Gripper Deploy Timed out, resuming mission!");
+				return true;
+
+			}
+
+			// We are still waiting for the acknowledgement / execution of deploy
+			return false;
+		}
+
 	default:
 		/* do nothing, this is a 3D waypoint */
 		break;
 	}
 
+	// Update the 'waypoint position reached' status
 	if (!_navigator->get_land_detected()->landed && !_waypoint_position_reached) {
 
 		float dist = -1.0f;
@@ -198,13 +236,13 @@ MissionBlock::is_mission_item_reached()
 
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
-			/* for takeoff mission items use the parameter for the takeoff acceptance radius */
+			// Accept takeoff waypoint to be reached if the distance in 2D plane is within acceptance radius
 			if (dist_xy >= 0.0f && dist_xy <= _navigator->get_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
 
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
-			/* for takeoff mission items use the parameter for the takeoff acceptance radius */
+			// For takeoff mission items use the parameter for the takeoff acceptance radius
 			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius()
 			    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 				_waypoint_position_reached = true;
@@ -245,7 +283,7 @@ MissionBlock::is_mission_item_reached()
 
 				// check if within loiter radius around wp, if yes then set altitude sp to mission item
 				if (dist >= 0.0f && dist_xy <= (_navigator->get_acceptance_radius() + fabsf(_mission_item.loiter_radius))
-				    && dist_z <= _navigator->get_default_altitude_acceptance_radius()) {
+				    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 					curr_sp->alt = mission_item_altitude_amsl;
 					curr_sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
@@ -373,8 +411,7 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
-	/* Check if the requested yaw setpoint is reached (only for rotary wing flight). */
-
+	// Update the 'waypoint position reached' status (only for rotary wing flight)
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
@@ -410,7 +447,7 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
-	/* Once the waypoint and yaw setpoint have been reached we can start the loiter time countdown */
+	// Handle Loiter/Delay Timeout if the waypoint position and yaw setpoint got reached
 	if (_waypoint_position_reached && _waypoint_yaw_reached) {
 
 		bool time_inside_reached = false;
@@ -421,8 +458,8 @@ MissionBlock::is_mission_item_reached()
 			time_inside_reached = true;
 		}
 
-		// check if heading for exit is reached (only applies for fixed-wing flight)
-		bool exit_heading_reached = false;
+		// check if course for exit is reached (only applies for fixed-wing flight)
+		bool exit_course_reached = false;
 
 		if (time_inside_reached) {
 
@@ -432,37 +469,38 @@ MissionBlock::is_mission_item_reached()
 			const float dist_current_next = get_distance_to_next_waypoint(curr_sp_new->lat, curr_sp_new->lon, next_sp.lat,
 							next_sp.lon);
 
-			/* enforce exit heading if in FW, the next wp is valid, the vehicle is currently loitering and either having force_heading set,
+			/* enforce exit course if in FW, the next wp is valid, the vehicle is currently loitering and either having force_heading set,
 			   or if loitering to achieve altitdue at a NAV_CMD_WAYPOINT */
-			const bool enforce_exit_heading = _navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-							  &&
-							  next_sp.valid &&
-							  curr_sp_new->type == position_setpoint_s::SETPOINT_TYPE_LOITER &&
-							  (_mission_item.force_heading || _mission_item.nav_cmd == NAV_CMD_WAYPOINT);
+			const bool enforce_exit_course = _navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+							 && next_sp.valid
+							 && curr_sp_new->type == position_setpoint_s::SETPOINT_TYPE_LOITER
+							 && (_mission_item.force_heading || _mission_item.nav_cmd == NAV_CMD_WAYPOINT);
 
-			// can only enforce exit heading if next waypoint is not within loiter radius of current waypoint
-			const bool exit_heading_is_reachable = dist_current_next > 1.2f * curr_sp_new->loiter_radius;
+			// can only enforce exit course if next waypoint is not within loiter radius of current waypoint
+			const bool exit_course_is_reachable = dist_current_next > 1.2f * curr_sp_new->loiter_radius;
 
-			if (enforce_exit_heading && exit_heading_is_reachable) {
+			if (enforce_exit_course && exit_course_is_reachable) {
 
-				float yaw_err = 0.0f;
+				float vehicle_position_to_next_waypoint_north;
+				float vehicle_position_to_next_waypoint_east;
+				get_vector_to_next_waypoint(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon, next_sp.lat,
+							    next_sp.lon, &vehicle_position_to_next_waypoint_north,  &vehicle_position_to_next_waypoint_east);
 
-				// set required yaw from bearing to the next mission item
-				_mission_item.yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
-						    _navigator->get_global_position()->lon,
-						    next_sp.lat, next_sp.lon);
-				const float cog = atan2f(_navigator->get_local_position()->vy, _navigator->get_local_position()->vx);
-				yaw_err = wrap_pi(_mission_item.yaw - cog);
+				// this vector defines the exit bearing
+				const matrix::Vector2f vector_vehicle_position_to_next_waypoint = {vehicle_position_to_next_waypoint_north, vehicle_position_to_next_waypoint_east};
 
-				exit_heading_reached = fabsf(yaw_err) < _navigator->get_yaw_threshold();
+				const matrix::Vector2f vehicle_ground_velocity = {_navigator->get_local_position()->vx, _navigator->get_local_position()->vy};
+
+				exit_course_reached = vector_vehicle_position_to_next_waypoint.dot(vehicle_ground_velocity) >
+						      vector_vehicle_position_to_next_waypoint.norm() * vehicle_ground_velocity.norm() * kCosineExitCourseThreshold;
 
 			} else {
-				exit_heading_reached = true;
+				exit_course_reached = true;
 			}
 		}
 
 		// set exit flight course to next waypoint
-		if (exit_heading_reached) {
+		if (exit_course_reached) {
 			position_setpoint_s &curr_sp = _navigator->get_position_setpoint_triplet()->current;
 			const position_setpoint_s &next_sp = _navigator->get_position_setpoint_triplet()->next;
 
@@ -533,6 +571,23 @@ MissionBlock::issue_command(const mission_item_s &item)
 
 		_actuator_pub.publish(actuators);
 
+	} else if (item.nav_cmd == NAV_CMD_DO_WINCH ||
+		   item.nav_cmd == NAV_CMD_DO_GRIPPER) {
+		// Initiate Payload Deployment
+		vehicle_command_s vcmd = {};
+		vcmd.command = item.nav_cmd;
+		vcmd.param1 = item.params[0];
+		vcmd.param2 = item.params[1];
+		vcmd.param3 = item.params[2];
+		vcmd.param4 = item.params[3];
+		vcmd.param5 = static_cast<double>(item.params[4]);
+		vcmd.param6 = static_cast<double>(item.params[5]);
+		_navigator->publish_vehicle_cmd(&vcmd);
+
+		// Reset payload deploy flag & data to get ready to receive deployment ack result
+		_payload_deploy_ack_successful = false;
+		_payload_deployed_time = hrt_absolute_time();
+
 	} else {
 
 		// This is to support legacy DO_MOUNT_CONTROL as part of a mission.
@@ -540,8 +595,8 @@ MissionBlock::issue_command(const mission_item_s &item)
 			_navigator->acquire_gimbal_control();
 		}
 
-		// we're expecting a mission command item here so assign the "raw" inputs to the command
-		// (MAV_FRAME_MISSION mission item)
+		// Mission item's NAV_CMD enums directly map to the according vehicle command
+		// So set the raw value directly (MAV_FRAME_MISSION mission item)
 		vehicle_command_s vcmd = {};
 		vcmd.command = item.nav_cmd;
 		vcmd.param1 = item.params[0];
@@ -581,6 +636,17 @@ MissionBlock::get_time_inside(const mission_item_s &item) const
 	return 0.0f;
 }
 
+// TODO: get_time_inside and item_has_timeout is quite redundant. Separate them out
+// Problem arises from the fact that DO_WINCH and DO_GRIPPER *should be an instantaneous command,
+// and shouldn't have a timeout defined as it is a DO_* command. It should rather be defined as CONDITION_GRIPPER
+// or so, and have a function named 'item_is_conditional'
+// Reference: https://mavlink.io/en/services/mission.html#mavlink_commands
+bool
+MissionBlock::item_has_timeout(const mission_item_s &item)
+{
+	return item.nav_cmd == NAV_CMD_DO_WINCH || item.nav_cmd == NAV_CMD_DO_GRIPPER;
+}
+
 bool
 MissionBlock::item_contains_position(const mission_item_s &item)
 {
@@ -609,7 +675,7 @@ MissionBlock::item_contains_marker(const mission_item_s &item)
 bool
 MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, position_setpoint_s *sp)
 {
-	/* don't change the setpoint for non-position items */
+	// Don't change the setpoint for non-position items
 	if (!item_contains_position(item)) {
 		return false;
 	}
@@ -623,7 +689,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 			    _navigator->get_loiter_radius();
 	sp->loiter_direction = math::signNoZero(item.loiter_radius);
 
-	if (item.acceptance_radius > 0.0f && PX4_ISFINITE(item.acceptance_radius)) {
+	if (item.acceptance_radius > 0.001f && PX4_ISFINITE(item.acceptance_radius)) {
 		// if the mission item has a specified acceptance radius, overwrite the default one from parameters
 		sp->acceptance_radius = item.acceptance_radius;
 
@@ -756,6 +822,7 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 	item->altitude = abs_altitude;
 	item->altitude_is_relative = false;
 
+	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
@@ -821,7 +888,13 @@ MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_
 	item->nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
 	item->params[0] = (float) new_mode;
 	item->params[1] = 0.0f;
-	item->yaw = _navigator->get_local_position()->heading; // ideally that would be course and not heading
+
+	// Keep yaw from previous mission item if valid, as that is containing the transition heading.
+	// If not valid use current yaw as yaw setpoint
+	if (!PX4_ISFINITE(item->yaw)) {
+		item->yaw = _navigator->get_local_position()->heading; // ideally that would be course and not heading
+	}
+
 	item->autocontinue = true;
 }
 

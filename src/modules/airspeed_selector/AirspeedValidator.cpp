@@ -57,6 +57,7 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 			      input_data.ground_velocity, input_data.lpos_evh, input_data.lpos_evv, input_data.att_q);
 	update_in_fixed_wing_flight(input_data.in_fixed_wing_flight);
 	check_airspeed_data_stuck(input_data.timestamp);
+	check_airspeed_data_variation(input_data.timestamp);
 	check_load_factor(input_data.accel_z);
 	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.mag_test_ratio,
 				  input_data.ground_velocity);
@@ -196,7 +197,9 @@ AirspeedValidator::update_CAS_TAS(float air_pressure_pa, float air_temperature_c
 void
 AirspeedValidator::check_airspeed_data_stuck(uint64_t time_now)
 {
-	// data stuck test: trigger when IAS is not changing for DATA_STUCK_TIMEOUT (2s)
+	// Data stuck test: trigger when IAS is not changing for DATA_STUCK_TIMEOUT (2s) when in fixed-wing flight.
+	// Only consider fixed-wing flight as some airspeed sensors have a very low resolution around 0m/s and
+	// can output the exact same value for several seconds then.
 
 	if (!_data_stuck_check_enabled) {
 		_data_stuck_test_failed = false;
@@ -208,7 +211,37 @@ AirspeedValidator::check_airspeed_data_stuck(uint64_t time_now)
 		_IAS_prev = _IAS;
 	}
 
-	_data_stuck_test_failed = hrt_elapsed_time(&_time_last_unequal_data) > DATA_STUCK_TIMEOUT;
+	_data_stuck_test_failed = hrt_elapsed_time(&_time_last_unequal_data) > DATA_STUCK_TIMEOUT && _in_fixed_wing_flight;
+}
+
+void
+AirspeedValidator::check_airspeed_data_variation(uint64_t time_now)
+{
+	// Data variation after boot test: trigger when IAS is not changing for within VARIATION_CHECK_TIMEOUT
+	// after the first data is received.
+
+	if (!_data_variation_check_enabled) {
+		_data_variation_test_failed = false;
+		return;
+	}
+
+	if (_time_first_data == 0) {
+		// init
+		_time_first_data = time_now;
+		_data_variation_check_ias_prev = _IAS;
+	}
+
+	if (!_variation_detected && (time_now - _time_first_data < VARIATION_CHECK_TIMEOUT)) {
+		if (fabsf(_IAS - _data_variation_check_ias_prev) > FLT_EPSILON) {
+			_variation_detected = true;
+		}
+
+		_data_variation_check_ias_prev = _IAS;
+
+	} else {
+		// only update the test_failed flag once the timeout since first data is over
+		_data_variation_test_failed = !_variation_detected;
+	}
 }
 
 void
@@ -289,12 +322,13 @@ AirspeedValidator::check_load_factor(float accel_z)
 void
 AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 {
-	if (_data_stuck_test_failed || _innovations_check_failed || _load_factor_check_failed) {
-		// at least one check (data stuck, innovation or load factor) failed, so record timestamp
+	if (_data_variation_test_failed || _data_stuck_test_failed || _innovations_check_failed || _load_factor_check_failed) {
+		// at least one check (variation, data stuck, innovation or load factor) failed, so record timestamp
 		_time_checks_failed = timestamp;
 
-	} else if (! _data_stuck_test_failed && !_innovations_check_failed && !_load_factor_check_failed) {
-		// all checks(data stuck, innovation and load factor) must pass to declare airspeed good
+	} else if (!_data_variation_test_failed && ! _data_stuck_test_failed && !_innovations_check_failed
+		   && !_load_factor_check_failed) {
+		// all checks(variation, data stuck, innovation and load factor) must pass to declare airspeed good
 		_time_checks_passed = timestamp;
 	}
 
@@ -307,13 +341,13 @@ AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 		// a timeout period is applied.
 		const bool single_check_fail_timeout = (timestamp - _time_checks_passed) > _checks_fail_delay * 1_s;
 
-		if (both_checks_failed || single_check_fail_timeout || _data_stuck_test_failed) {
+		if (both_checks_failed || single_check_fail_timeout || _data_variation_test_failed || _data_stuck_test_failed) {
 
 			_airspeed_valid = false;
 		}
 
 	} else if (_checks_clear_delay > 0.f && (timestamp - _time_checks_failed) > _checks_clear_delay * 1_s) {
-		// disable the re-enabling if the clear delay is negative
+		// re-enabling is only possible if the clear delay is positive
 		_airspeed_valid = true;
 	}
 }

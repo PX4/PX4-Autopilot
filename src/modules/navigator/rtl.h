@@ -159,7 +159,6 @@ private:
 	hrt_abstime _destination_check_time{0};
 
 	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
-	float _rtl_loiter_rad{50.0f};		// radius at which a fixed wing would loiter while descending
 
 	bool _rtl_alt_min{false};
 	bool _should_engange_mission_for_landing{false};

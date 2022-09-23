@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# Flywoo GNF405 specific board sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+mpu6000 -R 6 -s start
+
+# Start Baro
+bmp280 -X start
