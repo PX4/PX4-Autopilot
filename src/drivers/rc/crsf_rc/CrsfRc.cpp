@@ -32,11 +32,20 @@
  ****************************************************************************/
 
 #include "CrsfRc.hpp"
+#include "CrsfParser.hpp"
+#include "Crc8.hpp"
 
 #include <poll.h>
 #include <termios.h>
 
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_status.h>
+
 using namespace time_literals;
+
+#define CRSF_BAUDRATE 420000
 
 CrsfRc::CrsfRc(const char *device) :
 	ModuleParams(nullptr),
@@ -81,34 +90,27 @@ int CrsfRc::task_spawn(int argc, char *argv[])
 	}
 
 	if (error_flag) {
-		return -1;
+		return PX4_ERROR;
 	}
 
-	if (device_name && (access(device_name, R_OK | W_OK) == 0)) {
-		CrsfRc *instance = new CrsfRc(device_name);
-
-		if (instance == nullptr) {
-			PX4_ERR("alloc failed");
-			return PX4_ERROR;
-		}
-
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
-
-		instance->ScheduleNow();
-
-		return PX4_OK;
-
-	} else {
-		if (device_name) {
-			PX4_ERR("invalid device (-d) %s", device_name);
-
-		} else {
-			PX4_ERR("valid device required");
-		}
+	if (!device_name) {
+		PX4_ERR("Valid device required");
+		return PX4_ERROR;
 	}
 
-	return PX4_ERROR;
+	CrsfRc *instance = new CrsfRc(device_name);
+
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+		return PX4_ERROR;
+	}
+
+	_object.store(instance);
+	_task_id = task_id_is_work_queue;
+
+	instance->ScheduleNow();
+
+	return PX4_OK;
 }
 
 void CrsfRc::Run()
@@ -125,183 +127,359 @@ void CrsfRc::Run()
 		_rc_fd = ::open(_device, O_RDWR | O_NONBLOCK);
 
 		if (_rc_fd >= 0) {
-			// no parity, one stop bit
-			struct termios t {};
+			struct termios t;
+
 			tcgetattr(_rc_fd, &t);
 			cfsetspeed(&t, CRSF_BAUDRATE);
-			t.c_cflag &= ~(CSTOPB | PARENB);
+			t.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
+			t.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+			t.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
+			t.c_oflag = 0;
 			tcsetattr(_rc_fd, TCSANOW, &t);
+
+			if (board_rc_swap_rxtx(_device)) {
+#if defined(TIOCSSWAP)
+				ioctl(_rc_fd, TIOCSSWAP, SER_SWAP_ENABLED);
+#endif // TIOCSSWAP
+			}
+
+			if (board_rc_singlewire(_device)) {
+				_is_singlewire = true;
+#if defined(TIOCSSINGLEWIRE)
+				ioctl(_rc_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+#endif // TIOCSSINGLEWIRE
+			}
+
+			PX4_INFO("Crsf serial opened sucessfully");
+
+			if (_is_singlewire) {
+				PX4_INFO("Crsf serial is single wire. Telemetry disabled");
+			}
+
+			tcflush(_rc_fd, TCIOFLUSH);
+
+			Crc8Init(0xd5);
 		}
+
+		_input_rc.rssi_dbm = NAN;
+		_input_rc.link_quality = -1;
+
+		CrsfParser_Init();
+
+
 	}
 
-	// poll with 3 second timeout
+	// poll with 100mS timeout
 	pollfd fds[1];
 	fds[0].fd = _rc_fd;
 	fds[0].events = POLLIN;
-	int ret = ::poll(fds, 1, 3000);
+	int ret = ::poll(fds, 1, 100);
 
 	if (ret < 0) {
 		PX4_ERR("poll error");
 		// try again with delay
-		ScheduleDelayed(500_ms);
+		ScheduleDelayed(100_ms);
 		return;
 	}
 
 	const hrt_abstime time_now_us = hrt_absolute_time();
 	perf_count_interval(_cycle_interval_perf, time_now_us);
 
-	// read all available data from the serial RC input UART
+	// Read all available data from the serial RC input UART
 	int new_bytes = ::read(_rc_fd, &_rcs_buf[0], RC_MAX_BUFFER_SIZE);
 
 	if (new_bytes > 0) {
 		_bytes_rx += new_bytes;
 
-		// parse new data
-		uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
-		uint16_t raw_rc_count = 0;
-		bool rc_updated = crsf::crsf_parse(time_now_us, &_rcs_buf[0], new_bytes, &raw_rc_values[0], &raw_rc_count,
-						   input_rc_s::RC_INPUT_MAX_CHANNELS);
+		// Load new bytes into the CRSF parser buffer
+		CrsfParser_LoadBuffer(_rcs_buf, new_bytes);
 
-		if (rc_updated) {
-			if (!_rc_locked) {
-				_rc_locked = true;
-				PX4_INFO("RC input locked");
-			}
+		// Scan the parse buffer for messages, one at a time
+		CrsfPacket_t new_crsf_packet;
 
-			// we have a new CRSF frame. Publish it.
-			input_rc_s input_rc{};
-			input_rc.timestamp_last_signal = time_now_us;
-			input_rc.channel_count = math::max(raw_rc_count, (uint16_t)input_rc_s::RC_INPUT_MAX_CHANNELS);
-			input_rc.rssi = -1; // TODO
-			input_rc.rc_lost = (raw_rc_count == 0);
-			input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
+		while (CrsfParser_TryParseCrsfPacket(&new_crsf_packet, &_packet_parser_statistics)) {
+			switch (new_crsf_packet.message_type) {
+			case CRSF_MESSAGE_TYPE_RC_CHANNELS:
+				_input_rc.timestamp_last_signal = time_now_us;
+				_last_packet_seen = time_now_us;
 
-			for (int i = 0; i < input_rc.channel_count; i++) {
-				input_rc.values[i] = raw_rc_values[i];
-			}
-
-			input_rc.timestamp = hrt_absolute_time();
-			_input_rc_pub.publish(input_rc);
-			perf_count(_publish_interval_perf);
-			_rc_valid = input_rc.timestamp;
-
-			if (_param_rc_crsf_tel_en.get() && (input_rc.timestamp > _telemetry_update_last + 100_ms)) {
-				switch (_next_type) {
-				case 0:
-					battery_status_s battery_status;
-
-					if (_battery_status_sub.update(&battery_status)) {
-						uint16_t voltage = battery_status.voltage_filtered_v * 10;
-						uint16_t current = battery_status.current_filtered_a * 10;
-						int fuel = battery_status.discharged_mah;
-						uint8_t remaining = battery_status.remaining * 100;
-						crsf::crsf_send_telemetry_battery(_rc_fd, voltage, current, fuel, remaining);
-					}
-
-					break;
-
-				case 1:
-					sensor_gps_s vehicle_gps_position;
-
-					if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
-						int32_t latitude = vehicle_gps_position.lat;
-						int32_t longitude = vehicle_gps_position.lon;
-						uint16_t groundspeed = vehicle_gps_position.vel_d_m_s / 3.6f * 10.f;
-						uint16_t gps_heading = math::degrees(vehicle_gps_position.cog_rad) * 100.f;
-						uint16_t altitude = vehicle_gps_position.alt + 1000;
-						uint8_t num_satellites = vehicle_gps_position.satellites_used;
-						crsf::crsf_send_telemetry_gps(_rc_fd, latitude, longitude, groundspeed, gps_heading, altitude, num_satellites);
-					}
-
-					break;
-
-				case 2:
-					vehicle_attitude_s vehicle_attitude;
-
-					if (_vehicle_attitude_sub.update(&vehicle_attitude)) {
-						matrix::Eulerf attitude = matrix::Quatf(vehicle_attitude.q);
-						int16_t pitch = attitude(1) * 1e4f;
-						int16_t roll = attitude(0) * 1e4f;
-						int16_t yaw = attitude(2) * 1e4f;
-						crsf::crsf_send_telemetry_attitude(_rc_fd, pitch, roll, yaw);
-					}
-
-					break;
-
-				case 3:
-					vehicle_status_s vehicle_status;
-
-					if (_vehicle_status_sub.update(&vehicle_status)) {
-						const char *flight_mode = "(unknown)";
-
-						switch (vehicle_status.nav_state) {
-						case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-							flight_mode = "Manual";
-							break;
-
-						case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-							flight_mode = "Altitude";
-							break;
-
-						case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-							flight_mode = "Position";
-							break;
-
-						case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-							flight_mode = "Return";
-							break;
-
-						case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-							flight_mode = "Mission";
-							break;
-
-						case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-						case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-						case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-						case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
-						case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-						case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
-							flight_mode = "Auto";
-							break;
-
-						case vehicle_status_s::NAVIGATION_STATE_ACRO:
-							flight_mode = "Acro";
-							break;
-
-						case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
-							flight_mode = "Terminate";
-							break;
-
-						case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-							flight_mode = "Offboard";
-							break;
-
-						case vehicle_status_s::NAVIGATION_STATE_STAB:
-							flight_mode = "Stabilized";
-							break;
-						}
-
-						crsf::crsf_send_telemetry_flight_mode(_rc_fd, flight_mode);
-					}
-
-					break;
+				for (int i = 0; i < CRSF_CHANNEL_COUNT; i++) {
+					_input_rc.values[i] = new_crsf_packet.channel_data.channels[i];
 				}
 
-				_telemetry_update_last = input_rc.timestamp;
-				_next_type = (_next_type + 1) % num_data_types;
+				break;
+
+			case CRSF_MESSAGE_TYPE_LINK_STATISTICS:
+				_last_packet_seen = time_now_us;
+				_input_rc.rssi_dbm = -(float)new_crsf_packet.link_statistics.uplink_rssi_1;
+				_input_rc.link_quality = new_crsf_packet.link_statistics.uplink_link_quality;
+				break;
+
+			default:
+				break;
 			}
+		}
+
+		if (_param_rc_crsf_tel_en.get() && !_is_singlewire
+		    && (_input_rc.timestamp > _telemetry_update_last + 100_ms)) {
+			switch (_next_type) {
+			case 0:
+				battery_status_s battery_status;
+
+				if (_battery_status_sub.update(&battery_status)) {
+					uint16_t voltage = battery_status.voltage_filtered_v * 10;
+					uint16_t current = battery_status.current_filtered_a * 10;
+					int fuel = battery_status.discharged_mah;
+					uint8_t remaining = battery_status.remaining * 100;
+					this->SendTelemetryBattery(voltage, current, fuel, remaining);
+				}
+
+				break;
+
+			case 1:
+				sensor_gps_s sensor_gps;
+
+				if (_vehicle_gps_position_sub.update(&sensor_gps)) {
+					int32_t latitude = sensor_gps.lat;
+					int32_t longitude = sensor_gps.lon;
+					uint16_t groundspeed = sensor_gps.vel_d_m_s / 3.6f * 10.f;
+					uint16_t gps_heading = math::degrees(sensor_gps.cog_rad) * 100.f;
+					uint16_t altitude = sensor_gps.alt + 1000;
+					uint8_t num_satellites = sensor_gps.satellites_used;
+					this->SendTelemetryGps(latitude, longitude, groundspeed, gps_heading, altitude, num_satellites);
+				}
+
+				break;
+
+			case 2:
+				vehicle_attitude_s vehicle_attitude;
+
+				if (_vehicle_attitude_sub.update(&vehicle_attitude)) {
+					matrix::Eulerf attitude = matrix::Quatf(vehicle_attitude.q);
+					int16_t pitch = attitude(1) * 1e4f;
+					int16_t roll = attitude(0) * 1e4f;
+					int16_t yaw = attitude(2) * 1e4f;
+					this->SendTelemetryAttitude(pitch, roll, yaw);
+				}
+
+				break;
+
+			case 3:
+				vehicle_status_s vehicle_status;
+
+				if (_vehicle_status_sub.update(&vehicle_status)) {
+					const char *flight_mode = "(unknown)";
+
+					switch (vehicle_status.nav_state) {
+					case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+						flight_mode = "Manual";
+						break;
+
+					case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+						flight_mode = "Altitude";
+						break;
+
+					case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+						flight_mode = "Position";
+						break;
+
+					case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+						flight_mode = "Return";
+						break;
+
+					case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
+						flight_mode = "Mission";
+						break;
+
+					case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+					case vehicle_status_s::NAVIGATION_STATE_DESCEND:
+					case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
+					case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
+					case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
+					case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
+						flight_mode = "Auto";
+						break;
+
+					/*case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
+						flight_mode = "Failure";
+						break;*/
+
+					case vehicle_status_s::NAVIGATION_STATE_ACRO:
+						flight_mode = "Acro";
+						break;
+
+					case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
+						flight_mode = "Terminate";
+						break;
+
+					case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
+						flight_mode = "Offboard";
+						break;
+
+					case vehicle_status_s::NAVIGATION_STATE_STAB:
+						flight_mode = "Stabilized";
+						break;
+
+					default:
+						flight_mode = "Unknown";
+					}
+
+					this->SendTelemetryFlightMode(flight_mode);
+				}
+
+				break;
+			}
+
+			_telemetry_update_last = _input_rc.timestamp;
+			_next_type = (_next_type + 1) % num_data_types;
 		}
 	}
 
-	if (!_rc_locked && (hrt_elapsed_time(&_rc_valid) > 5_s)) {
-		::close(_rc_fd);
-		_rc_fd = -1;
-		_rc_locked = false;
-		ScheduleDelayed(200_ms);
+	// If no communication
+	if (time_now_us - _last_packet_seen > 100_ms) {
+		// Invalidate link statistics
+		_input_rc.rssi_dbm = NAN;
+		_input_rc.link_quality = -1;
+	}
+
+	// If we have not gotten RC updates specifically
+	if (time_now_us - _input_rc.timestamp_last_signal > 50_ms) {
+		_input_rc.rc_lost = 1;
+		_input_rc.rc_failsafe = 1;
 
 	} else {
-		ScheduleDelayed(4_ms);
+		_input_rc.rc_lost = 0;
+		_input_rc.rc_failsafe = 0;
 	}
+
+	_input_rc.channel_count = CRSF_CHANNEL_COUNT;
+	_input_rc.rssi = -1;
+	_input_rc.rc_ppm_frame_length = 0;
+	_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
+	_input_rc.timestamp = hrt_absolute_time();
+	_input_rc_pub.publish(_input_rc);
+
+	perf_count(_publish_interval_perf);
+
+	ScheduleDelayed(4_ms);
+}
+
+/**
+ * write an uint8_t value to a buffer at a given offset and increment the offset
+ */
+static inline void write_uint8_t(uint8_t *buf, int &offset, uint8_t value)
+{
+	buf[offset++] = value;
+}
+
+/**
+ * write an uint16_t value to a buffer at a given offset and increment the offset
+ */
+static inline void write_uint16_t(uint8_t *buf, int &offset, uint16_t value)
+{
+	// Big endian
+	buf[offset] = value >> 8;
+	buf[offset + 1] = value & 0xff;
+	offset += 2;
+}
+
+/**
+ * write an uint24_t value to a buffer at a given offset and increment the offset
+ */
+static inline void write_uint24_t(uint8_t *buf, int &offset, int value)
+{
+	// Big endian
+	buf[offset] = value >> 16;
+	buf[offset + 1] = (value >> 8) & 0xff;
+	buf[offset + 2] = value & 0xff;
+	offset += 3;
+}
+
+/**
+ * write an int32_t value to a buffer at a given offset and increment the offset
+ */
+static inline void write_int32_t(uint8_t *buf, int &offset, int32_t value)
+{
+	// Big endian
+	buf[offset] = value >> 24;
+	buf[offset + 1] = (value >> 16) & 0xff;
+	buf[offset + 2] = (value >> 8) & 0xff;
+	buf[offset + 3] = value & 0xff;
+	offset += 4;
+}
+
+void CrsfRc::WriteFrameHeader(uint8_t *buf, int &offset, const crsf_frame_type_t type, const uint8_t payload_size)
+{
+	write_uint8_t(buf, offset, 0xc8); // this got changed from the address to the sync byte
+	write_uint8_t(buf, offset, payload_size + 2);
+	write_uint8_t(buf, offset, (uint8_t)type);
+}
+
+void CrsfRc::WriteFrameCrc(uint8_t *buf, int &offset, const int buf_size)
+{
+	// CRC does not include the address and length
+	write_uint8_t(buf, offset, Crc8Calc(buf + 2, buf_size - 3));
+}
+
+bool CrsfRc::SendTelemetryBattery(const uint16_t voltage, const uint16_t current, const int fuel,
+				  const uint8_t remaining)
+{
+	uint8_t buf[(uint8_t)crsf_payload_size_t::battery_sensor + 4];
+	int offset = 0;
+	WriteFrameHeader(buf, offset, crsf_frame_type_t::battery_sensor, (uint8_t)crsf_payload_size_t::battery_sensor);
+	write_uint16_t(buf, offset, voltage);
+	write_uint16_t(buf, offset, current);
+	write_uint24_t(buf, offset, fuel);
+	write_uint8_t(buf, offset, remaining);
+	WriteFrameCrc(buf, offset, sizeof(buf));
+	return write(_rc_fd, buf, offset) == offset;
+}
+
+bool CrsfRc::SendTelemetryGps(const int32_t latitude, const int32_t longitude, const uint16_t groundspeed,
+			      const uint16_t gps_heading, const uint16_t altitude, const uint8_t num_satellites)
+{
+	uint8_t buf[(uint8_t)crsf_payload_size_t::gps + 4];
+	int offset = 0;
+	WriteFrameHeader(buf, offset, crsf_frame_type_t::gps, (uint8_t)crsf_payload_size_t::gps);
+	write_int32_t(buf, offset, latitude);
+	write_int32_t(buf, offset, longitude);
+	write_uint16_t(buf, offset, groundspeed);
+	write_uint16_t(buf, offset, gps_heading);
+	write_uint16_t(buf, offset, altitude);
+	write_uint8_t(buf, offset, num_satellites);
+	WriteFrameCrc(buf, offset, sizeof(buf));
+	return write(_rc_fd, buf, offset) == offset;
+}
+
+bool CrsfRc::SendTelemetryAttitude(const int16_t pitch, const int16_t roll, const int16_t yaw)
+{
+	uint8_t buf[(uint8_t)crsf_payload_size_t::attitude + 4];
+	int offset = 0;
+	WriteFrameHeader(buf, offset, crsf_frame_type_t::attitude, (uint8_t)crsf_payload_size_t::attitude);
+	write_uint16_t(buf, offset, pitch);
+	write_uint16_t(buf, offset, roll);
+	write_uint16_t(buf, offset, yaw);
+	WriteFrameCrc(buf, offset, sizeof(buf));
+	return write(_rc_fd, buf, offset) == offset;
+}
+
+bool CrsfRc::SendTelemetryFlightMode(const char *flight_mode)
+{
+	const int max_length = 16;
+	int length = strlen(flight_mode) + 1;
+
+	if (length > max_length) {
+		length = max_length;
+	}
+
+	uint8_t buf[max_length + 4];
+	int offset = 0;
+	WriteFrameHeader(buf, offset, crsf_frame_type_t::flight_mode, length);
+	memcpy(buf + offset, flight_mode, length);
+	offset += length;
+	buf[offset - 1] = 0; // ensure null-terminated string
+	WriteFrameCrc(buf, offset, length + 4);
+	return write(_rc_fd, buf, offset) == offset;
 }
 
 int CrsfRc::print_status()
@@ -311,14 +489,21 @@ int CrsfRc::print_status()
 		PX4_INFO("UART RX bytes: %"  PRIu32, _bytes_rx);
 	}
 
-	PX4_INFO("RC state: %s", _rc_locked ? "found" : "searching for signal");
+	if (_is_singlewire) {
+		PX4_INFO("Telemetry disabled: Singlewire RC port");
 
-	if (_rc_locked) {
+	} else {
 		PX4_INFO("Telemetry: %s", _param_rc_crsf_tel_en.get() ? "yes" : "no");
 	}
 
 	perf_print_counter(_cycle_interval_perf);
 	perf_print_counter(_publish_interval_perf);
+
+	PX4_INFO("Disposed bytes: %li",  _packet_parser_statistics.disposed_bytes);
+	PX4_INFO("Valid known packet CRCs: %li",  _packet_parser_statistics.crcs_valid_known_packets);
+	PX4_INFO("Valid unknown packet CRCs: %li",  _packet_parser_statistics.crcs_valid_unknown_packets);
+	PX4_INFO("Invalid CRCs: %li",  _packet_parser_statistics.crcs_invalid);
+	PX4_INFO("Invalid known packet sizes: %li",  _packet_parser_statistics.invalid_known_packet_sizes);
 
 	return 0;
 }
@@ -337,7 +522,7 @@ int CrsfRc::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-This module does the CRSF RC input parsing.
+This module parses the CRSF RC uplink protocol and generates CRSF downlink telemetry data
 
 )DESCR_STR");
 
