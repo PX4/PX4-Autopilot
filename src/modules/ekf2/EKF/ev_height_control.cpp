@@ -50,17 +50,24 @@ void Ekf::controlEvHeightFusion()
 	const bool ev_intermittent = !isNewestSampleRecent(_time_last_ext_vision_buffer_push, 2 * EV_MAX_INTERVAL);
 
 	if (_ev_data_ready) {
-		const bool continuing_conditions_passing = !ev_intermittent;
+		const bool position_valid = PX4_ISFINITE(_ev_sample_delayed.pos(2));
+		const bool continuing_conditions_passing = !ev_intermittent && position_valid;
 		const bool starting_conditions_passing = continuing_conditions_passing;
 
 		if (_control_status.flags.ev_hgt) {
 			if (continuing_conditions_passing) {
 				fuseEvHgt();
 
-				if (isHeightResetRequired()) {
-					// All height sources are failing
+				const bool reset = (_ev_sample_delayed.reset_counter != _ev_sample_delayed_prev.reset_counter);
+				if (isHeightResetRequired() || reset ) {
 					resetHeightToEv();
-					resetVerticalVelocityToZero();
+
+					// If the sample has a valid vertical velocity estimate, use it
+					if (PX4_ISFINITE(_ev_sample_delayed.vel(2))) {
+						resetVerticalVelocityToEv(_ev_sample_delayed);
+					} else {
+						resetVerticalVelocityToZero();
+					}
 				}
 
 			} else {

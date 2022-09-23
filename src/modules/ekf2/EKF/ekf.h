@@ -712,6 +712,7 @@ private:
 	void resetHeightToEv();
 
 	void resetVerticalVelocityToGps(const gpsSample &gps_sample);
+	void resetVerticalVelocityToEv(const extVisionSample &ev_sample);
 	void resetVerticalVelocityToZero();
 
 	// fuse optical flow line of sight rate measurements
