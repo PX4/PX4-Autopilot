@@ -101,6 +101,14 @@ endif()
 if("${PX4_BOARD}" MATCHES "beaglebone_blue")
 	target_link_libraries(px4 PRIVATE robotics_cape)
 
+elseif("${PX4_BOARD}" MATCHES "modalai_voxl2")
+	# libfc_sensor.so is provided in the Docker build environment
+	target_link_libraries(px4 PRIVATE
+			/home/libfc_sensor.so
+			px4_layer
+			${module_libraries}
+	)
+
 elseif("${PX4_BOARD}" MATCHES "emlid_navio2")
 	target_link_libraries(px4 PRIVATE atomic)
 

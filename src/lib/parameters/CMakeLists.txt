@@ -82,6 +82,7 @@ endif()
 if(CONFIG_BOARD_IO)
 	set(board_with_io_arg --board-with-io)
 endif()
+
 add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_params_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
