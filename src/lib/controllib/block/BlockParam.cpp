@@ -39,9 +39,12 @@
 
 #include "BlockParam.hpp"
 
+#include <cstdio>
 #include <cstring>
 
 #include <containers/List.hpp>
+
+#include <px4_platform_common/log.h>
 
 namespace control
 {

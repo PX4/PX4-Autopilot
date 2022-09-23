@@ -36,6 +36,7 @@
  * Tests for the data manager.
  */
 
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/posix.h>
 

@@ -33,6 +33,8 @@
 
 #include <nuttx/config.h>
 
+#include <stdbool.h>
+
 #include <px4_platform/board_ctrl.h>
 
 #include <sys/boardctl.h>

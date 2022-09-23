@@ -42,6 +42,7 @@
 #define PARAM_IMPLEMENTATION
 #include "param.h"
 #include <px4_platform/board_ctrl.h>
+#include <px4_platform_common/defines.h>
 
 #define _PARAMIOC(_n) (_PX4_IOC(_PARAMIOCBASE, _n))
 
