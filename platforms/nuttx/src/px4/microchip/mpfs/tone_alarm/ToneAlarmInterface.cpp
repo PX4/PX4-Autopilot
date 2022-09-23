@@ -38,6 +38,7 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_tone_alarm.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
 #include <systemlib/px4_macros.h>
 #include <nuttx/timers/pwm.h>
 
