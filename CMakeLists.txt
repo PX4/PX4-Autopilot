@@ -191,6 +191,13 @@ if(${PX4_PLATFORM} STREQUAL "posix")
 	endif()
 endif()
 
+
+option(PX4_EXPORT_RESTRICTION_BUILD "Enable export compliant build of PX4. This adds some flight time and wind restrictions." OFF)
+if(PX4_EXPORT_RESTRICTION_BUILD)
+	add_definitions(-DPX4_EXPORT_RESTRICTION_BUILD)
+	message(STATUS "Enabling export compliant build")
+endif()
+
 # external modules
 set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location")
 
