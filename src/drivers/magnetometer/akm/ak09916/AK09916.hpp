@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -64,19 +64,6 @@ public:
 	void print_status() override;
 
 private:
-
-	struct TransferBuffer {
-		uint8_t ST1;
-		uint8_t HXL;
-		uint8_t HXH;
-		uint8_t HYL;
-		uint8_t HYH;
-		uint8_t HZL;
-		uint8_t HZH;
-		uint8_t TMPS;
-		uint8_t ST2;
-	};
-
 	struct register_config_t {
 		Register reg;
 		uint8_t set_bits{0};
@@ -98,14 +85,13 @@ private:
 	PX4Magnetometer _px4_mag;
 
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
-	perf_counter_t _transfer_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": transfer")};
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _magnetic_sensor_overflow_perf{perf_alloc(PC_COUNT, MODULE_NAME": magnetic sensor overflow")};
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
-	unsigned _consecutive_failures{0};
+	int _failure_count{0};
 
 	enum class STATE : uint8_t {
 		RESET,
@@ -118,6 +104,6 @@ private:
 	static constexpr uint8_t size_register_cfg{1};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register          | Set bits, Clear bits
-		{ Register::CNTL2,   CNTL2_BIT::MODE3, 0 },
+		{ Register::CNTL2,   CNTL2_BIT::MODE3_SET, CNTL2_BIT::MODE3_CLEAR },
 	};
 };
