@@ -1144,6 +1144,9 @@ int PX4IO::io_publish_raw_rc()
 
 	if (input_rc.input_source != input_rc_s::RC_INPUT_SOURCE_UNKNOWN) {
 
+		input_rc.link_quality = -1;
+		input_rc.rssi_dbm = NAN;
+
 		_to_input_rc.publish(input_rc);
 	}
 

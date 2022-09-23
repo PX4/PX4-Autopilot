@@ -753,6 +753,9 @@ void RCInput::Run()
 		if (rc_updated) {
 			perf_count(_publish_interval_perf);
 
+			_rc_in.link_quality = -1;
+			_rc_in.rssi_dbm = NAN;
+
 			_to_input_rc.publish(_rc_in);
 
 		} else if (!rc_updated && !_armed && (hrt_elapsed_time(&_rc_in.timestamp_last_signal) > 1_s)) {

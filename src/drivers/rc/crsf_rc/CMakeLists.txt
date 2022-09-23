@@ -35,10 +35,14 @@ px4_add_module(
 	MAIN crsf_rc
 	COMPILE_FLAGS
 	SRCS
-		crsf.cpp
-		crsf.h
 		CrsfRc.cpp
 		CrsfRc.hpp
+		QueueBuffer.cpp
+		QueueBuffer.hpp
+		CrsfParser.cpp
+		CrsfParser.hpp
+		Crc8.hpp
+		Crc8.cpp
 
 	MODULE_CONFIG
 		module.yaml
