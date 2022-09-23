@@ -74,7 +74,7 @@ then
 else
 	#FMUv5Xbase board orientation
 
-	if ver hwtypecmp V5X00 V5X01
+	if ver hwtypecmp V5X00 V5X01 V5X51
 	then
 		# Internal SPI BMI088
 		bmi088 -A -R 4 -s start
