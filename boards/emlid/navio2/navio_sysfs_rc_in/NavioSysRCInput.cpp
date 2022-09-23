@@ -152,6 +152,9 @@ void NavioSysRCInput::Run()
 	data.timestamp_last_signal = timestamp_sample;
 	data.channel_count = CHANNELS;
 	data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
+	data.link_quality = -1;
+	data.rssi_dbm = NAN;
+
 	data.timestamp = hrt_absolute_time();
 
 	_input_rc_pub.publish(data);

@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "crsf.h" // old parser TODO:
+#include "CrsfParser.hpp"
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
@@ -74,17 +74,30 @@ public:
 private:
 	void Run() override;
 
-	hrt_abstime _rc_valid{0};
-	bool _rc_locked{false};
-
 	uORB::PublicationMulti<input_rc_s> _input_rc_pub{ORB_ID(input_rc)};
+
+	input_rc_s _input_rc{};
+
+	bool SendTelemetryBattery(const uint16_t voltage, const uint16_t current, const int fuel, const uint8_t remaining);
+
+	bool SendTelemetryGps(const int32_t latitude, const int32_t longitude, const uint16_t groundspeed,
+			      const uint16_t gps_heading, const uint16_t altitude, const uint8_t num_satellites);
+
+	bool SendTelemetryAttitude(const int16_t pitch, const int16_t roll, const int16_t yaw);
+
+	bool SendTelemetryFlightMode(const char *flight_mode);
 
 	int _rc_fd{-1};
 	char _device[20] {}; ///< device / serial port path
+	bool _is_singlewire{false};
 
 	static constexpr size_t RC_MAX_BUFFER_SIZE{64};
 	uint8_t _rcs_buf[RC_MAX_BUFFER_SIZE] {};
 	uint32_t _bytes_rx{0};
+
+	hrt_abstime _last_packet_seen{0};
+
+	CrsfParserStatistics_t _packet_parser_statistics{0};
 
 	// telemetry
 	hrt_abstime _telemetry_update_last{0};
@@ -94,6 +107,34 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+
+	enum class crsf_frame_type_t : uint8_t {
+		gps = 0x02,
+		battery_sensor = 0x08,
+		link_statistics = 0x14,
+		rc_channels_packed = 0x16,
+		attitude = 0x1E,
+		flight_mode = 0x21,
+
+		// Extended Header Frames, range: 0x28 to 0x96
+		device_ping = 0x28,
+		device_info = 0x29,
+		parameter_settings_entry = 0x2B,
+		parameter_read = 0x2C,
+		parameter_write = 0x2D,
+		command = 0x32
+	};
+
+	enum class crsf_payload_size_t : uint8_t {
+		gps = 15,
+		battery_sensor = 8,
+		link_statistics = 10,
+		rc_channels = 22, ///< 11 bits per channel * 16 channels = 22 bytes.
+		attitude = 6,
+	};
+
+	void WriteFrameHeader(uint8_t *buf, int &offset, const crsf_frame_type_t type, const uint8_t payload_size);
+	void WriteFrameCrc(uint8_t *buf, int &offset, const int buf_size);
 
 	perf_counter_t	_cycle_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 	perf_counter_t	_publish_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": publish interval")};

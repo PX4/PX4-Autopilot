@@ -2126,6 +2126,9 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 		}
 	}
 
+	rc.link_quality = -1;
+	rc.rssi_dbm = NAN;
+
 	// publish uORB message
 	_rc_pub.publish(rc);
 }

@@ -548,6 +548,9 @@ Syslink::handle_raw(syslink_message_t *sys)
 		rc.values[3] = cmd->thrust * 1000 / USHRT_MAX + 1000;
 		rc.values[4] = 1000; // Dummy channel as px4 needs at least 5
 
+		rc.link_quality = -1;
+		rc.rssi_dbm = NAN;
+
 		_rc_pub.publish(rc);
 
 	} else if (c->port == CRTP_PORT_MAVLINK) {

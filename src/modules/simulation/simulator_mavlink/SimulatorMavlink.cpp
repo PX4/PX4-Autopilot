@@ -913,6 +913,9 @@ void SimulatorMavlink::handle_message_rc_channels(const mavlink_message_t *msg)
 	rc_input.values[16] = rc_channels.chan17_raw;
 	rc_input.values[17] = rc_channels.chan18_raw;
 
+	rc_input.link_quality = -1;
+	rc_input.rssi_dbm = NAN;
+
 	rc_input.timestamp = hrt_absolute_time();
 
 	// publish message
