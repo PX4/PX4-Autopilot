@@ -33,7 +33,8 @@ excluded_platforms = ['qurt']
 excluded_labels = [
     'stackcheck',
     'nolockstep', 'replay', 'test',
-    'uavcanv1' # TODO: fix and enable
+    'uavcanv1', # TODO: fix and enable
+    'voxl2' # TODO: fix and enable
     ]
 
 def process_target(px4board_file, target_name):
