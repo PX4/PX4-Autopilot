@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2018 PX4 Development Team. All rights reserved.
+# Copyright (c) 2022 ModalAI, Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,28 +30,25 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-include(px4_list_make_absolute)
-
-#=============================================================================
 #
-#	px4_add_library
+# Overview:
+# Voxl2 PX4 is built in 2 parts, the part that runs on the
+# application (apps) processor, and the library that is loaded on the DSP.
 #
-#	Like add_library but with PX4 platform dependencies
-#
-function(px4_add_library target)
-	add_library(${target} EXCLUDE_FROM_ALL ${ARGN})
+############################################################################
 
-	target_compile_definitions(${target} PRIVATE MODULE_NAME="${target}")
+include(px4_git)
 
-	# all PX4 libraries have access to parameters and uORB
-	# TODO: Exclusion of qurt is temporary until these modules
-	#       build cleanly.
-	if(NOT ${PLATFORM} MATCHES "qurt")
-		add_dependencies(${target} uorb_headers parameters)
-	endif()
-	target_link_libraries(${target} PRIVATE prebuild_targets)
+list(APPEND CMAKE_MODULE_PATH
+	"${PX4_SOURCE_DIR}/platforms/posix/cmake"
+)
 
-	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
-	px4_list_make_absolute(ABS_SRCS ${CMAKE_CURRENT_SOURCE_DIR} ${ARGN})
-	set_property(GLOBAL APPEND PROPERTY PX4_SRC_FILES ${ABS_SRCS})
-endfunction()
+# set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
+
+add_definitions(-DORB_COMMUNICATOR)
+
+set(CONFIG_PARAM_SERVER "1")
+
+add_definitions( -D__PX4_LINUX )
+
+include(CMakeParseArguments)
