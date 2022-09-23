@@ -43,6 +43,7 @@
 #define EKF_ESTIMATOR_INTERFACE_H
 
 #if defined(MODULE_NAME)
+#include <px4_platform_common/log.h>
 # define ECL_INFO PX4_DEBUG
 # define ECL_WARN PX4_DEBUG
 # define ECL_ERR  PX4_DEBUG

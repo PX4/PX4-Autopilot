@@ -40,9 +40,12 @@
 #ifndef _DEVICE_DEVICE_HPP
 #define _DEVICE_DEVICE_HPP
 
+#include <cstdio>
+
 /*
  * Includes here should only cover the needs of the framework definitions.
  */
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/posix.h>
 

@@ -43,6 +43,7 @@
  */
 
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/shutdown.h>
 

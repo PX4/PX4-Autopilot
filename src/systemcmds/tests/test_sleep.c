@@ -36,6 +36,8 @@
  * Tests the px4_usleep() method.
  */
 
+#include <drivers/drv_hrt.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>

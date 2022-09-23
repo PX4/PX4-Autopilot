@@ -34,6 +34,7 @@
 #include "input_test.h"
 
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/log.h>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/mathlib/mathlib.h>
 

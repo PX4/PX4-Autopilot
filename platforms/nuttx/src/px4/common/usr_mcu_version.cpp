@@ -38,6 +38,7 @@
  */
 
 #include <systemlib/px4_macros.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform/board_determine_hw_info.h>
