@@ -38,6 +38,9 @@
  */
 
 #define PARAM_IMPLEMENTATION
+
+#include <errno.h>
+
 #include "param.h"
 #include "parameters_ioctl.h"
 #include <px4_platform_common/defines.h>

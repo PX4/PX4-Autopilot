@@ -40,6 +40,7 @@
 #include <containers/List.hpp>
 #include <lib/conversion/rotation.h>
 #include <px4_platform_common/atomic.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/sem.h>
 

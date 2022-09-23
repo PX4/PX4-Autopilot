@@ -48,6 +48,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <drivers/drv_hrt.h>
+
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
 

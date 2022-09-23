@@ -44,6 +44,7 @@
 #include <systemlib/px4_macros.h> // arraySize
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
 
 #ifndef B250000
 #define B250000 250000

@@ -42,6 +42,7 @@
 #pragma once
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
 
 #include <lib/parameters/param.h>
 #include <containers/List.hpp>

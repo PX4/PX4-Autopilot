@@ -33,6 +33,7 @@
 
 #if defined(PX4_CRYPTO)
 
+#include <px4_platform/board_ctrl.h>
 #include <px4_platform_common/crypto.h>
 #include <px4_platform_common/crypto_backend.h>
 #include <sys/boardctl.h>

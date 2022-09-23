@@ -40,6 +40,8 @@
 
 #include "mavlink_shell.h"
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/posix.h>
 
 #include <unistd.h>
 #include <errno.h>

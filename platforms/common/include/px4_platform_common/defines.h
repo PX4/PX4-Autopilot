@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <px4_platform_common/log.h>
+#include <sys/ioctl.h>
 
 /****************************************************************************
  * Defines for all platforms.
