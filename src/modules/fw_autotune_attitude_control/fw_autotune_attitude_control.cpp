@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,6 +65,11 @@ bool FwAutotuneAttitudeControl::init()
 
 	_signal_filter.setParameters(_publishing_dt_s, .2f); // runs in the slow publishing loop
 
+	if (!_actuator_controls_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
+	}
+
 	return true;
 }
 
@@ -92,9 +97,12 @@ void FwAutotuneAttitudeControl::Run()
 		updateStateMachine(hrt_absolute_time());
 	}
 
+	_aux_switch_en = isAuxEnableSwitchEnabled();
+
 	// new control data needed every iteration
-	if (_state == state::idle
+	if ((_state == state::idle && !_aux_switch_en)
 	    || !_actuator_controls_sub.updated()) {
+
 		return;
 	}
 
@@ -103,6 +111,7 @@ void FwAutotuneAttitudeControl::Run()
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
 			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			_nav_state = vehicle_status.nav_state;
 		}
 	}
 
@@ -230,6 +239,48 @@ void FwAutotuneAttitudeControl::checkFilters()
 	}
 }
 
+bool FwAutotuneAttitudeControl::isAuxEnableSwitchEnabled()
+{
+	manual_control_setpoint_s manual_control_setpoint{};
+	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+
+	float aux_enable_channel = 0;
+
+	switch (_param_fw_at_man_aux.get()) {
+	case 0:
+		return false;
+
+	case 1:
+		aux_enable_channel = manual_control_setpoint.aux1;
+		break;
+
+	case 2:
+		aux_enable_channel = manual_control_setpoint.aux2;
+		break;
+
+	case 3:
+		aux_enable_channel = manual_control_setpoint.aux3;
+		break;
+
+	case 4:
+		aux_enable_channel = manual_control_setpoint.aux4;
+		break;
+
+	case 5:
+		aux_enable_channel = manual_control_setpoint.aux5;
+		break;
+
+	case 6:
+		aux_enable_channel = manual_control_setpoint.aux6;
+		break;
+
+	default:
+		return false;
+	}
+
+	return aux_enable_channel > .5f;
+}
+
 void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 {
 	// when identifying an axis, check if the estimate has converged
@@ -240,15 +291,12 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	switch (_state) {
 	case state::idle:
-		if (_param_fw_at_start.get()) {
-			if (registerActuatorControlsCallback()) {
-				_state = state::init;
+		if (_param_fw_at_start.get() || _aux_switch_en) {
 
-			} else {
-				_state = state::fail;
-			}
-
+			mavlink_log_info(&_mavlink_log_pub, "Autotune started");
+			_state = state::init;
 			_state_start_time = now;
+			_start_flight_mode = _nav_state;
 		}
 
 		break;
@@ -361,19 +409,22 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		_state_start_time = now;
 		break;
 
-	case state::apply:
-		if ((_param_fw_at_apply.get() == 1)) {
-			_state = state::wait_for_disarm;
+	case state::apply: {
+			mavlink_log_info(&_mavlink_log_pub, "Autotune finished successfully");
 
-		} else if (_param_fw_at_apply.get() == 2) {
-			backupAndSaveGainsToParams();
-			_state = state::test;
+			if ((_param_fw_at_apply.get() == 1)) {
+				_state = state::wait_for_disarm;
 
-		} else {
-			_state = state::complete;
+			} else if (_param_fw_at_apply.get() == 2) {
+				backupAndSaveGainsToParams();
+				_state = state::test;
+
+			} else {
+				_state = state::complete;
+			}
+
+			_state_start_time = now;
 		}
-
-		_state_start_time = now;
 
 		break;
 
@@ -409,36 +460,34 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		// Wait a bit in that state to make sure
 		// the other components are aware of the final result
 		if ((now - _state_start_time) > 2_s) {
+
+			// Don't reset until aux switch is back to disabled
+			if (_param_fw_at_man_aux.get() && _aux_switch_en) {
+				break;
+			}
+
+			orb_advert_t mavlink_log_pub = nullptr;
+			mavlink_log_info(&mavlink_log_pub, "Autotune returned to idle");
 			_state = state::idle;
-			stopAutotune();
+			_param_fw_at_start.set(false);
+			_param_fw_at_start.commit();
 		}
 
 		break;
 	}
 
-	// In case of convergence timeout or pilot intervention,
+	// In case of convergence timeout
 	// the identification sequence is aborted immediately
-	manual_control_setpoint_s manual_control_setpoint{};
-	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
-
-	if (_state != state::wait_for_disarm
-	    && _state != state::idle
-	    && (((now - _state_start_time) > 20_s)
-		|| (fabsf(manual_control_setpoint.x) > 0.2f)
-		|| (fabsf(manual_control_setpoint.y) > 0.2f))) {
-		_state = state::fail;
-		_state_start_time = now;
+	if (_state != state::wait_for_disarm && _state != state::idle && _state != state::fail && _state != state::complete) {
+		if (now - _state_start_time > 20_s
+		    || (_param_fw_at_man_aux.get() && !_aux_switch_en)
+		    || _start_flight_mode != _nav_state) {
+			orb_advert_t mavlink_log_pub = nullptr;
+			mavlink_log_critical(&mavlink_log_pub, "Autotune aborted before finishing");
+			_state = state::fail;
+			_state_start_time = now;
+		}
 	}
-}
-
-bool FwAutotuneAttitudeControl::registerActuatorControlsCallback()
-{
-	if (!_actuator_controls_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
-		return false;
-	}
-
-	return true;
 }
 
 void FwAutotuneAttitudeControl::copyGains(int index)
@@ -562,13 +611,6 @@ void FwAutotuneAttitudeControl::saveGainsToParams()
 		_param_fw_yr_i.commit_no_notification();
 		_param_fw_yr_ff.commit();
 	}
-}
-
-void FwAutotuneAttitudeControl::stopAutotune()
-{
-	_param_fw_at_start.set(false);
-	_param_fw_at_start.commit();
-	_actuator_controls_sub.unregisterCallback();
 }
 
 const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()

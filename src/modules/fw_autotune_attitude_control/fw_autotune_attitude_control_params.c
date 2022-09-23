@@ -103,3 +103,21 @@ PARAM_DEFINE_INT32(FW_AT_APPLY, 2);
  * @group Autotune
  */
 PARAM_DEFINE_INT32(FW_AT_AXES, 3);
+
+/**
+ * Enable auto tuning enable on aux input
+ *
+ * Defines which aux input to enable auto tuning
+ *
+ * @value 0 Disable
+ * @value 1 Aux1
+ * @value 2 Aux2
+ * @value 3 Aux3
+ * @value 4 Aux4
+ * @value 5 Aux5
+ * @value 6 Aux6
+ * @min 0
+ * @max 6
+ * @group Autotune
+ */
+PARAM_DEFINE_INT32(FW_AT_MAN_AUX, 0);
