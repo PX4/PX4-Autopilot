@@ -28,13 +28,13 @@ args = parser.parse_args()
 verbose = args.verbose
 
 build_configs = []
+excluded_boards = ['modalai_voxl2']  # TODO: fix and enable
 excluded_manufacturers = ['atlflight']
 excluded_platforms = ['qurt']
 excluded_labels = [
     'stackcheck',
     'nolockstep', 'replay', 'test',
     'uavcanv1', # TODO: fix and enable
-    'voxl2' # TODO: fix and enable
     ]
 
 def process_target(px4board_file, target_name):
@@ -88,10 +88,18 @@ for manufacturer in os.scandir(os.path.join(source_dir, 'boards')):
     for board in os.scandir(manufacturer.path):
         if not board.is_dir():
             continue
+
         for files in os.scandir(board.path):
             if files.is_file() and files.name.endswith('.px4board'):
+
+                board_name = manufacturer.name + '_' + board.name
                 label = files.name[:-9]
                 target_name = manufacturer.name + '_' + board.name + '_' + label
+
+                if board_name in excluded_boards:
+                    if verbose: print(f'excluding board {board_name} ({target_name})')
+                    continue
+
                 if label in excluded_labels:
                     if verbose: print(f'excluding label {label} ({target_name})')
                     continue
