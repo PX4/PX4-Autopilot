@@ -37,14 +37,12 @@ class ORBSet
 {
 public:
 	struct Node {
-		struct Node *next;
-		const char *node_name;
+		Node *next{nullptr};
+		const char *node_name{nullptr};
 	};
 
-	ORBSet() :
-		_top(nullptr),
-		_end(nullptr)
-	{ }
+	ORBSet() = default;
+
 	~ORBSet()
 	{
 		while (_top != nullptr) {
@@ -52,11 +50,14 @@ public:
 
 			if (_top->next == nullptr) {
 				free((void *)_top->node_name);
-				free(_top);
+				_top->node_name = nullptr;
+
+				delete _top;
 				_top = nullptr;
 			}
 		}
 	}
+
 	void insert(const char *node_name)
 	{
 		Node **p;
@@ -68,7 +69,7 @@ public:
 			p = &_end->next;
 		}
 
-		*p = (Node *)malloc(sizeof(Node));
+		*p = new Node();
 
 		if (_end) {
 			_end = _end->next;
@@ -102,8 +103,13 @@ public:
 
 		if (_top && (strcmp(_top->node_name, node_name) == 0)) {
 			p = _top->next;
-			free((void *)_top->node_name);
-			free(_top);
+
+			if (_top->node_name) {
+				free((void *)_top->node_name);
+				_top->node_name = nullptr;
+			}
+
+			delete _top;
 			_top = p;
 
 			if (_top == nullptr) {
@@ -135,11 +141,17 @@ private:
 			}
 
 			a->next = b->next;
-			free((void *)b->node_name);
-			free(b);
+
+			if (b->node_name) {
+				free((void *)b->node_name);
+				b->node_name = nullptr;
+			}
+
+			delete b;
+			b = nullptr;
 		}
 	}
 
-	Node *_top;
-	Node *_end;
+	Node *_top{nullptr};
+	Node *_end{nullptr};
 };
