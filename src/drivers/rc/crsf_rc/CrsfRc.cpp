@@ -504,6 +504,7 @@ int CrsfRc::print_status()
 	PX4_INFO("Valid unknown packet CRCs: %li",  _packet_parser_statistics.crcs_valid_unknown_packets);
 	PX4_INFO("Invalid CRCs: %li",  _packet_parser_statistics.crcs_invalid);
 	PX4_INFO("Invalid known packet sizes: %li",  _packet_parser_statistics.invalid_known_packet_sizes);
+	PX4_INFO("Invalid unknown packet sizes: %li",  _packet_parser_statistics.invalid_unknown_packet_sizes);
 
 	return 0;
 }
