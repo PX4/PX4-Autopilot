@@ -69,6 +69,7 @@ struct CrsfParserStatistics_t {
 	uint32_t crcs_valid_unknown_packets;
 	uint32_t crcs_invalid;
 	uint32_t invalid_known_packet_sizes;
+	uint32_t invalid_unknown_packet_sizes;
 };
 
 enum CRSF_MESSAGE_TYPE {
