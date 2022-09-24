@@ -120,7 +120,12 @@ int	uORB::Manager::orb_ioctl(unsigned int cmd, unsigned long arg)
 			orbiocdevexists_t *data = (orbiocdevexists_t *)arg;
 
 			if (data->check_advertised) {
-				data->ret = uORB::Manager::orb_exists(get_orb_meta(data->orb_id), data->instance);
+				if (uORB::Manager::get_instance()) {
+					data->ret = uORB::Manager::get_instance()->orb_exists(get_orb_meta(data->orb_id), data->instance);
+
+				} else {
+					data->ret = PX4_ERROR;
+				}
 
 			} else {
 				data->ret = uORB::Manager::orb_device_node_exists(data->orb_id, data->instance) ? PX4_OK : PX4_ERROR;
@@ -130,7 +135,7 @@ int	uORB::Manager::orb_ioctl(unsigned int cmd, unsigned long arg)
 
 	case ORBIOCDEVADVERTISE: {
 			orbiocdevadvertise_t *data = (orbiocdevadvertise_t *)arg;
-			uORB::DeviceMaster *dev =  uORB::Manager::get_instance()->get_device_master();
+			uORB::DeviceMaster *dev = uORB::Manager::get_instance()->get_device_master();
 
 			if (dev) {
 				data->ret = dev->advertise(data->meta, data->is_advertiser, data->instance);
@@ -230,6 +235,10 @@ int	uORB::Manager::orb_ioctl(unsigned int cmd, unsigned long arg)
 
 int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 {
+	if (meta == nullptr) {
+		return PX4_ERROR;
+	}
+
 	int ret = PX4_ERROR;
 
 	// instance valid range: [0, ORB_MULTI_MAX_INSTANCES)
@@ -237,7 +246,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		return ret;
 	}
 
-	uORB::DeviceMaster *dev =  uORB::Manager::get_instance()->get_device_master();
+	uORB::DeviceMaster *dev = uORB::Manager::get_instance()->get_device_master();
 
 	if (dev) {
 		uORB::DeviceNode *node = dev->getDeviceNode(meta, instance);
@@ -266,8 +275,10 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 
 	ret = px4_access(path, F_OK);
 
-	if (ret == -1 && meta != nullptr && !_remote_topics.empty()) {
-		ret = (_remote_topics.find(meta->o_name) != _remote_topics.end()) ? OK : PX4_ERROR;
+	if (ret == -1) {
+		if (_remote_topics.find(meta->o_name)) {
+			ret = 0;
+		}
 	}
 
 	if (ret == 0) {
@@ -709,12 +720,9 @@ int16_t uORB::Manager::process_received_message(const char *messageName, int32_t
 
 bool uORB::Manager::is_remote_subscriber_present(const char *messageName)
 {
-#ifdef __PX4_NUTTX
 	return _remote_subscriber_topics.find(messageName);
-#else
-	return (_remote_subscriber_topics.find(messageName) != _remote_subscriber_topics.end());
-#endif
 }
+
 #endif /* ORB_COMMUNICATOR */
 
 #ifdef ORB_USE_PUBLISHER_RULES

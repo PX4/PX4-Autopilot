@@ -41,15 +41,8 @@
 #include <uORB/topics/uORBTopics.hpp> // For ORB_ID enum
 #include <stdint.h>
 
-#ifdef __PX4_NUTTX
-#include "ORBSet.hpp"
-#else
-#include <string>
-#include <set>
-#define ORBSet std::set<std::string>
-#endif
-
 #ifdef ORB_COMMUNICATOR
+#include "ORBSet.hpp"
 #include "uORBCommunicator.hpp"
 #endif /* ORB_COMMUNICATOR */
 
