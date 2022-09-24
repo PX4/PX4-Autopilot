@@ -1,9 +1,15 @@
 menu "RC"
     menuconfig COMMON_RC
-        bool "Common RC"
+        bool "Common RC drivers"
         default n
-        select DRIVERS_RC_CRSF_RC
+        select DRIVERS_RC_CRSF
+        select DRIVERS_RC_SPEKTRUM_DSM
+        select DRIVERS_RC_GHST_RC
+        #select DRIVERS_RC_PPM_IN
+        select DRIVERS_RC_SBUS
+        #select DRIVERS_RC_ST24_RC
+        #select DRIVERS_RC_SUMD_RC
         ---help---
-            Enable default set of magnetometer drivers
+            Enable default set of RC drivers
     rsource "*/Kconfig"
 endmenu

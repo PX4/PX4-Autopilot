@@ -52,7 +52,10 @@ target_link_libraries(px4iofirmware
 		nuttx_arch
 		nuttx_c
 		nuttx_mm
-		rc
+		rc_dsm
+		rc_sbus
+		rc_st24
+		rc_sumd
 )
 
 if(PX4IO_PERF)

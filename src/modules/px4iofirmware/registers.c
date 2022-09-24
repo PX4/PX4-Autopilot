@@ -48,8 +48,8 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
 #include <stm32_pwr.h>
-#include <rc/dsm.h>
-#include <rc/sbus.h>
+#include <lib/rc/dsm/dsm.h>
+#include <lib/rc/sbus/sbus.h>
 
 #include "px4io.h"
 #include "protocol.h"

@@ -1,0 +1,5 @@
+menuconfig DRIVERS_RC_ST24_RC
+	bool "rc_st24"
+	default n
+	---help---
+		Enable support for rc_st24
