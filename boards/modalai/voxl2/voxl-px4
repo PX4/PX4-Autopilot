@@ -13,24 +13,26 @@ else
         /share/modalai/qrb5165-slpi-test-sig/generate-test-sig.sh
     else
         /bin/echo "Could not find the DSP signature file generation script"
+        exit 0
     fi
-    exit 0
 fi
 
 # Make sure to setup all of the needed px4 aliases.
 cd /usr/bin
 /bin/ln -f -s px4 px4-muorb
-/bin/ln -f -s px4 px4-uorb
 cd -
 
 DAEMON=" "
+S="OFF"
 
-while getopts "d" flag
+while getopts "ds" flag
 do
     case "${flag}" in
         # Use -d to put PX4 into daemon mode
         d) DAEMON="-d";;
+        # Use -s to run self tests
+        s) S="ON";;
     esac
 done
 
-px4 $DAEMON -s /etc/modalai/voxl-px4.config
+TESTMODE=$S px4 $DAEMON -s /etc/modalai/voxl-px4.config
