@@ -48,8 +48,8 @@ public:
 		Udp
 	};
 
-	UxrceddsClient(Transport transport, const char *device, int baudrate, const char *host, const char *port,
-		       bool localhost_only, bool custom_participant, const char *client_namespace);
+	UxrceddsClient(Transport transport, const char *device, int baudrate, const char *host, const char *recv_port,
+		       const char *send_port, bool localhost_only, bool custom_participant, const char *client_namespace);
 
 	~UxrceddsClient();
 
@@ -85,7 +85,8 @@ private:
 	static const uint8_t AGENT_IP_MAX_LENGTH = 16;
 
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
-	char _port[PORT_MAX_LENGTH];
+	char _send_port[PORT_MAX_LENGTH];
+	char _recv_port[PORT_MAX_LENGTH];
 	char _agent_ip[AGENT_IP_MAX_LENGTH];
 #endif
 

@@ -80,7 +80,8 @@ void on_time(uxrSession *session, int64_t current_time, int64_t received_timesta
 }
 
 UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baudrate, const char *agent_ip,
-			       const char *port, bool localhost_only, bool custom_participant, const char *client_namespace) :
+			       const char *recv_port, const char *send_port, bool localhost_only, bool custom_participant,
+			       const char *client_namespace) :
 	ModuleParams(nullptr),
 	_localhost_only(localhost_only), _custom_participant(custom_participant),
 	_client_namespace(client_namespace)
@@ -122,11 +123,12 @@ UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baud
 
 #if defined(UXRCE_DDS_CLIENT_UDP)
 		_transport_udp = new uxrUDPTransport();
-		strncpy(_port, port, PORT_MAX_LENGTH - 1);
+		strncpy(_send_port, send_port, PORT_MAX_LENGTH - 1);
+		strncpy(_recv_port, recv_port, PORT_MAX_LENGTH - 1);
 		strncpy(_agent_ip, agent_ip, AGENT_IP_MAX_LENGTH - 1);
 
 		if (_transport_udp) {
-			if (uxr_init_udp_transport(_transport_udp, UXR_IPv4, _agent_ip, _port)) {
+			if (uxr_init_udp_transport(_transport_udp, UXR_IPv4, _agent_ip, _recv_port, _send_port)) {
 				_comm = &_transport_udp->comm;
 				_fd = _transport_udp->platform.poll_fd.fd;
 
@@ -553,7 +555,7 @@ int UxrceddsClient::print_status()
 	if (_transport_udp != nullptr) {
 		PX4_INFO("Using transport: udp");
 		PX4_INFO("Agent IP: %s", _agent_ip);
-		PX4_INFO("Agent port: %s", _port);
+		PX4_INFO("Agent port: %s", _send_port);
 
 	}
 
@@ -578,7 +580,8 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
-	char port[PORT_MAX_LENGTH] = {0};
+	char recv_port[PORT_MAX_LENGTH] =  {0};
+	char send_port[PORT_MAX_LENGTH] = {'8', '8', '8', '8'};
 	char agent_ip[AGENT_IP_MAX_LENGTH] = {0};
 
 #if defined(UXRCE_DDS_CLIENT_UDP)
@@ -594,7 +597,7 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 
 	const char *client_namespace = nullptr;//"px4";
 
-	while ((ch = px4_getopt(argc, argv, "t:d:b:h:p:lcn:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "t:d:b:h:p:r:lcn:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 't':
 			if (!strcmp(myoptarg, "serial")) {
@@ -629,7 +632,11 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 			break;
 
 		case 'p':
-			snprintf(port, PORT_MAX_LENGTH, "%s", myoptarg);
+			snprintf(send_port, PORT_MAX_LENGTH, "%s", myoptarg);
+			break;
+
+		case 'r':
+			snprintf(recv_port, PORT_MAX_LENGTH, "%s", myoptarg);
 			break;
 
 		case 'l':
@@ -658,7 +665,7 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 
 #if defined(UXRCE_DDS_CLIENT_UDP)
 
-	if (port[0] == '\0') {
+	if (send_port[0] == '\0') {
 		// no port specified, use UXRCE_DDS_PRT
 		int32_t port_i = 0;
 		param_get(param_find("UXRCE_DDS_PRT"), &port_i);
@@ -668,7 +675,7 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 			return nullptr;
 		}
 
-		snprintf(port, PORT_MAX_LENGTH, "%u", (uint16_t)port_i);
+		snprintf(send_port, PORT_MAX_LENGTH, "%u", (uint16_t)port_i);
 	}
 
 	if (agent_ip[0] == '\0') {
@@ -694,7 +701,8 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 		}
 	}
 
-	return new UxrceddsClient(transport, device, baudrate, agent_ip, port, localhost_only, custom_participant,
+	return new UxrceddsClient(transport, device, baudrate, agent_ip, recv_port, send_port, localhost_only,
+				  custom_participant,
 				  client_namespace);
 }
 
@@ -721,6 +729,7 @@ $ uxrce_dds_client start -t udp -h 127.0.0.1 -p 15555
 	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 0, 3000000, "Baudrate (can also be p:<param_name>)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('h', nullptr, "<IP>", "Agent IP. If not provided, defaults to UXRCE_DDS_AG_IP", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 0, 65535, "Agent listening port. If not provided, defaults to UXRCE_DDS_PRT", true);
+	PRINT_MODULE_USAGE_PARAM_INT('r', 0, 0, 65536, "Local Port", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('l', "Restrict to localhost (use in combination with ROS_LOCALHOST_ONLY=1)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Use custom participant config (profile_name=\"px4_participant\")", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Client DDS namespace", true);
