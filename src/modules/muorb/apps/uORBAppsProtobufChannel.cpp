@@ -96,7 +96,8 @@ bool uORB::AppsProtobufChannel::Test(MUORBTestType test_type)
 	int timeout = 10;
 
 	uint8_t test_data[MUORB_TEST_DATA_LEN];
- 	for (uint8_t i = 0; i < MUORB_TEST_DATA_LEN; i++) {
+
+	for (uint8_t i = 0; i < MUORB_TEST_DATA_LEN; i++) {
 		test_data[i] = i;
 	};
 

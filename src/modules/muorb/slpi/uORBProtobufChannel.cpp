@@ -47,11 +47,6 @@ fc_func_ptrs muorb_func_ptrs;
 
 static void test_runner(void *test)
 {
-	uint8_t data[MUORB_TEST_DATA_LEN];
- 	for (uint8_t i = 0; i < MUORB_TEST_DATA_LEN; i++) {
-		data[i] = i;
-	};
-
 	HAP_debug("test_runner called", 1, muorb_test_topic_name, 0);
 
 	switch (*((MUORBTestType *) test)) {
@@ -67,8 +62,13 @@ static void test_runner(void *test)
 		(void) muorb_func_ptrs.unsubscribe_func_ptr(muorb_test_topic_name);
 		break;
 
-	case TOPIC_TEST_TYPE:
-		(void) muorb_func_ptrs.topic_data_func_ptr(muorb_test_topic_name, data, MUORB_TEST_DATA_LEN);
+	case TOPIC_TEST_TYPE: {
+			uint8_t data[MUORB_TEST_DATA_LEN];
+
+			for (uint8_t i = 0; i < MUORB_TEST_DATA_LEN; i++) { data[i] = i; }
+
+			(void) muorb_func_ptrs.topic_data_func_ptr(muorb_test_topic_name, data, MUORB_TEST_DATA_LEN);
+		}
 
 	default:
 		break;
@@ -137,10 +137,15 @@ int px4muorb_send_topic_data(const char *topic_name, const uint8_t *data,
 		// Validate the test data received
 		bool test_passed = true;
 
-		for (int i = 0; i < data_len_in_bytes; i++) {
-			if ((uint8_t) i != data[i]) {
-				test_passed = false;
-				break;
+		if (data_len_in_bytes != MUORB_TEST_DATA_LEN) {
+			test_passed = false;
+
+		} else {
+			for (int i = 0; i < data_len_in_bytes; i++) {
+				if ((uint8_t) i != data[i]) {
+					test_passed = false;
+					break;
+				}
 			}
 		}
 
