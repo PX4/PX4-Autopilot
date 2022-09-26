@@ -48,8 +48,8 @@ public:
 		Udp
 	};
 
-	MicroddsClient(Transport transport, const char *device, int baudrate, const char *host, const char *port,
-		       bool localhost_only, const char *client_namespace);
+	MicroddsClient(Transport transport, const char *device, int baudrate, const char *host, const char *recv_port,
+		       const char *send_port, bool localhost_only, const char *client_namespace);
 
 	~MicroddsClient();
 
