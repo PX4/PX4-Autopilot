@@ -23,13 +23,16 @@ cd /usr/bin
 cd -
 
 DAEMON=" "
+S="OFF"
 
-while getopts "d" flag
+while getopts "ds" flag
 do
     case "${flag}" in
         # Use -d to put PX4 into daemon mode
         d) DAEMON="-d";;
+        # Use -s to run self tests
+        s) S="ON";;
     esac
 done
 
-px4 $DAEMON -s /etc/modalai/voxl-px4.config
+TESTMODE=$S px4 $DAEMON -s /etc/modalai/voxl-px4.config
