@@ -98,7 +98,7 @@ static void on_request(uxrSession *session, uxrObjectId object_id, uint16_t requ
 }
 
 UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baudrate, const char *agent_ip,
-			       const char *port, const char *client_namespace) :
+			       const char *recv_port, const char *send_port, const char *client_namespace) :
 	ModuleParams(nullptr),
 	_transport(transport),
 	_baudrate(baudrate),
@@ -115,8 +115,12 @@ UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baud
 		strncpy(_agent_ip, agent_ip, sizeof(_agent_ip) - 1);
 	}
 
-	if (port) {
-		strncpy(_port, port, sizeof(_port) - 1);
+	if (send_port) {
+		strncpy(_send_port, send_port, sizeof(_send_port) - 1);
+	}
+
+	if (recv_port) {
+		strncpy(_recv_port, recv_port, sizeof(_recv_port) - 1);
 	}
 
 #endif // UXRCE_DDS_CLIENT_UDP
@@ -166,9 +170,9 @@ bool UxrceddsClient::init()
 	if (_transport == Transport::Udp) {
 		_transport_udp = new uxrUDPTransport();
 
-		if (_transport_udp && uxr_init_udp_transport(_transport_udp, UXR_IPv4, _agent_ip, _port)) {
+		if (_transport_udp && uxr_init_udp_transport(_transport_udp, UXR_IPv4, _agent_ip, _recv_port, _send_port)) {
 
-			PX4_INFO("init UDP agent IP:%s, port:%s", _agent_ip, _port);
+			PX4_INFO("init UDP agent IP:%s, port:%s", _agent_ip, _send_port);
 
 			_comm = &_transport_udp->comm;
 			_fd = _transport_udp->platform.poll_fd.fd;
@@ -176,7 +180,7 @@ bool UxrceddsClient::init()
 			return true;
 
 		} else {
-			PX4_ERR("init UDP agent IP:%s, port:%s failed", _agent_ip, _port);
+			PX4_ERR("init UDP agent IP:%s, port:%s failed", _agent_ip, _send_port);
 		}
 	}
 
@@ -851,7 +855,7 @@ int UxrceddsClient::print_status()
 	if (_transport_udp != nullptr) {
 		PX4_INFO("Using transport:     udp");
 		PX4_INFO("Agent IP:            %s", _agent_ip);
-		PX4_INFO("Agent port:          %s", _port);
+		PX4_INFO("Agent port:          %s", _send_port);
 		PX4_INFO("Custom participant:  %s", _participant_config == ParticipantConfig::Custom ? "yes" : "no");
 		PX4_INFO("Localhost only:      %s", _participant_config == ParticipantConfig::LocalHostOnly ? "yes" : "no");
 	}
@@ -882,7 +886,8 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
-	char port[PORT_MAX_LENGTH] = {0};
+	char recv_port[PORT_MAX_LENGTH] = {0};
+	char send_port[PORT_MAX_LENGTH] = {'8', '8', '8', '8'};
 	char agent_ip[AGENT_IP_MAX_LENGTH] = {0};
 
 #if defined(UXRCE_DDS_CLIENT_UDP)
@@ -895,7 +900,7 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 
 	const char *client_namespace = nullptr;//"px4";
 
-	while ((ch = px4_getopt(argc, argv, "t:d:b:h:p:n:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "t:d:b:h:p:r:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 't':
 			if (!strcmp(myoptarg, "serial")) {
@@ -930,7 +935,11 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 			break;
 
 		case 'p':
-			snprintf(port, PORT_MAX_LENGTH, "%s", myoptarg);
+			snprintf(send_port, PORT_MAX_LENGTH, "%s", myoptarg);
+			break;
+
+		case 'r':
+			snprintf(recv_port, PORT_MAX_LENGTH, "%s", myoptarg);
 			break;
 #endif // UXRCE_DDS_CLIENT_UDP
 
@@ -951,7 +960,7 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 
 #if defined(UXRCE_DDS_CLIENT_UDP)
 
-	if (port[0] == '\0') {
+	if (send_port[0] == '\0') {
 		// no port specified, use UXRCE_DDS_PRT
 		int32_t port_i = 0;
 		param_get(param_find("UXRCE_DDS_PRT"), &port_i);
@@ -961,7 +970,7 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 			return nullptr;
 		}
 
-		snprintf(port, PORT_MAX_LENGTH, "%u", (uint16_t)port_i);
+		snprintf(send_port, PORT_MAX_LENGTH, "%u", (uint16_t)port_i);
 	}
 
 	if (agent_ip[0] == '\0') {
@@ -987,7 +996,7 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 		}
 	}
 
-	return new UxrceddsClient(transport, device, baudrate, agent_ip, port, client_namespace);
+	return new UxrceddsClient(transport, device, baudrate, agent_ip, recv_port, send_port, client_namespace);
 }
 
 int UxrceddsClient::print_usage(const char *reason)
@@ -1013,6 +1022,7 @@ $ uxrce_dds_client start -t udp -h 127.0.0.1 -p 15555
 	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 0, 3000000, "Baudrate (can also be p:<param_name>)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('h', nullptr, "<IP>", "Agent IP. If not provided, defaults to UXRCE_DDS_AG_IP", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 0, 65535, "Agent listening port. If not provided, defaults to UXRCE_DDS_PRT", true);
+	PRINT_MODULE_USAGE_PARAM_INT('r', 0, 0, 65536, "Local Port", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Client DDS namespace", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
