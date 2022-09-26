@@ -140,41 +140,51 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 
 			// update mag priority (CAL_MAGx_PRIO)
 			for (int mag = 0; mag < MAX_SENSOR_COUNT; mag++) {
+				bool clear_online_mag_cal = false;
+
 				const auto calibration_count = _calibration[mag].calibration_count();
 				const int32_t priority_old = _calibration[mag].priority();
 				_calibration[mag].ParametersUpdate();
 				const int32_t priority_new = _calibration[mag].priority();
 
-				if (priority_old != priority_new) {
-					if (_priority[mag] == priority_old) {
-						_priority[mag] = priority_new;
+				if (_calibration[mag].enabled()) {
+					if (priority_old != priority_new) {
+						if (_priority[mag] == priority_old) {
+							_priority[mag] = priority_new;
 
-					} else {
-						// change relative priority to incorporate any sensor faults
-						int priority_change = priority_new - priority_old;
-						_priority[mag] = math::constrain(_priority[mag] + priority_change, 1, 100);
+						} else {
+							// change relative priority to incorporate any sensor faults
+							int priority_change = priority_new - priority_old;
+							_priority[mag] = math::constrain(_priority[mag] + priority_change, 1, 100);
+						}
 					}
+
+					if (calibration_count != _calibration[mag].calibration_count()) {
+						calibration_updated = true;
+						clear_online_mag_cal = true;
+					}
+
+				} else {
+					_priority[mag] = 0;
+					clear_online_mag_cal = true;
 				}
 
-				if (calibration_count != _calibration[mag].calibration_count()) {
-					calibration_updated = true;
+				if (clear_online_mag_cal) {
+					// clear any mag bias estimate
+					_calibration_estimator_bias[mag].zero();
+
+					for (auto &cal : _mag_cal) {
+						// clear any in flight mag calibration
+						if (cal.device_id == _calibration[mag].device_id()) {
+							cal = {};
+						}
+					}
 				}
 			}
 
 			if (calibration_updated) {
-				// clear all
-				for (auto &bias : _calibration_estimator_bias) {
-					bias.zero();
-				}
-
-				for (auto &cal : _mag_cal) {
-					cal = {};
-				}
-
-				_in_flight_mag_cal_available = false;
 				_last_calibration_update = hrt_absolute_time();
 			}
-
 		}
 
 		return true;
