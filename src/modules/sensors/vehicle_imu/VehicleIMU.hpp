@@ -41,6 +41,7 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/sensor_calibration/Accelerometer.hpp>
 #include <lib/sensor_calibration/Gyroscope.hpp>
+#include <lib/sensor_calibration/Utilities.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -89,8 +90,7 @@ private:
 	inline void UpdateGyroVibrationMetrics(const matrix::Vector3f &angular_velocity);
 
 	void SensorCalibrationUpdate();
-	void SensorCalibrationSaveAccel();
-	void SensorCalibrationSaveGyro();
+	void SensorCalibrationApplyAll();
 
 	uORB::PublicationMulti<vehicle_imu_s> _vehicle_imu_pub{ORB_ID(vehicle_imu)};
 	uORB::PublicationMulti<vehicle_imu_status_s> _vehicle_imu_status_pub{ORB_ID(vehicle_imu_status)};
@@ -170,21 +170,15 @@ private:
 
 	bool _armed{false};
 
-	bool _accel_cal_available{false};
-	bool _gyro_cal_available{false};
+	static constexpr int IN_FLIGHT_CAL_COUNT = 3;
+	calibration::InFlightCalibration _accel_learned_calibration[IN_FLIGHT_CAL_COUNT] {};
+	calibration::InFlightCalibration _gyro_learned_calibration[IN_FLIGHT_CAL_COUNT] {};
 
-	struct InFlightCalibration {
-		matrix::Vector3f offset{};
-		matrix::Vector3f bias_variance{};
-		bool valid{false};
-	};
-
-	InFlightCalibration _accel_learned_calibration[ORB_MULTI_MAX_INSTANCES] {};
-	InFlightCalibration _gyro_learned_calibration[ORB_MULTI_MAX_INSTANCES] {};
-
-	static constexpr hrt_abstime INFLIGHT_CALIBRATION_QUIET_PERIOD_US{30_s};
+	static constexpr hrt_abstime IN_FLIGHT_CALIBRATION_QUIET_PERIOD_US{10_s};
 
 	hrt_abstime _in_flight_calibration_check_timestamp_last{0};
+	hrt_abstime _last_calibration_update{0};
+	bool _in_flight_cal_available{false};
 
 	perf_counter_t _accel_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel data gap")};
 	perf_counter_t _gyro_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro data gap")};

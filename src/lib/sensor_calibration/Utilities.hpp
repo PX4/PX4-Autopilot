@@ -149,4 +149,77 @@ matrix::Dcmf GetBoardRotationMatrix();
  */
 bool DeviceExternal(uint32_t device_id);
 
+
+struct InFlightCalibration {
+	uint32_t device_id{0};
+	matrix::Vector3f offset{};
+	matrix::Vector3f variance{};
+	uint8_t estimator_instance{0};
+};
+
+template<typename T, int MAX_LEARNED = 3>
+bool SensorCalibrationApplyLearned(T &calibration, int sensor_index,
+				   InFlightCalibration(&learned_calibrations)[MAX_LEARNED])
+{
+	bool updated = false;
+
+	// State variance assumed for bias storage.
+	// This is a reference variance used to calculate the fraction of learned bias that will be used to update the stored value.
+	// Larger values cause a larger fraction of the learned biases to be used.
+	static constexpr float BIAS_VAR_REF = 0.000'001f;
+	matrix::Vector3f state_variance{BIAS_VAR_REF, BIAS_VAR_REF, BIAS_VAR_REF};
+
+	// apply all valid saved offsets
+	// iterate through available bias estimates and fuse them sequentially using a Kalman Filter scheme
+	for (auto &inflight_cal : learned_calibrations) {
+		if ((inflight_cal.device_id != 0) && (inflight_cal.device_id == calibration.device_id()) && calibration.enabled()) {
+
+			const matrix::Vector3f offset_orig{calibration.offset()};
+
+			// new offset
+			matrix::Vector3f offset_new{};
+
+			if (calibration.calibrated()) {
+				// calculate weighting using ratio of variances and update stored bias values
+				const matrix::Vector3f &obs{inflight_cal.offset};            // observation
+				const matrix::Vector3f &obs_variance{inflight_cal.variance}; // observation variance
+
+				for (int axis_index = 0; axis_index < 3; axis_index++) {
+					float innovation = offset_orig(axis_index) - obs(axis_index);
+					float innovation_variance = state_variance(axis_index) + obs_variance(axis_index);
+
+					float kalman_gain = state_variance(axis_index) / innovation_variance;
+
+					offset_new(axis_index) = offset_orig(axis_index) - (innovation * kalman_gain);
+
+					state_variance(axis_index) = fmaxf(state_variance(axis_index) * (1.f - kalman_gain), 0.f);
+				}
+
+			} else {
+				// sensor wasn't calibrated, use full offset
+				offset_new = inflight_cal.offset;
+			}
+
+			if (calibration.set_offset(offset_new)) {
+				PX4_INFO("%s %d (%" PRIu32 ") EST:%d offset: [%.2f, %.2f, %.2f]->[%.2f, %.2f, %.2f] (full [%.3f, %.3f, %.3f])",
+					 calibration.SensorString(), sensor_index, calibration.device_id(), inflight_cal.estimator_instance,
+					 (double)offset_orig(0), (double)offset_orig(1), (double)offset_orig(2),
+					 (double)offset_new(0), (double)offset_new(1), (double)offset_new(2),
+					 (double)inflight_cal.offset(0), (double)inflight_cal.offset(1), (double)inflight_cal.offset(2));
+
+				updated = true;
+			}
+
+			// clear
+			inflight_cal = {};
+		}
+	}
+
+	if (updated) {
+		calibration.ParametersSave(sensor_index);
+	}
+
+	return updated;
+}
+
 } // namespace calibration
