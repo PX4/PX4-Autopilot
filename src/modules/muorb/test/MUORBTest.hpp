@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,56 +31,18 @@
  *
  ****************************************************************************/
 
-#include <string.h>
-#include "uORBAppsProtobufChannel.hpp"
+// These are the test types for each of the operations that can happen with muorb
+typedef enum {
+	ADVERTISE_TEST_TYPE,
+	SUBSCRIBE_TEST_TYPE,
+	TOPIC_TEST_TYPE,
+	UNSUBSCRIBE_TEST_TYPE
+} MUORBTestType;
 
-extern "C" { __EXPORT int muorb_main(int argc, char *argv[]); }
+// Common test name between DSP and CPU
+extern char muorb_test_topic_name[];
 
-static void usage()
-{
-	PX4_INFO("Usage: muorb 'start', 'test', 'stop', 'status'");
-}
+// Check if topic is muorb test marker
+#define IS_MUORB_TEST(x) (strcmp(x, muorb_test_topic_name) == 0)
 
-static bool enable_debug = false;
-
-int
-muorb_main(int argc, char *argv[])
-{
-	if (argc < 2) {
-		usage();
-		return -EINVAL;
-	}
-
-	// TODO: Add an optional  start parameter to control debug messages
-	if (!strcmp(argv[1], "start")) {
-		// Register the protobuf channel with UORB.
-		uORB::AppsProtobufChannel *channel = uORB::AppsProtobufChannel::GetInstance();
-
-		if (channel && channel->Initialize(enable_debug)) { return OK; }
-
-	} else if (!strcmp(argv[1], "test")) {
-		uORB::AppsProtobufChannel *channel = uORB::AppsProtobufChannel::GetInstance();
-
-		if (channel && channel->Initialize(enable_debug) && channel->Test()) { return OK; }
-
-	} else if (!strcmp(argv[1], "stop")) {
-		if (uORB::AppsProtobufChannel::isInstance() == false) {
-			PX4_WARN("muorb not running");
-		}
-
-		return OK;
-
-	} else if (!strcmp(argv[1], "status")) {
-		if (uORB::AppsProtobufChannel::isInstance()) {
-			PX4_INFO("muorb initialized");
-
-		} else {
-			PX4_INFO("muorb not running");
-		}
-
-		return OK;
-	}
-
-	usage();
-	return -EINVAL;
-}
+#define MUORB_TEST_DATA_LEN 8

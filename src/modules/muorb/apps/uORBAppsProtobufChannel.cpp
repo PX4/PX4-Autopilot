@@ -36,6 +36,8 @@
 
 #include "fc_sensor.h"
 
+bool uORB::AppsProtobufChannel::test_flag = false;
+
 // Initialize the static members
 uORB::AppsProtobufChannel *uORB::AppsProtobufChannel::_InstancePtr = nullptr;
 
@@ -49,6 +51,24 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 	} else if (strcmp(topic, "slpi_error") == 0) {
 		PX4_ERR("SLPI: %s", (const char *) data);
 
+	} else if (IS_MUORB_TEST(topic)) {
+		// Validate the test data received
+		bool test_passed = true;
+
+		if (length_in_bytes != MUORB_TEST_DATA_LEN) {
+			test_passed = false;
+
+		} else {
+			for (uint32_t i = 0; i < length_in_bytes; i++) {
+				if ((uint8_t) i != data[i]) {
+					test_passed = false;
+					break;
+				}
+			}
+		}
+
+		if (test_passed) { test_flag = true; }
+
 	} else {
 		PX4_INFO("Got received data callback for topic %s", topic);
 	}
@@ -57,16 +77,86 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 void uORB::AppsProtobufChannel::AdvertiseCallback(const char *topic)
 {
 	PX4_INFO("Got advertisement callback for topic %s", topic);
+
+	if (IS_MUORB_TEST(topic)) { test_flag = true; }
 }
 
 void uORB::AppsProtobufChannel::SubscribeCallback(const char *topic)
 {
 	PX4_INFO("Got subscription callback for topic %s", topic);
+
+	if (IS_MUORB_TEST(topic)) { test_flag = true; }
 }
 
 void uORB::AppsProtobufChannel::UnsubscribeCallback(const char *topic)
 {
 	PX4_INFO("Got remove subscription callback for topic %s", topic);
+
+	if (IS_MUORB_TEST(topic)) { test_flag = true; }
+}
+
+bool uORB::AppsProtobufChannel::Test(MUORBTestType test_type)
+{
+	int rc = -1;
+	int timeout = 10;
+
+	uint8_t test_data[MUORB_TEST_DATA_LEN];
+
+	for (uint8_t i = 0; i < MUORB_TEST_DATA_LEN; i++) {
+		test_data[i] = i;
+	};
+
+	test_flag = false;
+
+	switch (test_type) {
+	case ADVERTISE_TEST_TYPE:
+		rc = fc_sensor_advertise(muorb_test_topic_name);
+		break;
+
+	case SUBSCRIBE_TEST_TYPE:
+		rc = fc_sensor_subscribe(muorb_test_topic_name);
+		break;
+
+	case TOPIC_TEST_TYPE:
+		rc = fc_sensor_send_data(muorb_test_topic_name, test_data, MUORB_TEST_DATA_LEN);
+		break;
+
+	case UNSUBSCRIBE_TEST_TYPE:
+		rc = fc_sensor_unsubscribe(muorb_test_topic_name);
+		break;
+
+	default:
+		break;
+	}
+
+	// non zero return code means test failed
+	if (rc) { return false; }
+
+	// Wait for test acknowledgement from DSP
+	while ((! test_flag) && (timeout--)) {
+		usleep(10000);
+	}
+
+	if (timeout == -1) {
+		PX4_ERR("Test timed out waiting for response");
+		return false;
+	}
+
+	return true;
+}
+
+bool uORB::AppsProtobufChannel::Test()
+{
+	if (! Test(ADVERTISE_TEST_TYPE)) { return false; }
+
+	if (! Test(SUBSCRIBE_TEST_TYPE)) { return false; }
+
+	if (! Test(TOPIC_TEST_TYPE)) { return false; }
+
+	if (! Test(UNSUBSCRIBE_TEST_TYPE)) { return false; }
+
+	PX4_INFO("muorb test passed");
+	return true;
 }
 
 bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
@@ -76,7 +166,7 @@ bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 			  };
 
 	if (fc_sensor_initialize(enable_debug, &cb) != 0) {
-		PX4_ERR("Error calling the muorb protobuf initalize method");
+		if (enable_debug) { PX4_INFO("Warning: muorb protobuf initalize method failed"); }
 
 	} else {
 		PX4_INFO("muorb protobuf initalize method succeeded");
