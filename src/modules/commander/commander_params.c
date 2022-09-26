@@ -1067,6 +1067,9 @@ PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);
  * the time since takeoff is above this value. It is not possible to resume the
  * mission or switch to any mode other than RTL or Land.
  *
+ * There will be a warning message sent every 1 minute with updated
+ * remaining time till RTL once passed the 90% threshold and until RTL is triggered.
+ *
  * Set a negative value to disable.
  *
  *

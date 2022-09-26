@@ -2123,36 +2123,11 @@ Commander::run()
 		// Check wind speed actions
 		checkWindSpeedThresholds();
 
+		// Check for flight time maximum
+		checkFlightTimeThresholds();
+
 		/* Get current timestamp */
 		const hrt_abstime now = hrt_absolute_time();
-
-		// Trigger RTL if flight time is larger than max flight time specified in COM_FLT_TIME_MAX.
-		// The user is not able to override once above threshold, except for triggering Land.
-		// In case the export compliance build flag is set, we always restrict to 59 minutes.
-		int32_t max_allowed_flight_time = _param_com_flt_time_max.get();
-#if PX4_EXPORT_RESTRICTION_BUILD
-
-		if (max_allowed_flight_time > 3540 || max_allowed_flight_time <= 0) {
-			max_allowed_flight_time = 3540;
-		}
-
-#endif
-
-		if (!_vehicle_land_detected.landed
-		    && max_allowed_flight_time > 0
-		    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
-		    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND
-		    && (now - _vehicle_status.takeoff_time) > (1_s * max_allowed_flight_time)) {
-			main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_RTL, _vehicle_status_flags, _commander_state);
-			_status_changed = true;
-			mavlink_log_critical(&_mavlink_log_pub, "Maximum flight time reached, abort operation and RTL");
-			/* EVENT
-			* @description
-			* Maximal flight time reached, return to launch.
-			*/
-			events::send(events::ID("commander_max_flight_time_rtl"), {events::Log::Critical, events::LogInternal::Warning},
-				     "Maximum flight time reached, abort operation and RTL");
-		}
 
 		// check for arming state changes
 		if (_was_armed != _arm_state_machine.isArmed()) {
@@ -3431,6 +3406,62 @@ void Commander::checkWindSpeedThresholds()
 				"High wind speed detected ({1:.1m/s}), landing advised", wind.norm());
 				_last_wind_warning = hrt_absolute_time();
 			}
+		}
+	}
+}
+
+void Commander::checkFlightTimeThresholds()
+{
+
+	// Trigger RTL if flight time is larger than max flight time specified in COM_FLT_TIME_MAX.
+	// The user is not able to override once above threshold, except for triggering Land.
+	// In case the export compliance build flag is set, we always restrict to 59 minutes.
+	int32_t max_allowed_flight_time = _param_com_flt_time_max.get();
+#if PX4_EXPORT_RESTRICTION_BUILD
+
+	if (max_allowed_flight_time > 3540 || max_allowed_flight_time <= 0) {
+		max_allowed_flight_time = 3540;
+	}
+
+#endif
+
+	if (!_vehicle_land_detected.landed
+	    && max_allowed_flight_time > 0
+	    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
+	    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
+
+		// publish a warning if it's the first since in air or 60s have passed since the last warning
+		const bool warning_timeout_passed = _last_flight_time_warning == 0
+						    || hrt_elapsed_time(&_last_flight_time_warning) > 60_s;
+
+		const float flight_time_percentage_reached = (float)(hrt_absolute_time() - _vehicle_status.takeoff_time) / 1_s /
+				max_allowed_flight_time;
+
+		if (flight_time_percentage_reached > 1.f) {
+			main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_RTL, _vehicle_status_flags, _commander_state);
+			_status_changed = true;
+			mavlink_log_critical(&_mavlink_log_pub, "Maximum flight time reached, abort operation and RTL");
+			/* EVENT
+			* @description
+			* Maximal flight time reached, return to launch.
+			*/
+			events::send(events::ID("commander_max_flight_time_rtl"), {events::Log::Critical, events::LogInternal::Warning},
+				     "Maximum flight time reached, abort operation and RTL");
+
+		} else if (flight_time_percentage_reached > 0.9f && warning_timeout_passed) {
+			// send warning every 1 minute with updated remaining time till RTL once passed 90% threshold until RTL is triggered
+
+			const int remaining_flight_time = (int)((1.f - flight_time_percentage_reached) * max_allowed_flight_time);
+			mavlink_log_warning(&_mavlink_log_pub, "Approaching max flight time (system will RTL in %i seconds)",
+					    remaining_flight_time);
+			/* EVENT
+			* @description
+			* Maximal flight time warning
+			*/
+			events::send<float>(events::ID("commander_max_flight_time_warning"), events::Log::Warning,
+					    "Approaching max flight time (system will RTL in {1:.0} seconds)", remaining_flight_time);
+
+			_last_flight_time_warning = hrt_absolute_time();
 		}
 	}
 }

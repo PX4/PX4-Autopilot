@@ -161,6 +161,7 @@ private:
 	void send_parachute_command();
 
 	void checkWindSpeedThresholds();
+	void checkFlightTimeThresholds();
 	void checkForMissionUpdate();
 	void handlePowerButtonState();
 	void systemPowerUpdate();
@@ -339,6 +340,7 @@ private:
 	vtol_vehicle_status_s	_vtol_vehicle_status{};
 
 	hrt_abstime _last_wind_warning{0};
+	hrt_abstime _last_flight_time_warning{0};
 
 	// commander publications
 	actuator_armed_s        _actuator_armed{};

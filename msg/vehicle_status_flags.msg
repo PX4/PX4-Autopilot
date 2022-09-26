@@ -30,6 +30,8 @@ bool global_position_valid		# set to true by the commander app if the quality of
 bool gps_position_valid
 bool home_position_valid		# indicates a valid home position (a valid home position is not always a valid launch)
 
+bool flight_time_or_wind_rtl_triggered
+
 bool offboard_control_signal_lost
 
 bool rc_signal_found_once
