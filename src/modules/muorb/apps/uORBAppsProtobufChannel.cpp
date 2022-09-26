@@ -55,10 +55,15 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 		// Validate the test data received
 		bool test_passed = true;
 
-		for (uint32_t i = 0; i < length_in_bytes; i++) {
-			if (i != data[i]) {
-				test_passed = false;
-				break;
+		if (length_in_bytes != MUORB_TEST_DATA_LEN) {
+			test_passed = false;
+
+		} else {
+			for (uint32_t i = 0; i < length_in_bytes; i++) {
+				if ((uint8_t) i != data[i]) {
+					test_passed = false;
+					break;
+				}
 			}
 		}
 
