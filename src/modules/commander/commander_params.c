@@ -1049,16 +1049,15 @@ PARAM_DEFINE_FLOAT(COM_SPOOLUP_TIME, 1.0f);
  * A warning is triggered if the currently estimated wind speed is above this value.
  * Warning is sent periodically (every 1min).
  *
- * A negative value disables the feature.
+ * Set to 0 to disable.
  *
- * @min -1
- * @max 30
+ * @min 0
  * @decimal 1
  * @increment 0.1
  * @group Commander
  * @unit m/s
  */
-PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);
+PARAM_DEFINE_FLOAT(COM_WIND_WARN, 0.f);
 
 /**
  * Maximum allowed flight time
@@ -1071,16 +1070,13 @@ PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);
  * There will be a warning message sent every 1 minute with updated
  * remaining time till RTL once passed the 90% threshold and until RTL is triggered.
  *
- * Set a negative value to disable.
- *
+ * Set to 0 to disable.
  *
  * @unit s
- * @min -1
- * @max 10000
- * @value 0 Disable
+ * @min 0
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, -1);
+PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, 0);
 
 /**
  * Wind speed RLT threshold
@@ -1088,13 +1084,12 @@ PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, -1);
  * Wind speed threshold above which an automatic return to launch is triggered
  * and enforced as long as the threshold is exceeded.
  *
- * A negative value disables the feature.
+ * Set to 0 to disable.
  *
- * @min -1
- * @max 30
+ * @min 0
  * @decimal 1
  * @increment 0.1
  * @group Commander
  * @unit m/s
  */
-PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
+PARAM_DEFINE_FLOAT(COM_WIND_MAX, 0.f);
