@@ -150,8 +150,11 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 	case commander_state_s::MAIN_STATE_AUTO_LOITER:
 
-		/* need global position estimate */
-		if (status_flags.global_position_valid) {
+		/* need global position estimate
+		 * and there was not a previously triggered flight time or max
+		 * wind speed rtl in the current flight */
+		if (status_flags.global_position_valid &&
+		    !status_flags.flight_time_or_wind_rtl_triggered) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -160,8 +163,11 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET:
 	case commander_state_s::MAIN_STATE_ORBIT:
 
-		/* Follow and orbit only implemented for multicopter */
-		if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		/* Follow and orbit only implemented for multicopter,
+		 * and only allow if there was not a previously triggered flight time or max
+		 * wind speed rtl in the current flight */
+		if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
+		    !status_flags.flight_time_or_wind_rtl_triggered) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -176,9 +182,12 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 	case commander_state_s::MAIN_STATE_AUTO_MISSION:
 
-		/* need global position, home position, and a valid mission */
+		/* need global position, home position, and a valid mission
+		 * and there was not a previously triggered flight time or max
+		 * wind speed rtl in the current flight */
 		if (status_flags.global_position_valid &&
-		    status_flags.auto_mission_available) {
+		    status_flags.auto_mission_available &&
+		    !status_flags.flight_time_or_wind_rtl_triggered) {
 
 			ret = TRANSITION_CHANGED;
 		}

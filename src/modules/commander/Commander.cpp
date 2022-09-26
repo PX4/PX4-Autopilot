@@ -720,6 +720,9 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 
 		_status_changed = true;
 
+		// reset flight_time_or_wind_rtl_triggered flag to false upon disarm
+		_vehicle_status_flags.flight_time_or_wind_rtl_triggered = false;
+
 	} else if (arming_res == TRANSITION_DENIED) {
 		tune_negative(true);
 	}
@@ -3379,7 +3382,8 @@ void Commander::checkWindSpeedThresholds()
 			// publish a warning if it's the first since in air or 60s have passed since the last warning
 			const bool warning_timeout_passed = _last_wind_warning == 0 || hrt_elapsed_time(&_last_wind_warning) > 60_s;
 
-			if (max_allowed_wind_speed > FLT_EPSILON
+			if (!_vehicle_status_flags.flight_time_or_wind_rtl_triggered
+			    && max_allowed_wind_speed > FLT_EPSILON
 			    && wind.longerThan(max_allowed_wind_speed)
 			    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
 			    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
@@ -3392,6 +3396,7 @@ void Commander::checkWindSpeedThresholds()
 				events::send<float>(events::ID("commander_high_wind_rtl"),
 				{events::Log::Warning, events::LogInternal::Info},
 				"Wind speeds above limit, abort operation and RTL ({1:.1m/s})", wind.norm());
+				_vehicle_status_flags.flight_time_or_wind_rtl_triggered = true;
 
 			} else if (_param_com_wind_warn.get() > FLT_EPSILON
 				   && wind.longerThan(_param_com_wind_warn.get())
@@ -3425,7 +3430,8 @@ void Commander::checkFlightTimeThresholds()
 
 #endif
 
-	if (!_vehicle_land_detected.landed
+	if (!_vehicle_status_flags.flight_time_or_wind_rtl_triggered
+	    && !_vehicle_land_detected.landed
 	    && max_allowed_flight_time > 0
 	    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
 	    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
@@ -3447,6 +3453,7 @@ void Commander::checkFlightTimeThresholds()
 			*/
 			events::send(events::ID("commander_max_flight_time_rtl"), {events::Log::Critical, events::LogInternal::Warning},
 				     "Maximum flight time reached, abort operation and RTL");
+			_vehicle_status_flags.flight_time_or_wind_rtl_triggered = true;
 
 		} else if (flight_time_percentage_reached > 0.9f && warning_timeout_passed) {
 			// send warning every 1 minute with updated remaining time till RTL once passed 90% threshold until RTL is triggered

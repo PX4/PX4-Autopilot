@@ -1065,7 +1065,8 @@ PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);
  *
  * The vehicle aborts the current operation and returns to launch when
  * the time since takeoff is above this value. It is not possible to resume the
- * mission or switch to any mode other than RTL or Land.
+ * mission or switch to any auto mode other than RTL or Land. Taking over in any manual
+ * mode is though still possible.
  *
  * There will be a warning message sent every 1 minute with updated
  * remaining time till RTL once passed the 90% threshold and until RTL is triggered.
