@@ -517,7 +517,7 @@ bool UavcanGnssBridge::PublishRTCMStream(const uint8_t *const data, const size_t
 
 		result = _pub_rtcm_stream.broadcast(msg) >= 0;
 		perf_count(_rtcm_stream_pub_perf);
-		msg.data = {};
+		msg.data.clear();
 	}
 
 	return result;
