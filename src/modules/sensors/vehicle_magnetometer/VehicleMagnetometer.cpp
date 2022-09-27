@@ -331,21 +331,22 @@ void VehicleMagnetometer::UpdateMagCalibration()
 
 						_calibration[mag_index].ParametersSave();
 
+						_calibration_estimator_bias[mag_index].zero();
+
 						calibration_param_save_needed = true;
 					}
-
 				}
-
-				// clear
-				_mag_cal[i] = {};
 			}
-
-			_calibration_estimator_bias[mag_index].zero();
 		}
 
 		if (calibration_param_save_needed) {
 			param_notify_changes();
 			_last_calibration_update = hrt_absolute_time();
+		}
+
+		// clear all
+		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			_mag_cal[i] = {};
 		}
 
 		_in_flight_mag_cal_available = false;
