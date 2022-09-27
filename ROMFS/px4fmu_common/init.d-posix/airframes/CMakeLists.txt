@@ -61,6 +61,7 @@ px4_add_romfs_files(
 	1036_malolo
 	1037_believer
 	1038_glider
+	1039_advanced_plane
 	1040_standard_vtol
 	1041_tailsitter
 	1042_tiltrotor
