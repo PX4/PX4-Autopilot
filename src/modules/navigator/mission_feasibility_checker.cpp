@@ -255,7 +255,6 @@ MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 		    missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
 		    missionitem.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
 		    missionitem.nav_cmd != NAV_CMD_DO_SET_HOME &&
-		    missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
 		    missionitem.nav_cmd != NAV_CMD_DO_SET_ACTUATOR &&
 		    missionitem.nav_cmd != NAV_CMD_DO_LAND_START &&
 		    missionitem.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
@@ -290,7 +289,7 @@ MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 		}
 
 		/* Check non navigation item */
-		if (missionitem.nav_cmd == NAV_CMD_DO_SET_SERVO) {
+		if (missionitem.nav_cmd == NAV_CMD_DO_SET_ACTUATOR) {
 
 			/* check actuator number */
 			if (missionitem.params[0] < 0 || missionitem.params[0] > 5) {
@@ -400,7 +399,7 @@ MissionFeasibilityChecker::checkTakeoff(const mission_s &mission, float home_alt
 					  missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
 					  missionitem.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
 					  missionitem.nav_cmd != NAV_CMD_DO_SET_HOME &&
-					  missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
+					  missionitem.nav_cmd != NAV_CMD_DO_SET_ACTUATOR &&
 					  missionitem.nav_cmd != NAV_CMD_DO_LAND_START &&
 					  missionitem.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
 					  missionitem.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&

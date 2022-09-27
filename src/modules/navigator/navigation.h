@@ -58,7 +58,7 @@
 
 #define NAV_EPSILON_POSITION	0.001f	/**< Anything smaller than this is considered zero */
 
-/* compatible to mavlink MAV_CMD */
+/* Compatible to mavlink MAV_CMD: https://mavlink.io/en/messages/common.html#mav_commands */
 enum NAV_CMD {
 	NAV_CMD_IDLE = 0,
 	NAV_CMD_WAYPOINT = 16,
@@ -74,7 +74,6 @@ enum NAV_CMD {
 	NAV_CMD_DO_JUMP = 177,
 	NAV_CMD_DO_CHANGE_SPEED = 178,
 	NAV_CMD_DO_SET_HOME = 179,
-	NAV_CMD_DO_SET_SERVO = 183,
 	NAV_CMD_DO_SET_ACTUATOR = 187,
 	NAV_CMD_DO_LAND_START = 189,
 	NAV_CMD_DO_SET_ROI_LOCATION = 195,

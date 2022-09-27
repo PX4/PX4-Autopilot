@@ -223,7 +223,7 @@ private:
 	void handle_mission_clear_all(const mavlink_message_t *msg);
 
 	/**
-	 * Parse mavlink MISSION_ITEM message to get mission_item_s.
+	 * Parse mavlink MISSION_ITEM message to get mission_item_s
 	 *
 	 * @param mavlink_mission_item pointer to mavlink_mission_item_t or mavlink_mission_item_int_t
 	 *			       depending on _int_mode
@@ -232,7 +232,9 @@ private:
 	int parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item);
 
 	/**
-	 * Format mission_item_s as mavlink MISSION_ITEM(_INT) message.
+	 * Format mission_item_s into a mavlink MISSION_ITEM(_INT)
+	 *
+	 * This is used for formatting stored mission plan into a MAVLink mission to send to the GCS
 	 *
 	 * @param mission_item:		pointer to the existing mission item
 	 * @param mavlink_mission_item: pointer to mavlink_mission_item_t or mavlink_mission_item_int_t

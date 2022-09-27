@@ -1331,7 +1331,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT ||
 	    (_int_mode && (mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
 			   mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT))) {
-		// This is a mission item with a global coordinate
+		/** Mission item with a global coordinate **/
 
 		// Switch to int mode if that is what we are receiving
 		if ((mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
@@ -1474,15 +1474,17 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		mission_item->frame = mavlink_mission_item->frame;
 
 	} else if (mavlink_mission_item->frame == MAV_FRAME_MISSION) {
+		/** Mission item with no coordinate **/
 
-		// This is a mission item with no coordinates
-
+		// Copy the param 1 ~ 4 into the mission item struct by default
 		mission_item->params[0] = mavlink_mission_item->param1;
 		mission_item->params[1] = mavlink_mission_item->param2;
 		mission_item->params[2] = mavlink_mission_item->param3;
 		mission_item->params[3] = mavlink_mission_item->param4;
 
+		// Copy param 5 ~ 6 (Stored in `x` and `y` coordinates)
 		if (_int_mode) {
+			// Handle Mission Item INT (https://mavlink.io/en/messages/common.html#MISSION_ITEM_INT)
 			/* The argument is actually a mavlink_mission_item_int_t in int_mode.
 			 * mavlink_mission_item_t and mavlink_mission_item_int_t have the same
 			 * alignment, so we can just swap float for int32_t. */
@@ -1496,8 +1498,10 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->params[5] = (double)mavlink_mission_item->y;
 		}
 
+		// Copy param 7 (Stored in `z` variable)
 		mission_item->params[6] = mavlink_mission_item->z;
 
+		// Handle all the supported MAV_CMDs with no coordinate info
 		switch (mavlink_mission_item->command) {
 		case MAV_CMD_DO_JUMP:
 			mission_item->nav_cmd = NAV_CMD_DO_JUMP;
@@ -1527,7 +1531,6 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		case MAV_CMD_DO_CHANGE_SPEED:
 		case MAV_CMD_DO_SET_HOME:
-		case MAV_CMD_DO_SET_SERVO:
 		case MAV_CMD_DO_LAND_START:
 		case MAV_CMD_DO_TRIGGER_CONTROL:
 		case MAV_CMD_DO_DIGICAM_CONTROL:
@@ -1559,9 +1562,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		default:
 			mission_item->nav_cmd = NAV_CMD_INVALID;
-
 			PX4_DEBUG("Unsupported command %d", mavlink_mission_item->command);
-
 			return MAV_MISSION_UNSUPPORTED;
 		}
 
@@ -1574,8 +1575,6 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 	}
 
 	mission_item->autocontinue = mavlink_mission_item->autocontinue;
-	// mission_item->index = mavlink_mission_item->seq;
-
 	mission_item->origin = ORIGIN_MAVLINK;
 
 	return MAV_MISSION_ACCEPTED;
@@ -1590,15 +1589,12 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 	mavlink_mission_item->command = mission_item->nav_cmd;
 	mavlink_mission_item->autocontinue = mission_item->autocontinue;
 
-	/* default mappings for generic commands */
 	if (mission_item->frame == MAV_FRAME_MISSION) {
+		/**Default mappings for generic commands with no global coordinate information **/
 		mavlink_mission_item->param1 = mission_item->params[0];
 		mavlink_mission_item->param2 = mission_item->params[1];
 		mavlink_mission_item->param3 = mission_item->params[2];
 		mavlink_mission_item->param4 = mission_item->params[3];
-
-		mavlink_mission_item->x = mission_item->params[4];
-		mavlink_mission_item->y = mission_item->params[5];
 
 		if (_int_mode) {
 			// This function actually receives a mavlink_mission_item_int_t in _int_mode
@@ -1625,7 +1621,6 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 		case NAV_CMD_DO_CHANGE_SPEED:
 		case NAV_CMD_DO_SET_HOME:
-		case NAV_CMD_DO_SET_SERVO:
 		case NAV_CMD_DO_LAND_START:
 		case NAV_CMD_DO_TRIGGER_CONTROL:
 		case NAV_CMD_DO_DIGICAM_CONTROL:
@@ -1653,6 +1648,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		}
 
 	} else {
+		/** Mission items with global coordinates **/
 		mavlink_mission_item->param1 = 0.0f;
 		mavlink_mission_item->param2 = 0.0f;
 		mavlink_mission_item->param3 = 0.0f;
