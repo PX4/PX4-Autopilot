@@ -137,6 +137,8 @@ void PayloadDeliverer::gripper_update(const hrt_abstime &now)
 		vcmd_ack.timestamp = now;
 		vcmd_ack.command = vehicle_command_s::VEHICLE_CMD_DO_GRIPPER;
 		vcmd_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+		// Ideally, we need to fill out target_system and target_component to match the vehicle_command we are acknowledging for
+		// But since we are not tracking the vehicle command's source system & component, we don't fill it out for now.
 		_vehicle_command_ack_pub.publish(vcmd_ack);
 		PX4_DEBUG("Payload Drop Successful Ack Sent!");
 	}
@@ -151,8 +153,15 @@ void PayloadDeliverer::handle_vehicle_command(const hrt_abstime &now,  const veh
 
 	// Process DO_GRIPPER vehicle command
 	if (vehicle_command->command == vehicle_command_s::VEHICLE_CMD_DO_GRIPPER) {
-		// If we received Gripper command and gripper isn't valid, warn the user
 		if (!_gripper.is_valid()) {
+			// If gripper instance is invalid, send ACK command with FAILED result, and warn the user
+			vehicle_command_ack_s vcmd_ack{};
+			vcmd_ack.timestamp = now;
+			vcmd_ack.command = vehicle_command_s::VEHICLE_CMD_DO_GRIPPER;
+			vcmd_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+			vcmd_ack.target_system = vehicle_command->source_system;
+			vcmd_ack.target_component = vehicle_command->source_component;
+			_vehicle_command_ack_pub.publish(vcmd_ack);
 			PX4_WARN("Gripper instance not valid but DO_GRIPPER vehicle command was received. Gripper won't work!");
 			return;
 		}
@@ -168,6 +177,18 @@ void PayloadDeliverer::handle_vehicle_command(const hrt_abstime &now,  const veh
 			_gripper.release();
 			break;
 		}
+
+		// Send IN_PROGRESS vehicle_command_ack message to alert that DO_GRIPPER command is getting processed
+		// Since QGC/AMC doesn't impose timeout for IN_PROGRESS vehicle command acks, it is suffice to send it only once.
+		vehicle_command_ack_s vcmd_ack{};
+		vcmd_ack.timestamp = now;
+		vcmd_ack.command = vehicle_command_s::VEHICLE_CMD_DO_GRIPPER;
+		vcmd_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_IN_PROGRESS;
+		vcmd_ack.result_param1 = UINT8_MAX; // Set progress percentage to UINT8_MAX, indicating it is unkonwn
+		vcmd_ack.target_system = vehicle_command->source_system;
+		vcmd_ack.target_component = vehicle_command->source_component;
+		_vehicle_command_ack_pub.publish(vcmd_ack);
+		PX4_DEBUG("Payload Drop In-Progress Ack Sent!");
 	}
 }
 
