@@ -58,6 +58,9 @@ public:
 		// M2 aggregates the squared distance from the mean
 		// count aggregates the number of samples seen so far
 		_M2 += delta.emult(new_value - _mean);
+
+		// protect against floating point precision causing negative variances
+		_M2 = matrix::max(_M2, {});
 	}
 
 	bool valid() const { return _count > 2; }
