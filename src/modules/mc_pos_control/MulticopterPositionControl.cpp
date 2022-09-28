@@ -360,7 +360,14 @@ void MulticopterPositionControl::Run()
 			}
 		}
 
-		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
+		if (_vehicle_land_detected_sub.updated()) {
+			vehicle_land_detected_s vehicle_land_detected;
+
+			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
+				_landed = vehicle_land_detected.landed;
+				_ground_contact = vehicle_land_detected.ground_contact;
+			}
+		}
 
 		if (_param_mpc_use_hte.get()) {
 			hover_thrust_estimate_s hte;
@@ -372,7 +379,24 @@ void MulticopterPositionControl::Run()
 			}
 		}
 
-		_trajectory_setpoint_sub.update(&_setpoint);
+		if (_trajectory_setpoint_sub.updated()) {
+			trajectory_setpoint_s trajectory_setpoint{};
+
+			if (_trajectory_setpoint_sub.copy(&trajectory_setpoint)) {
+				_setpoint.timestamp = trajectory_setpoint.timestamp;
+				_setpoint.x = trajectory_setpoint.position[0];
+				_setpoint.y = trajectory_setpoint.position[1];
+				_setpoint.z = trajectory_setpoint.position[2];
+				_setpoint.vx = trajectory_setpoint.velocity[0];
+				_setpoint.vy = trajectory_setpoint.velocity[1];
+				_setpoint.vz = trajectory_setpoint.velocity[2];
+				_setpoint.acceleration[0] = trajectory_setpoint.acceleration[0];
+				_setpoint.acceleration[1] = trajectory_setpoint.acceleration[1];
+				_setpoint.acceleration[2] = trajectory_setpoint.acceleration[2];
+				_setpoint.yaw = trajectory_setpoint.yaw;
+				_setpoint.yawspeed = trajectory_setpoint.yawspeed;
+			}
+		}
 
 		// adjust existing (or older) setpoint with any EKF reset deltas
 		if ((_setpoint.timestamp != 0) && (_setpoint.timestamp < vehicle_local_position.timestamp)) {
@@ -471,13 +495,30 @@ void MulticopterPositionControl::Run()
 			}
 
 			// handle smooth takeoff
-			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed,
+			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _landed,
 						    _vehicle_constraints.want_takeoff,
 						    _vehicle_constraints.speed_up, false, vehicle_local_position.timestamp_sample);
 
-			const bool not_taken_off             = (_takeoff.getTakeoffState() < TakeoffState::rampup);
-			const bool flying                    = (_takeoff.getTakeoffState() >= TakeoffState::flight);
-			const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
+			const bool not_taken_off  = (_takeoff.getTakeoffState() < TakeoffState::rampup);
+			const bool flying         = (_takeoff.getTakeoffState() >= TakeoffState::flight);
+			const bool ground_contact = (flying && _ground_contact);
+
+			bool descent_intended = false;
+
+			if (flying && ground_contact) {
+				if (PX4_ISFINITE(_setpoint.z)) {
+					// position setpoint
+					descent_intended = (_setpoint.z > states.position(2));
+
+				} else if (PX4_ISFINITE(_setpoint.vz)) {
+					// velocity setpoint > 90% of MPC_LAND_CRWL
+					descent_intended = (_setpoint.vz > (0.9f * math::max(_param_mpc_land_crwl.get(), 0.1f)));
+
+				} else if (PX4_ISFINITE(_setpoint.acceleration[2])) {
+					// acceleration setpoint
+					descent_intended = (_setpoint.acceleration[2] > 0.f);
+				}
+			}
 
 			if (!flying) {
 				_control.setHoverThrust(_param_mpc_thr_hover.get());
@@ -488,7 +529,7 @@ void MulticopterPositionControl::Run()
 				_setpoint.acceleration[2] = NAN;
 			}
 
-			if (not_taken_off || flying_but_ground_contact) {
+			if (not_taken_off || (flying && ground_contact && descent_intended)) {
 				// we are not flying yet and need to avoid any corrections
 				reset_setpoint_to_nan(_setpoint);
 				_setpoint.timestamp = vehicle_local_position.timestamp_sample;
@@ -567,7 +608,7 @@ void MulticopterPositionControl::Run()
 
 		} else {
 			// an update is necessary here because otherwise the takeoff state doesn't get skipped with non-altitude-controlled modes
-			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, true,
+			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _landed, false, 10.f, true,
 						    vehicle_local_position.timestamp_sample);
 		}
 

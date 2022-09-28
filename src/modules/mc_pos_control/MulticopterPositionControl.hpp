@@ -112,19 +112,14 @@ private:
 	vehicle_local_position_setpoint_s _setpoint {};
 	vehicle_control_mode_s _vehicle_control_mode {};
 
+	bool _landed{true};
+	bool _ground_contact{true};
+
 	vehicle_constraints_s _vehicle_constraints {
 		.timestamp = 0,
 		.speed_up = NAN,
 		.speed_down = NAN,
 		.want_takeoff = false,
-	};
-
-	vehicle_land_detected_s _vehicle_land_detected {
-		.timestamp = 0,
-		.freefall = false,
-		.ground_contact = true,
-		.maybe_landed = true,
-		.landed = true,
 	};
 
 	DEFINE_PARAMETERS(
@@ -163,6 +158,8 @@ private:
 		(ParamFloat<px4::params::MPC_THR_MIN>)      _param_mpc_thr_min,
 		(ParamFloat<px4::params::MPC_THR_MAX>)      _param_mpc_thr_max,
 		(ParamFloat<px4::params::MPC_THR_XY_MARG>)  _param_mpc_thr_xy_marg,
+
+		(ParamFloat<px4::params::MPC_LAND_CRWL>)    _param_mpc_land_crwl,
 
 		(ParamFloat<px4::params::SYS_VEHICLE_RESP>) _param_sys_vehicle_resp,
 		(ParamFloat<px4::params::MPC_ACC_HOR>)      _param_mpc_acc_hor,

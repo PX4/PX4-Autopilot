@@ -3102,7 +3102,7 @@ void Commander::battery_status_check()
 	// Compare estimate of RTL time to estimate of remaining flight time
 	if (_vehicle_status_flags.battery_low_remaining_time
 	    && _arm_state_machine.isArmed()
-	    && !_vehicle_land_detected.ground_contact // not in any landing stage
+	    && !(_vehicle_land_detected.landed || _vehicle_land_detected.maybe_landed) // not in any landing stage
 	    && !_rtl_time_actions_done
 	    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
 	    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
