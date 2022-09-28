@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,10 +41,6 @@ static const px4_mft_device_t spi5 = {             // FM25V02A on FMUM 32K 512 X
 static const px4_mft_device_t i2c3 = {             // 24LC64T on Base  8K 32 X 256
 	.bus_type = px4_mft_device_t::I2C,
 	.devid    = PX4_MK_I2C_DEVID(3, 0x51)
-};
-static const px4_mft_device_t i2c4 = {             // 24LC64T on IMU   8K 32 X 256
-	.bus_type =  px4_mft_device_t::I2C,
-	.devid    =  PX4_MK_I2C_DEVID(4, 0x50)
 };
 
 
