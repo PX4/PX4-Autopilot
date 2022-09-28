@@ -17,7 +17,7 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 		exit 1
 	fi
 
-elif [ "$PX4_SIMULATOR" = "ignition" ]; then
+elif [ "$PX4_SIMULATOR" = "gz" ]; then
 
 	# source generated gazebo_env.sh for IGN_GAZEBO_RESOURCE_PATH
 	if [ -f gazebo_env.sh ]; then
@@ -26,28 +26,57 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 		. ../gazebo_env.sh
 	fi
 
-	ign_world=$( ign topic -l | grep -m 1 -e "/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
+	gz_world=$( ign topic -l | grep -m 1 -e "/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
 
-	if [ -z $ign_world ]; then
+	if [ -z $gz_world ]; then
 
-		# starting ign gazebo with ${PX4_SIM_WORLD} world
+		# starting ign gazebo with ${PX4_GZ_WORLD} world
 		echo "INFO  [init] starting ign gazebo"
 
-		ign gazebo --verbose=1 -r -s "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
+		ign gazebo --verbose=1 -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
 
 		if [ -z $HEADLESS ]; then
 			# HEADLESS not set, starting ign gazebo gui
 			ign gazebo -g &
 		fi
 	else
-		echo "INFO  [init] ign gazebo already running world: $ign_world"
-		PX4_SIM_WORLD=$ign_world
+		echo "INFO  [init] ign gazebo already running world: $gz_world"
+		PX4_GZ_WORLD=$gz_world
 	fi
 
-	if [ -z $PX4_IGN_MODEL_POSE ]; then
-		# start ignition bridge without pose arg.
-		echo "WARN  [init] PX4_IGN_MODEL_POSE not set, spawning at origin."
-		if simulator_ignition_bridge start -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}"; then
+	if [ ! -z $PX4_GZ_MODEL ]; then
+
+		if [ -z $PX4_GZ_MODEL_POSE ]; then
+			# start gz bridge without pose arg.
+			echo "WARN  [init] PX4_GZ_MODEL_POSE not set, spawning at origin."
+			if gz_bridge start -m "${PX4_GZ_MODEL}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
+				sensor_baro_sim start
+				sensor_gps_sim start
+				sensor_mag_sim start
+			else
+				echo "ERROR  [init] ign gazebo failed to start"
+				exit 1
+			fi
+		else
+
+			# Clean potential input line formatting.
+			model_pose="$( echo ${PX4_GZ_MODEL_POSE} | sed -e 's/^[ \t]*//; s/[ \t]*$//; s/,/ /g; s/  / /g; s/ /,/g' )"
+			echo "INFO  [init] PX4_GZ_MODEL_POSE set, spawning at: ${model_pose}"
+
+			# start gz bridge with pose arg.
+			if gz_bridge start -p "${model_pose}"  -m "${PX4_GZ_MODEL}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
+				sensor_baro_sim start
+				sensor_gps_sim start
+				sensor_mag_sim start
+			else
+				echo "ERROR  [init] ign gazebo failed to start"
+				exit 1
+			fi
+
+		fi
+
+	elif [ ! -z $PX4_GZ_MODEL_NAME ]; then
+		if gz_bridge start -n "${PX4_GZ_MODEL_NAME}" -w "${PX4_GZ_WORLD}"; then
 			sensor_baro_sim start
 			sensor_gps_sim start
 			sensor_mag_sim start
@@ -55,22 +84,10 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 			echo "ERROR  [init] ign gazebo failed to start"
 			exit 1
 		fi
+
 	else
-
-		# Clean potential input line formatting.
-		model_pose="$( echo ${PX4_IGN_MODEL_POSE} | sed -e 's/^[ \t]*//; s/[ \t]*$//; s/,/ /g; s/  / /g; s/ /,/g' )"
-		echo "INFO  [init] PX4_IGN_MODEL_POSE set, spawning at: ${model_pose}"
-
-		# start ignition bridge with pose arg.
-		if simulator_ignition_bridge start -p "${model_pose}"  -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}"; then
-			sensor_baro_sim start
-			sensor_gps_sim start
-			sensor_mag_sim start
-		else
-			echo "ERROR  [init] ign gazebo failed to start"
-			exit 1
-		fi
-
+		echo "ERROR  [init] failed to pass PX4_GZ_MODEL_NAME or PX4_GZ_MODEL"
+		exit 1
 	fi
 
 else

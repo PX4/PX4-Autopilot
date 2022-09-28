@@ -1,0 +1,5 @@
+menuconfig MODULES_SIMULATION_GZ_BRIDGE
+	bool "gz_bridge"
+	default n
+	---help---
+		Enable support for gz_bridge

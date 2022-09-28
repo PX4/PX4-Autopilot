@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sdf version='1.9'>
+  <model name='x500'>
+    <include merge='true'>
+      <uri>https://fuel.gazebosim.org/1.0/RudisLaboratories/models/x500-Base</uri>
+    </include>
+  </model>
+</sdf>

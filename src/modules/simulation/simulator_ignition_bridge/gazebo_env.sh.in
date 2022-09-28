@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-
-export PX4_IGN_GAZEBO_MODELS=@PX4_SOURCE_DIR@/Tools/simulation/ignition/models
-export PX4_IGN_GAZEBO_WORLDS=@PX4_SOURCE_DIR@/Tools/simulation/ignition/worlds
-
-export IGN_GAZEBO_RESOURCE_PATH=$IGN_GAZEBO_RESOURCE_PATH:$PX4_IGN_GAZEBO_MODELS

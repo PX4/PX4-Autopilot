@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "SITL (Ignition Gazebo)",
+            "name": "SITL (GZ)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
@@ -15,7 +15,7 @@
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
-                    "value": "${input:PX4_IGN_GZ_SIM_MODEL}"
+                    "value": "${input:PX4_GZ_MODEL}"
                 }
             ],
             "externalConsole": false,
@@ -226,8 +226,8 @@
     "inputs": [
         {
             "type": "pickString",
-            "id": "PX4_IGN_GZ_SIM_MODEL",
-            "description": "Ignition Gazebo vehicle model",
+            "id": "PX4_GZ_MODEL",
+            "description": "GZ vehicle model",
             "options": [
               "x500",
             ],
