@@ -280,19 +280,31 @@ void Tiltrotor::update_transition_state()
 {
 	VtolType::update_transition_state();
 
+	const hrt_abstime now = hrt_absolute_time();
+
 	// we get attitude setpoint from a multirotor flighttask if altitude is controlled.
 	// in any other case the fixed wing attitude controller publishes attitude setpoint from manual stick input.
 	if (_v_control_mode->flag_control_climb_rate_enabled) {
+		// we need the incoming (virtual) attitude setpoints (both mc and fw) to be recent, otherwise return (means the previous setpoint stays active)
+		if (_mc_virtual_att_sp->timestamp < (now - 1_s) && _fw_virtual_att_sp->timestamp < (now - 1_s)) {
+			return;
+		}
+
 		memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 		_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
 		_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
 
 	} else {
+		// we need a recent incoming (fw virtual) attitude setpoint, otherwise return (means the previous setpoint stays active)
+		if (_fw_virtual_att_sp->timestamp < (now - 1_s)) {
+			return;
+		}
+
 		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 		_thrust_transition = _fw_virtual_att_sp->thrust_body[0];
 	}
 
-	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+	float time_since_trans_start = (float)(now - _vtol_schedule.transition_start) * 1e-6f;
 
 	if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_FRONT_P1) {
 		// for the first part of the transition all rotors are enabled
