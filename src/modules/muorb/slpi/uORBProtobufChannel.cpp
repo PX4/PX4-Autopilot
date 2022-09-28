@@ -75,7 +75,6 @@ static void *test_runner(void *test)
 		break;
 	}
 
-	qurt_thread_exit(0);
 	return nullptr;
 }
 
