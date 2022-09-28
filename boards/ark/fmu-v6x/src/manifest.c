@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,6 +75,19 @@ static const px4_hw_mft_item_t device_unsupported = {0, 0, 0};
 // declared in board_common.h
 static const px4_hw_mft_item_t hw_mft_list_v0600[] = {
 	{
+		//  PX4_MFT_PX4IO
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		// PX4_MFT_USB
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		// PX4_MFT_CAN2
 		.present     = 1,
 		.mandatory   = 1,
 		.connection  = px4_hw_con_onboard,
@@ -83,14 +96,43 @@ static const px4_hw_mft_item_t hw_mft_list_v0600[] = {
 
 static const px4_hw_mft_item_t hw_mft_list_v0610[] = {
 	{
+		//  PX4_MFT_PX4IO
 		.present     = 0,
 		.mandatory   = 0,
 		.connection  = px4_hw_con_unknown,
 	},
 	{
+		// PX4_MFT_USB
 		.present     = 1,
 		.mandatory   = 1,
 		.connection  = px4_hw_con_onboard,
+	},
+	{
+		// PX4_MFT_CAN2
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+};
+
+static const px4_hw_mft_item_t hw_mft_list_v0650[] = {
+	{
+		//  PX4_MFT_PX4IO
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_unknown,
+	},
+	{
+		// PX4_MFT_USB
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		// PX4_MFT_CAN2
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
 	},
 };
 
@@ -98,10 +140,20 @@ static const px4_hw_mft_item_t hw_mft_list_v0610[] = {
 static px4_hw_mft_list_entry_t mft_lists[] = {
 //  ver_rev
 	{V6X00, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)},
-	{V6X10, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO
 	{V6X01, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2
 	{V6X03, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 3
+	{V6X40, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, //                       HB CM4 base
+	{V6X41, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2  HB CM4 base
+	{V6X43, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, HB CM4 base Sensor Set 3
+	{V6X44, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, HB CM4 base Sensor Set 4
+	{V6X50, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, //                       HB Mini
+	{V6X51, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2  HB Mini
+	{V6X53, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2, HB Mini Sensor Set 3
+	{V6X54, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2, HB Mini Sensor Set 4
+	{V6X10, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO
 	{V6X13, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO BMP388 moved to I2C2, Sensor Set 3
+	{V6X04, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 4
+	{V6X14, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO BMP388 moved to I2C2, Sensor Set 4
 };
 
 /************************************************************************************
