@@ -790,6 +790,8 @@ void VehicleAngularVelocity::Run()
 
 	const hrt_abstime time_now_us = hrt_absolute_time();
 
+	ParametersUpdate();
+
 	// update corrections first to set _selected_sensor
 	const bool selection_updated = SensorSelectionUpdate(time_now_us);
 
@@ -801,9 +803,8 @@ void VehicleAngularVelocity::Run()
 		}
 	}
 
-	ParametersUpdate();
-
 	_calibration.SensorCorrectionsUpdate(selection_updated);
+
 	SensorBiasUpdate(selection_updated);
 
 	if (_reset_filters) {

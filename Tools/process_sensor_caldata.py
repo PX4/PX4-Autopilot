@@ -17,7 +17,7 @@ Reads in IMU data from a static thermal calibration test and performs a curve fi
 Data can be gathered using the following sequence:
 
 1) Power up the board and set the TC_A_ENABLE, TC_B_ENABLE and TC_G_ENABLE parameters to 1
-2) Set all CAL_GYR and CAL_ACC parameters to defaults
+2) Set all CAL_ACC*, CAL_GYR*, and CAL_MAG* parameters to defaults
 3) Set the parameter SDLOG_MODE to 2, and SDLOG_PROFILE "Thermal calibration" bit (2) to enable logging of sensor data for calibration and power off
 4) Cold soak the board for 30 minutes
 5) Move to a warm dry, still air, constant pressure environment.
@@ -31,7 +31,6 @@ Data can be gathered using the following sequence:
 
 Outputs thermal compensation parameters in a file named <inputfilename>.params which can be loaded onto the board using QGroundControl
 Outputs summary plots in a pdf file named <inputfilename>.pdf
-
 """
 
 def resampleWithDeltaX(x,y):
@@ -68,7 +67,7 @@ def resampleWithDeltaX(x,y):
 def median_filter(data):
     return medfilt(data, 31)
 
-parser = argparse.ArgumentParser(description='Reads in IMU data from a static thermal calibration test and performs a curve fit of  accel, gyro, mag, and baro bias vs temperature')
+parser = argparse.ArgumentParser(description='Reads in IMU data from a static thermal calibration test and performs a curve fit of gyro, accel and baro bias vs temperature')
 parser.add_argument('filename', metavar='file.ulg', help='ULog input file')
 parser.add_argument('--no_resample', dest='noResample', action='store_const',
                    const=True, default=False, help='skip resampling and use raw data')
@@ -210,6 +209,7 @@ if num_accels >= 1 and not math.isnan(sensor_accel_0['temperature'][0]):
     accel_0_params['TC_A0_TMIN'] = np.amin(sensor_accel_0['temperature'])
     accel_0_params['TC_A0_TMAX'] = np.amax(sensor_accel_0['temperature'])
     accel_0_params['TC_A0_TREF'] = 0.5 * (accel_0_params['TC_A0_TMIN'] + accel_0_params['TC_A0_TMAX'])
+
     temp_rel = sensor_accel_0['temperature'] - accel_0_params['TC_A0_TREF']
     temp_rel_resample = np.linspace(accel_0_params['TC_A0_TMIN']-accel_0_params['TC_A0_TREF'], accel_0_params['TC_A0_TMAX']-accel_0_params['TC_A0_TREF'], 100)
     temp_resample = temp_rel_resample + accel_0_params['TC_A0_TREF']
@@ -325,6 +325,7 @@ if num_accels >= 2 and not math.isnan(sensor_accel_1['temperature'][0]):
     accel_1_params['TC_A1_TMIN'] = np.amin(sensor_accel_1['temperature'])
     accel_1_params['TC_A1_TMAX'] = np.amax(sensor_accel_1['temperature'])
     accel_1_params['TC_A1_TREF'] = 0.5 * (accel_1_params['TC_A1_TMIN'] + accel_1_params['TC_A1_TMAX'])
+
     temp_rel = sensor_accel_1['temperature'] - accel_1_params['TC_A1_TREF']
     temp_rel_resample = np.linspace(accel_1_params['TC_A1_TMIN']-accel_1_params['TC_A1_TREF'], accel_1_params['TC_A1_TMAX']-accel_1_params['TC_A1_TREF'], 100)
     temp_resample = temp_rel_resample + accel_1_params['TC_A1_TREF']
@@ -441,6 +442,7 @@ if num_accels >= 3 and not math.isnan(sensor_accel_2['temperature'][0]):
     accel_2_params['TC_A2_TMIN'] = np.amin(sensor_accel_2['temperature'])
     accel_2_params['TC_A2_TMAX'] = np.amax(sensor_accel_2['temperature'])
     accel_2_params['TC_A2_TREF'] = 0.5 * (accel_2_params['TC_A2_TMIN'] + accel_2_params['TC_A2_TMAX'])
+
     temp_rel = sensor_accel_2['temperature'] - accel_2_params['TC_A2_TREF']
     temp_rel_resample = np.linspace(accel_2_params['TC_A2_TMIN']-accel_2_params['TC_A2_TREF'], accel_2_params['TC_A2_TMAX']-accel_2_params['TC_A2_TREF'], 100)
     temp_resample = temp_rel_resample + accel_2_params['TC_A2_TREF']
@@ -556,6 +558,7 @@ if num_accels >= 4 and not math.isnan(sensor_accel_3['temperature'][0]):
     accel_3_params['TC_A3_TMIN'] = np.amin(sensor_accel_3['temperature'])
     accel_3_params['TC_A3_TMAX'] = np.amax(sensor_accel_3['temperature'])
     accel_3_params['TC_A3_TREF'] = 0.5 * (accel_3_params['TC_A3_TMIN'] + accel_3_params['TC_A3_TMAX'])
+
     temp_rel = sensor_accel_3['temperature'] - accel_3_params['TC_A3_TREF']
     temp_rel_resample = np.linspace(accel_3_params['TC_A3_TMIN']-accel_3_params['TC_A3_TREF'], accel_3_params['TC_A3_TMAX']-accel_3_params['TC_A3_TREF'], 100)
     temp_resample = temp_rel_resample + accel_3_params['TC_A3_TREF']
@@ -650,92 +653,104 @@ gyro_0_params = {
 }
 
 # curve fit the data for gyro 0 corrections
-if num_gyros >= 1 and not math.isnan(sensor_gyro_0['temperature'][0]):
-    gyro_0_params['TC_G0_ID'] = int(np.median(sensor_gyro_0['device_id']))
+if num_gyros >= 1:
 
-    # find the min, max and reference temperature
-    gyro_0_params['TC_G0_TMIN'] = np.amin(sensor_gyro_0['temperature'])
-    gyro_0_params['TC_G0_TMAX'] = np.amax(sensor_gyro_0['temperature'])
-    gyro_0_params['TC_G0_TREF'] = 0.5 * (gyro_0_params['TC_G0_TMIN'] + gyro_0_params['TC_G0_TMAX'])
-    temp_rel = sensor_gyro_0['temperature'] - gyro_0_params['TC_G0_TREF']
-    temp_rel_resample = np.linspace(gyro_0_params['TC_G0_TMIN']-gyro_0_params['TC_G0_TREF'], gyro_0_params['TC_G0_TMAX']-gyro_0_params['TC_G0_TREF'], 100)
-    temp_resample = temp_rel_resample + gyro_0_params['TC_G0_TREF']
+    #if the gyro has no temperature data, use the corresponding accel instance or the primary baro temp.
+    if math.isnan(sensor_gyro_0['temperature'][0]):
+        if not math.isnan(sensor_accel_0['temperature'][0]):
+            sensor_gyro_0['temperature'] = sensor_accel_0['temperature']
+        elif not math.isnan(sensor_baro_0['temperature'][0]):
+            sensor_gyro_0['temperature'] = sensor_baro_0['temperature']
 
-    sensor_gyro_0['x'] = median_filter(sensor_gyro_0['x'])
-    sensor_gyro_0['y'] = median_filter(sensor_gyro_0['y'])
-    sensor_gyro_0['z'] = median_filter(sensor_gyro_0['z'])
+    if not math.isnan(sensor_gyro_0['temperature'][0]):
 
-    # fit X axis
-    if noResample:
-        coef_gyro_0_x = np.polyfit(temp_rel, sensor_gyro_0['x'], 3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel, sensor_gyro_0['x'])
-        coef_gyro_0_x = np.polyfit(temp, sens, 3)
+        gyro_0_params['TC_G0_ID'] = int(np.median(sensor_gyro_0['device_id']))
 
-    gyro_0_params['TC_G0_X3_0'] = coef_gyro_0_x[0]
-    gyro_0_params['TC_G0_X2_0'] = coef_gyro_0_x[1]
-    gyro_0_params['TC_G0_X1_0'] = coef_gyro_0_x[2]
-    gyro_0_params['TC_G0_X0_0'] = coef_gyro_0_x[3]
-    fit_coef_gyro_0_x = np.poly1d(coef_gyro_0_x)
-    gyro_0_x_resample = fit_coef_gyro_0_x(temp_rel_resample)
+        # find the min, max and reference temperature
+        gyro_0_params['TC_G0_TMIN'] = np.amin(sensor_gyro_0['temperature'])
+        gyro_0_params['TC_G0_TMAX'] = np.amax(sensor_gyro_0['temperature'])
+        gyro_0_params['TC_G0_TREF'] = 0.5 * (gyro_0_params['TC_G0_TMIN'] + gyro_0_params['TC_G0_TMAX'])
 
-    # fit Y axis
-    if noResample:
-        coef_gyro_0_y = np.polyfit(temp_rel, sensor_gyro_0['y'], 3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_0['y'])
-        coef_gyro_0_y = np.polyfit(temp, sens, 3)
+        temp_rel = sensor_gyro_0['temperature'] - gyro_0_params['TC_G0_TREF']
+        temp_rel_resample = np.linspace(gyro_0_params['TC_G0_TMIN']-gyro_0_params['TC_G0_TREF'], gyro_0_params['TC_G0_TMAX']-gyro_0_params['TC_G0_TREF'], 100)
+        temp_resample = temp_rel_resample + gyro_0_params['TC_G0_TREF']
 
-    gyro_0_params['TC_G0_X3_1'] = coef_gyro_0_y[0]
-    gyro_0_params['TC_G0_X2_1'] = coef_gyro_0_y[1]
-    gyro_0_params['TC_G0_X1_1'] = coef_gyro_0_y[2]
-    gyro_0_params['TC_G0_X0_1'] = coef_gyro_0_y[3]
-    fit_coef_gyro_0_y = np.poly1d(coef_gyro_0_y)
-    gyro_0_y_resample = fit_coef_gyro_0_y(temp_rel_resample)
+        sensor_gyro_0['x'] = median_filter(sensor_gyro_0['x'])
+        sensor_gyro_0['y'] = median_filter(sensor_gyro_0['y'])
+        sensor_gyro_0['z'] = median_filter(sensor_gyro_0['z'])
 
-    # fit Z axis
-    if noResample:
-        coef_gyro_0_z = np.polyfit(temp_rel, sensor_gyro_0['z'],3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel, sensor_gyro_0['z'])
-        coef_gyro_0_z = np.polyfit(temp, sens ,3)
+        # fit X axis
+        if noResample:
+            coef_gyro_0_x = np.polyfit(temp_rel, sensor_gyro_0['x'], 3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel, sensor_gyro_0['x'])
+            coef_gyro_0_x = np.polyfit(temp, sens, 3)
 
-    gyro_0_params['TC_G0_X3_2'] = coef_gyro_0_z[0]
-    gyro_0_params['TC_G0_X2_2'] = coef_gyro_0_z[1]
-    gyro_0_params['TC_G0_X1_2'] = coef_gyro_0_z[2]
-    gyro_0_params['TC_G0_X0_2'] = coef_gyro_0_z[3]
-    fit_coef_gyro_0_z = np.poly1d(coef_gyro_0_z)
-    gyro_0_z_resample = fit_coef_gyro_0_z(temp_rel_resample)
+        gyro_0_params['TC_G0_X3_0'] = coef_gyro_0_x[0]
+        gyro_0_params['TC_G0_X2_0'] = coef_gyro_0_x[1]
+        gyro_0_params['TC_G0_X1_0'] = coef_gyro_0_x[2]
+        gyro_0_params['TC_G0_X0_0'] = coef_gyro_0_x[3]
+        fit_coef_gyro_0_x = np.poly1d(coef_gyro_0_x)
+        gyro_0_x_resample = fit_coef_gyro_0_x(temp_rel_resample)
 
-    # gyro0 vs temperature
-    plt.figure(5,figsize=(20,13))
+        # fit Y axis
+        if noResample:
+            coef_gyro_0_y = np.polyfit(temp_rel, sensor_gyro_0['y'], 3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_0['y'])
+            coef_gyro_0_y = np.polyfit(temp, sens, 3)
 
-    # draw plots
-    plt.subplot(3,1,1)
-    plt.plot(sensor_gyro_0['temperature'],sensor_gyro_0['x'],'b')
-    plt.plot(temp_resample,gyro_0_x_resample,'r')
-    plt.title('Gyro 0 ({}) Bias vs Temperature'.format(gyro_0_params['TC_G0_ID']))
-    plt.ylabel('X bias (rad/s)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        gyro_0_params['TC_G0_X3_1'] = coef_gyro_0_y[0]
+        gyro_0_params['TC_G0_X2_1'] = coef_gyro_0_y[1]
+        gyro_0_params['TC_G0_X1_1'] = coef_gyro_0_y[2]
+        gyro_0_params['TC_G0_X0_1'] = coef_gyro_0_y[3]
+        fit_coef_gyro_0_y = np.poly1d(coef_gyro_0_y)
+        gyro_0_y_resample = fit_coef_gyro_0_y(temp_rel_resample)
 
-    # draw plots
-    plt.subplot(3,1,2)
-    plt.plot(sensor_gyro_0['temperature'],sensor_gyro_0['y'],'b')
-    plt.plot(temp_resample,gyro_0_y_resample,'r')
-    plt.ylabel('Y bias (rad/s)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        # fit Z axis
+        if noResample:
+            coef_gyro_0_z = np.polyfit(temp_rel, sensor_gyro_0['z'],3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel, sensor_gyro_0['z'])
+            coef_gyro_0_z = np.polyfit(temp, sens ,3)
 
-    # draw plots
-    plt.subplot(3,1,3)
-    plt.plot(sensor_gyro_0['temperature'],sensor_gyro_0['z'],'b')
-    plt.plot(temp_resample,gyro_0_z_resample,'r')
-    plt.ylabel('Z bias (rad/s)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        gyro_0_params['TC_G0_X3_2'] = coef_gyro_0_z[0]
+        gyro_0_params['TC_G0_X2_2'] = coef_gyro_0_z[1]
+        gyro_0_params['TC_G0_X1_2'] = coef_gyro_0_z[2]
+        gyro_0_params['TC_G0_X0_2'] = coef_gyro_0_z[3]
+        fit_coef_gyro_0_z = np.poly1d(coef_gyro_0_z)
+        gyro_0_z_resample = fit_coef_gyro_0_z(temp_rel_resample)
 
-    pp.savefig()
+        # gyro0 vs temperature
+        plt.figure(5,figsize=(20,13))
+
+        # draw plots
+        plt.subplot(3,1,1)
+        plt.plot(sensor_gyro_0['temperature'],sensor_gyro_0['x'],'b')
+        plt.plot(temp_resample,gyro_0_x_resample,'r')
+        plt.title('Gyro 0 ({}) Bias vs Temperature'.format(gyro_0_params['TC_G0_ID']))
+        plt.ylabel('X bias (rad/s)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,2)
+        plt.plot(sensor_gyro_0['temperature'],sensor_gyro_0['y'],'b')
+        plt.plot(temp_resample,gyro_0_y_resample,'r')
+        plt.ylabel('Y bias (rad/s)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,3)
+        plt.plot(sensor_gyro_0['temperature'],sensor_gyro_0['z'],'b')
+        plt.plot(temp_resample,gyro_0_z_resample,'r')
+        plt.ylabel('Z bias (rad/s)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        pp.savefig()
+
 
 #################################################################################
 
@@ -762,92 +777,103 @@ gyro_1_params = {
 }
 
 # curve fit the data for gyro 1 corrections
-if num_gyros >= 2 and not math.isnan(sensor_gyro_1['temperature'][0]):
-    gyro_1_params['TC_G1_ID'] = int(np.median(sensor_gyro_1['device_id']))
+if num_gyros >= 2:
 
-    # find the min, max and reference temperature
-    gyro_1_params['TC_G1_TMIN'] = np.amin(sensor_gyro_1['temperature'])
-    gyro_1_params['TC_G1_TMAX'] = np.amax(sensor_gyro_1['temperature'])
-    gyro_1_params['TC_G1_TREF'] = 0.5 * (gyro_1_params['TC_G1_TMIN'] + gyro_1_params['TC_G1_TMAX'])
-    temp_rel = sensor_gyro_1['temperature'] - gyro_1_params['TC_G1_TREF']
-    temp_rel_resample = np.linspace(gyro_1_params['TC_G1_TMIN']-gyro_1_params['TC_G1_TREF'], gyro_1_params['TC_G1_TMAX']-gyro_1_params['TC_G1_TREF'], 100)
-    temp_resample = temp_rel_resample + gyro_1_params['TC_G1_TREF']
+    #if the gyro has no temperature data, use the corresponding accel instance or the primary baro temp.
+    if math.isnan(sensor_gyro_1['temperature'][0]):
+        if not math.isnan(sensor_accel_1['temperature'][0]):
+            sensor_gyro_1['temperature'] = sensor_accel_1['temperature']
+        elif not math.isnan(sensor_baro_0['temperature'][0]):
+            sensor_gyro_1['temperature'] = sensor_baro_0['temperature']
 
-    sensor_gyro_1['x'] = median_filter(sensor_gyro_1['x'])
-    sensor_gyro_1['y'] = median_filter(sensor_gyro_1['y'])
-    sensor_gyro_1['z'] = median_filter(sensor_gyro_1['z'])
+    if not math.isnan(sensor_gyro_1['temperature'][0]):
 
-    # fit X axis
-    if noResample:
-        coef_gyro_1_x = np.polyfit(temp_rel,sensor_gyro_1['x'],3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_1['x'])
-        coef_gyro_1_x = np.polyfit(temp, sens ,3)
+        gyro_1_params['TC_G1_ID'] = int(np.median(sensor_gyro_1['device_id']))
 
-    gyro_1_params['TC_G1_X3_0'] = coef_gyro_1_x[0]
-    gyro_1_params['TC_G1_X2_0'] = coef_gyro_1_x[1]
-    gyro_1_params['TC_G1_X1_0'] = coef_gyro_1_x[2]
-    gyro_1_params['TC_G1_X0_0'] = coef_gyro_1_x[3]
-    fit_coef_gyro_1_x = np.poly1d(coef_gyro_1_x)
-    gyro_1_x_resample = fit_coef_gyro_1_x(temp_rel_resample)
+        # find the min, max and reference temperature
+        gyro_1_params['TC_G1_TMIN'] = np.amin(sensor_gyro_1['temperature'])
+        gyro_1_params['TC_G1_TMAX'] = np.amax(sensor_gyro_1['temperature'])
+        gyro_1_params['TC_G1_TREF'] = 0.5 * (gyro_1_params['TC_G1_TMIN'] + gyro_1_params['TC_G1_TMAX'])
 
-    # fit Y axis
-    if noResample:
-        coef_gyro_1_y = np.polyfit(temp_rel,sensor_gyro_1['y'],3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_1['y'])
-        coef_gyro_1_y = np.polyfit(temp, sens ,3)
+        temp_rel = sensor_gyro_1['temperature'] - gyro_1_params['TC_G1_TREF']
+        temp_rel_resample = np.linspace(gyro_1_params['TC_G1_TMIN']-gyro_1_params['TC_G1_TREF'], gyro_1_params['TC_G1_TMAX']-gyro_1_params['TC_G1_TREF'], 100)
+        temp_resample = temp_rel_resample + gyro_1_params['TC_G1_TREF']
 
-    gyro_1_params['TC_G1_X3_1'] = coef_gyro_1_y[0]
-    gyro_1_params['TC_G1_X2_1'] = coef_gyro_1_y[1]
-    gyro_1_params['TC_G1_X1_1'] = coef_gyro_1_y[2]
-    gyro_1_params['TC_G1_X0_1'] = coef_gyro_1_y[3]
-    fit_coef_gyro_1_y = np.poly1d(coef_gyro_1_y)
-    gyro_1_y_resample = fit_coef_gyro_1_y(temp_rel_resample)
+        sensor_gyro_1['x'] = median_filter(sensor_gyro_1['x'])
+        sensor_gyro_1['y'] = median_filter(sensor_gyro_1['y'])
+        sensor_gyro_1['z'] = median_filter(sensor_gyro_1['z'])
 
-    # fit Z axis
-    if noResample:
-        coef_gyro_1_z = np.polyfit(temp_rel,sensor_gyro_1['z'],3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_1['z'])
-        coef_gyro_1_z = np.polyfit(temp, sens ,3)
+        # fit X axis
+        if noResample:
+            coef_gyro_1_x = np.polyfit(temp_rel,sensor_gyro_1['x'],3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_1['x'])
+            coef_gyro_1_x = np.polyfit(temp, sens ,3)
 
-    gyro_1_params['TC_G1_X3_2'] = coef_gyro_1_z[0]
-    gyro_1_params['TC_G1_X2_2'] = coef_gyro_1_z[1]
-    gyro_1_params['TC_G1_X1_2'] = coef_gyro_1_z[2]
-    gyro_1_params['TC_G1_X0_2'] = coef_gyro_1_z[3]
-    fit_coef_gyro_1_z = np.poly1d(coef_gyro_1_z)
-    gyro_1_z_resample = fit_coef_gyro_1_z(temp_rel_resample)
+        gyro_1_params['TC_G1_X3_0'] = coef_gyro_1_x[0]
+        gyro_1_params['TC_G1_X2_0'] = coef_gyro_1_x[1]
+        gyro_1_params['TC_G1_X1_0'] = coef_gyro_1_x[2]
+        gyro_1_params['TC_G1_X0_0'] = coef_gyro_1_x[3]
+        fit_coef_gyro_1_x = np.poly1d(coef_gyro_1_x)
+        gyro_1_x_resample = fit_coef_gyro_1_x(temp_rel_resample)
 
-    # gyro1 vs temperature
-    plt.figure(6,figsize=(20,13))
+        # fit Y axis
+        if noResample:
+            coef_gyro_1_y = np.polyfit(temp_rel,sensor_gyro_1['y'],3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_1['y'])
+            coef_gyro_1_y = np.polyfit(temp, sens ,3)
 
-    # draw plots
-    plt.subplot(3,1,1)
-    plt.plot(sensor_gyro_1['temperature'],sensor_gyro_1['x'],'b')
-    plt.plot(temp_resample,gyro_1_x_resample,'r')
-    plt.title('Gyro 1 ({}) Bias vs Temperature'.format(gyro_1_params['TC_G1_ID']))
-    plt.ylabel('X bias (rad/s)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        gyro_1_params['TC_G1_X3_1'] = coef_gyro_1_y[0]
+        gyro_1_params['TC_G1_X2_1'] = coef_gyro_1_y[1]
+        gyro_1_params['TC_G1_X1_1'] = coef_gyro_1_y[2]
+        gyro_1_params['TC_G1_X0_1'] = coef_gyro_1_y[3]
+        fit_coef_gyro_1_y = np.poly1d(coef_gyro_1_y)
+        gyro_1_y_resample = fit_coef_gyro_1_y(temp_rel_resample)
 
-    # draw plots
-    plt.subplot(3,1,2)
-    plt.plot(sensor_gyro_1['temperature'],sensor_gyro_1['y'],'b')
-    plt.plot(temp_resample,gyro_1_y_resample,'r')
-    plt.ylabel('Y bias (rad/s)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        # fit Z axis
+        if noResample:
+            coef_gyro_1_z = np.polyfit(temp_rel,sensor_gyro_1['z'],3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_1['z'])
+            coef_gyro_1_z = np.polyfit(temp, sens ,3)
 
-    # draw plots
-    plt.subplot(3,1,3)
-    plt.plot(sensor_gyro_1['temperature'],sensor_gyro_1['z'],'b')
-    plt.plot(temp_resample,gyro_1_z_resample,'r')
-    plt.ylabel('Z bias (rad/s)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        gyro_1_params['TC_G1_X3_2'] = coef_gyro_1_z[0]
+        gyro_1_params['TC_G1_X2_2'] = coef_gyro_1_z[1]
+        gyro_1_params['TC_G1_X1_2'] = coef_gyro_1_z[2]
+        gyro_1_params['TC_G1_X0_2'] = coef_gyro_1_z[3]
+        fit_coef_gyro_1_z = np.poly1d(coef_gyro_1_z)
+        gyro_1_z_resample = fit_coef_gyro_1_z(temp_rel_resample)
 
-    pp.savefig()
+        # gyro1 vs temperature
+        plt.figure(6,figsize=(20,13))
+
+        # draw plots
+        plt.subplot(3,1,1)
+        plt.plot(sensor_gyro_1['temperature'],sensor_gyro_1['x'],'b')
+        plt.plot(temp_resample,gyro_1_x_resample,'r')
+        plt.title('Gyro 1 ({}) Bias vs Temperature'.format(gyro_1_params['TC_G1_ID']))
+        plt.ylabel('X bias (rad/s)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,2)
+        plt.plot(sensor_gyro_1['temperature'],sensor_gyro_1['y'],'b')
+        plt.plot(temp_resample,gyro_1_y_resample,'r')
+        plt.ylabel('Y bias (rad/s)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,3)
+        plt.plot(sensor_gyro_1['temperature'],sensor_gyro_1['z'],'b')
+        plt.plot(temp_resample,gyro_1_z_resample,'r')
+        plt.ylabel('Z bias (rad/s)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        pp.savefig()
 
 #################################################################################
 
@@ -874,92 +900,103 @@ gyro_2_params = {
 }
 
 # curve fit the data for gyro 2 corrections
-if num_gyros >= 3 and not math.isnan(sensor_gyro_2['temperature'][0]):
-    gyro_2_params['TC_G2_ID'] = int(np.median(sensor_gyro_2['device_id']))
+if num_gyros >= 3:
 
-    # find the min, max and reference temperature
-    gyro_2_params['TC_G2_TMIN'] = np.amin(sensor_gyro_2['temperature'])
-    gyro_2_params['TC_G2_TMAX'] = np.amax(sensor_gyro_2['temperature'])
-    gyro_2_params['TC_G2_TREF'] = 0.5 * (gyro_2_params['TC_G2_TMIN'] + gyro_2_params['TC_G2_TMAX'])
-    temp_rel = sensor_gyro_2['temperature'] - gyro_2_params['TC_G2_TREF']
-    temp_rel_resample = np.linspace(gyro_2_params['TC_G2_TMIN']-gyro_2_params['TC_G2_TREF'], gyro_2_params['TC_G2_TMAX']-gyro_2_params['TC_G2_TREF'], 100)
-    temp_resample = temp_rel_resample + gyro_2_params['TC_G2_TREF']
+    #if the gyro has no temperature data, use the corresponding accel instance or the primary baro temp.
+    if math.isnan(sensor_gyro_2['temperature'][0]):
+        if not math.isnan(sensor_accel_2['temperature'][0]):
+            sensor_gyro_2['temperature'] = sensor_accel_2['temperature']
+        elif not math.isnan(sensor_baro_0['temperature'][0]):
+            sensor_gyro_2['temperature'] = sensor_baro_0['temperature']
 
-    sensor_gyro_2['x'] = median_filter(sensor_gyro_2['x'])
-    sensor_gyro_2['y'] = median_filter(sensor_gyro_2['y'])
-    sensor_gyro_2['z'] = median_filter(sensor_gyro_2['z'])
+    if not math.isnan(sensor_gyro_2['temperature'][0]):
 
-    # fit X axis
-    if noResample:
-        coef_gyro_2_x = np.polyfit(temp_rel,sensor_gyro_2['x'],3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_2['x'])
-        coef_gyro_2_x = np.polyfit(temp, sens ,3)
+        gyro_2_params['TC_G2_ID'] = int(np.median(sensor_gyro_2['device_id']))
 
-    gyro_2_params['TC_G2_X3_0'] = coef_gyro_2_x[0]
-    gyro_2_params['TC_G2_X2_0'] = coef_gyro_2_x[1]
-    gyro_2_params['TC_G2_X1_0'] = coef_gyro_2_x[2]
-    gyro_2_params['TC_G2_X0_0'] = coef_gyro_2_x[3]
-    fit_coef_gyro_2_x = np.poly1d(coef_gyro_2_x)
-    gyro_2_x_resample = fit_coef_gyro_2_x(temp_rel_resample)
+        # find the min, max and reference temperature
+        gyro_2_params['TC_G2_TMIN'] = np.amin(sensor_gyro_2['temperature'])
+        gyro_2_params['TC_G2_TMAX'] = np.amax(sensor_gyro_2['temperature'])
+        gyro_2_params['TC_G2_TREF'] = 0.5 * (gyro_2_params['TC_G2_TMIN'] + gyro_2_params['TC_G2_TMAX'])
 
-    # fit Y axis
-    if noResample:
-        coef_gyro_2_y = np.polyfit(temp_rel, sensor_gyro_2['y'], 3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel, sensor_gyro_2['y'])
-        coef_gyro_2_y = np.polyfit(temp, sens, 3)
+        temp_rel = sensor_gyro_2['temperature'] - gyro_2_params['TC_G2_TREF']
+        temp_rel_resample = np.linspace(gyro_2_params['TC_G2_TMIN']-gyro_2_params['TC_G2_TREF'], gyro_2_params['TC_G2_TMAX']-gyro_2_params['TC_G2_TREF'], 100)
+        temp_resample = temp_rel_resample + gyro_2_params['TC_G2_TREF']
 
-    gyro_2_params['TC_G2_X3_1'] = coef_gyro_2_y[0]
-    gyro_2_params['TC_G2_X2_1'] = coef_gyro_2_y[1]
-    gyro_2_params['TC_G2_X1_1'] = coef_gyro_2_y[2]
-    gyro_2_params['TC_G2_X0_1'] = coef_gyro_2_y[3]
-    fit_coef_gyro_2_y = np.poly1d(coef_gyro_2_y)
-    gyro_2_y_resample = fit_coef_gyro_2_y(temp_rel_resample)
+        sensor_gyro_2['x'] = median_filter(sensor_gyro_2['x'])
+        sensor_gyro_2['y'] = median_filter(sensor_gyro_2['y'])
+        sensor_gyro_2['z'] = median_filter(sensor_gyro_2['z'])
 
-    # fit Z axis
-    if noResample:
-        coef_gyro_2_z = np.polyfit(temp_rel,sensor_gyro_2['z'], 3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_2['z'])
-        coef_gyro_2_z = np.polyfit(temp, sens, 3)
+        # fit X axis
+        if noResample:
+            coef_gyro_2_x = np.polyfit(temp_rel,sensor_gyro_2['x'],3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_2['x'])
+            coef_gyro_2_x = np.polyfit(temp, sens ,3)
 
-    gyro_2_params['TC_G2_X3_2'] = coef_gyro_2_z[0]
-    gyro_2_params['TC_G2_X2_2'] = coef_gyro_2_z[1]
-    gyro_2_params['TC_G2_X1_2'] = coef_gyro_2_z[2]
-    gyro_2_params['TC_G2_X0_2'] = coef_gyro_2_z[3]
-    fit_coef_gyro_2_z = np.poly1d(coef_gyro_2_z)
-    gyro_2_z_resample = fit_coef_gyro_2_z(temp_rel_resample)
+        gyro_2_params['TC_G2_X3_0'] = coef_gyro_2_x[0]
+        gyro_2_params['TC_G2_X2_0'] = coef_gyro_2_x[1]
+        gyro_2_params['TC_G2_X1_0'] = coef_gyro_2_x[2]
+        gyro_2_params['TC_G2_X0_0'] = coef_gyro_2_x[3]
+        fit_coef_gyro_2_x = np.poly1d(coef_gyro_2_x)
+        gyro_2_x_resample = fit_coef_gyro_2_x(temp_rel_resample)
 
-    # gyro2 vs temperature
-    plt.figure(7,figsize=(20,13))
+        # fit Y axis
+        if noResample:
+            coef_gyro_2_y = np.polyfit(temp_rel, sensor_gyro_2['y'], 3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel, sensor_gyro_2['y'])
+            coef_gyro_2_y = np.polyfit(temp, sens, 3)
 
-    # draw plots
-    plt.subplot(3,1,1)
-    plt.plot(sensor_gyro_2['temperature'],sensor_gyro_2['x'],'b')
-    plt.plot(temp_resample,gyro_2_x_resample,'r')
-    plt.title('Gyro 2 ({}) Bias vs Temperature'.format(gyro_2_params['TC_G2_ID']))
-    plt.ylabel('X bias (rad/s)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        gyro_2_params['TC_G2_X3_1'] = coef_gyro_2_y[0]
+        gyro_2_params['TC_G2_X2_1'] = coef_gyro_2_y[1]
+        gyro_2_params['TC_G2_X1_1'] = coef_gyro_2_y[2]
+        gyro_2_params['TC_G2_X0_1'] = coef_gyro_2_y[3]
+        fit_coef_gyro_2_y = np.poly1d(coef_gyro_2_y)
+        gyro_2_y_resample = fit_coef_gyro_2_y(temp_rel_resample)
 
-    # draw plots
-    plt.subplot(3,1,2)
-    plt.plot(sensor_gyro_2['temperature'],sensor_gyro_2['y'],'b')
-    plt.plot(temp_resample,gyro_2_y_resample,'r')
-    plt.ylabel('Y bias (rad/s)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        # fit Z axis
+        if noResample:
+            coef_gyro_2_z = np.polyfit(temp_rel,sensor_gyro_2['z'], 3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,sensor_gyro_2['z'])
+            coef_gyro_2_z = np.polyfit(temp, sens, 3)
 
-    # draw plots
-    plt.subplot(3,1,3)
-    plt.plot(sensor_gyro_2['temperature'],sensor_gyro_2['z'],'b')
-    plt.plot(temp_resample,gyro_2_z_resample,'r')
-    plt.ylabel('Z bias (rad/s)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        gyro_2_params['TC_G2_X3_2'] = coef_gyro_2_z[0]
+        gyro_2_params['TC_G2_X2_2'] = coef_gyro_2_z[1]
+        gyro_2_params['TC_G2_X1_2'] = coef_gyro_2_z[2]
+        gyro_2_params['TC_G2_X0_2'] = coef_gyro_2_z[3]
+        fit_coef_gyro_2_z = np.poly1d(coef_gyro_2_z)
+        gyro_2_z_resample = fit_coef_gyro_2_z(temp_rel_resample)
 
-    pp.savefig()
+        # gyro2 vs temperature
+        plt.figure(7,figsize=(20,13))
+
+        # draw plots
+        plt.subplot(3,1,1)
+        plt.plot(sensor_gyro_2['temperature'],sensor_gyro_2['x'],'b')
+        plt.plot(temp_resample,gyro_2_x_resample,'r')
+        plt.title('Gyro 2 ({}) Bias vs Temperature'.format(gyro_2_params['TC_G2_ID']))
+        plt.ylabel('X bias (rad/s)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,2)
+        plt.plot(sensor_gyro_2['temperature'],sensor_gyro_2['y'],'b')
+        plt.plot(temp_resample,gyro_2_y_resample,'r')
+        plt.ylabel('Y bias (rad/s)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,3)
+        plt.plot(sensor_gyro_2['temperature'],sensor_gyro_2['z'],'b')
+        plt.plot(temp_resample,gyro_2_z_resample,'r')
+        plt.ylabel('Z bias (rad/s)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        pp.savefig()
 
 #################################################################################
 
@@ -986,83 +1023,94 @@ gyro_3_params = {
 }
 
 # curve fit the data for gyro 3 corrections
-if num_gyros >= 4 and not math.isnan(sensor_gyro_3['temperature'][0]):
-    gyro_3_params['TC_G3_ID'] = int(np.median(sensor_gyro_3['device_id']))
+if num_gyros >= 4:
 
-    # find the min, max and reference temperature
-    gyro_3_params['TC_G3_TMIN'] = np.amin(sensor_gyro_3['temperature'])
-    gyro_3_params['TC_G3_TMAX'] = np.amax(sensor_gyro_3['temperature'])
-    gyro_3_params['TC_G3_TREF'] = 0.5 * (gyro_3_params['TC_G3_TMIN'] + gyro_3_params['TC_G3_TMAX'])
-    temp_rel = sensor_gyro_3['temperature'] - gyro_3_params['TC_G3_TREF']
-    temp_rel_resample = np.linspace(gyro_3_params['TC_G3_TMIN']-gyro_3_params['TC_G3_TREF'], gyro_3_params['TC_G3_TMAX']-gyro_3_params['TC_G3_TREF'], 100)
-    temp_resample = temp_rel_resample + gyro_3_params['TC_G3_TREF']
+    #if the gyro has no temperature data, use the corresponding accel instance or the primary baro temp.
+    if math.isnan(sensor_gyro_3['temperature'][0]):
+        if not math.isnan(sensor_accel_3['temperature'][0]):
+            sensor_gyro_3['temperature'] = sensor_accel_3['temperature']
+        elif not math.isnan(sensor_baro_0['temperature'][0]):
+            sensor_gyro_3['temperature'] = sensor_baro_0['temperature']
 
-    sensor_gyro_3['x'] = median_filter(sensor_gyro_3['x'])
-    sensor_gyro_3['y'] = median_filter(sensor_gyro_3['y'])
-    sensor_gyro_3['z'] = median_filter(sensor_gyro_3['z'])
+    if not math.isnan(sensor_gyro_3['temperature'][0]):
 
-    # fit X axis
-    coef_gyro_3_x = np.polyfit(temp_rel,sensor_gyro_3['x'], 3)
-    gyro_3_params['TC_G3_X3_0'] = coef_gyro_3_x[0]
-    gyro_3_params['TC_G3_X2_0'] = coef_gyro_3_x[1]
-    gyro_3_params['TC_G3_X1_0'] = coef_gyro_3_x[2]
-    gyro_3_params['TC_G3_X0_0'] = coef_gyro_3_x[3]
-    fit_coef_gyro_3_x = np.poly1d(coef_gyro_3_x)
-    gyro_3_x_resample = fit_coef_gyro_3_x(temp_rel_resample)
+        gyro_3_params['TC_G3_ID'] = int(np.median(sensor_gyro_3['device_id']))
 
-    # fit Y axis
-    coef_gyro_3_y = np.polyfit(temp_rel,sensor_gyro_3['y'], 3)
-    gyro_3_params['TC_G3_X3_1'] = coef_gyro_3_y[0]
-    gyro_3_params['TC_G3_X2_1'] = coef_gyro_3_y[1]
-    gyro_3_params['TC_G3_X1_1'] = coef_gyro_3_y[2]
-    gyro_3_params['TC_G3_X0_1'] = coef_gyro_3_y[3]
-    fit_coef_gyro_3_y = np.poly1d(coef_gyro_3_y)
-    gyro_3_y_resample = fit_coef_gyro_3_y(temp_rel_resample)
+        # find the min, max and reference temperature
+        gyro_3_params['TC_G3_TMIN'] = np.amin(sensor_gyro_3['temperature'])
+        gyro_3_params['TC_G3_TMAX'] = np.amax(sensor_gyro_3['temperature'])
+        gyro_3_params['TC_G3_TREF'] = 0.5 * (gyro_2_params['TC_G3_TMIN'] + gyro_2_params['TC_G3_TMAX'])
 
-    # fit Z axis
-    coef_gyro_3_z = np.polyfit(temp_rel,sensor_gyro_3['z'], 3)
-    gyro_3_params['TC_G3_X3_2'] = coef_gyro_3_z[0]
-    gyro_3_params['TC_G3_X2_2'] = coef_gyro_3_z[1]
-    gyro_3_params['TC_G3_X1_2'] = coef_gyro_3_z[2]
-    gyro_3_params['TC_G3_X0_2'] = coef_gyro_3_z[3]
-    fit_coef_gyro_3_z = np.poly1d(coef_gyro_3_z)
-    gyro_3_z_resample = fit_coef_gyro_3_z(temp_rel_resample)
+        temp_rel = sensor_gyro_3['temperature'] - gyro_2_params['TC_G3_TREF']
+        temp_rel_resample = np.linspace(gyro_3_params['TC_G3_TMIN']-gyro_3_params['TC_G3_TREF'], gyro_3_params['TC_G3_TMAX']-gyro_3_params['TC_G3_TREF'], 100)
+        temp_resample = temp_rel_resample + gyro_3_params['TC_G3_TREF']
 
-    # gyro3 vs temperature
-    plt.figure(8,figsize=(20,13))
+        sensor_gyro_3['x'] = median_filter(sensor_gyro_3['x'])
+        sensor_gyro_3['y'] = median_filter(sensor_gyro_3['y'])
+        sensor_gyro_3['z'] = median_filter(sensor_gyro_3['z'])
 
-    # draw plots
-    plt.subplot(3,1,1)
-    plt.plot(sensor_gyro_3['temperature'],sensor_gyro_3['x'], 'b')
-    plt.plot(temp_resample,gyro_3_x_resample, 'r')
-    plt.title('Gyro 2 ({}) Bias vs Temperature'.format(gyro_3_params['TC_G3_ID']))
-    plt.ylabel('X bias (rad/s)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        # fit X axis
+        coef_gyro_3_x = np.polyfit(temp_rel,sensor_gyro_3['x'], 3)
+        gyro_3_params['TC_G3_X3_0'] = coef_gyro_3_x[0]
+        gyro_3_params['TC_G3_X2_0'] = coef_gyro_3_x[1]
+        gyro_3_params['TC_G3_X1_0'] = coef_gyro_3_x[2]
+        gyro_3_params['TC_G3_X0_0'] = coef_gyro_3_x[3]
+        fit_coef_gyro_3_x = np.poly1d(coef_gyro_3_x)
+        gyro_3_x_resample = fit_coef_gyro_3_x(temp_rel_resample)
 
-    # draw plots
-    plt.subplot(3,1,2)
-    plt.plot(sensor_gyro_3['temperature'],sensor_gyro_3['y'],'b')
-    plt.plot(temp_resample,gyro_3_y_resample,'r')
-    plt.ylabel('Y bias (rad/s)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        # fit Y axis
+        coef_gyro_3_y = np.polyfit(temp_rel,sensor_gyro_3['y'], 3)
+        gyro_3_params['TC_G3_X3_1'] = coef_gyro_3_y[0]
+        gyro_3_params['TC_G3_X2_1'] = coef_gyro_3_y[1]
+        gyro_3_params['TC_G3_X1_1'] = coef_gyro_3_y[2]
+        gyro_3_params['TC_G3_X0_1'] = coef_gyro_3_y[3]
+        fit_coef_gyro_3_y = np.poly1d(coef_gyro_3_y)
+        gyro_3_y_resample = fit_coef_gyro_3_y(temp_rel_resample)
 
-    # draw plots
-    plt.subplot(3,1,3)
-    plt.plot(sensor_gyro_3['temperature'],sensor_gyro_3['z'],'b')
-    plt.plot(temp_resample,gyro_3_z_resample,'r')
-    plt.ylabel('Z bias (rad/s)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        # fit Z axis
+        coef_gyro_3_z = np.polyfit(temp_rel,sensor_gyro_3['z'], 3)
+        gyro_3_params['TC_G3_X3_2'] = coef_gyro_3_z[0]
+        gyro_3_params['TC_G3_X2_2'] = coef_gyro_3_z[1]
+        gyro_3_params['TC_G3_X1_2'] = coef_gyro_3_z[2]
+        gyro_3_params['TC_G3_X0_2'] = coef_gyro_3_z[3]
+        fit_coef_gyro_3_z = np.poly1d(coef_gyro_3_z)
+        gyro_3_z_resample = fit_coef_gyro_3_z(temp_rel_resample)
 
-    pp.savefig()
+        # gyro3 vs temperature
+        plt.figure(8,figsize=(20,13))
+
+        # draw plots
+        plt.subplot(3,1,1)
+        plt.plot(sensor_gyro_3['temperature'],sensor_gyro_3['x'], 'b')
+        plt.plot(temp_resample,gyro_3_x_resample, 'r')
+        plt.title('Gyro 2 ({}) Bias vs Temperature'.format(gyro_3_params['TC_G3_ID']))
+        plt.ylabel('X bias (rad/s)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,2)
+        plt.plot(sensor_gyro_3['temperature'],sensor_gyro_3['y'],'b')
+        plt.plot(temp_resample,gyro_3_y_resample,'r')
+        plt.ylabel('Y bias (rad/s)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,3)
+        plt.plot(sensor_gyro_3['temperature'],sensor_gyro_3['z'],'b')
+        plt.plot(temp_resample,gyro_3_z_resample,'r')
+        plt.ylabel('Z bias (rad/s)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        pp.savefig()
 
 #################################################################################
 
 #################################################################################
 
-# define data dictionary of accel 0 thermal correction  parameters
+# define data dictionary of mag 0 thermal correction  parameters
 mag_0_params = {
 'TC_M0_ID':0,
 'TC_M0_TMIN':0.0,
@@ -1082,96 +1130,107 @@ mag_0_params = {
 'TC_M0_X3_2':0.0
 }
 
-# curve fit the data for accel 0 corrections
-if num_mags >= 1 and not math.isnan(sensor_mag_0['temperature'][0]):
-    mag_0_params['TC_M0_ID'] = int(np.median(sensor_mag_0['device_id']))
+# curve fit the data for mag 0 corrections
+if num_mags >= 1:
+    if math.isnan(sensor_mag_0['temperature'][0]):
+        if not math.isnan(sensor_baro_0['temperature'][0]):
+            sensor_mag_0['temperature'] = sensor_baro_0['temperature']
 
-    # find the min, max and reference temperature
-    mag_0_params['TC_M0_TMIN'] = np.amin(sensor_mag_0['temperature'])
-    mag_0_params['TC_M0_TMAX'] = np.amax(sensor_mag_0['temperature'])
-    mag_0_params['TC_M0_TREF'] = 0.5 * (mag_0_params['TC_M0_TMIN'] + mag_0_params['TC_M0_TMAX'])
-    temp_rel = sensor_mag_0['temperature'] - mag_0_params['TC_M0_TREF']
-    temp_rel_resample = np.linspace(mag_0_params['TC_M0_TMIN']-mag_0_params['TC_M0_TREF'], mag_0_params['TC_M0_TMAX']-mag_0_params['TC_M0_TREF'], 100)
-    temp_resample = temp_rel_resample + mag_0_params['TC_M0_TREF']
+    if not math.isnan(sensor_mag_0['temperature'][0]):
 
-    sensor_mag_0['x'] = median_filter(sensor_mag_0['x'])
-    sensor_mag_0['y'] = median_filter(sensor_mag_0['y'])
-    sensor_mag_0['z'] = median_filter(sensor_mag_0['z'])
+        # find the min, max and reference temperature
+        mag_0_params['TC_M0_TMIN'] = np.amin(sensor_mag_0['temperature'])
+        mag_0_params['TC_M0_TMAX'] = np.amax(sensor_mag_0['temperature'])
+        mag_0_params['TC_M0_TREF'] = 0.5 * (mag_0_params['TC_M0_TMIN'] + mag_0_params['TC_M0_TMAX'])
 
-    # fit X axis
-    correction_x = sensor_mag_0['x'] - np.median(sensor_mag_0['x'])
-    if noResample:
-        coef_mag_0_x = np.polyfit(temp_rel,correction_x, 3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel,correction_x)
-        coef_mag_0_x = np.polyfit(temp, sens, 3)
+        temp_rel = sensor_mag_0['temperature'] - mag_0_params['TC_M0_TREF']
+        temp_rel_resample = np.linspace(mag_0_params['TC_M0_TMIN']-mag_0_params['TC_M0_TREF'], mag_0_params['TC_M0_TMAX']-mag_0_params['TC_M0_TREF'], 100)
+        temp_resample     = temp_rel_resample + mag_0_params['TC_M0_TREF']
 
-    mag_0_params['TC_M0_X3_0'] = coef_mag_0_x[0]
-    mag_0_params['TC_M0_X2_0'] = coef_mag_0_x[1]
-    mag_0_params['TC_M0_X1_0'] = coef_mag_0_x[2]
-    mag_0_params['TC_M0_X0_0'] = coef_mag_0_x[3]
-    fit_coef_mag_0_x = np.poly1d(coef_mag_0_x)
-    correction_x_resample = fit_coef_mag_0_x(temp_rel_resample)
+        sensor_mag_0['x'] = median_filter(sensor_mag_0['x'])
+        sensor_mag_0['y'] = median_filter(sensor_mag_0['y'])
+        sensor_mag_0['z'] = median_filter(sensor_mag_0['z'])
 
-    # fit Y axis
-    correction_y = sensor_mag_0['y'] - np.median(sensor_mag_0['y'])
-    if noResample:
-        coef_mag_0_y = np.polyfit(temp_rel, correction_y, 3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel,correction_y)
-        coef_mag_0_y = np.polyfit(temp, sens, 3)
+        # fit X axis
+        correction_x = sensor_mag_0['x'] - np.median(sensor_mag_0['x'])
 
-    mag_0_params['TC_M0_X3_1'] = coef_mag_0_y[0]
-    mag_0_params['TC_M0_X2_1'] = coef_mag_0_y[1]
-    mag_0_params['TC_M0_X1_1'] = coef_mag_0_y[2]
-    mag_0_params['TC_M0_X0_1'] = coef_mag_0_y[3]
-    fit_coef_mag_0_y = np.poly1d(coef_mag_0_y)
-    correction_y_resample = fit_coef_mag_0_y(temp_rel_resample)
+        if noResample:
+            coef_mag_0_x = np.polyfit(temp_rel,correction_x, 3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,correction_x)
+            coef_mag_0_x = np.polyfit(temp, sens, 3)
 
-    # fit Z axis
-    correction_z = sensor_mag_0['z'] - np.median(sensor_mag_0['z'])
-    if noResample:
-        coef_mag_0_z = np.polyfit(temp_rel,correction_z, 3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel,correction_z)
-        coef_mag_0_z = np.polyfit(temp, sens, 3)
+        mag_0_params['TC_M0_X3_0'] = coef_mag_0_x[0]
+        mag_0_params['TC_M0_X2_0'] = coef_mag_0_x[1]
+        mag_0_params['TC_M0_X1_0'] = coef_mag_0_x[2]
+        mag_0_params['TC_M0_X0_0'] = coef_mag_0_x[3]
 
-    mag_0_params['TC_M0_X3_2'] = coef_mag_0_z[0]
-    mag_0_params['TC_M0_X2_2'] = coef_mag_0_z[1]
-    mag_0_params['TC_M0_X1_2'] = coef_mag_0_z[2]
-    mag_0_params['TC_M0_X0_2'] = coef_mag_0_z[3]
-    fit_coef_mag_0_z = np.poly1d(coef_mag_0_z)
-    correction_z_resample = fit_coef_mag_0_z(temp_rel_resample)
+        fit_coef_mag_0_x = np.poly1d(coef_mag_0_x)
+        correction_x_resample = fit_coef_mag_0_x(temp_rel_resample)
 
-    # mag 0 vs temperature
-    plt.figure(9,figsize=(20,13))
+        # fit Y axis
+        correction_y = sensor_mag_0['y'] - np.median(sensor_mag_0['y'])
 
-    # draw plots
-    plt.subplot(3,1,1)
-    plt.plot(sensor_mag_0['temperature'],correction_x,'b')
-    plt.plot(temp_resample,correction_x_resample,'r')
-    plt.title('Mag 0 ({}) Bias vs Temperature'.format(mag_0_params['TC_M0_ID']))
-    plt.ylabel('X bias (Gauss)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        if noResample:
+            coef_mag_0_y = np.polyfit(temp_rel, correction_y, 3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,correction_y)
+            coef_mag_0_y = np.polyfit(temp, sens, 3)
 
-    # draw plots
-    plt.subplot(3,1,2)
-    plt.plot(sensor_mag_0['temperature'],correction_y,'b')
-    plt.plot(temp_resample,correction_y_resample,'r')
-    plt.ylabel('Y bias (Gauss)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        mag_0_params['TC_M0_X3_1'] = coef_mag_0_y[0]
+        mag_0_params['TC_M0_X2_1'] = coef_mag_0_y[1]
+        mag_0_params['TC_M0_X1_1'] = coef_mag_0_y[2]
+        mag_0_params['TC_M0_X0_1'] = coef_mag_0_y[3]
 
-    # draw plots
-    plt.subplot(3,1,3)
-    plt.plot(sensor_mag_0['temperature'],correction_z,'b')
-    plt.plot(temp_resample,correction_z_resample,'r')
-    plt.ylabel('Z bias (Gauss)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        fit_coef_mag_0_y = np.poly1d(coef_mag_0_y)
+        correction_y_resample = fit_coef_mag_0_y(temp_rel_resample)
 
-    pp.savefig()
+        # fit Z axis
+        correction_z = sensor_mag_0['z'] - np.median(sensor_mag_0['z'])
+
+        if noResample:
+            coef_mag_0_z = np.polyfit(temp_rel,correction_z, 3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,correction_z)
+            coef_mag_0_z = np.polyfit(temp, sens, 3)
+
+        mag_0_params['TC_M0_X3_2'] = coef_mag_0_z[0]
+        mag_0_params['TC_M0_X2_2'] = coef_mag_0_z[1]
+        mag_0_params['TC_M0_X1_2'] = coef_mag_0_z[2]
+        mag_0_params['TC_M0_X0_2'] = coef_mag_0_z[3]
+
+        fit_coef_mag_0_z = np.poly1d(coef_mag_0_z)
+        correction_z_resample = fit_coef_mag_0_z(temp_rel_resample)
+
+        # mag 0 vs temperature
+        plt.figure(9,figsize=(20,13))
+
+        # draw plots
+        plt.subplot(3,1,1)
+        plt.plot(sensor_mag_0['temperature'],correction_x,'b')
+        plt.plot(temp_resample,correction_x_resample,'r')
+        plt.title('Mag 0 ({}) Bias vs Temperature'.format(mag_0_params['TC_M0_ID']))
+        plt.ylabel('X bias (Gauss)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,2)
+        plt.plot(sensor_mag_0['temperature'],correction_y,'b')
+        plt.plot(temp_resample,correction_y_resample,'r')
+        plt.ylabel('Y bias (Gauss)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,3)
+        plt.plot(sensor_mag_0['temperature'],correction_z,'b')
+        plt.plot(temp_resample,correction_z_resample,'r')
+        plt.ylabel('Z bias (Gauss)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        pp.savefig()
 
 #################################################################################
 
@@ -1198,95 +1257,108 @@ mag_1_params = {
 }
 
 # curve fit the data for mag 1 corrections
-if num_mags >= 2 and not math.isnan(sensor_mag_1['temperature'][0]):
-    mag_1_params['TC_M1_ID'] = int(np.median(sensor_mag_1['device_id']))
+if num_mags >= 2:
+    if math.isnan(sensor_mag_1['temperature'][0]):
+        if not math.isnan(sensor_baro_0['temperature'][0]):
+            sensor_mag_1['temperature'] = sensor_baro_0['temperature']
 
-    # find the min, max and reference temperature
-    mag_1_params['TC_M1_TMIN'] = np.amin(sensor_mag_1['temperature'])
-    mag_1_params['TC_M1_TMAX'] = np.amax(sensor_mag_1['temperature'])
-    mag_1_params['TC_M1_TREF'] = 0.5 * (mag_1_params['TC_M1_TMIN'] + mag_1_params['TC_M1_TMAX'])
-    temp_rel = sensor_mag_1['temperature'] - mag_1_params['TC_M1_TREF']
-    temp_rel_resample = np.linspace(mag_1_params['TC_M1_TMIN']-mag_1_params['TC_M1_TREF'], mag_1_params['TC_M1_TMAX']-mag_1_params['TC_M1_TREF'], 100)
-    temp_resample = temp_rel_resample + mag_1_params['TC_M1_TREF']
+    if not math.isnan(sensor_mag_1['temperature'][0]):
 
-    sensor_mag_1['x'] = median_filter(sensor_mag_1['x'])
-    sensor_mag_1['y'] = median_filter(sensor_mag_1['y'])
-    sensor_mag_1['z'] = median_filter(sensor_mag_1['z'])
+        mag_1_params['TC_M1_ID'] = int(np.median(sensor_mag_1['device_id']))
 
-    # fit X axis
-    correction_x = sensor_mag_1['x'] - np.median(sensor_mag_1['x'])
-    if noResample:
-        coef_mag_1_x = np.polyfit(temp_rel, correction_x, 3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel, correction_x)
-        coef_mag_1_x = np.polyfit(temp, sens, 3)
+        # find the min, max and reference temperature
+        mag_1_params['TC_M1_TMIN'] = np.amin(sensor_mag_1['temperature'])
+        mag_1_params['TC_M1_TMAX'] = np.amax(sensor_mag_1['temperature'])
+        mag_1_params['TC_M1_TREF'] = 0.5 * (mag_1_params['TC_M1_TMIN'] + mag_1_params['TC_M1_TMAX'])
 
-    mag_1_params['TC_M1_X3_0'] = coef_mag_1_x[0]
-    mag_1_params['TC_M1_X2_0'] = coef_mag_1_x[1]
-    mag_1_params['TC_M1_X1_0'] = coef_mag_1_x[2]
-    mag_1_params['TC_M1_X0_0'] = coef_mag_1_x[3]
-    fit_coef_mag_1_x = np.poly1d(coef_mag_1_x)
-    correction_x_resample = fit_coef_mag_1_x(temp_rel_resample)
+        temp_rel = sensor_mag_1['temperature'] - mag_1_params['TC_M1_TREF']
+        temp_rel_resample = np.linspace(mag_1_params['TC_M1_TMIN']-mag_1_params['TC_M1_TREF'], mag_1_params['TC_M1_TMAX']-mag_1_params['TC_M1_TREF'], 100)
+        temp_resample = temp_rel_resample + mag_1_params['TC_M1_TREF']
 
-    # fit Y axis
-    correction_y = sensor_mag_1['y'] - np.median(sensor_mag_1['y'])
-    if noResample:
-        coef_mag_1_y = np.polyfit(temp_rel,correction_y,3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel,correction_y)
-        coef_mag_1_y = np.polyfit(temp, sens ,3)
+        sensor_mag_1['x'] = median_filter(sensor_mag_1['x'])
+        sensor_mag_1['y'] = median_filter(sensor_mag_1['y'])
+        sensor_mag_1['z'] = median_filter(sensor_mag_1['z'])
 
-    mag_1_params['TC_M1_X3_1'] = coef_mag_1_y[0]
-    mag_1_params['TC_M1_X2_1'] = coef_mag_1_y[1]
-    mag_1_params['TC_M1_X1_1'] = coef_mag_1_y[2]
-    mag_1_params['TC_M1_X0_1'] = coef_mag_1_y[3]
-    fit_coef_mag_1_y = np.poly1d(coef_mag_1_y)
-    correction_y_resample = fit_coef_mag_1_y(temp_rel_resample)
+        # fit X axis
+        correction_x = sensor_mag_1['x'] - np.median(sensor_mag_1['x'])
 
-    # fit Z axis
-    correction_z = sensor_mag_1['z'] - np.median(sensor_mag_1['z'])
-    if noResample:
-        coef_mag_1_z = np.polyfit(temp_rel,correction_z, 3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel,correction_z)
-        coef_mag_1_z = np.polyfit(temp, sens, 3)
+        if noResample:
+            coef_mag_1_x = np.polyfit(temp_rel, correction_x, 3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel, correction_x)
+            coef_mag_1_x = np.polyfit(temp, sens, 3)
 
-    mag_1_params['TC_M1_X3_2'] = coef_mag_1_z[0]
-    mag_1_params['TC_M1_X2_2'] = coef_mag_1_z[1]
-    mag_1_params['TC_M1_X1_2'] = coef_mag_1_z[2]
-    mag_1_params['TC_M1_X0_2'] = coef_mag_1_z[3]
-    fit_coef_mag_1_z = np.poly1d(coef_mag_1_z)
-    correction_z_resample = fit_coef_mag_1_z(temp_rel_resample)
+        mag_1_params['TC_M1_X3_0'] = coef_mag_1_x[0]
+        mag_1_params['TC_M1_X2_0'] = coef_mag_1_x[1]
+        mag_1_params['TC_M1_X1_0'] = coef_mag_1_x[2]
+        mag_1_params['TC_M1_X0_0'] = coef_mag_1_x[3]
 
-    # mag 1 vs temperature
-    plt.figure(10,figsize=(20,13))
+        fit_coef_mag_1_x = np.poly1d(coef_mag_1_x)
+        correction_x_resample = fit_coef_mag_1_x(temp_rel_resample)
 
-    # draw plots
-    plt.subplot(3,1,1)
-    plt.plot(sensor_mag_1['temperature'],correction_x,'b')
-    plt.plot(temp_resample,correction_x_resample,'r')
-    plt.title('Mag 1 ({}) Bias vs Temperature'.format(mag_1_params['TC_M1_ID']))
-    plt.ylabel('X bias (Gauss)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        # fit Y axis
+        correction_y = sensor_mag_1['y'] - np.median(sensor_mag_1['y'])
 
-    # draw plots
-    plt.subplot(3,1,2)
-    plt.plot(sensor_mag_1['temperature'],correction_y,'b')
-    plt.plot(temp_resample,correction_y_resample,'r')
-    plt.ylabel('Y bias (Gauss)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        if noResample:
+            coef_mag_1_y = np.polyfit(temp_rel,correction_y,3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,correction_y)
+            coef_mag_1_y = np.polyfit(temp, sens ,3)
 
-    # draw plots
-    plt.subplot(3,1,3)
-    plt.plot(sensor_mag_1['temperature'],correction_z,'b')
-    plt.plot(temp_resample,correction_z_resample,'r')
-    plt.ylabel('Z bias (Gauss)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        mag_1_params['TC_M1_X3_1'] = coef_mag_1_y[0]
+        mag_1_params['TC_M1_X2_1'] = coef_mag_1_y[1]
+        mag_1_params['TC_M1_X1_1'] = coef_mag_1_y[2]
+        mag_1_params['TC_M1_X0_1'] = coef_mag_1_y[3]
 
-    pp.savefig()
+        fit_coef_mag_1_y = np.poly1d(coef_mag_1_y)
+        correction_y_resample = fit_coef_mag_1_y(temp_rel_resample)
+
+        # fit Z axis
+        correction_z = sensor_mag_1['z'] - np.median(sensor_mag_1['z'])
+
+        if noResample:
+            coef_mag_1_z = np.polyfit(temp_rel,correction_z, 3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,correction_z)
+            coef_mag_1_z = np.polyfit(temp, sens, 3)
+
+        mag_1_params['TC_M1_X3_2'] = coef_mag_1_z[0]
+        mag_1_params['TC_M1_X2_2'] = coef_mag_1_z[1]
+        mag_1_params['TC_M1_X1_2'] = coef_mag_1_z[2]
+        mag_1_params['TC_M1_X0_2'] = coef_mag_1_z[3]
+
+        fit_coef_mag_1_z = np.poly1d(coef_mag_1_z)
+        correction_z_resample = fit_coef_mag_1_z(temp_rel_resample)
+
+        # mag 1 vs temperature
+        plt.figure(10,figsize=(20,13))
+
+        # draw plots
+        plt.subplot(3,1,1)
+        plt.plot(sensor_mag_1['temperature'],correction_x,'b')
+        plt.plot(temp_resample,correction_x_resample,'r')
+        plt.title('Mag 1 ({}) Bias vs Temperature'.format(mag_1_params['TC_M1_ID']))
+        plt.ylabel('X bias (Gauss)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,2)
+        plt.plot(sensor_mag_1['temperature'],correction_y,'b')
+        plt.plot(temp_resample,correction_y_resample,'r')
+        plt.ylabel('Y bias (Gauss)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,3)
+        plt.plot(sensor_mag_1['temperature'],correction_z,'b')
+        plt.plot(temp_resample,correction_z_resample,'r')
+        plt.ylabel('Z bias (Gauss)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        pp.savefig()
 
 
 #################################################################################
@@ -1314,95 +1386,108 @@ mag_2_params = {
 }
 
 # curve fit the data for mag 2 corrections
-if num_mags >= 3 and not math.isnan(sensor_mag_2['temperature'][0]):
-    mag_2_params['TC_M2_ID'] = int(np.median(sensor_mag_2['device_id']))
+if num_mags >= 3:
+    if math.isnan(sensor_mag_2['temperature'][0]):
+        if not math.isnan(sensor_baro_0['temperature'][0]):
+            sensor_mag_2['temperature'] = sensor_baro_0['temperature']
 
-    # find the min, max and reference temperature
-    mag_2_params['TC_M2_TMIN'] = np.amin(sensor_mag_2['temperature'])
-    mag_2_params['TC_M2_TMAX'] = np.amax(sensor_mag_2['temperature'])
-    mag_2_params['TC_M2_TREF'] = 0.5 * (mag_2_params['TC_M2_TMIN'] + mag_2_params['TC_M2_TMAX'])
-    temp_rel = sensor_mag_2['temperature'] - mag_2_params['TC_M2_TREF']
-    temp_rel_resample = np.linspace(mag_2_params['TC_M2_TMIN']-mag_2_params['TC_M2_TREF'], mag_2_params['TC_M2_TMAX']-mag_2_params['TC_M2_TREF'], 100)
-    temp_resample = temp_rel_resample + mag_2_params['TC_M2_TREF']
+    if not math.isnan(sensor_mag_2['temperature'][0]):
 
-    sensor_mag_2['x'] = median_filter(sensor_mag_2['x'])
-    sensor_mag_2['y'] = median_filter(sensor_mag_2['y'])
-    sensor_mag_2['z'] = median_filter(sensor_mag_2['z'])
+        mag_2_params['TC_M2_ID'] = int(np.median(sensor_mag_2['device_id']))
 
-    # fit X axis
-    correction_x = sensor_mag_2['x'] - np.median(sensor_mag_2['x'])
-    if noResample:
-        coef_mag_2_x = np.polyfit(temp_rel,correction_x, 3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel, correction_x)
-        coef_mag_2_x = np.polyfit(temp, sens, 3)
+        # find the min, max and reference temperature
+        mag_2_params['TC_M2_TMIN'] = np.amin(sensor_mag_2['temperature'])
+        mag_2_params['TC_M2_TMAX'] = np.amax(sensor_mag_2['temperature'])
+        mag_2_params['TC_M2_TREF'] = 0.5 * (mag_2_params['TC_M2_TMIN'] + mag_2_params['TC_M2_TMAX'])
 
-    mag_2_params['TC_M2_X3_0'] = coef_mag_2_x[0]
-    mag_2_params['TC_M2_X2_0'] = coef_mag_2_x[1]
-    mag_2_params['TC_M2_X1_0'] = coef_mag_2_x[2]
-    mag_2_params['TC_M2_X0_0'] = coef_mag_2_x[3]
-    fit_coef_mag_2_x = np.poly1d(coef_mag_2_x)
-    correction_x_resample = fit_coef_mag_2_x(temp_rel_resample)
+        temp_rel = sensor_mag_2['temperature'] - mag_2_params['TC_M2_TREF']
+        temp_rel_resample = np.linspace(mag_2_params['TC_M2_TMIN']-mag_2_params['TC_M2_TREF'], mag_2_params['TC_M2_TMAX']-mag_2_params['TC_M2_TREF'], 100)
+        temp_resample = temp_rel_resample + mag_2_params['TC_M2_TREF']
 
-    # fit Y axis
-    correction_y = sensor_mag_2['y'] - np.median(sensor_mag_2['y'])
-    if noResample:
-        coef_mag_2_y = np.polyfit(temp_rel,correction_y,3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel,correction_y)
-        coef_mag_2_y = np.polyfit(temp, sens ,3)
+        sensor_mag_2['x'] = median_filter(sensor_mag_2['x'])
+        sensor_mag_2['y'] = median_filter(sensor_mag_2['y'])
+        sensor_mag_2['z'] = median_filter(sensor_mag_2['z'])
 
-    mag_2_params['TC_M2_X3_1'] = coef_mag_2_y[0]
-    mag_2_params['TC_M2_X2_1'] = coef_mag_2_y[1]
-    mag_2_params['TC_M2_X1_1'] = coef_mag_2_y[2]
-    mag_2_params['TC_M2_X0_1'] = coef_mag_2_y[3]
-    fit_coef_mag_2_y = np.poly1d(coef_mag_2_y)
-    correction_y_resample = fit_coef_mag_2_y(temp_rel_resample)
+        # fit X axis
+        correction_x = sensor_mag_2['x'] - np.median(sensor_mag_2['x'])
 
-    # fit Z axis
-    correction_z = sensor_mag_2['z'] - np.median(sensor_mag_2['z'])
-    if noResample:
-        coef_mag_2_z = np.polyfit(temp_rel,correction_z,3)
-    else:
-        temp, sens = resampleWithDeltaX(temp_rel,correction_z)
-        coef_mag_2_z = np.polyfit(temp, sens ,3)
+        if noResample:
+            coef_mag_2_x = np.polyfit(temp_rel,correction_x, 3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel, correction_x)
+            coef_mag_2_x = np.polyfit(temp, sens, 3)
 
-    mag_2_params['TC_M2_X3_2'] = coef_mag_2_z[0]
-    mag_2_params['TC_M2_X2_2'] = coef_mag_2_z[1]
-    mag_2_params['TC_M2_X1_2'] = coef_mag_2_z[2]
-    mag_2_params['TC_M2_X0_2'] = coef_mag_2_z[3]
-    fit_coef_mag_2_z = np.poly1d(coef_mag_2_z)
-    correction_z_resample = fit_coef_mag_2_z(temp_rel_resample)
+        mag_2_params['TC_M2_X3_0'] = coef_mag_2_x[0]
+        mag_2_params['TC_M2_X2_0'] = coef_mag_2_x[1]
+        mag_2_params['TC_M2_X1_0'] = coef_mag_2_x[2]
+        mag_2_params['TC_M2_X0_0'] = coef_mag_2_x[3]
 
-    # mag 2 vs temperature
-    plt.figure(11,figsize=(20,13))
+        fit_coef_mag_2_x = np.poly1d(coef_mag_2_x)
+        correction_x_resample = fit_coef_mag_2_x(temp_rel_resample)
 
-    # draw plots
-    plt.subplot(3,1,1)
-    plt.plot(sensor_mag_2['temperature'],correction_x,'b')
-    plt.plot(temp_resample,correction_x_resample,'r')
-    plt.title('Mag 2 ({}) Bias vs Temperature'.format(mag_2_params['TC_M2_ID']))
-    plt.ylabel('X bias (Gauss)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        # fit Y axis
+        correction_y = sensor_mag_2['y'] - np.median(sensor_mag_2['y'])
 
-    # draw plots
-    plt.subplot(3,1,2)
-    plt.plot(sensor_mag_2['temperature'],correction_y,'b')
-    plt.plot(temp_resample,correction_y_resample,'r')
-    plt.ylabel('Y bias (Gauss)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        if noResample:
+            coef_mag_2_y = np.polyfit(temp_rel,correction_y,3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,correction_y)
+            coef_mag_2_y = np.polyfit(temp, sens ,3)
 
-    # draw plots
-    plt.subplot(3,1,3)
-    plt.plot(sensor_mag_2['temperature'],correction_z,'b')
-    plt.plot(temp_resample,correction_z_resample,'r')
-    plt.ylabel('Z bias (Gauss)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        mag_2_params['TC_M2_X3_1'] = coef_mag_2_y[0]
+        mag_2_params['TC_M2_X2_1'] = coef_mag_2_y[1]
+        mag_2_params['TC_M2_X1_1'] = coef_mag_2_y[2]
+        mag_2_params['TC_M2_X0_1'] = coef_mag_2_y[3]
 
-    pp.savefig()
+        fit_coef_mag_2_y = np.poly1d(coef_mag_2_y)
+        correction_y_resample = fit_coef_mag_2_y(temp_rel_resample)
+
+        # fit Z axis
+        correction_z = sensor_mag_2['z'] - np.median(sensor_mag_2['z'])
+
+        if noResample:
+            coef_mag_2_z = np.polyfit(temp_rel,correction_z,3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,correction_z)
+            coef_mag_2_z = np.polyfit(temp, sens ,3)
+
+        mag_2_params['TC_M2_X3_2'] = coef_mag_2_z[0]
+        mag_2_params['TC_M2_X2_2'] = coef_mag_2_z[1]
+        mag_2_params['TC_M2_X1_2'] = coef_mag_2_z[2]
+        mag_2_params['TC_M2_X0_2'] = coef_mag_2_z[3]
+
+        fit_coef_mag_2_z = np.poly1d(coef_mag_2_z)
+        correction_z_resample = fit_coef_mag_2_z(temp_rel_resample)
+
+        # mag 2 vs temperature
+        plt.figure(11,figsize=(20,13))
+
+        # draw plots
+        plt.subplot(3,1,1)
+        plt.plot(sensor_mag_2['temperature'],correction_x,'b')
+        plt.plot(temp_resample,correction_x_resample,'r')
+        plt.title('Mag 2 ({}) Bias vs Temperature'.format(mag_2_params['TC_M2_ID']))
+        plt.ylabel('X bias (Gauss)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,2)
+        plt.plot(sensor_mag_2['temperature'],correction_y,'b')
+        plt.plot(temp_resample,correction_y_resample,'r')
+        plt.ylabel('Y bias (Gauss)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,3)
+        plt.plot(sensor_mag_2['temperature'],correction_z,'b')
+        plt.plot(temp_resample,correction_z_resample,'r')
+        plt.ylabel('Z bias (Gauss)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        pp.savefig()
 
 #################################################################################
 
@@ -1428,81 +1513,113 @@ mag_3_params = {
 'TC_M3_X3_2':0.0
 }
 
-# curve fit the data for mag 2 corrections
-if num_mags >= 4 and not math.isnan(sensor_mag_3['temperature'][0]):
-    mag_3_params['TC_M3_ID'] = int(np.median(sensor_mag_3['device_id']))
+# curve fit the data for mag 3 corrections
+if num_mags >= 4:
+    if math.isnan(sensor_mag_3['temperature'][0]):
+        if not math.isnan(sensor_baro_0['temperature'][0]):
+            sensor_mag_3['temperature'] = sensor_baro_0['temperature']
 
-    # find the min, max and reference temperature
-    mag_3_params['TC_M3_TMIN'] = np.amin(sensor_mag_3['temperature'])
-    mag_3_params['TC_M3_TMAX'] = np.amax(sensor_mag_3['temperature'])
-    mag_3_params['TC_M3_TREF'] = 0.5 * (mag_3_params['TC_M3_TMIN'] + mag_3_params['TC_M3_TMAX'])
-    temp_rel = sensor_mag_3['temperature'] - mag_3_params['TC_M3_TREF']
-    temp_rel_resample = np.linspace(mag_3_params['TC_M3_TMIN']-mag_3_params['TC_M3_TREF'], mag_3_params['TC_M3_TMAX']-mag_3_params['TC_M3_TREF'], 100)
-    temp_resample = temp_rel_resample + mag_3_params['TC_M3_TREF']
+    if not math.isnan(sensor_mag_3['temperature'][0]):
 
-    sensor_mag_3['x'] = median_filter(sensor_mag_3['x'])
-    sensor_mag_3['y'] = median_filter(sensor_mag_3['y'])
-    sensor_mag_3['z'] = median_filter(sensor_mag_3['z'])
+        mag_3_params['TC_M3_ID'] = int(np.median(sensor_mag_3['device_id']))
 
-    # fit X axis
-    correction_x = sensor_mag_3['x'] - np.median(sensor_mag_3['x'])
-    coef_mag_3_x = np.polyfit(temp_rel, correction_x, 3)
-    mag_3_params['TC_M3_X3_0'] = coef_mag_3_x[0]
-    mag_3_params['TC_M3_X2_0'] = coef_mag_3_x[1]
-    mag_3_params['TC_M3_X1_0'] = coef_mag_3_x[2]
-    mag_3_params['TC_M3_X0_0'] = coef_mag_3_x[3]
-    fit_coef_mag_3_x = np.poly1d(coef_mag_3_x)
-    correction_x_resample = fit_coef_mag_3_x(temp_rel_resample)
+        # find the min, max and reference temperature
+        mag_3_params['TC_M3_TMIN'] = np.amin(sensor_mag_3['temperature'])
+        mag_3_params['TC_M3_TMAX'] = np.amax(sensor_mag_3['temperature'])
+        mag_3_params['TC_M3_TREF'] = 0.5 * (mag_3_params['TC_M3_TMIN'] + mag_3_params['TC_M3_TMAX'])
 
-    # fit Y axis
-    correction_y = sensor_mag_3['y'] - np.median(sensor_mag_3['y'])
-    coef_mag_3_y = np.polyfit(temp_rel, correction_y, 3)
-    mag_3_params['TC_M3_X3_1'] = coef_mag_3_y[0]
-    mag_3_params['TC_M3_X2_1'] = coef_mag_3_y[1]
-    mag_3_params['TC_M3_X1_1'] = coef_mag_3_y[2]
-    mag_3_params['TC_M3_X0_1'] = coef_mag_3_y[3]
-    fit_coef_mag_3_y = np.poly1d(coef_mag_3_y)
-    correction_y_resample = fit_coef_mag_3_y(temp_rel_resample)
+        temp_rel = sensor_mag_3['temperature'] - mag_3_params['TC_M3_TREF']
+        temp_rel_resample = np.linspace(mag_3_params['TC_M3_TMIN']-mag_3_params['TC_M3_TREF'], mag_3_params['TC_M3_TMAX']-mag_3_params['TC_M3_TREF'], 100)
+        temp_resample     = temp_rel_resample + mag_3_params['TC_M3_TREF']
 
-    # fit Z axis
-    correction_z = sensor_mag_3['z'] - np.median(sensor_mag_3['z'])
-    coef_mag_3_z = np.polyfit(temp_rel, correction_z, 3)
-    mag_3_params['TC_M3_X3_2'] = coef_mag_3_z[0]
-    mag_3_params['TC_M3_X2_2'] = coef_mag_3_z[1]
-    mag_3_params['TC_M3_X1_2'] = coef_mag_3_z[2]
-    mag_3_params['TC_M3_X0_2'] = coef_mag_3_z[3]
-    fit_coef_mag_3_z = np.poly1d(coef_mag_3_z)
-    correction_z_resample = fit_coef_mag_3_z(temp_rel_resample)
+        # Delete the dataset first and last 10 seconds of data
+        sensor_mag_3 = np.delete(sensor_mag_3, range(0,1000), axis=['x'])
+        sensor_mag_3 = np.delete(sensor_mag_3, range(-1000,), axis=['x'])
 
-    # mag 3 vs temperature
-    plt.figure(12,figsize=(20,13))
+        sensor_mag_3['x'] = median_filter(sensor_mag_3['x'])
+        sensor_mag_3['y'] = median_filter(sensor_mag_3['y'])
+        sensor_mag_3['z'] = median_filter(sensor_mag_3['z'])
 
-    # draw plots
-    plt.subplot(3,1,1)
-    plt.plot(sensor_mag_3['temperature'],correction_x,'b')
-    plt.plot(temp_resample,correction_x_resample,'r')
-    plt.title('Mag 3 ({}) Bias vs Temperature'.format(mag_3_params['TC_M3_ID']))
-    plt.ylabel('X bias (Gauss)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        # fit X axis
+        correction_x = sensor_mag_3['x'] - np.median(sensor_mag_3['x'])
 
-    # draw plots
-    plt.subplot(3,1,2)
-    plt.plot(sensor_mag_3['temperature'],correction_y,'b')
-    plt.plot(temp_resample,correction_y_resample,'r')
-    plt.ylabel('Y bias (Gauss)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        if noResample:
+            coef_mag_3_x = np.polyfit(temp_rel,correction_x, 3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,correction_x)
+            coef_mag_3_x = np.polyfit(temp, sens, 3)
 
-    # draw plots
-    plt.subplot(3,1,3)
-    plt.plot(sensor_mag_3['temperature'],correction_z,'b')
-    plt.plot(temp_resample,correction_z_resample,'r')
-    plt.ylabel('Z bias (Gauss)')
-    plt.xlabel('temperature (degC)')
-    plt.grid()
+        mag_3_params['TC_M3_X3_0'] = coef_mag_3_x[0]
+        mag_3_params['TC_M3_X2_0'] = coef_mag_3_x[1]
+        mag_3_params['TC_M3_X1_0'] = coef_mag_3_x[2]
+        mag_3_params['TC_M3_X0_0'] = coef_mag_3_x[3]
 
-    pp.savefig()
+        fit_coef_mag_3_x = np.poly1d(coef_mag_3_x)
+        correction_x_resample = fit_coef_mag_3_x(temp_rel_resample)
+
+        # fit Y axis
+        correction_y = sensor_mag_3['y'] - np.median(sensor_mag_3['y'])
+
+        if noResample:
+            coef_mag_3_y = np.polyfit(temp_rel, correction_y, 3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,correction_y)
+            coef_mag_3_y = np.polyfit(temp, sens, 3)
+
+        mag_3_params['TC_M3_X3_1'] = coef_mag_3_y[0]
+        mag_3_params['TC_M3_X2_1'] = coef_mag_3_y[1]
+        mag_3_params['TC_M3_X1_1'] = coef_mag_3_y[2]
+        mag_3_params['TC_M3_X0_1'] = coef_mag_3_y[3]
+
+        fit_coef_mag_3_y = np.poly1d(coef_mag_3_y)
+        correction_y_resample = fit_coef_mag_3_y(temp_rel_resample)
+
+        # fit Z axis
+        correction_z = sensor_mag_3['z'] - np.median(sensor_mag_3['z'])
+
+        if noResample:
+            coef_mag_3_z = np.polyfit(temp_rel,correction_z, 3)
+        else:
+            temp, sens = resampleWithDeltaX(temp_rel,correction_z)
+            coef_mag_3_z = np.polyfit(temp, sens, 3)
+
+        mag_3_params['TC_M3_X3_2'] = coef_mag_3_z[0]
+        mag_3_params['TC_M3_X2_2'] = coef_mag_3_z[1]
+        mag_3_params['TC_M3_X1_2'] = coef_mag_3_z[2]
+        mag_3_params['TC_M3_X0_2'] = coef_mag_3_z[3]
+
+        fit_coef_mag_3_z = np.poly1d(coef_mag_3_z)
+        correction_z_resample = fit_coef_mag_3_z(temp_rel_resample)
+
+        # mag 3 vs temperature
+        plt.figure(12,figsize=(20,13))
+
+        # draw plots
+        plt.subplot(3,1,1)
+        plt.plot(sensor_mag_3['temperature'],correction_x,'b')
+        plt.plot(temp_resample,correction_x_resample,'r')
+        plt.title('Mag 3 ({}) Bias vs Temperature'.format(mag_3_params['TC_M3_ID']))
+        plt.ylabel('X bias (Gauss)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,2)
+        plt.plot(sensor_mag_3['temperature'],correction_y,'b')
+        plt.plot(temp_resample,correction_y_resample,'r')
+        plt.ylabel('Y bias (Gauss)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        # draw plots
+        plt.subplot(3,1,3)
+        plt.plot(sensor_mag_3['temperature'],correction_z,'b')
+        plt.plot(temp_resample,correction_z_resample,'r')
+        plt.ylabel('Z bias (Gauss)')
+        plt.xlabel('temperature (degC)')
+        plt.grid()
+
+        pp.savefig()
 
 #################################################################################
 
@@ -1529,6 +1646,7 @@ baro_0_params['TC_B0_ID'] = int(np.median(sensor_baro_0['device_id']))
 baro_0_params['TC_B0_TMIN'] = np.amin(sensor_baro_0['temperature'])
 baro_0_params['TC_B0_TMAX'] = np.amax(sensor_baro_0['temperature'])
 baro_0_params['TC_B0_TREF'] = 0.5 * (baro_0_params['TC_B0_TMIN'] + baro_0_params['TC_B0_TMAX'])
+
 temp_rel = sensor_baro_0['temperature'] - baro_0_params['TC_B0_TREF']
 temp_rel_resample = np.linspace(baro_0_params['TC_B0_TMIN']-baro_0_params['TC_B0_TREF'], baro_0_params['TC_B0_TMAX']-baro_0_params['TC_B0_TREF'], 100)
 temp_resample = temp_rel_resample + baro_0_params['TC_B0_TREF']
@@ -1549,6 +1667,7 @@ baro_0_params['TC_B0_X3'] = coef_baro_0_x[2]
 baro_0_params['TC_B0_X2'] = coef_baro_0_x[3]
 baro_0_params['TC_B0_X1'] = coef_baro_0_x[4]
 baro_0_params['TC_B0_X0'] = coef_baro_0_x[5]
+
 fit_coef_baro_0_x = np.poly1d(coef_baro_0_x)
 baro_0_x_resample = fit_coef_baro_0_x(temp_rel_resample)
 
@@ -1588,6 +1707,7 @@ if num_baros >= 2:
     baro_1_params['TC_B1_TMIN'] = np.amin(sensor_baro_1['temperature'])
     baro_1_params['TC_B1_TMAX'] = np.amax(sensor_baro_1['temperature'])
     baro_1_params['TC_B1_TREF'] = 0.5 * (baro_1_params['TC_B1_TMIN'] + baro_1_params['TC_B1_TMAX'])
+
     temp_rel = sensor_baro_1['temperature'] - baro_1_params['TC_B1_TREF']
     temp_rel_resample = np.linspace(baro_1_params['TC_B1_TMIN']-baro_1_params['TC_B1_TREF'], baro_1_params['TC_B1_TMAX']-baro_1_params['TC_B1_TREF'], 100)
     temp_resample = temp_rel_resample + baro_1_params['TC_B1_TREF']
@@ -1608,6 +1728,7 @@ if num_baros >= 2:
     baro_1_params['TC_B1_X2'] = coef_baro_1_x[3]
     baro_1_params['TC_B1_X1'] = coef_baro_1_x[4]
     baro_1_params['TC_B1_X0'] = coef_baro_1_x[5]
+
     fit_coef_baro_1_x = np.poly1d(coef_baro_1_x)
     baro_1_x_resample = fit_coef_baro_1_x(temp_rel_resample)
 
@@ -1636,7 +1757,6 @@ baro_2_params = {
 'TC_B2_X3':0.0,
 'TC_B2_X4':0.0,
 'TC_B2_X5':0.0,
-'TC_B2_SCL':1.0,
 }
 
 if num_baros >= 3:
@@ -1648,6 +1768,7 @@ if num_baros >= 3:
     baro_2_params['TC_B2_TMIN'] = np.amin(sensor_baro_2['temperature'])
     baro_2_params['TC_B2_TMAX'] = np.amax(sensor_baro_2['temperature'])
     baro_2_params['TC_B2_TREF'] = 0.5 * (baro_2_params['TC_B2_TMIN'] + baro_2_params['TC_B2_TMAX'])
+
     temp_rel = sensor_baro_2['temperature'] - baro_2_params['TC_B2_TREF']
     temp_rel_resample = np.linspace(baro_2_params['TC_B2_TMIN']-baro_2_params['TC_B2_TREF'], baro_2_params['TC_B2_TMAX']-baro_2_params['TC_B2_TREF'], 100)
     temp_resample = temp_rel_resample + baro_2_params['TC_B2_TREF']
@@ -1668,6 +1789,7 @@ if num_baros >= 3:
     baro_2_params['TC_B2_X2'] = coef_baro_2_x[3]
     baro_2_params['TC_B2_X1'] = coef_baro_2_x[4]
     baro_2_params['TC_B2_X0'] = coef_baro_2_x[5]
+
     fit_coef_baro_2_x = np.poly1d(coef_baro_2_x)
     baro_2_x_resample = fit_coef_baro_2_x(temp_rel_resample)
 
@@ -1696,7 +1818,6 @@ baro_3_params = {
 'TC_B3_X3':0.0,
 'TC_B3_X4':0.0,
 'TC_B3_X5':0.0,
-'TC_B3_SCL':1.0,
 }
 
 if num_baros >= 4:
@@ -1708,6 +1829,7 @@ if num_baros >= 4:
     baro_3_params['TC_B3_TMIN'] = np.amin(sensor_baro_3['temperature'])
     baro_3_params['TC_B3_TMAX'] = np.amax(sensor_baro_3['temperature'])
     baro_3_params['TC_B3_TREF'] = 0.5 * (baro_3_params['TC_B3_TMIN'] + baro_3_params['TC_B3_TMAX'])
+
     temp_rel = sensor_baro_3['temperature'] - baro_3_params['TC_B3_TREF']
     temp_rel_resample = np.linspace(baro_3_params['TC_B3_TMIN']-baro_3_params['TC_B3_TREF'], baro_3_params['TC_B3_TMAX']-baro_3_params['TC_B3_TREF'], 100)
     temp_resample = temp_rel_resample + baro_3_params['TC_B3_TREF']
@@ -1723,6 +1845,7 @@ if num_baros >= 4:
     baro_3_params['TC_B3_X2'] = coef_baro_3_x[3]
     baro_3_params['TC_B3_X1'] = coef_baro_3_x[4]
     baro_3_params['TC_B3_X0'] = coef_baro_3_x[5]
+
     fit_coef_baro_3_x = np.poly1d(coef_baro_3_x)
     baro_3_x_resample = fit_coef_baro_3_x(temp_rel_resample)
 

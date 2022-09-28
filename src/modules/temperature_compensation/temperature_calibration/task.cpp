@@ -69,17 +69,13 @@ class TemperatureCalibration
 {
 public:
 
-	TemperatureCalibration(bool accel, bool gyro, bool mag, bool baro)
-		: _accel(accel)
-		, _gyro(gyro)
-		, _mag(mag)
-		, _baro(baro) {};
+	TemperatureCalibration(bool accel, bool gyro, bool mag, bool baro) :
+		_accel(accel), _gyro(gyro), _mag(mag), _baro(baro) {};
 
 	~TemperatureCalibration() = default;
 
 	/**
 	 * Start task.
-	 *
 	 * @return		OK on success.
 	 */
 	int		start();
