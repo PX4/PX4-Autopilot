@@ -321,7 +321,7 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 		set_device_bus_type(device::Device::DeviceBusType::DeviceBusType_SERIAL);
 
 		char c = _port[strlen(_port) - 1]; // last digit of path (eg /dev/ttyS2)
-		set_device_bus(atoi(&c));
+		set_device_bus(c - 48); // sub 48 to convert char to integer
 
 	} else if (_interface == GPSHelper::Interface::SPI) {
 		set_device_bus_type(device::Device::DeviceBusType::DeviceBusType_SPI);
