@@ -58,10 +58,36 @@ jobs:
           path: bin/
           retention-days: 1
 
+  saluki-v2:
+    name: build saluki-v2
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+    steps:
+      - name: Checkout px4-firmware
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_REPO_TOKEN }}
+          submodules: recursive
+          path: px4-firmware
+          fetch-depth: 0
+      - name: Run px4-firmware saluki-v2 build
+        run: |
+          set -eux
+          mkdir -p bin
+          cd px4-firmware/
+          ./build.sh ../bin/ saluki-v2
+          ls ../bin
+      - name: Upload saluki-v2
+        uses: actions/upload-artifact@v2
+        with:
+          name: pixhawk
+          path: bin/
+          retention-days: 1
+
   px4fwupdater:
     name: build px4fwupdater
     runs-on: ubuntu-latest
-    needs: [pixhawk4, saluki-v1]
+    needs: [pixhawk4, saluki-v1, saluki-v2]
     steps:
       - name: Checkout px4-firmware
         uses: actions/checkout@v2
@@ -115,7 +141,7 @@ jobs:
   artifactory:
     name: upload builds to Artifactory
     runs-on: ubuntu-latest
-    needs: [pixhawk4, saluki-v1, px4fwupdater]
+    needs: [pixhawk4, saluki-v1, saluki-v2, px4fwupdater]
     if: github.event_name == 'push'
     steps:
       - name: Download pixhawk artifacts
@@ -187,6 +213,15 @@ jobs:
           jfrog rt cp --flat \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_bl_pkg_name" \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v1_bootloader.elf"
+          jfrog rt cp --flat \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_pkg_name" \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v2_default.px4"
+          jfrog rt cp --flat \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_amp_pkg_name" \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v2_amp.bin"
+          jfrog rt cp --flat \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_bl_pkg_name" \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v2_bootloader.elf"
       - name: Upload px4-fwupdater build to Artifactory
         env:
           ARTIFACTORY_DEB_REPO: debian-public-local

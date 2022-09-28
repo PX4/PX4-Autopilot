@@ -3,7 +3,7 @@
 usage() {
 	echo " usage: $0 <output-dir> <build-target>"
 	echo "   output-dir : directory for output artifacts"
-	echo "   build-target : supported build targets pixhawk4, saluki-v1, px4fwupdater"
+	echo "   build-target : supported build targets pixhawk4, saluki-v1, saluki-v2, px4fwupdater"
 }
 
 dest_dir="${1:-}"
@@ -15,7 +15,7 @@ if [ -z "$dest_dir" ]; then
 	exit 1
 fi
 
-if [[ ! "${target}" =~ all|pixhawk4|saluki-v1|px4fwupdater ]]
+if [[ ! "${target}" =~ all|pixhawk4|saluki-v1|saluki-v2|px4fwupdater ]]
 then
 	echo "ERROR: build target ''${target}'' not supported!"
   usage
@@ -56,8 +56,8 @@ then
   cp ${script_dir}/build/px4_fmu-v5x_ssrc/px4_fmu-v5x_ssrc.px4                    ${dest_dir}/px4_fmu-v5x_ssrc-${version}.px4
 fi
 
-# Build Saluki image
-if [ "${target}" == all ] || [ "${target}" == saluki-v1 ]
+# Build Saluki images
+if [ "${target}" == all ] || [ "${target}" == saluki-v1 ] || [ "${target}" == saluki-v2 ]
 then
   docker run \
     --rm \
@@ -67,6 +67,9 @@ then
   cp ${script_dir}/build/ssrc_saluki-v1_default/ssrc_saluki-v1_default.px4        ${dest_dir}/ssrc_saluki-v1_default-${version}.px4
   cp ${script_dir}/build/ssrc_saluki-v1_amp/ssrc_saluki-v1_amp.bin        	     ${dest_dir}/ssrc_saluki-v1_amp-${version}.bin
   cp ${script_dir}/build/ssrc_saluki-v1_bootloader/ssrc_saluki-v1_bootloader.elf  ${dest_dir}/ssrc_saluki-v1_bootloader-${version}.elf
+  cp ${script_dir}/build/ssrc_saluki-v2_default/ssrc_saluki-v2_default.px4        ${dest_dir}/ssrc_saluki-v2_default-${version}.px4
+  cp ${script_dir}/build/ssrc_saluki-v2_amp/ssrc_saluki-v2_amp.bin        	     ${dest_dir}/ssrc_saluki-v2_amp-${version}.bin
+  cp ${script_dir}/build/ssrc_saluki-v2_bootloader/ssrc_saluki-v2_bootloader.elf  ${dest_dir}/ssrc_saluki-v2_bootloader-${version}.elf
 fi
 
 # Generate debian package
