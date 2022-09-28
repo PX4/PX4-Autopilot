@@ -46,6 +46,7 @@
 #include <debug.h>
 
 #include "hw_config.h"
+#include "board_type.h"
 
 #include "bl.h"
 #include "uart.h"
@@ -57,6 +58,7 @@
 #include <nuttx/board.h>
 
 #include "image_toc.h"
+#include "crypto.h"
 
 extern int sercon_main(int c, char **argv);
 extern int mpfs_set_entrypt(uint64_t hartid, uintptr_t entry);
@@ -83,6 +85,16 @@ extern int mpfs_set_entrypt(uint64_t hartid, uintptr_t entry);
 #ifdef CONFIG_MMCSD
 static int px4_fd = -1;
 static bool sdcard_mounted;
+#endif
+
+
+#if BOOTLOADER_VERIFY_UBOOT
+
+#define UBOOT_BINARY		"u-boot_signed.bin"
+#define UBOOT_SIGNATURE_SIZE	64
+#else
+
+#define UBOOT_BINARY		"u-boot.bin"
 #endif
 
 static struct mtd_dev_s *mtd = 0;
@@ -177,7 +189,7 @@ void partition_handler(FAR struct partition_s *part, FAR void *arg)
 	}
 }
 
-static int load_sdcard_images(const char *name, uint64_t loadaddr)
+static ssize_t load_sdcard_images(const char *name, uint64_t loadaddr)
 {
 	struct stat file_stat;
 
@@ -190,7 +202,7 @@ static int load_sdcard_images(const char *name, uint64_t loadaddr)
 		if (got > 0 && got == (size_t)file_stat.st_size) {
 			_alert("Loading %s OK\n", name);
 			close(mmcsd_fd);
-			return 0;
+			return got;
 		}
 	}
 
@@ -252,7 +264,10 @@ board_init(void)
 		sdcard_mounted = mount("/dev/mmcsd0p0", "/sdcard/", "vfat", 0, NULL) == 0 ? true : false;
 
 		if (!sdcard_mounted) {
-			_err("SD card mount failed\n");
+			_alert("SD/eMMC mount failed\n");
+
+		} else {
+			_alert("SD/eMMC mounted\n");
 		}
 
 #  if defined(CONFIG_USBMSC_COMPOSITE)
@@ -736,18 +751,38 @@ static size_t get_image_size(void)
 }
 #endif
 
+#if BOOTLOADER_VERIFY_UBOOT
+bool verify_image(void *image_start, size_t image_size, size_t signature_size)
+{
+	uint8_t signature_idx = 1;
+	uint16_t index = 0;
+
+	uint8_t *image_end = (uint8_t *)image_start + image_size - signature_size;
+	uint8_t *signature_start = (uint8_t *)image_start + image_size - signature_size;
+	uint8_t *signature_end = (uint8_t *)image_start + image_size;
+
+	image_toc_entry_t toc_entries[2] = {
+		{"IMG ", image_start, image_end, 0, signature_idx, 0, 0, 0},
+		{"SIG ", signature_start, signature_end, 0, 0, 0, 0, 0}
+	};
+
+	return verify_app(index, toc_entries);
+}
+#endif
+
 static int loader_main(int argc, char *argv[])
 {
 	ssize_t image_sz = 0;
 	loading_status = IN_PROGRESS;
 
 #if defined(CONFIG_MMCSD)
-	int ret = 0;
+	ssize_t uboot_size = 0;
+	ssize_t ret = 0;
 
 	if (sdcard_mounted) {
 		ret = load_sdcard_images("/sdcard/boot/" IMAGE_FN, APP_LOAD_ADDRESS);
 
-		if (ret == 0) {
+		if (ret > 0) {
 			image_sz = get_image_size();
 
 			if (image_sz > 0) {
@@ -796,22 +831,34 @@ static int loader_main(int argc, char *argv[])
 #if defined(CONFIG_OPENSBI) && defined(CONFIG_MMCSD)
 
 	if (sdcard_mounted) {
-		ret = load_sdcard_images("/sdcard/boot/u-boot.bin", CONFIG_MPFS_HART3_ENTRYPOINT);
+		uboot_size = load_sdcard_images("/sdcard/boot/"UBOOT_BINARY, CONFIG_MPFS_HART3_ENTRYPOINT);
 
-		if (ret) {
-			_err("failed\n");
+		if (uboot_size > 0) {
+			u_boot_loaded = true;
+#if BOOTLOADER_VERIFY_UBOOT
+
+			if (!verify_image((void *)CONFIG_MPFS_HART3_ENTRYPOINT, uboot_size, UBOOT_SIGNATURE_SIZE)) {
+				u_boot_loaded = false;
+				/* Wipe the memory */
+				memset((void *)CONFIG_MPFS_HART3_ENTRYPOINT, 0, uboot_size);
+				_alert("u-boot Authentication Failed\n");
+			}
+
+#endif
 
 		} else {
-			u_boot_loaded = true;
+			_alert("u-boot loading failed\n");
+			u_boot_loaded = false;
 		}
 
 		ret = load_sdcard_images("/sdcard/boot/seL4.bin", CONFIG_MPFS_HART1_ENTRYPOINT);
 
-		if (ret) {
-			_err("failed\n");
+		if (ret > 0) {
+			sel4_loaded = true;
 
 		} else {
-			sel4_loaded = true;
+			sel4_loaded = false;
+			_alert("sel4 loading failed\n");
 		}
 	}
 
@@ -848,7 +895,7 @@ int start_image_loading(void)
 }
 
 int
-bootloader_main(void)
+bootloader_main(int argc, char *argv[])
 {
 	unsigned timeout = BOOTLOADER_DELAY;	 /* if nonzero, drop out of the bootloader after this time */
 	bool try_boot;

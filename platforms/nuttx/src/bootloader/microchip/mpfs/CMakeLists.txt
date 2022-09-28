@@ -42,5 +42,6 @@ target_link_libraries(arch_bootloader
 		nuttx_arch
 )
 
+target_include_directories(arch_bootloader PRIVATE ${PX4_BOARD_DIR})
 target_link_libraries(nuttx_fs INTERFACE nuttx_c)
 target_link_libraries(nuttx_drivers INTERFACE nuttx_fs)
