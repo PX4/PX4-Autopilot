@@ -272,15 +272,21 @@ else()
 		target_link_libraries(nuttx_drivers
 			INTERFACE
 				nuttx_c
-				nuttx_openamp)
+				nuttx_openamp
+				)
 	else()
 		target_link_libraries(nuttx_drivers
 			INTERFACE
 				nuttx_c)
 	endif()
+
+	if (CONFIG_NET)
+		target_link_libraries(nuttx_drivers INTERFACE nuttx_net)
+		target_link_libraries(nuttx_net INTERFACE nuttx_mm)
+	endif()
+
 	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_c)
-
 	target_link_libraries(px4 PRIVATE
 
 		-nostartfiles
