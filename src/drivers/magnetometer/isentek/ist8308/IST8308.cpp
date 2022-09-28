@@ -220,13 +220,6 @@ void IST8308::RunImpl()
 					perf_count(_bad_register_perf);
 					Reset();
 				}
-
-			} else {
-				// periodically update temperature (~1 Hz)
-				if (hrt_elapsed_time(&_temperature_update_timestamp) >= 1_s) {
-					UpdateTemperature();
-					_temperature_update_timestamp = now;
-				}
 			}
 		}
 
@@ -296,17 +289,5 @@ void IST8308::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t cle
 
 	if (orig_val != val) {
 		RegisterWrite(reg, val);
-	}
-}
-
-void IST8308::UpdateTemperature()
-{
-	// Isentek magnetometers do not have a temperature sensor, so we will to use the baro's value.
-	sensor_baro_s sensor_baro;
-
-	if (_sensor_baro_sub[0].update(&sensor_baro)) {
-		if (PX4_ISFINITE(sensor_baro.temperature)) {
-			_px4_mag.set_temperature(sensor_baro.temperature);
-		}
 	}
 }
