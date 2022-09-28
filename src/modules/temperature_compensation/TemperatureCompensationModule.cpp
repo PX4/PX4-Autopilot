@@ -144,16 +144,16 @@ void TemperatureCompensationModule::accelPoll()
 
 	// For each accel instance
 	for (uint8_t uorb_index = 0; uorb_index < ACCEL_COUNT_MAX; uorb_index++) {
-		sensor_accel_s report;
+		sensor_accel_s sensor_accel;
 
-		// Grab temperature from report
-		if (_accel_subs[uorb_index].update(&report)) {
-			if (PX4_ISFINITE(report.temperature)) {
+		// Grab temperature from accel
+		if (_accel_subs[uorb_index].update(&sensor_accel)) {
+			if (PX4_ISFINITE(sensor_accel.temperature)) {
 				// Update the offsets and mark for publication if they've changed
-				if (_temperature_compensation.update_offsets_accel(uorb_index, report.temperature, offsets[uorb_index]) == 2) {
+				if (_temperature_compensation.update_offsets_accel(uorb_index, sensor_accel.temperature, offsets[uorb_index]) == 2) {
 
-					_corrections.accel_device_ids[uorb_index] = report.device_id;
-					_corrections.accel_temperature[uorb_index] = report.temperature;
+					_corrections.accel_device_ids[uorb_index] = sensor_accel.device_id;
+					_corrections.accel_temperature[uorb_index] = sensor_accel.temperature;
 					_corrections_changed = true;
 				}
 			}
@@ -167,16 +167,28 @@ void TemperatureCompensationModule::gyroPoll()
 
 	// For each gyro instance
 	for (uint8_t uorb_index = 0; uorb_index < GYRO_COUNT_MAX; uorb_index++) {
-		sensor_gyro_s report;
+		sensor_gyro_s sensor_gyro;
 
-		// Grab temperature from report
-		if (_gyro_subs[uorb_index].update(&report)) {
-			if (PX4_ISFINITE(report.temperature)) {
+		// Grab temperature from gyro
+		if (_gyro_subs[uorb_index].update(&sensor_gyro)) {
+			if (PX4_ISFINITE(sensor_gyro.temperature)) {
 				// Update the offsets and mark for publication if they've changed
-				if (_temperature_compensation.update_offsets_gyro(uorb_index, report.temperature, offsets[uorb_index]) == 2) {
+				if (_temperature_compensation.update_offsets_gyro(uorb_index, sensor_gyro.temperature, offsets[uorb_index]) == 2) {
 
-					_corrections.gyro_device_ids[uorb_index] = report.device_id;
-					_corrections.gyro_temperature[uorb_index] = report.temperature;
+					_corrections.gyro_device_ids[uorb_index] = sensor_gyro.device_id;
+					_corrections.gyro_temperature[uorb_index] = sensor_gyro.temperature;
+					_corrections_changed = true;
+				}
+
+			} else {
+
+				_corrections.gyro_device_ids[uorb_index] = sensor_gyro.device_id;
+
+				// Use accelerometer of the same instance if gyro temperature was NAN.
+				sensor_accel_s sensor_accel;
+
+				if (_accel_subs[uorb_index].update(&sensor_accel)) {
+					_corrections.gyro_temperature[uorb_index] = sensor_accel.temperature;
 					_corrections_changed = true;
 				}
 			}
@@ -190,16 +202,28 @@ void TemperatureCompensationModule::magPoll()
 
 	// For each mag instance
 	for (uint8_t uorb_index = 0; uorb_index < MAG_COUNT_MAX; uorb_index++) {
-		sensor_mag_s report;
+		sensor_mag_s sensor_mag;
 
 		// Grab temperature from report
-		if (_mag_subs[uorb_index].update(&report)) {
-			if (PX4_ISFINITE(report.temperature)) {
+		if (_mag_subs[uorb_index].update(&sensor_mag)) {
+			if (PX4_ISFINITE(sensor_mag.temperature)) {
 				// Update the offsets and mark for publication if they've changed
-				if (_temperature_compensation.update_offsets_mag(uorb_index, report.temperature, offsets[uorb_index]) == 2) {
+				if (_temperature_compensation.update_offsets_mag(uorb_index, sensor_mag.temperature, offsets[uorb_index]) == 2) {
 
-					_corrections.mag_device_ids[uorb_index] = report.device_id;
-					_corrections.mag_temperature[uorb_index] = report.temperature;
+					_corrections.mag_device_ids[uorb_index] = sensor_mag.device_id;
+					_corrections.mag_temperature[uorb_index] = sensor_mag.temperature;
+					_corrections_changed = true;
+				}
+
+			} else {
+
+				_corrections.mag_device_ids[uorb_index] = sensor_mag.device_id;
+
+				// Use primary baro instance if mag temperature was NAN.
+				sensor_baro_s sensor_baro;
+
+				if (_accel_subs[0].update(&sensor_baro)) {
+					_corrections.mag_temperature[uorb_index] = sensor_baro.temperature;
 					_corrections_changed = true;
 				}
 			}
@@ -213,16 +237,28 @@ void TemperatureCompensationModule::baroPoll()
 
 	// For each baro instance
 	for (uint8_t uorb_index = 0; uorb_index < BARO_COUNT_MAX; uorb_index++) {
-		sensor_baro_s report;
+		sensor_baro_s sensor_baro;
 
 		// Grab temperature from report
-		if (_baro_subs[uorb_index].update(&report)) {
-			if (PX4_ISFINITE(report.temperature)) {
+		if (_baro_subs[uorb_index].update(&sensor_baro)) {
+			if (PX4_ISFINITE(sensor_baro.temperature)) {
 				// Update the offsets and mark for publication if they've changed
-				if (_temperature_compensation.update_offsets_baro(uorb_index, report.temperature, offsets[uorb_index]) == 2) {
+				if (_temperature_compensation.update_offsets_baro(uorb_index, sensor_baro.temperature, offsets[uorb_index]) == 2) {
 
-					_corrections.baro_device_ids[uorb_index] = report.device_id;
-					_corrections.baro_temperature[uorb_index] = report.temperature;
+					_corrections.baro_device_ids[uorb_index] = sensor_baro.device_id;
+					_corrections.baro_temperature[uorb_index] = sensor_baro.temperature;
+					_corrections_changed = true;
+				}
+
+			} else {
+
+				_corrections.baro_device_ids[uorb_index] = sensor_baro.device_id;
+
+				// Use primary accelerometer instance if baro temperature was NAN.
+				sensor_accel_s sensor_accel;
+
+				if (_accel_subs[0].update(&sensor_accel)) {
+					_corrections.baro_temperature[uorb_index] = sensor_accel.temperature;
 					_corrections_changed = true;
 				}
 			}

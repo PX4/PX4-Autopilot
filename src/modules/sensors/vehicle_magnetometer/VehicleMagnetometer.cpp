@@ -369,8 +369,8 @@ void VehicleMagnetometer::UpdatePowerCompensation()
 			if (_vehicle_thrust_setpoint_0_sub.update(&vehicle_thrust_setpoint)) {
 				const matrix::Vector3f thrust_setpoint = matrix::Vector3f(vehicle_thrust_setpoint.xyz);
 
-				for (auto &cal : _calibration) {
-					cal.UpdatePower(thrust_setpoint.length());
+				for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+					_calibration[i].UpdatePower(thrust_setpoint.length());
 				}
 			}
 
@@ -382,14 +382,14 @@ void VehicleMagnetometer::UpdatePowerCompensation()
 			if (_battery_status_sub.update(&bat_stat)) {
 				float power = bat_stat.current_a * 0.001f; // current in [kA]
 
-				for (auto &cal : _calibration) {
-					cal.UpdatePower(power);
+				for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+					_calibration[i].UpdatePower(power);
 				}
 			}
 
 		} else {
-			for (auto &cal : _calibration) {
-				cal.UpdatePower(0.f);
+			for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+				_calibration[i].UpdatePower(0.f);
 			}
 		}
 	}
@@ -410,6 +410,10 @@ void VehicleMagnetometer::Run()
 		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode)) {
 			_armed = vehicle_control_mode.flag_armed;
 		}
+	}
+
+	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+		_calibration[i].SensorCorrectionsUpdate();
 	}
 
 	UpdatePowerCompensation();
