@@ -32,7 +32,7 @@ float32 yawspeed		# yawspeed (only for multirotors, in rad/s)
 bool yawspeed_valid		# true if yawspeed setpoint valid
 
 float32 loiter_radius		# loiter radius (only for fixed wing), in m
-int8 loiter_direction		# loiter direction: 1 = CW, -1 = CCW
+bool loiter_anti_clockwise
 
 float32 acceptance_radius   # navigation acceptance_radius if we're doing waypoint navigation
 
