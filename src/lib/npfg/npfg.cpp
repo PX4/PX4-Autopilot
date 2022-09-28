@@ -574,13 +574,13 @@ void NPFG::navigateWaypoints(const Vector2f &waypoint_A, const Vector2f &waypoin
 } // navigateWaypoints
 
 void NPFG::navigateLoiter(const Vector2f &loiter_center, const Vector2f &vehicle_pos,
-			  float radius, bool loiter_anti_clockwise, const Vector2f &ground_vel, const Vector2f &wind_vel)
+			  float radius, bool loiter_direction_anti_clockwise, const Vector2f &ground_vel, const Vector2f &wind_vel)
 {
 	path_type_loiter_ = true;
 
 	radius = math::max(radius, MIN_RADIUS);
 
-	const float loiter_direction_multiplier = loiter_anti_clockwise ? -1.f : 1.f;
+	const float loiter_direction_multiplier = loiter_direction_anti_clockwise ? -1.f : 1.f;
 
 	Vector2f vector_center_to_vehicle = vehicle_pos - loiter_center;
 	const float dist_to_center = vector_center_to_vehicle.norm();

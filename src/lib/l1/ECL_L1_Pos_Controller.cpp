@@ -213,11 +213,11 @@ ECL_L1_Pos_Controller::navigate_waypoints(const Vector2f &vector_A, const Vector
 
 void
 ECL_L1_Pos_Controller::navigate_loiter(const Vector2f &vector_A, const Vector2f &vector_curr_position, float radius,
-				       const bool loiter_anti_clockwise, const Vector2f &ground_speed_vector)
+				       const bool loiter_direction_anti_clockwise, const Vector2f &ground_speed_vector)
 {
 	_has_guidance_updated = true;
 
-	const float loiter_direction_multiplier = loiter_anti_clockwise ? -1.f : 1.f;
+	const float loiter_direction_multiplier = loiter_direction_anti_clockwise ? -1.f : 1.f;
 
 	/* the complete guidance logic in this section was proposed by [2] */
 
@@ -299,8 +299,9 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2f &vector_A, const Vector2f 
 	 */
 
 	// XXX check switch over
-	if ((lateral_accel_sp_center < lateral_accel_sp_circle && !loiter_anti_clockwise && xtrack_err_circle > 0.0f) ||
-	    (lateral_accel_sp_center > lateral_accel_sp_circle && loiter_anti_clockwise && xtrack_err_circle > 0.0f)) {
+	if ((lateral_accel_sp_center < lateral_accel_sp_circle && !loiter_direction_anti_clockwise && xtrack_err_circle > 0.0f)
+	    ||
+	    (lateral_accel_sp_center > lateral_accel_sp_circle && loiter_direction_anti_clockwise && xtrack_err_circle > 0.0f)) {
 		_lateral_accel = lateral_accel_sp_center;
 		_circle_mode = false;
 		/* angle between requested and current velocity vector */

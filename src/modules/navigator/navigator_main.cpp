@@ -342,7 +342,7 @@ void Navigator::run()
 							rep->current.loiter_radius = get_loiter_radius();
 						}
 
-						rep->current.loiter_anti_clockwise = curr->current.loiter_anti_clockwise;
+						rep->current.loiter_direction_anti_clockwise = curr->current.loiter_direction_anti_clockwise;
 					}
 
 					rep->previous.timestamp = hrt_absolute_time();
@@ -380,12 +380,12 @@ void Navigator::run()
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.loiter_radius = get_loiter_radius();
-					rep->current.loiter_anti_clockwise = false;
+					rep->current.loiter_direction_anti_clockwise = false;
 					rep->current.cruising_throttle = get_cruising_throttle();
 
 					if (PX4_ISFINITE(cmd.param1)) {
 						rep->current.loiter_radius = fabsf(cmd.param1);
-						rep->current.loiter_anti_clockwise = cmd.param1 < 0;
+						rep->current.loiter_direction_anti_clockwise = cmd.param1 < 0;
 					}
 
 					rep->current.lat = position_setpoint.lat;
@@ -409,7 +409,7 @@ void Navigator::run()
 				rep->previous.alt = get_global_position()->alt;
 
 				rep->current.loiter_radius = get_loiter_radius();
-				rep->current.loiter_anti_clockwise = false;
+				rep->current.loiter_direction_anti_clockwise = false;
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 
 				if (home_global_position_valid()) {
@@ -1071,7 +1071,7 @@ void Navigator::reset_position_setpoint(position_setpoint_s &sp)
 	sp.valid = false;
 	sp.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 	sp.disable_weather_vane = false;
-	sp.loiter_anti_clockwise = false;
+	sp.loiter_direction_anti_clockwise = false;
 }
 
 float Navigator::get_cruising_throttle()
