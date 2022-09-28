@@ -35,7 +35,7 @@ set(HEXAGON_SDK_INCLUDES
 	${HEXAGON_SDK_ROOT}/incs
 	${HEXAGON_SDK_ROOT}/incs/stddef
 	${HEXAGON_SDK_ROOT}/rtos/qurt/computev66/include/qurt
-	# ${HEXAGON_SDK_ROOT}/rtos/qurt/computev66/include/posix
+	${HEXAGON_SDK_ROOT}/rtos/qurt/computev66/include/posix
 	${HEXAGON_SDK_ROOT}/tools/HEXAGON_Tools/8.4.05/Tools/target/hexagon/include
 	)
 
