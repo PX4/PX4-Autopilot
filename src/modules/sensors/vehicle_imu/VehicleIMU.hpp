@@ -119,13 +119,13 @@ private:
 	hrt_abstime _gyro_timestamp_sample_last{0};
 	hrt_abstime _gyro_timestamp_last{0};
 
-	math::WelfordMean<matrix::Vector3f> _raw_accel_mean{};
-	math::WelfordMean<matrix::Vector3f> _raw_gyro_mean{};
+	math::WelfordMean<float, 3> _raw_accel_mean{};
+	math::WelfordMean<float, 3> _raw_gyro_mean{};
 
-	math::WelfordMean<matrix::Vector2f> _accel_interval_mean{};
-	math::WelfordMean<matrix::Vector2f> _gyro_interval_mean{};
+	math::WelfordMean<float, 2> _accel_interval_mean{};
+	math::WelfordMean<float, 2> _gyro_interval_mean{};
 
-	math::WelfordMean<matrix::Vector2f> _gyro_update_latency_mean{};
+	math::WelfordMean<float, 2> _gyro_update_latency_mean{};
 
 	float _accel_interval_best_variance{(float)INFINITY};
 	float _gyro_interval_best_variance{(float)INFINITY};
