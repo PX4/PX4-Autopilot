@@ -87,6 +87,11 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_1_0 &msg)
 			}
 		}
 
+		if (i + 1 > sizeof(nodeid_registry) / sizeof(nodeid_registry[0])) {
+			PX4_ERR("access out of bounds nodeid_registry");
+			return false;
+		}
+
 		nodeid_registry[i].register_setup = false; // Re-instantiate register setup
 		nodeid_registry[i].register_index = 0;
 		nodeid_registry[i].retry_count = 0;
