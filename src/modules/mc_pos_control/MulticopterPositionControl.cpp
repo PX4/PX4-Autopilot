@@ -372,7 +372,24 @@ void MulticopterPositionControl::Run()
 			}
 		}
 
-		_trajectory_setpoint_sub.update(&_setpoint);
+		if (_trajectory_setpoint_sub.updated()) {
+			trajectory_setpoint_s trajectory_setpoint;
+
+			if (_trajectory_setpoint_sub.copy(&trajectory_setpoint)) {
+				_setpoint.timestamp = trajectory_setpoint.timestamp;
+				_setpoint.x = trajectory_setpoint.position[0];
+				_setpoint.y = trajectory_setpoint.position[1];
+				_setpoint.z = trajectory_setpoint.position[2];
+				_setpoint.vx = trajectory_setpoint.velocity[0];
+				_setpoint.vy = trajectory_setpoint.velocity[1];
+				_setpoint.vz = trajectory_setpoint.velocity[2];
+				_setpoint.acceleration[0] = trajectory_setpoint.acceleration[0];
+				_setpoint.acceleration[1] = trajectory_setpoint.acceleration[1];
+				_setpoint.acceleration[2] = trajectory_setpoint.acceleration[2];
+				_setpoint.yaw = trajectory_setpoint.yaw;
+				_setpoint.yawspeed = trajectory_setpoint.yawspeed;
+			}
+		}
 
 		// adjust existing (or older) setpoint with any EKF reset deltas
 		if ((_setpoint.timestamp != 0) && (_setpoint.timestamp < vehicle_local_position.timestamp)) {
