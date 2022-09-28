@@ -188,7 +188,13 @@ void Tailsitter::update_vtol_state()
 
 void Tailsitter::update_transition_state()
 {
-	const float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+	const hrt_abstime now = hrt_absolute_time();
+	const float time_since_trans_start = (float)(now - _vtol_schedule.transition_start) * 1e-6f;
+
+	// we need the incoming (virtual) attitude setpoints (both mc and fw) to be recent, otherwise return (means the previous setpoint stays active)
+	if (_mc_virtual_att_sp->timestamp < (now - 1_s) && _fw_virtual_att_sp->timestamp < (now - 1_s)) {
+		return;
+	}
 
 	if (!_flag_was_in_trans_mode) {
 		_flag_was_in_trans_mode = true;
