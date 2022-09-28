@@ -26,6 +26,19 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 		. ../gazebo_env.sh
 	fi
 
+	if [ ! -z $PX4_GZ_VERBOSE ]; then
+		if [ "$PX4_GZ_VERBOSE" -le "4" ] && [ "$PX4_GZ_VERBOSE" -ge "1" ]; then
+			gz_verbose=$PX4_GZ_VERBOSE
+		else
+			gz_verbose=4
+			echo "WARN  [init] PX4_GZ_VERBOSE was passed: $PX4_GZ_VERBOSE, not in range [1,4], defaulting to: $gz_verbose."
+		fi
+		echo "INFO  [init] PX4_GZ_VERBOSE set to $gz_verbose."
+	else
+		gz_verbose=1
+		echo "INFO  [init] PX4_GZ_VERBOSE not explicitly set, defaulting to: $gz_verbose."
+	fi
+
 	gz_world=$( ign topic -l | grep -m 1 -e "/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
 
 	if [ -z $gz_world ]; then
@@ -33,7 +46,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 		# starting ign gazebo with ${PX4_GZ_WORLD} world
 		echo "INFO  [init] starting ign gazebo"
 
-		ign gazebo --verbose=1 -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
+		ign gazebo --verbose=$gz_verbose -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
 
 		if [ -z $HEADLESS ]; then
 			# HEADLESS not set, starting ign gazebo gui
