@@ -146,7 +146,7 @@ void PositionControl::_velocityControl(const float dt)
 	// No control input from setpoints or corresponding states which are NAN
 	ControlMath::addIfNotNanVector3f(_acc_sp, acc_sp_velocity);
 
-	_accelerationControl();
+	_accelerationControl(dt);
 
 	// Integrator anti-windup in vertical direction
 	if ((_thr_sp(2) >= -_lim_thr_min && vel_error(2) >= 0.0f) ||
@@ -201,8 +201,13 @@ void PositionControl::_velocityControl(const float dt)
 	_vel_int(2) = math::min(fabsf(_vel_int(2)), CONSTANTS_ONE_G) * sign(_vel_int(2));
 }
 
-void PositionControl::_accelerationControl()
+void PositionControl::_accelerationControl(const float dt)
 {
+	// don't allow accel setpoint to change faster than MPC_JERK_MAX m/s^2/s
+	for (int i = 0; i < 3; i++) {
+		_acc_sp(i) = _acc_sp_slew_rate[i].update(_acc_sp(i), dt);
+	}
+
 	// Assume standard acceleration due to gravity in vertical direction for attitude generation
 	Vector3f body_z = Vector3f(-_acc_sp(0), -_acc_sp(1), CONSTANTS_ONE_G).normalized();
 	ControlMath::limitTilt(body_z, Vector3f(0, 0, 1), _lim_tilt);

@@ -40,6 +40,7 @@
 #pragma once
 
 #include <lib/mathlib/mathlib.h>
+#include <lib/slew_rate/SlewRate.hpp>
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -75,7 +76,11 @@ class PositionControl
 {
 public:
 
-	PositionControl() = default;
+	PositionControl()
+	{
+		setJerkLimit(INFINITY);
+	};
+
 	~PositionControl() = default;
 
 	/**
@@ -118,6 +123,13 @@ public:
 	 * @param tilt angle in radians from level orientation
 	 */
 	void setTiltLimit(const float tilt) { _lim_tilt = tilt; }
+
+	void setJerkLimit(const float jerk_max)
+	{
+		_acc_sp_slew_rate[0].setSlewRate(jerk_max);
+		_acc_sp_slew_rate[1].setSlewRate(jerk_max);
+		_acc_sp_slew_rate[2].setSlewRate(jerk_max);
+	}
 
 	/**
 	 * Set the normalized hover thrust
@@ -183,7 +195,7 @@ private:
 
 	void _positionControl(); ///< Position proportional control
 	void _velocityControl(const float dt); ///< Velocity PID control
-	void _accelerationControl(); ///< Acceleration setpoint processing
+	void _accelerationControl(const float dt); ///< Acceleration setpoint processing
 
 	// Gains
 	matrix::Vector3f _gain_pos_p; ///< Position control proportional gain
@@ -216,4 +228,6 @@ private:
 	matrix::Vector3f _thr_sp; /**< desired thrust */
 	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
+
+	SlewRate<float> _acc_sp_slew_rate[3];
 };

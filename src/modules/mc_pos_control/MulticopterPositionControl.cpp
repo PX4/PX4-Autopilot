@@ -261,6 +261,9 @@ void MulticopterPositionControl::parameters_update(bool force)
 		_takeoff.setSpoolupTime(_param_com_spoolup_time.get());
 		_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
 		_takeoff.generateInitialRampValue(_param_mpc_z_vel_p_acc.get());
+
+		// set position controller jerk limit to MPC_JERK_MAX + 10% margin to not interfere with reference trajectory
+		_control.setJerkLimit(_param_mpc_jerk_max.get() * 1.1f);
 	}
 }
 
