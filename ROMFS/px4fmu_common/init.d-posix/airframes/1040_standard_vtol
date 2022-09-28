@@ -61,6 +61,7 @@ param set-default FW_T_CLMB_MAX 8
 param set-default FW_T_SINK_MAX 2.7
 param set-default FW_T_SINK_MIN 2.2
 
+param set-default MC_AIRMODE 1
 param set-default MC_ROLLRATE_P 0.3
 param set-default MC_YAW_P 1.6
 
