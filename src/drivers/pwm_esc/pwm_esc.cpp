@@ -245,7 +245,7 @@ PWMESC::~PWMESC()
 
 	/* well, kill it anyway, though this will probably crash */
 	if (_task != -1) {
-		task_delete(_task);
+		px4_task_delete(_task);
 	}
 
 	/* deallocate perfs */
