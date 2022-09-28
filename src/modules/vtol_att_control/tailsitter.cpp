@@ -191,8 +191,8 @@ void Tailsitter::update_transition_state()
 	const hrt_abstime now = hrt_absolute_time();
 	const float time_since_trans_start = (float)(now - _vtol_schedule.transition_start) * 1e-6f;
 
-	// we need the incoming (virtual) attitude setpoints (both mc and fw) to be recent, otherwise return (means the previous setpoint stays active)
-	if (_mc_virtual_att_sp->timestamp < (now - 1_s) && _fw_virtual_att_sp->timestamp < (now - 1_s)) {
+	// we need the incoming (virtual) mc attitude setpoints to be recent, otherwise return (means the previous setpoint stays active)
+	if (_mc_virtual_att_sp->timestamp < (now - 1_s)) {
 		return;
 	}
 
@@ -209,8 +209,15 @@ void Tailsitter::update_transition_state()
 			float yaw_sp = atan2f(z(1), z(0));
 
 			// the intial attitude setpoint for a backtransition is a combination of the current fw pitch setpoint,
-			// the yaw setpoint and zero roll since we want wings level transition
-			_q_trans_start = Eulerf(0.0f, _fw_virtual_att_sp->pitch_body, yaw_sp);
+			// the yaw setpoint and zero roll since we want wings level transition.
+			// If for some reason the fw attitude setpoint is not recent then don't sue it and assume 0 pitch
+			if (_fw_virtual_att_sp->timestamp > (now - 1_s)) {
+				_q_trans_start = Eulerf(0.0f, _fw_virtual_att_sp->pitch_body, yaw_sp);
+
+			} else {
+				_q_trans_start = Eulerf(0.0f, 0.f, yaw_sp);
+			}
+
 
 			// attitude during transitions are controlled by mc attitude control so rotate the desired attitude to the
 			// multirotor frame
