@@ -42,17 +42,17 @@
 namespace math
 {
 
-template<typename T>
+template <typename Type, size_t N>
 class WelfordMean
 {
 public:
 	// For a new value, compute the new count, new mean, the new M2.
-	void update(const T &new_value)
+	void update(const matrix::Vector<Type, N> &new_value)
 	{
 		_count++;
 
 		// mean accumulates the mean of the entire dataset
-		const T delta{new_value - _mean};
+		const matrix::Vector<Type, N> delta{new_value - _mean};
 		_mean += delta / _count;
 
 		// M2 aggregates the squared distance from the mean
@@ -71,12 +71,12 @@ public:
 	}
 
 	// Retrieve the mean, variance and sample variance
-	T mean() const { return _mean; }
-	T variance() const { return _M2 / _count; }
-	T sample_variance() const { return _M2 / (_count - 1); }
+	matrix::Vector<Type, N> mean() const { return _mean; }
+	matrix::Vector<Type, N> variance() const { return _M2 / _count; }
+	matrix::Vector<Type, N> sample_variance() const { return _M2 / (_count - 1); }
 private:
-	T _mean{};
-	T _M2{};
+	matrix::Vector<Type, N> _mean{};
+	matrix::Vector<Type, N> _M2{};
 	unsigned _count{0};
 };
 
