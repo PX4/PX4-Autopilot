@@ -106,6 +106,17 @@ else()
 	endif()
 endif()
 
+# Select the correct linker script(s) for build type
+if (CONFIG_BUILD_FLAT)
+	set(LDSCRIPT ${NUTTX_CONFIG_DIR}/scripts/${SCRIPT_PREFIX}script.ld)
+elseif (CONFIG_BUILD_PROTECTED)
+	set(LDMEMORY ${NUTTX_CONFIG_DIR}/scripts/${SCRIPT_PREFIX}memory.ld)
+	set(LDSCRIPT ${LDMEMORY},--script=${NUTTX_CONFIG_DIR}/scripts/${SCRIPT_PREFIX}user-space.ld)
+	set(LDKERNEL ${LDMEMORY},--script=${NUTTX_CONFIG_DIR}/scripts/${SCRIPT_PREFIX}kernel-space.ld)
+else()
+	message(FATAL_ERROR "Cannot determine linker script for build type")
+endif()
+
 list(APPEND nuttx_libs
 	nuttx_boards
 	nuttx_drivers
@@ -184,7 +195,7 @@ if (NOT CONFIG_BUILD_FLAT)
 		-fno-exceptions
 		-fno-rtti
 
-		-Wl,--script=${NUTTX_CONFIG_DIR}/scripts/${SCRIPT_PREFIX}memory.ld,--script=${NUTTX_CONFIG_DIR}/scripts/${SCRIPT_PREFIX}kernel-space.ld
+		-Wl,--script=${LDKERNEL}
 
 		-Wl,-Map=${PX4_CONFIG}_kernel.map
 		-Wl,--warn-common
@@ -230,7 +241,7 @@ if (NOT CONFIG_BUILD_FLAT)
 		-fno-exceptions
 		-fno-rtti
 
-		-Wl,--script=${NUTTX_CONFIG_DIR}/scripts/${SCRIPT_PREFIX}memory.ld,--script=${NUTTX_CONFIG_DIR}/scripts/${SCRIPT_PREFIX}user-space.ld
+		-Wl,--script=${LDSCRIPT}
 
 		-Wl,-Map=${PX4_CONFIG}.map
 		-Wl,--warn-common
@@ -284,7 +295,7 @@ else()
 		-fno-exceptions
 		-fno-rtti
 		${RISCV_RELAXATIONS}
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}script.ld
+		-Wl,--script=${LDSCRIPT}
 		-Wl,-Map=${PX4_CONFIG}.map
 		-Wl,--warn-common
 		-Wl,--gc-sections
