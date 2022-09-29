@@ -275,6 +275,10 @@ private:
 	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
+	// export restriction parameter limits (only active if PX4_EXPORT_RESTRICTION_BUILD)
+	static constexpr int EXPORT_RESTRICTED_MAX_FLIGHT_TIME{3540}; //59 min
+	static constexpr float EXPORT_RESTRICTED_MAX_WIND{12.f}; //12 m/s
+
 	ArmStateMachine _arm_state_machine{};
 
 	bool		_geofence_loiter_on{false};

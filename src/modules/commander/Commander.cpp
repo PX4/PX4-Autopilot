@@ -1790,6 +1790,35 @@ Commander::run()
 			if (!_arm_state_machine.isArmed()) {
 				updateParameters();
 
+#if PX4_EXPORT_RESTRICTION_BUILD
+
+				// If export compliance build flag is set, restrict COM_FLT_TIME_MAX to range (1s, EXPORT_RESTRICTED_MAX_FLIGHT_TIME)
+				if (_param_com_flt_time_max.get() > EXPORT_RESTRICTED_MAX_FLIGHT_TIME || _param_com_flt_time_max.get() < 1) {
+					_param_com_flt_time_max.set(EXPORT_RESTRICTED_MAX_FLIGHT_TIME);
+					_param_com_flt_time_max.commit();
+					mavlink_log_critical(&_mavlink_log_pub, "COM_FLT_TIME_MAX constrained to range (1s, 3540s)\t");
+					/* EVENT
+					* @description <param>COM_FLT_TIME_MAX</param> is set to {1:.0}.
+					*/
+					events::send<uint32_t>(events::ID("com_export_restriced_flight_time_limit"), events::Log::Warning,
+							       "COM_FLT_TIME_MAX constrained to range (1s, {1:.0}s)", EXPORT_RESTRICTED_MAX_FLIGHT_TIME);
+				}
+
+				// If export compliance build flag is set, restrict max wind to range (0.1m/s, EXPORT_RESTRICTED_MAX_WIND)
+				if (_param_com_wind_max.get() > EXPORT_RESTRICTED_MAX_WIND || _param_com_wind_max.get() < 0.1f) {
+					_param_com_wind_max.set(EXPORT_RESTRICTED_MAX_WIND);
+					_param_com_wind_max.commit();
+					mavlink_log_critical(&_mavlink_log_pub, "COM_WIND_MAX constrained to range (0.1m/s, %.1fm/s)\t",
+							     (double)EXPORT_RESTRICTED_MAX_WIND);
+					/* EVENT
+					* @description <param>COM_WIND_MAX</param> is set to {1:.0}.
+					*/
+					events::send<float>(events::ID("com_export_restriced_wind_limit"), events::Log::Warning,
+							    "COM_WIND_MAX constrained to range (0.1m/s, {1:.1}m/s)", EXPORT_RESTRICTED_MAX_WIND);
+				}
+
+#endif
+
 				_status_changed = true;
 			}
 		}
@@ -3362,16 +3391,7 @@ void Commander::send_parachute_command()
 
 void Commander::checkWindSpeedThresholds()
 {
-	float max_allowed_wind_speed = _param_com_wind_max.get();
-#if PX4_EXPORT_RESTRICTION_BUILD
-
-	if (max_allowed_wind_speed > 12.f || max_allowed_wind_speed <= 0.f) {
-		max_allowed_wind_speed = 12.f;
-	}
-
-#endif
-
-	if ((_param_com_wind_warn.get() > FLT_EPSILON || max_allowed_wind_speed > FLT_EPSILON)
+	if ((_param_com_wind_warn.get() > FLT_EPSILON || _param_com_wind_max.get() > FLT_EPSILON)
 	    && !_vehicle_land_detected.landed) {
 
 		wind_s wind_estimate;
@@ -3383,8 +3403,8 @@ void Commander::checkWindSpeedThresholds()
 			const bool warning_timeout_passed = _last_wind_warning == 0 || hrt_elapsed_time(&_last_wind_warning) > 60_s;
 
 			if (!_vehicle_status_flags.flight_time_or_wind_rtl_triggered
-			    && max_allowed_wind_speed > FLT_EPSILON
-			    && wind.longerThan(max_allowed_wind_speed)
+			    && _param_com_wind_max.get() > FLT_EPSILON
+			    && wind.longerThan(_param_com_wind_max.get())
 			    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
 			    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
 
@@ -3420,19 +3440,10 @@ void Commander::checkFlightTimeThresholds()
 
 	// Trigger RTL if flight time is larger than max flight time specified in COM_FLT_TIME_MAX.
 	// The user is not able to override once above threshold, except for triggering Land.
-	// In case the export compliance build flag is set, we always restrict to 59 minutes.
-	int32_t max_allowed_flight_time = _param_com_flt_time_max.get();
-#if PX4_EXPORT_RESTRICTION_BUILD
-
-	if (max_allowed_flight_time > 3540 || max_allowed_flight_time <= 0) {
-		max_allowed_flight_time = 3540;
-	}
-
-#endif
 
 	if (!_vehicle_status_flags.flight_time_or_wind_rtl_triggered
 	    && !_vehicle_land_detected.landed
-	    && max_allowed_flight_time > 0
+	    && _param_com_flt_time_max.get() > 0
 	    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
 	    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
 
@@ -3441,7 +3452,7 @@ void Commander::checkFlightTimeThresholds()
 						    || hrt_elapsed_time(&_last_flight_time_warning) > 60_s;
 
 		const float flight_time_percentage_reached = (float)(hrt_absolute_time() - _vehicle_status.takeoff_time) / 1_s /
-				max_allowed_flight_time;
+				_param_com_flt_time_max.get();
 
 		if (flight_time_percentage_reached > 1.f) {
 			main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_RTL, _vehicle_status_flags, _commander_state);
@@ -3458,7 +3469,7 @@ void Commander::checkFlightTimeThresholds()
 		} else if (flight_time_percentage_reached > 0.9f && warning_timeout_passed) {
 			// send warning every 1 minute with updated remaining time till RTL once passed 90% threshold until RTL is triggered
 
-			const int remaining_flight_time = (int)((1.f - flight_time_percentage_reached) * max_allowed_flight_time);
+			const int remaining_flight_time = (int)((1.f - flight_time_percentage_reached) * _param_com_flt_time_max.get());
 			mavlink_log_warning(&_mavlink_log_pub, "Approaching max flight time (system will RTL in %i seconds)",
 					    remaining_flight_time);
 			/* EVENT
