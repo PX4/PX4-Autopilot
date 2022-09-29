@@ -1081,8 +1081,10 @@ PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, 0);
 /**
  * Wind speed RLT threshold
  *
- * Wind speed threshold above which an automatic return to launch is triggered
- * and enforced as long as the threshold is exceeded.
+ * Wind speed threshold above which an automatic return to launch is triggered.
+ * It is not possible to resume the mission or switch to any auto mode other than
+ * RTL or Land once exceeded once. Taking over in any manual
+ * mode is though still possible.
  *
  * Set to 0 to disable.
  *
