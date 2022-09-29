@@ -42,14 +42,20 @@
 #include <px4_platform/board_ctrl.h>
 #include "board_config.h"
 
-#include <nuttx/lib/builtin.h>
 #include <NuttX/kernel_builtin/kernel_builtin_proto.h>
 
-FAR const struct builtin_s g_kernel_builtins[] = {
+struct kernel_builtin_s {
+	const char *name;         /* Invocation name and as seen under /sbin/ */
+	int         priority;     /* Use: SCHED_PRIORITY_DEFAULT */
+	int         stacksize;    /* Desired stack size */
+	main_t      main;         /* Entry point: main(int argc, char *argv[]) */
+};
+
+const struct kernel_builtin_s g_kernel_builtins[] = {
 #include <NuttX/kernel_builtin/kernel_builtin_list.h>
 };
 
-const int g_n_kernel_builtins = sizeof(g_kernel_builtins) / sizeof(struct builtin_s);
+const int g_n_kernel_builtins = sizeof(g_kernel_builtins) / sizeof(g_kernel_builtins[0]);
 
 static struct {
 	ioctl_ptr_t ioctl_func;
@@ -107,7 +113,7 @@ int board_ioctl(unsigned int cmd, uintptr_t arg)
 static int launch_kernel_builtin(int argc, char **argv)
 {
 	int i;
-	FAR const struct builtin_s *builtin = NULL;
+	const struct kernel_builtin_s *builtin = NULL;
 
 	for (i = 0; i < g_n_kernel_builtins; i++) {
 		if (!strcmp(g_kernel_builtins[i].name, argv[0])) {
