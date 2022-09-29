@@ -30,7 +30,8 @@ bool global_position_valid		# set to true by the commander app if the quality of
 bool gps_position_valid
 bool home_position_valid		# indicates a valid home position (a valid home position is not always a valid launch)
 
-bool flight_time_or_wind_rtl_triggered # indicates whether there was a RTL due to flight time limit reached or max wind threshold breached in the current flight
+bool max_flight_time_exceeded		# set to true if the flight time (time since last arming) is above limit
+bool max_wind_speed_exceeded		# set to true if the currently measured wind speed is above limit
 
 bool offboard_control_signal_lost
 

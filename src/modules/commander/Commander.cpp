@@ -720,8 +720,9 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 
 		_status_changed = true;
 
-		// reset flight_time_or_wind_rtl_triggered flag to false upon disarm
-		_vehicle_status_flags.flight_time_or_wind_rtl_triggered = false;
+		// reset flight time and wind exceeded flags to false upon disarm
+		_vehicle_status_flags.max_flight_time_exceeded = false;
+		_vehicle_status_flags.max_wind_speed_exceeded = false;
 
 	} else if (arming_res == TRANSITION_DENIED) {
 		tune_negative(true);
@@ -1818,7 +1819,6 @@ Commander::run()
 				}
 
 #endif
-
 				_status_changed = true;
 			}
 		}
@@ -3402,7 +3402,19 @@ void Commander::checkWindSpeedThresholds()
 			// publish a warning if it's the first since in air or 60s have passed since the last warning
 			const bool warning_timeout_passed = _last_wind_warning == 0 || hrt_elapsed_time(&_last_wind_warning) > 60_s;
 
-			if (!_vehicle_status_flags.flight_time_or_wind_rtl_triggered
+			// reset wind flag if param is set to <0 or current wind is below threshold
+			if (_vehicle_status_flags.max_wind_speed_exceeded
+			    && (_param_com_wind_max.get() < FLT_EPSILON || !wind.longerThan(_param_com_wind_max.get()))) {
+				_vehicle_status_flags.max_wind_speed_exceeded = false;
+
+				mavlink_log_critical(&_mavlink_log_pub, "Measured wind speed below limit again, flight can be continued (%.1f m/s)\t",
+						     (double)wind.norm());
+				events::send<float>(events::ID("commander_high_wind_cleared"),
+				{events::Log::Warning, events::LogInternal::Info},
+				"Measured wind speed below limit again, flight can be continued ({1:.1m/s})", wind.norm());
+			}
+
+			if (!_vehicle_status_flags.max_wind_speed_exceeded
 			    && _param_com_wind_max.get() > FLT_EPSILON
 			    && wind.longerThan(_param_com_wind_max.get())
 			    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
@@ -3410,13 +3422,13 @@ void Commander::checkWindSpeedThresholds()
 
 				main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_RTL, _vehicle_status_flags, _commander_state);
 				_status_changed = true;
-				mavlink_log_critical(&_mavlink_log_pub, "Wind speeds above limit, abort operation and RTL (%.1f m/s)\t",
+				mavlink_log_critical(&_mavlink_log_pub, "Measured wind speed above limit, abort operation and RTL (%.1f m/s)\t",
 						     (double)wind.norm());
 
 				events::send<float>(events::ID("commander_high_wind_rtl"),
 				{events::Log::Warning, events::LogInternal::Info},
-				"Wind speeds above limit, abort operation and RTL ({1:.1m/s})", wind.norm());
-				_vehicle_status_flags.flight_time_or_wind_rtl_triggered = true;
+				"Measured wind speed above limit, abort operation and RTL ({1:.1m/s})", wind.norm());
+				_vehicle_status_flags.max_wind_speed_exceeded = true;
 
 			} else if (_param_com_wind_warn.get() > FLT_EPSILON
 				   && wind.longerThan(_param_com_wind_warn.get())
@@ -3441,7 +3453,7 @@ void Commander::checkFlightTimeThresholds()
 	// Trigger RTL if flight time is larger than max flight time specified in COM_FLT_TIME_MAX.
 	// The user is not able to override once above threshold, except for triggering Land.
 
-	if (!_vehicle_status_flags.flight_time_or_wind_rtl_triggered
+	if (!_vehicle_status_flags.max_flight_time_exceeded
 	    && !_vehicle_land_detected.landed
 	    && _param_com_flt_time_max.get() > 0
 	    && _commander_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
@@ -3464,7 +3476,7 @@ void Commander::checkFlightTimeThresholds()
 			*/
 			events::send(events::ID("commander_max_flight_time_rtl"), {events::Log::Critical, events::LogInternal::Warning},
 				     "Maximum flight time reached, abort operation and RTL");
-			_vehicle_status_flags.flight_time_or_wind_rtl_triggered = true;
+			_vehicle_status_flags.max_flight_time_exceeded = true;
 
 		} else if (flight_time_percentage_reached > 0.9f && warning_timeout_passed) {
 			// send warning every 1 minute with updated remaining time till RTL once passed 90% threshold until RTL is triggered
