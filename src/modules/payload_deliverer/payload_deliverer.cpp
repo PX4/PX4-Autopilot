@@ -158,7 +158,7 @@ void PayloadDeliverer::handle_vehicle_command(const hrt_abstime &now,  const veh
 			vehicle_command_ack_s vcmd_ack{};
 			vcmd_ack.timestamp = now;
 			vcmd_ack.command = vehicle_command_s::VEHICLE_CMD_DO_GRIPPER;
-			vcmd_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+			vcmd_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 			vcmd_ack.target_system = vehicle_command->source_system;
 			vcmd_ack.target_component = vehicle_command->source_component;
 			_vehicle_command_ack_pub.publish(vcmd_ack);
@@ -166,7 +166,10 @@ void PayloadDeliverer::handle_vehicle_command(const hrt_abstime &now,  const veh
 			return;
 		}
 
-		const int32_t gripper_action = *(int32_t *)&vehicle_command->param2; // Convert the action to integer
+		const int32_t gripper_action = (int32_t)vehicle_command->param2;
+		// Note: although the 'param2' is a floating point type, the enums for GRIPPER_ACTION are converted into
+		// floating point, then gets sent by the Ground Control Station to trigger gripper action for example.
+		// This is an inherent MAVLink standard limitation (converting enums into floats)!
 
 		switch (gripper_action) {
 		case vehicle_command_s::GRIPPER_ACTION_GRAB:
@@ -183,7 +186,7 @@ void PayloadDeliverer::handle_vehicle_command(const hrt_abstime &now,  const veh
 		vehicle_command_ack_s vcmd_ack{};
 		vcmd_ack.timestamp = now;
 		vcmd_ack.command = vehicle_command_s::VEHICLE_CMD_DO_GRIPPER;
-		vcmd_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_IN_PROGRESS;
+		vcmd_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS;
 		vcmd_ack.result_param1 = UINT8_MAX; // Set progress percentage to UINT8_MAX, indicating it is unkonwn
 		vcmd_ack.target_system = vehicle_command->source_system;
 		vcmd_ack.target_component = vehicle_command->source_component;
@@ -197,7 +200,8 @@ bool PayloadDeliverer::send_gripper_vehicle_command(const int32_t gripper_action
 	vehicle_command_s vcmd;
 	vcmd.timestamp = hrt_absolute_time();
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GRIPPER;
-	*(int32_t *)&vcmd.param2 = gripper_action;
+	vcmd.param2 = gripper_action;
+	// Note: Integer type GRIPPER_ACTION gets formatted into a floating point here.
 	return _vehicle_command_pub.publish(vcmd);
 }
 
