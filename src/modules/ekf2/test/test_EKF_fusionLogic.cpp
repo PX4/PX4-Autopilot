@@ -66,6 +66,10 @@ public:
 		_ekf->set_vehicle_at_rest(true);
 
 		_sensor_simulator.runSeconds(7);
+
+		// When at rest, the strong zero velocity update keeps the local position
+		// valid. Deactivate this to test the change of validity without zvup
+		_ekf->set_vehicle_at_rest(false);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
