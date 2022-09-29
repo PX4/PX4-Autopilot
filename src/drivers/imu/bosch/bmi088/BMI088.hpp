@@ -36,6 +36,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/spi.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/atomic_from_isr.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
 static constexpr int16_t combine(uint8_t msb, uint8_t lsb) { return (msb << 8u) | lsb; }
@@ -66,7 +67,7 @@ protected:
 	hrt_abstime _temperature_update_timestamp{0};
 	int _failure_count{0};
 
-	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
+	px4::atomic_from_isr<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
 
 	enum class STATE : uint8_t {

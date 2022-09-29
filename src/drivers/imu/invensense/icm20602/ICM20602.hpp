@@ -48,7 +48,7 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/atomic_from_isr.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
 using namespace InvenSense_ICM20602;
@@ -140,7 +140,7 @@ private:
 	hrt_abstime _last_config_check_timestamp{0};
 	int _failure_count{0};
 
-	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
+	px4::atomic_from_isr<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
 
 	enum class STATE : uint8_t {
