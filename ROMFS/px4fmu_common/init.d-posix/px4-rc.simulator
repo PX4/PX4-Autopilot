@@ -26,6 +26,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 		. ../gazebo_env.sh
 	fi
 
+# shellcheck disable=SC2236
 	if [ ! -z $PX4_GZ_VERBOSE ]; then
 		if [ "$PX4_GZ_VERBOSE" -le "4" ] && [ "$PX4_GZ_VERBOSE" -ge "1" ]; then
 			gz_verbose=$PX4_GZ_VERBOSE
@@ -45,7 +46,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 
 		# starting ign gazebo with ${PX4_GZ_WORLD} world
 		echo "INFO  [init] starting ign gazebo"
-
+# shellcheck disable=SC2153
 		ign gazebo --verbose=$gz_verbose -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
 
 		if [ -z $HEADLESS ]; then
@@ -57,7 +58,10 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 		PX4_GZ_WORLD=$gz_world
 	fi
 
+# shellcheck disable=SC2236
 	if [ ! -z $PX4_GZ_MODEL ] && [ -z $PX4_GZ_MODEL_NAME ]; then
+
+# shellcheck disable=SC2236
 		if [ ! -z $PX4_GZ_MODEL_POSE ]; then
 			# Clean potential input line formatting.
 			model_pose="$( echo ${PX4_GZ_MODEL_POSE} | sed -e 's/^[ \t]*//; s/[ \t]*$//; s/,/ /g; s/  / /g; s/ /,/g' )"
@@ -75,7 +79,6 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 			echo "ERROR  [init] ign gazebo failed to start"
 			exit 1
 		fi
-
 	elif [ ! -z $PX4_GZ_MODEL_NAME ] && [ -z $PX4_GZ_MODEL ]; then
 		if gz_bridge start -n "${PX4_GZ_MODEL_NAME}" -w "${PX4_GZ_WORLD}"; then
 			sensor_baro_sim start
