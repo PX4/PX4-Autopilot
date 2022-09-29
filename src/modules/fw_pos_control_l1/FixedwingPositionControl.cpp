@@ -1334,14 +1334,15 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 	if (_param_fw_use_npfg.get()) {
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-		_npfg.navigateLoiter(curr_wp_local, curr_pos_local, loiter_radius, pos_sp_curr.loiter_direction_anti_clockwise,
+		_npfg.navigateLoiter(curr_wp_local, curr_pos_local, loiter_radius, pos_sp_curr.loiter_direction_counter_clockwise,
 				     get_nav_speed_2d(ground_speed),
 				     _wind_vel);
 		_att_sp.roll_body = _npfg.getRollSetpoint();
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 	} else {
-		_l1_control.navigate_loiter(curr_wp_local, curr_pos_local, loiter_radius, pos_sp_curr.loiter_direction_anti_clockwise,
+		_l1_control.navigate_loiter(curr_wp_local, curr_pos_local, loiter_radius,
+					    pos_sp_curr.loiter_direction_counter_clockwise,
 					    get_nav_speed_2d(ground_speed));
 		_att_sp.roll_body = _l1_control.get_roll_setpoint();
 	}
@@ -2738,7 +2739,7 @@ void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_
 {
 	orbit_status_s orbit_status{};
 	orbit_status.timestamp = hrt_absolute_time();
-	float loiter_radius = pos_sp.loiter_radius * (pos_sp.loiter_direction_anti_clockwise ? -1.f : 1.f);
+	float loiter_radius = pos_sp.loiter_radius * (pos_sp.loiter_direction_counter_clockwise ? -1.f : 1.f);
 
 	if (fabsf(loiter_radius) < FLT_EPSILON) {
 		loiter_radius = _param_nav_loiter_rad.get();
