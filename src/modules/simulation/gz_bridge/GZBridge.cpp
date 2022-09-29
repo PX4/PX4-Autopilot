@@ -43,7 +43,7 @@
 #include <string>
 
 GZBridge::GZBridge(const char *world, const char *name, const char *model,
-		const char *pose_str) :
+		   const char *pose_str) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_world_name(world),
 	_model_name(name),
@@ -534,7 +534,7 @@ void GZBridge::motorSpeedCallback(const ignition::msgs::Actuators &actuators)
 }
 
 bool GZBridge::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-		unsigned num_control_groups_updated)
+			     unsigned num_control_groups_updated)
 {
 	unsigned active_output_count = 0;
 
