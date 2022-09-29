@@ -79,6 +79,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 	// Action Commands that doesn't have timeout completes instantaneously
 	case NAV_CMD_DO_SET_SERVO:
+	case NAV_CMD_DO_SET_ACTUATOR:
 	case NAV_CMD_DO_LAND_START:
 	case NAV_CMD_DO_TRIGGER_CONTROL:
 	case NAV_CMD_DO_DIGICAM_CONTROL:
