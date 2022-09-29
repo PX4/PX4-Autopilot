@@ -17,7 +17,7 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 		exit 1
 	fi
 
-elif [ "$PX4_SIMULATOR" = "ignition" ]; then
+elif [ "$PX4_SIMULATOR" = "gz" ]; then
 
 	# source generated gazebo_env.sh for IGN_GAZEBO_RESOURCE_PATH
 	if [ -f gazebo_env.sh ]; then
@@ -26,28 +26,52 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 		. ../gazebo_env.sh
 	fi
 
-	ign_world=$( ign topic -l | grep -m 1 -e "/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
+# shellcheck disable=SC2236
+	if [ ! -z $PX4_GZ_VERBOSE ]; then
+		if [ "$PX4_GZ_VERBOSE" -le "4" ] && [ "$PX4_GZ_VERBOSE" -ge "1" ]; then
+			gz_verbose=$PX4_GZ_VERBOSE
+		else
+			gz_verbose=4
+			echo "WARN  [init] PX4_GZ_VERBOSE was passed: $PX4_GZ_VERBOSE, not in range [1,4], defaulting to: $gz_verbose."
+		fi
+		echo "INFO  [init] PX4_GZ_VERBOSE set to $gz_verbose."
+	else
+		gz_verbose=1
+		echo "INFO  [init] PX4_GZ_VERBOSE not explicitly set, defaulting to: $gz_verbose."
+	fi
 
-	if [ -z $ign_world ]; then
+	gz_world=$( ign topic -l | grep -m 1 -e "/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
 
-		# starting ign gazebo with ${PX4_SIM_WORLD} world
+	if [ -z $gz_world ]; then
+
+		# starting ign gazebo with ${PX4_GZ_WORLD} world
 		echo "INFO  [init] starting ign gazebo"
-
-		ign gazebo --verbose=1 -r -s "${PX4_IGN_GAZEBO_WORLDS}/${PX4_SIM_WORLD}.sdf" &
+# shellcheck disable=SC2153
+		ign gazebo --verbose=$gz_verbose -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
 
 		if [ -z $HEADLESS ]; then
 			# HEADLESS not set, starting ign gazebo gui
 			ign gazebo -g &
 		fi
 	else
-		echo "INFO  [init] ign gazebo already running world: $ign_world"
-		PX4_SIM_WORLD=$ign_world
+		echo "INFO  [init] ign gazebo already running world: $gz_world"
+		PX4_GZ_WORLD=$gz_world
 	fi
 
-	if [ -z $PX4_IGN_MODEL_POSE ]; then
-		# start ignition bridge without pose arg.
-		echo "WARN  [init] PX4_IGN_MODEL_POSE not set, spawning at origin."
-		if simulator_ignition_bridge start -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}"; then
+# shellcheck disable=SC2236
+	if [ ! -z $PX4_GZ_MODEL ] && [ -z $PX4_GZ_MODEL_NAME ]; then
+
+# shellcheck disable=SC2236
+		if [ ! -z $PX4_GZ_MODEL_POSE ]; then
+			# Clean potential input line formatting.
+			model_pose="$( echo ${PX4_GZ_MODEL_POSE} | sed -e 's/^[ \t]*//; s/[ \t]*$//; s/,/ /g; s/  / /g; s/ /,/g' )"
+			echo "INFO  [init] PX4_GZ_MODEL_POSE set, spawning at: ${model_pose}"
+		else
+			echo "WARN  [init] PX4_GZ_MODEL_POSE not set, spawning at origin."
+			model_pose="0,0,0,0,0,0"
+		fi
+		# start gz bridge with pose arg.
+		if gz_bridge start -p "${model_pose}"  -m "${PX4_GZ_MODEL}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
 			sensor_baro_sim start
 			sensor_gps_sim start
 			sensor_mag_sim start
@@ -55,22 +79,29 @@ elif [ "$PX4_SIMULATOR" = "ignition" ]; then
 			echo "ERROR  [init] ign gazebo failed to start"
 			exit 1
 		fi
+	elif [ ! -z $PX4_GZ_MODEL_NAME ] && [ -z $PX4_GZ_MODEL ]; then
+		if gz_bridge start -n "${PX4_GZ_MODEL_NAME}" -w "${PX4_GZ_WORLD}"; then
+			sensor_baro_sim start
+			sensor_gps_sim start
+			sensor_mag_sim start
+		else
+			echo "ERROR  [init] ign gazebo failed to start"
+			exit 1
+		fi
+	elif [ ! -z $PX4_SIM_MODEL ] && [ -z $PX4_GZ_MODEL_NAME ] && [ -z $PX4_GZ_MODEL ]; then
+		echo "WARN  [init] PX4_GZ_MODEL_NAME or PX4_GZ_MODEL not set using PX4_SIM_MODEL."
+		if gz_bridge start -m "${PX4_SIM_MODEL}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
+			sensor_baro_sim start
+			sensor_gps_sim start
+			sensor_mag_sim start
+		else
+			echo "ERROR  [init] ign gazebo failed to start"
+			exit 1
+		fi
+
 	else
-
-		# Clean potential input line formatting.
-		model_pose="$( echo ${PX4_IGN_MODEL_POSE} | sed -e 's/^[ \t]*//; s/[ \t]*$//; s/,/ /g; s/  / /g; s/ /,/g' )"
-		echo "INFO  [init] PX4_IGN_MODEL_POSE set, spawning at: ${model_pose}"
-
-		# start ignition bridge with pose arg.
-		if simulator_ignition_bridge start -p "${model_pose}"  -m "${PX4_SIM_MODEL}" -w "${PX4_SIM_WORLD}"; then
-			sensor_baro_sim start
-			sensor_gps_sim start
-			sensor_mag_sim start
-		else
-			echo "ERROR  [init] ign gazebo failed to start"
-			exit 1
-		fi
-
+		echo "ERROR  [init] failed to pass only PX4_GZ_MODEL_NAME or PX4_GZ_MODEL"
+		exit 1
 	fi
 
 else

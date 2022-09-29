@@ -218,10 +218,10 @@
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "IGN_GAZEBO_RESOURCE_PATH": "${workspaceFolder}/Tools/simulation/ignition/models",
+                    "IGN_GAZEBO_RESOURCE_PATH": "${workspaceFolder}/Tools/simulation/gz/models",
                 }
             },
-            "command": "ign gazebo -v 4 -r ${workspaceFolder}/Tools/simulation/ignition/worlds/${input:ignWorld}.sdf",
+            "command": "ign gazebo -v 4 -r ${workspaceFolder}/Tools/simulation/gz/worlds/${input:gzWorld}.sdf",
             "isBackground": true,
             "presentation": {
                 "echo": true,
@@ -342,8 +342,8 @@
     "inputs": [
         {
             "type": "pickString",
-            "id": "ignWorld",
-            "description": "Ignition world",
+            "id": "gzWorld",
+            "description": "gz world",
             "options": [
                 "default"
             ],
