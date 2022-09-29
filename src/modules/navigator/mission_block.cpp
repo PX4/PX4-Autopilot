@@ -519,11 +519,11 @@ MissionBlock::is_mission_item_reached_or_completed()
 				float inner_angle = acosf(ratio);
 
 				// Compute "ideal" tangent origin
-				if (curr_sp.loiter_direction > 0) {
-					bearing -= inner_angle;
+				if (curr_sp.loiter_direction_counter_clockwise) {
+					bearing += inner_angle;
 
 				} else {
-					bearing += inner_angle;
+					bearing -= inner_angle;
 				}
 
 				// set typ to position, will get set to loiter in the fw position controller once close
@@ -687,7 +687,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->yaw_valid = PX4_ISFINITE(item.yaw);
 	sp->loiter_radius = (fabsf(item.loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item.loiter_radius) :
 			    _navigator->get_loiter_radius();
-	sp->loiter_direction = math::signNoZero(item.loiter_radius);
+	sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
 	if (item.acceptance_radius > 0.001f && PX4_ISFINITE(item.acceptance_radius)) {
 		// if the mission item has a specified acceptance radius, overwrite the default one from parameters

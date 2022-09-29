@@ -342,12 +342,7 @@ void Navigator::run()
 							rep->current.loiter_radius = get_loiter_radius();
 						}
 
-						if (curr->current.loiter_direction == 1 || curr->current.loiter_direction == -1) {
-							rep->current.loiter_direction = curr->current.loiter_direction;
-
-						} else {
-							rep->current.loiter_direction = 1;
-						}
+						rep->current.loiter_direction_counter_clockwise = curr->current.loiter_direction_counter_clockwise;
 					}
 
 					rep->previous.timestamp = hrt_absolute_time();
@@ -385,12 +380,12 @@ void Navigator::run()
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.loiter_radius = get_loiter_radius();
-					rep->current.loiter_direction = 1;
+					rep->current.loiter_direction_counter_clockwise = false;
 					rep->current.cruising_throttle = get_cruising_throttle();
 
 					if (PX4_ISFINITE(cmd.param1)) {
 						rep->current.loiter_radius = fabsf(cmd.param1);
-						rep->current.loiter_direction = math::signNoZero(cmd.param1);
+						rep->current.loiter_direction_counter_clockwise = cmd.param1 < 0;
 					}
 
 					rep->current.lat = position_setpoint.lat;
@@ -414,7 +409,7 @@ void Navigator::run()
 				rep->previous.alt = get_global_position()->alt;
 
 				rep->current.loiter_radius = get_loiter_radius();
-				rep->current.loiter_direction = 1;
+				rep->current.loiter_direction_counter_clockwise = false;
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 
 				if (home_global_position_valid()) {
@@ -918,7 +913,6 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 					rep->current.loiter_radius = get_loiter_radius();
 					rep->current.alt_valid = true;
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-					rep->current.loiter_direction = 1;
 					rep->current.cruising_throttle = get_cruising_throttle();
 					rep->current.acceptance_radius = get_acceptance_radius();
 					rep->current.cruising_speed = get_cruising_speed();
@@ -1077,6 +1071,7 @@ void Navigator::reset_position_setpoint(position_setpoint_s &sp)
 	sp.valid = false;
 	sp.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 	sp.disable_weather_vane = false;
+	sp.loiter_direction_counter_clockwise = false;
 }
 
 float Navigator::get_cruising_throttle()

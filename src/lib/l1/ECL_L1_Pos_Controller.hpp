@@ -154,7 +154,7 @@ public:
 	 * @return sets _lateral_accel setpoint
 	 */
 	void navigate_loiter(const matrix::Vector2f &vector_A, const matrix::Vector2f &vector_curr_position, float radius,
-			     int8_t loiter_direction, const matrix::Vector2f &ground_speed_vector);
+			     const bool loiter_direction_counter_clockwise, const matrix::Vector2f &ground_speed_vector);
 
 	/**
 	 * Navigate on a fixed bearing.

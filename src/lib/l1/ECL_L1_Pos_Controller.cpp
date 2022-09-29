@@ -213,9 +213,11 @@ ECL_L1_Pos_Controller::navigate_waypoints(const Vector2f &vector_A, const Vector
 
 void
 ECL_L1_Pos_Controller::navigate_loiter(const Vector2f &vector_A, const Vector2f &vector_curr_position, float radius,
-				       int8_t loiter_direction, const Vector2f &ground_speed_vector)
+				       const bool loiter_direction_counter_clockwise, const Vector2f &ground_speed_vector)
 {
 	_has_guidance_updated = true;
+
+	const float loiter_direction_multiplier = loiter_direction_counter_clockwise ? -1.f : 1.f;
 
 	/* the complete guidance logic in this section was proposed by [2] */
 
@@ -274,7 +276,7 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2f &vector_A, const Vector2f 
 	float lateral_accel_sp_circle_pd = (xtrack_err_circle * K_crosstrack + xtrack_vel_circle * K_velocity);
 
 	/* calculate velocity on circle / along tangent */
-	float tangent_vel = xtrack_vel_center * loiter_direction;
+	float tangent_vel = xtrack_vel_center * loiter_direction_multiplier;
 
 	/* prevent PD output from turning the wrong way when in circle mode */
 	const float l1_op_tan_vel = 2.f; // hard coded max tangential velocity in the opposite direction
@@ -288,7 +290,8 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2f &vector_A, const Vector2f 
 			(radius + xtrack_err_circle));
 
 	/* add PD control on circle and centripetal acceleration for total circle command */
-	float lateral_accel_sp_circle = loiter_direction * (lateral_accel_sp_circle_pd + lateral_accel_sp_circle_centripetal);
+	float lateral_accel_sp_circle = loiter_direction_multiplier * (lateral_accel_sp_circle_pd +
+					lateral_accel_sp_circle_centripetal);
 
 	/*
 	 * Switch between circle (loiter) and capture (towards waypoint center) mode when
@@ -296,8 +299,10 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2f &vector_A, const Vector2f 
 	 */
 
 	// XXX check switch over
-	if ((lateral_accel_sp_center < lateral_accel_sp_circle && loiter_direction > 0 && xtrack_err_circle > 0.0f) ||
-	    (lateral_accel_sp_center > lateral_accel_sp_circle && loiter_direction < 0 && xtrack_err_circle > 0.0f)) {
+	if ((lateral_accel_sp_center < lateral_accel_sp_circle && !loiter_direction_counter_clockwise
+	     && xtrack_err_circle > 0.0f)
+	    ||
+	    (lateral_accel_sp_center > lateral_accel_sp_circle && loiter_direction_counter_clockwise && xtrack_err_circle > 0.0f)) {
 		_lateral_accel = lateral_accel_sp_center;
 		_circle_mode = false;
 		/* angle between requested and current velocity vector */
