@@ -129,6 +129,11 @@ else
 	BUILD_DIR_SUFFIX :=
 endif
 
+ifdef PX4_EXPORT_RESTRICTION_BUILD
+	CMAKE_ARGS += -DPX4_EXPORT_RESTRICTION_BUILD=ON
+	BUILD_DIR_SUFFIX := $(BUILD_DIR_SUFFIX)_export_compliant
+endif
+
 CMAKE_ARGS ?=
 
 # additional config parameters passed to cmake
