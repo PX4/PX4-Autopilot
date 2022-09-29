@@ -240,12 +240,12 @@ public:
 	 * @param[in] loiter_center The position of the center of the loiter circle [m]
 	 * @param[in] vehicle_pos Vehicle position in WGS84 coordinates (lat,lon) [deg]
 	 * @param[in] radius Loiter radius [m]
-	 * @param[in] loiter_direction Loiter direction: -1=counter-clockwise, 1=clockwise
+	 * @param[in] loiter_direction_counter_clockwise Specifies loiter direction
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
 	void navigateLoiter(const matrix::Vector2f &loiter_center, const matrix::Vector2f &vehicle_pos,
-			    float radius, int8_t loiter_direction, const matrix::Vector2f &ground_vel,
+			    float radius, bool loiter_direction_counter_clockwise, const matrix::Vector2f &ground_vel,
 			    const matrix::Vector2f &wind_vel);
 
 	/*
