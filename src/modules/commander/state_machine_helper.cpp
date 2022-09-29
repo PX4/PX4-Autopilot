@@ -153,8 +153,13 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 		/* need global position estimate
 		 * and there was not a previously triggered flight time or max
 		 * wind speed rtl in the current flight */
-		if (status_flags.global_position_valid &&
-		    !status_flags.flight_time_or_wind_rtl_triggered) {
+
+		if (status_flags.flight_time_or_wind_rtl_triggered) {
+			events::send(events::ID("state_machine_loiter_rejected_flight_time_wind"),
+			{events::Log::Warning, events::LogInternal::Info},
+			"Mode rejected due to flight time or wind limit");
+
+		} else if (status_flags.global_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -166,8 +171,13 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 		/* Follow and orbit only implemented for multicopter,
 		 * and only allow if there was not a previously triggered flight time or max
 		 * wind speed rtl in the current flight */
-		if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
-		    !status_flags.flight_time_or_wind_rtl_triggered) {
+
+		if (status_flags.flight_time_or_wind_rtl_triggered) {
+			events::send(events::ID("state_machine_orbit_rejected_flight_time_wind"),
+			{events::Log::Warning, events::LogInternal::Info},
+			"Mode rejected due to flight time or wind limit");
+
+		} else if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -185,10 +195,14 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 		/* need global position, home position, and a valid mission
 		 * and there was not a previously triggered flight time or max
 		 * wind speed rtl in the current flight */
-		if (status_flags.global_position_valid &&
-		    status_flags.auto_mission_available &&
-		    !status_flags.flight_time_or_wind_rtl_triggered) {
 
+		if (status_flags.flight_time_or_wind_rtl_triggered) {
+			events::send(events::ID("state_machine_mission_rejected_flight_time_wind"),
+			{events::Log::Warning, events::LogInternal::Info},
+			"Mode rejected due to flight time or wind limit");
+
+		} else if (status_flags.global_position_valid &&
+			   status_flags.auto_mission_available) {
 			ret = TRANSITION_CHANGED;
 		}
 
