@@ -72,8 +72,6 @@
 MavlinkReceiver::~MavlinkReceiver()
 {
 	delete _tune_publisher;
-	delete _px4_accel;
-	delete _px4_gyro;
 	delete _px4_mag;
 #if !defined(CONSTRAINED_FLASH)
 	delete[] _received_msg_stats;
@@ -2316,7 +2314,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	mavlink_hil_sensor_t hil_sensor;
 	mavlink_msg_hil_sensor_decode(msg, &hil_sensor);
 
-	const uint64_t timestamp = hrt_absolute_time();
+	const uint64_t timestamp_sample = hrt_absolute_time();
 
 	// temperature only updated with baro
 	float temperature = NAN;
@@ -2327,34 +2325,30 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	// gyro
 	if ((hil_sensor.fields_updated & SensorSource::GYRO) == SensorSource::GYRO) {
-		if (_px4_gyro == nullptr) {
-			// 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-			_px4_gyro = new PX4Gyroscope(1310988);
-		}
-
-		if (_px4_gyro != nullptr) {
-			if (PX4_ISFINITE(temperature)) {
-				_px4_gyro->set_temperature(temperature);
-			}
-
-			_px4_gyro->update(timestamp, hil_sensor.xgyro, hil_sensor.ygyro, hil_sensor.zgyro);
-		}
+		sensor_gyro_s sensor_gyro{};
+		sensor_gyro.timestamp_sample = timestamp_sample;
+		sensor_gyro.device_id = 1310988; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+		sensor_gyro.x = hil_sensor.xgyro;
+		sensor_gyro.y = hil_sensor.ygyro;
+		sensor_gyro.z = hil_sensor.zgyro;
+		sensor_gyro.range = math::radians(2000.f); // TODO
+		sensor_gyro.temperature = temperature;
+		sensor_gyro.timestamp = hrt_absolute_time();
+		_sensor_gyro_pub.publish(sensor_gyro);
 	}
 
 	// accelerometer
 	if ((hil_sensor.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL) {
-		if (_px4_accel == nullptr) {
-			// 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-			_px4_accel = new PX4Accelerometer(1310988);
-		}
-
-		if (_px4_accel != nullptr) {
-			if (PX4_ISFINITE(temperature)) {
-				_px4_accel->set_temperature(temperature);
-			}
-
-			_px4_accel->update(timestamp, hil_sensor.xacc, hil_sensor.yacc, hil_sensor.zacc);
-		}
+		sensor_accel_s sensor_accel{};
+		sensor_accel.timestamp_sample = timestamp_sample;
+		sensor_accel.device_id = 1310988; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+		sensor_accel.x = hil_sensor.xacc;
+		sensor_accel.y = hil_sensor.yacc;
+		sensor_accel.z = hil_sensor.zacc;
+		sensor_accel.range = 16.f; // TODO
+		sensor_accel.temperature = temperature;
+		sensor_accel.timestamp = hrt_absolute_time();
+		_sensor_accel_pub.publish(sensor_accel);
 	}
 
 	// magnetometer
@@ -2369,7 +2363,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 				_px4_mag->set_temperature(temperature);
 			}
 
-			_px4_mag->update(timestamp, hil_sensor.xmag, hil_sensor.ymag, hil_sensor.zmag);
+			_px4_mag->update(timestamp_sample, hil_sensor.xmag, hil_sensor.ymag, hil_sensor.zmag);
 		}
 	}
 
@@ -2377,7 +2371,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	if ((hil_sensor.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
 		// publish
 		sensor_baro_s sensor_baro{};
-		sensor_baro.timestamp_sample = timestamp;
+		sensor_baro.timestamp_sample = timestamp_sample;
 		sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 		sensor_baro.pressure = hil_sensor.abs_pressure * 100.0f; // hPa to Pa
 		sensor_baro.temperature = hil_sensor.temperature;
@@ -2389,7 +2383,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	// differential pressure
 	if ((hil_sensor.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS) {
 		differential_pressure_s report{};
-		report.timestamp_sample = timestamp;
+		report.timestamp_sample = timestamp_sample;
 		report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
 		report.temperature = hil_sensor.temperature;
 		report.differential_pressure_pa = hil_sensor.diff_pressure * 100.0f; // hPa to Pa
@@ -2401,7 +2395,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	{
 		battery_status_s hil_battery_status{};
 
-		hil_battery_status.timestamp = timestamp;
+		hil_battery_status.timestamp = timestamp_sample;
 		hil_battery_status.voltage_v = 16.0f;
 		hil_battery_status.voltage_filtered_v = 16.0f;
 		hil_battery_status.current_a = 10.0f;
@@ -2803,36 +2797,30 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 	/* accelerometer */
 	{
-		if (_px4_accel == nullptr) {
-			// 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-			_px4_accel = new PX4Accelerometer(1310988);
-
-			if (_px4_accel == nullptr) {
-				PX4_ERR("PX4Accelerometer alloc failed");
-			}
-		}
-
-		if (_px4_accel != nullptr) {
-			// accel in mG
-			_px4_accel->set_scale(CONSTANTS_ONE_G / 1000.0f);
-			_px4_accel->update(timestamp_sample, hil_state.xacc, hil_state.yacc, hil_state.zacc);
-		}
+		sensor_accel_s sensor_accel{};
+		sensor_accel.timestamp_sample = timestamp_sample;
+		sensor_accel.device_id = 1310988; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+		sensor_accel.x = hil_state.xacc;
+		sensor_accel.y = hil_state.yacc;
+		sensor_accel.z = hil_state.zacc;
+		sensor_accel.range = 16.f; // TODO
+		sensor_accel.temperature = NAN;
+		sensor_accel.timestamp = hrt_absolute_time();
+		_sensor_accel_pub.publish(sensor_accel);
 	}
 
 	/* gyroscope */
 	{
-		if (_px4_gyro == nullptr) {
-			// 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-			_px4_gyro = new PX4Gyroscope(1310988);
-
-			if (_px4_gyro == nullptr) {
-				PX4_ERR("PX4Gyroscope alloc failed");
-			}
-		}
-
-		if (_px4_gyro != nullptr) {
-			_px4_gyro->update(timestamp_sample, hil_state.rollspeed, hil_state.pitchspeed, hil_state.yawspeed);
-		}
+		sensor_gyro_s sensor_gyro{};
+		sensor_gyro.timestamp_sample = timestamp_sample;
+		sensor_gyro.device_id = 1310988; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+		sensor_gyro.x = hil_state.rollspeed;
+		sensor_gyro.y = hil_state.pitchspeed;
+		sensor_gyro.z = hil_state.yawspeed;
+		sensor_gyro.range = math::radians(2000.f); // TODO
+		sensor_gyro.temperature = NAN;
+		sensor_gyro.timestamp = hrt_absolute_time();
+		_sensor_gyro_pub.publish(sensor_gyro);
 	}
 
 	/* battery status */

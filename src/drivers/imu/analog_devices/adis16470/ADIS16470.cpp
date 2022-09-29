@@ -44,8 +44,7 @@ ADIS16470::ADIS16470(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
 	_drdy_gpio(config.drdy_gpio),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
+	_rotation(config.rotation)
 {
 	if (_drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
@@ -296,8 +295,6 @@ void ADIS16470::RunImpl()
 
 				// temperature 1 LSB = 0.1°C
 				const float temperature = buffer.TEMP_OUT * 0.1f;
-				_px4_accel.set_temperature(temperature);
-				_px4_gyro.set_temperature(temperature);
 
 
 				int16_t accel_x = buffer.X_ACCL_OUT;
@@ -306,10 +303,17 @@ void ADIS16470::RunImpl()
 
 				// sensor's frame is +x forward, +y left, +z up
 				//  flip y & z to publish right handed with z down (x forward, y right, z down)
-				accel_y = (accel_y == INT16_MIN) ? INT16_MAX : -accel_y;
-				accel_z = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
-
-				_px4_accel.update(timestamp_sample, accel_x, accel_y, accel_z);
+				sensor_accel_s sensor_accel{};
+				sensor_accel.timestamp_sample = timestamp_sample;
+				sensor_accel.device_id = get_device_id();
+				sensor_accel.x = accel_x;
+				sensor_accel.y = math::negate(accel_y);
+				sensor_accel.z = math::negate(accel_z);
+				sensor_accel.range = 16.f * CONSTANTS_ONE_G;
+				sensor_accel.temperature = temperature;
+				sensor_accel.error_count = error_count;
+				sensor_accel.timestamp = hrt_absolute_time();
+				_sensor_accel_pub.publish(sensor_accel);
 
 
 				int16_t gyro_x = buffer.X_GYRO_OUT;
@@ -317,9 +321,17 @@ void ADIS16470::RunImpl()
 				int16_t gyro_z = buffer.Z_GYRO_OUT;
 				// sensor's frame is +x forward, +y left, +z up
 				//  flip y & z to publish right handed with z down (x forward, y right, z down)
-				gyro_y = (gyro_y == INT16_MIN) ? INT16_MAX : -gyro_y;
-				gyro_z = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
-				_px4_gyro.update(timestamp_sample, gyro_x, gyro_y, gyro_z);
+				sensor_gyro_s sensor_gyro{};
+				sensor_gyro.timestamp_sample = timestamp_sample;
+				sensor_gyro.device_id = get_device_id();
+				sensor_gyro.x = gyro_x;
+				sensor_gyro.y = math::negate(gyro_y);
+				sensor_gyro.z = math::negate(gyro_z);
+				sensor_gyro.range = math::radians(2000.f);
+				sensor_gyro.temperature = temperature;
+				sensor_gyro.error_count = error_count;
+				sensor_gyro.timestamp = hrt_absolute_time();
+				_sensor_gyro_pub.publish(sensor_gyro);
 
 				success = true;
 
@@ -376,12 +388,12 @@ bool ADIS16470::Configure()
 	}
 
 	// accel: ±40 g, 800 LSB/g (16-bit format)
-	_px4_accel.set_range(40.f * CONSTANTS_ONE_G);
-	_px4_accel.set_scale(CONSTANTS_ONE_G / 800.f); // scaling 800 LSB/g -> m/s^2 per LSB
+	//_accel_range = 40.f * CONSTANTS_ONE_G;
+	_accel_scale = CONSTANTS_ONE_G / 800.f; // scaling 800 LSB/g -> m/s^2 per LSB
 
 	// gyro: ±2000 °/sec, 10 LSB/°/sec (16-bit format)
-	_px4_gyro.set_range(math::radians(2000.f));
-	_px4_gyro.set_scale(math::radians(1.f / 10.f)); // scaling 10 LSB/°/sec -> rad/s per LSB
+	//_gyro_range = math::radians(2000.f);
+	_gyro_scale = math::radians(1.f / 10.f); // scaling 10 LSB/°/sec -> rad/s per LSB
 
 	return success;
 }

@@ -193,89 +193,124 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 		}
 	}
 
-	// accel
-	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL) {
-		if (sensors.id >= ACCEL_COUNT_MAX) {
-			PX4_ERR("Number of simulated accelerometer %d out of range. Max: %d", sensors.id, ACCEL_COUNT_MAX);
-			return;
+	// 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	// 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+	// 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+
+	// accel/gyro instance 0 is a simulated FIFO
+	if (((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL)
+	    && ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO)) {
+
+		// accel/gyro 0 is simulated FIFO
+		static constexpr float ACCEL_FIFO_SCALE = CONSTANTS_ONE_G / 2048.f;
+		//static constexpr float ACCEL_FIFO_RANGE = 16.f * CONSTANTS_ONE_G;
+		static constexpr float GYRO_FIFO_SCALE = math::radians(2000.f / 32768.f);
+		//static constexpr float GYRO_FIFO_RANGE = math::radians(2000.f);
+
+		sensor_imu_fifo_s sensor_imu_fifo{};
+		sensor_imu_fifo.timestamp_sample = time;
+		sensor_imu_fifo.device_id = 1310988; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION;
+		sensor_imu_fifo.dt = time - _last_imu_fifo.timestamp_sample;
+		sensor_imu_fifo.samples = 1;
+		sensor_imu_fifo.accel_scale = ACCEL_FIFO_SCALE;
+		sensor_imu_fifo.gyro_scale = GYRO_FIFO_SCALE;
+		sensor_imu_fifo.temperature = _sensors_temperature;
+
+		if (_accel_stuck[0]) {
+			for (int i = 0; i < _last_imu_fifo.samples; i++) {
+				sensor_imu_fifo.accel_x[i] = _last_imu_fifo.accel_x[i];
+				sensor_imu_fifo.accel_y[i] = _last_imu_fifo.accel_y[i];
+				sensor_imu_fifo.accel_z[i] = _last_imu_fifo.accel_z[i];
+			}
+
+		} else if (!_accel_blocked[0]) {
+			sensor_imu_fifo.accel_x[0] = sensors.xacc / ACCEL_FIFO_SCALE;
+			sensor_imu_fifo.accel_y[0] = sensors.yacc / ACCEL_FIFO_SCALE;
+			sensor_imu_fifo.accel_z[0] = sensors.zacc / ACCEL_FIFO_SCALE;
 		}
 
-		if (sensors.id == 0) {
-			// accel 0 is simulated FIFO
-			static constexpr float ACCEL_FIFO_SCALE = CONSTANTS_ONE_G / 2048.f;
-			static constexpr float ACCEL_FIFO_RANGE = 16.f * CONSTANTS_ONE_G;
-
-			_px4_accel[sensors.id].set_scale(ACCEL_FIFO_SCALE);
-			_px4_accel[sensors.id].set_range(ACCEL_FIFO_RANGE);
-
-			if (_accel_stuck[sensors.id]) {
-				_px4_accel[sensors.id].updateFIFO(_last_accel_fifo);
-
-			} else if (!_accel_blocked[sensors.id]) {
-				_px4_accel[sensors.id].set_temperature(_sensors_temperature);
-
-				_last_accel_fifo.samples = 1;
-				_last_accel_fifo.dt = time - _last_accel_fifo.timestamp_sample;
-				_last_accel_fifo.timestamp_sample = time;
-				_last_accel_fifo.x[0] = sensors.xacc / ACCEL_FIFO_SCALE;
-				_last_accel_fifo.y[0] = sensors.yacc / ACCEL_FIFO_SCALE;
-				_last_accel_fifo.z[0] = sensors.zacc / ACCEL_FIFO_SCALE;
-
-				_px4_accel[sensors.id].updateFIFO(_last_accel_fifo);
+		if (_gyro_stuck[0]) {
+			for (int i = 0; i < _last_imu_fifo.samples; i++) {
+				sensor_imu_fifo.gyro_x[i] = _last_imu_fifo.gyro_x[i];
+				sensor_imu_fifo.gyro_y[i] = _last_imu_fifo.gyro_y[i];
+				sensor_imu_fifo.gyro_z[i] = _last_imu_fifo.gyro_z[i];
 			}
 
-		} else {
-			if (_accel_stuck[sensors.id]) {
-				_px4_accel[sensors.id].update(time, _last_accel[sensors.id](0), _last_accel[sensors.id](1), _last_accel[sensors.id](2));
+		} else if (!_gyro_blocked[0]) {
+			sensor_imu_fifo.gyro_x[0] = sensors.xgyro / GYRO_FIFO_SCALE;
+			sensor_imu_fifo.gyro_y[0] = sensors.ygyro / GYRO_FIFO_SCALE;
+			sensor_imu_fifo.gyro_z[0] = sensors.zgyro / GYRO_FIFO_SCALE;
+		}
 
-			} else if (!_accel_blocked[sensors.id]) {
-				_px4_accel[sensors.id].set_temperature(_sensors_temperature);
-				_px4_accel[sensors.id].update(time, sensors.xacc, sensors.yacc, sensors.zacc);
-				_last_accel[sensors.id] = matrix::Vector3f{sensors.xacc, sensors.yacc, sensors.zacc};
+		sensor_imu_fifo.timestamp = hrt_absolute_time();
+		_sensor_imu_fifo_pub.publish(sensor_imu_fifo);
+
+		_last_imu_fifo = sensor_imu_fifo;
+	}
+
+	// accel
+	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL) {
+		for (int i = 0; i < ACCEL_COUNT_MAX - 1; i++) {
+			sensor_accel_s sensor_accel{};
+			sensor_accel.timestamp_sample = time;
+
+			if (i == 0) {
+				sensor_accel.device_id = 1310996; // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+
+			} else if (i == 1) {
+				sensor_accel.device_id = 1311004; // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 			}
+
+			sensor_accel.temperature = _sensors_temperature;
+
+			if (_accel_stuck[i + 1]) {
+				sensor_accel.x = _last_accel[i](0);
+				sensor_accel.y = _last_accel[i](1);
+				sensor_accel.z = _last_accel[i](2);
+
+			} else if (!_accel_blocked[i + 1]) {
+				sensor_accel.x = sensors.xacc;
+				sensor_accel.y = sensors.yacc;
+				sensor_accel.z = sensors.zacc;
+			}
+
+			sensor_accel.timestamp = hrt_absolute_time();
+			_accel_pub[i].publish(sensor_accel);
+
+			_last_accel[i] = matrix::Vector3f{sensor_accel.x, sensor_accel.y, sensor_accel.z};
 		}
 	}
 
 	// gyro
 	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO) {
-		if (sensors.id >= GYRO_COUNT_MAX) {
-			PX4_ERR("Number of simulated gyroscope %d out of range. Max: %d", sensors.id, GYRO_COUNT_MAX);
-			return;
-		}
+		for (int i = 0; i < GYRO_COUNT_MAX - 1; i++) {
+			sensor_gyro_s sensor_gyro{};
+			sensor_gyro.timestamp_sample = time;
 
-		if (sensors.id == 0) {
-			// gyro 0 is simulated FIFO
-			static constexpr float GYRO_FIFO_SCALE = math::radians(2000.f / 32768.f);
-			static constexpr float GYRO_FIFO_RANGE = math::radians(2000.f);
+			if (i == 0) {
+				sensor_gyro.device_id = 1310996; // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
 
-			_px4_gyro[sensors.id].set_scale(GYRO_FIFO_SCALE);
-			_px4_gyro[sensors.id].set_range(GYRO_FIFO_RANGE);
-
-			if (_gyro_stuck[sensors.id]) {
-				_px4_gyro[sensors.id].updateFIFO(_last_gyro_fifo);
-
-			} else if (!_gyro_blocked[sensors.id]) {
-				_px4_gyro[sensors.id].set_temperature(_sensors_temperature);
-
-				_last_gyro_fifo.samples = 1;
-				_last_gyro_fifo.dt = time - _last_gyro_fifo.timestamp_sample;
-				_last_gyro_fifo.timestamp_sample = time;
-				_last_gyro_fifo.x[0] = sensors.xgyro / GYRO_FIFO_SCALE;
-				_last_gyro_fifo.y[0] = sensors.ygyro / GYRO_FIFO_SCALE;
-				_last_gyro_fifo.z[0] = sensors.zgyro / GYRO_FIFO_SCALE;
-
-				_px4_gyro[sensors.id].updateFIFO(_last_gyro_fifo);
+			} else if (i == 1) {
+				sensor_gyro.device_id = 1311004; // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 			}
 
-		} else {
-			if (_gyro_stuck[sensors.id]) {
-				_px4_gyro[sensors.id].update(time, _last_gyro[sensors.id](0), _last_gyro[sensors.id](1), _last_gyro[sensors.id](2));
+			sensor_gyro.temperature = _sensors_temperature;
 
-			} else if (!_gyro_blocked[sensors.id]) {
-				_px4_gyro[sensors.id].set_temperature(_sensors_temperature);
-				_px4_gyro[sensors.id].update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
-				_last_gyro[sensors.id] = matrix::Vector3f{sensors.xgyro, sensors.ygyro, sensors.zgyro};
+			if (_gyro_stuck[i + 1]) {
+				sensor_gyro.x = _last_gyro[i](0);
+				sensor_gyro.y = _last_gyro[i](1);
+				sensor_gyro.z = _last_gyro[i](2);
+
+			} else if (!_gyro_blocked[i + 1]) {
+				sensor_gyro.x = sensors.xgyro;
+				sensor_gyro.y = sensors.ygyro;
+				sensor_gyro.z = sensors.zgyro;
 			}
+
+			sensor_gyro.timestamp = hrt_absolute_time();
+			_gyro_pub[i].publish(sensor_gyro);
+
+			_last_gyro[i] = matrix::Vector3f{sensor_gyro.x, sensor_gyro.y, sensor_gyro.z};
 		}
 	}
 

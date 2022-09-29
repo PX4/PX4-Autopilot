@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,13 +42,13 @@ namespace Bosch::BMI055::Accelerometer
 
 BMI055_Accelerometer::BMI055_Accelerometer(const I2CSPIDriverConfig &config) :
 	BMI055(config),
-	_px4_accel(get_device_id(), config.rotation)
+	_rotation(config.rotation)
 {
 	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_accel: DRDY missed");
 	}
 
-	ConfigureSampleRate(_px4_accel.get_max_rate_hz());
+	ConfigureSampleRate(RATE);
 }
 
 BMI055_Accelerometer::~BMI055_Accelerometer()
@@ -121,8 +121,8 @@ void BMI055_Accelerometer::RunImpl()
 				ScheduleDelayed(100_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
+				PX4_DEBUG("Reset not complete, check again in 100 ms");
+				ScheduleDelayed(100_ms);
 			}
 		}
 
@@ -162,62 +162,78 @@ void BMI055_Accelerometer::RunImpl()
 		break;
 
 	case STATE::FIFO_READ: {
-			hrt_abstime timestamp_sample = 0;
+			hrt_abstime timestamp_sample = now;
+			uint8_t samples = 0;
 
 			if (_data_ready_interrupt_enabled) {
 				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
 				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
 
-				if ((now - drdy_timestamp_sample) < _fifo_empty_interval_us) {
+				if ((drdy_timestamp_sample != 0) && (now < drdy_timestamp_sample + _fifo_empty_interval_us)) {
 					timestamp_sample = drdy_timestamp_sample;
+					samples = _fifo_samples;
 
 				} else {
 					perf_count(_drdy_missed_perf);
 				}
 
 				// push backup schedule back
-				ScheduleDelayed(_fifo_empty_interval_us * 2);
+				ScheduleDelayed(_fifo_empty_interval_us * 3);
 			}
 
-			// always check current FIFO status/count
-			bool success = false;
-			const uint8_t FIFO_STATUS = RegisterRead(Register::FIFO_STATUS);
+			if (samples == 0) {
+				// always check current FIFO status/count
+				const uint8_t FIFO_STATUS = RegisterRead(Register::FIFO_STATUS);
 
-			if (FIFO_STATUS & FIFO_STATUS_BIT::fifo_overrun) {
-				FIFOReset();
-				perf_count(_fifo_overflow_perf);
-
-			} else {
-				const uint8_t fifo_frame_counter = FIFO_STATUS & FIFO_STATUS_BIT::fifo_frame_counter;
-
-				if (fifo_frame_counter > FIFO_MAX_SAMPLES) {
-					// not technically an overflow, but more samples than we expected or can publish
+				if (FIFO_STATUS & FIFO_STATUS_BIT::fifo_overrun) {
 					FIFOReset();
 					perf_count(_fifo_overflow_perf);
 
-				} else if (fifo_frame_counter == 0) {
-					perf_count(_fifo_empty_perf);
+				} else {
+					const uint8_t fifo_frame_counter = FIFO_STATUS & FIFO_STATUS_BIT::fifo_frame_counter;
 
-				} else if (fifo_frame_counter >= 1) {
+					if (fifo_frame_counter > FIFO_MAX_SAMPLES) {
+						FIFOReset();
+						perf_count(_fifo_overflow_perf);
 
-					uint8_t samples = fifo_frame_counter;
+					} else if (fifo_frame_counter == 0) {
+						perf_count(_fifo_empty_perf);
 
-					// tolerate minor jitter, leave sample to next iteration if behind by only 1
-					if (samples == _fifo_samples + 1) {
-						// sample timestamp set from data ready already corresponds to _fifo_samples
-						if (timestamp_sample == 0) {
-							timestamp_sample = now - static_cast<int>(FIFO_SAMPLE_DT);
+					} else if (fifo_frame_counter >= 1) {
+
+						samples = fifo_frame_counter;
+
+						if (samples > _fifo_samples) {
+							// grab desired number of samples, but reschedule next cycle sooner
+							const int extra_samples = samples - _fifo_samples;
+							samples = _fifo_samples;
+
+							if (_fifo_samples > extra_samples) {
+								// reschedule to run when a total of _fifo_gyro_samples should be available in the FIFO
+								const uint32_t reschedule_delay_us = (_fifo_samples - extra_samples) * static_cast<int>(FIFO_SAMPLE_DT);
+								ScheduleOnInterval(_fifo_empty_interval_us, reschedule_delay_us);
+
+							} else {
+								// otherwise reschedule to run immediately
+								ScheduleOnInterval(_fifo_empty_interval_us);
+							}
+
+						} else if (samples < _fifo_samples) {
+							// reschedule next cycle to catch the desired number of samples
+							ScheduleOnInterval(_fifo_empty_interval_us, (_fifo_samples - samples) * static_cast<int>(FIFO_SAMPLE_DT));
 						}
-
-						samples--;
 					}
+				}
+			}
 
-					if (FIFORead((timestamp_sample == 0) ? now : timestamp_sample, samples)) {
-						success = true;
+			bool success = false;
 
-						if (_failure_count > 0) {
-							_failure_count--;
-						}
+			if (samples == _fifo_samples) {
+				if (FIFORead(timestamp_sample, samples)) {
+					success = true;
+
+					if (_failure_count > 0) {
+						_failure_count--;
 					}
 				}
 			}
@@ -227,13 +243,14 @@ void BMI055_Accelerometer::RunImpl()
 
 				// full reset if things are failing consistently
 				if (_failure_count > 10) {
+					PX4_DEBUG("Full reset because things are failing consistently");
 					Reset();
 					return;
 				}
 			}
 
+			// check configuration registers periodically or immediately following any failure
 			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
-				// check configuration registers periodically or immediately following any failure
 				if (RegisterCheck(_register_cfg[_checked_register])) {
 					_last_config_check_timestamp = now;
 					_checked_register = (_checked_register + 1) % size_register_cfg;
@@ -241,6 +258,7 @@ void BMI055_Accelerometer::RunImpl()
 				} else {
 					// register check failed, force reset
 					perf_count(_bad_register_perf);
+					PX4_DEBUG("Force reset because register 0x%02hhX check failed ", (uint8_t)_register_cfg[_checked_register].reg);
 					Reset();
 				}
 
@@ -263,23 +281,23 @@ void BMI055_Accelerometer::ConfigureAccel()
 
 	switch (PMU_RANGE) {
 	case range_2g_set:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 1024.f); // 1024 LSB/g, 0.98mg/LSB
-		_px4_accel.set_range(2.f * CONSTANTS_ONE_G);
+		_accel_scale = CONSTANTS_ONE_G / 1024.f; // 1024 LSB/g, 0.98mg/LSB
+		_accel_range = 2.f * CONSTANTS_ONE_G;
 		break;
 
 	case range_4g_set:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 512.f); // 512 LSB/g, 1.95mg/LSB
-		_px4_accel.set_range(4.f * CONSTANTS_ONE_G);
+		_accel_scale = CONSTANTS_ONE_G / 512.f; // 512 LSB/g, 1.95mg/LSB
+		_accel_range = 4.f * CONSTANTS_ONE_G;
 		break;
 
 	case range_8g_set:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 256.f); // 256 LSB/g, 3.91mg/LSB
-		_px4_accel.set_range(8.f * CONSTANTS_ONE_G);
+		_accel_scale = CONSTANTS_ONE_G / 256.f; // 256 LSB/g, 3.91mg/LSB
+		_accel_range = 8.f * CONSTANTS_ONE_G;
 		break;
 
 	case range_16g_set:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 128.f); // 128 LSB/g, 7.81mg/LSB
-		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
+		_accel_scale = CONSTANTS_ONE_G / 128.f; // 128 LSB/g, 7.81mg/LSB
+		_accel_range = 16.f * CONSTANTS_ONE_G;
 		break;
 	}
 }
@@ -349,7 +367,7 @@ bool BMI055_Accelerometer::DataReadyInterruptConfigure()
 	}
 
 	// Setup data ready on falling edge
-	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0;
+	return (px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0);
 }
 
 bool BMI055_Accelerometer::DataReadyInterruptDisable()
@@ -358,7 +376,7 @@ bool BMI055_Accelerometer::DataReadyInterruptDisable()
 		return false;
 	}
 
-	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
+	return (px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0);
 }
 
 bool BMI055_Accelerometer::RegisterCheck(const register_config_t &reg_cfg)
@@ -407,40 +425,66 @@ void BMI055_Accelerometer::RegisterSetAndClearBits(Register reg, uint8_t setbits
 
 bool BMI055_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 {
-	FIFOTransferBuffer buffer{};
-	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
+	// Transfer data
+	struct FIFOTransferBuffer {
+		uint8_t cmd{static_cast<uint8_t>(Register::FIFO_DATA) | DIR_READ};
+		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
+	} buffer{};
+
+	// cmd + (samples * FIFO::DATA)
+	const size_t transfer_size = 1 + math::min(samples * sizeof(FIFO::DATA), FIFO::SIZE);
 
 	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
 		return false;
 	}
 
-	sensor_accel_fifo_s accel{};
-	accel.timestamp_sample = timestamp_sample;
-	accel.samples = samples;
-	accel.dt = FIFO_SAMPLE_DT;
+	if (samples > 0) {
 
-	for (int i = 0; i < samples; i++) {
-		const FIFO::DATA &fifo_sample = buffer.f[i];
+		sensor_accel_s sensor_accel{};
+		sensor_accel.timestamp_sample = timestamp_sample;
+		sensor_accel.device_id = get_device_id();
 
-		// acc_x_msb<11:4> + acc_x_lsb<3:0>
-		const int16_t accel_x = combine(fifo_sample.ACCD_X_MSB, fifo_sample.ACCD_X_LSB) >> 4;
-		const int16_t accel_y = combine(fifo_sample.ACCD_Y_MSB, fifo_sample.ACCD_Y_LSB) >> 4;
-		const int16_t accel_z = combine(fifo_sample.ACCD_Z_MSB, fifo_sample.ACCD_Z_LSB) >> 4;
+		float accel_sum[3] {};
 
-		// sensor's frame is +x forward, +y left, +z up
-		//  flip y & z to publish right handed with z down (x forward, y right, z down)
-		accel.x[i] = accel_x;
-		accel.y[i] = (accel_y == INT16_MIN) ? INT16_MAX : -accel_y;
-		accel.z[i] = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
+		for (int i = 0; i < samples; i++) {
+			const FIFO::DATA &fifo_sample = buffer.f[i];
+
+			// acc_x_msb<11:4> + acc_x_lsb<3:0>
+			int16_t accel_x = combine(fifo_sample.ACCD_X_MSB, fifo_sample.ACCD_X_LSB) >> 4;
+			int16_t accel_y = combine(fifo_sample.ACCD_Y_MSB, fifo_sample.ACCD_Y_LSB) >> 4;
+			int16_t accel_z = combine(fifo_sample.ACCD_Z_MSB, fifo_sample.ACCD_Z_LSB) >> 4;
+
+			// sensor's frame is +x forward, +y left, +z up
+			//  flip y & z to publish right handed with z down (x forward, y right, z down)
+			// accel_x = accel_x;
+			accel_y = math::negate(accel_y);
+			accel_z = math::negate(accel_z);
+
+			accel_sum[0] += accel_x;
+			accel_sum[1] += accel_y;
+			accel_sum[2] += accel_z;
+		}
+
+
+		sensor_accel.x = (accel_sum[0] / samples) * _accel_scale;
+		sensor_accel.y = (accel_sum[1] / samples) * _accel_scale;
+		sensor_accel.z = (accel_sum[2] / samples) * _accel_scale;
+
+		rotate_3f(_rotation, sensor_accel.x, sensor_accel.y, sensor_accel.z);
+
+		sensor_accel.range = _accel_range;
+		sensor_accel.temperature = _temperature;
+		sensor_accel.error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
+					   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
+
+		sensor_accel.timestamp = hrt_absolute_time();
+		_sensor_accel_pub.publish(sensor_accel);
+
+		return true;
 	}
 
-	_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
-
-	_px4_accel.updateFIFO(accel);
-
-	return true;
+	return false;
 }
 
 void BMI055_Accelerometer::FIFOReset()
@@ -472,7 +516,7 @@ void BMI055_Accelerometer::UpdateTemperature()
 	float temperature = static_cast<int8_t>(RegisterRead(Register::ACCD_TEMP)) * 0.5f + 23.f;
 
 	if (PX4_ISFINITE(temperature)) {
-		_px4_accel.set_temperature(temperature);
+		_temperature = temperature;
 
 	} else {
 		perf_count(_bad_transfer_perf);

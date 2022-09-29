@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE drivers__imu__invensense__icm20649
 	MAIN icm20649
 	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		ICM20649.cpp
 		ICM20649.hpp
@@ -41,6 +42,4 @@ px4_add_module(
 		InvenSense_ICM20649_registers.hpp
 	DEPENDS
 		px4_work_queue
-		drivers_accelerometer
-		drivers_gyroscope
 	)

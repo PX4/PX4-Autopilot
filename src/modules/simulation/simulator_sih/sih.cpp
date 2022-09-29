@@ -65,9 +65,6 @@ Sih::~Sih()
 
 void Sih::run()
 {
-	_px4_accel.set_temperature(T1_C);
-	_px4_gyro.set_temperature(T1_C);
-
 	parameters_updated();
 	init_variables();
 
@@ -440,9 +437,29 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	Vector3f acc = _C_IB.transpose() * (_v_I_dot - Vector3f(0.0f, 0.0f, CONSTANTS_ONE_G)) + noiseGauss3f(0.5f, 1.7f, 1.4f);
 	Vector3f gyro = _w_B + noiseGauss3f(0.14f, 0.07f, 0.03f);
 
-	// update IMU every iteration
-	_px4_accel.update(time_now_us, acc(0), acc(1), acc(2));
-	_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
+	// sensor_accel
+	sensor_accel_s sensor_accel{};
+	sensor_accel.timestamp_sample = time_now_us;
+	sensor_accel.device_id = 1;
+	sensor_accel.x = acc(0);
+	sensor_accel.y = acc(1);
+	sensor_accel.z = acc(2);
+	sensor_accel.range = 16.f * CONSTANTS_ONE_G;
+	sensor_accel.temperature = NAN;
+	sensor_accel.timestamp = hrt_absolute_time();
+	_sensor_accel_pub.publish(sensor_accel);
+
+	// sensor_gyro
+	sensor_gyro_s sensor_gyro{};
+	sensor_gyro.timestamp_sample = time_now_us;
+	sensor_gyro.device_id = 1;
+	sensor_gyro.x = gyro(0);
+	sensor_gyro.y = gyro(1);
+	sensor_gyro.z = gyro(2);
+	sensor_gyro.range = math::radians(2000.f);
+	sensor_gyro.temperature = NAN;
+	sensor_gyro.timestamp = hrt_absolute_time();
+	_sensor_gyro_pub.publish(sensor_gyro);
 }
 
 void Sih::send_airspeed(const hrt_abstime &time_now_us)

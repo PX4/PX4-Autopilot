@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,6 +33,8 @@
 
 #include "MPU6500.hpp"
 
+#include <lib/parameters/param.h>
+
 using namespace time_literals;
 
 static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
@@ -44,14 +46,16 @@ MPU6500::MPU6500(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
 	_drdy_gpio(config.drdy_gpio),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
+	_rotation(config.rotation)
 {
-	if (config.drdy_gpio != 0) {
+	if (_drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
 
-	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
+	int32_t imu_gyro_rate_max = 400;
+	param_get(param_find("IMU_GYRO_RATEMAX"), &imu_gyro_rate_max);
+
+	ConfigureSampleRate(imu_gyro_rate_max);
 }
 
 MPU6500::~MPU6500()
@@ -131,14 +135,19 @@ bool MPU6500::StoreCheckedRegisterValue(Register reg)
 
 int MPU6500::probe()
 {
-	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
+	// 3 retries
+	for (int retry = 0; retry < 3; retry++) {
+		const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
 
-	if (whoami != WHOAMI) {
-		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
-		return PX4_ERROR;
+		if (whoami == WHOAMI) {
+			return PX4_OK;
+
+		} else {
+			DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
+		}
 	}
 
-	return PX4_OK;
+	return PX4_ERROR;
 }
 
 void MPU6500::RunImpl()
@@ -188,8 +197,8 @@ void MPU6500::RunImpl()
 				ScheduleDelayed(100_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
+				PX4_DEBUG("Reset not complete, check again in 100 ms");
+				ScheduleDelayed(100_ms);
 			}
 		}
 
@@ -197,6 +206,8 @@ void MPU6500::RunImpl()
 
 	case STATE::CONFIGURE:
 		if (Configure()) {
+			_temperature = ReadTemperature();
+
 			// if configure succeeded then start reading from FIFO
 			_state = STATE::FIFO_READ;
 
@@ -235,7 +246,7 @@ void MPU6500::RunImpl()
 				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
 				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
 
-				if ((now - drdy_timestamp_sample) < _fifo_empty_interval_us) {
+				if (now < drdy_timestamp_sample + _fifo_empty_interval_us) {
 					timestamp_sample = drdy_timestamp_sample;
 
 				} else {
@@ -272,7 +283,7 @@ void MPU6500::RunImpl()
 					FIFOReset();
 					perf_count(_fifo_overflow_perf);
 
-				} else if (samples >= SAMPLES_PER_TRANSFER) {
+				} else if (samples >= 1) {
 					if (FIFORead(timestamp_sample, samples)) {
 						success = true;
 
@@ -288,6 +299,7 @@ void MPU6500::RunImpl()
 
 				// full reset if things are failing consistently
 				if (_failure_count > 10) {
+					PX4_DEBUG("Full reset because things are failing consistently");
 					Reset();
 					return;
 				}
@@ -302,13 +314,14 @@ void MPU6500::RunImpl()
 				} else {
 					// register check failed, force reset
 					perf_count(_bad_register_perf);
+					PX4_DEBUG("Force reset because register 0x%02hhX check failed ", (uint8_t)_register_cfg[_checked_register].reg);
 					Reset();
 				}
 
 			} else {
 				// periodically update temperature (~1 Hz)
 				if (hrt_elapsed_time(&_temperature_update_timestamp) >= 1_s) {
-					UpdateTemperature();
+					_temperature = ReadTemperature();
 					_temperature_update_timestamp = now;
 				}
 			}
@@ -318,65 +331,10 @@ void MPU6500::RunImpl()
 	}
 }
 
-void MPU6500::ConfigureAccel()
-{
-	const uint8_t ACCEL_FS_SEL = RegisterRead(Register::ACCEL_CONFIG) & (Bit4 | Bit3); // [4:3] ACCEL_FS_SEL[1:0]
-
-	switch (ACCEL_FS_SEL) {
-	case ACCEL_FS_SEL_2G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 16384.f);
-		_px4_accel.set_range(2.f * CONSTANTS_ONE_G);
-		break;
-
-	case ACCEL_FS_SEL_4G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
-		_px4_accel.set_range(4.f * CONSTANTS_ONE_G);
-		break;
-
-	case ACCEL_FS_SEL_8G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 4096.f);
-		_px4_accel.set_range(8.f * CONSTANTS_ONE_G);
-		break;
-
-	case ACCEL_FS_SEL_16G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
-		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
-		break;
-	}
-}
-
-void MPU6500::ConfigureGyro()
-{
-	const uint8_t GYRO_FS_SEL = RegisterRead(Register::GYRO_CONFIG) & (Bit4 | Bit3); // [4:3] GYRO_FS_SEL[1:0]
-
-	float range_dps = 0.f;
-
-	switch (GYRO_FS_SEL) {
-	case GYRO_FS_SEL_250_DPS:
-		range_dps = 250.f;
-		break;
-
-	case GYRO_FS_SEL_500_DPS:
-		range_dps = 500.f;
-		break;
-
-	case GYRO_FS_SEL_1000_DPS:
-		range_dps = 1000.f;
-		break;
-
-	case GYRO_FS_SEL_2000_DPS:
-		range_dps = 2000.f;
-		break;
-	}
-
-	_px4_gyro.set_scale(math::radians(range_dps / 32768.f));
-	_px4_gyro.set_range(math::radians(range_dps));
-}
-
 void MPU6500::ConfigureSampleRate(int sample_rate)
 {
-	// round down to nearest FIFO sample dt * SAMPLES_PER_TRANSFER
-	const float min_interval = FIFO_SAMPLE_DT * SAMPLES_PER_TRANSFER;
+	// round down to nearest FIFO sample dt
+	const float min_interval = FIFO_SAMPLE_DT;
 	_fifo_empty_interval_us = math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
 
 	_fifo_gyro_samples = roundf(math::min((float)_fifo_empty_interval_us / (1e6f / GYRO_RATE), (float)FIFO_MAX_SAMPLES));
@@ -400,9 +358,6 @@ bool MPU6500::Configure()
 			success = false;
 		}
 	}
-
-	ConfigureAccel();
-	ConfigureGyro();
 
 	return success;
 }
@@ -430,7 +385,7 @@ bool MPU6500::DataReadyInterruptConfigure()
 	}
 
 	// Setup data ready on falling edge
-	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0;
+	return (px4_arch_gpiosetevent(_drdy_gpio, false, true, false, &DataReadyInterruptCallback, this) == 0);
 }
 
 bool MPU6500::DataReadyInterruptDisable()
@@ -439,7 +394,7 @@ bool MPU6500::DataReadyInterruptDisable()
 		return false;
 	}
 
-	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
+	return (px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0);
 }
 
 bool MPU6500::RegisterCheck(const register_config_t &reg_cfg)
@@ -490,23 +445,33 @@ void MPU6500::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t cle
 
 uint16_t MPU6500::FIFOReadCount()
 {
-	// read FIFO count
-	uint8_t fifo_count_buf[3] {};
-	fifo_count_buf[0] = static_cast<uint8_t>(Register::FIFO_COUNTH) | DIR_READ;
-	set_frequency(SPI_SPEED_SENSOR);
+	// transfer buffer
+	struct TransferBuffer {
+		uint8_t cmd{static_cast<uint8_t>(Register::FIFO_COUNTH) | DIR_READ};
+		uint8_t FIFO_COUNTH{0};
+		uint8_t FIFO_COUNTL{0};
+	} buffer{};
 
-	if (transfer(fifo_count_buf, fifo_count_buf, sizeof(fifo_count_buf)) != PX4_OK) {
+	// read FIFO count
+	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, sizeof(buffer)) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
 		return 0;
 	}
 
-	return combine(fifo_count_buf[1], fifo_count_buf[2]);
+	return (buffer.FIFO_COUNTH << 8) + buffer.FIFO_COUNTL;
 }
 
 bool MPU6500::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 {
-	FIFOTransferBuffer buffer{};
-	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
+	// FIFO transfer buffer
+	struct FIFOTransferBuffer {
+		uint8_t cmd{static_cast<uint8_t>(Register::FIFO_R_W) | DIR_READ};
+		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
+	} buffer{};
+
+	// cmd + samples (FIFO::DATA)
+	const size_t transfer_size = 1 + math::min(samples * sizeof(FIFO::DATA), FIFO::SIZE);
+
 	set_frequency(SPI_SPEED_SENSOR);
 
 	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
@@ -514,9 +479,43 @@ bool MPU6500::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 		return false;
 	}
 
+	const uint8_t valid_samples = samples;
 
-	ProcessGyro(timestamp_sample, buffer.f, samples);
-	return ProcessAccel(timestamp_sample, buffer.f, samples);
+	if (valid_samples > 0) {
+		sensor_imu_fifo_s sensor_imu_fifo{};
+		sensor_imu_fifo.timestamp_sample = timestamp_sample;
+		sensor_imu_fifo.device_id = get_device_id();
+		sensor_imu_fifo.dt = FIFO_SAMPLE_DT;
+		sensor_imu_fifo.samples = valid_samples;
+		sensor_imu_fifo.accel_scale = ACCEL_SCALE;
+		sensor_imu_fifo.gyro_scale = GYRO_SCALE;
+
+		for (int i = 0; i < valid_samples; i++) {
+			// sensor's frame is +x forward, +y left, +z up
+			//  flip y & z to publish right handed with z down (x forward, y right, z down)
+			sensor_imu_fifo.accel_x[i] =              combine(buffer.f[i].ACCEL_XOUT_H, buffer.f[i].ACCEL_XOUT_L);
+			sensor_imu_fifo.accel_y[i] = math::negate(combine(buffer.f[i].ACCEL_YOUT_H, buffer.f[i].ACCEL_YOUT_L));
+			sensor_imu_fifo.accel_z[i] = math::negate(combine(buffer.f[i].ACCEL_ZOUT_H, buffer.f[i].ACCEL_ZOUT_L));
+			rotate_3i(_rotation, sensor_imu_fifo.accel_x[i], sensor_imu_fifo.accel_y[i], sensor_imu_fifo.accel_z[i]);
+
+			sensor_imu_fifo.gyro_x[i] =              combine(buffer.f[i].GYRO_XOUT_H, buffer.f[i].GYRO_XOUT_L);
+			sensor_imu_fifo.gyro_y[i] = math::negate(combine(buffer.f[i].GYRO_YOUT_H, buffer.f[i].GYRO_YOUT_L));
+			sensor_imu_fifo.gyro_z[i] = math::negate(combine(buffer.f[i].GYRO_ZOUT_H, buffer.f[i].GYRO_ZOUT_L));
+			rotate_3i(_rotation, sensor_imu_fifo.gyro_x[i], sensor_imu_fifo.gyro_y[i], sensor_imu_fifo.gyro_z[i]);
+		}
+
+		sensor_imu_fifo.temperature = (hrt_elapsed_time(&_temperature_update_timestamp) < 5_s) ? _temperature : NAN;
+
+		sensor_imu_fifo.error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf)
+					      + perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
+
+		sensor_imu_fifo.timestamp = hrt_absolute_time();
+		_sensor_imu_fifo_pub.publish(sensor_imu_fifo);
+
+		return true;
+	}
+
+	return false;
 }
 
 void MPU6500::FIFOReset()
@@ -542,106 +541,32 @@ void MPU6500::FIFOReset()
 	}
 }
 
-static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
+float MPU6500::ReadTemperature()
 {
-	return (memcmp(&f0.ACCEL_XOUT_H, &f1.ACCEL_XOUT_H, 6) == 0);
-}
+	// transfer buffer
+	struct TransferBuffer {
+		uint8_t cmd{static_cast<uint8_t>(Register::TEMP_OUT_H) | DIR_READ};
+		uint8_t TEMP_OUT_H{0};
+		uint8_t TEMP_OUT_L{0};
+	} buffer{};
 
-bool MPU6500::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
-{
-	sensor_accel_fifo_s accel{};
-	accel.timestamp_sample = timestamp_sample;
-	accel.samples = 0;
-	accel.dt = FIFO_SAMPLE_DT * SAMPLES_PER_TRANSFER;
-
-	bool bad_data = false;
-
-	// accel data is doubled in FIFO, but might be shifted
-	int accel_first_sample = 1;
-
-	if (samples >= 4) {
-		if (fifo_accel_equal(fifo[0], fifo[1]) && fifo_accel_equal(fifo[2], fifo[3])) {
-			// [A0, A1, A2, A3]
-			//  A0==A1, A2==A3
-			accel_first_sample = 1;
-
-		} else if (fifo_accel_equal(fifo[1], fifo[2])) {
-			// [A0, A1, A2, A3]
-			//  A0, A1==A2, A3
-			accel_first_sample = 0;
-
-		} else {
-			// no matching accel samples is an error
-			bad_data = true;
-			perf_count(_bad_transfer_perf);
-		}
-	}
-
-	for (int i = accel_first_sample; i < samples; i = i + SAMPLES_PER_TRANSFER) {
-		int16_t accel_x = combine(fifo[i].ACCEL_XOUT_H, fifo[i].ACCEL_XOUT_L);
-		int16_t accel_y = combine(fifo[i].ACCEL_YOUT_H, fifo[i].ACCEL_YOUT_L);
-		int16_t accel_z = combine(fifo[i].ACCEL_ZOUT_H, fifo[i].ACCEL_ZOUT_L);
-
-		// sensor's frame is +x forward, +y left, +z up
-		//  flip y & z to publish right handed with z down (x forward, y right, z down)
-		accel.x[accel.samples] = accel_x;
-		accel.y[accel.samples] = (accel_y == INT16_MIN) ? INT16_MAX : -accel_y;
-		accel.z[accel.samples] = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
-		accel.samples++;
-	}
-
-	_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
-
-	if (accel.samples > 0) {
-		_px4_accel.updateFIFO(accel);
-	}
-
-	return !bad_data;
-}
-
-void MPU6500::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
-{
-	sensor_gyro_fifo_s gyro{};
-	gyro.timestamp_sample = timestamp_sample;
-	gyro.samples = samples;
-	gyro.dt = FIFO_SAMPLE_DT;
-
-	for (int i = 0; i < samples; i++) {
-		const int16_t gyro_x = combine(fifo[i].GYRO_XOUT_H, fifo[i].GYRO_XOUT_L);
-		const int16_t gyro_y = combine(fifo[i].GYRO_YOUT_H, fifo[i].GYRO_YOUT_L);
-		const int16_t gyro_z = combine(fifo[i].GYRO_ZOUT_H, fifo[i].GYRO_ZOUT_L);
-
-		// sensor's frame is +x forward, +y left, +z up
-		//  flip y & z to publish right handed with z down (x forward, y right, z down)
-		gyro.x[i] = gyro_x;
-		gyro.y[i] = (gyro_y == INT16_MIN) ? INT16_MAX : -gyro_y;
-		gyro.z[i] = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
-	}
-
-	_px4_gyro.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-				  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
-
-	_px4_gyro.updateFIFO(gyro);
-}
-
-void MPU6500::UpdateTemperature()
-{
 	// read current temperature
-	uint8_t temperature_buf[3] {};
-	temperature_buf[0] = static_cast<uint8_t>(Register::TEMP_OUT_H) | DIR_READ;
 	set_frequency(SPI_SPEED_SENSOR);
 
-	if (transfer(temperature_buf, temperature_buf, sizeof(temperature_buf)) != PX4_OK) {
+	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, sizeof(buffer)) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
-		return;
+		return NAN;
 	}
 
-	const int16_t TEMP_OUT = combine(temperature_buf[1], temperature_buf[2]);
+	const int16_t TEMP_OUT = combine(buffer.TEMP_OUT_H, buffer.TEMP_OUT_L);
 	const float TEMP_degC = (TEMP_OUT / TEMPERATURE_SENSITIVITY) + TEMPERATURE_OFFSET;
 
-	if (PX4_ISFINITE(TEMP_degC)) {
-		_px4_accel.set_temperature(TEMP_degC);
-		_px4_gyro.set_temperature(TEMP_degC);
+	if (PX4_ISFINITE(TEMP_degC)
+	    && (TEMP_degC >= TEMPERATURE_SENSOR_MIN)
+	    && (TEMP_degC <= TEMPERATURE_SENSOR_MAX)) {
+
+		return TEMP_degC;
 	}
+
+	return NAN;
 }

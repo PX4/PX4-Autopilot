@@ -56,18 +56,13 @@ const uint8_t FXOS8701CQ::_checked_registers[FXOS8701C_NUM_CHECKED_REGISTERS] = 
 FXOS8701CQ::FXOS8701CQ(device::Device *interface, const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_interface(interface),
-	_px4_accel(interface->get_device_id(), config.rotation),
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-	_px4_mag(interface->get_device_id(), config.rotation),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": mag read")),
 #endif
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": acc read")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad reg")),
 	_accel_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": acc dupe"))
 {
-#if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-	_px4_mag.set_scale(0.001f);
-#endif
 }
 
 FXOS8701CQ::~FXOS8701CQ()
@@ -195,7 +190,7 @@ FXOS8701CQ::accel_set_range(unsigned max_g)
 
 	modify_reg(FXOS8701CQ_XYZ_DATA_CFG, XYZ_DATA_CFG_FS_MASK, setbits);
 
-	_px4_accel.set_scale(accel_range_scale);
+	_accel_scale = accel_range_scale;
 
 	return OK;
 }
@@ -335,9 +330,6 @@ void FXOS8701CQ::RunImpl()
 	}
 
 	// report the error count as the sum of the number of bad register reads and bad values.
-	_px4_accel.set_error_count(perf_event_count(_bad_registers));
-	_px4_accel.update(timestamp_sample, x, y, z);
-
 	if (hrt_elapsed_time(&_last_temperature_update) > 100_ms) {
 		/*
 		 * Eight-bit 2’s complement sensor temperature value with 0.96 °C/LSB sensitivity.
@@ -349,8 +341,20 @@ void FXOS8701CQ::RunImpl()
 		_last_temperature_update = timestamp_sample;
 		float temperature = (read_reg(FXOS8701CQ_TEMP)) * 0.96f;
 
-		_px4_accel.set_temperature(temperature);
+		_last_temperature = temperature;
 	}
+
+	sensor_accel_s sensor_accel{};
+	sensor_accel.timestamp_sample = timestamp_sample;
+	sensor_accel.device_id = get_device_id();
+	sensor_accel.x = x;
+	sensor_accel.y = y;
+	sensor_accel.z = z;
+	sensor_accel.range = 16.f * CONSTANTS_ONE_G;
+	sensor_accel.temperature = _last_temperature;
+	sensor_accel.error_count = perf_event_count(_bad_registers);
+	sensor_accel.timestamp = hrt_absolute_time();
+	_sensor_accel_pub.publish(sensor_accel);
 
 
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)

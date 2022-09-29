@@ -49,7 +49,7 @@ logger off
 
 sensors status
 listener sensor_gyro
-listener sensor_gyro_fifo
+listener sensor_imu_fifo
 listener sensor_gyro_fft
 perf
 

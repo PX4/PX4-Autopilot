@@ -291,9 +291,9 @@ bool VehicleIMU::UpdateAccel()
 		} else {
 			// collect sample interval average for filters
 			if (accel.timestamp_sample > _accel_timestamp_sample_last) {
-				if ((_accel_timestamp_sample_last != 0) && (accel.samples > 0)) {
+				if (_accel_timestamp_sample_last != 0) {
 					float interval_us = accel.timestamp_sample - _accel_timestamp_sample_last;
-					_accel_interval_mean.update(Vector2f{interval_us, interval_us / accel.samples});
+					_accel_interval_mean.update(Vector2f{interval_us, interval_us});
 				}
 
 			} else {
@@ -378,51 +378,49 @@ bool VehicleIMU::UpdateAccel()
 
 		updated = true;
 
-		if (accel.clip_counter[0] > 0 || accel.clip_counter[1] > 0 || accel.clip_counter[2] > 0) {
-			// rotate sensor clip counts into vehicle body frame
-			const Vector3f clipping{_accel_calibration.rotation() *
-						Vector3f{(float)accel.clip_counter[0], (float)accel.clip_counter[1], (float)accel.clip_counter[2]}};
+		// if (accel.clip_counter[0] > 0 || accel.clip_counter[1] > 0 || accel.clip_counter[2] > 0) {
+		// 	// rotate sensor clip counts into vehicle body frame
+		// 	const Vector3f clipping{_accel_calibration.rotation() *
+		// 				Vector3f{(float)accel.clip_counter[0], (float)accel.clip_counter[1], (float)accel.clip_counter[2]}};
 
-			// round to get reasonble clip counts per axis (after board rotation)
-			const uint8_t clip_x = roundf(fabsf(clipping(0)));
-			const uint8_t clip_y = roundf(fabsf(clipping(1)));
-			const uint8_t clip_z = roundf(fabsf(clipping(2)));
+		// 	// round to get reasonble clip counts per axis (after board rotation)
+		// 	const uint8_t clip_x = roundf(fabsf(clipping(0)));
+		// 	const uint8_t clip_y = roundf(fabsf(clipping(1)));
+		// 	const uint8_t clip_z = roundf(fabsf(clipping(2)));
 
-			_status.accel_clipping[0] += clip_x;
-			_status.accel_clipping[1] += clip_y;
-			_status.accel_clipping[2] += clip_z;
+		// 	_status.accel_clipping[0] += clip_x;
+		// 	_status.accel_clipping[1] += clip_y;
+		// 	_status.accel_clipping[2] += clip_z;
 
-			if (clip_x > 0) {
-				_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_X;
-			}
+		// 	if (clip_x > 0) {
+		// 		_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_X;
+		// 	}
 
-			if (clip_y > 0) {
-				_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_Y;
-			}
+		// 	if (clip_y > 0) {
+		// 		_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_Y;
+		// 	}
 
-			if (clip_z > 0) {
-				_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_Z;
-			}
+		// 	if (clip_z > 0) {
+		// 		_delta_velocity_clipping |= vehicle_imu_s::CLIPPING_Z;
+		// 	}
 
-			_publish_status = true;
+		// 	_publish_status = true;
 
-			if (_accel_calibration.enabled() && (hrt_elapsed_time(&_last_accel_clipping_notify_time) > 3_s)) {
-				// start notifying the user periodically if there's significant continuous clipping
-				const uint64_t clipping_total = _status.accel_clipping[0] + _status.accel_clipping[1] + _status.accel_clipping[2];
+		// if (_accel_calibration.enabled() && (hrt_elapsed_time(&_last_clipping_notify_time) > 3_s)) {
+		// 	// start notifying the user periodically if there's significant continuous clipping
+		// 	const uint64_t clipping_total = _status.accel_clipping[0] + _status.accel_clipping[1] + _status.accel_clipping[2];
 
-				if (clipping_total > _last_accel_clipping_notify_total_count + 1000) {
-					mavlink_log_critical(&_mavlink_log_pub, "Accel %" PRIu8 " clipping, not safe to fly!\t", _instance);
-					/* EVENT
-					 * @description Land now, and check the vehicle setup.
-					 * Clipping can lead to fly-aways.
-					 */
-					events::send<uint8_t>(events::ID("vehicle_imu_accel_clipping"), events::Log::Critical,
-							      "Accel {1} clipping, not safe to fly!", _instance);
-					_last_accel_clipping_notify_time = accel.timestamp_sample;
-					_last_accel_clipping_notify_total_count = clipping_total;
-				}
-			}
-		}
+		// 	if (clipping_total > _last_clipping_notify_total_count + 1000) {
+		// 		mavlink_log_critical(&_mavlink_log_pub, "Accel %" PRIu8 " clipping, not safe to fly!\t", _instance);
+		// 		/* EVENT
+		// 		 * @description Land now, and check the vehicle setup.
+		// 		 * Clipping can lead to fly-aways.
+		// 		 */
+		// 		events::send<uint8_t>(events::ID("vehicle_imu_accel_clipping"), events::Log::Critical,
+		// 				      "Accel {1} clipping, not safe to fly!", _instance);
+		// 		_last_clipping_notify_time = accel.timestamp_sample;
+		// 		_last_clipping_notify_total_count = clipping_total;
+		// 	}
 	}
 
 	return updated;
@@ -446,9 +444,9 @@ bool VehicleIMU::UpdateGyro()
 		} else {
 			// collect sample interval average for filters
 			if (gyro.timestamp_sample > _gyro_timestamp_sample_last) {
-				if ((_gyro_timestamp_sample_last != 0) && (gyro.samples > 0)) {
+				if (_gyro_timestamp_sample_last != 0) {
 					float interval_us = gyro.timestamp_sample - _gyro_timestamp_sample_last;
-					_gyro_interval_mean.update(Vector2f{interval_us, interval_us / gyro.samples});
+					_gyro_interval_mean.update(Vector2f{interval_us, interval_us});
 				}
 
 			} else {
@@ -534,51 +532,51 @@ bool VehicleIMU::UpdateGyro()
 
 		updated = true;
 
-		if (gyro.clip_counter[0] > 0 || gyro.clip_counter[1] > 0 || gyro.clip_counter[2] > 0) {
-			// rotate sensor clip counts into vehicle body frame
-			const Vector3f clipping{_gyro_calibration.rotation() *
-						Vector3f{(float)gyro.clip_counter[0], (float)gyro.clip_counter[1], (float)gyro.clip_counter[2]}};
+		// if (gyro.clip_counter[0] > 0 || gyro.clip_counter[1] > 0 || gyro.clip_counter[2] > 0) {
+		// 	// rotate sensor clip counts into vehicle body frame
+		// 	const Vector3f clipping{_gyro_calibration.rotation() *
+		// 				Vector3f{(float)gyro.clip_counter[0], (float)gyro.clip_counter[1], (float)gyro.clip_counter[2]}};
 
-			// round to get reasonble clip counts per axis (after board rotation)
-			const uint8_t clip_x = roundf(fabsf(clipping(0)));
-			const uint8_t clip_y = roundf(fabsf(clipping(1)));
-			const uint8_t clip_z = roundf(fabsf(clipping(2)));
+		// 	// round to get reasonble clip counts per axis (after board rotation)
+		// 	const uint8_t clip_x = roundf(fabsf(clipping(0)));
+		// 	const uint8_t clip_y = roundf(fabsf(clipping(1)));
+		// 	const uint8_t clip_z = roundf(fabsf(clipping(2)));
 
-			_status.gyro_clipping[0] += clip_x;
-			_status.gyro_clipping[1] += clip_y;
-			_status.gyro_clipping[2] += clip_z;
+		// 	_status.gyro_clipping[0] += clip_x;
+		// 	_status.gyro_clipping[1] += clip_y;
+		// 	_status.gyro_clipping[2] += clip_z;
 
-			if (clip_x > 0) {
-				_delta_angle_clipping |= vehicle_imu_s::CLIPPING_X;
-			}
+		// 	if (clip_x > 0) {
+		// 		_delta_angle_clipping |= vehicle_imu_s::CLIPPING_X;
+		// 	}
 
-			if (clip_y > 0) {
-				_delta_angle_clipping |= vehicle_imu_s::CLIPPING_Y;
-			}
+		// 	if (clip_y > 0) {
+		// 		_delta_angle_clipping |= vehicle_imu_s::CLIPPING_Y;
+		// 	}
 
-			if (clip_z > 0) {
-				_delta_angle_clipping |= vehicle_imu_s::CLIPPING_Z;
-			}
+		// 	if (clip_z > 0) {
+		// 		_delta_angle_clipping |= vehicle_imu_s::CLIPPING_Z;
+		// 	}
 
-			_publish_status = true;
+		// 	_publish_status = true;
 
-			if (_gyro_calibration.enabled() && (hrt_elapsed_time(&_last_gyro_clipping_notify_time) > 3_s)) {
-				// start notifying the user periodically if there's significant continuous clipping
-				const uint64_t clipping_total = _status.gyro_clipping[0] + _status.gyro_clipping[1] + _status.gyro_clipping[2];
+		// 	if (_gyro_calibration.enabled() && (hrt_elapsed_time(&_last_gyro_clipping_notify_time) > 3_s)) {
+		// 		// start notifying the user periodically if there's significant continuous clipping
+		// 		const uint64_t clipping_total = _status.gyro_clipping[0] + _status.gyro_clipping[1] + _status.gyro_clipping[2];
 
-				if (clipping_total > _last_gyro_clipping_notify_total_count + 1000) {
-					mavlink_log_critical(&_mavlink_log_pub, "Gyro %" PRIu8 " clipping, not safe to fly!\t", _instance);
-					/* EVENT
-					 * @description Land now, and check the vehicle setup.
-					 * Clipping can lead to fly-aways.
-					 */
-					events::send<uint8_t>(events::ID("vehicle_imu_gyro_clipping"), events::Log::Critical,
-							      "Gyro {1} clipping, not safe to fly!", _instance);
-					_last_gyro_clipping_notify_time = gyro.timestamp_sample;
-					_last_gyro_clipping_notify_total_count = clipping_total;
-				}
-			}
-		}
+		// 		if (clipping_total > _last_gyro_clipping_notify_total_count + 1000) {
+		// 			mavlink_log_critical(&_mavlink_log_pub, "Gyro %" PRIu8 " clipping, not safe to fly!\t", _instance);
+		// 			/* EVENT
+		// 			 * @description Land now, and check the vehicle setup.
+		// 			 * Clipping can lead to fly-aways.
+		// 			 */
+		// 			events::send<uint8_t>(events::ID("vehicle_imu_gyro_clipping"), events::Log::Critical,
+		// 					      "Gyro {1} clipping, not safe to fly!", _instance);
+		// 			_last_gyro_clipping_notify_time = gyro.timestamp_sample;
+		// 			_last_gyro_clipping_notify_total_count = clipping_total;
+		// 		}
+		// 	}
+		// }
 	}
 
 	return updated;

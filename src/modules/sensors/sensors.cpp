@@ -87,6 +87,7 @@ Sensors::Sensors(bool hil_enabled) :
 	parameters_update();
 
 	InitializeVehicleIMU();
+	InitializeVehicleIMUFifo();
 }
 
 Sensors::~Sensors()
@@ -144,6 +145,13 @@ Sensors::~Sensors()
 		if (vehicle_imu) {
 			vehicle_imu->Stop();
 			delete vehicle_imu;
+		}
+	}
+
+	for (auto &vehicle_imu_fifo : _vehicle_imu_fifo_list) {
+		if (vehicle_imu_fifo) {
+			vehicle_imu_fifo->Stop();
+			delete vehicle_imu_fifo;
 		}
 	}
 
@@ -462,15 +470,52 @@ void Sensors::InitializeVehicleIMU()
 				const bool multi_mode = (_param_sens_imu_mode.get() == 0);
 				const px4::wq_config_t &wq_config = multi_mode ? px4::ins_instance_to_wq(i) : px4::wq_configurations::INS0;
 
-				VehicleIMU *imu = new VehicleIMU(i, i, i, wq_config);
+				VehicleIMU *imu = new VehicleIMU(_total_imu_count, i, i, wq_config);
 
 				if (imu != nullptr) {
 					// Start VehicleIMU instance and store
 					if (imu->Start()) {
 						_vehicle_imu_list[i] = imu;
+						_total_imu_count++;
 
 					} else {
 						delete imu;
+					}
+				}
+
+			} else {
+				// abort on first failure, try again later
+				return;
+			}
+		}
+	}
+}
+
+void Sensors::InitializeVehicleIMUFifo()
+{
+	// create a VehicleIMU instance for each accel/gyro pair
+	for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+		if (_vehicle_imu_fifo_list[i] == nullptr) {
+
+			uORB::Subscription sensor_imu_fifo_sub{ORB_ID(sensor_imu_fifo), i};
+
+			if (sensor_imu_fifo_sub.advertised()) {
+				// if the sensors module is responsible for voting (SENS_IMU_MODE 1) then run every VehicleIMU in the same WQ
+				//   otherwise each VehicleIMU runs in a corresponding INSx WQ
+				const bool multi_mode = (_param_sens_imu_mode.get() == 0);
+				const px4::wq_config_t &wq_config = multi_mode ? px4::ins_instance_to_wq(_total_imu_count) :
+								    px4::wq_configurations::INS0;
+
+				VehicleIMUFifo *imu_fifo = new VehicleIMUFifo(_total_imu_count, i, wq_config);
+
+				if (imu_fifo != nullptr) {
+					// Start VehicleIMU instance and store
+					if (imu_fifo->Start()) {
+						_vehicle_imu_fifo_list[i] = imu_fifo;
+						_total_imu_count++;
+
+					} else {
+						delete imu_fifo;
 					}
 				}
 
@@ -597,6 +642,7 @@ void Sensors::Run()
 		// sensor device id (not just orb_group_count) must be populated before IMU init can succeed
 		_voted_sensors_update.initializeSensors();
 		InitializeVehicleIMU();
+		InitializeVehicleIMUFifo();
 
 		_last_config_update = hrt_absolute_time();
 
@@ -744,6 +790,13 @@ int Sensors::print_status()
 	PX4_INFO_RAW("\n");
 
 	for (auto &i : _vehicle_imu_list) {
+		if (i != nullptr) {
+			PX4_INFO_RAW("\n");
+			i->PrintStatus();
+		}
+	}
+
+	for (auto &i : _vehicle_imu_fifo_list) {
 		if (i != nullptr) {
 			PX4_INFO_RAW("\n");
 			i->PrintStatus();

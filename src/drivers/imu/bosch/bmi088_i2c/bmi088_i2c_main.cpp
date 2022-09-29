@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,19 +60,20 @@ extern "C" int bmi088_i2c_main(int argc, char *argv[])
 	uint16_t type = 0;
 	const char *name = MODULE_NAME;
 
-
 	while ((ch = cli.getOpt(argc, argv, "AGR:")) != EOF) {
 		switch (ch) {
 		case 'A':
 			type = DRV_ACC_DEVTYPE_BMI088;
 			name = MODULE_NAME "_accel";
 			cli.i2c_address = 0x18;
+			cli.default_i2c_frequency = 400 * 1000;
 			break;
 
 		case 'G':
 			type = DRV_GYR_DEVTYPE_BMI088;
 			name = MODULE_NAME "_gyro";
 			cli.i2c_address = 0x69;
+			cli.default_i2c_frequency = 400 * 1000;
 			break;
 
 		case 'R':
@@ -92,17 +93,14 @@ extern "C" int bmi088_i2c_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);
-	}
 
-	if (!strcmp(verb, "stop")) {
+	} else if (!strcmp(verb, "stop")) {
 		return ThisDriver::module_stop(iterator);
-	}
 
-	if (!strcmp(verb, "status")) {
+	} else if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
 	}
 
-	PX4_WARN("print_usage1");
 	ThisDriver::print_usage();
 	return -1;
 }

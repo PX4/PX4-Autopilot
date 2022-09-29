@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <Integrator.hpp>
+#include "Integrator.hpp"
 
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/mathlib/math/WelfordMean.hpp>
@@ -51,8 +51,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_accel.h>
-#include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_imu_fifo.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_imu_status.h>
@@ -62,13 +61,13 @@ using namespace time_literals;
 namespace sensors
 {
 
-class VehicleIMU : public ModuleParams, public px4::ScheduledWorkItem
+class VehicleIMUFifo : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	VehicleIMU() = delete;
-	VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, const px4::wq_config_t &config);
+	VehicleIMUFifo() = delete;
+	VehicleIMUFifo(int instance, uint8_t sensor_imu_fifo_index, const px4::wq_config_t &config);
 
-	~VehicleIMU() override;
+	~VehicleIMUFifo() override;
 
 	bool Start();
 	void Stop();
@@ -77,11 +76,13 @@ public:
 
 private:
 	bool ParametersUpdate(bool force = false);
-	bool Publish();
+	bool Publish(const matrix::Vector3f &delta_angle, uint16_t delta_angle_dt,
+		     const matrix::Vector3f &delta_velocity, uint16_t delta_velocity_dt);
 	void Run() override;
 
-	bool UpdateAccel();
-	bool UpdateGyro();
+	void IntegrateAccel(const int16_t x[], const int16_t y[], const int16_t z[], int first_sample, int last_sample);
+	void IntegrateGyro(const int16_t x[], const int16_t y[], const int16_t z[], int first_sample, int last_sample,
+			   float scale, float dt_s);
 
 	void UpdateIntegratorConfiguration();
 
@@ -100,45 +101,42 @@ private:
 	// Used to check, save and use learned magnetometer biases
 	uORB::SubscriptionMultiArray<estimator_sensor_bias_s> _estimator_sensor_bias_subs{ORB_ID::estimator_sensor_bias};
 
-	uORB::Subscription _sensor_accel_sub;
-	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub;
+	uORB::SubscriptionCallbackWorkItem _sensor_imu_fifo_sub;
 
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 
 	calibration::Accelerometer _accel_calibration{};
 	calibration::Gyroscope _gyro_calibration{};
 
-	sensors::Integrator       _accel_integrator{};
-	sensors::IntegratorConing _gyro_integrator{};
+	IntegratorConing _gyro_integrator{};
+
+	matrix::Vector3f _accel_integral{};
+	int16_t _last_accel_sample[3] {};
+	float _accel_scale{0.f};
 
 	uint32_t _imu_integration_interval_us{5000};
 
-	hrt_abstime _accel_timestamp_sample_last{0};
-	hrt_abstime _gyro_timestamp_sample_last{0};
-	hrt_abstime _gyro_timestamp_last{0};
+	hrt_abstime _timestamp_sample_last{0};
+	hrt_abstime _timestamp_last{0};
 
-	math::WelfordMean<matrix::Vector3f> _raw_accel_mean{};
-	math::WelfordMean<matrix::Vector3f> _raw_gyro_mean{};
+	math::WelfordMean<matrix::Vector2f> _interval_mean{};
 
-	math::WelfordMean<matrix::Vector2f> _accel_interval_mean{};
-	math::WelfordMean<matrix::Vector2f> _gyro_interval_mean{};
+	math::WelfordMean<matrix::Vector2f> _update_latency_mean{};
 
-	math::WelfordMean<matrix::Vector2f> _gyro_update_latency_mean{};
+	float _interval_best_variance{(float)INFINITY};
 
-	float _accel_interval_best_variance{(float)INFINITY};
-	float _gyro_interval_best_variance{(float)INFINITY};
+	float _interval_us{NAN};
+	int _interval_samples{1};
 
-	float _accel_interval_us{NAN};
-	float _gyro_interval_us{NAN};
+	unsigned _last_generation{0};
 
-	unsigned _accel_last_generation{0};
-	unsigned _gyro_last_generation{0};
+	matrix::Vector3f _accel_sum{};
+	matrix::Vector3f _gyro_sum{};
+	int _accel_sum_count{0};
+	int _gyro_sum_count{0};
 
-	float _accel_temperature_sum{NAN};
-	float _gyro_temperature_sum{NAN};
-
-	int _accel_temperature_sum_count{0};
-	int _gyro_temperature_sum_count{0};
+	float _temperature_sum{0};
+	int _temperature_sum_count{0};
 
 	matrix::Vector3f _acceleration_prev{};     // acceleration from the previous IMU measurement for vibration metrics
 	matrix::Vector3f _angular_velocity_prev{}; // angular velocity from the previous IMU measurement for vibration metrics
@@ -148,15 +146,10 @@ private:
 	float _coning_norm_accum{0};
 	float _coning_norm_accum_total_time_s{0};
 
-	uint8_t     _delta_angle_clipping{0};
-	uint8_t     _delta_velocity_clipping{0};
+	uint8_t _delta_velocity_clipping{0};
 
-	hrt_abstime _last_accel_clipping_notify_time{0};
-	hrt_abstime _last_gyro_clipping_notify_time{0};
-
-	uint64_t    _last_accel_clipping_notify_total_count{0};
-	uint64_t    _last_gyro_clipping_notify_total_count{0};
-
+	hrt_abstime _last_clipping_notify_time{0};
+	uint64_t _last_clipping_notify_total_count{0};
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	uint32_t _backup_schedule_timeout_us{20000};
@@ -189,8 +182,7 @@ private:
 	hrt_abstime _in_flight_calibration_check_timestamp_last{0};
 
 
-	perf_counter_t _accel_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel data gap")};
-	perf_counter_t _gyro_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro data gap")};
+	perf_counter_t _imu_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": imu data gap")};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_INTEG_RATE>) _param_imu_integ_rate,

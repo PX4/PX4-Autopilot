@@ -352,12 +352,12 @@ void LoggedTopics::add_vision_and_avoidance_topics()
 
 void LoggedTopics::add_raw_imu_gyro_fifo()
 {
-	add_topic("sensor_gyro_fifo");
+	add_topic("sensor_imu_fifo");
 }
 
 void LoggedTopics::add_raw_imu_accel_fifo()
 {
-	add_topic("sensor_accel_fifo");
+	//add_topic("sensor_accel_fifo");
 }
 
 void LoggedTopics::add_system_identification_topics()

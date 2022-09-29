@@ -42,13 +42,13 @@ namespace Bosch::BMI085::Accelerometer
 
 BMI085_Accelerometer::BMI085_Accelerometer(const I2CSPIDriverConfig &config) :
 	BMI085(config),
-	_px4_accel(get_device_id(), config.rotation)
+	_rotation(config.rotation)
 {
 	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_accel: DRDY missed");
 	}
 
-	ConfigureSampleRate(_px4_accel.get_max_rate_hz());
+	ConfigureSampleRate(RATE);
 }
 
 BMI085_Accelerometer::~BMI085_Accelerometer()
@@ -280,23 +280,23 @@ void BMI085_Accelerometer::ConfigureAccel()
 
 	switch (ACC_RANGE) {
 	case acc_range_2g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1)) / 32768.f);
-		_px4_accel.set_range(2.f * CONSTANTS_ONE_G);
+		_accel_scale = CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1)) / 32768.f;
+		_accel_range = 2.f * CONSTANTS_ONE_G;
 		break;
 
 	case acc_range_4g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1)) / 32768.f);
-		_px4_accel.set_range(4.f * CONSTANTS_ONE_G);
+		_accel_scale = CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1)) / 32768.f;
+		_accel_range = 4.f * CONSTANTS_ONE_G;
 		break;
 
 	case acc_range_8g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1)) / 32768.f);
-		_px4_accel.set_range(8.f * CONSTANTS_ONE_G);
+		_accel_scale = CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1)) / 32768.f;
+		_accel_range = 8.f * CONSTANTS_ONE_G;
 		break;
 
 	case acc_range_16g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1)) / 32768.f);
-		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
+		_accel_scale = CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1)) / 32768.f;
+		_accel_range = 16.f * CONSTANTS_ONE_G;
 		break;
 	}
 }
@@ -452,7 +452,7 @@ uint16_t BMI085_Accelerometer::FIFOReadCount()
 	const uint8_t FIFO_LENGTH_0 = fifo_len_buf[2];        // fifo_byte_counter[7:0]
 	const uint8_t FIFO_LENGTH_1 = fifo_len_buf[3] & 0x3F; // fifo_byte_counter[13:8]
 
-	return combine(FIFO_LENGTH_1, FIFO_LENGTH_0);
+	return (FIFO_LENGTH_1 << 8) + FIFO_LENGTH_0;
 }
 
 bool BMI085_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
@@ -465,7 +465,7 @@ bool BMI085_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 		return false;
 	}
 
-	const size_t fifo_byte_counter = combine(buffer.FIFO_LENGTH_1 & 0x3F, buffer.FIFO_LENGTH_0);
+	const size_t fifo_byte_counter = ((buffer.FIFO_LENGTH_1 & 0x3F) << 8) + buffer.FIFO_LENGTH_0;
 
 	// An empty FIFO corresponds to 0x8000
 	if (fifo_byte_counter == 0x8000) {
@@ -477,14 +477,16 @@ bool BMI085_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 		return false;
 	}
 
-	sensor_accel_fifo_s accel{};
-	accel.timestamp_sample = timestamp_sample;
-	accel.samples = 0;
-	accel.dt = FIFO_SAMPLE_DT;
+	sensor_accel_s sensor_accel{};
+	sensor_accel.timestamp_sample = timestamp_sample;
+	sensor_accel.device_id = get_device_id();
 
 	// first find all sensor data frames in the buffer
 	uint8_t *data_buffer = (uint8_t *)&buffer.f[0];
 	unsigned fifo_buffer_index = 0; // start of buffer
+
+	float accel_sum[3] {};
+	int accel_samples = 0;
 
 	while (fifo_buffer_index < math::min(fifo_byte_counter, transfer_size - 4)) {
 		// look for header signature (first 6 bits) followed by two bits indicating the status of INT1 and INT2
@@ -494,16 +496,23 @@ bool BMI085_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 				// Frame length: 7 bytes (1 byte header + 6 bytes payload)
 
 				FIFO::DATA *fifo_sample = (FIFO::DATA *)&data_buffer[fifo_buffer_index];
-				const int16_t accel_x = combine(fifo_sample->ACC_X_MSB, fifo_sample->ACC_X_LSB);
-				const int16_t accel_y = combine(fifo_sample->ACC_Y_MSB, fifo_sample->ACC_Y_LSB);
-				const int16_t accel_z = combine(fifo_sample->ACC_Z_MSB, fifo_sample->ACC_Z_LSB);
+				int16_t accel_x = combine(fifo_sample->ACC_X_MSB, fifo_sample->ACC_X_LSB);
+				int16_t accel_y = combine(fifo_sample->ACC_Y_MSB, fifo_sample->ACC_Y_LSB);
+				int16_t accel_z = combine(fifo_sample->ACC_Z_MSB, fifo_sample->ACC_Z_LSB);
 
 				// sensor's frame is +x forward, +y left, +z up
 				//  flip y & z to publish right handed with z down (x forward, y right, z down)
-				accel.x[accel.samples] = accel_x;
-				accel.y[accel.samples] = math::negate(accel_y);
-				accel.z[accel.samples] = math::negate(accel_z);
-				accel.samples++;
+				// accel_x = accel_x;
+				accel_y = math::negate(accel_y);
+				accel_z = math::negate(accel_z);
+
+				rotate_3i(_rotation, accel_x, accel_y, accel_z);
+
+				accel_sum[0] += accel_x;
+				accel_sum[1] += accel_y;
+				accel_sum[2] += accel_z;
+
+				accel_samples++;
 
 				fifo_buffer_index += 7; // move forward to next record
 			}
@@ -543,11 +552,19 @@ bool BMI085_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 		}
 	}
 
-	_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+	if (accel_samples > 0) {
+		sensor_accel.x = (accel_sum[0] / accel_samples) * _accel_scale;
+		sensor_accel.y = (accel_sum[1] / accel_samples) * _accel_scale;
+		sensor_accel.z = (accel_sum[2] / accel_samples) * _accel_scale;
 
-	if (accel.samples > 0) {
-		_px4_accel.updateFIFO(accel);
+		sensor_accel.range = _accel_range;
+		sensor_accel.temperature = _temperature;
+		sensor_accel.error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
+					   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
+
+		sensor_accel.timestamp = hrt_absolute_time();
+		_sensor_accel_pub.publish(sensor_accel);
+
 		return true;
 	}
 
@@ -594,7 +611,7 @@ void BMI085_Accelerometer::UpdateTemperature()
 	float temperature = (Temp_int11 * 0.125f) + 23.f; // Temp_int11 * 0.125°C/LSB + 23°C
 
 	if (PX4_ISFINITE(temperature)) {
-		_px4_accel.set_temperature(temperature);
+		_temperature = temperature;
 
 	} else {
 		perf_count(_bad_transfer_perf);

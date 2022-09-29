@@ -90,6 +90,8 @@ public:
 	void set_reset_samples(uint8_t reset_samples) { _reset_samples_min = reset_samples; }
 	uint8_t get_reset_samples() const { return _reset_samples_min; }
 
+	uint8_t integrated_samples() const { return _integrated_samples; }
+
 	/**
 	 * Is the Integrator ready to reset?
 	 *

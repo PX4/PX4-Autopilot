@@ -56,7 +56,7 @@ static constexpr uint8_t _checked_registers[] = {
 LSM303D::LSM303D(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_px4_accel(get_device_id(), config.rotation),
+	_rotation(config.rotation),
 	_px4_mag(get_device_id(), config.rotation),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d: acc_read")),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d: mag_read")),
@@ -236,7 +236,7 @@ LSM303D::accel_set_range(unsigned max_g)
 
 	float accel_range_scale = new_scale_g_digit * CONSTANTS_ONE_G;
 
-	_px4_accel.set_scale(accel_range_scale);
+	_accel_scale = accel_range_scale;
 
 	modify_reg(ADDR_CTRL_REG2, clearbits, setbits);
 
@@ -517,8 +517,23 @@ LSM303D::measureAccelerometer()
 	// register reads and bad values. This allows the higher level
 	// code to decide if it should use this sensor based on
 	// whether it has had failures
-	_px4_accel.set_error_count(perf_event_count(_bad_registers) + perf_event_count(_bad_values));
-	_px4_accel.update(timestamp_sample, raw_accel_report.x, raw_accel_report.y, raw_accel_report.z);
+
+	sensor_accel_s sensor_accel{};
+	sensor_accel.timestamp_sample = timestamp_sample;
+	sensor_accel.device_id = get_device_id();
+
+	sensor_accel.x = raw_accel_report.x * _accel_scale;
+	sensor_accel.y = raw_accel_report.y * _accel_scale;
+	sensor_accel.z = raw_accel_report.z * _accel_scale;
+
+	rotate_3f(_rotation, sensor_accel.x, sensor_accel.y, sensor_accel.z);
+
+	sensor_accel.range = _accel_range;
+	sensor_accel.temperature = _last_temperature;
+	sensor_accel.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
+
+	sensor_accel.timestamp = hrt_absolute_time();
+	_sensor_accel_pub.publish(sensor_accel);
 
 	_last_accel[0] = raw_accel_report.x;
 	_last_accel[1] = raw_accel_report.y;
@@ -553,7 +568,6 @@ LSM303D::measureMagnetometer()
 	 * seems to be a signed offset from 25 degrees C in units of 0.125C
 	 */
 	_last_temperature = 25.0f + (raw_mag_report.temperature * 0.125f);
-	_px4_accel.set_temperature(_last_temperature);
 	_px4_mag.set_temperature(_last_temperature);
 
 	_px4_mag.set_error_count(perf_event_count(_bad_registers) + perf_event_count(_bad_values));

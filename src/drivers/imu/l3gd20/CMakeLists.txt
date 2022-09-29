@@ -40,6 +40,5 @@ px4_add_module(
 		L3GD20.cpp
 		l3gd20_main.cpp
 	DEPENDS
-		drivers_gyroscope
 		px4_work_queue
 	)

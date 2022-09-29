@@ -56,8 +56,7 @@ using namespace time_literals;
 ADIS16477::ADIS16477(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation),
+	_rotation(config.rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME": bad transfers")),
 	_drdy_gpio(config.drdy_gpio)
@@ -67,8 +66,8 @@ ADIS16477::ADIS16477(const I2CSPIDriverConfig &config) :
 	px4_arch_configgpio(GPIO_SPI1_RESET_ADIS16477);
 #endif // GPIO_SPI1_RESET_ADIS16477
 
-	_px4_accel.set_scale(1.25f * CONSTANTS_ONE_G / 1000.0f); // accel 1.25 mg/LSB
-	_px4_gyro.set_scale(math::radians(0.025f)); // gyro 0.025 °/sec/LSB
+	_accel_scale = 1.25f * CONSTANTS_ONE_G / 1000.0f; // accel 1.25 mg/LSB
+	_gyro_scale = math::radians(0.025f); // gyro 0.025 °/sec/LSB
 }
 
 ADIS16477::~ADIS16477()
@@ -366,11 +365,31 @@ ADIS16477::measure()
 
 	// temperature 1 LSB = 0.1°C
 	const float temperature = adis_report.temp * 0.1f;
-	_px4_accel.set_temperature(temperature);
-	_px4_gyro.set_temperature(temperature);
 
-	_px4_accel.update(timestamp_sample, adis_report.accel_x, adis_report.accel_y, adis_report.accel_z);
-	_px4_gyro.update(timestamp_sample, adis_report.gyro_x, adis_report.gyro_y, adis_report.gyro_z);
+
+	// sensor_accel
+	sensor_accel_s sensor_accel{};
+	sensor_accel.timestamp_sample = timestamp_sample;
+	sensor_accel.device_id = get_device_id();
+	sensor_accel.x = adis_report.accel_x;
+	sensor_accel.y = adis_report.accel_y;
+	sensor_accel.z = adis_report.accel_z;
+	sensor_accel.range = 16.f * CONSTANTS_ONE_G;
+	sensor_accel.temperature = temperature;
+	sensor_accel.timestamp = hrt_absolute_time();
+	_sensor_accel_pub.publish(sensor_accel);
+
+	// sensor_gyro
+	sensor_gyro_s sensor_gyro{};
+	sensor_gyro.timestamp_sample = timestamp_sample;
+	sensor_gyro.device_id = get_device_id();
+	sensor_gyro.x = adis_report.gyro_x;
+	sensor_gyro.y = adis_report.gyro_y;
+	sensor_gyro.z = adis_report.gyro_z;
+	sensor_gyro.range = math::radians(2000.f);
+	sensor_gyro.temperature = temperature;
+	sensor_gyro.timestamp = hrt_absolute_time();
+	_sensor_gyro_pub.publish(sensor_gyro);
 
 	perf_end(_sample_perf);
 

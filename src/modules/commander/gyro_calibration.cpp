@@ -56,8 +56,9 @@
 #include <lib/sensor_calibration/Utilities.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionBlocking.hpp>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_imu_fifo.h>
+#include <uORB/SubscriptionMultiArray.hpp>
 
 static constexpr char sensor_name[] {"gyro"};
 static constexpr unsigned MAX_GYROS = 4;
@@ -82,12 +83,8 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 	static constexpr unsigned CALIBRATION_COUNT = 250;
 	unsigned poll_errcount = 0;
 
-	uORB::SubscriptionBlocking<sensor_gyro_s> gyro_sub[MAX_GYROS] {
-		{ORB_ID(sensor_gyro), 0, 0},
-		{ORB_ID(sensor_gyro), 0, 1},
-		{ORB_ID(sensor_gyro), 0, 2},
-		{ORB_ID(sensor_gyro), 0, 3},
-	};
+	uORB::SubscriptionMultiArray<sensor_gyro_s, MAX_GYROS> sensor_gyro_subs{ORB_ID::sensor_gyro};
+	uORB::SubscriptionMultiArray<sensor_imu_fifo_s, MAX_GYROS> sensor_imu_fifo_subs{ORB_ID::sensor_imu_fifo};
 
 	/* use slowest gyro to pace, but count correctly per-gyro for statistics */
 	unsigned slow_count = 0;
@@ -97,38 +94,74 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 			return calibrate_return_cancelled;
 		}
 
-		if (gyro_sub[0].updatedBlocking(100000)) {
+		if (sensor_gyro_subs.updated() || sensor_imu_fifo_subs.updated()) {
 			unsigned update_count = CALIBRATION_COUNT;
 
-			for (unsigned gyro_index = 0; gyro_index < MAX_GYROS; gyro_index++) {
-				if (worker_data.calibrations[gyro_index].device_id() != 0) {
+			int total_gyros = 0;
 
-					if (calibration_counter[gyro_index] >= CALIBRATION_COUNT) {
-						// Skip if instance has enough samples
-						continue;
-					}
+			for (unsigned imu_fifo_index = 0; imu_fifo_index < sensor_imu_fifo_subs.size(); imu_fifo_index++) {
+				if ((worker_data.calibrations[total_gyros].device_id() != 0)
+				    && (calibration_counter[total_gyros] < CALIBRATION_COUNT)) {
 
-					sensor_gyro_s gyro_report;
+					sensor_imu_fifo_s sensor_imu_fifo;
 
-					while (gyro_sub[gyro_index].update(&gyro_report)) {
+					while (sensor_imu_fifo_subs[imu_fifo_index].update(&sensor_imu_fifo)) {
 						// fetch optional thermal offset corrections in sensor frame
-						const Vector3f &thermal_offset{worker_data.calibrations[gyro_index].thermal_offset()};
+						const Vector3f &thermal_offset{worker_data.calibrations[total_gyros].thermal_offset()};
 
-						worker_data.offset[gyro_index] += Vector3f{gyro_report.x, gyro_report.y, gyro_report.z} - thermal_offset;
+						const Vector3f gyro_sample = calibration::AverageFifoGyro(sensor_imu_fifo);
 
-						calibration_counter[gyro_index]++;
+						worker_data.offset[total_gyros] += gyro_sample - thermal_offset;
 
-						if (gyro_index == 0) {
-							worker_data.filter[0].insert(gyro_report.x - thermal_offset(0));
-							worker_data.filter[1].insert(gyro_report.y - thermal_offset(1));
-							worker_data.filter[2].insert(gyro_report.z - thermal_offset(2));
+						calibration_counter[total_gyros]++;
+
+						if (total_gyros == 0) {
+							worker_data.filter[0].insert(gyro_sample(0) - thermal_offset(0));
+							worker_data.filter[1].insert(gyro_sample(1) - thermal_offset(1));
+							worker_data.filter[2].insert(gyro_sample(2) - thermal_offset(2));
 						}
 					}
 
 					// Maintain the sample count of the slowest sensor
-					if (calibration_counter[gyro_index] && calibration_counter[gyro_index] < update_count) {
-						update_count = calibration_counter[gyro_index];
+					if (calibration_counter[total_gyros] && calibration_counter[total_gyros] < update_count) {
+						update_count = calibration_counter[total_gyros];
 					}
+				}
+
+				if (sensor_imu_fifo_subs[imu_fifo_index].advertised()) {
+					total_gyros++;
+				}
+			}
+
+			for (unsigned gyro_index = 0; gyro_index < sensor_gyro_subs.size(); gyro_index++) {
+				if ((worker_data.calibrations[total_gyros].device_id() != 0)
+				    && (calibration_counter[total_gyros] < CALIBRATION_COUNT)) {
+
+					sensor_gyro_s sensor_gyro;
+
+					while (sensor_gyro_subs[gyro_index].update(&sensor_gyro)) {
+						// fetch optional thermal offset corrections in sensor frame
+						const Vector3f &thermal_offset{worker_data.calibrations[total_gyros].thermal_offset()};
+
+						worker_data.offset[total_gyros] += Vector3f{sensor_gyro.x, sensor_gyro.y, sensor_gyro.z} - thermal_offset;
+
+						calibration_counter[total_gyros]++;
+
+						if (total_gyros == 0) {
+							worker_data.filter[0].insert(sensor_gyro.x - thermal_offset(0));
+							worker_data.filter[1].insert(sensor_gyro.y - thermal_offset(1));
+							worker_data.filter[2].insert(sensor_gyro.z - thermal_offset(2));
+						}
+					}
+
+					// Maintain the sample count of the slowest sensor
+					if (calibration_counter[total_gyros] && calibration_counter[total_gyros] < update_count) {
+						update_count = calibration_counter[total_gyros];
+					}
+				}
+
+				if (sensor_gyro_subs[gyro_index].advertised()) {
+					total_gyros++;
 				}
 			}
 
@@ -143,6 +176,8 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 				slow_count = update_count;
 			}
 
+			px4_usleep(10'000);
+
 		} else {
 			poll_errcount++;
 		}
@@ -153,13 +188,13 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 		}
 	}
 
-	for (unsigned s = 0; s < MAX_GYROS; s++) {
-		if ((worker_data.calibrations[s].device_id() != 0) && (calibration_counter[s] < CALIBRATION_COUNT / 2)) {
-			calibration_log_critical(worker_data.mavlink_log_pub, "ERROR: missing data, sensor %d", s)
+	for (unsigned i = 0; i < MAX_GYROS; i++) {
+		if ((worker_data.calibrations[i].device_id() != 0) && (calibration_counter[i] < CALIBRATION_COUNT / 2)) {
+			calibration_log_critical(worker_data.mavlink_log_pub, "ERROR: missing data, sensor %d", i)
 			return calibrate_return_error;
 		}
 
-		worker_data.offset[s] /= calibration_counter[s];
+		worker_data.offset[i] /= calibration_counter[i];
 	}
 
 	return calibrate_return_ok;
@@ -175,7 +210,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	worker_data.mavlink_log_pub = mavlink_log_pub;
 
 	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
-	const unsigned orb_gyro_count = orb_group_count(ORB_ID(sensor_gyro));
+	const unsigned orb_gyro_count = orb_group_count(ORB_ID(sensor_imu_fifo)) + orb_group_count(ORB_ID(sensor_gyro));
 
 	// Warn that we will not calibrate more than MAX_GYROS gyroscopes
 	if (orb_gyro_count > MAX_GYROS) {
@@ -186,11 +221,27 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		return PX4_ERROR;
 	}
 
-	for (uint8_t cur_gyro = 0; cur_gyro < MAX_GYROS; cur_gyro++) {
-		uORB::SubscriptionData<sensor_gyro_s> gyro_sub{ORB_ID(sensor_gyro), cur_gyro};
+	int total_gyros = 0;
 
-		if (gyro_sub.advertised() && (gyro_sub.get().device_id != 0) && (gyro_sub.get().timestamp > 0)) {
-			worker_data.calibrations[cur_gyro].set_device_id(gyro_sub.get().device_id);
+	uORB::SubscriptionMultiArray<sensor_imu_fifo_s, MAX_GYROS> sensor_imu_fifo_subs{ORB_ID::sensor_imu_fifo};
+
+	for (uint8_t i = 0; i < sensor_imu_fifo_subs.size(); i++) {
+		sensor_imu_fifo_s sensor_imu_fifo;
+
+		if (sensor_imu_fifo_subs[i].update(&sensor_imu_fifo) && sensor_imu_fifo.device_id != 0) {
+			worker_data.calibrations[total_gyros].set_device_id(sensor_imu_fifo.device_id);
+			total_gyros++;
+		}
+	}
+
+	uORB::SubscriptionMultiArray<sensor_gyro_s, MAX_GYROS> sensor_gyro_subs{ORB_ID::sensor_gyro};
+
+	for (uint8_t i = 0; i < sensor_gyro_subs.size(); i++) {
+		sensor_gyro_s sensor_gyro;
+
+		if (sensor_gyro_subs[i].update(&sensor_gyro) && sensor_gyro.device_id != 0) {
+			worker_data.calibrations[total_gyros].set_device_id(sensor_gyro.device_id);
+			total_gyros++;
 		}
 	}
 
@@ -253,15 +304,15 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		bool param_save = false;
 		bool failed = true;
 
-		for (unsigned uorb_index = 0; uorb_index < MAX_GYROS; uorb_index++) {
+		for (unsigned i = 0; i < MAX_GYROS; i++) {
 
-			auto &calibration = worker_data.calibrations[uorb_index];
+			auto &calibration = worker_data.calibrations[i];
 
 			if (calibration.device_id() != 0) {
-				calibration.set_offset(worker_data.offset[uorb_index]);
+				calibration.set_offset(worker_data.offset[i]);
 				calibration.PrintStatus();
 
-				if (calibration.ParametersSave(uorb_index, true)) {
+				if (calibration.ParametersSave(i, true)) {
 					param_save = true;
 					failed = false;
 

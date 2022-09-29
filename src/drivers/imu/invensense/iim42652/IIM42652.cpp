@@ -33,6 +33,8 @@
 
 #include "IIM42652.hpp"
 
+#include <lib/parameters/param.h>
+
 using namespace time_literals;
 
 static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
@@ -44,14 +46,16 @@ IIM42652::IIM42652(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
 	_drdy_gpio(config.drdy_gpio),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
+	_rotation(config.rotation)
 {
-	if (config.drdy_gpio != 0) {
+	if (_drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
 
-	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
+	int32_t imu_gyro_rate_max = 400;
+	param_get(param_find("IMU_GYRO_RATEMAX"), &imu_gyro_rate_max);
+
+	ConfigureSampleRate(imu_gyro_rate_max);
 }
 
 IIM42652::~IIM42652()
@@ -61,6 +65,7 @@ IIM42652::~IIM42652()
 	perf_free(_fifo_empty_perf);
 	perf_free(_fifo_overflow_perf);
 	perf_free(_fifo_reset_perf);
+	perf_free(_fifo_timestamp_error_perf);
 	perf_free(_drdy_missed_perf);
 }
 
@@ -102,12 +107,14 @@ void IIM42652::print_status()
 	perf_print_counter(_fifo_empty_perf);
 	perf_print_counter(_fifo_overflow_perf);
 	perf_print_counter(_fifo_reset_perf);
+	perf_print_counter(_fifo_timestamp_error_perf);
 	perf_print_counter(_drdy_missed_perf);
 }
 
 int IIM42652::probe()
 {
-	for (int i = 0; i < 3; i++) {
+	// 3 retries
+	for (int retry = 0; retry < 3; retry++) {
 		uint8_t whoami = RegisterRead(Register::BANK_0::WHO_AM_I);
 
 		if (whoami == WHOAMI) {
@@ -162,8 +169,8 @@ void IIM42652::RunImpl()
 				ScheduleDelayed(100_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
+				PX4_DEBUG("Reset not complete, check again in 100 ms");
+				ScheduleDelayed(100_ms);
 			}
 		}
 
@@ -171,21 +178,9 @@ void IIM42652::RunImpl()
 
 	case STATE::CONFIGURE:
 		if (Configure()) {
-			// if configure succeeded then start reading from FIFO
-			_state = STATE::FIFO_READ;
-
-			if (DataReadyInterruptConfigure()) {
-				_data_ready_interrupt_enabled = true;
-
-				// backup schedule as a watchdog timeout
-				ScheduleDelayed(100_ms);
-
-			} else {
-				_data_ready_interrupt_enabled = false;
-				ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
-			}
-
-			FIFOReset();
+			// if configure succeeded then reset the FIFO
+			_state = STATE::FIFO_RESET;
+			ScheduleDelayed(1_ms);
 
 		} else {
 			// CONFIGURE not complete
@@ -202,6 +197,24 @@ void IIM42652::RunImpl()
 
 		break;
 
+	case STATE::FIFO_RESET:
+
+		_state = STATE::FIFO_READ;
+		FIFOReset();
+
+		if (DataReadyInterruptConfigure()) {
+			_data_ready_interrupt_enabled = true;
+
+			// backup schedule as a watchdog timeout
+			ScheduleDelayed(100_ms);
+
+		} else {
+			_data_ready_interrupt_enabled = false;
+			ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
+		}
+
+		break;
+
 	case STATE::FIFO_READ: {
 			hrt_abstime timestamp_sample = now;
 			uint8_t samples = 0;
@@ -210,7 +223,7 @@ void IIM42652::RunImpl()
 				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
 				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
 
-				if ((now - drdy_timestamp_sample) < _fifo_empty_interval_us) {
+				if (now < drdy_timestamp_sample + _fifo_empty_interval_us) {
 					timestamp_sample = drdy_timestamp_sample;
 					samples = _fifo_gyro_samples;
 
@@ -221,6 +234,8 @@ void IIM42652::RunImpl()
 				// push backup schedule back
 				ScheduleDelayed(_fifo_empty_interval_us * 2);
 			}
+
+			bool success = false;
 
 			if (samples == 0) {
 				// check current FIFO count
@@ -234,27 +249,42 @@ void IIM42652::RunImpl()
 					perf_count(_fifo_empty_perf);
 
 				} else {
-					// FIFO count (size in bytes)
-					samples = (fifo_count / sizeof(FIFO::DATA));
+					// FIFO count (size in bytes) should be a multiple of the FIFO::DATA structure
+					samples = fifo_count / sizeof(FIFO::DATA);
 
-					// tolerate minor jitter, leave sample to next iteration if behind by only 1
-					if (samples == _fifo_gyro_samples + 1) {
-						timestamp_sample -= static_cast<int>(FIFO_SAMPLE_DT);
-						samples--;
+					if (samples > _fifo_gyro_samples) {
+						// grab desired number of samples, but reschedule next cycle sooner
+						const int extra_samples = samples - _fifo_gyro_samples;
+						samples = _fifo_gyro_samples;
+
+						if (_fifo_gyro_samples > extra_samples) {
+							// reschedule to run when a total of _fifo_gyro_samples should be available in the FIFO
+							const uint32_t reschedule_delay_us = (_fifo_gyro_samples - extra_samples) * static_cast<int>(FIFO_SAMPLE_DT);
+							ScheduleOnInterval(_fifo_empty_interval_us, reschedule_delay_us);
+
+						} else {
+							// otherwise reschedule to run immediately
+							ScheduleOnInterval(_fifo_empty_interval_us);
+						}
+
+					} else if (samples < _fifo_gyro_samples) {
+						// reschedule next cycle to catch the desired number of samples
+						ScheduleOnInterval(_fifo_empty_interval_us, (_fifo_gyro_samples - samples) * static_cast<int>(FIFO_SAMPLE_DT));
 					}
 
-					if (samples > FIFO_MAX_SAMPLES) {
-						// not technically an overflow, but more samples than we expected or can publish
-						FIFOReset();
-						perf_count(_fifo_overflow_perf);
-						samples = 0;
+					if (samples == _fifo_gyro_samples) {
+						if (FIFORead(now, samples)) {
+							success = true;
+
+							if (_failure_count > 0) {
+								_failure_count--;
+							}
+						}
 					}
 				}
 			}
 
-			bool success = false;
-
-			if (samples >= 1) {
+			if (samples == _fifo_gyro_samples) {
 				if (FIFORead(timestamp_sample, samples)) {
 					success = true;
 
@@ -269,13 +299,14 @@ void IIM42652::RunImpl()
 
 				// full reset if things are failing consistently
 				if (_failure_count > 10) {
+					PX4_DEBUG("Full reset because things are failing consistently");
 					Reset();
 					return;
 				}
 			}
 
+			// check configuration registers periodically or immediately following any failure
 			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
-				// check configuration registers periodically or immediately following any failure
 				if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0])
 				    && RegisterCheck(_register_bank1_cfg[_checked_register_bank1])
 				    && RegisterCheck(_register_bank2_cfg[_checked_register_bank2])
@@ -303,10 +334,10 @@ void IIM42652::ConfigureSampleRate(int sample_rate)
 	const float min_interval = FIFO_SAMPLE_DT;
 	_fifo_empty_interval_us = math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
 
-	_fifo_gyro_samples = roundf(math::min((float)_fifo_empty_interval_us / (1e6f / GYRO_RATE), (float)FIFO_MAX_SAMPLES));
+	_fifo_gyro_samples = roundf(math::min((float)_fifo_empty_interval_us / (1e6f / RATE), (float)FIFO_MAX_SAMPLES));
 
 	// recompute FIFO empty interval (us) with actual gyro sample limit
-	_fifo_empty_interval_us = _fifo_gyro_samples * (1e6f / GYRO_RATE);
+	_fifo_empty_interval_us = _fifo_gyro_samples * (1e6f / RATE);
 
 	ConfigureFIFOWatermark(_fifo_gyro_samples);
 }
@@ -356,6 +387,7 @@ bool IIM42652::Configure()
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
 	}
 
+
 	// now check that all are configured
 	bool success = true;
 
@@ -376,11 +408,6 @@ bool IIM42652::Configure()
 			success = false;
 		}
 	}
-
-	// 20-bits data format used
-	//  the only FSR settings that are operational are ±2000dps for gyroscope and ±16g for accelerometer
-	_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
-	_px4_gyro.set_range(math::radians(2000.f));
 
 	return success;
 }
@@ -404,7 +431,7 @@ bool IIM42652::DataReadyInterruptConfigure()
 	}
 
 	// Setup data ready on falling edge
-	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0;
+	return (px4_arch_gpiosetevent(_drdy_gpio, false, true, false, &DataReadyInterruptCallback, this) == 0);
 }
 
 bool IIM42652::DataReadyInterruptDisable()
@@ -413,7 +440,7 @@ bool IIM42652::DataReadyInterruptDisable()
 		return false;
 	}
 
-	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
+	return (px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0);
 }
 
 template <typename T>
@@ -468,114 +495,20 @@ void IIM42652::RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits
 
 uint16_t IIM42652::FIFOReadCount()
 {
-	// read FIFO count
-	uint8_t fifo_count_buf[3] {};
-	fifo_count_buf[0] = static_cast<uint8_t>(Register::BANK_0::FIFO_COUNTH) | DIR_READ;
-	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
+	// transfer buffer
+	struct TransferBuffer {
+		uint8_t cmd{static_cast<uint8_t>(Register::BANK_0::FIFO_COUNTH) | DIR_READ};
+		uint8_t FIFO_COUNTH{0};
+		uint8_t FIFO_COUNTL{0};
+	} buffer{};
 
-	if (transfer(fifo_count_buf, fifo_count_buf, sizeof(fifo_count_buf)) != PX4_OK) {
+	// read FIFO count
+	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, sizeof(buffer)) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
 		return 0;
 	}
 
-	return combine(fifo_count_buf[1], fifo_count_buf[2]);
-}
-
-bool IIM42652::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
-{
-	FIFOTransferBuffer buffer{};
-	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 4, FIFO::SIZE);
-	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
-
-	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
-		perf_count(_bad_transfer_perf);
-		return false;
-	}
-
-	if (buffer.INT_STATUS & INT_STATUS_BIT::FIFO_FULL_INT) {
-		perf_count(_fifo_overflow_perf);
-		FIFOReset();
-		return false;
-	}
-
-	const uint16_t fifo_count_bytes = combine(buffer.FIFO_COUNTH, buffer.FIFO_COUNTL);
-
-	if (fifo_count_bytes >= FIFO::SIZE) {
-		perf_count(_fifo_overflow_perf);
-		FIFOReset();
-		return false;
-	}
-
-	const uint8_t fifo_count_samples = fifo_count_bytes / sizeof(FIFO::DATA);
-
-	if (fifo_count_samples == 0) {
-		perf_count(_fifo_empty_perf);
-		return false;
-	}
-
-	// check FIFO header in every sample
-	uint8_t valid_samples = 0;
-
-	for (int i = 0; i < math::min(samples, fifo_count_samples); i++) {
-		bool valid = true;
-
-		// With FIFO_ACCEL_EN and FIFO_GYRO_EN header should be 8’b_0110_10xx
-		const uint8_t FIFO_HEADER = buffer.f[i].FIFO_Header;
-
-		if (FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_MSG) {
-			// FIFO sample empty if HEADER_MSG set
-			valid = false;
-
-		} else if (!(FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_ACCEL)) {
-			// accel bit not set
-			valid = false;
-
-		} else if (!(FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_GYRO)) {
-			// gyro bit not set
-			valid = false;
-
-		} else if (!(FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_20)) {
-			// Packet does not contain a new and valid extended 20-bit data
-			valid = false;
-
-		} else if (FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_ODR_ACCEL) {
-			// accel ODR changed
-			valid = false;
-
-		} else if (FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_ODR_GYRO) {
-			// gyro ODR changed
-			valid = false;
-		}
-
-		if (valid) {
-			valid_samples++;
-
-		} else {
-			perf_count(_bad_transfer_perf);
-			break;
-		}
-	}
-
-	if (valid_samples > 0) {
-		if (ProcessTemperature(buffer.f, valid_samples)) {
-			ProcessGyro(timestamp_sample, buffer.f, valid_samples);
-			ProcessAccel(timestamp_sample, buffer.f, valid_samples);
-			return true;
-		}
-	}
-
-	return false;
-}
-
-void IIM42652::FIFOReset()
-{
-	perf_count(_fifo_reset_perf);
-
-	// SIGNAL_PATH_RESET: FIFO flush
-	RegisterSetBits(Register::BANK_0::SIGNAL_PATH_RESET, SIGNAL_PATH_RESET_BIT::FIFO_FLUSH);
-
-	// reset while FIFO is disabled
-	_drdy_timestamp_sample.store(0);
+	return (buffer.FIFO_COUNTH << 8) + buffer.FIFO_COUNTL;
 }
 
 static constexpr int32_t reassemble_20bit(const uint32_t a, const uint32_t b, const uint32_t c)
@@ -595,206 +528,288 @@ static constexpr int32_t reassemble_20bit(const uint32_t a, const uint32_t b, co
 	return static_cast<int32_t>(x);
 }
 
-void IIM42652::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+bool IIM42652::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 {
-	sensor_accel_fifo_s accel{};
-	accel.timestamp_sample = timestamp_sample;
-	accel.samples = 0;
-	accel.dt = FIFO_SAMPLE_DT;
+	// FIFO transfer buffer
+	struct FIFOTransferBuffer {
+		uint8_t cmd{static_cast<uint8_t>(Register::BANK_0::INT_STATUS) | DIR_READ};
+		uint8_t INT_STATUS{0};
+		uint8_t FIFO_COUNTH{0};
+		uint8_t FIFO_COUNTL{0};
+		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
+	} buffer{};
 
-	// 18-bits of accelerometer data
-	bool scale_20bit = false;
+	// cmd + INT_STATUS + FIFO_COUNTH + FIFO_COUNTL + samples (FIFO::DATA)
+	const size_t transfer_size = 4 + math::min(samples * sizeof(FIFO::DATA), FIFO::SIZE);
 
-	// first pass
-	for (int i = 0; i < samples; i++) {
-		// 20 bit hires mode
-		// Sign extension + Accel [19:12] + Accel [11:4] + Accel [3:2] (20 bit extension byte)
-		// Accel data is 18 bit ()
-		int32_t accel_x = reassemble_20bit(fifo[i].ACCEL_DATA_X1, fifo[i].ACCEL_DATA_X0,
-						   fifo[i].Ext_Accel_X_Gyro_X & 0xF0 >> 4);
-		int32_t accel_y = reassemble_20bit(fifo[i].ACCEL_DATA_Y1, fifo[i].ACCEL_DATA_Y0,
-						   fifo[i].Ext_Accel_Y_Gyro_Y & 0xF0 >> 4);
-		int32_t accel_z = reassemble_20bit(fifo[i].ACCEL_DATA_Z1, fifo[i].ACCEL_DATA_Z0,
-						   fifo[i].Ext_Accel_Z_Gyro_Z & 0xF0 >> 4);
+	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
 
-		// sample invalid if -524288
-		if (accel_x != -524288 && accel_y != -524288 && accel_z != -524288) {
-			// check if any values are going to exceed int16 limits
-			static constexpr int16_t max_accel = INT16_MAX;
-			static constexpr int16_t min_accel = INT16_MIN;
+	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
+		perf_count(_bad_transfer_perf);
+		return false;
+	}
 
-			if (accel_x >= max_accel || accel_x <= min_accel) {
-				scale_20bit = true;
+	if (buffer.INT_STATUS & INT_STATUS_BIT::FIFO_FULL_INT) {
+		perf_count(_fifo_overflow_perf);
+		FIFOReset();
+		return false;
+	}
+
+	const uint16_t fifo_count_bytes = (buffer.FIFO_COUNTH << 8) + buffer.FIFO_COUNTL;
+
+	if (fifo_count_bytes >= FIFO::SIZE) {
+		perf_count(_fifo_overflow_perf);
+		FIFOReset();
+		return false;
+	}
+
+	const uint8_t fifo_count_samples = fifo_count_bytes / sizeof(FIFO::DATA);
+
+	if (fifo_count_samples == 0) {
+		perf_count(_fifo_empty_perf);
+		return false;
+	}
+
+	sensor_imu_fifo_s sensor_imu_fifo{};
+
+	sensor_imu_fifo.timestamp_sample = timestamp_sample;
+	sensor_imu_fifo.device_id = get_device_id();
+	sensor_imu_fifo.dt = FIFO_SAMPLE_DT;
+	sensor_imu_fifo.samples = 0;
+	sensor_imu_fifo.accel_scale = CONSTANTS_ONE_G / 8192.f; // highres accel data 8192 LSB/g
+	sensor_imu_fifo.gyro_scale = math::radians(1.f / 131.f); // highres gyro data 131 LSB/dps
+
+	// check FIFO header in every sample
+	uint8_t valid_samples = 0;
+
+	float temperature_sum = 0;
+
+	float timestamp_interval_sum = 0;
+	int timestamp_interval_sum_count = 0;
+
+	bool accel_scale_16bit = false; // 18-bits of accelerometer data
+	bool gyro_scale_16bit = false; // 20-bits of gyroscope data
+
+	for (int i = 0; i < math::min(samples, fifo_count_samples); i++) {
+		const FIFO::DATA &fifo = buffer.f[i];
+
+		// With FIFO_ACCEL_EN and FIFO_GYRO_EN header should be 8’b_0110_10xx
+		const uint8_t FIFO_HEADER = fifo.FIFO_Header;
+
+		const bool HEADER_MSG       = FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_MSG; // FIFO is empty
+		const bool HEADER_ACCEL     = FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_ACCEL;
+		const bool HEADER_GYRO      = FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_GYRO;
+		const bool HEADER_20        = FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_20; // valid sample of extended 20-bit data
+		// 3:2 HEADER_TIMESTAMP_FSYNC
+		const bool HEADER_ODR_ACCEL = FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_ODR_ACCEL; // ODR for accel is different
+		const bool HEADER_ODR_GYRO  = FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_ODR_GYRO;  // ODR for gyro is different
+
+		if (!HEADER_MSG && HEADER_ACCEL && HEADER_GYRO && HEADER_20 && !HEADER_ODR_ACCEL && !HEADER_ODR_GYRO) {
+
+			if (!accel_scale_16bit) {
+				// Accel: 20 bit hires mode, Accel data is 18 bit
+				// Sign extension + Accel [19:12] + Accel [11:4] + Accel [3:2] (20 bit extension byte)
+				int32_t accel_x = reassemble_20bit(fifo.ACCEL_DATA_X1, fifo.ACCEL_DATA_X0, fifo.Ext_Accel_X_Gyro_X & 0xF0 >> 4);
+				int32_t accel_y = reassemble_20bit(fifo.ACCEL_DATA_Y1, fifo.ACCEL_DATA_Y0, fifo.Ext_Accel_Y_Gyro_Y & 0xF0 >> 4);
+				int32_t accel_z = reassemble_20bit(fifo.ACCEL_DATA_Z1, fifo.ACCEL_DATA_Z0, fifo.Ext_Accel_Z_Gyro_Z & 0xF0 >> 4);
+
+				// sample invalid if -524288
+				if (accel_x == -524288 || accel_y == -524288 || accel_z == -524288) {
+					break;
+				}
+
+				// shift by 2 (2 least significant bits are always 0)
+				accel_x = accel_x / 4;
+				accel_y = accel_y / 4;
+				accel_z = accel_z / 4;
+
+				// check if any values are going to exceed int16 limits
+				if ((accel_x >= INT16_MAX || accel_x <= INT16_MIN)
+				    || (accel_y >= INT16_MAX || accel_y <= INT16_MIN)
+				    || (accel_z >= INT16_MAX || accel_z <= INT16_MIN)) {
+
+					accel_scale_16bit = true;
+
+					// 20 bit data scaled to 16 bit
+					sensor_imu_fifo.accel_scale = CONSTANTS_ONE_G / 2048.f;
+
+					// rescale any existing data
+					for (int j = 0; j < valid_samples + 1; j++) {
+						sensor_imu_fifo.accel_x[valid_samples] = combine(buffer.f[j].ACCEL_DATA_X1, buffer.f[j].ACCEL_DATA_X0);
+						sensor_imu_fifo.accel_y[valid_samples] = combine(buffer.f[j].ACCEL_DATA_Y1, buffer.f[j].ACCEL_DATA_Y0);
+						sensor_imu_fifo.accel_z[valid_samples] = combine(buffer.f[j].ACCEL_DATA_Z1, buffer.f[j].ACCEL_DATA_Z0);
+					}
+
+				} else {
+					sensor_imu_fifo.accel_x[valid_samples] = accel_x;
+					sensor_imu_fifo.accel_y[valid_samples] = accel_y;
+					sensor_imu_fifo.accel_z[valid_samples] = accel_z;
+				}
+
+			} else {
+				sensor_imu_fifo.accel_x[valid_samples] = combine(fifo.ACCEL_DATA_X1, fifo.ACCEL_DATA_X0);
+				sensor_imu_fifo.accel_y[valid_samples] = combine(fifo.ACCEL_DATA_Y1, fifo.ACCEL_DATA_Y0);
+				sensor_imu_fifo.accel_z[valid_samples] = combine(fifo.ACCEL_DATA_Z1, fifo.ACCEL_DATA_Z0);
 			}
 
-			if (accel_y >= max_accel || accel_y <= min_accel) {
-				scale_20bit = true;
+
+			if (!gyro_scale_16bit) {
+				// Gyro: 20 bit hires mode
+				// Gyro [19:12] + Gyro [11:4] + Gyro [3:0] (bottom 4 bits of 20 bit extension byte)
+				int32_t gyro_x = reassemble_20bit(fifo.GYRO_DATA_X1, fifo.GYRO_DATA_X0, fifo.Ext_Accel_X_Gyro_X & 0x0F);
+				int32_t gyro_y = reassemble_20bit(fifo.GYRO_DATA_Y1, fifo.GYRO_DATA_Y0, fifo.Ext_Accel_Y_Gyro_Y & 0x0F);
+				int32_t gyro_z = reassemble_20bit(fifo.GYRO_DATA_Z1, fifo.GYRO_DATA_Z0, fifo.Ext_Accel_Z_Gyro_Z & 0x0F);
+
+				// shift by 1 (least significant bit is always 0)
+				gyro_x = gyro_x / 2;
+				gyro_y = gyro_y / 2;
+				gyro_z = gyro_z / 2;
+
+				// check if any gyro values are going to exceed int16 limits
+				if ((gyro_x >= INT16_MAX || gyro_x <= INT16_MIN)
+				    || (gyro_y >= INT16_MAX || gyro_y <= INT16_MIN)
+				    || (gyro_z >= INT16_MAX || gyro_z <= INT16_MIN)) {
+
+
+					gyro_scale_16bit = true;
+
+					// 20 bit data scaled to 16 bit
+					sensor_imu_fifo.gyro_scale = math::radians(2000.f / 32768.f);
+
+					// rescale any existing data
+					for (int j = 0; j < valid_samples + 1; j++) {
+						sensor_imu_fifo.gyro_x[j] = combine(buffer.f[j].GYRO_DATA_X1, buffer.f[j].GYRO_DATA_X0);
+						sensor_imu_fifo.gyro_y[j] = combine(buffer.f[j].GYRO_DATA_Y1, buffer.f[j].GYRO_DATA_Y0);
+						sensor_imu_fifo.gyro_z[j] = combine(buffer.f[j].GYRO_DATA_Z1, buffer.f[j].GYRO_DATA_Z0);
+					}
+
+				} else {
+					sensor_imu_fifo.gyro_x[valid_samples] = gyro_x;
+					sensor_imu_fifo.gyro_y[valid_samples] = gyro_y;
+					sensor_imu_fifo.gyro_z[valid_samples] = gyro_z;
+				}
+
+			} else {
+				sensor_imu_fifo.gyro_x[i] = combine(fifo.GYRO_DATA_X1, fifo.GYRO_DATA_X0);
+				sensor_imu_fifo.gyro_y[i] = combine(fifo.GYRO_DATA_Y1, fifo.GYRO_DATA_Y0);
+				sensor_imu_fifo.gyro_z[i] = combine(fifo.GYRO_DATA_Z1, fifo.GYRO_DATA_Z0);
 			}
 
-			if (accel_z >= max_accel || accel_z <= min_accel) {
-				scale_20bit = true;
+
+			// temperature
+			const int16_t TEMP_DATA = combine(fifo.TEMP_DATA1, fifo.TEMP_DATA0);
+
+			// sample invalid if -32768
+			if (TEMP_DATA != -32768) {
+				temperature_sum += TEMP_DATA;
+
+			} else {
+				break;
 			}
 
-			// shift by 2 (2 least significant bits are always 0)
-			accel.x[accel.samples] = accel_x / 4;
-			accel.y[accel.samples] = accel_y / 4;
-			accel.z[accel.samples] = accel_z / 4;
-			accel.samples++;
-		}
-	}
 
-	if (!scale_20bit) {
-		// if highres enabled accel data is always 8192 LSB/g
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
+			// HEADER_TIMESTAMP_FSYNC - 0b10: Packet contains ODR Timestamp
+			if (FIFO_HEADER & Bit3) {
+				const uint16_t timestamp = (fifo.TimeStamp_h << 8) + fifo.TimeStamp_l;
 
-	} else {
-		// 20 bit data scaled to 16 bit (2^4)
-		for (int i = 0; i < samples; i++) {
-			// 20 bit hires mode
-			// Sign extension + Accel [19:12] + Accel [11:4] + Accel [3:2] (20 bit extension byte)
-			// Accel data is 18 bit ()
-			int16_t accel_x = combine(fifo[i].ACCEL_DATA_X1, fifo[i].ACCEL_DATA_X0);
-			int16_t accel_y = combine(fifo[i].ACCEL_DATA_Y1, fifo[i].ACCEL_DATA_Y0);
-			int16_t accel_z = combine(fifo[i].ACCEL_DATA_Z1, fifo[i].ACCEL_DATA_Z0);
+				if (_timestamp_prev != 0) {
+					// If TMST_RES = 0 (corresponding to timestamp resolution of 1µs), timestamp interval reported in FIFO requires scaling by a factor of 32/30.
+					// Document Number: DS-000347 Revision: 1.5 Page 59 of 110
+					static constexpr float FIFO_DT_SCALE = 32.f / 30.f;
 
-			accel.x[i] = accel_x;
-			accel.y[i] = accel_y;
-			accel.z[i] = accel_z;
-		}
+					float dt = 0;
 
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
-	}
+					if (timestamp > _timestamp_prev) {
+						dt = static_cast<float>(timestamp - _timestamp_prev) * FIFO_DT_SCALE;
 
-	// correct frame for publication
-	for (int i = 0; i < accel.samples; i++) {
-		// sensor's frame is +x forward, +y left, +z up
-		//  flip y & z to publish right handed with z down (x forward, y right, z down)
-		accel.x[i] = accel.x[i];
-		accel.y[i] = (accel.y[i] == INT16_MIN) ? INT16_MAX : -accel.y[i];
-		accel.z[i] = (accel.z[i] == INT16_MIN) ? INT16_MAX : -accel.z[i];
-	}
+					} else if (timestamp < _timestamp_prev) {
+						// uint16_t rollover
+						uint32_t timestamp_new = UINT16_MAX + timestamp;
+						dt = static_cast<float>(timestamp_new - _timestamp_prev) * FIFO_DT_SCALE;
+					}
 
-	_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+					timestamp_interval_sum += dt;
+					timestamp_interval_sum_count++;
 
-	if (accel.samples > 0) {
-		_px4_accel.updateFIFO(accel);
-	}
-}
+					// check dt is within +=2% of expected value
+					if ((dt < (FIFO_SAMPLE_DT * 0.98f)) || (dt > (FIFO_SAMPLE_DT * 1.02f))) {
+						perf_count(_fifo_timestamp_error_perf);
+					}
+				}
 
-void IIM42652::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
-{
-	sensor_gyro_fifo_s gyro{};
-	gyro.timestamp_sample = timestamp_sample;
-	gyro.samples = 0;
-	gyro.dt = FIFO_SAMPLE_DT;
+				_timestamp_prev = timestamp;
+			}
 
-	// 20-bits of gyroscope data
-	bool scale_20bit = false;
-
-	// first pass
-	for (int i = 0; i < samples; i++) {
-		// 20 bit hires mode
-		// Gyro [19:12] + Gyro [11:4] + Gyro [3:0] (bottom 4 bits of 20 bit extension byte)
-		int32_t gyro_x = reassemble_20bit(fifo[i].GYRO_DATA_X1, fifo[i].GYRO_DATA_X0, fifo[i].Ext_Accel_X_Gyro_X & 0x0F);
-		int32_t gyro_y = reassemble_20bit(fifo[i].GYRO_DATA_Y1, fifo[i].GYRO_DATA_Y0, fifo[i].Ext_Accel_Y_Gyro_Y & 0x0F);
-		int32_t gyro_z = reassemble_20bit(fifo[i].GYRO_DATA_Z1, fifo[i].GYRO_DATA_Z0, fifo[i].Ext_Accel_Z_Gyro_Z & 0x0F);
-
-		// check if any values are going to exceed int16 limits
-		static constexpr int16_t max_gyro = INT16_MAX;
-		static constexpr int16_t min_gyro = INT16_MIN;
-
-		if (gyro_x >= max_gyro || gyro_x <= min_gyro) {
-			scale_20bit = true;
-		}
-
-		if (gyro_y >= max_gyro || gyro_y <= min_gyro) {
-			scale_20bit = true;
-		}
-
-		if (gyro_z >= max_gyro || gyro_z <= min_gyro) {
-			scale_20bit = true;
-		}
-
-		gyro.x[gyro.samples] = gyro_x / 2;
-		gyro.y[gyro.samples] = gyro_y / 2;
-		gyro.z[gyro.samples] = gyro_z / 2;
-		gyro.samples++;
-	}
-
-	if (!scale_20bit) {
-		// if highres enabled gyro data is always 131 LSB/dps
-		_px4_gyro.set_scale(math::radians(1.f / 131.f));
-
-	} else {
-		// 20 bit data scaled to 16 bit (2^4)
-		for (int i = 0; i < samples; i++) {
-			gyro.x[i] = combine(fifo[i].GYRO_DATA_X1, fifo[i].GYRO_DATA_X0);
-			gyro.y[i] = combine(fifo[i].GYRO_DATA_Y1, fifo[i].GYRO_DATA_Y0);
-			gyro.z[i] = combine(fifo[i].GYRO_DATA_Z1, fifo[i].GYRO_DATA_Z0);
-		}
-
-		_px4_gyro.set_scale(math::radians(2000.f / 32768.f));
-	}
-
-	// correct frame for publication
-	for (int i = 0; i < gyro.samples; i++) {
-		// sensor's frame is +x forward, +y left, +z up
-		//  flip y & z to publish right handed with z down (x forward, y right, z down)
-		gyro.x[i] = gyro.x[i];
-		gyro.y[i] = (gyro.y[i] == INT16_MIN) ? INT16_MAX : -gyro.y[i];
-		gyro.z[i] = (gyro.z[i] == INT16_MIN) ? INT16_MAX : -gyro.z[i];
-	}
-
-	_px4_gyro.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-				  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
-
-	if (gyro.samples > 0) {
-		_px4_gyro.updateFIFO(gyro);
-	}
-}
-
-bool IIM42652::ProcessTemperature(const FIFO::DATA fifo[], const uint8_t samples)
-{
-	int16_t temperature[FIFO_MAX_SAMPLES];
-	float temperature_sum{0};
-
-	int valid_samples = 0;
-
-	for (int i = 0; i < samples; i++) {
-		const int16_t t = combine(fifo[i].TEMP_DATA1, fifo[i].TEMP_DATA0);
-
-		// sample invalid if -32768
-		if (t != -32768) {
-			temperature_sum += t;
-			temperature[valid_samples] = t;
 			valid_samples++;
 		}
 	}
 
 	if (valid_samples > 0) {
-		const float temperature_avg = temperature_sum / valid_samples;
 
-		for (int i = 0; i < valid_samples; i++) {
-			// temperature changing wildly is an indication of a transfer error
-			if (fabsf(temperature[i] - temperature_avg) > 1000) {
-				perf_count(_bad_transfer_perf);
-				return false;
-			}
+		sensor_imu_fifo.samples = valid_samples;
+
+		for (int i = 0; i < sensor_imu_fifo.samples; i++) {
+			// sensor's frame is +x forward, +y left, +z up
+			//  flip y & z to publish right handed with z down (x forward, y right, z down)
+
+			// sensor_imu_fifo.accel_x[i]
+			sensor_imu_fifo.accel_y[i] = math::negate(sensor_imu_fifo.accel_y[i]);
+			sensor_imu_fifo.accel_z[i] = math::negate(sensor_imu_fifo.accel_z[i]);
+			rotate_3i(_rotation, sensor_imu_fifo.accel_x[i], sensor_imu_fifo.accel_y[i], sensor_imu_fifo.accel_z[i]);
+
+			// sensor_imu_fifo.gyro_x[i]
+			sensor_imu_fifo.gyro_y[i] = math::negate(sensor_imu_fifo.gyro_y[i]);
+			sensor_imu_fifo.gyro_z[i] = math::negate(sensor_imu_fifo.gyro_z[i]);
+			rotate_3i(_rotation, sensor_imu_fifo.gyro_x[i], sensor_imu_fifo.gyro_y[i], sensor_imu_fifo.gyro_z[i]);
 		}
+
+		const float temperature_avg = temperature_sum / valid_samples;
 
 		// use average temperature reading
 		const float TEMP_degC = (temperature_avg / TEMPERATURE_SENSITIVITY) + TEMPERATURE_OFFSET;
 
 		if (PX4_ISFINITE(TEMP_degC)) {
-			_px4_accel.set_temperature(TEMP_degC);
-			_px4_gyro.set_temperature(TEMP_degC);
-			return true;
+			sensor_imu_fifo.temperature = TEMP_degC;
 
 		} else {
 			perf_count(_bad_transfer_perf);
+			return false;
 		}
+
+		if (timestamp_interval_sum > 0) {
+			const float dt_avg = (timestamp_interval_sum / timestamp_interval_sum_count);
+
+			// check dt is within +=1% of expected value
+			if ((dt_avg < (FIFO_SAMPLE_DT * 0.99f)) || (dt_avg > (FIFO_SAMPLE_DT * 1.01f))) {
+				PX4_ERR("DT error %.6f", (double)dt_avg);
+				perf_count(_fifo_timestamp_error_perf);
+
+			} else {
+				sensor_imu_fifo.dt = dt_avg;
+			}
+		}
+
+		sensor_imu_fifo.error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
+					      perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
+
+		sensor_imu_fifo.timestamp = hrt_absolute_time();
+		_sensor_imu_fifo_pub.publish(sensor_imu_fifo);
+
+		return true;
 	}
 
 	return false;
+}
+
+void IIM42652::FIFOReset()
+{
+	perf_count(_fifo_reset_perf);
+
+	// SIGNAL_PATH_RESET: FIFO flush
+	RegisterSetBits(Register::BANK_0::SIGNAL_PATH_RESET, SIGNAL_PATH_RESET_BIT::FIFO_FLUSH);
+
+	// reset while FIFO is disabled
+	_drdy_timestamp_sample.store(0);
+
+	_timestamp_prev = 0;
 }

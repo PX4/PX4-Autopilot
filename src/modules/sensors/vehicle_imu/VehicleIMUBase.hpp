@@ -62,13 +62,11 @@ using namespace time_literals;
 namespace sensors
 {
 
-class VehicleIMU : public ModuleParams, public px4::ScheduledWorkItem
+class VehicleIMUBase : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	VehicleIMU() = delete;
-	VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, const px4::wq_config_t &config);
-
-	~VehicleIMU() override;
+	VehicleIMUBase() = delete;
+	~VehicleIMUBase() override;
 
 	bool Start();
 	void Stop();
@@ -99,9 +97,6 @@ private:
 
 	// Used to check, save and use learned magnetometer biases
 	uORB::SubscriptionMultiArray<estimator_sensor_bias_s> _estimator_sensor_bias_subs{ORB_ID::estimator_sensor_bias};
-
-	uORB::Subscription _sensor_accel_sub;
-	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub;
 
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 
@@ -168,8 +163,6 @@ private:
 
 	const uint8_t _instance;
 
-
-	// calibration
 	bool _armed{false};
 
 	bool _accel_cal_available{false};
@@ -187,7 +180,6 @@ private:
 	static constexpr hrt_abstime INFLIGHT_CALIBRATION_QUIET_PERIOD_US{30_s};
 
 	hrt_abstime _in_flight_calibration_check_timestamp_last{0};
-
 
 	perf_counter_t _accel_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel data gap")};
 	perf_counter_t _gyro_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro data gap")};

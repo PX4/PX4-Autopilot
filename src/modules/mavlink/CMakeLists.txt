@@ -100,8 +100,6 @@ px4_add_module(
 	DEPENDS
 		airspeed
 		component_general_json # for checksums.h
-		drivers_accelerometer
-		drivers_gyroscope
 		drivers_magnetometer
 		conversion
 		sensor_calibration

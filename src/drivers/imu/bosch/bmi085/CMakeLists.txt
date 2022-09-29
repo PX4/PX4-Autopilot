@@ -48,7 +48,5 @@ px4_add_module(
 
 		bmi085_main.cpp
 	DEPENDS
-		drivers_accelerometer
-		drivers_gyroscope
 		px4_work_queue
 	)

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -242,7 +242,7 @@ enum FIFO_HEADER_BIT : uint8_t {
 	HEADER_MSG             = Bit7, // 1: FIFO is empty
 	HEADER_ACCEL           = Bit6,
 	HEADER_GYRO            = Bit5,
-	HEADER_20              = Bit4,
+
 	HEADER_TIMESTAMP_FSYNC = Bit3 | Bit2,
 	HEADER_ODR_ACCEL       = Bit1,
 	HEADER_ODR_GYRO        = Bit0,

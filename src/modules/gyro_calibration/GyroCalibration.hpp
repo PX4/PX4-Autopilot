@@ -48,6 +48,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_imu_fifo.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 
@@ -91,6 +92,7 @@ private:
 
 	uORB::SubscriptionMultiArray<sensor_accel_s, MAX_SENSORS> _sensor_accel_subs{ORB_ID::sensor_accel};
 	uORB::SubscriptionMultiArray<sensor_gyro_s, MAX_SENSORS>  _sensor_gyro_subs{ORB_ID::sensor_gyro};
+	uORB::SubscriptionMultiArray<sensor_imu_fifo_s, MAX_SENSORS> _sensor_imu_fifo_subs{ORB_ID::sensor_imu_fifo};
 
 	calibration::Gyroscope _gyro_calibration[MAX_SENSORS] {};
 	math::WelfordMean<matrix::Vector3f> _gyro_mean[MAX_SENSORS] {};

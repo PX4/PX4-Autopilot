@@ -330,7 +330,6 @@ void SimulatorIgnitionBridge::imuCallback(const ignition::msgs::IMU &imu)
 	sensor_accel.y = accel_b.Y();
 	sensor_accel.z = accel_b.Z();
 	sensor_accel.temperature = NAN;
-	sensor_accel.samples = 1;
 	sensor_accel.timestamp = time_us; // hrt_absolute_time();
 	_sensor_accel_pub.publish(sensor_accel);
 
@@ -348,7 +347,6 @@ void SimulatorIgnitionBridge::imuCallback(const ignition::msgs::IMU &imu)
 	sensor_gyro.y = gyro_b.Y();
 	sensor_gyro.z = gyro_b.Z();
 	sensor_gyro.temperature = NAN;
-	sensor_gyro.samples = 1;
 	sensor_gyro.timestamp = time_us; // hrt_absolute_time();
 	_sensor_gyro_pub.publish(sensor_gyro);
 

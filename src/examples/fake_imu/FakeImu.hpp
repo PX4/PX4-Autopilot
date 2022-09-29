@@ -38,11 +38,9 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_gyro_fifo.h>
+#include <uORB/topics/sensor_imu_fifo.h>
 
 // fake ESC RPM for testing dynamic notch filtering
 //#define FAKE_IMU_FAKE_ESC_STATUS
@@ -73,10 +71,9 @@ private:
 
 	void Run() override;
 
-	PX4Accelerometer _px4_accel;
-	PX4Gyroscope _px4_gyro;
-
 	hrt_abstime _time_start_us{0};
+
+	uORB::Publication<sensor_imu_fifo_s> _sensor_imu_fifo_pub {ORB_ID(sensor_imu_fifo)};
 
 	uint32_t _sensor_interval_us{1250};
 
