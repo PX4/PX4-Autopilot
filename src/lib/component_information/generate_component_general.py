@@ -74,7 +74,7 @@ for metadata_type_tuple in args.type:
 component_general['metadataTypes'] = metadata_types
 
 with open(filename, 'w') as outfile:
-    json.dump(component_general, outfile)
+    json.dump(component_general, outfile, sort_keys=True)
 
 if compress:
     save_compressed(filename)

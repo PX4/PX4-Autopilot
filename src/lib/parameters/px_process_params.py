@@ -50,9 +50,7 @@ import argparse
 from px4params import srcscanner, srcparser, injectxmlparams, xmlout, markdownout, jsonout
 
 import lzma #to create .xz file
-import re
 import json
-import codecs
 
 def save_compressed(filename):
     #create lzma compressed version
