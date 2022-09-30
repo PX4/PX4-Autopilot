@@ -64,6 +64,7 @@
 #include <systemlib/mavlink_log.h>
 #include <replay/definitions.hpp>
 #include <version/version.h>
+#include <component_information/checksums.h>
 
 //#define DBGPRINT //write status output every few seconds
 
@@ -1416,6 +1417,7 @@ void Logger::start_log_file(LogType type)
 		write_parameter_defaults(type);
 		write_perf_data(true);
 		write_console_output();
+		write_events_file(LogType::Full);
 		write_excluded_optional_topics(type);
 	}
 
@@ -1473,6 +1475,7 @@ void Logger::start_log_mavlink()
 	write_parameter_defaults(LogType::Full);
 	write_perf_data(true);
 	write_console_output();
+	write_events_file(LogType::Full);
 	write_excluded_optional_topics(LogType::Full);
 	write_all_add_logged_msg(LogType::Full);
 	_writer.set_need_reliable_transfer(false);
@@ -1885,6 +1888,56 @@ void Logger::write_info_multiple(LogType type, const char *name, const char *val
 	_writer.unlock();
 }
 
+void Logger::write_info_multiple(LogType type, const char *name, int fd)
+{
+	// Get the file length
+	struct stat stat_data;
+
+	if (fstat(fd, &stat_data) == -1) {
+		PX4_ERR("fstat failed (%i)", errno);
+		return;
+	}
+
+	const off_t file_size = stat_data.st_size;
+
+	ulog_message_info_multiple_s msg;
+	uint8_t *buffer = reinterpret_cast<uint8_t *>(&msg);
+	msg.msg_type = static_cast<uint8_t>(ULogMessageType::INFO_MULTIPLE);
+	msg.is_continued = false;
+	const int name_len = strlen(name);
+
+	int file_offset = 0;
+
+	while (file_offset < file_size) {
+		_writer.lock();
+
+		const int max_format_length = 16; // accounts for "uint8_t[x] "
+		int read_length = math::min(file_size - file_offset, (off_t)sizeof(msg.key_value_str) - name_len - max_format_length);
+
+		/* construct format key (type and name) */
+		msg.key_len = snprintf(msg.key_value_str, sizeof(msg.key_value_str), "uint8_t[%i] %s", read_length, name);
+		size_t msg_size = sizeof(msg) - sizeof(msg.key_value_str) + msg.key_len;
+
+		int ret = read(fd, &buffer[msg_size], read_length);
+
+		if (ret == read_length) {
+			msg_size += read_length;
+			msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
+
+			write_message(type, buffer, msg_size);
+			file_offset += ret;
+
+		} else {
+			PX4_ERR("read failed (%i %i)", ret, errno);
+			file_offset = file_size;
+		}
+
+		msg.is_continued = true;
+		_writer.unlock();
+		_writer.notify();
+	}
+}
+
 void Logger::write_info(LogType type, const char *name, int32_t value)
 {
 	write_info_template<int32_t>(type, name, value, "int32_t");
@@ -2273,6 +2326,25 @@ void Logger::write_changed_parameters(LogType type)
 
 	_writer.unlock();
 	_writer.notify();
+}
+
+void Logger::write_events_file(LogType type)
+{
+	int fd = open(PX4_ROOTFSDIR "/etc/extras/all_events.json.xz", O_RDONLY);
+
+	if (fd == -1) {
+		if (errno != ENOENT) {
+			PX4_ERR("open failed (%i)", errno);
+		}
+
+		return;
+	}
+
+	write_info_multiple(type, "metadata_events", fd);
+
+	close(fd);
+
+	write_info(type, "metadata_events_sha256", component_information::all_events_sha256);
 }
 
 void Logger::ack_vehicle_command(vehicle_command_s *cmd, uint32_t result)

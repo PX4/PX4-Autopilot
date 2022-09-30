@@ -206,7 +206,7 @@ struct ulog_message_info_multiple_s {
 
 	uint8_t is_continued; ///< Can be used for arrays: set to 1, if this message is part of the previous with the same key
 	uint8_t key_len;      ///< Length of the 'key'
-	char key_value_str[255]; ///< String with the key and value information
+	char key_value_str[1200]; ///< String with the key and value information
 };
 
 /**
