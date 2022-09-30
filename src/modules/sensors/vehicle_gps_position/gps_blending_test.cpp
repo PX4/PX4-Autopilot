@@ -211,6 +211,11 @@ TEST_F(GpsBlendingTest, dualReceiverBlendingHPos)
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 	EXPECT_LT(gps_blending.getOutputGpsData().eph, gps_data0.eph);
 	EXPECT_FLOAT_EQ(gps_blending.getOutputGpsData().eph, gps_data1.eph); // TODO: should be greater than
+	EXPECT_EQ(gps_blending.getOutputGpsData().timestamp, gps_data0.timestamp);
+	EXPECT_EQ(gps_blending.getOutputGpsData().timestamp_sample, gps_data0.timestamp_sample);
+	EXPECT_EQ(gps_blending.getOutputGpsData().lat, gps_data0.lat);
+	EXPECT_EQ(gps_blending.getOutputGpsData().lon, gps_data0.lon);
+	EXPECT_EQ(gps_blending.getOutputGpsData().alt, gps_data0.alt);
 }
 
 TEST_F(GpsBlendingTest, dualReceiverFailover)
