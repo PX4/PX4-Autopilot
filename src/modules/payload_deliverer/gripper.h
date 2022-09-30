@@ -78,6 +78,9 @@ public:
 	// Initialize the gripper
 	void init(const GripperConfig &config);
 
+	// De-initialize the gripper
+	void deinit();
+
 	// Actuate the gripper to the grab position
 	void grab();
 
@@ -99,13 +102,35 @@ public:
 	// Returns true if in released position either sensed or timeout based
 	bool released() { return _state == GripperState::RELEASED; }
 
-	// Returns true only once after the state transitioned into released
-	// Used for sending vehicle command ack only when the gripper actually releases
-	// in payload deliverer
+	/**
+	 * @brief Returns true once after gripper succeededs in releasing the payload
+	 *
+	 * Note, that this is a single-read for a one successful release operation. Meaning that
+	 * if you command `release()` and then call this function multiple times in the future,
+	 * it will only return `true` only once, and then it will return `false` after it returns
+	 * `true` once.
+	 *
+	 * This is used to detect a single event of successful releasing of a gripper in `payload_deliverer`
+	 * module, which then would send `vehicle_command_ack` message, indicating the successful release.
+	 */
 	bool released_read_once()
 	{
 		if (_released_state_cache) {
 			_released_state_cache = false;
+			return true;
+
+		} else {
+			return false;
+		}
+	}
+
+	/**
+	 * @brief Returns true once after gripper succeededs in grabbing the payload
+	 */
+	bool grabbed_read_once()
+	{
+		if (_grabbed_state_cache) {
+			_grabbed_state_cache = false;
 			return true;
 
 		} else {
@@ -128,7 +153,10 @@ private:
 	// Internal state
 	GripperState _state{GripperState::IDLE};
 	hrt_abstime _last_command_time{0};
-	bool _released_state_cache{false}; // Cached flag that is set once gripper release was successful, gets reset once read
+
+	// Cached flag that is set once gripper release/grab was successful, it must get reset when read.
+	bool _released_state_cache{false};
+	bool _grabbed_state_cache{false};
 
 	uORB::Publication<gripper_s> _gripper_pub{ORB_ID(gripper)};
 };
