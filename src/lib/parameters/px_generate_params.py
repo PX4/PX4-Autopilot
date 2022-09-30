@@ -4,7 +4,6 @@ Param source code generation script.
 """
 from __future__ import print_function
 import xml.etree.ElementTree as ET
-import codecs
 import argparse
 import sys
 
