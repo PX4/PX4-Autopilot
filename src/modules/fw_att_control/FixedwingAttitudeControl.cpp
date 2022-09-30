@@ -353,13 +353,14 @@ void FixedwingAttitudeControl::Run()
 
 		const matrix::Eulerf euler_angles(_R);
 
+		vehicle_manual_poll(euler_angles.psi());
+
 		vehicle_attitude_setpoint_poll();
 
 		// vehicle status update must be before the vehicle_control_mode_poll(), otherwise rate sp are not published during whole transition
 		_vehicle_status_sub.update(&_vehicle_status);
 
 		vehicle_control_mode_poll();
-		vehicle_manual_poll(euler_angles.psi());
 		vehicle_land_detected_poll();
 
 		// the position controller will not emit attitude setpoints in some modes
