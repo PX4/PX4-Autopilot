@@ -131,7 +131,7 @@ void PayloadDeliverer::gripper_update(const hrt_abstime &now)
 
 	_gripper.update();
 
-	// Publish a successful gripper release acknowledgement
+	// Publish a successful gripper release / grab acknowledgement
 	if (_gripper.released_read_once()) {
 		vehicle_command_ack_s vcmd_ack{};
 		vcmd_ack.timestamp = now;
@@ -140,7 +140,18 @@ void PayloadDeliverer::gripper_update(const hrt_abstime &now)
 		// Ideally, we need to fill out target_system and target_component to match the vehicle_command we are acknowledging for
 		// But since we are not tracking the vehicle command's source system & component, we don't fill it out for now.
 		_vehicle_command_ack_pub.publish(vcmd_ack);
-		PX4_DEBUG("Payload Drop Successful Ack Sent!");
+		PX4_DEBUG("Payload Release Successful Ack Sent!");
+
+	} else if (_gripper.grabbed_read_once()) {
+		vehicle_command_ack_s vcmd_ack{};
+		vcmd_ack.timestamp = now;
+		vcmd_ack.command = vehicle_command_s::VEHICLE_CMD_DO_GRIPPER;
+		vcmd_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+		// Ideally, we need to fill out target_system and target_component to match the vehicle_command we are acknowledging for
+		// But since we are not tracking the vehicle command's source system & component, we don't fill it out for now.
+		_vehicle_command_ack_pub.publish(vcmd_ack);
+		PX4_DEBUG("Payload Grab Successful Ack Sent!");
+
 	}
 }
 

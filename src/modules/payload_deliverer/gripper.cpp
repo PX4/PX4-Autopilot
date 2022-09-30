@@ -68,6 +68,10 @@ void Gripper::init(const GripperConfig &config)
 
 void Gripper::grab()
 {
+	if (_state == GripperState::GRABBING || _state == GripperState::GRABBED) {
+		return;
+	}
+
 	publish_gripper_command(gripper_s::COMMAND_GRAB);
 	_state = GripperState::GRABBING;
 	_last_command_time = hrt_absolute_time();
@@ -75,6 +79,10 @@ void Gripper::grab()
 
 void Gripper::release()
 {
+	if (_state == GripperState::RELEASING || _state == GripperState::RELEASED) {
+		return;
+	}
+
 	publish_gripper_command(gripper_s::COMMAND_RELEASE);
 	_state = GripperState::RELEASING;
 	_last_command_time = hrt_absolute_time();
@@ -89,11 +97,13 @@ void Gripper::update()
 	case GripperState::GRABBING:
 		if (_has_feedback_sensor) {
 			// Handle feedback sensor input, return true for now (not supported)
+			_grabbed_state_cache = true;
 			_state = GripperState::GRABBED;
 			break;
 		}
 
 		if (command_timed_out) {
+			_grabbed_state_cache = true;
 			_state = GripperState::GRABBED;
 		}
 
