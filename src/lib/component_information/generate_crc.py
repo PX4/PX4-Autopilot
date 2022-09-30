@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import hashlib
 
 parser = argparse.ArgumentParser(description="""Generate the COMPONENT_INFORMATION checksums (CRC32) header file""")
 parser.add_argument('--output', metavar='checksums.h', help='output file')
@@ -30,6 +31,16 @@ def crc_update(buf, crc_table, crc):
 
 crc_table = create_table()
 
+def sha256sum(filename):
+    h  = hashlib.sha256()
+    b  = bytearray(128*1024)
+    mv = memoryview(b)
+    with open(filename, 'rb', buffering=0) as f:
+        for n in iter(lambda : f.readinto(mv), 0):
+            h.update(mv[:n])
+    return h.hexdigest()
+
+
 with open(filename, 'w') as outfile:
     outfile.write("#pragma once\n")
     outfile.write("#include <stdint.h>\n")
@@ -38,10 +49,12 @@ with open(filename, 'w') as outfile:
         file_crc = 0
         for line in open(filename, "rb"):
             file_crc = crc_update(line, crc_table, file_crc)
+        file_sha256 = sha256sum(filename)
 
         basename = os.path.basename(filename)
         identifier = basename.split('.')[0]
         outfile.write("static constexpr uint32_t {:}_crc = {:};\n".format(identifier, file_crc))
+        outfile.write("static constexpr const char *{:}_sha256 = \"{:}\";\n".format(identifier, file_sha256))
 
 
     outfile.write("}\n")
