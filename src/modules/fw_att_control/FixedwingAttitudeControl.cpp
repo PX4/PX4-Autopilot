@@ -608,7 +608,7 @@ void FixedwingAttitudeControl::Run()
 
 				/* throttle passed through if it is finite */
 				_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] =
-					(PX4_ISFINITE(_att_sp.thrust_body[0])) ? _att_sp.thrust_body[0] : 0.0f;
+					(PX4_ISFINITE(_rates_sp.thrust_body[0])) ? _rates_sp.thrust_body[0] : 0.0f;
 
 				/* scale effort by battery status */
 				if (_param_fw_bat_scale_en.get() &&
