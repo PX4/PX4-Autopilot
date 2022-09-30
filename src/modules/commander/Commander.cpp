@@ -1713,9 +1713,31 @@ void Commander::run()
 		// data link checks which update the status
 		dataLinkCheck();
 
-		/* handle commands last, as the system needs to be updated to handle them */
+		// Check for failure detector status
+		if (_failure_detector.update(_vehicle_status, _vehicle_control_mode)) {
+			_vehicle_status.failure_detector_status = _failure_detector.getStatus().value;
+			_status_changed = true;
+		}
+
+		const hrt_abstime now = hrt_absolute_time();
+
+		const bool nav_state_or_failsafe_changed = handleModeIntentionAndFailsafe();
+
+		// Run arming checks @ 10Hz
+		if (now - _last_health_and_arming_check >= 100_ms || _status_changed || nav_state_or_failsafe_changed) {
+			_last_health_and_arming_check = now;
+
+			perf_begin(_preflight_check_perf);
+			_health_and_arming_checks.update();
+			_vehicle_status.pre_flight_checks_pass = _health_and_arming_checks.canArm(_vehicle_status.nav_state);
+			perf_end(_preflight_check_perf);
+
+			checkAndInformReadyForTakeoff();
+		}
+
+		// handle commands last, as the system needs to be updated to handle them
 		if (_vehicle_command_sub.updated()) {
-			/* got command */
+			// got command
 			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
 			vehicle_command_s cmd;
 
@@ -1743,12 +1765,6 @@ void Commander::run()
 			}
 		}
 
-		/* Check for failure detector status */
-		if (_failure_detector.update(_vehicle_status, _vehicle_control_mode)) {
-			_vehicle_status.failure_detector_status = _failure_detector.getStatus().value;
-			_status_changed = true;
-		}
-
 		// check for arming state changes
 		if (_was_armed != _arm_state_machine.isArmed()) {
 			_status_changed = true;
@@ -1773,23 +1789,7 @@ void Commander::run()
 			_have_taken_off_since_arming = false;
 		}
 
-		const bool nav_state_or_failsafe_changed = handleModeIntentionAndFailsafe();
-
 		_actuator_armed.prearmed = getPrearmState();
-
-		const hrt_abstime now = hrt_absolute_time();
-
-		// Run arming checks @ 10Hz
-		if (now - _last_health_and_arming_check >= 100_ms || _status_changed || nav_state_or_failsafe_changed) {
-			_last_health_and_arming_check = now;
-
-			perf_begin(_preflight_check_perf);
-			_health_and_arming_checks.update();
-			_vehicle_status.pre_flight_checks_pass = _health_and_arming_checks.canArm(_vehicle_status.nav_state);
-			perf_end(_preflight_check_perf);
-
-			checkAndInformReadyForTakeoff();
-		}
 
 		// publish states (armed, control_mode, vehicle_status, vehicle_status_flags, failure_detector_status) at 2 Hz or immediately when changed
 		if (now - _vehicle_status.timestamp >= 500_ms || _status_changed || nav_state_or_failsafe_changed
