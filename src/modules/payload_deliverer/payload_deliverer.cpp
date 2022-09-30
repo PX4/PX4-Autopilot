@@ -48,47 +48,50 @@ bool PayloadDeliverer::init()
 		return false;
 	}
 
-	initialize_gripper();
+	configure_gripper();
 	return true;
 }
 
-bool PayloadDeliverer::initialize_gripper()
+void PayloadDeliverer::configure_gripper()
 {
-	// If gripper instance is invalid, try initializing it
+	// If gripper instance is valid, but user disabled the gripper, de-initialize the gripper
+	if (_gripper.is_valid() && !_param_gripper_enable.get()) {
+		_gripper.deinit();
+		return;
+	}
+
+	// If gripper instance is invalid, and user enabled the gripper, try initializing it
 	if (!_gripper.is_valid() && _param_gripper_enable.get()) {
 		GripperConfig config{};
 		config.type = (GripperConfig::GripperType)_param_gripper_type.get();
 		config.sensor = GripperConfig::GripperSensorType::NONE; // Feedback sensor isn't supported for now
 		config.timeout_us = hrt_abstime(_param_gripper_timeout_s.get() * 1000000ULL);
 		_gripper.init(config);
+
+		if (!_gripper.is_valid()) {
+			PX4_DEBUG("Gripper object initialization failed!");
+			return;
+
+		} else {
+			// Command the gripper to grab position by default
+			if (!_gripper.grabbed() && !_gripper.grabbing()) {
+				PX4_DEBUG("Gripper intialize: putting to grab position!");
+				send_gripper_vehicle_command(vehicle_command_s::GRIPPER_ACTION_GRAB);
+			}
+
+			return;
+		}
 	}
 
 	// NOTE: Support for changing gripper sensor type / gripper type configuration when
 	// the parameter change is detected isn't added as we don't have actual use case for that
 	// yet!
-
-	if (!_gripper.is_valid()) {
-		PX4_DEBUG("Gripper object initialization invalid!");
-		return false;
-
-	} else {
-		_gripper.update();
-
-		// If gripper wasn't commanded to go to grab position, command.
-		if (!_gripper.grabbed() && !_gripper.grabbing()) {
-			PX4_DEBUG("Gripper intialize: putting to grab position!");
-			send_gripper_vehicle_command(vehicle_command_s::GRIPPER_ACTION_GRAB);
-		}
-
-		return true;
-	}
-
 }
 
 void PayloadDeliverer::parameter_update()
 {
 	updateParams();
-	initialize_gripper();
+	configure_gripper();
 }
 
 void PayloadDeliverer::Run()
@@ -125,13 +128,13 @@ void PayloadDeliverer::gripper_update(const hrt_abstime &now)
 {
 	if (!_gripper.is_valid()) {
 		// Try initializing gripper
-		initialize_gripper();
+		configure_gripper();
 		return;
 	}
 
 	_gripper.update();
 
-	// Publish a successful gripper release acknowledgement
+	// Publish a successful gripper release / grab acknowledgement
 	if (_gripper.released_read_once()) {
 		vehicle_command_ack_s vcmd_ack{};
 		vcmd_ack.timestamp = now;
@@ -140,7 +143,18 @@ void PayloadDeliverer::gripper_update(const hrt_abstime &now)
 		// Ideally, we need to fill out target_system and target_component to match the vehicle_command we are acknowledging for
 		// But since we are not tracking the vehicle command's source system & component, we don't fill it out for now.
 		_vehicle_command_ack_pub.publish(vcmd_ack);
-		PX4_DEBUG("Payload Drop Successful Ack Sent!");
+		PX4_DEBUG("Payload Release Successful Ack Sent!");
+
+	} else if (_gripper.grabbed_read_once()) {
+		vehicle_command_ack_s vcmd_ack{};
+		vcmd_ack.timestamp = now;
+		vcmd_ack.command = vehicle_command_s::VEHICLE_CMD_DO_GRIPPER;
+		vcmd_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+		// Ideally, we need to fill out target_system and target_component to match the vehicle_command we are acknowledging for
+		// But since we are not tracking the vehicle command's source system & component, we don't fill it out for now.
+		_vehicle_command_ack_pub.publish(vcmd_ack);
+		PX4_DEBUG("Payload Grab Successful Ack Sent!");
+
 	}
 }
 

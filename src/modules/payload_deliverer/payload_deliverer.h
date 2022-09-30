@@ -100,9 +100,12 @@ private:
 	void parameter_update();
 
 	/**
-	 * @brief Initialize gripper with current parameter settings
+	 * @brief Initialize or deinitialize gripper instance based on parameter settings
+	 *
+	 * Depending on `PD_GRIPPER_EN` and the state of `_gripper` instance, this function will
+	 * either try to initialize or de-initialize the gripper appropriately.
 	 */
-	bool initialize_gripper();
+	void configure_gripper();
 
 	/**
 	 * @brief Update gipper instance's state and send vehicle command ack
