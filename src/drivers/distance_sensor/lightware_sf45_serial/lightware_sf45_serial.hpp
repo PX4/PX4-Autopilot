@@ -50,6 +50,7 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/topics/obstacle_distance.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include "sf45_commands.h"
 class SF45LaserSerial : public px4::ScheduledWorkItem
@@ -67,7 +68,7 @@ public:
 	uint8_t                         sf45_convert_angle(const int16_t yaw);
 	float                           sf45_wrap_360(float f);
 protected:
-
+	distance_sensor_s                         _distance_sensor_msg{};
 	obstacle_distance_s                       _obstacle_map_msg{};
 	uORB::Publication<obstacle_distance_s>		_obstacle_distance_pub{ORB_ID(obstacle_distance)};	/**< obstacle_distance publication */
 
@@ -82,7 +83,7 @@ private:
 	PX4Rangefinder                  _px4_rangefinder;
 
 	char 				_port[20] {};
-	int	        _interval{100000};
+	int	        _interval{10000};
 	bool				_collect_phase{false};
 	int 				_fd{-1};
 	int         _linebuf[256] {};
@@ -108,12 +109,6 @@ private:
 	uint8_t                         _num_retries{2};
 	int32_t                         _yaw_cfg{0};
 	int32_t                         _orient_cfg{0};
-	// Since the sf45/b scans 0 - 160 & 0 - (-160) degrees, leaving 40 degrees not covered by the sensor
-	// Obstacle distance array = 72
-	// r = 72/2pi = 11.46
-	// r * theta(40 degrees) = 7.9 ~=8
-	// 72 - 8 = # of obstacle distance zones applicable
-	uint16_t                        _map_used_bins{64};
 	uint16_t                        _previous_bin{0};
 
 	// end of SF45/B data members

@@ -79,6 +79,8 @@ SF45LaserSerial::SF45LaserSerial(const char *port, uint8_t rotation) :
 	_obstacle_map_msg.min_distance = 1;
 	_obstacle_map_msg.max_distance = 5000;
 
+	// populate horizontal field of view
+	_distance_sensor_msg.h_fov = 5.58505f;
 }
 
 SF45LaserSerial::~SF45LaserSerial()
@@ -96,10 +98,10 @@ int SF45LaserSerial::init()
 	param_get(param_find("SF45_ORIENT_CFG"), &_orient_cfg);
 	// TODOparam_get(param_find("SF45_YAW_CFG"), &_yaw_cfg);
 
-	/* SF45/B (50M 50Hz) */
+	/* SF45/B (50M 100Hz) */
 	_px4_rangefinder.set_min_distance(0.2f);
 	_px4_rangefinder.set_max_distance(50.0f);
-	_interval = 20000;
+	_interval = 10000;
 
 	start();
 
@@ -307,7 +309,7 @@ void SF45LaserSerial::Run()
 
 		uart_config.c_cc[VTIME] = 1;
 
-		unsigned speed = B115200;
+		unsigned speed = B921600;
 
 		/* set baud rate */
 		if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
@@ -659,22 +661,14 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 			int16_t scaled_yaw = 0;
 
 			// The sensor scans from 0 to -160, so extract negative angle from int16 and represent as if a float
-			if (raw_yaw > 3200) {
+			if (raw_yaw > 32000) {
 				raw_yaw = raw_yaw - 65535;
 
 			}
 
+			// The sensor is facing downward, so the sensor is flipped about it's x-axis -inverse of each yaw angle
 			if (_orient_cfg == 1) {
-
-				if (raw_yaw < 0) {
-					raw_yaw = raw_yaw + 180;
-
-				} else if (raw_yaw > 0) {
-					raw_yaw = raw_yaw - 180;
-
-				} else {
-					// Yaw is 0 degrees in the upright or upside down position
-				}
+				raw_yaw = raw_yaw * -1;
 			}
 
 			scaled_yaw = raw_yaw * SF45_SCALE_FACTOR;
@@ -686,12 +680,16 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 			uint8_t current_bin = sf45_convert_angle(scaled_yaw);
 
 			// If we have moved to a new bin
+
 			if (current_bin != _previous_bin) {
 
 				// update the current bin to the distance sensor reading
 				// readings in cm
 				_obstacle_map_msg.distances[current_bin] = obstacle_dist_cm;
-				_obstacle_map_msg.distances[_previous_bin] = UINT16_MAX;
+
+				// Reduce CP velocity oscillating when when sensor rotates away from close up obstacle
+
+				_obstacle_map_msg.distances[_previous_bin] = 5000;
 
 			}
 
