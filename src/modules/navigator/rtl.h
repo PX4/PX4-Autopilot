@@ -120,7 +120,14 @@ private:
 
 	void advance_rtl();
 
-	float calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg);
+	/**
+	 * @brief Calculate return altitude considering the RTL cone geometry
+	 *
+	 * @param cone_half_angle_deg [deg] If set to 0 (0.0f), the cone logic won't apply
+	 * @return [m] Return altitude above Mean Sea Level
+	 */
+	float calculate_return_alt_from_cone_half_angle(const float cone_half_angle_deg);
+
 	void calc_and_pub_rtl_time_estimate(const RTLState rtl_state);
 
 	float getCruiseGroundSpeed();

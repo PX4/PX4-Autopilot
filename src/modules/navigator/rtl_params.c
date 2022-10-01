@@ -122,15 +122,18 @@ PARAM_DEFINE_INT32(RTL_TYPE, 0);
  * Defines the half-angle of a cone centered around the destination position that
  * affects the altitude at which the vehicle returns.
  *
+ * This is only supported for multicopters, since it has the agility to track altitudes
+ * consistently. For fixed wings,
+ *
  * @unit deg
  * @min 0
  * @max 90
- * @value 0 No cone, always climb to RTL_RETURN_ALT above destination.
+ * @value 0 No cone, always climb to RTL_RETURN_ALT above destination. -> This isn't true?
  * @value 25 25 degrees half cone angle.
  * @value 45 45 degrees half cone angle.
  * @value 65 65 degrees half cone angle.
  * @value 80 80 degrees half cone angle.
- * @value 90 Only climb to at least RTL_DESCEND_ALT above destination.
+ * @value 90 Only climb to at least RTL_DESCEND_ALT above destination. -> This isn't true?
  * @group Return Mode
  */
 PARAM_DEFINE_INT32(RTL_CONE_ANG, 45);
