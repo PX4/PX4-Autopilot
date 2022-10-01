@@ -9,15 +9,15 @@
 [submodule "Tools/simulation/jmavsim/jMAVSim"]
 	path = Tools/simulation/jmavsim/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
-	branch = master
+	branch = main
 [submodule "Tools/simulation/gazebo/sitl_gazebo"]
 	path = Tools/simulation/gazebo/sitl_gazebo
 	url = https://github.com/PX4/PX4-SITL_gazebo.git
-	branch = master
+	branch = main
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
 	url = https://github.com/PX4/PX4-GPSDrivers.git
-	branch = master
+	branch = main
 [submodule "src/modules/micrortps_bridge/micro-CDR"]
 	path = src/modules/micrortps_bridge/micro-CDR
 	url = https://github.com/PX4/Micro-CDR.git
@@ -53,6 +53,7 @@
 [submodule "src/lib/events/libevents"]
 	path = src/lib/events/libevents
 	url = https://github.com/mavlink/libevents.git
+	branch = main
 [submodule "src/lib/crypto/libtomcrypt"]
 	path = src/lib/crypto/libtomcrypt
 	url = https://github.com/PX4/libtomcrypt.git
