@@ -3,50 +3,12 @@
 # PX4 FMUv5X specific board sensors init
 #------------------------------------------------------------------------------
 
-set HAVE_PM2 yes
-
-if ver hwtypecmp V5X005000 V5X005001 V5X005002
-then
-	set HAVE_PM2 no
-fi
 if param compare -s ADC_ADS1115_EN 1
 then
 	ads1115 start -X
 	board_adc start -n
 else
 	board_adc start
-fi
-
-
-if param compare SENS_EN_INA226 1
-then
-	# Start Digital power monitors
-	ina226 -X -b 1 -t 1 -k start
-
-	if [ $HAVE_PM2 = yes ]
-	then
-		ina226 -X -b 2 -t 2 -k start
-	fi
-fi
-
-if param compare SENS_EN_INA228 1
-then
-	# Start Digital power monitors
-	ina228 -X -b 1 -t 1 -k start
-	if [ $HAVE_PM2 = yes ]
-	then
-		ina228 -X -b 2 -t 2 -k start
-	fi
-fi
-
-if param compare SENS_EN_INA238 1
-then
-	# Start Digital power monitors
-	ina238 -X -b 1 -t 1 -k start
-	if [ $HAVE_PM2 = yes ]
-	then
-		ina238 -X -b 2 -t 2 -k start
-	fi
 fi
 
 if ver hwtypecmp V5X000000 V5X000001 V5X000002 V5X001000 V5X004000 V5X004001 V5X004002 V5X005001 V5X005002
@@ -96,9 +58,6 @@ else
 
 fi
 
-# External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
-ist8310 -X -b 1 -R 10 start
-
 # Possible internal Baro
 
 # Disable startup of internal baros if param is set to false
@@ -113,4 +72,16 @@ then
 	fi
 
 fi
-unset HAVE_PM2
+
+#
+# baseboard sensors: rc.baseboard
+#
+set BASEBOARD_SENSORS ${R}etc/init.d/rc.baseboard
+if [ -f $BASEBOARD_SENSORS ]
+then
+	echo "Baseboard sensors: ${BASEBOARD_SENSORS}"
+	. $BASEBOARD_SENSORS
+fi
+unset BASEBOARD_SENSORS
+
+. ${R}etc/init.d/rc.baseboard
