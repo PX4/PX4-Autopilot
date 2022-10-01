@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,11 +31,33 @@
  *
  ****************************************************************************/
 
+/**
+ * @file tune_definitions.h
+ *
+ * Includes definition for the Tune related enum used in tunes.h and tunes.cpp.
+ * The enum is used in the tune.h, which is why it needs to be defined in this separated header,
+ * while other arrays are instantiated in 'tune_definitinos.cpp'
+ */
+
 #pragma once
 
+/**
+ * @brief Define TuneID enums using the 'tune_definitions.desc' file
+ *
+ * This is done by cleverly defining the 'PX4_DEFINE_TUNE' locally, using only the 'name' component,
+ * and using it inside the definition for the enum class TuneID. Therefore the line below will end up like:
+ *
+ * enum class TuneID {
+ *	CUSTOM,
+ * 	STARTUP,
+ * 	...
+ * 	NONE = -1
+ * };
+ */
 #define PX4_DEFINE_TUNE(ordinal,name,tune,interruptable) name,
 enum class TuneID {
-#include "tune_definition.desc"
-	NONE = -1
+#include "tune_definitions.desc"
+	STOP = 127, // Special Tune ID that stops the tune
+	NONE = -1   // Undefined Tune ID
 };
 #undef PX4_DEFINE_TUNE

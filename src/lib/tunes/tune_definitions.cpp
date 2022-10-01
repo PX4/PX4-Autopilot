@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,24 +32,46 @@
  ****************************************************************************/
 
 /**
- * @file default_tunes.h
+ * @file tune_definitions.cpp
+ *
+ * Includes definitions for the arrays defined in the scope of Tunes class library
  */
 
 #include "tunes.h"
 
+/**
+ * @brief Define default tune MML strings
+ *
+ * It will generate the list of MML strings somewhat like:
+ *
+ * const char *const Tunes::_default_tunes[] = {
+ * 	"",
+ * 	"MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc",
+ * 	...
+ * };
+ */
 #define PX4_DEFINE_TUNE(ordinal,name,tune,interruptable) tune,
-// Initialize default tunes
 const char *const Tunes::_default_tunes[] = {
-#include "tune_definition.desc"
+#include "tune_definitions.desc"
 };
 #undef PX4_DEFINE_TUNE
 
+/**
+ * @brief Define a bool list indicating if each default tunes are interruptable
+ *
+ * It will be somewhat like:
+ *
+ * const bool Tunes::_default_tunes_interruptable[] = {
+ *	true,
+ *	true,
+ * 	...
+ * };
+ */
 #define PX4_DEFINE_TUNE(ordinal,name,tune,interruptable) interruptable,
-// Initialize default tunes
 const bool Tunes::_default_tunes_interruptable[] = {
-#include "tune_definition.desc"
+#include "tune_definitions.desc"
 };
 #undef PX4_DEFINE_TUNE
 
-// set default_tunes array size
-const unsigned int Tunes::_default_tunes_size =  sizeof(_default_tunes) / sizeof(_default_tunes[0]);
+// Set the default_tunes array size
+const unsigned int Tunes::_default_tunes_count =  sizeof(_default_tunes) / sizeof(_default_tunes[0]);

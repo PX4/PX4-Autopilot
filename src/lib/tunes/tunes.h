@@ -40,7 +40,8 @@
 #include <errno.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/tune_control.h>
-#include "tune_definition.h"
+
+#include "tune_definitions.h"
 
 #define TUNE_DEFAULT_NOTE_LENGTH 4
 #define TUNE_DEFAULT_OCTAVE 4
@@ -69,7 +70,7 @@ public:
 		Success = 0,
 		AlreadyPlaying = 1,
 		InvalidTune = -EINVAL,
-		WouldInterrupt = -EBUSY,
+		CantInterrupt = -EBUSY,
 	};
 
 	/**
@@ -92,7 +93,7 @@ public:
 	 * or the tune being already played is a repeated tune.
 	 * @param  tune_control struct containig the uORB message
 	 * @return              return ControlResult::InvalidTune if the default tune does not exist,
-	 * 			ControlResult::WouldInterrupt if tune was already playing and not interruptible,
+	 * 			ControlResult::CantInterrupt if tune was already playing and not interruptible,
 	 * 			ControlResult::AlreadyPlaying if same tune was already playing,
 	 * 			ControlResult::Success if new tune was set.
 	 */
@@ -135,7 +136,7 @@ public:
 	 *  requested via its tune ID.
 	 *  @return             Number of default tunes accessible via tune ID
 	 */
-	unsigned int get_default_tunes_size() const {return _default_tunes_size;}
+	unsigned int get_default_tunes_count() const {return _default_tunes_count;}
 
 	unsigned int get_maximum_update_interval() {return (unsigned int)TUNE_MAX_UPDATE_INTERVAL_US;}
 
@@ -205,14 +206,14 @@ private:
 
 	static const char *const  _default_tunes[];
 	static const bool         _default_tunes_interruptable[];
-	static const unsigned int _default_tunes_size;
+	static const unsigned int _default_tunes_count;
 	static const uint8_t      _note_tab[];
 
-	const char *_next_tune      = nullptr; ///< next note in the string
-	const char *_tune           = nullptr; ///< current tune string
-	const char *_tune_start_ptr = nullptr; ///< pointer to repeat tune
+	const char *_next_note_pointer      = nullptr; ///< next note in the string
+	const char *_tune_str           = nullptr; ///< current tune string
+	const char *_tune_str_start = nullptr; ///< pointer to repeat tune
 
-	int _current_tune_id = static_cast<int>(TuneID::NONE);
+	TuneID _current_tune_id = TuneID::NONE;
 
 	bool _repeat = false; ///< if true, tune restarts at end
 

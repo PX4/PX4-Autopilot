@@ -43,8 +43,6 @@
 #include <drivers/drv_hrt.h>
 #include <stdint.h>
 
-#include <tunes/tune_definition.h>
-
 namespace events
 {
 namespace rc_loss
