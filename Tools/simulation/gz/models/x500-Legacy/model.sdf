@@ -5,7 +5,7 @@
       <uri>model://x500-NoPlugin</uri>
     </include>
     <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="ignition::gazebo::systems::MulticopterMotorModel">
-      <robotNamespace>/x500</robotNamespace>
+      <robotNamespace>/x500-Legacy_0</robotNamespace>
       <jointName>rotor_0_joint</jointName>
       <linkName>rotor_0</linkName>
       <turningDirection>ccw</turningDirection>
@@ -22,7 +22,7 @@
       <motorType>velocity</motorType>
     </plugin>
     <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="ignition::gazebo::systems::MulticopterMotorModel">
-      <robotNamespace>/x500</robotNamespace>
+      <robotNamespace>/x500-Legacy_0</robotNamespace>
       <jointName>rotor_1_joint</jointName>
       <linkName>rotor_1</linkName>
       <turningDirection>ccw</turningDirection>
@@ -39,7 +39,7 @@
       <motorType>velocity</motorType>
     </plugin>
     <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="ignition::gazebo::systems::MulticopterMotorModel">
-      <robotNamespace>/x500</robotNamespace>
+      <robotNamespace>/x500-Legacy_0</robotNamespace>
       <jointName>rotor_2_joint</jointName>
       <linkName>rotor_2</linkName>
       <turningDirection>cw</turningDirection>
@@ -56,7 +56,7 @@
       <motorType>velocity</motorType>
     </plugin>
     <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="ignition::gazebo::systems::MulticopterMotorModel">
-      <robotNamespace>/x500</robotNamespace>
+      <robotNamespace>/x500-Legacy_0</robotNamespace>
       <jointName>rotor_3_joint</jointName>
       <linkName>rotor_3</linkName>
       <turningDirection>cw</turningDirection>

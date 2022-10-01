@@ -46,13 +46,13 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 	gz_version_minor=$( ign gazebo --versions | sed 's/'"${gz_version_major}"\.'//; s/\..*//g' )
 	gz_version_point=$( ign gazebo --versions | sed 's/'"${gz_version_major}"\.'//; s/'"${gz_version_minor}"\.'//')
 
-	if [[ "$gz_version_major" -gt "6" ]] || [[ "$gz_version_major" -eq "6" && "$gz_version_minor" -gt "12" ]] || [[ "$gz_version_major" -eq "6" && "$gz_version_minor" -eq "12" && "$gz_version_point" -gt "0" ]]; then
+	if [ "$gz_version_major" -gt "6" ] || { [ "$gz_version_major" -eq "6" ] && [ "$gz_version_minor" -gt "12" ]; } || { [ "$gz_version_major" -eq "6" ] && [ "$gz_version_minor" -eq "12" ] && [ "$gz_version_point" -gt "0" ]; }; then
 		echo "INFO  [init] using latest version of MultiCopterMotor plugin."
 	else
-		echo "WARN  [init] using older version of MultiCopterMotor please update to latest gazebo > 6.12.0."
-		if [ $PX4_SIM_MODEL == "x500" ] && [ -z $PX4_GZ_MODEL ]; then
-			echo "WARN  [init] using model x500-Legacy instead till gazebo > 6.12.0"
+		echo "WARN  [init] using older version of MultiCopterMotor plugin, please update to latest gazebo > 6.12.0."
+		if [ "$PX4_SIM_MODEL" = "x500" ]; then
 			PX4_SIM_MODEL="x500-Legacy"
+			echo "WARN  [init] setting PX4_SIM_MODEL -> $PX4_SIM_MODEL from x500 till gazebo > 6.12.0"
 		fi
 	fi
 

@@ -2,7 +2,7 @@
 <sdf version='1.9'>
   <model name='x500'>
     <include merge='true'>
-      <uri>model://x500-Base</uri>
+      <uri>model://x500-NoPlugin</uri>
     </include>
     <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="ignition::gazebo::systems::MulticopterMotorModel">
       <jointName>rotor_0_joint</jointName>
