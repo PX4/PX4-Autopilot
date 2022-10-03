@@ -100,7 +100,6 @@ set(ARCHCPUFLAGS
 add_definitions(
 	-D __QURT
 	-D _PROVIDE_POSIX_TIME_DECLS
-	-D _TIMER_T
 	-D _HAS_C9X
 	-D restrict=__restrict__
 	-D noreturn_function=
