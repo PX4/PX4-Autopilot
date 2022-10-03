@@ -84,6 +84,7 @@
 //#pragma GCC poison exit
 #endif // !defined(__PX4_NUTTX)
 
+
 /* For SITL lockstep we fake the clock, sleeping, and timedwaits
  * Therefore, we prefix these syscalls with system_. */
 #include <time.h>
