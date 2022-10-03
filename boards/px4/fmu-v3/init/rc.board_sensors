@@ -100,7 +100,7 @@ else
 	# V3 build hwtypecmp supports V2|V2M|V30
 	if ! ver hwtypecmp V2M
 	then
-		mpu9250 -s -b 1 -R 14 start
+		mpu9250 -s -b 1 -R 14 -q start
 	# else: On the PixhawkMini the mpu9250 has been disabled due to HW errata
 	fi
 
