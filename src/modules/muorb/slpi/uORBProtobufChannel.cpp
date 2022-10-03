@@ -36,6 +36,7 @@
 
 #include <qurt.h>
 #include <qurt_thread.h>
+#include <pthread.h>
 
 // TODO: Move this out of here once we have px4-log functionality
 extern "C" void HAP_debug(const char *msg, int level, const char *filename, int line);
@@ -45,7 +46,7 @@ static MUORBTestType test_to_run;
 
 fc_func_ptrs muorb_func_ptrs;
 
-static void test_runner(void *test)
+static void *test_runner(void *test)
 {
 	HAP_debug("test_runner called", 1, muorb_test_topic_name, 0);
 
@@ -74,7 +75,7 @@ static void test_runner(void *test)
 		break;
 	}
 
-	qurt_thread_exit(0);
+	return nullptr;
 }
 
 int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
@@ -93,14 +94,13 @@ char stack[TEST_STACK_SIZE];
 
 void run_test(MUORBTestType test)
 {
-	qurt_thread_t tid;
-	qurt_thread_attr_t attr;
-
-	qurt_thread_attr_init(&attr);
-	qurt_thread_attr_set_stack_addr(&attr, stack);
-	qurt_thread_attr_set_stack_size(&attr, TEST_STACK_SIZE);
+	pthread_t tid;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, TEST_STACK_SIZE);
 	test_to_run = test;
-	(void) qurt_thread_create(&tid, &attr, &test_runner, (void *) &test_to_run);
+	pthread_create(&tid, &attr, &test_runner, (void *) &test_to_run);
+	pthread_attr_destroy(&attr);
 }
 
 int px4muorb_topic_advertised(const char *topic_name)
