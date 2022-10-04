@@ -240,6 +240,15 @@ void RTL::on_activation()
 {
 	_rtl_state = RTL_STATE_NONE;
 
+	// send a back transition command in case we're doing a front transition to abort the FT
+	if (_navigator->get_vstatus()->in_transition_to_fw) {
+		vehicle_command_s cmd {};
+		cmd.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
+		cmd.param1 = (float)(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+		cmd.param2 = 0.0f;
+		_navigator->publish_vehicle_cmd(&cmd);
+	}
+
 	// if a mission landing is desired we should only execute mission navigation mode if we currently are in fw mode
 	// In multirotor mode no landing pattern is required so we can just navigate to the land point directly and don't need to run mission
 	_should_engange_mission_for_landing = (_destination.type == RTL_DESTINATION_MISSION_LANDING)
