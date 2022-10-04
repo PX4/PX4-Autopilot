@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -140,16 +140,22 @@ void LoadMon::cpuload()
 #elif defined(__PX4_NUTTX)
 
 	if (_last_idle_time == 0) {
+		irqstate_t irqstate = enter_critical_section();
 		// Just get the time in the first iteration */
 		_last_idle_time = system_load.tasks[0].total_runtime;
-		_last_idle_time_sample = hrt_absolute_time();
+		_last_idle_time_sample = system_load.tasks[0].curr_start_time;
+		leave_critical_section(irqstate);
 		return;
 	}
 
 	irqstate_t irqstate = enter_critical_section();
-	const hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime now = system_load.tasks[0].curr_start_time;
 	const hrt_abstime total_runtime = system_load.tasks[0].total_runtime;
 	leave_critical_section(irqstate);
+
+	if ((now == _last_idle_time_sample) || (total_runtime == _last_idle_time)) {
+		return;
+	}
 
 	// compute system load
 	const float interval = now - _last_idle_time_sample;
