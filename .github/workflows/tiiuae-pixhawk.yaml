@@ -161,7 +161,8 @@ jobs:
           set -exu
           pkg=$(find bin -name 'px4_fmu-v5_ssrc*.px4')
           px5_pkg=$(find bin -name 'px4_fmu-v5x_ssrc*.px4')
-          saluki_pkg=$(find bin -name 'ssrc_saluki-v1*.px4')
+          saluki_pkg=$(find bin -name 'ssrc_saluki-v1_default*.px4')
+          saluki_prot_pkg=$(find bin -name 'ssrc_saluki-v1_protected*.px4')
           saluki_amp_pkg=$(find bin -name 'ssrc_saluki-v1*.bin')
           saluki_bl_pkg=$(find bin -name 'ssrc_saluki-v1*.elf')
           saluki_v2_pkg=$(find bin -name 'ssrc_saluki-v2*.px4')
@@ -170,6 +171,7 @@ jobs:
           pkg_name=$(basename $pkg)
           px5_pkg_name=$(basename $px5_pkg)
           saluki_pkg_name=$(basename $saluki_pkg)
+          saluki_prot_pkg_name=$(basename $saluki_prot_pkg)
           saluki_amp_pkg_name=$(basename $saluki_amp_pkg)
           saluki_bl_pkg_name=$(basename $saluki_bl_pkg)
           saluki_v2_pkg_name=$(basename $saluki_v2_pkg)
@@ -190,6 +192,11 @@ jobs:
                      --build-number "$GITHUB_SHA" \
                      "$saluki_pkg" \
                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_pkg_name"
+          jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
+                     --build-name "$BUILD_NAME_PX4" \
+                     --build-number "$GITHUB_SHA" \
+                     "$saluki_prot_pkg" \
+                     "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_prot_pkg_name"
           jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
                      --build-name "$BUILD_NAME_PX4" \
                      --build-number "$GITHUB_SHA" \
@@ -230,6 +237,9 @@ jobs:
           jfrog rt cp --flat \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_pkg_name" \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v1_default.px4"
+          jfrog rt cp --flat \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_prot_pkg_name" \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v1_protected.px4"
           jfrog rt cp --flat \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_amp_pkg_name" \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v1_amp.bin"
