@@ -253,6 +253,18 @@ MS5611::collect()
 		return ret;
 	}
 
+	// According to the sensor docs:
+	// If the conversion is not executed before the ADC read command, or the
+	// ADC read command is repeated, it will give 0 as the output result.
+	//
+	// We have seen 0 during the init phase on I2C, therefore, we add this
+	// protection in.
+	if (raw == 0) {
+		perf_count(_comms_errors);
+		perf_end(_sample_perf);
+		return ret;
+	}
+
 	/* handle a measurement */
 	if (_measure_phase == 0) {
 
