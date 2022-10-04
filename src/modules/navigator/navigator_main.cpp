@@ -843,7 +843,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 		if (_geofence.getPredict()) {
 			fence_violation_test_point = _gf_breach_avoidance.getFenceViolationTestPoint();
-			snprintf(geofence_violation_warning, sizeof(geofence_violation_warning), "Approaching on geofence");
+			snprintf(geofence_violation_warning, sizeof(geofence_violation_warning), "Warning: Vehicle approaching geofence");
 
 		} else {
 			fence_violation_test_point = matrix::Vector2d(_global_pos.lat, _global_pos.lon);
