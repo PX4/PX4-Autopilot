@@ -228,7 +228,9 @@ void RTL::find_RTL_destination()
 		}
 	}
 
-	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+	if (_param_rtl_cone_half_angle_deg.get() > 0.0
+	    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	    && !_navigator->get_vstatus()->in_transition_to_fw) {
 		_rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
 
 	} else {
