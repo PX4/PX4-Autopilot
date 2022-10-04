@@ -65,7 +65,6 @@ param set-default COM_SPOOLUP_TIME 1.5
 param set-default MPC_THR_HOVER 0.45
 param set-default MPC_TILTMAX_AIR 25
 param set-default MPC_TKO_RAMP_T 1.8
-param set-default MPC_TKO_SPEED 1
 param set-default MPC_VEL_MANUAL 3
 param set-default MPC_XY_CRUISE 3
 param set-default MPC_XY_VEL_MAX 3.5
