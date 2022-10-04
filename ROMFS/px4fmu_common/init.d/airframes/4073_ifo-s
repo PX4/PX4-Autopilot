@@ -62,7 +62,6 @@ param set-default MPC_XY_VEL_P_ACC 2.6
 param set-default MPC_XY_VEL_I_ACC 1.2
 param set-default MPC_XY_VEL_D_ACC 0.2
 param set-default MPC_TKO_RAMP_T 1
-param set-default MPC_TKO_SPEED 1.1
 param set-default MPC_VEL_MANUAL 3
 
 param set-default BAT1_SOURCE 0
