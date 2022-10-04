@@ -12,6 +12,7 @@ rm -Rf build/ssrc_saluki-v2_default build/ssrc_saluki-v2_bootloader
 make ssrc_saluki-v1_default
 make ssrc_saluki-v1_amp
 make ssrc_saluki-v1_bootloader
+make ssrc_saluki-v1_protected
 
 make ssrc_saluki-v2_default
 make ssrc_saluki-v2_amp
