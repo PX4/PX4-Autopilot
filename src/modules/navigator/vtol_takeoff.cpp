@@ -149,7 +149,7 @@ VtolTakeoff::on_active()
 				_navigator->reset_position_setpoint(reposition_triplet->current);
 				_navigator->reset_position_setpoint(reposition_triplet->next);
 
-				// the VTOL takeoff is done, proceed loitering and upate the navigation state to LOITER
+				// the VTOL takeoff is done, proceed loitering and update the navigation state to LOITER
 				_navigator->get_mission_result()->finished = true;
 				_navigator->set_mission_result_updated();
 
