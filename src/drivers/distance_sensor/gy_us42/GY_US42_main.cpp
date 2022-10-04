@@ -54,6 +54,7 @@ extern "C" __EXPORT int gy_us42_main(int argc, char *argv[])
 	BusCLIArguments cli{true, false};
 	cli.rotation = (Rotation)distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	cli.default_i2c_frequency = 100000;
+	cli.i2c_address = GY_US42_BASEADDR;
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
