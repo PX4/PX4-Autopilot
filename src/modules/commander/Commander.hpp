@@ -242,7 +242,9 @@ private:
 		(ParamInt<px4::params::COM_FLT_TIME_MAX>) _param_com_flt_time_max,
 		(ParamFloat<px4::params::COM_WIND_MAX>) _param_com_wind_max,
 
-		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time
+		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
+
+		(ParamFloat<px4::params::COM_CPU_MAX>) _param_com_cpu_max
 	)
 
 	// optional parameters
