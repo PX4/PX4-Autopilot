@@ -262,6 +262,7 @@ private:
 	hrt_abstime _last_gps_status_published{0};
 
 	hrt_abstime _status_airspeed_pub_last{0};
+	hrt_abstime _status_sideslip_pub_last{0};
 
 	hrt_abstime _status_baro_hgt_pub_last{0};
 	hrt_abstime _status_rng_hgt_pub_last{0};
@@ -349,6 +350,7 @@ private:
 	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_airspeed_pub{ORB_ID(estimator_aid_src_airspeed)};
 	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_baro_hgt_pub{ORB_ID(estimator_aid_src_baro_hgt)};
 	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_rng_hgt_pub{ORB_ID(estimator_aid_src_rng_hgt)};
+	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_sideslip_pub{ORB_ID(estimator_aid_src_sideslip)};
 
 	uORB::PublicationMulti<estimator_aid_source_1d_s> _estimator_aid_src_fake_hgt_pub{ORB_ID(estimator_aid_src_fake_hgt)};
 	uORB::PublicationMulti<estimator_aid_source_2d_s> _estimator_aid_src_fake_pos_pub{ORB_ID(estimator_aid_src_fake_pos)};

@@ -345,7 +345,6 @@ protected:
 	Vector2f _ev_pos_test_ratio{};		// EV position innovation consistency check ratios
 	float _optflow_test_ratio{};		// Optical flow innovation consistency check ratio
 	float _hagl_test_ratio{};		// height above terrain measurement innovation consistency check ratio
-	float _beta_test_ratio{};		// sideslip innovation consistency check ratio
 	Vector2f _drag_test_ratio{};		// drag innovation consistency check ratio
 	innovation_fault_status_u _innov_check_fail_status{};
 

@@ -273,6 +273,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("estimator_aid_src_mag_heading", 0, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_aid_src_mag", 0, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_aid_src_ev_yaw", 0, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic_multi("estimator_aid_src_sideslip", 0, MAX_ESTIMATOR_INSTANCES);
 
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 }

@@ -171,9 +171,9 @@ public:
 	void getAirspeedInnovVar(float &airspeed_innov_var) const { airspeed_innov_var = _aid_src_airspeed.innovation_variance; }
 	void getAirspeedInnovRatio(float &airspeed_innov_ratio) const { airspeed_innov_ratio = _aid_src_airspeed.test_ratio; }
 
-	void getBetaInnov(float &beta_innov) const { beta_innov = _beta_innov; }
-	void getBetaInnovVar(float &beta_innov_var) const { beta_innov_var = _beta_innov_var; }
-	void getBetaInnovRatio(float &beta_innov_ratio) const { beta_innov_ratio = _beta_test_ratio; }
+	void getBetaInnov(float &beta_innov) const { beta_innov = _aid_src_sideslip.innovation; }
+	void getBetaInnovVar(float &beta_innov_var) const { beta_innov_var = _aid_src_sideslip.innovation_variance; }
+	void getBetaInnovRatio(float &beta_innov_ratio) const { beta_innov_ratio = _aid_src_sideslip.test_ratio; }
 
 	void getHaglInnov(float &hagl_innov) const { hagl_innov = _hagl_innov; }
 	void getHaglInnovVar(float &hagl_innov_var) const { hagl_innov_var = _hagl_innov_var; }
@@ -414,6 +414,7 @@ public:
 	const BiasEstimator::status &getEvHgtBiasEstimatorStatus() const { return _ev_hgt_b_est.getStatus(); }
 
 	const auto &aid_src_airspeed() const { return _aid_src_airspeed; }
+	const auto &aid_src_sideslip() const { return _aid_src_sideslip; }
 
 	const auto &aid_src_baro_hgt() const { return _aid_src_baro_hgt; }
 	const auto &aid_src_rng_hgt() const { return _aid_src_rng_hgt; }
@@ -494,7 +495,6 @@ private:
 
 	uint64_t _time_last_of_fuse{0};		///< time the last fusion of optical flow measurements were performed (uSec)
 	uint64_t _time_last_flow_terrain_fuse{0}; ///< time the last fusion of optical flow measurements for terrain estimation were performed (uSec)
-	uint64_t _time_last_beta_fuse{0};	///< time the last fusion of synthetic sideslip measurements were performed (uSec)
 	uint64_t _time_last_zero_velocity_fuse{0}; ///< last time of zero velocity update (uSec)
 	uint64_t _time_last_healthy_rng_data{0};
 	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
@@ -543,9 +543,6 @@ private:
 	Vector2f _drag_innov{};		///< multirotor drag measurement innovation (m/sec**2)
 	Vector2f _drag_innov_var{};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
 
-	float _beta_innov{0.0f};	///< synthetic sideslip measurement innovation (rad)
-	float _beta_innov_var{0.0f};	///< synthetic sideslip measurement innovation variance (rad**2)
-
 	float _hagl_innov{0.0f};		///< innovation of the last height above terrain measurement (m)
 	float _hagl_innov_var{0.0f};		///< innovation variance for the last height above terrain measurement (m**2)
 
@@ -566,6 +563,7 @@ private:
 	estimator_aid_source_1d_s _aid_src_baro_hgt{};
 	estimator_aid_source_1d_s _aid_src_rng_hgt{};
 	estimator_aid_source_1d_s _aid_src_airspeed{};
+	estimator_aid_source_1d_s _aid_src_sideslip{};
 
 	estimator_aid_source_2d_s _aid_src_fake_pos{};
 	estimator_aid_source_1d_s _aid_src_fake_hgt{};
@@ -692,7 +690,8 @@ private:
 	void fuseAirspeed(estimator_aid_source_1d_s &airspeed);
 
 	// fuse synthetic zero sideslip measurement
-	void fuseSideslip();
+	void updateSideslip(estimator_aid_source_1d_s &_aid_src_sideslip) const;
+	void fuseSideslip(estimator_aid_source_1d_s &_aid_src_sideslip);
 
 	// fuse body frame drag specific forces for multi-rotor wind estimation
 	void fuseDrag(const dragSample &drag_sample);
