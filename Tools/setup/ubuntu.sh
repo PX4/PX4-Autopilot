@@ -2,7 +2,7 @@
 
 set -e
 
-## Bash script to setup PX4 development environment on Ubuntu LTS (20.04, 18.04, 16.04).
+## Bash script to setup PX4 development environment on Ubuntu LTS (22.04, 20.04, 18.04).
 ## Can also be used in docker.
 ##
 ## Installs:
