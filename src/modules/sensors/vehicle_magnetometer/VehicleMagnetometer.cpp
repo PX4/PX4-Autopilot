@@ -254,7 +254,7 @@ void VehicleMagnetometer::UpdateMagCalibration()
 	// Larger values cause a larger fraction of the learned biases to be used.
 	static constexpr float magb_vref = 2.5e-7f;
 	static constexpr float min_var_allowed = magb_vref * 0.01f;
-	static constexpr float max_var_allowed = magb_vref * 100.f;
+	static constexpr float max_var_allowed = magb_vref * 500.f;
 
 	if (_armed) {
 		static constexpr uint8_t mag_cal_size = sizeof(_mag_cal) / sizeof(_mag_cal[0]);
