@@ -646,7 +646,7 @@ void Ekf::controlAirDataFusion()
 
 	// If both airspeed and sideslip fusion have timed out and we are not using a drag observation model then we no longer have valid wind estimates
 	const bool airspeed_timed_out = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
-	const bool sideslip_timed_out = isTimedOut(_time_last_beta_fuse, (uint64_t)10e6);
+	const bool sideslip_timed_out = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
 
 	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & SensorFusionMask::USE_DRAG))) {
 		_control_status.flags.wind = false;
@@ -701,21 +701,26 @@ void Ekf::controlBetaFusion()
 	}
 
 	// Perform synthetic sideslip fusion at regular intervals when in-air and sideslip fuson had been enabled externally:
-	const bool beta_fusion_time_triggered = isTimedOut(_time_last_beta_fuse, _params.beta_avg_ft_us);
+	const bool beta_fusion_time_triggered = isTimedOut(_aid_src_sideslip.time_last_fuse, _params.beta_avg_ft_us);
 
 	if (beta_fusion_time_triggered &&
 	    _control_status.flags.fuse_beta &&
 	    _control_status.flags.in_air) {
+		updateSideslip(_aid_src_sideslip);
+		_innov_check_fail_status.flags.reject_sideslip = _aid_src_sideslip.innovation_rejected;
+
 		// If starting wind state estimation, reset the wind states and covariances before fusing any data
 		if (!_control_status.flags.wind) {
 			// activate the wind states
 			_control_status.flags.wind = true;
 			// reset the timeout timers to prevent repeated resets
-			_time_last_beta_fuse = _imu_sample_delayed.time_us;
+			_aid_src_airspeed.time_last_fuse = _imu_sample_delayed.time_us;
 			resetWind();
 		}
 
-		fuseSideslip();
+		if (Vector2f(Vector2f(_state.vel) - _state.wind_vel).longerThan(7.f)) {
+			fuseSideslip(_aid_src_sideslip);
+		}
 	}
 }
 
