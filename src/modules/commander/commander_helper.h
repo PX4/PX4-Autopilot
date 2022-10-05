@@ -56,6 +56,8 @@ bool is_vtol(const vehicle_status_s &current_status);
 bool is_vtol_tailsitter(const vehicle_status_s &current_status);
 bool is_fixed_wing(const vehicle_status_s &current_status);
 bool is_ground_rover(const vehicle_status_s &current_status);
+bool is_boat(const vehicle_status_s &current_status);
+bool is_ground_vehicle(const vehicle_status_s &current_status);
 
 int buzzer_init(void);
 void buzzer_deinit(void);
