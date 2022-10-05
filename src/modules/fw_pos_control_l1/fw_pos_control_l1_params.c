@@ -401,6 +401,21 @@ PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
 PARAM_DEFINE_FLOAT(FW_TKO_PITCH_MIN, 10.0f);
 
 /**
+ * Takeoff Airspeed
+ *
+ * The calibrated airspeed setpoint TECS will stabilize to during the takeoff climbout.
+ *
+ * If set <= 0.0, FW_AIRSPD_MIN will be set by default.
+ *
+ * @unit m/s
+ * @min -1.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_TKO_AIRSPD, -1.0f);
+
+/**
  * Landing flare altitude (relative to landing altitude)
  *
  * NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * |z-velocity|) is taken as the flare altitude
