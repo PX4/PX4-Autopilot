@@ -159,7 +159,6 @@ jobs:
           CI: true
         run: |
           set -exu
-          pkg=$(find bin -name 'px4_fmu-v5_ssrc*.px4')
           px5_pkg=$(find bin -name 'px4_fmu-v5x_ssrc*.px4')
           saluki_pkg=$(find bin -name 'ssrc_saluki-v1_default*.px4')
           saluki_prot_pkg=$(find bin -name 'ssrc_saluki-v1_protected*.px4')
@@ -168,7 +167,6 @@ jobs:
           saluki_v2_pkg=$(find bin -name 'ssrc_saluki-v2*.px4')
           saluki_v2_amp_pkg=$(find bin -name 'ssrc_saluki-v2*.bin')
           saluki_v2_bl_pkg=$(find bin -name 'ssrc_saluki-v2*.elf')
-          pkg_name=$(basename $pkg)
           px5_pkg_name=$(basename $px5_pkg)
           saluki_pkg_name=$(basename $saluki_pkg)
           saluki_prot_pkg_name=$(basename $saluki_prot_pkg)
@@ -177,11 +175,6 @@ jobs:
           saluki_v2_pkg_name=$(basename $saluki_v2_pkg)
           saluki_v2_amp_pkg_name=$(basename $saluki_v2_amp_pkg)
           saluki_v2_bl_pkg_name=$(basename $saluki_v2_bl_pkg)
-          jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
-                     --build-name "$BUILD_NAME_PX4" \
-                     --build-number "$GITHUB_SHA" \
-                     "$pkg" \
-                     "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/$pkg_name"
           jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
                      --build-name "$BUILD_NAME_PX4" \
                      --build-number "$GITHUB_SHA" \
@@ -228,9 +221,6 @@ jobs:
           jfrog rt bpr "$BUILD_NAME_PX4" "$GITHUB_SHA" "$ARTIFACTORY_GEN_REPO" \
                        --status dev \
                        --comment "development build"
-          jfrog rt cp --flat \
-                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/$pkg_name" \
-                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/latest/px4_fmu-v5_ssrc.px4"
           jfrog rt cp --flat \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/$px5_pkg_name" \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/latest/px4_fmu-v5x_ssrc.px4"
