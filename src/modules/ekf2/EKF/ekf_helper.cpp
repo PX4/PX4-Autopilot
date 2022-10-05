@@ -957,7 +957,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	hagl = sqrtf(_hagl_test_ratio);
 
 	// return the synthetic sideslip innovation test ratio
-	beta = sqrtf(_beta_test_ratio);
+	beta = sqrtf(_aid_src_sideslip.test_ratio);
 }
 
 // return a bitmask integer that describes which state estimates are valid
@@ -1032,7 +1032,7 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 	const bool airDataAiding = _control_status.flags.wind &&
 				   isRecent(_aid_src_airspeed.time_last_fuse, _params.no_aid_timeout_max) &&
-				   isRecent(_time_last_beta_fuse, _params.no_aid_timeout_max);
+				   isRecent(_aid_src_sideslip.time_last_fuse, _params.no_aid_timeout_max);
 
 	_control_status.flags.wind_dead_reckoning = !velPosAiding && !optFlowAiding && airDataAiding;
 	_control_status.flags.inertial_dead_reckoning = !velPosAiding && !optFlowAiding && !airDataAiding;
