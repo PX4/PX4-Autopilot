@@ -63,8 +63,8 @@ void RunwayTakeoff::init(const hrt_abstime &time_now, const float initial_yaw, c
 	takeoff_time_ = 0;
 }
 
-void RunwayTakeoff::update(const hrt_abstime &time_now, const float calibrated_airspeed, const float vehicle_altitude,
-			   const float clearance_altitude, orb_advert_t *mavlink_log_pub)
+void RunwayTakeoff::update(const hrt_abstime &time_now, const float takeoff_airspeed, const float calibrated_airspeed,
+			   const float vehicle_altitude, const float clearance_altitude, orb_advert_t *mavlink_log_pub)
 {
 	switch (takeoff_state_) {
 	case RunwayTakeoffState::THROTTLE_RAMP:
@@ -74,16 +74,20 @@ void RunwayTakeoff::update(const hrt_abstime &time_now, const float calibrated_a
 
 		break;
 
-	case RunwayTakeoffState::CLAMPED_TO_RUNWAY:
-		if (calibrated_airspeed > param_fw_airspd_min_.get() * param_rwto_airspd_scl_.get()) {
-			takeoff_time_ = time_now;
-			takeoff_state_ = RunwayTakeoffState::CLIMBOUT;
-			mavlink_log_info(mavlink_log_pub, "Takeoff airspeed reached, climbout\t");
-			events::send(events::ID("runway_takeoff_reached_airspeed"), events::Log::Info,
-				     "Takeoff airspeed reached, climbout");
-		}
+	case RunwayTakeoffState::CLAMPED_TO_RUNWAY: {
+			const float rotation_airspeed = (param_rwto_rot_airspd_.get() > FLT_EPSILON) ? math::min(param_rwto_rot_airspd_.get(),
+							takeoff_airspeed) : 0.9f * takeoff_airspeed;
 
-		break;
+			if (calibrated_airspeed > rotation_airspeed) {
+				takeoff_time_ = time_now;
+				takeoff_state_ = RunwayTakeoffState::CLIMBOUT;
+				mavlink_log_info(mavlink_log_pub, "Takeoff airspeed reached, climbout\t");
+				events::send(events::ID("runway_takeoff_reached_airspeed"), events::Log::Info,
+					     "Takeoff airspeed reached, climbout");
+			}
+
+			break;
+		}
 
 	case RunwayTakeoffState::CLIMBOUT:
 		if (vehicle_altitude > clearance_altitude) {

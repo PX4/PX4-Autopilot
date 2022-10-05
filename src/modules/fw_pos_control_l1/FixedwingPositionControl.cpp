@@ -1412,11 +1412,13 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_runway_takeoff.forceSetFlyState();
 		}
 
-		_runway_takeoff.update(now, _airspeed, _current_altitude - _takeoff_ground_alt,
+		const float takeoff_airspeed = (_param_fw_tko_airspd.get() > FLT_EPSILON) ? _param_fw_tko_airspd.get() :
+					       _param_fw_airspd_min.get();
+
+		_runway_takeoff.update(now, takeoff_airspeed, _airspeed, _current_altitude - _takeoff_ground_alt,
 				       clearance_altitude_amsl - _takeoff_ground_alt,
 				       &_mavlink_log_pub);
 
-		const float takeoff_airspeed = _runway_takeoff.getMinAirspeedScaling() * _param_fw_airspd_min.get();
 		float adjusted_min_airspeed = _param_fw_airspd_min.get();
 
 		if (takeoff_airspeed < _param_fw_airspd_min.get()) {
