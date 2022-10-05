@@ -108,21 +108,6 @@ PARAM_DEFINE_FLOAT(RWTO_PSP, 0.0);
 PARAM_DEFINE_FLOAT(RWTO_MAX_PITCH, 20.0);
 
 /**
- * Min airspeed scaling factor for takeoff.
- *
- * Pitch up will be commanded when the following airspeed is reached:
- * FW_AIRSPD_MIN * RWTO_AIRSPD_SCL
- *
- * @unit norm
- * @min 0.0
- * @max 2.0
- * @decimal 2
- * @increment 0.01
- * @group Runway Takeoff
- */
-PARAM_DEFINE_FLOAT(RWTO_AIRSPD_SCL, 1.3);
-
-/**
  * Throttle ramp up time for runway takeoff
  *
  * @unit s
@@ -156,3 +141,19 @@ PARAM_DEFINE_FLOAT(RWTO_L1_PERIOD, 5.0f);
  * @group Runway Takeoff
  */
 PARAM_DEFINE_INT32(RWTO_NUDGE, 1);
+
+/**
+ * Takeoff rotation airspeed
+ *
+ * The calibrated airspeed threshold during the takeoff ground roll when the plane should start rotating (pitching up).
+ * Must be less than the takeoff airspeed, will otherwise be capped at the takeoff airpeed (see FW_TKO_AIRSPD).
+ *
+ * If set <= 0.0, defaults to 0.9 * takeoff airspeed (see FW_TKO_AIRSPD)
+ *
+ * @unit m/s
+ * @min -1.0
+ * @decimal 1
+ * @increment 0.1
+ * @group Runway Takeoff
+ */
+PARAM_DEFINE_FLOAT(RWTO_ROT_AIRSPD, -1.0f);

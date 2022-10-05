@@ -80,13 +80,14 @@ public:
 	 * @brief Updates the state machine based on the current vehicle condition.
 	 *
 	 * @param time_now Absolute time since system boot [us]
+	 * @param takeoff_airspeed Calibrated airspeed setpoint for the takeoff climbout [m/s]
 	 * @param calibrated_airspeed Vehicle calibrated airspeed [m/s]
 	 * @param vehicle_altitude Vehicle altitude (AGL) [m]
 	 * @param clearance_altitude Altitude (AGL) above which we have cleared all occlusions in the runway path [m]
 	 * @param mavlink_log_pub
 	 */
-	void update(const hrt_abstime &time_now, const float calibrated_airspeed, const float vehicle_altitude,
-		    const float clearance_altitude, orb_advert_t *mavlink_log_pub);
+	void update(const hrt_abstime &time_now, const float takeoff_airspeed, const float calibrated_airspeed,
+		    const float vehicle_altitude, const float clearance_altitude, orb_advert_t *mavlink_log_pub);
 
 	/**
 	 * @return Current takeoff state
@@ -102,11 +103,6 @@ public:
 	 * @return Runway takeoff is enabled
 	 */
 	bool runwayTakeoffEnabled() { return param_rwto_tkoff_.get(); }
-
-	/**
-	 * @return Scale factor for minimum indicated airspeed
-	 */
-	float getMinAirspeedScaling() { return param_rwto_airspd_scl_.get(); }
 
 	/**
 	 * @return Initial vehicle yaw angle [rad]
@@ -247,9 +243,8 @@ private:
 		(ParamFloat<px4::params::RWTO_MAX_THR>) param_rwto_max_thr_,
 		(ParamFloat<px4::params::RWTO_PSP>) param_rwto_psp_,
 		(ParamFloat<px4::params::RWTO_MAX_PITCH>) param_rwto_max_pitch_,
-		(ParamFloat<px4::params::RWTO_AIRSPD_SCL>) param_rwto_airspd_scl_,
 		(ParamFloat<px4::params::RWTO_RAMP_TIME>) param_rwto_ramp_time_,
-		(ParamFloat<px4::params::FW_AIRSPD_MIN>) param_fw_airspd_min_
+		(ParamFloat<px4::params::RWTO_ROT_AIRSPD>) param_rwto_rot_airspd_
 	)
 };
 
