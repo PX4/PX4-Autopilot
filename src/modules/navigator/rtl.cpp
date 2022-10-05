@@ -228,7 +228,7 @@ void RTL::find_RTL_destination()
 		}
 	}
 
-	if (_param_rtl_cone_half_angle_deg.get() > 0.0
+	if (_param_rtl_cone_half_angle_deg.get() > 0
 	    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 	    && !_navigator->get_vstatus()->in_transition_to_fw) {
 		_rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
@@ -712,7 +712,7 @@ float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
 
 	} else {
 
-		if (cone_half_angle_deg > 0.0f && destination_dist <= _param_rtl_min_dist.get()) {
+		if (destination_dist <= _param_rtl_min_dist.get()) {
 
 			// constrain cone half angle to meaningful values. All other cases are already handled above.
 			const float cone_half_angle_rad = radians(constrain(cone_half_angle_deg, 1.0f, 89.0f));
