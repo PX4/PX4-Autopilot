@@ -75,7 +75,7 @@ class LandingTargetEstimator: public ModuleParams
 public:
 
 	LandingTargetEstimator();
-	virtual ~LandingTargetEstimator() = default;
+	virtual ~LandingTargetEstimator();
 
 	/*
 	 * Get new measurements and update the state estimate
@@ -119,6 +119,8 @@ private:
 		float rel_pos_z;
 	} _target_position_report;
 
+	void selectTargetEstimator();
+
 	uORB::Subscription _vehicleLocalPositionSub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _attitudeSub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
@@ -145,8 +147,7 @@ private:
 	matrix::Dcmf _R_att; //Orientation of the body frame
 	matrix::Dcmf _S_att; //Orientation of the sensor relative to body frame
 	matrix::Vector2f _rel_pos;
-	KalmanFilter _kalman_filter_x;
-	KalmanFilter _kalman_filter_y;
+	TargetEstimator *_target_estimator[2] {nullptr, nullptr};
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 	float _dist_z{1.0f};

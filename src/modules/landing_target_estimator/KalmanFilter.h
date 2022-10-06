@@ -51,11 +51,13 @@
 #include <matrix/Matrix.hpp>
 #include <matrix/Vector.hpp>
 
+#include "target_estimator.h"
+
 #pragma once
 
 namespace landing_target_estimator
 {
-class KalmanFilter
+class KalmanFilter : public TargetEstimator
 {
 public:
 	/**
@@ -64,30 +66,12 @@ public:
 	KalmanFilter() {};
 
 	/**
-	 * Constructor, initialize state
-	 */
-	KalmanFilter(matrix::Vector<float, 2> &initial, matrix::Matrix<float, 2, 2> &covInit);
-
-	/**
 	 * Default desctructor
 	 */
 	virtual ~KalmanFilter() {};
 
-	/**
-	 * Initialize filter state
-	 * @param initial initial state
-	 * @param covInit initial covariance
-	 */
-	void init(matrix::Vector<float, 2> &initial, matrix::Matrix<float, 2, 2> &covInit);
-
-	/**
-	 * Initialize filter state, only specifying diagonal covariance elements
-	 * @param initial0  first initial state
-	 * @param initial1  second initial state
-	 * @param covInit00 initial variance of first state
-	 * @param covinit11 initial variance of second state
-	 */
-	void init(float initial0, float initial1, float covInit00, float covInit11);
+	void setPosition(float pos) override { _x(0) = pos; }
+	void setVelocity(float vel) override { _x(1) = vel; }
 
 	/**
 	 * Predict the state with an external acceleration estimate
@@ -95,7 +79,7 @@ public:
 	 * @param acc           Acceleration estimate
 	 * @param acc_unc       Variance of acceleration estimate
 	 */
-	void predict(float dt, float acc, float acc_unc);
+	void predict(float dt, float acc) override;
 
 	/**
 	 * Update the state estimate with a measurement
@@ -103,33 +87,13 @@ public:
 	 * @param measUnc measurement uncertainty
 	 * @return update success (measurement not rejected)
 	 */
-	bool update(float meas, float measUnc);
+	bool fusePosition(float meas, float measUnc) override;
 
-	/**
-	 * Get the current filter state
-	 * @param x1 State
-	 */
-	void getState(matrix::Vector<float, 2> &state);
+	float getPosition() override { return _x(0); }
+	float getVelocity() override { return _x(1); }
 
-	/**
-	 * Get the current filter state
-	 * @param state0 First state
-	 * @param state1 Second state
-	 */
-	void getState(float &state0, float &state1);
-
-	/**
-	 * Get state covariance
-	 * @param covariance Covariance of the state
-	 */
-	void getCovariance(matrix::Matrix<float, 2, 2> &covariance);
-
-	/**
-	 * Get state variances (diagonal elements)
-	 * @param cov00 Variance of first state
-	 * @param cov11 Variance of second state
-	 */
-	void getCovariance(float &cov00, float &cov11);
+	float getPosVar() override { return _covariance(0, 0); }
+	float getVelVar() override { return _covariance(0, 0); }
 
 	/**
 	 * Get measurement innovation and covariance of last update call
