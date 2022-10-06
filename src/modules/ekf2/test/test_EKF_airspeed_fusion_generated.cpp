@@ -33,57 +33,12 @@
 
 #include <gtest/gtest.h>
 #include "EKF/ekf.h"
+#include "test_helper/comparison_helper.h"
 
 #include "../EKF/python/ekf_derivation/generated/compute_airspeed_innov_and_innov_var.h"
 #include "../EKF/python/ekf_derivation/generated/compute_airspeed_h_and_k.h"
 
 using namespace matrix;
-
-typedef matrix::Vector<float, 24> Vector24f;
-typedef matrix::SquareMatrix<float, 24> SquareMatrix24f;
-template<int ... Idxs>
-using SparseVector24f = matrix::SparseVectorf<24, Idxs...>;
-
-float randf()
-{
-	return (float)rand() / (float)RAND_MAX;
-}
-
-struct DiffRatioReport {
-	float max_diff_fraction;
-	float max_row;
-	float max_v1;
-	float max_v2;
-};
-
-DiffRatioReport computeDiffRatioVector24f(const Vector24f &v1, const Vector24f &v2)
-{
-	// Find largest observation variance difference as a fraction of v1 or v2
-	DiffRatioReport report = {};
-
-	for (int row = 0; row < 24; row++) {
-		float diff_fraction;
-
-		if (fabsf(v1(row)) > FLT_EPSILON) {
-			diff_fraction = fabsf(v2(row) - v1(row)) / fabsf(v1(row));
-
-		} else if (fabsf(v2(row)) > FLT_EPSILON) {
-			diff_fraction = fabsf(v2(row) - v1(row)) / fabsf(v2(row));
-
-		} else {
-			diff_fraction = 0.0f;
-		}
-
-		if (diff_fraction > report.max_diff_fraction) {
-			report.max_diff_fraction = diff_fraction;
-			report.max_row = row;
-			report.max_v1 = v1(row);
-			report.max_v2 = v2(row);
-		}
-	}
-
-	return report;
-}
 
 TEST(AirspeedFusionGenerated, SympyVsSymforce)
 {
@@ -97,19 +52,7 @@ TEST(AirspeedFusionGenerated, SympyVsSymforce)
 	const float vwn = -4.0f;
 	const float vwe = 3.0f;
 
-	// Create a symmetrical positive dfinite matrix with off diagonals between -1 and 1 and diagonals between 0 and 1
-	SquareMatrix24f P;
-
-	for (int col = 0; col <= 23; col++) {
-		for (int row = 0; row <= col; row++) {
-			if (row == col) {
-				P(row, col) = randf();
-
-			} else {
-				P(col, row) = P(row, col) = 2.0f * (randf() - 0.5f);
-			}
-		}
-	}
+	SquareMatrix24f P = createRandomCovarianceMatrix24f();
 
 	// First calculate observationjacobians and Kalman gains using sympy generated equations
 	Vector24f Hfusion_sympy;
