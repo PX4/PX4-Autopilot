@@ -50,15 +50,27 @@
 namespace landing_target_estimator
 {
 
+using namespace matrix;
+
 LandingTargetEstimator::LandingTargetEstimator() :
 	ModuleParams(nullptr)
 {
 	_check_params(true);
 }
 
+LandingTargetEstimator::~LandingTargetEstimator()
+{
+	delete _target_estimator[0];
+	delete _target_estimator[1];
+}
+
 void LandingTargetEstimator::update()
 {
 	_check_params(false);
+
+	if ((_target_estimator[0] == nullptr) || (_target_estimator[1] == nullptr)) {
+		return;
+	}
 
 	_update_topics();
 
@@ -83,8 +95,8 @@ void LandingTargetEstimator::update()
 				a.zero();
 			}
 
-			_kalman_filter_x.predict(dt, -a(0), _param_ltest_acc_unc.get());
-			_kalman_filter_y.predict(dt, -a(1), _param_ltest_acc_unc.get());
+			_target_estimator[0]->predict(dt, -a(0));
+			_target_estimator[1]->predict(dt, -a(1));
 
 			_last_predict = hrt_absolute_time();
 		}
@@ -100,13 +112,20 @@ void LandingTargetEstimator::update()
 
 
 	if (!_estimator_initialized) {
-		float vx_init = _vehicleLocalPosition.v_xy_valid ? -_vehicleLocalPosition.vx : 0.f;
-		float vy_init = _vehicleLocalPosition.v_xy_valid ? -_vehicleLocalPosition.vy : 0.f;
-		PX4_INFO("Init %.2f %.2f", (double)vx_init, (double)vy_init);
-		_kalman_filter_x.init(_target_position_report.rel_pos_x, vx_init, _param_ltest_pos_unc_in.get(),
-				      _param_ltest_vel_unc_in.get());
-		_kalman_filter_y.init(_target_position_report.rel_pos_y, vy_init, _param_ltest_pos_unc_in.get(),
-				      _param_ltest_vel_unc_in.get());
+		Vector2f v_init;
+		v_init(0) = _vehicleLocalPosition.v_xy_valid ? -_vehicleLocalPosition.vx : 0.f;
+		v_init(1) = _vehicleLocalPosition.v_xy_valid ? -_vehicleLocalPosition.vy : 0.f;
+
+		Vector2f p_init(_target_position_report.rel_pos_x, _target_position_report.rel_pos_y);
+
+		PX4_INFO("Init %.2f %.2f", (double)v_init(0), (double)v_init(1));
+
+		for (int i = 0; i < 2; i++) {
+			_target_estimator[i]->setPosition(p_init(i));
+			_target_estimator[i]->setVelocity(v_init(i));
+			_target_estimator[i]->setStatePosVar(_param_ltest_pos_unc_in.get());
+			_target_estimator[i]->setStateVelVar(_param_ltest_vel_unc_in.get());
+		}
 
 		_estimator_initialized = true;
 		_last_update = hrt_absolute_time();
@@ -115,8 +134,8 @@ void LandingTargetEstimator::update()
 	} else {
 		// update
 		const float measurement_uncertainty = _param_ltest_meas_unc.get() * _dist_z * _dist_z;
-		bool update_x = _kalman_filter_x.update(_target_position_report.rel_pos_x, measurement_uncertainty);
-		bool update_y = _kalman_filter_y.update(_target_position_report.rel_pos_y, measurement_uncertainty);
+		bool update_x = _target_estimator[0]->fusePosition(_target_position_report.rel_pos_x, measurement_uncertainty);
+		bool update_y = _target_estimator[1]->fusePosition(_target_position_report.rel_pos_y, measurement_uncertainty);
 
 		if (!update_x || !update_y) {
 			if (!_faulty) {
@@ -131,14 +150,10 @@ void LandingTargetEstimator::update()
 		if (!_faulty) {
 			// only publish if both measurements were good
 
+			const float x = _target_estimator[0]->getPosition();
+			const float y = _target_estimator[1]->getPosition();
+
 			_target_pose.timestamp = _target_position_report.timestamp;
-
-			float x, xvel, y, yvel, covx, covx_v, covy, covy_v;
-			_kalman_filter_x.getState(x, xvel);
-			_kalman_filter_x.getCovariance(covx, covx_v);
-
-			_kalman_filter_y.getState(y, yvel);
-			_kalman_filter_y.getCovariance(covy, covy_v);
 
 			_target_pose.is_static = ((TargetMode)_param_ltest_mode.get() == TargetMode::Stationary);
 
@@ -147,14 +162,14 @@ void LandingTargetEstimator::update()
 			_target_pose.x_rel = x;
 			_target_pose.y_rel = y;
 			_target_pose.z_rel = _target_position_report.rel_pos_z ;
-			_target_pose.vx_rel = xvel;
-			_target_pose.vy_rel = yvel;
+			_target_pose.vx_rel = _target_estimator[0]->getVelocity();
+			_target_pose.vy_rel = _target_estimator[1]->getVelocity();
 
-			_target_pose.cov_x_rel = covx;
-			_target_pose.cov_y_rel = covy;
+			_target_pose.cov_x_rel = _target_estimator[0]->getPosVar();
+			_target_pose.cov_y_rel = _target_estimator[1]->getPosVar();
 
-			_target_pose.cov_vx_rel = covx_v;
-			_target_pose.cov_vy_rel = covy_v;
+			_target_pose.cov_vx_rel = _target_estimator[0]->getVelVar();
+			_target_pose.cov_vy_rel = _target_estimator[0]->getVelVar();
 
 			if (_vehicleLocalPosition_valid && _vehicleLocalPosition.xy_valid) {
 				_target_pose.x_abs = x + _vehicleLocalPosition.x;
@@ -172,15 +187,16 @@ void LandingTargetEstimator::update()
 			_last_predict = _last_update;
 		}
 
-		float innov_x, innov_cov_x, innov_y, innov_cov_y;
-		_kalman_filter_x.getInnovations(innov_x, innov_cov_x);
-		_kalman_filter_y.getInnovations(innov_y, innov_cov_y);
+		//TODO:fix
+		/* float innov_x, innov_cov_x, innov_y, innov_cov_y; */
+		/* _target_estimator[0]->getInnovations(innov_x, innov_cov_x); */
+		/* _target_estimator[1]->getInnovations(innov_y, innov_cov_y); */
 
-		_target_innovations.timestamp = _target_position_report.timestamp;
-		_target_innovations.innov_x = innov_x;
-		_target_innovations.innov_cov_x = innov_cov_x;
-		_target_innovations.innov_y = innov_y;
-		_target_innovations.innov_cov_y = innov_cov_y;
+		/* _target_innovations.timestamp = _target_position_report.timestamp; */
+		/* _target_innovations.innov_x = innov_x; */
+		/* _target_innovations.innov_cov_x = innov_cov_x; */
+		/* _target_innovations.innov_y = innov_y; */
+		/* _target_innovations.innov_cov_y = innov_cov_y; */
 
 		_targetInnovationsPub.publish(_target_innovations);
 	}
@@ -276,7 +292,46 @@ void LandingTargetEstimator::_update_topics()
 
 void LandingTargetEstimator::updateParams()
 {
+	int32_t current_target_estimator_mode = _param_ltest_mode.get();
 	ModuleParams::updateParams();
+
+	if ((current_target_estimator_mode != _param_ltest_mode.get()) || (_target_estimator[0] == nullptr)
+	    || (_target_estimator[1] == nullptr)) {
+		selectTargetEstimator();
+	}
+
+	_target_estimator[0]->setInputAccVar(_param_ltest_acc_unc.get());
+	_target_estimator[1]->setInputAccVar(_param_ltest_acc_unc.get());
+}
+
+void LandingTargetEstimator::selectTargetEstimator()
+{
+	const TargetMode target_mode = (TargetMode)_param_ltest_mode.get();
+
+	TargetEstimator *tmp_x = nullptr;
+	TargetEstimator *tmp_y = nullptr;
+
+	switch (target_mode) {
+	case TargetMode::Moving:
+		/* tmp = new xxx */
+		break;
+
+	case TargetMode::Stationary:
+		tmp_x = new KalmanFilter();
+		tmp_y = new KalmanFilter();
+		break;
+	}
+
+	if ((tmp_x == nullptr) || (tmp_y == nullptr)) {
+		PX4_ERR("LTE init failed");
+		_param_ltest_mode.set(0);
+
+	} else {
+		delete _target_estimator[0];
+		delete _target_estimator[1];
+		_target_estimator[0] = tmp_x;
+		_target_estimator[1] = tmp_y;
+	}
 }
 
 } // namespace landing_target_estimator
