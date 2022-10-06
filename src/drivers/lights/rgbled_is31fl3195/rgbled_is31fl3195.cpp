@@ -50,7 +50,7 @@
 
 using namespace time_literals;
 
-#define ADDR			                        0x54	/* I2C adress of IS31FL3195 */
+#define ADDR			                        0x54	/* I2C address of IS31FL3195 */
 #define PRODUCT_ID                        0x00
 
 #define SHUTDOWN_CTRL                     0x01

@@ -81,8 +81,8 @@ __EXPORT void board_get_uuid32(uuid_uint32_t uuid_words)
 }
 
 int board_get_uuid32_formatted(char *format_buffer, int size,
-			      const char *format,
-			      const char *separator)
+			       const char *format,
+			       const char *separator)
 {
 	uuid_uint32_t uuid;
 	board_get_uuid32(uuid);

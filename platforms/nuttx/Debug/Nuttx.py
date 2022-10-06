@@ -525,18 +525,18 @@ class NX_check_stack_order(gdb.Command):
 
 	def invoke(self,args,sth):
 		tcb = self.getTCB()
-		stackadresses={}
+		stackaddresses={}
 		for t in tcb:
 			p = []
 			#print(t.name,t._tcb['stack_alloc_ptr'])
 			p.append(parse_int(t['stack_alloc_ptr']))
 			p.append(parse_int(t['adj_stack_ptr']))
 			p.append(self.getSPfromTask(t))
-			stackadresses[str(t['name'])] = p
+			stackaddresses[str(t['name'])] = p
 		address = int("0x30000000",0)
 		print("stack address  :  process")
-		for i in range(len(stackadresses)*3):
-			  address,name = self.find_next_stack(address,stackadresses)
+		for i in range(len(stackaddresses)*3):
+			  address,name = self.find_next_stack(address,stackaddresses)
 			  print(hex(address),": ",name)
 
 NX_check_stack_order()

@@ -393,7 +393,7 @@ void SimulatorMavlink::handle_message(const mavlink_message_t *msg)
 		rpm_s rpmmsg{};
 		rpmmsg.timestamp = hrt_absolute_time();
 		rpmmsg.indicated_frequency_rpm = rpm.frequency;
-		rpmmsg.estimated_accurancy_rpm = 0;
+		rpmmsg.estimated_accuracy_rpm = 0;
 
 		_rpm_pub.publish(rpmmsg);
 		break;

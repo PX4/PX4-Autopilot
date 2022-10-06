@@ -107,7 +107,7 @@ typedef struct {
 #if defined(ESC_HAVE_TEMPERATURE_SENSOR)
 	uint8_t temperature; // 0 - 256 degrees Celsius
 #endif
-} RunInfoRepsonse;
+} RunInfoResponse;
 /****** Run ***********/
 
 /****** ConFigInfoBasic ***********/
@@ -192,7 +192,7 @@ typedef  struct {
 		EscbusTunePacket	tunePacket;
 		EscbusConfigidPacket    configidPacket;
 		ConfigInfoBasicResponse rspConfigInfoBasic;
-		RunInfoRepsonse		rspRunInfo;
+		RunInfoResponse		rspRunInfo;
 		AssignedIdResponse      rspAssignedId;
 		uint8_t bytes[100];
 	} d;

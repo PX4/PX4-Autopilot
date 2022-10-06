@@ -272,7 +272,7 @@ private:
 	const char *_device;
 	uint8_t 	_esc_counter{0};
 
-	/* _device_mux_map[sel]:Asign the id's to the ESC to match the mux */
+	/* _device_mux_map[sel]:Assign the id's to the ESC to match the mux */
 	static const uint8_t 	_device_mux_map[TAP_ESC_MAX_MOTOR_NUM];
 	EscUploaderMessage  	_uploader_packet{};
 	orb_advert_t    	_mavlink_log_pub{nullptr};

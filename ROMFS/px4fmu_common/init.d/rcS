@@ -16,7 +16,7 @@ set +e
 #------------------------------------------------------------------------------
 
 #
-# Set default paramter values.
+# Set default parameter values.
 # Do not add intra word spaces
 # it wastes flash
 #

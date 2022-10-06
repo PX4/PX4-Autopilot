@@ -946,8 +946,8 @@ __EXPORT void board_get_uuid32(uuid_uint32_t uuid_words); // DEPRECATED use boar
  *
  ************************************************************************************/
 __EXPORT int board_get_uuid32_formatted(char *format_buffer, int size,
-				       const char *format,
-				       const char *separator); // DEPRECATED use board_get_px4_guid_formatted
+					const char *format,
+					const char *separator); // DEPRECATED use board_get_px4_guid_formatted
 
 /************************************************************************************
  * Name: board_get_mfguid

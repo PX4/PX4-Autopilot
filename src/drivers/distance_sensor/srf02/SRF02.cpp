@@ -140,7 +140,7 @@ void SRF02::RunImpl()
 
 	// Perform measurement.
 	if (OK != measure()) {
-		PX4_DEBUG("measure error sonar adress");
+		PX4_DEBUG("measure error sonar address");
 	}
 
 	// Next phase is collection.

@@ -82,7 +82,7 @@ int TAP_ESC::init()
 	/* Enable closed-loop control if supported by the board */
 	config.controlMode = BOARD_TAP_ESC_MODE;
 
-	/* Asign the id's to the ESCs to match the mux */
+	/* Assign the id's to the ESCs to match the mux */
 	for (uint8_t phy_chan_index = 0; phy_chan_index < _channels_count; phy_chan_index++) {
 		config.channelMapTable[phy_chan_index] = _device_mux_map[phy_chan_index] & ESC_MASK_MAP_CHANNEL;
 		config.channelMapTable[phy_chan_index] |= (_device_dir_map[phy_chan_index] << 4) & ESC_MASK_MAP_RUNNING_DIRECTION;
@@ -286,7 +286,7 @@ bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], u
 
 		if (!tap_esc_common::parse_tap_esc_feedback(&_uartbuf, &_packet)) {
 			if (_packet.msg_id == ESCBUS_MSG_ID_RUN_INFO) {
-				RunInfoRepsonse &feed_back_data = _packet.d.rspRunInfo;
+				RunInfoResponse &feed_back_data = _packet.d.rspRunInfo;
 
 				if (feed_back_data.channelID < esc_status_s::CONNECTED_ESC_MAX) {
 					_esc_feedback.esc[feed_back_data.channelID].timestamp = hrt_absolute_time();

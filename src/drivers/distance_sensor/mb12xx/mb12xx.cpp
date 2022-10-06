@@ -147,7 +147,7 @@ private:
 
 	int _measure_interval{MB12XX_MEASURE_INTERVAL};	// Initialize the measure interval for a single sensor.
 
-	int _sensor_index{0};	// Initialize counter for cycling i2c adresses to zero.
+	int _sensor_index{0};	// Initialize counter for cycling i2c addresses to zero.
 
 	int _sensor_count{0};
 
@@ -199,11 +199,11 @@ MB12XX::collect()
 	perf_begin(_sample_perf);
 	uint8_t val[2] = {};
 
-	// Increment i2c adress to next sensor.
+	// Increment i2c address to next sensor.
 	_sensor_index++;
 	_sensor_index %= _sensor_count;
 
-	// Set the sensor i2c adress for the active cycle.
+	// Set the sensor i2c address for the active cycle.
 	set_device_address(_sensor_addresses[_sensor_index]);
 
 	// Transfer data from the bus.
