@@ -171,7 +171,7 @@ private:
 
 			// uas_id: UAS (Unmanned Aircraft System) ID following the format specified by id_type
 			// TODO: MAV_ODID_ID_TYPE_SERIAL_NUMBER needs to be ANSI/CTA-2063 format
-			board_get_px4_guid_formated((char *)(msg.uas_id), sizeof(msg.uas_id));
+			board_get_px4_guid_formatted((char *)(msg.uas_id), sizeof(msg.uas_id));
 
 			mavlink_msg_open_drone_id_basic_id_send_struct(_mavlink->get_channel(), &msg);
 
