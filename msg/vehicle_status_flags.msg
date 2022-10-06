@@ -41,10 +41,10 @@ uint8 battery_warning                 # Battery warning level
 bool battery_low_remaining_time       # Low battery based on remaining flight time
 bool battery_unhealthy                # Battery unhealthy
 
+# Other
 bool primary_geofence_breached        # Primary Geofence breached
 bool mission_failure                  # Mission failure
 bool vtol_transition_failure          # VTOL transition failed (quadchute)
-
 bool wind_limit_exceeded              # Wind limit exceeded
 bool flight_time_limit_exceeded       # Maximum flight time exceeded
 
