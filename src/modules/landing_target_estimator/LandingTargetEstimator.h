@@ -42,6 +42,7 @@
 
 #pragma once
 
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/workqueue.h>
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
@@ -69,7 +70,7 @@ using namespace time_literals;
 namespace landing_target_estimator
 {
 
-class LandingTargetEstimator
+class LandingTargetEstimator: public ModuleParams
 {
 public:
 
@@ -91,7 +92,7 @@ protected:
 	/*
 	 * Update parameters.
 	 */
-	void _update_params();
+	void updateParams() override;
 
 	/* timeout after which filter is reset if target not seen */
 	static constexpr uint32_t landing_target_estimator_TIMEOUT_US = 2000000;
@@ -110,37 +111,6 @@ private:
 		Moving = 0,
 		Stationary
 	};
-
-	/**
-	* Handles for parameters
-	**/
-	struct {
-		param_t acc_unc;
-		param_t meas_unc;
-		param_t pos_unc_init;
-		param_t vel_unc_init;
-		param_t mode;
-		param_t scale_x;
-		param_t scale_y;
-		param_t offset_x;
-		param_t offset_y;
-		param_t offset_z;
-		param_t sensor_yaw;
-	} _paramHandle;
-
-	struct {
-		float acc_unc;
-		float meas_unc;
-		float pos_unc_init;
-		float vel_unc_init;
-		TargetMode mode;
-		float scale_x;
-		float scale_y;
-		float offset_x;
-		float offset_y;
-		float offset_z;
-		enum Rotation sensor_yaw;
-	} _params;
 
 	struct {
 		hrt_abstime timestamp;
@@ -184,5 +154,19 @@ private:
 	void _check_params(const bool force);
 
 	void _update_state();
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::LTEST_ACC_UNC>) _param_ltest_acc_unc,
+		(ParamFloat<px4::params::LTEST_MEAS_UNC>) _param_ltest_meas_unc,
+		(ParamFloat<px4::params::LTEST_POS_UNC_IN>) _param_ltest_pos_unc_in,
+		(ParamFloat<px4::params::LTEST_VEL_UNC_IN>) _param_ltest_vel_unc_in,
+		(ParamInt<px4::params::LTEST_MODE>) _param_ltest_mode,
+		(ParamFloat<px4::params::LTEST_SCALE_X>) _param_ltest_scale_x,
+		(ParamFloat<px4::params::LTEST_SCALE_Y>) _param_ltest_scale_y,
+		(ParamInt<px4::params::LTEST_SENS_ROT>) _param_ltest_sens_rot,
+		(ParamFloat<px4::params::LTEST_SENS_POS_X>) _param_ltest_sens_pos_x,
+		(ParamFloat<px4::params::LTEST_SENS_POS_Y>) _param_ltest_sens_pos_y,
+		(ParamFloat<px4::params::LTEST_SENS_POS_Z>) _param_ltest_sens_pos_z
+	)
 };
 } // namespace landing_target_estimator
