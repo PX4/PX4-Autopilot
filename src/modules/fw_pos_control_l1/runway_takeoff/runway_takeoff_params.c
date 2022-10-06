@@ -77,7 +77,7 @@ PARAM_DEFINE_INT32(RWTO_HDG, 0);
 PARAM_DEFINE_FLOAT(RWTO_MAX_THR, 1.0);
 
 /**
- * Pitch setpoint during taxi / before takeoff airspeed is reached.
+ * Pitch setpoint during taxi / before takeoff rotation airspeed is reached.
  *
  * A taildragger with steerable wheel might need to pitch up
  * a little to keep its wheel on the ground before airspeed
@@ -91,21 +91,6 @@ PARAM_DEFINE_FLOAT(RWTO_MAX_THR, 1.0);
  * @group Runway Takeoff
  */
 PARAM_DEFINE_FLOAT(RWTO_PSP, 0.0);
-
-/**
- * Max pitch during takeoff.
- *
- * Fixed-wing settings are used if set to 0. Note that there is also a minimum
- * pitch of 10 degrees during takeoff, so this must be larger if set.
- *
- * @unit deg
- * @min 0.0
- * @max 60.0
- * @decimal 1
- * @increment 0.5
- * @group Runway Takeoff
- */
-PARAM_DEFINE_FLOAT(RWTO_MAX_PITCH, 20.0);
 
 /**
  * Throttle ramp up time for runway takeoff
@@ -157,3 +142,16 @@ PARAM_DEFINE_INT32(RWTO_NUDGE, 1);
  * @group Runway Takeoff
  */
 PARAM_DEFINE_FLOAT(RWTO_ROT_AIRSPD, -1.0f);
+
+/**
+ * Takeoff rotation time
+ *
+ * This is the time desired to linearly ramp in takeoff pitch constraints during the takeoff rotation
+ *
+ * @unit s
+ * @min 0.1
+ * @decimal 1
+ * @increment 0.1
+ * @group Runway Takeoff
+ */
+PARAM_DEFINE_FLOAT(RWTO_ROT_TIME, 1.0f);
