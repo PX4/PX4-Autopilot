@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
 	MODULE modules__rover_pos_control
 	MAIN rover_pos_control
@@ -37,6 +38,7 @@ px4_add_module(
 		RoverPositionControl.cpp
 		RoverPositionControl.hpp
 	DEPENDS
+		RateControl
 		l1
 		pid
 	)
