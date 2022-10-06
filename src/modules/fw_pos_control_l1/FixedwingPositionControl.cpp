@@ -1490,9 +1490,9 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		}
 
 		// update tecs
-		const float takeoff_pitch_max_deg = _runway_takeoff.getMaxPitch(_param_fw_p_lim_max.get());
-		const float takeoff_pitch_min_deg = _runway_takeoff.getMinPitch(_takeoff_pitch_min.get(),
-						    _param_fw_p_lim_min.get());
+		const float pitch_max = _runway_takeoff.getMaxPitch(math::radians(_param_fw_p_lim_max.get()));
+		const float pitch_min = _runway_takeoff.getMinPitch(math::radians(_takeoff_pitch_min.get()),
+					math::radians(_param_fw_p_lim_min.get()));
 
 		if (_runway_takeoff.resetIntegrators()) {
 			// reset integrals except yaw (which also counts for the wheel controller)
@@ -1505,19 +1505,19 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		tecs_update_pitch_throttle(control_interval,
 					   altitude_setpoint_amsl,
 					   target_airspeed,
-					   radians(takeoff_pitch_min_deg),
-					   radians(takeoff_pitch_max_deg),
+					   pitch_min,
+					   pitch_max,
 					   _param_fw_thr_min.get(),
 					   _param_fw_thr_max.get(),
 					   false,
-					   radians(takeoff_pitch_min_deg),
+					   pitch_min,
 					   _param_sinkrate_target.get(),
 					   _param_fw_t_clmb_max.get());
 
 		_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get()); // reset after TECS calculation
 
 		_att_sp.pitch_body = _runway_takeoff.getPitch(get_tecs_pitch());
-		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(now, get_tecs_thrust());
+		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(_param_fw_thr_idle.get(), get_tecs_thrust());
 
 		// apply flaps for takeoff according to the corresponding scale factor set via FW_FLAPS_TO_SCL
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_TAKEOFF;
