@@ -60,7 +60,12 @@ void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 
 	} else {
-		const float cpuload_percent = cpuload.load * 100.f;
+		// Filter the CPU-load to remove spikes that can trigger warnings
+		const float cpuload_sample_interval_s = ((float)(cpuload.timestamp - _last_cpuload_timestamp)) / 1_s;
+		_last_cpuload_timestamp = cpuload.timestamp;
+
+		_cpuload_alphafilter.setParameters(cpuload_sample_interval_s, CPULOAD_ALPHAFILTER_TIME_CONSTANT);
+		const float cpuload_percent = _cpuload_alphafilter.update(cpuload.load) * 100.0f;
 
 		if (cpuload_percent > _param_com_cpu_max.get()) {
 

@@ -34,9 +34,18 @@
 #pragma once
 
 #include "../Common.hpp"
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/cpuload.h>
+
+using namespace math;
+using namespace time_literals;
+
+// Time constant for the alpha filter for averaging out the Cpu load over time
+// Currently, `cpu_load` message is being published at 2Hz, so assume 3-sample
+// timewindow as the alphafilter time constant
+static constexpr float CPULOAD_ALPHAFILTER_TIME_CONSTANT = 1.5f;
 
 class CpuResourceChecks : public HealthAndArmingCheckBase
 {
@@ -48,6 +57,9 @@ public:
 
 private:
 	uORB::Subscription _cpuload_sub{ORB_ID(cpuload)};
+
+	AlphaFilter<float> _cpuload_alphafilter{};
+	hrt_abstime _last_cpuload_timestamp{0}; // Last timestamp of the cpuload message
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamFloat<px4::params::COM_CPU_MAX>) _param_com_cpu_max
