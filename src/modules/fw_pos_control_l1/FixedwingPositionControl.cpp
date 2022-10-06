@@ -1723,38 +1723,57 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		// flaring is a "point of no return"
 		if (!_flaring) {
 			_flaring = true;
+			_time_started_flaring = now;
 			_heightrate_setpoint_at_flare_start = _tecs.hgt_rate_setpoint();
 			mavlink_log_info(&_mavlink_log_pub, "Landing, flaring\t");
 			events::send(events::ID("fixedwing_position_control_landing_flaring"), events::Log::Info, "Landing, flaring");
 		}
 
-		/* lateral guidance first, because npfg will adjust the airspeed setpoint if necessary */
-
-		// tune up the lateral position control guidance when on the ground
-		_npfg.setPeriod(_param_rwto_l1_period.get());
-		_l1_control.set_l1_period(_param_rwto_l1_period.get());
-
-		// align heading with the approach bearing
-		const float landing_approach_bearing = atan2f(landing_approach_vector(1), landing_approach_vector(0));
-
-		if (_param_fw_use_npfg.get()) {
-			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
-			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-			_npfg.navigateHeading(landing_approach_bearing, ground_speed, _wind_vel);
-			target_airspeed = _npfg.getAirspeedRef() /  _eas2tas;
-			_att_sp.roll_body = _npfg.getRollSetpoint();
-
-		} else {
-			_l1_control.navigate_heading(landing_approach_bearing, _yaw, ground_speed);
-			_att_sp.roll_body = _l1_control.get_roll_setpoint();
-		}
-
-		/* longitudinal guidance */
-
 		// ramp in flare limits and setpoints with the flare time, command a soft touchdown
 		const float seconds_since_flare_start = hrt_elapsed_time(&_time_started_flaring) / float(1_s);
 		const float flare_ramp_interpolator = math::constrain(seconds_since_flare_start / _param_fw_lnd_fl_time.get(), 0.0f,
 						      1.0f);
+
+		/* lateral guidance first, because npfg will adjust the airspeed setpoint if necessary */
+
+		// tune up the lateral position control guidance when on the ground
+		const float ground_roll_npfg_period = flare_ramp_interpolator * _param_rwto_l1_period.get() +
+						      (1.0f - flare_ramp_interpolator) * _param_npfg_period.get();
+		const float ground_roll_l1_period = flare_ramp_interpolator * _param_rwto_l1_period.get() +
+						    (1.0f - flare_ramp_interpolator) * _param_fw_l1_period.get();
+		_npfg.setPeriod(ground_roll_npfg_period);
+		_l1_control.set_l1_period(ground_roll_l1_period);
+
+		const Vector2f local_approach_entrance = local_land_point - landing_approach_vector;
+
+		if (_param_fw_use_npfg.get()) {
+			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+			_npfg.navigateWaypoints(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
+			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
+			_att_sp.roll_body = _npfg.getRollSetpoint();
+
+			// use npfg's bearing to commanded course, controlled via yaw angle while on runway
+			_att_sp.yaw_body = _npfg.getBearing();
+
+		} else {
+			// make a fake waypoint beyond the land point in the direction of the landing approach bearing
+			// (always HDG_HOLD_DIST_NEXT meters in front of the aircraft's progress along the landing approach vector)
+
+			const float along_track_distance_from_entrance = landing_approach_vector.unit_or_zero().dot(
+						local_position - local_approach_entrance);
+
+			const Vector2f virtual_waypoint = local_approach_entrance + (along_track_distance_from_entrance + HDG_HOLD_DIST_NEXT) *
+							  landing_approach_vector.unit_or_zero();
+
+			_l1_control.navigate_waypoints(local_approach_entrance, virtual_waypoint, local_position, ground_speed);
+			_att_sp.roll_body = _l1_control.get_roll_setpoint();
+
+			// use l1's nav bearing to command course, controlled via yaw angle while on runway
+			_att_sp.yaw_body = _l1_control.nav_bearing();
+		}
+
+		/* longitudinal guidance */
 
 		const float height_rate_setpoint = flare_ramp_interpolator * (-_param_fw_lnd_fl_sink.get()) +
 						   (1.0f - flare_ramp_interpolator) * _heightrate_setpoint_at_flare_start;
@@ -1787,9 +1806,6 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 		// TECS has authority (though constrained) over pitch during flare, throttle is hard set to idle
 		_att_sp.pitch_body = get_tecs_pitch();
-
-		// flaring is just before touchdown, align the yaw as much as possible with the landing vector
-		_att_sp.yaw_body = landing_approach_bearing;
 
 		// enable direct yaw control using rudder/wheel
 		_att_sp.fw_control_yaw = true;
