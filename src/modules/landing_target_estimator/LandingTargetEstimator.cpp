@@ -50,19 +50,9 @@
 namespace landing_target_estimator
 {
 
-LandingTargetEstimator::LandingTargetEstimator()
+LandingTargetEstimator::LandingTargetEstimator() :
+	ModuleParams(nullptr)
 {
-	_paramHandle.acc_unc = param_find("LTEST_ACC_UNC");
-	_paramHandle.meas_unc = param_find("LTEST_MEAS_UNC");
-	_paramHandle.pos_unc_init = param_find("LTEST_POS_UNC_IN");
-	_paramHandle.vel_unc_init = param_find("LTEST_VEL_UNC_IN");
-	_paramHandle.mode = param_find("LTEST_MODE");
-	_paramHandle.scale_x = param_find("LTEST_SCALE_X");
-	_paramHandle.scale_y = param_find("LTEST_SCALE_Y");
-	_paramHandle.sensor_yaw = param_find("LTEST_SENS_ROT");
-	_paramHandle.offset_x = param_find("LTEST_SENS_POS_X");
-	_paramHandle.offset_y = param_find("LTEST_SENS_POS_Y");
-	_paramHandle.offset_z = param_find("LTEST_SENS_POS_Z");
 	_check_params(true);
 }
 
@@ -93,8 +83,8 @@ void LandingTargetEstimator::update()
 				a.zero();
 			}
 
-			_kalman_filter_x.predict(dt, -a(0), _params.acc_unc);
-			_kalman_filter_y.predict(dt, -a(1), _params.acc_unc);
+			_kalman_filter_x.predict(dt, -a(0), _param_ltest_acc_unc.get());
+			_kalman_filter_y.predict(dt, -a(1), _param_ltest_acc_unc.get());
 
 			_last_predict = hrt_absolute_time();
 		}
@@ -113,8 +103,10 @@ void LandingTargetEstimator::update()
 		float vx_init = _vehicleLocalPosition.v_xy_valid ? -_vehicleLocalPosition.vx : 0.f;
 		float vy_init = _vehicleLocalPosition.v_xy_valid ? -_vehicleLocalPosition.vy : 0.f;
 		PX4_INFO("Init %.2f %.2f", (double)vx_init, (double)vy_init);
-		_kalman_filter_x.init(_target_position_report.rel_pos_x, vx_init, _params.pos_unc_init, _params.vel_unc_init);
-		_kalman_filter_y.init(_target_position_report.rel_pos_y, vy_init, _params.pos_unc_init, _params.vel_unc_init);
+		_kalman_filter_x.init(_target_position_report.rel_pos_x, vx_init, _param_ltest_pos_unc_in.get(),
+				      _param_ltest_vel_unc_in.get());
+		_kalman_filter_y.init(_target_position_report.rel_pos_y, vy_init, _param_ltest_pos_unc_in.get(),
+				      _param_ltest_vel_unc_in.get());
 
 		_estimator_initialized = true;
 		_last_update = hrt_absolute_time();
@@ -122,7 +114,7 @@ void LandingTargetEstimator::update()
 
 	} else {
 		// update
-		const float measurement_uncertainty = _params.meas_unc * _dist_z * _dist_z;
+		const float measurement_uncertainty = _param_ltest_meas_unc.get() * _dist_z * _dist_z;
 		bool update_x = _kalman_filter_x.update(_target_position_report.rel_pos_x, measurement_uncertainty);
 		bool update_y = _kalman_filter_y.update(_target_position_report.rel_pos_y, measurement_uncertainty);
 
@@ -148,7 +140,7 @@ void LandingTargetEstimator::update()
 			_kalman_filter_y.getState(y, yvel);
 			_kalman_filter_y.getCovariance(covy, covy_v);
 
-			_target_pose.is_static = (_params.mode == TargetMode::Stationary);
+			_target_pose.is_static = ((TargetMode)_param_ltest_mode.get() == TargetMode::Stationary);
 
 			_target_pose.rel_pos_valid = true;
 			_target_pose.rel_vel_valid = true;
@@ -200,7 +192,7 @@ void LandingTargetEstimator::_check_params(const bool force)
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
 
-		_update_params();
+		updateParams();
 	}
 }
 
@@ -224,12 +216,12 @@ void LandingTargetEstimator::_update_topics()
 		}
 
 		matrix::Vector<float, 3> sensor_ray; // ray pointing towards target in body frame
-		sensor_ray(0) = _irlockReport.pos_x * _params.scale_x; // forward
-		sensor_ray(1) = _irlockReport.pos_y * _params.scale_y; // right
+		sensor_ray(0) = _irlockReport.pos_x * _param_ltest_scale_x.get(); // forward
+		sensor_ray(1) = _irlockReport.pos_y * _param_ltest_scale_y.get(); // right
 		sensor_ray(2) = 1.0f;
 
 		// rotate unit ray according to sensor orientation
-		_S_att = get_rot_matrix(_params.sensor_yaw);
+		_S_att = get_rot_matrix(static_cast<enum Rotation>(_param_ltest_sens_rot.get()));
 		sensor_ray = _S_att * sensor_ray;
 
 		// rotate the unit ray into the navigation frame
@@ -242,7 +234,7 @@ void LandingTargetEstimator::_update_topics()
 			return;
 		}
 
-		_dist_z = _vehicleLocalPosition.dist_bottom - _params.offset_z;
+		_dist_z = _vehicleLocalPosition.dist_bottom - _param_ltest_sens_pos_z.get();
 
 		// scale the ray s.t. the z component has length of _uncertainty_scale
 		_target_position_report.timestamp = _irlockReport.timestamp;
@@ -251,8 +243,8 @@ void LandingTargetEstimator::_update_topics()
 		_target_position_report.rel_pos_z = _dist_z;
 
 		// Adjust relative position according to sensor offset
-		_target_position_report.rel_pos_x += _params.offset_x;
-		_target_position_report.rel_pos_y += _params.offset_y;
+		_target_position_report.rel_pos_x += _param_ltest_sens_pos_x.get();
+		_target_position_report.rel_pos_y += _param_ltest_sens_pos_y.get();
 
 		_new_sensorReport = true;
 
@@ -282,28 +274,9 @@ void LandingTargetEstimator::_update_topics()
 	}
 }
 
-void LandingTargetEstimator::_update_params()
+void LandingTargetEstimator::updateParams()
 {
-	param_get(_paramHandle.acc_unc, &_params.acc_unc);
-	param_get(_paramHandle.meas_unc, &_params.meas_unc);
-	param_get(_paramHandle.pos_unc_init, &_params.pos_unc_init);
-	param_get(_paramHandle.vel_unc_init, &_params.vel_unc_init);
-
-	int32_t mode = 0;
-	param_get(_paramHandle.mode, &mode);
-	_params.mode = (TargetMode)mode;
-
-	param_get(_paramHandle.scale_x, &_params.scale_x);
-	param_get(_paramHandle.scale_y, &_params.scale_y);
-
-	int32_t sensor_yaw = 0;
-	param_get(_paramHandle.sensor_yaw, &sensor_yaw);
-	_params.sensor_yaw = static_cast<enum Rotation>(sensor_yaw);
-
-	param_get(_paramHandle.offset_x, &_params.offset_x);
-	param_get(_paramHandle.offset_y, &_params.offset_y);
-	param_get(_paramHandle.offset_z, &_params.offset_z);
+	ModuleParams::updateParams();
 }
-
 
 } // namespace landing_target_estimator
