@@ -1752,24 +1752,30 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		/* longitudinal guidance */
 
 		// ramp in flare limits and setpoints with the flare time, command a soft touchdown
-		const float seconds_since_flare_start = hrt_elapsed_time(&_time_started_flaring) * 1e-6;
-		const float flare_ramp_in_scaler = math::constrain(seconds_since_flare_start / _param_fw_lnd_fl_time.get(), 0.0f, 1.0f);
+		const float seconds_since_flare_start = hrt_elapsed_time(&_time_started_flaring) / float(1_s);
+		const float flare_ramp_interpolator = math::constrain(seconds_since_flare_start / _param_fw_lnd_fl_time.get(), 0.0f,
+						      1.0f);
 
-		const float height_rate_setpoint = flare_ramp_in_scaler * (-_param_fw_lnd_fl_sink.get()) +
-						   (1.0f - flare_ramp_in_scaler) * _heightrate_setpoint_at_flare_start;
+		const float height_rate_setpoint = flare_ramp_interpolator * (-_param_fw_lnd_fl_sink.get()) +
+						   (1.0f - flare_ramp_interpolator) * _heightrate_setpoint_at_flare_start;
 
-		const float pitch_min_rad = flare_ramp_in_scaler * radians(_param_fw_lnd_fl_pmin.get()) +
-					    (1.0f - flare_ramp_in_scaler) * radians(_param_fw_p_lim_min.get());
-		const float pitch_max_rad = flare_ramp_in_scaler * radians(_param_fw_lnd_fl_pmax.get()) +
-					    (1.0f - flare_ramp_in_scaler) * radians(_param_fw_p_lim_max.get());
+		const float pitch_min_rad = flare_ramp_interpolator * radians(_param_fw_lnd_fl_pmin.get()) +
+					    (1.0f - flare_ramp_interpolator) * radians(_param_fw_p_lim_min.get());
+		const float pitch_max_rad = flare_ramp_interpolator * radians(_param_fw_lnd_fl_pmax.get()) +
+					    (1.0f - flare_ramp_interpolator) * radians(_param_fw_p_lim_max.get());
+
+		// idle throttle may be >0 for internal combustion engines
+		// normally set to zero for electric motors
+		const float throttle_max = flare_ramp_interpolator * _param_fw_thr_idle.get() + (1.0f - flare_ramp_interpolator) *
+					   _param_fw_thr_max.get();
 
 		tecs_update_pitch_throttle(control_interval,
 					   altitude_setpoint,
 					   target_airspeed,
 					   pitch_min_rad,
 					   pitch_max_rad,
-					   0.0f,
-					   0.0f,
+					   _param_fw_thr_idle.get(),
+					   throttle_max,
 					   false,
 					   pitch_min_rad,
 					   _param_sinkrate_target.get(),
@@ -1793,9 +1799,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.r;
 		}
 
-		// idle throttle may be >0 for internal combustion engines
-		// normally set to zero for electric motors
-		_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
+		_att_sp.thrust_body[0] = get_tecs_thrust();
 
 	} else {
 
