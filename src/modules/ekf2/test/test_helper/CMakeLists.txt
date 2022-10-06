@@ -34,6 +34,7 @@
 
 set(SRCS
 	reset_logging_checker.cpp
+	comparison_helper.cpp
    )
 
 add_library(ecl_test_helper ${SRCS})
