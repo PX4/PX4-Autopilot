@@ -77,11 +77,23 @@ except ImportError as e:
     print("")
     sys.exit(1)
 
+
+# Define time to use time.time() by default
+def _time():
+    return time.time()
+
 # Detect python version
 if sys.version_info[0] < 3:
     runningPython3 = False
 else:
     runningPython3 = True
+    if sys.version_info[1] >=3:
+        # redefine to use monotonic time when available
+        def _time():
+            try:
+                return time.monotonic()
+            except Exception:
+                return time.time()
 
 class FirmwareNotSuitableException(Exception):
     def __init__(self, message):
@@ -230,7 +242,7 @@ class uploader(object):
 
     def open(self):
         # upload timeout
-        timeout = time.time() + 0.2
+        timeout = _time() + 0.2
 
         # attempt to open the port while it exists and until timeout occurs
         while self.port is not None:
@@ -240,7 +252,7 @@ class uploader(object):
             except AttributeError:
                 portopen = self.port.isOpen()
 
-            if not portopen and time.time() < timeout:
+            if not portopen and _time() < timeout:
                 try:
                     self.port.open()
                 except OSError:
@@ -415,16 +427,16 @@ class uploader(object):
                     uploader.EOC)
 
         # erase is very slow, give it 30s
-        deadline = time.time() + 30.0
-        while time.time() < deadline:
+        deadline = _time() + 30.0
+        while _time() < deadline:
 
             usualEraseDuration = 15.0
-            estimatedTimeRemaining = deadline-time.time()
+            estimatedTimeRemaining = deadline-_time()
             if estimatedTimeRemaining >= usualEraseDuration:
                 self.__drawProgressBar(label, 30.0-estimatedTimeRemaining, usualEraseDuration)
             else:
                 self.__drawProgressBar(label, 10.0, 10.0)
-                sys.stdout.write(" (timeout: %d seconds) " % int(deadline-time.time()))
+                sys.stdout.write(" (timeout: %d seconds) " % int(deadline-_time()))
                 sys.stdout.flush()
 
             if self.__trySync():
@@ -572,7 +584,7 @@ class uploader(object):
     # upload the firmware
     def upload(self, fw, force=False, boot_delay=None):
         # Make sure we are doing the right thing
-        start = time.time()
+        start = _time()
         if self.board_type != fw.property('board_id'):
             msg = "Firmware not suitable for this board (Firmware board_type=%u board_id=%u)" % (
                 self.board_type, fw.property('board_id'))
@@ -668,7 +680,7 @@ class uploader(object):
         print("\nRebooting.", end='')
         self.__reboot()
         self.port.close()
-        print(" Elapsed Time %3.3f\n" % (time.time() - start))
+        print(" Elapsed Time %3.3f\n" % (_time() - start))
 
     def __next_baud_flightstack(self):
         if self.baudrate_flightstack_idx + 1 >= len(self.baudrate_flightstack):
