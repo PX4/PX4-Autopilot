@@ -36,6 +36,7 @@
 #include "data_validator/DataValidatorGroup.hpp"
 
 #include <lib/sensor_calibration/Magnetometer.hpp>
+#include <lib/sensor_calibration/Utilities.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
@@ -91,8 +92,10 @@ private:
 	 */
 	void calcMagInconsistency();
 
+	void SensorCalibrationApplyAll();
+	void SensorCalibrationUpdate();
+
 	void UpdateMagBiasEstimate();
-	void UpdateMagCalibration();
 	void UpdatePowerCompensation();
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
@@ -118,13 +121,10 @@ private:
 	// Used to check, save and use learned magnetometer biases
 	uORB::SubscriptionMultiArray<estimator_sensor_bias_s> _estimator_sensor_bias_subs{ORB_ID::estimator_sensor_bias};
 
-	bool _in_flight_mag_cal_available{false}; ///< from navigation filter
-
-	struct MagCal {
-		uint32_t device_id{0};
-		matrix::Vector3f offset{};
-		matrix::Vector3f variance{};
-	} _mag_cal[ORB_MULTI_MAX_INSTANCES] {};
+	static constexpr hrt_abstime IN_FLIGHT_CALIBRATION_QUIET_PERIOD_US{10_s};
+	calibration::InFlightCalibration _learned_calibration[ORB_MULTI_MAX_INSTANCES] {};
+	hrt_abstime _in_flight_calibration_check_timestamp_last{0};
+	bool _in_flight_cal_available{false}; ///< from navigation filter
 
 	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
 		{this, ORB_ID(sensor_mag), 0},

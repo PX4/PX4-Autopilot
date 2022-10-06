@@ -135,11 +135,13 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 		_mag_comp_type = mag_comp_typ;
 
 
-		if (!_armed) {
-			bool calibration_updated = false;
+		bool calibration_updated = false;
 
-			// update mag priority (CAL_MAGx_PRIO)
-			for (int mag = 0; mag < MAX_SENSOR_COUNT; mag++) {
+		// update mag priority (CAL_MAGx_PRIO)
+		for (int mag = 0; mag < MAX_SENSOR_COUNT; mag++) {
+
+			if (_calibration[mag].device_id() != 0) {
+
 				bool clear_online_mag_cal = false;
 
 				const auto calibration_count = _calibration[mag].calibration_count();
@@ -173,7 +175,7 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 					// clear any mag bias estimate
 					_calibration_estimator_bias[mag].zero();
 
-					for (auto &cal : _mag_cal) {
+					for (auto &cal : _learned_calibration) {
 						// clear any in flight mag calibration
 						if (cal.device_id == _calibration[mag].device_id()) {
 							cal = {};
@@ -181,10 +183,10 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 					}
 				}
 			}
+		}
 
-			if (calibration_updated) {
-				_last_calibration_update = hrt_absolute_time();
-			}
+		if (calibration_updated) {
+			_last_calibration_update = hrt_absolute_time();
 		}
 
 		return true;
@@ -195,161 +197,118 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 
 void VehicleMagnetometer::UpdateMagBiasEstimate()
 {
-	if (_magnetometer_bias_estimate_sub.updated()) {
-		// Continuous mag calibration is running when not armed
-		magnetometer_bias_estimate_s mag_bias_est;
+	// Continuous mag calibration is running when not armed
+	magnetometer_bias_estimate_s mag_bias_est;
 
-		if (_magnetometer_bias_estimate_sub.copy(&mag_bias_est)) {
-			bool parameters_notify = false;
+	if (_magnetometer_bias_estimate_sub.update(&mag_bias_est) && !_armed) {
+		bool parameters_notify = false;
 
-			for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
-				if (mag_bias_est.valid[mag_index] && (mag_bias_est.timestamp > _last_calibration_update)) {
+		for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
+			if (mag_bias_est.valid[mag_index] && (mag_bias_est.timestamp > _last_calibration_update)) {
 
-					const Vector3f bias{mag_bias_est.bias_x[mag_index],
-							    mag_bias_est.bias_y[mag_index],
-							    mag_bias_est.bias_z[mag_index]};
+				const Vector3f bias{mag_bias_est.bias_x[mag_index],
+						    mag_bias_est.bias_y[mag_index],
+						    mag_bias_est.bias_z[mag_index]};
 
-					_calibration_estimator_bias[mag_index] = bias;
+				_calibration_estimator_bias[mag_index] = bias;
 
-					// set initial mag calibration if disarmed, mag uncalibrated, and valid estimated bias available
-					if (_param_sens_mag_autocal.get() && !_armed && mag_bias_est.stable[mag_index]
-					    && (_calibration[mag_index].device_id() != 0) && !_calibration[mag_index].calibrated()) {
+				// set initial mag calibration if disarmed, mag uncalibrated, and valid estimated bias available
+				if (_param_sens_mag_autocal.get() && mag_bias_est.stable[mag_index]
+				    && (_calibration[mag_index].device_id() != 0) && !_calibration[mag_index].calibrated()) {
 
-						const Vector3f old_offset = _calibration[mag_index].offset();
+					// set initial mag calibration
+					const Vector3f offset = _calibration[mag_index].BiasCorrectedSensorOffset(_calibration_estimator_bias[mag_index]);
 
-						// set initial mag calibration
-						const Vector3f offset = _calibration[mag_index].BiasCorrectedSensorOffset(_calibration_estimator_bias[mag_index]);
+					if (_calibration[mag_index].set_offset(offset)) {
+						// save parameters with preferred calibration slot to current sensor index
+						_calibration[mag_index].ParametersSave(mag_index);
 
-						if (_calibration[mag_index].set_offset(offset)) {
-							// save parameters with preferred calibration slot to current sensor index
-							_calibration[mag_index].ParametersSave(mag_index);
+						PX4_INFO("mag %d (%" PRIu32 ") setting offset: [%.3f, %.3f, %.3f]",
+							 mag_index, _calibration[mag_index].device_id(),
+							 (double)_calibration[mag_index].offset()(0),
+							 (double)_calibration[mag_index].offset()(1),
+							 (double)_calibration[mag_index].offset()(2));
 
-							PX4_INFO("mag %d (%" PRIu32 ") setting offsets [%.3f, %.3f, %.3f]->[%.3f, %.3f, %.3f]",
-								 mag_index, _calibration[mag_index].device_id(),
-								 (double)old_offset(0), (double)old_offset(1), (double)old_offset(2),
-								 (double)_calibration[mag_index].offset()(0),
-								 (double)_calibration[mag_index].offset()(1),
-								 (double)_calibration[mag_index].offset()(2));
+						_calibration_estimator_bias[mag_index].zero();
 
-							_calibration_estimator_bias[mag_index].zero();
-
-							parameters_notify = true;
+						// clear any learned mag bias
+						for (auto &cal : _learned_calibration) {
+							if (cal.device_id == _calibration[mag_index].device_id()) {
+								cal = {};
+							}
 						}
+
+						parameters_notify = true;
 					}
 				}
 			}
+		}
 
-			if (parameters_notify) {
-				param_notify_changes();
-				_last_calibration_update = hrt_absolute_time();
+		if (parameters_notify) {
+			_last_calibration_update = hrt_absolute_time();
+			param_notify_changes();
+		}
+	}
+}
+
+void VehicleMagnetometer::SensorCalibrationUpdate()
+{
+	for (int i = 0; i < _estimator_sensor_bias_subs.size(); i++) {
+		estimator_sensor_bias_s estimator_sensor_bias;
+
+		if (_estimator_sensor_bias_subs[i].update(&estimator_sensor_bias)) {
+
+			if ((hrt_elapsed_time(&estimator_sensor_bias.timestamp) < 10_s)
+			    && (estimator_sensor_bias.timestamp > _last_calibration_update)
+			    && estimator_sensor_bias.mag_bias_valid
+			    && estimator_sensor_bias.mag_bias_stable
+			    && (estimator_sensor_bias.mag_device_id != 0)) {
+
+				// find corresponding mag calibration
+				for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
+					if (_calibration[mag_index].device_id() == estimator_sensor_bias.mag_device_id) {
+
+						const Vector3f bias{estimator_sensor_bias.mag_bias};
+						const Vector3f bias_variance{estimator_sensor_bias.mag_bias_variance};
+
+						_learned_calibration[i].device_id = estimator_sensor_bias.mag_device_id;
+
+						// readd estimated bias that was removed before publishing vehicle_magnetometer
+						_learned_calibration[i].offset = _calibration[mag_index].BiasCorrectedSensorOffset(bias) +
+										 _calibration_estimator_bias[mag_index];
+
+						_learned_calibration[i].variance = bias_variance;
+						_learned_calibration[i].estimator_instance = i;
+
+						_in_flight_cal_available = true;
+						break;
+					}
+				}
 			}
 		}
 	}
 }
 
-void VehicleMagnetometer::UpdateMagCalibration()
+void VehicleMagnetometer::SensorCalibrationApplyAll()
 {
-	// State variance assumed for magnetometer bias storage.
-	// This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value.
-	// Larger values cause a larger fraction of the learned biases to be used.
-	static constexpr float magb_vref = 2.5e-7f;
-	static constexpr float min_var_allowed = magb_vref * 0.01f;
-	static constexpr float max_var_allowed = magb_vref * 100.f;
-
-	if (_armed) {
-		static constexpr uint8_t mag_cal_size = sizeof(_mag_cal) / sizeof(_mag_cal[0]);
-
-		for (int i = 0; i < math::min(_estimator_sensor_bias_subs.size(), mag_cal_size); i++) {
-			estimator_sensor_bias_s estimator_sensor_bias;
-
-			if (_estimator_sensor_bias_subs[i].update(&estimator_sensor_bias)) {
-
-				const Vector3f bias{estimator_sensor_bias.mag_bias};
-				const Vector3f bias_variance{estimator_sensor_bias.mag_bias_variance};
-
-				const bool valid = (hrt_elapsed_time(&estimator_sensor_bias.timestamp) < 1_s)
-						   && (estimator_sensor_bias.mag_device_id != 0) &&
-						   estimator_sensor_bias.mag_bias_valid &&
-						   estimator_sensor_bias.mag_bias_stable &&
-						   (bias_variance.min() > min_var_allowed) && (bias_variance.max() < max_var_allowed);
-
-				if (valid) {
-					// find corresponding mag calibration
-					for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
-						if (_calibration[mag_index].device_id() == estimator_sensor_bias.mag_device_id) {
-
-							_mag_cal[i].device_id = estimator_sensor_bias.mag_device_id;
-
-							// readd estimated bias that was removed before publishing vehicle_magnetometer
-							_mag_cal[i].offset = _calibration[mag_index].BiasCorrectedSensorOffset(bias) +
-									     _calibration_estimator_bias[mag_index];
-
-							_mag_cal[i].variance = bias_variance;
-
-							_in_flight_mag_cal_available = true;
-							break;
-						}
-					}
-				}
-			}
-		}
-
-	} else if (_in_flight_mag_cal_available) {
-		// not armed and mag cal available
+	if (_in_flight_cal_available) {
 		bool calibration_param_save_needed = false;
-		// iterate through available bias estimates and fuse them sequentially using a Kalman Filter scheme
-		Vector3f state_variance{magb_vref, magb_vref, magb_vref};
 
 		for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
-			// apply all valid saved offsets
-			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-				if ((_calibration[mag_index].device_id() != 0) && (_mag_cal[i].device_id == _calibration[mag_index].device_id())) {
-					const Vector3f mag_cal_orig{_calibration[mag_index].offset()};
 
-					// calculate weighting using ratio of variances and update stored bias values
-					const Vector3f &observation{_mag_cal[i].offset};
-					const Vector3f &obs_variance{_mag_cal[i].variance};
-
-					const Vector3f innovation{mag_cal_orig - observation};
-					const Vector3f innovation_variance{state_variance + obs_variance};
-					const Vector3f kalman_gain{state_variance.edivide(innovation_variance)};
-
-					// new offset
-					const Vector3f mag_cal_offset{mag_cal_orig - innovation.emult(kalman_gain)};
-
-					for (int axis_index = 0; axis_index < 3; axis_index++) {
-						state_variance(axis_index) = fmaxf(state_variance(axis_index) * (1.f - kalman_gain(axis_index)), 0.f);
-					}
-
-					if (_calibration[mag_index].set_offset(mag_cal_offset)) {
-
-						PX4_INFO("%d (%" PRIu32 ") EST:%d offset: [%.2f, %.2f, %.2f]->[%.2f, %.2f, %.2f] (full [%.3f, %.3f, %.3f])",
-							 mag_index, _calibration[mag_index].device_id(), i,
-							 (double)mag_cal_orig(0), (double)mag_cal_orig(1), (double)mag_cal_orig(2),
-							 (double)mag_cal_offset(0), (double)mag_cal_offset(1), (double)mag_cal_offset(2),
-							 (double)_mag_cal[i].offset(0), (double)_mag_cal[i].offset(1), (double)_mag_cal[i].offset(2));
-
-						_calibration[mag_index].ParametersSave();
-
-						_calibration_estimator_bias[mag_index].zero();
-
-						calibration_param_save_needed = true;
-					}
-				}
+			if (calibration::SensorCalibrationApplyLearned<calibration::Magnetometer, ORB_MULTI_MAX_INSTANCES>
+			    (_calibration[mag_index], mag_index, _learned_calibration)) {
+				calibration_param_save_needed = true;
+				_calibration_estimator_bias[mag_index].zero();
 			}
 		}
 
 		if (calibration_param_save_needed) {
-			param_notify_changes();
 			_last_calibration_update = hrt_absolute_time();
+			param_notify_changes();
 		}
 
-		// clear all
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			_mag_cal[i] = {};
-		}
-
-		_in_flight_mag_cal_available = false;
+		_in_flight_cal_available = false;
 	}
 }
 
@@ -393,7 +352,7 @@ void VehicleMagnetometer::Run()
 
 	const hrt_abstime time_now_us = hrt_absolute_time();
 
-	const bool parameter_update = ParametersUpdate();
+	const bool parameters_updated = ParametersUpdate();
 
 	// check vehicle status for changes to armed state
 	if (_vehicle_control_mode_sub.updated()) {
@@ -478,7 +437,7 @@ void VehicleMagnetometer::Run()
 
 	if (best_index >= 0) {
 		// handle selection change (don't process on same iteration as parameter update)
-		if ((_selected_sensor_sub_index != best_index) && !parameter_update) {
+		if ((_selected_sensor_sub_index != best_index) && !parameters_updated) {
 			// clear all registered callbacks
 			for (auto &sub : _sensor_sub) {
 				sub.unregisterCallback();
@@ -557,7 +516,7 @@ void VehicleMagnetometer::Run()
 		}
 	}
 
-	if (!parameter_update && _param_sens_mag_mode.get()) {
+	if (!parameters_updated && _param_sens_mag_mode.get()) {
 		CheckFailover(time_now_us);
 	}
 
@@ -565,7 +524,27 @@ void VehicleMagnetometer::Run()
 		calcMagInconsistency();
 	}
 
-	UpdateMagCalibration();
+	if (_param_sens_mag_autocal.get() && !parameters_updated
+	    && (time_now_us > _last_calibration_update + IN_FLIGHT_CALIBRATION_QUIET_PERIOD_US)) {
+
+		bool uncalibrated = false;
+
+		for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+			if (_calibration[i].enabled() && !_calibration[i].calibrated()) {
+				uncalibrated = true;
+			}
+		}
+
+		if ((_armed || uncalibrated)
+		    && (time_now_us > _in_flight_calibration_check_timestamp_last + 1_s)) {
+
+			SensorCalibrationUpdate();
+			_in_flight_calibration_check_timestamp_last = time_now_us;
+
+		} else if (!_armed) {
+			SensorCalibrationApplyAll();
+		}
+	}
 
 	UpdateStatus();
 
