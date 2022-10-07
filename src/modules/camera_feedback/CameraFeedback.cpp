@@ -42,6 +42,8 @@ CameraFeedback::CameraFeedback() :
 	if (_p_cam_cap_fback != PARAM_INVALID) {
 		param_get(_p_cam_cap_fback, (int32_t *)&_cam_cap_fback);
 	}
+
+	_capture_pub.advertise();
 }
 
 bool
@@ -51,8 +53,6 @@ CameraFeedback::init()
 		PX4_ERR("callback registration failed");
 		return false;
 	}
-
-	_capture_pub.advertise();
 
 	return true;
 }
