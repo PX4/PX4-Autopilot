@@ -385,7 +385,7 @@ AirspeedModule::Run()
 					_in_takeoff_situation = true;
 				}
 
-				input_data.in_fixed_wing_flight = (armed && in_air_fixed_wing && !_in_takeoff_situation);
+				input_data.in_fixed_wing_flight = (in_air_fixed_wing && !_in_takeoff_situation);
 
 				// push input data into airspeed validator
 				_airspeed_validator[i].update_airspeed_validator(input_data);
