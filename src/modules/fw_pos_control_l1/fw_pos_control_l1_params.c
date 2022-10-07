@@ -1026,7 +1026,7 @@ PARAM_DEFINE_FLOAT(FW_WING_HEIGHT, 0.5);
  * NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * descent rate) is taken as the flare altitude
  *
  * @unit s
- * @min 0.0
+ * @min 0.1
  * @max 5.0
  * @decimal 1
  * @increment 0.1
