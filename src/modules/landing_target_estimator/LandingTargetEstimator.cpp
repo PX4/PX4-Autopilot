@@ -55,6 +55,7 @@ using namespace matrix;
 LandingTargetEstimator::LandingTargetEstimator() :
 	ModuleParams(nullptr)
 {
+	_targetPosePub.advertise();
 	_check_params(true);
 }
 
