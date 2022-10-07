@@ -344,9 +344,13 @@ private:
 
 	uint8_t _landing_abort_status{position_controller_landing_status_s::NOT_ABORTED};
 
-	bool _flaring{false};
-	hrt_abstime _time_started_flaring{0}; // [us]
-	float _heightrate_setpoint_at_flare_start{0.0f}; // [m/s]
+	// organize flare states XXX: need to split into a separate class at some point!
+	struct FlareStates {
+		bool flaring{false};
+		hrt_abstime start_time{0}; // [us]
+		float initial_height_rate_setpoint{0.0f}; // [m/s]
+		float initial_throttle_setpoint{0.0f};
+	} _flare_states;
 
 	// [m] last terrain estimate which was valid
 	float _last_valid_terrain_alt_estimate{0.0f};

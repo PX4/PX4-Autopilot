@@ -607,7 +607,7 @@ FixedwingPositionControl::landing_status_publish()
 	position_controller_landing_status_s pos_ctrl_landing_status = {};
 
 	pos_ctrl_landing_status.lateral_touchdown_offset = _lateral_touchdown_position_offset;
-	pos_ctrl_landing_status.flaring = _flaring;
+	pos_ctrl_landing_status.flaring = _flare_states.flaring;
 	pos_ctrl_landing_status.abort_status = _landing_abort_status;
 	pos_ctrl_landing_status.timestamp = hrt_absolute_time();
 
@@ -1717,20 +1717,22 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 	const float flare_rel_alt = math::max(_param_fw_lnd_fl_time.get() * _local_pos.vz, _param_fw_lnd_flalt.get());
 
 	// the terrain estimate (if enabled) is always used to determine the flaring altitude
-	if ((_current_altitude < terrain_alt + flare_rel_alt) || _flaring) {
+	if ((_current_altitude < terrain_alt + flare_rel_alt) || _flare_states.flaring) {
 		// flare and land with minimal speed
 
 		// flaring is a "point of no return"
-		if (!_flaring) {
-			_flaring = true;
-			_time_started_flaring = now;
-			_heightrate_setpoint_at_flare_start = _tecs.hgt_rate_setpoint();
+		if (!_flare_states.flaring) {
+			_flare_states.flaring = true;
+			_flare_states.start_time = now;
+			_flare_states.initial_height_rate_setpoint = _tecs.hgt_rate_setpoint();
+			_flare_states.initial_throttle_setpoint = _att_sp.thrust_body[0];
 			mavlink_log_info(&_mavlink_log_pub, "Landing, flaring\t");
-			events::send(events::ID("fixedwing_position_control_landing_flaring"), events::Log::Info, "Landing, flaring");
+			events::send(events::ID("fixedwing_position_control_landing_flaring"), events::Log::Info,
+				     "Landing, flaring");
 		}
 
 		// ramp in flare limits and setpoints with the flare time, command a soft touchdown
-		const float seconds_since_flare_start = hrt_elapsed_time(&_time_started_flaring) / float(1_s);
+		const float seconds_since_flare_start = hrt_elapsed_time(&_flare_states.start_time) / float(1_s);
 		const float flare_ramp_interpolator = math::constrain(seconds_since_flare_start / _param_fw_lnd_fl_time.get(), 0.0f,
 						      1.0f);
 
@@ -1776,7 +1778,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		/* longitudinal guidance */
 
 		const float height_rate_setpoint = flare_ramp_interpolator * (-_param_fw_lnd_fl_sink.get()) +
-						   (1.0f - flare_ramp_interpolator) * _heightrate_setpoint_at_flare_start;
+						   (1.0f - flare_ramp_interpolator) * _flare_states.initial_height_rate_setpoint;
 
 		const float pitch_min_rad = flare_ramp_interpolator * radians(_param_fw_lnd_fl_pmin.get()) +
 					    (1.0f - flare_ramp_interpolator) * radians(_param_fw_p_lim_min.get());
@@ -1815,7 +1817,13 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.r;
 		}
 
-		_att_sp.thrust_body[0] = get_tecs_thrust();
+		// blend the height rate controlled throttle setpoints with initial throttle setting over the flare
+		// ramp time period to maintain throttle command continuity when switching from altitude to height rate
+		// control
+		const float blended_throttle = flare_ramp_interpolator * get_tecs_thrust() + (1.0f - flare_ramp_interpolator) *
+					       _flare_states.initial_throttle_setpoint;
+
+		_att_sp.thrust_body[0] = blended_throttle;
 
 	} else {
 
@@ -2409,9 +2417,7 @@ FixedwingPositionControl::reset_landing_state()
 {
 	_time_started_landing = 0;
 
-	_flaring = false;
-	_time_started_flaring = 0;
-	_heightrate_setpoint_at_flare_start = 0.0f;
+	_flare_states = FlareStates{};
 
 	_lateral_touchdown_position_offset = 0.0f;
 
@@ -2669,7 +2675,7 @@ FixedwingPositionControl::calculateTouchdownPosition(const float control_interva
 {
 	if (fabsf(_manual_control_setpoint.r) > MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE
 	    && _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled
-	    && !_flaring) {
+	    && !_flare_states.flaring) {
 		// laterally nudge touchdown location with yaw stick
 		// positive is defined in the direction of a right hand turn starting from the approach vector direction
 		const float signed_deadzone_threshold = MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE * math::signNoZero(
