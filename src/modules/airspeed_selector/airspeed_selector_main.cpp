@@ -522,7 +522,7 @@ void AirspeedModule::update_wind_estimator_sideslip()
 
 	if (_vehicle_local_position_valid
 	    && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-	    && _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+	    && !_vehicle_land_detected.landed) {
 		Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
 		Quatf q(_vehicle_attitude.q);
 
