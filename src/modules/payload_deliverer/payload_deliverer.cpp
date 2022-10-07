@@ -61,28 +61,30 @@ bool PayloadDeliverer::initialize_gripper()
 		config.sensor = GripperConfig::GripperSensorType::NONE; // Feedback sensor isn't supported for now
 		config.timeout_us = hrt_abstime(_param_gripper_timeout_s.get() * 1000000ULL);
 		_gripper.init(config);
+
+		if (!_gripper.is_valid()) {
+			PX4_DEBUG("Gripper object initialization failed!");
+			return false;
+
+		} else {
+			// Command the gripper to grab position by default
+			if (!_gripper.grabbed() && !_gripper.grabbing()) {
+				PX4_DEBUG("Gripper intialize: putting to grab position!");
+				send_gripper_vehicle_command(vehicle_command_s::GRIPPER_ACTION_GRAB);
+			}
+
+			return true;
+		}
 	}
 
 	// NOTE: Support for changing gripper sensor type / gripper type configuration when
 	// the parameter change is detected isn't added as we don't have actual use case for that
 	// yet!
 
-	if (!_gripper.is_valid()) {
-		PX4_DEBUG("Gripper object initialization invalid!");
-		return false;
+	// NOTE: De-initializing the gripper when `PD_GRIPPER_EN` param gets set to 0
+	// is also not implemented yet (assuming users won't be disabling the gripper)!
 
-	} else {
-		_gripper.update();
-
-		// If gripper wasn't commanded to go to grab position, command.
-		if (!_gripper.grabbed() && !_gripper.grabbing()) {
-			PX4_DEBUG("Gripper intialize: putting to grab position!");
-			send_gripper_vehicle_command(vehicle_command_s::GRIPPER_ACTION_GRAB);
-		}
-
-		return true;
-	}
-
+	return false;
 }
 
 void PayloadDeliverer::parameter_update()
