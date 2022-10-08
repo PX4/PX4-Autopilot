@@ -49,12 +49,6 @@
 
 namespace device
 {
-/*
- *  N.B. By defaulting the value of _bus_clocks to non Zero
- *  All calls to init() will NOT set the buss frequency
- */
-
-unsigned int I2C::_bus_clocks[PX4_NUMBER_I2C_BUSES] = PX4_I2C_BUS_CLOCK_INIT;
 
 I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t address, const uint32_t frequency) :
 	CDev(name, nullptr),
@@ -81,97 +75,49 @@ I2C::~I2C()
 }
 
 int
-I2C::set_bus_clock(unsigned bus, unsigned clock_hz)
-{
-	int index = bus - 1;
-
-	if (index < 0 || index >= static_cast<int>(sizeof(_bus_clocks) / sizeof(_bus_clocks[0]))) {
-		return -EINVAL;
-	}
-
-	if (_bus_clocks[index] > 0) {
-		// DEVICE_DEBUG("overriding clock of %u with %u Hz\n", _bus_clocks[index], clock_hz);
-	}
-
-	_bus_clocks[index] = clock_hz;
-
-	return OK;
-}
-
-int
 I2C::init()
 {
-	int ret = PX4_ERROR;
-	unsigned bus_index;
-
 	// attach to the i2c bus
 	_dev = px4_i2cbus_initialize(get_device_bus());
 
 	if (_dev == nullptr) {
 		DEVICE_DEBUG("failed to init I2C");
-		ret = -ENOENT;
-		goto out;
+		return -ENOENT;
 	}
 
-	// the above call fails for a non-existing bus index,
-	// so the index math here is safe.
-	bus_index = get_device_bus() - 1;
+	const uint32_t max_speed_hz = px4_i2c_bus_max_speed(get_device_bus());
 
-	// abort if the max frequency we allow (the frequency we ask)
-	// is smaller than the bus frequency
-	if (_bus_clocks[bus_index] > _frequency) {
-		(void)px4_i2cbus_uninitialize(_dev);
-		_dev = nullptr;
-		DEVICE_LOG("FAIL: too slow for bus #%u: %u KHz, device max: %" PRIu32 " KHz)",
-			   get_device_bus(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
-		ret = -EINVAL;
-		goto out;
-	}
-
-	// set frequency for this instance once to the bus speed
-	// the bus speed is the maximum supported by all devices on the bus,
-	// as we have to prioritize performance over compatibility.
-	// If a new device requires a lower clock speed, this has to be
-	// manually set via "fmu i2c <bus> <clock>" before starting any
-	// drivers.
-	// This is necessary as automatically lowering the bus speed
-	// for maximum compatibility could induce timing issues on
-	// critical sensors the adopter might be unaware of.
-
-	// set the bus frequency on the first access if it has
-	// not been set yet
-	if (_bus_clocks[bus_index] == 0) {
-		_bus_clocks[bus_index] = _frequency;
+	if (_frequency > max_speed_hz) {
+		DEVICE_DEBUG("frequency %" PRIu32 " Hz exceeds bus %d maximum, limited to max %" PRIu32 " Hz", _frequency,
+			     get_device_bus(), max_speed_hz);
+		_frequency = max_speed_hz;
 	}
 
 	// call the probe function to check whether the device is present
-	ret = probe();
+	int probe_ret = probe();
 
-	if (ret != OK) {
+	if (probe_ret != OK) {
 		DEVICE_DEBUG("probe failed");
-		goto out;
+		px4_i2cbus_uninitialize(_dev);
+		_dev = nullptr;
+		return probe_ret;
 	}
 
 	// do base class init, which will create device node, etc
-	ret = CDev::init();
+	int cdev_init_ret = CDev::init();
 
-	if (ret != OK) {
+	if (cdev_init_ret != OK) {
 		DEVICE_DEBUG("cdev init failed");
-		goto out;
+		px4_i2cbus_uninitialize(_dev);
+		_dev = nullptr;
+		return cdev_init_ret;
 	}
 
 	// tell the world where we are
-	DEVICE_DEBUG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %" PRIu32 " KHz)",
-		     get_device_bus(), get_device_address(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
+	DEVICE_DEBUG("on I2C bus %d at 0x%02x (bus: %" PRIu32 " KHz)",
+		     get_device_bus(), get_device_address(), _frequency / 1000);
 
-out:
-
-	if ((ret != OK) && (_dev != nullptr)) {
-		px4_i2cbus_uninitialize(_dev);
-		_dev = nullptr;
-	}
-
-	return ret;
+	return PX4_OK;
 }
 
 int
@@ -192,7 +138,7 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 		unsigned msgs = 0;
 
 		if (send_len > 0) {
-			msgv[msgs].frequency = _bus_clocks[get_device_bus() - 1];
+			msgv[msgs].frequency = _frequency;
 			msgv[msgs].addr = get_device_address();
 			msgv[msgs].flags = 0;
 			msgv[msgs].buffer = const_cast<uint8_t *>(send);
@@ -201,7 +147,7 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 		}
 
 		if (recv_len > 0) {
-			msgv[msgs].frequency = _bus_clocks[get_device_bus() - 1];
+			msgv[msgs].frequency = _frequency;
 			msgv[msgs].addr = get_device_address();
 			msgv[msgs].flags = I2C_M_READ;
 			msgv[msgs].buffer = recv;
