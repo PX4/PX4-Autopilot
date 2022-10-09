@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2020, 2021 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -332,7 +332,7 @@ bool BusInstanceIterator::next()
 
 	} else if (busType() == BOARD_SPI_BUS) {
 		if (_spi_bus_iterator.next()) {
-			bus = _spi_bus_iterator.bus().bus;
+			bus = _spi_bus_iterator.bus();
 		}
 
 #endif // CONFIG_SPI
@@ -340,7 +340,7 @@ bool BusInstanceIterator::next()
 
 	} else if (busType() == BOARD_I2C_BUS) {
 		if (_i2c_bus_iterator.next()) {
-			bus = _i2c_bus_iterator.bus().bus;
+			bus = _i2c_bus_iterator.bus();
 		}
 
 #endif // CONFIG_I2C
@@ -448,14 +448,14 @@ int BusInstanceIterator::bus() const
 #if defined(CONFIG_SPI)
 
 	if (busType() == BOARD_SPI_BUS) {
-		return _spi_bus_iterator.bus().bus;
+		return _spi_bus_iterator.bus();
 	}
 
 #endif // CONFIG_SPI
 #if defined(CONFIG_I2C)
 
 	if (busType() == BOARD_I2C_BUS) {
-		return _i2c_bus_iterator.bus().bus;
+		return _i2c_bus_iterator.bus();
 	}
 
 #endif // CONFIG_I2C

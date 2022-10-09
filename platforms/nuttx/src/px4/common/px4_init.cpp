@@ -139,7 +139,7 @@ int px4_platform_init()
 	I2CBusIterator i2c_bus_iterator {I2CBusIterator::FilterType::All};
 
 	while (i2c_bus_iterator.next()) {
-		i2c_master_s *i2c_dev = px4_i2cbus_initialize(i2c_bus_iterator.bus().bus);
+		i2c_master_s *i2c_dev = px4_i2cbus_initialize(i2c_bus_iterator.bus());
 
 #if defined(CONFIG_I2C_RESET)
 		I2C_RESET(i2c_dev);
