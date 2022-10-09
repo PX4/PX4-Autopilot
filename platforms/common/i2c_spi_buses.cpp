@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2020, 2021 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,6 +47,185 @@
 
 static List<I2CSPIInstance *> i2c_spi_module_instances; ///< list of currently running instances
 static pthread_mutex_t i2c_spi_module_instances_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
+void px4_print_all_instances()
+{
+	pthread_mutex_lock(&i2c_spi_module_instances_mutex);
+
+#if defined(CONFIG_I2C)
+	// I2C
+	{
+		PX4_INFO_RAW("\nI2C                    Type       Address\n");
+		int num_i2c_buses = 0;
+
+		for (auto &i2c_bus : px4_i2c_buses) {
+			if (i2c_bus.bus != -1) {
+				num_i2c_buses++;
+
+				PX4_INFO_RAW("|__ I2C:%d    \n", i2c_bus.bus); // TODO: internal/external
+				// TODO: print differently if last
+
+				for (I2CSPIInstance *instance : i2c_spi_module_instances) {
+					if (instance && (instance->bus() == i2c_bus.bus)
+					    && (instance->bus_option() == I2CSPIBusOption::I2CInternal || instance->bus_option() == I2CSPIBusOption::I2CExternal)
+					   ) {
+						//PX4_INFO_RAW("|__%2d) ", i);
+						//PX4_INFO_RAW("|__ I2C %d %s\n", px4_i2c_buses[i].bus, px4_i2c_buses[i].is_external ? "external" : "internal");
+						// Type: 0x%02X, I2C:%d 0x%02X
+						PX4_INFO_RAW("|   |__ %s      0x%02X           0x%02X\n", instance->module_name(), instance->devid_driver_index(),
+							     instance->get_i2c_address());
+
+						// TODO: if running?
+						// TOOD: if exiting?
+						// TODO: general status otherwise?
+					}
+				}
+			}
+		}
+
+		// int num_i2c_instances = 0;
+		// for (const I2CSPIInstance *instance : i2c_spi_module_instances) {
+		// 	if (instance) {
+		// 		if (instance->bus_option() == I2CSPIBusOption::I2CInternal || instance->bus_option() == I2CSPIBusOption::I2CExternal) {
+		// 			num_i2c_instances++;
+		// 		}
+		// 	}
+		// }
+	}
+#endif // CONFIG_I2C
+
+#if defined(CONFIG_SPI)
+	// SPI
+	{
+		PX4_INFO_RAW("\nSPI                    Type       \n");
+
+		for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
+			const auto &spi_bus = px4_spi_buses[i];
+
+			if (spi_bus.bus != -1) {
+				//num_i2c_buses++;
+
+				PX4_INFO_RAW("|__ SPI:%d (%s) %s %s \n",
+					     spi_bus.bus,
+					     px4_spi_buses[i].is_external ? "external" : "internal",
+					     (px4_spi_buses[i].power_enable_gpio != 0) ? " Power Control " : "",
+					     px4_spi_buses[i].requires_locking ? " requires locking " : ""
+					    );
+
+
+
+
+
+				// TODO: print differently if last
+
+				// power_enable_gpio
+				// is_external
+				// requires_locking
+
+				// PX4_SPIDEVID_TYPE(bus_data.devices[j].devid
+				// PX4_SPIDEVID_TYPE(devid) == PX4_SPIDEVID_TYPE(bus_data.devices[j].devid)
+				// PX4_SPI_DEV_ID(devid) == bus_data.devices[j].devtype_driver
+
+				for (const auto &dev : spi_bus.devices) {
+					if (dev.cs_gpio || dev.devid || dev.devtype_driver) {
+						// cs_gpio
+						// drdy_gpio
+						// devid
+						// devtype_driver
+						PX4_INFO_RAW("|   |__ %" PRIu32 ", devtype_driver: 0x%02X    \n", dev.devid, dev.devtype_driver);
+
+						// match bus type, bus, devtype_driver
+
+						// _bus_device_index = -1;
+
+
+						// devtype_driver  devid_driver_index()
+						//PX4_INFO_RAW("|   |__ %s      0x%02X           \n", instance->module_name(), instance->devid_driver_index());
+					}
+
+					// match bus
+					// match devtype_driver  devid_driver_index()
+				}
+
+				for (I2CSPIInstance *instance : i2c_spi_module_instances) {
+					if (instance && (instance->bus() == spi_bus.bus)
+					    && (instance->bus_option() == I2CSPIBusOption::SPIInternal || instance->bus_option() == I2CSPIBusOption::SPIExternal)
+					   ) {
+						//PX4_INFO_RAW("|__%2d) ", i);
+						//PX4_INFO_RAW("|__ I2C %d %s\n", px4_i2c_buses[i].bus, px4_i2c_buses[i].is_external ? "external" : "internal");
+						// Type: 0x%02X, I2C:%d 0x%02X
+						PX4_INFO_RAW("|   |__ %s      0x%02X           \n", instance->module_name(), instance->devid_driver_index());
+
+						//instance->
+
+						// TODO: if running?
+						// TOOD: if exiting?
+						// TODO: general status otherwise?
+					}
+				}
+			}
+		}
+	}
+#endif // CONFIG_SPI
+
+
+#if defined(CONFIG_I2C) && 0
+
+	for (int i = 0; i < I2C_BUS_MAX_BUS_ITEMS; ++i) {
+		if ((px4_i2c_buses[i].bus != -1)) {
+			PX4_INFO_RAW("I2C %d %s\n", px4_i2c_buses[i].bus, px4_i2c_buses[i].is_external ? "external" : "internal");
+		}
+	}
+
+#endif // CONFIG_I2C
+
+#if defined(CONFIG_SPI) && 0
+
+	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
+		if ((px4_spi_buses[i].bus != -1)) {
+			PX4_INFO_RAW("SPI %d %s\n", px4_spi_buses[i].bus, px4_spi_buses[i].is_external ? "external" : "internal");
+
+			for (const auto &dev : px4_spi_buses[i].devices) {
+				if (dev.devid || dev.devtype_driver) {
+					PX4_INFO_RAW("-->devid: %" PRIu32 ", devtype_driver: %" PRIu16 "\n", dev.devid, dev.devtype_driver);
+				}
+			}
+
+			// SPI_BUS_MAX_DEVICES
+			// devid
+			// devtype_driver
+			// for (px4_spi_buses[i].devices) {
+
+			// }
+		}
+	}
+
+#endif // CONFIG_SPI
+
+
+	// TODO: decode device id
+	// // Device ID
+	// uint32_t device_id = *(uint32_t *)(data_ptr + previous_data_offset);
+	// char device_id_buffer[80];
+	// device::Device::device_id_print_buffer(device_id_buffer, sizeof(device_id_buffer), device_id);
+	// PX4_INFO_RAW(" (%s)", device_id_buffer);
+
+
+	// for (const I2CSPIInstance *instance : i2c_spi_module_instances) {
+	// 	if (instance) {
+
+
+	// 		// TODO: I2CSPIBusOption
+	// 		//  I2C address
+
+	// 		PX4_INFO_RAW("name: %s, bus: %d, devid_driver_index: %d, bus_device_index: %d\n", instance->module_name(),
+	// 			     instance->bus(), instance->devid_driver_index(), instance->bus_device_index());
+	// 	}
+	// }
+
+	pthread_mutex_unlock(&i2c_spi_module_instances_mutex);
+}
 
 
 I2CSPIDriverConfig::I2CSPIDriverConfig(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
@@ -237,7 +416,6 @@ int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 
 			if (bus_option == I2CSPIBusOption::I2CExternal || bus_option == I2CSPIBusOption::I2CInternal) {
 				bus_frequency = default_i2c_frequency;
-
 			}
 
 #endif // CONFIG_I2C
@@ -332,7 +510,7 @@ bool BusInstanceIterator::next()
 
 	} else if (busType() == BOARD_SPI_BUS) {
 		if (_spi_bus_iterator.next()) {
-			bus = _spi_bus_iterator.bus().bus;
+			bus = _spi_bus_iterator.bus();
 		}
 
 #endif // CONFIG_SPI
@@ -340,7 +518,7 @@ bool BusInstanceIterator::next()
 
 	} else if (busType() == BOARD_I2C_BUS) {
 		if (_i2c_bus_iterator.next()) {
-			bus = _i2c_bus_iterator.bus().bus;
+			bus = _i2c_bus_iterator.bus();
 		}
 
 #endif // CONFIG_I2C
@@ -448,14 +626,14 @@ int BusInstanceIterator::bus() const
 #if defined(CONFIG_SPI)
 
 	if (busType() == BOARD_SPI_BUS) {
-		return _spi_bus_iterator.bus().bus;
+		return _spi_bus_iterator.bus();
 	}
 
 #endif // CONFIG_SPI
 #if defined(CONFIG_I2C)
 
 	if (busType() == BOARD_I2C_BUS) {
-		return _i2c_bus_iterator.bus().bus;
+		return _i2c_bus_iterator.bus();
 	}
 
 #endif // CONFIG_I2C
@@ -811,6 +989,31 @@ void I2CSPIDriverBase::print_status()
 	}
 
 #endif // CONFIG_SPI
+}
+
+void I2CSPIDriverBase::print_run_status()
+{
+	// specialized ScheduledWorkItem::print_run_status() with additional I2C or SPI info
+	char name_description[34] {};
+#if defined(CONFIG_SPI)
+
+	if (_bus_option == I2CSPIBusOption::SPIInternal || _bus_option == I2CSPIBusOption::SPIExternal) {
+		snprintf(name_description, sizeof(name_description), "%s (Type: 0x%02X)", _item_name, _devid_driver_index);
+	}
+
+#endif // CONFIG_SPI
+
+#if defined(CONFIG_I2C)
+
+	if (_bus_option == I2CSPIBusOption::I2CExternal || _bus_option == I2CSPIBusOption::I2CInternal) {
+		snprintf(name_description, sizeof(name_description), "%s (Type: 0x%02X, I2C:%d 0x%02X)", _item_name,
+			 _devid_driver_index, _bus, _i2c_address);
+	}
+
+#endif // CONFIG_I2C
+
+	PX4_INFO_RAW("%-34s %8.1f Hz %12.0f us (%" PRId64 " us)\n", name_description, (double)average_rate(),
+		     (double)average_interval(), 0ULL);
 }
 
 void I2CSPIDriverBase::request_stop_and_wait()

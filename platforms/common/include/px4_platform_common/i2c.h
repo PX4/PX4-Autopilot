@@ -86,7 +86,7 @@ public:
 
 	bool next();
 
-	const px4_i2c_bus_t &bus() const { return px4_i2c_buses[_index]; }
+	int bus() const { return px4_i2c_buses[_index].bus; }
 
 	int externalBusIndex() const { return _external_bus_counter; }
 

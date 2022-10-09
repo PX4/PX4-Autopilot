@@ -56,6 +56,9 @@
 # include <drivers/device/spi.h>
 #endif // CONFIG_SPI
 
+
+__EXPORT void px4_print_all_instances();
+
 enum class I2CSPIBusOption : uint8_t {
 	All = 0, ///< select all runnning instances
 #if defined(CONFIG_I2C)
@@ -114,6 +117,15 @@ public:
 #if defined(CONFIG_I2C)
 	virtual int8_t  get_i2c_address() {return _i2c_address;}
 #endif // CONFIG_I2C
+
+	const char *module_name() const { return _module_name; }
+	const int &bus() const { return _bus; }
+	const I2CSPIBusOption &bus_option() const { return _bus_option; }
+	const uint16_t &devid_driver_index() const { return _devid_driver_index; }
+	const int8_t &bus_device_index() const { return _bus_device_index; }
+
+	// I2C address?
+
 private:
 	I2CSPIInstance(const I2CSPIDriverConfig &config)
 		: _module_name(config.module_name), _bus_option(config.bus_option), _bus(config.bus),
@@ -295,6 +307,7 @@ protected:
 	virtual ~I2CSPIDriverBase() = default;
 
 	virtual void print_status();
+	virtual void print_run_status();
 
 	virtual void custom_method(const BusCLIArguments &cli) {}
 
@@ -356,6 +369,7 @@ private:
 	{
 		template <typename C>
 		static constexpr I2CSPIDriverBase::instantiate_method get(decltype(&C::instantiate)) { return &C::instantiate; }
+
 		template <typename C>
 		static constexpr I2CSPIDriverBase::instantiate_method get(...) { return &C::instantiate_default; }
 	public:

@@ -153,14 +153,15 @@ public:
 
 	bool next();
 
-	const px4_spi_bus_t &bus() const { return px4_spi_buses[_index]; }
+	//const px4_spi_bus_t &bus() const { return px4_spi_buses[_index]; }
+	int bus() const { return px4_spi_buses[_index].bus; }
 	spi_drdy_gpio_t DRDYGPIO() const { return px4_spi_buses[_index].devices[_bus_device_index].drdy_gpio; }
 
 	uint32_t devid() const { return px4_spi_buses[_index].devices[_bus_device_index].devid; }
 
 	int externalBusIndex() const { return _external_bus_counter; }
 
-	bool external() const { return px4_spi_bus_external(bus()); }
+	bool external() const { return px4_spi_bus_external(px4_spi_buses[_index]); }
 
 	int busDeviceIndex() const { return _bus_device_index; }
 

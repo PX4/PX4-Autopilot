@@ -1,0 +1,5 @@
+menuconfig SYSTEMCMDS_BOARDCTL
+	bool "boardctl"
+	default n
+	---help---
+		Enable support for boardctl

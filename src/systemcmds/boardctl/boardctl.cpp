@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,55 +32,51 @@
  ****************************************************************************/
 
 #include <px4_platform_common/log.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_config.h>
 
-namespace px4
-{
+#include <px4_platform_common/i2c_spi_buses.h>
 
-ScheduledWorkItem::~ScheduledWorkItem()
+
+// per bus power control?
+
+// boardctl stop-all
+
+// boardctl status
+
+// boardctl i2c status
+// boardctl spi status
+
+// boardctl spi 1 poweroff
+
+
+
+// #define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_nEN, !(on_true))
+// #define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_VDD_5V_HIPOWER_nEN, !(on_true))
+// #define VDD_3V3_SENSORS4_EN(on_true)       px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS4_EN, (on_true))
+// #define VDD_3V3_SPEKTRUM_POWER_EN(on_true) px4_arch_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, (on_true))
+// #define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
+// #define VDD_3V3_ETH_POWER_EN(on_true)      px4_arch_gpiowrite(GPIO_ETH_POWER_EN, (on_true))
+
+
+// board specific power status?
+//  GPIO_nPOWER_IN_A
+//  GPIO_nPOWER_IN_B
+
+
+
+// heater control
+//  HEATER_OUTPUT_EN
+
+// version
+
+// px4_hw_mft_item_t
+
+// timer test app
+
+extern "C" __EXPORT int boardctl_main(int argc, char *argv[])
 {
-	if (_call.arg != nullptr) {
-		ScheduleClear();
-	}
+	px4_print_all_instances();
+
+	return 0;
 }
-
-void ScheduledWorkItem::schedule_trampoline(void *arg)
-{
-	ScheduledWorkItem *dev = static_cast<ScheduledWorkItem *>(arg);
-	dev->ScheduleNow();
-}
-
-void ScheduledWorkItem::ScheduleDelayed(uint32_t delay_us)
-{
-	hrt_call_after(&_call, delay_us, (hrt_callout)&ScheduledWorkItem::schedule_trampoline, this);
-}
-
-void ScheduledWorkItem::ScheduleOnInterval(uint32_t interval_us, uint32_t delay_us)
-{
-	hrt_call_every(&_call, delay_us, interval_us, (hrt_callout)&ScheduledWorkItem::schedule_trampoline, this);
-}
-
-void ScheduledWorkItem::ScheduleAt(hrt_abstime time_us)
-{
-	hrt_call_at(&_call, time_us, (hrt_callout)&ScheduledWorkItem::schedule_trampoline, this);
-}
-
-void ScheduledWorkItem::ScheduleClear()
-{
-	// first clear any scheduled hrt call, then remove the item from the runnable queue
-	hrt_cancel(&_call);
-	WorkItem::ScheduleClear();
-}
-
-void ScheduledWorkItem::print_run_status()
-{
-	if (_call.period > 0) {
-		PX4_INFO_RAW("%-34s %8.1f Hz %12.0f us (%" PRId64 " us)\n", _item_name, (double)average_rate(),
-			     (double)average_interval(), _call.period);
-
-	} else {
-		WorkItem::print_run_status();
-	}
-}
-
-} // namespace px4
