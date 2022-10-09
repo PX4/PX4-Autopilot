@@ -340,6 +340,12 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	// Prioritize cruise speed from the triplet when it's valid and more recent than the previously commanded cruise speed
 	const float cruise_speed_from_triplet = _sub_triplet_setpoint.get().current.cruising_speed;
+	const float vertical_speed_from_triplet = _sub_triplet_setpoint.get().current.vertical_speed;
+
+	if (PX4_ISFINITE(vertical_speed_from_triplet)
+	    && (_sub_triplet_setpoint.get().current.timestamp > _time_last_cruise_speed_override)) {
+		_mc_vertical_speed = vertical_speed_from_triplet;
+	}
 
 	if (PX4_ISFINITE(cruise_speed_from_triplet)
 	    && (_sub_triplet_setpoint.get().current.timestamp > _time_last_cruise_speed_override)) {
@@ -353,6 +359,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	// Ensure planned cruise speed is below the maximum such that the smooth trajectory doesn't get capped
 	_mc_cruise_speed = math::min(_mc_cruise_speed, _param_mpc_xy_vel_max.get());
+
+
 
 	// Temporary target variable where we save the local reprojection of the latest navigator current triplet.
 	Vector3f tmp_target;
@@ -787,6 +795,7 @@ void FlightTaskAuto::_updateTrajConstraints()
 	_position_smoothing.setMaxAllowedHorizontalError(_param_mpc_xy_err_max.get());
 	_position_smoothing.setVerticalAcceptanceRadius(_param_nav_mc_alt_rad.get());
 	_position_smoothing.setCruiseSpeed(_mc_cruise_speed);
+	_position_smoothing.setVerticalSpeed(_mc_vertical_speed);
 	_position_smoothing.setHorizontalTrajectoryGain(_param_mpc_xy_traj_p.get());
 	_position_smoothing.setTargetAcceptanceRadius(_target_acceptance_radius);
 

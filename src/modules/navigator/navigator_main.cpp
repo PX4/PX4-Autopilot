@@ -273,6 +273,7 @@ void Navigator::run()
 					// If no argument for ground speed, use default value.
 					if (cmd.param1 <= 0 || !PX4_ISFINITE(cmd.param1)) {
 						rep->current.cruising_speed = get_cruising_speed();
+						rep->current.vertical_speed = get_vertical_speed();
 
 					} else {
 						rep->current.cruising_speed = cmd.param1;
@@ -486,6 +487,7 @@ void Navigator::run()
 				if (cmd.param2 > FLT_EPSILON) {
 					// XXX not differentiating ground and airspeed yet
 					set_cruising_speed(cmd.param2);
+					set_vertical_speed(cmd.param2);
 
 				} else {
 					set_cruising_speed();
@@ -554,6 +556,7 @@ void Navigator::run()
 				position_setpoint_triplet_s *rep = get_reposition_triplet();
 				*rep = *(get_position_setpoint_triplet());
 				rep->current.cruising_speed = get_cruising_speed();
+				rep->current.vertical_speed = get_vertical_speed();
 				rep->current.cruising_throttle = get_cruising_throttle();
 			}
 		}
@@ -916,6 +919,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 					rep->current.cruising_throttle = get_cruising_throttle();
 					rep->current.acceptance_radius = get_acceptance_radius();
 					rep->current.cruising_speed = get_cruising_speed();
+					rep->current.vertical_speed = get_vertical_speed();
 
 				}
 
@@ -1033,6 +1037,22 @@ float Navigator::get_cruising_speed()
 	}
 }
 
+float Navigator::get_vertical_speed()
+{
+	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
+	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		if (_mission_vertical_speed_mc > 0.0f) {
+			return _mission_vertical_speed_mc;
+
+		} else {
+			return -1.0f;
+		}
+
+	} else {
+		return -1.0f;
+	}
+}
+
 void Navigator::set_cruising_speed(float speed)
 {
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
@@ -1041,6 +1061,16 @@ void Navigator::set_cruising_speed(float speed)
 	} else {
 		_mission_cruising_speed_fw = speed;
 	}
+}
+
+void Navigator::set_vertical_speed(float speed)
+{
+	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		_mission_vertical_speed_mc = speed;
+
+	}
+
+	//TODO: fixed wing ???
 }
 
 void Navigator::reset_cruising_speed()
@@ -1067,6 +1097,7 @@ void Navigator::reset_position_setpoint(position_setpoint_s &sp)
 	sp.loiter_radius = get_loiter_radius();
 	sp.acceptance_radius = get_default_acceptance_radius();
 	sp.cruising_speed = get_cruising_speed();
+	sp.vertical_speed = get_vertical_speed();
 	sp.cruising_throttle = get_cruising_throttle();
 	sp.valid = false;
 	sp.type = position_setpoint_s::SETPOINT_TYPE_IDLE;

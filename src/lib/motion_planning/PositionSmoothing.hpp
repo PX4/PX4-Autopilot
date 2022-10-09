@@ -348,6 +348,14 @@ public:
 	}
 
 	/**
+	 * @param speed vehicle vertical speed
+	 */
+	inline void setVerticalSpeed(float speed)
+	{
+		_vertical_speed = speed;
+	}
+
+	/**
 	 * @param gain Proportional gain for horizontal trajectory position error. Set to MPC_XY_TRAJ_P
 	 */
 	inline void setHorizontalTrajectoryGain(float gain)
@@ -414,6 +422,7 @@ private:
 	float _max_allowed_horizontal_error{0.f};
 	float _vertical_acceptance_radius{0.f};
 	float _cruise_speed{0.f};
+	float _vertical_speed{0.f};
 	float _horizontal_trajectory_gain{0.f};
 	float _target_acceptance_radius{0.f};
 

@@ -699,6 +699,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	}
 
 	sp->cruising_speed = _navigator->get_cruising_speed();
+	sp->vertical_speed = _navigator->get_vertical_speed();
 	sp->cruising_throttle = _navigator->get_cruising_throttle();
 
 	// for fixed wing we don't use cruising_throttle directly anymore, instead we command airspeed setpoints via cruising_speed

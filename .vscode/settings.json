@@ -134,5 +134,10 @@
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
         },
-        "cortex-debug.openocdPath": "${env:PICO_SDK_PATH}/../openocd/src/openocd"       // Added for rp2040
+        "cortex-debug.openocdPath": "${env:PICO_SDK_PATH}/../openocd/src/openocd",
+        "python.autoComplete.extraPaths": [
+                "/home/atlas/ros2_ws/install/my_robot_interfaces/lib/python3.8/site-packages",
+                "/home/atlas/ros2_ws/install/my_py_pkg/lib/python3.8/site-packages",
+                "/opt/ros/foxy/lib/python3.8/site-packages"
+        ] // Added for rp2040
 }
