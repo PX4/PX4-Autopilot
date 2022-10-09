@@ -40,9 +40,11 @@
 #ifndef BOARD_OVERRIDE_I2C_BUS_EXTERNAL
 bool px4_i2c_bus_external(int bus)
 {
-	for (int i = 0; i < I2C_BUS_MAX_BUS_ITEMS; ++i) {
-		if (px4_i2c_buses[i].bus == bus) {
-			return px4_i2c_buses[i].is_external;
+	if (px4_i2c_buses) {
+		for (int i = 0; i < I2C_BUS_MAX_BUS_ITEMS; ++i) {
+			if ((px4_i2c_buses[i].bus != -1) && (px4_i2c_buses[i].bus == bus)) {
+				return px4_i2c_buses[i].is_external;
+			}
 		}
 	}
 
