@@ -609,7 +609,7 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.25f);
  * @min 3
  * @max 180
  */
-PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 45);
+PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 60);
 
 /**
  * Enable mag strength preflight check
