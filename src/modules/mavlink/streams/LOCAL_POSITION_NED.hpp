@@ -62,21 +62,20 @@ private:
 		vehicle_local_position_s lpos;
 
 		if (_lpos_sub.update(&lpos)) {
-			if (lpos.xy_valid && lpos.v_xy_valid) {
-				mavlink_local_position_ned_t msg{};
+			mavlink_local_position_ned_t msg{};
 
-				msg.time_boot_ms = lpos.timestamp / 1000;
-				msg.x = lpos.x;
-				msg.y = lpos.y;
-				msg.z = lpos.z;
-				msg.vx = lpos.vx;
-				msg.vy = lpos.vy;
-				msg.vz = lpos.vz;
+			msg.time_boot_ms = lpos.timestamp / 1000;
+			msg.x = lpos.x;
+			msg.y = lpos.y;
+			msg.z = lpos.z;
+			msg.vx = lpos.vx;
+			msg.vy = lpos.vy;
+			msg.vz = lpos.vz;
 
-				mavlink_msg_local_position_ned_send_struct(_mavlink->get_channel(), &msg);
+			mavlink_msg_local_position_ned_send_struct(_mavlink->get_channel(), &msg);
 
-				return true;
-			}
+			return true;
+
 		}
 
 		return false;
