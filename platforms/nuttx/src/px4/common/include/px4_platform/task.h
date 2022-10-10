@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2023 Technology Innovation Institute. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,72 +31,16 @@
  *
  ****************************************************************************/
 
-/**
- * @file tasks.cpp
- * Implementation of existing task API for NuttX
- */
+#pragma once
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/tasks.h>
+#include <nuttx/config.h>
 
-#include <px4_platform/task.h>
+__BEGIN_DECLS
 
-#include <nuttx/board.h>
-#include <nuttx/kthread.h>
-
-#include <sys/wait.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-#include <string.h>
-#include <sched.h>
-#include <errno.h>
-#include <stdbool.h>
-
-int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char *const argv[])
-{
-	sched_lock();
-
-#if !defined(CONFIG_DISABLE_ENVIRON)
-	/* None of the modules access the environment variables (via getenv() for instance), so delete them
-	 * all. They are only used within the startup script, and NuttX automatically exports them to the children
-	 * tasks.
-	 * This frees up a considerable amount of RAM.
-	 */
-	clearenv();
+#ifdef CONFIG_BUILD_KERNEL
+int task_create(FAR const char *name, int priority,
+		int stack_size, main_t entry, FAR char *const argv[]);
+int task_delete(int pid);
 #endif
 
-#if !defined(__KERNEL__)
-	/* create the task */
-	int pid = task_create(name, priority, stack_size, entry, argv);
-#else
-	int pid = kthread_create(name, priority, stack_size, entry, argv);
-#endif
-
-	if (pid > 0) {
-		/* configure the scheduler */
-		struct sched_param param = { .sched_priority = priority };
-		sched_setscheduler(pid, scheduler, &param);
-	}
-
-	sched_unlock();
-
-	return pid;
-}
-
-int px4_task_delete(int pid)
-{
-#if !defined(__KERNEL__)
-	return task_delete(pid);
-#else
-	return kthread_delete(pid);
-#endif
-}
-
-const char *px4_get_taskname(void)
-{
-	return getprogname();
-}
+__END_DECLS
