@@ -10,6 +10,7 @@ parameters:
                 short: Enable Gripper actuation in Payload Deliverer
             type: boolean
             default: 0
+            reboot_required: true
 
         PD_GRIPPER_TYPE:
             description:
