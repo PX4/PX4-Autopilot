@@ -55,6 +55,9 @@ using namespace time_literals;
 
 extern "C" __EXPORT int payload_deliverer_main(int argc, char *argv[]);
 
+// If cached gripper action is set to this value, it means we aren't running any vehicle command
+static constexpr int8_t GRIPPER_ACTION_NONE = -1;
+
 /**
  * @brief Payload Deliverer Module
  *
@@ -125,17 +128,27 @@ private:
 	void handle_vehicle_command(const hrt_abstime &now, const vehicle_command_s *vehicle_command = nullptr);
 
 	/**
-	 * @brief Send DO_GRIPPER vehicle command with specified gripper action correctly formatted
-	 *
-	 * This is useful since vehicle command uses float types for param2, where the gripper action is
-	 * specified, but we want to use int32_t data type for it instead, hence filling out the floating
-	 * point data structure like integer type is necessary.
+	 * @brief Send DO_GRIPPER vehicle command with specified gripper action
 	 *
 	 * @param gripper_command GRIPPER_ACTION_GRAB or GRIPPER_ACTION_RELEASE
 	 */
 	bool send_gripper_vehicle_command(const int32_t gripper_action);
 
-	Gripper _gripper; // Gripper object to handle gripper action
+	/**
+	 * @brief Send ack response to DO_GRIPPER vehicle command with specified parameters
+	 *
+	 * For the case of VEHICLE_CMD_RESULT_IN_PROGRESS, progress percentage parameter will be filled out
+	 */
+	bool send_gripper_vehicle_command_ack(const hrt_abstime now, const uint8_t command_result, const uint8_t target_system,
+					      const uint8_t target_component);
+
+	Gripper _gripper;
+
+	// Cached values of the currently running vehicle command for the gripper action
+	// used for conflicting vehicle commands & successful vehicle command acknowledgements
+	int8_t _cur_vcmd_gripper_action{GRIPPER_ACTION_NONE};
+	uint8_t _cur_vcmd_target_system{0};
+	uint8_t _cur_vcmd_target_component{0};
 
 	// Subscription
 	uORB::SubscriptionCallbackWorkItem _vehicle_command_sub{this, ORB_ID(vehicle_command)};
