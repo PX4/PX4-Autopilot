@@ -93,15 +93,18 @@ else
    MAXOPTIMIZATION = -Os
 endif
 
-FLAGS = $(MAXOPTIMIZATION) -g2 \
+ARCHOPTIMIZATION = $(MAXOPTIMIZATION) \
+	-g2 \
 	-fdata-sections \
 	-ffunction-sections \
 	-fno-builtin-printf \
 	-fno-common \
 	-fno-strength-reduce \
 	-fno-strict-aliasing \
-	-fomit-frame-pointer \
-	-Wall \
+	-fomit-frame-pointer
+
+FLAGS = -Wall \
+	-Werror \
 	-Wextra \
 	-Wlogical-op \
 	-Wno-cpp \
@@ -126,9 +129,7 @@ ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 	FLAGS += -finstrument-functions -ffixed-r10
 endif
 
-CFLAGS = $(ARCHINCLUDES) \
-	-std=gnu11 \
-	${CMAKE_C_FLAGS} \
+ARCHCFLAGS = -std=gnu11 \
 	$(FLAGS) \
 	-Wno-bad-function-cast \
 	-Wno-float-equal \
@@ -145,10 +146,10 @@ CFLAGS = $(ARCHINCLUDES) \
 	-Wno-type-limits \
 	${CMAKE_C_COMP_DEP_FLAGS}
 
-CXXFLAGS = $(ARCHXXINCLUDES) \
-	-std=c++14 \
+ARCHCPUFLAGS = ${CMAKE_C_FLAGS}
+
+ARCHCXXFLAGS = 	-std=c++14 \
 	-nostdinc++ \
-	${CMAKE_CXX_FLAGS} \
 	$(FLAGS) \
 	-fcheck-new \
 	-fno-builtin \
@@ -159,6 +160,8 @@ CXXFLAGS = $(ARCHXXINCLUDES) \
 	-Wno-double-promotion \
 	-Wno-missing-declarations
 
+CFLAGS = $(ARCHINCLUDES) $(ARCHCFLAGS) $(ARCHCPUFLAGS) $(ARCHOPTIMIZATION)
+CXXFLAGS = $(ARCHXXINCLUDES) $(ARCHCXXFLAGS) $(ARCHCPUFLAGS) $(ARCHOPTIMIZATION)
 CPPFLAGS = $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRAFLAGS)
 AFLAGS = $(CFLAGS) -D__ASSEMBLY__
 
@@ -182,3 +185,18 @@ endef
 define ARCHIVE
     $(AR) $1 $(2)
 endef
+
+# ELF module definitions
+
+CELFFLAGS = $(CFLAGS)
+CXXELFFLAGS = $(CXXFLAGS)
+
+# ELF linkage
+
+LDSTARTGROUP = --start-group
+LDENDGROUP   = --end-group
+LDLIBPATH = $(foreach PATH, $(USERLIBS), $(addprefix -L, $(dir $(PATH))))
+LDLIBFILES = $(foreach PATH, $(USERLIBS), $(notdir $(PATH)))
+LDLIBS = $(patsubst %.a,%,$(patsubst lib%,-l%,$(LDLIBFILES)))
+LDELFFLAGS = -r -e _start -Bstatic
+LDELFFLAGS += $(addprefix -T, $(ELFLDNAME))
