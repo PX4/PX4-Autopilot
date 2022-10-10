@@ -48,6 +48,7 @@ if(${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0)
 		${EKF_DERIVATION_DIR}/generated/compute_airspeed_innov_and_innov_var.h
 		${EKF_DERIVATION_DIR}/generated/compute_sideslip_h_and_k.h
 		${EKF_DERIVATION_DIR}/generated/compute_sideslip_innov_and_innov_var.h
+		${EKF_DERIVATION_DIR}/generated/covariance_prediction.h
 	)
 
 	add_custom_command(

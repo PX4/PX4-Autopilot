@@ -34,9 +34,7 @@ Description:
     Common functions used for the derivation of most estimators
 """
 
-from symforce import symbolic as sm
-from symforce import geo
-from symforce import typing as T
+import symforce.symbolic as sf
 
 # q: quaternion describing rotation from frame 1 to frame 2
 # returns a rotation matrix derived form q which describes the same
@@ -47,17 +45,40 @@ def quat_to_rot(q):
     q2 = q[2]
     q3 = q[3]
 
-    Rot = geo.M33([[q0**2 + q1**2 - q2**2 - q3**2, 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)],
+    Rot = sf.M33([[q0**2 + q1**2 - q2**2 - q3**2, 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)],
                   [2*(q1*q2 + q0*q3), q0**2 - q1**2 + q2**2 - q3**2, 2*(q2*q3 - q0*q1)],
                    [2*(q1*q3-q0*q2), 2*(q2*q3 + q0*q1), q0**2 - q1**2 - q2**2 + q3**2]])
 
     return Rot
 
-def sign_no_zero(x) -> T.Scalar:
+def quat_to_rot_simplified(q):
+    q0 = q[0]
+    q1 = q[1]
+    q2 = q[2]
+    q3 = q[3]
+
+    # Use the simplified formula for unit quaternion to rotation matrix
+    # as it produces a simpler and more stable EKF derivation given
+    # the additional constraint: q0^2 + q1^2 + q2^2 + q3^2 = 1
+    Rot = sf.Matrix([[1 - 2*q2**2 - 2*q3**2, 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)],
+                  [2*(q1*q2 + q0*q3), 1 - 2*q1**2 - 2*q3**2, 2*(q2*q3 - q0*q1)],
+                   [2*(q1*q3-q0*q2), 2*(q2*q3 + q0*q1), 1 - 2*q1**2 - 2*q2**2]])
+
+    return Rot
+
+def quat_mult(p,q):
+    r = sf.Matrix([p[0] * q[0] - p[1] * q[1] - p[2] * q[2] - p[3] * q[3],
+                p[0] * q[1] + p[1] * q[0] + p[2] * q[3] - p[3] * q[2],
+                p[0] * q[2] - p[1] * q[3] + p[2] * q[0] + p[3] * q[1],
+                p[0] * q[3] + p[1] * q[2] - p[2] * q[1] + p[3] * q[0]])
+
+    return r
+
+def sign_no_zero(x) -> sf.Scalar:
     """
     Returns -1 if x is negative, 1 if x is positive, and 1 if x is zero
     """
-    return 2 * sm.Min(sm.sign(x), 0) + 1
+    return 2 * sf.Min(sf.sign(x), 0) + 1
 
 def add_epsilon_sign(expr, var, eps):
     # Avoids a singularity at 0 while keeping the derivative correct
@@ -76,7 +97,6 @@ def generate_px4_function(function_name, output_names):
             output_dir="generated",
             skip_directory_nesting=True)
 
-    print("Files generated in {}:\n".format(metadata.output_dir))
     for f in metadata.generated_files:
         print("  |- {}".format(os.path.relpath(f, metadata.output_dir)))
 
