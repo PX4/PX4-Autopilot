@@ -97,8 +97,10 @@ static const px4_hw_mft_item_t hw_mft_list_v0610[] = {
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
 //  ver_rev
-	{V6C00, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)},
-	{V6C10, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO
+	{V6C00, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // Rev 0
+	{V6C01, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // Rev 1
+	{V6C10, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // Rev 0 No PX4IO
+	{V6C11, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // Rev 1 No PX4IO
 };
 
 /************************************************************************************
