@@ -128,6 +128,7 @@ private:
 	void battery_status_check();
 
 	void control_status_leds(bool changed, const uint8_t battery_warning);
+	void handle_geofence_breach(uint8_t geofence_action);
 
 	/**
 	 * Checks the status of all available data links and handles switching between different system telemetry states.
@@ -281,6 +282,8 @@ private:
 	bool		_geofence_land_on{false};
 	bool		_geofence_warning_action_on{false};
 	bool		_geofence_violated_prev{false};
+	bool		_emergency_geofence_warning_action_on{false};
+	bool		_emergency_geofence_violated_prev{false};
 
 	bool         _circuit_breaker_flight_termination_disabled{false};
 

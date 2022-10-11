@@ -312,7 +312,7 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 		return true;
 	}
 
-	// we got the lock, now check if the fence data got updated
+	// dm items locked, check if the fence data was updated
 	mission_stats_entry_s stats;
 	int ret = dm_read(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
 
@@ -322,11 +322,11 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 
 	if (isEmpty()) {
 		dm_unlock(DM_KEY_FENCE_POINTS);
-		/* Empty fence -> accept all points */
+		// Empty fence -> accept all points
 		return true;
 	}
 
-	/* Vertical check */
+	// Vertical check
 	if (_altitude_max > _altitude_min) { // only enable vertical check if configured properly
 		if (altitude > _altitude_max || altitude < _altitude_min) {
 			dm_unlock(DM_KEY_FENCE_POINTS);
@@ -335,7 +335,7 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 	}
 
 
-	/* Horizontal check: iterate all polygons & circles */
+	// Horizontal check: iterate all polygons & circles
 	bool outside_exclusion = true;
 	bool inside_inclusion = false;
 	bool had_inclusion_areas = false;
@@ -452,10 +452,138 @@ bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, 
 	return dx * dx + dy * dy < circle_point.circle_radius * circle_point.circle_radius;
 }
 
-bool
-Geofence::valid()
+bool Geofence::hasExceededEmergencyFence(double lat, double lon, float altitude)
 {
-	return true; // always valid
+	if (getGeofenceEmergencyAction() == 0) {
+		return true;
+	}
+
+	// the following uses dm_read, so first we try to lock all items. If that fails, it (most likely) means
+	// the data is currently being updated (via a mavlink geofence transfer), and we do not check for a violation now
+	if (dm_trylock(DM_KEY_FENCE_POINTS) != 0) {
+		return false;
+	}
+
+	// dm items locked, check if the fence data was updated
+	mission_stats_entry_s stats;
+	int ret = dm_read(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
+
+	if (ret == sizeof(mission_stats_entry_s) && _update_counter != stats.update_counter) {
+		_updateFence();
+	}
+
+	if (isEmpty()) {
+		dm_unlock(DM_KEY_FENCE_POINTS);
+		// Empty fence -> accept all points
+		return false;
+	}
+
+	float emergency_distance_m = _param_gf_emergency_dist.get();
+
+	// Vertical check
+	if (_altitude_max > _altitude_min) { // only enable vertical check if configured properly
+		if ((altitude > _altitude_max + emergency_distance_m) ||
+		    (altitude < _altitude_min - emergency_distance_m)) {
+			dm_unlock(DM_KEY_FENCE_POINTS);
+			return false;
+		}
+	}
+
+	// Horizontal check: iterate all polygons & circles
+	bool inside_circle_emergency_fence  = false;
+	bool inside_polygon_emergency_fence = false;
+
+
+	// NOTE:
+	//	The only way to exceed the emergency zone is if we first exceed the primary.
+	//	This eliminates the need to track inside vs outside emergency zones. The resulting
+	//	behavior is:
+	//		- If we have exceeded a primary fence...
+	//			Compute the distance to the primary geofence
+	//			If distance is greater than the emergency distance
+
+	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
+
+		if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION ||
+		    _polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
+			inside_circle_emergency_fence = insideCircleEmergencyZone(_polygons[polygon_index], lat, lon, altitude);
+
+		} else {
+			inside_polygon_emergency_fence = insidePolygonEmergencyZone(_polygons[polygon_index], lat, lon, altitude);
+		}
+	}
+
+	dm_unlock(DM_KEY_FENCE_POINTS);
+
+	return (inside_circle_emergency_fence || inside_polygon_emergency_fence);
+}
+
+bool Geofence::insidePolygonEmergencyZone(const PolygonInfo &polygon, double lat, double lon, float altitude)
+{
+	mission_fence_point_s temp_vertex_i{};
+	mission_fence_point_s temp_vertex_j{};
+	crosstrack_error_s crosstrack_error{};
+
+	for (unsigned i = 0, j = polygon.vertex_count - 1; i < polygon.vertex_count; j = i++) {
+		if (dm_read(DM_KEY_FENCE_POINTS, polygon.dataman_index + i, &temp_vertex_i,
+			    sizeof(mission_fence_point_s)) != sizeof(mission_fence_point_s)) {
+			break;
+		}
+
+		if (dm_read(DM_KEY_FENCE_POINTS, polygon.dataman_index + j, &temp_vertex_j,
+			    sizeof(mission_fence_point_s)) != sizeof(mission_fence_point_s)) {
+			break;
+		}
+
+		if (temp_vertex_i.frame != NAV_FRAME_GLOBAL && temp_vertex_i.frame != NAV_FRAME_GLOBAL_INT
+		    && temp_vertex_i.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT
+		    && temp_vertex_i.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+			// TODO: handle different frames
+			PX4_ERR("Frame type %i not supported", (int)temp_vertex_i.frame);
+			break;
+		}
+
+		get_distance_to_line(&crosstrack_error, lat, lon,
+					temp_vertex_i.lat, temp_vertex_i.lon,
+					temp_vertex_j.lat, temp_vertex_j.lon);
+
+		if (static_cast<float>(fabs(crosstrack_error.distance)) < _param_gf_emergency_dist.get()) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Geofence::insideCircleEmergencyZone(const PolygonInfo &polygon, double lat, double lon, float altitude)
+{
+	mission_fence_point_s circle_point{};
+	// crosstrack_error_s crosstrack_error{};
+
+	if (dm_read(DM_KEY_FENCE_POINTS, polygon.dataman_index, &circle_point,
+		    sizeof(mission_fence_point_s)) != sizeof(mission_fence_point_s)) {
+		PX4_ERR("dm_read failed");
+		return false;
+	}
+
+	if (circle_point.frame != NAV_FRAME_GLOBAL && circle_point.frame != NAV_FRAME_GLOBAL_INT
+	    && circle_point.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT
+	    && circle_point.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+		// TODO: handle different frames
+		PX4_ERR("Frame type %i not supported", (int)circle_point.frame);
+		return false;
+	}
+
+	if (!_projection_reference.isInitialized()) {
+		_projection_reference.initReference(lat, lon);
+	}
+
+	float cur_dist_to_circle_center = get_distance_to_next_waypoint(lat, lon, circle_point.lat, circle_point.lon);
+	float distance_to_circle = fabs(cur_dist_to_circle_center - circle_point.circle_radius);
+	float emergency_dist_param =  _param_gf_emergency_dist.get();
+
+	return  distance_to_circle < emergency_dist_param;
+
 }
 
 int
@@ -471,7 +599,7 @@ Geofence::loadFromFile(const char *filename)
 	/* Make sure no data is left in the datamanager */
 	clearDm();
 
-	/* open the mixer definition file */
+	/* open the geofence file */
 	fp = fopen(GEOFENCE_FILENAME, "r");
 
 	if (fp == nullptr) {

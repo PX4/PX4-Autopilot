@@ -227,6 +227,7 @@ int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat
 
 	int return_value = -1;	// Set error flag, cleared when valid result calculated.
 	crosstrack_error->past_end = false;
+	crosstrack_error->before_start = false;
 	crosstrack_error->distance = 0.0f;
 	crosstrack_error->bearing = 0.0f;
 
@@ -244,6 +245,7 @@ int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat
 	// Return past_end = true if past end point of line
 	if (bearing_diff > M_PI_2_F || bearing_diff < -M_PI_2_F) {
 		crosstrack_error->past_end = true;
+		crosstrack_error->distance = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 		return_value = 0;
 		return return_value;
 	}
@@ -251,6 +253,67 @@ int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat
 	crosstrack_error->distance = (dist_to_end) * sinf(bearing_diff);
 
 	if (sinf(bearing_diff) >= 0) {
+		crosstrack_error->bearing = wrap_pi(bearing_track - M_PI_2_F);
+
+	} else {
+		crosstrack_error->bearing = wrap_pi(bearing_track + M_PI_2_F);
+	}
+
+	return_value = 0;
+
+	return return_value;
+}
+
+int get_distance_to_segment(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
+			    double lat_start, double lon_start, double lat_end, double lon_end)
+{
+	// This function returns the distance to the nearest point on the track line.  Distance is positive if current
+	// position is right of the track and negative if left of the track as seen from a point on the track line
+	// headed towards the end point.
+	// Unlike get_distance_to_line, this returns the distance to the nearest point on the segment. If the point
+	// lies before the start or after the end we return the distance to the nearest endpoint. This is useful in
+	// calcluating distances to the nearest point on a polygon when the point measured from lies outside.
+
+	int return_value = -1;	// Set error flag, cleared when valid result calculated.
+	crosstrack_error->past_end = false;
+	crosstrack_error->before_start = false;
+	crosstrack_error->distance = 0.0f;
+	crosstrack_error->bearing = 0.0f;
+
+	float dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
+
+	// Return error if arguments are bad
+	if (dist_to_end < 0.1f) {
+		return -1;
+	}
+
+	float bearing_start = get_bearing_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
+	float bearing_end = get_bearing_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
+	float bearing_track = get_bearing_to_next_waypoint(lat_start, lon_start, lat_end, lon_end);
+	float bearing_diff_to_start = wrap_pi(bearing_track - bearing_start);
+	float bearing_diff_to_end = wrap_pi(bearing_track - bearing_end);
+
+
+	// Return before_start = true if before start point of line
+	if (bearing_diff_to_start < M_PI_2_F || bearing_diff_to_start < -M_PI_2_F) {
+		crosstrack_error->before_start = true;
+		crosstrack_error->distance = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
+		return_value = 0;
+		return return_value;
+	}
+
+	// Return past_end = true if past end point of line
+	if (bearing_diff_to_end > M_PI_2_F || bearing_diff_to_end < -M_PI_2_F) {
+		crosstrack_error->past_end = true;
+		crosstrack_error->distance = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
+		return_value = 0;
+		return return_value;
+	}
+
+
+	crosstrack_error->distance = (dist_to_end) * sinf(bearing_diff_to_end);
+
+	if (sinf(bearing_diff_to_end) >= 0) {
 		crosstrack_error->bearing = wrap_pi(bearing_track - M_PI_2_F);
 
 	} else {
