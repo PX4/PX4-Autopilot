@@ -143,8 +143,10 @@
 
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 2 // Rev 0, 10 Sensor sets
 //                 Base/FMUM
-#define V6C00   HW_VER_REV(0x0,0x0) // FMUV6C,                 Rev 0
-#define V6C10   HW_VER_REV(0x1,0x0) // NO PX4IO,               Rev 0
+#define V6C00   HW_VER_REV(0x0,0x0) // FMUV6C,                 Rev 0  I2C4 External but with Internal devices
+#define V6C01   HW_VER_REV(0x0,0x1) // FMUV6C,                 Rev 1  I2C4 Internal I2C2 External
+#define V6C10   HW_VER_REV(0x1,0x0) // NO PX4IO,               Rev 0  I2C4 External but with Internal devices
+#define V6C11   HW_VER_REV(0x1,0x1) // NO PX4IO,               Rev 1  I2C4 Internal I2C2 External
 
 
 /* HEATER
