@@ -55,4 +55,5 @@ SquareMatrix24f createRandomCovarianceMatrix24f();
 
 // Find largest element-wise difference as a fraction of v1 or v2
 DiffRatioReport computeDiffRatioVector24f(const Vector24f &v1, const Vector24f &v2);
+DiffRatioReport computeDiffRatioSquareMatrix24f(const SquareMatrix24f &m1, const SquareMatrix24f &m2);
 #endif

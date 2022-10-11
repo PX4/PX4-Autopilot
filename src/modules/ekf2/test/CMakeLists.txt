@@ -40,6 +40,7 @@ px4_add_unit_gtest(SRC test_EKF_accelerometer.cpp LINKLIBS ecl_EKF ecl_sensor_si
 px4_add_unit_gtest(SRC test_EKF_airspeed_fusion_generated.cpp LINKLIBS ecl_EKF ecl_test_helper)
 px4_add_unit_gtest(SRC test_EKF_airspeed.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
 px4_add_unit_gtest(SRC test_EKF_basics.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_covariance_prediction_generated.cpp LINKLIBS ecl_EKF ecl_test_helper)
 px4_add_unit_gtest(SRC test_EKF_externalVision.cpp LINKLIBS ecl_EKF ecl_sensor_sim ecl_test_helper)
 px4_add_unit_gtest(SRC test_EKF_flow.cpp LINKLIBS ecl_EKF ecl_sensor_sim ecl_test_helper)
 px4_add_unit_gtest(SRC test_EKF_fusionLogic.cpp LINKLIBS ecl_EKF ecl_sensor_sim ecl_test_helper)
