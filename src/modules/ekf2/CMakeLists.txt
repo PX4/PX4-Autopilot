@@ -33,38 +33,38 @@
 
 add_subdirectory(Utility)
 
-# Symforce code generation
-execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} -m symforce.symbolic
-    RESULT_VARIABLE PYTHON_SYMFORCE_EXIT_CODE
-    OUTPUT_QUIET
-)
-if(${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0)
+# Symforce code generation TODO:fixme
+# execute_process(
+#     COMMAND ${PYTHON_EXECUTABLE} -m symforce.symbolic
+#     RESULT_VARIABLE PYTHON_SYMFORCE_EXIT_CODE
+#     OUTPUT_QUIET
+# )
+# if(${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0)
 
-	set(EKF_DERIVATION_DIR ${CMAKE_CURRENT_SOURCE_DIR}/EKF/python/ekf_derivation)
+# 	set(EKF_DERIVATION_DIR ${CMAKE_CURRENT_SOURCE_DIR}/EKF/python/ekf_derivation)
 
-	set(EKF_GENERATED_SRC_FILES
-		${EKF_DERIVATION_DIR}/generated/compute_airspeed_h_and_k.h
-		${EKF_DERIVATION_DIR}/generated/compute_airspeed_innov_and_innov_var.h
-		${EKF_DERIVATION_DIR}/generated/compute_sideslip_h_and_k.h
-		${EKF_DERIVATION_DIR}/generated/compute_sideslip_innov_and_innov_var.h
-		${EKF_DERIVATION_DIR}/generated/covariance_prediction.h
-	)
+# 	set(EKF_GENERATED_SRC_FILES
+# 		${EKF_DERIVATION_DIR}/generated/compute_airspeed_h_and_k.h
+# 		${EKF_DERIVATION_DIR}/generated/compute_airspeed_innov_and_innov_var.h
+# 		${EKF_DERIVATION_DIR}/generated/compute_sideslip_h_and_k.h
+# 		${EKF_DERIVATION_DIR}/generated/compute_sideslip_innov_and_innov_var.h
+# 		${EKF_DERIVATION_DIR}/generated/covariance_prediction.h
+# 	)
 
-	add_custom_command(
-		OUTPUT ${EKF_GENERATED_SRC_FILES}
-		COMMAND ${PYTHON_EXECUTABLE} derivation.py
-		DEPENDS
-			${EKF_DERIVATION_DIR}/derivation.py
-			${EKF_DERIVATION_DIR}/derivation_utils.py
+# 	add_custom_command(
+# 		OUTPUT ${EKF_GENERATED_SRC_FILES}
+# 		COMMAND ${PYTHON_EXECUTABLE} derivation.py
+# 		DEPENDS
+# 			${EKF_DERIVATION_DIR}/derivation.py
+# 			${EKF_DERIVATION_DIR}/derivation_utils.py
 
-		WORKING_DIRECTORY ${EKF_DERIVATION_DIR}
-		COMMENT "Symforce code generation"
-		USES_TERMINAL
-	)
+# 		WORKING_DIRECTORY ${EKF_DERIVATION_DIR}
+# 		COMMENT "Symforce code generation"
+# 		USES_TERMINAL
+# 	)
 
-	add_custom_target(ekf2_symforce_generate DEPENDS ${EKF_GENERATED_SRC_FILES})
-endif()
+# 	add_custom_target(ekf2_symforce_generate DEPENDS ${EKF_GENERATED_SRC_FILES})
+# endif()
 
 px4_add_module(
 	MODULE modules__ekf2
