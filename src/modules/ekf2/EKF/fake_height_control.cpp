@@ -43,7 +43,7 @@ void Ekf::controlFakeHgtFusion()
 	auto &fake_hgt = _aid_src_fake_hgt;
 
 	// clear
-	resetEstimatorAidStatusFlags(fake_hgt);
+	resetEstimatorAidStatus(fake_hgt);
 
 	// If we aren't doing any aiding, fake position measurements at the last known vertical position to constrain drift
 	const bool fake_hgt_data_ready = isTimedOut(fake_hgt.time_last_fuse, (uint64_t)2e5); // Fuse fake height at a limited rate

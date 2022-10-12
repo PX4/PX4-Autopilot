@@ -171,31 +171,33 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source_3d_s &aid_src_mag, b
 		aid_src_mag.observation[i] = mag_observation(i);
 		aid_src_mag.observation_variance[i] = R_MAG;
 		aid_src_mag.innovation[i] = mag_innov(i);
-		aid_src_mag.fusion_enabled[i] = _control_status.flags.mag_3D && update_all_states;
 	}
+
+	aid_src_mag.fusion_enabled = _control_status.flags.mag_3D && update_all_states;
 
 	// do not use the synthesized measurement for the magnetomter Z component for 3D fusion
 	if (_control_status.flags.synthetic_mag_z) {
 		aid_src_mag.innovation[2] = 0.0f;
-		aid_src_mag.innovation_rejected[2] = false;
 	}
 
 	const float innov_gate = math::max(_params.mag_innov_gate, 1.f);
 	setEstimatorAidStatusTestRatio(aid_src_mag, innov_gate);
 
 	// Perform an innovation consistency check and report the result
-	_innov_check_fail_status.flags.reject_mag_x = aid_src_mag.innovation_rejected[0];
-	_innov_check_fail_status.flags.reject_mag_y = aid_src_mag.innovation_rejected[1];
-	_innov_check_fail_status.flags.reject_mag_z = aid_src_mag.innovation_rejected[2];
+	_innov_check_fail_status.flags.reject_mag_x = (aid_src_mag.test_ratio[0] > 1.f);
+	_innov_check_fail_status.flags.reject_mag_y = (aid_src_mag.test_ratio[1] > 1.f);
+	_innov_check_fail_status.flags.reject_mag_z = (aid_src_mag.test_ratio[2] > 1.f);
 
 	// if any axis fails, abort the mag fusion
-	if (aid_src_mag.innovation_rejected[0] || aid_src_mag.innovation_rejected[1] || aid_src_mag.innovation_rejected[2]) {
+	if (aid_src_mag.innovation_rejected) {
 		return false;
 	}
 
 	// Observation jacobian and Kalman gain vectors
 	SparseVector24f<0,1,2,3,16,17,18,19,20,21> Hfusion;
 	Vector24f Kfusion;
+
+	bool fused[3] {false, false, false};
 
 	// update the states and covariance using sequential fusion of the magnetometer components
 	for (uint8_t index = 0; index <= 2; index++) {
@@ -397,37 +399,27 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source_3d_s &aid_src_mag, b
 			Kfusion(21) = HKZ23*HKZ24;
 		}
 
-		const bool is_fused = measurementUpdate(Kfusion, Hfusion, aid_src_mag.innovation[index]);
-
-		if (is_fused) {
-			aid_src_mag.fused[index] = true;
-			aid_src_mag.time_last_fuse[index] = _imu_sample_delayed.time_us;
+		if (measurementUpdate(Kfusion, Hfusion, aid_src_mag.innovation[index])) {
+			fused[index] = true;
+			limitDeclination();
 
 		} else {
-			aid_src_mag.fused[index] = false;
-		}
-
-
-		switch (index) {
-		case 0:
-			_fault_status.flags.bad_mag_x = !is_fused;
-			break;
-
-		case 1:
-			_fault_status.flags.bad_mag_y = !is_fused;
-			break;
-
-		case 2:
-			_fault_status.flags.bad_mag_z = !is_fused;
-			break;
-		}
-
-		if (is_fused) {
-			limitDeclination();
+			fused[index] = false;
 		}
 	}
 
-	return aid_src_mag.fused[0] && aid_src_mag.fused[1] && aid_src_mag.fused[2];
+	_fault_status.flags.bad_mag_x = !fused[0];
+	_fault_status.flags.bad_mag_y = !fused[1];
+	_fault_status.flags.bad_mag_z = !fused[2];
+
+	if (fused[0] && fused[1] && fused[2]) {
+		aid_src_mag.fused = true;
+		aid_src_mag.time_last_fuse = _imu_sample_delayed.time_us;
+		return true;
+	}
+
+	aid_src_mag.fused = false;
+	return false;
 }
 
 // update quaternion states and covariances using the yaw innovation and yaw observation variance

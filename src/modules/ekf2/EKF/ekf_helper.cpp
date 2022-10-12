@@ -557,7 +557,7 @@ void Ekf::getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2],  float &v
 
 	hpos[0] = _aid_src_gnss_pos.innovation[0];
 	hpos[1] = _aid_src_gnss_pos.innovation[1];
-	vpos    = _aid_src_gnss_pos.innovation[2];
+	vpos    = _aid_src_gnss_hgt.innovation;
 }
 
 void Ekf::getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos)  const
@@ -568,7 +568,7 @@ void Ekf::getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float 
 
 	hpos[0] = _aid_src_gnss_pos.innovation_variance[0];
 	hpos[1] = _aid_src_gnss_pos.innovation_variance[1];
-	vpos    = _aid_src_gnss_pos.innovation_variance[2];
+	vpos    = _aid_src_gnss_hgt.innovation_variance;
 }
 
 void Ekf::getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const
@@ -577,35 +577,38 @@ void Ekf::getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &v
 	vvel = _aid_src_gnss_vel.test_ratio[2];
 
 	hpos = fmaxf(_aid_src_gnss_pos.test_ratio[0], _aid_src_gnss_pos.test_ratio[1]);
-	vpos = _aid_src_gnss_pos.test_ratio[2];
+	vpos = _aid_src_gnss_hgt.test_ratio;
 }
 
 void Ekf::getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) const
 {
-	hvel[0] = _ev_vel_innov(0);
-	hvel[1] = _ev_vel_innov(1);
-	vvel    = _ev_vel_innov(2);
-	hpos[0] = _ev_pos_innov(0);
-	hpos[1] = _ev_pos_innov(1);
-	vpos    = _ev_pos_innov(2);
+	hvel[0] = _aid_src_ev_vel.innovation[0];
+	hvel[1] = _aid_src_ev_vel.innovation[1];
+	vvel    = _aid_src_ev_vel.innovation[2];
+
+	hpos[0] = _aid_src_ev_pos.innovation[0];
+	hpos[1] = _aid_src_ev_pos.innovation[1];
+	vpos    = _aid_src_ev_hgt.innovation;
 }
 
 void Ekf::getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) const
 {
-	hvel[0] = _ev_vel_innov_var(0);
-	hvel[1] = _ev_vel_innov_var(1);
-	vvel    = _ev_vel_innov_var(2);
-	hpos[0] = _ev_pos_innov_var(0);
-	hpos[1] = _ev_pos_innov_var(1);
-	vpos    = _ev_pos_innov_var(2);
+	hvel[0] = _aid_src_ev_vel.innovation_variance[0];
+	hvel[1] = _aid_src_ev_vel.innovation_variance[1];
+	vvel    = _aid_src_ev_vel.innovation_variance[2];
+
+	hpos[0] = _aid_src_ev_pos.innovation_variance[0];
+	hpos[1] = _aid_src_ev_pos.innovation_variance[1];
+	vpos    = _aid_src_ev_hgt.innovation_variance;
 }
 
 void Ekf::getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const
 {
-	hvel = _ev_vel_test_ratio(0);
-	vvel = _ev_vel_test_ratio(1);
-	hpos = _ev_pos_test_ratio(0);
-	vpos = _ev_pos_test_ratio(1);
+	hvel = fmaxf(_aid_src_ev_vel.test_ratio[0], _aid_src_ev_vel.test_ratio[1]);
+	vvel = _aid_src_ev_vel.test_ratio[2];
+
+	hpos = fmaxf(_aid_src_ev_pos.test_ratio[0], _aid_src_ev_pos.test_ratio[1]);
+	vpos = _aid_src_ev_hgt.test_ratio;
 }
 
 void Ekf::getAuxVelInnov(float aux_vel_innov[2]) const
@@ -714,7 +717,7 @@ void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const
 		}
 
 		if (_control_status.flags.ev_pos) {
-			hpos_err = math::max(hpos_err, sqrtf(sq(_ev_pos_innov(0)) + sq(_ev_pos_innov(1))));
+			hpos_err = math::max(hpos_err, Vector2f(_aid_src_ev_pos.innovation).norm());
 		}
 	}
 
@@ -731,8 +734,14 @@ void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv) const
 	// If we are dead-reckoning for too long, use the innovations as a conservative alternate measure of the horizontal position error
 	// The reason is that complete rejection of measurements is often caused by heading misalignment or inertial sensing errors
 	// and using state variances for accuracy reporting is overly optimistic in these situations
-	if (_horizontal_deadreckon_time_exceeded && _control_status.flags.gps) {
-		hpos_err = math::max(hpos_err, Vector2f(_aid_src_gnss_pos.innovation).norm());
+	if (_horizontal_deadreckon_time_exceeded) {
+		if (_control_status.flags.gps) {
+			hpos_err = math::max(hpos_err, Vector2f(_aid_src_gnss_pos.innovation).norm());
+		}
+
+		if (_control_status.flags.ev_pos) {
+			hpos_err = math::max(hpos_err, Vector2f(_aid_src_ev_pos.innovation).norm());
+		}
 	}
 
 	*ekf_eph = hpos_err;
@@ -759,11 +768,11 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 			vel_err_conservative = math::max(vel_err_conservative, Vector2f(_aid_src_gnss_pos.innovation).norm());
 
 		} else if (_control_status.flags.ev_pos) {
-			vel_err_conservative = math::max(vel_err_conservative, sqrtf(sq(_ev_pos_innov(0)) + sq(_ev_pos_innov(1))));
+			vel_err_conservative = math::max(vel_err_conservative, Vector2f(_aid_src_ev_pos.innovation).norm());
 		}
 
 		if (_control_status.flags.ev_vel) {
-			vel_err_conservative = math::max(vel_err_conservative, sqrtf(sq(_ev_vel_innov(0)) + sq(_ev_vel_innov(1))));
+			vel_err_conservative = math::max(vel_err_conservative, Vector2f(_aid_src_ev_vel.innovation).norm());
 		}
 
 		hvel_err = math::max(hvel_err, vel_err_conservative);
@@ -908,12 +917,12 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	}
 
 	if (_control_status.flags.ev_vel) {
-		float ev_vel = sqrtf(math::max(_ev_vel_test_ratio(0), _ev_vel_test_ratio(1)));
+		float ev_vel = sqrtf(Vector3f(_aid_src_ev_vel.test_ratio).max());
 		vel = math::max(vel, ev_vel, FLT_MIN);
 	}
 
 	if (_control_status.flags.ev_pos) {
-		float ev_pos = sqrtf(_ev_pos_test_ratio(0));
+		float ev_pos = sqrtf(Vector2f(_aid_src_ev_pos.test_ratio).max());
 		pos = math::max(pos, ev_pos, FLT_MIN);
 	}
 
@@ -924,24 +933,27 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 
 	// return the combined vertical position innovation test ratio
 	float hgt_sum = 0.f;
+	int n_hgt_sources = 0;
 
 	if (_control_status.flags.baro_hgt) {
 		hgt_sum += sqrtf(_aid_src_baro_hgt.test_ratio);
+		n_hgt_sources++;
 	}
 
 	if (_control_status.flags.gps_hgt) {
-		hgt_sum += sqrtf(_aid_src_gnss_pos.test_ratio[2]);
+		hgt_sum += sqrtf(_aid_src_gnss_hgt.test_ratio);
+		n_hgt_sources++;
 	}
 
 	if (_control_status.flags.rng_hgt) {
 		hgt_sum += sqrtf(_aid_src_rng_hgt.test_ratio);
+		n_hgt_sources++;
 	}
 
 	if (_control_status.flags.ev_hgt) {
-		hgt_sum += sqrtf(_ev_pos_test_ratio(1));
+		hgt_sum += sqrtf(_aid_src_ev_hgt.test_ratio);
+		n_hgt_sources++;
 	}
-
-	const int n_hgt_sources = getNumberOfActiveVerticalPositionAidingSources();
 
 	if (n_hgt_sources > 0) {
 		hgt = math::max(hgt_sum / static_cast<float>(n_hgt_sources), FLT_MIN);
@@ -1498,7 +1510,6 @@ void Ekf::stopGpsPosFusion()
 	if (_control_status.flags.gps) {
 		ECL_INFO("stopping GPS position fusion");
 		_control_status.flags.gps = false;
-		stopGpsHgtFusion();
 
 		resetEstimatorAidStatus(_aid_src_gnss_pos);
 	}
@@ -1571,18 +1582,20 @@ void Ekf::stopEvFusion()
 
 void Ekf::stopEvPosFusion()
 {
-	_control_status.flags.ev_pos = false;
-	_ev_pos_innov.setZero();
-	_ev_pos_innov_var.setZero();
-	_ev_pos_test_ratio.setZero();
+	if (_control_status.flags.ev_pos) {
+		ECL_INFO("stopping EV pos fusion");
+		_control_status.flags.ev_pos = false;
+		resetEstimatorAidStatus(_aid_src_ev_pos);
+	}
 }
 
 void Ekf::stopEvVelFusion()
 {
-	_control_status.flags.ev_vel = false;
-	_ev_vel_innov.setZero();
-	_ev_vel_innov_var.setZero();
-	_ev_vel_test_ratio.setZero();
+	if (_control_status.flags.ev_vel) {
+		ECL_INFO("stopping EV vel fusion");
+		_control_status.flags.ev_vel = false;
+		resetEstimatorAidStatus(_aid_src_ev_vel);
+	}
 }
 
 void Ekf::stopEvYawFusion()

@@ -19,6 +19,7 @@ bool innovation_rejected     # true if the observation has been rejected
 bool fused                   # true if the sample was successfully fused
 
 # TOPICS estimator_aid_source_1d
-# TOPICS estimator_aid_src_baro_hgt estimator_aid_src_rng_hgt estimator_aid_src_airspeed
-# TOPICS estimator_aid_src_fake_hgt estimator_aid_src_sideslip
+# TOPICS estimator_aid_src_baro_hgt estimator_aid_src_ev_hgt estimator_aid_src_gnss_hgt estimator_aid_src_rng_hgt
+# TOPICS estimator_aid_src_airspeed estimator_aid_src_sideslip
+# TOPICS estimator_aid_src_fake_hgt
 # TOPICS estimator_aid_src_mag_heading estimator_aid_src_gnss_yaw estimator_aid_src_ev_yaw
