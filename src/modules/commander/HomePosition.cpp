@@ -40,6 +40,7 @@
 HomePosition::HomePosition(const vehicle_status_flags_s &vehicle_status_flags)
 	: _vehicle_status_flags(vehicle_status_flags)
 {
+	_home_position_pub.advertise();
 }
 
 bool HomePosition::hasMovedFromCurrentHomeLocation()

@@ -79,6 +79,11 @@ Navigator::Navigator() :
 	_precland(this),
 	_rtl(this)
 {
+	_geofence_result_pub.advertise();
+	_pos_sp_triplet_pub.advertise();
+	_mission_result_pub.advertise();
+	_vehicle_roi_pub.advertise();
+
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
 	_navigation_mode_array[1] = &_loiter;

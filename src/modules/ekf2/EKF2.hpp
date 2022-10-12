@@ -133,6 +133,8 @@ private:
 	static constexpr uint8_t MAX_NUM_IMUS = 4;
 	static constexpr uint8_t MAX_NUM_MAGS = 4;
 
+	void advertiseTopics();
+
 	void Run() override;
 
 	void VerifyParams();

@@ -50,7 +50,11 @@ AngularVelocityController::AngularVelocityController() :
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 	parameters_updated();
+
 	_rate_ctrl_status_pub.advertise();
+	_vehicle_angular_acceleration_setpoint_pub.advertise();
+	_vehicle_thrust_setpoint_pub.advertise();
+	_vehicle_torque_setpoint_pub.advertise();
 }
 
 AngularVelocityController::~AngularVelocityController()

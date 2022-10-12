@@ -47,6 +47,7 @@ MulticopterHoverThrustEstimator::MulticopterHoverThrustEstimator() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
+	_hover_thrust_ekf_pub.advertise();
 	_valid_hysteresis.set_hysteresis_time_from(false, 2_s);
 	updateParams();
 	reset();

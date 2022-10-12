@@ -48,6 +48,14 @@ FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
+	_actuator_controls_0_pub.advertise();
+	_actuator_controls_status_pub.advertise();
+	_attitude_sp_pub.advertise();
+	_rate_sp_pub.advertise();
+	_rate_ctrl_status_pub.advertise();
+	_vehicle_thrust_setpoint_pub.advertise();
+	_vehicle_torque_setpoint_pub.advertise();
+
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -57,7 +65,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	_pitch_ctrl.set_max_rate_neg(radians(_param_fw_acro_y_max.get()));
 	_yaw_ctrl.set_max_rate(radians(_param_fw_acro_z_max.get()));
 
-	_rate_ctrl_status_pub.advertise();
 	_spoiler_setpoint_with_slewrate.setSlewRate(kSpoilerSlewRate);
 	_flaps_setpoint_with_slewrate.setSlewRate(kFlapSlewRate);
 }

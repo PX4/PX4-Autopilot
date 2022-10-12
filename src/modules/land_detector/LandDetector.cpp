@@ -49,6 +49,8 @@ LandDetector::LandDetector() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
+	_vehicle_land_detected_pub.advertise();
+
 	_land_detected.ground_contact = true;
 	_land_detected.maybe_landed = true;
 	_land_detected.landed = true;

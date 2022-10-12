@@ -67,6 +67,7 @@ Mission::Mission(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
 {
+	_navigator_mission_item_pub.advertise();
 	mission_init();
 }
 

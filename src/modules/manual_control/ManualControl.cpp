@@ -41,6 +41,7 @@ ManualControl::ManualControl() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
+	_action_request_pub.advertise();
 }
 
 ManualControl::~ManualControl()

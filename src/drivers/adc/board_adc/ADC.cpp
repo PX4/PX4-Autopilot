@@ -45,6 +45,9 @@ ADC::ADC(uint32_t base_address, uint32_t channels, bool publish_adc_report) :
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
 	_base_address(base_address)
 {
+	_to_adc_report.advertise();
+	_to_system_power.advertise();
+
 	/* always enable the temperature sensor */
 	channels |= px4_arch_adc_temp_sensor_mask();
 
