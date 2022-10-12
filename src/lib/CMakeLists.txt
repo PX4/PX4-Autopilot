@@ -31,6 +31,7 @@
 #
 ############################################################################
 
+add_subdirectory(adsb)
 add_subdirectory(airspeed)
 add_subdirectory(avoidance)
 add_subdirectory(battery)
