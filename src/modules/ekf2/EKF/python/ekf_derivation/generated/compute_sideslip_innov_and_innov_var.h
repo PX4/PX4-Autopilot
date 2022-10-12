@@ -30,7 +30,7 @@ void ComputeSideslipInnovAndInnovVar(const matrix::Matrix<Scalar, 24, 1>& state,
                                      const matrix::Matrix<Scalar, 24, 24>& P, const Scalar R,
                                      const Scalar epsilon, Scalar* const innov = nullptr,
                                      Scalar* const innov_var = nullptr) {
-  // Total ops: 277
+  // Total ops: 276
 
   // Input arrays
 
@@ -85,7 +85,7 @@ void ComputeSideslipInnovAndInnovVar(const matrix::Matrix<Scalar, 24, 1>& state,
   if (innov != nullptr) {
     Scalar& _innov = (*innov);
 
-    _innov = -_tmp15 * _tmp21;
+    _innov = _tmp15 * _tmp21;
   }
 
   if (innov_var != nullptr) {
