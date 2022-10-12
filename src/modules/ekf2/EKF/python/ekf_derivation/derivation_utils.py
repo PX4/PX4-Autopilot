@@ -101,7 +101,7 @@ def generate_px4_function(function_name, output_names):
         print("  |- {}".format(os.path.relpath(f, metadata.output_dir)))
 
     # Replace cstdlib and Eigen functions by PX4 equivalents
-    with fileinput.FileInput(os.path.abspath(metadata.generated_files[0]), inplace=True, backup='.bak') as file:
+    with fileinput.FileInput(os.path.abspath(metadata.generated_files[0]), inplace=True) as file:
         for line in file:
             line = line.replace("std::max", "math::max")
             line = line.replace("std::min", "math::min")
