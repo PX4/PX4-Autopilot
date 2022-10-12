@@ -240,8 +240,8 @@ struct dragSample {
 
 struct auxVelSample {
 	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
-	Vector3f    vel{};         ///< measured NE velocity relative to the local origin (m/sec)
-	Vector3f    velVar{};      ///< estimated error variance of the NE velocity (m/sec)**2
+	Vector2f    vel{};         ///< measured NE velocity relative to the local origin (m/sec)
+	Vector2f    velVar{};      ///< estimated error variance of the NE velocity (m/sec)**2
 };
 
 struct stateSample {
