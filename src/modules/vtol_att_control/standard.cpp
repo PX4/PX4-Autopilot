@@ -141,6 +141,8 @@ void Standard::update_vtol_state()
 			 * unsafe flying state. */
 			_vtol_schedule.flight_mode = vtol_mode::TRANSITION_TO_FW;
 			_vtol_schedule.transition_start = hrt_absolute_time();
+			_pusher_start_trans = _pusher_throttle;
+
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
 			// in fw mode
@@ -172,6 +174,7 @@ void Standard::update_vtol_state()
 
 				// don't set pusher throttle here as it's being ramped up elsewhere
 				_trans_finished_ts = hrt_absolute_time();
+				_pusher_start_trans = 0.0f;
 			}
 		}
 	}
@@ -237,7 +240,9 @@ void Standard::update_transition_state()
 
 		} else if (_pusher_throttle <= _param_vt_f_trans_thr.get()) {
 			// ramp up throttle to the target throttle value
-			_pusher_throttle = _param_vt_f_trans_thr.get() * time_since_trans_start / _param_vt_psher_rmp_dt.get();
+			_pusher_throttle = _pusher_start_trans + _param_vt_f_trans_thr.get()
+					   * time_since_trans_start / _param_vt_psher_rmp_dt.get();
+
 		}
 
 		_airspeed_trans_blend_margin = _param_vt_arsp_trans.get() - _param_vt_arsp_blend.get();

@@ -78,6 +78,7 @@ private:
 	} _vtol_schedule;
 
 	float _pusher_throttle{0.0f};
+	float _pusher_start_trans{0.0f};
 	float _reverse_output{0.0f};
 	float _airspeed_trans_blend_margin{0.0f};
 
