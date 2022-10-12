@@ -1,7 +1,7 @@
 uint64 timestamp                # time since system start (microseconds)
 uint64 timestamp_sample         # the timestamp of the raw data (microseconds)
 
-uint32 baro_device_id		# unique device ID for the sensor that does not change between power cycles
+uint32 device_id		# unique device ID for the sensor that does not change between power cycles
 float32 bias			# estimated barometric altitude bias (m)
 float32 bias_var		# estimated barometric altitude bias variance (m^2)
 

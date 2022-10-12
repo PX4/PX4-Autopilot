@@ -50,7 +50,7 @@
 void Ekf::updateSideslip(estimator_aid_source_1d_s &sideslip) const
 {
 	// reset flags
-	resetEstimatorAidStatusFlags(sideslip);
+	resetEstimatorAidStatus(sideslip);
 
 	const float R = sq(_params.beta_noise); // observation noise variance
 

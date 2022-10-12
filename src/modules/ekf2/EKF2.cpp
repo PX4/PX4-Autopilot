@@ -727,13 +727,17 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	PublishAidSourceStatus(_ekf.aid_src_fake_pos(), _status_fake_pos_pub_last, _estimator_aid_src_fake_pos_pub);
 	PublishAidSourceStatus(_ekf.aid_src_fake_hgt(), _status_fake_hgt_pub_last, _estimator_aid_src_fake_hgt_pub);
 
-	// EV yaw
+	// external vision (EV) hgt/pos/vel/yaw
+	PublishAidSourceStatus(_ekf.aid_src_ev_hgt(), _status_ev_hgt_pub_last, _estimator_aid_src_ev_hgt_pub);
+	PublishAidSourceStatus(_ekf.aid_src_ev_pos(), _status_ev_pos_pub_last, _estimator_aid_src_ev_pos_pub);
+	PublishAidSourceStatus(_ekf.aid_src_ev_vel(), _status_ev_vel_pub_last, _estimator_aid_src_ev_vel_pub);
 	PublishAidSourceStatus(_ekf.aid_src_ev_yaw(), _status_ev_yaw_pub_last, _estimator_aid_src_ev_yaw_pub);
 
-	// GNSS yaw/velocity/position
-	PublishAidSourceStatus(_ekf.aid_src_gnss_yaw(), _status_gnss_yaw_pub_last, _estimator_aid_src_gnss_yaw_pub);
-	PublishAidSourceStatus(_ekf.aid_src_gnss_vel(), _status_gnss_vel_pub_last, _estimator_aid_src_gnss_vel_pub);
+	// GNSS hgt/pos/vel/yaw
+	PublishAidSourceStatus(_ekf.aid_src_gnss_hgt(), _status_gnss_hgt_pub_last, _estimator_aid_src_gnss_hgt_pub);
 	PublishAidSourceStatus(_ekf.aid_src_gnss_pos(), _status_gnss_pos_pub_last, _estimator_aid_src_gnss_pos_pub);
+	PublishAidSourceStatus(_ekf.aid_src_gnss_vel(), _status_gnss_vel_pub_last, _estimator_aid_src_gnss_vel_pub);
+	PublishAidSourceStatus(_ekf.aid_src_gnss_yaw(), _status_gnss_yaw_pub_last, _estimator_aid_src_gnss_yaw_pub);
 
 	// mag heading
 	PublishAidSourceStatus(_ekf.aid_src_mag_heading(), _status_mag_heading_pub_last, _estimator_aid_src_mag_heading_pub);
@@ -768,7 +772,7 @@ void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 
 void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 {
-	if (_device_id_baro != 0) {
+	if (_ekf.aid_src_baro_hgt().timestamp_sample != 0) {
 		const BiasEstimator::status &status = _ekf.getBaroBiasEstimatorStatus();
 
 		if (fabsf(status.bias - _last_baro_bias_published) > 0.001f) {
@@ -782,34 +786,40 @@ void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 
 void EKF2::PublishGnssHgtBias(const hrt_abstime &timestamp)
 {
-	const BiasEstimator::status &status = _ekf.getGpsHgtBiasEstimatorStatus();
+	if (_ekf.get_gps_sample_delayed().time_us != 0) {
+		const BiasEstimator::status &status = _ekf.getGpsHgtBiasEstimatorStatus();
 
-	if (fabsf(status.bias - _last_gnss_hgt_bias_published) > 0.001f) {
-		_estimator_gnss_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_gps_sample_delayed().time_us, timestamp));
+		if (fabsf(status.bias - _last_gnss_hgt_bias_published) > 0.001f) {
+			_estimator_gnss_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_gps_sample_delayed().time_us, timestamp));
 
-		_last_gnss_hgt_bias_published = status.bias;
+			_last_gnss_hgt_bias_published = status.bias;
+		}
 	}
 }
 
 void EKF2::PublishRngHgtBias(const hrt_abstime &timestamp)
 {
-	const BiasEstimator::status &status = _ekf.getRngHgtBiasEstimatorStatus();
+	if (_ekf.get_rng_sample_delayed().time_us != 0) {
+		const BiasEstimator::status &status = _ekf.getRngHgtBiasEstimatorStatus();
 
-	if (fabsf(status.bias - _last_rng_hgt_bias_published) > 0.001f) {
-		_estimator_rng_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_rng_sample_delayed().time_us, timestamp));
+		if (fabsf(status.bias - _last_rng_hgt_bias_published) > 0.001f) {
+			_estimator_rng_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_rng_sample_delayed().time_us, timestamp));
 
-		_last_rng_hgt_bias_published = status.bias;
+			_last_rng_hgt_bias_published = status.bias;
+		}
 	}
 }
 
 void EKF2::PublishEvHgtBias(const hrt_abstime &timestamp)
 {
-	const BiasEstimator::status &status = _ekf.getEvHgtBiasEstimatorStatus();
+	if (_ekf.get_ev_sample_delayed().time_us != 0) {
+		const BiasEstimator::status &status = _ekf.getEvHgtBiasEstimatorStatus();
 
-	if (fabsf(status.bias - _last_ev_hgt_bias_published) > 0.001f) {
-		_estimator_ev_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_ev_sample_delayed().time_us, timestamp));
+		if (fabsf(status.bias - _last_ev_hgt_bias_published) > 0.001f) {
+			_estimator_ev_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_ev_sample_delayed().time_us, timestamp));
 
-		_last_ev_hgt_bias_published = status.bias;
+			_last_ev_hgt_bias_published = status.bias;
+		}
 	}
 }
 
@@ -818,7 +828,7 @@ estimator_bias_s EKF2::fillEstimatorBiasMsg(const BiasEstimator::status &status,
 {
 	estimator_bias_s bias{};
 	bias.timestamp_sample = timestamp_sample_us;
-	bias.baro_device_id = device_id;
+	bias.device_id = device_id;
 	bias.bias = status.bias;
 	bias.bias_var = status.bias_var;
 	bias.innov = status.innov;
@@ -1648,8 +1658,8 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 			// velocity of vehicle relative to target has opposite sign to target relative to vehicle
 			auxVelSample auxvel_sample{
 				.time_us = landing_target_pose.timestamp,
-				.vel = Vector3f{-landing_target_pose.vx_rel, -landing_target_pose.vy_rel, NAN},
-				.velVar = Vector3f{landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel, NAN},
+				.vel = Vector2f{-landing_target_pose.vx_rel, -landing_target_pose.vy_rel},
+				.velVar = Vector2f{landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel},
 			};
 			_ekf.setAuxVelData(auxvel_sample);
 		}
