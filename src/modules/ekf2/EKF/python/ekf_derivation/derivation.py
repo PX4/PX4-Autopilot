@@ -195,6 +195,64 @@ def compute_sideslip_h_and_k(
 
     return (H.T, K)
 
+def predict_mag_body(state) -> sf.V3:
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    mag_field_earth = sf.V3(state[State.ix], state[State.iy], state[State.iz])
+    mag_bias_body = sf.V3(state[State.ibx], state[State.iby], state[State.ibz])
+
+    mag_body = quat_to_rot(q_att).T * mag_field_earth + mag_bias_body
+    return mag_body
+
+def compute_mag_innov_innov_var_and_hx(
+        state: VState,
+        P: MState,
+        meas: sf.V3,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.V3, sf.V3, VState):
+
+    meas_pred = predict_mag_body(state);
+
+    innov = meas_pred - meas
+
+    innov_var = sf.V3()
+    Hx = sf.V1(meas_pred[0]).jacobian(state)
+    innov_var[0] = (Hx * P * Hx.T + R)[0,0]
+    Hy = sf.V1(meas_pred[1]).jacobian(state)
+    innov_var[1] = (Hy * P * Hy.T + R)[0,0]
+    Hz = sf.V1(meas_pred[2]).jacobian(state)
+    innov_var[2] = (Hz * P * Hz.T + R)[0,0]
+
+    return (innov, innov_var, Hx.T)
+
+def compute_mag_y_innov_var_and_h(
+        state: VState,
+        P: MState,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VState):
+
+    meas_pred = predict_mag_body(state);
+
+    H = sf.V1(meas_pred[1]).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
+def compute_mag_z_innov_var_and_h(
+        state: VState,
+        P: MState,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VState):
+
+    meas_pred = predict_mag_body(state);
+
+    H = sf.V1(meas_pred[2]).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
 print("Derive EKF2 equations...")
 generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
 generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
@@ -202,3 +260,6 @@ generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
 generate_px4_function(compute_sideslip_innov_and_innov_var, output_names=["innov", "innov_var"])
 generate_px4_function(compute_sideslip_h_and_k, output_names=["H", "K"])
 generate_px4_function(predict_covariance, output_names=["P_new"])
+generate_px4_function(compute_mag_innov_innov_var_and_hx, output_names=["innov", "innov_var", "Hx"])
+generate_px4_function(compute_mag_y_innov_var_and_h, output_names=["innov_var", "H"])
+generate_px4_function(compute_mag_z_innov_var_and_h, output_names=["innov_var", "H"])
