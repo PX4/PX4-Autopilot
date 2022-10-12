@@ -126,7 +126,7 @@ def compute_sideslip_innov_and_innov_var(
 
     sideslip_pred = predict_sideslip(state, epsilon);
 
-    innov = 0.0 - sideslip_pred
+    innov = sideslip_pred - 0.0
 
     H = sf.V1(sideslip_pred).jacobian(state)
     innov_var = (H * P * H.T + R)[0,0]
