@@ -76,9 +76,14 @@
 #define rENBL         REG(IMXRT_TMR_ENBL_OFFSET)
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
-	initIOPWM(PWM::FlexPWM2),
-	initIOPWM(PWM::FlexPWM3),
-	initIOPWM(PWM::FlexPWM4),
+	initIOPWM(PWM::FlexPWM2, PWM::Submodule0),
+	initIOPWM(PWM::FlexPWM2, PWM::Submodule1),
+	initIOPWM(PWM::FlexPWM2, PWM::Submodule2),
+	initIOPWM(PWM::FlexPWM2, PWM::Submodule3),
+	initIOPWM(PWM::FlexPWM3, PWM::Submodule2),
+	initIOPWM(PWM::FlexPWM3, PWM::Submodule0),
+	initIOPWM(PWM::FlexPWM4, PWM::Submodule2),
+	initIOPWM(PWM::FlexPWM4, PWM::Submodule0),
 };
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {

@@ -236,6 +236,7 @@
  */
 
 #define DIRECT_PWM_OUTPUT_CHANNELS  8
+#define BOARD_NUM_IO_TIMERS         8
 
 // Input Capture not supported on MVP
 
