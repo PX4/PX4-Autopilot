@@ -129,8 +129,23 @@ void Ekf::controlFusionModes()
 			// Run the kinematic consistency check when not moving horizontally
 			if (_control_status.flags.in_air && !_control_status.flags.fixed_wing
 			    && (sq(_state.vel(0)) + sq(_state.vel(1)) < fmaxf(P(4, 4) + P(5, 5), 0.1f))) {
+
+				const float dist_dependant_var = sq(_params.range_noise_scaler * _range_sensor.getDistBottom());
+				const float var = sq(_params.range_noise) + dist_dependant_var;
+
 				_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
-				_rng_consistency_check.update(_range_sensor.getDistBottom(), getRngHeightVariance(), _state.vel(2), P(6, 6), _imu_sample_delayed.time_us);
+				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2), P(6, 6), _imu_sample_delayed.time_us);
+			}
+
+		} else {
+			// If we are supposed to be using range finder data as the primary height sensor, have bad range measurements
+			// and are on the ground, then synthesise a measurement at the expected on ground value
+			if (!_control_status.flags.in_air
+			&& _range_sensor.isRegularlySendingData()
+			&& _range_sensor.isDataReady()) {
+
+				_range_sensor.setRange(_params.rng_gnd_clearance);
+				_range_sensor.setValidity(true); // bypass the checks
 			}
 		}
 

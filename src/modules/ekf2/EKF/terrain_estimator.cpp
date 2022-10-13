@@ -118,7 +118,7 @@ void Ekf::controlHaglRngFusion()
 						// The sensor can probably not detect the ground properly
 						// declare the sensor faulty and stop the fusion
 						_control_status.flags.rng_fault = true;
-						_range_sensor.setFaulty();
+						_range_sensor.setFaulty(true);
 						stopHaglRngFusion();
 
 					} else {
