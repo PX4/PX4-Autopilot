@@ -222,7 +222,7 @@ PARAM_DEFINE_FLOAT(FW_RR_I, 0.1f);
  * @increment 0.05
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
+PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.4f);
 
 /**
  * Maximum roll rate
@@ -294,7 +294,7 @@ PARAM_DEFINE_FLOAT(FW_YR_I, 0.1f);
  * @increment 0.05
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
+PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.4f);
 
 /**
  * Maximum yaw rate
@@ -377,7 +377,7 @@ PARAM_DEFINE_FLOAT(FW_WR_I, 0.1f);
  * @increment 0.05
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_WR_IMAX, 1.0f);
+PARAM_DEFINE_FLOAT(FW_WR_IMAX, 0.4f);
 
 /**
  * Maximum wheel steering rate
