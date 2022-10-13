@@ -162,6 +162,35 @@ pipeline {
           }
         }
 
+        stage('failsafe docs') {
+          agent {
+            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
+          }
+          steps {
+            sh '''#!/bin/bash -l
+			echo $0;
+            git clone https://github.com/emscripten-core/emsdk.git _emscripten_sdk;
+            cd _emscripten_sdk;
+            ./emsdk install latest;
+            ./emsdk activate latest;
+            . ./_emscripten_sdk/emsdk_env.sh;
+			make failsafe_web;
+			cd build/px4_sitl_default_failsafe_web;
+			mkdir -p failsafe_sim;
+			cp index.* parameters.json failsafe_sim;
+			'''
+            dir('build/px4_sitl_default_failsafe_web') {
+              archiveArtifacts(artifacts: 'failsafe_sim/*')
+              stash includes: 'failsafe_sim/*', name: 'failsafe_sim'
+            }
+          }
+          post {
+            always {
+              sh 'make distclean; git clean -ff -x -d .'
+            }
+          }
+        }
+
         stage('uORB graphs') {
           agent {
             docker {
@@ -203,6 +232,7 @@ pipeline {
             unstash 'metadata_parameters'
             unstash 'metadata_module_documentation'
             unstash 'msg_documentation'
+            unstash 'failsafe_sim'
             unstash 'uorb_graph'
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh('git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/PX4-user_guide.git')
@@ -211,6 +241,7 @@ pipeline {
               sh('cp -R modules/*.md PX4-user_guide/en/modules/')
               sh('cp -R graph_*.json PX4-user_guide/.vuepress/public/en/middleware/')
               sh('cp -R msg_docs/*.md PX4-user_guide/en/msg_docs/')
+              sh('cp -R failsafe_sim/* PX4-user_guide/.vuepress/public/en/config/failsafe')
               sh('cd PX4-user_guide; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
               sh('cd PX4-user_guide; git push origin main || true')
               sh('rm -rf PX4-user_guide')
