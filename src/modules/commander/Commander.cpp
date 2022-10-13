@@ -968,12 +968,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				mavlink_log_critical(&_mavlink_log_pub, "Return to launch denied\t");
-				/* EVENT
-				 * @description Check for a valid position estimate
-				 */
-				events::send(events::ID("commander_rtl_denied"), {events::Log::Critical, events::LogInternal::Info},
-					     "Return to launch denied");
+				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
@@ -985,12 +980,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				mavlink_log_critical(&_mavlink_log_pub, "Takeoff denied!\t");
-				/* EVENT
-				 * @description Check for a valid position estimate
-				 */
-				events::send(events::ID("commander_takeoff_denied"), {events::Log::Critical, events::LogInternal::Info},
-					     "Takeoff denied!");
+				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF);
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
@@ -1003,7 +993,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else {
-			mavlink_log_critical(&_mavlink_log_pub, "VTOL Takeoff denied! Please disarm and retry");
+			printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF);
 			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 		}
 
@@ -1017,12 +1007,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				mavlink_log_critical(&_mavlink_log_pub, "Landing denied! Please land manually\t");
-				/* EVENT
-				 * @description Check for a valid position estimate
-				 */
-				events::send(events::ID("commander_landing_current_pos_denied"), {events::Log::Critical, events::LogInternal::Info},
-					     "Landing denied! Please land manually");
+				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LAND);
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
@@ -1036,12 +1021,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				mavlink_log_critical(&_mavlink_log_pub, "Precision landing denied! Please land manually\t");
-				/* EVENT
-				 * @description Check for a valid position estimate
-				 */
-				events::send(events::ID("commander_landing_prec_land_denied"), {events::Log::Critical, events::LogInternal::Info},
-					     "Precision landing denied! Please land manually");
+				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND);
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
@@ -1064,13 +1044,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 					} else {
+						printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-						mavlink_log_critical(&_mavlink_log_pub, "Mission start denied\t");
-						/* EVENT
-						 * @description Check for a valid position estimate
-						 */
-						events::send(events::ID("commander_mission_start_denied"), {events::Log::Critical, events::LogInternal::Info},
-							     "Mission start denied");
 					}
 				}
 
