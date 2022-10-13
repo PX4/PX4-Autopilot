@@ -73,7 +73,7 @@ bool StatusDisplay::check_for_updates()
 		got_updates = true;
 	}
 
-	if (_vehicle_status_flags_sub.update()) {
+	if (_failsafe_flags_sub.update()) {
 		got_updates = true;
 	}
 

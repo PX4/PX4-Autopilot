@@ -542,7 +542,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	if (run_preflight_checks && !_arm_state_machine.isArmed()) {
 		if (_vehicle_control_mode.flag_control_manual_enabled) {
 			if (_vehicle_control_mode.flag_control_climb_rate_enabled &&
-			    !_vehicle_status_flags.manual_control_signal_lost && _is_throttle_above_center) {
+			    !_failsafe_flags.manual_control_signal_lost && _is_throttle_above_center) {
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: throttle above center\t");
 				events::send(events::ID("commander_arm_denied_throttle_center"),
 				{events::Log::Critical, events::LogInternal::Info},
@@ -552,7 +552,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 			}
 
 			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
-			    !_vehicle_status_flags.manual_control_signal_lost && !_is_throttle_low
+			    !_failsafe_flags.manual_control_signal_lost && !_is_throttle_low
 			    && _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROVER) {
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: high throttle\t");
 				events::send(events::ID("commander_arm_denied_throttle_high"),
@@ -1052,7 +1052,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 
 			// check if current mission and first item are valid
-			if (!_vehicle_status_flags.auto_mission_missing) {
+			if (!_failsafe_flags.auto_mission_missing) {
 
 				// requested first mission item valid
 				if (PX4_ISFINITE(cmd.param1) && (cmd.param1 >= -1) && (cmd.param1 < _mission_result_sub.get().seq_total)) {
@@ -1791,7 +1791,7 @@ void Commander::run()
 
 		_actuator_armed.prearmed = getPrearmState();
 
-		// publish states (armed, control_mode, vehicle_status, vehicle_status_flags, failure_detector_status) at 2 Hz or immediately when changed
+		// publish states (armed, control_mode, vehicle_status, failure_detector_status) at 2 Hz or immediately when changed
 		if (now - _vehicle_status.timestamp >= 500_ms || _status_changed || nav_state_or_failsafe_changed
 		    || !(_actuator_armed == actuator_armed_prev)) {
 
@@ -1869,7 +1869,7 @@ void Commander::checkForMissionUpdate()
 
 		if (mission_result_ok) {
 			/* Only evaluate mission state if home is set */
-			if (!_vehicle_status_flags.home_position_invalid &&
+			if (!_failsafe_flags.home_position_invalid &&
 			    (prev_mission_instance_count != mission_result.instance_count)) {
 
 				if (!auto_mission_available) {
@@ -2196,7 +2196,7 @@ bool Commander::handleModeIntentionAndFailsafe()
 
 	uint8_t updated_user_intented_mode = _failsafe.update(hrt_absolute_time(), state, mode_change_requested,
 					     _failsafe_user_override_request,
-					     _vehicle_status_flags);
+					     _failsafe_flags);
 	_failsafe_user_override_request = false;
 
 	// Force intended mode if changed by the failsafe state machine
@@ -2339,7 +2339,7 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 				led_color = led_control_s::COLOR_RED;
 
 			} else {
-				if (!_vehicle_status_flags.home_position_invalid && !_vehicle_status_flags.global_position_invalid) {
+				if (!_failsafe_flags.home_position_invalid && !_failsafe_flags.global_position_invalid) {
 					led_color = led_control_s::COLOR_GREEN;
 
 				} else {
@@ -2698,9 +2698,9 @@ void Commander::dataLinkCheck()
 void Commander::battery_status_check()
 {
 	// Handle shutdown request from emergency battery action
-	if (_battery_warning != _vehicle_status_flags.battery_warning) {
+	if (_battery_warning != _failsafe_flags.battery_warning) {
 
-		if (_vehicle_status_flags.battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
+		if (_failsafe_flags.battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
 #if defined(BOARD_HAS_POWER_CONTROL)
 
 			if (shutdownIfAllowed() && (px4_shutdown_request(60_s) == 0)) {
@@ -2723,7 +2723,7 @@ void Commander::battery_status_check()
 		}
 	}
 
-	_battery_warning = _vehicle_status_flags.battery_warning;
+	_battery_warning = _failsafe_flags.battery_warning;
 }
 
 void Commander::manualControlCheck()
@@ -2786,7 +2786,7 @@ void Commander::manualControlCheck()
 void Commander::offboardControlCheck()
 {
 	if (_offboard_control_mode_sub.update()) {
-		if (_vehicle_status_flags.offboard_control_signal_lost) {
+		if (_failsafe_flags.offboard_control_signal_lost) {
 			// Run arming checks immediately to allow for offboard mode activation
 			_status_changed = true;
 		}

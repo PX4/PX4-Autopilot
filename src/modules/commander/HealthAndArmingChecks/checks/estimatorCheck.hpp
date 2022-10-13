@@ -69,7 +69,7 @@ private:
 	void gpsNoLongerValid(const Context &context, Report &reporter) const;
 	void setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading, bool pre_flt_fail_innov_vel_horiz,
 				     const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position,
-				     vehicle_status_flags_s &failsafe_flags);
+				     failsafe_flags_s &failsafe_flags);
 
 	bool checkPosVelValidity(const hrt_abstime &now, const bool data_valid, const float data_accuracy,
 				 const float required_accuracy,

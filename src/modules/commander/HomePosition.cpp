@@ -37,8 +37,8 @@
 #include <lib/geo/geo.h>
 #include "commander_helper.h"
 
-HomePosition::HomePosition(const vehicle_status_flags_s &vehicle_status_flags)
-	: _vehicle_status_flags(vehicle_status_flags)
+HomePosition::HomePosition(const failsafe_flags_s &failsafe_flags)
+	: _failsafe_flags(failsafe_flags)
 {
 }
 
@@ -69,7 +69,7 @@ bool HomePosition::hasMovedFromCurrentHomeLocation()
 			eph = gpos.eph;
 			epv = gpos.epv;
 
-		} else if (!_vehicle_status_flags.gps_position_invalid) {
+		} else if (!_failsafe_flags.gps_position_invalid) {
 			sensor_gps_s gps;
 			_vehicle_gps_position_sub.copy(&gps);
 			const double lat = static_cast<double>(gps.lat) * 1e-7;
@@ -98,7 +98,7 @@ bool HomePosition::setHomePosition(bool force)
 	bool updated = false;
 	home_position_s home{};
 
-	if (!_vehicle_status_flags.local_position_invalid) {
+	if (!_failsafe_flags.local_position_invalid) {
 		// Set home position in local coordinates
 		const vehicle_local_position_s &lpos = _local_position_sub.get();
 		_heading_reset_counter = lpos.heading_reset_counter; // TODO: should not be here
@@ -107,14 +107,14 @@ bool HomePosition::setHomePosition(bool force)
 		updated = true;
 	}
 
-	if (!_vehicle_status_flags.global_position_invalid) {
+	if (!_failsafe_flags.global_position_invalid) {
 		// Set home using the global position estimate (fused INS/GNSS)
 		const vehicle_global_position_s &gpos = _global_position_sub.get();
 		fillGlobalHomePos(home, gpos);
 		setHomePosValid();
 		updated = true;
 
-	} else if (!_vehicle_status_flags.gps_position_invalid) {
+	} else if (!_failsafe_flags.gps_position_invalid) {
 		// Set home using GNSS position
 		sensor_gps_s gps_pos;
 		_vehicle_gps_position_sub.copy(&gps_pos);
@@ -184,7 +184,7 @@ void HomePosition::setInAirHomePosition()
 	const bool local_home_valid = home.valid_lpos;
 
 	if (local_home_valid && !global_home_valid) {
-		if (!_vehicle_status_flags.local_position_invalid && !_vehicle_status_flags.global_position_invalid) {
+		if (!_failsafe_flags.local_position_invalid && !_failsafe_flags.global_position_invalid) {
 			// Back-compute lon, lat and alt of home position given the local home position
 			// and current positions in local and global (GNSS fused) frames
 			const vehicle_local_position_s &lpos = _local_position_sub.get();
@@ -203,7 +203,7 @@ void HomePosition::setInAirHomePosition()
 			home.timestamp = hrt_absolute_time();
 			_home_position_pub.update();
 
-		} else if (!_vehicle_status_flags.local_position_invalid && !_vehicle_status_flags.gps_position_invalid) {
+		} else if (!_failsafe_flags.local_position_invalid && !_failsafe_flags.gps_position_invalid) {
 			// Back-compute lon, lat and alt of home position given the local home position
 			// and current positions in local and global (GNSS raw) frames
 			const vehicle_local_position_s &lpos = _local_position_sub.get();
@@ -231,7 +231,7 @@ void HomePosition::setInAirHomePosition()
 	} else if (!local_home_valid && global_home_valid) {
 		const vehicle_local_position_s &lpos = _local_position_sub.get();
 
-		if (!_vehicle_status_flags.local_position_invalid && lpos.xy_global && lpos.z_global) {
+		if (!_failsafe_flags.local_position_invalid && lpos.xy_global && lpos.z_global) {
 			// Back-compute x, y and z of home position given the global home position
 			// and the global reference of the local frame
 			MapProjection ref_pos{lpos.ref_lat, lpos.ref_lon};
@@ -326,9 +326,9 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 	}
 
 	if (check_if_changed && set_automatically) {
-		const bool can_set_home_lpos_first_time = !home.valid_lpos && !_vehicle_status_flags.local_position_invalid;
+		const bool can_set_home_lpos_first_time = !home.valid_lpos && !_failsafe_flags.local_position_invalid;
 		const bool can_set_home_gpos_first_time = ((!home.valid_hpos || !home.valid_alt)
-				&& (!_vehicle_status_flags.global_position_invalid || !_vehicle_status_flags.gps_position_invalid));
+				&& (!_failsafe_flags.global_position_invalid || !_failsafe_flags.gps_position_invalid));
 		const bool can_set_home_alt_first_time = (!home.valid_alt && lpos.z_global);
 
 		if (can_set_home_lpos_first_time

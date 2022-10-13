@@ -39,12 +39,12 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/failsafe_flags.h>
 
 class HomePosition
 {
 public:
-	HomePosition(const vehicle_status_flags_s &vehicle_status_flags);
+	HomePosition(const failsafe_flags_s &failsafe_flags);
 	~HomePosition() = default;
 
 	bool setHomePosition(bool force = false);
@@ -74,5 +74,5 @@ private:
 
 	uint8_t							_heading_reset_counter{0};
 	bool							_valid{false};
-	const vehicle_status_flags_s				&_vehicle_status_flags;
+	const failsafe_flags_s					&_failsafe_flags;
 };

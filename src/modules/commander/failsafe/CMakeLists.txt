@@ -31,20 +31,20 @@
 #
 ############################################################################
 
-# Extract information from status msg file
-set(status_msg_file ${PX4_SOURCE_DIR}/msg/vehicle_status_flags.msg)
+# Extract information from failsafe msg file
+set(failsafe_flags_msg_file ${PX4_SOURCE_DIR}/msg/failsafe_flags.msg)
 set(generated_uorb_struct_field_mapping_header ${PX4_BINARY_DIR}/generated_uorb_struct_field_mapping.h)
 set(html_template_file ${CMAKE_CURRENT_SOURCE_DIR}/emscripten_template.html)
 set(html_output_file ${PX4_BINARY_DIR}/failsafe_html_template.html)
 add_custom_command(OUTPUT ${generated_uorb_struct_field_mapping_header} ${html_output_file}
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/parse_flags_from_msg.py
-		${status_msg_file} ${generated_uorb_struct_field_mapping_header}
+		${failsafe_flags_msg_file} ${generated_uorb_struct_field_mapping_header}
 		${html_template_file} ${html_output_file}
 	DEPENDS
-		${status_msg_file}
+		${failsafe_flags_msg_file}
 		${html_template_file}
 		${CMAKE_CURRENT_SOURCE_DIR}/parse_flags_from_msg.py
-		COMMENT "Extracting info from status msg file"
+		COMMENT "Extracting info from failsafe flags msg file"
 )
 add_custom_target(failsafe_uorb_struct_header DEPENDS ${generated_uorb_struct_field_mapping_header})
 

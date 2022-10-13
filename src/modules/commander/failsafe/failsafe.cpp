@@ -324,7 +324,7 @@ FailsafeBase::Action Failsafe::fromOffboardLossActParam(int param_value, uint8_t
 }
 
 void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
-				 const vehicle_status_flags_s &status_flags)
+				 const failsafe_flags_s &status_flags)
 {
 	updateArmingState(time_us, state.armed, status_flags);
 
@@ -445,7 +445,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 				    ActionOptions(mode_fallback_action).allowUserTakeover(UserTakeoverAllowed::Always));
 }
 
-void Failsafe::updateArmingState(const hrt_abstime &time_us, bool armed, const vehicle_status_flags_s &status_flags)
+void Failsafe::updateArmingState(const hrt_abstime &time_us, bool armed, const failsafe_flags_s &status_flags)
 {
 	if (!_was_armed && armed) {
 		_armed_time = time_us;
@@ -459,7 +459,7 @@ void Failsafe::updateArmingState(const hrt_abstime &time_us, bool armed, const v
 	_was_armed = armed;
 }
 
-FailsafeBase::Action Failsafe::checkModeFallback(const vehicle_status_flags_s &status_flags,
+FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_flags,
 		uint8_t user_intended_mode) const
 {
 	Action action = Action::None;

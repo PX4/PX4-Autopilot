@@ -12,7 +12,7 @@ import re
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Extract fields from .msg files')
-    parser.add_argument('msg_file', help='vehicle_status_flags.msg file')
+    parser.add_argument('msg_file', help='failsafe_flags.msg file')
     parser.add_argument('header_file', help='generated_uorb_struct_field_mapping.h')
     parser.add_argument('html_template', help='HTML template input file')
     parser.add_argument('html_output', help='HTML output file')

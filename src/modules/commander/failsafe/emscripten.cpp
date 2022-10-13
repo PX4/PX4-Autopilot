@@ -167,7 +167,7 @@ void set_param_value_float(const std::string &name, float value)
 
 int failsafe_update(bool armed, bool vtol_in_transition_mode, bool mission_finished,
 		    bool user_override, uint8_t user_intended_mode, uint8_t vehicle_type,
-		    vehicle_status_flags_s status_flags)
+		    failsafe_flags_s status_flags)
 {
 	uint64_t time_ms = emscripten_date_now();
 	FailsafeBase::State state{};
@@ -203,7 +203,7 @@ std::string action_str(int action)
 
 EMSCRIPTEN_BINDINGS(failsafe)
 {
-	class_<vehicle_status_flags_s>("state")
+	class_<failsafe_flags_s>("state")
 	.constructor<>()
 	UORB_STRUCT_FIELD_MAPPING
 	;

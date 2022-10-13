@@ -38,7 +38,7 @@
 #include <px4_platform_common/module_params.h>
 #include <uORB/topics/health_report.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/failsafe_flags.h>
 #include <systemlib/mavlink_log.h>
 
 #include <stdint.h>
@@ -188,11 +188,11 @@ public:
 		}
 	};
 
-	Report(vehicle_status_flags_s &status_flags, hrt_abstime min_reporting_interval = 2_s)
-		: _min_reporting_interval(min_reporting_interval), _status_flags(status_flags) { }
+	Report(failsafe_flags_s &failsafe_flags, hrt_abstime min_reporting_interval = 2_s)
+		: _min_reporting_interval(min_reporting_interval), _failsafe_flags(failsafe_flags) { }
 	~Report() = default;
 
-	vehicle_status_flags_s &failsafeFlags() { return _status_flags; }
+	failsafe_flags_s &failsafeFlags() { return _failsafe_flags; }
 
 	orb_advert_t *mavlink_log_pub() { return _mavlink_log_pub; }
 
@@ -255,7 +255,7 @@ public:
 	const HealthResults &healthResults() const { return _results[_current_result].health; }
 	const ArmingCheckResults &armingCheckResults() const { return _results[_current_result].arming_checks; }
 
-	bool modePreventsArming(uint8_t nav_state) const { return _status_flags.mode_req_prevent_arming & (1u << nav_state); }
+	bool modePreventsArming(uint8_t nav_state) const { return _failsafe_flags.mode_req_prevent_arming & (1u << nav_state); }
 private:
 
 	/**
@@ -346,7 +346,7 @@ private:
 	Results _results[2]; ///< Previous and current results to check for changes
 	int _current_result{0};
 
-	vehicle_status_flags_s &_status_flags;
+	failsafe_flags_s &_failsafe_flags;
 
 	orb_advert_t *_mavlink_log_pub{nullptr}; ///< mavlink log publication for legacy reporting
 };

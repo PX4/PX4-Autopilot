@@ -44,14 +44,14 @@ public:
 protected:
 
 	void checkStateAndMode(const hrt_abstime &time_us, const State &state,
-			       const vehicle_status_flags_s &status_flags) override;
-	Action checkModeFallback(const vehicle_status_flags_s &status_flags, uint8_t user_intended_mode) const override;
+			       const failsafe_flags_s &status_flags) override;
+	Action checkModeFallback(const failsafe_flags_s &status_flags, uint8_t user_intended_mode) const override;
 
 	uint8_t modifyUserIntendedMode(Action previous_action, Action current_action,
 				       uint8_t user_intended_mode) const override;
 
 private:
-	void updateArmingState(const hrt_abstime &time_us, bool armed, const vehicle_status_flags_s &status_flags);
+	void updateArmingState(const hrt_abstime &time_us, bool armed, const failsafe_flags_s &status_flags);
 
 	enum class ManualControlLossExceptionBits : int32_t {
 		Mission = (1 << 0),
