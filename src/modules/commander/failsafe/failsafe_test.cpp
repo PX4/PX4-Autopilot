@@ -48,7 +48,7 @@ public:
 protected:
 
 	void checkStateAndMode(const hrt_abstime &time_us, const State &state,
-			       const vehicle_status_flags_s &status_flags) override
+			       const failsafe_flags_s &status_flags) override
 	{
 		CHECK_FAILSAFE(status_flags, manual_control_signal_lost,
 			       ActionOptions(Action::RTL).clearOn(ClearCondition::OnModeChangeOrDisarm));
@@ -65,7 +65,7 @@ protected:
 						 && status_flags.fd_critical_failure, Action::Terminate);
 	}
 
-	Action checkModeFallback(const vehicle_status_flags_s &status_flags, uint8_t user_intended_mode) const override
+	Action checkModeFallback(const failsafe_flags_s &status_flags, uint8_t user_intended_mode) const override
 	{
 		return Action::None;
 	}
@@ -96,7 +96,7 @@ TEST_F(FailsafeTest, general)
 {
 	FailsafeTester failsafe(nullptr);
 
-	vehicle_status_flags_s failsafe_flags{};
+	failsafe_flags_s failsafe_flags{};
 	FailsafeBase::State state{};
 	state.armed = true;
 	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
@@ -153,7 +153,7 @@ TEST_F(FailsafeTest, takeover)
 {
 	FailsafeTester failsafe(nullptr);
 
-	vehicle_status_flags_s failsafe_flags{};
+	failsafe_flags_s failsafe_flags{};
 	FailsafeBase::State state{};
 	state.armed = true;
 	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
@@ -210,7 +210,7 @@ TEST_F(FailsafeTest, takeover_denied)
 {
 	FailsafeTester failsafe(nullptr);
 
-	vehicle_status_flags_s failsafe_flags{};
+	failsafe_flags_s failsafe_flags{};
 	FailsafeBase::State state{};
 	state.armed = true;
 	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;

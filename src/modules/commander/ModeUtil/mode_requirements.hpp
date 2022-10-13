@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/failsafe_flags.h>
 
 namespace mode_util
 {
@@ -43,7 +43,7 @@ namespace mode_util
  * @param vehicle_type one of vehicle_status_s::VEHICLE_TYPE_*
  * @param flags output flags, all mode_req_* entries are set
  */
-void getModeRequirements(uint8_t vehicle_type, vehicle_status_flags_s &flags);
+void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags);
 
 
 } // namespace mode_util

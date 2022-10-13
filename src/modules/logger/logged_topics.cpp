@@ -61,6 +61,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("cpuload");
 	add_optional_topic("esc_status", 250);
 	add_topic("failure_detector_status", 100);
+	add_topic("failsafe_flags");
 	add_optional_topic("follow_target", 500);
 	add_optional_topic("follow_target_estimator", 200);
 	add_optional_topic("follow_target_status", 400);
@@ -118,7 +119,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_rates_setpoint", 20);
 	add_topic("vehicle_roi", 1000);
 	add_topic("vehicle_status");
-	add_topic("vehicle_status_flags");
 	add_optional_topic("vtol_vehicle_status", 200);
 	add_topic("wind", 1000);
 

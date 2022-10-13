@@ -670,7 +670,7 @@ void EstimatorChecks::gpsNoLongerValid(const Context &context, Report &reporter)
 
 void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
 		bool pre_flt_fail_innov_vel_horiz,
-		const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position, vehicle_status_flags_s &failsafe_flags)
+		const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position, failsafe_flags_s &failsafe_flags)
 {
 	// The following flags correspond to mode requirements, and are reported in the corresponding mode checks
 

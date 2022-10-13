@@ -52,7 +52,7 @@ FailsafeBase::FailsafeBase(ModuleParams *parent) : ModuleParams(parent)
 
 uint8_t FailsafeBase::update(const hrt_abstime &time_us, const State &state, bool user_intended_mode_updated,
 			     bool rc_sticks_takeover_request,
-			     const vehicle_status_flags_s &status_flags)
+			     const failsafe_flags_s &status_flags)
 {
 	if (_last_update == 0) {
 		_last_update = time_us;
@@ -390,7 +390,7 @@ void FailsafeBase::removeNonActivatedActions()
 }
 
 
-void FailsafeBase::getSelectedAction(const State &state, const vehicle_status_flags_s &status_flags,
+void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s &status_flags,
 				     bool user_intended_mode_updated,
 				     bool rc_sticks_takeover_request,
 				     SelectedActionState &returned_state) const
@@ -566,7 +566,7 @@ bool FailsafeBase::actionAllowsUserTakeover(Action action) const
 }
 
 void FailsafeBase::clearDelayIfNeeded(const State &state,
-				      const vehicle_status_flags_s &status_flags)
+				      const failsafe_flags_s &status_flags)
 {
 	// Clear delay if one of the following is true:
 	// - Already in a failsafe
@@ -611,7 +611,7 @@ uint8_t FailsafeBase::modeFromAction(const Action &action, uint8_t user_intended
 	return user_intended_mode;
 }
 
-bool FailsafeBase::modeCanRun(const vehicle_status_flags_s &status_flags, uint8_t mode)
+bool FailsafeBase::modeCanRun(const failsafe_flags_s &status_flags, uint8_t mode)
 {
 	uint32_t mode_mask = 1u << mode;
 	return
