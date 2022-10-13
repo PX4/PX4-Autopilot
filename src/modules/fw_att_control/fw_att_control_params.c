@@ -275,7 +275,7 @@ PARAM_DEFINE_FLOAT(FW_YR_D, 0.0f);
  *
  * @unit %/rad
  * @min 0.0
- * @max 50.0
+ * @max 1
  * @decimal 1
  * @increment 0.5
  * @group FW Attitude Control
