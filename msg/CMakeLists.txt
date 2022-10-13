@@ -80,6 +80,7 @@ set(msg_files
 	estimator_status_flags.msg
 	event.msg
 	failure_detector_status.msg
+	failsafe_flags.msg
 	follow_target.msg
 	follow_target_estimator.msg
 	follow_target_status.msg
@@ -201,7 +202,6 @@ set(msg_files
 	vehicle_rates_setpoint.msg
 	vehicle_roi.msg
 	vehicle_status.msg
-	vehicle_status_flags.msg
 	vehicle_thrust_setpoint.msg
 	vehicle_torque_setpoint.msg
 	vehicle_trajectory_bezier.msg

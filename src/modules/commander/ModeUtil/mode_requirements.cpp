@@ -43,7 +43,7 @@ static inline void setRequirement(uint8_t nav_state, uint32_t &mode_requirement)
 }
 
 
-void getModeRequirements(uint8_t vehicle_type, vehicle_status_flags_s &flags)
+void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 {
 	flags.mode_req_angular_velocity = 0;
 	flags.mode_req_attitude = 0;

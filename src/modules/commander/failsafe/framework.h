@@ -33,14 +33,14 @@
 
 #pragma once
 
-#include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/failsafe_flags.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
 
 #include <cstddef>
 
 #define CHECK_FAILSAFE(status_flags, flag_name, options) \
-	checkFailsafe((int)offsetof(vehicle_status_flags_s, flag_name), lastStatusFlags().flag_name, status_flags.flag_name, options)
+	checkFailsafe((int)offsetof(failsafe_flags_s, flag_name), lastStatusFlags().flag_name, status_flags.flag_name, options)
 
 class FailsafeBase: public ModuleParams
 {
@@ -139,7 +139,7 @@ public:
 	 */
 	uint8_t update(const hrt_abstime &time_us, const State &state, bool user_intended_mode_updated,
 		       bool rc_sticks_takeover_request,
-		       const vehicle_status_flags_s &status_flags);
+		       const failsafe_flags_s &status_flags);
 
 	bool inFailsafe() const { return _selected_action != Action::None; }
 
@@ -185,21 +185,21 @@ protected:
 	};
 
 	virtual void checkStateAndMode(const hrt_abstime &time_us, const State &state,
-				       const vehicle_status_flags_s &status_flags) = 0;
-	virtual Action checkModeFallback(const vehicle_status_flags_s &status_flags, uint8_t user_intended_mode) const = 0;
+				       const failsafe_flags_s &status_flags) = 0;
+	virtual Action checkModeFallback(const failsafe_flags_s &status_flags, uint8_t user_intended_mode) const = 0;
 
-	const vehicle_status_flags_s &lastStatusFlags() const { return _last_status_flags; }
+	const failsafe_flags_s &lastStatusFlags() const { return _last_status_flags; }
 
 	bool checkFailsafe(int caller_id, bool last_state_failure, bool cur_state_failure, const ActionOptions &options);
 
-	virtual void getSelectedAction(const State &state, const vehicle_status_flags_s &status_flags,
+	virtual void getSelectedAction(const State &state, const failsafe_flags_s &status_flags,
 				       bool user_intended_mode_updated,
 				       bool rc_sticks_takeover_request,
 				       SelectedActionState &returned_state) const;
 
 	int genCallerId() { return ++_next_caller_id; }
 
-	static bool modeCanRun(const vehicle_status_flags_s &status_flags, uint8_t mode);
+	static bool modeCanRun(const failsafe_flags_s &status_flags, uint8_t mode);
 
 	/**
 	 * Allows to modify the user intended mode. Use only in limited cases.
@@ -228,7 +228,7 @@ private:
 	void updateDelay(const hrt_abstime &elapsed_us);
 	void notifyUser(uint8_t user_intended_mode, Action action, Action delayed_action, Cause cause);
 
-	void clearDelayIfNeeded(const State &state, const vehicle_status_flags_s &status_flags);
+	void clearDelayIfNeeded(const State &state, const failsafe_flags_s &status_flags);
 
 	bool actionAllowsUserTakeover(Action action) const;
 
@@ -240,7 +240,7 @@ private:
 	hrt_abstime _last_update{};
 	bool _last_armed{false};
 	uint8_t _last_user_intended_mode{0};
-	vehicle_status_flags_s _last_status_flags{};
+	failsafe_flags_s _last_status_flags{};
 	Action _selected_action{Action::None};
 	bool _user_takeover_active{false};
 	bool _notification_required{false};
@@ -248,7 +248,7 @@ private:
 	hrt_abstime _current_start_delay{0}; ///< _current_delay is set to this value when starting the delay
 	hrt_abstime _current_delay{0}; ///< If > 0, stay in Hold, and take action once delay reaches 0
 
-	int _next_caller_id{sizeof(vehicle_status_flags_s) + 1};
+	int _next_caller_id{sizeof(failsafe_flags_s) + 1};
 	bool _duplicate_reported_once{false};
 
 	orb_advert_t _mavlink_log_pub{nullptr};

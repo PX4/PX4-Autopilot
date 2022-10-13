@@ -52,7 +52,7 @@
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_gyro_fifo.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/failsafe_flags.h>
 
 namespace MicroBenchORB
 {
@@ -105,7 +105,7 @@ private:
 
 	void reset();
 
-	vehicle_status_flags_s status;
+	failsafe_flags_s status;
 	vehicle_local_position_s lpos;
 	sensor_gyro_s gyro;
 	sensor_gyro_fifo_s gyro_fifo;
@@ -146,7 +146,7 @@ ut_declare_test_c(test_microbench_uorb, MicroBenchORB)
 
 bool MicroBenchORB::time_px4_uorb()
 {
-	int fd_status = orb_subscribe(ORB_ID(vehicle_status_flags));
+	int fd_status = orb_subscribe(ORB_ID(failsafe_flags));
 	int fd_lpos = orb_subscribe(ORB_ID(vehicle_local_position));
 	int fd_gyro = orb_subscribe(ORB_ID(sensor_gyro));
 	int fd_gyro_fifo = orb_subscribe(ORB_ID(sensor_gyro_fifo));
@@ -155,7 +155,7 @@ bool MicroBenchORB::time_px4_uorb()
 	bool updated = false;
 
 	PERF("orb_check vehicle_status", ret = orb_check(fd_status, &updated), 100);
-	PERF("orb_copy vehicle_status", ret = orb_copy(ORB_ID(vehicle_status_flags), fd_status, &status), 100);
+	PERF("orb_copy vehicle_status", ret = orb_copy(ORB_ID(failsafe_flags), fd_status, &status), 100);
 
 	printf("\n");
 
@@ -198,9 +198,9 @@ bool MicroBenchORB::time_px4_uorb_direct()
 {
 	bool ret = false;
 
-	uORB::Subscription vehicle_status_flags{ORB_ID(vehicle_status_flags)};
-	PERF("uORB::Subscription orb_check vehicle_status", ret = vehicle_status_flags.updated(), 100);
-	PERF("uORB::Subscription orb_copy vehicle_status", ret = vehicle_status_flags.copy(&status), 100);
+	uORB::Subscription failsafe_flags{ORB_ID(failsafe_flags)};
+	PERF("uORB::Subscription orb_check vehicle_status", ret = failsafe_flags.updated(), 100);
+	PERF("uORB::Subscription orb_copy vehicle_status", ret = failsafe_flags.copy(&status), 100);
 
 	printf("\n");
 

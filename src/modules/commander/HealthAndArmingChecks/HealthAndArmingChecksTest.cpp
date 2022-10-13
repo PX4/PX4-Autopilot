@@ -63,8 +63,8 @@ public:
 
 TEST_F(ReporterTest, basic_no_checks)
 {
-	vehicle_status_flags_s status_flags{};
-	Report reporter{status_flags, 0_s};
+	failsafe_flags_s failsafe_flags{};
+	Report reporter{failsafe_flags, 0_s};
 	ASSERT_FALSE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION));
 
 	reporter.reset();
@@ -83,8 +83,8 @@ TEST_F(ReporterTest, basic_no_checks)
 
 TEST_F(ReporterTest, basic_fail_all_modes)
 {
-	vehicle_status_flags_s status_flags{};
-	Report reporter{status_flags, 0_s};
+	failsafe_flags_s failsafe_flags{};
+	Report reporter{failsafe_flags, 0_s};
 
 	// ensure arming is always denied with a NavModes::All failure
 	for (uint8_t nav_state = 0; nav_state < vehicle_status_s::NAVIGATION_STATE_MAX; ++nav_state) {
@@ -101,8 +101,8 @@ TEST_F(ReporterTest, basic_fail_all_modes)
 
 TEST_F(ReporterTest, arming_checks_mode_category)
 {
-	vehicle_status_flags_s status_flags{};
-	Report reporter{status_flags, 0_s};
+	failsafe_flags_s failsafe_flags{};
+	Report reporter{failsafe_flags, 0_s};
 
 	// arming must still be possible for non-relevant failures
 	reporter.reset();
@@ -130,8 +130,8 @@ TEST_F(ReporterTest, arming_checks_mode_category)
 
 TEST_F(ReporterTest, arming_checks_mode_category2)
 {
-	vehicle_status_flags_s status_flags{};
-	Report reporter{status_flags, 0_s};
+	failsafe_flags_s failsafe_flags{};
+	Report reporter{failsafe_flags, 0_s};
 
 	// A matching mode category must deny arming
 	reporter.reset();
@@ -153,8 +153,8 @@ TEST_F(ReporterTest, arming_checks_mode_category2)
 
 TEST_F(ReporterTest, reporting)
 {
-	vehicle_status_flags_s status_flags{};
-	Report reporter{status_flags, 0_s};
+	failsafe_flags_s failsafe_flags{};
+	Report reporter{failsafe_flags, 0_s};
 
 	uORB::Subscription event_sub{ORB_ID(event)};
 	event_sub.subscribe();
@@ -247,8 +247,8 @@ TEST_F(ReporterTest, reporting)
 
 TEST_F(ReporterTest, reporting_multiple)
 {
-	vehicle_status_flags_s status_flags{};
-	Report reporter{status_flags, 0_s};
+	failsafe_flags_s failsafe_flags{};
+	Report reporter{failsafe_flags, 0_s};
 
 	uORB::Subscription event_sub{ORB_ID(event)};
 	event_sub.subscribe();
