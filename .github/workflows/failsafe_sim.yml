@@ -1,0 +1,44 @@
+name: Failsafe Simulator Build
+
+on:
+  push:
+    branches:
+    - 'main'
+  pull_request:
+    branches:
+    - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [
+          "failsafe_web",
+        ]
+    container:
+      image: px4io/px4-dev-nuttx-focal:2021-09-08
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        token: ${{ secrets.ACCESS_TOKEN }}
+
+    - name: check environment
+      run: |
+          export
+          ulimit -a
+    - name: install emscripten
+      run: |
+        git clone https://github.com/emscripten-core/emsdk.git _emscripten_sdk
+        cd _emscripten_sdk
+        ./emsdk install latest
+        ./emsdk activate latest
+    - name: ${{matrix.check}}
+      run: |
+        . ./_emscripten_sdk/emsdk_env.sh
+        make ${{matrix.check}}
