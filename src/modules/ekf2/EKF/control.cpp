@@ -240,6 +240,8 @@ void Ekf::controlExternalVisionFusion()
 
 		// determine if we should use the horizontal position observations
 		if (_control_status.flags.ev_pos) {
+			resetEstimatorAidStatus(_aid_src_ev_pos);
+
 			if (reset && _control_status_prev.flags.ev_pos) {
 				if (!_fuse_hpos_as_odom) {
 					resetHorizontalPositionToVision();
@@ -272,14 +274,23 @@ void Ekf::controlExternalVisionFusion()
 					Vector3f ev_delta_pos = _R_ev_to_ekf * Vector3f(_ev_sample_delayed.pos - _ev_sample_delayed_prev.pos);
 
 					// use the change in position since the last measurement
-					_ev_pos_innov(0) = _state.pos(0) - _hpos_pred_prev(0) - ev_delta_pos(0);
-					_ev_pos_innov(1) = _state.pos(1) - _hpos_pred_prev(1) - ev_delta_pos(1);
+					_aid_src_ev_pos.observation[0] = ev_delta_pos(0);
+					_aid_src_ev_pos.observation[1] = ev_delta_pos(1);
+
+					_aid_src_ev_pos.innovation[0] = _state.pos(0) - _hpos_pred_prev(0) - ev_delta_pos(0);
+					_aid_src_ev_pos.innovation[1] = _state.pos(1) - _hpos_pred_prev(1) - ev_delta_pos(1);
 
 					// observation 1-STD error, incremental pos observation is expected to have more uncertainty
 					Matrix3f ev_pos_var = matrix::diag(_ev_sample_delayed.posVar);
 					ev_pos_var = _R_ev_to_ekf * ev_pos_var * _R_ev_to_ekf.transpose();
 					ev_pos_obs_var(0) = fmaxf(ev_pos_var(0, 0), sq(0.5f));
 					ev_pos_obs_var(1) = fmaxf(ev_pos_var(1, 1), sq(0.5f));
+
+					_aid_src_ev_pos.observation_variance[0] = ev_pos_obs_var(0);
+					_aid_src_ev_pos.observation_variance[1] = ev_pos_obs_var(1);
+
+					_aid_src_ev_pos.innovation_variance[0] = P(7, 7) + _aid_src_ev_pos.observation_variance[0];
+					_aid_src_ev_pos.innovation_variance[1] = P(8, 8) + _aid_src_ev_pos.observation_variance[1];
 				}
 			} else {
 				// use the absolute position
@@ -291,11 +302,17 @@ void Ekf::controlExternalVisionFusion()
 					ev_pos_var = _R_ev_to_ekf * ev_pos_var * _R_ev_to_ekf.transpose();
 				}
 
-				_ev_pos_innov(0) = _state.pos(0) - ev_pos_meas(0);
-				_ev_pos_innov(1) = _state.pos(1) - ev_pos_meas(1);
+				_aid_src_ev_pos.observation[0] = ev_pos_meas(0);
+				_aid_src_ev_pos.observation[1] = ev_pos_meas(1);
 
-				ev_pos_obs_var(0) = fmaxf(ev_pos_var(0, 0), sq(0.01f));
-				ev_pos_obs_var(1) = fmaxf(ev_pos_var(1, 1), sq(0.01f));
+				_aid_src_ev_pos.observation_variance[0] = fmaxf(ev_pos_var(0, 0), sq(0.01f));
+				_aid_src_ev_pos.observation_variance[1] = fmaxf(ev_pos_var(1, 1), sq(0.01f));
+
+				_aid_src_ev_pos.innovation[0] = _state.pos(0) - _aid_src_ev_pos.observation[0];
+				_aid_src_ev_pos.innovation[1] = _state.pos(1) - _aid_src_ev_pos.observation[1];
+
+				_aid_src_ev_pos.innovation_variance[0] = P(7, 7) + _aid_src_ev_pos.observation_variance[0];
+				_aid_src_ev_pos.innovation_variance[1] = P(8, 8) + _aid_src_ev_pos.observation_variance[1];
 
 				// check if we have been deadreckoning too long
 				if (isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)) {
@@ -314,8 +331,12 @@ void Ekf::controlExternalVisionFusion()
 
 			// innovation gate size
 			const float ev_pos_innov_gate = fmaxf(_params.ev_pos_innov_gate, 1.0f);
+			setEstimatorAidStatusTestRatio(_aid_src_ev_pos, ev_pos_innov_gate);
 
-			fuseHorizontalPosition(_ev_pos_innov, ev_pos_innov_gate, ev_pos_obs_var, _ev_pos_innov_var, _ev_pos_test_ratio);
+			_aid_src_ev_pos.timestamp_sample = _ev_sample_delayed.time_us;
+			_aid_src_ev_pos.fusion_enabled = true;
+
+			fuseHorizontalPosition(_aid_src_ev_pos);
 		}
 
 		// determine if we should use the velocity observations
@@ -323,8 +344,6 @@ void Ekf::controlExternalVisionFusion()
 			if (reset && _control_status_prev.flags.ev_vel) {
 				resetVelocityToVision();
 			}
-
-			_ev_vel_innov = _state.vel - getVisionVelocityInEkfFrame();
 
 			// check if we have been deadreckoning too long
 			if (isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)) {
@@ -335,12 +354,17 @@ void Ekf::controlExternalVisionFusion()
 				}
 			}
 
+			resetEstimatorAidStatus(_aid_src_ev_vel);
+
 			const Vector3f obs_var = matrix::max(getVisionVelocityVarianceInEkfFrame(), sq(0.05f));
 
 			const float innov_gate = fmaxf(_params.ev_vel_innov_gate, 1.f);
 
-			fuseHorizontalVelocity(_ev_vel_innov, innov_gate, obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
-			fuseVerticalVelocity(_ev_vel_innov, innov_gate, obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
+			updateVelocityAidSrcStatus(_ev_sample_delayed.time_us, getVisionVelocityInEkfFrame(), obs_var, innov_gate, _aid_src_ev_vel);
+
+			_aid_src_ev_vel.fusion_enabled = true;
+
+			fuseVelocity(_aid_src_ev_vel);
 		}
 
 		// determine if we should use the yaw observation
@@ -752,12 +776,12 @@ void Ekf::controlAuxVelFusion()
 
 		if (_auxvel_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &auxvel_sample_delayed)) {
 
+			resetEstimatorAidStatus(_aid_src_aux_vel);
+
 			updateVelocityAidSrcStatus(auxvel_sample_delayed.time_us, auxvel_sample_delayed.vel, auxvel_sample_delayed.velVar, fmaxf(_params.auxvel_gate, 1.f), _aid_src_aux_vel);
 
 			if (isHorizontalAidingActive()) {
-				_aid_src_aux_vel.fusion_enabled[0] = PX4_ISFINITE(auxvel_sample_delayed.vel(0));
-				_aid_src_aux_vel.fusion_enabled[1] = PX4_ISFINITE(auxvel_sample_delayed.vel(1));
-				_aid_src_aux_vel.fusion_enabled[2] = PX4_ISFINITE(auxvel_sample_delayed.vel(2));
+				_aid_src_aux_vel.fusion_enabled = true;
 				fuseVelocity(_aid_src_aux_vel);
 			}
 		}

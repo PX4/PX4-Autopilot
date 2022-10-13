@@ -41,7 +41,7 @@
 void Ekf::updateBaroHgt(const baroSample &baro_sample, estimator_aid_source_1d_s &baro_hgt)
 {
 	// reset flags
-	resetEstimatorAidStatusFlags(baro_hgt);
+	resetEstimatorAidStatus(baro_hgt);
 
 	// innovation gate size
 	const float innov_gate = fmaxf(_params.baro_innov_gate, 1.f);
@@ -109,7 +109,7 @@ void Ekf::fuseBaroHgt(estimator_aid_source_1d_s &baro_hgt)
 void Ekf::updateRngHgt(estimator_aid_source_1d_s &rng_hgt)
 {
 	// reset flags
-	resetEstimatorAidStatusFlags(rng_hgt);
+	resetEstimatorAidStatus(rng_hgt);
 
 	// measurement variance - user parameter defined
 	const float measurement_var = fmaxf(sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sensor.getDistBottom()), 0.01f);
@@ -174,12 +174,13 @@ void Ekf::fuseEvHgt()
 	// calculate the innovation assuming the external vision observation is in local NED frame
 	const float obs = measurement - bias;
 	const float obs_var = measurement_var + bias_var;
-	_ev_pos_innov(2) = _state.pos(2) - obs;
 
 	// innovation gate size
 	float innov_gate = fmaxf(_params.ev_pos_innov_gate, 1.f);
 
-	// _ev_pos_test_ratio(1) is the vertical test ratio
-	fuseVerticalPosition(_ev_pos_innov(2), innov_gate, obs_var,
-			     _ev_pos_innov_var(2), _ev_pos_test_ratio(1));
+	updateVerticalPositionAidSrcStatus(_ev_sample_delayed.time_us, obs, obs_var, innov_gate, _aid_src_ev_hgt);
+
+	_aid_src_ev_hgt.fusion_enabled = _control_status.flags.ev_hgt;
+
+	fuseVerticalPosition(_aid_src_ev_hgt);
 }

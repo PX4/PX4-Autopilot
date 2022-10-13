@@ -99,7 +99,7 @@ public:
 
 	void getAuxVelInnov(float aux_vel_innov[2]) const;
 	void getAuxVelInnovVar(float aux_vel_innov[2]) const;
-	void getAuxVelInnovRatio(float &aux_vel_innov_ratio) const { aux_vel_innov_ratio = Vector3f(_aid_src_aux_vel.test_ratio).max(); }
+	void getAuxVelInnovRatio(float &aux_vel_innov_ratio) const { aux_vel_innov_ratio = math::max(_aid_src_aux_vel.test_ratio[0], _aid_src_aux_vel.test_ratio[1]); }
 
 	void getFlowInnov(float flow_innov[2]) const { _flow_innov.copyTo(flow_innov); }
 	void getFlowInnovVar(float flow_innov_var[2]) const { _flow_innov_var.copyTo(flow_innov_var); }
@@ -422,11 +422,15 @@ public:
 	const auto &aid_src_fake_hgt() const { return _aid_src_fake_hgt; }
 	const auto &aid_src_fake_pos() const { return _aid_src_fake_pos; }
 
+	const auto &aid_src_ev_hgt() const { return _aid_src_ev_hgt; }
+	const auto &aid_src_ev_pos() const { return _aid_src_ev_pos; }
+	const auto &aid_src_ev_vel() const { return _aid_src_ev_vel; }
 	const auto &aid_src_ev_yaw() const { return _aid_src_ev_yaw; }
 
-	const auto &aid_src_gnss_yaw() const { return _aid_src_gnss_yaw; }
-	const auto &aid_src_gnss_vel() const { return _aid_src_gnss_vel; }
+	const auto &aid_src_gnss_hgt() const { return _aid_src_gnss_hgt; }
 	const auto &aid_src_gnss_pos() const { return _aid_src_gnss_pos; }
+	const auto &aid_src_gnss_vel() const { return _aid_src_gnss_vel; }
+	const auto &aid_src_gnss_yaw() const { return _aid_src_gnss_yaw; }
 
 	const auto &aid_src_mag_heading() const { return _aid_src_mag_heading; }
 	const auto &aid_src_mag() const { return _aid_src_mag; }
@@ -529,17 +533,6 @@ private:
 	Vector3f _delta_vel_bias_var_accum{};		///< kahan summation algorithm accumulator for delta velocity bias variance
 	Vector3f _delta_angle_bias_var_accum{};	///< kahan summation algorithm accumulator for delta angle bias variance
 
-	float _vert_pos_innov_ratio{0.f};	///< vertical position innovation divided by estimated standard deviation of innovation
-	uint64_t _vert_pos_fuse_attempt_time_us{0};	///< last system time in usec vertical position measurement fuson was attempted
-	float _vert_vel_innov_ratio{0.f};		///< standard deviation of vertical velocity innovation
-	uint64_t _vert_vel_fuse_time_us{0};	///< last system time in usec time vertical velocity measurement fuson was attempted
-
-	Vector3f _ev_vel_innov{};	///< external vision velocity innovations (m/sec)
-	Vector3f _ev_vel_innov_var{};	///< external vision velocity innovation variances ((m/sec)**2)
-
-	Vector3f _ev_pos_innov{};	///< external vision position innovations (m)
-	Vector3f _ev_pos_innov_var{};	///< external vision position innovation variances (m**2)
-
 	Vector2f _drag_innov{};		///< multirotor drag measurement innovation (m/sec**2)
 	Vector2f _drag_innov_var{};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
 
@@ -568,16 +561,20 @@ private:
 	estimator_aid_source_2d_s _aid_src_fake_pos{};
 	estimator_aid_source_1d_s _aid_src_fake_hgt{};
 
+	estimator_aid_source_1d_s _aid_src_ev_hgt{};
+	estimator_aid_source_2d_s _aid_src_ev_pos{};
+	estimator_aid_source_3d_s _aid_src_ev_vel{};
 	estimator_aid_source_1d_s _aid_src_ev_yaw{};
 
-	estimator_aid_source_1d_s _aid_src_gnss_yaw{};
+	estimator_aid_source_1d_s _aid_src_gnss_hgt{};
+	estimator_aid_source_2d_s _aid_src_gnss_pos{};
 	estimator_aid_source_3d_s _aid_src_gnss_vel{};
-	estimator_aid_source_3d_s _aid_src_gnss_pos{};
+	estimator_aid_source_1d_s _aid_src_gnss_yaw{};
 
 	estimator_aid_source_1d_s _aid_src_mag_heading{};
 	estimator_aid_source_3d_s _aid_src_mag{};
 
-	estimator_aid_source_3d_s _aid_src_aux_vel{};
+	estimator_aid_source_2d_s _aid_src_aux_vel{};
 
 	// output predictor states
 	Vector3f _delta_angle_corr{};	///< delta angle correction vector (rad)
@@ -737,32 +734,23 @@ private:
 	// fuse optical flow line of sight rate measurements
 	void fuseOptFlow();
 
-	void updateVelocityAidSrcStatus(const uint64_t &sample_time_us, const Vector3f &velocity, const Vector3f &obs_var,
-					const float innov_gate, estimator_aid_source_3d_s &vel_aid_src) const;
-	void updatePositionAidSrcStatus(const uint64_t &sample_time_us, const Vector3f &position, const Vector3f &obs_var,
-					const float innov_gate, estimator_aid_source_3d_s &pos_aid_src) const;
+	// horizontal and vertical position aid source
+	void updateHorizontalPositionAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var, const float innov_gate, estimator_aid_source_2d_s &aid_src) const;
+	void updateVerticalPositionAidSrcStatus(const uint64_t &time_us, const float obs, const float obs_var, const float innov_gate, estimator_aid_source_1d_s &aid_src) const;
 
+	// 2d & 3d velocity aid source
+	void updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var, const float innov_gate, estimator_aid_source_2d_s &aid_src) const;
+	void updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector3f &obs, const Vector3f &obs_var, const float innov_gate, estimator_aid_source_3d_s &aid_src) const;
+
+	// horizontal and vertical position fusion
+	void fuseHorizontalPosition(estimator_aid_source_2d_s &pos_aid_src);
+	void fuseVerticalPosition(estimator_aid_source_1d_s &hgt_aid_src);
+
+	// 2d & 3d velocity fusion
+	void fuseVelocity(estimator_aid_source_2d_s &vel_aid_src);
 	void fuseVelocity(estimator_aid_source_3d_s &vel_aid_src);
-	void fusePosition(estimator_aid_source_3d_s &pos_aid_src);
-
-	bool fuseHorizontalVelocity(const Vector3f &innov, float innov_gate, const Vector3f &obs_var,
-				    Vector3f &innov_var, Vector2f &test_ratio);
-
-	bool fuseVerticalVelocity(const Vector3f &innov, float innov_gate, const Vector3f &obs_var,
-				  Vector3f &innov_var, Vector2f &test_ratio);
-
-	bool fuseHorizontalPosition(const Vector3f &innov, float innov_gate, const Vector3f &obs_var,
-				    Vector3f &innov_var, Vector2f &test_ratiov);
-
-	bool fuseVerticalPosition(float innov, float innov_gate, float obs_var,
-				  float &innov_var, float &test_ratio);
 
 	void updateGpsYaw(const gpsSample &gps_sample);
-	void updateGpsVel(const gpsSample &gps_sample);
-	void updateGpsPos(const gpsSample &gps_sample);
-
-	void fuseGpsVel();
-	void fuseGpsPos();
 
 	// calculate optical flow body angular rate compensation
 	// returns false if bias corrected body rate data is unavailable
@@ -1125,68 +1113,54 @@ private:
 
 	void resetGpsDriftCheckFilters();
 
-	bool resetEstimatorAidStatusFlags(estimator_aid_source_1d_s &status) const
-	{
-		if (status.timestamp_sample != 0) {
-			status.timestamp_sample = 0;
-			status.fusion_enabled = false;
-			status.innovation_rejected = false;
-			status.fused = false;
-
-			return true;
-		}
-
-		return false;
-	}
-
 	void resetEstimatorAidStatus(estimator_aid_source_1d_s &status) const
 	{
-		if (resetEstimatorAidStatusFlags(status)) {
+		// only bother resetting if timestamp_sample is set
+		if (status.timestamp_sample != 0) {
+			status.timestamp_sample = 0;
+
+			// preserve status.time_last_fuse
+
 			status.observation = 0;
 			status.observation_variance = 0;
 
 			status.innovation = 0;
 			status.innovation_variance = 0;
-			status.test_ratio = 0;
+			status.test_ratio = INFINITY;
+
+			status.fusion_enabled = false;
+			status.innovation_rejected = true;
+			status.fused = false;
 		}
-	}
-
-	template <typename T>
-	bool resetEstimatorAidStatusFlags(T &status) const
-	{
-		if (status.timestamp_sample != 0) {
-			status.timestamp_sample = 0;
-
-			for (size_t i = 0; i < (sizeof(status.fusion_enabled) / sizeof(status.fusion_enabled[0])); i++) {
-				status.fusion_enabled[i] = false;
-				status.innovation_rejected[i] = false;
-				status.fused[i] = false;
-			}
-
-			return true;
-		}
-
-		return false;
 	}
 
 	template <typename T>
 	void resetEstimatorAidStatus(T &status) const
 	{
-		if (resetEstimatorAidStatusFlags(status)) {
-			for (size_t i = 0; i < (sizeof(status.fusion_enabled) / sizeof(status.fusion_enabled[0])); i++) {
+		// only bother resetting if timestamp_sample is set
+		if (status.timestamp_sample != 0) {
+			status.timestamp_sample = 0;
+
+			// preserve status.time_last_fuse
+
+			for (size_t i = 0; i < (sizeof(status.observation) / sizeof(status.observation[0])); i++) {
 				status.observation[i] = 0;
 				status.observation_variance[i] = 0;
 
 				status.innovation[i] = 0;
 				status.innovation_variance[i] = 0;
-				status.test_ratio[i] = 0;
+				status.test_ratio[i] = INFINITY;
 			}
+
+			status.fusion_enabled = false;
+			status.innovation_rejected = true;
+			status.fused = false;
 		}
 	}
 
 	void setEstimatorAidStatusTestRatio(estimator_aid_source_1d_s &status, float innovation_gate) const
 	{
-		if (PX4_ISFINITE(status.innovation) && PX4_ISFINITE(status.innovation_variance)) {
+		if (PX4_ISFINITE(status.innovation) && PX4_ISFINITE(status.innovation_variance) && (status.innovation_variance > 0.f)) {
 			status.test_ratio = sq(status.innovation) / (sq(innovation_gate) * status.innovation_variance);
 			status.innovation_rejected = (status.test_ratio > 1.f);
 
@@ -1199,16 +1173,24 @@ private:
 	template <typename T>
 	void setEstimatorAidStatusTestRatio(T &status, float innovation_gate) const
 	{
+		bool innovation_rejected = false;
+
 		for (size_t i = 0; i < (sizeof(status.test_ratio) / sizeof(status.test_ratio[0])); i++) {
-			if (PX4_ISFINITE(status.innovation[i]) && PX4_ISFINITE(status.innovation_variance[i])) {
+			if (PX4_ISFINITE(status.innovation[i]) && PX4_ISFINITE(status.innovation_variance[i]) && (status.innovation_variance[i] > 0.f)) {
 				status.test_ratio[i] = sq(status.innovation[i]) / (sq(innovation_gate) * status.innovation_variance[i]);
-				status.innovation_rejected[i] = (status.test_ratio[i] > 1.f);
+
+				if (status.test_ratio[i] > 1.f) {
+					innovation_rejected = true;
+				}
 
 			} else {
 				status.test_ratio[i] = INFINITY;
-				status.innovation_rejected[i] = true;
+				innovation_rejected = true;
 			}
 		}
+
+		// if any of the innovations are rejected, then the overall innovation is rejected
+		status.innovation_rejected = innovation_rejected;
 	}
 };
 

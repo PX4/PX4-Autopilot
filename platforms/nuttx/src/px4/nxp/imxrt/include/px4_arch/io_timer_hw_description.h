@@ -56,7 +56,6 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 		PWM::FlexPWMConfig pwm_config, IOMUX::Pad pad)
 {
 	timer_io_channels_t ret{};
-
 	PWM::FlexPWM pwm{};
 
 	// FlexPWM Muxing Options
@@ -591,7 +590,7 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	const uint32_t timer_base = getFlexPWMBaseRegister(pwm);
 
 	for (int i = 0; i < MAX_IO_TIMERS; ++i) {
-		if (io_timers_conf[i].base == timer_base) {
+		if (io_timers_conf[i].base == timer_base && io_timers_conf[i].submodle == ret.sub_module) {
 			ret.timer_index = i;
 			break;
 		}
@@ -602,11 +601,11 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	return ret;
 }
 
-static inline constexpr io_timers_t initIOPWM(PWM::FlexPWM pwm)
+static inline constexpr io_timers_t initIOPWM(PWM::FlexPWM pwm, PWM::FlexPWMSubmodule sub)
 {
 	io_timers_t ret{};
 
 	ret.base = getFlexPWMBaseRegister(pwm);
-
+	ret.submodle = sub;
 	return ret;
 }

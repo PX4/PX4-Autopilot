@@ -89,7 +89,7 @@ void Ekf::startEvHgtFusion()
 {
 	if (!_control_status.flags.ev_hgt) {
 		if (_params.height_sensor_ref == HeightSensor::EV) {
-			_rng_hgt_b_est.reset();
+			_ev_hgt_b_est.reset();
 			_height_sensor_ref = HeightSensor::EV;
 			resetHeightToEv();
 
