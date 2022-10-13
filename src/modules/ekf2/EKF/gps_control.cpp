@@ -59,29 +59,37 @@ void Ekf::controlGpsFusion()
 		controlGpsYawFusion(gps_sample, gps_checks_passing, gps_checks_failing);
 
 		// GNSS velocity
-		const Vector3f velocity{gps_sample.vel};
-		const float vel_var = sq(gps_sample.sacc);
-		const Vector3f vel_obs_var{vel_var, vel_var, vel_var * sq(1.5f)};
-		updateVelocityAidSrcStatus(gps_sample.time_us, velocity, vel_obs_var, fmaxf(_params.gps_vel_innov_gate, 1.f), _aid_src_gnss_vel);
+		const float vel_obs_var = sq(math::max(gps_sample.sacc, _params.gps_vel_noise));
+		updateVelocityAidSrcStatus(gps_sample.time_us,
+					   gps_sample.vel,                                             // observation
+					   Vector3f(vel_obs_var, vel_obs_var, vel_obs_var * sq(1.5f)), // observation variance
+					   math::max(_params.gps_vel_innov_gate, 1.f),                 // innovation gate
+					   _aid_src_gnss_vel);
 		_aid_src_gnss_vel.fusion_enabled = (_params.gnss_ctrl & GnssCtrl::VEL);
 
 		// GNSS position
-		const float pos_var_lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
-		float pos_var = sq(fmaxf(gps_sample.hacc, pos_var_lower_limit));
+		// relax the upper observation noise limit which prevents bad GPS perturbing the position estimate
+		float pos_noise = math::max(gps_sample.hacc, _params.gps_pos_noise);
 
 		if (!isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 			// if we are not using another source of aiding, then we are reliant on the GPS
 			// observations to constrain attitude errors and must limit the observation noise value.
-			float upper_limit = fmaxf(_params.pos_noaid_noise, pos_var_lower_limit);
-			pos_var = fminf(pos_var, upper_limit);
+			if (pos_noise > _params.pos_noaid_noise) {
+				pos_noise = _params.pos_noaid_noise;
+			}
 		}
 
-		updateHorizontalPositionAidSrcStatus(gps_sample.time_us, gps_sample.pos, Vector2f(pos_var, pos_var), fmaxf(_params.gps_pos_innov_gate, 1.f), _aid_src_gnss_pos);
+		const float pos_obs_var = sq(pos_noise);
+		updateHorizontalPositionAidSrcStatus(gps_sample.time_us,
+						     gps_sample.pos,                             // observation
+						     Vector2f(pos_obs_var, pos_obs_var),         // observation variance
+						     math::max(_params.gps_pos_innov_gate, 1.f), // innovation gate
+						     _aid_src_gnss_pos);
 		_aid_src_gnss_pos.fusion_enabled = (_params.gnss_ctrl & GnssCtrl::HPOS);
 
 		// update GSF yaw estimator velocity (basic sanity check on GNSS velocity data)
 		if (gps_checks_passing && !gps_checks_failing) {
-			_yawEstimator.setVelocity(velocity.xy(), gps_sample.sacc);
+			_yawEstimator.setVelocity(gps_sample.vel.xy(), gps_sample.sacc);
 		}
 
 		// Determine if we should use GPS aiding for velocity and horizontal position

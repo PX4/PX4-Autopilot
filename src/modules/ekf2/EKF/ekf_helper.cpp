@@ -124,10 +124,14 @@ void Ekf::resetHorizontalVelocityTo(const Vector2f &new_horz_vel)
 	_time_last_hor_vel_fuse = _imu_sample_delayed.time_us;
 }
 
-void Ekf::resetVerticalVelocityTo(float new_vert_vel)
+void Ekf::resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var)
 {
 	const float delta_vert_vel = new_vert_vel - _state.vel(2);
 	_state.vel(2) = new_vert_vel;
+
+	if (PX4_ISFINITE(new_vert_vel_var)) {
+		P.uncorrelateCovarianceSetVariance<1>(6, math::max(sq(0.01f), new_vert_vel_var));
+	}
 
 	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
 		_output_buffer[index].vel(2) += delta_vert_vel;
@@ -226,10 +230,15 @@ bool Ekf::isHeightResetRequired() const
 }
 
 
-void Ekf::resetVerticalPositionTo(const float new_vert_pos)
+void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_var)
 {
 	const float old_vert_pos = _state.pos(2);
 	_state.pos(2) = new_vert_pos;
+
+	if (PX4_ISFINITE(new_vert_pos_var)) {
+		// the state variance is the same as the observation
+		P.uncorrelateCovarianceSetVariance<1>(9, math::max(sq(0.01f), new_vert_pos_var));
+	}
 
 	// store the reset amount and time to be published
 	_state_reset_status.posD_change = new_vert_pos - old_vert_pos;
@@ -248,34 +257,21 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos)
 	// add the reset amount to the output observer vertical position state
 	_output_vert_new.vert_vel_integ = _state.pos(2);
 
+	_baro_b_est.setBias(_baro_b_est.getBias() + _state_reset_status.posD_change);
+	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - _state_reset_status.posD_change);
+	_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + _state_reset_status.posD_change);
+	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + _state_reset_status.posD_change);
+
 	// Reset the timout timer
 	_time_last_hgt_fuse = _imu_sample_delayed.time_us;
-}
-
-void Ekf::resetVerticalVelocityToGps(const gpsSample &gps_sample)
-{
-	resetVerticalVelocityTo(gps_sample.vel(2));
-
-	// the state variance is the same as the observation
-	P.uncorrelateCovarianceSetVariance<1>(6, sq(1.5f * gps_sample.sacc));
-}
-
-void Ekf::resetVerticalVelocityToEv(const extVisionSample &ev_sample)
-{
-	resetVerticalVelocityTo(ev_sample.vel(2));
-
-	// the state variance is the same as the observation
-	P.uncorrelateCovarianceSetVariance<1>(6, ev_sample.velVar(2));
 }
 
 void Ekf::resetVerticalVelocityToZero()
 {
 	// we don't know what the vertical velocity is, so set it to zero
-	resetVerticalVelocityTo(0.0f);
-
 	// Set the variance to a value large enough to allow the state to converge quickly
 	// that does not destabilise the filter
-	P.uncorrelateCovarianceSetVariance<1>(6, 10.0f);
+	resetVerticalVelocityTo(0.0f, 10.f);
 }
 
 // align output filter states to match EKF states at the fusion time horizon
@@ -700,11 +696,11 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 			// determine current z
 			float current_alt = -_state.pos(2) + gps_alt_ref_prev;
 
+			const float gps_hgt_bias = _gps_hgt_b_est.getBias();
 			resetVerticalPositionTo(_gps_alt_ref - current_alt);
 
-			_baro_b_est.setBias(_baro_b_est.getBias() + _state_reset_status.posD_change);
-			_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + _state_reset_status.posD_change);
-			_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - _state_reset_status.posD_change);
+			// preserve GPS height bias
+			_gps_hgt_b_est.setBias(gps_hgt_bias);
 		}
 
 		return true;
@@ -1297,24 +1293,6 @@ void Ekf::startMag3DFusion()
 		loadMagCovData();
 		_control_status.flags.mag_3D = true;
 	}
-}
-
-float Ekf::getGpsHeightVariance(const gpsSample &gps_sample)
-{
-	// observation variance - receiver defined and parameter limited
-	// use 1.5 as a typical ratio of vacc/hacc
-	const float lower_limit = fmaxf(1.5f * _params.gps_pos_noise, 0.01f);
-	const float upper_limit = fmaxf(1.5f * _params.pos_noaid_noise, lower_limit);
-	const float gps_alt_var = sq(math::constrain(gps_sample.vacc, lower_limit, upper_limit));
-	return gps_alt_var;
-}
-
-float Ekf::getRngHeightVariance() const
-{
-	const float dist_dependant_var = sq(_params.range_noise_scaler * _range_sensor.getDistBottom());
-	const float var = sq(_params.range_noise) + dist_dependant_var;
-	const float var_sat = fmaxf(var, 0.001f);
-	return var_sat;
 }
 
 void Ekf::updateGroundEffect()

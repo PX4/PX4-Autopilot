@@ -87,7 +87,7 @@ public:
 	void setBiasStdDev(float state_noise) { _state_var = state_noise * state_noise; }
 	void setInnovGate(float gate_size) { _gate_size = gate_size; }
 
-	void setMaxStateNoise(float max_noise) { _state_var_max = max_noise * max_noise; }
+	void setMaxStateNoise(float max_noise) { _state_var_max = math::max(sq(0.01f), max_noise * max_noise); }
 
 	float getBias() const { return _state; }
 	float getBiasVar() const { return _state_var; }

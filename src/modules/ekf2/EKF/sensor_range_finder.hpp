@@ -106,7 +106,7 @@ public:
 	float getValidMinVal() const { return _rng_valid_min_val; }
 	float getValidMaxVal() const { return _rng_valid_max_val; }
 
-	void setFaulty() { _is_faulty = true; }
+	void setFaulty(bool faulty = true) { _is_faulty = faulty; }
 
 private:
 	void updateSensorToEarthRotation(const matrix::Dcmf &R_to_earth);
