@@ -76,3 +76,8 @@ void Safety::activateSafety()
 		_safety_off = false;
 	}
 }
+
+void Safety::deactivateSafety()
+{
+	_safety_off = true;
+}

@@ -80,7 +80,7 @@ typedef enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_STABILIZE_ENABLED    = 16,  /* 0b00010000 system stabilizes electronically its attitude (and optionally position). It needs however further control inputs to move around. | */
 	VEHICLE_MODE_FLAG_HIL_ENABLED          = 32,  /* 0b00100000 hardware in the loop simulation. All motors / actuators are blocked, but internal software is full operational. | */
 	VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED = 64,  /* 0b01000000 remote control input is enabled. | */
-	VEHICLE_MODE_FLAG_SAFETY_ARMED         = 128, /* 0b10000000 MAV safety set to armed. Motors are enabled / running / can start. Ready to fly. Additional note: this flag is to be ignore when sent in the command MAV_CMD_DO_SET_MODE and MAV_CMD_COMPONENT_ARM_DISARM shall be used instead. The flag can still be used to report the armed state. | */
+	VEHICLE_MODE_FLAG_SAFETY_ARMED         = 128, /* 0b10000000 MAV safety set to armed. Motors are enabled / running / can start. Ready to fly. This flag is used to pre-arm the drone when sent in the command MAV_CMD_DO_SET_MODE. Use MAV_CMD_COMPONENT_ARM_DISARM instead if you want to arm/disarm the drone. | */
 	VEHICLE_MODE_FLAG_ENUM_END             = 129, /*  | */
 } VEHICLE_MODE_FLAG;
 
@@ -806,6 +806,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					} else {
 						desired_nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 					}
+
+				} else if (base_mode & VEHICLE_MODE_FLAG_SAFETY_ARMED) {
+					/* prearm the drone */
+					_safety.deactivateSafety();
 				}
 			}
 
