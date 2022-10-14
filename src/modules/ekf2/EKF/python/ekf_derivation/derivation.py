@@ -253,6 +253,74 @@ def compute_mag_z_innov_var_and_h(
 
     return (innov_var, H.T)
 
+def compute_yaw_321_innov_var_and_h(
+        state: VState,
+        P: MState,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VState):
+
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    R_to_earth = quat_to_rot(q_att)
+    # Fix the singularity at pi/2 by inserting epsilon
+    meas_pred = sf.atan2(R_to_earth[1,0], R_to_earth[0,0], epsilon=epsilon)
+
+    H = sf.V1(meas_pred).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
+def compute_yaw_321_innov_var_and_h_alternate(
+        state: VState,
+        P: MState,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VState):
+
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    R_to_earth = quat_to_rot(q_att)
+    # Alternate form that has a singularity at yaw 0 instead of pi/2
+    meas_pred = sf.pi/2 - sf.atan2(R_to_earth[0,0], R_to_earth[1,0], epsilon=epsilon)
+
+    H = sf.V1(meas_pred).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
+def compute_yaw_312_innov_var_and_h(
+        state: VState,
+        P: MState,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VState):
+
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    R_to_earth = quat_to_rot(q_att)
+    # Alternate form to be used when close to pitch +-pi/2
+    meas_pred = sf.atan2(-R_to_earth[0,1], R_to_earth[1,1], epsilon=epsilon)
+
+    H = sf.V1(meas_pred).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
+def compute_yaw_312_innov_var_and_h_alternate(
+        state: VState,
+        P: MState,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VState):
+
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    R_to_earth = quat_to_rot(q_att)
+    # Alternate form to be used when close to pitch +-pi/2
+    meas_pred = sf.pi/2 - sf.atan2(-R_to_earth[1,1], R_to_earth[0,1], epsilon=epsilon)
+
+    H = sf.V1(meas_pred).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
 print("Derive EKF2 equations...")
 generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
 generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
@@ -263,3 +331,7 @@ generate_px4_function(predict_covariance, output_names=["P_new"])
 generate_px4_function(compute_mag_innov_innov_var_and_hx, output_names=["innov", "innov_var", "Hx"])
 generate_px4_function(compute_mag_y_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_mag_z_innov_var_and_h, output_names=["innov_var", "H"])
+generate_px4_function(compute_yaw_321_innov_var_and_h, output_names=["innov_var", "H"])
+generate_px4_function(compute_yaw_321_innov_var_and_h_alternate, output_names=["innov_var", "H"])
+generate_px4_function(compute_yaw_312_innov_var_and_h, output_names=["innov_var", "H"])
+generate_px4_function(compute_yaw_312_innov_var_and_h_alternate, output_names=["innov_var", "H"])
