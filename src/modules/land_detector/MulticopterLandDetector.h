@@ -74,6 +74,7 @@ protected:
 	bool _get_has_low_throttle() override { return _has_low_throttle; }
 	bool _get_horizontal_movement() override { return _horizontal_movement; }
 	bool _get_vertical_movement() override { return _vertical_movement; }
+	bool _get_rotational_movement() override { return _rotational_movement; }
 	bool _get_close_to_ground_or_skipped_check() override { return _close_to_ground_or_skipped_check; }
 
 	void _set_hysteresis_factor(const int factor) override;
@@ -131,6 +132,7 @@ private:
 	bool _in_descend{false};		///< vehicle is commanded to desend
 	bool _horizontal_movement{false};	///< vehicle is moving horizontally
 	bool _vertical_movement{false};
+	bool _rotational_movement{false};
 	bool _has_low_throttle{false};
 	bool _close_to_ground_or_skipped_check{false};
 	bool _below_gnd_effect_hgt{false};	///< vehicle height above ground is below height where ground effect occurs
