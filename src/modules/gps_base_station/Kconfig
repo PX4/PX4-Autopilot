@@ -1,0 +1,5 @@
+menuconfig MODULES_GPS_BASE_STATION
+	bool "gps_base_station"
+	default n
+	---help---
+		Enable support for gps_base_station
