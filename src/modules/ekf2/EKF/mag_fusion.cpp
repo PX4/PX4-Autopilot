@@ -629,48 +629,28 @@ bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_so
 		_innov_check_fail_status.flags.reject_yaw = false;
 	}
 
-	// apply covariance correction via P_new = (I -K*H)*P
-	// first calculate expression for KHP
-	// then calculate P - KHP
-	SquareMatrix24f KHP;
-	float KH[4];
+	// copy observation jacobian
+	SparseVector24f<0,1,2,3> Hfusion;
+	Hfusion.at<0>() = H_YAW(0);
+	Hfusion.at<1>() = H_YAW(1);
+	Hfusion.at<2>() = H_YAW(2);
+	Hfusion.at<3>() = H_YAW(3);
 
-	for (unsigned row = 0; row < _k_num_states; row++) {
-
-		KH[0] = Kfusion(row) * H_YAW(0);
-		KH[1] = Kfusion(row) * H_YAW(1);
-		KH[2] = Kfusion(row) * H_YAW(2);
-		KH[3] = Kfusion(row) * H_YAW(3);
-
-		for (unsigned column = 0; column < _k_num_states; column++) {
-			float tmp = KH[0] * P(0, column);
-			tmp += KH[1] * P(1, column);
-			tmp += KH[2] * P(2, column);
-			tmp += KH[3] * P(3, column);
-			KHP(row, column) = tmp;
-		}
-	}
-
-	const bool healthy = checkAndFixCovarianceUpdate(KHP);
-
-	_fault_status.flags.bad_hdg = !healthy;
-
-	if (healthy) {
-		// apply the covariance corrections
-		P -= KHP;
-
-		fixCovarianceErrors(true);
-
-		// apply the state corrections
-		fuse(Kfusion, aid_src_status.innovation);
+	if (measurementUpdate(Kfusion, Hfusion, aid_src_status.innovation)) {
 
 		_time_last_heading_fuse = _imu_sample_delayed.time_us;
+
 		aid_src_status.time_last_fuse = _imu_sample_delayed.time_us;
 		aid_src_status.fused = true;
+
+		_fault_status.flags.bad_hdg = false;
 
 		return true;
 	}
 
+	// otherwise
+	aid_src_status.fused = false;
+	_fault_status.flags.bad_hdg = true;
 	return false;
 }
 
