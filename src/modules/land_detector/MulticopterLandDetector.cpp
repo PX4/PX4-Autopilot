@@ -278,21 +278,22 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 		return false;
 	}
 
+	// Next look if vehicle is not rotating (do not consider yaw)
+	float max_rotation_threshold = math::radians(_param_lndmc_rot_max.get());
 
-	float landThresholdFactor = 1.f;
-
-	// Widen acceptance thresholds for landed state right after landed
+	// Widen max rotation thresholds for landed state right after landed
 	if ((time_now_us - _landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
-		landThresholdFactor = 2.5f;
+		max_rotation_threshold *= 2.5f;
 	}
-
-	// Next look if all rotation angles are not moving.
-	const float max_rotation_scaled = math::radians(_param_lndmc_rot_max.get()) * landThresholdFactor;
 
 	matrix::Vector2f angular_velocity{_angular_velocity(0), _angular_velocity(1)};
 
-	if (angular_velocity.norm() > max_rotation_scaled) {
+	if (angular_velocity.norm() > max_rotation_threshold) {
+		_rotational_movement = true;
 		return false;
+
+	} else {
+		_rotational_movement = false;
 	}
 
 	// If vertical velocity is available: ground contact, no thrust, no movement -> landed
