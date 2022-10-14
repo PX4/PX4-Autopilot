@@ -2139,7 +2139,7 @@ void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 				&& !_ekf.fault_status_flags().bad_acc_vertical
 				&& !_ekf.warning_event_flags().invalid_accel_bias_cov_reset;
 
-	const bool learning_valid = bias_valid && !_ekf.accel_bias_inhibited();
+	const bool learning_valid = bias_valid && !_ekf.accelBiasInhibited();
 
 	UpdateCalibration(timestamp, _accel_cal, _ekf.getAccelBias(), _ekf.getAccelBiasVariance(), _ekf.getAccelBiasLimit(),
 			  bias_valid, learning_valid);
@@ -2151,7 +2151,7 @@ void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 	const bool bias_valid = _ekf.control_status_flags().tilt_align
 				&& (_ekf.fault_status().value == 0);
 
-	const bool learning_valid = bias_valid; // TODO
+	const bool learning_valid = bias_valid && !_ekf.gyroBiasInhibited();
 
 	UpdateCalibration(timestamp, _gyro_cal, _ekf.getGyroBias(), _ekf.getGyroBiasVariance(), _ekf.getGyroBiasLimit(),
 			  bias_valid, learning_valid);
@@ -2164,7 +2164,7 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 				&& !_ekf.control_status_flags().mag_fault
 				&& !_ekf.control_status_flags().mag_field_disturbed;
 
-	const bool learning_valid = bias_valid && _ekf.control_status_flags().mag_3D;
+	const bool learning_valid = bias_valid && !_ekf.magBiasInhibited();
 
 	UpdateCalibration(timestamp, _mag_cal, _ekf.getMagBias(), _ekf.getMagBiasVariance(), _ekf.getMagBiasLimit(),
 			  bias_valid, learning_valid);

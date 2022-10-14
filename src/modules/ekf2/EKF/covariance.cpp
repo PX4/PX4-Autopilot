@@ -81,21 +81,19 @@ void Ekf::initialiseCovariance()
 	}
 
 	// gyro bias
-	P(10,10) = sq(_params.switch_on_gyro_bias * dt);
-	P(11,11) = P(10,10);
-	P(12,12) = P(10,10);
+	P.uncorrelateCovarianceSetVariance<3>(10, sq(_params.switch_on_gyro_bias * dt));
 
 	// accel bias
-	_prev_dvel_bias_var(0) = P(13,13) = sq(_params.switch_on_accel_bias * dt);
-	_prev_dvel_bias_var(1) = P(14,14) = P(13,13);
-	_prev_dvel_bias_var(2) = P(15,15) = P(13,13);
+	P.uncorrelateCovarianceSetVariance<3>(13, sq(_params.switch_on_accel_bias * dt));
 
-	resetMagCov();
+	// mag I
+	P.uncorrelateCovarianceSetVariance<3>(16, sq(_params.mag_noise));
+
+	// mag B
+	P.uncorrelateCovarianceSetVariance<3>(19, sq(_params.mag_noise));
 
 	// wind
-	P(22,22) = sq(_params.initial_wind_uncertainty);
-	P(23,23) = P(22,22);
-
+	P.uncorrelateCovarianceSetVariance<2>(22, sq(_params.initial_wind_uncertainty));
 }
 
 void Ekf::predictCovariance()
@@ -103,12 +101,6 @@ void Ekf::predictCovariance()
 	// Use average update interval to reduce accumulated covariance prediction errors due to small single frame dt values
 	const float dt = _dt_ekf_avg;
 	const float dt_inv = 1.f / dt;
-
-	// convert rate of change of rate gyro bias (rad/s**2) as specified by the parameter to an expected change in delta angle (rad) since the last update
-	const float d_ang_bias_sig = dt * dt * math::constrain(_params.gyro_bias_p_noise, 0.0f, 1.0f);
-
-	// convert rate of change of accelerometer bias (m/s**3) as specified by the parameter to an expected change in delta velocity (m/s) since the last update
-	const float d_vel_bias_sig = dt * dt * math::constrain(_params.accel_bias_p_noise, 0.0f, 1.0f);
 
 	// inhibit learning of imu accel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
 	// xy accel bias learning is also disabled on ground as those states are poorly observable when perpendicular to the gravity vector
@@ -143,72 +135,78 @@ void Ekf::predictCovariance()
 
 		const bool do_inhibit_axis = do_inhibit_all_axes || _imu_sample_delayed.delta_vel_clipping[index] || !is_bias_observable;
 
-		if (do_inhibit_axis) {
-			// store the bias state variances to be reinstated later
-			if (!_accel_bias_inhibit[index]) {
-				_prev_dvel_bias_var(index) = P(stateIndex, stateIndex);
-				_accel_bias_inhibit[index] = true;
-			}
+		const bool was_inhibited = _state_inhibited[stateIndex];
+		_state_inhibited.set(stateIndex, do_inhibit_axis);
 
-		} else {
-			if (_accel_bias_inhibit[index]) {
-				// reinstate the bias state variances
-				P(stateIndex, stateIndex) = _prev_dvel_bias_var(index);
-				_accel_bias_inhibit[index] = false;
-			}
+		if (!was_inhibited && _state_inhibited[stateIndex]) {
+			ECL_DEBUG("accel %d now inhibited", index);
+		} else if (was_inhibited && !_state_inhibited[stateIndex]) {
+			ECL_DEBUG("accel %d no longer inhibited", index);
 		}
 	}
 
-	// Don't continue to grow the earth field variances if they are becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
-	float mag_I_sig;
-
-	if (_control_status.flags.mag_3D && (P(16, 16) + P(17, 17) + P(18, 18)) < 0.1f) {
-		mag_I_sig = dt * math::constrain(_params.mage_p_noise, 0.0f, 1.0f);
-
-	} else {
-		mag_I_sig = 0.0f;
-	}
-
-	// Don't continue to grow the body field variances if they is becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
-	float mag_B_sig;
-
-	if (_control_status.flags.mag_3D && (P(19, 19) + P(20, 20) + P(21, 21)) < 0.1f) {
-		mag_B_sig = dt * math::constrain(_params.magb_p_noise, 0.0f, 1.0f);
-
-	} else {
-		mag_B_sig = 0.0f;
-	}
-
-	float wind_vel_nsd_scaled;
-
-	// Calculate low pass filtered height rate
-	float alpha_height_rate_lpf = 0.1f * dt; // 10 seconds time constant
-	_height_rate_lpf = _height_rate_lpf * (1.0f - alpha_height_rate_lpf) + _state.vel(2) * alpha_height_rate_lpf;
-
-	// Don't continue to grow wind velocity state variances if they are becoming too large or we are not using wind velocity states as this can make the covariance matrix badly conditioned
-	if (_control_status.flags.wind && (P(22,22) + P(23,23)) < sq(_params.initial_wind_uncertainty)) {
-		wind_vel_nsd_scaled = math::constrain(_params.wind_vel_nsd, 0.0f, 1.0f) * (1.0f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
-
-	} else {
-		wind_vel_nsd_scaled = 0.0f;
-	}
-
 	// compute noise variance for stationary processes
-	Vector24f process_noise;
+	Vector24f process_noise{};
 
 	// Construct the process noise variance diagonal for those states with a stationary process model
 	// These are kinematic states and their error growth is controlled separately by the IMU noise variances
 
 	// delta angle bias states
+	//  convert rate of change of rate gyro bias (rad/s**2) as specified by the parameter to an expected change in delta angle (rad) since the last update
+	const float d_ang_bias_sig = dt * dt * math::constrain(_params.gyro_bias_p_noise, 0.f, 1.f);
 	process_noise.slice<3, 1>(10, 0) = sq(d_ang_bias_sig);
+
 	// delta_velocity bias states
+	//  convert rate of change of accelerometer bias (m/s**3) as specified by the parameter to an expected change in delta velocity (m/s) since the last update
+	const float d_vel_bias_sig = dt * dt * math::constrain(_params.accel_bias_p_noise, 0.f, 1.f);
 	process_noise.slice<3, 1>(13, 0) = sq(d_vel_bias_sig);
-	// earth frame magnetic field states
-	process_noise.slice<3, 1>(16, 0) = sq(mag_I_sig);
-	// body frame magnetic field states
-	process_noise.slice<3, 1>(19, 0) = sq(mag_B_sig);
-	// wind velocity states
-	process_noise.slice<2, 1>(22, 0) = sq(wind_vel_nsd_scaled) * dt;
+
+	// mag states
+	if (_control_status.flags.mag_3D) {
+		// earth frame magnetic field states (16,17,18)
+		//  Don't continue to grow the earth field variances if they are becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
+		if ((P(16, 16) + P(17, 17) + P(18, 18)) < 0.1f) {
+			float mag_I_sig = dt * math::constrain(_params.mage_p_noise, 0.f, 1.f);
+			process_noise.slice<3, 1>(16, 0) = sq(mag_I_sig);
+		}
+
+		// body frame magnetic field states (19,20,21)
+		//  Don't continue to grow the body field variances if they is becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
+		if ((P(19, 19) + P(20, 20) + P(21, 21)) < 0.1f) {
+			float mag_B_sig = dt * math::constrain(_params.magb_p_noise, 0.f, 1.f);
+			process_noise.slice<3, 1>(19, 0) = sq(mag_B_sig);
+		}
+
+		for (int i = 16; i <= 21; i++) {
+			_state_inhibited.set(i, false);
+		}
+
+	} else {
+		for (int i = 16; i <= 21; i++) {
+			_state_inhibited.set(i, true);
+		}
+	}
+
+	// wind velocity states (22, 23)
+	//  Calculate low pass filtered height rate
+	const float alpha_height_rate_lpf = 0.1f * dt; // 10 seconds time constant
+	_height_rate_lpf = _height_rate_lpf * (1.f - alpha_height_rate_lpf) + _state.vel(2) * alpha_height_rate_lpf;
+
+	if (_control_status.flags.wind) {
+		// Don't continue to grow wind velocity state variances if they are becoming too large or we are not using wind velocity states as this can make the covariance matrix badly conditioned
+		if ((P(22,22) + P(23,23)) < sq(_params.initial_wind_uncertainty)) {
+			float wind_vel_nsd_scaled = math::constrain(_params.wind_vel_nsd, 0.f, 1.f) * (1.f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
+			process_noise.slice<2, 1>(22, 0) = sq(wind_vel_nsd_scaled) * dt;
+		}
+
+		for (int i = 22; i <= 23; i++) {
+			_state_inhibited.set(i, false);
+		}
+	} else {
+		for (int i = 22; i <= 23; i++) {
+			_state_inhibited.set(i, true);
+		}
+	}
 
 	// assign IMU noise variances
 	// inputs to the system are 3 delta angles and 3 delta velocities
@@ -235,31 +233,38 @@ void Ekf::predictCovariance()
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
 	sym::PredictCovariance(getStateAtFusionHorizonAsVector(), P, _imu_sample_delayed.delta_vel, d_vel_var, _imu_sample_delayed.delta_ang, d_ang_var, dt, &nextP);
 
-	// process noise contribution for delta angle states can be very small compared to
+
+	// delta angle process noise contribution can be very small compared to
 	// the variances, therefore use algorithm to minimise numerical error
 	for (unsigned i = 10; i <= 12; i++) {
 		const int index = i - 10;
-		nextP(i, i) = kahanSummation(nextP(i, i), process_noise(i), _delta_angle_bias_var_accum(index));
+
+		if (!_state_inhibited[i]) {
+			nextP(i, i) = kahanSummation(nextP(i, i), process_noise(i), _delta_angle_bias_var_accum(index));
+
+		} else {
+			_delta_angle_bias_var_accum(index) = 0.f;
+		}
 	}
 
+	// delta velocity process noise contribution can be very small compared to
+	// the variances, therefore use algorithm to minimise numerical error
 	for (int i = 13; i <= 15; i++) {
 		const int index = i - 13;
 
-		if (!_accel_bias_inhibit[index]) {
-			// add process noise that is not from the IMU
-			// process noise contribution for delta velocity states can be very small compared to
-			// the variances, therefore use algorithm to minimise numerical error
+		if (!_state_inhibited[i]) {
 			nextP(i, i) = kahanSummation(nextP(i, i), process_noise(i), _delta_vel_bias_var_accum(index));
 
 		} else {
-			nextP.uncorrelateCovarianceSetVariance<1>(i, _prev_dvel_bias_var(index));
 			_delta_vel_bias_var_accum(index) = 0.f;
 		}
 	}
 
 	// add process noise that is not from the IMU
 	for (unsigned i = 16; i <= 23; i++) {
-		nextP(i, i) += process_noise(i);
+		if (!_state_inhibited[i]) {
+			nextP(i, i) += process_noise(i);
+		}
 	}
 
 	// stop position covariance growth if our total position variance reaches 100m
@@ -274,27 +279,9 @@ void Ekf::predictCovariance()
 	}
 
 	// covariance matrix is symmetrical, so copy upper half to lower half
-	for (unsigned row = 0; row <= 15; row++) {
-		for (unsigned column = 0 ; column < row; column++) {
-			P(row, column) = P(column, row) = nextP(column, row);
-		}
-
-		P(row, row) = nextP(row, row);
-	}
-
-	if (_control_status.flags.mag_3D) {
-		for (unsigned row = 16; row <= 21; row++) {
-			for (unsigned column = 0 ; column < row; column++) {
-				P(row, column) = P(column, row) = nextP(column, row);
-			}
-
-			P(row, row) = nextP(row, row);
-		}
-	}
-
-	if (_control_status.flags.wind) {
-		for (unsigned row = 22; row <= 23; row++) {
-			for (unsigned column = 0 ; column < row; column++) {
+	for (unsigned row = 0; row < _k_num_states; row++) {
+		if (!_state_inhibited[row]) {
+			for (unsigned column = 0; column < row; column++) {
 				P(row, column) = P(column, row) = nextP(column, row);
 			}
 
@@ -305,63 +292,22 @@ void Ekf::predictCovariance()
 	// fix gross errors in the covariance matrix and ensure rows and
 	// columns for un-used states are zero
 	fixCovarianceErrors(false);
-
 }
 
 void Ekf::fixCovarianceErrors(bool force_symmetry)
 {
-	// NOTE: This limiting is a last resort and should not be relied on
-	// TODO: Split covariance prediction into separate F*P*transpose(F) and Q contributions
-	// and set corresponding entries in Q to zero when states exceed 50% of the limit
-	// Covariance diagonal limits. Use same values for states which
-	// belong to the same group (e.g. vel_x, vel_y, vel_z)
-	float P_lim[8] = {};
-	P_lim[0] = 1.0f;		// quaternion max var
-	P_lim[1] = 1e6f;		// velocity max var
-	P_lim[2] = 1e6f;		// position max var
-	P_lim[3] = 1.0f;		// gyro bias max var
-	P_lim[4] = 1.0f;		// delta velocity z bias max var
-	P_lim[5] = 1.0f;		// earth mag field max var
-	P_lim[6] = 1.0f;		// body mag field max var
-	P_lim[7] = 1e6f;		// wind max var
-
-	for (int i = 0; i <= 3; i++) {
-		// quaternion states
-		P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[0]);
-	}
-
-	for (int i = 4; i <= 6; i++) {
-		// NED velocity states
-		P(i, i) = math::constrain(P(i, i), 1e-6f, P_lim[1]);
-	}
-
-	for (int i = 7; i <= 9; i++) {
-		// NED position states
-		P(i, i) = math::constrain(P(i, i), 1e-6f, P_lim[2]);
-	}
-
-	for (int i = 10; i <= 12; i++) {
-		// gyro bias states
-		P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[3]);
-	}
-
-	// force symmetry on the quaternion, velocity and position state covariances
-	if (force_symmetry) {
-		P.makeRowColSymmetric<13>(0);
-	}
-
 	// the following states are optional and are deactivated when not required
 	// by ensuring the corresponding covariance matrix values are kept at zero
 
 	// accelerometer bias states
-	if (!_accel_bias_inhibit[0] || !_accel_bias_inhibit[1] || !_accel_bias_inhibit[2]) {
+	if (!accelBiasInhibited()) {
 		// Find the maximum delta velocity bias state variance and request a covariance reset if any variance is below the safe minimum
 		const float minSafeStateVar = 1e-9f;
 		float maxStateVar = minSafeStateVar;
 		bool resetRequired = false;
 
 		for (uint8_t stateIndex = 13; stateIndex <= 15; stateIndex++) {
-			if (_accel_bias_inhibit[stateIndex - 13]) {
+			if (_state_inhibited[stateIndex]) {
 				// Skip the check for the inhibited axis
 				continue;
 			}
@@ -381,7 +327,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		float minAllowedStateVar = fmaxf(0.01f * maxStateVar, minStateVarTarget);
 
 		for (uint8_t stateIndex = 13; stateIndex <= 15; stateIndex++) {
-			if (_accel_bias_inhibit[stateIndex - 13]) {
+			if (_state_inhibited[stateIndex]) {
 				// Skip the check for the inhibited axis
 				continue;
 			}
@@ -392,6 +338,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 
 		// If any one axis has fallen below the safe minimum, all delta velocity covariance terms must be reset to zero
 		if (resetRequired) {
+			ECL_ERR("accel bias reset required (fixCovarianceErrors)");
 			P.uncorrelateCovariance<3>(13);
 		}
 
@@ -412,7 +359,6 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 				bool bad_z_gps  = _control_status.flags.gps_hgt  && (down_dvel_bias * _aid_src_gnss_hgt.innovation < 0.0f);
 				bool bad_z_rng  = _control_status.flags.rng_hgt  && (down_dvel_bias * _aid_src_rng_hgt.innovation  < 0.0f);
 				bool bad_z_ev   = _control_status.flags.ev_hgt   && (down_dvel_bias * _aid_src_ev_hgt.innovation   < 0.0f);
-
 
 				if (bad_z_baro || bad_z_gps || bad_z_rng || bad_z_ev) {
 					bad_acc_bias = true;
@@ -439,50 +385,68 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 			_fault_status.flags.bad_acc_bias = false;
 			_warning_events.flags.invalid_accel_bias_cov_reset = true;
 			ECL_WARN("invalid accel bias - covariance reset");
-
-		} else if (force_symmetry) {
-			// ensure the covariance values are symmetrical
-			P.makeRowColSymmetric<3>(13);
 		}
 
 	}
 
-	// magnetic field states
-	if (!_control_status.flags.mag_3D) {
-		zeroMagCov();
-
-	} else {
-		// constrain variances
-		for (int i = 16; i <= 18; i++) {
-			P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[5]);
+	// uncorrelate all inhibited states
+	for (unsigned i = 0; i < _k_num_states; i++) {
+		if (_state_inhibited[i]) {
+			P.uncorrelateCovariance<1>(i);
 		}
-
-		for (int i = 19; i <= 21; i++) {
-			P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[6]);
-		}
-
-		// force symmetry
-		if (force_symmetry) {
-			P.makeRowColSymmetric<3>(16);
-			P.makeRowColSymmetric<3>(19);
-		}
-
 	}
 
-	// wind velocity states
-	if (!_control_status.flags.wind) {
-		P.uncorrelateCovarianceSetVariance<2>(22, 0.0f);
+	// constrain variances
+	// NOTE: This limiting is a last resort and should not be relied on
+	// TODO: Split covariance prediction into separate F*P*transpose(F) and Q contributions
+	// and set corresponding entries in Q to zero when states exceed 50% of the limit
+	// Covariance diagonal limits. Use same values for states which
+	// belong to the same group (e.g. vel_x, vel_y, vel_z)
 
-	} else {
-		// constrain variances
-		for (int i = 22; i <= 23; i++) {
-			P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[7]);
-		}
+	// quaternion states
+	for (int i = 0; i <= 3; i++) {
+		P(i, i) = math::constrain(P(i, i), 0.f, 1.f);
+	}
 
-		// force symmetry
-		if (force_symmetry) {
-			P.makeRowColSymmetric<2>(22);
-		}
+	// NED velocity states
+	for (int i = 4; i <= 6; i++) {
+		P(i, i) = math::constrain(P(i, i), 1e-6f, 1e6f);
+	}
+
+	// NED position states
+	for (int i = 7; i <= 9; i++) {
+		P(i, i) = math::constrain(P(i, i), 1e-6f, 1e6f);
+	}
+
+	// gyro bias states
+	for (int i = 10; i <= 12; i++) {
+		P(i, i) = math::constrain(P(i, i), 0.f, 1.f);
+	}
+
+	// accel bias states
+	for (int i = 13; i <= 15; i++) {
+		P(i, i) = math::constrain(P(i, i), 0.f, 1.f);
+	}
+
+	// earth mag field
+	for (int i = 16; i <= 18; i++) {
+		P(i, i) = math::constrain(P(i, i), 0.f, 1.f);
+	}
+
+	// body mag field
+	for (int i = 19; i <= 21; i++) {
+		P(i, i) = math::constrain(P(i, i), 0.f, 1.f);
+	}
+
+	// wind velocity
+	for (int i = 22; i <= 23; i++) {
+		P(i, i) = math::constrain(P(i, i), 0.f, 1e6f);
+	}
+
+
+	// force symmetry on all state covariances
+	if (force_symmetry) {
+		P.makeRowColSymmetric<_k_num_states>(0);
 	}
 }
 
@@ -529,29 +493,10 @@ void Ekf::resetMagCov()
 {
 	// reset the corresponding rows and columns in the covariance matrix and
 	// set the variances on the magnetic field states to the measurement variance
-	clearMagCov();
+	_mag_decl_cov_reset = false;
 
 	P.uncorrelateCovarianceSetVariance<3>(16, sq(_params.mag_noise));
 	P.uncorrelateCovarianceSetVariance<3>(19, sq(_params.mag_noise));
-
-	if (!_control_status.flags.mag_3D) {
-		// save covariance data for re-use when auto-switching between heading and 3-axis fusion
-		// if already in 3-axis fusion mode, the covariances are automatically saved when switching out
-		// of this mode
-		saveMagCovData();
-	}
-}
-
-void Ekf::clearMagCov()
-{
-	zeroMagCov();
-	_mag_decl_cov_reset = false;
-}
-
-void Ekf::zeroMagCov()
-{
-	P.uncorrelateCovarianceSetVariance<3>(16, 0.0f);
-	P.uncorrelateCovarianceSetVariance<3>(19, 0.0f);
 }
 
 void Ekf::resetZDeltaAngBiasCov()

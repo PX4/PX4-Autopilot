@@ -386,7 +386,7 @@ void Ekf::run3DMagAndDeclFusions(const Vector3f &mag)
 		// states for the first few observations.
 		fuseDeclination(0.02f);
 		_mag_decl_cov_reset = true;
-		fuseMag(mag, _aid_src_mag, update_all_states);
+		fuseMag(mag, _aid_src_mag, false);
 
 	} else {
 		// The normal sequence is to fuse the magnetometer data first before fusing

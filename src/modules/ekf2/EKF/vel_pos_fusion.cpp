@@ -197,12 +197,11 @@ bool Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 
 	// calculate kalman gain K = PHS, where S = 1/innovation variance
 	for (int row = 0; row < _k_num_states; row++) {
-		Kfusion(row) = P(row, state_index) / innov_var;
-	}
+		if (!_state_inhibited[row]) {
+			Kfusion(row) = P(row, state_index) / innov_var;
 
-	for (unsigned i = 0; i < 3; i++) {
-		if (_accel_bias_inhibit[i]) {
-			Kfusion(13 + i) = 0.0f;
+		} else {
+			Kfusion(row) = 0.f;
 		}
 	}
 

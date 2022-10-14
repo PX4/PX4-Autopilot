@@ -49,6 +49,8 @@
 #include "bias_estimator.hpp"
 #include "height_bias_estimator.hpp"
 
+#include <containers/Bitset.hpp>
+
 #include <uORB/topics/estimator_aid_source_1d.h>
 #include <uORB/topics/estimator_aid_source_2d.h>
 #include <uORB/topics/estimator_aid_source_3d.h>
@@ -312,25 +314,19 @@ public:
 	Vector3f getGyroBias() const { return _state.delta_ang_bias / _dt_ekf_avg; } // get the gyroscope bias in rad/s
 	Vector3f getGyroBiasVariance() const { return Vector3f{P(10, 10), P(11, 11), P(12, 12)} / sq(_dt_ekf_avg); } // get the gyroscope bias variance in rad/s
 	float getGyroBiasLimit() const { return math::radians(20.f); } // 20 degrees/s
+	bool gyroBiasInhibited() const { return _state_inhibited[10] || _state_inhibited[11] || _state_inhibited[12]; }
 
 	// accel bias (states 13, 14, 15)
 	Vector3f getAccelBias() const { return _state.delta_vel_bias / _dt_ekf_avg; } // get the accelerometer bias in m/s**2
 	Vector3f getAccelBiasVariance() const { return Vector3f{P(13, 13), P(14, 14), P(15, 15)} / sq(_dt_ekf_avg); } // get the accelerometer bias variance in m/s**2
 	float getAccelBiasLimit() const { return _params.acc_bias_lim; }
+	bool accelBiasInhibited() const { return _state_inhibited[13] || _state_inhibited[14] || _state_inhibited[15]; }
 
 	// mag bias (states 19, 20, 21)
 	const Vector3f &getMagBias() const { return _state.mag_B; }
-	Vector3f getMagBiasVariance() const
-	{
-		if (_control_status.flags.mag_3D) {
-			return Vector3f{P(19, 19), P(20, 20), P(21, 21)};
-		}
-
-		return _saved_mag_bf_variance;
-	}
+	Vector3f getMagBiasVariance() const { return Vector3f{P(19, 19), P(20, 20), P(21, 21)}; }
 	float getMagBiasLimit() const { return 0.5f; } // 0.5 Gauss
-
-	bool accel_bias_inhibited() const { return _accel_bias_inhibit[0] || _accel_bias_inhibit[1] || _accel_bias_inhibit[2]; }
+	bool magBiasInhibited() const { return _state_inhibited[19] || _state_inhibited[20] || _state_inhibited[21]; }
 
 	const auto &state_reset_status() const { return _state_reset_status; }
 
@@ -467,6 +463,8 @@ private:
 	Vector3f _ang_rate_delayed_raw{};	///< uncorrected angular rate vector at fusion time horizon (rad/sec)
 
 	stateSample _state{};		///< state struct of the ekf running at the delayed time horizon
+
+	px4::Bitset<_k_num_states> _state_inhibited{};
 
 	bool _filter_initialised{false};	///< true when the EKF sttes and covariances been initialised
 
@@ -611,18 +609,13 @@ private:
 	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
 	uint64_t _time_last_mov_3d_mag_suitable{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
-	Vector3f _saved_mag_bf_variance {}; ///< magnetic field state variances that have been saved for use at the next initialisation (Gauss**2)
-	Matrix2f _saved_mag_ef_ne_covmat{}; ///< NE magnetic field state covariance sub-matrix saved for use at the next initialisation (Gauss**2)
-	float _saved_mag_ef_d_variance{};   ///< D magnetic field state variance saved for use at the next initialisation (Gauss**2)
 
 	gps_check_fail_status_u _gps_check_fail_status{};
 
 	// variables used to inhibit accel bias learning
-	bool _accel_bias_inhibit[3] {};		///< true when the accel bias learning is being inhibited for the specified axis
 	Vector3f _accel_vec_filt{};		///< acceleration vector after application of a low pass filter (m/sec**2)
 	float _accel_magnitude_filt{0.0f};	///< acceleration magnitude after application of a decaying envelope filter (rad/sec)
 	float _ang_rate_magnitude_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
-	Vector3f _prev_dvel_bias_var{};		///< saved delta velocity XYZ bias variances (m/sec)**2
 
 	// Terrain height state estimation
 	float _terrain_vpos{0.0f};		///< estimated vertical position of the terrain underneath the vehicle in local NED frame (m)
@@ -836,9 +829,9 @@ private:
 	template <size_t ...Idxs>
 	bool measurementUpdate(Vector24f &K, const SparseVector24f<Idxs...> &H, float innovation)
 	{
-		for (unsigned i = 0; i < 3; i++) {
-			if (_accel_bias_inhibit[i]) {
-				K(13 + i) = 0.0f;
+		for (unsigned i = 0; i < _k_num_states; i++) {
+			if (_state_inhibited[i]) {
+				K(i) = 0.f;
 			}
 		}
 
@@ -1022,12 +1015,6 @@ private:
 	// Increase the yaw error variance of the quaternions
 	// Argument is additional yaw variance in rad**2
 	void increaseQuatYawErrVariance(float yaw_variance);
-
-	// load and save mag field state covariance data for re-use
-	void loadMagCovData();
-	void saveMagCovData();
-	void clearMagCov();
-	void zeroMagCov();
 
 	void resetZDeltaAngBiasCov();
 
