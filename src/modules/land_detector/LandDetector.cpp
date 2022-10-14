@@ -57,6 +57,7 @@ LandDetector::LandDetector() :
 	_land_detected.has_low_throttle = false;
 	_land_detected.vertical_movement = false;
 	_land_detected.horizontal_movement = false;
+	_land_detected.rotational_movement = false;
 	_land_detected.close_to_ground_or_skipped_check = true;
 	_land_detected.at_rest = true;
 }
@@ -174,6 +175,7 @@ void LandDetector::Run()
 		_land_detected.has_low_throttle = _get_has_low_throttle();
 		_land_detected.horizontal_movement = _get_horizontal_movement();
 		_land_detected.vertical_movement = _get_vertical_movement();
+		_land_detected.rotational_movement = _get_rotational_movement();
 		_land_detected.close_to_ground_or_skipped_check = _get_close_to_ground_or_skipped_check();
 		_land_detected.at_rest = at_rest;
 		_land_detected.timestamp = hrt_absolute_time();
