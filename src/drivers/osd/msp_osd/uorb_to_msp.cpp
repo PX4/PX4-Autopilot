@@ -261,7 +261,7 @@ msp_status_BF_t construct_STATUS(const vehicle_status_s &vehicle_status)
 			break;
 
 		default:
-			status_BF.flight_mode_flags = 0;
+			status_BF.flight_mode_flags |= 0;
 			break;
 		}
 	}
@@ -277,10 +277,9 @@ msp_analog_t construct_ANALOG(const battery_status_s &battery_status, const inpu
 	msp_analog_t analog {0};
 
 	analog.vbat = battery_status.voltage_v * 10; // bottom right... v * 10
-	analog.rssi = (uint16_t)((input_rc.rssi * 1023.0f) / 100.0f);
+	analog.rssi = (uint16_t)((input_rc.link_quality * 1023.0f) / 100.0f);
 	analog.amperage = battery_status.current_a * 100; // main amperage
 	analog.mAhDrawn = battery_status.discharged_mah; // unused
-
 	return analog;
 }
 
@@ -290,8 +289,8 @@ msp_battery_state_t construct_BATTERY_STATE(const battery_status_s &battery_stat
 	msp_battery_state_t battery_state = {0};
 
 	// MSP_BATTERY_STATE
-	battery_state.amperage = battery_status.current_a; // not used?
-	battery_state.batteryVoltage = (uint16_t)(battery_status.voltage_v * 400.0f);  // OK
+	battery_state.amperage = battery_status.current_a * 100.0f; // Used for power element
+	battery_state.batteryVoltage = (uint16_t)((battery_status.voltage_v / battery_status.cell_count) * 400.0f);  // OK
 	battery_state.mAhDrawn = battery_status.discharged_mah ; // OK
 	battery_state.batteryCellCount = battery_status.cell_count;
 	battery_state.batteryCapacity = battery_status.capacity; // not used?
@@ -318,13 +317,23 @@ msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
 		raw_gps.lat = vehicle_gps_position.lat;
 		raw_gps.lon = vehicle_gps_position.lon;
 		raw_gps.alt =  vehicle_gps_position.alt / 10;
-		//raw_gps.groundCourse = vehicle_gps_position_struct
+
+		float course = math::degrees(vehicle_gps_position.cog_rad);
+
+		if (course < 0) {
+			course += 360.0f;
+		}
+
+		raw_gps.groundCourse = course * 100.0f; // centidegrees
 
 	} else {
 		raw_gps.lat = 0;
 		raw_gps.lon = 0;
 		raw_gps.alt = 0;
+		raw_gps.groundCourse = 0; // centidegrees
 	}
+
+	raw_gps.groundCourse = 0; // centidegrees
 
 	if (vehicle_gps_position.fix_type == 0
 	    || vehicle_gps_position.fix_type == 1) {
@@ -367,20 +376,24 @@ msp_comp_gps_t construct_COMP_GPS(const home_position_s &home_position,
 	if (home_position.valid_hpos
 	    && home_position.valid_lpos
 	    && estimator_status.solution_status_flags & (1 << 4)) {
-		float bearing_to_home = get_bearing_to_next_waypoint(vehicle_global_position.lat,
-					vehicle_global_position.lon,
-					home_position.lat, home_position.lon);
+		float bearing_to_home = math::degrees(get_bearing_to_next_waypoint(vehicle_global_position.lat,
+						      vehicle_global_position.lon,
+						      home_position.lat, home_position.lon));
+
+		if (bearing_to_home < 0) {
+			bearing_to_home += 360.0f;
+		}
 
 		float distance_to_home = get_distance_to_next_waypoint(vehicle_global_position.lat,
 					 vehicle_global_position.lon,
 					 home_position.lat, home_position.lon);
 
 		comp_gps.distanceToHome = (int16_t)distance_to_home; // meters
-		comp_gps.directionToHome = bearing_to_home; // degrees
+		comp_gps.directionToHome = bearing_to_home;
 
 	} else {
 		comp_gps.distanceToHome = 0; // meters
-		comp_gps.directionToHome = 0; // degrees
+		comp_gps.directionToHome = 0;
 	}
 
 	comp_gps.heartbeat = heartbeat;
@@ -396,7 +409,17 @@ msp_attitude_t construct_ATTITUDE(const vehicle_attitude_s &vehicle_attitude)
 	matrix::Eulerf euler_attitude(matrix::Quatf(vehicle_attitude.q));
 	attitude.pitch = math::degrees(euler_attitude.theta()) * 10;
 	attitude.roll = math::degrees(euler_attitude.phi()) * 10;
-	attitude.yaw = math::degrees(euler_attitude.psi()) * 10;
+	//attitude.yaw = math::degrees(euler_attitude.psi()) * 10;
+
+	float yaw_fixed = math::degrees(euler_attitude.psi());
+
+	if (yaw_fixed < 0) {
+		yaw_fixed += 360.0f;
+	}
+
+	attitude.yaw = yaw_fixed;
+
+	//attitude.yaw = 360;
 
 	return attitude;
 }

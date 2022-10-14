@@ -37,9 +37,9 @@ parameters:
                 16: (unused) PITCH_ANGLE
                 17: (unused) ROLL_ANGLE
                 18: (unused) CROSSHAIRS
-                19: (unused) AVG_CELL_VOLTAGE
+                19: AVG_CELL_VOLTAGE
                 20: (unused) HORIZON_SIDEBARS
-                21: (unused) POWER
+                21: POWER
             default: 16383
 
         # OSD Log Level
