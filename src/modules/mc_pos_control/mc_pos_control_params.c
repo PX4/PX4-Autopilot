@@ -448,10 +448,11 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
 
 /**
- * Land crawl descend rate. Used below
+ * Land crawl descend rate. Used below MPC_LAND_ALT3 if distance
+ * sensor data is availabe.
  *
  * @unit m/s
- * @min 0.3
+ * @min 0.1
  * @decimal 1
  * @group Multicopter Position Control
  */
