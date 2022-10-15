@@ -79,6 +79,9 @@ void Ekf::controlFakePosFusion()
 				}
 			}
 		}
+
+	} else if (_control_status.flags.fake_pos && isHorizontalAidingActive()) {
+		stopFakePosFusion();
 	}
 }
 

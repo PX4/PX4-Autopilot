@@ -101,9 +101,9 @@ public:
 	void getAuxVelInnovVar(float aux_vel_innov[2]) const;
 	void getAuxVelInnovRatio(float &aux_vel_innov_ratio) const { aux_vel_innov_ratio = math::max(_aid_src_aux_vel.test_ratio[0], _aid_src_aux_vel.test_ratio[1]); }
 
-	void getFlowInnov(float flow_innov[2]) const { _flow_innov.copyTo(flow_innov); }
-	void getFlowInnovVar(float flow_innov_var[2]) const { _flow_innov_var.copyTo(flow_innov_var); }
-	void getFlowInnovRatio(float &flow_innov_ratio) const { flow_innov_ratio = _optflow_test_ratio; }
+	void getFlowInnov(float flow_innov[2]) const;
+	void getFlowInnovVar(float flow_innov_var[2]) const;
+	void getFlowInnovRatio(float &flow_innov_ratio) const { flow_innov_ratio = math::max(_aid_src_optical_flow.test_ratio[0], _aid_src_optical_flow.test_ratio[1]); }
 
 	const Vector2f &getFlowVelBody() const { return _flow_vel_body; }
 	const Vector2f &getFlowVelNE() const { return _flow_vel_ne; }
@@ -437,6 +437,8 @@ public:
 
 	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
 
+	const auto &aid_src_optical_flow() const { return _aid_src_optical_flow; }
+
 private:
 
 	// set the internal states and status to their default value
@@ -497,7 +499,6 @@ private:
 	uint64_t _time_last_ver_vel_fuse{0};	///< time the last fusion of verticalvelocity measurements was performed (uSec)
 	uint64_t _time_last_heading_fuse{0};
 
-	uint64_t _time_last_of_fuse{0};		///< time the last fusion of optical flow measurements were performed (uSec)
 	uint64_t _time_last_flow_terrain_fuse{0}; ///< time the last fusion of optical flow measurements for terrain estimation were performed (uSec)
 	uint64_t _time_last_zero_velocity_fuse{0}; ///< last time of zero velocity update (uSec)
 	uint64_t _time_last_healthy_rng_data{0};
@@ -540,8 +541,6 @@ private:
 	float _hagl_innov_var{0.0f};		///< innovation variance for the last height above terrain measurement (m**2)
 
 	// optical flow processing
-	Vector2f _flow_innov{};		///< flow measurement innovation (rad/sec)
-	Vector2f _flow_innov_var{};	///< flow innovation variance ((rad/sec)**2)
 	Vector3f _flow_gyro_bias{};	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
 	Vector2f _flow_vel_body{};	///< velocity from corrected flow measurement (body frame)(m/s)
 	Vector2f _flow_vel_ne{};		///< velocity from corrected flow measurement (local frame) (m/s)
@@ -550,7 +549,6 @@ private:
 	float _delta_time_of{0.0f};	///< time in sec that _imu_del_ang_of was accumulated over (sec)
 	uint64_t _time_bad_motion_us{0};	///< last system time that on-ground motion exceeded limits (uSec)
 	uint64_t _time_good_motion_us{0};	///< last system time that on-ground motion was within limits (uSec)
-	bool _inhibit_flow_use{false};	///< true when use of optical flow and range finder is being inhibited
 	Vector2f _flow_compensated_XY_rad{};	///< measured delta angle of the image about the X and Y body axes after removal of body rotation (rad), RH rotation is positive
 
 	estimator_aid_source_1d_s _aid_src_baro_hgt{};
@@ -575,6 +573,8 @@ private:
 	estimator_aid_source_3d_s _aid_src_mag{};
 
 	estimator_aid_source_2d_s _aid_src_aux_vel{};
+
+	estimator_aid_source_2d_s _aid_src_optical_flow{};
 
 	// output predictor states
 	Vector3f _delta_angle_corr{};	///< delta angle correction vector (rad)
@@ -708,7 +708,7 @@ private:
 	void resetVerticalVelocityTo(float new_vert_vel);
 
 	void resetVelocityToGps(const gpsSample &gps_sample);
-	void resetHorizontalVelocityToOpticalFlow();
+	void resetHorizontalVelocityToOpticalFlow(const flowSample &flow_sample);
 	void resetVelocityToVision();
 	void resetHorizontalVelocityToZero();
 
@@ -732,6 +732,7 @@ private:
 	void resetVerticalVelocityToZero();
 
 	// fuse optical flow line of sight rate measurements
+	void updateOptFlow(estimator_aid_source_2d_s &aid_src);
 	void fuseOptFlow();
 
 	// horizontal and vertical position aid source
@@ -992,7 +993,7 @@ private:
 	float getRngHeightVariance() const;
 
 	// calculate the measurement variance for the optical flow sensor
-	float calcOptFlowMeasVar();
+	float calcOptFlowMeasVar(const flowSample &flow_sample);
 
 	// rotate quaternion covariances into variances for an equivalent rotation vector
 	Vector3f calcRotVecVariances();

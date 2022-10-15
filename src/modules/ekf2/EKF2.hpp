@@ -285,6 +285,8 @@ private:
 
 	hrt_abstime _status_aux_vel_pub_last{0};
 
+	hrt_abstime _status_optical_flow_pub_last{0};
+
 	float _last_baro_bias_published{};
 	float _last_gnss_hgt_bias_published{};
 	float _last_rng_hgt_bias_published{};
@@ -373,6 +375,8 @@ private:
 	uORB::PublicationMulti<estimator_aid_source_3d_s> _estimator_aid_src_mag_pub{ORB_ID(estimator_aid_src_mag)};
 
 	uORB::PublicationMulti<estimator_aid_source_2d_s> _estimator_aid_src_aux_vel_pub{ORB_ID(estimator_aid_src_aux_vel)};
+
+	uORB::PublicationMulti<estimator_aid_source_2d_s> _estimator_aid_src_optical_flow_pub{ORB_ID(estimator_aid_src_optical_flow)};
 
 	// publications with topic dependent on multi-mode
 	uORB::PublicationMulti<vehicle_attitude_s>           _attitude_pub;

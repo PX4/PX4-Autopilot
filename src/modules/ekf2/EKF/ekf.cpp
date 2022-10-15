@@ -206,7 +206,6 @@ bool Ekf::initialiseFilter()
 	_time_last_hor_vel_fuse = _imu_sample_delayed.time_us;
 	_time_last_hagl_fuse = _imu_sample_delayed.time_us;
 	_time_last_flow_terrain_fuse = _imu_sample_delayed.time_us;
-	_time_last_of_fuse = _imu_sample_delayed.time_us;
 
 	// reset the output predictor state history to match the EKF initial values
 	alignOutputFilter();
@@ -239,7 +238,7 @@ bool Ekf::initialiseTilt()
 void Ekf::predictState()
 {
 	// apply imu bias corrections
-	const Vector3f delta_ang_bias_scaled = (_state.delta_ang_bias / _dt_ekf_avg) * _imu_sample_delayed.delta_ang_dt;
+	const Vector3f delta_ang_bias_scaled = getGyroBias() * _imu_sample_delayed.delta_ang_dt;
 	Vector3f corrected_delta_ang = _imu_sample_delayed.delta_ang - delta_ang_bias_scaled;
 
 	// subtract component of angular rate due to earth rotation
@@ -252,7 +251,7 @@ void Ekf::predictState()
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// Calculate an earth frame delta velocity
-	const Vector3f delta_vel_bias_scaled = (_state.delta_vel_bias / _dt_ekf_avg) * _imu_sample_delayed.delta_vel_dt;
+	const Vector3f delta_vel_bias_scaled = getAccelBias() * _imu_sample_delayed.delta_vel_dt;
 	const Vector3f corrected_delta_vel = _imu_sample_delayed.delta_vel - delta_vel_bias_scaled;
 	const Vector3f corrected_delta_vel_ef = _R_to_earth * corrected_delta_vel;
 
@@ -306,7 +305,7 @@ void Ekf::calculateOutputStates(const imuSample &imu)
 	// Use full rate IMU data at the current time horizon
 
 	// correct delta angles for bias offsets
-	const Vector3f delta_ang_bias_scaled = (_state.delta_ang_bias / _dt_ekf_avg) * imu.delta_ang_dt;
+	const Vector3f delta_ang_bias_scaled = getGyroBias() * imu.delta_ang_dt;
 
 	// Apply corrections to the delta angle required to track the quaternion states at the EKF fusion time horizon
 	const Vector3f delta_angle(imu.delta_ang - delta_ang_bias_scaled + _delta_angle_corr);
@@ -517,7 +516,7 @@ Quatf Ekf::calculate_quaternion() const
 {
 	// Correct delta angle data for bias errors using bias state estimates from the EKF and also apply
 	// corrections required to track the EKF quaternion states
-	const Vector3f delta_ang_bias_scaled = (_state.delta_ang_bias / _dt_ekf_avg) * _newest_high_rate_imu_sample.delta_ang_dt;
+	const Vector3f delta_ang_bias_scaled = getGyroBias() * _newest_high_rate_imu_sample.delta_ang_dt;
 
 	const Vector3f delta_angle{_newest_high_rate_imu_sample.delta_ang - delta_ang_bias_scaled + _delta_angle_corr};
 

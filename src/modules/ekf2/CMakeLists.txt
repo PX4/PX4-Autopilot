@@ -104,6 +104,7 @@ px4_add_module(
 		EKF/imu_down_sampler.cpp
 		EKF/mag_control.cpp
 		EKF/mag_fusion.cpp
+		EKF/optical_flow_control.cpp
 		EKF/optflow_fusion.cpp
 		EKF/range_finder_consistency_check.cpp
 		EKF/range_height_control.cpp
