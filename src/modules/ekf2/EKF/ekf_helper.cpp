@@ -52,7 +52,7 @@ void Ekf::resetVelocityToGps(const gpsSample &gps_sample)
 	P.uncorrelateCovarianceSetVariance<3>(4, sq(gps_sample.sacc));
 }
 
-void Ekf::resetHorizontalVelocityToOpticalFlow()
+void Ekf::resetHorizontalVelocityToOpticalFlow(const flowSample &flow_sample)
 {
 	_information_events.flags.reset_vel_to_flow = true;
 	ECL_INFO("reset velocity to flow");
@@ -66,8 +66,8 @@ void Ekf::resetHorizontalVelocityToOpticalFlow()
 		// we should have reliable OF measurements so
 		// calculate X and Y body relative velocities from OF measurements
 		Vector3f vel_optflow_body;
-		vel_optflow_body(0) = - range * _flow_compensated_XY_rad(1) / _flow_sample_delayed.dt;
-		vel_optflow_body(1) =   range * _flow_compensated_XY_rad(0) / _flow_sample_delayed.dt;
+		vel_optflow_body(0) = - range * _flow_compensated_XY_rad(1) / flow_sample.dt;
+		vel_optflow_body(1) =   range * _flow_compensated_XY_rad(0) / flow_sample.dt;
 		vel_optflow_body(2) = 0.0f;
 
 		// rotate from body to earth frame
@@ -80,7 +80,7 @@ void Ekf::resetHorizontalVelocityToOpticalFlow()
 	}
 
 	// reset the horizontal velocity variance using the optical flow noise variance
-	P.uncorrelateCovarianceSetVariance<2>(4, sq(range) * calcOptFlowMeasVar());
+	P.uncorrelateCovarianceSetVariance<2>(4, sq(range) * calcOptFlowMeasVar(flow_sample));
 }
 
 void Ekf::resetVelocityToVision()
@@ -172,13 +172,14 @@ void Ekf::resetHorizontalPositionToVision()
 void Ekf::resetHorizontalPositionToOpticalFlow()
 {
 	_information_events.flags.reset_pos_to_last_known = true;
-	ECL_INFO("reset position to last known position");
 
 	if (!_control_status.flags.in_air) {
+		ECL_INFO("reset horizontal position to (0, 0)");
 		// we are likely starting OF for the first time so reset the horizontal position
 		resetHorizontalPositionTo(Vector2f(0.f, 0.f));
 
 	} else {
+		ECL_INFO("reset horizontal position to last known");
 		resetHorizontalPositionTo(_last_known_pos.xy());
 	}
 
@@ -623,6 +624,18 @@ void Ekf::getAuxVelInnovVar(float aux_vel_innov_var[2]) const
 	aux_vel_innov_var[1] = _aid_src_aux_vel.innovation_variance[1];
 }
 
+void Ekf::getFlowInnov(float flow_innov[2]) const
+{
+	flow_innov[0] = _aid_src_optical_flow.innovation[0];
+	flow_innov[1] = _aid_src_optical_flow.innovation[1];
+}
+
+void Ekf::getFlowInnovVar(float flow_innov_var[2]) const
+{
+	flow_innov_var[0] = _aid_src_optical_flow.innovation_variance[0];
+	flow_innov_var[1] = _aid_src_optical_flow.innovation_variance[1];
+}
+
 // get the state vector at the delayed time horizon
 matrix::Vector<float, 24> Ekf::getStateAtFusionHorizonAsVector() const
 {
@@ -761,7 +774,7 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 
 		if (_control_status.flags.opt_flow) {
 			float gndclearance = math::max(_params.rng_gnd_clearance, 0.1f);
-			vel_err_conservative = math::max((_terrain_vpos - _state.pos(2)), gndclearance) * _flow_innov.norm();
+			vel_err_conservative = math::max((_terrain_vpos - _state.pos(2)), gndclearance) * Vector2f(_aid_src_optical_flow.innovation).norm();
 		}
 
 		if (_control_status.flags.gps) {
@@ -927,7 +940,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	}
 
 	if (isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow)) {
-		float of_vel = sqrtf(_optflow_test_ratio);
+		float of_vel = sqrtf(Vector2f(_aid_src_optical_flow.test_ratio).max());
 		vel = math::max(of_vel, FLT_MIN);
 	}
 
@@ -1040,7 +1053,7 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 				  && (isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
 				      || isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max));
 
-	const bool optFlowAiding = _control_status.flags.opt_flow && isRecent(_time_last_of_fuse, _params.no_aid_timeout_max);
+	const bool optFlowAiding = _control_status.flags.opt_flow && isRecent(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max);
 
 	const bool airDataAiding = _control_status.flags.wind &&
 				   isRecent(_aid_src_airspeed.time_last_fuse, _params.no_aid_timeout_max) &&
@@ -1618,9 +1631,8 @@ void Ekf::stopFlowFusion()
 	if (_control_status.flags.opt_flow) {
 		ECL_INFO("stopping optical flow fusion");
 		_control_status.flags.opt_flow = false;
-		_flow_innov.setZero();
-		_flow_innov_var.setZero();
-		_optflow_test_ratio = 0.0f;
+
+		resetEstimatorAidStatus(_aid_src_optical_flow);
 	}
 }
 

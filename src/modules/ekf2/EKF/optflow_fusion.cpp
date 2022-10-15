@@ -47,23 +47,10 @@
 #include <float.h>
 #include "utils.hpp"
 
-void Ekf::fuseOptFlow()
+void Ekf::updateOptFlow(estimator_aid_source_2d_s &aid_src)
 {
-	float gndclearance = fmaxf(_params.rng_gnd_clearance, 0.1f);
-
-	// get latest estimated orientation
-	const float q0 = _state.quat_nominal(0);
-	const float q1 = _state.quat_nominal(1);
-	const float q2 = _state.quat_nominal(2);
-	const float q3 = _state.quat_nominal(3);
-
-	// get latest velocity in earth frame
-	const float vn = _state.vel(0);
-	const float ve = _state.vel(1);
-	const float vd = _state.vel(2);
-
-	// calculate the optical flow observation variance
-	const float R_LOS = calcOptFlowMeasVar();
+	resetEstimatorAidStatus(aid_src);
+	aid_src.timestamp_sample = _flow_sample_delayed.time_us;
 
 	// get rotation matrix from earth to body
 	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
@@ -81,35 +68,64 @@ void Ekf::fuseOptFlow()
 	// rotate into body frame
 	const Vector3f vel_body = earth_to_body * vel_rel_earth;
 
-	// height above ground of the IMU
-	float heightAboveGndEst = _terrain_vpos - _state.pos(2);
-
 	// calculate the sensor position relative to the IMU in earth frame
 	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 
 	// calculate the height above the ground of the optical flow camera. Since earth frame is NED
 	// a positive offset in earth frame leads to a smaller height above the ground.
-	heightAboveGndEst -= pos_offset_earth(2);
-
-	// constrain minimum height above ground
-	heightAboveGndEst = math::max(heightAboveGndEst, gndclearance);
+	const float height_above_gnd_est = math::max(_terrain_vpos - _state.pos(2) - pos_offset_earth(2), fmaxf(_params.rng_gnd_clearance, 0.01f));
 
 	// calculate range from focal point to centre of image
-	const float range = heightAboveGndEst / earth_to_body(2, 2); // absolute distance to the frame region in view
+	const float range = height_above_gnd_est / earth_to_body(2, 2); // absolute distance to the frame region in view
 
 	// calculate optical LOS rates using optical flow rates that have had the body angular rate contribution removed
 	// correct for gyro bias errors in the data used to do the motion compensation
 	// Note the sign convention used: A positive LOS rate is a RH rotation of the scene about that axis.
-	const Vector2f opt_flow_rate = _flow_compensated_XY_rad / _flow_sample_delayed.dt + Vector2f(_flow_gyro_bias);
+	const Vector2f opt_flow_rate = _flow_compensated_XY_rad / _flow_sample_delayed.dt;
 
-	// compute the velocities in body and local frames from corrected optical flow measurement
-	// for logging only
+	// compute the velocities in body and local frames from corrected optical flow measurement for logging only
 	_flow_vel_body(0) = -opt_flow_rate(1) * range;
-	_flow_vel_body(1) = opt_flow_rate(0) * range;
+	_flow_vel_body(1) =  opt_flow_rate(0) * range;
 	_flow_vel_ne = Vector2f(_R_to_earth * Vector3f(_flow_vel_body(0), _flow_vel_body(1), 0.f));
 
-	_flow_innov(0) =  vel_body(1) / range - opt_flow_rate(0); // flow around the X axis
-	_flow_innov(1) = -vel_body(0) / range - opt_flow_rate(1); // flow around the Y axis
+	aid_src.observation[0] = opt_flow_rate(0); // flow around the X axis
+	aid_src.observation[1] = opt_flow_rate(1); // flow around the Y axis
+
+	aid_src.innovation[0] =  (vel_body(1) / range) - aid_src.observation[0];
+	aid_src.innovation[1] = (-vel_body(0) / range) - aid_src.observation[1];
+
+	// calculate the optical flow observation variance
+	const float R_LOS = calcOptFlowMeasVar(_flow_sample_delayed);
+	aid_src.observation_variance[0] = R_LOS;
+	aid_src.observation_variance[1] = R_LOS;
+}
+
+void Ekf::fuseOptFlow()
+{
+	_aid_src_optical_flow.fusion_enabled = true;
+
+	const float R_LOS = _aid_src_optical_flow.observation_variance[0];
+
+	// get latest estimated orientation
+	const float q0 = _state.quat_nominal(0);
+	const float q1 = _state.quat_nominal(1);
+	const float q2 = _state.quat_nominal(2);
+	const float q3 = _state.quat_nominal(3);
+
+	// get latest velocity in earth frame
+	const float vn = _state.vel(0);
+	const float ve = _state.vel(1);
+	const float vd = _state.vel(2);
+
+	// calculate the height above the ground of the optical flow camera. Since earth frame is NED
+	// a positive offset in earth frame leads to a smaller height above the ground.
+	const Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
+	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+	const float height_above_gnd_est = math::max(_terrain_vpos - _state.pos(2) - pos_offset_earth(2), fmaxf(_params.rng_gnd_clearance, 0.01f));
+
+	// calculate range from focal point to centre of image
+	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
+	const float range = height_above_gnd_est / earth_to_body(2, 2); // absolute distance to the frame region in view
 
 	// The derivation allows for an arbitrary body to flow sensor frame rotation which is
 	// currently not supported by the EKF, so assume sensor frame is aligned with the
@@ -170,14 +186,14 @@ void Ekf::fuseOptFlow()
 	// const float HK50 = HK4/(HK25*HK43*HK46 + HK33*HK43*HK45 + HK37*HK43*HK44 + HK38*HK42*HK43 + HK39*HK43*HK49 + HK40*HK43*HK47 + HK41*HK43*HK48 + R_LOS);
 
 	// calculate innovation variance for X axis observation and protect against a badly conditioned calculation
-	_flow_innov_var(0) = (HK25*HK43*HK46 + HK33*HK43*HK45 + HK37*HK43*HK44 + HK38*HK42*HK43 + HK39*HK43*HK49 + HK40*HK43*HK47 + HK41*HK43*HK48 + R_LOS);
+	_aid_src_optical_flow.innovation_variance[0] = (HK25*HK43*HK46 + HK33*HK43*HK45 + HK37*HK43*HK44 + HK38*HK42*HK43 + HK39*HK43*HK49 + HK40*HK43*HK47 + HK41*HK43*HK48 + R_LOS);
 
-	if (_flow_innov_var(0) < R_LOS) {
+	if (_aid_src_optical_flow.innovation_variance[0] < R_LOS) {
 		// we need to reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
 		return;
 	}
-	const float HK50 = HK4/_flow_innov_var(0);
+	const float HK50 = HK4 / _aid_src_optical_flow.innovation_variance[0];
 
 	const float HK51 = Tbs(0,1)*q1;
 	const float HK52 = Tbs(0,2)*q0;
@@ -226,110 +242,102 @@ void Ekf::fuseOptFlow()
 	// const float HK95 = HK4/(HK43*HK74*HK90 + HK43*HK77*HK89 + HK43*HK79*HK88 + HK43*HK80*HK87 + HK66*HK92*HK94 + HK68*HK91*HK92 + HK70*HK92*HK93 + R_LOS);
 
 	// calculate innovation variance for Y axis observation and protect against a badly conditioned calculation
-	_flow_innov_var(1) = (HK43*HK74*HK90 + HK43*HK77*HK89 + HK43*HK79*HK88 + HK43*HK80*HK87 + HK66*HK92*HK94 + HK68*HK91*HK92 + HK70*HK92*HK93 + R_LOS);
-	if (_flow_innov_var(1) < R_LOS) {
+	_aid_src_optical_flow.innovation_variance[1] = (HK43*HK74*HK90 + HK43*HK77*HK89 + HK43*HK79*HK88 + HK43*HK80*HK87 + HK66*HK92*HK94 + HK68*HK91*HK92 + HK70*HK92*HK93 + R_LOS);
+	if (_aid_src_optical_flow.innovation_variance[1] < R_LOS) {
 		// we need to reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
 		return;
 	}
-	const float HK95 = HK4/_flow_innov_var(1);
 
+	const float HK95 = HK4 / _aid_src_optical_flow.innovation_variance[1];
 
 	// run the innovation consistency check and record result
-	bool all_innovation_checks_passed = true;
-	float test_ratio[2];
-	test_ratio[0] = sq(_flow_innov(0)) / (sq(math::max(_params.flow_innov_gate, 1.0f)) * _flow_innov_var(0));
-	test_ratio[1] = sq(_flow_innov(1)) / (sq(math::max(_params.flow_innov_gate, 1.0f)) * _flow_innov_var(1));
-	_optflow_test_ratio = math::max(test_ratio[0], test_ratio[1]);
+	setEstimatorAidStatusTestRatio(_aid_src_optical_flow, math::max(_params.flow_innov_gate, 1.f));
 
-	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
-		const bool innov_check_fail = (test_ratio[obs_index] > 1.0f);
-
-		if (innov_check_fail) {
-			all_innovation_checks_passed = false;
-		}
-
-		if (obs_index == 0) {
-			_innov_check_fail_status.flags.reject_optflow_X = innov_check_fail;
-
-		} else {
-			_innov_check_fail_status.flags.reject_optflow_Y = innov_check_fail;
-		}
-	}
+	_innov_check_fail_status.flags.reject_optflow_X = (_aid_src_optical_flow.test_ratio[0] > 1.f);
+	_innov_check_fail_status.flags.reject_optflow_Y = (_aid_src_optical_flow.test_ratio[1] > 1.f);
 
 	// if either axis fails we abort the fusion
-	if (!all_innovation_checks_passed) {
+	if (_aid_src_optical_flow.innovation_rejected) {
 		return;
-
 	}
 
+	bool fused[2] {false, false};
+
 	// fuse observation axes sequentially
-	SparseVector24f<0,1,2,3,4,5,6> Hfusion; // Optical flow observation Jacobians
-	Vector24f Kfusion; // Optical flow Kalman gains
+	{
+		// Optical flow observation Jacobians - axis 0
+		SparseVector24f<0,1,2,3,4,5,6> Hfusion;
+		Hfusion.at<0>() = HK3*HK5;
+		Hfusion.at<1>() = HK5*HK7;
+		Hfusion.at<2>() = HK5*HK8;
+		Hfusion.at<3>() = HK5*HK9;
+		Hfusion.at<4>() = HK25*HK4;
+		Hfusion.at<5>() = HK33*HK4;
+		Hfusion.at<6>() = HK37*HK4;
 
-	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
+		// Optical flow Kalman gains - axis 0
+		Vector24f Kfusion;
+		Kfusion(0) = HK42*HK50;
+		Kfusion(1) = HK49*HK50;
+		Kfusion(2) = HK47*HK50;
+		Kfusion(3) = HK48*HK50;
+		Kfusion(4) = HK46*HK50;
+		Kfusion(5) = HK45*HK50;
+		Kfusion(6) = HK44*HK50;
 
-		// calculate observation Jocobians and Kalman gains
-		if (obs_index == 0) {
-			// Observation Jacobians - axis 0
-			Hfusion.at<0>() = HK3*HK5;
-			Hfusion.at<1>() = HK5*HK7;
-			Hfusion.at<2>() = HK5*HK8;
-			Hfusion.at<3>() = HK5*HK9;
-			Hfusion.at<4>() = HK25*HK4;
-			Hfusion.at<5>() = HK33*HK4;
-			Hfusion.at<6>() = HK37*HK4;
+		for (unsigned row = 7; row <= 23; row++) {
+			Kfusion(row) = HK50*(HK25*P(4,row) + HK33*P(5,row) + HK37*P(6,row) + HK38*P(0,row) + HK39*P(1,row) + HK40*P(2,row) + HK41*P(3,row));
+		}
 
-			// Kalman gains - axis 0
-			Kfusion(0) = HK42*HK50;
-			Kfusion(1) = HK49*HK50;
-			Kfusion(2) = HK47*HK50;
-			Kfusion(3) = HK48*HK50;
-			Kfusion(4) = HK46*HK50;
-			Kfusion(5) = HK45*HK50;
-			Kfusion(6) = HK44*HK50;
-
-			for (unsigned row = 7; row <= 23; row++) {
-				Kfusion(row) = HK50*(HK25*P(4,row) + HK33*P(5,row) + HK37*P(6,row) + HK38*P(0,row) + HK39*P(1,row) + HK40*P(2,row) + HK41*P(3,row));
-			}
+		if (measurementUpdate(Kfusion, Hfusion, _aid_src_optical_flow.innovation[0])) {
+			fused[0] = true;
+			_fault_status.flags.bad_optflow_X = false;
 
 		} else {
-			// Observation Jacobians - axis 1
-			Hfusion.at<0>() = -HK5*HK63;
-			Hfusion.at<1>() = -HK5*HK66;
-			Hfusion.at<2>() = -HK5*HK68;
-			Hfusion.at<3>() = -HK5*HK70;
-			Hfusion.at<4>() = -HK4*HK74;
-			Hfusion.at<5>() = -HK4*HK77;
-			Hfusion.at<6>() = -HK4*HK79;
+			_fault_status.flags.bad_optflow_X = true;
+			return;
+		}
+	}
 
-			// Kalman gains - axis 1
-			Kfusion(0) = -HK87*HK95;
-			Kfusion(1) = -HK94*HK95;
-			Kfusion(2) = -HK91*HK95;
-			Kfusion(3) = -HK93*HK95;
-			Kfusion(4) = -HK90*HK95;
-			Kfusion(5) = -HK89*HK95;
-			Kfusion(6) = -HK88*HK95;
+	{
+		// Optical flow observation Jacobians - axis 1
+		SparseVector24f<0,1,2,3,4,5,6> Hfusion;
+		Hfusion.at<0>() = -HK5*HK63;
+		Hfusion.at<1>() = -HK5*HK66;
+		Hfusion.at<2>() = -HK5*HK68;
+		Hfusion.at<3>() = -HK5*HK70;
+		Hfusion.at<4>() = -HK4*HK74;
+		Hfusion.at<5>() = -HK4*HK77;
+		Hfusion.at<6>() = -HK4*HK79;
 
-			for (unsigned row = 7; row <= 23; row++) {
-				Kfusion(row) = -HK95*(HK80*P(0,row) + HK81*P(1,row) + HK82*P(2,row) + HK83*P(3,row) + HK84*P(4,row) + HK85*P(5,row) + HK86*P(6,row));
-			}
+		// Optical flow Kalman gains - axis 1
+		Vector24f Kfusion;
+		Kfusion(0) = -HK87*HK95;
+		Kfusion(1) = -HK94*HK95;
+		Kfusion(2) = -HK91*HK95;
+		Kfusion(3) = -HK93*HK95;
+		Kfusion(4) = -HK90*HK95;
+		Kfusion(5) = -HK89*HK95;
+		Kfusion(6) = -HK88*HK95;
 
+		for (unsigned row = 7; row <= 23; row++) {
+			Kfusion(row) = -HK95*(HK80*P(0,row) + HK81*P(1,row) + HK82*P(2,row) + HK83*P(3,row) + HK84*P(4,row) + HK85*P(5,row) + HK86*P(6,row));
 		}
 
-		const bool is_fused = measurementUpdate(Kfusion, Hfusion, _flow_innov(obs_index));
+		if (measurementUpdate(Kfusion, Hfusion, _aid_src_optical_flow.innovation[1])) {
+			fused[1] = true;
+			_fault_status.flags.bad_optflow_Y = false;
 
-		if (obs_index == 0) {
-			_fault_status.flags.bad_optflow_X = !is_fused;
-
-		} else if (obs_index == 1) {
-			_fault_status.flags.bad_optflow_Y = !is_fused;
+		} else {
+			_fault_status.flags.bad_optflow_Y = true;
+			return;
 		}
+	}
 
-		if (is_fused) {
-			_time_last_of_fuse = _imu_sample_delayed.time_us;
-		}
+	if (fused[0] && fused[1]) {
+		_aid_src_optical_flow.time_last_fuse = _imu_sample_delayed.time_us;
+		_aid_src_optical_flow.fused = true;
 	}
 }
 
@@ -337,13 +345,6 @@ void Ekf::fuseOptFlow()
 // returns false if bias corrected body rate data is unavailable
 bool Ekf::calcOptFlowBodyRateComp()
 {
-	// reset the accumulators if the time interval is too large
-	if (_delta_time_of > 1.0f) {
-		_imu_del_ang_of.setZero();
-		_delta_time_of = 0.0f;
-		return false;
-	}
-
 	bool is_body_rate_comp_available = false;
 	const bool use_flow_sensor_gyro = PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(0)) && PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(1)) && PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(2));
 
@@ -362,6 +363,9 @@ bool Ekf::calcOptFlowBodyRateComp()
 			// calculate the bias estimate using  a combined LPF and spike filter
 			_flow_gyro_bias = _flow_gyro_bias * 0.99f + matrix::constrain(measured_body_rate - reference_body_rate, -0.1f, 0.1f) * 0.01f;
 
+			// apply gyro bias
+			_flow_sample_delayed.gyro_xyz -= (_flow_gyro_bias * _flow_sample_delayed.dt);
+
 			is_body_rate_comp_available = true;
 		}
 
@@ -370,6 +374,7 @@ bool Ekf::calcOptFlowBodyRateComp()
 		// for clarification of the sign see definition of flowSample and imuSample in common.h
 		if ((_delta_time_of > FLT_EPSILON)
 		    && (_flow_sample_delayed.dt > FLT_EPSILON)) {
+
 			_flow_sample_delayed.gyro_xyz = -_imu_del_ang_of / _delta_time_of * _flow_sample_delayed.dt;
 			_flow_gyro_bias.zero();
 
@@ -384,25 +389,24 @@ bool Ekf::calcOptFlowBodyRateComp()
 }
 
 // calculate the measurement variance for the optical flow sensor (rad/sec)^2
-float Ekf::calcOptFlowMeasVar()
+float Ekf::calcOptFlowMeasVar(const flowSample &flow_sample)
 {
 	// calculate the observation noise variance - scaling noise linearly across flow quality range
 	const float R_LOS_best = fmaxf(_params.flow_noise, 0.05f);
 	const float R_LOS_worst = fmaxf(_params.flow_noise_qual_min, 0.05f);
 
 	// calculate a weighting that varies between 1 when flow quality is best and 0 when flow quality is worst
-	float weighting = (255.0f - (float)_params.flow_qual_min);
+	float weighting = (255.f - (float)_params.flow_qual_min);
 
-	if (weighting >= 1.0f) {
-		weighting = math::constrain(((float)_flow_sample_delayed.quality - (float)_params.flow_qual_min) / weighting, 0.0f,
-					    1.0f);
+	if (weighting >= 1.f) {
+		weighting = math::constrain((float)(flow_sample.quality - _params.flow_qual_min) / weighting, 0.f, 1.f);
 
 	} else {
 		weighting = 0.0f;
 	}
 
 	// take the weighted average of the observation noise for the best and wort flow quality
-	const float R_LOS = sq(R_LOS_best * weighting + R_LOS_worst * (1.0f - weighting));
+	const float R_LOS = sq(R_LOS_best * weighting + R_LOS_worst * (1.f - weighting));
 
 	return R_LOS;
 }

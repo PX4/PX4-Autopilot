@@ -55,6 +55,7 @@ add_library(ecl_EKF
 	imu_down_sampler.cpp
 	mag_control.cpp
 	mag_fusion.cpp
+	optical_flow_control.cpp
 	optflow_fusion.cpp
 	range_finder_consistency_check.cpp
 	range_height_control.cpp

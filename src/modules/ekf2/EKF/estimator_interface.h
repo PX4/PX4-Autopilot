@@ -342,7 +342,6 @@ protected:
 	// innovation consistency check monitoring ratios
 	AlphaFilter<float> _gnss_yaw_signed_test_ratio_lpf{0.1f}; // average signed test ratio used to detect a bias in the state
 
-	float _optflow_test_ratio{};		// Optical flow innovation consistency check ratio
 	float _hagl_test_ratio{};		// height above terrain measurement innovation consistency check ratio
 	Vector2f _drag_test_ratio{};		// drag innovation consistency check ratio
 	innovation_fault_status_u _innov_check_fail_status{};
