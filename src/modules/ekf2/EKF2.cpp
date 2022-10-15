@@ -747,6 +747,9 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 
 	// aux velocity
 	PublishAidSourceStatus(_ekf.aid_src_aux_vel(), _status_aux_vel_pub_last, _estimator_aid_src_aux_vel_pub);
+
+	// optical flow
+	PublishAidSourceStatus(_ekf.aid_src_optical_flow(), _status_optical_flow_pub_last, _estimator_aid_src_optical_flow_pub);
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
@@ -1531,9 +1534,12 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 
 void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 {
-	if (_ekf.getFlowCompensated().longerThan(0.f)) {
+	const hrt_abstime timestamp_sample = _ekf.aid_src_optical_flow().timestamp_sample;
+
+	if ((timestamp_sample != 0) && (timestamp_sample > _status_optical_flow_pub_last)) {
+
 		vehicle_optical_flow_vel_s flow_vel{};
-		flow_vel.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
+		flow_vel.timestamp_sample = _ekf.aid_src_optical_flow().timestamp_sample;
 
 		_ekf.getFlowVelBody().copyTo(flow_vel.vel_body);
 		_ekf.getFlowVelNE().copyTo(flow_vel.vel_ne);
