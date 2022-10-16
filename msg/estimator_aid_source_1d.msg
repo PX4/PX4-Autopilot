@@ -18,6 +18,8 @@ bool fusion_enabled          # true when measurements are being fused
 bool innovation_rejected     # true if the observation has been rejected
 bool fused                   # true if the sample was successfully fused
 
+uint8 state_reset
+
 # TOPICS estimator_aid_source_1d
 # TOPICS estimator_aid_src_baro_hgt estimator_aid_src_ev_hgt estimator_aid_src_gnss_hgt estimator_aid_src_rng_hgt
 # TOPICS estimator_aid_src_airspeed estimator_aid_src_sideslip

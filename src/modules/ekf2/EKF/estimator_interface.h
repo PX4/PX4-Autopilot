@@ -44,9 +44,9 @@
 
 #if defined(MODULE_NAME)
 #include <px4_platform_common/log.h>
-# define ECL_INFO PX4_DEBUG
-# define ECL_WARN PX4_DEBUG
-# define ECL_ERR  PX4_DEBUG
+# define ECL_INFO PX4_INFO
+# define ECL_WARN PX4_WARN
+# define ECL_ERR  PX4_ERR
 # define ECL_DEBUG PX4_DEBUG
 #else
 # define ECL_INFO(X, ...) printf(X "\n", ##__VA_ARGS__)
@@ -239,14 +239,6 @@ public:
 	const innovation_fault_status_u &innov_check_fail_status() const { return _innov_check_fail_status; }
 	const decltype(innovation_fault_status_u::flags) &innov_check_fail_status_flags() const { return _innov_check_fail_status.flags; }
 
-	const warning_event_status_u &warning_event_status() const { return _warning_events; }
-	const decltype(warning_event_status_u::flags) &warning_event_flags() const { return _warning_events.flags; }
-	void clear_warning_events() { _warning_events.value = 0; }
-
-	const information_event_status_u &information_event_status() const { return _information_events; }
-	const decltype(information_event_status_u::flags) &information_event_flags() const { return _information_events.flags; }
-	void clear_information_events() { _information_events.value = 0; }
-
 	// Getter for the average imu update period in s
 	float get_dt_imu_avg() const { return _dt_imu_avg; }
 
@@ -398,11 +390,6 @@ protected:
 	filter_control_status_u _control_status_prev{};
 
 	virtual float compensateBaroForDynamicPressure(const float baro_alt_uncompensated) const = 0;
-
-	// these are used to record single frame events for external monitoring and should NOT be used for
-	// state logic becasue they will be cleared externally after being read.
-	warning_event_status_u _warning_events{};
-	information_event_status_u _information_events{};
 
 private:
 

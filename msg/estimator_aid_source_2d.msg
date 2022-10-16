@@ -18,6 +18,8 @@ bool fusion_enabled          # true when measurements are being fused
 bool innovation_rejected     # true if the observation has been rejected
 bool fused                   # true if the sample was successfully fused
 
+uint8 state_reset
+
 # TOPICS estimator_aid_source_2d
 # TOPICS estimator_aid_src_ev_pos estimator_aid_src_fake_pos estimator_aid_src_gnss_pos
 # TOPICS estimator_aid_src_aux_vel

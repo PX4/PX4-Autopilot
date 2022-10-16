@@ -79,7 +79,7 @@ void Ekf::controlFakeHgtFusion()
 
 		} else {
 			if (starting_conditions_passing) {
-				ECL_INFO("start fake height fusion");
+				ECL_DEBUG("start fake height fusion");
 				_control_status.flags.fake_hgt = true;
 				resetFakeHgtFusion();
 			}
@@ -92,26 +92,25 @@ void Ekf::controlFakeHgtFusion()
 
 void Ekf::resetFakeHgtFusion()
 {
-	ECL_INFO("reset fake height fusion");
+	ECL_DEBUG("reset fake height fusion");
 	_last_known_pos(2) = _state.pos(2);
 
 	resetVerticalVelocityToZero();
 	resetHeightToLastKnown();
-
+	_aid_src_fake_hgt.state_reset++;
 	_aid_src_fake_hgt.time_last_fuse = _imu_sample_delayed.time_us;
 }
 
 void Ekf::resetHeightToLastKnown()
 {
-	_information_events.flags.reset_pos_to_last_known = true;
-	ECL_INFO("reset height to last known");
+	ECL_DEBUG("reset height to last known");
 	resetVerticalPositionTo(_last_known_pos(2), sq(_params.pos_noaid_noise));
 }
 
 void Ekf::stopFakeHgtFusion()
 {
 	if (_control_status.flags.fake_hgt) {
-		ECL_INFO("stop fake height fusion");
+		ECL_DEBUG("stop fake height fusion");
 		_control_status.flags.fake_hgt = false;
 
 		resetEstimatorAidStatus(_aid_src_fake_hgt);

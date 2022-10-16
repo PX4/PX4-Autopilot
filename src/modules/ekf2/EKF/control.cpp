@@ -79,8 +79,8 @@ void Ekf::controlFusionModes()
 			}
 
 			if (height_source) {
-				ECL_INFO("%llu: EKF aligned, (%s hgt, IMU buf: %i, OBS buf: %i)",
-					 (unsigned long long)_imu_sample_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
+				ECL_DEBUG("EKF aligned, (%s hgt, IMU buf: %i, OBS buf: %i)",
+					height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
 			}
 		}
 	}
@@ -424,8 +424,7 @@ void Ekf::controlExternalVisionFusion()
 
 		// Turn off EV fusion mode if no data has been received
 		stopEvFusion();
-		_warning_events.flags.vision_data_stopped = true;
-		ECL_WARN("vision data stopped");
+		ECL_DEBUG("vision data stopped");
 	}
 }
 
@@ -528,7 +527,7 @@ void Ekf::controlOpticalFlowFusion()
 			// If the heading is valid and use is not inhibited , start using optical flow aiding
 			if (_control_status.flags.yaw_align || _params.mag_fusion_type == MagFuseType::NONE) {
 				// set the flag and reset the fusion timeout
-				ECL_INFO("starting optical flow fusion");
+				ECL_DEBUG("starting optical flow fusion");
 				_control_status.flags.opt_flow = true;
 				_time_last_of_fuse = _imu_sample_delayed.time_us;
 
@@ -728,7 +727,7 @@ void Ekf::controlAirDataFusion()
 		}
 
 	} else if (_control_status.flags.fuse_aspd && !isRecent(_airspeed_sample_delayed.time_us, (uint64_t)1e6)) {
-		ECL_WARN("Airspeed data stopped");
+		ECL_DEBUG("Airspeed data stopped");
 		stopAirspeedFusion();
 	}
 }

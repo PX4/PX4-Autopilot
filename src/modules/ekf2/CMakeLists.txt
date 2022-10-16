@@ -129,6 +129,7 @@ px4_add_module(
 	)
 
 if(BUILD_TESTING)
+	add_definitions(-DDEBUG_BUILD)
 	add_subdirectory(EKF)
 	add_subdirectory(test)
 endif()

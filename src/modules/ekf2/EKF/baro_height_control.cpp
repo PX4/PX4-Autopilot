@@ -125,41 +125,41 @@ void Ekf::controlBaroHeightFusion()
 
 				if (isHeightResetRequired()) {
 					// All height sources are failing
-					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
+					ECL_DEBUG("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
-					_information_events.flags.reset_hgt_to_baro = true;
 					resetVerticalPositionTo(-(_baro_lpf.getState() - bias_est.getBias()), measurement_var);
 					bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
 
 					// reset vertical velocity
 					resetVerticalVelocityToZero();
 
+					aid_src.state_reset++;
 					aid_src.time_last_fuse = _imu_sample_delayed.time_us;
 
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
-					ECL_WARN("stopping %s height fusion, fusion failing", HGT_SRC_NAME);
+					ECL_DEBUG("stopping %s height fusion, fusion failing", HGT_SRC_NAME);
 					stopBaroHgtFusion();
 					_baro_hgt_faulty = true;
 				}
 
 			} else {
-				ECL_WARN("stopping %s height fusion, continuing conditions failing", HGT_SRC_NAME);
+				ECL_DEBUG("stopping %s height fusion, continuing conditions failing", HGT_SRC_NAME);
 				stopBaroHgtFusion();
 			}
 
 		} else {
 			if (starting_conditions_passing) {
 				if (_params.height_sensor_ref == HeightSensor::BARO) {
-					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
+					ECL_DEBUG("starting %s height fusion, resetting height", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::BARO;
 
-					_information_events.flags.reset_hgt_to_baro = true;
+					aid_src.state_reset++;
 					resetVerticalPositionTo(-(_baro_lpf.getState() - bias_est.getBias()), measurement_var);
 					bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
 
 				} else {
-					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);
+					ECL_DEBUG("starting %s height fusion", HGT_SRC_NAME);
 					bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
 				}
 
@@ -172,7 +172,7 @@ void Ekf::controlBaroHeightFusion()
 	} else if (_control_status.flags.baro_hgt
 		   && !isNewestSampleRecent(_time_last_baro_buffer_push, 2 * BARO_MAX_INTERVAL)) {
 		// No data anymore. Stop until it comes back.
-		ECL_WARN("stopping %s height fusion, no data", HGT_SRC_NAME);
+		ECL_DEBUG("stopping %s height fusion, no data", HGT_SRC_NAME);
 		stopBaroHgtFusion();
 	}
 }
