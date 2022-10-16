@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# @name 3DR Iris Quadrotor SITL
+#
+# @type Quadrotor Wide
+#
+# @maintainer Julian Oes <julian@oes.ch>
+#
+
+. ${R}etc/init.d/rc.heli_defaults
+
+
+# Disable PID gains for initial setup. These should be enabled after setting the FF gain.
+# P is expected to be lower than FF.
+param set-default MC_ROLLRATE_P 0
+param set-default MC_ROLLRATE_I 0
+param set-default MC_ROLLRATE_D 0
+param set-default MC_ROLLRATE_FF 0.1
+param set-default MC_PITCHRATE_P 0
+param set-default MC_PITCHRATE_I 0
+param set-default MC_PITCHRATE_D 0
+param set-default MC_PITCHRATE_FF 0.1
+
+param set-default CA_AIRFRAME 10
+param set-default CA_HELI_YAW_CCW 1
+param set-default CA_SP0_ANG0 0
+param set-default CA_SP0_ANG1 120
+param set-default CA_SP0_ANG2 240
+
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 201
+param set-default PWM_MAIN_FUNC4 202
+param set-default PWM_MAIN_FUNC5 203

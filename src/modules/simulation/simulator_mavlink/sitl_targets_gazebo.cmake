@@ -68,6 +68,7 @@ set(models
 	boat
 	cloudship
 	glider
+	helicopter
 	iris
 	iris_dual_gps
 	iris_foggy_lidar
