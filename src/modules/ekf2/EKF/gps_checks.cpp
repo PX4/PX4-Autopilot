@@ -103,8 +103,7 @@ bool Ekf::collect_gps(const gpsMessage &gps)
 		_gps_origin_eph = gps.eph;
 		_gps_origin_epv = gps.epv;
 
-		_information_events.flags.gps_checks_passed = true;
-		ECL_INFO("GPS checks passed");
+		ECL_DEBUG("GPS checks passed");
 
 	} else if (!_NED_origin_initialised) {
 		// a rough 2D fix is still sufficient to lookup declination

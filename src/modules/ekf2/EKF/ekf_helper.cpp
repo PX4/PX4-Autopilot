@@ -46,16 +46,16 @@
 
 void Ekf::resetVelocityToGps(const gpsSample &gps_sample)
 {
-	_information_events.flags.reset_vel_to_gps = true;
-	ECL_INFO("reset velocity to GPS");
+	_aid_src_gnss_vel.state_reset++;
+	ECL_DEBUG("reset velocity to GPS");
 	resetVelocityTo(gps_sample.vel);
 	P.uncorrelateCovarianceSetVariance<3>(4, sq(gps_sample.sacc));
 }
 
 void Ekf::resetHorizontalVelocityToOpticalFlow()
 {
-	_information_events.flags.reset_vel_to_flow = true;
-	ECL_INFO("reset velocity to flow");
+	// _aid_src_optical_flow.state_reset++; // TODO:
+	ECL_DEBUG("reset velocity to flow");
 	// constrain height above ground to be above minimum possible
 	const float heightAboveGndEst = fmaxf((_terrain_vpos - _state.pos(2)), _params.rng_gnd_clearance);
 
@@ -85,16 +85,15 @@ void Ekf::resetHorizontalVelocityToOpticalFlow()
 
 void Ekf::resetVelocityToVision()
 {
-	_information_events.flags.reset_vel_to_vision = true;
-	ECL_INFO("reset to vision velocity");
+	_aid_src_ev_vel.state_reset++;
+	ECL_DEBUG("reset to vision velocity");
 	resetVelocityTo(getVisionVelocityInEkfFrame());
 	P.uncorrelateCovarianceSetVariance<3>(4, getVisionVelocityVarianceInEkfFrame());
 }
 
 void Ekf::resetHorizontalVelocityToZero()
 {
-	_information_events.flags.reset_vel_to_zero = true;
-	ECL_INFO("reset velocity to zero");
+	ECL_DEBUG("reset velocity to zero");
 	// Used when falling back to non-aiding mode of operation
 	resetHorizontalVelocityTo(Vector2f{0.f, 0.f});
 	P.uncorrelateCovarianceSetVariance<2>(4, 25.0f);
@@ -150,16 +149,16 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var)
 
 void Ekf::resetHorizontalPositionToGps(const gpsSample &gps_sample)
 {
-	_information_events.flags.reset_pos_to_gps = true;
-	ECL_INFO("reset position to GPS");
+	_aid_src_gnss_pos.state_reset++;
+	ECL_DEBUG("reset position to GPS");
 	resetHorizontalPositionTo(gps_sample.pos);
 	P.uncorrelateCovarianceSetVariance<2>(7, sq(gps_sample.hacc));
 }
 
 void Ekf::resetHorizontalPositionToVision()
 {
-	_information_events.flags.reset_pos_to_vision = true;
-	ECL_INFO("reset position to ev position");
+	_aid_src_ev_pos.state_reset++;
+	ECL_DEBUG("reset position to ev position");
 	Vector3f _ev_pos = _ev_sample_delayed.pos;
 
 	if (_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS) {
@@ -175,8 +174,8 @@ void Ekf::resetHorizontalPositionToVision()
 
 void Ekf::resetHorizontalPositionToOpticalFlow()
 {
-	_information_events.flags.reset_pos_to_last_known = true;
-	ECL_INFO("reset position to last known position");
+	//_aid_src_optical_flow.state_reset++; // TODO
+	ECL_DEBUG("reset position to last known position");
 
 	if (!_control_status.flags.in_air) {
 		// we are likely starting OF for the first time so reset the horizontal position
@@ -192,8 +191,7 @@ void Ekf::resetHorizontalPositionToOpticalFlow()
 
 void Ekf::resetHorizontalPositionToLastKnown()
 {
-	_information_events.flags.reset_pos_to_last_known = true;
-	ECL_INFO("reset position to last known position");
+	ECL_DEBUG("reset position to last known position");
 	// Used when falling back to non-aiding mode of operation
 	resetHorizontalPositionTo(_last_known_pos.xy());
 	P.uncorrelateCovarianceSetVariance<2>(7, sq(_params.pos_noaid_noise));
@@ -335,14 +333,12 @@ bool Ekf::realignYawGPS(const Vector3f &mag)
 
 	// correct yaw angle using GPS ground course if compass yaw bad or yaw is previously not aligned
 	if (badMagYaw || !_control_status.flags.yaw_align) {
-		_warning_events.flags.bad_yaw_using_gps_course = true;
-		ECL_WARN("bad yaw, using GPS course");
+		ECL_ERR("bad yaw, using GPS course");
 
 		// declare the magnetometer as failed if a bad yaw has occurred more than once
 		if (_control_status.flags.mag_aligned_in_flight && (_num_bad_flight_yaw_events >= 2)
 		    && !_control_status.flags.mag_fault) {
-			_warning_events.flags.stopping_mag_use = true;
-			ECL_WARN("stopping mag use");
+			ECL_DEBUG("stopping mag use");
 			_control_status.flags.mag_fault = true;
 		}
 
@@ -1057,7 +1053,7 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 	if (!_horizontal_deadreckon_time_exceeded && deadreckon_time_exceeded) {
 		// deadreckon time now exceeded
-		ECL_WARN("dead reckon time exceeded");
+		ECL_DEBUG("dead reckon time exceeded");
 	}
 
 	_horizontal_deadreckon_time_exceeded = deadreckon_time_exceeded;
@@ -1265,7 +1261,7 @@ void Ekf::startMagHdgFusion()
 {
 	if (!_control_status.flags.mag_hdg) {
 		stopMag3DFusion();
-		ECL_INFO("starting mag heading fusion");
+		ECL_DEBUG("starting mag heading fusion");
 		_control_status.flags.mag_hdg = true;
 	}
 }
@@ -1459,8 +1455,7 @@ void Ekf::startGpsFusion(const gpsSample &gps_sample)
 			resetVelocityToGps(gps_sample);
 		}
 
-		_information_events.flags.starting_gps_fusion = true;
-		ECL_INFO("starting GPS fusion");
+		ECL_DEBUG("starting GPS fusion");
 		_control_status.flags.gps = true;
 	}
 }
@@ -1486,7 +1481,7 @@ void Ekf::stopGpsFusion()
 void Ekf::stopGpsPosFusion()
 {
 	if (_control_status.flags.gps) {
-		ECL_INFO("stopping GPS position fusion");
+		ECL_DEBUG("stopping GPS position fusion");
 		_control_status.flags.gps = false;
 
 		resetEstimatorAidStatus(_aid_src_gnss_pos);
@@ -1495,7 +1490,7 @@ void Ekf::stopGpsPosFusion()
 
 void Ekf::stopGpsVelFusion()
 {
-	ECL_INFO("stopping GPS velocity fusion");
+	ECL_DEBUG("stopping GPS velocity fusion");
 
 	resetEstimatorAidStatus(_aid_src_gnss_vel);
 }
@@ -1503,7 +1498,7 @@ void Ekf::stopGpsVelFusion()
 void Ekf::startGpsYawFusion(const gpsSample &gps_sample)
 {
 	if (!_control_status.flags.gps_yaw && resetYawToGps(gps_sample.yaw)) {
-		ECL_INFO("starting GPS yaw fusion");
+		ECL_DEBUG("starting GPS yaw fusion");
 		_control_status.flags.yaw_align = true;
 		_control_status.flags.mag_dec = false;
 		stopEvYawFusion();
@@ -1516,7 +1511,7 @@ void Ekf::startGpsYawFusion(const gpsSample &gps_sample)
 void Ekf::stopGpsYawFusion()
 {
 	if (_control_status.flags.gps_yaw) {
-		ECL_INFO("stopping GPS yaw fusion");
+		ECL_DEBUG("stopping GPS yaw fusion");
 		_control_status.flags.gps_yaw = false;
 		resetEstimatorAidStatus(_aid_src_gnss_yaw);
 	}
@@ -1526,16 +1521,14 @@ void Ekf::startEvPosFusion()
 {
 	_control_status.flags.ev_pos = true;
 	resetHorizontalPositionToVision();
-	_information_events.flags.starting_vision_pos_fusion = true;
-	ECL_INFO("starting vision pos fusion");
+	ECL_DEBUG("starting vision pos fusion");
 }
 
 void Ekf::startEvVelFusion()
 {
 	_control_status.flags.ev_vel = true;
 	resetVelocityToVision();
-	_information_events.flags.starting_vision_vel_fusion = true;
-	ECL_INFO("starting vision vel fusion");
+	ECL_DEBUG("starting vision vel fusion");
 }
 
 void Ekf::startEvYawFusion()
@@ -1547,8 +1540,7 @@ void Ekf::startEvYawFusion()
 	stopMagHdgFusion();
 	stopMag3DFusion();
 
-	_information_events.flags.starting_vision_yaw_fusion = true;
-	ECL_INFO("starting vision yaw fusion");
+	ECL_DEBUG("starting vision yaw fusion");
 }
 
 void Ekf::stopEvFusion()
@@ -1561,7 +1553,7 @@ void Ekf::stopEvFusion()
 void Ekf::stopEvPosFusion()
 {
 	if (_control_status.flags.ev_pos) {
-		ECL_INFO("stopping EV pos fusion");
+		ECL_DEBUG("stopping EV pos fusion");
 		_control_status.flags.ev_pos = false;
 		resetEstimatorAidStatus(_aid_src_ev_pos);
 	}
@@ -1570,7 +1562,7 @@ void Ekf::stopEvPosFusion()
 void Ekf::stopEvVelFusion()
 {
 	if (_control_status.flags.ev_vel) {
-		ECL_INFO("stopping EV vel fusion");
+		ECL_DEBUG("stopping EV vel fusion");
 		_control_status.flags.ev_vel = false;
 		resetEstimatorAidStatus(_aid_src_ev_vel);
 	}
@@ -1579,14 +1571,14 @@ void Ekf::stopEvVelFusion()
 void Ekf::stopEvYawFusion()
 {
 	if (_control_status.flags.ev_yaw) {
-		ECL_INFO("stopping EV yaw fusion");
+		ECL_DEBUG("stopping EV yaw fusion");
 		_control_status.flags.ev_yaw = false;
 	}
 }
 
 void Ekf::stopAuxVelFusion()
 {
-	ECL_INFO("stopping aux vel fusion");
+	ECL_DEBUG("stopping aux vel fusion");
 	//_control_status.flags.aux_vel = false;
 	resetEstimatorAidStatus(_aid_src_aux_vel);
 }
@@ -1594,7 +1586,7 @@ void Ekf::stopAuxVelFusion()
 void Ekf::stopFlowFusion()
 {
 	if (_control_status.flags.opt_flow) {
-		ECL_INFO("stopping optical flow fusion");
+		ECL_DEBUG("stopping optical flow fusion");
 		_control_status.flags.opt_flow = false;
 		_flow_innov.setZero();
 		_flow_innov_var.setZero();
@@ -1661,11 +1653,9 @@ bool Ekf::resetYawToEKFGSF()
 		// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
 		// and cause another navigation failure
 		_control_status.flags.mag_fault = true;
-		_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
 
 	} else if (_control_status.flags.gps_yaw) {
 		_control_status.flags.gps_yaw_fault = true;
-		_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
 
 	} else if (_control_status.flags.ev_yaw) {
 		_inhibit_ev_yaw_use = true;

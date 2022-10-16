@@ -69,7 +69,6 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/estimator_bias.h>
-#include <uORB/topics/estimator_event_flags.h>
 #include <uORB/topics/estimator_gps_status.h>
 #include <uORB/topics/estimator_innovations.h>
 #include <uORB/topics/estimator_sensor_bias.h>
@@ -145,7 +144,6 @@ private:
 	void PublishEvHgtBias(const hrt_abstime &timestamp);
 	estimator_bias_s fillEstimatorBiasMsg(const BiasEstimator::status &status, uint64_t timestamp_sample_us,
 					      uint64_t timestamp, uint32_t device_id = 0);
-	void PublishEventFlags(const hrt_abstime &timestamp);
 	void PublishGlobalPosition(const hrt_abstime &timestamp);
 	void PublishGpsStatus(const hrt_abstime &timestamp);
 	void PublishInnovations(const hrt_abstime &timestamp);
@@ -320,7 +318,6 @@ private:
 
 	bool _callback_registered{false};
 
-	hrt_abstime _last_event_flags_publish{0};
 	hrt_abstime _last_status_flags_publish{0};
 
 	uint64_t _filter_control_status{0};
@@ -330,15 +327,12 @@ private:
 	uint32_t _filter_control_status_changes{0};
 	uint32_t _filter_fault_status_changes{0};
 	uint32_t _innov_check_fail_status_changes{0};
-	uint32_t _filter_warning_event_changes{0};
-	uint32_t _filter_information_event_changes{0};
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::PublicationMulti<estimator_bias_s>             _estimator_baro_bias_pub{ORB_ID(estimator_baro_bias)};
 	uORB::PublicationMulti<estimator_bias_s>             _estimator_gnss_hgt_bias_pub{ORB_ID(estimator_gnss_hgt_bias)};
 	uORB::PublicationMulti<estimator_bias_s>             _estimator_rng_hgt_bias_pub{ORB_ID(estimator_rng_hgt_bias)};
 	uORB::PublicationMulti<estimator_bias_s>             _estimator_ev_hgt_bias_pub{ORB_ID(estimator_ev_hgt_bias)};
-	uORB::PublicationMultiData<estimator_event_flags_s>  _estimator_event_flags_pub{ORB_ID(estimator_event_flags)};
 	uORB::PublicationMulti<estimator_gps_status_s>       _estimator_gps_status_pub{ORB_ID(estimator_gps_status)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};

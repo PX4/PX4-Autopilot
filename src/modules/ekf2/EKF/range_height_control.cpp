@@ -92,9 +92,9 @@ void Ekf::controlRangeHeightFusion()
 
 				if (isHeightResetRequired()) {
 					// All height sources are failing
-					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
+					ECL_DEBUG("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
-					_information_events.flags.reset_hgt_to_rng = true;
+					aid_src.state_reset++;
 					resetVerticalPositionTo(-(measurement - bias_est.getBias()));
 					bias_est.setBias(_state.pos(2) + measurement);
 
@@ -105,14 +105,14 @@ void Ekf::controlRangeHeightFusion()
 
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
-					ECL_WARN("stopping %s height fusion, fusion failing", HGT_SRC_NAME);
+					ECL_DEBUG("stopping %s height fusion, fusion failing", HGT_SRC_NAME);
 					stopRngHgtFusion();
 					_control_status.flags.rng_fault = true;
 					_range_sensor.setFaulty();
 				}
 
 			} else {
-				ECL_WARN("stopping %s height fusion, continuing conditions failing", HGT_SRC_NAME);
+				ECL_DEBUG("stopping %s height fusion, continuing conditions failing", HGT_SRC_NAME);
 				stopRngHgtFusion();
 			}
 
@@ -120,22 +120,22 @@ void Ekf::controlRangeHeightFusion()
 			if (starting_conditions_passing) {
 				if ((_params.height_sensor_ref == HeightSensor::RANGE) && (_params.rng_ctrl == RngCtrl::CONDITIONAL)) {
 					// Range finder is used while hovering to stabilize the height estimate. Don't reset but use it as height reference.
-					ECL_INFO("starting conditional %s height fusion", HGT_SRC_NAME);
+					ECL_DEBUG("starting conditional %s height fusion", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::RANGE;
 					bias_est.setBias(_state.pos(2) + measurement);
 
 				} else if ((_params.height_sensor_ref == HeightSensor::RANGE) && (_params.rng_ctrl != RngCtrl::CONDITIONAL)) {
 					// Range finder is the primary height source, the ground is now the datum used
 					// to compute the local vertical position
-					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
+					ECL_DEBUG("starting %s height fusion, resetting height", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::RANGE;
 
-					_information_events.flags.reset_hgt_to_rng = true;
+					aid_src.state_reset++;
 					resetVerticalPositionTo(-measurement, measurement_var);
 					bias_est.reset();
 
 				} else {
-					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);
+					ECL_DEBUG("starting %s height fusion", HGT_SRC_NAME);
 					bias_est.setBias(_state.pos(2) + measurement);
 				}
 
@@ -148,7 +148,7 @@ void Ekf::controlRangeHeightFusion()
 	} else if (_control_status.flags.rng_hgt
 		   && !isNewestSampleRecent(_time_last_range_buffer_push, 2 * RNG_MAX_INTERVAL)) {
 		// No data anymore. Stop until it comes back.
-		ECL_WARN("stopping %s height fusion, no data", HGT_SRC_NAME);
+		ECL_DEBUG("stopping %s height fusion, no data", HGT_SRC_NAME);
 		stopRngHgtFusion();
 	}
 }

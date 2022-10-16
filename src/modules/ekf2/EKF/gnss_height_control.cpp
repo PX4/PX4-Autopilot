@@ -108,9 +108,9 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 
 				if (isHeightResetRequired()) {
 					// All height sources are failing
-					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
+					ECL_DEBUG("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
-					_information_events.flags.reset_hgt_to_gps = true;
+					aid_src.state_reset++;
 					resetVerticalPositionTo(-(measurement - bias_est.getBias()), measurement_var);
 					bias_est.setBias(_state.pos(2) + measurement);
 
@@ -127,27 +127,27 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
-					ECL_WARN("stopping %s height fusion, fusion failing", HGT_SRC_NAME);
+					ECL_DEBUG("stopping %s height fusion, fusion failing", HGT_SRC_NAME);
 					stopGpsHgtFusion();
 				}
 
 			} else {
-				ECL_WARN("stopping %s height fusion, continuing conditions failing", HGT_SRC_NAME);
+				ECL_DEBUG("stopping %s height fusion, continuing conditions failing", HGT_SRC_NAME);
 				stopGpsHgtFusion();
 			}
 
 		} else {
 			if (starting_conditions_passing) {
 				if (_params.height_sensor_ref == HeightSensor::GNSS) {
-					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
+					ECL_DEBUG("starting %s height fusion, resetting height", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::GNSS;
 
-					_information_events.flags.reset_hgt_to_gps = true;
+					aid_src.state_reset++;
 					resetVerticalPositionTo(-measurement, measurement_var);
 					bias_est.reset();
 
 				} else {
-					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);
+					ECL_DEBUG("starting %s height fusion", HGT_SRC_NAME);
 					bias_est.setBias(_state.pos(2) + measurement);
 				}
 
@@ -160,7 +160,7 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 	} else if (_control_status.flags.gps_hgt
 		   && !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GPS_MAX_INTERVAL)) {
 		// No data anymore. Stop until it comes back.
-		ECL_WARN("stopping %s height fusion, no data", HGT_SRC_NAME);
+		ECL_DEBUG("stopping %s height fusion, no data", HGT_SRC_NAME);
 		stopGpsHgtFusion();
 	}
 }

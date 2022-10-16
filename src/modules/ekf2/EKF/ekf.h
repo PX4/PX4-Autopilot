@@ -1102,6 +1102,8 @@ private:
 			status.fusion_enabled = false;
 			status.innovation_rejected = true;
 			status.fused = false;
+
+			// preserve status.state_reset
 		}
 	}
 
@@ -1126,6 +1128,8 @@ private:
 			status.fusion_enabled = false;
 			status.innovation_rejected = true;
 			status.fused = false;
+
+			// preserve status.state_reset
 		}
 	}
 

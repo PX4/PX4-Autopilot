@@ -125,7 +125,7 @@ void Ekf::controlGpsFusion()
 							// The minimum time interval between resets to the EKF-GSF estimate is limited to allow the EKF-GSF time
 							// to improve its estimate if the previous reset was not successful.
 							if (resetYawToEKFGSF()) {
-								ECL_WARN("GPS emergency yaw reset");
+								ECL_DEBUG("GPS emergency yaw reset");
 							}
 
 						} else {
@@ -135,8 +135,7 @@ void Ekf::controlGpsFusion()
 								_mag_yaw_reset_req = true;
 							}
 
-							_warning_events.flags.gps_fusion_timout = true;
-							ECL_WARN("GPS fusion timeout - resetting");
+							ECL_DEBUG("GPS fusion timeout - resetting");
 						}
 
 						resetVelocityToGps(gps_sample);
@@ -145,8 +144,7 @@ void Ekf::controlGpsFusion()
 
 				} else {
 					stopGpsFusion();
-					_warning_events.flags.gps_quality_poor = true;
-					ECL_WARN("GPS quality poor - stopping use");
+					ECL_DEBUG("GPS quality poor - stopping use");
 
 					// TODO: move this to EV control logic
 					// Reset position state to external vision if we are going to use absolute values
@@ -180,8 +178,7 @@ void Ekf::controlGpsFusion()
 			} else if (gps_checks_passing && !_control_status.flags.yaw_align && (_params.mag_fusion_type == MagFuseType::NONE)) {
 				// If no mag is used, align using the yaw estimator (if available)
 				if (resetYawToEKFGSF()) {
-					_information_events.flags.yaw_aligned_to_imu_gps = true;
-					ECL_INFO("Yaw aligned using IMU and GPS");
+					ECL_DEBUG("Yaw aligned using IMU and GPS");
 					resetVelocityToGps(gps_sample);
 					resetHorizontalPositionToGps(gps_sample);
 				}
@@ -189,18 +186,16 @@ void Ekf::controlGpsFusion()
 		}
 
 	} else if (_control_status.flags.gps && !isNewestSampleRecent(_time_last_gps_buffer_push, (uint64_t)10e6)) {
+		ECL_DEBUG("GPS data stopped");
 		stopGpsFusion();
-		_warning_events.flags.gps_data_stopped = true;
-		ECL_WARN("GPS data stopped");
 
 	}  else if (_control_status.flags.gps && !isNewestSampleRecent(_time_last_gps_buffer_push, (uint64_t)1e6)
 		    && isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 
 		// Handle the case where we are fusing another position source along GPS,
 		// stop waiting for GPS after 1 s of lost signal
+		ECL_DEBUG("GPS data stopped, using only EV, OF or air data");
 		stopGpsFusion();
-		_warning_events.flags.gps_data_stopped_using_alternate = true;
-		ECL_WARN("GPS data stopped, using only EV, OF or air data");
 	}
 }
 

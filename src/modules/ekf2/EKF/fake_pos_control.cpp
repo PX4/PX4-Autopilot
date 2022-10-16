@@ -93,15 +93,14 @@ void Ekf::controlFakePosFusion()
 
 		} else {
 			if (starting_conditions_passing) {
-				ECL_INFO("start fake position fusion");
+				ECL_DEBUG("start fake position fusion");
 				_control_status.flags.fake_pos = true;
 				_fuse_hpos_as_odom = false; // TODO: needed?
 				resetFakePosFusion();
 
 				if (_control_status.flags.tilt_align) {
 					// The fake position fusion is not started for initial alignement
-					_warning_events.flags.stopping_navigation = true;
-					ECL_WARN("stopping navigation");
+					ECL_DEBUG("stopping navigation");
 				}
 			}
 		}
@@ -113,7 +112,7 @@ void Ekf::controlFakePosFusion()
 
 void Ekf::resetFakePosFusion()
 {
-	ECL_INFO("reset fake position fusion");
+	ECL_DEBUG("reset fake position fusion");
 	_last_known_pos.xy() = _state.pos.xy();
 
 	resetHorizontalPositionToLastKnown();
@@ -125,7 +124,7 @@ void Ekf::resetFakePosFusion()
 void Ekf::stopFakePosFusion()
 {
 	if (_control_status.flags.fake_pos) {
-		ECL_INFO("stop fake position fusion");
+		ECL_DEBUG("stop fake position fusion");
 		_control_status.flags.fake_pos = false;
 
 		resetEstimatorAidStatus(_aid_src_fake_pos);
