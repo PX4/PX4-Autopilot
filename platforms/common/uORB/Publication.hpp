@@ -48,6 +48,11 @@
 namespace uORB
 {
 
+/**
+ * @brief Helper class that returns Queue length of the message struct
+ *
+ * Return 1 if not defined
+ */
 template <typename U> class DefaultQueueSize
 {
 private:
@@ -66,6 +71,9 @@ public:
 	static constexpr unsigned value = get_queue_size<U>(nullptr);
 };
 
+/**
+ * @brief Base class for publication holding ORB_ID and Advertisement handle
+ */
 class PublicationBase
 {
 public:
