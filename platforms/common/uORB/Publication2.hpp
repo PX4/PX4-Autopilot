@@ -72,7 +72,7 @@ protected:
 };
 
 /**
- * uORB publication wrapper class
+ * uORB publication wrapper class templated via ORB_ID enum
  */
 template<ORB_ID T, uint8_t ORB_QSIZE = 1>
 class Publication2 : public Publication2Base
