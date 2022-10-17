@@ -435,15 +435,21 @@ void VehicleOpticalFlow::UpdateSensorGyro()
 	}
 
 	// buffer
-	while (_sensor_gyro_sub.updated()) {
-		const unsigned last_generation = _sensor_gyro_sub.get_last_generation();
+	bool sensor_gyro_lost_printed = false;
+	int gyro_updates = 0;
 
+	while (_sensor_gyro_sub.updated() && (gyro_updates < sensor_gyro_s::ORB_QUEUE_LENGTH)) {
+		gyro_updates++;
+		const unsigned last_generation = _sensor_gyro_sub.get_last_generation();
 		sensor_gyro_s sensor_gyro;
 
 		if (_sensor_gyro_sub.copy(&sensor_gyro)) {
 
 			if (_sensor_gyro_sub.get_last_generation() != last_generation + 1) {
-				PX4_ERR("sensor_gyro lost, generation %u -> %u", last_generation, _sensor_gyro_sub.get_last_generation());
+				if (!sensor_gyro_lost_printed) {
+					PX4_ERR("sensor_gyro lost, generation %u -> %u", last_generation, _sensor_gyro_sub.get_last_generation());
+					sensor_gyro_lost_printed = true;
+				}
 			}
 
 			_gyro_calibration.set_device_id(sensor_gyro.device_id);
