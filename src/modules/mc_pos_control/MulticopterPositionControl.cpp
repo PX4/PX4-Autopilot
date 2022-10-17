@@ -463,23 +463,22 @@ void MulticopterPositionControl::Run()
 				const bool want_takeoff = _vehicle_control_mode.flag_armed
 							  && (vehicle_local_position.timestamp_sample < _setpoint.timestamp + 1_s);
 
-				if (want_takeoff && PX4_ISFINITE(_setpoint.z)
-				    && (_setpoint.z < states.position(2))) {
+				_vehicle_constraints.want_takeoff = false;
 
-					_vehicle_constraints.want_takeoff = true;
+				if (want_takeoff && PX4_ISFINITE(_setpoint.z)) {
+					if (_setpoint.z < states.position(2)) {
+						_vehicle_constraints.want_takeoff = true;
+					}
 
-				} else if (want_takeoff && PX4_ISFINITE(_setpoint.vz)
-					   && (_setpoint.vz < 0.f)) {
+				} else if (want_takeoff && PX4_ISFINITE(_setpoint.vz)) {
+					if (_setpoint.vz < 0.f) {
+						_vehicle_constraints.want_takeoff = true;
+					}
 
-					_vehicle_constraints.want_takeoff = true;
-
-				} else if (want_takeoff && PX4_ISFINITE(_setpoint.acceleration[2])
-					   && (_setpoint.acceleration[2] < 0.f)) {
-
-					_vehicle_constraints.want_takeoff = true;
-
-				} else {
-					_vehicle_constraints.want_takeoff = false;
+				} else if (want_takeoff && PX4_ISFINITE(_setpoint.acceleration[2])) {
+					if (_setpoint.acceleration[2] < 0.f) {
+						_vehicle_constraints.want_takeoff = true;
+					}
 				}
 
 				// override with defaults
