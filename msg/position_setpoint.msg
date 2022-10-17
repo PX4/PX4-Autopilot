@@ -15,7 +15,6 @@ uint8 type			# setpoint type to adjust behavior of position controller
 float32 vx			# local velocity setpoint in m/s in NED
 float32 vy			# local velocity setpoint in m/s in NED
 float32 vz			# local velocity setpoint in m/s in NED
-bool velocity_valid		# true if local velocity setpoint valid
 
 float64 lat			# latitude, in deg
 float64 lon			# longitude, in deg
