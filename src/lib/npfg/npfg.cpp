@@ -573,67 +573,40 @@ void NPFG::navigateWaypoints(const Vector2f &waypoint_A, const Vector2f &waypoin
 	updateRollSetpoint();
 } // navigateWaypoints
 
-void NPFG::navigateLoiter(const Vector2f &loiter_center, const Vector2f &vehicle_pos,
-			  float radius, bool loiter_direction_counter_clockwise, const Vector2f &ground_vel, const Vector2f &wind_vel)
-{
-	path_type_loiter_ = true;
-
-	radius = math::max(radius, MIN_RADIUS);
-
-	const float loiter_direction_multiplier = loiter_direction_counter_clockwise ? -1.f : 1.f;
-
-	Vector2f vector_center_to_vehicle = vehicle_pos - loiter_center;
-	const float dist_to_center = vector_center_to_vehicle.norm();
-
-	// find the direction from the circle center to the closest point on its perimeter
-	// from the vehicle position
-	Vector2f unit_vec_center_to_closest_pt;
-
-	if (dist_to_center < 0.1f) {
-		// the logic breaks down at the circle center, employ some mitigation strategies
-		// until we exit this region
-		if (ground_vel.norm() < 0.1f) {
-			// arbitrarily set the point in the northern top of the circle
-			unit_vec_center_to_closest_pt = Vector2f{1.0f, 0.0f};
-
-		} else {
-			// set the point in the direction we are moving
-			unit_vec_center_to_closest_pt = ground_vel.normalized();
-		}
-
-	} else {
-		// set the point in the direction of the aircraft
-		unit_vec_center_to_closest_pt = vector_center_to_vehicle.normalized();
-	}
-
-	// 90 deg clockwise rotation * loiter direction
-	unit_path_tangent_ = loiter_direction_multiplier * Vector2f{-unit_vec_center_to_closest_pt(1), unit_vec_center_to_closest_pt(0)};
-
-	// positive in direction of path normal
-	signed_track_error_ = -loiter_direction_multiplier * (dist_to_center - radius);
-
-	float path_curvature = loiter_direction_multiplier / radius;
-
-	guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, path_curvature);
-
-	updateRollSetpoint();
-} // navigateLoiter
-
-
 void NPFG::navigatePathTangent(const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &position_setpoint,
 			       const matrix::Vector2f &tangent_setpoint,
 			       const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature)
 {
 	path_type_loiter_ = false;
 
-	// set unit tangent directly
-	unit_path_tangent_ = tangent_setpoint.normalized();
-
 	// closest point to vehicle
-	matrix::Vector2f error_vector = vehicle_pos - position_setpoint;
-	signed_track_error_ = unit_path_tangent_.cross(error_vector);
+	matrix::Vector2f error_vector = position_setpoint - vehicle_pos;
 
-	guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, curvature);
+	if (!PX4_ISFINITE(tangent_setpoint(0)) || !PX4_ISFINITE(tangent_setpoint(1))) {
+		//No valid unit path tangent
+		unit_path_tangent_ = error_vector.normalized();
+		signed_track_error_ = error_vector.norm();
+		guideToPoint(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_);
+
+	} else if (!PX4_ISFINITE(position_setpoint(0)) || !PX4_ISFINITE(position_setpoint(1))) {
+		//No valid position setpoint, velocity reference
+		const float bearing = atan2f(tangent_setpoint(1), tangent_setpoint(0));
+
+		unit_path_tangent_ = Vector2f{cosf(bearing), sinf(bearing)};
+
+		signed_track_error_ = 0.0f;
+
+		// no track error or path curvature to consider, just regulate ground velocity
+		// to bearing vector
+		guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, 0.0f);
+
+	} else {
+		// set unit tangent directly
+		float path_curvature = PX4_ISFINITE(curvature) ? curvature : 0.0f;
+		unit_path_tangent_ = tangent_setpoint.normalized();
+		signed_track_error_ = unit_path_tangent_.cross(error_vector);
+		guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, path_curvature);
+	}
 
 	updateRollSetpoint();
 } // navigatePathTangent

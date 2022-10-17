@@ -88,6 +88,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_path_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
@@ -269,10 +270,14 @@ private:
 	// [us] time at which the plane went in the air
 	hrt_abstime _time_went_in_air{0};
 
-	// MANUAL MODES
-
-	// indicates whether we have completed a manual takeoff in a position control mode
-	bool _completed_manual_takeoff{false};
+	/**
+	 * @brief Last absolute time position control has been called [us]
+	 *
+	 */
+	hrt_abstime _last_time_position_control_called{0};
+	hrt_abstime _last_time_path_handler_called{0};
+	hrt_abstime _path_handler_last_called{0};		///< last call of pathHandler
+	bool _landed{true};
 
 	// [rad] yaw setpoint for manual position mode heading hold
 	float _hdg_hold_yaw{0.0f};
@@ -509,29 +514,55 @@ private:
 	 */
 	uint8_t	handle_setpoint_type(const position_setpoint_s &pos_sp_curr);
 
-	/* automatic control methods */
+	uint8_t		handle_setpoint_type(const uint8_t setpoint_type, const position_setpoint_s &pos_sp_curr);
 
 	/**
-	 * @brief Automatic position control for waypoints, orbits, and velocity control
+	 * @brief Generate path following setpoints from waypoints
 	 *
-	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos Current 2D local position vector of vehicle [m]
-	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_prev previous position setpoint
-	 * @param pos_sp_curr current position setpoint
-	 * @param pos_sp_next next position setpoint
+	 * @param now current time
+	 * @param curr_pos vehicle current position
+	 * @param ground_speed vehicle ground speed [m/s]
+	 * @param pos_sp_prev previous waypoint
+	 * @param pos_sp_curr current waypoint
+	 * @param pos_sp_next next waypoint
+	 * @return vehicle_local_path_setpoint_s path setpoints
 	 */
-	void control_auto(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-			  const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+	vehicle_local_path_setpoint_s pathHandler(const hrt_abstime &now, const Vector2d &curr_pos,
+			const Vector2f &ground_speed,
+			const position_setpoint_s &pos_sp_prev,
+			const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
 
 	/**
-	 * @brief Controls altitude and airspeed for a fixed-bank loiter.
+	 * @brief Get unit tangent of line segments between waypoints
 	 *
-	 * Used as a failsafe mode after a lateral position estimate failure.
-	 *
-	 * @param control_interval Time since last position control call [s]
+	 * @param waypoint_A Current waypoint local position
+	 * @param waypoint_B Previous waypoint local position
+	 * @param vehicle_pos Current vehicle local position
+	 * @return Vector2f Unit tangent vector of the reference line segment
 	 */
-	void control_auto_fixed_bank_alt_hold(const float control_interval);
+	Vector2f	navigateWaypoints(const Vector2f &waypoint_A, const Vector2f &waypoint_B, const Vector2f &vehicle_pos);
+
+	/**
+	 * @brief Fixedwing Auto position flight mode. Vehicle tracks waypoints / path
+	 *
+	 * @param now current time
+	 * @param curr_pos vehicle current local position
+	 * @param ground_speed vehicle ground speed
+	 * @param cruising_throttle cruising throttle of current waypoint
+	 * @param path_sp Reference path setpoint, pos_sp_prev, pos_sp_curr, pos_sp_next will be ignored if a path setpoint is provided
+	 */
+	void		control_auto(const hrt_abstime &now, const Vector2f &curr_pos, const Vector2f &ground_speed,
+				     const float &cruising_throttle, const vehicle_local_path_setpoint_s &path_sp);
+
+	void		control_auto_fixed_bank_alt_hold(const hrt_abstime &now);
+	void		control_auto_descend(const hrt_abstime &now);
+
+	vehicle_local_path_setpoint_s		control_auto_position(const float dt, const Vector2f &curr_pos,
+			const Vector2f &ground_speed,
+			const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	vehicle_local_path_setpoint_s		control_auto_loiter(const float dt, const Vector2d &curr_pos,
+			const Vector2f &ground_speed,
+			const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
 
 	/**
 	 * @brief Control airspeed with a fixed descent rate and roll angle.
@@ -567,16 +598,9 @@ private:
 	void control_auto_loiter(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
 				 const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
 
-	/**
-	 * @brief Controls a desired airspeed, bearing, and height rate.
-	 *
-	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos Current 2D local position vector of vehicle [m]
-	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_curr current position setpoint
-	 */
-	void control_auto_velocity(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-				   const position_setpoint_s &pos_sp_curr);
+	float		get_manual_airspeed_setpoint();
+	float		get_auto_airspeed_setpoint(const float pos_sp_cru_airspeed, const Vector2f &ground_speed,
+			float dt);
 
 	/**
 	 * @brief Controls automatic takeoff.
