@@ -100,3 +100,40 @@ TEST(YawFusionGenerated, gimbalLock321vs312)
 	EXPECT_GT(fabsf(innov_var_321 - innov_var_312), 1e6f);
 	EXPECT_TRUE(innov_var_312 < 5.f && innov_var_312 > R) << "innov_var = " << innov_var_312;
 }
+
+TEST(YawFusionGenerated, positiveVarianceAllOrientations)
+{
+	const float R = sq(radians(10.f));
+	SquareMatrix24f P = createRandomCovarianceMatrix24f();
+
+	Vector24f H;
+	float innov_var;
+
+	// GIVEN: all orientations (90 deg steps)
+	for (float yaw = 0.f; yaw < 2.f * M_PI_F; yaw += M_PI_F / 2.f) {
+		for (float pitch = 0.f; pitch < 2.f * M_PI_F; pitch += M_PI_F / 2.f) {
+			for (float roll = 0.f; roll < 2.f * M_PI_F; roll += M_PI_F / 2.f) {
+				const Quatf q(Eulerf(roll, pitch, yaw));
+				Vector24f state_vector{};
+				state_vector(0) = q(0);
+				state_vector(1) = q(1);
+				state_vector(2) = q(2);
+				state_vector(3) = q(3);
+
+				if (shouldUse321RotationSequence(Dcmf(q))) {
+					sym::ComputeYaw321InnovVarAndH(state_vector, P, R, FLT_EPSILON, &innov_var, &H);
+
+				} else {
+					sym::ComputeYaw312InnovVarAndH(state_vector, P, R, FLT_EPSILON, &innov_var, &H);
+				}
+
+				// THEN: the innovation variance must be positive and finite
+				EXPECT_TRUE(innov_var < 50.f && innov_var > R)
+						<< "yaw = " << degrees(yaw)
+						<< " pitch = " << degrees(pitch)
+						<< " roll = " << degrees(roll)
+						<< " innov_var = " << innov_var;
+			}
+		}
+	}
+}
