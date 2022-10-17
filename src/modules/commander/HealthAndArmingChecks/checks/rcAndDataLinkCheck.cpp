@@ -68,7 +68,7 @@ void RcAndDataLinkChecks::checkAndReport(const Context &context, Report &reporte
 			reporter.setIsPresent(health_component_t::remote_control);
 
 			if (reporter.failsafeFlags().manual_control_signal_lost && _last_valid_manual_control_setpoint > 0) {
-				float elapsed = hrt_elapsed_time(&_last_valid_manual_control_setpoint) * 1e-6f;
+				float elapsed = hrt_elapsed_time(&_last_valid_manual_control_setpoint) * 1e-6f + _param_com_rc_loss_t.get();
 				events::send<float>(events::ID("commander_rc_regained"), events::Log::Info,
 						    "Manual control regained after {1:.1} s", elapsed);
 			}
