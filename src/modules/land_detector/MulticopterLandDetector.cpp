@@ -147,14 +147,15 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	const bool lpos_available = ((time_now_us - _vehicle_local_position.timestamp) < 1_s);
 
 	if (lpos_available && _vehicle_local_position.v_z_valid) {
-		// Check if we are moving vertically - this might see a spike after arming due to
-		// throttle-up vibration. If accelerating fast the throttle thresholds will still give
-		// an accurate in-air indication.
+		// Check if we are moving vertically.
+		// Use wider threshold if currently in "maybe landed" state, or time since then is less
+		// than LAND_DETECTOR_TAKEOFF_PHASE_TIME_US, as estimation for
+		// vertical speed is often deteriorated when on the ground or due to propeller
+		// up/down throttling.
+
 		float max_vertical_velocity = _param_lndmc_z_vel_max.get();
 
-		if ((time_now_us - _landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
-			// Widen acceptance thresholds for landed state right after arming
-			// so that motor spool-up and other effects do not trigger false negatives.
+		if ((time_now_us - _last_time_maybe_landed) < LAND_DETECTOR_TAKEOFF_PHASE_TIME_US) {
 			max_vertical_velocity *= 2.5f;
 		}
 
@@ -266,8 +267,9 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	// Next look if vehicle is not rotating (do not consider yaw)
 	float max_rotation_threshold = math::radians(_param_lndmc_rot_max.get());
 
-	// Widen max rotation thresholds for landed state right after landed
-	if ((time_now_us - _landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
+	// Widen max rotation thresholds if either in maybe landed state or less than
+	// LAND_DETECTOR_TAKEOFF_PHASE_TIME_US passed since then.
+	if ((time_now_us - _last_time_maybe_landed) < LAND_DETECTOR_TAKEOFF_PHASE_TIME_US) {
 		max_rotation_threshold *= 2.5f;
 	}
 
@@ -292,12 +294,9 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 
 bool MulticopterLandDetector::_get_landed_state()
 {
-	// reset the landed_time
-	if (!_maybe_landed_hysteresis.get_state()) {
-		_landed_time = 0;
-
-	} else if (_landed_time == 0) {
-		_landed_time = hrt_absolute_time();
+	// update _last_time_maybe_landed as long as the vehicle is maybe landed
+	if (_maybe_landed_hysteresis.get_state()) {
+		_last_time_maybe_landed = hrt_absolute_time();
 	}
 
 	// When not armed, consider to be landed
