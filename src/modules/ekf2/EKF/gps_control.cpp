@@ -127,18 +127,9 @@ void Ekf::controlGpsFusion()
 							if (resetYawToEKFGSF()) {
 								ECL_WARN("GPS emergency yaw reset");
 							}
-
-						} else {
-							// use GPS velocity data to check and correct yaw angle if a FW vehicle
-							if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
-								// if flying a fixed wing aircraft, do a complete reset that includes yaw
-								_mag_yaw_reset_req = true;
-							}
-
-							_warning_events.flags.gps_fusion_timout = true;
-							ECL_WARN("GPS fusion timeout - resetting");
 						}
 
+						ECL_WARN("GPS fusion timeout - resetting");
 						resetVelocityToGps(gps_sample);
 						resetHorizontalPositionToGps(gps_sample);
 					}

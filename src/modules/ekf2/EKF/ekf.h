@@ -519,7 +519,6 @@ private:
 	bool _mag_bias_observable{false};	///< true when there is enough rotation to make magnetometer bias errors observable
 	bool _yaw_angle_observable{false};	///< true when there is enough horizontal acceleration to make yaw observable
 	uint64_t _time_yaw_started{0};		///< last system time in usec that a yaw rotation manoeuvre was detected
-	uint8_t _num_bad_flight_yaw_events{0};	///< number of times a bad heading has been detected in flight and required a yaw reset
 	uint64_t _mag_use_not_inhibit_us{0};	///< last system time in usec before magnetometer use was inhibited
 	float _last_static_yaw{NAN};		///< last yaw angle recorded when on ground motion checks were passing (rad)
 
@@ -776,10 +775,6 @@ private:
 	// return true if successful
 	bool resetYawToEv();
 
-	// Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
-	// It is used to align the yaw angle after launch or takeoff for fixed wing vehicle.
-	bool realignYawGPS(const Vector3f &mag);
-
 	// Return the magnetic declination in radians to be used by the alignment and fusion processing
 	float getMagDeclination();
 
@@ -899,7 +894,7 @@ private:
 
 	void runOnGroundYawReset();
 	bool canResetMagHeading() const;
-	void runInAirYawReset(const Vector3f &mag);
+	void runInAirYawReset();
 
 	void selectMagAuto();
 	void check3DMagFusionSuitability();
