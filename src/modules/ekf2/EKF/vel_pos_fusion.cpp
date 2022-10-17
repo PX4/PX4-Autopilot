@@ -200,6 +200,12 @@ bool Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 		Kfusion(row) = P(row, state_index) / innov_var;
 	}
 
+	for (unsigned i = 0; i < 3; i++) {
+		if (_accel_bias_inhibit[i]) {
+			Kfusion(13 + i) = 0.0f;
+		}
+	}
+
 	SquareMatrix24f KHP;
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
@@ -208,18 +214,7 @@ bool Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 		}
 	}
 
-	// if the covariance correction will result in a negative variance, then
-	// the covariance matrix is unhealthy and must be corrected
-	bool healthy = true;
-
-	for (int i = 0; i < _k_num_states; i++) {
-		if (P(i, i) < KHP(i, i)) {
-			// zero rows and columns
-			P.uncorrelateCovarianceSetVariance<1>(i, 0.0f);
-
-			healthy = false;
-		}
-	}
+	const bool healthy = checkAndFixCovarianceUpdate(KHP);
 
 	setVelPosStatus(obs_index, healthy);
 
