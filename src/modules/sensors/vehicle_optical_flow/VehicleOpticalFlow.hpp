@@ -122,6 +122,8 @@ private:
 	int _distance_sensor_selected{-1}; // because we can have several distance sensor instances with different orientations
 	hrt_abstime _last_range_sensor_update{0};
 
+	bool _delta_angle_available{false};
+
 	struct gyroSample {
 		uint64_t time_us{}; ///< timestamp of the measurement (uSec)
 		matrix::Vector3f data{};

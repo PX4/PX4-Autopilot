@@ -102,7 +102,10 @@ void VehicleOpticalFlow::Run()
 	ParametersUpdate();
 
 	UpdateDistanceSensor();
-	UpdateSensorGyro();
+
+	if (!_delta_angle_available) {
+		UpdateSensorGyro();
+	}
 
 	sensor_optical_flow_s sensor_optical_flow;
 
@@ -129,8 +132,11 @@ void VehicleOpticalFlow::Run()
 		   ) {
 			// passthrough integrated gyro if available
 			_delta_angle += _flow_rotation * Vector3f{sensor_optical_flow.delta_angle};
+			_delta_angle_available = true;
 
 		} else {
+			_delta_angle_available = false;
+
 			// integrate synchronized gyro
 			gyroSample gyro_sample;
 
