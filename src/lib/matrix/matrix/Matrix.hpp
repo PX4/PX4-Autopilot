@@ -594,6 +594,21 @@ public:
 
 		return result;
 	}
+
+	bool isAllFinite() const
+	{
+		const Matrix<float, M, N> &self = *this;
+
+		for (size_t i = 0; i < M; i++) {
+			for (size_t j = 0; j < N; j++) {
+				if (!std::isfinite(self(i, j))) {
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
 };
 
 template<typename Type, size_t M, size_t N>
