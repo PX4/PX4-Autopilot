@@ -16,7 +16,6 @@ float32 vx			# local velocity setpoint in m/s in NED
 float32 vy			# local velocity setpoint in m/s in NED
 float32 vz			# local velocity setpoint in m/s in NED
 bool velocity_valid		# true if local velocity setpoint valid
-bool alt_valid		# do not set for 3D position control. Set to true if you want z-position control while doing vx,vy velocity control.
 
 float64 lat			# latitude, in deg
 float64 lon			# longitude, in deg
