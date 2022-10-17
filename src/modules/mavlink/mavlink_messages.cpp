@@ -139,6 +139,8 @@
 # include "streams/SCALED_PRESSURE2.hpp"
 # include "streams/SCALED_PRESSURE3.hpp"
 # include "streams/SMART_BATTERY_INFO.hpp"
+# include "streams/UAVIONIX_ADSB_OUT_CFG.hpp"
+# include "streams/UAVIONIX_ADSB_OUT_DYNAMIC.hpp"
 # include "streams/UTM_GLOBAL_POSITION.hpp"
 #endif // !CONSTRAINED_FLASH
 
@@ -474,8 +476,14 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamEfiStatus>(),
 #endif // EFI_STATUS_HPP
 #if defined(GPS_RTCM_DATA_HPP)
-	create_stream_list_item<MavlinkStreamGPSRTCMData>()
+	create_stream_list_item<MavlinkStreamGPSRTCMData>(),
 #endif // GPS_RTCM_DATA_HPP
+#if defined(UAVIONIX_ADSB_OUT_CFG_HPP)
+	create_stream_list_item<MavlinkStreamUavionixADSBOutCfg>(),
+#endif // UAVIONIX_ADSB_OUT_CFG_HPP
+#if defined(UAVIONIX_ADSB_OUT_DYNAMIC_HPP)
+	create_stream_list_item<MavlinkStreamUavionixADSBOutDynamic>()
+#endif // UAVIONIX_ADSB_OUT_DYNAMIC_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)
