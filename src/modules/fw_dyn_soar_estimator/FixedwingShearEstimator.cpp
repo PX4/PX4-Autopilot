@@ -550,6 +550,9 @@ bool FixedwingShearEstimator::check_feasibility()
 float
 FixedwingShearEstimator::_getClosest(float val1, float val2, float target)
 {
+    // =============================================================================
+    // METHOD COPIED FROM "https://www.geeksforgeeks.org/find-closest-number-array/"
+    // =============================================================================
     if (target - val1 >= val2 - target)
         return val2;
     else
@@ -559,6 +562,9 @@ FixedwingShearEstimator::_getClosest(float val1, float val2, float target)
 float
 FixedwingShearEstimator::_findClosest(float arr[], int n, float target)
 {
+    // =============================================================================
+    // METHOD COPIED FROM "https://www.geeksforgeeks.org/find-closest-number-array/"
+    // =============================================================================
     // Corner cases
     if (target <= arr[0])
         return arr[0];

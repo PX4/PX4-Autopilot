@@ -66,9 +66,6 @@ private:
 	uORB::SubscriptionCallbackWorkItem _soaring_controller_wind_sub{this, ORB_ID(soaring_controller_wind)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-    // Subscriptions
-    //uORB::Subscription _soaring_controller_wind_sub{ORB_ID(soaring_controller_wind)};
 	
     // Publishers
 	uORB::Publication<soaring_estimator_shear_s> _soaring_estimator_shear_pub{ORB_ID(soaring_estimator_shear)};

@@ -418,7 +418,6 @@ FixedwingPositionINDIControl::soaring_estimator_shear_poll()
             _shear_aspd = _soaring_estimator_shear.aspd;
         }
         
-        // TODO: include some safety guards for large drifts, e.g. limit the maximum heading shift
     }
 }
 
@@ -717,7 +716,7 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // =======================================================================
 
 
-    // go back to safety mode loiter circle
+    // go back to safety mode loiter circle in 30m height
     if(error){
         // 100m radius circle trajec
         _basis_coeffs_x(0) = 0.000038f;
@@ -1180,6 +1179,7 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     Rotation(2,0) *= -1.f;
     Rotation(2,1) *= -1.f;
     Rotation(2,2) *= -1.f;
+    // plausibility check
     /*
     float determinant = Rotation(0,0)*(Rotation(1,1)*Rotation(2,2)-Rotation(2,1)*Rotation(1,2)) - 
                         Rotation(1,0)*(Rotation(0,1)*Rotation(2,2)-Rotation(2,1)*Rotation(0,2)) + 
@@ -1285,15 +1285,6 @@ Quatf
 FixedwingPositionINDIControl::_get_attitude(Vector3f vel, Vector3f f)
 {
     Vector3f vel_air = vel - _wind_estimate;
-    // catch case, where the aircraft needs to accelerate downwards
-    // only become inverted, if we need to accelerate a lot:
-    /*
-    Vector3f f_body = Dcmf(_att).transpose()*f;
-    bool inverted = false;
-    if(f_body(2)>9.81*_mass){
-        inverted = true;
-    }
-    */
     // compute force component projected onto lift axis
     Vector3f vel_normalized = vel_air.normalized();
     Vector3f f_lift = f - (f*vel_normalized)*vel_normalized;
@@ -1356,15 +1347,12 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // apply PD control law on the body position
     // =========================================
     Vector3f acc_command = R_ib*(_K_x*R_bi*(pos_ref-_pos) + _K_v*R_bi*(vel_ref-_vel) + _K_a*R_bi*(acc_ref-_acc)) + acc_ref;
-    // add gravity
-    //acc_command(2) += 9.81f;
-    //acc_filtered(2) += 9.81f;
 
     // ==================================
     // compute expected aerodynamic force
     // ==================================
     Vector3f f_current;
-    Vector3f vel_body = R_bi*(_vel - _wind_estimate); //TODO: correct to airspeed!!!
+    Vector3f vel_body = R_bi*(_vel - _wind_estimate); 
     float AoA = atan2f(vel_body(2), vel_body(0)) + _aoa_offset;
     float C_l = _C_L0 + _C_L1*AoA;
     float C_d = _C_D0 + _C_D1*AoA + _C_D2*powf(AoA,2);
@@ -1399,8 +1387,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     f_command(1) = _lp_filter_ctrl0[1].apply(f_command(1));
     f_command(2) = _lp_filter_ctrl0[2].apply(f_command(2));
     _f_command = f_command;
-    // limit maximum lift force by the maximum lift force, the aircraft can produce (assume max force at 12° aoa)
-    //PX4_INFO("force current, command: \t%.2f\t%.2f", (double)sqrtf(f_current_filtered*f_current_filtered), (double)sqrtf(f_command*f_command));
+    // limit maximum lift force by the maximum lift force, the aircraft can produce (assume max force at 15° aoa)
 
     // ====================================================================
     // saturate force command to avoid overly agressive maneuvers and stall
@@ -1422,42 +1409,6 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
             f_command = f_max/f_now * f_command;
         }
     }
-
-    // =======================================================================================================================
-    // get an alternative way of computing the rot acc command:
-    // since te want the system to behave linearly (as implied by the PD controller) in it's position states, it would be nice
-    // to have a high-level controller which actually respects this property, e.g. the setpoints of the high-level controller
-    // should result in linear behaviour of the position states, if tracked perfectly.
-    // to achieve this, we use a control law, which tries to follow a linear force increment 
-    // from the current body force to the target body force.
-    // =======================================================================================================================
-    /*
-    // compute force increment
-    Vector3f f_delta = _mass*(acc_command - acc_filtered);
-    // take a fraction of the full length
-    Vector3f f_dot = 0.01f*f_delta;
-    // compute target pose which produces f_target = f_current_filtered + f_dot
-    Vector3f f_target = f_current_filtered + f_dot;
-    // compute a rotation vector (should always be <<1 to produce a linear force increment over time)
-    Dcmf R_ref_(_get_attitude(vel_ref,f_target));
-    // get attitude error
-    Dcmf R_ref_true_(R_ref_.transpose()*R_ib);
-    // get required rotation vector (in body frame)
-    AxisAnglef q_err_(R_ref_true_);
-    Vector3f w_err_;
-    // project rotation angle to [-pi,pi]
-    if (q_err_.angle()*q_err_.angle()<M_PI_F*M_PI_F){
-        w_err_ = -q_err_.angle()*q_err_.axis();
-    }
-    else{
-        if (q_err_.angle()>0.f){
-            w_err_ = (2.f*M_PI_F-(float)fmod(q_err_.angle(),2.f*M_PI_F))*q_err_.axis();
-        }
-        else{
-            w_err_ = (-2.f*M_PI_F-(float)fmod(q_err_.angle(),2.f*M_PI_F))*q_err_.axis();
-        }
-    }
-    */
 
     // ==========================================================================
     // get required attitude (assuming we can fly the target velocity), and error
@@ -1485,7 +1436,6 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // apply PD control law on the body attitude
     // =========================================
     Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-_omega) + alpha_ref;
-
 
     if (sqrtf(w_err*w_err)>M_PI_F){
         PX4_ERR("rotation angle larger than pi: \t%.2f, \t%.2f, \t%.2f", (double)sqrtf(w_err*w_err), (double)q_err.angle(), (double)(q_err.axis()*q_err.axis()));
@@ -1557,7 +1507,6 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     rot_acc_command(2) = _K_q(2,2)*omega_turn_ref(2)*scaler + _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2))* scaler*scaler;
 
     
-
     return rot_acc_command;
 }
 
@@ -1568,24 +1517,29 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
     Dcmf R_ib(_att);
     Vector3f vel_body = R_ib.transpose()*(_vel-_wind_estimate);
     float q = fmaxf(0.5f*sqrtf(vel_body*vel_body)*vel_body(0), 0.5f*_stall_speed*_stall_speed);    // dynamic pressure, saturates at stall speed
+
     // compute moments
     Vector3f moment;
     moment(0) = _k_ail*q*_actuators.control[actuator_controls_s::INDEX_ROLL] - _k_d_roll*q*_omega(0);
     moment(1) = _k_ele*q*_actuators.control[actuator_controls_s::INDEX_PITCH] - _k_d_pitch*q*_omega(1);
     moment(2) = 0.f;
+
     // introduce artificial time delay that is also present in acceleration
     Vector3f moment_filtered;
     moment_filtered(0) = _lp_filter_delay[0].apply(moment(0));
     moment_filtered(1) = _lp_filter_delay[1].apply(moment(1));
     moment_filtered(2) = _lp_filter_delay[2].apply(moment(2)); 
+
     // No filter for alpha, since it is already filtered...
     Vector3f alpha_filtered = _alpha;
     Vector3f moment_command = _inertia * (ctrl - alpha_filtered) + moment_filtered;
     _m_command = R_ib.transpose()*moment_command;
+
     // perform dynamic inversion
     Vector3f deflection;
     deflection(0) = (moment_command(0) + _k_d_roll*q*_omega(0))/fmaxf((_k_ail*q),0.0001f);
     deflection(1) = (moment_command(1) + _k_d_pitch*q*_omega(1))/fmaxf((_k_ele*q),0.0001f);
+
     // overwrite rudder deflection with NDI turn coordination (no INDI)
     deflection(2) = ctrl(2);
 
