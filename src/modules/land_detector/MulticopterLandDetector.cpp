@@ -148,14 +148,13 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	if (lpos_available && _vehicle_local_position.v_z_valid) {
 		// Check if we are moving vertically.
-		// Use wider threshold if currently in "maybe landed" state, or time since then is less
-		// than LAND_DETECTOR_TAKEOFF_PHASE_TIME_US, as estimation for
+		// Use wider threshold if currently in "maybe landed" state, as estimation for
 		// vertical speed is often deteriorated when on the ground or due to propeller
 		// up/down throttling.
 
 		float max_vertical_velocity = _param_lndmc_z_vel_max.get();
 
-		if ((time_now_us - _last_time_maybe_landed) < LAND_DETECTOR_TAKEOFF_PHASE_TIME_US) {
+		if (_maybe_landed_hysteresis.get_state()) {
 			max_vertical_velocity *= 2.5f;
 		}
 
@@ -267,9 +266,9 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	// Next look if vehicle is not rotating (do not consider yaw)
 	float max_rotation_threshold = math::radians(_param_lndmc_rot_max.get());
 
-	// Widen max rotation thresholds if either in maybe landed state or less than
-	// LAND_DETECTOR_TAKEOFF_PHASE_TIME_US passed since then.
-	if ((time_now_us - _last_time_maybe_landed) < LAND_DETECTOR_TAKEOFF_PHASE_TIME_US) {
+	// Widen max rotation thresholds if either in maybe landed state, thus making it harder
+	// to trigger a false positive !maybe_landed e.g. due to propeller throttling up/down.
+	if (_maybe_landed_hysteresis.get_state()) {
 		max_rotation_threshold *= 2.5f;
 	}
 
@@ -294,11 +293,6 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 
 bool MulticopterLandDetector::_get_landed_state()
 {
-	// update _last_time_maybe_landed as long as the vehicle is maybe landed
-	if (_maybe_landed_hysteresis.get_state()) {
-		_last_time_maybe_landed = hrt_absolute_time();
-	}
-
 	// When not armed, consider to be landed
 	if (!_armed) {
 		return true;
