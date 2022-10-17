@@ -32,47 +32,23 @@
  ****************************************************************************/
 
 /**
- * @file io_tester.h
- * Simple IO tester Class
+ * @file ss_io_timer_test.c
  *
+ * Simple daemon that listens uORB actuator_outputs to control PWM output
+ * WARNING: No mixer, hence no safety use at your own risk
  */
-#pragma once
+
+#include "io_controller.hpp"
 
 #include <px4_platform_common/app.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/topics/actuator_test.h>
-#include <uORB/Subscription.hpp>
+#include <px4_platform_common/init.h>
+#include <stdio.h>
 
-class IOTester : public px4::ScheduledWorkItem
+int PX4_MAIN(int argc, char **argv)
 {
-public:
-	IOTester(const char *name, const px4::wq_config_t &config);
+	px4::init(argc, argv, "IOController");
 
-	~IOTester() {_instance = nullptr;}
+	IOController io(MODULE_NAME, px4::wq_configurations::hp_default);
 
-	static px4::AppState appState; /* track requests to terminate app */
-
-	static IOTester *instance() { return _instance; }
-
-	void print_info();
-
-	static int start();
-
-	void setRate(uint32_t rate);
-
-	uint32_t getRate(uint32_t rate)
-	{
-		return _rate;
-	}
-private:
-	void Run() override;
-	uORB::Subscription _actuator_test_sub{ORB_ID(actuator_test)};
-
-	const uint32_t _pwm_mask = ((1u << DIRECT_PWM_OUTPUT_CHANNELS) - 1);
-
-	static constexpr unsigned ScheduleIntervalMs = 1;
-
-	static IOTester *_instance;
-
-	uint32_t _rate = 400; /* in Hz */
-};
+	return 0;
+}

@@ -32,34 +32,33 @@
  ****************************************************************************/
 
 /**
- * @file ss_io_timer_test.c
+ * @file io_bypass_control.cpp
  *
- * System command test low-level IO timer
+ * Simple daemon that listens uORB actuator_outputs to control PWM output
  * WARNING: No mixer, hence no safety use at your own risk
  */
 
-#include "io_tester.h"
+#include "io_controller.hpp"
 
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/getopt.h>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/actuator_test.h>
+#include <uORB/topics/actuator_outputs.h>
 
 #include <poll.h>
 
-extern "C" __EXPORT int ss_io_timer_main(int argc, char *argv[]);
+extern "C" __EXPORT int io_bypass_control_main(int argc, char *argv[]);
 
 
 void print_help()
 {
-	PX4_WARN("usage: ss_io_timer {start|test|stop|rate|status}");
-	printf("System command test low-level IO timer\n"
+	PX4_WARN("usage: io_bypass_control {start|test|stop|rate|status}");
+	printf("Simple daemon that listens uORB actuator_outputs to control PWM output\n"
 	       "WARNING: No mixer, hence no safety use at your own risk\n"
-	       "Use start to start deamon that listens for actuator_test uORB messages\n"
-	       "You can also generate the uORB messages using the test command\n");
+		   "Useful for full offboard control using RTPS.\n");
 }
 
-int ss_io_timer_main(int argc, char *argv[])
+int io_bypass_control_main(int argc, char *argv[])
 {
 
 	if (argc < 2 || !strcmp(argv[1], "help")) {
@@ -68,16 +67,16 @@ int ss_io_timer_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "start")) {
-		if (IOTester::instance()) {
+		if (IOController::instance()) {
 			PX4_ERR("already started");
 			return 1;
 		}
 
-		return IOTester::start();
+		return IOController::start();
 	}
 
 	/* commands below require the app to be started */
-	IOTester *const inst = IOTester::instance();
+	IOController *const inst = IOController::instance();
 
 	if (!inst) {
 		PX4_ERR("application not running");
@@ -95,22 +94,19 @@ int ss_io_timer_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "test")) {
-		uORB::Publication<actuator_test_s> publisher{ORB_ID(actuator_test)};
+		uORB::Publication<actuator_outputs_s> publisher{ORB_ID(actuator_outputs)};
 		publisher.advertise();
 
 		for (float i = -1; i < 1; i = i + 0.01f) {
-			actuator_test_s actuator_test{};
-			actuator_test.timestamp = hrt_absolute_time();
-			actuator_test.value = i;
-			actuator_test.action = actuator_test_s::ACTION_DO_CONTROL;
-			actuator_test.timeout_ms = 0;
+			actuator_outputs_s actuator_outputs{};
+			actuator_outputs.timestamp = hrt_absolute_time();
+			actuator_outputs.noutputs = DIRECT_PWM_OUTPUT_CHANNELS;
 
-			for (int j = 0; j < actuator_test_s::MAX_NUM_MOTORS; ++j) {
-				actuator_test.function = actuator_test_s::FUNCTION_MOTOR1 + j;
-				publisher.publish(actuator_test);
-				px4_usleep(100);
+			for (int j = 0; j < DIRECT_PWM_OUTPUT_CHANNELS; ++j) {
+				actuator_outputs.output[j] = i;
 			}
 
+			publisher.publish(actuator_outputs);
 			px4_usleep(10000);
 		}
 

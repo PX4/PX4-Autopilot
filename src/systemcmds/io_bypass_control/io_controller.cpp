@@ -32,12 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file io_tester.cpp
- * Example for Linux
+ * @file io_controller.cpp
+ * Simple daemon that listens uORB actuator_outputs to control PWM output
  *
  */
 
-#include "io_tester.h"
+#include "io_controller.hpp"
 #include <px4_platform_common/time.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -49,17 +49,17 @@
 
 using namespace time_literals;
 
-IOTester *IOTester::_instance;
+IOController *IOController::_instance;
 
 
-int IOTester::start()
+int IOController::start()
 {
 	if (_instance != nullptr) {
 		PX4_WARN("Already started");
 		return -1;
 	}
 
-	_instance = new IOTester(MODULE_NAME, px4::wq_configurations::hp_default);
+	_instance = new IOController(MODULE_NAME, px4::wq_configurations::hp_default);
 
 	if (_instance == nullptr) {
 		PX4_ERR("Out of memory");
@@ -71,7 +71,7 @@ int IOTester::start()
 	return PX4_OK;
 }
 
-void IOTester::print_info()
+void IOController::print_info()
 {
 	PX4_INFO("Rate %li", _rate);
 
@@ -80,7 +80,7 @@ void IOTester::print_info()
 	}
 }
 
-void IOTester::setRate(uint32_t rate)
+void IOController::setRate(uint32_t rate)
 {
 	_rate = rate;
 
@@ -89,32 +89,33 @@ void IOTester::setRate(uint32_t rate)
 	}
 }
 
-IOTester::IOTester(const char *name, const px4::wq_config_t &config) :
+IOController::IOController(const char *name, const px4::wq_config_t &config) :
 	px4::ScheduledWorkItem(name, config)
 {
 	up_pwm_servo_init(_pwm_mask);
 	up_pwm_servo_arm(1, _pwm_mask);
 }
 
-void IOTester::Run()
+void IOController::Run()
 {
 
-	actuator_test_s actuator_test;
+	actuator_outputs_s actuator_outputs;
 
-	while (_actuator_test_sub.update(&actuator_test)) {
+	while (_actuator_outputs_sub.update(&actuator_outputs)) {
 
-		if (actuator_test.timestamp == 0 ||
-		    hrt_elapsed_time(&actuator_test.timestamp) > 100_ms) {
+		if (actuator_outputs.timestamp == 0 ||
+		    hrt_elapsed_time(&actuator_outputs.timestamp) > 100_ms) {
 			continue;
 		}
 
-		if (actuator_test.action == actuator_test_s::ACTION_DO_CONTROL) {
-			if (actuator_test.function < (actuator_test_s::FUNCTION_MOTOR1 + DIRECT_PWM_OUTPUT_CHANNELS)) {
-				/* Convert value to duty */
-				uint32_t setpoint = ((actuator_test.value + 1) * (1.0f / (float)(_rate * 2)) * 1000000);
+		if (actuator_outputs.noutputs <= DIRECT_PWM_OUTPUT_CHANNELS) {
+			/* Convert value to duty */
+			for (uint32_t i = 0; i < actuator_outputs.noutputs; i++) {
+				uint32_t setpoint = ((actuator_outputs.output[i] + 1) *
+						     (1.0f / (float)(_rate * 2)) * 1000000);
 
-				up_pwm_servo_set((actuator_test.function - actuator_test_s::FUNCTION_MOTOR1), setpoint);
-				up_pwm_update((actuator_test.function - actuator_test_s::FUNCTION_MOTOR1));
+				up_pwm_servo_set(i, setpoint);
+				up_pwm_update(i);
 			}
 		}
 

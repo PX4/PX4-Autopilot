@@ -34,7 +34,7 @@
 /**
  * @file ss_io_timer_test.c
  *
- * System command test low-level IO timer
+ * Simple daemon that listens uORB actuator_outputs to control PWM output
  * WARNING: No mixer, hence no safety use at your own risk
  */
 
