@@ -320,7 +320,7 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 		const vehicle_local_position_s &vehicle_local_position)
 {
 	// If the task fails sned out empty NAN setpoints and the controller will emergency failsafe
-	trajectory_setpoint_s setpoint = FlightTask::empty_setpoint;
+	trajectory_setpoint_s setpoint = FlightTask::empty_trajectory_setpoint;
 	vehicle_constraints_s constraints = FlightTask::empty_constraints;
 
 	if (_current_task.task->updateInitialize() && _current_task.task->update()) {
@@ -392,7 +392,7 @@ FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 	}
 
 	// Save current setpoints for the next FlightTask
-	trajectory_setpoint_s last_setpoint = FlightTask::empty_setpoint;
+	trajectory_setpoint_s last_setpoint = FlightTask::empty_trajectory_setpoint;
 	ekf_reset_counters_s last_reset_counters{};
 
 	if (isAnyTaskActive()) {
