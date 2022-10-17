@@ -109,7 +109,7 @@ typedef const struct orb_metadata *orb_id_t;
 		_size_no_padding,			\
 		_fields,				\
 		_orb_id_enum				\
-	}; struct hack
+	};
 
 __BEGIN_DECLS
 
