@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -95,8 +95,6 @@ private:
 		param_t minThrottle;
 		param_t hoverThrottle;
 		param_t minManThrottle;
-		param_t landSpeed;
-		param_t crawlSpeed;
 		param_t useHoverThrustEstimate;
 	} _paramHandle{};
 
@@ -104,8 +102,6 @@ private:
 		float minThrottle;
 		float hoverThrottle;
 		float minManThrottle;
-		float landSpeed;
-		float crawlSpeed;
 		bool useHoverThrustEstimate;
 	} _params{};
 
