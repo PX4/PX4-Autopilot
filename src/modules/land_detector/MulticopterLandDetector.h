@@ -84,9 +84,6 @@ private:
 	/** Time in us that freefall has to hold before triggering freefall */
 	static constexpr hrt_abstime FREEFALL_TRIGGER_TIME_US = 300_ms;
 
-	/** Time interval in us in which wider acceptance thresholds are used after the "maybe landed" is cleared before takeoff. */
-	static constexpr hrt_abstime LAND_DETECTOR_TAKEOFF_PHASE_TIME_US = 2_s;
-
 	/** Distance above ground below which entering ground contact state is possible when distance to ground is available. */
 	static constexpr float DIST_FROM_GROUND_THRESHOLD = 1.0f;
 
