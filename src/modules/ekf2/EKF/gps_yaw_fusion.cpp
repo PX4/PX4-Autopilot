@@ -45,7 +45,7 @@
 #include <mathlib/mathlib.h>
 #include <cstdlib>
 
-void Ekf::fuseGpsYaw(const gpsSample& gps_sample)
+void Ekf::fuseGpsYaw(const uint64_t time_us, const float gps_yaw)
 {
 	// assign intermediate state variables
 	const float q0 = _state.quat_nominal(0);
@@ -54,7 +54,7 @@ void Ekf::fuseGpsYaw(const gpsSample& gps_sample)
 	const float q3 = _state.quat_nominal(3);
 
 	// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
-	const float measured_hdg = wrap_pi(gps_sample.yaw + _gps_yaw_offset);
+	const float measured_hdg = wrap_pi(gps_yaw + _gps_yaw_offset);
 
 	// define the predicted antenna array vector and rotate into earth frame
 	const Vector3f ant_vec_bf = {cosf(_gps_yaw_offset), sinf(_gps_yaw_offset), 0.0f};
@@ -70,7 +70,7 @@ void Ekf::fuseGpsYaw(const gpsSample& gps_sample)
 	// TODO extend interface to use yaw uncertainty provided by GPS if available
 	const float R_YAW = sq(fmaxf(_params.gps_heading_noise, 1.0e-2f));
 
-	_aid_src_gnss_yaw.timestamp_sample = gps_sample.time_us;
+	_aid_src_gnss_yaw.timestamp_sample = time_us;
 	_aid_src_gnss_yaw.observation = measured_hdg;
 	_aid_src_gnss_yaw.observation_variance = R_YAW;
 	_aid_src_gnss_yaw.innovation = heading_innov;
@@ -215,11 +215,20 @@ bool Ekf::resetYawToGps(const float gnss_yaw)
 	// GPS yaw measurement is alreday compensated for antenna offset in the driver
 	const float measured_yaw = gnss_yaw;
 
-	const float yaw_variance = sq(fmaxf(_params.gps_heading_noise, 1.e-2f));
-	resetQuatStateYaw(measured_yaw, yaw_variance);
+	if (PX4_ISFINITE(measured_yaw) && !_control_status.flags.gps_yaw_fault) {
 
-	_aid_src_gnss_yaw.time_last_fuse = _imu_sample_delayed.time_us;
-	_gnss_yaw_signed_test_ratio_lpf.reset(0.f);
+		const float yaw_variance = sq(fmaxf(_params.gps_heading_noise, 1.e-2f));
+		resetQuatStateYaw(measured_yaw, yaw_variance);
 
-	return true;
+		_control_status.flags.yaw_align = true;
+
+		_aid_src_gnss_yaw.time_last_fuse = _imu_sample_delayed.time_us;
+		_gnss_yaw_signed_test_ratio_lpf.reset(0.f);
+
+		resetMagStates();
+
+		return true;
+	}
+
+	return false;
 }

@@ -44,7 +44,7 @@ void Ekf::controlHeightFusion()
 	updateGroundEffect();
 
 	controlBaroHeightFusion();
-	controlGnssHeightFusion(_gps_sample_delayed);
+
 	controlRangeHeightFusion();
 	controlEvHeightFusion(_ev_sample_delayed);
 

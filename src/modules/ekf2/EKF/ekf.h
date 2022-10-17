@@ -481,7 +481,6 @@ private:
 	bool _inhibit_ev_yaw_use{false};	///< true when the vision yaw data should not be used (e.g.: NE fusion requires true North)
 
 	// booleans true when fresh sensor data is available at the fusion time horizon
-	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
 	bool _rng_data_ready{false};
 	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
 	bool _ev_data_ready{false};	///< true when new external vision system data has fallen behind the fusion time horizon and is available to be fused
@@ -633,7 +632,6 @@ private:
 
 	// height sensor status
 	bool _baro_hgt_faulty{false};		///< true if baro data have been declared faulty TODO: move to fault flags
-	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
@@ -669,7 +667,7 @@ private:
 	bool fuseYaw(const float innovation, const float variance, estimator_aid_source1d_s &aid_src_status);
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
-	void fuseGpsYaw(const gpsSample &gps_sample);
+	void fuseGpsYaw(const uint64_t time_us, const float gps_yaw);
 
 	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
 	// return true if the reset was successful
@@ -699,12 +697,10 @@ private:
 	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel);
 	void resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var = NAN);
 
-	void resetVelocityToGps(const gpsSample &gps_sample);
 	void resetHorizontalVelocityToOpticalFlow(const flowSample &flow_sample);
 	void resetVelocityToVision();
 	void resetHorizontalVelocityToZero();
 
-	void resetHorizontalPositionToGps(const gpsSample &gps_sample);
 	void resetHorizontalPositionToVision();
 	void resetHorizontalPositionToOpticalFlow();
 	void resetHorizontalPositionToLastKnown();
@@ -736,7 +732,7 @@ private:
 	void fuseVelocity(estimator_aid_source2d_s &vel_aid_src);
 	void fuseVelocity(estimator_aid_source3d_s &vel_aid_src);
 
-	void updateGpsYaw(const gpsSample &gps_sample);
+	void updateGpsYaw(const uint64_t time_us, const float gps_yaw);
 
 	// calculate optical flow body angular rate compensation
 	// returns false if bias corrected body rate data is unavailable
@@ -884,17 +880,14 @@ private:
 	bool hasHorizontalAidingTimedOut() const;
 	bool isYawFailure() const;
 
-	void controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing);
+	void controlGpsYawFusion(const uint64_t time_us, const float gps_yaw, bool gps_checks_passing, bool gps_checks_failing);
 
 	// control fusion of magnetometer observations
 	void controlMagFusion();
 
-	void checkHaglYawResetReq();
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD; }
 
-	void runOnGroundYawReset();
-	bool canResetMagHeading() const;
-	void runInAirYawReset();
+	bool resetMagStates();
 
 	void selectMagAuto();
 	void check3DMagFusionSuitability();
@@ -1025,12 +1018,10 @@ private:
 	void startAirspeedFusion();
 	void stopAirspeedFusion();
 
-	void startGpsFusion(const gpsSample &gps_sample);
 	void stopGpsFusion();
 	void stopGpsPosFusion();
 	void stopGpsVelFusion();
 
-	void startGpsYawFusion(const gpsSample &gps_sample);
 	void stopGpsYawFusion();
 
 	void startEvPosFusion();

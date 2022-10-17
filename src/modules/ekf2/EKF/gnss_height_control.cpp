@@ -47,7 +47,9 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 
 	bias_est.predict(_dt_ekf_avg);
 
-	if (_gps_data_ready) {
+	const bool gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GPS_MAX_INTERVAL);
+
+	if (!gps_intermittent) {
 
 		// relax the upper observation noise limit which prevents bad GPS perturbing the position estimate
 		float noise = math::max(gps_sample.vacc, 1.5f * _params.gps_pos_noise); // use 1.5 as a typical ratio of vacc/hacc
@@ -157,8 +159,7 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 			}
 		}
 
-	} else if (_control_status.flags.gps_hgt
-		   && !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GPS_MAX_INTERVAL)) {
+	} else if (_control_status.flags.gps_hgt && isTimedOut(_time_prev_gps_us, 2 * GPS_MAX_INTERVAL)) {
 		// No data anymore. Stop until it comes back.
 		ECL_WARN("stopping %s height fusion, no data", HGT_SRC_NAME);
 		stopGpsHgtFusion();

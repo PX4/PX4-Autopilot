@@ -433,7 +433,7 @@ struct parameters {
 	float EKFGSF_tas_default{15.0f};                ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
 	const unsigned EKFGSF_reset_delay{1000000};     ///< Number of uSec of bad innovations on main filter in immediate post-takeoff phase before yaw is reset to EKF-GSF value
 	const float EKFGSF_yaw_err_max{0.262f};         ///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
-	const unsigned EKFGSF_reset_count_limit{3};     ///< Maximum number of times the yaw can be reset to the EKF-GSF yaw estimator value
+	const unsigned EKFGSF_reset_count_limit{5};     ///< Maximum number of times the yaw can be reset to the EKF-GSF yaw estimator value
 };
 
 union fault_status_u {

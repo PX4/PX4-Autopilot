@@ -789,11 +789,11 @@ void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 
 void EKF2::PublishGnssHgtBias(const hrt_abstime &timestamp)
 {
-	if (_ekf.get_gps_sample_delayed().time_us != 0) {
+	if (_ekf.aid_src_gnss_hgt().timestamp_sample != 0) {
 		const BiasEstimator::status &status = _ekf.getGpsHgtBiasEstimatorStatus();
 
 		if (fabsf(status.bias - _last_gnss_hgt_bias_published) > 0.001f) {
-			_estimator_gnss_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_gps_sample_delayed().time_us, timestamp));
+			_estimator_gnss_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.aid_src_gnss_hgt().timestamp_sample, timestamp));
 
 			_last_gnss_hgt_bias_published = status.bias;
 		}
@@ -960,7 +960,7 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 
 void EKF2::PublishGpsStatus(const hrt_abstime &timestamp)
 {
-	const hrt_abstime timestamp_sample = _ekf.get_gps_sample_delayed().time_us;
+	const hrt_abstime timestamp_sample = _ekf.aid_src_gnss_hgt().timestamp_sample;
 
 	if (timestamp_sample == _last_gps_status_published) {
 		return;

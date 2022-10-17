@@ -113,7 +113,7 @@ TEST_F(EkfHeightFusionTest, baroRef)
 	// AND WHEN: the baro data increases
 	const float baro_increment = 5.f;
 	_sensor_simulator._baro.setData(_sensor_simulator._baro.getData() + baro_increment);
-	_sensor_simulator.runSeconds(60);
+	_sensor_simulator.runSeconds(120);
 
 	// THEN: the height estimate converges to the baro value
 	// and the other height sources are getting their bias estimated
