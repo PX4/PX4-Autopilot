@@ -46,7 +46,6 @@
 #include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/takeoff_status.h>
 
 #include "LandDetector.h"

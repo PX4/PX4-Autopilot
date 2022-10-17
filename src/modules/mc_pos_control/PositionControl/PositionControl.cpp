@@ -44,6 +44,8 @@
 
 using namespace matrix;
 
+const trajectory_setpoint_s PositionControl::empty_trajectory_setpoint = {0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN};
+
 void PositionControl::setVelocityGains(const Vector3f &P, const Vector3f &I, const Vector3f &D)
 {
 	_gain_vel_p = P;
@@ -93,10 +95,10 @@ void PositionControl::setState(const PositionControlStates &states)
 	_vel_dot = states.acceleration;
 }
 
-void PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint)
+void PositionControl::setInputSetpoint(const trajectory_setpoint_s &setpoint)
 {
-	_pos_sp = Vector3f(setpoint.x, setpoint.y, setpoint.z);
-	_vel_sp = Vector3f(setpoint.vx, setpoint.vy, setpoint.vz);
+	_pos_sp = Vector3f(setpoint.position);
+	_vel_sp = Vector3f(setpoint.velocity);
 	_acc_sp = Vector3f(setpoint.acceleration);
 	_yaw_sp = setpoint.yaw;
 	_yawspeed_sp = setpoint.yawspeed;

@@ -109,8 +109,8 @@ private:
 	hrt_abstime _time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 	hrt_abstime _time_position_control_enabled{0};
 
-	vehicle_local_position_setpoint_s _setpoint {};
-	vehicle_control_mode_s _vehicle_control_mode {};
+	trajectory_setpoint_s _setpoint{PositionControl::empty_trajectory_setpoint};
+	vehicle_control_mode_s _vehicle_control_mode{};
 
 	vehicle_constraints_s _vehicle_constraints {
 		.timestamp = 0,
@@ -223,10 +223,5 @@ private:
 	 * Used to handle transitions where no proper setpoint was generated yet and when the received setpoint is invalid.
 	 * This should only happen briefly when transitioning and never during mode operation or by design.
 	 */
-	vehicle_local_position_setpoint_s generateFailsafeSetpoint(const hrt_abstime &now, const PositionControlStates &states);
-
-	/**
-	 * Reset setpoints to NAN
-	 */
-	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);
+	trajectory_setpoint_s generateFailsafeSetpoint(const hrt_abstime &now, const PositionControlStates &states);
 };
