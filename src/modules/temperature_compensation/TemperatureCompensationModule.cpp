@@ -194,7 +194,10 @@ void TemperatureCompensationModule::Run()
 	perf_begin(_loop_perf);
 
 	// Check if user has requested to run the calibration routine
-	while (_vehicle_command_sub.updated()) {
+	int vehicle_command_updates = 0;
+
+	while (_vehicle_command_sub.updated() && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
+		vehicle_command_updates++;
 		vehicle_command_s cmd;
 
 		if (_vehicle_command_sub.copy(&cmd)) {

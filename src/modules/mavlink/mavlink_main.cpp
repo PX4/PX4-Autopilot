@@ -2313,9 +2313,12 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 
-		// vehicle_command
+		// MAVLINK_MODE_IRIDIUM: handle VEHICLE_CMD_CONTROL_HIGH_LATENCY
 		if (_mode == MAVLINK_MODE_IRIDIUM) {
-			while (_vehicle_command_sub.updated()) {
+			int vehicle_command_updates = 0;
+
+			while (_vehicle_command_sub.updated() && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
+				vehicle_command_updates++;
 				const unsigned last_generation = _vehicle_command_sub.get_last_generation();
 				vehicle_command_s vehicle_cmd;
 
