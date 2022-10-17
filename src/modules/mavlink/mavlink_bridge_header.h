@@ -93,6 +93,9 @@ extern mavlink_status_t *mavlink_get_channel_status(uint8_t chan);
 extern mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan);
 
 #include <mavlink.h>
+#if !MAVLINK_FTP_UNIT_TEST
+#include <uAvionix.h>
+#endif
 
 __END_DECLS
 

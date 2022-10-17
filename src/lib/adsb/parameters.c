@@ -192,3 +192,37 @@ PARAM_DEFINE_INT32(ADSB_ICAO_SPECL, 0);
  * @group ADSB
  */
 PARAM_DEFINE_INT32(ADSB_EMERGC, 0);
+
+/**
+ * ADSB-Out GPS Offset lat
+ *
+ * Sets GPS lataral offset encoding
+ *
+ * @reboot_required false
+ * @min 0
+ * @max 7
+ * @value 0 NoData
+ * @value 1 LatLeft2M
+ * @value 2 LatLeft4M
+ * @value 3 LatLeft6M
+ * @value 4 LatRight0M
+ * @value 5 LatRight2M
+ * @value 6 LatRight4M
+ * @value 7 LatRight6M
+ * @group ADSB
+ */
+PARAM_DEFINE_INT32(ADSB_GPS_OFF_LAT, 0);
+
+/**
+ * ADSB-Out GPS Offset lon
+ *
+ * Sets GPS longitudinal offset encoding
+ *
+ * @reboot_required false
+ * @min 0
+ * @max 1
+ * @value 0 NoData
+ * @value 1 AppliedBySensor
+ * @group ADSB
+ */
+PARAM_DEFINE_INT32(ADSB_GPS_OFF_LON, 0);
