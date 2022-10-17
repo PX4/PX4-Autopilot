@@ -45,6 +45,8 @@
 #include "python/ekf_derivation/generated/compute_mag_innov_innov_var_and_hx.h"
 #include "python/ekf_derivation/generated/compute_mag_y_innov_var_and_h.h"
 #include "python/ekf_derivation/generated/compute_mag_z_innov_var_and_h.h"
+#include "python/ekf_derivation/generated/compute_yaw_321_innov_var_and_h.h"
+#include "python/ekf_derivation/generated/compute_yaw_312_innov_var_and_h.h"
 
 #include <mathlib/mathlib.h>
 
@@ -225,131 +227,13 @@ bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_so
 {
 	aid_src_status.innovation = innovation;
 
-	// assign intermediate state variables
-	const float q0 = _state.quat_nominal(0);
-	const float q1 = _state.quat_nominal(1);
-	const float q2 = _state.quat_nominal(2);
-	const float q3 = _state.quat_nominal(3);
+	Vector24f H_YAW;
 
-	// choose A or B computational paths to avoid singularity in derivation at +-90 degrees yaw
-	bool canUseA = false;
-	bool canUseB = false;
-
-	float SA0;
-	float SA1;
-	float SA2;
-	float SA3;
-	float SA4;
-	float SA5_inv;
-
-	float SB0;
-	float SB1;
-	float SB2;
-	float SB3;
-	float SB4;
-	float SB5_inv;
-
-	const bool fuse_yaw_321 = shouldUse321RotationSequence(_R_to_earth);
-
-	if (fuse_yaw_321) {
-		// calculate 321 yaw observation matrix
-		SA0 = 2*q3;
-		SA1 = 2*q2;
-		SA2 = SA0*q0 + SA1*q1;
-		SA3 = sq(q0) + sq(q1) - sq(q2) - sq(q3);
-
-		SB0 = 2*q0;
-		SB1 = 2*q1;
-		SB2 = SB0*q3 + SB1*q2;
-		SB4 = sq(q0) + sq(q1) - sq(q2) - sq(q3);
+	if (shouldUse321RotationSequence(_R_to_earth)) {
+		sym::ComputeYaw321InnovVarAndH(getStateAtFusionHorizonAsVector(), P, variance, FLT_EPSILON, &aid_src_status.innovation_variance, &H_YAW);
 
 	} else {
-		// calculate 312 yaw observation matrix
-		SA0 = 2*q3;
-		SA1 = 2*q2;
-		SA2 = SA0*q0 - SA1*q1;
-		SA3 = sq(q0) - sq(q1) + sq(q2) - sq(q3);
-
-		SB0 = 2*q0;
-		SB1 = 2*q1;
-		SB2 = -SB0*q3 + SB1*q2;
-		SB4 = -sq(q0) + sq(q1) - sq(q2) + sq(q3);
-	}
-
-	if (sq(SA3) > 1e-6f) {
-		SA4 = 1.f/sq(SA3);
-		SA5_inv = sq(SA2)*SA4 + 1.f;
-		canUseA = fabsf(SA5_inv) > 1e-6f;
-	}
-
-	if (sq(SB2) > 1e-6f) {
-		SB3 = 1.f/sq(SB2);
-		SB5_inv = SB3*sq(SB4) + 1.f;
-		canUseB = fabsf(SB5_inv) > 1e-6f;
-	}
-
-	Vector4f H_YAW;
-
-	if (canUseA && (!canUseB || fabsf(SA5_inv) >= fabsf(SB5_inv))) {
-		const float SA5 = 1.f/SA5_inv;
-		const float SA6 = 1.f/SA3;
-		const float SA7 = SA2*SA4;
-		const float SA8 = 2*SA7;
-		const float SA9 = 2*SA6;
-
-		if (fuse_yaw_321) {
-			// calculate 321 yaw observation matrix
-			H_YAW(0) = SA5*(SA0*SA6 - SA8*q0);
-			H_YAW(1) = SA5*(SA1*SA6 - SA8*q1);
-			H_YAW(2) = SA5*(SA1*SA7 + SA9*q1);
-			H_YAW(3) = SA5*(SA0*SA7 + SA9*q0);
-
-		} else {
-			// calculate 312 yaw observation matrix
-			H_YAW(0) = SA5*(SA0*SA6 - SA8*q0);
-			H_YAW(1) = SA5*(-SA1*SA6 + SA8*q1);
-			H_YAW(2) = SA5*(-SA1*SA7 - SA9*q1);
-			H_YAW(3) = SA5*(SA0*SA7 + SA9*q0);
-		}
-
-	} else if (canUseB && (!canUseA || fabsf(SB5_inv) > fabsf(SA5_inv))) {
-		const float SB5 = 1.f/SB5_inv;
-		const float SB6 = 1.f/SB2;
-		const float SB7 = SB3*SB4;
-		const float SB8 = 2*SB7;
-		const float SB9 = 2*SB6;
-
-		if (fuse_yaw_321) {
-			// calculate 321 yaw observation matrix
-			H_YAW(0) = -SB5*(SB0*SB6 - SB8*q3);
-			H_YAW(1) = -SB5*(SB1*SB6 - SB8*q2);
-			H_YAW(2) = -SB5*(-SB1*SB7 - SB9*q2);
-			H_YAW(3) = -SB5*(-SB0*SB7 - SB9*q3);
-
-		} else {
-			// calculate 312 yaw observation matrix
-			H_YAW(0) = -SB5*(-SB0*SB6 + SB8*q3);
-			H_YAW(1) = -SB5*(SB1*SB6 - SB8*q2);
-			H_YAW(2) = -SB5*(-SB1*SB7 - SB9*q2);
-			H_YAW(3) = -SB5*(SB0*SB7 + SB9*q3);
-		}
-
-	} else {
-		return false;
-	}
-
-	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 4 elements in H are non zero
-	// calculate the innovation variance
-	aid_src_status.innovation_variance = variance;
-
-	for (unsigned row = 0; row <= 3; row++) {
-		float tmp = 0.0f;
-
-		for (uint8_t col = 0; col <= 3; col++) {
-			tmp += P(row, col) * H_YAW(col);
-		}
-
-		aid_src_status.innovation_variance += H_YAW(row) * tmp;
+		sym::ComputeYaw312InnovVarAndH(getStateAtFusionHorizonAsVector(), P, variance, FLT_EPSILON, &aid_src_status.innovation_variance, &H_YAW);
 	}
 
 	float heading_innov_var_inv = 0.f;
@@ -427,12 +311,7 @@ bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_so
 		_innov_check_fail_status.flags.reject_yaw = false;
 	}
 
-	// copy observation jacobian
-	SparseVector24f<0,1,2,3> Hfusion;
-	Hfusion.at<0>() = H_YAW(0);
-	Hfusion.at<1>() = H_YAW(1);
-	Hfusion.at<2>() = H_YAW(2);
-	Hfusion.at<3>() = H_YAW(3);
+	SparseVector24f<0,1,2,3> Hfusion(H_YAW);
 
 	if (measurementUpdate(Kfusion, Hfusion, aid_src_status.innovation)) {
 
