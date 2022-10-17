@@ -2119,7 +2119,7 @@ FixedwingPositionControl::Run()
 		}
 
 		if (_control_mode.flag_control_offboard_enabled) {
-			vehicle_local_position_setpoint_s trajectory_setpoint;
+			trajectory_setpoint_s trajectory_setpoint;
 
 			if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
 				bool valid_setpoint = false;
@@ -2135,31 +2135,32 @@ FixedwingPositionControl::Run()
 				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
 				_pos_sp_triplet.current.alt = NAN;
 
-				if (PX4_ISFINITE(trajectory_setpoint.x) && PX4_ISFINITE(trajectory_setpoint.y) && PX4_ISFINITE(trajectory_setpoint.z)) {
+				if (PX4_ISFINITE(trajectory_setpoint.position[0]) && PX4_ISFINITE(trajectory_setpoint.position[1])
+				    && PX4_ISFINITE(trajectory_setpoint.position[2])) {
 					if (_global_local_proj_ref.isInitialized()) {
 						double lat;
 						double lon;
-						_global_local_proj_ref.reproject(trajectory_setpoint.x, trajectory_setpoint.y, lat, lon);
+						_global_local_proj_ref.reproject(trajectory_setpoint.position[0], trajectory_setpoint.position[1], lat, lon);
 						valid_setpoint = true;
 						_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 						_pos_sp_triplet.current.lat = lat;
 						_pos_sp_triplet.current.lon = lon;
-						_pos_sp_triplet.current.alt = _global_local_alt0 - trajectory_setpoint.z;
+						_pos_sp_triplet.current.alt = _global_local_alt0 - trajectory_setpoint.position[2];
 					}
 
 				}
 
-				if (PX4_ISFINITE(trajectory_setpoint.vx) && PX4_ISFINITE(trajectory_setpoint.vx)
-				    && PX4_ISFINITE(trajectory_setpoint.vz)) {
+				if (PX4_ISFINITE(trajectory_setpoint.velocity[0]) && PX4_ISFINITE(trajectory_setpoint.velocity[1])
+				    && PX4_ISFINITE(trajectory_setpoint.velocity[2])) {
 					valid_setpoint = true;
 					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-					_pos_sp_triplet.current.vx = trajectory_setpoint.vx;
-					_pos_sp_triplet.current.vy = trajectory_setpoint.vy;
-					_pos_sp_triplet.current.vz = trajectory_setpoint.vz;
+					_pos_sp_triplet.current.vx = trajectory_setpoint.velocity[0];
+					_pos_sp_triplet.current.vy = trajectory_setpoint.velocity[1];
+					_pos_sp_triplet.current.vz = trajectory_setpoint.velocity[2];
 
 					if (PX4_ISFINITE(trajectory_setpoint.acceleration[0]) && PX4_ISFINITE(trajectory_setpoint.acceleration[1])
 					    && PX4_ISFINITE(trajectory_setpoint.acceleration[2])) {
-						Vector2f velocity_sp_2d(trajectory_setpoint.vx, trajectory_setpoint.vy);
+						Vector2f velocity_sp_2d(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
 						Vector2f acceleration_sp_2d(trajectory_setpoint.acceleration[0], trajectory_setpoint.acceleration[1]);
 						Vector2f acceleration_normal = acceleration_sp_2d - acceleration_sp_2d.dot(velocity_sp_2d) *
 									       velocity_sp_2d.normalized();
