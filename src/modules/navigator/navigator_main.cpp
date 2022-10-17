@@ -921,7 +921,6 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 					rep->current.alt = loiter_altitude_amsl;
 					rep->current.valid = true;
 					rep->current.loiter_radius = get_loiter_radius();
-					rep->current.alt_valid = true;
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.cruising_throttle = get_cruising_throttle();
 					rep->current.acceptance_radius = get_acceptance_radius();
