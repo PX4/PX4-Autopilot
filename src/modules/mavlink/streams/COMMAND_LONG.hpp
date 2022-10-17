@@ -62,8 +62,12 @@ private:
 		bool sent = false;
 
 		static constexpr size_t COMMAND_LONG_SIZE = MAVLINK_MSG_ID_COMMAND_LONG_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		int vehicle_command_updates = 0;
 
-		while ((_mavlink->get_free_tx_buf() >= COMMAND_LONG_SIZE) && _vehicle_command_sub.updated()) {
+		while ((_mavlink->get_free_tx_buf() >= COMMAND_LONG_SIZE)
+		       && _vehicle_command_sub.updated() && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
+
+			vehicle_command_updates++;
 
 			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
 			vehicle_command_s cmd;
