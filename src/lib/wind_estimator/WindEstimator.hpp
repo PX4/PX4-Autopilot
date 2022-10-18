@@ -70,8 +70,7 @@ public:
 
 	bool is_estimate_valid() { return _initialised; }
 
-	bool check_if_meas_is_rejected(uint64_t time_now, float innov, float innov_var, uint8_t gate_size,
-				       uint64_t &time_meas_rejected, bool &reinit_filter);
+	bool check_if_meas_is_rejected(float innov, float innov_var, uint8_t gate_size);
 
 	matrix::Vector2f get_wind() { return matrix::Vector2f{_state(INDEX_W_N), _state(INDEX_W_E)}; }
 
@@ -132,9 +131,6 @@ private:
 	uint64_t _time_last_airspeed_fuse = 0;	///< timestamp of last airspeed fusion
 	uint64_t _time_last_beta_fuse = 0;	///< timestamp of last sideslip fusion
 	uint64_t _time_last_update = 0;		///< timestamp of last covariance prediction
-	uint64_t _time_rejected_beta = 0;	///< timestamp of when sideslip measurements have consistently started to be rejected
-	uint64_t _time_rejected_tas =
-		0;	///< timestamp of when true airspeed measurements have consistently started to be rejected
 
 	bool _wind_estimator_reset = false; ///< wind estimator was reset in this cycle
 
