@@ -162,6 +162,8 @@ public:
 	ECL_TECS_MODE tecs_mode() { return _tecs_mode; }
 
 	float hgt_setpoint() { return _hgt_setpoint; }
+	float hgt_rate_from_hgt_setpoint() { return _hgt_rate_from_hgt_ref;};
+	float smooth_hgt_rate_setpoint() {return _smooth_hgt_rate_setpoint;};
 	float vert_pos_state() { return _vert_pos_state; }
 
 	float TAS_setpoint_adj() { return _TAS_setpoint_adj; }
@@ -181,6 +183,9 @@ public:
 
 	float SEB_error() { return _SEB_error; }
 	float SEB_rate_error() { return _SEB_rate_error; }
+
+	float SPE_rate() {return _SPE_rate;};
+	float SKE_rate() {return _SKE_rate;};
 
 	float throttle_integ_state() { return _throttle_integ_state; }
 	float pitch_integ_state() { return _pitch_integ_state; }
@@ -283,6 +288,8 @@ private:
 
 	// height demand calculations
 	float _hgt_setpoint{0.0f};					///< demanded height tracked by the TECS algorithm (m)
+	float _hgt_rate_from_hgt_ref{0.0f};
+	float _smooth_hgt_rate_setpoint{0.0f};
 	float _hgt_rate_setpoint{0.0f};					///< demanded climb rate tracked by the TECS algorithm
 
 	// vehicle physical limits

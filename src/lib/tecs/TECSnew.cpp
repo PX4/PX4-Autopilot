@@ -48,6 +48,8 @@ using math::min;
 
 // TODO there seems to be an inconsistent definition of IAS/CAS/EAS/TAS
 // TODO Recheck the timing.
+namespace newTECS
+{
 void TECSAirspeedFilter::initialize(const float equivalent_airspeed)
 {
 
@@ -711,3 +713,5 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		_tecs_mode = ECL_TECS_MODE_NORMAL;
 	}
 }
+}
+

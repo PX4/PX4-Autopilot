@@ -145,6 +145,27 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_speed_derivative_time_constant(_param_tas_rate_time_const.get());
 	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
 
+	_tecsnew.set_max_climb_rate(_param_fw_t_clmb_max.get());
+	_tecsnew.set_max_sink_rate(_param_fw_t_sink_max.get());
+	_tecsnew.set_speed_weight(_param_fw_t_spdweight.get());
+	_tecsnew.set_equivalent_airspeed_trim(_param_fw_airspd_trim.get());
+	_tecsnew.set_equivalent_airspeed_min(_param_fw_airspd_min.get());
+	_tecsnew.set_equivalent_airspeed_max(_param_fw_airspd_max.get());
+	_tecsnew.set_throttle_damp(_param_fw_t_thr_damp.get());
+	_tecsnew.set_integrator_gain_throttle(_param_fw_t_I_gain_thr.get());
+	_tecsnew.set_integrator_gain_pitch(_param_fw_t_I_gain_pit.get());
+	_tecsnew.set_throttle_slewrate(_param_fw_thr_slew_max.get());
+	_tecsnew.set_vertical_accel_limit(_param_fw_t_vert_acc.get());
+	_tecsnew.set_speed_comp_filter_omega(_param_fw_t_spd_omega.get());
+	_tecsnew.set_roll_throttle_compensation(_param_fw_t_rll2thr.get());
+	_tecsnew.set_pitch_damping(_param_fw_t_ptch_damp.get());
+	_tecsnew.set_altitude_error_time_constant(_param_fw_t_h_error_tc.get());
+	_tecsnew.set_altitude_rate_ff(_param_fw_t_hrate_ff.get());
+	_tecsnew.set_airspeed_error_time_constant(_param_fw_t_tas_error_tc.get());
+	_tecsnew.set_ste_rate_time_const(_param_ste_rate_time_const.get());
+	_tecsnew.set_speed_derivative_time_constant(_param_tas_rate_time_const.get());
+	_tecsnew.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
+
 	int check_ret = PX4_OK;
 
 	// sanity check parameters
@@ -285,6 +306,7 @@ FixedwingPositionControl::airspeed_poll()
 	// update TECS if validity changed
 	if (airspeed_valid != _airspeed_valid) {
 		_tecs.enable_airspeed(airspeed_valid);
+		_tecsnew.enable_airspeed(airspeed_valid);
 		_airspeed_valid = airspeed_valid;
 	}
 }
@@ -369,6 +391,7 @@ FixedwingPositionControl::vehicle_attitude_poll()
 		// load factor due to banking
 		const float load_factor = 1.f / cosf(euler_angles(0));
 		_tecs.set_load_factor(load_factor);
+		_tecsnew.set_load_factor(load_factor);
 	}
 }
 
@@ -845,6 +868,8 @@ FixedwingPositionControl::update_in_air_states(const hrt_abstime now)
 
 		_tecs.resetIntegrals();
 		_tecs.resetTrajectoryGenerators(_current_altitude);
+
+		_tecsnew.initialize(_current_altitude, -_local_pos.vz, _airspeed);
 	}
 
 	/* reset flag when airplane landed */
@@ -854,6 +879,7 @@ FixedwingPositionControl::update_in_air_states(const hrt_abstime now)
 
 		_tecs.resetIntegrals();
 		_tecs.resetTrajectoryGenerators(_current_altitude);
+		_tecsnew.initialize(_current_altitude, -_local_pos.vz, _airspeed);
 	}
 }
 
@@ -1098,6 +1124,7 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 	if (pos_sp_curr.gliding_enabled) {
 		/* enable gliding with this waypoint */
 		_tecs.set_speed_weight(2.0f);
+		_tecsnew.set_speed_weight(2.0f);
 		tecs_fw_thr_min = 0.0;
 		tecs_fw_thr_max = 0.0;
 
@@ -1200,6 +1227,7 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 	if (pos_sp_curr.gliding_enabled) {
 		/* enable gliding with this waypoint */
 		_tecs.set_speed_weight(2.0f);
+		_tecsnew.set_speed_weight(2.0f);
 		tecs_fw_thr_min = 0.0;
 		tecs_fw_thr_max = 0.0;
 
@@ -1287,6 +1315,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 	if (pos_sp_curr.gliding_enabled) {
 		/* enable gliding with this waypoint */
 		_tecs.set_speed_weight(2.0f);
+		_tecsnew.set_speed_weight(2.0f);
 		tecs_fw_thr_min = 0.0;
 		tecs_fw_thr_max = 0.0;
 
@@ -1310,6 +1339,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		// landing airspeed and potentially tighter altitude control) already such that we don't
 		// have to do this switch (which can cause significant altitude errors) close to the ground.
 		_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
+		_tecsnew.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
 		airspeed_sp = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() : _param_fw_airspd_min.get();
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
 		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_LAND;
@@ -1356,6 +1386,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		}
 
 		_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
+		_tecsnew.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
 	}
 
 	tecs_update_pitch_throttle(control_interval,
@@ -1491,6 +1522,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			// throttle is open loop anyway during ground roll, no need to wind up the integrator
 			_tecs.resetIntegrals();
+			_tecsnew.resetIntegrals();
 		}
 
 		tecs_update_pitch_throttle(control_interval,
@@ -1506,6 +1538,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 					   _param_fw_t_clmb_max.get());
 
 		_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get()); // reset after TECS calculation
+		_tecsnew.set_equivalent_airspeed_min(_param_fw_airspd_min.get()); // reset after TECS calculation
 
 		_att_sp.pitch_body = _runway_takeoff.getPitch(get_tecs_pitch());
 		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(_param_fw_thr_idle.get(), get_tecs_thrust());
@@ -1629,6 +1662,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 {
 	// Enable tighter altitude control for landings
 	_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
+	_tecsnew.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
 
 	const Vector2f local_position{_local_pos.x, _local_pos.y};
 	Vector2f local_land_point = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
@@ -1646,6 +1680,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 	if (airspeed_land < _param_fw_airspd_min.get()) {
 		// adjust underspeed detection bounds for landing airspeed
 		_tecs.set_equivalent_airspeed_min(airspeed_land);
+		_tecsnew.set_equivalent_airspeed_min(airspeed_land);
 		adjusted_min_airspeed = airspeed_land;
 	}
 
@@ -1869,6 +1904,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 	}
 
 	_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get()); // reset after TECS calculation
+	_tecsnew.set_equivalent_airspeed_min(_param_fw_airspd_min.get()); // reset after TECS calculation
 
 	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, terrain_alt);
 
@@ -2268,6 +2304,8 @@ FixedwingPositionControl::Run()
 		// restore nominal TECS parameters in case changed intermittently (e.g. in landing handling)
 		_tecs.set_speed_weight(_param_fw_t_spdweight.get());
 		_tecs.set_height_error_time_constant(_param_fw_t_h_error_tc.get());
+		_tecsnew.set_speed_weight(_param_fw_t_spdweight.get());
+		_tecsnew.set_altitude_error_time_constant(_param_fw_t_h_error_tc.get());
 
 		// restore lateral-directional guidance parameters (changed in takeoff mode)
 		_npfg.setPeriod(_param_npfg_period.get());
@@ -2509,8 +2547,15 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		return;
 	}
 
+	// We need an altitude lock to calculate the TECS control
+	if (!(_local_pos.timestamp > 0))
+	{
+		_reinitialize_tecs = true;
+	}
+
 	if (_reinitialize_tecs) {
 		_tecs.reset_state();
+		_tecsnew.initialize(_current_altitude, -_local_pos.vz, _airspeed);
 		_reinitialize_tecs = false;
 	}
 
@@ -2520,6 +2565,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	if (_landed) {
 		_tecs.resetIntegrals();
 		_tecs.resetTrajectoryGenerators(_current_altitude);
+		_tecsnew.initialize(_current_altitude, -_local_pos.vz, _airspeed);
 	}
 
 	/* update TECS vehicle state estimates */
@@ -2545,6 +2591,54 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 				    desired_max_climbrate,
 				    desired_max_sinkrate,
 				    hgt_rate_sp);
+
+	_tecsnew.update(_pitch - radians(_param_fw_psp_off.get()),
+			_current_altitude,
+			alt_sp,
+			airspeed_sp,
+			_airspeed,
+			_eas2tas,
+			climbout_mode,
+			climbout_pitch_min_rad - radians(_param_fw_psp_off.get()),
+			throttle_min,
+			throttle_max,
+			throttle_trim_comp,
+			pitch_min_rad - radians(_param_fw_psp_off.get()),
+			pitch_max_rad - radians(_param_fw_psp_off.get()),
+			desired_max_climbrate,
+			desired_max_sinkrate,
+			_body_acceleration(0),
+			-_local_pos.vz,
+			hgt_rate_sp);
+
+	newTECS::TECS::DebugOutput new_status{_tecsnew.getStatus()};
+
+	printf("Compare Airspeed Filter: \n ");
+	printf("\t\t raw\t old \t new \n");
+	printf("Airspeed: \t %.2f \t %.2f \t %.2f \n",(double)(_airspeed*_eas2tas), (double)_tecs.tas_state(), (double)new_status.true_airspeed_filtered);
+	printf("Airspeed_deriv:\t %.2f \t %.2f \t %.2f \n", (double)_body_acceleration(0), (double)_tecs.speed_derivative(), (double)new_status.true_airspeed_derivative);
+
+	printf("Compare Altitude reference filter: \n ");
+	printf("\t\t\t raw\t\t old \t\t new \n");
+	printf("Altitude Ref:\t\t %.2f \t %.2f \t %.2f \n",(double)alt_sp, (double)_tecs.hgt_setpoint(), (double)new_status.altitude_sp);
+	printf("Alt rate from Alt:\t %.2f \t\t %.2f \t\t %.2f \n",0.0, (double)_tecs.hgt_rate_from_hgt_setpoint(), (double)new_status.altitude_rate);
+	printf("Altitude Rate Ref:\t %.2f \t\t %.2f \t\t %.2f \n",(double)hgt_rate_sp, (double)_tecs.smooth_hgt_rate_setpoint(), (double)new_status.altitude_rate_setpoint);
+
+	printf("Compare Tecs control: \n ");
+	printf("\t\t old \t\t new \n");
+	printf("alt_rate_ref:\t %.2f \t %.2f \n", (double)_tecs.hgt_rate_setpoint(), (double)new_status.altitude_rate_control);
+	printf("speed_rate_ref:\t %.2f \t %.2f \n", (double)_tecs.TAS_rate_setpoint(), (double)new_status.true_airspeed_derivative_control);
+	printf("ste_rate_error:\t %.2f \t %.2f \n", (double)_tecs.STE_rate_error(), (double)new_status.total_energy_rate_error);
+	printf("ste_rate_sp:\t %.2f \t %.2f \n", (double)_tecs.STE_rate_setpoint(), (double)new_status.total_energy_rate_sp);
+	printf("seb_rate_error:\t %.2f \t %.2f \n", (double)_tecs.SEB_rate_error(), (double)new_status.energy_balance_rate_error);
+	printf("seb_rate_sp:\t %.2f \t %.2f \n", (double)_tecs.SEB_rate_setpoint(), (double)new_status.energy_balance_rate_sp);
+
+	printf("Compare Tecs output: \n ");
+	printf("\t\t old \t\t new \n");
+	printf("pitch control:\t %.2f \t %.2f \n", (double)_tecs.get_pitch_setpoint(), (double)_tecsnew.get_pitch_setpoint());
+	printf("throttle control:\t %.2f \t %.2f \n", (double)_tecs.get_throttle_setpoint(), (double)_tecsnew.get_throttle_setpoint());
+
+
 
 	tecs_status_publish();
 }

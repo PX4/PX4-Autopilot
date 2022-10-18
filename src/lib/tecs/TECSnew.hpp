@@ -49,6 +49,8 @@
 #include <motion_planning/VelocitySmoothing.hpp>
 #include <motion_planning/ManualVelocitySmoothingZ.hpp>
 
+namespace newTECS
+{
 class TECSAirspeedFilter {
 public:
 	/**
@@ -645,4 +647,5 @@ private:
 	 */
 	void _detect_uncommanded_descent(float throttle_setpoint_max, float altitude, float altitude_setpoint, float tas, float tas_setpoint);
 };
+}
 
