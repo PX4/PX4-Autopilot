@@ -505,7 +505,7 @@ void Ekf::controlAirDataFusion()
 
 	// If both airspeed and sideslip fusion have timed out and we are not using a drag observation model then we no longer have valid wind estimates
 	const bool airspeed_timed_out = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
-	const bool sideslip_timed_out = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
+	const bool sideslip_timed_out = isTimedOut(_aid_src_sideslip.time_last_fuse, (uint64_t)10e6);
 
 	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & SensorFusionMask::USE_DRAG))) {
 		_control_status.flags.wind = false;
@@ -573,7 +573,7 @@ void Ekf::controlBetaFusion()
 			// activate the wind states
 			_control_status.flags.wind = true;
 			// reset the timeout timers to prevent repeated resets
-			_aid_src_airspeed.time_last_fuse = _imu_sample_delayed.time_us;
+			_aid_src_sideslip.time_last_fuse = _imu_sample_delayed.time_us;
 			resetWind();
 		}
 
