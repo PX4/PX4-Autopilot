@@ -41,7 +41,7 @@
  * This is needed to establish the initial peripheral clocking.
  */
 
-const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
+const struct peripheral_clock_config_s g_peripheral_clockconfig0[NUM_OF_PERIPHERAL_CLOCKS_0] = {
 	{
 		.clkname = FLEXCAN0_CLK,
 #ifdef CONFIG_S32K3XX_FLEXCAN0

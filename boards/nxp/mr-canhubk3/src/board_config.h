@@ -104,7 +104,7 @@ __BEGIN_DECLS
 
 /* User peripheral configuration structure 0 */
 
-extern const struct peripheral_clock_config_s g_peripheral_clockconfig0[];
+extern const struct peripheral_clock_config_s g_peripheral_clockconfig0[NUM_OF_PERIPHERAL_CLOCKS_0];
 
 /****************************************************************************
  * Public Function Prototypes
