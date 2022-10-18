@@ -811,6 +811,6 @@ TEST(CovariancePredictionGenerated, SympyVsSymforce)
 	}
 
 	DiffRatioReport report = computeDiffRatioSquareMatrix24f(nextP_sympy, nextP_symforce);
-	EXPECT_LT(report.max_diff_fraction, 1e-5f) << "Max diff fraction = " << report.max_diff_fraction <<
+	EXPECT_LT(report.max_diff_fraction, 2e-5f) << "Max diff fraction = " << report.max_diff_fraction <<
 			" location index = " << report.max_row << " sympy = " << report.max_v1 << " symforce = " << report.max_v2;
 }
