@@ -58,7 +58,6 @@
 #include <lib/l1/ECL_L1_Pos_Controller.hpp>
 #include <lib/npfg/npfg.hpp>
 #include <lib/tecs/TECS.hpp>
-#include <lib/tecs/TECSnew.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/slew_rate/SlewRate.hpp>
@@ -389,7 +388,6 @@ private:
 
 	// total energy control system - airspeed / altitude control
 	TECS _tecs;
-	newTECS::TECS _tecsnew;
 
 	bool _reinitialize_tecs{true};
 	bool _tecs_is_running{false};
