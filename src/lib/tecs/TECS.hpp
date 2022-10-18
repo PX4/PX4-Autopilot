@@ -177,8 +177,8 @@ private:
 	VelocitySmoothing
 	_alt_control_traj_generator;		///< Generates altitude rate and altitude setpoint trajectory when altitude is commanded.
 
-	ManualVelocitySmoothingZ
-	_velocity_control_traj_generator;	///< Generates altitude rate setpoint when altitude rate is commanded.
+	// Output
+	float _alt_rate_ref; 			///< Altitude rate reference in [m/s].
 };
 
 class TECSControl
