@@ -2161,10 +2161,13 @@ FixedwingPositionControl::Run()
 					if (PX4_ISFINITE(trajectory_setpoint.acceleration[0]) && PX4_ISFINITE(trajectory_setpoint.acceleration[1])
 					    && PX4_ISFINITE(trajectory_setpoint.acceleration[2])) {
 						Vector2f velocity_sp_2d(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
+						Vector2f normalized_velocity_sp_2d = velocity_sp_2d.normalized();
 						Vector2f acceleration_sp_2d(trajectory_setpoint.acceleration[0], trajectory_setpoint.acceleration[1]);
-						Vector2f acceleration_normal = acceleration_sp_2d - acceleration_sp_2d.dot(velocity_sp_2d) *
-									       velocity_sp_2d.normalized();
-						_pos_sp_triplet.current.loiter_radius = velocity_sp_2d.norm() * velocity_sp_2d.norm() / acceleration_normal.norm();
+						Vector2f acceleration_normal = acceleration_sp_2d - acceleration_sp_2d.dot(normalized_velocity_sp_2d) *
+									       normalized_velocity_sp_2d;
+						float direction = -normalized_velocity_sp_2d.cross(acceleration_normal.normalized());
+						_pos_sp_triplet.current.loiter_radius = direction * velocity_sp_2d.norm() * velocity_sp_2d.norm() /
+											acceleration_normal.norm();
 
 					} else {
 						_pos_sp_triplet.current.loiter_radius = NAN;
