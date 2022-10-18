@@ -60,7 +60,7 @@ extern "C" __EXPORT int perf_main(int argc, char *argv[])
 			return 0;
 
 		} else if (strcmp(argv[1], "latency") == 0) {
-			perf_print_latency(1 /* stdout */);
+			perf_print_latency();
 			fflush(stdout);
 			return 0;
 		}
@@ -69,7 +69,7 @@ extern "C" __EXPORT int perf_main(int argc, char *argv[])
 		return -1;
 	}
 
-	perf_print_all(1 /* stdout */);
+	perf_print_all();
 	fflush(stdout);
 	return 0;
 }
