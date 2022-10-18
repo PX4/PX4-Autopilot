@@ -253,7 +253,11 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[NUM_OF_PERIPHER
 	{
 		.clkname = STM0_CLK,
 		.clkgate = true,
-	}
+	},
+	{
+		.clkname = EMIOS0_CLK,
+		.clkgate = true,
+	},
 };
 
 /****************************************************************************

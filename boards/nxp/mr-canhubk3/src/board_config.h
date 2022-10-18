@@ -84,7 +84,7 @@ __BEGIN_DECLS
 
 /* Count of peripheral clock user configurations */
 
-#define NUM_OF_PERIPHERAL_CLOCKS_0 27
+#define NUM_OF_PERIPHERAL_CLOCKS_0 28
 
 /* Timer I/O PWM and capture */
 
