@@ -125,7 +125,9 @@
 /* SPI */
 
 #define SPI6_nRESET_EXTERNAL1       /* PF10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN10)
-#define GPIO_SYNC                   /* PE9  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_100MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN9)
+#define GPIO_SYNC                   /* PE9  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN9)
+#define GPIO_SYNC_TIMER             /* PE9  */ (GPIO_ALT|GPIO_AF1|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN9)
+
 
 /* I2C busses */
 
@@ -251,7 +253,8 @@
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS   9
+#define DIRECT_PWM_OUTPUT_CHANNELS   8
+#define BOARD_PWM_FREQ	             1024000
 
 
 /* Power supply control and monitoring GPIOs */
@@ -458,7 +461,6 @@
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
 		GPIO_VDD_3V3_SD_CARD_EN,          \
 		GPIO_PD15,                        \
-		GPIO_SYNC,                        \
 		SPI6_nRESET_EXTERNAL1,            \
 		GPIO_ETH_POWER_EN,                \
 		GPIO_NFC_GPIO,                    \
@@ -474,7 +476,8 @@
 #define PX4_I2C_BUS_MTD      4,5
 
 
-#define BOARD_NUM_IO_TIMERS 5
+#define BOARD_NUM_IO_TIMERS  3
+#define BOARD_SPIX_SYNC_FREQ 32000
 
 __BEGIN_DECLS
 
