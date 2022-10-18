@@ -204,6 +204,7 @@ void TECS::runAltitudeControllerSmoothVelocity(float alt_sp_amsl_m, float target
 	_alt_control_traj_generator.updateTraj(_dt);
 
 	_hgt_setpoint = _alt_control_traj_generator.getCurrentPosition();
+	_hgt_rate_from_hgt_ref = _alt_control_traj_generator.getCurrentVelocity();
 	_hgt_rate_setpoint = (_hgt_setpoint - alt_amsl) * _height_error_gain + _height_setpoint_gain_ff *
 			     _alt_control_traj_generator.getCurrentVelocity();
 	_hgt_rate_setpoint = math::constrain(_hgt_rate_setpoint, -_max_sink_rate, _max_climb_rate);
@@ -480,6 +481,7 @@ void TECS::_calculateHeightRateSetpoint(float altitude_sp_amsl, float height_rat
 		_velocity_control_traj_generator.setCurrentPositionEstimate(altitude_amsl);
 		_velocity_control_traj_generator.update(_dt, height_rate_sp);
 		_hgt_rate_setpoint = _velocity_control_traj_generator.getCurrentVelocity();
+		_smooth_hgt_rate_setpoint = _hgt_rate_setpoint;
 		altitude_sp_amsl = _velocity_control_traj_generator.getCurrentPosition();
 		control_altitude = PX4_ISFINITE(altitude_sp_amsl);
 
