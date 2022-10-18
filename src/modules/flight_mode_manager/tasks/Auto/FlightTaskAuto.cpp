@@ -97,12 +97,7 @@ bool FlightTaskAuto::updateInitialize()
 	// require valid reference and valid target
 	ret = ret && _evaluateGlobalReference() && _evaluateTriplets();
 	// require valid position
-	ret = ret && PX4_ISFINITE(_position(0))
-	      && PX4_ISFINITE(_position(1))
-	      && PX4_ISFINITE(_position(2))
-	      && PX4_ISFINITE(_velocity(0))
-	      && PX4_ISFINITE(_velocity(1))
-	      && PX4_ISFINITE(_velocity(2));
+	ret = ret && _position.isAllFinite() && _velocity.isAllFinite();
 
 	return ret;
 }
@@ -360,7 +355,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 	if (!PX4_ISFINITE(_sub_triplet_setpoint.get().current.lat)
 	    || !PX4_ISFINITE(_sub_triplet_setpoint.get().current.lon)) {
 		// No position provided in xy. Lock position
-		if (!PX4_ISFINITE(_lock_position_xy(0))) {
+		if (!_lock_position_xy.isAllFinite()) {
 			tmp_target(0) = _lock_position_xy(0) = _position(0);
 			tmp_target(1) = _lock_position_xy(1) = _position(1);
 
@@ -388,9 +383,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 	const bool prev_next_validity_changed = (_prev_was_valid != _sub_triplet_setpoint.get().previous.valid)
 						|| (_next_was_valid != _sub_triplet_setpoint.get().next.valid);
 
-	if (PX4_ISFINITE(_triplet_target(0))
-	    && PX4_ISFINITE(_triplet_target(1))
-	    && PX4_ISFINITE(_triplet_target(2))
+	if (_triplet_target.isAllFinite()
 	    && fabsf(_triplet_target(0) - tmp_target(0)) < 0.001f
 	    && fabsf(_triplet_target(1) - tmp_target(1)) < 0.001f
 	    && fabsf(_triplet_target(2) - tmp_target(2)) < 0.001f
@@ -402,7 +395,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_triplet_target = tmp_target;
 		_target_acceptance_radius = _sub_triplet_setpoint.get().current.acceptance_radius;
 
-		if (!PX4_ISFINITE(_triplet_target(0)) || !PX4_ISFINITE(_triplet_target(1))) {
+		if (!Vector2f(_triplet_target).isAllFinite()) {
 			// Horizontal target is not finite.
 			_triplet_target(0) = _position(0);
 			_triplet_target(1) = _position(1);
@@ -536,7 +529,7 @@ void FlightTaskAuto::_set_heading_from_mode()
 		break;
 	}
 
-	if (PX4_ISFINITE(v.norm_squared())) {
+	if (v.isAllFinite()) {
 		// We only adjust yaw if vehicle is outside of acceptance radius. Once we enter acceptance
 		// radius, lock yaw to current yaw.
 		// This prevents excessive yawing.

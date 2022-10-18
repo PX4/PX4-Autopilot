@@ -172,8 +172,8 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 	// If a velocity is specified, that is used as a feedforward to track the position setpoint
 	// (ie. it assumes the position setpoint is moving at the specified velocity)
 	// If the position setpoints are set to NAN, the values in the velocity setpoints are used as velocity targets: nothing to do here.
-	auto &target = waypoints[1];
-	const bool xy_target_valid = PX4_ISFINITE(target(0)) && PX4_ISFINITE(target(1));
+	const Vector3f &target = waypoints[1];
+	const bool xy_target_valid = Vector2f(target).isAllFinite();
 	const bool z_target_valid = PX4_ISFINITE(target(2));
 
 	Vector3f velocity_setpoint = feedforward_velocity_setpoint;
@@ -269,8 +269,7 @@ void PositionSmoothing::_generateTrajectory(
 	float delta_time,
 	PositionSmoothingSetpoints &out_setpoints)
 {
-	if (!PX4_ISFINITE(velocity_setpoint(0)) || !PX4_ISFINITE(velocity_setpoint(1))
-	    || !PX4_ISFINITE(velocity_setpoint(2))) {
+	if (!velocity_setpoint.isAllFinite()) {
 		return;
 	}
 
