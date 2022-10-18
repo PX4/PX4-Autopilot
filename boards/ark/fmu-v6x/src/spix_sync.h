@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,62 +31,12 @@
  *
  ****************************************************************************/
 
-#include "ICM42688P.hpp"
-
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
-
-void ICM42688P::print_usage()
-{
-	PRINT_MODULE_USAGE_NAME("icm42688p", "driver");
-	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
-	PRINT_MODULE_USAGE_PARAM_INT('C', 0, 0, 35000, "Input clock frequency (Hz)", true);
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
-extern "C" int icm42688p_main(int argc, char *argv[])
-{
-	int ch;
-	using ThisDriver = ICM42688P;
-	BusCLIArguments cli{false, true};
-	cli.default_spi_frequency = SPI_SPEED;
-
-	while ((ch = cli.getOpt(argc, argv, "C:R:")) != EOF) {
-		switch (ch) {
-		case 'C':
-			cli.custom1 = atoi(cli.optArg());
-			break;
-
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
-		}
-	}
-
-	const char *verb = cli.optArg();
-
-	if (!verb) {
-		ThisDriver::print_usage();
-		return -1;
-	}
-
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_IMU_DEVTYPE_ICM42688P);
-
-	if (!strcmp(verb, "start")) {
-		return ThisDriver::module_start(cli, iterator);
-	}
-
-	if (!strcmp(verb, "stop")) {
-		return ThisDriver::module_stop(iterator);
-	}
-
-	if (!strcmp(verb, "status")) {
-		return ThisDriver::module_status(iterator);
-	}
-
-	ThisDriver::print_usage();
-	return -1;
-}
+__BEGIN_DECLS
+void spix_sync_channel_init(unsigned channel);
+int spix_sync_servo_set(unsigned channel, uint8_t  value);
+unsigned spix_sync_servo_get(unsigned channel);
+int spix_sync_servo_init(unsigned rate);
+void spix_sync_servo_deinit(void);
+void spix_sync_servo_arm(bool armed);
+unsigned spix_sync_timer_get_period(unsigned timer);
+__END_DECLS

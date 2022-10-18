@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,11 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
+static constexpr uint16_t combine_uint(uint8_t msb, uint8_t lsb)
+{
+	return (msb << 8u) | lsb;
+}
+
 ICM42688P::ICM42688P(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
@@ -49,6 +54,15 @@ ICM42688P::ICM42688P(const I2CSPIDriverConfig &config) :
 {
 	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
+	}
+
+	if (config.custom1 != 0) {
+		_enable_clock_input = true;
+		_input_clock_freq = config.custom1;
+		ConfigureCLKIN();
+
+	} else {
+		_enable_clock_input = false;
 	}
 
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
@@ -96,6 +110,7 @@ void ICM42688P::print_status()
 	I2CSPIDriverBase::print_status();
 
 	PX4_INFO("FIFO empty interval: %d us (%.1f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
+	PX4_INFO("Clock input: %s", _enable_clock_input ? "enabled" : "disabled");
 
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
@@ -334,6 +349,22 @@ void ICM42688P::ConfigureFIFOWatermark(uint8_t samples)
 	}
 }
 
+void ICM42688P::ConfigureCLKIN()
+{
+	for (auto &r0 : _register_bank0_cfg) {
+		if (r0.reg == Register::BANK_0::INTF_CONFIG1) {
+			r0.set_bits = INTF_CONFIG1_BIT::RTC_MODE;
+		}
+	}
+
+	for (auto &r1 : _register_bank1_cfg) {
+		if (r1.reg == Register::BANK_1::INTF_CONFIG5) {
+			r1.set_bits = PIN9_FUNCTION_BIT::CLKIN;
+			r1.clear_bits = PIN9_FUNCTION_BIT::FSYNC_PIN9;
+		}
+	}
+}
+
 void ICM42688P::SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force)
 {
 	if (bank != _last_register_bank || force) {
@@ -544,6 +575,10 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 			// Packet does not contain a new and valid extended 20-bit data
 			valid = false;
 
+		} else if ((FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_TIMESTAMP_FSYNC) != Bit3) {
+			// Packet does not contain ODR timestamp
+			valid = false;
+
 		} else if (FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_ODR_ACCEL) {
 			// accel ODR changed
 			valid = false;
@@ -606,13 +641,22 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = 0;
-	accel.dt = FIFO_SAMPLE_DT;
 
 	// 18-bits of accelerometer data
 	bool scale_20bit = false;
 
 	// first pass
 	for (int i = 0; i < samples; i++) {
+
+		uint16_t timestamp_fifo = combine_uint(fifo[i].TimeStamp_h, fifo[i].TimeStamp_l);
+
+		if (_enable_clock_input) {
+			accel.dt = (float)timestamp_fifo * ((1.f / _input_clock_freq) * 1e6f);
+
+		} else {
+			accel.dt = (float)timestamp_fifo * FIFO_TIMESTAMP_SCALING;
+		}
+
 		// 20 bit hires mode
 		// Sign extension + Accel [19:12] + Accel [11:4] + Accel [3:2] (20 bit extension byte)
 		// Accel data is 18 bit ()
@@ -693,13 +737,22 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = 0;
-	gyro.dt = FIFO_SAMPLE_DT;
 
 	// 20-bits of gyroscope data
 	bool scale_20bit = false;
 
 	// first pass
 	for (int i = 0; i < samples; i++) {
+
+		uint16_t timestamp_fifo = combine_uint(fifo[i].TimeStamp_h, fifo[i].TimeStamp_l);
+
+		if (_enable_clock_input) {
+			gyro.dt = (float)timestamp_fifo * ((1.f / _input_clock_freq) * 1e6f);
+
+		} else {
+			gyro.dt = (float)timestamp_fifo * FIFO_TIMESTAMP_SCALING;
+		}
+
 		// 20 bit hires mode
 		// Gyro [19:12] + Gyro [11:4] + Gyro [3:0] (bottom 4 bits of 20 bit extension byte)
 		int32_t gyro_x = reassemble_20bit(fifo[i].GYRO_DATA_X1, fifo[i].GYRO_DATA_X0, fifo[i].Ext_Accel_X_Gyro_X & 0x0F);
