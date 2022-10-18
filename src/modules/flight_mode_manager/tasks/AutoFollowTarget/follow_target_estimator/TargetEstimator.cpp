@@ -210,12 +210,8 @@ bool TargetEstimator::measurement_can_be_fused(const Vector3f &current_measureme
 		const Vector3f &previous_measurement,
 		uint64_t last_fusion_timestamp, float min_delta_t) const
 {
-	const bool measurement_valid = PX4_ISFINITE(current_measurement(0)) && PX4_ISFINITE(current_measurement(1))
-				       && PX4_ISFINITE(current_measurement(2));
-
 	const bool sensor_data_changed = Vector3f(current_measurement - previous_measurement).longerThan(2.0f * FLT_EPSILON)
-					 || !PX4_ISFINITE(previous_measurement(0)) || !PX4_ISFINITE(previous_measurement(1))
-					 || !PX4_ISFINITE(previous_measurement(2));
+					 || !previous_measurement.isAllFinite();
 
 	// This is required as a throttle
 	const bool fusion_old_enough = hrt_absolute_time() - last_fusion_timestamp >
@@ -225,7 +221,7 @@ bool TargetEstimator::measurement_can_be_fused(const Vector3f &current_measureme
 	const bool fusion_too_old = hrt_absolute_time() - last_fusion_timestamp >
 				    2 * min_delta_t * 1000;
 
-	return measurement_valid && fusion_old_enough && (sensor_data_changed || fusion_too_old);
+	return current_measurement.isAllFinite() && fusion_old_enough && (sensor_data_changed || fusion_too_old);
 	// return measurement_valid;
 }
 
@@ -242,7 +238,7 @@ void TargetEstimator::measurement_update(follow_target_s follow_target)
 	if (_last_follow_target_timestamp == 0) {
 		_filter_states.pos_ned_est = pos_measured;
 
-		if (PX4_ISFINITE(vel_measured(0)) && PX4_ISFINITE(vel_measured(1)) && PX4_ISFINITE(vel_measured(2))) {
+		if (vel_measured.isAllFinite()) {
 			_filter_states.vel_ned_est = vel_measured;
 
 		} else {
@@ -316,11 +312,11 @@ void TargetEstimator::prediction_update(float deltatime)
 	const Vector3f vel_ned_est_prev = _filter_states.vel_ned_est;
 	const Vector3f acc_ned_est_prev = _filter_states.acc_ned_est;
 
-	if (PX4_ISFINITE(vel_ned_est_prev(0)) && PX4_ISFINITE(vel_ned_est_prev(1)) && PX4_ISFINITE(vel_ned_est_prev(2))) {
+	if (vel_ned_est_prev.isAllFinite()) {
 		_filter_states.pos_ned_est += deltatime * vel_ned_est_prev + 0.5f * acc_ned_est_prev * deltatime * deltatime;
 	}
 
-	if (PX4_ISFINITE(acc_ned_est_prev(0)) && PX4_ISFINITE(acc_ned_est_prev(1)) && PX4_ISFINITE(acc_ned_est_prev(2))) {
+	if (acc_ned_est_prev.isAllFinite()) {
 		_filter_states.vel_ned_est += deltatime * acc_ned_est_prev;
 	}
 }
@@ -329,7 +325,7 @@ Vector3<double> TargetEstimator::get_lat_lon_alt_est() const
 {
 	Vector3<double> lat_lon_alt{(double)NAN, (double)NAN, (double)NAN};
 
-	if (PX4_ISFINITE(_filter_states.pos_ned_est(0)) && PX4_ISFINITE(_filter_states.pos_ned_est(0))) {
+	if (Vector2f(_filter_states.pos_ned_est).isAllFinite()) {
 		_reference_position.reproject(_filter_states.pos_ned_est(0), _filter_states.pos_ned_est(1), lat_lon_alt(0),
 					      lat_lon_alt(1));
 		lat_lon_alt(2) = -(double)_filter_states.pos_ned_est(2) + (double)_vehicle_local_position.ref_alt;
