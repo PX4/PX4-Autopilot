@@ -70,7 +70,7 @@ TEST(YawFusionGenerated, singularityYawEquivalence)
 	// THEN: Even at the singularity point, the result is still correct, thanks to epsilon
 	EXPECT_TRUE(isEqual(H_a, H_b));
 	EXPECT_NEAR(innov_var_a, innov_var_b, 1e-5f);
-	EXPECT_TRUE(innov_var_a < 5.f && innov_var_a > R) << "innov_var = " << innov_var_a;
+	EXPECT_TRUE(innov_var_a < 50.f && innov_var_a > R) << "innov_var = " << innov_var_a;
 }
 
 TEST(YawFusionGenerated, gimbalLock321vs312)
@@ -98,7 +98,7 @@ TEST(YawFusionGenerated, gimbalLock321vs312)
 	// THEN: both computation are not equivalent, 321 is undefined but 312 is valid
 	EXPECT_FALSE(isEqual(H_321, H_312));
 	EXPECT_GT(fabsf(innov_var_321 - innov_var_312), 1e6f);
-	EXPECT_TRUE(innov_var_312 < 5.f && innov_var_312 > R) << "innov_var = " << innov_var_312;
+	EXPECT_TRUE(innov_var_312 < 50.f && innov_var_312 > R) << "innov_var = " << innov_var_312;
 }
 
 TEST(YawFusionGenerated, positiveVarianceAllOrientations)
