@@ -85,13 +85,9 @@ void TECSAirspeedFilter::update(const float dt, const Input &input, const Param 
 		airspeed_derivative = 0.0f;
 	}
 
-	// TODO remove. Only here for compatibility check with old TECS.
-	// filter true airspeed rate using first order filter with 0.5 second time constant
-	_airspeed_rate_filter.setParameters(TECS::DT_DEFAULT, param.speed_derivative_time_const);
-	_airspeed_rate_filter.reset(0.0f);
-
 	// Alpha filtering done in the TECS module. TODO merge with the second order complementary filter.
-	//_airspeed_rate_filter.setParameters(dt, param.speed_derivative_time_const);
+	_airspeed_rate_filter.setParameters(dt, param.speed_derivative_time_const);
+
 	if (PX4_ISFINITE(input.equivalent_airspeed_rate) && airspeed_sensor_available) {
 		_airspeed_rate_filter.update(airspeed_derivative);
 
@@ -105,17 +101,18 @@ void TECSAirspeedFilter::update(const float dt, const Input &input, const Param 
 	float airspeed_rate_state_input = airspeed_innovation * param.airspeed_estimate_freq * param.airspeed_estimate_freq;
 	new_airspeed_state.speed_rate = _airspeed_state.speed_rate + airspeed_rate_state_input * dt;
 
-	// Update TAS state // TODO the airspeed rate is applied twice.
-	float airspeed_state_input = _airspeed_state.speed_rate + airspeed_derivative + airspeed_innovation *
-				     param.airspeed_estimate_freq * 1.4142f;
+	// Update TAS state
+	float airspeed_state_input = _airspeed_state.speed_rate + airspeed_innovation * param.airspeed_estimate_freq * 1.4142f;
 	new_airspeed_state.speed = _airspeed_state.speed + airspeed_state_input * dt;
 
 	// Clip tas at zero
 	if (new_airspeed_state.speed < 0.0f) {
-		// clip TAS at zero, back calculate rate // TODO Redo
-		airspeed_state_input = -_airspeed_state.speed / dt;
-		new_airspeed_state.speed_rate = airspeed_state_input - airspeed_derivative - airspeed_innovation *
-						param.airspeed_estimate_freq * 1.4142f;
+		// clip TAS at zero, calculate input that would result in zero speed.
+		float desired_airspeed_state_input = -_airspeed_state.speed / dt;
+		float desired_airspeed_innovation = (desired_airspeed_state_input - _airspeed_state.speed_rate) /
+						    (param.airspeed_estimate_freq * 1.4142f);
+		new_airspeed_state.speed_rate = _airspeed_state.speed_rate + (desired_airspeed_innovation *
+						param.airspeed_estimate_freq * param.airspeed_estimate_freq * dt);
 		new_airspeed_state.speed = 0.0f;
 	}
 
@@ -455,9 +452,7 @@ void TECSControl::_updateThrottleSetpoint(float dt, const SpecificEnergy &se, co
 	_ste_rate = se.spe.rate + se.ske.rate;
 
 	float STE_rate_error_raw = se.spe.rate_error + se.ske.rate_error;
-	// TODO rmeove reset and add correct time intervall
-	_ste_rate_error_filter.setParameters(TECS::DT_DEFAULT, param.ste_rate_time_const);
-	_ste_rate_error_filter.reset(0.0f);
+	_ste_rate_error_filter.setParameters(dt, param.ste_rate_time_const);
 	_ste_rate_error_filter.update(STE_rate_error_raw);
 	float STE_rate_error{_ste_rate_error_filter.getState()};
 
