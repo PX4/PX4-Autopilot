@@ -47,6 +47,5 @@ px4_add_module(
 		runway_takeoff
 		SlewRate
 		tecs
-		tecsnew
 		motion_planning
 	)
