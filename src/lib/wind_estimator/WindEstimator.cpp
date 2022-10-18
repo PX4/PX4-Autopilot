@@ -67,10 +67,6 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const float hor_vel_vari
 		_P(INDEX_W_N, INDEX_W_N) = _P(INDEX_W_E, INDEX_W_E) = sq(INITIAL_WIND_ERROR);
 	}
 
-	// reset the timestamp for measurement rejection
-	_time_rejected_tas = 0;
-	_time_rejected_beta = 0;
-
 	_wind_estimator_reset = true;
 
 	return true;
@@ -129,20 +125,14 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	sym::FuseAirspeed(velI, _state, _P, true_airspeed, _tas_var, FLT_EPSILON,
 			  &H_tas, &K, &_tas_innov_var, &_tas_innov);
 
-	bool reinit_filter = false;
-	bool meas_is_rejected = false;
+	const bool meas_is_rejected = check_if_meas_is_rejected(_tas_innov, _tas_innov_var, _tas_gate);
 
-	// note: _time_rejected_tas and reinit_filter are not used anymore as filter can't get reset due to tas rejection
-	meas_is_rejected = check_if_meas_is_rejected(time_now, _tas_innov, _tas_innov_var, _tas_gate, _time_rejected_tas,
-			   reinit_filter);
+	if (_tas_innov_var < 0.0f) {
+		// re init filter in case of a negative variance, and trigger early return to not fuse measurement
+		_initialised = initialise(velI, hor_vel_variance, matrix::Eulerf(q_att).psi(), true_airspeed, _tas_var);
+		return;
 
-	if (meas_is_rejected || _tas_innov_var < 0.f) {
-		// only reset filter if _tas_innov_var gets unfeasible
-		if (_tas_innov_var < 0.0f) {
-			_initialised = initialise(velI, hor_vel_variance, matrix::Eulerf(q_att).psi(), true_airspeed, _tas_var);
-		}
-
-		// we either did a filter reset or the current measurement was rejected so do not fuse
+	} else if (meas_is_rejected) {
 		return;
 	}
 
@@ -180,20 +170,14 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	sym::FuseBeta(velI, _state, _P, q_att, _beta_var, FLT_EPSILON,
 		      &H_beta, &K, &_beta_innov_var, &_beta_innov);
 
-	bool reinit_filter = false;
-	bool meas_is_rejected = false;
+	const bool meas_is_rejected = check_if_meas_is_rejected(_beta_innov, _beta_innov_var, _beta_gate);
 
-	meas_is_rejected = check_if_meas_is_rejected(time_now, _beta_innov, _beta_innov_var, _beta_gate, _time_rejected_beta,
-			   reinit_filter);
+	if (_beta_innov_var < 0.0f) {
+		// re init filter in case of a negative variance, and trigger early return to not fuse measurement
+		_initialised = initialise(velI, hor_vel_variance, matrix::Eulerf(q_att).psi());
+		return;
 
-	reinit_filter |= _beta_innov_var < 0.0f;
-
-	if (meas_is_rejected || reinit_filter) {
-		if (reinit_filter) {
-			_initialised = initialise(velI, hor_vel_variance, matrix::Eulerf(q_att).psi());
-		}
-
-		// we either did a filter reset or the current measurement was rejected so do not fuse
+	} else if (meas_is_rejected) {
 		return;
 	}
 
@@ -243,17 +227,7 @@ WindEstimator::run_sanity_checks()
 }
 
 bool
-WindEstimator::check_if_meas_is_rejected(uint64_t time_now, float innov, float innov_var, uint8_t gate_size,
-		uint64_t &time_meas_rejected, bool &reinit_filter)
+WindEstimator::check_if_meas_is_rejected(float innov, float innov_var, uint8_t gate_size)
 {
-	if (innov * innov > gate_size * gate_size * innov_var) {
-		time_meas_rejected = time_meas_rejected == 0 ? time_now : time_meas_rejected;
-
-	} else {
-		time_meas_rejected = 0;
-	}
-
-	reinit_filter = time_now - time_meas_rejected > 5_s && time_meas_rejected != 0;
-
-	return time_meas_rejected != 0;
+	return (innov * innov > gate_size * gate_size * innov_var);
 }
