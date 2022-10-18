@@ -40,6 +40,7 @@ float randf()
 
 SquareMatrix24f createRandomCovarianceMatrix24f()
 {
+	// Create a symmetric square matrix
 	SquareMatrix24f P;
 
 	for (int col = 0; col <= 23; col++) {
@@ -52,6 +53,9 @@ SquareMatrix24f createRandomCovarianceMatrix24f()
 			}
 		}
 	}
+
+	// Make it positive definite
+	P = P.transpose() * P;
 
 	return P;
 }
