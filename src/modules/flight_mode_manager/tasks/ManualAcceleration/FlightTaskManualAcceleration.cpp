@@ -45,14 +45,14 @@ bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_se
 
 	_stick_acceleration_xy.resetPosition();
 
-	if (PX4_ISFINITE(last_setpoint.velocity[0]) && PX4_ISFINITE(last_setpoint.velocity[1])) {
+	if (Vector2f(last_setpoint.velocity).isAllFinite()) {
 		_stick_acceleration_xy.resetVelocity(Vector2f(last_setpoint.velocity));
 
 	} else {
 		_stick_acceleration_xy.resetVelocity(_velocity.xy());
 	}
 
-	if (PX4_ISFINITE(last_setpoint.acceleration[0]) && PX4_ISFINITE(last_setpoint.acceleration[1])) {
+	if (Vector2f(last_setpoint.acceleration).isAllFinite()) {
 		_stick_acceleration_xy.resetAcceleration(Vector2f(last_setpoint.acceleration));
 	}
 
@@ -80,7 +80,7 @@ bool FlightTaskManualAcceleration::update()
 		_yaw_setpoint = NAN;
 
 		// only enable the weathervane to change the yawrate when position lock is active (and thus the pos. sp. are NAN)
-		if (PX4_ISFINITE(_position_setpoint(0)) && PX4_ISFINITE(_position_setpoint(1))) {
+		if (Vector2f(_position_setpoint).isAllFinite()) {
 			// vehicle is steady
 			_yawspeed_setpoint += _weathervane.getWeathervaneYawrate();
 		}

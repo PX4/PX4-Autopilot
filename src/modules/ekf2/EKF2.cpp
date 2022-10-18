@@ -1741,7 +1741,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 		// if error estimates are unavailable, use parameter defined defaults
 
 		// check for valid velocity data
-		if (PX4_ISFINITE(ev_odom.velocity[0]) && PX4_ISFINITE(ev_odom.velocity[1]) && PX4_ISFINITE(ev_odom.velocity[2])) {
+		if (Vector3f(ev_odom.velocity).isAllFinite()) {
 			bool velocity_valid = true;
 
 			switch (ev_odom.velocity_frame) {
@@ -1770,11 +1770,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 				const float evv_noise_var = sq(_param_ekf2_evv_noise.get());
 
 				// velocity measurement error from ev_data or parameters
-				if (!_param_ekf2_ev_noise_md.get() &&
-				    PX4_ISFINITE(ev_odom.velocity_variance[0]) &&
-				    PX4_ISFINITE(ev_odom.velocity_variance[1]) &&
-				    PX4_ISFINITE(ev_odom.velocity_variance[2])) {
-
+				if (!_param_ekf2_ev_noise_md.get() && Vector3f(ev_odom.velocity_variance).isAllFinite()) {
 					ev_data.velVar(0) = fmaxf(evv_noise_var, ev_odom.velocity_variance[0]);
 					ev_data.velVar(1) = fmaxf(evv_noise_var, ev_odom.velocity_variance[1]);
 					ev_data.velVar(2) = fmaxf(evv_noise_var, ev_odom.velocity_variance[2]);
@@ -1788,8 +1784,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 		}
 
 		// check for valid position data
-		if (PX4_ISFINITE(ev_odom.position[0]) && PX4_ISFINITE(ev_odom.position[1]) && PX4_ISFINITE(ev_odom.position[2])) {
-
+		if (Vector3f(ev_odom.position).isAllFinite()) {
 			bool position_valid = true;
 
 			// switch (ev_odom.pose_frame) {
@@ -1814,11 +1809,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 				const float evp_noise_var = sq(_param_ekf2_evp_noise.get());
 
 				// position measurement error from ev_data or parameters
-				if (!_param_ekf2_ev_noise_md.get() &&
-				    PX4_ISFINITE(ev_odom.position_variance[0]) &&
-				    PX4_ISFINITE(ev_odom.position_variance[1]) &&
-				    PX4_ISFINITE(ev_odom.position_variance[2])
-				   ) {
+				if (!_param_ekf2_ev_noise_md.get() && Vector3f(ev_odom.position_variance).isAllFinite()) {
 					ev_data.posVar(0) = fmaxf(evp_noise_var, ev_odom.position_variance[0]);
 					ev_data.posVar(1) = fmaxf(evp_noise_var, ev_odom.position_variance[1]);
 					ev_data.posVar(2) = fmaxf(evp_noise_var, ev_odom.position_variance[2]);
@@ -1832,8 +1823,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 		}
 
 		// check for valid orientation data
-		if ((PX4_ISFINITE(ev_odom.q[0]) && PX4_ISFINITE(ev_odom.q[1])
-		     && PX4_ISFINITE(ev_odom.q[2]) && PX4_ISFINITE(ev_odom.q[3]))
+		if ((Quatf(ev_odom.q).isAllFinite())
 		    && ((fabsf(ev_odom.q[0]) > 0.f) || (fabsf(ev_odom.q[1]) > 0.f)
 			|| (fabsf(ev_odom.q[2]) > 0.f) || (fabsf(ev_odom.q[3]) > 0.f))
 		   ) {
@@ -1896,9 +1886,7 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 			.quality = optical_flow.quality,
 		};
 
-		if (PX4_ISFINITE(optical_flow.pixel_flow[0]) &&
-		    PX4_ISFINITE(optical_flow.pixel_flow[1]) &&
-		    flow.dt < 1) {
+		if (Vector2f(optical_flow.pixel_flow).isAllFinite() && flow.dt < 1) {
 
 			// Save sensor limits reported by the optical flow sensor
 			_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,

@@ -2135,8 +2135,7 @@ FixedwingPositionControl::Run()
 				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
 				_pos_sp_triplet.current.alt = NAN;
 
-				if (PX4_ISFINITE(trajectory_setpoint.position[0]) && PX4_ISFINITE(trajectory_setpoint.position[1])
-				    && PX4_ISFINITE(trajectory_setpoint.position[2])) {
+				if (Vector3f(trajectory_setpoint.position).isAllFinite()) {
 					if (_global_local_proj_ref.isInitialized()) {
 						double lat;
 						double lon;
@@ -2150,16 +2149,14 @@ FixedwingPositionControl::Run()
 
 				}
 
-				if (PX4_ISFINITE(trajectory_setpoint.velocity[0]) && PX4_ISFINITE(trajectory_setpoint.velocity[1])
-				    && PX4_ISFINITE(trajectory_setpoint.velocity[2])) {
+				if (Vector3f(trajectory_setpoint.velocity).isAllFinite()) {
 					valid_setpoint = true;
 					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 					_pos_sp_triplet.current.vx = trajectory_setpoint.velocity[0];
 					_pos_sp_triplet.current.vy = trajectory_setpoint.velocity[1];
 					_pos_sp_triplet.current.vz = trajectory_setpoint.velocity[2];
 
-					if (PX4_ISFINITE(trajectory_setpoint.acceleration[0]) && PX4_ISFINITE(trajectory_setpoint.acceleration[1])
-					    && PX4_ISFINITE(trajectory_setpoint.acceleration[2])) {
+					if (Vector3f(trajectory_setpoint.acceleration).isAllFinite()) {
 						Vector2f velocity_sp_2d(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
 						Vector2f normalized_velocity_sp_2d = velocity_sp_2d.normalized();
 						Vector2f acceleration_sp_2d(trajectory_setpoint.acceleration[0], trajectory_setpoint.acceleration[1]);

@@ -121,7 +121,7 @@ public:
 	void set_vehicle_at_rest(bool at_rest) { _control_status.flags.vehicle_at_rest = at_rest; }
 
 	// return true if the attitude is usable
-	bool attitude_valid() const { return PX4_ISFINITE(_output_new.quat_nominal(0)) && _control_status.flags.tilt_align; }
+	bool attitude_valid() const { return _output_new.quat_nominal.isAllFinite() && _control_status.flags.tilt_align; }
 
 	// get vehicle landed status data
 	bool get_in_air_status() const { return _control_status.flags.in_air; }

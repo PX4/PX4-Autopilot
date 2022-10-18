@@ -45,10 +45,7 @@ bool FlightTaskManualPosition::updateInitialize()
 {
 	bool ret = FlightTaskManualAltitude::updateInitialize();
 	// require valid position / velocity in xy
-	return ret && PX4_ISFINITE(_position(0))
-	       && PX4_ISFINITE(_position(1))
-	       && PX4_ISFINITE(_velocity(0))
-	       && PX4_ISFINITE(_velocity(1));
+	return ret && Vector2f(_position).isAllFinite() && Vector2f(_velocity).isAllFinite();
 }
 
 bool FlightTaskManualPosition::activate(const trajectory_setpoint_s &last_setpoint)
@@ -112,16 +109,14 @@ void FlightTaskManualPosition::_updateXYlock()
 	const bool apply_brake = Vector2f(_velocity_setpoint).length() < FLT_EPSILON;
 	const bool stopped = (_param_mpc_hold_max_xy.get() < FLT_EPSILON || vel_xy_norm < _param_mpc_hold_max_xy.get());
 
-	if (apply_brake && stopped && !PX4_ISFINITE(_position_setpoint(0))) {
-		_position_setpoint(0) = _position(0);
-		_position_setpoint(1) = _position(1);
+	if (apply_brake && stopped && !Vector2f(_position_setpoint).isAllFinite()) {
+		_position_setpoint.xy() = _position.xy();
 
-	} else if (PX4_ISFINITE(_position_setpoint(0)) && apply_brake) {
+	} else if (Vector2f(_position_setpoint).isAllFinite() && apply_brake) {
 		// Position is locked but check if a reset event has happened.
 		// We will shift the setpoints.
 		if (_sub_vehicle_local_position.get().xy_reset_counter != _reset_counter) {
-			_position_setpoint(0) = _position(0);
-			_position_setpoint(1) = _position(1);
+			_position_setpoint.xy() = _position.xy();
 			_reset_counter = _sub_vehicle_local_position.get().xy_reset_counter;
 		}
 
@@ -144,8 +139,8 @@ void FlightTaskManualPosition::_updateSetpoints()
 	if (_weathervane.isActive()) {
 		_yaw_setpoint = NAN;
 
-		// only enable the weathervane to change the yawrate when position lock is active (and thus the pos. sp. are NAN)
-		if (PX4_ISFINITE(_position_setpoint(0)) && PX4_ISFINITE(_position_setpoint(1))) {
+		// only enable the weathervane to change the yawrate when position lock is active (and thus the pos. sp. aren't NAN)
+		if (Vector2f(_position_setpoint).isAllFinite()) {
 			// vehicle is steady
 			_yawspeed_setpoint += _weathervane.getWeathervaneYawrate();
 		}

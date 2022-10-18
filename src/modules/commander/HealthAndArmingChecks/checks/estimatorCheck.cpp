@@ -752,8 +752,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	_vehicle_angular_velocity_sub.copy(&angular_velocity);
 	const bool condition_angular_velocity_time_valid = angular_velocity.timestamp != 0
 			&& now < angular_velocity.timestamp + 1_s;
-	const bool condition_angular_velocity_finite = PX4_ISFINITE(angular_velocity.xyz[0])
-			&& PX4_ISFINITE(angular_velocity.xyz[1]) && PX4_ISFINITE(angular_velocity.xyz[2]);
+	const bool condition_angular_velocity_finite = matrix::Vector3f(angular_velocity.xyz).isAllFinite();
 	const bool angular_velocity_invalid = !condition_angular_velocity_time_valid
 					      || !condition_angular_velocity_finite;
 

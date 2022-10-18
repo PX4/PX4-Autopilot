@@ -117,10 +117,7 @@ bool PositionControl::update(const float dt)
 	}
 
 	// There has to be a valid output acceleration and thrust setpoint otherwise something went wrong
-	valid = valid && PX4_ISFINITE(_acc_sp(0)) && PX4_ISFINITE(_acc_sp(1)) && PX4_ISFINITE(_acc_sp(2));
-	valid = valid && PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1)) && PX4_ISFINITE(_thr_sp(2));
-
-	return valid;
+	return valid && _acc_sp.isAllFinite() && _thr_sp.isAllFinite();
 }
 
 void PositionControl::_positionControl()

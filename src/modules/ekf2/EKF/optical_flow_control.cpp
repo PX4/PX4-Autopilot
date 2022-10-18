@@ -88,8 +88,7 @@ void Ekf::controlOpticalFlowFusion()
 		const bool is_body_rate_comp_available = calcOptFlowBodyRateComp();
 
 		// don't allow invalid flow gyro_xyz to propagate
-		if (!PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(0)) || !PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(1)) || !PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(2))) {
-
+		if (!_flow_sample_delayed.gyro_xyz.isAllFinite()) {
 			_flow_sample_delayed.gyro_xyz.zero();
 		}
 

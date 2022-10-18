@@ -346,7 +346,7 @@ void Ekf::fuseOptFlow()
 bool Ekf::calcOptFlowBodyRateComp()
 {
 	bool is_body_rate_comp_available = false;
-	const bool use_flow_sensor_gyro = PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(0)) && PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(1)) && PX4_ISFINITE(_flow_sample_delayed.gyro_xyz(2));
+	const bool use_flow_sensor_gyro = _flow_sample_delayed.gyro_xyz.isAllFinite();
 
 	if (use_flow_sensor_gyro) {
 

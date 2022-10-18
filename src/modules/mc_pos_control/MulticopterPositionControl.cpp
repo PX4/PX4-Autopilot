@@ -268,15 +268,14 @@ PositionControlStates MulticopterPositionControl::set_vehicle_states(const vehic
 {
 	PositionControlStates states;
 
+	const Vector2f position_xy(vehicle_local_position.x, vehicle_local_position.y);
+
 	// only set position states if valid and finite
-	if (PX4_ISFINITE(vehicle_local_position.x) && PX4_ISFINITE(vehicle_local_position.y)
-	    && vehicle_local_position.xy_valid) {
-		states.position(0) = vehicle_local_position.x;
-		states.position(1) = vehicle_local_position.y;
+	if (vehicle_local_position.xy_valid && position_xy.isAllFinite()) {
+		states.position.xy() = position_xy;
 
 	} else {
-		states.position(0) = NAN;
-		states.position(1) = NAN;
+		states.position(0) = states.position(1) = NAN;
 	}
 
 	if (PX4_ISFINITE(vehicle_local_position.z) && vehicle_local_position.z_valid) {
@@ -286,18 +285,16 @@ PositionControlStates MulticopterPositionControl::set_vehicle_states(const vehic
 		states.position(2) = NAN;
 	}
 
-	if (PX4_ISFINITE(vehicle_local_position.vx) && PX4_ISFINITE(vehicle_local_position.vy)
-	    && vehicle_local_position.v_xy_valid) {
-		states.velocity(0) = vehicle_local_position.vx;
-		states.velocity(1) = vehicle_local_position.vy;
-		states.acceleration(0) = _vel_x_deriv.update(vehicle_local_position.vx);
-		states.acceleration(1) = _vel_y_deriv.update(vehicle_local_position.vy);
+	const Vector2f velocity_xy(vehicle_local_position.vx, vehicle_local_position.vy);
+
+	if (vehicle_local_position.v_xy_valid && velocity_xy.isAllFinite()) {
+		states.velocity.xy() = velocity_xy;
+		states.acceleration(0) = _vel_x_deriv.update(velocity_xy(0));
+		states.acceleration(1) = _vel_y_deriv.update(velocity_xy(1));
 
 	} else {
-		states.velocity(0) = NAN;
-		states.velocity(1) = NAN;
-		states.acceleration(0) = NAN;
-		states.acceleration(1) = NAN;
+		states.velocity(0) = states.velocity(1) = NAN;
+		states.acceleration(0) = states.acceleration(1) = NAN;
 
 		// reset derivatives to prevent acceleration spikes when regaining velocity
 		_vel_x_deriv.reset();
@@ -599,7 +596,7 @@ trajectory_setpoint_s MulticopterPositionControl::generateFailsafeSetpoint(const
 	trajectory_setpoint_s failsafe_setpoint = PositionControl::empty_trajectory_setpoint;
 	failsafe_setpoint.timestamp = now;
 
-	if (PX4_ISFINITE(states.velocity(0)) && PX4_ISFINITE(states.velocity(1))) {
+	if (Vector2f(states.velocity).isAllFinite()) {
 		// don't move along xy
 		failsafe_setpoint.velocity[0] = failsafe_setpoint.velocity[1] = 0.f;
 

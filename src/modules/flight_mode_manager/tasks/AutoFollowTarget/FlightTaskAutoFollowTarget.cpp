@@ -67,8 +67,7 @@ bool FlightTaskAutoFollowTarget::activate(const trajectory_setpoint_s &last_setp
 {
 	bool ret = FlightTask::activate(last_setpoint);
 
-	if (!PX4_ISFINITE(_position_setpoint(0)) || !PX4_ISFINITE(_position_setpoint(1))
-	    || !PX4_ISFINITE(_position_setpoint(2))) {
+	if (!_position_setpoint.isAllFinite()) {
 		_position_setpoint = _position;
 	}
 
@@ -128,18 +127,12 @@ void FlightTaskAutoFollowTarget::updateTargetPositionVelocityFilter(const follow
 	const Vector3f pos_ned_est{follow_target_estimator.pos_est};
 	const Vector3f vel_ned_est{follow_target_estimator.vel_est};
 
-	const bool filtered_target_pos_is_finite = PX4_ISFINITE(_target_position_velocity_filter.getState()(0))
-			&& PX4_ISFINITE(_target_position_velocity_filter.getState()(1))
-			&& PX4_ISFINITE(_target_position_velocity_filter.getState()(2));
-	const bool filtered_target_vel_is_finite = PX4_ISFINITE(_target_position_velocity_filter.getRate()(0))
-			&& PX4_ISFINITE(_target_position_velocity_filter.getRate()(1))
-			&& PX4_ISFINITE(_target_position_velocity_filter.getRate()(2));
-
 	const bool target_estimator_timed_out = ((follow_target_estimator.timestamp - _last_valid_target_estimator_timestamp) >
 						TARGET_ESTIMATOR_TIMEOUT_US);
 	_last_valid_target_estimator_timestamp = follow_target_estimator.timestamp;
 
-	if (!filtered_target_pos_is_finite || !filtered_target_vel_is_finite || target_estimator_timed_out) {
+	if (!_target_position_velocity_filter.getState().isAllFinite()
+	    || !_target_position_velocity_filter.getRate().isAllFinite() || target_estimator_timed_out) {
 		_target_position_velocity_filter.reset(pos_ned_est, vel_ned_est);
 
 	} else {
@@ -364,8 +357,7 @@ bool FlightTaskAutoFollowTarget::update()
 		const Vector2f orbit_total_accel = orbit_radial_accel + orbit_tangential_accel;
 
 		// Position + Velocity + Acceleration setpoint
-		if (PX4_ISFINITE(drone_desired_position(0)) && PX4_ISFINITE(drone_desired_position(1))
-		    && PX4_ISFINITE(drone_desired_position(2))) {
+		if (drone_desired_position.isAllFinite()) {
 			if (fabsf(drone_desired_position(2) - _position(2)) < ALT_ACCEPTANCE_THRESHOLD) {
 				// Drone is close enough to the altitude target : Apply Horizontal + Velocity Control
 				_position_setpoint = drone_desired_position;

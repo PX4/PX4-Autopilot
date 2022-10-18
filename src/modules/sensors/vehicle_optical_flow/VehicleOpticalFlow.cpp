@@ -125,11 +125,7 @@ void VehicleOpticalFlow::Run()
 
 		// delta angle
 		//  - from sensor_optical_flow if available, otherwise use synchronized sensor_gyro if available
-		if (sensor_optical_flow.delta_angle_available
-		    && PX4_ISFINITE(sensor_optical_flow.delta_angle[0])
-		    && PX4_ISFINITE(sensor_optical_flow.delta_angle[1])
-		    && PX4_ISFINITE(sensor_optical_flow.delta_angle[2])
-		   ) {
+		if (sensor_optical_flow.delta_angle_available && Vector3f(sensor_optical_flow.delta_angle).isAllFinite()) {
 			// passthrough integrated gyro if available
 			_delta_angle += _flow_rotation * Vector3f{sensor_optical_flow.delta_angle};
 			_delta_angle_available = true;
