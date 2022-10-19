@@ -142,7 +142,7 @@ private:
 		FFT    = 2,
 	};
 
-	static constexpr hrt_abstime DYNAMIC_NOTCH_FITLER_TIMEOUT = 1_s;
+	static constexpr hrt_abstime DYNAMIC_NOTCH_FITLER_TIMEOUT = 3_s;
 
 	// ESC RPM
 	static constexpr int MAX_NUM_ESCS = sizeof(esc_status_s::esc) / sizeof(esc_status_s::esc[0]);
@@ -154,8 +154,9 @@ private:
 	px4::Bitset<MAX_NUM_ESCS> _esc_available{};
 	hrt_abstime _last_esc_rpm_notch_update[MAX_NUM_ESCS] {};
 
-	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_esc_rpm_disable_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_esc_rpm_init_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
 
 	// FFT
 	static constexpr int MAX_NUM_FFT_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x)
