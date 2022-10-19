@@ -82,9 +82,13 @@ for field in spec.parsed_fields():
 
 @# Constants c style
 #ifndef __cplusplus
-@[for constant in spec.constants]@
-#define @(uorb_struct_upper)_@(constant.name) @(int(constant.val))
-@[end for]
+@{
+for constant in spec.constants:
+    if "float" in constant.type:
+        print('#define %s_%s %s'%(spec.short_name.upper(), constant.name, float(constant.val)))
+    else:
+        print('#define %s_%s %s'%(spec.short_name.upper(), constant.name, int(constant.val)))
+}@
 #endif
 
 @##############################
@@ -122,7 +126,10 @@ for constant in spec.constants:
     else:
         raise Exception("Type {0} not supported, add to to template file!".format(type_name))
 
-    print('\tstatic constexpr %s %s = %s;'%(type_px4, constant.name, int(constant.val)))
+    if "float" in type_name:
+        print('\tstatic constexpr %s %s = %s;'%(type_px4, constant.name, float(constant.val)))
+    else:
+        print('\tstatic constexpr %s %s = %s;'%(type_px4, constant.name, int(constant.val)))
 }
 #endif
 };
