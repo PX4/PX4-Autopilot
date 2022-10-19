@@ -72,4 +72,6 @@ enum class ORB_ID : uint8_t {
 	INVALID
 };
 
+template<ORB_ID> struct ORBTypeMap;
+
 const struct orb_metadata *get_orb_meta(ORB_ID id);

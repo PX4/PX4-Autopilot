@@ -38,7 +38,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/PublicationMulti.hpp>
+#include <uORB/Publication2.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_gps.h>
 
@@ -65,7 +65,7 @@ private:
 
 	void Run() override;
 
-	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::Publication2<ORB_ID::sensor_gps> _sensor_gps_pub;
 
 	int32_t _latitude{296603018};   // Latitude in 1e-7 degrees
 	int32_t _longitude{-823160500}; // Longitude in 1e-7 degrees
