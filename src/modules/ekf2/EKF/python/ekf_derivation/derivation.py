@@ -321,6 +321,22 @@ def compute_yaw_312_innov_var_and_h_alternate(
 
     return (innov_var, H.T)
 
+def compute_mag_declination_innov_innov_var_and_h(
+        state: VState,
+        P: MState,
+        meas: sf.Scalar,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VState):
+
+    meas_pred = sf.atan2(state[State.iy], state[State.ix], epsilon=epsilon)
+    innov = meas_pred - meas
+
+    H = sf.V1(meas_pred).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov, innov_var, H.T)
+
 print("Derive EKF2 equations...")
 generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
 generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
@@ -335,3 +351,4 @@ generate_px4_function(compute_yaw_321_innov_var_and_h, output_names=["innov_var"
 generate_px4_function(compute_yaw_321_innov_var_and_h_alternate, output_names=["innov_var", "H"])
 generate_px4_function(compute_yaw_312_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_yaw_312_innov_var_and_h_alternate, output_names=["innov_var", "H"])
+generate_px4_function(compute_mag_declination_innov_innov_var_and_h, output_names=["innov", "innov_var", "H"])
