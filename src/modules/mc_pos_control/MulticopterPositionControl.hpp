@@ -43,6 +43,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/controllib/blocks.hpp>
 #include <lib/perf/perf_counter.h>
+#include <lib/slew_rate/SlewRate.hpp>
 #include <lib/slew_rate/SlewRateYaw.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <px4_platform_common/px4_config.h>
@@ -183,6 +184,8 @@ private:
 	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
 
 	PositionControl _control;  /**< class for core PID position control */
+
+	SlewRate<float> _maximum_thrust_slew;
 
 	hrt_abstime _last_warn{0}; /**< timer when the last warn message was sent out */
 
