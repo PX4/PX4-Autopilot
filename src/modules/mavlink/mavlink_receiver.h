@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,6 +67,7 @@
 #include <uORB/topics/autotune_attitude_control_status.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/camera_status.h>
+#include <uORB/topics/can_frame.h>
 #include <uORB/topics/cellular_status.h>
 #include <uORB/topics/collision_report.h>
 #include <uORB/topics/differential_pressure.h>
@@ -159,6 +160,7 @@ private:
 	void handle_message_adsb_vehicle(mavlink_message_t *msg);
 	void handle_message_att_pos_mocap(mavlink_message_t *msg);
 	void handle_message_battery_status(mavlink_message_t *msg);
+	void handle_message_can_frame(mavlink_message_t *msg);
 	void handle_message_cellular_status(mavlink_message_t *msg);
 	void handle_message_collision(mavlink_message_t *msg);
 	void handle_message_command_ack(mavlink_message_t *msg);
@@ -227,7 +229,7 @@ private:
 	int set_message_interval(int msgId, float interval, int data_rate = -1);
 	void get_message_interval(int msgId);
 
-	bool evaluate_target_ok(int command, int target_system, int target_component);
+	bool evaluate_target_ok(mavlink_message_t *msg, int command, int target_system, int target_component);
 
 	void fill_thrust(float *thrust_body_array, uint8_t vehicle_type, float thrust);
 
@@ -293,6 +295,7 @@ private:
 	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<battery_status_s>			_battery_pub{ORB_ID(battery_status)};
 	uORB::Publication<camera_status_s>			_camera_status_pub{ORB_ID(camera_status)};
+	uORB::Publication<can_frame_s>                          _can_frame_pub{ORB_ID(can_frame_in)};
 	uORB::Publication<cellular_status_s>			_cellular_status_pub{ORB_ID(cellular_status)};
 	uORB::Publication<collision_report_s>			_collision_report_pub{ORB_ID(collision_report)};
 	uORB::Publication<differential_pressure_s>		_differential_pressure_pub{ORB_ID(differential_pressure)};

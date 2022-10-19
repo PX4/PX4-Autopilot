@@ -234,6 +234,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_battery_status(msg);
 		break;
 
+	case MAVLINK_MSG_ID_CAN_FRAME:
+		handle_message_can_frame(msg);
+		break;
+
 	case MAVLINK_MSG_ID_SERIAL_CONTROL:
 		handle_message_serial_control(msg);
 		break;
@@ -369,7 +373,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 }
 
 bool
-MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_component)
+MavlinkReceiver::evaluate_target_ok(mavlink_message_t *msg, int command, int target_system, int target_component)
 {
 	/* evaluate if this system should accept this command */
 	bool target_ok = false;
@@ -380,6 +384,11 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 	case MAV_CMD_REQUEST_PROTOCOL_VERSION:
 		/* broadcast and ignore component */
 		target_ok = (target_system == 0) || (target_system == mavlink_system.sysid);
+		break;
+
+	case MAV_CMD_CAN_FORWARD:
+		// MAV_COMP_ID_MAVCAN
+		target_ok = ((target_system == 0) || (target_system == mavlink_system.sysid)) && (msg->compid == MAV_COMP_ID_MAVCAN);
 		break;
 
 	default:
@@ -482,12 +491,18 @@ template <class T>
 void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
 		const vehicle_command_s &vehicle_command)
 {
-	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
+	bool target_ok = evaluate_target_ok(msg, cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 	bool send_ack = true;
 	uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 	uint8_t progress = 0; // TODO: should be 255, 0 for backwards compatibility
 
 	if (!target_ok) {
+
+		if (cmd_mavlink.command == MAV_CMD_CAN_FORWARD) {
+			PX4_WARN("cmd:%d from SYSID:%d, COMPID:%d, target_ok:%d, target_system:%d, target_component:%d", cmd_mavlink.command,
+				 msg->sysid, msg->compid, target_ok, cmd_mavlink.target_system, cmd_mavlink.target_component);
+		}
+
 		// Reject alien commands only if there is no forwarding or we've never seen target component before
 		if (!_mavlink->get_forwarding_on()
 		    || !_mavlink->component_was_seen(cmd_mavlink.target_system, cmd_mavlink.target_component, _mavlink)) {
@@ -559,6 +574,18 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		} else {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 			send_ack = true;
+		}
+
+	} else if (cmd_mavlink.command == MAV_CMD_CAN_FORWARD) {
+
+		//PX4_INFO("cmd MAV_CMD_CAN_FORWARD");
+
+		// 1: bus	Bus number (0 to disable forwarding, 1 for first bus, 2 for 2nd bus, 3 for 3rd bus).
+
+		if (!_can_frame_pub.advertised()) {
+			PX4_INFO("MAV_CMD_CAN_FORWARD: enabling CAN_FRAME stream");
+			const char stream_name[] {"CAN_FRAME"};
+			_mavlink->configure_stream_threadsafe(stream_name, -1.f);
 		}
 
 	} else if (cmd_mavlink.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
@@ -1825,6 +1852,30 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	}
 
 	_battery_pub.publish(battery_status);
+}
+
+void
+MavlinkReceiver::handle_message_can_frame(mavlink_message_t *msg)
+{
+	if (!_can_frame_pub.advertised()) {
+		PX4_INFO("enabling CAN_FRAME stream");
+		const char stream_name[] {"CAN_FRAME"};
+		_mavlink->configure_stream_threadsafe(stream_name, -1.f);
+	}
+
+	mavlink_can_frame_t mavlink_can_frame;
+	mavlink_msg_can_frame_decode(msg, &mavlink_can_frame);
+
+	can_frame_s can_frame{};
+	//msg.target_system = 0;
+	//msg.target_component = 0;
+	//can_frame.bus = mavlink_can_frame.bus;
+	can_frame.id = mavlink_can_frame.id;
+	can_frame.dlc = mavlink_can_frame.len;
+	memcpy(can_frame.data, mavlink_can_frame.data, sizeof(mavlink_can_frame.data));
+
+	can_frame.timestamp = hrt_absolute_time();
+	_can_frame_pub.publish(can_frame);
 }
 
 void

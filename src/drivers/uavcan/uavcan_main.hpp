@@ -74,6 +74,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/can_frame.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/uavcan_parameter_request.h>
 #include <uORB/topics/uavcan_parameter_value.h>
@@ -315,4 +316,26 @@ private:
 	bool _check_fw{false};
 
 	UavcanServers   *_servers{nullptr};
+
+
+	struct RxFrameUorbPublisher : public uavcan::IRxFrameListener {
+		void handleRxFrame(const uavcan::CanRxFrame &frame, uavcan::CanIOFlags flags) override
+		{
+			can_frame_s can_frame{};
+			can_frame.id = frame.id;
+			//can_frame.iface_index = frame.iface_index;
+			can_frame.dlc = frame.dlc;
+			memcpy(&can_frame.data, &frame.data, sizeof(frame.data));
+			can_frame.timestamp = hrt_absolute_time();
+			_can_frame_pub.publish(can_frame);
+		}
+	private:
+		uORB::Publication<can_frame_s> _can_frame_pub{ORB_ID(can_frame_out)};
+	};
+
+	RxFrameUorbPublisher *_rx_frame_listener_uorb{nullptr};
+
+	uORB::Subscription _can_frame_in_sub{ORB_ID(can_frame_in)};
+
+	bool _mirror_to_uorb{false};
 };
