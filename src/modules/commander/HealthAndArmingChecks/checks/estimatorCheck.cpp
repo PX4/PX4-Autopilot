@@ -88,14 +88,13 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	if (!missing_data) {
-		estimator_status_s estimator_status;
+		estimator_status_flags_s estimator_status_flags;
 
-		if (_estimator_status_sub.copy(&estimator_status)) {
-			pre_flt_fail_innov_heading = estimator_status.pre_flt_fail_innov_heading;
-			pre_flt_fail_innov_vel_horiz = estimator_status.pre_flt_fail_innov_vel_horiz;
-
-			checkEstimatorStatus(context, reporter, estimator_status, required_groups);
-			checkEstimatorStatusFlags(context, reporter, estimator_status, lpos);
+		if (_estimator_status_flags_sub.copy(&estimator_status_flags)) {
+			pre_flt_fail_innov_heading = estimator_status_flags.pre_flt_fail_innov_heading;
+			pre_flt_fail_innov_vel_horiz = estimator_status_flags.pre_flt_fail_innov_vel_horiz;
+			checkEstimatorStatusFlags(context, reporter, estimator_status_flags, required_groups);
+			checkEstimatorStatus(context, reporter, lpos, required_groups);
 
 		} else {
 			missing_data = true;
@@ -129,325 +128,323 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 }
 
 void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &reporter,
-		const estimator_status_s &estimator_status, NavModes required_groups)
+		const vehicle_local_position_s &lpos, NavModes required_groups)
 {
-	if (estimator_status.pre_flt_fail_innov_heading) {
-		/* EVENT
-		 */
-		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
-					    events::ID("check_estimator_heading_not_stable"),
-					    events::Log::Error, "Heading estimate not stable");
+	estimator_status_s estimator_status;
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: heading estimate not stable");
-		}
+	if (_estimator_status_sub.copy(&estimator_status)) {
 
-	} else if (estimator_status.pre_flt_fail_innov_vel_horiz) {
-		/* EVENT
-		 */
-		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
-					    events::ID("check_estimator_hor_vel_not_stable"),
-					    events::Log::Error, "Horizontal velocity estimate not stable");
+		// check vertical position innovation test ratio
+		if (estimator_status.hgt_test_ratio > _param_com_arm_ekf_hgt.get()) {
+			/* EVENT
+			 * @description
+			 * <profile name="dev">
+			 * Test ratio: {1:.3}, limit: {2:.3}.
+			 *
+			 * This check can be configured via <param>COM_ARM_EKF_HGT</param> parameter.
+			 * </profile>
+			 */
+			reporter.armingCheckFailure<float, float>(required_groups, health_component_t::local_position_estimate,
+					events::ID("check_estimator_hgt_est_err"),
+					events::Log::Error, "Height estimate error", estimator_status.hgt_test_ratio, _param_com_arm_ekf_hgt.get());
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: horizontal velocity estimate not stable");
-		}
-
-	} else if (estimator_status.pre_flt_fail_innov_vel_vert) {
-		/* EVENT
-		 */
-		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
-					    events::ID("check_estimator_vert_vel_not_stable"),
-					    events::Log::Error, "Vertical velocity estimate not stable");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: vertical velocity estimate not stable");
-		}
-
-	} else if (estimator_status.pre_flt_fail_innov_height) {
-		/* EVENT
-		 */
-		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
-					    events::ID("check_estimator_hgt_not_stable"),
-					    events::Log::Error, "Height estimate not stable");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: height estimate not stable");
-		}
-	}
-
-
-	if ((_param_com_arm_mag_str.get() >= 1) && estimator_status.pre_flt_fail_mag_field_disturbed) {
-		NavModes required_groups_mag = required_groups;
-
-		if (_param_com_arm_mag_str.get() != 1) {
-			required_groups_mag = NavModes::None; // optional
-		}
-
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * This check can be configured via <param>COM_ARM_MAG_STR</param> and <param>EKF2_MAG_CHECK</param> parameters.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure(required_groups_mag, health_component_t::local_position_estimate,
-					    events::ID("check_estimator_mag_interference"),
-					    events::Log::Warning, "Strong magnetic interference detected");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Strong magnetic interference detected");
-		}
-	}
-
-	// check vertical position innovation test ratio
-	if (estimator_status.hgt_test_ratio > _param_com_arm_ekf_hgt.get()) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * Test ratio: {1:.3}, limit: {2:.3}.
-		 *
-		 * This check can be configured via <param>COM_ARM_EKF_HGT</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure<float, float>(required_groups, health_component_t::local_position_estimate,
-				events::ID("check_estimator_hgt_est_err"),
-				events::Log::Error, "Height estimate error", estimator_status.hgt_test_ratio, _param_com_arm_ekf_hgt.get());
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: height estimate error");
-		}
-	}
-
-	// check velocity innovation test ratio
-	if (estimator_status.vel_test_ratio > _param_com_arm_ekf_vel.get()) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * Test ratio: {1:.3}, limit: {2:.3}.
-		 *
-		 * This check can be configured via <param>COM_ARM_EKF_VEL</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure<float, float>(required_groups, health_component_t::local_position_estimate,
-				events::ID("check_estimator_vel_est_err"),
-				events::Log::Error, "Velocity estimate error", estimator_status.vel_test_ratio, _param_com_arm_ekf_vel.get());
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: velocity estimate error");
-		}
-	}
-
-	// check horizontal position innovation test ratio
-	if (estimator_status.pos_test_ratio > _param_com_arm_ekf_pos.get()) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * Test ratio: {1:.3}, limit: {2:.3}.
-		 *
-		 * This check can be configured via <param>COM_ARM_EKF_POS</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure<float, float>(required_groups, health_component_t::local_position_estimate,
-				events::ID("check_estimator_pos_est_err"),
-				events::Log::Error, "Position estimate error", estimator_status.pos_test_ratio, _param_com_arm_ekf_pos.get());
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: position estimate error");
-		}
-	}
-
-	// check magnetometer innovation test ratio
-	if (estimator_status.mag_test_ratio > _param_com_arm_ekf_yaw.get()) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * Test ratio: {1:.3}, limit: {2:.3}.
-		 *
-		 * This check can be configured via <param>COM_ARM_EKF_YAW</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure<float, float>(required_groups, health_component_t::local_position_estimate,
-				events::ID("check_estimator_yaw_est_err"),
-				events::Log::Error, "Yaw estimate error", estimator_status.mag_test_ratio, _param_com_arm_ekf_yaw.get());
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Yaw estimate error");
-		}
-	}
-
-	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
-	if (_param_sys_has_gps.get()) {
-		const bool ekf_gps_fusion = estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS);
-		const bool ekf_gps_check_fail = estimator_status.gps_check_fail_flags > 0;
-
-		if (ekf_gps_fusion) {
-			reporter.setIsPresent(health_component_t::gps); // should be based on the sensor data directly
-		}
-
-		if (ekf_gps_check_fail) {
-			NavModes required_groups_gps = required_groups;
-			events::Log log_level = events::Log::Error;
-
-			if (_param_com_arm_wo_gps.get()) {
-				required_groups_gps = NavModes::None; // optional
-				log_level = events::Log::Warning;
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: height estimate error");
 			}
+		}
 
-			// Only report the first failure to avoid spamming
-			const char *message = nullptr;
+		// check velocity innovation test ratio
+		if (estimator_status.vel_test_ratio > _param_com_arm_ekf_vel.get()) {
+			/* EVENT
+			 * @description
+			 * <profile name="dev">
+			 * Test ratio: {1:.3}, limit: {2:.3}.
+			 *
+			 * This check can be configured via <param>COM_ARM_EKF_VEL</param> parameter.
+			 * </profile>
+			 */
+			reporter.armingCheckFailure<float, float>(required_groups, health_component_t::local_position_estimate,
+					events::ID("check_estimator_vel_est_err"),
+					events::Log::Error, "Velocity estimate error", estimator_status.vel_test_ratio, _param_com_arm_ekf_vel.get());
 
-			if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_GPS_FIX)) {
-				message = "Preflight%s: GPS fix too low";
-				/* EVENT
-				 * @description
-				 * <profile name="dev">
-				 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
-				 * </profile>
-				 */
-				reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
-							    events::ID("check_estimator_gps_fix_too_low"),
-							    log_level, "GPS fix too low");
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: velocity estimate error");
+			}
+		}
 
-			} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT)) {
-				message = "Preflight%s: not enough GPS Satellites";
-				/* EVENT
-				 * @description
-				 * <profile name="dev">
-				 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
-				 * </profile>
-				 */
-				reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
-							    events::ID("check_estimator_gps_num_sats_too_low"),
-							    log_level, "Not enough GPS Satellites");
+		// check horizontal position innovation test ratio
+		if (estimator_status.pos_test_ratio > _param_com_arm_ekf_pos.get()) {
+			/* EVENT
+			 * @description
+			 * <profile name="dev">
+			 * Test ratio: {1:.3}, limit: {2:.3}.
+			 *
+			 * This check can be configured via <param>COM_ARM_EKF_POS</param> parameter.
+			 * </profile>
+			 */
+			reporter.armingCheckFailure<float, float>(required_groups, health_component_t::local_position_estimate,
+					events::ID("check_estimator_pos_est_err"),
+					events::Log::Error, "Position estimate error", estimator_status.pos_test_ratio, _param_com_arm_ekf_pos.get());
 
-			} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_PDOP)) {
-				message = "Preflight%s: GPS PDOP too high";
-				/* EVENT
-				 * @description
-				 * <profile name="dev">
-				 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
-				 * </profile>
-				 */
-				reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
-							    events::ID("check_estimator_gps_pdop_too_high"),
-							    log_level, "GPS PDOP too high");
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: position estimate error");
+			}
+		}
 
-			} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR)) {
-				message = "Preflight%s: GPS Horizontal Pos Error too high";
-				/* EVENT
-				 * @description
-				 * <profile name="dev">
-				 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
-				 * </profile>
-				 */
-				reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
-							    events::ID("check_estimator_gps_hor_pos_err_too_high"),
-							    log_level, "GPS Horizontal Position Error too high");
+		// check magnetometer innovation test ratio
+		if (estimator_status.mag_test_ratio > _param_com_arm_ekf_yaw.get()) {
+			/* EVENT
+			 * @description
+			 * <profile name="dev">
+			 * Test ratio: {1:.3}, limit: {2:.3}.
+			 *
+			 * This check can be configured via <param>COM_ARM_EKF_YAW</param> parameter.
+			 * </profile>
+			 */
+			reporter.armingCheckFailure<float, float>(required_groups, health_component_t::local_position_estimate,
+					events::ID("check_estimator_yaw_est_err"),
+					events::Log::Error, "Yaw estimate error", estimator_status.mag_test_ratio, _param_com_arm_ekf_yaw.get());
 
-			} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR)) {
-				message = "Preflight%s: GPS Vertical Pos Error too high";
-				/* EVENT
-				 * @description
-				 * <profile name="dev">
-				 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
-				 * </profile>
-				 */
-				reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
-							    events::ID("check_estimator_gps_vert_pos_err_too_high"),
-							    log_level, "GPS Vertical Position Error too high");
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Yaw estimate error");
+			}
+		}
 
-			} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR)) {
-				message = "Preflight%s: GPS Speed Accuracy too low";
-				/* EVENT
-				 * @description
-				 * <profile name="dev">
-				 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
-				 * </profile>
-				 */
-				reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
-							    events::ID("check_estimator_gps_speed_acc_too_low"),
-							    log_level, "GPS Speed Accuracy too low");
 
-			} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT)) {
-				message = "Preflight%s: GPS Horizontal Pos Drift too high";
-				/* EVENT
-				 * @description
-				 * <profile name="dev">
-				 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
-				 * </profile>
-				 */
-				reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
-							    events::ID("check_estimator_gps_hor_pos_drift_too_high"),
-							    log_level, "GPS Horizontal Position Drift too high");
+		/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
+		* for a short time interval after takeoff.
+		* Most of the time, the drone can recover from a bad initial yaw using GPS-inertial
+		* heading estimation (yaw emergency estimator) or GPS heading (fixed wings only), but
+		* if this does not fix the issue we need to stop using a position controlled
+		* mode to prevent flyaway crashes.
+		*/
+		if (context.status().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
-			} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT)) {
-				message = "Preflight%s: GPS Vertical Pos Drift too high";
-				/* EVENT
-				 * @description
-				 * <profile name="dev">
-				 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
-				 * </profile>
-				 */
-				reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
-							    events::ID("check_estimator_gps_vert_pos_drift_too_high"),
-							    log_level, "GPS Vertical Position Drift too high");
+			const hrt_abstime now = hrt_absolute_time();
 
-			} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR)) {
-				message = "Preflight%s: GPS Hor Speed Drift too high";
-				/* EVENT
-				 * @description
-				 * <profile name="dev">
-				 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
-				 * </profile>
-				 */
-				reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
-							    events::ID("check_estimator_gps_hor_speed_drift_too_high"),
-							    log_level, "GPS Horizontal Speed Drift too high");
-
-			} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR)) {
-				message = "Preflight%s: GPS Vert Speed Drift too high";
-				/* EVENT
-				 * @description
-				 * <profile name="dev">
-				 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
-				 * </profile>
-				 */
-				reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
-							    events::ID("check_estimator_gps_vert_speed_drift_too_high"),
-							    log_level, "GPS Vertical Speed Drift too high");
+			if (!context.isArmed()) {
+				_nav_test_failed = false;
+				_nav_test_passed = false;
 
 			} else {
-				if (!ekf_gps_fusion) {
-					// Likely cause unknown
-					message = "Preflight%s: Estimator not using GPS";
-					/* EVENT
-					 */
-					reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
-								    events::ID("check_estimator_gps_not_fusing"),
-								    log_level, "Estimator not using GPS");
+				if (!_nav_test_passed) {
+					// Both test ratios need to pass/fail together to change the nav test status
+					const bool innovation_pass = (estimator_status.vel_test_ratio < 1.f) && (estimator_status.pos_test_ratio < 1.f)
+								     && (estimator_status.vel_test_ratio > FLT_EPSILON) && (estimator_status.pos_test_ratio > FLT_EPSILON);
 
-				} else {
-					// if we land here there was a new flag added and the code not updated. Show a generic message.
-					message = "Preflight%s: Poor GPS Quality";
-					/* EVENT
-					 */
-					reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
-								    events::ID("check_estimator_gps_generic"),
-								    log_level, "Poor GPS Quality");
-				}
-			}
+					const bool innovation_fail = (estimator_status.vel_test_ratio >= 1.f) && (estimator_status.pos_test_ratio >= 1.f);
 
-			if (message && reporter.mavlink_log_pub()) {
-				if (!_param_com_arm_wo_gps.get()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), message, " Fail");
+					if (innovation_pass) {
+						_time_last_innov_pass = now;
 
-				} else {
-					mavlink_log_critical(reporter.mavlink_log_pub(), message, "");
+						// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
+						const bool sufficient_time = context.status().takeoff_time != 0
+									     && now - context.status().takeoff_time > 30_s;
+						const bool sufficient_speed = matrix::Vector2f(lpos.vx, lpos.vy).longerThan(5.f);
+
+						// Even if the test already failed, allow it to pass if it did not fail during the last 10 seconds
+						if (now - _time_last_innov_fail > 10_s && (sufficient_time || sufficient_speed)) {
+							_nav_test_passed = true;
+							_nav_test_failed = false;
+						}
+
+					} else if (innovation_fail) {
+						_time_last_innov_fail = now;
+
+						if (now - _time_last_innov_pass > 2_s) {
+							// if the innovation test has failed continuously, declare the nav as failed
+							_nav_test_failed = true;
+							/* EVENT
+							 * @description
+							 * Land and recalibrate the sensors.
+							 */
+							reporter.armingCheckFailure(NavModes::All, health_component_t::local_position_estimate,
+										    events::ID("check_estimator_nav_failure"),
+										    events::Log::Emergency, "Navigation failure");
+
+							if (reporter.mavlink_log_pub()) {
+								mavlink_log_critical(reporter.mavlink_log_pub(), "Navigation failure! Land and recalibrate sensors\t");
+							}
+						}
+					}
 				}
 			}
 		}
-	}
 
+		// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
+		if (_param_sys_has_gps.get()) {
+			const bool ekf_gps_fusion = estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS);
+			const bool ekf_gps_check_fail = estimator_status.gps_check_fail_flags > 0;
+
+			if (ekf_gps_fusion) {
+				reporter.setIsPresent(health_component_t::gps); // should be based on the sensor data directly
+			}
+
+			if (ekf_gps_check_fail) {
+				NavModes required_groups_gps = required_groups;
+				events::Log log_level = events::Log::Error;
+
+				if (_param_com_arm_wo_gps.get()) {
+					required_groups_gps = NavModes::None; // optional
+					log_level = events::Log::Warning;
+				}
+
+				// Only report the first failure to avoid spamming
+				const char *message = nullptr;
+
+				if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_GPS_FIX)) {
+					message = "Preflight%s: GPS fix too low";
+					/* EVENT
+					 * @description
+					 * <profile name="dev">
+					 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
+					 * </profile>
+					 */
+					reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
+								    events::ID("check_estimator_gps_fix_too_low"),
+								    log_level, "GPS fix too low");
+
+				} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT)) {
+					message = "Preflight%s: not enough GPS Satellites";
+					/* EVENT
+					 * @description
+					 * <profile name="dev">
+					 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
+					 * </profile>
+					 */
+					reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
+								    events::ID("check_estimator_gps_num_sats_too_low"),
+								    log_level, "Not enough GPS Satellites");
+
+				} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_PDOP)) {
+					message = "Preflight%s: GPS PDOP too high";
+					/* EVENT
+					 * @description
+					 * <profile name="dev">
+					 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
+					 * </profile>
+					 */
+					reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
+								    events::ID("check_estimator_gps_pdop_too_high"),
+								    log_level, "GPS PDOP too high");
+
+				} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR)) {
+					message = "Preflight%s: GPS Horizontal Pos Error too high";
+					/* EVENT
+					 * @description
+					 * <profile name="dev">
+					 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
+					 * </profile>
+					 */
+					reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
+								    events::ID("check_estimator_gps_hor_pos_err_too_high"),
+								    log_level, "GPS Horizontal Position Error too high");
+
+				} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR)) {
+					message = "Preflight%s: GPS Vertical Pos Error too high";
+					/* EVENT
+					 * @description
+					 * <profile name="dev">
+					 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
+					 * </profile>
+					 */
+					reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
+								    events::ID("check_estimator_gps_vert_pos_err_too_high"),
+								    log_level, "GPS Vertical Position Error too high");
+
+				} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR)) {
+					message = "Preflight%s: GPS Speed Accuracy too low";
+					/* EVENT
+					 * @description
+					 * <profile name="dev">
+					 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
+					 * </profile>
+					 */
+					reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
+								    events::ID("check_estimator_gps_speed_acc_too_low"),
+								    log_level, "GPS Speed Accuracy too low");
+
+				} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT)) {
+					message = "Preflight%s: GPS Horizontal Pos Drift too high";
+					/* EVENT
+					 * @description
+					 * <profile name="dev">
+					 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
+					 * </profile>
+					 */
+					reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
+								    events::ID("check_estimator_gps_hor_pos_drift_too_high"),
+								    log_level, "GPS Horizontal Position Drift too high");
+
+				} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT)) {
+					message = "Preflight%s: GPS Vertical Pos Drift too high";
+					/* EVENT
+					 * @description
+					 * <profile name="dev">
+					 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
+					 * </profile>
+					 */
+					reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
+								    events::ID("check_estimator_gps_vert_pos_drift_too_high"),
+								    log_level, "GPS Vertical Position Drift too high");
+
+				} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR)) {
+					message = "Preflight%s: GPS Hor Speed Drift too high";
+					/* EVENT
+					 * @description
+					 * <profile name="dev">
+					 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
+					 * </profile>
+					 */
+					reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
+								    events::ID("check_estimator_gps_hor_speed_drift_too_high"),
+								    log_level, "GPS Horizontal Speed Drift too high");
+
+				} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR)) {
+					message = "Preflight%s: GPS Vert Speed Drift too high";
+					/* EVENT
+					 * @description
+					 * <profile name="dev">
+					 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
+					 * </profile>
+					 */
+					reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
+								    events::ID("check_estimator_gps_vert_speed_drift_too_high"),
+								    log_level, "GPS Vertical Speed Drift too high");
+
+				} else {
+					if (!ekf_gps_fusion) {
+						// Likely cause unknown
+						message = "Preflight%s: Estimator not using GPS";
+						/* EVENT
+						 */
+						reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
+									    events::ID("check_estimator_gps_not_fusing"),
+									    log_level, "Estimator not using GPS");
+
+					} else {
+						// if we land here there was a new flag added and the code not updated. Show a generic message.
+						message = "Preflight%s: Poor GPS Quality";
+						/* EVENT
+						 */
+						reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
+									    events::ID("check_estimator_gps_generic"),
+									    log_level, "Poor GPS Quality");
+					}
+				}
+
+				if (message && reporter.mavlink_log_pub()) {
+					if (!_param_com_arm_wo_gps.get()) {
+						mavlink_log_critical(reporter.mavlink_log_pub(), message, " Fail");
+
+					} else {
+						mavlink_log_critical(reporter.mavlink_log_pub(), message, "");
+					}
+				}
+			}
+		}
+
+	}
 }
 
 void EstimatorChecks::checkSensorBias(const Context &context, Report &reporter, NavModes required_groups)
@@ -528,112 +525,113 @@ void EstimatorChecks::checkSensorBias(const Context &context, Report &reporter, 
 }
 
 void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &reporter,
-		const estimator_status_s &estimator_status, const vehicle_local_position_s &lpos)
+		const estimator_status_flags_s &estimator_status_flags, NavModes required_groups)
 {
-	estimator_status_flags_s estimator_status_flags;
+	bool dead_reckoning = estimator_status_flags.cs_wind_dead_reckoning
+			      || estimator_status_flags.cs_inertial_dead_reckoning;
 
-	if (_estimator_status_flags_sub.copy(&estimator_status_flags)) {
+	if (!dead_reckoning) {
+		// position requirements (update if not dead reckoning)
+		bool gps             = estimator_status_flags.cs_gps;
+		bool optical_flow    = estimator_status_flags.cs_opt_flow;
+		bool vision_position = estimator_status_flags.cs_ev_pos;
 
-		bool dead_reckoning = estimator_status_flags.cs_wind_dead_reckoning
-				      || estimator_status_flags.cs_inertial_dead_reckoning;
+		_position_reliant_on_optical_flow = !gps && optical_flow && !vision_position;
+	}
 
-		if (!dead_reckoning) {
-			// position requirements (update if not dead reckoning)
-			bool gps             = estimator_status_flags.cs_gps;
-			bool optical_flow    = estimator_status_flags.cs_opt_flow;
-			bool vision_position = estimator_status_flags.cs_ev_pos;
+	// Check for a magnetomer fault and notify the user
+	if (estimator_status_flags.cs_mag_fault) {
+		/* EVENT
+		 * @description
+		 * Land and calibrate the compass.
+		 */
+		reporter.armingCheckFailure(NavModes::All, health_component_t::local_position_estimate,
+					    events::ID("check_estimator_mag_fault"),
+					    events::Log::Critical, "Stopping compass use");
 
-			_position_reliant_on_optical_flow = !gps && optical_flow && !vision_position;
-		}
-
-		// Check for a magnetomer fault and notify the user
-		if (estimator_status_flags.cs_mag_fault) {
-			/* EVENT
-			 * @description
-			 * Land and calibrate the compass.
-			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::local_position_estimate,
-						    events::ID("check_estimator_mag_fault"),
-						    events::Log::Critical, "Stopping compass use");
-
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Compass needs calibration - Land now!\t");
-			}
-		}
-
-		if (estimator_status_flags.cs_gps_yaw_fault) {
-			/* EVENT
-			 * @description
-			 * Land now
-			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::local_position_estimate,
-						    events::ID("check_estimator_gnss_fault"),
-						    events::Log::Critical, "GNSS heading not reliable");
-
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "GNSS heading not reliable - Land now!\t");
-			}
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Compass needs calibration - Land now!\t");
 		}
 	}
 
-	const hrt_abstime now = hrt_absolute_time();
+	if (estimator_status_flags.cs_gps_yaw_fault) {
+		/* EVENT
+		 * @description
+		 * Land now
+		 */
+		reporter.armingCheckFailure(NavModes::All, health_component_t::local_position_estimate,
+					    events::ID("check_estimator_gnss_fault"),
+					    events::Log::Critical, "GNSS heading not reliable");
 
-	/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
-	* for a short time interval after takeoff.
-	* Most of the time, the drone can recover from a bad initial yaw using GPS-inertial
-	* heading estimation (yaw emergency estimator) or GPS heading (fixed wings only), but
-	* if this does not fix the issue we need to stop using a position controlled
-	* mode to prevent flyaway crashes.
-	*/
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "GNSS heading not reliable - Land now!\t");
+		}
+	}
 
-	if (context.status().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+	if ((_param_com_arm_mag_str.get() >= 1) && estimator_status_flags.cs_mag_field_disturbed) {
+		NavModes required_groups_mag = required_groups;
 
-		if (!context.isArmed()) {
-			_nav_test_failed = false;
-			_nav_test_passed = false;
+		if (_param_com_arm_mag_str.get() != 1) {
+			required_groups_mag = NavModes::None; // optional
+		}
 
-		} else {
-			if (!_nav_test_passed) {
-				// Both test ratios need to pass/fail together to change the nav test status
-				const bool innovation_pass = (estimator_status.vel_test_ratio < 1.f) && (estimator_status.pos_test_ratio < 1.f)
-							     && (estimator_status.vel_test_ratio > FLT_EPSILON) && (estimator_status.pos_test_ratio > FLT_EPSILON);
+		/* EVENT
+		 * @description
+		 * <profile name="dev">
+		 * This check can be configured via <param>COM_ARM_MAG_STR</param> and <param>EKF2_MAG_CHECK</param> parameters.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure(required_groups_mag, health_component_t::local_position_estimate,
+					    events::ID("check_estimator_mag_interference"),
+					    events::Log::Warning, "Strong magnetic interference detected");
 
-				const bool innovation_fail = (estimator_status.vel_test_ratio >= 1.f) && (estimator_status.pos_test_ratio >= 1.f);
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Strong magnetic interference detected");
+		}
+	}
 
-				if (innovation_pass) {
-					_time_last_innov_pass = now;
+	if (estimator_status_flags.pre_flt_fail_innov_heading) {
+		/* EVENT
+		 */
+		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
+					    events::ID("check_estimator_heading_not_stable"),
+					    events::Log::Error, "Heading estimate not stable");
 
-					// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
-					const bool sufficient_time = context.status().takeoff_time != 0
-								     && now - context.status().takeoff_time > 30_s;
-					const bool sufficient_speed = matrix::Vector2f(lpos.vx, lpos.vy).longerThan(5.f);
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: heading estimate not stable");
+		}
 
-					// Even if the test already failed, allow it to pass if it did not fail during the last 10 seconds
-					if (now - _time_last_innov_fail > 10_s && (sufficient_time || sufficient_speed)) {
-						_nav_test_passed = true;
-						_nav_test_failed = false;
-					}
+	} else if (estimator_status_flags.pre_flt_fail_innov_vel_horiz) {
+		/* EVENT
+		 */
+		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
+					    events::ID("check_estimator_hor_vel_not_stable"),
+					    events::Log::Error, "Horizontal velocity estimate not stable");
 
-				} else if (innovation_fail) {
-					_time_last_innov_fail = now;
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: horizontal velocity estimate not stable");
+		}
 
-					if (now - _time_last_innov_pass > 2_s) {
-						// if the innovation test has failed continuously, declare the nav as failed
-						_nav_test_failed = true;
-						/* EVENT
-						 * @description
-						 * Land and recalibrate the sensors.
-						 */
-						reporter.armingCheckFailure(NavModes::All, health_component_t::local_position_estimate,
-									    events::ID("check_estimator_nav_failure"),
-									    events::Log::Emergency, "Navigation failure");
+	} else if (estimator_status_flags.pre_flt_fail_innov_vel_vert) {
+		/* EVENT
+		 */
+		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
+					    events::ID("check_estimator_vert_vel_not_stable"),
+					    events::Log::Error, "Vertical velocity estimate not stable");
 
-						if (reporter.mavlink_log_pub()) {
-							mavlink_log_critical(reporter.mavlink_log_pub(), "Navigation failure! Land and recalibrate sensors\t");
-						}
-					}
-				}
-			}
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: vertical velocity estimate not stable");
+		}
+
+	} else if (estimator_status_flags.pre_flt_fail_innov_height) {
+		/* EVENT
+		 */
+		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
+					    events::ID("check_estimator_hgt_not_stable"),
+					    events::Log::Error, "Height estimate not stable");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: height estimate not stable");
 		}
 	}
 }

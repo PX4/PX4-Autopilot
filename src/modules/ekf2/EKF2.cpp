@@ -1368,12 +1368,6 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 	status.time_slip = _last_time_slip_us * 1e-6f;
 
-	status.pre_flt_fail_innov_heading = _preflt_checker.hasHeadingFailed();
-	status.pre_flt_fail_innov_vel_horiz = _preflt_checker.hasHorizVelFailed();
-	status.pre_flt_fail_innov_vel_vert = _preflt_checker.hasVertVelFailed();
-	status.pre_flt_fail_innov_height = _preflt_checker.hasHeightFailed();
-	status.pre_flt_fail_mag_field_disturbed = _ekf.control_status_flags().mag_field_disturbed;
-
 	status.accel_device_id = _device_id_accel;
 	status.baro_device_id = _device_id_baro;
 	status.gyro_device_id = _device_id_gyro;
@@ -1480,6 +1474,11 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.reject_hagl                     = _ekf.innov_check_fail_status_flags().reject_hagl;
 		status_flags.reject_optflow_x                = _ekf.innov_check_fail_status_flags().reject_optflow_X;
 		status_flags.reject_optflow_y                = _ekf.innov_check_fail_status_flags().reject_optflow_Y;
+
+		status_flags.pre_flt_fail_innov_heading   = _preflt_checker.hasHeadingFailed();
+		status_flags.pre_flt_fail_innov_vel_horiz = _preflt_checker.hasHorizVelFailed();
+		status_flags.pre_flt_fail_innov_vel_vert  = _preflt_checker.hasVertVelFailed();
+		status_flags.pre_flt_fail_innov_height    = _preflt_checker.hasHeightFailed();
 
 		status_flags.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_estimator_status_flags_pub.publish(status_flags);
