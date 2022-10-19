@@ -580,7 +580,8 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(const hrt_abstime &time_no
 
 		if (_esc_status_sub.copy(&esc_status) && (time_now_us < esc_status.timestamp + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
 
-			const float freq_min = math::max(10.f, _param_imu_gyro_dnf_bw.get()); // TODO: configurable
+			const float bandwidth_hz = _param_imu_gyro_dnf_bw.get();
+			const float freq_min = math::max(_param_imu_gyro_dnf_min.get(), bandwidth_hz);
 
 			for (size_t esc = 0; esc < math::min(esc_status.esc_count, (uint8_t)MAX_NUM_ESCS); esc++) {
 				const esc_report_s &esc_report = esc_status.esc[esc];
@@ -595,7 +596,9 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(const hrt_abstime &time_no
 					const bool force_update = force || !_esc_available[esc]; // force parameter update or notch was previously disabled
 
 					for (int harmonic = 0; harmonic < _esc_rpm_harmonics; harmonic++) {
-						const float frequency_hz = math::max(esc_hz * (harmonic + 1), freq_min);
+						// as RPM drops leave the notch filter "parked" at the minimum rather than disabling
+						//  keep harmonics separated by half the notch filter bandwidth
+						const float frequency_hz = math::max(esc_hz * (harmonic + 1), freq_min + (harmonic * 0.5f * bandwidth_hz));
 
 						// update filter parameters if frequency changed or forced
 						for (int axis = 0; axis < 3; axis++) {
@@ -609,7 +612,7 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(const hrt_abstime &time_no
 							const bool allow_update = !axis_init[axis] || (nf.initialized() && notch_freq_delta < nf.getBandwidth());
 
 							if ((force_update || notch_freq_changed) && allow_update) {
-								if (nf.setParameters(_filter_sample_rate_hz, frequency_hz, _param_imu_gyro_dnf_bw.get())) {
+								if (nf.setParameters(_filter_sample_rate_hz, frequency_hz, bandwidth_hz)) {
 									perf_count(_dynamic_notch_filter_esc_rpm_update_perf);
 
 									if (!nf.initialized()) {
