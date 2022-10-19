@@ -198,10 +198,11 @@ void OutputMavlinkV2::print_status() const
 	PX4_INFO("Output: MAVLink gimbal protocol v2");
 
 	PX4_INFO_RAW("  quaternion: [%.1f %.1f %.1f %.1f]\n",
-		     (double)_q_setpoint[0],
-		     (double)_q_setpoint[1],
-		     (double)_q_setpoint[2],
-		     (double)_q_setpoint[3]);
+		     (double)_q_setpoint(0),
+		     (double)_q_setpoint(1),
+		     (double)_q_setpoint(2),
+		     (double)_q_setpoint(3));
+
 	PX4_INFO_RAW("  angular velocity: [%.1f %.1f %.1f]\n",
 		     (double)_angle_velocity[0],
 		     (double)_angle_velocity[1],
@@ -218,10 +219,8 @@ void OutputMavlinkV2::_publish_gimbal_device_set_attitude()
 	set_attitude.angular_velocity_x = _angle_velocity[0];
 	set_attitude.angular_velocity_y = _angle_velocity[1];
 	set_attitude.angular_velocity_z = _angle_velocity[2];
-	set_attitude.q[0] = _q_setpoint[0];
-	set_attitude.q[1] = _q_setpoint[1];
-	set_attitude.q[2] = _q_setpoint[2];
-	set_attitude.q[3] = _q_setpoint[3];
+
+	_q_setpoint.copyTo(set_attitude.q);
 
 	if (_absolute_angle[0]) {
 		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_ROLL_LOCK;

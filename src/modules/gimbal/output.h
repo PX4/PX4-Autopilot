@@ -76,7 +76,7 @@ protected:
 
 	void _handle_position_update(const ControlData &control_data, bool force_update = false);
 
-	float _q_setpoint[4] = { NAN, NAN, NAN, NAN }; ///< can be NAN if not specifically set
+	matrix::Quatf _q_setpoint{NAN, NAN, NAN, NAN}; ///< can be NAN if not specifically set
 	float _angle_velocity[3] = { NAN, NAN, NAN }; //< [rad/s], can be NAN if not specifically set
 
 	bool _stabilize[3] = { false, false, false };

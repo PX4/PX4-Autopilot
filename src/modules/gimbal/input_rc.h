@@ -61,7 +61,7 @@ private:
 
 	int _manual_control_setpoint_sub{-1};
 
-	float _last_set_aux_values[3] {};
+	float _last_set_aux_values[3] {NAN, NAN, NAN};
 };
 
 } /* namespace gimbal */

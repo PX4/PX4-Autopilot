@@ -43,6 +43,8 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
+using namespace time_literals;
+
 namespace gimbal
 {
 
@@ -84,9 +86,7 @@ float OutputBase::_calculate_pitch(double lon, double lat, float altitude,
 void OutputBase::_set_angle_setpoints(const ControlData &control_data)
 {
 	switch (control_data.type) {
-	case ControlData::Type::Angle:
-
-		{
+	case ControlData::Type::Angle: {
 			for (int i = 0; i < 3; ++i) {
 				switch (control_data.type_data.angle.frames[i]) {
 				case ControlData::TypeData::TypeAngle::Frame::AngularRate:
@@ -104,9 +104,7 @@ void OutputBase::_set_angle_setpoints(const ControlData &control_data)
 				_angle_velocity[i] = control_data.type_data.angle.angular_velocity[i];
 			}
 
-			for (int i = 0; i < 4; ++i) {
-				_q_setpoint[i] = control_data.type_data.angle.q[i];
-			}
+			_q_setpoint = matrix::Quatf{control_data.type_data.angle.q};
 		}
 
 		break;
@@ -116,10 +114,10 @@ void OutputBase::_set_angle_setpoints(const ControlData &control_data)
 		break;
 
 	case ControlData::Type::Neutral:
-		_q_setpoint[0] = 1.f;
-		_q_setpoint[1] = 0.f;
-		_q_setpoint[2] = 0.f;
-		_q_setpoint[3] = 0.f;
+		_q_setpoint(0) = 1.f;
+		_q_setpoint(1) = 0.f;
+		_q_setpoint(2) = 0.f;
+		_q_setpoint(3) = 0.f;
 		_angle_velocity[0] = NAN;
 		_angle_velocity[1] = NAN;
 		_angle_velocity[2] = NAN;
@@ -173,7 +171,7 @@ void OutputBase::_handle_position_update(const ControlData &control_data, bool f
 		yaw += control_data.type_data.lonlat.yaw_offset;
 	}
 
-	matrix::Quatf(matrix::Eulerf(roll, pitch, yaw)).copyTo(_q_setpoint);
+	_q_setpoint = matrix::Eulerf(roll, pitch, yaw);
 
 	_angle_velocity[0] = NAN;
 	_angle_velocity[1] = NAN;
@@ -201,25 +199,41 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 	}
 
 	// get the output angles and stabilize if necessary
+	bool attitude_valid = false;
 	matrix::Eulerf euler_vehicle{};
 
 	if (compensate[0] || compensate[1] || compensate[2]) {
 		vehicle_attitude_s vehicle_attitude;
 
 		if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
-			euler_vehicle = matrix::Quatf(vehicle_attitude.q);
+			const matrix::Quatf q{vehicle_attitude.q};
+
+			const bool no_element_larger_than_one = (fabsf(q(0)) <= 1.f)
+								&& (fabsf(q(1)) <= 1.f)
+								&& (fabsf(q(2)) <= 1.f)
+								&& (fabsf(q(3)) <= 1.f);
+			const bool norm_in_tolerance = (fabsf(1.f - q.norm()) <= 1e-6f);
+
+			attitude_valid = (vehicle_attitude.timestamp != 0) && (hrt_elapsed_time(&vehicle_attitude.timestamp) < 1_s)
+					 && norm_in_tolerance && no_element_larger_than_one;
+
+			if (attitude_valid) {
+				euler_vehicle = q;
+			}
 		}
 	}
 
 	float dt = math::constrain((t - _last_update) * 1.e-6f, 0.001f, 1.f);
 
-	const bool q_setpoint_valid = PX4_ISFINITE(_q_setpoint[0]) && PX4_ISFINITE(_q_setpoint[1])
-				      && PX4_ISFINITE(_q_setpoint[2]) && PX4_ISFINITE(_q_setpoint[3]);
-	matrix::Eulerf euler_gimbal{};
+	const bool q_setpoint_no_element_larger_than_one = (fabsf(_q_setpoint(0)) <= 1.f)
+			&& (fabsf(_q_setpoint(1)) <= 1.f)
+			&& (fabsf(_q_setpoint(2)) <= 1.f)
+			&& (fabsf(_q_setpoint(3)) <= 1.f);
+	const bool q_setpoint_norm_in_tolerance = (fabsf(1.f - _q_setpoint.norm()) <= 1e-6f);
 
-	if (q_setpoint_valid) {
-		euler_gimbal = matrix::Quatf{_q_setpoint};
-	}
+	const bool q_setpoint_valid = q_setpoint_no_element_larger_than_one && q_setpoint_norm_in_tolerance;
+
+	const matrix::Eulerf euler_gimbal{_q_setpoint};
 
 	for (int i = 0; i < 3; ++i) {
 
@@ -231,16 +245,21 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 			_angle_outputs[i] += dt * _angle_velocity[i];
 		}
 
-		if (compensate[i] && PX4_ISFINITE(euler_vehicle(i))) {
+		if (compensate[i] && PX4_ISFINITE(_angle_outputs[i]) &&
+		    attitude_valid && PX4_ISFINITE(euler_vehicle(i))) {
+
 			_angle_outputs[i] -= euler_vehicle(i);
 		}
 
 		if (PX4_ISFINITE(_angle_outputs[i])) {
 			// bring angles into proper range [-pi, pi]
 			_angle_outputs[i] = matrix::wrap_pi(_angle_outputs[i]);
+
+		} else {
+			// reset
+			_angle_outputs[i] = 0.f;
 		}
 	}
-
 
 	// constrain pitch to [MNT_LND_P_MIN, MNT_LND_P_MAX] if landed
 	if (_landed) {
