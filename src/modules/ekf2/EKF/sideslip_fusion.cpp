@@ -47,7 +47,7 @@
 
 #include <mathlib/mathlib.h>
 
-void Ekf::updateSideslip(estimator_aid_source_1d_s &sideslip) const
+void Ekf::updateSideslip(estimator_aid_source1d_s &sideslip) const
 {
 	// reset flags
 	resetEstimatorAidStatus(sideslip);
@@ -71,7 +71,7 @@ void Ekf::updateSideslip(estimator_aid_source_1d_s &sideslip) const
 	setEstimatorAidStatusTestRatio(sideslip, innov_gate);
 }
 
-void Ekf::fuseSideslip(estimator_aid_source_1d_s &sideslip)
+void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 {
 	if (sideslip.innovation_rejected) {
 		return;

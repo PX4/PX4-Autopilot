@@ -12,7 +12,7 @@ import re
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Extract fields from .msg files')
-    parser.add_argument('msg_file', help='failsafe_flags.msg file')
+    parser.add_argument('msg_file', help='FailsafeFlags.msg file')
     parser.add_argument('header_file', help='generated_uorb_struct_field_mapping.h')
     parser.add_argument('html_template', help='HTML template input file')
     parser.add_argument('html_output', help='HTML output file')
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     macro_lines = ''
     for group in groups:
         for field_type, field_name, comment in group.fields:
-            macro_lines += '   .property("{0}", &{1}_s::{0}) \\\n'.format(field_name, msg_name)
+            macro_lines += '   .property("{0}", &px4::msg::{1}::{0}) \\\n'.format(field_name, msg_name)
 
     cpp_emscription_macro = '#define UORB_STRUCT_FIELD_MAPPING \\\n{}\n'.format(macro_lines)
 

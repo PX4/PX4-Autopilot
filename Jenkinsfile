@@ -13,76 +13,6 @@ pipeline {
         }
       }
       parallel {
-        // stage('Catkin build on ROS workspace') {
-        //   agent {
-        //     docker {
-        //       image 'px4io/px4-dev-ros-melodic:2021-08-18'
-        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
-        //     }
-        //   }
-        //   steps {
-        //     sh 'ls -l'
-        //     sh '''#!/bin/bash -l
-        //       echo $0;
-        //       mkdir -p catkin_ws/src;
-        //       cd catkin_ws;
-        //       git -C ${WORKSPACE}/catkin_ws/src/Firmware submodule update --init --recursive --force Tools/simulation/gazebo/sitl_gazebo
-        //       git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/simulation/gazebo/sitl_gazebo src/mavlink_sitl_gazebo;
-        //       git -C ${WORKSPACE}/catkin_ws/src/Firmware fetch --tags;
-        //       source /opt/ros/melodic/setup.bash;
-        //       export PYTHONPATH=/opt/ros/$ROS_DISTRO/lib/python2.7/dist-packages:/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/dist-packages;
-        //       catkin init;
-        //       catkin build -j$(nproc) -l$(nproc);
-        //     '''
-        //     // test if the binary was correctly installed and runs using 'mavros_posix_sitl.launch'
-        //     sh '''#!/bin/bash -l
-        //       echo $0;
-        //       source catkin_ws/devel/setup.bash;
-        //       rostest px4 pub_test.launch;
-        //     '''
-        //   }
-        //   post {
-        //     always {
-        //       sh 'rm -rf catkin_ws'
-        //     }
-        //     failure {
-        //       archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.xml, .ros/**/*.log')
-        //     }
-        //   }
-        //   options {
-        //     checkoutToSubdirectory('catkin_ws/src/Firmware')
-        //   }
-        // }
-
-        stage('Colcon build on ROS2 workspace') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-ros2-foxy:2021-08-18'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
-            }
-          }
-          steps {
-            sh 'ls -l'
-            sh '''#!/bin/bash -l
-              echo $0;
-              unset ROS_DISTRO;
-              mkdir -p colcon_ws/src;
-              cd colcon_ws;
-              git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/simulation/gazebo/sitl_gazebo;
-              git -C ${WORKSPACE}/colcon_ws/src/Firmware fetch --tags;
-              source /opt/ros/foxy/setup.sh;
-              colcon build --event-handlers console_direct+ --symlink-install;
-            '''
-          }
-          post {
-            always {
-              sh 'rm -rf colcon_ws'
-            }
-          }
-          options {
-            checkoutToSubdirectory('colcon_ws/src/Firmware')
-          }
-        }
 
         stage('Airframe') {
           agent {
@@ -149,7 +79,7 @@ pipeline {
             docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
           }
           steps {
-            sh 'mkdir -p build/msg_docs; ./msg/tools/generate_msg_docs.py -d build/msg_docs'
+            sh 'mkdir -p build/msg_docs; ./Tools/msg/generate_msg_docs.py -d build/msg_docs'
             dir('build') {
               archiveArtifacts(artifacts: 'msg_docs/*.md')
               stash includes: 'msg_docs/*.md', name: 'msg_documentation'
@@ -288,37 +218,6 @@ pipeline {
           }
         }
 
-        stage('microRTPS agent') {
-          agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
-          }
-          steps {
-            sh('export')
-            sh('git fetch --all --tags')
-            sh('make distclean; git clean -ff -x -d .')
-            sh('make px4_sitl_rtps')
-            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
-              sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/micrortps_agent.git -b ${BRANCH_NAME}")
-              sh("rm -rf micrortps_agent/src micrortps_agent/idl")
-              sh('cp -R build/px4_sitl_rtps/src/modules/micrortps_bridge/micrortps_agent/* micrortps_agent')
-              sh('cd micrortps_agent; git status; git add src; git commit -a -m "Update microRTPS agent source code `date`" || true')
-              sh('cd micrortps_agent; git push origin ${BRANCH_NAME} || true')
-              sh('cd micrortps_agent; git status; git add idl; git commit -a -m "Update IDL definitions `date`" || true')
-              sh('cd micrortps_agent; git push origin ${BRANCH_NAME} || true')
-              sh('cd micrortps_agent; git status; git add CMakeLists.txt; git commit -a -m "Update CMakeLists.txt `date`" || true')
-              sh('cd micrortps_agent; git push origin ${BRANCH_NAME} || true')
-              sh('rm -rf micrortps_agent')
-            }
-          }
-          when {
-            anyOf {
-              branch 'main'
-              branch 'master' // should be removed, but in case there is something going on...
-              branch 'pr-jenkins' // for testing
-            }
-          }
-        }
-
         stage('PX4 ROS msgs') {
           agent {
             docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
@@ -329,66 +228,16 @@ pipeline {
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_msgs.git")
               // 'main' branch
-              sh('./msg/tools/uorb_to_ros_msgs.py msg/ px4_msgs/msg/')
+              sh('rm -f px4_msgs/msg/*.msg')
+              sh('cp msg/*.msg px4_msgs/msg/')
               sh('cd px4_msgs; git status; git add .; git commit -a -m "Update message definitions `date`" || true')
               sh('cd px4_msgs; git push origin main || true')
-              // 'ros1' branch
-              sh('cd px4_msgs; git checkout ros1')
-              sh('./msg/tools/uorb_to_ros_msgs.py msg/ px4_msgs/msg/')
-              sh('cd px4_msgs; git status; git add .; git commit -a -m "Update message definitions `date`" || true')
-              sh('cd px4_msgs; git push origin ros1 || true')
               sh('rm -rf px4_msgs')
             }
           }
           when {
             anyOf {
               branch 'main'
-              branch 'master' // should be removed, but in case there is something going on...
-              branch 'pr-jenkins' // for testing
-            }
-          }
-        }
-
-        stage('PX4 ROS2 bridge') {
-          agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
-          }
-          steps {
-            sh('export')
-            sh('make distclean; git clean -ff -x -d .')
-            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
-              sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_ros_com.git -b ${BRANCH_NAME}")
-              // deploy uORB RTPS ID map
-              sh('./msg/tools/uorb_to_ros_urtps_topics.py -i msg/tools/urtps_bridge_topics.yaml -o px4_ros_com/templates/urtps_bridge_topics.yaml')
-              sh('cd px4_ros_com; git status; git add .; git commit -a -m "Update uORB RTPS ID map `date`" || true')
-              sh('cd px4_ros_com; git push origin ${BRANCH_NAME} || true')
-              // deploy uORB RTPS required tools
-              sh('cp msg/tools/uorb_rtps_classifier.py px4_ros_com/scripts/uorb_rtps_classifier.py')
-              sh('cp msg/tools/generate_microRTPS_bridge.py px4_ros_com/scripts/generate_microRTPS_bridge.py')
-              sh('cp msg/tools/px_generate_uorb_topic_files.py px4_ros_com/scripts/px_generate_uorb_topic_files.py')
-              sh('cp msg/tools/px_generate_uorb_topic_helper.py px4_ros_com/scripts/px_generate_uorb_topic_helper.py')
-              // deploy templates
-              sh('cp msg/templates/urtps/microRTPS_agent.cpp.em px4_ros_com/templates/microRTPS_agent.cpp.em')
-              sh('cp msg/templates/urtps/microRTPS_timesync.cpp.em px4_ros_com/templates/microRTPS_timesync.cpp.em')
-              sh('cp msg/templates/urtps/microRTPS_timesync.h.em px4_ros_com/templates/microRTPS_timesync.h.em')
-              sh('cp msg/templates/urtps/microRTPS_transport.cpp px4_ros_com/templates/microRTPS_transport.cpp')
-              sh('cp msg/templates/urtps/microRTPS_transport.h px4_ros_com/templates/microRTPS_transport.h')
-              sh('cp msg/templates/urtps/Publisher.cpp.em px4_ros_com/templates/Publisher.cpp.em')
-              sh('cp msg/templates/urtps/Publisher.h.em px4_ros_com/templates/Publisher.h.em')
-              sh('cp msg/templates/urtps/Subscriber.cpp.em px4_ros_com/templates/Subscriber.cpp.em')
-              sh('cp msg/templates/urtps/Subscriber.h.em px4_ros_com/templates/Subscriber.h.em')
-              sh('cp msg/templates/urtps/RtpsTopics.cpp.em px4_ros_com/templates/RtpsTopics.cpp.em')
-              sh('cp msg/templates/urtps/RtpsTopics.h.em px4_ros_com/templates/RtpsTopics.h.em')
-              sh('cd px4_ros_com; git status; git add .; git commit -a -m "Update uORB RTPS script tools `date`" || true')
-              sh('cd px4_ros_com; git push origin ${BRANCH_NAME} || true')
-              sh('rm -rf px4_msgs')
-            }
-          }
-          when {
-            anyOf {
-              branch 'main'
-              branch 'master' // should be removed, but in case there is something going on...
-              branch 'pr-jenkins' // for testing
             }
           }
         }
