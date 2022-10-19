@@ -52,7 +52,7 @@ void Ekf::updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector2f &ob
 		aid_src.observation[i] = obs(i);
 		aid_src.innovation[i] = _state.vel(i) - aid_src.observation[i];
 
-		aid_src.observation_variance[i] = obs_var(i);
+		aid_src.observation_variance[i] = math::max(sq(0.01f), obs_var(i));
 		aid_src.innovation_variance[i] = P(4 + i, 4 + i) + aid_src.observation_variance[i];
 	}
 
@@ -70,7 +70,7 @@ void Ekf::updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector3f &ob
 		aid_src.observation[i] = obs(i);
 		aid_src.innovation[i] = _state.vel(i) - aid_src.observation[i];
 
-		aid_src.observation_variance[i] = obs_var(i);
+		aid_src.observation_variance[i] = math::max(sq(0.01f), obs_var(i));
 		aid_src.innovation_variance[i] = P(4 + i, 4 + i) + aid_src.observation_variance[i];
 	}
 
@@ -95,7 +95,7 @@ void Ekf::updateVerticalPositionAidSrcStatus(const uint64_t &time_us, const floa
 	aid_src.observation = obs;
 	aid_src.innovation = _state.pos(2) - aid_src.observation;
 
-	aid_src.observation_variance = obs_var;
+	aid_src.observation_variance = math::max(sq(0.01f), obs_var);
 	aid_src.innovation_variance = P(9, 9) + aid_src.observation_variance;
 
 	setEstimatorAidStatusTestRatio(aid_src, innov_gate);
@@ -120,7 +120,7 @@ void Ekf::updateHorizontalPositionAidSrcStatus(const uint64_t &time_us, const Ve
 		aid_src.observation[i] = obs(i);
 		aid_src.innovation[i] = _state.pos(i) - aid_src.observation[i];
 
-		aid_src.observation_variance[i] = obs_var(i);
+		aid_src.observation_variance[i] = math::max(sq(0.01f), obs_var(i));
 		aid_src.innovation_variance[i] = P(7 + i, 7 + i) + aid_src.observation_variance[i];
 	}
 

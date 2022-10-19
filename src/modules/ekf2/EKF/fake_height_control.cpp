@@ -40,25 +40,34 @@
 
 void Ekf::controlFakeHgtFusion()
 {
-	auto &fake_hgt = _aid_src_fake_hgt;
-
-	// clear
-	resetEstimatorAidStatus(fake_hgt);
+	auto &aid_src = _aid_src_fake_hgt;
 
 	// If we aren't doing any aiding, fake position measurements at the last known vertical position to constrain drift
-	const bool fake_hgt_data_ready = isTimedOut(fake_hgt.time_last_fuse, (uint64_t)2e5); // Fuse fake height at a limited rate
+	const bool fake_hgt_data_ready = !isVerticalAidingActive()
+					 && isTimedOut(aid_src.time_last_fuse, (uint64_t)2e5); // Fuse fake height at a limited rate
 
 	if (fake_hgt_data_ready) {
+
+		const float obs_var = sq(_params.pos_noaid_noise);
+		const float innov_gate = 3.f;
+
+		updateVerticalPositionAidSrcStatus(_imu_sample_delayed.time_us, _last_known_pos(2), obs_var, innov_gate, aid_src);
+
+
 		const bool continuing_conditions_passing = !isVerticalAidingActive();
 		const bool starting_conditions_passing = continuing_conditions_passing
-							 && _vertical_velocity_deadreckon_time_exceeded
-							 && _vertical_position_deadreckon_time_exceeded;
+				&& _vertical_velocity_deadreckon_time_exceeded
+				&& _vertical_position_deadreckon_time_exceeded;
 
 		if (_control_status.flags.fake_hgt) {
 			if (continuing_conditions_passing) {
-				fuseFakeHgt();
 
-				const bool is_fusion_failing = isTimedOut(fake_hgt.time_last_fuse, (uint64_t)4e5);
+				// always protect against extreme values that could result in a NaN
+				aid_src.fusion_enabled = aid_src.test_ratio < sq(100.0f / innov_gate);
+
+				fuseVerticalPosition(aid_src);
+
+				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, (uint64_t)4e5);
 
 				if (is_fusion_failing) {
 					resetFakeHgtFusion();
@@ -70,18 +79,14 @@ void Ekf::controlFakeHgtFusion()
 
 		} else {
 			if (starting_conditions_passing) {
-				startFakeHgtFusion();
+				ECL_INFO("start fake height fusion");
+				_control_status.flags.fake_hgt = true;
+				resetFakeHgtFusion();
 			}
 		}
-	}
-}
 
-void Ekf::startFakeHgtFusion()
-{
-	if (!_control_status.flags.fake_hgt) {
-		ECL_INFO("start fake height fusion");
-		_control_status.flags.fake_hgt = true;
-		resetFakeHgtFusion();
+	} else if (_control_status.flags.fake_hgt && isVerticalAidingActive()) {
+		stopFakeHgtFusion();
 	}
 }
 
@@ -100,8 +105,7 @@ void Ekf::resetHeightToLastKnown()
 {
 	_information_events.flags.reset_pos_to_last_known = true;
 	ECL_INFO("reset height to last known");
-	resetVerticalPositionTo(_last_known_pos(2));
-	P.uncorrelateCovarianceSetVariance<1>(9, sq(_params.pos_noaid_noise));
+	resetVerticalPositionTo(_last_known_pos(2), sq(_params.pos_noaid_noise));
 }
 
 void Ekf::stopFakeHgtFusion()
@@ -112,34 +116,4 @@ void Ekf::stopFakeHgtFusion()
 
 		resetEstimatorAidStatus(_aid_src_fake_hgt);
 	}
-}
-
-void Ekf::fuseFakeHgt()
-{
-	const float obs_var = sq(_params.pos_noaid_noise);
-
-	const float innov_gate = 3.f;
-
-	auto &fake_hgt = _aid_src_fake_hgt;
-
-	fake_hgt.observation = _last_known_pos(2);
-	fake_hgt.observation_variance = obs_var;
-
-	fake_hgt.innovation = _state.pos(2) - _last_known_pos(2);
-	fake_hgt.innovation_variance = P(9, 9) + obs_var;
-
-	setEstimatorAidStatusTestRatio(fake_hgt, innov_gate);
-
-	// always protect against extreme values that could result in a NaN
-	fake_hgt.fusion_enabled = fake_hgt.test_ratio < sq(100.0f / innov_gate);
-
-	// fuse
-	if (fake_hgt.fusion_enabled && !fake_hgt.innovation_rejected) {
-		if (fuseVelPosHeight(fake_hgt.innovation, fake_hgt.innovation_variance, 5)) {
-			fake_hgt.fused = true;
-			fake_hgt.time_last_fuse = _imu_sample_delayed.time_us;
-		}
-	}
-
-	fake_hgt.timestamp_sample = _imu_sample_delayed.time_us;
 }
