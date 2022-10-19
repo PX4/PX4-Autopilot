@@ -75,7 +75,7 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://docs.px4.io/main/en/con
     * [Paul Riseborough](https://github.com/priseborough)
   * Vision based navigation and Obstacle Avoidance
     * [Markus Achtelik](https://github.com/markusachtelik)
-  * RTPS/ROS2 Interface
+  * DDS/ROS2 Interface
     * [Nuno Marques](https://github.com/TSC21)
 
 See also [maintainers list](https://px4.io/community/maintainers/) (px4.io) and the [contributors list](https://github.com/PX4/PX4-Autopilot/graphs/contributors) (Github).

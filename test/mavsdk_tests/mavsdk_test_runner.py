@@ -110,7 +110,7 @@ def is_everything_ready(config: Dict[str, str], build_dir: str) -> bool:
             print("PX4 SITL is not built\n"
                   "run `DONT_RUN=1 "
                   "make px4_sitl gazebo mavsdk_tests` or "
-                  "`DONT_RUN=1 make px4_sitl_rtps gazebo mavsdk_tests`")
+                  "`DONT_RUN=1 make px4_sitl_default gazebo mavsdk_tests`")
             result = False
         if config['simulator'] == 'gazebo':
             if is_running('gzserver'):
@@ -127,7 +127,7 @@ def is_everything_ready(config: Dict[str, str], build_dir: str) -> bool:
         print("Test runner is not built\n"
               "run `DONT_RUN=1 "
               "make px4_sitl gazebo mavsdk_tests` or "
-              "`DONT_RUN=1 make px4_sitl_rtps gazebo mavsdk_tests`")
+              "`DONT_RUN=1 make px4_sitl_default gazebo mavsdk_tests`")
         result = False
 
     return result

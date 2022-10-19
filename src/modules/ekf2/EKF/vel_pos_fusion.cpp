@@ -44,7 +44,7 @@
 #include "ekf.h"
 
 void Ekf::updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var,
-				     const float innov_gate, estimator_aid_source_2d_s &aid_src) const
+				     const float innov_gate, estimator_aid_source2d_s &aid_src) const
 {
 	resetEstimatorAidStatus(aid_src);
 
@@ -62,7 +62,7 @@ void Ekf::updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector2f &ob
 }
 
 void Ekf::updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector3f &obs, const Vector3f &obs_var,
-				     const float innov_gate, estimator_aid_source_3d_s &aid_src) const
+				     const float innov_gate, estimator_aid_source3d_s &aid_src) const
 {
 	resetEstimatorAidStatus(aid_src);
 
@@ -88,7 +88,7 @@ void Ekf::updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector3f &ob
 }
 
 void Ekf::updateVerticalPositionAidSrcStatus(const uint64_t &time_us, const float obs, const float obs_var,
-		const float innov_gate, estimator_aid_source_1d_s &aid_src) const
+		const float innov_gate, estimator_aid_source1d_s &aid_src) const
 {
 	resetEstimatorAidStatus(aid_src);
 
@@ -112,7 +112,7 @@ void Ekf::updateVerticalPositionAidSrcStatus(const uint64_t &time_us, const floa
 }
 
 void Ekf::updateHorizontalPositionAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var,
-		const float innov_gate, estimator_aid_source_2d_s &aid_src) const
+		const float innov_gate, estimator_aid_source2d_s &aid_src) const
 {
 	resetEstimatorAidStatus(aid_src);
 
@@ -129,7 +129,7 @@ void Ekf::updateHorizontalPositionAidSrcStatus(const uint64_t &time_us, const Ve
 	aid_src.timestamp_sample = time_us;
 }
 
-void Ekf::fuseVelocity(estimator_aid_source_2d_s &aid_src)
+void Ekf::fuseVelocity(estimator_aid_source2d_s &aid_src)
 {
 	if (aid_src.fusion_enabled && !aid_src.innovation_rejected) {
 		// vx, vy
@@ -145,7 +145,7 @@ void Ekf::fuseVelocity(estimator_aid_source_2d_s &aid_src)
 	}
 }
 
-void Ekf::fuseVelocity(estimator_aid_source_3d_s &aid_src)
+void Ekf::fuseVelocity(estimator_aid_source3d_s &aid_src)
 {
 	if (aid_src.fusion_enabled && !aid_src.innovation_rejected) {
 		// vx, vy, vz
@@ -162,7 +162,7 @@ void Ekf::fuseVelocity(estimator_aid_source_3d_s &aid_src)
 	}
 }
 
-void Ekf::fuseHorizontalPosition(estimator_aid_source_2d_s &aid_src)
+void Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
 {
 	// x & y
 	if (aid_src.fusion_enabled && !aid_src.innovation_rejected) {
@@ -178,7 +178,7 @@ void Ekf::fuseHorizontalPosition(estimator_aid_source_2d_s &aid_src)
 	}
 }
 
-void Ekf::fuseVerticalPosition(estimator_aid_source_1d_s &aid_src)
+void Ekf::fuseVerticalPosition(estimator_aid_source1d_s &aid_src)
 {
 	// z
 	if (aid_src.fusion_enabled && !aid_src.innovation_rejected) {
