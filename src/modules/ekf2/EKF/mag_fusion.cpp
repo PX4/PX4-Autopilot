@@ -47,6 +47,7 @@
 #include "python/ekf_derivation/generated/compute_mag_z_innov_var_and_h.h"
 #include "python/ekf_derivation/generated/compute_yaw_321_innov_var_and_h.h"
 #include "python/ekf_derivation/generated/compute_yaw_312_innov_var_and_h.h"
+#include "python/ekf_derivation/generated/compute_mag_declination_innov_innov_var_and_h.h"
 
 #include <mathlib/mathlib.h>
 
@@ -333,63 +334,24 @@ bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_so
 
 bool Ekf::fuseDeclination(float decl_sigma)
 {
-	// assign intermediate state variables
-	const float magN = _state.mag_I(0);
-	const float magE = _state.mag_I(1);
-
-	// minimum North field strength before calculation becomes badly conditioned (T)
-	constexpr float N_field_min = 0.001f;
-
 	// observation variance (rad**2)
 	const float R_DECL = sq(decl_sigma);
 
-	// Calculate intermediate variables
-	if (fabsf(magN) < sq(N_field_min)) {
-		// calculation is badly conditioned close to +-90 deg declination
-		return false;
-	}
+	Vector24f H;
+	float innovation;
+	float innovation_variance;
 
-	const float HK0 = ecl::powf(magN, -2);
-	const float HK1 = HK0*ecl::powf(magE, 2) + 1.0F;
-	const float HK2 = 1.0F/HK1;
-	const float HK3 = 1.0F/magN;
-	const float HK4 = HK2*HK3;
-	const float HK5 = HK3*magE;
-	const float HK6 = HK5*P(16,17) - P(17,17);
-	const float HK7 = ecl::powf(HK1, -2);
-	const float HK8 = HK5*P(16,16) - P(16,17);
-	const float innovation_variance = -HK0*HK6*HK7 + HK7*HK8*magE/ecl::powf(magN, 3) + R_DECL;
-	float HK9;
+	sym::ComputeMagDeclinationInnovInnovVarAndH(getStateAtFusionHorizonAsVector(), P, getMagDeclination(), R_DECL, FLT_EPSILON, &innovation, &innovation_variance, &H);
 
-	if (innovation_variance > R_DECL) {
-		HK9 = HK4/innovation_variance;
-	} else {
+	if (innovation_variance < R_DECL) {
 		// variance calculation is badly conditioned
 		return false;
 	}
 
-	// Calculate the observation Jacobian
-	// Note only 2 terms are non-zero which can be used in matrix operations for calculation of Kalman gains and covariance update to significantly reduce cost
-	// Note Hfusion indices do not match state indices
-	SparseVector24f<16,17> Hfusion;
-	Hfusion.at<16>() = -HK0*HK2*magE;
-	Hfusion.at<17>() = HK4;
+	SparseVector24f<16,17> Hfusion(H);
 
 	// Calculate the Kalman gains
-	Vector24f Kfusion;
-
-	for (unsigned row = 0; row <= 15; row++) {
-		Kfusion(row) = -HK9*(HK5*P(row,16) - P(row,17));
-	}
-
-	Kfusion(16) = -HK8*HK9;
-	Kfusion(17) = -HK6*HK9;
-
-	for (unsigned row = 18; row <= 23; row++) {
-		Kfusion(row) = -HK9*(HK5*P(16,row) - P(17,row));
-	}
-
-	const float innovation = math::constrain(atan2f(magE, magN) - getMagDeclination(), -0.5f, 0.5f);
+	Vector24f Kfusion = P * Hfusion / innovation_variance;
 
 	const bool is_fused = measurementUpdate(Kfusion, Hfusion, innovation);
 
