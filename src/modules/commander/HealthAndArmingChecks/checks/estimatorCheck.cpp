@@ -131,7 +131,7 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &reporter,
 		const estimator_status_s &estimator_status, NavModes required_groups)
 {
-	if (estimator_status.pre_flt_fail_innov_heading) {
+	if (!context.isArmed() && estimator_status.pre_flt_fail_innov_heading) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -142,7 +142,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: heading estimate not stable");
 		}
 
-	} else if (estimator_status.pre_flt_fail_innov_vel_horiz) {
+	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_horiz) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -153,7 +153,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: horizontal velocity estimate not stable");
 		}
 
-	} else if (estimator_status.pre_flt_fail_innov_vel_vert) {
+	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_vert) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -164,7 +164,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: vertical velocity estimate not stable");
 		}
 
-	} else if (estimator_status.pre_flt_fail_innov_height) {
+	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_height) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -177,7 +177,9 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 
-	if ((_param_com_arm_mag_str.get() >= 1) && estimator_status.pre_flt_fail_mag_field_disturbed) {
+	if ((_param_com_arm_mag_str.get() >= 1)
+	    && (!context.isArmed() && estimator_status.pre_flt_fail_mag_field_disturbed)) {
+
 		NavModes required_groups_mag = required_groups;
 
 		if (_param_com_arm_mag_str.get() != 1) {
@@ -200,7 +202,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 	// check vertical position innovation test ratio
-	if (estimator_status.hgt_test_ratio > _param_com_arm_ekf_hgt.get()) {
+	if (!context.isArmed() && (estimator_status.hgt_test_ratio > _param_com_arm_ekf_hgt.get())) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -219,7 +221,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 	// check velocity innovation test ratio
-	if (estimator_status.vel_test_ratio > _param_com_arm_ekf_vel.get()) {
+	if (!context.isArmed() && (estimator_status.vel_test_ratio > _param_com_arm_ekf_vel.get())) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -238,7 +240,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 	// check horizontal position innovation test ratio
-	if (estimator_status.pos_test_ratio > _param_com_arm_ekf_pos.get()) {
+	if (!context.isArmed() && (estimator_status.pos_test_ratio > _param_com_arm_ekf_pos.get())) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -257,7 +259,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 	// check magnetometer innovation test ratio
-	if (estimator_status.mag_test_ratio > _param_com_arm_ekf_yaw.get()) {
+	if (!context.isArmed() && (estimator_status.mag_test_ratio > _param_com_arm_ekf_yaw.get())) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -276,7 +278,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
-	if (_param_sys_has_gps.get()) {
+	if (!context.isArmed() && _param_sys_has_gps.get()) {
 		const bool ekf_gps_fusion = estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS);
 		const bool ekf_gps_check_fail = estimator_status.gps_check_fail_flags > 0;
 
