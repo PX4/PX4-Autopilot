@@ -219,7 +219,8 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 	// limit data rate to prevent data being lost
 	if (time_us >= static_cast<int64_t>(_baro_buffer->get_newest().time_us + _min_obs_interval_us)) {
 
-		baroSample baro_sample_new{baro_sample};
+		baroSample baro_sample_new;
+		baro_sample_new.time_us = time_us;
 		baro_sample_new.hgt = baro_sample.hgt;
 
 		_baro_buffer->push(baro_sample_new);
