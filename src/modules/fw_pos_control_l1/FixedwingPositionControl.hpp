@@ -222,6 +222,10 @@ private:
 	vehicle_local_position_s _local_pos{};
 	vehicle_status_s _vehicle_status{};
 
+	bool _position_setpoint_previous_valid{false};
+	bool _position_setpoint_current_valid{false};
+	bool _position_setpoint_next_valid{false};
+
 	perf_counter_t _loop_perf; // loop performance counter
 
 	// [us] Last absolute time position control has been called
@@ -664,9 +668,8 @@ private:
 	 * May also change the position setpoint type depending on the desired behavior.
 	 *
 	 * @param now Current system time [us]
-	 * @param pos_sp_curr_valid True if the current position setpoint is valid
 	 */
-	void set_control_mode_current(const hrt_abstime &now, bool pos_sp_curr_valid);
+	void set_control_mode_current(const hrt_abstime &now);
 
 	/**
 	 * @brief Compensate trim throttle for air density and vehicle weight.
