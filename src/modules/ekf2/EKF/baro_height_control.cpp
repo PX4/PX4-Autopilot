@@ -51,7 +51,7 @@ void Ekf::controlBaroHeightFusion()
 
 	if (_baro_buffer && _baro_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &baro_sample)) {
 
-		const float measurement = baro_sample.hgt;
+		const float measurement = compensateBaroForDynamicPressure(baro_sample.hgt);
 		const float measurement_var = sq(_params.baro_noise);
 
 		const float innov_gate = fmaxf(_params.baro_innov_gate, 1.f);
@@ -60,10 +60,10 @@ void Ekf::controlBaroHeightFusion()
 
 		if (measurement_valid) {
 			if (_baro_counter == 0) {
-				_baro_lpf.reset(baro_sample.hgt);
+				_baro_lpf.reset(measurement);
 
 			} else {
-				_baro_lpf.update(baro_sample.hgt);
+				_baro_lpf.update(measurement);
 			}
 
 			if (_baro_counter <= _obs_buffer_length) {

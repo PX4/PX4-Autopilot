@@ -511,31 +511,36 @@ void Ekf::constrainStates()
 
 float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated) const
 {
-	// calculate static pressure error = Pmeas - Ptruth
-	// model position error sensitivity as a body fixed ellipse with a different scale in the positive and
-	// negative X and Y directions. Used to correct baro data for positional errors
-	const matrix::Dcmf R_to_body(_output_new.quat_nominal.inversed());
+	if (_control_status.flags.wind && local_position_is_valid()) {
+		// calculate static pressure error = Pmeas - Ptruth
+		// model position error sensitivity as a body fixed ellipse with a different scale in the positive and
+		// negative X and Y directions. Used to correct baro data for positional errors
 
-	// Calculate airspeed in body frame
-	const Vector3f velocity_earth = _output_new.vel - _vel_imu_rel_body_ned;
+		// Calculate airspeed in body frame
+		const Vector3f vel_imu_rel_body_ned = _R_to_earth * (_ang_rate_delayed_raw % _params.imu_pos_body);
+		const Vector3f velocity_earth = _state.vel - vel_imu_rel_body_ned;
 
-	const Vector3f wind_velocity_earth(_state.wind_vel(0), _state.wind_vel(1), 0.0f);
+		const Vector3f wind_velocity_earth(_state.wind_vel(0), _state.wind_vel(1), 0.0f);
 
-	const Vector3f airspeed_earth = velocity_earth - wind_velocity_earth;
+		const Vector3f airspeed_earth = velocity_earth - wind_velocity_earth;
 
-	const Vector3f airspeed_body = R_to_body * airspeed_earth;
+		const Vector3f airspeed_body = _state.quat_nominal.rotateVectorInverse(airspeed_earth);
 
-	const Vector3f K_pstatic_coef(airspeed_body(0) >= 0.0f ? _params.static_pressure_coef_xp :
-				      _params.static_pressure_coef_xn,
-				      airspeed_body(1) >= 0.0f ? _params.static_pressure_coef_yp : _params.static_pressure_coef_yn,
-				      _params.static_pressure_coef_z);
+		const Vector3f K_pstatic_coef(
+			airspeed_body(0) >= 0.f ? _params.static_pressure_coef_xp : _params.static_pressure_coef_xn,
+			airspeed_body(1) >= 0.f ? _params.static_pressure_coef_yp : _params.static_pressure_coef_yn,
+			_params.static_pressure_coef_z);
 
-	const Vector3f airspeed_squared = matrix::min(airspeed_body.emult(airspeed_body), sq(_params.max_correction_airspeed));
+		const Vector3f airspeed_squared = matrix::min(airspeed_body.emult(airspeed_body), sq(_params.max_correction_airspeed));
 
-	const float pstatic_err = 0.5f * _air_density * (airspeed_squared.dot(K_pstatic_coef));
+		const float pstatic_err = 0.5f * _air_density * (airspeed_squared.dot(K_pstatic_coef));
 
-	// correct baro measurement using pressure error estimate and assuming sea level gravity
-	return baro_alt_uncompensated + pstatic_err / (_air_density * CONSTANTS_ONE_G);
+		// correct baro measurement using pressure error estimate and assuming sea level gravity
+		return baro_alt_uncompensated + pstatic_err / (_air_density * CONSTANTS_ONE_G);
+	}
+
+	// otherwise return the uncorrected baro measurement
+	return baro_alt_uncompensated;
 }
 
 // calculate the earth rotation vector
