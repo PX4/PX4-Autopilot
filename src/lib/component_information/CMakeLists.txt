@@ -90,6 +90,7 @@ add_custom_command(OUTPUT ${component_general_json} ${component_general_json}.xz
 		--version-file ${PX4_BINARY_DIR}/src/lib/version/build_git_version.h
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_crc.py
 		${component_general_json}
+		${PX4_BINARY_DIR}/events/all_events.json.xz
 		--output ${component_information_header}
 	DEPENDS
 		generate_component_general.py

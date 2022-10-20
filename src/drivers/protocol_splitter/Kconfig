@@ -1,5 +1,0 @@
-menuconfig DRIVERS_PROTOCOL_SPLITTER
-	bool "protocol_splitter"
-	default n
-	---help---
-		Enable support for protocol_splitter

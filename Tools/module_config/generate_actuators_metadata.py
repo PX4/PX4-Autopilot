@@ -489,7 +489,7 @@ actuators = {
 
 with open(output_file, 'w') as outfile:
     indent = 2 if verbose else None
-    json.dump(actuators, outfile, indent=indent)
+    json.dump(actuators, outfile, indent=indent, sort_keys=True)
 
 if compress:
     save_compressed(output_file)

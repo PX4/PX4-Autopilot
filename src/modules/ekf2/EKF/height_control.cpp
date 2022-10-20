@@ -46,7 +46,7 @@ void Ekf::controlHeightFusion()
 	controlBaroHeightFusion();
 	controlGnssHeightFusion(_gps_sample_delayed);
 	controlRangeHeightFusion();
-	controlEvHeightFusion();
+	controlEvHeightFusion(_ev_sample_delayed);
 
 	checkHeightSensorRefFallback();
 }
@@ -178,7 +178,7 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 	}
 
 	if (_control_status.flags.gps_hgt) {
-		checks[1] = {ReferenceType::GNSS, _aid_src_gnss_pos.innovation[2], _aid_src_gnss_pos.innovation_variance[2]};
+		checks[1] = {ReferenceType::GNSS, _aid_src_gnss_hgt.innovation, _aid_src_gnss_hgt.innovation_variance};
 	}
 
 	if (_control_status.flags.gps) {
@@ -190,11 +190,11 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 	}
 
 	if (_control_status.flags.ev_hgt) {
-		checks[4] = {ReferenceType::GROUND, _ev_pos_innov(2), _ev_pos_innov_var(2)};
+		checks[4] = {ReferenceType::GROUND, _aid_src_ev_hgt.innovation, _aid_src_ev_hgt.innovation_variance};
 	}
 
 	if (_control_status.flags.ev_vel) {
-		checks[5] = {ReferenceType::GROUND, _ev_vel_innov(2), _ev_vel_innov_var(2)};
+		checks[5] = {ReferenceType::GROUND, _aid_src_ev_vel.innovation[2], _aid_src_ev_vel.innovation_variance[2]};
 	}
 
 	// Compute the check based on innovation ratio for all the sources
@@ -211,14 +211,14 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 	// Check all the sources agains each other
 	for (unsigned i = 0; i < 6; i++) {
 		if (checks[i].failed_lim) {
-			// There is a chance that the interial nav is falling if one source is failing the test
+			// There is a chance that the inertial nav is falling if one source is failing the test
 			likelihood_medium = true;
 		}
 
 		for (unsigned j = 0; j < 6; j++) {
 
 			if ((checks[i].ref_type != checks[j].ref_type) && checks[i].failed_lim && checks[j].failed_min) {
-				// There is a high chance that the interial nav is falling if two sources are failing the test
+				// There is a high chance that the inertial nav is failing if two sources are failing the test
 				likelihood_high = true;
 			}
 		}

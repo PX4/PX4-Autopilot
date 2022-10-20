@@ -55,7 +55,7 @@
  * needed.
  *
  * @unit s
- * @min 0.4
+ * @min 0.2
  * @max 1.0
  * @decimal 2
  * @increment 0.05
@@ -88,7 +88,7 @@ PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 1.0
+ * @max 2.0
  * @decimal 3
  * @increment 0.005
  * @group FW Attitude Control
@@ -117,7 +117,7 @@ PARAM_DEFINE_FLOAT(FW_PR_D, 0.f);
  *
  * @unit %/rad
  * @min 0.0
- * @max 0.5
+ * @max 1
  * @decimal 3
  * @increment 0.005
  * @group FW Attitude Control
@@ -175,7 +175,7 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 1.0
+ * @max 2.0
  * @decimal 3
  * @increment 0.005
  * @group FW Attitude Control
@@ -204,7 +204,7 @@ PARAM_DEFINE_FLOAT(FW_RR_D, 0.00f);
  *
  * @unit %/rad
  * @min 0.0
- * @max 0.2
+ * @max 1
  * @decimal 3
  * @increment 0.005
  * @group FW Attitude Control
@@ -222,7 +222,7 @@ PARAM_DEFINE_FLOAT(FW_RR_I, 0.1f);
  * @increment 0.05
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
+PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.4f);
 
 /**
  * Maximum roll rate
@@ -246,7 +246,7 @@ PARAM_DEFINE_FLOAT(FW_R_RMAX, 70.0f);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 1.0
+ * @max 2.0
  * @decimal 3
  * @increment 0.005
  * @group FW Attitude Control
@@ -275,7 +275,7 @@ PARAM_DEFINE_FLOAT(FW_YR_D, 0.0f);
  *
  * @unit %/rad
  * @min 0.0
- * @max 50.0
+ * @max 1
  * @decimal 1
  * @increment 0.5
  * @group FW Attitude Control
@@ -294,7 +294,7 @@ PARAM_DEFINE_FLOAT(FW_YR_I, 0.1f);
  * @increment 0.05
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
+PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.4f);
 
 /**
  * Maximum yaw rate
@@ -377,7 +377,7 @@ PARAM_DEFINE_FLOAT(FW_WR_I, 0.1f);
  * @increment 0.05
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_WR_IMAX, 1.0f);
+PARAM_DEFINE_FLOAT(FW_WR_IMAX, 0.4f);
 
 /**
  * Maximum wheel steering rate
@@ -403,7 +403,7 @@ PARAM_DEFINE_FLOAT(FW_W_RMAX, 30.0f);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 10.0
+ * @max 1
  * @decimal 2
  * @increment 0.05
  * @group FW Attitude Control
@@ -417,7 +417,7 @@ PARAM_DEFINE_FLOAT(FW_RR_FF, 0.5f);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 10.0
+ * @max 1.0
  * @decimal 2
  * @increment 0.05
  * @group FW Attitude Control
@@ -431,7 +431,7 @@ PARAM_DEFINE_FLOAT(FW_PR_FF, 0.5f);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 10.0
+ * @max 1.0
  * @decimal 2
  * @increment 0.05
  * @group FW Attitude Control
@@ -445,7 +445,7 @@ PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 10.0
+ * @max 1.0
  * @decimal 2
  * @increment 0.05
  * @group FW Attitude Control

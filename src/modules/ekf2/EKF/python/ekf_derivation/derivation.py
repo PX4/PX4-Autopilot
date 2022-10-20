@@ -69,6 +69,53 @@ class VState(sf.Matrix):
 class MState(sf.Matrix):
     SHAPE = (State.n_states, State.n_states)
 
+def predict_covariance(
+        state: VState,
+        P: MState,
+        d_vel: sf.V3,
+        d_vel_var: sf.V3,
+        d_ang: sf.V3,
+        d_ang_var: sf.Scalar,
+        dt: sf.Scalar
+):
+    g = sf.Symbol("g") # does not appear in the jacobians
+
+    d_vel_b = sf.V3(state[State.d_vel_bx], state[State.d_vel_by], state[State.d_vel_bz])
+    d_vel_true = d_vel - d_vel_b
+
+    d_ang_b = sf.V3(state[State.d_ang_bx], state[State.d_ang_by], state[State.d_ang_bz])
+    d_ang_true = d_ang - d_ang_b
+
+    q = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    R_to_earth = quat_to_rot_simplified(q)
+    v = sf.V3(state[State.vx], state[State.vy], state[State.vz])
+    p = sf.V3(state[State.px], state[State.py], state[State.pz])
+
+    q_new = quat_mult(q, sf.V4(1, 0.5 * d_ang_true[0],  0.5 * d_ang_true[1],  0.5 * d_ang_true[2]))
+    v_new = v + R_to_earth * d_vel_true + sf.V3(0 ,0 ,g) * dt
+    p_new = p + v * dt
+
+    # Predicted state vector at time t + dt
+    state_new = VState.block_matrix([[q_new], [v_new], [p_new], [sf.Matrix(state[State.d_ang_bx:State.n_states])]])
+
+    # State propagation jacobian
+    A = state_new.jacobian(state)
+    G = state_new.jacobian(sf.V6.block_matrix([[d_vel], [d_ang]]))
+
+    # Covariance propagation
+    var_u = sf.Matrix.diag([d_vel_var[0], d_vel_var[1], d_vel_var[2], d_ang_var, d_ang_var, d_ang_var])
+    P_new = A * P * A.T + G * var_u * G.T
+
+    # Generate the equations for the lower triangular matrix and the diagonal only
+    # Since the matrix is symmetric, the upper triangle does not need to be derived
+    # and can simply be copied in the implementation
+    for index in range(State.n_states):
+        for j in range(State.n_states):
+            if index > j:
+                P_new[index,j] = 0
+
+    return P_new
+
 def compute_airspeed_innov_and_innov_var(
         state: VState,
         P: MState,
@@ -98,9 +145,193 @@ def compute_airspeed_h_and_k(
     airspeed_pred = vel_rel.norm(epsilon=epsilon)
     H = sf.V1(airspeed_pred).jacobian(state)
 
-    K = P * H.T / sm.Max(innov_var, epsilon)
+    K = P * H.T / sf.Max(innov_var, epsilon)
 
     return (H.T, K)
 
+def predict_sideslip(
+        state: VState,
+        epsilon: sf.Scalar
+) -> (sf.Scalar):
+
+    vel_rel = sf.V3(state[State.vx] - state[State.wx], state[State.vy] - state[State.wy], state[State.vz])
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    relative_wind_body = quat_to_rot(q_att).T * vel_rel
+
+    # Small angle approximation of side slip model
+    # Protect division by zero using epsilon
+    sideslip_pred = add_epsilon_sign(relative_wind_body[1] / relative_wind_body[0], relative_wind_body[0], epsilon)
+
+    return sideslip_pred
+
+def compute_sideslip_innov_and_innov_var(
+        state: VState,
+        P: MState,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, sf.Scalar, sf.Scalar):
+
+    sideslip_pred = predict_sideslip(state, epsilon);
+
+    innov = sideslip_pred - 0.0
+
+    H = sf.V1(sideslip_pred).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov, innov_var)
+
+def compute_sideslip_h_and_k(
+        state: VState,
+        P: MState,
+        innov_var: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (VState, VState):
+
+    sideslip_pred = predict_sideslip(state, epsilon);
+
+    H = sf.V1(sideslip_pred).jacobian(state)
+
+    K = P * H.T / sf.Max(innov_var, epsilon)
+
+    return (H.T, K)
+
+def predict_mag_body(state) -> sf.V3:
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    mag_field_earth = sf.V3(state[State.ix], state[State.iy], state[State.iz])
+    mag_bias_body = sf.V3(state[State.ibx], state[State.iby], state[State.ibz])
+
+    mag_body = quat_to_rot(q_att).T * mag_field_earth + mag_bias_body
+    return mag_body
+
+def compute_mag_innov_innov_var_and_hx(
+        state: VState,
+        P: MState,
+        meas: sf.V3,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.V3, sf.V3, VState):
+
+    meas_pred = predict_mag_body(state);
+
+    innov = meas_pred - meas
+
+    innov_var = sf.V3()
+    Hx = sf.V1(meas_pred[0]).jacobian(state)
+    innov_var[0] = (Hx * P * Hx.T + R)[0,0]
+    Hy = sf.V1(meas_pred[1]).jacobian(state)
+    innov_var[1] = (Hy * P * Hy.T + R)[0,0]
+    Hz = sf.V1(meas_pred[2]).jacobian(state)
+    innov_var[2] = (Hz * P * Hz.T + R)[0,0]
+
+    return (innov, innov_var, Hx.T)
+
+def compute_mag_y_innov_var_and_h(
+        state: VState,
+        P: MState,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VState):
+
+    meas_pred = predict_mag_body(state);
+
+    H = sf.V1(meas_pred[1]).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
+def compute_mag_z_innov_var_and_h(
+        state: VState,
+        P: MState,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VState):
+
+    meas_pred = predict_mag_body(state);
+
+    H = sf.V1(meas_pred[2]).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
+def compute_yaw_321_innov_var_and_h(
+        state: VState,
+        P: MState,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VState):
+
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    R_to_earth = quat_to_rot(q_att)
+    # Fix the singularity at pi/2 by inserting epsilon
+    meas_pred = sf.atan2(R_to_earth[1,0], R_to_earth[0,0], epsilon=epsilon)
+
+    H = sf.V1(meas_pred).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
+def compute_yaw_321_innov_var_and_h_alternate(
+        state: VState,
+        P: MState,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VState):
+
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    R_to_earth = quat_to_rot(q_att)
+    # Alternate form that has a singularity at yaw 0 instead of pi/2
+    meas_pred = sf.pi/2 - sf.atan2(R_to_earth[0,0], R_to_earth[1,0], epsilon=epsilon)
+
+    H = sf.V1(meas_pred).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
+def compute_yaw_312_innov_var_and_h(
+        state: VState,
+        P: MState,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VState):
+
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    R_to_earth = quat_to_rot(q_att)
+    # Alternate form to be used when close to pitch +-pi/2
+    meas_pred = sf.atan2(-R_to_earth[0,1], R_to_earth[1,1], epsilon=epsilon)
+
+    H = sf.V1(meas_pred).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
+def compute_yaw_312_innov_var_and_h_alternate(
+        state: VState,
+        P: MState,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VState):
+
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    R_to_earth = quat_to_rot(q_att)
+    # Alternate form to be used when close to pitch +-pi/2
+    meas_pred = sf.pi/2 - sf.atan2(-R_to_earth[1,1], R_to_earth[0,1], epsilon=epsilon)
+
+    H = sf.V1(meas_pred).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
+print("Derive EKF2 equations...")
 generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
 generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
+
+generate_px4_function(compute_sideslip_innov_and_innov_var, output_names=["innov", "innov_var"])
+generate_px4_function(compute_sideslip_h_and_k, output_names=["H", "K"])
+generate_px4_function(predict_covariance, output_names=["P_new"])
+generate_px4_function(compute_mag_innov_innov_var_and_hx, output_names=["innov", "innov_var", "Hx"])
+generate_px4_function(compute_mag_y_innov_var_and_h, output_names=["innov_var", "H"])
+generate_px4_function(compute_mag_z_innov_var_and_h, output_names=["innov_var", "H"])
+generate_px4_function(compute_yaw_321_innov_var_and_h, output_names=["innov_var", "H"])
+generate_px4_function(compute_yaw_321_innov_var_and_h_alternate, output_names=["innov_var", "H"])
+generate_px4_function(compute_yaw_312_innov_var_and_h, output_names=["innov_var", "H"])
+generate_px4_function(compute_yaw_312_innov_var_and_h_alternate, output_names=["innov_var", "H"])

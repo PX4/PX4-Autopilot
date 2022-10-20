@@ -253,6 +253,7 @@ private:
 
 	void write_info(LogType type, const char *name, const char *value);
 	void write_info_multiple(LogType type, const char *name, const char *value, bool is_continued);
+	void write_info_multiple(LogType type, const char *name, int fd);
 	void write_info(LogType type, const char *name, int32_t value);
 	void write_info(LogType type, const char *name, uint32_t value);
 
@@ -264,6 +265,7 @@ private:
 	void write_parameter_defaults(LogType type);
 
 	void write_changed_parameters(LogType type);
+	void write_events_file(LogType type);
 
 	inline bool copy_if_updated(int sub_idx, void *buffer, bool try_to_subscribe);
 

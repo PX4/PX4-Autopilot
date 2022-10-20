@@ -499,10 +499,7 @@ Vector3f VehicleAngularVelocity::GetResetAngularVelocity() const
 		//  start with last valid vehicle body frame angular velocity and compute equivalent raw data (for current sensor selection)
 		Vector3f angular_velocity_uncalibrated{_calibration.Uncorrect(_angular_velocity + _bias)};
 
-		if (PX4_ISFINITE(angular_velocity_uncalibrated(0))
-		    && PX4_ISFINITE(angular_velocity_uncalibrated(1))
-		    && PX4_ISFINITE(angular_velocity_uncalibrated(2))) {
-
+		if (angular_velocity_uncalibrated.isAllFinite()) {
 			return angular_velocity_uncalibrated;
 		}
 	}
@@ -517,10 +514,7 @@ Vector3f VehicleAngularVelocity::GetResetAngularAcceleration() const
 		//  start with last valid vehicle body frame angular acceleration and compute equivalent raw data (for current sensor selection)
 		Vector3f angular_acceleration{_calibration.rotation().I() *_angular_acceleration};
 
-		if (PX4_ISFINITE(angular_acceleration(0))
-		    && PX4_ISFINITE(angular_acceleration(1))
-		    && PX4_ISFINITE(angular_acceleration(2))) {
-
+		if (angular_acceleration.isAllFinite()) {
 			return angular_acceleration;
 		}
 	}
@@ -849,7 +843,7 @@ void VehicleAngularVelocity::Run()
 		sensor_gyro_s sensor_data;
 
 		while (_sensor_sub.update(&sensor_data)) {
-			if (PX4_ISFINITE(sensor_data.x) && PX4_ISFINITE(sensor_data.y) && PX4_ISFINITE(sensor_data.z)) {
+			if (Vector3f(sensor_data.x, sensor_data.y, sensor_data.z).isAllFinite()) {
 
 				if (_timestamp_sample_last == 0 || (sensor_data.timestamp_sample <= _timestamp_sample_last)) {
 					_timestamp_sample_last = sensor_data.timestamp_sample - 1e6f / _filter_sample_rate_hz;

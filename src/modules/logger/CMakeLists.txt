@@ -48,4 +48,5 @@ px4_add_module(
 		watchdog.cpp
 	DEPENDS
 		version
+		component_general_json # for checksums.h
 	)

@@ -223,7 +223,10 @@ void Navigator::run()
 		_home_pos_sub.update(&_home_pos);
 
 		// Handle Vehicle commands
-		while (_vehicle_command_sub.updated()) {
+		int vehicle_command_updates = 0;
+
+		while (_vehicle_command_sub.updated() && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
+			vehicle_command_updates++;
 			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
 
 			vehicle_command_s cmd{};
@@ -808,7 +811,6 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		float test_point_bearing;
 		float test_point_distance;
 		float vertical_test_point_distance;
-		char geofence_violation_warning[50];
 
 		if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			test_point_bearing = atan2f(_local_pos.vy, _local_pos.vx);
@@ -843,12 +845,10 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 		if (_geofence.getPredict()) {
 			fence_violation_test_point = _gf_breach_avoidance.getFenceViolationTestPoint();
-			snprintf(geofence_violation_warning, sizeof(geofence_violation_warning), "Approaching on geofence");
 
 		} else {
 			fence_violation_test_point = matrix::Vector2d(_global_pos.lat, _global_pos.lon);
 			vertical_test_point_distance = 0;
-			snprintf(geofence_violation_warning, sizeof(geofence_violation_warning), "Geofence exceeded");
 		}
 
 		gf_violation_type.flags.dist_to_home_exceeded = !_geofence.isCloserThanMaxDistToHome(fence_violation_test_point(0),
@@ -866,18 +866,28 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		have_geofence_position_data = false;
 
 		_geofence_result.timestamp = hrt_absolute_time();
-		_geofence_result.geofence_action = _geofence.getGeofenceAction();
+		_geofence_result.primary_geofence_action = _geofence.getGeofenceAction();
 		_geofence_result.home_required = _geofence.isHomeRequired();
 
 		if (gf_violation_type.value) {
 			/* inform other apps via the mission result */
-			_geofence_result.geofence_violated = true;
+			_geofence_result.primary_geofence_breached = true;
+
+			using geofence_violation_reason_t = events::px4::enums::geofence_violation_reason_t;
+
+			if (gf_violation_type.flags.fence_violation) {
+				_geofence_result.geofence_violation_reason = (uint8_t)geofence_violation_reason_t::fence_violation;
+
+			} else if (gf_violation_type.flags.max_altitude_exceeded) {
+				_geofence_result.geofence_violation_reason = (uint8_t)geofence_violation_reason_t::max_altitude_exceeded;
+
+			} else if (gf_violation_type.flags.dist_to_home_exceeded) {
+				_geofence_result.geofence_violation_reason = (uint8_t)geofence_violation_reason_t::dist_to_home_exceeded;
+
+			}
 
 			/* Issue a warning about the geofence violation once and only if we are armed */
 			if (!_geofence_violation_warning_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				mavlink_log_critical(&_mavlink_log_pub, "%s", geofence_violation_warning);
-				events::send(events::ID("navigator_geofence_violation"), {events::Log::Warning, events::LogInternal::Info},
-					     geofence_violation_warning);
 
 				// we have predicted a geofence violation and if the action is to loiter then
 				// demand a reposition to a location which is inside the geofence
@@ -911,7 +921,6 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 					rep->current.alt = loiter_altitude_amsl;
 					rep->current.valid = true;
 					rep->current.loiter_radius = get_loiter_radius();
-					rep->current.alt_valid = true;
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.cruising_throttle = get_cruising_throttle();
 					rep->current.acceptance_radius = get_acceptance_radius();
@@ -924,7 +933,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 		} else {
 			/* inform other apps via the mission result */
-			_geofence_result.geofence_violated = false;
+			_geofence_result.primary_geofence_breached = false;
 
 			/* Reset the _geofence_violation_warning_sent field */
 			_geofence_violation_warning_sent = false;

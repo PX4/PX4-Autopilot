@@ -29,8 +29,8 @@ if(parallel_jobs LESS 1)
 	set(parallel_jobs 1)
 endif()
 
-message(DEBUG "${NUMBER_OF_LOGICAL_CORES} logical cores detected and ${AVAILABLE_PHYSICAL_MEMORY} megabytes of memory available.
-		Limiting sitl_gazebo concurrent jobs to ${parallel_jobs}")
+# message(DEBUG "${NUMBER_OF_LOGICAL_CORES} logical cores detected and ${AVAILABLE_PHYSICAL_MEMORY} megabytes of memory available.
+# 		Limiting sitl_gazebo concurrent jobs to ${parallel_jobs}")
 
 # project to build sitl_gazebo if necessary
 px4_add_git_submodule(TARGET git_gazebo PATH "${PX4_SOURCE_DIR}/Tools/simulation/gazebo/sitl_gazebo")

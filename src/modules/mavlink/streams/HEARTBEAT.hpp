@@ -37,7 +37,6 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_status_flags.h>
 
 class MavlinkStreamHeartbeat : public MavlinkStream
 {
@@ -63,7 +62,6 @@ private:
 	uORB::Subscription _acturator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _vehicle_status_flags_sub{ORB_ID(vehicle_status_flags)};
 
 	bool send() override
 	{
@@ -71,9 +69,6 @@ private:
 			// always send the heartbeat, independent of the update status of the topics
 			vehicle_status_s vehicle_status{};
 			_vehicle_status_sub.copy(&vehicle_status);
-
-			vehicle_status_flags_s vehicle_status_flags{};
-			_vehicle_status_flags_sub.copy(&vehicle_status_flags);
 
 			vehicle_control_mode_s vehicle_control_mode{};
 			_vehicle_control_mode_sub.copy(&vehicle_control_mode);
@@ -131,7 +126,7 @@ private:
 			    || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
 				system_status = MAV_STATE_FLIGHT_TERMINATION;
 
-			} else if (vehicle_status_flags.calibration_enabled) {
+			} else if (vehicle_status.calibration_enabled) {
 				system_status = MAV_STATE_CALIBRATING;
 			}
 

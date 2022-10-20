@@ -130,8 +130,7 @@ AirspeedValidator::update_CAS_scale_validated(bool lpos_valid, const matrix::Vec
 	_scale_check_TAS(segment_index) = airspeed_true_raw;
 
 	// run check if all segments are filled
-	if (PX4_ISFINITE(_scale_check_groundspeed.norm_squared())) {
-
+	if (_scale_check_groundspeed.isAllFinite()) {
 		float ground_speed_sum = 0.f;
 		float TAS_sum = 0.f;
 

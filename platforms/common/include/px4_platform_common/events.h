@@ -39,7 +39,7 @@
 // It does not print arguments.
 #if 0
 #include <px4_platform_common/log.h>
-#define CONSOLE_PRINT_EVENT(log_level, id, str) PX4_INFO_RAW("Event 0x%08x: %s\n", id, str)
+#define CONSOLE_PRINT_EVENT(log_level, id, str) PX4_INFO_RAW("Event 0x%08" PRIx32 ": %s\n", id, str)
 #else
 #define CONSOLE_PRINT_EVENT(log_level, id, str)
 #endif

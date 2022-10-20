@@ -441,9 +441,7 @@ bool AttitudeEstimatorQ::init_attitude_q()
 
 	_q.normalize();
 
-	if (PX4_ISFINITE(_q(0)) && PX4_ISFINITE(_q(1)) &&
-	    PX4_ISFINITE(_q(2)) && PX4_ISFINITE(_q(3)) &&
-	    _q.length() > 0.95f && _q.length() < 1.05f) {
+	if (_q.isAllFinite() && _q.length() > 0.95f && _q.length() < 1.05f) {
 		_initialized = true;
 
 	} else {
@@ -552,9 +550,7 @@ bool AttitudeEstimatorQ::update(float dt)
 	// Normalize quaternion
 	_q.normalize();
 
-	if (!(PX4_ISFINITE(_q(0)) && PX4_ISFINITE(_q(1)) &&
-	      PX4_ISFINITE(_q(2)) && PX4_ISFINITE(_q(3)))) {
-
+	if (!_q.isAllFinite()) {
 		// Reset quaternion to last good state
 		_q = q_last;
 		_rates.zero();

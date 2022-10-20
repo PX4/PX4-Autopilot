@@ -138,10 +138,9 @@ public:
 	const vehicle_trajectory_waypoint_s &getAvoidanceWaypoint() { return _desired_waypoint; }
 
 	/**
-	 * Empty setpoint.
-	 * All setpoints are set to NAN.
+	 * All setpoints are set to NAN (uncontrolled). Timestampt zero.
 	 */
-	static const trajectory_setpoint_s empty_setpoint;
+	static const trajectory_setpoint_s empty_trajectory_setpoint;
 
 	/**
 	 * Empty constraints.

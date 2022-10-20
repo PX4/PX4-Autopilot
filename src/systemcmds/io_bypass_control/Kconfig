@@ -1,0 +1,14 @@
+menuconfig SYSTEMCMDS_IO_BYPASS_CONTROL
+	bool "IO Bypass control deamon"
+	default n
+	---help---
+		Simple daemon that listens uORB actuator_outputs to control PWM output
+		Useful for full offboard control using RTPS.
+		WARNING: No mixer, hence no safety use at your own risk
+
+menuconfig USER_IO_BYPASS_CONTROL
+	bool "io_bypass_control running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_SS_IO_TIMER_TEST
+	---help---
+		Put io_bypass_control in userspace memory

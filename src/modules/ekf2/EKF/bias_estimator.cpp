@@ -69,7 +69,7 @@ void BiasEstimator::constrainStateVar()
 
 void BiasEstimator::fuseBias(const float measurement, const float measurement_var)
 {
-	const float innov_var = _state_var + measurement_var;
+	const float innov_var = _state_var + math::max(sq(0.01f), measurement_var);
 	const float innov = measurement - _state;
 	const float K = _state_var / innov_var;
 	const float innov_test_ratio = computeInnovTestRatio(innov, innov_var);

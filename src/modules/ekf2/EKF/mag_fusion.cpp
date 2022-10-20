@@ -42,52 +42,32 @@
  */
 
 #include "ekf.h"
+#include "python/ekf_derivation/generated/compute_mag_innov_innov_var_and_hx.h"
+#include "python/ekf_derivation/generated/compute_mag_y_innov_var_and_h.h"
+#include "python/ekf_derivation/generated/compute_mag_z_innov_var_and_h.h"
+#include "python/ekf_derivation/generated/compute_yaw_321_innov_var_and_h.h"
+#include "python/ekf_derivation/generated/compute_yaw_312_innov_var_and_h.h"
 
 #include <mathlib/mathlib.h>
 
-bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source_3d_s &aid_src_mag, bool update_all_states)
+bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states)
 {
-	// assign intermediate variables
-	const float q0 = _state.quat_nominal(0);
-	const float q1 = _state.quat_nominal(1);
-	const float q2 = _state.quat_nominal(2);
-	const float q3 = _state.quat_nominal(3);
-
-	const float magN = _state.mag_I(0);
-	const float magE = _state.mag_I(1);
-	const float magD = _state.mag_I(2);
-
 	// XYZ Measurement uncertainty. Need to consider timing errors for fast rotations
 	const float R_MAG = sq(fmaxf(_params.mag_noise, 0.0f));
 
 	// calculate intermediate variables used for X axis innovation variance, observation Jacobians and Kalman gains
 	const char* numerical_error_covariance_reset_string = "numerical error - covariance reset";
-	const float HKX0 = -magD*q2 + magE*q3 + magN*q0;
-	const float HKX1 = magD*q3 + magE*q2 + magN*q1;
-	const float HKX2 = magE*q1;
-	const float HKX3 = magD*q0;
-	const float HKX4 = magN*q2;
-	const float HKX5 = magD*q1 + magE*q0 - magN*q3;
-	const float HKX6 = ecl::powf(q0, 2) + ecl::powf(q1, 2) - ecl::powf(q2, 2) - ecl::powf(q3, 2);
-	const float HKX7 = q0*q3 + q1*q2;
-	const float HKX8 = q1*q3;
-	const float HKX9 = q0*q2;
-	const float HKX10 = 2*HKX7;
-	const float HKX11 = -2*HKX8 + 2*HKX9;
-	const float HKX12 = 2*HKX1;
-	const float HKX13 = 2*HKX0;
-	const float HKX14 = -2*HKX2 + 2*HKX3 + 2*HKX4;
-	const float HKX15 = 2*HKX5;
-	const float HKX16 = HKX10*P(0,17) - HKX11*P(0,18) + HKX12*P(0,1) + HKX13*P(0,0) - HKX14*P(0,2) + HKX15*P(0,3) + HKX6*P(0,16) + P(0,19);
-	const float HKX17 = HKX10*P(16,17) - HKX11*P(16,18) + HKX12*P(1,16) + HKX13*P(0,16) - HKX14*P(2,16) + HKX15*P(3,16) + HKX6*P(16,16) + P(16,19);
-	const float HKX18 = HKX10*P(17,18) - HKX11*P(18,18) + HKX12*P(1,18) + HKX13*P(0,18) - HKX14*P(2,18) + HKX15*P(3,18) + HKX6*P(16,18) + P(18,19);
-	const float HKX19 = HKX10*P(2,17) - HKX11*P(2,18) + HKX12*P(1,2) + HKX13*P(0,2) - HKX14*P(2,2) + HKX15*P(2,3) + HKX6*P(2,16) + P(2,19);
-	const float HKX20 = HKX10*P(17,17) - HKX11*P(17,18) + HKX12*P(1,17) + HKX13*P(0,17) - HKX14*P(2,17) + HKX15*P(3,17) + HKX6*P(16,17) + P(17,19);
-	const float HKX21 = HKX10*P(3,17) - HKX11*P(3,18) + HKX12*P(1,3) + HKX13*P(0,3) - HKX14*P(2,3) + HKX15*P(3,3) + HKX6*P(3,16) + P(3,19);
-	const float HKX22 = HKX10*P(1,17) - HKX11*P(1,18) + HKX12*P(1,1) + HKX13*P(0,1) - HKX14*P(1,2) + HKX15*P(1,3) + HKX6*P(1,16) + P(1,19);
-	const float HKX23 = HKX10*P(17,19) - HKX11*P(18,19) + HKX12*P(1,19) + HKX13*P(0,19) - HKX14*P(2,19) + HKX15*P(3,19) + HKX6*P(16,19) + P(19,19);
+	Vector3f mag_innov;
+	Vector3f innov_var;
 
-	aid_src_mag.innovation_variance[0] = HKX10*HKX20 - HKX11*HKX18 + HKX12*HKX22 + HKX13*HKX16 - HKX14*HKX19 + HKX15*HKX21 + HKX17*HKX6 + HKX23 + R_MAG;
+	// Observation jacobian and Kalman gain vectors
+	SparseVector24f<0,1,2,3,16,17,18,19,20,21> Hfusion;
+	Vector24f H;
+	const Vector24f state_vector = getStateAtFusionHorizonAsVector();
+	sym::ComputeMagInnovInnovVarAndHx(state_vector, P, mag, R_MAG, FLT_EPSILON, &mag_innov, &innov_var, &H);
+	Hfusion = H;
+
+	innov_var.copyTo(aid_src_mag.innovation_variance);
 
 	if (aid_src_mag.innovation_variance[0] < R_MAG) {
 		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
@@ -100,34 +80,6 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source_3d_s &aid_src_mag, b
 	}
 
 	_fault_status.flags.bad_mag_x = false;
-
-	const float HKX24 = 1.0F/aid_src_mag.innovation_variance[0];
-
-	// intermediate variables for calculation of innovations variances for Y and Z axes
-	// don't calculate all terms needed for observation jacobians and Kalman gains because
-	// these will have to be recalculated when the X and Y axes are fused
-	const float IV0 = q0*q1;
-	const float IV1 = q2*q3;
-	const float IV2 = 2*IV0 + 2*IV1;
-	const float IV3 = 2*q0*q3 - 2*q1*q2;
-	const float IV4 = 2*magD*q3 + 2*magE*q2 + 2*magN*q1;
-	const float IV5 = 2*magD*q1 + 2*magE*q0 - 2*magN*q3;
-	const float IV6 = 2*magD*q0 - 2*magE*q1 + 2*magN*q2;
-	const float IV7 = -2*magD*q2 + 2*magE*q3 + 2*magN*q0;
-	const float IV8 = ecl::powf(q2, 2);
-	const float IV9 = ecl::powf(q3, 2);
-	const float IV10 = ecl::powf(q0, 2) - ecl::powf(q1, 2);
-	const float IV11 = IV10 + IV8 - IV9;
-	const float IV12 = IV7*P(2,3);
-	const float IV13 = IV5*P(0,1);
-	const float IV14 = IV6*P(0,1);
-	const float IV15 = IV4*P(2,3);
-	const float IV16 = 2*q0*q2 + 2*q1*q3;
-	const float IV17 = 2*IV0 - 2*IV1;
-	const float IV18 = IV10 - IV8 + IV9;
-
-	aid_src_mag.innovation_variance[1] = IV11*P(17,20) + IV11*(IV11*P(17,17) + IV2*P(17,18) - IV3*P(16,17) + IV4*P(2,17) + IV5*P(0,17) + IV6*P(1,17) - IV7*P(3,17) + P(17,20)) + IV2*P(18,20) + IV2*(IV11*P(17,18) + IV2*P(18,18) - IV3*P(16,18) + IV4*P(2,18) + IV5*P(0,18) + IV6*P(1,18) - IV7*P(3,18) + P(18,20)) - IV3*P(16,20) - IV3*(IV11*P(16,17) + IV2*P(16,18) - IV3*P(16,16) + IV4*P(2,16) + IV5*P(0,16) + IV6*P(1,16) - IV7*P(3,16) + P(16,20)) + IV4*P(2,20) + IV4*(IV11*P(2,17) - IV12 + IV2*P(2,18) - IV3*P(2,16) + IV4*P(2,2) + IV5*P(0,2) + IV6*P(1,2) + P(2,20)) + IV5*P(0,20) + IV5*(IV11*P(0,17) + IV14 + IV2*P(0,18) - IV3*P(0,16) + IV4*P(0,2) + IV5*P(0,0) - IV7*P(0,3) + P(0,20)) + IV6*P(1,20) + IV6*(IV11*P(1,17) + IV13 + IV2*P(1,18) - IV3*P(1,16) + IV4*P(1,2) + IV6*P(1,1) - IV7*P(1,3) + P(1,20)) - IV7*P(3,20) - IV7*(IV11*P(3,17) + IV15 + IV2*P(3,18) - IV3*P(3,16) + IV5*P(0,3) + IV6*P(1,3) - IV7*P(3,3) + P(3,20)) + P(20,20) + R_MAG;
-	aid_src_mag.innovation_variance[2] = IV16*P(16,21) + IV16*(IV16*P(16,16) - IV17*P(16,17) + IV18*P(16,18) + IV4*P(3,16) - IV5*P(1,16) + IV6*P(0,16) + IV7*P(2,16) + P(16,21)) - IV17*P(17,21) - IV17*(IV16*P(16,17) - IV17*P(17,17) + IV18*P(17,18) + IV4*P(3,17) - IV5*P(1,17) + IV6*P(0,17) + IV7*P(2,17) + P(17,21)) + IV18*P(18,21) + IV18*(IV16*P(16,18) - IV17*P(17,18) + IV18*P(18,18) + IV4*P(3,18) - IV5*P(1,18) + IV6*P(0,18) + IV7*P(2,18) + P(18,21)) + IV4*P(3,21) + IV4*(IV12 + IV16*P(3,16) - IV17*P(3,17) + IV18*P(3,18) + IV4*P(3,3) - IV5*P(1,3) + IV6*P(0,3) + P(3,21)) - IV5*P(1,21) - IV5*(IV14 + IV16*P(1,16) - IV17*P(1,17) + IV18*P(1,18) + IV4*P(1,3) - IV5*P(1,1) + IV7*P(1,2) + P(1,21)) + IV6*P(0,21) + IV6*(-IV13 + IV16*P(0,16) - IV17*P(0,17) + IV18*P(0,18) + IV4*P(0,3) + IV6*P(0,0) + IV7*P(0,2) + P(0,21)) + IV7*P(2,21) + IV7*(IV15 + IV16*P(2,16) - IV17*P(2,17) + IV18*P(2,18) - IV5*P(1,2) + IV6*P(0,2) + IV7*P(2,2) + P(2,21)) + P(21,21) + R_MAG;
 
 	// check innovation variances for being badly conditioned
 	if (aid_src_mag.innovation_variance[1] < R_MAG) {
@@ -154,120 +106,54 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source_3d_s &aid_src_mag, b
 
 	_fault_status.flags.bad_mag_z = false;
 
-	// rotate magnetometer earth field state into body frame
-	const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
-	const Vector3f mag_I_rot = R_to_body * _state.mag_I;
-
-	// compute magnetometer innovations
-	const Vector3f mag_observation = mag - _state.mag_B;
-	Vector3f mag_innov = mag_I_rot - mag_observation;
-
 	// do not use the synthesized measurement for the magnetomter Z component for 3D fusion
 	if (_control_status.flags.synthetic_mag_z) {
 		mag_innov(2) = 0.0f;
 	}
 
 	for (int i = 0; i < 3; i++) {
-		aid_src_mag.observation[i] = mag_observation(i);
+		aid_src_mag.observation[i] = mag(i) - _state.mag_B(i);
 		aid_src_mag.observation_variance[i] = R_MAG;
 		aid_src_mag.innovation[i] = mag_innov(i);
-		aid_src_mag.fusion_enabled[i] = _control_status.flags.mag_3D && update_all_states;
 	}
+
+	aid_src_mag.fusion_enabled = _control_status.flags.mag_3D && update_all_states;
 
 	// do not use the synthesized measurement for the magnetomter Z component for 3D fusion
 	if (_control_status.flags.synthetic_mag_z) {
 		aid_src_mag.innovation[2] = 0.0f;
-		aid_src_mag.innovation_rejected[2] = false;
 	}
 
 	const float innov_gate = math::max(_params.mag_innov_gate, 1.f);
 	setEstimatorAidStatusTestRatio(aid_src_mag, innov_gate);
 
 	// Perform an innovation consistency check and report the result
-	_innov_check_fail_status.flags.reject_mag_x = aid_src_mag.innovation_rejected[0];
-	_innov_check_fail_status.flags.reject_mag_y = aid_src_mag.innovation_rejected[1];
-	_innov_check_fail_status.flags.reject_mag_z = aid_src_mag.innovation_rejected[2];
+	_innov_check_fail_status.flags.reject_mag_x = (aid_src_mag.test_ratio[0] > 1.f);
+	_innov_check_fail_status.flags.reject_mag_y = (aid_src_mag.test_ratio[1] > 1.f);
+	_innov_check_fail_status.flags.reject_mag_z = (aid_src_mag.test_ratio[2] > 1.f);
 
 	// if any axis fails, abort the mag fusion
-	if (aid_src_mag.innovation_rejected[0] || aid_src_mag.innovation_rejected[1] || aid_src_mag.innovation_rejected[2]) {
+	if (aid_src_mag.innovation_rejected) {
 		return false;
 	}
 
-	// Observation jacobian and Kalman gain vectors
-	SparseVector24f<0,1,2,3,16,17,18,19,20,21> Hfusion;
-	Vector24f Kfusion;
+	bool fused[3] {false, false, false};
 
 	// update the states and covariance using sequential fusion of the magnetometer components
 	for (uint8_t index = 0; index <= 2; index++) {
-
 		// Calculate Kalman gains and observation jacobians
 		if (index == 0) {
-			// Calculate X axis observation jacobians
-			Hfusion.at<0>() = 2*HKX0;
-			Hfusion.at<1>() = 2*HKX1;
-			Hfusion.at<2>() = 2*HKX2 - 2*HKX3 - 2*HKX4;
-			Hfusion.at<3>() = 2*HKX5;
-			Hfusion.at<16>() = HKX6;
-			Hfusion.at<17>() = 2*HKX7;
-			Hfusion.at<18>() = 2*HKX8 - 2*HKX9;
-			Hfusion.at<19>() = 1;
-
-			// Calculate X axis Kalman gains
-			if (update_all_states) {
-				Kfusion(0) = HKX16*HKX24;
-				Kfusion(1) = HKX22*HKX24;
-				Kfusion(2) = HKX19*HKX24;
-				Kfusion(3) = HKX21*HKX24;
-
-				for (unsigned row = 4; row <= 15; row++) {
-					Kfusion(row) = HKX24*(HKX10*P(row,17) - HKX11*P(row,18) + HKX12*P(1,row) + HKX13*P(0,row) - HKX14*P(2,row) + HKX15*P(3,row) + HKX6*P(row,16) + P(row,19));
-				}
-
-				for (unsigned row = 22; row <= 23; row++) {
-					Kfusion(row) = HKX24*(HKX10*P(17,row) - HKX11*P(18,row) + HKX12*P(1,row) + HKX13*P(0,row) - HKX14*P(2,row) + HKX15*P(3,row) + HKX6*P(16,row) + P(19,row));
-				}
-			}
-
-			Kfusion(16) = HKX17*HKX24;
-			Kfusion(17) = HKX20*HKX24;
-			Kfusion(18) = HKX18*HKX24;
-			Kfusion(19) = HKX23*HKX24;
-
-			for (unsigned row = 20; row <= 21; row++) {
-				Kfusion(row) = HKX24*(HKX10*P(17,row) - HKX11*P(18,row) + HKX12*P(1,row) + HKX13*P(0,row) - HKX14*P(2,row) + HKX15*P(3,row) + HKX6*P(16,row) + P(19,row));
-			}
+			// everything was already computed above
 
 		} else if (index == 1) {
+			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
+			sym::ComputeMagYInnovVarAndH(state_vector, P, R_MAG, FLT_EPSILON, &aid_src_mag.innovation_variance[index], &H);
+			Hfusion = H;
 
-			// recalculate innovation variance because states and covariances have changed due to previous fusion
-			const float HKY0 = magD*q1 + magE*q0 - magN*q3;
-			const float HKY1 = magD*q0 - magE*q1 + magN*q2;
-			const float HKY2 = magD*q3 + magE*q2 + magN*q1;
-			const float HKY3 = magD*q2;
-			const float HKY4 = magE*q3;
-			const float HKY5 = magN*q0;
-			const float HKY6 = q1*q2;
-			const float HKY7 = q0*q3;
-			const float HKY8 = ecl::powf(q0, 2) - ecl::powf(q1, 2) + ecl::powf(q2, 2) - ecl::powf(q3, 2);
-			const float HKY9 = q0*q1 + q2*q3;
-			const float HKY10 = 2*HKY9;
-			const float HKY11 = -2*HKY6 + 2*HKY7;
-			const float HKY12 = 2*HKY2;
-			const float HKY13 = 2*HKY0;
-			const float HKY14 = 2*HKY1;
-			const float HKY15 = -2*HKY3 + 2*HKY4 + 2*HKY5;
-			const float HKY16 = HKY10*P(0,18) - HKY11*P(0,16) + HKY12*P(0,2) + HKY13*P(0,0) + HKY14*P(0,1) - HKY15*P(0,3) + HKY8*P(0,17) + P(0,20);
-			const float HKY17 = HKY10*P(17,18) - HKY11*P(16,17) + HKY12*P(2,17) + HKY13*P(0,17) + HKY14*P(1,17) - HKY15*P(3,17) + HKY8*P(17,17) + P(17,20);
-			const float HKY18 = HKY10*P(16,18) - HKY11*P(16,16) + HKY12*P(2,16) + HKY13*P(0,16) + HKY14*P(1,16) - HKY15*P(3,16) + HKY8*P(16,17) + P(16,20);
-			const float HKY19 = HKY10*P(3,18) - HKY11*P(3,16) + HKY12*P(2,3) + HKY13*P(0,3) + HKY14*P(1,3) - HKY15*P(3,3) + HKY8*P(3,17) + P(3,20);
-			const float HKY20 = HKY10*P(18,18) - HKY11*P(16,18) + HKY12*P(2,18) + HKY13*P(0,18) + HKY14*P(1,18) - HKY15*P(3,18) + HKY8*P(17,18) + P(18,20);
-			const float HKY21 = HKY10*P(1,18) - HKY11*P(1,16) + HKY12*P(1,2) + HKY13*P(0,1) + HKY14*P(1,1) - HKY15*P(1,3) + HKY8*P(1,17) + P(1,20);
-			const float HKY22 = HKY10*P(2,18) - HKY11*P(2,16) + HKY12*P(2,2) + HKY13*P(0,2) + HKY14*P(1,2) - HKY15*P(2,3) + HKY8*P(2,17) + P(2,20);
-			const float HKY23 = HKY10*P(18,20) - HKY11*P(16,20) + HKY12*P(2,20) + HKY13*P(0,20) + HKY14*P(1,20) - HKY15*P(3,20) + HKY8*P(17,20) + P(20,20);
+			// recalculate innovation using the updated state
+			aid_src_mag.innovation[index] = _state.quat_nominal.rotateVectorInverse(_state.mag_I)(index) + _state.mag_B(index) - mag(index);
 
-			aid_src_mag.innovation_variance[1] = (HKY10*HKY20 - HKY11*HKY18 + HKY12*HKY22 + HKY13*HKY16 + HKY14*HKY21 - HKY15*HKY19 + HKY17*HKY8 + HKY23 + R_MAG);
-
-			if (aid_src_mag.innovation_variance[1] < R_MAG) {
+			if (aid_src_mag.innovation_variance[index] < R_MAG) {
 				// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
 				_fault_status.flags.bad_mag_y = true;
 
@@ -276,78 +162,21 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source_3d_s &aid_src_mag, b
 				ECL_ERR("magY %s", numerical_error_covariance_reset_string);
 				return false;
 			}
-			const float HKY24 = 1.0F/aid_src_mag.innovation_variance[1];
-
-			// Calculate Y axis observation jacobians
-			Hfusion.setZero();
-			Hfusion.at<0>() = 2*HKY0;
-			Hfusion.at<1>() = 2*HKY1;
-			Hfusion.at<2>() = 2*HKY2;
-			Hfusion.at<3>() = 2*HKY3 - 2*HKY4 - 2*HKY5;
-			Hfusion.at<16>() = 2*HKY6 - 2*HKY7;
-			Hfusion.at<17>() = HKY8;
-			Hfusion.at<18>() = 2*HKY9;
-			Hfusion.at<20>() = 1;
-
-			// Calculate Y axis Kalman gains
-			if (update_all_states) {
-				Kfusion(0) = HKY16*HKY24;
-				Kfusion(1) = HKY21*HKY24;
-				Kfusion(2) = HKY22*HKY24;
-				Kfusion(3) = HKY19*HKY24;
-
-				for (unsigned row = 4; row <= 15; row++) {
-					Kfusion(row) = HKY24*(HKY10*P(row,18) - HKY11*P(row,16) + HKY12*P(2,row) + HKY13*P(0,row) + HKY14*P(1,row) - HKY15*P(3,row) + HKY8*P(row,17) + P(row,20));
-				}
-
-				for (unsigned row = 22; row <= 23; row++) {
-					Kfusion(row) = HKY24*(HKY10*P(18,row) - HKY11*P(16,row) + HKY12*P(2,row) + HKY13*P(0,row) + HKY14*P(1,row) - HKY15*P(3,row) + HKY8*P(17,row) + P(20,row));
-				}
-			}
-
-			Kfusion(16) = HKY18*HKY24;
-			Kfusion(17) = HKY17*HKY24;
-			Kfusion(18) = HKY20*HKY24;
-			Kfusion(19) = HKY24*(HKY10*P(18,19) - HKY11*P(16,19) + HKY12*P(2,19) + HKY13*P(0,19) + HKY14*P(1,19) - HKY15*P(3,19) + HKY8*P(17,19) + P(19,20));
-			Kfusion(20) = HKY23*HKY24;
-			Kfusion(21) = HKY24*(HKY10*P(18,21) - HKY11*P(16,21) + HKY12*P(2,21) + HKY13*P(0,21) + HKY14*P(1,21) - HKY15*P(3,21) + HKY8*P(17,21) + P(20,21));
 
 		} else if (index == 2) {
-
 			// we do not fuse synthesized magnetomter measurements when doing 3D fusion
 			if (_control_status.flags.synthetic_mag_z) {
 				continue;
 			}
 
-			// recalculate innovation variance becasue states and covariances have changed due to previous fusion
-			const float HKZ0 = magD*q0 - magE*q1 + magN*q2;
-			const float HKZ1 = magN*q3;
-			const float HKZ2 = magD*q1;
-			const float HKZ3 = magE*q0;
-			const float HKZ4 = -magD*q2 + magE*q3 + magN*q0;
-			const float HKZ5 = magD*q3 + magE*q2 + magN*q1;
-			const float HKZ6 = q0*q2 + q1*q3;
-			const float HKZ7 = q2*q3;
-			const float HKZ8 = q0*q1;
-			const float HKZ9 = ecl::powf(q0, 2) - ecl::powf(q1, 2) - ecl::powf(q2, 2) + ecl::powf(q3, 2);
-			const float HKZ10 = 2*HKZ6;
-			const float HKZ11 = -2*HKZ7 + 2*HKZ8;
-			const float HKZ12 = 2*HKZ5;
-			const float HKZ13 = 2*HKZ0;
-			const float HKZ14 = -2*HKZ1 + 2*HKZ2 + 2*HKZ3;
-			const float HKZ15 = 2*HKZ4;
-			const float HKZ16 = HKZ10*P(0,16) - HKZ11*P(0,17) + HKZ12*P(0,3) + HKZ13*P(0,0) - HKZ14*P(0,1) + HKZ15*P(0,2) + HKZ9*P(0,18) + P(0,21);
-			const float HKZ17 = HKZ10*P(16,18) - HKZ11*P(17,18) + HKZ12*P(3,18) + HKZ13*P(0,18) - HKZ14*P(1,18) + HKZ15*P(2,18) + HKZ9*P(18,18) + P(18,21);
-			const float HKZ18 = HKZ10*P(16,17) - HKZ11*P(17,17) + HKZ12*P(3,17) + HKZ13*P(0,17) - HKZ14*P(1,17) + HKZ15*P(2,17) + HKZ9*P(17,18) + P(17,21);
-			const float HKZ19 = HKZ10*P(1,16) - HKZ11*P(1,17) + HKZ12*P(1,3) + HKZ13*P(0,1) - HKZ14*P(1,1) + HKZ15*P(1,2) + HKZ9*P(1,18) + P(1,21);
-			const float HKZ20 = HKZ10*P(16,16) - HKZ11*P(16,17) + HKZ12*P(3,16) + HKZ13*P(0,16) - HKZ14*P(1,16) + HKZ15*P(2,16) + HKZ9*P(16,18) + P(16,21);
-			const float HKZ21 = HKZ10*P(3,16) - HKZ11*P(3,17) + HKZ12*P(3,3) + HKZ13*P(0,3) - HKZ14*P(1,3) + HKZ15*P(2,3) + HKZ9*P(3,18) + P(3,21);
-			const float HKZ22 = HKZ10*P(2,16) - HKZ11*P(2,17) + HKZ12*P(2,3) + HKZ13*P(0,2) - HKZ14*P(1,2) + HKZ15*P(2,2) + HKZ9*P(2,18) + P(2,21);
-			const float HKZ23 = HKZ10*P(16,21) - HKZ11*P(17,21) + HKZ12*P(3,21) + HKZ13*P(0,21) - HKZ14*P(1,21) + HKZ15*P(2,21) + HKZ9*P(18,21) + P(21,21);
+			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
+			sym::ComputeMagZInnovVarAndH(state_vector, P, R_MAG, FLT_EPSILON, &aid_src_mag.innovation_variance[index], &H);
+			Hfusion = H;
 
-			aid_src_mag.innovation_variance[2] = (HKZ10*HKZ20 - HKZ11*HKZ18 + HKZ12*HKZ21 + HKZ13*HKZ16 - HKZ14*HKZ19 + HKZ15*HKZ22 + HKZ17*HKZ9 + HKZ23 + R_MAG);
+			// recalculate innovation using the updated state
+			aid_src_mag.innovation[index] = _state.quat_nominal.rotateVectorInverse(_state.mag_I)(index) + _state.mag_B(index) - mag(index);
 
-			if (aid_src_mag.innovation_variance[2] < R_MAG) {
+			if (aid_src_mag.innovation_variance[index] < R_MAG) {
 				// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
 				_fault_status.flags.bad_mag_z = true;
 
@@ -356,210 +185,55 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source_3d_s &aid_src_mag, b
 				ECL_ERR("magZ %s", numerical_error_covariance_reset_string);
 				return false;
 			}
-
-			const float HKZ24 = 1.0F/aid_src_mag.innovation_variance[2];
-
-			// calculate Z axis observation jacobians
-			Hfusion.setZero();
-			Hfusion.at<0>() = 2*HKZ0;
-			Hfusion.at<1>() = 2*HKZ1 - 2*HKZ2 - 2*HKZ3;
-			Hfusion.at<2>() = 2*HKZ4;
-			Hfusion.at<3>() = 2*HKZ5;
-			Hfusion.at<16>() = 2*HKZ6;
-			Hfusion.at<17>() = 2*HKZ7 - 2*HKZ8;
-			Hfusion.at<18>() = HKZ9;
-			Hfusion.at<21>() = 1;
-
-			// Calculate Z axis Kalman gains
-			if (update_all_states) {
-				Kfusion(0) = HKZ16*HKZ24;
-				Kfusion(1) = HKZ19*HKZ24;
-				Kfusion(2) = HKZ22*HKZ24;
-				Kfusion(3) = HKZ21*HKZ24;
-
-				for (unsigned row = 4; row <= 15; row++) {
-					Kfusion(row) = HKZ24*(HKZ10*P(row,16) - HKZ11*P(row,17) + HKZ12*P(3,row) + HKZ13*P(0,row) - HKZ14*P(1,row) + HKZ15*P(2,row) + HKZ9*P(row,18) + P(row,21));
-				}
-
-				for (unsigned row = 22; row <= 23; row++) {
-					Kfusion(row) = HKZ24*(HKZ10*P(16,row) - HKZ11*P(17,row) + HKZ12*P(3,row) + HKZ13*P(0,row) - HKZ14*P(1,row) + HKZ15*P(2,row) + HKZ9*P(18,row) + P(21,row));
-				}
-			}
-
-			Kfusion(16) = HKZ20*HKZ24;
-			Kfusion(17) = HKZ18*HKZ24;
-			Kfusion(18) = HKZ17*HKZ24;
-
-			for (unsigned row = 19; row <= 20; row++) {
-				Kfusion(row) = HKZ24*(HKZ10*P(16,row) - HKZ11*P(17,row) + HKZ12*P(3,row) + HKZ13*P(0,row) - HKZ14*P(1,row) + HKZ15*P(2,row) + HKZ9*P(18,row) + P(row,21));
-			}
-
-			Kfusion(21) = HKZ23*HKZ24;
 		}
 
-		const bool is_fused = measurementUpdate(Kfusion, Hfusion, aid_src_mag.innovation[index]);
+		Vector24f Kfusion = P * Hfusion / aid_src_mag.innovation_variance[index];
 
-		if (is_fused) {
-			aid_src_mag.fused[index] = true;
-			aid_src_mag.time_last_fuse[index] = _imu_sample_delayed.time_us;
+		if (!update_all_states) {
+			for (unsigned row = 0; row <= 15; row++) {
+				Kfusion(row) = 0.f;
+			}
+
+			for (unsigned row = 22; row <= 23; row++) {
+				Kfusion(row) = 0.f;
+			}
+		}
+
+		if (measurementUpdate(Kfusion, Hfusion, aid_src_mag.innovation[index])) {
+			fused[index] = true;
+			limitDeclination();
 
 		} else {
-			aid_src_mag.fused[index] = false;
-		}
-
-
-		switch (index) {
-		case 0:
-			_fault_status.flags.bad_mag_x = !is_fused;
-			break;
-
-		case 1:
-			_fault_status.flags.bad_mag_y = !is_fused;
-			break;
-
-		case 2:
-			_fault_status.flags.bad_mag_z = !is_fused;
-			break;
-		}
-
-		if (is_fused) {
-			limitDeclination();
+			fused[index] = false;
 		}
 	}
 
-	return aid_src_mag.fused[0] && aid_src_mag.fused[1] && aid_src_mag.fused[2];
+	_fault_status.flags.bad_mag_x = !fused[0];
+	_fault_status.flags.bad_mag_y = !fused[1];
+	_fault_status.flags.bad_mag_z = !fused[2];
+
+	if (fused[0] && fused[1] && fused[2]) {
+		aid_src_mag.fused = true;
+		aid_src_mag.time_last_fuse = _imu_sample_delayed.time_us;
+		return true;
+	}
+
+	aid_src_mag.fused = false;
+	return false;
 }
 
 // update quaternion states and covariances using the yaw innovation and yaw observation variance
-bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_source_1d_s& aid_src_status)
+bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_source1d_s& aid_src_status)
 {
 	aid_src_status.innovation = innovation;
 
-	// assign intermediate state variables
-	const float q0 = _state.quat_nominal(0);
-	const float q1 = _state.quat_nominal(1);
-	const float q2 = _state.quat_nominal(2);
-	const float q3 = _state.quat_nominal(3);
+	Vector24f H_YAW;
 
-	// choose A or B computational paths to avoid singularity in derivation at +-90 degrees yaw
-	bool canUseA = false;
-	bool canUseB = false;
-
-	float SA0;
-	float SA1;
-	float SA2;
-	float SA3;
-	float SA4;
-	float SA5_inv;
-
-	float SB0;
-	float SB1;
-	float SB2;
-	float SB3;
-	float SB4;
-	float SB5_inv;
-
-	const bool fuse_yaw_321 = shouldUse321RotationSequence(_R_to_earth);
-
-	if (fuse_yaw_321) {
-		// calculate 321 yaw observation matrix
-		SA0 = 2*q3;
-		SA1 = 2*q2;
-		SA2 = SA0*q0 + SA1*q1;
-		SA3 = sq(q0) + sq(q1) - sq(q2) - sq(q3);
-
-		SB0 = 2*q0;
-		SB1 = 2*q1;
-		SB2 = SB0*q3 + SB1*q2;
-		SB4 = sq(q0) + sq(q1) - sq(q2) - sq(q3);
+	if (shouldUse321RotationSequence(_R_to_earth)) {
+		sym::ComputeYaw321InnovVarAndH(getStateAtFusionHorizonAsVector(), P, variance, FLT_EPSILON, &aid_src_status.innovation_variance, &H_YAW);
 
 	} else {
-		// calculate 312 yaw observation matrix
-		SA0 = 2*q3;
-		SA1 = 2*q2;
-		SA2 = SA0*q0 - SA1*q1;
-		SA3 = sq(q0) - sq(q1) + sq(q2) - sq(q3);
-
-		SB0 = 2*q0;
-		SB1 = 2*q1;
-		SB2 = -SB0*q3 + SB1*q2;
-		SB4 = -sq(q0) + sq(q1) - sq(q2) + sq(q3);
-	}
-
-	if (sq(SA3) > 1e-6f) {
-		SA4 = 1.f/sq(SA3);
-		SA5_inv = sq(SA2)*SA4 + 1.f;
-		canUseA = fabsf(SA5_inv) > 1e-6f;
-	}
-
-	if (sq(SB2) > 1e-6f) {
-		SB3 = 1.f/sq(SB2);
-		SB5_inv = SB3*sq(SB4) + 1.f;
-		canUseB = fabsf(SB5_inv) > 1e-6f;
-	}
-
-	Vector4f H_YAW;
-
-	if (canUseA && (!canUseB || fabsf(SA5_inv) >= fabsf(SB5_inv))) {
-		const float SA5 = 1.f/SA5_inv;
-		const float SA6 = 1.f/SA3;
-		const float SA7 = SA2*SA4;
-		const float SA8 = 2*SA7;
-		const float SA9 = 2*SA6;
-
-		if (fuse_yaw_321) {
-			// calculate 321 yaw observation matrix
-			H_YAW(0) = SA5*(SA0*SA6 - SA8*q0);
-			H_YAW(1) = SA5*(SA1*SA6 - SA8*q1);
-			H_YAW(2) = SA5*(SA1*SA7 + SA9*q1);
-			H_YAW(3) = SA5*(SA0*SA7 + SA9*q0);
-
-		} else {
-			// calculate 312 yaw observation matrix
-			H_YAW(0) = SA5*(SA0*SA6 - SA8*q0);
-			H_YAW(1) = SA5*(-SA1*SA6 + SA8*q1);
-			H_YAW(2) = SA5*(-SA1*SA7 - SA9*q1);
-			H_YAW(3) = SA5*(SA0*SA7 + SA9*q0);
-		}
-
-	} else if (canUseB && (!canUseA || fabsf(SB5_inv) > fabsf(SA5_inv))) {
-		const float SB5 = 1.f/SB5_inv;
-		const float SB6 = 1.f/SB2;
-		const float SB7 = SB3*SB4;
-		const float SB8 = 2*SB7;
-		const float SB9 = 2*SB6;
-
-		if (fuse_yaw_321) {
-			// calculate 321 yaw observation matrix
-			H_YAW(0) = -SB5*(SB0*SB6 - SB8*q3);
-			H_YAW(1) = -SB5*(SB1*SB6 - SB8*q2);
-			H_YAW(2) = -SB5*(-SB1*SB7 - SB9*q2);
-			H_YAW(3) = -SB5*(-SB0*SB7 - SB9*q3);
-
-		} else {
-			// calculate 312 yaw observation matrix
-			H_YAW(0) = -SB5*(-SB0*SB6 + SB8*q3);
-			H_YAW(1) = -SB5*(SB1*SB6 - SB8*q2);
-			H_YAW(2) = -SB5*(-SB1*SB7 - SB9*q2);
-			H_YAW(3) = -SB5*(SB0*SB7 + SB9*q3);
-		}
-
-	} else {
-		return false;
-	}
-
-	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 4 elements in H are non zero
-	// calculate the innovation variance
-	aid_src_status.innovation_variance = variance;
-
-	for (unsigned row = 0; row <= 3; row++) {
-		float tmp = 0.0f;
-
-		for (uint8_t col = 0; col <= 3; col++) {
-			tmp += P(row, col) * H_YAW(col);
-		}
-
-		aid_src_status.innovation_variance += H_YAW(row) * tmp;
+		sym::ComputeYaw312InnovVarAndH(getStateAtFusionHorizonAsVector(), P, variance, FLT_EPSILON, &aid_src_status.innovation_variance, &H_YAW);
 	}
 
 	float heading_innov_var_inv = 0.f;
@@ -637,48 +311,23 @@ bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_so
 		_innov_check_fail_status.flags.reject_yaw = false;
 	}
 
-	// apply covariance correction via P_new = (I -K*H)*P
-	// first calculate expression for KHP
-	// then calculate P - KHP
-	SquareMatrix24f KHP;
-	float KH[4];
+	SparseVector24f<0,1,2,3> Hfusion(H_YAW);
 
-	for (unsigned row = 0; row < _k_num_states; row++) {
-
-		KH[0] = Kfusion(row) * H_YAW(0);
-		KH[1] = Kfusion(row) * H_YAW(1);
-		KH[2] = Kfusion(row) * H_YAW(2);
-		KH[3] = Kfusion(row) * H_YAW(3);
-
-		for (unsigned column = 0; column < _k_num_states; column++) {
-			float tmp = KH[0] * P(0, column);
-			tmp += KH[1] * P(1, column);
-			tmp += KH[2] * P(2, column);
-			tmp += KH[3] * P(3, column);
-			KHP(row, column) = tmp;
-		}
-	}
-
-	const bool healthy = checkAndFixCovarianceUpdate(KHP);
-
-	_fault_status.flags.bad_hdg = !healthy;
-
-	if (healthy) {
-		// apply the covariance corrections
-		P -= KHP;
-
-		fixCovarianceErrors(true);
-
-		// apply the state corrections
-		fuse(Kfusion, aid_src_status.innovation);
+	if (measurementUpdate(Kfusion, Hfusion, aid_src_status.innovation)) {
 
 		_time_last_heading_fuse = _imu_sample_delayed.time_us;
+
 		aid_src_status.time_last_fuse = _imu_sample_delayed.time_us;
 		aid_src_status.fused = true;
+
+		_fault_status.flags.bad_hdg = false;
 
 		return true;
 	}
 
+	// otherwise
+	aid_src_status.fused = false;
+	_fault_status.flags.bad_hdg = true;
 	return false;
 }
 

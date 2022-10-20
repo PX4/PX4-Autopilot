@@ -114,7 +114,7 @@ class JsonOutput():
 
 
         #Json string output.
-        self.output = json.dumps(all_json,indent=2)
+        self.output = json.dumps(all_json, indent=2, sort_keys=True)
 
 
     def Save(self, filename):

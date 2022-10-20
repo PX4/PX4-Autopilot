@@ -172,11 +172,6 @@ ifdef PYTHON_EXECUTABLE
 	override CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
 endif
 
-# Check if the microRTPS agent is to be built
-ifdef BUILD_MICRORTPS_AGENT
-  override CMAKE_ARGS += -DBUILD_MICRORTPS_AGENT=ON
-endif
-
 # Functions
 # --------------------------------------------------------------------
 # describe how to build a cmake config
@@ -253,7 +248,7 @@ endef
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware check_rtps
+.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware
 
 # QGroundControl flashable NuttX firmware
 qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware
@@ -278,15 +273,7 @@ misc_qgc_extra_firmware: \
 	check_airmind_mindpx-v2_default \
 	sizes
 
-# builds with RTPS
-check_rtps: \
-	check_px4_fmu-v3_rtps \
-	check_px4_fmu-v4_rtps \
-	check_px4_fmu-v4pro_rtps \
-	check_px4_sitl_rtps \
-	sizes
-
-.PHONY: sizes check quick_check check_rtps uorb_graphs
+.PHONY: sizes check quick_check uorb_graphs
 
 sizes:
 	@-find build -name *.elf -type f | xargs size 2> /dev/null || :
@@ -495,7 +482,9 @@ shellcheck_all:
 
 validate_module_configs:
 	@find "$(SRC_DIR)"/src/modules "$(SRC_DIR)"/src/drivers "$(SRC_DIR)"/src/lib -name *.yaml -type f \
-	-not -path "$(SRC_DIR)/src/lib/mixer_module/*" -not -path "$(SRC_DIR)/src/lib/crypto/libtommath/*" -print0 | \
+	-not -path "$(SRC_DIR)/src/lib/mixer_module/*" \
+	-not -path "$(SRC_DIR)/src/modules/microdds_client/dds_topics.yaml" \
+	-not -path "$(SRC_DIR)/src/lib/crypto/libtommath/*" -print0 | \
 	xargs -0 "$(SRC_DIR)"/Tools/validate_yaml.py --schema-file "$(SRC_DIR)"/validation/module_schema.yaml
 
 # Cleanup
@@ -575,3 +564,13 @@ update_px4_ros_com:
 
 update_px4_msgs:
 	@Tools/update_px4_ros2_bridge.sh --ws_dir ${ROS2_WS_DIR} --px4_msgs
+
+.PHONY: failsafe_web run_failsafe_web_server
+failsafe_web:
+	@if ! command -v emcc; then echo -e "Install emscripten first: https://emscripten.org/docs/getting_started/downloads.html\nAnd source the env: source <path>/emsdk_env.sh"; exit 1; fi
+	@$(MAKE) --no-print-directory px4_sitl_default failsafe_test parameters_xml \
+		PX4_CMAKE_BUILD_TYPE=Release BUILD_DIR_SUFFIX=_failsafe_web \
+		CMAKE_ARGS="-DCMAKE_CXX_COMPILER=em++ -DCMAKE_C_COMPILER=emcc"
+run_failsafe_web_server: failsafe_web
+	@cd build/px4_sitl_default_failsafe_web && \
+		python3 -m http.server

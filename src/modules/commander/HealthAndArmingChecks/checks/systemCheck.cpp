@@ -72,29 +72,9 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	// Arm Requirements: mission
-	if (_param_com_arm_mis_req.get() && !context.isArmed()) {
-		if (!context.status().auto_mission_available) {
-			/* EVENT
-			 * @description
-			 * <profile name="dev">
-			 * This check can be configured via <param>COM_ARM_MIS_REQ</param> parameter.
-			 * </profile>
-			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_no_mission"),
-						    events::Log::Error, "No valid mission");
-
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No valid mission");
-			}
-		}
-	}
-
-	reporter.failsafeFlags().auto_mission_available = context.status().auto_mission_available;
-
 	// Global position required
 	if (!_param_com_arm_wo_gps.get() && !context.isArmed()) {
-		if (!reporter.failsafeFlags().global_position_valid) {
+		if (reporter.failsafeFlags().global_position_invalid) {
 			/* EVENT
 			 * @description
 			 * <profile name="dev">
@@ -108,7 +88,7 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Global position required");
 			}
 
-		} else if (!reporter.failsafeFlags().home_position_valid) {
+		} else if (reporter.failsafeFlags().home_position_invalid) {
 			/* EVENT
 			 * @description
 			 * <profile name="dev">
@@ -191,21 +171,6 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (_param_gf_action.get() != 0 && context.status().geofence_violated) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * This check can be configured via <param>GF_ACTION</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_gf_violation"),
-					    events::Log::Error, "Vehicle outside geofence");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Vehicle outside geofence");
-		}
-	}
-
 	// Arm Requirements: authorization
 	if (_param_com_arm_auth_req.get() != 0 && !context.isArmed()) {
 		if (arm_auth_check() != vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
@@ -214,9 +179,5 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_arm_auth_failed"),
 						    events::Log::Error, "Arm authorization denied");
 		}
-	}
-
-	if (reporter.failsafeFlags().rc_signal_found_once) {
-		reporter.setIsPresent(health_component_t::remote_control);
 	}
 }

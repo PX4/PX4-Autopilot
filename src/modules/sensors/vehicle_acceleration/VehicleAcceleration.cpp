@@ -234,7 +234,7 @@ void VehicleAcceleration::Run()
 	while (_sensor_sub.update(&sensor_data)) {
 		const Vector3f accel_raw{sensor_data.x, sensor_data.y, sensor_data.z};
 
-		if (math::isFinite(accel_raw)) {
+		if (accel_raw.isAllFinite()) {
 			// Apply calibration and filter
 			//  - calibration offsets, scale factors, and thermal scale (if available)
 			//  - estimated in run bias (if available)

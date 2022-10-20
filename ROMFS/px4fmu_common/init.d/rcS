@@ -324,6 +324,27 @@ else
 	rc_update start
 	manual_control start
 
+	# Start camera trigger, capture and PPS before pwm_out as they might access
+	# pwm pins
+	if param greater -s TRIG_MODE 0
+	then
+		camera_trigger start
+		camera_feedback start
+	fi
+	# PPS capture driver
+	if param greater -s PPS_CAP_ENABLE 0
+	then
+		pps_capture start
+	fi
+	# Camera capture driver
+	if param greater -s CAM_CAP_FBACK 0
+	then
+		if camera_capture start
+		then
+			camera_capture on
+		fi
+	fi
+
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run).
 	# Commander needs to be this early for in-air-restarts.
@@ -390,12 +411,6 @@ else
 		mag_bias_estimator start
 	fi
 
-	if param greater -s TRIG_MODE 0
-	then
-		camera_trigger start
-		camera_feedback start
-	fi
-
 	#
 	# Optional board mavlink streams: rc.board_mavlink
 	#
@@ -415,21 +430,6 @@ else
 
 	# Must be started after the serial config is read
 	rc_input start $RC_INPUT_ARGS
-
-	# PPS capture driver (before pwm_out)
-	if param greater -s PPS_CAP_ENABLE 0
-	then
-		pps_capture start
-	fi
-
-	# Camera capture driver (before pwm_out)
-	if param greater -s CAM_CAP_FBACK 0
-	then
-		if camera_capture start
-		then
-			camera_capture on
-		fi
-	fi
 
 	#
 	# Play the startup tune (if not disabled or there is an error)

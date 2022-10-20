@@ -385,7 +385,7 @@ AirspeedModule::Run()
 					_in_takeoff_situation = true;
 				}
 
-				input_data.in_fixed_wing_flight = (armed && in_air_fixed_wing && !_in_takeoff_situation);
+				input_data.in_fixed_wing_flight = (in_air_fixed_wing && !_in_takeoff_situation);
 
 				// push input data into airspeed validator
 				_airspeed_validator[i].update_airspeed_validator(input_data);
@@ -521,8 +521,8 @@ void AirspeedModule::update_wind_estimator_sideslip()
 	_wind_estimator_sideslip.update(_time_now_usec);
 
 	if (_vehicle_local_position_valid
-	    && _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW &&
-	    _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+	    && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+	    && !_vehicle_land_detected.landed) {
 		Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
 		Quatf q(_vehicle_attitude.q);
 

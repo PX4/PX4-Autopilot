@@ -91,9 +91,7 @@ struct filter_states_s {
 	 */
 	bool is_finite()
 	{
-		return  PX4_ISFINITE(pos_ned_est(0)) && PX4_ISFINITE(pos_ned_est(1)) && PX4_ISFINITE(pos_ned_est(2)) &&
-			PX4_ISFINITE(vel_ned_est(0)) && PX4_ISFINITE(vel_ned_est(1)) && PX4_ISFINITE(vel_ned_est(2)) &&
-			PX4_ISFINITE(acc_ned_est(0)) && PX4_ISFINITE(acc_ned_est(1)) && PX4_ISFINITE(acc_ned_est(2));
+		return  pos_ned_est.isAllFinite() && vel_ned_est.isAllFinite() && acc_ned_est.isAllFinite();
 	}
 
 	/**

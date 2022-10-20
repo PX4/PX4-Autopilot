@@ -48,7 +48,7 @@
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/led_control.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/failsafe_flags.h>
 
 namespace events
 {
@@ -82,7 +82,7 @@ protected:
 	uORB::SubscriptionData<battery_status_s>       _battery_status_sub{ORB_ID(battery_status)};
 	uORB::SubscriptionData<cpuload_s>              _cpu_load_sub{ORB_ID(cpuload)};
 	uORB::SubscriptionData<vehicle_status_s>       _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::SubscriptionData<vehicle_status_flags_s> _vehicle_status_flags_sub{ORB_ID(vehicle_status_flags)};
+	uORB::SubscriptionData<failsafe_flags_s>       _failsafe_flags_sub{ORB_ID(failsafe_flags)};
 
 	led_control_s _led_control{};
 
