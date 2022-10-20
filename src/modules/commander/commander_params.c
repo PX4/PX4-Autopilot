@@ -954,7 +954,7 @@ PARAM_DEFINE_FLOAT(COM_KILL_DISARM, 5.0f);
  * @max 100
  * @increment 1
  */
-PARAM_DEFINE_FLOAT(COM_CPU_MAX, 90.0f);
+PARAM_DEFINE_FLOAT(COM_CPU_MAX, 95.0f);
 
 /**
  * Required number of redundant power modules
