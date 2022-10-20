@@ -144,7 +144,6 @@ function(px4_add_common_flags)
 	list(APPEND c_flags
 		-fno-common
 
-		-Wbad-function-cast
 		-Wnested-externs
 		-Wstrict-prototypes
 	)
