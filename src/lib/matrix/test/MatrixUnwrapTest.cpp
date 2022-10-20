@@ -5,7 +5,7 @@ using namespace matrix;
 
 TEST(MatrixUnwrapTest, UnwrapFloats)
 {
-	const float M_TWO_PI_F = float(M_PI * 2);
+	const float M_TWO_PI_F = float(M_PI_F * 2);
 
 	float unwrapped_angles[6] = {0.0, 0.25, 0.5, 0.75, 1.0, 1.25};
 	float wrapped_angles[6] = {0.0, 0.25, 0.5, -0.25, 0.0, 0.25};
@@ -34,7 +34,7 @@ TEST(MatrixUnwrapTest, UnwrapFloats)
 
 TEST(MatrixUnwrapTest, UnwrapDoubles)
 {
-	const double M_TWO_PI = M_PI * 2;
+	const double M_TWO_PI = M_PI_PRECISE * 2;
 
 	double unwrapped_angles[6] = {0.0, 0.25, 0.5, 0.75, 1.0, 1.25};
 	double wrapped_angles[6] = {0.0, 0.25, 0.5, -0.25, 0.0, 0.25};
