@@ -789,12 +789,16 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 			_control_mode_current = FW_POSCTRL_MODE_AUTO;
 		}
 
-	} else if (_control_mode.flag_control_auto_enabled && _control_mode.flag_control_climb_rate_enabled
-		   && pos_sp_curr_valid) {
+	} else if (_control_mode.flag_control_auto_enabled
+		   && _control_mode.flag_control_climb_rate_enabled
+		   && _control_mode.flag_armed // only enter this modes if armed, as pure failsafe modes
+		   && !_control_mode.flag_control_position_enabled) {
 
-		// reset timer the first time we switch into this mode
+		// failsafe modes engaged if position estimate is invalidated
+
 		if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE
 		    && commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE) {
+			// reset timer the first time we switch into this mode
 			_time_in_fixed_bank_loiter = now;
 		}
 
