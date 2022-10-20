@@ -238,6 +238,8 @@ function(px4_os_add_flags)
 
 	endif()
 
+	add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wbad-function-cast>)
+
 endfunction()
 
 #=============================================================================
