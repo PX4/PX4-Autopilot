@@ -178,6 +178,7 @@ PARAM_DEFINE_INT32(IMU_GYRO_DNF_EN, 0);
 * Bandwidth per notch filter when using dynamic notch filtering with ESC RPM.
 *
 * @group Sensors
+* @unit Hz
 * @min 5
 * @max 30
 */
@@ -193,3 +194,13 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_DNF_BW, 15.f);
 * @max 7
 */
 PARAM_DEFINE_INT32(IMU_GYRO_DNF_HMC, 3);
+
+/**
+* IMU gyro dynamic notch filter minimum frequency
+*
+* Minimum notch filter frequency in Hz.
+*
+* @group Sensors
+* @unit Hz
+*/
+PARAM_DEFINE_FLOAT(IMU_GYRO_DNF_MIN, 25.f);

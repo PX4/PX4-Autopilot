@@ -25,6 +25,10 @@ param set IMU_GYRO_FFT_SNR 10
 #param set IMU_GYRO_DNF_EN 2
 param set IMU_GYRO_DNF_EN 3
 
+param set IMU_GYRO_DNF_BW 15
+param set IMU_GYRO_DNF_HMC 3
+param set IMU_GYRO_DNF_MIN 25
+
 # test values
 param set IMU_GYRO_CUTOFF 60
 param set IMU_DGYRO_CUTOFF 40
