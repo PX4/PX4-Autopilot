@@ -61,6 +61,7 @@ VehicleAngularVelocity::~VehicleAngularVelocity()
 #if !defined(CONSTRAINED_FLASH)
 	delete[] _dynamic_notch_filter_esc_rpm;
 	perf_free(_dynamic_notch_filter_esc_rpm_disable_perf);
+	perf_free(_dynamic_notch_filter_esc_rpm_init_perf);
 	perf_free(_dynamic_notch_filter_esc_rpm_update_perf);
 
 	perf_free(_dynamic_notch_filter_fft_disable_perf);
@@ -458,6 +459,11 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 								MODULE_NAME": gyro dynamic notch filter ESC RPM disable");
 					}
 
+					if (_dynamic_notch_filter_esc_rpm_init_perf == nullptr) {
+						_dynamic_notch_filter_esc_rpm_init_perf = perf_alloc(PC_COUNT,
+								MODULE_NAME": gyro dynamic notch filter ESC RPM init");
+					}
+
 					if (_dynamic_notch_filter_esc_rpm_update_perf == nullptr) {
 						_dynamic_notch_filter_esc_rpm_update_perf = perf_alloc(PC_COUNT,
 								MODULE_NAME": gyro dynamic notch filter ESC RPM update");
@@ -467,9 +473,11 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 					_esc_rpm_harmonics = 0;
 
 					perf_free(_dynamic_notch_filter_esc_rpm_disable_perf);
+					perf_free(_dynamic_notch_filter_esc_rpm_init_perf);
 					perf_free(_dynamic_notch_filter_esc_rpm_update_perf);
 
 					_dynamic_notch_filter_esc_rpm_disable_perf = nullptr;
+					_dynamic_notch_filter_esc_rpm_init_perf = nullptr;
 					_dynamic_notch_filter_esc_rpm_update_perf = nullptr;
 				}
 			}
@@ -566,75 +574,88 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(const hrt_abstime &time_no
 
 	if (enabled && (_esc_status_sub.updated() || force)) {
 
+		bool axis_init[3] {false, false, false};
+
 		esc_status_s esc_status;
 
 		if (_esc_status_sub.copy(&esc_status) && (time_now_us < esc_status.timestamp + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
 
-			static constexpr float FREQ_MIN = 10.f; // TODO: configurable
+			const float bandwidth_hz = _param_imu_gyro_dnf_bw.get();
+			const float freq_min = math::max(_param_imu_gyro_dnf_min.get(), bandwidth_hz);
 
 			for (size_t esc = 0; esc < math::min(esc_status.esc_count, (uint8_t)MAX_NUM_ESCS); esc++) {
 				const esc_report_s &esc_report = esc_status.esc[esc];
 
-				// only update if ESC RPM range seems valid
-				if ((esc_report.esc_rpm != 0) && (time_now_us < esc_report.timestamp + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
+				const bool esc_connected = (esc_status.esc_online_flags & (1 << esc)) || (esc_report.esc_rpm != 0);
 
-					bool esc_enabled = false;
-					bool update = force || !_esc_available[esc]; // force parameter update or notch was previously disabled
+				// only update if ESC RPM range seems valid
+				if (esc_connected && (time_now_us < esc_report.timestamp + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
 
 					const float esc_hz = abs(esc_report.esc_rpm) / 60.f;
 
+					const bool force_update = force || !_esc_available[esc]; // force parameter update or notch was previously disabled
+
 					for (int harmonic = 0; harmonic < _esc_rpm_harmonics; harmonic++) {
-						const float frequency_hz = esc_hz * (harmonic + 1);
+						// as RPM drops leave the notch filter "parked" at the minimum rather than disabling
+						//  keep harmonics separated by half the notch filter bandwidth
+						const float frequency_hz = math::max(esc_hz * (harmonic + 1), freq_min + (harmonic * 0.5f * bandwidth_hz));
 
-						// for each ESC harmonic determine if enabled/disabled from first notch (x axis)
-						auto &nfx = _dynamic_notch_filter_esc_rpm[harmonic][0][esc];
+						// update filter parameters if frequency changed or forced
+						for (int axis = 0; axis < 3; axis++) {
+							auto &nf = _dynamic_notch_filter_esc_rpm[harmonic][axis][esc];
 
-						if (frequency_hz > FREQ_MIN) {
-							// update filter parameters if frequency changed or forced
-							if (update || !nfx.initialized() || (fabsf(nfx.getNotchFreq() - frequency_hz) > 0.1f)) {
-								for (int axis = 0; axis < 3; axis++) {
-									auto &nf = _dynamic_notch_filter_esc_rpm[harmonic][axis][esc];
-									nf.setParameters(_filter_sample_rate_hz, frequency_hz, _param_imu_gyro_dnf_bw.get());
+							const float notch_freq_delta = fabsf(nf.getNotchFreq() - frequency_hz);
+
+							const bool notch_freq_changed = (notch_freq_delta > 0.1f);
+
+							// only allow initializing one new filter per axis each iteration
+							const bool allow_update = !axis_init[axis] || (nf.initialized() && notch_freq_delta < nf.getBandwidth());
+
+							if ((force_update || notch_freq_changed) && allow_update) {
+								if (nf.setParameters(_filter_sample_rate_hz, frequency_hz, bandwidth_hz)) {
 									perf_count(_dynamic_notch_filter_esc_rpm_update_perf);
-								}
-							}
 
-							esc_enabled = true;
-
-						} else {
-							// disable these notch filters (if they aren't already)
-							if (nfx.getNotchFreq() > 0.f) {
-								for (int axis = 0; axis < 3; axis++) {
-									auto &nf = _dynamic_notch_filter_esc_rpm[harmonic][axis][esc];
-									nf.disable();
-									perf_count(_dynamic_notch_filter_esc_rpm_disable_perf);
+									if (!nf.initialized()) {
+										perf_count(_dynamic_notch_filter_esc_rpm_init_perf);
+										axis_init[axis] = true;
+									}
 								}
 							}
 						}
 					}
 
-					if (esc_enabled) {
-						_esc_available.set(esc, true);
-						_last_esc_rpm_notch_update[esc] = esc_report.timestamp;
-
-					} else {
-						_esc_available.set(esc, false);
-					}
+					_esc_available.set(esc, true);
+					_last_esc_rpm_notch_update[esc] = esc_report.timestamp;
 				}
 			}
 		}
 
-		// check ESC feedback timeout
+		// check notch filter timeout
 		for (size_t esc = 0; esc < MAX_NUM_ESCS; esc++) {
 			if (_esc_available[esc] && (time_now_us > _last_esc_rpm_notch_update[esc] + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
+				bool all_disabled = true;
 
-				_esc_available.set(esc, false);
-
-				for (int harmonic = 0; harmonic < _esc_rpm_harmonics; harmonic++) {
+				// disable notch filters from highest frequency to lowest
+				for (int harmonic = _esc_rpm_harmonics - 1; harmonic >= 0; harmonic--) {
 					for (int axis = 0; axis < 3; axis++) {
-						_dynamic_notch_filter_esc_rpm[harmonic][axis][esc].disable();
-						perf_count(_dynamic_notch_filter_esc_rpm_disable_perf);
+						auto &nf = _dynamic_notch_filter_esc_rpm[harmonic][axis][esc];
+
+						if (nf.getNotchFreq() > 0.f) {
+							if (nf.initialized() && !axis_init[axis]) {
+								nf.disable();
+								perf_count(_dynamic_notch_filter_esc_rpm_disable_perf);
+								axis_init[axis] = true;
+							}
+						}
+
+						if (nf.getNotchFreq() > 0.f) {
+							all_disabled = false;
+						}
 					}
+				}
+
+				if (all_disabled) {
+					_esc_available.set(esc, false);
 				}
 			}
 		}
@@ -711,7 +732,9 @@ float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int 
 		for (int esc = 0; esc < MAX_NUM_ESCS; esc++) {
 			if (_esc_available[esc]) {
 				for (int harmonic = 0; harmonic < _esc_rpm_harmonics; harmonic++) {
-					_dynamic_notch_filter_esc_rpm[harmonic][axis][esc].applyArray(data, N);
+					if (_dynamic_notch_filter_esc_rpm[harmonic][axis][esc].getNotchFreq() > 0.f) {
+						_dynamic_notch_filter_esc_rpm[harmonic][axis][esc].applyArray(data, N);
+					}
 				}
 			}
 		}
@@ -941,6 +964,7 @@ void VehicleAngularVelocity::PrintStatus()
 	perf_print_counter(_selection_changed_perf);
 #if !defined(CONSTRAINED_FLASH)
 	perf_print_counter(_dynamic_notch_filter_esc_rpm_disable_perf);
+	perf_print_counter(_dynamic_notch_filter_esc_rpm_init_perf);
 	perf_print_counter(_dynamic_notch_filter_esc_rpm_update_perf);
 
 	perf_print_counter(_dynamic_notch_filter_fft_disable_perf);
