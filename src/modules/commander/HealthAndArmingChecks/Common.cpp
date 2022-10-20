@@ -200,7 +200,7 @@ bool Report::report(bool is_armed, bool force)
 	const hrt_abstime now = hrt_absolute_time();
 	const bool has_difference = _had_unreported_difference || _results_changed;
 
-	if (now - _last_report < _min_reporting_interval && !force) {
+	if ((now < _last_report + _min_reporting_interval) && !force) {
 		if (has_difference) {
 			_had_unreported_difference = true;
 		}

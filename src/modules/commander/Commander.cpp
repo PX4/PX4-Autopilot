@@ -1699,7 +1699,7 @@ void Commander::run()
 		const bool nav_state_or_failsafe_changed = handleModeIntentionAndFailsafe();
 
 		// Run arming checks @ 10Hz
-		if (now - _last_health_and_arming_check >= 100_ms || _status_changed || nav_state_or_failsafe_changed) {
+		if ((now >= _last_health_and_arming_check + 100_ms) || _status_changed || nav_state_or_failsafe_changed) {
 			_last_health_and_arming_check = now;
 
 			perf_begin(_preflight_check_perf);
@@ -1767,7 +1767,7 @@ void Commander::run()
 		_actuator_armed.prearmed = getPrearmState();
 
 		// publish states (armed, control_mode, vehicle_status, failure_detector_status) at 2 Hz or immediately when changed
-		if (now - _vehicle_status.timestamp >= 500_ms || _status_changed || nav_state_or_failsafe_changed
+		if ((now >= _vehicle_status.timestamp + 500_ms) || _status_changed || nav_state_or_failsafe_changed
 		    || !(_actuator_armed == actuator_armed_prev)) {
 
 			// publish actuator_armed first (used by output modules)
