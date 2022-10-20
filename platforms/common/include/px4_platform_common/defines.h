@@ -136,5 +136,9 @@ __END_DECLS
 #define M_LOG2_E_F		0.69314718f
 #define M_INVLN2_F		1.44269504f	// 1 / log(2)
 
+/* The M_PI, as stated above, is not C standard. If you need it and
+ * it isn't in your math.h file then you can use this instead. */
+#define M_PI_PRECISE	3.141592653589793238462643383279502884
+
 #define M_DEG_TO_RAD 		0.017453292519943295
 #define M_RAD_TO_DEG 		57.295779513082323
