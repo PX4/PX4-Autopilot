@@ -514,7 +514,6 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_TO_SCL, 0.0f);
  * Flaps setting during landing
  *
  * Sets a fraction of full flaps during landing.
- * Also applies to flaperons if enabled in control allocation.
  *
  * @unit norm
  * @min 0.0
