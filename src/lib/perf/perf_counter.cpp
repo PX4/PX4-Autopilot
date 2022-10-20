@@ -426,22 +426,22 @@ perf_print_counter(perf_counter_t handle)
 	switch (handle->type) {
 	case PC_COUNT:
 		PX4_INFO_RAW("%s: %" PRIu64 " events\n",
-			 handle->name,
-			 ((struct perf_ctr_count *)handle)->event_count);
+			     handle->name,
+			     ((struct perf_ctr_count *)handle)->event_count);
 		break;
 
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
 			PX4_INFO_RAW("%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32
-				 "us %5.3fus rms\n",
-				 handle->name,
-				 pce->event_count,
-				 pce->time_total,
-				 (pce->event_count == 0) ? 0 : (double)pce->time_total / (double)pce->event_count,
-				 pce->time_least,
-				 pce->time_most,
-				 (double)(1e6f * rms));
+				     "us %5.3fus rms\n",
+				     handle->name,
+				     pce->event_count,
+				     pce->time_total,
+				     (pce->event_count == 0) ? 0 : (double)pce->time_total / (double)pce->event_count,
+				     pce->time_least,
+				     pce->time_most,
+				     (double)(1e6f * rms));
 			break;
 		}
 
@@ -450,12 +450,12 @@ perf_print_counter(perf_counter_t handle)
 			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
 
 			PX4_INFO_RAW("%s: %" PRIu64 " events, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms\n",
-				 handle->name,
-				 pci->event_count,
-				 (pci->event_count == 0) ? 0 : (double)(pci->time_last - pci->time_first) / (double)pci->event_count,
-				 pci->time_least,
-				 pci->time_most,
-				 (double)(1e6f * rms));
+				     handle->name,
+				     pci->event_count,
+				     (pci->event_count == 0) ? 0 : (double)(pci->time_last - pci->time_first) / (double)pci->event_count,
+				     pci->time_least,
+				     pci->time_most,
+				     (double)(1e6f * rms));
 			break;
 		}
 
