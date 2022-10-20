@@ -2253,8 +2253,9 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 		cpuload_s cpuload;
 
 		if (_cpuload_sub.copy(&cpuload)) {
+			const float cpuload_percent = cpuload.load * 100.f;
 
-			bool overload = (cpuload.load > 0.95f) || (cpuload.ram_usage > 0.98f);
+			bool overload = (cpuload_percent > _param_com_cpu_max.get()) || (cpuload.ram_usage > 0.99f);
 
 			if (_overload_start == 0 && overload) {
 				_overload_start = time_now_us;
