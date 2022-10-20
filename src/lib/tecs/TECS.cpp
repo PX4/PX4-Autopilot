@@ -104,7 +104,7 @@ void TECS::_update_speed_states(float equivalent_airspeed_setpoint, float equiva
 	const float dt = constrain((now - _speed_update_timestamp) * 1.0e-6f, DT_MIN, DT_MAX);
 
 	// Convert equivalent airspeed quantities to true airspeed
-	_EAS_setpoint = equivalent_airspeed_setpoint;
+	_EAS_setpoint = PX4_ISFINITE(equivalent_airspeed_setpoint) ? equivalent_airspeed_setpoint : _equivalent_airspeed_trim;
 	_TAS_setpoint  = _EAS_setpoint * EAS2TAS;
 	_TAS_max   = _equivalent_airspeed_max * EAS2TAS;
 	_TAS_min   = _equivalent_airspeed_min * EAS2TAS;
