@@ -83,8 +83,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 	// predicted specific forces
 	// calculate relative wind velocity in earth frame and rotate into body frame
 	const Vector3f rel_wind_earth(vn - vwn, ve - vwe, vd);
-	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
-	const Vector3f rel_wind_body = earth_to_body * rel_wind_earth;
+	const Vector3f rel_wind_body = _state.quat_nominal.rotateVectorInverse(rel_wind_earth);
 
 	// perform sequential fusion of XY specific forces
 	for (uint8_t axis_index = 0; axis_index < 2; axis_index++) {

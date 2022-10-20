@@ -80,9 +80,8 @@ void Ekf::controlMagFusion()
 
 			// compute magnetometer innovations (for estimator_aid_src_mag logging)
 			//  rotate magnetometer earth field state into body frame
-			const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
-			const Vector3f mag_I_rot = R_to_body * _state.mag_I;
-			const Vector3f mag_innov = mag_I_rot - mag_observation;
+			const Vector3f mag_I_body = _state.quat_nominal.rotateVectorInverse(_state.mag_I);
+			const Vector3f mag_innov = mag_I_body - mag_observation;
 
 			resetEstimatorAidStatus(_aid_src_mag);
 			_aid_src_mag.timestamp_sample = mag_sample.time_us;
