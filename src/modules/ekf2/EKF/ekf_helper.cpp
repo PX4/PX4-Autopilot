@@ -524,7 +524,7 @@ float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated) 
 
 		const Vector3f airspeed_earth = velocity_earth - wind_velocity_earth;
 
-		const Vector3f airspeed_body = quatToInverseRotMat(_state.quat_nominal) * airspeed_earth;
+		const Vector3f airspeed_body = _state.quat_nominal.rotateVectorInverse(airspeed_earth);
 
 		const Vector3f K_pstatic_coef(
 			airspeed_body(0) >= 0.f ? _params.static_pressure_coef_xp : _params.static_pressure_coef_xn,
