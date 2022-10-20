@@ -606,12 +606,11 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 					_time_last_innov_pass = now;
 
 					// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
-					const bool sufficient_time = context.status().takeoff_time != 0
-								     && now - context.status().takeoff_time > 30_s;
+					const bool sufficient_time = (context.status().takeoff_time != 0) && (now > context.status().takeoff_time + 30_s);
 					const bool sufficient_speed = matrix::Vector2f(lpos.vx, lpos.vy).longerThan(5.f);
 
 					// Even if the test already failed, allow it to pass if it did not fail during the last 10 seconds
-					if (now - _time_last_innov_fail > 10_s && (sufficient_time || sufficient_speed)) {
+					if ((now > _time_last_innov_fail + 10_s) && (sufficient_time || sufficient_speed)) {
 						_nav_test_passed = true;
 						_nav_test_failed = false;
 					}
@@ -619,7 +618,7 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 				} else if (innovation_fail) {
 					_time_last_innov_fail = now;
 
-					if (now - _time_last_innov_pass > 2_s) {
+					if (now > _time_last_innov_pass + 2_s) {
 						// if the innovation test has failed continuously, declare the nav as failed
 						_nav_test_failed = true;
 						/* EVENT
@@ -675,14 +674,13 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position, failsafe_flags_s &failsafe_flags)
 {
 	// The following flags correspond to mode requirements, and are reported in the corresponding mode checks
-
-	const hrt_abstime now = hrt_absolute_time();
-
 	vehicle_global_position_s gpos;
 
 	if (!_vehicle_global_position_sub.copy(&gpos)) {
 		gpos = {};
 	}
+
+	const hrt_abstime now = hrt_absolute_time();
 
 	// run position and velocity accuracy checks
 	// Check if quality checking of position accuracy and consistency is to be performed
@@ -726,8 +724,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 
 
 	// altitude
-	failsafe_flags.local_altitude_invalid = !lpos.z_valid
-						|| (now - lpos.timestamp > (_param_com_pos_fs_delay.get() * 1_s));
+	failsafe_flags.local_altitude_invalid = !lpos.z_valid || (now > lpos.timestamp + (_param_com_pos_fs_delay.get() * 1_s));
 
 
 	// attitude
@@ -742,7 +739,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 							&& (fabsf(q(3)) <= 1.f + eps);
 		const bool norm_in_tolerance = fabsf(1.f - q.norm()) <= eps;
 
-		failsafe_flags.attitude_invalid = now > attitude.timestamp + 1_s || !norm_in_tolerance
+		failsafe_flags.attitude_invalid = (now > attitude.timestamp + 1_s) || !norm_in_tolerance
 						  || !no_element_larger_than_one;
 
 	} else {
@@ -753,7 +750,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	vehicle_angular_velocity_s angular_velocity{};
 	_vehicle_angular_velocity_sub.copy(&angular_velocity);
 	const bool condition_angular_velocity_time_valid = angular_velocity.timestamp != 0
-			&& now < angular_velocity.timestamp + 1_s;
+			&& (now < angular_velocity.timestamp + 1_s);
 	const bool condition_angular_velocity_finite = matrix::Vector3f(angular_velocity.xyz).isAllFinite();
 	const bool angular_velocity_invalid = !condition_angular_velocity_time_valid
 					      || !condition_angular_velocity_finite;
@@ -774,7 +771,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 
 	// gps
 	if (vehicle_gps_position.timestamp != 0) {
-		bool time = now - vehicle_gps_position.timestamp < 1_s;
+		bool time = (now < vehicle_gps_position.timestamp + 1_s);
 
 		bool fix = vehicle_gps_position.fix_type >= 2;
 		bool eph = vehicle_gps_position.eph < _param_com_pos_fs_eph.get();
@@ -796,8 +793,7 @@ bool EstimatorChecks::checkPosVelValidity(const hrt_abstime &now, const bool dat
 		const bool was_valid) const
 {
 	bool valid = was_valid;
-	const bool data_stale = (now - data_timestamp_us > _param_com_pos_fs_delay.get() * 1_s)
-				|| (data_timestamp_us == 0);
+	const bool data_stale = (now > data_timestamp_us + _param_com_pos_fs_delay.get() * 1_s) || (data_timestamp_us == 0);
 	const float req_accuracy = (was_valid ? required_accuracy * 2.5f : required_accuracy);
 	const bool level_check_pass = data_valid && !data_stale && (data_accuracy < req_accuracy);
 
@@ -805,7 +801,7 @@ bool EstimatorChecks::checkPosVelValidity(const hrt_abstime &now, const bool dat
 	if (level_check_pass) {
 		if (!was_valid) {
 			// check if probation period has elapsed
-			if (now - last_fail_time_us > 1_s) {
+			if (now > last_fail_time_us + 1_s) {
 				valid = true;
 			}
 		}

@@ -102,8 +102,8 @@ bool HealthAndArmingChecks::update(bool force_reporting)
 	// Check if we need to publish the failsafe flags
 	const hrt_abstime now = hrt_absolute_time();
 
-	if (now - _failsafe_flags.timestamp > 500_ms || results_changed) {
-		_failsafe_flags.timestamp = now;
+	if ((now > _failsafe_flags.timestamp + 500_ms) || results_changed) {
+		_failsafe_flags.timestamp = hrt_absolute_time();
 		_failsafe_flags_pub.publish(_failsafe_flags);
 	}
 
