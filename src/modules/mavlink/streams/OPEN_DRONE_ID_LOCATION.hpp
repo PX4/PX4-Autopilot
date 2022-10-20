@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 
-#ifndef OPEN_DRONE_ID_LOCATION
-#define OPEN_DRONE_ID_LOCATION
+#ifndef OPEN_DRONE_ID_LOCATION_HPP
+#define OPEN_DRONE_ID_LOCATION_HPP
 
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/sensor_gps.h>
@@ -270,4 +270,4 @@ private:
 	}
 };
 
-#endif // OPEN_DRONE_ID_LOCATION
+#endif // OPEN_DRONE_ID_LOCATION_HPP
