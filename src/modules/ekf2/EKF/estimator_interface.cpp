@@ -221,7 +221,7 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 
 		baroSample baro_sample_new;
 		baro_sample_new.time_us = time_us;
-		baro_sample_new.hgt = compensateBaroForDynamicPressure(baro_sample.hgt);
+		baro_sample_new.hgt = baro_sample.hgt;
 
 		_baro_buffer->push(baro_sample_new);
 		_time_last_baro_buffer_push = _newest_high_rate_imu_sample.time_us;
