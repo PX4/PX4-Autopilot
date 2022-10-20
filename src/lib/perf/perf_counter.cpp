@@ -425,7 +425,7 @@ perf_print_counter(perf_counter_t handle)
 
 	switch (handle->type) {
 	case PC_COUNT:
-		PX4_INFO("%s: %" PRIu64 " events\n",
+		PX4_INFO_RAW("%s: %" PRIu64 " events\n",
 			 handle->name,
 			 ((struct perf_ctr_count *)handle)->event_count);
 		break;
@@ -433,7 +433,7 @@ perf_print_counter(perf_counter_t handle)
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
-			PX4_INFO("%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32
+			PX4_INFO_RAW("%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32
 				 "us %5.3fus rms\n",
 				 handle->name,
 				 pce->event_count,
@@ -449,7 +449,7 @@ perf_print_counter(perf_counter_t handle)
 			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
 			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
 
-			PX4_INFO("%s: %" PRIu64 " events, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms\n",
+			PX4_INFO_RAW("%s: %" PRIu64 " events, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms\n",
 				 handle->name,
 				 pci->event_count,
 				 (pci->event_count == 0) ? 0 : (double)(pci->time_last - pci->time_first) / (double)pci->event_count,
@@ -604,16 +604,16 @@ void
 perf_print_latency(void)
 {
 	latency_info_t latency;
-	PX4_INFO("bucket [us] : events\n");
+	PX4_INFO_RAW("bucket [us] : events\n");
 
 	for (int i = 0; i < get_latency_bucket_count(); i++) {
 		latency = get_latency(i, i);
-		PX4_INFO("       %4i : %li\n", latency.bucket, (long int)latency.counter);
+		PX4_INFO_RAW("       %4i : %li\n", latency.bucket, (long int)latency.counter);
 	}
 
 	// print the overflow bucket value
 	latency = get_latency(get_latency_bucket_count() - 1, get_latency_bucket_count());
-	PX4_INFO(" >%4" PRIu16 " : %" PRIu32 "\n", latency.bucket, latency.counter);
+	PX4_INFO_RAW(" >%4" PRIu16 " : %" PRIu32 "\n", latency.bucket, latency.counter);
 }
 
 void
