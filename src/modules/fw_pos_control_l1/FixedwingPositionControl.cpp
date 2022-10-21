@@ -617,42 +617,45 @@ FixedwingPositionControl::landing_status_publish()
 void
 FixedwingPositionControl::updateLandingAbortStatus(const uint8_t new_abort_status)
 {
-	// only announce changes
-	if (new_abort_status > 0 && _landing_abort_status != new_abort_status) {
+	if (!_flare_states.flaring) {
 
-		switch (new_abort_status) {
-		case (position_controller_landing_status_s::ABORTED_BY_OPERATOR): {
-				mavlink_log_critical(&_mavlink_log_pub, "Landing aborted by operator\t");
-				events::send(events::ID("fixedwing_position_control_landing_abort_status_operator_abort"), events::Log::Critical,
-					     "Landing aborted by operator");
-				break;
-			}
+		// only announce changes
+		if (new_abort_status > 0 && _landing_abort_status != new_abort_status) {
 
-		case (position_controller_landing_status_s::TERRAIN_NOT_FOUND): {
-				mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: terrain estimate not found\t");
-				events::send(events::ID("fixedwing_position_control_landing_abort_status_terrain_not_found"), events::Log::Critical,
-					     "Landing aborted: terrain measurement not found");
-				break;
-			}
+			switch (new_abort_status) {
+			case (position_controller_landing_status_s::ABORTED_BY_OPERATOR): {
+					mavlink_log_critical(&_mavlink_log_pub, "Landing aborted by operator\t");
+					events::send(events::ID("fixedwing_position_control_landing_abort_status_operator_abort"), events::Log::Critical,
+						     "Landing aborted by operator");
+					break;
+				}
 
-		case (position_controller_landing_status_s::TERRAIN_TIMEOUT): {
-				mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: terrain estimate timed out\t");
-				events::send(events::ID("fixedwing_position_control_landing_abort_status_terrain_timeout"), events::Log::Critical,
-					     "Landing aborted: terrain estimate timed out");
-				break;
-			}
+			case (position_controller_landing_status_s::TERRAIN_NOT_FOUND): {
+					mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: terrain estimate not found\t");
+					events::send(events::ID("fixedwing_position_control_landing_abort_status_terrain_not_found"), events::Log::Critical,
+						     "Landing aborted: terrain measurement not found");
+					break;
+				}
 
-		default: {
-				mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: unknown criterion\t");
-				events::send(events::ID("fixedwing_position_control_landing_abort_status_unknown_criterion"), events::Log::Critical,
-					     "Landing aborted: unknown criterion");
+			case (position_controller_landing_status_s::TERRAIN_TIMEOUT): {
+					mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: terrain estimate timed out\t");
+					events::send(events::ID("fixedwing_position_control_landing_abort_status_terrain_timeout"), events::Log::Critical,
+						     "Landing aborted: terrain estimate timed out");
+					break;
+				}
+
+			default: {
+					mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: unknown criterion\t");
+					events::send(events::ID("fixedwing_position_control_landing_abort_status_unknown_criterion"), events::Log::Critical,
+						     "Landing aborted: unknown criterion");
+				}
 			}
 		}
-	}
 
-	_landing_abort_status = (new_abort_status >= position_controller_landing_status_s::UNKNOWN_ABORT_CRITERION) ?
-				position_controller_landing_status_s::UNKNOWN_ABORT_CRITERION : new_abort_status;
-	landing_status_publish();
+		_landing_abort_status = (new_abort_status >= position_controller_landing_status_s::UNKNOWN_ABORT_CRITERION) ?
+					position_controller_landing_status_s::UNKNOWN_ABORT_CRITERION : new_abort_status;
+		landing_status_publish();
+	}
 }
 
 void
