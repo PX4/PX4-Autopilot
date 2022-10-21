@@ -37,10 +37,6 @@
  * @brief Performance measuring tools.
  */
 
-#ifndef MODULE_NAME
-#define MODULE_NAME "perf_counter"
-#endif
-
 #include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
