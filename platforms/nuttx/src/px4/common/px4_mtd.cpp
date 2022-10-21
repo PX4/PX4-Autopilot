@@ -57,6 +57,7 @@
 #include <nuttx/drivers/drivers.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/mtd/mtd.h>
+#include <fcntl.h>
 
 extern "C" {
 	struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev);
@@ -66,6 +67,9 @@ extern "C" {
 static int num_instances = 0;
 static mtd_instance_s *instances = nullptr;
 
+static uint8_t param_instance = 0;
+static uint8_t param_part = 0;
+static uint8_t param_block = 0;
 
 static int ramtron_attach(mtd_instance_s &instance)
 {
@@ -399,6 +403,12 @@ memoryout:
 				goto errout;
 			}
 
+			if (instances[i].partition_types[part] == MTD_PARAMETERS) {
+				param_instance = i;
+				param_part = part;
+				param_block = total_blocks;
+			}
+
 			total_blocks++;
 
 			/* Now create a character device on the block device */
@@ -469,4 +479,97 @@ __EXPORT int px4_mtd_query(const char *sub, const char *val, const char **get)
 	}
 
 	return rv;
+}
+
+int px4_mtd_unmount_littlefs_mount_block_device(void)
+{
+	char blockname[32];
+	snprintf(blockname, sizeof(blockname), "/dev/mtdblock%d", param_block);
+
+	nx_umount2(instances[param_instance].partition_names[param_part], 0);
+
+	int ret = unregister_mtddriver(blockname);
+
+	if (ret < 0) {
+		PX4_ERR("unregister_mtddriver fail: %d", ret);
+
+	} else {
+		ret = ftl_initialize(0, instances[0].part_dev[0]);
+
+		if (ret < 0) {
+			PX4_ERR("ftl_initialize failed: %d", ret);
+
+		} else {
+			ret = bchdev_register(blockname, instances[param_instance].partition_names[param_part], false);
+
+			if (ret < 0) {
+				PX4_ERR("bchdev_register failed: %d", ret);
+
+			}
+		}
+	}
+
+	return ret;
+}
+
+int px4_mtd_unmount_block_device_mount_littlefs(void)
+{
+	char blockname[32];
+	snprintf(blockname, sizeof(blockname), "/dev/mtdblock%d", param_block);
+
+	int ret =  bchdev_unregister(instances[param_instance].partition_names[param_part]);
+
+	if (ret < 0) {
+		PX4_ERR("bchdev_unregister %s failed: %d", instances[param_instance].partition_names[param_part], ret);
+
+	} else {
+		ret = unregister_blockdriver(blockname);
+
+		if (ret < 0) {
+			PX4_ERR("unregister_blockdriver %s failed: %d", blockname, ret);
+
+		} else {
+			ret = register_mtddriver(blockname, instances[param_instance].part_dev[param_part], 0755, nullptr);
+
+			if (ret < 0) {
+				PX4_ERR("register_mtddriver %s failed: %d", blockname, ret);
+
+			} else {
+				ret = nx_mount(blockname, instances[param_instance].partition_names[param_part], "littlefs", 0, "");
+
+				if (ret < 0) {
+					PX4_ERR("nx_mount %s failed: %d", instances[param_instance].partition_names[param_part], ret);
+
+				}
+			}
+		}
+	}
+
+	return ret;
+}
+
+int px4_mtd_erase_littlefs_records(void)
+{
+	uint8_t v[64];
+	memset(v, 0xFF, sizeof(v));
+
+	for (uint8_t i = 0; i < instances[param_instance].n_partitions_current; i++) {
+
+		uint32_t count = 0;
+		printf("Erasing %s\n", instances[param_instance].partition_names[i]);
+		int fd = open(instances[param_instance].partition_names[i], O_WRONLY);
+
+		if (fd == -1) {
+			PX4_ERR("Failed to open partition");
+			return 1;
+		}
+
+		while (write(fd, v, sizeof(v)) == sizeof(v)) {
+			count += sizeof(v);
+		}
+
+		close(fd);
+	}
+
+	return 0;
 }

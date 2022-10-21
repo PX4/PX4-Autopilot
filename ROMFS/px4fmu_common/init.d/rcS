@@ -141,6 +141,18 @@ else
 	param select $PARAM_FILE
 	if ! param import
 	then
+
+		echo "Try parameter reverse transition from LittleFS"
+		if ! param transition
+		then
+			echo "ERROR [init] param transition"
+		else
+			echo "Successful param reverse transition. The system will reboot!"
+			# Wait for UART to send messages
+			usleep 200000
+			reboot
+		fi
+
 		echo "ERROR [init] param import failed"
 		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
 
