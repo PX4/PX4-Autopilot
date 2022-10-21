@@ -210,6 +210,7 @@ private:
 	vehicle_land_detected_s			_land_detected{};
 	vehicle_local_position_s		_local_pos{};
 	vehicle_local_position_setpoint_s	_local_pos_sp{};
+	vehicle_status_s 			_vehicle_status{};
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
 
 	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};	// [kg/m^3]
@@ -222,11 +223,15 @@ private:
 	int		_transition_command{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
 	bool		_immediate_transition{false};
 
+	uint8_t _nav_state_prev;
+
 	VtolType	*_vtol_type{nullptr};	// base class for different vtol types
 
 	bool		_initialized{false};
 
 	perf_counter_t	_loop_perf;		// loop performance counter
+
+	void		vehicle_status_poll();
 
 	void		action_request_poll();
 
