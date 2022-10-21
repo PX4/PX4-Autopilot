@@ -260,7 +260,7 @@ fi
 navigator start
 
 # Try to start the microdds_client with UDP transport if module exists
-microdds_client start -t udp -p 8888
+microdds_client start -t udp -p "$((px4_instance+8888))" -n "px4_${px4_instance}"
 
 if param greater -s MNT_MODE_IN -1
 then
