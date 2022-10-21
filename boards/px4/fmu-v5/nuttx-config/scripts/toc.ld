@@ -20,7 +20,8 @@
 
 MEMORY
 {
-  progmem (r) : ORIGIN = 0x08008000, LENGTH = 2016K
+  /* -64 <- Leave room for the signature */
+  progmem (r) : ORIGIN = 0x08008000, LENGTH = 2016K - 64
 }
 
 OUTPUT_ARCH("arm")
