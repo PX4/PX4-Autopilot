@@ -470,7 +470,7 @@ FixedwingPositionINDIControl::_compute_wind_estimate_EKF()
     float speed = fmaxf(_cal_airspeed, _stall_speed);
     float u_approx = _true_airspeed;
     float v_approx = body_force(1)*_true_airspeed / (0.5f*_rho*powf(speed,2)*_area*_C_B1);
-    float w_approx = (-body_force(2)*_true_airspeed / (0.5f*_rho*powf(speed,2)*_area)-0.2125f)/_C_L1;
+    float w_approx = (-body_force(2)*_true_airspeed / (0.5f*_rho*powf(speed,2)*_area)-0.1949f)/3.5928f;
     Vector3f vel_air = R_ib*(Vector3f{u_approx, v_approx, w_approx});
 
     // compute wind from wind triangle
