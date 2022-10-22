@@ -79,40 +79,12 @@ FixedwingShearEstimator::init()
 
     parameters_update();
 
-    // init horizontal wind field
-    for (uint i=0; i<6; i++){
-        _X_prior_horizontal(i) = 0.f;
-        _X_posterior_horizontal(i) = 0.f;
-        for (uint j=0; j<6; j++){
-            _A_horizontal(i,j) = 0.f;
-        }
-    }
-    _P_prior_horizontal = 3.f*_Q_horizontal;
-    _P_posterior_horizontal = 3.f*_Q_horizontal;
-
-    // init vertical wind field
-    for (uint i=0; i<_dim_vertical; i++){
-        _X_prior_vertical(i) = 0.f;
-        _X_posterior_vertical(i) = 0.f;
-        for (uint j=0; j<_dim_vertical; j++){
-            _A_vertical(i,j) = 0.f;
-        }
-    }
-    _P_prior_vertical = 3.f*_Q_vertical;
-    _P_posterior_vertical = 3.f*_Q_vertical;
-
-
-    //
-    _X_prior_horizontal(4) = _init_height;
-    _X_posterior_horizontal(4) = _init_height;
-    _X_prior_horizontal(5) = 0.5f/_unit_a;
-    _X_posterior_horizontal(5) = 0.5f/_unit_a;
-
     // init time
     _last_run = hrt_absolute_time();
 
     // init reset counter
-    _reset_counter = 0;
+    _reset_counter = -1;
+    reset_filter();
 
     //
     _v_max_lock = 8.f;
@@ -257,16 +229,16 @@ FixedwingShearEstimator::reset_filter()
         _X_prior_horizontal(i) = 0.0f;
         _X_posterior_horizontal(i) = 0.0f;
     }
-    _P_prior_horizontal = 3.f*_Q_horizontal;
-    _P_posterior_horizontal = 3.f*_Q_horizontal;
+    _P_prior_horizontal = 10.f*_Q_horizontal;
+    _P_posterior_horizontal = 10.f*_Q_horizontal;
 
     // reset vertical wind state
     for (uint i=0;i<_dim_vertical;i++){
         _X_prior_vertical(i) = 0.0f;
         _X_posterior_vertical(i) = 0.0f;
     }
-    _P_prior_vertical = 3.f*_Q_vertical;
-    _P_posterior_vertical = 3.f*_Q_vertical;
+    _P_prior_vertical = 10.f*_Q_vertical;
+    _P_posterior_vertical = 10.f*_Q_vertical;
 
     // set height to enable convergence
     _X_prior_horizontal(4) = _init_height;
@@ -425,7 +397,8 @@ FixedwingShearEstimator::Run()
         _lock_params = soaring_controller_wind.lock_params;
         //PX4_INFO("estimating shear, shear lock is: \t%d", _lock_params);
 
-        if (true) {
+        // only update shear estimae if aircraft is close to the soaring frame origin (shear is a local phenomenon)
+        if (soaring_controller_wind.valid) {
             // prior update
             perform_prior_update();
 
@@ -634,6 +607,10 @@ int FixedwingShearEstimator::task_spawn(int argc, char *argv[])
 
 int FixedwingShearEstimator::custom_command(int argc, char *argv[])
 {
+    if (!strcmp(argv[0], "reset")) {
+        get_instance()->reset_filter();
+		return 0;
+	}
 	return print_usage("unknown command");
 }
 
@@ -645,14 +622,14 @@ int FixedwingShearEstimator::print_usage(const char *reason)
 
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
-### Description
-fw_dyn_soar_estimator is the fixed wing shear estimator for dynamic soaring.
-
-)DESCR_STR");
+        ### Description
+        fw_dyn_soar_estimator is the fixed wing shear estimator for dynamic soaring.
+        )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("fw_dyn_soar_estimator", "estimator");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
+    PRINT_MODULE_USAGE_COMMAND("reset");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

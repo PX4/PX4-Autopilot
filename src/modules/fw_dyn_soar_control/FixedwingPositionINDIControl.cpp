@@ -999,9 +999,10 @@ FixedwingPositionINDIControl::Run()
                 // only update in manual feedthrough in open loop soaring
                 _soaring_controller_wind.lock_params = !_switch_manual;
             }
-            Eulerf e(Quatf(_attitude.q));
-            float bank = e(0);
-            if ((float)fabs(bank)<0.5f) {
+            //Eulerf e(Quatf(_attitude.q));
+            //float bank = e(0);
+            // only declare wind estimate valid for shear estimator, if we are close to the soaring center
+            if ((float)sqrtf(powf(_pos(0),2)+powf(_pos(1),2))<100.f) {
                 _soaring_controller_wind.valid = true;
             }
             else {
