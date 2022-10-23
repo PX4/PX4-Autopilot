@@ -486,8 +486,7 @@ void Navigator::run()
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
 				if (cmd.param2 > FLT_EPSILON) {
 					// XXX not differentiating ground and airspeed yet
-					set_cruising_speed(cmd.param2);
-					set_vertical_speed(cmd.param2);
+					set_cruising_speed(cmd.param2,cmd.param1);
 
 				} else {
 					set_cruising_speed();
@@ -1016,13 +1015,17 @@ float Navigator::get_altitude_acceptance_radius()
 	}
 }
 
-float Navigator::get_cruising_speed()
+float Navigator::get_cruising_speed(uint8_t type)
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		if (_mission_cruising_speed_mc > 0.0f) {
-			return _mission_cruising_speed_mc;
 
+		if(type==0 || type==1){
+			return (_mission_cruising_speed_mc > 0.0f) ? _mission_cruising_speed_mc : -1.0f;
+		} else if (type==2) {
+			return (_mission_vertical_up_speed_mc > 0.0f) ? _mission_vertical_up_speed_mc : -1.0f;
+		} else if (type==3) {
+			return (_mission_vertical_down_speed_mc > 0.0f) ? _mission_vertical_down_speed_mc : -1.0f;
 		} else {
 			return -1.0f;
 		}
@@ -1037,40 +1040,22 @@ float Navigator::get_cruising_speed()
 	}
 }
 
-float Navigator::get_vertical_speed()
+void Navigator::set_cruising_speed(float speed, uint8_t type)
 {
-	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		if (_mission_vertical_speed_mc > 0.0f) {
-			return _mission_vertical_speed_mc;
 
-		} else {
-			return -1.0f;
+		//airspeed or groundspeed (does not differentiate currently)
+		if(type == 0 || type == 1){
+			_mission_cruising_speed_mc = speed;
+		} else if(type == 2) {
+			_mission_vertical_up_speed_mc = speed;
+		} else if(type == 3){
+			_mission_vertical_down_speed_mc = speed;
 		}
-
-	} else {
-		return -1.0f;
-	}
-}
-
-void Navigator::set_cruising_speed(float speed)
-{
-	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		_mission_cruising_speed_mc = speed;
 
 	} else {
 		_mission_cruising_speed_fw = speed;
 	}
-}
-
-void Navigator::set_vertical_speed(float speed)
-{
-	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		_mission_vertical_speed_mc = speed;
-
-	}
-
-	//TODO: fixed wing ???
 }
 
 void Navigator::reset_cruising_speed()

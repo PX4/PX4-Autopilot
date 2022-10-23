@@ -340,11 +340,15 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	// Prioritize cruise speed from the triplet when it's valid and more recent than the previously commanded cruise speed
 	const float cruise_speed_from_triplet = _sub_triplet_setpoint.get().current.cruising_speed;
-	const float vertical_speed_from_triplet = _sub_triplet_setpoint.get().current.vertical_speed;
+	const float vertical_up_speed_from_triplet = _sub_triplet_setpoint.get().current.vertical_up_speed;
+	const float vertical_down_speed_from_triplet = _sub_triplet_setpoint.get().current.vertical_down_speed;
 
-	if (PX4_ISFINITE(vertical_speed_from_triplet)
-	    && (_sub_triplet_setpoint.get().current.timestamp > _time_last_cruise_speed_override)) {
-		_mc_vertical_speed = vertical_speed_from_triplet;
+	if (PX4_ISFINITE(vertical_up_speed_from_triplet)) {
+		_mc_vertical_up_speed = vertical_up_speed_from_triplet;
+	}
+
+	if (PX4_ISFINITE(vertical_down_speed_from_triplet)) {
+		_mc_vertical_down_speed = vertical_down_speed_from_triplet;
 	}
 
 	if (PX4_ISFINITE(cruise_speed_from_triplet)
@@ -359,8 +363,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	// Ensure planned cruise speed is below the maximum such that the smooth trajectory doesn't get capped
 	_mc_cruise_speed = math::min(_mc_cruise_speed, _param_mpc_xy_vel_max.get());
-
-
 
 	// Temporary target variable where we save the local reprojection of the latest navigator current triplet.
 	Vector3f tmp_target;
@@ -795,7 +797,6 @@ void FlightTaskAuto::_updateTrajConstraints()
 	_position_smoothing.setMaxAllowedHorizontalError(_param_mpc_xy_err_max.get());
 	_position_smoothing.setVerticalAcceptanceRadius(_param_nav_mc_alt_rad.get());
 	_position_smoothing.setCruiseSpeed(_mc_cruise_speed);
-	_position_smoothing.setVerticalSpeed(_mc_vertical_speed);
 	_position_smoothing.setHorizontalTrajectoryGain(_param_mpc_xy_traj_p.get());
 	_position_smoothing.setTargetAcceptanceRadius(_target_acceptance_radius);
 
@@ -819,7 +820,7 @@ void FlightTaskAuto::_updateTrajConstraints()
 
 	} else if (_unsmoothed_velocity_setpoint(2) < 0.f) { // up
 		float z_accel_constraint = _param_mpc_acc_up_max.get();
-		float z_vel_constraint = _param_mpc_z_v_auto_up.get();
+		float z_vel_constraint = math::min(_mc_vertical_up_speed, _param_mpc_z_v_auto_up.get());
 
 		// The constraints are broken because they are used as hard limits by the position controller, so put this here
 		// until the constraints don't do things like cause controller integrators to saturate. Once the controller
@@ -839,8 +840,10 @@ void FlightTaskAuto::_updateTrajConstraints()
 		_position_smoothing.setMaxAccelerationZ(z_accel_constraint);
 
 	} else { // down
+		float z_vel_constraint = math::min(_mc_vertical_down_speed, _param_mpc_z_v_auto_dn.get());
+
 		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
-		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_dn.get());
+		_position_smoothing.setMaxVelocityZ(z_vel_constraint);
 	}
 
 	// Stretch the constraints of the velocity controller to leave some room for an additional

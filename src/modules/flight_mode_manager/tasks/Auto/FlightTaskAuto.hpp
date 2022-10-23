@@ -125,7 +125,8 @@ protected:
 	matrix::Vector3f _next_wp{}; /**< The next waypoint after target (local frame). If no next setpoint is available, next is set to target. */
 	bool _next_was_valid{false};
 	float _mc_cruise_speed{NAN}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
-	float _mc_vertical_speed{NAN}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
+	float _mc_vertical_up_speed{NAN}; /**< Requested vertical up speed. If not valid, default vertical up speed is used. */
+	float _mc_vertical_down_speed{NAN}; /**< Requested vertical down speed. If not valid, default vertical down speed is used. */
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 
 	uORB::SubscriptionData<home_position_s>			_sub_home_position{ORB_ID(home_position)};

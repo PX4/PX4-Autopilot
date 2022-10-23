@@ -37,7 +37,8 @@ bool loiter_direction_counter_clockwise # loiter direction is clockwise by defau
 float32 acceptance_radius   # navigation acceptance_radius if we're doing waypoint navigation
 
 float32 cruising_speed		# the generally desired cruising speed (not a hard constraint)
-float32 vertical_speed
+float32 vertical_up_speed
+float32 vertical_down_speed
 bool gliding_enabled		# commands the vehicle to glide if the capability is available (fixed wing only)
 float32 cruising_throttle	# the generally desired cruising throttle (not a hard constraint), only has an effect for rover
 
