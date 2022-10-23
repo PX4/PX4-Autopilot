@@ -59,10 +59,11 @@ void Ekf::controlGpsFusion()
 		controlGpsYawFusion(gps_sample, gps_checks_passing, gps_checks_failing);
 
 		// GNSS velocity
-		const float vel_obs_var = sq(math::max(gps_sample.sacc, _params.gps_vel_noise));
+		const float vel_var = sq(math::max(gps_sample.sacc, _params.gps_vel_noise));
+		const Vector3f vel_obs_var(vel_var, vel_var, vel_var * sq(1.5f));
 		updateVelocityAidSrcStatus(gps_sample.time_us,
 					   gps_sample.vel,                                             // observation
-					   Vector3f(vel_obs_var, vel_obs_var, vel_obs_var * sq(1.5f)), // observation variance
+					   vel_obs_var,                                                // observation variance
 					   math::max(_params.gps_vel_innov_gate, 1.f),                 // innovation gate
 					   _aid_src_gnss_vel);
 		_aid_src_gnss_vel.fusion_enabled = (_params.gnss_ctrl & GnssCtrl::VEL);
@@ -79,10 +80,11 @@ void Ekf::controlGpsFusion()
 			}
 		}
 
-		const float pos_obs_var = sq(pos_noise);
+		const float pos_var = sq(pos_noise);
+		const Vector2f pos_obs_var(pos_var, pos_var);
 		updateHorizontalPositionAidSrcStatus(gps_sample.time_us,
 						     gps_sample.pos,                             // observation
-						     Vector2f(pos_obs_var, pos_obs_var),         // observation variance
+						     pos_obs_var,                                // observation variance
 						     math::max(_params.gps_pos_innov_gate, 1.f), // innovation gate
 						     _aid_src_gnss_pos);
 		_aid_src_gnss_pos.fusion_enabled = (_params.gnss_ctrl & GnssCtrl::HPOS);
@@ -129,9 +131,11 @@ void Ekf::controlGpsFusion()
 							}
 						}
 
-						ECL_WARN("GPS fusion timeout - resetting");
-						resetVelocityToGps(gps_sample);
-						resetHorizontalPositionToGps(gps_sample);
+						ECL_WARN("GPS fusion timeout, resetting velocity and position");
+						_information_events.flags.reset_vel_to_gps = true;
+						_information_events.flags.reset_pos_to_gps = true;
+						resetVelocityTo(gps_sample.vel, vel_obs_var);
+						resetHorizontalPositionTo(gps_sample.pos, pos_obs_var);
 					}
 
 				} else {
@@ -165,7 +169,20 @@ void Ekf::controlGpsFusion()
 					_inhibit_ev_yaw_use = true;
 
 				} else {
-					startGpsFusion(gps_sample);
+					ECL_INFO("starting GPS fusion");
+					_information_events.flags.starting_gps_fusion = true;
+
+					// reset position
+					_information_events.flags.reset_pos_to_gps = true;
+					resetHorizontalPositionTo(gps_sample.pos, pos_obs_var);
+
+					// when already using another velocity source velocity reset is not necessary
+					if (!isHorizontalAidingActive()) {
+						_information_events.flags.reset_vel_to_gps = true;
+						resetVelocityTo(gps_sample.vel, vel_obs_var);
+					}
+
+					_control_status.flags.gps = true;
 				}
 
 			} else if (gps_checks_passing && !_control_status.flags.yaw_align && (_params.mag_fusion_type == MagFuseType::NONE)) {
@@ -173,8 +190,12 @@ void Ekf::controlGpsFusion()
 				if (resetYawToEKFGSF()) {
 					_information_events.flags.yaw_aligned_to_imu_gps = true;
 					ECL_INFO("Yaw aligned using IMU and GPS");
-					resetVelocityToGps(gps_sample);
-					resetHorizontalPositionToGps(gps_sample);
+
+					ECL_INFO("reset velocity and position to GPS");
+					_information_events.flags.reset_vel_to_gps = true;
+					_information_events.flags.reset_pos_to_gps = true;
+					resetVelocityTo(gps_sample.vel, vel_obs_var);
+					resetHorizontalPositionTo(gps_sample.pos, pos_obs_var);
 				}
 			}
 		}
