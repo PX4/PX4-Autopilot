@@ -352,13 +352,14 @@ FixedwingShearEstimator::perform_posterior_update(float height, Vector3f wind)
     }
 
     // find the correct sign of params (parametrization is not unique)
-    /*
     if (_X_posterior_horizontal(5)<0.f) {
         _X_posterior_horizontal(0) *= -1.f;
         _X_posterior_horizontal(1) *= -1.f;
+        _X_posterior_horizontal(2) = _X_posterior_horizontal(2) - _X_posterior_horizontal(0);
+        _X_posterior_horizontal(3) = _X_posterior_horizontal(3) - _X_posterior_horizontal(1);
         _X_posterior_horizontal(5) *= -1.f;
     }
-    */
+
 
 }
 
