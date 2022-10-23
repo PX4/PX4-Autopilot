@@ -695,20 +695,20 @@ private:
 	// fuse single velocity and position measurement
 	bool fuseVelPosHeight(const float innov, const float innov_var, const int obs_index);
 
-	void resetVelocityTo(const Vector3f &vel);
-	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel);
-	void resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var = NAN);
+	void resetVelocityTo(const Vector3f &vel, const Vector3f &new_vel_var);
 
-	void resetVelocityToGps(const gpsSample &gps_sample);
-	void resetHorizontalVelocityToOpticalFlow(const flowSample &flow_sample);
+	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel, const Vector2f &new_horz_vel_var);
+	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel, float vel_var) { resetHorizontalVelocityTo(new_horz_vel, Vector2f(vel_var, vel_var)); }
+
 	void resetVelocityToVision();
 	void resetHorizontalVelocityToZero();
 
-	void resetHorizontalPositionToGps(const gpsSample &gps_sample);
+	void resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var);
 	void resetHorizontalPositionToVision();
-	void resetHorizontalPositionToOpticalFlow();
 	void resetHorizontalPositionToLastKnown();
-	void resetHorizontalPositionTo(const Vector2f &new_horz_pos);
+
+	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var);
+	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const float pos_var = NAN) { resetHorizontalPositionTo(new_horz_pos, Vector2f(pos_var, pos_var)); }
 
 	bool isHeightResetRequired() const;
 
@@ -1025,7 +1025,6 @@ private:
 	void startAirspeedFusion();
 	void stopAirspeedFusion();
 
-	void startGpsFusion(const gpsSample &gps_sample);
 	void stopGpsFusion();
 	void stopGpsPosFusion();
 	void stopGpsVelFusion();
