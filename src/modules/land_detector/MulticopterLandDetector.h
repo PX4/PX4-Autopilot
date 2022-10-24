@@ -87,9 +87,6 @@ private:
 	/** Distance above ground below which entering ground contact state is possible when distance to ground is available. */
 	static constexpr float DIST_FROM_GROUND_THRESHOLD = 1.0f;
 
-	/** Down velocity threshold for setting "in_descend" flag */
-	static constexpr float DESCENT_TRAJECTORY_VZ_THRESHOLD = 0.3f;
-
 	/** Handles for interesting parameters. **/
 	struct {
 		param_t minThrottle;

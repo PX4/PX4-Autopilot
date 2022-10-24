@@ -202,7 +202,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
 			// Setpoints can be NAN
 			_in_descend = PX4_ISFINITE(trajectory_setpoint.velocity[2])
-				      && (trajectory_setpoint.velocity[2] > DESCENT_TRAJECTORY_VZ_THRESHOLD);
+				      && (trajectory_setpoint.velocity[2] >= 1.1f * _param_lndmc_z_vel_max.get());
 		}
 
 		// ground contact requires commanded descent until landed
