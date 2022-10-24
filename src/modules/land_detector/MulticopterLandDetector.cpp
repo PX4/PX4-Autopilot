@@ -152,13 +152,13 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		// vertical speed is often deteriorated when on the ground or due to propeller
 		// up/down throttling.
 
-		float max_vertical_velocity = _param_lndmc_z_vel_max.get();
+		float vertical_velocity_threshold = _param_lndmc_z_vel_max.get();
 
 		if (_maybe_landed_hysteresis.get_state()) {
-			max_vertical_velocity *= 2.5f;
+			vertical_velocity_threshold *= 2.5f;
 		}
 
-		_vertical_movement = (fabsf(_vehicle_local_position.vz) > max_vertical_velocity);
+		_vertical_movement = (fabsf(_vehicle_local_position.vz) > vertical_velocity_threshold);
 
 	} else {
 		_vertical_movement = true;
