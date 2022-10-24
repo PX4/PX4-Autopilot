@@ -62,3 +62,6 @@ param set-default GPS_SAT_INFO 1
 
 # Set sticks movement not to switch to RC, we use mode switch for this
 param set-default COM_RC_OVERRIDE 0
+
+# Set takeoff ramp to disabled for a more decisive takeoff action
+param set-default MPC_TKO_RAMP_T 0

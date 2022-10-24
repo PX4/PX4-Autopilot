@@ -41,9 +41,6 @@ param set MPC_XY_CRUISE 2.0
 # Track trajectory more aggressively (default 0.5)
 param set MPC_XY_TRAJ_P 0.7
 
-# Make it accelerate faster upwards at takeoff
-param set MPC_TKO_RAMP_T 1.0
-
 # Limit upward movement speed for safety
 param set MPC_Z_VEL_MAX_UP 1.0
 
