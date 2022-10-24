@@ -272,9 +272,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 		max_rotation_threshold *= 2.5f;
 	}
 
-	matrix::Vector2f angular_velocity{_angular_velocity(0), _angular_velocity(1)};
-
-	if (angular_velocity.norm() > max_rotation_threshold) {
+	if (_angular_velocity.xy().norm() > max_rotation_threshold) {
 		_rotational_movement = true;
 		return false;
 
