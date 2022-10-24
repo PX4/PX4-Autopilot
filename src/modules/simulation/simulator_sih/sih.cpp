@@ -682,11 +682,11 @@ int Sih::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-This module provide a simulator for quadrotors and fixed-wings running fully
+This module provides a simulator for quadrotors and fixed-wings running fully
 inside the hardware autopilot.
 
 This simulator subscribes to "actuator_outputs" which are the actuator pwm
-signals given by the mixer.
+signals given by the control allocation module.
 
 This simulator publishes the sensors signals corrupted with realistic noise
 in order to incorporate the state estimator in the loop.
