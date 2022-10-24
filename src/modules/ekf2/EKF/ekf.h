@@ -869,7 +869,7 @@ private:
 	bool haglYawResetReq() const;
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD; }
 
-	void runYawReset(const Vector3f &mag);
+	bool magYawReset(const Vector3f &mag);
 
 	void selectMagAuto();
 	void check3DMagFusionSuitability();

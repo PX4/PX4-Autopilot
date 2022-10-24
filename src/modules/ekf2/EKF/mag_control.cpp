@@ -160,10 +160,10 @@ void Ekf::controlMagFusion()
 		if ((_mag_yaw_reset_req || !_control_status.flags.yaw_align || haglYawResetReq())
 		    && !shouldInhibitMag()) {
 
-			runYawReset(_mag_lpf.getState());
-
-			// clear reset req
-			_mag_yaw_reset_req = false;
+			if (magYawReset(_mag_lpf.getState())) {
+				// clear reset req
+				_mag_yaw_reset_req = false;
+			}
 		}
 
 		if (!_control_status.flags.yaw_align) {
@@ -192,7 +192,7 @@ bool Ekf::haglYawResetReq() const
 	return false;
 }
 
-void Ekf::runYawReset(const Vector3f &mag)
+bool Ekf::magYawReset(const Vector3f &mag)
 {
 	bool has_realigned_yaw = false;
 
@@ -256,7 +256,11 @@ void Ekf::runYawReset(const Vector3f &mag)
 			// Zero the yaw bias covariance and set the variance to the initial alignment uncertainty
 			resetZDeltaAngBiasCov();
 		}
+
+		return true;
 	}
+
+	return false;
 }
 
 void Ekf::selectMagAuto()
