@@ -247,8 +247,14 @@ void Ekf::runYawReset(const Vector3f &mag)
 
 		// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
 		// to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
-		if (_mag_inhibit_yaw_reset_req) {
-			_mag_inhibit_yaw_reset_req = false;
+		static constexpr uint64_t YAW_AIDING_TIMEOUT_US = (uint64_t)5e6;
+
+		if (!_yaw_angle_observable
+		    && isTimedOut(_aid_src_mag_heading.time_last_fuse, YAW_AIDING_TIMEOUT_US)
+		    && isTimedOut(_aid_src_mag.time_last_fuse, YAW_AIDING_TIMEOUT_US)
+		    && isTimedOut(_aid_src_gnss_yaw.time_last_fuse, YAW_AIDING_TIMEOUT_US)
+		    && isTimedOut(_aid_src_ev_yaw.time_last_fuse, YAW_AIDING_TIMEOUT_US)
+		   ) {
 			// Zero the yaw bias covariance and set the variance to the initial alignment uncertainty
 			resetZDeltaAngBiasCov();
 		}
