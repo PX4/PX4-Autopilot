@@ -85,11 +85,12 @@ void Ekf::controlMagFusion()
 				_mag_counter++;
 			}
 
-			_control_status.flags.mag_field_disturbed = magFieldStrengthDisturbed(mag_sample.mag);
 
+			const Vector3f mag_observation = mag_sample.mag - _state.mag_B;
+
+			_control_status.flags.mag_field_disturbed = magFieldStrengthDisturbed(mag_observation);
 
 			// compute mag heading innovation (for estimator_aid_src_mag_heading logging)
-			const Vector3f mag_observation = mag_sample.mag - _state.mag_B;
 			const Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
 			const Vector3f mag_earth_pred = R_to_earth * mag_observation;
 
