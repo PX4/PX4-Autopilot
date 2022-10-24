@@ -154,7 +154,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 		float vertical_velocity_threshold = _param_lndmc_z_vel_max.get();
 
-		if (_maybe_landed_hysteresis.get_state()) {
+		if (_landed_hysteresis.get_state()) {
 			vertical_velocity_threshold *= 2.5f;
 		}
 
@@ -266,9 +266,9 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	// Next look if vehicle is not rotating (do not consider yaw)
 	float max_rotation_threshold = math::radians(_param_lndmc_rot_max.get());
 
-	// Widen max rotation thresholds if either in maybe landed state, thus making it harder
-	// to trigger a false positive !maybe_landed e.g. due to propeller throttling up/down.
-	if (_maybe_landed_hysteresis.get_state()) {
+	// Widen max rotation thresholds if either in landed state, thus making it harder
+	// to trigger a false positive !landed e.g. due to propeller throttling up/down.
+	if (_landed_hysteresis.get_state()) {
 		max_rotation_threshold *= 2.5f;
 	}
 
