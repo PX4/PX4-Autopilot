@@ -157,9 +157,8 @@ void Ekf::controlMagFusion()
 			_mag_yaw_reset_req = true;
 		}
 
-		if ((_mag_yaw_reset_req || !_control_status.flags.yaw_align || _mag_inhibit_yaw_reset_req || haglYawResetReq())
-		    && !_is_yaw_fusion_inhibited
-		) {
+		if ((_mag_yaw_reset_req || !_control_status.flags.yaw_align || haglYawResetReq())
+		    && !shouldInhibitMag()) {
 
 			runYawReset(_mag_lpf.getState());
 
@@ -173,7 +172,6 @@ void Ekf::controlMagFusion()
 		}
 
 		checkMagDeclRequired();
-		checkMagInhibition();
 
 		runMagAndMagDeclFusions(mag_sample.mag);
 	}
@@ -326,20 +324,6 @@ void Ekf::checkMagDeclRequired()
 	_control_status.flags.mag_dec = (_control_status.flags.mag_3D && (not_using_ne_aiding || user_selected));
 }
 
-void Ekf::checkMagInhibition()
-{
-	_is_yaw_fusion_inhibited = shouldInhibitMag();
-
-	if (!_is_yaw_fusion_inhibited) {
-		_mag_use_not_inhibit_us = _imu_sample_delayed.time_us;
-	}
-
-	// If magnetometer use has been inhibited continuously then a yaw reset is required for a valid heading
-	if (uint32_t(_imu_sample_delayed.time_us - _mag_use_not_inhibit_us) > (uint32_t)5e6) {
-		_mag_inhibit_yaw_reset_req = true;
-	}
-}
-
 bool Ekf::shouldInhibitMag() const
 {
 	// If the user has selected auto protection against indoor magnetic field errors, only use the magnetometer
@@ -385,7 +369,7 @@ void Ekf::runMagAndMagDeclFusions(const Vector3f &mag)
 	if (_control_status.flags.mag_3D) {
 		run3DMagAndDeclFusions(mag);
 
-	} else if (_control_status.flags.mag_hdg && !_is_yaw_fusion_inhibited) {
+	} else if (_control_status.flags.mag_hdg) {
 		// Rotate the measurements into earth frame using the zero yaw angle
 		Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
 
@@ -398,9 +382,13 @@ void Ekf::runMagAndMagDeclFusions(const Vector3f &mag)
 		float innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
 		float obs_var = fmaxf(sq(_params.mag_heading_noise), 1.e-4f);
 
+		_aid_src_mag_heading.observation = measured_hdg;
+		_aid_src_mag_heading.innovation = innovation;
 		_aid_src_mag_heading.fusion_enabled = _control_status.flags.mag_hdg;
 
-		fuseYaw(innovation, obs_var, _aid_src_mag_heading);
+		if (!shouldInhibitMag()) {
+			fuseYaw(innovation, obs_var, _aid_src_mag_heading);
+		}
 	}
 }
 
