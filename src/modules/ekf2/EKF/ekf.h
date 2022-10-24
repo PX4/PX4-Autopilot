@@ -773,7 +773,7 @@ private:
 
 	// reset the heading and magnetic field states using the declination and magnetometer measurements
 	// return true if successful
-	bool resetMagHeading();
+	bool resetMagHeading(const Vector3f &mag);
 
 	// reset the heading using the external vision measurements
 	// return true if successful
@@ -871,9 +871,9 @@ private:
 	void checkHaglYawResetReq();
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD; }
 
-	void runOnGroundYawReset();
+	void runOnGroundYawReset(const Vector3f &mag);
 	bool canResetMagHeading() const;
-	void runInAirYawReset();
+	void runInAirYawReset(const Vector3f &mag);
 
 	void selectMagAuto();
 	void check3DMagFusionSuitability();
