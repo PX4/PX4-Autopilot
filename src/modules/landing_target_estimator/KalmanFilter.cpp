@@ -44,66 +44,102 @@
 namespace landing_target_estimator
 {
 
-void KalmanFilter::predict(float dt, float acc)
+void KalmanFilter::predictState(float dt, float acc)
 {
-	_x(0) += _x(1) * dt + dt * dt / 2 * acc;
-	_x(1) += acc * dt;
+	/*
+	⎡        2                   ⎤
+	⎢- 0.5⋅Ts ⋅a + Ts⋅x(1) + x(0)⎥
+	⎢                            ⎥
+	⎣        -Ts⋅a + x(1)        ⎦
+	*/
 
-	matrix::Matrix<float, 2, 2> A; // propagation matrix
-	A(0, 0) = 1;
-	A(1, 1) = 1;
-	A(0, 1) = dt;
-
-	matrix::Matrix<float, 2, 1> G; // noise model
-	G(0, 0) = dt * dt / 2;
-	G(1, 0) = dt;
-
-	matrix::Matrix<float, 2, 2> process_noise = G * G.transpose() * _acc_var;
-
-	_covariance = A * _covariance * A.transpose() + process_noise;
+	_state(0) = _state(0) + _state(1) * dt - dt * dt / 2.f * acc;
+	_state(1) = _state(1) - acc * dt;
 }
 
-bool KalmanFilter::fusePosition(float meas, float measUnc)
+
+bool KalmanFilter::update()
 {
-
-	// H = [1, 0]
-	_residual = meas - _x(0);
-
-	// H * P * H^T simply selects P(0,0)
-	_innovCov = _covariance(0, 0) + measUnc;
-
 	// outlier rejection
-	float beta = _residual / _innovCov * _residual;
+	float beta = _innov / _innovCov * _innov;
 
 	// 5% false alarm probability
 	if (beta > 3.84f) {
 		return false;
 	}
 
-	matrix::Vector<float, 2> kalmanGain;
-	kalmanGain(0) = _covariance(0, 0);
-	kalmanGain(1) = _covariance(1, 0);
-	kalmanGain /= _innovCov;
+	matrix::Vector<float, 2> kalmanGain = _covariance * _measMatrix / _innovCov;
 
-	_x += kalmanGain * _residual;
-
-	matrix::Matrix<float, 2, 2> identity;
-	identity.identity();
-
-	matrix::Matrix<float, 2, 2> KH; // kalmanGain * H
-	KH(0, 0) = kalmanGain(0);
-	KH(1, 0) = kalmanGain(1);
-
-	_covariance = (identity - KH) * _covariance;
+	_state(0) += kalmanGain(0) * _innov;
+	_state(1) += kalmanGain(1) * _innov;
+	
+	_covariance = _covariance - kalmanGain * _measMatrix * _covariance;
 
 	return true;
+}
+
+void KalmanFilter::setH(matrix::Vector<float, 12> h_meas)
+{
+	// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
+
+	// For this filter: [rx, r_dotx]
+
+	_measMatrix(0) = h_meas(0);
+	_measMatrix(1) = h_meas(3); 
 
 }
 
-void KalmanFilter::getInnovations(float &innov, float &innovCov)
+void KalmanFilter::syncState(float dt, float acc)
 {
-	innov = _residual;
-	innovCov = _innovCov;
+	/*
+	⎡        2                   ⎤
+	⎢- 0.5⋅Ts ⋅a - Ts⋅x(1) + x(0)⎥
+	⎢                            ⎥
+	⎣        Ts⋅a + x(1)         ⎦
+	*/
+
+	_syncState(0) = _syncState(0) - _syncState(1) * dt - dt * dt / 2.f * acc;
+	_syncState(1) = _syncState(1) + acc * dt;
+}
+
+// void KalmanFilter::syncState(float dt, matrix::Vector<float, 3> acc){
+
+// }
+
+float KalmanFilter::computeInnovCov(float measUnc)
+{
+	/*
+	[h(0)⋅(cov(0;0)⋅h(0) + cov(0;1)⋅h(1)) + h(1)⋅(cov(0;1)⋅h(0) + cov(1;1)⋅h(1)) + r]
+	*/
+
+	_innovCov = _measMatrix(0) * (_covariance(0,0) * _measMatrix(0) + _covariance(0,1) * _measMatrix(1)) + _measMatrix(1)*(_covariance(0,1) * _measMatrix(0) + _covariance(1,1) * _measMatrix(1)) + measUnc; 
+	return _innovCov; 
+}
+
+float KalmanFilter::computeInnov(float meas)
+{
+	/* z - H*x */
+	_innov = meas - _measMatrix * _syncState;
+	return _innov; 
+}
+
+
+void KalmanFilter::predictCov(float dt)
+{
+	/*
+	⎡       4                                                             3                        ⎤
+	⎢0.25⋅Ts ⋅σₐ + Ts⋅p(0;1) + Ts⋅(Ts⋅p(1;1) + p(0;1)) + p(0;0)     0.5⋅Ts ⋅σₐ + Ts⋅p(1;1) + p(0;1)⎥
+	⎢                                                                                              ⎥
+	⎢                   3                                                     2                    ⎥
+	⎣             0.5⋅Ts ⋅σₐ + Ts⋅p(1;1) + p(0;1)                           Ts ⋅σₐ + p(1;1)        ⎦
+	*/
+ 
+	//Q = var* [1/4*T^4, 1/2*T^3; 1/2*T^3, T^2]
+	float off_diag = _inputVar * 0.5f * dt * dt * dt + dt * _covariance(1,1) + _covariance(0,1); 
+	_process_noise(0,0) += _inputVar * 0.25f * dt * dt * dt * dt + dt * _covariance(0,1) + dt * (dt * _covariance(1,1) + _covariance(0,1)); 
+	_process_noise(1,0) = off_diag;
+	_process_noise(0,1) = off_diag;
+	_process_noise(1,1) += _inputVar * dt * dt; 
 }
 
 } // namespace landing_target_estimator

@@ -69,45 +69,80 @@ public:
 	 * Default desctructor
 	 */
 	virtual ~KalmanFilter() {};
+	
+	//Prediction step: 
+	void predictState(float dt, float acc) override;
+	void predictCov(float dt) override;
 
-	void setPosition(float pos) override { _x(0) = pos; }
-	void setVelocity(float vel) override { _x(1) = vel; }
+	// Backwards state prediciton 
+	void syncState(float dt, float acc) override;
 
-	/**
-	 * Predict the state with an external acceleration estimate
-	 * @param dt            Time delta in seconds since last state change
-	 * @param acc           Acceleration estimate
-	 * @param acc_unc       Variance of acceleration estimate
-	 */
-	void predict(float dt, float acc) override;
+	void setH(matrix::Vector<float, 12> h_meas) override;
+	
+	virtual float computeInnovCov(float measUnc) override;
+	virtual float computeInnov(float meas) override;
 
-	/**
-	 * Update the state estimate with a measurement
-	 * @param meas    state measeasurement
-	 * @param measUnc measurement uncertainty
-	 * @return update success (measurement not rejected)
-	 */
-	bool fusePosition(float meas, float measUnc) override;
+	bool update() override;
 
-	float getPosition() override { return _x(0); }
-	float getVelocity() override { return _x(1); }
+	// Init: x_0
+	//TODO: Rename with "Init": setInitPosition
+	void setPosition(float pos) override { _state(0) = pos; }
+	void setVelocity(float vel) override { _state(1) = vel; }
+
+	// Init: P_0
+	void setStatePosVar(float pos_unc) override { _covariance(0, 0) = pos_unc; }
+	void setStateVelVar(float vel_unc) override { _covariance(1, 1) = vel_unc; }
+
+	// Retreive output of filter
+	float getPosition() override { return _state(0); }
+	float getVelocity() override { return _state(1); }
 
 	float getPosVar() override { return _covariance(0, 0); }
-	float getVelVar() override { return _covariance(0, 0); }
+	float getVelVar() override { return _covariance(1, 1); }
 
-	/**
-	 * Get measurement innovation and covariance of last update call
-	 * @param innov Measurement innovation
-	 * @param innovCov Measurement innovation covariance
-	 */
-	void getInnovations(float &innov, float &innovCov);
+	void setInputAccVar(float var) override { _inputVar = var;}
+
+
+	/* Unused functions:  */
+	void syncState(float dt, matrix::Vector<float, 3> acc) override {};
+	void predictState(float dt, matrix::Vector<float, 3> acc) override {};
+	void setH(float h_meas) override {};
+	void computeDynamicMatrix(float dt) override {};
+	void computeProcessNoise(float dt) override {};
+	void setTargetAcc(float acc) override {};
+	//For the single big Kalman filter, we need to work with vectors.
+	void setPosition(matrix::Vector<float, 3> posVect) override {};
+	void setVelocity(matrix::Vector<float, 3> velVect) override {};
+	void setTargetAcc(matrix::Vector<float, 3> accVect) override {};
+	void setStateAccVar(float var) override {};
+	void setStatePosVar(matrix::Vector<float, 3> posVect) override {};
+	void setStateVelVar(matrix::Vector<float, 3> posVect) override {};
+	void setStateAccVar(matrix::Vector<float, 3> posVect) override {};
+	float getAcceleration() { return 0.f; };
+	float getAccVar() { return 0.f; };
+	// Retreive output of single filter
+	matrix::Vector<float, 3> getPositionVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
+	matrix::Vector<float, 3> getVelocityVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
+	matrix::Vector<float, 3> getAccelerationVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
+	matrix::Vector<float, 3> getPosVarVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
+	matrix::Vector<float, 3> getVelVarVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
+	matrix::Vector<float, 3> getAccVarVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
+	void setInputAccVar(matrix::Matrix<float,3, 3> varVect) override {};
 
 private:
-	matrix::Vector<float, 2> _x; // state
+	matrix::Vector<float, 2> _state; // state
+
+	matrix::Vector<float, 2> _syncState; // state
+
+	matrix::Vector<float, 2> _measMatrix; // row of measurement matrix 
 
 	matrix::Matrix<float, 2, 2> _covariance; // state covariance
 
-	float _residual{0.0f}; // residual of last measurement update
+	matrix::Matrix<float, 2, 2> _process_noise;
+
+	float _inputVar{0.f}; 
+
+	float _innov{0.0f}; // residual of last measurement update
 
 	float _innovCov{0.0f}; // innovation covariance of last measurement update
 };

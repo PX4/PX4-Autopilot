@@ -59,10 +59,14 @@
 #include <uORB/topics/uwb_grid.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/estimator_aid_source_3d.h>
+#include <uORB/topics/estimator_aid_source_1d.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
 #include <lib/conversion/rotation.h>
+#include <lib/geo/geo.h>
 #include "KalmanFilter.h"
 
 using namespace time_literals;
@@ -87,21 +91,33 @@ protected:
 	/*
 	 * Update uORB topics.
 	 */
-	void _update_topics();
+	bool _update_topics();
 
 	/*
 	 * Update parameters.
 	 */
 	void updateParams() override;
 
+	// TODO: increase the timeout to at least 4 000 000
 	/* timeout after which filter is reset if target not seen */
 	static constexpr uint32_t landing_target_estimator_TIMEOUT_US = 2000000;
 
-	uORB::Publication<landing_target_pose_s> _targetPosePub{ORB_ID(landing_target_pose)};
-	landing_target_pose_s _target_pose{};
+	/* timeout after which the target is not valid if no measurements are seen*/
+	static constexpr uint32_t landing_target_valid_TIMEOUT_US = 2000000;
 
-	uORB::Publication<landing_target_innovations_s> _targetInnovationsPub{ORB_ID(landing_target_innovations)};
-	landing_target_innovations_s _target_innovations{};
+	uORB::Publication<landing_target_pose_s> _targetPosePub{ORB_ID(landing_target_pose)};
+
+	// publish innovations target_estimator_gps_pos
+	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_gps_pos_pub{ORB_ID(target_estimator_aid_gps_pos)};
+	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_gps_vel_pub{ORB_ID(target_estimator_aid_gps_vel)};
+	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_vision_pub{ORB_ID(target_estimator_aid_vision)};
+	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_irlock_pub{ORB_ID(target_estimator_aid_irlock)};
+	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_uwb_pub{ORB_ID(target_estimator_aid_uwb)};
+
+	estimator_aid_source_3d_s _target_innovations_array[5]{}; 
+
+	uORB::Publication<estimator_aid_source_1d_s> _target_estimator_aid_ev_yaw_pub{ORB_ID(target_estimator_aid_ev_yaw)};
+	estimator_aid_source_1d_s _target_estimator_aid_ev_yaw; 
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -109,59 +125,143 @@ private:
 
 	enum class TargetMode {
 		Moving = 0,
-		Stationary
+		Stationary, 
+		NotInit
 	};
 
-	struct {
+	enum class TargetModel {
+		FullPoseDecoupled = 0,
+		FullPoseCoupled, 
+		Horizontal, 
+		NotInit
+	};
+
+	struct targetObsOrientation
+	{
 		hrt_abstime timestamp;
-		float rel_pos_x;
-		float rel_pos_y;
-		float rel_pos_z;
-	} _target_position_report;
+		// Theta
+		bool updated_theta = false; 
+		float meas_theta = 0.f;
+		float meas_unc_theta = 0.f;
+		float meas_h_theta = 0.f;	
+	};
+
+	struct targetObsPos 
+	{
+		hrt_abstime timestamp;
+		
+		//TODO: check that all vectors are initialized to zero 
+		// x,y,z
+		bool any_xyz_updated; 
+		matrix::Vector<bool, 3> updated_xyz;
+		matrix::Vector<float, 3> meas_xyz;
+		matrix::Vector<float, 3> meas_unc_xyz;
+		matrix::Matrix<float, 3, 12> meas_h_xyz;	
+	};
+
+	/*
+	_target_pos_obs: vector of targetObsPos structure. Each component corresponds to a different measurements (VISION, IrLock, UWB, GPS, GPS velocity)
+	For each measurement, we have observations in the x,y,z directions. 
+		-- _target_pos_obs.updated_xyz 	--> 3x1 Vector: Indicates if we have an observation in the x, y or z direction
+		-- _target_pos_obs.meas_xyz 		--> 3x1 Vector: Measurements (meas_x, meas_y, meas_z)
+		-- _target_pos_obs.meas_unc_xyz 	--> 3x1 Vector: Measurements' uncertainties
+		-- _target_pos_obs.meas_h_xyz 		--> 3x12 Mat. The rows correspond to the x,y,z directions.
+	*/
+
+	// TODO: change in the code. 
+	enum ObservationType {
+		target_gps_pos = 0,
+		uav_gps_vel, 
+		fiducial_marker, 
+		irlock, 
+		uwb, 
+		nb_observations
+	};
+
+	enum Directions {
+		x = 0, 
+		xyz = 0, 
+		y = 1, 
+		z = 2, 
+		theta = 3, 
+		nb_directions = 4
+	}; 
+
+	targetObsPos _target_pos_obs[nb_observations]{}; //with enum for idx
+
+	targetObsOrientation _target_orientation_obs{}; 
+
+
+	TargetMode _target_mode{TargetMode::NotInit};
+	TargetModel _target_model{TargetModel::NotInit};
+
+	enum SensorFusionMask : uint16_t {
+		// Bit locations for fusion_mode
+		USE_TARGET_GPS_POS  = (1<<0),      ///< set to true to use target GPS position data
+		USE_UAV_GPS_VEL     = (1<<1),      ///< set to true to use drone GPS velocity data
+		USE_EXT_VIS_POS 	= (1<<2),      ///< set to true to use target relative position from vision-based data
+		USE_LIDAR_Z  		= (1<<3),      ///< set to true to use relative heigt from range sensor data
+		USE_IRLOCK_POS 		= (1<<4),      ///< set to true to use target relative position from irlock data
+		USE_UWB_POS     	= (1<<5),      ///< set to true to use target relative position from uwb data
+	};	
+
+	int _nb_position_kf; // Number of kalman filter instances for the position estimate (no orientation)
+	bool _estimate_orientation;
 
 	void selectTargetEstimator();
+	void initEstimator();
+	void predictionStep();
+	bool updateNED();
+	bool updateOrientation();
+	void publishTarget();
+	void publishInnovations();
 
 	uORB::Subscription _vehicleLocalPositionSub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _attitudeSub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _irlockReportSub{ORB_ID(irlock_report)};
 	uORB::Subscription _uwbDistanceSub{ORB_ID(uwb_distance)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _fiducial_marker_report_sub{ORB_ID(fiducial_marker_report)};
 
-	vehicle_local_position_s	_vehicleLocalPosition{};
-	vehicle_attitude_s		_vehicleAttitude{};
+	struct localPos
+	{
+		bool valid = false; 
+		float x = 0.f;
+		float y = 0.f;
+		float z = 0.f;	
+	};
+
+	localPos _local_pos{}; 
+
 	vehicle_acceleration_s		_vehicle_acceleration{};
-	irlock_report_s			_irlockReport{};
-	uwb_grid_s		_uwbGrid{};
-	uwb_distance_s		_uwbDistance{};
 
 	// keep track of which topics we have received
-	bool _vehicleLocalPosition_valid{false};
-	bool _vehicleAttitude_valid{false};
-	bool _vehicle_acceleration_valid{false};
-	bool _new_irlockReport{false};
 	bool _new_sensorReport{false};
 	bool _estimator_initialized{false};
-	// keep track of whether last measurement was rejected
-	bool _faulty{false};
 
 	matrix::Dcmf _R_att; //Orientation of the body frame
-	matrix::Dcmf _S_att; //Orientation of the sensor relative to body frame
-	matrix::Vector2f _rel_pos;
-	TargetEstimator *_target_estimator[2] {nullptr, nullptr};
+	matrix::Dcmf _R2_att;
+	TargetEstimator *_target_estimator[nb_directions] {nullptr, nullptr, nullptr, nullptr};
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
-	float _dist_z{1.0f};
 
 	void _check_params(const bool force);
 
 	void _update_state();
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::LTEST_ACC_UNC>) _param_ltest_acc_unc,
+		(ParamInt<px4::params::LTEST_AID_MASK>) _param_ltest_aid_mask,
+		(ParamFloat<px4::params::LTEST_GPS_T_UNC>) _param_ltest_gps_t_unc,
+		(ParamFloat<px4::params::LTEST_ACC_D_UNC>) _param_ltest_acc_d_unc,
+		(ParamFloat<px4::params::LTEST_ACC_T_UNC>) _param_ltest_acc_t_unc,
+		(ParamFloat<px4::params::LTEST_BIAS_UNC>) _param_ltest_bias_unc,
 		(ParamFloat<px4::params::LTEST_MEAS_UNC>) _param_ltest_meas_unc,
 		(ParamFloat<px4::params::LTEST_POS_UNC_IN>) _param_ltest_pos_unc_in,
 		(ParamFloat<px4::params::LTEST_VEL_UNC_IN>) _param_ltest_vel_unc_in,
+		(ParamFloat<px4::params::LTEST_ACC_UNC_IN>) _param_ltest_acc_unc_in,
 		(ParamInt<px4::params::LTEST_MODE>) _param_ltest_mode,
+		(ParamInt<px4::params::LTEST_MODEL>) _param_ltest_model,
 		(ParamFloat<px4::params::LTEST_SCALE_X>) _param_ltest_scale_x,
 		(ParamFloat<px4::params::LTEST_SCALE_Y>) _param_ltest_scale_y,
 		(ParamInt<px4::params::LTEST_SENS_ROT>) _param_ltest_sens_rot,

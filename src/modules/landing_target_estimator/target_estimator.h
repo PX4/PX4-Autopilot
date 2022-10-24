@@ -41,29 +41,66 @@ class TargetEstimator
 public:
 	TargetEstimator() = default;
 	virtual ~TargetEstimator() = default;
+  
+	//Prediction step: 
+	virtual void predictState(float dt, float acc) = 0;
+	virtual void predictState(float dt, matrix::Vector<float, 3> acc);
+	virtual void predictCov(float dt) {};
 
-	virtual void predict(float dt, float acceleration) = 0;
-	virtual bool fusePosition(float pos, float var) { return true; }
-	virtual bool fuseVeloticy(float pos, float var) { return true; }
+	// Backwards state prediciton 
+	virtual void syncState(float dt, float acc);
+	virtual void syncState(float dt, matrix::Vector<float, 3> acc){};
 
-	virtual void setPosition(float pos) {};
-	virtual void setVelocity(float vel) {};
-	virtual void setTargetAcc(float acc) {};
 
-	virtual void setInputAccVar(float var) { _acc_var = var; }
+	virtual void setH(matrix::Vector<float, 12> h_meas);
+	virtual void setH(float h_meas);
 
-	virtual void setStatePosVar(float var) {};
-	virtual void setStateVelVar(float var) {};
-	virtual void setStateAccVar(float var) {};
+	virtual float computeInnovCov(float measUnc);
+	virtual float computeInnov(float meas);
 
-	virtual float getPosition() { return 0.f; }
-	virtual float getVelocity() { return 0.f; }
-	virtual float getAcceleration() { return 0.f; }
+	virtual bool update() { return true; };
 
-	virtual float getPosVar() = 0;
-	virtual float getVelVar() { return 0.f; }
-	virtual float getAccVar() { return 0.f; }
+	virtual void computeDynamicMatrix(float dt);
+	virtual void computeProcessNoise(float dt);
 
-protected:
-	float _acc_var{};
+	// Init: x_0
+	//TODO: Rename with "Init": setInitPosition
+	virtual void setPosition(float pos);
+	virtual void setVelocity(float vel);
+	virtual void setTargetAcc(float acc);
+
+	//For the single big Kalman filter, we need to work with vectors.
+	virtual void setPosition(matrix::Vector<float, 3> posVect);
+	virtual void setVelocity(matrix::Vector<float, 3> velVect);
+	virtual void setTargetAcc(matrix::Vector<float, 3> accVect);
+
+	// Init: P_0
+	virtual void setStatePosVar(float var){};
+	virtual void setStateVelVar(float var);
+	virtual void setStateAccVar(float var);
+
+	virtual void setStatePosVar(matrix::Vector<float, 3> posVect);
+	virtual void setStateVelVar(matrix::Vector<float, 3> posVect);
+	virtual void setStateAccVar(matrix::Vector<float, 3> posVect);
+
+	// Retreive output of filter 
+	virtual float getPosition() { return 0.f; };
+	virtual float getVelocity() { return 0.f; };
+	virtual float getAcceleration() { return 0.f; };
+
+	virtual float getPosVar() { return 0.f; };
+	virtual float getVelVar() { return 0.f; };
+	virtual float getAccVar() { return 0.f; };
+
+	// Retreive output of single filter
+	virtual matrix::Vector<float, 3> getPositionVect();
+	virtual matrix::Vector<float, 3> getVelocityVect();
+	virtual matrix::Vector<float, 3> getAccelerationVect();
+
+	virtual matrix::Vector<float, 3> getPosVarVect();
+	virtual matrix::Vector<float, 3> getVelVarVect();
+	virtual matrix::Vector<float, 3> getAccVarVect();
+
+	virtual void setInputAccVar(float var);
+	virtual void setInputAccVar(matrix::Matrix<float,3, 3> varVect); 
 };

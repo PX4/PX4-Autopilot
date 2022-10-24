@@ -41,6 +41,30 @@
  */
 
 /**
+ * Integer bitmask controlling data fusion and aiding methods.
+ *
+ * Set bits in the following positions to enable:
+ * 0 : Set to true to use target GPS position data if available
+ * 1 : Set to true to use drone GPS velocity data if available
+ * 2 : Set to true to use target relative position from vision-based data if available
+ * 3 : Set to true to use relative heigt from range sensor data if available
+ * 4 : Set to true to use target relative position from irlock data if available
+ * 5 : Set to true to use target relative position from uwb data if available
+ *
+ * @group Landing target Estimator
+ * @min 0
+ * @max 63
+ * @bit 0 target gps position
+ * @bit 1 drone gps velocity
+ * @bit 2 vision relative position
+ * @bit 3 lidar relative height
+ * @bit 4 irlock relative position
+ * @bit 5 uwb relative position
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(LTEST_AID_MASK, 7);
+
+/**
  * Landing target mode
  *
  * Configure the mode of the landing target. Depending on the mode, the landing target observations are used differently to aid position estimation.
@@ -57,9 +81,40 @@
 PARAM_DEFINE_INT32(LTEST_MODE, 0);
 
 /**
- * Acceleration uncertainty
+ * Landing target model
  *
- * Variance of acceleration measurement used for landing target position prediction.
+ * Configure the mode of the landing target. Depending on the mode, the landing target observations are used differently to aid position estimation.
+ *
+ * Mode Full pose:  x,y,z,theta decoupled
+ * Mode single filter: [x,y,z] coupled, theta
+ * Mode Horizontal: x,y decoupled
+ *
+ * @min 0
+ * @max 1
+ * @group Landing target Estimator
+ * @value 0 Full pose
+ * @value 1 FullPoseCoupled
+ * @value 2 Horizontal
+ */
+PARAM_DEFINE_INT32(LTEST_MODEL, 0);
+
+/**
+ * Target GPS position uncertainty
+ *
+ *
+ * @unit (m/s^2)^2
+ * @min 0.01
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_GPS_T_UNC, 10.0f);
+
+//TODO: the acc uncertainty should come from the IMUs or the EKF
+/**
+ * Drone acceleration uncertainty
+ *
+ * Variance of drone's acceleration used for landing target position prediction.
  * Higher values results in tighter following of the measurements and more lenient outlier rejection
  *
  * @unit (m/s^2)^2
@@ -68,7 +123,35 @@ PARAM_DEFINE_INT32(LTEST_MODE, 0);
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_ACC_UNC, 10.0f);
+PARAM_DEFINE_FLOAT(LTEST_ACC_D_UNC, 10.0f);
+
+/**
+ * Target acceleration uncertainty
+ *
+ * Variance of target acceleration (in NED frame) used for landing target position prediction.
+ * Higher values results in tighter following of the measurements and more lenient outlier rejection
+ *
+ * @unit (m/s^2)^2
+ * @min 0.01
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_ACC_T_UNC, 10.0f);
+
+/**
+ * Bias uncertainty
+ *
+ * Variance of GPS bias used for landing target position prediction.
+ * Higher values results in tighter following of the measurements and more lenient outlier rejection
+ *
+ * @unit (m/s^2)^2
+ * @min 0.01
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_BIAS_UNC, 10.0f);
 
 /**
  * Landing target measurement uncertainty
@@ -84,9 +167,9 @@ PARAM_DEFINE_FLOAT(LTEST_ACC_UNC, 10.0f);
 PARAM_DEFINE_FLOAT(LTEST_MEAS_UNC, 0.005f);
 
 /**
- * Initial landing target position uncertainty
+ * Initial landing target - drone relative position uncertainty
  *
- * Initial variance of the relative landing target position in x and y direction
+ * Initial variance of the relative landing target position in x,y,z direction
  *
  * @unit m^2
  * @min 0.001
@@ -97,9 +180,9 @@ PARAM_DEFINE_FLOAT(LTEST_MEAS_UNC, 0.005f);
 PARAM_DEFINE_FLOAT(LTEST_POS_UNC_IN, 0.1f);
 
 /**
- * Initial landing target velocity uncertainty
+ * Initial landing target - drone relative velocity uncertainty
  *
- * Initial variance of the relative landing target velocity in x and y directions
+ * Initial variance of the relative landing target velocity in x,y,z directions
  *
  * @unit (m/s)^2
  * @min 0.001
@@ -108,6 +191,19 @@ PARAM_DEFINE_FLOAT(LTEST_POS_UNC_IN, 0.1f);
  * @group Landing target Estimator
  */
 PARAM_DEFINE_FLOAT(LTEST_VEL_UNC_IN, 0.1f);
+
+/**
+ * Initial landing target absolute acceleration uncertainty
+ *
+ * Initial variance of the relative landing target acceleration in x,y,z directions
+ *
+ * @unit (m/s)^2
+ * @min 0.001
+ * @decimal 3
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_ACC_UNC_IN, 0.1f);
 
 /**
  * Scale factor for sensor measurements in sensor x axis
