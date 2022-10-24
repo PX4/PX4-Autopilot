@@ -868,12 +868,10 @@ private:
 	// control fusion of magnetometer observations
 	void controlMagFusion();
 
-	void checkHaglYawResetReq();
+	bool haglYawResetReq() const;
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD; }
 
-	void runOnGroundYawReset(const Vector3f &mag);
-	bool canResetMagHeading() const;
-	void runInAirYawReset(const Vector3f &mag);
+	void runYawReset(const Vector3f &mag);
 
 	void selectMagAuto();
 	void check3DMagFusionSuitability();

@@ -274,11 +274,6 @@ void Ekf::alignOutputFilter()
 // Reset heading and magnetic field states
 bool Ekf::resetMagHeading(const Vector3f &mag)
 {
-	// prevent a reset being performed more than once on the same frame
-	if (_imu_sample_delayed.time_us == _flt_mag_align_start_time) {
-		return true;
-	}
-
 	const bool heading_required_for_navigation = _control_status.flags.gps;
 
 	if ((_params.mag_fusion_type <= MagFuseType::MAG_3D) || ((_params.mag_fusion_type == MagFuseType::INDOOR) && heading_required_for_navigation)) {
@@ -300,9 +295,6 @@ bool Ekf::resetMagHeading(const Vector3f &mag)
 		_state.mag_I = _R_to_earth * mag;
 
 		resetMagCov();
-
-		// record the time for the magnetic field alignment event
-		_flt_mag_align_start_time = _imu_sample_delayed.time_us;
 
 		return true;
 	}

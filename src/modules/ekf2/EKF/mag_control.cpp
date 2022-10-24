@@ -157,21 +157,14 @@ void Ekf::controlMagFusion()
 			_mag_yaw_reset_req = true;
 		}
 
-		if ((_mag_yaw_reset_req || !_control_status.flags.yaw_align || _mag_inhibit_yaw_reset_req)
+		if ((_mag_yaw_reset_req || !_control_status.flags.yaw_align || _mag_inhibit_yaw_reset_req || haglYawResetReq())
 		    && !_is_yaw_fusion_inhibited
 		) {
 
-			const Vector3f mag_init = _mag_lpf.getState() - _state.mag_B;
+			runYawReset(_mag_lpf.getState());
 
-			if (!magFieldStrengthDisturbed(mag_init)) {
-				if (_control_status.flags.in_air) {
-					checkHaglYawResetReq();
-					runInAirYawReset(mag_init);
-
-				} else {
-					runOnGroundYawReset(mag_init);
-				}
-			}
+			// clear reset req
+			_mag_yaw_reset_req = false;
 		}
 
 		if (!_control_status.flags.yaw_align) {
@@ -186,43 +179,22 @@ void Ekf::controlMagFusion()
 	}
 }
 
-void Ekf::checkHaglYawResetReq()
+bool Ekf::haglYawResetReq() const
 {
 	// We need to reset the yaw angle after climbing away from the ground to enable
 	// recovery from ground level magnetic interference.
-	if (!_control_status.flags.mag_aligned_in_flight) {
+	if (_control_status.flags.in_air && !_control_status.flags.mag_aligned_in_flight) {
 		// Check if height has increased sufficiently to be away from ground magnetic anomalies
 		// and request a yaw reset if not already requested.
 		static constexpr float mag_anomalies_max_hagl = 1.5f;
 		const bool above_mag_anomalies = (getTerrainVPos() - _state.pos(2)) > mag_anomalies_max_hagl;
-		_mag_yaw_reset_req = _mag_yaw_reset_req || above_mag_anomalies;
+		return above_mag_anomalies;
 	}
+
+	return false;
 }
 
-void Ekf::runOnGroundYawReset(const Vector3f &mag)
-{
-	const bool has_realigned_yaw = canResetMagHeading() ? resetMagHeading(mag) : false;
-
-	if (has_realigned_yaw) {
-		_mag_yaw_reset_req = false;
-		_control_status.flags.yaw_align = true;
-
-		// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
-		// to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
-		if (_mag_inhibit_yaw_reset_req) {
-			_mag_inhibit_yaw_reset_req = false;
-			// Zero the yaw bias covariance and set the variance to the initial alignment uncertainty
-			resetZDeltaAngBiasCov();
-		}
-	}
-}
-
-bool Ekf::canResetMagHeading() const
-{
-	return !_control_status.flags.mag_field_disturbed && (_params.mag_fusion_type != MagFuseType::NONE);
-}
-
-void Ekf::runInAirYawReset(const Vector3f &mag)
+void Ekf::runYawReset(const Vector3f &mag)
 {
 	bool has_realigned_yaw = false;
 
@@ -255,19 +227,23 @@ void Ekf::runInAirYawReset(const Vector3f &mag)
 			 );
 
 		resetMagCov();
+
+		has_realigned_yaw = true;
 	}
 
-	if (!has_realigned_yaw && canResetMagHeading()) {
-		has_realigned_yaw = resetMagHeading(mag);
+	if (!has_realigned_yaw && !magFieldStrengthDisturbed(mag - _state.mag_B)) {
+		has_realigned_yaw = resetMagHeading(mag - _state.mag_B);
 	}
 
 	if (has_realigned_yaw) {
-		_mag_yaw_reset_req = false;
 		_control_status.flags.yaw_align = true;
-		_control_status.flags.mag_aligned_in_flight = true;
 
-		// record the time for the magnetic field alignment event
-		_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+		if (_control_status.flags.in_air) {
+			_control_status.flags.mag_aligned_in_flight = true;
+
+			// record the time for the magnetic field alignment event
+			_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+		}
 
 		// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
 		// to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
