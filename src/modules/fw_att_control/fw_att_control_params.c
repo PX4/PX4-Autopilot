@@ -500,7 +500,6 @@ PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 30.0f);
  * Flaps setting during take-off
  *
  * Sets a fraction of full flaps during take-off.
- * Also applies to flaperons if enabled in the mixer/allocation.
  *
  * @unit norm
  * @min 0.0
@@ -515,7 +514,6 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_TO_SCL, 0.0f);
  * Flaps setting during landing
  *
  * Sets a fraction of full flaps during landing.
- * Also applies to flaperons if enabled in the mixer/allocation.
  *
  * @unit norm
  * @min 0.0
