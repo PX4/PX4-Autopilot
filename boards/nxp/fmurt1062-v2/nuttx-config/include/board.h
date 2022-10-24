@@ -237,8 +237,7 @@
 #define GPIO_LPUART2_RX   (GPIO_LPUART2_RX_1 | LPUART_IOMUX) /* GPIO_AD_B1_03 */
 
 /*
- * Telem 1 has the GPIO HW HS signals. The imx driver to dated does not support GOIO controlled
- * HS lines
+ * Telem 1 has RTS as a GPIO HW HS signals.
  */
 
 /* Telem 1 */
@@ -248,7 +247,7 @@
 
 #define GPIO_LPUART3_TX   (GPIO_LPUART3_TX_3 | LPUART_IOMUX) /* GPIO_B0_08 */
 #define GPIO_LPUART3_RX   (GPIO_LPUART3_RX_3 | LPUART_IOMUX) /* GPIO_B0_09 */
-#define GPIO_LPUART3_CTS  (GPIO_PORT1 | GPIO_PIN26  | GPIO_INPUT  | HS_INPUT_IOMUX)  /* GPIO_AD_B1_10 GPIO1_IO26 (GPIO only, no HW Flow control) */
+#define GPIO_LPUART3_CTS  GPIO_LPUART3_CTS_2                 /* GPIO_EMC_15  GPIO4_IO15 */
 #define GPIO_LPUART3_RTS  (GPIO_PORT4 | GPIO_PIN24 | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | HS_OUTPUT_IOMUX) /* GPIO_EMC_24   GPIO4_IO24 (GPIO only, no HW Flow control) */
 
 /* Telem 2 */
