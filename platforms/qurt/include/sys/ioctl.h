@@ -31,9 +31,9 @@
  *
  ****************************************************************************/
 
-/*This file is meant to tackle the dependencies on IOCTL found in PX4.
-As QURT does not have IOCTL natively, this file exists to define those 
-functions/params found throughout the code base. */
+//This file is meant to tackle the dependencies on IOCTL found in PX4.
+//As QURT does not have IOCTL natively, this file exists to define those 
+//functions/params found throughout the code base.
 
 #pragma once
 
