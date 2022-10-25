@@ -147,10 +147,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
 					    events::ID("check_estimator_hor_vel_not_stable"),
-					    events::Log::Error, "Horizontal velocity estimate not stable");
+					    events::Log::Error, "Horizontal velocity unstable");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: horizontal velocity estimate not stable");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: horizontal velocity unstable");
 		}
 
 	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_vert) {
@@ -158,10 +158,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
 					    events::ID("check_estimator_vert_vel_not_stable"),
-					    events::Log::Error, "Vertical velocity estimate not stable");
+					    events::Log::Error, "Vertical velocity unstable");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: vertical velocity estimate not stable");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: vertical velocity unstable");
 		}
 
 	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_height) {
@@ -194,10 +194,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		 */
 		reporter.armingCheckFailure(required_groups_mag, health_component_t::local_position_estimate,
 					    events::ID("check_estimator_mag_interference"),
-					    events::Log::Warning, "Strong magnetic interference detected");
+					    events::Log::Warning, "Strong magnetic interference");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Strong magnetic interference detected");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Strong magnetic interference");
 		}
 	}
 
