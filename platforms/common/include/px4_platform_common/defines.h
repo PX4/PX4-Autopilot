@@ -39,7 +39,11 @@
 
 #pragma once
 
+#ifndef __PX4_QURT
 #include <sys/ioctl.h>
+#else
+#include "qurt_reqs.h"
+#endif
 
 /****************************************************************************
  * Defines for all platforms.
