@@ -169,12 +169,36 @@ void Ekf::controlMagFusion()
 
 				magYawReset(_mag_lpf.getState());
 			}
+		}
+	}
 
-			if (_control_status.flags.yaw_align) {
-				// Having the yaw aligned is mandatory to continue
-				checkMagDeclRequired();
-				runMagAndMagDeclFusions(mag_sample.mag);
-			}
+	// mag 3D
+	if (_control_status.flags.mag_3D && _control_status.flags.yaw_align && mag_data_ready) {
+		checkMagDeclRequired();
+		run3DMagAndDeclFusions(mag_sample.mag);
+	}
+
+	// mag heading
+	if (_control_status.flags.mag_hdg && _control_status.flags.yaw_align && mag_data_ready) {
+		// Rotate the measurements into earth frame using the zero yaw angle
+		Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
+
+		Vector3f mag_earth_pred = R_to_earth * (mag_sample.mag - _state.mag_B);
+
+		// the angle of the projection onto the horizontal gives the yaw angle
+		// calculate the yaw innovation and wrap to the interval between +-pi
+		_mag_declination = getMagDeclination();
+		float measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
+
+		float innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
+		float obs_var = fmaxf(sq(_params.mag_heading_noise), 1.e-4f);
+
+		_aid_src_mag_heading.observation = measured_hdg;
+		_aid_src_mag_heading.innovation = innovation;
+		_aid_src_mag_heading.fusion_enabled = _control_status.flags.mag_hdg;
+
+		if (!shouldInhibitMag()) {
+			fuseYaw(innovation, obs_var, _aid_src_mag_heading);
 		}
 	}
 }
@@ -361,35 +385,6 @@ bool Ekf::isMeasuredMatchingExpected(const float measured, const float expected,
 {
 	return (measured >= expected - gate)
 	       && (measured <= expected + gate);
-}
-
-void Ekf::runMagAndMagDeclFusions(const Vector3f &mag)
-{
-	if (_control_status.flags.mag_3D) {
-		run3DMagAndDeclFusions(mag);
-
-	} else if (_control_status.flags.mag_hdg) {
-		// Rotate the measurements into earth frame using the zero yaw angle
-		Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
-
-		Vector3f mag_earth_pred = R_to_earth * (mag - _state.mag_B);
-
-		// the angle of the projection onto the horizontal gives the yaw angle
-		// calculate the yaw innovation and wrap to the interval between +-pi
-		_mag_declination = getMagDeclination();
-		float measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
-
-		float innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
-		float obs_var = fmaxf(sq(_params.mag_heading_noise), 1.e-4f);
-
-		_aid_src_mag_heading.observation = measured_hdg;
-		_aid_src_mag_heading.innovation = innovation;
-		_aid_src_mag_heading.fusion_enabled = _control_status.flags.mag_hdg;
-
-		if (!shouldInhibitMag()) {
-			fuseYaw(innovation, obs_var, _aid_src_mag_heading);
-		}
-	}
 }
 
 void Ekf::run3DMagAndDeclFusions(const Vector3f &mag)
