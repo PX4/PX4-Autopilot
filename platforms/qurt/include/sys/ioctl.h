@@ -43,11 +43,7 @@
  		((inout) | (((len) & IOCPARM_MASK) << 16) | ((group) << 8) | (num)))
 #define	_IO(g,n)	_IOC(IOC_VOID,	(g), (n), 0)
 
-__BEGIN_DECLS
-
-int ioctl(int fd, int request, void *argp);
-
-__END_DECLS
-
+typedef unsigned long useconds_t;
+int usleep(useconds_t usec);
 
 #endif
