@@ -2515,6 +2515,14 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 				      "landing target: unsupported coordinate frame {1}", landing_target.frame);
 
 	} else {
+		// The following was always a work-around:
+		// irlock_report message, packaged as landing_target message over mavlink
+		// See https://github.com/PX4/PX4-Autopilot/issues/14698
+		//
+		// irlock_report needs to be reworked into a message that supports feeding PX4's
+		// landing_target_estimator from offboard. This should not be limited to
+		// single-point IR beacons, but should support and form of marker, including tags
+		// that have an orientation.
 		irlock_report_s irlock_report{};
 
 		irlock_report.timestamp = hrt_absolute_time();
@@ -2523,6 +2531,10 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 		irlock_report.pos_y = landing_target.angle_y;
 		irlock_report.size_x = landing_target.size_x;
 		irlock_report.size_y = landing_target.size_y;
+
+		// Copy quaternion
+		matrix::Quatf q(landing_target.q);
+		q.copyTo(irlock_report.q);
 
 		_irlock_report_pub.publish(irlock_report);
 	}

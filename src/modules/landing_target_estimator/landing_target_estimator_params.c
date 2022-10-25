@@ -187,3 +187,51 @@ PARAM_DEFINE_FLOAT(LTEST_SENS_POS_Y, 0.0f);
  *
  */
 PARAM_DEFINE_FLOAT(LTEST_SENS_POS_Z, 0.0f);
+
+/**
+ * Euler Angle Rotation (3-2-1 intrinsic Tait-Bryan) Phi (X)
+ *
+ * Orientation transformation from camera frame that detected
+ * the landing_target to drone's NED frame
+ *
+ * @unit rad
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_EULR_PHI, 0.0f);
+
+/**
+ * Euler Angle Rotation (3-2-1 intrinsic Tait-Bryan) Theta (Y)
+ *
+ * Orientation transformation from camera frame that detected
+ * the landing_target to drone's NED frame
+ *
+ * @unit rad
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_EULR_THETA, 0.0f);
+
+/**
+ * Euler Angle Rotation (3-2-1 intrinsic Tait-Bryan) Psi (Z)
+ *
+ * Orientation transformation from camera frame that detected
+ * the landing_target to drone's NED frame
+ *
+ * @unit rad
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_EULR_PSI, -1.57f);
+
+/**
+ * Target yaw filter alpha value
+ *
+ * @min 0
+ * @max 100
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_YAW_ALPHA, 0.05);

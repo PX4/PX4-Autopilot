@@ -24,3 +24,7 @@ bool abs_pos_valid		# Flag showing whether absolute position is valid
 float32 x_abs			# X/north position of target, relative to origin (navigation frame) [meters]
 float32 y_abs			# Y/east position of target, relative to origin (navigation frame) [meters]
 float32 z_abs			# Z/down position of target, relative to origin (navigation frame) [meters]
+float32[4] q		 	# Quaternion of landing target orientation (w, x, y, z order, zero-rotation is 1, 0, 0, 0)
+
+float32 target_yaw
+float32 target_yaw_filtered

@@ -619,6 +619,9 @@ void SimulatorMavlink::handle_message_landing_target(const mavlink_message_t *ms
 		report.size_x = landing_target_mavlink.size_x;
 		report.size_y = landing_target_mavlink.size_y;
 
+		matrix::Quatf q(landing_target_mavlink.q);
+		q.copyTo(report.q);
+
 		_irlock_report_pub.publish(report);
 	}
 }

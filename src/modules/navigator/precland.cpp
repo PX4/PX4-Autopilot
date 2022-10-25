@@ -268,6 +268,10 @@ PrecLand::run_state_horizontal_approach()
 	pos_sp_triplet->current.alt = _approach_alt;
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
+	// note: abs_pos_valid was already checked as a condition to enter this state
+	pos_sp_triplet->current.yaw = matrix::Eulerf(matrix::Quaternionf(_target_pose.q)).psi();
+	pos_sp_triplet->current.yaw_valid = true;
+
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
@@ -298,6 +302,9 @@ PrecLand::run_state_descend_above_target()
 	_map_ref.reproject(_target_pose.x_abs, _target_pose.y_abs, pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
+
+	pos_sp_triplet->current.yaw = matrix::Eulerf(matrix::Quaternionf(_target_pose.q)).psi();
+	pos_sp_triplet->current.yaw_valid = true;
 
 	_navigator->set_position_setpoint_triplet_updated();
 }

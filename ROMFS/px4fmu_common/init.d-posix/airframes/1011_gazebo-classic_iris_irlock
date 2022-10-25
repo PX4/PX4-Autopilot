@@ -34,5 +34,10 @@ param set-default LTEST_MODE 1
 param set-default PLD_HACC_RAD 0.1
 param set-default RTL_PLD_MD 2
 
+# Orientation parameters for Gazebo irislock sim
+param set-default LTEST_EULR_PHI 0      	# ENU -> NED already done in gazeebo
+param set-default LTEST_EULR_THETA -1.57	# Camera tilt, which is facing 90 degrees down
+param set-default LTEST_EULR_PSI 0.0
+
 # Start up Landing Target Estimator module
 landing_target_estimator start
