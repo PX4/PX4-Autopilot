@@ -240,8 +240,6 @@ void Standard::update_transition_state()
 
 		} else if (_pusher_throttle < _param_vt_f_trans_thr.get()) {
 			// ramp up throttle to the target throttle value
-			PX4_WARN("Timestamp %f", (double)_transition_dt);
-			//float ramped_pusher_throttle = _pusher_throttle + _param_vt_f_trans_thr.get() /_param_vt_psher_rmp_dt.get();
 			_pusher_throttle = _pusher_start_trans + _param_vt_f_trans_thr.get()
 					   * time_since_trans_start / _param_vt_psher_rmp_dt.get();
 
