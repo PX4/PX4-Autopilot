@@ -72,7 +72,7 @@ bool KalmanFilter::update()
 
 	_state(0) += kalmanGain(0) * _innov;
 	_state(1) += kalmanGain(1) * _innov;
-	
+
 	_covariance = _covariance - kalmanGain * _measMatrix * _covariance;
 
 	return true;
@@ -85,7 +85,7 @@ void KalmanFilter::setH(matrix::Vector<float, 12> h_meas)
 	// For this filter: [rx, r_dotx]
 
 	_measMatrix(0) = h_meas(0);
-	_measMatrix(1) = h_meas(3); 
+	_measMatrix(1) = h_meas(3);
 
 }
 
@@ -112,15 +112,17 @@ float KalmanFilter::computeInnovCov(float measUnc)
 	[h(0)⋅(cov(0;0)⋅h(0) + cov(0;1)⋅h(1)) + h(1)⋅(cov(0;1)⋅h(0) + cov(1;1)⋅h(1)) + r]
 	*/
 
-	_innovCov = _measMatrix(0) * (_covariance(0,0) * _measMatrix(0) + _covariance(0,1) * _measMatrix(1)) + _measMatrix(1)*(_covariance(0,1) * _measMatrix(0) + _covariance(1,1) * _measMatrix(1)) + measUnc; 
-	return _innovCov; 
+	_innovCov = _measMatrix(0) * (_covariance(0, 0) * _measMatrix(0) + _covariance(0,
+				      1) * _measMatrix(1)) + _measMatrix(1) * (_covariance(0, 1) * _measMatrix(0) + _covariance(1,
+						      1) * _measMatrix(1)) + measUnc;
+	return _innovCov;
 }
 
 float KalmanFilter::computeInnov(float meas)
 {
 	/* z - H*x */
 	_innov = meas - _measMatrix * _syncState;
-	return _innov; 
+	return _innov;
 }
 
 
@@ -133,13 +135,14 @@ void KalmanFilter::predictCov(float dt)
 	⎢                   3                                                     2                    ⎥
 	⎣             0.5⋅Ts ⋅σₐ + Ts⋅p(1;1) + p(0;1)                           Ts ⋅σₐ + p(1;1)        ⎦
 	*/
- 
+
 	//Q = var* [1/4*T^4, 1/2*T^3; 1/2*T^3, T^2]
-	float off_diag = _inputVar * 0.5f * dt * dt * dt + dt * _covariance(1,1) + _covariance(0,1); 
-	_process_noise(0,0) += _inputVar * 0.25f * dt * dt * dt * dt + dt * _covariance(0,1) + dt * (dt * _covariance(1,1) + _covariance(0,1)); 
-	_process_noise(1,0) = off_diag;
-	_process_noise(0,1) = off_diag;
-	_process_noise(1,1) += _inputVar * dt * dt; 
+	float off_diag = _inputVar * 0.5f * dt * dt * dt + dt * _covariance(1, 1) + _covariance(0, 1);
+	_process_noise(0, 0) += _inputVar * 0.25f * dt * dt * dt * dt + dt * _covariance(0, 1) + dt * (dt * _covariance(1,
+				1) + _covariance(0, 1));
+	_process_noise(1, 0) = off_diag;
+	_process_noise(0, 1) = off_diag;
+	_process_noise(1, 1) += _inputVar * dt * dt;
 }
 
 } // namespace landing_target_estimator

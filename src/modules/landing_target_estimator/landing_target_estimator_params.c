@@ -62,7 +62,7 @@
  * @bit 5 uwb relative position
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(LTEST_AID_MASK, 7);
+PARAM_DEFINE_INT32(LTEST_AID_MASK, 23);
 
 /**
  * Landing target mode
@@ -90,13 +90,13 @@ PARAM_DEFINE_INT32(LTEST_MODE, 0);
  * Mode Horizontal: x,y decoupled
  *
  * @min 0
- * @max 1
+ * @max 2
  * @group Landing target Estimator
  * @value 0 Full pose
  * @value 1 FullPoseCoupled
  * @value 2 Horizontal
  */
-PARAM_DEFINE_INT32(LTEST_MODEL, 0);
+PARAM_DEFINE_INT32(LTEST_MODEL, 2);
 
 /**
  * Target GPS position uncertainty

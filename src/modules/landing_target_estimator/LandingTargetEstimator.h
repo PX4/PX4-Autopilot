@@ -114,10 +114,10 @@ protected:
 	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_irlock_pub{ORB_ID(target_estimator_aid_irlock)};
 	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_uwb_pub{ORB_ID(target_estimator_aid_uwb)};
 
-	estimator_aid_source_3d_s _target_innovations_array[5]{}; 
+	estimator_aid_source_3d_s _target_innovations_array[5] {};
 
 	uORB::Publication<estimator_aid_source_1d_s> _target_estimator_aid_ev_yaw_pub{ORB_ID(target_estimator_aid_ev_yaw)};
-	estimator_aid_source_1d_s _target_estimator_aid_ev_yaw; 
+	estimator_aid_source_1d_s _target_estimator_aid_ev_yaw;
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -125,71 +125,69 @@ private:
 
 	enum class TargetMode {
 		Moving = 0,
-		Stationary, 
+		Stationary,
 		NotInit
 	};
 
 	enum class TargetModel {
 		FullPoseDecoupled = 0,
-		FullPoseCoupled, 
-		Horizontal, 
+		FullPoseCoupled,
+		Horizontal,
 		NotInit
 	};
 
-	struct targetObsOrientation
-	{
+	struct targetObsOrientation {
 		hrt_abstime timestamp;
 		// Theta
-		bool updated_theta = false; 
+		bool updated_theta = false;
 		float meas_theta = 0.f;
 		float meas_unc_theta = 0.f;
-		float meas_h_theta = 0.f;	
+		float meas_h_theta = 0.f;
 	};
 
-	struct targetObsPos 
-	{
+	struct targetObsPos {
 		hrt_abstime timestamp;
-		
-		//TODO: check that all vectors are initialized to zero 
+
+		//TODO: check that all vectors are initialized to zero
 		// x,y,z
-		bool any_xyz_updated; 
+		bool any_xyz_updated;
 		matrix::Vector<bool, 3> updated_xyz;
 		matrix::Vector<float, 3> meas_xyz;
 		matrix::Vector<float, 3> meas_unc_xyz;
-		matrix::Matrix<float, 3, 12> meas_h_xyz;	
+		matrix::Matrix<float, 3, 12> meas_h_xyz;
 	};
 
 	/*
 	_target_pos_obs: vector of targetObsPos structure. Each component corresponds to a different measurements (VISION, IrLock, UWB, GPS, GPS velocity)
-	For each measurement, we have observations in the x,y,z directions. 
+	For each measurement, we have observations in the x,y,z directions.
 		-- _target_pos_obs.updated_xyz 	--> 3x1 Vector: Indicates if we have an observation in the x, y or z direction
 		-- _target_pos_obs.meas_xyz 		--> 3x1 Vector: Measurements (meas_x, meas_y, meas_z)
 		-- _target_pos_obs.meas_unc_xyz 	--> 3x1 Vector: Measurements' uncertainties
 		-- _target_pos_obs.meas_h_xyz 		--> 3x12 Mat. The rows correspond to the x,y,z directions.
 	*/
 
-	// TODO: change in the code. 
+	// TODO: change in the code.
 	enum ObservationType {
 		target_gps_pos = 0,
-		uav_gps_vel, 
-		fiducial_marker, 
-		irlock, 
-		uwb, 
+		uav_gps_vel,
+		fiducial_marker,
+		irlock,
+		uwb,
 		nb_observations
 	};
 
 	enum Directions {
-		x = 0, 
-		xyz = 0, 
-		y = 1, 
-		z = 2, 
-		theta = 3, 
+		x = 0,
+		xyz = 0,
+		y = 1,
+		z = 2,
+		theta = 3,
 		nb_directions = 4
-	}; 
+	};
 
-	targetObsPos _target_pos_obs[nb_observations]{}; //with enum for idx
+	targetObsPos _target_pos_obs[nb_observations] {}; //with enum for idx
 
-	targetObsOrientation _target_orientation_obs{}; 
+	targetObsOrientation _target_orientation_obs{};
 
 
 	TargetMode _target_mode{TargetMode::NotInit};
@@ -197,13 +195,13 @@ private:
 
 	enum SensorFusionMask : uint16_t {
 		// Bit locations for fusion_mode
-		USE_TARGET_GPS_POS  = (1<<0),      ///< set to true to use target GPS position data
-		USE_UAV_GPS_VEL     = (1<<1),      ///< set to true to use drone GPS velocity data
-		USE_EXT_VIS_POS 	= (1<<2),      ///< set to true to use target relative position from vision-based data
-		USE_LIDAR_Z  		= (1<<3),      ///< set to true to use relative heigt from range sensor data
-		USE_IRLOCK_POS 		= (1<<4),      ///< set to true to use target relative position from irlock data
-		USE_UWB_POS     	= (1<<5),      ///< set to true to use target relative position from uwb data
-	};	
+		USE_TARGET_GPS_POS  = (1 << 0),    ///< set to true to use target GPS position data
+		USE_UAV_GPS_VEL     = (1 << 1),    ///< set to true to use drone GPS velocity data
+		USE_EXT_VIS_POS 	= (1 << 2),    ///< set to true to use target relative position from vision-based data
+		USE_LIDAR_Z  		= (1 << 3),    ///< set to true to use relative heigt from range sensor data
+		USE_IRLOCK_POS 		= (1 << 4),    ///< set to true to use target relative position from irlock data
+		USE_UWB_POS     	= (1 << 5),    ///< set to true to use target relative position from uwb data
+	};
 
 	int _nb_position_kf; // Number of kalman filter instances for the position estimate (no orientation)
 	bool _estimate_orientation;
@@ -224,15 +222,14 @@ private:
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _fiducial_marker_report_sub{ORB_ID(fiducial_marker_report)};
 
-	struct localPos
-	{
-		bool valid = false; 
+	struct localPos {
+		bool valid = false;
 		float x = 0.f;
 		float y = 0.f;
-		float z = 0.f;	
+		float z = 0.f;
 	};
 
-	localPos _local_pos{}; 
+	localPos _local_pos{};
 
 	vehicle_acceleration_s		_vehicle_acceleration{};
 

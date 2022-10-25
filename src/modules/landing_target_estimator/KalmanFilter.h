@@ -69,16 +69,16 @@ public:
 	 * Default desctructor
 	 */
 	virtual ~KalmanFilter() {};
-	
-	//Prediction step: 
+
+	//Prediction step:
 	void predictState(float dt, float acc) override;
 	void predictCov(float dt) override;
 
-	// Backwards state prediciton 
+	// Backwards state prediciton
 	void syncState(float dt, float acc) override;
 
 	void setH(matrix::Vector<float, 12> h_meas) override;
-	
+
 	virtual float computeInnovCov(float measUnc) override;
 	virtual float computeInnov(float meas) override;
 
@@ -127,20 +127,20 @@ public:
 	matrix::Vector<float, 3> getPosVarVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
 	matrix::Vector<float, 3> getVelVarVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
 	matrix::Vector<float, 3> getAccVarVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
-	void setInputAccVar(matrix::Matrix<float,3, 3> varVect) override {};
+	void setInputAccVar(matrix::Matrix<float, 3, 3> varVect) override {};
 
 private:
 	matrix::Vector<float, 2> _state; // state
 
 	matrix::Vector<float, 2> _syncState; // state
 
-	matrix::Vector<float, 2> _measMatrix; // row of measurement matrix 
+	matrix::Vector<float, 2> _measMatrix; // row of measurement matrix
 
 	matrix::Matrix<float, 2, 2> _covariance; // state covariance
 
 	matrix::Matrix<float, 2, 2> _process_noise;
 
-	float _inputVar{0.f}; 
+	float _inputVar{0.f};
 
 	float _innov{0.0f}; // residual of last measurement update
 

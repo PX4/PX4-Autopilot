@@ -41,15 +41,15 @@ class TargetEstimator
 public:
 	TargetEstimator() = default;
 	virtual ~TargetEstimator() = default;
-  
-	//Prediction step: 
+
+	//Prediction step:
 	virtual void predictState(float dt, float acc) = 0;
 	virtual void predictState(float dt, matrix::Vector<float, 3> acc);
 	virtual void predictCov(float dt) {};
 
-	// Backwards state prediciton 
+	// Backwards state prediciton
 	virtual void syncState(float dt, float acc);
-	virtual void syncState(float dt, matrix::Vector<float, 3> acc){};
+	virtual void syncState(float dt, matrix::Vector<float, 3> acc) {};
 
 
 	virtual void setH(matrix::Vector<float, 12> h_meas);
@@ -75,7 +75,7 @@ public:
 	virtual void setTargetAcc(matrix::Vector<float, 3> accVect);
 
 	// Init: P_0
-	virtual void setStatePosVar(float var){};
+	virtual void setStatePosVar(float var) {};
 	virtual void setStateVelVar(float var);
 	virtual void setStateAccVar(float var);
 
@@ -83,7 +83,7 @@ public:
 	virtual void setStateVelVar(matrix::Vector<float, 3> posVect);
 	virtual void setStateAccVar(matrix::Vector<float, 3> posVect);
 
-	// Retreive output of filter 
+	// Retreive output of filter
 	virtual float getPosition() { return 0.f; };
 	virtual float getVelocity() { return 0.f; };
 	virtual float getAcceleration() { return 0.f; };
@@ -102,5 +102,5 @@ public:
 	virtual matrix::Vector<float, 3> getAccVarVect();
 
 	virtual void setInputAccVar(float var);
-	virtual void setInputAccVar(matrix::Matrix<float,3, 3> varVect); 
+	virtual void setInputAccVar(matrix::Matrix<float, 3, 3> varVect);
 };
