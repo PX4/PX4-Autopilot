@@ -663,12 +663,10 @@ private:
 	void predictCovariance();
 
 	// ekf sequential fusion of magnetometer measurements
-	bool fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states = true);
+	bool fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states = false);
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
-	// innovation : prediction - measurement
-	// variance : observaton variance
-	bool fuseYaw(const float innovation, const float variance, estimator_aid_source1d_s &aid_src_status);
+	bool fuseYaw(estimator_aid_source1d_s &aid_src_status);
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
 	void fuseGpsYaw();
@@ -880,7 +878,6 @@ private:
 	bool shouldInhibitMag() const;
 	bool magFieldStrengthDisturbed(const Vector3f &mag) const;
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);
-	void run3DMagAndDeclFusions(const Vector3f &mag);
 
 	// control fusion of air data observations
 	void controlAirDataFusion();
@@ -937,9 +934,6 @@ private:
 	// initialise the quaternion covariances using rotation vector variances
 	// do not call before quaternion states are initialised
 	void initialiseQuatCovariances(Vector3f &rot_vec_var);
-
-	// perform a limited reset of the magnetic field related state covariances
-	void resetMagRelatedCovariances();
 
 	void resetQuatCov();
 	void zeroQuatCov();

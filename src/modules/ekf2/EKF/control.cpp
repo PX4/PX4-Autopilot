@@ -378,9 +378,9 @@ void Ekf::controlExternalVisionFusion()
 					resetYawToEv();
 				}
 
-				const float innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
+				_aid_src_ev_yaw.innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
 
-				fuseYaw(innovation, ev_yaw_obs_var, _aid_src_ev_yaw);
+				fuseYaw(_aid_src_ev_yaw);
 
 			} else {
 				// populate estimator_aid_src_ev_yaw with delta heading innovations for logging
