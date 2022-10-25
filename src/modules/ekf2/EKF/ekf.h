@@ -528,7 +528,7 @@ private:
 	uint64_t _mag_use_not_inhibit_us{0};	///< last system time in usec before magnetometer use was inhibited
 	float _last_static_yaw{NAN};		///< last yaw angle recorded when on ground motion checks were passing (rad)
 
-	bool _mag_yaw_reset_req{false};		///< true when a reset of the yaw using the magnetometer data has been requested
+	float _mag_declination{0.f};		///< last used magnetic declination (rad)
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
 
 	SquareMatrix24f P{};	///< state covariance matrix

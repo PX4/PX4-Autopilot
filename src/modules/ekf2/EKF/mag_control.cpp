@@ -127,7 +127,7 @@ void Ekf::controlMagFusion()
 
 	if (mag_data_ready && !_control_status.flags.ev_yaw && !_control_status.flags.gps_yaw) {
 
-		const bool mag_enabled_previously = _control_status_prev.flags.mag_hdg || _control_status_prev.flags.mag_3D;
+		const bool mag_enabled_previously = _control_status.flags.mag_hdg || _control_status.flags.mag_3D;
 
 		// Determine if we should use simple magnetic heading fusion which works better when
 		// there are large external disturbances or the more accurate 3-axis fusion
@@ -151,29 +151,23 @@ void Ekf::controlMagFusion()
 			break;
 		}
 
-		const bool mag_enabled = _control_status.flags.mag_hdg || _control_status.flags.mag_3D;
+		if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
 
-		if ((!mag_enabled_previously && mag_enabled) || mag_sample.reset) {
-			_mag_yaw_reset_req = true;
-		}
+			if ((!_control_status.flags.yaw_align
+			     || !mag_enabled_previously
+			     || (fabsf(_mag_declination - getMagDeclination()) > math::radians(1.f)) // mag declination changed
+			     || haglYawResetReq())
+			    && !shouldInhibitMag()) {
 
-		if ((_mag_yaw_reset_req || !_control_status.flags.yaw_align || haglYawResetReq())
-		    && !shouldInhibitMag()) {
+				magYawReset(_mag_lpf.getState());
+			}
 
-			if (magYawReset(_mag_lpf.getState())) {
-				// clear reset req
-				_mag_yaw_reset_req = false;
+			if (_control_status.flags.yaw_align) {
+				// Having the yaw aligned is mandatory to continue
+				checkMagDeclRequired();
+				runMagAndMagDeclFusions(mag_sample.mag);
 			}
 		}
-
-		if (!_control_status.flags.yaw_align) {
-			// Having the yaw aligned is mandatory to continue
-			return;
-		}
-
-		checkMagDeclRequired();
-
-		runMagAndMagDeclFusions(mag_sample.mag);
 	}
 }
 
@@ -227,9 +221,8 @@ bool Ekf::magYawReset(const Vector3f &mag)
 		resetMagCov();
 
 		has_realigned_yaw = true;
-	}
 
-	if (!has_realigned_yaw && !magFieldStrengthDisturbed(mag - _state.mag_B)) {
+	} else if (!magFieldStrengthDisturbed(mag - _state.mag_B)) {
 		has_realigned_yaw = resetMagHeading(mag - _state.mag_B);
 	}
 
@@ -381,7 +374,8 @@ void Ekf::runMagAndMagDeclFusions(const Vector3f &mag)
 
 		// the angle of the projection onto the horizontal gives the yaw angle
 		// calculate the yaw innovation and wrap to the interval between +-pi
-		float measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+		_mag_declination = getMagDeclination();
+		float measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
 
 		float innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
 		float obs_var = fmaxf(sq(_params.mag_heading_noise), 1.e-4f);

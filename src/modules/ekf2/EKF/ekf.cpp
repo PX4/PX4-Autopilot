@@ -172,7 +172,9 @@ bool Ekf::initialiseFilter()
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			// the angle of the projection onto the horizontal gives the yaw angle
 			const Vector3f mag_earth_pred = updateYawInRotMat(0.f, _R_to_earth) * _mag_lpf.getState();
-			float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+
+			_mag_declination = getMagDeclination();
+			float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
 
 			// update the rotation matrix using the new yaw value
 			_R_to_earth = updateYawInRotMat(yaw_new, Dcmf(_state.quat_nominal));

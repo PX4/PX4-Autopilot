@@ -285,7 +285,8 @@ bool Ekf::resetMagHeading(const Vector3f &mag)
 		const Vector3f mag_earth_pred = R_to_earth * mag;
 
 		// calculate the observed yaw angle and yaw variance
-		float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+		_mag_declination = getMagDeclination();
+		float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
 		float yaw_new_variance = sq(fmaxf(_params.mag_heading_noise, 1.e-2f));
 
 		// update quaternion states and corresponding covarainces
