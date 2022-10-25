@@ -94,21 +94,22 @@ pipeline {
 
         stage('failsafe docs') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
+            docker { image 'px4io/px4-dev-nuttx-focal:2021-08-18' }
           }
           steps {
             sh '''#!/bin/bash -l
-			echo $0;
+            echo $0;
             git clone https://github.com/emscripten-core/emsdk.git _emscripten_sdk;
             cd _emscripten_sdk;
             ./emsdk install latest;
             ./emsdk activate latest;
+            cd ..;
             . ./_emscripten_sdk/emsdk_env.sh;
-			make failsafe_web;
-			cd build/px4_sitl_default_failsafe_web;
-			mkdir -p failsafe_sim;
-			cp index.* parameters.json failsafe_sim;
-			'''
+            make failsafe_web;
+            cd build/px4_sitl_default_failsafe_web;
+            mkdir -p failsafe_sim;
+            cp index.* parameters.json failsafe_sim;
+            '''
             dir('build/px4_sitl_default_failsafe_web') {
               archiveArtifacts(artifacts: 'failsafe_sim/*')
               stash includes: 'failsafe_sim/*', name: 'failsafe_sim'
