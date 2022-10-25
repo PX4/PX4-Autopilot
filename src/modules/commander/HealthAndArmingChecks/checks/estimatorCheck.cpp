@@ -625,9 +625,9 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 						 * @description
 						 * Land and recalibrate the sensors.
 						 */
-						reporter.armingCheckFailure(NavModes::All, health_component_t::local_position_estimate,
-									    events::ID("check_estimator_nav_failure"),
-									    events::Log::Emergency, "Navigation failure");
+						reporter.healthFailure(NavModes::All, health_component_t::local_position_estimate,
+								       events::ID("check_estimator_nav_failure"),
+								       events::Log::Emergency, "Navigation failure");
 
 						if (reporter.mavlink_log_pub()) {
 							mavlink_log_critical(reporter.mavlink_log_pub(), "Navigation failure! Land and recalibrate sensors\t");
