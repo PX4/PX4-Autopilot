@@ -31,6 +31,9 @@
  *
  ****************************************************************************/
 
+//This file is meant to tackle the dependencies on IOCTL found in PX4.
+//As QURT does not have IOCTL natively, this file exists to define those functions/params found throughout the code base.
+
 #pragma once
 
 #define	IOCPARM_MASK	0x1fff		/* parameter length, at most 13 bits */
