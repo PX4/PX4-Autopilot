@@ -31,9 +31,6 @@
  *
  ****************************************************************************/
 
-#ifndef	_SYS_IOCTL_H_
-#define	_SYS_IOCTL_H_
-
 #pragma once
 
 #define	IOCPARM_MASK	0x1fff		/* parameter length, at most 13 bits */
