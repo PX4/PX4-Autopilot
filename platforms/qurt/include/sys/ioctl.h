@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 
-#ifndef	_QURT_REQS_H
-#define	_QURT_REQS_H
+#ifndef	_SYS_IOCTL_H_
+#define	_SYS_IOCTL_H_
 
 #pragma once
 
