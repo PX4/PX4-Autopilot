@@ -2407,7 +2407,7 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 	mavlink_landing_target_t landing_target;
 	mavlink_msg_landing_target_decode(msg, &landing_target);
 
-	if (landing_target.type == 0) {
+	if (landing_target.position_valid && landing_target.type == 0) {
 		irlock_report_s irlock_report{};
 
 		irlock_report.timestamp = hrt_absolute_time();
@@ -2419,13 +2419,22 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 
 		_irlock_report_pub.publish(irlock_report);
 
-	} else if (landing_target.type == 2) {
+	} else if (landing_target.position_valid && landing_target.type == 2) {
 		landing_target_pose_s fiducial_marker_report{};
 
 		fiducial_marker_report.timestamp = _mavlink_timesync.sync_stamp(landing_target.time_usec);
 		fiducial_marker_report.x_rel = landing_target.x;
 		fiducial_marker_report.y_rel = landing_target.y;
 		fiducial_marker_report.z_rel = landing_target.z;
+
+		/*
+		target_GNSS_report.cov_x_rel = landing_target.;
+		target_GNSS_report.cov_y_rel = landing_target.;
+		target_GNSS_report.cov_z_rel = landing_target.;
+		target_GNSS_report.cov_x_y_rel = landing_target.;
+		target_GNSS_report.cov_x_z_rel = landing_target.;
+		target_GNSS_report.cov_y_z_rel = landing_target.;
+		*/
 
 		_fiducial_marker_report_pub.publish(fiducial_marker_report);
 
@@ -2439,6 +2448,41 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 		landing_target_pose.z_abs = landing_target.z;
 
 		_landing_target_pose_pub.publish(landing_target_pose);
+
+	} else if (landing_target.frame == MAV_FRAME_GLOBAL) {
+
+		landing_target_pose_s target_GNSS_report{};
+		target_GNSS_report.timestamp = _mavlink_timesync.sync_stamp(landing_target.time_usec);
+
+		if (landing_target.position_valid) {
+			target_GNSS_report.lat = landing_target.x;
+			target_GNSS_report.lon = landing_target.y;
+			target_GNSS_report.alt = landing_target.z; // Altitude AMSL
+
+			/*
+			target_GNSS_report.cov_x_rel = landing_target.;
+			target_GNSS_report.cov_y_rel = landing_target.;
+			target_GNSS_report.cov_z_rel = landing_target.;
+			*/
+		}
+
+		target_GNSS_report_pub.publish(target_GNSS_report);
+
+		/*
+		if(landing_target.velocity_valid){
+			target_GNSS_report.vx_rel = landing_target.vx;
+			target_GNSS_report.vx_rel = landing_target.vy;
+			target_GNSS_report.vx_rel = landing_target.vz;
+
+			target_GNSS_report.cov_vx_rel = landing_target.;
+			target_GNSS_report.cov_vy_rel = landing_target.;
+			target_GNSS_report.cov_vz_rel = landing_target.;
+		}
+
+		if(landing_target.position_valid || landing_target.velocity_valid){
+			target_GNSS_report_pub.publish(target_GNSS_report);
+		}
+		*/
 
 	} else if (landing_target.position_valid) {
 		// We only support MAV_FRAME_LOCAL_NED. In this case, the frame was unsupported.

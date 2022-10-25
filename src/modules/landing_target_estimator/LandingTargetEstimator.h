@@ -52,6 +52,7 @@
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/landing_target_innovations.h>
@@ -62,6 +63,7 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/estimator_aid_source_3d.h>
 #include <uORB/topics/estimator_aid_source_1d.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
@@ -123,6 +125,8 @@ protected:
 
 private:
 
+	uint8_t _nave_state = 0;
+
 	enum class TargetMode {
 		Moving = 0,
 		Stationary,
@@ -152,8 +156,8 @@ private:
 		// x,y,z
 		bool any_xyz_updated;
 		matrix::Vector<bool, 3> updated_xyz;
-		matrix::Vector<float, 3> meas_xyz;
-		matrix::Vector<float, 3> meas_unc_xyz;
+		matrix::Vector3f meas_xyz;
+		matrix::Vector3f meas_unc_xyz;
 		matrix::Matrix<float, 3, 12> meas_h_xyz;
 	};
 
@@ -189,7 +193,6 @@ private:
 
 	targetObsOrientation _target_orientation_obs{};
 
-
 	TargetMode _target_mode{TargetMode::NotInit};
 	TargetModel _target_model{TargetModel::NotInit};
 
@@ -221,6 +224,9 @@ private:
 	uORB::Subscription _uwbDistanceSub{ORB_ID(uwb_distance)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _fiducial_marker_report_sub{ORB_ID(fiducial_marker_report)};
+	uORB::Subscription _target_GNSS_report_sub{ORB_ID(target_GNSS_report)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 
 	struct localPos {
 		bool valid = false;
@@ -231,14 +237,22 @@ private:
 
 	localPos _local_pos{};
 
-	vehicle_acceleration_s		_vehicle_acceleration{};
+	struct globalPos {
+		bool valid = false;
+		int lat = 0; 		// Latitude in 1E-7 degrees
+		int lon	= 0; 		// Longitude in 1E-7 degrees
+		float alt = 0.f;	// Altitude in 1E-3 meters above MSL, (millimetres)
+	};
+
+	globalPos _landing_pos{};
+
+	matrix::Vector3f _vehicle_acc{};
 
 	// keep track of which topics we have received
 	bool _new_sensorReport{false};
 	bool _estimator_initialized{false};
 
 	matrix::Dcmf _R_att; //Orientation of the body frame
-	matrix::Dcmf _R2_att;
 	TargetEstimator *_target_estimator[nb_directions] {nullptr, nullptr, nullptr, nullptr};
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)

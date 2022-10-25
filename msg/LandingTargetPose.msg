@@ -7,21 +7,32 @@ bool is_static			# Flag indicating whether the landing target is static or movin
 bool rel_pos_valid		# Flag showing whether relative position is valid
 bool rel_vel_valid		# Flag showing whether relative velocity is valid
 
+int32 lat			    # Latitude in 1E-7 degrees
+int32 lon			    # Longitude in 1E-7 degrees
+int32 alt	            # Altitude above mean see level (AMSL) in 1E-3 meters , (millimetres)
+
 float32 x_rel			# X/north position of target, relative to vehicle (navigation frame) [meters]
 float32 y_rel			# Y/east position of target, relative to vehicle (navigation frame) [meters]
 float32 z_rel			# Z/down position of target, relative to vehicle (navigation frame) [meters]
 
+float32 theta           # orientation of the target relative to body frame [rad]
+float32 cov_theta       # orientation uncertainty
+
 float32 vx_rel			# X/north velocity  of target, relative to vehicle (navigation frame) [meters/second]
 float32 vy_rel			# Y/east velocity of target, relative to vehicle (navigation frame) [meters/second]
-float32 vz_rel			# Y/east velocity of target, relative to vehicle (navigation frame) [meters/second]
+float32 vz_rel			# Z/down velocity of target, relative to vehicle (navigation frame) [meters/second]
 
 float32 cov_x_rel		# X/north position variance [meters^2]
 float32 cov_y_rel		# Y/east position variance [meters^2]
-float32 cov_z_rel		# Y/east position variance [meters^2]
+float32 cov_z_rel		# Z/down position variance [meters^2]
+
+float32 cov_x_y_rel		# X/north - Y/east position covariance [meters^2]
+float32 cov_x_z_rel		# X/north - Z/east position covariance [meters^2]
+float32 cov_y_z_rel		# X/north - Y/east position covariance [meters^2]
 
 float32 cov_vx_rel		# X/north velocity variance [(meters/second)^2]
 float32 cov_vy_rel		# Y/east velocity variance [(meters/second)^2]
-float32 cov_vz_rel		# Y/east velocity variance [(meters/second)^2]
+float32 cov_vz_rel		# Z/down velocity variance [(meters/second)^2]
 
 bool abs_pos_valid		# Flag showing whether absolute position is valid
 float32 x_abs			# X/north position of target, relative to origin (navigation frame) [meters]
@@ -30,3 +41,4 @@ float32 z_abs			# Z/down position of target, relative to origin (navigation fram
 
 # TOPICS landing_target_pose 
 # TOPICS fiducial_marker_report
+# TOPICS target_GNSS_report
