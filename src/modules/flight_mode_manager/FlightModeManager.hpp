@@ -111,9 +111,10 @@ private:
 	 */
 	bool isAnyTaskActive() const { return _current_task.task; }
 
+	void tryApplyCommandIfAny();
+
 	// generated
 	int _initTask(FlightTaskIndex task_index);
-	FlightTaskIndex switchVehicleCommand(const int command);
 
 	/**
 	 * Union with all existing tasks: we use it to make sure that only the memory of the largest existing
@@ -134,6 +135,9 @@ private:
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")}; ///< loop duration performance counter
 	hrt_abstime _time_stamp_last_loop{0}; ///< time stamp of last loop iteration
+
+	vehicle_command_s _current_command{};
+	bool _command_failed{false};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
