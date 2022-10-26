@@ -717,6 +717,8 @@ private:
 	// fuse optical flow line of sight rate measurements
 	void updateOptFlow(estimator_aid_source2d_s &aid_src);
 	void fuseOptFlow();
+	float predictFlowRange();
+	Vector2f predictFlowVelBody();
 
 	// horizontal and vertical position aid source
 	void updateHorizontalPositionAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var, const float innov_gate, estimator_aid_source2d_s &aid_src) const;
