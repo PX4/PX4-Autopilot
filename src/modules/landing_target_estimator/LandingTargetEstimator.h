@@ -88,12 +88,19 @@ public:
 	 */
 	void update();
 
+private:
+	struct accInput {
+
+		bool acc_ned_valid;
+		matrix::Vector3f vehicle_acc_ned;
+	};
+
 protected:
 
 	/*
 	 * Update uORB topics.
 	 */
-	bool _update_topics();
+	void _update_topics(accInput *input);
 
 	/*
 	 * Update parameters.
@@ -189,8 +196,7 @@ private:
 		nb_directions = 4
 	};
 
-	targetObsPos _target_pos_obs[nb_observations] {}; //with enum for idx
-
+	targetObsPos _target_pos_obs[nb_observations] {};
 	targetObsOrientation _target_orientation_obs{};
 
 	TargetMode _target_mode{TargetMode::NotInit};
@@ -200,19 +206,20 @@ private:
 		// Bit locations for fusion_mode
 		USE_TARGET_GPS_POS  = (1 << 0),    ///< set to true to use target GPS position data
 		USE_UAV_GPS_VEL     = (1 << 1),    ///< set to true to use drone GPS velocity data
-		USE_EXT_VIS_POS 	= (1 << 2),    ///< set to true to use target relative position from vision-based data
-		USE_LIDAR_Z  		= (1 << 3),    ///< set to true to use relative heigt from range sensor data
-		USE_IRLOCK_POS 		= (1 << 4),    ///< set to true to use target relative position from irlock data
-		USE_UWB_POS     	= (1 << 5),    ///< set to true to use target relative position from uwb data
+		USE_EXT_VIS_POS 	= (1 << 2),    ///< set to true to use target external vision-based relative position data
+		USE_IRLOCK_POS 		= (1 << 3),    ///< set to true to use target relative position from irlock data
+		USE_UWB_POS     	= (1 << 4),    ///< set to true to use target relative position from uwb data
+		USE_MISSION_POS     = (1 << 5),    ///< set to true to use the PX4 mission landing position
 	};
 
+	int _ltest_aid_mask{0};
 	int _nb_position_kf; // Number of kalman filter instances for the position estimate (no orientation)
 	bool _estimate_orientation;
 
 	void selectTargetEstimator();
 	void initEstimator();
-	void predictionStep();
-	bool updateNED();
+	void predictionStep(matrix::Vector3f acc);
+	bool updateNED(matrix::Vector3f acc);
 	bool updateOrientation();
 	void publishTarget();
 	void publishInnovations();
@@ -241,18 +248,16 @@ private:
 		bool valid = false;
 		int lat = 0; 		// Latitude in 1E-7 degrees
 		int lon	= 0; 		// Longitude in 1E-7 degrees
-		float alt = 0.f;	// Altitude in 1E-3 meters above MSL, (millimetres)
+		float alt = 0.f;	// Altitude in 1E-3 meters AMSL, (millimetres)
 	};
 
 	globalPos _landing_pos{};
-
-	matrix::Vector3f _vehicle_acc{};
 
 	// keep track of which topics we have received
 	bool _new_sensorReport{false};
 	bool _estimator_initialized{false};
 
-	matrix::Dcmf _R_att; //Orientation of the body frame
+	matrix::Quaternion<float> _q_att; //Quaternion orientation of the body frame
 	TargetEstimator *_target_estimator[nb_directions] {nullptr, nullptr, nullptr, nullptr};
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)

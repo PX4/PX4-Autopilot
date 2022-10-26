@@ -44,12 +44,12 @@
  * Integer bitmask controlling data fusion and aiding methods.
  *
  * Set bits in the following positions to enable:
- * 0 : Set to true to use target GPS position data if available
- * 1 : Set to true to use drone GPS velocity data if available
- * 2 : Set to true to use target relative position from vision-based data if available
- * 3 : Set to true to use relative heigt from range sensor data if available
- * 4 : Set to true to use target relative position from irlock data if available
- * 5 : Set to true to use target relative position from uwb data if available
+ * 0 : Set to true to use target GPS position data if available If bit 6 is also enabled, a weighted average between the landing point and the target GPS position is performed (+1)
+ * 1 : Set to true to use drone GPS velocity data if available (+2)
+ * 2 : Set to true to use target relative position from vision-based data if available (+4)
+ * 3 : Set to true to use target relative position from irlock data if available (+8)
+ * 4 : Set to true to use target relative position from uwb data if available (+16)
+ * 5 : Set to true to use the mission landing point. If bit 0 is also enabled, a weighted average between the landing point and the target GPS position is performed (+32)
  *
  * @group Landing target Estimator
  * @min 0
@@ -57,12 +57,12 @@
  * @bit 0 target gps position
  * @bit 1 drone gps velocity
  * @bit 2 vision relative position
- * @bit 3 lidar relative height
- * @bit 4 irlock relative position
- * @bit 5 uwb relative position
+ * @bit 3 irlock relative position
+ * @bit 4 uwb relative position
+ * @bit 5 mission landing position
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(LTEST_AID_MASK, 23);
+PARAM_DEFINE_INT32(LTEST_AID_MASK, 8);
 
 /**
  * Landing target mode
