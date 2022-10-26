@@ -1,0 +1,12 @@
+menuconfig MODULES_DOB_RATE_CONTROL
+	bool "dob_rate_control"
+	default n
+	---help---
+		Enable support for dob_rate_control
+
+menuconfig USER_FW_RATE_CONTROL
+	bool "dob_rate_control running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_DOB_RATE_CONTROL
+	---help---
+		Put fw_rate_control in userspace memory
