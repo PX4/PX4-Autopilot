@@ -559,12 +559,6 @@ void Navigator::run()
 				// reset cruise speed and throttle to default when transitioning (VTOL Takeoff handles it separately)
 				reset_cruising_speed();
 				set_cruising_throttle();
-
-				// need to update current setpooint with reset cruise speed and throttle
-				position_setpoint_triplet_s *rep = get_reposition_triplet();
-				*rep = *(get_position_setpoint_triplet());
-				rep->current.cruising_speed = get_cruising_speed();
-				rep->current.cruising_throttle = get_cruising_throttle();
 			}
 		}
 
