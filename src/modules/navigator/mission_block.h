@@ -67,6 +67,8 @@ public:
 	MissionBlock(const MissionBlock &) = delete;
 	MissionBlock &operator=(const MissionBlock &) = delete;
 
+	void initialize() override;
+
 	/**
 	 * Check if the mission item contains a navigation position
 	 *
