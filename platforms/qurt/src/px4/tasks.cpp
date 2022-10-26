@@ -104,6 +104,7 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 	char *p = (char *)argv;
 
 	PX4_INFO("Creating pthread %s\n", name);
+
 	if (task_mutex_initialized == false) {
 		task_mutex_initialized = true;
 		pthread_mutex_init(&task_mutex, nullptr);
@@ -155,6 +156,7 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 	}
 
 	taskmap[task_index].main_entry = main_entry;
+
 	if ((priority > 255) || (priority < 0)) {
 		pthread_mutex_unlock(&task_mutex);
 		PX4_ERR("Invalid priority %d", priority);
@@ -162,7 +164,9 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 	}
 
 	priority = 255 - priority;
+
 	if (priority < 5) { priority = 5; }
+
 	if (priority > 250) { priority = 250; }
 
 	if (strlen(name) >= PX4_TASK_MAX_NAME_LENGTH) {
@@ -174,8 +178,8 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 	strcpy(taskmap[task_index].name, "PX4_");
 	strcpy(&taskmap[task_index].name[4], name);
 
-        struct sched_param param;
-        param.sched_priority = priority;
+	struct sched_param param;
+	param.sched_priority = priority;
 
 	pthread_attr_init(&taskmap[task_index].attr);
 	//pthread_attr_setthreadname(&taskmap[task_index].attr, taskmap[task_index].name);
@@ -184,7 +188,7 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 	pthread_attr_setschedparam(&taskmap[task_index].attr, &param);
 
 	retcode = pthread_create(&taskmap[task_index].tid, &taskmap[task_index].attr, entry_adapter,
-				     (void *) &taskmap[task_index]);
+				 (void *) &taskmap[task_index]);
 
 	if (retcode != PX4_OK) {
 		pthread_mutex_unlock(&task_mutex);
@@ -238,6 +242,7 @@ int px4_task_delete(px4_task_t id)
 		taskmap[id].isused = false;
 		pthread_mutex_unlock(&task_mutex);
 		pthread_exit(nullptr);
+
 	} else {
 		rv = pthread_cancel(pid);
 	}
@@ -268,6 +273,7 @@ void px4_task_exit(int ret)
 	} else {
 		PX4_DEBUG("px4_task_exit: %s", taskmap[i].name);
 	}
+
 	pthread_mutex_unlock(&task_mutex);
 
 	pthread_exit((void *)(unsigned long)ret);
@@ -283,9 +289,11 @@ int px4_task_kill(px4_task_t id, int sig)
 		pthread_mutex_lock(&task_mutex);
 		pid = taskmap[id].tid;
 		pthread_mutex_unlock(&task_mutex);
+
 	} else {
 		return -EINVAL;
 	}
+
 	rv = pthread_kill(pid, sig);
 
 	return rv;
@@ -313,39 +321,39 @@ void px4_show_tasks()
 
 px4_task_t px4_getpid()
 {
-        pthread_t pid = pthread_self();
-        px4_task_t ret = -1;
+	pthread_t pid = pthread_self();
+	px4_task_t ret = -1;
 
-        pthread_mutex_lock(&task_mutex);
+	pthread_mutex_lock(&task_mutex);
 
-        for (int i = 0; i < PX4_MAX_TASKS; i++) {
-                if (taskmap[i].isused && taskmap[i].tid == pid) {
-                        ret = i;
-                }
-        }
+	for (int i = 0; i < PX4_MAX_TASKS; i++) {
+		if (taskmap[i].isused && taskmap[i].tid == pid) {
+			ret = i;
+		}
+	}
 
-        pthread_mutex_unlock(&task_mutex);
-        return ret;
+	pthread_mutex_unlock(&task_mutex);
+	return ret;
 
 }
 
 
 const char *px4_get_taskname()
 {
-        pthread_t pid = pthread_self();
-        const char *prog_name = "UnknownApp";
+	pthread_t pid = pthread_self();
+	const char *prog_name = "UnknownApp";
 
-        pthread_mutex_lock(&task_mutex);
+	pthread_mutex_lock(&task_mutex);
 
-        for (int i = 0; i < PX4_MAX_TASKS; i++) {
-                if (taskmap[i].isused && taskmap[i].tid == pid) {
-                        prog_name = taskmap[i].name;
-                }
-        }
+	for (int i = 0; i < PX4_MAX_TASKS; i++) {
+		if (taskmap[i].isused && taskmap[i].tid == pid) {
+			prog_name = taskmap[i].name;
+		}
+	}
 
-        pthread_mutex_unlock(&task_mutex);
+	pthread_mutex_unlock(&task_mutex);
 
-        return prog_name;
+	return prog_name;
 
 }
 
@@ -374,14 +382,14 @@ int px4_sem_timedwait(px4_sem_t *sem, const struct timespec *ts)
 int px4_prctl(int option, const char *arg2, pthread_t pid)
 {
 	int rv = -1;
-        pthread_mutex_lock(&task_mutex);
+	pthread_mutex_lock(&task_mutex);
 
-        for (int i = 0; i < PX4_MAX_TASKS; i++) {
-                if (taskmap[i].isused && taskmap[i].tid == pid) {
-                        rv = pthread_attr_setthreadname(&taskmap[i].attr, arg2);
+	for (int i = 0; i < PX4_MAX_TASKS; i++) {
+		if (taskmap[i].isused && taskmap[i].tid == pid) {
+			rv = pthread_attr_setthreadname(&taskmap[i].attr, arg2);
 			return rv;
-                }
-        }
+		}
+	}
 
 	return rv;
 }

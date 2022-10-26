@@ -64,12 +64,12 @@ char stack[TEST_STACK_SIZE];
 void run_test(MUORBTestType test)
 {
 	test_to_run = test;
-        (void)px4_task_spawn_cmd("test_MUORB",
-				SCHED_DEFAULT,
-				SCHED_PRIORITY_MAX - 2,
-				2000,
-				(px4_main_t)&test_runner,
-				nullptr);
+	(void)px4_task_spawn_cmd("test_MUORB",
+				 SCHED_DEFAULT,
+				 SCHED_PRIORITY_MAX - 2,
+				 2000,
+				 (px4_main_t)&test_runner,
+				 nullptr);
 }
 
 int px4muorb_topic_advertised(const char *topic_name)
