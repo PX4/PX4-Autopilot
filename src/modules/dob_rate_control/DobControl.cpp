@@ -56,6 +56,7 @@ Vector3f DobControl::update(const Vector3f &rate,
 			    const Vector3f actuator_sp, const float dt, const bool landed)
 {
 	// angular rates error
+	///TODO: Use angular acceleration instead of differentiator
 	Vector3f diff = differentiator(rate, dt);
 
 	matrix::Vector3f integ_input = actuator_sp - diff;
