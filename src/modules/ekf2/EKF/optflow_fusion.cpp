@@ -54,31 +54,8 @@ void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src)
 	resetEstimatorAidStatus(aid_src);
 	aid_src.timestamp_sample = _flow_sample_delayed.time_us;
 
-	// get rotation matrix from earth to body
-	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
-
-	// calculate the sensor position relative to the IMU
-	const Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
-
-	// calculate the velocity of the sensor relative to the imu in body frame
-	// Note: _flow_sample_delayed.gyro_xyz is the negative of the body angular velocity, thus use minus sign
-	const Vector3f vel_rel_imu_body = Vector3f(-_flow_sample_delayed.gyro_xyz / _flow_sample_delayed.dt) % pos_offset_body;
-
-	// calculate the velocity of the sensor in the earth frame
-	const Vector3f vel_rel_earth = _state.vel + _R_to_earth * vel_rel_imu_body;
-
-	// rotate into body frame
-	const Vector3f vel_body = earth_to_body * vel_rel_earth;
-
-	// calculate the sensor position relative to the IMU in earth frame
-	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-
-	// calculate the height above the ground of the optical flow camera. Since earth frame is NED
-	// a positive offset in earth frame leads to a smaller height above the ground.
-	const float height_above_gnd_est = math::max(_terrain_vpos - _state.pos(2) - pos_offset_earth(2), fmaxf(_params.rng_gnd_clearance, 0.01f));
-
-	// calculate range from focal point to centre of image
-	const float range = height_above_gnd_est / earth_to_body(2, 2); // absolute distance to the frame region in view
+	const Vector2f vel_body = predictFlowVelBody();
+	const float range = predictFlowRange();
 
 	// calculate optical LOS rates using optical flow rates that have had the body angular rate contribution removed
 	// correct for gyro bias errors in the data used to do the motion compensation
@@ -110,13 +87,7 @@ void Ekf::fuseOptFlow()
 
 	// calculate the height above the ground of the optical flow camera. Since earth frame is NED
 	// a positive offset in earth frame leads to a smaller height above the ground.
-	const Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
-	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-	const float height_above_gnd_est = math::max(_terrain_vpos - _state.pos(2) - pos_offset_earth(2), fmaxf(_params.rng_gnd_clearance, 0.01f));
-
-	// calculate range from focal point to centre of image
-	const Dcmf earth_to_body = quatToInverseRotMat(_state.quat_nominal);
-	const float range = height_above_gnd_est / earth_to_body(2, 2); // absolute distance to the frame region in view
+	float range = predictFlowRange();
 
 	const Vector24f state_vector = getStateAtFusionHorizonAsVector();
 
@@ -155,6 +126,11 @@ void Ekf::fuseOptFlow()
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
 			sym::ComputeFlowYInnovVarAndH(state_vector, P, range, R_LOS, FLT_EPSILON, &_aid_src_optical_flow.innovation_variance[1], &H);
 
+			// recalculate the innovation using the updated state
+			const Vector2f vel_body = predictFlowVelBody();
+			range = predictFlowRange();
+			_aid_src_optical_flow.innovation[1] = (-vel_body(0) / range) - _aid_src_optical_flow.observation[1];
+
 			if (_aid_src_optical_flow.innovation_variance[1] < R_LOS) {
 				// we need to reinitialise the covariance matrix and abort this fusion step
 				ECL_ERR("Opt flow error - covariance reset");
@@ -179,6 +155,39 @@ void Ekf::fuseOptFlow()
 		_aid_src_optical_flow.fused = true;
 	}
 }
+
+float Ekf::predictFlowRange()
+{
+	// calculate the sensor position relative to the IMU
+	const Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
+
+	// calculate the sensor position relative to the IMU in earth frame
+	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+
+	// calculate the height above the ground of the optical flow camera. Since earth frame is NED
+	// a positive offset in earth frame leads to a smaller height above the ground.
+	const float height_above_gnd_est = math::max(_terrain_vpos - _state.pos(2) - pos_offset_earth(2), fmaxf(_params.rng_gnd_clearance, 0.01f));
+
+	// calculate range from focal point to centre of image
+	return height_above_gnd_est / _R_to_earth(2, 2); // absolute distance to the frame region in view
+}
+
+Vector2f Ekf::predictFlowVelBody()
+{
+	// calculate the sensor position relative to the IMU
+	const Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
+
+	// calculate the velocity of the sensor relative to the imu in body frame
+	// Note: _flow_sample_delayed.gyro_xyz is the negative of the body angular velocity, thus use minus sign
+	const Vector3f vel_rel_imu_body = Vector3f(-_flow_sample_delayed.gyro_xyz / _flow_sample_delayed.dt) % pos_offset_body;
+
+	// calculate the velocity of the sensor in the earth frame
+	const Vector3f vel_rel_earth = _state.vel + _R_to_earth * vel_rel_imu_body;
+
+	// rotate into body frame
+	return _state.quat_nominal.rotateVectorInverse(vel_rel_earth).xy();
+}
+
 
 // calculate optical flow body angular rate compensation
 // returns false if bias corrected body rate data is unavailable
