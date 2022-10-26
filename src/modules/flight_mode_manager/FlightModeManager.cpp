@@ -114,6 +114,8 @@ void FlightModeManager::Run()
 			handleCommand();
 		}
 
+		tryApplyCommandIfAny();
+
 		if (isAnyTaskActive()) {
 			generateTrajectorySetpoint(dt, vehicle_local_position);
 		}
@@ -231,6 +233,19 @@ void FlightModeManager::start_flight_task()
 
 	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
 		should_disable_task = false;
+
+		if (!_command_failed) {
+			FlightTaskError error = FlightTaskError::InvalidTask;
+
+#if !defined(CONSTRAINED_FLASH)
+			error = switchTask(FlightTaskIndex::Orbit);
+#endif // !CONSTRAINED_FLASH
+
+			if (error != FlightTaskError::NoError) {
+				task_failure = true;
+			}
+
+		}
 	}
 
 	// check task failure
@@ -265,39 +280,39 @@ void FlightModeManager::start_flight_task()
 
 }
 
+void FlightModeManager::tryApplyCommandIfAny()
+{
+	if (isAnyTaskActive() && _current_command.command != 0 && hrt_absolute_time() < _current_command.timestamp + 200_ms) {
+		bool success = false;
+
+		if (_current_task.task->applyCommandParameters(_current_command, success)) {
+			_current_command.command = 0;
+
+			if (!success) {
+				switchTask(FlightTaskIndex::Failsafe);
+				_command_failed = true;
+			}
+		}
+	}
+}
+
 void FlightModeManager::handleCommand()
 {
 	// get command
 	vehicle_command_s command;
 
 	while (_vehicle_command_sub.update(&command)) {
-		// check what command it is
-		FlightTaskIndex desired_task = switchVehicleCommand(command.command);
 
-		// ignore all unknown commands
-		if (desired_task != FlightTaskIndex::None
-		    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-			// switch to the commanded task
-			bool switch_succeeded = (switchTask(desired_task) == FlightTaskError::NoError);
-			uint8_t cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
+		switch (command.command) {
+		case vehicle_command_s::VEHICLE_CMD_DO_ORBIT:
+			// The command might trigger a mode switch, and the mode switch can happen before or
+			// after we receive the command here, so we store it for later.
+			memcpy(&_current_command, &command, sizeof(vehicle_command_s));
+			_command_failed = false;
+			break;
+		}
 
-			// if we are in/switched to the desired task
-			if (switch_succeeded) {
-				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
-
-				// if the task is running apply parameters to it and see if it rejects
-				if (isAnyTaskActive() && !_current_task.task->applyCommandParameters(command)) {
-					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
-
-					// if we just switched and parameters are not accepted, go to failsafe
-					if (switch_succeeded) {
-						switchTask(FlightTaskIndex::Failsafe);
-					}
-				}
-			}
-
-
-		} else if (_current_task.task) {
+		if (_current_task.task) {
 			// check for other commands not related to task switching
 			if ((command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED)
 			    && (static_cast<uint8_t>(command.param1 + .5f) == vehicle_command_s::SPEED_TYPE_GROUNDSPEED)
@@ -411,6 +426,7 @@ FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 	}
 
 	_current_task.task->setResetCounters(last_reset_counters);
+	_command_failed = false;
 
 	return FlightTaskError::NoError;
 }

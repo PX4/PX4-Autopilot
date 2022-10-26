@@ -49,9 +49,13 @@ FlightTaskOrbit::FlightTaskOrbit()
 	_sticks_data_required = false;
 }
 
-bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
+bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command, bool &success)
 {
-	bool ret = true;
+	if (command.command != vehicle_command_s::VEHICLE_CMD_DO_ORBIT) {
+		return false;
+	}
+
+	success = true;
 	// save previous velocity and rotation direction
 	bool new_is_clockwise = _orbit_velocity > 0;
 	float new_radius = _orbit_radius;
@@ -81,7 +85,7 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	} else {
 		mavlink_log_critical(&_mavlink_log_pub, "Orbit radius limit exceeded\t");
 		events::send(events::ID("orbit_radius_exceeded"), events::Log::Alert, "Orbit radius limit exceeded");
-		ret = false;
+		success = false;
 	}
 
 	// commanded heading behaviour
@@ -98,7 +102,7 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 			_center.xy() = _geo_projection.project(command.param5, command.param6);
 
 		} else {
-			ret = false;
+			success = false;
 		}
 	}
 
@@ -108,7 +112,7 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 			_center(2) = _global_local_alt0 - command.param7;
 
 		} else {
-			ret = false;
+			success = false;
 		}
 	}
 
@@ -118,7 +122,7 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 		_position_smoothing.reset(_acceleration_setpoint, _velocity_setpoint, _position);
 	}
 
-	return ret;
+	return true;
 }
 
 bool FlightTaskOrbit::sendTelemetry()
