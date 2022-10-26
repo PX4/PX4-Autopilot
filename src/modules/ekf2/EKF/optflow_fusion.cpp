@@ -128,6 +128,7 @@ void Ekf::fuseOptFlow()
 	if ((_aid_src_optical_flow.innovation_variance[0] < R_LOS)
 	    || (_aid_src_optical_flow.innovation_variance[1] < R_LOS)) {
 		// we need to reinitialise the covariance matrix and abort this fusion step
+		ECL_ERR("Opt flow error - covariance reset");
 		initialiseCovariance();
 		return;
 	}
@@ -153,6 +154,13 @@ void Ekf::fuseOptFlow()
 		} else if (index == 1) {
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
 			sym::ComputeFlowYInnovVarAndH(state_vector, P, range, R_LOS, FLT_EPSILON, &_aid_src_optical_flow.innovation_variance[1], &H);
+
+			if (_aid_src_optical_flow.innovation_variance[1] < R_LOS) {
+				// we need to reinitialise the covariance matrix and abort this fusion step
+				ECL_ERR("Opt flow error - covariance reset");
+				initialiseCovariance();
+				return;
+			}
 		}
 
 		SparseVector24f<0,1,2,3,4,5,6> Hfusion(H);
