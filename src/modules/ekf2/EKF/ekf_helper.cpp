@@ -856,6 +856,8 @@ void Ekf::fuse(const Vector24f &K, float innovation)
 {
 	_state.quat_nominal -= K.slice<4, 1>(0, 0) * innovation;
 	_state.quat_nominal.normalize();
+	_R_to_earth = Dcmf(_state.quat_nominal);
+
 	_state.vel -= K.slice<3, 1>(4, 0) * innovation;
 	_state.pos -= K.slice<3, 1>(7, 0) * innovation;
 	_state.delta_ang_bias -= K.slice<3, 1>(10, 0) * innovation;
