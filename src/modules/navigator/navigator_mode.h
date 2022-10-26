@@ -49,7 +49,8 @@ public:
 	NavigatorMode(Navigator *navigator);
 	virtual ~NavigatorMode() = default;
 	NavigatorMode(const NavigatorMode &) = delete;
-	NavigatorMode operator=(const NavigatorMode &) = delete;
+	NavigatorMode &operator=(const NavigatorMode &) = delete;
+	virtual void initialize() = 0;
 
 	void run(bool active);
 
