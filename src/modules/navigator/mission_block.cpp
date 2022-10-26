@@ -59,14 +59,7 @@ using matrix::wrap_pi;
 MissionBlock::MissionBlock(Navigator *navigator) :
 	NavigatorMode(navigator)
 {
-	_mission_item.lat = (double)NAN;
-	_mission_item.lon = (double)NAN;
-	_mission_item.yaw = NAN;
-	_mission_item.loiter_radius = _navigator->get_loiter_radius();
-	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-	_mission_item.time_inside = 0.0f;
-	_mission_item.autocontinue = true;
-	_mission_item.origin = ORIGIN_ONBOARD;
+
 }
 
 bool
@@ -931,4 +924,17 @@ MissionBlock::get_absolute_altitude_for_item(const mission_item_s &mission_item)
 	} else {
 		return mission_item.altitude;
 	}
+}
+
+void
+MissionBlock::initialize()
+{
+	_mission_item.lat = (double)NAN;
+	_mission_item.lon = (double)NAN;
+	_mission_item.yaw = NAN;
+	_mission_item.loiter_radius = _navigator->get_loiter_radius();
+	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+	_mission_item.time_inside = 0.0f;
+	_mission_item.autocontinue = true;
+	_mission_item.origin = ORIGIN_ONBOARD;
 }

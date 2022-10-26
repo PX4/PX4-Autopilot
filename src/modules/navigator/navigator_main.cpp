@@ -88,6 +88,13 @@ Navigator::Navigator() :
 	_navigation_mode_array[5] = &_precland;
 	_navigation_mode_array[6] = &_vtol_takeoff;
 
+	/* iterate through navigation modes and initialize _mission_item for each */
+	for (unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
+		if (_navigation_mode_array[i]) {
+			_navigation_mode_array[i]->initialize();
+		}
+	}
+
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
 
