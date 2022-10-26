@@ -43,7 +43,7 @@
 
 #include <stdint.h>
 #include <queue.h>
-#include <px4_platform_types.h>
+#include <sys/types.h>
 
 __BEGIN_DECLS
 
