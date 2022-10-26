@@ -234,8 +234,8 @@ static constexpr bool rotate_3(enum Rotation rot, T &x, T &y, T &z)
 	case ROTATION_ROLL_90_YAW_90: {
 			T tmp = x;
 			x = z;
-			z = y;
-			y = tmp;
+			z = math::negate(y);
+			y = math::negate(tmp);
 		}
 
 		return true;
