@@ -146,40 +146,25 @@ void Ekf::fuseOptFlow()
 	bool fused[2] {false, false};
 
 	// fuse observation axes sequentially
-	{
-		// Optical flow observation Jacobians - axis 0
+	for (uint8_t index = 0; index <= 1; index++) {
+		if (index == 0) {
+			// everything was already computed above
+
+		} else if (index == 1) {
+			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
+			sym::ComputeFlowYInnovVarAndH(state_vector, P, range, R_LOS, FLT_EPSILON, &_aid_src_optical_flow.innovation_variance[1], &H);
+		}
+
 		SparseVector24f<0,1,2,3,4,5,6> Hfusion(H);
+		Vector24f Kfusion = P * Hfusion / _aid_src_optical_flow.innovation_variance[index];
 
-		// Optical flow Kalman gains - axis 0
-		Vector24f Kfusion = P * Hfusion / _aid_src_optical_flow.innovation_variance[0];
-
-		if (measurementUpdate(Kfusion, Hfusion, _aid_src_optical_flow.innovation[0])) {
-			fused[0] = true;
-			_fault_status.flags.bad_optflow_X = false;
-
-		} else {
-			_fault_status.flags.bad_optflow_X = true;
-			return;
+		if (measurementUpdate(Kfusion, Hfusion, _aid_src_optical_flow.innovation[index])) {
+			fused[index] = true;
 		}
 	}
 
-	{
-		sym::ComputeFlowYInnovVarAndH(state_vector, P, range, R_LOS, FLT_EPSILON, &_aid_src_optical_flow.innovation_variance[1], &H);
-		// Optical flow observation Jacobians - axis 1
-		SparseVector24f<0,1,2,3,4,5,6> Hfusion(H);
-
-		// Optical flow Kalman gains - axis 1
-		Vector24f Kfusion = P * Hfusion / _aid_src_optical_flow.innovation_variance[1];
-
-		if (measurementUpdate(Kfusion, Hfusion, _aid_src_optical_flow.innovation[1])) {
-			fused[1] = true;
-			_fault_status.flags.bad_optflow_Y = false;
-
-		} else {
-			_fault_status.flags.bad_optflow_Y = true;
-			return;
-		}
-	}
+	_fault_status.flags.bad_optflow_X = !fused[0];
+	_fault_status.flags.bad_optflow_Y = !fused[1];
 
 	if (fused[0] && fused[1]) {
 		_aid_src_optical_flow.time_last_fuse = _imu_sample_delayed.time_us;
