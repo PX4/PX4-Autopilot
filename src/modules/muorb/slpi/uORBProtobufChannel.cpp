@@ -38,8 +38,7 @@
 #include <qurt_thread.h>
 #include <pthread.h>
 
-// TODO: Move this out of here once we have px4-log functionality
-extern "C" void HAP_debug(const char *msg, int level, const char *filename, int line);
+#include <px4_platform_common/log.h>
 
 // Definition of test to run when in muorb test mode
 static MUORBTestType test_to_run;
@@ -48,7 +47,7 @@ fc_func_ptrs muorb_func_ptrs;
 
 static void *test_runner(void *test)
 {
-	HAP_debug("test_runner called", 1, muorb_test_topic_name, 0);
+	PX4_INFO("test_runner called");
 
 	switch (*((MUORBTestType *) test)) {
 	case ADVERTISE_TEST_TYPE:
@@ -84,7 +83,7 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 	// so they must be saved off here
 	if (func_ptrs != nullptr) { muorb_func_ptrs = *func_ptrs; }
 
-	HAP_debug("px4muorb_orb_initialize called", 1, "init", 0);
+	PX4_INFO("px4muorb_orb_initialize called");
 
 	return 0;
 }
@@ -107,7 +106,7 @@ int px4muorb_topic_advertised(const char *topic_name)
 {
 	if (IS_MUORB_TEST(topic_name)) { run_test(ADVERTISE_TEST_TYPE); }
 
-	HAP_debug("px4muorb_topic_advertised called", 1, topic_name, 0);
+	PX4_INFO("px4muorb_topic_advertised called");
 
 	return 0;
 }
@@ -116,7 +115,7 @@ int px4muorb_add_subscriber(const char *topic_name)
 {
 	if (IS_MUORB_TEST(topic_name)) { run_test(SUBSCRIBE_TEST_TYPE); }
 
-	HAP_debug("px4muorb_add_subscriber called", 1, topic_name, 0);
+	PX4_INFO("px4muorb_add_subscriber called");
 
 	return 0;
 }
@@ -125,7 +124,7 @@ int px4muorb_remove_subscriber(const char *topic_name)
 {
 	if (IS_MUORB_TEST(topic_name)) { run_test(UNSUBSCRIBE_TEST_TYPE); }
 
-	HAP_debug("px4muorb_remove_subscriber called", 1, topic_name, 0);
+	PX4_INFO("px4muorb_remove_subscriber called");
 
 	return 0;
 }
@@ -152,7 +151,7 @@ int px4muorb_send_topic_data(const char *topic_name, const uint8_t *data,
 		if (test_passed) { run_test(TOPIC_TEST_TYPE); }
 	}
 
-	HAP_debug("px4muorb_send_topic_data called", 1, topic_name, 0);
+	PX4_INFO("px4muorb_send_topic_data called");
 
 	return 0;
 }
