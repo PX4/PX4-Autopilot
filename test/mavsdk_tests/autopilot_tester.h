@@ -95,8 +95,12 @@ public:
 	~AutopilotTester();
 
 	void connect(const std::string uri);
+
+	/**
+	 * @brief Wait until vehicle's system status is healthy & is able to arm
+	 */
 	void wait_until_ready();
-	void wait_until_ready_local_position_only();
+
 	void store_home();
 	void check_home_within(float acceptance_radius_m);
 	void check_home_not_within(float min_distance_m);
@@ -204,6 +208,12 @@ private:
 
 	void report_speed_factor();
 
+	/**
+	 * @brief Continue polling until condition returns true or we have a timeout
+	 *
+	 * @param fun Boolean returning function. When true, the polling terminates.
+	 * @param duration Timeout for polling in `std::chrono::` time unit
+	 */
 	template<typename Rep, typename Period>
 	bool poll_condition_with_timeout(
 		std::function<bool()> fun, std::chrono::duration<Rep, Period> duration)
