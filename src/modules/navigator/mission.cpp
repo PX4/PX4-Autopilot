@@ -443,7 +443,9 @@ Mission::find_mission_land_start()
 			_landing_start_lon = missionitem.lon;
 			_landing_start_alt = missionitem.altitude_is_relative ?	missionitem.altitude +
 					     _navigator->get_home_position()->alt : missionitem.altitude;
-			_landing_loiter_radius = missionitem.loiter_radius;
+			_landing_loiter_radius = (PX4_ISFINITE(missionitem.loiter_radius)
+						  && fabsf(missionitem.loiter_radius) > FLT_EPSILON) ? fabsf(missionitem.loiter_radius) :
+						 _navigator->get_loiter_radius();
 			_land_start_available = true;
 		}
 
