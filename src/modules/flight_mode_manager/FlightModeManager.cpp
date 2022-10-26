@@ -296,14 +296,6 @@ void FlightModeManager::handleCommand()
 				}
 			}
 
-			// send back acknowledgment
-			vehicle_command_ack_s command_ack{};
-			command_ack.command = command.command;
-			command_ack.result = cmd_result;
-			command_ack.target_system = command.source_system;
-			command_ack.target_component = command.source_component;
-			command_ack.timestamp = hrt_absolute_time();
-			_vehicle_command_ack_pub.publish(command_ack);
 
 		} else if (_current_task.task) {
 			// check for other commands not related to task switching
