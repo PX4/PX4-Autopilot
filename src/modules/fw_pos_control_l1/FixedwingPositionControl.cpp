@@ -1782,10 +1782,21 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		const float height_rate_setpoint = flare_ramp_interpolator_sqrt * (-_param_fw_lnd_fl_sink.get()) +
 						   (1.0f - flare_ramp_interpolator_sqrt) * _flare_states.initial_height_rate_setpoint;
 
-		const float pitch_min_rad = flare_ramp_interpolator_sqrt * radians(_param_fw_lnd_fl_pmin.get()) +
-					    (1.0f - flare_ramp_interpolator_sqrt) * radians(_param_fw_p_lim_min.get());
-		const float pitch_max_rad = flare_ramp_interpolator_sqrt * radians(_param_fw_lnd_fl_pmax.get()) +
-					    (1.0f - flare_ramp_interpolator_sqrt) * radians(_param_fw_p_lim_max.get());
+		float pitch_min_rad = flare_ramp_interpolator_sqrt * radians(_param_fw_lnd_fl_pmin.get()) +
+				      (1.0f - flare_ramp_interpolator_sqrt) * radians(_param_fw_p_lim_min.get());
+		float pitch_max_rad = flare_ramp_interpolator_sqrt * radians(_param_fw_lnd_fl_pmax.get()) +
+				      (1.0f - flare_ramp_interpolator_sqrt) * radians(_param_fw_p_lim_max.get());
+
+		if (_param_fw_lnd_td_time.get() > FLT_EPSILON) {
+			const float touchdown_time = math::max(_param_fw_lnd_td_time.get(), _param_fw_lnd_fl_time.get());
+
+			const float touchdown_interpolator = math::constrain((seconds_since_flare_start - touchdown_time) /
+							     POST_TOUCHDOWN_CLAMP_TIME, 0.0f,
+							     1.0f);
+
+			pitch_max_rad = touchdown_interpolator * _param_rwto_psp.get() + (1.0f - touchdown_interpolator) * pitch_max_rad;
+			pitch_min_rad = touchdown_interpolator * _param_rwto_psp.get() + (1.0f - touchdown_interpolator) * pitch_min_rad;
+		}
 
 		// idle throttle may be >0 for internal combustion engines
 		// normally set to zero for electric motors

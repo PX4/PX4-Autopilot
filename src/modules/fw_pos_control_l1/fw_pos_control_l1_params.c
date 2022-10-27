@@ -1035,6 +1035,26 @@ PARAM_DEFINE_FLOAT(FW_WING_HEIGHT, 0.5);
 PARAM_DEFINE_FLOAT(FW_LND_FL_TIME, 1.0f);
 
 /**
+ * Landing touchdown time (since flare start)
+ *
+ * This is the time after the start of flaring that we expect the vehicle to touch the runway.
+ * At this time, a 0.5s clamp down ramp will engage, constraining the pitch setpoint to RWTO_PSP.
+ * If enabled, ensure that RWTO_PSP is configured appropriately for full gear contact on ground roll.
+ *
+ * Set to -1.0 to disable touchdown clamping. E.g. it may not be desirable to clamp on belly landings.
+ *
+ * The touchdown time will be constrained to be greater than or equal to the flare time (FW_LND_FL_TIME).
+ *
+ * @unit s
+ * @min -1.0
+ * @max 5.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW Auto Landing
+ */
+PARAM_DEFINE_FLOAT(FW_LND_TD_TIME, -1.0f);
+
+/**
  * Landing flare sink rate
  *
  * TECS will attempt to control the aircraft to this sink rate via pitch angle (throttle killed during flare)
