@@ -44,6 +44,18 @@ parameters:
             reboot_required: true
             default: 0
 
+        XRCE_DDS_KEY:
+            description:
+                short: XRCE DDS key
+                long: |
+                    XRCE DDS key, must be different from zero.
+                    In a single agent - multi client configuration, each client
+                    must have a unique session key.
+            category: System
+            type: int32
+            reboot_required: true
+            default: 1
+
         XRCE_DDS_UDP_PRT:
             description:
                 short: Micro DDS UDP Port
