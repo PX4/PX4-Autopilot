@@ -115,11 +115,6 @@ public:
 	bool controlYaw();
 
 	/**
-	 * @return TECS should be commanded to climbout mode
-	 */
-	bool climbout() { return climbout_; }
-
-	/**
 	 * @param external_pitch_setpoint Externally commanded pitch angle setpoint (usually from TECS) [rad]
 	 * @return Pitch angle setpoint (limited while plane is on runway) [rad]
 	 */
@@ -224,11 +219,6 @@ private:
 	 * used for heading hold mode. [rad]
 	 */
 	float initial_yaw_{0.f};
-
-	/**
-	 * True if TECS should be commanded to "climbout" mode.
-	 */
-	bool climbout_{false};
 
 	/**
 	 * The global (lat, lon) position of the vehicle on first pass through the runway takeoff state machine. The
