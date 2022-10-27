@@ -64,7 +64,9 @@ public:
 		float innov_test_ratio{INFINITY};
 	};
 
+	BiasEstimator() {}
 	BiasEstimator(float state_init, float state_var_init): _state{state_init}, _state_var{state_var_init} {};
+
 	virtual ~BiasEstimator() = default;
 
 	void reset()
