@@ -32,3 +32,10 @@
 ############################################################################
 
 # Placeholder
+set(QURT_LAYER_SRCS
+	tasks.cpp
+	)
+
+add_library(px4_layer
+        ${QURT_LAYER_SRCS}
+)

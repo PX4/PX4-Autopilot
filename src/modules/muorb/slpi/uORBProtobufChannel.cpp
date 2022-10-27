@@ -30,14 +30,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 #include "uORBProtobufChannel.hpp"
 #include "MUORBTest.hpp"
 #include <string>
 
-#include <qurt.h>
-#include <qurt_thread.h>
 #include <pthread.h>
-
+#include <px4_platform_common/tasks.h>
 #include <px4_platform_common/log.h>
 
 // Definition of test to run when in muorb test mode
@@ -45,11 +44,11 @@ static MUORBTestType test_to_run;
 
 fc_func_ptrs muorb_func_ptrs;
 
-static void *test_runner(void *test)
+static void *test_runner(void *)
 {
 	PX4_INFO("test_runner called");
 
-	switch (*((MUORBTestType *) test)) {
+	switch (test_to_run) {
 	case ADVERTISE_TEST_TYPE:
 		(void) muorb_func_ptrs.advertise_func_ptr(muorb_test_topic_name);
 		break;
@@ -93,13 +92,13 @@ char stack[TEST_STACK_SIZE];
 
 void run_test(MUORBTestType test)
 {
-	pthread_t tid;
-	pthread_attr_t attr;
-	pthread_attr_init(&attr);
-	pthread_attr_setstacksize(&attr, TEST_STACK_SIZE);
 	test_to_run = test;
-	pthread_create(&tid, &attr, &test_runner, (void *) &test_to_run);
-	pthread_attr_destroy(&attr);
+	(void)px4_task_spawn_cmd("test_MUORB",
+				 SCHED_DEFAULT,
+				 SCHED_PRIORITY_MAX - 2,
+				 2000,
+				 (px4_main_t)&test_runner,
+				 nullptr);
 }
 
 int px4muorb_topic_advertised(const char *topic_name)
