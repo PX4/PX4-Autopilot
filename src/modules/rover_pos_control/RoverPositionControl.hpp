@@ -209,12 +209,8 @@ private:
 	vehicle_local_position_s		_local_pos{};			/**< global vehicle position */
 	actuator_controls_s				_act_controls{};		/**< direct control of actuators */
 	vehicle_attitude_s				_vehicle_att{};
-	vehicle_angular_acceleration_s		_vehicle_angular_acceleration{};
-	vehicle_angular_velocity_s _vehicle_rates{};
 
 	trajectory_setpoint_s _trajectory_setpoint{};
-	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
-	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 	vehicle_angular_velocity_s 		_vehicle_rates{};
 	vehicle_angular_acceleration_s 		_vehicle_angular_acceleration{};
 
@@ -238,32 +234,10 @@ private:
 	// Pid controller for the speed (based on speed setpoint error) The output gets scaled and gets applied as throttle.
 	PID_t _speed_ctrl{};
 
-	// estimator reset counters
-	uint8_t _pos_reset_counter{0};		// captures the number of times the estimator has reset the horizontal position
-	ECL_L1_Pos_Controller				_gnd_control;
-	RateControl				_rate_control;
-	float _steering_input{0.0};
-
-	enum UGV_POSCTRL_MODE {
-		UGV_POSCTRL_MODE_AUTO,
-		UGV_POSCTRL_MODE_OTHER
-	} _control_mode_current{UGV_POSCTRL_MODE_OTHER};			///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
-
-
-	enum POS_CTRLSTATES {
-		GOTO_WAYPOINT,
-		STOPPING
-	} _pos_ctrl_state {STOPPING};			/// Position control state machine
-
-	/* previous waypoint */
-	matrix::Vector2d _prev_wp{0, 0};
-
-	enum class VelocityFrame {
-		NED,
-		BODY,
-	} _velocity_frame{VelocityFrame::NED};
 	// Attitude control
+
 	// Rate control
+	RateControl                             _rate_control;
 
 	DEFINE_PARAMETERS(
 		// L1 guidance
@@ -274,7 +248,6 @@ private:
 		// Position control
 		(ParamFloat<px4::params::GND_SPEED_TRIM>) _param_gndspeed_trim,
 		(ParamFloat<px4::params::GND_SPEED_MAX>) _param_gndspeed_max,
-		(ParamFloat<px4::params::GND_SPEED_MIN>) _param_gndspeed_min,
 
 		// Velocity control
 		(ParamInt<px4::params::GND_SP_CTRL_MODE>) _param_speed_control_mode,
