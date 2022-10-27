@@ -504,6 +504,8 @@ private:
 	uint64_t _time_last_healthy_rng_data{0};
 	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
 
+	uint8_t _nb_ev_vel_reset_available{0};
+
 	Vector3f _last_known_pos{};		///< last known local position vector (m)
 
 	uint64_t _time_acc_bias_check{0};	///< last time the  accel bias check passed (uSec)
@@ -700,7 +702,6 @@ private:
 	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel, const Vector2f &new_horz_vel_var);
 	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel, float vel_var) { resetHorizontalVelocityTo(new_horz_vel, Vector2f(vel_var, vel_var)); }
 
-	void resetVelocityToVision();
 	void resetHorizontalVelocityToZero();
 
 	void resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var);
@@ -783,10 +784,6 @@ private:
 
 	// update the rotation matrix which transforms EV navigation frame measurements into NED
 	void calcExtVisRotMat();
-
-	Vector3f getVisionVelocityInEkfFrame() const;
-
-	Vector3f getVisionVelocityVarianceInEkfFrame() const;
 
 	// matrix vector multiplication for computing K<24,1> * H<1,24> * P<24,24>
 	// that is optimized by exploring the sparsity in H
@@ -872,6 +869,7 @@ private:
 
 	// control fusion of external vision observations
 	void controlExternalVisionFusion();
+	void controlEvVelFusion(const extVisionSample &ev_sample, bool starting_conditions_passing, bool ev_reset, bool quality_sufficient, estimator_aid_source3d_s& aid_src);
 
 	// control fusion of optical flow observations
 	void controlOpticalFlowFusion();
@@ -1033,7 +1031,6 @@ private:
 	void stopGpsYawFusion();
 
 	void startEvPosFusion();
-	void startEvVelFusion();
 	void startEvYawFusion();
 
 	void stopEvFusion();
