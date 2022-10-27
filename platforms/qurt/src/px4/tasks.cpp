@@ -72,7 +72,7 @@ static void *entry_adapter(void *ptr)
 
 	else { PX4_ERR("No valid task entry points"); }
 
-	pthread_exit(PX4_OK);
+	pthread_exit(nullptr);
 	return nullptr;
 
 }
