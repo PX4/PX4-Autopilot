@@ -118,14 +118,14 @@ PARAM_DEFINE_FLOAT(VT_B_REV_OUT, 0.0f);
 PARAM_DEFINE_FLOAT(VT_B_REV_DEL, 0.0f);
 
 /**
- * Pusher throttle ramp up window
+ * Pusher throttle ramp up slew rate
  *
- * Defines the time window during which the pusher throttle will be ramped up linearly to VT_F_TRANS_THR during a transition
- * to fixed wing mode. Zero or negative values will produce an instant throttle rise to VT_F_TRANS_THR.
+ * Defines the slew rate of the throttle during transitions.
+ * Zero or negative values will produce an instant throttle rise to VT_F_TRANS_THR.
  *
  * @max 20
  * @increment 0.01
  * @decimal 2
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_PSHER_RMP_DT, 3.0f);
+PARAM_DEFINE_FLOAT(VT_PSHER_SLEW, 0.33f);
