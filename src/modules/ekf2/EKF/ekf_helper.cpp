@@ -44,13 +44,6 @@
 #include <mathlib/mathlib.h>
 #include <cstdlib>
 
-void Ekf::resetVelocityToVision()
-{
-	_information_events.flags.reset_vel_to_vision = true;
-	ECL_INFO("reset to vision velocity");
-	resetVelocityTo(getVisionVelocityInEkfFrame(), getVisionVelocityVarianceInEkfFrame());
-}
-
 void Ekf::resetHorizontalVelocityToZero()
 {
 	_information_events.flags.reset_vel_to_zero = true;
@@ -297,7 +290,7 @@ bool Ekf::resetMagHeading()
 bool Ekf::resetYawToEv()
 {
 	const float yaw_new = getEulerYaw(_ev_sample_delayed.quat);
-	const float yaw_new_variance = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
+	const float yaw_new_variance = fmaxf(_ev_sample_delayed.orientation_var(2), sq(1.0e-2f));
 
 	resetQuatStateYaw(yaw_new, yaw_new_variance);
 	_R_ev_to_ekf.setIdentity();
@@ -1156,56 +1149,6 @@ void Ekf::updateGroundEffect()
 	}
 }
 
-Vector3f Ekf::getVisionVelocityInEkfFrame() const
-{
-	Vector3f vel;
-	// correct velocity for offset relative to IMU
-	const Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
-	const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
-
-	// rotate measurement into correct earth frame if required
-	switch (_ev_sample_delayed.vel_frame) {
-	case VelocityFrame::BODY_FRAME_FRD:
-		vel = _R_to_earth * (_ev_sample_delayed.vel - vel_offset_body);
-		break;
-
-	case VelocityFrame::LOCAL_FRAME_FRD:
-		const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
-
-		if (_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS) {
-			vel = _R_ev_to_ekf * _ev_sample_delayed.vel - vel_offset_earth;
-
-		} else {
-			vel = _ev_sample_delayed.vel - vel_offset_earth;
-		}
-
-		break;
-	}
-
-	return vel;
-}
-
-Vector3f Ekf::getVisionVelocityVarianceInEkfFrame() const
-{
-	Matrix3f ev_vel_cov = matrix::diag(_ev_sample_delayed.velVar);
-
-	// rotate measurement into correct earth frame if required
-	switch (_ev_sample_delayed.vel_frame) {
-	case VelocityFrame::BODY_FRAME_FRD:
-		ev_vel_cov = _R_to_earth * ev_vel_cov * _R_to_earth.transpose();
-		break;
-
-	case VelocityFrame::LOCAL_FRAME_FRD:
-		if (_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS) {
-			ev_vel_cov = _R_ev_to_ekf * ev_vel_cov * _R_ev_to_ekf.transpose();
-		}
-
-		break;
-	}
-
-	return ev_vel_cov.diag();
-}
-
 // update the rotation matrix which rotates EV measurements into the EKF's navigation frame
 void Ekf::calcExtVisRotMat()
 {
@@ -1368,14 +1311,6 @@ void Ekf::startEvPosFusion()
 	ECL_INFO("starting vision pos fusion");
 }
 
-void Ekf::startEvVelFusion()
-{
-	_control_status.flags.ev_vel = true;
-	resetVelocityToVision();
-	_information_events.flags.starting_vision_vel_fusion = true;
-	ECL_INFO("starting vision vel fusion");
-}
-
 void Ekf::startEvYawFusion()
 {
 	// turn on fusion of external vision yaw measurements and disable all magnetometer fusion
@@ -1402,15 +1337,6 @@ void Ekf::stopEvPosFusion()
 		ECL_INFO("stopping EV pos fusion");
 		_control_status.flags.ev_pos = false;
 		resetEstimatorAidStatus(_aid_src_ev_pos);
-	}
-}
-
-void Ekf::stopEvVelFusion()
-{
-	if (_control_status.flags.ev_vel) {
-		ECL_INFO("stopping EV vel fusion");
-		_control_status.flags.ev_vel = false;
-		resetEstimatorAidStatus(_aid_src_ev_vel);
 	}
 }
 
