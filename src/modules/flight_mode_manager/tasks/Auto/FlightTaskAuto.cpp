@@ -822,6 +822,9 @@ void FlightTaskAuto::_updateTrajConstraints()
 		float z_accel_constraint = _param_mpc_acc_up_max.get();
 		float z_vel_constraint = math::min(_mc_vertical_up_speed, _param_mpc_z_v_auto_up.get());
 
+		printf("autoup %d\n", static_cast<double>(_param_mpc_acc_up_max.get()) );
+		printf("vertical up %d\n", static_cast<double>(_mc_vertical_up_speed) );
+
 		// The constraints are broken because they are used as hard limits by the position controller, so put this here
 		// until the constraints don't do things like cause controller integrators to saturate. Once the controller
 		// doesn't use z speed constraints, this can go in _prepareTakeoffSetpoints(). Accel limit is to
@@ -840,6 +843,9 @@ void FlightTaskAuto::_updateTrajConstraints()
 		_position_smoothing.setMaxAccelerationZ(z_accel_constraint);
 
 	} else { // down
+		printf("autodn %d\n", static_cast<double>(_param_mpc_z_v_auto_dn.get()) );
+		printf("vertical down %d\n", static_cast<double>(_mc_vertical_down_speed) );
+
 		float z_vel_constraint = math::min(_mc_vertical_down_speed, _param_mpc_z_v_auto_dn.get());
 
 		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
