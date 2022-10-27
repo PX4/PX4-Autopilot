@@ -68,6 +68,10 @@ Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, cons
 		updateIntegral(rate_error, dt);
 	}
 
+	// Log values for debugging
+	_last_rate_sp = rate_sp;
+	_last_torque_sp_output = torque;
+
 	return torque;
 }
 

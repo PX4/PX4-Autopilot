@@ -100,6 +100,15 @@ public:
 	 */
 	void getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status);
 
+	matrix::Vector3f get_P_gains() {return _gain_p; }
+	matrix::Vector3f get_I_gains() {return _gain_i; }
+	matrix::Vector3f get_D_gains() {return _gain_d; }
+	matrix::Vector3f get_FF_gains() {return _gain_ff; }
+
+	matrix::Vector3f get_I_terms() {return _rate_int; }
+	matrix::Vector3f get_last_rate_setpoints() {return _last_rate_sp; }
+	matrix::Vector3f get_lat_torque_setpoint_outputs() {return _last_torque_sp_output; }
+
 private:
 	void updateIntegral(matrix::Vector3f &rate_error, const float dt);
 
@@ -116,4 +125,8 @@ private:
 	// Feedback from control allocation
 	matrix::Vector<bool, 3> _control_allocator_saturation_negative;
 	matrix::Vector<bool, 3> _control_allocator_saturation_positive;
+
+	// Log / debugging
+	matrix::Vector3f _last_rate_sp;
+	matrix::Vector3f _last_torque_sp_output;
 };
