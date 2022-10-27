@@ -166,6 +166,9 @@ static constexpr float MAX_TOUCHDOWN_POSITION_NUDGE_RATE = 4.0f;
 // [.] normalized deadzone threshold for manual nudging input
 static constexpr float MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE = 0.15f;
 
+// [s] time interval after touchdown for ramping in runway clamping constraints (touchdown is assumed at FW_LND_TD_TIME after start of flare)
+static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
+
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
 {
@@ -867,13 +870,16 @@ private:
 
 		(ParamFloat<px4::params::FW_LND_FL_TIME>) _param_fw_lnd_fl_time,
 		(ParamFloat<px4::params::FW_LND_FL_SINK>) _param_fw_lnd_fl_sink,
+		(ParamFloat<px4::params::FW_LND_TD_TIME>) _param_fw_lnd_td_time,
 		(ParamFloat<px4::params::FW_LND_TD_OFF>) _param_fw_lnd_td_off,
 		(ParamInt<px4::params::FW_LND_NUDGE>) _param_fw_lnd_nudge,
 		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort,
 
 		(ParamFloat<px4::params::FW_WIND_ARSP_SC>) _param_fw_wind_arsp_sc,
 
-		(ParamFloat<px4::params::FW_TKO_AIRSPD>) _param_fw_tko_airspd
+		(ParamFloat<px4::params::FW_TKO_AIRSPD>) _param_fw_tko_airspd,
+
+		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp
 	)
 
 };
