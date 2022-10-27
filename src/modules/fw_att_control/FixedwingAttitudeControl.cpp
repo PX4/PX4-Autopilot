@@ -157,6 +157,8 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 					q.copyTo(_att_sp.q_d);
 
+					_att_sp.reset_rate_integrals = false;
+
 					_att_sp.timestamp = hrt_absolute_time();
 
 					_attitude_sp_pub.publish(_att_sp);
