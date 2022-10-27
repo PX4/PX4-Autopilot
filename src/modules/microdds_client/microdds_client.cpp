@@ -184,7 +184,13 @@ void MicroddsClient::run()
 
 		// Session
 		// The key identifier of the Client. All Clients connected to an Agent must have a different key.
-		const uint32_t key = 0xAAAABBBB;
+		const uint32_t key = (uint32_t)_param_xrce_key.get();
+
+		if (key == 0) {
+			PX4_ERR("session key must be different from zero");
+			return;
+		}
+
 		uxrSession session;
 		uxr_init_session(&session, _comm, key);
 
