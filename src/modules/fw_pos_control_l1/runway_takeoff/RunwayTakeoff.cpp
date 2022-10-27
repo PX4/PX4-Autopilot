@@ -57,7 +57,6 @@ void RunwayTakeoff::init(const hrt_abstime &time_now, const float initial_yaw, c
 	initial_yaw_ = initial_yaw;
 	start_pos_global_ = start_pos_global;
 	takeoff_state_ = RunwayTakeoffState::THROTTLE_RAMP;
-	climbout_ = true; // this is true until climbout is finished
 	initialized_ = true;
 	time_initialized_ = time_now;
 	takeoff_time_ = 0;
@@ -91,7 +90,6 @@ void RunwayTakeoff::update(const hrt_abstime &time_now, const float takeoff_airs
 
 	case RunwayTakeoffState::CLIMBOUT:
 		if (vehicle_altitude > clearance_altitude) {
-			climbout_ = false;
 			takeoff_state_ = RunwayTakeoffState::FLY;
 			mavlink_log_info(mavlink_log_pub, "Reached clearance altitude\t");
 			events::send(events::ID("runway_takeoff_reached_clearance_altitude"), events::Log::Info, "Reached clearance altitude");
