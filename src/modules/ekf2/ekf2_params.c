@@ -608,7 +608,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * 5 : Set to true to enable multi-rotor drag specific force fusion
  * 6 : set to true if the EV observations are in a non NED reference frame and need to be rotated before being used
  * 7 : Deprecated, use EKF2_GPS_CTRL instead
- * 8 : Set to true to enable vision velocity fusion
+ * 3 : Deprecated, use EKF2_EV_CTRL instead
  *
  * @group EKF2
  * @min 0
@@ -621,7 +621,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * @bit 5 multi-rotor drag fusion
  * @bit 6 rotate external vision
  * @bit 7 unused
- * @bit 8 vision velocity fusion
+ * @bit 8 unused
  * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_AID_MASK, 0);
@@ -653,6 +653,25 @@ PARAM_DEFINE_INT32(EKF2_HGT_REF, 1);
  * @boolean
  */
 PARAM_DEFINE_INT32(EKF2_BARO_CTRL, 1);
+
+/**
+ * External vision (EV) sensor aiding
+ *
+ * Set bits in the following positions to enable:
+ * 0 : Horizontal position fusion
+ * 1 : Vertical position fusion
+ * 2 : 3D velocity fusion
+ * 3 : Yaw
+ *
+ * @group EKF2
+ * @min 0
+ * @max 15
+ * @bit 0 Horizontal position
+ * @bit 1 Vertical position
+ * @bit 2 3D velocity
+ * @bit 3 Yaw
+ */
+PARAM_DEFINE_INT32(EKF2_EV_CTRL, 15);
 
 /**
  * GNSS sensor aiding
@@ -770,11 +789,13 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_GATE, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
 
 /**
- * Whether to set the external vision observation noise from the parameter or from vision message
+ * External vision (EV) noise mode
  *
- * If set to true the observation noise is set from the parameters directly, if set to false the measurement noise is taken from the vision message and the parameter are used as a lower bound.
+ * If set to 0 (default) the measurement noise is taken from the vision message and the EV noise parameters are used as a lower bound.
+ * If set to 1 the observation noise is set from the parameters directly,
  *
- * @boolean
+ * @value 0 EV reported variance (parameter lower bound)
+ * @value 1 EV noise parameters
  * @group EKF2
  */
 PARAM_DEFINE_INT32(EKF2_EV_NOISE_MD, 0);

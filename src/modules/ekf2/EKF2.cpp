@@ -123,7 +123,10 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_rng_a_igate(_params->range_aid_innov_gate),
 	_param_ekf2_rng_qlty_t(_params->range_valid_quality_s),
 	_param_ekf2_rng_k_gate(_params->range_kin_consistency_gate),
+	_param_ekf2_ev_ctrl(_params->ev_ctrl),
 	_param_ekf2_ev_qmin(_params->ev_quality_minimum),
+	_param_ekf2_evv_noise(_params->ev_vel_noise),
+	_param_ekf2_eva_noise(_params->ev_att_noise),
 	_param_ekf2_evv_gate(_params->ev_vel_innov_gate),
 	_param_ekf2_evp_gate(_params->ev_pos_innov_gate),
 	_param_ekf2_of_n_min(_params->flow_noise),
@@ -705,6 +708,23 @@ void EKF2::VerifyParams()
 		 */
 		events::send<float>(events::ID("ekf2_hgt_ref_gps"), events::Log::Warning,
 				    "GPS enabled by EKF2_HGT_REF", _param_ekf2_gps_ctrl.get());
+	}
+
+	// EV EKF2_AID_MASK -> EKF2_EV_CTRL
+	if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL)) {
+
+		_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() | static_cast<int32_t>(EvCtrl::VEL));
+		_param_ekf2_ev_ctrl.commit();
+
+		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL));
+		_param_ekf2_aid_mask.commit();
+
+		mavlink_log_critical(&_mavlink_log_pub, "EKF2 EV use EKF2_EV_CTRL instead of EKF2_AID_MASK\n");
+		/* EVENT
+		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_aid_mask_ev"), events::Log::Warning,
+				    "Use EKF2_EV_CTRL instead", _param_ekf2_aid_mask.get());
 	}
 }
 
@@ -1737,45 +1757,44 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 		ev_data.vel.setNaN();
 		ev_data.quat.setNaN();
 
-		// if error estimates are unavailable, use parameter defined defaults
-
 		// check for valid velocity data
-		if (Vector3f(ev_odom.velocity).isAllFinite()) {
-			bool velocity_valid = true;
+		const Vector3f ev_odom_vel(ev_odom.velocity);
+		const Vector3f ev_odom_vel_var(ev_odom.velocity_variance);
+
+		if (ev_odom_vel.isAllFinite()) {
+			bool velocity_frame_valid = false;
 
 			switch (ev_odom.velocity_frame) {
-			// case vehicle_odometry_s::VELOCITY_FRAME_NED:
-			// 	ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_NED;
-			// 	break;
+			case vehicle_odometry_s::VELOCITY_FRAME_NED:
+				ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_NED;
+				velocity_frame_valid = true;
+				break;
 
 			case vehicle_odometry_s::VELOCITY_FRAME_FRD:
 				ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_FRD;
+				velocity_frame_valid = true;
 				break;
 
 			case vehicle_odometry_s::VELOCITY_FRAME_BODY_FRD:
 				ev_data.vel_frame = VelocityFrame::BODY_FRAME_FRD;
-				break;
-
-			default:
-				velocity_valid = false;
+				velocity_frame_valid = true;
 				break;
 			}
 
-			if (velocity_valid) {
-				ev_data.vel(0) = ev_odom.velocity[0];
-				ev_data.vel(1) = ev_odom.velocity[1];
-				ev_data.vel(2) = ev_odom.velocity[2];
+			if (velocity_frame_valid) {
+				ev_data.vel = ev_odom_vel;
 
 				const float evv_noise_var = sq(_param_ekf2_evv_noise.get());
 
 				// velocity measurement error from ev_data or parameters
-				if (!_param_ekf2_ev_noise_md.get() && Vector3f(ev_odom.velocity_variance).isAllFinite()) {
-					ev_data.velVar(0) = fmaxf(evv_noise_var, ev_odom.velocity_variance[0]);
-					ev_data.velVar(1) = fmaxf(evv_noise_var, ev_odom.velocity_variance[1]);
-					ev_data.velVar(2) = fmaxf(evv_noise_var, ev_odom.velocity_variance[2]);
+				if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_vel_var.isAllFinite()) {
+
+					ev_data.velocity_var(0) = fmaxf(evv_noise_var, ev_odom_vel_var(0));
+					ev_data.velocity_var(1) = fmaxf(evv_noise_var, ev_odom_vel_var(1));
+					ev_data.velocity_var(2) = fmaxf(evv_noise_var, ev_odom_vel_var(2));
 
 				} else {
-					ev_data.velVar.setAll(evv_noise_var);
+					ev_data.velocity_var.setAll(evv_noise_var);
 				}
 
 				new_ev_odom = true;
@@ -1822,23 +1841,34 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 		}
 
 		// check for valid orientation data
-		if ((Quatf(ev_odom.q).isAllFinite())
-		    && ((fabsf(ev_odom.q[0]) > 0.f) || (fabsf(ev_odom.q[1]) > 0.f)
-			|| (fabsf(ev_odom.q[2]) > 0.f) || (fabsf(ev_odom.q[3]) > 0.f))
-		   ) {
-			ev_data.quat = Quatf(ev_odom.q);
+		const Quatf ev_odom_q(ev_odom.q);
+		const Vector3f ev_odom_q_var(ev_odom.orientation_variance);
+		const bool non_zero = (fabsf(ev_odom_q(0)) > 0.f) || (fabsf(ev_odom_q(1)) > 0.f)
+				      || (fabsf(ev_odom_q(2)) > 0.f) || (fabsf(ev_odom_q(3)) > 0.f);
+		const float eps = 1e-5f;
+		const bool no_element_larger_than_one = (fabsf(ev_odom_q(0)) <= 1.f + eps)
+							&& (fabsf(ev_odom_q(1)) <= 1.f + eps)
+							&& (fabsf(ev_odom_q(2)) <= 1.f + eps)
+							&& (fabsf(ev_odom_q(3)) <= 1.f + eps);
+		const bool norm_in_tolerance = fabsf(1.f - ev_odom_q.norm()) <= eps;
+
+		const bool orientation_valid = ev_odom_q.isAllFinite() && non_zero && no_element_larger_than_one && norm_in_tolerance;
+
+		if (orientation_valid) {
+			ev_data.quat = ev_odom_q;
 			ev_data.quat.normalize();
 
 			// orientation measurement error from ev_data or parameters
 			const float eva_noise_var = sq(_param_ekf2_eva_noise.get());
 
-			if (!_param_ekf2_ev_noise_md.get() &&
-			    PX4_ISFINITE(ev_odom.orientation_variance[2])
-			   ) {
-				ev_data.angVar = fmaxf(eva_noise_var, ev_odom.orientation_variance[2]);
+			if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_q_var.isAllFinite()) {
+
+				ev_data.orientation_var(0) = fmaxf(eva_noise_var, ev_odom_q_var(0));
+				ev_data.orientation_var(1) = fmaxf(eva_noise_var, ev_odom_q_var(1));
+				ev_data.orientation_var(2) = fmaxf(eva_noise_var, ev_odom_q_var(2));
 
 			} else {
-				ev_data.angVar = eva_noise_var;
+				ev_data.orientation_var.setAll(eva_noise_var);
 			}
 
 			new_ev_odom = true;
