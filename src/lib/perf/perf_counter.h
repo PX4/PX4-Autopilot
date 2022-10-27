@@ -175,14 +175,6 @@ __EXPORT extern void		perf_reset(perf_counter_t handle);
 __EXPORT extern void		perf_print_counter(perf_counter_t handle);
 
 /**
- * Print one performance counter to a fd.
- *
- * @param fd			File descriptor to print to - e.g. 0 for stdout
- * @param handle		The counter to print.
- */
-__EXPORT extern void		perf_print_counter_fd(int fd, perf_counter_t handle);
-
-/**
  * Print one performance counter to a buffer.
  *
  * @param buffer			buffer to write to
@@ -194,10 +186,8 @@ __EXPORT extern int		perf_print_counter_buffer(char *buffer, int length, perf_co
 
 /**
  * Print all of the performance counters.
- *
- * @param fd			File descriptor to print to - e.g. 0 for stdout
  */
-__EXPORT extern void		perf_print_all(int fd);
+__EXPORT extern void		perf_print_all(void);
 
 
 typedef void (*perf_callback)(perf_counter_t handle, void *user);
@@ -216,10 +206,8 @@ __EXPORT extern void	perf_iterate_all(perf_callback cb, void *user);
 
 /**
  * Print hrt latency counters.
- *
- * @param fd			File descriptor to print to - e.g. 0 for stdout
  */
-__EXPORT extern void		perf_print_latency(int fd);
+__EXPORT extern void		perf_print_latency(void);
 
 /**
  * Reset all of the performance counters.

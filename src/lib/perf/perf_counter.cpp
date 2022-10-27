@@ -419,35 +419,25 @@ perf_print_counter(perf_counter_t handle)
 		return;
 	}
 
-	perf_print_counter_fd(1, handle);
-}
-
-void
-perf_print_counter_fd(int fd, perf_counter_t handle)
-{
-	if (handle == nullptr) {
-		return;
-	}
-
 	switch (handle->type) {
 	case PC_COUNT:
-		dprintf(fd, "%s: %" PRIu64 " events\n",
-			handle->name,
-			((struct perf_ctr_count *)handle)->event_count);
+		PX4_INFO_RAW("%s: %" PRIu64 " events\n",
+			     handle->name,
+			     ((struct perf_ctr_count *)handle)->event_count);
 		break;
 
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
-			dprintf(fd, "%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32
-				"us %5.3fus rms\n",
-				handle->name,
-				pce->event_count,
-				pce->time_total,
-				(pce->event_count == 0) ? 0 : (double)pce->time_total / (double)pce->event_count,
-				pce->time_least,
-				pce->time_most,
-				(double)(1e6f * rms));
+			PX4_INFO_RAW("%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32
+				     "us %5.3fus rms\n",
+				     handle->name,
+				     pce->event_count,
+				     pce->time_total,
+				     (pce->event_count == 0) ? 0 : (double)pce->time_total / (double)pce->event_count,
+				     pce->time_least,
+				     pce->time_most,
+				     (double)(1e6f * rms));
 			break;
 		}
 
@@ -455,13 +445,13 @@ perf_print_counter_fd(int fd, perf_counter_t handle)
 			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
 			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
 
-			dprintf(fd, "%s: %" PRIu64 " events, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms\n",
-				handle->name,
-				pci->event_count,
-				(pci->event_count == 0) ? 0 : (double)(pci->time_last - pci->time_first) / (double)pci->event_count,
-				pci->time_least,
-				pci->time_most,
-				(double)(1e6f * rms));
+			PX4_INFO_RAW("%s: %" PRIu64 " events, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms\n",
+				     handle->name,
+				     pci->event_count,
+				     (pci->event_count == 0) ? 0 : (double)(pci->time_last - pci->time_first) / (double)pci->event_count,
+				     pci->time_least,
+				     pci->time_most,
+				     (double)(1e6f * rms));
 			break;
 		}
 
@@ -593,13 +583,13 @@ perf_iterate_all(perf_callback cb, void *user)
 }
 
 void
-perf_print_all(int fd)
+perf_print_all(void)
 {
 	pthread_mutex_lock(&perf_counters_mutex);
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
 	while (handle != nullptr) {
-		perf_print_counter_fd(fd, handle);
+		perf_print_counter(handle);
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
 
@@ -607,19 +597,19 @@ perf_print_all(int fd)
 }
 
 void
-perf_print_latency(int fd)
+perf_print_latency(void)
 {
 	latency_info_t latency;
-	dprintf(fd, "bucket [us] : events\n");
+	PX4_INFO_RAW("bucket [us] : events\n");
 
 	for (int i = 0; i < get_latency_bucket_count(); i++) {
 		latency = get_latency(i, i);
-		dprintf(fd, "       %4i : %li\n", latency.bucket, (long int)latency.counter);
+		PX4_INFO_RAW("       %4i : %li\n", latency.bucket, (long int)latency.counter);
 	}
 
 	// print the overflow bucket value
 	latency = get_latency(get_latency_bucket_count() - 1, get_latency_bucket_count());
-	dprintf(fd, " >%4" PRIu16 " : %" PRIu32 "\n", latency.bucket, latency.counter);
+	PX4_INFO_RAW(" >%4" PRIu16 " : %" PRIu32 "\n", latency.bucket, latency.counter);
 }
 
 void
