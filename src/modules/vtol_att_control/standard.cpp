@@ -142,7 +142,6 @@ void Standard::update_vtol_state()
 			_vtol_schedule.flight_mode = vtol_mode::TRANSITION_TO_FW;
 			_vtol_schedule.transition_start = hrt_absolute_time();
 
-
 		} else if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
 			// in fw mode
 			_vtol_schedule.flight_mode = vtol_mode::FW_MODE;
