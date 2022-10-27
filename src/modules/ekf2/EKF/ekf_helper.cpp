@@ -1364,6 +1364,7 @@ void Ekf::stopEvFusion()
 	stopEvPosFusion();
 	stopEvVelFusion();
 	stopEvYawFusion();
+	stopEvHgtFusion();
 }
 
 void Ekf::stopEvPosFusion()
