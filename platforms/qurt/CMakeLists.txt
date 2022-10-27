@@ -38,4 +38,5 @@ QURT_LIB(LIB_NAME px4
 		${PX4_SOURCE_DIR}/platforms/qurt/unresolved_symbols.c
 	LINK_LIBS
 		${module_libraries}
+		px4_layer
 	)
