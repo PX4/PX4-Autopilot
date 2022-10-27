@@ -9,7 +9,7 @@
 param set SYS_HITL 1
 
 # Start Mavlink for simulator connection
-mavlink start -c 192.168.200.100 -u 14560 -m onboard -r 2000000
+mavlink start -c 192.168.200.100 -u 14560 -o 14561 -m onboard -r 2000000
 
 # disable some checks to allow to fly
 # - with usb
