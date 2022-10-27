@@ -217,7 +217,7 @@ void Ekf::controlExternalVisionFusion()
 		// if the ev data is not in a NED reference frame, then the transformation between EV and EKF navigation frames
 		// needs to be calculated and the observations rotated into the EKF frame of reference
 		if ((_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS) && ((_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_POS)
-				|| (_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_VEL)) && !_control_status.flags.ev_yaw) {
+				|| (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::VEL))) && !_control_status.flags.ev_yaw) {
 
 			// rotate EV measurements into the EKF Navigation frame
 			calcExtVisRotMat();
@@ -231,11 +231,6 @@ void Ekf::controlExternalVisionFusion()
 				// turn on use of external vision measurements for position
 				if (_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_POS && !_control_status.flags.ev_pos) {
 					startEvPosFusion();
-				}
-
-				// turn on use of external vision measurements for velocity
-				if (_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_VEL && !_control_status.flags.ev_vel) {
-					startEvVelFusion();
 				}
 			}
 		}
@@ -331,15 +326,6 @@ void Ekf::controlExternalVisionFusion()
 
 				// check if we have been deadreckoning too long
 				if (isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)) {
-					// only reset velocity if we have no another source of aiding constraining it
-					if (isTimedOut(_aid_src_optical_flow.time_last_fuse, (uint64_t)1E6) &&
-					    isTimedOut(_time_last_hor_vel_fuse, (uint64_t)1E6)) {
-
-						if (_control_status.flags.ev_vel) {
-							resetVelocityToVision();
-						}
-					}
-
 					resetHorizontalPositionToVision();
 				}
 			}
@@ -354,38 +340,10 @@ void Ekf::controlExternalVisionFusion()
 			fuseHorizontalPosition(_aid_src_ev_pos);
 		}
 
-		// determine if we should use the velocity observations
-		if (_control_status.flags.ev_vel) {
-			if (reset && _control_status_prev.flags.ev_vel) {
-				resetVelocityToVision();
-			}
-
-			// check if we have been deadreckoning too long
-			if (isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)) {
-				// only reset velocity if we have no another source of aiding constraining it
-				if (isTimedOut(_aid_src_optical_flow.time_last_fuse, (uint64_t)1E6) &&
-				    isTimedOut(_time_last_hor_pos_fuse, (uint64_t)1E6)) {
-					resetVelocityToVision();
-				}
-			}
-
-			resetEstimatorAidStatus(_aid_src_ev_vel);
-
-			const Vector3f obs_var = matrix::max(getVisionVelocityVarianceInEkfFrame(), sq(0.05f));
-
-			const float innov_gate = fmaxf(_params.ev_vel_innov_gate, 1.f);
-
-			updateVelocityAidSrcStatus(_ev_sample_delayed.time_us, getVisionVelocityInEkfFrame(), obs_var, innov_gate, _aid_src_ev_vel);
-
-			_aid_src_ev_vel.fusion_enabled = true;
-
-			fuseVelocity(_aid_src_ev_vel);
-		}
-
 		// determine if we should use the yaw observation
 		resetEstimatorAidStatus(_aid_src_ev_yaw);
 		const float measured_hdg = getEulerYaw(_ev_sample_delayed.quat);
-		const float ev_yaw_obs_var = fmaxf(_ev_sample_delayed.angVar, 1.e-4f);
+		const float ev_yaw_obs_var = fmaxf(_ev_sample_delayed.orientation_var(2), 1.e-4f);
 
 		if (PX4_ISFINITE(measured_hdg)) {
 			_aid_src_ev_yaw.timestamp_sample = _ev_sample_delayed.time_us;
@@ -414,12 +372,28 @@ void Ekf::controlExternalVisionFusion()
 			}
 		}
 
+
+		bool ev_reset = (_ev_sample_delayed.reset_counter != _ev_sample_delayed_prev.reset_counter);
+
+		// determine if we should use the horizontal position observations
+		bool quality_sufficient = (_params.ev_quality_minimum <= 0) || (_ev_sample_delayed.quality >= _params.ev_quality_minimum);
+
+		bool starting_conditions_passing = quality_sufficient
+						   && ((_ev_sample_delayed.time_us - _ev_sample_delayed_prev.time_us) < EV_MAX_INTERVAL)
+						   && ((_params.ev_quality_minimum <= 0) || (_ev_sample_delayed_prev.quality >= _params.ev_quality_minimum)) // previous quality sufficient
+						   && ((_params.ev_quality_minimum <= 0) || (_ext_vision_buffer->get_newest().quality >= _params.ev_quality_minimum)) // newest quality sufficient
+						   && isNewestSampleRecent(_time_last_ext_vision_buffer_push, EV_MAX_INTERVAL);
+
+		// EV velocity
+		controlEvVelFusion(_ev_sample_delayed, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
+
+
 		// record observation and estimate for use next time
 		_ev_sample_delayed_prev = _ev_sample_delayed;
 		_hpos_pred_prev = _state.pos.xy();
 		_yaw_pred_prev = getEulerYaw(_state.quat_nominal);
 
-	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel ||  _control_status.flags.ev_yaw)
+	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel || _control_status.flags.ev_yaw)
 		   && !isRecent(_ev_sample_delayed.time_us, (uint64_t)_params.reset_timeout_max)) {
 
 		// Turn off EV fusion mode if no data has been received

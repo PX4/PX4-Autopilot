@@ -79,8 +79,9 @@ using math::Utilities::updateYawInRotMat;
 #define GNDEFFECT_TIMEOUT       10E6    ///< Maximum period of time that ground effect protection will be active after it was last turned on (uSec)
 
 enum class VelocityFrame : uint8_t {
-	LOCAL_FRAME_FRD = 0,
-	BODY_FRAME_FRD  = 1
+	LOCAL_FRAME_NED = 0,
+	LOCAL_FRAME_FRD = 1,
+	BODY_FRAME_FRD  = 2
 };
 
 enum GeoDeclinationMask : uint8_t {
@@ -126,6 +127,13 @@ enum RngCtrl : uint8_t {
 	ENABLED     = 2
 };
 
+enum class EvCtrl : uint8_t {
+	HPOS = (1<<0),
+	VPOS = (1<<1),
+	VEL  = (1<<2),
+	YAW  = (1<<3)
+};
+
 enum SensorFusionMask : uint16_t {
 	// Bit locations for fusion_mode
 	DEPRECATED_USE_GPS = (1<<0),    ///< set to true to use GPS data (DEPRECATED, use gnss_ctrl)
@@ -136,7 +144,7 @@ enum SensorFusionMask : uint16_t {
 	USE_DRAG         = (1<<5),      ///< set to true to use the multi-rotor drag model to estimate wind
 	ROTATE_EXT_VIS   = (1<<6),      ///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
 	DEPRECATED_USE_GPS_YAW = (1<<7),///< set to true to use GPS yaw data if available (DEPRECATED, use gnss_ctrl)
-	USE_EXT_VIS_VEL  = (1<<8),      ///< set to true to use external vision velocity data
+	DEPRECATED_USE_EXT_VIS_VEL = (1<<8), ///< set to true to use external vision velocity data
 };
 
 struct gpsMessage {
@@ -227,8 +235,8 @@ struct extVisionSample {
 	Vector3f    vel{};         ///< FRD velocity in reference frame defined in vel_frame variable (m/sec) - Z must be aligned with down axis
 	Quatf       quat{};        ///< quaternion defining rotation from body to earth frame
 	Vector3f    posVar{};      ///< XYZ position variances (m**2)
-	Vector3f    velVar{};      ///< XYZ velocity variances ((m/sec)**2)
-	float       angVar{};      ///< angular heading variance (rad**2)
+	Vector3f    velocity_var{};    ///< XYZ velocity variances ((m/sec)**2)
+	Vector3f    orientation_var{}; ///< orientation variance (rad**2)
 	VelocityFrame vel_frame = VelocityFrame::BODY_FRAME_FRD;
 	uint8_t     reset_counter{};
 	int8_t     quality{};     ///< quality indicator between 0 and 100
@@ -266,6 +274,7 @@ struct parameters {
 	int32_t baro_ctrl{1};
 	int32_t gnss_ctrl{GnssCtrl::HPOS | GnssCtrl::VEL};
 	int32_t rng_ctrl{RngCtrl::CONDITIONAL};
+	int32_t ev_ctrl{0};
 	int32_t terrain_fusion_mode{TerrainFusionMask::TerrainFuseRangeFinder |
 				    TerrainFusionMask::TerrainFuseOpticalFlow}; ///< aiding source(s) selection bitmask for the terrain estimator
 
@@ -358,6 +367,8 @@ struct parameters {
 	float range_kin_consistency_gate{1.0f}; ///< gate size used by the range finder kinematic consistency check
 
 	// vision position fusion
+	float ev_vel_noise{0.1f};               ///< minimum allowed observation noise for EV velocity fusion (m/sec)
+	float ev_att_noise{0.1f};               ///< minimum allowed observation noise for EV attitude fusion (rad/sec)
 	int32_t ev_quality_minimum{0};          ///< vision minimum acceptable quality integer
 	float ev_vel_innov_gate{3.0f};          ///< vision velocity fusion innovation consistency gate size (STD)
 	float ev_pos_innov_gate{5.0f};          ///< vision position fusion innovation consistency gate size (STD)

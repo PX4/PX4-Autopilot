@@ -58,7 +58,9 @@ public:
 	void setVelocity(const Vector3f &vel);
 	void setPosition(const Vector3f &pos);
 	void setOrientation(const Quatf &quat);
-	void setVelocityFrameToLocal();
+
+	void setVelocityFrameToLocalNED();
+	void setVelocityFrameToLocalFRD();
 	void setVelocityFrameToBody();
 
 	extVisionSample dataAtRest();
