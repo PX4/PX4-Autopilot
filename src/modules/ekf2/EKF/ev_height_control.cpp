@@ -53,7 +53,7 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, bool starting_
 
 	// rotate measurement into correct earth frame if required
 	Vector3f pos{ev_sample.pos};
-	Matrix3f pos_cov{matrix::diag(ev_sample.posVar)};
+	Matrix3f pos_cov{matrix::diag(ev_sample.position_var)};
 
 	// rotate EV to the EKF reference frame unless we're operating entirely in vision frame
 	// TODO: only necessary if there's a roll/pitch offset between VIO and EKF
@@ -65,7 +65,7 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, bool starting_
 			const Dcmf R_ev_to_ekf(q_error);
 
 			pos = R_ev_to_ekf * ev_sample.pos;
-			pos_cov = R_ev_to_ekf * matrix::diag(ev_sample.posVar) * R_ev_to_ekf.transpose();
+			pos_cov = R_ev_to_ekf * matrix::diag(ev_sample.position_var) * R_ev_to_ekf.transpose();
 
 			// increase minimum variance to include EV orientation variance
 			// TODO: do this properly

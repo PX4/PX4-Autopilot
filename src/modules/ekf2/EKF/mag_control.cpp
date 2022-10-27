@@ -198,6 +198,12 @@ bool Ekf::canResetMagHeading() const
 
 void Ekf::runInAirYawReset()
 {
+	// prevent a reset being performed more than once on the same frame
+	if ((_flt_mag_align_start_time == _imu_sample_delayed.time_us)
+	    || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align)) {
+		return;
+	}
+
 	if (_mag_yaw_reset_req && !_is_yaw_fusion_inhibited) {
 		bool has_realigned_yaw = false;
 
@@ -233,6 +239,8 @@ void Ekf::runInAirYawReset()
 				);
 
 			resetMagCov();
+
+			has_realigned_yaw = true;
 		}
 
 		if (!has_realigned_yaw && canResetMagHeading()) {
@@ -284,7 +292,7 @@ void Ekf::checkYawAngleObservability()
 				: _accel_lpf_NE.norm() > 2.0f * _params.mag_acc_gate;
 
 	_yaw_angle_observable = _yaw_angle_observable
-				&& (_control_status.flags.gps || _control_status.flags.ev_pos); // Do we have to add ev_vel here?
+				&& (_control_status.flags.gps || (_control_status.flags.ev_pos && _control_status.flags.yaw_align));
 }
 
 void Ekf::checkMagBiasObservability()
@@ -348,8 +356,7 @@ bool Ekf::shouldInhibitMag() const
 	const bool user_selected = (_params.mag_fusion_type == MagFuseType::INDOOR);
 
 	const bool heading_not_required_for_navigation = !_control_status.flags.gps
-			&& !_control_status.flags.ev_pos
-			&& !_control_status.flags.ev_vel;
+			&& (_control_status.flags.ev_pos && _control_status.flags.yaw_align);
 
 	return (user_selected && heading_not_required_for_navigation) || _control_status.flags.mag_field_disturbed;
 }

@@ -603,10 +603,10 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * 0 : Deprecated, use EKF2_GPS_CTRL instead
  * 1 : Set to true to use optical flow data if available
  * 2 : Set to true to inhibit IMU delta velocity bias estimation
- * 3 : Set to true to enable vision position fusion
- * 4 : Set to true to enable vision yaw fusion. Cannot be used if bit position 7 is true.
+ * 3 : Deprecated, use EKF2_EV_CTRL instead
+ * 4 : Deprecated, use EKF2_EV_CTRL instead
  * 5 : Set to true to enable multi-rotor drag specific force fusion
- * 6 : set to true if the EV observations are in a non NED reference frame and need to be rotated before being used
+ * 6 : Deprecated, use EKF2_EV_CTRL instead
  * 7 : Deprecated, use EKF2_GPS_CTRL instead
  * 3 : Deprecated, use EKF2_EV_CTRL instead
  *
@@ -616,10 +616,10 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * @bit 0 unused
  * @bit 1 use optical flow
  * @bit 2 inhibit IMU bias estimation
- * @bit 3 vision position fusion
- * @bit 4 vision yaw fusion
+ * @bit 3 unused
+ * @bit 4 unused
  * @bit 5 multi-rotor drag fusion
- * @bit 6 rotate external vision
+ * @bit 6 unused
  * @bit 7 unused
  * @bit 8 unused
  * @reboot_required true
@@ -841,7 +841,7 @@ PARAM_DEFINE_FLOAT(EKF2_EVV_NOISE, 0.1f);
  * @unit rad
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_EVA_NOISE, 0.05f);
+PARAM_DEFINE_FLOAT(EKF2_EVA_NOISE, 0.1f);
 
 /**
  * Measurement noise for the optical flow sensor when it's reported quality metric is at the maximum
