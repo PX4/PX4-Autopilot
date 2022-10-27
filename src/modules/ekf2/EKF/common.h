@@ -231,6 +231,7 @@ struct extVisionSample {
 	float       angVar{};      ///< angular heading variance (rad**2)
 	VelocityFrame vel_frame = VelocityFrame::BODY_FRAME_FRD;
 	uint8_t     reset_counter{};
+	int8_t     quality{};     ///< quality indicator between 0 and 100
 };
 
 struct dragSample {
@@ -357,6 +358,7 @@ struct parameters {
 	float range_kin_consistency_gate{1.0f}; ///< gate size used by the range finder kinematic consistency check
 
 	// vision position fusion
+	int32_t ev_quality_minimum{0};          ///< vision minimum acceptable quality integer
 	float ev_vel_innov_gate{3.0f};          ///< vision velocity fusion innovation consistency gate size (STD)
 	float ev_pos_innov_gate{5.0f};          ///< vision position fusion innovation consistency gate size (STD)
 	float ev_hgt_bias_nsd{0.13f};           ///< process noise for vision height bias estimation (m/s/sqrt(Hz))

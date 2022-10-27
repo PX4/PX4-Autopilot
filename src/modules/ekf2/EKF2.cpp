@@ -123,6 +123,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_rng_a_igate(_params->range_aid_innov_gate),
 	_param_ekf2_rng_qlty_t(_params->range_valid_quality_s),
 	_param_ekf2_rng_k_gate(_params->range_kin_consistency_gate),
+	_param_ekf2_ev_qmin(_params->ev_quality_minimum),
 	_param_ekf2_evv_gate(_params->ev_vel_innov_gate),
 	_param_ekf2_evp_gate(_params->ev_pos_innov_gate),
 	_param_ekf2_of_n_min(_params->flow_noise),
@@ -1846,7 +1847,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 		// use timestamp from external computer, clocks are synchronized when using MAVROS
 		ev_data.time_us = ev_odom.timestamp_sample;
 		ev_data.reset_counter = ev_odom.reset_counter;
-		//ev_data.quality = ev_odom.quality;
+		ev_data.quality = ev_odom.quality;
 
 		if (new_ev_odom)  {
 			_ekf.setExtVisionData(ev_data);
