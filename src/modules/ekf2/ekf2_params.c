@@ -780,6 +780,19 @@ PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
 PARAM_DEFINE_INT32(EKF2_EV_NOISE_MD, 0);
 
 /**
+ * External vision (EV) minimum quality (optional)
+ *
+ * External vision will only be started and fused if the quality metric is above this threshold.
+ * The quality metric is a completely optional field provided by some VIO systems.
+ *
+ * @group EKF2
+ * @min 0
+ * @max 100
+ * @decimal 1
+ */
+PARAM_DEFINE_INT32(EKF2_EV_QMIN, 0);
+
+/**
  * Measurement noise for vision position observations used to lower bound or replace the uncertainty included in the message
  *
  * @group EKF2
