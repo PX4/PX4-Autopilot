@@ -1777,17 +1777,20 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 		/* longitudinal guidance */
 
-		const float height_rate_setpoint = flare_ramp_interpolator * (-_param_fw_lnd_fl_sink.get()) +
-						   (1.0f - flare_ramp_interpolator) * _flare_states.initial_height_rate_setpoint;
+		const float flare_ramp_interpolator_sqrt = sqrtf(flare_ramp_interpolator);
 
-		const float pitch_min_rad = flare_ramp_interpolator * radians(_param_fw_lnd_fl_pmin.get()) +
-					    (1.0f - flare_ramp_interpolator) * radians(_param_fw_p_lim_min.get());
-		const float pitch_max_rad = flare_ramp_interpolator * radians(_param_fw_lnd_fl_pmax.get()) +
-					    (1.0f - flare_ramp_interpolator) * radians(_param_fw_p_lim_max.get());
+		const float height_rate_setpoint = flare_ramp_interpolator_sqrt * (-_param_fw_lnd_fl_sink.get()) +
+						   (1.0f - flare_ramp_interpolator_sqrt) * _flare_states.initial_height_rate_setpoint;
+
+		const float pitch_min_rad = flare_ramp_interpolator_sqrt * radians(_param_fw_lnd_fl_pmin.get()) +
+					    (1.0f - flare_ramp_interpolator_sqrt) * radians(_param_fw_p_lim_min.get());
+		const float pitch_max_rad = flare_ramp_interpolator_sqrt * radians(_param_fw_lnd_fl_pmax.get()) +
+					    (1.0f - flare_ramp_interpolator_sqrt) * radians(_param_fw_p_lim_max.get());
 
 		// idle throttle may be >0 for internal combustion engines
 		// normally set to zero for electric motors
-		const float throttle_max = flare_ramp_interpolator * _param_fw_thr_idle.get() + (1.0f - flare_ramp_interpolator) *
+		const float throttle_max = flare_ramp_interpolator_sqrt * _param_fw_thr_idle.get() +
+					   (1.0f - flare_ramp_interpolator_sqrt) *
 					   _param_fw_thr_max.get();
 
 		tecs_update_pitch_throttle(control_interval,
