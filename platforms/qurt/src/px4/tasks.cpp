@@ -32,28 +32,9 @@
  ****************************************************************************/
 
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
-#include <px4_platform_common/workqueue.h>
-#include <px4_platform_common/time.h>
-#include <hrt_work.h>
-#include <drivers/drv_hrt.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <stdbool.h>
-
-#include <fcntl.h>
-#include <sched.h>
-#include <unistd.h>
-#include <string.h>
-
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <string>
-
 #include <px4_platform_common/tasks.h>
-#include <systemlib/err.h>
 
 #include <pthread.h>
 

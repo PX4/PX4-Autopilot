@@ -46,7 +46,7 @@
 #include "micro_hal.h"
 #include <board_config.h>
 
-#elif defined (__PX4_POSIX) && !defined (__PX4_QURT)
+#elif defined (__PX4_POSIX)
 
 #include "micro_hal.h"
 #include <board_config.h>
