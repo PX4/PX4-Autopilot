@@ -31,17 +31,5 @@
  *
  ****************************************************************************/
 
-// This file is meant to tackle the dependencies on IOCTL found in PX4.
-// As QURT does not have IOCTL natively, this file exists to define those
-// functions/params found throughout the code base.
+// Placeholder
 
-#pragma once
-
-#include "qurt_reqs.h"
-
-#define	IOCPARM_MASK	0x1fff		/* parameter length, at most 13 bits */
-#define	IOC_VOID	0x20000000	/* no parameters */
-
-#define	_IOC(inout,group,num,len)	((unsigned long) \
-		((inout) | (((len) & IOCPARM_MASK) << 16) | ((group) << 8) | (num)))
-#define	_IO(g,n)	_IOC(IOC_VOID,	(g), (n), 0)
