@@ -61,6 +61,7 @@ void Ekf::checkHeightSensorRefFallback()
 
 	switch (_params.height_sensor_ref) {
 	default:
+
 	/* FALLTHROUGH */
 	case HeightSensor::UNKNOWN:
 		fallback_list[0] = HeightSensor::GNSS;
@@ -149,11 +150,17 @@ void Ekf::checkVerticalAccelerationHealth()
 
 	// declare a bad vertical acceleration measurement and make the declaration persist
 	// for a minimum of BADACC_PROBATION seconds
+	const bool bad_acc_vertical = _fault_status.flags.bad_acc_vertical;
+
 	if (_fault_status.flags.bad_acc_vertical) {
 		_fault_status.flags.bad_acc_vertical = isRecent(_time_bad_vert_accel, BADACC_PROBATION);
 
 	} else {
 		_fault_status.flags.bad_acc_vertical = bad_vert_accel;
+	}
+
+	if (!bad_acc_vertical && _fault_status.flags.bad_acc_vertical) {
+		ECL_WARN("bad vertical acceleration");
 	}
 }
 
@@ -171,6 +178,7 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 		bool failed_min;
 		bool failed_lim;
 	} checks[6] {};
+	static constexpr size_t NUM_CHECKS = sizeof(checks) / sizeof(checks[0]);
 
 	if (_control_status.flags.baro_hgt) {
 		checks[0] = {ReferenceType::PRESSURE, _aid_src_baro_hgt.innovation, _aid_src_baro_hgt.innovation_variance};
@@ -197,7 +205,7 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 	}
 
 	// Compute the check based on innovation ratio for all the sources
-	for (unsigned i = 0; i < 6; i++) {
+	for (unsigned i = 0; i < NUM_CHECKS; i++) {
 		if (checks[i].innov_var < FLT_EPSILON) {
 			continue;
 		}
@@ -208,13 +216,13 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 	}
 
 	// Check all the sources agains each other
-	for (unsigned i = 0; i < 6; i++) {
+	for (unsigned i = 0; i < NUM_CHECKS; i++) {
 		if (checks[i].failed_lim) {
 			// There is a chance that the inertial nav is falling if one source is failing the test
 			likelihood_medium = true;
 		}
 
-		for (unsigned j = 0; j < 6; j++) {
+		for (unsigned j = 0; j < NUM_CHECKS; j++) {
 
 			if ((checks[i].ref_type != checks[j].ref_type) && checks[i].failed_lim && checks[j].failed_min) {
 				// There is a high chance that the inertial nav is failing if two sources are failing the test

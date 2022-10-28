@@ -1146,10 +1146,10 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
  *
  * @group EKF2
  * @min 0.1
- * @max 2
+ * @max 3
  * @unit m/s
  */
-PARAM_DEFINE_FLOAT(EKF2_RNG_A_VMAX, 1.0f);
+PARAM_DEFINE_FLOAT(EKF2_RNG_A_VMAX, 2.0f);
 
 /**
  * Maximum absolute altitude (height above ground level) allowed for conditional range aid mode.

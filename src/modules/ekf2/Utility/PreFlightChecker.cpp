@@ -73,20 +73,35 @@ bool PreFlightChecker::preFlightCheckHorizVelFailed(const estimator_innovations_
 {
 	bool has_failed = false;
 
-	if (_is_using_gps_aiding || _is_using_ev_vel_aiding) {
-		const Vector2f vel_ne_innov = Vector2f(fmaxf(fabsf(innov.gps_hvel[0]), fabsf(innov.ev_hvel[0])),
-						       fmaxf(fabsf(innov.gps_hvel[1]), fabsf(innov.ev_hvel[1])));
-		Vector2f vel_ne_innov_lpf;
-		vel_ne_innov_lpf(0) = _filter_vel_n_innov.update(vel_ne_innov(0), alpha, _vel_innov_spike_lim);
-		vel_ne_innov_lpf(1) = _filter_vel_n_innov.update(vel_ne_innov(1), alpha, _vel_innov_spike_lim);
+	if (_is_using_gps_aiding) {
+		const Vector2f vel_ne_innov{fabsf(innov.gps_hvel[0]), fabsf(innov.gps_hvel[1])};
+
+		const Vector2f vel_ne_innov_lpf {
+			_filter_vel_n_innov.update(vel_ne_innov(0), alpha, _vel_innov_spike_lim),
+			_filter_vel_e_innov.update(vel_ne_innov(1), alpha, _vel_innov_spike_lim)
+		};
+
+		has_failed |= checkInnov2DFailed(vel_ne_innov_lpf, vel_ne_innov, _vel_innov_test_lim, _vel_innov_spike_lim);
+	}
+
+	if (_is_using_ev_vel_aiding) {
+		const Vector2f vel_ne_innov{fabsf(innov.ev_hvel[0]), fabsf(innov.ev_hvel[1])};
+
+		const Vector2f vel_ne_innov_lpf {
+			_filter_vel_n_innov.update(vel_ne_innov(0), alpha, _vel_innov_spike_lim),
+			_filter_vel_e_innov.update(vel_ne_innov(1), alpha, _vel_innov_spike_lim)
+		};
+
 		has_failed |= checkInnov2DFailed(vel_ne_innov_lpf, vel_ne_innov, _vel_innov_test_lim, _vel_innov_spike_lim);
 	}
 
 	if (_is_using_flow_aiding) {
-		const Vector2f flow_innov = Vector2f(innov.flow);
-		Vector2f flow_innov_lpf;
-		flow_innov_lpf(0) = _filter_flow_x_innov.update(flow_innov(0), alpha, _flow_innov_spike_lim);
-		flow_innov_lpf(1) = _filter_flow_y_innov.update(flow_innov(1), alpha, _flow_innov_spike_lim);
+		const Vector2f flow_innov(innov.flow);
+		const Vector2f flow_innov_lpf{
+			_filter_flow_x_innov.update(flow_innov(0), alpha, _flow_innov_spike_lim),
+			_filter_flow_y_innov.update(flow_innov(1), alpha, _flow_innov_spike_lim)
+		};
+
 		has_failed |= checkInnov2DFailed(flow_innov_lpf, flow_innov, _flow_innov_test_lim, 5.f * _flow_innov_spike_lim);
 	}
 
@@ -95,9 +110,21 @@ bool PreFlightChecker::preFlightCheckHorizVelFailed(const estimator_innovations_
 
 bool PreFlightChecker::preFlightCheckVertVelFailed(const estimator_innovations_s &innov, const float alpha)
 {
-	const float vel_d_innov = fmaxf(fabsf(innov.gps_vvel), fabs(innov.ev_vvel));     // only temporary solution
-	const float vel_d_innov_lpf = _filter_vel_d_innov.update(vel_d_innov, alpha, _vel_innov_spike_lim);
-	return checkInnovFailed(vel_d_innov_lpf, vel_d_innov, _vel_innov_test_lim, _vel_innov_spike_lim);
+	bool has_failed = false;
+
+	if (_is_using_gps_aiding) {
+		const float vel_d_innov = fabsf(innov.gps_vvel);
+		const float vel_d_innov_lpf = _filter_vel_d_innov.update(vel_d_innov, alpha, _vel_innov_spike_lim);
+		has_failed |= checkInnovFailed(vel_d_innov_lpf, vel_d_innov, _vel_innov_test_lim, _vel_innov_spike_lim);
+	}
+
+	if (_is_using_ev_vel_aiding) {
+		const float vel_d_innov = fabsf(innov.ev_vvel);
+		const float vel_d_innov_lpf = _filter_vel_d_innov.update(vel_d_innov, alpha, _vel_innov_spike_lim);
+		has_failed |= checkInnovFailed(vel_d_innov_lpf, vel_d_innov, _vel_innov_test_lim, _vel_innov_spike_lim);
+	}
+
+	return has_failed;
 }
 
 bool PreFlightChecker::preFlightCheckHeightFailed(const estimator_innovations_s &innov, const float alpha)

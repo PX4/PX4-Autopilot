@@ -229,6 +229,8 @@ bool Ekf::resetYawToGps(const float gnss_yaw)
 		_aid_src_gnss_yaw.time_last_fuse = _imu_sample_delayed.time_us;
 		_gnss_yaw_signed_test_ratio_lpf.reset(0.f);
 
+		resetMagStates();
+
 		return true;
 	}
 

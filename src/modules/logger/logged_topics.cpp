@@ -192,6 +192,26 @@ void LoggedTopics::add_default_topics()
 	// add_optional_topic_multi("estimator_aid_src_optical_flow", 100, MAX_ESTIMATOR_INSTANCES);
 	// add_optional_topic_multi("estimator_aid_src_ev_yaw", 100, MAX_ESTIMATOR_INSTANCES);
 
+	// TODO: temporary
+	add_topic_multi("estimator_aid_src_airspeed", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_aux_vel", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_baro_hgt", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_ev_hgt", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_ev_pos", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_ev_vel", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_ev_yaw", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_fake_hgt", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_fake_pos", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_gnss_hgt", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_gnss_pos", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_gnss_vel", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_gnss_yaw", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_mag", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_mag_heading", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_optical_flow", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_rng_hgt", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_sideslip", 10, MAX_ESTIMATOR_INSTANCES);
+
 	// log all raw sensors at minimal rate (at least 1 Hz)
 	add_topic_multi("battery_status", 200, 2);
 	add_topic_multi("differential_pressure", 1000, 2);

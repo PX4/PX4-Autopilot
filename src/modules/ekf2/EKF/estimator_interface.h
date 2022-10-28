@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2020 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2022 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,9 +44,9 @@
 
 #if defined(MODULE_NAME)
 #include <px4_platform_common/log.h>
-# define ECL_INFO PX4_DEBUG
-# define ECL_WARN PX4_DEBUG
-# define ECL_ERR  PX4_DEBUG
+# define ECL_INFO PX4_INFO // TODO
+# define ECL_WARN PX4_WARN // TODO
+# define ECL_ERR  PX4_ERR // TODO
 # define ECL_DEBUG PX4_DEBUG
 #else
 # define ECL_INFO(X, ...) printf(X "\n", ##__VA_ARGS__)

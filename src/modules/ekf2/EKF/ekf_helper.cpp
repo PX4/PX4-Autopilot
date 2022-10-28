@@ -1336,12 +1336,12 @@ bool Ekf::resetYawToEKFGSF()
 	_information_events.flags.yaw_aligned_to_imu_gps = true;
 	ECL_INFO("Yaw aligned using IMU and GPS");
 
-	// record a magnetic field alignment event to prevent possibility of the EKF trying to reset the yaw to the mag later in flight
-	_flt_mag_align_start_time = _imu_sample_delayed.time_us;
 	_control_status.flags.yaw_align = true;
 
 	_ekfgsf_yaw_reset_time = _imu_sample_delayed.time_us;
-	_ekfgsf_yaw_reset_count++;
+
+	// reset mag states
+	resetMagStates();
 
 	return true;
 }

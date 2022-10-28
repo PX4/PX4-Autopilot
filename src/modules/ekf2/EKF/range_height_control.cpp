@@ -163,7 +163,7 @@ bool Ekf::isConditionalRangeAidSuitable()
 		float range_hagl_max = _params.max_hagl_for_range_aid;
 		float max_vel_xy = _params.max_vel_for_range_aid;
 
-		const float hagl_test_ratio = (_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var));
+		const float hagl_test_ratio = (sq(_hagl_innov) / (sq(_params.range_aid_innov_gate) * _hagl_innov_var));
 
 		bool is_hagl_stable = (hagl_test_ratio < 1.f);
 
@@ -174,7 +174,6 @@ bool Ekf::isConditionalRangeAidSuitable()
 		}
 
 		const float range_hagl = _terrain_vpos - _state.pos(2);
-
 		const bool is_in_range = (range_hagl < range_hagl_max);
 
 		bool is_below_max_speed = true;
