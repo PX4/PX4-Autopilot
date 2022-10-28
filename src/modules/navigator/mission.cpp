@@ -1460,6 +1460,14 @@ Mission::do_abort_landing()
 
 	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
+
+	// XXX: this is a hack to invalidate the "next" position setpoint for the fixed-wing position controller during
+	// the landing abort hold. otherwise, the "next" setpoint would still register as a "LAND" point, and trigger
+	// the early landing configuration (flaps and landing airspeed) during the hold.
+	_navigator->get_position_setpoint_triplet()->next.lat = NAN;
+	_navigator->get_position_setpoint_triplet()->next.lon = NAN;
+	_navigator->get_position_setpoint_triplet()->next.alt = NAN;
+
 	publish_navigator_mission_item(); // for logging
 	_navigator->set_position_setpoint_triplet_updated();
 
