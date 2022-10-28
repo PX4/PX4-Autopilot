@@ -82,6 +82,18 @@ PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
 PARAM_DEFINE_INT32(GPS_SAT_INFO, 0);
 
 /**
+ * Enable spectrum analyzer (if available)
+ *
+ * Enable publication of basic spectrum analyzer, (ORB_ID(sensor_gnss_spectrum)) if possible.
+ * Only available on newer u-blox modules.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_SPECTRUM, 0);
+
+/**
  * u-blox GPS Mode
  *
  * Select the u-blox configuration setup. Most setups will use the default, including RTK and
