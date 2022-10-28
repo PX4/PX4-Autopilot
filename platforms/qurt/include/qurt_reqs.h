@@ -36,5 +36,9 @@
 
 #pragma once
 
+__BEGIN_DECLS
+
 typedef unsigned long useconds_t;
 int usleep(useconds_t usec);
+
+__END_DECLS
