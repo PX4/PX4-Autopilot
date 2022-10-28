@@ -203,23 +203,34 @@ void Ekf::fuseGpsYaw(const gpsSample& gps_sample)
 
 bool Ekf::resetYawToGps(const float gnss_yaw)
 {
-	// define the predicted antenna array vector and rotate into earth frame
-	const Vector3f ant_vec_bf = {cosf(_gps_yaw_offset), sinf(_gps_yaw_offset), 0.0f};
-	const Vector3f ant_vec_ef = _R_to_earth * ant_vec_bf;
-
-	// check if antenna array vector is within 30 degrees of vertical and therefore unable to provide a reliable heading
-	if (fabsf(ant_vec_ef(2)) > cosf(math::radians(30.0f)))  {
+	// prevent a reset being performed more than once on the same frame
+	if ((_flt_mag_align_start_time == _imu_sample_delayed.time_us) || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align)) {
 		return false;
 	}
 
-	// GPS yaw measurement is alreday compensated for antenna offset in the driver
-	const float measured_yaw = gnss_yaw;
+	if (PX4_ISFINITE(gnss_yaw) && !_control_status.flags.gps_yaw_fault) {
+		// define the predicted antenna array vector and rotate into earth frame
+		const Vector3f ant_vec_bf = {cosf(_gps_yaw_offset), sinf(_gps_yaw_offset), 0.0f};
+		const Vector3f ant_vec_ef = _R_to_earth * ant_vec_bf;
 
-	const float yaw_variance = sq(fmaxf(_params.gps_heading_noise, 1.e-2f));
-	resetQuatStateYaw(measured_yaw, yaw_variance);
+		// check if antenna array vector is within 30 degrees of vertical and therefore unable to provide a reliable heading
+		if (fabsf(ant_vec_ef(2)) > cosf(math::radians(30.0f)))  {
+			return false;
+		}
 
-	_aid_src_gnss_yaw.time_last_fuse = _imu_sample_delayed.time_us;
-	_gnss_yaw_signed_test_ratio_lpf.reset(0.f);
+		// GPS yaw measurement is alreday compensated for antenna offset in the driver
+		const float measured_yaw = gnss_yaw;
 
-	return true;
+		const float yaw_variance = sq(fmaxf(_params.gps_heading_noise, 1.e-2f));
+		resetQuatStateYaw(measured_yaw, yaw_variance);
+
+		_control_status.flags.yaw_align = true;
+
+		_aid_src_gnss_yaw.time_last_fuse = _imu_sample_delayed.time_us;
+		_gnss_yaw_signed_test_ratio_lpf.reset(0.f);
+
+		return true;
+	}
+
+	return false;
 }

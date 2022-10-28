@@ -86,10 +86,7 @@ void Ekf::controlFusionModes()
 	}
 
 	if (_gps_buffer) {
-		_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GPS_MAX_INTERVAL);
-
 		// check for arrival of new sensor data at the fusion time horizon
-		_time_prev_gps_us = _gps_sample_delayed.time_us;
 		_gps_data_ready = _gps_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed);
 
 		if (_gps_data_ready) {
@@ -103,8 +100,6 @@ void Ekf::controlFusionModes()
 			const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 			_gps_sample_delayed.pos -= pos_offset_earth.xy();
 			_gps_sample_delayed.hgt += pos_offset_earth(2);
-
-			_gps_sample_delayed.sacc = fmaxf(_gps_sample_delayed.sacc, _params.gps_vel_noise);
 		}
 	}
 
@@ -210,13 +205,14 @@ void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passi
 
 		const bool continuing_conditions_passing = !gps_checks_failing;
 
+		const bool gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GPS_MAX_INTERVAL);
 		const bool is_gps_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gps_yaw_buffer_push, 2 * GPS_MAX_INTERVAL);
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& _control_status.flags.tilt_align
 				&& gps_checks_passing
 				&& !is_gps_yaw_data_intermittent
-				&& !_gps_intermittent;
+				&& !gps_intermittent;
 
 		if (_control_status.flags.gps_yaw) {
 

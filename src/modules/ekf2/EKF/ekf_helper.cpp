@@ -1220,8 +1220,10 @@ void Ekf::stopAirspeedFusion()
 void Ekf::stopGpsFusion()
 {
 	if (_control_status.flags.gps) {
-		stopGpsPosFusion();
-		stopGpsVelFusion();
+		ECL_INFO("stopping GPS position and velocity fusion");
+
+		resetEstimatorAidStatus(_aid_src_gnss_pos);
+		resetEstimatorAidStatus(_aid_src_gnss_vel);
 
 		_control_status.flags.gps = false;
 	}
@@ -1233,23 +1235,6 @@ void Ekf::stopGpsFusion()
 	// We do not need to know the true North anymore
 	// EV yaw can start again
 	_inhibit_ev_yaw_use = false;
-}
-
-void Ekf::stopGpsPosFusion()
-{
-	if (_control_status.flags.gps) {
-		ECL_INFO("stopping GPS position fusion");
-		_control_status.flags.gps = false;
-
-		resetEstimatorAidStatus(_aid_src_gnss_pos);
-	}
-}
-
-void Ekf::stopGpsVelFusion()
-{
-	ECL_INFO("stopping GPS velocity fusion");
-
-	resetEstimatorAidStatus(_aid_src_gnss_vel);
 }
 
 void Ekf::startGpsYawFusion(const gpsSample &gps_sample)
@@ -1336,29 +1321,24 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 // Returns true if the reset was successful
 bool Ekf::resetYawToEKFGSF()
 {
-	if (!isYawEmergencyEstimateAvailable()) {
+	if (!isYawEmergencyEstimateAvailable() || !isTimedOut(_ekfgsf_yaw_reset_time, 5'000'000)) {
 		return false;
 	}
 
+	// prevent a reset being performed more than once on the same frame
+	if ((_flt_mag_align_start_time == _imu_sample_delayed.time_us) || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align)) {
+		return false;
+	}
+
+	// otherwise reset yaw
 	resetQuatStateYaw(_yawEstimator.getYaw(), _yawEstimator.getYawVar());
+
+	_information_events.flags.yaw_aligned_to_imu_gps = true;
+	ECL_INFO("Yaw aligned using IMU and GPS");
 
 	// record a magnetic field alignment event to prevent possibility of the EKF trying to reset the yaw to the mag later in flight
 	_flt_mag_align_start_time = _imu_sample_delayed.time_us;
 	_control_status.flags.yaw_align = true;
-
-	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-		// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
-		// and cause another navigation failure
-		_control_status.flags.mag_fault = true;
-		_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
-
-	} else if (_control_status.flags.gps_yaw) {
-		_control_status.flags.gps_yaw_fault = true;
-		_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
-
-	} else if (_control_status.flags.ev_yaw) {
-		_inhibit_ev_yaw_use = true;
-	}
 
 	_ekfgsf_yaw_reset_time = _imu_sample_delayed.time_us;
 	_ekfgsf_yaw_reset_count++;
@@ -1398,6 +1378,11 @@ void Ekf::runYawEKFGSF()
 
 	const Vector3f imu_gyro_bias = getGyroBias();
 	_yawEstimator.update(_imu_sample_delayed, _control_status.flags.in_air, TAS, imu_gyro_bias);
+
+	// reset when landed
+	if (!_control_status.flags.in_air) {
+		_ekfgsf_yaw_reset_count = 0;
+	}
 }
 
 void Ekf::resetGpsDriftCheckFilters()

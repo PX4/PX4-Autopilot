@@ -92,8 +92,10 @@ void Ekf::controlGpsFusion()
 		_aid_src_gnss_pos.fusion_enabled = (_params.gnss_ctrl & GnssCtrl::HPOS);
 
 		// update GSF yaw estimator velocity (basic sanity check on GNSS velocity data)
-		if (gps_checks_passing && !gps_checks_failing) {
-			_yawEstimator.setVelocity(velocity.xy(), gps_sample.sacc);
+		if (_gps_speed_valid && velocity.isAllFinite()
+		    && (gps_sample.sacc > FLT_EPSILON) && (gps_sample.sacc <= _params.req_sacc)) {
+
+			_yawEstimator.setVelocity(velocity.xy(), vel_noise);
 		}
 
 		// if GPS is otherwise ready to go, but yaw_align is blocked by EV give mag a chance to start
