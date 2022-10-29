@@ -123,7 +123,6 @@ float PositionSmoothing::_getMaxZSpeed(const Vector3f(&waypoints)[3]) const
 					    distance_start_target, arrival_z_speed));
 
 	return max_speed;
-
 }
 
 const Vector3f PositionSmoothing::_getCrossingPoint(const Vector3f &position, const Vector3f(&waypoints)[3]) const
