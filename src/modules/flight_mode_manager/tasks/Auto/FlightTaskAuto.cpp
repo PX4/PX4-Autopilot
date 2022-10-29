@@ -343,14 +343,26 @@ bool FlightTaskAuto::_evaluateTriplets()
 	const float vertical_up_speed_from_triplet = _sub_triplet_setpoint.get().current.vertical_up_speed;
 	const float vertical_down_speed_from_triplet = _sub_triplet_setpoint.get().current.vertical_down_speed;
 
+
+	// UP
 	if (PX4_ISFINITE(vertical_up_speed_from_triplet)) {
 		_mc_vertical_up_speed = vertical_up_speed_from_triplet;
 	}
 
+	if (!PX4_ISFINITE(_mc_vertical_up_speed) || (_mc_vertical_up_speed < FLT_EPSILON)) {
+		_mc_vertical_up_speed = _param_mpc_z_v_auto_up.get();
+	}
+
+	// Down
 	if (PX4_ISFINITE(vertical_down_speed_from_triplet)) {
 		_mc_vertical_down_speed = vertical_down_speed_from_triplet;
 	}
 
+	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < FLT_EPSILON)) {
+		_mc_vertical_down_speed = _param_mpc_z_v_auto_dn.get();
+	}
+
+	// Cruise
 	if (PX4_ISFINITE(cruise_speed_from_triplet)
 	    && (_sub_triplet_setpoint.get().current.timestamp > _time_last_cruise_speed_override)) {
 		_mc_cruise_speed = cruise_speed_from_triplet;
@@ -361,7 +373,9 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_mc_cruise_speed = _param_mpc_xy_cruise.get();
 	}
 
-	// Ensure planned cruise speed is below the maximum such that the smooth trajectory doesn't get capped
+	// Ensure planned speed is below the maximum such that the smooth trajectory doesn't get capped
+	_mc_vertical_up_speed = math::min(_mc_vertical_up_speed, _param_mpc_z_vel_max_up.get());
+	_mc_vertical_down_speed = math::min(_mc_vertical_down_speed, _param_mpc_z_vel_max_dn.get());
 	_mc_cruise_speed = math::min(_mc_cruise_speed, _param_mpc_xy_vel_max.get());
 
 	// Temporary target variable where we save the local reprojection of the latest navigator current triplet.

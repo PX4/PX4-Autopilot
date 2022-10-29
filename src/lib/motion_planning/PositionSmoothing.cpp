@@ -122,13 +122,7 @@ float PositionSmoothing::_getMaxZSpeed(const Vector3f(&waypoints)[3]) const
 					    _trajectory[2].getMaxJerk(), _trajectory[2].getMaxAccel(),
 					    distance_start_target, arrival_z_speed));
 
-	//TODO: implement better logic for max Z speed with vertical speed
-	if(_vertical_speed > 0){
-		return _vertical_speed;
-	}
-	else{
-		return max_speed;
-	}
+	return max_speed;
 
 }
 
