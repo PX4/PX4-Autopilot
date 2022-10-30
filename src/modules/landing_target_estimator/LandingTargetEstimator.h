@@ -162,22 +162,12 @@ private:
 		//TODO: check that all vectors are initialized to zero
 		// x,y,z
 		bool any_xyz_updated;
-		matrix::Vector<bool, 3> updated_xyz;
-		matrix::Vector3f meas_xyz;
-		matrix::Vector3f meas_unc_xyz;
-		matrix::Matrix<float, 3, 12> meas_h_xyz;
+		matrix::Vector<bool, 3> updated_xyz; // Indicates if we have an observation in the x, y or z direction
+		matrix::Vector3f meas_xyz;			// Measurements (meas_x, meas_y, meas_z)
+		matrix::Vector3f meas_unc_xyz;		// Measurements' uncertainties
+		matrix::Matrix<float, 3, 12> meas_h_xyz; // Observation matrix where the rows correspond to the x,y,z directions.
 	};
 
-	/*
-	_target_pos_obs: vector of targetObsPos structure. Each component corresponds to a different measurements (VISION, IrLock, UWB, GPS, GPS velocity)
-	For each measurement, we have observations in the x,y,z directions.
-		-- _target_pos_obs.updated_xyz 	--> 3x1 Vector: Indicates if we have an observation in the x, y or z direction
-		-- _target_pos_obs.meas_xyz 		--> 3x1 Vector: Measurements (meas_x, meas_y, meas_z)
-		-- _target_pos_obs.meas_unc_xyz 	--> 3x1 Vector: Measurements' uncertainties
-		-- _target_pos_obs.meas_h_xyz 		--> 3x12 Mat. The rows correspond to the x,y,z directions.
-	*/
-
-	// TODO: change in the code.
 	enum ObservationType {
 		target_gps_pos = 0,
 		uav_gps_vel,
@@ -196,6 +186,7 @@ private:
 		nb_directions = 4
 	};
 
+	/*Each component corresponds to a different measurements (VISION, IrLock, UWB, GPS, GPS velocity). For each measurement, we have observations in the x,y,z directions.*/
 	targetObsPos _target_pos_obs[nb_observations] {};
 	targetObsOrientation _target_orientation_obs{};
 

@@ -91,9 +91,8 @@ void LandingTargetEstimator::update()
 
 	_update_topics(&input);
 
+	// No attitude or acceleration: early return;
 	if (!input.acc_ned_valid) {
-		// No attitude or acceleration: early return;
-		PX4_DEBUG("Kalman input not available.");
 		return;
 	}
 
@@ -529,13 +528,13 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 	sensor_gps_s vehicle_gps_position;
 	landing_target_pose_s target_GNSS_report;
 	landing_target_pose_s fiducial_marker_pose;
-	irlock_report_s irlock_report{};
-	uwb_distance_s	uwb_distance{};
-	vehicle_attitude_s	vehicle_attitude{};
+	irlock_report_s irlock_report;
+	uwb_distance_s	uwb_distance;
+	vehicle_attitude_s	vehicle_attitude;
 	vehicle_local_position_s	vehicle_local_position;
 	vehicle_status_s vehicle_status;
 	position_setpoint_triplet_s pos_sp_triplet;
-	vehicle_acceleration_s		vehicle_acceleration{};
+	vehicle_acceleration_s		vehicle_acceleration;
 
 	//Update topics
 	bool vehicle_local_position_valid = _vehicleLocalPositionSub.update(&vehicle_local_position);
@@ -570,7 +569,7 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 
 	// Minimal requirement: acceleraion (for input) and attitude (to rotate acc in vehicle-carried NED frame)
 	if (!vehicle_attitude_valid || !vehicle_acceleration_valid) {
-		PX4_INFO("Attitude: %d, Acc: %d", vehicle_attitude_valid, vehicle_acceleration_valid);
+		PX4_INFO("Kalman input not available: Attitude: %d, Acc: %d", vehicle_attitude_valid, vehicle_acceleration_valid);
 		input->acc_ned_valid = false;
 		return;
 
@@ -848,6 +847,7 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 		}
 	}
 
+	// TODO: might need to create a class variable with (vehicle_gps_position.timestamp_sample, pos_valid, lat, lon, alt, eph, epv, vel_ned_valid, vel_n, vel_e, vel_d, vel_var).
 	/* Measurement requiering GPS observation*/
 	if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
 
@@ -924,7 +924,7 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 							    &gps_relative_pos(0), &gps_relative_pos(1));
 
 				// Down direction (if the drone is above the target, the relative position is positive)
-				gps_relative_pos(2) = (vehicle_gps_position.alt_ellipsoid - target_gps_alt) / 1000.f; // transform mm to m
+				gps_relative_pos(2) = (vehicle_gps_position.alt - target_gps_alt) / 1000.f; // transform mm to m
 
 				// Var(aX - bY) = a^2 Var(X) + b^2Var(Y) - 2ab Cov(X,Y)
 				float gps_unc_horizontal = vehicle_gps_position.eph + gps_target_eph;
@@ -1201,7 +1201,6 @@ void LandingTargetEstimator::selectTargetEstimator()
 			break;
 
 		case TargetModel::FullPoseCoupled:
-			// TODO: single filter (12 states) + theta filter
 			delete _target_estimator[xyz];
 			_target_estimator[xyz] = tmp_x;
 

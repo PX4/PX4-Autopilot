@@ -100,7 +100,7 @@ public:
 	float getPosVar() override { return _covariance(0, 0); }
 	float getVelVar() override { return _covariance(1, 1); }
 
-	void setInputAccVar(float var) override { _inputVar = var;}
+	void setInputAccVar(float var) override { _input_var = var;}
 
 
 	/* Unused functions:  */
@@ -132,18 +132,18 @@ public:
 private:
 	matrix::Vector<float, 2> _state; // state
 
-	matrix::Vector<float, 2> _syncState; // state
+	matrix::Vector<float, 2> _sync_state; // state
 
-	matrix::Vector<float, 2> _measMatrix; // row of measurement matrix
+	matrix::Vector<float, 2> _meas_matrix; // row of measurement matrix
 
 	matrix::Matrix<float, 2, 2> _covariance; // state covariance
 
 	matrix::Matrix<float, 2, 2> _process_noise;
 
-	float _inputVar{0.f};
+	float _input_var{0.f};
 
 	float _innov{0.0f}; // residual of last measurement update
 
-	float _innovCov{0.0f}; // innovation covariance of last measurement update
+	float _innov_cov{0.0f}; // innovation covariance of last measurement update
 };
 } // namespace landing_target_estimator
