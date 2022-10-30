@@ -110,6 +110,9 @@ public:
 	void computeDynamicMatrix(float dt) override {};
 	void computeProcessNoise(float dt) override {};
 	void setTargetAcc(float acc) override {};
+	void setTargetAccVar(float var) override {};
+	void setBiasVar(float var) override {};
+
 	//For the single big Kalman filter, we need to work with vectors.
 	void setPosition(matrix::Vector<float, 3> posVect) override {};
 	void setVelocity(matrix::Vector<float, 3> velVect) override {};
@@ -128,6 +131,8 @@ public:
 	matrix::Vector<float, 3> getVelVarVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
 	matrix::Vector<float, 3> getAccVarVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
 	void setInputAccVar(matrix::Matrix<float, 3, 3> varVect) override {};
+	void setTargetAccVar(matrix::Matrix<float, 3, 3> varVect) override {};
+	void setBiasVar(matrix::Matrix<float, 3, 3> varVect) override {};
 
 private:
 	matrix::Vector<float, 2> _state; // state

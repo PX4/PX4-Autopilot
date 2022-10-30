@@ -70,6 +70,8 @@
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
 #include "KalmanFilter.h"
+#include "KFxyzDecoupledStatic.h"
+#include "KFxyzDecoupledMoving.h"
 
 using namespace time_literals;
 

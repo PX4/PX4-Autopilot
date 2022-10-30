@@ -80,7 +80,7 @@ void KalmanFilter::predictCov(float dt)
 bool KalmanFilter::update()
 {
 	// outlier rejection
-	if (_innov_cov == 0.f) {
+	if (_innov_cov <= 0.000001f) {
 		return false;
 	}
 
@@ -121,13 +121,9 @@ void KalmanFilter::syncState(float dt, float acc)
 	⎣        Ts⋅a + x(1)         ⎦
 	*/
 
-	_sync_state(0) = _sync_state(0) - _sync_state(1) * dt - dt * dt / 2.f * acc;
-	_sync_state(1) = _sync_state(1) + acc * dt;
+	_sync_state(0) = _state(0) - _state(1) * dt - dt * dt / 2.f * acc;
+	_sync_state(1) = _state(1) + acc * dt;
 }
-
-// void KalmanFilter::syncState(float dt, matrix::Vector<float, 3> acc){
-
-// }
 
 float KalmanFilter::computeInnovCov(float measUnc)
 {

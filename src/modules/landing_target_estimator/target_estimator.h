@@ -75,7 +75,7 @@ public:
 	virtual void setTargetAcc(matrix::Vector<float, 3> accVect);
 
 	// Init: P_0
-	virtual void setStatePosVar(float var) {};
+	virtual void setStatePosVar(float var);
 	virtual void setStateVelVar(float var);
 	virtual void setStateAccVar(float var);
 
@@ -103,4 +103,10 @@ public:
 
 	virtual void setInputAccVar(float var);
 	virtual void setInputAccVar(matrix::Matrix<float, 3, 3> varVect);
+
+	virtual void setTargetAccVar(float var);
+	virtual void setTargetAccVar(matrix::Matrix<float, 3, 3> varVect);
+
+	virtual void setBiasVar(float var);
+	virtual void setBiasVar(matrix::Matrix<float, 3, 3> varVect);
 };

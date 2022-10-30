@@ -36,7 +36,7 @@
  *
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  * @author Mohammed Kabir <kabir@uasys.io>
- * @author Jonas Perolini <jonspero@me.com>
+ * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *
  */
 
@@ -147,6 +147,8 @@ void LandingTargetEstimator::update()
 
 void LandingTargetEstimator::initEstimator()
 {
+	// TODO: do we want to init the target/UAV GPS bias?
+
 	// This function is only called once, it's better to re-update the vehicle local position once than having it in the stack memory
 	vehicle_local_position_s	vehicle_local_position;
 	_vehicleLocalPositionSub.update(&vehicle_local_position);
@@ -243,8 +245,18 @@ void LandingTargetEstimator::predictionStep(Vector3f vehicle_acc_ned)
 	Dcmf R_att = Dcm<float>(_q_att);
 	input_cov = R_att * input_cov * R_att.transpose();
 
+	// TODO: This can eventually be moved to the updateParams function and set as a global variable because no rotation is required
+	float target_acc_unc = _param_ltest_acc_t_unc.get();
+	SquareMatrix<float, 3> target_acc_cov = diag(Vector3f(target_acc_unc, target_acc_unc, target_acc_unc));
+
+	float bias_unc = _param_ltest_bias_unc.get();
+	SquareMatrix<float, 3> bias_cov = diag(Vector3f(bias_unc, bias_unc, bias_unc));
+
 	if (_target_model == TargetModel::FullPoseCoupled) {
 
+		if (_target_mode == TargetMode::Moving) {_target_estimator[xyz]->setTargetAccVar(target_acc_cov);}
+
+		_target_estimator[xyz]->setBiasVar(bias_cov);
 		_target_estimator[xyz]->setInputAccVar(input_cov);
 		_target_estimator[xyz]->predictState(dt, vehicle_acc_ned);
 		_target_estimator[xyz]->predictCov(dt);
@@ -252,6 +264,9 @@ void LandingTargetEstimator::predictionStep(Vector3f vehicle_acc_ned)
 	} else {
 		for (int i = 0; i < _nb_position_kf; i++) {
 			//For decoupled dynamics, we neglect the off diag elements.
+			if (_target_mode == TargetMode::Moving) {_target_estimator[i]->setTargetAccVar(target_acc_cov(i, i));}
+
+			_target_estimator[i]->setBiasVar(bias_cov(i, i));
 			_target_estimator[i]->setInputAccVar(input_cov(i, i));
 			_target_estimator[i]->predictState(dt, vehicle_acc_ned(i));
 			_target_estimator[i]->predictCov(dt);
@@ -283,13 +298,26 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 		// Compute the measurement's time delay (difference between state and measurement time on validity)
 		dt_sync = (_last_predict - _target_pos_obs[i].timestamp) / SEC2USEC;
 
+		// TODO: skip measurement if dt_sync > ...
+
+		// TODO: Eventually remove, for now to debug, assume prediction time = measurement time
+		dt_sync = 0.f;
+
 		// Fill the timestamp field of innovation
 		_target_innovations_array[i].timestamp_sample = _target_pos_obs[i].timestamp;
 		_target_innovations_array[i].timestamp =
 			hrt_absolute_time(); // TODO: check if correct hrt_absolute_time() or _last_predict
 
 		// Check if at least one measurement from this sensor was updated
-		if (_target_pos_obs[i].any_xyz_updated) {
+		if (!_target_pos_obs[i].any_xyz_updated) {
+
+			// No measurement update, set to false
+			for (int k = 0; k < 3; k++) {
+				_target_innovations_array[i].fusion_enabled[k] = false;
+				_target_innovations_array[i].fused[k] = false;
+			}
+
+		} else {
 
 			// Mark measurements as consumed for the next step.
 			_target_pos_obs[i].any_xyz_updated = false;
@@ -297,8 +325,14 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 			// Loop over x,y,z directions. Note: even with coupled dynamics we have a sequential update of x,y,z directions separately
 			for (int j = 0; j < nb_update_directions; j++) {
 
-				//If the measurement of this filter (x,y or z) has been updated:
-				if (_target_pos_obs[i].updated_xyz(j)) {
+				//If the measurement of this filter (x,y or z) has not been updated:
+				if (!_target_pos_obs[i].updated_xyz(j)) {
+
+					// No measurement Note: .fusion_enabled[j] and .fused[j] = false are already false by default. (set in publishInnovations())
+					PX4_INFO("At least one non-valid observation. x: %d, y: %d, z: %d", _target_pos_obs[i].updated_xyz(0),
+						 _target_pos_obs[i].updated_xyz(1), _target_pos_obs[i].updated_xyz(2));
+
+				} else {
 
 					int filter_idx = j;
 
@@ -344,10 +378,6 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 					// Mark measurement as consumed for next iteration
 					_target_pos_obs[i].updated_xyz(j) = false;
 
-				} else {
-					// No measurement Note: .fusion_enabled[j] and .fused[j] = false are already false by default. (set in publishInnovations())
-					PX4_INFO("At least one non-valid observation. x: %d, y: %d, z: %d", _target_pos_obs[i].updated_xyz(0),
-						 _target_pos_obs[i].updated_xyz(1), _target_pos_obs[i].updated_xyz(2));
 				}
 			}
 
@@ -358,13 +388,6 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 
 			// Reset meas_xyz_fused to false
 			meas_xyz_fused.setAll(false);
-
-		} else {
-			// No measurement update, set to false
-			for (int k = 0; k < 3; k++) {
-				_target_innovations_array[i].fusion_enabled[k] = false;
-				_target_innovations_array[i].fused[k] = false;
-			}
 		}
 	}
 
@@ -1125,17 +1148,15 @@ void LandingTargetEstimator::selectTargetEstimator()
 	switch (_target_model) {
 	case TargetModel::FullPoseDecoupled:
 
-		/* tmp = new xxx */
-		// TODO: new Kalman filters x,y,z,theta
-
 		if (_target_mode == TargetMode::Moving) {
-			//tmp_x = new KFPositionDecoupledMoving;
-			//tmp_y = new KFPositionDecoupledMoving;
-			//tmp_z = new KFPositionDecoupledMoving;
+			tmp_x = new KFxyzDecoupledMoving;
+			tmp_y = new KFxyzDecoupledMoving;
+			tmp_z = new KFxyzDecoupledMoving;
+
 		} else {
-			//tmp_x = new KFPositionDecoupledStationary;
-			//tmp_y = new KFPositionDecoupledStationary;
-			//tmp_z = new KFPositionDecoupledStationary;
+			tmp_x = new KFxyzDecoupledStatic;
+			tmp_y = new KFxyzDecoupledStatic;
+			tmp_z = new KFxyzDecoupledStatic;
 		}
 
 		init_failed = (tmp_x == nullptr) || (tmp_y == nullptr) || (tmp_z == nullptr);
