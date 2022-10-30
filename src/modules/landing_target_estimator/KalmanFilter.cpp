@@ -93,9 +93,7 @@ bool KalmanFilter::update()
 
 	matrix::Vector<float, 2> kalmanGain = _covariance * _meas_matrix / _innov_cov;
 
-	_state(0) += kalmanGain(0) * _innov;
-	_state(1) += kalmanGain(1) * _innov;
-
+	_state = _state + kalmanGain * _innov;
 	_covariance = _covariance - kalmanGain * _meas_matrix * _covariance;
 
 	return true;

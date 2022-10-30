@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file KalmanFilter.h
+ * @file KFxyzDecoupledStatic.h
  * Simple Kalman Filter for variable gain low-passing
  *
  * State: [r, r_dot, bias]
@@ -100,8 +100,8 @@ public:
 	/* Unused functions:  */
 	void setTargetAcc(float acc) override {}
 	void setStateAccVar(float acc_unc) override {};
-	float getAcceleration() { return 0.f; };
-	float getAccVar() { return 0.f; };
+	float getAcceleration() override { return 0.f; };
+	float getAccVar() override { return 0.f; };
 	void setTargetAccVar(float var) override {};
 	void computeDynamicMatrix(float dt) override {};
 	void computeProcessNoise(float dt) override {};

@@ -72,6 +72,7 @@
 #include "KalmanFilter.h"
 #include "KFxyzDecoupledStatic.h"
 #include "KFxyzDecoupledMoving.h"
+#include "KFxyzCoupledMoving.h"
 
 using namespace time_literals;
 

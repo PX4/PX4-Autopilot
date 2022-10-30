@@ -1150,14 +1150,14 @@ void LandingTargetEstimator::selectTargetEstimator()
 	case TargetModel::FullPoseDecoupled:
 
 		if (_target_mode == TargetMode::Moving) {
-			tmp_x = new KFxyzDecoupledMoving;
-			tmp_y = new KFxyzDecoupledMoving;
-			tmp_z = new KFxyzDecoupledMoving;
+			// tmp_x = new KFxyzDecoupledMoving;
+			// tmp_y = new KFxyzDecoupledMoving;
+			// tmp_z = new KFxyzDecoupledMoving;
 
 		} else {
-			tmp_x = new KFxyzDecoupledStatic;
-			tmp_y = new KFxyzDecoupledStatic;
-			tmp_z = new KFxyzDecoupledStatic;
+			// tmp_x = new KFxyzDecoupledStatic;
+			// tmp_y = new KFxyzDecoupledStatic;
+			// tmp_z = new KFxyzDecoupledStatic;
 		}
 
 		init_failed = (tmp_x == nullptr) || (tmp_y == nullptr) || (tmp_z == nullptr);
@@ -1169,7 +1169,8 @@ void LandingTargetEstimator::selectTargetEstimator()
 		// TODO: single filter (12 states) + theta filter
 
 		if (_target_mode == TargetMode::Moving) {
-			//tmp_x = new KFPositionCoupledStationary
+			// tmp_x = new KFxyzCoupledMoving;
+
 		} else {
 			//tmp_x = new KFPositionCoupledMoving
 		}

@@ -86,21 +86,21 @@ public:
 
 	// Init: x_0
 	//TODO: Rename with "Init": setInitPosition
-	void setPosition(float pos) override { _state(0) = pos; }
-	void setVelocity(float vel) override { _state(1) = vel; }
+	void setPosition(float pos) override { _state(0) = pos; };
+	void setVelocity(float vel) override { _state(1) = vel; };
 
 	// Init: P_0
-	void setStatePosVar(float pos_unc) override { _covariance(0, 0) = pos_unc; }
-	void setStateVelVar(float vel_unc) override { _covariance(1, 1) = vel_unc; }
+	void setStatePosVar(float pos_unc) override { _covariance(0, 0) = pos_unc; };
+	void setStateVelVar(float vel_unc) override { _covariance(1, 1) = vel_unc; };
 
 	// Retreive output of filter
-	float getPosition() override { return _state(0); }
-	float getVelocity() override { return _state(1); }
+	float getPosition() override { return _state(0); };
+	float getVelocity() override { return _state(1); };
 
-	float getPosVar() override { return _covariance(0, 0); }
-	float getVelVar() override { return _covariance(1, 1); }
+	float getPosVar() override { return _covariance(0, 0); };
+	float getVelVar() override { return _covariance(1, 1); };
 
-	void setInputAccVar(float var) override { _input_var = var;}
+	void setInputAccVar(float var) override { _input_var = var;};
 
 
 	/* Unused functions:  */
@@ -121,8 +121,8 @@ public:
 	void setStatePosVar(matrix::Vector<float, 3> posVect) override {};
 	void setStateVelVar(matrix::Vector<float, 3> posVect) override {};
 	void setStateAccVar(matrix::Vector<float, 3> posVect) override {};
-	float getAcceleration() { return 0.f; };
-	float getAccVar() { return 0.f; };
+	float getAcceleration() override { return 0.f; };
+	float getAccVar() override { return 0.f; };
 	// Retreive output of single filter
 	matrix::Vector<float, 3> getPositionVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
 	matrix::Vector<float, 3> getVelocityVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};

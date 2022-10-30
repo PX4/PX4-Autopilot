@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file KalmanFilter.h
+ * @file KFxyzDecoupledMoving.h
  * Simple Kalman Filter for variable gain low-passing
  *
  * State: [r, r_dot, bias, target_acc]
@@ -80,27 +80,27 @@ public:
 	bool update() override;
 
 	// Init: x_0
-	void setPosition(float pos) override { _state(0, 0) = pos; }
-	void setVelocity(float vel) override { _state(1, 0) = vel; }
-	void setTargetAcc(float acc) override { _state(3, 0) = acc; }
+	void setPosition(float pos) override { _state(0, 0) = pos; };
+	void setVelocity(float vel) override { _state(1, 0) = vel; };
+	void setTargetAcc(float acc) override { _state(3, 0) = acc; };
 
 	// Init: P_0
-	void setStatePosVar(float pos_unc) override { _covariance(0, 0) = pos_unc; }
-	void setStateVelVar(float vel_unc) override { _covariance(1, 1) = vel_unc; }
-	void setStateAccVar(float acc_unc) override { _covariance(3, 3) = acc_unc; }
+	void setStatePosVar(float pos_unc) override { _covariance(0, 0) = pos_unc; };
+	void setStateVelVar(float vel_unc) override { _covariance(1, 1) = vel_unc; };
+	void setStateAccVar(float acc_unc) override { _covariance(3, 3) = acc_unc; };
 
 	// Retreive output of filter
-	float getPosition() override { return _state(0, 0); }
-	float getVelocity() override { return _state(1, 0); }
-	float getAcceleration() { return _state(3, 0); };
+	float getPosition() override { return _state(0, 0); };
+	float getVelocity() override { return _state(1, 0); };
+	float getAcceleration() override { return _state(3, 0); };
 
-	float getPosVar() override { return _covariance(0, 0); }
-	float getVelVar() override { return _covariance(1, 1); }
-	float getAccVar() { return _covariance(3, 3); };
+	float getPosVar() override { return _covariance(0, 0); };
+	float getVelVar() override { return _covariance(1, 1); };
+	float getAccVar() override { return _covariance(3, 3); };
 
-	void setInputAccVar(float var) override { _input_var = var;}
-	void setBiasVar(float var) override { _bias_var = var; }
-	void setTargetAccVar(float var) override { _acc_var = var; }
+	void setInputAccVar(float var) override { _input_var = var;};
+	void setBiasVar(float var) override { _bias_var = var; };
+	void setTargetAccVar(float var) override { _acc_var = var; };
 
 	/* Unused functions:  */
 	void computeDynamicMatrix(float dt) override {};

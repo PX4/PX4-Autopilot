@@ -96,10 +96,7 @@ bool KFxyzDecoupledStatic::update()
 
 	matrix::Matrix<float, 3, 1> kalmanGain = _covariance * _meas_matrix.transpose() / _innov_cov;
 
-	_state(0, 0) += kalmanGain(0, 0) * _innov;
-	_state(1, 0) += kalmanGain(1, 0) * _innov;
-	_state(2, 0) += kalmanGain(2, 0) * _innov;
-
+	_state = _state + kalmanGain * _innov;
 	_covariance = _covariance - kalmanGain * _meas_matrix * _covariance;
 
 	return true;
