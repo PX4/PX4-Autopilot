@@ -282,7 +282,7 @@ void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, bool starting_con
 
 			aid_src.time_last_fuse = _imu_sample_delayed.time_us;
 
-			_nb_ev_pos_reset_available = 5;
+			_nb_ev_pos_reset_available = 3;
 			_information_events.flags.starting_vision_pos_fusion = true;
 			_control_status.flags.ev_pos = true;
 		}

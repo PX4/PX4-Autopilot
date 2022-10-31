@@ -590,6 +590,9 @@ private:
 	// Variables used to publish the WGS-84 location of the EKF local NED origin
 	float _gps_alt_ref{NAN};		///< WGS-84 height (m)
 
+	uint64_t _last_ev_fail_us{0};		///< last system time in usec that the EV failed it's checks
+	uint64_t _last_ev_pass_us{0};		///< last system time in usec that the EV passed it's checks
+
 	// Variables used by the initial filter alignment
 	bool _is_first_imu_sample{true};
 	uint32_t _baro_counter{0};		///< number of baro samples read during initialisation

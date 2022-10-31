@@ -169,7 +169,7 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, bool starting_con
 			}
 
 			if (_control_status.flags.ev_yaw) {
-				_nb_ev_yaw_reset_available = 5;
+				_nb_ev_yaw_reset_available = 3;
 			}
 		}
 	}
