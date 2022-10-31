@@ -51,13 +51,11 @@ static inline void hrt_work_unlock(void);
 
 static inline void hrt_work_lock()
 {
-	//PX4_INFO("hrt_work_lock");
 	sem_wait(&_hrt_work_lock);
 }
 
 static inline void hrt_work_unlock()
 {
-	//PX4_INFO("hrt_work_unlock");
 	sem_post(&_hrt_work_lock);
 }
 
