@@ -365,8 +365,10 @@ int up_input_capture_set_trigger(unsigned channel,  input_capture_edge edge)
 		rv = -ENXIO;
 
 		/* Any pins in capture mode */
+		int mode = io_timer_get_channel_mode(channel);
 
-		if (io_timer_get_channel_mode(channel) == IOTimerChanMode_Capture) {
+		if (mode == IOTimerChanMode_Capture ||
+		    mode == IOTimerChanMode_CaptureDMA) {
 
 			uint16_t edge_bits = 0xffff;
 
