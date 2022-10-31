@@ -36,9 +36,13 @@
 
 #pragma once
 
-__BEGIN_DECLS
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef unsigned long useconds_t;
 int usleep(useconds_t usec);
 
-__END_DECLS
+#ifdef __cplusplus
+}
+#endif

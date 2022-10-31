@@ -37,8 +37,6 @@
 
 #pragma once
 
-#include "qurt_reqs.h"
-
 #define	IOCPARM_MASK	0x1fff		/* parameter length, at most 13 bits */
 #define	IOC_VOID	0x20000000	/* no parameters */
 
