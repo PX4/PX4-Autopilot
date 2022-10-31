@@ -591,12 +591,6 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 
 	// Allocated control
 	const matrix::Vector<float, NUM_AXES> &allocated_control = _control_allocation[matrix_index]->getAllocatedControl();
-	control_allocator_status.allocated_torque[0] = allocated_control(0);
-	control_allocator_status.allocated_torque[1] = allocated_control(1);
-	control_allocator_status.allocated_torque[2] = allocated_control(2);
-	control_allocator_status.allocated_thrust[0] = allocated_control(3);
-	control_allocator_status.allocated_thrust[1] = allocated_control(4);
-	control_allocator_status.allocated_thrust[2] = allocated_control(5);
 
 	// Unallocated control
 	const matrix::Vector<float, NUM_AXES> unallocated_control = _control_allocation[matrix_index]->getControlSetpoint() -
@@ -609,7 +603,7 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 	control_allocator_status.unallocated_thrust[2] = unallocated_control(5);
 
 	// override control_allocator_status in customized saturation logic for certain effectiveness types
-	_actuator_effectiveness->getAllocatedAndUnallocatedControl(matrix_index, control_allocator_status);
+	_actuator_effectiveness->getUnallocatedControl(matrix_index, control_allocator_status);
 
 	// Allocation success flags
 	control_allocator_status.torque_setpoint_achieved = (Vector3f(control_allocator_status.unallocated_torque[0],
