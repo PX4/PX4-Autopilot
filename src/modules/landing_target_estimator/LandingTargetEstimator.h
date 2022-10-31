@@ -73,6 +73,7 @@
 #include "KFxyzDecoupledStatic.h"
 #include "KFxyzDecoupledMoving.h"
 #include "KFxyzCoupledMoving.h"
+#include "KFxyzCoupledStatic.h"
 
 using namespace time_literals;
 

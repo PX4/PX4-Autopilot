@@ -42,6 +42,7 @@ px4_add_module(
 		KFxyzCoupledMoving.cpp
 		KFxyzDecoupledMoving.cpp
 		KFxyzDecoupledStatic.cpp
+		KFxyzCoupledStatic.cpp
 	DEPENDS
 	)
 

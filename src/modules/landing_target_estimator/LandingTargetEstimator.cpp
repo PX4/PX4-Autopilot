@@ -1179,7 +1179,7 @@ void LandingTargetEstimator::selectTargetEstimator()
 			tmp_x = new KFxyzCoupledMoving;
 
 		} else {
-			//tmp_x = new KFPositionCoupledMoving
+			tmp_x = new KFxyzCoupledStatic;
 		}
 
 		init_failed = (tmp_x == nullptr);
