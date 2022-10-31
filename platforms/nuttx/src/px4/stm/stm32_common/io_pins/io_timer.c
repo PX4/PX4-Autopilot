@@ -523,12 +523,12 @@ void io_timer_update_dma_req(uint8_t timer, bool enable)
 void io_timer_capture_update_dma_req(uint8_t timer, bool enable)
 {
 	if (enable) {
-		rDIER(timer) |= ATIM_DIER_CC1DE;
-		rEGR(timer)  |= (ATIM_EGR_UG | ATIM_EGR_CC1G | ATIM_EGR_CC2G);
+		rDIER(timer) |= ATIM_DIER_CC1DE | ATIM_DIER_CC2DE | ATIM_DIER_CC3DE | ATIM_DIER_CC4DE;
+		rEGR(timer)  |= (ATIM_EGR_UG | ATIM_EGR_CC1G | ATIM_EGR_CC2G | ATIM_EGR_CC3G | ATIM_EGR_CC4G);
 
 	} else {
-		rEGR(timer)  &= ~(ATIM_EGR_UG | ATIM_EGR_CC1G | ATIM_EGR_CC2G);
-		rDIER(timer) &= ~(ATIM_DIER_CC1DE);
+		rEGR(timer)  &= ~(ATIM_EGR_UG | ATIM_EGR_CC1G | ATIM_EGR_CC2G | ATIM_EGR_CC3G | ATIM_EGR_CC4G);
+		rDIER(timer) &= ~(ATIM_DIER_CC1DE | ATIM_DIER_CC2DE | ATIM_DIER_CC3DE | ATIM_DIER_CC4DE);
 	}
 }
 
@@ -587,24 +587,50 @@ int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_
 	return ret_val;
 }
 
-int io_timer_set_capture_mode(uint8_t timer, unsigned dshot_pwm_freq)
+int io_timer_set_capture_mode(uint8_t timer, unsigned dshot_pwm_freq, unsigned channel)
 {
 	rARR(timer)  = -1;
-	rEGR(timer)  = ATIM_EGR_UG | ATIM_EGR_CC1G | ATIM_EGR_CC2G;
+	rEGR(timer)  = ATIM_EGR_UG | GTIM_EGR_CC1G | GTIM_EGR_CC2G | GTIM_EGR_CC3G | GTIM_EGR_CC4G;
 
 	rPSC(timer) = ((int)(io_timers[timer].clock_freq / (dshot_pwm_freq * 5 / 4)) / DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
 
-	// We need to disable CC1E before we can switch to CC1S to input
-	rCCER(timer) &= ~(GTIM_CCER_CC1E | GTIM_CCER_CC1P | GTIM_CCER_CC1NP);
 
-	rCCMR1(timer) |= (GTIM_CCMR_CCS_CCIN1  << GTIM_CCMR1_CC1S_SHIFT);
 
-	// Enable the timer
-	rCR1(timer) |= GTIM_CR1_CEN;
+	switch (timer_io_channels[channel].timer_channel) {
+	case 1:
+		// We need to disable CC1E before we can switch to CC1S to input
+		rCCER(timer) &= ~(GTIM_CCER_CC1E | GTIM_CCER_CC1P | GTIM_CCER_CC1NP);
+		rCCMR1(timer) |= (GTIM_CCMR_CCS_CCIN1  << GTIM_CCMR1_CC1S_SHIFT);
+		rCR1(timer) |= GTIM_CR1_CEN;
+		rCCER(timer) |= (GTIM_CCER_CC1E | GTIM_CCER_CC1P | GTIM_CCER_CC1NP);
+// We need to pass the offset of the register to read by DMA divided by 4.
+		rDCR(timer)  = 0xD; // 0x34 / 4, offset for CC1
+		break;
 
-	rCCER(timer) |= (GTIM_CCER_CC1E | GTIM_CCER_CC1P | GTIM_CCER_CC1NP);
+	case 2:
+		rCCER(timer) &= ~(GTIM_CCER_CC2E | GTIM_CCER_CC2P | GTIM_CCER_CC2NP);
+		rCCMR1(timer) |= (GTIM_CCMR_CCS_CCIN1  << GTIM_CCMR1_CC2S_SHIFT);
+		rCR1(timer) |= GTIM_CR1_CEN;
+		rCCER(timer) |= (GTIM_CCER_CC2E | GTIM_CCER_CC2P | GTIM_CCER_CC2NP);
+		rDCR(timer)  = 0xE; // 0x38 / 4, offset for CC2
+		break;
 
-	rDCR(timer)  = 0xd; // 0xD to read CC1, 0xe to read CC2
+	case 3:
+		rCCER(timer) &= ~(GTIM_CCER_CC3E | GTIM_CCER_CC3P | GTIM_CCER_CC3NP);
+		rCCMR2(timer) |= (GTIM_CCMR_CCS_CCIN1  << GTIM_CCMR2_CC3S_SHIFT);
+		rCR1(timer) |= GTIM_CR1_CEN;
+		rCCER(timer) |= (GTIM_CCER_CC3E | GTIM_CCER_CC3P | GTIM_CCER_CC3NP);
+		rDCR(timer)  = 0xF; // 0x3C / 4, offset for CC3
+		break;
+
+	case 4:
+		rCCER(timer) &= ~(GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC4NP);
+		rCCMR2(timer) |= (GTIM_CCMR_CCS_CCIN1  << GTIM_CCMR2_CC4S_SHIFT);
+		rCR1(timer) |= GTIM_CR1_CEN;
+		rCCER(timer) |= (GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC4NP);
+		rDCR(timer)  = 0x10; // 0x40 / 4, offset for CC4
+		break;
+	}
 
 	return 0;
 }

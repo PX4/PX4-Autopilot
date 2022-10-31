@@ -137,4 +137,6 @@ __EXPORT extern void up_dshot_trigger(void);
  */
 __EXPORT extern int up_dshot_arm(bool armed);
 
+__EXPORT extern bool up_dshot_get_periods(uint32_t periods[], size_t num_periods);
+
 __END_DECLS

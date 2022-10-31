@@ -435,7 +435,20 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		_current_command.clear();
 	}
 
+	// We need to copy out the periods from the previous measurements before triggering again.
+	// Otherwise, we can't capture more data in this run.
+	uint32_t periods[4];
+	bool periods_ok = up_dshot_get_periods(periods, 4);
+
 	up_dshot_trigger();
+
+	if (periods_ok) {
+		static unsigned counter = 0;
+
+		if (counter++ % 10 == 0) {
+			printf("periods: % 6ld % 6ld % 6ld % 6ld\n", periods[0], periods[1], periods[2], periods[3]);
+		}
+	}
 
 	return true;
 }

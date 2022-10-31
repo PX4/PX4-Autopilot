@@ -108,6 +108,10 @@ static bool enable_bidirectional_dshot = true;
 
 static uint32_t _dshot_frequency = 0;
 
+static uint32_t _motor_to_capture = 0;
+static uint32_t _periods[4] = {0, 0, 0, 0};
+static bool _periods_ready = false;
+
 uint8_t nibbles_from_mapped(uint8_t mapped)
 {
 	switch (mapped) {
@@ -282,12 +286,6 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 
 void up_dshot_trigger(void)
 {
-	static uint64_t counter = 0;
-
-	if (counter++ % 800 == 0) {
-		printf("ok: %lu, nibble: %lu, crc: %lu, zero: %lu\n", read_ok, read_fail_nibble, read_fail_crc, read_fail_zero);
-	}
-
 	/* Init channels */
 	int ret_val = OK;
 	int channel_mask = 0xf;
@@ -372,8 +370,20 @@ void do_capture(DMA_HANDLE handle, uint8_t status, void *arg)
 	(void)status;
 	(void)arg;
 
+	if (_periods_ready) {
+		// The periods need to be collected first, so we have to skip it this time.
+		return;
+	}
+
+	if (_motor_to_capture >= 4) {
+		// We only support the first 4 for now.
+		return;
+	}
+
+	// TODO: this things are still somewhat hard-coded. And I'm probably confused
+	// regarding channels and indexes.
 	const int capture_timer = 0;
-	const int capture_channel = 3;
+	const int capture_channel = _motor_to_capture;
 
 	for (unsigned timer = 0; timer < DSHOT_TIMERS; ++timer) {
 		if (dshot_handler[timer].dma_handle != NULL) {
@@ -381,15 +391,32 @@ void do_capture(DMA_HANDLE handle, uint8_t status, void *arg)
 		}
 	}
 
-
 	dshot_handler[capture_timer].dma_size = 32;
-
 
 	if (dshot_handler[0].dma_handle != NULL) {
 		stm32_dmafree(dshot_handler[0].dma_handle);
 	}
 
-	dshot_handler[0].dma_handle = stm32_dmachannel(DMAMAP_DMA12_TIM5CH1_0);
+	// TODO: We should probably do this at another level board specific.
+	//       However, right now the dma handles are all hard-coded to the UP(date) source
+	//       rather than the capture compare one.
+	switch (timer_io_channels[_motor_to_capture].timer_channel) {
+	case 1:
+		dshot_handler[capture_timer].dma_handle = stm32_dmachannel(DMAMAP_DMA12_TIM5CH1_0);
+		break;
+
+	case 2:
+		dshot_handler[capture_timer].dma_handle = stm32_dmachannel(DMAMAP_DMA12_TIM5CH2_0);
+		break;
+
+	case 3:
+		dshot_handler[capture_timer].dma_handle = stm32_dmachannel(DMAMAP_DMA12_TIM5CH3_0);
+		break;
+
+	case 4:
+		dshot_handler[capture_timer].dma_handle = stm32_dmachannel(DMAMAP_DMA12_TIM5CH4_0);
+		break;
+	}
 
 	memset(dshot_capture_buffer, 0, sizeof(dshot_capture_buffer));
 	up_clean_dcache((uintptr_t)dshot_capture_buffer,
@@ -414,9 +441,9 @@ void do_capture(DMA_HANDLE handle, uint8_t status, void *arg)
 	up_input_capture_set(capture_channel, Both, 0, NULL, NULL);
 
 	io_timer_capture_update_dma_req(capture_timer, false);
-	io_timer_set_capture_mode(capture_timer, _dshot_frequency);
+	io_timer_set_capture_mode(capture_timer, _dshot_frequency, capture_channel);
 
-	stm32_dmastart(dshot_handler[0].dma_handle, NULL, NULL, false);
+	stm32_dmastart(dshot_handler[capture_timer].dma_handle, NULL, NULL, false);
 	io_timer_capture_update_dma_req(capture_timer, true);
 
 	// It takes around 85 us for the ESC to respond, so we should have a result after 150 us, surely.
@@ -465,13 +492,14 @@ void process_capture_results(void *arg)
 		}
 	}
 
-	const unsigned period = calculate_period();
+	// TODO: fix order
+	_periods[_motor_to_capture] = calculate_period();
 
-	static uint64_t counter = 0;
-
-	if (counter++ % 800 == 0) {
-		printf("period: %u\n", period);
+	if (_motor_to_capture == 3) {
+		_periods_ready = true;
 	}
+
+	_motor_to_capture = (_motor_to_capture + 1) % 4;
 }
 
 
@@ -522,6 +550,26 @@ int up_dshot_arm(bool armed)
 {
 	return io_timer_set_enable(armed, enable_bidirectional_dshot ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
 				   IO_TIMER_ALL_MODES_CHANNELS);
+}
+
+bool up_dshot_get_periods(uint32_t periods[], size_t num_periods)
+{
+	// TODO: hardcoded for now.
+	if (num_periods != 4) {
+		return false;
+	}
+
+	if (!_periods_ready) {
+		return false;
+	}
+
+	for (unsigned i = 0; i < 4; ++i) {
+		periods[i] = _periods[i];
+	}
+
+	_periods_ready = false;
+
+	return true;
 }
 
 #endif
