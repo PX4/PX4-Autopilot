@@ -582,7 +582,35 @@ class uploader(object):
         self.fw_maxsize = self.__getInfo(uploader.INFO_FLASH_SIZE)
 
     # upload the firmware
-    def upload(self, fw, force=False, boot_delay=None):
+    def upload(self, fw_list, force=False, boot_delay=None, boot_check=False):
+        # select correct binary
+        found_suitable_firmware = False
+        for file in fw_list:
+            fw = firmware(file)
+            if self.board_type == fw.property('board_id'):
+                if len(fw_list) > 1: print("using firmware binary {}".format(file))
+                found_suitable_firmware = True
+                break
+
+        if not found_suitable_firmware:
+            msg = "Firmware not suitable for this board (Firmware board_type=%u board_id=%u)" % (
+                self.board_type, fw.property('board_id'))
+            print("WARNING: %s" % msg)
+            if force:
+                if len(fw_list) > 1:
+                    raise FirmwareNotSuitableException("force flashing failed, more than one file provided, none suitable")
+                print("FORCED WRITE, FLASHING ANYWAY!")
+            else:
+                raise FirmwareNotSuitableException(msg)
+
+        percent = fw.property('image_size') / fw.property('image_maxsize')
+        binary_size = float(fw.property('image_size'))
+        binary_max_size = float(fw.property('image_maxsize'))
+        percent = (binary_size / binary_max_size) * 100
+
+        print("Loaded firmware for board id: %s,%s size: %d bytes (%.2f%%) " % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size'), percent))
+        print()
+
         # Make sure we are doing the right thing
         start = _time()
         if self.board_type != fw.property('board_id'):
@@ -764,7 +792,7 @@ def main():
     parser.add_argument('--force', action='store_true', default=False, help='Override board type check, or silicon errata checks and continue loading')
     parser.add_argument('--boot-delay', type=int, default=None, help='minimum boot delay to store in flash')
     parser.add_argument('--use-protocol-splitter-format', action='store_true', help='use protocol splitter format for reboot')
-    parser.add_argument('firmware', action="store", help="Firmware file to be uploaded")
+    parser.add_argument('firmware', action="store", nargs='+', help="Firmware file(s)")
     args = parser.parse_args()
 
     if args.use_protocol_splitter_format:
@@ -776,17 +804,7 @@ def main():
         print("WARNING: You should uninstall ModemManager as it conflicts with any non-modem serial device (like Pixhawk)")
         print("==========================================================================================================")
 
-    # Load the firmware file
-    fw = firmware(args.firmware)
-
-    percent = fw.property('image_size') / fw.property('image_maxsize')
-    binary_size = float(fw.property('image_size'))
-    binary_max_size = float(fw.property('image_maxsize'))
-    percent = (binary_size / binary_max_size) * 100
-
-    print("Loaded firmware for board id: %s,%s size: %d bytes (%.2f%%), waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size'), percent))
-    print()
-
+    print("Waiting for bootloader...")
     # tell any GCS that might be connected to the autopilot to give up
     # control of the serial port
 
@@ -889,7 +907,7 @@ def main():
 
                 try:
                     # ok, we have a bootloader, try flashing it
-                    up.upload(fw, force=args.force, boot_delay=args.boot_delay)
+                    up.upload(args.firmware, force=args.force, boot_delay=args.boot_delay)
 
                     # if we made this far without raising exceptions, the upload was successful
                     successful = True
