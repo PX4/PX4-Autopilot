@@ -79,7 +79,7 @@ public:
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
 
-	bool getAllocatedAndUnallocatedControl(control_allocator_status_s &status) const override;
+	void getAllocatedAndUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
 private:
 	float throttleSpoolupProgress();
 	bool mainMotorEnaged();
