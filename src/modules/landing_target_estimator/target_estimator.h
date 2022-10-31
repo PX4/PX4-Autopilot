@@ -36,6 +36,8 @@
  * @brief Interface for target estimators
  */
 
+#pragma once
+
 class TargetEstimator
 {
 public:

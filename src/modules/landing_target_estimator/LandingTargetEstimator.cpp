@@ -310,8 +310,7 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 			// Compute the measurement's time delay (difference between state and measurement time on validity)
 			dt_sync = (_last_predict - _target_pos_obs[i].timestamp);
 
-			// TODO: skip measurement if dt_sync > ...
-			if ((int)dt_sync > measurement_valid_TIMEOUT_US) {
+			if (dt_sync > measurement_valid_TIMEOUT_US) {
 
 				PX4_INFO("Measurement rejected because too old. Time sync: %.2f [seconds] > timeout: %.2f [seconds]",
 					 (double)(dt_sync / SEC2USEC), (double)(measurement_valid_TIMEOUT_US / SEC2USEC));
