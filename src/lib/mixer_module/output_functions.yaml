@@ -36,6 +36,8 @@ functions:
 
     Gripper: 430
 
+    Landing_Gear_Wheel: 440
+
     # Add your own here:
     #MyCustomFunction: 10000
 
