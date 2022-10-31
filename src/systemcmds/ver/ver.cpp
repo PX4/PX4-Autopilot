@@ -158,7 +158,7 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 			}
 
 			if (show_all || !strncmp(argv[1], sz_ver_git_str, sizeof(sz_ver_git_str))) {
-				printf("FW git-hash: %s\n", px4_firmware_version_string());
+				printf("PX4 git-hash: %s\n", px4_firmware_version_string());
 				unsigned fwver = px4_firmware_version();
 				unsigned major = (fwver >> (8 * 3)) & 0xFF;
 				unsigned minor = (fwver >> (8 * 2)) & 0xFF;
@@ -166,17 +166,17 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 				unsigned type = (fwver >> (8 * 0)) & 0xFF;
 
 				if (type == 255) {
-					printf("FW version: Release %u.%u.%u (%u)\n", major, minor, patch, fwver);
+					printf("PX4 version: Release %u.%u.%u (%u)\n", major, minor, patch, fwver);
 
 				} else {
-					printf("FW version: %u.%u.%u %x (%u)\n", major, minor, patch, type, fwver);
+					printf("PX4 version: %u.%u.%u %x (%u)\n", major, minor, patch, type, fwver);
 				}
 
 				if (show_all) {
 					const char *git_branch = px4_firmware_git_branch();
 
 					if (git_branch && git_branch[0]) {
-						printf("FW git-branch: %s\n", git_branch);
+						printf("PX4 git-branch: %s\n", git_branch);
 					}
 				}
 
