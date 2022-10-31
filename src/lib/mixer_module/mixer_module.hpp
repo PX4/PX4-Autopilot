@@ -41,6 +41,7 @@
 #include "functions/FunctionGimbal.hpp"
 #include "functions/FunctionGripper.hpp"
 #include "functions/FunctionLandingGear.hpp"
+#include "functions/FunctionLandingGearWheel.hpp"
 #include "functions/FunctionManualRC.hpp"
 #include "functions/FunctionMotors.hpp"
 #include "functions/FunctionParachute.hpp"
