@@ -79,8 +79,8 @@ void KalmanFilter::predictCov(float dt)
 
 bool KalmanFilter::update()
 {
-	// outlier rejection
-	if (_innov_cov <= 0.000001f) {
+	// Avoid zero-division
+	if (_innov_cov  <= 0.000001f && _innov_cov  >= -0.000001f)  {
 		return false;
 	}
 

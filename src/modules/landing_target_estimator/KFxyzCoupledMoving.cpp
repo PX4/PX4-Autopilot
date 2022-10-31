@@ -326,8 +326,8 @@ void KFxyzCoupledMoving::predictCov(float dt)
 
 bool KFxyzCoupledMoving::update()
 {
-	// outlier rejection
-	if (_innov_cov  <= 0.000001f) {
+	// Avoid zero-division
+	if (_innov_cov  <= 0.000001f && _innov_cov  >= -0.000001f) {
 		return false;
 	}
 
@@ -340,7 +340,7 @@ bool KFxyzCoupledMoving::update()
 
 	matrix::Matrix<float, 12, 1> kalmanGain = _covariance * _meas_matrix.transpose() / _innov_cov;
 
-	_state = kalmanGain * _innov;
+	_state = _state + kalmanGain * _innov;
 	_covariance = _covariance - kalmanGain * _meas_matrix * _covariance;
 
 	return true;

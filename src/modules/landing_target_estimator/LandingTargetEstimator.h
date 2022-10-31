@@ -177,11 +177,11 @@ private:
 
 	enum ObservationType {
 		target_gps_pos = 0,
-		uav_gps_vel,
-		fiducial_marker,
-		irlock,
-		uwb,
-		nb_observations
+		uav_gps_vel = 1,
+		fiducial_marker = 2,
+		irlock = 3,
+		uwb = 4,
+		nb_observations = 5
 	};
 
 	enum Directions {

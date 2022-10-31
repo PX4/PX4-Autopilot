@@ -92,9 +92,9 @@ PARAM_DEFINE_INT32(LTEST_MODE, 0);
  * @min 0
  * @max 2
  * @group Landing target Estimator
- * @value 0 Full pose
- * @value 1 FullPoseCoupled
- * @value 2 Horizontal
+ * @value 0 Full pose decoupled
+ * @value 1 Full pose coupled
+ * @value 2 Horizontal position
  */
 PARAM_DEFINE_INT32(LTEST_MODEL, 2);
 

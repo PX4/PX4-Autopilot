@@ -103,8 +103,8 @@ void KFxyzDecoupledMoving::predictCov(float dt)
 
 bool KFxyzDecoupledMoving::update()
 {
-	// outlier rejection
-	if (_innov_cov  <= 0.000001f) {
+	// Avoid zero-division
+	if (_innov_cov  <= 0.000001f && _innov_cov  >= -0.000001f) {
 		return false;
 	}
 
@@ -131,9 +131,9 @@ void KFxyzDecoupledMoving::setH(matrix::Vector<float, 12> h_meas)
 	// For this filter: [rx, r_dotx, bx, atx]
 
 	_meas_matrix(0, 0) = h_meas(0);
-	_meas_matrix(1, 0) = h_meas(3);
-	_meas_matrix(2, 0) = h_meas(6);
-	_meas_matrix(3, 0) = h_meas(9);
+	_meas_matrix(0, 1) = h_meas(3);
+	_meas_matrix(0, 2) = h_meas(6);
+	_meas_matrix(0, 3) = h_meas(9);
 
 }
 

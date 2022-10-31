@@ -204,8 +204,8 @@ void KFxyzCoupledStatic::predictCov(float dt)
 
 bool KFxyzCoupledStatic::update()
 {
-	// outlier rejection
-	if (_innov_cov  <= 0.000001f) {
+	// Avoid zero-division
+	if (_innov_cov  <= 0.000001f && _innov_cov  >= -0.000001f) {
 		return false;
 	}
 
@@ -218,7 +218,7 @@ bool KFxyzCoupledStatic::update()
 
 	matrix::Matrix<float, 9, 1> kalmanGain = _covariance * _meas_matrix.transpose() / _innov_cov;
 
-	_state = kalmanGain * _innov;
+	_state = _state + kalmanGain * _innov;
 	_covariance = _covariance - kalmanGain * _meas_matrix * _covariance;
 
 	return true;
@@ -231,14 +231,14 @@ void KFxyzCoupledStatic::setH(matrix::Vector<float, 12> h_meas)
 	// state = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz]
 
 	_meas_matrix(0, 0) = h_meas(0);
-	_meas_matrix(1, 0) = h_meas(1);
-	_meas_matrix(2, 0) = h_meas(2);
-	_meas_matrix(3, 0) = h_meas(3);
-	_meas_matrix(4, 0) = h_meas(4);
-	_meas_matrix(5, 0) = h_meas(5);
-	_meas_matrix(6, 0) = h_meas(6);
-	_meas_matrix(7, 0) = h_meas(7);
-	_meas_matrix(8, 0) = h_meas(8);
+	_meas_matrix(0, 1) = h_meas(1);
+	_meas_matrix(0, 2) = h_meas(2);
+	_meas_matrix(0, 3) = h_meas(3);
+	_meas_matrix(0, 4) = h_meas(4);
+	_meas_matrix(0, 5) = h_meas(5);
+	_meas_matrix(0, 6) = h_meas(6);
+	_meas_matrix(0, 7) = h_meas(7);
+	_meas_matrix(0, 8) = h_meas(8);
 }
 
 void KFxyzCoupledStatic::syncState(float dt, matrix::Vector<float, 3> acc)

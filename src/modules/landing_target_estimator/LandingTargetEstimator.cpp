@@ -72,6 +72,12 @@ LandingTargetEstimator::LandingTargetEstimator() :
 	ModuleParams(nullptr)
 {
 	_targetPosePub.advertise();
+	_target_estimator_aid_gps_pos_pub.advertise();
+	_target_estimator_aid_gps_vel_pub.advertise();
+	_target_estimator_aid_vision_pub.advertise();
+	_target_estimator_aid_irlock_pub.advertise();
+	_target_estimator_aid_uwb_pub.advertise();
+
 	_check_params(true);
 }
 
@@ -116,6 +122,7 @@ void LandingTargetEstimator::update()
 		// Wait for a sensor update to get the initial position of the target
 		if (_new_sensorReport) {
 			initEstimator();
+			PX4_INFO("LTE Estimator properly initialized.");
 			_estimator_initialized = true;
 			_last_update = hrt_absolute_time();
 			_last_predict = _last_update;
@@ -181,7 +188,12 @@ void LandingTargetEstimator::initEstimator()
 	Vector3f v_rel_init;
 	v_rel_init(0) = vehicle_local_position.v_xy_valid ? -vehicle_local_position.vx : 0.f;
 	v_rel_init(1) = vehicle_local_position.v_xy_valid ? -vehicle_local_position.vy : 0.f;
-	v_rel_init(2) = vehicle_local_position.v_z_valid  ? -vehicle_local_position.vz : 0.f;
+	// v_rel_init(2) = vehicle_local_position.v_z_valid  ? -vehicle_local_position.vz : 0.f;
+
+	v_rel_init(2) = 0.f;
+
+	PX4_INFO("Vehicle z velocity valid:  %.2f ", (double)vehicle_local_position.vz);
+	PX4_INFO("Vehicle z velocity not:  %.2f ", (double)vehicle_local_position.vz);
 
 	// Define initial acceleration of the target in NED frame. Since we have no info on the target, assume no initial acceleration
 	Vector3f a_init{};
@@ -291,7 +303,7 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 	Vector<float, 12> meas_h_row;
 
 	// Number of direction:  x,y,z for all filters excep for the horizontal filter: x,y
-	int nb_update_directions = (_target_model == TargetModel::Horizontal) ? 3 : 2;
+	int nb_update_directions = (_target_model == TargetModel::Horizontal) ? 2 : 3;
 
 	// Loop over senors (gps_pos, gps_vel, vision, range_z, irlock, uwb)
 	for (int i = 0; i < nb_observations; i++) {
@@ -391,6 +403,10 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 				// If we have updated all three directions (x,y,z) for one measurement, consider the state updated.
 				if (meas_xyz_fused(0) && meas_xyz_fused(1) && (meas_xyz_fused(2) || _target_model == TargetModel::Horizontal)) {
 					all_directions_fused = true;
+
+				} else {
+					PX4_INFO("At least one direction not fused: . x: %d, y: %d, z: %d", meas_xyz_fused(0), meas_xyz_fused(1),
+						 meas_xyz_fused(2));
 				}
 
 				// Reset meas_xyz_fused to false
@@ -466,7 +482,7 @@ void LandingTargetEstimator::publishTarget()
 	target_pose.timestamp = _last_predict;
 	target_pose.is_static = (_target_mode == TargetMode::Stationary);
 
-	bool target_valid = (hrt_absolute_time() - _last_update > landing_target_valid_TIMEOUT_US);
+	bool target_valid = (hrt_absolute_time() - _last_update < landing_target_valid_TIMEOUT_US);
 
 	// TODO: have _last_update_pos ; _last_update_vel ; _last_update_orientation
 	target_pose.rel_pos_valid = target_valid;
@@ -611,7 +627,13 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 
 		// Transform body acc to NED
 		Vector3f vehicle_acc{vehicle_acceleration.xyz};
-		input->vehicle_acc_ned = R_att * vehicle_acc;
+
+		// Compensate for gravity:
+		Dcmf R_att_inv = inv(R_att);
+		Vector3f gravity_ned(0, 0, 9.807);
+		Vector3f gravity_body = R_att_inv * gravity_ned;
+
+		input->vehicle_acc_ned = R_att * (vehicle_acc + gravity_body);
 		input->acc_ned_valid = true;
 	}
 
@@ -1160,11 +1182,13 @@ void LandingTargetEstimator::selectTargetEstimator()
 			tmp_x = new KFxyzDecoupledMoving;
 			tmp_y = new KFxyzDecoupledMoving;
 			tmp_z = new KFxyzDecoupledMoving;
+			PX4_INFO("LTE estimator: Moving target, full pose with x,y,z decoupled.");
 
 		} else {
 			tmp_x = new KFxyzDecoupledStatic;
 			tmp_y = new KFxyzDecoupledStatic;
 			tmp_z = new KFxyzDecoupledStatic;
+			PX4_INFO("LTE estimator: Static target, full pose with x,y,z decoupled.");
 		}
 
 		init_failed = (tmp_x == nullptr) || (tmp_y == nullptr) || (tmp_z == nullptr);
@@ -1173,22 +1197,22 @@ void LandingTargetEstimator::selectTargetEstimator()
 
 	case TargetModel::FullPoseCoupled:
 
-		// TODO: single filter (12 states) + theta filter
-
 		if (_target_mode == TargetMode::Moving) {
 			tmp_x = new KFxyzCoupledMoving;
+			PX4_INFO("LTE estimator: Moving target, full pose with x,y,z coupled in one filter.");
 
 		} else {
 			tmp_x = new KFxyzCoupledStatic;
+			PX4_INFO("LTE estimator: Static target, full pose with x,y,z coupled in one filter.");
 		}
 
 		init_failed = (tmp_x == nullptr);
 		break;
 
 	case TargetModel::Horizontal:
-		// TODO: new Kalman filter
 		tmp_x = new KalmanFilter();
 		tmp_y = new KalmanFilter();
+		PX4_INFO("LTE estimator: Horizontal position only.");
 
 		init_failed = (tmp_x == nullptr) || (tmp_y == nullptr);
 		break;
@@ -1199,6 +1223,7 @@ void LandingTargetEstimator::selectTargetEstimator()
 	}
 
 	if (_estimate_orientation) {
+		// TODO: complete
 
 		if (_target_mode == TargetMode::Moving) {
 			// tmp_theta = new KFOrientationMoving;
