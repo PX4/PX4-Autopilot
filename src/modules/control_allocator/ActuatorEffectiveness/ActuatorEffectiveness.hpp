@@ -199,10 +199,10 @@ public:
 	virtual uint32_t getStoppedMotors() const { return 0; }
 
 	/**
-	 * Fill in the allocated and unallocated torque and thrust.
-	 * Should return false if not filled in and the effectivenes matrix should be used instead
+	 * Fill in the allocated and unallocated torque and thrust, customized by effectiveness type.
+	 * Can be implemented for every type separately. If not implemented then the effectivenes matrix is used instead.
 	 */
-	virtual bool getAllocatedAndUnallocatedControl(control_allocator_status_s &status) const { return false; }
+	virtual void getAllocatedAndUnallocatedControl(int matrix_index, control_allocator_status_s &status) {}
 
 protected:
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};		///< Current flight phase

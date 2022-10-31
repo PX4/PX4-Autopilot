@@ -147,6 +147,21 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 			}
 		}
 	}
+
+	// Set yaw saturation flag in case of yaw through tilt. As in this case the yaw actuation is decoupled from
+	// the other axes (for now neglecting the case of 0 collective thrust), we set the saturation flags
+	// directly if the (normalized) yaw torque setpoint is outside of range (-1, 1).
+	if (matrix_index == 0 && _tilts.hasYawControl()) {
+		_yaw_tilt_saturation_flags.tilt_yaw_neg = false;
+		_yaw_tilt_saturation_flags.tilt_yaw_pos = false;
+
+		if (control_sp(2) < -1.f) {
+			_yaw_tilt_saturation_flags.tilt_yaw_neg = true;
+
+		} else if (control_sp(2) > 1.f) {
+			_yaw_tilt_saturation_flags.tilt_yaw_pos = true;
+		}
+	}
 }
 
 void ActuatorEffectivenessTiltrotorVTOL::setFlightPhase(const FlightPhase &flight_phase)
@@ -168,5 +183,26 @@ void ActuatorEffectivenessTiltrotorVTOL::setFlightPhase(const FlightPhase &fligh
 	case FlightPhase::TRANSITION_HF_TO_FF:
 		_stopped_motors = 0;
 		break;
+	}
+}
+
+void ActuatorEffectivenessTiltrotorVTOL::getAllocatedAndUnallocatedControl(int matrix_index,
+		control_allocator_status_s &status)
+{
+	// only handle matrix 0 (motors and tilts)
+	if (matrix_index == 1) {
+		return;
+	}
+
+	// Note: the values '-1', '1' and '0' are just to indicate a negative,
+	// positive or no saturation to the rate controller. The actual magnitude is not used.
+	if (_yaw_tilt_saturation_flags.tilt_yaw_pos) {
+		status.unallocated_torque[2] = 1.f;
+
+	} else if (_yaw_tilt_saturation_flags.tilt_yaw_neg) {
+		status.unallocated_torque[2] = -1.f;
+
+	} else {
+		status.unallocated_torque[2] = 0.f;
 	}
 }
