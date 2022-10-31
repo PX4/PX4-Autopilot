@@ -336,6 +336,7 @@ struct parameters {
 	float arsp_thr{2.0f};                   ///< Airspeed fusion threshold. A value of zero will deactivate airspeed fusion
 
 	// synthetic sideslip fusion
+	int32_t beta_fusion_enabled{0};
 	float beta_innov_gate{5.0f};            ///< synthetic sideslip innovation consistency gate size in standard deviation (STD)
 	float beta_noise{0.3f};                 ///< synthetic sideslip noise (rad)
 	const float beta_avg_ft_us{150000.0f};  ///< The average time between synthetic sideslip measurements (uSec)
