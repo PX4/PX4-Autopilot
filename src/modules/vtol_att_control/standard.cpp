@@ -231,13 +231,14 @@ void Standard::update_transition_state()
 	}
 
 	if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_FW) {
-		if (_param_vt_psher_slew.get() <= 0.0f) {
+		if (_param_vt_psher_slew.get() <= FLT_EPSILON) {
 			// just set the final target throttle value
 			_pusher_throttle = _param_vt_f_trans_thr.get();
 
-		} else if (_pusher_throttle < _param_vt_f_trans_thr.get()) {
+		} else if (_pusher_throttle <= _param_vt_f_trans_thr.get()) {
 			// ramp up throttle to the target throttle value
-			_pusher_throttle += _param_vt_psher_slew.get() * _dt;
+			_pusher_throttle = math::min(_pusher_throttle +
+						     _param_vt_psher_slew.get() * _dt, _param_vt_f_trans_thr.get());
 
 
 		}

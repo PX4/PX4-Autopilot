@@ -120,10 +120,11 @@ PARAM_DEFINE_FLOAT(VT_B_REV_DEL, 0.0f);
 /**
  * Pusher throttle ramp up slew rate
  *
- * Defines the slew rate of the throttle during transitions.
- * Zero or negative values will produce an instant throttle rise to VT_F_TRANS_THR.
+ * Defines the slew rate of the puller/pusher throttle during transitions.
+ * Zero will deactivate the slew rate limiting and thus produce an instant throttle
+ * rise to the transition throttle VT_F_TRANS_THR.
  *
- * @max 20
+ * @min 0
  * @increment 0.01
  * @decimal 2
  * @group VTOL Attitude Control
