@@ -185,6 +185,7 @@ INA220::probe()
 		PX4_DEBUG("probe found wrong default_config %d", value);
 		return -1;
 	}
+
 	PX4_DEBUG("probe found correct default_config %d", value);
 
 	return PX4_OK;
