@@ -170,6 +170,7 @@ private:
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps);
 
 	// Used to check, save and use learned accel/gyro/mag biases
 	struct InFlightCalibration {

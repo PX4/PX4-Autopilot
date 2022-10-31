@@ -410,6 +410,42 @@ void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)
 	}
 }
 
+void EstimatorInterface::setSystemFlagData(const systemFlagUpdate &system_flags)
+{
+	if (!_initialised) {
+		return;
+	}
+
+	// Allocate the required buffer size if not previously done
+	if (_system_flag_buffer == nullptr) {
+		_system_flag_buffer = new RingBuffer<systemFlagUpdate>(_obs_buffer_length);
+
+		if (_system_flag_buffer == nullptr || !_system_flag_buffer->valid()) {
+			delete _system_flag_buffer;
+			_system_flag_buffer = nullptr;
+			printBufferAllocationFailed("system flag");
+			return;
+		}
+	}
+
+	_system_flag_buffer->push(system_flags);
+
+	const int64_t time_us = system_flags.time_us
+				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
+	// limit data rate to prevent data being lost
+	if (time_us >= static_cast<int64_t>(_system_flag_buffer->get_newest().time_us + _min_obs_interval_us)) {
+
+		systemFlagUpdate system_flags_new{system_flags};
+		system_flags_new.time_us = time_us;
+
+		_system_flag_buffer->push(system_flags_new);
+
+	} else {
+		ECL_WARN("system flag update too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _system_flag_buffer->get_newest().time_us, _min_obs_interval_us);
+	}
+}
+
 void EstimatorInterface::setDragData(const imuSample &imu)
 {
 	// down-sample the drag specific force data by accumulating and calculating the mean when
