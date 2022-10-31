@@ -15,7 +15,7 @@ float32[3] thrust_body		# Normalized thrust command in body NED frame [-1,1]
 
 bool reset_integral	# Reset roll/pitch/yaw integrals (navigation logic change)
 
-bool fw_control_yaw		# control heading with rudder (used for auto takeoff on runway)
+bool fw_control_yaw_wheel	# control heading with steering wheel (used for auto takeoff on runway)
 
 uint8 apply_flaps       	# flap config specifier
 uint8 FLAPS_OFF = 0     	# no flaps

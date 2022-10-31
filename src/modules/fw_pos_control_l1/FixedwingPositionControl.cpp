@@ -1439,7 +1439,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 					ground_speed);
 
 		// yaw control is disabled once in "taking off" state
-		_att_sp.fw_control_yaw = _runway_takeoff.controlYaw();
+		_att_sp.fw_control_yaw_wheel = _runway_takeoff.controlYaw();
 
 		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
 		if (_param_rwto_nudge.get()) {
@@ -1447,7 +1447,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		}
 
 		// tune up the lateral position control guidance when on the ground
-		if (_att_sp.fw_control_yaw) {
+		if (_att_sp.fw_control_yaw_wheel) {
 			_npfg.setPeriod(_param_rwto_l1_period.get());
 			_l1_control.set_l1_period(_param_rwto_l1_period.get());
 
@@ -1827,7 +1827,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		_att_sp.pitch_body = get_tecs_pitch();
 
 		// enable direct yaw control using rudder/wheel
-		_att_sp.fw_control_yaw = true;
+		_att_sp.fw_control_yaw_wheel = true;
 
 		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
 		if (_param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled) {
@@ -1900,7 +1900,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		_att_sp.yaw_body = _yaw;
 
 		// enable direct yaw control using rudder/wheel
-		_att_sp.fw_control_yaw = false;
+		_att_sp.fw_control_yaw_wheel = false;
 
 		_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_idle.get() : get_tecs_thrust();
 	}
@@ -2315,7 +2315,7 @@ FixedwingPositionControl::Run()
 		_att_sp.reset_integral = false;
 
 		// by default we don't want yaw to be contoller directly with rudder
-		_att_sp.fw_control_yaw = false;
+		_att_sp.fw_control_yaw_wheel = false;
 
 		// default to zero - is used (IN A HACKY WAY) to pass direct nose wheel steering via yaw stick to the actuators during auto takeoff
 		_att_sp.yaw_sp_move_rate = 0.0f;
