@@ -109,6 +109,7 @@ set(msg_files
 	IridiumsbdStatus.msg
 	IrlockReport.msg
 	LandingGear.msg
+	LandingGearWheel.msg
 	LandingTargetInnovations.msg
 	LandingTargetPose.msg
 	LedControl.msg

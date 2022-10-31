@@ -329,6 +329,9 @@ PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
 /**
  * Enable wheel steering controller
  *
+ * Only enabled during automatic runway takeoff and landing.
+ * In all manual modes the wheel is directly controlled with yaw stick.
+ *
  * @boolean
  * @group FW Attitude Control
  */
