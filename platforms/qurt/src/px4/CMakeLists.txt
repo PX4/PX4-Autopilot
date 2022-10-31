@@ -33,6 +33,7 @@
 
 # Placeholder
 set(QURT_LAYER_SRCS
+	drv_hrt.cpp
 	tasks.cpp
 	)
 
