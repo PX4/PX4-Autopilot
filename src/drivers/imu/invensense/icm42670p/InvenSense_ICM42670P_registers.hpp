@@ -41,6 +41,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 
 namespace InvenSense_ICM42670P
 {
