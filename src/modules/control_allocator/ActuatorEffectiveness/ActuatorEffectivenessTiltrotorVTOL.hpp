@@ -82,7 +82,7 @@ public:
 
 	uint32_t getStoppedMotors() const override { return _stopped_motors; }
 protected:
-	bool _combined_tilt_updated{true};
+	bool _collective_tilt_updated{true};
 	ActuatorEffectivenessRotors _mc_rotors;
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
 	ActuatorEffectivenessTilts _tilts;
@@ -93,7 +93,7 @@ protected:
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 	int _first_tilt_idx{0}; ///< applies to matrix 0
 
-	float _last_tilt_control{NAN};
+	float _last_collective_tilt_control{NAN};
 
 	uORB::Subscription _actuator_controls_1_sub{ORB_ID(actuator_controls_1)};
 	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
