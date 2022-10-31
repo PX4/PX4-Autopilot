@@ -82,7 +82,7 @@ public:
 
 	uint32_t getStoppedMotors() const override { return _stopped_motors; }
 
-	void getAllocatedAndUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
+	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
 
 protected:
 	bool _collective_tilt_updated{true};
